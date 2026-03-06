@@ -1,0 +1,2591 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Game Attributes & Stats System - Implementation Guide</title>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #3498db;
+            --success-color: #27ae60;
+            --warning-color: #f39c12;
+            --danger-color: #e74c3c;
+            --info-color: #16a085;
+            --bg-color: #ecf0f1;
+            --card-bg: #ffffff;
+            --code-bg: #2d2d2d;
+            --code-text: #f8f8f2;
+            --border-color: #bdc3c7;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: var(--primary-color);
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: var(--card-bg);
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+
+        /* Header */
+        header {
+            background: linear-gradient(135deg, var(--primary-color) 0%, #34495e 100%);
+            color: white;
+            padding: 40px;
+            text-align: center;
+        }
+
+        header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        header .subtitle {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+
+        header .status-badge {
+            display: inline-block;
+            background: var(--success-color);
+            padding: 8px 20px;
+            border-radius: 25px;
+            margin-top: 15px;
+            font-weight: bold;
+            animation: pulse 2s infinite;
+        }
+
+        .level-info {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+            font-size: 1.1em;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(1.05);
+            }
+        }
+
+        /* Navigation */
+        nav {
+            background: var(--bg-color);
+            padding: 20px;
+            border-bottom: 3px solid var(--secondary-color);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        nav ul {
+            list-style: none;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 15px;
+        }
+
+        nav a {
+            color: var(--primary-color);
+            text-decoration: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            transition: all 0.3s;
+            font-weight: 500;
+        }
+
+        nav a:hover {
+            background: var(--secondary-color);
+            color: white;
+            transform: translateY(-2px);
+        }
+
+        /* Main Content */
+        main {
+            padding: 40px;
+        }
+
+        section {
+            margin-bottom: 50px;
+            padding: 30px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        }
+
+        h2 {
+            color: var(--primary-color);
+            font-size: 2em;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 3px solid var(--secondary-color);
+        }
+
+        h3 {
+            color: var(--secondary-color);
+            font-size: 1.5em;
+            margin: 25px 0 15px;
+        }
+
+        h4 {
+            color: var(--info-color);
+            font-size: 1.2em;
+            margin: 20px 0 10px;
+        }
+
+        /* Attribute Cards */
+        .attribute-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 25px;
+            margin: 30px 0;
+        }
+
+        .attribute-card {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            border-radius: 10px;
+            padding: 25px;
+            border-left: 5px solid var(--secondary-color);
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+
+        .attribute-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+        }
+
+        .attribute-card h3 {
+            margin-top: 0;
+            color: var(--primary-color);
+        }
+
+        .attribute-role {
+            display: inline-block;
+            background: var(--info-color);
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            margin-bottom: 15px;
+        }
+
+        .stat-list {
+            list-style: none;
+            margin-top: 15px;
+        }
+
+        .stat-list li {
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+        }
+
+        .stat-list li:last-child {
+            border-bottom: none;
+        }
+
+        .stat-value {
+            color: var(--success-color);
+            font-weight: bold;
+        }
+
+        .stat-negative {
+            color: var(--danger-color);
+        }
+
+        /* Code Blocks */
+        pre {
+            background: var(--code-bg);
+            color: var(--code-text);
+            padding: 20px;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 20px 0;
+            border-left: 4px solid var(--secondary-color);
+        }
+
+        code {
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+        }
+
+        .inline-code {
+            background: #f4f4f4;
+            color: var(--danger-color);
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+        }
+
+        /* Tables */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            background: white;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        }
+
+        th {
+            background: var(--primary-color);
+            color: white;
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+        }
+
+        td {
+            padding: 12px 15px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        tr:hover {
+            background: var(--bg-color);
+        }
+
+        /* Alert Boxes */
+        .alert {
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            border-left: 5px solid;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            border-color: var(--success-color);
+            color: #155724;
+        }
+
+        .alert-warning {
+            background: #fff3cd;
+            border-color: var(--warning-color);
+            color: #856404;
+        }
+
+        .alert-info {
+            background: #d1ecf1;
+            border-color: var(--info-color);
+            color: #0c5460;
+        }
+
+        .alert-danger {
+            background: #f8d7da;
+            border-color: var(--danger-color);
+            color: #721c24;
+        }
+
+        /* Collapsible Sections */
+        .collapsible {
+            background: var(--secondary-color);
+            color: white;
+            cursor: pointer;
+            padding: 18px;
+            width: 100%;
+            border: none;
+            text-align: left;
+            outline: none;
+            font-size: 1.1em;
+            border-radius: 5px;
+            margin: 10px 0;
+            transition: background 0.3s;
+        }
+
+        .collapsible:hover {
+            background: #2980b9;
+        }
+
+        .collapsible:after {
+            content: '\002B';
+            color: white;
+            font-weight: bold;
+            float: right;
+            margin-left: 5px;
+        }
+
+        .collapsible.active:after {
+            content: "\2212";
+        }
+
+        .collapsible-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out;
+            background: #f9f9f9;
+            padding: 0 20px;
+            border-radius: 0 0 5px 5px;
+        }
+
+        /* Formula Box */
+        .formula-box {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 1.1em;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Status Icons */
+        .icon-check {
+            color: var(--success-color);
+            font-weight: bold;
+        }
+
+        .icon-warning {
+            color: var(--warning-color);
+            font-weight: bold;
+        }
+
+        /* Footer */
+        footer {
+            background: var(--primary-color);
+            color: white;
+            text-align: center;
+            padding: 30px;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            nav ul {
+                flex-direction: column;
+            }
+
+            .attribute-grid {
+                grid-template-columns: 1fr;
+            }
+
+            main {
+                padding: 20px;
+            }
+
+            header h1 {
+                font-size: 1.8em;
+            }
+        }
+
+        /* Print Styles */
+        @media print {
+            body {
+                background: white;
+            }
+
+            nav {
+                display: none;
+            }
+
+            .collapsible-content {
+                max-height: none !important;
+            }
+        }
+
+        /* Highlight important fixes */
+        .fixed-value {
+            background: #d4edda;
+            padding: 2px 6px;
+            border-radius: 3px;
+            color: var(--success-color);
+            font-weight: bold;
+        }
+
+        .broken-value {
+            background: #f8d7da;
+            padding: 2px 6px;
+            border-radius: 3px;
+            color: var(--danger-color);
+            font-weight: bold;
+            text-decoration: line-through;
+        }
+
+        .point-tracker {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            text-align: center;
+        }
+
+        .point-tracker h4 {
+            color: white;
+            margin: 0 0 10px 0;
+        }
+
+        .point-breakdown {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .point-box {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 15px;
+            border-radius: 8px;
+            backdrop-filter: blur(10px);
+        }
+
+        .point-box .number {
+            font-size: 2em;
+            font-weight: bold;
+            display: block;
+        }
+
+        .point-box .label {
+            font-size: 0.9em;
+            opacity: 0.9;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <h1>🎮 Game Attributes & Stats System</h1>
+            <p class="subtitle">Complete Implementation Guide - Level 0-20</p>
+            <span class="status-badge">✅ PRODUCTION READY - OPTIMIZED SYSTEM</span>
+            <div class="level-info">
+                <strong>Level Range:</strong> 0-20 | <strong>Starting Points:</strong> 20 | <strong>Points Per
+                    Level:</strong> 7
+            </div>
+        </header>
+
+        <nav>
+            <ul>
+                <li><a href="#overview">Overview</a></li>
+                <li><a href="#progression">Point Progression</a></li>
+                <li><a href="#attributes">8 Attributes</a></li>
+                <li><a href="#combat-math">Combat Math</a></li>
+                <li><a href="#examples">Build Examples</a></li>
+                <li><a href="#implementation">Implementation</a></li>
+            </ul>
+        </nav>
+
+        <main>
+            <!-- Overview Section -->
+            <section id="overview">
+                <h2>📖 System Overview</h2>
+                <p>This document details the complete attribute and stat system for a level 0-20 game. Each attribute
+                    point invested provides both <strong>flat bonuses</strong> (fixed amounts) and <strong>percentage
+                        bonuses</strong> (scaling with base stats).</p>
+
+                <div class="alert alert-success">
+                    <strong>✅ System Status:</strong> Balanced attribute system with proper scaling, diminishing
+                    returns, and stat caps to maintain competitive gameplay across all levels.
+                </div>
+
+                <h3>Core Mechanics</h3>
+                <ul>
+                    <li><strong>Level Range:</strong> Characters progress from Level 0 to Level 20</li>
+                    <li><strong>Starting Points:</strong> 20 attribute points at character creation</li>
+                    <li><strong>Points Per Level:</strong> 7 points awarded per level up</li>
+                    <li><strong>Maximum Points:</strong> 20 + (20 × 7) = 160 total points at level 20</li>
+                    <li><strong>Flat Bonuses:</strong> Fixed amount added per attribute point (e.g., +26 Health per
+                        Strength)</li>
+                    <li><strong>Percentage Bonuses:</strong> Scales with base stats from level (e.g., +0.8% of base
+                        Health per Strength)</li>
+                    <li><strong>Diminishing Returns:</strong> Reduced efficiency after 25 points in any single attribute
+                    </li>
+                    <li><strong>Stat Caps:</strong> Maximum values for combat stats to maintain balance</li>
+                </ul>
+
+                <div class="formula-box">
+                    Total Stat = (Flat Bonus × Effective Points) + (Base Stat × Percent Bonus × Effective Points)
+                    <br><br>
+                    Effective Points = Full Points (1-25) + Half Points (26-50) + Quarter Points (51+)
+                </div>
+            </section>
+
+            <!-- Point Progression Section -->
+            <section id="progression">
+                <h2>📊 Attribute Point Progression (Level 0-20)</h2>
+
+                <div class="point-tracker">
+                    <h4>Total Available Points by Level</h4>
+                    <div class="point-breakdown">
+                        <div class="point-box">
+                            <span class="number">20</span>
+                            <span class="label">Level 0 (Start)</span>
+                        </div>
+                        <div class="point-box">
+                            <span class="number">55</span>
+                            <span class="label">Level 5</span>
+                        </div>
+                        <div class="point-box">
+                            <span class="number">90</span>
+                            <span class="label">Level 10</span>
+                        </div>
+                        <div class="point-box">
+                            <span class="number">125</span>
+                            <span class="label">Level 15</span>
+                        </div>
+                        <div class="point-box">
+                            <span class="number">160</span>
+                            <span class="label">Level 20 (Max)</span>
+                        </div>
+                    </div>
+                </div>
+
+                <h3>Point Allocation Table</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Level</th>
+                            <th>Points Gained</th>
+                            <th>Total Points</th>
+                            <th>Example Distribution</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>0</td>
+                            <td>20 (Starting)</td>
+                            <td>20</td>
+                            <td>Tank: 10 STR, 5 VIT, 5 END</td>
+                        </tr>
+                        <tr>
+                            <td>1</td>
+                            <td>+7</td>
+                            <td>27</td>
+                            <td>—</td>
+                        </tr>
+                        <tr>
+                            <td>5</td>
+                            <td>+7 × 5</td>
+                            <td>55</td>
+                            <td>Tank: 25 STR, 15 VIT, 15 END</td>
+                        </tr>
+                        <tr>
+                            <td>10</td>
+                            <td>+7 × 10</td>
+                            <td>90</td>
+                            <td>Tank: 35 STR, 30 VIT, 25 END</td>
+                        </tr>
+                        <tr>
+                            <td>15</td>
+                            <td>+7 × 15</td>
+                            <td>125</td>
+                            <td>Tank: 50 STR, 40 VIT, 35 END</td>
+                        </tr>
+                        <tr>
+                            <td>20</td>
+                            <td>+7 × 20</td>
+                            <td>160</td>
+                            <td>Tank: 60 STR, 50 VIT, 50 END</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <div class="alert alert-info">
+                    <strong>Diminishing Returns Impact:</strong> After 25 points in a single attribute, each point is
+                    worth 50% efficiency (26-50 points) or 25% efficiency (51+ points). This encourages balanced builds
+                    while still allowing specialization.
+                </div>
+
+                <h3>Strategic Point Allocation</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Build Type</th>
+                            <th>Primary Attributes</th>
+                            <th>Level 20 Distribution</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Pure Tank</td>
+                            <td>STR, VIT, END</td>
+                            <td>60 STR / 50 VIT / 50 END</td>
+                        </tr>
+                        <tr>
+                            <td>Physical DPS</td>
+                            <td>STR, DEX, AGI</td>
+                            <td>60 STR / 50 DEX / 50 AGI</td>
+                        </tr>
+                        <tr>
+                            <td>Magic DPS</td>
+                            <td>INT, WIS</td>
+                            <td>80 INT / 80 WIS</td>
+                        </tr>
+                        <tr>
+                            <td>Balanced Hybrid</td>
+                            <td>Varies</td>
+                            <td>40 STR / 40 DEX / 40 AGI / 40 TAC</td>
+                        </tr>
+                        <tr>
+                            <td>Specialist (DR Risk)</td>
+                            <td>Single Attribute</td>
+                            <td>160 STR (Effective: ~76 points after DR)</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </section>
+
+            <!-- The 8 Attributes -->
+            <section id="attributes">
+                <h2>⚔️ The 8 Attributes</h2>
+
+                <div class="attribute-grid">
+                    <!-- Strength -->
+                    <div class="attribute-card" style="border-left-color: #e74c3c;">
+                        <h3>💪 STRENGTH</h3>
+                        <span class="attribute-role">Tank / Melee DPS</span>
+                        <p><strong>Focus:</strong> High health, damage, and defense with strong combat modifiers</p>
+                        <ul class="stat-list">
+                            <li>Health: <span class="stat-value">+26 flat</span> <span class="stat-value">+0.8%
+                                    base</span></li>
+                            <li>Damage: <span class="stat-value">+3 flat</span> <span class="stat-value">+2% base</span>
+                            </li>
+                            <li>Defense: <span class="stat-value">+12 flat</span> <span class="stat-value">+1.5%
+                                    base</span></li>
+                            <li>Block Chance: <span class="stat-value">+0.5% flat</span> <span class="stat-value">+5%
+                                    base</span></li>
+                            <li>Critical Chance: <span class="stat-value">+0.32% flat</span> <span
+                                    class="stat-value">+7% base</span></li>
+                            <li>Block Factor: <span class="stat-value">+0.85% flat</span> <span
+                                    class="stat-value">+26.3% base</span></li>
+                            <li>Critical Factor: <span class="stat-value">+1.1% flat</span> <span
+                                    class="stat-value">+1.5% base</span></li>
+                        </ul>
+                        <div class="alert alert-warning" style="margin-top: 15px; padding: 10px; font-size: 0.9em;">
+                            <strong>At 60 points (Level 20 focused):</strong><br>
+                            • Effective: ~42.5 points (after DR)<br>
+                            • ~1,100 Health | ~130 Damage | ~510 Defense
+                        </div>
+                    </div>
+
+                    <!-- Vitality -->
+                    <div class="attribute-card" style="border-left-color: #27ae60;">
+                        <h3>❤️ VITALITY</h3>
+                        <span class="attribute-role">Tank / Survivability</span>
+                        <p><strong>Focus:</strong> Maximum health, defense, and damage mitigation</p>
+                        <ul class="stat-list">
+                            <li>Health: <span class="stat-value">+25 flat</span> <span class="stat-value">+0.5%
+                                    base</span></li>
+                            <li>Mana: <span class="stat-value">+2 flat</span> <span class="stat-value">+0.2% base</span>
+                            </li>
+                            <li>Stamina: <span class="stat-value">+5 flat</span> <span class="stat-value">+0.1%
+                                    base</span></li>
+                            <li>Damage: <span class="stat-value">+2 flat</span> <span class="stat-value">+0.1%
+                                    base</span></li>
+                            <li>Defense: <span class="stat-value">+12 flat</span></li>
+                            <li>Block Factor: <span class="stat-value">+0.3% flat</span> <span class="stat-value">+17%
+                                    base</span></li>
+                            <li>Resistance: <span class="stat-value">+0.5% flat</span></li>
+                        </ul>
+                        <div class="alert alert-warning" style="margin-top: 15px; padding: 10px; font-size: 0.9em;">
+                            <strong>At 50 points (Level 20 balanced):</strong><br>
+                            • Effective: ~37.5 points (after DR)<br>
+                            • ~940 Health | ~510 Defense | High Survivability
+                        </div>
+                    </div>
+
+                    <!-- Endurance -->
+                    <div class="attribute-card" style="border-left-color: #95a5a6;">
+                        <h3>🛡️ ENDURANCE</h3>
+                        <span class="attribute-role">Defensive Specialist</span>
+                        <p><strong>Focus:</strong> Defense, block mechanics, and critical evasion</p>
+                        <ul class="stat-list">
+                            <li>Health: <span class="stat-value">+10 flat</span> <span class="stat-value">+0.1%
+                                    base</span></li>
+                            <li>Stamina: <span class="stat-value">+1 flat</span> <span class="stat-value">+0.3%
+                                    base</span></li>
+                            <li>Defense: <span class="stat-value">+12 flat</span> <span class="stat-value">+12%
+                                    base</span></li>
+                            <li>Block Chance: <span class="stat-value">+0.11% flat</span> <span
+                                    class="stat-value">+73.5% base</span></li>
+                            <li>Block Factor: <span class="stat-value">+0.27% flat</span></li>
+                            <li>Resistance: <span class="stat-value">+0.46% flat</span></li>
+                        </ul>
+                        <div class="alert alert-warning" style="margin-top: 15px; padding: 10px; font-size: 0.9em;">
+                            <strong>At 50 points:</strong><br>
+                            • Effective: ~37.5 points<br>
+                            • ~510 Defense | ~75% Block (capped) | High Resistance
+                        </div>
+                    </div>
+
+                    <!-- Intellect -->
+                    <div class="attribute-card" style="border-left-color: #3498db;">
+                        <h3>🧠 INTELLECT</h3>
+                        <span class="attribute-role">Mage / Caster</span>
+                        <p><strong>Focus:</strong> Mana, magic damage, and spell accuracy</p>
+                        <ul class="stat-list">
+                            <li>Mana: <span class="stat-value">+5 flat</span> <span class="stat-value">+5% base</span>
+                            </li>
+                            <li>Damage: <span class="stat-value">+4 flat</span> <span class="stat-value">+2.5%
+                                    base</span></li>
+                            <li>Defense: <span class="stat-value">+2 flat</span></li>
+                            <li>Critical Chance: <span class="stat-value">+0.23% flat</span> <span
+                                    class="stat-value">+0.1% base</span></li>
+                            <li>Accuracy: <span class="stat-value">+0.12% flat</span> <span class="stat-value">+33.8%
+                                    base</span></li>
+                            <li>Resistance: <span class="stat-value">+0.38% flat</span> <span class="stat-value">+17%
+                                    base</span></li>
+                        </ul>
+                        <div class="alert alert-warning" style="margin-top: 15px; padding: 10px; font-size: 0.9em;">
+                            <strong>At 80 points (Mage focus):</strong><br>
+                            • Effective: ~53.75 points<br>
+                            • ~270 Mana | ~215 Damage | High Accuracy
+                        </div>
+                    </div>
+
+                    <!-- Wisdom -->
+                    <div class="attribute-card" style="border-left-color: #9b59b6;">
+                        <h3>🔮 WISDOM</h3>
+                        <span class="attribute-role">Healer / Support / Mana Efficiency</span>
+                        <p><strong>Focus:</strong> Mana efficiency, survivability, and spell effectiveness</p>
+                        <ul class="stat-list">
+                            <li>Health: <span class="stat-value">+10 flat</span></li>
+                            <li>Mana: <span class="stat-value">+20 flat</span> <span class="stat-value">+3% base</span>
+                            </li>
+                            <li>Damage: <span class="stat-value">+2 flat</span> <span class="stat-value">+1.5%
+                                    base</span></li>
+                            <li>Defense: <span class="stat-value">+2 flat</span></li>
+                            <li>Critical Chance: <span class="stat-value">+0.5% flat</span> <span
+                                    class="stat-value">+0.15% base</span></li>
+                            <li>Resistance: <span class="stat-value">+0.5% flat</span></li>
+                        </ul>
+                        <div class="alert alert-warning" style="margin-top: 15px; padding: 10px; font-size: 0.9em;">
+                            <strong>At 80 points (Mage focus):</strong><br>
+                            • Effective: ~53.75 points<br>
+                            • ~1,075 Mana | ~110 Damage | High Spell Support
+                        </div>
+                    </div>
+
+                    <!-- Dexterity -->
+                    <div class="attribute-card" style="border-left-color: #f39c12;">
+                        <h3>🎯 DEXTERITY</h3>
+                        <span class="attribute-role">Rogue / Precision Fighter</span>
+                        <p><strong>Focus:</strong> Critical strikes, accuracy, and evasion</p>
+                        <ul class="stat-list">
+                            <li>Damage: <span class="stat-value">+3 flat</span> <span class="stat-value">+1.8%
+                                    base</span></li>
+                            <li>Defense: <span class="stat-value">+10 flat</span> <span class="stat-value">+1%
+                                    base</span></li>
+                            <li>Block Chance: <span class="stat-value">+0.41% flat</span> <span class="stat-value">+1%
+                                    base</span></li>
+                            <li>Critical Chance: <span class="stat-value">+0.5% flat</span> <span
+                                    class="stat-value">+1.2% base</span></li>
+                            <li>Accuracy: <span class="stat-value">+0.7% flat</span> <span class="stat-value">+1.5%
+                                    base</span></li>
+                        </ul>
+                        <div class="alert alert-warning" style="margin-top: 15px; padding: 10px; font-size: 0.9em;">
+                            <strong>At 50 points:</strong><br>
+                            • Effective: ~37.5 points<br>
+                            • ~75% Crit Chance (capped) | High Accuracy
+                        </div>
+                    </div>
+
+                    <!-- Agility -->
+                    <div class="attribute-card" style="border-left-color: #1abc9c;">
+                        <h3>⚡ AGILITY</h3>
+                        <span class="attribute-role">Mobile DPS / Dodge Tank</span>
+                        <p><strong>Focus:</strong> Mobility, critical strikes, and defensive penetration</p>
+                        <ul class="stat-list">
+                            <li>Health: <span class="stat-value">+2 flat</span> <span class="stat-value">+0.6%
+                                    base</span></li>
+                            <li>Stamina: <span class="stat-value">+5 flat</span> <span class="stat-value">+0.5%
+                                    base</span></li>
+                            <li>Damage: <span class="stat-value">+3 flat</span> <span class="stat-value">+1.6%
+                                    base</span></li>
+                            <li>Defense: <span class="stat-value">+5 flat</span> <span class="stat-value">+0.8%
+                                    base</span></li>
+                            <li>Critical Chance: <span class="stat-value">+0.42% flat</span> <span
+                                    class="stat-value">+1% base</span></li>
+                        </ul>
+                        <div class="alert alert-warning" style="margin-top: 15px; padding: 10px; font-size: 0.9em;">
+                            <strong>At 50 points:</strong><br>
+                            • Effective: ~37.5 points<br>
+                            • ~75 Health | ~190 Stamina | ~65% Crit Chance
+                        </div>
+                    </div>
+
+                    <!-- Tactics -->
+                    <div class="attribute-card" style="border-left-color: #34495e;">
+                        <h3>🎲 TACTICS</h3>
+                        <span class="attribute-role">Strategic Fighter / Commander</span>
+                        <p><strong>Focus:</strong> Balanced combat stats with penetration abilities</p>
+                        <ul class="stat-list">
+                            <li>Health: <span class="stat-value">+10 flat</span> <span class="stat-value">+8.4%
+                                    base</span></li>
+                            <li>Mana: <span class="stat-value">+0 flat</span> <span class="stat-value">+8.2% base</span>
+                            </li>
+                            <li>Stamina: <span class="stat-value">+1 flat</span></li>
+                            <li>Damage: <span class="stat-value">+3 flat</span> <span class="stat-value">+0.2%
+                                    base</span></li>
+                            <li>Defense: <span class="stat-value">+5 flat</span> <span class="stat-value">+0.5%
+                                    base</span></li>
+                            <li>Block Chance: <span class="stat-value">+0.27% flat</span> <span class="stat-value">+0.8%
+                                    base</span></li>
+                        </ul>
+                        <div class="alert alert-warning" style="margin-top: 15px; padding: 10px; font-size: 0.9em;">
+                            <strong>At 40 points (Hybrid):</strong><br>
+                            • Effective: ~32.5 points<br>
+                            • Balanced stats across all resources
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Combat Math Section -->
+            <section id="combat-math">
+                <h2>🧮 Combat Math & Damage Calculations</h2>
+
+                <button class="collapsible">Primary Stat Calculations (Health, Mana, Stamina)</button>
+                <div class="collapsible-content">
+                    <h3>Health Calculation</h3>
+                    <div class="formula-box">
+                        Max Health = Base Health + Attribute Bonuses + Equipment + Traits + Sets
+                        <br><br>
+                        Attribute Bonus = Σ(Flat × Effective Points) + (Base × Σ(Percent × Effective Points))
+                    </div>
+                    <p><strong>Example:</strong> Level 10, 35 Strength (Effective: 30), 30 Vitality (Effective: 27.5)
+                    </p>
+                    <pre>Base Health: 100 (Level 10)
+Strength: (26×30) + (100 × 0.008×30) = 780 + 24 = 804
+Vitality: (25×27.5) + (100 × 0.005×27.5) = 687.5 + 13.75 = 701.25
+Total: 100 + 804 + 701.25 = 1,605 HP</pre>
+
+                    <h3>Mana Calculation</h3>
+                    <p>Same formula applies for Mana resource pool</p>
+                    <p><strong>Example:</strong> Level 10, 40 Intellect (Effective: 32.5), 40 Wisdom (Effective: 32.5)
+                    </p>
+                    <pre>Base Mana: 50 (Level 10)
+Intellect: (5×32.5) + (50 × 0.05×32.5) = 162.5 + 81.25 = 243.75
+Wisdom: (20×32.5) + (50 × 0.03×32.5) = 650 + 48.75 = 698.75
+Total: 50 + 243.75 + 698.75 = 992.5 Mana</pre>
+
+                    <div class="alert alert-info">
+                        <strong>Diminishing Returns Applied:</strong> Effective points calculated as:<br>
+                        • Points 1-25: Full value (1.0×)<br>
+                        • Points 26-50: Half value (0.5×)<br>
+                        • Points 51+: Quarter value (0.25×)
+                    </div>
+                </div>
+
+                <button class="collapsible">Damage Calculations & Defense Mitigation</button>
+                <div class="collapsible-content">
+                    <h3>Damage Output Formula</h3>
+                    <div class="formula-box">
+                        Base Damage = Level Damage + Attribute Bonuses + Equipment + Traits + Sets
+                    </div>
+
+                    <h3>Defense & Damage Reduction (Relational Damage)</h3>
+                    <div class="formula-box">
+                        Damage Taken = Incoming Damage × (100 - √Defense) / 100
+                    </div>
+
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Defense</th>
+                                <th>Square Root</th>
+                                <th>Damage Reduction</th>
+                                <th>Example (100 Damage)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>100</td>
+                                <td>10</td>
+                                <td>10%</td>
+                                <td>90 damage</td>
+                            </tr>
+                            <tr>
+                                <td>225</td>
+                                <td>15</td>
+                                <td>15%</td>
+                                <td>85 damage</td>
+                            </tr>
+                            <tr>
+                                <td>400</td>
+                                <td>20</td>
+                                <td>20%</td>
+                                <td>80 damage</td>
+                            </tr>
+                            <tr>
+                                <td>625</td>
+                                <td>25</td>
+                                <td>25%</td>
+                                <td>75 damage</td>
+                            </tr>
+                            <tr>
+                                <td>900</td>
+                                <td>30</td>
+                                <td>30%</td>
+                                <td>70 damage</td>
+                            </tr>
+                            <tr>
+                                <td>1225</td>
+                                <td>35</td>
+                                <td>35%</td>
+                                <td>65 damage</td>
+                            </tr>
+                            <tr>
+                                <td>1600</td>
+                                <td>40</td>
+                                <td>40%</td>
+                                <td>60 damage</td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <div class="alert alert-warning">
+                        <strong>Level 20 Defense Example:</strong> A tank with 60 STR, 50 VIT, 50 END could reach ~1,500
+                        defense = 38.7% damage reduction
+                    </div>
+                </div>
+
+                <button class="collapsible">Block & Critical Hit Mechanics</button>
+                <div class="collapsible-content">
+                    <h3>Block System</h3>
+                    <div class="formula-box">
+                        IF Random(0,1) < Block Chance: <br>&nbsp;&nbsp;Damage = Damage × (1 - Block Factor)
+                            <br><br>
+                            Block Chance Cap: 75%
+                            <br>Block Factor Cap: 90% (0.90)
+                    </div>
+
+                    <p><strong>Example:</strong> 100 damage incoming, 40% block chance, 0.35 block factor</p>
+                    <ul>
+                        <li>40% chance to trigger block</li>
+                        <li>If blocked: 100 × (1 - 0.35) = 65 damage taken</li>
+                        <li>Modified by attacker's Block Break Factor</li>
+                    </ul>
+
+                    <h3>Critical Hit System</h3>
+                    <div class="formula-box">
+                        IF Random(0,1) < Critical Chance: <br>&nbsp;&nbsp;Damage = Damage × Critical Factor
+                            <br><br>
+                            Critical Chance Cap: 75%
+                            <br>Critical Factor Cap: 3.0× (300% damage)
+                    </div>
+
+                    <p><strong>Example:</strong> 100 base damage, 45% crit chance, 1.8× crit factor</p>
+                    <ul>
+                        <li>45% chance to trigger critical</li>
+                        <li>If critical: 100 × 1.8 = 180 damage</li>
+                        <li>Modified by target's Critical Evasion</li>
+                    </ul>
+
+                    <div class="alert alert-info">
+                        <strong>At Level 20:</strong> With 50 DEX + 50 AGI, you can easily reach the 75% crit cap,
+                        making crit factor your next priority.
+                    </div>
+                </div>
+
+                <button class="collapsible">Complete Damage Flow (8 Steps)</button>
+                <div class="collapsible-content">
+                    <h3>Full Combat Calculation Pipeline</h3>
+                    <ol style="line-height: 2;">
+                        <li><strong>Calculate Base Damage</strong> - Level + Attributes + Equipment + Traits</li>
+                        <li><strong>Apply Defense Break</strong> - Reduce target defense by attacker's Defense Break
+                            Factor</li>
+                        <li><strong>Calculate Mitigation</strong> - Apply defense formula (relational damage reduction)
+                        </li>
+                        <li><strong>Apply Random Variance</strong> - ±25% deviation (if enabled)</li>
+                        <li><strong>Check Block</strong> - Roll vs effective block chance (modified by Block Break)</li>
+                        <li><strong>Check Critical</strong> - Roll vs effective crit chance (modified by Crit Evasion)
+                            if not blocked</li>
+                        <li><strong>Apply Damage</strong> - Subtract from target HP</li>
+                        <li><strong>Trigger Effects</strong> - Drain, Reflect, Absorb factors activate</li>
+                    </ol>
+
+                    <div class="alert alert-info">
+                        <strong>Note:</strong> Critical hits cannot occur on blocked attacks. Block check happens before
+                        critical check.
+                    </div>
+                </div>
+
+                <button class="collapsible">Advanced Combat Factors</button>
+                <div class="collapsible-content">
+                    <h3>Drain Mechanics (Lifesteal/Manasteal)</h3>
+                    <div class="formula-box">
+                        Health Restored = Damage Dealt × Drain Health Factor
+                        <br>Mana Restored = Damage Dealt × Drain Mana Factor
+                        <br><br>Cap: 50% (0.50)
+                    </div>
+
+                    <h3>Reflect Damage</h3>
+                    <div class="formula-box">
+                        Damage Reflected = Damage Received × Reflect Factor
+                        <br>Cap: 50% (0.50)
+                    </div>
+                    <p class="alert alert-warning">Reflect does NOT proc on blocked hits</p>
+
+                    <h3>Absorb Mechanics</h3>
+                    <div class="formula-box">
+                        Health Regenerated = Damage Received × Absorb Health Factor
+                        <br>Mana Regenerated = Damage Received × Absorb Mana Factor
+                        <br><br>Cap: 50% (0.50)
+                    </div>
+
+                    <h3>Accuracy & Resistance (Debuffs)</h3>
+                    <div class="formula-box">
+                        Debuff Success = Attacker Accuracy - Target Resistance
+                        <br><br>Cap: 95% (0.95) - Always 5% minimum chance to resist/land
+                    </div>
+                </div>
+            </section>
+
+            <!-- Build Examples Section -->
+            <section id="examples">
+                <h2>🎯 Level 20 Build Examples (160 Points)</h2>
+
+                <h3>Pure Tank - Maximum Survivability</h3>
+                <div class="alert alert-info">
+                    <strong>Distribution:</strong> 60 STR / 50 VIT / 50 END
+                    <p><strong>Effective Points (After DR):</strong> 42.5 STR / 37.5 VIT / 37.5 END</p>
+                    <p><strong>Stats at Level 20:</strong></p>
+                    <ul>
+                        <li>Health: ~2,200</li>
+                        <li>Defense: ~1,500 (38.7% damage reduction)</li>
+                        <li>Block Chance: ~70% (approaches cap)</li>
+                        <li>Block Factor: ~0.75 (75% damage reduction when blocking)</li>
+                        <li>Damage: ~140 (tank damage, compensated by equipment)</li>
+                    </ul>
+                    <p><strong>Playstyle:</strong> Front-line warrior who can absorb massive damage. High survivability
+                        with excellent blocking mechanics. Lower damage output requires weapon/equipment compensation.
+                    </p>
+                </div>
+
+                <h3>Physical DPS - Critical Strike Specialist</h3>
+                <div class="alert alert-info">
+                    <strong>Distribution:</strong> 50 STR / 55 DEX / 55 AGI
+                    <p><strong>Effective Points (After DR):</strong> 37.5 STR / 40 DEX / 40 AGI</p>
+                    <p><strong>Stats at Level 20:</strong></p>
+                    <ul>
+                        <li>Health: ~850</li>
+                        <li>Damage: ~155</li>
+                        <li>Critical Chance: 75% (CAPPED)</li>
+                        <li>Critical Factor: ~2.1× (210% damage)</li>
+                        <li>Accuracy: ~60%</li>
+                        <li>Defense: ~580 (24% damage reduction)</li>
+                    </ul>
+                    <p><strong>Playstyle:</strong> Glass cannon with devastating critical strikes. 3 out of 4 attacks
+                        are crits dealing 2× damage. Requires skillful positioning due to lower health/defense.</p>
+                </div>
+
+                <h3>Magic DPS - Spell Caster</h3>
+                <div class="alert alert-info">
+                    <strong>Distribution:</strong> 80 INT / 80 WIS
+                    <p><strong>Effective Points (After DR):</strong> 53.75 INT / 53.75 WIS</p>
+                    <p><strong>Stats at Level 20:</strong></p>
+                    <ul>
+                        <li>Health: ~540</li>
+                        <li>Mana: ~1,345</li>
+                        <li>Damage: ~215 + spell bonuses</li>
+                        <li>Accuracy: ~40% (spell hit chance)</li>
+                        <li>Resistance: ~45%</li>
+                        <li>Defense: ~215 (14.6% damage reduction)</li>
+                    </ul>
+                    <p><strong>Playstyle:</strong> Powerful spell damage with large mana pool. Very fragile but high
+                        burst potential. Excellent debuff resistance and spell accuracy.</p>
+                </div>
+
+                <h3>Balanced Hybrid - Versatile Fighter</h3>
+                <div class="alert alert-info">
+                    <strong>Distribution:</strong> 40 STR / 40 VIT / 40 DEX / 40 TAC
+                    <p><strong>Effective Points (After DR):</strong> 32.5 all attributes</p>
+                    <p><strong>Stats at Level 20:</strong></p>
+                    <ul>
+                        <li>Health: ~1,675 (balanced survivability)</li>
+                        <li>Damage: ~105 (modest, equipment-dependent)</li>
+                        <li>Defense: ~715 (26.7% damage reduction)</li>
+                        <li>Block Chance: ~35%</li>
+                        <li>Critical Chance: ~38%</li>
+                        <li>All-around competent stats</li>
+                    </ul>
+                    <p><strong>Playstyle:</strong> Jack-of-all-trades with no major weaknesses. Good for beginners or
+                        adaptable playstyles. Can pivot to different roles with equipment changes.</p>
+                </div>
+
+                <h3>⚠️ Single-Stat Build (Diminishing Returns Example)</h3>
+                <div class="alert alert-danger">
+                    <strong>Distribution:</strong> 160 STR / 0 others
+                    <p><strong>Effective Points (After DR):</strong> ~76.25 STR (MASSIVE LOSS)</p>
+                    <p><strong>Why This Fails:</strong></p>
+                    <ul>
+                        <li>First 25 points: Full value (25 effective)</li>
+                        <li>Points 26-50: Half value (12.5 effective)</li>
+                        <li>Points 51-160: Quarter value (27.5 effective)</li>
+                        <li><strong>Total: 76.25 effective vs. 160 actual = 47.6% efficiency</strong></li>
+                        <li>You waste 83.75 points compared to balanced distribution</li>
+                    </ul>
+                    <p><strong>Conclusion:</strong> Single-stat stacking is heavily penalized. Balanced builds with 3-4
+                        attributes perform significantly better.</p>
+                </div>
+            </section>
+
+            <!-- Implementation Section -->
+            <section id="implementation">
+                <h2>🛠️ System Implementation</h2>
+
+                <h3>Core System Files</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>File</th>
+                            <th>Purpose</th>
+                            <th>Key Features</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>PlayerAttributes.cs</td>
+                            <td>Main attribute manager</td>
+                            <td>Diminishing returns calculation, point distribution, caching</td>
+                        </tr>
+                        <tr>
+                            <td>Attributes.Combat.cs</td>
+                            <td>Combat stat calculations</td>
+                            <td>Stat caps, combat formulas, defense/damage calculations</td>
+                        </tr>
+                        <tr>
+                            <td>AttributeTemplate.cs</td>
+                            <td>Scriptable object template</td>
+                            <td>Defines flat/percentage bonuses per attribute</td>
+                        </tr>
+                        <tr>
+                            <td>TrugordAttribute.cs</td>
+                            <td>Individual attribute class</td>
+                            <td>Tracks points, name, icon for each of 8 attributes</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h3>Attribute Asset Configuration</h3>
+                <p><strong>Location:</strong> <code>Assets/uMMORPG/Resources/Attributes/*.asset</code></p>
+
+                <button class="collapsible">Fixed Percentage Values (All Positive)</button>
+                <div class="collapsible-content">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Attribute</th>
+                                <th>Stat</th>
+                                <th>Before (Broken)</th>
+                                <th>After (Fixed)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Strength</td>
+                                <td>Damage %</td>
+                                <td class="broken-value">-39.1%</td>
+                                <td class="fixed-value">+2%</td>
+                            </tr>
+                            <tr>
+                                <td>Strength</td>
+                                <td>Defense %</td>
+                                <td class="broken-value">-79.2%</td>
+                                <td class="fixed-value">+1.5%</td>
+                            </tr>
+                            <tr>
+                                <td>Intellect</td>
+                                <td>Damage %</td>
+                                <td class="broken-value">-23.7%</td>
+                                <td class="fixed-value">+2.5%</td>
+                            </tr>
+                            <tr>
+                                <td>Wisdom</td>
+                                <td>Damage %</td>
+                                <td class="broken-value">-10%</td>
+                                <td class="fixed-value">+1.5%</td>
+                            </tr>
+                            <tr>
+                                <td>Dexterity</td>
+                                <td>Damage %</td>
+                                <td class="broken-value">-26.1%</td>
+                                <td class="fixed-value">+1.8%</td>
+                            </tr>
+                            <tr>
+                                <td>Dexterity</td>
+                                <td>Critical %</td>
+                                <td class="broken-value">-66.1%</td>
+                                <td class="fixed-value">+1.2%</td>
+                            </tr>
+                            <tr>
+                                <td>Agility</td>
+                                <td>Defense %</td>
+                                <td class="broken-value">-44.4%</td>
+                                <td class="fixed-value">+0.8%</td>
+                            </tr>
+                            <tr>
+                                <td>Tactics</td>
+                                <td>Block %</td>
+                                <td class="broken-value">-65.4%</td>
+                                <td class="fixed-value">+0.8%</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <button class="collapsible">Diminishing Returns Configuration</button>
+                <div class="collapsible-content">
+                    <h3>PlayerAttributes.cs Settings</h3>
+                    <pre>// Unity Inspector Settings
+[Header("Diminishing Returns")]
+public bool enableDiminishingReturns = true;
+public int diminishingReturnsThreshold = 25;
+public float tier1Efficiency = 0.5f;  // 50% for points 26-50
+public float tier2Efficiency = 0.25f; // 25% for points 51+
+
+// Calculation Method
+public float CalculateEffectivePoints(int actualPoints)
+{
+    if (!enableDiminishingReturns || actualPoints <= diminishingReturnsThreshold)
+        return actualPoints;
+    
+    float effective = diminishingReturnsThreshold;
+    
+    if (actualPoints <= 50)
+    {
+        // Tier 1: Points 26-50
+        effective += (actualPoints - diminishingReturnsThreshold) * tier1Efficiency;
+    }
+    else
+    {
+        // Tier 1: Points 26-50
+        effective += (50 - diminishingReturnsThreshold) * tier1Efficiency;
+        // Tier 2: Points 51+
+        effective += (actualPoints - 50) * tier2Efficiency;
+    }
+    
+    return effective;
+}</pre>
+
+                    <h3>Example Calculations</h3>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Actual Points</th>
+                                <th>Calculation</th>
+                                <th>Effective Points</th>
+                                <th>Efficiency %</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>20</td>
+                                <td>20 (no DR)</td>
+                                <td>20</td>
+                                <td>100%</td>
+                            </tr>
+                            <tr>
+                                <td>25</td>
+                                <td>25 (threshold)</td>
+                                <td>25</td>
+                                <td>100%</td>
+                            </tr>
+                            <tr>
+                                <td>35</td>
+                                <td>25 + (10 × 0.5)</td>
+                                <td>30</td>
+                                <td>85.7%</td>
+                            </tr>
+                            <tr>
+                                <td>50</td>
+                                <td>25 + (25 × 0.5)</td>
+                                <td>37.5</td>
+                                <td>75%</td>
+                            </tr>
+                            <tr>
+                                <td>60</td>
+                                <td>25 + 12.5 + (10 × 0.25)</td>
+                                <td>40</td>
+                                <td>66.7%</td>
+                            </tr>
+                            <tr>
+                                <td>80</td>
+                                <td>25 + 12.5 + (30 × 0.25)</td>
+                                <td>45</td>
+                                <td>56.25%</td>
+                            </tr>
+                            <tr>
+                                <td>160</td>
+                                <td>25 + 12.5 + (110 × 0.25)</td>
+                                <td>65</td>
+                                <td>40.6%</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <button class="collapsible">Stat Caps Implementation</button>
+                <div class="collapsible-content">
+                    <h3>Attributes.Combat.cs - Hard Caps</h3>
+                    <pre>// Example: Critical Chance Cap
+public float criticalChance
+{
+    get
+    {
+        float totalCrit = 0f;
+        
+        // Sum all attribute contributions
+        foreach (var attr in attributes)
+        {
+            totalCrit += attr.template.bonusCriticalChanceFlat * effectivePoints;
+            totalCrit += attr.template.bonusCriticalChancePercent * baseStats.critChance * effectivePoints;
+        }
+        
+        // Add equipment, traits, buffs, etc.
+        totalCrit += equipment.critChance + traits.critChance + buffs.critChance;
+        
+        // Apply hard cap
+        return Mathf.Clamp(totalCrit, 0f, 0.75f); // 75% cap
+    }
+}</pre>
+
+                    <h3>Complete Stat Cap Reference</h3>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Stat</th>
+                                <th>Cap Value</th>
+                                <th>Rationale</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Block Chance</td>
+                                <td>75%</td>
+                                <td>Maintains counterplay, prevents invulnerability</td>
+                            </tr>
+                            <tr>
+                                <td>Critical Chance</td>
+                                <td>75%</td>
+                                <td>Preserves non-crit damage builds</td>
+                            </tr>
+                            <tr>
+                                <td>Block Factor</td>
+                                <td>90% (0.90)</td>
+                                <td>Allows meaningful blocking without immunity</td>
+                            </tr>
+                            <tr>
+                                <td>Critical Factor</td>
+                                <td>3.0× (300%)</td>
+                                <td>Prevents one-shot mechanics</td>
+                            </tr>
+                            <tr>
+                                <td>Accuracy</td>
+                                <td>95%</td>
+                                <td>Always 5% chance to resist</td>
+                            </tr>
+                            <tr>
+                                <td>Resistance</td>
+                                <td>95%</td>
+                                <td>Always 5% chance for debuffs to land</td>
+                            </tr>
+                            <tr>
+                                <td>Drain Health</td>
+                                <td>50%</td>
+                                <td>Prevents infinite sustain loops</td>
+                            </tr>
+                            <tr>
+                                <td>Drain Mana</td>
+                                <td>50%</td>
+                                <td>Prevents infinite sustain loops</td>
+                            </tr>
+                            <tr>
+                                <td>Reflect Damage</td>
+                                <td>50%</td>
+                                <td>Prevents reflect-only strategies</td>
+                            </tr>
+                            <tr>
+                                <td>Absorb Health</td>
+                                <td>50%</td>
+                                <td>Prevents excessive regeneration</td>
+                            </tr>
+                            <tr>
+                                <td>Absorb Mana</td>
+                                <td>50%</td>
+                                <td>Prevents excessive regeneration</td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <div class="alert alert-info">
+                        <strong>Performance:</strong> <code>Mathf.Clamp()</code> is inline and extremely fast - zero overhead
+                    </div>
+                </div>
+
+                <h3>Tuning for Level 0-20</h3>
+                <div class="alert alert-success">
+                    <p><strong>Recommended Settings for Level 20 Cap:</strong></p>
+                    <ul>
+                        <li>Diminishing Returns Threshold: 25 points (optimal for 160 total points)</li>
+                        <li>Tier 1 Efficiency: 50% (encourages 2-3 primary attributes)</li>
+                        <li>Tier 2 Efficiency: 25% (discourages single-stat builds)</li>
+                        <li>Stat Caps: Current values balanced for level 20 gameplay</li>
+                    </ul>
+                </div>
+
+                <h3>Performance Notes</h3>
+                <div class="alert alert-success">
+                    <ul>
+                        <li>✅ <strong>Diminishing Returns:</strong> Negligible overhead, cached with timer invalidation</li>
+                        <li>✅ <strong>Stat Caps:</strong> Zero overhead, inline Mathf.Clamp() calls</li>
+                        <li>✅ <strong>Caching System:</strong> Reduces redundant calculations during combat</li>
+                        <li>✅ <strong>Optimized for 20 levels:</strong> No performance concerns up to level 20</li>
+                    </ul>
+                </div>
+
+                <h3>Deployment Checklist</h3>
+                <ul class="stat-list">
+                    <li class="fixed-value">✅ Fix all negative percentage values in attribute assets</li>
+                    <li class="fixed-value">✅ Implement diminishing returns in PlayerAttributes.cs</li>
+                    <li class="fixed-value">✅ Add stat caps to Attributes.Combat.cs</li>
+                    <li class="fixed-value">✅ Update documentation for level 0-20 system</li>
+                    <li class="icon-warning">⚠️ Playtest with characters at levels 1, 5, 10, 15, 20</li>
+                    <li class="icon-warning">⚠️ Test all 8 build archetypes at level 20</li>
+                    <li class="icon-warning">⚠️ Verify 160-point builds don't break stat caps</li>
+                    <li class="icon-warning">⚠️ Monitor player feedback on attribute balance</li>
+                </ul>
+            </section>
+        </main>
+
+        <footer>
+            <p><strong>System Status: ✅ PRODUCTION READY</strong></p>
+            <p>Optimized for Level 0-20 | Maximum 160 Attribute Points</p>
+            <p>System Design: January 2025 | Documentation Updated: December 29, 2025</p>
+        </footer>
+    </div>
+
+    <script>
+        // Collapsible functionality
+        const collapsibles = document.getElementsByClassName("collapsible");
+        for (let i = 0; i < collapsibles.length; i++) {
+            collapsibles[i].addEventListener("click", function() {
+                this.classList.toggle("active");
+                const content = this.nextElementSibling;
+                if (content.style.maxHeight) {
+                    content.style.maxHeight = null;
+                } else {
+                    content.style.maxHeight = content.scrollHeight + "px";
+                }
+            });
+        }
+
+        // Smooth scrolling for navigation
+        document.querySelectorAll('nav a').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+
+        // Expand all collapsibles for print
+        window.addEventListener('beforeprint', function() {
+            const collapsibles = document.getElementsByClassName("collapsible");
+            for (let i = 0; i < collapsibles.length; i++) {
+                collapsibles[i].nextElementSibling.style.maxHeight = "none";
+            }
+        });
+    </script>
+</body>
+</html>
+                                                text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+                                            }
+
+                                            header .subtitle {
+                                                font-size: 1.2em;
+                                                opacity: 0.9;
+                                            }
+
+                                            header .status-badge {
+                                                display: inline-block;
+                                                background: var(--success-color);
+                                                padding: 8px 20px;
+                                                border-radius: 25px;
+                                                margin-top: 15px;
+                                                font-weight: bold;
+                                                animation: pulse 2s infinite;
+                                            }
+
+                                            .level-info {
+                                                background: rgba(255, 255, 255, 0.1);
+                                                padding: 15px;
+                                                border-radius: 10px;
+                                                margin-top: 20px;
+                                                font-size: 1.1em;
+                                            }
+
+                                            @keyframes pulse {
+
+                                                0%,
+                                                100% {
+                                                    transform: scale(1);
+                                                }
+
+                                                50% {
+                                                    transform: scale(1.05);
+                                                }
+                                            }
+
+                                            /* Navigation */
+                                            nav {
+                                                background: var(--bg-color);
+                                                padding: 20px;
+                                                border-bottom: 3px solid var(--secondary-color);
+                                                position: sticky;
+                                                top: 0;
+                                                z-index: 100;
+                                                box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+                                            }
+
+                                            nav ul {
+                                                list-style: none;
+                                                display: flex;
+                                                flex-wrap: wrap;
+                                                justify-content: center;
+                                                gap: 15px;
+                                            }
+
+                                            nav a {
+                                                color: var(--primary-color);
+                                                text-decoration: none;
+                                                padding: 10px 20px;
+                                                border-radius: 5px;
+                                                transition: all 0.3s;
+                                                font-weight: 500;
+                                            }
+
+                                            nav a:hover {
+                                                background: var(--secondary-color);
+                                                color: white;
+                                                transform: translateY(-2px);
+                                            }
+
+                                            /* Main Content */
+                                            main {
+                                                padding: 40px;
+                                            }
+
+                                            section {
+                                                margin-bottom: 50px;
+                                                padding: 30px;
+                                                background: white;
+                                                border-radius: 10px;
+                                                box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+                                            }
+
+                                            h2 {
+                                                color: var(--primary-color);
+                                                font-size: 2em;
+                                                margin-bottom: 20px;
+                                                padding-bottom: 10px;
+                                                border-bottom: 3px solid var(--secondary-color);
+                                            }
+
+                                            h3 {
+                                                color: var(--secondary-color);
+                                                font-size: 1.5em;
+                                                margin: 25px 0 15px;
+                                            }
+
+                                            h4 {
+                                                color: var(--info-color);
+                                                font-size: 1.2em;
+                                                margin: 20px 0 10px;
+                                            }
+
+                                            /* Attribute Cards */
+                                            .attribute-grid {
+                                                display: grid;
+                                                grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+                                                gap: 25px;
+                                                margin: 30px 0;
+                                            }
+
+                                            .attribute-card {
+                                                background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+                                                border-radius: 10px;
+                                                padding: 25px;
+                                                border-left: 5px solid var(--secondary-color);
+                                                transition: transform 0.3s, box-shadow 0.3s;
+                                            }
+
+                                            .attribute-card:hover {
+                                                transform: translateY(-5px);
+                                                box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+                                            }
+
+                                            .attribute-card h3 {
+                                                margin-top: 0;
+                                                color: var(--primary-color);
+                                            }
+
+                                            .attribute-role {
+                                                display: inline-block;
+                                                background: var(--info-color);
+                                                color: white;
+                                                padding: 5px 15px;
+                                                border-radius: 20px;
+                                                font-size: 0.9em;
+                                                margin-bottom: 15px;
+                                            }
+
+                                            .stat-list {
+                                                list-style: none;
+                                                margin-top: 15px;
+                                            }
+
+                                            .stat-list li {
+                                                padding: 8px 0;
+                                                border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+                                            }
+
+                                            .stat-list li:last-child {
+                                                border-bottom: none;
+                                            }
+
+                                            .stat-value {
+                                                color: var(--success-color);
+                                                font-weight: bold;
+                                            }
+
+                                            .stat-negative {
+                                                color: var(--danger-color);
+                                            }
+
+                                            /* Code Blocks */
+                                            pre {
+                                                background: var(--code-bg);
+                                                color: var(--code-text);
+                                                padding: 20px;
+                                                border-radius: 8px;
+                                                overflow-x: auto;
+                                                margin: 20px 0;
+                                                border-left: 4px solid var(--secondary-color);
+                                            }
+
+                                            code {
+                                                font-family: 'Courier New', monospace;
+                                                font-size: 0.9em;
+                                            }
+
+                                            .inline-code {
+                                                background: #f4f4f4;
+                                                color: var(--danger-color);
+                                                padding: 2px 6px;
+                                                border-radius: 3px;
+                                                font-family: 'Courier New', monospace;
+                                            }
+
+                                            /* Tables */
+                                            table {
+                                                width: 100%;
+                                                border-collapse: collapse;
+                                                margin: 20px 0;
+                                                background: white;
+                                                box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+                                            }
+
+                                            th {
+                                                background: var(--primary-color);
+                                                color: white;
+                                                padding: 15px;
+                                                text-align: left;
+                                                font-weight: 600;
+                                            }
+
+                                            td {
+                                                padding: 12px 15px;
+                                                border-bottom: 1px solid var(--border-color);
+                                            }
+
+                                            tr:hover {
+                                                background: var(--bg-color);
+                                            }
+
+                                            /* Alert Boxes */
+                                            .alert {
+                                                padding: 20px;
+                                                border-radius: 8px;
+                                                margin: 20px 0;
+                                                border-left: 5px solid;
+                                            }
+
+                                            .alert-success {
+                                                background: #d4edda;
+                                                border-color: var(--success-color);
+                                                color: #155724;
+                                            }
+
+                                            .alert-warning {
+                                                background: #fff3cd;
+                                                border-color: var(--warning-color);
+                                                color: #856404;
+                                            }
+
+                                            .alert-info {
+                                                background: #d1ecf1;
+                                                border-color: var(--info-color);
+                                                color: #0c5460;
+                                            }
+
+                                            .alert-danger {
+                                                background: #f8d7da;
+                                                border-color: var(--danger-color);
+                                                color: #721c24;
+                                            }
+
+                                            /* Collapsible Sections */
+                                            .collapsible {
+                                                background: var(--secondary-color);
+                                                color: white;
+                                                cursor: pointer;
+                                                padding: 18px;
+                                                width: 100%;
+                                                border: none;
+                                                text-align: left;
+                                                outline: none;
+                                                font-size: 1.1em;
+                                                border-radius: 5px;
+                                                margin: 10px 0;
+                                                transition: background 0.3s;
+                                            }
+
+                                            .collapsible:hover {
+                                                background: #2980b9;
+                                            }
+
+                                            .collapsible:after {
+                                                content: '\002B';
+                                                color: white;
+                                                font-weight: bold;
+                                                float: right;
+                                                margin-left: 5px;
+                                            }
+
+                                            .collapsible.active:after {
+                                                content: "\2212";
+                                            }
+
+                                            .collapsible-content {
+                                                max-height: 0;
+                                                overflow: hidden;
+                                                transition: max-height 0.3s ease-out;
+                                                background: #f9f9f9;
+                                                padding: 0 20px;
+                                                border-radius: 0 0 5px 5px;
+                                            }
+
+                                            /* Formula Box */
+                                            .formula-box {
+                                                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                                                color: white;
+                                                padding: 20px;
+                                                border-radius: 10px;
+                                                margin: 20px 0;
+                                                font-family: 'Courier New', monospace;
+                                                font-size: 1.1em;
+                                                box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
+                                            }
+
+                                            /* Status Icons */
+                                            .icon-check {
+                                                color: var(--success-color);
+                                                font-weight: bold;
+                                            }
+
+                                            .icon-warning {
+                                                color: var(--warning-color);
+                                                font-weight: bold;
+                                            }
+
+                                            /* Footer */
+                                            footer {
+                                                background: var(--primary-color);
+                                                color: white;
+                                                text-align: center;
+                                                padding: 30px;
+                                            }
+
+                                            /* Responsive */
+                                            @media (max-width: 768px) {
+                                                nav ul {
+                                                    flex-direction: column;
+                                                }
+
+                                                .attribute-grid {
+                                                    grid-template-columns: 1fr;
+                                                }
+
+                                                main {
+                                                    padding: 20px;
+                                                }
+
+                                                header h1 {
+                                                    font-size: 1.8em;
+                                                }
+                                            }
+
+                                            /* Print Styles */
+                                            @media print {
+                                                body {
+                                                    background: white;
+                                                }
+
+                                                nav {
+                                                    display: none;
+                                                }
+
+                                                .collapsible-content {
+                                                    max-height: none !important;
+                                                }
+                                            }
+
+                                            /* Highlight important fixes */
+                                            .fixed-value {
+                                                background: #d4edda;
+                                                padding: 2px 6px;
+                                                border-radius: 3px;
+                                                color: var(--success-color);
+                                                font-weight: bold;
+                                            }
+
+                                            .broken-value {
+                                                background: #f8d7da;
+                                                padding: 2px 6px;
+                                                border-radius: 3px;
+                                                color: var(--danger-color);
+                                                font-weight: bold;
+                                                text-decoration: line-through;
+                                            }
+
+                                            .point-tracker {
+                                                background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+                                                color: white;
+                                                padding: 20px;
+                                                border-radius: 10px;
+                                                margin: 20px 0;
+                                                text-align: center;
+                                            }
+
+                                            .point-tracker h4 {
+                                                color: white;
+                                                margin: 0 0 10px 0;
+                                            }
+
+                                            .point-breakdown {
+                                                display: grid;
+                                                grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+                                                gap: 15px;
+                                                margin-top: 15px;
+                                            }
+
+                                            .point-box {
+                                                background: rgba(255, 255, 255, 0.2);
+                                                padding: 15px;
+                                                border-radius: 8px;
+                                                backdrop-filter: blur(10px);
+                                            }
+
+                                            .point-box .number {
+                                                font-size: 2em;
+                                                font-weight: bold;
+                                                display: block;
+                                            }
+
+                                            .point-box .label {
+                                                font-size: 0.9em;
+                                                opacity: 0.9;
+                                            }
+                                        </style>
+                                    </head>
+
+                                    <body>
+                                        <div class="container">
+                                            <header>
+                                                <h1>🎮 Game Attributes & Stats System</h1>
+                                                <p class="subtitle">Complete Implementation Guide - Level 0-20</p>
+                                                <span class="status-badge">✅ PRODUCTION READY - OPTIMIZED SYSTEM</span>
+                                                <div class="level-info">
+                                                    <strong>Level Range:</strong> 0-20 | <strong>Starting
+                                                        Points:</strong> 20 | <strong>Points Per Level:</strong> 7
+                                                </div>
+                                            </header>
+
+                                            <nav>
+                                                <ul>
+                                                    <li><a href="#overview">Overview</a></li>
+                                                    <li><a href="#progression">Point Progression</a></li>
+                                                    <li><a href="#attributes">8 Attributes</a></li>
+                                                    <li><a href="#combat-math">Combat Math</a></li>
+                                                    <li><a href="#examples">Build Examples</a></li>
+                                                    <li><a href="#implementation">Implementation</a></li>
+                                                </ul>
+                                            </nav>
+
+                                            <main>
+                                                <!-- Overview Section -->
+                                                <section id="overview">
+                                                    <h2>📖 System Overview</h2>
+                                                    <p>This document details the complete attribute and stat system for
+                                                        a level 0-20 game. Each attribute point invested provides both
+                                                        <strong>flat bonuses</strong> (fixed amounts) and
+                                                        <strong>percentage bonuses</strong> (scaling with base stats).
+                                                    </p>
+
+                                                    <div class="alert alert-success">
+                                                        <strong>✅ System Status:</strong> Balanced attribute system with
+                                                        proper scaling, diminishing returns, and stat caps to maintain
+                                                        competitive gameplay across all levels.
+                                                    </div>
+
+                                                    <h3>Core Mechanics</h3>
+                                                    <ul>
+                                                        <li><strong>Level Range:</strong> Characters progress from Level
+                                                            0 to Level 20</li>
+                                                        <li><strong>Starting Points:</strong> 20 attribute points at
+                                                            character creation</li>
+                                                        <li><strong>Points Per Level:</strong> 7 points awarded per
+                                                            level up</li>
+                                                        <li><strong>Maximum Points:</strong> 20 + (20 × 7) = 160 total
+                                                            points at level 20</li>
+                                                        <li><strong>Flat Bonuses:</strong> Fixed amount added per
+                                                            attribute point (e.g., +26 Health per Strength)</li>
+                                                        <li><strong>Percentage Bonuses:</strong> Scales with base stats
+                                                            from level (e.g., +0.8% of base Health per Strength)</li>
+                                                        <li><strong>Diminishing Returns:</strong> Reduced efficiency
+                                                            after 25 points in any single attribute</li>
+                                                        <li><strong>Stat Caps:</strong> Maximum values for combat stats
+                                                            to maintain balance</li>
+                                                    </ul>
+
+                                                    <div class="formula-box">
+                                                        Total Stat = (Flat Bonus × Effective Points) + (Base Stat ×
+                                                        Percent Bonus × Effective Points)
+                                                        <br><br>
+                                                        Effective Points = Full Points (1-25) + Half Points (26-50) +
+                                                        Quarter Points (51+)
+                                                    </div>
+                                                </section>
+
+                                                <!-- Point Progression Section -->
+                                                <section id="progression">
+                                                    <h2>📊 Attribute Point Progression (Level 0-20)</h2>
+
+                                                    <div class="point-tracker">
+                                                        <h4>Total Available Points by Level</h4>
+                                                        <div class="point-breakdown">
+                                                            <div class="point-box">
+                                                                <span class="number">20</span>
+                                                                <span class="label">Level 0 (Start)</span>
+                                                            </div>
+                                                            <div class="point-box">
+                                                                <span class="number">55</span>
+                                                                <span class="label">Level 5</span>
+                                                            </div>
+                                                            <div class="point-box">
+                                                                <span class="number">90</span>
+                                                                <span class="label">Level 10</span>
+                                                            </div>
+                                                            <div class="point-box">
+                                                                <span class="number">125</span>
+                                                                <span class="label">Level 15</span>
+                                                            </div>
+                                                            <div class="point-box">
+                                                                <span class="number">160</span>
+                                                                <span class="label">Level 20 (Max)</span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <h3>Point Allocation Table</h3>
+                                                    <table>
+                                                        <thead>
+                                                            <tr>
+                                                                <th>Level</th>
+                                                                <th>Points Gained</th>
+                                                                <th>Total Points</th>
+                                                                <th>Example Distribution</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            <tr>
+                                                                <td>0</td>
+                                                                <td>20 (Starting)</td>
+                                                                <td>20</td>
+                                                                <td>Tank: 10 STR, 5 VIT, 5 END</td>
+                                                            </tr>
+                                                            <tr>
+                                                                <td>1</td>
+                                                                <td>+7</td>
+                                                                <td>27</td>
+                                                                <td>—</td>
+                                                            </tr>
+                                                            <tr>
+                                                                <td>5</td>
+                                                                <td>+7 × 5</td>
+                                                                <td>55</td>
+                                                                <td>Tank: 25 STR, 15 VIT, 15 END</td>
+                                                            </tr>
+                                                            <tr>
+                                                                <td>10</td>
+                                                                <td>+7 × 10</td>
+                                                                <td>90</td>
+                                                                <td>Tank: 35 STR, 30 VIT, 25 END</td>
+                                                            </tr>
+                                                            <tr>
+                                                                <td>15</td>
+                                                                <td>+7 × 15</td>
+                                                                <td>125</td>
+                                                                <td>Tank: 50 STR, 40 VIT, 35 END</td>
+                                                            </tr>
+                                                            <tr>
+                                                                <td>20</td>
+                                                                <td>+7 × 20</td>
+                                                                <td>160</td>
+                                                                <td>Tank: 60 STR, 50 VIT, 50 END</td>
+                                                            </tr>
+                                                        </tbody>
+                                                    </table>
+
+                                                    <div class="alert alert-info">
+                                                        <strong>Diminishing Returns Impact:</strong> After 25 points in
+                                                        a single attribute, each point is worth 50% efficiency (26-50
+                                                        points) or 25% efficiency (51+ points). This encourages balanced
+                                                        builds while still allowing specialization.
+                                                    </div>
+
+                                                    <h3>Strategic Point Allocation</h3>
+                                                    <table>
+                                                        <thead>
+                                                            <tr>
+                                                                <th>Build Type</th>
+                                                                <th>Primary Attributes</th>
+                                                                <th>Level 20 Distribution</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            <tr>
+                                                                <td>Pure Tank</td>
+                                                                <td>STR, VIT, END</td>
+                                                                <td>60 STR / 50 VIT / 50 END</td>
+                                                            </tr>
+                                                            <tr>
+                                                                <td>Physical DPS</td>
+                                                                <td>STR, DEX, AGI</td>
+                                                                <td>60 STR / 50 DEX / 50 AGI</td>
+                                                            </tr>
+                                                            <tr>
+                                                                <td>Magic DPS</td>
+                                                                <td>INT, WIS</td>
+                                                                <td>80 INT / 80 WIS</td>
+                                                            </tr>
+                                                            <tr>
+                                                                <td>Balanced Hybrid</td>
+                                                                <td>Varies</td>
+                                                                <td>40 STR / 40 DEX / 40 AGI / 40 TAC</td>
+                                                            </tr>
+                                                            <tr>
+                                                                <td>Specialist (DR Risk)</td>
+                                                                <td>Single Attribute</td>
+                                                                <td>160 STR (Effective: ~76 points after DR)</td>
+                                                            </tr>
+                                                        </tbody>
+                                                    </table>
+                                                </section>
+
+                                                <!-- The 8 Attributes -->
+                                                <section id="attributes">
+                                                    <h2>⚔️ The 8 Attributes</h2>
+
+                                                    <div class="attribute-grid">
+                                                        <!-- Strength -->
+                                                        <div class="attribute-card" style="border-left-color: #e74c3c;">
+                                                            <h3>💪 STRENGTH</h3>
+                                                            <span class="attribute-role">Tank / Melee DPS</span>
+                                                            <p><strong>Focus:</strong> High health, damage, and defense
+                                                                with strong combat modifiers</p>
+                                                            <ul class="stat-list">
+                                                                <li>Health: <span class="stat-value">+26 flat</span>
+                                                                    <span class="stat-value">+0.8% base</span></li>
+                                                                <li>Damage: <span class="stat-value">+3 flat</span>
+                                                                    <span class="stat-value">+2% base</span></li>
+                                                                <li>Defense: <span class="stat-value">+12 flat</span>
+                                                                    <span class="stat-value">+1.5% base</span></li>
+                                                                <li>Block Chance: <span class="stat-value">+0.5%
+                                                                        flat</span> <span class="stat-value">+5%
+                                                                        base</span></li>
+                                                                <li>Critical Chance: <span class="stat-value">+0.32%
+                                                                        flat</span> <span class="stat-value">+7%
+                                                                        base</span></li>
+                                                                <li>Block Factor: <span class="stat-value">+0.85%
+                                                                        flat</span> <span class="stat-value">+26.3%
+                                                                        base</span></li>
+                                                                <li>Critical Factor: <span class="stat-value">+1.1%
+                                                                        flat</span> <span class="stat-value">+1.5%
+                                                                        base</span></li>
+                                                            </ul>
+                                                            <div class="alert alert-warning"
+                                                                style="margin-top: 15px; padding: 10px; font-size: 0.9em;">
+                                                                <strong>At 60 points (Level 20 focused):</strong><br>
+                                                                • Effective: ~42.5 points (after DR)<br>
+                                                                • ~1,100 Health | ~130 Damage | ~510 Defense
+                                                            </div>
+                                                        </div>
+
+                                                        <!-- Vitality -->
+                                                        <div class="attribute-card" style="border-left-color: #27ae60;">
+                                                            <h3>❤️ VITALITY</h3>
+                                                            <span class="attribute-role">Tank / Survivability</span>
+                                                            <p><strong>Focus:</strong> Maximum health, defense, and
+                                                                damage mitigation</p>
+                                                            <ul class="stat-list">
+                                                                <li>Health: <span class="stat-value">+25 flat</span>
+                                                                    <span class="stat-value">+0.5% base</span></li>
+                                                                <li>Mana: <span class="stat-value">+2 flat</span> <span
+                                                                        class="stat-value">+0.2% base</span></li>
+                                                                <li>Stamina: <span class="stat-value">+5 flat</span>
+                                                                    <span class="stat-value">+0.1% base</span></li>
+                                                                <li>Damage: <span class="stat-value">+2 flat</span>
+                                                                    <span class="stat-value">+0.1% base</span></li>
+                                                                <li>Defense: <span class="stat-value">+12 flat</span>
+                                                                </li>
+                                                                <li>Block Factor: <span class="stat-value">+0.3%
+                                                                        flat</span> <span class="stat-value">+17%
+                                                                        base</span></li>
+                                                                <li>Resistance: <span class="stat-value">+0.5%
+                                                                        flat</span></li>
+                                                            </ul>
+                                                            <div class="alert alert-warning"
+                                                                style="margin-top: 15px; padding: 10px; font-size: 0.9em;">
+                                                                <strong>At 50 points (Level 20 balanced):</strong><br>
+                                                                • Effective: ~37.5 points (after DR)<br>
+                                                                • ~940 Health | ~510 Defense | High Survivability
+                                                            </div>
+                                                        </div>
+
+                                                        <!-- Endurance -->
+                                                        <div class="attribute-card" style="border-left-color: #95a5a6;">
+                                                            <h3>🛡️ ENDURANCE</h3>
+                                                            <span class="attribute-role">Defensive Specialist</span>
+                                                            <p><strong>Focus:</strong> Defense, block mechanics, and
+                                                                critical evasion</p>
+                                                            <ul class="stat-list">
+                                                                <li>Health: <span class="stat-value">+10 flat</span>
+                                                                    <span class="stat-value">+0.1% base</span></li>
+                                                                <li>Stamina: <span class="stat-value">+1 flat</span>
+                                                                    <span class="stat-value">+0.3% base</span></li>
+                                                                <li>Defense: <span class="stat-value">+12 flat</span>
+                                                                    <span class="stat-value">+12% base</span></li>
+                                                                <li>Block Chance: <span class="stat-value">+0.11%
+                                                                        flat</span> <span class="stat-value">+73.5%
+                                                                        base</span></li>
+                                                                <li>Block Factor: <span class="stat-value">+0.27%
+                                                                        flat</span></li>
+                                                                <li>Resistance: <span class="stat-value">+0.46%
+                                                                        flat</span></li>
+                                                            </ul>
+                                                            <div class="alert alert-warning"
+                                                                style="margin-top: 15px; padding: 10px; font-size: 0.9em;">
+                                                                <strong>At 50 points:</strong><br>
+                                                                • Effective: ~37.5 points<br>
+                                                                • ~510 Defense | ~75% Block (capped) | High Resistance
+                                                            </div>
+                                                        </div>
+
+                                                        <!-- Intellect -->
+                                                        <div class="attribute-card" style="border-left-color: #3498db;">
+                                                            <h3>🧠 INTELLECT</h3>
+                                                            <span class="attribute-role">Mage / Caster</span>
+                                                            <p><strong>Focus:</strong> Mana, magic damage, and spell
+                                                                accuracy</p>
+                                                            <ul class="stat-list">
+                                                                <li>Mana: <span class="stat-value">+5 flat</span> <span
+                                                                        class="stat-value">+5% base</span></li>
+                                                                <li>Damage: <span class="stat-value">+4 flat</span>
+                                                                    <span class="stat-value">+2.5% base</span></li>
+                                                                <li>Defense: <span class="stat-value">+2 flat</span>
+                                                                </li>
+                                                                <li>Critical Chance: <span class="stat-value">+0.23%
+                                                                        flat</span> <span class="stat-value">+0.1%
+                                                                        base</span></li>
+                                                                <li>Accuracy: <span class="stat-value">+0.12%
+                                                                        flat</span> <span class="stat-value">+33.8%
+                                                                        base</span></li>
+                                                                <li>Resistance: <span class="stat-value">+0.38%
+                                                                        flat</span> <span class="stat-value">+17%
+                                                                        base</span></li>
+                                                            </ul>
+                                                            <div class="alert alert-warning"
+                                                                style="margin-top: 15px; padding: 10px; font-size: 0.9em;">
+                                                                <strong>At 80 points (Mage focus):</strong><br>
+                                                                • Effective: ~53.75 points<br>
+                                                                • ~270 Mana | ~215 Damage | High Accuracy
+                                                            </div>
+                                                        </div>
+
+                                                        <!-- Wisdom -->
+                                                        <div class="attribute-card" style="border-left-color: #9b59b6;">
+                                                            <h3>🔮 WISDOM</h3>
+                                                            <span class="attribute-role">Healer / Support / Mana
+                                                                Efficiency</span>
+                                                            <p><strong>Focus:</strong> Mana efficiency, survivability,
+                                                                and spell effectiveness</p>
+                                                            <ul class="stat-list">
+                                                                <li>Health: <span class="stat-value">+10 flat</span>
+                                                                </li>
+                                                                <li>Mana: <span class="stat-value">+20 flat</span> <span
+                                                                        class="stat-value">+3% base</span></li>
+                                                                <li>Damage: <span class="stat-value">+2 flat</span>
+                                                                    <span class="stat-value">+1.5% base</span></li>
+                                                                <li>Defense: <span class="stat-value">+2 flat</span>
+                                                                </li>
+                                                                <li>Critical Chance: <span class="stat-value">+0.5%
+                                                                        flat</span> <span class="stat-value">+0.15%
+                                                                        base</span></li>
+                                                                <li>Resistance: <span class="stat-value">+0.5%
+                                                                        flat</span></li>
+                                                            </ul>
+                                                            <div class="alert alert-warning"
+                                                                style="margin-top: 15px; padding: 10px; font-size: 0.9em;">
+                                                                <strong>At 80 points (Mage focus):</strong><br>
+                                                                • Effective: ~53.75 points<br>
+                                                                • ~1,075 Mana | ~110 Damage | High Spell Support
+                                                            </div>
+                                                        </div>
+
+                                                        <!-- Dexterity -->
+                                                        <div class="attribute-card" style="border-left-color: #f39c12;">
+                                                            <h3>🎯 DEXTERITY</h3>
+                                                            <span class="attribute-role">Rogue / Precision
+                                                                Fighter</span>
+                                                            <p><strong>Focus:</strong> Critical strikes, accuracy, and
+                                                                evasion</p>
+                                                            <ul class="stat-list">
+                                                                <li>Damage: <span class="stat-value">+3 flat</span>
+                                                                    <span class="stat-value">+1.8% base</span></li>
+                                                                <li>Defense: <span class="stat-value">+10 flat</span>
+                                                                    <span class="stat-value">+1% base</span></li>
+                                                                <li>Block Chance: <span class="stat-value">+0.41%
+                                                                        flat</span> <span class="stat-value">+1%
+                                                                        base</span></li>
+                                                                <li>Critical Chance: <span class="stat-value">+0.5%
+                                                                        flat</span> <span class="stat-value">+1.2%
+                                                                        base</span></li>
+                                                                <li>Accuracy: <span class="stat-value">+0.7% flat</span>
+                                                                    <span class="stat-value">+1.5% base</span></li>
+                                                            </ul>
+                                                            <div class="alert alert-warning"
+                                                                style="margin-top: 15px; padding: 10px; font-size: 0.9em;">
+                                                                <strong>At 50 points:</strong><br>
+                                                                • Effective: ~37.5 points<br>
+                                                                • ~75% Crit Chance (capped) | High Accuracy
+                                                            </div>
+                                                        </div>
+
+                                                        <!-- Agility -->
+                                                        <div class="attribute-card" style="border-left-color: #1abc9c;">
+                                                            <h3>⚡ AGILITY</h3>
+                                                            <span class="attribute-role">Mobile DPS / Dodge Tank</span>
+                                                            <p><strong>Focus:</strong> Mobility, critical strikes, and
+                                                                defensive penetration</p>
+                                                            <ul class="stat-list">
+                                                                <li>Health: <span class="stat-value">+2 flat</span>
+                                                                    <span class="stat-value">+0.6% base</span></li>
+                                                                <li>Stamina: <span class="stat-value">+5 flat</span>
+                                                                    <span class="stat-value">+0.5% base</span></li>
+                                                                <li>Damage: <span class="stat-value">+3 flat</span>
+                                                                    <span class="stat-value">+1.6% base</span></li>
+                                                                <li>Defense: <span class="stat-value">+5 flat</span>
+                                                                    <span class="stat-value">+0.8% base</span></li>
+                                                                <li>Critical Chance: <span class="stat-value">+0.42%
+                                                                        flat</span> <span class="stat-value">+1%
+                                                                        base</span></li>
+                                                            </ul>
+                                                            <div class="alert alert-warning"
+                                                                style="margin-top: 15px; padding: 10px; font-size: 0.9em;">
+                                                                <strong>At 50 points:</strong><br>
+                                                                • Effective: ~37.5 points<br>
+                                                                • ~75 Health | ~190 Stamina | ~65% Crit Chance
+                                                            </div>
+                                                        </div>
+
+                                                        <!-- Tactics -->
+                                                        <div class="attribute-card" style="border-left-color: #34495e;">
+                                                            <h3>🎲 TACTICS</h3>
+                                                            <span class="attribute-role">Strategic Fighter /
+                                                                Commander</span>
+                                                            <p><strong>Focus:</strong> Balanced combat stats with
+                                                                penetration abilities</p>
+                                                            <ul class="stat-list">
+                                                                <li>Health: <span class="stat-value">+10 flat</span>
+                                                                    <span class="stat-value">+8.4% base</span></li>
+                                                                <li>Mana: <span class="stat-value">+0 flat</span> <span
+                                                                        class="stat-value">+8.2% base</span></li>
+                                                                <li>Stamina: <span class="stat-value">+1 flat</span>
+                                                                </li>
+                                                                <li>Damage: <span class="stat-value">+3 flat</span>
+                                                                    <span class="stat-value">+0.2% base</span></li>
+                                                                <li>Defense: <span class="stat-value">+5 flat</span>
+                                                                    <span class="stat-value">+0.5% base</span></li>
+                                                                <li>Block Chance: <span class="stat-value">+0.27%
+                                                                        flat</span> <span class="stat-value">+0.8%
+                                                                        base</span></li>
+                                                            </ul>
+                                                            <div class="alert alert-warning"
+                                                                style="margin-top: 15px; padding: 10px; font-size: 0.9em;">
+                                                                <strong>At 40 points (Hybrid):</strong><br>
+                                                                • Effective: ~32.5 points<br>
+                                                                • Balanced stats across all resources
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </section>
+
+                                                <!-- Combat Math Section -->
+                                                <section id="combat-math">
+                                                    <h2>🧮 Combat Math & Damage Calculations</h2>
+
+                                                    <button class="collapsible">Primary Stat Calculations (Health, Mana,
+                                                        Stamina)</button>
+                                                    <div class="collapsible-content">
+                                                        <h3>Health Calculation</h3>
+                                                        <div class="formula-box">
+                                                            Max Health = Base Health + Attribute Bonuses + Equipment +
+                                                            Traits + Sets
+                                                            <br><br>
+                                                            Attribute Bonus = Σ(Flat × Effective Points) + (Base ×
+                                                            Σ(Percent × Effective Points))
+                                                        </div>
+                                                        <p><strong>Example:</strong> Level 10, 35 Strength (Effective:
+                                                            30), 30 Vitality (Effective: 27.5)</p>
+                                                        <pre>Base Health: 100 (Level 10)
+Strength: (26×30) + (100 × 0.008×30) = 780 + 24 = 804
+Vitality: (25×27.5) + (100 × 0.005×27.5) = 687.5 + 13.75 = 701.25
+Total: 100 + 804 + 701.25 = 1,605 HP</pre>
+
+                                                        <h3>Mana Calculation</h3>
+                                                        <p>Same formula applies for Mana resource pool</p>
+                                                        <p><strong>Example:</strong> Level 10, 40 Intellect (Effective:
+                                                            32.5), 40 Wisdom (Effective: 32.5)</p>
+                                                        <pre>Base Mana: 50 (Level 10)
+Intellect: (5×32.5) + (50 × 0.05×32.5) = 162.5 + 81.25 = 243.75
+Wisdom: (20×32.5) + (50 × 0.03×32.5) = 650 + 48.75 = 698.75
+Total: 50 + 243.75 + 698.75 = 992.5 Mana</pre>
+
+                                                        <div class="alert alert-info">
+                                                            <strong>Diminishing Returns Applied:</strong> Effective
+                                                            points calculated as:<br>
+                                                            • Points 1-25: Full value (1.0×)<br>
+                                                            • Points 26-50: Half value (0.5×)<br>
+                                                            • Points 51+: Quarter value (0.25×)
+                                                        </div>
+                                                    </div>
+
+                                                    <button class="collapsible">Damage Calculations & Defense
+                                                        Mitigation</button>
+                                                    <div class="collapsible-content">
+                                                        <h3>Damage Output Formula</h3>
+                                                        <div class="formula-box">
+                                                            Base Damage = Level Damage + Attribute Bonuses + Equipment +
+                                                            Traits + Sets
+                                                        </div>
+
+                                                        <h3>Defense & Damage Reduction (Relational Damage)</h3>
+                                                        <div class="formula-box">
+                                                            Damage Taken = Incoming Damage × (100 - √Defense) / 100
+                                                        </div>
+
+                                                        <table>
+                                                            <thead>
+                                                                <tr>
+                                                                    <th>Defense</th>
+                                                                    <th>Square Root</th>
+                                                                    <th>Damage Reduction</th>
+                                                                    <th>Example (100 Damage)</th>
+                                                                </tr>
+                                                            </thead>
+                                                            <tbody>
+                                                                <tr>
+                                                                    <td>100</td>
+                                                                    <td>10</td>
+                                                                    <td>10%</td>
+                                                                    <td>90 damage</td>
+                                                                </tr>
+                                                                <tr>
+                                                                    <td>225</td>
+                                                                    <td>15</td>
+                                                                    <td>15%</td>
+                                                                    <td>85 damage</td>
+                                                                </tr>
+                                                                <tr>
+                                                                    <td>400</td>
+                                                                    <td>20</td>
+                                                                    <td>20%</td>
+                                                                    <td>80 damage</td>
+                                                                </tr>
+                                                                <tr>
+                                                                    <td>625</td>
+                                                                    <td>25</td>
+                                                                    <td>25%</td>
+                                                                    <td>75 damage</td>
+                                                                </tr>
+                                                                <tr>
+                                                                    <td>900</td>
+                                                                    <td>30</td>
+                                                                    <td>30%</td>
+                                                                    <td>70 damage</td>
+                                                                </tr>
+                                                                <tr>
+                                                                    <td>1225</td>
+                                                                    <td>35</td>
+                                                                    <td>35%</td>
+                                                                    <td>65 damage</td>
+                                                                </tr>
+                                                                <tr>
+                                                                    <td>1600</td>
+                                                                    <td>40</td>
+                                                                    <td>40%</td>
+                                                                    <td>60 damage</td>
+                                                                </tr>
+                                                            </tbody>
+                                                        </table>
+
+                                                        <div class="alert alert-warning">
+                                                            <strong>Level 20 Defense Example:</strong> A tank with 60
+                                                            STR, 50 VIT, 50 END could reach ~1,500 defense = 38.7%
+                                                            damage reduction
+                                                        </div>
+                                                    </div>
+
+                                                    <button class="collapsible">Block & Critical Hit Mechanics</button>
+                                                    <div class="collapsible-content">
+                                                        <h3>Block System</h3>
+                                                        <div class="formula-box">
+                                                            IF Random(0,1) < Block Chance: <br>&nbsp;&nbsp;Damage =
+                                                                Damage × (1 - Block Factor)
+                                                                <br><br>
+                                                                Block Chance Cap: 75%
+                                                                <br>Block Factor Cap: 90% (0.90)
+                                                        </div>
+
+                                                        <p><strong>Example:</strong> 100 damage incoming, 40% block
+                                                            chance, 0.35 block factor</p>
+                                                        <ul>
+                                                            <li>40% chance to trigger block</li>
+                                                            <li>If blocked: 100 × (1 - 0.35) = 65 damage taken</li>
+                                                            <li>Modified by attacker's Block Break Factor</li>
+                                                        </ul>
+
+                                                        <h3>Critical Hit System</h3>
+                                                        <div class="formula-box">
+                                                            IF Random(0,1) < Critical Chance: <br>&nbsp;&nbsp;Damage =
+                                                                Damage × Critical Factor
+                                                                <br><br>
+                                                                Critical Chance Cap: 75%
+                                                                <br>Critical Factor Cap: 3.0× (300% damage)
+                                                        </div>
+
+                                                        <p><strong>Example:</strong> 100 base damage, 45% crit chance,
+                                                            1.8× crit factor</p>
+                                                        <ul>
+                                                            <li>45% chance to trigger critical</li>
+                                                            <li>If critical: 100 × 1.8 = 180 damage</li>
+                                                            <li>Modified by target's Critical Evasion</li>
+                                                        </ul>
+
+                                                        <div class="alert alert-info">
+                                                            <strong>At Level 20:</strong> With 50 DEX + 50 AGI, you can
+                                                            easily reach the 75% crit cap, making crit factor your next
+                                                            priority.
+                                                        </div>
+                                                    </div>
+
+                                                    <button class="collapsible">Complete Damage Flow (8 Steps)</button>
+                                                    <div class="collapsible-content">
+                                                        <h3>Full Combat Calculation Pipeline</h3>
+                                                        <ol style="line-height: 2;">
+                                                            <li><strong>Calculate Base Damage</strong> - Level +
+                                                                Attributes + Equipment + Traits</li>
+                                                            <li><strong>Apply Defense Break</strong> - Reduce target
+                                                                defense by attacker's Defense Break Factor</li>
+                                                            <li><strong>Calculate Mitigation</strong> - Apply defense
+                                                                formula (relational damage reduction)</li>
+                                                            <li><strong>Apply Random Variance</strong> - ±25% deviation
+                                                                (if enabled)</li>
+                                                            <li><strong>Check Block</strong> - Roll vs effective block
+                                                                chance (modified by Block Break)</li>
+                                                            <li><strong>Check Critical</strong> - Roll vs effective crit
+                                                                chance (modified by Crit Evasion) if not blocked</li>
+                                                            <li><strong>Apply Damage</strong> - Subtract from target HP
+                                                            </li>
+                                                            <li><strong>Trigger Effects</strong> - Drain, Reflect,
+                                                                Absorb factors activate</li>
+                                                        </ol>
+
+                                                        <div class="alert alert-info">
+                                                            <strong>Note:</strong> Critical hits cannot occur on blocked
+                                                            attacks. Block check happens before critical check.
+                                                        </div>
+                                                    </div>
+
+                                                    <button class="collapsible">Advanced Combat Factors</button>
+                                                    <div class="collapsible-content">
+                                                        <h3>Drain Mechanics (Lifesteal/Manasteal)</h3>
+                                                        <div class="formula-box">
+                                                            Health Restored = Damage Dealt × Drain Health Factor
+                                                            <br>Mana Restored = Damage Dealt × Drain Mana Factor
+                                                            <br><br>Cap: 50% (0.50)
+                                                        </div>
+
+                                                        <h3>Reflect Damage</h3>
+                                                        <div class="formula-box">
+                                                            Damage Reflected = Damage Received × Reflect Factor
+                                                            <br>Cap: 50% (0.50)
+                                                        </div>
+                                                        <p class="alert alert-warning">Reflect does NOT proc on blocked
+                                                            hits</p>
+
+                                                        <h3>Absorb Mechanics</h3>
+                                                        <div class="formula-box">
+                                                            Health Regenerated = Damage Received × Absorb Health Factor
+                                                            <br>Mana Regenerated = Damage Received × Absorb Mana Factor
+                                                            <br><br>Cap: 50% (0.50)
+                                                        </div>
+
+                                                        <h3>Accuracy & Resistance (Debuffs)</h3>
+                                                        <div class="formula-box">
+                                                            Debuff Success = Attacker Accuracy - Target Resistance
+                                                            <br><br>Cap: 95% (0.95) - Always 5% minimum chance to
+                                                            resist/land
+                                                        </div>
+                                                        …

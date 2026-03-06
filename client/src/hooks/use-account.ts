@@ -1,0 +1,203 @@
+import { useState, useEffect, useCallback } from 'react';
+import type { Account, AccountInventoryItem, AccountResources } from '@shared/schema';
+
+export function useAccount() {
+  const [account, setAccount] = useState<Account | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchAccount = useCallback(async () => {
+    try {
+      const response = await fetch('/api/account');
+      if (!response.ok) throw new Error('Failed to fetch account');
+      const data = await response.json();
+      setAccount(data);
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load account');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchAccount();
+  }, [fetchAccount]);
+
+  const updateAccount = async (updates: Partial<Account>) => {
+    const response = await fetch('/api/account', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(updates),
+    });
+    if (!response.ok) throw new Error('Failed to update account');
+    const data = await response.json();
+    setAccount(data);
+    return data;
+  };
+
+  return { account, loading, error, refetch: fetchAccount, updateAccount };
+}
+
+export function useAccountInventory() {
+  const [inventory, setInventory] = useState<AccountInventoryItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchInventory = useCallback(async () => {
+    try {
+      const response = await fetch('/api/account/inventory');
+      if (!response.ok) throw new Error('Failed to fetch inventory');
+      const data = await response.json();
+      setInventory(data);
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load inventory');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchInventory();
+  }, [fetchInventory]);
+
+  const addItem = async (item: { itemId: string; quantity?: number; tier?: number; quality?: string; metadata?: object }) => {
+    const response = await fetch('/api/account/inventory', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(item),
+    });
+    if (!response.ok) throw new Error('Failed to add item');
+    const data = await response.json();
+    setInventory(prev => [...prev, data]);
+    return data;
+  };
+
+  const updateItem = async (id: string, updates: Partial<AccountInventoryItem>) => {
+    const response = await fetch(`/api/account/inventory/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(updates),
+    });
+    if (!response.ok) throw new Error('Failed to update item');
+    const data = await response.json();
+    setInventory(prev => prev.map(item => item.id === id ? data : item));
+    return data;
+  };
+
+  const removeItem = async (id: string) => {
+    const response = await fetch(`/api/account/inventory/${id}`, {
+      method: 'DELETE',
+    });
+    if (!response.ok) throw new Error('Failed to remove item');
+    setInventory(prev => prev.filter(item => item.id !== id));
+  };
+
+  const transferToCharacter = async (itemId: string, characterId: string | null) => {
+    const response = await fetch(`/api/account/inventory/${itemId}/transfer`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ characterId }),
+    });
+    if (!response.ok) throw new Error('Failed to transfer item');
+    const data = await response.json();
+    setInventory(prev => prev.map(item => item.id === itemId ? data : item));
+    return data;
+  };
+
+  const getCharacterItems = (characterId: string | null) => {
+    return inventory.filter(item => item.boundToCharacterId === characterId);
+  };
+
+  const getSharedItems = () => {
+    return inventory.filter(item => item.boundToCharacterId === null);
+  };
+
+  return {
+    inventory,
+    loading,
+    error,
+    refetch: fetchInventory,
+    addItem,
+    updateItem,
+    removeItem,
+    transferToCharacter,
+    getCharacterItems,
+    getSharedItems,
+  };
+}
+
+export function useAccountResources() {
+  const [resources, setResources] = useState<Record<string, number>>({});
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchResources = useCallback(async () => {
+    try {
+      const response = await fetch('/api/account/resources');
+      if (!response.ok) throw new Error('Failed to fetch resources');
+      const data = await response.json();
+      setResources(data.resources || {});
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load resources');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchResources();
+  }, [fetchResources]);
+
+  const updateResources = async (newResources: Record<string, number>) => {
+    const response = await fetch('/api/account/resources', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ resources: newResources }),
+    });
+    if (!response.ok) throw new Error('Failed to update resources');
+    const data = await response.json();
+    setResources(data.resources || {});
+    return data;
+  };
+
+  const addResource = async (resourceId: string, amount: number) => {
+    const response = await fetch('/api/account/resources/add', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ resourceId, amount }),
+    });
+    if (!response.ok) throw new Error('Failed to add resource');
+    const data = await response.json();
+    setResources(data.resources || {});
+    return data;
+  };
+
+  const batchAddResources = async (items: Array<{ resourceId: string; amount: number }>) => {
+    if (items.length === 0) return null;
+    const response = await fetch('/api/account/resources/batch', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ items }),
+    });
+    if (!response.ok) throw new Error('Failed to batch add resources');
+    const data = await response.json();
+    setResources(data.resources || {});
+    return data;
+  };
+
+  const getResource = (resourceId: string) => resources[resourceId] || 0;
+
+  return {
+    resources,
+    loading,
+    error,
+    refetch: fetchResources,
+    updateResources,
+    addResource,
+    batchAddResources,
+    getResource,
+  };
+}

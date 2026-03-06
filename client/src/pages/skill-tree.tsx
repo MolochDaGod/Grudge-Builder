@@ -1,0 +1,491 @@
+import { useState, useEffect } from 'react';
+import { useLocation } from 'wouter';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Button } from '@/components/ui/button';
+import { ChevronLeft, RotateCcw, Swords } from 'lucide-react';
+import Layout from '@/components/Layout';
+import { CLASS_SKILL_TREES, WEAPON_SKILL_TREES, Skill, SkillTier, CLASS_TO_ID } from '@/lib/skillTreeData';
+import { CharacterManager, Character } from '@/lib/characterManager';
+import { WeaponSelectionPanel } from '@/components/WeaponSelectionPanel';
+import { WEAPON_TYPES } from '@shared/definitions/weaponDatabase';
+import { cn } from '@/lib/utils';
+import type { WeaponSkillSelection } from '@/lib/characterManager';
+
+type TreeMode = 'class' | 'weapons' | 'hotkeys';
+
+const CLASS_COLORS: Record<string, string> = {
+  warrior: '#ef4444',
+  mage: '#8b5cf6',
+  worg: '#d97706',
+  ranger: '#22c55e'
+};
+
+const CLASS_ICONS: Record<string, string> = {
+  warrior: '⚔️',
+  mage: '🔮',
+  worg: '🐺',
+  ranger: '🏹'
+};
+
+const WEAPON_ICONS: Record<string, string> = {
+  sword: '⚔️',
+  bow: '🏹',
+  staff: '🪄',
+  dagger: '🗡️',
+  axe: '🪓',
+  hammer: '🔨',
+  lance: '🔱',
+  mace: '⚫'
+};
+
+export default function SkillTreePage() {
+  const [, setLocation] = useLocation();
+  const [mode, setMode] = useState<TreeMode>('class');
+  const [activeClass, setActiveClass] = useState('warrior');
+  const [activeWeapon, setActiveWeapon] = useState('sword');
+  const [classSkills, setClassSkills] = useState<Record<string, number>>({});
+  const [weaponSkills, setWeaponSkills] = useState<Record<string, number>>({});
+  const [hoveredSkill, setHoveredSkill] = useState<Skill | null>(null);
+  const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0 });
+  const [character, setCharacter] = useState<Character | null>(null);
+  const [selectedWeaponType, setSelectedWeaponType] = useState<string | null>('SWORD');
+  const [selectedWeaponId, setSelectedWeaponId] = useState<string | null>(null);
+  const [selectedWeaponTier, setSelectedWeaponTier] = useState<number>(1);
+  const [weaponSkillLevel, setWeaponSkillLevel] = useState<number>(1);
+  const [skillSelections, setSkillSelections] = useState<Record<string, WeaponSkillSelection>>({});
+
+  useEffect(() => {
+    const loadCharacter = async () => {
+      const active = await CharacterManager.getActiveCharacter();
+      if (active) {
+        setCharacter(active);
+        const classId = CLASS_TO_ID[active.classId] || 'warrior';
+        setActiveClass(classId);
+        const tier = Math.max(1, Math.min(8, Math.floor((active.level || 1) / 10) + 1));
+        setSelectedWeaponTier(tier);
+        if (active.weaponSkillSelections) {
+          setSkillSelections(active.weaponSkillSelections);
+        }
+        if (active.weaponSkillLevel) {
+          setWeaponSkillLevel(active.weaponSkillLevel);
+        }
+        if (active.equippedWeaponId) {
+          setSelectedWeaponId(active.equippedWeaponId);
+          const weaponType = getWeaponTypeFromWeaponId(active.equippedWeaponId);
+          if (weaponType) {
+            setSelectedWeaponType(weaponType);
+          }
+        } else {
+          const equippedWeapon = active.equipment?.mainHand;
+          if (equippedWeapon) {
+            const weaponType = getWeaponTypeFromItem(equippedWeapon);
+            if (weaponType && WEAPON_TYPES[weaponType]) {
+              setSelectedWeaponType(weaponType);
+            }
+          }
+        }
+      }
+    };
+    loadCharacter();
+  }, []);
+
+  const getWeaponTypeFromItem = (itemId: string): string | null => {
+    const upper = itemId.toUpperCase();
+    if (upper.includes('SWORD') || upper.includes('BLADE')) return 'SWORD';
+    if (upper.includes('AXE') || upper.includes('HATCHET')) return 'AXE';
+    if (upper.includes('BOW') || upper.includes('CROSSBOW')) return 'BOW';
+    if (upper.includes('STAFF') || upper.includes('WAND')) return 'STAFF';
+    if (upper.includes('DAGGER') || upper.includes('KNIFE')) return 'DAGGER';
+    if (upper.includes('MACE') || upper.includes('CLUB')) return 'MACE';
+    if (upper.includes('HAMMER')) return 'HAMMER';
+    if (upper.includes('SPEAR') || upper.includes('LANCE')) return 'SPEAR';
+    if (upper.includes('SCYTHE')) return 'SCYTHE';
+    return 'SWORD';
+  };
+
+  const getWeaponTypeFromWeaponId = (weaponId: string): string | null => {
+    for (const [typeId, weaponType] of Object.entries(WEAPON_TYPES)) {
+      if (weaponType.weapons.some(w => w.id === weaponId)) {
+        return typeId;
+      }
+    }
+    return null;
+  };
+
+  const unlockedSkills = mode === 'class' ? classSkills : weaponSkills;
+  const setUnlockedSkills = mode === 'class' ? setClassSkills : setWeaponSkills;
+  
+  const classPointsSpent = Object.values(classSkills).reduce((a, b) => a + b, 0);
+  const weaponPointsSpent = Object.values(weaponSkills).reduce((a, b) => a + b, 0);
+  const totalPointsSpent = classPointsSpent + weaponPointsSpent;
+  
+  const totalSkillPoints = (character?.level || 1) + 5;
+  const remainingPoints = Math.max(0, totalSkillPoints - totalPointsSpent);
+  
+  const skillPoints = remainingPoints;
+
+  const currentTree = mode === 'class' 
+    ? CLASS_SKILL_TREES[activeClass] 
+    : WEAPON_SKILL_TREES[activeWeapon];
+
+  const isSkillUnlocked = (skillId: string) => (unlockedSkills[skillId] || 0) > 0;
+  
+  const canUnlockSkill = (skill: Skill) => {
+    if (skillPoints <= 0) return false;
+    const currentPoints = unlockedSkills[skill.id] || 0;
+    if (currentPoints >= skill.maxPoints) return false;
+    if (skill.requires && !isSkillUnlocked(skill.requires)) return false;
+    return true;
+  };
+
+  const handleSkillClick = (skill: Skill) => {
+    if (!canUnlockSkill(skill)) return;
+    
+    setUnlockedSkills(prev => ({
+      ...prev,
+      [skill.id]: (prev[skill.id] || 0) + 1
+    }));
+  };
+
+  const handleReset = () => {
+    if (mode === 'class') {
+      setClassSkills({});
+    } else {
+      setWeaponSkills({});
+    }
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    setTooltipPos({ x: e.clientX + 15, y: e.clientY + 15 });
+  };
+
+  const calculateBonuses = () => {
+    let damage = 0, defense = 0, speed = 0, health = 0, mana = 0, crit = 0;
+    
+    Object.entries(unlockedSkills).forEach(([skillId, points]) => {
+      if (points > 0) {
+        damage += points * 5;
+        defense += points * 3;
+        speed += points * 2;
+        health += points * 25;
+        mana += points * 15;
+        crit += points * 1;
+      }
+    });
+    
+    return { damage, defense, speed, health, mana, crit };
+  };
+
+  const bonuses = calculateBonuses();
+
+  return (
+    <Layout>
+      <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 text-white">
+        <header className="sticky top-0 z-50 bg-slate-950/90 backdrop-blur-sm border-b border-slate-800 px-4 py-3">
+          <div className="flex items-center justify-between max-w-7xl mx-auto">
+            <Button
+              variant="ghost"
+              onClick={() => setLocation('/character')}
+              className="text-slate-400 hover:text-white"
+              data-testid="btn-back"
+            >
+              <ChevronLeft className="w-4 h-4 mr-2" /> Back to Character
+            </Button>
+            
+            <div className="text-center">
+              <h1 className="text-xl font-bold text-emerald-400 font-serif">Skill Tree</h1>
+              <p className="text-xs text-slate-500">
+                {character?.name || 'Hero'} - {currentTree?.className}
+              </p>
+            </div>
+            
+            <div className="w-32" />
+          </div>
+        </header>
+
+        <div className="sticky top-14 z-40 bg-slate-900/95 backdrop-blur-sm border-b border-slate-800 px-2 py-1">
+          <div className="flex items-center justify-center gap-1 max-w-7xl mx-auto flex-wrap">
+            {mode === 'class' ? (
+              Object.keys(CLASS_SKILL_TREES).map(classId => {
+                const isOwnClass = character && CLASS_TO_ID[character.classId] === classId;
+                return (
+                  <button
+                    key={classId}
+                    onClick={() => setActiveClass(classId)}
+                    className={cn(
+                      "px-2 py-1 rounded border font-semibold text-xs transition-all flex items-center gap-1",
+                      activeClass === classId
+                        ? "border-current bg-current/15"
+                        : "border-slate-700 text-slate-400 hover:border-slate-500"
+                    )}
+                    style={activeClass === classId ? { color: CLASS_COLORS[classId], borderColor: CLASS_COLORS[classId] } : {}}
+                    data-testid={`tab-class-${classId}`}
+                  >
+                    <span>{CLASS_ICONS[classId]}</span>
+                    <span className="capitalize">{classId === 'worg' ? 'Worg' : classId === 'mage' ? 'Mage' : classId}</span>
+                    {isOwnClass && <span className="text-[10px] opacity-60">(You)</span>}
+                  </button>
+                );
+              })
+            ) : (
+              Object.keys(WEAPON_SKILL_TREES).map(weaponId => (
+                <button
+                  key={weaponId}
+                  onClick={() => setActiveWeapon(weaponId)}
+                  className={cn(
+                    "px-2 py-1 rounded border font-semibold text-xs transition-all flex items-center gap-1",
+                    activeWeapon === weaponId
+                      ? "border-amber-500 bg-amber-500/15 text-amber-400"
+                      : "border-slate-700 text-slate-400 hover:border-slate-500"
+                  )}
+                  data-testid={`tab-weapon-${weaponId}`}
+                >
+                  <span>{WEAPON_ICONS[weaponId]}</span>
+                  <span className="capitalize">{weaponId}</span>
+                </button>
+              ))
+            )}
+          </div>
+        </div>
+
+        <div className="max-w-5xl mx-auto p-4">
+          <div className="bg-slate-900/80 border border-slate-700 rounded-xl p-4 mb-6 flex flex-wrap items-center justify-between gap-4">
+            <h2 className="text-emerald-400 font-bold font-serif">Skill Bonuses</h2>
+            
+            <div className="flex gap-4 text-sm">
+              <div className="flex items-center gap-1">
+                <span className="text-slate-500">DMG</span>
+                <span className="text-amber-400 font-bold">+{bonuses.damage}%</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <span className="text-slate-500">DEF</span>
+                <span className="text-amber-400 font-bold">+{bonuses.defense}%</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <span className="text-slate-500">SPD</span>
+                <span className="text-amber-400 font-bold">+{bonuses.speed}%</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <span className="text-slate-500">HP</span>
+                <span className="text-amber-400 font-bold">+{bonuses.health}</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <span className="text-slate-500">MP</span>
+                <span className="text-amber-400 font-bold">+{bonuses.mana}</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <span className="text-slate-500">CRIT</span>
+                <span className="text-amber-400 font-bold">+{bonuses.crit}%</span>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-4">
+              <div className="bg-emerald-500/10 border border-emerald-500 rounded-lg px-4 py-2 flex items-center gap-2">
+                <span className="text-slate-400 text-sm">Shared Pool:</span>
+                <span className="text-emerald-400 text-xl font-bold">{skillPoints}</span>
+                <span className="text-slate-500 text-xs">/ {totalSkillPoints}</span>
+              </div>
+              <div className="bg-slate-800/50 rounded-lg px-3 py-1 text-xs text-slate-400">
+                <span className="text-blue-400">{classPointsSpent}</span> class + <span className="text-amber-400">{weaponPointsSpent}</span> weapon
+              </div>
+              
+              <Button
+                variant="outline"
+                onClick={handleReset}
+                className="border-red-500/50 text-red-400 hover:bg-red-500/10"
+                data-testid="btn-reset-skills"
+              >
+                <RotateCcw className="w-4 h-4 mr-2" /> Reset
+              </Button>
+              
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setMode('class')}
+                  className={cn(
+                    "px-3 py-2 rounded-lg text-sm font-semibold transition-all border-2",
+                    mode === 'class'
+                      ? "border-emerald-500 bg-emerald-500/15 text-emerald-400"
+                      : "border-slate-700 text-slate-400"
+                  )}
+                  data-testid="btn-mode-class"
+                >
+                  Class
+                </button>
+                <button
+                  onClick={() => setMode('weapons')}
+                  className={cn(
+                    "px-3 py-2 rounded-lg text-sm font-semibold transition-all border-2",
+                    mode === 'weapons'
+                      ? "border-amber-500 bg-amber-500/15 text-amber-400"
+                      : "border-slate-700 text-slate-400"
+                  )}
+                  data-testid="btn-mode-weapons"
+                >
+                  Weapons
+                </button>
+                <button
+                  onClick={() => setMode('hotkeys')}
+                  className={cn(
+                    "px-3 py-2 rounded-lg text-sm font-semibold transition-all border-2 flex items-center gap-1",
+                    mode === 'hotkeys'
+                      ? "border-purple-500 bg-purple-500/15 text-purple-400"
+                      : "border-slate-700 text-slate-400"
+                  )}
+                  data-testid="btn-mode-hotkeys"
+                >
+                  <Swords className="w-4 h-4" /> Hotkeys
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {mode === 'hotkeys' ? (
+            <div className="py-4">
+              <WeaponSelectionPanel
+                selectedWeaponType={selectedWeaponType}
+                selectedWeaponId={selectedWeaponId}
+                selectedTier={selectedWeaponTier}
+                weaponSkillLevel={weaponSkillLevel}
+                skillSelections={skillSelections}
+                onSelectWeaponType={(typeId) => {
+                  setSelectedWeaponType(typeId);
+                  setSelectedWeaponId(null);
+                }}
+                onSelectWeapon={(weaponId) => {
+                  setSelectedWeaponId(weaponId);
+                  if (character) {
+                    const updatedChar = { ...character, equippedWeaponId: weaponId };
+                    setCharacter(updatedChar);
+                    CharacterManager.updateCharacter(updatedChar);
+                  }
+                }}
+                onSelectTier={(tier) => {
+                  setSelectedWeaponTier(tier);
+                }}
+                onSelectSkill={(weaponId, hotkey, skillName) => {
+                  const currentSelections = skillSelections[weaponId] || { hotkey2: null, hotkey3: null };
+                  const newSelections = { ...currentSelections, [hotkey]: skillName };
+                  const updatedSkillSelections = { ...skillSelections, [weaponId]: newSelections };
+                  setSkillSelections(updatedSkillSelections);
+                  if (character) {
+                    const updatedChar = { ...character, weaponSkillSelections: updatedSkillSelections } as any;
+                    setCharacter(updatedChar);
+                    CharacterManager.updateCharacter(updatedChar);
+                  }
+                }}
+                onChangeSkillLevel={(level) => {
+                  setWeaponSkillLevel(level);
+                  if (character) {
+                    const updatedChar = { ...character, weaponSkillLevel: level } as any;
+                    setCharacter(updatedChar);
+                    CharacterManager.updateCharacter(updatedChar);
+                  }
+                }}
+              />
+            </div>
+          ) : (
+            <div className="relative" onMouseMove={handleMouseMove}>
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={mode === 'class' ? activeClass : activeWeapon}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  className="flex flex-col gap-12 items-center py-8"
+                >
+                  {currentTree?.tiers.map((tier: SkillTier, tierIndex: number) => (
+                    <div key={tierIndex} className="flex items-center gap-8 w-full">
+                      <div className="w-48 text-right pr-4 shrink-0">
+                        <span className="text-amber-500 text-xs font-bold uppercase tracking-wider">
+                          {tier.name}
+                        </span>
+                      </div>
+                      
+                      <div className="flex gap-16 justify-center flex-1">
+                        {tier.skills.map((skill: Skill) => {
+                          const points = unlockedSkills[skill.id] || 0;
+                          const unlocked = points > 0;
+                          const available = canUnlockSkill(skill);
+                          const maxed = points >= skill.maxPoints;
+                          
+                          return (
+                            <motion.div
+                              key={skill.id}
+                              className={cn(
+                                "w-16 h-16 rounded-full border-3 flex items-center justify-center cursor-pointer relative transition-all",
+                                unlocked
+                                  ? "border-amber-500 shadow-lg shadow-amber-500/50"
+                                  : available
+                                  ? "border-emerald-500 animate-pulse"
+                                  : "border-slate-600 opacity-50"
+                              )}
+                              style={{
+                                background: unlocked
+                                  ? 'linear-gradient(135deg, rgba(251, 191, 36, 0.2), rgba(251, 191, 36, 0.05))'
+                                  : 'rgba(30, 41, 59, 0.8)',
+                                borderWidth: '3px'
+                              }}
+                              onClick={() => handleSkillClick(skill)}
+                              onMouseEnter={() => setHoveredSkill(skill)}
+                              onMouseLeave={() => setHoveredSkill(null)}
+                              whileHover={{ scale: 1.1 }}
+                              whileTap={{ scale: 0.95 }}
+                              data-testid={`skill-${skill.id}`}
+                            >
+                              <span 
+                                className={cn(
+                                  "text-2xl transition-all",
+                                  unlocked ? "" : "grayscale brightness-50"
+                                )}
+                              >
+                                {skill.icon}
+                              </span>
+                              
+                              {skill.maxPoints > 1 && (
+                                <div className="absolute -bottom-2 -right-2 bg-slate-800 border-2 border-amber-500 rounded-lg px-2 py-0.5 text-xs font-bold text-amber-400">
+                                  {points}/{skill.maxPoints}
+                                </div>
+                              )}
+                              
+                              {maxed && (
+                                <div className="absolute -top-1 -right-1 w-4 h-4 bg-amber-500 rounded-full flex items-center justify-center text-xs text-black font-bold">
+                                  ✓
+                                </div>
+                              )}
+                            </motion.div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))}
+                </motion.div>
+              </AnimatePresence>
+
+              {hoveredSkill && (
+                <div
+                  className="fixed z-50 bg-slate-900/98 border border-amber-500 rounded-lg p-4 w-72 pointer-events-none shadow-xl"
+                  style={{ left: tooltipPos.x, top: tooltipPos.y }}
+                >
+                  <h3 className="text-amber-400 font-bold mb-2 flex items-center gap-2">
+                    <span className="text-xl">{hoveredSkill.icon}</span>
+                    {hoveredSkill.name}
+                  </h3>
+                  <p className="text-slate-300 text-sm mb-3">{hoveredSkill.description}</p>
+                  <div className="text-emerald-400 text-sm font-semibold mb-2">{hoveredSkill.effect}</div>
+                  {hoveredSkill.requires && (
+                    <div className="text-red-400 text-xs">
+                      Requires: {currentTree?.tiers.flatMap(t => t.skills).find(s => s.id === hoveredSkill.requires)?.name}
+                    </div>
+                  )}
+                  <div className="text-slate-500 text-xs mt-2">
+                    Max Points: {hoveredSkill.maxPoints}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    </Layout>
+  );
+}

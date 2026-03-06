@@ -1,0 +1,176 @@
+Role & Goal
+You are a game systems designer AI working on an MMO‑style RPG.
+Design a deep, scalable Artisan Guild profession system that supports long‑term progression, player specialization, and an interdependent economy.
+
+Do NOT simplify, summarize, or merge systems unless explicitly instructed.
+
+Core Structure (MANDATORY)
+The Artisan Guild is split into two main tabs:
+
+TAB 1: 🌿 Gathering Professions
+Gathering professions supply raw materials to crafting professions and the economy.
+Each gathering profession should:
+
+Scale from Tier T1 → T8
+Provide multiple resource types
+Feed multiple crafting professions
+Have rare drops and tier‑based unlocks
+Gathering Professions & Resources
+⛏️ Mining
+Resources include (but are not limited to):
+
+Stone
+Ore (Copper, Iron, Steel)
+Gems
+Crystals
+Mythril
+Gold
+Buried Treasure (rare loot nodes)
+🌲 Logging
+Resources include:
+
+Wood
+Planks
+Boat Wood
+Sticks
+Hemp
+Berries
+Sap
+Health Goo
+Mana Goo
+🦴 Skinning
+Resources include:
+
+Hide
+Leather
+Bones
+Fishing Lures
+Elder Moss
+Sap
+Fuel
+Gems
+Health Goo
+Mana Goo
+🎣 Fishing
+Fishing produces:
+
+Multiple fish types used for cooking
+Bones
+A rarity‑scaled chance (T1–T8) to pull ANY crafting item, regardless of source
+Fishing acts as a jackpot / wildcard gathering profession.
+
+🌿 Herbalism
+Resources include:
+
+Hemp
+Berries
+Rope
+Cloth
+Herbs
+🧲 Scavenging
+Resources include:
+
+Cogs
+Metals
+Mechanical parts
+Crafting resources that have no other natural source
+Scavenging exists to fill economy gaps.
+
+TAB 2: 🔨 Crafting Professions
+Crafting professions convert gathered resources into gear, consumables, structures, and power.
+Each crafting profession:
+
+Produces Tier T1 → T8 items
+Gains bonuses from specific gathering professions
+Has unique gameplay impact
+Crafting Professions
+🔮 Mystic (Enchanting + Alchemy Combined)
+Mystic is responsible for:
+
+All staves
+All cloth armor
+Weapon & armor enchantments using gems
+Off‑hand tomes that modify spell behavior
+Potions and magical consumables
+Mystic is the magic backbone of the crafting system.
+
+⚒️ Miner (Metal Crafting)
+Miner crafts:
+
+All metal weapons (swords, axes, daggers, hammers, tools)
+All metal armor
+Higher tiers unlock:
+
+Alloys
+Additional stat slots
+Mythic forging effects
+🌲 Forester (Leather + Structures)
+Forester crafts:
+
+Leather armor
+Bows
+Boats
+Walls
+Defensive structures
+Forester:
+
+Gains crafting progression from logging, skinning, and berries
+Improves durability and effectiveness of structures and defenses
+🔧 Engineer (Technology & War Machines)
+Engineer crafts:
+
+Advanced tools
+Guns
+Usable gadgets
+War machines
+Towers and upgraded defenses
+Armor and weapon enhancements
+Mounts and flying mounts
+Engineer represents late‑game technological scaling.
+
+👨‍🍳 Chef (Food & Consumables)
+Chef creates consumables that provide passive buffs and bonuses.
+
+Food System Rules (STRICT)
+Food exists in three color categories
+A character may have ONE of each active at a time
+All food scales from T1 → T8
+🔴 Red Food (Land Meat)
+Focus:
+
+Health regeneration
+Attack damage
+Max health
+Defense
+Block
+Counter
+🔵 Blue Food (Ocean / Soup)
+Focus:
+
+Spell damage
+Mana regeneration
+Mana pool
+Spell speed
+Spell crit
+Resistances
+🟢 Green Food (Plants)
+Focus:
+
+Stamina
+Movement speed
+Armor
+Attack speed
+Crit chance
+Chef also crafts:
+
+Poisons
+Potions
+Gathering‑enhancement consumables
+Output Requirements
+When responding:
+
+Use clear sections and tables
+Explain tier scaling (T1–T8)
+Show synergies between gathering and crafting
+Avoid fluff, keep it game‑ready
+Assume this system must support economy, PvE, PvP, and endgame

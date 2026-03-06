@@ -1,0 +1,166 @@
+🎯 Level 20 Build Examples (160 Points)
+Pure Tank - Maximum Survivability
+Distribution: 60 STR / 50 VIT / 50 END
+Effective Points (After DR): 42.5 STR / 37.5 VIT / 37.5 END
+
+Stats at Level 20:
+
+Health: ~2,200
+Defense: ~1,500 (38.7% damage reduction)
+Block Chance: ~70% (approaches cap)
+Block Factor: ~0.75 (75% damage reduction when blocking)
+Damage: ~140 (tank damage, compensated by equipment)
+Playstyle: Front-line warrior who can absorb massive damage. High survivability with excellent blocking mechanics. Lower damage output requires weapon/equipment compensation.
+
+Physical DPS - Critical Strike Specialist
+Distribution: 50 STR / 55 DEX / 55 AGI
+Effective Points (After DR): 37.5 STR / 40 DEX / 40 AGI
+
+Stats at Level 20:
+
+Health: ~850
+Damage: ~155
+Critical Chance: 75% (CAPPED)
+Critical Factor: ~2.1× (210% damage)
+Accuracy: ~60%
+Defense: ~580 (24% damage reduction)
+Playstyle: Glass cannon with devastating critical strikes. 3 out of 4 attacks are crits dealing 2× damage. Requires skillful positioning due to lower health/defense.
+
+Magic DPS - Spell Caster
+Distribution: 80 INT / 80 WIS
+Effective Points (After DR): 53.75 INT / 53.75 WIS
+
+Stats at Level 20:
+
+Health: ~540
+Mana: ~1,345
+Damage: ~215 + spell bonuses
+Accuracy: ~40% (spell hit chance)
+Resistance: ~45%
+Defense: ~215 (14.6% damage reduction)
+Playstyle: Powerful spell damage with large mana pool. Very fragile but high burst potential. Excellent debuff resistance and spell accuracy.
+
+Balanced Hybrid - Versatile Fighter
+Distribution: 40 STR / 40 VIT / 40 DEX / 40 TAC
+Effective Points (After DR): 32.5 all attributes
+
+Stats at Level 20:
+
+Health: ~1,675 (balanced survivability)
+Damage: ~105 (modest, equipment-dependent)
+Defense: ~715 (26.7% damage reduction)
+Block Chance: ~35%
+Critical Chance: ~38%
+All-around competent stats
+Playstyle: Jack-of-all-trades with no major weaknesses. Good for beginners or adaptable playstyles. Can pivot to different roles with equipment changes.
+
+⚠️ Single-Stat Build (Diminishing Returns Example)
+Distribution: 160 STR / 0 others
+Effective Points (After DR): ~76.25 STR (MASSIVE LOSS)
+
+Why This Fails:
+
+First 25 points: Full value (25 effective)
+Points 26-50: Half value (12.5 effective)
+Points 51-160: Quarter value (27.5 effective)
+Total: 76.25 effective vs. 160 actual = 47.6% efficiency
+You waste 83.75 points compared to balanced distribution
+Conclusion: Single-stat stacking is heavily penalized. Balanced builds with 3-4 attributes perform significantly better.
+
+🛠️ System Implementation
+Core System Files
+File	Purpose	Key Features
+PlayerAttributes.cs	Main attribute manager	Diminishing returns calculation, point distribution, caching
+Attributes.Combat.cs	Combat stat calculations	Stat caps, combat formulas, defense/damage calculations
+AttributeTemplate.cs	Scriptable object template	Defines flat/percentage bonuses per attribute
+TrugordAttribute.cs	Individual attribute class	Tracks points, name, icon for each of 8 attributes
+Attribute Asset Configuration
+Location: Assets/uMMORPG/Resources/Attributes/*.asset
+
+Fixed Percentage Values (All Positive)
+Attribute	Stat	Before (Broken)	After (Fixed)
+Strength	Damage %	-39.1%	+2%
+Strength	Defense %	-79.2%	+1.5%
+Intellect	Damage %	-23.7%	+2.5%
+Wisdom	Damage %	-10%	+1.5%
+Dexterity	Damage %	-26.1%	+1.8%
+Dexterity	Critical %	-66.1%	+1.2%
+Agility	Defense %	-44.4%	+0.8%
+Tactics	Block %	-65.4%	+0.8%
+Diminishing Returns Configuration
+PlayerAttributes.cs Settings
+// Unity Inspector Settings
+[Header("Diminishing Returns")]
+public bool enableDiminishingReturns = true;
+public int diminishingReturnsThreshold = 25;
+public float tier1Efficiency = 0.5f;  // 50% for points 26-50
+public float tier2Efficiency = 0.25f; // 25% for points 51+
+
+// Calculation Method
+public float CalculateEffectivePoints(int actualPoints)
+{
+    if (!enableDiminishingReturns || actualPoints <= diminishingReturnsThreshold)
+        return actualPoints;
+    
+    float effective = diminishingReturnsThreshold;
+    
+    if (actualPoints <= 50)
+    {
+        // Tier 1: Points 26-50
+        effective += (actualPoints - diminishingReturnsThreshold) * tier1Efficiency;
+    }
+    else
+    {
+        // Tier 1: Points 26-50
+        effective += (50 - diminishingReturnsThreshold) * tier1Efficiency;
+        // Tier 2: Points 51+
+        effective += (actualPoints - 50) * tier2Efficiency;
+    }
+    
+    return effective;
+}
+Example Calculations
+Actual Points	Calculation	Effective Points	Efficiency %
+20	20 (no DR)	20	100%
+25	25 (threshold)	25	100%
+35	25 + (10 × 0.5)	30	85.7%
+50	25 + (25 × 0.5)	37.5	75%
+60	25 + 12.5 + (10 × 0.25)	40	66.7%
+80	25 + 12.5 + (30 × 0.25)	45	56.25%
+160	25 + 12.5 + (110 × 0.25)	65	40.6%
+Stat Caps Implementation
+Attributes.Combat.cs - Hard Caps
+// Example: Critical Chance Cap
+public float criticalChance
+{
+    get
+    {
+        float totalCrit = 0f;
+        
+        // Sum all attribute contributions
+        foreach (var attr in attributes)
+        {
+            totalCrit += attr.template.bonusCriticalChanceFlat * effectivePoints;
+            totalCrit += attr.template.bonusCriticalChancePercent * baseStats.critChance * effectivePoints;
+        }
+        
+        // Add equipment, traits, buffs, etc.
+        totalCrit += equipment.critChance + traits.critChance + buffs.critChance;
+        
+        // Apply hard cap
+        return Mathf.Clamp(totalCrit, 0f, 0.75f); // 75% cap
+    }
+}
+Complete Stat Cap Reference
+Stat	Cap Value	Rationale
+Block Chance	75%	Maintains counterplay, prevents invulnerability
+Critical Chance	75%	Preserves non-crit damage builds
+Block Factor	90% (0.90)	Allows meaningful blocking without immunity
+Critical Factor	3.0× (300%)	Prevents one-shot mechanics
+Accuracy	95%	Always 5% chance to resist
+Resistance	95%	Always 5% chance for debuffs to land
+Drain Health	50%	Prevents infinite sustain loops
+Drain Mana	50%	Prevents infinite sustain loops
+Reflect Damage	50%	Prevents reflect-only strategies
+Absorb Health	50%	Prevents excessive regeneration
+Absorb Mana	50%	Prevents excessive regeneration

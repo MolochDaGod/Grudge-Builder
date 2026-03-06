@@ -1,0 +1,1690 @@
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Hierarchical Class and Progression System (Grudge Island) – Interactive Rewards</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* Tooltip system (works with hover and keyboard focus) */
+    [data-tooltip] {
+      position: relative;
+      cursor: help;
+    }
+    /* Tooltip bubble */
+    [data-tooltip]:hover::after,
+    [data-tooltip]:focus-visible::after {
+      content: attr(data-tooltip);
+      position: absolute;
+      bottom: calc(100% + 8px);
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(2,6,23,0.95);
+      color: #e5e7eb;
+      padding: 6px 10px;
+      border-radius: 6px;
+      white-space: nowrap;
+      z-index: 60;
+      font-size: 12px;
+      box-shadow: 0 6px 14px rgba(0,0,0,0.25);
+      border: 1px solid #334155;
+    }
+    [data-tooltip]:hover::before,
+    [data-tooltip]:focus-visible::before {
+      content: "";
+      position: absolute;
+      bottom: calc(100% + 2px);
+      left: 50%;
+      transform: translateX(-50%);
+      border-width: 6px;
+      border-style: solid;
+      border-color: rgba(2,6,23,0.95) transparent transparent transparent;
+      z-index: 60;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+    .profession-card {
+      transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+      display: flex;
+      flex-direction: column;
+      min-height: 100%;
+    }
+    .profession-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 10px 20px rgba(0,0,0,0.15), 0 6px 6px rgba(0,0,0,0.1);
+    }
+    .master-rank-container {
+      cursor: pointer;
+      user-select: none;
+      padding: 0.5rem;
+      background-color: rgba(250, 204, 21, 0.1);
+      border-bottom: 2px solid #facc15;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+    }
+    .master-rank-label {
+      font-weight: bold;
+      color: #fde047;
+    }
+    .nodes-container {
+      padding: 0.75rem;
+      display: grid;
+      grid-template-columns: repeat(1, minmax(0, 1fr));
+      gap: 0.75rem;
+    }
+    .node {
+      background-color: rgba(51,65,85,0.5);
+      padding: 0.75rem;
+      border-radius: 0.375rem;
+    }
+    .node-title {
+      font-weight: 600;
+      color: #93c5fd;
+      margin-bottom: 0.5rem;
+      border-bottom: 1px solid #60a5fa;
+      padding-bottom: 0.25rem;
+    }
+    .node-ranks li {
+      padding: 0.25rem 0;
+      font-size: 0.9em;
+      position: relative;
+      padding-left: 1.25rem;
+    }
+    .node-ranks li::before {
+      content: '›';
+      position: absolute;
+      left: 0.25rem;
+      color: #60a5fa;
+    }
+    .novice-rank-container {
+      margin-top: auto;
+      padding: 0.5rem;
+      background-color: rgba(100, 116, 139, 0.1);
+      border-top: 2px solid #64748b;
+      text-align: center;
+    }
+    .novice-rank-label {
+      font-weight: bold;
+      color: #cbd5e1;
+    }
+
+    /* Rewards Editor Modal */
+    #rewards-modal {
+      display: none;
+    }
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+      z-index: 50;
+    }
+    .modal-panel {
+      background: #111827; /* gray-900 */
+      color: white;
+      width: min(920px, 100%);
+      max-height: 85vh;
+      overflow: auto;
+      border-radius: 0.75rem;
+      padding: 1rem 1rem 0.75rem;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+    }
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.25rem 0 0.75rem;
+      border-bottom: 1px solid #374151;
+      margin-bottom: 0.5rem;
+    }
+    .section-title {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: #93c5fd;
+    }
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+    }
+    @media (max-width: 800px) {
+      .grid-2 { grid-template-columns: 1fr; }
+    }
+    .field-row { display: flex; gap: 0.5rem; align-items: center; margin-bottom: 0.5rem; }
+    .field-row label { min-width: 120px; font-weight: 600; color: #cbd5e1; }
+    .field-row input, .field-row textarea {
+      background: #0b1220;
+      border: 1px solid #334155;
+      color: #e5e7eb;
+      padding: 0.5rem;
+      border-radius: 0.25rem;
+      width: 100%;
+    }
+    #items-table { width: 100%; border-collapse: collapse; }
+    #items-table th, #items-table td { border-bottom: 1px solid #374151; padding: 6px 8px; }
+    #items-table tr td { padding: 6px 8px; vertical-align: middle; }
+    .btn {
+      padding: 0.5rem 1rem;
+      border-radius: 0.375rem;
+      border: 0;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    .btn-blue { background: #2563eb; color: white; }
+    .btn-green { background: #16a34a; color: white; }
+    .btn-gray { background: #374151; color: white; }
+    .btn-yellow { background: #f59e0b; color: black; }
+    .btn-danger { background: #ef4444; color: white; }
+    .section { border: 1px solid #2b3240; border-radius: 0.5rem; padding: 0.75rem; background: rgba(2,6,23,0.6); }
+  </style>
+</head>
+<body class="bg-slate-900 text-slate-100 p-4 md:p-8">
+  <div class="container mx-auto">
+    <header class="text-center mb-6">
+      <h1 class="text-4xl md:text-5xl font-bold text-sky-400 mb-2">Hierarchical Class System</h1>
+      <p class="text-lg text-slate-400">Chart your path from Novice to Master through specialized training. Click Master to reveal node details, or use Rewards to customize XP/Rewards. Tooltips are enabled for guidance.</p>
+    </header>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
+      <!-- Artisan Guild Column -->
+      <section class="bg-slate-800 p-6 rounded-xl shadow-2xl">
+        <h2 class="text-3xl font-semibold mb-6 text-amber-400 border-b-2 border-amber-500 pb-2 text-center">Artisan Guild</h2>
+        <div class="space-y-8">
+          <!-- Metalsmith -->
+          <div class="profession-card bg-slate-700 p-5 rounded-lg shadow-lg text-center" data-prof-id="metalsmith">
+            <div class="master-rank-container" data-tooltip="Master Metalsmith: click to toggle details and edit rewards" title="Master Metalsmith (click to toggle details)">
+              <span class="master-rank-label" onclick="toggleCard(this)">★ Master Metalsmith ★</span>
+              <button class="btn btn-blue" data-tooltip="Edit rewards for Metalsmith" onclick="openRewards('metalsmith')">Rewards</button>
+            </div>
+            <div class="nodes-container grid grid-cols-1 sm:grid-cols-3 gap-3" style="margin-top:0.75rem;">
+              <div class="node" data-tooltip="XP: 0 | SP: 0">
+                <h4 class="node-title">Armorsmithing</h4>
+                <ul class="node-ranks text-left"><li>Apprentice Armorsmith</li><li>Journeyman Armorsmith</li></ul>
+              </div>
+              <div class="node" data-tooltip="XP: 0 | SP: 0">
+                <h4 class="node-title">Weaponsmithing</h4>
+                <ul class="node-ranks text-left"><li>Apprentice Weaponsmith</li><li>Journeyman Weaponsmith</li></ul>
+              </div>
+              <div class="node" data-tooltip="XP: 0 | SP: 0">
+                <h4 class="node-title">Metallurgy</h4>
+                <ul class="node-ranks text-left"><li>Prospector</li><li>Refiner</li></ul>
+              </div>
+            </div>
+            <div class="novice-rank-container" data-tooltip="Novice Metalsmith tier"> 
+              <span class="novice-rank-label">◈ Novice Metalsmith ◈</span>
+            </div>
+          </div>
+
+          <!-- Woodworker -->
+          <div class="profession-card bg-slate-700 p-5 rounded-lg shadow-lg text-center" data-prof-id="woodworker">
+            <div class="master-rank-container" data-tooltip="Master Woodworker: click to toggle details" title="Master Woodworker (click to toggle details)">
+              <span class="master-rank-label" onclick="toggleCard(this)">★ Master Woodworker ★</span>
+              <button class="btn btn-blue" data-tooltip="Edit rewards for Woodworker" onclick="openRewards('woodworker')">Rewards</button>
+            </div>
+            <div class="nodes-container grid grid-cols-1 sm:grid-cols-3 gap-3" style="margin-top:0.75rem;">
+              <div class="node" data-tooltip="XP: 0 | SP: 0">
+                <h4 class="node-title">Carpentry</h4>
+                <ul class="node-ranks text-left"><li>Rough Carpenter</li><li>Fine Carpenter</li></ul>
+              </div>
+              <div class="node" data-tooltip="XP: 0 | SP: 0">
+                <h4 class="node-title">Fletching</h4>
+                <ul class="node-ranks text-left"><li>Shaftcrafter</li><li>Arrowhead Maker</li></ul>
+              </div>
+              <div class="node" data-tooltip="XP: 0 | SP: 0">
+                <h4 class="node-title">Carving</h4>
+                <ul class="node-ranks text-left"><li>Engraver</li><li>Sculptor</li></ul>
+              </div>
+            </div>
+            <div class="novice-rank-container" data-tooltip="Novice Woodworker tier">
+              <span class="novice-rank-label">◈ Novice Woodworker ◈</span>
+            </div>
+          </div>
+
+          <!-- Tailor -->
+          <div class="profession-card bg-slate-700 p-5 rounded-lg shadow-lg text-center" data-prof-id="tailor">
+            <div class="master-rank-container" data-tooltip="Master Tailor: click to toggle details" title="Master Tailor (click to toggle details)">
+              <span class="master-rank-label" onclick="toggleCard(this)">★ Master Tailor ★</span>
+              <button class="btn btn-blue" data-tooltip="Edit rewards for Tailor" onclick="openRewards('tailor')">Rewards</button>
+            </div>
+            <div class="nodes-container grid grid-cols-1 sm:grid-cols-3 gap-3" style="margin-top:0.75rem;">
+              <div class="node" data-tooltip="XP: 0 | SP: 0">
+                <h4 class="node-title">Garment Making</h4>
+                <ul class="node-ranks text-left"><li>Pattern Cutter</li><li>Stitcher</li></ul>
+              </div>
+              <div class="node" data-tooltip="XP: 0 | SP: 0">
+                <h4 class="node-title">Leatherworking</h4>
+                <ul class="node-ranks text-left"><li>Tanner</li><li>Skinner</li></ul>
+              </div>
+              <div class="node" data-tooltip="XP: 0 | SP: 0">
+                <h4 class="node-title">Embroidery</h4>
+                <ul class="node-ranks text-left"><li>Threader</li><li>Embellisher</li></ul>
+              </div>
+            </div>
+            <div class="novice-rank-container" data-tooltip="Novice Tailor tier">
+              <span class="novice-rank-label">◈ Novice Tailor ◈</span>
+            </div>
+          </div>
+
+          <!-- Cook -->
+          <div class="profession-card bg-slate-700 p-5 rounded-lg shadow-lg text-center" data-prof-id="cook">
+            <div class="master-rank-container" data-tooltip="Master Chef: click to toggle details" title="Master Chef (click to toggle details)">
+              <span class="master-rank-label" onclick="toggleCard(this)">★ Master Chef ★</span>
+              <button class="btn btn-blue" data-tooltip="Edit rewards for Cook" onclick="openRewards('cook')">Rewards</button>
+            </div>
+            <div class="nodes-container grid grid-cols-1 sm:grid-cols-3 gap-3" style="margin-top:0.75rem;">
+              <div class="node" data-tooltip="XP: 0 | SP: 0">
+                <h4 class="node-title">Baking</h4>
+                <ul class="node-ranks text-left"><li>Dough Maker</li><li>Oven Master</li></ul>
+              </div>
+              <div class="node" data-tooltip="XP: 0 | SP: 0">
+                <h4 class="node-title">Brewing</h4>
+                <ul class="node-ranks text-left"><li>Fermenter</li><li>Distiller</li></ul>
+              </div>
+              <div class="node" data-tooltip="XP: 0 | SP: 0">
+                <h4 class="node-title">Cuisine</h4>
+                <ul class="node-ranks text-left"><li>Spice Blender</li><li>Saucier</li></ul>
+              </div>
+            </div>
+            <div class="novice-rank-container" data-tooltip="Novice Cook tier">
+              <span class="novice-rank-label">◈ Novice Cook ◈</span>
+            </div>
+          </div>
+
+          <!-- Alchemist -->
+          <div class="profession-card bg-slate-700 p-5 rounded-lg shadow-lg text-center" data-prof-id="alchemist">
+            <div class="master-rank-container" data-tooltip="Master Alchemist: click to toggle details">
+              <span class="master-rank-label" onclick="toggleCard(this)">★ Master Alchemist ★</span>
+              <button class="btn btn-blue" data-tooltip="Edit rewards for Alchemist" onclick="openRewards('alchemist')">Rewards</button>
+            </div>
+            <div class="nodes-container grid grid-cols-1 sm:grid-cols-3 gap-3" style="margin-top:0.75rem;">
+              <div class="node" data-tooltip="XP: 0 | SP: 0">
+                <h4 class="node-title">Potion Crafting</h4>
+                <ul class="node-ranks text-left"><li>Herbalist</li><li>Brewer</li></ul>
+              </div>
+              <div class="node" data-tooltip="XP: 0 | SP: 0">
+                <h4 class="node-title">Transmutation</h4>
+                <ul class="node-ranks text-left"><li>Materialist</li><li>Catalyst</li></ul>
+              </div>
+              <div class="node" data-tooltip="XP: 0 | SP: 0">
+                <h4 class="node-title">Elixir Distillation</h4>
+                <ul class="node-ranks text-left"><li>Infuser</li><li>Perfecter</li></ul>
+              </div>
+            </div>
+            <div class="novice-rank-container" data-tooltip="Novice Alchemist tier">
+              <span class="novice-rank-label">◈ Novice Alchemist ◈</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Combatant Conclave Column -->
+      <section class="bg-slate-800 p-6 rounded-xl shadow-2xl" data-prof-id="combatant-conclave">
+        <h2 class="text-3xl font-semibold mb-6 text-red-400 border-b-2 border-red-500 pb-2 text-center">Combatant Conclave</h2>
+        <div class="space-y-8">
+          <!-- Warrior -->
+          <div class="profession-card bg-slate-700 p-5 rounded-lg shadow-lg text-center" data-prof-id="warrior">
+            <div class="master-rank-container" data-tooltip="Warlord: click to toggle details">
+              <span class="master-rank-label" onclick="toggleCard(this)">★ Warlord ★</span>
+              <button class="btn btn-blue" data-tooltip="Edit rewards for Warrior" onclick="openRewards('warrior')">Rewards</button>
+            </div>
+            <div class="nodes-container grid grid-cols-1 sm:grid-cols-3 gap-3" style="margin-top:0.75rem;">
+              <div class="node" data-tooltip="XP: 0 | SP: 0">
+                <h4 class="node-title">Swordsmanship</h4>
+                <ul class="node-ranks text-left"><li>Blade Trainee</li><li>Sword Saint</li></ul>
+              </div>
+              <div class="node" data-tooltip="XP: 0 | SP: 0">
+                <h4 class="node-title">Defense</h4>
+                <ul class="node-ranks text-left"><li>Shield Bearer</li><li>Guardian</li></ul>
+              </div>
+              <div class="node" data-tooltip="XP: 0 | SP: 0">
+                <h4 class="node-title">Brawling</h4>
+                <ul class="node-ranks text-left"><li>Striker</li><li>Grappler</li></ul>
+              </div>
+            </div>
+            <div class="novice-rank-container" data-tooltip="Novice Warrior tier">
+              <span class="novice-rank-label">◈ Novice Warrior ◈</span>
+            </div>
+          </div>
+
+          <!-- Ranger -->
+          <div class="profession-card bg-slate-700 p-5 rounded-lg shadow-lg text-center" data-prof-id="ranger">
+            <div class="master-rank-container" data-tooltip="Master Ranger: click to toggle details">
+              <span class="master-rank-label" onclick="toggleCard(this)">★ Master Ranger ★</span>
+              <button class="btn btn-blue" data-tooltip="Edit rewards for Ranger" onclick="openRewards('ranger')">Rewards</button>
+            </div>
+            <div class="nodes-container grid grid-cols-1 sm:grid-cols-3 gap-3" style="margin-top:0.75rem;">
+              <div class="node" data-tooltip="XP: 0 | SP: 0">
+                <h4 class="node-title">Archery</h4>
+                <ul class="node-ranks text-left"><li>Marksman Trainee</li><li>Deadeye</li></ul>
+              </div>
+              <div class="node" data-tooltip="XP: 0 | SP: 0">
+                <h4 class="node-title">Tracking</h4>
+                <ul class="node-ranks text-left"><li>Scout</li><li>Pathfinder</li></ul>
+              </div>
+              <div class="node" data-tooltip="XP: 0 | SP: 0">
+                <h4 class="node-title">Beast Taming</h4>
+                <ul class="node-ranks text-left"><li>Handler</li><li>Bonded</li></ul>
+              </div>
+            </div>
+            <div class="novice-rank-container" data-tooltip="Novice Ranger tier">
+              <span class="novice-rank-label">◈ Novice Ranger ◈</span>
+            </div>
+          </div>
+
+          <!-- Stealth Spy -->
+          <div class="profession-card bg-slate-700 p-5 rounded-lg shadow-lg text-center" data-prof-id="stealth-spy">
+            <div class="master-rank-container" data-tooltip="Master of Shadows: click to toggle details">
+              <span class="master-rank-label" onclick="toggleCard(this)">★ Master of Shadows ★</span>
+              <button class="btn btn-blue" data-tooltip="Edit rewards for Stealth Spy" onclick="openRewards('stealth-spy')">Rewards</button>
+            </div>
+            <div class="nodes-container grid grid-cols-1 sm:grid-cols-3 gap-3" style="margin-top:0.75rem;">
+              <div class="node" data-tooltip="XP: 0 | SP: 0">
+                <h4 class="node-title">Infiltration</h4>
+                <ul class="node-ranks text-left"><li>Sneak</li><li>Intruder</li></ul>
+              </div>
+              <div class="node" data-tooltip="XP: 0 | SP: 0">
+                <h4 class="node-title">Espionage</h4>
+                <ul class="node-ranks text-left"><li>Agent</li><li>Spymaster</li></ul>
+              </div>
+              <div class="node" data-tooltip="XP: 0 | SP: 0">
+                <h4 class="node-title">Subterfuge</h4>
+                <ul class="node-ranks text-left"><li>Deceiver</li><li>Saboteur</li></ul>
+              </div>
+            </div>
+            <div class="novice-rank-container" data-tooltip="Novice Spy tier">
+              <span class="novice-rank-label">◈ Novice Spy ◈</span>
+            </div>
+          </div>
+
+          <!-- Survivalist -->
+          <div class="profession-card bg-slate-700 p-5 rounded-lg shadow-lg text-center" data-prof-id="survivalist">
+            <div class="master-rank-container" data-tooltip="Master Survivalist: click to toggle details">
+              <span class="master-rank-label" onclick="toggleCard(this)">★ Master Survivalist ★</span>
+              <button class="btn btn-blue" data-tooltip="Edit rewards for Survivalist" onclick="openRewards('survivalist')">Rewards</button>
+            </div>
+            <div class="nodes-container grid grid-cols-1 sm:grid-cols-3 gap-3" style="margin-top:0.75rem;">
+              <div class="node" data-tooltip="XP: 0 | SP: 0">
+                <h4 class="node-title">Foraging</h4>
+                <ul class="node-ranks text-left"><li>Gatherer</li><li>Botanist</li></ul>
+              </div>
+              <div class="node" data-tooltip="XP: 0 | SP: 0">
+                <h4 class="node-title">Shelter Craft</h4>
+                <ul class="node-ranks text-left"><li>Builder</li><li>Fortifier</li></ul>
+              </div>
+              <div class="node" data-tooltip="XP: 0 | SP: 0">
+                <h4 class="node-title">Trapping</h4>
+                <ul class="node-ranks text-left"><li>Snare Setter</li><li>Expert Trapper</li></ul>
+              </div>
+            </div>
+            <div class="novice-rank-container" data-tooltip="Novice Survivalist tier">
+              <span class="novice-rank-label">◈ Novice Survivalist ◈</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Mystic Circle Column -->
+      <section class="bg-slate-800 p-6 rounded-xl shadow-2xl" data-prof-id="mystic-circle">
+        <h2 class="text-3xl font-semibold mb-6 text-purple-400 border-b-2 border-purple-500 pb-2 text-center">Mystic Circle</h2>
+        <div class="space-y-8">
+          <!-- Mystic -->
+          <div class="profession-card bg-slate-700 p-5 rounded-lg shadow-lg text-center" data-prof-id="mystic">
+            <div class="master-rank-container" data-tooltip="Arch Mystic: click to toggle details">
+              <span class="master-rank-label" onclick="toggleCard(this)">★ Arch Mystic ★</span>
+              <button class="btn btn-blue" data-tooltip="Edit rewards for Mystic" onclick="openRewards('mystic')">Rewards</button>
+            </div>
+            <div class="nodes-container grid grid-cols-1 sm:grid-cols-3 gap-3" style="margin-top:0.75rem;">
+              <div class="node" data-tooltip="XP: 0 | SP: 0">
+                <h4 class="node-title">Divination</h4>
+                <ul class="node-ranks text-left"><li>Fortune Teller</li><li>Visionary</li></ul>
+              </div>
+              <div class="node" data-tooltip="XP: 0 | SP: 0">
+                <h4 class="node-title">Spiritualism</h4>
+                <ul class="node-ranks text-left"><li>Medium</li><li>Channeler</li></ul>
+              </div>
+              <div class="node" data-tooltip="XP: 0 | SP: 0">
+                <h4 class="node-title">Meditation</h4>
+                <ul class="node-ranks text-left"><li>Adept of Calm</li><li>Mind Master</li></ul>
+              </div>
+            </div>
+            <div class="novice-rank-container" data-tooltip="Novice Mystic tier">
+              <span class="novice-rank-label">◈ Novice Mystic ◈</span>
+            </div>
+          </div>
+
+          <!-- Enchanter -->
+          <div class="profession-card bg-slate-700 p-5 rounded-lg shadow-lg text-center" data-prof-id="enchanter">
+            <div class="master-rank-container" data-tooltip="Master Enchanter: click to toggle details">
+              <span class="master-rank-label" onclick="toggleCard(this)">★ Master Enchanter ★</span>
+              <button class="btn btn-blue" data-tooltip="Edit rewards for Enchanter" onclick="openRewards('enchanter')">Rewards</button>
+            </div>
+            <div class="nodes-container grid grid-cols-1 sm:grid-cols-3 gap-3" style="margin-top:0.75rem;">
+              <div class="node" data-tooltip="XP: 0 | SP: 0">
+                <h4 class="node-title">Rune Carving</h4>
+                <ul class="node-ranks text-left"><li>Glyph Scribe</li><li>Rune Master</li></ul>
+              </div>
+              <div class="node" data-tooltip="XP: 0 | SP: 0">
+                <h4 class="node-title">Item Imbuement</h4>
+                <ul class="node-ranks text-left"><li>Infuser</li><li>Artificer</li></ul>
+              </div>
+              <div class="node" data-tooltip="XP: 0 | SP: 0">
+                <h4 class="node-title">Charm Weaving</h4>
+                <ul class="node-ranks text-left"><li>Spellbinder</li><li>Mesmerist</li></ul>
+              </div>
+            </div>
+            <div class="novice-rank-container" data-tooltip="Novice Enchanter tier">
+              <span class="novice-rank-label">◈ Novice Enchanter ◈</span>
+            </div>
+          </div>
+
+          <!-- Bard -->
+          <div class="profession-card bg-slate-700 p-5 rounded-lg shadow-lg text-center" data-prof-id="bard">
+            <div class="master-rank-container" data-tooltip="Master Bard: click to toggle details">
+              <span class="master-rank-label" onclick="toggleCard(this)">★ Master Bard ★</span>
+              <button class="btn btn-blue" data-tooltip="Edit rewards for Bard" onclick="openRewards('bard')">Rewards</button>
+            </div>
+            <div class="nodes-container grid grid-cols-1 sm:grid-cols-3 gap-3" style="margin-top:0.75rem;">
+              <div class="node" data-tooltip="XP: 0 | SP: 0">
+                <h4 class="node-title">Performance</h4>
+                <ul class="node-ranks text-left"><li>Storyteller</li><li>Virtuoso</li></ul>
+              </div>
+              <div class="node" data-tooltip="XP: 0 | SP: 0">
+                <h4 class="node-title">Composition</h4>
+                <ul class="node-ranks text-left"><li>Lyricist</li><li>Composer</li></ul>
+              </div>
+              <div class="node" data-tooltip="XP: 0 | SP: 0">
+                <h4 class="node-title">Inspiration</h4>
+                <ul class="node-ranks text-left"><li>Motivator</li><li>Morale Booster</li></ul>
+              </div>
+            </div>
+            <div class="novice-rank-container" data-tooltip="Novice Bard tier">
+              <span class="novice-rank-label">◈ Novice Bard ◈</span>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <footer class="text-center mt-10 py-6 border-t border-slate-700">
+      <p class="text-slate-500">&copy; 2025 Your Game Title. All rights reserved.</p>
+    </footer>
+  </div>
+
+  <!-- Rewards Editor Modal -->
+  <div id="rewards-modal" role="dialog" aria-modal="true" aria-label="Rewards Editor" class="modal-overlay" style="display:none;">
+    <div class="modal-panel">
+      <div class="modal-header">
+        <div>
+          <div class="section-title" id="modal-prof-name">Rewards Editor</div>
+        </div>
+        <button class="btn btn-gray" onclick="closeRewards()">Close</button>
+      </div>
+
+      <div class="section" style="margin-bottom:0.75rem;">
+        <div class="grid-2" style="gap:1rem;">
+          <div style="flex:1;">
+            <div class="field-row">
+              <label for="master-title">Master Title</label>
+              <input id="master-title" type="text" placeholder="e.g., Master Metalsmith" />
+            </div>
+          </div>
+          <div style="flex:1;">
+            <div class="field-row">
+              <label for="novice-xp">Novice XP</label>
+              <input id="novice-xp" type="number" min="0" value="0" />
+            </div>
+            <div class="field-row">
+              <label for="novice-sp">Novice Skill Points</label>
+              <input id="novice-sp" type="number" min="0" value="0" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section" id="nodes-editor" aria-label="Nodes Editor" style="padding-bottom:0.5rem;">
+        <!-- Node editors will be injected here by JS -->
+      </div>
+
+      <div class="section" style="margin-top:0.5rem;">
+        <div class="section-title" style="font-size:1rem;margin-bottom:.5rem;">Items Rewards</div>
+        <table id="items-table" aria-label="Rewards Items">
+          <thead>
+            <tr><th>Item</th><th>Quantity</th><th></th></tr>
+          </thead>
+          <tbody id="items-table-body"></tbody>
+        </table>
+        <button class="btn btn-blue" onclick="addItemRow()">Add Item</button>
+        <button class="btn btn-yellow" onclick="exportRewards()">Export Rewards (JSON)</button>
+        <button class="btn btn-yellow" onclick="importRewards()">Import Rewards (JSON)</button>
+      </div>
+
+      <div class="flex justify-end space-x-2" style="margin-top:.75rem;">
+        <button class="btn btn-gray" onclick="closeRewards()">Cancel</button>
+        <button class="btn btn-green" onclick="saveRewards()">Save</button>
+        <button class="btn btn-yellow" onclick="resetToDefaults()">Reset to Defaults</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Data model: node titles per profession (static default labels)
+    const NODE_TITLES = {
+      metalsmith: ["Armorsmithing", "Weaponsmithing", "Metallurgy"],
+      woodworker: ["Carpentry", "Fletching", "Carving"],
+      tailor: ["Garment Making", "Leatherworking", "Embroidery"],
+      cook: ["Baking", "Brewing", "Cuisine"],
+      alchemist: ["Potion Crafting", "Transmutation", "Elixir Distillation"],
+      warrior: ["Swordsmanship", "Defense", "Brawling"],
+      ranger: ["Archery", "Tracking", "Beast Taming"],
+      stealth_spy: ["Infiltration", "Espionage", "Subterfuge"],
+      survivalist: ["Foraging", "Shelter Craft", "Trapping"],
+      mystic: ["Divination", "Spiritualism", "Meditation"],
+      enchanter: ["Rune Carving", "Item Imbuement", "Charm Weaving"],
+      bard: ["Performance", "Composition", "Inspiration"]
+    };
+
+    const MASTER_TITLES = {
+      metalsmith: "Master Metalsmith",
+      woodworker: "Master Woodworker",
+      tailor: "Master Tailor",
+      cook: "Master Chef",
+      alchemist: "Master Alchemist",
+      warrior: "Warlord",
+      ranger: "Master Ranger",
+      stealth_spy: "Master of Shadows",
+      survivalist: "Master Survivalist",
+      mystic: "Arch Mystic",
+      enchanter: "Master Enchanter",
+      bard: "Master Bard"
+    };
+
+    // Default rewards data (empty by default)
+    const DEFAULT_REWARDS = {
+      // profId: { masterTitle, novice: {xp, sp}, nodes: [ {xp, sp}, ... ], items: [ {name, qty} ] }
+    };
+
+    const REWARDS_KEY = "gi_rewards";
+
+    // Helpers
+    function $(sel, root=document) { return root.querySelector(sel); }
+    function $all(sel, root=document) { return Array.from(root.querySelectorAll(sel)); }
+
+    function saveRewards() {
+      const profId = window.currentEditingProf;
+      if (!profId) return;
+
+      const masterTitle = document.getElementById('master-title').value || MASTER_TITLES[profId] || "";
+      const noviceXP = parseInt(document.getElementById('novice-xp').value || "0", 10) || 0;
+      const noviceSP = parseInt(document.getElementById('novice-sp').value || "0", 10) || 0;
+
+      // Nodes
+      const nodesEditor = document.getElementById('nodes-editor');
+      const nodeSections = nodesEditor.querySelectorAll('.node-editor');
+      const nodes = [];
+      nodeSections.forEach((section, idx) => {
+        const xp = parseInt(section.querySelector('.node-xp').value || "0", 10) || 0;
+        const sp = parseInt(section.querySelector('.node-sp').value || "0", 10) || 0;
+        nodes.push({ index: idx, xp, sp, title: NODE_TITLES[profId][idx] || `Node ${idx+1}` });
+      });
+
+      // Items
+      const items = [];
+      const tbody = document.getElementById('items-table-body');
+      for (let tr of Array.from(tbody.querySelectorAll('tr'))) {
+        const name = tr.querySelector('.item-name').value?.trim();
+        const qty = parseInt(tr.querySelector('.item-qty').value || "0", 10) || 0;
+        if (name) items.push({ name, qty });
+      }
+
+      // Build and persist
+      const saved = JSON.parse(localStorage.getItem(REWARDS_KEY) || "{}");
+      saved[profId] = { masterTitle, novice: { xp: noviceXP, sp: noviceSP }, nodes, items };
+      localStorage.setItem(REWARDS_KEY, JSON.stringify(saved));
+
+      // Close editor
+      closeRewards();
+    }
+
+    function loadRewardsFor(profId) {
+      const saved = JSON.parse(localStorage.getItem(REWARDS_KEY) || "{}");
+      return saved[profId] || null;
+    }
+
+    function openRewards(profId) {
+      window.currentEditingProf = profId;
+      const modal = document.getElementById('rewards-modal');
+      const title = document.getElementById('modal-prof-name');
+      title.textContent = `Rewards Editor — ${formatProfName(profId)}`;
+
+      const data = loadRewardsFor(profId);
+      const masterTitle = (data && data.masterTitle) || MASTER_TITLES[profId] || "";
+      document.getElementById('master-title').value = masterTitle;
+
+      const noviceXP = (data && data.novice && data.novice.xp) || 0;
+      const noviceSP = (data && data.novice && data.novice.sp) || 0;
+      document.getElementById('novice-xp').value = noviceXP;
+      document.getElementById('novice-sp').value = noviceSP;
+
+      // Nodes
+      const nodesEditor = document.getElementById('nodes-editor');
+      nodesEditor.innerHTML = ''; // clear
+      const titles = NODE_TITLES[profId] || ["Node1","Node2","Node3"];
+      const nodesData = (data && data.nodes) || [{xp:0, sp:0},{xp:0, sp:0},{xp:0, sp:0}];
+      titles.forEach((t, idx) => {
+        const node = nodesData[idx] || {xp:0, sp:0};
+        const section = document.createElement('div');
+        section.className = 'node-editor section';
+        section.style = "padding:0.5rem 0.5rem;border:1px solid #2b3240;border-radius:.5rem;margin-bottom:.5rem;background:rgba(2,6,23,0.6)";
+        section.innerHTML = `
+          <div style="font-weight:700;color:#93c5fd;margin-bottom:.25rem;">Node ${idx+1}: ${t}</div>
+          <div class="field-row" style="align-items:center;">
+            <label>XP Gain</label>
+            <input class="node-xp" type="number" min="0" value="${node.xp}" style="flex:1;">
+          </div>
+          <div class="field-row" style="align-items:center;">
+            <label>Skill Points</label>
+            <input class="node-sp" type="number" min="0" value="${node.sp}" style="flex:1;">
+          </div>
+        `;
+        section.dataset.nodeIndex = idx;
+        nodesEditor.appendChild(section);
+      });
+
+      // Items
+      document.getElementById('items-table-body').innerHTML = '';
+      const items = (data && data.items) || [];
+      items.forEach(it => addItemRow(it.name, it.qty));
+
+      modal.style.display = 'flex';
+    }
+
+    function addItemRow(name="", qty=0) {
+      const tbody = document.getElementById('items-table-body');
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td><input class="item-name" type="text" value="${name}" placeholder="Item name" style="width:100%;"/></td>
+        <td><input class="item-qty" type="number" min="0" value="${qty}" style="width:100%;"/></td>
+        <td><button class="btn btn-gray" onclick="this.closest('tr').remove()">Remove</button></td>
+      `;
+      tbody.appendChild(tr);
+    }
+
+    function exportRewards() {
+      const data = JSON.parse(localStorage.getItem(REWARDS_KEY) || "{}");
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = "grudge island rewards.json";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
+    function importRewards() {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = 'application/json';
+      input.onchange = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const text = await file.text();
+        try {
+          const parsed = JSON.parse(text);
+          localStorage.setItem(REWARDS_KEY, JSON.stringify(parsed));
+          alert('Rewards data imported. You can now open any Rewards editor to edit values.');
+        } catch {
+          alert('Invalid JSON file.');
+        }
+      };
+      input.click();
+    }
+
+    function resetToDefaults() {
+      if (!confirm('Reset rewards for this profession to defaults? This will set all node XP/SP and novice XP/SP to 0.')) return;
+      const profId = window.currentEditingProf;
+      if (!profId) return;
+      const saved = JSON.parse(localStorage.getItem(REWARDS_KEY) || "{}");
+      saved[profId] = {
+        masterTitle: MASTER_TITLES[profId] || "",
+        novice: { xp: 0, sp: 0 },
+        nodes: [
+          { xp: 0, sp: 0, title: NODE_TITLES[profId]?.[0] || "Node 1" },
+          { xp: 0, sp: 0, title: NODE_TITLES[profId]?.[1] || "Node 2" },
+          { xp: 0, sp: 0, title: NODE_TITLES[profId]?.[2] || "Node 3" }
+        ],
+        items: []
+      };
+      localStorage.setItem(REWARDS_KEY, JSON.stringify(saved));
+      openRewards(profId);
+    }
+
+    function closeRewards() {
+      const modal = document.getElementById('rewards-modal');
+      modal.style.display = 'none';
+    }
+
+    function formatProfName(profId) {
+      // Pretty formatting for display
+      const map = {
+        metalsmith: "Metalsmith",
+        woodworker: "Woodworker",
+        tailor: "Tailor",
+        cook: "Cook",
+        alchemist: "Alchemist",
+        warrior: "Warrior",
+        ranger: "Ranger",
+        stealth_spy: "Stealth Spy",
+        survivalist: "Survivalist",
+        mystic: "Mystic",
+        enchanter: "Enchanter",
+        bard: "Bard"
+      };
+      return map[profId] || profId;
+    }
+
+    function formatNodesForDisplay(profId) {
+      const titles = NODE_TITLES[profId] || [];
+      return titles.map((t, i) => `${i+1}. ${t}`).join(" | ");
+    }
+
+    function toggleCard(el) {
+      // Toggle visibility of the related content
+      const parentCard = el.closest('[data-prof-id]');
+      if (!parentCard) return;
+      const nodes = parentCard.querySelector('.nodes-container');
+      const novice = parentCard.querySelector('.novice-rank-container');
+      if (!nodes) return;
+      const isHidden = nodes.style.display === 'none';
+      nodes.style.display = isHidden ? 'grid' : 'none';
+      if (novice) novice.style.display = isHidden ? 'block' : 'none';
+    }
+
+    // Initialize: wire up Rewards button on all cards and set initial states
+    document.addEventListener('DOMContentLoaded', () => {
+      // Default: ensure Nodes visible (grid)
+      const nodes = document.querySelectorAll('.nodes-container');
+      nodes.forEach(n => n.style.display = 'grid');
+      // Tools: no extra init needed
+    });
+
+    // Ensure modal is hidden on load
+    (function ensureModalInit() {
+      const modal = document.getElementById('rewards-modal');
+      if (!modal) return;
+      modal.style.display = 'none';
+    })();
+
+    // Keyboard: Escape to close modal
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        closeRewards();
+      }
+    });
+  </script>
+</body>
+</html>
+
+// TODO: Add error handling, documentation, and optimizations
+
+// TODO: Add error handling, documentation, and optimizations
+function generatedFunction() {
+    // TODO: Implement functionality
+    console.log('Generated code for: // Improved version:
+// Improved version:
+i want a new and better version of this
+i want this same concept but redone for the professions and harvesting trees. XP gains in crafting can be spent on any crafting tree and harvesting on any harvest node untill level 50 of the prof then you have to do tasks and crafting from the prof tree or harvesting specifically. 
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Hierarchical Class and Progression System (Grudge Island) – Interactive Rewards</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* Tooltip system (works with hover and keyboard focus) */
+    [data-tooltip] {
+      position: relative;
+      cursor: help;
+    }
+    /* Tooltip bubble */
+    [data-tooltip]:hover::after,
+    [data-tooltip]:focus-visible::after {
+      content: attr(data-tooltip);
+      position: absolute;
+      bottom: calc(100% + 8px);
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(2,6,23,0.95);
+      color: #e5e7eb;
+      padding: 6px 10px;
+      border-radius: 6px;
+      white-space: nowrap;
+      z-index: 60;
+      font-size: 12px;
+      box-shadow: 0 6px 14px rgba(0,0,0,0.25);
+      border: 1px solid #334155;
+    }
+    [data-tooltip]:hover::before,
+    [data-tooltip]:focus-visible::before {
+      content: "";
+      position: absolute;
+      bottom: calc(100% + 2px);
+      left: 50%;
+      transform: translateX(-50%);
+      border-width: 6px;
+      border-style: solid;
+      border-color: rgba(2,6,23,0.95) transparent transparent transparent;
+      z-index: 60;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+    .profession-card {
+      transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+      display: flex;
+      flex-direction: column;
+      min-height: 100%;
+    }
+    .profession-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 10px 20px rgba(0,0,0,0.15), 0 6px 6px rgba(0,0,0,0.1);
+    }
+    .master-rank-container {
+      cursor: pointer;
+      user-select: none;
+      padding: 0.5rem;
+      background-color: rgba(250, 204, 21, 0.1);
+      border-bottom: 2px solid #facc15;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+    }
+    .master-rank-label {
+      font-weight: bold;
+      color: #fde047;
+    }
+    .nodes-container {
+      padding: 0.75rem;
+      display: grid;
+      grid-template-columns: repeat(1, minmax(0, 1fr));
+      gap: 0.75rem;
+    }
+    .node {
+      background-color: rgba(51,65,85,0.5);
+      padding: 0.75rem;
+      border-radius: 0.375rem;
+    }
+    .node-title {
+      font-weight: 600;
+      color: #93c5fd;
+      margin-bottom: 0.5rem;
+      border-bottom: 1px solid #60a5fa;
+      padding-bottom: 0.25rem;
+    }
+    .node-ranks li {
+      padding: 0.25rem 0;
+      font-size: 0.9em;
+      position: relative;
+      padding-left: 1.25rem;
+    }
+    .node-ranks li::before {
+      content: '›';
+      position: absolute;
+      left: 0.25rem;
+      color: #60a5fa;
+    }
+    .novice-rank-container {
+      margin-top: auto;
+      padding: 0.5rem;
+      background-color: rgba(100, 116, 139, 0.1);
+      border-top: 2px solid #64748b;
+      text-align: center;
+    }
+    .novice-rank-label {
+      font-weight: bold;
+      color: #cbd5e1;
+    }
+
+    /* Rewards Editor Modal */
+    #rewards-modal {
+      display: none;
+    }
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+      z-index: 50;
+    }
+    .modal-panel {
+      background: #111827; /* gray-900 */
+      color: white;
+      width: min(920px, 100%);
+      max-height: 85vh;
+      overflow: auto;
+      border-radius: 0.75rem;
+      padding: 1rem 1rem 0.75rem;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+    }
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.25rem 0 0.75rem;
+      border-bottom: 1px solid #374151;
+      margin-bottom: 0.5rem;
+    }
+    .section-title {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: #93c5fd;
+    }
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+    }
+    @media (max-width: 800px) {
+      .grid-2 { grid-template-columns: 1fr; }
+    }
+    .field-row { display: flex; gap: 0.5rem; align-items: center; margin-bottom: 0.5rem; }
+    .field-row label { min-width: 120px; font-weight: 600; color: #cbd5e1; }
+    .field-row input, .field-row textarea {
+      background: #0b1220;
+      border: 1px solid #334155;
+      color: #e5e7eb;
+      padding: 0.5rem;
+      border-radius: 0.25rem;
+      width: 100%;
+    }
+    #items-table { width: 100%; border-collapse: collapse; }
+    #items-table th, #items-table td { border-bottom: 1px solid #374151; padding: 6px 8px; }
+    #items-table tr td { padding: 6px 8px; vertical-align: middle; }
+    .btn {
+      padding: 0.5rem 1rem;
+      border-radius: 0.375rem;
+      border: 0;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    .btn-blue { background: #2563eb; color: white; }
+    .btn-green { background: #16a34a; color: white; }
+    .btn-gray { background: #374151; color: white; }
+    .btn-yellow { background: #f59e0b; color: black; }
+    .btn-danger { background: #ef4444; color: white; }
+    .section { border: 1px solid #2b3240; border-radius: 0.5rem; padding: 0.75rem; background: rgba(2,6,23,0.6); }
+  </style>
+</head>
+<body class="bg-slate-900 text-slate-100 p-4 md:p-8">
+  <div class="container mx-auto">
+    <header class="text-center mb-6">
+      <h1 class="text-4xl md:text-5xl font-bold text-sky-400 mb-2">Hierarchical Class System</h1>
+      <p class="text-lg text-slate-400">Chart your path from Novice to Master through specialized training. Click Master to reveal node details, or use Rewards to customize XP/Rewards. Tooltips are enabled for guidance.</p>
+    </header>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
+      <!-- Artisan Guild Column -->
+      <section class="bg-slate-800 p-6 rounded-xl shadow-2xl">
+        <h2 class="text-3xl font-semibold mb-6 text-amber-400 border-b-2 border-amber-500 pb-2 text-center">Artisan Guild</h2>
+        <div class="space-y-8">
+          <!-- Metalsmith -->
+          <div class="profession-card bg-slate-700 p-5 rounded-lg shadow-lg text-center" data-prof-id="metalsmith">
+            <div class="master-rank-container" data-tooltip="Master Metalsmith: click to toggle details and edit rewards" title="Master Metalsmith (click to toggle details)">
+              <span class="master-rank-label" onclick="toggleCard(this)">★ Master Metalsmith ★</span>
+              <button class="btn btn-blue" data-tooltip="Edit rewards for Metalsmith" onclick="openRewards('metalsmith')">Rewards</button>
+            </div>
+            <div class="nodes-container grid grid-cols-1 sm:grid-cols-3 gap-3" style="margin-top:0.75rem;">
+              <div class="node" data-tooltip="XP: 0 | SP: 0">
+                <h4 class="node-title">Armorsmithing</h4>
+                <ul class="node-ranks text-left"><li>Apprentice Armorsmith</li><li>Journeyman Armorsmith</li></ul>
+              </div>
+              <div class="node" data-tooltip="XP: 0 | SP: 0">
+                <h4 class="node-title">Weaponsmithing</h4>
+                <ul class="node-ranks text-left"><li>Apprentice Weaponsmith</li><li>Journeyman Weaponsmith</li></ul>
+              </div>
+              <div class="node" data-tooltip="XP: 0 | SP: 0">
+                <h4 class="node-title">Metallurgy</h4>
+                <ul class="node-ranks text-left"><li>Prospector</li><li>Refiner</li></ul>
+              </div>
+            </div>
+            <div class="novice-rank-container" data-tooltip="Novice Metalsmith tier"> 
+              <span class="novice-rank-label">◈ Novice Metalsmith ◈</span>
+            </div>
+          </div>
+
+          <!-- Woodworker -->
+          <div class="profession-card bg-slate-700 p-5 rounded-lg shadow-lg text-center" data-prof-id="woodworker">
+            <div class="master-rank-container" data-tooltip="Master Woodworker: click to toggle details" title="Master Woodworker (click to toggle details)">
+              <span class="master-rank-label" onclick="toggleCard(this)">★ Master Woodworker ★</span>
+              <button class="btn btn-blue" data-tooltip="Edit rewards for Woodworker" onclick="openRewards('woodworker')">Rewards</button>
+            </div>
+            <div class="nodes-container grid grid-cols-1 sm:grid-cols-3 gap-3" style="margin-top:0.75rem;">
+              <div class="node" data-tooltip="XP: 0 | SP: 0">
+                <h4 class="node-title">Carpentry</h4>
+                <ul class="node-ranks text-left"><li>Rough Carpenter</li><li>Fine Carpenter</li></ul>
+              </div>
+              <div class="node" data-tooltip="XP: 0 | SP: 0">
+                <h4 class="node-title">Fletching</h4>
+                <ul class="node-ranks text-left"><li>Shaftcrafter</li><li>Arrowhead Maker</li></ul>
+              </div>
+              <div class="node" data-tooltip="XP: 0 | SP: 0">
+                <h4 class="node-title">Carving</h4>
+                <ul class="node-ranks text-left"><li>Engraver</li><li>Sculptor</li></ul>
+              </div>
+            </div>
+            <div class="novice-rank-container" data-tooltip="Novice Woodworker tier">
+              <span class="novice-rank-label">◈ Novice Woodworker ◈</span>
+            </div>
+          </div>
+
+          <!-- Tailor -->
+          <div class="profession-card bg-slate-700 p-5 rounded-lg shadow-lg text-center" data-prof-id="tailor">
+            <div class="master-rank-container" data-tooltip="Master Tailor: click to toggle details" title="Master Tailor (click to toggle details)">
+              <span class="master-rank-label" onclick="toggleCard(this)">★ Master Tailor ★</span>
+              <button class="btn btn-blue" data-tooltip="Edit rewards for Tailor" onclick="openRewards('tailor')">Rewards</button>
+            </div>
+            <div class="nodes-container grid grid-cols-1 sm:grid-cols-3 gap-3" style="margin-top:0.75rem;">
+              <div class="node" data-tooltip="XP: 0 | SP: 0">
+                <h4 class="node-title">Garment Making</h4>
+                <ul class="node-ranks text-left"><li>Pattern Cutter</li><li>Stitcher</li></ul>
+              </div>
+              <div class="node" data-tooltip="XP: 0 | SP: 0">
+                <h4 class="node-title">Leatherworking</h4>
+                <ul class="node-ranks text-left"><li>Tanner</li><li>Skinner</li></ul>
+              </div>
+              <div class="node" data-tooltip="XP: 0 | SP: 0">
+                <h4 class="node-title">Embroidery</h4>
+                <ul class="node-ranks text-left"><li>Threader</li><li>Embellisher</li></ul>
+              </div>
+            </div>
+            <div class="novice-rank-container" data-tooltip="Novice Tailor tier">
+              <span class="novice-rank-label">◈ Novice Tailor ◈</span>
+            </div>
+          </div>
+
+          <!-- Cook -->
+          <div class="profession-card bg-slate-700 p-5 rounded-lg shadow-lg text-center" data-prof-id="cook">
+            <div class="master-rank-container" data-tooltip="Master Chef: click to toggle details" title="Master Chef (click to toggle details)">
+              <span class="master-rank-label" onclick="toggleCard(this)">★ Master Chef ★</span>
+              <button class="btn btn-blue" data-tooltip="Edit rewards for Cook" onclick="openRewards('cook')">Rewards</button>
+            </div>
+            <div class="nodes-container grid grid-cols-1 sm:grid-cols-3 gap-3" style="margin-top:0.75rem;">
+              <div class="node" data-tooltip="XP: 0 | SP: 0">
+                <h4 class="node-title">Baking</h4>
+                <ul class="node-ranks text-left"><li>Dough Maker</li><li>Oven Master</li></ul>
+              </div>
+              <div class="node" data-tooltip="XP: 0 | SP: 0">
+                <h4 class="node-title">Brewing</h4>
+                <ul class="node-ranks text-left"><li>Fermenter</li><li>Distiller</li></ul>
+              </div>
+              <div class="node" data-tooltip="XP: 0 | SP: 0">
+                <h4 class="node-title">Cuisine</h4>
+                <ul class="node-ranks text-left"><li>Spice Blender</li><li>Saucier</li></ul>
+              </div>
+            </div>
+            <div class="novice-rank-container" data-tooltip="Novice Cook tier">
+              <span class="novice-rank-label">◈ Novice Cook ◈</span>
+            </div>
+          </div>
+
+          <!-- Alchemist -->
+          <div class="profession-card bg-slate-700 p-5 rounded-lg shadow-lg text-center" data-prof-id="alchemist">
+            <div class="master-rank-container" data-tooltip="Master Alchemist: click to toggle details">
+              <span class="master-rank-label" onclick="toggleCard(this)">★ Master Alchemist ★</span>
+              <button class="btn btn-blue" data-tooltip="Edit rewards for Alchemist" onclick="openRewards('alchemist')">Rewards</button>
+            </div>
+            <div class="nodes-container grid grid-cols-1 sm:grid-cols-3 gap-3" style="margin-top:0.75rem;">
+              <div class="node" data-tooltip="XP: 0 | SP: 0">
+                <h4 class="node-title">Potion Crafting</h4>
+                <ul class="node-ranks text-left"><li>Herbalist</li><li>Brewer</li></ul>
+              </div>
+              <div class="node" data-tooltip="XP: 0 | SP: 0">
+                <h4 class="node-title">Transmutation</h4>
+                <ul class="node-ranks text-left"><li>Materialist</li><li>Catalyst</li></ul>
+              </div>
+              <div class="node" data-tooltip="XP: 0 | SP: 0">
+                <h4 class="node-title">Elixir Distillation</h4>
+                <ul class="node-ranks text-left"><li>Infuser</li><li>Perfecter</li></ul>
+              </div>
+            </div>
+            <div class="novice-rank-container" data-tooltip="Novice Alchemist tier">
+              <span class="novice-rank-label">◈ Novice Alchemist ◈</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Combatant Conclave Column -->
+      <section class="bg-slate-800 p-6 rounded-xl shadow-2xl" data-prof-id="combatant-conclave">
+        <h2 class="text-3xl font-semibold mb-6 text-red-400 border-b-2 border-red-500 pb-2 text-center">Combatant Conclave</h2>
+        <div class="space-y-8">
+          <!-- Warrior -->
+          <div class="profession-card bg-slate-700 p-5 rounded-lg shadow-lg text-center" data-prof-id="warrior">
+            <div class="master-rank-container" data-tooltip="Warlord: click to toggle details">
+              <span class="master-rank-label" onclick="toggleCard(this)">★ Warlord ★</span>
+              <button class="btn btn-blue" data-tooltip="Edit rewards for Warrior" onclick="openRewards('warrior')">Rewards</button>
+            </div>
+            <div class="nodes-container grid grid-cols-1 sm:grid-cols-3 gap-3" style="margin-top:0.75rem;">
+              <div class="node" data-tooltip="XP: 0 | SP: 0">
+                <h4 class="node-title">Swordsmanship</h4>
+                <ul class="node-ranks text-left"><li>Blade Trainee</li><li>Sword Saint</li></ul>
+              </div>
+              <div class="node" data-tooltip="XP: 0 | SP: 0">
+                <h4 class="node-title">Defense</h4>
+                <ul class="node-ranks text-left"><li>Shield Bearer</li><li>Guardian</li></ul>
+              </div>
+              <div class="node" data-tooltip="XP: 0 | SP: 0">
+                <h4 class="node-title">Brawling</h4>
+                <ul class="node-ranks text-left"><li>Striker</li><li>Grappler</li></ul>
+              </div>
+            </div>
+            <div class="novice-rank-container" data-tooltip="Novice Warrior tier">
+              <span class="novice-rank-label">◈ Novice Warrior ◈</span>
+            </div>
+          </div>
+
+          <!-- Ranger -->
+          <div class="profession-card bg-slate-700 p-5 rounded-lg shadow-lg text-center" data-prof-id="ranger">
+            <div class="master-rank-container" data-tooltip="Master Ranger: click to toggle details">
+              <span class="master-rank-label" onclick="toggleCard(this)">★ Master Ranger ★</span>
+              <button class="btn btn-blue" data-tooltip="Edit rewards for Ranger" onclick="openRewards('ranger')">Rewards</button>
+            </div>
+            <div class="nodes-container grid grid-cols-1 sm:grid-cols-3 gap-3" style="margin-top:0.75rem;">
+              <div class="node" data-tooltip="XP: 0 | SP: 0">
+                <h4 class="node-title">Archery</h4>
+                <ul class="node-ranks text-left"><li>Marksman Trainee</li><li>Deadeye</li></ul>
+              </div>
+              <div class="node" data-tooltip="XP: 0 | SP: 0">
+                <h4 class="node-title">Tracking</h4>
+                <ul class="node-ranks text-left"><li>Scout</li><li>Pathfinder</li></ul>
+              </div>
+              <div class="node" data-tooltip="XP: 0 | SP: 0">
+                <h4 class="node-title">Beast Taming</h4>
+                <ul class="node-ranks text-left"><li>Handler</li><li>Bonded</li></ul>
+              </div>
+            </div>
+            <div class="novice-rank-container" data-tooltip="Novice Ranger tier">
+              <span class="novice-rank-label">◈ Novice Ranger ◈</span>
+            </div>
+          </div>
+
+          <!-- Stealth Spy -->
+          <div class="profession-card bg-slate-700 p-5 rounded-lg shadow-lg text-center" data-prof-id="stealth-spy">
+            <div class="master-rank-container" data-tooltip="Master of Shadows: click to toggle details">
+              <span class="master-rank-label" onclick="toggleCard(this)">★ Master of Shadows ★</span>
+              <button class="btn btn-blue" data-tooltip="Edit rewards for Stealth Spy" onclick="openRewards('stealth-spy')">Rewards</button>
+            </div>
+            <div class="nodes-container grid grid-cols-1 sm:grid-cols-3 gap-3" style="margin-top:0.75rem;">
+              <div class="node" data-tooltip="XP: 0 | SP: 0">
+                <h4 class="node-title">Infiltration</h4>
+                <ul class="node-ranks text-left"><li>Sneak</li><li>Intruder</li></ul>
+              </div>
+              <div class="node" data-tooltip="XP: 0 | SP: 0">
+                <h4 class="node-title">Espionage</h4>
+                <ul class="node-ranks text-left"><li>Agent</li><li>Spymaster</li></ul>
+              </div>
+              <div class="node" data-tooltip="XP: 0 | SP: 0">
+                <h4 class="node-title">Subterfuge</h4>
+                <ul class="node-ranks text-left"><li>Deceiver</li><li>Saboteur</li></ul>
+              </div>
+            </div>
+            <div class="novice-rank-container" data-tooltip="Novice Spy tier">
+              <span class="novice-rank-label">◈ Novice Spy ◈</span>
+            </div>
+          </div>
+
+          <!-- Survivalist -->
+          <div class="profession-card bg-slate-700 p-5 rounded-lg shadow-lg text-center" data-prof-id="survivalist">
+            <div class="master-rank-container" data-tooltip="Master Survivalist: click to toggle details">
+              <span class="master-rank-label" onclick="toggleCard(this)">★ Master Survivalist ★</span>
+              <button class="btn btn-blue" data-tooltip="Edit rewards for Survivalist" onclick="openRewards('survivalist')">Rewards</button>
+            </div>
+            <div class="nodes-container grid grid-cols-1 sm:grid-cols-3 gap-3" style="margin-top:0.75rem;">
+              <div class="node" data-tooltip="XP: 0 | SP: 0">
+                <h4 class="node-title">Foraging</h4>
+                <ul class="node-ranks text-left"><li>Gatherer</li><li>Botanist</li></ul>
+              </div>
+              <div class="node" data-tooltip="XP: 0 | SP: 0">
+                <h4 class="node-title">Shelter Craft</h4>
+                <ul class="node-ranks text-left"><li>Builder</li><li>Fortifier</li></ul>
+              </div>
+              <div class="node" data-tooltip="XP: 0 | SP: 0">
+                <h4 class="node-title">Trapping</h4>
+                <ul class="node-ranks text-left"><li>Snare Setter</li><li>Expert Trapper</li></ul>
+              </div>
+            </div>
+            <div class="novice-rank-container" data-tooltip="Novice Survivalist tier">
+              <span class="novice-rank-label">◈ Novice Survivalist ◈</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Mystic Circle Column -->
+      <section class="bg-slate-800 p-6 rounded-xl shadow-2xl" data-prof-id="mystic-circle">
+        <h2 class="text-3xl font-semibold mb-6 text-purple-400 border-b-2 border-purple-500 pb-2 text-center">Mystic Circle</h2>
+        <div class="space-y-8">
+          <!-- Mystic -->
+          <div class="profession-card bg-slate-700 p-5 rounded-lg shadow-lg text-center" data-prof-id="mystic">
+            <div class="master-rank-container" data-tooltip="Arch Mystic: click to toggle details">
+              <span class="master-rank-label" onclick="toggleCard(this)">★ Arch Mystic ★</span>
+              <button class="btn btn-blue" data-tooltip="Edit rewards for Mystic" onclick="openRewards('mystic')">Rewards</button>
+            </div>
+            <div class="nodes-container grid grid-cols-1 sm:grid-cols-3 gap-3" style="margin-top:0.75rem;">
+              <div class="node" data-tooltip="XP: 0 | SP: 0">
+                <h4 class="node-title">Divination</h4>
+                <ul class="node-ranks text-left"><li>Fortune Teller</li><li>Visionary</li></ul>
+              </div>
+              <div class="node" data-tooltip="XP: 0 | SP: 0">
+                <h4 class="node-title">Spiritualism</h4>
+                <ul class="node-ranks text-left"><li>Medium</li><li>Channeler</li></ul>
+              </div>
+              <div class="node" data-tooltip="XP: 0 | SP: 0">
+                <h4 class="node-title">Meditation</h4>
+                <ul class="node-ranks text-left"><li>Adept of Calm</li><li>Mind Master</li></ul>
+              </div>
+            </div>
+            <div class="novice-rank-container" data-tooltip="Novice Mystic tier">
+              <span class="novice-rank-label">◈ Novice Mystic ◈</span>
+            </div>
+          </div>
+
+          <!-- Enchanter -->
+          <div class="profession-card bg-slate-700 p-5 rounded-lg shadow-lg text-center" data-prof-id="enchanter">
+            <div class="master-rank-container" data-tooltip="Master Enchanter: click to toggle details">
+              <span class="master-rank-label" onclick="toggleCard(this)">★ Master Enchanter ★</span>
+              <button class="btn btn-blue" data-tooltip="Edit rewards for Enchanter" onclick="openRewards('enchanter')">Rewards</button>
+            </div>
+            <div class="nodes-container grid grid-cols-1 sm:grid-cols-3 gap-3" style="margin-top:0.75rem;">
+              <div class="node" data-tooltip="XP: 0 | SP: 0">
+                <h4 class="node-title">Rune Carving</h4>
+                <ul class="node-ranks text-left"><li>Glyph Scribe</li><li>Rune Master</li></ul>
+              </div>
+              <div class="node" data-tooltip="XP: 0 | SP: 0">
+                <h4 class="node-title">Item Imbuement</h4>
+                <ul class="node-ranks text-left"><li>Infuser</li><li>Artificer</li></ul>
+              </div>
+              <div class="node" data-tooltip="XP: 0 | SP: 0">
+                <h4 class="node-title">Charm Weaving</h4>
+                <ul class="node-ranks text-left"><li>Spellbinder</li><li>Mesmerist</li></ul>
+              </div>
+            </div>
+            <div class="novice-rank-container" data-tooltip="Novice Enchanter tier">
+              <span class="novice-rank-label">◈ Novice Enchanter ◈</span>
+            </div>
+          </div>
+
+          <!-- Bard -->
+          <div class="profession-card bg-slate-700 p-5 rounded-lg shadow-lg text-center" data-prof-id="bard">
+            <div class="master-rank-container" data-tooltip="Master Bard: click to toggle details">
+              <span class="master-rank-label" onclick="toggleCard(this)">★ Master Bard ★</span>
+              <button class="btn btn-blue" data-tooltip="Edit rewards for Bard" onclick="openRewards('bard')">Rewards</button>
+            </div>
+            <div class="nodes-container grid grid-cols-1 sm:grid-cols-3 gap-3" style="margin-top:0.75rem;">
+              <div class="node" data-tooltip="XP: 0 | SP: 0">
+                <h4 class="node-title">Performance</h4>
+                <ul class="node-ranks text-left"><li>Storyteller</li><li>Virtuoso</li></ul>
+              </div>
+              <div class="node" data-tooltip="XP: 0 | SP: 0">
+                <h4 class="node-title">Composition</h4>
+                <ul class="node-ranks text-left"><li>Lyricist</li><li>Composer</li></ul>
+              </div>
+              <div class="node" data-tooltip="XP: 0 | SP: 0">
+                <h4 class="node-title">Inspiration</h4>
+                <ul class="node-ranks text-left"><li>Motivator</li><li>Morale Booster</li></ul>
+              </div>
+            </div>
+            <div class="novice-rank-container" data-tooltip="Novice Bard tier">
+              <span class="novice-rank-label">◈ Novice Bard ◈</span>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <footer class="text-center mt-10 py-6 border-t border-slate-700">
+      <p class="text-slate-500">&copy; 2025 Your Game Title. All rights reserved.</p>
+    </footer>
+  </div>
+
+  <!-- Rewards Editor Modal -->
+  <div id="rewards-modal" role="dialog" aria-modal="true" aria-label="Rewards Editor" class="modal-overlay" style="display:none;">
+    <div class="modal-panel">
+      <div class="modal-header">
+        <div>
+          <div class="section-title" id="modal-prof-name">Rewards Editor</div>
+        </div>
+        <button class="btn btn-gray" onclick="closeRewards()">Close</button>
+      </div>
+
+      <div class="section" style="margin-bottom:0.75rem;">
+        <div class="grid-2" style="gap:1rem;">
+          <div style="flex:1;">
+            <div class="field-row">
+              <label for="master-title">Master Title</label>
+              <input id="master-title" type="text" placeholder="e.g., Master Metalsmith" />
+            </div>
+          </div>
+          <div style="flex:1;">
+            <div class="field-row">
+              <label for="novice-xp">Novice XP</label>
+              <input id="novice-xp" type="number" min="0" value="0" />
+            </div>
+            <div class="field-row">
+              <label for="novice-sp">Novice Skill Points</label>
+              <input id="novice-sp" type="number" min="0" value="0" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section" id="nodes-editor" aria-label="Nodes Editor" style="padding-bottom:0.5rem;">
+        <!-- Node editors will be injected here by JS -->
+      </div>
+
+      <div class="section" style="margin-top:0.5rem;">
+        <div class="section-title" style="font-size:1rem;margin-bottom:.5rem;">Items Rewards</div>
+        <table id="items-table" aria-label="Rewards Items">
+          <thead>
+            <tr><th>Item</th><th>Quantity</th><th></th></tr>
+          </thead>
+          <tbody id="items-table-body"></tbody>
+        </table>
+        <button class="btn btn-blue" onclick="addItemRow()">Add Item</button>
+        <button class="btn btn-yellow" onclick="exportRewards()">Export Rewards (JSON)</button>
+        <button class="btn btn-yellow" onclick="importRewards()">Import Rewards (JSON)</button>
+      </div>
+
+      <div class="flex justify-end space-x-2" style="margin-top:.75rem;">
+        <button class="btn btn-gray" onclick="closeRewards()">Cancel</button>
+        <button class="btn btn-green" onclick="saveRewards()">Save</button>
+        <button class="btn btn-yellow" onclick="resetToDefaults()">Reset to Defaults</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Data model: node titles per profession (static default labels)
+    const NODE_TITLES = {
+      metalsmith: ["Armorsmithing", "Weaponsmithing", "Metallurgy"],
+      woodworker: ["Carpentry", "Fletching", "Carving"],
+      tailor: ["Garment Making", "Leatherworking", "Embroidery"],
+      cook: ["Baking", "Brewing", "Cuisine"],
+      alchemist: ["Potion Crafting", "Transmutation", "Elixir Distillation"],
+      warrior: ["Swordsmanship", "Defense", "Brawling"],
+      ranger: ["Archery", "Tracking", "Beast Taming"],
+      stealth_spy: ["Infiltration", "Espionage", "Subterfuge"],
+      survivalist: ["Foraging", "Shelter Craft", "Trapping"],
+      mystic: ["Divination", "Spiritualism", "Meditation"],
+      enchanter: ["Rune Carving", "Item Imbuement", "Charm Weaving"],
+      bard: ["Performance", "Composition", "Inspiration"]
+    };
+
+    const MASTER_TITLES = {
+      metalsmith: "Master Metalsmith",
+      woodworker: "Master Woodworker",
+      tailor: "Master Tailor",
+      cook: "Master Chef",
+      alchemist: "Master Alchemist",
+      warrior: "Warlord",
+      ranger: "Master Ranger",
+      stealth_spy: "Master of Shadows",
+      survivalist: "Master Survivalist",
+      mystic: "Arch Mystic",
+      enchanter: "Master Enchanter",
+      bard: "Master Bard"
+    };
+
+    // Default rewards data (empty by default)
+    const DEFAULT_REWARDS = {
+      // profId: { masterTitle, novice: {xp, sp}, nodes: [ {xp, sp}, ... ], items: [ {name, qty} ] }
+    };
+
+    const REWARDS_KEY = "gi_rewards";
+
+    // Helpers
+    function $(sel, root=document) { return root.querySelector(sel); }
+    function $all(sel, root=document) { return Array.from(root.querySelectorAll(sel)); }
+
+    function saveRewards() {
+      const profId = window.currentEditingProf;
+      if (!profId) return;
+
+      const masterTitle = document.getElementById('master-title').value || MASTER_TITLES[profId] || "";
+      const noviceXP = parseInt(document.getElementById('novice-xp').value || "0", 10) || 0;
+      const noviceSP = parseInt(document.getElementById('novice-sp').value || "0", 10) || 0;
+
+      // Nodes
+      const nodesEditor = document.getElementById('nodes-editor');
+      const nodeSections = nodesEditor.querySelectorAll('.node-editor');
+      const nodes = [];
+      nodeSections.forEach((section, idx) => {
+        const xp = parseInt(section.querySelector('.node-xp').value || "0", 10) || 0;
+        const sp = parseInt(section.querySelector('.node-sp').value || "0", 10) || 0;
+        nodes.push({ index: idx, xp, sp, title: NODE_TITLES[profId][idx] || `Node ${idx+1}` });
+      });
+
+      // Items
+      const items = [];
+      const tbody = document.getElementById('items-table-body');
+      for (let tr of Array.from(tbody.querySelectorAll('tr'))) {
+        const name = tr.querySelector('.item-name').value?.trim();
+        const qty = parseInt(tr.querySelector('.item-qty').value || "0", 10) || 0;
+        if (name) items.push({ name, qty });
+      }
+
+      // Build and persist
+      const saved = JSON.parse(localStorage.getItem(REWARDS_KEY) || "{}");
+      saved[profId] = { masterTitle, novice: { xp: noviceXP, sp: noviceSP }, nodes, items };
+      localStorage.setItem(REWARDS_KEY, JSON.stringify(saved));
+
+      // Close editor
+      closeRewards();
+    }
+
+    function loadRewardsFor(profId) {
+      const saved = JSON.parse(localStorage.getItem(REWARDS_KEY) || "{}");
+      return saved[profId] || null;
+    }
+
+    function openRewards(profId) {
+      window.currentEditingProf = profId;
+      const modal = document.getElementById('rewards-modal');
+      const title = document.getElementById('modal-prof-name');
+      title.textContent = `Rewards Editor — ${formatProfName(profId)}`;
+
+      const data = loadRewardsFor(profId);
+      const masterTitle = (data && data.masterTitle) || MASTER_TITLES[profId] || "";
+      document.getElementById('master-title').value = masterTitle;
+
+      const noviceXP = (data && data.novice && data.novice.xp) || 0;
+      const noviceSP = (data && data.novice && data.novice.sp) || 0;
+      document.getElementById('novice-xp').value = noviceXP;
+      document.getElementById('novice-sp').value = noviceSP;
+
+      // Nodes
+      const nodesEditor = document.getElementById('nodes-editor');
+      nodesEditor.innerHTML = ''; // clear
+      const titles = NODE_TITLES[profId] || ["Node1","Node2","Node3"];
+      const nodesData = (data && data.nodes) || [{xp:0, sp:0},{xp:0, sp:0},{xp:0, sp:0}];
+      titles.forEach((t, idx) => {
+        const node = nodesData[idx] || {xp:0, sp:0};
+        const section = document.createElement('div');
+        section.className = 'node-editor section';
+        section.style = "padding:0.5rem 0.5rem;border:1px solid #2b3240;border-radius:.5rem;margin-bottom:.5rem;background:rgba(2,6,23,0.6)";
+        section.innerHTML = `
+          <div style="font-weight:700;color:#93c5fd;margin-bottom:.25rem;">Node ${idx+1}: ${t}</div>
+          <div class="field-row" style="align-items:center;">
+            <label>XP Gain</label>
+            <input class="node-xp" type="number" min="0" value="${node.xp}" style="flex:1;">
+          </div>
+          <div class="field-row" style="align-items:center;">
+            <label>Skill Points</label>
+            <input class="node-sp" type="number" min="0" value="${node.sp}" style="flex:1;">
+          </div>
+        `;
+        section.dataset.nodeIndex = idx;
+        nodesEditor.appendChild(section);
+      });
+
+      // Items
+      document.getElementById('items-table-body').innerHTML = '';
+      const items = (data && data.items) || [];
+      items.forEach(it => addItemRow(it.name, it.qty));
+
+      modal.style.display = 'flex';
+    }
+
+    function addItemRow(name="", qty=0) {
+      const tbody = document.getElementById('items-table-body');
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td><input class="item-name" type="text" value="${name}" placeholder="Item name" style="width:100%;"/></td>
+        <td><input class="item-qty" type="number" min="0" value="${qty}" style="width:100%;"/></td>
+        <td><button class="btn btn-gray" onclick="this.closest('tr').remove()">Remove</button></td>
+      `;
+      tbody.appendChild(tr);
+    }
+
+    function exportRewards() {
+      const data = JSON.parse(localStorage.getItem(REWARDS_KEY) || "{}");
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = "grudge island rewards.json";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
+    function importRewards() {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = 'application/json';
+      input.onchange = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const text = await file.text();
+        try {
+          const parsed = JSON.parse(text);
+          localStorage.setItem(REWARDS_KEY, JSON.stringify(parsed));
+          alert('Rewards data imported. You can now open any Rewards editor to edit values.');
+        } catch {
+          alert('Invalid JSON file.');
+        }
+      };
+      input.click();
+    }
+
+    function resetToDefaults() {
+      if (!confirm('Reset rewards for this profession to defaults? This will set all node XP/SP and novice XP/SP to 0.')) return;
+      const profId = window.currentEditingProf;
+      if (!profId) return;
+      const saved = JSON.parse(localStorage.getItem(REWARDS_KEY) || "{}");
+      saved[profId] = {
+        masterTitle: MASTER_TITLES[profId] || "",
+        novice: { xp: 0, sp: 0 },
+        nodes: [
+          { xp: 0, sp: 0, title: NODE_TITLES[profId]?.[0] || "Node 1" },
+          { xp: 0, sp: 0, title: NODE_TITLES[profId]?.[1] || "Node 2" },
+          { xp: 0, sp: 0, title: NODE_TITLES[profId]?.[2] || "Node 3" }
+        ],
+        items: []
+      };
+      localStorage.setItem(REWARDS_KEY, JSON.stringify(saved));
+      openRewards(profId);
+    }
+
+    function closeRewards() {
+      const modal = document.getElementById('rewards-modal');
+      modal.style.display = 'none';
+    }
+
+    function formatProfName(profId) {
+      // Pretty formatting for display
+      const map = {
+        metalsmith: "Metalsmith",
+        woodworker: "Woodworker",
+        tailor: "Tailor",
+        cook: "Cook",
+        alchemist: "Alchemist",
+        warrior: "Warrior",
+        ranger: "Ranger",
+        stealth_spy: "Stealth Spy",
+        survivalist: "Survivalist",
+        mystic: "Mystic",
+        enchanter: "Enchanter",
+        bard: "Bard"
+      };
+      return map[profId] || profId;
+    }
+
+    function formatNodesForDisplay(profId) {
+      const titles = NODE_TITLES[profId] || [];
+      return titles.map((t, i) => `${i+1}. ${t}`).join(" | ");
+    }
+
+    function toggleCard(el) {
+      // Toggle visibility of the related content
+      const parentCard = el.closest('[data-prof-id]');
+      if (!parentCard) return;
+      const nodes = parentCard.querySelector('.nodes-container');
+      const novice = parentCard.querySelector('.novice-rank-container');
+      if (!nodes) return;
+      const isHidden = nodes.style.display === 'none';
+      nodes.style.display = isHidden ? 'grid' : 'none';
+      if (novice) novice.style.display = isHidden ? 'block' : 'none';
+    }
+
+    // Initialize: wire up Rewards button on all cards and set initial states
+    document.addEventListener('DOMContentLoaded', () => {
+      // Default: ensure Nodes visible (grid)
+      const nodes = document.querySelectorAll('.nodes-container');
+      nodes.forEach(n => n.style.display = 'grid');
+      // Tools: no extra init needed
+    });
+
+    // Ensure modal is hidden on load
+    (function ensureModalInit() {
+      const modal = document.getElementById('rewards-modal');
+      if (!modal) return;
+      modal.style.display = 'none';
+    })();
+
+    // Keyboard: Escape to close modal
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        closeRewards();
+      }
+    });
+  </script>
+</body>
+</html>
+
+// TODO: Add error handling, documentation, and optimizations
+
+// TODO: Add error handling, documentation, and optimizations');
+    return 'Generated result';
+}
+
+// Example usage
+generatedFunction();

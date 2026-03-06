@@ -1,0 +1,931 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Grudge Warlords - Island Base</title>
+    <script src="https://js.puter.com/v2/"></script>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            background: linear-gradient(135deg, #0a1628 0%, #1a2a4a 100%);
+            font-family: 'Segoe UI', Arial, sans-serif;
+            overflow: hidden;
+            min-height: 100vh;
+        }
+        #game-wrapper {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        #game-canvas {
+            image-rendering: pixelated;
+            border: 3px solid #2a4a6a;
+            border-radius: 8px;
+            box-shadow: 0 0 40px rgba(0, 100, 200, 0.3);
+        }
+        
+        #top-bar {
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 12px;
+            z-index: 100;
+        }
+        .resource-box {
+            background: linear-gradient(180deg, #2a3a5a 0%, #1a2a3a 100%);
+            border: 2px solid #4a6a8a;
+            border-radius: 8px;
+            padding: 6px 14px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .resource-box .icon {
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+        }
+        .resource-box .icon.gold { background: linear-gradient(135deg, #ffd700 0%, #b8860b 100%); }
+        .resource-box .icon.wood { background: linear-gradient(135deg, #8b4513 0%, #5a3010 100%); }
+        .resource-box .icon.stone { background: linear-gradient(135deg, #708090 0%, #4a5a6a 100%); }
+        .resource-box .icon.pop { background: linear-gradient(135deg, #4a9 0%, #286 100%); }
+        .resource-box .icon.level { background: linear-gradient(135deg, #a4f 0%, #63c 100%); }
+        .resource-box span {
+            color: #fff;
+            font-size: 13px;
+            font-weight: bold;
+        }
+        
+        #action-bar {
+            position: absolute;
+            bottom: 15px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 10px;
+            z-index: 100;
+            background: linear-gradient(180deg, rgba(30,40,60,0.95) 0%, rgba(20,30,50,0.95) 100%);
+            padding: 10px 16px;
+            border-radius: 10px;
+            border: 2px solid #4a6a8a;
+        }
+        .action-btn {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(180deg, #3a5a7a 0%, #2a4a6a 100%);
+            border: 2px solid #5a8aba;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.15s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-size: 9px;
+        }
+        .action-btn:hover {
+            transform: translateY(-2px);
+            background: linear-gradient(180deg, #4a7a9a 0%, #3a6a8a 100%);
+        }
+        .action-btn.active {
+            background: linear-gradient(180deg, #5a9a5a 0%, #3a7a3a 100%);
+            border-color: #7aba7a;
+        }
+        .action-btn .btn-icon { font-size: 20px; }
+        
+        #side-panel {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 240px;
+            max-height: 80vh;
+            background: linear-gradient(180deg, rgba(30,40,60,0.98) 0%, rgba(20,30,50,0.98) 100%);
+            border: 2px solid #4a6a8a;
+            border-radius: 10px;
+            padding: 12px;
+            display: none;
+            z-index: 100;
+        }
+        #side-panel.open { display: block; }
+        #side-panel h3 {
+            color: #7ac;
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 14px;
+            text-transform: uppercase;
+            border-bottom: 1px solid #4a6a8a;
+            padding-bottom: 6px;
+        }
+        .panel-content {
+            max-height: calc(80vh - 60px);
+            overflow-y: auto;
+        }
+        .panel-content::-webkit-scrollbar { width: 5px; }
+        .panel-content::-webkit-scrollbar-thumb { background: #4a6a8a; border-radius: 3px; }
+        
+        .shop-item, .recruit-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px;
+            margin: 4px 0;
+            background: rgba(40,50,70,0.8);
+            border: 1px solid #3a5a7a;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .shop-item:hover, .recruit-item:hover {
+            background: rgba(50,70,100,0.9);
+            border-color: #6a9aca;
+        }
+        .shop-item.selected { border-color: #5a5; background: rgba(40,70,50,0.9); }
+        .shop-item.locked { opacity: 0.5; cursor: not-allowed; }
+        .shop-item img, .recruit-item img {
+            width: 36px;
+            height: 36px;
+            image-rendering: pixelated;
+        }
+        .item-info { flex: 1; }
+        .item-info h4 { color: #cde; margin: 0; font-size: 12px; }
+        .item-info p { color: #ffd700; margin: 0; font-size: 11px; }
+        .item-info .req { color: #f66; font-size: 10px; }
+        
+        #build-menu {
+            position: absolute;
+            left: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 160px;
+            max-height: 80vh;
+            background: linear-gradient(180deg, rgba(30,40,60,0.98) 0%, rgba(20,30,50,0.98) 100%);
+            border: 2px solid #4a6a8a;
+            border-radius: 10px;
+            padding: 12px;
+            display: none;
+            z-index: 100;
+        }
+        #build-menu.open { display: block; }
+        #build-menu h3 {
+            color: #7ac;
+            text-align: center;
+            margin-bottom: 8px;
+            font-size: 13px;
+            text-transform: uppercase;
+        }
+        #building-list { max-height: calc(80vh - 50px); overflow-y: auto; }
+        .building-option {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 6px;
+            margin: 4px 0;
+            background: rgba(40, 50, 70, 0.8);
+            border: 1px solid #3a5a7a;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+        .building-option:hover { background: rgba(50, 70, 100, 0.9); border-color: #6a9aca; }
+        .building-option.selected { border-color: #5a5; background: rgba(40, 70, 50, 0.9); }
+        .building-option.locked { opacity: 0.5; cursor: not-allowed; }
+        .building-option img { width: 48px; height: 48px; image-rendering: pixelated; }
+        .building-option .name { color: #cde; font-size: 10px; margin-top: 2px; }
+        .building-option .cost { color: #ffd700; font-size: 9px; }
+        .building-option .req { color: #f66; font-size: 9px; }
+        
+        .close-btn {
+            position: absolute;
+            top: 6px;
+            right: 6px;
+            width: 20px;
+            height: 20px;
+            background: #a44;
+            border: none;
+            border-radius: 4px;
+            color: #fff;
+            cursor: pointer;
+            font-size: 12px;
+            line-height: 18px;
+        }
+        
+        #mode-indicator {
+            position: absolute;
+            top: 55px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(80, 60, 20, 0.9);
+            border: 2px solid #ca8;
+            border-radius: 6px;
+            padding: 6px 16px;
+            color: #ffd700;
+            font-size: 12px;
+            display: none;
+            z-index: 100;
+        }
+        #mode-indicator.show { display: block; }
+        
+        #back-btn {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: linear-gradient(180deg, #4a5a7a 0%, #3a4a6a 100%);
+            border: 2px solid #5a7a9a;
+            border-radius: 6px;
+            padding: 8px 16px;
+            color: #fff;
+            cursor: pointer;
+            font-size: 12px;
+            z-index: 100;
+        }
+        #back-btn:hover { background: linear-gradient(180deg, #5a6a8a 0%, #4a5a7a 100%); }
+    </style>
+</head>
+<body>
+    <div id="game-wrapper">
+        <canvas id="game-canvas"></canvas>
+        
+        <button id="back-btn" onclick="window.location.href='/home'">← Back</button>
+        
+        <div id="top-bar">
+            <div class="resource-box">
+                <div class="icon level"></div>
+                <span>Lv <span id="level-amount">1</span></span>
+            </div>
+            <div class="resource-box">
+                <div class="icon gold"></div>
+                <span id="gold-amount">1000</span>
+            </div>
+            <div class="resource-box">
+                <div class="icon wood"></div>
+                <span id="wood-amount">50</span>
+            </div>
+            <div class="resource-box">
+                <div class="icon stone"></div>
+                <span id="stone-amount">30</span>
+            </div>
+            <div class="resource-box">
+                <div class="icon pop"></div>
+                <span id="pop-amount">0/10</span>
+            </div>
+        </div>
+        
+        <div id="mode-indicator"></div>
+        
+        <div id="action-bar">
+            <button class="action-btn" id="btn-build" title="Build">
+                <span class="btn-icon">🏠</span>
+                <span>Build</span>
+            </button>
+            <button class="action-btn" id="btn-recruit" title="Recruit">
+                <span class="btn-icon">⚔️</span>
+                <span>Recruit</span>
+            </button>
+            <button class="action-btn" id="btn-decor" title="Decorations">
+                <span class="btn-icon">🌳</span>
+                <span>Decor</span>
+            </button>
+            <button class="action-btn" id="btn-dungeon" title="Enter Dungeon">
+                <span class="btn-icon">🗡️</span>
+                <span>Dungeon</span>
+            </button>
+        </div>
+        
+        <div id="build-menu">
+            <button class="close-btn" onclick="closeBuildMenu()">×</button>
+            <h3>Buildings</h3>
+            <div id="building-list"></div>
+        </div>
+        
+        <div id="side-panel">
+            <button class="close-btn" onclick="closeSidePanel()">×</button>
+            <h3 id="panel-title">Shop</h3>
+            <div class="panel-content" id="panel-content"></div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('game-canvas');
+        const ctx = canvas.getContext('2d');
+        
+        const TILE_SIZE = 20;
+        const GRID_SIZE = 40;
+        
+        function resizeCanvas() {
+            const maxW = window.innerWidth - 30;
+            const maxH = window.innerHeight - 100;
+            const size = Math.min(maxW, maxH, GRID_SIZE * TILE_SIZE);
+            canvas.style.width = size + 'px';
+            canvas.style.height = size + 'px';
+        }
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+        
+        canvas.width = GRID_SIZE * TILE_SIZE;
+        canvas.height = GRID_SIZE * TILE_SIZE;
+        
+        const ASSETS_BASE = '/sprites/tiny_swords/Tiny Swords (Free Pack)/2DAssets';
+        const MAGIC_BASE = '/sprites/magic';
+        
+        const TERRAIN_TILES = {
+            water: { src: `${ASSETS_BASE}/Terrain/Water Background color.png` },
+            grass: { src: `${ASSETS_BASE}/Terrain/Tilemap_color1.png` },
+            dirt: { src: `${ASSETS_BASE}/Terrain/Tilemap_color2.png` }
+        };
+        
+        const BUILDINGS = {
+            house1: { src: `${ASSETS_BASE}/Buildings/Blue Buildings/House1.png`, name: 'Small House', cost: { gold: 100, wood: 20 }, pop: 2, reqLevel: 1 },
+            house2: { src: `${ASSETS_BASE}/Buildings/Blue Buildings/House2.png`, name: 'Medium House', cost: { gold: 200, wood: 40 }, pop: 4, reqLevel: 2 },
+            house3: { src: `${ASSETS_BASE}/Buildings/Blue Buildings/House3.png`, name: 'Large House', cost: { gold: 400, wood: 80 }, pop: 6, reqLevel: 3 },
+            barracks: { src: `${ASSETS_BASE}/Buildings/Blue Buildings/Barracks.png`, name: 'Barracks', cost: { gold: 500, wood: 60, stone: 40 }, reqLevel: 2 },
+            archery: { src: `${ASSETS_BASE}/Buildings/Blue Buildings/Archery.png`, name: 'Archery', cost: { gold: 400, wood: 50, stone: 20 }, reqLevel: 2 },
+            monastery: { src: `${ASSETS_BASE}/Buildings/Blue Buildings/Monastery.png`, name: 'Monastery', cost: { gold: 600, wood: 40, stone: 60 }, reqLevel: 3 },
+            tower: { src: `${ASSETS_BASE}/Buildings/Blue Buildings/Tower.png`, name: 'Tower', cost: { gold: 300, stone: 50 }, reqLevel: 2 },
+            castle: { src: `${ASSETS_BASE}/Buildings/Blue Buildings/Castle.png`, name: 'Castle', cost: { gold: 2000, wood: 200, stone: 300 }, reqLevel: 5 }
+        };
+        
+        const DECORATIONS = {
+            tree1: { src: `${ASSETS_BASE}/Decorations/Trees/Tree1.png`, name: 'Oak', cost: { gold: 15 }, reqLevel: 1 },
+            tree2: { src: `${ASSETS_BASE}/Decorations/Trees/Tree2.png`, name: 'Pine', cost: { gold: 20 }, reqLevel: 1 },
+            bush1: { src: `${ASSETS_BASE}/Decorations/Bushes/Bushe1.png`, name: 'Bush', cost: { gold: 8 }, reqLevel: 1 },
+            rock1: { src: `${ASSETS_BASE}/Decorations/Rocks/Rock1.png`, name: 'Rock', cost: { gold: 5 }, reqLevel: 1 }
+        };
+        
+        const UNITS = {
+            warrior: { src: `${ASSETS_BASE}/Units/Blue Units/Warrior/Warrior_Idle.png`, runSrc: `${ASSETS_BASE}/Units/Blue Units/Warrior/Warrior_Run.png`, name: 'Warrior', cost: { gold: 100 }, frames: 6, reqLevel: 1 },
+            archer: { src: `${ASSETS_BASE}/Units/Blue Units/Archer/Archer_Idle.png`, runSrc: `${ASSETS_BASE}/Units/Blue Units/Archer/Archer_Run.png`, name: 'Archer', cost: { gold: 80 }, frames: 6, reqLevel: 1 },
+            lancer: { src: `${ASSETS_BASE}/Units/Blue Units/Lancer/Lancer_Idle.png`, runSrc: `${ASSETS_BASE}/Units/Blue Units/Lancer/Lancer_Run.png`, name: 'Lancer', cost: { gold: 120 }, frames: 6, reqLevel: 2 },
+            monk: { src: `${ASSETS_BASE}/Units/Blue Units/Monk/Idle.png`, runSrc: `${ASSETS_BASE}/Units/Blue Units/Monk/Run.png`, name: 'Monk', cost: { gold: 150 }, frames: 6, reqLevel: 3 }
+        };
+        
+        const RESOURCE_NODES = [
+            { type: 'gold', x: 0, y: 0, color: '#ffd700', icon: '💰' },
+            { type: 'wood', x: 0, y: 0, color: '#8b4513', icon: '🪵' },
+            { type: 'stone', x: 0, y: 0, color: '#708090', icon: '🪨' }
+        ];
+        
+        let playerLevel = 1;
+        let resources = { gold: 1000, wood: 50, stone: 30 };
+        let population = { current: 0, max: 10 };
+        let placedBuildings = [];
+        let placedDecorations = [];
+        let workers = [];
+        let effects = [];
+        let waterAnimTime = 0;
+        let resourceNodes = [];
+        
+        let selectedBuilding = null;
+        let selectedDecor = null;
+        let mode = 'view';
+        
+        let islandTiles = [];
+        let grassTilesList = [];
+        const loadedImages = {};
+        
+        function loadImage(src) {
+            if (loadedImages[src]) return loadedImages[src];
+            const img = new Image();
+            img.src = src;
+            loadedImages[src] = img;
+            return img;
+        }
+        
+        function generateIsland() {
+            islandTiles = [];
+            grassTilesList = [];
+            const centerX = GRID_SIZE / 2;
+            const centerY = GRID_SIZE / 2;
+            
+            for (let y = 0; y < GRID_SIZE; y++) {
+                islandTiles[y] = [];
+                for (let x = 0; x < GRID_SIZE; x++) {
+                    islandTiles[y][x] = 'water';
+                }
+            }
+            
+            for (let dy = -12; dy <= 12; dy++) {
+                for (let dx = -14; dx <= 14; dx++) {
+                    const dist = Math.sqrt(dx*dx*0.7 + dy*dy*1.0);
+                    const noise = Math.sin(dx * 0.4) * 1.5 + Math.cos(dy * 0.5) * 1.5;
+                    if (dist + noise < 11) {
+                        const x = Math.floor(centerX + dx);
+                        const y = Math.floor(centerY + dy);
+                        if (x >= 0 && x < GRID_SIZE && y >= 0 && y < GRID_SIZE) {
+                            islandTiles[y][x] = 'grass';
+                            grassTilesList.push({x, y});
+                        }
+                    }
+                }
+            }
+            
+            const grassCopy = islandTiles.map(row => [...row]);
+            for (let y = 0; y < GRID_SIZE; y++) {
+                for (let x = 0; x < GRID_SIZE; x++) {
+                    if (grassCopy[y][x] === 'grass') {
+                        for (let dy = -1; dy <= 1; dy++) {
+                            for (let dx = -1; dx <= 1; dx++) {
+                                const nx = x + dx, ny = y + dy;
+                                if (nx >= 0 && nx < GRID_SIZE && ny >= 0 && ny < GRID_SIZE) {
+                                    if (islandTiles[ny][nx] === 'water') {
+                                        islandTiles[ny][nx] = 'dirt';
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            
+            placeResourceNodes();
+        }
+        
+        function placeResourceNodes() {
+            resourceNodes = [];
+            const types = ['gold', 'wood', 'stone'];
+            const colors = { gold: '#ffd700', wood: '#8b4513', stone: '#708090' };
+            const icons = { gold: '💰', wood: '🪵', stone: '🪨' };
+            
+            types.forEach((type, i) => {
+                let placed = false;
+                let attempts = 0;
+                while (!placed && attempts < 100) {
+                    const tile = grassTilesList[Math.floor(Math.random() * grassTilesList.length)];
+                    const tooClose = resourceNodes.some(n => Math.hypot(n.x - tile.x, n.y - tile.y) < 5);
+                    if (!tooClose) {
+                        resourceNodes.push({
+                            type,
+                            x: tile.x,
+                            y: tile.y,
+                            color: colors[type],
+                            icon: icons[type],
+                            pulseTime: Math.random() * Math.PI * 2
+                        });
+                        placed = true;
+                    }
+                    attempts++;
+                }
+            });
+        }
+        
+        function canPlaceBuilding(gridX, gridY) {
+            for (let dy = 0; dy < 2; dy++) {
+                for (let dx = 0; dx < 2; dx++) {
+                    const tx = gridX + dx;
+                    const ty = gridY + dy;
+                    if (tx >= GRID_SIZE || ty >= GRID_SIZE) return false;
+                    if (islandTiles[ty]?.[tx] !== 'grass') return false;
+                    for (const b of placedBuildings) {
+                        if (tx >= b.x && tx < b.x + 2 && ty >= b.y && ty < b.y + 2) return false;
+                    }
+                    for (const d of placedDecorations) {
+                        if (tx === d.x && ty === d.y) return false;
+                    }
+                    for (const n of resourceNodes) {
+                        if (tx === n.x && ty === n.y) return false;
+                    }
+                }
+            }
+            return true;
+        }
+        
+        function placeBuilding(type, gridX, gridY) {
+            const building = BUILDINGS[type];
+            if (!canPlaceBuilding(gridX, gridY)) return false;
+            if (playerLevel < building.reqLevel) return false;
+            
+            for (const [res, amt] of Object.entries(building.cost)) {
+                if ((resources[res] || 0) < amt) return false;
+            }
+            
+            for (const [res, amt] of Object.entries(building.cost)) {
+                resources[res] -= amt;
+            }
+            
+            placedBuildings.push({ type, x: gridX, y: gridY });
+            if (building.pop) population.max += building.pop;
+            
+            updateResourceDisplay();
+            saveIsland();
+            return true;
+        }
+        
+        function placeDecoration(type, gridX, gridY) {
+            const decor = DECORATIONS[type];
+            if (islandTiles[gridY]?.[gridX] !== 'grass') return false;
+            if (playerLevel < decor.reqLevel) return false;
+            
+            for (const d of placedDecorations) {
+                if (d.x === gridX && d.y === gridY) return false;
+            }
+            for (const b of placedBuildings) {
+                if (gridX >= b.x && gridX < b.x + 2 && gridY >= b.y && gridY < b.y + 2) return false;
+            }
+            for (const n of resourceNodes) {
+                if (gridX === n.x && gridY === n.y) return false;
+            }
+            
+            for (const [res, amt] of Object.entries(decor.cost)) {
+                if ((resources[res] || 0) < amt) return false;
+            }
+            
+            for (const [res, amt] of Object.entries(decor.cost)) {
+                resources[res] -= amt;
+            }
+            
+            placedDecorations.push({ type, x: gridX, y: gridY });
+            updateResourceDisplay();
+            saveIsland();
+            return true;
+        }
+        
+        function recruitWorker(type) {
+            const unit = UNITS[type];
+            if (population.current >= population.max) return false;
+            if (playerLevel < unit.reqLevel) return false;
+            
+            for (const [res, amt] of Object.entries(unit.cost)) {
+                if ((resources[res] || 0) < amt) return false;
+            }
+            
+            for (const [res, amt] of Object.entries(unit.cost)) {
+                resources[res] -= amt;
+            }
+            
+            const spawnTile = grassTilesList[Math.floor(Math.random() * grassTilesList.length)];
+            workers.push({
+                type,
+                x: (spawnTile?.x || GRID_SIZE/2) * TILE_SIZE + TILE_SIZE/2,
+                y: (spawnTile?.y || GRID_SIZE/2) * TILE_SIZE + TILE_SIZE/2,
+                frame: 0,
+                frameTimer: 0,
+                targetNode: null,
+                state: 'idle',
+                gatherTimer: 0,
+                flipX: false
+            });
+            population.current++;
+            
+            updateResourceDisplay();
+            saveIsland();
+            return true;
+        }
+        
+        function updateResourceDisplay() {
+            document.getElementById('level-amount').textContent = playerLevel;
+            document.getElementById('gold-amount').textContent = resources.gold;
+            document.getElementById('wood-amount').textContent = resources.wood;
+            document.getElementById('stone-amount').textContent = resources.stone;
+            document.getElementById('pop-amount').textContent = `${population.current}/${population.max}`;
+        }
+        
+        function setMode(newMode, label) {
+            mode = newMode;
+            const indicator = document.getElementById('mode-indicator');
+            if (newMode !== 'view') {
+                indicator.textContent = label;
+                indicator.classList.add('show');
+            } else {
+                indicator.classList.remove('show');
+            }
+            document.querySelectorAll('.action-btn').forEach(btn => btn.classList.remove('active'));
+        }
+        
+        function openBuildMenu() {
+            setMode('build', 'Click to place building');
+            document.getElementById('build-menu').classList.add('open');
+            document.getElementById('side-panel').classList.remove('open');
+            document.getElementById('btn-build').classList.add('active');
+            renderBuildingList();
+        }
+        
+        function closeBuildMenu() {
+            setMode('view', '');
+            selectedBuilding = null;
+            document.getElementById('build-menu').classList.remove('open');
+        }
+        
+        function openSidePanel(type) {
+            document.getElementById('side-panel').classList.add('open');
+            document.getElementById('build-menu').classList.remove('open');
+            
+            const title = document.getElementById('panel-title');
+            const content = document.getElementById('panel-content');
+            
+            if (type === 'recruit') {
+                setMode('recruit', 'Click to recruit');
+                document.getElementById('btn-recruit').classList.add('active');
+                title.textContent = 'Recruit Workers';
+                content.innerHTML = '';
+                for (const [id, unit] of Object.entries(UNITS)) {
+                    const locked = playerLevel < unit.reqLevel;
+                    const div = document.createElement('div');
+                    div.className = 'recruit-item' + (locked ? ' locked' : '');
+                    div.innerHTML = `
+                        <img src="${unit.src}" alt="${unit.name}">
+                        <div class="item-info">
+                            <h4>${unit.name}</h4>
+                            <p>${unit.cost.gold} Gold</p>
+                            ${locked ? `<span class="req">Req. Level ${unit.reqLevel}</span>` : ''}
+                        </div>
+                    `;
+                    if (!locked) {
+                        div.onclick = () => recruitWorker(id);
+                    }
+                    content.appendChild(div);
+                }
+            } else if (type === 'decor') {
+                setMode('decor', 'Click to place');
+                document.getElementById('btn-decor').classList.add('active');
+                title.textContent = 'Decorations';
+                content.innerHTML = '';
+                for (const [id, decor] of Object.entries(DECORATIONS)) {
+                    const locked = playerLevel < decor.reqLevel;
+                    const div = document.createElement('div');
+                    div.className = 'shop-item' + (locked ? ' locked' : '') + (selectedDecor === id ? ' selected' : '');
+                    div.innerHTML = `
+                        <img src="${decor.src}" alt="${decor.name}">
+                        <div class="item-info">
+                            <h4>${decor.name}</h4>
+                            <p>${decor.cost.gold} Gold</p>
+                        </div>
+                    `;
+                    if (!locked) {
+                        div.onclick = () => {
+                            selectedDecor = id;
+                            openSidePanel('decor');
+                        };
+                    }
+                    content.appendChild(div);
+                }
+            }
+        }
+        
+        function closeSidePanel() {
+            setMode('view', '');
+            selectedDecor = null;
+            document.getElementById('side-panel').classList.remove('open');
+        }
+        
+        function renderBuildingList() {
+            const list = document.getElementById('building-list');
+            list.innerHTML = '';
+            for (const [id, building] of Object.entries(BUILDINGS)) {
+                const locked = playerLevel < building.reqLevel;
+                const div = document.createElement('div');
+                div.className = 'building-option' + (selectedBuilding === id ? ' selected' : '') + (locked ? ' locked' : '');
+                div.innerHTML = `
+                    <img src="${building.src}" alt="${building.name}">
+                    <span class="name">${building.name}</span>
+                    <span class="cost">${building.cost.gold}g</span>
+                    ${locked ? `<span class="req">Lv ${building.reqLevel}</span>` : ''}
+                `;
+                if (!locked) {
+                    div.onclick = () => {
+                        selectedBuilding = id;
+                        renderBuildingList();
+                    };
+                }
+                list.appendChild(div);
+            }
+        }
+        
+        canvas.addEventListener('click', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            const x = (e.clientX - rect.left) * scaleX;
+            const y = (e.clientY - rect.top) * scaleY;
+            const gridX = Math.floor(x / TILE_SIZE);
+            const gridY = Math.floor(y / TILE_SIZE);
+            
+            if (mode === 'build' && selectedBuilding) {
+                placeBuilding(selectedBuilding, gridX, gridY);
+            } else if (mode === 'decor' && selectedDecor) {
+                placeDecoration(selectedDecor, gridX, gridY);
+            }
+        });
+        
+        document.getElementById('btn-build').onclick = openBuildMenu;
+        document.getElementById('btn-recruit').onclick = () => openSidePanel('recruit');
+        document.getElementById('btn-decor').onclick = () => openSidePanel('decor');
+        document.getElementById('btn-dungeon').onclick = () => window.location.href = '/grudge_dungeons.html';
+        
+        async function saveIsland() {
+            const data = { 
+                playerLevel, resources, population, 
+                placedBuildings, placedDecorations, 
+                workers: workers.map(w => ({ type: w.type, x: w.x, y: w.y })),
+                resourceNodes 
+            };
+            localStorage.setItem('grudge_island', JSON.stringify(data));
+            if (typeof puter !== 'undefined') {
+                try { await puter.kv.set('grudge_island', JSON.stringify(data)); } catch(e) {}
+            }
+        }
+        
+        async function loadIsland() {
+            let data = localStorage.getItem('grudge_island');
+            if (!data && typeof puter !== 'undefined') {
+                try { data = await puter.kv.get('grudge_island'); } catch(e) {}
+            }
+            if (data) {
+                const save = JSON.parse(data);
+                playerLevel = save.playerLevel || 1;
+                resources = save.resources || resources;
+                population = save.population || population;
+                placedBuildings = save.placedBuildings || [];
+                placedDecorations = save.placedDecorations || [];
+                if (save.workers) {
+                    workers = save.workers.map(w => ({
+                        ...w,
+                        frame: 0,
+                        frameTimer: 0,
+                        targetNode: null,
+                        state: 'idle',
+                        gatherTimer: 0,
+                        flipX: false
+                    }));
+                }
+                if (save.resourceNodes && save.resourceNodes.length > 0) {
+                    resourceNodes = save.resourceNodes.map(n => ({ ...n, pulseTime: Math.random() * Math.PI * 2 }));
+                }
+                updateResourceDisplay();
+            }
+        }
+        
+        let lastTime = 0;
+        function gameLoop(time) {
+            const dt = Math.min((time - lastTime) / 1000, 0.1);
+            lastTime = time;
+            waterAnimTime += dt;
+            
+            resourceNodes.forEach(n => n.pulseTime += dt * 2);
+            
+            workers.forEach(worker => {
+                worker.frameTimer += dt;
+                if (worker.frameTimer > 0.12) {
+                    worker.frameTimer = 0;
+                    worker.frame = (worker.frame + 1) % (UNITS[worker.type].frames || 6);
+                }
+                
+                if (worker.state === 'idle') {
+                    if (resourceNodes.length > 0) {
+                        worker.targetNode = resourceNodes[Math.floor(Math.random() * resourceNodes.length)];
+                        worker.state = 'walking';
+                    }
+                } else if (worker.state === 'walking') {
+                    if (worker.targetNode) {
+                        const targetX = worker.targetNode.x * TILE_SIZE + TILE_SIZE / 2;
+                        const targetY = worker.targetNode.y * TILE_SIZE + TILE_SIZE / 2;
+                        const dx = targetX - worker.x;
+                        const dy = targetY - worker.y;
+                        const dist = Math.hypot(dx, dy);
+                        
+                        worker.flipX = dx < 0;
+                        
+                        if (dist < 8) {
+                            worker.state = 'gathering';
+                            worker.gatherTimer = 0;
+                        } else {
+                            const speed = 50;
+                            worker.x += (dx / dist) * speed * dt;
+                            worker.y += (dy / dist) * speed * dt;
+                        }
+                    }
+                } else if (worker.state === 'gathering') {
+                    worker.gatherTimer += dt;
+                    if (worker.gatherTimer > 3) {
+                        if (worker.targetNode) {
+                            resources[worker.targetNode.type] += 5;
+                            updateResourceDisplay();
+                        }
+                        worker.state = 'idle';
+                        worker.targetNode = null;
+                    }
+                }
+            });
+            
+            render();
+            requestAnimationFrame(gameLoop);
+        }
+        
+        function render() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            const grassImg = loadImage(TERRAIN_TILES.grass.src);
+            const dirtImg = loadImage(TERRAIN_TILES.dirt.src);
+            
+            for (let y = 0; y < GRID_SIZE; y++) {
+                for (let x = 0; x < GRID_SIZE; x++) {
+                    const tile = islandTiles[y][x];
+                    const px = x * TILE_SIZE;
+                    const py = y * TILE_SIZE;
+                    
+                    if (tile === 'water') {
+                        const wave = Math.sin(waterAnimTime * 2 + x * 0.4 + y * 0.3) * 0.15;
+                        ctx.fillStyle = `rgba(30, 80, 140, ${0.8 + wave})`;
+                        ctx.fillRect(px, py, TILE_SIZE, TILE_SIZE);
+                        
+                        ctx.fillStyle = `rgba(60, 120, 180, ${0.3 + Math.sin(waterAnimTime * 3 + x + y) * 0.15})`;
+                        const wo = Math.sin(waterAnimTime * 2 + x) * 2;
+                        ctx.fillRect(px + wo, py + 3, TILE_SIZE - 4, 2);
+                    } else if (tile === 'grass' && grassImg.complete) {
+                        ctx.drawImage(grassImg, 64, 64, 64, 64, px, py, TILE_SIZE, TILE_SIZE);
+                    } else if (tile === 'dirt' && dirtImg.complete) {
+                        ctx.drawImage(dirtImg, 64, 64, 64, 64, px, py, TILE_SIZE, TILE_SIZE);
+                    } else if (tile === 'grass') {
+                        ctx.fillStyle = '#4a8a4a';
+                        ctx.fillRect(px, py, TILE_SIZE, TILE_SIZE);
+                    } else if (tile === 'dirt') {
+                        ctx.fillStyle = '#8a6a4a';
+                        ctx.fillRect(px, py, TILE_SIZE, TILE_SIZE);
+                    }
+                }
+            }
+            
+            resourceNodes.forEach(node => {
+                const px = node.x * TILE_SIZE;
+                const py = node.y * TILE_SIZE;
+                const pulse = Math.sin(node.pulseTime) * 0.2 + 0.8;
+                
+                ctx.beginPath();
+                ctx.arc(px + TILE_SIZE/2, py + TILE_SIZE/2, TILE_SIZE * 0.6, 0, Math.PI * 2);
+                ctx.fillStyle = node.color;
+                ctx.globalAlpha = pulse * 0.6;
+                ctx.fill();
+                ctx.globalAlpha = 1;
+                ctx.strokeStyle = '#fff';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+                
+                ctx.font = '16px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText(node.icon, px + TILE_SIZE/2, py + TILE_SIZE/2 + 5);
+            });
+            
+            placedDecorations.forEach(d => {
+                const decor = DECORATIONS[d.type];
+                const img = loadImage(decor.src);
+                if (img.complete) {
+                    ctx.drawImage(img, d.x * TILE_SIZE - 4, d.y * TILE_SIZE - 8, TILE_SIZE + 8, TILE_SIZE + 8);
+                }
+            });
+            
+            placedBuildings.forEach(b => {
+                const building = BUILDINGS[b.type];
+                const img = loadImage(building.src);
+                if (img.complete) {
+                    ctx.drawImage(img, b.x * TILE_SIZE, b.y * TILE_SIZE - TILE_SIZE * 0.8, TILE_SIZE * 2, TILE_SIZE * 2.8);
+                }
+            });
+            
+            workers.forEach(worker => {
+                const unitData = UNITS[worker.type];
+                const imgSrc = worker.state === 'walking' ? (unitData.runSrc || unitData.src) : unitData.src;
+                const img = loadImage(imgSrc);
+                if (img.complete) {
+                    const frameW = img.width / (unitData.frames || 6);
+                    ctx.save();
+                    if (worker.flipX) {
+                        ctx.translate(worker.x + TILE_SIZE * 0.8, worker.y - TILE_SIZE * 0.8);
+                        ctx.scale(-1, 1);
+                        ctx.drawImage(img, worker.frame * frameW, 0, frameW, img.height, 0, 0, TILE_SIZE * 1.6, TILE_SIZE * 1.6);
+                    } else {
+                        ctx.drawImage(img, worker.frame * frameW, 0, frameW, img.height, worker.x - TILE_SIZE * 0.8, worker.y - TILE_SIZE * 0.8, TILE_SIZE * 1.6, TILE_SIZE * 1.6);
+                    }
+                    ctx.restore();
+                    
+                    if (worker.state === 'gathering') {
+                        ctx.fillStyle = '#ffd700';
+                        ctx.font = '10px Arial';
+                        ctx.textAlign = 'center';
+                        ctx.fillText('⚒️', worker.x, worker.y - TILE_SIZE);
+                    }
+                }
+            });
+            
+            if (mode === 'build' && selectedBuilding) {
+                ctx.strokeStyle = 'rgba(100, 255, 100, 0.4)';
+                ctx.lineWidth = 1;
+                grassTilesList.forEach(tile => {
+                    if (canPlaceBuilding(tile.x, tile.y)) {
+                        ctx.strokeRect(tile.x * TILE_SIZE, tile.y * TILE_SIZE, TILE_SIZE * 2, TILE_SIZE * 2);
+                    }
+                });
+            }
+        }
+        
+        generateIsland();
+        loadIsland();
+        updateResourceDisplay();
+        requestAnimationFrame(gameLoop);
+    </script>
+</body>
+</html>

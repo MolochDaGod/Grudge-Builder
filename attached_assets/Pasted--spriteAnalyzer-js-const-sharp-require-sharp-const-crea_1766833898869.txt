@@ -1,0 +1,782 @@
+// spriteAnalyzer.js
+const sharp = require('sharp');
+const { createCanvas, loadImage } = require('canvas');
+const Jimp = require('jimp');
+const fs = require('fs').promises;
+const path = require('path');
+const cv = require('opencv4nodejs');
+const tf = require('@tensorflow/tfjs-node');
+const { v4: uuidv4 } = require('uuid');
+
+class SpriteStyleAnalyzer {
+    constructor() {
+        this.styleFeatures = {};
+        this.pixelData = {};
+        this.colorPalette = [];
+        this.lineCharacteristics = {};
+        this.shadingPatterns = {};
+    }
+
+    async loadSpriteData(imagePath, boundingBoxes) {
+        try {
+            const image = await sharp(imagePath).raw().toBuffer({ resolveWithObject: true });
+            const frames = [];
+            
+            for (const bbox of boundingBoxes) {
+                const { x, y, width: w, height: h } = bbox;
+                
+                // Extract frame using sharp
+                const frame = await sharp(imagePath)
+                    .extract({ left: x, top: y, width: w, height: h })
+                    .raw()
+                    .toBuffer();
+                
+                frames.push({
+                    data: frame,
+                    width: w,
+                    height: h,
+                    channels: 4 // RGBA
+                });
+            }
+            
+            return frames;
+        } catch (error) {
+            console.error('Error loading sprite data:', error);
+            return [];
+        }
+    }
+
+    analyzePixelLevel(frame) {
+        const { data, width, height } = frame;
+        const pixels = [];
+        
+        // Convert buffer to pixel array
+        for (let i = 0; i < data.length; i += 4) {
+            const r = data[i];
+            const g = data[i + 1];
+            const b = data[i + 2];
+            const a = data[i + 3];
+            
+            if (a > 0) { // Non-transparent pixels
+                pixels.push({ r, g, b, a });
+            }
+        }
+
+        // Color analysis
+        const colorMap = new Map();
+        pixels.forEach(pixel => {
+            const key = `${pixel.r},${pixel.g},${pixel.b}`;
+            colorMap.set(key, (colorMap.get(key) || 0) + 1);
+        });
+
+        // Sort colors by frequency
+        const sortedColors = Array.from(colorMap.entries())
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 20)
+            .map(([color, count]) => {
+                const [r, g, b] = color.split(',').map(Number);
+                return { color: { r, g, b }, count };
+            });
+
+        // Convert to grayscale for edge detection
+        const grayscale = this.convertToGrayscale(data, width, height);
+        
+        // Edge detection using OpenCV
+        const mat = new cv.Mat(height, width, cv.CV_8UC1);
+        mat.setDataArray(grayscale);
+        
+        const edges = mat.canny(50, 150);
+        const edgeData = edges.getDataArray();
+        const edgeDensity = edgeData.filter(v => v > 0).length / edgeData.length;
+
+        // Contour analysis
+        const alphaChannel = this.extractAlphaChannel(data);
+        const alphaMat = new cv.Mat(height, width, cv.CV_8UC1);
+        alphaMat.setDataArray(alphaChannel);
+        
+        const contours = alphaMat.findContours(cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
+        
+        return {
+            colorPalette: sortedColors,
+            dominantColor: sortedColors[0]?.color || { r: 0, g: 0, b: 0 },
+            edgeDensity: edgeDensity,
+            contourCount: contours.length,
+            alphaRatio: pixels.length / (width * height),
+            brightness: this.calculateBrightness(grayscale),
+            contrast: this.calculateContrast(grayscale)
+        };
+    }
+
+    convertToGrayscale(rgbaData, width, height) {
+        const grayscale = new Uint8Array(width * height);
+        for (let i = 0, j = 0; i < rgbaData.length; i += 4, j++) {
+            const r = rgbaData[i];
+            const g = rgbaData[i + 1];
+            const b = rgbaData[i + 2];
+            grayscale[j] = Math.round(0.299 * r + 0.587 * g + 0.114 * b);
+        }
+        return grayscale;
+    }
+
+    extractAlphaChannel(rgbaData) {
+        const alpha = new Uint8Array(rgbaData.length / 4);
+        for (let i = 0, j = 0; i < rgbaData.length; i += 4, j++) {
+            alpha[j] = rgbaData[i + 3];
+        }
+        return alpha;
+    }
+
+    calculateBrightness(grayscaleData) {
+        const sum = grayscaleData.reduce((acc, val) => acc + val, 0);
+        return sum / grayscaleData.length;
+    }
+
+    calculateContrast(grayscaleData) {
+        const mean = this.calculateBrightness(grayscaleData);
+        const variance = grayscaleData.reduce((acc, val) => acc + Math.pow(val - mean, 2), 0) / grayscaleData.length;
+        return Math.sqrt(variance);
+    }
+
+    async extractStyleFeatures(frames) {
+        const allFeatures = [];
+        
+        for (const frame of frames) {
+            const features = this.analyzePixelLevel(frame);
+            allFeatures.push(features);
+        }
+
+        // Aggregate features
+        this.styleFeatures = {
+            avgColorPalette: this.aggregateColors(allFeatures),
+            lineWeights: this.analyzeLineWeights(frames),
+            shadingStyle: this.analyzeShading(frames),
+            outlineCharacteristics: this.analyzeOutlines(frames),
+            proportions: this.analyzeProportions(frames),
+            edgeConsistency: allFeatures.reduce((sum, f) => sum + f.edgeDensity, 0) / allFeatures.length
+        };
+
+        return this.styleFeatures;
+    }
+
+    aggregateColors(features) {
+        const colorMap = new Map();
+        
+        features.forEach(f => {
+            f.colorPalette.forEach(({ color, count }) => {
+                const key = `${color.r},${color.g},${color.b}`;
+                colorMap.set(key, (colorMap.get(key) || 0) + count);
+            });
+        });
+
+        return Array.from(colorMap.entries())
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 50)
+            .map(([color, count]) => {
+                const [r, g, b] = color.split(',').map(Number);
+                return { r, g, b, count };
+            });
+    }
+
+    async analyzeLineWeights(frames) {
+        const lineWeights = [];
+        
+        for (const frame of frames) {
+            const { data, width, height } = frame;
+            const grayscale = this.convertToGrayscale(data, width, height);
+            const mat = new cv.Mat(height, width, cv.CV_8UC1);
+            mat.setDataArray(grayscale);
+            
+            const edges = mat.canny(50, 150);
+            
+            // Estimate line thickness using morphological operations
+            const kernel = cv.getStructuringElement(cv.MORPH_RECT, new cv.Size(3, 3));
+            const dilated = edges.morphologyEx(cv.MORPH_DILATE, kernel);
+            
+            const thicknessMap = dilated.sub(edges);
+            const thickPixels = thicknessMap.getDataArray().filter(v => v > 0);
+            const avgThickness = thickPixels.length > 0 ? thickPixels.reduce((a, b) => a + b, 0) / thickPixels.length : 0;
+            
+            lineWeights.push(avgThickness);
+        }
+
+        return {
+            meanThickness: lineWeights.reduce((a, b) => a + b, 0) / lineWeights.length,
+            thicknessVariance: this.calculateVariance(lineWeights),
+            pattern: lineWeights
+        };
+    }
+
+    async analyzeShading(frames) {
+        const shadingInfo = [];
+        
+        for (const frame of frames) {
+            const { data } = frame;
+            const hsvData = this.rgbToHsv(data);
+            
+            // Analyze value (brightness) distribution
+            const values = [];
+            for (let i = 0; i < hsvData.length; i += 3) {
+                values.push(hsvData[i + 2]); // V channel
+            }
+            
+            const shadows = values.filter(v => v < 85).length;
+            const midtones = values.filter(v => v >= 85 && v <= 170).length;
+            const highlights = values.filter(v => v > 170).length;
+            
+            const total = values.length;
+            if (total > 0) {
+                shadingInfo.push({
+                    shadows: shadows / total,
+                    midtones: midtones / total,
+                    highlights: highlights / total
+                });
+            }
+        }
+
+        const avgShadows = shadingInfo.reduce((sum, s) => sum + s.shadows, 0) / shadingInfo.length;
+        const style = avgShadows < 0.2 ? 'cell_shaded' : 'soft_shaded';
+
+        return {
+            avgShadows,
+            avgMidtones: shadingInfo.reduce((sum, s) => sum + s.midtones, 0) / shadingInfo.length,
+            avgHighlights: shadingInfo.reduce((sum, s) => sum + s.highlights, 0) / shadingInfo.length,
+            style
+        };
+    }
+
+    rgbToHsv(rgbaData) {
+        const hsv = new Uint8Array(rgbaData.length);
+        
+        for (let i = 0; i < rgbaData.length; i += 4) {
+            const r = rgbaData[i] / 255;
+            const g = rgbaData[i + 1] / 255;
+            const b = rgbaData[i + 2] / 255;
+            
+            const max = Math.max(r, g, b);
+            const min = Math.min(r, g, b);
+            const diff = max - min;
+            
+            let h = 0;
+            let s = max === 0 ? 0 : diff / max;
+            const v = max;
+            
+            if (diff !== 0) {
+                switch (max) {
+                    case r:
+                        h = ((g - b) / diff + (g < b ? 6 : 0)) * 60;
+                        break;
+                    case g:
+                        h = ((b - r) / diff + 2) * 60;
+                        break;
+                    case b:
+                        h = ((r - g) / diff + 4) * 60;
+                        break;
+                }
+            }
+            
+            hsv[i] = Math.round(h * 255 / 360);
+            hsv[i + 1] = Math.round(s * 255);
+            hsv[i + 2] = Math.round(v * 255);
+            hsv[i + 3] = rgbaData[i + 3];
+        }
+        
+        return hsv;
+    }
+
+    calculateVariance(arr) {
+        const mean = arr.reduce((a, b) => a + b, 0) / arr.length;
+        return arr.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / arr.length;
+    }
+
+    async analyzeOutlines(frames) {
+        const outlineFeatures = [];
+        
+        for (const frame of frames) {
+            const { data, width, height } = frame;
+            const grayscale = this.convertToGrayscale(data, width, height);
+            const mat = new cv.Mat(height, width, cv.CV_8UC1);
+            mat.setDataArray(grayscale);
+            
+            const edges = mat.canny(50, 150);
+            const contours = edges.findContours(cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
+            
+            let totalPerimeter = 0;
+            let totalArea = 0;
+            
+            contours.forEach(cnt => {
+                totalPerimeter += cnt.arcLength(true);
+                totalArea += cnt.area;
+            });
+            
+            outlineFeatures.push({
+                outlineComplexity: totalArea > 0 ? totalPerimeter / totalArea : 0,
+                outlineCount: contours.length,
+                avgThickness: this.estimateOutlineThickness(edges)
+            });
+        }
+
+        return {
+            complexity: outlineFeatures.reduce((sum, o) => sum + o.outlineComplexity, 0) / outlineFeatures.length,
+            count: outlineFeatures.reduce((sum, o) => sum + o.outlineCount, 0) / outlineFeatures.length,
+            thickness: outlineFeatures.reduce((sum, o) => sum + o.avgThickness, 0) / outlineFeatures.length
+        };
+    }
+
+    estimateOutlineThickness(edges) {
+        let maxCoverage = 0;
+        let bestThickness = 1;
+        
+        for (let k = 1; k <= 5; k++) {
+            const kernel = cv.getStructuringElement(cv.MORPH_RECT, new cv.Size(k, k));
+            const dilated = edges.morphologyEx(cv.MORPH_DILATE, kernel);
+            
+            const originalSum = edges.getDataArray().reduce((a, b) => a + b, 0);
+            const dilatedSum = dilated.getDataArray().reduce((a, b) => a + b, 0);
+            const coverage = originalSum > 0 ? dilatedSum / originalSum : 0;
+            
+            if (coverage > maxCoverage) {
+                maxCoverage = coverage;
+                bestThickness = k;
+            }
+        }
+        
+        return bestThickness;
+    }
+
+    async analyzeProportions(frames) {
+        const proportions = [];
+        
+        for (const frame of frames) {
+            const { data, width, height } = frame;
+            const alphaChannel = this.extractAlphaChannel(data);
+            
+            // Find bounding box of non-transparent pixels
+            let minY = height, maxY = 0, minX = width, maxX = 0;
+            
+            for (let y = 0; y < height; y++) {
+                for (let x = 0; x < width; x++) {
+                    if (alphaChannel[y * width + x] > 0) {
+                        minY = Math.min(minY, y);
+                        maxY = Math.max(maxY, y);
+                        minX = Math.min(minX, x);
+                        maxX = Math.max(maxX, x);
+                    }
+                }
+            }
+            
+            if (minY < maxY && minX < maxX) {
+                const frameHeight = maxY - minY;
+                const frameWidth = maxX - minX;
+                const headHeight = frameHeight * 0.25;
+                const bodyHeight = frameHeight * 0.35;
+                
+                proportions.push({
+                    aspectRatio: frameWidth / frameHeight,
+                    headToBody: headHeight / bodyHeight,
+                    widthToHeight: frameWidth / frameHeight
+                });
+            }
+        }
+
+        return {
+            avgAspectRatio: proportions.reduce((sum, p) => sum + p.aspectRatio, 0) / proportions.length || 0.6,
+            avgHeadBodyRatio: proportions.reduce((sum, p) => sum + p.headToBody, 0) / proportions.length || 0.7,
+            consistency: proportions.length > 0 ? this.calculateStandardDeviation(proportions.map(p => p.aspectRatio)) : 0
+        };
+    }
+
+    calculateStandardDeviation(arr) {
+        const mean = arr.reduce((a, b) => a + b, 0) / arr.length;
+        const variance = arr.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / arr.length;
+        return Math.sqrt(variance);
+    }
+}
+
+class SpriteGenerator {
+    constructor(styleAnalyzer) {
+        this.styleAnalyzer = styleAnalyzer;
+        this.styleFeatures = styleAnalyzer.styleFeatures;
+    }
+
+    async generateNewSprite(options = {}) {
+        const { width = 128, height = 192, poseVariation, colorVariation } = options;
+        
+        // Create canvas
+        const canvas = createCanvas(width, height);
+        const ctx = canvas.getContext('2d');
+        
+        // Apply style characteristics
+        if (this.styleFeatures) {
+            await this.applyLineStyle(ctx, width, height);
+            await this.applyColoring(ctx, width, height, colorVariation);
+            await this.applyShading(ctx, width, height);
+            await this.applyOutlines(ctx, width, height);
+        }
+        
+        return canvas.toBuffer();
+    }
+
+    async applyLineStyle(ctx, width, height) {
+        const lineStyle = this.styleFeatures.lineWeights || {};
+        const thickness = Math.round(lineStyle.meanThickness || 2);
+        
+        // Set line style based on analysis
+        ctx.lineWidth = thickness;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+    }
+
+    async applyColoring(ctx, width, height, variation) {
+        const palette = this.styleFeatures.avgColorPalette || [];
+        
+        if (palette.length > 0) {
+            // Use dominant colors
+            const topColors = palette.slice(0, 5);
+            
+            // Create gradient or fill with base colors
+            topColors.forEach((color, index) => {
+                ctx.fillStyle = `rgba(${color.r}, ${color.g}, ${color.b}, 0.8)`;
+                
+                // Apply color to regions (simplified)
+                ctx.fillRect(
+                    index * (width / topColors.length),
+                    0,
+                    width / topColors.length,
+                    height
+                );
+            });
+        }
+    }
+
+    async applyShading(ctx, width, height) {
+        const shading = this.styleFeatures.shadingStyle || {};
+        
+        if (shading.style === 'cell_shaded') {
+            // Apply cell shading effect
+            ctx.globalAlpha = 0.3;
+            ctx.fillStyle = 'black';
+            
+            // Create shadow regions
+            for (let i = 0; i < 3; i++) {
+                ctx.beginPath();
+                ctx.arc(
+                    Math.random() * width,
+                    height * 0.6 + Math.random() * height * 0.4,
+                    20 + Math.random() * 30,
+                    0,
+                    Math.PI * 2
+                );
+                ctx.fill();
+            }
+        } else {
+            // Apply soft shading
+            const gradient = ctx.createRadialGradient(
+                width / 2, height / 2, 0,
+                width / 2, height / 2, Math.max(width, height) / 2
+            );
+            gradient.addColorStop(0, 'rgba(255, 255, 255, 0.2)');
+            gradient.addColorStop(1, 'rgba(0, 0, 0, 0.3)');
+            
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, width, height);
+        }
+        
+        ctx.globalAlpha = 1;
+    }
+
+    async applyOutlines(ctx, width, height) {
+        const outlines = this.styleFeatures.outlineCharacteristics || {};
+        const thickness = Math.round(outlines.thickness || 2);
+        
+        ctx.strokeStyle = 'black';
+        ctx.lineWidth = thickness;
+        
+        // Draw basic outline based on proportions
+        const proportions = this.styleAnalyzer.styleFeatures.proportions || {};
+        
+        // Simple character outline
+        ctx.beginPath();
+        
+        // Head
+        const headWidth = width * 0.3;
+        const headHeight = headWidth * 1.2;
+        ctx.arc(width / 2, headHeight / 2, headWidth / 2, 0, Math.PI * 2);
+        
+        // Body
+        ctx.moveTo(width / 2 - headWidth / 2, headHeight);
+        ctx.lineTo(width / 2 - headWidth / 3, height * 0.7);
+        ctx.lineTo(width / 2 + headWidth / 3, height * 0.7);
+        ctx.lineTo(width / 2 + headWidth / 2, headHeight);
+        
+        ctx.stroke();
+    }
+}
+
+class VisualizationTools {
+    static async showSpriteComparison(originalFrames, generatedFrame) {
+        // This would typically use a visualization library
+        // For Node.js, you could save comparison images
+        console.log('Creating sprite comparison...');
+        
+        // Save original frames
+        for (let i = 0; i < Math.min(originalFrames.length, 6); i++) {
+            const frame = originalFrames[i];
+            const buffer = Buffer.from(frame.data);
+            await sharp(buffer, {
+                raw: {
+                    width: frame.width,
+                    height: frame.height,
+                    channels: 4
+                }
+            }).toFile(`original_frame_${i}.png`);
+        }
+        
+        // Save generated frame
+        await sharp(generatedFrame).toFile('generated_sprite.png');
+        
+        console.log('Comparison images saved.');
+    }
+
+    static async analyzeColorDistribution(frames) {
+        const allColors = [];
+        
+        frames.forEach(frame => {
+            const { data } = frame;
+            for (let i = 0; i < data.length; i += 4) {
+                if (data[i + 3] > 0) { // Non-transparent
+                    allColors.push({
+                        r: data[i],
+                        g: data[i + 1],
+                        b: data[i + 2]
+                    });
+                }
+            }
+        });
+        
+        // Calculate color statistics
+        const colorStats = {
+            red: allColors.map(c => c.r),
+            green: allColors.map(c => c.g),
+            blue: allColors.map(c => c.b)
+        };
+        
+        // Create visualization data (you can use chart.js or similar)
+        const histogram = {
+            red: this.createHistogram(colorStats.red),
+            green: this.createHistogram(colorStats.green),
+            blue: this.createHistogram(colorStats.blue)
+        };
+        
+        return { histogram, uniqueColors: allColors.length };
+    }
+
+    static createHistogram(values, bins = 50) {
+        const min = Math.min(...values);
+        const max = Math.max(...values);
+        const binSize = (max - min) / bins;
+        const histogram = new Array(bins).fill(0);
+        
+        values.forEach(value => {
+            const binIndex = Math.min(Math.floor((value - min) / binSize), bins - 1);
+            histogram[binIndex]++;
+        });
+        
+        return histogram;
+    }
+}
+
+// Neural Network Model using TensorFlow.js
+class SpriteStyleNet {
+    constructor() {
+        this.model = this.createModel();
+    }
+
+    createModel() {
+        const model = tf.sequential();
+        
+        // Encoder
+        model.add(tf.layers.conv2d({
+            inputShape: [null, null, 4],
+            filters: 64,
+            kernelSize: 4,
+            strides: 2,
+            activation: 'relu'
+        }));
+        model.add(tf.layers.conv2d({
+            filters: 128,
+            kernelSize: 4,
+            strides: 2,
+            activation: 'relu'
+        }));
+        model.add(tf.layers.conv2d({
+            filters: 256,
+            kernelSize: 4,
+            strides: 2,
+            activation: 'relu'
+        }));
+        model.add(tf.layers.globalAveragePooling2d());
+        model.add(tf.layers.dense({ units: 128, activation: 'relu' }));
+        
+        // Decoder
+        model.add(tf.layers.dense({ units: 6 * 8 * 512, activation: 'relu' }));
+        model.add(tf.layers.reshape({ targetShape: [6, 8, 512] }));
+        model.add(tf.layers.conv2dTranspose({
+            filters: 256,
+            kernelSize: 4,
+            strides: 2,
+            activation: 'relu'
+        }));
+        model.add(tf.layers.conv2dTranspose({
+            filters: 128,
+            kernelSize: 4,
+            strides: 2,
+            activation: 'relu'
+        }));
+        model.add(tf.layers.conv2dTranspose({
+            filters: 64,
+            kernelSize: 4,
+            strides: 2,
+            activation: 'relu'
+        }));
+        model.add(tf.layers.conv2dTranspose({
+            filters: 4,
+            kernelSize: 4,
+            strides: 2,
+            activation: 'sigmoid'
+        }));
+        
+        return model;
+    }
+
+    async extractStyle(spriteFrames) {
+        // Preprocess frames
+        const processedFrames = spriteFrames.map(frame => {
+            const tensor = tf.node.bufferToTensor(frame.data, [frame.height, frame.width, 4]);
+            return tensor.expandDims(0);
+        });
+        
+        // Extract style features
+        const styleVectors = [];
+        for (const frame of processedFrames) {
+            const features = this.model.predict(frame, { training: false });
+            styleVectors.push(features);
+        }
+        
+        // Average style vectors
+        const avgStyle = tf.concat(styleVectors).mean(0);
+        return avgStyle;
+    }
+
+    async generateFromStyle(styleVector) {
+        const generated = this.model.predict(styleVector.expandDims(0), { training: false });
+        const buffer = await tf.node.encodePng(generated.squeeze());
+        return buffer;
+    }
+}
+
+// Main execution
+async function main() {
+    console.log('Initializing AI Sprite Analysis System...');
+    
+    // Load bounding box data
+    const boundingBoxesData = [];
+    const jsonFiles = [
+        'Fall Flat_bounding_boxes (1).json',
+        'Outward Slash V4_bounding_boxes.json',
+        'Walking Looping_bounding_boxes.json'
+    ];
+    
+    for (const file of jsonFiles) {
+        try {
+            const data = await fs.readFile(file, 'utf8');
+            const json = JSON.parse(data);
+            boundingBoxesData.push(...json);
+        } catch (error) {
+            console.log(`Warning: Could not load ${file}`);
+        }
+    }
+    
+    // Initialize analyzer
+    const analyzer = new SpriteStyleAnalyzer();
+    
+    // Load sprite sheet
+    const heroImagePath = 'hero.png';
+    
+    try {
+        const frames = await analyzer.loadSpriteData(heroImagePath, boundingBoxesData);
+        
+        if (frames.length > 0) {
+            console.log(`Loaded ${frames.length} sprite frames`);
+            
+            // Extract style features from first 6 frames as requested
+            const framesToAnalyze = frames.slice(0, 6);
+            const styleFeatures = await analyzer.extractStyleFeatures(framesToAnalyze);
+            
+            console.log('\nStyle Analysis Complete:');
+            console.log(`Dominant colors identified: ${styleFeatures.avgColorPalette.length}`);
+            console.log(`Line thickness: ${styleFeatures.lineWeights.meanThickness.toFixed(2)}`);
+            console.log(`Shading style: ${styleFeatures.shadingStyle.style}`);
+            console.log(`Outline complexity: ${styleFeatures.outlineCharacteristics.complexity.toFixed(2)}`);
+            
+            // Initialize generator
+            const generator = new SpriteGenerator(analyzer);
+            
+            // Generate new sprite
+            const newSprite = await generator.generateNewSprite();
+            
+            // Save generated sprite
+            await fs.writeFile('generated_sprite.png', newSprite);
+            console.log('\nGenerated sprite saved as "generated_sprite.png"');
+            
+            // Visualize results
+            await VisualizationTools.showSpriteComparison(framesToAnalyze, newSprite);
+            const colorAnalysis = await VisualizationTools.analyzeColorDistribution(framesToAnalyze);
+            console.log('Color distribution analyzed:', colorAnalysis);
+            
+            // Optional: Use neural network for advanced generation
+            const styleNet = new SpriteStyleNet();
+            console.log('Neural network model initialized for advanced generation.');
+            
+        } else {
+            console.log('No frames loaded from sprite sheet.');
+        }
+        
+    } catch (error) {
+        console.error('Error processing sprite sheet:', error);
+        console.log('Please ensure hero.png is in the correct location');
+    }
+}
+
+// Utility functions
+function setupEnvironment() {
+    console.log('Setting up sprite analysis environment for Node.js...');
+    console.log('\nRequired files:');
+    console.log('1. hero.png - your main sprite sheet');
+    console.log('2. Bounding box JSON files (already provided)');
+    console.log('\nEnsure all files are in the same directory as this script.');
+}
+
+function createVisualizationPipeline() {
+    console.log('\nAI Sprite Analysis Pipeline (Node.js):');
+    console.log('1. Load Sprite Sheet with Sharp');
+    console.log('2. Extract Frames using Bounding Boxes');
+    console.log('3. Analyze Pixel-Level Features with OpenCV');
+    console.log('4. Extract Style Characteristics');
+    console.log('5. Train/Apply TensorFlow.js Neural Network');
+    console.log('6. Generate New Sprites with Canvas');
+}
+
+// Export for module usage
+module.exports = {
+    SpriteStyleAnalyzer,
+    SpriteGenerator,
+    VisualizationTools,
+    SpriteStyleNet
+};
+
+// Run if called directly
+if (require.main === module) {
+    setupEnvironment();
+    createVisualizationPipeline();
+    main().catch(console.error);
+}

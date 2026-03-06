@@ -1,0 +1,525 @@
+
+import Phaser from 'phaser';
+import { v4 as uuidv4 } from 'uuid';
+
+// Simplex Noise (minimal implementation)
+class SimplexNoise {
+  constructor(seed = Math.random()) {
+    this.seed = seed;
+    this.p = this.buildPermutation(seed);
+  }
+
+  buildPermutation(seed) {
+    const p = [];
+    for (let i = 0; i < 256; i++) {
+      p[i] = i;
+    }
+    // Shuffle based on seed
+    for (let i = 255; i > 0; i--) {
+      const j = Math.floor((seed * 12.9898 + i) % 256);
+      [p[i], p[j]] = [p[j], p[i]];
+    }
+    return [...p, ...p]; // Duplicate for easier indexing
+  }
+
+  noise(x, y) {
+    const xi = Math.floor(x) & 255;
+    const yi = Math.floor(y) & 255;
+    
+    const xf = x - Math.floor(x);
+    const yf = y - Math.floor(y);
+    
+    const u = xf * xf * (3 - 2 * xf);
+    const v = yf * yf * (3 - 2 * yf);
+    
+    const n00 = Math.sin(this.p[xi + this.p[yi]] * 12.9898) * 43758.5453;
+    const n10 = Math.sin(this.p[xi + 1 + this.p[yi]] * 12.9898) * 43758.5453;
+    const n01 = Math.sin(this.p[xi + this.p[yi + 1]] * 12.9898) * 43758.5453;
+    const n11 = Math.sin(this.p[xi + 1 + this.p[yi + 1]] * 12.9898) * 43758.5453;
+    
+    const nx0 = n00 + u * (n10 - n00);
+    const nx1 = n01 + u * (n11 - n01);
+    const nxy = nx0 + v * (nx1 - nx0);
+    
+    return nxy - Math.floor(nxy);
+  }
+}
+
+class IslandGenerator {
+  constructor(width = 130, height = 105, seed = null) {
+    this.width = width;
+    this.height = height;
+    this.seed = seed || Math.random();
+    this.noise = new SimplexNoise(this.seed);
+    
+    // Terrain layers
+    this.terrain = Array(height).fill(null).map(() => Array(width).fill(0));
+    this.paths = Array(height).fill(null).map(() => Array(width).fill(0));
+    this.buildableZone = { minX: 60, maxX: 70, minY: 50, maxY: 60 };
+    
+    // Terrain types
+    this.TERRAIN = {
+      WATER: 0,
+      SAND: 1,
+      GRASS: 2,
+      FOREST: 3,
+      ROCK: 4,
+      CLEARED: 5
+    };
+  }
+
+  generate() {
+    console.time('Island Generation');
+    
+    // Step 1: Generate base landmass with Perlin noise
+    this.generateLandmass();
+    
+    // Step 2: Add cove formations
+    this.generateCoves();
+    
+    // Step 3: Generate paths from center outward
+    this.generatePathNetwork();
+    
+    // Step 4: Mark buildable zone
+    this.generateBuildableZone();
+    
+    // Step 5: Smooth terrain transitions
+    this.smoothTerrain();
+    
+    console.timeEnd('Island Generation');
+    this.logGenerationStats();
+    
+    return {
+      terrain: this.terrain,
+      paths: this.paths,
+      seed: this.seed,
+      buildableZone: this.buildableZone
+    };
+  }
+
+  generateLandmass() {
+    const centerX = this.width / 2;
+    const centerY = this.height / 2;
+    const islandRadius = Math.min(centerX, centerY) * 0.7;
+    
+    for (let y = 0; y < this.height; y++) {
+      for (let x = 0; x < this.width; x++) {
+        // Distance from center
+        const dx = x - centerX;
+        const dy = y - centerY;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        
+        // Perlin noise for natural variation
+        const noiseVal1 = this.noise.noise(x * 0.1, y * 0.1);
+        const noiseVal2 = this.noise.noise(x * 0.05, y * 0.05);
+        const combinedNoise = (noiseVal1 * 0.6 + noiseVal2 * 0.4);
+        
+        // Radial falloff with noise influence
+        const falloff = 1 - (distance / islandRadius);
+        const value = falloff + (combinedNoise - 0.5) * 0.4;
+        
+        // Terrain assignment
+        if (value < 0) {
+          this.terrain[y][x] = this.TERRAIN.WATER;
+        } else if (value < 0.15) {
+          this.terrain[y][x] = this.TERRAIN.SAND;
+        } else if (value < 0.4) {
+          this.terrain[y][x] = this.TERRAIN.GRASS;
+        } else {
+          this.terrain[y][x] = this.TERRAIN.FOREST;
+        }
+      }
+    }
+  }
+
+  generateCoves() {
+    const centerX = this.width / 2;
+    const centerY = this.height / 2;
+    
+    // Create 3-5 cove indentations
+    const coveCount = 3 + Math.floor(this.noise.noise(this.seed, this.seed) * 2);
+    
+    for (let c = 0; c < coveCount; c++) {
+      const angle = (Math.PI * 2 * c) / coveCount;
+      const coveX = centerX + Math.cos(angle) * 50;
+      const coveY = centerY + Math.sin(angle) * 40;
+      const coveRadius = 12 + Math.random() * 8;
+      
+      for (let y = 0; y < this.height; y++) {
+        for (let x = 0; x < this.width; x++) {
+          const dx = x - coveX;
+          const dy = y - coveY;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          
+          if (dist < coveRadius) {
+            this.terrain[y][x] = this.TERRAIN.WATER;
+          }
+        }
+      }
+    }
+  }
+
+  generatePathNetwork() {
+    const centerX = this.width / 2;
+    const centerY = this.height / 2;
+    
+    // Create 6-8 paths radiating from center to coast
+    const pathCount = 6 + Math.floor(Math.random() * 2);
+    
+    for (let p = 0; p < pathCount; p++) {
+      const angle = (Math.PI * 2 * p) / pathCount;
+      const endX = centerX + Math.cos(angle) * 60;
+      const endY = centerY + Math.sin(angle) * 50;
+      
+      this.drawPath(centerX, centerY, endX, endY);
+    }
+  }
+
+  drawPath(x1, y1, x2, y2, width = 2) {
+    const steps = Math.max(Math.abs(x2 - x1), Math.abs(y2 - y1)) * 2;
+    
+    for (let step = 0; step <= steps; step++) {
+      const t = steps > 0 ? step / steps : 0;
+      const x = Math.round(x1 + (x2 - x1) * t);
+      const y = Math.round(y1 + (y2 - y1) * t);
+      
+      // Draw path with width
+      for (let dx = -width; dx <= width; dx++) {
+        for (let dy = -width; dy <= width; dy++) {
+          const px = x + dx;
+          const py = y + dy;
+          
+          if (px >= 0 && px < this.width && py >= 0 && py < this.height) {
+            // Don't overwrite water
+            if (this.terrain[py][px] !== this.TERRAIN.WATER) {
+              this.paths[py][px] = 1;
+              if (this.terrain[py][px] !== this.TERRAIN.CLEARED) {
+                this.terrain[py][px] = this.TERRAIN.GRASS;
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  generateBuildableZone() {
+    for (let y = this.buildableZone.minY; y < this.buildableZone.maxY; y++) {
+      for (let x = this.buildableZone.minX; x < this.buildableZone.maxX; x++) {
+        this.terrain[y][x] = this.TERRAIN.CLEARED;
+      }
+    }
+  }
+
+  smoothTerrain() {
+    // Simple smoothing: convert isolated tiles to neighbors
+    const terrain = this.terrain;
+    
+    for (let y = 1; y < this.height - 1; y++) {
+      for (let x = 1; x < this.width - 1; x++) {
+        if (this.terrain[y][x] === this.TERRAIN.ROCK) {
+          const neighbors = [
+            terrain[y-1][x], terrain[y+1][x],
+            terrain[y][x-1], terrain[y][x+1]
+          ];
+          const mostCommon = this.getMostCommon(neighbors);
+          if (mostCommon !== this.TERRAIN.WATER) {
+            terrain[y][x] = mostCommon;
+          }
+        }
+      }
+    }
+  }
+
+  getMostCommon(arr) {
+    const counts = {};
+    arr.forEach(val => {
+      counts[val] = (counts[val] || 0) + 1;
+    });
+    return Object.keys(counts).reduce((a, b) => 
+      counts[a] > counts[b] ? a : b
+    );
+  }
+
+  logGenerationStats() {
+    let stats = {};
+    Object.entries(this.TERRAIN).forEach(([name, val]) => {
+      stats[name] = 0;
+    });
+    
+    for (let y = 0; y < this.height; y++) {
+      for (let x = 0; x < this.width; x++) {
+        const terrain = this.terrain[y][x];
+        Object.entries(this.TERRAIN).forEach(([name, val]) => {
+          if (terrain === val) stats[name]++;
+        });
+      }
+    }
+    
+    console.log('═════════════════════════════════');
+    console.log('  ISLAND GENERATION STATS');
+    console.log('═════════════════════════════════');
+    console.log(`Seed: ${this.seed.toFixed(6)}`);
+    console.log(`Dimensions: ${this.width}x${this.height} (${this.width * this.height} cells)`);
+    Object.entries(stats).forEach(([name, count]) => {
+      const percent = ((count / (this.width * this.height)) * 100).toFixed(1);
+      console.log(`${name}: ${count} (${percent}%)`);
+    });
+    console.log('═════════════════════════════════\n');
+  }
+}
+
+class RTSIslandScene extends Phaser.Scene {
+  constructor() {
+    super('RTSIslandScene');
+    
+    // Island Configuration
+    this.ISLAND_WIDTH = 130;
+    this.ISLAND_HEIGHT = 105;
+    this.GRID_SIZE = 32;
+    
+    // World dimensions
+    this.WORLD_WIDTH = this.ISLAND_WIDTH * this.GRID_SIZE;
+    this.WORLD_HEIGHT = this.ISLAND_HEIGHT * this.GRID_SIZE;
+    
+    // Camera
+    this.CAMERA_ZOOM_MIN = 0.5;
+    this.CAMERA_ZOOM_MAX = 3;
+    this.CAMERA_ZOOM_SPEED = 0.1;
+    
+    // RTS
+    this.buildings = [];
+    this.selectedBuilding = null;
+    this.buildingPreview = null;
+    
+    // Terrain colors
+    this.COLORS = {
+      0: 0x1a4d7a, // WATER
+      1: 0xc2b280, // SAND
+      2: 0x5fa354, // GRASS
+      3: 0x2d5016, // FOREST
+      4: 0x666666, // ROCK
+      5: 0x90EE90  // CLEARED
+    };
+  }
+
+  preload() {}
+
+  create() {
+    // Generate island
+    const generator = new IslandGenerator(this.ISLAND_WIDTH, this.ISLAND_HEIGHT);
+    this.islandData = generator.generate();
+    
+    // Create terrain tilemap
+    this.createTerrainDisplay();
+    
+    // Setup camera
+    const centerWorldX = (this.ISLAND_WIDTH / 2) * this.GRID_SIZE;
+    const centerWorldY = (this.ISLAND_HEIGHT / 2) * this.GRID_SIZE;
+    this.cameras.main.centerOn(centerWorldX, centerWorldY);
+    this.cameras.main.setZoom(1);
+    this.cameras.main.setBounds(0, 0, this.WORLD_WIDTH, this.WORLD_HEIGHT);
+    
+    // Input
+    this.setupInput();
+    
+    // HUD
+    this.createHUD();
+  }
+
+  createTerrainDisplay() {
+    const graphics = this.make.graphics({ x: 0, y: 0, add: false });
+    
+    for (let y = 0; y < this.ISLAND_HEIGHT; y++) {
+      for (let x = 0; x < this.ISLAND_WIDTH; x++) {
+        const terrainType = this.islandData.terrain[y][x];
+        const color = this.COLORS[terrainType];
+        
+        const worldX = x * this.GRID_SIZE;
+        const worldY = y * this.GRID_SIZE;
+        
+        graphics.fillStyle(color, 1);
+        graphics.fillRect(worldX, worldY, this.GRID_SIZE, this.GRID_SIZE);
+        
+        // Draw grid on cleared zone only
+        if (terrainType === 5) {
+          graphics.lineStyle(1, 0x00aa00, 0.4);
+          graphics.strokeRect(worldX, worldY, this.GRID_SIZE, this.GRID_SIZE);
+        }
+      }
+    }
+    
+    graphics.generateTexture('islandTexture', this.WORLD_WIDTH, this.WORLD_HEIGHT);
+    graphics.destroy();
+    
+    this.add.image(0, 0, 'islandTexture').setOrigin(0).setDepth(0);
+  }
+
+  setupInput() {
+    this.input.on('wheel', (pointer, gameObjects, deltaY) => {
+      const camera = this.cameras.main;
+      const direction = deltaY > 0 ? -1 : 1;
+      const newZoom = Phaser.Math.Clamp(
+        camera.zoom + (direction * this.CAMERA_ZOOM_SPEED),
+        this.CAMERA_ZOOM_MIN,
+        this.CAMERA_ZOOM_MAX
+      );
+      camera.setZoom(newZoom);
+    });
+
+    this.input.on('pointermove', (pointer) => {
+      if (pointer.middleButtonDown()) {
+        const camera = this.cameras.main;
+        const dx = pointer.prevPosition.x - pointer.position.x;
+        const dy = pointer.prevPosition.y - pointer.position.y;
+        camera.scrollX += dx / camera.zoom;
+        camera.scrollY += dy / camera.zoom;
+      }
+      this.updateBuildingPreview(pointer);
+    });
+
+    this.input.on('pointerdown', (pointer) => {
+      if (pointer.leftButtonDown()) {
+        this.placeBuildingAtPointer(pointer);
+      }
+    });
+
+    this.input.keyboard.on('keydown-R', () => this.resetCamera());
+    this.input.keyboard.on('keydown-C', () => this.clearAllBuildings());
+    this.input.keyboard.on('keydown-G', () => this.toggleGridVisibility());
+  }
+
+  screenToWorld(screenX, screenY) {
+    const camera = this.cameras.main;
+    return {
+      x: (screenX / camera.zoom) + camera.scrollX,
+      y: (screenY / camera.zoom) + camera.scrollY
+    };
+  }
+
+  snapToGrid(worldX, worldY) {
+    return {
+      x: Math.round(worldX / this.GRID_SIZE) * this.GRID_SIZE,
+      y: Math.round(worldY / this.GRID_SIZE) * this.GRID_SIZE
+    };
+  }
+
+  updateBuildingPreview(pointer) {
+    if (!this.selectedBuilding) return;
+
+    const worldCoords = this.screenToWorld(pointer.x, pointer.y);
+    const snappedCoords = this.snapToGrid(worldCoords.x, worldCoords.y);
+
+    if (!this.buildingPreview) {
+      this.buildingPreview = this.add.rectangle(
+        snappedCoords.x, snappedCoords.y,
+        this.GRID_SIZE - 2, this.GRID_SIZE - 2,
+        0xffff00, 0.4
+      ).setDepth(50);
+    }
+
+    this.buildingPreview.setPosition(snappedCoords.x, snappedCoords.y);
+
+    const gridX = snappedCoords.x / this.GRID_SIZE;
+    const gridY = snappedCoords.y / this.GRID_SIZE;
+    
+    const isValid = this.isValidPlacement(gridX, gridY);
+    this.buildingPreview.setFillStyle(isValid ? 0x00ff00 : 0xff0000, 0.4);
+  }
+
+  isValidPlacement(gridX, gridY) {
+    if (gridX < 0 || gridX >= this.ISLAND_WIDTH || gridY < 0 || gridY >= this.ISLAND_HEIGHT) {
+      return false;
+    }
+    
+    const terrain = this.islandData.terrain[gridY][gridX];
+    return terrain === 5; // Only cleared zone
+  }
+
+  placeBuildingAtPointer(pointer) {
+    if (!this.selectedBuilding) return;
+
+    const worldCoords = this.screenToWorld(pointer.x, pointer.y);
+    const snappedCoords = this.snapToGrid(worldCoords.x, worldCoords.y);
+    const gridX = snappedCoords.x / this.GRID_SIZE;
+    const gridY = snappedCoords.y / this.GRID_SIZE;
+
+    if (this.isValidPlacement(gridX, gridY)) {
+      const buildingId = uuidv4();
+      const colors = { 'house': 0x0088ff, 'tower': 0xff3333, 'farm': 0xffdd00 };
+      
+      const building = this.add.rectangle(
+        snappedCoords.x + this.GRID_SIZE / 2,
+        snappedCoords.y + this.GRID_SIZE / 2,
+        this.GRID_SIZE - 4, this.GRID_SIZE - 4,
+        colors[this.selectedBuilding] || 0xffffff,
+        0.9
+      ).setDepth(15);
+
+      this.buildings.push(building);
+      console.log(`✓ ${this.selectedBuilding} placed at (${gridX}, ${gridY}) - UUID: ${buildingId}`);
+    }
+  }
+
+  createHUD() {
+    this.hudText = this.add.text(12, 12, '', {
+      fontSize: '12px',
+      fill: '#ffffff',
+      backgroundColor: '#000000dd',
+      padding: { x: 10, y: 8 },
+      fontFamily: 'monospace'
+    }).setScrollFactor(0).setDepth(100);
+
+    this.events.on('update', () => {
+      const camera = this.cameras.main;
+      this.hudText.setText([
+        `═ ISLAND GENERATOR ═`,
+        `Seed: ${this.islandData.seed.toFixed(6)}`,
+        `Zoom: ${camera.zoom.toFixed(2)}x`,
+        `Buildings: ${this.buildings.length}`,
+        ``,
+        `CONTROLS:`,
+        `1/2/3=Select | Click=Place`,
+        `Wheel=Zoom | Middle=Pan`,
+        `R=Reset | C=Clear | G=Grid`
+      ]);
+    });
+  }
+
+  resetCamera() {
+    const centerWorldX = (this.ISLAND_WIDTH / 2) * this.GRID_SIZE;
+    const centerWorldY = (this.ISLAND_HEIGHT / 2) * this.GRID_SIZE;
+    this.cameras.main.centerOn(centerWorldX, centerWorldY);
+    this.cameras.main.setZoom(1);
+  }
+
+  clearAllBuildings() {
+    this.buildings.forEach(b => b.destroy());
+    this.buildings = [];
+  }
+
+  toggleGridVisibility() {
+    console.log('Grid visibility toggled');
+  }
+
+  update() {
+    if (this.input.keyboard.checkDown(Phaser.Input.Keyboard.Keys.ONE)) {
+      this.selectedBuilding = 'house';
+    } else if (this.input.keyboard.checkDown(Phaser.Input.Keyboard.Keys.TWO)) {
+      this.selectedBuilding = 'tower';
+    } else if (this.input.keyboard.checkDown(Phaser.Input.Keyboard.Keys.THREE)) {
+      this.selectedBuilding = 'farm';
+    }
+  }
+}
+
+const config = {
+  type: Phaser.AUTO,
+  width: 1280,
+  height: 720,
+  physics: { default: 'arcade', arcade: { debug: false } },
+  scene: RTSIslandScene,
+  render: { pixelArt: false, antialias: true }
+};
+
+const game = new Phaser.Game(config);

@@ -1,0 +1,1193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Grudge of the Abyss</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #000;
+            overflow: hidden;
+            font-family: 'Arial', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        #game-container {
+            position: relative;
+            width: 800px;
+            height: 800px;
+            background: #111;
+            border: 2px solid #444;
+        }
+        #game-canvas {
+            width: 100%;
+            height: 100%;
+            display: none;
+            background: url('https://i.imgur.com/sZEdhnc.png') no-repeat center/cover;
+        }
+        #ui-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+        #health-bar, #shards, #floor-display {
+            position: absolute;
+            background: #222;
+            padding: 5px;
+            border: 1px solid #fff;
+            color: #fff;
+        }
+        #health-bar { bottom: 10px; left: 10px; }
+        #shards { top: 10px; right: 10px; }
+        #floor-display { top: 10px; left: 10px; }
+        #character-menu {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 700px;
+            height: 500px;
+            background: #1a1a1a;
+            border: 2px solid #666;
+            color: #fff;
+            z-index: 10;
+            pointer-events: auto;
+            display: flex;
+        }
+        #character-menu .column {
+            flex: 1;
+            padding: 10px;
+            overflow-y: auto;
+        }
+        #character-middle {
+            text-align: center;
+            border-left: 1px solid #666;
+            border-right: 1px solid #666;
+        }
+        #character-img {
+            animation: bob 2s infinite ease-in-out;
+        }
+        @keyframes bob {
+            0% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+            100% { transform: translateY(0); }
+        }
+        .item-slot, .crafting-recipe {
+            background: #333;
+            margin: 5px 0;
+            padding: 10px;
+            border: 1px solid #555;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        .item-slot:hover, .crafting-recipe:hover {
+            background: #555;
+        }
+        #crafting-tabs {
+            display: flex;
+            border-bottom: 2px solid #666;
+            background: #222;
+        }
+        .crafting-tab {
+            flex: 1;
+            padding: 10px;
+            text-align: center;
+            cursor: pointer;
+            background: #333;
+            border-right: 1px solid #666;
+            transition: background 0.3s;
+        }
+        .crafting-tab:last-child {
+            border-right: none;
+        }
+        .crafting-tab:hover {
+            background: #444;
+        }
+        .crafting-tab.active {
+            background: #666;
+            color: #ffcc00;
+        }
+        #crafting-content > div {
+            display: none;
+            padding: 10px;
+            background: #2a2a2a;
+        }
+        #crafting-content > div.active {
+            display: block;
+        }
+        #popup, #hero-info {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.8);
+            color: #fff;
+            padding: 10px;
+            border: 1px solid #fff;
+            pointer-events: none;
+            z-index: 5;
+            display: none;
+        }
+        #hero-info {
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            z-index: 15;
+        }
+        #initial-hero-selection {
+            position: absolute;
+            width: 800px;
+            height: 800px;
+            background: url('https://i.imgur.com/sZEdhnc.png') no-repeat center/cover;
+            color: #fff;
+            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            z-index: 20;
+        }
+        #hero-options {
+            display: flex;
+            justify-content: space-around;
+            width: 100%;
+            max-width: 700px;
+            margin-bottom: 20px;
+        }
+        .hero-choice {
+            background: rgba(0, 0, 0, 0.7);
+            padding: 15px;
+            border: 2px solid #666;
+            width: 200px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        .hero-choice:hover {
+            background: rgba(0, 0, 0, 0.9);
+        }
+        .hero-choice img {
+            width: 80px;
+            height: 80px;
+        }
+        .hero-choice p {
+            font-size: 14px;
+            margin: 5px 0;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <canvas id="game-canvas" width="800" height="800"></canvas>
+        <div id="ui-overlay">
+            <div id="health-bar">Health: 100/100</div>
+            <div id="shards">Grudge Shards: 0</div>
+            <div id="floor-display">Floor 1</div>
+            <div id="character-menu">
+                <div id="character-left" class="column">
+                    <h3>Inventory</h3>
+                    <div id="inventory-list"></div>
+                </div>
+                <div id="character-middle" class="column">
+                    <h3>Equipped Items</h3>
+                    <div id="equip-weapon" class="item-slot">Ranged Weapon: None</div>
+                    <div id="equip-melee" class="item-slot">Melee Weapon: None</div>
+                    <div id="equip-armor" class="item-slot">Armor: None</div>
+                    <div id="equip-feet" class="item-slot">Feet: None</div>
+                    <img id="character-img" width="100" height="100" alt="Character portrait">
+                    <div id="character-stats"></div>
+                </div>
+                <div id="character-right" class="column">
+                    <div id="crafting-tabs">
+                        <div class="crafting-tab active" data-tab="crafting">Crafting</div>
+                    </div>
+                    <div id="crafting-content">
+                        <div id="crafting-crafting" class="active">
+                            <h4>Weapons</h4>
+                            <div id="crafting-weapons"></div>
+                            <h4>Armor</h4>
+                            <div id="crafting-armor"></div>
+                            <h4>Upgrades</h4>
+                            <div id="crafting-upgrades"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div id="popup"></div>
+            <div id="hero-info"></div>
+        </div>
+        <div id="initial-hero-selection">
+            <h1>Choose Your Hero</h1>
+            <div id="hero-options"></div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('game-canvas');
+        const ctx = canvas.getContext('2d');
+        const TILE_SIZE = 20;
+        const ROOM_SIZE = 40;
+        const PLAYER_PROJECTILE_SPEED = 300;
+        const ENEMY_PROJECTILE_SPEED = PLAYER_PROJECTILE_SPEED * 0.8;
+
+        // Background Shading Overlays
+        const backgroundShades = {
+            battle: 'rgba(0, 0, 255, 0.3)',
+            treasure: 'rgba(0, 255, 0, 0.3)',
+            resource: 'rgba(255, 255, 0, 0.3)',
+            boss: 'rgba(255, 0, 0, 0.3)'
+        };
+
+        // Player Classes with Special Abilities on 'E'
+        const classes = {
+            Paladin: { 
+                stats: { health: 120, damage: 10, speed: 3, defense: 5 }, 
+                abilities: { 
+                    left: { type: 'melee', damage: 10, effect: 'purple_swipe', cooldown: 0.5 }, 
+                    right: { type: 'ranged', damage: 8, effect: 'laser', impact: 'explosion1', cooldown: 0.3 }, 
+                    q: { type: 'heal', amount: 20, cooldown: 5, desc: 'Heal 20 HP' }, 
+                    r: { type: 'shield', amount: 30, duration: 2, cooldown: 10, desc: 'Gain 30 temporary HP for 2s' },
+                    e: { type: 'holy_strike', damage: 25, cooldown: 8, desc: 'Holy Strike: 25 AOE damage' }
+                }, 
+                image: 'https://i.imgur.com/Wn84v6I.png' 
+            },
+            Warrior: { 
+                stats: { health: 100, damage: 12, speed: 3.5, defense: 3 }, 
+                abilities: { 
+                    left: { type: 'melee', damage: 12, effect: 'purple_swipe', cooldown: 0.4 }, 
+                    right: { type: 'ranged', damage: 10, effect: 'flamethrower', cooldown: 0.4 }, 
+                    q: { type: 'aoe', damage: 15, radius: 100, cooldown: 6, desc: 'Deal 15 damage in 100px radius' }, 
+                    r: { type: 'boost', amount: 5, duration: 3, cooldown: 12, desc: 'Boost damage by 5 for 3s' },
+                    e: { type: 'berserk', duration: 5, cooldown: 15, desc: 'Berserk: +50% speed/damage for 5s' }
+                }, 
+                image: 'https://i.imgur.com/klAa6aX.png' 
+            },
+            Rogue: { 
+                stats: { health: 80, damage: 15, speed: 4, defense: 2 }, 
+                abilities: { 
+                    left: { type: 'ranged', damage: 10, effect: 'bullet_trail', impact: 'explosion3', cooldown: 0.3 }, 
+                    right: { type: 'melee', damage: 15, effect: 'arcane', cooldown: 0.5 }, 
+                    q: { type: 'dash', distance: 100, cooldown: 4, desc: 'Dash 100px towards mouse' }, 
+                    r: { type: 'stealth', duration: 3, cooldown: 10, desc: 'Become invincible for 3s' },
+                    e: { type: 'shadow_strike', damage: 20, cooldown: 6, desc: 'Shadow Strike: 20 damage + teleport' }
+                }, 
+                image: 'https://i.imgur.com/zMFckYB.png' 
+            }
+        };
+
+        // Game State
+        let player = null;
+        let enemies = [];
+        let projectiles = [];
+        let effects = [];
+        let currentRoom = null;
+        let floor = 1;
+        let keys = {};
+        let mouse = { x: 400, y: 400, left: false, right: false };
+        let menuOpen = false;
+        let lastTime = 0;
+        let gameStarted = false;
+        let dodgeSpin = 0;
+        let dodgeTimer = 0;
+
+        // Load Images
+        const images = {
+            player: new Image(),
+            enemies: { dwarf: new Image(), scourge: new Image(), darkelf: new Image(), archer: new Image(), yorda: new Image(), redskullmagic: new Image(), greenskullmagix: new Image() },
+            effects: { explosion1: new Image(), explosion2: new Image(), explosion3: new Image(), fire_swirl: new Image(), purple_swipe: new Image(), arcane: new Image(), mystic_green: new Image(), bullet_trail: new Image(), laser: new Image(), flamethrower: new Image(), energy_blast: new Image(), plasma_wave: new Image(), burst_shot: new Image(), mystic_beam: new Image(), inferno_blast: new Image() }
+        };
+        images.enemies.dwarf.src = 'https://i.imgur.com/Wn84v6I.png';
+        images.enemies.scourge.src = 'https://i.imgur.com/NFjvmxO.png';
+        images.enemies.darkelf.src = 'https://i.imgur.com/Y67jKrU.png';
+        images.enemies.archer.src = 'https://i.imgur.com/Enu1T7Y.png';
+        images.enemies.yorda.src = 'https://i.imgur.com/UvZsOLQ.png';
+        images.enemies.redskullmagic.src = 'https://i.imgur.com/KjBYZ7L.png';
+        images.enemies.greenskullmagix.src = 'https://i.imgur.com/dWpBsru.png';
+        images.effects.explosion1.src = 'https://i.imgur.com/lAUM1L7.png';
+        images.effects.explosion2.src = 'https://i.imgur.com/vUfG5PJ.png';
+        images.effects.explosion3.src = 'https://i.imgur.com/vUfG5PJ.png';
+        images.effects.fire_swirl.src = 'https://i.imgur.com/dramBbf.png';
+        images.effects.purple_swipe.src = 'https://i.imgur.com/X4uVLBC.png';
+        images.effects.arcane.src = 'https://i.imgur.com/dU3QrVi.png';
+        images.effects.mystic_green.src = 'https://i.imgur.com/ra2S7o0.png';
+        images.effects.bullet_trail.src = 'https://i.imgur.com/lAUM1L7.png';
+        images.effects.laser.src = 'https://i.imgur.com/ra2S7o0.png';
+        images.effects.flamethrower.src = 'https://i.imgur.com/dramBbf.png';
+        images.effects.energy_blast.src = 'https://i.imgur.com/KfE0K3N.png';
+        images.effects.plasma_wave.src = 'https://i.imgur.com/1iicyne.png';
+        images.effects.burst_shot.src = 'https://i.imgur.com/vUfG5PJ.png';
+        images.effects.mystic_beam.src = 'https://i.imgur.com/ra2S7o0.png';
+        images.effects.inferno_blast.src = 'https://i.imgur.com/dramBbf.png';
+
+        // Crafting Recipes with Clear Slot Definitions
+        const recipes = {
+            weapons: {
+                'Laser Rifle': { essence: 10, relics: 4, data: { name: 'Laser Rifle', slot: 'weapon', damage: 12, effect: 'laser_shot', impact: 'explosion1', special: 'plasma_wave', specialDamage: 25, specialCooldown: 6 } },
+                'Flamethrower': { essence: 12, relics: 5, data: { name: 'Flamethrower', slot: 'weapon', damage: 18, effect: 'flamethrower', special: 'inferno_blast', specialDamage: 30, specialCooldown: 8 } },
+                'Plasma Cannon': { essence: 18, relics: 8, data: { name: 'Plasma Cannon', slot: 'weapon', damage: 20, effect: 'laser_shot', impact: 'burst_shot', special: 'multi_shot', specialDamage: 15, specialCooldown: 5, shots: 3 } },
+                'Shock Pistol': { essence: 9, relics: 3, data: { name: 'Shock Pistol', slot: 'weapon', damage: 15, effect: 'bullet_trail', impact: 'explosion2', special: 'plasma_wave', specialDamage: 20, specialCooldown: 5 } },
+                'Grudge Blade': { essence: 5, relics: 2, data: { name: 'Grudge Blade', slot: 'melee', damage: 15, effect: 'purple_swipe', special: 'energy_blast', specialDamage: 20, specialCooldown: 5 } },
+                'Soul Reaver': { essence: 15, relics: 7, data: { name: 'Soul Reaver', slot: 'melee', damage: 25, effect: 'arcane', special: 'mystic_beam', specialDamage: 35, specialCooldown: 7 } },
+                'Poison Dagger': { essence: 7, relics: 4, data: { name: 'Poison Dagger', slot: 'melee', damage: 12, effect: 'mystic_green', poison: 5, special: 'energy_blast', specialDamage: 18, specialCooldown: 4 } },
+                'Fire Axe': { essence: 14, relics: 6, data: { name: 'Fire Axe', slot: 'melee', damage: 22, effect: 'fire_swirl', lifesteal: 5, special: 'inferno_blast', specialDamage: 28, specialCooldown: 6 } }
+            },
+            armor: {
+                'Spite Armor': { essence: 6, relics: 3, data: { name: 'Spite Armor', slot: 'armor', defense: 10 } },
+                'Void Cloak': { essence: 12, relics: 6, data: { name: 'Void Cloak', slot: 'armor', defense: 8, speed: 0.5 } },
+                'Fire Guard': { essence: 13, relics: 5, data: { name: 'Fire Guard', slot: 'armor', defense: 15, fireResist: 10 } },
+                'Shadow Mail': { essence: 14, relics: 6, data: { name: 'Shadow Mail', slot: 'armor', defense: 12, stealth: 1 } },
+                'Soul Barrier': { essence: 20, relics: 10, data: { name: 'Soul Barrier', slot: 'armor', defense: 25, shield: 20 } }
+            },
+            feet: {
+                'Iron Boots': { essence: 8, relics: 4, data: { name: 'Iron Boots', slot: 'feet', speed: 0.5, defense: 5 } },
+                'Swift Greaves': { essence: 10, relics: 5, data: { name: 'Swift Greaves', slot: 'feet', speed: 1, defense: 3 } },
+                'Frost Boots': { essence: 11, relics: 5, data: { name: 'Frost Boots', slot: 'feet', speed: 0.7, slowResist: 0.5 } }
+            }
+        };
+
+        // Initial Hero Selection UI Setup
+        const heroOptions = document.getElementById('hero-options');
+        Object.entries(classes).forEach(([name, data]) => {
+            const div = document.createElement('div');
+            div.className = 'hero-choice';
+            div.innerHTML = `
+                <img src="${data.image}" alt="${name}">
+                <h2>${name}</h2>
+                <p>Health: ${data.stats.health} | Damage: ${data.stats.damage}</p>
+                <p>Speed: ${data.stats.speed} | Defense: ${data.stats.defense}</p>
+                <p>Q: ${data.abilities.q.desc} (CD: ${data.abilities.q.cooldown}s)</p>
+                <p>R: ${data.abilities.r.desc} (CD: ${data.abilities.r.cooldown}s)</p>
+                <p>E: ${data.abilities.e.desc} (CD: ${data.abilities.e.cooldown}s)</p>
+            `;
+            div.addEventListener('click', () => selectInitialHero(name));
+            heroOptions.appendChild(div);
+        });
+
+        function selectInitialHero(className) {
+            player = {
+                class: className,
+                x: ROOM_SIZE / 2 * TILE_SIZE,
+                y: (ROOM_SIZE - 2) * TILE_SIZE + TILE_SIZE / 2,
+                speed: classes[className].stats.speed,
+                baseSpeed: classes[className].stats.speed,
+                health: classes[className].stats.health,
+                maxHealth: classes[className].stats.health,
+                damage: classes[className].stats.damage,
+                baseDamage: classes[className].stats.damage,
+                defense: classes[className].stats.defense,
+                facingLeft: false,
+                invincibility: 0,
+                dodging: false,
+                dodgeTimer: 0,
+                dodgeDx: 0,
+                dodgeDy: 0,
+                level: 1,
+                exp: 0,
+                expToNext: 100,
+                inventory: { shards: 0, essence: 0, relics: 0 },
+                equipment: { weapon: null, melee: null, armor: null, feet: null },
+                items: [],
+                leftCooldown: 0,
+                rightCooldown: 0,
+                qCooldown: 0,
+                rCooldown: 0,
+                eCooldown: 0,
+                specialCooldown: 0,
+                berserkTimer: 0
+            };
+            images.player.src = classes[className].image;
+            document.getElementById('initial-hero-selection').style.display = 'none';
+            canvas.style.display = 'block';
+            gameStarted = true;
+            currentRoom = generateRoom();
+            enemies = currentRoom.enemies;
+            updateBackground();
+            showHeroInfo(className);
+        }
+
+        function showHeroInfo(className) {
+            const hero = classes[className];
+            const info = document.getElementById('hero-info');
+            info.innerHTML = `
+                <h2>${className}</h2>
+                <p>Health: ${hero.stats.health} | Damage: ${hero.stats.damage}</p>
+                <p>Speed: ${hero.stats.speed} | Defense: ${hero.stats.defense}</p>
+                <p>Left Click: ${hero.abilities.left.type === 'melee' ? 'Melee' : 'Ranged'} (${hero.abilities.left.damage} dmg)</p>
+                <p>Right Click: ${hero.abilities.right.type === 'melee' ? 'Melee' : 'Ranged'} (${hero.abilities.right.damage} dmg)</p>
+                <p>Q: ${hero.abilities.q.desc} (CD: ${hero.abilities.q.cooldown}s)</p>
+                <p>R: ${hero.abilities.r.desc} (CD: ${hero.abilities.r.cooldown}s)</p>
+                <p>E: ${hero.abilities.e.desc} (CD: ${hero.abilities.e.cooldown}s)</p>
+            `;
+            info.style.display = 'block';
+            setTimeout(() => info.style.display = 'none', 5000); // Hide after 5 seconds
+        }
+
+        function updateBackground() {
+            const shade = backgroundShades[currentRoom.type];
+            canvas.style.background = `url('https://i.imgur.com/sZEdhnc.png') no-repeat center/cover, ${shade}`;
+        }
+
+        // Room Generation with Explicit Boss Levels
+        function generateRoom() {
+            const isBossLevel = floor % 5 === 0;
+            const type = isBossLevel ? 'boss' : ['battle', 'treasure', 'resource'][Math.floor(Math.random() * 3)];
+            const tiles = Array(ROOM_SIZE).fill().map(() => Array(ROOM_SIZE).fill(0));
+            
+            for (let y = 0; y < ROOM_SIZE; y++) {
+                for (let x = 0; x < ROOM_SIZE; x++) {
+                    if (x === 0 || x === ROOM_SIZE - 1 || y === 0 || y === ROOM_SIZE - 1) tiles[y][x] = 1;
+                }
+            }
+
+            const circleCount = Math.floor(Math.random() * 7) + 4;
+            const largeCircleCount = Math.floor(Math.random() * 2) + 1;
+            for (let i = 0; i < circleCount; i++) {
+                const x = Math.floor(Math.random() * (ROOM_SIZE - 6)) + 3;
+                const y = Math.floor(Math.random() * (ROOM_SIZE - 6)) + 3;
+                const isLarge = i < largeCircleCount;
+                const radius = isLarge ? 2 : 1;
+                for (let dy = -radius; dy <= radius; dy++) {
+                    for (let dx = -radius; dx <= radius; dx++) {
+                        if (x + dx > 0 && x + dx < ROOM_SIZE - 1 && y + dy > 0 && y + dy < ROOM_SIZE - 1 && 
+                            Math.sqrt(dx * dx + dy * dy) <= radius) {
+                            tiles[y + dy][x + dx] = 3;
+                        }
+                    }
+                }
+            }
+
+            const boxCount = Math.floor(Math.random() * 8) + 5;
+            for (let i = 0; i < boxCount; i++) {
+                const x = Math.floor(Math.random() * (ROOM_SIZE - 8)) + 4;
+                const y = Math.floor(Math.random() * (ROOM_SIZE - 8)) + 4;
+                const width = 2;
+                const height = 2;
+                for (let dy = 0; dy < height; dy++) {
+                    for (let dx = 0; dx < width; dx++) {
+                        if (x + dx > 0 && x + dx < ROOM_SIZE - 1 && y + dy > 0 && y + dy < ROOM_SIZE - 1) {
+                            tiles[y + dy][x + dx] = 2;
+                        }
+                    }
+                }
+            }
+
+            tiles[0][ROOM_SIZE / 2] = 4; // North
+            tiles[ROOM_SIZE - 1][ROOM_SIZE / 2] = 4; // South
+            tiles[ROOM_SIZE / 2][0] = 4; // West
+            tiles[ROOM_SIZE / 2][ROOM_SIZE - 1] = 4; // East
+
+            const room = { type, tiles, enemies: [], items: [], cleared: false };
+            if (type === 'battle') {
+                const enemyCount = 2 + Math.floor(Math.random() * 6);
+                for (let i = 0; i < enemyCount; i++) spawnEnemy(room);
+            } else if (type === 'treasure') {
+                room.items.push(generateItem(Math.random() * 700 + 50, Math.random() * 700 + 50));
+            } else if (type === 'resource') {
+                for (let i = 0; i < 3; i++) {
+                    room.items.push({ type: Math.random() < 0.5 ? 'essence' : 'relics', x: Math.random() * 700 + 50, y: Math.random() * 700 + 50, amount: 5 });
+                }
+            } else if (type === 'boss') {
+                room.enemies.push({ 
+                    type: 'yorda', 
+                    x: 400, 
+                    y: 400, 
+                    health: 200 + floor * 50, 
+                    maxHealth: 200 + floor * 50, 
+                    speed: 1.5, 
+                    damage: 15, 
+                    behavior: 'ranged', 
+                    gun: 'inferno_blast', 
+                    shootCooldown: 1.5, 
+                    essence: 3, 
+                    relics: 2,
+                    isVillain: true,
+                    sizeMultiplier: 1
+                });
+                room.enemies.push({ 
+                    type: 'redskullmagic', 
+                    x: 350, 
+                    y: 450, 
+                    health: 100 + floor * 25, 
+                    maxHealth: 100 + floor * 25, 
+                    speed: 1, 
+                    damage: 10, 
+                    behavior: 'ranged', 
+                    guns: ['inferno_blast', 'mystic_beam'], 
+                    shootCooldown: 1.5, 
+                    essence: 2, 
+                    relics: 1,
+                    isVillain: true,
+                    sizeMultiplier: 4
+                });
+            }
+            return room;
+        }
+
+        function spawnEnemy(room) {
+            const enemyTypes = [
+                { type: 'dwarf', health: 30 + floor * 10, speed: 2, damage: 5 + floor * 2, behavior: 'ranged', gun: 'bullet_trail', shootCooldown: 1, essence: 1, relics: 0 },
+                { type: 'scourge', health: 25 + floor * 8, speed: 1.5, damage: 8 + floor * 2, behavior: 'ranged', gun: 'laser_shot', shootCooldown: 1.2, essence: 2, relics: 1 },
+                { type: 'darkelf', health: 20 + floor * 5, speed: 1, damage: 3 + floor, behavior: 'ranged', gun: 'mystic_beam', shootCooldown: 1.5, essence: 1, relics: 2 },
+                { type: 'archer', health: 25 + floor * 7, speed: 1.8, damage: 7 + floor * 2, behavior: 'ranged', gun: 'burst_shot', shootCooldown: 1.3, essence: 2, relics: 0 }
+            ];
+            const enemyData = enemyTypes[Math.floor(Math.random() * enemyTypes.length)];
+            const enemy = {
+                ...enemyData,
+                x: Math.random() * 700 + 50,
+                y: Math.random() * 700 + 50,
+                maxHealth: enemyData.health,
+                shootCooldown: enemyData.shootCooldown || 0,
+                sizeMultiplier: 1
+            };
+            room.enemies.push(enemy);
+        }
+
+        function generateItem(x, y) {
+            const items = [
+                ...Object.values(recipes.weapons),
+                ...Object.values(recipes.armor),
+                ...Object.values(recipes.feet)
+            ].map(r => r.data);
+            const item = items[Math.floor(Math.random() * items.length)];
+            return { type: item.slot, x, y, data: item };
+        }
+
+        // Input Handling
+        document.addEventListener('keydown', (e) => {
+            keys[e.key.toLowerCase()] = true;
+            if (e.key === 'Tab' && gameStarted) {
+                e.preventDefault();
+                toggleMenu();
+            }
+            if (e.key === ' ' && gameStarted && dodgeTimer <= 0) {
+                player.dodging = true;
+                dodgeTimer = 1;
+                dodgeSpin = 0;
+                const angle = Math.atan2(mouse.y - player.y, mouse.x - player.x);
+                player.dodgeDx = Math.cos(angle) * player.speed * 1.1;
+                player.dodgeDy = Math.sin(angle) * player.speed * 1.1;
+                player.invincibility = 0.5;
+            }
+            if (e.key === 'e' && gameStarted && player.eCooldown <= 0) {
+                useSpecial(classes[player.class].abilities.e);
+            }
+        });
+        document.addEventListener('keyup', (e) => keys[e.key.toLowerCase()] = false);
+        canvas.addEventListener('mousemove', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            mouse.x = e.clientX - rect.left;
+            mouse.y = e.clientY - rect.top;
+        });
+        canvas.addEventListener('mousedown', (e) => {
+            if (e.button === 0) mouse.left = true;
+            if (e.button === 2) mouse.right = true;
+        });
+        canvas.addEventListener('mouseup', (e) => {
+            if (e.button === 0) mouse.left = false;
+            if (e.button === 2) mouse.right = false;
+        });
+        canvas.addEventListener('contextmenu', (e) => e.preventDefault());
+
+        function toggleMenu() {
+            menuOpen = !menuOpen;
+            document.getElementById('character-menu').style.display = menuOpen ? 'flex' : 'none';
+            if (menuOpen) updateMenu();
+        }
+
+        function updateMenu() {
+            document.getElementById('equip-weapon').innerHTML = `Ranged Weapon: ${player.equipment.weapon ? `${player.equipment.weapon.name} (Damage: ${player.equipment.weapon.damage})` : 'None'}`;
+            document.getElementById('equip-melee').innerHTML = `Melee Weapon: ${player.equipment.melee ? `${player.equipment.melee.name} (Damage: ${player.equipment.melee.damage})` : 'None'}`;
+            document.getElementById('equip-armor').innerHTML = `Armor: ${player.equipment.armor ? `${player.equipment.armor.name} (Defense: ${player.equipment.armor.defense})` : 'None'}`;
+            document.getElementById('equip-feet').innerHTML = `Feet: ${player.equipment.feet ? `${player.equipment.feet.name} (Speed: ${player.equipment.feet.speed || 0})` : 'None'}`;
+            document.getElementById('character-img').src = classes[player.class].image;
+            document.getElementById('character-stats').innerHTML = `
+                Class: ${player.class}<br>
+                Level: ${player.level}<br>
+                Exp: ${player.exp}/${player.expToNext}<br>
+                Health: ${Math.max(0, player.health)}/${player.maxHealth}<br>
+                Damage: ${player.damage}<br>
+                Defense: ${player.defense}<br>
+                Speed: ${player.speed}
+            `;
+            document.getElementById('inventory-list').innerHTML = `Essence: ${player.inventory.essence}<br>Relics: ${player.inventory.relics}<br>Items:<br>` + 
+                player.items.map((item, i) => `<div class="item-slot" onclick="equipItem(${i})">${item.data.name} (${item.type === 'weapon' || item.type === 'melee' ? 'Damage: ' + item.data.damage : item.type === 'feet' ? 'Speed: ' + (item.data.speed || 0) : 'Defense: ' + (item.data.defense || 0)})</div>`).join('');
+
+            const tabs = document.querySelectorAll('.crafting-tab');
+            tabs.forEach(tab => tab.onclick = () => {
+                tabs.forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                document.querySelectorAll('#crafting-content > div').forEach(div => div.classList.remove('active'));
+                document.getElementById(`crafting-${tab.dataset.tab}`).classList.add('active');
+            });
+            document.getElementById('crafting-weapons').innerHTML = Object.entries(recipes.weapons).map(([name, r]) => 
+                `<div class="crafting-recipe" onclick="craftItem('weapons', '${name}')">${name} (E: ${r.essence}, R: ${r.relics})</div>`).join('');
+            document.getElementById('crafting-armor').innerHTML = Object.entries(recipes.armor).map(([name, r]) => 
+                `<div class="crafting-recipe" onclick="craftItem('armor', '${name}')">${name} (E: ${r.essence}, R: ${r.relics})</div>`).join('');
+            document.getElementById('crafting-upgrades').innerHTML = Object.entries(recipes.feet).map(([name, r]) => 
+                `<div class="crafting-recipe" onclick="craftItem('feet', '${name}')">${name} (E: ${r.essence}, R: ${r.relics})</div>`).join('');
+        }
+
+        function equipItem(index) {
+            const item = player.items.splice(index, 1)[0];
+            const slot = item.type;
+            if (player.equipment[slot]) {
+                unequipItem(slot);
+            }
+            player.equipment[slot] = item.data;
+            applyItemEffects(item.data, true);
+            updateMenu();
+        }
+
+        function unequipItem(slot) {
+            const oldItem = player.equipment[slot];
+            if (oldItem) {
+                applyItemEffects(oldItem, false);
+                player.items.push({ type: slot, data: oldItem });
+                player.equipment[slot] = null;
+            }
+        }
+
+        function applyItemEffects(item, equip) {
+            const factor = equip ? 1 : -1;
+            if (item.slot === 'weapon' || item.slot === 'melee') player.damage += (item.damage || 0) * factor;
+            if (item.slot === 'armor') player.defense += (item.defense || 0) * factor;
+            if (item.slot === 'feet') player.speed += (item.speed || 0) * factor;
+            if (item.lifesteal && equip) player.lifesteal = item.lifesteal;
+            else if (item.lifesteal && !equip) player.lifesteal = 0;
+        }
+
+        function craftItem(category, name) {
+            const recipe = recipes[category][name];
+            if (player.inventory.essence >= recipe.essence && player.inventory.relics >= recipe.relics) {
+                player.inventory.essence -= recipe.essence;
+                player.inventory.relics -= recipe.relics;
+                player.items.push({ type: recipe.data.slot, data: recipe.data });
+                updateMenu();
+            }
+        }
+
+        // Game Loop
+        function gameLoop(timestamp) {
+            if (!gameStarted) return requestAnimationFrame(gameLoop);
+            const deltaTime = (timestamp - lastTime) / 1000;
+            lastTime = timestamp;
+            update(deltaTime);
+            render();
+            requestAnimationFrame(gameLoop);
+        }
+
+        function update(deltaTime) {
+            if (menuOpen || !player) return;
+
+            if (dodgeTimer > 0) {
+                dodgeTimer -= deltaTime;
+                dodgeSpin += deltaTime * 360;
+                if (player.dodging) {
+                    player.x += player.dodgeDx * deltaTime;
+                    player.y += player.dodgeDy * deltaTime;
+                    if (dodgeTimer <= 0) player.dodging = false;
+                }
+            }
+            if (player.invincibility > 0) player.invincibility -= deltaTime;
+            if (player.berserkTimer > 0) {
+                player.berserkTimer -= deltaTime;
+                if (player.berserkTimer <= 0) {
+                    player.speed = player.baseSpeed;
+                    player.damage = player.baseDamage;
+                }
+            }
+
+            if (!player.dodging) {
+                let dx = 0, dy = 0;
+                if (keys['w']) dy -= 1;
+                if (keys['s']) dy += 1;
+                if (keys['a']) dx -= 1;
+                if (keys['d']) dx += 1;
+                if (dx || dy) {
+                    const mag = Math.sqrt(dx * dx + dy * dy);
+                    moveEntity(player, dx / mag, dy / mag, deltaTime);
+                }
+            }
+
+            player.leftCooldown = Math.max(0, player.leftCooldown - deltaTime);
+            player.rightCooldown = Math.max(0, player.rightCooldown - deltaTime);
+            player.qCooldown = Math.max(0, player.qCooldown - deltaTime);
+            player.rCooldown = Math.max(0, player.rCooldown - deltaTime);
+            player.eCooldown = Math.max(0, player.eCooldown - deltaTime);
+            player.specialCooldown = Math.max(0, player.specialCooldown - deltaTime);
+
+            const abilities = classes[player.class].abilities;
+            if (mouse.left && player.leftCooldown <= 0) fireWeapon(abilities.left);
+            if (mouse.right && player.rightCooldown <= 0) fireWeapon(abilities.right);
+            if (keys['q'] && player.qCooldown <= 0) {
+                if (player.equipment.weapon?.special && player.specialCooldown <= 0) {
+                    fireSpecial(player.equipment.weapon);
+                } else {
+                    useSpecial(abilities.q);
+                }
+            }
+            if (keys['r'] && player.rCooldown <= 0) useSpecial(abilities.r);
+
+            enemies.forEach(enemy => {
+                const dist = distance(enemy, player);
+                const desiredDist = 150;
+                let angle = Math.atan2(player.y - enemy.y, player.x - enemy.x);
+                if (dist < desiredDist - 10) angle += Math.PI;
+                else if (dist <= desiredDist + 10) angle = 0;
+                if (angle) moveEntity(enemy, Math.cos(angle), Math.sin(angle), deltaTime);
+                enemy.shootCooldown -= deltaTime;
+                if (enemy.shootCooldown <= 0) {
+                    if (enemy.guns) {
+                        enemy.guns.forEach(gun => {
+                            let width = gun === 'laser_shot' ? 10 : gun === 'flamethrower' ? 20 : gun === 'plasma_wave' ? 50 : gun === 'inferno_blast' ? 40 : gun === 'mystic_beam' ? 15 : 20;
+                            let lifetime = gun === 'laser_shot' ? 0.3 : gun === 'flamethrower' ? 0.5 : gun === 'mystic_beam' ? 0.8 : 1;
+                            let speed = ENEMY_PROJECTILE_SPEED * (gun === 'mystic_beam' ? 1.5 : 1);
+                            projectiles.push({
+                                x: enemy.x,
+                                y: enemy.y,
+                                dx: Math.cos(angle) * speed,
+                                dy: Math.sin(angle) * speed,
+                                damage: enemy.damage,
+                                friendly: false,
+                                effect: gun,
+                                lifetime: lifetime,
+                                width: width,
+                                aoe: gun === 'plasma_wave' || gun === 'inferno_blast',
+                                radius: gun === 'plasma_wave' ? 50 : gun === 'inferno_blast' ? 60 : 0
+                            });
+                        });
+                    } else {
+                        const gun = enemy.gun;
+                        let width = gun === 'laser_shot' ? 10 : gun === 'flamethrower' ? 20 : gun === 'plasma_wave' ? 50 : gun === 'inferno_blast' ? 40 : 20;
+                        let lifetime = gun === 'laser_shot' ? 0.3 : gun === 'flamethrower' ? 0.5 : 1;
+                        let speed = ENEMY_PROJECTILE_SPEED * (gun === 'mystic_beam' ? 1.5 : 1);
+                        projectiles.push({
+                            x: enemy.x,
+                            y: enemy.y,
+                            dx: Math.cos(angle) * speed,
+                            dy: Math.sin(angle) * speed,
+                            damage: enemy.damage,
+                            friendly: false,
+                            effect: gun,
+                            lifetime: lifetime,
+                            width: width,
+                            aoe: gun === 'plasma_wave' || gun === 'inferno_blast',
+                            radius: gun === 'plasma_wave' ? 50 : gun === 'inferno_blast' ? 60 : 0
+                        });
+                    }
+                    enemy.shootCooldown = enemy.shootCooldown || 1.5;
+                }
+            });
+
+            projectiles.forEach(p => {
+                p.x += p.dx * deltaTime;
+                p.y += p.dy * deltaTime;
+                p.lifetime -= deltaTime;
+                if (isWalkable(p.x, p.y)) {
+                    if (p.friendly) {
+                        enemies.forEach(e => {
+                            if (checkCollision(p, e)) {
+                                e.health -= Math.max(1, p.damage - (e.defense || 0));
+                                if (p.impact) effects.push({ x: p.x, y: p.y, type: p.impact, lifetime: 0.5, maxLifetime: 0.5 });
+                                p.lifetime = 0;
+                                if (e.health <= 0) {
+                                    enemies.splice(enemies.indexOf(e), 1);
+                                    player.inventory.shards += 5;
+                                    player.inventory.essence += e.essence;
+                                    player.inventory.relics += e.relics;
+                                    player.exp += 10 + floor * 5;
+                                    if (e.isVillain && Math.random() < 0.05) {
+                                        currentRoom.items.push(generateItem(e.x, e.y));
+                                    }
+                                    checkLevelUp();
+                                }
+                            }
+                        });
+                    } else if (checkCollision(p, player) && player.invincibility <= 0) {
+                        player.health -= Math.max(1, p.damage - player.defense);
+                        if (p.aoe) effects.push({ x: p.x, y: p.y, type: 'explosion1', lifetime: 0.5, maxLifetime: 0.5 });
+                        p.lifetime = 0;
+                        player.invincibility = 0.5;
+                        if (player.health <= 0) resetGame();
+                    }
+                } else {
+                    p.lifetime = 0;
+                }
+            });
+            projectiles = projectiles.filter(p => p.lifetime > 0);
+
+            effects.forEach(e => e.lifetime -= deltaTime);
+            effects = effects.filter(e => e.lifetime > 0);
+
+            const tileX = Math.floor(player.x / TILE_SIZE);
+            const tileY = Math.floor(player.y / TILE_SIZE);
+            if (currentRoom.tiles[tileY][tileX] === 4 && enemies.length === 0) {
+                let entryX, entryY;
+                if (tileY === ROOM_SIZE - 1) { entryY = TILE_SIZE + TILE_SIZE / 2; entryX = player.x; }
+                else if (tileY === 0) { entryY = (ROOM_SIZE - 2) * TILE_SIZE + TILE_SIZE / 2; entryX = player.x; }
+                else if (tileX === 0) { entryX = (ROOM_SIZE - 2) * TILE_SIZE + TILE_SIZE / 2; entryY = player.y; }
+                else { entryX = TILE_SIZE + TILE_SIZE / 2; entryY = player.y; }
+                currentRoom = generateRoom();
+                player.x = entryX;
+                player.y = entryY;
+                enemies = currentRoom.enemies;
+                updateBackground();
+                if (currentRoom.type === 'boss') floor++;
+            }
+
+            currentRoom.items.forEach((item, i) => {
+                if (distance(player, item) < 30) {
+                    if (item.type === 'essence' || item.type === 'relics') player.inventory[item.type] += item.amount;
+                    else player.items.push(item);
+                    currentRoom.items.splice(i, 1);
+                    showPopup(item.x, item.y, item.type === 'weapon' || item.type === 'melee' || item.type === 'armor' || item.type === 'feet' ? item.data.name : `${item.type} +${item.amount}`);
+                }
+            });
+
+            updateUI();
+        }
+
+        function fireWeapon(ability) {
+            const weapon = ability.type === 'melee' ? player.equipment.melee : player.equipment.weapon;
+            const weaponDamage = weapon?.damage || 0;
+            const totalDamage = ability.damage + player.damage + weaponDamage;
+            const angle = Math.atan2(mouse.y - player.y, mouse.x - player.x);
+            if (ability.type === 'melee') {
+                enemies.forEach(e => {
+                    if (distance(player, e) < 50 && Math.abs(angle - Math.atan2(e.y - player.y, e.x - player.x)) < Math.PI / 4) {
+                        e.health -= Math.max(1, totalDamage - (e.defense || 0));
+                        effects.push({ x: e.x, y: e.y, type: weapon?.effect || ability.effect, lifetime: 0.5, maxLifetime: 0.5, melee: true });
+                        if (e.health <= 0) {
+                            if (player.lifesteal) player.health = Math.min(player.maxHealth, player.health + player.lifesteal);
+                            enemies.splice(enemies.indexOf(e), 1);
+                            player.inventory.shards += 5;
+                            player.inventory.essence += e.essence;
+                            player.inventory.relics += e.relics;
+                            player.exp += 10 + floor * 5;
+                            if (e.isVillain && Math.random() < 0.05) {
+                                currentRoom.items.push(generateItem(e.x, e.y));
+                            }
+                            checkLevelUp();
+                        }
+                    }
+                });
+            } else {
+                const effect = weapon?.effect || ability.effect;
+                const impact = weapon?.impact || ability.impact;
+                if (effect === 'laser_shot') {
+                    projectiles.push({
+                        x: player.x,
+                        y: player.y,
+                        dx: Math.cos(angle) * PLAYER_PROJECTILE_SPEED,
+                        dy: Math.sin(angle) * PLAYER_PROJECTILE_SPEED,
+                        damage: totalDamage,
+                        friendly: true,
+                        effect: 'laser_shot',
+                        impact: impact,
+                        lifetime: 0.3,
+                        width: 10,
+                        color: '#00ff00'
+                    });
+                } else {
+                    projectiles.push({
+                        x: player.x,
+                        y: player.y,
+                        dx: Math.cos(angle) * PLAYER_PROJECTILE_SPEED,
+                        dy: Math.sin(angle) * PLAYER_PROJECTILE_SPEED,
+                        damage: totalDamage,
+                        friendly: true,
+                        effect: effect,
+                        impact: impact,
+                        lifetime: effect === 'flamethrower' ? 0.5 : 1,
+                        width: effect === 'laser' ? 10 : effect === 'flamethrower' ? 20 : 5
+                    });
+                }
+            }
+            player[ability === classes[player.class].abilities.left ? 'leftCooldown' : 'rightCooldown'] = ability.cooldown;
+        }
+
+        function fireSpecial(weapon) {
+            const angle = Math.atan2(mouse.y - player.y, mouse.x - player.x);
+            const totalDamage = weapon.specialDamage + player.damage;
+            if (weapon.special === 'energy_blast') {
+                projectiles.push({
+                    x: player.x,
+                    y: player.y,
+                    dx: Math.cos(angle) * PLAYER_PROJECTILE_SPEED * 1.5,
+                    dy: Math.sin(angle) * PLAYER_PROJECTILE_SPEED * 1.5,
+                    damage: totalDamage,
+                    friendly: true,
+                    effect: 'energy_blast',
+                    lifetime: 1,
+                    width: 30
+                });
+            } else if (weapon.special === 'plasma_wave') {
+                projectiles.push({
+                    x: player.x,
+                    y: player.y,
+                    dx: Math.cos(angle) * PLAYER_PROJECTILE_SPEED,
+                    dy: Math.sin(angle) * PLAYER_PROJECTILE_SPEED,
+                    damage: totalDamage,
+                    friendly: true,
+                    effect: 'plasma_wave',
+                    lifetime: 1.5,
+                    width: 50,
+                    aoe: true,
+                    radius: 50
+                });
+            } else if (weapon.special === 'inferno_blast') {
+                projectiles.push({
+                    x: player.x,
+                    y: player.y,
+                    dx: Math.cos(angle) * PLAYER_PROJECTILE_SPEED * 0.8,
+                    dy: Math.sin(angle) * PLAYER_PROJECTILE_SPEED * 0.8,
+                    damage: totalDamage,
+                    friendly: true,
+                    effect: 'inferno_blast',
+                    lifetime: 2,
+                    width: 40,
+                    aoe: true,
+                    radius: 60
+                });
+            } else if (weapon.special === 'mystic_beam') {
+                projectiles.push({
+                    x: player.x,
+                    y: player.y,
+                    dx: Math.cos(angle) * PLAYER_PROJECTILE_SPEED * 2,
+                    dy: Math.sin(angle) * PLAYER_PROJECTILE_SPEED * 2,
+                    damage: totalDamage,
+                    friendly: true,
+                    effect: 'mystic_beam',
+                    lifetime: 0.8,
+                    width: 15
+                });
+            } else if (weapon.special === 'multi_shot') {
+                for (let i = -1; i <= 1; i++) {
+                    const offsetAngle = angle + (i * Math.PI / 6);
+                    projectiles.push({
+                        x: player.x,
+                        y: player.y,
+                        dx: Math.cos(offsetAngle) * PLAYER_PROJECTILE_SPEED,
+                        dy: Math.sin(offsetAngle) * PLAYER_PROJECTILE_SPEED,
+                        damage: totalDamage,
+                        friendly: true,
+                        effect: 'burst_shot',
+                        lifetime: 1,
+                        width: 20
+                    });
+                }
+            }
+            player.specialCooldown = weapon.specialCooldown;
+            player.qCooldown = weapon.specialCooldown;
+        }
+
+        function useSpecial(ability) {
+            const angle = Math.atan2(mouse.y - player.y, mouse.x - player.x);
+            if (ability.type === 'heal') {
+                player.health = Math.min(player.maxHealth, player.health + ability.amount);
+                effects.push({ x: player.x, y: player.y, type: 'mystic_green', lifetime: 0.5, maxLifetime: 0.5 });
+            } else if (ability.type === 'aoe') {
+                enemies.forEach(e => {
+                    if (distance(player, e) < ability.radius) {
+                        e.health -= ability.damage + player.damage;
+                        effects.push({ x: e.x, y: e.y, type: 'explosion3', lifetime: 0.5, maxLifetime: 0.5 });
+                    }
+                });
+            } else if (ability.type === 'dash') {
+                const dashSpeed = ability.distance / 0.2;
+                player.dodging = true;
+                dodgeTimer = 0.2;
+                player.dodgeDx = Math.cos(angle) * dashSpeed;
+                player.dodgeDy = Math.sin(angle) * dashSpeed;
+                player.invincibility = 0.2;
+            } else if (ability.type === 'shield') {
+                player.health += ability.amount;
+                effects.push({ x: player.x, y: player.y, type: 'arcane', lifetime: ability.duration, maxLifetime: ability.duration });
+            } else if (ability.type === 'boost') {
+                player.damage += ability.amount;
+                setTimeout(() => player.damage -= ability.amount, ability.duration * 1000);
+            } else if (ability.type === 'stealth') {
+                player.invincibility = ability.duration;
+            } else if (ability.type === 'holy_strike') {
+                enemies.forEach(e => {
+                    if (distance(player, e) < 100) {
+                        e.health -= ability.damage + player.damage;
+                        effects.push({ x: e.x, y: e.y, type: 'explosion1', lifetime: 0.5, maxLifetime: 0.5 });
+                    }
+                });
+            } else if (ability.type === 'berserk') {
+                player.berserkTimer = ability.duration;
+                player.speed = player.baseSpeed * 1.5;
+                player.damage = player.baseDamage * 1.5;
+                effects.push({ x: player.x, y: player.y, type: 'fire_swirl', lifetime: ability.duration, maxLifetime: ability.duration });
+            } else if (ability.type === 'shadow_strike') {
+                const nearestEnemy = enemies.reduce((closest, e) => {
+                    const dist = distance(player, e);
+                    return dist < distance(player, closest) ? e : closest;
+                }, enemies[0]);
+                if (nearestEnemy) {
+                    nearestEnemy.health -= ability.damage + player.damage;
+                    effects.push({ x: nearestEnemy.x, y: nearestEnemy.y, type: 'arcane', lifetime: 0.5, maxLifetime: 0.5 });
+                    player.x = nearestEnemy.x;
+                    player.y = nearestEnemy.y;
+                }
+            }
+            player[ability === classes[player.class].abilities.q ? 'qCooldown' : ability === classes[player.class].abilities.r ? 'rCooldown' : 'eCooldown'] = ability.cooldown;
+        }
+
+        function moveEntity(entity, dx, dy, deltaTime, isDodge = false) {
+            const speed = (isDodge ? entity.speed * 1.1 : entity.speed) * deltaTime * 60;
+            const newX = entity.x + dx * speed;
+            const newY = entity.y + dy * speed;
+            if (isWalkable(newX, entity.y)) entity.x = newX;
+            if (isWalkable(entity.x, newY)) entity.y = newY;
+        }
+
+        function isWalkable(x, y) {
+            const tileX = Math.floor(x / TILE_SIZE);
+            const tileY = Math.floor(y / TILE_SIZE);
+            return tileX >= 0 && tileX < ROOM_SIZE && tileY >= 0 && tileY < ROOM_SIZE && (currentRoom.tiles[tileY][tileX] === 0 || currentRoom.tiles[tileY][tileX] === 4);
+        }
+
+        function checkCollision(projectile, entity) {
+            const dx = projectile.x - entity.x;
+            const dy = projectile.y - entity.y;
+            return Math.sqrt(dx * dx + dy * dy) < (projectile.aoe ? projectile.radius : projectile.width || 20);
+        }
+
+        function distance(a, b) {
+            return Math.sqrt((a.x - b.x) ** 2 + (a.y - b.y) ** 2);
+        }
+
+        function showPopup(x, y, text) {
+            const popup = document.getElementById('popup');
+            popup.style.left = `${x}px`;
+            popup.style.top = `${y}px`;
+            popup.textContent = text;
+            popup.style.display = 'block';
+            setTimeout(() => popup.style.display = 'none', 1000);
+        }
+
+        function checkLevelUp() {
+            if (player.exp >= player.expToNext) {
+                player.level++;
+                player.exp -= player.expToNext;
+                player.expToNext = Math.floor(player.expToNext * 1.5);
+                player.maxHealth += 10;
+                player.health = player.maxHealth;
+                player.baseDamage += 2;
+                player.damage += 2;
+                player.defense += 1;
+                updateMenu();
+            }
+        }
+
+        function updateUI() {
+            document.getElementById('health-bar').textContent = `Health: ${Math.max(0, player.health)}/${player.maxHealth}`;
+            document.getElementById('shards').textContent = `Grudge Shards: ${player.inventory.shards}`;
+            document.getElementById('floor-display').textContent = `Floor ${floor}`;
+        }
+
+        function resetGame() {
+            player.health = player.maxHealth;
+            player.x = ROOM_SIZE / 2 * TILE_SIZE;
+            player.y = (ROOM_SIZE - 2) * TILE_SIZE + TILE_SIZE / 2;
+            floor = 1;
+            currentRoom = generateRoom();
+            enemies = currentRoom.enemies;
+            projectiles = [];
+            effects = [];
+            player.exp = 0;
+            player.level = 1;
+            player.expToNext = 100;
+            menuOpen = false;
+            document.getElementById('character-menu').style.display = 'none';
+            updateBackground();
+        }
+
+        function render() {
+            if (!gameStarted) return;
+            ctx.fillStyle = '#222';
+            ctx.fillRect(0, 0, 800, 800);
+
+            for (let y = 0; y < ROOM_SIZE; y++) {
+                for (let x = 0; x < ROOM_SIZE; x++) {
+                    if (currentRoom.tiles[y][x] === 1) ctx.fillStyle = '#555';
+                    else if (currentRoom.tiles[y][x] === 2) ctx.fillStyle = '#8B4513';
+                    else if (currentRoom.tiles[y][x] === 3) {
+                        ctx.fillStyle = '#555';
+                        ctx.beginPath();
+                        ctx.arc(x * TILE_SIZE + TILE_SIZE / 2, y * TILE_SIZE + TILE_SIZE / 2, TILE_SIZE, 0, Math.PI * 2);
+                        ctx.fill();
+                        continue;
+                    } else if (currentRoom.tiles[y][x] === 4 && enemies.length === 0) ctx.fillStyle = '#FFD700';
+                    else if (currentRoom.tiles[y][x] === 4) ctx.fillStyle = '#666';
+                    else continue;
+                    ctx.fillRect(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+                }
+            }
+
+            ctx.save();
+            ctx.translate(player.x, player.y);
+            if (player.facingLeft = mouse.x < player.x) ctx.scale(-1, 1);
+            if (dodgeTimer > 0) ctx.rotate(dodgeSpin * Math.PI / 180);
+            ctx.drawImage(images.player, -25, -25, 50, 50);
+            ctx.restore();
+
+            enemies.forEach(e => {
+                const size = 40 * (e.sizeMultiplier || 1);
+                ctx.drawImage(images.enemies[e.type], e.x - size / 2, e.y - size / 2, size, size);
+                ctx.fillStyle = 'red';
+                ctx.fillRect(e.x - size / 2, e.y - size / 2 - 5, size * (e.health / e.maxHealth), 5);
+                ctx.strokeStyle = 'black';
+                ctx.strokeRect(e.x - size / 2, e.y - size / 2 - 5, size, 5);
+            });
+
+            projectiles.forEach(p => {
+                ctx.save();
+                ctx.translate(p.x, p.y);
+                ctx.rotate(Math.atan2(p.dy, p.dx));
+                if (p.effect === 'laser_shot') {
+                    ctx.fillStyle = p.color || '#00ff00';
+                    ctx.fillRect(-20, -p.width / 2, 40, p.width);
+                } else {
+                    const size = p.effect === 'laser' ? 40 : p.effect === 'flamethrower' ? 60 :
+                                 p.effect === 'energy_blast' ? 60 : p.effect === 'plasma_wave' ? 100 :
+                                 p.effect === 'inferno_blast' ? 80 : p.effect === 'mystic_beam' ? 30 :
+                                 p.effect === 'burst_shot' ? 40 : 30;
+                    ctx.drawImage(images.effects[p.effect], -size / 2, -p.width / 2, size, p.width);
+                }
+                ctx.restore();
+            });
+
+            effects.forEach(e => {
+                const progress = e.lifetime / e.maxLifetime;
+                const baseSize = e.type === 'explosion3' ? 80 : e.type === 'explosion2' ? 60 : 30;
+                const size = e.melee ? baseSize * 2 * progress : baseSize * progress;
+                ctx.globalAlpha = progress;
+                ctx.drawImage(images.effects[e.type], e.x - size / 2, e.y - size / 2, size, size);
+                ctx.globalAlpha = 1;
+            });
+
+            currentRoom.items.forEach(item => {
+                ctx.fillStyle = item.type === 'essence' ? '#00f' : item.type === 'relics' ? '#0f0' : '#ff0';
+                ctx.beginPath();
+                ctx.arc(item.x, item.y, 10, 0, Math.PI * 2);
+                ctx.fill();
+            });
+        }
+
+        // Start Game Loop
+        requestAnimationFrame(gameLoop);
+    </script>
+</body>
+</html>

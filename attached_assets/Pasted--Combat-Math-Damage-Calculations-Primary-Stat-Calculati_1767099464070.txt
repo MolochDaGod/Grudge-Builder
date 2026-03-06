@@ -1,0 +1,94 @@
+🧮 Combat Math & Damage Calculations
+Primary Stat Calculations (Health, Mana, Stamina)
+Health Calculation
+Max Health = Base Health + Attribute Bonuses + Equipment + Traits + Sets
+
+Attribute Bonus = Σ(Flat × Effective Points) + (Base × Σ(Percent × Effective Points))
+Example: Level 10, 35 Strength (Effective: 30), 30 Vitality (Effective: 27.5)
+
+Base Health: 100 (Level 10)
+Strength: (26×30) + (100 × 0.008×30) = 780 + 24 = 804
+Vitality: (25×27.5) + (100 × 0.005×27.5) = 687.5 + 13.75 = 701.25
+Total: 100 + 804 + 701.25 = 1,605 HP
+Mana Calculation
+Same formula applies for Mana resource pool
+
+Example: Level 10, 40 Intellect (Effective: 32.5), 40 Wisdom (Effective: 32.5)
+
+Base Mana: 50 (Level 10)
+Intellect: (5×32.5) + (50 × 0.05×32.5) = 162.5 + 81.25 = 243.75
+Wisdom: (20×32.5) + (50 × 0.03×32.5) = 650 + 48.75 = 698.75
+Total: 50 + 243.75 + 698.75 = 992.5 Mana
+Diminishing Returns Applied: Effective points calculated as:
+• Points 1-25: Full value (1.0×)
+• Points 26-50: Half value (0.5×)
+• Points 51+: Quarter value (0.25×)
+Damage Calculations & Defense Mitigation
+Damage Output Formula
+Base Damage = Level Damage + Attribute Bonuses + Equipment + Traits + Sets
+Defense & Damage Reduction (Relational Damage)
+Damage Taken = Incoming Damage × (100 - √Defense) / 100
+Defense	Square Root	Damage Reduction	Example (100 Damage)
+100	10	10%	90 damage
+225	15	15%	85 damage
+400	20	20%	80 damage
+625	25	25%	75 damage
+900	30	30%	70 damage
+1225	35	35%	65 damage
+1600	40	40%	60 damage
+Level 20 Defense Example: A tank with 60 STR, 50 VIT, 50 END could reach ~1,500 defense = 38.7% damage reduction
+Block & Critical Hit Mechanics
+Block System
+IF Random(0,1) < Block Chance:
+  Damage = Damage × (1 - Block Factor)
+
+Block Chance Cap: 75%
+Block Factor Cap: 90% (0.90)
+Example: 100 damage incoming, 40% block chance, 0.35 block factor
+
+40% chance to trigger block
+If blocked: 100 × (1 - 0.35) = 65 damage taken
+Modified by attacker's Block Break Factor
+Critical Hit System
+IF Random(0,1) < Critical Chance:
+  Damage = Damage × Critical Factor
+
+Critical Chance Cap: 75%
+Critical Factor Cap: 3.0× (300% damage)
+Example: 100 base damage, 45% crit chance, 1.8× crit factor
+
+45% chance to trigger critical
+If critical: 100 × 1.8 = 180 damage
+Modified by target's Critical Evasion
+At Level 20: With 50 DEX + 50 AGI, you can easily reach the 75% crit cap, making crit factor your next priority.
+Complete Damage Flow (8 Steps)
+Full Combat Calculation Pipeline
+Calculate Base Damage - Level + Attributes + Equipment + Traits
+Apply Defense Break - Reduce target defense by attacker's Defense Break Factor
+Calculate Mitigation - Apply defense formula (relational damage reduction)
+Apply Random Variance - ±25% deviation (if enabled)
+Check Block - Roll vs effective block chance (modified by Block Break)
+Check Critical - Roll vs effective crit chance (modified by Crit Evasion) if not blocked
+Apply Damage - Subtract from target HP
+Trigger Effects - Drain, Reflect, Absorb factors activate
+Note: Critical hits cannot occur on blocked attacks. Block check happens before critical check.
+Advanced Combat Factors
+Drain Mechanics (Lifesteal/Manasteal)
+Health Restored = Damage Dealt × Drain Health Factor
+Mana Restored = Damage Dealt × Drain Mana Factor
+
+Cap: 50% (0.50)
+Reflect Damage
+Damage Reflected = Damage Received × Reflect Factor
+Cap: 50% (0.50)
+Reflect does NOT proc on blocked hits
+
+Absorb Mechanics
+Health Regenerated = Damage Received × Absorb Health Factor
+Mana Regenerated = Damage Received × Absorb Mana Factor
+
+Cap: 50% (0.50)
+Accuracy & Resistance (Debuffs)
+Debuff Success = Attacker Accuracy - Target Resistance
+
+Cap: 95% (0.95) - Always 5% minimum chance to resist/land

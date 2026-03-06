@@ -1,0 +1,241 @@
+ID,Name,Base Name,Tier,Category,Effect 1,Effect 1 Value,Effect 2,Effect 2 Value,Effect 3,Effect 3 Value,Effect 4,Effect 4 Value,Special Effect,Special Tier,Ingredient 1,Amount 1,Ingredient 2,Amount 2,Ingredient 3,Amount 3,Ingredient 4,Amount 4,Cook Time (min)
+beef-wellington-t1,Classic Beef Wellington,Beef Wellington,1,RED,health,10,,,,,,,,5,Beast Hide,2,Common Herb,1,Blue Mushroom,1,Rough Leather,1,45
+beef-wellington-t2,Prime Beef Wellington,Beef Wellington,2,RED,health,20,,,,,,,,5,Beast Hide,3,Common Herb,2,Blue Mushroom,2,Rough Leather,1,50
+beef-wellington-t3,Grilled Beef Wellington,Beef Wellington,3,RED,health,30,,,,,,,,5,Beast Hide,4,Common Herb,3,Blue Mushroom,3,Rough Leather,1,55
+beef-wellington-t4,Slow-Cooked Beef Wellington,Beef Wellington,4,RED,health,40,,,,,,,,5,Beast Hide,5,Common Herb,4,Blue Mushroom,4,Rough Leather,1,60
+beef-wellington-t5,Herb-Crusted Beef Wellington,Beef Wellington,5,RED,health,50,,,,,,,Heal boost on low health (+25% heal received when below 30% HP),5,Beast Hide,6,Common Herb,5,Blue Mushroom,5,Rough Leather,1,65
+beef-wellington-t6,Marinated Beef Wellington,Beef Wellington,6,RED,health,60,,,,,,,Heal boost on low health (+25% heal received when below 30% HP),5,Beast Hide,7,Common Herb,6,Blue Mushroom,6,Rough Leather,1,70
+beef-wellington-t7,Smoked Beef Wellington,Beef Wellington,7,RED,health,70,,,,,,,Heal boost on low health (+25% heal received when below 30% HP),5,Beast Hide,8,Common Herb,7,Blue Mushroom,7,Rough Leather,1,75
+beef-wellington-t8,Seared Beef Wellington,Beef Wellington,8,RED,health,80,,,,,,,Heal boost on low health (+25% heal received when below 30% HP),5,Beast Hide,9,Common Herb,8,Blue Mushroom,8,Rough Leather,1,80
+osso-buco-t1,Classic Osso Buco,Osso Buco,1,RED,damage,3,,,,,,,,5,Large Bones,2,Red Flower,2,Healing Moss,1,Common Herb,1,120
+osso-buco-t2,Prime Osso Buco,Osso Buco,2,RED,damage,5,,,,,,,,5,Large Bones,3,Red Flower,3,Healing Moss,2,Common Herb,1,130
+osso-buco-t3,Grilled Osso Buco,Osso Buco,3,RED,damage,7,,,,,,,,5,Large Bones,4,Red Flower,4,Healing Moss,3,Common Herb,1,140
+osso-buco-t4,Slow-Cooked Osso Buco,Osso Buco,4,RED,damage,9,,,,,,,,5,Large Bones,5,Red Flower,5,Healing Moss,4,Common Herb,1,150
+osso-buco-t5,Herb-Crusted Osso Buco,Osso Buco,5,RED,damage,11,,,,,,,Enhanced life steal (+50% lifesteal effectiveness),5,Large Bones,6,Red Flower,6,Healing Moss,5,Common Herb,1,160
+osso-buco-t6,Marinated Osso Buco,Osso Buco,6,RED,damage,13,,,,,,,Enhanced life steal (+50% lifesteal effectiveness),5,Large Bones,7,Red Flower,7,Healing Moss,6,Common Herb,1,170
+osso-buco-t7,Smoked Osso Buco,Osso Buco,7,RED,damage,15,,,,,,,Enhanced life steal (+50% lifesteal effectiveness),5,Large Bones,8,Red Flower,8,Healing Moss,7,Common Herb,1,180
+osso-buco-t8,Seared Osso Buco,Osso Buco,8,RED,damage,17,,,,,,,Enhanced life steal (+50% lifesteal effectiveness),5,Large Bones,9,Red Flower,9,Healing Moss,8,Common Herb,1,190
+rack-of-lamb-t1,Classic Rack of Lamb,Rack of Lamb,1,RED,passiveHealing,2,,,,,,,,5,Fine Leather,1,Sunleaf,2,Moonpetal,2,Common Herb,1,35
+rack-of-lamb-t2,Prime Rack of Lamb,Rack of Lamb,2,RED,passiveHealing,4,,,,,,,,5,Fine Leather,2,Sunleaf,3,Moonpetal,3,Common Herb,1,40
+rack-of-lamb-t3,Grilled Rack of Lamb,Rack of Lamb,3,RED,passiveHealing,6,,,,,,,,5,Fine Leather,3,Sunleaf,4,Moonpetal,4,Common Herb,1,45
+rack-of-lamb-t4,Slow-Cooked Rack of Lamb,Rack of Lamb,4,RED,passiveHealing,8,,,,,,,,5,Fine Leather,4,Sunleaf,5,Moonpetal,5,Common Herb,1,50
+rack-of-lamb-t5,Herb-Crusted Rack of Lamb,Rack of Lamb,5,RED,passiveHealing,10,,,,,,,Regeneration persists through combat,5,Fine Leather,5,Sunleaf,6,Moonpetal,6,Common Herb,1,55
+rack-of-lamb-t6,Marinated Rack of Lamb,Rack of Lamb,6,RED,passiveHealing,12,,,,,,,Regeneration persists through combat,5,Fine Leather,6,Sunleaf,7,Moonpetal,7,Common Herb,1,60
+rack-of-lamb-t7,Smoked Rack of Lamb,Rack of Lamb,7,RED,passiveHealing,14,,,,,,,Regeneration persists through combat,5,Fine Leather,7,Sunleaf,8,Moonpetal,8,Common Herb,1,65
+rack-of-lamb-t8,Seared Rack of Lamb,Rack of Lamb,8,RED,passiveHealing,16,,,,,,,Regeneration persists through combat,5,Fine Leather,8,Sunleaf,9,Moonpetal,9,Common Herb,1,70
+beef-bourguignon-t1,Classic Beef Bourguignon,Beef Bourguignon,1,RED,health,8,damage,3,,,,,,5,Exotic Leather,3,Dragon's Breath,2,Mana Bloom,2,Thick Leather,2,180
+beef-bourguignon-t2,Prime Beef Bourguignon,Beef Bourguignon,2,RED,health,16,damage,5,,,,,,5,Exotic Leather,4,Dragon's Breath,3,Mana Bloom,3,Thick Leather,3,195
+beef-bourguignon-t3,Grilled Beef Bourguignon,Beef Bourguignon,3,RED,health,24,damage,7,,,,,,5,Exotic Leather,5,Dragon's Breath,4,Mana Bloom,4,Thick Leather,4,210
+beef-bourguignon-t4,Slow-Cooked Beef Bourguignon,Beef Bourguignon,4,RED,health,32,damage,9,,,,,,5,Exotic Leather,6,Dragon's Breath,5,Mana Bloom,5,Thick Leather,5,225
+beef-bourguignon-t5,Herb-Crusted Beef Bourguignon,Beef Bourguignon,5,RED,health,40,damage,11,,,,,Warm comfort (+10% all resistances),5,Exotic Leather,7,Dragon's Breath,6,Mana Bloom,6,Thick Leather,6,240
+beef-bourguignon-t6,Marinated Beef Bourguignon,Beef Bourguignon,6,RED,health,48,damage,13,,,,,Warm comfort (+10% all resistances),5,Exotic Leather,8,Dragon's Breath,7,Mana Bloom,7,Thick Leather,7,255
+beef-bourguignon-t7,Smoked Beef Bourguignon,Beef Bourguignon,7,RED,health,56,damage,15,,,,,Warm comfort (+10% all resistances),5,Exotic Leather,9,Dragon's Breath,8,Mana Bloom,8,Thick Leather,8,270
+beef-bourguignon-t8,Seared Beef Bourguignon,Beef Bourguignon,8,RED,health,64,damage,17,,,,,Warm comfort (+10% all resistances),5,Exotic Leather,10,Dragon's Breath,9,Mana Bloom,9,Thick Leather,9,285
+steak-frites-t1,Classic Steak Frites,Steak Frites,1,RED,damage,4,passiveHealing,1,,,,,,5,Monster Hide,1,Life Root,2,Healing Moss,1,Rough Stone,1,25
+steak-frites-t2,Prime Steak Frites,Steak Frites,2,RED,damage,7,passiveHealing,2,,,,,,5,Monster Hide,2,Life Root,3,Healing Moss,2,Rough Stone,1,28
+steak-frites-t3,Grilled Steak Frites,Steak Frites,3,RED,damage,10,passiveHealing,3,,,,,,5,Monster Hide,3,Life Root,4,Healing Moss,3,Rough Stone,1,31
+steak-frites-t4,Slow-Cooked Steak Frites,Steak Frites,4,RED,damage,13,passiveHealing,4,,,,,,5,Monster Hide,4,Life Root,5,Healing Moss,4,Rough Stone,1,34
+steak-frites-t5,Herb-Crusted Steak Frites,Steak Frites,5,RED,damage,16,passiveHealing,5,,,,,Power surge (+15% attack speed for 30s after eating),5,Monster Hide,5,Life Root,6,Healing Moss,5,Rough Stone,1,37
+steak-frites-t6,Marinated Steak Frites,Steak Frites,6,RED,damage,19,passiveHealing,6,,,,,Power surge (+15% attack speed for 30s after eating),5,Monster Hide,6,Life Root,7,Healing Moss,6,Rough Stone,1,40
+steak-frites-t7,Smoked Steak Frites,Steak Frites,7,RED,damage,22,passiveHealing,7,,,,,Power surge (+15% attack speed for 30s after eating),5,Monster Hide,7,Life Root,8,Healing Moss,7,Rough Stone,1,43
+steak-frites-t8,Seared Steak Frites,Steak Frites,8,RED,damage,25,passiveHealing,8,,,,,Power surge (+15% attack speed for 30s after eating),5,Monster Hide,8,Life Root,9,Healing Moss,8,Rough Stone,1,46
+shepherds-pie-t1,Classic Shepherd's Pie,Shepherd's Pie,1,RED,health,6,passiveHealing,2,,,,,,5,Fine Leather,2,Ethereal Orchid,2,Nightshade,2,Reinforced Bones,1,60
+shepherds-pie-t2,Prime Shepherd's Pie,Shepherd's Pie,2,RED,health,11,passiveHealing,3,,,,,,5,Fine Leather,3,Ethereal Orchid,3,Nightshade,3,Reinforced Bones,2,65
+shepherds-pie-t3,Grilled Shepherd's Pie,Shepherd's Pie,3,RED,health,16,passiveHealing,5,,,,,,5,Fine Leather,4,Ethereal Orchid,4,Nightshade,4,Reinforced Bones,3,70
+shepherds-pie-t4,Slow-Cooked Shepherd's Pie,Shepherd's Pie,4,RED,health,21,passiveHealing,6,,,,,,5,Fine Leather,5,Ethereal Orchid,5,Nightshade,5,Reinforced Bones,4,75
+shepherds-pie-t5,Herb-Crusted Shepherd's Pie,Shepherd's Pie,5,RED,health,26,passiveHealing,8,,,,,Comfort food (removes 1 debuff on consumption),5,Fine Leather,6,Ethereal Orchid,6,Nightshade,6,Reinforced Bones,5,80
+shepherds-pie-t6,Marinated Shepherd's Pie,Shepherd's Pie,6,RED,health,31,passiveHealing,9,,,,,Comfort food (removes 1 debuff on consumption),5,Fine Leather,7,Ethereal Orchid,7,Nightshade,7,Reinforced Bones,6,85
+shepherds-pie-t7,Smoked Shepherd's Pie,Shepherd's Pie,7,RED,health,36,passiveHealing,11,,,,,Comfort food (removes 1 debuff on consumption),5,Fine Leather,8,Ethereal Orchid,8,Nightshade,8,Reinforced Bones,7,90
+shepherds-pie-t8,Seared Shepherd's Pie,Shepherd's Pie,8,RED,health,41,passiveHealing,12,,,,,Comfort food (removes 1 debuff on consumption),5,Fine Leather,9,Ethereal Orchid,9,Nightshade,9,Reinforced Bones,8,95
+korean-bulgogi-t1,Classic Korean Bulgogi,Korean Bulgogi,1,RED,health,5,damage,4,passiveHealing,1,,,,5,Dragon Hide,2,Shadow Lotus,2,Spirit Herb,1,Ancient Bones,1,20
+korean-bulgogi-t2,Prime Korean Bulgogi,Korean Bulgogi,2,RED,health,10,damage,7,passiveHealing,1,,,,5,Dragon Hide,3,Shadow Lotus,3,Spirit Herb,2,Ancient Bones,2,22
+korean-bulgogi-t3,Grilled Korean Bulgogi,Korean Bulgogi,3,RED,health,15,damage,10,passiveHealing,2,,,,5,Dragon Hide,4,Shadow Lotus,4,Spirit Herb,3,Ancient Bones,3,24
+korean-bulgogi-t4,Slow-Cooked Korean Bulgogi,Korean Bulgogi,4,RED,health,20,damage,13,passiveHealing,2,,,,5,Dragon Hide,5,Shadow Lotus,5,Spirit Herb,4,Ancient Bones,4,26
+korean-bulgogi-t5,Herb-Crusted Korean Bulgogi,Korean Bulgogi,5,RED,health,25,damage,16,passiveHealing,3,,,Fire affinity (+10% fire damage dealt),5,Dragon Hide,6,Shadow Lotus,6,Spirit Herb,5,Ancient Bones,5,28
+korean-bulgogi-t6,Marinated Korean Bulgogi,Korean Bulgogi,6,RED,health,30,damage,19,passiveHealing,3,,,Fire affinity (+10% fire damage dealt),5,Dragon Hide,7,Shadow Lotus,7,Spirit Herb,6,Ancient Bones,6,30
+korean-bulgogi-t7,Smoked Korean Bulgogi,Korean Bulgogi,7,RED,health,35,damage,22,passiveHealing,4,,,Fire affinity (+10% fire damage dealt),5,Dragon Hide,8,Shadow Lotus,8,Spirit Herb,7,Ancient Bones,7,32
+korean-bulgogi-t8,Seared Korean Bulgogi,Korean Bulgogi,8,RED,health,40,damage,25,passiveHealing,4,,,Fire affinity (+10% fire damage dealt),5,Dragon Hide,9,Shadow Lotus,9,Spirit Herb,8,Ancient Bones,8,34
+texas-brisket-t1,Classic Texas-Style Smoked Brisket,Texas-Style Smoked Brisket,1,RED,health,10,damage,3,passiveHealing,2,,,,5,Celestial Hide,3,Celestial Bloom,2,Elderwood Log,2,Void Leather,2,720
+texas-brisket-t2,Prime Texas-Style Smoked Brisket,Texas-Style Smoked Brisket,2,RED,health,18,damage,5,passiveHealing,3,,,,5,Celestial Hide,5,Celestial Bloom,3,Elderwood Log,3,Void Leather,3,780
+texas-brisket-t3,Grilled Texas-Style Smoked Brisket,Texas-Style Smoked Brisket,3,RED,health,26,damage,7,passiveHealing,4,,,,5,Celestial Hide,7,Celestial Bloom,4,Elderwood Log,4,Void Leather,4,840
+texas-brisket-t4,Slow-Cooked Texas-Style Smoked Brisket,Texas-Style Smoked Brisket,4,RED,health,34,damage,9,passiveHealing,5,,,,5,Celestial Hide,9,Celestial Bloom,5,Elderwood Log,5,Void Leather,5,900
+texas-brisket-t5,Herb-Crusted Texas-Style Smoked Brisket,Texas-Style Smoked Brisket,5,RED,health,42,damage,11,passiveHealing,6,,,Smoke infusion (+20% bleed resistance),5,Celestial Hide,11,Celestial Bloom,6,Elderwood Log,6,Void Leather,6,960
+texas-brisket-t6,Marinated Texas-Style Smoked Brisket,Texas-Style Smoked Brisket,6,RED,health,50,damage,13,passiveHealing,7,,,Smoke infusion (+20% bleed resistance),5,Celestial Hide,13,Celestial Bloom,7,Elderwood Log,7,Void Leather,7,1020
+texas-brisket-t7,Smoked Texas-Style Smoked Brisket,Texas-Style Smoked Brisket,7,RED,health,58,damage,15,passiveHealing,8,,,Smoke infusion (+20% bleed resistance),5,Celestial Hide,15,Celestial Bloom,8,Elderwood Log,8,Void Leather,8,1080
+texas-brisket-t8,Seared Texas-Style Smoked Brisket,Texas-Style Smoked Brisket,8,RED,health,66,damage,17,passiveHealing,9,,,Smoke infusion (+20% bleed resistance),5,Celestial Hide,17,Celestial Bloom,9,Elderwood Log,9,Void Leather,9,1140
+venison-medallions-t1,Classic Venison Medallions,Venison Medallions,1,RED,health,7,damage,5,passiveHealing,2,,,,5,Titan Skin,2,Starflower,3,Spirit Wood,1,Blue Mushroom,2,30
+venison-medallions-t2,Prime Venison Medallions,Venison Medallions,2,RED,health,13,damage,8,passiveHealing,3,,,,5,Titan Skin,3,Starflower,4,Spirit Wood,2,Blue Mushroom,3,34
+venison-medallions-t3,Grilled Venison Medallions,Venison Medallions,3,RED,health,19,damage,11,passiveHealing,4,,,,5,Titan Skin,4,Starflower,5,Spirit Wood,3,Blue Mushroom,4,38
+venison-medallions-t4,Slow-Cooked Venison Medallions,Venison Medallions,4,RED,health,25,damage,14,passiveHealing,5,,,,5,Titan Skin,5,Starflower,6,Spirit Wood,4,Blue Mushroom,5,42
+venison-medallions-t5,Herb-Crusted Venison Medallions,Venison Medallions,5,RED,health,31,damage,17,passiveHealing,6,,,Hunter's focus (+5% critical hit chance),5,Titan Skin,6,Starflower,7,Spirit Wood,5,Blue Mushroom,6,46
+venison-medallions-t6,Marinated Venison Medallions,Venison Medallions,6,RED,health,37,damage,20,passiveHealing,7,,,Hunter's focus (+5% critical hit chance),5,Titan Skin,7,Starflower,8,Spirit Wood,6,Blue Mushroom,7,50
+venison-medallions-t7,Smoked Venison Medallions,Venison Medallions,7,RED,health,43,damage,23,passiveHealing,8,,,Hunter's focus (+5% critical hit chance),5,Titan Skin,8,Starflower,9,Spirit Wood,7,Blue Mushroom,8,54
+venison-medallions-t8,Seared Venison Medallions,Venison Medallions,8,RED,health,49,damage,26,passiveHealing,9,,,Hunter's focus (+5% critical hit chance),5,Titan Skin,9,Starflower,10,Spirit Wood,8,Blue Mushroom,9,58
+chimichurri-steak-t1,Classic Argentinian Chimichurri Skirt Steak,Argentinian Chimichurri Skirt Steak,1,RED,health,8,damage,6,passiveHealing,2,,,,5,Phoenix Feather,2,Phoenix Ash Flower,3,Dragon Heart Herb,2,Titan Root,2,20
+chimichurri-steak-t2,Prime Argentinian Chimichurri Skirt Steak,Argentinian Chimichurri Skirt Steak,2,RED,health,15,damage,10,passiveHealing,3,,,,5,Phoenix Feather,3,Phoenix Ash Flower,5,Dragon Heart Herb,3,Titan Root,3,22
+chimichurri-steak-t3,Grilled Argentinian Chimichurri Skirt Steak,Argentinian Chimichurri Skirt Steak,3,RED,health,22,damage,14,passiveHealing,4,,,,5,Phoenix Feather,4,Phoenix Ash Flower,7,Dragon Heart Herb,4,Titan Root,4,24
+chimichurri-steak-t4,Slow-Cooked Argentinian Chimichurri Skirt Steak,Argentinian Chimichurri Skirt Steak,4,RED,health,29,damage,18,passiveHealing,5,,,,5,Phoenix Feather,5,Phoenix Ash Flower,9,Dragon Heart Herb,5,Titan Root,5,26
+chimichurri-steak-t5,Herb-Crusted Argentinian Chimichurri Skirt Steak,Argentinian Chimichurri Skirt Steak,5,RED,health,36,damage,22,passiveHealing,6,,,Herb vitality (+15% healing received),5,Phoenix Feather,6,Phoenix Ash Flower,11,Dragon Heart Herb,6,Titan Root,6,28
+chimichurri-steak-t6,Marinated Argentinian Chimichurri Skirt Steak,Argentinian Chimichurri Skirt Steak,6,RED,health,43,damage,26,passiveHealing,7,,,Herb vitality (+15% healing received),5,Phoenix Feather,7,Phoenix Ash Flower,13,Dragon Heart Herb,7,Titan Root,7,30
+chimichurri-steak-t7,Smoked Argentinian Chimichurri Skirt Steak,Argentinian Chimichurri Skirt Steak,7,RED,health,50,damage,30,passiveHealing,8,,,Herb vitality (+15% healing received),5,Phoenix Feather,8,Phoenix Ash Flower,15,Dragon Heart Herb,8,Titan Root,8,32
+chimichurri-steak-t8,Seared Argentinian Chimichurri Skirt Steak,Argentinian Chimichurri Skirt Steak,8,RED,health,57,damage,34,passiveHealing,9,,,Herb vitality (+15% healing received),5,Phoenix Feather,9,Phoenix Ash Flower,17,Dragon Heart Herb,9,Titan Root,9,34
+eggplant-parmesan-t1,Traditional Eggplant Parmesan,Eggplant Parmesan,1,GREEN,stamina,10,,,,,,,,5,Red Flower,2,Blue Mushroom,2,Common Herb,1,Pine Log,1,45
+eggplant-parmesan-t2,Stuffed Eggplant Parmesan,Eggplant Parmesan,2,GREEN,stamina,18,,,,,,,,5,Red Flower,3,Blue Mushroom,3,Common Herb,2,Pine Log,1,50
+eggplant-parmesan-t3,Veggie-Loaded Eggplant Parmesan,Eggplant Parmesan,3,GREEN,stamina,26,,,,,,,,5,Red Flower,4,Blue Mushroom,4,Common Herb,3,Pine Log,1,55
+eggplant-parmesan-t4,Creamy Eggplant Parmesan,Eggplant Parmesan,4,GREEN,stamina,34,,,,,,,,5,Red Flower,5,Blue Mushroom,5,Common Herb,4,Pine Log,1,60
+eggplant-parmesan-t5,Spicy Eggplant Parmesan,Eggplant Parmesan,5,GREEN,stamina,42,,,,,,,Quick reflexes (+10% dodge chance for 60s),5,Red Flower,6,Blue Mushroom,6,Common Herb,5,Pine Log,1,65
+eggplant-parmesan-t6,Baked Eggplant Parmesan,Eggplant Parmesan,6,GREEN,stamina,50,,,,,,,Quick reflexes (+10% dodge chance for 60s),5,Red Flower,7,Blue Mushroom,7,Common Herb,6,Pine Log,1,70
+eggplant-parmesan-t7,Grilled Eggplant Parmesan,Eggplant Parmesan,7,GREEN,stamina,58,,,,,,,Quick reflexes (+10% dodge chance for 60s),5,Red Flower,8,Blue Mushroom,8,Common Herb,7,Pine Log,1,75
+eggplant-parmesan-t8,Herbed Eggplant Parmesan,Eggplant Parmesan,8,GREEN,stamina,66,,,,,,,Quick reflexes (+10% dodge chance for 60s),5,Red Flower,9,Blue Mushroom,9,Common Herb,8,Pine Log,1,80
+spinach-lasagna-t1,Traditional Spinach and Ricotta Lasagna,Spinach and Ricotta Lasagna,1,GREEN,crit,2,,,,,,,,5,Moonpetal,3,Sunleaf,3,Healing Moss,2,Oak Log,1,60
+spinach-lasagna-t2,Stuffed Spinach and Ricotta Lasagna,Spinach and Ricotta Lasagna,2,GREEN,crit,3,,,,,,,,5,Moonpetal,4,Sunleaf,4,Healing Moss,3,Oak Log,1,65
+spinach-lasagna-t3,Veggie-Loaded Spinach and Ricotta Lasagna,Spinach and Ricotta Lasagna,3,GREEN,crit,5,,,,,,,,5,Moonpetal,5,Sunleaf,5,Healing Moss,4,Oak Log,1,70
+spinach-lasagna-t4,Creamy Spinach and Ricotta Lasagna,Spinach and Ricotta Lasagna,4,GREEN,crit,6,,,,,,,,5,Moonpetal,6,Sunleaf,6,Healing Moss,5,Oak Log,1,75
+spinach-lasagna-t5,Spicy Spinach and Ricotta Lasagna,Spinach and Ricotta Lasagna,5,GREEN,crit,8,,,,,,,Iron fortitude (+15% stamina regeneration),5,Moonpetal,7,Sunleaf,7,Healing Moss,6,Oak Log,1,80
+spinach-lasagna-t6,Baked Spinach and Ricotta Lasagna,Spinach and Ricotta Lasagna,6,GREEN,crit,9,,,,,,,Iron fortitude (+15% stamina regeneration),5,Moonpetal,8,Sunleaf,8,Healing Moss,7,Oak Log,1,85
+spinach-lasagna-t7,Grilled Spinach and Ricotta Lasagna,Spinach and Ricotta Lasagna,7,GREEN,crit,11,,,,,,,Iron fortitude (+15% stamina regeneration),5,Moonpetal,9,Sunleaf,9,Healing Moss,8,Oak Log,1,90
+spinach-lasagna-t8,Herbed Spinach and Ricotta Lasagna,Spinach and Ricotta Lasagna,8,GREEN,crit,12,,,,,,,Iron fortitude (+15% stamina regeneration),5,Moonpetal,10,Sunleaf,10,Healing Moss,9,Oak Log,1,95
+mushroom-risotto-t1,Traditional Mushroom Risotto,Mushroom Risotto,1,GREEN,speed,3,,,,,,,,5,Blue Mushroom,4,Mana Bloom,2,Common Herb,2,Ironwood Log,1,35
+mushroom-risotto-t2,Stuffed Mushroom Risotto,Mushroom Risotto,2,GREEN,speed,5,,,,,,,,5,Blue Mushroom,6,Mana Bloom,3,Common Herb,3,Ironwood Log,1,39
+mushroom-risotto-t3,Veggie-Loaded Mushroom Risotto,Mushroom Risotto,3,GREEN,speed,7,,,,,,,,5,Blue Mushroom,8,Mana Bloom,4,Common Herb,4,Ironwood Log,1,43
+mushroom-risotto-t4,Creamy Mushroom Risotto,Mushroom Risotto,4,GREEN,speed,9,,,,,,,,5,Blue Mushroom,10,Mana Bloom,5,Common Herb,5,Ironwood Log,1,47
+mushroom-risotto-t5,Spicy Mushroom Risotto,Mushroom Risotto,5,GREEN,speed,11,,,,,,,Earth attunement (+10% nature damage),5,Blue Mushroom,12,Mana Bloom,6,Common Herb,6,Ironwood Log,1,51
+mushroom-risotto-t6,Baked Mushroom Risotto,Mushroom Risotto,6,GREEN,speed,13,,,,,,,Earth attunement (+10% nature damage),5,Blue Mushroom,14,Mana Bloom,7,Common Herb,7,Ironwood Log,1,55
+mushroom-risotto-t7,Grilled Mushroom Risotto,Mushroom Risotto,7,GREEN,speed,15,,,,,,,Earth attunement (+10% nature damage),5,Blue Mushroom,16,Mana Bloom,8,Common Herb,8,Ironwood Log,1,59
+mushroom-risotto-t8,Herbed Mushroom Risotto,Mushroom Risotto,8,GREEN,speed,17,,,,,,,Earth attunement (+10% nature damage),5,Blue Mushroom,18,Mana Bloom,9,Common Herb,9,Ironwood Log,1,63
+chana-masala-t1,Traditional Chana Masala,Chana Masala,1,GREEN,stamina,8,crit,2,,,,,,5,Dragon's Breath,3,Nightshade,2,Life Root,2,Cedar Log,1,40
+chana-masala-t2,Stuffed Chana Masala,Chana Masala,2,GREEN,stamina,14,crit,3,,,,,,5,Dragon's Breath,4,Nightshade,3,Life Root,3,Cedar Log,2,45
+chana-masala-t3,Veggie-Loaded Chana Masala,Chana Masala,3,GREEN,stamina,20,crit,4,,,,,,5,Dragon's Breath,5,Nightshade,4,Life Root,4,Cedar Log,3,50
+chana-masala-t4,Creamy Chana Masala,Chana Masala,4,GREEN,stamina,26,crit,5,,,,,,5,Dragon's Breath,6,Nightshade,5,Life Root,5,Cedar Log,4,55
+chana-masala-t5,Spicy Chana Masala,Chana Masala,5,GREEN,stamina,32,crit,6,,,,,Spice rush (+20% movement speed burst on dodge),5,Dragon's Breath,7,Nightshade,6,Life Root,6,Cedar Log,5,60
+chana-masala-t6,Baked Chana Masala,Chana Masala,6,GREEN,stamina,38,crit,7,,,,,Spice rush (+20% movement speed burst on dodge),5,Dragon's Breath,8,Nightshade,7,Life Root,7,Cedar Log,6,65
+chana-masala-t7,Grilled Chana Masala,Chana Masala,7,GREEN,stamina,44,crit,8,,,,,Spice rush (+20% movement speed burst on dodge),5,Dragon's Breath,9,Nightshade,8,Life Root,8,Cedar Log,7,70
+chana-masala-t8,Herbed Chana Masala,Chana Masala,8,GREEN,stamina,50,crit,9,,,,,Spice rush (+20% movement speed burst on dodge),5,Dragon's Breath,10,Nightshade,9,Life Root,9,Cedar Log,8,75
+ratatouille-t1,Traditional Ratatouille,Ratatouille,1,GREEN,speed,3,dodge,3,,,,,,5,Ethereal Orchid,2,Shadow Lotus,2,Mana Bloom,2,Elderwood Log,2,50
+ratatouille-t2,Stuffed Ratatouille,Ratatouille,2,GREEN,speed,5,dodge,4,,,,,,5,Ethereal Orchid,3,Shadow Lotus,3,Mana Bloom,3,Elderwood Log,3,55
+ratatouille-t3,Veggie-Loaded Ratatouille,Ratatouille,3,GREEN,speed,7,dodge,6,,,,,,5,Ethereal Orchid,4,Shadow Lotus,4,Mana Bloom,4,Elderwood Log,4,60
+ratatouille-t4,Creamy Ratatouille,Ratatouille,4,GREEN,speed,9,dodge,7,,,,,,5,Ethereal Orchid,5,Shadow Lotus,5,Mana Bloom,5,Elderwood Log,5,65
+ratatouille-t5,Spicy Ratatouille,Ratatouille,5,GREEN,speed,11,dodge,9,,,,,Garden grace (+25% poison resistance),5,Ethereal Orchid,6,Shadow Lotus,6,Mana Bloom,6,Elderwood Log,6,70
+ratatouille-t6,Baked Ratatouille,Ratatouille,6,GREEN,speed,13,dodge,10,,,,,Garden grace (+25% poison resistance),5,Ethereal Orchid,7,Shadow Lotus,7,Mana Bloom,7,Elderwood Log,7,75
+ratatouille-t7,Grilled Ratatouille,Ratatouille,7,GREEN,speed,15,dodge,12,,,,,Garden grace (+25% poison resistance),5,Ethereal Orchid,8,Shadow Lotus,8,Mana Bloom,8,Elderwood Log,8,80
+ratatouille-t8,Herbed Ratatouille,Ratatouille,8,GREEN,speed,17,dodge,13,,,,,Garden grace (+25% poison resistance),5,Ethereal Orchid,9,Shadow Lotus,9,Mana Bloom,9,Elderwood Log,9,85
+falafel-platter-t1,Traditional Falafel Platter,Falafel Platter,1,GREEN,stamina,7,speed,3,,,,,,5,Spirit Herb,3,Celestial Bloom,2,Void Flower,2,Frostoak,1,30
+falafel-platter-t2,Stuffed Falafel Platter,Falafel Platter,2,GREEN,stamina,12,speed,5,,,,,,5,Spirit Herb,4,Celestial Bloom,3,Void Flower,3,Frostoak,2,33
+falafel-platter-t3,Veggie-Loaded Falafel Platter,Falafel Platter,3,GREEN,stamina,17,speed,7,,,,,,5,Spirit Herb,5,Celestial Bloom,4,Void Flower,4,Frostoak,3,36
+falafel-platter-t4,Creamy Falafel Platter,Falafel Platter,4,GREEN,stamina,22,speed,9,,,,,,5,Spirit Herb,6,Celestial Bloom,5,Void Flower,5,Frostoak,4,39
+falafel-platter-t5,Spicy Falafel Platter,Falafel Platter,5,GREEN,stamina,27,speed,11,,,,,Desert endurance (+20% stamina efficiency),5,Spirit Herb,7,Celestial Bloom,6,Void Flower,6,Frostoak,5,42
+falafel-platter-t6,Baked Falafel Platter,Falafel Platter,6,GREEN,stamina,32,speed,13,,,,,Desert endurance (+20% stamina efficiency),5,Spirit Herb,8,Celestial Bloom,7,Void Flower,7,Frostoak,6,45
+falafel-platter-t7,Grilled Falafel Platter,Falafel Platter,7,GREEN,stamina,37,speed,15,,,,,Desert endurance (+20% stamina efficiency),5,Spirit Herb,9,Celestial Bloom,8,Void Flower,8,Frostoak,7,48
+falafel-platter-t8,Herbed Falafel Platter,Falafel Platter,8,GREEN,stamina,42,speed,17,,,,,Desert endurance (+20% stamina efficiency),5,Spirit Herb,10,Celestial Bloom,9,Void Flower,9,Frostoak,8,51
+butternut-ravioli-t1,Traditional Butternut Squash Ravioli,Butternut Squash Ravioli,1,GREEN,stamina,6,crit,1,speed,2,dodge,2,,5,Starflower,2,Moonbloom,2,Sunpetal,1,Ancient Oak,2,45
+butternut-ravioli-t2,Stuffed Butternut Squash Ravioli,Butternut Squash Ravioli,2,GREEN,stamina,11,crit,2,speed,3,dodge,3,,5,Starflower,3,Moonbloom,3,Sunpetal,2,Ancient Oak,3,50
+butternut-ravioli-t3,Veggie-Loaded Butternut Squash Ravioli,Butternut Squash Ravioli,3,GREEN,stamina,16,crit,3,speed,4,dodge,4,,5,Starflower,4,Moonbloom,4,Sunpetal,3,Ancient Oak,4,55
+butternut-ravioli-t4,Creamy Butternut Squash Ravioli,Butternut Squash Ravioli,4,GREEN,stamina,21,crit,4,speed,5,dodge,5,,5,Starflower,5,Moonbloom,5,Sunpetal,4,Ancient Oak,5,60
+butternut-ravioli-t5,Spicy Butternut Squash Ravioli,Butternut Squash Ravioli,5,GREEN,stamina,26,crit,5,speed,6,dodge,6,Autumn blessing (+10% all green food effects),5,Starflower,6,Moonbloom,6,Sunpetal,5,Ancient Oak,6,65
+butternut-ravioli-t6,Baked Butternut Squash Ravioli,Butternut Squash Ravioli,6,GREEN,stamina,31,crit,6,speed,7,dodge,7,Autumn blessing (+10% all green food effects),5,Starflower,7,Moonbloom,7,Sunpetal,6,Ancient Oak,7,70
+butternut-ravioli-t7,Grilled Butternut Squash Ravioli,Butternut Squash Ravioli,7,GREEN,stamina,36,crit,7,speed,8,dodge,8,Autumn blessing (+10% all green food effects),5,Starflower,8,Moonbloom,8,Sunpetal,7,Ancient Oak,8,75
+butternut-ravioli-t8,Herbed Butternut Squash Ravioli,Butternut Squash Ravioli,8,GREEN,stamina,41,crit,8,speed,9,dodge,9,Autumn blessing (+10% all green food effects),5,Starflower,9,Moonbloom,9,Sunpetal,8,Ancient Oak,9,80
+quinoa-peppers-t1,Traditional Quinoa Stuffed Bell Peppers,Quinoa Stuffed Bell Peppers,1,GREEN,stamina,8,crit,1,speed,2,dodge,2,,5,Phoenix Ash Flower,3,Dragon Heart Herb,2,Titan Root,2,World Tree Branch,1,40
+quinoa-peppers-t2,Stuffed Quinoa Stuffed Bell Peppers,Quinoa Stuffed Bell Peppers,2,GREEN,stamina,14,crit,1,speed,3,dodge,3,,5,Phoenix Ash Flower,4,Dragon Heart Herb,3,Titan Root,3,World Tree Branch,2,44
+quinoa-peppers-t3,Veggie-Loaded Quinoa Stuffed Bell Peppers,Quinoa Stuffed Bell Peppers,3,GREEN,stamina,20,crit,2,speed,4,dodge,4,,5,Phoenix Ash Flower,5,Dragon Heart Herb,4,Titan Root,4,World Tree Branch,3,48
+quinoa-peppers-t4,Creamy Quinoa Stuffed Bell Peppers,Quinoa Stuffed Bell Peppers,4,GREEN,stamina,26,crit,2,speed,5,dodge,5,,5,Phoenix Ash Flower,6,Dragon Heart Herb,5,Titan Root,5,World Tree Branch,4,52
+quinoa-peppers-t5,Spicy Quinoa Stuffed Bell Peppers,Quinoa Stuffed Bell Peppers,5,GREEN,stamina,32,crit,3,speed,6,dodge,6,Complete nutrition (+5% all stats for 5 min),5,Phoenix Ash Flower,7,Dragon Heart Herb,6,Titan Root,6,World Tree Branch,5,56
+quinoa-peppers-t6,Baked Quinoa Stuffed Bell Peppers,Quinoa Stuffed Bell Peppers,6,GREEN,stamina,38,crit,3,speed,7,dodge,7,Complete nutrition (+5% all stats for 5 min),5,Phoenix Ash Flower,8,Dragon Heart Herb,7,Titan Root,7,World Tree Branch,6,60
+quinoa-peppers-t7,Grilled Quinoa Stuffed Bell Peppers,Quinoa Stuffed Bell Peppers,7,GREEN,stamina,44,crit,4,speed,8,dodge,8,Complete nutrition (+5% all stats for 5 min),5,Phoenix Ash Flower,9,Dragon Heart Herb,8,Titan Root,8,World Tree Branch,7,64
+quinoa-peppers-t8,Herbed Quinoa Stuffed Bell Peppers,Quinoa Stuffed Bell Peppers,8,GREEN,stamina,50,crit,4,speed,9,dodge,9,Complete nutrition (+5% all stats for 5 min),5,Phoenix Ash Flower,10,Dragon Heart Herb,9,Titan Root,9,World Tree Branch,8,68
+vegetable-pad-thai-t1,Traditional Vegetable Pad Thai,Vegetable Pad Thai,1,GREEN,stamina,5,crit,2,speed,3,dodge,1,,5,Infinity Bloom,2,Godherb,2,Cosmic Lotus,2,Godwood,1,20
+vegetable-pad-thai-t2,Stuffed Vegetable Pad Thai,Vegetable Pad Thai,2,GREEN,stamina,9,crit,3,speed,5,dodge,1,,5,Infinity Bloom,3,Godherb,3,Cosmic Lotus,3,Godwood,2,22
+vegetable-pad-thai-t3,Veggie-Loaded Vegetable Pad Thai,Vegetable Pad Thai,3,GREEN,stamina,13,crit,5,speed,7,dodge,2,,5,Infinity Bloom,4,Godherb,4,Cosmic Lotus,4,Godwood,3,24
+vegetable-pad-thai-t4,Creamy Vegetable Pad Thai,Vegetable Pad Thai,4,GREEN,stamina,17,crit,6,speed,9,dodge,2,,5,Infinity Bloom,5,Godherb,5,Cosmic Lotus,5,Godwood,4,26
+vegetable-pad-thai-t5,Spicy Vegetable Pad Thai,Vegetable Pad Thai,5,GREEN,stamina,21,crit,8,speed,11,dodge,3,Swift strikes (+10% attack speed),5,Infinity Bloom,6,Godherb,6,Cosmic Lotus,6,Godwood,5,28
+vegetable-pad-thai-t6,Baked Vegetable Pad Thai,Vegetable Pad Thai,6,GREEN,stamina,25,crit,9,speed,13,dodge,3,Swift strikes (+10% attack speed),5,Infinity Bloom,7,Godherb,7,Cosmic Lotus,7,Godwood,6,30
+vegetable-pad-thai-t7,Grilled Vegetable Pad Thai,Vegetable Pad Thai,7,GREEN,stamina,29,crit,11,speed,15,dodge,4,Swift strikes (+10% attack speed),5,Infinity Bloom,8,Godherb,8,Cosmic Lotus,8,Godwood,7,32
+vegetable-pad-thai-t8,Herbed Vegetable Pad Thai,Vegetable Pad Thai,8,GREEN,stamina,33,crit,12,speed,17,dodge,4,Swift strikes (+10% attack speed),5,Infinity Bloom,9,Godherb,9,Cosmic Lotus,9,Godwood,8,34
+lentil-dahl-t1,Traditional Lentil Dahl,Lentil Dahl,1,GREEN,stamina,7,crit,1,speed,2,dodge,3,,5,Spirit Herb,3,Dreamwood,2,Life Root,2,Ether Wood,1,35
+lentil-dahl-t2,Stuffed Lentil Dahl,Lentil Dahl,2,GREEN,stamina,12,crit,2,speed,3,dodge,4,,5,Spirit Herb,4,Dreamwood,3,Life Root,3,Ether Wood,2,39
+lentil-dahl-t3,Veggie-Loaded Lentil Dahl,Lentil Dahl,3,GREEN,stamina,17,crit,3,speed,4,dodge,6,,5,Spirit Herb,5,Dreamwood,4,Life Root,4,Ether Wood,3,43
+lentil-dahl-t4,Creamy Lentil Dahl,Lentil Dahl,4,GREEN,stamina,22,crit,4,speed,5,dodge,7,,5,Spirit Herb,6,Dreamwood,5,Life Root,5,Ether Wood,4,47
+lentil-dahl-t5,Spicy Lentil Dahl,Lentil Dahl,5,GREEN,stamina,27,crit,5,speed,6,dodge,9,Inner warmth (+15% cold resistance),5,Spirit Herb,7,Dreamwood,6,Life Root,6,Ether Wood,5,51
+lentil-dahl-t6,Baked Lentil Dahl,Lentil Dahl,6,GREEN,stamina,32,crit,6,speed,7,dodge,10,Inner warmth (+15% cold resistance),5,Spirit Herb,8,Dreamwood,7,Life Root,7,Ether Wood,6,55
+lentil-dahl-t7,Grilled Lentil Dahl,Lentil Dahl,7,GREEN,stamina,37,crit,7,speed,8,dodge,12,Inner warmth (+15% cold resistance),5,Spirit Herb,9,Dreamwood,8,Life Root,8,Ether Wood,7,59
+lentil-dahl-t8,Herbed Lentil Dahl,Lentil Dahl,8,GREEN,stamina,42,crit,8,speed,9,dodge,13,Inner warmth (+15% cold resistance),5,Spirit Herb,10,Dreamwood,9,Life Root,9,Ether Wood,8,63
+bouillabaisse-t1,Traditional Bouillabaisse,Bouillabaisse,1,BLUE,mana,15,,,,,,,,5,Common Fish,3,Clam,2,Salmon,1,Rough Stone,1,60
+bouillabaisse-t2,Spicy Bouillabaisse,Bouillabaisse,2,BLUE,mana,27,,,,,,,,5,Common Fish,4,Clam,3,Salmon,2,Rough Stone,1,68
+bouillabaisse-t3,Creamy Bouillabaisse,Bouillabaisse,3,BLUE,mana,39,,,,,,,,5,Common Fish,5,Clam,4,Salmon,3,Rough Stone,1,76
+bouillabaisse-t4,Broth-Based Bouillabaisse,Bouillabaisse,4,BLUE,mana,51,,,,,,,,5,Common Fish,6,Clam,5,Salmon,4,Rough Stone,1,84
+bouillabaisse-t5,Grilled Bouillabaisse,Bouillabaisse,5,BLUE,mana,63,,,,,,,Ocean's blessing (+15% water spell damage),5,Common Fish,7,Clam,6,Salmon,5,Rough Stone,1,92
+bouillabaisse-t6,Stewed Bouillabaisse,Bouillabaisse,6,BLUE,mana,75,,,,,,,Ocean's blessing (+15% water spell damage),5,Common Fish,8,Clam,7,Salmon,6,Rough Stone,1,100
+bouillabaisse-t7,Raw Bouillabaisse,Bouillabaisse,7,BLUE,mana,87,,,,,,,Ocean's blessing (+15% water spell damage),5,Common Fish,9,Clam,8,Salmon,7,Rough Stone,1,108
+bouillabaisse-t8,Smoked Bouillabaisse,Bouillabaisse,8,BLUE,mana,99,,,,,,,Ocean's blessing (+15% water spell damage),5,Common Fish,10,Clam,9,Salmon,8,Rough Stone,1,116
+pan-seared-salmon-t1,Traditional Pan-Seared Salmon,Pan-Seared Salmon,1,BLUE,spellDamage,4,,,,,,,,5,Salmon,2,Sunleaf,1,Common Herb,2,Iron Ore,1,15
+pan-seared-salmon-t2,Spicy Pan-Seared Salmon,Pan-Seared Salmon,2,BLUE,spellDamage,7,,,,,,,,5,Salmon,3,Sunleaf,2,Common Herb,3,Iron Ore,1,17
+pan-seared-salmon-t3,Creamy Pan-Seared Salmon,Pan-Seared Salmon,3,BLUE,spellDamage,10,,,,,,,,5,Salmon,4,Sunleaf,3,Common Herb,4,Iron Ore,1,19
+pan-seared-salmon-t4,Broth-Based Pan-Seared Salmon,Pan-Seared Salmon,4,BLUE,spellDamage,13,,,,,,,,5,Salmon,5,Sunleaf,4,Common Herb,5,Iron Ore,1,21
+pan-seared-salmon-t5,Grilled Pan-Seared Salmon,Pan-Seared Salmon,5,BLUE,spellDamage,16,,,,,,,Mind clarity (+10% cooldown reduction),5,Salmon,6,Sunleaf,5,Common Herb,6,Iron Ore,1,23
+pan-seared-salmon-t6,Stewed Pan-Seared Salmon,Pan-Seared Salmon,6,BLUE,spellDamage,19,,,,,,,Mind clarity (+10% cooldown reduction),5,Salmon,7,Sunleaf,6,Common Herb,7,Iron Ore,1,25
+pan-seared-salmon-t7,Raw Pan-Seared Salmon,Pan-Seared Salmon,7,BLUE,spellDamage,22,,,,,,,Mind clarity (+10% cooldown reduction),5,Salmon,8,Sunleaf,7,Common Herb,8,Iron Ore,1,27
+pan-seared-salmon-t8,Smoked Pan-Seared Salmon,Pan-Seared Salmon,8,BLUE,spellDamage,25,,,,,,,Mind clarity (+10% cooldown reduction),5,Salmon,9,Sunleaf,8,Common Herb,9,Iron Ore,1,29
+grilled-lobster-t1,Traditional Grilled Lobster,Grilled Lobster,1,BLUE,manaRegen,3,,,,,,,,5,Lobster,1,Healing Moss,2,Moonpetal,2,Copper Ore,1,20
+grilled-lobster-t2,Spicy Grilled Lobster,Grilled Lobster,2,BLUE,manaRegen,5,,,,,,,,5,Lobster,2,Healing Moss,3,Moonpetal,3,Copper Ore,1,23
+grilled-lobster-t3,Creamy Grilled Lobster,Grilled Lobster,3,BLUE,manaRegen,7,,,,,,,,5,Lobster,3,Healing Moss,4,Moonpetal,4,Copper Ore,1,26
+grilled-lobster-t4,Broth-Based Grilled Lobster,Grilled Lobster,4,BLUE,manaRegen,9,,,,,,,,5,Lobster,4,Healing Moss,5,Moonpetal,5,Copper Ore,1,29
+grilled-lobster-t5,Grilled Grilled Lobster,Grilled Lobster,5,BLUE,manaRegen,11,,,,,,,Arcane surge (+20% max mana for 5 min),5,Lobster,5,Healing Moss,6,Moonpetal,6,Copper Ore,1,32
+grilled-lobster-t6,Stewed Grilled Lobster,Grilled Lobster,6,BLUE,manaRegen,13,,,,,,,Arcane surge (+20% max mana for 5 min),5,Lobster,6,Healing Moss,7,Moonpetal,7,Copper Ore,1,35
+grilled-lobster-t7,Raw Grilled Lobster,Grilled Lobster,7,BLUE,manaRegen,15,,,,,,,Arcane surge (+20% max mana for 5 min),5,Lobster,7,Healing Moss,8,Moonpetal,8,Copper Ore,1,38
+grilled-lobster-t8,Smoked Grilled Lobster,Grilled Lobster,8,BLUE,manaRegen,17,,,,,,,Arcane surge (+20% max mana for 5 min),5,Lobster,8,Healing Moss,9,Moonpetal,9,Copper Ore,1,41
+seared-tuna-t1,Traditional Seared Tuna Steak,Seared Tuna Steak,1,BLUE,mana,10,spellDamage,5,,,,,,5,Tuna,2,Sea Urchin,2,Dragon's Breath,1,Gold Ore,1,10
+seared-tuna-t2,Spicy Seared Tuna Steak,Seared Tuna Steak,2,BLUE,mana,18,spellDamage,8,,,,,,5,Tuna,3,Sea Urchin,3,Dragon's Breath,2,Gold Ore,1,11
+seared-tuna-t3,Creamy Seared Tuna Steak,Seared Tuna Steak,3,BLUE,mana,26,spellDamage,11,,,,,,5,Tuna,4,Sea Urchin,4,Dragon's Breath,3,Gold Ore,1,12
+seared-tuna-t4,Broth-Based Seared Tuna Steak,Seared Tuna Steak,4,BLUE,mana,34,spellDamage,14,,,,,,5,Tuna,5,Sea Urchin,5,Dragon's Breath,4,Gold Ore,1,13
+seared-tuna-t5,Grilled Seared Tuna Steak,Seared Tuna Steak,5,BLUE,mana,42,spellDamage,17,,,,,Precision casting (+15% spell critical damage),5,Tuna,6,Sea Urchin,6,Dragon's Breath,5,Gold Ore,1,14
+seared-tuna-t6,Stewed Seared Tuna Steak,Seared Tuna Steak,6,BLUE,mana,50,spellDamage,20,,,,,Precision casting (+15% spell critical damage),5,Tuna,7,Sea Urchin,7,Dragon's Breath,6,Gold Ore,1,15
+seared-tuna-t7,Raw Seared Tuna Steak,Seared Tuna Steak,7,BLUE,mana,58,spellDamage,23,,,,,Precision casting (+15% spell critical damage),5,Tuna,8,Sea Urchin,8,Dragon's Breath,7,Gold Ore,1,16
+seared-tuna-t8,Smoked Seared Tuna Steak,Seared Tuna Steak,8,BLUE,mana,66,spellDamage,26,,,,,Precision casting (+15% spell critical damage),5,Tuna,9,Sea Urchin,9,Dragon's Breath,8,Gold Ore,1,17
+seafood-paella-t1,Traditional Seafood Paella,Seafood Paella,1,BLUE,manaRegen,3,spellCrit,3,,,,,,5,Golden Fish,2,Giant Crab,2,Pearl Oyster,2,Mithril Ore,1,45
+seafood-paella-t2,Spicy Seafood Paella,Seafood Paella,2,BLUE,manaRegen,5,spellCrit,4,,,,,,5,Golden Fish,3,Giant Crab,3,Pearl Oyster,3,Mithril Ore,2,50
+seafood-paella-t3,Creamy Seafood Paella,Seafood Paella,3,BLUE,manaRegen,7,spellCrit,6,,,,,,5,Golden Fish,4,Giant Crab,4,Pearl Oyster,4,Mithril Ore,3,55
+seafood-paella-t4,Broth-Based Seafood Paella,Seafood Paella,4,BLUE,manaRegen,9,spellCrit,7,,,,,,5,Golden Fish,5,Giant Crab,5,Pearl Oyster,5,Mithril Ore,4,60
+seafood-paella-t5,Grilled Seafood Paella,Seafood Paella,5,BLUE,manaRegen,11,spellCrit,9,,,,,Party feast (+5% all stats to nearby allies),5,Golden Fish,6,Giant Crab,6,Pearl Oyster,6,Mithril Ore,5,65
+seafood-paella-t6,Stewed Seafood Paella,Seafood Paella,6,BLUE,manaRegen,13,spellCrit,10,,,,,Party feast (+5% all stats to nearby allies),5,Golden Fish,7,Giant Crab,7,Pearl Oyster,7,Mithril Ore,6,70
+seafood-paella-t7,Raw Seafood Paella,Seafood Paella,7,BLUE,manaRegen,15,spellCrit,12,,,,,Party feast (+5% all stats to nearby allies),5,Golden Fish,8,Giant Crab,8,Pearl Oyster,8,Mithril Ore,7,75
+seafood-paella-t8,Smoked Seafood Paella,Seafood Paella,8,BLUE,manaRegen,17,spellCrit,13,,,,,Party feast (+5% all stats to nearby allies),5,Golden Fish,9,Giant Crab,9,Pearl Oyster,9,Mithril Ore,8,80
+crab-cakes-t1,Traditional Crab Cakes,Crab Cakes,1,BLUE,mana,8,manaRegen,3,,,,,,5,Giant Crab,3,Black Pearl,1,Moonfish,1,Obsidian,1,20
+crab-cakes-t2,Spicy Crab Cakes,Crab Cakes,2,BLUE,mana,14,manaRegen,5,,,,,,5,Giant Crab,4,Black Pearl,2,Moonfish,2,Obsidian,1,22
+crab-cakes-t3,Creamy Crab Cakes,Crab Cakes,3,BLUE,mana,20,manaRegen,7,,,,,,5,Giant Crab,5,Black Pearl,3,Moonfish,3,Obsidian,1,24
+crab-cakes-t4,Broth-Based Crab Cakes,Crab Cakes,4,BLUE,mana,26,manaRegen,9,,,,,,5,Giant Crab,6,Black Pearl,4,Moonfish,4,Obsidian,1,26
+crab-cakes-t5,Grilled Crab Cakes,Crab Cakes,5,BLUE,mana,32,manaRegen,11,,,,,Shell shield (+15% magic damage reduction),5,Giant Crab,7,Black Pearl,5,Moonfish,5,Obsidian,1,28
+crab-cakes-t6,Stewed Crab Cakes,Crab Cakes,6,BLUE,mana,38,manaRegen,13,,,,,Shell shield (+15% magic damage reduction),5,Giant Crab,8,Black Pearl,6,Moonfish,6,Obsidian,1,30
+crab-cakes-t7,Raw Crab Cakes,Crab Cakes,7,BLUE,mana,44,manaRegen,15,,,,,Shell shield (+15% magic damage reduction),5,Giant Crab,9,Black Pearl,7,Moonfish,7,Obsidian,1,32
+crab-cakes-t8,Smoked Crab Cakes,Crab Cakes,8,BLUE,mana,50,manaRegen,17,,,,,Shell shield (+15% magic damage reduction),5,Giant Crab,10,Black Pearl,8,Moonfish,8,Obsidian,1,34
+shrimp-scampi-t1,Traditional Shrimp Scampi,Shrimp Scampi,1,BLUE,mana,10,spellDamage,3,manaRegen,3,spellCrit,1,,5,Void Fish,2,Abyssal Eel,2,Star Pearl,1,Prismatic Crystal,1,25
+shrimp-scampi-t2,Spicy Shrimp Scampi,Shrimp Scampi,2,BLUE,mana,18,spellDamage,5,manaRegen,5,spellCrit,1,,5,Void Fish,3,Abyssal Eel,3,Star Pearl,2,Prismatic Crystal,2,28
+shrimp-scampi-t3,Creamy Shrimp Scampi,Shrimp Scampi,3,BLUE,mana,26,spellDamage,7,manaRegen,7,spellCrit,2,,5,Void Fish,4,Abyssal Eel,4,Star Pearl,3,Prismatic Crystal,3,31
+shrimp-scampi-t4,Broth-Based Shrimp Scampi,Shrimp Scampi,4,BLUE,mana,34,spellDamage,9,manaRegen,9,spellCrit,2,,5,Void Fish,5,Abyssal Eel,5,Star Pearl,4,Prismatic Crystal,4,34
+shrimp-scampi-t5,Grilled Shrimp Scampi,Shrimp Scampi,5,BLUE,mana,42,spellDamage,11,manaRegen,11,spellCrit,3,Mana fountain (+25% mana regeneration),5,Void Fish,6,Abyssal Eel,6,Star Pearl,5,Prismatic Crystal,5,37
+shrimp-scampi-t6,Stewed Shrimp Scampi,Shrimp Scampi,6,BLUE,mana,50,spellDamage,13,manaRegen,13,spellCrit,3,Mana fountain (+25% mana regeneration),5,Void Fish,7,Abyssal Eel,7,Star Pearl,6,Prismatic Crystal,6,40
+shrimp-scampi-t7,Raw Shrimp Scampi,Shrimp Scampi,7,BLUE,mana,58,spellDamage,15,manaRegen,15,spellCrit,4,Mana fountain (+25% mana regeneration),5,Void Fish,8,Abyssal Eel,8,Star Pearl,7,Prismatic Crystal,7,43
+shrimp-scampi-t8,Smoked Shrimp Scampi,Shrimp Scampi,8,BLUE,mana,66,spellDamage,17,manaRegen,17,spellCrit,4,Mana fountain (+25% mana regeneration),5,Void Fish,9,Abyssal Eel,9,Star Pearl,8,Prismatic Crystal,8,46
+fish-tacos-t1,Traditional Fish Tacos,Fish Tacos,1,BLUE,mana,6,spellDamage,3,manaRegen,2,spellCrit,3,,5,Celestial Koi,2,Moon Pearl,2,Spirit Herb,2,Moonstone,1,15
+fish-tacos-t2,Spicy Fish Tacos,Fish Tacos,2,BLUE,mana,11,spellDamage,5,manaRegen,3,spellCrit,4,,5,Celestial Koi,3,Moon Pearl,3,Spirit Herb,3,Moonstone,2,17
+fish-tacos-t3,Creamy Fish Tacos,Fish Tacos,3,BLUE,mana,16,spellDamage,7,manaRegen,4,spellCrit,6,,5,Celestial Koi,4,Moon Pearl,4,Spirit Herb,4,Moonstone,3,19
+fish-tacos-t4,Broth-Based Fish Tacos,Fish Tacos,4,BLUE,mana,21,spellDamage,9,manaRegen,5,spellCrit,7,,5,Celestial Koi,5,Moon Pearl,5,Spirit Herb,5,Moonstone,4,21
+fish-tacos-t5,Grilled Fish Tacos,Fish Tacos,5,BLUE,mana,26,spellDamage,11,manaRegen,6,spellCrit,9,Lucky catch (+10% rare drop chance),5,Celestial Koi,6,Moon Pearl,6,Spirit Herb,6,Moonstone,5,23
+fish-tacos-t6,Stewed Fish Tacos,Fish Tacos,6,BLUE,mana,31,spellDamage,13,manaRegen,7,spellCrit,10,Lucky catch (+10% rare drop chance),5,Celestial Koi,7,Moon Pearl,7,Spirit Herb,7,Moonstone,6,25
+fish-tacos-t7,Raw Fish Tacos,Fish Tacos,7,BLUE,mana,36,spellDamage,15,manaRegen,8,spellCrit,12,Lucky catch (+10% rare drop chance),5,Celestial Koi,8,Moon Pearl,8,Spirit Herb,8,Moonstone,7,27
+fish-tacos-t8,Smoked Fish Tacos,Fish Tacos,8,BLUE,mana,41,spellDamage,17,manaRegen,9,spellCrit,13,Lucky catch (+10% rare drop chance),5,Celestial Koi,9,Moon Pearl,9,Spirit Herb,9,Moonstone,8,29
+clam-chowder-t1,Traditional Clam Chowder,Clam Chowder,1,BLUE,mana,12,spellDamage,2,manaRegen,4,spellCrit,1,,5,Phoenix Fin,2,Dragon Turtle,2,Sun Pearl,1,Dragon Scale Ore,1,40
+clam-chowder-t2,Spicy Clam Chowder,Clam Chowder,2,BLUE,mana,22,spellDamage,3,manaRegen,6,spellCrit,1,,5,Phoenix Fin,3,Dragon Turtle,3,Sun Pearl,2,Dragon Scale Ore,2,45
+clam-chowder-t3,Creamy Clam Chowder,Clam Chowder,3,BLUE,mana,32,spellDamage,4,manaRegen,8,spellCrit,2,,5,Phoenix Fin,4,Dragon Turtle,4,Sun Pearl,3,Dragon Scale Ore,3,50
+clam-chowder-t4,Broth-Based Clam Chowder,Clam Chowder,4,BLUE,mana,42,spellDamage,5,manaRegen,10,spellCrit,2,,5,Phoenix Fin,5,Dragon Turtle,5,Sun Pearl,4,Dragon Scale Ore,4,55
+clam-chowder-t5,Grilled Clam Chowder,Clam Chowder,5,BLUE,mana,52,spellDamage,6,manaRegen,12,spellCrit,3,Coastal resilience (+20% frost resistance),5,Phoenix Fin,6,Dragon Turtle,6,Sun Pearl,5,Dragon Scale Ore,5,60
+clam-chowder-t6,Stewed Clam Chowder,Clam Chowder,6,BLUE,mana,62,spellDamage,7,manaRegen,14,spellCrit,3,Coastal resilience (+20% frost resistance),5,Phoenix Fin,7,Dragon Turtle,7,Sun Pearl,6,Dragon Scale Ore,6,65
+clam-chowder-t7,Raw Clam Chowder,Clam Chowder,7,BLUE,mana,72,spellDamage,8,manaRegen,16,spellCrit,4,Coastal resilience (+20% frost resistance),5,Phoenix Fin,8,Dragon Turtle,8,Sun Pearl,7,Dragon Scale Ore,7,70
+clam-chowder-t8,Smoked Clam Chowder,Clam Chowder,8,BLUE,mana,82,spellDamage,9,manaRegen,18,spellCrit,4,Coastal resilience (+20% frost resistance),5,Phoenix Fin,9,Dragon Turtle,9,Sun Pearl,8,Dragon Scale Ore,8,75
+octopus-carpaccio-t1,Traditional Octopus Carpaccio,Octopus Carpaccio,1,BLUE,mana,10,spellDamage,5,manaRegen,2,spellCrit,2,,5,Infinity Fish,2,Worldsea Creature,1,Cosmic Pearl,1,Worldcore Gem,1,90
+octopus-carpaccio-t2,Spicy Octopus Carpaccio,Octopus Carpaccio,2,BLUE,mana,18,spellDamage,9,manaRegen,3,spellCrit,3,,5,Infinity Fish,3,Worldsea Creature,2,Cosmic Pearl,2,Worldcore Gem,2,100
+octopus-carpaccio-t3,Creamy Octopus Carpaccio,Octopus Carpaccio,3,BLUE,mana,26,spellDamage,13,manaRegen,4,spellCrit,4,,5,Infinity Fish,4,Worldsea Creature,3,Cosmic Pearl,3,Worldcore Gem,3,110
+octopus-carpaccio-t4,Broth-Based Octopus Carpaccio,Octopus Carpaccio,4,BLUE,mana,34,spellDamage,17,manaRegen,5,spellCrit,5,,5,Infinity Fish,5,Worldsea Creature,4,Cosmic Pearl,4,Worldcore Gem,4,120
+octopus-carpaccio-t5,Grilled Octopus Carpaccio,Octopus Carpaccio,5,BLUE,mana,42,spellDamage,21,manaRegen,6,spellCrit,6,Tentacle touch (+2 spell multi-target),5,Infinity Fish,6,Worldsea Creature,5,Cosmic Pearl,5,Worldcore Gem,5,130
+octopus-carpaccio-t6,Stewed Octopus Carpaccio,Octopus Carpaccio,6,BLUE,mana,50,spellDamage,25,manaRegen,7,spellCrit,7,Tentacle touch (+2 spell multi-target),5,Infinity Fish,7,Worldsea Creature,6,Cosmic Pearl,6,Worldcore Gem,6,140
+octopus-carpaccio-t7,Raw Octopus Carpaccio,Octopus Carpaccio,7,BLUE,mana,58,spellDamage,29,manaRegen,8,spellCrit,8,Tentacle touch (+2 spell multi-target),5,Infinity Fish,8,Worldsea Creature,7,Cosmic Pearl,7,Worldcore Gem,7,150
+octopus-carpaccio-t8,Smoked Octopus Carpaccio,Octopus Carpaccio,8,BLUE,mana,66,spellDamage,33,manaRegen,9,spellCrit,9,Tentacle touch (+2 spell multi-target),5,Infinity Fish,9,Worldsea Creature,8,Cosmic Pearl,8,Worldcore Gem,8,160

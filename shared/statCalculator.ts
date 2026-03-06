@@ -1,0 +1,159 @@
+// Attribute stat bonuses from the Game Attributes & Stats System guide
+// Format: { flat: per point, percent: of base per point }
+export const ATTRIBUTE_GAINS = {
+  Strength: { 
+    Health: { flat: 26, percent: 0.8 },
+    Damage: { flat: 3, percent: 2 },
+    Defense: { flat: 12, percent: 1.5 },
+    BlockChance: { flat: 0.5, percent: 5 },
+    CritChance: { flat: 0.32, percent: 7 },
+    BlockFactor: { flat: 0.85, percent: 26.3 },
+    CritFactor: { flat: 1.1, percent: 1.5 },
+  },
+  Vitality: { 
+    Health: { flat: 25, percent: 0.5 },
+    Mana: { flat: 2, percent: 0.2 },
+    Stamina: { flat: 5, percent: 0.1 },
+    Damage: { flat: 2, percent: 0.1 },
+    Defense: { flat: 12, percent: 0 },
+    BlockFactor: { flat: 0.3, percent: 17 },
+    Resistance: { flat: 0.5, percent: 0 },
+  },
+  Endurance: { 
+    Health: { flat: 10, percent: 0.1 },
+    Stamina: { flat: 1, percent: 0.3 },
+    Defense: { flat: 12, percent: 12 },
+    BlockChance: { flat: 0.11, percent: 73.5 },
+    BlockFactor: { flat: 0.27, percent: 0 },
+    Resistance: { flat: 0.46, percent: 0 },
+  },
+  Intellect: { 
+    Mana: { flat: 5, percent: 5 },
+    Damage: { flat: 4, percent: 2.5 },
+    Defense: { flat: 2, percent: 0 },
+    CritChance: { flat: 0.23, percent: 0.1 },
+    Accuracy: { flat: 0.12, percent: 33.8 },
+    Resistance: { flat: 0.38, percent: 17 },
+  },
+  Wisdom: { 
+    Health: { flat: 10, percent: 0 },
+    Mana: { flat: 20, percent: 3 },
+    Damage: { flat: 2, percent: 1.5 },
+    Defense: { flat: 2, percent: 0 },
+    CritChance: { flat: 0.5, percent: 0.15 },
+    Resistance: { flat: 0.5, percent: 0 },
+  },
+  Dexterity: { 
+    Damage: { flat: 3, percent: 1.8 },
+    Defense: { flat: 10, percent: 1 },
+    BlockChance: { flat: 0.41, percent: 1 },
+    CritChance: { flat: 0.5, percent: 1.2 },
+    Accuracy: { flat: 0.7, percent: 1.5 },
+  },
+  Agility: { 
+    Health: { flat: 2, percent: 0.6 },
+    Stamina: { flat: 5, percent: 0.5 },
+    Damage: { flat: 3, percent: 1.6 },
+    Defense: { flat: 5, percent: 0.8 },
+    CritChance: { flat: 0.42, percent: 1 },
+  },
+  Tactics: { 
+    Health: { flat: 10, percent: 8.4 },
+    Mana: { flat: 0, percent: 8.2 },
+    Stamina: { flat: 1, percent: 0 },
+    Damage: { flat: 3, percent: 0.2 },
+    Defense: { flat: 5, percent: 0.5 },
+    BlockChance: { flat: 0.27, percent: 0.8 },
+    CritChance: { flat: 0.02, percent: 2 },
+  },
+} as const;
+
+export const CLASS_BASE_STATS: Record<string, { hp: number; mana: number; stamina: number }> = {
+  warrior: { hp: 150, mana: 30, stamina: 100 },
+  mage: { hp: 80, mana: 150, stamina: 50 },
+  ranger: { hp: 100, mana: 60, stamina: 120 },
+  shapeshifter: { hp: 120, mana: 80, stamina: 80 },
+};
+
+// Base stats at level 0
+const BASE_DAMAGE = 20;
+const BASE_DEFENSE = 10;
+
+export const ATTRIBUTE_POINTS_PER_LEVEL = 7;
+export const STARTING_ATTRIBUTE_POINTS = 20;
+
+export interface DerivedStats {
+  maxHealth: number;
+  maxMana: number;
+  maxStamina: number;
+  physDmg: number;
+  magDmg: number;
+  physDef: number;
+  magDef: number;
+  crit: number;
+  speed: number;
+}
+
+export function calculateDerivedStats(
+  attributes: Record<string, number>,
+  classId: string
+): DerivedStats {
+  const baseStats = CLASS_BASE_STATS[classId] || CLASS_BASE_STATS.warrior;
+  
+  const str = attributes.Strength || 0;
+  const int = attributes.Intellect || 0;
+  const vit = attributes.Vitality || 0;
+  const dex = attributes.Dexterity || 0;
+  const end = attributes.Endurance || 0;
+  const wis = attributes.Wisdom || 0;
+  const agi = attributes.Agility || 0;
+  const tac = attributes.Tactics || 0;
+
+  // Health: STR (26 + 0.8%), VIT (25 + 0.5%), END (10 + 0.1%), WIS (10), AGI (2 + 0.6%), TAC (10 + 8.4%)
+  const healthFlat = (str * 26) + (vit * 25) + (end * 10) + (wis * 10) + (agi * 2) + (tac * 10);
+  const healthPercent = baseStats.hp * ((str * 0.008) + (vit * 0.005) + (end * 0.001) + (agi * 0.006) + (tac * 0.084));
+  
+  // Mana: INT (5 + 5%), VIT (2 + 0.2%), WIS (20 + 3%), TAC (0 + 8.2%)
+  const manaFlat = (int * 5) + (vit * 2) + (wis * 20);
+  const manaPercent = baseStats.mana * ((int * 0.05) + (vit * 0.002) + (wis * 0.03) + (tac * 0.082));
+  
+  // Stamina: VIT (5 + 0.1%), END (1 + 0.3%), AGI (5 + 0.5%), TAC (1)
+  const staminaFlat = (vit * 5) + (end * 1) + (agi * 5) + (tac * 1);
+  const staminaPercent = baseStats.stamina * ((vit * 0.001) + (end * 0.003) + (agi * 0.005));
+  
+  // Physical Damage: STR (3 + 2%), VIT (2 + 0.1%), DEX (3 + 1.8%), AGI (3 + 1.6%), TAC (3 + 0.2%)
+  const physDmgFlat = (str * 3) + (vit * 2) + (dex * 3) + (agi * 3) + (tac * 3);
+  const physDmgPercent = BASE_DAMAGE * ((str * 0.02) + (vit * 0.001) + (dex * 0.018) + (agi * 0.016) + (tac * 0.002));
+  
+  // Magic Damage: INT (4 + 2.5%), WIS (2 + 1.5%)
+  const magDmgFlat = (int * 4) + (wis * 2);
+  const magDmgPercent = BASE_DAMAGE * ((int * 0.025) + (wis * 0.015));
+  
+  // Physical Defense: STR (12 + 1.5%), VIT (12), END (12 + 12%), INT (2), WIS (2), DEX (10 + 1%), AGI (5 + 0.8%), TAC (5 + 0.5%)
+  const physDefFlat = (str * 12) + (vit * 12) + (end * 12) + (int * 2) + (wis * 2) + (dex * 10) + (agi * 5) + (tac * 5);
+  const physDefPercent = BASE_DEFENSE * ((str * 0.015) + (end * 0.12) + (dex * 0.01) + (agi * 0.008) + (tac * 0.005));
+  
+  // Magic Defense (Resistance): INT (0.38 + 17%), VIT (0.5), END (0.46), WIS (0.5)
+  const magDefFlat = (int * 0.38) + (vit * 0.5) + (end * 0.46) + (wis * 0.5);
+  const magDefPercent = 10 * ((int * 0.17)); // Using base 10 for percentage calculation
+  
+  // Crit Chance: STR (0.32 + 7%), INT (0.23 + 0.1%), WIS (0.5 + 0.15%), DEX (0.5 + 1.2%), AGI (0.42 + 1%), TAC (0.02 + 2%)
+  const critFlat = (str * 0.32) + (int * 0.23) + (wis * 0.5) + (dex * 0.5) + (agi * 0.42) + (tac * 0.02);
+  const critPercent = 5 * ((str * 0.07) + (int * 0.001) + (wis * 0.0015) + (dex * 0.012) + (agi * 0.01) + (tac * 0.02));
+
+  return {
+    maxHealth: Math.floor(baseStats.hp + healthFlat + healthPercent),
+    maxMana: Math.floor(baseStats.mana + manaFlat + manaPercent),
+    maxStamina: Math.floor(baseStats.stamina + staminaFlat + staminaPercent),
+    physDmg: Math.floor(BASE_DAMAGE + physDmgFlat + physDmgPercent),
+    magDmg: Math.floor(BASE_DAMAGE + magDmgFlat + magDmgPercent),
+    physDef: Math.floor(BASE_DEFENSE + physDefFlat + physDefPercent),
+    magDef: Math.floor(magDefFlat + magDefPercent),
+    crit: critFlat + critPercent,
+    speed: 100 + (agi * 0.15),
+  };
+}
+
+export function calculateUnspentPointsForLevel(level: number): number {
+  return STARTING_ATTRIBUTE_POINTS + (level * ATTRIBUTE_POINTS_PER_LEVEL);
+}

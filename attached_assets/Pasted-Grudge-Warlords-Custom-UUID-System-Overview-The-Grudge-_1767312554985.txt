@@ -1,0 +1,222 @@
+Grudge Warlords Custom UUID System
+Overview
+The Grudge UUID system provides a human-readable, structured identifier format for all game items, equipment, and resources. Unlike standard UUIDs, Grudge UUIDs encode meaningful information about the item directly in the identifier.
+
+Format
+SLOT-TIER-ITEMID-TIMESTAMP-COUNTER
+Example: helm-t1-0001-012501012026-000000
+
+Components
+SLOT (4 characters)
+Equipment slot or item type code.
+
+Code	Slot/Type	Code	Slot/Type
+helm	Helm	head	Head
+shou	Shoulder	ches	Chest
+hand	Hands	glov	Gloves
+legs	Legs	feet	Feet
+ring	Ring	neck	Necklace
+reli	Relic	offh	Offhand
+shld	Shield	main	MainHand
+twoh	TwoHand	weap	Weapon
+swrd	Sword	axee	Axe
+mace	Mace	dagr	Dagger
+staf	Staff	wand	Wand
+boww	Bow	xbow	Crossbow
+pole	Polearm	hamr	Hammer
+sper	Spear		
+Resources:
+
+Code	Type	Code	Type
+orex	Ore	mine	Mined
+wood	Wood	logs	Log
+herb	Herb	fibr	Fiber
+hide	Hide	lthr	Leather
+clth	Cloth	metl	Metal
+gemx	Gem	ston	Stone
+crys	Crystal	essn	Essence
+Consumables & Misc:
+
+Code	Type	Code	Type
+potn	Potion	food	Food
+scrl	Scroll	elix	Elixir
+matl	Material	comp	Component
+ingr	Ingredient	item	Item
+qust	Quest	keyy	Key
+tokn	Token	curr	Currency
+loot	Loot	trea	Treasure
+artf	Artifact		
+TIER (2 characters)
+Item tier level.
+
+Code	Meaning
+t0	Tier 0 (Starting gear)
+t1	Tier 1
+t2	Tier 2
+t3	Tier 3
+t4	Tier 4
+t5	Tier 5
+t6	Tier 6
+t7	Tier 7
+t8	Tier 8 (Max tier)
+oo	No tier (resources, consumables)
+ITEMID (4 digits)
+Sequential item identifier within the system: 0001 to 9999
+
+TIMESTAMP (12 digits)
+Creation timestamp in Texas time (CST/CDT).
+
+Format: HHMMMMDDYYYY
+
+HH: Hour (00-23)
+MM: Minute (00-59)
+MM: Month (01-12)
+DD: Day (01-31)
+YYYY: Year (4 digits)
+Example: 012501012026 = 01:25 AM, January 1st, 2026
+
+COUNTER (6 alphanumeric)
+Unique counter using base-36 encoding (0-9, a-z).
+
+Starts at 000000
+Ends at zzzzzz
+Total capacity: 2,176,782,336 unique values
+If exceeded, extends to 7 digits (0000000 - zzzzzzz)
+API Endpoints
+Test UUID System
+GET /api/uuid/test
+Returns sample UUIDs and slot codes for testing.
+
+Generate Single UUID
+POST /api/uuid/generate
+Content-Type: application/json
+{
+  "slot": "Helm",
+  "tier": 1,
+  "itemId": 42
+}
+Apply UUIDs to All Items
+POST /api/uuid/apply-to-items
+Generates Grudge UUIDs for all items in database (preview only).
+
+Get Slot Codes
+GET /api/uuid/slots
+Returns all slot code mappings.
+
+Code Usage
+import { 
+  generateGrudgeUUID, 
+  parseGrudgeUUID, 
+  describeGrudgeUUID,
+  SLOT_CODES,
+  TIER_CODES 
+} from '@shared/grudgeUUID';
+// Generate a UUID
+const uuid = generateGrudgeUUID('Helm', 1, 42);
+// Result: "helm-t1-0042-012501012026-000000"
+// Parse a UUID
+const components = parseGrudgeUUID(uuid);
+// Result: { slot: 'helm', tier: 't1', itemId: '0042', timestamp: '...', counter: '000000' }
+// Get human-readable description
+const description = describeGrudgeUUID(uuid);
+// Result: "Helm Tier 1 (Item #0042) - Created 01/01/2026 01:25 CST [000000]"
+Database Schema
+Items can store their Grudge UUID in a dedicated field:
+
+grudgeUUID: varchar("grudge_uuid", { length: 40 }),
+Examples
+Item	Grudge UUID
+T1 Bloodfeud Sword	weap-t1-0001-012901012026-000001
+T1 Oathbreaker	weap-t1-0003-012901012026-000003
+T1 Gorehowl Axe	weap-t1-0007-012901012026-000007
+T1 Ironmaw	weap-t1-0010-012901012026-00000a
+T1 Dreadcleaver	weap-t1-0011-012901012026-00000b
+T1 Nightfang Dagger	weap-t1-0013-012901012026-00000d
+UUID Ledger System
+The UUID Ledger is an append-only transaction log that tracks the entire lifecycle of every UUID in the system. This provides anti-cheat verification and complete audit trails.
+
+Event Types
+Event	Description
+CREATED	UUID generated (drops, rewards, crafting output)
+ASSIGNED	UUID attached to user account
+EQUIPPED	Item equipped to character
+UNEQUIPPED	Item removed from character
+UPGRADED	Item upgraded to new tier (old UUID archived)
+CONSUMED	Item used in crafting or consumed
+TRANSFERRED	Ownership transferred between accounts
+DESTROYED	Item permanently destroyed
+ARCHIVED	UUID moved to archive (superseded by upgrade)
+UUID States
+State	Description
+ACTIVE	Item is valid and usable
+ARCHIVED	Item was upgraded, old UUID preserved for history
+CONSUMED	Item was used in crafting
+DESTROYED	Item was permanently destroyed
+API Endpoints
+Endpoint	Method	Description
+/api/ledger/event	POST	Log a UUID event
+/api/ledger/history/:uuid	GET	Get full history of a UUID
+/api/ledger/validate/:uuid	GET	Quick validation check
+/api/ledger/search	GET	Search ledger with filters
+/api/ledger/account/:accountId	GET	Get all UUIDs for an account
+/api/ledger/craft	POST	Handle crafting with UUID validation
+/api/ledger/upgrade	POST	Handle item upgrade with UUID archival
+Security Enforcement
+The ledger system enforces several anti-cheat measures:
+
+Event Type Validation: Only valid event types (CREATED, ASSIGNED, EQUIPPED, etc.) are accepted
+State Machine Enforcement: Terminal states (CONSUMED, ARCHIVED, DESTROYED) cannot be modified
+Ownership Validation: Craft/upgrade operations verify the requester owns all input UUIDs
+Append-Only Log: Events cannot be deleted or modified, providing complete audit trail
+Validation Flow
+1. User claims item with UUID
+2. Backend validates UUID exists in ledger
+3. Backend checks UUID state is ACTIVE
+4. Backend checks UUID ownership matches account
+5. If valid, item is usable; if not, item is flagged as fraudulent
+Crafting Flow
+1. User submits crafting request with input UUIDs
+2. Backend validates all input UUIDs (exist, active, owned)
+3. Backend marks all input UUIDs as CONSUMED
+4. Backend generates new UUID for crafted item
+5. Backend logs CREATED and ASSIGNED events for new UUID
+6. User receives new item with new UUID
+Upgrade Flow
+1. User submits upgrade request with old UUID
+2. Backend validates old UUID (exists, active, owned)
+3. Backend marks old UUID as ARCHIVED with reference to new UUID
+4. Backend generates new UUID for upgraded item
+5. Backend logs CREATED and ASSIGNED events for new UUID
+6. User receives upgraded item with new UUID
+Capacity
+Items per second: Unlimited (counter increments)
+Total unique UUIDs (6-digit counter): 2,176,782,336
+Total unique UUIDs (7-digit counter): 78,364,164,096
+Extensible: Can add more digits if needed
+On-Chain Integration
+Grudge UUIDs can be stored on-chain as part of NFT metadata or in Solana PDAs for equipment validation. The structured format allows smart contracts to parse and validate item properties directly from the UUID.
+
+Implementation Files
+Backend
+File	Purpose
+shared/grudgeUUID.ts	UUID generation and parsing functions
+shared/schema.ts	uuidLedger table, item grudgeUuid field
+server/storage.ts	UUID ledger CRUD operations
+server/routes.ts	UUID and ledger API endpoints
+Core Functions (shared/grudgeUUID.ts)
+Function	Purpose
+generateGrudgeUUID()	Create new UUID with slot/tier/timestamp
+parseGrudgeUUID()	Extract components from UUID string
+SLOT_CODES	Equipment slot to 4-letter code mapping
+CODE_TO_SLOT	Reverse lookup from code to slot
+TIER_CODES	Valid tier codes (t0-t8, oo)
+Database Tables
+Table	Purpose
+uuid_ledger	Append-only event log for all UUIDs
+items.grudge_uuid	UUID assigned to each item
+Event Types
+const UUID_EVENT_TYPES = [
+  'CREATED', 'ASSIGNED', 'EQUIPPED', 'UNEQUIPPED', 
+  'TRANSFERRED', 'CONSUMED', 'UPGRADED', 
+  'DESTROYED', 'ARCHIVED'
+] as const;

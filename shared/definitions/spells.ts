@@ -1,0 +1,381 @@
+import type { SpellDefinition } from "./types";
+
+export const SPELLS: Record<string, SpellDefinition> = {
+  "spell_fireball": {
+    id: "spell_fireball",
+    name: "Fireball",
+    referenceName: "Fireball",
+    description: "Hurls a ball of fire at the enemy, dealing fire damage.",
+    icon: "/icons/misc/Fires.png",
+    category: "spell",
+    school: "fire",
+    damageType: "fire",
+    targetType: "single_enemy",
+    baseDamage: 25,
+    damageScaling: { stat: "Intellect", ratio: 1.5 },
+    manaCost: 15,
+    staminaCost: 0,
+    cooldown: 0,
+    castTime: 0.8,
+    animation: "projectile",
+    visualEffect: "fire",
+    levelRequirement: 1,
+    critBonus: 10,
+    aoeRadius: 0
+  },
+  
+  "spell_inferno": {
+    id: "spell_inferno",
+    name: "Inferno",
+    referenceName: "Inferno",
+    description: "Engulfs all enemies in flames, dealing massive fire damage.",
+    icon: "/icons/misc/Firestar.png",
+    category: "spell",
+    school: "fire",
+    damageType: "fire",
+    targetType: "all_enemies",
+    baseDamage: 40,
+    damageScaling: { stat: "Intellect", ratio: 2.0 },
+    manaCost: 35,
+    staminaCost: 0,
+    cooldown: 3,
+    castTime: 1.5,
+    animation: "explosion",
+    visualEffect: "fire",
+    levelRequirement: 10,
+    aoeRadius: 3
+  },
+  
+  "spell_frostbolt": {
+    id: "spell_frostbolt",
+    name: "Frostbolt",
+    referenceName: "Frostbolt",
+    description: "Launches a shard of ice that damages and slows the target.",
+    icon: "/icons/misc/CircleW.png",
+    category: "spell",
+    school: "ice",
+    damageType: "ice",
+    targetType: "single_enemy",
+    baseDamage: 20,
+    damageScaling: { stat: "Intellect", ratio: 1.3 },
+    manaCost: 12,
+    staminaCost: 0,
+    cooldown: 0,
+    castTime: 0.6,
+    animation: "projectile",
+    visualEffect: "ice",
+    levelRequirement: 1,
+    statusEffects: [{
+      id: "slow",
+      name: "Chilled",
+      duration: 2,
+      stackable: false,
+      type: "debuff",
+      statModifiers: { Speed: -20 }
+    }]
+  },
+  
+  "spell_blizzard": {
+    id: "spell_blizzard",
+    name: "Blizzard",
+    referenceName: "Blizzard",
+    description: "Summons a devastating ice storm that freezes all enemies.",
+    icon: "/icons/misc/Flow.png",
+    category: "spell",
+    school: "ice",
+    damageType: "ice",
+    targetType: "all_enemies",
+    baseDamage: 35,
+    damageScaling: { stat: "Intellect", ratio: 1.8 },
+    manaCost: 40,
+    staminaCost: 0,
+    cooldown: 4,
+    castTime: 2.0,
+    animation: "aura",
+    visualEffect: "ice",
+    levelRequirement: 12,
+    aoeRadius: 4
+  },
+  
+  "spell_lightning_bolt": {
+    id: "spell_lightning_bolt",
+    name: "Lightning Bolt",
+    referenceName: "LightningBolt",
+    description: "Strikes the enemy with a bolt of lightning.",
+    icon: "/icons/misc/Lighting.png",
+    category: "spell",
+    school: "lightning",
+    damageType: "electric",
+    targetType: "single_enemy",
+    baseDamage: 30,
+    damageScaling: { stat: "Intellect", ratio: 1.4 },
+    manaCost: 18,
+    staminaCost: 0,
+    cooldown: 0,
+    castTime: 0.5,
+    animation: "beam",
+    visualEffect: "electric",
+    levelRequirement: 3,
+    critBonus: 15
+  },
+  
+  "spell_chain_lightning": {
+    id: "spell_chain_lightning",
+    name: "Chain Lightning",
+    referenceName: "ChainLightning",
+    description: "Lightning arcs between multiple enemies.",
+    icon: "/icons/misc/Electro.png",
+    category: "spell",
+    school: "lightning",
+    damageType: "electric",
+    targetType: "all_enemies",
+    baseDamage: 22,
+    damageScaling: { stat: "Intellect", ratio: 1.6 },
+    manaCost: 30,
+    staminaCost: 0,
+    cooldown: 2,
+    castTime: 0.8,
+    animation: "beam",
+    visualEffect: "electric",
+    levelRequirement: 8,
+    chainTargets: 4
+  },
+  
+  "spell_holy_light": {
+    id: "spell_holy_light",
+    name: "Holy Light",
+    referenceName: "HolyLight",
+    description: "Heals an ally with divine energy.",
+    icon: "/icons/misc/Lights.png",
+    category: "spell",
+    school: "holy",
+    damageType: "holy",
+    targetType: "single_ally",
+    baseDamage: -35,
+    damageScaling: { stat: "Wisdom", ratio: 2.0 },
+    manaCost: 20,
+    staminaCost: 0,
+    cooldown: 0,
+    castTime: 1.0,
+    animation: "buff",
+    visualEffect: "heal",
+    levelRequirement: 1
+  },
+  
+  "spell_divine_shield": {
+    id: "spell_divine_shield",
+    name: "Divine Shield",
+    referenceName: "DivineShield",
+    description: "Grants temporary invulnerability to an ally.",
+    icon: "/icons/misc/Glow.png",
+    category: "spell",
+    school: "holy",
+    damageType: "holy",
+    targetType: "single_ally",
+    baseDamage: 0,
+    damageScaling: { stat: "Wisdom", ratio: 0 },
+    manaCost: 40,
+    staminaCost: 0,
+    cooldown: 10,
+    castTime: 0.5,
+    animation: "buff",
+    visualEffect: "defense",
+    levelRequirement: 15,
+    statusEffects: [{
+      id: "invulnerable",
+      name: "Divine Protection",
+      duration: 3,
+      stackable: false,
+      type: "buff"
+    }]
+  },
+  
+  "spell_smite": {
+    id: "spell_smite",
+    name: "Smite",
+    referenceName: "Smite",
+    description: "Calls down holy wrath on the enemy.",
+    icon: "/icons/misc/Life.png",
+    category: "spell",
+    school: "holy",
+    damageType: "holy",
+    targetType: "single_enemy",
+    baseDamage: 28,
+    damageScaling: { stat: "Wisdom", ratio: 1.5 },
+    manaCost: 22,
+    staminaCost: 0,
+    cooldown: 0,
+    castTime: 0.7,
+    animation: "beam",
+    visualEffect: "holy",
+    levelRequirement: 5
+  },
+  
+  "spell_shadow_bolt": {
+    id: "spell_shadow_bolt",
+    name: "Shadow Bolt",
+    referenceName: "ShadowBolt",
+    description: "Hurls a bolt of dark energy at the enemy.",
+    icon: "/icons/misc/Chaos.png",
+    category: "spell",
+    school: "shadow",
+    damageType: "shadow",
+    targetType: "single_enemy",
+    baseDamage: 26,
+    damageScaling: { stat: "Intellect", ratio: 1.4 },
+    manaCost: 14,
+    staminaCost: 0,
+    cooldown: 0,
+    castTime: 0.6,
+    animation: "projectile",
+    visualEffect: "shadow",
+    levelRequirement: 1
+  },
+  
+  "spell_drain_life": {
+    id: "spell_drain_life",
+    name: "Drain Life",
+    referenceName: "DrainLife",
+    description: "Drains health from the enemy and heals the caster.",
+    icon: "/icons/misc/Chaos_2.png",
+    category: "spell",
+    school: "shadow",
+    damageType: "shadow",
+    targetType: "single_enemy",
+    baseDamage: 18,
+    damageScaling: { stat: "Intellect", ratio: 1.2 },
+    manaCost: 20,
+    staminaCost: 0,
+    cooldown: 2,
+    castTime: 1.0,
+    animation: "beam",
+    visualEffect: "shadow",
+    levelRequirement: 6
+  },
+  
+  "spell_poison_cloud": {
+    id: "spell_poison_cloud",
+    name: "Poison Cloud",
+    referenceName: "PoisonCloud",
+    description: "Creates a toxic cloud that poisons all enemies.",
+    icon: "/icons/misc/Effect.png",
+    category: "spell",
+    school: "nature",
+    damageType: "poison",
+    targetType: "all_enemies",
+    baseDamage: 10,
+    damageScaling: { stat: "Intellect", ratio: 0.8 },
+    manaCost: 25,
+    staminaCost: 0,
+    cooldown: 3,
+    castTime: 1.2,
+    animation: "aura",
+    visualEffect: "poison",
+    levelRequirement: 7,
+    statusEffects: [{
+      id: "poison",
+      name: "Poisoned",
+      duration: 4,
+      stackable: true,
+      type: "debuff",
+      dotDamage: 8,
+      dotType: "poison"
+    }],
+    aoeRadius: 3
+  },
+  
+  "spell_entangle": {
+    id: "spell_entangle",
+    name: "Entangle",
+    referenceName: "Entangle",
+    description: "Roots the enemy in place with vines.",
+    icon: "/icons/misc/Leaf.png",
+    category: "spell",
+    school: "nature",
+    damageType: "nature",
+    targetType: "single_enemy",
+    baseDamage: 12,
+    damageScaling: { stat: "Wisdom", ratio: 1.0 },
+    manaCost: 18,
+    staminaCost: 0,
+    cooldown: 2,
+    castTime: 0.8,
+    animation: "summon",
+    visualEffect: "nature",
+    levelRequirement: 4,
+    statusEffects: [{
+      id: "rooted",
+      name: "Rooted",
+      duration: 2,
+      stackable: false,
+      type: "debuff",
+      statModifiers: { Speed: -100 }
+    }]
+  },
+  
+  "spell_arcane_missiles": {
+    id: "spell_arcane_missiles",
+    name: "Arcane Missiles",
+    referenceName: "ArcaneMissiles",
+    description: "Fires multiple missiles of pure arcane energy.",
+    icon: "/icons/misc/Core.png",
+    category: "spell",
+    school: "arcane",
+    damageType: "arcane",
+    targetType: "single_enemy",
+    baseDamage: 8,
+    damageScaling: { stat: "Intellect", ratio: 0.5 },
+    manaCost: 16,
+    staminaCost: 0,
+    cooldown: 0,
+    castTime: 0.3,
+    animation: "projectile",
+    visualEffect: "arcane",
+    levelRequirement: 1,
+    projectileCount: 5
+  },
+  
+  "spell_mana_shield": {
+    id: "spell_mana_shield",
+    name: "Mana Shield",
+    referenceName: "ManaShield",
+    description: "Converts mana into a protective barrier.",
+    icon: "/icons/misc/AquaCircle.png",
+    category: "spell",
+    school: "arcane",
+    damageType: "arcane",
+    targetType: "self",
+    baseDamage: 0,
+    damageScaling: { stat: "Intellect", ratio: 0 },
+    manaCost: 30,
+    staminaCost: 0,
+    cooldown: 8,
+    castTime: 0.5,
+    animation: "buff",
+    visualEffect: "defense",
+    levelRequirement: 8,
+    statusEffects: [{
+      id: "mana_shield",
+      name: "Mana Shield",
+      duration: 5,
+      stackable: false,
+      type: "buff"
+    }]
+  }
+};
+
+export function getSpell(id: string): SpellDefinition | undefined {
+  return SPELLS[id];
+}
+
+export function getSpellByReferenceName(referenceName: string): SpellDefinition | undefined {
+  return Object.values(SPELLS).find(s => s.referenceName === referenceName);
+}
+
+export function getSpellsBySchool(school: SpellDefinition["school"]): SpellDefinition[] {
+  return Object.values(SPELLS).filter(s => s.school === school);
+}
+
+export function getSpellsByLevel(maxLevel: number): SpellDefinition[] {
+  return Object.values(SPELLS).filter(s => s.levelRequirement <= maxLevel);
+}

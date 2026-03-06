@@ -1,0 +1,64 @@
+Introduction
+If you are reading this, you probably already know about glTF 2.0. However, do you know that there are a handful of glTF extensions that add to the core functionality of glTF 2.0? For example, the KHR_lights_punctual extension allows point, directional, and spot lights to be included with a glTF asset. More extensions will be coming from the 3D Formats Working Group of the Khronos Group as the ecosystem evolves. This article describes at a high level how the glTF 2.0 loader in Babylon.js manages these extensions.
+
+Architecture
+The glTF 2.0 loader in Babylon.js is built to be extensible via loader extensions. Some loader extensions are built-in while others are provided by the user. Typically, a loader extension either supports a glTF 2.0 extension or modifies the behavior of the loader in some way.
+
+Principles
+Extensible — users can easily add custom extensions to the loader to change the behavior of the loader
+Modular — users can easily remove the code for unneeded extensions to reduce complexity or to reduce code size
+With these principles, the code is more readable and easier to maintain since the core loader only handles just the glTF 2.0 core functionality while each separated loader extension handles the functionality of each glTF 2.0 extension.
+
+For context, here is what a glTF file looks like at a glance:
+
+Press enter or click to view image in full size
+
+https://github.com/KhronosGroup/glTF/tree/master/specification/2.0#concepts
+Each object in this tree can be extended using glTF extensions.
+
+The glTF loader in Babylon.js traverses through this tree to load the asset. To handle extensions, the loader code has relevant extension points to enable modifications to the loading behavior. Extension code can then register itself to the loader to modify its behavior using these extension points.
+
+Here is an example what the code looks like for the function that loads a scene:
+
+Press enter or click to view image in full size
+
+https://github.com/BabylonJS/Babylon.js/blob/v4.0.0/loaders/src/glTF/2.0/glTFLoader.ts#L467
+The highlighted code is one of these extension points. The loadSceneAsync function will return early if any of the registered extensions return a promise. The loader extensions also have access to the base loader so that they can invoke the default behaviors. Once a loader extension has been invoked, it will not be invoked again on the same object to prevent infinite recursion. Calling the default behavior will continue to load other extensions. This approach allows loader extensions to support many different scenarios without conflicting with each other.
+
+Get Babylon.js’s stories in your inbox
+Join Medium for free to get updates from this writer.
+
+Enter your email
+Subscribe
+All of the extension points are documented in the IGLTFLoaderExtension interface. See the classes in loaders/src/glTF/2.0/Extensions for all the extensions that are available by default. Note that some of them are experimental and are subject to change. More extension points will be added as the loader evolves.
+
+User Extensions
+Built-in extensions are great, but what if you want to do something custom for your scenario? The loader extension mechanism also allows you to create your own.
+
+Here is a playground of a minimal example using the loadMaterialPropertiesAsync extension point:
+
+Press enter or click to view image in full size
+
+https://www.babylonjs-playground.com/#20XT9A#4
+The highlighted code registers a new extension called custom which replaces the default behavior of loadMaterialPropertiesAsync with code that creates a standard material instead of a physical material.
+
+Here is a real world example for loading VRM, a file format for handling 3D humanoid avatar data for VR applications based on glTF:
+
+Press enter or click to view image in full size
+
+https://forum.babylonjs.com/t/loading-vrm-humanoid-based-model/4980
+Debugging Extensions
+The Babylon.js Inspector also provides some basic debugging capabilities for the built-in glTF loader extensions.
+
+
+For example, if you load up the sample model for KHR_texture_transform and turn off the KHR_texture_transform extension in the inspector, it will no longer use that extension.
+
+Press enter or click to view image in full size
+
+KHR_texture_transform is enabled
+Press enter or click to view image in full size
+
+KHR_texture_transform is disabled
+This is often useful when debugging issues with extensions.
+
+Conclusion

@@ -1,0 +1,900 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Grudge Warlords: Complete Professions Guide</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e1e2e 0%, #2d1b4e 50%, #1a1a2e 100%);
+            color: #e0e0e0;
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            background: linear-gradient(45deg, #4a00e0, #8e2de2);
+            border-radius: 15px;
+            padding: 30px;
+            text-align: center;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(74, 0, 224, 0.3);
+        }
+
+        .header h1 {
+            font-size: 3em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+
+        .header .subtitle {
+            font-size: 1.2em;
+            opacity: 0.9;
+            font-style: italic;
+        }
+
+        .nav-menu {
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 30px;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .nav-menu ul {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 15px;
+            list-style: none;
+        }
+
+        .nav-menu a {
+            color: #e0e0e0;
+            text-decoration: none;
+            padding: 10px 20px;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            font-weight: bold;
+        }
+
+        .nav-menu a:hover {
+            background: linear-gradient(45deg, #764ba2, #f093fb);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(118, 75, 162, 0.4);
+        }
+
+        .profession-section {
+            background: rgba(255,255,255,0.05);
+            border-radius: 15px;
+            margin-bottom: 30px;
+            padding: 30px;
+            border: 1px solid rgba(255,255,255,0.1);
+            backdrop-filter: blur(5px);
+        }
+
+        .profession-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid rgba(255,255,255,0.2);
+        }
+
+        .profession-icon {
+            font-size: 2.5em;
+            margin-right: 20px;
+            padding: 10px;
+            background: linear-gradient(45deg, #ff9a9e, #fecfef);
+            border-radius: 50%;
+            width: 70px;
+            height: 70px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .profession-title {
+            font-size: 2.2em;
+            font-weight: bold;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+        }
+
+        .profession-description {
+            background: rgba(255,255,255,0.08);
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            border-left: 4px solid #4a00e0;
+        }
+
+        .workstation-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 25px;
+        }
+
+        .workstation {
+            background: linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0.05));
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .workstation-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .workstation-emoji {
+            font-size: 1.8em;
+            margin-right: 12px;
+        }
+
+        .workstation-name {
+            font-size: 1.4em;
+            font-weight: bold;
+            color: #ffd700;
+        }
+
+        .ingredients-section {
+            margin-top: 15px;
+        }
+
+        .ingredients-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .ingredient-item {
+            background: rgba(255,255,255,0.1);
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 0.9em;
+            border-left: 3px solid #8e2de2;
+        }
+
+        .rarity-0 { border-left-color: #9e9e9e; }
+        .rarity-1 { border-left-color: #4caf50; }
+        .rarity-2 { border-left-color: #2196f3; }
+        .rarity-3 { border-left-color: #9c27b0; }
+        .rarity-4 { border-left-color: #ff9800; }
+
+        .recipes-section {
+            margin-top: 20px;
+        }
+
+        .recipe-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .recipe-item {
+            background: linear-gradient(135deg, rgba(255,255,255,0.15), rgba(255,255,255,0.08));
+            padding: 15px;
+            border-radius: 10px;
+            border: 1px solid rgba(255,255,255,0.2);
+            transition: all 0.3s ease;
+        }
+
+        .recipe-item:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+        }
+
+        .recipe-name {
+            font-weight: bold;
+            color: #ffd700;
+            margin-bottom: 5px;
+        }
+
+        .recipe-category {
+            font-size: 0.8em;
+            color: #b39ddb;
+            background: rgba(179, 157, 219, 0.2);
+            padding: 2px 8px;
+            border-radius: 4px;
+            display: inline-block;
+        }
+
+        .overview-section {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .stat-card {
+            background: rgba(255,255,255,0.2);
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+
+        .stat-number {
+            font-size: 2.5em;
+            font-weight: bold;
+            color: #ffd700;
+            display: block;
+        }
+
+        .stat-label {
+            font-size: 0.9em;
+            opacity: 0.9;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 25px;
+            margin-top: 30px;
+        }
+
+        .feature-card {
+            background: rgba(255,255,255,0.08);
+            border-radius: 12px;
+            padding: 25px;
+            border: 1px solid rgba(255,255,255,0.15);
+        }
+
+        .feature-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .feature-icon {
+            font-size: 2em;
+            margin-right: 15px;
+            background: linear-gradient(45deg, #f093fb, #f5576c);
+            padding: 10px;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .feature-title {
+            font-size: 1.3em;
+            font-weight: bold;
+        }
+
+        .note-box {
+            background: linear-gradient(45deg, #ff7675, #fd79a8);
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            border-left: 4px solid #e17055;
+        }
+
+        .note-box strong {
+            display: block;
+            margin-bottom: 10px;
+            font-size: 1.1em;
+        }
+
+        .progression-info {
+            background: rgba(255,255,255,0.1);
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 20px;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .tools-section {
+            background: rgba(255,255,255,0.05);
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+
+        .tools-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .tool-item {
+            background: rgba(255,255,255,0.1);
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid rgba(255,255,255,0.2);
+            text-align: center;
+        }
+
+        .footer {
+            text-align: center;
+            padding: 30px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 15px;
+            margin-top: 30px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        @media (max-width: 768px) {
+            .container { padding: 10px; }
+            .header h1 { font-size: 2em; }
+            .nav-menu ul { flex-direction: column; align-items: center; }
+            .profession-header { flex-direction: column; text-align: center; }
+            .profession-icon { margin-right: 0; margin-bottom: 15px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <h1>⚔️ GRUDGE WARLORDS ⚔️</h1>
+            <p class="subtitle">Complete Professions & Crafting Guide</p>
+        </header>
+
+        <!-- Navigation -->
+        <nav class="nav-menu">
+            <ul>
+                <li><a href="#overview">📊 Overview</a></li>
+                <li><a href="#harvesting">⛏️ Harvesting</a></li>
+                <li><a href="#crafting">🔨 Crafting</a></li>
+                <li><a href="#cooking">🔥 Cooking</a></li>
+                <li><a href="#alchemy">⚗️ Alchemy</a></li>
+                <li><a href="#combat">⚔️ Combat Crafting</a></li>
+                <li><a href="#progression">📈 Progression</a></li>
+            </ul>
+        </nav>
+
+        <!-- Overview Section -->
+        <section id="overview" class="overview-section">
+            <h2>🎮 Profession System Overview</h2>
+            <p>Grudge Warlords features a comprehensive profession system built on the uMMORPG framework. Players can master multiple crafting disciplines, harvest resources, and create powerful items to aid in their adventures.</p>
+            
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <span class="stat-number">10+</span>
+                    <span class="stat-label">Workstations</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-number">100+</span>
+                    <span class="stat-label">Recipes</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-number">50+</span>
+                    <span class="stat-label">Ingredients</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-number">∞</span>
+                    <span class="stat-label">Possibilities</span>
+                </div>
+            </div>
+
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-header">
+                        <div class="feature-icon">🏗️</div>
+                        <div class="feature-title">Dynamic Workstations</div>
+                    </div>
+                    <p>Each profession utilizes specialized workstations with unique properties and requirements. From campfires for cooking to advanced furnaces for smelting.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-header">
+                        <div class="feature-icon">📊</div>
+                        <div class="feature-title">Skill Progression</div>
+                    </div>
+                    <p>Level up professions through experience gained from crafting and harvesting. Higher levels unlock better recipes and improved success rates.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-header">
+                        <div class="feature-icon">🎯</div>
+                        <div class="feature-title">Success Mechanics</div>
+                    </div>
+                    <p>Crafting includes probability-based success rates, critical successes, and tool durability mechanics for engaging gameplay.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-header">
+                        <div class="feature-icon">🧰</div>
+                        <div class="feature-title">Tool Requirements</div>
+                    </div>
+                    <p>Many recipes require specific tools, equipment, or rare ingredients. Some tools can break during use, adding strategic depth.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Harvesting Profession -->
+        <section id="harvesting" class="profession-section">
+            <div class="profession-header">
+                <div class="profession-icon">⛏️</div>
+                <div class="profession-title">Harvesting</div>
+            </div>
+
+            <div class="profession-description">
+                <p><strong>Resource Gathering & Mining</strong></p>
+                <p>The foundation of all crafting activities. Harvesters extract raw materials from resource nodes scattered throughout the world. This profession includes mining, logging, and gathering various crafting components.</p>
+            </div>
+
+            <div class="progression-info">
+                <h3>🌟 Progression System</h3>
+                <ul>
+                    <li><strong>Base Success Rate:</strong> Configurable per profession (default ~100%)</li>
+                    <li><strong>Critical Chance:</strong> ~5% base, increases with level</li>
+                    <li><strong>Level Bonuses:</strong> +5% success chance per level above node requirement</li>
+                    <li><strong>Experience Gain:</strong> Awarded for each successful harvest attempt</li>
+                </ul>
+            </div>
+
+            <div class="tools-section">
+                <h3>🧰 Required Tools</h3>
+                <div class="tools-grid">
+                    <div class="tool-item">
+                        <strong>⚒️ Pickaxe</strong>
+                        <p>Essential for mining operations</p>
+                    </div>
+                    <div class="tool-item">
+                        <strong>🪓 Hatchet</strong>
+                        <p>Required for logging trees</p>
+                    </div>
+                    <div class="tool-item">
+                        <strong>🎣 Fishing Pole</strong>
+                        <p>Needed for fishing activities</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="note-box">
+                <strong>📝 Harvesting Mechanics:</strong>
+                <p>Resource nodes have depletion timers, respawn rates, and level requirements. Some nodes require specific profession levels or tools to access. Critical successes can yield bonus materials or rare components.</p>
+            </div>
+        </section>
+
+        <!-- Crafting Profession -->
+        <section id="crafting" class="profession-section">
+            <div class="profession-header">
+                <div class="profession-icon">🔨</div>
+                <div class="profession-title">Crafting & Manufacturing</div>
+            </div>
+
+            <div class="profession-description">
+                <p><strong>Advanced Item Creation</strong></p>
+                <p>Transform raw materials into useful items, weapons, and equipment. The crafting system supports complex recipes with multiple ingredients and advanced workstations.</p>
+            </div>
+
+            <div class="workstation-grid">
+                <div class="workstation">
+                    <div class="workstation-header">
+                        <span class="workstation-emoji">🔨</span>
+                        <span class="workstation-name">Workbench</span>
+                    </div>
+                    <p>General crafting station for basic items and weapon components.</p>
+                    <div class="ingredients-section">
+                        <h4>Key Materials:</h4>
+                        <div class="ingredients-grid">
+                            <div class="ingredient-item rarity-0">Animal Fat</div>
+                            <div class="ingredient-item rarity-0">Barrel Motor</div>
+                            <div class="ingredient-item rarity-0">Blade Components</div>
+                            <div class="ingredient-item rarity-0">Metal Cranks</div>
+                            <div class="ingredient-item rarity-0">Weapon Handles</div>
+                            <div class="ingredient-item rarity-1">Quality Ingots</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="workstation">
+                    <div class="workstation-header">
+                        <span class="workstation-emoji">⚒️</span>
+                        <span class="workstation-name">Furnace</span>
+                    </div>
+                    <p>High-temperature smelting for metals and special materials.</p>
+                    <div class="ingredients-section">
+                        <h4>Smelting Materials:</h4>
+                        <div class="ingredients-grid">
+                            <div class="ingredient-item rarity-0">Metal Ore</div>
+                            <div class="ingredient-item rarity-0">Sulfur Ore</div>
+                            <div class="ingredient-item rarity-2">Drake Eggs (Various)</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="workstation">
+                    <div class="workstation-header">
+                        <span class="workstation-emoji">🧵</span>
+                        <span class="workstation-name">Loom</span>
+                    </div>
+                    <p>Textile production for cloth armor and decorative items.</p>
+                    <div class="ingredients-section">
+                        <h4>Textile Materials:</h4>
+                        <div class="ingredients-grid">
+                            <div class="ingredient-item rarity-1">Hair</div>
+                            <div class="ingredient-item rarity-1">Hemp Fiber</div>
+                            <div class="ingredient-item rarity-1">Silk</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="workstation">
+                    <div class="workstation-header">
+                        <span class="workstation-emoji">🏭</span>
+                        <span class="workstation-name">Refinery</span>
+                    </div>
+                    <p>Advanced processing for fuels and chemical compounds.</p>
+                    <div class="ingredients-section">
+                        <h4>Refined Products:</h4>
+                        <div class="ingredients-grid">
+                            <div class="ingredient-item rarity-1">Bottle of Fuel</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="workstation">
+                    <div class="workstation-header">
+                        <span class="workstation-emoji">🪚</span>
+                        <span class="workstation-name">Sawmill</span>
+                    </div>
+                    <p>Wood processing for construction and crafting materials.</p>
+                    <div class="ingredients-section">
+                        <h4>Wood Products:</h4>
+                        <div class="ingredients-grid">
+                            <div class="ingredient-item rarity-1">Wood Planks</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="workstation">
+                    <div class="workstation-header">
+                        <span class="workstation-emoji">🦇</span>
+                        <span class="workstation-name">Tannery</span>
+                    </div>
+                    <p>Leather processing for armor and accessories.</p>
+                    <div class="ingredients-section">
+                        <h4>Leather Materials:</h4>
+                        <div class="ingredients-grid">
+                            <div class="ingredient-item rarity-1">Raw Fur</div>
+                            <div class="ingredient-item rarity-1">Raw Hide</div>
+                            <div class="ingredient-item rarity-1">Raw Pelt</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="recipes-section">
+                <h3>🏆 Featured Recipes</h3>
+                <div class="recipe-grid">
+                    <div class="recipe-item">
+                        <div class="recipe-name">🗡️ Emerald Sword</div>
+                        <div class="recipe-category">Swords</div>
+                        <p>Legendary blade crafted with emerald gemstones</p>
+                    </div>
+                    <div class="recipe-item">
+                        <div class="recipe-name">🛡️ Immortal Armor</div>
+                        <div class="recipe-category">Heavy Armor</div>
+                        <p>Ultimate protection for elite warriors</p>
+                    </div>
+                    <div class="recipe-item">
+                        <div class="recipe-name">💍 Elder Ring</div>
+                        <div class="recipe-category">Rings</div>
+                        <p>Powerful artifact with mystical properties</p>
+                    </div>
+                    <div class="recipe-item">
+                        <div class="recipe-name">🚁 YoloCopter</div>
+                        <div class="recipe-category">Mecha</div>
+                        <p>Advanced flying mount for aerial combat</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Cooking Profession -->
+        <section id="cooking" class="profession-section">
+            <div class="profession-header">
+                <div class="profession-icon">🔥</div>
+                <div class="profession-title">Cooking</div>
+            </div>
+
+            <div class="profession-description">
+                <p><strong>Culinary Arts & Food Production</strong></p>
+                <p>Transform raw ingredients into nourishing meals that provide temporary buffs and health regeneration. Master chefs can create powerful food items that enhance combat effectiveness.</p>
+            </div>
+
+            <div class="workstation">
+                <div class="workstation-header">
+                    <span class="workstation-emoji">🔥</span>
+                    <span class="workstation-name">Campfire</span>
+                </div>
+                <p>Basic cooking station for preparing meat, fish, and simple meals.</p>
+                
+                <div class="ingredients-section">
+                    <h4>🐟 Fresh Ingredients:</h4>
+                    <div class="ingredients-grid">
+                        <div class="ingredient-item rarity-0">Fresh Crab</div>
+                        <div class="ingredient-item rarity-0">Fresh Fish</div>
+                        <div class="ingredient-item rarity-0">Fresh Meat</div>
+                        <div class="ingredient-item rarity-0">Fresh Squid</div>
+                    </div>
+                </div>
+
+                <div class="ingredients-section">
+                    <h4>🍖 Cooked Results:</h4>
+                    <div class="ingredients-grid">
+                        <div class="ingredient-item rarity-1">Cooked Crab - 1% Health Regen</div>
+                        <div class="ingredient-item rarity-1">Cooked Fish - 1% Mana Regen</div>
+                        <div class="ingredient-item rarity-1">Cooked Meat - 3% Health Regen</div>
+                        <div class="ingredient-item rarity-1">Cooked Squid - 3% Mana Regen</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="note-box">
+                <strong>🍽️ Cooking Benefits:</strong>
+                <p>Cooked foods provide percentage-based health and mana regeneration while their buffs are active. Higher quality ingredients and advanced cooking techniques can create more potent effects.</p>
+            </div>
+        </section>
+
+        <!-- Alchemy Profession -->
+        <section id="alchemy" class="profession-section">
+            <div class="profession-header">
+                <div class="profession-icon">⚗️</div>
+                <div class="profession-title">Alchemy & Potions</div>
+            </div>
+
+            <div class="profession-description">
+                <p><strong>Mystical Arts & Potion Brewing</strong></p>
+                <p>Combine magical ingredients to create powerful potions, elixirs, and enchantments. Alchemists master the art of transmutation and magical enhancement.</p>
+            </div>
+
+            <div class="workstation">
+                <div class="workstation-header">
+                    <span class="workstation-emoji">📚</span>
+                    <span class="workstation-name">Study</span>
+                </div>
+                <p>Research facility for magical studies and spell development.</p>
+                
+                <div class="ingredients-section">
+                    <h4>📜 Research Materials:</h4>
+                    <div class="ingredients-grid">
+                        <div class="ingredient-item rarity-1">Blank Manual</div>
+                        <div class="ingredient-item rarity-1">Blank Papyrus Paper</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="workstation-grid">
+                <div class="workstation">
+                    <div class="workstation-header">
+                        <span class="workstation-emoji">⚗️</span>
+                        <span class="workstation-name">Alchemy Lab</span>
+                    </div>
+                    <p>Advanced potion brewing with magical components.</p>
+                    
+                    <div class="ingredients-section">
+                        <h4>🌸 Magical Flora:</h4>
+                        <div class="ingredients-grid">
+                            <div class="ingredient-item rarity-1">Blue Flower</div>
+                            <div class="ingredient-item rarity-1">Red Flower</div>
+                            <div class="ingredient-item rarity-1">White Flower</div>
+                            <div class="ingredient-item rarity-1">Yellow Flower</div>
+                        </div>
+                    </div>
+
+                    <div class="ingredients-section">
+                        <h4>✨ Mystical Essence:</h4>
+                        <div class="ingredients-grid">
+                            <div class="ingredient-item rarity-1">Blue Wisp</div>
+                            <div class="ingredient-item rarity-1">Green Wisp</div>
+                            <div class="ingredient-item rarity-1">Purple Wisp</div>
+                            <div class="ingredient-item rarity-1">Red Wisp</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="recipes-section">
+                <h3>🧪 Potion Recipes</h3>
+                <div class="recipe-grid">
+                    <div class="recipe-item">
+                        <div class="recipe-name">❤️ Health Potion Series</div>
+                        <div class="recipe-category">Healing</div>
+                        <p>Basic, Medium, Large variants for health restoration</p>
+                    </div>
+                    <div class="recipe-item">
+                        <div class="recipe-name">💙 Mana Potion Series</div>
+                        <div class="recipe-category">Restoration</div>
+                        <p>Restore magical energy in various strengths</p>
+                    </div>
+                    <div class="recipe-item">
+                        <div class="recipe-name">⚡ Attack Potion</div>
+                        <div class="recipe-category">Enhancement</div>
+                        <p>Temporarily increase combat effectiveness</p>
+                    </div>
+                    <div class="recipe-item">
+                        <div class="recipe-name">🛡️ Defense Potion</div>
+                        <div class="recipe-category">Protection</div>
+                        <p>Boost defensive capabilities</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Combat Crafting -->
+        <section id="combat" class="profession-section">
+            <div class="profession-header">
+                <div class="profession-icon">⚔️</div>
+                <div class="profession-title">Combat Crafting</div>
+            </div>
+
+            <div class="profession-description">
+                <p><strong>Weapons, Armor & War Machines</strong></p>
+                <p>Specialized crafting focused on military applications. Create everything from basic weapons to massive siege engines and flying mounts.</p>
+            </div>
+
+            <div class="workstation-grid">
+                <div class="workstation">
+                    <div class="workstation-header">
+                        <span class="workstation-emoji">🏰</span>
+                        <span class="workstation-name">Arsenal Workshop</span>
+                    </div>
+                    <p>Military engineering for siege weapons and war machines.</p>
+                    
+                    <div class="recipes-section">
+                        <h4>🏗️ Siege Equipment:</h4>
+                        <div class="recipe-grid">
+                            <div class="recipe-item">
+                                <div class="recipe-name">🏹 Crusade Catapult</div>
+                                <div class="recipe-category">Siege</div>
+                            </div>
+                            <div class="recipe-item">
+                                <div class="recipe-name">🗼 Legion Tower</div>
+                                <div class="recipe-category">Tower</div>
+                            </div>
+                            <div class="recipe-item">
+                                <div class="recipe-name">🚁 Dragon Glider</div>
+                                <div class="recipe-category">Mecha</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="workstation">
+                    <div class="workstation-header">
+                        <span class="workstation-emoji">🐾</span>
+                        <span class="workstation-name">Pet Station</span>
+                    </div>
+                    <p>Breeding and training combat companions.</p>
+                    
+                    <div class="ingredients-section">
+                        <h4>🧪 Growth Potions:</h4>
+                        <div class="ingredients-grid">
+                            <div class="ingredient-item rarity-2">Lv10 Drake Growth Potion</div>
+                            <div class="ingredient-item rarity-2">Lv20 Drake Growth Potion</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="recipes-section">
+                <h3>🐲 Drake Companions</h3>
+                <div class="recipe-grid">
+                    <div class="recipe-item">
+                        <div class="recipe-name">🔥 Dragon Bone Drake</div>
+                        <div class="recipe-category">Pets/Mounts</div>
+                        <p>Powerful undead dragon companion</p>
+                    </div>
+                    <div class="recipe-item">
+                        <div class="recipe-name">🌿 Emerald Drake</div>
+                        <div class="recipe-category">Pets/Mounts</div>
+                        <p>Nature-aligned drake with healing abilities</p>
+                    </div>
+                    <div class="recipe-item">
+                        <div class="recipe-name">❄️ Frost Drake</div>
+                        <div class="recipe-category">Pets/Mounts</div>
+                        <p>Ice-breathing drake for cold climates</p>
+                    </div>
+                    <div class="recipe-item">
+                        <div class="recipe-name">🌋 Lava Drake</div>
+                        <div class="recipe-category">Pets/Mounts</div>
+                        <p>Fire-resistant mount for volcanic regions</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Progression Section -->
+        <section id="progression" class="profession-section">
+            <div class="profession-header">
+                <div class="profession-icon">📈</div>
+                <div class="profession-title">Progression & Mastery</div>
+            </div>
+
+            <div class="profession-description">
+                <p><strong>Skill Development & Character Growth</strong></p>
+                <p>Understanding how professions advance and integrate with your character's overall development.</p>
+            </div>
+
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-header">
+                        <div class="feature-icon">⭐</div>
+                        <div class="feature-title">Experience Gain</div>
+                    </div>
+                    <p>Earn experience through successful crafting attempts, harvesting activities, and completing profession-specific quests. Failed attempts may still grant reduced experience.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-header">
+                        <div class="feature-icon">🎯</div>
+                        <div class="feature-title">Success Rates</div>
+                    </div>
+                    <p>Base success rates improve with level progression. High-quality tools and optimal workstation setups can further enhance success probabilities and enable critical successes.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-header">
+                        <div class="feature-icon">🏆</div>
+                        <div class="feature-title">Profession Titles</div>
+                    </div>
+                    <p>Achieve profession-specific titles and rewards as you reach new levels. Some titles unlock exclusive recipes or provide passive bonuses to related activities.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-header">
+                        <div class="feature-icon">🔧</div>
+                        <div class="feature-title">Tool Mastery</div>
+                    </div>
+                    <p>Learn to use specialized tools efficiently. Some advanced tools have durability mechanics and can break during use, requiring replacements or repairs.</p>
+                </div>
+            </div>
+
+            <div class="note-box">
+                <strong>💡 Pro Tips for Profession Mastery:</strong>
+                <ul>
+                    <li>Start with gathering professions to build material stockpiles</li>
+                    <li>Invest in quality tools early - they pay for themselves</li>
+                    <li>Learn complementary professions (mining + blacksmithing)</li>
+                    <li>Join or form profession-focused guilds for knowledge sharing</li>
+                    <li>Keep track of rare material spawns and respawn timers</li>
+                    <li>Experiment with different ingredient combinations</li>
+                </ul>
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <h3>🎮 Ready to Begin Your Journey?</h3>
+            <p>Master the professions of Grudge Warlords and become a legendary crafter!</p>
+            <br>
+            <p><em>This guide is based on the uMMORPG profession system implementation.<br>
+            Individual server configurations may vary.</em></p>
+        </footer>
+    </div>
+</body>
+</html>

@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Grudge Warlords - Hotkeys Reference</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: 'Cinzel', 'Georgia', serif;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f0f23 100%);
+      color: #e5e5e5;
+      min-height: 100vh;
+      padding: 40px 20px;
+    }
+    
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+    
+    h1 {
+      text-align: center;
+      font-size: 2.5rem;
+      color: #f59e0b;
+      text-shadow: 0 0 20px rgba(245, 158, 11, 0.3);
+      margin-bottom: 10px;
+    }
+    
+    .subtitle {
+      text-align: center;
+      color: #78716c;
+      margin-bottom: 40px;
+      font-size: 1.1rem;
+    }
+    
+    .section {
+      background: rgba(0, 0, 0, 0.4);
+      border: 1px solid rgba(245, 158, 11, 0.3);
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 24px;
+    }
+    
+    .section-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 20px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid rgba(245, 158, 11, 0.2);
+    }
+    
+    .section-icon {
+      font-size: 1.8rem;
+    }
+    
+    h2 {
+      color: #fbbf24;
+      font-size: 1.4rem;
+    }
+    
+    .hotkey-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+      gap: 12px;
+    }
+    
+    .hotkey-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 14px;
+      background: rgba(0, 0, 0, 0.3);
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    
+    kbd {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 36px;
+      height: 32px;
+      padding: 0 10px;
+      background: linear-gradient(180deg, #404040 0%, #2a2a2a 100%);
+      border: 1px solid #555;
+      border-radius: 6px;
+      font-family: 'Consolas', 'Monaco', monospace;
+      font-size: 0.85rem;
+      color: #fff;
+      box-shadow: 0 2px 0 #222, inset 0 1px 0 rgba(255,255,255,0.1);
+      text-transform: uppercase;
+    }
+    
+    kbd.wide {
+      min-width: 60px;
+    }
+    
+    .hotkey-desc {
+      color: #a8a29e;
+      font-size: 0.95rem;
+    }
+    
+    .combat-slots {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin-top: 16px;
+    }
+    
+    .slot-group {
+      background: rgba(0, 0, 0, 0.3);
+      border-radius: 8px;
+      padding: 16px;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    
+    .slot-group h3 {
+      color: #fcd34d;
+      font-size: 0.9rem;
+      margin-bottom: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+    }
+    
+    .slot-group.attacks h3 { color: #ef4444; }
+    .slot-group.spells h3 { color: #8b5cf6; }
+    .slot-group.items h3 { color: #22c55e; }
+    
+    .slot-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    
+    .slot-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    .slot-name {
+      color: #78716c;
+      font-size: 0.85rem;
+    }
+    
+    .footer {
+      text-align: center;
+      margin-top: 40px;
+      padding-top: 20px;
+      border-top: 1px solid rgba(245, 158, 11, 0.2);
+      color: #57534e;
+      font-size: 0.9rem;
+    }
+    
+    .footer a {
+      color: #f59e0b;
+      text-decoration: none;
+    }
+    
+    .footer a:hover {
+      text-decoration: underline;
+    }
+    
+    @media (max-width: 600px) {
+      h1 { font-size: 1.8rem; }
+      .combat-slots { grid-template-columns: 1fr; }
+      .hotkey-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Hotkeys Reference</h1>
+    <p class="subtitle">Grudge Warlords Keyboard Controls</p>
+    
+    <div class="section">
+      <div class="section-header">
+        <span class="section-icon">⚔️</span>
+        <h2>Combat Actions</h2>
+      </div>
+      <div class="combat-slots">
+        <div class="slot-group attacks">
+          <h3>Physical Attacks</h3>
+          <div class="slot-list">
+            <div class="slot-row">
+              <kbd>1</kbd>
+              <span class="slot-name">Attack Slot 1</span>
+            </div>
+            <div class="slot-row">
+              <kbd>2</kbd>
+              <span class="slot-name">Attack Slot 2</span>
+            </div>
+            <div class="slot-row">
+              <kbd>3</kbd>
+              <span class="slot-name">Attack Slot 3</span>
+            </div>
+          </div>
+        </div>
+        <div class="slot-group spells">
+          <h3>Spells / Magic</h3>
+          <div class="slot-list">
+            <div class="slot-row">
+              <kbd>4</kbd>
+              <span class="slot-name">Spell Slot 1</span>
+            </div>
+            <div class="slot-row">
+              <kbd>5</kbd>
+              <span class="slot-name">Spell Slot 2</span>
+            </div>
+            <div class="slot-row">
+              <kbd>6</kbd>
+              <span class="slot-name">Spell Slot 3</span>
+            </div>
+          </div>
+        </div>
+        <div class="slot-group items">
+          <h3>Consumables</h3>
+          <div class="slot-list">
+            <div class="slot-row">
+              <kbd>7</kbd>
+              <span class="slot-name">Item Slot 1</span>
+            </div>
+            <div class="slot-row">
+              <kbd>8</kbd>
+              <span class="slot-name">Item Slot 2</span>
+            </div>
+            <div class="slot-row">
+              <kbd>9</kbd>
+              <span class="slot-name">Item Slot 3</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="section">
+      <div class="section-header">
+        <span class="section-icon">🏝️</span>
+        <h2>Island Navigation</h2>
+      </div>
+      <div class="hotkey-grid">
+        <div class="hotkey-item">
+          <kbd>W</kbd>
+          <span class="hotkey-desc">Pan camera up</span>
+        </div>
+        <div class="hotkey-item">
+          <kbd>S</kbd>
+          <span class="hotkey-desc">Pan camera down</span>
+        </div>
+        <div class="hotkey-item">
+          <kbd>A</kbd>
+          <span class="hotkey-desc">Pan camera left</span>
+        </div>
+        <div class="hotkey-item">
+          <kbd>D</kbd>
+          <span class="hotkey-desc">Pan camera right</span>
+        </div>
+      </div>
+    </div>
+    
+    <div class="section">
+      <div class="section-header">
+        <span class="section-icon">⛵</span>
+        <h2>World Map / Sailing</h2>
+      </div>
+      <div class="hotkey-grid">
+        <div class="hotkey-item">
+          <kbd>W</kbd>
+          <span class="hotkey-desc">Sail forward</span>
+        </div>
+        <div class="hotkey-item">
+          <kbd>S</kbd>
+          <span class="hotkey-desc">Slow down / reverse</span>
+        </div>
+        <div class="hotkey-item">
+          <kbd>A</kbd>
+          <span class="hotkey-desc">Turn left (port)</span>
+        </div>
+        <div class="hotkey-item">
+          <kbd>D</kbd>
+          <span class="hotkey-desc">Turn right (starboard)</span>
+        </div>
+        <div class="hotkey-item">
+          <kbd>↑</kbd>
+          <span class="hotkey-desc">Zoom in</span>
+        </div>
+        <div class="hotkey-item">
+          <kbd>↓</kbd>
+          <span class="hotkey-desc">Zoom out</span>
+        </div>
+        <div class="hotkey-item">
+          <kbd>←</kbd>
+          <span class="hotkey-desc">Rotate view left</span>
+        </div>
+        <div class="hotkey-item">
+          <kbd>→</kbd>
+          <span class="hotkey-desc">Rotate view right</span>
+        </div>
+        <div class="hotkey-item">
+          <kbd class="wide">Space</kbd>
+          <span class="hotkey-desc">Fire cannon</span>
+        </div>
+        <div class="hotkey-item">
+          <kbd>F</kbd>
+          <span class="hotkey-desc">Toggle fog of war</span>
+        </div>
+        <div class="hotkey-item">
+          <kbd>E</kbd>
+          <span class="hotkey-desc">Interact / dock</span>
+        </div>
+      </div>
+    </div>
+    
+    <div class="section">
+      <div class="section-header">
+        <span class="section-icon">🎮</span>
+        <h2>General Controls</h2>
+      </div>
+      <div class="hotkey-grid">
+        <div class="hotkey-item">
+          <kbd class="wide">Enter</kbd>
+          <span class="hotkey-desc">Confirm / interact</span>
+        </div>
+        <div class="hotkey-item">
+          <kbd>Click</kbd>
+          <span class="hotkey-desc">Select target / node</span>
+        </div>
+      </div>
+      <p style="margin-top: 16px; color: #78716c; font-size: 0.85rem; font-style: italic;">
+        Note: Additional hotkeys may be added in future updates. Use mouse/touch for most UI interactions.
+      </p>
+    </div>
+    
+    <div class="footer">
+      <p><a href="/">← Return to Game</a></p>
+      <p style="margin-top: 8px;">Grudge Warlords &copy; 2025</p>
+    </div>
+  </div>
+</body>
+</html>

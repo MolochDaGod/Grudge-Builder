@@ -1,0 +1,158 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@plugin "tailwindcss-animate";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: hsl(225 30% 8%);
+  --color-foreground: hsl(220 20% 95%);
+  
+  --color-card: hsl(225 25% 12%);
+  --color-card-foreground: hsl(220 20% 95%);
+  
+  --color-popover: hsl(225 25% 12%);
+  --color-popover-foreground: hsl(220 20% 95%);
+  
+  --color-primary: hsl(45 90% 50%); /* Gold */
+  --color-primary-foreground: hsl(225 30% 8%);
+  
+  --color-secondary: hsl(225 20% 20%);
+  --color-secondary-foreground: hsl(220 20% 95%);
+  
+  --color-muted: hsl(225 20% 25%);
+  --color-muted-foreground: hsl(220 20% 70%);
+  
+  --color-accent: hsl(265 80% 65%); /* Purple/Magic */
+  --color-accent-foreground: hsl(220 20% 95%);
+  
+  --color-destructive: hsl(0 70% 50%);
+  --color-destructive-foreground: hsl(0 0% 100%);
+  
+  --color-border: hsl(225 20% 25%);
+  --color-input: hsl(225 20% 20%);
+  --color-ring: hsl(45 90% 50%);
+
+  --radius: 0.5rem;
+
+  --font-cinzel: "Cinzel", serif;
+  --font-uncial: "Uncial Antiqua", cursive;
+  --font-sans: "Inter", sans-serif;
+  --font-jost: "Jost", sans-serif;
+  --font-heading: "Cinzel", serif;
+}
+
+:root {
+  color-scheme: dark;
+}
+
+body {
+  @apply bg-background text-foreground font-sans antialiased;
+  background-image: 
+    radial-gradient(circle at 20% -10%, hsla(150, 70%, 50%, 0.05), transparent 40%),
+    radial-gradient(circle at 90% 0%, hsla(260, 70%, 60%, 0.05), transparent 40%);
+}
+
+h1, h2, h3, h4, h5, h6 {
+  @apply font-cinzel font-bold;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: hsl(225 25% 10%); 
+}
+::-webkit-scrollbar-thumb {
+  background: hsl(225 20% 30%); 
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(45 90% 50%); 
+}
+
+/* Handsontable Dark Theme */
+.htDark {
+  background: hsl(225 25% 10%) !important;
+  color: hsl(220 20% 90%) !important;
+}
+
+.htDark .ht_master .wtHolder {
+  background: hsl(225 25% 10%) !important;
+}
+
+.htDark th,
+.htDark .ht_clone_top th,
+.htDark .ht_clone_left th {
+  background: hsl(225 25% 15%) !important;
+  color: hsl(45 90% 60%) !important;
+  border-color: hsl(225 20% 25%) !important;
+  font-weight: 600;
+  font-size: 12px;
+}
+
+.htDark td {
+  background: hsl(225 25% 12%) !important;
+  color: hsl(220 20% 90%) !important;
+  border-color: hsl(225 20% 20%) !important;
+}
+
+.htDark tr:hover td {
+  background: hsl(225 25% 18%) !important;
+}
+
+.htDark td.current,
+.htDark td.area {
+  background: hsl(45 50% 20%) !important;
+  border-color: hsl(45 90% 50%) !important;
+}
+
+.htDark .htAutocompleteArrow {
+  color: hsl(220 20% 60%) !important;
+}
+
+.htDark .handsontable .htDropdownMenu,
+.htDark .handsontable .htFiltersMenu {
+  background: hsl(225 25% 15%) !important;
+  border-color: hsl(225 20% 25%) !important;
+}
+
+.htDark .handsontable .htDropdownMenu td,
+.htDark .handsontable .htFiltersMenu td {
+  background: hsl(225 25% 15%) !important;
+  color: hsl(220 20% 90%) !important;
+}
+
+.htDark .handsontable .htDropdownMenu td:hover,
+.htDark .handsontable .htFiltersMenu td:hover {
+  background: hsl(225 25% 22%) !important;
+}
+
+.htDark .handsontable input,
+.htDark .handsontable select,
+.htDark .handsontable textarea {
+  background: hsl(225 25% 15%) !important;
+  color: hsl(220 20% 90%) !important;
+  border-color: hsl(225 20% 30%) !important;
+}
+
+.htDark .handsontable .htCheckboxRendererInput {
+  accent-color: hsl(45 90% 50%);
+}
+
+.htDark .ht_clone_top,
+.htDark .ht_clone_left,
+.htDark .ht_clone_corner {
+  background: hsl(225 25% 12%) !important;
+}
+
+.htDark .wtBorder {
+  background: hsl(45 90% 50%) !important;
+}
+
+.htDark td.htDimmed {
+  background: hsl(225 25% 8%) !important;
+  color: hsl(220 20% 50%) !important;
+}

@@ -1,0 +1,38 @@
+# Large asset directories - exclude from deployment image
+diabloweb/
+diabloweb-master/
+attached_assets/
+.cache/
+
+# Documentation and non-essential files
+docs/
+*.md
+!README.md
+
+# Development files
+.git/
+.gitignore
+.env.local
+.env.development
+
+# Node modules should be installed fresh in container
+node_modules/
+
+# Source maps and debug files
+*.map
+
+# Test files
+**/*.test.ts
+**/*.spec.ts
+__tests__/
+
+# Sprite source files (keep dist/public but exclude source)
+client/public/sprites/
+
+# Log files
+*.log
+logs/
+/tmp/
+
+# Build artifacts that will be recreated
+.tsbuildinfo

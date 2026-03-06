@@ -1,0 +1,44 @@
+# Dependencies
+node_modules/
+.venv/
+.conda/
+
+# Build artifacts
+dist/
+build/
+target/
+server/public/
+
+# Large binary assets
+*.zip
+*.psd
+*.ai
+*.exe
+*.mpq
+*.tar.gz
+*.blend
+
+# Secrets
+.env
+.env.local
+.env.production
+
+# Dev environment
+.config/
+.local/
+.vercel/
+
+# Crash dumps
+hs_err_pid*.log
+replay_pid*.log
+
+# IDE
+.DS_Store
+.ipynb_checkpoints/
+.history/
+
+# Diablo web reference
+diabloweb/
+
+# Vite config temps
+vite.config.ts.*

@@ -1,0 +1,232 @@
+import { characterAPI, partyAPI } from "./api";
+
+export interface ProfessionLevel {
+  level: number;
+  xp: number;
+}
+
+export interface SkillSlot {
+  skillId: string | null;
+  upgradeLevel: number;
+}
+
+export interface SkillLoadout {
+  slots: {
+    1: SkillSlot;
+    2: SkillSlot;
+    3: SkillSlot;
+    4: SkillSlot;
+  };
+}
+
+export interface WeaponSkillSelection {
+  hotkey2: string | null;
+  hotkey3: string | null;
+}
+
+export interface Character {
+  id: string;
+  name: string;
+  raceId: string;
+  classId: string;
+  level: number;
+  xp: number;
+  attributes: Record<string, number>;
+  inventory: InventoryItem[];
+  equipment: EquipmentSlots;
+  professionLevels: Record<string, ProfessionLevel>;
+  createdAt: number;
+  revivalTime?: number | null;
+  energy?: number;
+  hp?: number;
+  avatarUrl?: string | null;
+  unspentAttributePoints?: number;
+  skillPoints?: number;
+  skillLoadouts?: Record<string, SkillLoadout>;
+  weaponSkillLevel?: number | null;
+  weaponSkillSelections?: Record<string, WeaponSkillSelection> | null;
+  equippedWeaponId?: string | null;
+  selectedSkills?: Record<number, string>; // Class skill tree selections by tier level
+}
+
+export interface InventoryItem {
+  itemId: string;
+  quantity: number;
+  tier?: number;
+}
+
+export type EquipmentSlots = Record<string, string | null>;
+
+const ACTIVE_CHAR_KEY = "gruda_active_character";
+
+export const CharacterManager = {
+  getAll: async (): Promise<Character[]> => {
+    try {
+      return await characterAPI.getAll();
+    } catch (e) {
+      console.error("Failed to load characters from API", e);
+      return [];
+    }
+  },
+
+  addCharacter: async (character: Omit<Character, "id" | "createdAt" | "userId">, onAvatarReady?: (char: Character) => void): Promise<Character> => {
+    try {
+      // New characters start with 7 unspent attribute points per level
+      const unspentPoints = character.unspentAttributePoints ?? (character.level * 7);
+      
+      const newChar = await characterAPI.create({
+        ...character,
+        xp: 0,
+        energy: 50,
+        hp: 100,
+        professionLevels: character.professionLevels || {},
+        revivalTime: null,
+        avatarUrl: null,
+        unspentAttributePoints: unspentPoints,
+        skillPoints: character.skillPoints ?? 1,
+        skillLoadouts: character.skillLoadouts ?? {},
+        weaponSkillLevel: character.weaponSkillLevel ?? 1,
+        weaponSkillSelections: character.weaponSkillSelections ?? {},
+        equippedWeaponId: character.equippedWeaponId ?? null,
+        selectedSkills: character.selectedSkills ?? {},
+        accountId: null,
+        homeIslandId: null,
+        personality: null,
+        chatTemperature: null,
+        chatHistory: null,
+      });
+      CharacterManager.setActive(newChar.id);
+      
+      // Generate AI avatar asynchronously
+      characterAPI.regenerateAvatar(newChar.id).then(updatedChar => {
+        console.log("Avatar generated for character:", updatedChar.name);
+        // Notify caller that avatar is ready
+        if (onAvatarReady) {
+          onAvatarReady(updatedChar);
+        }
+      }).catch(err => {
+        console.error("Failed to generate avatar:", err);
+      });
+      
+      return newChar;
+    } catch (e) {
+      console.error("Failed to create character", e);
+      throw e;
+    }
+  },
+
+  deleteCharacter: async (id: string): Promise<void> => {
+    try {
+      await characterAPI.delete(id);
+      
+      // Remove from party if present
+      const party = await CharacterManager.getParty();
+      if (party.includes(id)) {
+        await CharacterManager.setParty(party.filter(pid => pid !== id));
+      }
+
+      // If active character was deleted, clear or set to another
+      const activeId = CharacterManager.getActiveId();
+      if (activeId === id) {
+        const characters = await CharacterManager.getAll();
+        if (characters.length > 0) {
+          CharacterManager.setActive(characters[0].id);
+        } else {
+          localStorage.removeItem(ACTIVE_CHAR_KEY);
+        }
+      }
+    } catch (e) {
+      console.error("Failed to delete character", e);
+      throw e;
+    }
+  },
+
+  getActiveId: (): string | null => {
+    return localStorage.getItem(ACTIVE_CHAR_KEY);
+  },
+
+  setActive: (id: string) => {
+    localStorage.setItem(ACTIVE_CHAR_KEY, id);
+  },
+
+  getActiveCharacter: async (): Promise<Character | null> => {
+    const id = CharacterManager.getActiveId();
+    if (!id) return null;
+    try {
+      const characters = await CharacterManager.getAll();
+      return characters.find(c => c.id === id) || null;
+    } catch (e) {
+      console.error("Failed to get active character", e);
+      return null;
+    }
+  },
+
+  updateCharacter: async (updatedChar: Character): Promise<Character> => {
+    try {
+      return await characterAPI.update(updatedChar.id, {
+        name: updatedChar.name,
+        level: updatedChar.level,
+        xp: updatedChar.xp,
+        hp: updatedChar.hp,
+        energy: updatedChar.energy,
+        attributes: updatedChar.attributes,
+        equipment: updatedChar.equipment,
+        inventory: updatedChar.inventory,
+        professionLevels: updatedChar.professionLevels ?? {},
+        revivalTime: updatedChar.revivalTime,
+        avatarUrl: updatedChar.avatarUrl ?? null,
+        unspentAttributePoints: updatedChar.unspentAttributePoints ?? 0,
+        skillPoints: updatedChar.skillPoints ?? 1,
+        skillLoadouts: updatedChar.skillLoadouts ?? {},
+        weaponSkillLevel: updatedChar.weaponSkillLevel ?? 1,
+        weaponSkillSelections: updatedChar.weaponSkillSelections ?? {},
+        equippedWeaponId: updatedChar.equippedWeaponId ?? null,
+        selectedSkills: updatedChar.selectedSkills ?? {},
+      });
+    } catch (e) {
+      console.error("Failed to update character", e);
+      throw e;
+    }
+  },
+
+  regenerateAvatar: async (id: string): Promise<Character> => {
+    try {
+      return await characterAPI.regenerateAvatar(id);
+    } catch (e) {
+      console.error("Failed to regenerate avatar", e);
+      throw e;
+    }
+  },
+
+  // Party Management
+  getParty: async (): Promise<string[]> => {
+    try {
+      const party = await partyAPI.get();
+      return party.characterIds;
+    } catch {
+      return [];
+    }
+  },
+
+  setParty: async (ids: string[]): Promise<void> => {
+    try {
+      // Max 3
+      const limited = ids.slice(0, 3);
+      await partyAPI.update(limited);
+    } catch (e) {
+      console.error("Failed to update party", e);
+    }
+  },
+
+  addToParty: async (id: string): Promise<void> => {
+    const party = await CharacterManager.getParty();
+    if (!party.includes(id) && party.length < 3) {
+      await CharacterManager.setParty([...party, id]);
+    }
+  },
+
+  removeFromParty: async (id: string): Promise<void> => {
+    const party = await CharacterManager.getParty();
+    await CharacterManager.setParty(party.filter(pid => pid !== id));
+  }
+};

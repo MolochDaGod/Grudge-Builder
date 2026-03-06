@@ -1,0 +1,2530 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Grudge Warlords - Skill Tree</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700&family=Jost:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0b1020;
+            --card: #141a2b;
+            --text: #e8eaf6;
+            --muted: #a5b4d0;
+            --border: #2a3150;
+            --accent: #6ee7b7;
+            --gold: #ffd700;
+            --locked: #4a4a4a;
+            --warrior: #ef4444;
+            --mage: #8b5cf6;
+            --worg: #d97706;
+            --ranger: #22c55e;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Jost', sans-serif;
+            background: linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.85)),
+                        url('/img/background/grass-ancient.jpg');
+            background-size: cover;
+            background-position: center;
+            color: var(--text);
+            min-height: 100vh;
+            overflow: hidden;
+        }
+
+        .font-cinzel { font-family: 'Cinzel', serif; }
+
+        header {
+            background: linear-gradient(135deg, rgba(14,22,48,0.9), rgba(20,26,43,0.7));
+            border-bottom: 2px solid var(--border);
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+        }
+
+        header h1 { font-size: 1.5rem; color: var(--accent); }
+        header .subtitle { color: var(--muted); font-size: 0.85rem; }
+
+        .back-btn {
+            padding: 8px 16px;
+            background: var(--border);
+            border: none;
+            border-radius: 6px;
+            color: var(--text);
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.2s;
+        }
+
+        .back-btn:hover { background: #3a4560; }
+
+        .class-tabs {
+            position: fixed;
+            top: 70px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 8px;
+            z-index: 99;
+            background: rgba(20, 26, 43, 0.95);
+            padding: 10px 20px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+        }
+
+        .class-tab {
+            padding: 10px 20px;
+            background: transparent;
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            color: var(--muted);
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 600;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .class-tab:hover { border-color: var(--accent); color: var(--text); }
+        .class-tab.active { background: rgba(110, 231, 183, 0.15); border-color: var(--accent); color: var(--accent); }
+        .class-tab.warrior.active { background: rgba(239, 68, 68, 0.15); border-color: var(--warrior); color: var(--warrior); }
+        .class-tab.mage.active { background: rgba(139, 92, 246, 0.15); border-color: var(--mage); color: var(--mage); }
+        .class-tab.worg.active { background: rgba(217, 119, 6, 0.15); border-color: var(--worg); color: var(--worg); }
+        .class-tab.ranger.active { background: rgba(34, 197, 94, 0.15); border-color: var(--ranger); color: var(--ranger); }
+
+        .class-icon { font-size: 1.2rem; }
+
+        .skill-tree-container {
+            position: fixed;
+            top: 130px;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            overflow: auto;
+            padding: 20px 40px 40px 40px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .skill-tree {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 60px;
+            min-width: 1200px;
+            padding: 40px;
+            padding-left: 220px;
+        }
+
+        .skill-tier {
+            display: flex;
+            gap: 140px;
+            justify-content: center;
+            position: relative;
+        }
+
+        .skill-tier::before {
+            content: attr(data-tier);
+            position: absolute;
+            left: -200px;
+            width: 180px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--gold);
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            text-align: right;
+            padding-right: 20px;
+        }
+
+        .skill-node {
+            width: 70px;
+            height: 70px;
+            background: var(--card);
+            border: 3px solid var(--locked);
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            transition: all 0.3s ease;
+        }
+
+        .skill-node:hover {
+            transform: scale(1.1);
+            border-color: var(--gold);
+            box-shadow: 0 0 20px rgba(255, 215, 0, 0.3);
+        }
+
+        .skill-node.unlocked {
+            border-color: var(--gold);
+            box-shadow: 0 0 15px rgba(255, 215, 0, 0.5);
+        }
+
+        .skill-node.unlocked .skill-icon { filter: none; }
+
+        .skill-node.available {
+            border-color: var(--accent);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { box-shadow: 0 0 5px rgba(110, 231, 183, 0.3); }
+            50% { box-shadow: 0 0 20px rgba(110, 231, 183, 0.6); }
+        }
+
+        .skill-icon {
+            font-size: 28px;
+            filter: grayscale(100%) brightness(0.5);
+            transition: filter 0.3s;
+        }
+
+        .skill-points {
+            position: absolute;
+            bottom: -8px;
+            right: -8px;
+            background: var(--card);
+            border: 2px solid var(--gold);
+            border-radius: 10px;
+            padding: 2px 8px;
+            font-size: 0.75rem;
+            color: var(--gold);
+            font-weight: 600;
+        }
+
+        .skill-tooltip {
+            position: fixed;
+            background: rgba(14, 22, 48, 0.98);
+            border: 1px solid var(--gold);
+            border-radius: 8px;
+            padding: 15px;
+            width: 280px;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.2s;
+            z-index: 10000;
+            pointer-events: none;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+        }
+
+        .skill-tooltip.visible { opacity: 1; visibility: visible; }
+        
+        .skill-node .skill-tooltip { display: none; }
+        #global-tooltip { display: block; }
+
+        .skill-tooltip h3 { color: var(--gold); margin-bottom: 8px; font-size: 1rem; }
+        .skill-tooltip p { color: var(--muted); font-size: 0.85rem; line-height: 1.4; margin-bottom: 10px; }
+        .skill-tooltip .requirement { color: #ef4444; font-size: 0.8rem; }
+        .skill-tooltip .effect { color: var(--accent); font-size: 0.85rem; }
+
+        .stats-panel {
+            position: relative;
+            width: 100%;
+            max-width: 800px;
+            background: linear-gradient(135deg, rgba(20,26,43,0.95), rgba(20,26,43,0.85));
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 15px 25px;
+            margin-bottom: 20px;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 15px;
+            flex-shrink: 0;
+        }
+
+        .stats-panel h2 { 
+            color: var(--accent); 
+            font-size: 1rem; 
+            margin: 0;
+            white-space: nowrap;
+        }
+        
+        .stats-row-group {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+        }
+        
+        .stat-row { 
+            display: flex; 
+            gap: 8px;
+            font-size: 0.85rem;
+            align-items: center;
+        }
+        .stat-label { color: var(--muted); }
+        .stat-value { color: var(--gold); font-weight: 600; }
+
+        .skill-points-available {
+            background: rgba(110, 231, 183, 0.1);
+            border: 1px solid var(--accent);
+            border-radius: 8px;
+            padding: 8px 15px;
+            text-align: center;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .skill-points-available .label { color: var(--muted); font-size: 0.8rem; }
+        .skill-points-available .value { color: var(--accent); font-size: 1.2rem; font-weight: 700; }
+
+        .reset-btn {
+            padding: 8px 16px;
+            background: rgba(239, 68, 68, 0.2);
+            border: 1px solid #ef4444;
+            border-radius: 6px;
+            color: #ef4444;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+
+        .reset-btn:hover { background: rgba(239, 68, 68, 0.3); }
+
+        .mode-tabs {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .mode-tab {
+            padding: 8px 14px;
+            background: rgba(20, 26, 43, 0.95);
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            color: var(--muted);
+            cursor: pointer;
+            font-size: 0.8rem;
+            font-weight: 600;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+
+        .mode-tab:hover { border-color: var(--accent); color: var(--text); }
+        .mode-tab.active { background: rgba(110, 231, 183, 0.15); border-color: var(--accent); color: var(--accent); }
+        .mode-tab.weapons.active { background: rgba(245, 158, 11, 0.15); border-color: var(--ranger); color: var(--ranger); }
+
+        .custom-tree-btn {
+            padding: 8px 14px;
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.3), rgba(110, 231, 183, 0.2));
+            border: 2px solid var(--mage);
+            border-radius: 8px;
+            color: var(--mage);
+            cursor: pointer;
+            font-size: 0.8rem;
+            font-weight: 600;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+
+        .custom-tree-btn:hover { transform: scale(1.02); box-shadow: 0 0 15px rgba(139, 92, 246, 0.4); }
+
+        .albion-weapon-tree {
+            display: none;
+            flex-direction: column;
+            gap: 30px;
+            padding: 20px;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .albion-weapon-tree.active {
+            display: flex;
+        }
+
+        .action-bar-slots {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            align-items: flex-start;
+        }
+
+        .action-slot {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+            min-width: 180px;
+        }
+
+        .slot-header {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .slot-key {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, rgba(255, 215, 0, 0.3), rgba(255, 215, 0, 0.1));
+            border: 3px solid var(--gold);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--gold);
+            font-family: 'Cinzel', serif;
+        }
+
+        .slot-label {
+            font-size: 0.75rem;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .skill-options {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            width: 100%;
+        }
+
+        .skill-option {
+            padding: 12px;
+            background: var(--card);
+            border: 2px solid var(--border);
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .skill-option:hover {
+            border-color: var(--accent);
+            transform: translateX(5px);
+        }
+
+        .skill-option.selected {
+            border-color: var(--gold);
+            background: rgba(255, 215, 0, 0.15);
+            box-shadow: 0 0 15px rgba(255, 215, 0, 0.3);
+        }
+
+        .skill-option.locked {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .skill-option.locked:hover {
+            transform: none;
+            border-color: var(--border);
+        }
+
+        .skill-option-icon {
+            width: 40px;
+            height: 40px;
+            background: rgba(42, 49, 80, 0.6);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+        }
+
+        .skill-option-info {
+            flex: 1;
+        }
+
+        .skill-option-name {
+            font-weight: 600;
+            color: var(--text);
+            font-size: 0.9rem;
+        }
+
+        .skill-option-effect {
+            font-size: 0.75rem;
+            color: var(--accent);
+        }
+
+        .skill-option-cost {
+            font-size: 0.7rem;
+            color: var(--muted);
+        }
+
+        .equipped-skill {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, rgba(110, 231, 183, 0.2), rgba(110, 231, 183, 0.05));
+            border: 2px solid var(--accent);
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            min-height: 100px;
+        }
+
+        .equipped-skill-icon {
+            font-size: 2rem;
+        }
+
+        .equipped-skill-name {
+            font-weight: 600;
+            color: var(--accent);
+            text-align: center;
+        }
+
+        .weapon-info-header {
+            text-align: center;
+            padding: 20px;
+            background: linear-gradient(135deg, rgba(20,26,43,0.95), rgba(20,26,43,0.7));
+            border-radius: 12px;
+            border: 1px solid var(--border);
+        }
+
+        .weapon-info-header h2 {
+            color: var(--gold);
+            margin-bottom: 5px;
+        }
+
+        .weapon-info-header p {
+            color: var(--muted);
+            font-size: 0.9rem;
+        }
+
+        .weapon-skill-panel {
+            display: none;
+        }
+
+        .weapon-skill-panel.active {
+            display: block;
+        }
+
+        .weapon-select {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .weapon-card {
+            padding: 15px;
+            background: var(--card);
+            border: 2px solid var(--border);
+            border-radius: 10px;
+            cursor: pointer;
+            text-align: center;
+            min-width: 100px;
+            transition: all 0.2s;
+        }
+
+        .weapon-card:hover { border-color: var(--accent); transform: translateY(-2px); }
+        .weapon-card.selected { border-color: var(--gold); background: rgba(255, 215, 0, 0.1); }
+        .weapon-card .weapon-icon { font-size: 2rem; margin-bottom: 6px; }
+        .weapon-card .weapon-name { font-size: 0.85rem; color: var(--text); }
+
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.8);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-overlay.active { display: flex; }
+
+        .modal {
+            background: var(--card);
+            border: 2px solid var(--border);
+            border-radius: 16px;
+            padding: 30px;
+            width: 90%;
+            max-width: 800px;
+            max-height: 85vh;
+            overflow-y: auto;
+        }
+
+        .modal h2 { color: var(--accent); margin-bottom: 20px; }
+
+        .modal-section {
+            margin-bottom: 20px;
+            padding: 15px;
+            background: rgba(0,0,0,0.2);
+            border-radius: 8px;
+        }
+
+        .modal-section label {
+            display: block;
+            color: var(--muted);
+            font-size: 0.85rem;
+            margin-bottom: 6px;
+        }
+
+        .modal-section input, .modal-section select, .modal-section textarea {
+            width: 100%;
+            padding: 10px;
+            background: rgba(42, 49, 80, 0.6);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--text);
+            font-size: 0.9rem;
+        }
+
+        .modal-section input:focus, .modal-section select:focus, .modal-section textarea:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        .skill-editor-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 12px;
+        }
+
+        .skill-editor-card {
+            padding: 12px;
+            background: rgba(42, 49, 80, 0.4);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+        }
+
+        .skill-editor-card input {
+            margin-bottom: 8px;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 20px;
+        }
+
+        .modal-btn {
+            flex: 1;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+        }
+
+        .modal-btn.primary {
+            background: var(--accent);
+            color: var(--bg);
+        }
+
+        .modal-btn.primary:hover { background: #5dd8a8; }
+
+        .modal-btn.secondary {
+            background: var(--border);
+            color: var(--text);
+        }
+
+        .modal-btn.secondary:hover { background: #3a4560; }
+
+        .add-skill-btn {
+            padding: 10px 15px;
+            background: rgba(110, 231, 183, 0.2);
+            border: 1px dashed var(--accent);
+            border-radius: 6px;
+            color: var(--accent);
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: all 0.2s;
+        }
+
+        .add-skill-btn:hover { background: rgba(110, 231, 183, 0.3); }
+
+        .tier-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .tier-header h4 { color: var(--gold); font-size: 0.9rem; }
+
+        .remove-btn {
+            background: none;
+            border: none;
+            color: #ef4444;
+            cursor: pointer;
+            font-size: 1rem;
+            padding: 4px 8px;
+        }
+
+        .remove-btn:hover { color: #ff6b6b; }
+
+        .prefab-section {
+            margin-top: 20px;
+            padding: 15px;
+            background: rgba(245, 158, 11, 0.1);
+            border: 1px solid var(--ranger);
+            border-radius: 10px;
+        }
+
+        .prefab-section h3 { color: var(--ranger); margin-bottom: 12px; font-size: 1rem; }
+
+        .prefab-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+
+        .animation-slot {
+            padding: 10px;
+            background: rgba(42, 49, 80, 0.4);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+        }
+
+        .animation-slot label { font-size: 0.8rem; margin-bottom: 4px; }
+    </style>
+</head>
+<body>
+    <header>
+        <a href="/" class="back-btn">← Back to Game</a>
+        <div style="text-align: center;">
+            <h1 class="font-cinzel">Skill Tree</h1>
+            <div class="subtitle" id="class-name">Warrior Class</div>
+        </div>
+        <div style="width: 120px;"></div>
+    </header>
+
+    <div class="class-tabs" id="class-tabs-container">
+        <button class="class-tab warrior active" data-class="warrior">
+            <span class="class-icon">⚔️</span> Warrior
+        </button>
+        <button class="class-tab mage" data-class="mage">
+            <span class="class-icon">🔮</span> Mage Priest
+        </button>
+        <button class="class-tab worg" data-class="worg">
+            <span class="class-icon">🐺</span> Worg
+        </button>
+        <button class="class-tab ranger" data-class="ranger">
+            <span class="class-icon">🏹</span> Ranger
+        </button>
+    </div>
+
+    <div class="class-tabs weapon-skill-panel" id="weapon-tabs-container">
+        <button class="class-tab active" data-weapon="sword">
+            <span class="class-icon">⚔️</span> Sword
+        </button>
+        <button class="class-tab" data-weapon="bow">
+            <span class="class-icon">🏹</span> Bow
+        </button>
+        <button class="class-tab" data-weapon="staff">
+            <span class="class-icon">🪄</span> Staff
+        </button>
+        <button class="class-tab" data-weapon="dagger">
+            <span class="class-icon">🗡️</span> Dagger
+        </button>
+        <button class="class-tab" data-weapon="axe">
+            <span class="class-icon">🪓</span> Axe
+        </button>
+        <button class="class-tab" data-weapon="hammer">
+            <span class="class-icon">🔨</span> Hammer
+        </button>
+    </div>
+
+    <div class="skill-tree-container">
+        <div class="stats-panel">
+            <h2 class="font-cinzel">Skill Bonuses</h2>
+            <div class="stats-row-group">
+                <div class="stat-row">
+                    <span class="stat-label">DMG</span>
+                    <span class="stat-value" id="bonus-damage">+0%</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">DEF</span>
+                    <span class="stat-value" id="bonus-defense">+0%</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">SPD</span>
+                    <span class="stat-value" id="bonus-speed">+0%</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">HP</span>
+                    <span class="stat-value" id="bonus-health">+0</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">MP</span>
+                    <span class="stat-value" id="bonus-mana">+0</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">CRIT</span>
+                    <span class="stat-value" id="bonus-crit">+0%</span>
+                </div>
+            </div>
+            <div class="skill-points-available">
+                <span class="label">Points:</span>
+                <span class="value" id="points-available">10</span>
+            </div>
+            <button class="reset-btn" id="reset-btn">Reset</button>
+            <div class="mode-tabs">
+                <button class="mode-tab active" data-mode="class">Class</button>
+                <button class="mode-tab weapons" data-mode="weapons">Weapons</button>
+                <button class="custom-tree-btn" id="create-custom-btn">+ Custom</button>
+            </div>
+        </div>
+        <div class="skill-tree" id="skill-tree"></div>
+        <div class="albion-weapon-tree" id="albion-weapon-tree"></div>
+    </div>
+
+    <div class="modal-overlay" id="custom-tree-modal">
+        <div class="modal">
+            <h2 class="font-cinzel">Create Custom Skill Tree</h2>
+            
+            <div class="modal-section">
+                <label>Skill Tree Name</label>
+                <input type="text" id="custom-tree-name" placeholder="e.g. Fire Mage, Berserker, Assassin...">
+            </div>
+
+            <div class="modal-section">
+                <label>Tree Type</label>
+                <select id="custom-tree-type">
+                    <option value="class">Class Skill Tree</option>
+                    <option value="weapon">Weapon Skill Tree</option>
+                    <option value="ability">Ability Tree</option>
+                </select>
+            </div>
+
+            <div class="modal-section">
+                <label>Icon (Emoji)</label>
+                <input type="text" id="custom-tree-icon" placeholder="e.g. 🔥 ⚡ 💀" maxlength="4">
+            </div>
+
+            <div class="modal-section">
+                <label>Color</label>
+                <input type="color" id="custom-tree-color" value="#6ee7b7">
+            </div>
+
+            <div class="modal-section">
+                <label>Background Image URL (optional)</label>
+                <input type="text" id="custom-tree-background" placeholder="https://i.imgur.com/example.png">
+                <div style="margin-top: 8px; display: flex; gap: 8px; flex-wrap: wrap;">
+                    <button type="button" class="bg-preset-btn" data-bg="neutral" style="padding: 4px 8px; background: var(--border); border: none; border-radius: 4px; color: var(--text); cursor: pointer; font-size: 0.75rem;">Neutral</button>
+                    <button type="button" class="bg-preset-btn" data-bg="warrior" style="padding: 4px 8px; background: var(--border); border: none; border-radius: 4px; color: var(--text); cursor: pointer; font-size: 0.75rem;">Warrior</button>
+                    <button type="button" class="bg-preset-btn" data-bg="mage" style="padding: 4px 8px; background: var(--border); border: none; border-radius: 4px; color: var(--text); cursor: pointer; font-size: 0.75rem;">Mage</button>
+                    <button type="button" class="bg-preset-btn" data-bg="ranger" style="padding: 4px 8px; background: var(--border); border: none; border-radius: 4px; color: var(--text); cursor: pointer; font-size: 0.75rem;">Ranger</button>
+                    <button type="button" class="bg-preset-btn" data-bg="worg" style="padding: 4px 8px; background: var(--border); border: none; border-radius: 4px; color: var(--text); cursor: pointer; font-size: 0.75rem;">Worg</button>
+                </div>
+            </div>
+
+            <div id="tiers-container">
+                <div class="modal-section tier-section" data-tier="1">
+                    <div class="tier-header">
+                        <h4>Tier 1 - Basics</h4>
+                    </div>
+                    <div class="skill-editor-grid" id="tier-1-skills">
+                        <div class="skill-editor-card">
+                            <input type="text" placeholder="Skill Name" class="skill-name">
+                            <input type="text" placeholder="Icon (emoji)" class="skill-icon" maxlength="4">
+                            <input type="text" placeholder="Effect (e.g. +10% Damage)" class="skill-effect">
+                            <input type="number" placeholder="Max Points" class="skill-max" value="3" min="1" max="5">
+                        </div>
+                    </div>
+                    <button class="add-skill-btn" onclick="addSkillToTier(1)">+ Add Skill</button>
+                </div>
+
+                <div class="modal-section tier-section" data-tier="2">
+                    <div class="tier-header">
+                        <h4>Tier 2 - Combat</h4>
+                    </div>
+                    <div class="skill-editor-grid" id="tier-2-skills"></div>
+                    <button class="add-skill-btn" onclick="addSkillToTier(2)">+ Add Skill</button>
+                </div>
+
+                <div class="modal-section tier-section" data-tier="3">
+                    <div class="tier-header">
+                        <h4>Tier 3 - Mastery</h4>
+                    </div>
+                    <div class="skill-editor-grid" id="tier-3-skills"></div>
+                    <button class="add-skill-btn" onclick="addSkillToTier(3)">+ Add Skill</button>
+                </div>
+
+                <div class="modal-section tier-section" data-tier="4">
+                    <div class="tier-header">
+                        <h4>Tier 4 - Ultimate</h4>
+                    </div>
+                    <div class="skill-editor-grid" id="tier-4-skills"></div>
+                    <button class="add-skill-btn" onclick="addSkillToTier(4)">+ Add Skill</button>
+                </div>
+            </div>
+
+            <div class="prefab-section" id="weapon-prefab-section" style="display: none;">
+                <h3>Weapon Prefab Settings</h3>
+                <div class="modal-section">
+                    <label>Model Path (GLB/GLTF)</label>
+                    <input type="text" id="prefab-model" placeholder="/models/weapons/sword.glb">
+                </div>
+                <div class="modal-section">
+                    <label>Lua Script</label>
+                    <select id="prefab-script">
+                        <option value="">Select Script...</option>
+                        <option value="sword.lua">sword.lua</option>
+                        <option value="bow.lua">bow.lua</option>
+                        <option value="custom">Custom Script</option>
+                    </select>
+                </div>
+                <div class="prefab-grid">
+                    <div class="animation-slot">
+                        <label>Idle Animation</label>
+                        <input type="text" placeholder="idle" class="anim-idle">
+                    </div>
+                    <div class="animation-slot">
+                        <label>Attack 1</label>
+                        <input type="text" placeholder="attack_1" class="anim-attack1">
+                    </div>
+                    <div class="animation-slot">
+                        <label>Attack 2</label>
+                        <input type="text" placeholder="attack_2" class="anim-attack2">
+                    </div>
+                    <div class="animation-slot">
+                        <label>Attack 3</label>
+                        <input type="text" placeholder="attack_3" class="anim-attack3">
+                    </div>
+                    <div class="animation-slot">
+                        <label>Special</label>
+                        <input type="text" placeholder="special" class="anim-special">
+                    </div>
+                    <div class="animation-slot">
+                        <label>Block</label>
+                        <input type="text" placeholder="block" class="anim-block">
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-actions">
+                <button class="modal-btn secondary" id="cancel-custom-btn">Cancel</button>
+                <button class="modal-btn primary" id="save-custom-btn">Save Skill Tree</button>
+            </div>
+        </div>
+    </div>
+
+
+    <script type="module">
+        const TREE_BACKGROUNDS = {
+            warrior: '/img/skill-tree-backgrounds/warrior.png',
+            mage: '/img/skill-tree-backgrounds/mage.png',
+            worg: '/img/skill-tree-backgrounds/worg.png',
+            ranger: '/img/skill-tree-backgrounds/ranger.png',
+            sword: '/img/skill-tree-backgrounds/sword.png',
+            bow: '/img/skill-tree-backgrounds/bow.png',
+            staff: '/img/skill-tree-backgrounds/staff-fire.png',
+            staff_fire: '/img/skill-tree-backgrounds/staff-fire.png',
+            staff_ice: '/img/skill-tree-backgrounds/staff-ice.png',
+            staff_lightning: '/img/skill-tree-backgrounds/staff-lightning.png',
+            staff_arcane: '/img/skill-tree-backgrounds/staff-arcane.png',
+            staff_nature: '/img/skill-tree-backgrounds/staff-nature.png',
+            dagger: '/img/skill-tree-backgrounds/dagger.png',
+            hammer: '/img/skill-tree-backgrounds/hammer.png',
+            axe: '/img/skill-tree-backgrounds/axe.png',
+            neutral: '/img/skill-tree-backgrounds/neutral.png'
+        }
+
+        const ALL_SKILL_TREES = {
+            warrior: {
+                className: 'Warrior',
+                color: '#ef4444',
+                backgroundImage: TREE_BACKGROUNDS.warrior,
+                tiers: [
+                    {
+                        name: 'Level 0 - Invincibility',
+                        skills: [
+                            { id: 'invincibility', name: 'Invincibility', icon: '🛡️', description: 'Temporary Invulnerability: 1-4 seconds of complete damage immunity', effect: 'Duration scales with level', maxPoints: 4, requires: null }
+                        ]
+                    },
+                    {
+                        name: 'Level 1 - Combat Basics',
+                        skills: [
+                            { id: 'taunt', name: 'Taunt', icon: '📢', description: 'Force enemies to target you', effect: 'Threat Generation', maxPoints: 3, requires: null },
+                            { id: 'quick_strike', name: 'Quick Strike', icon: '⚔️', description: 'Fast attack with speed bonus', effect: '+15% Attack Speed', maxPoints: 3, requires: null }
+                        ]
+                    },
+                    {
+                        name: 'Level 5 - Specialization',
+                        skills: [
+                            { id: 'damage_surge', name: 'Damage Surge', icon: '💥', description: 'Temporary damage boost', effect: '+25% Damage for 5s', maxPoints: 3, requires: 'quick_strike' },
+                            { id: 'guardians_aura', name: "Guardian's Aura", icon: '🔰', description: 'Defense buff for nearby allies', effect: '+15% Party Defense', maxPoints: 3, requires: 'taunt' }
+                        ]
+                    },
+                    {
+                        name: 'Level 10 - Advanced Combat',
+                        skills: [
+                            { id: 'dual_wield', name: 'Dual Wield', icon: '⚔️', description: 'Attack speed and multi-hit', effect: '+30% Attack Speed', maxPoints: 1, requires: 'damage_surge' },
+                            { id: 'shield_specialist', name: 'Shield Specialist', icon: '🛡️', description: 'Block chance and defense', effect: '+20% Block Chance', maxPoints: 3, requires: 'guardians_aura' },
+                            { id: 'life_drain', name: 'Life Drain', icon: '❤️', description: 'Damage that heals you', effect: 'Heal 10% of Damage', maxPoints: 2, requires: 'quick_strike' }
+                        ]
+                    },
+                    {
+                        name: 'Level 15 - Master Warrior',
+                        skills: [
+                            { id: 'execute', name: 'Execute', icon: '💀', description: 'Bonus damage vs low health enemies', effect: '+50% Damage below 30% HP', maxPoints: 1, requires: 'dual_wield' },
+                            { id: 'double_strike', name: 'Double Strike', icon: '⚡', description: 'Two consecutive attacks', effect: 'Double Hit Combo', maxPoints: 2, requires: 'life_drain' }
+                        ]
+                    },
+                    {
+                        name: 'Level 20 - Legendary',
+                        skills: [
+                            { id: 'avatar_form', name: 'Avatar Form', icon: '⭐', description: 'All stats boost + size increase', effect: 'Ultimate Transformation', maxPoints: 1, requires: 'execute' },
+                            { id: 'perfect_counter', name: 'Perfect Counter', icon: '🔄', description: 'Counter-attack chance on block', effect: '30% Counter Chance', maxPoints: 1, requires: 'shield_specialist' }
+                        ]
+                    }
+                ]
+            },
+            mage: {
+                className: 'Mage Priest',
+                color: '#8b5cf6',
+                backgroundImage: TREE_BACKGROUNDS.mage,
+                tiers: [
+                    {
+                        name: 'Level 0 - Arcane Affinity',
+                        skills: [
+                            { id: 'mana_shield', name: 'Mana Shield', icon: '🛡️', description: 'Passive shield based on mana %. Active: 15s massive crit/spell damage boost', effect: 'Shield = % of Mana', maxPoints: 4, requires: null }
+                        ]
+                    },
+                    {
+                        name: 'Level 1 - Basic Arts',
+                        skills: [
+                            { id: 'magic_missile', name: 'Magic Missile', icon: '✨', description: 'Multi-projectile damage spell', effect: '+12% Magic Damage', maxPoints: 3, requires: null },
+                            { id: 'heal', name: 'Heal', icon: '💚', description: 'Direct healing spell', effect: 'Restore Health', maxPoints: 3, requires: null }
+                        ]
+                    },
+                    {
+                        name: 'Level 5 - Specialization',
+                        skills: [
+                            { id: 'fireball', name: 'Fireball', icon: '🔥', description: 'AoE damage spell', effect: 'Fire AoE Attack', maxPoints: 3, requires: 'magic_missile' },
+                            { id: 'greater_heal', name: 'Greater Heal', icon: '💖', description: 'Powerful single-target heal', effect: '+50% Healing Power', maxPoints: 3, requires: 'heal' }
+                        ]
+                    },
+                    {
+                        name: 'Level 10 - Advanced Magic',
+                        skills: [
+                            { id: 'lightning_chain', name: 'Lightning Chain', icon: '⚡', description: 'Multi-target damage spell', effect: 'Chain 5 Targets', maxPoints: 1, requires: 'fireball' },
+                            { id: 'blink', name: 'Blink', icon: '🌟', description: '10 yard directional teleport based on movement', effect: 'Instant Movement', maxPoints: 3, requires: 'magic_missile' },
+                            { id: 'group_heal', name: 'Group Heal', icon: '💗', description: 'AoE healing spell', effect: 'Heal All Nearby', maxPoints: 2, requires: 'greater_heal' }
+                        ]
+                    },
+                    {
+                        name: 'Level 15 - Master Tier',
+                        skills: [
+                            { id: 'meteor', name: 'Meteor', icon: '☄️', description: 'Delayed massive AoE damage', effect: 'Massive AoE Damage', maxPoints: 1, requires: 'lightning_chain' },
+                            { id: 'portal', name: 'Portal', icon: '🌀', description: 'Set/connect portals for team teleportation', effect: 'Team Mobility', maxPoints: 2, requires: 'blink' }
+                        ]
+                    },
+                    {
+                        name: 'Level 20 - Legendary Magic',
+                        skills: [
+                            { id: 'archmage', name: 'Archmage', icon: '🔮', description: 'Massive spell power, reduced costs/cooldowns', effect: '+40% Spell Power', maxPoints: 1, requires: 'meteor' },
+                            { id: 'reality_tear', name: 'Reality Tear', icon: '🌌', description: 'Line of devastating damage', effect: 'Ultimate Destruction', maxPoints: 1, requires: 'portal' }
+                        ]
+                    }
+                ]
+            },
+            worg: {
+                className: 'Worg Shapeshifter',
+                color: '#d97706',
+                backgroundImage: TREE_BACKGROUNDS.worg,
+                tiers: [
+                    {
+                        name: 'Level 0 - Primal Shift',
+                        skills: [
+                            { id: 'bear_form', name: 'Bear Form', icon: '🐻', description: 'Transform into WorgBear. Massive HP/Defense boost, threat generation', effect: 'Primary Tank Form', maxPoints: 4, requires: null }
+                        ]
+                    },
+                    {
+                        name: 'Level 1 - Pack Instincts',
+                        skills: [
+                            { id: 'howl', name: 'Howl', icon: '🐺', description: 'AoE fear/debuff enemies', effect: 'Fear + Debuff', maxPoints: 3, requires: null },
+                            { id: 'pack_hunt', name: 'Pack Hunt', icon: '🐾', description: 'Damage bonus near allies', effect: '+20% Damage Near Allies', maxPoints: 3, requires: null }
+                        ]
+                    },
+                    {
+                        name: 'Level 5 - Primal Mastery',
+                        skills: [
+                            { id: 'feral_rage', name: 'Feral Rage', icon: '😤', description: 'Attack speed/damage boost', effect: '+25% Attack Speed', maxPoints: 3, requires: 'pack_hunt' },
+                            { id: 'alpha_call', name: 'Alpha Call', icon: '🐕', description: 'Summon temporary wolf allies', effect: 'Summon 2 Wolves', maxPoints: 2, requires: 'howl' }
+                        ]
+                    },
+                    {
+                        name: 'Level 10 - Advanced Abilities',
+                        skills: [
+                            { id: 'alpha_bear', name: 'Alpha Bear', icon: '🐻', description: 'AoE taunt spell + tanking buffs for Bear form', effect: 'AoE Taunt + Buffs', maxPoints: 1, requires: 'bear_form' },
+                            { id: 'raptor_form', name: 'Raptor Form', icon: '🦖', description: 'NEW form for stealth DPS and critical strikes', effect: 'Stealth DPS Form', maxPoints: 3, requires: 'feral_rage' },
+                            { id: 'blood_frenzy', name: 'Blood Frenzy', icon: '🩸', description: 'Damage increases as health decreases', effect: '+50% Damage at Low HP', maxPoints: 2, requires: 'pack_hunt' }
+                        ]
+                    },
+                    {
+                        name: 'Level 15 - Apex Predator',
+                        skills: [
+                            { id: 'apex_predator', name: 'Apex Predator', icon: '🎯', description: 'Enhanced tracking and damage vs wounded', effect: '+30% vs Wounded', maxPoints: 1, requires: 'raptor_form' },
+                            { id: 'primal_fury', name: 'Primal Fury', icon: '💢', description: 'Temporary massive stat boost with health drain', effect: '+100% Stats, -HP/s', maxPoints: 2, requires: 'blood_frenzy' }
+                        ]
+                    },
+                    {
+                        name: 'Level 20 - Legendary Forms',
+                        skills: [
+                            { id: 'worg_lord', name: 'Worg Lord', icon: '👑', description: 'Ultimate tank form with pack summoning', effect: 'Ultimate Tank Form', maxPoints: 1, requires: 'alpha_bear' },
+                            { id: 'primal_avatar', name: 'Primal Avatar', icon: '🦁', description: 'Massive size/stat increase, fear aura', effect: 'Ultimate Power', maxPoints: 1, requires: 'primal_fury' }
+                        ]
+                    }
+                ]
+            },
+            ranger: {
+                className: 'Ranger Scout',
+                color: '#22c55e',
+                backgroundImage: TREE_BACKGROUNDS.ranger,
+                tiers: [
+                    {
+                        name: "Level 0 - Hunter's Instinct",
+                        skills: [
+                            { id: 'precision', name: 'Precision', icon: '🎯', description: 'Passive accuracy/crit bonus. Enhanced tracking and movement speed in nature', effect: '+10% Accuracy & Crit', maxPoints: 4, requires: null }
+                        ]
+                    },
+                    {
+                        name: 'Level 1 - Basic Training',
+                        skills: [
+                            { id: 'power_shot', name: 'Power Shot', icon: '🏹', description: 'High damage ranged attack', effect: '+25% Ranged Damage', maxPoints: 3, requires: null },
+                            { id: 'stealth_strike', name: 'Stealth Strike', icon: '🗡️', description: 'Melee attack from stealth', effect: 'Guaranteed Crit', maxPoints: 3, requires: null }
+                        ]
+                    },
+                    {
+                        name: 'Level 5 - Specialization Path',
+                        skills: [
+                            { id: 'multi_shot', name: 'Multi Shot', icon: '🌀', description: 'Fire multiple arrows/bullets', effect: 'Hit 3 Targets', maxPoints: 3, requires: 'power_shot' },
+                            { id: 'shadow_step', name: 'Shadow Step', icon: '🌑', description: 'Short-range teleport behind enemy', effect: 'Instant Reposition', maxPoints: 2, requires: 'stealth_strike' }
+                        ]
+                    },
+                    {
+                        name: 'Level 10 - Advanced Techniques',
+                        skills: [
+                            { id: 'explosive_shot', name: 'Explosive Shot', icon: '💥', description: 'AoE ranged damage', effect: 'Explosion on Impact', maxPoints: 1, requires: 'multi_shot' },
+                            { id: 'poison_blade', name: 'Poison Blade', icon: '☠️', description: 'DoT melee attacks', effect: 'Poison DoT', maxPoints: 3, requires: 'shadow_step' },
+                            { id: 'trap_mastery', name: 'Trap Mastery', icon: '🪤', description: 'Deploy various trap types', effect: 'Multiple Traps', maxPoints: 2, requires: 'power_shot' }
+                        ]
+                    },
+                    {
+                        name: 'Level 15 - Master Hunter',
+                        skills: [
+                            { id: 'rain_of_arrows', name: 'Rain of Arrows', icon: '🌧️', description: 'Massive AoE ranged barrage', effect: 'Massive AoE', maxPoints: 1, requires: 'explosive_shot' },
+                            { id: 'assassinate', name: 'Assassinate', icon: '💀', description: 'High damage stealth execution', effect: '+200% Stealth Damage', maxPoints: 2, requires: 'poison_blade' }
+                        ]
+                    },
+                    {
+                        name: 'Level 20 - Legendary Skills',
+                        skills: [
+                            { id: 'storm_of_arrows', name: 'Storm of Arrows', icon: '⛈️', description: 'Ultimate ranged devastation', effect: 'Ultimate AoE', maxPoints: 1, requires: 'rain_of_arrows' },
+                            { id: 'shadow_master', name: 'Shadow Master', icon: '👤', description: 'Enhanced stealth with multiple strikes', effect: 'Perma-Stealth', maxPoints: 1, requires: 'assassinate' }
+                        ]
+                    }
+                ]
+            }
+        }
+
+        const WEAPON_SKILL_TREES = {
+            sword: {
+                className: 'Sword Mastery',
+                color: '#ef4444',
+                backgroundImage: TREE_BACKGROUNDS.sword,
+                prefab: { model: '/models/weapons/sword.glb', script: 'sword.lua' },
+                tiers: [
+                    {
+                        name: 'Tier 1 - Basics',
+                        skills: [
+                            { id: 'sword_slash', name: 'Sharp Slash', icon: '⚔️', description: 'Sword attacks deal more damage', effect: '+8% Sword Damage', maxPoints: 3, requires: null },
+                            { id: 'sword_speed', name: 'Swift Blade', icon: '💨', description: 'Faster sword attacks', effect: '+5% Attack Speed', maxPoints: 3, requires: null },
+                            { id: 'parry', name: 'Parry', icon: '🛡️', description: 'Block attacks and counter', effect: 'Counter Attack', maxPoints: 2, requires: null }
+                        ]
+                    },
+                    {
+                        name: 'Tier 2 - Combat',
+                        skills: [
+                            { id: 'combo_master', name: 'Combo Master', icon: '🔄', description: 'Extended combo chain', effect: '+2 Combo Hits', maxPoints: 1, requires: 'sword_slash' },
+                            { id: 'riposte', name: 'Riposte', icon: '⚡', description: 'Perfect parry deals damage', effect: '50% Counter Damage', maxPoints: 3, requires: 'parry' },
+                            { id: 'lunge', name: 'Lunge', icon: '➡️', description: 'Dash forward with thrust', effect: 'Gap Closer', maxPoints: 2, requires: 'sword_speed' }
+                        ]
+                    },
+                    {
+                        name: 'Tier 3 - Mastery',
+                        skills: [
+                            { id: 'whirlwind', name: 'Whirlwind', icon: '🌀', description: 'Spin attack hits all nearby', effect: 'AoE Spin Attack', maxPoints: 1, requires: 'combo_master' },
+                            { id: 'blade_dance', name: 'Blade Dance', icon: '💃', description: 'Rapid attack sequence', effect: '5 Hit Combo', maxPoints: 2, requires: 'riposte' }
+                        ]
+                    },
+                    {
+                        name: 'Tier 4 - Ultimate',
+                        skills: [
+                            { id: 'sword_ultimate', name: 'Blade Storm', icon: '⚔️', description: 'Unleash a devastating flurry', effect: 'Ultimate: 10 Rapid Hits', maxPoints: 1, requires: 'whirlwind' }
+                        ]
+                    }
+                ]
+            },
+            bow: {
+                className: 'Bow Mastery',
+                color: '#f59e0b',
+                backgroundImage: TREE_BACKGROUNDS.bow,
+                prefab: { model: '/models/weapons/bow.glb', script: 'bow.lua' },
+                tiers: [
+                    {
+                        name: 'Tier 1 - Basics',
+                        skills: [
+                            { id: 'bow_aim', name: 'Keen Eye', icon: '🎯', description: 'Better aim accuracy', effect: '+10% Accuracy', maxPoints: 3, requires: null },
+                            { id: 'bow_draw', name: 'Strong Draw', icon: '🏹', description: 'Faster charge speed', effect: '+10% Charge Speed', maxPoints: 3, requires: null },
+                            { id: 'bow_range', name: 'Long Shot', icon: '📏', description: 'Extended arrow range', effect: '+20% Range', maxPoints: 2, requires: null }
+                        ]
+                    },
+                    {
+                        name: 'Tier 2 - Combat',
+                        skills: [
+                            { id: 'quick_shot', name: 'Quick Shot', icon: '⚡', description: 'Instant weak shot', effect: 'Fast Attack', maxPoints: 1, requires: 'bow_aim' },
+                            { id: 'power_shot', name: 'Power Shot', icon: '💪', description: 'Charged shots deal more', effect: '+25% Charged Damage', maxPoints: 3, requires: 'bow_draw' },
+                            { id: 'fire_arrow', name: 'Fire Arrow', icon: '🔥', description: 'Arrows ignite targets', effect: 'Burning DoT', maxPoints: 2, requires: 'bow_range' }
+                        ]
+                    },
+                    {
+                        name: 'Tier 3 - Mastery',
+                        skills: [
+                            { id: 'triple_shot', name: 'Triple Shot', icon: '🌀', description: 'Fire 3 arrows at once', effect: 'Multi-shot', maxPoints: 1, requires: 'quick_shot' },
+                            { id: 'piercing', name: 'Piercing Shot', icon: '➡️', description: 'Arrows pierce enemies', effect: 'Pierce 2 Targets', maxPoints: 2, requires: 'power_shot' }
+                        ]
+                    },
+                    {
+                        name: 'Tier 4 - Ultimate',
+                        skills: [
+                            { id: 'bow_ultimate', name: 'Arrow Storm', icon: '🌧️', description: 'Rain arrows on area', effect: 'Ultimate: AoE Rain', maxPoints: 1, requires: 'triple_shot' }
+                        ]
+                    }
+                ]
+            },
+            staff: {
+                className: 'Staff - Magic Schools',
+                color: '#8b5cf6',
+                backgroundImage: TREE_BACKGROUNDS.staff,
+                prefab: { model: '/models/weapons/staff.glb', script: 'staff.lua' },
+                hasSubtrees: true,
+                subtrees: {
+                    fire: {
+                        name: 'Fire Magic',
+                        icon: '🔥',
+                        color: '#ef4444',
+                        backgroundImage: TREE_BACKGROUNDS.staff_fire,
+                        description: 'Destructive flames and burning damage',
+                        tiers: [
+                            {
+                                name: 'Tier 1 - Ember',
+                                skills: [
+                                    { id: 'fire_affinity', name: 'Fire Affinity', icon: '🔥', description: 'Increased fire damage', effect: '+15% Fire Damage', maxPoints: 3, requires: null },
+                                    { id: 'ignite', name: 'Ignite', icon: '🔸', description: 'Attacks apply burning', effect: 'Burn DoT', maxPoints: 2, requires: null }
+                                ]
+                            },
+                            {
+                                name: 'Tier 2 - Blaze',
+                                skills: [
+                                    { id: 'fireball', name: 'Fireball', icon: '☄️', description: 'Explosive fire projectile', effect: 'AoE Fire Damage', maxPoints: 3, requires: 'fire_affinity' },
+                                    { id: 'flame_shield', name: 'Flame Shield', icon: '🛡️', description: 'Burn attackers', effect: 'Reflect Fire Damage', maxPoints: 2, requires: 'ignite' }
+                                ]
+                            },
+                            {
+                                name: 'Tier 3 - Inferno',
+                                skills: [
+                                    { id: 'fire_storm', name: 'Fire Storm', icon: '🌋', description: 'Rain fire from sky', effect: 'Large AoE DoT', maxPoints: 1, requires: 'fireball' },
+                                    { id: 'combustion', name: 'Combustion', icon: '💥', description: 'Detonate burning enemies', effect: 'Burn Explosion', maxPoints: 2, requires: 'flame_shield' }
+                                ]
+                            },
+                            {
+                                name: 'Tier 4 - Ultimate',
+                                skills: [
+                                    { id: 'meteor_strike', name: 'Meteor Strike', icon: '🌠', description: 'Call down a devastating meteor', effect: 'Ultimate: Massive AoE', maxPoints: 1, requires: 'fire_storm' }
+                                ]
+                            }
+                        ]
+                    },
+                    ice: {
+                        name: 'Ice Magic',
+                        icon: '❄️',
+                        color: '#38bdf8',
+                        backgroundImage: TREE_BACKGROUNDS.staff_ice,
+                        description: 'Freezing cold and crowd control',
+                        tiers: [
+                            {
+                                name: 'Tier 1 - Frost',
+                                skills: [
+                                    { id: 'ice_affinity', name: 'Ice Affinity', icon: '❄️', description: 'Increased ice damage', effect: '+15% Ice Damage', maxPoints: 3, requires: null },
+                                    { id: 'chill', name: 'Chill', icon: '🥶', description: 'Attacks slow enemies', effect: '-20% Move Speed', maxPoints: 2, requires: null }
+                                ]
+                            },
+                            {
+                                name: 'Tier 2 - Freeze',
+                                skills: [
+                                    { id: 'ice_spike', name: 'Ice Spike', icon: '🔷', description: 'Piercing ice projectile', effect: 'High Single Target', maxPoints: 3, requires: 'ice_affinity' },
+                                    { id: 'frost_armor', name: 'Frost Armor', icon: '🧊', description: 'Ice barrier protection', effect: 'Damage Shield', maxPoints: 2, requires: 'chill' }
+                                ]
+                            },
+                            {
+                                name: 'Tier 3 - Glacier',
+                                skills: [
+                                    { id: 'blizzard', name: 'Blizzard', icon: '🌨️', description: 'Freezing storm area', effect: 'AoE Slow + Damage', maxPoints: 1, requires: 'ice_spike' },
+                                    { id: 'shatter', name: 'Shatter', icon: '💎', description: 'Frozen enemies explode', effect: 'Execute Frozen', maxPoints: 2, requires: 'frost_armor' }
+                                ]
+                            },
+                            {
+                                name: 'Tier 4 - Ultimate',
+                                skills: [
+                                    { id: 'absolute_zero', name: 'Absolute Zero', icon: '🌊', description: 'Freeze all nearby enemies', effect: 'Ultimate: Mass Freeze', maxPoints: 1, requires: 'blizzard' }
+                                ]
+                            }
+                        ]
+                    },
+                    lightning: {
+                        name: 'Lightning Magic',
+                        icon: '⚡',
+                        color: '#facc15',
+                        backgroundImage: TREE_BACKGROUNDS.staff_lightning,
+                        description: 'Raw electrical power and chain attacks',
+                        tiers: [
+                            {
+                                name: 'Tier 1 - Spark',
+                                skills: [
+                                    { id: 'lightning_affinity', name: 'Lightning Affinity', icon: '⚡', description: 'Increased lightning damage', effect: '+15% Lightning Damage', maxPoints: 3, requires: null },
+                                    { id: 'static', name: 'Static Charge', icon: '🔌', description: 'Build charge on hit', effect: 'Stacking Damage', maxPoints: 2, requires: null }
+                                ]
+                            },
+                            {
+                                name: 'Tier 2 - Bolt',
+                                skills: [
+                                    { id: 'lightning_bolt', name: 'Lightning Bolt', icon: '🌩️', description: 'Instant strike', effect: 'High Burst Damage', maxPoints: 3, requires: 'lightning_affinity' },
+                                    { id: 'overcharge', name: 'Overcharge', icon: '⚡', description: 'Next spell empowered', effect: '+50% Next Spell', maxPoints: 2, requires: 'static' }
+                                ]
+                            },
+                            {
+                                name: 'Tier 3 - Storm',
+                                skills: [
+                                    { id: 'chain_lightning', name: 'Chain Lightning', icon: '🔗', description: 'Bounces between enemies', effect: 'Hit 5 Targets', maxPoints: 1, requires: 'lightning_bolt' },
+                                    { id: 'electrify', name: 'Electrify', icon: '💫', description: 'Stun shocked enemies', effect: '2s Stun', maxPoints: 2, requires: 'overcharge' }
+                                ]
+                            },
+                            {
+                                name: 'Tier 4 - Ultimate',
+                                skills: [
+                                    { id: 'thunderstorm', name: 'Thunderstorm', icon: '⛈️', description: 'Continuous lightning strikes', effect: 'Ultimate: Storm AoE', maxPoints: 1, requires: 'chain_lightning' }
+                                ]
+                            }
+                        ]
+                    },
+                    arcane: {
+                        name: 'Arcane Magic',
+                        icon: '🔮',
+                        color: '#a855f7',
+                        backgroundImage: TREE_BACKGROUNDS.staff_arcane,
+                        description: 'Pure magical energy and utility',
+                        tiers: [
+                            {
+                                name: 'Tier 1 - Focus',
+                                skills: [
+                                    { id: 'arcane_affinity', name: 'Arcane Affinity', icon: '🔮', description: 'Increased arcane damage', effect: '+15% Arcane Damage', maxPoints: 3, requires: null },
+                                    { id: 'mana_flow', name: 'Mana Flow', icon: '💧', description: 'Faster mana regen', effect: '+20% Mana Regen', maxPoints: 2, requires: null }
+                                ]
+                            },
+                            {
+                                name: 'Tier 2 - Mastery',
+                                skills: [
+                                    { id: 'arcane_missiles', name: 'Arcane Missiles', icon: '✨', description: 'Multiple magic projectiles', effect: '5 Homing Missiles', maxPoints: 3, requires: 'arcane_affinity' },
+                                    { id: 'blink', name: 'Blink', icon: '💫', description: 'Short range teleport', effect: 'Instant Movement', maxPoints: 2, requires: 'mana_flow' }
+                                ]
+                            },
+                            {
+                                name: 'Tier 3 - Power',
+                                skills: [
+                                    { id: 'arcane_nova', name: 'Arcane Nova', icon: '💥', description: 'Explosion around caster', effect: 'AoE Burst', maxPoints: 1, requires: 'arcane_missiles' },
+                                    { id: 'spell_echo', name: 'Spell Echo', icon: '🔄', description: 'Chance to double cast', effect: '20% Echo Chance', maxPoints: 2, requires: 'blink' }
+                                ]
+                            },
+                            {
+                                name: 'Tier 4 - Ultimate',
+                                skills: [
+                                    { id: 'arcane_cataclysm', name: 'Arcane Cataclysm', icon: '🌟', description: 'Devastating magic storm', effect: 'Ultimate: Pure Magic', maxPoints: 1, requires: 'arcane_nova' }
+                                ]
+                            }
+                        ]
+                    },
+                    nature: {
+                        name: 'Nature Magic',
+                        icon: '🌿',
+                        color: '#22c55e',
+                        backgroundImage: TREE_BACKGROUNDS.staff_nature,
+                        description: 'Healing, protection and life force',
+                        tiers: [
+                            {
+                                name: 'Tier 1 - Growth',
+                                skills: [
+                                    { id: 'nature_affinity', name: 'Nature Affinity', icon: '🌿', description: 'Increased healing power', effect: '+15% Healing', maxPoints: 3, requires: null },
+                                    { id: 'regeneration', name: 'Regeneration', icon: '💚', description: 'Passive HP regen', effect: '+2% HP/sec', maxPoints: 2, requires: null }
+                                ]
+                            },
+                            {
+                                name: 'Tier 2 - Life',
+                                skills: [
+                                    { id: 'healing_wave', name: 'Healing Wave', icon: '💖', description: 'Heal self and allies', effect: 'AoE Heal', maxPoints: 3, requires: 'nature_affinity' },
+                                    { id: 'thorns', name: 'Thorns', icon: '🌹', description: 'Reflect damage to attackers', effect: '20% Damage Reflect', maxPoints: 2, requires: 'regeneration' }
+                                ]
+                            },
+                            {
+                                name: 'Tier 3 - Guardian',
+                                skills: [
+                                    { id: 'natures_grasp', name: "Nature's Grasp", icon: '🌳', description: 'Root enemies in place', effect: '3s Root', maxPoints: 1, requires: 'healing_wave' },
+                                    { id: 'living_armor', name: 'Living Armor', icon: '🛡️', description: 'Absorb damage with nature', effect: 'Damage Shield', maxPoints: 2, requires: 'thorns' }
+                                ]
+                            },
+                            {
+                                name: 'Tier 4 - Ultimate',
+                                skills: [
+                                    { id: 'natures_wrath', name: "Nature's Wrath", icon: '🌲', description: 'Summon nature spirits', effect: 'Ultimate: Spirit Allies', maxPoints: 1, requires: 'natures_grasp' }
+                                ]
+                            }
+                        ]
+                    }
+                },
+                tiers: []
+            },
+            dagger: {
+                className: 'Dagger Mastery',
+                color: '#22c55e',
+                backgroundImage: TREE_BACKGROUNDS.dagger,
+                prefab: { model: '/models/weapons/dagger.glb', script: 'dagger.lua' },
+                tiers: [
+                    {
+                        name: 'Tier 1 - Basics',
+                        skills: [
+                            { id: 'dagger_speed', name: 'Quick Strikes', icon: '💨', description: 'Faster attack speed', effect: '+15% Attack Speed', maxPoints: 3, requires: null },
+                            { id: 'dagger_crit', name: 'Vital Strike', icon: '💀', description: 'Higher critical chance', effect: '+8% Crit Chance', maxPoints: 3, requires: null },
+                            { id: 'dagger_poison', name: 'Poison Coat', icon: '☠️', description: 'Apply poison on hit', effect: 'Poison DoT', maxPoints: 2, requires: null }
+                        ]
+                    },
+                    {
+                        name: 'Tier 2 - Combat',
+                        skills: [
+                            { id: 'flurry', name: 'Flurry', icon: '🌪️', description: 'Rapid attack chain', effect: '4 Quick Hits', maxPoints: 1, requires: 'dagger_speed' },
+                            { id: 'backstab', name: 'Backstab', icon: '🗡️', description: 'Behind attacks crit', effect: 'Guaranteed Back Crit', maxPoints: 3, requires: 'dagger_crit' },
+                            { id: 'envenom', name: 'Envenom', icon: '🐍', description: 'Stronger poison', effect: '+50% Poison Damage', maxPoints: 2, requires: 'dagger_poison' }
+                        ]
+                    },
+                    {
+                        name: 'Tier 3 - Mastery',
+                        skills: [
+                            { id: 'shadow_strike', name: 'Shadow Strike', icon: '🌑', description: 'Teleport and attack', effect: 'Blink Attack', maxPoints: 1, requires: 'flurry' },
+                            { id: 'assassinate', name: 'Assassinate', icon: '⚰️', description: 'Execute low HP targets', effect: 'Kill below 20% HP', maxPoints: 2, requires: 'backstab' }
+                        ]
+                    },
+                    {
+                        name: 'Tier 4 - Ultimate',
+                        skills: [
+                            { id: 'dagger_ultimate', name: 'Death Blossom', icon: '🌸', description: 'Spinning blade dance', effect: 'Ultimate: 360 Attack', maxPoints: 1, requires: 'shadow_strike' }
+                        ]
+                    }
+                ]
+            },
+            axe: {
+                className: 'Axe Mastery',
+                color: '#dc2626',
+                backgroundImage: TREE_BACKGROUNDS.axe,
+                prefab: { model: '/models/weapons/axe.glb', script: 'axe.lua' },
+                tiers: [
+                    {
+                        name: 'Tier 1 - Basics',
+                        skills: [
+                            { id: 'axe_power', name: 'Brutal Force', icon: '🪓', description: 'More raw damage', effect: '+15% Damage', maxPoints: 3, requires: null },
+                            { id: 'axe_cleave', name: 'Wide Swing', icon: '↔️', description: 'Wider attack arc', effect: '+30% AoE Size', maxPoints: 3, requires: null },
+                            { id: 'axe_armor', name: 'Armor Break', icon: '🛡️', description: 'Reduce target armor', effect: '-10% Enemy Defense', maxPoints: 2, requires: null }
+                        ]
+                    },
+                    {
+                        name: 'Tier 2 - Combat',
+                        skills: [
+                            { id: 'overhead', name: 'Overhead Slam', icon: '⬇️', description: 'Powerful overhead strike', effect: '+40% Single Hit', maxPoints: 1, requires: 'axe_power' },
+                            { id: 'whirlwind_axe', name: 'Whirlwind', icon: '🌀', description: 'Spin attack', effect: 'AoE Spin', maxPoints: 3, requires: 'axe_cleave' },
+                            { id: 'rend', name: 'Rend', icon: '🩸', description: 'Cause bleeding', effect: 'Bleed DoT', maxPoints: 2, requires: 'axe_armor' }
+                        ]
+                    },
+                    {
+                        name: 'Tier 3 - Mastery',
+                        skills: [
+                            { id: 'execute_axe', name: 'Execute', icon: '💀', description: 'Massive damage to wounded', effect: '+100% below 30% HP', maxPoints: 1, requires: 'overhead' },
+                            { id: 'bloodlust', name: 'Bloodlust', icon: '❤️', description: 'Heal on kill', effect: '+10% Max HP on Kill', maxPoints: 2, requires: 'rend' }
+                        ]
+                    },
+                    {
+                        name: 'Tier 4 - Ultimate',
+                        skills: [
+                            { id: 'axe_ultimate', name: 'Rampage', icon: '💢', description: 'Berserk attack frenzy', effect: 'Ultimate: 2x Speed 5s', maxPoints: 1, requires: 'execute_axe' }
+                        ]
+                    }
+                ]
+            },
+            hammer: {
+                className: 'Hammer Mastery',
+                color: '#6b7280',
+                backgroundImage: TREE_BACKGROUNDS.hammer,
+                prefab: { model: '/models/weapons/hammer.glb', script: 'hammer.lua' },
+                tiers: [
+                    {
+                        name: 'Tier 1 - Basics',
+                        skills: [
+                            { id: 'hammer_impact', name: 'Heavy Impact', icon: '🔨', description: 'More stagger power', effect: '+20% Stagger', maxPoints: 3, requires: null },
+                            { id: 'hammer_crush', name: 'Crushing Blow', icon: '💥', description: 'Ignore armor', effect: '15% Armor Pen', maxPoints: 3, requires: null },
+                            { id: 'hammer_stun', name: 'Concussion', icon: '💫', description: 'Chance to stun', effect: '10% Stun Chance', maxPoints: 2, requires: null }
+                        ]
+                    },
+                    {
+                        name: 'Tier 2 - Combat',
+                        skills: [
+                            { id: 'ground_slam', name: 'Ground Slam', icon: '⬇️', description: 'AoE shockwave', effect: 'AoE Knockdown', maxPoints: 1, requires: 'hammer_impact' },
+                            { id: 'shatter', name: 'Shatter', icon: '💎', description: 'Break shields', effect: 'Shield Break', maxPoints: 3, requires: 'hammer_crush' },
+                            { id: 'daze', name: 'Daze', icon: '😵', description: 'Extended stun', effect: '+1s Stun Duration', maxPoints: 2, requires: 'hammer_stun' }
+                        ]
+                    },
+                    {
+                        name: 'Tier 3 - Mastery',
+                        skills: [
+                            { id: 'earthquake', name: 'Earthquake', icon: '🌋', description: 'Massive ground pound', effect: 'Large AoE Stun', maxPoints: 1, requires: 'ground_slam' },
+                            { id: 'fortify', name: 'Fortify', icon: '🏰', description: 'Gain armor on hit', effect: '+5% Armor per Hit', maxPoints: 2, requires: 'shatter' }
+                        ]
+                    },
+                    {
+                        name: 'Tier 4 - Ultimate',
+                        skills: [
+                            { id: 'hammer_ultimate', name: 'Mjolnir Strike', icon: '⚡', description: 'Lightning-charged slam', effect: 'Ultimate: Lightning AoE', maxPoints: 1, requires: 'earthquake' }
+                        ]
+                    }
+                ]
+            }
+        }
+
+        const WEAPON_ABILITIES = {
+            sword: {
+                name: 'Sword',
+                icon: '⚔️',
+                color: '#ef4444',
+                slots: [
+                    {
+                        key: '1',
+                        label: 'Primary',
+                        skills: [
+                            { id: 'sword_slash', name: 'Slash', icon: '⚔️', effect: 'Basic sword attack', damage: 50, cooldown: 0 },
+                            { id: 'sword_thrust', name: 'Thrust', icon: '➡️', effect: 'Piercing stab attack', damage: 60, cooldown: 1 },
+                            { id: 'sword_combo', name: 'Quick Combo', icon: '💫', effect: '3-hit combo attack', damage: 40, cooldown: 0 }
+                        ]
+                    },
+                    {
+                        key: '2',
+                        label: 'Secondary',
+                        skills: [
+                            { id: 'sword_whirl', name: 'Whirlwind', icon: '🌀', effect: 'Spin attack hits all nearby', damage: 70, cooldown: 8 },
+                            { id: 'sword_lunge', name: 'Lunge', icon: '💨', effect: 'Dash forward and strike', damage: 80, cooldown: 6 },
+                            { id: 'sword_parry', name: 'Parry', icon: '🛡️', effect: 'Block and counter-attack', damage: 90, cooldown: 10 }
+                        ]
+                    },
+                    {
+                        key: '3',
+                        label: 'Ability',
+                        skills: [
+                            { id: 'sword_rage', name: 'Battle Rage', icon: '🔥', effect: '+30% damage for 5s', damage: 0, cooldown: 20 },
+                            { id: 'sword_execute', name: 'Execute', icon: '💀', effect: 'High damage to low HP targets', damage: 150, cooldown: 15 },
+                            { id: 'sword_bleed', name: 'Deep Cut', icon: '🩸', effect: 'Apply bleeding DoT', damage: 30, cooldown: 12 }
+                        ]
+                    },
+                    {
+                        key: '4',
+                        label: 'Ultimate',
+                        skills: [
+                            { id: 'sword_storm', name: 'Blade Storm', icon: '⚡', effect: 'Devastating 10-hit flurry', damage: 200, cooldown: 45 },
+                            { id: 'sword_judgment', name: 'Final Judgment', icon: '⭐', effect: 'Massive single strike', damage: 300, cooldown: 60 }
+                        ]
+                    }
+                ]
+            },
+            bow: {
+                name: 'Bow',
+                icon: '🏹',
+                color: '#f59e0b',
+                slots: [
+                    {
+                        key: '1',
+                        label: 'Primary',
+                        skills: [
+                            { id: 'bow_shot', name: 'Quick Shot', icon: '🏹', effect: 'Basic arrow shot', damage: 45, cooldown: 0 },
+                            { id: 'bow_aimed', name: 'Aimed Shot', icon: '🎯', effect: 'Charged precision shot', damage: 80, cooldown: 2 }
+                        ]
+                    },
+                    {
+                        key: '2',
+                        label: 'Secondary',
+                        skills: [
+                            { id: 'bow_multi', name: 'Multishot', icon: '🌀', effect: 'Fire 3 arrows at once', damage: 35, cooldown: 8 },
+                            { id: 'bow_pierce', name: 'Piercing Shot', icon: '➡️', effect: 'Arrow pierces through enemies', damage: 60, cooldown: 6 },
+                            { id: 'bow_fire', name: 'Fire Arrow', icon: '🔥', effect: 'Ignites target for DoT', damage: 40, cooldown: 10 }
+                        ]
+                    },
+                    {
+                        key: '3',
+                        label: 'Ability',
+                        skills: [
+                            { id: 'bow_trap', name: 'Bear Trap', icon: '🪤', effect: 'Place trap that roots enemies', damage: 20, cooldown: 15 },
+                            { id: 'bow_speed', name: 'Swift Quiver', icon: '💨', effect: '+50% attack speed for 6s', damage: 0, cooldown: 20 },
+                            { id: 'bow_poison', name: 'Poison Arrow', icon: '☠️', effect: 'Strong poison DoT', damage: 25, cooldown: 12 }
+                        ]
+                    },
+                    {
+                        key: '4',
+                        label: 'Ultimate',
+                        skills: [
+                            { id: 'bow_rain', name: 'Arrow Rain', icon: '🌧️', effect: 'Rain arrows on large area', damage: 150, cooldown: 45 },
+                            { id: 'bow_snipe', name: 'Sniper Shot', icon: '🔭', effect: 'Long range massive damage', damage: 350, cooldown: 60 }
+                        ]
+                    }
+                ]
+            },
+            staff: {
+                name: 'Staff',
+                icon: '🪄',
+                color: '#8b5cf6',
+                slots: [
+                    {
+                        key: '1',
+                        label: 'Primary',
+                        skills: [
+                            { id: 'staff_bolt', name: 'Arcane Bolt', icon: '✨', effect: 'Magic projectile', damage: 55, cooldown: 0 },
+                            { id: 'staff_beam', name: 'Energy Beam', icon: '🌊', effect: 'Channeled beam attack', damage: 40, cooldown: 0 }
+                        ]
+                    },
+                    {
+                        key: '2',
+                        label: 'Secondary',
+                        skills: [
+                            { id: 'staff_fire', name: 'Fireball', icon: '🔥', effect: 'Explosive fire damage', damage: 90, cooldown: 8 },
+                            { id: 'staff_ice', name: 'Ice Shard', icon: '❄️', effect: 'Slows and damages', damage: 60, cooldown: 6 },
+                            { id: 'staff_lightning', name: 'Chain Lightning', icon: '⚡', effect: 'Bounces to 3 targets', damage: 50, cooldown: 10 }
+                        ]
+                    },
+                    {
+                        key: '3',
+                        label: 'Ability',
+                        skills: [
+                            { id: 'staff_shield', name: 'Mana Shield', icon: '🔵', effect: 'Absorb damage with mana', damage: 0, cooldown: 18 },
+                            { id: 'staff_teleport', name: 'Teleport', icon: '💫', effect: 'Blink to location', damage: 0, cooldown: 15 },
+                            { id: 'staff_nova', name: 'Arcane Nova', icon: '💥', effect: 'AoE burst around self', damage: 100, cooldown: 12 }
+                        ]
+                    },
+                    {
+                        key: '4',
+                        label: 'Ultimate',
+                        skills: [
+                            { id: 'staff_meteor', name: 'Meteor', icon: '☄️', effect: 'Call down a meteor', damage: 280, cooldown: 50 },
+                            { id: 'staff_cataclysm', name: 'Cataclysm', icon: '🌟', effect: 'Devastating magic storm', damage: 200, cooldown: 45 }
+                        ]
+                    }
+                ]
+            },
+            dagger: {
+                name: 'Dagger',
+                icon: '🗡️',
+                color: '#22c55e',
+                slots: [
+                    {
+                        key: '1',
+                        label: 'Primary',
+                        skills: [
+                            { id: 'dagger_stab', name: 'Quick Stab', icon: '🗡️', effect: 'Fast dagger attack', damage: 35, cooldown: 0 },
+                            { id: 'dagger_flurry', name: 'Flurry', icon: '💨', effect: 'Rapid 4-hit combo', damage: 25, cooldown: 0 }
+                        ]
+                    },
+                    {
+                        key: '2',
+                        label: 'Secondary',
+                        skills: [
+                            { id: 'dagger_backstab', name: 'Backstab', icon: '🌑', effect: 'Huge damage from behind', damage: 120, cooldown: 8 },
+                            { id: 'dagger_shadowstep', name: 'Shadow Step', icon: '👤', effect: 'Teleport behind target', damage: 40, cooldown: 6 },
+                            { id: 'dagger_poison', name: 'Envenom', icon: '☠️', effect: 'Strong poison on attacks', damage: 20, cooldown: 10 }
+                        ]
+                    },
+                    {
+                        key: '3',
+                        label: 'Ability',
+                        skills: [
+                            { id: 'dagger_vanish', name: 'Vanish', icon: '👻', effect: 'Become invisible', damage: 0, cooldown: 20 },
+                            { id: 'dagger_evade', name: 'Evasion', icon: '💫', effect: '100% dodge for 3s', damage: 0, cooldown: 18 },
+                            { id: 'dagger_bleed', name: 'Lacerate', icon: '🩸', effect: 'Stack bleeding debuff', damage: 30, cooldown: 8 }
+                        ]
+                    },
+                    {
+                        key: '4',
+                        label: 'Ultimate',
+                        skills: [
+                            { id: 'dagger_mark', name: 'Death Mark', icon: '💀', effect: 'Mark target for massive burst', damage: 300, cooldown: 55 },
+                            { id: 'dagger_dance', name: 'Death Blossom', icon: '🌸', effect: 'Spinning blade dance', damage: 180, cooldown: 40 }
+                        ]
+                    }
+                ]
+            },
+            axe: {
+                name: 'Axe',
+                icon: '🪓',
+                color: '#dc2626',
+                slots: [
+                    {
+                        key: '1',
+                        label: 'Primary',
+                        skills: [
+                            { id: 'axe_chop', name: 'Heavy Chop', icon: '🪓', effect: 'Powerful axe swing', damage: 65, cooldown: 0 },
+                            { id: 'axe_cleave', name: 'Cleave', icon: '↔️', effect: 'Wide arc attack', damage: 50, cooldown: 0 }
+                        ]
+                    },
+                    {
+                        key: '2',
+                        label: 'Secondary',
+                        skills: [
+                            { id: 'axe_overhead', name: 'Overhead Slam', icon: '⬇️', effect: 'Crushing overhead strike', damage: 100, cooldown: 8 },
+                            { id: 'axe_whirl', name: 'Whirlwind', icon: '🌀', effect: 'Spin with axe extended', damage: 70, cooldown: 6 },
+                            { id: 'axe_throw', name: 'Axe Throw', icon: '🎯', effect: 'Throw axe at range', damage: 80, cooldown: 10 }
+                        ]
+                    },
+                    {
+                        key: '3',
+                        label: 'Ability',
+                        skills: [
+                            { id: 'axe_rage', name: 'Berserker Rage', icon: '💢', effect: '+50% damage, -20% defense', damage: 0, cooldown: 25 },
+                            { id: 'axe_rend', name: 'Rending Strike', icon: '🩸', effect: 'Heavy bleed DoT', damage: 40, cooldown: 12 },
+                            { id: 'axe_break', name: 'Armor Break', icon: '🛡️', effect: 'Reduce enemy defense', damage: 50, cooldown: 15 }
+                        ]
+                    },
+                    {
+                        key: '4',
+                        label: 'Ultimate',
+                        skills: [
+                            { id: 'axe_rampage', name: 'Rampage', icon: '🔥', effect: 'Unstoppable attack frenzy', damage: 250, cooldown: 50 },
+                            { id: 'axe_execute', name: 'Executioner', icon: '💀', effect: 'Instant kill below 20% HP', damage: 400, cooldown: 60 }
+                        ]
+                    }
+                ]
+            },
+            hammer: {
+                name: 'Hammer',
+                icon: '🔨',
+                color: '#6b7280',
+                slots: [
+                    {
+                        key: '1',
+                        label: 'Primary',
+                        skills: [
+                            { id: 'hammer_smash', name: 'Smash', icon: '🔨', effect: 'Heavy hammer strike', damage: 70, cooldown: 0 },
+                            { id: 'hammer_swing', name: 'Wide Swing', icon: '↔️', effect: 'Sweeping attack', damage: 55, cooldown: 0 }
+                        ]
+                    },
+                    {
+                        key: '2',
+                        label: 'Secondary',
+                        skills: [
+                            { id: 'hammer_slam', name: 'Ground Slam', icon: '⬇️', effect: 'AoE shockwave', damage: 90, cooldown: 10 },
+                            { id: 'hammer_charge', name: 'Charging Blow', icon: '💨', effect: 'Rush forward and strike', damage: 85, cooldown: 8 },
+                            { id: 'hammer_stun', name: 'Concussive Hit', icon: '💫', effect: 'Stun target for 2s', damage: 60, cooldown: 12 }
+                        ]
+                    },
+                    {
+                        key: '3',
+                        label: 'Ability',
+                        skills: [
+                            { id: 'hammer_fortify', name: 'Fortify', icon: '🏰', effect: '+40% defense for 6s', damage: 0, cooldown: 20 },
+                            { id: 'hammer_shatter', name: 'Shatter', icon: '💎', effect: 'Break enemy shield/armor', damage: 40, cooldown: 15 },
+                            { id: 'hammer_knock', name: 'Knockback', icon: '🔙', effect: 'Push enemies away', damage: 50, cooldown: 8 }
+                        ]
+                    },
+                    {
+                        key: '4',
+                        label: 'Ultimate',
+                        skills: [
+                            { id: 'hammer_quake', name: 'Earthquake', icon: '🌋', effect: 'Massive AoE stun + damage', damage: 220, cooldown: 50 },
+                            { id: 'hammer_mjolnir', name: 'Mjolnir Strike', icon: '⚡', effect: 'Lightning-charged slam', damage: 280, cooldown: 55 }
+                        ]
+                    }
+                ]
+            }
+        }
+
+        let currentMode = 'class'
+        let currentClass = 'warrior'
+        let currentWeapon = 'sword'
+        let currentMagicSchool = 'fire'
+        let skillPoints = {}
+        let availablePoints = 10
+        let bonuses = { damage: 0, defense: 0, speed: 0, health: 0, mana: 0, crit: 0 }
+        let customTrees = {}
+        let equippedWeaponSkills = {}
+
+        function getStorageKey() {
+            if (currentMode === 'weapons') {
+                if (currentWeapon === 'staff') {
+                    return `grudge_weapon_tree_staff_${currentMagicSchool}`
+                }
+                return `grudge_weapon_tree_${currentWeapon}`
+            }
+            return `grudge_skill_tree_${currentClass}`
+        }
+
+        function getCurrentTreeData() {
+            if (currentMode === 'weapons') {
+                const weaponData = WEAPON_SKILL_TREES[currentWeapon]
+                if (weaponData && weaponData.hasSubtrees) {
+                    const subtree = weaponData.subtrees[currentMagicSchool]
+                    return {
+                        className: `${subtree.name}`,
+                        color: subtree.color,
+                        tiers: subtree.tiers
+                    }
+                }
+                return weaponData
+            }
+            return ALL_SKILL_TREES[currentClass]
+        }
+
+        function initSkillTree() {
+            loadCustomTrees()
+            loadWeaponSkills()
+            loadFromStorage()
+            renderSkillTree()
+            setupModeTabs()
+            setupClassTabs()
+            setupWeaponTabs()
+            setupCustomTreeModal()
+        }
+
+        function setupModeTabs() {
+            document.querySelectorAll('.mode-tab').forEach(tab => {
+                tab.addEventListener('click', () => {
+                    saveToStorage()
+                    
+                    document.querySelectorAll('.mode-tab').forEach(t => t.classList.remove('active'))
+                    tab.classList.add('active')
+                    
+                    currentMode = tab.dataset.mode
+                    
+                    const classTabsContainer = document.getElementById('class-tabs-container')
+                    const weaponTabsContainer = document.getElementById('weapon-tabs-container')
+                    
+                    if (currentMode === 'weapons') {
+                        classTabsContainer.style.display = 'none'
+                        weaponTabsContainer.classList.add('active')
+                        weaponTabsContainer.style.display = 'flex'
+                    } else {
+                        classTabsContainer.style.display = 'flex'
+                        weaponTabsContainer.classList.remove('active')
+                        weaponTabsContainer.style.display = 'none'
+                    }
+                    
+                    loadFromStorage()
+                    renderSkillTree()
+                })
+            })
+        }
+
+        function setupClassTabs() {
+            document.querySelectorAll('#class-tabs-container .class-tab').forEach(tab => {
+                tab.addEventListener('click', () => {
+                    if (currentMode !== 'class') return
+                    saveToStorage()
+                    
+                    document.querySelectorAll('#class-tabs-container .class-tab').forEach(t => t.classList.remove('active'))
+                    tab.classList.add('active')
+                    
+                    currentClass = tab.dataset.class
+                    loadFromStorage()
+                    renderSkillTree()
+                })
+            })
+
+            document.getElementById('reset-btn').addEventListener('click', resetSkills)
+        }
+
+        function setupWeaponTabs() {
+            document.querySelectorAll('#weapon-tabs-container .class-tab').forEach(tab => {
+                tab.addEventListener('click', () => {
+                    if (currentMode !== 'weapons') return
+                    saveToStorage()
+                    
+                    document.querySelectorAll('#weapon-tabs-container .class-tab').forEach(t => t.classList.remove('active'))
+                    tab.classList.add('active')
+                    
+                    currentWeapon = tab.dataset.weapon
+                    loadFromStorage()
+                    renderSkillTree()
+                })
+            })
+        }
+
+        function setupCustomTreeModal() {
+            const modal = document.getElementById('custom-tree-modal')
+            const createBtn = document.getElementById('create-custom-btn')
+            const cancelBtn = document.getElementById('cancel-custom-btn')
+            const saveBtn = document.getElementById('save-custom-btn')
+            const typeSelect = document.getElementById('custom-tree-type')
+            const prefabSection = document.getElementById('weapon-prefab-section')
+            
+            createBtn.addEventListener('click', () => {
+                modal.classList.add('active')
+            })
+            
+            cancelBtn.addEventListener('click', () => {
+                modal.classList.remove('active')
+            })
+            
+            typeSelect.addEventListener('change', () => {
+                prefabSection.style.display = typeSelect.value === 'weapon' ? 'block' : 'none'
+            })
+            
+            saveBtn.addEventListener('click', saveCustomTree)
+            
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    modal.classList.remove('active')
+                }
+            })
+            
+            document.querySelectorAll('.bg-preset-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const bgKey = btn.dataset.bg
+                    const bgUrl = TREE_BACKGROUNDS[bgKey] || TREE_BACKGROUNDS.neutral
+                    document.getElementById('custom-tree-background').value = bgUrl
+                })
+            })
+        }
+
+        window.addSkillToTier = function(tierNum) {
+            const container = document.getElementById(`tier-${tierNum}-skills`)
+            const card = document.createElement('div')
+            card.className = 'skill-editor-card'
+            card.innerHTML = `
+                <input type="text" placeholder="Skill Name" class="skill-name">
+                <input type="text" placeholder="Icon (emoji)" class="skill-icon" maxlength="4">
+                <input type="text" placeholder="Effect (e.g. +10% Damage)" class="skill-effect">
+                <input type="number" placeholder="Max Points" class="skill-max" value="3" min="1" max="5">
+                <button class="remove-btn" onclick="this.parentElement.remove()">X</button>
+            `
+            container.appendChild(card)
+        }
+
+        function saveCustomTree() {
+            const name = document.getElementById('custom-tree-name').value.trim()
+            const type = document.getElementById('custom-tree-type').value
+            const icon = document.getElementById('custom-tree-icon').value || '⭐'
+            const color = document.getElementById('custom-tree-color').value
+            const backgroundImage = document.getElementById('custom-tree-background').value.trim() || TREE_BACKGROUNDS.neutral
+            
+            if (!name) {
+                alert('Please enter a name for your skill tree')
+                return
+            }
+            
+            const tiers = []
+            const tierNames = ['Tier 1 - Basics', 'Tier 2 - Combat', 'Tier 3 - Mastery', 'Tier 4 - Ultimate']
+            
+            for (let i = 1; i <= 4; i++) {
+                const container = document.getElementById(`tier-${i}-skills`)
+                const skills = []
+                
+                container.querySelectorAll('.skill-editor-card').forEach((card, idx) => {
+                    const skillName = card.querySelector('.skill-name').value.trim()
+                    const skillIcon = card.querySelector('.skill-icon').value || '✨'
+                    const skillEffect = card.querySelector('.skill-effect').value || '+10% Bonus'
+                    const skillMax = parseInt(card.querySelector('.skill-max').value) || 3
+                    
+                    if (skillName) {
+                        const prevTierSkills = i > 1 ? tiers[i-2]?.skills : null
+                        skills.push({
+                            id: `custom_${name.toLowerCase().replace(/\s+/g, '_')}_${skillName.toLowerCase().replace(/\s+/g, '_')}`,
+                            name: skillName,
+                            icon: skillIcon,
+                            description: skillEffect,
+                            effect: skillEffect,
+                            maxPoints: skillMax,
+                            requires: prevTierSkills?.[0]?.id || null
+                        })
+                    }
+                })
+                
+                if (skills.length > 0) {
+                    tiers.push({ name: tierNames[i-1], skills })
+                }
+            }
+            
+            if (tiers.length === 0) {
+                alert('Please add at least one skill')
+                return
+            }
+            
+            const prefab = type === 'weapon' ? {
+                model: document.getElementById('prefab-model').value,
+                script: document.getElementById('prefab-script').value,
+                animations: {
+                    idle: document.querySelector('.anim-idle').value,
+                    attack1: document.querySelector('.anim-attack1').value,
+                    attack2: document.querySelector('.anim-attack2').value,
+                    attack3: document.querySelector('.anim-attack3').value,
+                    special: document.querySelector('.anim-special').value,
+                    block: document.querySelector('.anim-block').value
+                }
+            } : null
+            
+            const treeId = name.toLowerCase().replace(/\s+/g, '_')
+            const newTree = {
+                className: name,
+                color: color,
+                icon: icon,
+                backgroundImage: backgroundImage,
+                tiers: tiers,
+                prefab: prefab,
+                type: type
+            }
+            
+            customTrees[treeId] = newTree
+            localStorage.setItem('grudge_custom_trees', JSON.stringify(customTrees))
+            
+            if (type === 'weapon') {
+                WEAPON_SKILL_TREES[treeId] = newTree
+                addWeaponTab(treeId, icon, name)
+            } else {
+                ALL_SKILL_TREES[treeId] = newTree
+                addClassTab(treeId, icon, name, color)
+            }
+            
+            document.getElementById('custom-tree-modal').classList.remove('active')
+            alert(`Skill tree "${name}" created successfully!`)
+        }
+
+        function addWeaponTab(id, icon, name) {
+            const container = document.getElementById('weapon-tabs-container')
+            const btn = document.createElement('button')
+            btn.className = 'class-tab'
+            btn.dataset.weapon = id
+            btn.innerHTML = `<span class="class-icon">${icon}</span> ${name}`
+            btn.addEventListener('click', () => {
+                if (currentMode !== 'weapons') return
+                saveToStorage()
+                document.querySelectorAll('#weapon-tabs-container .class-tab').forEach(t => t.classList.remove('active'))
+                btn.classList.add('active')
+                currentWeapon = id
+                loadFromStorage()
+                renderSkillTree()
+            })
+            container.appendChild(btn)
+        }
+
+        function addClassTab(id, icon, name, color) {
+            const container = document.getElementById('class-tabs-container')
+            const btn = document.createElement('button')
+            btn.className = 'class-tab'
+            btn.dataset.class = id
+            btn.style.setProperty('--class-color', color)
+            btn.innerHTML = `<span class="class-icon">${icon}</span> ${name}`
+            btn.addEventListener('click', () => {
+                if (currentMode !== 'class') return
+                saveToStorage()
+                document.querySelectorAll('#class-tabs-container .class-tab').forEach(t => t.classList.remove('active'))
+                btn.classList.add('active')
+                currentClass = id
+                loadFromStorage()
+                renderSkillTree()
+            })
+            container.appendChild(btn)
+        }
+
+        function loadCustomTrees() {
+            const saved = localStorage.getItem('grudge_custom_trees')
+            if (saved) {
+                try {
+                    customTrees = JSON.parse(saved)
+                    Object.entries(customTrees).forEach(([id, tree]) => {
+                        if (tree.type === 'weapon') {
+                            WEAPON_SKILL_TREES[id] = tree
+                            addWeaponTab(id, tree.icon, tree.className)
+                        } else {
+                            ALL_SKILL_TREES[id] = tree
+                            addClassTab(id, tree.icon, tree.className, tree.color)
+                        }
+                    })
+                } catch (e) {
+                    console.error('Failed to load custom trees:', e)
+                }
+            }
+        }
+
+        function resetSkills() {
+            const treeData = getCurrentTreeData()
+            skillPoints = {}
+            treeData.tiers.forEach(tier => {
+                tier.skills.forEach(skill => {
+                    skillPoints[skill.id] = 0
+                })
+            })
+            availablePoints = 10
+            bonuses = { damage: 0, defense: 0, speed: 0, health: 0, mana: 0, crit: 0 }
+            renderSkillTree()
+            saveToStorage()
+        }
+
+        function renderMagicSchoolTabs() {
+            const existingTabs = document.getElementById('magic-school-tabs')
+            if (existingTabs) existingTabs.remove()
+            
+            const weaponData = WEAPON_SKILL_TREES[currentWeapon]
+            if (!weaponData || !weaponData.hasSubtrees) return
+            
+            const tabsContainer = document.createElement('div')
+            tabsContainer.id = 'magic-school-tabs'
+            tabsContainer.style.cssText = `
+                display: flex;
+                gap: 8px;
+                justify-content: center;
+                margin-bottom: 20px;
+                flex-wrap: wrap;
+            `
+            
+            Object.entries(weaponData.subtrees).forEach(([key, school]) => {
+                const btn = document.createElement('button')
+                btn.className = `class-tab ${key === currentMagicSchool ? 'active' : ''}`
+                btn.style.cssText = currentMagicSchool === key ? 
+                    `background: ${school.color}22; border-color: ${school.color}; color: ${school.color};` : ''
+                btn.innerHTML = `<span class="class-icon">${school.icon}</span> ${school.name}`
+                btn.addEventListener('click', () => {
+                    currentMagicSchool = key
+                    loadFromStorage()
+                    renderSkillTree()
+                })
+                tabsContainer.appendChild(btn)
+            })
+            
+            const container = document.getElementById('skill-tree')
+            container.insertBefore(tabsContainer, container.firstChild)
+        }
+
+        function applyTreeBackground(treeData) {
+            const bgUrl = treeData?.backgroundImage || TREE_BACKGROUNDS.neutral
+            document.body.style.background = `linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.75)), url('${bgUrl}')`
+            document.body.style.backgroundSize = 'cover'
+            document.body.style.backgroundPosition = 'center'
+            document.body.style.backgroundAttachment = 'fixed'
+        }
+
+        function renderSkillTree() {
+            const classTree = document.getElementById('skill-tree')
+            const albionTree = document.getElementById('albion-weapon-tree')
+            
+            if (currentMode === 'weapons') {
+                classTree.style.display = 'none'
+                albionTree.classList.add('active')
+                renderAlbionWeaponTree()
+                
+                if (currentWeapon === 'staff') {
+                    classTree.style.display = 'flex'
+                    albionTree.classList.remove('active')
+                    classTree.innerHTML = ''
+                    renderMagicSchoolTabs()
+                    
+                    const treeData = getCurrentTreeData()
+                    if (!treeData) return
+                    
+                    document.getElementById('class-name').textContent = treeData.className
+                    document.getElementById('class-name').style.color = treeData.color
+                    
+                    applyTreeBackground(treeData)
+                    
+                    treeData.tiers.forEach((tier) => {
+                        const tierDiv = document.createElement('div')
+                        tierDiv.className = 'skill-tier'
+                        tierDiv.setAttribute('data-tier', tier.name)
+
+                        tier.skills.forEach(skill => {
+                            const points = skillPoints[skill.id] || 0
+                            const isUnlocked = points > 0
+                            const isAvailable = canUnlock(skill)
+
+                            const skillDiv = document.createElement('div')
+                            skillDiv.className = `skill-node ${isUnlocked ? 'unlocked' : ''} ${isAvailable && !isUnlocked ? 'available' : ''}`
+                            skillDiv.innerHTML = `
+                                <span class="skill-icon">${skill.icon}</span>
+                                <span class="skill-points">${points}/${skill.maxPoints}</span>
+                                <div class="skill-tooltip">
+                                    <h3>${skill.name}</h3>
+                                    <p>${skill.description}</p>
+                                    <div class="effect">${skill.effect}</div>
+                                    ${skill.requires ? `<div class="requirement">Requires: ${getSkillName(skill.requires)}</div>` : ''}
+                                </div>
+                            `
+
+                            skillDiv.addEventListener('click', () => allocatePoint(skill))
+                            skillDiv.addEventListener('contextmenu', (e) => {
+                                e.preventDefault()
+                                deallocatePoint(skill)
+                            })
+
+                            tierDiv.appendChild(skillDiv)
+                        })
+
+                        classTree.appendChild(tierDiv)
+                    })
+                    
+                    updateUI()
+                }
+                return
+            }
+            
+            classTree.style.display = 'flex'
+            albionTree.classList.remove('active')
+            
+            const existingTabs = document.getElementById('magic-school-tabs')
+            if (existingTabs) existingTabs.remove()
+            
+            const treeData = getCurrentTreeData()
+            if (!treeData) {
+                console.error('No tree data for', currentClass)
+                return
+            }
+            const container = classTree
+            container.innerHTML = ''
+
+            document.getElementById('class-name').textContent = `${treeData.className}`
+            document.getElementById('class-name').style.color = treeData.color
+            
+            applyTreeBackground(treeData)
+
+            treeData.tiers.forEach((tier, tierIndex) => {
+                const tierDiv = document.createElement('div')
+                tierDiv.className = 'skill-tier'
+                tierDiv.setAttribute('data-tier', tier.name)
+
+                tier.skills.forEach(skill => {
+                    const points = skillPoints[skill.id] || 0
+                    const isUnlocked = points > 0
+                    const isAvailable = canUnlock(skill)
+
+                    const skillDiv = document.createElement('div')
+                    skillDiv.className = `skill-node ${isUnlocked ? 'unlocked' : ''} ${isAvailable && !isUnlocked ? 'available' : ''}`
+                    skillDiv.innerHTML = `
+                        <span class="skill-icon">${skill.icon}</span>
+                        <span class="skill-points">${points}/${skill.maxPoints}</span>
+                        <div class="skill-tooltip">
+                            <h3>${skill.name}</h3>
+                            <p>${skill.description}</p>
+                            <div class="effect">${skill.effect}</div>
+                            ${skill.requires ? `<div class="requirement">Requires: ${getSkillName(skill.requires)}</div>` : ''}
+                        </div>
+                    `
+
+                    skillDiv.addEventListener('click', () => allocatePoint(skill))
+                    skillDiv.addEventListener('contextmenu', (e) => {
+                        e.preventDefault()
+                        deallocatePoint(skill)
+                    })
+
+                    tierDiv.appendChild(skillDiv)
+                })
+
+                container.appendChild(tierDiv)
+            })
+
+            updateUI()
+        }
+        
+        function renderAlbionWeaponTree() {
+            const weaponData = WEAPON_ABILITIES[currentWeapon]
+            if (!weaponData) return
+            
+            const container = document.getElementById('albion-weapon-tree')
+            container.innerHTML = ''
+            
+            document.getElementById('class-name').textContent = `${weaponData.name} Abilities`
+            document.getElementById('class-name').style.color = weaponData.color
+            
+            const weaponTreeData = WEAPON_SKILL_TREES[currentWeapon]
+            if (weaponTreeData) {
+                applyTreeBackground(weaponTreeData)
+            }
+            
+            const header = document.createElement('div')
+            header.className = 'weapon-info-header'
+            header.innerHTML = `
+                <h2 class="font-cinzel">${weaponData.icon} ${weaponData.name} Skills</h2>
+                <p>Select one skill for each action bar slot (1-4)</p>
+            `
+            container.appendChild(header)
+            
+            const slotsContainer = document.createElement('div')
+            slotsContainer.className = 'action-bar-slots'
+            
+            const equipped = equippedWeaponSkills[currentWeapon] || {}
+            
+            weaponData.slots.forEach(slot => {
+                const slotDiv = document.createElement('div')
+                slotDiv.className = 'action-slot'
+                
+                const equippedSkill = equipped[slot.key]
+                const equippedData = equippedSkill ? slot.skills.find(s => s.id === equippedSkill) : slot.skills[0]
+                
+                slotDiv.innerHTML = `
+                    <div class="slot-header">
+                        <div class="slot-key">${slot.key}</div>
+                        <div class="slot-label">${slot.label}</div>
+                    </div>
+                    <div class="equipped-skill">
+                        <div class="equipped-skill-icon">${equippedData?.icon || '?'}</div>
+                        <div class="equipped-skill-name">${equippedData?.name || 'None'}</div>
+                    </div>
+                    <div class="skill-options"></div>
+                `
+                
+                const optionsContainer = slotDiv.querySelector('.skill-options')
+                
+                slot.skills.forEach(skill => {
+                    const isSelected = equippedData?.id === skill.id
+                    const optionDiv = document.createElement('div')
+                    optionDiv.className = `skill-option ${isSelected ? 'selected' : ''}`
+                    optionDiv.innerHTML = `
+                        <div class="skill-option-icon">${skill.icon}</div>
+                        <div class="skill-option-info">
+                            <div class="skill-option-name">${skill.name}</div>
+                            <div class="skill-option-effect">${skill.effect}</div>
+                            <div class="skill-option-cost">Damage: ${skill.damage} | CD: ${skill.cooldown}s</div>
+                        </div>
+                    `
+                    
+                    optionDiv.addEventListener('click', () => {
+                        if (!equippedWeaponSkills[currentWeapon]) {
+                            equippedWeaponSkills[currentWeapon] = {}
+                        }
+                        equippedWeaponSkills[currentWeapon][slot.key] = skill.id
+                        saveWeaponSkills()
+                        renderAlbionWeaponTree()
+                    })
+                    
+                    optionsContainer.appendChild(optionDiv)
+                })
+                
+                slotsContainer.appendChild(slotDiv)
+            })
+            
+            container.appendChild(slotsContainer)
+            updateUI()
+        }
+        
+        function loadWeaponSkills() {
+            const saved = localStorage.getItem('grudge_weapon_skills')
+            if (saved) {
+                try {
+                    equippedWeaponSkills = JSON.parse(saved)
+                } catch (e) {
+                    equippedWeaponSkills = {}
+                }
+            }
+        }
+        
+        function saveWeaponSkills() {
+            localStorage.setItem('grudge_weapon_skills', JSON.stringify(equippedWeaponSkills))
+        }
+
+        function canUnlock(skill) {
+            if (!skill.requires) return true
+            return (skillPoints[skill.requires] || 0) > 0
+        }
+
+        function getSkillName(skillId) {
+            const treeData = getCurrentTreeData()
+            for (const tier of treeData.tiers) {
+                const skill = tier.skills.find(s => s.id === skillId)
+                if (skill) return skill.name
+            }
+            return skillId
+        }
+
+        function allocatePoint(skill) {
+            if (availablePoints <= 0) return
+            if (!canUnlock(skill)) return
+            if ((skillPoints[skill.id] || 0) >= skill.maxPoints) return
+
+            skillPoints[skill.id] = (skillPoints[skill.id] || 0) + 1
+            availablePoints--
+            applySkillEffects(skill, 1)
+            renderSkillTree()
+            saveToStorage()
+        }
+
+        function deallocatePoint(skill) {
+            if ((skillPoints[skill.id] || 0) <= 0) return
+
+            const dependents = getDependentSkills(skill.id)
+            for (const depId of dependents) {
+                if ((skillPoints[depId] || 0) > 0) {
+                    return
+                }
+            }
+
+            skillPoints[skill.id]--
+            availablePoints++
+            applySkillEffects(skill, -1)
+            renderSkillTree()
+            saveToStorage()
+        }
+
+        function getDependentSkills(skillId) {
+            const dependents = []
+            const treeData = getCurrentTreeData()
+            treeData.tiers.forEach(tier => {
+                tier.skills.forEach(skill => {
+                    if (skill.requires === skillId) {
+                        dependents.push(skill.id)
+                    }
+                })
+            })
+            return dependents
+        }
+
+        function applySkillEffects(skill, multiplier) {
+            const effect = skill.effect.toLowerCase()
+            
+            if (effect.includes('damage')) bonuses.damage += 10 * multiplier
+            if (effect.includes('health')) bonuses.health += 50 * multiplier
+            if (effect.includes('speed')) bonuses.speed += 5 * multiplier
+            if (effect.includes('mana')) bonuses.mana += 30 * multiplier
+            if (effect.includes('crit')) bonuses.crit += 5 * multiplier
+            if (effect.includes('block') || effect.includes('defense') || effect.includes('reduction') || effect.includes('resistance')) {
+                bonuses.defense += 10 * multiplier
+            }
+            if (effect.includes('evasion') || effect.includes('dodge')) {
+                bonuses.defense += 5 * multiplier
+            }
+        }
+
+        function updateUI() {
+            document.getElementById('points-available').textContent = availablePoints
+            document.getElementById('bonus-damage').textContent = `+${bonuses.damage}%`
+            document.getElementById('bonus-defense').textContent = `+${bonuses.defense}%`
+            document.getElementById('bonus-speed').textContent = `+${bonuses.speed}%`
+            document.getElementById('bonus-health').textContent = `+${bonuses.health}`
+            document.getElementById('bonus-mana').textContent = `+${bonuses.mana}`
+            document.getElementById('bonus-crit').textContent = `+${bonuses.crit}%`
+        }
+
+        function saveToStorage() {
+            const data = { skillPoints, availablePoints, bonuses }
+            localStorage.setItem(getStorageKey(), JSON.stringify(data))
+        }
+
+        function loadFromStorage() {
+            const treeData = getCurrentTreeData()
+            if (!treeData) return
+            skillPoints = {}
+            treeData.tiers.forEach(tier => {
+                tier.skills.forEach(skill => {
+                    skillPoints[skill.id] = 0
+                })
+            })
+            
+            availablePoints = 10
+            bonuses = { damage: 0, defense: 0, speed: 0, health: 0, mana: 0, crit: 0 }
+
+            const saved = localStorage.getItem(getStorageKey())
+            if (saved) {
+                try {
+                    const data = JSON.parse(saved)
+                    Object.assign(skillPoints, data.skillPoints || {})
+                    availablePoints = data.availablePoints ?? 10
+                    bonuses = data.bonuses || { damage: 0, defense: 0, speed: 0, health: 0, mana: 0, crit: 0 }
+                } catch (e) {
+                    console.error('Failed to load skill tree:', e)
+                }
+            }
+        }
+
+        initSkillTree()
+        
+        // Global tooltip handling for better positioning
+        const globalTooltip = document.createElement('div')
+        globalTooltip.className = 'skill-tooltip'
+        globalTooltip.id = 'global-tooltip'
+        document.body.appendChild(globalTooltip)
+        
+        function showTooltip(e, content) {
+            globalTooltip.innerHTML = content
+            globalTooltip.classList.add('visible')
+            positionTooltip(e)
+        }
+        
+        function hideTooltip() {
+            globalTooltip.classList.remove('visible')
+        }
+        
+        function positionTooltip(e) {
+            const tooltip = globalTooltip
+            const rect = tooltip.getBoundingClientRect()
+            const padding = 15
+            
+            let x = e.clientX + padding
+            let y = e.clientY - rect.height / 2
+            
+            // Keep within viewport
+            if (x + rect.width > window.innerWidth - padding) {
+                x = e.clientX - rect.width - padding
+            }
+            if (y < padding) {
+                y = padding
+            }
+            if (y + rect.height > window.innerHeight - padding) {
+                y = window.innerHeight - rect.height - padding
+            }
+            
+            tooltip.style.left = x + 'px'
+            tooltip.style.top = y + 'px'
+        }
+        
+        // Delegate tooltip events
+        document.addEventListener('mouseover', (e) => {
+            const node = e.target.closest('.skill-node')
+            if (node) {
+                const tooltipEl = node.querySelector('.skill-tooltip')
+                if (tooltipEl) {
+                    showTooltip(e, tooltipEl.innerHTML)
+                }
+            }
+        })
+        
+        document.addEventListener('mouseout', (e) => {
+            const node = e.target.closest('.skill-node')
+            if (node && !node.contains(e.relatedTarget)) {
+                hideTooltip()
+            }
+        })
+        
+        document.addEventListener('mousemove', (e) => {
+            if (globalTooltip.classList.contains('visible')) {
+                positionTooltip(e)
+            }
+        })
+    </script>
+</body>
+</html>

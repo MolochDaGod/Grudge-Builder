@@ -1,0 +1,415 @@
+
+import Phaser from 'phaser';
+import { v4 as uuidv4 } from 'uuid';
+
+class RTSSceneWithBuildableZone extends Phaser.Scene {
+  constructor() {
+    super('RTSSceneWithBuildableZone');
+    
+    // World Configuration
+    this.WORLD_WIDTH = 4000;
+    this.WORLD_HEIGHT = 4000;
+    this.GRID_SIZE = 32;
+    
+    // Buildable Zone (10x10 grid, centered on island)
+    // Grid coordinates 60-70 = World coordinates 1920-2240
+    this.BUILDABLE_ZONE = {
+      gridMin: { x: 60, y: 60 },
+      gridMax: { x: 70, y: 70 },
+      worldMin: { x: 1920, y: 1920 },
+      worldMax: { x: 2240, y: 2240 },
+      totalCells: 100
+    };
+    
+    // Island Configuration
+    this.ISLAND_CENTER = { x: 2000, y: 2000 };
+    this.ISLAND_RADIUS = 500;
+    
+    // Camera Configuration
+    this.CAMERA_ZOOM_MIN = 0.5;
+    this.CAMERA_ZOOM_MAX = 3;
+    this.CAMERA_ZOOM_SPEED = 0.1;
+    
+    // RTS Building System
+    this.buildings = [];
+    this.buildingMap = new Map(); // UUID -> Building data
+    this.selectedBuilding = null;
+    this.buildingPreview = null;
+    this.buildableZoneGraphics = null;
+  }
+
+  preload() {
+    // Load assets here
+  }
+
+  create() {
+    // Initialize world bounds
+    this.physics.world.setBounds(0, 0, this.WORLD_WIDTH, this.WORLD_HEIGHT);
+    
+    // Create island terrain
+    this.createIslandTerrain();
+    
+    // Create buildable zone visualization
+    this.createBuildableZoneOverlay();
+    
+    // Setup camera
+    this.setupCamera();
+    
+    // Setup input handlers
+    this.setupInput();
+    
+    // Create HUD
+    this.createHUD();
+    
+    this.logSystemStatus();
+  }
+
+  createIslandTerrain() {
+    const graphics = this.make.graphics({ x: 0, y: 0, add: false });
+    
+    // Water
+    graphics.fillStyle(0x1a4d7a, 1);
+    graphics.fillRect(0, 0, this.WORLD_WIDTH, this.WORLD_HEIGHT);
+    
+    // Island landmass
+    graphics.fillStyle(0x2d5016, 1);
+    graphics.fillCircle(this.ISLAND_CENTER.x, this.ISLAND_CENTER.y, this.ISLAND_RADIUS);
+    
+    // Beach ring
+    graphics.fillStyle(0xc2b280, 1);
+    graphics.fillCircle(this.ISLAND_CENTER.x, this.ISLAND_CENTER.y, this.ISLAND_RADIUS - 80);
+    
+    // Forest core
+    graphics.fillStyle(0x1b3a0f, 1);
+    graphics.fillCircle(this.ISLAND_CENTER.x, this.ISLAND_CENTER.y, this.ISLAND_RADIUS - 150);
+    
+    graphics.generateTexture('islandTerrain', this.WORLD_WIDTH, this.WORLD_HEIGHT);
+    graphics.destroy();
+    
+    this.add.image(this.WORLD_WIDTH / 2, this.WORLD_HEIGHT / 2, 'islandTerrain')
+      .setOrigin(0.5)
+      .setDepth(0);
+  }
+
+  createBuildableZoneOverlay() {
+    // Create graphics for buildable zone border
+    this.buildableZoneGraphics = this.make.graphics({ x: 0, y: 0, add: true });
+    this.buildableZoneGraphics.setDepth(5);
+    
+    this.drawBuildableZoneBorder();
+  }
+
+  drawBuildableZoneBorder() {
+    this.buildableZoneGraphics.clear();
+    
+    const x1 = this.BUILDABLE_ZONE.worldMin.x;
+    const y1 = this.BUILDABLE_ZONE.worldMin.y;
+    const x2 = this.BUILDABLE_ZONE.worldMax.x;
+    const y2 = this.BUILDABLE_ZONE.worldMax.y;
+    
+    // Semi-transparent overlay for buildable zone
+    this.buildableZoneGraphics.fillStyle(0x00ff00, 0.05);
+    this.buildableZoneGraphics.fillRect(x1, y1, x2 - x1, y2 - y1);
+    
+    // Border line
+    this.buildableZoneGraphics.lineStyle(2, 0x00ff00, 0.6);
+    this.buildableZoneGraphics.strokeRect(x1, y1, x2 - x1, y2 - y1);
+    
+    // Grid lines (every 4 cells = 128px for visibility)
+    this.buildableZoneGraphics.lineStyle(1, 0x00ff00, 0.3);
+    for (let i = 0; i <= 10; i++) {
+      const x = x1 + (i * 32);
+      this.buildableZoneGraphics.lineBetween(x, y1, x, y2);
+      const y = y1 + (i * 32);
+      this.buildableZoneGraphics.lineBetween(x1, y, x2, y);
+    }
+  }
+
+  setupCamera() {
+    const camera = this.cameras.main;
+    camera.centerOn(this.ISLAND_CENTER.x, this.ISLAND_CENTER.y);
+    camera.setZoom(1);
+    camera.setBounds(0, 0, this.WORLD_WIDTH, this.WORLD_HEIGHT);
+  }
+
+  setupInput() {
+    // Wheel zoom
+    this.input.on('wheel', (pointer, gameObjects, deltaY) => {
+      const camera = this.cameras.main;
+      const direction = deltaY > 0 ? -1 : 1;
+      const newZoom = Phaser.Math.Clamp(
+        camera.zoom + (direction * this.CAMERA_ZOOM_SPEED),
+        this.CAMERA_ZOOM_MIN,
+        this.CAMERA_ZOOM_MAX
+      );
+      camera.setZoom(newZoom);
+    });
+
+    // Middle mouse pan
+    this.input.on('pointermove', (pointer) => {
+      if (pointer.middleButtonDown()) {
+        const camera = this.cameras.main;
+        const dx = pointer.prevPosition.x - pointer.position.x;
+        const dy = pointer.prevPosition.y - pointer.position.y;
+        camera.scrollX += dx / camera.zoom;
+        camera.scrollY += dy / camera.zoom;
+      }
+      
+      this.updateBuildingPreview(pointer);
+    });
+
+    // Left click to place building
+    this.input.on('pointerdown', (pointer) => {
+      if (pointer.leftButtonDown()) {
+        this.placeBuildingAtPointer(pointer);
+      }
+    });
+
+    // Right click cancel
+    this.input.on('pointerup', (pointer) => {
+      if (pointer.rightButtonDown()) {
+        this.clearBuildingPreview();
+      }
+    });
+
+    // Keyboard controls
+    this.input.keyboard.on('keydown-R', () => this.resetCamera());
+    this.input.keyboard.on('keydown-C', () => this.clearAllBuildings());
+    this.input.keyboard.on('keydown-G', () => this.toggleGridVisibility());
+  }
+
+  createHUD() {
+    this.hudText = this.add.text(12, 12, '', {
+      fontSize: '13px',
+      fill: '#ffffff',
+      backgroundColor: '#000000dd',
+      padding: { x: 10, y: 8 },
+      fontFamily: 'monospace'
+    }).setScrollFactor(0).setDepth(100);
+
+    this.events.on('update', () => {
+      const camera = this.cameras.main;
+      const worldCoords = this.screenToWorld(this.input.x, this.input.y);
+      const gridCoords = this.worldToGridCoords(worldCoords.x, worldCoords.y);
+      const inBuildableZone = this.isInBuildableZone(gridCoords.x, gridCoords.y);
+      
+      this.hudText.setText([
+        `═ WORLD STATE ═`,
+        `Zoom: ${camera.zoom.toFixed(2)}x`,
+        `Camera: (${camera.centerX.toFixed(0)}, ${camera.centerY.toFixed(0)})`,
+        `World: (${worldCoords.x.toFixed(0)}, ${worldCoords.y.toFixed(0)})`,
+        `Grid: (${gridCoords.x}, ${gridCoords.y}) ${inBuildableZone ? '✓' : ''}`,
+        ``,
+        `═ BUILDABLE ZONE ═`,
+        `Active: 10x10 Grid (100 cells)`,
+        `Zone: (60-70, 60-70)`,
+        `World: (1920-2240, 1920-2240)`,
+        `Buildings: ${this.buildings.length}`,
+        ``,
+        `═ CONTROLS ═`,
+        `1/2/3=Select | Click=Place`,
+        `Wheel=Zoom | Middle=Pan`,
+        `R=Reset | G=Grid | C=Clear`
+      ]);
+    });
+  }
+
+  // Grid Utility Functions
+  worldToGridCoords(worldX, worldY) {
+    return {
+      x: Math.floor(worldX / this.GRID_SIZE),
+      y: Math.floor(worldY / this.GRID_SIZE)
+    };
+  }
+
+  gridToWorldCoords(gridX, gridY) {
+    return {
+      x: gridX * this.GRID_SIZE + this.GRID_SIZE / 2,
+      y: gridY * this.GRID_SIZE + this.GRID_SIZE / 2
+    };
+  }
+
+  snapToGrid(worldX, worldY) {
+    const gridCoords = this.worldToGridCoords(worldX, worldY);
+    return this.gridToWorldCoords(gridCoords.x, gridCoords.y);
+  }
+
+  screenToWorld(screenX, screenY) {
+    const camera = this.cameras.main;
+    return {
+      x: (screenX / camera.zoom) + camera.scrollX,
+      y: (screenY / camera.zoom) + camera.scrollY
+    };
+  }
+
+  // Buildable Zone Check
+  isInBuildableZone(gridX, gridY) {
+    const zone = this.BUILDABLE_ZONE;
+    return gridX >= zone.gridMin.x && gridX <= zone.gridMax.x &&
+           gridY >= zone.gridMin.y && gridY <= zone.gridMax.y;
+  }
+
+  // Building System
+  updateBuildingPreview(pointer) {
+    if (!this.selectedBuilding) return;
+
+    const worldCoords = this.screenToWorld(pointer.x, pointer.y);
+    const snappedCoords = this.snapToGrid(worldCoords.x, worldCoords.y);
+    const gridCoords = this.worldToGridCoords(snappedCoords.x, snappedCoords.y);
+
+    if (!this.buildingPreview) {
+      this.buildingPreview = this.add.rectangle(
+        snappedCoords.x, snappedCoords.y,
+        this.GRID_SIZE - 2, this.GRID_SIZE - 2,
+        0xffff00, 0.4
+      ).setDepth(50);
+    }
+
+    this.buildingPreview.setPosition(snappedCoords.x, snappedCoords.y);
+
+    const isValid = this.isValidBuildingPlacement(gridCoords.x, gridCoords.y);
+    this.buildingPreview.setFillStyle(isValid ? 0x00ff00 : 0xff0000, 0.4);
+    this.buildingPreview.setStrokeStyle(2, isValid ? 0x00ff00 : 0xff0000, 0.8);
+  }
+
+  placeBuildingAtPointer(pointer) {
+    if (!this.selectedBuilding) return;
+
+    const worldCoords = this.screenToWorld(pointer.x, pointer.y);
+    const snappedCoords = this.snapToGrid(worldCoords.x, worldCoords.y);
+    const gridCoords = this.worldToGridCoords(snappedCoords.x, snappedCoords.y);
+
+    if (this.isValidBuildingPlacement(gridCoords.x, gridCoords.y)) {
+      const buildingId = uuidv4();
+      
+      const building = this.add.rectangle(
+        snappedCoords.x, snappedCoords.y,
+        this.GRID_SIZE - 4, this.GRID_SIZE - 4,
+        this.getBuildingColor(this.selectedBuilding),
+        0.9
+      ).setDepth(15);
+
+      const buildingData = {
+        id: buildingId,
+        type: this.selectedBuilding,
+        worldX: snappedCoords.x,
+        worldY: snappedCoords.y,
+        gridX: gridCoords.x,
+        gridY: gridCoords.y,
+        deployed: new Date().toISOString(),
+        graphics: building
+      };
+
+      building.data = buildingData;
+      
+      this.buildings.push(building);
+      this.buildingMap.set(buildingId, buildingData);
+
+      console.log(`✓ [${this.selectedBuilding.toUpperCase()}] Building deployed`);
+      console.log(`  UUID: ${buildingId}`);
+      console.log(`  Grid: (${gridCoords.x}, ${gridCoords.y})`);
+      console.log(`  World: (${snappedCoords.x}, ${snappedCoords.y})`);
+      console.log(`  Total buildings: ${this.buildings.length}/100`);
+    }
+  }
+
+  isValidBuildingPlacement(gridX, gridY) {
+    // Must be in buildable zone
+    if (!this.isInBuildableZone(gridX, gridY)) return false;
+
+    // Check collision with other buildings
+    const worldCoords = this.gridToWorldCoords(gridX, gridY);
+    for (let building of this.buildings) {
+      const dist = Phaser.Math.Distance.Between(
+        worldCoords.x, worldCoords.y,
+        building.x, building.y
+      );
+      if (dist < this.GRID_SIZE * 1.5) return false;
+    }
+
+    return true;
+  }
+
+  getBuildingColor(type) {
+    const colors = {
+      'house': 0x0088ff,   // Blue
+      'tower': 0xff3333,   // Red
+      'farm': 0xffdd00,    // Yellow
+      'market': 0xff8800   // Orange
+    };
+    return colors[type] || 0xffffff;
+  }
+
+  clearBuildingPreview() {
+    if (this.buildingPreview) {
+      this.buildingPreview.destroy();
+      this.buildingPreview = null;
+    }
+    this.selectedBuilding = null;
+  }
+
+  clearAllBuildings() {
+    this.buildings.forEach(b => b.destroy());
+    this.buildings = [];
+    this.buildingMap.clear();
+    console.log('✓ All buildings cleared');
+  }
+
+  resetCamera() {
+    this.cameras.main.centerOn(this.ISLAND_CENTER.x, this.ISLAND_CENTER.y);
+    this.cameras.main.setZoom(1);
+  }
+
+  toggleGridVisibility() {
+    this.buildableZoneGraphics.setVisible(!this.buildableZoneGraphics.visible);
+  }
+
+  logSystemStatus() {
+    console.log('════════════════════════════════════════');
+    console.log('  PHASER 3 RTS SYSTEM INITIALIZED');
+    console.log('════════════════════════════════════════');
+    console.log(`World: ${this.WORLD_WIDTH}x${this.WORLD_HEIGHT}`);
+    console.log(`Grid Size: ${this.GRID_SIZE}px`);
+    console.log(`Island Center: (${this.ISLAND_CENTER.x}, ${this.ISLAND_CENTER.y})`);
+    console.log(`Island Radius: ${this.ISLAND_RADIUS}px`);
+    console.log(`\n📍 BUILDABLE ZONE:`);
+    console.log(`  Grid Range: (${this.BUILDABLE_ZONE.gridMin.x}-${this.BUILDABLE_ZONE.gridMax.x}, ${this.BUILDABLE_ZONE.gridMin.y}-${this.BUILDABLE_ZONE.gridMax.y})`);
+    console.log(`  World Range: (${this.BUILDABLE_ZONE.worldMin.x}-${this.BUILDABLE_ZONE.worldMax.x}, ${this.BUILDABLE_ZONE.worldMin.y}-${this.BUILDABLE_ZONE.worldMax.y})`);
+    console.log(`  Total Cells: ${this.BUILDABLE_ZONE.totalCells}`);
+    console.log('════════════════════════════════════════');
+    console.log(`Press 1/2/3 to select building type`);
+    console.log(`Click in green zone to place buildings`);
+    console.log('════════════════════════════════════════\n');
+  }
+
+  update() {
+    // Keyboard building selection
+    if (this.input.keyboard.checkDown(Phaser.Input.Keyboard.Keys.ONE)) {
+      this.selectedBuilding = 'house';
+    } else if (this.input.keyboard.checkDown(Phaser.Input.Keyboard.Keys.TWO)) {
+      this.selectedBuilding = 'tower';
+    } else if (this.input.keyboard.checkDown(Phaser.Input.Keyboard.Keys.THREE)) {
+      this.selectedBuilding = 'farm';
+    }
+  }
+}
+
+// Phaser Config
+const config = {
+  type: Phaser.AUTO,
+  width: 1280,
+  height: 720,
+  physics: {
+    default: 'arcade',
+    arcade: { debug: false }
+  },
+  scene: RTSSceneWithBuildableZone,
+  render: {
+    pixelArt: false,
+    antialias: true
+  }
+};
+
+const game = new Phaser.Game(config);
+
+export default RTSSceneWithBuildableZone;
