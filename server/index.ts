@@ -8,13 +8,13 @@ import { setupColyseus } from "./colyseus/index";
 const app = express();
 const httpServer = createServer(app);
 
-app.use(express.static(path.resolve(import.meta.dirname, "..", "public")));
-app.use(express.static(path.resolve(import.meta.dirname, "..", "client", "public")));
+app.use(express.static(path.resolve(__dirname, "..", "public")));
+app.use(express.static(path.resolve(__dirname, "..", "client", "public")));
 
 // Serve DiabloWeb at /diabloweb
-app.use("/diabloweb", express.static(path.resolve(import.meta.dirname, "..", "diabloweb", "diabloweb-master", "build")));
+app.use("/diabloweb", express.static(path.resolve(__dirname, "..", "diabloweb", "diabloweb-master", "build")));
 app.get("/diabloweb/*", (_req, res) => {
-  res.sendFile(path.resolve(import.meta.dirname, "..", "diabloweb", "diabloweb-master", "build", "index.html"));
+  res.sendFile(path.resolve(__dirname, "..", "diabloweb", "diabloweb-master", "build", "index.html"));
 });
 
 declare module "http" {
@@ -102,7 +102,6 @@ app.use((req, res, next) => {
     {
       port,
       host: "0.0.0.0",
-      reusePort: true,
     },
     () => {
       log(`serving on port ${port}`);

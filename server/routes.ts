@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertCharacterSchema, insertPartySchema, insertUnlockedSkillSchema, insertAccountInventorySchema, islandNFTs } from "@shared/schema";
 import { db } from "./db";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import OpenAI from "openai";
 import fs from "node:fs";
@@ -5906,6 +5906,31 @@ Your response must be valid JSON array only, no markdown or explanation.`;
     } catch (error) {
       console.error("Error changing password:", error);
       res.status(500).json({ error: "Failed to change password" });
+    }
+  });
+
+  // ==================== Health Check ====================
+  app.get("/api/health", async (_req, res) => {
+    try {
+      const dbResult = await db.execute(sql`SELECT 1`);
+      res.status(200).json({
+        status: "healthy",
+        app: "grudge-builder",
+        version: "1.0.0",
+        timestamp: new Date().toISOString(),
+        services: {
+          database: dbResult ? "operational" : "error",
+          api: "operational",
+        },
+      });
+    } catch (error) {
+      res.status(503).json({
+        status: "unhealthy",
+        app: "grudge-builder",
+        version: "1.0.0",
+        timestamp: new Date().toISOString(),
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
     }
   });
 

@@ -3,6 +3,18 @@ import { build as viteBuild } from "vite";
 import { rm, readFile } from "fs/promises";
 import path from "path";
 
+// Native / binary modules that must never be bundled
+const nativeModules = [
+  "node-sass",
+  "node-gimp",
+  "node-unrar-js",
+  "gamedig",
+  "pngjs",
+  "bufferutil",
+  "utf-8-validate",
+  "@google-cloud/storage",
+];
+
 // server deps to bundle to reduce openat(2) syscalls
 // which helps cold start times
 const allowlist = [
@@ -45,7 +57,10 @@ async function buildAll() {
     ...Object.keys(pkg.dependencies || {}),
     ...Object.keys(pkg.devDependencies || {}),
   ];
-  const externals = allDeps.filter((dep) => !allowlist.includes(dep));
+  const externals = [
+    ...allDeps.filter((dep) => !allowlist.includes(dep)),
+    ...nativeModules,
+  ];
 
   await esbuild({
     entryPoints: ["server/index.ts"],
