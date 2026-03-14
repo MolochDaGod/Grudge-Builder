@@ -9,25 +9,14 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { motion } from "framer-motion";
 import { Loader2, Eye, EyeOff, LogIn, UserPlus, User, Wallet } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-
-interface SavedAccount {
-  username: string;
-  password: string;
-  createdAt: string;
-  level: number;
-  gold: number;
-  walletAddress?: string;
-}
-
-function generateStableWalletId(): string {
-  const storedMockWallet = localStorage.getItem('grudge_mock_wallet');
-  if (storedMockWallet) {
-    return storedMockWallet;
-  }
-  const newWallet = "5S64" + Math.random().toString(36).substring(2, 10).toUpperCase() + Math.random().toString(36).substring(2, 6).toUpperCase();
-  localStorage.setItem('grudge_mock_wallet', newWallet);
-  return newWallet;
-}
+import {
+  isAuthenticated,
+  loginWithCredentials,
+  registerAccount,
+  loginAsGuest,
+  loginWithWallet,
+  loginWithPuter,
+} from "@/lib/grudgeBackend";
 
 export default function LoginPage() {
   const [, setLocation] = useLocation();
@@ -48,9 +37,9 @@ export default function LoginPage() {
   const [onboardingError, setOnboardingError] = useState("");
   const [connectedWallet, setConnectedWallet] = useState<string | null>(null);
 
+  // Redirect if already authenticated
   useEffect(() => {
-    const currentUser = localStorage.getItem('grudge_current_user');
-    if (currentUser) {
+    if (isAuthenticated()) {
       setLocation("/home");
     }
   }, [setLocation]);
@@ -65,21 +54,14 @@ export default function LoginPage() {
     setError("");
 
     try {
-      const accounts = JSON.parse(localStorage.getItem('grudge_accounts') || '{}');
-      const account = accounts[username.toLowerCase()];
-
-      if (!account) {
-        setError("Account not found. Click Register to create one.");
-        return;
-      }
-
-      if (account.password !== password) {
-        setError("Incorrect password");
-        return;
-      }
-
-      localStorage.setItem('grudge_current_user', JSON.stringify(account));
+      const data = await loginWithCredentials(username, password);
+      toast({
+        title: "Welcome Back",
+        description: `Signed in as ${data.username}`,
+      });
       setLocation("/home");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Login failed");
     } finally {
       setIsLoading(false);
     }
@@ -105,91 +87,77 @@ export default function LoginPage() {
     setError("");
 
     try {
-      const accounts = JSON.parse(localStorage.getItem('grudge_accounts') || '{}');
-      
-      if (accounts[username.toLowerCase()]) {
-        setError("Username already taken");
-        return;
-      }
-
-      const newAccount: SavedAccount = {
-        username: username,
-        password: password,
-        createdAt: new Date().toISOString(),
-        level: 1,
-        gold: 1000,
-      };
-
-      accounts[username.toLowerCase()] = newAccount;
-      localStorage.setItem('grudge_accounts', JSON.stringify(accounts));
-      localStorage.setItem('grudge_current_user', JSON.stringify(newAccount));
+      const data = await registerAccount(username, password);
+      toast({
+        title: "Account Created",
+        description: data.message || `Welcome, ${data.username}!`,
+      });
       setLocation("/home");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Registration failed");
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleGuestLogin = () => {
-    const guestAccount: SavedAccount = {
-      username: "Guest",
-      password: "",
-      createdAt: new Date().toISOString(),
-      level: 1,
-      gold: 500,
-    };
-    localStorage.setItem('grudge_current_user', JSON.stringify(guestAccount));
-    setLocation("/home");
+  const handleGuestLogin = async () => {
+    setIsLoading(true);
+    setError("");
+    try {
+      await loginAsGuest();
+      toast({ title: "Guest Login", description: "Playing as guest." });
+      setLocation("/home");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Guest login failed");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleWalletConnect = async () => {
     if (isConnectingWallet) return;
-    
     setIsConnectingWallet(true);
     toast({
       title: "Connecting Wallet",
       description: "Please approve the connection in your wallet...",
     });
-    
-    const stableWallet = generateStableWalletId();
-    
-    setTimeout(() => {
-      setConnectedWallet(stableWallet);
-      const accounts = JSON.parse(localStorage.getItem('grudge_accounts') || '{}');
-      const existingAccount = Object.values(accounts as Record<string, SavedAccount>).find(
-        (acc) => acc.walletAddress === stableWallet
-      );
-      
-      if (existingAccount) {
-        localStorage.setItem('grudge_current_user', JSON.stringify(existingAccount));
-        toast({
-          title: "Welcome Back",
-          description: `Signed in as ${existingAccount.username}`,
-        });
-        setLocation("/home");
-      } else {
-        setOnboardingUsername("");
-        setOnboardingPassword("");
-        setOnboardingError("");
-        setOnboardingStep("choice");
-        setShowWalletOnboarding(true);
-      }
+
+    try {
+      // TODO: Replace with real Web3Auth flow when ready
+      const mockWallet = localStorage.getItem('grudge_mock_wallet') ||
+        "5S64" + Math.random().toString(36).substring(2, 10).toUpperCase() + Math.random().toString(36).substring(2, 6).toUpperCase();
+      localStorage.setItem('grudge_mock_wallet', mockWallet);
+
+      const data = await loginWithWallet(mockWallet);
+      toast({
+        title: "Wallet Connected",
+        description: `Signed in as ${data.username}`,
+      });
+      setLocation("/home");
+    } catch {
+      // Wallet not linked — show onboarding
+      setConnectedWallet(localStorage.getItem('grudge_mock_wallet'));
+      setOnboardingUsername("");
+      setOnboardingPassword("");
+      setOnboardingError("");
+      setOnboardingStep("choice");
+      setShowWalletOnboarding(true);
+    } finally {
       setIsConnectingWallet(false);
-    }, 1000);
+    }
   };
 
   const handleWalletOnboardingCreate = async () => {
     if (isOnboardingLoading) return;
-    
+
     if (!onboardingUsername.trim() || !onboardingPassword.trim()) {
       setOnboardingError("Please enter both username and password");
       return;
     }
-
     if (onboardingUsername.length < 3) {
       setOnboardingError("Username must be at least 3 characters");
       return;
     }
-
     if (onboardingPassword.length < 4) {
       setOnboardingError("Password must be at least 4 characters");
       return;
@@ -199,33 +167,19 @@ export default function LoginPage() {
     setOnboardingError("");
 
     try {
-      const accounts = JSON.parse(localStorage.getItem('grudge_accounts') || '{}');
-      
-      if (accounts[onboardingUsername.toLowerCase()]) {
-        setOnboardingError("Username already taken");
-        return;
+      const data = await registerAccount(onboardingUsername, onboardingPassword);
+      // Link wallet after account creation
+      if (connectedWallet) {
+        await loginWithWallet(connectedWallet).catch(() => {});
       }
-
-      const newAccount: SavedAccount = {
-        username: onboardingUsername,
-        password: onboardingPassword,
-        createdAt: new Date().toISOString(),
-        level: 1,
-        gold: 1000,
-        walletAddress: connectedWallet || undefined,
-      };
-
-      accounts[onboardingUsername.toLowerCase()] = newAccount;
-      localStorage.setItem('grudge_accounts', JSON.stringify(accounts));
-      localStorage.setItem('grudge_current_user', JSON.stringify(newAccount));
-      
       toast({
         title: "Account Created",
-        description: `Welcome, ${onboardingUsername}! Your wallet has been linked.`,
+        description: `Welcome, ${data.username}! Your wallet has been linked.`,
       });
-      
       setShowWalletOnboarding(false);
       setLocation("/home");
+    } catch (err: unknown) {
+      setOnboardingError(err instanceof Error ? err.message : "Failed to create account");
     } finally {
       setIsOnboardingLoading(false);
     }
@@ -233,7 +187,7 @@ export default function LoginPage() {
 
   const handleWalletOnboardingLink = async () => {
     if (isOnboardingLoading) return;
-    
+
     if (!onboardingUsername.trim() || !onboardingPassword.trim()) {
       setOnboardingError("Please enter your existing username and password");
       return;
@@ -243,52 +197,48 @@ export default function LoginPage() {
     setOnboardingError("");
 
     try {
-      const accounts = JSON.parse(localStorage.getItem('grudge_accounts') || '{}');
-      const account = accounts[onboardingUsername.toLowerCase()];
-
-      if (!account) {
-        setOnboardingError("Account not found");
-        return;
+      await loginWithCredentials(onboardingUsername, onboardingPassword);
+      // Link wallet after login
+      if (connectedWallet) {
+        await loginWithWallet(connectedWallet).catch(() => {});
       }
-
-      if (account.password !== onboardingPassword) {
-        setOnboardingError("Incorrect password");
-        return;
-      }
-
-      account.walletAddress = connectedWallet;
-      accounts[onboardingUsername.toLowerCase()] = account;
-      localStorage.setItem('grudge_accounts', JSON.stringify(accounts));
-      localStorage.setItem('grudge_current_user', JSON.stringify(account));
-      
       toast({
         title: "Wallet Linked",
         description: `Your wallet has been linked to ${onboardingUsername}.`,
       });
-      
       setShowWalletOnboarding(false);
       setLocation("/home");
+    } catch (err: unknown) {
+      setOnboardingError(err instanceof Error ? err.message : "Failed to link wallet");
     } finally {
       setIsOnboardingLoading(false);
     }
   };
 
-  const handlePuterLogin = () => {
+  const handlePuterLogin = async () => {
     toast({
       title: "Puter Login",
       description: "Connecting to Puter...",
     });
-    setTimeout(() => {
-      const puterAccount: SavedAccount = {
-        username: "Puter User",
-        password: "",
-        createdAt: new Date().toISOString(),
-        level: 1,
-        gold: 1000,
-      };
-      localStorage.setItem('grudge_current_user', JSON.stringify(puterAccount));
+    try {
+      // Use a stable Puter UUID (real Puter SDK would provide this)
+      const puterUuid = localStorage.getItem('grudge_puter_uuid') ||
+        "puter_" + Date.now().toString(36) + Math.random().toString(36).substring(2, 8);
+      localStorage.setItem('grudge_puter_uuid', puterUuid);
+
+      const data = await loginWithPuter(puterUuid);
+      toast({
+        title: "Puter Connected",
+        description: `Signed in as ${data.username}`,
+      });
       setLocation("/home");
-    }, 500);
+    } catch (err: unknown) {
+      toast({
+        title: "Puter Login Failed",
+        description: err instanceof Error ? err.message : "Could not connect to Puter",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleStepChange = (step: "choice" | "create" | "link") => {

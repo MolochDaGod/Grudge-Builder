@@ -1,0 +1,161 @@
+/**
+ * Character Data Adapter
+ *
+ * Bridges the gap between Grudge Builder's rich character model (JSON blobs for
+ * inventory, equipment, skills, professions, etc.) and the VPS game-api's flat
+ * character table (id, grudge_id, name, race, class, level, hp, stats).
+ *
+ * Strategy:
+ *   - Basic fields (name, race, class, level, hp, stats) → VPS
+ *   - Extended fields (inventory, equipment, professions, skills) → localStorage
+ *     keyed by VPS character ID, until VPS schema is extended.
+ */
+
+import type { Character } from "./characterManager";
+
+const EXT_PREFIX = "grudge_char_ext_";
+
+// ── VPS character shape (what api.grudge-studio.com returns) ──
+export interface VpsCharacter {
+  id: number;
+  grudge_id: string;
+  name: string;
+  race: string;
+  class: string;
+  faction: string | null;
+  hp: number;
+  max_hp: number;
+  strength: number;
+  dexterity: number;
+  intelligence: number;
+  level: number;
+  mining_lvl: number;
+  fishing_lvl: number;
+  woodcutting_lvl: number;
+  farming_lvl: number;
+  hunting_lvl: number;
+  island: string | null;
+  pos_x: number | null;
+  pos_y: number | null;
+  pos_z: number | null;
+  created_at?: string;
+}
+
+// ── Extended data stored in localStorage ──────────────────────
+interface ExtendedCharacterData {
+  attributes: Record<string, number>;
+  equipment: Record<string, string | null>;
+  inventory: Array<{ itemId: string; quantity: number; tier?: number }>;
+  professionLevels: Record<string, { level: number; xp: number }>;
+  xp: number;
+  energy: number;
+  revivalTime: number | null;
+  avatarUrl: string | null;
+  unspentAttributePoints: number;
+  skillPoints: number;
+  skillLoadouts: Record<string, unknown>;
+  weaponSkillLevel: number | null;
+  weaponSkillSelections: Record<string, unknown> | null;
+  equippedWeaponId: string | null;
+  selectedSkills: Record<number, string>;
+  personality: unknown | null;
+  chatTemperature: number;
+  chatHistory: Array<unknown>;
+}
+
+// ── Convert builder character → VPS create payload ───────────
+export function toVpsCreatePayload(char: Partial<Character>): {
+  name: string;
+  race: string;
+  class: string;
+} {
+  return {
+    name: char.name || "Hero",
+    race: (char.raceId || "human").toLowerCase(),
+    class: (char.classId || "warrior").toLowerCase(),
+  };
+}
+
+// ── Convert VPS character → Builder character (merging local extended data) ──
+export function fromVpsCharacter(vps: VpsCharacter): Character {
+  const ext = loadExtendedData(String(vps.id));
+  return {
+    id: String(vps.id),
+    name: vps.name,
+    raceId: vps.race,
+    classId: vps.class,
+    level: vps.level || 1,
+    xp: ext?.xp ?? 0,
+    hp: vps.hp ?? ext?.hp ?? 100,
+    energy: ext?.energy ?? 50,
+    attributes: ext?.attributes ?? {
+      strength: vps.strength || 10,
+      dexterity: vps.dexterity || 10,
+      intelligence: vps.intelligence || 10,
+    },
+    equipment: ext?.equipment ?? {},
+    inventory: ext?.inventory ?? [],
+    professionLevels: ext?.professionLevels ?? {
+      mining: { level: vps.mining_lvl || 1, xp: 0 },
+      fishing: { level: vps.fishing_lvl || 1, xp: 0 },
+      woodcutting: { level: vps.woodcutting_lvl || 1, xp: 0 },
+      farming: { level: vps.farming_lvl || 1, xp: 0 },
+      hunting: { level: vps.hunting_lvl || 1, xp: 0 },
+    },
+    revivalTime: ext?.revivalTime ?? null,
+    avatarUrl: ext?.avatarUrl ?? null,
+    unspentAttributePoints: ext?.unspentAttributePoints ?? 0,
+    skillPoints: ext?.skillPoints ?? 1,
+    skillLoadouts: (ext?.skillLoadouts as Record<string, { slots: { 1: { skillId: string | null; upgradeLevel: number }; 2: { skillId: string | null; upgradeLevel: number }; 3: { skillId: string | null; upgradeLevel: number }; 4: { skillId: string | null; upgradeLevel: number } } }>) ?? {},
+    weaponSkillLevel: ext?.weaponSkillLevel ?? 1,
+    weaponSkillSelections: (ext?.weaponSkillSelections as Record<string, { hotkey2: string | null; hotkey3: string | null }>) ?? {},
+    equippedWeaponId: ext?.equippedWeaponId ?? null,
+    selectedSkills: ext?.selectedSkills ?? {},
+    createdAt: vps.created_at ? new Date(vps.created_at).getTime() : Date.now(),
+  };
+}
+
+// ── Save extended builder data to localStorage ───────────────
+export function saveExtendedData(
+  charId: string,
+  char: Partial<Character>,
+): void {
+  const data: ExtendedCharacterData = {
+    attributes: char.attributes ?? {},
+    equipment: char.equipment ?? {},
+    inventory: char.inventory ?? [],
+    professionLevels: char.professionLevels ?? {},
+    xp: char.xp ?? 0,
+    energy: char.energy ?? 50,
+    revivalTime: char.revivalTime ?? null,
+    avatarUrl: char.avatarUrl ?? null,
+    unspentAttributePoints: char.unspentAttributePoints ?? 0,
+    skillPoints: char.skillPoints ?? 1,
+    skillLoadouts: char.skillLoadouts ?? {},
+    weaponSkillLevel: char.weaponSkillLevel ?? 1,
+    weaponSkillSelections: char.weaponSkillSelections ?? null,
+    equippedWeaponId: char.equippedWeaponId ?? null,
+    selectedSkills: char.selectedSkills ?? {},
+    personality: null,
+    chatTemperature: 70,
+    chatHistory: [],
+  };
+  localStorage.setItem(EXT_PREFIX + charId, JSON.stringify(data));
+}
+
+// ── Load extended builder data from localStorage ─────────────
+export function loadExtendedData(
+  charId: string,
+): ExtendedCharacterData | null {
+  try {
+    const raw = localStorage.getItem(EXT_PREFIX + charId);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+// ── Delete extended data when character is deleted ────────────
+export function deleteExtendedData(charId: string): void {
+  localStorage.removeItem(EXT_PREFIX + charId);
+}

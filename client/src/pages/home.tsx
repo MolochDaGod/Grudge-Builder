@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import Layout from "@/components/Layout";
 import { CharacterManager, Character } from "@/lib/characterManager";
-import { useAccount } from "@/hooks/use-account";
+import { isAuthenticated, getCurrentUser, logout as doLogout, verifyToken, type GrudgeUser } from "@/lib/grudgeBackend";
 
 interface QuickAction {
   label: string;
@@ -33,26 +33,35 @@ export default function HomePage() {
   const [, setLocation] = useLocation();
   const [characters, setCharacters] = useState<Character[]>([]);
   const [activeCharacter, setActiveCharacter] = useState<Character | null>(null);
-  const { account } = useAccount();
+  const [user, setUser] = useState<GrudgeUser | null>(getCurrentUser());
 
   useEffect(() => {
-    const currentUser = localStorage.getItem("grudge_current_user");
-    if (!currentUser) {
-      setLocation("/");
+    if (!isAuthenticated()) {
+      setLocation("/login");
       return;
     }
+    // Verify token is still valid
+    verifyToken().then(({ valid }) => {
+      if (!valid) {
+        doLogout();
+        setLocation("/login");
+        return;
+      }
+      setUser(getCurrentUser());
+    });
+    // Load characters
     CharacterManager.getAll().then((chars) => {
       setCharacters(chars);
       CharacterManager.getActiveCharacter().then(setActiveCharacter);
-    });
+    }).catch(() => {});
   }, [setLocation]);
 
   const handleLogout = () => {
-    localStorage.removeItem("grudge_current_user");
-    setLocation("/");
+    doLogout();
+    setLocation("/login");
   };
 
-  const currentUser = JSON.parse(localStorage.getItem("grudge_current_user") || "{}");
+  const currentUser = user || ({} as GrudgeUser);
 
   return (
     <Layout>
@@ -65,7 +74,7 @@ export default function HomePage() {
             transition={{ duration: 0.5 }}
           >
             <h1 className="text-3xl md:text-4xl font-cinzel font-bold text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-500">
-              Welcome, {currentUser.username || "Warlord"}
+              Welcome, {currentUser.displayName || currentUser.username || "Warlord"}
             </h1>
             <p className="text-slate-400 mt-1">Choose your next adventure</p>
           </motion.div>
@@ -98,7 +107,7 @@ export default function HomePage() {
                   <h3 className="text-xl font-cinzel font-bold text-amber-300">{activeCharacter.name}</h3>
                   <div className="flex items-center gap-3 mt-1">
                     <Badge variant="outline" className="text-xs border-amber-700/50 text-amber-400">
-                      {activeCharacter.race}
+                      {activeCharacter.raceId}
                     </Badge>
                     <Badge variant="outline" className="text-xs border-red-700/50 text-red-400">
                       {activeCharacter.classId}
@@ -107,7 +116,7 @@ export default function HomePage() {
                   </div>
                   <div className="mt-2 flex items-center gap-2">
                     <span className="text-xs text-slate-500">XP</span>
-                    <Progress value={((activeCharacter.experience || 0) % 100)} className="flex-1 h-2" />
+                    <Progress value={((activeCharacter.xp || 0) % 100)} className="flex-1 h-2" />
                   </div>
                 </div>
                 <Button
@@ -188,12 +197,12 @@ export default function HomePage() {
                 <p className="text-xs text-slate-500">Characters</p>
               </div>
               <div className="text-center">
-                <p className="text-2xl font-bold text-yellow-400">{currentUser.gold || 0}</p>
+                <p className="text-2xl font-bold text-yellow-400">{currentUser.gold ?? 0}</p>
                 <p className="text-xs text-slate-500">Gold</p>
               </div>
               <div className="text-center">
-                <p className="text-2xl font-bold text-slate-300">Lv. {currentUser.level || 1}</p>
-                <p className="text-xs text-slate-500">Warlord Rank</p>
+                <p className="text-2xl font-bold text-slate-300">{currentUser.grudgeId?.slice(0, 8) || "—"}</p>
+                <p className="text-xs text-slate-500">Grudge ID</p>
               </div>
             </CardContent>
           </Card>

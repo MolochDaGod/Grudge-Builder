@@ -70,12 +70,21 @@ export default function HomePage() {
   const { toast } = useToast();
 
   useEffect(() => {
-    const userData = localStorage.getItem('grudge_current_user');
-    if (!userData) {
-      setLocation("/");
+    // Check VPS auth token, fall back to legacy localStorage
+    const token = localStorage.getItem('grudge_token');
+    const vpsUser = localStorage.getItem('grudge_user');
+    if (token && vpsUser) {
+      try {
+        const parsed = JSON.parse(vpsUser);
+        setUser({ username: parsed.username || parsed.displayName || 'Warlord', level: 1, gold: parsed.gold || 0 });
+      } catch {
+        setLocation("/login");
+        return;
+      }
+    } else {
+      setLocation("/login");
       return;
     }
-    setUser(JSON.parse(userData));
 
     const savedSettings = localStorage.getItem('grudge_user_settings');
     if (savedSettings) {
@@ -96,8 +105,9 @@ export default function HomePage() {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem('grudge_current_user');
-    setLocation("/");
+    localStorage.removeItem('grudge_token');
+    localStorage.removeItem('grudge_user');
+    setLocation("/login");
   };
 
   const saveSettings = (newSettings: UserSettings) => {
