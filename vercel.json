@@ -2,7 +2,7 @@
   "buildCommand": "cd client && npx vite build",
   "outputDirectory": "client/dist",
   "devCommand": "npm run dev:client",
-  "installCommand": "npm install",
+  "installCommand": "npm install --ignore-scripts",
   "framework": null,
   "rewrites": [
     {

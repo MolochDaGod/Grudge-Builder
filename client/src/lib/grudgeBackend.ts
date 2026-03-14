@@ -58,6 +58,22 @@ export interface GrudgeUser {
   discordId?: string;
 }
 
+// ── SSO token pickup (from cross-app redirects like GrudgeWars) ──────
+(function pickupSsoToken() {
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const ssoToken = params.get("sso_token");
+    if (ssoToken) {
+      localStorage.setItem(SESSION_TOKEN_KEY, ssoToken);
+      // Clean URL without reload
+      params.delete("sso_token");
+      const clean = params.toString();
+      const newUrl = window.location.pathname + (clean ? `?${clean}` : "") + window.location.hash;
+      window.history.replaceState(null, "", newUrl);
+    }
+  } catch { /* ignore in SSR/test */ }
+})();
+
 // ── Token helpers ────────────────────────────────────────────────────
 
 export function getToken(): string | null {
