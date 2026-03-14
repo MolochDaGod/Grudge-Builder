@@ -1,12 +1,11 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
-import { authHeaders, clearToken, clearCurrentUser } from "./grudgeBackend";
+import { authHeaders, clearToken, logout } from "./grudgeBackend";
 
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
     // Auto-logout on 401
     if (res.status === 401) {
-      clearToken();
-      clearCurrentUser();
+      logout();
     }
     const text = (await res.text()) || res.statusText;
     throw new Error(`${res.status}: ${text}`);

@@ -1,5 +1,7 @@
 import type { Character } from "./characterManager";
-import { GAME_API, authHeaders, clearToken, clearCurrentUser } from "./grudgeBackend";
+import { API_BASE, authHeaders, clearToken, logout } from "./grudgeBackend";
+
+const GAME_API = `${API_BASE}/game`;
 import {
   type VpsCharacter,
   toVpsCreatePayload,
@@ -19,9 +21,8 @@ async function authFetch(
   };
   const res = await fetch(url, { ...init, headers });
   if (res.status === 401) {
-    clearToken();
-    clearCurrentUser();
-    window.location.href = "/login";
+    logout();
+    window.location.href = "/";
     throw new Error("Session expired");
   }
   return res;

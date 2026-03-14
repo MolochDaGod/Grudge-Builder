@@ -1,47 +1,44 @@
 /**
- * Grudge Backend Integration
+ * Grudge Backend Integration — Unified Auth
  *
- * All API calls go through Vercel rewrites (defined in vercel.json):
- *   /api/auth/*    → id.grudge-studio.com/auth/*
- *   /api/game/*    → api.grudge-studio.com/*
- *   /api/account/* → account.grudge-studio.com/*
+ * Auth flows through grudgewarlords.com API (proxied via Vercel rewrites):
+ *   /api/auth/login     → username/password
+ *   /api/auth/register  → new account (username/password)
+ *   /api/auth/puter     → Grudge Auth (Puter SDK — Google, guest)
+ *   /api/auth/verify    → validate session token
+ *   /api/auth/wallet    → Solana wallet connect
+ *   /api/discord/login  → Discord OAuth
  *
- * This avoids CORS issues since the client calls same-origin paths.
+ * On any account creation the backend automatically:
+ *   1. Creates DB row
+ *   2. Generates server-side Solana wallet
+ *   3. Assigns Grudge ID
+ *   4. Creates Puter cloud storage
+ *
+ * Uses same localStorage keys as GrudgeWars for cross-app compatibility.
  */
 
-// ── API base paths (routed through Vercel rewrites) ──────────
-export const AUTH_API = "/api/auth";
-export const GAME_API = "/api/game";
-export const ACCOUNT_API = "/api/account";
+// ── API base (routed through Vercel rewrites in vercel.json) ─────────
+export const API_BASE = "/api";
 
-// ── Token management ─────────────────────────────────────────
-const TOKEN_KEY = "grudge_token";
-const USER_KEY = "grudge_user";
+// ── Token / Session management ───────────────────────────────────────
+// Match GrudgeWars keys exactly for cross-app session sharing
+const SESSION_TOKEN_KEY = "grudge_session_token";
+const SESSION_KEY = "grudge-session";
 const DEVICE_ID_KEY = "grudge_device_id";
 
-export function getToken(): string | null {
-  return localStorage.getItem(TOKEN_KEY);
+// ── Session data shape (stored in localStorage) ─────────────────────
+export interface GrudgeSession {
+  type: "grudge" | "discord" | "puter" | "wallet" | "guest";
+  username: string;
+  grudgeId?: string;
+  accountId?: number;
+  walletAddress?: string;
+  puterUsername?: string;
+  loginTime: number;
 }
 
-export function setToken(token: string): void {
-  localStorage.setItem(TOKEN_KEY, token);
-}
-
-export function clearToken(): void {
-  localStorage.removeItem(TOKEN_KEY);
-}
-
-export function isAuthenticated(): boolean {
-  return !!getToken();
-}
-
-// ── Auth headers for authenticated requests ──────────────────
-export function authHeaders(): Record<string, string> {
-  const token = getToken();
-  return token ? { Authorization: `Bearer ${token}` } : {};
-}
-
-// ── User state (cached VPS user object) ──────────────────────
+// ── User shape (from API responses) ──────────────────────────────────
 export interface GrudgeUser {
   id?: number;
   grudgeId: string;
@@ -58,33 +55,66 @@ export interface GrudgeUser {
   race?: string;
   class?: string;
   avatarUrl?: string;
+  discordId?: string;
 }
 
-export function getCurrentUser(): GrudgeUser | null {
+// ── Token helpers ────────────────────────────────────────────────────
+
+export function getToken(): string | null {
+  return localStorage.getItem(SESSION_TOKEN_KEY);
+}
+
+export function setToken(token: string): void {
+  localStorage.setItem(SESSION_TOKEN_KEY, token);
+}
+
+export function clearToken(): void {
+  localStorage.removeItem(SESSION_TOKEN_KEY);
+}
+
+export function isAuthenticated(): boolean {
+  return !!getToken();
+}
+
+export function authHeaders(): Record<string, string> {
+  const token = getToken();
+  return token
+    ? { Authorization: `Bearer ${token}`, "X-Session-Token": token }
+    : {};
+}
+
+// ── Session helpers ──────────────────────────────────────────────────
+
+export function getSession(): GrudgeSession | null {
   try {
-    const raw = localStorage.getItem(USER_KEY);
+    const raw = localStorage.getItem(SESSION_KEY);
     return raw ? JSON.parse(raw) : null;
   } catch {
     return null;
   }
 }
 
-export function setCurrentUser(user: GrudgeUser): void {
-  localStorage.setItem(USER_KEY, JSON.stringify(user));
+export function setSession(session: GrudgeSession): void {
+  localStorage.setItem(SESSION_KEY, JSON.stringify(session));
 }
 
-export function clearCurrentUser(): void {
-  localStorage.removeItem(USER_KEY);
+export function getCurrentUser(): GrudgeUser | null {
+  const session = getSession();
+  if (!session) return null;
+  return {
+    grudgeId: session.grudgeId || "",
+    username: session.username,
+    walletAddress: session.walletAddress,
+  };
 }
 
-// ── Full logout ──────────────────────────────────────────────
 export function logout(): void {
-  clearToken();
-  clearCurrentUser();
-  // Keep device ID and extended character data
+  localStorage.removeItem(SESSION_TOKEN_KEY);
+  localStorage.removeItem(SESSION_KEY);
 }
 
-// ── Device ID for guest login ────────────────────────────────
+// ── Device ID (for guest login) ──────────────────────────────────────
+
 export function getDeviceId(): string {
   let id = localStorage.getItem(DEVICE_ID_KEY);
   if (!id) {
@@ -97,102 +127,167 @@ export function getDeviceId(): string {
   return id;
 }
 
-// ── Auth API helpers ─────────────────────────────────────────
+// ── Auth API response shape ──────────────────────────────────────────
 
 interface AuthResponse {
   success: boolean;
+  sessionToken: string;
   token: string;
   grudgeId: string;
   username: string;
   user: GrudgeUser;
   message?: string;
-  isGuest?: boolean;
-  isNewUser?: boolean;
 }
 
-async function handleAuthResponse(res: Response): Promise<AuthResponse> {
+// ── Core auth handler ────────────────────────────────────────────────
+
+async function handleAuthResponse(
+  res: Response,
+  sessionType: GrudgeSession["type"],
+  extra?: Partial<GrudgeSession>,
+): Promise<AuthResponse> {
   if (!res.ok) {
     const body = await res.json().catch(() => ({ error: res.statusText }));
     throw new Error(body.error || `Auth failed (${res.status})`);
   }
+
   const data: AuthResponse = await res.json();
-  if (data.token) setToken(data.token);
-  if (data.user) setCurrentUser(data.user);
+
+  // Store session token (same key as GrudgeWars)
+  const token = data.sessionToken || data.token;
+  if (token) setToken(token);
+
+  // Store session data (same format as GrudgeWars)
+  const user = data.user || ({} as GrudgeUser);
+  const session: GrudgeSession = {
+    type: sessionType,
+    username: user.username || data.username || "Unknown",
+    grudgeId: user.grudgeId || data.grudgeId || undefined,
+    accountId: user.id,
+    loginTime: Date.now(),
+    ...extra,
+  };
+  setSession(session);
+
   return data;
 }
 
+// ── Auth methods ─────────────────────────────────────────────────────
+
+/** Username + password login */
 export async function loginWithCredentials(
   username: string,
   password: string,
 ): Promise<AuthResponse> {
-  const res = await fetch(`${AUTH_API}/login`, {
+  const res = await fetch(`${API_BASE}/auth/login`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ username, password }),
   });
-  return handleAuthResponse(res);
+  return handleAuthResponse(res, "grudge");
 }
 
+/** Create new account with username + password */
 export async function registerAccount(
   username: string,
   password: string,
   email?: string,
 ): Promise<AuthResponse> {
-  const res = await fetch(`${AUTH_API}/register`, {
+  const res = await fetch(`${API_BASE}/auth/register`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ username, password, email }),
   });
-  return handleAuthResponse(res);
+  return handleAuthResponse(res, "grudge");
 }
 
-export async function loginAsGuest(): Promise<AuthResponse> {
-  const res = await fetch(`${AUTH_API}/guest`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ deviceId: getDeviceId() }),
-  });
-  return handleAuthResponse(res);
-}
-
-export async function loginWithWallet(
-  wallet_address: string,
-  web3auth_token?: string,
-): Promise<AuthResponse> {
-  const res = await fetch(`${AUTH_API}/wallet`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ wallet_address, web3auth_token }),
-  });
-  return handleAuthResponse(res);
-}
-
+/** Grudge Auth via Puter SDK (Google, guest, etc.) */
 export async function loginWithPuter(
   puterUuid: string,
   puterUsername?: string,
 ): Promise<AuthResponse> {
-  const res = await fetch(`${AUTH_API}/puter`, {
+  const res = await fetch(`${API_BASE}/auth/puter`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ puterUuid, puterUsername }),
   });
-  return handleAuthResponse(res);
+  return handleAuthResponse(res, "puter", { puterUsername });
 }
+
+/** Solana wallet connect — auto-creates account if new */
+export async function loginWithWallet(
+  walletAddress: string,
+  web3authToken?: string,
+): Promise<AuthResponse> {
+  const res = await fetch(`${API_BASE}/auth/wallet`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ wallet_address: walletAddress, web3auth_token: web3authToken }),
+  });
+  return handleAuthResponse(res, "wallet", { walletAddress });
+}
+
+/** Guest login — uses Puter quiet guest under the hood */
+export async function loginAsGuest(): Promise<AuthResponse> {
+  // Try Puter quiet guest first
+  const hasPuter = typeof window !== "undefined" && !!(window as any).puter;
+  if (hasPuter) {
+    try {
+      const puter = (window as any).puter;
+      if (!puter.auth?.isSignedIn?.()) {
+        await puter.auth.signIn();
+      }
+      const user = await puter.auth.getUser();
+      if (user?.uuid) {
+        return loginWithPuter(user.uuid, user.username);
+      }
+    } catch {
+      // Fall through to device-based guest
+    }
+  }
+
+  // Fallback: device-based guest
+  const res = await fetch(`${API_BASE}/auth/puter`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      puterUuid: `guest_${getDeviceId()}`,
+      puterUsername: "Guest",
+    }),
+  });
+  return handleAuthResponse(res, "guest");
+}
+
+/** Discord OAuth — returns redirect URL */
+export async function startDiscordLogin(): Promise<string> {
+  const res = await fetch(`${API_BASE}/discord/login`);
+  const data = await res.json();
+  return data.url;
+}
+
+// ── Token verification ───────────────────────────────────────────────
 
 export async function verifyToken(): Promise<{
   valid: boolean;
-  payload?: Record<string, unknown>;
+  grudgeId?: string;
+  username?: string;
 }> {
   const token = getToken();
   if (!token) return { valid: false };
+
   try {
-    const res = await fetch(`${AUTH_API}/verify`, {
+    const res = await fetch(`${API_BASE}/auth/verify`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ token }),
+      body: JSON.stringify({ sessionToken: token }),
     });
     if (!res.ok) return { valid: false };
-    return await res.json();
+    const data = await res.json();
+    return {
+      valid: data.valid === true,
+      grudgeId: data.grudgeId,
+      username: data.username,
+    };
   } catch {
     return { valid: false };
   }

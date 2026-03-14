@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import Layout from "@/components/Layout";
 import { CharacterManager, Character } from "@/lib/characterManager";
-import { isAuthenticated, getCurrentUser, logout as doLogout, verifyToken, type GrudgeUser } from "@/lib/grudgeBackend";
+import { isAuthenticated, getCurrentUser, logout as doLogout, verifyToken, getSession, type GrudgeUser } from "@/lib/grudgeBackend";
 
 interface QuickAction {
   label: string;
@@ -37,14 +37,14 @@ export default function HomePage() {
 
   useEffect(() => {
     if (!isAuthenticated()) {
-      setLocation("/login");
+      setLocation("/");
       return;
     }
     // Verify token is still valid
-    verifyToken().then(({ valid }) => {
-      if (!valid) {
+    verifyToken().then((result) => {
+      if (!result.valid) {
         doLogout();
-        setLocation("/login");
+        setLocation("/");
         return;
       }
       setUser(getCurrentUser());
@@ -58,7 +58,7 @@ export default function HomePage() {
 
   const handleLogout = () => {
     doLogout();
-    setLocation("/login");
+    setLocation("/");
   };
 
   const currentUser = user || ({} as GrudgeUser);
