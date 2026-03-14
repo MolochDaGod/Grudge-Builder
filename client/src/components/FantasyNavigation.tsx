@@ -6,10 +6,12 @@ import { Book, Shield, Pickaxe, Sword, Leaf, Hammer, Gem, Settings, Wallet, Spar
 import { Button } from "@/components/ui/button";
 import { CharacterManager } from "@/lib/characterManager";
 import { useAccount } from "@/hooks/use-account";
-import signPlank from "@assets/generated_images/single_wooden_hanging_sign_plank.png";
-import headerSign from "@assets/generated_images/ornate_header_sign_for_logo.png";
-import chainLink from "@assets/generated_images/iron_chain_link_connector.png";
-import accountPanelBg from "@assets/generated_images/fantasy_rpg_account_panel_background.png";
+
+// Images served from public/assets/ui/
+const signPlank = "/assets/ui/single_wooden_hanging_sign_plank.png";
+const headerSign = "/assets/ui/ornate_header_sign_for_logo.png";
+const chainLink = "/assets/ui/iron_chain_link_connector.png";
+const accountPanelBg = "/assets/ui/fantasy_rpg_account_panel_background.png";
 
 interface NavItem {
   label: string;

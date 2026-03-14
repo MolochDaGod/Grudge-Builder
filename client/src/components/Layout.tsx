@@ -9,7 +9,8 @@ import { getPageByPath } from "@/lib/pageRegistry";
 import { CharacterManager } from "@/lib/characterManager";
 import { useAccount } from "@/hooks/use-account";
 import { FantasySidebar } from "@/components/FantasyNavigation";
-import accountPanelBg from "@assets/generated_images/fantasy_rpg_account_panel_background.png";
+
+const accountPanelBg = "/assets/ui/fantasy_rpg_account_panel_background.png";
 
 interface NavItem {
   label: string;
