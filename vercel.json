@@ -6,20 +6,24 @@
   "framework": null,
   "rewrites": [
     {
+      "source": "/api/account/:path*",
+      "destination": "https://account.grudge-studio.com/:path*"
+    },
+    {
       "source": "/api/auth/:path*",
-      "destination": "https://grudgewarlords.com/api/auth/:path*"
+      "destination": "https://id.grudge-studio.com/auth/:path*"
     },
     {
       "source": "/api/discord/:path*",
-      "destination": "https://grudgewarlords.com/api/discord/:path*"
+      "destination": "https://id.grudge-studio.com/discord/:path*"
     },
     {
       "source": "/api/game/:path*",
-      "destination": "https://grudgewarlords.com/api/game/:path*"
+      "destination": "https://api.grudge-studio.com/:path*"
     },
     {
       "source": "/api/public/:path*",
-      "destination": "https://grudgewarlords.com/api/public/:path*"
+      "destination": "https://api.grudge-studio.com/public/:path*"
     },
     {
       "source": "/(.*)",

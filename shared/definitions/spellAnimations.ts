@@ -1668,9 +1668,9 @@ export const SPELL_ANIMATIONS: Record<string, SpellAnimation> = {
   },
 
   // === SPECIAL BOW ATTACKS (Fire Arrow) ===
-  "fire_arrow": {
-    id: "fire_arrow",
-    name: "Fire Arrow",
+  "fire_arrow_bow": {
+    id: "fire_arrow_bow",
+    name: "Fire Arrow (Bow)",
     description: "Flaming arrow for special bow shots",
     basePath: "/sprites/spells/fire-arrow",
     frameCount: 8,
@@ -1682,9 +1682,9 @@ export const SPELL_ANIMATIONS: Record<string, SpellAnimation> = {
     framePattern: "frame_{N}.png",
     usageNotes: "Special bow shot. 8 frames at 600x320 each. Loops during flight."
   },
-  "water_arrow": {
-    id: "water_arrow",
-    name: "Water Arrow",
+  "water_arrow_bow": {
+    id: "water_arrow_bow",
+    name: "Water Arrow (Bow)",
     description: "Water-enchanted arrow",
     basePath: "/sprites/spells/water-arrow",
     frameCount: 8,

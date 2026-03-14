@@ -16,18 +16,6 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Inter:wght@300;400;500;600;700&family=Jost:wght@400;600&family=Uncial+Antiqua&display=swap" rel="stylesheet">
-    
-    <!-- Puter SDK: only load when running inside the Puter environment -->
-    <script>
-      (function() {
-        var inPuter = window.puter || (window.location.hostname && window.location.hostname.endsWith('.puter.site'));
-        if (inPuter) {
-          var s = document.createElement('script');
-          s.src = 'https://js.puter.com/v2/';
-          document.head.appendChild(s);
-        }
-      })();
-    </script>
   </head>
   <body>
     <div id="root"></div>

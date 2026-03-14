@@ -96,6 +96,20 @@ function SwayingSign({
   );
 }
 
+// CSS wood-grain gradients (replacing missing /sprites/ui/wood_*.png)
+const WOOD_GRADIENTS = {
+  dark: 'linear-gradient(110deg, #3d2411 0%, #5a3520 15%, #4a2a18 30%, #5e3822 50%, #3d2411 70%, #4a2a18 85%, #3d2411 100%)',
+  medium: 'linear-gradient(110deg, #6b4226 0%, #8b5e3c 15%, #7a4e30 30%, #8b5e3c 50%, #6b4226 70%, #7a4e30 85%, #6b4226 100%)',
+  light: 'linear-gradient(110deg, #9b7340 0%, #c49b5a 15%, #ab8348 30%, #c49b5a 50%, #9b7340 70%, #ab8348 85%, #9b7340 100%)',
+};
+
+function getWoodGradient(index: number, isActive: boolean): string {
+  if (isActive) return WOOD_GRADIENTS.light;
+  if (index % 3 === 0) return WOOD_GRADIENTS.dark;
+  if (index % 3 === 1) return WOOD_GRADIENTS.medium;
+  return WOOD_GRADIENTS.light;
+}
+
 function SignButton({ item, index, isActive, scale = 1 }: { item: NavItemConfig; index: number; isActive: boolean; scale?: number }) {
   const [location, setLocation] = useLocation();
   const baseWidth = 180;
@@ -112,10 +126,11 @@ function SignButton({ item, index, isActive, scale = 1 }: { item: NavItemConfig;
       delay={index * 0.2}
     >
       <div 
-        className="relative flex items-center justify-center overflow-hidden bg-[transparent] mt-[3px] mb-[3px] ml-[2px] mr-[2px] pt-[-2px] pb-[-2px]"
+        className="relative flex items-center justify-center overflow-hidden mt-[3px] mb-[3px] ml-[2px] mr-[2px]"
         style={{ 
           width: `${width}px`, 
           height: `${height}px`,
+          background: getWoodGradient(index, isActive),
           border: '3px solid #1a1a1a',
           borderRadius: '8px',
           boxShadow: isActive 
@@ -123,11 +138,13 @@ function SignButton({ item, index, isActive, scale = 1 }: { item: NavItemConfig;
             : '0 4px 8px rgba(0,0,0,0.5), inset 0 1px 2px rgba(255,255,255,0.1)'
         }}
       >
-        <img 
-          src={`/sprites/ui/${isActive ? 'wood_light' : index % 3 === 0 ? 'wood_dark' : index % 3 === 1 ? 'wood_medium' : 'wood_light'}.png`}
-          alt=""
-          className="absolute inset-0 w-full h-full object-cover mt-[0.1px] mb-[0.1px]"
-          style={{ objectFit: 'fill' }}
+        {/* Wood grain texture overlay */}
+        <div 
+          className="absolute inset-0 opacity-20 pointer-events-none"
+          style={{
+            backgroundImage: `repeating-linear-gradient(95deg, transparent, transparent 8px, rgba(0,0,0,0.08) 8px, rgba(0,0,0,0.08) 9px),
+              repeating-linear-gradient(95deg, transparent, transparent 20px, rgba(255,255,255,0.04) 20px, rgba(255,255,255,0.04) 21px)`,
+          }}
         />
         <div 
           className="relative z-10 flex items-center gap-2 font-cinzel font-black tracking-wide"
@@ -140,8 +157,7 @@ function SignButton({ item, index, isActive, scale = 1 }: { item: NavItemConfig;
           <span style={{ width: `${iconSize}px`, height: `${iconSize}px` }}>
             {item.icon}
           </span>
-          <span
-            className="pl-[-2px] pr-[-2px] ml-[12px] mr-[12px] pt-[2px] pb-[2px] mt-[2px] mb-[2px]">{item.label}</span>
+          <span className="ml-3 mr-3 mt-[2px] mb-[2px]">{item.label}</span>
         </div>
       </div>
     </SwayingSign>
@@ -188,11 +204,16 @@ export function FantasyNavigation() {
               boxShadow: '0 0 30px rgba(255,200,50,0.6), 0 0 60px rgba(255,150,0,0.3), 0 8px 20px rgba(0,0,0,0.7), inset 0 3px 6px rgba(255,255,255,0.3), inset 0 -2px 4px rgba(0,0,0,0.2)'
             }}
           >
-            <img 
-              src="/sprites/ui/wood_dark.png"
-              alt=""
-              className="absolute inset-0 w-full h-full"
-              style={{ objectFit: 'fill' }}
+            <div 
+              className="absolute inset-0"
+              style={{ background: WOOD_GRADIENTS.dark }}
+            />
+            {/* Wood grain texture */}
+            <div 
+              className="absolute inset-0 opacity-20 pointer-events-none"
+              style={{
+                backgroundImage: `repeating-linear-gradient(95deg, transparent, transparent 8px, rgba(0,0,0,0.08) 8px, rgba(0,0,0,0.08) 9px)`,
+              }}
             />
             <div className="relative z-10 text-center">
               <h1 
@@ -292,11 +313,15 @@ function WarlordCard() {
         boxShadow: 'inset 0 1px 0 rgba(218,165,32,0.1), 0 4px 12px rgba(0,0,0,0.4)'
       }}
     >
-      <img 
-        src="/sprites/ui/wood_dark.png"
-        alt=""
-        className="absolute inset-0 w-full h-full"
-        style={{ objectFit: 'fill' }}
+      <div 
+        className="absolute inset-0"
+        style={{ background: WOOD_GRADIENTS.dark }}
+      />
+      <div 
+        className="absolute inset-0 opacity-20 pointer-events-none"
+        style={{
+          backgroundImage: `repeating-linear-gradient(95deg, transparent, transparent 8px, rgba(0,0,0,0.08) 8px, rgba(0,0,0,0.08) 9px)`,
+        }}
       />
       <div 
         className="absolute inset-0 bg-cover bg-center opacity-10"
