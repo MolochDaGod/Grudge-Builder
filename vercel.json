@@ -14,10 +14,6 @@
       "destination": "https://id.grudge-studio.com/auth/:path*"
     },
     {
-      "source": "/api/discord/:path*",
-      "destination": "https://id.grudge-studio.com/discord/:path*"
-    },
-    {
       "source": "/api/game/:path*",
       "destination": "https://api.grudge-studio.com/:path*"
     },

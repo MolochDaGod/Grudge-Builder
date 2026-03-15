@@ -59,6 +59,8 @@ export interface GrudgeUser {
 }
 
 // ── SSO token pickup (from cross-app redirects like GrudgeWars) ──────
+const SSO_AUTH_URL = "https://id.grudge-studio.com";
+
 (function pickupSsoToken() {
   try {
     const params = new URLSearchParams(window.location.search);
@@ -67,9 +69,20 @@ export interface GrudgeUser {
       localStorage.setItem(SESSION_TOKEN_KEY, ssoToken);
       // Clean URL without reload
       params.delete("sso_token");
+      params.delete("sso_required");
       const clean = params.toString();
       const newUrl = window.location.pathname + (clean ? `?${clean}` : "") + window.location.hash;
       window.history.replaceState(null, "", newUrl);
+      return; // token captured, done
+    }
+
+    // If no local token and we haven't checked SSO yet, redirect to SSO check
+    const hasToken = !!localStorage.getItem(SESSION_TOKEN_KEY);
+    const ssoRequired = params.get("sso_required");
+    if (!hasToken && !ssoRequired && window.location.pathname !== "/") {
+      // Redirect to grudge-id SSO check
+      const returnUrl = encodeURIComponent(window.location.href);
+      window.location.href = `${SSO_AUTH_URL}/auth/sso-check?return=${returnUrl}`;
     }
   } catch { /* ignore in SSR/test */ }
 })();
@@ -276,7 +289,24 @@ export async function loginAsGuest(): Promise<AuthResponse> {
 
 /** Discord OAuth — returns redirect URL */
 export async function startDiscordLogin(): Promise<string> {
-  const res = await fetch(`${API_BASE}/discord/login`);
+  const state = encodeURIComponent(window.location.origin + '/');
+  const res = await fetch(`${API_BASE}/auth/discord/start?state=${state}`);
+  const data = await res.json();
+  return data.url;
+}
+
+/** Google OAuth — returns redirect URL */
+export async function startGoogleLogin(): Promise<string> {
+  const state = encodeURIComponent(window.location.origin + '/');
+  const res = await fetch(`${API_BASE}/auth/google/start?state=${state}`);
+  const data = await res.json();
+  return data.url;
+}
+
+/** GitHub OAuth — returns redirect URL */
+export async function startGithubLogin(): Promise<string> {
+  const state = encodeURIComponent(window.location.origin + '/');
+  const res = await fetch(`${API_BASE}/auth/github/start?state=${state}`);
   const data = await res.json();
   return data.url;
 }
@@ -295,7 +325,7 @@ export async function verifyToken(): Promise<{
     const res = await fetch(`${API_BASE}/auth/verify`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ sessionToken: token }),
+      body: JSON.stringify({ token }),
     });
     if (!res.ok) return { valid: false };
     const data = await res.json();
