@@ -77,7 +77,7 @@ export class HeroMovementManager {
     const arrivals: ArrivalEvent[] = [];
     const deltaSec = deltaMs / 1000;
 
-    for (const [heroId, mover] of this.movers) {
+    for (const [heroId, mover] of Array.from(this.movers.entries())) {
       if (!mover.isMoving) continue;
 
       let remaining = mover.speed * deltaSec;
