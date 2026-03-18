@@ -4,7 +4,7 @@ Dark fantasy RPG game builder — character creation, turn-based combat, dungeon
 
 ## Live
 
-- **Web**: [grudge-builder-nydobouth-grudgenexus.vercel.app](https://grudge-builder-nydobouth-grudgenexus.vercel.app)
+- **Web**: [grudgewarlords.com](https://grudgewarlords.com)
 
 ## Architecture
 
