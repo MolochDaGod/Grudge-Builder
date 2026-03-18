@@ -1,9 +1,9 @@
 {
-  "buildCommand": "cd client && npx vite build",
+  "buildCommand": "npm run build:client",
   "outputDirectory": "client/dist",
   "devCommand": "npm run dev:client",
   "installCommand": "npm install --ignore-scripts",
-  "framework": null,
+  "framework": "vite",
   "rewrites": [
     {
       "source": "/api/account/:path*",
