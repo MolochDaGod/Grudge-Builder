@@ -57,7 +57,7 @@ import {
   NodeRarity,
 } from "@/lib/islandSystem";
 import { puterAI, isPuterAvailable, puterKV } from "@/lib/puterIntegration";
-import { Loader2, MapPin, Timer, Package, Users, Sparkles, RefreshCw, Home, Settings, Play, Pause, Eye } from "lucide-react";
+import { Loader2, MapPin, Timer, Package, Users, Sparkles, RefreshCw, Home, Settings, Play, Pause, Eye, Hammer } from "lucide-react";
 import { 
   CameraState, 
   worldToScreen, 
@@ -68,6 +68,20 @@ import {
   createDefaultCamera,
   getBackgroundTransform,
 } from "@/lib/islandCamera";
+import { generateIslandGrid, type IslandTileGrid } from "@/lib/islandTileGrid";
+import { findPath, worldToTileCoord, findNearestWalkable, type WorldPos } from "@/lib/islandPathfinder";
+import { HeroMovementManager } from "@/lib/heroMovementSystem";
+import {
+  type IslandBuilding,
+  type BuildingType,
+  BUILDING_DEFS,
+  getIslandBonuses,
+  canPlaceBuilding,
+  getAvailableBuildings,
+  getBuildingSpriteUrl,
+  getMaxHeroes,
+  BASE_HERO_SLOTS,
+} from "@/lib/islandBuildings";
 import { 
   CharacterStateData, 
   createCharacterState, 
@@ -211,6 +225,16 @@ function reconcileExpiredNodes(state: IslandState, now: number): ReconcileResult
   return { updatedNodes, updatedAssignedHeroes, freedHeroIds, respawnCount: expiredNodes.length };
 }
 
+/** Convert a string ID to a numeric seed for tile grid generation */
+function hashSeed(str: string): number {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = ((hash << 5) - hash) + str.charCodeAt(i);
+    hash |= 0;
+  }
+  return Math.abs(hash);
+}
+
 export default function IslandPage() {
   const { toast } = useToast();
   const { batchAddResources, resources, refetch: refetchResources } = useAccountResources();
@@ -245,6 +269,17 @@ export default function IslandPage() {
     quantity: number;
     rarity: string;
   }>>([]);
+
+  // ── Pathfinding + Movement + Buildings state ──
+  const tileGridRef = useRef<IslandTileGrid | null>(null);
+  const movementMgrRef = useRef(new HeroMovementManager());
+  const movementFrameRef = useRef<number | null>(null);
+  const lastTickRef = useRef<number>(performance.now());
+  const [buildings, setBuildings] = useState<IslandBuilding[]>([]);
+  const [buildMode, setBuildMode] = useState<BuildingType | null>(null);
+  const [showBuildMenu, setShowBuildMenu] = useState(false);
+  /** Map heroId → nodeId the hero is currently pathfinding toward */
+  const heroTargetNodeRef = useRef<Record<string, string>>({});
 
   // Handle cutscene completion - initialize island in backend and set up locally
   const handleCutsceneComplete = async (islandName: string) => {
@@ -427,8 +462,12 @@ export default function IslandPage() {
 
   // Return all heroes to camp
   const returnAllToCamp = () => {
-    const campX = 50;
-    const campY = 50;
+    const campX = islandState?.campPosition?.x || 50;
+    const campY = islandState?.campPosition?.y || 50;
+
+    // Stop all active movement
+    movementMgrRef.current.clear();
+    heroTargetNodeRef.current = {};
     
     // Unassign all heroes from nodes
     setIslandState(prev => {
@@ -439,18 +478,34 @@ export default function IslandPage() {
       return updated;
     });
     
-    // Move all heroes to camp
-    setHeroPositions(prev => {
-      const newPositions: Record<string, HeroPosition> = {};
-      allCharacters.slice(0, 5).forEach((hero, i) => {
-        const offsetX = (i % 3) * 3 - 3;
-        const offsetY = Math.floor(i / 3) * 3;
-        newPositions[hero.id] = createHeroPosition(hero.id, campX + offsetX, campY + offsetY, 'idle');
-      });
-      return newPositions;
+    // Pathfind each hero back to camp
+    const grid = tileGridRef.current;
+    allCharacters.slice(0, 5).forEach((hero, i) => {
+      const heroPos = heroPositions[hero.id];
+      const offsetX = (i % 3) * 3 - 3;
+      const offsetY = Math.floor(i / 3) * 3;
+      const targetX = campX + offsetX;
+      const targetY = campY + offsetY;
+
+      if (heroPos && grid) {
+        const path = findPath(grid, { x: heroPos.x, y: heroPos.y }, { x: targetX, y: targetY });
+        if (path.length > 0) {
+          movementMgrRef.current.startMovement(hero.id, path, heroPos.x, heroPos.y);
+          setHeroPositions(prev => ({
+            ...prev,
+            [hero.id]: updateHeroPosition(prev[hero.id], hero.id, heroPos.x, heroPos.y, 'walk'),
+          }));
+          return;
+        }
+      }
+      // Fallback: teleport
+      setHeroPositions(prev => ({
+        ...prev,
+        [hero.id]: createHeroPosition(hero.id, targetX, targetY, 'idle'),
+      }));
     });
     
-    addLog("All heroes returned to camp!");
+    addLog("All heroes returning to camp!");
   };
 
   useEffect(() => {
@@ -505,6 +560,32 @@ export default function IslandPage() {
       }
       
       setIslandState(state);
+
+      // Generate tile grid for A* pathfinding (seeded from island id)
+      const seed = state.id ? hashSeed(state.id) : Date.now();
+      const grid = generateIslandGrid(seed);
+      tileGridRef.current = grid;
+
+      // Validate node positions against tile grid walkability
+      let nodesNudged = 0;
+      const validatedNodes = state.nodes.map(node => {
+        if (node.isWaterNode) return node; // Water nodes intentionally in water
+        const tile = worldToTileCoord(node.x, node.y);
+        if (grid.tiles[tile.ty]?.[tile.tx]?.isWalkable) return node;
+        // Node is on non-walkable tile, nudge to nearest walkable
+        const nearest = findNearestWalkable(grid, tile.tx, tile.ty);
+        if (nearest) {
+          const worldX = (nearest.tx / (grid.width - 1)) * 100;
+          const worldY = (nearest.ty / (grid.height - 1)) * 100;
+          nodesNudged++;
+          return { ...node, x: worldX, y: worldY };
+        }
+        return node;
+      });
+      if (nodesNudged > 0) {
+        state = { ...state, nodes: validatedNodes };
+        await saveIslandState(userId, state);
+      }
       
       const pos: Record<string, HeroPosition> = {};
       const campX = state.campPosition?.x || 50;
@@ -525,6 +606,11 @@ export default function IslandPage() {
       setHeroPositions(pos);
       
       initializeCharacterStates(chars, campX, campY);
+
+      // Load buildings from saved state
+      if ((state as any).buildings) {
+        setBuildings((state as any).buildings);
+      }
       
       if (isPuterAvailable() && !state.mapImageUrl) {
         generateIslandMapImage(state.mapStyle, userId);
@@ -543,6 +629,87 @@ export default function IslandPage() {
     
     return () => clearInterval(sleepCheckInterval);
   }, [allCharacters]);
+
+  // ── 60ms movement tick loop ──────────────────────────────────
+  useEffect(() => {
+    const mgr = movementMgrRef.current;
+    let running = true;
+
+    const tick = () => {
+      if (!running) return;
+      const now = performance.now();
+      const delta = now - lastTickRef.current;
+      lastTickRef.current = now;
+
+      if (mgr.activeCount > 0) {
+        const { updates, arrivals } = mgr.update(delta);
+
+        // Batch-update hero positions from movement system
+        if (updates.length > 0) {
+          setHeroPositions(prev => {
+            const next = { ...prev };
+            for (const u of updates) {
+              const cur = next[u.heroId];
+              next[u.heroId] = updateHeroPosition(cur, u.heroId, u.x, u.y, u.isMoving ? 'walk' : 'idle');
+            }
+            return next;
+          });
+        }
+
+        // Handle arrivals — hero reached their target node
+        for (const arrival of arrivals) {
+          const targetNodeId = heroTargetNodeRef.current[arrival.heroId];
+          if (!targetNodeId) continue;
+          delete heroTargetNodeRef.current[arrival.heroId];
+
+          // Complete the assignment: assign hero to node and begin harvesting
+          setIslandState(prev => {
+            if (!prev) return prev;
+            const updated = {
+              ...prev,
+              nodes: prev.nodes.map(n =>
+                n.id === targetNodeId ? { ...n, assignedHeroId: arrival.heroId, lastHarvest: Date.now() } : n
+              ),
+              assignedHeroes: { ...prev.assignedHeroes, [arrival.heroId]: targetNodeId },
+            };
+            saveIslandState(prev.id, updated);
+            return updated;
+          });
+
+          // Set hero to harvesting action
+          setHeroPositions(prev => {
+            const cur = prev[arrival.heroId];
+            if (!cur) return prev;
+            return { ...prev, [arrival.heroId]: updateHeroPosition(cur, arrival.heroId, cur.x, cur.y, 'attack') };
+          });
+
+          // Trigger first harvest
+          setIslandState(prev => {
+            if (!prev) return prev;
+            const node = prev.nodes.find(n => n.id === targetNodeId);
+            if (node) {
+              performHarvest({ ...node, assignedHeroId: arrival.heroId });
+            }
+            return prev;
+          });
+
+          const hero = allCharacters.find(c => c.id === arrival.heroId);
+          const node = islandState?.nodes.find(n => n.id === targetNodeId);
+          if (hero && node) {
+            addLog(`${hero.name} arrived at ${node.name} and began harvesting.`);
+          }
+        }
+      }
+
+      movementFrameRef.current = requestAnimationFrame(tick);
+    };
+
+    movementFrameRef.current = requestAnimationFrame(tick);
+    return () => {
+      running = false;
+      if (movementFrameRef.current) cancelAnimationFrame(movementFrameRef.current);
+    };
+  }, [allCharacters, islandState]);
 
   // Reload island data after cutscene completes (when accountHomeIsland changes to true)
   useEffect(() => {
@@ -734,43 +901,88 @@ export default function IslandPage() {
       return;
     }
 
-    setHeroPositions(prev => {
-      const { x, y } = findNonCollidingPosition(node.x, node.y, selectedHero, prev, islandState);
-      return {
-        ...prev,
-        [selectedHero]: createHeroPosition(selectedHero, x, y, 'walk')
-      };
-    });
+    // Check if hero is already pathfinding somewhere
+    if (movementMgrRef.current.isMoving(selectedHero)) {
+      movementMgrRef.current.stopMovement(selectedHero);
+      delete heroTargetNodeRef.current[selectedHero];
+    }
 
-    setTimeout(() => {
-      setIslandState(prev => {
-        if (!prev) return prev;
-        const updated = {
+    const heroPos = heroPositions[selectedHero];
+    if (!heroPos) return;
+
+    // A* pathfind from hero position to node
+    const grid = tileGridRef.current;
+    if (grid) {
+      const path = findPath(grid, { x: heroPos.x, y: heroPos.y }, { x: node.x, y: node.y });
+      if (path.length > 0) {
+        heroTargetNodeRef.current[selectedHero] = node.id;
+        movementMgrRef.current.startMovement(selectedHero, path, heroPos.x, heroPos.y);
+        setHeroPositions(prev => ({
           ...prev,
-          nodes: prev.nodes.map(n => 
-            n.id === node.id ? { ...n, assignedHeroId: selectedHero, lastHarvest: Date.now() } : n
-          ),
-          assignedHeroes: { ...prev.assignedHeroes, [selectedHero]: node.id }
-        };
-        saveIslandState(prev.id, updated);
-        return updated;
-      });
+          [selectedHero]: updateHeroPosition(prev[selectedHero], selectedHero, heroPos.x, heroPos.y, 'walk'),
+        }));
+        addLog(`${hero.name} walking to ${node.name}...`);
+      } else {
+        // Fallback: no path found, teleport near node
+        const { x, y } = findNonCollidingPosition(node.x, node.y, selectedHero, heroPositions, islandState);
+        setHeroPositions(prev => ({ ...prev, [selectedHero]: createHeroPosition(selectedHero, x, y, 'walk') }));
+        // Use legacy setTimeout for fallback
+        heroTargetNodeRef.current[selectedHero] = node.id;
+        setTimeout(() => {
+          // Simulate arrival
+          const targetId = heroTargetNodeRef.current[selectedHero];
+          if (targetId) {
+            delete heroTargetNodeRef.current[selectedHero];
+            setIslandState(prev => {
+              if (!prev) return prev;
+              const updated = {
+                ...prev,
+                nodes: prev.nodes.map(n =>
+                  n.id === targetId ? { ...n, assignedHeroId: selectedHero, lastHarvest: Date.now() } : n
+                ),
+                assignedHeroes: { ...prev.assignedHeroes, [selectedHero]: targetId },
+              };
+              saveIslandState(prev.id, updated);
+              return updated;
+            });
+            setHeroPositions(prev => {
+              const cur = prev[selectedHero];
+              if (!cur) return prev;
+              return { ...prev, [selectedHero]: updateHeroPosition(cur, selectedHero, cur.x, cur.y, 'attack') };
+            });
+            performHarvest({ ...node, assignedHeroId: selectedHero });
+          }
+        }, 1500);
+        addLog(`${hero.name} heading to ${node.name} (no path, teleporting)...`);
+      }
+    } else {
+      // No tile grid yet, use original teleport behavior
+      const { x, y } = findNonCollidingPosition(node.x, node.y, selectedHero, heroPositions, islandState);
+      setHeroPositions(prev => ({ ...prev, [selectedHero]: createHeroPosition(selectedHero, x, y, 'walk') }));
+      setTimeout(() => {
+        setIslandState(prev => {
+          if (!prev) return prev;
+          const updated = {
+            ...prev,
+            nodes: prev.nodes.map(n =>
+              n.id === node.id ? { ...n, assignedHeroId: selectedHero, lastHarvest: Date.now() } : n
+            ),
+            assignedHeroes: { ...prev.assignedHeroes, [selectedHero]: node.id },
+          };
+          saveIslandState(prev.id, updated);
+          return updated;
+        });
+        setHeroPositions(prev => {
+          const cur = prev[selectedHero];
+          if (!cur) return prev;
+          return { ...prev, [selectedHero]: updateHeroPosition(cur, selectedHero, cur.x, cur.y, 'attack') };
+        });
+        performHarvest({ ...node, assignedHeroId: selectedHero });
+      }, 1500);
+      addLog(`${hero.name} assigned to ${node.name}.`);
+    }
 
-      setHeroPositions(prev => {
-        const current = prev[selectedHero];
-        if (!current) return prev;
-        return {
-          ...prev,
-          [selectedHero]: updateHeroPosition(current, selectedHero, current.x, current.y, 'attack')
-        };
-      });
-
-      const effectiveInterval = getEffectiveHarvestInterval(node.harvestIntervalMinutes, hero.level || 1);
-      addLog(`${hero.name} assigned to ${node.name}. Harvesting every ${Math.round(effectiveInterval)}m (Lv${hero.level} bonus).`);
-      setSelectedHero(null);
-
-      performHarvest({ ...node, assignedHeroId: selectedHero });
-    }, 1500);
+    setSelectedHero(null);
   };
 
   const performHarvest = async (node: ResourceNode) => {
@@ -934,6 +1146,10 @@ export default function IslandPage() {
     const hero = allCharacters.find(c => c.id === heroId);
     if (!hero) return;
 
+    // Stop any active movement
+    movementMgrRef.current.stopMovement(heroId);
+    delete heroTargetNodeRef.current[heroId];
+
     setIslandState(prev => {
       if (!prev) return prev;
       const newAssignedHeroes = { ...prev.assignedHeroes };
@@ -953,22 +1169,32 @@ export default function IslandPage() {
       return updated;
     });
 
-    setHeroPositions(prev => {
-      const newState = islandState ? {
-        ...islandState,
-        nodes: islandState.nodes.map(n => 
-          n.assignedHeroId === heroId ? { ...n, assignedHeroId: undefined } : n
-        ),
-        skinningNodes: (islandState.skinningNodes || []).map(n =>
-          n.assignedHeroId === heroId ? { ...n, assignedHeroId: undefined } : n
-        )
-      } : null;
-      const { x, y } = findNonCollidingPosition(15, 15, heroId, prev, newState);
-      return {
-        ...prev,
-        [heroId]: createHeroPosition(heroId, x, y, 'idle')
-      };
-    });
+    // Pathfind hero back to camp
+    const campX = islandState?.campPosition?.x || 50;
+    const campY = islandState?.campPosition?.y || 50;
+    const heroPos = heroPositions[heroId];
+    const grid = tileGridRef.current;
+    if (heroPos && grid) {
+      const path = findPath(grid, { x: heroPos.x, y: heroPos.y }, { x: campX, y: campY });
+      if (path.length > 0) {
+        movementMgrRef.current.startMovement(heroId, path, heroPos.x, heroPos.y);
+        setHeroPositions(prev => ({
+          ...prev,
+          [heroId]: updateHeroPosition(prev[heroId], heroId, heroPos.x, heroPos.y, 'walk'),
+        }));
+      } else {
+        // Fallback teleport
+        setHeroPositions(prev => {
+          const { x, y } = findNonCollidingPosition(campX, campY, heroId, prev, islandState);
+          return { ...prev, [heroId]: createHeroPosition(heroId, x, y, 'idle') };
+        });
+      }
+    } else {
+      setHeroPositions(prev => {
+        const { x, y } = findNonCollidingPosition(campX, campY, heroId, prev, islandState);
+        return { ...prev, [heroId]: createHeroPosition(heroId, x, y, 'idle') };
+      });
+    }
 
     addLog(`${hero.name} returned from gathering.`);
   };
@@ -1005,6 +1231,51 @@ export default function IslandPage() {
   };
 
   const [, setTick] = useState(0);
+
+  // ── Building placement ──────────────────────────────────────
+  const placeBuilding = (worldX: number, worldY: number) => {
+    if (!buildMode) return;
+    const result = canPlaceBuilding(buildMode, buildings);
+    if (!result.valid) {
+      toast({ title: 'Cannot Build', description: result.reason, variant: 'destructive' });
+      return;
+    }
+    const def = BUILDING_DEFS[buildMode];
+    const tile = worldToTileCoord(worldX, worldY);
+    const newBuilding: IslandBuilding = {
+      id: `bldg_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+      type: buildMode,
+      worldX,
+      worldY,
+      gridX: tile.tx,
+      gridY: tile.ty,
+      level: 1,
+      color: 'Wood',
+      builtAt: Date.now(),
+    };
+    const next = [...buildings, newBuilding];
+    setBuildings(next);
+    // Persist buildings into island state
+    setIslandState(prev => {
+      if (!prev) return prev;
+      const updated = { ...prev, buildings: next } as any;
+      saveIslandState(prev.id, updated);
+      return updated;
+    });
+    addLog(`Built ${def.icon} ${def.name} at (${Math.round(worldX)}, ${Math.round(worldY)})`);
+    setBuildMode(null);
+  };
+
+  const handleMapClick = (e: React.MouseEvent) => {
+    if (!buildMode || !mapContainerRef.current) return;
+    e.stopPropagation();
+    const rect = mapContainerRef.current.getBoundingClientRect();
+    const mouseX = e.clientX - rect.left;
+    const mouseY = e.clientY - rect.top;
+    const world = screenToWorld({ x: mouseX, y: mouseY }, camera, viewportSize);
+    if (world.x < 2 || world.x > 98 || world.y < 2 || world.y > 98) return;
+    placeBuilding(world.x, world.y);
+  };
 
   const handleSheepClick = async (animal: Animal) => {
     if (animal.state !== 'alive') return;
@@ -1215,6 +1486,9 @@ export default function IslandPage() {
           pendingAssignments.some(p => p.heroId === hero.id);
         if (isAlreadyAssigned) continue;
         
+        // Skip heroes currently pathfinding to a node
+        if (movementMgrRef.current.isMoving(hero.id) || heroTargetNodeRef.current[hero.id]) continue;
+        
         const priorities = heroPriorities[hero.id] || ['Mining', 'Logging', 'Herbalism', 'Fishing', 'Skinning'];
         
         for (const profession of priorities) {
@@ -1239,35 +1513,45 @@ export default function IslandPage() {
       }
       
       if (pendingAssignments.length > 0) {
-        setIslandState(prev => {
-          if (!prev) return prev;
-          let updatedNodes = [...prev.nodes];
-          let updatedAssignedHeroes = { ...prev.assignedHeroes };
-          
-          for (const assignment of pendingAssignments) {
-            updatedNodes = updatedNodes.map(n => 
-              n.id === assignment.nodeId ? { ...n, assignedHeroId: assignment.heroId, lastHarvest: Date.now() } : n
-            );
-            updatedAssignedHeroes[assignment.heroId] = assignment.nodeId;
-          }
-          
-          const updated = { ...prev, nodes: updatedNodes, assignedHeroes: updatedAssignedHeroes };
-          saveIslandState(prev.id, updated);
-          return updated;
-        });
+        const grid = tileGridRef.current;
         
         for (const assignment of pendingAssignments) {
           const hero = allCharacters.find(c => c.id === assignment.heroId);
           if (!hero) continue;
-          
+
+          const heroPos = heroPositions[assignment.heroId];
+          if (heroPos && grid) {
+            const path = findPath(grid, { x: heroPos.x, y: heroPos.y }, { x: assignment.node.x, y: assignment.node.y });
+            if (path.length > 0) {
+              // Use pathfinding: hero walks to node, arrival triggers assignment + harvest
+              heroTargetNodeRef.current[assignment.heroId] = assignment.nodeId;
+              movementMgrRef.current.startMovement(assignment.heroId, path, heroPos.x, heroPos.y);
+              setHeroPositions(prev => ({
+                ...prev,
+                [assignment.heroId]: updateHeroPosition(prev[assignment.heroId], assignment.heroId, heroPos.x, heroPos.y, 'walk'),
+              }));
+              addLog(`[Auto] ${hero.name} walking to ${assignment.node.name} (${assignment.node.rarity || 'common'})`);
+              continue;
+            }
+          }
+
+          // Fallback: instant teleport + assign
+          setIslandState(prev => {
+            if (!prev) return prev;
+            const updated = {
+              ...prev,
+              nodes: prev.nodes.map(n =>
+                n.id === assignment.nodeId ? { ...n, assignedHeroId: assignment.heroId, lastHarvest: Date.now() } : n
+              ),
+              assignedHeroes: { ...prev.assignedHeroes, [assignment.heroId]: assignment.nodeId },
+            };
+            saveIslandState(prev.id, updated);
+            return updated;
+          });
           setHeroPositions(prev => {
             const { x, y } = findNonCollidingPosition(assignment.node.x, assignment.node.y, assignment.heroId, prev, islandState);
-            return {
-              ...prev,
-              [assignment.heroId]: createHeroPosition(assignment.heroId, x, y, 'attack')
-            };
+            return { ...prev, [assignment.heroId]: createHeroPosition(assignment.heroId, x, y, 'attack') };
           });
-          
           addLog(`[Auto] ${hero.name} assigned to ${assignment.node.name} (${assignment.node.rarity || 'common'})`);
           performHarvest({ ...assignment.node, assignedHeroId: assignment.heroId });
         }
@@ -1365,6 +1649,7 @@ export default function IslandPage() {
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp}
           onMouseLeave={handleMouseLeave}
+          onClick={handleMapClick}
         >
           {/* Island map layer - centered and properly transformed */}
           <div 
@@ -1602,20 +1887,25 @@ export default function IslandPage() {
             };
             const boatRotation = getBoatRotation();
 
+            const isPathfinding = movementMgrRef.current.isMoving(heroId);
+
             return (
-              <motion.div
+              <div
                 key={heroId}
-                animate={{ left: `${pos.x}%`, top: `${pos.y}%` }}
-                transition={{ duration: 1.2, ease: "easeInOut" }}
                 onClick={(e) => {
                   e.stopPropagation();
                   if (!isAssigned) setSelectedHero(isSelected ? null : heroId);
                 }}
                 className={cn(
-                  "absolute z-20 cursor-pointer transition-all group flex flex-col items-center",
+                  "absolute z-20 cursor-pointer group flex flex-col items-center",
                   isSelected && "z-30"
                 )}
-                style={{ transform: 'translate(-50%, -100%)' }}
+                style={{
+                  left: `${pos.x}%`,
+                  top: `${pos.y}%`,
+                  transform: 'translate(-50%, -100%)',
+                  transition: isPathfinding ? 'none' : 'left 0.3s ease, top 0.3s ease',
+                }}
                 data-testid={`hero-sprite-${heroId}`}
                 data-hero-id={heroId}
               >
@@ -1662,7 +1952,7 @@ export default function IslandPage() {
                     style={{ width: `${staminaPercent}%` }}
                   />
                 </div>
-              </motion.div>
+              </div>
             );
           })}
           {Object.entries(characterStates).map(([heroId, state]) => {
@@ -1679,6 +1969,34 @@ export default function IslandPage() {
             );
           })}
           
+          {/* Buildings layer */}
+          {buildings.map(bldg => {
+            const def = BUILDING_DEFS[bldg.type];
+            if (!def) return null;
+            return (
+              <div
+                key={bldg.id}
+                className="absolute z-5 flex flex-col items-center group cursor-pointer"
+                style={{
+                  left: `${bldg.worldX}%`,
+                  top: `${bldg.worldY}%`,
+                  transform: 'translate(-50%, -50%)',
+                }}
+                title={`${def.name} Lv${bldg.level} — ${def.description}`}
+              >
+                <img
+                  src={getBuildingSpriteUrl(bldg.type, bldg.color)}
+                  alt={def.name}
+                  className="w-12 h-12 object-contain drop-shadow-lg"
+                  style={{ imageRendering: 'pixelated' }}
+                />
+                <div className="mt-0.5 px-1 py-0.5 rounded text-[9px] font-bold whitespace-nowrap bg-slate-900/90 text-amber-300 border border-amber-700 opacity-0 group-hover:opacity-100 transition-opacity">
+                  {def.icon} {def.name} Lv{bldg.level}
+                </div>
+              </div>
+            );
+          })}
+
           <HarvestPopupManager popups={harvestPopups} onRemovePopup={removeHarvestPopup} />
           </div>
           {/* End entity layer */}
@@ -1734,7 +2052,84 @@ export default function IslandPage() {
             <Badge variant="outline" className="text-[9px] capitalize">
               {islandState?.mapStyle || 'fantasy'}
             </Badge>
+            <span className="text-slate-500">|</span>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => setShowBuildMenu(prev => !prev)}
+              className={cn("text-xs h-5 px-2", showBuildMenu ? "text-green-400" : "text-amber-400 hover:text-amber-300")}
+              data-testid="build-menu-button"
+            >
+              <Hammer className="w-3 h-3 mr-1" />
+              Build
+            </Button>
+            {buildMode && (
+              <Badge className="bg-green-700 text-green-100 text-[9px]">
+                Placing: {BUILDING_DEFS[buildMode].icon} {BUILDING_DEFS[buildMode].name}
+                <button className="ml-1 hover:text-red-300" onClick={() => setBuildMode(null)}>✕</button>
+              </Badge>
+            )}
           </div>
+
+          {/* Build Menu Panel */}
+          <AnimatePresence>
+            {showBuildMenu && (
+              <motion.div
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                className="absolute top-16 left-4 z-30 w-64 max-h-[60vh] overflow-y-auto bg-slate-900/95 border border-slate-700 rounded-lg shadow-xl"
+              >
+                <div className="p-3 border-b border-slate-700">
+                  <h3 className="text-amber-400 font-bold text-sm flex items-center gap-1">
+                    <Hammer className="w-4 h-4" /> Buildings
+                  </h3>
+                  <p className="text-[10px] text-slate-400 mt-0.5">Click a building then click the map to place it.</p>
+                  {buildings.length > 0 && (
+                    <div className="mt-1 text-[10px] text-green-400">
+                      Bonuses: {getIslandBonuses(buildings).harvestSpeedMult < 1 ? `Harvest ${Math.round((1 - getIslandBonuses(buildings).harvestSpeedMult) * 100)}% faster` : ''}
+                      {getIslandBonuses(buildings).xpMult > 1 ? ` | XP ×${getIslandBonuses(buildings).xpMult.toFixed(2)}` : ''}
+                      {getIslandBonuses(buildings).extraHeroSlots > 0 ? ` | +${getIslandBonuses(buildings).extraHeroSlots} hero slots` : ''}
+                      {getIslandBonuses(buildings).extraStorage > 0 ? ` | +${getIslandBonuses(buildings).extraStorage} storage` : ''}
+                    </div>
+                  )}
+                </div>
+                <div className="p-2 space-y-1">
+                  {getAvailableBuildings(buildings).map(({ def, canBuild, reason, currentCount }) => (
+                    <button
+                      key={def.type}
+                      onClick={() => {
+                        if (canBuild) {
+                          setBuildMode(def.type);
+                          setShowBuildMenu(false);
+                        } else {
+                          toast({ title: 'Cannot Build', description: reason, variant: 'destructive' });
+                        }
+                      }}
+                      className={cn(
+                        "w-full flex items-center gap-2 p-2 rounded text-left transition-colors",
+                        canBuild
+                          ? "hover:bg-slate-800 cursor-pointer"
+                          : "opacity-50 cursor-not-allowed"
+                      )}
+                    >
+                      <span className="text-xl">{def.icon}</span>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-xs font-bold text-white flex items-center gap-1">
+                          {def.name}
+                          <span className="text-[9px] text-slate-400">({currentCount}/{def.maxCount})</span>
+                        </div>
+                        <div className="text-[10px] text-slate-400 truncate">{def.description}</div>
+                        <div className="text-[9px] text-amber-500">
+                          {def.cost.gold}g{def.cost.wood ? ` ${def.cost.wood}w` : ''}{def.cost.stone ? ` ${def.cost.stone}s` : ''}
+                        </div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
 
         {/* Pending Loot Badge - Top Right */}
