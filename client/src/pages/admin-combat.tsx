@@ -48,7 +48,7 @@ import {
 } from "lucide-react";
 import { CLASS_SKILL_TREES, type ClassSkillTree, type ClassSkillChoice } from "@shared/definitions/classSkillTrees";
 import { SPELL_ANIMATIONS, type SpellAnimation } from "@shared/definitions/spellAnimations";
-import { 
+import {
   EFFECT_PRESETS, 
   WEAPON_CATEGORIES,
   type AdminAbility,
@@ -60,6 +60,7 @@ import {
   createDefaultKeyframe,
   interpolateKeyframes
 } from "@shared/definitions/animationEditor";
+import { assetUrl } from "@/lib/assetConfig";
 
 const CLASS_ICONS: Record<string, React.ReactNode> = {
   warrior: <Sword className="w-4 h-4" />,
@@ -247,7 +248,7 @@ function SpellBookSidebar({
             className={`flex-1 relative overflow-hidden rounded transition-all ${activeTab === "classes" ? "ring-2 ring-amber-400 shadow-lg" : "opacity-80 hover:opacity-100"}`}
             data-testid="tab-classes"
           >
-            <img src="/sprites/ui/wood_dark.png" alt="" className="absolute inset-0 w-full h-full" style={{ objectFit: 'fill' }} />
+            <img src={assetUrl("/sprites/ui/wood_dark.png")} alt="" className="absolute inset-0 w-full h-full" style={{ objectFit: 'fill' }} />
             <div className="relative z-10 flex items-center justify-center gap-1.5 py-2.5 px-2">
               <Users className="w-4 h-4 text-amber-100 flex-shrink-0" />
               <span className="text-xs font-medium text-amber-100 truncate hidden sm:inline">Classes</span>
@@ -258,7 +259,7 @@ function SpellBookSidebar({
             className={`flex-1 relative overflow-hidden rounded transition-all ${activeTab === "weapons" ? "ring-2 ring-amber-400 shadow-lg" : "opacity-80 hover:opacity-100"}`}
             data-testid="tab-weapons"
           >
-            <img src="/sprites/ui/wood_light.png" alt="" className="absolute inset-0 w-full h-full" style={{ objectFit: 'fill' }} />
+            <img src={assetUrl("/sprites/ui/wood_light.png")} alt="" className="absolute inset-0 w-full h-full" style={{ objectFit: 'fill' }} />
             <div className="relative z-10 flex items-center justify-center gap-1.5 py-2.5 px-2">
               <Sword className="w-4 h-4 text-amber-900 flex-shrink-0" />
               <span className="text-xs font-medium text-amber-900 truncate hidden sm:inline">Weapons</span>
@@ -269,7 +270,7 @@ function SpellBookSidebar({
             className={`flex-1 relative overflow-hidden rounded transition-all ${activeTab === "magic" ? "ring-2 ring-amber-400 shadow-lg" : "opacity-80 hover:opacity-100"}`}
             data-testid="tab-magic"
           >
-            <img src="/sprites/ui/wood_medium.png" alt="" className="absolute inset-0 w-full h-full" style={{ objectFit: 'fill' }} />
+            <img src={assetUrl("/sprites/ui/wood_medium.png")} alt="" className="absolute inset-0 w-full h-full" style={{ objectFit: 'fill' }} />
             <div className="relative z-10 flex items-center justify-center gap-1.5 py-2.5 px-2">
               <Sparkles className="w-4 h-4 text-amber-100 flex-shrink-0" />
               <span className="text-xs font-medium text-amber-100 truncate hidden sm:inline">Magic</span>
@@ -280,7 +281,7 @@ function SpellBookSidebar({
             className={`flex-1 relative overflow-hidden rounded transition-all ${activeTab === "units" ? "ring-2 ring-amber-400 shadow-lg" : "opacity-80 hover:opacity-100"}`}
             data-testid="tab-units"
           >
-            <img src="/sprites/ui/wood_dark.png" alt="" className="absolute inset-0 w-full h-full" style={{ objectFit: 'fill' }} />
+            <img src={assetUrl("/sprites/ui/wood_dark.png")} alt="" className="absolute inset-0 w-full h-full" style={{ objectFit: 'fill' }} />
             <div className="relative z-10 flex items-center justify-center gap-1.5 py-2.5 px-2">
               <Crosshair className="w-4 h-4 text-amber-100 flex-shrink-0" />
               <span className="text-xs font-medium text-amber-100 truncate hidden sm:inline">Units</span>
@@ -487,7 +488,7 @@ function SpellBookSidebar({
                   {expandedUnit === unitData.unit && (
                     <div className="ml-4 mt-1 space-y-1">
                       {unitData.attacks.map(attack => {
-                        const spritePath = `/sprites/GrudgeRPGAssets2d/Characters(100x100)/${encodeURIComponent(unitData.folder)}/${encodeURIComponent(unitData.folder)} with shadows/${encodeURIComponent(unitData.folder)}-${attack}.png`;
+                        const spritePath = assetUrl(`/sprites/GrudgeRPGAssets2d/Characters(100x100)/${encodeURIComponent(unitData.folder)}/${encodeURIComponent(unitData.folder)} with shadows/${encodeURIComponent(unitData.folder)}-${attack}.png`);
                         return (
                           <div
                             key={attack}
@@ -1245,10 +1246,10 @@ function CombatStage({
 }
 
 const BACKGROUNDS = [
-  { path: "/sprites/backgrounds/combat/battle_bg_fields.png", name: "Fields" },
-  { path: "/sprites/backgrounds/combat/battle_bg_town_market.png", name: "Town Market" },
-  { path: "/sprites/backgrounds/combat/battle_bg_settlement.png", name: "Settlement" },
-  { path: "/sprites/backgrounds/combat/battle_bg_island_coast.png", name: "Island Coast" }
+  { path: assetUrl("/sprites/backgrounds/combat/battle_bg_fields.png"), name: "Fields" },
+  { path: assetUrl("/sprites/backgrounds/combat/battle_bg_town_market.png"), name: "Town Market" },
+  { path: assetUrl("/sprites/backgrounds/combat/battle_bg_settlement.png"), name: "Settlement" },
+  { path: assetUrl("/sprites/backgrounds/combat/battle_bg_island_coast.png"), name: "Island Coast" }
 ];
 
 export default function AdminCombatPage() {

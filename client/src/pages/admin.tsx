@@ -43,24 +43,24 @@ interface SpriteCategory {
 }
 
 const SPRITE_CATEGORIES: SpriteCategory[] = [
-  { id: "heroes", name: "Hero Characters", path: "/sprites/heroes", count: 6, subcategories: ["human", "orc", "elf", "dwarf", "barbarian", "undead"] },
-  { id: "enemies", name: "Enemy Sprites", path: "/sprites/enemies", count: 30, subcategories: ["vampire", "fantasy", "satyr", "shinobi", "werewolf", "knight"] },
-  { id: "rpg", name: "RPG Characters", path: "/sprites/rpg", count: 40, subcategories: ["Archer", "Knight", "Wizard", "Skeleton", "Orc", "Slime"] },
-  { id: "2dassets", name: "2D Asset Packs", path: "/sprites/2dassets", count: 500, subcategories: ["icons", "weapons", "armor", "enemies", "chibi"] },
-  { id: "magic", name: "Magic Effects", path: "/sprites/magic", count: 50, subcategories: ["fire", "water", "ice", "lightning"] },
-  { id: "spells", name: "Spell Animations", path: "/sprites/spells", count: 12, subcategories: ["fire-arrow", "fire-ball", "fire-spell", "water-arrow", "water-ball", "water-spell"] },
-  { id: "ui", name: "UI Elements", path: "/sprites/ui", count: 100, subcategories: ["buttons", "frames", "icons"] },
-  { id: "topdown", name: "Top-Down Sprites", path: "/sprites/topdown", count: 80, subcategories: ["goblin", "animals", "characters"] },
-  { id: "gear", name: "Equipment & Gear", path: "/sprites/gear", count: 200, subcategories: ["weapons", "armor", "accessories"] },
+  { id: "heroes", name: "Hero Characters", path: assetUrl("/sprites/heroes"), count: 6, subcategories: ["human", "orc", "elf", "dwarf", "barbarian", "undead"] },
+  { id: "enemies", name: "Enemy Sprites", path: assetUrl("/sprites/enemies"), count: 30, subcategories: ["vampire", "fantasy", "satyr", "shinobi", "werewolf", "knight"] },
+  { id: "rpg", name: "RPG Characters", path: assetUrl("/sprites/rpg"), count: 40, subcategories: ["Archer", "Knight", "Wizard", "Skeleton", "Orc", "Slime"] },
+  { id: "2dassets", name: "2D Asset Packs", path: assetUrl("/sprites/2dassets"), count: 500, subcategories: ["icons", "weapons", "armor", "enemies", "chibi"] },
+  { id: "magic", name: "Magic Effects", path: assetUrl("/sprites/magic"), count: 50, subcategories: ["fire", "water", "ice", "lightning"] },
+  { id: "spells", name: "Spell Animations", path: assetUrl("/sprites/spells"), count: 12, subcategories: ["fire-arrow", "fire-ball", "fire-spell", "water-arrow", "water-ball", "water-spell"] },
+  { id: "ui", name: "UI Elements", path: assetUrl("/sprites/ui"), count: 100, subcategories: ["buttons", "frames", "icons"] },
+  { id: "topdown", name: "Top-Down Sprites", path: assetUrl("/sprites/topdown"), count: 80, subcategories: ["goblin", "animals", "characters"] },
+  { id: "gear", name: "Equipment & Gear", path: assetUrl("/sprites/gear"), count: 200, subcategories: ["weapons", "armor", "accessories"] },
 ];
 
 const SPELL_EFFECTS = [
-  { id: "fire-arrow", name: "Fire Arrow", path: "/sprites/spells/fire-arrow", frames: 8, icon: "/sprites/spells/icons/fire-arrow.png" },
-  { id: "fire-ball", name: "Fire Ball", path: "/sprites/spells/fire-ball", frames: 8, icon: "/sprites/spells/icons/fire-ball.png" },
-  { id: "fire-spell", name: "Fire Spell", path: "/sprites/spells/fire-spell", frames: 8, icon: "/sprites/spells/icons/fire-spell.png" },
-  { id: "water-arrow", name: "Water Arrow", path: "/sprites/spells/water-arrow", frames: 8, icon: "/sprites/spells/icons/water-arrow.png" },
-  { id: "water-ball", name: "Water Ball", path: "/sprites/spells/water-ball", frames: 12, icon: "/sprites/spells/icons/water-ball.png" },
-  { id: "water-spell", name: "Water Spell", path: "/sprites/spells/water-spell", frames: 8, icon: "/sprites/spells/icons/water-spell.png" },
+  { id: "fire-arrow", name: "Fire Arrow", path: assetUrl("/sprites/spells/fire-arrow"), frames: 8, icon: assetUrl("/sprites/spells/icons/fire-arrow.png") },
+  { id: "fire-ball", name: "Fire Ball", path: assetUrl("/sprites/spells/fire-ball"), frames: 8, icon: assetUrl("/sprites/spells/icons/fire-ball.png") },
+  { id: "fire-spell", name: "Fire Spell", path: assetUrl("/sprites/spells/fire-spell"), frames: 8, icon: assetUrl("/sprites/spells/icons/fire-spell.png") },
+  { id: "water-arrow", name: "Water Arrow", path: assetUrl("/sprites/spells/water-arrow"), frames: 8, icon: assetUrl("/sprites/spells/icons/water-arrow.png") },
+  { id: "water-ball", name: "Water Ball", path: assetUrl("/sprites/spells/water-ball"), frames: 12, icon: assetUrl("/sprites/spells/icons/water-ball.png") },
+  { id: "water-spell", name: "Water Spell", path: assetUrl("/sprites/spells/water-spell"), frames: 8, icon: assetUrl("/sprites/spells/icons/water-spell.png") },
 ];
 
 const CATEGORY_SPRITE_MAP: Record<string, string[]> = {
@@ -1212,6 +1212,7 @@ const building = ORC_ISLAND_BUILDINGS['${selectedAsset.id}'];
 // Path: ${selectedAsset.imagePath}`)
                     : `// Import in island component
 import { MINIWORLD_BUILDINGS } from '@/lib/miniworldTileset';
+import { assetUrl } from "@/lib/assetConfig";
 
 // Reference the asset
 const building = MINIWORLD_BUILDINGS['${selectedAsset.id}'];

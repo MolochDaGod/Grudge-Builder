@@ -1,3 +1,4 @@
+import { assetUrl } from "@/lib/assetConfig";
 export const TILE_SIZE = 16;
 export const RENDER_SCALE = 2;
 export const SCALED_TILE_SIZE = TILE_SIZE * RENDER_SCALE;
@@ -11,7 +12,7 @@ export interface TilesetConfig {
 }
 
 export const DUNGEON_TILESET: TilesetConfig = {
-  image: '/sprites/dampdungeons/Dungeon_WallsAndFloors.png',
+  image: assetUrl("/sprites/dampdungeons/Dungeon_WallsAndFloors.png"),
   tileWidth: 16,
   tileHeight: 16,
   columns: 6,
@@ -19,7 +20,7 @@ export const DUNGEON_TILESET: TilesetConfig = {
 };
 
 export const DECORATIONS_TILESET: TilesetConfig = {
-  image: '/sprites/dampdungeons/DungeonDecorations.png',
+  image: assetUrl("/sprites/dampdungeons/DungeonDecorations.png"),
   tileWidth: 16,
   tileHeight: 16,
   columns: 16,
@@ -27,7 +28,7 @@ export const DECORATIONS_TILESET: TilesetConfig = {
 };
 
 export const OBJECTS_TILESET: TilesetConfig = {
-  image: '/sprites/dampdungeons/Dungeon_ObjectsDungeon.png',
+  image: assetUrl("/sprites/dampdungeons/Dungeon_ObjectsDungeon.png"),
   tileWidth: 16,
   tileHeight: 16,
   columns: 8,

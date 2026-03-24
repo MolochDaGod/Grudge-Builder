@@ -1,3 +1,4 @@
+import { assetUrl } from "@/lib/assetConfig";
 /**
  * Island Building System
  * Defines buildings placeable on islands using MiniWorld sprite assets.
@@ -82,7 +83,7 @@ export interface IslandBonuses {
 
 // ── Building Definitions ──────────────────────────────────────
 
-const BASE_PATH = '/sprites/miniworld/Buildings';
+const BASE_PATH = assetUrl("/sprites/miniworld/Buildings");
 
 export const BUILDING_DEFS: Record<BuildingType, BuildingDef> = {
   keep: {

@@ -21,8 +21,9 @@ grudge-builder/
 │   │   ├── components/      # Reusable UI components
 │   │   ├── hooks/           # Custom React hooks
 │   │   ├── lib/             # Game data, APIs, utilities
+│   │   │   └── assetConfig.ts # ObjectStore URL config + assetUrl() helper
 │   │   └── contexts/        # React contexts
-│   ├── public/              # Static assets (sprites, icons, audio)
+│   ├── public/              # Favicon only — game assets served from ObjectStore
 │   └── vite.config.ts       # Client Vite config
 ├── server/                  # Express backend (dev only, not deployed to Vercel)
 ├── shared/                  # Shared types, schemas, game definitions
@@ -40,7 +41,11 @@ grudge-builder/
 - **Professions** — Mining, foresting, cooking, engineering, mysticism
 - **Skill Trees** — Class-specific ability progression
 - **World Map** — Explore interconnected islands
-- **Sprite System** — Dynamic sprite loading from Object Storage
+- **Sprite System** — Dynamic sprite loading from ObjectStore
+
+## Assets
+
+All game assets (PNGs, sprites, icons, backgrounds, UI) are served from **[ObjectStore](https://github.com/MolochDaGod/ObjectStore)** at `https://molochdagod.github.io/ObjectStore`. The frontend uses `assetUrl("/path")` from `client/src/lib/assetConfig.ts` to build full URLs. Override the base URL with `VITE_OBJECT_STORE_URL` env var.
 
 ## Tech Stack
 

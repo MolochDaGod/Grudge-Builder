@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
+import { assetUrl } from "@/lib/assetConfig";
 
 export type Direction = "down" | "left" | "right" | "up";
 export type SpriteState = "idle" | "walk" | "attack" | "hurt" | "cast";
@@ -141,8 +142,8 @@ export function DungeonHeroSprite({
   onAnimationComplete?: () => void;
 }) {
   const spriteSheet = hasSword 
-    ? "/sprites/dampdungeons/animations/Dungeon_HeroManSword1.png"
-    : "/sprites/dampdungeons/animations/Dungeon_HeroMan1.png";
+    ? assetUrl("/sprites/dampdungeons/animations/Dungeon_HeroManSword1.png")
+    : assetUrl("/sprites/dampdungeons/animations/Dungeon_HeroMan1.png");
   
   const frameWidth = hasSword ? 47 : 48;
   const frameHeight = hasSword ? 63 : 64;
@@ -178,10 +179,10 @@ export function DungeonMonsterSprite({
   className?: string;
 }) {
   const sheetPaths: Record<string, string> = {
-    monsters1: "/sprites/dampdungeons/animations/Dungeon_Monsters1.png",
-    monsters2: "/sprites/dampdungeons/animations/Dungeon_Monsters2.png",
-    slimes: "/sprites/dampdungeons/animations/Dungeon_Slimes1.png",
-    mushroom: "/sprites/dampdungeons/animations/Dungeon_MushroomMan.png",
+    monsters1: assetUrl("/sprites/dampdungeons/animations/Dungeon_Monsters1.png"),
+    monsters2: assetUrl("/sprites/dampdungeons/animations/Dungeon_Monsters2.png"),
+    slimes: assetUrl("/sprites/dampdungeons/animations/Dungeon_Slimes1.png"),
+    mushroom: assetUrl("/sprites/dampdungeons/animations/Dungeon_MushroomMan.png"),
   };
   
   return (

@@ -8,6 +8,7 @@ import {
   TileType
 } from '@/lib/islandTileGrid';
 import { GRASS_DECORATIONS, getRandomGrass } from '@shared/definitions/characterAnimations';
+import { assetUrl } from "@/lib/assetConfig";
 
 interface IslandTileRendererProps {
   grid: IslandTileGrid;
@@ -103,11 +104,11 @@ export function IslandTileRenderer({
   // Load tilesets
   useEffect(() => {
     const terrainImg = new Image();
-    terrainImg.src = '/sprites/tiny_swords/Tiny Swords (Free Pack)/2DAssets/Terrain/Tilemap_color1.png';
+    terrainImg.src = assetUrl("/sprites/tiny_swords/Tiny Swords (Free Pack)/2DAssets/Terrain/Tilemap_color1.png");
     terrainImg.onload = () => setTerrainTileset(terrainImg);
     
     const villageImg = new Image();
-    villageImg.src = '/sprites/2dassets/tileset-village/1 Tiles/FieldsTileset.png';
+    villageImg.src = assetUrl("/sprites/2dassets/tileset-village/1 Tiles/FieldsTileset.png");
     villageImg.onload = () => setVillageTileset(villageImg);
     
     // Load grass decoration sprites

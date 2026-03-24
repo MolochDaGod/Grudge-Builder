@@ -102,6 +102,7 @@ import { Link } from "wouter";
 import { IslandChat } from "@/components/IslandChat";
 import { HeroCommandBar } from "@/components/HeroCommandBar";
 import { CommPanel } from "@/components/CommPanel";
+import { assetUrl } from "@/lib/assetConfig";
 
 const MAP_STYLES = ['iron', 'fantasy', 'tactical', 'night'] as const;
 
@@ -1915,7 +1916,7 @@ export default function IslandPage() {
                     style={{ transform: `translateX(-50%) rotate(${boatRotation}deg)` }}
                   >
                     <img 
-                      src="/sprites/boats/rowboat.png" 
+                      src={assetUrl("/sprites/boats/rowboat.png")} 
                       alt="boat" 
                       className="w-24 h-auto drop-shadow-lg"
                     />
@@ -2015,7 +2016,7 @@ export default function IslandPage() {
           >
             <div className="relative">
               <img 
-                src={`/sprites/buildings/market/market-level-${marketLevel}.png`}
+                src={assetUrl(`/sprites/buildings/market/market-level-${marketLevel}.png`)}
                 alt={`Market Level ${marketLevel}`}
                 className="w-20 h-20 object-contain drop-shadow-lg transition-transform group-hover:scale-110"
                 style={{ imageRendering: 'auto' }}

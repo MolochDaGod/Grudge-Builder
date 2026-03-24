@@ -9,6 +9,7 @@ import { Progress } from "@/components/ui/progress";
 import Layout from "@/components/Layout";
 import { CharacterManager, Character } from "@/lib/characterManager";
 import { isAuthenticated, getCurrentUser, logout as doLogout, verifyToken, getSession, type GrudgeUser } from "@/lib/grudgeBackend";
+import { assetUrl } from "@/lib/assetConfig";
 
 interface QuickAction {
   label: string;
@@ -20,14 +21,14 @@ interface QuickAction {
 }
 
 const quickActions: QuickAction[] = [
-  { label: "Character", path: "/character", icon: <Shield className="w-6 h-6" />, description: "Manage heroes & equipment", color: "from-amber-900/80 to-amber-800/60", bgImage: "/assets/backgrounds/general.png" },
-  { label: "Combat", path: "/combat", icon: <Sword className="w-6 h-6" />, description: "Battle enemies", color: "from-red-900/80 to-red-800/60", bgImage: "/assets/events/faction-war.png" },
-  { label: "Dungeon", path: "/dungeon", icon: <Pickaxe className="w-6 h-6" />, description: "Explore & loot", color: "from-purple-900/80 to-purple-800/60", bgImage: "/assets/events/dungeon-raid-1.png" },
-  { label: "Island", path: "/island", icon: <Leaf className="w-6 h-6" />, description: "Build your base", color: "from-green-900/80 to-green-800/60", bgImage: "/assets/backgrounds/island-map.png" },
-  { label: "Professions", path: "/professions", icon: <Hammer className="w-6 h-6" />, description: "Craft & gather", color: "from-orange-900/80 to-orange-800/60", bgImage: "/assets/events/shop-coming-soon.png" },
-  { label: "Skills", path: "/skill-tree", icon: <Gem className="w-6 h-6" />, description: "Unlock abilities", color: "from-blue-900/80 to-blue-800/60", bgImage: "/assets/events/weekly-tournament.png" },
-  { label: "World Map", path: "/world-map", icon: <Map className="w-6 h-6" />, description: "Explore the world", color: "from-teal-900/80 to-teal-800/60", bgImage: "/assets/backgrounds/island-terrain.png" },
-  { label: "Database", path: "/database", icon: <Book className="w-6 h-6" />, description: "Browse game data", color: "from-slate-900/80 to-slate-800/60", bgImage: "/assets/events/dungeon-raid-2.png" },
+  { label: "Character", path: "/character", icon: <Shield className="w-6 h-6" />, description: "Manage heroes & equipment", color: "from-amber-900/80 to-amber-800/60", bgImage: assetUrl("/backgrounds/general.png") },
+  { label: "Combat", path: "/combat", icon: <Sword className="w-6 h-6" />, description: "Battle enemies", color: "from-red-900/80 to-red-800/60", bgImage: assetUrl("/images/events/faction-war.png") },
+  { label: "Dungeon", path: "/dungeon", icon: <Pickaxe className="w-6 h-6" />, description: "Explore & loot", color: "from-purple-900/80 to-purple-800/60", bgImage: assetUrl("/images/events/dungeon-raid-1.png") },
+  { label: "Island", path: "/island", icon: <Leaf className="w-6 h-6" />, description: "Build your base", color: "from-green-900/80 to-green-800/60", bgImage: assetUrl("/backgrounds/island-map.png") },
+  { label: "Professions", path: "/professions", icon: <Hammer className="w-6 h-6" />, description: "Craft & gather", color: "from-orange-900/80 to-orange-800/60", bgImage: assetUrl("/images/events/shop-coming-soon.png") },
+  { label: "Skills", path: "/skill-tree", icon: <Gem className="w-6 h-6" />, description: "Unlock abilities", color: "from-blue-900/80 to-blue-800/60", bgImage: assetUrl("/images/events/weekly-tournament.png") },
+  { label: "World Map", path: "/world-map", icon: <Map className="w-6 h-6" />, description: "Explore the world", color: "from-teal-900/80 to-teal-800/60", bgImage: assetUrl("/backgrounds/island-terrain.png") },
+  { label: "Database", path: "/database", icon: <Book className="w-6 h-6" />, description: "Browse game data", color: "from-slate-900/80 to-slate-800/60", bgImage: assetUrl("/images/events/dungeon-raid-2.png") },
 ];
 
 export default function HomePage() {
@@ -69,7 +70,7 @@ export default function HomePage() {
       <div
         className="flex-1 overflow-y-auto p-4 md:p-8 max-w-7xl mx-auto w-full relative"
         style={{
-          backgroundImage: "url('/assets/backgrounds/tavern-home.png')",
+          backgroundImage: `url(${assetUrl("/backgrounds/tavern-home.png")})`,
           backgroundSize: "cover",
           backgroundPosition: "center",
           backgroundAttachment: "fixed",

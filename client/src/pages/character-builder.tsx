@@ -13,7 +13,7 @@ import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer } from "recharts";
-const bgTexture = "/assets/backgrounds/character-bg.png";
+const bgTexture = assetUrl("/backgrounds/character-bg.png");
 import Layout from "@/components/Layout";
 import { CharacterManager, Character, EquipmentSlots } from "@/lib/characterManager";
 import { ITEMS, resolveItemImage, RESOURCE_NODES } from "@/lib/grudaDB";
@@ -31,7 +31,7 @@ import {
   GATHERING_PROFESSIONS_CONFIG,
   calculateLevelFromXp 
 } from "@/lib/professionSystem";
-import { 
+import {
   CLASS_SKILL_TREES, 
   getClassSkillTree, 
   getUnlockedTiers, 
@@ -40,6 +40,7 @@ import {
   ClassSkillChoice,
   ClassSkillTier
 } from "@shared/definitions/classSkillTrees";
+import { assetUrl } from "@/lib/assetConfig";
 
 const ATTRIBUTE_ICONS: Record<string, string> = {
   Strength: "💪",
@@ -806,7 +807,7 @@ export default function CharacterBuilder() {
                             <h3 className="text-sm font-cinzel text-amber-400 mb-3">Equipment</h3>
                             <div className="relative mx-auto max-w-[280px]">
                               <img
-                                src={`/sprites/ui/PNG/equipment/${activeCharacter.raceId}.png`}
+                                src={assetUrl(`/sprites/ui/PNG/equipment/${activeCharacter.raceId}.png`)}
                                 alt={`${raceDef?.name} Equipment`}
                                 className="w-full h-auto"
                                 draggable={false}
@@ -985,7 +986,7 @@ export default function CharacterBuilder() {
                       <div>
                         <div className="relative mx-auto max-w-[420px] shadow-2xl">
                           <img 
-                            src={`/sprites/ui/PNG/equipment/${activeCharacter.raceId}.png`}
+                            src={assetUrl(`/sprites/ui/PNG/equipment/${activeCharacter.raceId}.png`)}
                             alt={`${raceDef?.name} Equipment`}
                             className="w-full h-auto"
                             draggable={false}

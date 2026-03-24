@@ -1,3 +1,4 @@
+import { assetUrl } from "@/lib/assetConfig";
 export type WeaponType = 'sword' | 'axe' | 'staff' | 'bow';
 export type Tier = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8;
 export type Variation = 1 | 2 | 3 | 4 | 5 | 6 | 7;
@@ -37,7 +38,7 @@ export function getGearIconPath(type: WeaponType, tier: Tier, variation: Variati
   if (type === 'staff') folder = 'staves';
   else if (type === 'bow') folder = 'bows';
   else folder = `${type}s`;
-  return `/sprites/gear/${folder}/${type}_t${tier}_v${variation}.png`;
+  return assetUrl(`/sprites/gear/${folder}/${type}_t${tier}_v${variation}.png`);
 }
 
 export function getGearIconName(type: WeaponType, tier: Tier, variation: Variation): string {

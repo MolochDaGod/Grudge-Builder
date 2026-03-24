@@ -1,3 +1,4 @@
+import { assetUrl } from "@/lib/assetConfig";
 export interface MagicSpell {
   id: string;
   name: string;
@@ -12,7 +13,7 @@ const generateFramePaths = (folder: string, prefix: string, count: number): stri
   const frames: string[] = [];
   for (let i = 1; i <= count; i++) {
     const paddedNum = i.toString().padStart(2, "0");
-    frames.push(`/sprites/magic/${folder}/${prefix}_Frame_${paddedNum}.png`);
+    frames.push(assetUrl(`/sprites/magic/${folder}/${prefix}_Frame_${paddedNum}.png`));
   }
   return frames;
 };
@@ -87,6 +88,6 @@ export const getSpellsByType = (type: "arrow" | "ball" | "spell"): MagicSpell[] 
 };
 
 export const MAGIC_ICONS = {
-  fire: "/sprites/magic/icons",
-  water: "/sprites/magic/icons"
+  fire: assetUrl("/sprites/magic/icons"),
+  water: assetUrl("/sprites/magic/icons")
 };

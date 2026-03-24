@@ -1,3 +1,4 @@
+import { assetUrl } from "@/lib/assetConfig";
 
 export type AttributeKey = "Strength" | "Intellect" | "Vitality" | "Dexterity" | "Endurance" | "Wisdom" | "Agility" | "Tactics";
 
@@ -59,7 +60,7 @@ export const RACES: RaceDef[] = [
     name: "Human",
     faction: "Crusade",
     description: "Noble warriors of honor and chivalry, the Humans form the backbone of the Crusade's disciplined armies.",
-    image: "/assets/portraits/human.png",
+    image: assetUrl("/images/portraits/human.png"),
     baseStats: { Strength: 2, Intellect: 1, Vitality: 2, Dexterity: 0, Endurance: 0, Wisdom: 0, Agility: 0, Tactics: 0 }, // 5 total
     spriteSet: "Soldier"
   },
@@ -68,7 +69,7 @@ export const RACES: RaceDef[] = [
     name: "Barbarian",
     faction: "Crusade",
     description: "Fierce tribal warriors who fight alongside the Humans, the Barbarians bring raw strength to the Crusade.",
-    image: "/assets/portraits/barbarian.png",
+    image: assetUrl("/images/portraits/barbarian.png"),
     baseStats: { Strength: 2, Intellect: 0, Vitality: 2, Dexterity: 0, Endurance: 1, Wisdom: 0, Agility: 0, Tactics: 0 }, // 5 total
     spriteSet: "Armored Axeman"
   },
@@ -77,7 +78,7 @@ export const RACES: RaceDef[] = [
     name: "Undead",
     faction: "Legion",
     description: "Risen from death itself, the Undead serve the Legion with unwavering loyalty and dark magic.",
-    image: "/assets/portraits/undead.png",
+    image: assetUrl("/images/portraits/undead.png"),
     baseStats: { Strength: 0, Intellect: 2, Vitality: 0, Dexterity: 0, Endurance: 0, Wisdom: 3, Agility: 0, Tactics: 0 }, // 5 total
     spriteSet: "Skeleton"
   },
@@ -86,7 +87,7 @@ export const RACES: RaceDef[] = [
     name: "Orc",
     faction: "Legion",
     description: "Brutal and savage, the Orcs crush their enemies with overwhelming force for the glory of the Legion.",
-    image: "/assets/portraits/orc.png",
+    image: assetUrl("/images/portraits/orc.png"),
     baseStats: { Strength: 2, Intellect: 0, Vitality: 1, Dexterity: 0, Endurance: 2, Wisdom: 0, Agility: 0, Tactics: 0 }, // 5 total
     spriteSet: "Orc"
   },
@@ -95,7 +96,7 @@ export const RACES: RaceDef[] = [
     name: "Elf",
     faction: "Fabled",
     description: "Ancient and wise, the Elves wield nature's power and arcane arts in defense of the Fabled lands.",
-    image: "/assets/portraits/elf.png",
+    image: assetUrl("/images/portraits/elf.png"),
     baseStats: { Strength: 0, Intellect: 2, Vitality: 0, Dexterity: 1, Endurance: 0, Wisdom: 2, Agility: 0, Tactics: 0 }, // 5 total
     spriteSet: "Archer"
   },
@@ -104,7 +105,7 @@ export const RACES: RaceDef[] = [
     name: "Dwarf",
     faction: "Fabled",
     description: "Master craftsmen and resilient fighters, the Dwarves stand as the Fabled faction's mountain stronghold.",
-    image: "/assets/portraits/dwarf.png",
+    image: assetUrl("/images/portraits/dwarf.png"),
     baseStats: { Strength: 0, Intellect: 0, Vitality: 2, Dexterity: 0, Endurance: 2, Wisdom: 1, Agility: 0, Tactics: 0 }, // 5 total
     spriteSet: "Knight"
   }

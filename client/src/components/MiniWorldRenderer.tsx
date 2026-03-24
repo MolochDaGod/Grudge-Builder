@@ -1,10 +1,11 @@
 import { useRef, useEffect, useCallback, useState } from 'react';
-import { 
+import {
   MINIWORLD_MONSTER_SPRITES, 
   MINIWORLD_HERO_SPRITES,
   getMonsterMiniWorldSprite,
   type MiniWorldSpriteSheet 
 } from '@/lib/dungeonSpriteConfig';
+import { assetUrl } from "@/lib/assetConfig";
 
 const TILE_SIZE = 16;
 const RENDER_SCALE = 2;
@@ -41,11 +42,11 @@ interface MiniWorldRendererProps {
 }
 
 const GROUND_TILESETS: Record<string, string> = {
-  grass: '/sprites/miniworld/Ground/Grass.png',
-  winter: '/sprites/miniworld/Ground/Winter.png',
-  deadland: '/sprites/miniworld/Ground/DeadGrass.png',
-  shore: '/sprites/miniworld/Ground/Shore.png',
-  dungeon: '/sprites/dampdungeons/Dungeon_WallsAndFloors.png'
+  grass: assetUrl("/sprites/miniworld/Ground/Grass.png"),
+  winter: assetUrl("/sprites/miniworld/Ground/Winter.png"),
+  deadland: assetUrl("/sprites/miniworld/Ground/DeadGrass.png"),
+  shore: assetUrl("/sprites/miniworld/Ground/Shore.png"),
+  dungeon: assetUrl("/sprites/dampdungeons/Dungeon_WallsAndFloors.png")
 };
 
 const TILESET_COLUMNS: Record<string, number> = {
@@ -57,15 +58,15 @@ const TILESET_COLUMNS: Record<string, number> = {
 };
 
 const NATURE_SPRITES = {
-  trees: '/sprites/miniworld/Nature/Trees.png',
-  rocks: '/sprites/miniworld/Nature/Rocks.png',
-  deadTrees: '/sprites/miniworld/Nature/DeadTrees.png'
+  trees: assetUrl("/sprites/miniworld/Nature/Trees.png"),
+  rocks: assetUrl("/sprites/miniworld/Nature/Rocks.png"),
+  deadTrees: assetUrl("/sprites/miniworld/Nature/DeadTrees.png")
 };
 
 const OBJECT_SPRITES = {
-  chests: '/sprites/miniworld/Miscellaneous/Chests.png',
-  portal: '/sprites/miniworld/Miscellaneous/Portal.png',
-  tombstones: '/sprites/miniworld/Miscellaneous/Tombstones.png'
+  chests: assetUrl("/sprites/miniworld/Miscellaneous/Chests.png"),
+  portal: assetUrl("/sprites/miniworld/Miscellaneous/Portal.png"),
+  tombstones: assetUrl("/sprites/miniworld/Miscellaneous/Tombstones.png")
 };
 
 export function MiniWorldRenderer({

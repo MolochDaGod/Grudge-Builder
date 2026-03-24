@@ -1,3 +1,4 @@
+import { assetUrl } from "@/lib/assetConfig";
 import { useState, useEffect } from "react";
 
 export type SpriteState = "idle" | "walk" | "attack" | "hurt" | "death";
@@ -14,47 +15,47 @@ interface SpriteConfig {
 
 const CLASS_SPRITES: Record<string, SpriteConfig> = {
   'adventurer': {
-    idle: '/sprites/GrudgeRPGAssets2d/Characters(100x100)/Swordsman/Swordsman/Swordsman-Idle.png',
-    walk: '/sprites/GrudgeRPGAssets2d/Characters(100x100)/Swordsman/Swordsman/Swordsman-Walk.png',
-    attack: '/sprites/GrudgeRPGAssets2d/Characters(100x100)/Swordsman/Swordsman/Swordsman-Attack01.png',
-    hurt: '/sprites/GrudgeRPGAssets2d/Characters(100x100)/Swordsman/Swordsman/Swordsman-Hurt.png',
-    death: '/sprites/GrudgeRPGAssets2d/Characters(100x100)/Swordsman/Swordsman/Swordsman-Death.png',
+    idle: assetUrl("/sprites/GrudgeRPGAssets2d/Characters(100x100)/Swordsman/Swordsman/Swordsman-Idle.png"),
+    walk: assetUrl("/sprites/GrudgeRPGAssets2d/Characters(100x100)/Swordsman/Swordsman/Swordsman-Walk.png"),
+    attack: assetUrl("/sprites/GrudgeRPGAssets2d/Characters(100x100)/Swordsman/Swordsman/Swordsman-Attack01.png"),
+    hurt: assetUrl("/sprites/GrudgeRPGAssets2d/Characters(100x100)/Swordsman/Swordsman/Swordsman-Hurt.png"),
+    death: assetUrl("/sprites/GrudgeRPGAssets2d/Characters(100x100)/Swordsman/Swordsman/Swordsman-Death.png"),
     frames: { idle: 4, walk: 6, attack: 5, hurt: 2, death: 6 },
     size: 100
   },
   'worg': {
-    idle: '/sprites/GrudgeRPGAssets2d/Characters(100x100)/Werebear/Werebear/Werebear-Idle.png',
-    walk: '/sprites/GrudgeRPGAssets2d/Characters(100x100)/Werebear/Werebear/Werebear-Walk.png',
-    attack: '/sprites/GrudgeRPGAssets2d/Characters(100x100)/Werebear/Werebear/Werebear-Attack01.png',
-    hurt: '/sprites/GrudgeRPGAssets2d/Characters(100x100)/Werebear/Werebear/Werebear-Hurt.png',
-    death: '/sprites/GrudgeRPGAssets2d/Characters(100x100)/Werebear/Werebear/Werebear-Death.png',
+    idle: assetUrl("/sprites/GrudgeRPGAssets2d/Characters(100x100)/Werebear/Werebear/Werebear-Idle.png"),
+    walk: assetUrl("/sprites/GrudgeRPGAssets2d/Characters(100x100)/Werebear/Werebear/Werebear-Walk.png"),
+    attack: assetUrl("/sprites/GrudgeRPGAssets2d/Characters(100x100)/Werebear/Werebear/Werebear-Attack01.png"),
+    hurt: assetUrl("/sprites/GrudgeRPGAssets2d/Characters(100x100)/Werebear/Werebear/Werebear-Hurt.png"),
+    death: assetUrl("/sprites/GrudgeRPGAssets2d/Characters(100x100)/Werebear/Werebear/Werebear-Death.png"),
     frames: { idle: 4, walk: 6, attack: 6, hurt: 3, death: 6 },
     size: 100
   },
   'warrior': {
-    idle: '/sprites/GrudgeRPGAssets2d/Characters(100x100)/Knight/Knight/Knight-Idle.png',
-    walk: '/sprites/GrudgeRPGAssets2d/Characters(100x100)/Knight/Knight/Knight-Walk.png',
-    attack: '/sprites/GrudgeRPGAssets2d/Characters(100x100)/Knight/Knight/Knight-Attack01.png',
-    hurt: '/sprites/GrudgeRPGAssets2d/Characters(100x100)/Knight/Knight/Knight-Hurt.png',
-    death: '/sprites/GrudgeRPGAssets2d/Characters(100x100)/Knight/Knight/Knight-Death.png',
+    idle: assetUrl("/sprites/GrudgeRPGAssets2d/Characters(100x100)/Knight/Knight/Knight-Idle.png"),
+    walk: assetUrl("/sprites/GrudgeRPGAssets2d/Characters(100x100)/Knight/Knight/Knight-Walk.png"),
+    attack: assetUrl("/sprites/GrudgeRPGAssets2d/Characters(100x100)/Knight/Knight/Knight-Attack01.png"),
+    hurt: assetUrl("/sprites/GrudgeRPGAssets2d/Characters(100x100)/Knight/Knight/Knight-Hurt.png"),
+    death: assetUrl("/sprites/GrudgeRPGAssets2d/Characters(100x100)/Knight/Knight/Knight-Death.png"),
     frames: { idle: 4, walk: 6, attack: 5, hurt: 2, death: 6 },
     size: 100
   },
   'mage': {
-    idle: '/sprites/GrudgeRPGAssets2d/Characters(100x100)/Wizard/Wizard/Wizard-Idle.png',
-    walk: '/sprites/GrudgeRPGAssets2d/Characters(100x100)/Wizard/Wizard/Wizard-Walk.png',
-    attack: '/sprites/GrudgeRPGAssets2d/Characters(100x100)/Wizard/Wizard/Wizard-Attack01.png',
-    hurt: '/sprites/GrudgeRPGAssets2d/Characters(100x100)/Wizard/Wizard/Wizard-Hurt.png',
-    death: '/sprites/GrudgeRPGAssets2d/Characters(100x100)/Wizard/Wizard/Wizard-DEATH.png',
+    idle: assetUrl("/sprites/GrudgeRPGAssets2d/Characters(100x100)/Wizard/Wizard/Wizard-Idle.png"),
+    walk: assetUrl("/sprites/GrudgeRPGAssets2d/Characters(100x100)/Wizard/Wizard/Wizard-Walk.png"),
+    attack: assetUrl("/sprites/GrudgeRPGAssets2d/Characters(100x100)/Wizard/Wizard/Wizard-Attack01.png"),
+    hurt: assetUrl("/sprites/GrudgeRPGAssets2d/Characters(100x100)/Wizard/Wizard/Wizard-Hurt.png"),
+    death: assetUrl("/sprites/GrudgeRPGAssets2d/Characters(100x100)/Wizard/Wizard/Wizard-DEATH.png"),
     frames: { idle: 4, walk: 6, attack: 8, hurt: 3, death: 5 },
     size: 100
   },
   'ranger': {
-    idle: '/sprites/GrudgeRPGAssets2d/Characters(100x100)/Archer/Archer/Archer-Idle.png',
-    walk: '/sprites/GrudgeRPGAssets2d/Characters(100x100)/Archer/Archer/Archer-Walk.png',
-    attack: '/sprites/GrudgeRPGAssets2d/Characters(100x100)/Archer/Archer/Archer-Attack01.png',
-    hurt: '/sprites/GrudgeRPGAssets2d/Characters(100x100)/Archer/Archer/Archer-Hurt.png',
-    death: '/sprites/GrudgeRPGAssets2d/Characters(100x100)/Archer/Archer/Archer-Death.png',
+    idle: assetUrl("/sprites/GrudgeRPGAssets2d/Characters(100x100)/Archer/Archer/Archer-Idle.png"),
+    walk: assetUrl("/sprites/GrudgeRPGAssets2d/Characters(100x100)/Archer/Archer/Archer-Walk.png"),
+    attack: assetUrl("/sprites/GrudgeRPGAssets2d/Characters(100x100)/Archer/Archer/Archer-Attack01.png"),
+    hurt: assetUrl("/sprites/GrudgeRPGAssets2d/Characters(100x100)/Archer/Archer/Archer-Hurt.png"),
+    death: assetUrl("/sprites/GrudgeRPGAssets2d/Characters(100x100)/Archer/Archer/Archer-Death.png"),
     frames: { idle: 4, walk: 6, attack: 5, hurt: 3, death: 6 },
     size: 100
   }
@@ -62,56 +63,56 @@ const CLASS_SPRITES: Record<string, SpriteConfig> = {
 
 const MONSTER_SPRITES: Record<string, SpriteConfig> = {
   'slime': {
-    idle: '/sprites/GrudgeRPGAssets2d/Characters(100x100)/Slime/Slime/Slime-Idle.png',
-    walk: '/sprites/GrudgeRPGAssets2d/Characters(100x100)/Slime/Slime/Slime-Walk.png',
-    attack: '/sprites/GrudgeRPGAssets2d/Characters(100x100)/Slime/Slime/Slime-Attack01.png',
-    hurt: '/sprites/GrudgeRPGAssets2d/Characters(100x100)/Slime/Slime/Slime-Hurt.png',
-    death: '/sprites/GrudgeRPGAssets2d/Characters(100x100)/Slime/Slime/Slime-Death.png',
+    idle: assetUrl("/sprites/GrudgeRPGAssets2d/Characters(100x100)/Slime/Slime/Slime-Idle.png"),
+    walk: assetUrl("/sprites/GrudgeRPGAssets2d/Characters(100x100)/Slime/Slime/Slime-Walk.png"),
+    attack: assetUrl("/sprites/GrudgeRPGAssets2d/Characters(100x100)/Slime/Slime/Slime-Attack01.png"),
+    hurt: assetUrl("/sprites/GrudgeRPGAssets2d/Characters(100x100)/Slime/Slime/Slime-Hurt.png"),
+    death: assetUrl("/sprites/GrudgeRPGAssets2d/Characters(100x100)/Slime/Slime/Slime-Death.png"),
     frames: { idle: 4, walk: 4, attack: 7, hurt: 3, death: 4 },
     size: 100
   },
   'skeleton': {
-    idle: '/sprites/GrudgeRPGAssets2d/Characters(100x100)/Skeleton/Skeleton/Skeleton-Idle.png',
-    walk: '/sprites/GrudgeRPGAssets2d/Characters(100x100)/Skeleton/Skeleton/Skeleton-Walk.png',
-    attack: '/sprites/GrudgeRPGAssets2d/Characters(100x100)/Skeleton/Skeleton/Skeleton-Attack01.png',
-    hurt: '/sprites/GrudgeRPGAssets2d/Characters(100x100)/Skeleton/Skeleton/Skeleton-Hurt.png',
-    death: '/sprites/GrudgeRPGAssets2d/Characters(100x100)/Skeleton/Skeleton/Skeleton-Death.png',
+    idle: assetUrl("/sprites/GrudgeRPGAssets2d/Characters(100x100)/Skeleton/Skeleton/Skeleton-Idle.png"),
+    walk: assetUrl("/sprites/GrudgeRPGAssets2d/Characters(100x100)/Skeleton/Skeleton/Skeleton-Walk.png"),
+    attack: assetUrl("/sprites/GrudgeRPGAssets2d/Characters(100x100)/Skeleton/Skeleton/Skeleton-Attack01.png"),
+    hurt: assetUrl("/sprites/GrudgeRPGAssets2d/Characters(100x100)/Skeleton/Skeleton/Skeleton-Hurt.png"),
+    death: assetUrl("/sprites/GrudgeRPGAssets2d/Characters(100x100)/Skeleton/Skeleton/Skeleton-Death.png"),
     frames: { idle: 4, walk: 4, attack: 8, hurt: 4, death: 4 },
     size: 100
   },
   'orc': {
-    idle: '/sprites/GrudgeRPGAssets2d/Characters(100x100)/Orc/Orc/Orc-Idle.png',
-    walk: '/sprites/GrudgeRPGAssets2d/Characters(100x100)/Orc/Orc/Orc-Walk.png',
-    attack: '/sprites/GrudgeRPGAssets2d/Characters(100x100)/Orc/Orc/Orc-Attack01.png',
-    hurt: '/sprites/GrudgeRPGAssets2d/Characters(100x100)/Orc/Orc/Orc-Hurt.png',
-    death: '/sprites/GrudgeRPGAssets2d/Characters(100x100)/Orc/Orc/Orc-Death.png',
+    idle: assetUrl("/sprites/GrudgeRPGAssets2d/Characters(100x100)/Orc/Orc/Orc-Idle.png"),
+    walk: assetUrl("/sprites/GrudgeRPGAssets2d/Characters(100x100)/Orc/Orc/Orc-Walk.png"),
+    attack: assetUrl("/sprites/GrudgeRPGAssets2d/Characters(100x100)/Orc/Orc/Orc-Attack01.png"),
+    hurt: assetUrl("/sprites/GrudgeRPGAssets2d/Characters(100x100)/Orc/Orc/Orc-Hurt.png"),
+    death: assetUrl("/sprites/GrudgeRPGAssets2d/Characters(100x100)/Orc/Orc/Orc-Death.png"),
     frames: { idle: 4, walk: 4, attack: 6, hurt: 4, death: 4 },
     size: 100
   },
   'werewolf': {
-    idle: '/sprites/GrudgeRPGAssets2d/Characters(100x100)/Werewolf/Werewolf/Werewolf-Idle.png',
-    walk: '/sprites/GrudgeRPGAssets2d/Characters(100x100)/Werewolf/Werewolf/Werewolf-Walk.png',
-    attack: '/sprites/GrudgeRPGAssets2d/Characters(100x100)/Werewolf/Werewolf/Werewolf-Attack01.png',
-    hurt: '/sprites/GrudgeRPGAssets2d/Characters(100x100)/Werewolf/Werewolf/Werewolf-Hurt.png',
-    death: '/sprites/GrudgeRPGAssets2d/Characters(100x100)/Werewolf/Werewolf/Werewolf-Death.png',
+    idle: assetUrl("/sprites/GrudgeRPGAssets2d/Characters(100x100)/Werewolf/Werewolf/Werewolf-Idle.png"),
+    walk: assetUrl("/sprites/GrudgeRPGAssets2d/Characters(100x100)/Werewolf/Werewolf/Werewolf-Walk.png"),
+    attack: assetUrl("/sprites/GrudgeRPGAssets2d/Characters(100x100)/Werewolf/Werewolf/Werewolf-Attack01.png"),
+    hurt: assetUrl("/sprites/GrudgeRPGAssets2d/Characters(100x100)/Werewolf/Werewolf/Werewolf-Hurt.png"),
+    death: assetUrl("/sprites/GrudgeRPGAssets2d/Characters(100x100)/Werewolf/Werewolf/Werewolf-Death.png"),
     frames: { idle: 4, walk: 6, attack: 6, hurt: 3, death: 6 },
     size: 100
   },
   'armored_skeleton': {
-    idle: '/sprites/GrudgeRPGAssets2d/Characters(100x100)/Armored Skeleton/Armored Skeleton/Armored Skeleton-Idle.png',
-    walk: '/sprites/GrudgeRPGAssets2d/Characters(100x100)/Armored Skeleton/Armored Skeleton/Armored Skeleton-Walk.png',
-    attack: '/sprites/GrudgeRPGAssets2d/Characters(100x100)/Armored Skeleton/Armored Skeleton/Armored Skeleton-Attack01.png',
-    hurt: '/sprites/GrudgeRPGAssets2d/Characters(100x100)/Armored Skeleton/Armored Skeleton/Armored Skeleton-Hurt.png',
-    death: '/sprites/GrudgeRPGAssets2d/Characters(100x100)/Armored Skeleton/Armored Skeleton/Armored Skeleton-Death.png',
+    idle: assetUrl("/sprites/GrudgeRPGAssets2d/Characters(100x100)/Armored Skeleton/Armored Skeleton/Armored Skeleton-Idle.png"),
+    walk: assetUrl("/sprites/GrudgeRPGAssets2d/Characters(100x100)/Armored Skeleton/Armored Skeleton/Armored Skeleton-Walk.png"),
+    attack: assetUrl("/sprites/GrudgeRPGAssets2d/Characters(100x100)/Armored Skeleton/Armored Skeleton/Armored Skeleton-Attack01.png"),
+    hurt: assetUrl("/sprites/GrudgeRPGAssets2d/Characters(100x100)/Armored Skeleton/Armored Skeleton/Armored Skeleton-Hurt.png"),
+    death: assetUrl("/sprites/GrudgeRPGAssets2d/Characters(100x100)/Armored Skeleton/Armored Skeleton/Armored Skeleton-Death.png"),
     frames: { idle: 4, walk: 4, attack: 5, hurt: 4, death: 4 },
     size: 100
   },
   'elite_orc': {
-    idle: '/sprites/GrudgeRPGAssets2d/Characters(100x100)/Elite Orc/Elite Orc/Elite Orc-Idle.png',
-    walk: '/sprites/GrudgeRPGAssets2d/Characters(100x100)/Elite Orc/Elite Orc/Elite Orc-Walk.png',
-    attack: '/sprites/GrudgeRPGAssets2d/Characters(100x100)/Elite Orc/Elite Orc/Elite Orc-Attack01.png',
-    hurt: '/sprites/GrudgeRPGAssets2d/Characters(100x100)/Elite Orc/Elite Orc/Elite Orc-Hurt.png',
-    death: '/sprites/GrudgeRPGAssets2d/Characters(100x100)/Elite Orc/Elite Orc/Elite Orc-Death.png',
+    idle: assetUrl("/sprites/GrudgeRPGAssets2d/Characters(100x100)/Elite Orc/Elite Orc/Elite Orc-Idle.png"),
+    walk: assetUrl("/sprites/GrudgeRPGAssets2d/Characters(100x100)/Elite Orc/Elite Orc/Elite Orc-Walk.png"),
+    attack: assetUrl("/sprites/GrudgeRPGAssets2d/Characters(100x100)/Elite Orc/Elite Orc/Elite Orc-Attack01.png"),
+    hurt: assetUrl("/sprites/GrudgeRPGAssets2d/Characters(100x100)/Elite Orc/Elite Orc/Elite Orc-Hurt.png"),
+    death: assetUrl("/sprites/GrudgeRPGAssets2d/Characters(100x100)/Elite Orc/Elite Orc/Elite Orc-Death.png"),
     frames: { idle: 4, walk: 4, attack: 5, hurt: 4, death: 4 },
     size: 100
   }

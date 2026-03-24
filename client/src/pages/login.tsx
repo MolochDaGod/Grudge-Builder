@@ -19,6 +19,7 @@ import {
   startGoogleLogin,
   startGithubLogin,
 } from "@/lib/grudgeBackend";
+import { assetUrl } from "@/lib/assetConfig";
 
 const DiscordSvg = ({ size = 20, color = "currentColor" }: { size?: number; color?: string }) => (
   <svg width={size} height={Math.round(size * 0.77)} viewBox="0 0 71 55" fill={color}>
@@ -182,7 +183,7 @@ export default function LoginPage() {
       <div
         className="absolute inset-0 opacity-30 pointer-events-none"
         style={{
-          backgroundImage: "url('/assets/backgrounds/login-bg.jpg')",
+          backgroundImage: `url(${assetUrl("/backgrounds/login-bg.jpg")})`,
           backgroundSize: "cover",
           backgroundPosition: "center",
         }}
@@ -203,7 +204,7 @@ export default function LoginPage() {
               className="mb-4"
             >
               <img
-                src="/sprites/ui/grudge-logo.png"
+                src={assetUrl("/sprites/ui/grudge-logo.png")}
                 alt="Grudge Warlords"
                 className="w-16 h-16 mx-auto mb-2"
                 onError={(e) => { e.currentTarget.style.display = 'none'; }}
@@ -228,7 +229,7 @@ export default function LoginPage() {
               className="w-full h-12 bg-gradient-to-r from-amber-700 to-amber-600 hover:from-amber-600 hover:to-amber-500 text-white font-cinzel tracking-wider"
             >
               {isLoading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : (
-                <img src="/sprites/ui/grudge-logo.png" alt="" className="w-5 h-5 mr-2" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                <img src={assetUrl("/sprites/ui/grudge-logo.png")} alt="" className="w-5 h-5 mr-2" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
               )}
               SIGN IN WITH GRUDGE
             </Button>

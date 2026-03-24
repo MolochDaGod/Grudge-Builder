@@ -1,3 +1,4 @@
+import { assetUrl } from "@/lib/assetConfig";
 import { useState, useEffect } from "react";
 
 export type SatyrVariant = "Satyr_1" | "Satyr_2" | "Satyr_3";
@@ -41,7 +42,7 @@ export function SatyrSprite({
     setCurrentFrame(0);
   }, [action]);
 
-  const spritePath = `/sprites/rpg/satyr/${variant}/${action}.png`;
+  const spritePath = assetUrl(`/sprites/rpg/satyr/${variant}/${action}.png`);
   const width = frameData.width * scale;
   const height = frameData.height * scale;
 

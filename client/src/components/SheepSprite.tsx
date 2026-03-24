@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
+import { assetUrl } from "@/lib/assetConfig";
 
 interface SheepSpriteProps {
   scale?: number;
@@ -61,7 +62,7 @@ export default function SheepSprite({
         className="transition-transform group-hover:scale-110"
       >
         <img
-          src="/sprites/animals/sheep-idle.png"
+          src={assetUrl("/sprites/animals/sheep-idle.png")}
           alt="Sheep"
           draggable={false}
           style={{
