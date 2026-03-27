@@ -104,6 +104,66 @@ export const characterAPI = {
     const char = await characterAPI.get(id);
     return char;
   },
+
+  /**
+   * Mint a character as a compressed NFT on Solana.
+   * Sends to user's server-side wallet, or admin agent wallet as fallback.
+   */
+  mintCNFT: async (characterId: string, avatarUrl: string, targetWallet?: string): Promise<{
+    success: boolean;
+    nftId?: string;
+    mintAddress?: string;
+    assetId?: string;
+    error?: string;
+  }> => {
+    try {
+      // Determine target wallet: user's server wallet → admin agent wallet fallback
+      let wallet = targetWallet;
+      if (!wallet) {
+        // Try to get from wallet status
+        const statusRes = await fetch('/api/wallet/status').catch(() => null);
+        if (statusRes?.ok) {
+          const status = await statusRes.json();
+          wallet = status.walletAddress || undefined;
+        }
+      }
+      if (!wallet) {
+        // Fallback to admin agent wallet from config
+        const configRes = await fetch('/api/wallet/config').catch(() => null);
+        if (configRes?.ok) {
+          const config = await configRes.json();
+          wallet = config.aiAgentWallet || undefined;
+        }
+      }
+
+      const res = await authFetch(`${GAME_API}/nfts/mint`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          characterId,
+          avatarUrl,
+          targetWallet: wallet,
+          isCompressed: true,
+        }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        return { success: false, error: data.error || `Mint failed (${res.status})` };
+      }
+
+      const data = await res.json();
+      return {
+        success: true,
+        nftId: data.nftId || data.id,
+        mintAddress: data.mintAddress,
+        assetId: data.assetId,
+      };
+    } catch (e) {
+      console.error('cNFT mint error:', e);
+      return { success: false, error: e instanceof Error ? e.message : 'Mint failed' };
+    }
+  },
 };
 
 // ── Party API (localStorage until VPS supports it) ────────────

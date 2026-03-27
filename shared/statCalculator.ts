@@ -91,6 +91,12 @@ export interface DerivedStats {
   physDef: number;
   magDef: number;
   crit: number;
+  critDmg: number;
+  accuracy: number;
+  attackSpeed: number;
+  blockChance: number;
+  evasion: number;
+  moveSpeed: number;
   speed: number;
 }
 
@@ -141,6 +147,24 @@ export function calculateDerivedStats(
   const critFlat = (str * 0.32) + (int * 0.23) + (wis * 0.5) + (dex * 0.5) + (agi * 0.42) + (tac * 0.02);
   const critPercent = 5 * ((str * 0.07) + (int * 0.001) + (wis * 0.0015) + (dex * 0.012) + (agi * 0.01) + (tac * 0.02));
 
+  // Block Chance: STR (0.5 + 5%), END (0.11 + 73.5%), DEX (0.41 + 1%), TAC (0.27 + 0.8%)
+  const blockFlat = (str * 0.5) + (end * 0.11) + (dex * 0.41) + (tac * 0.27);
+  const blockPercent = 5 * ((str * 0.05) + (end * 0.735) + (dex * 0.01) + (tac * 0.008));
+
+  // Evasion: DEX (0.125), AGI (0.225)
+  const evasionVal = (dex * 0.125) + (agi * 0.225);
+
+  // Accuracy: INT (0.12 + 33.8%), DEX (0.7 + 1.5%)
+  const accuracyFlat = (int * 0.12) + (dex * 0.7);
+  const accuracyPercent = 50 * ((int * 0.338) + (dex * 0.015));
+
+  // Attack Speed: DEX (0.2), AGI (0.05)
+  const atkSpeedVal = (dex * 0.2) + (agi * 0.05);
+
+  // Crit Damage Multiplier: base 150% + STR (1.1 + 1.5%)
+  const critDmgFlat = 150 + (str * 1.1);
+  const critDmgPercent = 150 * (str * 0.015);
+
   return {
     maxHealth: Math.floor(baseStats.hp + healthFlat + healthPercent),
     maxMana: Math.floor(baseStats.mana + manaFlat + manaPercent),
@@ -150,10 +174,39 @@ export function calculateDerivedStats(
     physDef: Math.floor(BASE_DEFENSE + physDefFlat + physDefPercent),
     magDef: Math.floor(magDefFlat + magDefPercent),
     crit: critFlat + critPercent,
+    critDmg: critDmgFlat + critDmgPercent,
+    accuracy: Math.min(100, accuracyFlat + accuracyPercent),
+    attackSpeed: atkSpeedVal,
+    blockChance: Math.min(75, blockFlat + blockPercent),
+    evasion: Math.min(60, evasionVal),
+    moveSpeed: 100 + (agi * 0.15),
     speed: 100 + (agi * 0.15),
   };
 }
 
 export function calculateUnspentPointsForLevel(level: number): number {
   return STARTING_ATTRIBUTE_POINTS + (level * ATTRIBUTE_POINTS_PER_LEVEL);
+}
+
+/**
+ * Single Combat Power number representing overall character strength.
+ * Adapted from the Grudge Warlords character builder reference.
+ */
+export function calculateCombatPower(stats: DerivedStats): number {
+  const ehp = stats.maxHealth * (1 + stats.physDef / 1000) * (1 + stats.magDef / 100);
+  const dps = (stats.physDmg + stats.magDmg) *
+    (1 + (stats.crit / 100) * (stats.critDmg / 100)) *
+    (1 + stats.attackSpeed / 100);
+  const utility = stats.moveSpeed * 2 + stats.evasion * 3 + stats.blockChance * 2;
+  return Math.floor(ehp * 0.4 + dps * 2.5 + utility * 5);
+}
+
+export function getBuildRating(combatPower: number): { letter: string; color: string } {
+  if (combatPower >= 5000) return { letter: 'S+', color: '#fbbf24' };
+  if (combatPower >= 4000) return { letter: 'S', color: '#f59e0b' };
+  if (combatPower >= 3000) return { letter: 'A', color: '#a855f7' };
+  if (combatPower >= 2000) return { letter: 'B', color: '#3b82f6' };
+  if (combatPower >= 1500) return { letter: 'C', color: '#10b981' };
+  if (combatPower >= 1000) return { letter: 'D', color: '#9ca3af' };
+  return { letter: 'F', color: '#4b5563' };
 }

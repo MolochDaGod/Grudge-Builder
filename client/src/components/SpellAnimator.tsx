@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { SPELL_METADATA } from "../lib/spriteMetadata";
+import { assetUrl } from "@/lib/assetConfig";
 
 export type SpellType = "fire-ball" | "fire-arrow" | "fire-spell" | "water-ball" | "water-arrow" | "water-spell";
 
@@ -43,7 +44,7 @@ export function SpellAnimator({
     return () => clearInterval(interval);
   }, [frameCount, frameDuration, loop, onComplete]);
   
-  const imagePath = `/sprites/spells/${spell}/frame_${frame}.png`;
+  const imagePath = assetUrl(`/sprites/spells/${spell}/frame_${frame}.png`);
   
   const glowColor = spell.startsWith("fire") 
     ? "0 0 15px rgba(255, 100, 0, 0.9), 0 0 30px rgba(255, 50, 0, 0.6), 0 0 45px rgba(255, 30, 0, 0.3)" 

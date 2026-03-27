@@ -6,12 +6,13 @@ import { Book, Shield, Pickaxe, Sword, Leaf, Hammer, Gem, Settings, Wallet, Spar
 import { Button } from "@/components/ui/button";
 import { CharacterManager } from "@/lib/characterManager";
 import { useAccount } from "@/hooks/use-account";
+import { assetUrl } from "@/lib/assetConfig";
 
 // Images served from public/assets/ui/
-const signPlank = "/assets/ui/single_wooden_hanging_sign_plank.png";
-const headerSign = "/assets/ui/ornate_header_sign_for_logo.png";
-const chainLink = "/assets/ui/iron_chain_link_connector.png";
-const accountPanelBg = "/assets/ui/fantasy_rpg_account_panel_background.png";
+const signPlank = assetUrl("/images/ui/single_wooden_hanging_sign_plank.png");
+const headerSign = assetUrl("/images/ui/ornate_header_sign_for_logo.png");
+const chainLink = assetUrl("/images/ui/iron_chain_link_connector.png");
+const accountPanelBg = assetUrl("/images/ui/fantasy_rpg_account_panel_background.png");
 
 interface NavItem {
   label: string;
@@ -370,7 +371,7 @@ function WarlordCard() {
                }}>
             <div className="flex items-center gap-1">
               <img 
-                src="/sprites/gbux-token.png" 
+                src={assetUrl("/sprites/gbux-token.png")} 
                 alt="GBUX" 
                 className="w-5 h-5 rounded-full shadow-lg shadow-cyan-500/30"
               />

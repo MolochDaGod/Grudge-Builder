@@ -1,3 +1,4 @@
+import { assetUrl } from "@/lib/assetConfig";
 export interface SpriteIcon {
   name: string;
   row: number;
@@ -5,7 +6,7 @@ export interface SpriteIcon {
   category: string;
 }
 
-export const ICON_SHEET_PATH = '/assets/ui/icons-sheet.png';
+export const ICON_SHEET_PATH = assetUrl("/images/ui/icons-sheet.png");
 export const ICON_SIZE = 16;
 export const ICONS_PER_ROW = 5;
 

@@ -9,6 +9,7 @@ import { Progress } from "@/components/ui/progress";
 import Layout from "@/components/Layout";
 import { CharacterManager, Character } from "@/lib/characterManager";
 import { isAuthenticated, getCurrentUser, logout as doLogout, verifyToken, getSession, type GrudgeUser } from "@/lib/grudgeBackend";
+import { assetUrl } from "@/lib/assetConfig";
 
 interface QuickAction {
   label: string;
@@ -16,17 +17,18 @@ interface QuickAction {
   icon: React.ReactNode;
   description: string;
   color: string;
+  bgImage: string;
 }
 
 const quickActions: QuickAction[] = [
-  { label: "Character", path: "/character", icon: <Shield className="w-6 h-6" />, description: "Manage heroes & equipment", color: "from-amber-900/60 to-amber-800/40" },
-  { label: "Combat", path: "/combat", icon: <Sword className="w-6 h-6" />, description: "Battle enemies", color: "from-red-900/60 to-red-800/40" },
-  { label: "Dungeon", path: "/dungeon", icon: <Pickaxe className="w-6 h-6" />, description: "Explore & loot", color: "from-purple-900/60 to-purple-800/40" },
-  { label: "Island", path: "/island", icon: <Leaf className="w-6 h-6" />, description: "Build your base", color: "from-green-900/60 to-green-800/40" },
-  { label: "Professions", path: "/professions", icon: <Hammer className="w-6 h-6" />, description: "Craft & gather", color: "from-orange-900/60 to-orange-800/40" },
-  { label: "Skills", path: "/skill-tree", icon: <Gem className="w-6 h-6" />, description: "Unlock abilities", color: "from-blue-900/60 to-blue-800/40" },
-  { label: "World Map", path: "/world-map", icon: <Map className="w-6 h-6" />, description: "Explore the world", color: "from-teal-900/60 to-teal-800/40" },
-  { label: "Database", path: "/database", icon: <Book className="w-6 h-6" />, description: "Browse game data", color: "from-slate-800/60 to-slate-700/40" },
+  { label: "Character", path: "/character", icon: <Shield className="w-6 h-6" />, description: "Manage heroes & equipment", color: "from-amber-900/80 to-amber-800/60", bgImage: assetUrl("/backgrounds/general.png") },
+  { label: "Combat", path: "/combat", icon: <Sword className="w-6 h-6" />, description: "Battle enemies", color: "from-red-900/80 to-red-800/60", bgImage: assetUrl("/images/events/faction-war.png") },
+  { label: "Dungeon", path: "/dungeon", icon: <Pickaxe className="w-6 h-6" />, description: "Explore & loot", color: "from-purple-900/80 to-purple-800/60", bgImage: assetUrl("/images/events/dungeon-raid-1.png") },
+  { label: "Island", path: "/island", icon: <Leaf className="w-6 h-6" />, description: "Build your base", color: "from-green-900/80 to-green-800/60", bgImage: assetUrl("/backgrounds/island-map.png") },
+  { label: "Professions", path: "/professions", icon: <Hammer className="w-6 h-6" />, description: "Craft & gather", color: "from-orange-900/80 to-orange-800/60", bgImage: assetUrl("/images/events/shop-coming-soon.png") },
+  { label: "Skills", path: "/skill-tree", icon: <Gem className="w-6 h-6" />, description: "Unlock abilities", color: "from-blue-900/80 to-blue-800/60", bgImage: assetUrl("/images/events/weekly-tournament.png") },
+  { label: "World Map", path: "/world-map", icon: <Map className="w-6 h-6" />, description: "Explore the world", color: "from-teal-900/80 to-teal-800/60", bgImage: assetUrl("/backgrounds/island-terrain.png") },
+  { label: "Database", path: "/database", icon: <Book className="w-6 h-6" />, description: "Browse game data", color: "from-slate-900/80 to-slate-800/60", bgImage: assetUrl("/images/events/dungeon-raid-2.png") },
 ];
 
 export default function HomePage() {
@@ -65,9 +67,19 @@ export default function HomePage() {
 
   return (
     <Layout>
-      <div className="flex-1 overflow-y-auto p-4 md:p-8 max-w-7xl mx-auto w-full">
+      <div
+        className="flex-1 overflow-y-auto p-4 md:p-8 max-w-7xl mx-auto w-full relative"
+        style={{
+          backgroundImage: `url(${assetUrl("/backgrounds/tavern-home.png")})`,
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+          backgroundAttachment: "fixed",
+        }}
+      >
+        {/* Dark overlay for readability */}
+        <div className="fixed inset-0 bg-black/60 pointer-events-none" style={{ zIndex: 0 }} />
         {/* Header */}
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex items-center justify-between mb-8 relative" style={{ zIndex: 1 }}>
           <motion.div
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
@@ -96,7 +108,8 @@ export default function HomePage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, delay: 0.1 }}
-            className="mb-8"
+            className="mb-8 relative"
+            style={{ zIndex: 1 }}
           >
             <Card className="bg-gradient-to-r from-slate-900/80 to-slate-800/60 border-amber-900/30">
               <CardContent className="p-6 flex items-center gap-6">
@@ -138,7 +151,8 @@ export default function HomePage() {
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.4, delay: 0.1 }}
-            className="mb-8"
+            className="mb-8 relative"
+            style={{ zIndex: 1 }}
           >
             <Card className="bg-gradient-to-r from-amber-950/40 to-red-950/30 border-amber-700/40">
               <CardContent className="p-8 text-center">
@@ -158,7 +172,7 @@ export default function HomePage() {
         )}
 
         {/* Quick Actions Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 relative" style={{ zIndex: 1 }}>
           {quickActions.map((action, i) => (
             <motion.div
               key={action.path}
@@ -167,13 +181,20 @@ export default function HomePage() {
               transition={{ duration: 0.3, delay: 0.05 * i }}
             >
               <Card
-                className={`bg-gradient-to-br ${action.color} border-slate-700/50 hover:border-amber-700/50 cursor-pointer transition-all duration-200 hover:scale-[1.02] hover:shadow-lg hover:shadow-amber-900/20`}
+                className="relative overflow-hidden border-slate-700/50 hover:border-amber-700/50 cursor-pointer transition-all duration-200 hover:scale-[1.02] hover:shadow-lg hover:shadow-amber-900/20"
                 onClick={() => setLocation(action.path)}
               >
-                <CardContent className="p-5 text-center">
-                  <div className="text-amber-400 mb-3 flex justify-center">{action.icon}</div>
-                  <h3 className="font-cinzel font-bold text-sm text-slate-200 mb-1">{action.label}</h3>
-                  <p className="text-xs text-slate-400">{action.description}</p>
+                {/* Card background image */}
+                <div
+                  className="absolute inset-0 bg-cover bg-center"
+                  style={{ backgroundImage: `url('${action.bgImage}')` }}
+                />
+                {/* Gradient overlay for readability */}
+                <div className={`absolute inset-0 bg-gradient-to-br ${action.color}`} />
+                <CardContent className="relative p-5 text-center">
+                  <div className="text-amber-400 mb-3 flex justify-center drop-shadow-lg">{action.icon}</div>
+                  <h3 className="font-cinzel font-bold text-sm text-white mb-1 drop-shadow-md">{action.label}</h3>
+                  <p className="text-xs text-slate-200 drop-shadow-sm">{action.description}</p>
                 </CardContent>
               </Card>
             </motion.div>
@@ -185,7 +206,8 @@ export default function HomePage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, delay: 0.4 }}
-          className="mt-8"
+          className="mt-8 relative"
+          style={{ zIndex: 1 }}
         >
           <Card className="bg-slate-900/50 border-slate-800/50">
             <CardHeader className="pb-3">

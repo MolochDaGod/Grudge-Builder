@@ -3,6 +3,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { DUNGEON_FLOORS, MONSTERS, getMonstersByLevel } from "@shared/definitions";
 import type { DungeonFloorDefinition, MonsterDefinition } from "@shared/definitions/types";
 import type { TiledMapFormat, TiledLayer, TiledObjectData, TiledTileset } from "./tiledMapLoader";
+import { assetUrl } from "@/lib/assetConfig";
 
 export const TILE_IDS = {
   FLOOR: 1,
@@ -549,7 +550,7 @@ export function dungeonToTiledFormat(dungeon: GeneratedDungeon): TiledMapFormat 
   const tileset: TiledTileset = {
     firstgid: 1,
     name: "dungeon",
-    image: "/sprites/dampdungeons/Dungeon_WallsAndFloors.png",
+    image: assetUrl("/sprites/dampdungeons/Dungeon_WallsAndFloors.png"),
     imagewidth: 96,
     imageheight: 512,
     tilewidth: 16,

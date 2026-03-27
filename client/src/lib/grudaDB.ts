@@ -1,5 +1,6 @@
 
 import { WEAPON_SPRITE_MAP, ARMOR_SPRITE_MAP, getWeaponSpritePath, getArmorSpritePath } from '@/data/weaponSpriteMap';
+import { assetUrl } from "@/lib/assetConfig";
 
 export interface GrudaItem {
   id: string;
@@ -42,424 +43,424 @@ export const resolveItemImage = (item: Partial<GrudaItem>): string => {
   const weaponName = item.name?.toLowerCase() || "";
   
   // Swords - specific names
-  if (weaponName.includes("bloodfeud blade")) return `/icons/weapons/swords/bloodfeud_blade.png`;
-  if (weaponName.includes("wraithfang") && !weaponName.includes("helm") && !weaponName.includes("chest")) return `/icons/weapons/swords/wraithfang.png`;
-  if (weaponName.includes("oathbreaker") && !weaponName.includes("helm") && !weaponName.includes("staff")) return `/icons/weapons/swords/oathbreaker.png`;
-  if (weaponName.includes("kinrend") && !weaponName.includes("helm")) return `/icons/weapons/swords/kinrend.png`;
-  if (weaponName.includes("dusksinger") && !weaponName.includes("helm")) return `/icons/weapons/swords/dusksinger.png`;
-  if (weaponName.includes("emberclad") && !weaponName.includes("helm") && !weaponName.includes("chest")) return `/icons/weapons/swords/emberclad.png`;
+  if (weaponName.includes("bloodfeud blade")) return assetUrl(`/icons/weapons/swords/bloodfeud_blade.png`);
+  if (weaponName.includes("wraithfang") && !weaponName.includes("helm") && !weaponName.includes("chest")) return assetUrl(`/icons/weapons/swords/wraithfang.png`);
+  if (weaponName.includes("oathbreaker") && !weaponName.includes("helm") && !weaponName.includes("staff")) return assetUrl(`/icons/weapons/swords/oathbreaker.png`);
+  if (weaponName.includes("kinrend") && !weaponName.includes("helm")) return assetUrl(`/icons/weapons/swords/kinrend.png`);
+  if (weaponName.includes("dusksinger") && !weaponName.includes("helm")) return assetUrl(`/icons/weapons/swords/dusksinger.png`);
+  if (weaponName.includes("emberclad") && !weaponName.includes("helm") && !weaponName.includes("chest")) return assetUrl(`/icons/weapons/swords/emberclad.png`);
   
   // Axes - specific names
-  if (weaponName.includes("gorehowl")) return `/icons/weapons/axes/gorehowl.png`;
-  if (weaponName.includes("skullsplitter")) return `/icons/weapons/axes/skullsplitter.png`;
-  if (weaponName.includes("veinreaver")) return `/icons/weapons/axes/veinreaver.png`;
-  if (weaponName.includes("ironmaw")) return `/icons/weapons/axes/ironmaw.png`;
-  if (weaponName.includes("dreadcleaver")) return `/icons/weapons/axes/dreadcleaver.png`;
-  if (weaponName.includes("bonehew")) return `/icons/weapons/axes/bonehew.png`;
+  if (weaponName.includes("gorehowl")) return assetUrl(`/icons/weapons/axes/gorehowl.png`);
+  if (weaponName.includes("skullsplitter")) return assetUrl(`/icons/weapons/axes/skullsplitter.png`);
+  if (weaponName.includes("veinreaver")) return assetUrl(`/icons/weapons/axes/veinreaver.png`);
+  if (weaponName.includes("ironmaw")) return assetUrl(`/icons/weapons/axes/ironmaw.png`);
+  if (weaponName.includes("dreadcleaver")) return assetUrl(`/icons/weapons/axes/dreadcleaver.png`);
+  if (weaponName.includes("bonehew")) return assetUrl(`/icons/weapons/axes/bonehew.png`);
   
   // Daggers - specific names
-  if (weaponName.includes("nightfang")) return `/icons/weapons/daggers/nightfang.png`;
-  if (weaponName.includes("bloodshiv")) return `/icons/weapons/daggers/bloodshiv.png`;
-  if (weaponName.includes("wraithclaw")) return `/icons/weapons/daggers/wraithclaw.png`;
-  if (weaponName.includes("emberfang")) return `/icons/weapons/daggers/emberfang.png`;
-  if (weaponName.includes("ironspike")) return `/icons/weapons/daggers/ironspike.png`;
-  if (weaponName.includes("duskblade")) return `/icons/weapons/daggers/duskblade.png`;
+  if (weaponName.includes("nightfang")) return assetUrl(`/icons/weapons/daggers/nightfang.png`);
+  if (weaponName.includes("bloodshiv")) return assetUrl(`/icons/weapons/daggers/bloodshiv.png`);
+  if (weaponName.includes("wraithclaw")) return assetUrl(`/icons/weapons/daggers/wraithclaw.png`);
+  if (weaponName.includes("emberfang")) return assetUrl(`/icons/weapons/daggers/emberfang.png`);
+  if (weaponName.includes("ironspike")) return assetUrl(`/icons/weapons/daggers/ironspike.png`);
+  if (weaponName.includes("duskblade")) return assetUrl(`/icons/weapons/daggers/duskblade.png`);
   
   // Hammers 1H - specific names
-  if (weaponName.includes("ironfist")) return `/icons/weapons/hammers/ironfist.png`;
-  if (weaponName.includes("bloodmaul") && !weaponName.includes("2h")) return `/icons/weapons/hammers/bloodmaul.png`;
-  if (weaponName.includes("wraithknocker")) return `/icons/weapons/hammers/wraithknocker.png`;
-  if (weaponName.includes("embermallet")) return `/icons/weapons/hammers/embermallet.png`;
-  if (weaponName.includes("ironshard") && weaponName.includes("hammer")) return `/icons/weapons/hammers/ironshard.png`;
-  if (weaponName.includes("duskhammer")) return `/icons/weapons/hammers/duskhammer.png`;
+  if (weaponName.includes("ironfist")) return assetUrl(`/icons/weapons/hammers/ironfist.png`);
+  if (weaponName.includes("bloodmaul") && !weaponName.includes("2h")) return assetUrl(`/icons/weapons/hammers/bloodmaul.png`);
+  if (weaponName.includes("wraithknocker")) return assetUrl(`/icons/weapons/hammers/wraithknocker.png`);
+  if (weaponName.includes("embermallet")) return assetUrl(`/icons/weapons/hammers/embermallet.png`);
+  if (weaponName.includes("ironshard") && weaponName.includes("hammer")) return assetUrl(`/icons/weapons/hammers/ironshard.png`);
+  if (weaponName.includes("duskhammer")) return assetUrl(`/icons/weapons/hammers/duskhammer.png`);
   
   // Hammers 2H - specific names
-  if (weaponName.includes("titanmaul")) return `/icons/weapons/hammers/titanmaul.png`;
-  if (weaponName.includes("bloodcrusher")) return `/icons/weapons/hammers/bloodcrusher.png`;
-  if (weaponName.includes("wraithmaul")) return `/icons/weapons/hammers/wraithmaul.png`;
-  if (weaponName.includes("emberforge")) return `/icons/weapons/hammers/emberforge.png`;
-  if (weaponName.includes("ironbreaker")) return `/icons/weapons/hammers/ironbreaker.png`;
-  if (weaponName.includes("duskmallet")) return `/icons/weapons/hammers/duskmallet.png`;
+  if (weaponName.includes("titanmaul")) return assetUrl(`/icons/weapons/hammers/titanmaul.png`);
+  if (weaponName.includes("bloodcrusher")) return assetUrl(`/icons/weapons/hammers/bloodcrusher.png`);
+  if (weaponName.includes("wraithmaul")) return assetUrl(`/icons/weapons/hammers/wraithmaul.png`);
+  if (weaponName.includes("emberforge")) return assetUrl(`/icons/weapons/hammers/emberforge.png`);
+  if (weaponName.includes("ironbreaker")) return assetUrl(`/icons/weapons/hammers/ironbreaker.png`);
+  if (weaponName.includes("duskmallet")) return assetUrl(`/icons/weapons/hammers/duskmallet.png`);
   
   // Greatswords - specific names
-  if (weaponName.includes("doomspire") && !weaponName.includes("staff")) return `/icons/weapons/greatswords/doomspire.png`;
-  if (weaponName.includes("bloodspire") && !weaponName.includes("staff")) return `/icons/weapons/greatswords/bloodspire.png`;
-  if (weaponName.includes("wraithblade")) return `/icons/weapons/greatswords/wraithblade.png`;
-  if (weaponName.includes("emberbrand")) return `/icons/weapons/greatswords/emberbrand.png`;
-  if (weaponName.includes("ironwrath")) return `/icons/weapons/greatswords/ironwrath.png`;
-  if (weaponName.includes("duskreaver") && !weaponName.includes("bow")) return `/icons/weapons/greatswords/duskreaver.png`;
+  if (weaponName.includes("doomspire") && !weaponName.includes("staff")) return assetUrl(`/icons/weapons/greatswords/doomspire.png`);
+  if (weaponName.includes("bloodspire") && !weaponName.includes("staff")) return assetUrl(`/icons/weapons/greatswords/bloodspire.png`);
+  if (weaponName.includes("wraithblade")) return assetUrl(`/icons/weapons/greatswords/wraithblade.png`);
+  if (weaponName.includes("emberbrand")) return assetUrl(`/icons/weapons/greatswords/emberbrand.png`);
+  if (weaponName.includes("ironwrath")) return assetUrl(`/icons/weapons/greatswords/ironwrath.png`);
+  if (weaponName.includes("duskreaver") && !weaponName.includes("bow")) return assetUrl(`/icons/weapons/greatswords/duskreaver.png`);
   
   // Greataxes - specific names
-  if (weaponName.includes("skullsunder")) return `/icons/weapons/greataxes/skullsunder.png`;
-  if (weaponName.includes("bloodreaver") && !weaponName.includes("crossbow")) return `/icons/weapons/greataxes/bloodreaver.png`;
-  if (weaponName.includes("wraithhew")) return `/icons/weapons/greataxes/wraithhew.png`;
-  if (weaponName.includes("embermaul")) return `/icons/weapons/greataxes/embermaul.png`;
-  if (weaponName.includes("ironrend")) return `/icons/weapons/greataxes/ironrend.png`;
-  if (weaponName.includes("dusksplitter")) return `/icons/weapons/greataxes/dusksplitter.png`;
+  if (weaponName.includes("skullsunder")) return assetUrl(`/icons/weapons/greataxes/skullsunder.png`);
+  if (weaponName.includes("bloodreaver") && !weaponName.includes("crossbow")) return assetUrl(`/icons/weapons/greataxes/bloodreaver.png`);
+  if (weaponName.includes("wraithhew")) return assetUrl(`/icons/weapons/greataxes/wraithhew.png`);
+  if (weaponName.includes("embermaul")) return assetUrl(`/icons/weapons/greataxes/embermaul.png`);
+  if (weaponName.includes("ironrend")) return assetUrl(`/icons/weapons/greataxes/ironrend.png`);
+  if (weaponName.includes("dusksplitter")) return assetUrl(`/icons/weapons/greataxes/dusksplitter.png`);
   
   // Bows - specific names
-  if (weaponName.includes("wraithbone bow")) return `/icons/weapons/bows/wraithbone_bow.png`;
-  if (weaponName.includes("bloodstring bow")) return `/icons/weapons/bows/bloodstring_bow.png`;
-  if (weaponName.includes("shadowflight bow")) return `/icons/weapons/bows/shadowflight_bow.png`;
-  if (weaponName.includes("emberthorn bow")) return `/icons/weapons/bows/emberthorn_bow.png`;
-  if (weaponName.includes("ironvine bow")) return `/icons/weapons/bows/ironvine_bow.png`;
-  if (weaponName.includes("duskreaver bow")) return `/icons/weapons/bows/duskreaver_bow.png`;
+  if (weaponName.includes("wraithbone bow")) return assetUrl(`/icons/weapons/bows/wraithbone_bow.png`);
+  if (weaponName.includes("bloodstring bow")) return assetUrl(`/icons/weapons/bows/bloodstring_bow.png`);
+  if (weaponName.includes("shadowflight bow")) return assetUrl(`/icons/weapons/bows/shadowflight_bow.png`);
+  if (weaponName.includes("emberthorn bow")) return assetUrl(`/icons/weapons/bows/emberthorn_bow.png`);
+  if (weaponName.includes("ironvine bow")) return assetUrl(`/icons/weapons/bows/ironvine_bow.png`);
+  if (weaponName.includes("duskreaver bow")) return assetUrl(`/icons/weapons/bows/duskreaver_bow.png`);
   
   // Crossbows - specific names
-  if (weaponName.includes("ironveil repeater")) return `/icons/weapons/crossbows/ironveil_repeater.png`;
-  if (weaponName.includes("skullpiercer")) return `/icons/weapons/crossbows/skullpiercer.png`;
-  if (weaponName.includes("bloodreaver") && weaponName.includes("crossbow")) return `/icons/weapons/crossbows/bloodreaver.png`;
-  if (weaponName.includes("wraithspike")) return `/icons/weapons/crossbows/wraithspike.png`;
-  if (weaponName.includes("emberbolt")) return `/icons/weapons/crossbows/emberbolt.png`;
-  if (weaponName.includes("ironshard") && !weaponName.includes("hammer")) return `/icons/weapons/crossbows/ironshard.png`;
+  if (weaponName.includes("ironveil repeater")) return assetUrl(`/icons/weapons/crossbows/ironveil_repeater.png`);
+  if (weaponName.includes("skullpiercer")) return assetUrl(`/icons/weapons/crossbows/skullpiercer.png`);
+  if (weaponName.includes("bloodreaver") && weaponName.includes("crossbow")) return assetUrl(`/icons/weapons/crossbows/bloodreaver.png`);
+  if (weaponName.includes("wraithspike")) return assetUrl(`/icons/weapons/crossbows/wraithspike.png`);
+  if (weaponName.includes("emberbolt")) return assetUrl(`/icons/weapons/crossbows/emberbolt.png`);
+  if (weaponName.includes("ironshard") && !weaponName.includes("hammer")) return assetUrl(`/icons/weapons/crossbows/ironshard.png`);
   
   // Guns - specific names
-  if (weaponName.includes("blackpowder blaster")) return `/icons/weapons/guns/blackpowder_blaster.png`;
-  if (weaponName.includes("ironstorm gun")) return `/icons/weapons/guns/ironstorm_gun.png`;
-  if (weaponName.includes("bloodcannon")) return `/icons/weapons/guns/bloodcannon.png`;
-  if (weaponName.includes("wraithbarrel")) return `/icons/weapons/guns/wraithbarrel.png`;
-  if (weaponName.includes("emberrifle")) return `/icons/weapons/guns/emberrifle.png`;
-  if (weaponName.includes("duskblaster")) return `/icons/weapons/guns/duskblaster.png`;
+  if (weaponName.includes("blackpowder blaster")) return assetUrl(`/icons/weapons/guns/blackpowder_blaster.png`);
+  if (weaponName.includes("ironstorm gun")) return assetUrl(`/icons/weapons/guns/ironstorm_gun.png`);
+  if (weaponName.includes("bloodcannon")) return assetUrl(`/icons/weapons/guns/bloodcannon.png`);
+  if (weaponName.includes("wraithbarrel")) return assetUrl(`/icons/weapons/guns/wraithbarrel.png`);
+  if (weaponName.includes("emberrifle")) return assetUrl(`/icons/weapons/guns/emberrifle.png`);
+  if (weaponName.includes("duskblaster")) return assetUrl(`/icons/weapons/guns/duskblaster.png`);
   
   // Staves - Fire
-  if (weaponName.includes("emberwrath staff")) return `/icons/weapons/staves/emberwrath_staff.png`;
-  if (weaponName.includes("infernal grudge staff")) return `/icons/weapons/staves/infernal_grudge_staff.png`;
-  if (weaponName.includes("flameblood spire")) return `/icons/weapons/staves/flameblood_spire.png`;
-  if (weaponName.includes("hellfire oathbreaker")) return `/icons/weapons/staves/hellfire_oathbreaker.png`;
+  if (weaponName.includes("emberwrath staff")) return assetUrl(`/icons/weapons/staves/emberwrath_staff.png`);
+  if (weaponName.includes("infernal grudge staff")) return assetUrl(`/icons/weapons/staves/infernal_grudge_staff.png`);
+  if (weaponName.includes("flameblood spire")) return assetUrl(`/icons/weapons/staves/flameblood_spire.png`);
+  if (weaponName.includes("hellfire oathbreaker")) return assetUrl(`/icons/weapons/staves/hellfire_oathbreaker.png`);
   
   // Staves - Frost
-  if (weaponName.includes("glacial spire staff")) return `/icons/weapons/staves/glacial_spire_staff.png`;
-  if (weaponName.includes("frostgrudge staff")) return `/icons/weapons/staves/frostgrudge_staff.png`;
-  if (weaponName.includes("iceblood spire")) return `/icons/weapons/staves/iceblood_spire.png`;
-  if (weaponName.includes("frigid oathbreaker")) return `/icons/weapons/staves/frigid_oathbreaker.png`;
+  if (weaponName.includes("glacial spire staff")) return assetUrl(`/icons/weapons/staves/glacial_spire_staff.png`);
+  if (weaponName.includes("frostgrudge staff")) return assetUrl(`/icons/weapons/staves/frostgrudge_staff.png`);
+  if (weaponName.includes("iceblood spire")) return assetUrl(`/icons/weapons/staves/iceblood_spire.png`);
+  if (weaponName.includes("frigid oathbreaker")) return assetUrl(`/icons/weapons/staves/frigid_oathbreaker.png`);
   
   // Staves - Nature
-  if (weaponName.includes("verdant wrath staff")) return `/icons/weapons/staves/verdant_wrath_staff.png`;
-  if (weaponName.includes("thorngrudge staff")) return `/icons/weapons/staves/thorngrudge_staff.png`;
-  if (weaponName.includes("bloodvine spire")) return `/icons/weapons/staves/bloodvine_spire.png`;
-  if (weaponName.includes("wild oathbreaker")) return `/icons/weapons/staves/wild_oathbreaker.png`;
+  if (weaponName.includes("verdant wrath staff")) return assetUrl(`/icons/weapons/staves/verdant_wrath_staff.png`);
+  if (weaponName.includes("thorngrudge staff")) return assetUrl(`/icons/weapons/staves/thorngrudge_staff.png`);
+  if (weaponName.includes("bloodvine spire")) return assetUrl(`/icons/weapons/staves/bloodvine_spire.png`);
+  if (weaponName.includes("wild oathbreaker")) return assetUrl(`/icons/weapons/staves/wild_oathbreaker.png`);
   
   // Staves - Holy
-  if (weaponName.includes("dawnspire staff")) return `/icons/weapons/staves/dawnspire_staff.png`;
-  if (weaponName.includes("lightgrudge staff")) return `/icons/weapons/staves/lightgrudge_staff.png`;
-  if (weaponName.includes("bloodlight spire")) return `/icons/weapons/staves/bloodlight_spire.png`;
-  if (weaponName.includes("sacred oathbreaker")) return `/icons/weapons/staves/sacred_oathbreaker.png`;
+  if (weaponName.includes("dawnspire staff")) return assetUrl(`/icons/weapons/staves/dawnspire_staff.png`);
+  if (weaponName.includes("lightgrudge staff")) return assetUrl(`/icons/weapons/staves/lightgrudge_staff.png`);
+  if (weaponName.includes("bloodlight spire")) return assetUrl(`/icons/weapons/staves/bloodlight_spire.png`);
+  if (weaponName.includes("sacred oathbreaker")) return assetUrl(`/icons/weapons/staves/sacred_oathbreaker.png`);
   
   // Staves - Arcane
-  if (weaponName.includes("voidspire staff")) return `/icons/weapons/staves/voidspire_staff.png`;
-  if (weaponName.includes("voidgrudge staff")) return `/icons/weapons/staves/voidgrudge_staff.png`;
-  if (weaponName.includes("voidblood spire")) return `/icons/weapons/staves/voidblood_spire.png`;
-  if (weaponName.includes("void oathbreaker")) return `/icons/weapons/staves/void_oathbreaker.png`;
+  if (weaponName.includes("voidspire staff")) return assetUrl(`/icons/weapons/staves/voidspire_staff.png`);
+  if (weaponName.includes("voidgrudge staff")) return assetUrl(`/icons/weapons/staves/voidgrudge_staff.png`);
+  if (weaponName.includes("voidblood spire")) return assetUrl(`/icons/weapons/staves/voidblood_spire.png`);
+  if (weaponName.includes("void oathbreaker")) return assetUrl(`/icons/weapons/staves/void_oathbreaker.png`);
   
   // Staves - Lightning
-  if (weaponName.includes("stormspire staff")) return `/icons/weapons/staves/stormspire_staff.png`;
-  if (weaponName.includes("thundergrudge staff")) return `/icons/weapons/staves/thundergrudge_staff.png`;
-  if (weaponName.includes("stormblood spire")) return `/icons/weapons/staves/stormblood_spire.png`;
-  if (weaponName.includes("storm oathbreaker")) return `/icons/weapons/staves/storm_oathbreaker.png`;
+  if (weaponName.includes("stormspire staff")) return assetUrl(`/icons/weapons/staves/stormspire_staff.png`);
+  if (weaponName.includes("thundergrudge staff")) return assetUrl(`/icons/weapons/staves/thundergrudge_staff.png`);
+  if (weaponName.includes("stormblood spire")) return assetUrl(`/icons/weapons/staves/stormblood_spire.png`);
+  if (weaponName.includes("storm oathbreaker")) return assetUrl(`/icons/weapons/staves/storm_oathbreaker.png`);
 
   // Generic fallbacks based on weapon type
-  if (item.name?.includes("Sword")) return `/icons/weapons/swords/sword_t${tier}.png`;
+  if (item.name?.includes("Sword")) return assetUrl(`/icons/weapons/swords/sword_t${tier}.png`);
   if (item.name?.includes("Axe") && item.type === "Weapon") {
     const n = item.name?.toLowerCase() || "";
     const is1h = n.includes("1h") || n.includes("one-hand") || n.includes("hatchet") || n.includes("throwing");
-    return `/icons/weapons/axes/axe${is1h ? "1h" : "2h"}_t${tier}.png`;
+    return assetUrl(`/icons/weapons/axes/axe${is1h ? "1h" : "2h"}_t${tier}.png`);
   }
-  if (item.name?.includes("Crossbow")) return `/icons/weapons/crossbows/crossbow_t${tier}.png`;
-  if (item.name?.includes("Tome") || item.name?.includes("Book") || item.name?.includes("Grimoire")) return `/icons/weapons/tomes/tome_t${tier}.png`;
+  if (item.name?.includes("Crossbow")) return assetUrl(`/icons/weapons/crossbows/crossbow_t${tier}.png`);
+  if (item.name?.includes("Tome") || item.name?.includes("Book") || item.name?.includes("Grimoire")) return assetUrl(`/icons/weapons/tomes/tome_t${tier}.png`);
   if (item.name?.includes("Hammer") || item.name?.includes("Mallet")) {
     const n = item.name?.toLowerCase() || "";
     const is1h = n.includes("1h") || n.includes("one-hand") || n.includes("mallet") || !n.includes("2h");
-    return `/icons/weapons/hammers/hammer${is1h ? "1h" : "2h"}_t${tier}.png`;
+    return assetUrl(`/icons/weapons/hammers/hammer${is1h ? "1h" : "2h"}_t${tier}.png`);
   }
-  if (item.name?.includes("Shield") || item.name?.includes("Buckler")) return `/icons/weapons/shields/shield_t${tier}.png`;
-  if (item.name?.includes("Ring") || item.name?.includes("Band") || item.name?.includes("Signet")) return `/icons/armor/rings/ring_t${tier}.png`;
-  if (item.name?.includes("Necklace") || item.name?.includes("Amulet") || item.name?.includes("Pendant") || item.name?.includes("Chain")) return `/icons/armor/necklaces/necklace_t${tier}.png`;
-  if (item.name?.includes("Ore") || item.name?.includes("Stone") || item.name?.includes("Rock")) return `/icons/resources/mining/ore_t${Math.min(tier, 6)}.png`;
-  if (item.name?.includes("Bar") || item.name?.includes("Ingot")) return `/icons/resources/metals/bar_t${Math.min(tier, 6)}.png`;
+  if (item.name?.includes("Shield") || item.name?.includes("Buckler")) return assetUrl(`/icons/weapons/shields/shield_t${tier}.png`);
+  if (item.name?.includes("Ring") || item.name?.includes("Band") || item.name?.includes("Signet")) return assetUrl(`/icons/armor/rings/ring_t${tier}.png`);
+  if (item.name?.includes("Necklace") || item.name?.includes("Amulet") || item.name?.includes("Pendant") || item.name?.includes("Chain")) return assetUrl(`/icons/armor/necklaces/necklace_t${tier}.png`);
+  if (item.name?.includes("Ore") || item.name?.includes("Stone") || item.name?.includes("Rock")) return assetUrl(`/icons/resources/mining/ore_t${Math.min(tier, 6)}.png`);
+  if (item.name?.includes("Bar") || item.name?.includes("Ingot")) return assetUrl(`/icons/resources/metals/bar_t${Math.min(tier, 6)}.png`);
   if (item.name?.includes("Gem") || item.name?.includes("Crystal") || item.name?.includes("Jewel")) {
     const n = item.name?.toLowerCase() || "";
-    if (n.includes("ruby") || n.includes("red") || n.includes("fire")) return `/icons/resources/gems/gem_red.png`;
-    if (n.includes("sapphire") || n.includes("blue") || n.includes("water")) return `/icons/resources/gems/gem_blue.png`;
-    if (n.includes("emerald") || n.includes("green") || n.includes("earth")) return `/icons/resources/gems/gem_green.png`;
-    if (n.includes("amethyst") || n.includes("purple") || n.includes("shadow")) return `/icons/resources/gems/gem_purple.png`;
-    if (n.includes("topaz") || n.includes("orange") || n.includes("amber")) return `/icons/resources/gems/gem_orange.png`;
-    return `/icons/resources/gems/gem_blue.png`;
+    if (n.includes("ruby") || n.includes("red") || n.includes("fire")) return assetUrl(`/icons/resources/gems/gem_red.png`);
+    if (n.includes("sapphire") || n.includes("blue") || n.includes("water")) return assetUrl(`/icons/resources/gems/gem_blue.png`);
+    if (n.includes("emerald") || n.includes("green") || n.includes("earth")) return assetUrl(`/icons/resources/gems/gem_green.png`);
+    if (n.includes("amethyst") || n.includes("purple") || n.includes("shadow")) return assetUrl(`/icons/resources/gems/gem_purple.png`);
+    if (n.includes("topaz") || n.includes("orange") || n.includes("amber")) return assetUrl(`/icons/resources/gems/gem_orange.png`);
+    return assetUrl(`/icons/resources/gems/gem_blue.png`);
   }
-  if (item.name?.includes("Log") && !item.name?.includes("Logs")) return `/icons/resources/logging/log.png`;
-  if (item.name?.includes("Logs") || item.name?.includes("Lumber")) return `/icons/resources/logging/logs.png`;
-  if (item.name?.includes("Plank") || item.name?.includes("Board")) return `/icons/resources/logging/plank.png`;
-  if (item.name?.includes("Branch")) return `/icons/resources/logging/branch.png`;
-  if (item.name?.includes("Twig") || item.name?.includes("Sprout")) return `/icons/resources/logging/twig.png`;
-  if (item.name?.includes("Root")) return `/icons/resources/logging/root.png`;
-  if (item.name?.includes("Nut") || item.name?.includes("Acorn")) return `/icons/resources/logging/nut.png`;
-  if (item.name?.includes("Hemp") || item.name?.includes("Fiber")) return `/icons/resources/logging/hemp.png`;
+  if (item.name?.includes("Log") && !item.name?.includes("Logs")) return assetUrl(`/icons/resources/logging/log.png`);
+  if (item.name?.includes("Logs") || item.name?.includes("Lumber")) return assetUrl(`/icons/resources/logging/logs.png`);
+  if (item.name?.includes("Plank") || item.name?.includes("Board")) return assetUrl(`/icons/resources/logging/plank.png`);
+  if (item.name?.includes("Branch")) return assetUrl(`/icons/resources/logging/branch.png`);
+  if (item.name?.includes("Twig") || item.name?.includes("Sprout")) return assetUrl(`/icons/resources/logging/twig.png`);
+  if (item.name?.includes("Root")) return assetUrl(`/icons/resources/logging/root.png`);
+  if (item.name?.includes("Nut") || item.name?.includes("Acorn")) return assetUrl(`/icons/resources/logging/nut.png`);
+  if (item.name?.includes("Hemp") || item.name?.includes("Fiber")) return assetUrl(`/icons/resources/logging/hemp.png`);
   // Food items
-  if (item.name?.includes("Apple")) return `/icons/resources/food/apple.png`;
-  if (item.name?.includes("Mango")) return `/icons/resources/food/mango.png`;
-  if (item.name?.includes("Banana")) return `/icons/resources/food/banana.png`;
-  if (item.name?.includes("Grapes") || item.name?.includes("Grape")) return `/icons/resources/food/grapes.png`;
-  if (item.name?.includes("Carrot")) return `/icons/resources/food/carrot.png`;
-  if (item.name?.includes("Mushroom")) return `/icons/resources/food/mushroom.png`;
-  if (item.name?.includes("Wheat") || item.name?.includes("Grain")) return `/icons/resources/food/wheat.png`;
-  if (item.name?.includes("Bread") || item.name?.includes("Loaf")) return `/icons/resources/food/bread.png`;
-  if (item.name?.includes("Croissant") || item.name?.includes("Pastry")) return `/icons/resources/food/croissant.png`;
-  if (item.name?.includes("Cheese")) return `/icons/resources/food/cheese.png`;
-  if (item.name?.includes("Ham") || item.name?.includes("Pork")) return `/icons/resources/food/ham.png`;
-  if (item.name?.includes("Steak") && item.name?.includes("Cooked")) return `/icons/resources/food/steak_cooked.png`;
-  if (item.name?.includes("Steak") && item.name?.includes("Rare")) return `/icons/resources/food/steak_rare.png`;
-  if (item.name?.includes("Steak") || item.name?.includes("Beef")) return `/icons/resources/food/steak_raw.png`;
-  if (item.name?.includes("Meat") || item.name?.includes("Raw Meat")) return `/icons/resources/food/meat_raw.png`;
-  if (item.name?.includes("Crab")) return `/icons/resources/food/crab.png`;
-  if (item.name?.includes("Squid") || item.name?.includes("Octopus")) return `/icons/resources/food/squid.png`;
-  if (item.name?.includes("Salmon") || item.name?.includes("Red Fish")) return `/icons/resources/food/fish_red.png`;
-  if (item.name?.includes("Fish")) return `/icons/resources/food/fish_silver.png`;
-  if (item.name?.includes("Beer") || item.name?.includes("Ale") || item.name?.includes("Mead")) return `/icons/resources/food/beer.png`;
+  if (item.name?.includes("Apple")) return assetUrl(`/icons/resources/food/apple.png`);
+  if (item.name?.includes("Mango")) return assetUrl(`/icons/resources/food/mango.png`);
+  if (item.name?.includes("Banana")) return assetUrl(`/icons/resources/food/banana.png`);
+  if (item.name?.includes("Grapes") || item.name?.includes("Grape")) return assetUrl(`/icons/resources/food/grapes.png`);
+  if (item.name?.includes("Carrot")) return assetUrl(`/icons/resources/food/carrot.png`);
+  if (item.name?.includes("Mushroom")) return assetUrl(`/icons/resources/food/mushroom.png`);
+  if (item.name?.includes("Wheat") || item.name?.includes("Grain")) return assetUrl(`/icons/resources/food/wheat.png`);
+  if (item.name?.includes("Bread") || item.name?.includes("Loaf")) return assetUrl(`/icons/resources/food/bread.png`);
+  if (item.name?.includes("Croissant") || item.name?.includes("Pastry")) return assetUrl(`/icons/resources/food/croissant.png`);
+  if (item.name?.includes("Cheese")) return assetUrl(`/icons/resources/food/cheese.png`);
+  if (item.name?.includes("Ham") || item.name?.includes("Pork")) return assetUrl(`/icons/resources/food/ham.png`);
+  if (item.name?.includes("Steak") && item.name?.includes("Cooked")) return assetUrl(`/icons/resources/food/steak_cooked.png`);
+  if (item.name?.includes("Steak") && item.name?.includes("Rare")) return assetUrl(`/icons/resources/food/steak_rare.png`);
+  if (item.name?.includes("Steak") || item.name?.includes("Beef")) return assetUrl(`/icons/resources/food/steak_raw.png`);
+  if (item.name?.includes("Meat") || item.name?.includes("Raw Meat")) return assetUrl(`/icons/resources/food/meat_raw.png`);
+  if (item.name?.includes("Crab")) return assetUrl(`/icons/resources/food/crab.png`);
+  if (item.name?.includes("Squid") || item.name?.includes("Octopus")) return assetUrl(`/icons/resources/food/squid.png`);
+  if (item.name?.includes("Salmon") || item.name?.includes("Red Fish")) return assetUrl(`/icons/resources/food/fish_red.png`);
+  if (item.name?.includes("Fish")) return assetUrl(`/icons/resources/food/fish_silver.png`);
+  if (item.name?.includes("Beer") || item.name?.includes("Ale") || item.name?.includes("Mead")) return assetUrl(`/icons/resources/food/beer.png`);
   // Metal Shoulders
   if ((item.name?.includes("Shoulder") || item.name?.includes("Pauldron")) && (item.name?.includes("Metal") || item.name?.includes("Plate") || item.name?.includes("Iron") || item.name?.includes("Steel"))) {
-    return `/icons/armor/shoulders/metal/shoulder_t${Math.min(tier, 8)}.png`;
+    return assetUrl(`/icons/armor/shoulders/metal/shoulder_t${Math.min(tier, 8)}.png`);
   }
   // Leather Shoulders
   if ((item.name?.includes("Shoulder") || item.name?.includes("Pauldron")) && (item.name?.includes("Leather") || item.name?.includes("Hide") || item.name?.includes("Scout") || item.name?.includes("Ranger"))) {
-    return `/icons/armor/shoulders/leather/shoulder_t${Math.min(tier, 8)}.png`;
+    return assetUrl(`/icons/armor/shoulders/leather/shoulder_t${Math.min(tier, 8)}.png`);
   }
   // Cloth Legs
   if ((item.name?.includes("Pants") || item.name?.includes("Leggings") || item.name?.includes("Robes") || item.name?.includes("Breeches")) && (item.name?.includes("Cloth") || item.name?.includes("Mage") || item.name?.includes("Mystic") || item.name?.includes("Acolyte"))) {
-    return `/icons/armor/legs/cloth/pants_t${Math.min(tier, 8)}.png`;
+    return assetUrl(`/icons/armor/legs/cloth/pants_t${Math.min(tier, 8)}.png`);
   }
   // Leather Legs
   if ((item.name?.includes("Pants") || item.name?.includes("Leggings") || item.name?.includes("Breeches")) && (item.name?.includes("Leather") || item.name?.includes("Hide") || item.name?.includes("Scout") || item.name?.includes("Ranger") || item.name?.includes("Hunter"))) {
-    return `/icons/armor/legs/leather/pants_t${Math.min(tier, 8)}.png`;
+    return assetUrl(`/icons/armor/legs/leather/pants_t${Math.min(tier, 8)}.png`);
   }
   // Metal Legs
   if ((item.name?.includes("Pants") || item.name?.includes("Leggings") || item.name?.includes("Legplates") || item.name?.includes("Greaves") || item.name?.includes("Legguards")) && (item.name?.includes("Metal") || item.name?.includes("Plate") || item.name?.includes("Iron") || item.name?.includes("Steel") || item.name?.includes("Knight") || item.name?.includes("Crusader"))) {
-    return `/icons/armor/legs/metal/pants_t${Math.min(tier, 8)}.png`;
+    return assetUrl(`/icons/armor/legs/metal/pants_t${Math.min(tier, 8)}.png`);
   }
   // Leather Helms
   if ((item.name?.includes("Helm") || item.name?.includes("Hat") || item.name?.includes("Hood") || item.name?.includes("Cap")) && (item.name?.includes("Leather") || item.name?.includes("Hide") || item.name?.includes("Scout") || item.name?.includes("Ranger") || item.name?.includes("Hunter"))) {
-    return `/icons/armor/helms/leather/helm_t${Math.min(tier, 8)}.png`;
+    return assetUrl(`/icons/armor/helms/leather/helm_t${Math.min(tier, 8)}.png`);
   }
   // Metal Helms
   if ((item.name?.includes("Helm") || item.name?.includes("Helmet") || item.name?.includes("Greathelm") || item.name?.includes("Visor")) && (item.name?.includes("Metal") || item.name?.includes("Plate") || item.name?.includes("Iron") || item.name?.includes("Steel") || item.name?.includes("Knight") || item.name?.includes("Crusader"))) {
-    return `/icons/armor/helms/metal/helm_t${Math.min(tier, 8)}.png`;
+    return assetUrl(`/icons/armor/helms/metal/helm_t${Math.min(tier, 8)}.png`);
   }
   // Cloth Helms
   if ((item.name?.includes("Hood") || item.name?.includes("Cowl") || item.name?.includes("Bandana") || item.name?.includes("Cap")) && (item.name?.includes("Cloth") || item.name?.includes("Mage") || item.name?.includes("Mystic") || item.name?.includes("Acolyte") || item.name?.includes("Wizard"))) {
-    return `/icons/armor/helms/cloth/helm_t${Math.min(tier, 8)}.png`;
+    return assetUrl(`/icons/armor/helms/cloth/helm_t${Math.min(tier, 8)}.png`);
   }
   // Cloth Hands
   if ((item.name?.includes("Gloves") || item.name?.includes("Wraps") || item.name?.includes("Mitts")) && (item.name?.includes("Cloth") || item.name?.includes("Mage") || item.name?.includes("Mystic") || item.name?.includes("Acolyte") || item.name?.includes("Wizard"))) {
-    return `/icons/armor/hands/cloth/gloves_t${Math.min(tier, 8)}.png`;
+    return assetUrl(`/icons/armor/hands/cloth/gloves_t${Math.min(tier, 8)}.png`);
   }
   // Leather Hands
   if ((item.name?.includes("Gloves") || item.name?.includes("Wraps") || item.name?.includes("Mitts")) && (item.name?.includes("Leather") || item.name?.includes("Hide") || item.name?.includes("Scout") || item.name?.includes("Ranger") || item.name?.includes("Hunter"))) {
-    return `/icons/armor/hands/leather/gloves_t${Math.min(tier, 8)}.png`;
+    return assetUrl(`/icons/armor/hands/leather/gloves_t${Math.min(tier, 8)}.png`);
   }
   // Metal Hands
   if ((item.name?.includes("Gauntlets") || item.name?.includes("Gloves") || item.name?.includes("Vambraces")) && (item.name?.includes("Metal") || item.name?.includes("Plate") || item.name?.includes("Iron") || item.name?.includes("Steel") || item.name?.includes("Knight") || item.name?.includes("Crusader"))) {
-    return `/icons/armor/hands/metal/gloves_t${Math.min(tier, 8)}.png`;
+    return assetUrl(`/icons/armor/hands/metal/gloves_t${Math.min(tier, 8)}.png`);
   }
   // Cloth Chest
   if ((item.name?.includes("Robe") || item.name?.includes("Tunic") || item.name?.includes("Vest") || item.name?.includes("Chest")) && (item.name?.includes("Cloth") || item.name?.includes("Mage") || item.name?.includes("Mystic") || item.name?.includes("Acolyte") || item.name?.includes("Wizard"))) {
-    return `/icons/armor/chest/cloth/chest_t${Math.min(tier, 8)}.png`;
+    return assetUrl(`/icons/armor/chest/cloth/chest_t${Math.min(tier, 8)}.png`);
   }
   // Leather Chest
   if ((item.name?.includes("Vest") || item.name?.includes("Tunic") || item.name?.includes("Jerkin") || item.name?.includes("Chest")) && (item.name?.includes("Leather") || item.name?.includes("Hide") || item.name?.includes("Scout") || item.name?.includes("Ranger") || item.name?.includes("Hunter"))) {
-    return `/icons/armor/chest/leather/chest_t${Math.min(tier, 8)}.png`;
+    return assetUrl(`/icons/armor/chest/leather/chest_t${Math.min(tier, 8)}.png`);
   }
   // Metal Chest
   if ((item.name?.includes("Chestplate") || item.name?.includes("Breastplate") || item.name?.includes("Cuirass") || item.name?.includes("Chest")) && (item.name?.includes("Metal") || item.name?.includes("Plate") || item.name?.includes("Iron") || item.name?.includes("Steel") || item.name?.includes("Knight") || item.name?.includes("Crusader"))) {
-    return `/icons/armor/chest/metal/chest_t${Math.min(tier, 8)}.png`;
+    return assetUrl(`/icons/armor/chest/metal/chest_t${Math.min(tier, 8)}.png`);
   }
   // Leather Boots
   if ((item.name?.includes("Boots") || item.name?.includes("Shoes") || item.name?.includes("Treads")) && (item.name?.includes("Leather") || item.name?.includes("Hide") || item.name?.includes("Scout") || item.name?.includes("Ranger") || item.name?.includes("Hunter"))) {
-    return `/icons/armor/boots/leather/boots_t${Math.min(tier, 8)}.png`;
+    return assetUrl(`/icons/armor/boots/leather/boots_t${Math.min(tier, 8)}.png`);
   }
   // Cloth Boots
   if ((item.name?.includes("Boots") || item.name?.includes("Shoes") || item.name?.includes("Slippers") || item.name?.includes("Sandals")) && (item.name?.includes("Cloth") || item.name?.includes("Mage") || item.name?.includes("Mystic") || item.name?.includes("Acolyte") || item.name?.includes("Wizard"))) {
-    return `/icons/armor/boots/cloth/boots_t${Math.min(tier, 8)}.png`;
+    return assetUrl(`/icons/armor/boots/cloth/boots_t${Math.min(tier, 8)}.png`);
   }
   // Metal Boots
   if ((item.name?.includes("Boots") || item.name?.includes("Sabatons") || item.name?.includes("Greaves")) && (item.name?.includes("Metal") || item.name?.includes("Plate") || item.name?.includes("Iron") || item.name?.includes("Steel") || item.name?.includes("Knight") || item.name?.includes("Crusader"))) {
-    return `/icons/armor/boots/metal/boots_t${Math.min(tier, 8)}.png`;
+    return assetUrl(`/icons/armor/boots/metal/boots_t${Math.min(tier, 8)}.png`);
   }
   // Back Slot - Capes
   if (item.name?.includes("Cape")) {
-    return `/icons/armor/back/cape_t${Math.min(tier, 5)}.png`;
+    return assetUrl(`/icons/armor/back/cape_t${Math.min(tier, 5)}.png`);
   }
   // Back Slot - Cloaks
   if (item.name?.includes("Cloak")) {
-    return `/icons/armor/back/cloak_t${Math.min(tier, 6)}.png`;
+    return assetUrl(`/icons/armor/back/cloak_t${Math.min(tier, 6)}.png`);
   }
   // Back Slot - Mantles
   if (item.name?.includes("Mantle")) {
-    return `/icons/armor/back/mantle_t${Math.min(tier, 2)}.png`;
+    return assetUrl(`/icons/armor/back/mantle_t${Math.min(tier, 2)}.png`);
   }
   // Back Slot - Fur Cloaks
   if (item.name?.includes("Fur") && (item.name?.includes("Cloak") || item.name?.includes("Cape") || item.name?.includes("Back"))) {
-    return `/icons/armor/back/fur_t${Math.min(tier, 3)}.png`;
+    return assetUrl(`/icons/armor/back/fur_t${Math.min(tier, 3)}.png`);
   }
   // Coins
   if (item.name?.includes("Coin") || item.name?.includes("Currency")) {
     const n = item.name?.toLowerCase() || "";
-    if (n.includes("gold")) return `/icons/items/coins/gold_coin.png`;
-    if (n.includes("silver")) return `/icons/items/coins/silver_coin.png`;
-    if (n.includes("bronze") || n.includes("copper")) return `/icons/items/coins/bronze_coin.png`;
-    if (n.includes("crown")) return `/icons/items/coins/crown_coin.png`;
-    return `/icons/items/coins/gold_coin.png`;
+    if (n.includes("gold")) return assetUrl(`/icons/items/coins/gold_coin.png`);
+    if (n.includes("silver")) return assetUrl(`/icons/items/coins/silver_coin.png`);
+    if (n.includes("bronze") || n.includes("copper")) return assetUrl(`/icons/items/coins/bronze_coin.png`);
+    if (n.includes("crown")) return assetUrl(`/icons/items/coins/crown_coin.png`);
+    return assetUrl(`/icons/items/coins/gold_coin.png`);
   }
   // Totems
   if (item.name?.includes("Totem")) {
-    return `/icons/items/totems/totem_${Math.min(tier, 4)}.png`;
+    return assetUrl(`/icons/items/totems/totem_${Math.min(tier, 4)}.png`);
   }
   // Runic Tablets
   if (item.name?.includes("Tablet") || item.name?.includes("Runic") || item.name?.includes("Rune Stone")) {
-    return `/icons/items/tablets/tablet_t${Math.min(tier, 12)}.png`;
+    return assetUrl(`/icons/items/tablets/tablet_t${Math.min(tier, 12)}.png`);
   }
   // Relics
   if (item.name?.includes("Relic") || item.name?.includes("Artifact")) {
     const n = item.name?.toLowerCase() || "";
-    if (n.includes("ancient")) return `/icons/items/relics/ancient_relic.png`;
-    if (n.includes("artifact")) return `/icons/items/relics/artifact.png`;
-    return `/icons/items/relics/relic_${Math.min(tier, 8)}.png`;
+    if (n.includes("ancient")) return assetUrl(`/icons/items/relics/ancient_relic.png`);
+    if (n.includes("artifact")) return assetUrl(`/icons/items/relics/artifact.png`);
+    return assetUrl(`/icons/items/relics/relic_${Math.min(tier, 8)}.png`);
   }
   // Quest Items
   if (item.name?.includes("Quest") || item.type === "quest") {
-    return `/icons/items/quest/quest_${Math.min(tier, 10)}.png`;
+    return assetUrl(`/icons/items/quest/quest_${Math.min(tier, 10)}.png`);
   }
   // Spell Orbs
   if (item.name?.includes("Orb")) {
     const n = item.name?.toLowerCase() || "";
-    if (n.includes("fire")) return `/icons/items/spells/fire_orb.png`;
-    if (n.includes("ice") || n.includes("frost")) return `/icons/items/spells/ice_orb.png`;
-    if (n.includes("holy") || n.includes("divine")) return `/icons/items/spells/holy_orb.png`;
-    if (n.includes("light")) return `/icons/items/spells/light_orb_1.png`;
-    return `/icons/items/spells/fire_orb.png`;
+    if (n.includes("fire")) return assetUrl(`/icons/items/spells/fire_orb.png`);
+    if (n.includes("ice") || n.includes("frost")) return assetUrl(`/icons/items/spells/ice_orb.png`);
+    if (n.includes("holy") || n.includes("divine")) return assetUrl(`/icons/items/spells/holy_orb.png`);
+    if (n.includes("light")) return assetUrl(`/icons/items/spells/light_orb_1.png`);
+    return assetUrl(`/icons/items/spells/fire_orb.png`);
   }
   // Crystals
   if (item.name?.includes("Crystal") || item.name?.includes("Jade")) {
     const n = item.name?.toLowerCase() || "";
-    if (n.includes("jade")) return `/icons/items/crystals/jade.png`;
-    return `/icons/items/crystals/crystal_purple.png`;
+    if (n.includes("jade")) return assetUrl(`/icons/items/crystals/jade.png`);
+    return assetUrl(`/icons/items/crystals/crystal_purple.png`);
   }
   // Bones
   if (item.name?.includes("Bone") || item.name?.includes("Skull")) {
-    return `/icons/items/relics/bones.png`;
+    return assetUrl(`/icons/items/relics/bones.png`);
   }
   // Coal
   if (item.name?.includes("Coal") || item.name?.includes("Charcoal")) {
-    return `/icons/resources/materials/coal.png`;
+    return assetUrl(`/icons/resources/materials/coal.png`);
   }
   // Mana Shard
   if (item.name?.includes("Mana Shard") || item.name?.includes("Mana Crystal") || item.name?.includes("Arcane Shard")) {
-    return `/icons/resources/materials/mana_shard.png`;
+    return assetUrl(`/icons/resources/materials/mana_shard.png`);
   }
   // Essence
   if (item.name?.includes("Essence")) {
-    return `/icons/resources/materials/common_essence.png`;
+    return assetUrl(`/icons/resources/materials/common_essence.png`);
   }
   // Blade (crafting material)
   if (item.name?.includes("Blade") && !item.name?.includes("Sword")) {
-    return `/icons/resources/materials/blade.png`;
+    return assetUrl(`/icons/resources/materials/blade.png`);
   }
   // Animal Fat
   if (item.name?.includes("Fat") || item.name?.includes("Tallow") || item.name?.includes("Lard")) {
-    return `/icons/resources/materials/animal_fat.png`;
+    return assetUrl(`/icons/resources/materials/animal_fat.png`);
   }
   // Fuze / Detonator
   if (item.name?.includes("Fuze") || item.name?.includes("Fuse") || item.name?.includes("Detonator") || item.name?.includes("TNT")) {
-    return `/icons/resources/materials/fuze.png`;
+    return assetUrl(`/icons/resources/materials/fuze.png`);
   }
   // Metal Crank / Gear
   if (item.name?.includes("Crank") || item.name?.includes("Gear") || item.name?.includes("Cog")) {
-    return `/icons/resources/materials/metal_crank.png`;
+    return assetUrl(`/icons/resources/materials/metal_crank.png`);
   }
   // Needle
   if (item.name?.includes("Needle") || item.name?.includes("Pin") || item.name?.includes("Awl")) {
-    return `/icons/resources/materials/needle.png`;
+    return assetUrl(`/icons/resources/materials/needle.png`);
   }
   // Metal Fragments / Ball Bearings
   if (item.name?.includes("Fragment") || item.name?.includes("Ball Bearing") || item.name?.includes("Pellet") || item.name?.includes("Shot")) {
-    return `/icons/resources/materials/metal_fragments.png`;
+    return assetUrl(`/icons/resources/materials/metal_fragments.png`);
   }
   // Daggers
   if (item.name?.includes("Dagger") || item.name?.includes("Knife") || item.name?.includes("Stiletto") || item.name?.includes("Shiv")) {
-    return `/icons/weapons/daggers/dagger_t${Math.min(tier, 8)}.png`;
+    return assetUrl(`/icons/weapons/daggers/dagger_t${Math.min(tier, 8)}.png`);
   }
   // Guns
   if (item.name?.includes("Gun") || item.name?.includes("Pistol") || item.name?.includes("Rifle") || item.name?.includes("Musket") || item.name?.includes("Blunderbuss") || item.name?.includes("Flintlock")) {
-    return `/icons/weapons/guns/gun_t${Math.min(tier, 8)}.png`;
+    return assetUrl(`/icons/weapons/guns/gun_t${Math.min(tier, 8)}.png`);
   }
   // Whisps
   if (item.name?.includes("Whisp") || item.name?.includes("Wisp")) {
     const n = item.name?.toLowerCase() || "";
-    if (n.includes("green") || n.includes("nature") || n.includes("wind")) return `/icons/items/whisps/whisp_green.png`;
-    if (n.includes("purple") || n.includes("arcane") || n.includes("void")) return `/icons/items/whisps/whisp_purple.png`;
-    if (n.includes("blue") || n.includes("water") || n.includes("frost")) return `/icons/items/whisps/whisp_blue.png`;
-    if (n.includes("red") || n.includes("fire") || n.includes("blood")) return `/icons/items/whisps/whisp_red.png`;
-    return `/icons/items/whisps/whisp_purple.png`;
+    if (n.includes("green") || n.includes("nature") || n.includes("wind")) return assetUrl(`/icons/items/whisps/whisp_green.png`);
+    if (n.includes("purple") || n.includes("arcane") || n.includes("void")) return assetUrl(`/icons/items/whisps/whisp_purple.png`);
+    if (n.includes("blue") || n.includes("water") || n.includes("frost")) return assetUrl(`/icons/items/whisps/whisp_blue.png`);
+    if (n.includes("red") || n.includes("fire") || n.includes("blood")) return assetUrl(`/icons/items/whisps/whisp_red.png`);
+    return assetUrl(`/icons/items/whisps/whisp_purple.png`);
   }
   // Flowers
   if (item.name?.includes("Flower") || item.name?.includes("Blossom") || item.name?.includes("Petal")) {
     const n = item.name?.toLowerCase() || "";
-    if (n.includes("white") || n.includes("jasmine") || n.includes("lily")) return `/icons/resources/flowers/flower_white.png`;
-    if (n.includes("orange") || n.includes("sunflower") || n.includes("marigold")) return `/icons/resources/flowers/flower_orange.png`;
-    if (n.includes("red") || n.includes("rose") || n.includes("poppy")) return `/icons/resources/flowers/flower_red.png`;
-    if (n.includes("purple") || n.includes("violet") || n.includes("orchid")) return `/icons/resources/flowers/flower_purple.png`;
-    if (n.includes("blue") || n.includes("frost") || n.includes("forget")) return `/icons/resources/flowers/flower_blue.png`;
-    return `/icons/resources/flowers/flower_white.png`;
+    if (n.includes("white") || n.includes("jasmine") || n.includes("lily")) return assetUrl(`/icons/resources/flowers/flower_white.png`);
+    if (n.includes("orange") || n.includes("sunflower") || n.includes("marigold")) return assetUrl(`/icons/resources/flowers/flower_orange.png`);
+    if (n.includes("red") || n.includes("rose") || n.includes("poppy")) return assetUrl(`/icons/resources/flowers/flower_red.png`);
+    if (n.includes("purple") || n.includes("violet") || n.includes("orchid")) return assetUrl(`/icons/resources/flowers/flower_purple.png`);
+    if (n.includes("blue") || n.includes("frost") || n.includes("forget")) return assetUrl(`/icons/resources/flowers/flower_blue.png`);
+    return assetUrl(`/icons/resources/flowers/flower_white.png`);
   }
   // Wooden Wheel
   if (item.name?.includes("Wheel") || item.name?.includes("Cart") || item.name?.includes("Wagon")) {
-    return `/icons/items/quest/wooden_wheel.png`;
+    return assetUrl(`/icons/items/quest/wooden_wheel.png`);
   }
   // Stopwatch / Timer
   if (item.name?.includes("Stopwatch") || item.name?.includes("Timer") || item.name?.includes("Pocket Watch") || item.name?.includes("Clock")) {
-    return `/icons/items/quest/stopwatch.png`;
+    return assetUrl(`/icons/items/quest/stopwatch.png`);
   }
   // Dragon Eggs
   if (item.name?.includes("Egg") || item.name?.includes("Clutch")) {
     const n = item.name?.toLowerCase() || "";
-    if (n.includes("green") || n.includes("nature") || n.includes("forest") || n.includes("poison")) return `/icons/items/eggs/egg_green.png`;
-    if (n.includes("purple") || n.includes("arcane") || n.includes("void") || n.includes("shadow")) return `/icons/items/eggs/egg_purple.png`;
-    if (n.includes("brown") || n.includes("earth") || n.includes("stone") || n.includes("fire")) return `/icons/items/eggs/egg_brown.png`;
-    return `/icons/items/eggs/egg_purple.png`;
+    if (n.includes("green") || n.includes("nature") || n.includes("forest") || n.includes("poison")) return assetUrl(`/icons/items/eggs/egg_green.png`);
+    if (n.includes("purple") || n.includes("arcane") || n.includes("void") || n.includes("shadow")) return assetUrl(`/icons/items/eggs/egg_purple.png`);
+    if (n.includes("brown") || n.includes("earth") || n.includes("stone") || n.includes("fire")) return assetUrl(`/icons/items/eggs/egg_brown.png`);
+    return assetUrl(`/icons/items/eggs/egg_purple.png`);
   }
   // Wings (back slot)
   if (item.name?.includes("Wing") || item.name?.includes("Pinion")) {
     const n = item.name?.toLowerCase() || "";
-    if (n.includes("demon") || n.includes("dark") || n.includes("bat")) return `/icons/armor/wings/wing_4.png`;
-    if (n.includes("angel") || n.includes("holy") || n.includes("divine")) return `/icons/armor/wings/wing_5.png`;
-    if (n.includes("fairy") || n.includes("butterfly") || n.includes("fae")) return `/icons/armor/wings/wing_8.png`;
-    if (n.includes("bone") || n.includes("skeletal") || n.includes("undead")) return `/icons/armor/wings/wing_3.png`;
-    if (n.includes("drake") || n.includes("dragon") || n.includes("wyvern")) return `/icons/armor/wings/wing_9.png`;
-    if (n.includes("feather") || n.includes("hawk") || n.includes("eagle")) return `/icons/armor/wings/wing_2.png`;
+    if (n.includes("demon") || n.includes("dark") || n.includes("bat")) return assetUrl(`/icons/armor/wings/wing_4.png`);
+    if (n.includes("angel") || n.includes("holy") || n.includes("divine")) return assetUrl(`/icons/armor/wings/wing_5.png`);
+    if (n.includes("fairy") || n.includes("butterfly") || n.includes("fae")) return assetUrl(`/icons/armor/wings/wing_8.png`);
+    if (n.includes("bone") || n.includes("skeletal") || n.includes("undead")) return assetUrl(`/icons/armor/wings/wing_3.png`);
+    if (n.includes("drake") || n.includes("dragon") || n.includes("wyvern")) return assetUrl(`/icons/armor/wings/wing_9.png`);
+    if (n.includes("feather") || n.includes("hawk") || n.includes("eagle")) return assetUrl(`/icons/armor/wings/wing_2.png`);
     const wingTier = Math.min(tier, 8);
     const wingMap: Record<number, string> = { 1: "1", 2: "2", 3: "3", 4: "4", 5: "5", 6: "6", 7: "8", 8: "9" };
-    return `/icons/armor/wings/wing_${wingMap[wingTier] || "1"}.png`;
+    return assetUrl(`/icons/armor/wings/wing_${wingMap[wingTier] || "1"}.png`);
   }
   // Herbs
   if (item.name?.includes("Herb") || item.name?.includes("Leaf") || item.name?.includes("Root") || item.name?.includes("Moss") || item.name?.includes("Plant")) {
     const n = item.name?.toLowerCase() || "";
-    if (n.includes("bundle") && n.includes("berr")) return `/icons/resources/herbs/herb_bundle_berries.png`;
-    if (n.includes("bundle") || n.includes("bunch")) return `/icons/resources/herbs/herb_bundle.png`;
-    if (n.includes("branch") || n.includes("twig")) return `/icons/resources/herbs/herb_branch.png`;
-    if (n.includes("leaves") || n.includes("foliage")) return `/icons/resources/herbs/herb_leaves.png`;
-    if (n.includes("leaf") || n.includes("mint")) return `/icons/resources/herbs/herb_leaf.png`;
-    if (n.includes("bouquet") || n.includes("daisy") || n.includes("chamomile")) return `/icons/resources/herbs/herb_bouquet.png`;
-    if (n.includes("grass") || n.includes("blade")) return `/icons/resources/herbs/herb_grass.png`;
-    if (n.includes("lavender") || n.includes("berry")) return `/icons/resources/herbs/herb_lavender.png`;
-    if (n.includes("seaweed") || n.includes("kelp") || n.includes("algae")) return `/icons/resources/herbs/herb_seaweed.png`;
-    if (n.includes("crystal") || n.includes("arcane") || n.includes("magic")) return `/icons/resources/herbs/herb_crystalplant.png`;
-    return `/icons/resources/herbs/herb_leaf.png`;
+    if (n.includes("bundle") && n.includes("berr")) return assetUrl(`/icons/resources/herbs/herb_bundle_berries.png`);
+    if (n.includes("bundle") || n.includes("bunch")) return assetUrl(`/icons/resources/herbs/herb_bundle.png`);
+    if (n.includes("branch") || n.includes("twig")) return assetUrl(`/icons/resources/herbs/herb_branch.png`);
+    if (n.includes("leaves") || n.includes("foliage")) return assetUrl(`/icons/resources/herbs/herb_leaves.png`);
+    if (n.includes("leaf") || n.includes("mint")) return assetUrl(`/icons/resources/herbs/herb_leaf.png`);
+    if (n.includes("bouquet") || n.includes("daisy") || n.includes("chamomile")) return assetUrl(`/icons/resources/herbs/herb_bouquet.png`);
+    if (n.includes("grass") || n.includes("blade")) return assetUrl(`/icons/resources/herbs/herb_grass.png`);
+    if (n.includes("lavender") || n.includes("berry")) return assetUrl(`/icons/resources/herbs/herb_lavender.png`);
+    if (n.includes("seaweed") || n.includes("kelp") || n.includes("algae")) return assetUrl(`/icons/resources/herbs/herb_seaweed.png`);
+    if (n.includes("crystal") || n.includes("arcane") || n.includes("magic")) return assetUrl(`/icons/resources/herbs/herb_crystalplant.png`);
+    return assetUrl(`/icons/resources/herbs/herb_leaf.png`);
   }
   // Backpacks
   if (item.name?.includes("Backpack") || item.name?.includes("Bag") || item.name?.includes("Satchel")) {
     const n = item.name?.toLowerCase() || "";
-    if (n.includes("green") || n.includes("ranger") || n.includes("forest")) return `/icons/items/backpacks/backpack_green.png`;
-    if (n.includes("blue") || n.includes("mage") || n.includes("mystic")) return `/icons/items/backpacks/backpack_blue.png`;
-    return `/icons/items/backpacks/backpack_brown.png`;
+    if (n.includes("green") || n.includes("ranger") || n.includes("forest")) return assetUrl(`/icons/items/backpacks/backpack_green.png`);
+    if (n.includes("blue") || n.includes("mage") || n.includes("mystic")) return assetUrl(`/icons/items/backpacks/backpack_blue.png`);
+    return assetUrl(`/icons/items/backpacks/backpack_brown.png`);
   }
-  if (item.name?.includes("Bow")) return `/icons/weapons/bows/bow_t${tier}.png`;
+  if (item.name?.includes("Bow")) return assetUrl(`/icons/weapons/bows/bow_t${tier}.png`);
   if (item.name?.includes("Staff") || item.name?.includes("Wand")) {
     const n = item.name?.toLowerCase() || "";
     const staffTier = Math.min(tier, 6); // 6 staff designs available
@@ -469,11 +470,11 @@ export const resolveItemImage = (item: Partial<GrudaItem>): string => {
     else if (n.includes("arcane") || n.includes("void") || n.includes("shadow")) color = "purple";
     else if (n.includes("nature") || n.includes("life") || n.includes("earth")) color = "green";
     else if (n.includes("frost") || n.includes("ice") || n.includes("water")) color = "blue";
-    return `/icons/weapons/staves/staff_t${staffTier}_${color}.png`;
+    return assetUrl(`/icons/weapons/staves/staff_t${staffTier}_${color}.png`);
   }
-  if (item.name?.includes("Mace")) return `/icons/weapons/hammers/hammer1h_t${tier}.png`;
-  if (item.name?.includes("Spear")) return `/icons/weapons/staves/staff_t${Math.min(tier, 6)}_blue.png`;
-  if (item.name?.includes("Scythe")) return `/icons/weapons/greataxes/greataxe_t${tier}.png`;
+  if (item.name?.includes("Mace")) return assetUrl(`/icons/weapons/hammers/hammer1h_t${tier}.png`);
+  if (item.name?.includes("Spear")) return assetUrl(`/icons/weapons/staves/staff_t${Math.min(tier, 6)}_blue.png`);
+  if (item.name?.includes("Scythe")) return assetUrl(`/icons/weapons/greataxes/greataxe_t${tier}.png`);
   
   // Armor - use resource icons or specific armor icons
   if (item.type === "Armor" || item.type === "armor") {
@@ -485,10 +486,10 @@ export const resolveItemImage = (item: Partial<GrudaItem>): string => {
       // Map tier to pants icon (1-8 tier maps to 1-40+ icons available)
       const pantsVariant = ((tier - 1) * 5 + 1);
       const pantsIndex = Math.min(Math.max(pantsVariant, 1), 41);
-      return `/icons/armor/Pants_${String(pantsIndex).padStart(2, '0')}.png`;
+      return assetUrl(`/icons/armor/Pants_${String(pantsIndex).padStart(2, '0')}.png`);
     }
     
-    return `/icons/armor/${slot}/default_t${tier}.png`;
+    return assetUrl(`/icons/armor/${slot}/default_t${tier}.png`);
   }
 
   // Resources - use specific resource icons
@@ -496,59 +497,59 @@ export const resolveItemImage = (item: Partial<GrudaItem>): string => {
     const n = item.name?.toLowerCase() || "";
     
     // Skinning resources - use dedicated skinning icons
-    if (n.includes("rough hide") || n.includes("thick hide")) return `/icons/resources/skinning/rough_hide.png`;
-    if (n.includes("dragon scale")) return `/icons/resources/skinning/dragon_scales.png`;
-    if (n.includes("serpent scale") || n.includes("snake scale")) return `/icons/resources/skinning/serpent_scales.png`;
-    if (n.includes("leather roll") || n.includes("cured leather")) return `/icons/resources/skinning/leather_roll.png`;
-    if (n.includes("toad skin") || n.includes("frog skin")) return `/icons/resources/skinning/toad_skin.png`;
-    if (n.includes("beast claw") || n.includes("claw")) return `/icons/resources/skinning/beast_claw.png`;
-    if (n.includes("mane") && !n.includes("lion")) return `/icons/resources/skinning/mane.png`;
-    if (n.includes("lion mane")) return `/icons/resources/skinning/lion_mane.png`;
-    if (n.includes("fin")) return `/icons/resources/skinning/fin.png`;
-    if (n.includes("wool") || n.includes("fleece")) return `/icons/resources/skinning/wool.png`;
-    if (n.includes("feather")) return `/icons/resources/skinning/feathers.png`;
-    if (n.includes("spotted fur") || n.includes("spotted pelt")) return `/icons/resources/skinning/spotted_fur.png`;
-    if (n.includes("tiger") || n.includes("striped")) return `/icons/resources/skinning/tiger_fur.png`;
-    if (n.includes("white fur") || n.includes("arctic") || n.includes("polar")) return `/icons/resources/skinning/white_fur.png`;
-    if (n.includes("gray tail") || n.includes("wolf tail")) return `/icons/resources/skinning/gray_tail.png`;
-    if (n.includes("fine leather") || n.includes("quality leather")) return `/icons/resources/skinning/fine_leather.png`;
-    if (n.includes("snow leopard") || n.includes("leopard fur")) return `/icons/resources/skinning/snow_leopard_fur.png`;
-    if (n.includes("fur") || n.includes("pelt")) return `/icons/resources/skinning/spotted_fur.png`;
-    if (n.includes("hide") || n.includes("leather")) return `/icons/resources/skinning/rough_hide.png`;
-    if (n.includes("scale")) return `/icons/resources/skinning/serpent_scales.png`;
+    if (n.includes("rough hide") || n.includes("thick hide")) return assetUrl(`/icons/resources/skinning/rough_hide.png`);
+    if (n.includes("dragon scale")) return assetUrl(`/icons/resources/skinning/dragon_scales.png`);
+    if (n.includes("serpent scale") || n.includes("snake scale")) return assetUrl(`/icons/resources/skinning/serpent_scales.png`);
+    if (n.includes("leather roll") || n.includes("cured leather")) return assetUrl(`/icons/resources/skinning/leather_roll.png`);
+    if (n.includes("toad skin") || n.includes("frog skin")) return assetUrl(`/icons/resources/skinning/toad_skin.png`);
+    if (n.includes("beast claw") || n.includes("claw")) return assetUrl(`/icons/resources/skinning/beast_claw.png`);
+    if (n.includes("mane") && !n.includes("lion")) return assetUrl(`/icons/resources/skinning/mane.png`);
+    if (n.includes("lion mane")) return assetUrl(`/icons/resources/skinning/lion_mane.png`);
+    if (n.includes("fin")) return assetUrl(`/icons/resources/skinning/fin.png`);
+    if (n.includes("wool") || n.includes("fleece")) return assetUrl(`/icons/resources/skinning/wool.png`);
+    if (n.includes("feather")) return assetUrl(`/icons/resources/skinning/feathers.png`);
+    if (n.includes("spotted fur") || n.includes("spotted pelt")) return assetUrl(`/icons/resources/skinning/spotted_fur.png`);
+    if (n.includes("tiger") || n.includes("striped")) return assetUrl(`/icons/resources/skinning/tiger_fur.png`);
+    if (n.includes("white fur") || n.includes("arctic") || n.includes("polar")) return assetUrl(`/icons/resources/skinning/white_fur.png`);
+    if (n.includes("gray tail") || n.includes("wolf tail")) return assetUrl(`/icons/resources/skinning/gray_tail.png`);
+    if (n.includes("fine leather") || n.includes("quality leather")) return assetUrl(`/icons/resources/skinning/fine_leather.png`);
+    if (n.includes("snow leopard") || n.includes("leopard fur")) return assetUrl(`/icons/resources/skinning/snow_leopard_fur.png`);
+    if (n.includes("fur") || n.includes("pelt")) return assetUrl(`/icons/resources/skinning/spotted_fur.png`);
+    if (n.includes("hide") || n.includes("leather")) return assetUrl(`/icons/resources/skinning/rough_hide.png`);
+    if (n.includes("scale")) return assetUrl(`/icons/resources/skinning/serpent_scales.png`);
     
     // Other resources
-    if (n.includes("ore") || n.includes("metal")) return `/sprites/resources/ore_t${tier}.png`;
-    if (n.includes("wood") || n.includes("log")) return `/sprites/resources/wood_t${tier}.png`;
-    if (n.includes("herb")) return `/sprites/resources/herb_t${tier}.png`;
-    if (n.includes("gem")) return `/sprites/resources/gem_${n.includes("red") ? "red" : n.includes("green") ? "green" : "blue"}.png`;
-    if (n.includes("flower")) return `/sprites/resources/flower_${n.includes("red") ? "red" : n.includes("blue") ? "blue" : n.includes("white") ? "white" : "yellow"}.png`;
-    if (n.includes("mushroom")) return `/sprites/resources/mushroom.png`;
-    if (n.includes("whisp")) return `/sprites/resources/whisp_${n.includes("red") ? "red" : n.includes("green") ? "green" : n.includes("purple") ? "purple" : "blue"}.png`;
-    if (n.includes("fish")) return `/sprites/resources/fish.png`;
-    if (n.includes("meat")) return `/sprites/resources/meat.png`;
-    if (n.includes("crab")) return `/sprites/resources/crab.png`;
-    if (n.includes("squid")) return `/sprites/resources/squid.png`;
-    if (n.includes("egg")) return `/sprites/resources/drake_egg.png`;
-    if (n.includes("ingot")) return `/sprites/resources/ingot_t${tier}.png`;
-    if (n.includes("potion")) return `/sprites/resources/potion.png`;
-    if (n.includes("flask")) return `/sprites/resources/flask.png`;
-    if (n.includes("rope")) return `/sprites/resources/rope.png`;
-    if (n.includes("fat")) return `/sprites/resources/fat.png`;
-    if (n.includes("silk") || n.includes("hemp") || n.includes("linen")) return `/sprites/resources/cloth.png`;
-    if (n.includes("gear") || n.includes("cog") || n.includes("wheel")) return `/sprites/resources/gear_part.png`;
-    if (n.includes("blade") || n.includes("handle")) return `/sprites/resources/weapon_part.png`;
-    return `/sprites/resources/misc.png`;
+    if (n.includes("ore") || n.includes("metal")) return assetUrl(`/sprites/resources/ore_t${tier}.png`);
+    if (n.includes("wood") || n.includes("log")) return assetUrl(`/sprites/resources/wood_t${tier}.png`);
+    if (n.includes("herb")) return assetUrl(`/sprites/resources/herb_t${tier}.png`);
+    if (n.includes("gem")) return assetUrl(`/sprites/resources/gem_${n.includes("red") ? "red" : n.includes("green") ? "green" : "blue"}.png`);
+    if (n.includes("flower")) return assetUrl(`/sprites/resources/flower_${n.includes("red") ? "red" : n.includes("blue") ? "blue" : n.includes("white") ? "white" : "yellow"}.png`);
+    if (n.includes("mushroom")) return assetUrl(`/sprites/resources/mushroom.png`);
+    if (n.includes("whisp")) return assetUrl(`/sprites/resources/whisp_${n.includes("red") ? "red" : n.includes("green") ? "green" : n.includes("purple") ? "purple" : "blue"}.png`);
+    if (n.includes("fish")) return assetUrl(`/sprites/resources/fish.png`);
+    if (n.includes("meat")) return assetUrl(`/sprites/resources/meat.png`);
+    if (n.includes("crab")) return assetUrl(`/sprites/resources/crab.png`);
+    if (n.includes("squid")) return assetUrl(`/sprites/resources/squid.png`);
+    if (n.includes("egg")) return assetUrl(`/sprites/resources/drake_egg.png`);
+    if (n.includes("ingot")) return assetUrl(`/sprites/resources/ingot_t${tier}.png`);
+    if (n.includes("potion")) return assetUrl(`/sprites/resources/potion.png`);
+    if (n.includes("flask")) return assetUrl(`/sprites/resources/flask.png`);
+    if (n.includes("rope")) return assetUrl(`/sprites/resources/rope.png`);
+    if (n.includes("fat")) return assetUrl(`/sprites/resources/fat.png`);
+    if (n.includes("silk") || n.includes("hemp") || n.includes("linen")) return assetUrl(`/sprites/resources/cloth.png`);
+    if (n.includes("gear") || n.includes("cog") || n.includes("wheel")) return assetUrl(`/sprites/resources/gear_part.png`);
+    if (n.includes("blade") || n.includes("handle")) return assetUrl(`/sprites/resources/weapon_part.png`);
+    return assetUrl(`/sprites/resources/misc.png`);
   }
 
   if (item.type === "Accessory") {
     const n = item.name?.toLowerCase() || "";
-    if (n.includes("ring")) return `/sprites/resources/ring.png`;
-    if (n.includes("amulet") || n.includes("necklace")) return `/sprites/resources/amulet.png`;
-    return `/sprites/resources/accessory.png`;
+    if (n.includes("ring")) return assetUrl(`/sprites/resources/ring.png`);
+    if (n.includes("amulet") || n.includes("necklace")) return assetUrl(`/sprites/resources/amulet.png`);
+    return assetUrl(`/sprites/resources/accessory.png`);
   }
 
-  return "/sprites/resources/misc.png";
+  return assetUrl("/sprites/resources/misc.png");
 };
 
 export interface GrudaRecipe {

@@ -17,6 +17,7 @@ import {
   Palette,
   Sparkles,
 } from "lucide-react";
+import { assetUrl } from "@/lib/assetConfig";
 
 type TemplateSize = "16x16" | "16x32";
 type AnimationType = "Idle" | "Walk" | "Run" | "Jump" | "Interact" | "Rotate";
@@ -67,11 +68,11 @@ export default function TemplateViewerPage() {
 
   useEffect(() => {
     const img = new Image();
-    img.src = `/sprites/templates/eris/${templateSize}/${templateSize} ${animation}-Sheet.png`;
+    img.src = assetUrl(`/sprites/templates/eris/${templateSize}/${templateSize} ${animation}-Sheet.png`);
     img.onload = () => setSpriteImage(img);
     img.onerror = () => {
       const allImg = new Image();
-      allImg.src = `/sprites/templates/eris/${templateSize}/${templateSize} All Animations.png`;
+      allImg.src = assetUrl(`/sprites/templates/eris/${templateSize}/${templateSize} All Animations.png`);
       allImg.onload = () => setSpriteImage(allImg);
     };
   }, [templateSize, animation]);

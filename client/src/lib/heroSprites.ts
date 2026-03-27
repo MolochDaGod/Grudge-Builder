@@ -1,3 +1,4 @@
+import { assetUrl } from "@/lib/assetConfig";
 export type HeroRace = 'elf' | 'orc' | 'human' | 'barbarian' | 'dwarf' | 'undead';
 export type AnimationType = 'walk' | 'death' | 'attack' | 'magic' | 'idle';
 
@@ -92,38 +93,38 @@ function createHeroConfig(race: HeroRace, displayName: string, faction: 'crusade
     race,
     displayName,
     faction,
-    referenceImage: `/sprites/heroes/heros_reference.png`,
+    referenceImage: assetUrl(`/sprites/heroes/heros_reference.png`),
     animations: {
       idle: {
-        spriteSheet: `/sprites/heroes/${race}/walk.png`,
+        spriteSheet: assetUrl(`/sprites/heroes/${race}/walk.png`),
         boundingBoxes: IDLE_BBOX,
         frameCount: 4,
         fps: 4,
         loop: true,
       },
       walk: {
-        spriteSheet: `/sprites/heroes/${race}/walk.png`,
+        spriteSheet: assetUrl(`/sprites/heroes/${race}/walk.png`),
         boundingBoxes: WALK_BBOX,
         frameCount: 15,
         fps: 12,
         loop: true,
       },
       death: {
-        spriteSheet: `/sprites/heroes/${race}/death.png`,
+        spriteSheet: assetUrl(`/sprites/heroes/${race}/death.png`),
         boundingBoxes: DEATH_BBOX,
         frameCount: 14,
         fps: 10,
         loop: false,
       },
       attack: {
-        spriteSheet: `/sprites/heroes/${race}/attack.png`,
+        spriteSheet: assetUrl(`/sprites/heroes/${race}/attack.png`),
         boundingBoxes: ATTACK_BBOX,
         frameCount: 15,
         fps: 14,
         loop: false,
       },
       magic: {
-        spriteSheet: `/sprites/heroes/${race}/magic.png`,
+        spriteSheet: assetUrl(`/sprites/heroes/${race}/magic.png`),
         boundingBoxes: ATTACK_BBOX,
         frameCount: 15,
         fps: 12,

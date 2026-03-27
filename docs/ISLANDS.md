@@ -73,46 +73,71 @@ export const resourceNodes = pgTable("resource_nodes", {
 | Fishing Spot  | 2 minutes    | 1-3 fish         |
 | Berry Bush    | 4 minutes    | 3-6 berries      |
 
+## A* Pathfinding & Hero Movement
+
+### Pathfinding
+
+Heroes use A* pathfinding on the 200×200 tile grid to navigate around mountains, water, and obstacles.
+
+- **8-directional movement** with octile distance heuristic
+- **Binary min-heap** priority queue for performance
+- **Path simplification** to reduce waypoint count
+- **Fallback teleport** if no path is found (e.g. water nodes)
+- Node positions are validated on load — land nodes on non-walkable tiles are nudged to nearest walkable tile
+
+### Movement System
+
+- `HeroMovementManager` advances heroes step-by-step along A* waypoint paths
+- **60fps tick loop** via `requestAnimationFrame` drives smooth hero movement
+- Speed: ~3 world-units/sec (crosses island in ~33 seconds)
+- On arrival at target node → auto-assigns hero and triggers first harvest
+- Heroes show Walk animation while pathfinding, Attack while harvesting, Idle otherwise
+
+### Integration Points
+
+- **Manual assign**: Click hero → click node → hero pathfinds to node
+- **Auto-harvest**: Auto-assigned heroes pathfind to best available node
+- **Unassign/Recall**: Heroes pathfind back to camp
+- **Return All**: All heroes pathfind back to camp simultaneously
+
 ## Building System
 
-### Building Types
+### Building Types (MiniWorld Sprites)
 
-| Building      | Function                          |
-|---------------|-----------------------------------|
-| House         | Increases character slots         |
-| Warehouse     | Increases storage capacity        |
-| Workshop      | Crafting station                  |
-| Farm          | Passive resource generation       |
-| Harbor        | Ship upgrades and repairs         |
-| Barracks      | Training and abilities            |
-| Temple        | Buffs and blessings               |
-| Market        | Trading with NPCs                 |
+Buildings use sprite assets from `/sprites/miniworld/Buildings/` with Wood, Cyan, Lime, Purple, Red color variants.
+
+| Building  | Icon | Max | Cost            | Bonus                                    | Requires Keep |
+|-----------|------|-----|-----------------|------------------------------------------|---------------|
+| Keep      | 🏰   | 1   | 500g 200w 150s  | +1 hero slot (Island HQ)                 | No            |
+| Hut       | 🛖   | 4   | 50g 25w         | +25 storage                              | No            |
+| Tavern    | 🍺   | 2   | 300g 100w       | 2× stamina recovery                      | Yes           |
+| Workshop  | ⚒️   | 2   | 400g 150w 50s   | -15% harvest interval                    | Yes           |
+| Market    | 🏪   | 1   | 350g 100w       | +20% gold sell price                     | Yes           |
+| Barracks  | ⚔️   | 2   | 450g 200w 100s  | +1 hero slot                             | Yes           |
+| Tower     | 🗼   | 4   | 250g 100s       | Wider vision, enemy alerts               | Yes           |
+| Chapel    | ⛪   | 1   | 400g 100w 100s  | +25% profession XP                       | Yes           |
+| Dock      | ⚓   | 2   | 300g 200w       | +30% fishing speed, boat travel          | Yes           |
+| Farm      | 🌾   | 3   | 200g 50w        | Passive food & herbs every 10 min        | Yes           |
+| House     | 🏠   | 6   | 100g 50w        | +50 storage                              | Yes           |
 
 ### Building Placement
 
-Buildings are placed on designated plots:
+Buildings are placed via click-to-place UI:
+1. Click Build button in top toolbar
+2. Select a building from the panel
+3. Click on the island map to place
 
-```typescript
-export const islandBuildings = pgTable("island_buildings", {
-  id: varchar("id").primaryKey(),
-  islandId: varchar("island_id").notNull(),
-  buildingType: text("building_type").notNull(),
-  plotX: integer("plot_x").notNull(),
-  plotY: integer("plot_y").notNull(),
-  level: integer("level").default(1),
-  constructionProgress: integer("construction_progress").default(100),
-});
-```
+Placement validates:
+- Keep requirement (most buildings need Keep first)
+- Max count per building type
+- World coordinate bounds
 
-### Building Upgrades
+### Building Bonuses
 
-| Level | Upgrade Cost      | Benefits              |
-|-------|-------------------|-----------------------|
-| 1     | Base materials    | Basic functionality   |
-| 2     | 2× materials      | +50% efficiency       |
-| 3     | 5× materials      | +100% efficiency      |
-| 4     | 10× materials     | Special abilities     |
-| 5     | 20× materials     | Maximum level         |
+Bonuses stack and scale with building level (Lv2 = 1.25×, Lv3 = 1.5×):
+- **Multiplicative**: harvest speed, XP, gold sell price
+- **Additive**: hero slots, storage, passive resources, fishing speed
+- **Boolean**: dock (boat travel), tower (vision)
 
 ## Camera Controls (RTS Style)
 
@@ -230,19 +255,24 @@ PUT  /api/islands/:id/buildings/:bid  - Upgrade building
 ### Frontend
 | File | Purpose |
 |------|---------|
-| `client/src/pages/island.tsx` | Main island page |
+| `client/src/pages/island.tsx` | Main island page (pathfinding, buildings, movement tick) |
 | `client/src/components/IslandSidebar.tsx` | Heroes/activity sidebar |
 | `client/src/components/IslandTileRenderer.tsx` | Tile-based rendering |
 | `client/src/components/IslandChat.tsx` | AI companion chat |
 | `client/src/components/IslandCutscene.tsx` | Island intro cutscene |
 | `client/src/components/HarvestPopup.tsx` | Harvest feedback popup |
-| `client/src/lib/islandSystem.ts` | Island game logic |
-| `client/src/lib/islandTileGrid.ts` | Tile grid utilities |
+| `client/src/lib/islandSystem.ts` | Island game logic, node generation, animals |
+| `client/src/lib/islandTileGrid.ts` | 200×200 tile grid generation, heightmap, walkability |
+| `client/src/lib/islandPathfinder.ts` | A* pathfinding with binary heap, 8-directional |
+| `client/src/lib/heroMovementSystem.ts` | Step-by-step hero movement along waypoint paths |
+| `client/src/lib/islandBuildings.ts` | Building types, sprites, bonuses, placement validation |
+| `client/src/lib/islandCamera.ts` | RTS camera pan/zoom/transform |
 | `client/src/lib/characterState.ts` | Character stamina/state management |
 
 ### Sprite Assets
 | Directory | Contents |
 |-----------|----------|
 | `public/sprites/resources/` | Resource node sprites |
-| `public/sprites/buildings/` | Building sprites |
+| `public/sprites/buildings/` | Building sprites (legacy market) |
+| `public/sprites/miniworld/Buildings/` | MiniWorld building sprites (Wood, Cyan, Lime, Purple, Red) |
 | `public/sprites/heroes/` | Hero character sprites |

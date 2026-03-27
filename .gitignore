@@ -17,6 +17,15 @@ server/public/
 *.mpq
 *.tar.gz
 *.blend
+*.eps
+*.glb
+*.gltf
+*.fbx
+*.obj
+*.stl
+
+# Attached/generated assets (not needed for build)
+attached_assets/
 
 # Secrets
 .env

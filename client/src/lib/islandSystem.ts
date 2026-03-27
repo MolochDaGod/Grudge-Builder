@@ -1,5 +1,6 @@
 import { puterKV } from "./puterIntegration";
 import { v4 as uuidv4 } from 'uuid';
+import { assetUrl } from "@/lib/assetConfig";
 
 export interface LootDrop {
   itemId: string;
@@ -225,8 +226,8 @@ export const ANIMAL_CONFIGS: Record<AnimalType, AnimalConfig> = {
     name: 'Hare',
     rarity: 'common',
     spawnWeight: 50,
-    walkSprite: '/sprites/topdown/animals/Tiled/Hare_Walk_with_shadow.png',
-    deathSprite: '/sprites/topdown/animals/Tiled/Hare_Death_with_shadow.png',
+    walkSprite: assetUrl("/sprites/topdown/animals/Tiled/Hare_Walk_with_shadow.png"),
+    deathSprite: assetUrl("/sprites/topdown/animals/Tiled/Hare_Death_with_shadow.png"),
     frameWidth: 32,
     frameHeight: 32,
     walkFrames: 5,
@@ -238,8 +239,8 @@ export const ANIMAL_CONFIGS: Record<AnimalType, AnimalConfig> = {
     name: 'Fox',
     rarity: 'rare',
     spawnWeight: 30,
-    walkSprite: '/sprites/topdown/animals/Tiled/Fox_walk_with_shadow.png',
-    deathSprite: '/sprites/topdown/animals/Tiled/Fox_Death_with_shadow.png',
+    walkSprite: assetUrl("/sprites/topdown/animals/Tiled/Fox_walk_with_shadow.png"),
+    deathSprite: assetUrl("/sprites/topdown/animals/Tiled/Fox_Death_with_shadow.png"),
     frameWidth: 32,
     frameHeight: 32,
     walkFrames: 6,
@@ -251,8 +252,8 @@ export const ANIMAL_CONFIGS: Record<AnimalType, AnimalConfig> = {
     name: 'Deer',
     rarity: 'epic',
     spawnWeight: 15,
-    walkSprite: '/sprites/topdown/animals/Tiled/Deer_Walk_with_shadow.png',
-    deathSprite: '/sprites/topdown/animals/Tiled/Deer_Death_with_shadow.png',
+    walkSprite: assetUrl("/sprites/topdown/animals/Tiled/Deer_Walk_with_shadow.png"),
+    deathSprite: assetUrl("/sprites/topdown/animals/Tiled/Deer_Death_with_shadow.png"),
     frameWidth: 32,
     frameHeight: 32,
     walkFrames: 6,
@@ -264,8 +265,8 @@ export const ANIMAL_CONFIGS: Record<AnimalType, AnimalConfig> = {
     name: 'Boar',
     rarity: 'legendary',
     spawnWeight: 5,
-    walkSprite: '/sprites/topdown/animals/Tiled/Boar_Run_with_shadow.png',
-    deathSprite: '/sprites/topdown/animals/Tiled/Boar_Death_with_shadow.png',
+    walkSprite: assetUrl("/sprites/topdown/animals/Tiled/Boar_Run_with_shadow.png"),
+    deathSprite: assetUrl("/sprites/topdown/animals/Tiled/Boar_Death_with_shadow.png"),
     frameWidth: 32,
     frameHeight: 32,
     walkFrames: 5,

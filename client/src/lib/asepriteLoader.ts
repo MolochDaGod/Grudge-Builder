@@ -1,3 +1,4 @@
+import { assetUrl } from "@/lib/assetConfig";
 export interface AsepriteFrame {
   duration: number;
   x: number;
@@ -40,8 +41,8 @@ export interface SpriteMapping {
   }>;
 }
 
-const ASEPRITE_BASE_PATH = "/sprites/GrudgeRPGAssets2d/Aseprite file";
-const CHARACTER_BASE_PATH = "/sprites/GrudgeRPGAssets2d/Characters(100x100)";
+const ASEPRITE_BASE_PATH = assetUrl("/sprites/GrudgeRPGAssets2d/Aseprite file");
+const CHARACTER_BASE_PATH = assetUrl("/sprites/GrudgeRPGAssets2d/Characters(100x100)");
 
 export const ASEPRITE_CHARACTER_MAPPINGS: Record<string, SpriteMapping> = {
   "Archer": {

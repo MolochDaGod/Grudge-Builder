@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { cn } from "@/lib/utils";
+import { assetUrl } from "@/lib/assetConfig";
 
 export interface CombatBackground {
   id: string;
@@ -8,10 +9,10 @@ export interface CombatBackground {
 }
 
 export const COMBAT_BACKGROUNDS: CombatBackground[] = [
-  { id: "fields", name: "Open Fields", path: "/sprites/backgrounds/combat/fields_battle_background.png" },
-  { id: "market", name: "Town Market", path: "/sprites/backgrounds/combat/town_market_battle_background.png" },
-  { id: "settlement", name: "Settlement Gates", path: "/sprites/backgrounds/combat/settlement_battle_background.png" },
-  { id: "coast", name: "Island Coast", path: "/sprites/backgrounds/combat/island_coast_battle_background.png" },
+  { id: "fields", name: "Open Fields", path: assetUrl("/sprites/backgrounds/combat/fields_battle_background.png") },
+  { id: "market", name: "Town Market", path: assetUrl("/sprites/backgrounds/combat/town_market_battle_background.png") },
+  { id: "settlement", name: "Settlement Gates", path: assetUrl("/sprites/backgrounds/combat/settlement_battle_background.png") },
+  { id: "coast", name: "Island Coast", path: assetUrl("/sprites/backgrounds/combat/island_coast_battle_background.png") },
 ];
 
 export interface GridPosition {

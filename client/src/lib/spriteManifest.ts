@@ -1,3 +1,4 @@
+import { assetUrl } from "@/lib/assetConfig";
 /**
  * SPRITE MANIFEST - Central registry for all animated game sprites
  * 
@@ -86,7 +87,7 @@ export interface SpriteUnit {
   defaultTint?: string;
 }
 
-const GRUDGE_BASE = "/sprites/GrudgeRPGAssets2d/Characters(100x100)";
+const GRUDGE_BASE = assetUrl("/sprites/GrudgeRPGAssets2d/Characters(100x100)");
 
 function grudgeSprite(
   id: string, 
@@ -108,7 +109,7 @@ function grudgeSprite(
   };
 }
 
-const GRUDGE_EFFECTS_BASE = "/sprites/GrudgeRPGAssets2d/Characters(100x100)";
+const GRUDGE_EFFECTS_BASE = assetUrl("/sprites/GrudgeRPGAssets2d/Characters(100x100)");
 
 function getEffectPath(characterId: string, effectFile: string): string {
   return `${GRUDGE_EFFECTS_BASE}/${characterId}/${characterId}(Split Effects)/${effectFile}`;
@@ -373,7 +374,7 @@ export const SPRITE_MANIFEST: Record<string, SpriteUnit> = {
   "Vampire_Girl": {
     id: "Vampire_Girl",
     name: "Vampire Fledgling",
-    basePath: "/sprites/enemies/vampire/Vampire_Girl",
+    basePath: assetUrl("/sprites/enemies/vampire/Vampire_Girl"),
     frameWidth: 128,
     frameHeight: 128,
     tintable: false,
@@ -389,7 +390,7 @@ export const SPRITE_MANIFEST: Record<string, SpriteUnit> = {
   "Converted_Vampire": {
     id: "Converted_Vampire",
     name: "Converted Vampire",
-    basePath: "/sprites/enemies/vampire/Converted_Vampire",
+    basePath: assetUrl("/sprites/enemies/vampire/Converted_Vampire"),
     frameWidth: 128,
     frameHeight: 128,
     tintable: false,
@@ -405,7 +406,7 @@ export const SPRITE_MANIFEST: Record<string, SpriteUnit> = {
   "Countess_Vampire": {
     id: "Countess_Vampire",
     name: "Countess Valdara",
-    basePath: "/sprites/enemies/vampire/Countess_Vampire",
+    basePath: assetUrl("/sprites/enemies/vampire/Countess_Vampire"),
     frameWidth: 128,
     frameHeight: 128,
     tintable: false,
@@ -422,7 +423,7 @@ export const SPRITE_MANIFEST: Record<string, SpriteUnit> = {
   "Satyr_1": {
     id: "Satyr_1",
     name: "Satyr Warrior",
-    basePath: "/sprites/rpg/satyr/Satyr_1",
+    basePath: assetUrl("/sprites/rpg/satyr/Satyr_1"),
     frameWidth: 128,
     frameHeight: 128,
     tintable: false,
@@ -439,7 +440,7 @@ export const SPRITE_MANIFEST: Record<string, SpriteUnit> = {
   "Satyr_2": {
     id: "Satyr_2",
     name: "Satyr Shaman",
-    basePath: "/sprites/rpg/satyr/Satyr_2",
+    basePath: assetUrl("/sprites/rpg/satyr/Satyr_2"),
     frameWidth: 128,
     frameHeight: 128,
     tintable: false,
@@ -456,7 +457,7 @@ export const SPRITE_MANIFEST: Record<string, SpriteUnit> = {
   "Satyr_3": {
     id: "Satyr_3",
     name: "Satyr Elder",
-    basePath: "/sprites/rpg/satyr/Satyr_3",
+    basePath: assetUrl("/sprites/rpg/satyr/Satyr_3"),
     frameWidth: 128,
     frameHeight: 128,
     tintable: false,
@@ -473,7 +474,7 @@ export const SPRITE_MANIFEST: Record<string, SpriteUnit> = {
   "Shinobi": {
     id: "Shinobi",
     name: "Shinobi Assassin",
-    basePath: "/sprites/rpg/shinobi/Shinobi",
+    basePath: assetUrl("/sprites/rpg/shinobi/Shinobi"),
     frameWidth: 128,
     frameHeight: 128,
     tintable: false,
@@ -489,7 +490,7 @@ export const SPRITE_MANIFEST: Record<string, SpriteUnit> = {
   "Samurai": {
     id: "Samurai",
     name: "Samurai Warrior",
-    basePath: "/sprites/rpg/shinobi/Samurai",
+    basePath: assetUrl("/sprites/rpg/shinobi/Samurai"),
     frameWidth: 128,
     frameHeight: 128,
     tintable: false,
@@ -505,7 +506,7 @@ export const SPRITE_MANIFEST: Record<string, SpriteUnit> = {
   "Fighter": {
     id: "Fighter",
     name: "Fighter",
-    basePath: "/sprites/rpg/shinobi/Fighter",
+    basePath: assetUrl("/sprites/rpg/shinobi/Fighter"),
     frameWidth: 128,
     frameHeight: 128,
     tintable: false,
@@ -522,7 +523,7 @@ export const SPRITE_MANIFEST: Record<string, SpriteUnit> = {
   "Black_Werewolf": {
     id: "Black_Werewolf",
     name: "Shadow Worg (Legion)",
-    basePath: "/sprites/rpg/werewolf/Black_Werewolf",
+    basePath: assetUrl("/sprites/rpg/werewolf/Black_Werewolf"),
     frameWidth: 128,
     frameHeight: 128,
     tintable: false,
@@ -539,7 +540,7 @@ export const SPRITE_MANIFEST: Record<string, SpriteUnit> = {
   "Red_Werewolf": {
     id: "Red_Werewolf",
     name: "Blood Worg (Crusade)",
-    basePath: "/sprites/rpg/werewolf/Red_Werewolf",
+    basePath: assetUrl("/sprites/rpg/werewolf/Red_Werewolf"),
     frameWidth: 128,
     frameHeight: 128,
     tintable: false,
@@ -556,7 +557,7 @@ export const SPRITE_MANIFEST: Record<string, SpriteUnit> = {
   "White_Werewolf": {
     id: "White_Werewolf",
     name: "Frost Worg (Fabled)",
-    basePath: "/sprites/rpg/werewolf/White_Werewolf",
+    basePath: assetUrl("/sprites/rpg/werewolf/White_Werewolf"),
     frameWidth: 128,
     frameHeight: 128,
     tintable: false,
@@ -573,7 +574,7 @@ export const SPRITE_MANIFEST: Record<string, SpriteUnit> = {
   "Knight_1": {
     id: "Knight_1",
     name: "Knight Captain",
-    basePath: "/sprites/rpg/knight/Knight_1",
+    basePath: assetUrl("/sprites/rpg/knight/Knight_1"),
     frameWidth: 128,
     frameHeight: 128,
     tintable: false,
@@ -591,7 +592,7 @@ export const SPRITE_MANIFEST: Record<string, SpriteUnit> = {
   "Knight_2": {
     id: "Knight_2",
     name: "Knight Champion",
-    basePath: "/sprites/rpg/knight/Knight_2",
+    basePath: assetUrl("/sprites/rpg/knight/Knight_2"),
     frameWidth: 128,
     frameHeight: 128,
     tintable: false,
@@ -609,7 +610,7 @@ export const SPRITE_MANIFEST: Record<string, SpriteUnit> = {
   "Knight_3": {
     id: "Knight_3",
     name: "Knight Commander",
-    basePath: "/sprites/rpg/knight/Knight_3",
+    basePath: assetUrl("/sprites/rpg/knight/Knight_3"),
     frameWidth: 128,
     frameHeight: 128,
     tintable: false,
@@ -627,7 +628,7 @@ export const SPRITE_MANIFEST: Record<string, SpriteUnit> = {
   "Fire_Spirit": {
     id: "Fire_Spirit",
     name: "Fire Spirit",
-    basePath: "/sprites/enemies/fantasy/Fire_Spirit",
+    basePath: assetUrl("/sprites/enemies/fantasy/Fire_Spirit"),
     frameWidth: 128,
     frameHeight: 128,
     tintable: false,
@@ -645,7 +646,7 @@ export const SPRITE_MANIFEST: Record<string, SpriteUnit> = {
   "Plent": {
     id: "Plent",
     name: "Poison Plant",
-    basePath: "/sprites/enemies/fantasy/Plent",
+    basePath: assetUrl("/sprites/enemies/fantasy/Plent"),
     frameWidth: 128,
     frameHeight: 128,
     tintable: false,
@@ -662,7 +663,7 @@ export const SPRITE_MANIFEST: Record<string, SpriteUnit> = {
   "Fantasy_Skeleton": {
     id: "Fantasy_Skeleton",
     name: "Skeleton Warrior",
-    basePath: "/sprites/enemies/fantasy/Skeleton",
+    basePath: assetUrl("/sprites/enemies/fantasy/Skeleton"),
     frameWidth: 128,
     frameHeight: 128,
     tintable: false,

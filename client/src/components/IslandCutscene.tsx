@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Anchor, Ship } from "lucide-react";
+import { assetUrl } from "@/lib/assetConfig";
 
 interface IslandCutsceneProps {
   onComplete: (islandName: string) => void;
@@ -124,13 +125,13 @@ export function IslandCutscene({
       >
         <div className="relative w-48 h-auto">
           <img 
-            src="/sprites/pirate/sailboat-side.png" 
+            src={assetUrl("/sprites/pirate/sailboat-side.png")} 
             alt="Sailboat Hull"
             className="w-full h-auto drop-shadow-2xl"
             style={{ imageRendering: 'pixelated' }}
           />
           <motion.img 
-            src="/sprites/pirate/sailboat-sails-side.png" 
+            src={assetUrl("/sprites/pirate/sailboat-sails-side.png")} 
             alt="Sails"
             className="absolute top-0 left-0 w-full h-auto"
             style={{ imageRendering: 'pixelated' }}
@@ -140,7 +141,7 @@ export function IslandCutscene({
           
           <div className="absolute bottom-[45%] left-1/2 transform -translate-x-1/2 flex gap-1">
             <img 
-              src="/sprites/miniworld/Characters/Soldiers/Melee/AxemanTemplate.png" 
+              src={assetUrl("/sprites/miniworld/Characters/Soldiers/Melee/AxemanTemplate.png")} 
               alt="Axeman"
               className="w-8 h-8 object-contain"
               style={{ 

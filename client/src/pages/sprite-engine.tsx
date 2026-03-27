@@ -30,7 +30,7 @@ import { Slider } from "@/components/ui/slider";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { 
+import {
   AnimationState, 
   ANIMATION_CONFIGS, 
   loadImage, 
@@ -39,6 +39,7 @@ import {
   generateAllAnimations,
   exportSpriteSheetAsImage
 } from "@/lib/spriteAnimationEngine";
+import { assetUrl } from "@/lib/assetConfig";
 
 interface LoadedSprite {
   id: string;
@@ -48,13 +49,13 @@ interface LoadedSprite {
 }
 
 const PRESET_SPRITES: LoadedSprite[] = [
-  { id: "footman", name: "Footman", src: "/sprites/characters/footman_1766725464387.png" },
-  { id: "necro", name: "Necromancer", src: "/sprites/characters/necro_1766725464388.png" },
-  { id: "grunt", name: "Orc Grunt", src: "/sprites/characters/grunt_1766725464389.png" },
-  { id: "knight", name: "Knight", src: "/sprites/characters/Knights_1766725464389.png" },
-  { id: "tank", name: "Armored Tank", src: "/sprites/characters/armoredtank_1766725464389.png" },
-  { id: "bowyer", name: "Bowyer", src: "/sprites/characters/bowyer_1766725464390.png" },
-  { id: "blacksmith", name: "Blacksmith", src: "/sprites/characters/Blacksmith_1766725464390.png" },
+  { id: "footman", name: "Footman", src: assetUrl("/sprites/characters/footman_1766725464387.png") },
+  { id: "necro", name: "Necromancer", src: assetUrl("/sprites/characters/necro_1766725464388.png") },
+  { id: "grunt", name: "Orc Grunt", src: assetUrl("/sprites/characters/grunt_1766725464389.png") },
+  { id: "knight", name: "Knight", src: assetUrl("/sprites/characters/Knights_1766725464389.png") },
+  { id: "tank", name: "Armored Tank", src: assetUrl("/sprites/characters/armoredtank_1766725464389.png") },
+  { id: "bowyer", name: "Bowyer", src: assetUrl("/sprites/characters/bowyer_1766725464390.png") },
+  { id: "blacksmith", name: "Blacksmith", src: assetUrl("/sprites/characters/Blacksmith_1766725464390.png") },
 ];
 
 const ANIMATION_ICONS: Record<AnimationState, React.ReactNode> = {

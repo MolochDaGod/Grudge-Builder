@@ -31,13 +31,14 @@ import {
   createNewIsland,
   NODE_RARITY_CONFIG,
 } from "@/lib/islandSystem";
+import { assetUrl } from "@/lib/assetConfig";
 
 const WORLD_SIZE = 800;
 const TILE_SIZE = 32;
 
 function getDefaultSpriteConfig() {
   return {
-    spriteSheet: '/sprites/topdown/characters/hero_idle.png',
+    spriteSheet: assetUrl("/sprites/topdown/characters/hero_idle.png"),
     frameWidth: 32,
     frameHeight: 32,
     animations: createCharacterAnimations([0], [0, 1, 2, 3], [0, 1], [0]),

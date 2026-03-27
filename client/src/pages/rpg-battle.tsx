@@ -26,11 +26,12 @@ import {
   type ClassType
 } from "@shared/combatCalculations";
 import { cn } from "@/lib/utils";
-import { 
+import {
   Sword, Shield, Zap, Sparkles, Heart, Droplet, Battery,
   Target, RotateCcw, Play, Pause, ChevronRight, Skull, 
   Trophy, Home, Star, Flame, Snowflake, Wind, User, Ghost
 } from "lucide-react";
+import { assetUrl } from "@/lib/assetConfig";
 
 type CombatAbility = SkillDefinition | SpellDefinition | WeaponAbility;
 
@@ -718,7 +719,7 @@ export default function RPGBattle() {
             )}>
               {(enemy.isBoss || enemy.isMiniBoss) && (
                 <img 
-                  src="/sprites/ui/boss-indicator.png" 
+                  src={assetUrl("/sprites/ui/boss-indicator.png")} 
                   alt={enemy.isBoss ? "Boss" : "Elite"} 
                   className={cn(
                     "animate-pulse",
@@ -758,7 +759,7 @@ export default function RPGBattle() {
             >
               {(enemy.isBoss || enemy.isMiniBoss) && (
                 <img 
-                  src="/sprites/ui/boss-indicator.png" 
+                  src={assetUrl("/sprites/ui/boss-indicator.png")} 
                   alt={enemy.isBoss ? "Boss" : "Mini-Boss"} 
                   className={cn(
                     "absolute left-1/2 transform -translate-x-1/2 z-10",

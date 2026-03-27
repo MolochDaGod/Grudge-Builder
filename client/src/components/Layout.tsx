@@ -9,8 +9,9 @@ import { getPageByPath } from "@/lib/pageRegistry";
 import { CharacterManager } from "@/lib/characterManager";
 import { useAccount } from "@/hooks/use-account";
 import { FantasySidebar } from "@/components/FantasyNavigation";
+import { assetUrl } from "@/lib/assetConfig";
 
-const accountPanelBg = "/assets/ui/fantasy_rpg_account_panel_background.png";
+const accountPanelBg = assetUrl("/images/ui/fantasy_rpg_account_panel_background.png");
 
 interface NavItem {
   label: string;
@@ -329,7 +330,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                            border: '1px solid rgba(212,175,55,0.4)'
                          }}>
                       <img 
-                        src="/sprites/gbux-token.png" 
+                        src={assetUrl("/sprites/gbux-token.png")} 
                         alt="GBUX" 
                         className="w-6 h-6 rounded-full shadow-lg shadow-cyan-500/30"
                       />

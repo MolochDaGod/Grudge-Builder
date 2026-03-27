@@ -1,3 +1,4 @@
+import { assetUrl } from "@/lib/assetConfig";
 import { useState, useEffect } from "react";
 
 export type SlashVariant = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
@@ -59,7 +60,7 @@ export function SlashEffect({
   if (!isPlaying && currentFrame >= frameCount) return null;
 
   const size = 128 * scale;
-  const framePath = `/sprites/effects/slash/${variant}/${currentFrame}.png`;
+  const framePath = assetUrl(`/sprites/effects/slash/${variant}/${currentFrame}.png`);
 
   return (
     <div

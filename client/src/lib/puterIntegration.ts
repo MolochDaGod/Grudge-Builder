@@ -159,14 +159,32 @@ export const puterAI = {
     }
   },
 
-  async generateHeroAvatar(heroName: string, race: string, heroClass: string): Promise<string | null> {
+  async generateHeroAvatar(heroName: string, race: string, heroClass: string, faction?: string): Promise<string | null> {
     if (!isPuterAvailable() || !window.puter.ai.txt2img) return null;
     
     try {
-      const prompt = `Fantasy RPG character portrait, ${race} ${heroClass} named ${heroName}, dark fantasy style, detailed face, heroic pose, vibrant colors, game avatar, 512x512`;
+      // Card-style prompt: character portrait with name integrated as part of the design
+      const factionTheme = faction === 'Forsaken' 
+        ? 'dark purple and green hues, undead theme, eerie glow'
+        : faction === 'Horde'
+          ? 'red and black war paint, savage tribal theme'
+          : 'gold and white holy light, noble crusader theme';
+
+      const prompt = [
+        `Fantasy RPG collectible card art, ornate gold border frame,`,
+        `${race} ${heroClass} character portrait,`,
+        `the name "${heroName}" engraved in stylized gold medieval font at the bottom of the card,`,
+        `dramatic heroic pose, intricate armor details, ${factionTheme},`,
+        `dark fantasy painted illustration style, cinematic lighting,`,
+        `card game artwork, legendary rarity glow effect,`,
+        `detailed face and expression, rich painterly textures,`,
+        `no watermark, high quality, 1024x1024`,
+      ].join(' ');
+
       const imgElement = await window.puter.ai.txt2img(prompt, {
         model: 'black-forest-labs/FLUX.1-schnell',
-        quality: 'medium'
+        quality: 'high',
+        size: '1024x1024',
       });
       return imgElement.src;
     } catch (e) {

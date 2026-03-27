@@ -7,6 +7,7 @@
     "dev:client": "vite dev --port 5000",
     "dev": "NODE_ENV=development tsx server/index.ts",
     "build": "tsx script/build.ts",
+    "build:client": "cd client && npx vite build",
     "start": "node dist/index.cjs",
     "check": "tsc",
     "db:push": "drizzle-kit push"
@@ -162,6 +163,7 @@
     "react-resizable-panels": "^2.1.9",
     "recharts": "^2.15.4",
     "rest": "^2.0.0",
+    "rest-express": "file:",
     "rot-js": "^2.2.1",
     "sass-loader": "^16.0.6",
     "sonner": "^2.0.7",

@@ -1,5 +1,6 @@
 import { useRef, useEffect, useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
+import { assetUrl } from "@/lib/assetConfig";
 
 interface CombatEffect {
   id: number;
@@ -69,72 +70,72 @@ const SPRITE_SCALE = 1.5;
 
 const CLASS_EFFECTS: Record<string, { sprite: string; frameCount: number; type: 'projectile' | 'impact'; speed: number; size: number }> = {
   'Worg Shapeshifter': {
-    sprite: '/sprites/GrudgeRPGAssets2d/Characters(100x100)/Werebear/Werebear(Split Effects)/Werebear-Attack01_Effect.png',
+    sprite: assetUrl("/sprites/GrudgeRPGAssets2d/Characters(100x100)/Werebear/Werebear(Split Effects)/Werebear-Attack01_Effect.png"),
     frameCount: 9, type: 'impact', speed: 0, size: 100
   },
   'Warrior': {
-    sprite: '/sprites/GrudgeRPGAssets2d/Characters(100x100)/Knight/Knight(Split Effects)/Knight-Attack01_Effect.png',
+    sprite: assetUrl("/sprites/GrudgeRPGAssets2d/Characters(100x100)/Knight/Knight(Split Effects)/Knight-Attack01_Effect.png"),
     frameCount: 7, type: 'impact', speed: 0, size: 100
   },
   'Mage Priest': {
-    sprite: '/sprites/GrudgeRPGAssets2d/Characters(100x100)/Wizard/Wizard(Split Effects)/Wizard-Attack01_Effect.png',
+    sprite: assetUrl("/sprites/GrudgeRPGAssets2d/Characters(100x100)/Wizard/Wizard(Split Effects)/Wizard-Attack01_Effect.png"),
     frameCount: 6, type: 'projectile', speed: 400, size: 100
   },
   'Ranger Scout': {
-    sprite: '/sprites/GrudgeRPGAssets2d/Characters(100x100)/Archer/Archer(Split Effects)/Archer-Attack01_Effect.png',
+    sprite: assetUrl("/sprites/GrudgeRPGAssets2d/Characters(100x100)/Archer/Archer(Split Effects)/Archer-Attack01_Effect.png"),
     frameCount: 9, type: 'projectile', speed: 500, size: 100
   }
 };
 
 const ENEMY_EFFECTS: Record<string, { sprite: string; frameCount: number; type: 'projectile' | 'impact'; speed: number; size: number }> = {
   slime: {
-    sprite: '/sprites/GrudgeRPGAssets2d/Characters(100x100)/Slime/Slime(Split Effects)/Slime-Attack01_Effect.png',
+    sprite: assetUrl("/sprites/GrudgeRPGAssets2d/Characters(100x100)/Slime/Slime(Split Effects)/Slime-Attack01_Effect.png"),
     frameCount: 6, type: 'impact', speed: 0, size: 100
   },
   skeleton: {
-    sprite: '/sprites/GrudgeRPGAssets2d/Characters(100x100)/Skeleton/Skeleton(Split Effects)/Skeleton-Attack01_Effect.png',
+    sprite: assetUrl("/sprites/GrudgeRPGAssets2d/Characters(100x100)/Skeleton/Skeleton(Split Effects)/Skeleton-Attack01_Effect.png"),
     frameCount: 6, type: 'impact', speed: 0, size: 100
   },
   orc: {
-    sprite: '/sprites/GrudgeRPGAssets2d/Characters(100x100)/Orc/Orc(Split Effects)/Orc-attack01_Effect.png',
+    sprite: assetUrl("/sprites/GrudgeRPGAssets2d/Characters(100x100)/Orc/Orc(Split Effects)/Orc-attack01_Effect.png"),
     frameCount: 6, type: 'impact', speed: 0, size: 100
   }
 };
 
 const CLASS_SPRITES: Record<string, { idle: string; walk: string; attack: string; hurt: string; death: string; frames: Record<string, number>; size: number }> = {
   'Worg Shapeshifter': {
-    idle: '/sprites/GrudgeRPGAssets2d/Characters(100x100)/Werebear/Werebear with shadows/Werebear-Idle.png',
-    walk: '/sprites/GrudgeRPGAssets2d/Characters(100x100)/Werebear/Werebear with shadows/Werebear-Walk.png',
-    attack: '/sprites/GrudgeRPGAssets2d/Characters(100x100)/Werebear/Werebear with shadows/Werebear-Attack01.png',
-    hurt: '/sprites/GrudgeRPGAssets2d/Characters(100x100)/Werebear/Werebear with shadows/Werebear-Hurt.png',
-    death: '/sprites/GrudgeRPGAssets2d/Characters(100x100)/Werebear/Werebear with shadows/Werebear-Death.png',
+    idle: assetUrl("/sprites/GrudgeRPGAssets2d/Characters(100x100)/Werebear/Werebear with shadows/Werebear-Idle.png"),
+    walk: assetUrl("/sprites/GrudgeRPGAssets2d/Characters(100x100)/Werebear/Werebear with shadows/Werebear-Walk.png"),
+    attack: assetUrl("/sprites/GrudgeRPGAssets2d/Characters(100x100)/Werebear/Werebear with shadows/Werebear-Attack01.png"),
+    hurt: assetUrl("/sprites/GrudgeRPGAssets2d/Characters(100x100)/Werebear/Werebear with shadows/Werebear-Hurt.png"),
+    death: assetUrl("/sprites/GrudgeRPGAssets2d/Characters(100x100)/Werebear/Werebear with shadows/Werebear-Death.png"),
     frames: { idle: 4, walk: 6, attack: 6, hurt: 3, death: 6 },
     size: 100
   },
   'Warrior': {
-    idle: '/sprites/GrudgeRPGAssets2d/Characters(100x100)/Knight/Knight with shadows/Knight-Idle.png',
-    walk: '/sprites/GrudgeRPGAssets2d/Characters(100x100)/Knight/Knight with shadows/Knight-Walk.png',
-    attack: '/sprites/GrudgeRPGAssets2d/Characters(100x100)/Knight/Knight with shadows/Knight-Attack01.png',
-    hurt: '/sprites/GrudgeRPGAssets2d/Characters(100x100)/Knight/Knight with shadows/Knight-Hurt.png',
-    death: '/sprites/GrudgeRPGAssets2d/Characters(100x100)/Knight/Knight with shadows/Knight-Death.png',
+    idle: assetUrl("/sprites/GrudgeRPGAssets2d/Characters(100x100)/Knight/Knight with shadows/Knight-Idle.png"),
+    walk: assetUrl("/sprites/GrudgeRPGAssets2d/Characters(100x100)/Knight/Knight with shadows/Knight-Walk.png"),
+    attack: assetUrl("/sprites/GrudgeRPGAssets2d/Characters(100x100)/Knight/Knight with shadows/Knight-Attack01.png"),
+    hurt: assetUrl("/sprites/GrudgeRPGAssets2d/Characters(100x100)/Knight/Knight with shadows/Knight-Hurt.png"),
+    death: assetUrl("/sprites/GrudgeRPGAssets2d/Characters(100x100)/Knight/Knight with shadows/Knight-Death.png"),
     frames: { idle: 4, walk: 6, attack: 5, hurt: 2, death: 6 },
     size: 100
   },
   'Mage Priest': {
-    idle: '/sprites/GrudgeRPGAssets2d/Characters(100x100)/Wizard/Wizard with shadows/Wizard-Idle.png',
-    walk: '/sprites/GrudgeRPGAssets2d/Characters(100x100)/Wizard/Wizard with shadows/Wizard-Walk.png',
-    attack: '/sprites/GrudgeRPGAssets2d/Characters(100x100)/Wizard/Wizard with shadows/Wizard-Attack01.png',
-    hurt: '/sprites/GrudgeRPGAssets2d/Characters(100x100)/Wizard/Wizard with shadows/Wizard-Hurt.png',
-    death: '/sprites/GrudgeRPGAssets2d/Characters(100x100)/Wizard/Wizard with shadows/Wizard-DEATH.png',
+    idle: assetUrl("/sprites/GrudgeRPGAssets2d/Characters(100x100)/Wizard/Wizard with shadows/Wizard-Idle.png"),
+    walk: assetUrl("/sprites/GrudgeRPGAssets2d/Characters(100x100)/Wizard/Wizard with shadows/Wizard-Walk.png"),
+    attack: assetUrl("/sprites/GrudgeRPGAssets2d/Characters(100x100)/Wizard/Wizard with shadows/Wizard-Attack01.png"),
+    hurt: assetUrl("/sprites/GrudgeRPGAssets2d/Characters(100x100)/Wizard/Wizard with shadows/Wizard-Hurt.png"),
+    death: assetUrl("/sprites/GrudgeRPGAssets2d/Characters(100x100)/Wizard/Wizard with shadows/Wizard-DEATH.png"),
     frames: { idle: 4, walk: 6, attack: 8, hurt: 3, death: 5 },
     size: 100
   },
   'Ranger Scout': {
-    idle: '/sprites/GrudgeRPGAssets2d/Characters(100x100)/Archer/Archer with shadows/Archer-Idle.png',
-    walk: '/sprites/GrudgeRPGAssets2d/Characters(100x100)/Archer/Archer with shadows/Archer-Walk.png',
-    attack: '/sprites/GrudgeRPGAssets2d/Characters(100x100)/Archer/Archer with shadows/Archer-Attack01.png',
-    hurt: '/sprites/GrudgeRPGAssets2d/Characters(100x100)/Archer/Archer with shadows/Archer-Hurt.png',
-    death: '/sprites/GrudgeRPGAssets2d/Characters(100x100)/Archer/Archer with shadows/Archer-Death.png',
+    idle: assetUrl("/sprites/GrudgeRPGAssets2d/Characters(100x100)/Archer/Archer with shadows/Archer-Idle.png"),
+    walk: assetUrl("/sprites/GrudgeRPGAssets2d/Characters(100x100)/Archer/Archer with shadows/Archer-Walk.png"),
+    attack: assetUrl("/sprites/GrudgeRPGAssets2d/Characters(100x100)/Archer/Archer with shadows/Archer-Attack01.png"),
+    hurt: assetUrl("/sprites/GrudgeRPGAssets2d/Characters(100x100)/Archer/Archer with shadows/Archer-Hurt.png"),
+    death: assetUrl("/sprites/GrudgeRPGAssets2d/Characters(100x100)/Archer/Archer with shadows/Archer-Death.png"),
     frames: { idle: 4, walk: 6, attack: 5, hurt: 3, death: 6 },
     size: 100
   }
@@ -142,29 +143,29 @@ const CLASS_SPRITES: Record<string, { idle: string; walk: string; attack: string
 
 const ENEMY_SPRITES: Record<string, { idle: string; walk: string; attack: string; hurt: string; death: string; frames: Record<string, number>; size: number }> = {
   slime: {
-    idle: '/sprites/GrudgeRPGAssets2d/Characters(100x100)/Slime/Slime with shadows/Slime-Idle.png',
-    walk: '/sprites/GrudgeRPGAssets2d/Characters(100x100)/Slime/Slime with shadows/Slime-Walk.png',
-    attack: '/sprites/GrudgeRPGAssets2d/Characters(100x100)/Slime/Slime with shadows/Slime-Attack01.png',
-    hurt: '/sprites/GrudgeRPGAssets2d/Characters(100x100)/Slime/Slime with shadows/Slime-Hurt.png',
-    death: '/sprites/GrudgeRPGAssets2d/Characters(100x100)/Slime/Slime with shadows/Slime-Death.png',
+    idle: assetUrl("/sprites/GrudgeRPGAssets2d/Characters(100x100)/Slime/Slime with shadows/Slime-Idle.png"),
+    walk: assetUrl("/sprites/GrudgeRPGAssets2d/Characters(100x100)/Slime/Slime with shadows/Slime-Walk.png"),
+    attack: assetUrl("/sprites/GrudgeRPGAssets2d/Characters(100x100)/Slime/Slime with shadows/Slime-Attack01.png"),
+    hurt: assetUrl("/sprites/GrudgeRPGAssets2d/Characters(100x100)/Slime/Slime with shadows/Slime-Hurt.png"),
+    death: assetUrl("/sprites/GrudgeRPGAssets2d/Characters(100x100)/Slime/Slime with shadows/Slime-Death.png"),
     frames: { idle: 4, walk: 4, attack: 7, hurt: 3, death: 4 },
     size: 100
   },
   skeleton: {
-    idle: '/sprites/GrudgeRPGAssets2d/Characters(100x100)/Skeleton/Skeleton with shadows/Skeleton-Idle.png',
-    walk: '/sprites/GrudgeRPGAssets2d/Characters(100x100)/Skeleton/Skeleton with shadows/Skeleton-Walk.png',
-    attack: '/sprites/GrudgeRPGAssets2d/Characters(100x100)/Skeleton/Skeleton with shadows/Skeleton-Attack01.png',
-    hurt: '/sprites/GrudgeRPGAssets2d/Characters(100x100)/Skeleton/Skeleton with shadows/Skeleton-Hurt.png',
-    death: '/sprites/GrudgeRPGAssets2d/Characters(100x100)/Skeleton/Skeleton with shadows/Skeleton-Death.png',
+    idle: assetUrl("/sprites/GrudgeRPGAssets2d/Characters(100x100)/Skeleton/Skeleton with shadows/Skeleton-Idle.png"),
+    walk: assetUrl("/sprites/GrudgeRPGAssets2d/Characters(100x100)/Skeleton/Skeleton with shadows/Skeleton-Walk.png"),
+    attack: assetUrl("/sprites/GrudgeRPGAssets2d/Characters(100x100)/Skeleton/Skeleton with shadows/Skeleton-Attack01.png"),
+    hurt: assetUrl("/sprites/GrudgeRPGAssets2d/Characters(100x100)/Skeleton/Skeleton with shadows/Skeleton-Hurt.png"),
+    death: assetUrl("/sprites/GrudgeRPGAssets2d/Characters(100x100)/Skeleton/Skeleton with shadows/Skeleton-Death.png"),
     frames: { idle: 4, walk: 4, attack: 8, hurt: 4, death: 4 },
     size: 100
   },
   orc: {
-    idle: '/sprites/GrudgeRPGAssets2d/Characters(100x100)/Orc/Orc with shadows/Orc-Idle.png',
-    walk: '/sprites/GrudgeRPGAssets2d/Characters(100x100)/Orc/Orc with shadows/Orc-Walk.png',
-    attack: '/sprites/GrudgeRPGAssets2d/Characters(100x100)/Orc/Orc with shadows/Orc-Attack01.png',
-    hurt: '/sprites/GrudgeRPGAssets2d/Characters(100x100)/Orc/Orc with shadows/Orc-Hurt.png',
-    death: '/sprites/GrudgeRPGAssets2d/Characters(100x100)/Orc/Orc with shadows/Orc-Death.png',
+    idle: assetUrl("/sprites/GrudgeRPGAssets2d/Characters(100x100)/Orc/Orc with shadows/Orc-Idle.png"),
+    walk: assetUrl("/sprites/GrudgeRPGAssets2d/Characters(100x100)/Orc/Orc with shadows/Orc-Walk.png"),
+    attack: assetUrl("/sprites/GrudgeRPGAssets2d/Characters(100x100)/Orc/Orc with shadows/Orc-Attack01.png"),
+    hurt: assetUrl("/sprites/GrudgeRPGAssets2d/Characters(100x100)/Orc/Orc with shadows/Orc-Hurt.png"),
+    death: assetUrl("/sprites/GrudgeRPGAssets2d/Characters(100x100)/Orc/Orc with shadows/Orc-Death.png"),
     frames: { idle: 4, walk: 4, attack: 6, hurt: 4, death: 4 },
     size: 100
   }
@@ -246,8 +247,8 @@ export default function DungeonGame({ onExit }: Props) {
   const combatEffectsRef = useRef<CombatEffect[]>([]);
   const effectIdRef = useRef(0);
   
-  const wallsImg = loadImage('/sprites/dampdungeons/Dungeon_WallsAndFloors.png');
-  const decorImg = loadImage('/sprites/dampdungeons/DungeonDecorations.png');
+  const wallsImg = loadImage(assetUrl("/sprites/dampdungeons/Dungeon_WallsAndFloors.png"));
+  const decorImg = loadImage(assetUrl("/sprites/dampdungeons/DungeonDecorations.png"));
   
   useEffect(() => {
     fetch('/api/characters')

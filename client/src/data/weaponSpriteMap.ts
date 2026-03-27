@@ -1,3 +1,5 @@
+import { assetUrl } from "@/lib/assetConfig";
+
 export const WEAPON_SPRITE_MAP: Record<string, string> = {
   "sword-bloodfeud": "bloodfeud_blade",
   "sword-wraithfang": "wraithfang",
@@ -267,7 +269,7 @@ export function getWeaponSpritePath(weaponId: string, weaponType: string): strin
   const spriteName = WEAPON_SPRITE_MAP[weaponId];
   if (spriteName) {
     const typeFolder = getWeaponTypeFolder(weaponType);
-    return `/icons/weapons/${typeFolder}/${spriteName}.png`;
+    return assetUrl(`/icons/weapons/${typeFolder}/${spriteName}.png`);
   }
   return getDefaultWeaponSprite(weaponType);
 }
@@ -275,7 +277,7 @@ export function getWeaponSpritePath(weaponId: string, weaponType: string): strin
 export function getArmorSpritePath(armorId: string, slot: string, material: string): string {
   const spriteName = ARMOR_SPRITE_MAP[armorId];
   if (spriteName) {
-    return `/icons/armor/${slot.toLowerCase()}/${spriteName}.png`;
+    return assetUrl(`/icons/armor/${slot.toLowerCase()}/${spriteName}.png`);
   }
   return getDefaultArmorSprite(slot, material);
 }
@@ -310,9 +312,9 @@ function getWeaponTypeFolder(weaponType: string): string {
 
 function getDefaultWeaponSprite(weaponType: string): string {
   const typeFolder = getWeaponTypeFolder(weaponType);
-  return `/icons/weapons/${typeFolder}/default.png`;
+  return assetUrl(`/icons/weapons/${typeFolder}/default.png`);
 }
 
 function getDefaultArmorSprite(slot: string, material: string): string {
-  return `/icons/armor/${slot.toLowerCase()}/${material.toLowerCase()}/default.png`;
+  return assetUrl(`/icons/armor/${slot.toLowerCase()}/${material.toLowerCase()}/default.png`);
 }

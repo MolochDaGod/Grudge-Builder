@@ -1,3 +1,4 @@
+import { assetUrl } from "@/lib/assetConfig";
 export interface WeaponIcon {
   id: string;
   name: string;
@@ -45,7 +46,7 @@ export function generateWeaponIcons(): WeaponIcon[] {
     icons.push({
       id: `weapon_${i.toString().padStart(3, '0')}`,
       name: `${prefix} ${indexInCategory + 1}`,
-      path: `/sprites/weapons/icons/weapon_${i.toString().padStart(3, '0')}.png`,
+      path: assetUrl(`/sprites/weapons/icons/weapon_${i.toString().padStart(3, '0')}.png`),
       category,
     });
   }

@@ -37,6 +37,7 @@ import {
   Palette
 } from "lucide-react";
 import { ColorSwapTool } from "@/components/ColorSwapTool";
+import { assetUrl } from "@/lib/assetConfig";
 
 interface SpriteFile {
   path: string;
@@ -933,10 +934,10 @@ export default function SpriteAdminPage() {
                 <ColorSwapTool
                   characterName={selectedFile?.name.replace(/\.[^.]+$/, '') || "character"}
                   spriteSheets={selectedFile ? [selectedFile.path] : [
-                    "/sprites/heroes/human/retsuzen_sheet.png",
-                    "/sprites/heroes/barbarian/diokles_sheet.png",
-                    "/sprites/heroes/elf/launa_sheet.png",
-                    "/sprites/enemies/barbarian/mcgill_sheet.png"
+                    assetUrl("/sprites/heroes/human/retsuzen_sheet.png"),
+                    assetUrl("/sprites/heroes/barbarian/diokles_sheet.png"),
+                    assetUrl("/sprites/heroes/elf/launa_sheet.png"),
+                    assetUrl("/sprites/enemies/barbarian/mcgill_sheet.png")
                   ]}
                   onSave={(modifiedSheets) => {
                     toast({

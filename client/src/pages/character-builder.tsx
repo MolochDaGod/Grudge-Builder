@@ -1,5 +1,5 @@
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { useLocation } from "wouter";
 import { RACES, CLASSES, ATTRIBUTES, FACTION_COLORS, AttributeKey, RaceDef, ClassDef } from "@/lib/gameData";
 import { motion, AnimatePresence } from "framer-motion";
@@ -7,12 +7,13 @@ import { cn } from "@/lib/utils";
 import { ChevronRight, ChevronLeft, ChevronDown, Sword, Check, Sparkles, Trash2, User, Shield, Play, Pause, Zap, Settings, ImagePlus, Loader2, Backpack, BookOpen, Hammer, Sliders, TrendingUp, Package, Gem, Clock, Target, Award, X } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { characterAPI } from "@/lib/api";
+import { puterAI } from "@/lib/puterIntegration";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer } from "recharts";
-const bgTexture = "/assets/backgrounds/character-bg.png";
+const bgTexture = assetUrl("/backgrounds/character-bg.png");
 import Layout from "@/components/Layout";
 import { CharacterManager, Character, EquipmentSlots } from "@/lib/characterManager";
 import { ITEMS, resolveItemImage, RESOURCE_NODES } from "@/lib/grudaDB";
@@ -21,7 +22,7 @@ import { getAttackAnimations, getAvailableAnimations, AnimationState } from "@/l
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { CombatUnitStatus } from "@/components/CombatUnitStatus";
 import { InventorySlot } from "@/components/SpriteIcon";
-import { calculateDerivedStats } from "@shared/statCalculator";
+import { calculateDerivedStats, calculateCombatPower, getBuildRating } from "@shared/statCalculator";
 import AdminContextMenu from "@/components/AdminContextMenu";
 import { AttributeAllocation } from "@/components/AttributeAllocation";
 import { 
@@ -30,7 +31,7 @@ import {
   GATHERING_PROFESSIONS_CONFIG,
   calculateLevelFromXp 
 } from "@/lib/professionSystem";
-import { 
+import {
   CLASS_SKILL_TREES, 
   getClassSkillTree, 
   getUnlockedTiers, 
@@ -39,6 +40,7 @@ import {
   ClassSkillChoice,
   ClassSkillTier
 } from "@shared/definitions/classSkillTrees";
+import { assetUrl } from "@/lib/assetConfig";
 
 const ATTRIBUTE_ICONS: Record<string, string> = {
   Strength: "💪",
@@ -127,7 +129,7 @@ export default function CharacterBuilder() {
   const [currentAction, setCurrentAction] = useState<SpriteAction>("Idle");
   
   // Character Sheet Tab
-  const [activeTab, setActiveTab] = useState<"attributes" | "allocate" | "equipment" | "profession" | "skills">("attributes");
+  const [activeTab, setActiveTab] = useState<"overview" | "allocate" | "equipment" | "profession" | "skills">("overview");
   
   // Admin Mode
   const [adminMode, setAdminMode] = useState(false);
@@ -151,6 +153,45 @@ export default function CharacterBuilder() {
   });
 
   const [selectedClassId, setSelectedClassId] = useState<string | null>(null);
+
+  // === ADMIN PORTRAIT POSITIONING ===
+  const [portraitPositions, setPortraitPositions] = useState<Record<string, { x: number; y: number; scale: number }>>(() => {
+    try {
+      const saved = localStorage.getItem('grudge-portrait-positions');
+      return saved ? JSON.parse(saved) : {};
+    } catch { return {}; }
+  });
+  const [draggingRace, setDraggingRace] = useState<string | null>(null);
+  const dragStartRef = useRef<{ x: number; y: number; posX: number; posY: number } | null>(null);
+
+  const getPortraitPos = useCallback((raceId: string) => {
+    return portraitPositions[raceId] || { x: 50, y: 20, scale: 1 };
+  }, [portraitPositions]);
+
+  const updatePortraitPos = useCallback((raceId: string, updates: Partial<{ x: number; y: number; scale: number }>) => {
+    setPortraitPositions(prev => {
+      const current = prev[raceId] || { x: 50, y: 20, scale: 1 };
+      const updated = { ...prev, [raceId]: { ...current, ...updates } };
+      localStorage.setItem('grudge-portrait-positions', JSON.stringify(updated));
+      return updated;
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!draggingRace) return;
+    const handleMouseMove = (e: MouseEvent) => {
+      const start = dragStartRef.current;
+      if (!start || !draggingRace) return;
+      const sensitivity = 0.2;
+      const newX = Math.max(0, Math.min(100, start.posX - (e.clientX - start.x) * sensitivity));
+      const newY = Math.max(0, Math.min(100, start.posY - (e.clientY - start.y) * sensitivity));
+      updatePortraitPos(draggingRace, { x: newX, y: newY });
+    };
+    const handleMouseUp = () => { setDraggingRace(null); dragStartRef.current = null; };
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+    return () => { document.removeEventListener('mousemove', handleMouseMove); document.removeEventListener('mouseup', handleMouseUp); };
+  }, [draggingRace, updatePortraitPos]);
 
   // Load characters on mount
   useEffect(() => {
@@ -211,8 +252,9 @@ export default function CharacterBuilder() {
     setIsCreatingCharacter(true);
     setCreationStatus("Creating character...");
 
+    const heroName = charName || "Unnamed Hero";
     const newChar = {
-      name: charName || "Unnamed Hero",
+      name: heroName,
       raceId: selectedRace.id,
       classId: selectedClass.id,
       level: 0,
@@ -229,21 +271,43 @@ export default function CharacterBuilder() {
 
     try {
       setCreationStatus("Saving to database...");
-      
-      // Use CharacterManager.addCharacter but without callback (we'll handle avatar separately)
       const createdChar = await CharacterManager.addCharacter(newChar);
-      
-      setCreationStatus("Generating unique avatar...");
-      
-      // Wait for avatar generation to complete synchronously
-      const charWithAvatar = await characterAPI.regenerateAvatar(createdChar.id);
-      
+
+      // Generate AI card avatar with character name baked in
+      setCreationStatus("Generating card avatar...");
+      const faction = selectedRace.faction || 'Crusade';
+      const avatarUrl = await puterAI.generateHeroAvatar(
+        heroName,
+        selectedRace.name,
+        selectedClass.name,
+        faction
+      );
+
+      // Save avatar URL to character if generation succeeded
+      let charWithAvatar = createdChar;
+      if (avatarUrl) {
+        charWithAvatar = await characterAPI.update(createdChar.id, {
+          avatarUrl,
+        } as any);
+      }
+
+      // Mint cNFT to user's server-side wallet (admin wallet fallback)
+      setCreationStatus("Minting character cNFT...");
+      const mintResult = await characterAPI.mintCNFT(
+        createdChar.id,
+        avatarUrl || '',
+      );
+      if (mintResult.success) {
+        console.log('cNFT minted:', mintResult.mintAddress || mintResult.assetId);
+      } else {
+        console.warn('cNFT mint skipped or failed:', mintResult.error);
+      }
+
       setCreationStatus("Finalizing hero...");
-      
       const chars = await CharacterManager.getAll();
       setCharacters(chars);
       setActiveCharacter(charWithAvatar);
-      
+
       // Reset form
       setStep("race");
       setCharName("");
@@ -253,12 +317,11 @@ export default function CharacterBuilder() {
         Strength: 0, Intellect: 0, Vitality: 0, Dexterity: 0, 
         Endurance: 0, Wisdom: 0, Agility: 0, Tactics: 0
       });
-      
+
       setViewMode("roster");
     } catch (error) {
       console.error("Failed to create character:", error);
       setCreationStatus("Creation failed. Please try again.");
-      // Wait a moment to show error before hiding
       await new Promise(resolve => setTimeout(resolve, 2000));
     } finally {
       setIsCreatingCharacter(false);
@@ -411,20 +474,33 @@ export default function CharacterBuilder() {
                       )}
                     >
                       {/* Large Avatar Image */}
-                      <div className="relative w-full h-48 bg-gradient-to-b from-slate-800 to-slate-900">
-                        {char.avatarUrl ? (
-                          <img 
-                            src={char.avatarUrl} 
-                            alt={char.name}
-                            className="w-full h-full object-cover object-top"
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center">
-                            <User className="w-12 h-12 text-slate-600" />
-                          </div>
+                      <div className="relative w-full h-48 bg-gradient-to-b from-slate-800 to-slate-900 overflow-hidden">
+                        {/* Card Background */}
+                        {r?.cardBg && (
+                          <img src={r.cardBg} alt="" className="absolute inset-0 w-full h-full object-cover z-0 pointer-events-none" />
                         )}
+                        {(() => {
+                          const imgSrc = char.avatarUrl || r?.image;
+                          const pos = r ? getPortraitPos(r.id) : { x: 50, y: 20, scale: 1 };
+                          return imgSrc ? (
+                            <img 
+                              src={imgSrc} 
+                              alt={char.name}
+                              className="w-full h-full object-cover relative z-[1]"
+                              style={{
+                                objectPosition: `${pos.x}% ${pos.y}%`,
+                                transform: `scale(${pos.scale})`,
+                              }}
+                              draggable={false}
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center relative z-[1]">
+                              <User className="w-12 h-12 text-slate-600" />
+                            </div>
+                          );
+                        })()}
                         {/* Gradient overlay for text readability */}
-                        <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-black/80 to-transparent" />
+                        <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-black/80 to-transparent z-[2]" />
                         
                         {/* Admin buttons */}
                         <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -650,11 +726,11 @@ export default function CharacterBuilder() {
                 <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as typeof activeTab)} className="w-full">
                   <TabsList className="w-full justify-start bg-slate-900/50 border border-slate-800 p-1 rounded-lg mb-6">
                     <TabsTrigger 
-                      value="attributes" 
+                      value="overview" 
                       className="flex items-center gap-2 data-[state=active]:bg-amber-500 data-[state=active]:text-black"
-                      data-testid="tab-attributes"
+                      data-testid="tab-overview"
                     >
-                      <BookOpen className="w-4 h-4" /> Attributes
+                      <BookOpen className="w-4 h-4" /> Overview
                     </TabsTrigger>
                     <TabsTrigger 
                       value="allocate" 
@@ -694,166 +770,119 @@ export default function CharacterBuilder() {
                     </TabsTrigger>
                   </TabsList>
 
-                  {/* Attributes Tab */}
-                  <TabsContent value="attributes" className="mt-0">
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                      {/* Left: Character Preview with Sprite & Spider Graph */}
-                      <div className="bg-slate-900/50 rounded-xl p-6 border border-slate-800">
-                        <h3 className="text-lg font-cinzel text-amber-400 mb-4">Character Preview</h3>
-                        <div className="flex flex-col items-center">
-                          <div className="scale-[3] transform my-6">
-                            <SpriteAnimator spriteSet={activeSpriteSet} action={currentAction} isUndead={activeCharacter?.raceId === 'undead'} />
-                          </div>
-                          
-                          {/* Spider Graph */}
-                          <div className="w-full h-48 mt-2">
-                            <ResponsiveContainer width="100%" height="100%">
-                              <RadarChart cx="50%" cy="50%" outerRadius="70%" data={Object.keys(ATTRIBUTES).map(k => ({ 
-                                subject: k.slice(0, 3).toUpperCase(), 
-                                A: (activeCharacter?.attributes[k as AttributeKey] || 0) + (raceDef?.baseStats[k as AttributeKey] || 0) + (classDef?.baseStats[k as AttributeKey] || 0), 
-                                fullMark: 30 
-                              }))}>
-                                <PolarGrid stroke="rgba(255,255,255,0.15)" />
-                                <PolarAngleAxis dataKey="subject" tick={{ fill: 'rgba(255,255,255,0.6)', fontSize: 9 }} />
-                                <PolarRadiusAxis angle={30} domain={[0, 30]} tick={false} axisLine={false} />
-                                <Radar name="Stats" dataKey="A" stroke="#EAB308" strokeWidth={2} fill="#EAB308" fillOpacity={0.25} />
-                              </RadarChart>
-                            </ResponsiveContainer>
-                          </div>
-                          
-                          {/* Power Level */}
-                          <div className="w-full mt-4 bg-gradient-to-r from-slate-800/80 to-slate-900/80 rounded-lg p-3 border border-slate-700">
-                            <div className="flex items-center justify-between mb-2">
-                              <div className="flex items-center gap-2">
-                                <Zap className="w-4 h-4 text-amber-400" />
-                                <span className="text-xs uppercase tracking-wider text-slate-400 font-bold">Power Level</span>
-                              </div>
-                              <span className="text-lg font-bold text-amber-400 font-cinzel" data-testid="power-level-value">
-                                {(() => {
-                                  const stats = activeCharacter?.attributes as Record<AttributeKey, number> | undefined;
-                                  const totalAttrs = Object.keys(ATTRIBUTES).reduce((sum, k) => 
-                                    sum + (stats?.[k as AttributeKey] || 0), 0);
-                                  const levelBonus = (activeCharacter?.level || 0) * 50;
-                                  const equip = activeCharacter?.equipment || {};
-                                  const equippedCount = Object.values(equip).filter(id => id && id !== "").length;
-                                  const equipBonus = equippedCount * 25;
-                                  return totalAttrs * 10 + levelBonus + equipBonus + 100;
-                                })()}
-                              </span>
+                  {/* Overview Tab */}
+                  <TabsContent value="overview" className="mt-0">
+                    {(() => {
+                      const stats = calculateDerivedStats(activeCharacter.attributes, activeCharacter.classId);
+                      const cp = calculateCombatPower(stats);
+                      const rating = getBuildRating(cp);
+                      const availablePoints = Math.max(0, 10 + (activeCharacter.level * 7) - Object.values(activeCharacter.attributes).reduce((a, b) => a + b, 0));
+                      return (
+                        <>
+                        {/* Statistical Review Bar */}
+                        <div className="bg-gradient-to-r from-slate-900/80 via-slate-800/60 to-slate-900/80 rounded-xl p-5 border border-slate-700 mb-6">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <div className="text-xs text-slate-500 uppercase tracking-wider">Combat Power</div>
+                              <div className="text-3xl font-bold text-amber-400 font-cinzel" data-testid="combat-power-value">{cp.toLocaleString()}</div>
                             </div>
-                            <div className="h-2 bg-black/40 rounded-full overflow-hidden">
-                              <div 
-                                className="h-full bg-gradient-to-r from-amber-600 to-amber-400 rounded-full transition-all"
-                                style={{ 
-                                  width: `${Math.min(100, (() => {
-                                    const stats = activeCharacter?.attributes as Record<AttributeKey, number> | undefined;
-                                    const totalAttrs = Object.keys(ATTRIBUTES).reduce((sum, k) => 
-                                      sum + (stats?.[k as AttributeKey] || 0), 0);
-                                    const levelBonus = (activeCharacter?.level || 0) * 50;
-                                    const equip = activeCharacter?.equipment || {};
-                                    const equippedCount = Object.values(equip).filter(id => id && id !== "").length;
-                                    const equipBonus = equippedCount * 25;
-                                    return (totalAttrs * 10 + levelBonus + equipBonus + 100) / 50;
-                                  })())}%` 
-                                }}
+                            <div className="text-right">
+                              <div className="text-xs text-slate-500 uppercase tracking-wider">Build Rating</div>
+                              <div className="text-3xl font-bold font-cinzel" style={{ color: rating.color }}>{rating.letter}</div>
+                            </div>
+                          </div>
+                          {availablePoints > 0 && (
+                            <div className="mt-3 flex items-center gap-2 text-cyan-400 text-sm font-bold animate-pulse cursor-pointer" onClick={() => setActiveTab('allocate')}>
+                              <Sparkles className="w-4 h-4" />
+                              {availablePoints} attribute points to allocate
+                            </div>
+                          )}
+                        </div>
+
+                        {/* 3-Column Layout */}
+                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+                          {/* Left: Equipment Paper Doll */}
+                          <div className="bg-slate-900/50 rounded-xl p-4 border border-slate-800">
+                            <h3 className="text-sm font-cinzel text-amber-400 mb-3">Equipment</h3>
+                            <div className="relative mx-auto max-w-[280px]">
+                              <img
+                                src={assetUrl(`/sprites/ui/PNG/equipment/${activeCharacter.raceId}.png`)}
+                                alt={`${raceDef?.name} Equipment`}
+                                className="w-full h-auto"
+                                draggable={false}
                               />
+                              {renderEquipSlotOverlay("Head")}
+                              {renderEquipSlotOverlay("Back")}
+                              {renderEquipSlotOverlay("Shoulder")}
+                              {renderEquipSlotOverlay("Chest")}
+                              {renderEquipSlotOverlay("Hands")}
+                              {renderEquipSlotOverlay("Accessory1")}
+                              {renderEquipSlotOverlay("MainHand")}
+                              {renderEquipSlotOverlay("OffHand")}
+                              {renderEquipSlotOverlay("Legs")}
+                              {renderEquipSlotOverlay("Feet")}
+                              {renderEquipSlotOverlay("Accessory2")}
+                              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                <div className="pointer-events-auto">
+                                  <div className="scale-[2.5] transform drop-shadow-[0_0_10px_rgba(0,0,0,0.8)]">
+                                    <SpriteAnimator spriteSet={activeSpriteSet} action={currentAction} isUndead={activeCharacter?.raceId === 'undead'} />
+                                  </div>
+                                </div>
+                              </div>
                             </div>
-                            <div className="flex justify-between mt-1 text-[10px] text-slate-500">
-                              <span>Novice</span>
-                              <span>Champion</span>
-                              <span>Legend</span>
+                          </div>
+
+                          {/* Center: Radar Chart + Attributes */}
+                          <div className="space-y-4">
+                            <div className="bg-slate-900/50 rounded-xl p-4 border border-slate-800">
+                              <div className="w-full h-48">
+                                <ResponsiveContainer width="100%" height="100%">
+                                  <RadarChart cx="50%" cy="50%" outerRadius="70%" data={Object.keys(ATTRIBUTES).map(k => ({
+                                    subject: k.slice(0, 3).toUpperCase(),
+                                    A: (activeCharacter?.attributes[k as AttributeKey] || 0) + (raceDef?.baseStats[k as AttributeKey] || 0) + (classDef?.baseStats[k as AttributeKey] || 0),
+                                    fullMark: 30
+                                  }))}>
+                                    <PolarGrid stroke="rgba(255,255,255,0.15)" />
+                                    <PolarAngleAxis dataKey="subject" tick={{ fill: 'rgba(255,255,255,0.6)', fontSize: 9 }} />
+                                    <PolarRadiusAxis angle={30} domain={[0, 30]} tick={false} axisLine={false} />
+                                    <Radar name="Stats" dataKey="A" stroke="#EAB308" strokeWidth={2} fill="#EAB308" fillOpacity={0.25} />
+                                  </RadarChart>
+                                </ResponsiveContainer>
+                              </div>
                             </div>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Right: Attributes */}
-                      <div className="space-y-6">
-                        <div className="bg-slate-900/50 rounded-xl p-6 border border-slate-800">
-                          <div className="flex items-center justify-between mb-4">
-                            <h3 className="text-lg font-cinzel text-amber-400">Attributes</h3>
-                            {(() => {
-                              const availablePoints = Math.max(0, 10 + (activeCharacter.level * 7) - Object.values(activeCharacter.attributes).reduce((a, b) => a + b, 0));
-                              return availablePoints > 0 ? (
-                                <span className="flex items-center gap-2 text-cyan-400 text-sm font-bold animate-pulse" data-testid="available-points-indicator">
-                                  <Sparkles className="w-4 h-4" />
-                                  {availablePoints} points to allocate
-                                </span>
-                              ) : null;
-                            })()}
-                          </div>
-                          <div className="grid grid-cols-2 gap-4">
-                            <TooltipProvider delayDuration={200}>
-                              {Object.entries(activeCharacter.attributes).map(([attr, val]) => {
-                                const tooltip = ATTRIBUTE_TOOLTIPS[attr];
-                                return (
-                                  <Tooltip key={attr}>
-                                    <TooltipTrigger asChild>
-                                      <div className="flex justify-between items-center bg-black/20 p-3 rounded-lg cursor-help hover:bg-black/30 transition-colors">
-                                        <span className="text-slate-400 text-sm flex items-center gap-2">
-                                          <span className="text-lg">{tooltip?.icon}</span>
-                                          {attr}
-                                        </span>
-                                        <span className="text-white font-bold text-lg">
-                                          {val + (raceDef?.baseStats[attr as AttributeKey] || 0) + (classDef?.baseStats[attr as AttributeKey] || 0)}
-                                        </span>
-                                      </div>
-                                    </TooltipTrigger>
-                                    {tooltip && (
-                                      <TooltipContent side="top" className="max-w-xs bg-slate-900 border border-slate-700 p-3">
-                                        <div className="space-y-2">
-                                          <p className="font-bold text-amber-400 flex items-center gap-2">
-                                            <span className="text-lg">{tooltip.icon}</span>
-                                            {attr}
-                                          </p>
-                                          <p className="text-slate-300 text-xs">{tooltip.description}</p>
-                                          <ul className="text-xs space-y-1">
-                                            {tooltip.effects.map((effect, i) => (
-                                              <li key={i} className="text-emerald-400">• {effect}</li>
-                                            ))}
-                                          </ul>
-                                        </div>
-                                      </TooltipContent>
-                                    )}
-                                  </Tooltip>
-                                );
-                              })}
-                            </TooltipProvider>
-                          </div>
-                        </div>
-
-                        {/* Derived Stats */}
-                        <div className="bg-slate-900/50 rounded-xl p-6 border border-slate-800">
-                          <h3 className="text-lg font-cinzel text-amber-400 mb-4">Combat Stats</h3>
-                          {(() => {
-                            const stats = calculateDerivedStats(activeCharacter.attributes, activeCharacter.classId);
-                            const statItems = [
-                              { key: "maxHealth", label: "Health", value: stats.maxHealth, bg: "bg-red-950/30", border: "border-red-900/30", text: "text-red-400", valueText: "text-red-300" },
-                              { key: "maxMana", label: "Mana", value: stats.maxMana, bg: "bg-blue-950/30", border: "border-blue-900/30", text: "text-blue-400", valueText: "text-blue-300" },
-                              { key: "maxStamina", label: "Stamina", value: stats.maxStamina, bg: "bg-green-950/30", border: "border-green-900/30", text: "text-green-400", valueText: "text-green-300" },
-                              { key: "physDmg", label: "Phys Damage", value: stats.physDmg, bg: "bg-amber-950/30", border: "border-amber-900/30", text: "text-amber-400", valueText: "text-amber-300" },
-                              { key: "physDef", label: "Phys Defense", value: stats.physDef, bg: "bg-slate-800/50", border: "border-slate-700/30", text: "text-slate-400", valueText: "text-slate-300" },
-                              { key: "magDmg", label: "Magic Damage", value: stats.magDmg, bg: "bg-purple-950/30", border: "border-purple-900/30", text: "text-purple-400", valueText: "text-purple-300" },
-                            ];
-                            return (
-                              <div className="grid grid-cols-2 gap-3">
+                            <div className="bg-slate-900/50 rounded-xl p-4 border border-slate-800">
+                              <h3 className="text-sm font-cinzel text-amber-400 mb-3">Attributes</h3>
+                              <div className="grid grid-cols-2 gap-2">
                                 <TooltipProvider delayDuration={200}>
-                                  {statItems.map((stat) => {
-                                    const tooltip = STAT_TOOLTIPS[stat.key];
+                                  {Object.entries(activeCharacter.attributes).map(([attr, val]) => {
+                                    const tooltip = ATTRIBUTE_TOOLTIPS[attr];
                                     return (
-                                      <Tooltip key={stat.key}>
+                                      <Tooltip key={attr}>
                                         <TooltipTrigger asChild>
-                                          <div className={cn("flex justify-between items-center p-2 rounded border cursor-help hover:opacity-80 transition-opacity", stat.bg, stat.border)}>
-                                            <span className={cn("text-xs", stat.text)}>{stat.label}</span>
-                                            <span className={cn("font-bold", stat.valueText)}>{stat.value}</span>
+                                          <div className="flex justify-between items-center bg-black/20 p-2 rounded-lg cursor-help hover:bg-black/30 transition-colors">
+                                            <span className="text-slate-400 text-xs flex items-center gap-1">
+                                              <span className="text-sm">{tooltip?.icon}</span>
+                                              {attr.slice(0, 3)}
+                                            </span>
+                                            <span className="text-white font-bold text-sm">
+                                              {val + (raceDef?.baseStats[attr as AttributeKey] || 0) + (classDef?.baseStats[attr as AttributeKey] || 0)}
+                                            </span>
                                           </div>
                                         </TooltipTrigger>
                                         {tooltip && (
-                                          <TooltipContent side="top" className="max-w-sm bg-slate-900 border border-slate-700 p-3">
+                                          <TooltipContent side="top" className="max-w-xs bg-slate-900 border border-slate-700 p-3">
                                             <div className="space-y-2">
-                                              <p className="font-bold text-amber-400">{stat.label}</p>
+                                              <p className="font-bold text-amber-400 flex items-center gap-2">
+                                                <span className="text-lg">{tooltip.icon}</span>
+                                                {attr}
+                                              </p>
                                               <p className="text-slate-300 text-xs">{tooltip.description}</p>
-                                              <p className="text-emerald-400 text-xs font-mono">{tooltip.formula}</p>
+                                              <ul className="text-xs space-y-1">
+                                                {tooltip.effects.map((effect, i) => (
+                                                  <li key={i} className="text-emerald-400">• {effect}</li>
+                                                ))}
+                                              </ul>
                                             </div>
                                           </TooltipContent>
                                         )}
@@ -862,11 +891,72 @@ export default function CharacterBuilder() {
                                   })}
                                 </TooltipProvider>
                               </div>
-                            );
-                          })()}
+                            </div>
+                          </div>
+
+                          {/* Right: Full Derived Stats */}
+                          <div className="bg-slate-900/50 rounded-xl p-4 border border-slate-800">
+                            <h3 className="text-sm font-cinzel text-amber-400 mb-3">Derived Stats</h3>
+                            <div className="space-y-4">
+                              {/* Resources */}
+                              <div>
+                                <div className="text-[10px] uppercase tracking-widest text-slate-500 mb-2">Resources</div>
+                                <div className="space-y-1.5">
+                                  {[
+                                    { label: 'Health', value: stats.maxHealth, color: 'text-red-400', bar: 'bg-red-500' },
+                                    { label: 'Mana', value: stats.maxMana, color: 'text-blue-400', bar: 'bg-blue-500' },
+                                    { label: 'Stamina', value: stats.maxStamina, color: 'text-green-400', bar: 'bg-green-500' },
+                                  ].map(s => (
+                                    <div key={s.label} className="flex items-center justify-between bg-black/20 px-3 py-1.5 rounded">
+                                      <span className={cn('text-xs', s.color)}>{s.label}</span>
+                                      <span className={cn('font-bold text-sm font-mono', s.color)}>{s.value}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                              {/* Offense */}
+                              <div>
+                                <div className="text-[10px] uppercase tracking-widest text-slate-500 mb-2">Offense</div>
+                                <div className="space-y-1.5">
+                                  {[
+                                    { label: 'Phys Damage', value: stats.physDmg, color: 'text-amber-400' },
+                                    { label: 'Mag Damage', value: stats.magDmg, color: 'text-purple-400' },
+                                    { label: 'Crit Chance', value: `${stats.crit.toFixed(1)}%`, color: 'text-yellow-400' },
+                                    { label: 'Crit Damage', value: `${stats.critDmg.toFixed(0)}%`, color: 'text-orange-400' },
+                                    { label: 'Atk Speed', value: `+${stats.attackSpeed.toFixed(1)}%`, color: 'text-cyan-400' },
+                                    { label: 'Accuracy', value: `${stats.accuracy.toFixed(1)}%`, color: 'text-teal-400' },
+                                  ].map(s => (
+                                    <div key={s.label} className="flex items-center justify-between bg-black/20 px-3 py-1.5 rounded">
+                                      <span className={cn('text-xs', s.color)}>{s.label}</span>
+                                      <span className={cn('font-bold text-sm font-mono', s.color)}>{s.value}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                              {/* Defense */}
+                              <div>
+                                <div className="text-[10px] uppercase tracking-widest text-slate-500 mb-2">Defense</div>
+                                <div className="space-y-1.5">
+                                  {[
+                                    { label: 'Phys Defense', value: stats.physDef, color: 'text-slate-300' },
+                                    { label: 'Mag Defense', value: stats.magDef.toFixed(1), color: 'text-indigo-400' },
+                                    { label: 'Block', value: `${stats.blockChance.toFixed(1)}%`, color: 'text-stone-300' },
+                                    { label: 'Evasion', value: `${stats.evasion.toFixed(1)}%`, color: 'text-sky-400' },
+                                    { label: 'Move Speed', value: `${stats.moveSpeed.toFixed(0)}%`, color: 'text-emerald-400' },
+                                  ].map(s => (
+                                    <div key={s.label} className="flex items-center justify-between bg-black/20 px-3 py-1.5 rounded">
+                                      <span className={cn('text-xs', s.color)}>{s.label}</span>
+                                      <span className={cn('font-bold text-sm font-mono', s.color)}>{s.value}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                    </div>
+                        </>
+                      );
+                    })()}
                   </TabsContent>
 
                   {/* Allocate Tab */}
@@ -896,7 +986,7 @@ export default function CharacterBuilder() {
                       <div>
                         <div className="relative mx-auto max-w-[420px] shadow-2xl">
                           <img 
-                            src={`/sprites/ui/PNG/equipment/${activeCharacter.raceId}.png`}
+                            src={assetUrl(`/sprites/ui/PNG/equipment/${activeCharacter.raceId}.png`)}
                             alt={`${raceDef?.name} Equipment`}
                             className="w-full h-auto"
                             draggable={false}
@@ -1444,7 +1534,15 @@ export default function CharacterBuilder() {
               <p className="text-slate-400 text-sm">Forge your legend in the world of Grudge</p>
             </div>
             
-            <div className="flex gap-4">
+            <div className="flex items-center gap-4">
+              <Button 
+                size="sm" 
+                variant={adminMode ? "default" : "outline"}
+                onClick={() => setAdminMode(!adminMode)} 
+                className={cn("text-xs", adminMode ? "bg-purple-600 hover:bg-purple-500" : "border-slate-600 text-slate-400")}
+              >
+                <Settings className="w-3 h-3 mr-1" /> {adminMode ? "Admin ON" : "Admin"}
+              </Button>
               {steps.map((s, i) => (
                 <div key={s.id} className="flex items-center gap-2">
                    <div className={cn(
@@ -1487,6 +1585,13 @@ export default function CharacterBuilder() {
                         : "border-transparent hover:border-white/20 opacity-80 hover:opacity-100"
                     )}
                   >
+                    {/* Card Background */}
+                    <img 
+                      src={race.cardBg} 
+                      alt="" 
+                      className="absolute inset-0 w-full h-full object-cover z-0 pointer-events-none" 
+                    />
+
                     {/* Faction Badge */}
                     <div className={cn(
                       "absolute top-0 right-0 px-4 py-2 rounded-bl-xl font-bold uppercase tracking-widest text-xs z-20",
@@ -1497,13 +1602,65 @@ export default function CharacterBuilder() {
                     </div>
 
                     {/* Character Image */}
-                    <div className="aspect-[3/4] relative">
-                      <img 
-                        src={race.image} 
-                        alt={race.name} 
-                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-90" />
+                    <div className="aspect-[3/4] relative overflow-hidden z-[1]">
+                      {(() => {
+                        const pos = getPortraitPos(race.id);
+                        return (
+                          <>
+                            <img 
+                              src={race.image} 
+                              alt={race.name} 
+                              className={cn(
+                                "w-full h-full object-cover transition-transform",
+                                !adminMode && "duration-700 group-hover:scale-110",
+                                adminMode && draggingRace === race.id && "cursor-grabbing",
+                                adminMode && draggingRace !== race.id && "cursor-grab"
+                              )}
+                              style={{
+                                objectPosition: `${pos.x}% ${pos.y}%`,
+                                transform: `scale(${pos.scale})`,
+                              }}
+                              draggable={false}
+                              onMouseDown={(e) => {
+                                if (!adminMode) return;
+                                e.preventDefault();
+                                e.stopPropagation();
+                                setDraggingRace(race.id);
+                                dragStartRef.current = { x: e.clientX, y: e.clientY, posX: pos.x, posY: pos.y };
+                              }}
+                            />
+                            {/* Admin position controls */}
+                            {adminMode && (
+                              <div className="absolute top-2 left-2 z-30 flex flex-col gap-1" onClick={e => e.stopPropagation()}>
+                                <div className="bg-purple-900/90 rounded px-2 py-1 text-[10px] text-purple-200 border border-purple-500/50 font-bold">
+                                  DRAG IMAGE TO MOVE
+                                </div>
+                                <div className="bg-black/90 rounded px-2 py-1 flex items-center gap-2 border border-purple-500/50">
+                                  <span className="text-[10px] text-purple-300">Scale</span>
+                                  <input 
+                                    type="range" min="0.5" max="3" step="0.05"
+                                    value={pos.scale}
+                                    onChange={(e) => updatePortraitPos(race.id, { scale: parseFloat(e.target.value) })}
+                                    className="w-20 h-1 accent-purple-500"
+                                  />
+                                  <span className="text-[10px] text-white font-mono w-8">{pos.scale.toFixed(1)}x</span>
+                                </div>
+                                <div className="bg-black/90 rounded px-1.5 py-0.5 text-[9px] text-slate-400 border border-purple-500/30 font-mono">
+                                  x:{pos.x.toFixed(0)}% y:{pos.y.toFixed(0)}%
+                                </div>
+                                <Button
+                                  size="sm"
+                                  className="h-5 text-[10px] bg-red-900/80 hover:bg-red-800 text-red-200 border border-red-500/50"
+                                  onClick={() => updatePortraitPos(race.id, { x: 50, y: 20, scale: 1 })}
+                                >
+                                  Reset
+                                </Button>
+                              </div>
+                            )}
+                          </>
+                        );
+                      })()}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-90 pointer-events-none" />
                     </div>
 
                     {/* Content */}

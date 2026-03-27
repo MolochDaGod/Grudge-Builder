@@ -1,3 +1,4 @@
+import { assetUrl } from "@/lib/assetConfig";
 import { useState, useEffect, useRef, useCallback } from "react";
 
 interface UseOptimizedImageOptions {
@@ -234,5 +235,5 @@ export function getSpriteSheetUrl(
   name: string,
   animation: string
 ): string {
-  return `/sprites/${category}/${name}/${animation}.png`;
+  return assetUrl(`/sprites/${category}/${name}/${animation}.png`);
 }

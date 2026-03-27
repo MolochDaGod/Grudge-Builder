@@ -10,11 +10,12 @@ import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { useAdmin } from "@/contexts/AdminContext";
-import { 
+import {
   Sword, Shield, Scroll, MapPin, Users, Star, Clock, 
   ChevronRight, Trophy, Sparkles, Crown, Skull, Flame,
   ArrowLeft, Filter
 } from "lucide-react";
+import { assetUrl } from "@/lib/assetConfig";
 
 interface Mission {
   id: string;
@@ -98,7 +99,7 @@ function MissionCard({
           <div className="flex items-center gap-2">
             {isBossMission ? (
               <img 
-                src="/sprites/ui/boss-indicator.png" 
+                src={assetUrl("/sprites/ui/boss-indicator.png")} 
                 alt="Boss" 
                 className="w-6 h-6"
                 style={{ filter: 'drop-shadow(0 0 4px rgba(168, 85, 247, 0.6))' }}
