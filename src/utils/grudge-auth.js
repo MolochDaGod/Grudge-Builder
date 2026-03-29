@@ -1,5 +1,5 @@
 /**
- * grudge-auth.js — Grudge Auth Gateway client
+ * grudge-auth.js — Grudge Auth Gateway integration
  * Identity provider: https://id.grudge-studio.com (canonical Grudge ID)
  *
  * Note: The old auth-gateway-otb8qmmyd-grudgenexus.vercel.app deployment
@@ -7,7 +7,9 @@
  */
 export const GRUDGE_GATEWAY_URL = 'https://id.grudge-studio.com';
 
-export function getGrudgeToken() { return localStorage.getItem('grudge_auth_token') || null; }
+export function getGrudgeToken() {
+  return localStorage.getItem('grudge_auth_token') || null;
+}
 
 export function getGrudgeUser() {
   const t = getGrudgeToken();
@@ -20,22 +22,60 @@ export function getGrudgeUser() {
   };
 }
 
-export function isGrudgeAuthenticated() { return !!getGrudgeToken(); }
+export function isGrudgeAuthenticated() {
+  return !!getGrudgeToken();
+}
 
-export function redirectToGrudgeGateway(r) {
-  const ret = r || window.location.href;
+/** Redirect to Grudge ID SSO. Returns to returnUrl after auth. */
+export function redirectToGrudgeGateway(returnUrl) {
+  const ret = returnUrl || window.location.href;
   window.location.href = `${GRUDGE_GATEWAY_URL}/auth/sso-check?return=${encodeURIComponent(ret)}`;
 }
 
-export function requireGrudgeAuth(r) { if (!isGrudgeAuthenticated()) redirectToGrudgeGateway(r); }
+export function requireGrudgeAuth(returnUrl) {
+  if (!isGrudgeAuthenticated()) redirectToGrudgeGateway(returnUrl);
+}
 
+/** Sign out — invalidates JWT server-side then clears local state. */
 export function grudgeSignOut() {
-  const t = getGrudgeToken();
-  if (t) fetch(`${GRUDGE_GATEWAY_URL}/auth/logout`, { method: 'POST', headers: { Authorization: `Bearer ${t}` } }).catch(() => {});
-  ['grudge_auth_token','grudge_user_id','grudge_id','grudge_username','grudge_session_token','grudge-session'].forEach(k => localStorage.removeItem(k));
+  const token = getGrudgeToken();
+  if (token) {
+    fetch(`${GRUDGE_GATEWAY_URL}/auth/logout`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    }).catch(() => {}); // best-effort
+  }
+  ['grudge_auth_token', 'grudge_user_id', 'grudge_id', 'grudge_username',
+   'grudge_session_token', 'grudge-session'].forEach(k => localStorage.removeItem(k));
 }
 
 export function grudgeAuthHeaders() {
   const t = getGrudgeToken();
-  return t ? { Authorization: `Bearer ${t}`, 'Content-Type': 'application/json' } : { 'Content-Type': 'application/json' };
+  return t
+    ? { Authorization: `Bearer ${t}`, 'Content-Type': 'application/json' }
+    : { 'Content-Type': 'application/json' };
+}
+
+/**
+ * Call on app boot. Checks URL for SSO return token, stores it.
+ * Returns user object if authenticated, null otherwise.
+ */
+export function checkGrudgeAuthOnBoot({ autoRedirect = false } = {}) {
+  const params = new URLSearchParams(window.location.search);
+  const returnedToken = params.get('token') || params.get('sso_token');
+  if (returnedToken) {
+    localStorage.setItem('grudge_auth_token', returnedToken);
+    const grudgeId = params.get('grudge_id') || '';
+    const username = params.get('username') || '';
+    if (grudgeId) localStorage.setItem('grudge_id', grudgeId);
+    if (username) localStorage.setItem('grudge_username', username);
+    // Clean URL
+    const url = new URL(window.location.href);
+    ['token', 'sso_token', 'grudge_id', 'username', 'provider'].forEach(k => url.searchParams.delete(k));
+    window.history.replaceState({}, '', url.toString());
+  }
+  const user = getGrudgeUser();
+  if (user) return user;
+  if (autoRedirect) { redirectToGrudgeGateway(); return null; }
+  return null;
 }
