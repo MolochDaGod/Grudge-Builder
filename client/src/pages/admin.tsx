@@ -22,6 +22,8 @@ import {
   MousePointer, Trash2, Copy
 } from "lucide-react";
 import { DataSpreadsheet } from "@/components/DataSpreadsheet";
+import { getCacheStats, clearObjectStoreCache, prefetchCoreData } from "@/lib/objectStoreApi";
+import { OBJECT_STORE_BASE, OBJECT_STORE_API, ASSET_CDN_BASE, OBJECT_STORE_VERSION } from "@/lib/assetConfig";
 import { 
   MINIWORLD_BUILDINGS, 
   MINIWORLD_MONSTERS, 
@@ -2952,6 +2954,155 @@ function DatabaseTab() {
   );
 }
 
+function ObjectStorePanel() {
+  const [cacheStats, setCacheStats] = useState(getCacheStats());
+  const [apiStatus, setApiStatus] = useState<'checking' | 'online' | 'offline'>('checking');
+  const [cdnStatus, setCdnStatus] = useState<'checking' | 'online' | 'offline'>('checking');
+  const [refreshing, setRefreshing] = useState(false);
+
+  useEffect(() => {
+    // Check ObjectStore API health
+    fetch(`${OBJECT_STORE_API}/classes.json`, { method: 'HEAD' })
+      .then(res => setApiStatus(res.ok ? 'online' : 'offline'))
+      .catch(() => setApiStatus('offline'));
+    // Check CDN health
+    fetch(`${ASSET_CDN_BASE}/health`, { method: 'GET' })
+      .then(res => setCdnStatus(res.ok ? 'online' : 'offline'))
+      .catch(() => setCdnStatus('offline'));
+  }, []);
+
+  const handleRefreshCache = async () => {
+    setRefreshing(true);
+    clearObjectStoreCache();
+    await prefetchCoreData();
+    setCacheStats(getCacheStats());
+    setRefreshing(false);
+  };
+
+  const handleClearCache = () => {
+    clearObjectStoreCache();
+    setCacheStats(getCacheStats());
+  };
+
+  const statusColor = (s: string) =>
+    s === 'online' ? 'bg-green-500' : s === 'offline' ? 'bg-red-500' : 'bg-yellow-500';
+  const statusText = (s: string) =>
+    s === 'online' ? 'Online' : s === 'offline' ? 'Offline' : 'Checking...';
+
+  return (
+    <div className="space-y-6">
+      <div className="grid md:grid-cols-3 gap-4">
+        <Card className="bg-slate-800/50 border-slate-700">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-white text-sm flex items-center gap-2">
+              <Database className="w-4 h-4 text-amber-400" />
+              ObjectStore API
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="flex items-center gap-2">
+              <div className={`w-2 h-2 rounded-full ${statusColor(apiStatus)}`} />
+              <span className="text-slate-300 text-sm">{statusText(apiStatus)}</span>
+            </div>
+            <div className="text-xs text-slate-500 space-y-1">
+              <p className="font-mono break-all">{OBJECT_STORE_BASE}</p>
+              <p>Version: <span className="text-amber-400">{OBJECT_STORE_VERSION}</span></p>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-slate-800/50 border-slate-700">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-white text-sm flex items-center gap-2">
+              <Cloud className="w-4 h-4 text-blue-400" />
+              CDN / Asset Service
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="flex items-center gap-2">
+              <div className={`w-2 h-2 rounded-full ${statusColor(cdnStatus)}`} />
+              <span className="text-slate-300 text-sm">{statusText(cdnStatus)}</span>
+            </div>
+            <div className="text-xs text-slate-500 space-y-1">
+              <p className="font-mono break-all">{ASSET_CDN_BASE}</p>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-slate-800/50 border-slate-700">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-white text-sm flex items-center gap-2">
+              <Layers className="w-4 h-4 text-green-400" />
+              Data Cache
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="text-slate-300 text-sm">
+              <span className="text-2xl font-bold text-white">{cacheStats.entries}</span> endpoints cached
+            </div>
+            <div className="flex gap-2">
+              <Button size="sm" variant="outline" onClick={handleRefreshCache} disabled={refreshing}>
+                {refreshing ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
+                <span className="ml-1">Refresh</span>
+              </Button>
+              <Button size="sm" variant="outline" onClick={handleClearCache}>
+                <Trash2 className="w-3 h-3" />
+                <span className="ml-1">Clear</span>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {cacheStats.endpoints.length > 0 && (
+        <Card className="bg-slate-800/50 border-slate-700">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-white text-sm">Cached Endpoints</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-wrap gap-2">
+              {cacheStats.endpoints.map(ep => (
+                <Badge key={ep} variant="outline" className="font-mono text-xs">
+                  {ep}
+                </Badge>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      <Card className="bg-slate-800/50 border-slate-700">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-white text-sm">API Endpoints</CardTitle>
+          <CardDescription>ObjectStore api/v1 JSON data endpoints</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-2 text-xs">
+            {[
+              'weapons', 'armor', 'materials', 'consumables', 'classes', 'races',
+              'factions', 'attributes', 'professions', 'skills', 'weaponSkills',
+              'enemies', 'bosses', 'effectSprites', 'sprites2d', 'spriteMaps',
+              'items-database', 'equipment', 'skillTrees', 'missions', 'worldMap',
+              'lore', 'quests'
+            ].map(ep => (
+              <a
+                key={ep}
+                href={`${OBJECT_STORE_API}/${ep}.json`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 p-2 rounded bg-slate-900/50 hover:bg-slate-700/50 transition-colors text-slate-300 hover:text-white"
+              >
+                <FileText className="w-3 h-3 text-amber-400 shrink-0" />
+                <span className="font-mono">{ep}.json</span>
+              </a>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
 export default function AdminPage() {
   const [activeTab, setActiveTab] = useState("overview");
   const [initialCategory, setInitialCategory] = useState<string | undefined>(undefined);
@@ -3013,6 +3164,10 @@ export default function AdminPage() {
               <Layers className="w-4 h-4" />
               MiniWorld
             </TabsTrigger>
+            <TabsTrigger value="objectstore" className="gap-2" data-testid="tab-objectstore">
+              <Grid3X3 className="w-4 h-4" />
+              ObjectStore
+            </TabsTrigger>
           </TabsList>
           
           <TabsContent value="overview">
@@ -3049,6 +3204,10 @@ export default function AdminPage() {
           
           <TabsContent value="miniworld">
             <MiniWorldViewer />
+          </TabsContent>
+          
+          <TabsContent value="objectstore">
+            <ObjectStorePanel />
           </TabsContent>
         </Tabs>
       </div>
