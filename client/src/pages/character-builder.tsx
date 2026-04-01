@@ -13,7 +13,6 @@ import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer } from "recharts";
-const bgTexture = assetUrl("/backgrounds/character-bg.png");
 import Layout from "@/components/Layout";
 import { CharacterManager, Character, EquipmentSlots } from "@/lib/characterManager";
 import { ITEMS, resolveItemImage, RESOURCE_NODES } from "@/lib/grudaDB";
@@ -41,6 +40,7 @@ import {
   ClassSkillTier
 } from "@shared/definitions/classSkillTrees";
 import { assetUrl } from "@/lib/assetConfig";
+const bgTexture = assetUrl("/backgrounds/character-bg.png");
 
 const ATTRIBUTE_ICONS: Record<string, string> = {
   Strength: "💪",

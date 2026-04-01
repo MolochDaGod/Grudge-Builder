@@ -1,6 +1,7 @@
 import { assetUrl } from "@/lib/assetConfig";
+import type { AttributeKey } from "@/lib/objectStoreTypes";
 
-export type AttributeKey = "Strength" | "Intellect" | "Vitality" | "Dexterity" | "Endurance" | "Wisdom" | "Agility" | "Tactics";
+export type { AttributeKey };
 
 export interface AttributeDef {
   description: string;
