@@ -15,6 +15,30 @@
       "destination": "https://id.grudge-studio.com/auth/:path*"
     },
     {
+      "source": "/api/discord-login",
+      "destination": "https://id.grudge-studio.com/auth/discord?redirect_uri=https://grudgewarlords.com"
+    },
+    {
+      "source": "/api/oauth-google",
+      "destination": "https://id.grudge-studio.com/auth/google?redirect_uri=https://grudgewarlords.com"
+    },
+    {
+      "source": "/api/oauth-github",
+      "destination": "https://id.grudge-studio.com/auth/github?redirect_uri=https://grudgewarlords.com"
+    },
+    {
+      "source": "/api/login",
+      "destination": "https://id.grudge-studio.com/auth/login"
+    },
+    {
+      "source": "/api/register",
+      "destination": "https://id.grudge-studio.com/auth/register"
+    },
+    {
+      "source": "/api/guest",
+      "destination": "https://id.grudge-studio.com/auth/guest"
+    },
+    {
       "source": "/api/game/:path*",
       "destination": "https://api.grudge-studio.com/:path*"
     },
