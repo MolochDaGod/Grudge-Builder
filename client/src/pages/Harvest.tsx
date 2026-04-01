@@ -188,7 +188,7 @@ export default function HomePage() {
     <Layout>
       <div 
         className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-20 pointer-events-none z-0"
-        style={{ backgroundImage: `url(assetUrl("/backgrounds/home-bg.png"))` }}
+        style={{ backgroundImage: `url(${assetUrl("/backgrounds/home-bg.png")})` }}
       />
       <div className="relative z-10">
         <div className="mb-6 flex items-center justify-between">
@@ -246,7 +246,7 @@ export default function HomePage() {
                   description="Compete against other warlords for glory and rewards"
                   status="Active"
                   reward="500 Gold + Rare Items"
-                  image=assetUrl("/images/events/weekly-tournament.png")
+                  image={assetUrl("/images/events/weekly-tournament.png")}
                   onClick={() => setLocation("/combat")}
                 />
                 <EventCard
@@ -254,7 +254,7 @@ export default function HomePage() {
                   description="Lead your party into the cursed dungeon depths"
                   status="Active"
                   reward="XP Boost + Epic Gear"
-                  image=assetUrl("/images/events/dungeon-raid-1.png")
+                  image={assetUrl("/images/events/dungeon-raid-1.png")}
                   onClick={() => setLocation("/dungeon")}
                 />
                 <EventCard
@@ -262,7 +262,7 @@ export default function HomePage() {
                   description="Join your faction's crusade for dominion"
                   status="Active"
                   reward="Faction Points"
-                  image=assetUrl("/images/events/faction-war.png")
+                  image={assetUrl("/images/events/faction-war.png")}
                   onClick={() => setLocation("/combat")}
                 />
               </motion.div>
