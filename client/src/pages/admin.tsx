@@ -23,7 +23,7 @@ import {
 } from "lucide-react";
 import { DataSpreadsheet } from "@/components/DataSpreadsheet";
 import { getCacheStats, clearObjectStoreCache, prefetchCoreData } from "@/lib/objectStoreApi";
-import { OBJECT_STORE_BASE, OBJECT_STORE_API, ASSET_CDN_BASE, OBJECT_STORE_VERSION } from "@/lib/assetConfig";
+import { assetUrl, OBJECT_STORE_BASE, OBJECT_STORE_API, ASSET_CDN_BASE, OBJECT_STORE_VERSION } from "@/lib/assetConfig";
 import { 
   MINIWORLD_BUILDINGS, 
   MINIWORLD_MONSTERS, 
