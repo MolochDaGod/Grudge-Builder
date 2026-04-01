@@ -8,6 +8,7 @@ import { PuterFooter } from "@/components/PuterFooter";
 import { AdminTransitionScreen } from "@/components/AdminTransitionScreen";
 import { AdminProvider, useAdmin } from "@/contexts/AdminContext";
 import { preloadMigratedSprites } from "@/hooks/use-sprite-url";
+import { prefetchCoreData } from "@/lib/objectStoreApi";
 import NotFound from "@/pages/not-found";
 import CharacterBuilder from "@/pages/character-builder";
 import ProfessionsPage from "@/pages/professions";
@@ -105,6 +106,11 @@ function AppContent() {
   const { isTransitioning, isAdmin } = useAdmin();
 
   useEffect(() => {
+    // Warm ObjectStore data cache on app init
+    prefetchCoreData().then(() => {
+      console.debug('[ObjectStore] Core data prefetched');
+    });
+
     preloadMigratedSprites().then(count => {
       if (count > 0) {
         console.debug(`Preloaded ${count} migrated sprite URLs from Object Storage`);
