@@ -48,6 +48,7 @@ import AdminCombatPage from "@/pages/admin-combat";
 import IslandV2Page from "@/pages/island-v2";
 import AdminIslandV2Page from "@/pages/admin-island-v2";
 import LauncherPage from "@/pages/launcher";
+import TowerWarsPage from "@/pages/tower-wars";
 
 function Router() {
   return (
@@ -93,6 +94,7 @@ function Router() {
       <Route path="/island-v2" component={IslandV2Page} />
       <Route path="/admin-island-v2" component={AdminIslandV2Page} />
       <Route path="/launcher" component={LauncherPage} />
+      <Route path="/tower-wars" component={TowerWarsPage} />
       {/* Fallback to 404 */}
       <Route component={NotFound} />
     </Switch>

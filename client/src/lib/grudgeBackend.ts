@@ -22,8 +22,10 @@
 export const API_BASE = "/api";
 
 // ── Token / Session management ───────────────────────────────────────
-// Match GrudgeWars keys exactly for cross-app session sharing
-const SESSION_TOKEN_KEY = "grudge_session_token";
+// Use the canonical auth token key for cross-app SSO, while mirroring the
+// legacy builder token key for backward compatibility.
+const AUTH_TOKEN_KEY = "grudge_auth_token";
+const LEGACY_SESSION_TOKEN_KEY = "grudge_session_token";
 const SESSION_KEY = "grudge-session";
 const DEVICE_ID_KEY = "grudge_device_id";
 
@@ -66,10 +68,23 @@ const SSO_AUTH_URL = "https://id.grudge-studio.com";
     const params = new URLSearchParams(window.location.search);
     const ssoToken = params.get("sso_token");
     if (ssoToken) {
-      localStorage.setItem(SESSION_TOKEN_KEY, ssoToken);
+      localStorage.setItem(AUTH_TOKEN_KEY, ssoToken);
+      localStorage.setItem(LEGACY_SESSION_TOKEN_KEY, ssoToken);
+      const returnedUserId = params.get("grudge_user_id") || params.get("userId") || "";
+      const returnedGrudgeId = params.get("grudge_id") || params.get("grudgeId") || "";
+      const returnedUsername = params.get("grudge_username") || params.get("username") || "";
+      if (returnedUserId) localStorage.setItem("grudge_user_id", returnedUserId);
+      if (returnedGrudgeId) localStorage.setItem("grudge_id", returnedGrudgeId);
+      if (returnedUsername) localStorage.setItem("grudge_username", returnedUsername);
       // Clean URL without reload
       params.delete("sso_token");
       params.delete("sso_required");
+      params.delete("grudge_user_id");
+      params.delete("userId");
+      params.delete("grudge_id");
+      params.delete("grudgeId");
+      params.delete("grudge_username");
+      params.delete("username");
       const clean = params.toString();
       const newUrl = window.location.pathname + (clean ? `?${clean}` : "") + window.location.hash;
       window.history.replaceState(null, "", newUrl);
@@ -77,7 +92,7 @@ const SSO_AUTH_URL = "https://id.grudge-studio.com";
     }
 
     // If no local token and we haven't checked SSO yet, redirect to SSO check
-    const hasToken = !!localStorage.getItem(SESSION_TOKEN_KEY);
+    const hasToken = !!localStorage.getItem(AUTH_TOKEN_KEY) || !!localStorage.getItem(LEGACY_SESSION_TOKEN_KEY);
     const ssoRequired = params.get("sso_required");
     if (!hasToken && !ssoRequired && window.location.pathname !== "/") {
       // Redirect to grudge-id SSO check
@@ -90,15 +105,17 @@ const SSO_AUTH_URL = "https://id.grudge-studio.com";
 // ── Token helpers ────────────────────────────────────────────────────
 
 export function getToken(): string | null {
-  return localStorage.getItem(SESSION_TOKEN_KEY);
+  return localStorage.getItem(AUTH_TOKEN_KEY) || localStorage.getItem(LEGACY_SESSION_TOKEN_KEY);
 }
 
 export function setToken(token: string): void {
-  localStorage.setItem(SESSION_TOKEN_KEY, token);
+  localStorage.setItem(AUTH_TOKEN_KEY, token);
+  localStorage.setItem(LEGACY_SESSION_TOKEN_KEY, token);
 }
 
 export function clearToken(): void {
-  localStorage.removeItem(SESSION_TOKEN_KEY);
+  localStorage.removeItem(AUTH_TOKEN_KEY);
+  localStorage.removeItem(LEGACY_SESSION_TOKEN_KEY);
 }
 
 export function isAuthenticated(): boolean {
@@ -129,7 +146,19 @@ export function setSession(session: GrudgeSession): void {
 
 export function getCurrentUser(): GrudgeUser | null {
   const session = getSession();
-  if (!session) return null;
+  if (!session) {
+    const token = getToken();
+    if (!token) return null;
+    const grudgeId = localStorage.getItem("grudge_id") || "";
+    const username = localStorage.getItem("grudge_username") || "";
+    const userId = localStorage.getItem("grudge_user_id");
+    if (!grudgeId && !username) return null;
+    return {
+      id: userId ? Number(userId) : undefined,
+      grudgeId,
+      username: username || "Player",
+    };
+  }
   return {
     grudgeId: session.grudgeId || "",
     username: session.username,
@@ -138,8 +167,11 @@ export function getCurrentUser(): GrudgeUser | null {
 }
 
 export function logout(): void {
-  localStorage.removeItem(SESSION_TOKEN_KEY);
+  clearToken();
   localStorage.removeItem(SESSION_KEY);
+  localStorage.removeItem("grudge_user_id");
+  localStorage.removeItem("grudge_id");
+  localStorage.removeItem("grudge_username");
 }
 
 // ── Device ID (for guest login) ──────────────────────────────────────
@@ -182,16 +214,22 @@ async function handleAuthResponse(
 
   const data: AuthResponse = await res.json();
 
-  // Store session token (same key as GrudgeWars)
+  // Store session token under both canonical and legacy keys
   const token = data.sessionToken || data.token;
   if (token) setToken(token);
 
   // Store session data (same format as GrudgeWars)
   const user = data.user || ({} as GrudgeUser);
+  const resolvedUserId = user.id ? String(user.id) : "";
+  const resolvedGrudgeId = user.grudgeId || data.grudgeId || "";
+  const resolvedUsername = user.displayName || user.username || data.username || "Unknown";
+  if (resolvedUserId) localStorage.setItem("grudge_user_id", resolvedUserId);
+  if (resolvedGrudgeId) localStorage.setItem("grudge_id", resolvedGrudgeId);
+  if (resolvedUsername) localStorage.setItem("grudge_username", resolvedUsername);
   const session: GrudgeSession = {
     type: sessionType,
-    username: user.username || data.username || "Unknown",
-    grudgeId: user.grudgeId || data.grudgeId || undefined,
+    username: resolvedUsername,
+    grudgeId: resolvedGrudgeId || undefined,
     accountId: user.id,
     loginTime: Date.now(),
     ...extra,

@@ -51,3 +51,4 @@ diabloweb/
 
 # Vite config temps
 vite.config.ts.*
+.vercel

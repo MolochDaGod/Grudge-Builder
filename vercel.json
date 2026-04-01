@@ -1,4 +1,5 @@
 {
+  "alias": ["client.grudge-studio.com", "grudgewarlords.com", "www.grudgewarlords.com"],
   "buildCommand": "npm run build:client",
   "outputDirectory": "client/dist",
   "devCommand": "npm run dev:client",

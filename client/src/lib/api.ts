@@ -1,7 +1,10 @@
 import type { Character } from "./characterManager";
 import { API_BASE, authHeaders, clearToken, logout } from "./grudgeBackend";
 
-const GAME_API = `${API_BASE}/game`;
+/** Canonical Grudge backend — always used for character CRUD + game data.
+ *  Ensures uniform data (cNFT, attributes, prefabs) across all Grudge games. */
+const GAME_API = "https://api.grudge-studio.com/api";
+const LOCAL_API = `${API_BASE}/game`;
 import {
   type VpsCharacter,
   toVpsCreatePayload,
@@ -33,17 +36,26 @@ export const characterAPI = {
   getAll: async (): Promise<Character[]> => {
     const res = await authFetch(`${GAME_API}/characters`);
     if (!res.ok) throw new Error("Failed to fetch characters");
-    const vpsChars: VpsCharacter[] = await res.json();
+    const data = await res.json();
+    // Unified backend returns { success, characters: [...] }
+    const charList = data.characters || data;
+    const vpsChars: VpsCharacter[] = Array.isArray(charList) ? charList : [];
     return vpsChars.map(fromVpsCharacter);
   },
 
   get: async (id: string): Promise<Character> => {
     const res = await authFetch(`${GAME_API}/characters/${id}`);
     if (!res.ok) throw new Error("Failed to fetch character");
-    const vps: VpsCharacter = await res.json();
+    const data = await res.json();
+    const vps: VpsCharacter = data.character || data;
     return fromVpsCharacter(vps);
   },
 
+  /**
+   * Create a character via the canonical unified backend.
+   * Backend validates race/class, computes attributes (base + race + class + manual),
+   * generates AI avatar, mints cNFT, and returns the full character.
+   */
   create: async (
     character: Omit<Character, "id" | "createdAt" | "userId">,
   ): Promise<Character> => {
@@ -51,10 +63,15 @@ export const characterAPI = {
     const res = await authFetch(`${GAME_API}/characters`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
+      body: JSON.stringify({
+        ...payload,
+        manualAttributes: character.attributes || {},
+        gameOrigin: "wcs",
+      }),
     });
     if (!res.ok) throw new Error("Failed to create character");
-    const vps: VpsCharacter = await res.json();
+    const data = await res.json();
+    const vps: VpsCharacter = data.character || data;
     const built = fromVpsCharacter(vps);
     // Save the extended builder data locally
     saveExtendedData(built.id, { ...character, ...built });
@@ -109,7 +126,8 @@ export const characterAPI = {
    * Mint a character as a compressed NFT on Solana.
    * Sends to user's server-side wallet, or admin agent wallet as fallback.
    */
-  mintCNFT: async (characterId: string, avatarUrl: string, targetWallet?: string): Promise<{
+  /** Mint or re-mint character cNFT via the canonical backend */
+  mintCNFT: async (characterId: string, _avatarUrl?: string, _targetWallet?: string): Promise<{
     success: boolean;
     nftId?: string;
     mintAddress?: string;
@@ -117,52 +135,43 @@ export const characterAPI = {
     error?: string;
   }> => {
     try {
-      // Determine target wallet: user's server wallet → admin agent wallet fallback
-      let wallet = targetWallet;
-      if (!wallet) {
-        // Try to get from wallet status
-        const statusRes = await fetch('/api/wallet/status').catch(() => null);
-        if (statusRes?.ok) {
-          const status = await statusRes.json();
-          wallet = status.walletAddress || undefined;
-        }
-      }
-      if (!wallet) {
-        // Fallback to admin agent wallet from config
-        const configRes = await fetch('/api/wallet/config').catch(() => null);
-        if (configRes?.ok) {
-          const config = await configRes.json();
-          wallet = config.aiAgentWallet || undefined;
-        }
-      }
-
-      const res = await authFetch(`${GAME_API}/nfts/mint`, {
+      const res = await authFetch(`${GAME_API}/characters/${characterId}/mint`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          characterId,
-          avatarUrl,
-          targetWallet: wallet,
-          isCompressed: true,
-        }),
       });
-
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
         return { success: false, error: data.error || `Mint failed (${res.status})` };
       }
-
       const data = await res.json();
       return {
         success: true,
-        nftId: data.nftId || data.id,
-        mintAddress: data.mintAddress,
-        assetId: data.assetId,
+        nftId: data.mintId,
+        mintAddress: data.mintId,
       };
     } catch (e) {
       console.error('cNFT mint error:', e);
       return { success: false, error: e instanceof Error ? e.message : 'Mint failed' };
     }
+  },
+};
+
+// ── Game Data (canonical definitions from unified backend) ────────────
+export const gameDataAPI = {
+  all: async () => {
+    const res = await fetch(`${GAME_API}/game-data/all`);
+    if (!res.ok) throw new Error("Failed to fetch game data");
+    return res.json();
+  },
+  races: async () => {
+    const res = await fetch(`${GAME_API}/game-data/races`);
+    if (!res.ok) throw new Error("Failed to fetch races");
+    return res.json();
+  },
+  classes: async () => {
+    const res = await fetch(`${GAME_API}/game-data/classes`);
+    if (!res.ok) throw new Error("Failed to fetch classes");
+    return res.json();
   },
 };
 

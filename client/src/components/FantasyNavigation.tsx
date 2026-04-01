@@ -2,7 +2,7 @@ import { Link, useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import { useState, useCallback, useEffect } from "react";
 import { cn } from "@/lib/utils";
-import { Book, Shield, Pickaxe, Sword, Leaf, Hammer, Gem, Settings, Wallet, Sparkles } from "lucide-react";
+import { Book, Shield, Pickaxe, Sword, Leaf, Hammer, Gem, Settings, Wallet, Sparkles, ExternalLink, LayoutDashboard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CharacterManager } from "@/lib/characterManager";
 import { useAccount } from "@/hooks/use-account";
@@ -460,6 +460,23 @@ export function FantasySidebar({ children }: { children?: React.ReactNode }) {
         <FantasyNavigation />
       </div>
       <WarlordCard />
+      {/* CLIENT HUB link */}
+      <a
+        href="https://client.grudge-studio.com"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="flex items-center justify-between gap-2 mx-3 mb-3 px-3 py-2.5 rounded-lg border border-amber-700/30 hover:border-amber-500/50 transition-colors group"
+        style={{ background: 'linear-gradient(90deg, rgba(120,60,10,0.3) 0%, rgba(80,40,8,0.2) 100%)' }}
+      >
+        <div className="flex items-center gap-2">
+          <LayoutDashboard className="w-3.5 h-3.5 text-amber-500/70 group-hover:text-amber-400" />
+          <div>
+            <div className="text-xs font-cinzel font-bold text-amber-400/80 group-hover:text-amber-300 leading-none">CLIENT HUB</div>
+            <div className="text-[10px] text-amber-700/60 group-hover:text-amber-600/80 leading-none mt-0.5">client.grudge-studio.com</div>
+          </div>
+        </div>
+        <ExternalLink className="w-3 h-3 text-amber-700/40 group-hover:text-amber-500/60" />
+      </a>
       {children}
     </aside>
   );
