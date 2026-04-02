@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,20 +8,21 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Wallet, Coins, ExternalLink, CheckCircle, Loader2, AlertCircle, Copy } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { authHeaders } from "@/lib/grudgeBackend";
 
 interface WalletStatus {
   hasWallet: boolean;
   walletType: 'crossmint' | 'external' | null;
   walletAddress: string | null;
   crossmintEmail: string | null;
+  walletId?: string | null;
 }
 
-interface WalletConfig {
-  network: string;
-  rpcEndpoint: string;
-  crossmintEnabled: boolean;
-  aiAgentWallet: string | null;
-}
+// Hardcoded — backend doesn't serve a config endpoint yet
+const WALLET_CONFIG = {
+  network: 'devnet' as const,
+  crossmintEnabled: true,
+};
 
 interface CharacterData {
   name: string;
@@ -50,38 +51,33 @@ export default function WalletPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
+  // GET /api/wallet — returns { hasWallet, walletAddress, walletType, walletId }
   const { data: walletStatus, isLoading: isLoadingStatus } = useQuery<WalletStatus>({
     queryKey: ["wallet-status"],
     queryFn: async () => {
-      const res = await fetch("/api/wallet/status");
+      const res = await fetch("/api/wallet", { headers: authHeaders() });
       if (!res.ok) throw new Error("Failed to fetch wallet status");
-      return res.json();
+      const data = await res.json();
+      return {
+        hasWallet: !!data.hasWallet,
+        walletType: data.walletType || null,
+        walletAddress: data.walletAddress || null,
+        crossmintEmail: null, // backend doesn't expose this yet
+        walletId: data.walletId || null,
+      };
     },
   });
 
-  const { data: walletConfig } = useQuery<WalletConfig>({
-    queryKey: ["wallet-config"],
-    queryFn: async () => {
-      const res = await fetch("/api/wallet/config");
-      if (!res.ok) throw new Error("Failed to fetch wallet config");
-      return res.json();
-    },
-  });
+  const walletConfig = WALLET_CONFIG;
 
-  const { data: nftsData } = useQuery<{ nfts: NFTStatus[] }>({
-    queryKey: ["nfts"],
-    queryFn: async () => {
-      const res = await fetch("/api/nfts");
-      if (!res.ok) throw new Error("Failed to fetch NFTs");
-      return res.json();
-    },
-  });
+  // NFTs: not yet served by backend — show empty state
+  const nftsData: { nfts: NFTStatus[] } | undefined = undefined;
 
   const createWalletMutation = useMutation({
     mutationFn: async (email: string) => {
       const res = await fetch("/api/wallet/create", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { ...authHeaders(), "Content-Type": "application/json" },
         body: JSON.stringify({ email }),
       });
       if (!res.ok) {
@@ -131,26 +127,24 @@ export default function WalletPage() {
       </div>
 
       {/* Network Status */}
-      {walletConfig && (
-        <Card className="mb-6">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-lg">Network Status</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center gap-4">
-              <Badge variant={walletConfig.network === 'mainnet-beta' ? 'default' : 'secondary'}>
-                {walletConfig.network === 'mainnet-beta' ? 'Mainnet' : 'Devnet'}
+      <Card className="mb-6">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-lg">Network Status</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center gap-4">
+            <Badge variant={walletConfig.network === 'mainnet-beta' ? 'default' : 'secondary'}>
+              {walletConfig.network === 'mainnet-beta' ? 'Mainnet' : 'Devnet'}
+            </Badge>
+            {walletConfig.crossmintEnabled && (
+              <Badge variant="outline" className="text-green-600">
+                <CheckCircle className="h-3 w-3 mr-1" />
+                Crossmint Enabled
               </Badge>
-              {walletConfig.crossmintEnabled && (
-                <Badge variant="outline" className="text-green-600">
-                  <CheckCircle className="h-3 w-3 mr-1" />
-                  Crossmint Enabled
-                </Badge>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      )}
+            )}
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Wallet Card */}
       <Card className="mb-6">

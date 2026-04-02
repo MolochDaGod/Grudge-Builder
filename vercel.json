@@ -39,6 +39,10 @@
       "destination": "https://id.grudge-studio.com/auth/guest"
     },
     {
+      "source": "/api/wallet",
+      "destination": "https://api.grudge-studio.com/api/wallet"
+    },
+    {
       "source": "/api/wallet/:path*",
       "destination": "https://api.grudge-studio.com/api/wallet/:path*"
     },
@@ -49,6 +53,10 @@
     {
       "source": "/api/nfts",
       "destination": "https://api.grudge-studio.com/api/nfts"
+    },
+    {
+      "source": "/api/assets/:path*",
+      "destination": "https://assets.grudge-studio.com/:path*"
     },
     {
       "source": "/api/game/:path*",
