@@ -39,6 +39,7 @@ import ArsenalPage from "@/pages/ArsenalPage";
 import WorldMapPage from "@/pages/world-map";
 import MissionBoardPage from "@/pages/mission-board";
 import WalletPage from "@/pages/WalletPage";
+import AccountPage from "@/pages/AccountPage";
 import AIHelperGenerator from "@/pages/ai-helper-generator";
 import AdminMapPage from "@/pages/admin-map";
 import IslandGridTestPage from "@/pages/island-grid-test";
@@ -85,6 +86,7 @@ function Router() {
       <Route path="/world-map" component={WorldMapPage} />
       <Route path="/missions" component={MissionBoardPage} />
       <Route path="/wallet" component={WalletPage} />
+      <Route path="/account" component={AccountPage} />
       <Route path="/ai-helper" component={AIHelperGenerator} />
       <Route path="/admin-map" component={AdminMapPage} />
       <Route path="/island-grid-test" component={IslandGridTestPage} />

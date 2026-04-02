@@ -582,7 +582,7 @@ export default function CharacterBuilder() {
               <div className="flex-1 p-8 overflow-y-auto relative">
                  <div 
                   className="absolute inset-0 pointer-events-none z-0 opacity-10"
-                  style={{ backgroundImage: `url(/assets/ui/character-panel.png)`, backgroundSize: 'cover', backgroundPosition: 'center' }}
+                  style={{ backgroundImage: `url(${assetUrl("/sprites/ui/PNG/character-panel.png")})`, backgroundSize: 'cover', backgroundPosition: 'center' }}
                 ></div>
                 <div className="relative z-10">
                 {/* Header */}
@@ -1028,7 +1028,7 @@ export default function CharacterBuilder() {
                       <div className="relative bg-slate-900/50 rounded-xl p-6 border border-slate-800 flex flex-col overflow-hidden">
                         <div 
                           className="absolute inset-0 pointer-events-none z-0 opacity-10"
-                          style={{ backgroundImage: `url(/assets/ui/inventory.png)`, backgroundSize: 'cover', backgroundPosition: 'center' }}
+                          style={{ backgroundImage: `url(${assetUrl("/sprites/ui/PNG/inventory.png")})`, backgroundSize: 'cover', backgroundPosition: 'center' }}
                         ></div>
                         <div className="relative z-10 flex flex-col">
                           <h3 className="text-lg font-cinzel text-amber-400 mb-1">Hero Inventory</h3>
@@ -1816,7 +1816,7 @@ export default function CharacterBuilder() {
                 <div className="lg:col-span-7 relative border border-amber-900/40 rounded-xl p-6 md:p-8 overflow-hidden">
                   <div 
                     className="absolute inset-0 opacity-30 pointer-events-none z-0"
-                    style={{ backgroundImage: `url(/assets/ui/wood-texture.png)`, backgroundSize: 'cover', backgroundPosition: 'center' }}
+                    style={{ backgroundImage: `url(${assetUrl("/sprites/ui/PNG/wood-texture.png")})`, backgroundSize: 'cover', backgroundPosition: 'center' }}
                   />
                   <div className="absolute inset-0 bg-gradient-to-br from-amber-950/80 via-stone-900/90 to-stone-950/95 pointer-events-none z-0" />
                   <div className="relative z-10">
@@ -1891,7 +1891,7 @@ export default function CharacterBuilder() {
                    <div className="relative border border-amber-900/40 rounded-xl p-6 h-[400px] flex items-center justify-center overflow-hidden">
                       <div 
                         className="absolute inset-0 opacity-20 pointer-events-none z-0"
-                        style={{ backgroundImage: `url(/assets/ui/wood-texture.png)`, backgroundSize: 'cover', backgroundPosition: 'center' }}
+                        style={{ backgroundImage: `url(${assetUrl("/sprites/ui/PNG/wood-texture.png")})`, backgroundSize: 'cover', backgroundPosition: 'center' }}
                       />
                       <div className="absolute inset-0 bg-gradient-to-br from-amber-950/80 via-stone-900/90 to-stone-950/95 pointer-events-none z-0" />
                       <div className="relative z-10 w-full h-full">
@@ -1913,7 +1913,7 @@ export default function CharacterBuilder() {
                    <div className="relative border border-amber-900/40 rounded-xl p-6 flex-1 overflow-hidden">
                       <div 
                         className="absolute inset-0 opacity-20 pointer-events-none z-0"
-                        style={{ backgroundImage: `url(/assets/ui/wood-texture.png)`, backgroundSize: 'cover', backgroundPosition: 'center' }}
+                        style={{ backgroundImage: `url(${assetUrl("/sprites/ui/PNG/wood-texture.png")})`, backgroundSize: 'cover', backgroundPosition: 'center' }}
                       />
                       <div className="absolute inset-0 bg-gradient-to-br from-amber-950/80 via-stone-900/90 to-stone-950/95 pointer-events-none z-0" />
                       <div className="relative z-10">

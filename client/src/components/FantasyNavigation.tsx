@@ -331,7 +331,7 @@ function WarlordCard() {
       
       <div className="relative z-10 p-3 pt-[8px] pb-[8px]">
         <div className="flex items-center gap-3 mb-3">
-          <Link href="/admin" className="cursor-pointer hover:opacity-80 transition-opacity" data-testid="link-avatar-settings">
+          <Link href="/account" className="cursor-pointer hover:opacity-80 transition-opacity" data-testid="link-avatar-settings">
             {account?.avatarUrl ? (
               <img 
                 src={account.avatarUrl} 
