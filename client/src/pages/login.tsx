@@ -3,6 +3,7 @@ import { useLocation } from "wouter";
 import { motion } from "framer-motion";
 import { isAuthenticated } from "@/lib/grudgeBackend";
 import { assetUrl } from "@/lib/assetConfig";
+import { playBGM } from "@/lib/audioManager";
 
 declare global {
   interface Window {
@@ -27,6 +28,9 @@ export default function LoginPage() {
     };
     window.addEventListener("grudge:auth:success", onAuthSuccess);
 
+    // Start title music
+    playBGM("title");
+
     // Auto-open the auth modal on mount
     const timer = setTimeout(() => {
       window.openGrudgeAuthModal?.();
@@ -43,7 +47,7 @@ export default function LoginPage() {
       <div
         className="absolute inset-0 opacity-30 pointer-events-none"
         style={{
-          backgroundImage: `url(${assetUrl("/backgrounds/login-bg.jpg")})`,
+          backgroundImage: `url(${assetUrl("/backgrounds/main_menu_bg.png")})`,
           backgroundSize: "cover",
           backgroundPosition: "center",
         }}
@@ -56,7 +60,7 @@ export default function LoginPage() {
         className="relative z-10 w-full max-w-md text-center"
       >
         <img
-          src={assetUrl("/sprites/ui/grudge-logo.png")}
+          src={assetUrl("/images/logo.png")}
           alt="Grudge Warlords"
           className="w-20 h-20 mx-auto mb-4"
           onError={(e) => { e.currentTarget.style.display = 'none'; }}

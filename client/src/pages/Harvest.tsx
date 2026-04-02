@@ -188,7 +188,7 @@ export default function HomePage() {
     <Layout>
       <div 
         className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-20 pointer-events-none z-0"
-        style={{ backgroundImage: `url(${assetUrl("/backgrounds/home-bg.png")})` }}
+        style={{ backgroundImage: `url(${assetUrl("/backgrounds/general.png")})` }}
       />
       <div className="relative z-10">
         <div className="mb-6 flex items-center justify-between">

@@ -9,10 +9,14 @@ export interface CombatBackground {
 }
 
 export const COMBAT_BACKGROUNDS: CombatBackground[] = [
-  { id: "fields", name: "Open Fields", path: assetUrl("/sprites/backgrounds/combat/fields_battle_background.png") },
-  { id: "market", name: "Town Market", path: assetUrl("/sprites/backgrounds/combat/town_market_battle_background.png") },
-  { id: "settlement", name: "Settlement Gates", path: assetUrl("/sprites/backgrounds/combat/settlement_battle_background.png") },
-  { id: "coast", name: "Island Coast", path: assetUrl("/sprites/backgrounds/combat/island_coast_battle_background.png") },
+  { id: "fields", name: "Open Fields", path: assetUrl("/backgrounds/verdant_plains.png") },
+  { id: "market", name: "Town Market", path: assetUrl("/backgrounds/tavern_bg.png") },
+  { id: "settlement", name: "Settlement Gates", path: assetUrl("/backgrounds/castle_arena.jpg") },
+  { id: "coast", name: "Island Coast", path: assetUrl("/backgrounds/ocean_battle.png") },
+  { id: "dungeon", name: "Shadow Depths", path: assetUrl("/backgrounds/purple_dungeon.png") },
+  { id: "lava", name: "Volcanic Field", path: assetUrl("/backgrounds/volcanic_battle.png") },
+  { id: "frozen", name: "Frozen Wastes", path: assetUrl("/backgrounds/frozen_battle.png") },
+  { id: "arena", name: "Arena", path: assetUrl("/backgrounds/arena_battle.png") },
 ];
 
 export interface GridPosition {

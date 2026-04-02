@@ -40,7 +40,7 @@ import {
   ClassSkillTier
 } from "@shared/definitions/classSkillTrees";
 import { assetUrl } from "@/lib/assetConfig";
-const bgTexture = assetUrl("/backgrounds/character-bg.png");
+const bgTexture = assetUrl("/backgrounds/character_create.png");
 
 const ATTRIBUTE_ICONS: Record<string, string> = {
   Strength: "💪",

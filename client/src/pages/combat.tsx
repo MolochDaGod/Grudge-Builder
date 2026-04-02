@@ -1168,7 +1168,7 @@ export default function CombatPage() {
     <Layout>
       <div 
         className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-20 pointer-events-none z-0"
-        style={{ backgroundImage: `url(${assetUrl("/backgrounds/combat-bg.png")})` }}
+        style={{ backgroundImage: `url(${assetUrl("/backgrounds/battle_arena_default.png")})` }}
       />
       <div className="relative z-10 flex flex-col h-[calc(100vh-60px)] max-w-7xl mx-auto">
         
