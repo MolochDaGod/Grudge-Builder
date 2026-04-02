@@ -10,6 +10,7 @@ import { CharacterManager } from "@/lib/characterManager";
 import { useAccount } from "@/hooks/use-account";
 import { FantasySidebar } from "@/components/FantasyNavigation";
 import { assetUrl } from "@/lib/assetConfig";
+import { onImageError } from "@/lib/assetResolver";
 
 const accountPanelBg = assetUrl("/images/ui/fantasy_rpg_account_panel_background.png");
 
@@ -81,6 +82,18 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       setCharacters(chars);
     });
   }, [location]);
+
+  // Global image error handler — catches any broken <img> and swaps to fallback
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const target = e.target as HTMLElement;
+      if (target.tagName === 'IMG') {
+        onImageError(e as unknown as React.SyntheticEvent<HTMLImageElement>);
+      }
+    };
+    document.addEventListener('error', handler, true);
+    return () => document.removeEventListener('error', handler, true);
+  }, []);
 
   // Use accountXp from database if available, otherwise calculate from characters
   const totalXp = account?.accountXp || calculateTotalCharacterXp(characters);

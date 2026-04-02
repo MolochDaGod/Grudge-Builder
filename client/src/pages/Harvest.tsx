@@ -27,6 +27,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { assetUrl } from "@/lib/assetConfig";
+import { playBGM } from "@/lib/audioManager";
 
 interface UserData {
   username: string;
@@ -92,6 +93,7 @@ export default function HomePage() {
       setSettings(JSON.parse(savedSettings));
     }
 
+    playBGM("tavern");
     fetchSolPrice();
   }, [setLocation]);
 

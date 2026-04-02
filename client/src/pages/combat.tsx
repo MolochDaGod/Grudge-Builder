@@ -17,6 +17,7 @@ import { SKILLS } from "@shared/definitions/skills";
 import { SPELLS } from "@shared/definitions/spells";
 import { deriveCharacterStats } from "@shared/rulesEngine";
 import { assetUrl } from "@/lib/assetConfig";
+import { playBGM, playRandomHit, playSFX } from "@/lib/audioManager";
 
 interface Enemy {
   id: string;

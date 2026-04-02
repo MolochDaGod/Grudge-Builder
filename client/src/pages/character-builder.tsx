@@ -40,6 +40,7 @@ import {
   ClassSkillTier
 } from "@shared/definitions/classSkillTrees";
 import { assetUrl } from "@/lib/assetConfig";
+import { playBGM } from "@/lib/audioManager";
 const bgTexture = assetUrl("/backgrounds/character_create.png");
 
 const ATTRIBUTE_ICONS: Record<string, string> = {
@@ -193,8 +194,9 @@ export default function CharacterBuilder() {
     return () => { document.removeEventListener('mousemove', handleMouseMove); document.removeEventListener('mouseup', handleMouseUp); };
   }, [draggingRace, updatePortraitPos]);
 
-  // Load characters on mount
+  // Load characters on mount + start BGM
   useEffect(() => {
+    playBGM("camp");
     const loadCharacters = async () => {
       const chars = await CharacterManager.getAll();
       setCharacters(chars);
