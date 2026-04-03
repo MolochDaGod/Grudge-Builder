@@ -55,6 +55,10 @@
       "destination": "https://api.grudge-studio.com/api/nfts"
     },
     {
+      "source": "/api/tools/:path*",
+      "destination": "https://api.grudge-studio.com/tools/:path*"
+    },
+    {
       "source": "/api/assets/:path*",
       "destination": "https://assets.grudge-studio.com/:path*"
     },
