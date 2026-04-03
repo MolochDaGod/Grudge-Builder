@@ -251,7 +251,7 @@ export default function DungeonGame({ onExit }: Props) {
   const decorImg = loadImage(assetUrl("/sprites/dampdungeons/DungeonDecorations.png"));
   
   useEffect(() => {
-    fetch('/api/characters')
+    fetch('/api/game/characters')
       .then(res => res.json())
       .then(data => setCharacters(data))
       .catch(console.error);
@@ -286,7 +286,7 @@ export default function DungeonGame({ onExit }: Props) {
     
     let map: DungeonMap;
     try {
-      const response = await fetch('/api/generate-dungeon', {
+      const response = await fetch('/api/game/generate-dungeon', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ floor: 1, theme: 'crypt' })

@@ -294,8 +294,8 @@ export default function CombatPage() {
     
     if (missionId) {
       Promise.all([
-        fetch(`/api/missions/${missionId}`).then(r => r.ok ? r.json() : null),
-        fetch(`/api/player/missions`).then(r => r.json())
+        fetch(`/api/game/missions/${missionId}`).then(r => r.ok ? r.json() : null),
+        fetch(`/api/game/player/missions`).then(r => r.json())
       ]).then(([mission, progressList]) => {
         if (mission) {
           setActiveMission(mission);
@@ -313,7 +313,7 @@ export default function CombatPage() {
     if (!activeMission || objectivesCompleted.has(objectiveId)) return;
     
     try {
-      await fetch(`/api/player/missions/${activeMission.id}/objective/${objectiveId}`, {
+      await fetch(`/api/game/player/missions/${activeMission.id}/objective/${objectiveId}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
       });

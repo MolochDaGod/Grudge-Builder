@@ -95,7 +95,7 @@ export function IslandChat({
     if (characters.length === 0) return;
     
     try {
-      const response = await fetch("/api/characters/random-discussion", {
+      const response = await fetch("/api/game/characters/random-discussion", {
         method: "POST",
         headers: { 
           "Content-Type": "application/json",
@@ -148,7 +148,7 @@ export function IslandChat({
     setIsLoading(true);
     
     try {
-      const response = await fetch(`/api/characters/${activeChatter.id}/chat`, {
+      const response = await fetch(`/api/game/characters/${activeChatter.id}/chat`, {
         method: "POST",
         headers: { 
           "Content-Type": "application/json",
@@ -197,7 +197,7 @@ export function IslandChat({
   
   const generateGreeting = async (characterId: string) => {
     try {
-      const response = await fetch(`/api/characters/${characterId}/greeting`, {
+      const response = await fetch(`/api/game/characters/${characterId}/greeting`, {
         headers: { "x-admin-mode": "true" }
       });
       if (response.ok) {

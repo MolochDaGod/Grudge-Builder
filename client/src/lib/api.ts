@@ -1,10 +1,10 @@
 import type { Character } from "./characterManager";
-import { API_BASE, authHeaders, clearToken, logout } from "./grudgeBackend";
+import { authHeaders, logout } from "./grudgeBackend";
 
-/** Canonical Grudge backend — always used for character CRUD + game data.
- *  Ensures uniform data (cNFT, attributes, prefabs) across all Grudge games. */
-const GAME_API = "https://api.grudge-studio.com/api";
-const LOCAL_API = `${API_BASE}/game`;
+/** Canonical Grudge backend — routed through Vercel rewrites.
+ *  /api/game/:path* → https://api.grudge-studio.com/:path*
+ *  This ensures same-origin requests (no CORS) and correct path stripping. */
+const GAME_API = "/api/game";
 import {
   type VpsCharacter,
   toVpsCreatePayload,
@@ -156,24 +156,11 @@ export const characterAPI = {
   },
 };
 
-// ── Game Data (canonical definitions from unified backend) ────────────
-export const gameDataAPI = {
-  all: async () => {
-    const res = await fetch(`${GAME_API}/game-data/all`);
-    if (!res.ok) throw new Error("Failed to fetch game data");
-    return res.json();
-  },
-  races: async () => {
-    const res = await fetch(`${GAME_API}/game-data/races`);
-    if (!res.ok) throw new Error("Failed to fetch races");
-    return res.json();
-  },
-  classes: async () => {
-    const res = await fetch(`${GAME_API}/game-data/classes`);
-    if (!res.ok) throw new Error("Failed to fetch classes");
-    return res.json();
-  },
-};
+// ── Game Data ─────────────────────────────────────────────────────────
+// DEPRECATED: gameDataAPI removed — /game-data/* routes never existed on
+// the backend. Use ObjectStore hooks instead:
+//   import { useRaces, useClasses } from "@/hooks/use-object-store";
+//   import { fetchRaces, fetchClasses } from "@/lib/objectStoreApi";
 
 // ── Party API (localStorage until VPS supports it) ────────────
 const PARTY_KEY = "grudge_party";

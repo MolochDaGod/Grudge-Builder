@@ -295,35 +295,35 @@ export default function MissionBoardPage() {
   };
 
   const { data: missions = [], isLoading: loadingMissions } = useQuery<Mission[]>({
-    queryKey: ["/api/missions", filterFaction],
+    queryKey: ["/api/game/missions", filterFaction],
     queryFn: async () => {
       const params = new URLSearchParams();
       params.append("status", "active");
       if (filterFaction) params.append("factionId", filterFaction);
-      const res = await fetch(`/api/missions?${params}`, { headers });
+      const res = await fetch(`/api/game/missions?${params}`, { headers });
       return res.json();
     },
   });
 
   const { data: factions = [] } = useQuery<LoreEntity[]>({
-    queryKey: ["/api/lore", "faction"],
+    queryKey: ["/api/game/lore", "faction"],
     queryFn: async () => {
-      const res = await fetch("/api/lore?type=faction", { headers });
+      const res = await fetch("/api/game/lore?type=faction", { headers });
       return res.json();
     },
   });
 
   const { data: playerProgress = [] } = useQuery<MissionProgress[]>({
-    queryKey: ["/api/player/missions"],
+    queryKey: ["/api/game/player/missions"],
     queryFn: async () => {
-      const res = await fetch("/api/player/missions", { headers });
+      const res = await fetch("/api/game/player/missions", { headers });
       return res.json();
     },
   });
 
   const acceptMutation = useMutation({
     mutationFn: async (missionId: string) => {
-      const res = await fetch(`/api/player/missions/${missionId}/accept`, {
+      const res = await fetch(`/api/game/player/missions/${missionId}/accept`, {
         method: "POST",
         headers: { ...headers, "Content-Type": "application/json" },
       });
@@ -331,7 +331,7 @@ export default function MissionBoardPage() {
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/player/missions"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/game/player/missions"] });
       toast({
         title: "Quest Accepted!",
         description: "Your journey awaits. Check the tracker for objectives.",

@@ -311,7 +311,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                         />
                       ) : characters[0]?.id ? (
                         <img 
-                          src={`/api/characters/${characters[0].id}/avatar`} 
+                src={`/api/game/characters/${characters[0].id}/avatar`}
                           alt="Avatar" 
                           className="w-11 h-11 rounded-lg ring-2 ring-amber-600/50 object-cover shadow-lg"
                           onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.nextElementSibling?.classList.remove('hidden'); }}
