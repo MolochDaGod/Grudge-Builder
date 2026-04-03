@@ -1,6 +1,14 @@
+/**
+ * Grudge Item Database
+ *
+ * ObjectStore is the single source of truth for items, recipes, and professions.
+ * The procedural generation below is FALLBACK ONLY — used when ObjectStore is unreachable.
+ * syncItemsFromObjectStore() replaces ITEMS/RECIPES with canonical data on app init.
+ */
 
 import { WEAPON_SPRITE_MAP, ARMOR_SPRITE_MAP, getWeaponSpritePath, getArmorSpritePath } from '@/data/weaponSpriteMap';
 import { assetUrl } from "@/lib/assetConfig";
+import { fetchItemsDatabase, fetchProfessions, fetchWeapons, fetchArmor } from "@/lib/objectStoreApi";
 
 export interface GrudaItem {
   id: string;
@@ -1475,9 +1483,50 @@ const BASE_REAGENTS: GrudaItem[] = [
 // EXPORTS
 // ==========================================
 
-export const ITEMS = [...BASE_REAGENTS, ...WORKSTATION_ITEMS, ...generatedItems].map(item => ({
+// ── Fallback data (generated procedurally above) ──
+const FALLBACK_ITEMS = [...BASE_REAGENTS, ...WORKSTATION_ITEMS, ...generatedItems].map(item => ({
   ...item,
   image: item.image || resolveItemImage(item)
 }));
-export const RECIPES = [...generatedRecipes];
-export const RESOURCE_NODES = [...generatedNodes];
+const FALLBACK_RECIPES = [...generatedRecipes];
+const FALLBACK_NODES = [...generatedNodes];
+
+// ── Live exports — start as fallback, replaced by ObjectStore on sync ──
+export let ITEMS: GrudaItem[] = FALLBACK_ITEMS;
+export let RECIPES: GrudaRecipe[] = FALLBACK_RECIPES;
+export let RESOURCE_NODES: GrudaResourceNode[] = FALLBACK_NODES;
+
+/** Replace ITEMS with ObjectStore canonical data (called from App.tsx init) */
+export async function syncItemsFromObjectStore(): Promise<void> {
+  try {
+    const [itemsData, weaponsData, armorData] = await Promise.all([
+      fetchItemsDatabase(),
+      fetchWeapons(),
+      fetchArmor(),
+    ]);
+
+    // Items database from ObjectStore
+    const osItems = (itemsData as any)?.items || (itemsData as any)?.weapons;
+    if (Array.isArray(osItems) && osItems.length > 0) {
+      const mapped: GrudaItem[] = osItems.map((item: any) => ({
+        id: item.id || item.name?.replace(/\s+/g, '_').toUpperCase(),
+        name: item.name,
+        type: item.type || item.category || 'Weapon',
+        slot: item.slot,
+        rarity: item.rarity || (item.tier >= 7 ? 'Legendary' : item.tier >= 5 ? 'Epic' : item.tier >= 3 ? 'Rare' : 'Common'),
+        tier: item.tier || 1,
+        stats: item.stats || {},
+        effects: item.abilities || item.passives || [],
+        image: item.icon ? assetUrl(item.icon) : resolveItemImage({ name: item.name, type: item.type, tier: item.tier }),
+        description: item.lore || item.description || '',
+        buyPrice: item.buyPrice || item.tier * 100,
+      }));
+      // Merge: ObjectStore items take priority, keep fallback items not in ObjectStore
+      const osIds = new Set(mapped.map(i => i.id));
+      ITEMS = [...mapped, ...FALLBACK_ITEMS.filter(i => !osIds.has(i.id))];
+      console.debug('[grudaDB] Synced', mapped.length, 'items from ObjectStore');
+    }
+  } catch (err) {
+    console.warn('[grudaDB] ObjectStore sync failed, using fallback data:', err);
+  }
+}
