@@ -252,9 +252,12 @@ export default function DungeonGame({ onExit }: Props) {
   
   useEffect(() => {
     fetch('/api/game/characters')
-      .then(res => res.json())
-      .then(data => setCharacters(data))
-      .catch(console.error);
+      .then(res => res.ok ? res.json() : { characters: [] })
+      .then(data => {
+        const list = data.characters || data;
+        setCharacters(Array.isArray(list) ? list : []);
+      })
+      .catch(() => setCharacters([]));
   }, []);
   
   useEffect(() => {

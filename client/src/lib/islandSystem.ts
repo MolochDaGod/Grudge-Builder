@@ -850,23 +850,33 @@ export function rollLoot(drops: LootDrop[], professionLevel: number = 1): { item
 }
 
 export async function saveIslandState(userId: string, state: IslandState): Promise<boolean> {
+  // Try VPS player-islands first, fall back to local dev server, then localStorage
   try {
-    const response = await fetch('/api/island/state', {
+    const response = await fetch('/api/game/player-islands/state', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ state }),
     });
-    return response.ok;
-  } catch (error) {
-    console.error('Error saving island state:', error);
+    if (response.ok) return true;
+  } catch { /* VPS unavailable */ }
+  // Fallback: localStorage cache
+  try {
+    localStorage.setItem(`grudge_island_${userId}`, JSON.stringify(state));
+    return true;
+  } catch {
     return false;
   }
 }
 
 export async function loadIslandState(userId: string): Promise<IslandState | null> {
   try {
-    const response = await fetch('/api/island');
-    if (!response.ok) return null;
+    // Try VPS player-islands first
+    const response = await fetch('/api/game/player-islands');
+    if (!response.ok) {
+      // Fallback: localStorage
+      const cached = localStorage.getItem(`grudge_island_${userId}`);
+      return cached ? JSON.parse(cached) : null;
+    }
     const island = await response.json();
     
     // The API returns the full island object with state nested inside

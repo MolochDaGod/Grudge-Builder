@@ -288,7 +288,7 @@ export default function IslandPage() {
     
     try {
       // Call API to initialize island (sets homeIsland = true, mints cNFT)
-      const response = await fetch('/api/island/initialize', {
+      const response = await fetch('/api/game/player-islands/initialize', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: islandName }),
@@ -516,7 +516,7 @@ export default function IslandPage() {
 
       // First check if account has homeIsland = true (cutscene already completed)
       try {
-        const statusResponse = await fetch('/api/island/status');
+        const statusResponse = await fetch('/api/game/player-islands/status');
         if (statusResponse.ok) {
           const status = await statusResponse.json();
           setAccountHomeIsland(status.homeIsland);

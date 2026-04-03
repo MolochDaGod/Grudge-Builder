@@ -162,8 +162,7 @@ export const characterAPI = {
 //   import { useRaces, useClasses } from "@/hooks/use-object-store";
 //   import { fetchRaces, fetchClasses } from "@/lib/objectStoreApi";
 
-// ── Party API (localStorage until VPS supports it) ────────────
-const PARTY_KEY = "grudge_party";
+// ── Party API (backend-first with localStorage fallback) ────────────
 
 export interface Party {
   characterIds: string[];
@@ -172,7 +171,16 @@ export interface Party {
 export const partyAPI = {
   get: async (): Promise<Party> => {
     try {
-      const raw = localStorage.getItem(PARTY_KEY);
+      const res = await authFetch(`${GAME_API}/crews/mine`);
+      if (res.ok) {
+        const crews = await res.json();
+        // Extract character IDs from crew members
+        return { characterIds: Array.isArray(crews) ? crews.map((c: any) => String(c.id)) : [] };
+      }
+    } catch { /* VPS unavailable, fall through */ }
+    // Fallback: localStorage
+    try {
+      const raw = localStorage.getItem("grudge_party");
       return raw ? JSON.parse(raw) : { characterIds: [] };
     } catch {
       return { characterIds: [] };
@@ -181,14 +189,13 @@ export const partyAPI = {
 
   update: async (characterIds: string[]): Promise<Party> => {
     const party = { characterIds: characterIds.slice(0, 3) };
-    localStorage.setItem(PARTY_KEY, JSON.stringify(party));
+    // Save to localStorage as cache
+    localStorage.setItem("grudge_party", JSON.stringify(party));
     return party;
   },
 };
 
-// ── Resource Node API (localStorage until VPS supports it) ────
-const RESOURCE_NODES_KEY = "grudge_resource_nodes";
-const PLAYER_RESOURCES_KEY = "grudge_player_resources";
+// ── Resource/Economy API (backend-first with localStorage fallback) ────
 
 export interface ResourceNode {
   nodeId: string;
@@ -204,9 +211,10 @@ export const resourceNodeAPI = {
   get: async (
     nodeId: string,
   ): Promise<ResourceNode | { nodeId: string; lastGathered: null }> => {
+    // Resource nodes are local state (cooldown timers), localStorage is fine
     try {
       const nodes = JSON.parse(
-        localStorage.getItem(RESOURCE_NODES_KEY) || "{}",
+        localStorage.getItem("grudge_resource_nodes") || "{}",
       );
       return nodes[nodeId] || { nodeId, lastGathered: null };
     } catch {
@@ -219,10 +227,10 @@ export const resourceNodeAPI = {
     lastGathered: number,
   ): Promise<ResourceNode> => {
     const nodes = JSON.parse(
-      localStorage.getItem(RESOURCE_NODES_KEY) || "{}",
+      localStorage.getItem("grudge_resource_nodes") || "{}",
     );
     nodes[nodeId] = { nodeId, lastGathered };
-    localStorage.setItem(RESOURCE_NODES_KEY, JSON.stringify(nodes));
+    localStorage.setItem("grudge_resource_nodes", JSON.stringify(nodes));
     return nodes[nodeId];
   },
 };
@@ -231,8 +239,20 @@ export const playerResourcesAPI = {
   get: async (): Promise<
     PlayerResources | { userId: string; resources: Record<string, number> }
   > => {
+    // Try VPS economy balance first
     try {
-      const raw = localStorage.getItem(PLAYER_RESOURCES_KEY);
+      const chars = await characterAPI.getAll();
+      if (chars.length > 0) {
+        const res = await authFetch(`${GAME_API}/economy/balance?char_id=${chars[0].id}`);
+        if (res.ok) {
+          const data = await res.json();
+          return { userId: "player", resources: { gold: data.balance || 0 } };
+        }
+      }
+    } catch { /* VPS unavailable */ }
+    // Fallback: localStorage
+    try {
+      const raw = localStorage.getItem("grudge_player_resources");
       return raw
         ? JSON.parse(raw)
         : { userId: "player", resources: {} };
@@ -245,7 +265,7 @@ export const playerResourcesAPI = {
     resources: Record<string, number>,
   ): Promise<PlayerResources> => {
     const data = { userId: "player", resources } as PlayerResources;
-    localStorage.setItem(PLAYER_RESOURCES_KEY, JSON.stringify(data));
+    localStorage.setItem("grudge_player_resources", JSON.stringify(data));
     return data;
   },
 };

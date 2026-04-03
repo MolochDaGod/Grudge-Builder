@@ -95,6 +95,7 @@ export function IslandChat({
     if (characters.length === 0) return;
     
     try {
+      // AI discussion — only available on local dev server, graceful fallback in prod
       const response = await fetch("/api/game/characters/random-discussion", {
         method: "POST",
         headers: { 
@@ -126,6 +127,7 @@ export function IslandChat({
           }
         }
       }
+      // 404 = AI service not available in production, silently skip
     } catch (error) {
       console.error("Error triggering discussion:", error);
     }

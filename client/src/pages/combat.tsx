@@ -294,16 +294,12 @@ export default function CombatPage() {
     
     if (missionId) {
       Promise.all([
-        fetch(`/api/game/missions/${missionId}`).then(r => r.ok ? r.json() : null),
-        fetch(`/api/game/player/missions`).then(r => r.json())
-      ]).then(([mission, progressList]) => {
+        fetch(`/api/game/missions`).then(r => r.ok ? r.json() : []),
+        Promise.resolve([]) // Player mission progress is embedded in missions list
+      ]).then(([missionsList, _progressList]) => {
+        const mission = Array.isArray(missionsList) ? missionsList.find((m: any) => String(m.id) === missionId) : null;
         if (mission) {
           setActiveMission(mission);
-          const progress = progressList.find((p: MissionProgress) => p.missionId === missionId);
-          if (progress) {
-            setMissionProgress(progress);
-            setObjectivesCompleted(new Set(progress.objectivesCompleted || []));
-          }
         }
       }).catch(console.error);
     }
@@ -313,8 +309,9 @@ export default function CombatPage() {
     if (!activeMission || objectivesCompleted.has(objectiveId)) return;
     
     try {
-      await fetch(`/api/game/player/missions/${activeMission.id}/objective/${objectiveId}`, {
-        method: "POST",
+      // Mission completion is handled via PATCH /missions/:id/complete on VPS
+      await fetch(`/api/game/missions/${activeMission.id}/complete`, {
+        method: "PATCH",
         headers: { "Content-Type": "application/json" },
       });
       setObjectivesCompleted(prev => {

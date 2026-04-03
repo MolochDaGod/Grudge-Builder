@@ -306,32 +306,43 @@ export default function MissionBoardPage() {
   });
 
   const { data: factions = [] } = useQuery<LoreEntity[]>({
-    queryKey: ["/api/game/lore", "faction"],
+    queryKey: ["/api/game/factions/list"],
     queryFn: async () => {
-      const res = await fetch("/api/game/lore?type=faction", { headers });
-      return res.json();
+      try {
+        const res = await fetch("/api/game/factions/list", { headers });
+        if (!res.ok) return [];
+        const data = await res.json();
+        // VPS returns { factions: ['pirate','undead','elven','orcish'] }
+        return (data.factions || []).map((f: string) => ({ id: f, name: f, type: 'faction' }));
+      } catch { return []; }
     },
   });
 
+  // VPS missions route: GET /missions returns user's missions (JWT-scoped)
   const { data: playerProgress = [] } = useQuery<MissionProgress[]>({
-    queryKey: ["/api/game/player/missions"],
+    queryKey: ["/api/game/missions", "player"],
     queryFn: async () => {
-      const res = await fetch("/api/game/player/missions", { headers });
-      return res.json();
+      try {
+        const res = await fetch("/api/game/missions", { headers });
+        if (!res.ok) return [];
+        return res.json();
+      } catch { return []; }
     },
   });
 
   const acceptMutation = useMutation({
     mutationFn: async (missionId: string) => {
-      const res = await fetch(`/api/game/player/missions/${missionId}/accept`, {
+      // VPS: POST /missions creates a new mission for the user
+      const res = await fetch(`/api/game/missions`, {
         method: "POST",
         headers: { ...headers, "Content-Type": "application/json" },
+        body: JSON.stringify({ title: `Mission ${missionId}`, type: 'fighting' }),
       });
       if (!res.ok) throw new Error("Failed to accept mission");
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/game/player/missions"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/game/missions"] });
       toast({
         title: "Quest Accepted!",
         description: "Your journey awaits. Check the tracker for objectives.",

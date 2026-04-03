@@ -115,7 +115,7 @@ export function fromVpsCharacter(vps: VpsCharacter): Character {
   };
 }
 
-// ── Save extended builder data to localStorage ───────────────
+// ── Save extended builder data (VPS PATCH + localStorage cache) ──
 export function saveExtendedData(
   charId: string,
   char: Partial<Character>,
@@ -140,10 +140,21 @@ export function saveExtendedData(
     chatTemperature: 70,
     chatHistory: [],
   };
+  // Always cache locally for fast reads
   localStorage.setItem(EXT_PREFIX + charId, JSON.stringify(data));
+  // Fire-and-forget sync to VPS (non-blocking)
+  fetch(`/api/game/characters/${charId}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      equipment: data.equipment,
+      inventory: data.inventory,
+      attributes: data.attributes,
+    }),
+  }).catch(() => { /* VPS sync failed, localStorage has the data */ });
 }
 
-// ── Load extended builder data from localStorage ─────────────
+// ── Load extended builder data (localStorage cache) ──────────
 export function loadExtendedData(
   charId: string,
 ): ExtendedCharacterData | null {
