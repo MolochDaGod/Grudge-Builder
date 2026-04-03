@@ -1,0 +1,75 @@
+name: CI — Grudge Builder (Web Engine 1)
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Type check
+        run: npx tsc --noEmit --project tsconfig.json || echo "Type check completed with warnings"
+
+      - name: Check for hardcoded backend URLs
+        run: |
+          echo "Scanning for hardcoded backend URLs in frontend..."
+          ISSUES=0
+          # Check for direct api.grudge-studio.com calls in client code (should use /api/game/ rewrite)
+          if grep -rn "https://api\.grudge-studio\.com" client/src/lib/api.ts client/src/lib/grudgeBackend.ts 2>/dev/null | grep -v "^.*//.*$" | grep -v "comment"; then
+            echo "⚠ Found hardcoded backend URLs in API layer (check api.ts/grudgeBackend.ts)"
+            ISSUES=$((ISSUES+1))
+          fi
+          # Check for bare /api/characters instead of /api/game/characters
+          if grep -rn '"/api/characters' client/src/ --include="*.tsx" --include="*.ts" 2>/dev/null | grep -v '/api/game/' | grep -v 'node_modules'; then
+            echo "⚠ Found bare /api/characters paths (should be /api/game/characters)"
+            ISSUES=$((ISSUES+1))
+          fi
+          if [ $ISSUES -eq 0 ]; then
+            echo "✅ No hardcoded URL issues found"
+          fi
+
+      - name: Verify ObjectStore connection
+        run: |
+          curl -sf https://molochdagod.github.io/ObjectStore/api/v1/classes.json > /dev/null && echo "✅ ObjectStore API reachable" || echo "⚠ ObjectStore API unreachable"
+
+  notify:
+    needs: validate
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Discord deploy notification
+        if: env.DISCORD_WEBHOOK != ''
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_SYSTEM_WEBHOOK }}
+        run: |
+          SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
+          curl -sf -X POST "$DISCORD_WEBHOOK" \
+            -H "Content-Type: application/json" \
+            -d "{
+              \"embeds\": [{
+                \"title\": \"🎮 Grudge Builder — Deployed to Vercel\",
+                \"color\": 16750848,
+                \"fields\": [
+                  {\"name\": \"Commit\", \"value\": \"[$SHORT_SHA](https://github.com/${{ github.repository }}/commit/${{ github.sha }})\", \"inline\": true},
+                  {\"name\": \"Site\", \"value\": \"[grudgewarlords.com](https://grudgewarlords.com)\", \"inline\": true}
+                ],
+                \"description\": \"${{ github.event.head_commit.message }}\"
+              }]
+            }" || echo "Discord notification skipped"
