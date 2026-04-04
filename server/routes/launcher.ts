@@ -205,8 +205,8 @@ router.post("/launch", async (req, res) => {
       case "html5":
         launchCommand = `start "${game.configFile}"`;
         break;
-      case "gdevelop":
-        launchCommand = `gdevelop "${game.configFile}"`;
+      case "grudgedev":
+        launchCommand = `grudgedev "${game.configFile}"`;
         break;
     }
 
@@ -315,11 +315,11 @@ router.get("/tools", (_req, res) => {
       category: "engine",
     },
     {
-      id: "gdevelop",
-      name: "GDevelop",
-      description: "No-code game engine",
+      id: "grudgedev",
+      name: "GrudgeDev",
+      description: "Grudge Studio game editor & services manager",
       path: null,
-      installed: false,
+      installed: true,
       category: "engine",
     },
     {
@@ -339,9 +339,9 @@ router.get("/tools", (_req, res) => {
       category: "platform",
     },
     {
-      id: "gdevelop-assistant",
-      name: "GDevelop Assistant",
-      description: "AI agents + game server + cloud storage for GDevelop",
+      id: "grudgedev-assistant",
+      name: "GrudgeDev Assistant",
+      description: "AI agents + game server + cloud storage for GrudgeDev",
       path: "C:\\Users\\nugye\\Documents\\GitHub\\GDevelopAssistant",
       installed: true,
       category: "platform",

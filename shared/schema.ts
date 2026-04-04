@@ -1735,6 +1735,71 @@ export type InsertIslandNFT = z.infer<typeof insertIslandNFTSchema>;
 export type IslandNFT = typeof islandNFTs.$inferSelect;
 
 // ============================================
+// WORLD MAP - Zone ownership and player blocks
+// ============================================
+
+export const playerBlocks = pgTable("player_blocks", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  accountId: varchar("account_id").notNull().unique(), // One block per account
+  puterUserId: text("puter_user_id"), // Puter auth user ID (= Grudge ID source)
+  originX: integer("origin_x").notNull(), // Top-left X of the 3×3 block
+  originY: integer("origin_y").notNull(), // Top-left Y of the 3×3 block
+  homeIslandSeed: integer("home_island_seed").notNull(),
+  zones: jsonb("zones").notNull().$type<Array<{
+    zoneX: number;
+    zoneY: number;
+    type: string;
+    islandSeed?: number;
+    islandProfile?: string;
+    ownerId?: string;
+    difficulty?: number;
+    expiresAt?: number | null;
+    lootTheme?: string;
+    buildingCount?: number;
+    isCleared?: boolean;
+  }>>().default(sql`'[]'::jsonb`),
+  createdAt: bigint("created_at", { mode: "number" }).notNull().default(sql`extract(epoch from now()) * 1000`),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull().default(sql`extract(epoch from now()) * 1000`),
+});
+
+export const insertPlayerBlockSchema = createInsertSchema(playerBlocks).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertPlayerBlock = z.infer<typeof insertPlayerBlockSchema>;
+export type PlayerBlock = typeof playerBlocks.$inferSelect;
+
+export const worldZones = pgTable("world_zones", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  zoneX: integer("zone_x").notNull(),
+  zoneY: integer("zone_y").notNull(),
+  type: text("type").notNull().$type<'home' | 'wild' | 'fort' | 'boss' | 'event' | 'empty'>(),
+  islandSeed: integer("island_seed"),
+  islandProfile: text("island_profile"),
+  ownerId: varchar("owner_id"), // Account ID who owns/captured this zone
+  playerBlockId: varchar("player_block_id"), // Which player block this zone belongs to
+  difficulty: integer("difficulty"),
+  expiresAt: bigint("expires_at", { mode: "number" }),
+  lootTheme: text("loot_theme"),
+  buildingCount: integer("building_count").default(0),
+  isCleared: boolean("is_cleared").default(false),
+  state: jsonb("state").$type<Record<string, unknown>>(), // Zone-specific state (buildings, towers, etc.)
+  createdAt: bigint("created_at", { mode: "number" }).notNull().default(sql`extract(epoch from now()) * 1000`),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull().default(sql`extract(epoch from now()) * 1000`),
+});
+
+export const insertWorldZoneSchema = createInsertSchema(worldZones).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertWorldZone = z.infer<typeof insertWorldZoneSchema>;
+export type WorldZone = typeof worldZones.$inferSelect;
+
+// ============================================
 // INDEXES FOR PERFORMANCE
 // ============================================
 

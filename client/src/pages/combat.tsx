@@ -31,12 +31,12 @@ interface Enemy {
 }
 
 const BATTLE_BACKGROUNDS = [
-  { name: "Ruined Fortress", image: "/attached_assets/19b57f7ec8a98_1766707452256.png", position: "0% 0%" },
-  { name: "Corrupted Forest", image: "/attached_assets/19b57f7ec8a98_1766707452256.png", position: "100% 0%" },
-  { name: "Frozen Citadel", image: "/attached_assets/19b57f7ec8a98_1766707452256.png", position: "0% 50%" },
-  { name: "Volcanic Arena", image: "/attached_assets/19b57f7ec8a98_1766707452256.png", position: "100% 50%" },
-  { name: "Frozen Council", image: "/attached_assets/19b57f7ec8a98_1766707452256.png", position: "0% 100%" },
-  { name: "Mystic Swamp", image: "/attached_assets/19b57f7ec8a98_1766707452256.png", position: "100% 100%" },
+  { name: "Ruined Fortress", image: assetUrl("/backgrounds/cursed_ruins.png"), position: "center" },
+  { name: "Corrupted Forest", image: assetUrl("/backgrounds/dark_forest.png"), position: "center" },
+  { name: "Frozen Citadel", image: assetUrl("/backgrounds/frozen_battle.png"), position: "center" },
+  { name: "Volcanic Arena", image: assetUrl("/backgrounds/volcanic_battle.png"), position: "center" },
+  { name: "Infernal Gate", image: assetUrl("/backgrounds/infernal_arena.png"), position: "center" },
+  { name: "Arena Battle", image: assetUrl("/backgrounds/arena_battle.png"), position: "center" },
 ];
 
 const ENEMY_TEMPLATES = [

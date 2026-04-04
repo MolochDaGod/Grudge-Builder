@@ -50,6 +50,8 @@ export interface RaceDef {
   faction: Faction;
   description: string;
   image: string;
+  cardBg?: string;
+  portraits?: Record<string, string>;
   baseStats: Record<AttributeKey, number>;
   spriteSet: string;
 }
@@ -60,12 +62,12 @@ const SPRITE_SET_MAP: Record<string, string> = {
 };
 
 const FALLBACK_RACES: RaceDef[] = [
-  { id: "human",     name: "Human",     faction: "Crusade", description: "Noble warriors of honor and chivalry.",      image: assetUrl("/images/portraits/human.png"),     baseStats: { Strength: 2, Intellect: 1, Vitality: 2, Dexterity: 0, Endurance: 0, Wisdom: 0, Agility: 0, Tactics: 0 }, spriteSet: "Soldier" },
-  { id: "barbarian", name: "Barbarian", faction: "Crusade", description: "Fierce tribal warriors of raw strength.",     image: assetUrl("/images/portraits/barbarian.png"), baseStats: { Strength: 2, Intellect: 0, Vitality: 2, Dexterity: 0, Endurance: 1, Wisdom: 0, Agility: 0, Tactics: 0 }, spriteSet: "Armored Axeman" },
-  { id: "undead",    name: "Undead",    faction: "Legion",  description: "Risen from death, servants of dark magic.",   image: assetUrl("/images/portraits/undead.png"),    baseStats: { Strength: 0, Intellect: 2, Vitality: 0, Dexterity: 0, Endurance: 0, Wisdom: 3, Agility: 0, Tactics: 0 }, spriteSet: "Skeleton" },
-  { id: "orc",       name: "Orc",       faction: "Legion",  description: "Brutal warriors of overwhelming force.",      image: assetUrl("/images/portraits/orc.png"),       baseStats: { Strength: 2, Intellect: 0, Vitality: 1, Dexterity: 0, Endurance: 2, Wisdom: 0, Agility: 0, Tactics: 0 }, spriteSet: "Orc" },
-  { id: "elf",       name: "Elf",       faction: "Fabled",  description: "Ancient wielders of nature and arcane arts.",  image: assetUrl("/images/portraits/elf.png"),       baseStats: { Strength: 0, Intellect: 2, Vitality: 0, Dexterity: 1, Endurance: 0, Wisdom: 2, Agility: 0, Tactics: 0 }, spriteSet: "Archer" },
-  { id: "dwarf",     name: "Dwarf",     faction: "Fabled",  description: "Master craftsmen and resilient fighters.",     image: assetUrl("/images/portraits/dwarf.png"),     baseStats: { Strength: 0, Intellect: 0, Vitality: 2, Dexterity: 0, Endurance: 2, Wisdom: 1, Agility: 0, Tactics: 0 }, spriteSet: "Knight" },
+  { id: "human",     name: "Human",     faction: "Crusade", description: "Noble warriors of honor and chivalry.",      image: assetUrl("/images/portraits/human.png"),     cardBg: assetUrl("/backgrounds/bg_warrior.png"), portraits: { warrior: assetUrl("/heroes/portraits/human_warrior.png"), mage: assetUrl("/heroes/portraits/human_mage.png"), ranger: assetUrl("/heroes/portraits/human_ranger.png"), worg: assetUrl("/heroes/portraits/human_worg.png") }, baseStats: { Strength: 2, Intellect: 1, Vitality: 2, Dexterity: 0, Endurance: 0, Wisdom: 0, Agility: 0, Tactics: 0 }, spriteSet: "Soldier" },
+  { id: "barbarian", name: "Barbarian", faction: "Crusade", description: "Fierce tribal warriors of raw strength.",     image: assetUrl("/images/portraits/barbarian.png"), cardBg: assetUrl("/sprites/backgrounds/barbarian_warrior_silhouette_background.png"), portraits: { warrior: assetUrl("/heroes/portraits/barbarian_warrior.png"), mage: assetUrl("/heroes/portraits/barbarian_mage.png"), ranger: assetUrl("/heroes/portraits/barbarian_ranger.png"), worg: assetUrl("/heroes/portraits/barbarian_worg.png") }, baseStats: { Strength: 2, Intellect: 0, Vitality: 2, Dexterity: 0, Endurance: 1, Wisdom: 0, Agility: 0, Tactics: 0 }, spriteSet: "Armored Axeman" },
+  { id: "undead",    name: "Undead",    faction: "Legion",  description: "Risen from death, servants of dark magic.",   image: assetUrl("/images/portraits/undead.png"),    cardBg: assetUrl("/backgrounds/bg_undead.png"), portraits: { warrior: assetUrl("/heroes/portraits/undead_warrior.png"), mage: assetUrl("/heroes/portraits/undead_mage.png"), ranger: assetUrl("/heroes/portraits/undead_ranger.png"), worg: assetUrl("/heroes/portraits/undead_worg.png") }, baseStats: { Strength: 0, Intellect: 2, Vitality: 0, Dexterity: 0, Endurance: 0, Wisdom: 3, Agility: 0, Tactics: 0 }, spriteSet: "Skeleton" },
+  { id: "orc",       name: "Orc",       faction: "Legion",  description: "Brutal warriors of overwhelming force.",      image: assetUrl("/images/portraits/orc.png"),       cardBg: assetUrl("/backgrounds/battle_arena_default.png"), portraits: { warrior: assetUrl("/heroes/portraits/orc_warrior.png"), mage: assetUrl("/heroes/portraits/orc_mage.png"), ranger: assetUrl("/heroes/portraits/orc_ranger.png"), worg: assetUrl("/heroes/portraits/orc_worg.png") }, baseStats: { Strength: 2, Intellect: 0, Vitality: 1, Dexterity: 0, Endurance: 2, Wisdom: 0, Agility: 0, Tactics: 0 }, spriteSet: "Orc" },
+  { id: "elf",       name: "Elf",       faction: "Fabled",  description: "Ancient wielders of nature and arcane arts.",  image: assetUrl("/images/portraits/elf.png"),       cardBg: assetUrl("/backgrounds/bg_elf.png"), portraits: { warrior: assetUrl("/heroes/portraits/elf_warrior.png"), mage: assetUrl("/heroes/portraits/elf_mage.png"), ranger: assetUrl("/heroes/portraits/elf_ranger.png"), worg: assetUrl("/heroes/portraits/elf_worg.png") }, baseStats: { Strength: 0, Intellect: 2, Vitality: 0, Dexterity: 1, Endurance: 0, Wisdom: 2, Agility: 0, Tactics: 0 }, spriteSet: "Archer" },
+  { id: "dwarf",     name: "Dwarf",     faction: "Fabled",  description: "Master craftsmen and resilient fighters.",     image: assetUrl("/images/portraits/dwarf.png"),     cardBg: assetUrl("/sprites/backgrounds/dwarf_warrior_silhouette_background.png"), portraits: { warrior: assetUrl("/heroes/portraits/dwarf_warrior.png"), mage: assetUrl("/heroes/portraits/dwarf_mage.png"), ranger: assetUrl("/heroes/portraits/dwarf_ranger.png"), worg: assetUrl("/heroes/portraits/dwarf_worg.png") }, baseStats: { Strength: 0, Intellect: 0, Vitality: 2, Dexterity: 0, Endurance: 2, Wisdom: 1, Agility: 0, Tactics: 0 }, spriteSet: "Knight" },
 ];
 
 export let RACES: RaceDef[] = [...FALLBACK_RACES];
@@ -120,15 +122,20 @@ export async function syncGameDataFromObjectStore(): Promise<void> {
     // Sync races
     const racesObj = (racesData as any)?.races;
     if (racesObj && typeof racesObj === "object") {
-      const synced: RaceDef[] = Object.values(racesObj).map((r: any) => ({
-        id: r.id,
-        name: r.name,
-        faction: factionLabel(r.faction),
-        description: r.description || r.lore || "",
-        image: assetUrl(`/images/portraits/${r.id}.png`),
-        baseStats: r.bonuses || FALLBACK_RACES.find(fr => fr.id === r.id)?.baseStats || {} as any,
-        spriteSet: SPRITE_SET_MAP[r.id] || "Soldier",
-      }));
+      const synced: RaceDef[] = Object.values(racesObj).map((r: any) => {
+        const fb = FALLBACK_RACES.find(fr => fr.id === r.id);
+        return {
+          id: r.id,
+          name: r.name,
+          faction: factionLabel(r.faction),
+          description: r.description || r.lore || "",
+          image: assetUrl(`/images/portraits/${r.id}.png`),
+          cardBg: fb?.cardBg,
+          portraits: fb?.portraits,
+          baseStats: r.bonuses || fb?.baseStats || {} as any,
+          spriteSet: SPRITE_SET_MAP[r.id] || "Soldier",
+        };
+      });
       if (synced.length > 0) RACES = synced;
     }
 

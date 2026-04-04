@@ -1,4 +1,4 @@
-import { puterKV } from "./puterIntegration";
+import { puterKV, puterIslandKV, isPuterAvailable } from "./puterIntegration";
 import { v4 as uuidv4 } from 'uuid';
 import { assetUrl } from "@/lib/assetConfig";
 
@@ -850,62 +850,54 @@ export function rollLoot(drops: LootDrop[], professionLevel: number = 1): { item
 }
 
 export async function saveIslandState(userId: string, state: IslandState): Promise<boolean> {
-  // Try VPS player-islands first, fall back to local dev server, then localStorage
-  try {
-    const response = await fetch('/api/game/player-islands/state', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ state }),
-    });
-    if (response.ok) return true;
-  } catch { /* VPS unavailable */ }
-  // Fallback: localStorage cache
-  try {
-    localStorage.setItem(`grudge_island_${userId}`, JSON.stringify(state));
-    return true;
-  } catch {
-    return false;
-  }
+  // Stamp lastUpdate so VPS vs cache conflicts resolve correctly
+  state.lastUpdate = Date.now();
+
+  // VPS-authoritative: puterIslandKV.saveState writes to VPS first,
+  // then caches in Puter KV + localStorage. Returns false if VPS rejects.
+  const saved = await puterIslandKV.saveState(state.id || userId, state);
+  if (saved) return true;
+
+  // VPS was down — puterIslandKV already queued a dirty write in Puter KV.
+  // Also cache in localStorage as offline fallback.
+  try { localStorage.setItem(`grudge_island_${userId}`, JSON.stringify(state)); } catch {}
+  return false;
 }
 
 export async function loadIslandState(userId: string): Promise<IslandState | null> {
+  // puterIslandKV.loadState reads KV cache + VPS truth, compares lastUpdate,
+  // and auto-syncs dirty writes. Returns the freshest state.
+  const raw = await puterIslandKV.loadState<IslandState>(userId, userId);
+  if (raw) return normalizeIslandStateData(raw, userId);
+
+  // If puterIslandKV returned null (no KV, no VPS), try localStorage
   try {
-    // Try VPS player-islands first
-    const response = await fetch('/api/game/player-islands');
-    if (!response.ok) {
-      // Fallback: localStorage
-      const cached = localStorage.getItem(`grudge_island_${userId}`);
-      return cached ? JSON.parse(cached) : null;
-    }
-    const island = await response.json();
-    
-    // The API returns the full island object with state nested inside
-    const state = island.state;
-    if (!state) return null;
-    
-    // Ensure all required fields exist (handle legacy data format)
-    const normalizedState: IslandState = {
-      id: state.id || island.seed || userId,
-      name: state.name || island.name || "Home Island",
-      mapStyle: validateMapStyle(state.mapStyle || island.mapStyle),
-      mapImageUrl: state.mapImageUrl || island.mapImageUrl,
-      nodes: Array.isArray(state.nodes) ? state.nodes : [],
-      sheep: Array.isArray(state.sheep) ? state.sheep : [],
-      skinningNodes: Array.isArray(state.skinningNodes) ? state.skinningNodes : [],
-      assignedHeroes: state.assignedHeroes || {},
-      terrainZones: Array.isArray(state.terrainZones) ? state.terrainZones : generateDefaultTerrainZones(),
-      campPosition: state.campPosition,
-      clearings: Array.isArray(state.clearings) ? state.clearings : [],
-      isFirstVisit: state.isFirstVisit ?? !state.campPosition, // First visit if no camp set
-      createdAt: state.createdAt || island.createdAt || Date.now(),
-      lastUpdate: state.lastUpdate || island.updatedAt || Date.now(),
-    };
-    
-    return normalizedState;
-  } catch (error) {
-    console.error('Error loading island state:', error);
-    return null;
-  }
+    const cached = localStorage.getItem(`grudge_island_${userId}`);
+    if (cached) return normalizeIslandStateData(JSON.parse(cached), userId);
+  } catch { /* corrupt localStorage */ }
+
+  return null;
+}
+
+/** Normalize any island state shape into the canonical IslandState format */
+function normalizeIslandStateData(raw: any, userId: string): IslandState {
+  const island = raw._island || {};
+  return {
+    id: raw.id || island.seed || userId,
+    name: raw.name || island.name || "Home Island",
+    mapStyle: validateMapStyle(raw.mapStyle || island.mapStyle),
+    mapImageUrl: raw.mapImageUrl || island.mapImageUrl,
+    nodes: Array.isArray(raw.nodes) ? raw.nodes : [],
+    sheep: Array.isArray(raw.sheep) ? raw.sheep : [],
+    skinningNodes: Array.isArray(raw.skinningNodes) ? raw.skinningNodes : [],
+    assignedHeroes: raw.assignedHeroes || {},
+    terrainZones: Array.isArray(raw.terrainZones) ? raw.terrainZones : generateDefaultTerrainZones(),
+    campPosition: raw.campPosition,
+    clearings: Array.isArray(raw.clearings) ? raw.clearings : [],
+    isFirstVisit: raw.isFirstVisit ?? !raw.campPosition,
+    createdAt: raw.createdAt || island.createdAt || Date.now(),
+    lastUpdate: raw.lastUpdate || island.updatedAt || Date.now(),
+  };
 }
 
 function validateMapStyle(style: string | undefined): IslandState['mapStyle'] {

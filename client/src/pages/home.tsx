@@ -58,9 +58,9 @@ const LIVE_GAMES = [
     badgeColor: "bg-amber-700/80 text-amber-200",
   },
   {
-    id: "gdevelop", title: "GDevelop", subtitle: "Game Editor",
-    description: "Open-source game engine. Build and launch Grudge games with no code.",
-    url: "https://gdevelop.io", external: true,
+    id: "grudgedev", title: "GrudgeDev", subtitle: "Game Editor",
+    description: "Build and launch Grudge games. Editor, asset manager, and services hub.",
+    url: "/launcher", external: false,
     icon: "code", color: "from-blue-950/90 via-blue-900/70 to-blue-800/40",
     border: "border-blue-700/40 hover:border-blue-500/60", badge: "Editor",
     badgeColor: "bg-blue-700/80 text-blue-200",
@@ -72,6 +72,14 @@ const LIVE_GAMES = [
     icon: "sword", color: "from-yellow-950/90 via-yellow-900/70 to-orange-800/40",
     border: "border-yellow-700/40 hover:border-yellow-500/60", badge: "PvP",
     badgeColor: "bg-yellow-700/80 text-yellow-200",
+  },
+  {
+    id: "harvest", title: "Harvesting", subtitle: "Professions",
+    description: "Mine, forage, cook, engineer, and master mysticism. Gather resources and craft.",
+    url: "/harvest", external: false,
+    icon: "pickaxe", color: "from-green-950/90 via-green-900/70 to-green-800/40",
+    border: "border-green-700/40 hover:border-green-500/60", badge: "Gather",
+    badgeColor: "bg-green-700/80 text-green-200",
   },
   {
     id: "worldmap", title: "World Map", subtitle: "Exploration",
@@ -86,7 +94,7 @@ const LIVE_GAMES = [
 const SERVICES = [
   { id: "account", label: "My Account", desc: "Profile, stats & settings", url: "https://account.grudge-studio.com", color: "text-amber-400" },
   { id: "engine", label: "Grudge Engine", desc: "3D world editor (BabylonJS 9)", url: "https://engine.grudge-studio.com", color: "text-blue-400" },
-  { id: "gdevelop", label: "GDevelop", desc: "Game editor & launcher", url: "https://gdevelop.io", color: "text-green-400" },
+  { id: "grudgedev", label: "GrudgeDev", desc: "Game editor & launcher", url: "/launcher", color: "text-green-400" },
   { id: "wallet", label: "Wallet & NFTs", desc: "Gold, GBUX & NFTs", url: "/wallet", color: "text-amber-400" },
 ];
 

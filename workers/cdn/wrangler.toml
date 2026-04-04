@@ -1,0 +1,28 @@
+# Grudge CDN Worker — serves assets from R2 at assets.grudge-studio.com
+name = "grudge-cdn"
+main = "src/index.js"
+compatibility_date = "2024-09-23"
+
+# ── R2 Bucket ────────────────────────────────────────────────────────────────
+[[r2_buckets]]
+binding = "ASSETS"
+bucket_name = "grudge-assets"
+# preview_bucket_name = "grudge-assets-dev"  # uncomment for wrangler dev
+
+# ── Custom domain (must already exist in your Cloudflare zone) ────────────────
+[[routes]]
+pattern = "assets.grudge-studio.com/*"
+zone_name = "grudge-studio.com"
+
+# ── Environment overrides ─────────────────────────────────────────────────────
+[env.production]
+name = "grudge-cdn"
+
+[env.staging]
+name = "grudge-cdn-staging"
+[[env.staging.r2_buckets]]
+binding = "ASSETS"
+bucket_name = "grudge-assets-dev"
+[[env.staging.routes]]
+pattern = "assets-staging.grudge-studio.com/*"
+zone_name = "grudge-studio.com"

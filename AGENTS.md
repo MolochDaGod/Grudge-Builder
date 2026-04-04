@@ -45,14 +45,14 @@ Frontend pages using these MUST use `BackendRequired` component for graceful deg
 | Service | URL | Host |
 |---------|-----|------|
 | Game Client | grudgewarlords.com | Vercel |
-| GDevelop Assistant | gdevelop-assistant.vercel.app | Vercel |
+| GrudgeDev Assistant | grudgedev-assistant.vercel.app | Vercel |
 | Grudge Engine Web (BabylonJS) | grudge-engine-web.vercel.app | Vercel |
 | Dashboard | dash.grudge-studio.com | Vercel |
 | Game API | api.grudge-studio.com | VPS (Docker) |
 | Auth / Identity | id.grudge-studio.com | VPS (Docker) |
 | Account API | account.grudge-studio.com | VPS (Docker) |
-| Asset Service | assets.grudge-studio.com | VPS (Docker) |
-| ObjectStore Worker | objectstore.grudge-studio.com | Cloudflare Worker |
+| Asset CDN | assets.grudge-studio.com | Cloudflare Worker (R2 + GitHub Pages fallback) |
+| ObjectStore API | objectstore.grudge-studio.com | Cloudflare Worker |
 | AI Hub Worker | ai.grudge-studio.com | Cloudflare Worker |
 | Route Monitor | grudge-route-monitor.grudge.workers.dev | Cloudflare Worker |
 | ObjectStore Static | molochdagod.github.io/ObjectStore | GitHub Pages |

@@ -117,8 +117,30 @@ export const characterAPI = {
   },
 
   regenerateAvatar: async (id: string): Promise<Character> => {
-    // Avatar generation requires the Express server; for now return current char
     const char = await characterAPI.get(id);
+    // Use Puter AI txt2img to generate a new avatar on the user's own account
+    try {
+      const { puterAI } = await import('./puterIntegration');
+      const avatarUrl = await puterAI.generateHeroAvatar(
+        char.name,
+        char.raceId,
+        char.classId,
+      );
+      if (avatarUrl) {
+        return await characterAPI.update(id, { avatarUrl } as any);
+      }
+    } catch (e) {
+      console.warn('Puter avatar regen failed, trying VPS:', e);
+    }
+    // Fallback: VPS server-side generation
+    try {
+      const res = await authFetch(`${GAME_API}/characters/${id}/regenerate-avatar`, { method: 'POST' });
+      if (res.ok) {
+        const data = await res.json();
+        const vps: VpsCharacter = data.character || data;
+        return fromVpsCharacter(vps);
+      }
+    } catch { /* VPS unavailable */ }
     return char;
   },
 

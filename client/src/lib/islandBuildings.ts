@@ -16,7 +16,9 @@ export type BuildingType =
   | 'dock'
   | 'farm'
   | 'house'
-  | 'hut';
+  | 'hut'
+  | 'beam_tower'
+  | 'catapult_tower';
 
 export type BuildingColor = 'Wood' | 'Cyan' | 'Lime' | 'Purple' | 'Red';
 
@@ -228,6 +230,32 @@ export const BUILDING_DEFS: Record<BuildingType, BuildingDef> = {
     spriteFile: 'Huts.png',
     spriteFrame: { x: 0, y: 0, w: 32, h: 32 },
     bonuses: { extraStorage: 25 },
+  },
+  beam_tower: {
+    type: 'beam_tower',
+    name: 'Beam Tower',
+    icon: '⚡',
+    description: 'Sci-fi beam tower. 3 upgrade levels. Fast, single-target.',
+    sizeX: 2, sizeY: 2,
+    cost: { gold: 600, stone: 150 },
+    requiresKeep: true,
+    maxCount: 4,
+    spriteFile: 'tower-07.png', // Spire TowerPack
+    spriteFrame: { x: 0, y: 0, w: 64, h: 64 },
+    bonuses: { hasTower: true },
+  },
+  catapult_tower: {
+    type: 'catapult_tower',
+    name: 'Catapult Tower',
+    icon: '💣',
+    description: 'Catapult tower. 3 upgrade levels. Slow, AoE splash.',
+    sizeX: 2, sizeY: 2,
+    cost: { gold: 700, wood: 200, stone: 100 },
+    requiresKeep: true,
+    maxCount: 3,
+    spriteFile: 'tower-08.png', // Spire TowerPack
+    spriteFrame: { x: 0, y: 0, w: 64, h: 64 },
+    bonuses: { hasTower: true },
   },
 };
 

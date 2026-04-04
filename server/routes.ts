@@ -821,12 +821,27 @@ export async function registerRoutes(
         homeIslandId: island.id,
       });
       
-      // TODO: Mint island as cNFT to server wallet
-      // This will be handled by the Crossmint service
-      // const mintResult = await mintIslandNFT(account, island);
-      // if (mintResult.actionId) {
-      //   await storage.updateAccount(account.id, { homeIslandMintActionId: mintResult.actionId });
-      // }
+      // Mint island as cNFT to server wallet
+      let mintResult: { actionId?: string; mintAddress?: string } = {};
+      try {
+        const { mintIslandCNFT } = await import("./services/crossmintWallet");
+        mintResult = await mintIslandCNFT(account, island);
+        if (mintResult.actionId) {
+          await storage.updateAccount(account.id, { homeIslandMintActionId: mintResult.actionId });
+        }
+        // Record in islandNFTs table
+        await db.insert(islandNFTs).values({
+          islandId: island.id,
+          accountId: account.id,
+          status: mintResult.mintAddress ? 'minted' : 'minting',
+          mintAddress: mintResult.mintAddress || null,
+          crossmintActionId: mintResult.actionId || null,
+          ownerWalletAddress: account.walletAddress || null,
+          isCompressed: true,
+        }).onConflictDoNothing();
+      } catch (mintErr) {
+        console.warn("Island cNFT mint skipped or failed:", mintErr);
+      }
       
       res.json({
         success: true,
@@ -834,6 +849,7 @@ export async function registerRoutes(
         homeIsland: true,
         homeIslandId: island.id,
         island: island,
+        mint: mintResult,
       });
     } catch (error) {
       console.error("Error initializing island:", error);
@@ -898,6 +914,34 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Error updating island:", error);
       res.status(500).json({ error: "Failed to update island" });
+    }
+  });
+
+  // Boss clear → unlock new character creation token
+  app.post("/api/island/boss-clear", async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      const account = await storage.getOrCreateAccountForUser(userId);
+      const { zoneX, zoneY } = req.body;
+      if (zoneX === undefined || zoneY === undefined) {
+        return res.status(400).json({ error: "zoneX and zoneY are required" });
+      }
+
+      // Grant a character creation token (stored as account-level counter)
+      const currentTokens = (account as any).characterTokens || 0;
+      await storage.updateAccount(account.id, {
+        characterTokens: currentTokens + 1,
+      } as any);
+
+      res.json({
+        success: true,
+        message: "Boss defeated! You earned a new character token.",
+        characterTokens: currentTokens + 1,
+        bossZone: { zoneX, zoneY },
+      });
+    } catch (error) {
+      console.error("Error processing boss clear:", error);
+      res.status(500).json({ error: "Failed to process boss clear" });
     }
   });
 

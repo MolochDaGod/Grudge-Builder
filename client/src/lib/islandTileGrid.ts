@@ -60,37 +60,150 @@ export interface IslandTileGrid {
   dockableTiles?: { x: number; y: number }[]; // Land tiles that touch water (can board boat)
 }
 
-// Tileset indices for Tiny Swords terrain (Tilemap_color1.png is 10x10 tiles)
-export const TERRAIN_TILES = {
-  // Grass tiles (center pieces)
-  GRASS_CENTER: [44, 45, 54, 55],
-  GRASS_EDGE_TOP: [34, 35],
-  GRASS_EDGE_BOTTOM: [64, 65],
-  GRASS_EDGE_LEFT: [43, 53],
-  GRASS_EDGE_RIGHT: [46, 56],
-  GRASS_CORNER_TL: [33],
-  GRASS_CORNER_TR: [36],
-  GRASS_CORNER_BL: [63],
-  GRASS_CORNER_BR: [66],
-  // Inner corners
-  GRASS_INNER_TL: [37],
-  GRASS_INNER_TR: [38],
-  GRASS_INNER_BL: [47],
-  GRASS_INNER_BR: [48],
-  // Water
-  WATER_DEEP: [0, 1, 10, 11],
-  WATER_SHALLOW: [2, 3, 12, 13],
-  // Shore/sand
-  SHORE: [22, 23, 32],
+// ── Scallywag Water & Island tileset (16×16 tiles, 23 cols × 6 rows) ──────────
+// Tile indices are (row * columns + col) for the water-island-tiles.png sheet.
+// Grass block starts at col 0, Sand at col 3, Shallow water at col 6, Deep water at col 9.
+
+const WI_COLS = 23; // columns in water-island-tiles.png
+const wi = (col: number, row: number) => row * WI_COLS + col;
+
+export const SCALLYWAG_TILES = {
+  // Grass 3×3 block (col 0-2, row 0-2)
+  GRASS_CENTER:    [wi(1, 1)],
+  GRASS_EDGE_N:    [wi(1, 0)],
+  GRASS_EDGE_S:    [wi(1, 2)],
+  GRASS_EDGE_W:    [wi(0, 1)],
+  GRASS_EDGE_E:    [wi(2, 1)],
+  GRASS_CORNER_NW: [wi(0, 0)],
+  GRASS_CORNER_NE: [wi(2, 0)],
+  GRASS_CORNER_SW: [wi(0, 2)],
+  GRASS_CORNER_SE: [wi(2, 2)],
+
+  // Sand/shore 3×3 block (col 3-5, row 0-2)
+  SAND_CENTER:    [wi(4, 1)],
+  SAND_EDGE_N:    [wi(4, 0)],
+  SAND_EDGE_S:    [wi(4, 2)],
+  SAND_EDGE_W:    [wi(3, 1)],
+  SAND_EDGE_E:    [wi(5, 1)],
+  SAND_CORNER_NW: [wi(3, 0)],
+  SAND_CORNER_NE: [wi(5, 0)],
+  SAND_CORNER_SW: [wi(3, 2)],
+  SAND_CORNER_SE: [wi(5, 2)],
+
+  // Shallow water 3×3 block (col 6-8, row 0-2)
+  WATER_SHALLOW_CENTER: [wi(7, 1)],
+  WATER_SHALLOW_EDGE_N: [wi(7, 0)],
+  WATER_SHALLOW_EDGE_S: [wi(7, 2)],
+  WATER_SHALLOW_EDGE_W: [wi(6, 1)],
+  WATER_SHALLOW_EDGE_E: [wi(8, 1)],
+
+  // Deep water 3×3 block (col 9-11, row 0-2)
+  WATER_DEEP_CENTER: [wi(10, 1)],
+  WATER_DEEP: [wi(10, 1), wi(9, 1), wi(11, 1), wi(10, 0)],
+
+  // Decorations (right side of sheet)
+  PALM_TREE: [wi(13, 0)],
+  ROCK1:     [wi(12, 4)],
+  ROCK2:     [wi(13, 4)],
+  HUT_SMALL: [wi(14, 0)],
+  HUT_LARGE: [wi(16, 0)],
+  BARREL:    [wi(18, 0)],
+  CAMPFIRE:  [wi(19, 0)],
+  CHEST:     [wi(20, 1)],
+  SIGN:      [wi(20, 0)],
+  FLAG:      [wi(21, 0)],
 } as const;
 
-// Village tileset indices for cleared land (FieldsTileset.png)
-export const VILLAGE_TILES = {
-  FIELD_GRASS: [1, 2, 3, 4, 5],
-  FIELD_DIRT: [17, 18, 19, 20, 21],
-  FIELD_PATH: [33, 34, 35, 36, 37],
-  FIELD_PLANTED: [49, 50, 51, 52, 53],
+// Backward-compat aliases for existing code that references old names
+export const TERRAIN_TILES = {
+  GRASS_CENTER:    SCALLYWAG_TILES.GRASS_CENTER,
+  GRASS_EDGE_TOP:  SCALLYWAG_TILES.GRASS_EDGE_N,
+  GRASS_EDGE_BOTTOM: SCALLYWAG_TILES.GRASS_EDGE_S,
+  GRASS_EDGE_LEFT: SCALLYWAG_TILES.GRASS_EDGE_W,
+  GRASS_EDGE_RIGHT: SCALLYWAG_TILES.GRASS_EDGE_E,
+  GRASS_CORNER_TL: SCALLYWAG_TILES.GRASS_CORNER_NW,
+  GRASS_CORNER_TR: SCALLYWAG_TILES.GRASS_CORNER_NE,
+  GRASS_CORNER_BL: SCALLYWAG_TILES.GRASS_CORNER_SW,
+  GRASS_CORNER_BR: SCALLYWAG_TILES.GRASS_CORNER_SE,
+  GRASS_INNER_TL:  SCALLYWAG_TILES.GRASS_CORNER_NW,
+  GRASS_INNER_TR:  SCALLYWAG_TILES.GRASS_CORNER_NE,
+  GRASS_INNER_BL:  SCALLYWAG_TILES.GRASS_CORNER_SW,
+  GRASS_INNER_BR:  SCALLYWAG_TILES.GRASS_CORNER_SE,
+  WATER_DEEP:      SCALLYWAG_TILES.WATER_DEEP,
+  WATER_SHALLOW:   SCALLYWAG_TILES.WATER_SHALLOW_CENTER,
+  SHORE:           SCALLYWAG_TILES.SAND_CENTER,
 } as const;
+
+export const VILLAGE_TILES = {
+  FIELD_GRASS:   SCALLYWAG_TILES.GRASS_CENTER,
+  FIELD_DIRT:    SCALLYWAG_TILES.SAND_CENTER,
+  FIELD_PATH:    SCALLYWAG_TILES.SAND_EDGE_N,
+  FIELD_PLANTED: SCALLYWAG_TILES.GRASS_EDGE_S,
+} as const;
+
+// ── 4-bit bitmask auto-tiling ─────────────────────────────────────────────────
+// Bits: N=8, E=4, S=2, W=1.  A set bit means "same terrain in that direction".
+// Returns the appropriate tile index for a terrain transition.
+
+export function autoTileIndex(
+  tileType: TileType,
+  neighborN: boolean,
+  neighborE: boolean,
+  neighborS: boolean,
+  neighborW: boolean,
+  rng: () => number,
+): number {
+  const mask = (neighborN ? 8 : 0) | (neighborE ? 4 : 0) | (neighborS ? 2 : 0) | (neighborW ? 1 : 0);
+
+  // Select tileset based on terrain type
+  const tiles = tileType === 'shore'
+    ? SCALLYWAG_TILES
+    : tileType === 'deep_water' || tileType === 'shallow_water'
+      ? SCALLYWAG_TILES
+      : SCALLYWAG_TILES; // all use same sheet
+
+  // For grass/hill/mountain tiles
+  if (tileType === 'grass' || tileType === 'hill' || tileType === 'mountain' || tileType === 'camp' || tileType === 'cleared') {
+    switch (mask) {
+      case 0b1111: return tiles.GRASS_CENTER[0];    // surrounded
+      case 0b0111: return tiles.GRASS_EDGE_N[0];    // open N
+      case 0b1011: return tiles.GRASS_EDGE_E[0];    // open E  
+      case 0b1101: return tiles.GRASS_EDGE_S[0];    // open S
+      case 0b1110: return tiles.GRASS_EDGE_W[0];    // open W
+      case 0b0101: return tiles.GRASS_CORNER_NW[0];  // open N+S (use NW corner)
+      case 0b0011: return tiles.GRASS_CORNER_NE[0];  // open N+E
+      case 0b1100: return tiles.GRASS_CORNER_SW[0];
+      case 0b1001: return tiles.GRASS_CORNER_SE[0];
+      default:     return tiles.GRASS_CENTER[0];
+    }
+  }
+
+  // For shore/sand tiles
+  if (tileType === 'shore') {
+    switch (mask) {
+      case 0b1111: return tiles.SAND_CENTER[0];
+      case 0b0111: return tiles.SAND_EDGE_N[0];
+      case 0b1011: return tiles.SAND_EDGE_E[0];
+      case 0b1101: return tiles.SAND_EDGE_S[0];
+      case 0b1110: return tiles.SAND_EDGE_W[0];
+      case 0b0011: return tiles.SAND_CORNER_NE[0];
+      case 0b0101: return tiles.SAND_CORNER_NW[0];
+      case 0b1100: return tiles.SAND_CORNER_SW[0];
+      case 0b1001: return tiles.SAND_CORNER_SE[0];
+      default:     return tiles.SAND_CENTER[0];
+    }
+  }
+
+  // Water tiles
+  if (tileType === 'deep_water') {
+    return tiles.WATER_DEEP[Math.floor(rng() * tiles.WATER_DEEP.length)];
+  }
+  if (tileType === 'shallow_water') {
+    return tiles.WATER_SHALLOW_CENTER[0];
+  }
+
+  return tiles.GRASS_CENTER[0];
+}
 
 // Seeded random number generator
 function createRNG(seed: number): () => number {
@@ -499,5 +612,197 @@ export function deserializeGrid(data: string): IslandTileGrid {
     }
   }
   
+  return grid;
+}
+
+// ── Island Generation Profiles ────────────────────────────────────────────────
+// Different island types for the open-world map system.
+
+export type IslandProfile = 'home' | 'wild' | 'fort' | 'boss';
+
+export interface IslandProfileConfig {
+  profile: IslandProfile;
+  gridWidth: number;
+  gridHeight: number;
+  islandRadius: number;
+  campSize: number; // 0 = no camp
+  maxHeight: number;
+  /** Resource density multiplier (1.0 = normal) */
+  resourceDensity: number;
+  /** Pre-placed fort walls (fort profile only) */
+  hasFortWalls: boolean;
+  /** Boss arena in center (boss profile only) */
+  hasBossArena: boolean;
+}
+
+export const ISLAND_PROFILES: Record<IslandProfile, IslandProfileConfig> = {
+  home: {
+    profile: 'home',
+    gridWidth: 200,
+    gridHeight: 200,
+    islandRadius: 62,
+    campSize: 14,
+    maxHeight: 50,
+    resourceDensity: 1.0,
+    hasFortWalls: false,
+    hasBossArena: false,
+  },
+  wild: {
+    profile: 'wild',
+    gridWidth: 100,
+    gridHeight: 100,
+    islandRadius: 35,
+    campSize: 0, // No camp — capturable
+    maxHeight: 35,
+    resourceDensity: 1.5, // Rich in resources
+    hasFortWalls: false,
+    hasBossArena: false,
+  },
+  fort: {
+    profile: 'fort',
+    gridWidth: 60,
+    gridHeight: 60,
+    islandRadius: 22,
+    campSize: 0,
+    maxHeight: 15, // Mostly flat
+    resourceDensity: 0.5,
+    hasFortWalls: true,
+    hasBossArena: false,
+  },
+  boss: {
+    profile: 'boss',
+    gridWidth: 80,
+    gridHeight: 80,
+    islandRadius: 28,
+    campSize: 0,
+    maxHeight: 45,
+    resourceDensity: 0.3,
+    hasFortWalls: false,
+    hasBossArena: true,
+  },
+};
+
+/**
+ * Generate an island grid for a specific profile.
+ * Uses the same noise-based algorithm but with different dimensions and features.
+ */
+export function generateProfiledIsland(profile: IslandProfile, seed?: number): IslandTileGrid {
+  const config = ISLAND_PROFILES[profile];
+  const actualSeed = seed ?? Date.now();
+  const rng = createRNG(actualSeed);
+
+  const centerX = Math.floor(config.gridWidth / 2);
+  const centerY = Math.floor(config.gridHeight / 2);
+
+  const tiles: IslandTile[][] = [];
+
+  for (let y = 0; y < config.gridHeight; y++) {
+    tiles[y] = [];
+    for (let x = 0; x < config.gridWidth; x++) {
+      const dx = x - centerX;
+      const dy = y - centerY;
+      const baseDistance = Math.sqrt(dx * dx + dy * dy);
+
+      // Irregular coastline
+      const angle = Math.atan2(dy, dx);
+      const noiseValue = octaveNoise(
+        Math.cos(angle) * 50 + centerX,
+        Math.sin(angle) * 50 + centerY,
+        actualSeed,
+        3,
+      );
+      const edgeVariation = (noiseValue - 0.5) * (config.islandRadius * 0.2);
+      const distance = baseDistance - edgeVariation;
+      const normalizedDistance = distance / config.islandRadius;
+
+      // Height
+      let height: number;
+      if (normalizedDistance > 1) {
+        height = -Math.min((normalizedDistance - 1) * 20, 15);
+      } else {
+        const baseHeight = (1 - normalizedDistance) * config.maxHeight;
+        const noiseMod = (octaveNoise(x, y, actualSeed + 5000, 3) - 0.5) * 8;
+        height = Math.max(1, Math.min(config.maxHeight, baseHeight + noiseMod));
+      }
+
+      // Camp area
+      const campHalf = Math.floor(config.campSize / 2);
+      const isCamp = config.campSize > 0 && Math.abs(dx) <= campHalf && Math.abs(dy) <= campHalf;
+
+      // Boss arena: 10×10 flat clearing in center
+      const isBossArena =
+        config.hasBossArena && Math.abs(dx) <= 5 && Math.abs(dy) <= 5;
+
+      const type = isBossArena
+        ? 'cleared'
+        : getTileType(isCamp ? 10 : height, false, isCamp);
+
+      tiles[y][x] = {
+        x,
+        y,
+        type,
+        height: isCamp || isBossArena ? 10 : height,
+        tilesetIndex: selectTilesetIndex(type, rng),
+        isWalkable: type !== 'deep_water' && type !== 'mountain',
+        isBuildable: type === 'grass' || type === 'cleared' || type === 'camp',
+        isCleared: isCamp || isBossArena,
+        overlayTileIndex:
+          isCamp || isBossArena
+            ? VILLAGE_TILES.FIELD_GRASS[Math.floor(rng() * VILLAGE_TILES.FIELD_GRASS.length)]
+            : undefined,
+      };
+    }
+  }
+
+  // Add coves
+  addCoves(tiles, centerX, centerY, actualSeed, rng);
+
+  // Fort walls: ring of wall tiles around the cleared interior
+  if (config.hasFortWalls) {
+    const wallDist = Math.floor(config.islandRadius * 0.6);
+    for (let y = 0; y < config.gridHeight; y++) {
+      for (let x = 0; x < config.gridWidth; x++) {
+        const dx = Math.abs(x - centerX);
+        const dy = Math.abs(y - centerY);
+        if (
+          (dx === wallDist || dy === wallDist) &&
+          dx <= wallDist &&
+          dy <= wallDist &&
+          isLandTile(tiles[y][x].type)
+        ) {
+          tiles[y][x].type = 'cleared';
+          tiles[y][x].isCleared = true;
+          tiles[y][x].isBuildable = true;
+          // Use fort wall tile index — these will be rendered using fort-tiles.png
+          tiles[y][x].tilesetIndex = SCALLYWAG_TILES.HUT_SMALL[0]; // placeholder
+        }
+      }
+    }
+  }
+
+  // Count land tiles
+  const campTiles: { x: number; y: number }[] = [];
+  let landTileCount = 0;
+  for (let y = 0; y < config.gridHeight; y++) {
+    for (let x = 0; x < config.gridWidth; x++) {
+      if (isLandTile(tiles[y][x].type)) landTileCount++;
+      if (tiles[y][x].type === 'camp') campTiles.push({ x, y });
+    }
+  }
+
+  const grid: IslandTileGrid = {
+    id: `${profile}_${actualSeed}`,
+    width: config.gridWidth,
+    height: config.gridHeight,
+    tileSize: GRID_CONFIG.tileSize,
+    tiles,
+    campCenter: { x: centerX, y: centerY },
+    campTiles,
+    landTileCount,
+    seed: actualSeed,
+    createdAt: Date.now(),
+  };
+
+  identifyWaterEdges(grid);
   return grid;
 }
