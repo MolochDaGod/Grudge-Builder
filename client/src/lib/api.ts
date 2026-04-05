@@ -145,18 +145,52 @@ export const characterAPI = {
   },
 
   /**
-   * Mint a character as a compressed NFT on Solana.
-   * Sends to user's server-side wallet, or admin agent wallet as fallback.
+   * Check if a character already has a cNFT minted.
+   * Returns the NFT status if it exists.
    */
-  /** Mint or re-mint character cNFT via the canonical backend */
+  getNFTStatus: async (characterId: string): Promise<{
+    hasMint: boolean;
+    status?: string;
+    mintAddress?: string;
+  }> => {
+    try {
+      const res = await authFetch(`${GAME_API}/characters/${characterId}/nft-status`);
+      if (!res.ok) return { hasMint: false };
+      const data = await res.json();
+      return {
+        hasMint: !!data.mintAddress || data.status === 'minted' || data.status === 'minting',
+        status: data.status,
+        mintAddress: data.mintAddress,
+      };
+    } catch {
+      return { hasMint: false };
+    }
+  },
+
+  /**
+   * Mint a character as a compressed NFT on Solana.
+   * One-time action — checks for existing mint first to prevent duplicates.
+   */
   mintCNFT: async (characterId: string, _avatarUrl?: string, _targetWallet?: string): Promise<{
     success: boolean;
     nftId?: string;
     mintAddress?: string;
     assetId?: string;
     error?: string;
+    alreadyMinted?: boolean;
   }> => {
     try {
+      // Check if already minted first
+      const existing = await characterAPI.getNFTStatus(characterId);
+      if (existing.hasMint) {
+        return {
+          success: true,
+          mintAddress: existing.mintAddress,
+          alreadyMinted: true,
+          error: undefined,
+        };
+      }
+
       const res = await authFetch(`${GAME_API}/characters/${characterId}/mint`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

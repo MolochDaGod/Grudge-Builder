@@ -56,6 +56,18 @@ function getCharPalette(charId?: string): ColorPalette | undefined {
   return charId ? getCharacterPalette(charId) : undefined;
 }
 
+/** Pixel art sigil paths for each attribute */
+const ATTRIBUTE_SIGILS: Record<string, string> = {
+  Strength: '/sprites/2d-island/ui/attributes/strength.png',
+  Vitality: '/sprites/2d-island/ui/attributes/vitality.png',
+  Endurance: '/sprites/2d-island/ui/attributes/endurance.png',
+  Intellect: '/sprites/2d-island/ui/attributes/intellect.png',
+  Wisdom: '/sprites/2d-island/ui/attributes/wisdom.png',
+  Dexterity: '/sprites/2d-island/ui/attributes/dexterity.png',
+  Agility: '/sprites/2d-island/ui/attributes/agility.png',
+  Tactics: '/sprites/2d-island/ui/attributes/tactics.png',
+};
+
 const ATTRIBUTE_ICONS: Record<string, string> = {
   Strength: "💪",
   Vitality: "❤️",
@@ -66,6 +78,73 @@ const ATTRIBUTE_ICONS: Record<string, string> = {
   Agility: "⚡",
   Tactics: "🧠"
 };
+
+/** Renders a pixel-art attribute sigil icon with emoji fallback */
+function AttrSigil({ attr, size = 20 }: { attr: string; size?: number }) {
+  const path = ATTRIBUTE_SIGILS[attr];
+  return path ? (
+    <img src={path} alt={attr} className="inline-block" style={{ width: size, height: size }} onError={(e) => { e.currentTarget.replaceWith(document.createTextNode(ATTRIBUTE_ICONS[attr] || '')); }} />
+  ) : <span className="text-sm">{ATTRIBUTE_ICONS[attr]}</span>;
+}
+
+/** cNFT / Avatar actions with mint-lock — checks existing mint before allowing */
+function CharacterNFTActions({ character, onRegenerateAvatar, isRegenerating }: {
+  character: Character;
+  onRegenerateAvatar: () => void;
+  isRegenerating: boolean;
+}) {
+  const [mintStatus, setMintStatus] = useState<{ checked: boolean; hasMint: boolean; mintAddress?: string; status?: string }>({ checked: false, hasMint: false });
+  const [isMinting, setIsMinting] = useState(false);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    characterAPI.getNFTStatus(character.id).then(result => {
+      setMintStatus({ checked: true, hasMint: result.hasMint, mintAddress: result.mintAddress, status: result.status });
+    });
+  }, [character.id]);
+
+  const handleMint = async () => {
+    if (mintStatus.hasMint) return;
+    setIsMinting(true);
+    try {
+      const result = await characterAPI.mintCNFT(character.id, character.avatarUrl || '');
+      if (result.alreadyMinted) {
+        setMintStatus({ checked: true, hasMint: true, mintAddress: result.mintAddress });
+        toast({ title: 'Already Minted', description: `${character.name} is already on the blockchain.` });
+      } else if (result.success) {
+        setMintStatus({ checked: true, hasMint: true, mintAddress: result.mintAddress });
+        toast({ title: 'cNFT Minted!', description: `${character.name} is now on the blockchain.` });
+      } else {
+        toast({ title: 'Mint Issue', description: result.error || 'Mint may still be processing.', variant: 'destructive' });
+      }
+    } catch (e) {
+      toast({ title: 'Error', description: 'Failed to mint cNFT.', variant: 'destructive' });
+    }
+    setIsMinting(false);
+  };
+
+  return (
+    <div className="flex gap-2 mt-2 items-center">
+      {!character.avatarUrl && (
+        <Button size="sm" className="bg-purple-600 hover:bg-purple-500 text-white text-xs" onClick={onRegenerateAvatar} disabled={isRegenerating}>
+          {isRegenerating ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <ImagePlus className="w-3 h-3 mr-1" />}
+          Generate AI Avatar
+        </Button>
+      )}
+      {mintStatus.hasMint ? (
+        <Badge className="bg-green-900/50 text-green-400 border border-green-700 text-xs">
+          <Check className="w-3 h-3 mr-1" />
+          cNFT Minted{mintStatus.mintAddress ? ` • ${mintStatus.mintAddress.slice(0, 6)}...` : ''}
+        </Badge>
+      ) : (
+        <Button size="sm" variant="outline" className="text-xs border-amber-700 text-amber-400 hover:bg-amber-900/20" onClick={handleMint} disabled={isMinting || !mintStatus.checked}>
+          {isMinting ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <Sparkles className="w-3 h-3 mr-1" />}
+          {mintStatus.checked ? 'Mint as cNFT' : 'Checking...'}
+        </Button>
+      )}
+    </div>
+  );
+}
 
 const ATTRIBUTE_TOOLTIPS: Record<string, { icon: string; description: string; effects: string[] }> = {
   Strength: {
@@ -774,43 +853,11 @@ export default function CharacterBuilder() {
                     </div>
                     
                     {/* cNFT / Avatar action prompts */}
-                    <div className="flex gap-2 mt-2">
-                      {!activeCharacter.avatarUrl && (
-                        <Button
-                          size="sm"
-                          className="bg-purple-600 hover:bg-purple-500 text-white text-xs"
-                          onClick={() => handleRegenerateAvatar(activeCharacter.id)}
-                          disabled={regeneratingAvatar === activeCharacter.id}
-                        >
-                          {regeneratingAvatar === activeCharacter.id ? (
-                            <Loader2 className="w-3 h-3 mr-1 animate-spin" />
-                          ) : (
-                            <ImagePlus className="w-3 h-3 mr-1" />
-                          )}
-                          Generate AI Avatar
-                        </Button>
-                      )}
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="text-xs border-amber-700 text-amber-400 hover:bg-amber-900/20"
-                        onClick={async () => {
-                          try {
-                            const result = await characterAPI.mintCNFT(activeCharacter.id, activeCharacter.avatarUrl || '');
-                            if (result.success) {
-                              toast({ title: 'cNFT Minted!', description: `${activeCharacter.name} is now on the blockchain.` });
-                            } else {
-                              toast({ title: 'Mint Issue', description: result.error || 'Mint may still be processing.', variant: 'destructive' });
-                            }
-                          } catch (e) {
-                            toast({ title: 'Error', description: 'Failed to mint cNFT.', variant: 'destructive' });
-                          }
-                        }}
-                      >
-                        <Sparkles className="w-3 h-3 mr-1" />
-                        Mint as cNFT
-                      </Button>
-                    </div>
+                    <CharacterNFTActions
+                      character={activeCharacter}
+                      onRegenerateAvatar={() => handleRegenerateAvatar(activeCharacter.id)}
+                      isRegenerating={regeneratingAvatar === activeCharacter.id}
+                    />
                   </div>
                 </div>
 
