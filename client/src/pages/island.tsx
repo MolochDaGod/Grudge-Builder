@@ -80,7 +80,6 @@ import {
   getIslandBonuses,
   canPlaceBuilding,
   getAvailableBuildings,
-  getBuildingSpriteUrl,
   getMaxHeroes,
   BASE_HERO_SLOTS,
 } from "@/lib/islandBuildings";
@@ -2063,7 +2062,7 @@ export default function IslandPage() {
             );
           })}
           
-          {/* Buildings layer */}
+          {/* Buildings layer — styled icon cards (no CDN sprites needed) */}
           {buildings.map(bldg => {
             const def = BUILDING_DEFS[bldg.type];
             if (!def) return null;
@@ -2078,25 +2077,11 @@ export default function IslandPage() {
                 }}
                 title={`${def.name} Lv${bldg.level} — ${def.description}`}
               >
-                <img
-                  src={getBuildingSpriteUrl(bldg.type, bldg.color)}
-                  alt={def.name}
-                  className="w-12 h-12 object-contain drop-shadow-lg"
-                  style={{ imageRendering: 'pixelated' }}
-                  onError={(e) => {
-                    // Fallback: show emoji icon if sprite fails to load
-                    e.currentTarget.style.display = 'none';
-                    const parent = e.currentTarget.parentElement;
-                    if (parent && !parent.querySelector('.bldg-fallback')) {
-                      const fb = document.createElement('div');
-                      fb.className = 'bldg-fallback w-12 h-12 bg-slate-800/80 border border-amber-700 rounded flex items-center justify-center text-2xl';
-                      fb.textContent = def.icon;
-                      parent.prepend(fb);
-                    }
-                  }}
-                />
-                <div className="mt-0.5 px-1 py-0.5 rounded text-[9px] font-bold whitespace-nowrap bg-slate-900/90 text-amber-300 border border-amber-700 opacity-0 group-hover:opacity-100 transition-opacity">
-                  {def.icon} {def.name} Lv{bldg.level}
+                <div className="w-14 h-14 bg-gradient-to-b from-slate-700 to-slate-900 border-2 border-amber-700/80 rounded-lg shadow-lg flex items-center justify-center text-2xl group-hover:scale-110 transition-transform group-hover:border-amber-500">
+                  {def.icon}
+                </div>
+                <div className="mt-1 px-1.5 py-0.5 rounded text-[9px] font-bold whitespace-nowrap bg-slate-900/95 text-amber-300 border border-amber-800 shadow-md">
+                  {def.name} <span className="text-slate-500">Lv{bldg.level}</span>
                 </div>
               </div>
             );
