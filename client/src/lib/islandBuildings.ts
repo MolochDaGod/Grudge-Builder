@@ -330,7 +330,12 @@ export function getBuildingSpriteUrl(type: BuildingType, color: BuildingColor = 
   const def = BUILDING_DEFS[type];
   if (!def) return '';
 
-  // Wood buildings use short filenames, colored ones use prefixed names
+  // Spire TowerPack buildings use local 2d-island paths, not MiniWorld CDN
+  if (type === 'beam_tower' || type === 'catapult_tower') {
+    return `/sprites/2d-island/towers/${def.spriteFile}`;
+  }
+
+  // MiniWorld buildings from CDN
   if (color === 'Wood') {
     return `${BASE_PATH}/Wood/${def.spriteFile}`;
   }
