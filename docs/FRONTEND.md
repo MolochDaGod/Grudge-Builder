@@ -1,12 +1,14 @@
 # Grudge Warlords Frontend Documentation
 
 ## Technology Stack
-- **Framework:** React 18 with TypeScript
-- **Build Tool:** Vite
-- **Styling:** Tailwind CSS + shadcn/ui components (New York style)
+- **Framework:** React 19 with TypeScript
+- **Build Tool:** Vite 7
+- **Styling:** TailwindCSS 4 + shadcn/ui components (New York style)
 - **Routing:** Wouter (lightweight router)
-- **State Management:** TanStack React Query (server state) + React useState (local state)
+- **State Management:** TanStack React Query (server state) + React useState (UI state)
 - **Animation:** Framer Motion + Custom SpriteAnimator
+- **Assets:** ObjectStore CDN (`assetUrl()`) + GitHub Pages JSON API (`apiUrl()`)
+- **Auth:** Grudge ID (JWT via grudgeBackend.ts, SSO across Grudge Studio apps)
 
 ---
 
@@ -103,11 +105,14 @@ Resource gathering area:
 - Profession XP progression
 
 ### Professions (`/professions`)
-Artisan Guild interface with two tabs:
+Artisan Guild interface with three tabs:
 - **Gathering Tab:** Mining, Logging, Skinning, Fishing, Herbalism, Scavenging
-- **Crafting Tab:** Miner, Forester, Mystic, Engineer, Chef
+- **Crafting Tab:** Miner, Forester, Mystic, Engineer, Chef — with profession art banners from ObjectStore
+- **Skill Trees Tab:** Visual skill tree per crafting profession
 - T1-T8 tier progression
 - Recipe browser with synergy mappings
+- Contained single-screen layout with scrollable panels
+- Profession icons and background art from `assets.grudge-studio.com/images/professions/`
 
 ### Skills (`/skills`, `/skill-tree`)
 Weapon skill tree system:
@@ -234,14 +239,34 @@ const FACTION_COLORS = {
 
 ## Asset Locations
 
-### Sprites
-- 2D RPG: `public/sprites/GrudgeRPGAssets2d/Characters(100x100)/`
-- Icons: `public/sprites/2dassets/`
-- Weapons: `public/sprites/weapons/icons/`
+All assets are served from **ObjectStore** (R2 CDN + GitHub Pages), NOT from `public/`.
 
-### UI
-- Backgrounds: `public/assets/backgrounds/`
-- UI Elements: `public/assets/ui/`
+### Asset URL Helpers
+```typescript
+import { assetUrl, cdnAssetUrl, apiUrl } from "@/lib/assetConfig";
+
+// Binary assets (images, sprites, audio) → R2 CDN
+assetUrl('/icons/weapons/swords/bloodfeud_blade.png');
+// → https://assets.grudge-studio.com/icons/weapons/swords/bloodfeud_blade.png
+
+// JSON game data → GitHub Pages
+apiUrl('/weapons.json');
+// → https://molochdagod.github.io/ObjectStore/api/v1/weapons.json
+```
+
+### ObjectStore Categories (R2 CDN)
+- **Sprites:** `/sprites/characters/`, `/sprites/bosses/`, `/sprites/enemies/`, `/sprites/effects/`
+- **Icons:** `/icons/weapons/`, `/icons/armor/`, `/icons/resources/`, `/icons/skills/`
+- **Profession Art:** `/images/professions/` (icons + background art)
+- **UI Assets:** `/images/ui/`, `/images/misc/`
+- **Backgrounds:** `/backgrounds/`
+- **Portraits:** `/images/portraits/`
+
+### ObjectStore Data Hooks
+```typescript
+import { useWeapons, useClasses, useProfessions } from "@/hooks/use-object-store";
+const { data, isLoading, error, refetch } = useWeapons();
+```
 
 ---
 

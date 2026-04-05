@@ -5,13 +5,23 @@
 - **Language:** TypeScript (ESM modules)
 - **Database:** PostgreSQL with Drizzle ORM
 - **Build:** esbuild for server bundling
+- **Auth:** Grudge ID (JWT) via id.grudge-studio.com
 - **AI:** OpenAI API for avatar/dungeon generation
+- **Hosting:** VPS (Docker/Coolify) — NOT Replit
 
-## Admin Account System
-- **getUserId(req)**: Helper function routes requests to "admin" or "guest" based on `x-admin-mode` header
-- **Ownership Validation**: All mutation routes verify `userId` matches before access
-- **Admin Login**: POST `/api/admin/login` validates password and auto-seeds admin heroes
-- **Admin Heroes**: RacaLVIN (Dwarf Worg), Groown (Barbarian Ranger), Moloch (Undead Mage)
+## Authentication (Grudge ID)
+
+All auth flows through **id.grudge-studio.com** (Grudge ID service). The frontend proxies via Vercel rewrites (`/api/auth/*`).
+
+- **Grudge ID**: Every user gets a unique Grudge ID on first login
+- **Auth methods**: Discord, Google, GitHub, Puter (guest), Solana wallet, username/password
+- **SSO**: Cross-app single sign-on between grudgewarlords.com and other Grudge Studio apps
+- **Token**: JWT stored as `grudge_auth_token`, sent via `Authorization: Bearer <token>`
+- **Auto-provisioning**: Backend creates server-side Solana wallet + Puter cloud storage per account
+
+### Legacy Admin System (dev only)
+- `x-admin-mode` header for local development testing
+- Admin heroes: RacaLVIN (Dwarf Worg), Groown (Barbarian Ranger), Moloch (Undead Mage)
 
 ---
 
@@ -168,16 +178,27 @@ Uses OpenAI's chat API (`gpt-4o-mini`):
 ## Environment Variables
 
 ```bash
-DATABASE_URL          # PostgreSQL connection string (auto-set by Replit)
+# Database (VPS PostgreSQL)
+DATABASE_URL          # PostgreSQL connection string
 PGHOST               # PostgreSQL host
 PGPORT               # PostgreSQL port
 PGUSER               # PostgreSQL user
 PGPASSWORD           # PostgreSQL password
 PGDATABASE           # PostgreSQL database name
 
-# AI Integration (managed by Replit)
-AI_INTEGRATIONS_OPENAI_API_KEY
-AI_INTEGRATIONS_OPENAI_BASE_URL
+# Auth (Grudge ID)
+JWT_SECRET           # JWT signing secret (shared with id.grudge-studio.com)
+DISCORD_CLIENT_ID    # Discord OAuth app ID
+DISCORD_CLIENT_SECRET# Discord OAuth secret
+GOOGLE_CLIENT_ID     # Google OAuth
+GITHUB_CLIENT_ID     # GitHub OAuth
+
+# AI Integration
+OPENAI_API_KEY       # OpenAI API key for avatar/dungeon generation
+
+# Frontend overrides (Vercel env)
+VITE_OBJECT_STORE_URL   # Override ObjectStore base URL
+VITE_ASSET_CDN_URL      # Override R2 CDN URL
 ```
 
 ---
@@ -235,11 +256,14 @@ Express serves static files from:
 - Vite dev server with HMR
 - Direct TypeScript execution via tsx
 - Hot module replacement for frontend
+- Local Express server at :5000
 
 ### Production
-- esbuild bundles server code
-- Vite builds optimized frontend
-- Static file serving from Express
+- Frontend: Vite builds → Vercel (static SPA)
+- Backend: VPS Docker containers via Coolify
+- API proxied through Vercel rewrites (see vercel.json)
+- Assets served from R2 CDN (assets.grudge-studio.com)
+- Game data from ObjectStore GitHub Pages
 
 ---
 
@@ -272,5 +296,6 @@ Express serves static files from:
 ### Wallet & NFT
 | File | Purpose |
 |------|---------|
-| `server/services/crossmintWallet.ts` | Crossmint custodial wallets |
-| `server/services/nftMinting.ts` | Compressed NFT minting |
+| `server/services/walletHelper.ts` | Server-side Solana wallet management |
+| `server/services/nftMetadata.ts` | NFT metadata generation |
+| `server/spriteGeneration/services/nftMinting.ts` | Compressed NFT minting |

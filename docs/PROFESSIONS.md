@@ -8,31 +8,30 @@ The Artisan Guild profession system provides 100 levels of progression in both G
 
 ## Profession Categories
 
-### Gathering Professions
+### Gathering Professions (6)
 Resource collection from the world. Each gathering profession extracts specific material types.
 
-| Profession   | Resources Gathered          | Primary Use           |
-|--------------|-----------------------------|-----------------------|
-| Mining       | Ores, gems, minerals        | Metalworking, Jewelry |
-| Herbalism    | Plants, herbs, flowers      | Alchemy, Cooking      |
-| Woodcutting  | Logs, bark, sap             | Carpentry, Fletching  |
-| Fishing      | Fish, shells, pearls        | Cooking, Alchemy      |
-| Skinning     | Hides, leather, bones       | Leatherworking        |
-| Foraging     | Berries, mushrooms, roots   | Cooking, Alchemy      |
+| Profession   | Resources Gathered          | Feeds Into                    |
+|--------------|-----------------------------|---------|
+| Mining       | Ores, gems, minerals        | Blacksmithing, Armorsmithing, Jewelcrafting |
+| Herbalism    | Plants, herbs, flowers      | Alchemy, Cooking              |
+| Logging      | Logs, bark, sap             | Tailoring, Fletcher, Leatherworking |
+| Fishing      | Fish, shells, pearls        | Cooking, Alchemy              |
+| Skinning     | Hides, leather, bones       | Leatherworking                |
+| Scavenging   | Scrap, components, relics   | Engineering, Blacksmithing    |
 
-### Crafting Professions
-Transform raw materials into usable items, equipment, and consumables.
+### Crafting Professions (5)
+Each crafting profession is a specialization that consumes gathered materials.
 
-| Profession     | Primary Output              | Input Materials       |
-|----------------|-----------------------------|-----------------------|
-| Blacksmithing  | Weapons, armor, tools       | Ores, metals          |
-| Leatherworking | Light/medium armor, bags    | Hides, leather        |
-| Tailoring      | Cloth armor, bags, capes    | Fibers, cloth         |
-| Alchemy        | Potions, elixirs, oils      | Herbs, minerals       |
-| Cooking        | Food buffs, consumables     | Fish, herbs, produce  |
-| Enchanting     | Item enchantments           | Magical essences      |
-| Jewelcrafting  | Rings, necklaces, gems      | Gems, metals          |
-| Carpentry      | Furniture, tools, bows      | Wood, metals          |
+| Profession | Primary Output                    | Gathering Synergies           | Art Icon |
+|------------|-----------------------------------|-------------------------------|----------|
+| Miner      | Bars, refined ores, alloys        | Mining, Scavenging            | `miner_profession_game_icon.png` |
+| Forester   | Planks, bows, leather goods       | Logging, Skinning, Herbalism  | `forester_profession_game_icon.png` |
+| Mystic     | Enchantments, potions, jewels     | Mining (Gems), Herbalism, Fishing | `mystic_profession_game_icon.png` |
+| Chef       | Food buffs (red/blue/green)       | Fishing, Skinning, Herbalism  | `chef_profession_game_icon.png` |
+| Engineer   | Gadgets, siege, tools             | Mining, Scavenging, Logging   | `engineer_profession_game_icon.png` |
+
+Art assets are served from `assets.grudge-studio.com/images/professions/`.
 
 ## Progression System
 
@@ -169,10 +168,17 @@ See `docs/ISLANDS.md` for resource node placement.
 
 ## API Endpoints
 
+All endpoints require Grudge ID auth token (`Authorization: Bearer <token>`).
+
 ```
 GET  /api/professions/:characterId     - Get profession levels
 POST /api/professions/:characterId/xp  - Add profession XP
 POST /api/craft                        - Craft an item
+```
+
+Profession data is also available from ObjectStore:
+```
+GET  https://molochdagod.github.io/ObjectStore/api/v1/professions.json
 ```
 
 ## Implementation Files

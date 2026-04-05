@@ -1,21 +1,68 @@
 # Grudge Warlords API Documentation
 
 ## Base URL
-All API endpoints are prefixed with `/api/`
 
-## Authentication
-The app uses a dual-account system with "admin" and "guest" userIds for complete data isolation.
+All API endpoints are prefixed with `/api/`. In production, Vercel rewrites proxy these to the Grudge backend:
 
-### Admin Mode
-- **Login**: Click the key icon in the footer, enter admin password
-- **Header**: Client sends `x-admin-mode: true` header when in admin mode
-- **Server**: `getUserId(req)` helper routes requests to the correct account
-- **Ownership**: All mutation routes verify ownership before allowing access
+| Frontend route | Backend destination |
+|----------------|--------------------|
+| `/api/auth/*` | `id.grudge-studio.com/auth/*` |
+| `/api/account/*` | `account.grudge-studio.com/*` |
+| `/api/game/*` | `api.grudge-studio.com/*` |
+| `/api/wallet/*` | `api.grudge-studio.com/api/wallet/*` |
+| `/api/nfts/*` | `api.grudge-studio.com/api/nfts/*` |
+| `/api/assets/*` | `assets.grudge-studio.com/*` |
 
-### Admin Heroes (Auto-seeded on first login)
-- RacaLVIN (Dwarf Worg, Level 5) - melee specialist
-- Groown (Barbarian Ranger, Level 3) - ranged combat
-- Moloch (Undead Mage, Level 4) - spell caster
+See `vercel.json` for the full rewrite map.
+
+## Authentication (Grudge ID)
+
+All auth flows through **id.grudge-studio.com** (Grudge ID service). Every user gets a unique Grudge ID.
+
+### Auth Endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/auth/login` | Username + password login |
+| POST | `/api/auth/register` | Create new account |
+| POST | `/api/auth/puter` | Puter SDK auth (Google, guest) |
+| POST | `/api/auth/wallet` | Solana wallet connect |
+| POST | `/api/auth/verify` | Validate session token |
+| GET | `/api/auth/discord/start` | Begin Discord OAuth |
+| GET | `/api/auth/google/start` | Begin Google OAuth |
+| GET | `/api/auth/github/start` | Begin GitHub OAuth |
+
+### Auth Response
+```json
+{
+  "success": true,
+  "token": "jwt...",
+  "sessionToken": "jwt...",
+  "grudgeId": "GRDG-xxxx",
+  "username": "Player",
+  "user": {
+    "id": 1,
+    "grudgeId": "GRDG-xxxx",
+    "username": "Player",
+    "walletAddress": "...",
+    "serverWalletAddress": "..."
+  }
+}
+```
+
+### Using Auth Token
+All protected endpoints require the JWT token:
+```
+Authorization: Bearer <token>
+X-Session-Token: <token>
+```
+
+### SSO (Cross-App)
+Grudge ID supports SSO via URL params: `?sso_token=<jwt>&grudge_id=<id>&grudge_username=<name>`
+
+### Legacy Admin Mode (dev only)
+- `x-admin-mode: true` header for local development testing
+- Admin heroes: RacaLVIN (Dwarf Worg), Groown (Barbarian Ranger), Moloch (Undead Mage)
 
 ---
 
