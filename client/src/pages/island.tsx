@@ -6,7 +6,9 @@ import { cn } from "@/lib/utils";
 import SpriteAnimator from "@/components/SpriteAnimator";
 import AnimalSprite from "@/components/AnimalSprite";
 import { IslandCutscene } from "@/components/IslandCutscene";
-import { RACES, CLASSES } from "@/lib/gameData";
+import { RACES, CLASSES, getSpriteSetForCharacter } from "@/lib/gameData";
+import { getCharacterPalette } from "@/lib/spriteManifest";
+import { useDebouncedIslandSave } from "@/hooks/use-debounced-island-save";
 import { motion, AnimatePresence } from "framer-motion";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -1874,7 +1876,7 @@ export default function IslandPage() {
             
             const race = RACES.find(r => r.id === hero.raceId);
             const cls = CLASSES.find(c => c.id === hero.classId);
-            const spriteSet = cls?.spriteSetOverride || race?.spriteSet || "Soldier";
+            const spriteSet = getSpriteSetForCharacter(hero.raceId, hero.classId);
             const isAssigned = assignedHeroIds.has(heroId);
             const isSelected = selectedHero === heroId;
             
@@ -1939,7 +1941,9 @@ export default function IslandPage() {
                 >
                   <SpriteAnimator 
                     spriteSet={spriteSet} 
-                    action={pos.action === 'attack' ? 'Attack' : pos.action === 'walk' ? 'Walk' : 'Idle'} 
+                    action={pos.action === 'attack' ? 'Attack' : pos.action === 'walk' ? 'Walk' : 'Idle'}
+                    palette={getCharacterPalette(heroId)}
+                    isUndead={hero.raceId === 'undead'}
                   />
                 </div>
                 {/* Name label below sprite */}
