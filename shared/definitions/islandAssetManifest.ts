@@ -2,13 +2,14 @@
  * Island Asset Manifest
  *
  * Catalogs every tile sheet and sprite used by the tile-based island system.
- * All paths are relative to /sprites/island/ (resolved via assetUrl at runtime).
+ * All paths are relative to /sprites/2d-island/ (resolved via assetUrl at runtime).
+ * Prefix follows the project rule: all 2D assets use '2d-' prefix to distinguish from 3D (BabylonJS).
  */
 
 // ── Tile Sheet Descriptors ────────────────────────────────────────────────────
 
 export interface TileSheetDescriptor {
-  /** Path relative to /sprites/island/ */
+  /** Path relative to /sprites/2d-island/ */
   path: string;
   /** Pixel size of a single tile */
   tileSize: number;
@@ -158,10 +159,29 @@ export const FORT_TILES = {
 export const SHIPS_SHEET: TileSheetDescriptor = {
   path: 'ships/ships-tiles.png',
   tileSize: 16,
-  columns: 45,
-  rows: 43,
+  columns: 45,  // 720px / 16px
+  rows: 43,     // 688px / 16px
   totalTiles: 1935,
 };
+
+/**
+ * Ship mockup — 7 pre-assembled ships for MVP rendering.
+ * Use these instead of composing from modular parts until the ship builder is ready.
+ * Slice from ships-mockup.png (1280×720). Ships are centered on a blue background.
+ */
+export const SHIP_MOCKUPS = {
+  path: 'ships/ships-mockup.png',
+  /** Approximate bounding boxes for each assembled ship in the mockup */
+  ships: [
+    { id: 'small_brown',   color: 'brown'  as HullColor, size: 'rowboat' as ShipSize, x: 248, y: 48,  w: 48,  h: 72  },
+    { id: 'small_green',   color: 'brown'  as HullColor, size: 'rowboat' as ShipSize, x: 844, y: 48,  w: 48,  h: 72  },
+    { id: 'medium_green',  color: 'brown'  as HullColor, size: 'sloop'   as ShipSize, x: 368, y: 180, w: 64,  h: 108 },
+    { id: 'medium_gold',   color: 'gold'   as HullColor, size: 'sloop'   as ShipSize, x: 768, y: 180, w: 64,  h: 108 },
+    { id: 'large_red',     color: 'red'    as HullColor, size: 'galleon' as ShipSize, x: 128, y: 340, w: 96,  h: 180 },
+    { id: 'large_brown',   color: 'brown'  as HullColor, size: 'galleon' as ShipSize, x: 568, y: 340, w: 96,  h: 180 },
+    { id: 'large_blue',    color: 'blue'   as HullColor, size: 'galleon' as ShipSize, x: 968, y: 340, w: 96,  h: 180 },
+  ],
+} as const;
 
 /** Hull color variants — each is a full ship column in the tileset */
 export type HullColor = 'brown' | 'orange' | 'gold' | 'red' | 'dark' | 'blue' | 'grey';
@@ -182,39 +202,64 @@ export type SailColor = 'white' | 'green' | 'yellow' | 'blue' | 'red' | 'brown';
 export const SAIL_COLORS: SailColor[] = ['white', 'green', 'yellow', 'blue', 'red', 'brown'];
 
 /**
- * Ship parts defined by their tile-region in ships-tiles.png.
- * Row 0: small hulls (all 7 colors), Row 1-2: medium hulls, Row 3-5: large hulls.
- * Sails, cannons, railings, figureheads, rudders in lower rows.
- * Damage variants in the right-most columns.
+ * Ship parts from ships-tiles.png (720×688, 16px grid).
+ *
+ * ACTUAL LAYOUT (from visual inspection):
+ * - Rows 0-5: Small hulls (7 colors packed L→R, ~3 tiles wide each = 21 cols)
+ * - Rows 6-13: Medium hulls (7 colors, ~4 tiles wide = 28 cols)
+ * - Rows 14-24: Large hulls (7 colors, ~5 tiles wide = 35 cols) + damaged variants on right
+ * - Rows 14-17 (right): Damaged large hulls (grey/brown/cracked)
+ * - Rows 25-26: Sails/canopies (7 colors, curved shapes)
+ * - Rows 27-28: Banners/flags (7 colors + triangular sails)
+ * - Rows 29-30: Masts, crow’s nests, rigging parts
+ * - Rows 31-32: Railings, oar locks, side cannon bumps
+ * - Rows 33-34: Figureheads, rudders, ornamental bow pieces
+ * - Rows 35-39: Water FX (splashes, wake foam, cannon smoke)
+ * - Rows 40-42: Cannonballs, barrel/wheel decorations
  */
 export const SHIP_PARTS = {
-  // Hull regions per size tier (column offset by color index × stride)
-  hullRowboat: { col: 0, row: 0, w: 2, h: 3 } as TileRegion,    // per color: col + colorIdx*3
-  hullSloop: { col: 0, row: 3, w: 3, h: 5 } as TileRegion,
-  hullGalleon: { col: 0, row: 8, w: 4, h: 7 } as TileRegion,
+  // Hull regions — each color variant is offset by stride tiles horizontally
+  hullSmall:  { col: 0, row: 0,  w: 3, h: 5,  stride: 3 } as TileRegion & { stride: number },
+  hullMedium: { col: 0, row: 6,  w: 4, h: 7,  stride: 4 } as TileRegion & { stride: number },
+  hullLarge:  { col: 0, row: 14, w: 5, h: 10, stride: 5 } as TileRegion & { stride: number },
 
-  // Sails (row 16+, col offset by sailColor index × 3)
-  sailSmall: { col: 0, row: 16, w: 2, h: 2 } as TileRegion,
-  sailMedium: { col: 0, row: 18, w: 3, h: 3 } as TileRegion,
-  sailLarge: { col: 0, row: 21, w: 4, h: 4 } as TileRegion,
+  // Damaged hull overlays (right side of sheet)
+  hullDamageLarge: { col: 30, row: 14, w: 5, h: 10 } as TileRegion,
 
-  // Shared parts (fixed positions)
-  cannonLeft: { col: 0, row: 26, w: 1, h: 1 } as TileRegion,
-  cannonRight: { col: 1, row: 26, w: 1, h: 1 } as TileRegion,
-  mast: { col: 2, row: 26, w: 1, h: 3 } as TileRegion,
-  railing: { col: 3, row: 26, w: 1, h: 1 } as TileRegion,
-  figurehead: { col: 4, row: 26, w: 1, h: 2 } as TileRegion,
-  rudder: { col: 5, row: 26, w: 1, h: 2 } as TileRegion,
+  // Sails/canopies
+  sailRow: { col: 0, row: 25, w: 2, h: 2 } as TileRegion, // 7 colors, stride 3
 
-  // Damage overlay
-  hullDamage: { col: 30, row: 0, w: 4, h: 7 } as TileRegion,
+  // Banners/flags
+  bannerRow: { col: 0, row: 27, w: 2, h: 2 } as TileRegion,
 
-  // FX
-  splash: { col: 38, row: 38, w: 2, h: 2 } as TileRegion,
-  cannonSmoke: { col: 40, row: 38, w: 2, h: 2 } as TileRegion,
-  explosion1: { col: 38, row: 40, w: 2, h: 2 } as TileRegion,
-  explosion2: { col: 40, row: 40, w: 2, h: 2 } as TileRegion,
+  // Structural parts
+  masts:       { col: 0, row: 29, w: 45, h: 2 } as TileRegion, // full row of mast parts
+  railings:    { col: 0, row: 31, w: 45, h: 2 } as TileRegion,
+  figureheads: { col: 0, row: 33, w: 30, h: 2 } as TileRegion,
+
+  // Water FX (bottom-right)
+  wakeTrail:   { col: 35, row: 35, w: 4, h: 2 } as TileRegion,
+  splash:      { col: 35, row: 37, w: 2, h: 2 } as TileRegion,
+  cannonSmoke: { col: 37, row: 37, w: 2, h: 2 } as TileRegion,
+
+  // Projectiles & misc (bottom row)
+  cannonball:  { col: 0,  row: 40, w: 1, h: 1 } as TileRegion,
+  barrel:      { col: 2,  row: 40, w: 1, h: 1 } as TileRegion,
+  wheel:       { col: 4,  row: 40, w: 1, h: 1 } as TileRegion,
 } as const;
+
+/** Get hull tile region for a specific color (0-6 index) and ship size */
+export function getShipHullRegion(size: ShipSize, colorIndex: number): TileRegion {
+  const base = size === 'rowboat' ? SHIP_PARTS.hullSmall
+    : size === 'sloop' ? SHIP_PARTS.hullMedium
+    : SHIP_PARTS.hullLarge;
+  return {
+    col: base.col + colorIndex * base.stride,
+    row: base.row,
+    w: base.w,
+    h: base.h,
+  };
+}
 
 // ── Pirate Sprite Sheets ──────────────────────────────────────────────────────
 
@@ -693,7 +738,7 @@ export const UNDEAD_SPRITES = {
 
 /** Resolve an island asset path to its full URL (via assetUrl) */
 export function resolveIslandAssetPath(relativePath: string): string {
-  return `/sprites/island/${relativePath}`;
+  return `/sprites/2d-island/${relativePath}`;
 }
 
 /** Get the pixel rect for a tile region within a sheet */

@@ -1,7 +1,7 @@
 
 import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { useLocation } from "wouter";
-import { RACES, CLASSES, ATTRIBUTES, FACTION_COLORS, AttributeKey, RaceDef, ClassDef } from "@/lib/gameData";
+import { RACES, CLASSES, ATTRIBUTES, FACTION_COLORS, AttributeKey, RaceDef, ClassDef, getSpriteSetForCharacter } from "@/lib/gameData";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { ChevronRight, ChevronLeft, ChevronDown, Sword, Check, Sparkles, Trash2, User, Shield, Play, Pause, Zap, Settings, ImagePlus, Loader2, Backpack, BookOpen, Hammer, Sliders, TrendingUp, Package, Gem, Clock, Target, Award, X } from "lucide-react";
@@ -17,7 +17,7 @@ import Layout from "@/components/Layout";
 import { CharacterManager, Character, EquipmentSlots } from "@/lib/characterManager";
 import { ITEMS, resolveItemImage, RESOURCE_NODES } from "@/lib/grudaDB";
 import SpriteAnimator, { SpriteAction } from "@/components/SpriteAnimator";
-import { getAttackAnimations, getAvailableAnimations, AnimationState } from "@/lib/spriteManifest";
+import { getAttackAnimations, getAvailableAnimations, AnimationState, getCharacterPalette, type ColorPalette } from "@/lib/spriteManifest";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { CombatUnitStatus } from "@/components/CombatUnitStatus";
 import { InventorySlot } from "@/components/SpriteIcon";
@@ -41,7 +41,19 @@ import {
 } from "@shared/definitions/classSkillTrees";
 import { assetUrl } from "@/lib/assetConfig";
 import { playBGM } from "@/lib/audioManager";
-const bgTexture = assetUrl("/backgrounds/character_create.png");
+
+// Branded gradient fallbacks when CDN backgrounds don't load
+const FACTION_GRADIENTS: Record<string, string> = {
+  Crusade: 'linear-gradient(135deg, #0f172a 0%, #1e3a5f 40%, #0c1929 100%)',
+  Legion:  'linear-gradient(135deg, #1a0a0a 0%, #4a1111 40%, #1a0505 100%)',
+  Fabled:  'linear-gradient(135deg, #0a1a0a 0%, #1a4a1a 40%, #051a05 100%)',
+};
+const DEFAULT_BG_GRADIENT = 'linear-gradient(135deg, #0f0f1a 0%, #1a1a2e 30%, #16213e 60%, #0f0f1a 100%)';
+
+/** Get the palette for a character (deterministic from ID, or default for creation) */
+function getCharPalette(charId?: string): ColorPalette | undefined {
+  return charId ? getCharacterPalette(charId) : undefined;
+}
 
 const ATTRIBUTE_ICONS: Record<string, string> = {
   Strength: "💪",
@@ -278,12 +290,36 @@ export default function CharacterBuilder() {
       // Generate AI card avatar with character name baked in
       setCreationStatus("Generating card avatar...");
       const faction = selectedRace.faction || 'Crusade';
-      const avatarUrl = await puterAI.generateHeroAvatar(
+      let avatarUrl = await puterAI.generateHeroAvatar(
         heroName,
         selectedRace.name,
         selectedClass.name,
         faction
       );
+
+      // Upload to object storage for a permanent URL (data URIs are temporary)
+      if (avatarUrl) {
+        setCreationStatus("Uploading avatar to storage...");
+        try {
+          const uploadRes = await fetch('/api/characters/upload-avatar', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              characterId: createdChar.id,
+              imageData: avatarUrl,
+              characterName: heroName,
+              race: selectedRace.name,
+              classId: selectedClass.name,
+            }),
+          });
+          if (uploadRes.ok) {
+            const data = await uploadRes.json();
+            if (data.imageUri) avatarUrl = data.imageUri; // Use permanent URL
+          }
+        } catch (e) {
+          console.warn('Avatar upload to storage failed, using data URI:', e);
+        }
+      }
 
       // Save avatar URL to character if generation succeeded
       let charWithAvatar = createdChar;
@@ -396,12 +432,10 @@ export default function CharacterBuilder() {
   };
   
   const getSpriteSet = (raceId?: string, classId?: string) => {
+    if (raceId && classId) return getSpriteSetForCharacter(raceId, classId);
     const race = RACES.find(r => r.id === raceId);
-    const cls = CLASSES.find(c => c.id === classId);
-    
-    if (cls?.spriteSetOverride) return cls.spriteSetOverride;
     if (race?.spriteSet) return race.spriteSet;
-    return "Soldier"; // Fallback
+    return "Soldier";
   };
 
   const handleNext = () => {
@@ -439,8 +473,17 @@ export default function CharacterBuilder() {
 
           <div className="relative z-10 flex flex-col md:flex-row h-full min-h-[800px]">
             
+            {/* Grudge Branding Bar */}
+            <div className="absolute top-0 inset-x-0 z-20 bg-black/60 backdrop-blur-sm border-b border-amber-900/30 px-6 py-2 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-amber-500 to-amber-700 flex items-center justify-center text-black font-bold text-sm">G</div>
+                <span className="font-cinzel text-amber-400 text-sm tracking-widest uppercase">Grudge Warlords</span>
+              </div>
+              <span className="text-xs text-slate-500 font-mono">Character Roster</span>
+            </div>
+            
             {/* Sidebar: Character List */}
-            <div className="w-full md:w-80 bg-black/40 border-r border-white/10 p-6 overflow-y-auto">
+            <div className="w-full md:w-80 bg-black/40 border-r border-white/10 p-6 pt-14 overflow-y-auto">
               <div className="flex justify-between items-center mb-6">
                 <h2 className="text-xl font-cinzel font-bold text-amber-400">Roster</h2>
                 <div className="flex gap-2">
@@ -476,28 +519,34 @@ export default function CharacterBuilder() {
                       )}
                     >
                       {/* Large Avatar Image */}
-                      <div className="relative w-full h-48 bg-gradient-to-b from-slate-800 to-slate-900 overflow-hidden">
-                        {/* Card Background */}
+                      <div className="relative w-full h-48 overflow-hidden">
+                        {/* Faction gradient as reliable background */}
+                        <div className="absolute inset-0 z-0" style={{ background: FACTION_GRADIENTS[r?.faction || 'Crusade'] || DEFAULT_BG_GRADIENT }} />
+                        {/* Card Background overlay (may 404, gradient is fallback) */}
                         {r?.cardBg && (
-                          <img src={r.cardBg} alt="" className="absolute inset-0 w-full h-full object-cover z-0 pointer-events-none" />
+                          <img src={r.cardBg} alt="" className="absolute inset-0 w-full h-full object-cover z-[1] pointer-events-none" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
                         )}
                         {(() => {
                           const imgSrc = char.avatarUrl || r?.image;
                           const pos = r ? getPortraitPos(r.id) : { x: 50, y: 20, scale: 1 };
+                          const charSprite = getSpriteSetForCharacter(char.raceId, char.classId);
                           return imgSrc ? (
                             <img 
                               src={imgSrc} 
                               alt={char.name}
-                              className="w-full h-full object-cover relative z-[1]"
+                              className="w-full h-full object-cover relative z-[2]"
                               style={{
                                 objectPosition: `${pos.x}% ${pos.y}%`,
                                 transform: `scale(${pos.scale})`,
                               }}
                               draggable={false}
+                              onError={(e) => { e.currentTarget.style.display = 'none'; }}
                             />
                           ) : (
-                            <div className="w-full h-full flex items-center justify-center relative z-[1]">
-                              <User className="w-12 h-12 text-slate-600" />
+                            <div className="w-full h-full flex items-center justify-center relative z-[2]">
+                              <div className="scale-[2.5] transform drop-shadow-[0_0_8px_rgba(0,0,0,0.8)]">
+                                <SpriteAnimator spriteSet={charSprite} action="Idle" isUndead={char.raceId === 'undead'} palette={getCharPalette(char.id)} />
+                              </div>
                             </div>
                           );
                         })()}
@@ -579,7 +628,7 @@ export default function CharacterBuilder() {
 
             {/* Main Content: Character Sheet */}
             {activeCharacter ? (
-              <div className="flex-1 p-8 overflow-y-auto relative">
+              <div className="flex-1 p-8 pt-14 overflow-y-auto relative">
                  <div 
                   className="absolute inset-0 pointer-events-none z-0 opacity-10"
                   style={{ backgroundImage: `url(${assetUrl("/sprites/ui/PNG/character-panel.png")})`, backgroundSize: 'cover', backgroundPosition: 'center' }}
@@ -606,7 +655,7 @@ export default function CharacterBuilder() {
                       ) : (
                         <div className="w-full h-full flex items-center justify-center">
                           <div className="scale-150 transform translate-y-2">
-                            <SpriteAnimator spriteSet={activeSpriteSet} action={currentAction} isUndead={activeCharacter?.raceId === 'undead'} />
+                            <SpriteAnimator spriteSet={activeSpriteSet} action={currentAction} isUndead={activeCharacter?.raceId === 'undead'} palette={getCharPalette(activeCharacter?.id)} />
                           </div>
                         </div>
                       )}
@@ -828,7 +877,7 @@ export default function CharacterBuilder() {
                               <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                                 <div className="pointer-events-auto">
                                   <div className="scale-[2.5] transform drop-shadow-[0_0_10px_rgba(0,0,0,0.8)]">
-                                    <SpriteAnimator spriteSet={activeSpriteSet} action={currentAction} isUndead={activeCharacter?.raceId === 'undead'} />
+                                    <SpriteAnimator spriteSet={activeSpriteSet} action={currentAction} isUndead={activeCharacter?.raceId === 'undead'} palette={getCharPalette(activeCharacter?.id)} />
                                   </div>
                                 </div>
                               </div>
@@ -1016,7 +1065,7 @@ export default function CharacterBuilder() {
                             >
                               <div className="pointer-events-auto">
                                 <div className="scale-[3] transform drop-shadow-[0_0_10px_rgba(0,0,0,0.8)]">
-                                  <SpriteAnimator spriteSet={activeSpriteSet} action={currentAction} isUndead={activeCharacter?.raceId === 'undead'} />
+                                  <SpriteAnimator spriteSet={activeSpriteSet} action={currentAction} isUndead={activeCharacter?.raceId === 'undead'} palette={getCharPalette(activeCharacter?.id)} />
                                 </div>
                               </div>
                             </AdminContextMenu>
@@ -1522,18 +1571,21 @@ export default function CharacterBuilder() {
       <div className="flex flex-col relative overflow-hidden bg-background text-foreground rounded-xl border border-slate-800 shadow-2xl min-h-[calc(100vh-100px)]">
         {/* Background Elements */}
         <div 
-          className="absolute inset-0 pointer-events-none z-0 opacity-20 mix-blend-overlay"
-          style={{ backgroundImage: `url(${bgTexture})`, backgroundSize: 'cover', backgroundPosition: 'center' }}
-        ></div>
+            className="absolute inset-0 pointer-events-none z-0 opacity-40"
+            style={{ background: DEFAULT_BG_GRADIENT }}
+          ></div>
         
         {/* Builder Header */}
-        <header className="relative z-10 border-b border-white/10 bg-black/40 backdrop-blur-md p-6">
+        <header className="relative z-10 border-b border-amber-900/30 bg-black/60 backdrop-blur-md p-6">
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-            <div>
-              <h1 className="text-2xl md:text-3xl lg:text-4xl text-primary drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] tracking-wider font-cinzel font-bold">
-                CHARACTER CREATION
-              </h1>
-              <p className="text-slate-400 text-sm">Forge your legend in the world of Grudge</p>
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-amber-500 to-amber-700 flex items-center justify-center text-black font-bold text-xl shadow-lg shadow-amber-500/20">G</div>
+              <div>
+                <h1 className="text-2xl md:text-3xl text-amber-400 tracking-wider font-cinzel font-bold">
+                  CHARACTER CREATION
+                </h1>
+                <p className="text-slate-500 text-xs tracking-widest uppercase">Grudge Warlords • Forge Your Legend</p>
+              </div>
             </div>
             
             <div className="flex items-center gap-4">
@@ -1603,8 +1655,16 @@ export default function CharacterBuilder() {
                       {race.faction}
                     </div>
 
-                    {/* Character Image */}
+                    {/* Character Image with gradient fallback */}
                     <div className="aspect-[3/4] relative overflow-hidden z-[1]">
+                      {/* Gradient fallback behind portrait */}
+                      <div className="absolute inset-0 z-0" style={{ background: FACTION_GRADIENTS[race.faction] || DEFAULT_BG_GRADIENT }} />
+                      {/* Sprite preview in center as secondary fallback */}
+                      <div className="absolute inset-0 flex items-center justify-center z-[1] opacity-30">
+                        <div className="scale-[3] transform">
+                          <SpriteAnimator spriteSet={getSpriteSetForCharacter(race.id, 'warrior')} action="Idle" isUndead={race.id === 'undead'} />
+                        </div>
+                      </div>
                       {(() => {
                         const pos = getPortraitPos(race.id);
                         return (
@@ -1613,7 +1673,7 @@ export default function CharacterBuilder() {
                               src={race.image} 
                               alt={race.name} 
                               className={cn(
-                                "w-full h-full object-cover transition-transform",
+                                "w-full h-full object-cover transition-transform relative z-[2]",
                                 !adminMode && "duration-700 group-hover:scale-110",
                                 adminMode && draggingRace === race.id && "cursor-grabbing",
                                 adminMode && draggingRace !== race.id && "cursor-grab"
@@ -1715,31 +1775,57 @@ export default function CharacterBuilder() {
               >
                 {!selectedClassId ? (
                   <>
-                    <h2 className="text-3xl mb-8 text-center text-primary font-cinzel">Select Your Path</h2>
+                    <h2 className="text-3xl mb-2 text-center text-primary font-cinzel">Select Your Path</h2>
+                    <p className="text-slate-400 text-center text-sm mb-8">{selectedRace?.name} — choose a class to define your combat style</p>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
-                      {CLASSES.map((cls) => (
-                        <div 
-                          key={cls.id}
-                          onClick={() => setSelectedClassId(cls.id)}
-                          className={cn(
-                            "flex items-center gap-6 p-6 rounded-xl border-2 cursor-pointer transition-all hover:bg-white/5 border-white/10"
-                          )}
-                        >
-                          <div className={cn(
-                            "w-16 h-16 rounded-full flex items-center justify-center text-3xl shrink-0 bg-white/10 text-gray-400"
-                          )}>
-                            {cls.id === 'warrior' && <Sword />}
-                            {cls.id === 'mage' && <Sparkles />}
-                            {cls.id === 'ranger' && <div className="text-2xl">🏹</div>}
-                            {cls.id === 'worg' && <div className="text-2xl">🐺</div>}
+                      {CLASSES.map((cls) => {
+                        // Show the race×class sprite preview
+                        const previewSprite = selectedRace ? getSpriteSetForCharacter(selectedRace.id, cls.id) : cls.spriteSetOverride || 'Soldier';
+                        return (
+                          <div 
+                            key={cls.id}
+                            onClick={() => setSelectedClassId(cls.id)}
+                            className={cn(
+                              "group relative flex items-center gap-6 p-6 rounded-xl border-2 cursor-pointer transition-all overflow-hidden",
+                              "hover:bg-white/5 hover:border-amber-600/50 hover:-translate-y-1",
+                              "border-white/10 bg-black/20"
+                            )}
+                          >
+                            {/* Faction-tinted glow on hover */}
+                            <div className={cn(
+                              "absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none",
+                            )} style={{ background: FACTION_GRADIENTS[selectedRace?.faction || 'Crusade'], opacity: 0.15 }} />
+                            
+                            {/* Sprite preview instead of emoji */}
+                            <div className="relative w-20 h-20 rounded-lg bg-black/40 border border-white/10 flex items-center justify-center shrink-0 overflow-hidden">
+                              <div className="scale-[1.6] transform">
+                                <SpriteAnimator 
+                                  spriteSet={previewSprite} 
+                                  action="Idle" 
+                                  isUndead={selectedRace?.id === 'undead'}
+                                />
+                              </div>
+                            </div>
+                            <div className="relative z-10 flex-1">
+                              <h3 className="text-2xl text-white font-cinzel font-bold group-hover:text-amber-300 transition-colors">{cls.name}</h3>
+                              <div className="text-primary text-xs font-bold uppercase tracking-wider mb-2 flex items-center gap-2">
+                                {cls.role}
+                                <span className="text-slate-600">•</span>
+                                <span className="text-slate-400 font-normal normal-case">Starting: {cls.startingWeapon}</span>
+                              </div>
+                              <p className="text-gray-400 text-sm line-clamp-2">{cls.description}</p>
+                              {/* Stat bonuses preview */}
+                              <div className="flex gap-1.5 mt-2">
+                                {Object.entries(cls.baseStats).filter(([_, v]) => v > 0).map(([k, v]) => (
+                                  <span key={k} className="text-[10px] bg-white/5 border border-white/10 rounded px-1.5 py-0.5">
+                                    <span className="text-amber-400">+{v}</span> <span className="text-slate-500">{k.slice(0,3)}</span>
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
                           </div>
-                          <div>
-                            <h3 className="text-2xl text-white font-cinzel font-bold">{cls.name}</h3>
-                            <div className="text-primary text-sm font-bold uppercase tracking-wider mb-2">{cls.role}</div>
-                            <p className="text-gray-400 text-sm line-clamp-2">{cls.description}</p>
-                          </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </>
                 ) : (

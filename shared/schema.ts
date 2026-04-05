@@ -540,6 +540,7 @@ export const accounts = pgTable("accounts", {
   gold: integer("gold").notNull().default(0),
   premiumCurrency: integer("premium_currency").notNull().default(0),
   gbuxBalance: integer("gbux_balance").notNull().default(0), // GbuX token balance
+  characterTokens: integer("character_tokens").notNull().default(1), // Tokens for creating new characters (1 free on account creation, +1 per boss clear)
   accountXp: integer("account_xp").notNull().default(0), // Total aggregated XP from all characters
   avatarUrl: text("avatar_url"), // Custom avatar image URL
   // Solana wallet fields

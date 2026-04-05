@@ -288,9 +288,10 @@ export default function IslandPage() {
     
     try {
       // Call API to initialize island (sets homeIsland = true, mints cNFT)
-      const response = await fetch('/api/game/player-islands/initialize', {
+      const { authHeaders } = await import('@/lib/grudgeBackend');
+      const response = await fetch('/api/island/initialize', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
         body: JSON.stringify({ name: islandName }),
       });
       
@@ -302,7 +303,9 @@ export default function IslandPage() {
       setAccountHomeIsland(true);
       
       // Create or load the island state and update with cutscene data
-      const userId = "guest";
+      const { getCurrentUser } = await import('@/lib/grudgeBackend');
+      const user = getCurrentUser();
+      const userId = user?.grudgeId || user?.username || 'guest';
       const campX = 50; // Center of island
       const campY = 50;
       
@@ -516,7 +519,7 @@ export default function IslandPage() {
 
       // First check if account has homeIsland = true (cutscene already completed)
       try {
-        const statusResponse = await fetch('/api/game/player-islands/status');
+        const statusResponse = await fetch('/api/island/status');
         if (statusResponse.ok) {
           const status = await statusResponse.json();
           setAccountHomeIsland(status.homeIsland);
@@ -536,7 +539,9 @@ export default function IslandPage() {
       
       setIsCheckingStatus(false);
 
-      const userId = "guest";
+      const { getCurrentUser } = await import('@/lib/grudgeBackend');
+      const currentUser = getCurrentUser();
+      const userId = currentUser?.grudgeId || currentUser?.username || 'guest';
       
       let state = await loadIslandState(userId);
       if (!state) {
@@ -716,7 +721,9 @@ export default function IslandPage() {
   useEffect(() => {
     if (accountHomeIsland === true && !islandState && !showCutscene) {
       const loadIslandAfterCutscene = async () => {
-        const userId = "guest";
+        const { getCurrentUser } = await import('@/lib/grudgeBackend');
+        const currentUser = getCurrentUser();
+        const userId = currentUser?.grudgeId || currentUser?.username || 'guest';
         let state = await loadIslandState(userId);
         if (!state) {
           state = createNewIsland(userId);

@@ -101,10 +101,10 @@ export const characterAPI = {
       }).catch((e) => console.warn("VPS stat sync failed:", e));
     }
 
-    // Always save extended data locally
+    // Always save extended data (VPS-authoritative + localStorage cache)
     const current = await characterAPI.get(id).catch(() => null);
     const merged = { ...current, ...updates };
-    saveExtendedData(id, merged);
+    await saveExtendedData(id, merged);
     return { ...merged, id } as Character;
   },
 

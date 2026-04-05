@@ -181,6 +181,21 @@ export async function registerRoutes(
   app.post("/api/characters", async (req, res) => {
     try {
       const userId = getUserId(req);
+
+      // Gate: check character creation tokens
+      const account = await storage.getOrCreateAccountForUser(userId);
+      const tokens = (account as any).characterTokens ?? 1;
+      if (tokens <= 0) {
+        return res.status(403).json({
+          error: "No character tokens available. Defeat a boss to earn one!",
+          characterTokens: 0,
+        });
+      }
+
+      // Consume one token
+      await storage.updateAccount(account.id, {
+        characterTokens: tokens - 1,
+      } as any);
       
       // Get starting gear for the class
       const classId = req.body.classId || 'warrior';
@@ -301,6 +316,38 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Error deleting character:", error);
       res.status(500).json({ error: "Failed to delete character" });
+    }
+  });
+
+  // Upload avatar image to object storage (permanent URL)
+  app.post("/api/characters/upload-avatar", async (req, res) => {
+    try {
+      const { characterId, imageData, characterName, race, classId } = req.body;
+      if (!characterId || !imageData) {
+        return res.status(400).json({ error: "characterId and imageData are required" });
+      }
+
+      const { prepareCharacterNFTMetadata } = await import("./services/nftMetadata");
+      const result = await prepareCharacterNFTMetadata(
+        characterId,
+        characterName || 'Hero',
+        imageData,
+        race || 'unknown',
+        classId || 'warrior',
+        1, // level 1 on creation
+      );
+
+      // Update character record with permanent avatar URL
+      await storage.updateCharacter(characterId, { avatarUrl: result.imageUri });
+
+      res.json({
+        success: true,
+        imageUri: result.imageUri,
+        metadataUri: result.metadataUri,
+      });
+    } catch (error) {
+      console.error("Error uploading avatar:", error);
+      res.status(500).json({ error: "Failed to upload avatar" });
     }
   });
 
@@ -824,8 +871,9 @@ export async function registerRoutes(
       // Mint island as cNFT to server wallet
       let mintResult: { actionId?: string; mintAddress?: string } = {};
       try {
-        const { mintIslandCNFT } = await import("./services/crossmintWallet");
-        mintResult = await mintIslandCNFT(account, island);
+        const { CrossmintWalletService } = await import("./services/crossmintWallet");
+        const crossmint = new CrossmintWalletService();
+        mintResult = await crossmint.mintIslandCNFT(account, island);
         if (mintResult.actionId) {
           await storage.updateAccount(account.id, { homeIslandMintActionId: mintResult.actionId });
         }

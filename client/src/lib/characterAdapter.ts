@@ -76,50 +76,54 @@ export function toVpsCreatePayload(char: Partial<Character>): {
   };
 }
 
-// ── Convert VPS character → Builder character (merging local extended data) ──
+// ── Convert VPS character → Builder character (VPS is truth, localStorage is fallback) ──
 export function fromVpsCharacter(vps: VpsCharacter): Character {
   const ext = loadExtendedData(String(vps.id));
+  // VPS character may now carry extended fields directly (JSONB columns)
+  const v = vps as any;
+  const hasVpsExtended = v.professionLevels || v.skillLoadouts || v.equipment;
+
   return {
     id: String(vps.id),
     name: vps.name,
     raceId: vps.race,
     classId: vps.class,
     level: vps.level || 1,
-    xp: ext?.xp ?? 0,
+    xp: v.xp ?? ext?.xp ?? 0,
     hp: vps.hp ?? ext?.hp ?? 100,
-    energy: ext?.energy ?? 50,
-    attributes: ext?.attributes ?? {
+    energy: v.energy ?? ext?.energy ?? 50,
+    attributes: v.attributes ?? ext?.attributes ?? {
       strength: vps.strength || 10,
       dexterity: vps.dexterity || 10,
       intelligence: vps.intelligence || 10,
     },
-    equipment: ext?.equipment ?? {},
-    inventory: ext?.inventory ?? [],
-    professionLevels: ext?.professionLevels ?? {
+    equipment: v.equipment ?? ext?.equipment ?? {},
+    inventory: v.inventory ?? ext?.inventory ?? [],
+    professionLevels: v.professionLevels ?? ext?.professionLevels ?? {
       mining: { level: vps.mining_lvl || 1, xp: 0 },
       fishing: { level: vps.fishing_lvl || 1, xp: 0 },
       woodcutting: { level: vps.woodcutting_lvl || 1, xp: 0 },
       farming: { level: vps.farming_lvl || 1, xp: 0 },
       hunting: { level: vps.hunting_lvl || 1, xp: 0 },
     },
-    revivalTime: ext?.revivalTime ?? null,
-    avatarUrl: ext?.avatarUrl ?? null,
-    unspentAttributePoints: ext?.unspentAttributePoints ?? 0,
-    skillPoints: ext?.skillPoints ?? 1,
-    skillLoadouts: (ext?.skillLoadouts as Record<string, { slots: { 1: { skillId: string | null; upgradeLevel: number }; 2: { skillId: string | null; upgradeLevel: number }; 3: { skillId: string | null; upgradeLevel: number }; 4: { skillId: string | null; upgradeLevel: number } } }>) ?? {},
-    weaponSkillLevel: ext?.weaponSkillLevel ?? 1,
-    weaponSkillSelections: (ext?.weaponSkillSelections as Record<string, { hotkey2: string | null; hotkey3: string | null }>) ?? {},
-    equippedWeaponId: ext?.equippedWeaponId ?? null,
-    selectedSkills: ext?.selectedSkills ?? {},
+    revivalTime: v.revivalTime ?? ext?.revivalTime ?? null,
+    avatarUrl: v.avatarUrl ?? ext?.avatarUrl ?? null,
+    unspentAttributePoints: v.unspentAttributePoints ?? ext?.unspentAttributePoints ?? 0,
+    skillPoints: v.skillPoints ?? ext?.skillPoints ?? 1,
+    skillLoadouts: (v.skillLoadouts ?? ext?.skillLoadouts ?? {}) as any,
+    weaponSkillLevel: v.weaponSkillLevel ?? ext?.weaponSkillLevel ?? 1,
+    weaponSkillSelections: (v.weaponSkillSelections ?? ext?.weaponSkillSelections ?? {}) as any,
+    equippedWeaponId: v.equippedWeaponId ?? ext?.equippedWeaponId ?? null,
+    selectedSkills: v.selectedSkills ?? ext?.selectedSkills ?? {},
     createdAt: vps.created_at ? new Date(vps.created_at).getTime() : Date.now(),
   };
 }
 
-// ── Save extended builder data (VPS PATCH + localStorage cache) ──
-export function saveExtendedData(
+// ── Save extended builder data (VPS-authoritative + localStorage cache) ──
+export async function saveExtendedData(
   charId: string,
   char: Partial<Character>,
-): void {
+): Promise<void> {
   const data: ExtendedCharacterData = {
     attributes: char.attributes ?? {},
     equipment: char.equipment ?? {},
@@ -140,18 +144,36 @@ export function saveExtendedData(
     chatTemperature: 70,
     chatHistory: [],
   };
-  // Always cache locally for fast reads
+
+  // VPS write — send ALL extended fields (characters table has JSONB columns for all of these)
+  try {
+    const res = await fetch(`/api/game/characters/${charId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        attributes: data.attributes,
+        equipment: data.equipment,
+        inventory: data.inventory,
+        professionLevels: data.professionLevels,
+        xp: data.xp,
+        energy: data.energy,
+        avatarUrl: data.avatarUrl,
+        unspentAttributePoints: data.unspentAttributePoints,
+        skillPoints: data.skillPoints,
+        skillLoadouts: data.skillLoadouts,
+        weaponSkillLevel: data.weaponSkillLevel,
+        weaponSkillSelections: data.weaponSkillSelections,
+        equippedWeaponId: data.equippedWeaponId,
+        selectedSkills: data.selectedSkills,
+      }),
+    });
+    if (!res.ok) console.warn(`VPS character save failed: ${res.status}`);
+  } catch (e) {
+    console.warn('VPS character sync failed, localStorage has the data:', e);
+  }
+
+  // Always cache locally for fast reads + offline fallback
   localStorage.setItem(EXT_PREFIX + charId, JSON.stringify(data));
-  // Fire-and-forget sync to VPS (non-blocking)
-  fetch(`/api/game/characters/${charId}`, {
-    method: "PATCH",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      equipment: data.equipment,
-      inventory: data.inventory,
-      attributes: data.attributes,
-    }),
-  }).catch(() => { /* VPS sync failed, localStorage has the data */ });
 }
 
 // ── Load extended builder data (localStorage cache) ──────────

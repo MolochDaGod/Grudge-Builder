@@ -315,6 +315,39 @@ export interface SkinningNode {
   drops: LootDrop[];
 }
 
+// ── Coordinate conversion: percentage (0-100) ⇔ tile grid ──────────────────
+// The island page historically uses 0-100 percentage coords.
+// The tile grid uses 0-gridWidth tile coords (e.g. 0-199 for home island).
+// These helpers convert between the two systems.
+
+import { GRID_CONFIG } from './islandTileGrid';
+
+/** Convert percentage coordinate (0-100) to tile coordinate */
+export function percentToTile(pct: number, gridSize: number = GRID_CONFIG.gridWidth): number {
+  return Math.floor((pct / 100) * gridSize);
+}
+
+/** Convert tile coordinate to percentage coordinate (0-100) */
+export function tileToPercent(tile: number, gridSize: number = GRID_CONFIG.gridWidth): number {
+  return (tile / gridSize) * 100;
+}
+
+/** Convert a resource node's percentage coords to tile coords */
+export function nodeToTileCoords(node: { x: number; y: number }, gridSize?: number): { tileX: number; tileY: number } {
+  return {
+    tileX: percentToTile(node.x, gridSize),
+    tileY: percentToTile(node.y, gridSize),
+  };
+}
+
+/** Convert tile coords back to percentage coords for a resource node */
+export function tileToNodeCoords(tileX: number, tileY: number, gridSize?: number): { x: number; y: number } {
+  return {
+    x: tileToPercent(tileX, gridSize),
+    y: tileToPercent(tileY, gridSize),
+  };
+}
+
 // Terrain zone types for proper node placement
 export type TerrainZone = 'mountain' | 'forest' | 'field' | 'shore' | 'water' | 'clearing';
 

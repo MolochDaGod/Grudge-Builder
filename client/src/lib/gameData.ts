@@ -56,10 +56,68 @@ export interface RaceDef {
   spriteSet: string;
 }
 
-const SPRITE_SET_MAP: Record<string, string> = {
+// ── Race×Class → Sprite Set Matrix ────────────────────────────────────────────
+// Every race+class combo gets a visually distinct sprite.
+// Keys: SPRITE_MATRIX[raceId][classId] → spriteManifest key
+
+const SPRITE_MATRIX: Record<string, Record<string, string>> = {
+  human: {
+    warrior: "Soldier",
+    mage:    "Wizard",
+    ranger:  "Archer",
+    worg:    "Werewolf",
+  },
+  barbarian: {
+    warrior: "Armored Axeman",
+    mage:    "Mage",           // from spriteManifest (128×128 enemy/fantasy set)
+    ranger:  "Elite Orc",     // heavy ranged barbarian 
+    worg:    "Werewolf",
+  },
+  undead: {
+    warrior: "Armored Skeleton",
+    mage:    "Greatsword Skeleton", // undead caster uses skeleton variant
+    ranger:  "Skeleton",            // base skeleton for ranged undead
+    worg:    "Skeleton",
+  },
+  orc: {
+    warrior: "Armored Orc",
+    mage:    "Orc",            // orc base for caster orcs
+    ranger:  "Elite Orc",
+    worg:    "Armored Orc",
+  },
+  elf: {
+    warrior: "Knight",         // elven knight aesthetic
+    mage:    "Wizard",
+    ranger:  "Archer",
+    worg:    "Werewolf",
+  },
+  dwarf: {
+    warrior: "Knight",
+    mage:    "Mage",
+    ranger:  "Soldier",        // dwarf gunner uses soldier base
+    worg:    "Knight",
+  },
+};
+
+/** Get the sprite set for a specific race+class combo */
+export function getSpriteSetForCharacter(raceId: string, classId: string): string {
+  const raceSprites = SPRITE_MATRIX[raceId];
+  if (raceSprites) {
+    const sprite = raceSprites[classId];
+    if (sprite) return sprite;
+  }
+  // Fallback: race-level default
+  return SPRITE_SET_MAP_FALLBACK[raceId] || "Soldier";
+}
+
+// Simple race-only fallback (used when class is unknown)
+const SPRITE_SET_MAP_FALLBACK: Record<string, string> = {
   human: "Soldier", barbarian: "Armored Axeman", undead: "Skeleton",
   orc: "Orc", elf: "Archer", dwarf: "Knight",
 };
+
+// Backward compat alias
+const SPRITE_SET_MAP = SPRITE_SET_MAP_FALLBACK;
 
 const FALLBACK_RACES: RaceDef[] = [
   { id: "human",     name: "Human",     faction: "Crusade", description: "Noble warriors of honor and chivalry.",      image: assetUrl("/images/portraits/human.png"),     cardBg: assetUrl("/backgrounds/bg_warrior.png"), portraits: { warrior: assetUrl("/heroes/portraits/human_warrior.png"), mage: assetUrl("/heroes/portraits/human_mage.png"), ranger: assetUrl("/heroes/portraits/human_ranger.png"), worg: assetUrl("/heroes/portraits/human_worg.png") }, baseStats: { Strength: 2, Intellect: 1, Vitality: 2, Dexterity: 0, Endurance: 0, Wisdom: 0, Agility: 0, Tactics: 0 }, spriteSet: "Soldier" },

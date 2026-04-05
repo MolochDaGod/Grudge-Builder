@@ -2217,6 +2217,118 @@ export class DatabaseStorage implements IStorage {
       .where(eq(uuidValidationCache.currentAccountId, accountId))
       .orderBy(desc(uuidValidationCache.updatedAt));
   }
+  // ============================================
+  // PLAYER BLOCKS & WORLD ZONES
+  // ============================================
+
+  async getPlayerBlock(accountId: string) {
+    const { playerBlocks } = await import("@shared/schema");
+    const [block] = await db.select().from(playerBlocks).where(eq(playerBlocks.accountId, accountId));
+    return block || undefined;
+  }
+
+  async createPlayerBlock(data: { accountId: string; puterUserId?: string; originX: number; originY: number; homeIslandSeed: number; zones: any[] }) {
+    const { playerBlocks } = await import("@shared/schema");
+    const [created] = await db.insert(playerBlocks).values(data).returning();
+    return created;
+  }
+
+  async updatePlayerBlockZones(accountId: string, zones: any[]) {
+    const { playerBlocks } = await import("@shared/schema");
+    const [updated] = await db
+      .update(playerBlocks)
+      .set({ zones, updatedAt: Date.now() })
+      .where(eq(playerBlocks.accountId, accountId))
+      .returning();
+    return updated;
+  }
+
+  async getAllPlayerBlockOrigins(): Promise<{ x: number; y: number }[]> {
+    const { playerBlocks } = await import("@shared/schema");
+    const blocks = await db.select({ originX: playerBlocks.originX, originY: playerBlocks.originY }).from(playerBlocks);
+    return blocks.map(b => ({ x: b.originX, y: b.originY }));
+  }
+
+  async getWorldZone(zoneX: number, zoneY: number) {
+    const { worldZones } = await import("@shared/schema");
+    const [zone] = await db.select().from(worldZones).where(
+      and(eq(worldZones.zoneX, zoneX), eq(worldZones.zoneY, zoneY))
+    );
+    return zone || undefined;
+  }
+
+  async upsertWorldZone(data: { zoneX: number; zoneY: number; type: string; islandSeed?: number; ownerId?: string; playerBlockId?: string; difficulty?: number; expiresAt?: number; lootTheme?: string; state?: any }) {
+    const { worldZones } = await import("@shared/schema");
+    const existing = await this.getWorldZone(data.zoneX, data.zoneY);
+    if (existing) {
+      const [updated] = await db.update(worldZones).set({ ...data, updatedAt: Date.now() }).where(eq(worldZones.id, existing.id)).returning();
+      return updated;
+    }
+    const [created] = await db.insert(worldZones).values(data as any).returning();
+    return created;
+  }
+
+  async captureWorldZone(zoneX: number, zoneY: number, accountId: string) {
+    const { worldZones } = await import("@shared/schema");
+    const [updated] = await db
+      .update(worldZones)
+      .set({ ownerId: accountId, updatedAt: Date.now() })
+      .where(and(eq(worldZones.zoneX, zoneX), eq(worldZones.zoneY, zoneY)))
+      .returning();
+    return updated;
+  }
+
+  // ============================================
+  // CHARACTER NFTs
+  // ============================================
+
+  async getCharacterNFT(characterId: string) {
+    const { characterNFTs } = await import("@shared/schema");
+    const [nft] = await db.select().from(characterNFTs).where(eq(characterNFTs.characterId, characterId));
+    return nft || undefined;
+  }
+
+  async createCharacterNFT(data: { characterId: string; accountId: string; status?: string; mintAddress?: string; crossmintActionId?: string; ownerWalletAddress?: string; isCompressed?: boolean; metadataUri?: string; imageUri?: string }) {
+    const { characterNFTs } = await import("@shared/schema");
+    const [created] = await db.insert(characterNFTs).values(data as any).onConflictDoNothing().returning();
+    return created;
+  }
+
+  async updateCharacterNFT(characterId: string, updates: { status?: string; mintAddress?: string; assetId?: string; crossmintActionId?: string; metadataUri?: string; imageUri?: string; mintedAt?: number }) {
+    const { characterNFTs } = await import("@shared/schema");
+    const [updated] = await db
+      .update(characterNFTs)
+      .set({ ...updates, updatedAt: Date.now() })
+      .where(eq(characterNFTs.characterId, characterId))
+      .returning();
+    return updated;
+  }
+
+  // ============================================
+  // ISLAND NFTs
+  // ============================================
+
+  async getIslandNFT(islandId: string) {
+    const { islandNFTs } = await import("@shared/schema");
+    const [nft] = await db.select().from(islandNFTs).where(eq(islandNFTs.islandId, islandId));
+    return nft || undefined;
+  }
+
+  async createIslandNFT(data: { islandId: string; accountId: string; status?: string; mintAddress?: string; crossmintActionId?: string; ownerWalletAddress?: string; isCompressed?: boolean; metadataUri?: string; imageUri?: string }) {
+    const { islandNFTs } = await import("@shared/schema");
+    const [created] = await db.insert(islandNFTs).values(data as any).onConflictDoNothing().returning();
+    return created;
+  }
+
+  async updateIslandNFT(islandId: string, updates: { status?: string; mintAddress?: string; assetId?: string; crossmintActionId?: string; metadataUri?: string; imageUri?: string; mintedAt?: number }) {
+    const { islandNFTs } = await import("@shared/schema");
+    const [updated] = await db
+      .update(islandNFTs)
+      .set({ ...updates, updatedAt: Date.now() })
+      .where(eq(islandNFTs.islandId, islandId))
+      .returning();
+    return updated;
+  }
 }
 
 export const storage = new DatabaseStorage();

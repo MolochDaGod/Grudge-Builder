@@ -793,6 +793,30 @@ export const COLOR_PALETTES = {
   blood: "sepia(1) hue-rotate(-30deg) saturate(2.5)",
   nature: "hue-rotate(60deg) saturate(1.3)",
   arcane: "hue-rotate(270deg) saturate(1.8)",
+  // Extended palette for character variety
+  crimson: "sepia(1) hue-rotate(-20deg) saturate(1.8) brightness(0.9)",
+  ocean: "hue-rotate(200deg) saturate(1.4) brightness(1.1)",
+  golden: "sepia(0.8) saturate(1.6) brightness(1.15)",
+  void: "hue-rotate(260deg) saturate(1.2) brightness(0.7)",
+  ember: "sepia(0.7) hue-rotate(10deg) saturate(2.2) brightness(1.05)",
+  frost: "hue-rotate(190deg) saturate(1.1) brightness(1.3)",
 };
 
 export type ColorPalette = keyof typeof COLOR_PALETTES;
+
+const PALETTE_KEYS = Object.keys(COLOR_PALETTES).filter(k => k !== 'default') as ColorPalette[];
+
+/**
+ * Get a deterministic color palette for a character based on their ID.
+ * Same character always gets the same tint, providing visual variety
+ * without random shifts between sessions.
+ */
+export function getCharacterPalette(characterId: string): ColorPalette {
+  let hash = 0;
+  for (let i = 0; i < characterId.length; i++) {
+    hash = ((hash << 5) - hash) + characterId.charCodeAt(i);
+    hash = hash & hash; // Convert to 32bit int
+  }
+  const index = Math.abs(hash) % PALETTE_KEYS.length;
+  return PALETTE_KEYS[index];
+}

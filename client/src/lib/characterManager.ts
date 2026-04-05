@@ -57,9 +57,21 @@ export interface InventoryItem {
 
 export type EquipmentSlots = Record<string, string | null>;
 
-const ACTIVE_CHAR_KEY = "gruda_active_character";
+const ACTIVE_CHAR_KEY_PREFIX = "gruda_active_character";
+
+/** Get the active character storage key scoped to the current account */
+function getActiveCharKey(): string {
+  // Try to get Grudge account ID from localStorage or auth headers
+  const grudgeId = localStorage.getItem('grudge_account_id') || 'guest';
+  return `${ACTIVE_CHAR_KEY_PREFIX}_${grudgeId}`;
+}
 
 export const CharacterManager = {
+  /** Set the current account ID for scoped character selection */
+  setAccountId: (accountId: string) => {
+    localStorage.setItem('grudge_account_id', accountId);
+  },
+
   getAll: async (): Promise<Character[]> => {
     try {
       return await characterAPI.getAll();
@@ -132,7 +144,7 @@ export const CharacterManager = {
         if (characters.length > 0) {
           CharacterManager.setActive(characters[0].id);
         } else {
-          localStorage.removeItem(ACTIVE_CHAR_KEY);
+        localStorage.removeItem(getActiveCharKey());
         }
       }
     } catch (e) {
@@ -142,11 +154,11 @@ export const CharacterManager = {
   },
 
   getActiveId: (): string | null => {
-    return localStorage.getItem(ACTIVE_CHAR_KEY);
+    return localStorage.getItem(getActiveCharKey());
   },
 
   setActive: (id: string) => {
-    localStorage.setItem(ACTIVE_CHAR_KEY, id);
+    localStorage.setItem(getActiveCharKey(), id);
   },
 
   getActiveCharacter: async (): Promise<Character | null> => {

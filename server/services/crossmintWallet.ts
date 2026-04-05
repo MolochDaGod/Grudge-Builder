@@ -145,6 +145,65 @@ export class CrossmintWalletService {
     return this.createWalletForUser(email);
   }
 
+  async mintIslandCNFT(
+    account: Account,
+    island: { id: string; seed: string; name: string; mapStyle: string; mapImageUrl?: string | null },
+  ): Promise<{ actionId?: string; mintAddress?: string }> {
+    if (!this.apiKey) {
+      console.warn('[Crossmint] Cannot mint island NFT - API key not configured');
+      return {};
+    }
+
+    const walletAddress = account.walletAddress;
+    if (!walletAddress) {
+      console.warn('[Crossmint] Account has no wallet address');
+      return {};
+    }
+
+    const metadata = {
+      name: island.name || 'Home Island',
+      description: `${island.name} — a home island in Grudge Warlords. Seed: ${island.seed}`,
+      image: island.mapImageUrl || '',
+      attributes: [
+        { trait_type: 'Seed', value: island.seed },
+        { trait_type: 'Map Style', value: island.mapStyle || 'iron' },
+      ],
+    };
+
+    try {
+      const response = await fetch(
+        `${this.baseUrl}/api/2022-06-09/collections/default-solana/nfts`,
+        {
+          method: 'POST',
+          headers: {
+            'accept': 'application/json',
+            'content-type': 'application/json',
+            'x-api-key': this.apiKey,
+          },
+          body: JSON.stringify({
+            recipient: `solana:${walletAddress}`,
+            metadata,
+            compressed: true,
+          }),
+        },
+      );
+
+      if (!response.ok) {
+        console.error('[Crossmint] Island mint failed:', response.status, await response.text());
+        return {};
+      }
+
+      const result = await response.json() as CrossmintMintResponse;
+      return {
+        actionId: result.actionId,
+        mintAddress: result.onChain?.mintHash,
+      };
+    } catch (error) {
+      console.error('[Crossmint] Island mint error:', error);
+      return {};
+    }
+  }
+
   buildCharacterMetadata(character: Character, imageUrl: string): CharacterNFTMetadata {
     const attributes = character.attributes as Record<string, number>;
     

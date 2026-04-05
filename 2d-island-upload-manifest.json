@@ -1,0 +1,3313 @@
+[
+  {
+    "storagePath": "sprites/2d-island/abilities/bloodmage/skill1_end_sheet.png",
+    "size": 56472,
+    "localPath": "public/sprites/2d-island/abilities/bloodmage/skill1_end_sheet.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/abilities/bloodmage/skill1_end_sheet.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/abilities/bloodmage/skill1_loop_sheet.png",
+    "size": 54660,
+    "localPath": "public/sprites/2d-island/abilities/bloodmage/skill1_loop_sheet.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/abilities/bloodmage/skill1_loop_sheet.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/abilities/bloodmage/skill1_start_sheet.png",
+    "size": 38181,
+    "localPath": "public/sprites/2d-island/abilities/bloodmage/skill1_start_sheet.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/abilities/bloodmage/skill1_start_sheet.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/abilities/bloodmage/skill2_sheet.png",
+    "size": 75103,
+    "localPath": "public/sprites/2d-island/abilities/bloodmage/skill2_sheet.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/abilities/bloodmage/skill2_sheet.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/abilities/bloodmage/skill3_sheet.png",
+    "size": 40740,
+    "localPath": "public/sprites/2d-island/abilities/bloodmage/skill3_sheet.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/abilities/bloodmage/skill3_sheet.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/abilities/paladin/skill1_sheet.png",
+    "size": 8632,
+    "localPath": "public/sprites/2d-island/abilities/paladin/skill1_sheet.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/abilities/paladin/skill1_sheet.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/abilities/paladin/skill2_sheet.png",
+    "size": 22957,
+    "localPath": "public/sprites/2d-island/abilities/paladin/skill2_sheet.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/abilities/paladin/skill2_sheet.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/abilities/paladin/skill3_sheet.png",
+    "size": 10227,
+    "localPath": "public/sprites/2d-island/abilities/paladin/skill3_sheet.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/abilities/paladin/skill3_sheet.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/abilities/paladin/skill4_sheet.png",
+    "size": 17916,
+    "localPath": "public/sprites/2d-island/abilities/paladin/skill4_sheet.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/abilities/paladin/skill4_sheet.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/abilities/paladin/skill5_sheet.png",
+    "size": 11776,
+    "localPath": "public/sprites/2d-island/abilities/paladin/skill5_sheet.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/abilities/paladin/skill5_sheet.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/abilities/portal/portal_sheet.png",
+    "size": 13633,
+    "localPath": "public/sprites/2d-island/abilities/portal/portal_sheet.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/abilities/portal/portal_sheet.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/abilities/portal/portal1_frame_1.png",
+    "size": 3863,
+    "localPath": "public/sprites/2d-island/abilities/portal/portal1_frame_1.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/abilities/portal/portal1_frame_1.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/abilities/portal/portal1_frame_2.png",
+    "size": 3964,
+    "localPath": "public/sprites/2d-island/abilities/portal/portal1_frame_2.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/abilities/portal/portal1_frame_2.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/abilities/portal/portal1_frame_3.png",
+    "size": 4191,
+    "localPath": "public/sprites/2d-island/abilities/portal/portal1_frame_3.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/abilities/portal/portal1_frame_3.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/abilities/portal/portal1_frame_4.png",
+    "size": 5046,
+    "localPath": "public/sprites/2d-island/abilities/portal/portal1_frame_4.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/abilities/portal/portal1_frame_4.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/abilities/portal/portal1_frame_5.png",
+    "size": 5092,
+    "localPath": "public/sprites/2d-island/abilities/portal/portal1_frame_5.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/abilities/portal/portal1_frame_5.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/abilities/portal/portal1_frame_6.png",
+    "size": 5151,
+    "localPath": "public/sprites/2d-island/abilities/portal/portal1_frame_6.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/abilities/portal/portal1_frame_6.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/abilities/portal/portal1_frame_7.png",
+    "size": 5105,
+    "localPath": "public/sprites/2d-island/abilities/portal/portal1_frame_7.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/abilities/portal/portal1_frame_7.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/animals/boar/boar_attack.png",
+    "size": 10103,
+    "localPath": "public/sprites/2d-island/animals/boar/boar_attack.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/animals/boar/boar_attack.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/animals/boar/boar_idle.png",
+    "size": 5209,
+    "localPath": "public/sprites/2d-island/animals/boar/boar_idle.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/animals/boar/boar_idle.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/animals/boar/boar_move.png",
+    "size": 8310,
+    "localPath": "public/sprites/2d-island/animals/boar/boar_move.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/animals/boar/boar_move.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/animals/pig/pig_idle.png",
+    "size": 3993,
+    "localPath": "public/sprites/2d-island/animals/pig/pig_idle.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/animals/pig/pig_idle.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/animals/pig/pig_move.png",
+    "size": 7010,
+    "localPath": "public/sprites/2d-island/animals/pig/pig_move.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/animals/pig/pig_move.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/animals/piggy/piggy_idle.png",
+    "size": 2992,
+    "localPath": "public/sprites/2d-island/animals/piggy/piggy_idle.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/animals/piggy/piggy_idle.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/animals/piggy/piggy_move.png",
+    "size": 4847,
+    "localPath": "public/sprites/2d-island/animals/piggy/piggy_move.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/animals/piggy/piggy_move.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/bosses/badger/badger_ability.png",
+    "size": 11025,
+    "localPath": "public/sprites/2d-island/bosses/badger/badger_ability.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/bosses/badger/badger_ability.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/bosses/badger/badger_attack_a.png",
+    "size": 13044,
+    "localPath": "public/sprites/2d-island/bosses/badger/badger_attack_a.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/bosses/badger/badger_attack_a.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/bosses/badger/badger_attack_b.png",
+    "size": 16962,
+    "localPath": "public/sprites/2d-island/bosses/badger/badger_attack_b.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/bosses/badger/badger_attack_b.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/bosses/badger/badger_hurt.png",
+    "size": 4913,
+    "localPath": "public/sprites/2d-island/bosses/badger/badger_hurt.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/bosses/badger/badger_hurt.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/bosses/badger/badger_idle.png",
+    "size": 4321,
+    "localPath": "public/sprites/2d-island/bosses/badger/badger_idle.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/bosses/badger/badger_idle.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/bosses/badger/badger_move.png",
+    "size": 13592,
+    "localPath": "public/sprites/2d-island/bosses/badger/badger_move.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/bosses/badger/badger_move.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/bosses/frogger/frogger_heal.png",
+    "size": 14412,
+    "localPath": "public/sprites/2d-island/bosses/frogger/frogger_heal.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/bosses/frogger/frogger_heal.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/bosses/frogger/frogger_hurt.png",
+    "size": 4667,
+    "localPath": "public/sprites/2d-island/bosses/frogger/frogger_hurt.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/bosses/frogger/frogger_hurt.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/bosses/frogger/frogger_idle.png",
+    "size": 3332,
+    "localPath": "public/sprites/2d-island/bosses/frogger/frogger_idle.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/bosses/frogger/frogger_idle.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/bosses/frogger/frogger_move.png",
+    "size": 13943,
+    "localPath": "public/sprites/2d-island/bosses/frogger/frogger_move.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/bosses/frogger/frogger_move.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/bosses/frogger/frogger_spit.png",
+    "size": 11837,
+    "localPath": "public/sprites/2d-island/bosses/frogger/frogger_spit.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/bosses/frogger/frogger_spit.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/bosses/frogger/frogger_tongue.png",
+    "size": 9643,
+    "localPath": "public/sprites/2d-island/bosses/frogger/frogger_tongue.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/bosses/frogger/frogger_tongue.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/bosses/gollux/gollux_attack_a.png",
+    "size": 14021,
+    "localPath": "public/sprites/2d-island/bosses/gollux/gollux_attack_a.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/bosses/gollux/gollux_attack_a.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/bosses/gollux/gollux_attack_b.png",
+    "size": 23242,
+    "localPath": "public/sprites/2d-island/bosses/gollux/gollux_attack_b.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/bosses/gollux/gollux_attack_b.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/bosses/gollux/gollux_healing.png",
+    "size": 19372,
+    "localPath": "public/sprites/2d-island/bosses/gollux/gollux_healing.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/bosses/gollux/gollux_healing.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/bosses/gollux/gollux_hit.png",
+    "size": 5772,
+    "localPath": "public/sprites/2d-island/bosses/gollux/gollux_hit.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/bosses/gollux/gollux_hit.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/bosses/gollux/gollux_idle.png",
+    "size": 4256,
+    "localPath": "public/sprites/2d-island/bosses/gollux/gollux_idle.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/bosses/gollux/gollux_idle.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/bosses/gollux/gollux_move.png",
+    "size": 10163,
+    "localPath": "public/sprites/2d-island/bosses/gollux/gollux_move.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/bosses/gollux/gollux_move.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/builder/tower---collapse.png",
+    "size": 13465,
+    "localPath": "public/sprites/2d-island/builder/tower---collapse.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/builder/tower---collapse.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/builder/tower-construction.png",
+    "size": 58945,
+    "localPath": "public/sprites/2d-island/builder/tower-construction.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/builder/tower-construction.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/builder/wisp---animations.png",
+    "size": 12335,
+    "localPath": "public/sprites/2d-island/builder/wisp---animations.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/builder/wisp---animations.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/characters/carry_idle_carry_idle_down-sheet.png",
+    "size": 992,
+    "localPath": "public/sprites/2d-island/crawler/characters/carry_idle_carry_idle_down-sheet.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/characters/carry_idle_carry_idle_down-sheet.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/characters/carry_idle_carry_idle_side-sheet.png",
+    "size": 1001,
+    "localPath": "public/sprites/2d-island/crawler/characters/carry_idle_carry_idle_side-sheet.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/characters/carry_idle_carry_idle_side-sheet.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/characters/carry_idle_carry_idle_up-sheet.png",
+    "size": 827,
+    "localPath": "public/sprites/2d-island/crawler/characters/carry_idle_carry_idle_up-sheet.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/characters/carry_idle_carry_idle_up-sheet.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/characters/carry_run_carry_run_down-sheet.png",
+    "size": 1375,
+    "localPath": "public/sprites/2d-island/crawler/characters/carry_run_carry_run_down-sheet.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/characters/carry_run_carry_run_down-sheet.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/characters/carry_run_carry_run_side-sheet.png",
+    "size": 1369,
+    "localPath": "public/sprites/2d-island/crawler/characters/carry_run_carry_run_side-sheet.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/characters/carry_run_carry_run_side-sheet.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/characters/carry_run_carry_run_up-sheet.png",
+    "size": 1073,
+    "localPath": "public/sprites/2d-island/crawler/characters/carry_run_carry_run_up-sheet.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/characters/carry_run_carry_run_up-sheet.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/characters/carry_walk_carry_walk_down-sheet.png",
+    "size": 1283,
+    "localPath": "public/sprites/2d-island/crawler/characters/carry_walk_carry_walk_down-sheet.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/characters/carry_walk_carry_walk_down-sheet.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/characters/carry_walk_carry_walk_side-sheet.png",
+    "size": 1367,
+    "localPath": "public/sprites/2d-island/crawler/characters/carry_walk_carry_walk_side-sheet.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/characters/carry_walk_carry_walk_side-sheet.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/characters/carry_walk_carry_walk_up-sheet.png",
+    "size": 1123,
+    "localPath": "public/sprites/2d-island/crawler/characters/carry_walk_carry_walk_up-sheet.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/characters/carry_walk_carry_walk_up-sheet.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/characters/collect_base_collect_down-sheet.png",
+    "size": 1743,
+    "localPath": "public/sprites/2d-island/crawler/characters/collect_base_collect_down-sheet.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/characters/collect_base_collect_down-sheet.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/characters/collect_base_collect_side-sheet.png",
+    "size": 2053,
+    "localPath": "public/sprites/2d-island/crawler/characters/collect_base_collect_side-sheet.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/characters/collect_base_collect_side-sheet.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/characters/collect_base_collect_up-sheet.png",
+    "size": 1544,
+    "localPath": "public/sprites/2d-island/crawler/characters/collect_base_collect_up-sheet.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/characters/collect_base_collect_up-sheet.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/characters/crush_base_crush_down-sheet.png",
+    "size": 2629,
+    "localPath": "public/sprites/2d-island/crawler/characters/crush_base_crush_down-sheet.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/characters/crush_base_crush_down-sheet.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/characters/crush_base_crush_side-sheet.png",
+    "size": 2664,
+    "localPath": "public/sprites/2d-island/crawler/characters/crush_base_crush_side-sheet.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/characters/crush_base_crush_side-sheet.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/characters/crush_base_crush_up-sheet.png",
+    "size": 2202,
+    "localPath": "public/sprites/2d-island/crawler/characters/crush_base_crush_up-sheet.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/characters/crush_base_crush_up-sheet.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/characters/death_base_death_down-sheet.png",
+    "size": 2017,
+    "localPath": "public/sprites/2d-island/crawler/characters/death_base_death_down-sheet.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/characters/death_base_death_down-sheet.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/characters/death_base_death_side-sheet.png",
+    "size": 1803,
+    "localPath": "public/sprites/2d-island/crawler/characters/death_base_death_side-sheet.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/characters/death_base_death_side-sheet.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/characters/death_base_death_up-sheet.png",
+    "size": 1692,
+    "localPath": "public/sprites/2d-island/crawler/characters/death_base_death_up-sheet.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/characters/death_base_death_up-sheet.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/characters/fishing_base_fishing_down-sheet.png",
+    "size": 2425,
+    "localPath": "public/sprites/2d-island/crawler/characters/fishing_base_fishing_down-sheet.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/characters/fishing_base_fishing_down-sheet.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/characters/fishing_base_fishing_side-sheet.png",
+    "size": 2471,
+    "localPath": "public/sprites/2d-island/crawler/characters/fishing_base_fishing_side-sheet.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/characters/fishing_base_fishing_side-sheet.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/characters/fishing_base_fishing_up-sheet.png",
+    "size": 2303,
+    "localPath": "public/sprites/2d-island/crawler/characters/fishing_base_fishing_up-sheet.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/characters/fishing_base_fishing_up-sheet.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/characters/hit_base_hit_down-sheet.png",
+    "size": 1163,
+    "localPath": "public/sprites/2d-island/crawler/characters/hit_base_hit_down-sheet.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/characters/hit_base_hit_down-sheet.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/characters/hit_base_hit_side-sheet.png",
+    "size": 1169,
+    "localPath": "public/sprites/2d-island/crawler/characters/hit_base_hit_side-sheet.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/characters/hit_base_hit_side-sheet.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/characters/hit_base_hit_up-sheet.png",
+    "size": 988,
+    "localPath": "public/sprites/2d-island/crawler/characters/hit_base_hit_up-sheet.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/characters/hit_base_hit_up-sheet.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/characters/idle_base_idle_down-sheet.png",
+    "size": 1026,
+    "localPath": "public/sprites/2d-island/crawler/characters/idle_base_idle_down-sheet.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/characters/idle_base_idle_down-sheet.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/characters/idle_base_idle_side-sheet.png",
+    "size": 1068,
+    "localPath": "public/sprites/2d-island/crawler/characters/idle_base_idle_side-sheet.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/characters/idle_base_idle_side-sheet.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/characters/idle_base_idle_up-sheet.png",
+    "size": 863,
+    "localPath": "public/sprites/2d-island/crawler/characters/idle_base_idle_up-sheet.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/characters/idle_base_idle_up-sheet.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/characters/pierce_base_pierce_down-sheet.png",
+    "size": 2313,
+    "localPath": "public/sprites/2d-island/crawler/characters/pierce_base_pierce_down-sheet.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/characters/pierce_base_pierce_down-sheet.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/characters/pierce_base_pierce_side-sheet.png",
+    "size": 2166,
+    "localPath": "public/sprites/2d-island/crawler/characters/pierce_base_pierce_side-sheet.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/characters/pierce_base_pierce_side-sheet.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/characters/pierce_base_pierce_top-sheet.png",
+    "size": 1748,
+    "localPath": "public/sprites/2d-island/crawler/characters/pierce_base_pierce_top-sheet.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/characters/pierce_base_pierce_top-sheet.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/characters/run_base_run_down-sheet.png",
+    "size": 1490,
+    "localPath": "public/sprites/2d-island/crawler/characters/run_base_run_down-sheet.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/characters/run_base_run_down-sheet.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/characters/run_base_run_side-sheet.png",
+    "size": 1696,
+    "localPath": "public/sprites/2d-island/crawler/characters/run_base_run_side-sheet.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/characters/run_base_run_side-sheet.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/characters/run_base_run_up-sheet.png",
+    "size": 1357,
+    "localPath": "public/sprites/2d-island/crawler/characters/run_base_run_up-sheet.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/characters/run_base_run_up-sheet.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/characters/slice_base_slice_down-sheet.png",
+    "size": 2780,
+    "localPath": "public/sprites/2d-island/crawler/characters/slice_base_slice_down-sheet.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/characters/slice_base_slice_down-sheet.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/characters/slice_base_slice_side-sheet.png",
+    "size": 2871,
+    "localPath": "public/sprites/2d-island/crawler/characters/slice_base_slice_side-sheet.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/characters/slice_base_slice_side-sheet.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/characters/slice_base_slice_up-sheet.png",
+    "size": 2319,
+    "localPath": "public/sprites/2d-island/crawler/characters/slice_base_slice_up-sheet.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/characters/slice_base_slice_up-sheet.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/characters/walk_base_walk_down-sheet.png",
+    "size": 1424,
+    "localPath": "public/sprites/2d-island/crawler/characters/walk_base_walk_down-sheet.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/characters/walk_base_walk_down-sheet.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/characters/walk_base_walk_side-sheet.png",
+    "size": 1414,
+    "localPath": "public/sprites/2d-island/crawler/characters/walk_base_walk_side-sheet.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/characters/walk_base_walk_side-sheet.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/characters/walk_base_walk_up-sheet.png",
+    "size": 1319,
+    "localPath": "public/sprites/2d-island/crawler/characters/walk_base_walk_up-sheet.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/characters/walk_base_walk_up-sheet.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/characters/watering_base_watering_down-sheet.png",
+    "size": 1841,
+    "localPath": "public/sprites/2d-island/crawler/characters/watering_base_watering_down-sheet.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/characters/watering_base_watering_down-sheet.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/characters/watering_base_watering_side-sheet.png",
+    "size": 2377,
+    "localPath": "public/sprites/2d-island/crawler/characters/watering_base_watering_side-sheet.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/characters/watering_base_watering_side-sheet.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/characters/watering_base_watering_up-sheet.png",
+    "size": 1547,
+    "localPath": "public/sprites/2d-island/crawler/characters/watering_base_watering_up-sheet.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/characters/watering_base_watering_up-sheet.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/environment/Dungeon_Tiles.png",
+    "size": 21113,
+    "localPath": "public/sprites/2d-island/crawler/environment/Dungeon_Tiles.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/environment/Dungeon_Tiles.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/environment/Floors_Tiles.png",
+    "size": 21966,
+    "localPath": "public/sprites/2d-island/crawler/environment/Floors_Tiles.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/environment/Floors_Tiles.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/environment/Wall_Tiles.png",
+    "size": 41057,
+    "localPath": "public/sprites/2d-island/crawler/environment/Wall_Tiles.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/environment/Wall_Tiles.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/environment/Wall_Variations.png",
+    "size": 36550,
+    "localPath": "public/sprites/2d-island/crawler/environment/Wall_Variations.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/environment/Wall_Variations.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/environment/Water_tiles.png",
+    "size": 12937,
+    "localPath": "public/sprites/2d-island/crawler/environment/Water_tiles.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/environment/Water_tiles.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/mobs/orc/orc__rogue_death.png",
+    "size": 3430,
+    "localPath": "public/sprites/2d-island/crawler/mobs/orc/orc__rogue_death.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/mobs/orc/orc__rogue_death.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/mobs/orc/orc__rogue_idle.png",
+    "size": 1614,
+    "localPath": "public/sprites/2d-island/crawler/mobs/orc/orc__rogue_idle.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/mobs/orc/orc__rogue_idle.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/mobs/orc/orc__rogue_run.png",
+    "size": 2520,
+    "localPath": "public/sprites/2d-island/crawler/mobs/orc/orc__rogue_run.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/mobs/orc/orc__rogue_run.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/mobs/orc/orc__shaman_death.png",
+    "size": 2777,
+    "localPath": "public/sprites/2d-island/crawler/mobs/orc/orc__shaman_death.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/mobs/orc/orc__shaman_death.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/mobs/orc/orc__shaman_idle.png",
+    "size": 1713,
+    "localPath": "public/sprites/2d-island/crawler/mobs/orc/orc__shaman_idle.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/mobs/orc/orc__shaman_idle.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/mobs/orc/orc__shaman_run.png",
+    "size": 2852,
+    "localPath": "public/sprites/2d-island/crawler/mobs/orc/orc__shaman_run.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/mobs/orc/orc__shaman_run.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/mobs/orc/orc__warrior_death.png",
+    "size": 4416,
+    "localPath": "public/sprites/2d-island/crawler/mobs/orc/orc__warrior_death.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/mobs/orc/orc__warrior_death.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/mobs/orc/orc__warrior_idle.png",
+    "size": 2075,
+    "localPath": "public/sprites/2d-island/crawler/mobs/orc/orc__warrior_idle.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/mobs/orc/orc__warrior_idle.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/mobs/orc/orc__warrior_run.png",
+    "size": 3248,
+    "localPath": "public/sprites/2d-island/crawler/mobs/orc/orc__warrior_run.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/mobs/orc/orc__warrior_run.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/mobs/orc/orc_death.png",
+    "size": 3080,
+    "localPath": "public/sprites/2d-island/crawler/mobs/orc/orc_death.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/mobs/orc/orc_death.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/mobs/orc/orc_idle.png",
+    "size": 1544,
+    "localPath": "public/sprites/2d-island/crawler/mobs/orc/orc_idle.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/mobs/orc/orc_idle.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/mobs/orc/orc_run.png",
+    "size": 2443,
+    "localPath": "public/sprites/2d-island/crawler/mobs/orc/orc_run.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/mobs/orc/orc_run.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/mobs/skeleton/skeleton__base_death.png",
+    "size": 3388,
+    "localPath": "public/sprites/2d-island/crawler/mobs/skeleton/skeleton__base_death.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/mobs/skeleton/skeleton__base_death.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/mobs/skeleton/skeleton__base_idle.png",
+    "size": 1248,
+    "localPath": "public/sprites/2d-island/crawler/mobs/skeleton/skeleton__base_idle.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/mobs/skeleton/skeleton__base_idle.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/mobs/skeleton/skeleton__base_run.png",
+    "size": 1936,
+    "localPath": "public/sprites/2d-island/crawler/mobs/skeleton/skeleton__base_run.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/mobs/skeleton/skeleton__base_run.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/mobs/skeleton/skeleton__mage_death.png",
+    "size": 2881,
+    "localPath": "public/sprites/2d-island/crawler/mobs/skeleton/skeleton__mage_death.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/mobs/skeleton/skeleton__mage_death.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/mobs/skeleton/skeleton__mage_idle.png",
+    "size": 1453,
+    "localPath": "public/sprites/2d-island/crawler/mobs/skeleton/skeleton__mage_idle.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/mobs/skeleton/skeleton__mage_idle.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/mobs/skeleton/skeleton__mage_run.png",
+    "size": 2218,
+    "localPath": "public/sprites/2d-island/crawler/mobs/skeleton/skeleton__mage_run.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/mobs/skeleton/skeleton__mage_run.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/mobs/skeleton/skeleton__rogue_death.png",
+    "size": 2962,
+    "localPath": "public/sprites/2d-island/crawler/mobs/skeleton/skeleton__rogue_death.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/mobs/skeleton/skeleton__rogue_death.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/mobs/skeleton/skeleton__rogue_idle.png",
+    "size": 1432,
+    "localPath": "public/sprites/2d-island/crawler/mobs/skeleton/skeleton__rogue_idle.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/mobs/skeleton/skeleton__rogue_idle.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/mobs/skeleton/skeleton__rogue_run.png",
+    "size": 2314,
+    "localPath": "public/sprites/2d-island/crawler/mobs/skeleton/skeleton__rogue_run.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/mobs/skeleton/skeleton__rogue_run.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/mobs/skeleton/skeleton__warrior_death.png",
+    "size": 2908,
+    "localPath": "public/sprites/2d-island/crawler/mobs/skeleton/skeleton__warrior_death.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/mobs/skeleton/skeleton__warrior_death.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/mobs/skeleton/skeleton__warrior_idle.png",
+    "size": 1506,
+    "localPath": "public/sprites/2d-island/crawler/mobs/skeleton/skeleton__warrior_idle.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/mobs/skeleton/skeleton__warrior_idle.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/mobs/skeleton/skeleton__warrior_run.png",
+    "size": 2495,
+    "localPath": "public/sprites/2d-island/crawler/mobs/skeleton/skeleton__warrior_run.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/mobs/skeleton/skeleton__warrior_run.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/npcs/knight_death.png",
+    "size": 1943,
+    "localPath": "public/sprites/2d-island/crawler/npcs/knight_death.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/npcs/knight_death.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/npcs/knight_idle.png",
+    "size": 1102,
+    "localPath": "public/sprites/2d-island/crawler/npcs/knight_idle.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/npcs/knight_idle.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/npcs/knight_run.png",
+    "size": 1933,
+    "localPath": "public/sprites/2d-island/crawler/npcs/knight_run.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/npcs/knight_run.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/npcs/rogue_death.png",
+    "size": 2650,
+    "localPath": "public/sprites/2d-island/crawler/npcs/rogue_death.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/npcs/rogue_death.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/npcs/rogue_idle.png",
+    "size": 1342,
+    "localPath": "public/sprites/2d-island/crawler/npcs/rogue_idle.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/npcs/rogue_idle.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/npcs/rogue_run.png",
+    "size": 2435,
+    "localPath": "public/sprites/2d-island/crawler/npcs/rogue_run.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/npcs/rogue_run.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/npcs/wizzard_death.png",
+    "size": 3465,
+    "localPath": "public/sprites/2d-island/crawler/npcs/wizzard_death.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/npcs/wizzard_death.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/npcs/wizzard_idle.png",
+    "size": 1507,
+    "localPath": "public/sprites/2d-island/crawler/npcs/wizzard_idle.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/npcs/wizzard_idle.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/npcs/wizzard_run.png",
+    "size": 2547,
+    "localPath": "public/sprites/2d-island/crawler/npcs/wizzard_run.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/npcs/wizzard_run.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/props/dungeon_props.png",
+    "size": 4213,
+    "localPath": "public/sprites/2d-island/crawler/props/dungeon_props.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/props/dungeon_props.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/props/esoteric.png",
+    "size": 4885,
+    "localPath": "public/sprites/2d-island/crawler/props/esoteric.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/props/esoteric.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/props/farm.png",
+    "size": 22698,
+    "localPath": "public/sprites/2d-island/crawler/props/farm.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/props/farm.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/props/furniture.png",
+    "size": 29445,
+    "localPath": "public/sprites/2d-island/crawler/props/furniture.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/props/furniture.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/props/meat.png",
+    "size": 3298,
+    "localPath": "public/sprites/2d-island/crawler/props/meat.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/props/meat.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/props/pan_01-sheet.png",
+    "size": 761,
+    "localPath": "public/sprites/2d-island/crawler/props/pan_01-sheet.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/props/pan_01-sheet.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/props/pan_02-sheet.png",
+    "size": 634,
+    "localPath": "public/sprites/2d-island/crawler/props/pan_02-sheet.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/props/pan_02-sheet.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/props/pan_03-sheet.png",
+    "size": 1670,
+    "localPath": "public/sprites/2d-island/crawler/props/pan_03-sheet.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/props/pan_03-sheet.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/props/pan_04-sheet.png",
+    "size": 838,
+    "localPath": "public/sprites/2d-island/crawler/props/pan_04-sheet.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/props/pan_04-sheet.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/props/pan_05-sheet.png",
+    "size": 1624,
+    "localPath": "public/sprites/2d-island/crawler/props/pan_05-sheet.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/props/pan_05-sheet.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/props/pan.png",
+    "size": 6799,
+    "localPath": "public/sprites/2d-island/crawler/props/pan.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/props/pan.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/props/resources.png",
+    "size": 4487,
+    "localPath": "public/sprites/2d-island/crawler/props/resources.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/props/resources.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/props/rocks.png",
+    "size": 8436,
+    "localPath": "public/sprites/2d-island/crawler/props/rocks.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/props/rocks.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/props/shadows.png",
+    "size": 3965,
+    "localPath": "public/sprites/2d-island/crawler/props/shadows.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/props/shadows.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/props/size_02.png",
+    "size": 5922,
+    "localPath": "public/sprites/2d-island/crawler/props/size_02.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/props/size_02.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/props/size_03-export.png",
+    "size": 15338,
+    "localPath": "public/sprites/2d-island/crawler/props/size_03-export.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/props/size_03-export.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/props/size_03.png",
+    "size": 15338,
+    "localPath": "public/sprites/2d-island/crawler/props/size_03.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/props/size_03.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/props/size_04-export-export.png",
+    "size": 30240,
+    "localPath": "public/sprites/2d-island/crawler/props/size_04-export-export.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/props/size_04-export-export.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/props/size_04-export.png",
+    "size": 30240,
+    "localPath": "public/sprites/2d-island/crawler/props/size_04-export.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/props/size_04-export.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/props/size_04.png",
+    "size": 31102,
+    "localPath": "public/sprites/2d-island/crawler/props/size_04.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/props/size_04.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/props/size_05.png",
+    "size": 41673,
+    "localPath": "public/sprites/2d-island/crawler/props/size_05.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/props/size_05.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/props/tools.png",
+    "size": 13491,
+    "localPath": "public/sprites/2d-island/crawler/props/tools.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/props/tools.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/props/vegetation.png",
+    "size": 32871,
+    "localPath": "public/sprites/2d-island/crawler/props/vegetation.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/props/vegetation.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/structures/alchemy_table_01-sheet.png",
+    "size": 13701,
+    "localPath": "public/sprites/2d-island/crawler/structures/alchemy_table_01-sheet.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/structures/alchemy_table_01-sheet.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/structures/alchemy_table_02-sheet.png",
+    "size": 16055,
+    "localPath": "public/sprites/2d-island/crawler/structures/alchemy_table_02-sheet.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/structures/alchemy_table_02-sheet.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/structures/alchemy_table_03-sheet.png",
+    "size": 24639,
+    "localPath": "public/sprites/2d-island/crawler/structures/alchemy_table_03-sheet.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/structures/alchemy_table_03-sheet.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/structures/anvil_01-sheet.png",
+    "size": 14014,
+    "localPath": "public/sprites/2d-island/crawler/structures/anvil_01-sheet.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/structures/anvil_01-sheet.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/structures/anvil_02-sheet.png",
+    "size": 27126,
+    "localPath": "public/sprites/2d-island/crawler/structures/anvil_02-sheet.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/structures/anvil_02-sheet.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/structures/anvil_03-sheet.png",
+    "size": 39876,
+    "localPath": "public/sprites/2d-island/crawler/structures/anvil_03-sheet.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/structures/anvil_03-sheet.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/structures/anvil.png",
+    "size": 7961,
+    "localPath": "public/sprites/2d-island/crawler/structures/anvil.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/structures/anvil.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/structures/base.png",
+    "size": 7334,
+    "localPath": "public/sprites/2d-island/crawler/structures/base.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/structures/base.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/structures/bonfire_01-sheet.png",
+    "size": 1049,
+    "localPath": "public/sprites/2d-island/crawler/structures/bonfire_01-sheet.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/structures/bonfire_01-sheet.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/structures/bonfire_02-sheet.png",
+    "size": 1169,
+    "localPath": "public/sprites/2d-island/crawler/structures/bonfire_02-sheet.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/structures/bonfire_02-sheet.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/structures/bonfire_03-sheet.png",
+    "size": 714,
+    "localPath": "public/sprites/2d-island/crawler/structures/bonfire_03-sheet.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/structures/bonfire_03-sheet.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/structures/bonfire_04-sheet.png",
+    "size": 689,
+    "localPath": "public/sprites/2d-island/crawler/structures/bonfire_04-sheet.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/structures/bonfire_04-sheet.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/structures/bonfire_05-sheet.png",
+    "size": 725,
+    "localPath": "public/sprites/2d-island/crawler/structures/bonfire_05-sheet.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/structures/bonfire_05-sheet.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/structures/bonfire_06-sheet.png",
+    "size": 353,
+    "localPath": "public/sprites/2d-island/crawler/structures/bonfire_06-sheet.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/structures/bonfire_06-sheet.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/structures/bonfire_07-sheet.png",
+    "size": 692,
+    "localPath": "public/sprites/2d-island/crawler/structures/bonfire_07-sheet.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/structures/bonfire_07-sheet.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/structures/bonfire_08-sheet.png",
+    "size": 651,
+    "localPath": "public/sprites/2d-island/crawler/structures/bonfire_08-sheet.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/structures/bonfire_08-sheet.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/structures/bonfire_09-sheet.png",
+    "size": 1809,
+    "localPath": "public/sprites/2d-island/crawler/structures/bonfire_09-sheet.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/structures/bonfire_09-sheet.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/structures/bonfire_10-sheet.png",
+    "size": 1179,
+    "localPath": "public/sprites/2d-island/crawler/structures/bonfire_10-sheet.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/structures/bonfire_10-sheet.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/structures/bonfire.png",
+    "size": 3919,
+    "localPath": "public/sprites/2d-island/crawler/structures/bonfire.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/structures/bonfire.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/structures/bricks_01-sheet.png",
+    "size": 1680,
+    "localPath": "public/sprites/2d-island/crawler/structures/bricks_01-sheet.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/structures/bricks_01-sheet.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/structures/bricks_02-sheet.png",
+    "size": 2440,
+    "localPath": "public/sprites/2d-island/crawler/structures/bricks_02-sheet.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/structures/bricks_02-sheet.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/structures/bricks_03-sheet.png",
+    "size": 2439,
+    "localPath": "public/sprites/2d-island/crawler/structures/bricks_03-sheet.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/structures/bricks_03-sheet.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/structures/butchery_01-sheet.png",
+    "size": 752,
+    "localPath": "public/sprites/2d-island/crawler/structures/butchery_01-sheet.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/structures/butchery_01-sheet.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/structures/butchery_02.png",
+    "size": 1150,
+    "localPath": "public/sprites/2d-island/crawler/structures/butchery_02.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/structures/butchery_02.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/structures/butchery_03.png",
+    "size": 2233,
+    "localPath": "public/sprites/2d-island/crawler/structures/butchery_03.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/structures/butchery_03.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/structures/butchery_04.png",
+    "size": 3020,
+    "localPath": "public/sprites/2d-island/crawler/structures/butchery_04.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/structures/butchery_04.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/structures/cooker_01.png",
+    "size": 508,
+    "localPath": "public/sprites/2d-island/crawler/structures/cooker_01.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/structures/cooker_01.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/structures/cooker_02.png",
+    "size": 336,
+    "localPath": "public/sprites/2d-island/crawler/structures/cooker_02.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/structures/cooker_02.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/structures/cooker_03-sheet.png",
+    "size": 909,
+    "localPath": "public/sprites/2d-island/crawler/structures/cooker_03-sheet.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/structures/cooker_03-sheet.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/structures/cooker_04-sheet.png",
+    "size": 2897,
+    "localPath": "public/sprites/2d-island/crawler/structures/cooker_04-sheet.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/structures/cooker_04-sheet.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/structures/cooking-station.png",
+    "size": 16528,
+    "localPath": "public/sprites/2d-island/crawler/structures/cooking-station.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/structures/cooking-station.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/structures/estructure.png",
+    "size": 6314,
+    "localPath": "public/sprites/2d-island/crawler/structures/estructure.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/structures/estructure.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/structures/fire_01-sheet.png",
+    "size": 1417,
+    "localPath": "public/sprites/2d-island/crawler/structures/fire_01-sheet.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/structures/fire_01-sheet.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/structures/fire_02-sheet.png",
+    "size": 797,
+    "localPath": "public/sprites/2d-island/crawler/structures/fire_02-sheet.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/structures/fire_02-sheet.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/structures/Floors.png",
+    "size": 889,
+    "localPath": "public/sprites/2d-island/crawler/structures/Floors.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/structures/Floors.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/structures/furnace.png",
+    "size": 18229,
+    "localPath": "public/sprites/2d-island/crawler/structures/furnace.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/structures/furnace.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/structures/grill_01-sheet.png",
+    "size": 1564,
+    "localPath": "public/sprites/2d-island/crawler/structures/grill_01-sheet.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/structures/grill_01-sheet.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/structures/grill_02-sheet.png",
+    "size": 1708,
+    "localPath": "public/sprites/2d-island/crawler/structures/grill_02-sheet.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/structures/grill_02-sheet.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/structures/grill_03-sheet.png",
+    "size": 2249,
+    "localPath": "public/sprites/2d-island/crawler/structures/grill_03-sheet.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/structures/grill_03-sheet.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/structures/grill_04-sheet.png",
+    "size": 2787,
+    "localPath": "public/sprites/2d-island/crawler/structures/grill_04-sheet.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/structures/grill_04-sheet.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/structures/iron_01-sheet.png",
+    "size": 1550,
+    "localPath": "public/sprites/2d-island/crawler/structures/iron_01-sheet.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/structures/iron_01-sheet.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/structures/iron_02-sheet.png",
+    "size": 2283,
+    "localPath": "public/sprites/2d-island/crawler/structures/iron_02-sheet.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/structures/iron_02-sheet.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/structures/iron_03-sheet.png",
+    "size": 3160,
+    "localPath": "public/sprites/2d-island/crawler/structures/iron_03-sheet.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/structures/iron_03-sheet.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/structures/level_1.png",
+    "size": 614,
+    "localPath": "public/sprites/2d-island/crawler/structures/level_1.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/structures/level_1.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/structures/level_2-sheet.png",
+    "size": 31563,
+    "localPath": "public/sprites/2d-island/crawler/structures/level_2-sheet.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/structures/level_2-sheet.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/structures/level_3-sheet.png",
+    "size": 50055,
+    "localPath": "public/sprites/2d-island/crawler/structures/level_3-sheet.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/structures/level_3-sheet.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/structures/Props.png",
+    "size": 8364,
+    "localPath": "public/sprites/2d-island/crawler/structures/Props.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/structures/Props.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/structures/Roofs.png",
+    "size": 11073,
+    "localPath": "public/sprites/2d-island/crawler/structures/Roofs.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/structures/Roofs.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/structures/Shadows.png",
+    "size": 1634,
+    "localPath": "public/sprites/2d-island/crawler/structures/Shadows.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/structures/Shadows.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/structures/smoke-sheet.png",
+    "size": 554,
+    "localPath": "public/sprites/2d-island/crawler/structures/smoke-sheet.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/structures/smoke-sheet.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/structures/stone_01-sheet.png",
+    "size": 1560,
+    "localPath": "public/sprites/2d-island/crawler/structures/stone_01-sheet.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/structures/stone_01-sheet.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/structures/stone_02-sheet.png",
+    "size": 1807,
+    "localPath": "public/sprites/2d-island/crawler/structures/stone_02-sheet.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/structures/stone_02-sheet.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/structures/stone_03-sheet.png",
+    "size": 2331,
+    "localPath": "public/sprites/2d-island/crawler/structures/stone_03-sheet.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/structures/stone_03-sheet.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/structures/Walls.png",
+    "size": 22524,
+    "localPath": "public/sprites/2d-island/crawler/structures/Walls.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/structures/Walls.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/structures/workbench.png",
+    "size": 13731,
+    "localPath": "public/sprites/2d-island/crawler/structures/workbench.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/structures/workbench.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/weapons/bone.png",
+    "size": 7285,
+    "localPath": "public/sprites/2d-island/crawler/weapons/bone.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/weapons/bone.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/weapons/hands.png",
+    "size": 1273,
+    "localPath": "public/sprites/2d-island/crawler/weapons/hands.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/weapons/hands.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/crawler/weapons/wood.png",
+    "size": 6479,
+    "localPath": "public/sprites/2d-island/crawler/weapons/wood.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/crawler/weapons/wood.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/decorations/sprite-boat.png",
+    "size": 308,
+    "localPath": "public/sprites/2d-island/decorations/sprite-boat.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/decorations/sprite-boat.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/decorations/sprite-bubleanimationframe1.png",
+    "size": 161,
+    "localPath": "public/sprites/2d-island/decorations/sprite-bubleanimationframe1.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/decorations/sprite-bubleanimationframe1.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/decorations/sprite-bubleanimationframe2.png",
+    "size": 163,
+    "localPath": "public/sprites/2d-island/decorations/sprite-bubleanimationframe2.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/decorations/sprite-bubleanimationframe2.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/decorations/sprite-bush.png",
+    "size": 336,
+    "localPath": "public/sprites/2d-island/decorations/sprite-bush.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/decorations/sprite-bush.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/decorations/sprite-bush1.png",
+    "size": 349,
+    "localPath": "public/sprites/2d-island/decorations/sprite-bush1.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/decorations/sprite-bush1.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/decorations/sprite-bush2.png",
+    "size": 274,
+    "localPath": "public/sprites/2d-island/decorations/sprite-bush2.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/decorations/sprite-bush2.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/decorations/sprite-bush3.png",
+    "size": 263,
+    "localPath": "public/sprites/2d-island/decorations/sprite-bush3.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/decorations/sprite-bush3.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/decorations/sprite-bushsmall.png",
+    "size": 261,
+    "localPath": "public/sprites/2d-island/decorations/sprite-bushsmall.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/decorations/sprite-bushsmall.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/decorations/sprite-bushsnow.png",
+    "size": 256,
+    "localPath": "public/sprites/2d-island/decorations/sprite-bushsnow.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/decorations/sprite-bushsnow.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/decorations/sprite-bushsnow2.png",
+    "size": 339,
+    "localPath": "public/sprites/2d-island/decorations/sprite-bushsnow2.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/decorations/sprite-bushsnow2.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/decorations/sprite-cactus1.png",
+    "size": 226,
+    "localPath": "public/sprites/2d-island/decorations/sprite-cactus1.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/decorations/sprite-cactus1.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/decorations/sprite-cactus10.png",
+    "size": 333,
+    "localPath": "public/sprites/2d-island/decorations/sprite-cactus10.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/decorations/sprite-cactus10.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/decorations/sprite-cactus2.png",
+    "size": 364,
+    "localPath": "public/sprites/2d-island/decorations/sprite-cactus2.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/decorations/sprite-cactus2.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/decorations/sprite-cactus3.png",
+    "size": 281,
+    "localPath": "public/sprites/2d-island/decorations/sprite-cactus3.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/decorations/sprite-cactus3.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/decorations/sprite-cactus4.png",
+    "size": 226,
+    "localPath": "public/sprites/2d-island/decorations/sprite-cactus4.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/decorations/sprite-cactus4.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/decorations/sprite-cactus5.png",
+    "size": 199,
+    "localPath": "public/sprites/2d-island/decorations/sprite-cactus5.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/decorations/sprite-cactus5.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/decorations/sprite-cactus6.png",
+    "size": 276,
+    "localPath": "public/sprites/2d-island/decorations/sprite-cactus6.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/decorations/sprite-cactus6.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/decorations/sprite-cactus7.png",
+    "size": 348,
+    "localPath": "public/sprites/2d-island/decorations/sprite-cactus7.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/decorations/sprite-cactus7.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/decorations/sprite-cactus8.png",
+    "size": 429,
+    "localPath": "public/sprites/2d-island/decorations/sprite-cactus8.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/decorations/sprite-cactus8.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/decorations/sprite-cactus9.png",
+    "size": 413,
+    "localPath": "public/sprites/2d-island/decorations/sprite-cactus9.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/decorations/sprite-cactus9.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/decorations/sprite-flowerpink.png",
+    "size": 147,
+    "localPath": "public/sprites/2d-island/decorations/sprite-flowerpink.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/decorations/sprite-flowerpink.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/decorations/sprite-flowerred.png",
+    "size": 148,
+    "localPath": "public/sprites/2d-island/decorations/sprite-flowerred.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/decorations/sprite-flowerred.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/decorations/sprite-floweryellow.png",
+    "size": 148,
+    "localPath": "public/sprites/2d-island/decorations/sprite-floweryellow.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/decorations/sprite-floweryellow.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/decorations/sprite-rock1.png",
+    "size": 365,
+    "localPath": "public/sprites/2d-island/decorations/sprite-rock1.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/decorations/sprite-rock1.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/decorations/sprite-rock2.png",
+    "size": 231,
+    "localPath": "public/sprites/2d-island/decorations/sprite-rock2.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/decorations/sprite-rock2.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/decorations/sprite-rock3.png",
+    "size": 274,
+    "localPath": "public/sprites/2d-island/decorations/sprite-rock3.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/decorations/sprite-rock3.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/decorations/sprite-rock4.png",
+    "size": 231,
+    "localPath": "public/sprites/2d-island/decorations/sprite-rock4.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/decorations/sprite-rock4.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/decorations/sprite-rock5.png",
+    "size": 364,
+    "localPath": "public/sprites/2d-island/decorations/sprite-rock5.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/decorations/sprite-rock5.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/decorations/sprite-rock6.png",
+    "size": 203,
+    "localPath": "public/sprites/2d-island/decorations/sprite-rock6.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/decorations/sprite-rock6.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/decorations/sprite-rock7.png",
+    "size": 274,
+    "localPath": "public/sprites/2d-island/decorations/sprite-rock7.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/decorations/sprite-rock7.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/decorations/sprite-rocklsnow2.png",
+    "size": 335,
+    "localPath": "public/sprites/2d-island/decorations/sprite-rocklsnow2.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/decorations/sprite-rocklsnow2.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/decorations/sprite-rocksnow.png",
+    "size": 308,
+    "localPath": "public/sprites/2d-island/decorations/sprite-rocksnow.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/decorations/sprite-rocksnow.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/decorations/sprite-rocksnow3.png",
+    "size": 254,
+    "localPath": "public/sprites/2d-island/decorations/sprite-rocksnow3.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/decorations/sprite-rocksnow3.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/decorations/sprite-stone.png",
+    "size": 174,
+    "localPath": "public/sprites/2d-island/decorations/sprite-stone.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/decorations/sprite-stone.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/decorations/sprite-stone2.png",
+    "size": 236,
+    "localPath": "public/sprites/2d-island/decorations/sprite-stone2.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/decorations/sprite-stone2.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/decorations/sprite-stone3.png",
+    "size": 169,
+    "localPath": "public/sprites/2d-island/decorations/sprite-stone3.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/decorations/sprite-stone3.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/decorations/sprite-treegreen3.png",
+    "size": 577,
+    "localPath": "public/sprites/2d-island/decorations/sprite-treegreen3.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/decorations/sprite-treegreen3.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/decorations/sprite-treegreen4.png",
+    "size": 785,
+    "localPath": "public/sprites/2d-island/decorations/sprite-treegreen4.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/decorations/sprite-treegreen4.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/decorations/sprite-treeorange1.png",
+    "size": 746,
+    "localPath": "public/sprites/2d-island/decorations/sprite-treeorange1.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/decorations/sprite-treeorange1.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/decorations/sprite-treeorange2.png",
+    "size": 739,
+    "localPath": "public/sprites/2d-island/decorations/sprite-treeorange2.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/decorations/sprite-treeorange2.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/decorations/sprite-treepink.png",
+    "size": 768,
+    "localPath": "public/sprites/2d-island/decorations/sprite-treepink.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/decorations/sprite-treepink.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/decorations/sprite-treesnow1.png",
+    "size": 687,
+    "localPath": "public/sprites/2d-island/decorations/sprite-treesnow1.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/decorations/sprite-treesnow1.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/decorations/sprite-treesnow2.png",
+    "size": 970,
+    "localPath": "public/sprites/2d-island/decorations/sprite-treesnow2.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/decorations/sprite-treesnow2.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/decorations/sprite-treesnow3.png",
+    "size": 793,
+    "localPath": "public/sprites/2d-island/decorations/sprite-treesnow3.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/decorations/sprite-treesnow3.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/decorations/sprite-water2xframe1.png",
+    "size": 220,
+    "localPath": "public/sprites/2d-island/decorations/sprite-water2xframe1.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/decorations/sprite-water2xframe1.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/decorations/sprite-water2xframe2.png",
+    "size": 240,
+    "localPath": "public/sprites/2d-island/decorations/sprite-water2xframe2.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/decorations/sprite-water2xframe2.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/decorations/sprite-waterframe1.png",
+    "size": 195,
+    "localPath": "public/sprites/2d-island/decorations/sprite-waterframe1.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/decorations/sprite-waterframe1.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/decorations/sprite-waterframe2.png",
+    "size": 188,
+    "localPath": "public/sprites/2d-island/decorations/sprite-waterframe2.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/decorations/sprite-waterframe2.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/decorations/sprite-watergrass.png",
+    "size": 254,
+    "localPath": "public/sprites/2d-island/decorations/sprite-watergrass.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/decorations/sprite-watergrass.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/decorations/sprite-waterlilly1s.png",
+    "size": 258,
+    "localPath": "public/sprites/2d-island/decorations/sprite-waterlilly1s.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/decorations/sprite-waterlilly1s.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/decorations/sprite-waterlilly2.png",
+    "size": 261,
+    "localPath": "public/sprites/2d-island/decorations/sprite-waterlilly2.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/decorations/sprite-waterlilly2.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/decorations/sprite-waterlilly3.png",
+    "size": 300,
+    "localPath": "public/sprites/2d-island/decorations/sprite-waterlilly3.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/decorations/sprite-waterlilly3.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/decorations/sprite-waterlilly4.png",
+    "size": 299,
+    "localPath": "public/sprites/2d-island/decorations/sprite-waterlilly4.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/decorations/sprite-waterlilly4.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/decorations/sprite-waterrock.png",
+    "size": 221,
+    "localPath": "public/sprites/2d-island/decorations/sprite-waterrock.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/decorations/sprite-waterrock.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/decorations/sprite-waterrock2.png",
+    "size": 277,
+    "localPath": "public/sprites/2d-island/decorations/sprite-waterrock2.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/decorations/sprite-waterrock2.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/decorations/sprite-waterrock3.png",
+    "size": 265,
+    "localPath": "public/sprites/2d-island/decorations/sprite-waterrock3.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/decorations/sprite-waterrock3.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/decorations/sprite-woodgreen1.png",
+    "size": 770,
+    "localPath": "public/sprites/2d-island/decorations/sprite-woodgreen1.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/decorations/sprite-woodgreen1.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/decorations/sprite-woodgreen2.png",
+    "size": 729,
+    "localPath": "public/sprites/2d-island/decorations/sprite-woodgreen2.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/decorations/sprite-woodgreen2.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/decorations/tileset.png",
+    "size": 8988,
+    "localPath": "public/sprites/2d-island/decorations/tileset.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/decorations/tileset.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/enemies/bat/bat_attack_fx.png",
+    "size": 435,
+    "localPath": "public/sprites/2d-island/enemies/bat/bat_attack_fx.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/enemies/bat/bat_attack_fx.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/enemies/bat/bat_attack.png",
+    "size": 2400,
+    "localPath": "public/sprites/2d-island/enemies/bat/bat_attack.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/enemies/bat/bat_attack.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/enemies/bat/bat_death_fx.png",
+    "size": 295,
+    "localPath": "public/sprites/2d-island/enemies/bat/bat_death_fx.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/enemies/bat/bat_death_fx.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/enemies/bat/bat_death.png",
+    "size": 3723,
+    "localPath": "public/sprites/2d-island/enemies/bat/bat_death.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/enemies/bat/bat_death.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/enemies/bat/bat_fly.png",
+    "size": 1612,
+    "localPath": "public/sprites/2d-island/enemies/bat/bat_fly.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/enemies/bat/bat_fly.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/enemies/bat/bat_full.png",
+    "size": 7866,
+    "localPath": "public/sprites/2d-island/enemies/bat/bat_full.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/enemies/bat/bat_full.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/enemies/bat/bat_hit.png",
+    "size": 2276,
+    "localPath": "public/sprites/2d-island/enemies/bat/bat_hit.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/enemies/bat/bat_hit.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/enemies/crab/crab_ability.png",
+    "size": 2629,
+    "localPath": "public/sprites/2d-island/enemies/crab/crab_ability.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/enemies/crab/crab_ability.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/enemies/crab/crab_attacka_fx.png",
+    "size": 324,
+    "localPath": "public/sprites/2d-island/enemies/crab/crab_attacka_fx.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/enemies/crab/crab_attacka_fx.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/enemies/crab/crab_attacka.png",
+    "size": 2383,
+    "localPath": "public/sprites/2d-island/enemies/crab/crab_attacka.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/enemies/crab/crab_attacka.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/enemies/crab/crab_attackb_fx.png",
+    "size": 216,
+    "localPath": "public/sprites/2d-island/enemies/crab/crab_attackb_fx.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/enemies/crab/crab_attackb_fx.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/enemies/crab/crab_attackb.png",
+    "size": 1607,
+    "localPath": "public/sprites/2d-island/enemies/crab/crab_attackb.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/enemies/crab/crab_attackb.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/enemies/crab/crab_attackc_fx.png",
+    "size": 469,
+    "localPath": "public/sprites/2d-island/enemies/crab/crab_attackc_fx.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/enemies/crab/crab_attackc_fx.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/enemies/crab/crab_attackc.png",
+    "size": 2630,
+    "localPath": "public/sprites/2d-island/enemies/crab/crab_attackc.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/enemies/crab/crab_attackc.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/enemies/crab/crab_death.png",
+    "size": 1223,
+    "localPath": "public/sprites/2d-island/enemies/crab/crab_death.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/enemies/crab/crab_death.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/enemies/crab/crab_full.png",
+    "size": 9260,
+    "localPath": "public/sprites/2d-island/enemies/crab/crab_full.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/enemies/crab/crab_full.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/enemies/crab/crab_hit.png",
+    "size": 788,
+    "localPath": "public/sprites/2d-island/enemies/crab/crab_hit.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/enemies/crab/crab_hit.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/enemies/crab/crab_idle.png",
+    "size": 987,
+    "localPath": "public/sprites/2d-island/enemies/crab/crab_idle.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/enemies/crab/crab_idle.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/enemies/crab/crab_run.png",
+    "size": 1556,
+    "localPath": "public/sprites/2d-island/enemies/crab/crab_run.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/enemies/crab/crab_run.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/enemies/golem/golem_attacka_fx.png",
+    "size": 1112,
+    "localPath": "public/sprites/2d-island/enemies/golem/golem_attacka_fx.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/enemies/golem/golem_attacka_fx.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/enemies/golem/golem_attacka.png",
+    "size": 2020,
+    "localPath": "public/sprites/2d-island/enemies/golem/golem_attacka.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/enemies/golem/golem_attacka.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/enemies/golem/golem_attackb_fx.png",
+    "size": 1548,
+    "localPath": "public/sprites/2d-island/enemies/golem/golem_attackb_fx.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/enemies/golem/golem_attackb_fx.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/enemies/golem/golem_attackb.png",
+    "size": 972,
+    "localPath": "public/sprites/2d-island/enemies/golem/golem_attackb.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/enemies/golem/golem_attackb.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/enemies/golem/golem_attackc_fx.png",
+    "size": 727,
+    "localPath": "public/sprites/2d-island/enemies/golem/golem_attackc_fx.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/enemies/golem/golem_attackc_fx.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/enemies/golem/golem_attackc.png",
+    "size": 914,
+    "localPath": "public/sprites/2d-island/enemies/golem/golem_attackc.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/enemies/golem/golem_attackc.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/enemies/golem/golem_death_fx.png",
+    "size": 419,
+    "localPath": "public/sprites/2d-island/enemies/golem/golem_death_fx.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/enemies/golem/golem_death_fx.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/enemies/golem/golem_deatha.png",
+    "size": 842,
+    "localPath": "public/sprites/2d-island/enemies/golem/golem_deatha.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/enemies/golem/golem_deatha.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/enemies/golem/golem_deathb.png",
+    "size": 1704,
+    "localPath": "public/sprites/2d-island/enemies/golem/golem_deathb.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/enemies/golem/golem_deathb.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/enemies/golem/golem_full.png",
+    "size": 11613,
+    "localPath": "public/sprites/2d-island/enemies/golem/golem_full.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/enemies/golem/golem_full.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/enemies/golem/golem_hita.png",
+    "size": 842,
+    "localPath": "public/sprites/2d-island/enemies/golem/golem_hita.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/enemies/golem/golem_hita.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/enemies/golem/golem_hitb.png",
+    "size": 1174,
+    "localPath": "public/sprites/2d-island/enemies/golem/golem_hitb.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/enemies/golem/golem_hitb.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/enemies/golem/golem_idlea.png",
+    "size": 1153,
+    "localPath": "public/sprites/2d-island/enemies/golem/golem_idlea.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/enemies/golem/golem_idlea.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/enemies/golem/golem_idleb.png",
+    "size": 839,
+    "localPath": "public/sprites/2d-island/enemies/golem/golem_idleb.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/enemies/golem/golem_idleb.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/enemies/golem/golem_reset.png",
+    "size": 1373,
+    "localPath": "public/sprites/2d-island/enemies/golem/golem_reset.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/enemies/golem/golem_reset.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/enemies/golem/golem_run.png",
+    "size": 822,
+    "localPath": "public/sprites/2d-island/enemies/golem/golem_run.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/enemies/golem/golem_run.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/enemies/golem/golem_upgrade.png",
+    "size": 2003,
+    "localPath": "public/sprites/2d-island/enemies/golem/golem_upgrade.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/enemies/golem/golem_upgrade.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/enemies/golem-armored/golem_armor_ability.png",
+    "size": 1498,
+    "localPath": "public/sprites/2d-island/enemies/golem-armored/golem_armor_ability.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/enemies/golem-armored/golem_armor_ability.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/enemies/golem-armored/golem_armor_armorbreak.png",
+    "size": 1202,
+    "localPath": "public/sprites/2d-island/enemies/golem-armored/golem_armor_armorbreak.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/enemies/golem-armored/golem_armor_armorbreak.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/enemies/golem-armored/golem_armor_attacka_fx.png",
+    "size": 1928,
+    "localPath": "public/sprites/2d-island/enemies/golem-armored/golem_armor_attacka_fx.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/enemies/golem-armored/golem_armor_attacka_fx.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/enemies/golem-armored/golem_armor_attacka.png",
+    "size": 1691,
+    "localPath": "public/sprites/2d-island/enemies/golem-armored/golem_armor_attacka.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/enemies/golem-armored/golem_armor_attacka.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/enemies/golem-armored/golem_armor_attackb_fx.png",
+    "size": 912,
+    "localPath": "public/sprites/2d-island/enemies/golem-armored/golem_armor_attackb_fx.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/enemies/golem-armored/golem_armor_attackb_fx.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/enemies/golem-armored/golem_armor_attackb.png",
+    "size": 1366,
+    "localPath": "public/sprites/2d-island/enemies/golem-armored/golem_armor_attackb.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/enemies/golem-armored/golem_armor_attackb.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/enemies/golem-armored/golem_armor_attackc_fx.png",
+    "size": 345,
+    "localPath": "public/sprites/2d-island/enemies/golem-armored/golem_armor_attackc_fx.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/enemies/golem-armored/golem_armor_attackc_fx.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/enemies/golem-armored/golem_armor_attackc.png",
+    "size": 1576,
+    "localPath": "public/sprites/2d-island/enemies/golem-armored/golem_armor_attackc.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/enemies/golem-armored/golem_armor_attackc.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/enemies/golem-armored/golem_armor_full.png",
+    "size": 7046,
+    "localPath": "public/sprites/2d-island/enemies/golem-armored/golem_armor_full.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/enemies/golem-armored/golem_armor_full.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/enemies/golem-armored/golem_armor_hit.png",
+    "size": 1028,
+    "localPath": "public/sprites/2d-island/enemies/golem-armored/golem_armor_hit.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/enemies/golem-armored/golem_armor_hit.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/enemies/golem-armored/golem_armor_idle.png",
+    "size": 715,
+    "localPath": "public/sprites/2d-island/enemies/golem-armored/golem_armor_idle.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/enemies/golem-armored/golem_armor_idle.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/enemies/golem-armored/golem_armor_run.png",
+    "size": 734,
+    "localPath": "public/sprites/2d-island/enemies/golem-armored/golem_armor_run.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/enemies/golem-armored/golem_armor_run.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/enemies/pebble/pebble_death.png",
+    "size": 1262,
+    "localPath": "public/sprites/2d-island/enemies/pebble/pebble_death.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/enemies/pebble/pebble_death.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/enemies/pebble/pebble_full.png",
+    "size": 3068,
+    "localPath": "public/sprites/2d-island/enemies/pebble/pebble_full.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/enemies/pebble/pebble_full.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/enemies/pebble/pebble_hit.png",
+    "size": 879,
+    "localPath": "public/sprites/2d-island/enemies/pebble/pebble_hit.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/enemies/pebble/pebble_hit.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/enemies/pebble/pebble_idle.png",
+    "size": 578,
+    "localPath": "public/sprites/2d-island/enemies/pebble/pebble_idle.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/enemies/pebble/pebble_idle.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/enemies/pebble/pebble_run.png",
+    "size": 963,
+    "localPath": "public/sprites/2d-island/enemies/pebble/pebble_run.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/enemies/pebble/pebble_run.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/enemies/rat/rat_ability.png",
+    "size": 2417,
+    "localPath": "public/sprites/2d-island/enemies/rat/rat_ability.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/enemies/rat/rat_ability.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/enemies/rat/rat_attack_fx.png",
+    "size": 386,
+    "localPath": "public/sprites/2d-island/enemies/rat/rat_attack_fx.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/enemies/rat/rat_attack_fx.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/enemies/rat/rat_attack.png",
+    "size": 2194,
+    "localPath": "public/sprites/2d-island/enemies/rat/rat_attack.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/enemies/rat/rat_attack.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/enemies/rat/rat_death_fx.png",
+    "size": 204,
+    "localPath": "public/sprites/2d-island/enemies/rat/rat_death_fx.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/enemies/rat/rat_death_fx.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/enemies/rat/rat_death.png",
+    "size": 1611,
+    "localPath": "public/sprites/2d-island/enemies/rat/rat_death.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/enemies/rat/rat_death.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/enemies/rat/rat_full.png",
+    "size": 8235,
+    "localPath": "public/sprites/2d-island/enemies/rat/rat_full.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/enemies/rat/rat_full.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/enemies/rat/rat_hit.png",
+    "size": 1191,
+    "localPath": "public/sprites/2d-island/enemies/rat/rat_hit.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/enemies/rat/rat_hit.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/enemies/rat/rat_idle.png",
+    "size": 948,
+    "localPath": "public/sprites/2d-island/enemies/rat/rat_idle.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/enemies/rat/rat_idle.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/enemies/rat/rat_run.png",
+    "size": 1722,
+    "localPath": "public/sprites/2d-island/enemies/rat/rat_run.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/enemies/rat/rat_run.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/enemies/skull/bones_singleskull_death_fx.png",
+    "size": 408,
+    "localPath": "public/sprites/2d-island/enemies/skull/bones_singleskull_death_fx.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/enemies/skull/bones_singleskull_death_fx.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/enemies/skull/bones_singleskull_death.png",
+    "size": 1340,
+    "localPath": "public/sprites/2d-island/enemies/skull/bones_singleskull_death.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/enemies/skull/bones_singleskull_death.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/enemies/skull/bones_singleskull_fly.png",
+    "size": 929,
+    "localPath": "public/sprites/2d-island/enemies/skull/bones_singleskull_fly.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/enemies/skull/bones_singleskull_fly.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/enemies/skull/bones_singleskull_full_fx.png",
+    "size": 2929,
+    "localPath": "public/sprites/2d-island/enemies/skull/bones_singleskull_full_fx.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/enemies/skull/bones_singleskull_full_fx.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/enemies/skull/bones_singleskull_full.png",
+    "size": 2793,
+    "localPath": "public/sprites/2d-island/enemies/skull/bones_singleskull_full.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/enemies/skull/bones_singleskull_full.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/enemies/skull/bones_singleskull_hit.png",
+    "size": 618,
+    "localPath": "public/sprites/2d-island/enemies/skull/bones_singleskull_hit.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/enemies/skull/bones_singleskull_hit.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/enemies/skull/bones_singleskull_idle.png",
+    "size": 552,
+    "localPath": "public/sprites/2d-island/enemies/skull/bones_singleskull_idle.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/enemies/skull/bones_singleskull_idle.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/enemies/slime/slime_spiked_ability_fx.png",
+    "size": 467,
+    "localPath": "public/sprites/2d-island/enemies/slime/slime_spiked_ability_fx.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/enemies/slime/slime_spiked_ability_fx.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/enemies/slime/slime_spiked_ability.png",
+    "size": 1063,
+    "localPath": "public/sprites/2d-island/enemies/slime/slime_spiked_ability.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/enemies/slime/slime_spiked_ability.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/enemies/slime/slime_spiked_death.png",
+    "size": 1610,
+    "localPath": "public/sprites/2d-island/enemies/slime/slime_spiked_death.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/enemies/slime/slime_spiked_death.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/enemies/slime/slime_spiked_full.png",
+    "size": 6813,
+    "localPath": "public/sprites/2d-island/enemies/slime/slime_spiked_full.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/enemies/slime/slime_spiked_full.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/enemies/slime/slime_spiked_hit.png",
+    "size": 1195,
+    "localPath": "public/sprites/2d-island/enemies/slime/slime_spiked_hit.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/enemies/slime/slime_spiked_hit.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/enemies/slime/slime_spiked_idle.png",
+    "size": 1184,
+    "localPath": "public/sprites/2d-island/enemies/slime/slime_spiked_idle.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/enemies/slime/slime_spiked_idle.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/enemies/slime/slime_spiked_jump_fx.png",
+    "size": 909,
+    "localPath": "public/sprites/2d-island/enemies/slime/slime_spiked_jump_fx.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/enemies/slime/slime_spiked_jump_fx.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/enemies/slime/slime_spiked_jump.png",
+    "size": 2290,
+    "localPath": "public/sprites/2d-island/enemies/slime/slime_spiked_jump.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/enemies/slime/slime_spiked_jump.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/enemies/slime/slime_spiked_run.png",
+    "size": 860,
+    "localPath": "public/sprites/2d-island/enemies/slime/slime_spiked_run.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/enemies/slime/slime_spiked_run.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/gameui/00.png",
+    "size": 13075,
+    "localPath": "public/sprites/2d-island/gameui/00.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/gameui/00.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/gameui/01.png",
+    "size": 6776,
+    "localPath": "public/sprites/2d-island/gameui/01.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/gameui/01.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/gameui/02.png",
+    "size": 4324,
+    "localPath": "public/sprites/2d-island/gameui/02.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/gameui/02.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/gameui/03.png",
+    "size": 3161,
+    "localPath": "public/sprites/2d-island/gameui/03.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/gameui/03.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/gameui/04.png",
+    "size": 4166,
+    "localPath": "public/sprites/2d-island/gameui/04.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/gameui/04.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/gameui/05.png",
+    "size": 850,
+    "localPath": "public/sprites/2d-island/gameui/05.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/gameui/05.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/gameui/06.png",
+    "size": 4735,
+    "localPath": "public/sprites/2d-island/gameui/06.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/gameui/06.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/gameui/07.png",
+    "size": 3846,
+    "localPath": "public/sprites/2d-island/gameui/07.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/gameui/07.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/gameui/All.png",
+    "size": 37458,
+    "localPath": "public/sprites/2d-island/gameui/All.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/gameui/All.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/pirates/mockup-pirates.png",
+    "size": 14920,
+    "localPath": "public/sprites/2d-island/pirates/mockup-pirates.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/pirates/mockup-pirates.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/pirates/pirates-blue-sprite-sheet.png",
+    "size": 18577,
+    "localPath": "public/sprites/2d-island/pirates/pirates-blue-sprite-sheet.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/pirates/pirates-blue-sprite-sheet.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/pirates/pirates-gray-sprite-sheet.png",
+    "size": 17858,
+    "localPath": "public/sprites/2d-island/pirates/pirates-gray-sprite-sheet.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/pirates/pirates-gray-sprite-sheet.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/pirates/pirates-green-sprite-sheet.png",
+    "size": 18212,
+    "localPath": "public/sprites/2d-island/pirates/pirates-green-sprite-sheet.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/pirates/pirates-green-sprite-sheet.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/pirates/pirates-red-sprite-sheet.png",
+    "size": 18690,
+    "localPath": "public/sprites/2d-island/pirates/pirates-red-sprite-sheet.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/pirates/pirates-red-sprite-sheet.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/pirates/pirates-white-sprite-sheet.png",
+    "size": 17812,
+    "localPath": "public/sprites/2d-island/pirates/pirates-white-sprite-sheet.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/pirates/pirates-white-sprite-sheet.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/pirates/pirates-yellow-sprite-sheet.png",
+    "size": 18642,
+    "localPath": "public/sprites/2d-island/pirates/pirates-yellow-sprite-sheet.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/pirates/pirates-yellow-sprite-sheet.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/ships/ships-mockup.png",
+    "size": 21875,
+    "localPath": "public/sprites/2d-island/ships/ships-mockup.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/ships/ships-mockup.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/ships/ships-tiles.png",
+    "size": 96714,
+    "localPath": "public/sprites/2d-island/ships/ships-tiles.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/ships/ships-tiles.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/tiles/fort-tiles.png",
+    "size": 26478,
+    "localPath": "public/sprites/2d-island/tiles/fort-tiles.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/tiles/fort-tiles.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/tiles/mockup-docks.png",
+    "size": 12346,
+    "localPath": "public/sprites/2d-island/tiles/mockup-docks.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/tiles/mockup-docks.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/tiles/mockup-fort.png",
+    "size": 19926,
+    "localPath": "public/sprites/2d-island/tiles/mockup-fort.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/tiles/mockup-fort.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/tiles/mockup-island.png",
+    "size": 18256,
+    "localPath": "public/sprites/2d-island/tiles/mockup-island.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/tiles/mockup-island.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/tiles/water-island-tiles.png",
+    "size": 12584,
+    "localPath": "public/sprites/2d-island/tiles/water-island-tiles.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/tiles/water-island-tiles.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/tiles/beach/beach_tileset.png",
+    "size": 36457,
+    "localPath": "public/sprites/2d-island/tiles/beach/beach_tileset.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/tiles/beach/beach_tileset.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/tiles/beach/tf_beach_tilea1.png",
+    "size": 14720,
+    "localPath": "public/sprites/2d-island/tiles/beach/tf_beach_tilea1.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/tiles/beach/tf_beach_tilea1.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/tiles/beach/tf_beach_tileb.png",
+    "size": 26891,
+    "localPath": "public/sprites/2d-island/tiles/beach/tf_beach_tileb.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/tiles/beach/tf_beach_tileb.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/towers/tower-07---level-01---weapon.png",
+    "size": 1363,
+    "localPath": "public/sprites/2d-island/towers/tower-07---level-01---weapon.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/towers/tower-07---level-01---weapon.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/towers/tower-07---level-02---weapon.png",
+    "size": 2003,
+    "localPath": "public/sprites/2d-island/towers/tower-07---level-02---weapon.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/towers/tower-07---level-02---weapon.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/towers/tower-07---level-03---weapon.png",
+    "size": 3076,
+    "localPath": "public/sprites/2d-island/towers/tower-07---level-03---weapon.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/towers/tower-07---level-03---weapon.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/towers/tower-07---level-x---projectile---impact.png",
+    "size": 1754,
+    "localPath": "public/sprites/2d-island/towers/tower-07---level-x---projectile---impact.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/towers/tower-07---level-x---projectile---impact.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/towers/tower-07---level-x---projectile.png",
+    "size": 712,
+    "localPath": "public/sprites/2d-island/towers/tower-07---level-x---projectile.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/towers/tower-07---level-x---projectile.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/towers/tower-07.png",
+    "size": 4742,
+    "localPath": "public/sprites/2d-island/towers/tower-07.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/towers/tower-07.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/towers/tower-08---level-01---projectile.png",
+    "size": 5283,
+    "localPath": "public/sprites/2d-island/towers/tower-08---level-01---projectile.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/towers/tower-08---level-01---projectile.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/towers/tower-08---level-01---weapon.png",
+    "size": 2438,
+    "localPath": "public/sprites/2d-island/towers/tower-08---level-01---weapon.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/towers/tower-08---level-01---weapon.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/towers/tower-08---level-02---projectile.png",
+    "size": 14867,
+    "localPath": "public/sprites/2d-island/towers/tower-08---level-02---projectile.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/towers/tower-08---level-02---projectile.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/towers/tower-08---level-02---weapon.png",
+    "size": 3173,
+    "localPath": "public/sprites/2d-island/towers/tower-08---level-02---weapon.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/towers/tower-08---level-02---weapon.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/towers/tower-08---level-03---projectile.png",
+    "size": 22359,
+    "localPath": "public/sprites/2d-island/towers/tower-08---level-03---projectile.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/towers/tower-08---level-03---projectile.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/towers/tower-08---level-03---weapon.png",
+    "size": 3968,
+    "localPath": "public/sprites/2d-island/towers/tower-08---level-03---weapon.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/towers/tower-08---level-03---weapon.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/towers/tower-08.png",
+    "size": 3006,
+    "localPath": "public/sprites/2d-island/towers/tower-08.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/towers/tower-08.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/traps-weapons/00-all_rocket.png",
+    "size": 30191,
+    "localPath": "public/sprites/2d-island/traps-weapons/00-all_rocket.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/traps-weapons/00-all_rocket.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/traps-weapons/00-all.png",
+    "size": 172671,
+    "localPath": "public/sprites/2d-island/traps-weapons/00-all.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/traps-weapons/00-all.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/traps-weapons/00-gun.png",
+    "size": 19938,
+    "localPath": "public/sprites/2d-island/traps-weapons/00-gun.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/traps-weapons/00-gun.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/traps-weapons/00.png",
+    "size": 2663,
+    "localPath": "public/sprites/2d-island/traps-weapons/00.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/traps-weapons/00.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/traps-weapons/01.png",
+    "size": 339,
+    "localPath": "public/sprites/2d-island/traps-weapons/01.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/traps-weapons/01.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/traps-weapons/02.png",
+    "size": 776,
+    "localPath": "public/sprites/2d-island/traps-weapons/02.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/traps-weapons/02.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/traps-weapons/03.png",
+    "size": 836,
+    "localPath": "public/sprites/2d-island/traps-weapons/03.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/traps-weapons/03.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/traps-weapons/04.png",
+    "size": 590,
+    "localPath": "public/sprites/2d-island/traps-weapons/04.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/traps-weapons/04.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/traps-weapons/05.png",
+    "size": 2091,
+    "localPath": "public/sprites/2d-island/traps-weapons/05.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/traps-weapons/05.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/traps-weapons/06.png",
+    "size": 218,
+    "localPath": "public/sprites/2d-island/traps-weapons/06.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/traps-weapons/06.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/traps-weapons/07.png",
+    "size": 234,
+    "localPath": "public/sprites/2d-island/traps-weapons/07.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/traps-weapons/07.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/traps-weapons/08.png",
+    "size": 285,
+    "localPath": "public/sprites/2d-island/traps-weapons/08.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/traps-weapons/08.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/traps-weapons/09.png",
+    "size": 425,
+    "localPath": "public/sprites/2d-island/traps-weapons/09.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/traps-weapons/09.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/traps-weapons/10.png",
+    "size": 1348,
+    "localPath": "public/sprites/2d-island/traps-weapons/10.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/traps-weapons/10.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/traps-weapons/11.png",
+    "size": 1398,
+    "localPath": "public/sprites/2d-island/traps-weapons/11.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/traps-weapons/11.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/traps-weapons/12.png",
+    "size": 1297,
+    "localPath": "public/sprites/2d-island/traps-weapons/12.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/traps-weapons/12.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/traps-weapons/13.png",
+    "size": 1496,
+    "localPath": "public/sprites/2d-island/traps-weapons/13.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/traps-weapons/13.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/traps-weapons/14.png",
+    "size": 709,
+    "localPath": "public/sprites/2d-island/traps-weapons/14.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/traps-weapons/14.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/traps-weapons/15.png",
+    "size": 1229,
+    "localPath": "public/sprites/2d-island/traps-weapons/15.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/traps-weapons/15.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/traps-weapons/16.png",
+    "size": 1149,
+    "localPath": "public/sprites/2d-island/traps-weapons/16.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/traps-weapons/16.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/traps-weapons/17.png",
+    "size": 1028,
+    "localPath": "public/sprites/2d-island/traps-weapons/17.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/traps-weapons/17.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/traps-weapons/18.png",
+    "size": 1186,
+    "localPath": "public/sprites/2d-island/traps-weapons/18.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/traps-weapons/18.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/traps-weapons/19.png",
+    "size": 1477,
+    "localPath": "public/sprites/2d-island/traps-weapons/19.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/traps-weapons/19.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/traps-weapons/20.png",
+    "size": 3179,
+    "localPath": "public/sprites/2d-island/traps-weapons/20.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/traps-weapons/20.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/traps-weapons/21.png",
+    "size": 177,
+    "localPath": "public/sprites/2d-island/traps-weapons/21.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/traps-weapons/21.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/traps-weapons/22.png",
+    "size": 248,
+    "localPath": "public/sprites/2d-island/traps-weapons/22.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/traps-weapons/22.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/traps-weapons/23.png",
+    "size": 295,
+    "localPath": "public/sprites/2d-island/traps-weapons/23.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/traps-weapons/23.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/traps-weapons/24.png",
+    "size": 420,
+    "localPath": "public/sprites/2d-island/traps-weapons/24.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/traps-weapons/24.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/traps-weapons/25.png",
+    "size": 667,
+    "localPath": "public/sprites/2d-island/traps-weapons/25.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/traps-weapons/25.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/traps-weapons/26.png",
+    "size": 365,
+    "localPath": "public/sprites/2d-island/traps-weapons/26.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/traps-weapons/26.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/traps-weapons/27.png",
+    "size": 760,
+    "localPath": "public/sprites/2d-island/traps-weapons/27.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/traps-weapons/27.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/traps-weapons/28.png",
+    "size": 1505,
+    "localPath": "public/sprites/2d-island/traps-weapons/28.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/traps-weapons/28.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/traps-weapons/29.png",
+    "size": 1313,
+    "localPath": "public/sprites/2d-island/traps-weapons/29.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/traps-weapons/29.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/traps-weapons/30.png",
+    "size": 690,
+    "localPath": "public/sprites/2d-island/traps-weapons/30.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/traps-weapons/30.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/traps-weapons/31.png",
+    "size": 539,
+    "localPath": "public/sprites/2d-island/traps-weapons/31.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/traps-weapons/31.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/traps-weapons/32.png",
+    "size": 935,
+    "localPath": "public/sprites/2d-island/traps-weapons/32.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/traps-weapons/32.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/traps-weapons/arrow_double_jump.png",
+    "size": 613,
+    "localPath": "public/sprites/2d-island/traps-weapons/arrow_double_jump.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/traps-weapons/arrow_double_jump.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/traps-weapons/be_spear.png",
+    "size": 188,
+    "localPath": "public/sprites/2d-island/traps-weapons/be_spear.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/traps-weapons/be_spear.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/traps-weapons/be_xich.png",
+    "size": 226,
+    "localPath": "public/sprites/2d-island/traps-weapons/be_xich.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/traps-weapons/be_xich.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/traps-weapons/bomb.png",
+    "size": 841,
+    "localPath": "public/sprites/2d-island/traps-weapons/bomb.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/traps-weapons/bomb.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/traps-weapons/brick1.png",
+    "size": 1279,
+    "localPath": "public/sprites/2d-island/traps-weapons/brick1.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/traps-weapons/brick1.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/traps-weapons/fallingplatfrom.png",
+    "size": 554,
+    "localPath": "public/sprites/2d-island/traps-weapons/fallingplatfrom.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/traps-weapons/fallingplatfrom.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/traps-weapons/fallingrock.png",
+    "size": 1336,
+    "localPath": "public/sprites/2d-island/traps-weapons/fallingrock.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/traps-weapons/fallingrock.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/traps-weapons/fan.png",
+    "size": 542,
+    "localPath": "public/sprites/2d-island/traps-weapons/fan.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/traps-weapons/fan.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/traps-weapons/fire.png",
+    "size": 300,
+    "localPath": "public/sprites/2d-island/traps-weapons/fire.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/traps-weapons/fire.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/traps-weapons/firebox.png",
+    "size": 687,
+    "localPath": "public/sprites/2d-island/traps-weapons/firebox.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/traps-weapons/firebox.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/traps-weapons/jumper.png",
+    "size": 703,
+    "localPath": "public/sprites/2d-island/traps-weapons/jumper.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/traps-weapons/jumper.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/traps-weapons/matxich.png",
+    "size": 136,
+    "localPath": "public/sprites/2d-island/traps-weapons/matxich.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/traps-weapons/matxich.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/traps-weapons/matxich2.png",
+    "size": 173,
+    "localPath": "public/sprites/2d-island/traps-weapons/matxich2.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/traps-weapons/matxich2.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/traps-weapons/matxich3.png",
+    "size": 136,
+    "localPath": "public/sprites/2d-island/traps-weapons/matxich3.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/traps-weapons/matxich3.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/traps-weapons/moving-platfrom_a.png",
+    "size": 464,
+    "localPath": "public/sprites/2d-island/traps-weapons/moving-platfrom_a.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/traps-weapons/moving-platfrom_a.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/traps-weapons/moving-platfrom_c.png",
+    "size": 232,
+    "localPath": "public/sprites/2d-island/traps-weapons/moving-platfrom_c.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/traps-weapons/moving-platfrom_c.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/traps-weapons/moving-platfrom_d.png",
+    "size": 230,
+    "localPath": "public/sprites/2d-island/traps-weapons/moving-platfrom_d.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/traps-weapons/moving-platfrom_d.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/traps-weapons/moving-platfrom_g.png",
+    "size": 325,
+    "localPath": "public/sprites/2d-island/traps-weapons/moving-platfrom_g.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/traps-weapons/moving-platfrom_g.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/traps-weapons/moving-platfrom_h.png",
+    "size": 284,
+    "localPath": "public/sprites/2d-island/traps-weapons/moving-platfrom_h.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/traps-weapons/moving-platfrom_h.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/traps-weapons/shooter_arrow_trap.png",
+    "size": 511,
+    "localPath": "public/sprites/2d-island/traps-weapons/shooter_arrow_trap.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/traps-weapons/shooter_arrow_trap.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/traps-weapons/spear.png",
+    "size": 1428,
+    "localPath": "public/sprites/2d-island/traps-weapons/spear.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/traps-weapons/spear.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/traps-weapons/spike_b.png",
+    "size": 987,
+    "localPath": "public/sprites/2d-island/traps-weapons/spike_b.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/traps-weapons/spike_b.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/traps-weapons/spikeball.png",
+    "size": 694,
+    "localPath": "public/sprites/2d-island/traps-weapons/spikeball.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/traps-weapons/spikeball.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/traps-weapons/suriken.png",
+    "size": 3258,
+    "localPath": "public/sprites/2d-island/traps-weapons/suriken.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/traps-weapons/suriken.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/traps-weapons/trap_spike_run.png",
+    "size": 1768,
+    "localPath": "public/sprites/2d-island/traps-weapons/trap_spike_run.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/traps-weapons/trap_spike_run.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/traps-weapons/trap_spike.png",
+    "size": 1203,
+    "localPath": "public/sprites/2d-island/traps-weapons/trap_spike.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/traps-weapons/trap_spike.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/traps-weapons/wood.png",
+    "size": 217,
+    "localPath": "public/sprites/2d-island/traps-weapons/wood.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/traps-weapons/wood.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/treasure/chests_snow.png",
+    "size": 11714,
+    "localPath": "public/sprites/2d-island/treasure/chests_snow.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/treasure/chests_snow.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/treasure/chests.png",
+    "size": 8177,
+    "localPath": "public/sprites/2d-island/treasure/chests.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/treasure/chests.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/ui/gold/ui_gold_icons_free.png",
+    "size": 16756,
+    "localPath": "public/sprites/2d-island/ui/gold/ui_gold_icons_free.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/ui/gold/ui_gold_icons_free.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/ui/gold/ui_gold_logos_free.png",
+    "size": 3414,
+    "localPath": "public/sprites/2d-island/ui/gold/ui_gold_logos_free.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/ui/gold/ui_gold_logos_free.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/ui/gold/ui_gold.png",
+    "size": 20224,
+    "localPath": "public/sprites/2d-island/ui/gold/ui_gold.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/ui/gold/ui_gold.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/ui/iron/ui_iron_icons_free.png",
+    "size": 16874,
+    "localPath": "public/sprites/2d-island/ui/iron/ui_iron_icons_free.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/ui/iron/ui_iron_icons_free.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/ui/iron/ui_iron_logos_free.png",
+    "size": 3380,
+    "localPath": "public/sprites/2d-island/ui/iron/ui_iron_logos_free.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/ui/iron/ui_iron_logos_free.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/ui/iron/ui_iron.png",
+    "size": 20325,
+    "localPath": "public/sprites/2d-island/ui/iron/ui_iron.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/ui/iron/ui_iron.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/ui/paper/ui_paper_icons_free.png",
+    "size": 17103,
+    "localPath": "public/sprites/2d-island/ui/paper/ui_paper_icons_free.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/ui/paper/ui_paper_icons_free.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/ui/paper/ui_paper_logos_free.png",
+    "size": 3465,
+    "localPath": "public/sprites/2d-island/ui/paper/ui_paper_logos_free.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/ui/paper/ui_paper_logos_free.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/ui/paper/ui_paper.png",
+    "size": 20796,
+    "localPath": "public/sprites/2d-island/ui/paper/ui_paper.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/ui/paper/ui_paper.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/ui/platinum/ui_platinum_icons_free.png",
+    "size": 18579,
+    "localPath": "public/sprites/2d-island/ui/platinum/ui_platinum_icons_free.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/ui/platinum/ui_platinum_icons_free.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/ui/platinum/ui_platinum_logos_free.png",
+    "size": 3456,
+    "localPath": "public/sprites/2d-island/ui/platinum/ui_platinum_logos_free.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/ui/platinum/ui_platinum_logos_free.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/ui/platinum/ui_platinum.png",
+    "size": 20708,
+    "localPath": "public/sprites/2d-island/ui/platinum/ui_platinum.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/ui/platinum/ui_platinum.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/ui/steel/ui_steel_icons_free.png",
+    "size": 18520,
+    "localPath": "public/sprites/2d-island/ui/steel/ui_steel_icons_free.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/ui/steel/ui_steel_icons_free.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/ui/steel/ui_steel_logos_free.png",
+    "size": 3460,
+    "localPath": "public/sprites/2d-island/ui/steel/ui_steel_logos_free.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/ui/steel/ui_steel_logos_free.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/ui/steel/ui_steel.png",
+    "size": 20723,
+    "localPath": "public/sprites/2d-island/ui/steel/ui_steel.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/ui/steel/ui_steel.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/ui/wood/ui_font_a.png",
+    "size": 30799,
+    "localPath": "public/sprites/2d-island/ui/wood/ui_font_a.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/ui/wood/ui_font_a.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/ui/wood/ui_font_b.png",
+    "size": 28978,
+    "localPath": "public/sprites/2d-island/ui/wood/ui_font_b.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/ui/wood/ui_font_b.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/ui/wood/ui_shadow_font_a.png",
+    "size": 32199,
+    "localPath": "public/sprites/2d-island/ui/wood/ui_shadow_font_a.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/ui/wood/ui_shadow_font_a.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/ui/wood/ui_shadow_font_b.png",
+    "size": 30334,
+    "localPath": "public/sprites/2d-island/ui/wood/ui_shadow_font_b.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/ui/wood/ui_shadow_font_b.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/ui/wood/ui_wood_logos_free.png",
+    "size": 3485,
+    "localPath": "public/sprites/2d-island/ui/wood/ui_wood_logos_free.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/ui/wood/ui_wood_logos_free.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/undead/skeleton/skeleton_idle.png",
+    "size": 6030,
+    "localPath": "public/sprites/2d-island/undead/skeleton/skeleton_idle.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/undead/skeleton/skeleton_idle.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/undead/skeleton/skeleton_move.png",
+    "size": 9497,
+    "localPath": "public/sprites/2d-island/undead/skeleton/skeleton_move.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/undead/skeleton/skeleton_move.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/undead/witch-doctor/witch_doctor_idle.png",
+    "size": 6838,
+    "localPath": "public/sprites/2d-island/undead/witch-doctor/witch_doctor_idle.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/undead/witch-doctor/witch_doctor_idle.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/undead/witch-doctor/witch_doctor_move.png",
+    "size": 11006,
+    "localPath": "public/sprites/2d-island/undead/witch-doctor/witch_doctor_move.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/undead/witch-doctor/witch_doctor_move.png"
+  },
+  {
+    "storagePath": "sprites/2d-island/undead/witch-doctor/witch_doctor_skill.png",
+    "size": 9787,
+    "localPath": "public/sprites/2d-island/undead/witch-doctor/witch_doctor_skill.png",
+    "ext": ".png",
+    "cdnUrl": "https://assets.grudge-studio.com/sprites/2d-island/undead/witch-doctor/witch_doctor_skill.png"
+  }
+]
