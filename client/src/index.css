@@ -73,6 +73,21 @@ h1, h2, h3, h4, h5, h6 {
   background: hsl(45 90% 50%); 
 }
 
+/* Thin scrollbar for contained panels */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 5px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: hsl(225 20% 25%);
+  border-radius: 3px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: hsl(45 60% 40%);
+}
+
 /* Handsontable Dark Theme */
 .htDark {
   background: hsl(225 25% 10%) !important;

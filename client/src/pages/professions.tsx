@@ -27,6 +27,7 @@ import { mysticData } from "@/data/crafting/mystic";
 import { chefData } from "@/data/crafting/chef";
 import { engineerData } from "@/data/crafting/engineer";
 import type { ProfessionData } from "@/lib/craftingTypes";
+import { assetUrl } from "@/lib/assetConfig";
 
 const CRAFTING_SKILL_TREES: Record<string, ProfessionData> = {
   Miner: minerData,
@@ -34,6 +35,24 @@ const CRAFTING_SKILL_TREES: Record<string, ProfessionData> = {
   Mystic: mysticData,
   Chef: chefData,
   Engineer: engineerData,
+};
+
+/** Profession icon art from ObjectStore */
+const PROFESSION_ICONS: Record<string, string> = {
+  Miner: assetUrl('/images/professions/miner_profession_game_icon.png'),
+  Forester: assetUrl('/images/professions/forester_profession_game_icon.png'),
+  Mystic: assetUrl('/images/professions/mystic_profession_game_icon.png'),
+  Chef: assetUrl('/images/professions/chef_profession_game_icon.png'),
+  Engineer: assetUrl('/images/professions/engineer_profession_game_icon.png'),
+};
+
+/** Profession background art for skill trees and headers */
+const PROFESSION_BG: Record<string, string> = {
+  Miner: assetUrl('/images/professions/dark_underground_mine_with_glowing_crystals.png'),
+  Forester: assetUrl('/images/professions/ancient_mystical_forest_with_glowing_particles.png'),
+  Mystic: assetUrl('/images/professions/cosmic_arcane_void_magic_background.png'),
+  Chef: assetUrl('/images/professions/rustic_fantasy_kitchen_hearth.png'),
+  Engineer: assetUrl('/images/professions/steampunk_blueprint_background_with_gears.png'),
 };
 
 type ProfessionTab = "gathering" | "crafting" | "skillTrees";
@@ -138,115 +157,137 @@ export default function ProfessionsPage() {
 
   return (
     <Layout>
-      <div className="space-y-6 animate-in fade-in duration-500">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div>
-            <h1 className="text-4xl font-cinzel font-bold text-amber-400 mb-2" data-testid="page-title">Artisan Guild</h1>
-            <p className="text-slate-400 max-w-2xl">
-              Master the ancient arts of gathering and crafting. Progress from Level 1 to 100.
-              {activeCharacter && <span className="text-blue-400 ml-2">Active Artisan: {activeCharacter.name}</span>}
-            </p>
+      <div className="flex flex-col h-[calc(100vh-80px)] animate-in fade-in duration-500">
+        {/* ── Compact header ── */}
+        <div className="flex items-center justify-between gap-4 pb-3 shrink-0">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-amber-600 to-amber-800 flex items-center justify-center shadow-lg">
+              <Hammer className="w-5 h-5 text-amber-200" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-cinzel font-bold text-amber-400" data-testid="page-title">Artisan Guild</h1>
+              {activeCharacter && <span className="text-xs text-blue-400">Artisan: {activeCharacter.name}</span>}
+            </div>
           </div>
+          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as ProfessionTab)} className="shrink-0">
+            <TabsList className="bg-slate-900 border border-slate-800">
+              <TabsTrigger 
+                value="gathering" 
+                className="data-[state=active]:bg-green-900/50 data-[state=active]:text-green-400 text-xs px-3"
+                data-testid="tab-gathering"
+              >
+                <Leaf className="w-3.5 h-3.5 mr-1.5" />
+                Gathering
+              </TabsTrigger>
+              <TabsTrigger 
+                value="crafting"
+                className="data-[state=active]:bg-amber-900/50 data-[state=active]:text-amber-400 text-xs px-3"
+                data-testid="tab-crafting"
+              >
+                <Hammer className="w-3.5 h-3.5 mr-1.5" />
+                Crafting
+              </TabsTrigger>
+              <TabsTrigger 
+                value="skillTrees"
+                className="data-[state=active]:bg-purple-900/50 data-[state=active]:text-purple-400 text-xs px-3"
+                data-testid="tab-skill-trees"
+              >
+                <GitBranch className="w-3.5 h-3.5 mr-1.5" />
+                Skill Trees
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
         </div>
 
-        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as ProfessionTab)} className="w-full">
-          <TabsList className="grid w-full max-w-lg grid-cols-3 bg-slate-900 border border-slate-800">
-            <TabsTrigger 
-              value="gathering" 
-              className="data-[state=active]:bg-green-900/50 data-[state=active]:text-green-400"
-              data-testid="tab-gathering"
-            >
-              <Leaf className="w-4 h-4 mr-2" />
-              Gathering
-            </TabsTrigger>
-            <TabsTrigger 
-              value="crafting"
-              className="data-[state=active]:bg-amber-900/50 data-[state=active]:text-amber-400"
-              data-testid="tab-crafting"
-            >
-              <Hammer className="w-4 h-4 mr-2" />
-              Crafting
-            </TabsTrigger>
-            <TabsTrigger 
-              value="skillTrees"
-              className="data-[state=active]:bg-purple-900/50 data-[state=active]:text-purple-400"
-              data-testid="tab-skill-trees"
-            >
-              <GitBranch className="w-4 h-4 mr-2" />
-              Skill Trees
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="gathering" className="mt-6">
-            <GatheringProfessionGrid 
-              selectedProf={selectedProf}
-              setSelectedProf={setSelectedProf}
-              characters={characters}
-              activeCharacter={activeCharacter}
-            />
-          </TabsContent>
-
-          <TabsContent value="crafting" className="mt-6">
-            <ProfessionGrid 
-              professions={CRAFTING_PROFESSIONS}
-              selectedProf={selectedProf}
-              setSelectedProf={(id) => {
-                const prof = CRAFTING_PROFESSIONS.find(p => p.id === id);
-                if (prof) setSelectedProf(prof.name);
-              }}
-              category="crafting"
-            />
-          </TabsContent>
-
-          <TabsContent value="skillTrees" className="mt-6">
-            <SkillTreesTab
-              selectedProf={selectedSkillTreeProf}
-              setSelectedProf={setSelectedSkillTreeProf}
-              activeCharacter={activeCharacter}
-              onRefreshCharacter={handleRefreshCharacter}
-            />
-          </TabsContent>
-        </Tabs>
-
-        {activeTab === "gathering" && selectedProf && (
-          <GatheringProfessionDetails 
-            professionName={selectedProf}
-            activeCharacter={activeCharacter}
-            searchTerm={searchTerm}
-            setSearchTerm={setSearchTerm}
-            filteredResources={filteredResources}
-          />
-        )}
-
-        {activeTab === "crafting" && currentProf && (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-1 space-y-4">
-              <ProfessionInfoCard profession={currentProf} />
-              <SynergiesCard profession={currentProf} />
+        {/* ── Tab content fills remaining viewport ── */}
+        <div className="flex-1 min-h-0">
+          {activeTab === "gathering" && (
+            <div className="flex flex-col h-full gap-3">
+              <div className="shrink-0">
+                <GatheringProfessionGrid 
+                  selectedProf={selectedProf}
+                  setSelectedProf={setSelectedProf}
+                  characters={characters}
+                  activeCharacter={activeCharacter}
+                />
+              </div>
+              {selectedProf && (
+                <div className="flex-1 min-h-0 overflow-y-auto pr-1 custom-scrollbar">
+                  <GatheringProfessionDetails 
+                    professionName={selectedProf}
+                    activeCharacter={activeCharacter}
+                    searchTerm={searchTerm}
+                    setSearchTerm={setSearchTerm}
+                    filteredResources={filteredResources}
+                  />
+                </div>
+              )}
             </div>
+          )}
 
-            <div className="lg:col-span-2 space-y-4">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-                <Input
-                  placeholder="Search recipes..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 bg-slate-900 border-slate-700"
-                  data-testid="search-input"
+          {activeTab === "crafting" && (
+            <div className="flex flex-col h-full gap-3">
+              {/* Profession selector with art */}
+              <div className="shrink-0">
+                <ProfessionGrid 
+                  professions={CRAFTING_PROFESSIONS}
+                  selectedProf={selectedProf}
+                  setSelectedProf={(id) => {
+                    const prof = CRAFTING_PROFESSIONS.find(p => p.id === id);
+                    if (prof) setSelectedProf(prof.name);
+                  }}
+                  category="crafting"
                 />
               </div>
 
-              {filteredRecipes.length > 0 && (
-                <RecipesPanel recipes={filteredRecipes} onCraft={handleCraft} />
-              )}
+              {/* Crafting workbench — contained single screen */}
+              {currentProf && (
+                <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-12 gap-4">
+                  {/* Left: Profession info (scrollable) */}
+                  <div className="lg:col-span-4 xl:col-span-3 overflow-y-auto pr-1 custom-scrollbar space-y-3">
+                    <ProfessionInfoCard profession={currentProf} />
+                    <SynergiesCard profession={currentProf} />
+                    {currentProf.name === "Chef" && <FoodCategoriesPanel />}
+                  </div>
 
-              {currentProf.name === "Chef" && (
-                <FoodCategoriesPanel />
+                  {/* Right: Search + Recipes (scrollable) */}
+                  <div className="lg:col-span-8 xl:col-span-9 flex flex-col min-h-0">
+                    <div className="relative shrink-0 mb-3">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                      <Input
+                        placeholder="Search recipes..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="pl-10 bg-slate-900 border-slate-700"
+                        data-testid="search-input"
+                      />
+                    </div>
+                    <div className="flex-1 min-h-0 overflow-y-auto pr-1 custom-scrollbar">
+                      {filteredRecipes.length > 0 ? (
+                        <RecipesPanel recipes={filteredRecipes} onCraft={handleCraft} />
+                      ) : (
+                        <div className="flex items-center justify-center h-40 text-slate-500 text-sm">
+                          No recipes found.
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
               )}
             </div>
-          </div>
-        )}
+          )}
+
+          {activeTab === "skillTrees" && (
+            <div className="h-full">
+              <SkillTreesTab
+                selectedProf={selectedSkillTreeProf}
+                setSelectedProf={setSelectedSkillTreeProf}
+                activeCharacter={activeCharacter}
+                onRefreshCharacter={handleRefreshCharacter}
+              />
+            </div>
+          )}
+        </div>
       </div>
     </Layout>
   );
@@ -649,22 +690,29 @@ function ProfessionGrid({ professions, selectedProf, setSelectedProf, category }
 }) {
   return (
     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
-      {professions.map((prof) => (
-        <button
-          key={prof.id}
-          onClick={() => setSelectedProf(prof.id)}
-          data-testid={`profession-${prof.id}`}
-          className={cn(
-            "p-4 rounded-xl border-2 transition-all duration-200 flex flex-col items-center gap-2 text-center group",
-            prof.name === selectedProf
-              ? PROFESSION_GRID_STYLES[category].selected
-              : "bg-slate-900 border-slate-800 text-slate-500 hover:border-slate-700 hover:text-slate-300"
-          )}
-        >
-          <span className="text-2xl">{prof.icon}</span>
-          <span className="text-xs font-bold uppercase tracking-wider">{prof.name}</span>
-        </button>
-      ))}
+      {professions.map((prof) => {
+        const iconSrc = PROFESSION_ICONS[prof.name];
+        return (
+          <button
+            key={prof.id}
+            onClick={() => setSelectedProf(prof.id)}
+            data-testid={`profession-${prof.id}`}
+            className={cn(
+              "p-3 rounded-xl border-2 transition-all duration-200 flex flex-col items-center gap-1.5 text-center group relative overflow-hidden",
+              prof.name === selectedProf
+                ? PROFESSION_GRID_STYLES[category].selected
+                : "bg-slate-900 border-slate-800 text-slate-500 hover:border-slate-700 hover:text-slate-300"
+            )}
+          >
+            {iconSrc ? (
+              <img src={iconSrc} alt={prof.name} className="w-10 h-10 object-contain rounded-md" loading="lazy" />
+            ) : (
+              <span className="text-2xl">{prof.icon}</span>
+            )}
+            <span className="text-xs font-bold uppercase tracking-wider">{prof.name}</span>
+          </button>
+        );
+      })}
     </div>
   );
 }
@@ -672,37 +720,61 @@ function ProfessionGrid({ professions, selectedProf, setSelectedProf, category }
 function ProfessionInfoCard({ profession }: { profession: GrudaProfession }) {
   const [, setLocation] = useLocation();
   const professionRoute = `/profession/${profession.name.toLowerCase()}`;
+  const bgSrc = PROFESSION_BG[profession.name];
+  const iconSrc = PROFESSION_ICONS[profession.name];
   
   return (
-    <div className="bg-slate-900 rounded-xl border border-slate-800 p-6 shadow-xl">
-      <div className="flex items-center gap-3 mb-4">
-        <span className="text-3xl">{profession.icon}</span>
-        <div>
-          <h2 className="text-xl font-bold text-white">{profession.name}</h2>
-          <Badge className="bg-amber-500/20 text-amber-400 border-amber-500/50 text-xs">
-            Crafting
-          </Badge>
-        </div>
-      </div>
-      
-      <p className="text-slate-400 mb-4 text-sm leading-relaxed">{profession.description}</p>
-      
-      <Button 
-        onClick={() => setLocation(professionRoute)}
-        className="w-full bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 hover:to-amber-600 text-white mb-4"
-        data-testid={`button-open-${profession.name.toLowerCase()}`}
-      >
-        <ChevronRight className="w-4 h-4 mr-2" />
-        Open {profession.name} Workshop
-      </Button>
-      
-      <div className="space-y-3">
-        <div>
-          <div className="flex justify-between text-xs mb-1">
-            <span className="text-slate-500">Mastery Progress</span>
-            <span className="text-amber-400 font-bold">Level 1 / 100</span>
+    <div className="bg-slate-900 rounded-xl border border-slate-800 shadow-xl overflow-hidden">
+      {/* Art banner */}
+      {bgSrc && (
+        <div className="relative h-24 overflow-hidden">
+          <img src={bgSrc} alt="" className="absolute inset-0 w-full h-full object-cover opacity-60" loading="lazy" />
+          <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/40 to-transparent" />
+          <div className="absolute bottom-2 left-4 flex items-center gap-2">
+            {iconSrc ? (
+              <img src={iconSrc} alt={profession.name} className="w-10 h-10 object-contain rounded-md border border-amber-500/50 shadow-lg" loading="lazy" />
+            ) : (
+              <span className="text-3xl">{profession.icon}</span>
+            )}
+            <div>
+              <h2 className="text-lg font-bold text-white drop-shadow">{profession.name}</h2>
+              <Badge className="bg-amber-500/20 text-amber-400 border-amber-500/50 text-[10px]">
+                Crafting
+              </Badge>
+            </div>
           </div>
-          <Progress value={1} className="h-2" />
+        </div>
+      )}
+      
+      <div className="p-4 space-y-3">
+        {!bgSrc && (
+          <div className="flex items-center gap-3 mb-2">
+            <span className="text-3xl">{profession.icon}</span>
+            <div>
+              <h2 className="text-xl font-bold text-white">{profession.name}</h2>
+              <Badge className="bg-amber-500/20 text-amber-400 border-amber-500/50 text-xs">Crafting</Badge>
+            </div>
+          </div>
+        )}
+        
+        <p className="text-slate-400 text-xs leading-relaxed">{profession.description}</p>
+        
+        <Button 
+          onClick={() => setLocation(professionRoute)}
+          size="sm"
+          className="w-full bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 hover:to-amber-600 text-white text-xs"
+          data-testid={`button-open-${profession.name.toLowerCase()}`}
+        >
+          <ChevronRight className="w-3.5 h-3.5 mr-1" />
+          Open Workshop
+        </Button>
+        
+        <div>
+          <div className="flex justify-between text-[10px] mb-1">
+            <span className="text-slate-500">Mastery</span>
+            <span className="text-amber-400 font-bold">Lv.1 / 100</span>
+          </div>
+          <Progress value={1} className="h-1.5" />
         </div>
         
         <div className="flex flex-wrap gap-1">
@@ -710,7 +782,7 @@ function ProfessionInfoCard({ profession }: { profession: GrudaProfession }) {
             <Badge 
               key={name}
               variant="outline" 
-              className={cn("text-[10px]", TIER_COLORS[i + 1], i === 0 ? "ring-1 ring-offset-1 ring-offset-slate-900" : "opacity-50")}
+              className={cn("text-[9px] px-1", TIER_COLORS[i + 1], i === 0 ? "ring-1 ring-offset-1 ring-offset-slate-900" : "opacity-40")}
             >
               T{i + 1}
             </Badge>
@@ -718,10 +790,10 @@ function ProfessionInfoCard({ profession }: { profession: GrudaProfession }) {
         </div>
 
         <div>
-          <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Trainers</h3>
-          <div className="flex flex-wrap gap-2">
+          <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Trainers</h3>
+          <div className="flex flex-wrap gap-1">
             {profession.trainers.map(t => (
-              <Badge key={t} variant="outline" className="border-slate-700 text-slate-300 text-xs">{t}</Badge>
+              <Badge key={t} variant="outline" className="border-slate-700 text-slate-300 text-[10px] px-1.5">{t}</Badge>
             ))}
           </div>
         </div>
@@ -837,17 +909,17 @@ function ResourceNodesPanel({ nodes, currentLevel, isOpen, onToggle }: {
 function RecipesPanel({ recipes, onCraft }: { recipes: GrudaRecipe[]; onCraft: (recipe: GrudaRecipe) => void }) {
   return (
     <div className="bg-slate-900 rounded-xl border border-slate-800 overflow-hidden">
-      <div className="p-4 border-b border-slate-800 bg-slate-950/50 flex justify-between items-center">
-        <h3 className="font-bold text-lg text-amber-400">Known Recipes</h3>
-        <Badge variant="secondary" className="bg-slate-800">{recipes.length} Recipes</Badge>
+      <div className="p-3 border-b border-slate-800 bg-slate-950/50 flex justify-between items-center sticky top-0 z-10">
+        <h3 className="font-bold text-sm text-amber-400">Known Recipes</h3>
+        <Badge variant="secondary" className="bg-slate-800 text-xs">{recipes.length} Recipes</Badge>
       </div>
-      <div className="divide-y divide-slate-800 max-h-[500px] overflow-y-auto">
+      <div className="divide-y divide-slate-800">
         {recipes.map(recipe => {
           const outputItem = ITEMS.find(i => i.id === recipe.outputItemId);
           return (
-            <div key={recipe.id} className="p-4 hover:bg-slate-800/50 transition-colors flex items-center gap-4">
-              <div className="w-12 h-12 bg-slate-950 rounded border border-slate-700 flex items-center justify-center shrink-0">
-                <div className={cn("w-8 h-8 rounded-full", 
+            <div key={recipe.id} className="p-3 hover:bg-slate-800/50 transition-colors flex items-center gap-3">
+              <div className="w-10 h-10 bg-slate-950 rounded border border-slate-700 flex items-center justify-center shrink-0">
+                <div className={cn("w-6 h-6 rounded-full", 
                   outputItem?.rarity === 'Common' ? "bg-slate-500" : 
                   outputItem?.rarity === 'Uncommon' ? "bg-green-500" :
                   outputItem?.rarity === 'Rare' ? "bg-blue-500" :
@@ -855,22 +927,22 @@ function RecipesPanel({ recipes, onCraft }: { recipes: GrudaRecipe[]; onCraft: (
                 )} />
               </div>
               <div className="flex-1 min-w-0">
-                <div className="flex justify-between items-start">
-                  <h4 className={cn("font-bold truncate pr-2", 
+                <div className="flex items-center gap-2">
+                  <h4 className={cn("font-bold text-sm truncate", 
                      outputItem?.rarity === 'Common' ? "text-slate-200" : 
                      outputItem?.rarity === 'Uncommon' ? "text-green-400" : 
                      outputItem?.rarity === 'Rare' ? "text-blue-400" :
                      outputItem?.rarity === 'Epic' ? "text-purple-400" : "text-amber-400"
                   )}>{outputItem?.name || "Unknown Item"}</h4>
-                  <Badge variant="outline" className={cn("text-[10px] shrink-0", TIER_COLORS[outputItem?.tier || 1])}>
+                  <Badge variant="outline" className={cn("text-[9px] shrink-0", TIER_COLORS[outputItem?.tier || 1])}>
                     T{outputItem?.tier || 1}
                   </Badge>
                 </div>
-                <div className="text-xs text-slate-500 mt-1 flex flex-wrap gap-2">
+                <div className="text-[10px] text-slate-500 mt-0.5 flex flex-wrap gap-1">
                   {recipe.ingredients.map(ing => {
                     const ingItem = ITEMS.find(i => i.id === ing.itemId) || RESOURCE_NODES.find(n => n.drops.includes(ing.itemId));
                     return (
-                      <span key={ing.itemId} className="bg-slate-800 px-1.5 py-0.5 rounded text-slate-400">
+                      <span key={ing.itemId} className="bg-slate-800 px-1 py-0.5 rounded text-slate-400">
                         {ing.quantity}x {ingItem?.name || ing.itemId}
                       </span>
                     )
@@ -879,12 +951,12 @@ function RecipesPanel({ recipes, onCraft }: { recipes: GrudaRecipe[]; onCraft: (
               </div>
               <Button 
                 size="sm" 
-                variant="outline" 
-                className="border-slate-700 hover:bg-slate-800 text-slate-300 whitespace-nowrap shrink-0"
+                className="bg-amber-700 hover:bg-amber-600 text-white text-xs px-3 py-1 h-8 whitespace-nowrap shrink-0 shadow-md"
                 onClick={() => onCraft(recipe)}
                 data-testid={`craft-${recipe.id}`}
               >
-                Craft ({recipe.durationSeconds}s)
+                <Hammer className="w-3 h-3 mr-1" />
+                Craft
               </Button>
             </div>
           )
