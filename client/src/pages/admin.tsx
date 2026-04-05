@@ -45,13 +45,50 @@ interface SpriteCategory {
 }
 
 const SPRITE_CATEGORIES: SpriteCategory[] = [
+  // ── Core Character Sprites ──
   { id: "heroes", name: "Hero Characters", path: assetUrl("/sprites/heroes"), count: 6, subcategories: ["human", "orc", "elf", "dwarf", "barbarian", "undead"] },
   { id: "enemies", name: "Enemy Sprites", path: assetUrl("/sprites/enemies"), count: 30, subcategories: ["vampire", "fantasy", "satyr", "shinobi", "werewolf", "knight"] },
-  { id: "rpg", name: "RPG Characters", path: assetUrl("/sprites/rpg"), count: 40, subcategories: ["Archer", "Knight", "Wizard", "Skeleton", "Orc", "Slime"] },
+  { id: "rpg", name: "RPG Characters (100×100)", path: assetUrl("/sprites/GrudgeRPGAssets2d/Characters(100x100)"), count: 40, subcategories: ["Archer", "Knight", "Wizard", "Skeleton", "Orc", "Slime"] },
+
+  // ── MiniWorld (16×16 pixel art) ──
+  { id: "mw-buildings", name: "MiniWorld — Buildings", path: assetUrl("/sprites/miniworld/Buildings"), count: 50, subcategories: ["Wood", "Cyan", "Red", "Purple", "Lime"] },
+  { id: "mw-monsters", name: "MiniWorld — Monsters", path: assetUrl("/sprites/miniworld/Characters/Monsters"), count: 25, subcategories: ["Orcs", "Undead", "Demons", "Slimes", "Yetis"] },
+  { id: "mw-soldiers", name: "MiniWorld — Soldiers", path: assetUrl("/sprites/miniworld/Characters/Soldiers"), count: 30, subcategories: ["Swordsman", "Archer", "Knight", "Spearman", "Mage"] },
+  { id: "mw-champions", name: "MiniWorld — Champions", path: assetUrl("/sprites/miniworld/Characters/Champions"), count: 8, subcategories: ["Arthax", "Gangblanc", "Grum", "Kanji", "Katan", "Okomo", "Zhinja", "Borg"] },
+  { id: "mw-animals", name: "MiniWorld — Animals", path: assetUrl("/sprites/miniworld/Animals"), count: 12, subcategories: ["Sheep", "Chicken", "Horse", "Boar", "Pig"] },
+  { id: "mw-nature", name: "MiniWorld — Nature", path: assetUrl("/sprites/miniworld/Nature"), count: 20, subcategories: ["Trees", "Bushes", "Rocks", "Flowers"] },
+  { id: "mw-ground", name: "MiniWorld — Ground Tilesets", path: assetUrl("/sprites/miniworld/Ground"), count: 5, subcategories: ["Grass", "Winter", "DeadGrass", "Shore", "Cliff"] },
+  { id: "mw-objects", name: "MiniWorld — Objects", path: assetUrl("/sprites/miniworld/Objects"), count: 40, subcategories: ["Weapons", "Barrels", "Crates", "Signs", "Misc"] },
+
+  // ── TinySwords (Tilemap assets) ──
+  { id: "ts-terrain", name: "TinySwords — Terrain", path: assetUrl("/sprites/tinyswords/Terrain"), count: 10, subcategories: ["Ground", "Water", "Elevation"] },
+  { id: "ts-buildings", name: "TinySwords — Buildings", path: assetUrl("/sprites/tinyswords/Factions"), count: 20, subcategories: ["Knights", "Goblins"] },
+  { id: "ts-resources", name: "TinySwords — Resources", path: assetUrl("/sprites/tinyswords/Resources"), count: 10, subcategories: ["GoldMine", "Trees", "Decorations"] },
+  { id: "ts-units", name: "TinySwords — Units", path: assetUrl("/sprites/tinyswords/Factions"), count: 16, subcategories: ["Warrior", "Archer", "Pawn", "TNT"] },
+
+  // ── 2D Island Sprites (473 local files) ──
+  { id: "2d-tiles", name: "2D Island — Tilesets", path: "/sprites/2d-island/tiles", count: 8, subcategories: ["water-island", "fort", "beach"] },
+  { id: "2d-ships", name: "2D Island — Ships", path: "/sprites/2d-island/ships", count: 2, subcategories: ["tiles", "mockup"] },
+  { id: "2d-pirates", name: "2D Island — Pirates", path: "/sprites/2d-island/pirates", count: 7, subcategories: ["blue", "gray", "green", "red"] },
+  { id: "2d-towers", name: "2D Island — Towers", path: "/sprites/2d-island/towers", count: 13, subcategories: ["beam", "catapult", "projectile"] },
+  { id: "2d-bosses", name: "2D Island — Bosses", path: "/sprites/2d-island/bosses", count: 18, subcategories: ["badger", "frogger", "gollux"] },
+  { id: "2d-enemies", name: "2D Island — Enemies", path: "/sprites/2d-island/enemies", count: 78, subcategories: ["bat", "crab", "rat", "slime", "golem", "skull", "pebble"] },
+  { id: "2d-animals", name: "2D Island — Animals", path: "/sprites/2d-island/animals", count: 7, subcategories: ["boar", "pig", "piggy"] },
+  { id: "2d-crawler", name: "2D Island — Pixel Crawler", path: "/sprites/2d-island/crawler", count: 161, subcategories: ["characters", "mobs", "npcs", "environment", "structures", "props", "weapons"] },
+  { id: "2d-abilities", name: "2D Island — Abilities VFX", path: "/sprites/2d-island/abilities", count: 18, subcategories: ["paladin", "bloodmage", "portal"] },
+  { id: "2d-traps", name: "2D Island — Traps & Weapons", path: "/sprites/2d-island/traps-weapons", count: 63, subcategories: ["arrows", "turrets", "shurikens", "rockets"] },
+  { id: "2d-treasure", name: "2D Island — Treasure", path: "/sprites/2d-island/treasure", count: 2, subcategories: ["standard", "snow"] },
+  { id: "2d-undead", name: "2D Island — Undead", path: "/sprites/2d-island/undead", count: 5, subcategories: ["skeleton", "witch-doctor"] },
+  { id: "2d-decor", name: "2D Island — Decorations", path: "/sprites/2d-island/decorations", count: 59, subcategories: ["trees", "bushes", "rocks", "cacti", "snow"] },
+  { id: "2d-ui", name: "2D Island — Game UI", path: "/sprites/2d-island/ui", count: 20, subcategories: ["gold", "iron", "paper", "platinum", "steel", "wood"] },
+  { id: "2d-gameui", name: "2D Island — Pixel UI Pack", path: "/sprites/2d-island/gameui", count: 9, subcategories: ["buttons", "bars", "panels"] },
+  { id: "2d-builder", name: "2D Island — Builder", path: "/sprites/2d-island/builder", count: 3, subcategories: ["wisp", "construction", "collapse"] },
+
+  // ── Legacy Categories ──
   { id: "2dassets", name: "2D Asset Packs", path: assetUrl("/sprites/2dassets"), count: 500, subcategories: ["icons", "weapons", "armor", "enemies", "chibi"] },
   { id: "magic", name: "Magic Effects", path: assetUrl("/sprites/magic"), count: 50, subcategories: ["fire", "water", "ice", "lightning"] },
   { id: "spells", name: "Spell Animations", path: assetUrl("/sprites/spells"), count: 12, subcategories: ["fire-arrow", "fire-ball", "fire-spell", "water-arrow", "water-ball", "water-spell"] },
-  { id: "ui", name: "UI Elements", path: assetUrl("/sprites/ui"), count: 100, subcategories: ["buttons", "frames", "icons"] },
+  { id: "ui", name: "UI Elements (CDN)", path: assetUrl("/sprites/ui"), count: 100, subcategories: ["buttons", "frames", "icons"] },
   { id: "topdown", name: "Top-Down Sprites", path: assetUrl("/sprites/topdown"), count: 80, subcategories: ["goblin", "animals", "characters"] },
   { id: "gear", name: "Equipment & Gear", path: assetUrl("/sprites/gear"), count: 200, subcategories: ["weapons", "armor", "accessories"] },
 ];
