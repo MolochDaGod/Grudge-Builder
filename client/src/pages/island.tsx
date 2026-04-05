@@ -620,10 +620,11 @@ export default function IslandPage() {
         setBuildings((state as any).buildings);
       }
       
-      if (isPuterAvailable() && !state.mapImageUrl) {
-        generateIslandMapImage(state.mapStyle, userId);
-      } else if (state.mapImageUrl) {
+      if (state.mapImageUrl) {
         setMapImageUrl(state.mapImageUrl);
+      } else {
+        // Aggressively generate map — try Puter AI first, then server-side fallback
+        generateIslandMapImage(state.mapStyle, state.id || userId);
       }
     };
     
@@ -756,22 +757,47 @@ export default function IslandPage() {
 
   const generateIslandMapImage = async (style: IslandState['mapStyle'], seed: string) => {
     setIsGeneratingMap(true);
-    try {
-      const url = await puterAI.generateIslandMap(seed, style);
-      if (url) {
-        setMapImageUrl(url);
-        setIslandState(prev => {
-          if (prev) {
-            const updated = { ...prev, mapImageUrl: url };
-            saveIslandState(prev.id, updated);
-            return updated;
-          }
-          return prev;
-        });
-        addLog(`Generated unique ${style} island map!`);
+    let url: string | null = null;
+
+    // 1. Try Puter AI (client-side, uses user's own Puter account)
+    if (isPuterAvailable()) {
+      try {
+        url = await puterAI.generateIslandMap(seed, style);
+      } catch (e) {
+        console.warn('Puter map gen failed, trying server:', e);
       }
-    } catch (e) {
-      console.error("Map generation failed:", e);
+    }
+
+    // 2. Fallback: server-side generation via /api/island/generate-map
+    if (!url) {
+      try {
+        const { authHeaders } = await import('@/lib/grudgeBackend');
+        const res = await fetch('/api/island/generate-map', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', ...authHeaders() },
+        });
+        if (res.ok) {
+          const data = await res.json();
+          url = data.mapImageUrl || data.imageUrl || null;
+        }
+      } catch (e) {
+        console.warn('Server map gen failed:', e);
+      }
+    }
+
+    if (url) {
+      setMapImageUrl(url);
+      setIslandState(prev => {
+        if (prev) {
+          const updated = { ...prev, mapImageUrl: url! };
+          saveIslandState(prev.id, updated);
+          return updated;
+        }
+        return prev;
+      });
+      addLog(`Generated unique ${style} island map!`);
+    } else {
+      addLog('Map generation unavailable — using terrain view.');
     }
     setIsGeneratingMap(false);
   };
@@ -1751,15 +1777,13 @@ export default function IslandPage() {
               background: 'radial-gradient(circle, rgba(250,204,21,0.15) 0%, rgba(163,230,53,0.1) 50%, transparent 100%)',
               pointerEvents: 'none',
             }} />
-            {/* AI-generated map overlay if available */}
+            {/* AI-generated map — primary visual when available */}
             {mapImageUrl && (
               <div className="absolute inset-0" style={{
                 backgroundImage: `url(${mapImageUrl})`,
                 backgroundSize: 'cover',
                 backgroundPosition: 'center',
                 imageRendering: 'pixelated',
-                opacity: 0.85,
-                mixBlendMode: 'overlay',
               }} />
             )}
           </div>
