@@ -105,7 +105,6 @@ import { IslandChat } from "@/components/IslandChat";
 import { HeroCommandBar } from "@/components/HeroCommandBar";
 import { CommPanel } from "@/components/CommPanel";
 import { assetUrl } from "@/lib/assetConfig";
-import { IslandTileRenderer } from "@/components/IslandTileRenderer";
 
 const MAP_STYLES = ['iron', 'fantasy', 'tactical', 'night'] as const;
 
@@ -1705,10 +1704,10 @@ export default function IslandPage() {
           onMouseLeave={handleMouseLeave}
           onClick={handleMapClick}
         >
-          {/* Island map layer — tile canvas under entity layer, same CSS transform */}
-          <div
+          {/* Island map background — AI image or procedural gradient */}
+          <div 
             className="absolute"
-            style={{
+            style={{ 
               width: '100%',
               height: '100%',
               left: 0,
@@ -1716,24 +1715,52 @@ export default function IslandPage() {
               ...getBackgroundTransform(camera),
             }}
           >
-            {tileGridRef.current && (
-              <IslandTileRenderer
-                grid={tileGridRef.current}
-                camera={{ x: 50, y: 50, zoom: 1 }}
-                viewportWidth={Math.ceil(viewportSize.width / camera.zoom) + 100}
-                viewportHeight={Math.ceil(viewportSize.height / camera.zoom) + 100}
-              />
-            )}
-            {!tileGridRef.current && mapImageUrl && (
-              <div
-                className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-                style={{
-                  backgroundImage: `url(${mapImageUrl})`,
-                  backgroundSize: 'cover',
-                  imageRendering: 'pixelated',
-                  filter: 'contrast(1.1) saturate(1.2)',
-                }}
-              />
+            {/* Ocean base */}
+            <div className="absolute inset-0" style={{
+              background: 'radial-gradient(ellipse 120% 120% at 50% 50%, #1a365d 0%, #0f2440 30%, #0a1628 70%)',
+            }} />
+            {/* Island landmass shape */}
+            <div className="absolute" style={{
+              left: '10%', top: '10%', width: '80%', height: '80%',
+              borderRadius: '42% 58% 55% 45% / 48% 42% 58% 52%',
+              background: `
+                radial-gradient(ellipse 90% 80% at 45% 40%, #2d6a1e 0%, #1a5c0f 25%, #165a0a 50%, #0f4a06 75%, transparent 100%),
+                radial-gradient(ellipse 60% 50% at 55% 55%, #3a7a2a 0%, transparent 70%)
+              `,
+              boxShadow: 'inset 0 0 40px rgba(0,0,0,0.3), 0 0 60px rgba(26,54,93,0.5)',
+            }} />
+            {/* Shore/beach ring */}
+            <div className="absolute" style={{
+              left: '8%', top: '8%', width: '84%', height: '84%',
+              borderRadius: '42% 58% 55% 45% / 48% 42% 58% 52%',
+              border: '3px solid rgba(252, 211, 77, 0.4)',
+              boxShadow: '0 0 20px rgba(252, 211, 77, 0.15), inset 0 0 20px rgba(252, 211, 77, 0.1)',
+              pointerEvents: 'none',
+            }} />
+            {/* Mountain area (north) */}
+            <div className="absolute" style={{
+              left: '25%', top: '12%', width: '50%', height: '20%',
+              borderRadius: '40% 60% 50% 50% / 60% 40% 60% 40%',
+              background: 'radial-gradient(ellipse at 50% 60%, rgba(120,113,108,0.5) 0%, rgba(100,90,80,0.3) 50%, transparent 100%)',
+              pointerEvents: 'none',
+            }} />
+            {/* Camp clearing (center) */}
+            <div className="absolute" style={{
+              left: '38%', top: '38%', width: '24%', height: '24%',
+              borderRadius: '50%',
+              background: 'radial-gradient(circle, rgba(250,204,21,0.15) 0%, rgba(163,230,53,0.1) 50%, transparent 100%)',
+              pointerEvents: 'none',
+            }} />
+            {/* AI-generated map overlay if available */}
+            {mapImageUrl && (
+              <div className="absolute inset-0" style={{
+                backgroundImage: `url(${mapImageUrl})`,
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+                imageRendering: 'pixelated',
+                opacity: 0.85,
+                mixBlendMode: 'overlay',
+              }} />
             )}
           </div>
           
