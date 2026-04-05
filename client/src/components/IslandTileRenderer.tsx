@@ -7,8 +7,8 @@ import {
   worldToTile,
   TileType
 } from '@/lib/islandTileGrid';
-import { GRASS_DECORATIONS, getRandomGrass } from '@shared/definitions/characterAnimations';
-import { assetUrl } from "@/lib/assetConfig";
+// Grass decorations and tilesets are optional — renderer works with pure color mode
+// when CDN assets aren't available
 
 interface IslandTileRendererProps {
   grid: IslandTileGrid;
@@ -94,75 +94,7 @@ export function IslandTileRenderer({
 }: IslandTileRendererProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationRef = useRef<number>(0);
-  const [terrainTileset, setTerrainTileset] = useState<HTMLImageElement | null>(null);
-  const [villageTileset, setVillageTileset] = useState<HTMLImageElement | null>(null);
   const [hoveredTile, setHoveredTile] = useState<{ x: number; y: number } | null>(null);
-  
-  const [grassSprites, setGrassSprites] = useState<Record<string, HTMLImageElement>>({});
-  const [grassPositions, setGrassPositions] = useState<Array<{x: number, y: number, spriteId: string, offsetX: number, offsetY: number}>>([]);
-  
-  // Load tilesets
-  useEffect(() => {
-    const terrainImg = new Image();
-    terrainImg.src = assetUrl("/sprites/tiny_swords/Tiny Swords (Free Pack)/2DAssets/Terrain/Tilemap_color1.png");
-    terrainImg.onload = () => setTerrainTileset(terrainImg);
-    
-    const villageImg = new Image();
-    villageImg.src = assetUrl("/sprites/2dassets/tileset-village/1 Tiles/FieldsTileset.png");
-    villageImg.onload = () => setVillageTileset(villageImg);
-    
-    // Load grass decoration sprites
-    const loadGrass = async () => {
-      const loaded: Record<string, HTMLImageElement> = {};
-      for (const grass of GRASS_DECORATIONS) {
-        const img = new Image();
-        img.src = grass.path;
-        await new Promise((resolve) => {
-          img.onload = resolve;
-          img.onerror = resolve;
-        });
-        loaded[grass.id] = img;
-      }
-      setGrassSprites(loaded);
-    };
-    loadGrass();
-  }, []);
-  
-  // Generate grass decoration positions based on grid
-  useEffect(() => {
-    if (!grid || !grid.tiles) return;
-    
-    const positions: typeof grassPositions = [];
-    const seededRandom = (x: number, y: number) => {
-      const seed = x * 10000 + y;
-      return ((Math.sin(seed) * 10000) % 1 + 1) % 1;
-    };
-    
-    for (let y = 0; y < grid.height; y++) {
-      for (let x = 0; x < grid.width; x++) {
-        const tile = grid.tiles[y]?.[x];
-        if (!tile) continue;
-        
-        // Only add grass to grass and hill tiles
-        if (tile.type === 'grass' || tile.type === 'hill') {
-          const rand = seededRandom(x, y);
-          // 30% chance of grass decoration
-          if (rand < 0.3) {
-            const grassIndex = Math.floor(seededRandom(x + 100, y) * GRASS_DECORATIONS.length);
-            const grass = GRASS_DECORATIONS[grassIndex];
-            positions.push({
-              x,
-              y,
-              spriteId: grass.id,
-              offsetX: seededRandom(x + 200, y) * (GRID_CONFIG.tileSize - grass.width),
-              offsetY: seededRandom(x, y + 300) * (GRID_CONFIG.tileSize - grass.height)
-            });
-          }
-        }
-      }
-    }
-    setGrassPositions(positions);
-  }, [grid]);
   
   // Calculate visible tile range
   const getVisibleRange = useCallback(() => {
@@ -238,34 +170,14 @@ export function IslandTileRenderer({
             }
           }
         
-          // Draw tileset sprite for non-water tiles if available
-          if (terrainTileset && !tile.isCleared && tile.type !== 'deep_water' && tile.type !== 'shallow_water') {
-            const tilesetCols = 10; // Tiny Swords tileset is 10 columns
-            const srcTileSize = 64; // Source tile size in tileset
-            const srcX = (tile.tilesetIndex % tilesetCols) * srcTileSize;
-            const srcY = Math.floor(tile.tilesetIndex / tilesetCols) * srcTileSize;
-            
-            ctx.globalAlpha = 0.8;
-            ctx.drawImage(
-              terrainTileset,
-              srcX, srcY, srcTileSize, srcTileSize,
-              screenX, screenY, tileSize, tileSize
-            );
-            ctx.globalAlpha = 1;
-          }
-          
-          // Draw village tileset for cleared areas
-          if (villageTileset && tile.isCleared && tile.overlayTileIndex !== undefined) {
-            const tilesetCols = 8; // Village tileset columns
-            const srcTileSize = 16; // Source tile size
-            const srcX = (tile.overlayTileIndex % tilesetCols) * srcTileSize;
-            const srcY = Math.floor(tile.overlayTileIndex / tilesetCols) * srcTileSize;
-            
-            ctx.drawImage(
-              villageTileset,
-              srcX, srcY, srcTileSize, srcTileSize,
-              screenX, screenY, tileSize, tileSize
-            );
+          // Add terrain noise texture for land tiles (no external tileset needed)
+          if (tile.type !== 'deep_water' && tile.type !== 'shallow_water') {
+            // Subtle noise pattern using seeded hash for visual variety
+            const hash = ((x * 2654435761) ^ (y * 2246822519)) >>> 0;
+            const noiseR = ((hash & 0xFF) - 128) * 0.04;
+            const noiseG = (((hash >> 8) & 0xFF) - 128) * 0.04;
+            ctx.fillStyle = `rgba(${noiseR > 0 ? 255 : 0}, ${noiseG > 0 ? 255 : 0}, 0, ${Math.abs(noiseR) + Math.abs(noiseG)})`;
+            ctx.fillRect(screenX, screenY, tileSize + 1, tileSize + 1);
           }
           
           // Draw grid lines if enabled
@@ -300,29 +212,19 @@ export function IslandTileRenderer({
         }
       }
       
-      // Draw grass decorations on top of tiles
-      if (Object.keys(grassSprites).length > 0) {
-        for (const grassPos of grassPositions) {
-          // Skip if outside visible range
-          if (grassPos.x < startX || grassPos.x > endX || 
-              grassPos.y < startY || grassPos.y > endY) continue;
-          
-          const grassDef = GRASS_DECORATIONS.find(g => g.id === grassPos.spriteId);
-          const grassImg = grassSprites[grassPos.spriteId];
-          if (!grassDef || !grassImg) continue;
-          
-          const screenX = grassPos.x * GRID_CONFIG.tileSize * camera.zoom + offsetX + grassPos.offsetX * camera.zoom;
-          const screenY = grassPos.y * GRID_CONFIG.tileSize * camera.zoom + offsetY + grassPos.offsetY * camera.zoom;
-          
-          // Scale grass decorations (they're tiny, so scale up 3x)
-          const grassScale = 3 * camera.zoom;
-          ctx.drawImage(
-            grassImg,
-            screenX,
-            screenY,
-            grassDef.width * grassScale,
-            grassDef.height * grassScale
-          );
+      // Draw simple grass dot decorations (no external sprites needed)
+      for (let y = startY; y <= endY; y++) {
+        for (let x = startX; x <= endX; x++) {
+          const tile = grid.tiles[y]?.[x];
+          if (!tile || (tile.type !== 'grass' && tile.type !== 'hill')) continue;
+          // Seeded random for consistent placement
+          const hash = ((x * 2654435761) ^ (y * 2246822519)) >>> 0;
+          if ((hash % 100) > 30) continue; // 30% coverage
+          const dotX = x * GRID_CONFIG.tileSize * camera.zoom + offsetX + ((hash % 28) + 2) * camera.zoom;
+          const dotY = y * GRID_CONFIG.tileSize * camera.zoom + offsetY + (((hash >> 8) % 28) + 2) * camera.zoom;
+          const dotSize = (1 + (hash % 3)) * camera.zoom;
+          ctx.fillStyle = tile.type === 'hill' ? 'rgba(34, 120, 15, 0.5)' : 'rgba(34, 180, 50, 0.4)';
+          ctx.fillRect(dotX, dotY, dotSize, dotSize);
         }
       }
       
@@ -347,7 +249,7 @@ export function IslandTileRenderer({
     return () => {
       cancelAnimationFrame(animationRef.current);
     };
-  }, [grid, camera, viewportWidth, viewportHeight, terrainTileset, villageTileset, showGrid, hoveredTile, selectedTile, getVisibleRange, grassSprites, grassPositions]);
+  }, [grid, camera, viewportWidth, viewportHeight, showGrid, hoveredTile, selectedTile, getVisibleRange]);
   
   // Handle mouse events
   const handleMouseMove = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {

@@ -70,7 +70,7 @@ import {
   createDefaultCamera,
   getBackgroundTransform,
 } from "@/lib/islandCamera";
-import { generateIslandGrid, type IslandTileGrid } from "@/lib/islandTileGrid";
+import { generateIslandGrid, type IslandTileGrid, GRID_CONFIG } from "@/lib/islandTileGrid";
 import { findPath, worldToTileCoord, findNearestWalkable, type WorldPos } from "@/lib/islandPathfinder";
 import { HeroMovementManager } from "@/lib/heroMovementSystem";
 import {
@@ -1666,7 +1666,7 @@ export default function IslandPage() {
           {tileGridRef.current ? (
             <IslandTileRenderer
               grid={tileGridRef.current}
-              camera={{ x: camera.x * 64, y: camera.y * 64, zoom: camera.zoom }}
+              camera={{ x: camera.x * GRID_CONFIG.tileSize, y: camera.y * GRID_CONFIG.tileSize, zoom: camera.zoom }}
               viewportWidth={viewportSize.width}
               viewportHeight={viewportSize.height}
             />
