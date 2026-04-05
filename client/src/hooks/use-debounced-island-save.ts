@@ -32,13 +32,14 @@ export function useDebouncedIslandSave(userId: string) {
     dirtyStateRef.current = null;
 
     try {
-      await saveIslandState(userId, state);
-    } catch (e) {
-      console.error('Debounced island save failed:', e);
-      // Re-mark as dirty so it retries on next tick
-      if (!dirtyStateRef.current) {
-        dirtyStateRef.current = state;
+      const ok = await saveIslandState(userId, state);
+      if (!ok) {
+        // Save returned false (auth failure / VPS down) — don't re-dirty,
+        // the data is already cached locally by saveIslandState.
+        // The circuit breaker in puterIslandKV will prevent further spam.
       }
+    } catch (e) {
+      console.warn('Debounced island save failed:', e);
     } finally {
       isSavingRef.current = false;
     }

@@ -46,19 +46,21 @@ export async function resolveSpriteUrl(localPath: string): Promise<string> {
 export async function preloadMigratedSprites(): Promise<number> {
   try {
     const response = await fetch("/api/sprites/manifest?migratedOnly=true");
-    if (response.ok) {
-      const entries = await response.json();
-      let count = 0;
-      for (const entry of entries) {
-        if (entry.publicUrl && entry.localPath) {
-          setSpriteUrlOverride(entry.localPath, entry.publicUrl);
-          count++;
-        }
+    if (!response.ok) return 0;
+    const contentType = response.headers.get('content-type') || '';
+    if (!contentType.includes('application/json')) return 0; // Guard against HTML 404 pages
+    const entries = await response.json();
+    if (!Array.isArray(entries)) return 0;
+    let count = 0;
+    for (const entry of entries) {
+      if (entry.publicUrl && entry.localPath) {
+        setSpriteUrlOverride(entry.localPath, entry.publicUrl);
+        count++;
       }
-      return count;
     }
-  } catch (error) {
-    console.debug("Failed to preload migrated sprites:", error);
+    return count;
+  } catch {
+    // Endpoint may not exist in production (Vercel SPA) — silently skip
+    return 0;
   }
-  return 0;
 }

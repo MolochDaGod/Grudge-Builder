@@ -280,19 +280,38 @@ export const puterIslandKV = {
    * Save island state: VPS is authoritative, Puter KV + localStorage are caches.
    * Write must succeed on VPS. Puter KV and localStorage are updated after.
    */
+  _authFailCount: 0,
+  _maxAuthFails: 3,
+
   async saveState(islandId: string, state: unknown): Promise<boolean> {
+    // Circuit breaker: stop hammering VPS after repeated auth failures
+    if (this._authFailCount >= this._maxAuthFails) {
+      // Just cache locally, don't spam the server
+      await puterKV.set(`grudge:island:${islandId}:dirty`, state).catch(() => {});
+      try { localStorage.setItem(`grudge_island_${islandId}`, JSON.stringify(state)); } catch {}
+      return false;
+    }
+
     // 1. VPS write (must succeed — this is the source of truth)
     try {
+      const { authHeaders } = await import('@/lib/grudgeBackend');
       const res = await fetch('/api/game/player-islands/state', {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
         body: JSON.stringify({ state }),
       });
+      if (res.status === 401 || res.status === 403) {
+        this._authFailCount++;
+        console.warn(`VPS island save auth failed (${this._authFailCount}/${this._maxAuthFails})`);
+        await puterKV.set(`grudge:island:${islandId}:dirty`, state).catch(() => {});
+        return false;
+      }
       if (!res.ok) throw new Error(`VPS save failed: ${res.status}`);
+      this._authFailCount = 0; // Reset on success
     } catch (e) {
-      console.error('VPS island save failed:', e);
+      console.warn('VPS island save failed:', e);
       // VPS down — queue in Puter KV as dirty write for later sync
-      await puterKV.set(`grudge:island:${islandId}:dirty`, state);
+      await puterKV.set(`grudge:island:${islandId}:dirty`, state).catch(() => {});
       return false;
     }
 
@@ -318,7 +337,10 @@ export const puterIslandKV = {
 
     // 2. Read VPS (source of truth)
     try {
-      const res = await fetch('/api/game/player-islands');
+      const { authHeaders } = await import('@/lib/grudgeBackend');
+      const res = await fetch('/api/game/player-islands', {
+        headers: authHeaders(),
+      });
       if (res.ok) {
         const data = await res.json();
         const raw = data.state || data;
@@ -369,12 +391,14 @@ export const puterIslandKV = {
     const dirty = await puterKV.get(`grudge:island:${islandId}:dirty`);
     if (!dirty) return true; // Nothing to sync
     try {
+      const { authHeaders } = await import('@/lib/grudgeBackend');
       const res = await fetch('/api/game/player-islands/state', {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
         body: JSON.stringify({ state: dirty }),
       });
       if (res.ok) {
+        this._authFailCount = 0;
         await puterKV.delete(`grudge:island:${islandId}:dirty`);
         await puterKV.set(`grudge:island:${islandId}:state`, dirty);
         return true;

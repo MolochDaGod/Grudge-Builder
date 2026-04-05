@@ -147,9 +147,10 @@ export async function saveExtendedData(
 
   // VPS write — send ALL extended fields (characters table has JSONB columns for all of these)
   try {
+    const { authHeaders } = await import('@/lib/grudgeBackend');
     const res = await fetch(`/api/game/characters/${charId}`, {
       method: "PATCH",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...authHeaders() },
       body: JSON.stringify({
         attributes: data.attributes,
         equipment: data.equipment,
