@@ -61,7 +61,7 @@ export function CommPanel({
         variant="outline"
         size="sm"
         onClick={() => setIsOpen(true)}
-        className="fixed bottom-28 right-4 z-50 bg-slate-800 border-slate-600 shadow-lg"
+        className="fixed bottom-24 left-4 z-50 bg-slate-800 border-slate-600 shadow-lg"
         data-testid="open-comm-panel"
       >
         <MessageSquare className="w-4 h-4 mr-2" />
@@ -80,7 +80,7 @@ export function CommPanel({
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       className={cn(
-        "fixed bottom-28 right-4 z-50 w-80",
+        "fixed bottom-24 left-4 z-40 w-72",
         className
       )}
     >

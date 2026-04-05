@@ -232,7 +232,7 @@ export function IslandChat({
       <motion.div
         initial={{ scale: 0.8, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
-        className={cn("fixed bottom-4 right-4 z-50", className)}
+        className={cn("fixed bottom-24 right-4 z-40", className)}
       >
         <Button
           onClick={() => setIsMinimized(false)}
@@ -257,7 +257,7 @@ export function IslandChat({
       initial={{ y: 100, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       className={cn(
-        "fixed bottom-4 right-4 z-50 w-80",
+        "fixed bottom-24 right-4 z-40 w-80",
         isExpanded && "w-96",
         className
       )}
