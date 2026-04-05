@@ -342,9 +342,11 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                            background: 'linear-gradient(90deg, rgba(59,130,246,0.15) 0%, rgba(6,182,212,0.15) 100%)',
                            border: '1px solid rgba(212,175,55,0.4)'
                          }}>
-                      <div className="w-6 h-6 rounded-full bg-gradient-to-br from-cyan-400 via-blue-500 to-purple-600 flex items-center justify-center shadow-lg shadow-cyan-500/30 border border-cyan-300/40">
-                        <span className="text-[9px] font-black text-white drop-shadow-[0_1px_1px_rgba(0,0,0,0.5)]">G</span>
-                      </div>
+                      <img 
+                        src="/sprites/gbux-token.png" 
+                        alt="GBUX" 
+                        className="w-6 h-6 rounded-full shadow-lg shadow-cyan-500/30"
+                      />
                       <span className="text-cyan-200 font-bold" data-testid="text-gbux">
                         {(account?.gbuxBalance || 0).toLocaleString()}
                       </span>

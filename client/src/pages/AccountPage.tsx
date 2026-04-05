@@ -137,9 +137,11 @@ export default function AccountPage() {
                   <div className="bg-black/30 p-3 rounded-lg border border-slate-800 text-center">
                     <div className="text-xs text-slate-500 uppercase tracking-wider mb-1">GBUX Balance</div>
                     <div className="flex items-center justify-center gap-1">
-                      <div className="w-5 h-5 rounded-full bg-gradient-to-br from-cyan-400 via-blue-500 to-purple-600 flex items-center justify-center border border-cyan-300/40 shrink-0">
-                        <span className="text-[8px] font-black text-white">G</span>
-                      </div>
+                      <img
+                        src="/sprites/gbux-token.png"
+                        alt="GBUX"
+                        className="w-5 h-5 rounded-full"
+                      />
                       <span className="text-xl font-bold text-cyan-300" data-testid="text-gbux-balance">
                         {(account?.gbuxBalance || 0).toLocaleString()}
                       </span>
