@@ -2219,6 +2219,38 @@ export default function IslandPage() {
           </AnimatePresence>
         </div>
 
+        {/* Create Island button — shows when no island state exists or cutscene was skipped */}
+        {!islandState && !showCutscene && !isCheckingStatus && (
+          <div className="absolute inset-0 z-30 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+            <div className="text-center max-w-md p-8 bg-slate-900/95 rounded-xl border border-amber-700 shadow-2xl">
+              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-br from-amber-500 to-amber-700 flex items-center justify-center text-3xl">🏝️</div>
+              <h2 className="text-2xl font-cinzel font-bold text-amber-400 mb-2">Claim Your Island</h2>
+              <p className="text-slate-400 text-sm mb-6">Establish your home base in the Grudge Warlords world. Your island will be minted as a cNFT on Solana.</p>
+              <Button
+                className="bg-amber-600 hover:bg-amber-500 text-white font-bold px-8 py-3 text-lg"
+                onClick={() => setShowCutscene(true)}
+              >
+                <Sparkles className="w-5 h-5 mr-2" />
+                Create My Island
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* Quick create island — top-right button for returning users who somehow skipped setup */}
+        {accountHomeIsland === false && !showCutscene && islandState && (
+          <div className="absolute top-4 right-4 z-30">
+            <Button
+              className="bg-amber-600 hover:bg-amber-500 shadow-lg"
+              size="sm"
+              onClick={() => setShowCutscene(true)}
+            >
+              <Sparkles className="w-4 h-4 mr-2" />
+              Mint Island cNFT
+            </Button>
+          </div>
+        )}
+
         {/* Pending Loot Badge - Top Right */}
         {pendingLoot.length > 0 && (
           <div className="absolute top-4 right-4 z-30">

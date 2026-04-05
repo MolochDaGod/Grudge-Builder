@@ -8,6 +8,7 @@ import { ChevronRight, ChevronLeft, ChevronDown, Sword, Check, Sparkles, Trash2,
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { characterAPI } from "@/lib/api";
 import { puterAI } from "@/lib/puterIntegration";
+import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
@@ -133,6 +134,7 @@ const TIER_NAMES = ["", "Novice", "Apprentice", "Journeyman", "Expert", "Artisan
 
 export default function CharacterBuilder() {
   const [, setLocation] = useLocation();
+  const { toast } = useToast();
   // If we have characters, default to "roster" view unless creating new
   const [viewMode, setViewMode] = useState<"create" | "roster">("roster");
   const [characters, setCharacters] = useState<Character[]>([]);
@@ -769,6 +771,45 @@ export default function CharacterBuilder() {
                            New Portrait
                          </Button>
                        )}
+                    </div>
+                    
+                    {/* cNFT / Avatar action prompts */}
+                    <div className="flex gap-2 mt-2">
+                      {!activeCharacter.avatarUrl && (
+                        <Button
+                          size="sm"
+                          className="bg-purple-600 hover:bg-purple-500 text-white text-xs"
+                          onClick={() => handleRegenerateAvatar(activeCharacter.id)}
+                          disabled={regeneratingAvatar === activeCharacter.id}
+                        >
+                          {regeneratingAvatar === activeCharacter.id ? (
+                            <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                          ) : (
+                            <ImagePlus className="w-3 h-3 mr-1" />
+                          )}
+                          Generate AI Avatar
+                        </Button>
+                      )}
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="text-xs border-amber-700 text-amber-400 hover:bg-amber-900/20"
+                        onClick={async () => {
+                          try {
+                            const result = await characterAPI.mintCNFT(activeCharacter.id, activeCharacter.avatarUrl || '');
+                            if (result.success) {
+                              toast({ title: 'cNFT Minted!', description: `${activeCharacter.name} is now on the blockchain.` });
+                            } else {
+                              toast({ title: 'Mint Issue', description: result.error || 'Mint may still be processing.', variant: 'destructive' });
+                            }
+                          } catch (e) {
+                            toast({ title: 'Error', description: 'Failed to mint cNFT.', variant: 'destructive' });
+                          }
+                        }}
+                      >
+                        <Sparkles className="w-3 h-3 mr-1" />
+                        Mint as cNFT
+                      </Button>
                     </div>
                   </div>
                 </div>
