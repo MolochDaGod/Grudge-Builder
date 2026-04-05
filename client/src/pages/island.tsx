@@ -1705,32 +1705,37 @@ export default function IslandPage() {
           onMouseLeave={handleMouseLeave}
           onClick={handleMapClick}
         >
-          {/* Island map layer — tile renderer OR AI-generated image */}
-          {tileGridRef.current ? (
-            <IslandTileRenderer
-              grid={tileGridRef.current}
-              camera={{ x: camera.x * GRID_CONFIG.tileSize, y: camera.y * GRID_CONFIG.tileSize, zoom: camera.zoom }}
-              viewportWidth={viewportSize.width}
-              viewportHeight={viewportSize.height}
-            />
-          ) : (
-            <div 
-              className="absolute bg-cover bg-center bg-no-repeat transition-transform duration-100"
-              style={{ 
-                backgroundImage: mapImageUrl 
-                  ? `url(${mapImageUrl})` 
-                  : 'linear-gradient(135deg, #0a1628 0%, #1a365d 40%, #22543d 70%, #0a1628 100%)',
-                backgroundSize: 'cover',
-                imageRendering: 'pixelated',
-                filter: 'contrast(1.1) saturate(1.2)',
-                width: '100%',
-                height: '100%',
-                left: 0,
-                top: 0,
-                ...getBackgroundTransform(camera),
-              }}
-            />
-          )}
+          {/* Island map layer — tile canvas under entity layer, same CSS transform */}
+          <div
+            className="absolute"
+            style={{
+              width: '100%',
+              height: '100%',
+              left: 0,
+              top: 0,
+              ...getBackgroundTransform(camera),
+            }}
+          >
+            {tileGridRef.current && (
+              <IslandTileRenderer
+                grid={tileGridRef.current}
+                camera={{ x: 50, y: 50, zoom: 1 }}
+                viewportWidth={Math.ceil(viewportSize.width / camera.zoom) + 100}
+                viewportHeight={Math.ceil(viewportSize.height / camera.zoom) + 100}
+              />
+            )}
+            {!tileGridRef.current && mapImageUrl && (
+              <div
+                className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+                style={{
+                  backgroundImage: `url(${mapImageUrl})`,
+                  backgroundSize: 'cover',
+                  imageRendering: 'pixelated',
+                  filter: 'contrast(1.1) saturate(1.2)',
+                }}
+              />
+            )}
+          </div>
           
           {isGeneratingMap && (
             <div className="absolute inset-0 bg-black/50 flex items-center justify-center z-30">

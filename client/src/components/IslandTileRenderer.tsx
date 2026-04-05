@@ -170,13 +170,11 @@ export function IslandTileRenderer({
             }
           }
         
-          // Add terrain noise texture for land tiles (no external tileset needed)
+          // Subtle terrain noise — very low alpha darken/lighten
           if (tile.type !== 'deep_water' && tile.type !== 'shallow_water') {
-            // Subtle noise pattern using seeded hash for visual variety
             const hash = ((x * 2654435761) ^ (y * 2246822519)) >>> 0;
-            const noiseR = ((hash & 0xFF) - 128) * 0.04;
-            const noiseG = (((hash >> 8) & 0xFF) - 128) * 0.04;
-            ctx.fillStyle = `rgba(${noiseR > 0 ? 255 : 0}, ${noiseG > 0 ? 255 : 0}, 0, ${Math.abs(noiseR) + Math.abs(noiseG)})`;
+            const noise = ((hash & 0xFF) / 255) * 0.08; // 0 to 0.08 alpha max
+            ctx.fillStyle = (hash & 0x100) ? `rgba(255,255,255,${noise})` : `rgba(0,0,0,${noise})`;
             ctx.fillRect(screenX, screenY, tileSize + 1, tileSize + 1);
           }
           
@@ -312,10 +310,7 @@ export function IslandTileRenderer({
       width={viewportWidth}
       height={viewportHeight}
       className="absolute inset-0"
-      style={{ imageRendering: 'pixelated' }}
-      onMouseMove={handleMouseMove}
-      onClick={handleClick}
-      onMouseLeave={handleMouseLeave}
+      style={{ imageRendering: 'pixelated', pointerEvents: 'none' }}
       data-testid="island-tile-canvas"
     />
   );
