@@ -1,761 +1,235 @@
-import { useState } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
-import { queryClient } from "@/lib/queryClient";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { useState, useEffect } from "react";
+import { useLocation } from "wouter";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Progress } from "@/components/ui/progress";
-import { useToast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
+import { 
+  Swords, Map, Shield, Hammer, User, Wallet, Settings, 
+  ChevronRight, Sparkles, Zap, Crown, Skull, TreePine, Home,
+  Compass, Castle, Flame, BookOpen, Package
+} from "lucide-react";
+import { CharacterManager, Character } from "@/lib/characterManager";
+import { useAccountResources, useAccount } from "@/hooks/use-account";
+import { getCurrentUser } from "@/lib/grudgeBackend";
+import { getSpriteSetForCharacter } from "@/lib/gameData";
+import SpriteAnimator from "@/components/SpriteAnimator";
+import { getCharacterPalette } from "@/lib/spriteManifest";
 
-// ============================================
-// API HELPERS
-// ============================================
+// ── Game Mode Cards ─────────────────────────────────────────────
 
-async function fetchApi<T>(url: string, options?: RequestInit): Promise<T> {
-  const res = await fetch(url, {
-    headers: { "Content-Type": "application/json" },
-    ...options,
-  });
-  const data = await res.json();
-  if (!data.success) throw new Error(data.error || "API error");
-  return data.data;
-}
-
-// ============================================
-// TYPES
-// ============================================
-
-interface Game {
-  id: string;
-  name: string;
-  engine: string;
-  projectPath: string;
-  description?: string;
-  hasNodeModules: boolean;
-  scripts?: Record<string, string>;
-}
-
-interface Asset {
-  id: string;
-  name: string;
-  category: string;
-  filePath: string;
-  extension: string;
-  sizeBytes: number;
-  sourceDir: string;
-}
-
-interface AssetStats {
-  byCategory: Record<string, number>;
-  bySource: Record<string, number>;
-  totalSize: number;
-  totalCount: number;
-}
-
-interface AnimModel {
-  id: string;
-  name: string;
-  paper: string;
-  year: number;
-  description: string;
-  category: string;
-  framework: string;
-  githubUrl: string;
-  demoAvailable: boolean;
-}
-
-interface AnimMapping {
-  grudgeAction: string;
-  ai4animModel: string;
-  description: string;
-  applicableClasses: string[];
-}
-
-interface DraftUnit {
-  id: number;
-  race: string;
-  classId: string;
-  name: string;
-  baseStrength: number;
-  synergies: string[];
-}
-
-interface DraftRecommendation {
-  action: { unitId: number; roleId: number };
-  unit: DraftUnit;
-  role: string;
-  qValue: number;
-  reasoning: string;
-}
-
-interface Tool {
+interface GameMode {
   id: string;
   name: string;
   description: string;
-  path: string | null;
-  installed: boolean;
-  category: string;
+  route: string;
+  icon: typeof Swords;
+  color: string;
+  badge?: string;
 }
 
-// ============================================
-// ENGINE BADGES
-// ============================================
+const GAME_MODES: GameMode[] = [
+  { id: "island", name: "Home Island", description: "Auto-harvest resources, build structures, manage heroes", route: "/island", icon: TreePine, color: "from-green-600 to-emerald-800" },
+  { id: "character", name: "Character Builder", description: "Create heroes, allocate stats, choose skills, equip gear", route: "/character", icon: User, color: "from-amber-600 to-orange-800" },
+  { id: "professions", name: "Professions", description: "6 gathering + 5 crafting professions with tiered progression", route: "/professions", icon: Hammer, color: "from-blue-600 to-blue-800" },
+  { id: "combat", name: "Combat Arena", description: "Turn-based RPG battles with class skills and abilities", route: "/combat", icon: Swords, color: "from-red-600 to-red-800" },
+  { id: "skills", name: "Skill Trees", description: "Class-specific skill trees with tier unlocks per level", route: "/skills", icon: Zap, color: "from-purple-600 to-purple-800" },
+  { id: "world-map", name: "World Map", description: "100\u00d7100 zone grid, 3\u00d73 player blocks, explore and capture", route: "/world-map", icon: Compass, color: "from-cyan-600 to-teal-800", badge: "New" },
+  { id: "dungeon", name: "Dungeon Crawler", description: "Procedural dungeons with enemies, loot, and boss fights", route: "/dungeon", icon: Skull, color: "from-gray-600 to-gray-800" },
+  { id: "tower-wars", name: "Tower Defense", description: "Place towers, defend against waves on capturable islands", route: "/tower-wars", icon: Castle, color: "from-indigo-600 to-indigo-800", badge: "New" },
+  { id: "rpg-battle", name: "RPG Battle", description: "Party-based tactical combat with positioning", route: "/rpg-battle", icon: Flame, color: "from-orange-600 to-red-800" },
+  { id: "harvest", name: "Harvest Mode", description: "Standalone harvesting with resource management", route: "/harvest", icon: Package, color: "from-lime-600 to-green-800" },
+];
 
-const ENGINE_COLORS: Record<string, string> = {
-  gdevelop: "bg-green-600",
-  godot: "bg-blue-600",
-  threejs: "bg-purple-600",
-  phaser: "bg-orange-600",
-  "vite-web": "bg-yellow-600",
-  html5: "bg-red-600",
-  unknown: "bg-gray-600",
-};
+const ADMIN_LINKS = [
+  { name: "Sprite Admin", route: "/admin", icon: Settings },
+  { name: "Sprite Library", route: "/sprite-library", icon: BookOpen },
+  { name: "Sprite Editor", route: "/sprite-editor", icon: Sparkles },
+  { name: "Map Editor", route: "/admin-map", icon: Map },
+  { name: "Database", route: "/database", icon: Shield },
+  { name: "Wallet & NFTs", route: "/wallet", icon: Wallet },
+  { name: "Account", route: "/account", icon: User },
+];
 
-const CATEGORY_ICONS: Record<string, string> = {
-  "2d-sprite": "🎨",
-  "3d-model": "🧊",
-  "ui-kit": "🖼️",
-  font: "🔤",
-  audio: "🔊",
-  script: "📜",
-  animation: "🎬",
-  texture: "🗺️",
-};
-
-// ============================================
-// GAME LIBRARY TAB
-// ============================================
-
-function GameLibrary() {
-  const { toast } = useToast();
-
-  const { data: games, isLoading } = useQuery<Game[]>({
-    queryKey: ["/api/launcher/games"],
-    queryFn: () => fetchApi("/api/launcher/games"),
-  });
-
-  const launchMutation = useMutation({
-    mutationFn: (gameId: string) =>
-      fetchApi("/api/launcher/launch", {
-        method: "POST",
-        body: JSON.stringify({ gameId }),
-      }),
-    onSuccess: (data: any) => {
-      toast({
-        title: "Launch Config Ready",
-        description: `Run: ${data.launchCommand}`,
-      });
-    },
-  });
-
-  if (isLoading) return <div className="p-4 text-muted-foreground">Scanning for games...</div>;
-
-  return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-4">
-      {games?.map((game) => (
-        <Card key={game.id} className="bg-card/50 border-border/50 hover:border-primary/30 transition-colors">
-          <CardHeader className="pb-2">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-base">{game.name}</CardTitle>
-              <Badge className={`${ENGINE_COLORS[game.engine] || ENGINE_COLORS.unknown} text-white text-xs`}>
-                {game.engine}
-              </Badge>
-            </div>
-            {game.description && (
-              <CardDescription className="text-xs line-clamp-2">{game.description}</CardDescription>
-            )}
-          </CardHeader>
-          <CardContent className="pt-0">
-            <p className="text-xs text-muted-foreground truncate mb-3" title={game.projectPath}>
-              {game.projectPath}
-            </p>
-            <div className="flex gap-2">
-              <Button
-                size="sm"
-                onClick={() => launchMutation.mutate(game.id)}
-                disabled={launchMutation.isPending}
-                className="flex-1"
-              >
-                Launch
-              </Button>
-              {!game.hasNodeModules && game.scripts && (
-                <Badge variant="outline" className="text-xs self-center">
-                  needs install
-                </Badge>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      ))}
-      {(!games || games.length === 0) && (
-        <p className="text-muted-foreground col-span-full text-center py-8">
-          No game projects found. Run a scan first.
-        </p>
-      )}
-    </div>
-  );
-}
-
-// ============================================
-// ASSET BROWSER TAB
-// ============================================
-
-function AssetBrowser() {
-  const [category, setCategory] = useState<string>("all");
-  const [search, setSearch] = useState("");
-
-  const params = new URLSearchParams();
-  if (category !== "all") params.set("category", category);
-  if (search) params.set("q", search);
-  params.set("limit", "50");
-
-  const { data, isLoading } = useQuery<{ data: Asset[]; pagination: any }>({
-    queryKey: ["/api/launcher/assets", category, search],
-    queryFn: async () => {
-      const res = await fetch(`/api/launcher/assets?${params}`);
-      return res.json();
-    },
-  });
-
-  const { data: statsData } = useQuery({
-    queryKey: ["/api/launcher/assets/stats"],
-    queryFn: () => fetchApi<AssetStats>("/api/launcher/assets/stats"),
-  });
-
-  const assets = data?.data || [];
-
-  return (
-    <div className="p-4 space-y-4">
-      {/* Stats bar */}
-      {statsData && (
-        <div className="flex flex-wrap gap-2">
-          {Object.entries(statsData.byCategory).map(([cat, count]) => (
-            <Badge
-              key={cat}
-              variant={category === cat ? "default" : "outline"}
-              className="cursor-pointer"
-              onClick={() => setCategory(category === cat ? "all" : cat)}
-            >
-              {CATEGORY_ICONS[cat] || "📁"} {cat}: {count}
-            </Badge>
-          ))}
-          <Badge variant="secondary">
-            Total: {statsData.totalCount} ({(statsData.totalSize / 1024 / 1024).toFixed(0)} MB)
-          </Badge>
-        </div>
-      )}
-
-      {/* Search */}
-      <Input
-        placeholder="Search assets..."
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-        className="max-w-sm"
-      />
-
-      {/* Asset list */}
-      <ScrollArea className="h-[500px]">
-        {isLoading ? (
-          <p className="text-muted-foreground">Loading assets...</p>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-            {assets.map((asset: Asset) => (
-              <div
-                key={asset.id}
-                className="flex items-center gap-3 p-2 rounded-md bg-card/30 hover:bg-card/60 border border-border/30"
-              >
-                <span className="text-lg">{CATEGORY_ICONS[asset.category] || "📁"}</span>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate">{asset.name}{asset.extension}</p>
-                  <p className="text-xs text-muted-foreground truncate">{asset.filePath}</p>
-                </div>
-                <Badge variant="outline" className="text-xs shrink-0">
-                  {(asset.sizeBytes / 1024).toFixed(0)} KB
-                </Badge>
-              </div>
-            ))}
-          </div>
-        )}
-      </ScrollArea>
-    </div>
-  );
-}
-
-// ============================================
-// AI ANIMATIONS HUB TAB
-// ============================================
-
-function AIAnimationsHub() {
-  const { data: status } = useQuery({
-    queryKey: ["/api/launcher/ai-animations"],
-    queryFn: () => fetchApi<any>("/api/launcher/ai-animations"),
-  });
-
-  const { data: mappings } = useQuery<AnimMapping[]>({
-    queryKey: ["/api/launcher/ai-animations/mappings"],
-    queryFn: () => fetchApi("/api/launcher/ai-animations/mappings"),
-  });
-
-  const models: AnimModel[] = status?.models || [];
-
-  return (
-    <div className="p-4 space-y-4">
-      {/* Status */}
-      <Card className="bg-card/50">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-base">AI4Animation Integration</CardTitle>
-          <CardDescription>
-            Neural network-based character animation models from{" "}
-            <a href="https://github.com/sebastianstarke/AI4Animation" target="_blank" rel="noreferrer" className="text-primary underline">
-              sebastianstarke/AI4Animation
-            </a>
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex gap-2">
-            <Badge variant={status?.localRepoAvailable ? "default" : "secondary"}>
-              {status?.localRepoAvailable ? "Local Repo Available" : "Remote Reference Only"}
-            </Badge>
-            <Badge variant="outline">{models.length} Models</Badge>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Models */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        {models.map((model) => (
-          <Card key={model.id} className="bg-card/30 border-border/50">
-            <CardHeader className="pb-2">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-sm">{model.name}</CardTitle>
-                <Badge variant="outline" className="text-xs">{model.paper}</Badge>
-              </div>
-            </CardHeader>
-            <CardContent className="pt-0">
-              <p className="text-xs text-muted-foreground mb-2">{model.description}</p>
-              <div className="flex gap-1 flex-wrap">
-                <Badge variant="secondary" className="text-xs">{model.category}</Badge>
-                <Badge variant="secondary" className="text-xs">{model.framework}</Badge>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      {/* Grudge Mappings */}
-      {mappings && mappings.length > 0 && (
-        <Card className="bg-card/50">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base">Grudge Warlords Animation Mappings</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              {mappings.map((m, i) => (
-                <div key={i} className="flex items-start gap-3 p-2 bg-card/30 rounded-md">
-                  <Badge className="shrink-0">{m.grudgeAction}</Badge>
-                  <div>
-                    <p className="text-sm">{m.description}</p>
-                    <div className="flex gap-1 mt-1">
-                      {m.applicableClasses.map((c) => (
-                        <Badge key={c} variant="outline" className="text-xs">{c}</Badge>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-    </div>
-  );
-}
-
-// ============================================
-// DRAFT SIMULATOR TAB
-// ============================================
-
-function DraftSimulator() {
-  const [draftState, setDraftState] = useState<any>(null);
-  const { toast } = useToast();
-
-  const { data: units } = useQuery<DraftUnit[]>({
-    queryKey: ["/api/launcher/draft/units"],
-    queryFn: () => fetchApi("/api/launcher/draft/units"),
-  });
-
-  const recommendMutation = useMutation({
-    mutationFn: () =>
-      fetchApi<DraftRecommendation[]>("/api/launcher/draft/recommend", {
-        method: "POST",
-        body: JSON.stringify({ state: draftState, topN: 6 }),
-      }),
-  });
-
-  const pickMutation = useMutation({
-    mutationFn: (action: { unitId: number; roleId: number }) =>
-      fetchApi("/api/launcher/draft/pick", {
-        method: "POST",
-        body: JSON.stringify({ state: draftState, action }),
-      }),
-    onSuccess: (newState: any) => {
-      setDraftState(newState);
-      recommendMutation.mutate();
-    },
-  });
-
-  const analyzeMutation = useMutation({
-    mutationFn: (team: any[]) =>
-      fetchApi("/api/launcher/draft/analyze", {
-        method: "POST",
-        body: JSON.stringify({ team }),
-      }),
-  });
-
-  const recommendations = recommendMutation.data || [];
-  const roles = ["Tank", "DPS", "Healer", "Support", "Flex"];
-
-  const handleStartDraft = () => {
-    setDraftState(null);
-    recommendMutation.mutate();
-  };
-
-  return (
-    <div className="p-4 space-y-4">
-      <Card className="bg-card/50">
-        <CardHeader className="pb-2">
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="text-base">Crew Draft Simulator</CardTitle>
-              <CardDescription>
-                AI-powered crew composition analysis adapted from SwainBot's RL draft system
-              </CardDescription>
-            </div>
-            <Button onClick={handleStartDraft} size="sm">
-              {draftState ? "Reset" : "Start Draft"}
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {/* Current draft state */}
-          {draftState && (
-            <div className="grid grid-cols-2 gap-4 mb-4">
-              <div>
-                <h4 className="text-sm font-semibold mb-2">Team A</h4>
-                {draftState.teamA?.map((a: any, i: number) => {
-                  const unit = units?.find((u) => u.id === a.unitId);
-                  return (
-                    <Badge key={i} className="mr-1 mb-1">
-                      {unit?.race} {unit?.classId} → {roles[a.roleId]}
-                    </Badge>
-                  );
-                })}
-                {(!draftState.teamA || draftState.teamA.length === 0) && (
-                  <p className="text-xs text-muted-foreground">No picks yet</p>
-                )}
-              </div>
-              <div>
-                <h4 className="text-sm font-semibold mb-2">Team B</h4>
-                {draftState.teamB?.map((a: any, i: number) => {
-                  const unit = units?.find((u) => u.id === a.unitId);
-                  return (
-                    <Badge key={i} variant="secondary" className="mr-1 mb-1">
-                      {unit?.race} {unit?.classId} → {roles[a.roleId]}
-                    </Badge>
-                  );
-                })}
-                {(!draftState.teamB || draftState.teamB.length === 0) && (
-                  <p className="text-xs text-muted-foreground">No picks yet</p>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Turn indicator */}
-          {draftState && (
-            <Badge variant="outline" className="mb-3">
-              Turn {draftState.turnNumber + 1} — Team {draftState.currentTeam || "A"} picks
-            </Badge>
-          )}
-
-          {/* Recommendations */}
-          {recommendations.length > 0 && (
-            <div className="space-y-2">
-              <h4 className="text-sm font-semibold">AI Recommendations</h4>
-              {recommendations.map((rec, i) => (
-                <div
-                  key={i}
-                  className="flex items-center gap-3 p-2 bg-card/30 rounded-md hover:bg-card/60 cursor-pointer border border-border/30"
-                  onClick={() => pickMutation.mutate(rec.action)}
-                >
-                  <span className="text-lg font-bold text-primary w-6">#{i + 1}</span>
-                  <div className="flex-1">
-                    <div className="flex gap-1 items-center">
-                      <Badge variant="outline" className="text-xs">{rec.unit.race}</Badge>
-                      <Badge className="text-xs">{rec.unit.classId}</Badge>
-                      <span className="text-xs text-muted-foreground">→</span>
-                      <Badge variant="secondary" className="text-xs">{rec.role}</Badge>
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-1">{rec.reasoning}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm font-semibold text-primary">{rec.qValue.toFixed(1)}</p>
-                    <p className="text-xs text-muted-foreground">Q-value</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* Analyze button */}
-          {draftState && draftState.teamA?.length >= 2 && (
-            <div className="mt-4">
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => analyzeMutation.mutate(draftState.teamA)}
-              >
-                Analyze Team A
-              </Button>
-              {analyzeMutation.data && (() => {
-                const analysis = analyzeMutation.data as Record<string, any>;
-                return (
-                  <div className="mt-2 p-3 bg-card/30 rounded-md">
-                    <div className="flex gap-2 mb-2">
-                      <Badge>Rating: {analysis.overallRating}</Badge>
-                      <Badge variant="outline">Synergy: {analysis.synergyScore}</Badge>
-                      <Badge variant="outline">Balance: {analysis.balanceScore}</Badge>
-                    </div>
-                    {(analysis.strengths as string[])?.map((s: string, i: number) => (
-                      <Badge key={i} className="mr-1 mb-1 bg-green-600/20 text-green-400 border-green-600/30">
-                        + {s}
-                      </Badge>
-                    ))}
-                    {(analysis.weaknesses as string[])?.map((w: string, i: number) => (
-                      <Badge key={i} className="mr-1 mb-1 bg-red-600/20 text-red-400 border-red-600/30">
-                        - {w}
-                      </Badge>
-                    ))}
-                  </div>
-                );
-              })()}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Unit Pool reference */}
-      <Card className="bg-card/50">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm">Unit Pool ({units?.length || 0} units)</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-wrap gap-1">
-            {units?.map((u) => (
-              <Badge key={u.id} variant="outline" className="text-xs">
-                {u.race}-{u.classId} ({u.baseStrength})
-              </Badge>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-    </div>
-  );
-}
-
-// ============================================
-// TOOLS TAB
-// ============================================
-
-function ToolsPanel() {
-  const { data: tools } = useQuery<Tool[]>({
-    queryKey: ["/api/launcher/tools"],
-    queryFn: () => fetchApi("/api/launcher/tools"),
-  });
-
-  const TOOL_ICONS: Record<string, string> = {
-    art: "🎨",
-    engine: "⚙️",
-    platform: "🚀",
-  };
-
-  return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 p-4">
-      {tools?.map((tool) => (
-        <Card key={tool.id} className="bg-card/50 border-border/50">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <span className="text-2xl">{TOOL_ICONS[tool.category] || "🔧"}</span>
-              <div className="flex-1">
-                <h3 className="font-semibold text-sm">{tool.name}</h3>
-                <p className="text-xs text-muted-foreground">{tool.description}</p>
-              </div>
-              <Badge variant={tool.installed ? "default" : "secondary"}>
-                {tool.installed ? "Available" : "Not Found"}
-              </Badge>
-            </div>
-            {tool.path && (
-              <p className="text-xs text-muted-foreground mt-2 truncate" title={tool.path}>
-                {tool.path}
-              </p>
-            )}
-          </CardContent>
-        </Card>
-      ))}
-    </div>
-  );
-}
-
-// ============================================
-// STORAGE TAB
-// ============================================
-
-function StoragePanel() {
-  const { data: syncStatus } = useQuery({
-    queryKey: ["/api/launcher/sync/status"],
-    queryFn: () => fetchApi<any>("/api/launcher/sync/status"),
-    refetchInterval: 5000,
-  });
-
-  const stats = syncStatus?.stats;
-
-  return (
-    <div className="p-4 space-y-4">
-      <Card className="bg-card/50">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-base">Object Storage Sync</CardTitle>
-          <CardDescription>
-            Sync local assets to cloud storage (Google Cloud Storage)
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {stats ? (
-            <div className="space-y-3">
-              <div className="grid grid-cols-4 gap-2 text-center">
-                <div>
-                  <p className="text-2xl font-bold">{stats.total}</p>
-                  <p className="text-xs text-muted-foreground">Total</p>
-                </div>
-                <div>
-                  <p className="text-2xl font-bold text-green-400">{stats.synced}</p>
-                  <p className="text-xs text-muted-foreground">Synced</p>
-                </div>
-                <div>
-                  <p className="text-2xl font-bold text-yellow-400">{stats.pending + stats.syncing}</p>
-                  <p className="text-xs text-muted-foreground">Pending</p>
-                </div>
-                <div>
-                  <p className="text-2xl font-bold text-red-400">{stats.errors}</p>
-                  <p className="text-xs text-muted-foreground">Errors</p>
-                </div>
-              </div>
-              {stats.total > 0 && (
-                <Progress value={(stats.synced / stats.total) * 100} className="h-2" />
-              )}
-              <p className="text-xs text-muted-foreground">
-                Total tracked: {(stats.totalSizeBytes / 1024 / 1024).toFixed(1)} MB
-              </p>
-            </div>
-          ) : (
-            <p className="text-sm text-muted-foreground">
-              No assets have been synced yet. Use the Asset Browser to select assets for cloud sync.
-            </p>
-          )}
-        </CardContent>
-      </Card>
-    </div>
-  );
-}
-
-// ============================================
-// MAIN LAUNCHER PAGE
-// ============================================
+// ── Main Launcher ───────────────────────────────────────────────
 
 export default function LauncherPage() {
-  const { toast } = useToast();
+  const [, setLocation] = useLocation();
+  const [characters, setCharacters] = useState<Character[]>([]);
+  const [activeChar, setActiveChar] = useState<Character | null>(null);
+  const { resources } = useAccountResources();
+  const { account } = useAccount();
+  const user = getCurrentUser();
 
-  const scanMutation = useMutation({
-    mutationFn: () => fetchApi<any>("/api/launcher/scan?fresh=true"),
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ["/api/launcher"] });
-      toast({
-        title: "Scan Complete",
-        description: `Found ${data.assetCount} assets and ${data.gameCount} games in ${(data.scanDuration / 1000).toFixed(1)}s`,
-      });
-    },
-  });
+  useEffect(() => {
+    CharacterManager.getAll().then(chars => {
+      setCharacters(chars);
+      CharacterManager.getActiveCharacter().then(ac => setActiveChar(ac));
+    });
+  }, []);
+
+  const goldAmount = resources['gold'] || resources['GOLD'] || 0;
+  const woodAmount = resources['WOOD_PINE_T1'] || resources['wood'] || 0;
+  const stoneAmount = resources['STONE_ROUGH'] || resources['stone'] || 0;
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
       {/* Header */}
-      <div className="border-b border-border/50 bg-card/30">
+      <header className="border-b border-amber-900/30 bg-black/40 backdrop-blur-sm">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold">
-                Grudge Studio Games Engine
-              </h1>
-              <p className="text-sm text-muted-foreground">
-                Launcher &middot; Asset Browser &middot; AI Tools &middot; Draft Simulator
-              </p>
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-amber-500 to-amber-700 flex items-center justify-center text-black font-bold text-xl shadow-lg shadow-amber-500/20">G</div>
+              <div>
+                <h1 className="text-2xl font-cinzel font-bold text-amber-400">Grudge Warlords</h1>
+                <p className="text-xs text-slate-500 tracking-widest uppercase">Game Launcher \u2022 {user?.username || 'Guest'}</p>
+              </div>
             </div>
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => scanMutation.mutate()}
-                disabled={scanMutation.isPending}
-              >
-                {scanMutation.isPending ? "Scanning..." : "Scan Drives"}
-              </Button>
-              <Button variant="ghost" size="sm" onClick={() => window.location.href = "/home"}>
-                Back to Home
+            <div className="flex items-center gap-3">
+              <div className="hidden md:flex items-center gap-4 text-sm bg-black/40 rounded-lg px-4 py-2 border border-slate-800">
+                <span className="text-amber-400">\ud83e\ude99 {goldAmount}</span>
+                <span className="text-green-400">\ud83e\udeb5 {woodAmount}</span>
+                <span className="text-slate-300">\ud83e\udea8 {stoneAmount}</span>
+              </div>
+              <Button variant="ghost" size="sm" onClick={() => setLocation("/home")} className="text-slate-400">
+                <Home className="w-4 h-4 mr-1" /> Home
               </Button>
             </div>
           </div>
         </div>
-      </div>
+      </header>
 
-      {/* Main content */}
-      <div className="container mx-auto px-4 py-4">
-        <Tabs defaultValue="games" className="w-full">
-          <TabsList className="grid w-full grid-cols-6 mb-4">
-            <TabsTrigger value="games">Game Library</TabsTrigger>
-            <TabsTrigger value="assets">Asset Browser</TabsTrigger>
-            <TabsTrigger value="ai-anim">AI Animations</TabsTrigger>
-            <TabsTrigger value="draft">Draft Sim</TabsTrigger>
-            <TabsTrigger value="storage">Storage</TabsTrigger>
-            <TabsTrigger value="tools">Tools</TabsTrigger>
-          </TabsList>
+      <div className="container mx-auto px-4 py-6 space-y-8">
+        
+        {/* Active Character Banner */}
+        {activeChar && (
+          <div className="bg-gradient-to-r from-slate-900/80 via-slate-800/60 to-slate-900/80 rounded-xl p-5 border border-slate-700 flex items-center gap-6">
+            <div className="w-16 h-16 rounded-full border-4 border-amber-500 overflow-hidden bg-black/50 flex items-center justify-center shrink-0">
+              {activeChar.avatarUrl ? (
+                <img src={activeChar.avatarUrl} alt={activeChar.name} className="w-full h-full object-cover" />
+              ) : (
+                <div className="scale-[1.3]">
+                  <SpriteAnimator 
+                    spriteSet={getSpriteSetForCharacter(activeChar.raceId, activeChar.classId)} 
+                    action="Idle" 
+                    palette={getCharacterPalette(activeChar.id)}
+                    isUndead={activeChar.raceId === 'undead'}
+                  />
+                </div>
+              )}
+            </div>
+            <div className="flex-1">
+              <div className="flex items-center gap-3 flex-wrap">
+                <h2 className="text-xl font-cinzel font-bold text-white">{activeChar.name}</h2>
+                <Badge className="bg-amber-600/20 text-amber-300 border-amber-600/50">Lv {activeChar.level}</Badge>
+                <Badge variant="outline" className="text-xs capitalize">{activeChar.raceId} {activeChar.classId}</Badge>
+              </div>
+              <div className="flex items-center gap-4 mt-2 flex-wrap">
+                <div className="flex-1 max-w-xs">
+                  <div className="flex justify-between text-[10px] text-slate-400 mb-0.5">
+                    <span>XP</span>
+                    <span>{activeChar.xp || 0}</span>
+                  </div>
+                  <Progress value={Math.min(100, ((activeChar.xp || 0) % 100))} className="h-1.5" />
+                </div>
+                <span className="text-xs text-slate-500">{characters.length} heroes total</span>
+                {(account as any)?.characterTokens !== undefined && (
+                  <Badge variant="outline" className="text-xs text-cyan-400 border-cyan-600/50">
+                    <Crown className="w-3 h-3 mr-1" /> {(account as any).characterTokens} tokens
+                  </Badge>
+                )}
+              </div>
+            </div>
+            <Button onClick={() => setLocation("/character")} variant="outline" className="border-amber-700 text-amber-400 hover:bg-amber-900/30 hidden md:flex">
+              <User className="w-4 h-4 mr-2" /> Heroes
+            </Button>
+          </div>
+        )}
 
-          <TabsContent value="games">
-            <GameLibrary />
-          </TabsContent>
+        {/* No Character CTA */}
+        {!activeChar && characters.length === 0 && (
+          <Card className="border-amber-600/50 bg-amber-950/20">
+            <CardContent className="p-8 text-center">
+              <Crown className="w-16 h-16 mx-auto text-amber-500 mb-4" />
+              <h2 className="text-2xl font-cinzel text-amber-400 mb-2">Create Your First Hero</h2>
+              <p className="text-slate-400 mb-6">Begin your journey in the world of Grudge Warlords</p>
+              <Button onClick={() => setLocation("/character")} size="lg" className="bg-amber-600 hover:bg-amber-500 text-black font-bold">
+                Create Character <ChevronRight className="w-4 h-4 ml-2" />
+              </Button>
+            </CardContent>
+          </Card>
+        )}
 
-          <TabsContent value="assets">
-            <AssetBrowser />
-          </TabsContent>
+        {/* Game Modes Grid */}
+        <div>
+          <h3 className="text-lg font-cinzel text-slate-300 mb-4 flex items-center gap-2">
+            <Swords className="w-5 h-5 text-amber-500" /> Game Modes
+          </h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+            {GAME_MODES.map(mode => (
+              <Card 
+                key={mode.id}
+                className="group cursor-pointer transition-all duration-200 hover:-translate-y-1 hover:shadow-xl border-slate-800 bg-slate-900/50 overflow-hidden"
+                onClick={() => setLocation(mode.route)}
+              >
+                <div className={cn("h-1.5 bg-gradient-to-r", mode.color)} />
+                <CardContent className="p-4">
+                  <div className="flex items-start justify-between mb-3">
+                    <div className={cn("w-10 h-10 rounded-lg bg-gradient-to-br flex items-center justify-center", mode.color)}>
+                      <mode.icon className="w-5 h-5 text-white" />
+                    </div>
+                    {mode.badge && (
+                      <Badge className="bg-cyan-600/20 text-cyan-300 border-cyan-600/50 text-[10px]">{mode.badge}</Badge>
+                    )}
+                  </div>
+                  <h4 className="font-bold text-white text-sm group-hover:text-amber-300 transition-colors">{mode.name}</h4>
+                  <p className="text-[11px] text-slate-500 mt-1 line-clamp-2">{mode.description}</p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
 
-          <TabsContent value="ai-anim">
-            <AIAnimationsHub />
-          </TabsContent>
+        {/* Admin & Tools Row */}
+        <div>
+          <h3 className="text-lg font-cinzel text-slate-300 mb-4 flex items-center gap-2">
+            <Settings className="w-5 h-5 text-slate-500" /> Tools & Admin
+          </h3>
+          <div className="flex flex-wrap gap-2">
+            {ADMIN_LINKS.map(link => (
+              <Button 
+                key={link.route}
+                variant="outline" 
+                size="sm" 
+                className="border-slate-700 text-slate-400 hover:text-white hover:border-amber-600/50 hover:bg-amber-900/10"
+                onClick={() => setLocation(link.route)}
+              >
+                <link.icon className="w-3.5 h-3.5 mr-1.5" /> {link.name}
+              </Button>
+            ))}
+          </div>
+        </div>
 
-          <TabsContent value="draft">
-            <DraftSimulator />
-          </TabsContent>
-
-          <TabsContent value="storage">
-            <StoragePanel />
-          </TabsContent>
-
-          <TabsContent value="tools">
-            <ToolsPanel />
-          </TabsContent>
-        </Tabs>
+        {/* Quick Stats Footer */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-4 border-t border-slate-800">
+          <div className="bg-slate-900/50 rounded-lg p-4 border border-slate-800">
+            <div className="text-2xl font-bold text-amber-400">{characters.length}</div>
+            <div className="text-xs text-slate-500 uppercase tracking-wider">Heroes</div>
+          </div>
+          <div className="bg-slate-900/50 rounded-lg p-4 border border-slate-800">
+            <div className="text-2xl font-bold text-green-400">{Object.keys(resources).length}</div>
+            <div className="text-xs text-slate-500 uppercase tracking-wider">Resource Types</div>
+          </div>
+          <div className="bg-slate-900/50 rounded-lg p-4 border border-slate-800">
+            <div className="text-2xl font-bold text-blue-400">{(account as any)?.gbuxBalance || 0}</div>
+            <div className="text-xs text-slate-500 uppercase tracking-wider">GbuX Balance</div>
+          </div>
+          <div className="bg-slate-900/50 rounded-lg p-4 border border-slate-800">
+            <div className="text-2xl font-bold text-purple-400">{(account as any)?.accountXp || 0}</div>
+            <div className="text-xs text-slate-500 uppercase tracking-wider">Account XP</div>
+          </div>
+        </div>
       </div>
     </div>
   );
