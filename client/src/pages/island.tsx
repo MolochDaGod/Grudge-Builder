@@ -1243,8 +1243,8 @@ export default function IslandPage() {
 
   const [, setTick] = useState(0);
 
-  // ── Building placement ──────────────────────────────────────
-  const placeBuilding = (worldX: number, worldY: number) => {
+  // ── Building placement ────────────────────────────────────────
+  const placeBuilding = async (worldX: number, worldY: number) => {
     if (!buildMode) return;
     const result = canPlaceBuilding(buildMode, buildings);
     if (!result.valid) {
@@ -1252,6 +1252,49 @@ export default function IslandPage() {
       return;
     }
     const def = BUILDING_DEFS[buildMode];
+
+    // Check if player has enough resources
+    const goldNeeded = def.cost.gold || 0;
+    const woodNeeded = def.cost.wood || 0;
+    const stoneNeeded = def.cost.stone || 0;
+    const playerGold = resources['gold'] || resources['GOLD'] || 0;
+    const playerWood = resources['WOOD_PINE_T1'] || resources['wood'] || 0;
+    const playerStone = resources['STONE_ROUGH'] || resources['stone'] || 0;
+
+    if (playerGold < goldNeeded) {
+      toast({ title: 'Not Enough Gold', description: `Need ${goldNeeded}g, have ${playerGold}g`, variant: 'destructive' });
+      return;
+    }
+    if (woodNeeded > 0 && playerWood < woodNeeded) {
+      toast({ title: 'Not Enough Wood', description: `Need ${woodNeeded} wood, have ${playerWood}`, variant: 'destructive' });
+      return;
+    }
+    if (stoneNeeded > 0 && playerStone < stoneNeeded) {
+      toast({ title: 'Not Enough Stone', description: `Need ${stoneNeeded} stone, have ${playerStone}`, variant: 'destructive' });
+      return;
+    }
+
+    // Deduct resources from account
+    try {
+      const deductions: Array<{ resourceId: string; amount: number }> = [];
+      if (goldNeeded > 0) deductions.push({ resourceId: 'gold', amount: -goldNeeded });
+      if (woodNeeded > 0) deductions.push({ resourceId: 'WOOD_PINE_T1', amount: -woodNeeded });
+      if (stoneNeeded > 0) deductions.push({ resourceId: 'STONE_ROUGH', amount: -stoneNeeded });
+      // Use the update endpoint to subtract
+      const currentResources = { ...resources };
+      for (const d of deductions) {
+        currentResources[d.resourceId] = Math.max(0, (currentResources[d.resourceId] || 0) + d.amount);
+      }
+      await fetch('/api/account/resources', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ resources: currentResources }),
+      });
+      refetchResources();
+    } catch (e) {
+      console.error('Failed to deduct building resources:', e);
+    }
+
     const tile = worldToTileCoord(worldX, worldY);
     const newBuilding: IslandBuilding = {
       id: `bldg_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
@@ -2118,6 +2161,12 @@ export default function IslandPage() {
                     <Hammer className="w-4 h-4" /> Buildings
                   </h3>
                   <p className="text-[10px] text-slate-400 mt-0.5">Click a building then click the map to place it.</p>
+                  {/* Player resources */}
+                  <div className="mt-2 flex gap-3 text-[10px]">
+                    <span className="text-amber-400">🪙 {resources['gold'] || resources['GOLD'] || 0}g</span>
+                    <span className="text-green-400">🪵 {resources['WOOD_PINE_T1'] || resources['wood'] || 0}w</span>
+                    <span className="text-slate-300">🪨 {resources['STONE_ROUGH'] || resources['stone'] || 0}s</span>
+                  </div>
                   {buildings.length > 0 && (
                     <div className="mt-1 text-[10px] text-green-400">
                       Bonuses: {getIslandBonuses(buildings).harvestSpeedMult < 1 ? `Harvest ${Math.round((1 - getIslandBonuses(buildings).harvestSpeedMult) * 100)}% faster` : ''}

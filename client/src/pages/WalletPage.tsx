@@ -70,8 +70,29 @@ export default function WalletPage() {
 
   const walletConfig = WALLET_CONFIG;
 
-  // NFTs: not yet served by backend — show empty state
-  const nftsData: { nfts: NFTStatus[] } | undefined = undefined;
+  // Fetch character cNFTs from backend
+  const { data: nftsData, isLoading: isLoadingNfts } = useQuery<{ nfts: NFTStatus[] }>({
+    queryKey: ["character-nfts"],
+    queryFn: async () => {
+      const res = await fetch("/api/nfts/characters", { headers: authHeaders() });
+      if (!res.ok) return { nfts: [] };
+      const data = await res.json();
+      return { nfts: Array.isArray(data) ? data : data.nfts || [] };
+    },
+    enabled: !!walletStatus?.hasWallet,
+  });
+
+  // Fetch island cNFT
+  const { data: islandNft } = useQuery<{ nft: NFTStatus | null }>({
+    queryKey: ["island-nft"],
+    queryFn: async () => {
+      const res = await fetch("/api/nfts/island", { headers: authHeaders() });
+      if (!res.ok) return { nft: null };
+      const data = await res.json();
+      return { nft: data.nft || data || null };
+    },
+    enabled: !!walletStatus?.hasWallet,
+  });
 
   const createWalletMutation = useMutation({
     mutationFn: async (email: string) => {
@@ -269,7 +290,47 @@ export default function WalletPage() {
         </CardContent>
       </Card>
 
-      {/* NFTs Card */}
+      {/* Island cNFT Card */}
+      {islandNft?.nft && (
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              🏝️ Home Island cNFT
+            </CardTitle>
+            <CardDescription>
+              Your home island minted as a compressed NFT on Solana
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between p-4 bg-amber-50 dark:bg-amber-950/20 rounded-lg border border-amber-200 dark:border-amber-800">
+              <div>
+                <p className="font-bold text-amber-900 dark:text-amber-100">Home Island</p>
+                <Badge variant={islandNft.nft.status === 'minted' ? 'default' : 'secondary'} className="mt-1">
+                  {islandNft.nft.isCompressed ? 'cNFT' : 'NFT'} • {islandNft.nft.status}
+                  {islandNft.nft.status === 'minting' && <Loader2 className="h-3 w-3 ml-1 animate-spin" />}
+                </Badge>
+              </div>
+              {islandNft.nft.mintAddress && (
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-mono text-muted-foreground">
+                    {shortenAddress(islandNft.nft.mintAddress)}
+                  </span>
+                  <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => copyToClipboard(islandNft.nft!.mintAddress!)}>
+                    <Copy className="h-3 w-3" />
+                  </Button>
+                  <Button variant="ghost" size="icon" className="h-6 w-6" asChild>
+                    <a href={`https://solscan.io/token/${islandNft.nft.mintAddress}?cluster=devnet`} target="_blank" rel="noopener noreferrer">
+                      <ExternalLink className="h-3 w-3" />
+                    </a>
+                  </Button>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Character NFTs Card */}
       <Card>
         <CardHeader>
           <CardTitle>Character NFTs</CardTitle>
