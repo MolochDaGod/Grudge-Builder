@@ -1309,9 +1309,10 @@ export default function IslandPage() {
       for (const d of deductions) {
         currentResources[d.resourceId] = Math.max(0, (currentResources[d.resourceId] || 0) + d.amount);
       }
+      const { authHeaders } = await import('@/lib/grudgeBackend');
       await fetch('/api/account/resources', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
         body: JSON.stringify({ resources: currentResources }),
       });
       refetchResources();

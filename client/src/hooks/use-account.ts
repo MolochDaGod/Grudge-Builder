@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { Account, AccountInventoryItem, AccountResources } from '@shared/schema';
+import { authHeaders } from '@/lib/grudgeBackend';
 
 export function useAccount() {
   const [account, setAccount] = useState<Account | null>(null);
@@ -8,7 +9,7 @@ export function useAccount() {
 
   const fetchAccount = useCallback(async () => {
     try {
-      const response = await fetch('/api/account');
+      const response = await fetch('/api/account', { headers: authHeaders() });
       if (!response.ok) throw new Error('Failed to fetch account');
       const data = await response.json();
       setAccount(data);
@@ -27,7 +28,7 @@ export function useAccount() {
   const updateAccount = async (updates: Partial<Account>) => {
     const response = await fetch('/api/account', {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...authHeaders() },
       body: JSON.stringify(updates),
     });
     if (!response.ok) throw new Error('Failed to update account');
@@ -46,7 +47,7 @@ export function useAccountInventory() {
 
   const fetchInventory = useCallback(async () => {
     try {
-      const response = await fetch('/api/account/inventory');
+      const response = await fetch('/api/account/inventory', { headers: authHeaders() });
       if (!response.ok) throw new Error('Failed to fetch inventory');
       const data = await response.json();
       setInventory(data);
@@ -65,7 +66,7 @@ export function useAccountInventory() {
   const addItem = async (item: { itemId: string; quantity?: number; tier?: number; quality?: string; metadata?: object }) => {
     const response = await fetch('/api/account/inventory', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...authHeaders() },
       body: JSON.stringify(item),
     });
     if (!response.ok) throw new Error('Failed to add item');
@@ -77,7 +78,7 @@ export function useAccountInventory() {
   const updateItem = async (id: string, updates: Partial<AccountInventoryItem>) => {
     const response = await fetch(`/api/account/inventory/${id}`, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...authHeaders() },
       body: JSON.stringify(updates),
     });
     if (!response.ok) throw new Error('Failed to update item');
@@ -89,6 +90,7 @@ export function useAccountInventory() {
   const removeItem = async (id: string) => {
     const response = await fetch(`/api/account/inventory/${id}`, {
       method: 'DELETE',
+      headers: authHeaders(),
     });
     if (!response.ok) throw new Error('Failed to remove item');
     setInventory(prev => prev.filter(item => item.id !== id));
@@ -97,7 +99,7 @@ export function useAccountInventory() {
   const transferToCharacter = async (itemId: string, characterId: string | null) => {
     const response = await fetch(`/api/account/inventory/${itemId}/transfer`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...authHeaders() },
       body: JSON.stringify({ characterId }),
     });
     if (!response.ok) throw new Error('Failed to transfer item');
@@ -135,7 +137,7 @@ export function useAccountResources() {
 
   const fetchResources = useCallback(async () => {
     try {
-      const response = await fetch('/api/account/resources');
+      const response = await fetch('/api/account/resources', { headers: authHeaders() });
       if (!response.ok) throw new Error('Failed to fetch resources');
       const data = await response.json();
       setResources(data.resources || {});
@@ -154,7 +156,7 @@ export function useAccountResources() {
   const updateResources = async (newResources: Record<string, number>) => {
     const response = await fetch('/api/account/resources', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...authHeaders() },
       body: JSON.stringify({ resources: newResources }),
     });
     if (!response.ok) throw new Error('Failed to update resources');
@@ -166,7 +168,7 @@ export function useAccountResources() {
   const addResource = async (resourceId: string, amount: number) => {
     const response = await fetch('/api/account/resources/add', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...authHeaders() },
       body: JSON.stringify({ resourceId, amount }),
     });
     if (!response.ok) throw new Error('Failed to add resource');
@@ -179,7 +181,7 @@ export function useAccountResources() {
     if (items.length === 0) return null;
     const response = await fetch('/api/account/resources/batch', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...authHeaders() },
       body: JSON.stringify({ items }),
     });
     if (!response.ok) throw new Error('Failed to batch add resources');

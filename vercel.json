@@ -8,7 +8,7 @@
   "rewrites": [
     {
       "source": "/api/account/:path*",
-      "destination": "https://account.grudge-studio.com/:path*"
+      "destination": "https://api.grudge-studio.com/api/account/:path*"
     },
     {
       "source": "/api/auth/:path*",
@@ -40,11 +40,15 @@
     },
     {
       "source": "/api/wallet",
-      "destination": "https://api.grudge-studio.com/api/wallet"
+      "destination": "https://api.grudge-studio.com/wallet"
     },
     {
       "source": "/api/wallet/:path*",
-      "destination": "https://api.grudge-studio.com/api/wallet/:path*"
+      "destination": "https://api.grudge-studio.com/wallet/:path*"
+    },
+    {
+      "source": "/api/island/:path*",
+      "destination": "https://api.grudge-studio.com/island/:path*"
     },
     {
       "source": "/api/nfts/:path*",

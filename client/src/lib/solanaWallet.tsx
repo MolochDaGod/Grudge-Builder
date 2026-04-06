@@ -74,7 +74,8 @@ const SolanaWalletManager: FC<SolanaWalletManagerProps> = ({ children }) => {
 
   const fetchWalletConfig = async () => {
     try {
-      const response = await fetch('/api/wallet/config');
+      const { authHeaders } = await import('@/lib/grudgeBackend');
+      const response = await fetch('/api/wallet/config', { headers: authHeaders() });
       if (response.ok) {
         const data = await response.json();
         setConfig(data);
@@ -87,7 +88,8 @@ const SolanaWalletManager: FC<SolanaWalletManagerProps> = ({ children }) => {
   const refreshWalletStatus = useCallback(async () => {
     try {
       setIsLoading(true);
-      const response = await fetch('/api/wallet/status');
+      const { authHeaders } = await import('@/lib/grudgeBackend');
+      const response = await fetch('/api/wallet/status', { headers: authHeaders() });
       if (response.ok) {
         const data = await response.json();
         setWalletStatus(data);
@@ -116,9 +118,10 @@ const SolanaWalletManager: FC<SolanaWalletManagerProps> = ({ children }) => {
       setIsLoading(true);
       setError(null);
       
+      const { authHeaders } = await import('@/lib/grudgeBackend');
       const response = await fetch('/api/wallet/create', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
         body: JSON.stringify({ email }),
       });
 
@@ -143,9 +146,10 @@ const SolanaWalletManager: FC<SolanaWalletManagerProps> = ({ children }) => {
       setIsLoading(true);
       setError(null);
       
+      const { authHeaders } = await import('@/lib/grudgeBackend');
       const response = await fetch('/api/wallet/link-external', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
         body: JSON.stringify({ walletAddress }),
       });
 
