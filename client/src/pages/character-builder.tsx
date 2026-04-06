@@ -437,6 +437,13 @@ export default function CharacterBuilder() {
         Endurance: 0, Wisdom: 0, Agility: 0, Tactics: 0
       });
 
+      // First character? Go straight to island to claim home base
+      if (chars.length === 1) {
+        toast({ title: "Hero Created!", description: `${heroName} is ready. Claiming your home island...` });
+        setLocation("/island");
+        return;
+      }
+
       setViewMode("roster");
     } catch (error) {
       console.error("Failed to create character:", error);
