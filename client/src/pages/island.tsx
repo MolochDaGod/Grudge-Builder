@@ -110,6 +110,7 @@ interface HeroPosition {
   x: number;
   y: number;
   action: 'idle' | 'walk' | 'attack';
+  facing: 'left' | 'right';
   collisionBody: CollisionBody;
 }
 
@@ -155,12 +156,14 @@ function createHeroPosition(
   heroId: string,
   x: number,
   y: number,
-  action: 'idle' | 'walk' | 'attack'
+  action: 'idle' | 'walk' | 'attack',
+  facing: 'left' | 'right' = 'right'
 ): HeroPosition {
   return {
     x,
     y,
     action,
+    facing,
     collisionBody: createCollisionBody(heroId, 'hero', x, y),
   };
 }
@@ -170,13 +173,16 @@ function updateHeroPosition(
   heroId: string,
   x: number,
   y: number,
-  action: 'idle' | 'walk' | 'attack'
+  action: 'idle' | 'walk' | 'attack',
+  facing?: 'left' | 'right'
 ): HeroPosition {
   const collisionBody = createCollisionBody(heroId, 'hero', x, y);
   if (prev) {
     collisionBody.velocity = prev.collisionBody.velocity;
   }
-  return { x, y, action, collisionBody };
+  // Infer facing from movement direction if not explicitly provided
+  const resolvedFacing = facing ?? (prev ? (x > prev.x ? 'right' : x < prev.x ? 'left' : prev.facing) : 'right');
+  return { x, y, action, facing: resolvedFacing, collisionBody };
 }
 
 interface ReconcileResult {
@@ -657,7 +663,7 @@ export default function IslandPage() {
             const next = { ...prev };
             for (const u of updates) {
               const cur = next[u.heroId];
-              next[u.heroId] = updateHeroPosition(cur, u.heroId, u.x, u.y, u.isMoving ? 'walk' : 'idle');
+              next[u.heroId] = updateHeroPosition(cur, u.heroId, u.x, u.y, u.isMoving ? 'walk' : 'idle', u.facing);
             }
             return next;
           });
@@ -2020,9 +2026,10 @@ export default function IslandPage() {
                   )}
                   style={isOnWater ? { height: '40px', clipPath: 'inset(0 0 40% 0)' } : {}}
                 >
-                  <SpriteAnimator 
+                <SpriteAnimator 
                     spriteSet={spriteSet} 
                     action={pos.action === 'attack' ? 'Attack' : pos.action === 'walk' ? 'Walk' : 'Idle'}
+                    flip={pos.facing === 'left'}
                     palette={getCharacterPalette(heroId)}
                     isUndead={hero.raceId === 'undead'}
                   />
