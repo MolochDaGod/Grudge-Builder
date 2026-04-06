@@ -82,6 +82,22 @@ const LIVE_GAMES = [
     badgeColor: "bg-blue-700/80 text-blue-200",
   },
   {
+    id: "space-rts", title: "Space RTS", subtitle: "Fleet Command",
+    description: "Command fleets in space. Build ships, conquer star systems, alliance warfare.",
+    url: "https://grudge-space-rts.vercel.app", external: true,
+    icon: "globe", color: "from-indigo-950/90 via-violet-900/70 to-indigo-800/40",
+    border: "border-indigo-500/40 hover:border-indigo-400/60", badge: "RTS",
+    badgeColor: "bg-indigo-600/80 text-indigo-200",
+  },
+  {
+    id: "ground-rts", title: "Ground RTS", subtitle: "WC3-Style Battles",
+    description: "Build bases, train armies, summon heroes. Full WC3-style RTS on island battlegrounds.",
+    url: "https://grudge-space-rts.vercel.app/ground-rts", external: true,
+    icon: "swords", color: "from-orange-950/90 via-red-900/70 to-orange-800/40",
+    border: "border-orange-500/40 hover:border-orange-400/60", badge: "RTS",
+    badgeColor: "bg-orange-600/80 text-orange-200",
+  },
+  {
     id: "client", title: "Game Client", subtitle: "3D Open World",
     description: "Enter the full 3D Grudge Warlords world. Ships, islands, combat, crews.",
     url: "https://client.grudge-studio.com", external: true,
@@ -120,7 +136,16 @@ export default function HomePage() {
     CharacterManager.getAll().then((c) => { setCharacters(c); CharacterManager.getActiveCharacter().then(setActiveCharacter); }).catch(() => {});
   }, [setLocation]);
 
-  const nav = (url: string, ext: boolean) => ext ? window.open(url, "_blank", "noopener") : setLocation(url);
+  // Navigate to internal routes or external games with auth token passthrough
+  const nav = (url: string, ext: boolean) => {
+    if (!ext) return setLocation(url);
+    // Pass Grudge auth token to external games so they can authenticate against the backend
+    const token = localStorage.getItem('grudge_auth_token') || localStorage.getItem('grudge_session_token') || '';
+    const grudgeId = user?.grudgeId || '';
+    const separator = url.includes('?') ? '&' : '?';
+    const authUrl = token ? `${url}${separator}sso_token=${token}&grudge_id=${grudgeId}` : url;
+    window.open(authUrl, '_blank', 'noopener');
+  };
   const displayName = user?.displayName || user?.username || "Warlord";
   const grudgeIdShort = (user?.grudgeId || "").slice(0, 8).toUpperCase();
   const role = (user as any)?.role || "pleb";
