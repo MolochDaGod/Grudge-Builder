@@ -107,10 +107,12 @@ const LIVE_GAMES = [
   },
 ];
 
+const GDEVELOP_PORTAL = "https://gdevelop-assistant.vercel.app";
+
 const SERVICES = [
   { id: "account", label: "My Account", desc: "Profile, stats & settings", url: "/account", color: "text-amber-400" },
   { id: "wallet", label: "Wallet & NFTs", desc: "Gold, GBUX & cNFTs", url: "/wallet", color: "text-purple-400" },
-  { id: "admin", label: "Sprite Admin", desc: "Asset library & management", url: "/admin", color: "text-blue-400" },
+  { id: "gdevelop", label: "Game Portal", desc: "GDevelop game launcher", url: GDEVELOP_PORTAL, color: "text-cyan-400" },
   { id: "arsenal", label: "Arsenal", desc: "Weapons, armor & items", url: "/arsenal", color: "text-green-400" },
 ];
 
@@ -266,7 +268,7 @@ export default function HomePage() {
               <h3 className="font-cinzel text-xs font-bold text-muted-foreground uppercase tracking-widest mb-3">Services</h3>
               <div className="space-y-0.5">
                 {SERVICES.map((svc) => (
-                  <button key={svc.id} onClick={() => svc.url.startsWith("http") ? window.open(svc.url, "_blank", "noopener") : setLocation(svc.url)}
+                  <button key={svc.id} onClick={() => nav(svc.url, svc.url.startsWith("http"))}
                     className="w-full flex items-center gap-3 px-2 py-2.5 rounded-lg hover:bg-muted/30 transition-colors group text-left">
                     <span className={`${svc.color} text-lg`}>
         {svc.id === "account" ? <UserCircle className="w-4 h-4" /> : svc.id === "engine" ? <Code2 className="w-4 h-4" /> : svc.id === "cloud" ? <Cloud className="w-4 h-4" /> : <Wallet className="w-4 h-4" />}
