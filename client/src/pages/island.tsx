@@ -8,7 +8,6 @@ import AnimalSprite from "@/components/AnimalSprite";
 import { IslandCutscene } from "@/components/IslandCutscene";
 import { RACES, CLASSES, getSpriteSetForCharacter } from "@/lib/gameData";
 import { getCharacterPalette } from "@/lib/spriteManifest";
-import { useDebouncedIslandSave } from "@/hooks/use-debounced-island-save";
 import { motion, AnimatePresence } from "framer-motion";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -70,7 +69,7 @@ import {
   createDefaultCamera,
   getBackgroundTransform,
 } from "@/lib/islandCamera";
-import { generateIslandGrid, type IslandTileGrid, GRID_CONFIG } from "@/lib/islandTileGrid";
+import { generateIslandGrid, type IslandTileGrid } from "@/lib/islandTileGrid";
 import { findPath, worldToTileCoord, findNearestWalkable, type WorldPos } from "@/lib/islandPathfinder";
 import { HeroMovementManager } from "@/lib/heroMovementSystem";
 import {
