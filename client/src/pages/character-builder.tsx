@@ -19,6 +19,9 @@ import { CharacterManager, Character, EquipmentSlots } from "@/lib/characterMana
 import { ITEMS, resolveItemImage, RESOURCE_NODES } from "@/lib/grudaDB";
 import SpriteAnimator, { SpriteAction } from "@/components/SpriteAnimator";
 import { getAttackAnimations, getAvailableAnimations, AnimationState, getCharacterPalette, type ColorPalette } from "@/lib/spriteManifest";
+import ThreeScene, { type ThreeSceneHandle } from "@/components/ThreeScene";
+import CharacterModel3D from "@/components/CharacterModel3D";
+import { getAvailableStates, CLASS_WEAPON_MAP, type AnimState3D } from "@/lib/modelManifest";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { CombatUnitStatus } from "@/components/CombatUnitStatus";
 import { InventorySlot } from "@/components/SpriteIcon";
@@ -235,6 +238,11 @@ export default function CharacterBuilder() {
   
   // Expanded Profession State
   const [expandedProfession, setExpandedProfession] = useState<string | null>(null);
+  
+  // 3D Preview State
+  const [preview3D, setPreview3D] = useState(false);
+  const threeSceneRef = useRef<ThreeSceneHandle | null>(null);
+  const [anim3D, setAnim3D] = useState<AnimState3D>("idle");
 
   // Creation State
   const [step, setStep] = useState<"race" | "class" | "attributes" | "summary">("race");
@@ -948,35 +956,90 @@ export default function CharacterBuilder() {
                         {/* 3-Column Layout */}
                         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-                          {/* Left: Equipment Paper Doll */}
+                          {/* Left: Equipment Paper Doll / 3D Preview */}
                           <div className="bg-slate-900/50 rounded-xl p-4 border border-slate-800">
-                            <h3 className="text-sm font-cinzel text-amber-400 mb-3">Equipment</h3>
-                            <div className="relative mx-auto max-w-[280px]">
-                              <img
-                                src={assetUrl(`/sprites/ui/PNG/equipment/${activeCharacter.raceId}.png`)}
-                                alt={`${raceDef?.name} Equipment`}
-                                className="w-full h-auto"
-                                draggable={false}
-                              />
-                              {renderEquipSlotOverlay("Head")}
-                              {renderEquipSlotOverlay("Back")}
-                              {renderEquipSlotOverlay("Shoulder")}
-                              {renderEquipSlotOverlay("Chest")}
-                              {renderEquipSlotOverlay("Hands")}
-                              {renderEquipSlotOverlay("Accessory1")}
-                              {renderEquipSlotOverlay("MainHand")}
-                              {renderEquipSlotOverlay("OffHand")}
-                              {renderEquipSlotOverlay("Legs")}
-                              {renderEquipSlotOverlay("Feet")}
-                              {renderEquipSlotOverlay("Accessory2")}
-                              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                                <div className="pointer-events-auto">
-                                  <div className="scale-[2.5] transform drop-shadow-[0_0_10px_rgba(0,0,0,0.8)]">
-                                    <SpriteAnimator spriteSet={activeSpriteSet} action={currentAction} isUndead={activeCharacter?.raceId === 'undead'} palette={getCharPalette(activeCharacter?.id)} />
+                            <div className="flex items-center justify-between mb-3">
+                              <h3 className="text-sm font-cinzel text-amber-400">Equipment</h3>
+                              <button
+                                onClick={() => setPreview3D(!preview3D)}
+                                className={cn(
+                                  "text-[10px] px-2 py-1 rounded border font-bold uppercase transition-colors",
+                                  preview3D
+                                    ? "bg-cyan-500 text-black border-cyan-500"
+                                    : "bg-black/40 text-slate-400 border-slate-700 hover:border-cyan-500/50"
+                                )}
+                                data-testid="btn-toggle-3d"
+                              >
+                                {preview3D ? "3D" : "2D"}
+                              </button>
+                            </div>
+
+                            {preview3D ? (
+                              /* ── 3D Model Preview ── */
+                              <div className="relative mx-auto" style={{ height: 340 }}>
+                                <ThreeScene
+                                  ref={threeSceneRef}
+                                  className="w-full h-full rounded-lg"
+                                  cameraMode="orbit"
+                                  cameraDistance={4}
+                                  cameraHeight={2.2}
+                                  orbitSpeed={15}
+                                  bgColor="#0f172a"
+                                />
+                                <CharacterModel3D
+                                  sceneRef={threeSceneRef}
+                                  raceId={activeCharacter.raceId}
+                                  classId={activeCharacter.classId}
+                                  animation={anim3D}
+                                  onAnimationComplete={() => setAnim3D("idle")}
+                                />
+                                {/* 3D Animation selector */}
+                                <div className="flex gap-1 flex-wrap mt-2 justify-center">
+                                  {(getAvailableStates(CLASS_WEAPON_MAP[activeCharacter.classId] ?? "sword-shield")).slice(0, 8).map(state => (
+                                    <button
+                                      key={state}
+                                      onClick={() => setAnim3D(state)}
+                                      className={cn(
+                                        "text-[9px] px-1.5 py-0.5 rounded border font-bold uppercase transition-colors",
+                                        anim3D === state
+                                          ? "bg-cyan-500 text-black border-cyan-500"
+                                          : "bg-black/40 text-slate-500 border-slate-700 hover:border-cyan-500/50"
+                                      )}
+                                    >
+                                      {state}
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+                            ) : (
+                              /* ── 2D Sprite Paper Doll ── */
+                              <div className="relative mx-auto max-w-[280px]">
+                                <img
+                                  src={assetUrl(`/sprites/ui/PNG/equipment/${activeCharacter.raceId}.png`)}
+                                  alt={`${raceDef?.name} Equipment`}
+                                  className="w-full h-auto"
+                                  draggable={false}
+                                />
+                                {renderEquipSlotOverlay("Head")}
+                                {renderEquipSlotOverlay("Back")}
+                                {renderEquipSlotOverlay("Shoulder")}
+                                {renderEquipSlotOverlay("Chest")}
+                                {renderEquipSlotOverlay("Hands")}
+                                {renderEquipSlotOverlay("Accessory1")}
+                                {renderEquipSlotOverlay("MainHand")}
+                                {renderEquipSlotOverlay("OffHand")}
+                                {renderEquipSlotOverlay("Legs")}
+                                {renderEquipSlotOverlay("Feet")}
+                                {renderEquipSlotOverlay("Accessory2")}
+                                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                  <div className="pointer-events-auto">
+                                    <div className="scale-[2.5] transform drop-shadow-[0_0_10px_rgba(0,0,0,0.8)]">
+                                      <SpriteAnimator spriteSet={activeSpriteSet} action={currentAction} isUndead={activeCharacter?.raceId === 'undead'} palette={getCharPalette(activeCharacter?.id)} />
+                                    </div>
                                   </div>
                                 </div>
                               </div>
-                            </div>
+                            )}
                           </div>
 
                           {/* Center: Radar Chart + Attributes */}
