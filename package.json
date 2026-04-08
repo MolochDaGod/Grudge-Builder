@@ -175,6 +175,8 @@
     "svg-sprite-loader": "^6.0.11",
     "tailwind-merge": "^3.3.1",
     "tailwindcss-animate": "^1.0.7",
+    "three": "^0.160.0",
+    "@types/three": "^0.160.0",
     "tff": "^0.0.1",
     "tff-ckeditor5": "^1.0.3",
     "tff-models": "^0.0.158",
