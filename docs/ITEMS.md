@@ -155,59 +155,38 @@ Some items are bound to specific characters:
 
 ## Item Database
 
-### Database Schema
+### Data Source — ObjectStore (Single Source of Truth)
 
-```typescript
-// Items table in shared/schema.ts
-export const items = pgTable("items", {
-  id: varchar("id").primaryKey(),
-  name: text("name").notNull(),
-  type: text("type").notNull(),
-  subtype: text("subtype"),
-  tier: text("tier").notNull(),
-  itemLevel: integer("item_level").notNull(),
-  stats: jsonb("stats").$type<Record<string, number>>(),
-  effects: jsonb("effects").$type<ItemEffect[]>(),
-  requirements: jsonb("requirements").$type<ItemRequirements>(),
-  description: text("description"),
-  iconUrl: text("icon_url"),
-  stackable: boolean("stackable").default(false),
-  maxStack: integer("max_stack").default(1),
-});
-```
+All item data comes from **ObjectStore** at runtime. No hardcoded data in the frontend.
 
-### Example Item
+- `master-items.json` — 818 items with GRUDGE UUIDs, tier expansion (T1-T8), recipe links, icon URLs
+- `master-recipes.json` — 118 recipes with GRUDGE UUIDs, material references
+- `master-materials.json` — 93 materials with GRUDGE UUIDs
+- `weapons.json`, `armor.json`, `consumables.json` — raw category data
+
+Regenerate: `npm run generate:master` in the ObjectStore repo.
+
+### Example Item (from master-items.json)
 
 ```json
 {
-  "id": "iron_sword_01",
-  "name": "Iron Longsword",
+  "uuid": "ITEM-20260409062100-000001-21216734",
+  "baseUuid": "ITEM-20260409062100-000001-21216734",
+  "name": "Bloodfeud Blade",
+  "baseName": "Bloodfeud Blade",
+  "category": "swords",
   "type": "weapon",
-  "subtype": "1h_sword",
-  "tier": "common",
-  "itemLevel": 10,
-  "stats": {
-    "damage": 15,
-    "criticalChance": 0.02
-  },
-  "requirements": {
-    "level": 5,
-    "strength": 10
-  }
+  "subCategory": "1h",
+  "tier": 1,
+  "tierLabel": "Common",
+  "tierColor": "#8b7355",
+  "iconUrl": "https://molochdagod.github.io/ObjectStore/icons/pack/weapons/Sword_01.png",
+  "stats": { "damage": 50, "speed": 100, "crit": 3, "block": 5, "defense": 20 },
+  "craftedBy": "Miner",
+  "recipeUuid": "RECP-20260409062100-000002-DA4E2014",
+  "abilities": ["Blood Rush", "Iron Grudge", "Clan Charge"]
 }
 ```
-
-## Google Sheets Integration
-
-Game data (weapons, armor, items, recipes) is managed via Google Sheets for easy updates:
-
-| Sheet        | Content                             |
-|--------------|-------------------------------------|
-| Weapons      | All weapon definitions              |
-| Armor        | All armor definitions               |
-| Consumables  | Potions, food, elixirs              |
-| Materials    | Crafting materials                  |
-| Recipes      | Crafting recipes                    |
 
 ## API Endpoints
 
@@ -232,15 +211,13 @@ PUT  /api/equipment/:characterId - Equip/unequip item
 ### Frontend Data
 | File | Purpose |
 |------|---------|
-| `client/src/data/crafting/equipment.ts` | Equipment definitions |
-| `client/src/data/crafting/weapons.ts` | Weapon definitions |
-| `client/src/data/crafting/materials.ts` | Crafting materials |
-| `client/src/data/crafting/recipes.ts` | Crafting recipes |
-| `client/src/lib/grudaDB.ts` | Client-side game database |
+| `client/src/lib/objectStoreApi.ts` | ObjectStore API client (fetchMasterItems, fetchMasterRecipes, etc.) |
+| `client/src/lib/grudaDB.ts` | Item database — loads from ObjectStore at runtime, icon resolver |
+| `client/src/lib/assetConfig.ts` | ObjectStore URL configuration (R2 CDN + GitHub Pages) |
+| `client/src/data/weaponSpriteMap.ts` | Weapon/armor sprite path mappings |
 
-### Sprite Assets
-| Directory | Contents |
-|-----------|----------|
-| `public/sprites/weapons/` | Weapon sprites |
-| `public/sprites/gear/` | Armor/gear sprites |
-| `public/sprites/2dassets/` | Item icons |
+### Asset Sources
+| Source | Contents |
+|--------|----------|
+| `assets.grudge-studio.com` (R2 CDN) | All binary assets (sprites, icons, models) |
+| `molochdagod.github.io/ObjectStore/api/v1/` | All JSON game data (items, recipes, etc.) |

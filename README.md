@@ -9,8 +9,11 @@ Dark fantasy RPG game builder — character creation, turn-based combat, dungeon
 - **Backend API**: [api.grudge-studio.com](https://api.grudge-studio.com/health)
 - **Auth (Grudge ID)**: [id.grudge-studio.com](https://id.grudge-studio.com)
 - **Assets CDN**: [assets.grudge-studio.com](https://assets.grudge-studio.com) (R2)
-- **Object Store**: [molochdagod.github.io/ObjectStore](https://molochdagod.github.io/ObjectStore) (JSON data)
+- **ObjectStore API**: [molochdagod.github.io/ObjectStore](https://molochdagod.github.io/ObjectStore) (55+ JSON endpoints, canonical)
+- **ObjectStore Worker**: [objectstore.grudge-studio.com](https://objectstore.grudge-studio.com) (R2 + D1 CRUD)
 - **Dashboard**: [dash.grudge-studio.com](https://dash.grudge-studio.com)
+- **AI Hub**: [ai.grudge-studio.com](https://ai.grudge-studio.com) (Gruda Legion)
+- **Status**: [status.grudge-studio.com](https://status.grudge-studio.com) (Uptime Kuma)
 
 ## Architecture
 
@@ -28,16 +31,30 @@ Browser → Vercel (static SPA) → grudge-studio.com VPS backend
 
 ### Service Map
 
-| Domain | Purpose | Hosted |
-|--------|---------|--------|
-| `grudgewarlords.com` | Game frontend (this repo) | Vercel |
-| `id.grudge-studio.com` | Grudge ID auth (SSO, OAuth, JWT) | VPS |
-| `api.grudge-studio.com` | Game API + wallet + NFTs | VPS |
-| `account.grudge-studio.com` | Account profiles & social | VPS |
-| `assets.grudge-studio.com` | Binary assets CDN (images, sprites) | Cloudflare R2 |
-| `dash.grudge-studio.com` | Admin dashboard | VPS |
-| `ai.grudge-studio.com` | Gruda Legion AI hub | VPS |
-| `molochdagod.github.io/ObjectStore` | JSON game data API | GitHub Pages |
+- `grudgewarlords.com` — Game frontend (this repo) — Vercel
+- `id.grudge-studio.com` — Grudge ID auth (SSO, OAuth, JWT) — VPS
+- `api.grudge-studio.com` — Game API + wallet + NFTs — VPS
+- `account.grudge-studio.com` — Account profiles & social — VPS
+- `assets.grudge-studio.com` — Binary assets CDN (images, sprites, models) — Cloudflare R2
+- `assets-api.grudge-studio.com` — Asset upload/manage service — VPS
+- `objectstore.grudge-studio.com` — R2 + D1 Worker (3D models, search) — Cloudflare Workers
+- `dash.grudge-studio.com` — Admin dashboard — VPS
+- `ai.grudge-studio.com` — Gruda Legion AI hub (sprite gen, agents) — Cloudflare Workers
+- `ws.grudge-studio.com` — WebSocket real-time (Socket.IO) — VPS
+- `launcher.grudge-studio.com` — Version manifest & entitlements — VPS
+- `status.grudge-studio.com` — Uptime monitoring — VPS (Uptime Kuma)
+- `molochdagod.github.io/ObjectStore` — Static JSON game data API (canonical, 55+ endpoints) — GitHub Pages
+
+### Data Source
+
+**ObjectStore is the single source of truth** for all game data. No hardcoded fallbacks — `grudaDB.ts` and `gameData.ts` load everything from ObjectStore at runtime via `syncItemsFromObjectStore()` and `syncGameDataFromObjectStore()`.
+
+- `/api/v1/master-items.json` — 818 items with GRUDGE UUIDs, tier expansion, recipe links
+- `/api/v1/master-recipes.json` — 118 recipes with material UUIDs
+- `/api/v1/master-materials.json` — 93 materials with UUIDs
+- Plus 55+ other endpoints (weapons, armor, races, classes, etc.)
+
+Generate master data: `npm run generate:master` in ObjectStore repo.
 
 ### Grudge ID Flow
 
@@ -84,13 +101,13 @@ grunge-builder/
 
 ## ObjectStore Integration
 
-All game assets and data are served from **[ObjectStore](https://github.com/MolochDaGod/ObjectStore)**.
+All game assets and data are served from **[ObjectStore](https://github.com/MolochDaGod/ObjectStore)** — the single source of truth.
 
 ### Assets (images, sprites, audio)
 ```typescript
 import { assetUrl, cdnAssetUrl } from "@/lib/assetConfig";
-assetUrl("/icons/weapons/swords/bloodfeud_blade.png");
-cdnAssetUrl("/models/ships/galleon.glb");  // CDN fallback
+assetUrl("/icons/weapons/swords/bloodfeud_blade.png");  // R2 CDN
+cdnAssetUrl("/models/ships/galleon.glb");                // R2 CDN
 ```
 
 ### Game Data (JSON API)
@@ -105,9 +122,12 @@ import { useWeapons, useClasses, useRaces } from "@/hooks/use-object-store";
 const { data: weapons, isLoading, error, refetch } = useWeapons();
 ```
 
+### Repo
+- **ObjectStore**: [github.com/MolochDaGod/ObjectStore](https://github.com/MolochDaGod/ObjectStore) — 55+ JSON endpoints, 13K+ assets, SDK v5.0, master-items with GRUDGE UUIDs
+
 ### Environment Overrides
-- `VITE_OBJECT_STORE_URL` — Override ObjectStore base URL
-- `VITE_ASSET_CDN_URL` — Override CDN/asset service URL
+- `VITE_OBJECT_STORE_URL` — Override ObjectStore base URL (default: `molochdagod.github.io/ObjectStore`)
+- `VITE_ASSET_CDN_URL` — Override CDN/asset service URL (default: `assets.grudge-studio.com`)
 
 ## Tech Stack
 

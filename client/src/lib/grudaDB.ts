@@ -8,7 +8,7 @@
 
 import { WEAPON_SPRITE_MAP, ARMOR_SPRITE_MAP, getWeaponSpritePath, getArmorSpritePath } from '@/data/weaponSpriteMap';
 import { assetUrl } from "@/lib/assetConfig";
-import { fetchItemsDatabase, fetchProfessions, fetchWeapons, fetchArmor } from "@/lib/objectStoreApi";
+import { fetchMasterItems, fetchMasterRecipes } from "@/lib/objectStoreApi";
 
 export interface GrudaItem {
   id: string;
@@ -594,10 +594,61 @@ export interface GrudaResourceNode {
 }
 
 // ==========================================
-// ARTISAN GUILD PROFESSIONS
+// EXPORTS — populated by ObjectStore sync
 // ==========================================
 
-// TAB 1: GATHERING PROFESSIONS
+export let ITEMS: GrudaItem[] = [];
+export let RECIPES: GrudaRecipe[] = [];
+export let RESOURCE_NODES: GrudaResourceNode[] = [];
+
+/** Sync items from ObjectStore master-items.json (single source of truth) */
+export async function syncItemsFromObjectStore(): Promise<void> {
+  try {
+    const [masterData, recipeData] = await Promise.all([
+      fetchMasterItems(),
+      fetchMasterRecipes(),
+    ]);
+
+    // Items from master-items.json (has UUIDs, tiers, recipe links)
+    const osItems = (masterData as any)?.items;
+    if (Array.isArray(osItems) && osItems.length > 0) {
+      ITEMS = osItems.map((item: any) => ({
+        id: item.uuid || item.name?.replace(/\s+/g, '_').toUpperCase(),
+        name: item.name,
+        type: item.type || item.category || 'Weapon',
+        slot: item.subCategory,
+        rarity: item.tierLabel || (item.tier >= 7 ? 'Legendary' : item.tier >= 5 ? 'Epic' : item.tier >= 3 ? 'Rare' : 'Common'),
+        tier: item.tier || 1,
+        stats: item.stats || {},
+        effects: item.abilities || item.passives || [],
+        image: item.iconUrl || resolveItemImage({ name: item.name, type: item.type, tier: item.tier }),
+        description: item.description || '',
+        buyPrice: item.buyPrice || item.tier * 100,
+        craftingProfession: item.craftedBy,
+        weaponType: item.category,
+      }));
+      console.debug('[grudaDB] Synced', ITEMS.length, 'items from ObjectStore master-items.json');
+    }
+
+    // Recipes from master-recipes.json
+    const osRecipes = (recipeData as any)?.recipes;
+    if (Array.isArray(osRecipes) && osRecipes.length > 0) {
+      RECIPES = osRecipes.map((r: any) => ({
+        id: r.uuid,
+        outputItemId: r.resultItemId,
+        profession: r.profession,
+        levelRequired: 1,
+        ingredients: (r.materials || []).map((m: any) => ({ itemId: m.uuid, quantity: m.quantity })),
+        durationSeconds: 30,
+      }));
+      console.debug('[grudaDB] Synced', RECIPES.length, 'recipes from ObjectStore master-recipes.json');
+    }
+  } catch (err) {
+    console.warn('[grudaDB] ObjectStore sync failed:', err);
+  }
+}
+
+// Profession definitions — kept as static exports since they're UI structure, not item data
 export const GATHERING_PROFESSIONS: GrudaProfession[] = [
   { 
     id: "GATHER_MINING", 
@@ -971,562 +1022,12 @@ const GRUDGE_ARMOR_SETS = {
   emberclad: { name: 'Emberclad', lore: 'Flames protect the bearer', setBonus: 'Flame Cloak: Burn attackers' },
 };
 
-const ARMOR_SLOTS = ['Helm', 'Shoulder', 'Chest', 'Hands', 'Feet', 'Ring', 'Necklace', 'Relic'] as const;
-const ARMOR_MATERIALS = ['cloth', 'leather', 'metal'] as const;
+// NOTE: Armor slot stats, legendary templates, workstation items, procedural generation,
+// and all FALLBACK data have been removed. All item data now comes from ObjectStore
+// master-items.json via syncItemsFromObjectStore() above.
+//
+// See: ObjectStore/scripts/generate-master-database.mjs
 
-const ARMOR_SLOT_STATS: Record<string, { armor: number; slot: string }> = {
-  'Helm': { armor: 4, slot: 'Head' },
-  'Shoulder': { armor: 3, slot: 'Shoulder' },
-  'Chest': { armor: 8, slot: 'Chest' },
-  'Hands': { armor: 2, slot: 'Hands' },
-  'Feet': { armor: 3, slot: 'Feet' },
-  'Ring': { armor: 0, slot: 'Ring' },
-  'Necklace': { armor: 0, slot: 'Necklace' },
-  'Relic': { armor: 0, slot: 'Relic' },
-};
-
+// Legacy constant kept for backward compat
 const LEGENDARY_TEMPLATES: { name: string; type: string; slot: string; tier: number; stats: Record<string, number>; effects: string[]; lore: string }[] = [
-  { name: "Odin's Fury", type: "Weapon", slot: "MainHand", tier: 5, stats: { Damage: 150 }, effects: ["Divine Strike", "+20 STR"], lore: "Blessed by Odin himself" },
-  { name: "Madra's Embrace", type: "Weapon", slot: "MainHand", tier: 6, stats: { Damage: 200 }, effects: ["Dark Blessing", "+30 INT"], lore: "The goddess of death empowers this blade" },
-  { name: "The Omni's Judgement", type: "Weapon", slot: "MainHand", tier: 7, stats: { Damage: 180 }, effects: ["Divine Balance", "+50 WIS"], lore: "Ultimate balance of all things" },
-  { name: "Crusade Banner", type: "Weapon", slot: "MainHand", tier: 6, stats: { Damage: 190 }, effects: ["Holy Light", "+25 VIT"], lore: "Standard of the Crusade faction" },
-  { name: "Legion's Bane", type: "Weapon", slot: "MainHand", tier: 8, stats: { Damage: 300 }, effects: ["Soul Harvest", "+100 STR"], lore: "Doom of the Legion faction" },
-  { name: "Fabled Relic", type: "Weapon", slot: "MainHand", tier: 7, stats: { Damage: 170, Healing: 50 }, effects: ["Ancient Power", "+40 INT"], lore: "Lost relic of the Fabled faction" },
-  { name: "Grudgekeeper", type: "Weapon", slot: "MainHand", tier: 8, stats: { Damage: 280 }, effects: ["Eternal Grudge", "+80 TAC"], lore: "Keeper of all grudges in the realm" },
 ];
-
-// ==========================================
-// IMPORTED WORKSTATION DATA
-// ==========================================
-// Manually mapped from imported JSON data for enhanced crafting system
-
-const WORKSTATION_ITEMS: GrudaItem[] = [
-  // Workbench Ingredients
-  { id: "WS_ANIMAL_FAT", name: "Animal Fat", type: "Resource", rarity: "Common", tier: 1, stats: {}, description: "Used in crafting.", buyPrice: 5 },
-  { id: "WS_BARREL_MOTOR", name: "Barrel Motor", type: "Resource", rarity: "Common", tier: 2, stats: {}, description: "Used in crafting.", buyPrice: 15 },
-  { id: "WS_BLADE", name: "Blade", type: "Resource", rarity: "Common", tier: 1, stats: {}, description: "Used in crafting weapons.", buyPrice: 8 },
-  { id: "WS_FACET", name: "Facet", type: "Resource", rarity: "Common", tier: 3, stats: {}, description: "Used in crafting advanced weapons.", buyPrice: 25 },
-  { id: "WS_FUZE", name: "Fuze", type: "Resource", rarity: "Common", tier: 2, stats: {}, description: "Used in crafting explosives.", buyPrice: 10 },
-  { id: "WS_METAL_CRANK", name: "Metal Crank", type: "Resource", rarity: "Common", tier: 2, stats: {}, description: "Used in crafting Siege Weapons.", buyPrice: 20 },
-  { id: "WS_METAL_GEAR", name: "Metal Gear", type: "Resource", rarity: "Common", tier: 2, stats: {}, description: "Used in crafting Siege Weapons.", buyPrice: 20 },
-  { id: "WS_PROPELLER", name: "Propeller", type: "Resource", rarity: "Common", tier: 3, stats: {}, description: "Used in crafting.", buyPrice: 30 },
-  { id: "WS_ROPE", name: "Rope", type: "Resource", rarity: "Common", tier: 1, stats: {}, description: "Used in crafting.", buyPrice: 3 },
-  { id: "WS_STOP_WATCH", name: "Stop Watch", type: "Resource", rarity: "Common", tier: 2, stats: {}, description: "Used in crafting explosives.", buyPrice: 25 },
-  { id: "WS_WEAPON_HANDLE", name: "Weapon Handle", type: "Resource", rarity: "Common", tier: 1, stats: {}, description: "Used in crafting weapons.", buyPrice: 5 },
-  { id: "WS_WOODEN_COG", name: "Wooden Cog", type: "Resource", rarity: "Common", tier: 1, stats: {}, description: "Used in crafting Siege Weapons.", buyPrice: 8 },
-  { id: "WS_WOODEN_WHEEL", name: "Wooden Wheel", type: "Resource", rarity: "Common", tier: 1, stats: {}, description: "Used in crafting.", buyPrice: 10 },
-  
-  // Refined Materials (Workbench Results)
-  { id: "MAT_FINE_LEATHER", name: "Fine Leather", type: "Resource", rarity: "Uncommon", tier: 2, stats: {}, description: "Used in crafting.", buyPrice: 20 },
-  { id: "MAT_LEATHER_STRAPS", name: "Leather Straps", type: "Resource", rarity: "Uncommon", tier: 2, stats: {}, description: "Used in crafting weapons.", buyPrice: 15 },
-  { id: "MAT_METAL_FRAGMENTS", name: "Metal Fragments", type: "Resource", rarity: "Uncommon", tier: 1, stats: {}, description: "Used in crafting.", buyPrice: 10 },
-  { id: "MAT_PERFECT_INGOT", name: "Perfect Ingot", type: "Resource", rarity: "Uncommon", tier: 3, stats: {}, description: "Used in crafting Armor.", buyPrice: 50 },
-  { id: "MAT_PERFECT_LEATHER", name: "Perfect Leather", type: "Resource", rarity: "Uncommon", tier: 3, stats: {}, description: "Used in crafting.", buyPrice: 50 },
-  { id: "MAT_QUALITY_INGOT", name: "Quality Ingot", type: "Resource", rarity: "Uncommon", tier: 2, stats: {}, description: "Used in crafting Armor.", buyPrice: 30 },
-  { id: "MAT_ROUGH_INGOT", name: "Rough Ingot", type: "Resource", rarity: "Uncommon", tier: 1, stats: {}, description: "Used in crafting Armor.", buyPrice: 15 },
-  { id: "MAT_ROUGH_LEATHER", name: "Rough Leather", type: "Resource", rarity: "Uncommon", tier: 1, stats: {}, description: "Used in crafting Armor.", buyPrice: 15 },
-  { id: "MAT_SPOOL_HEMP", name: "Spool Of Hemp Thread", type: "Resource", rarity: "Uncommon", tier: 1, stats: {}, description: "Used in crafting.", buyPrice: 5 },
-  { id: "MAT_SPOOL_LINEN", name: "Spool Of Linen", type: "Resource", rarity: "Uncommon", tier: 1, stats: {}, description: "Used in crafting.", buyPrice: 8 },
-  { id: "MAT_SPOOL_SILK", name: "Spool of Silk", type: "Resource", rarity: "Uncommon", tier: 2, stats: {}, description: "Used in crafting.", buyPrice: 15 },
-  { id: "MAT_SULFER", name: "Sulfer", type: "Resource", rarity: "Uncommon", tier: 1, stats: {}, description: "Used in crafting Explosives.", buyPrice: 12 },
-
-  // Gems (Workbench)
-  { id: "GEM_BLUE", name: "Blue Gemstone", type: "Resource", rarity: "Uncommon", tier: 2, stats: {}, description: "Used in crafting.", buyPrice: 40 },
-  { id: "GEM_GREATER_BLUE", name: "Greater Blue Gemstone", type: "Resource", rarity: "Rare", tier: 3, stats: {}, description: "Used in crafting.", buyPrice: 100 },
-  { id: "GEM_GREATER_GREEN", name: "Greater Green Gemstone", type: "Resource", rarity: "Rare", tier: 3, stats: {}, description: "Used in crafting.", buyPrice: 100 },
-  { id: "GEM_GREATER_RED", name: "Greater Red Gemstone", type: "Resource", rarity: "Rare", tier: 3, stats: {}, description: "Used in crafting.", buyPrice: 100 },
-  { id: "GEM_GREEN", name: "Green Gemstone", type: "Resource", rarity: "Uncommon", tier: 2, stats: {}, description: "Used in crafting.", buyPrice: 40 },
-  { id: "GEM_LESSER_BLUE", name: "Lesser Blue Gemstone", type: "Resource", rarity: "Common", tier: 1, stats: {}, description: "Used in crafting.", buyPrice: 15 },
-  { id: "GEM_LESSER_GREEN", name: "Lesser Green Gemstone", type: "Resource", rarity: "Common", tier: 1, stats: {}, description: "Used in crafting.", buyPrice: 15 },
-  { id: "GEM_LESSER_RED", name: "Lesser Red Gemstone", type: "Resource", rarity: "Common", tier: 1, stats: {}, description: "Used in crafting.", buyPrice: 15 },
-  { id: "GEM_RED", name: "Red Gemstone", type: "Resource", rarity: "Uncommon", tier: 2, stats: {}, description: "Used in crafting.", buyPrice: 40 },
-
-  // Potion Ingredients (Workbench)
-  { id: "POT_BLUE_FLOWER", name: "Blue Flower", type: "Resource", rarity: "Common", tier: 1, stats: {}, description: "Used in crafting Potions.", buyPrice: 4 },
-  { id: "POT_BLUE_WHISP", name: "Blue Whisp", type: "Resource", rarity: "Common", tier: 1, stats: {}, description: "Used in crafting Potions.", buyPrice: 10 },
-  { id: "POT_FLASK", name: "Flask", type: "Resource", rarity: "Common", tier: 1, stats: {}, description: "Used in crafting Potions.", buyPrice: 5 },
-  { id: "POT_GREEN_WHISP", name: "Green Whisp", type: "Resource", rarity: "Common", tier: 1, stats: {}, description: "Used in crafting Potions.", buyPrice: 10 },
-  { id: "POT_MUSHROOM_L", name: "Large Mushroom", type: "Resource", rarity: "Common", tier: 1, stats: {}, description: "Used in crafting Potions.", buyPrice: 6 },
-  { id: "POT_MUSHROOM_M", name: "Medium Mushroom", type: "Resource", rarity: "Common", tier: 1, stats: {}, description: "Used in crafting Potions.", buyPrice: 4 },
-  { id: "POT_PURPLE_WHISP", name: "Purple Whisp", type: "Resource", rarity: "Common", tier: 1, stats: {}, description: "Used in crafting Potions.", buyPrice: 10 },
-  { id: "POT_RED_FLOWER", name: "Red Flower", type: "Resource", rarity: "Common", tier: 1, stats: {}, description: "Used in crafting Potions.", buyPrice: 4 },
-  { id: "POT_RED_WHISP", name: "Red Whisp", type: "Resource", rarity: "Common", tier: 1, stats: {}, description: "Used in crafting Potions.", buyPrice: 10 },
-  { id: "POT_MUSHROOM_S", name: "Small Mushroom", type: "Resource", rarity: "Common", tier: 1, stats: {}, description: "Used in crafting Potions.", buyPrice: 2 },
-  { id: "POT_WHITE_FLOWER", name: "White Flower", type: "Resource", rarity: "Common", tier: 1, stats: {}, description: "Used in crafting Potions.", buyPrice: 4 },
-  { id: "POT_YELLOW_FLOWER", name: "Yellow Flower", type: "Resource", rarity: "Common", tier: 1, stats: {}, description: "Used in crafting Potions.", buyPrice: 4 },
-
-  // Campfire Items
-  { id: "FOOD_CRAB", name: "Crab", type: "Resource", rarity: "Common", tier: 1, stats: {}, description: "Fresh Crab!", buyPrice: 5 },
-  { id: "FOOD_FISH", name: "Fish", type: "Resource", rarity: "Common", tier: 1, stats: {}, description: "Fresh Fish!", buyPrice: 5 },
-  { id: "FOOD_MEAT", name: "Meat", type: "Resource", rarity: "Common", tier: 1, stats: {}, description: "Fresh Meat!", buyPrice: 5 },
-  { id: "FOOD_SQUID", name: "Squid", type: "Resource", rarity: "Common", tier: 1, stats: {}, description: "Fresh Squid!", buyPrice: 5 },
-  { id: "FOOD_COOKED_CRAB", name: "Cooked Crab", type: "Resource", rarity: "Uncommon", tier: 1, stats: {}, description: "Regenerates 1% of your total health.", buyPrice: 15 },
-  { id: "FOOD_COOKED_FISH", name: "Cooked Fish", type: "Resource", rarity: "Uncommon", tier: 1, stats: {}, description: "Regenerates 1% of your total Mana.", buyPrice: 15 },
-  { id: "FOOD_COOKED_MEAT", name: "Cooked Meat", type: "Resource", rarity: "Uncommon", tier: 1, stats: {}, description: "Regenerates 3% of your total health.", buyPrice: 20 },
-  { id: "FOOD_COOKED_SQUID", name: "Cooked squid", type: "Resource", rarity: "Uncommon", tier: 1, stats: {}, description: "Regenerates 3% of your total mana.", buyPrice: 20 },
-
-  // Furnace Items
-  { id: "ORE_METAL", name: "Metal Ore", type: "Resource", rarity: "Common", tier: 1, stats: {}, description: "Raw ore.", buyPrice: 5 },
-  { id: "ORE_SULFER", name: "Sulfer Ore", type: "Resource", rarity: "Common", tier: 1, stats: {}, description: "Raw sulfer.", buyPrice: 8 },
-  { id: "EGG_DRAKE_BONE", name: "Dragon Bone Drake Egg", type: "Resource", rarity: "Rare", tier: 3, stats: {}, description: "A fresh drake egg!", buyPrice: 500 },
-  { id: "EGG_DRAKE_EMERALD", name: "Emerald Drake Egg", type: "Resource", rarity: "Rare", tier: 3, stats: {}, description: "A fresh drake egg!", buyPrice: 500 },
-  { id: "EGG_DRAKE_FOREST", name: "Forest Drake Egg", type: "Resource", rarity: "Rare", tier: 3, stats: {}, description: "A fresh drake egg!", buyPrice: 500 },
-  { id: "EGG_DRAKE_FRIGID", name: "Frigid Drake Egg", type: "Resource", rarity: "Rare", tier: 3, stats: {}, description: "A fresh drake egg!", buyPrice: 500 },
-  { id: "EGG_DRAKE_FROST", name: "Frost Drake Egg", type: "Resource", rarity: "Rare", tier: 3, stats: {}, description: "A fresh drake egg!", buyPrice: 500 },
-  { id: "EGG_DRAKE_HELLFIRE", name: "Hellfire Drake Egg", type: "Resource", rarity: "Rare", tier: 3, stats: {}, description: "A fresh drake egg!", buyPrice: 500 },
-  { id: "EGG_DRAKE_LAVA", name: "Lava Drake Egg", type: "Resource", rarity: "Rare", tier: 3, stats: {}, description: "A fresh drake egg!", buyPrice: 500 },
-  { id: "EGG_DRAKE_NIGHTSTALKER", name: "Nightstalker Drake Egg", type: "Resource", rarity: "Rare", tier: 3, stats: {}, description: "A fresh drake egg!", buyPrice: 500 },
-  { id: "EGG_DRAKE_ROCK", name: "Rock Drake Egg", type: "Resource", rarity: "Rare", tier: 3, stats: {}, description: "A fresh drake egg!", buyPrice: 500 },
-  { id: "EGG_DRAKE_VOID", name: "Void Drake Egg", type: "Resource", rarity: "Rare", tier: 3, stats: {}, description: "A fresh drake egg!", buyPrice: 500 },
-
-  // Loom Items
-  { id: "LOOM_HAIR", name: "Hair", type: "Resource", rarity: "Uncommon", tier: 1, stats: {}, description: "Used in crafting.", buyPrice: 5 },
-  { id: "LOOM_HEMP_FIBER", name: "Hemp Fiber", type: "Resource", rarity: "Uncommon", tier: 1, stats: {}, description: "Used in crafting.", buyPrice: 6 },
-  { id: "LOOM_SILK", name: "Silk", type: "Resource", rarity: "Uncommon", tier: 2, stats: {}, description: "Used in crafting.", buyPrice: 12 },
-
-  // Pet Items
-  { id: "PET_GROWTH_POTION", name: "Lv10 Drake Growth Potion", type: "Resource", rarity: "Rare", tier: 2, stats: {}, description: "Used in crafting.", buyPrice: 200 },
-];
-
-
-// ==========================================
-// GENERATION LOGIC
-// ==========================================
-
-const generatedItems: GrudaItem[] = [];
-const generatedRecipes: GrudaRecipe[] = [];
-const generatedNodes: GrudaResourceNode[] = [];
-
-// Helper for Stat Scaling (T2=2 stats, T3=3 stats, etc.)
-const addBonusStats = (stats: Record<string, number>, tier: number, type: "Melee" | "Magic" | "Ranged" | "Defense") => {
-  const newStats = { ...stats };
-  
-  if (tier >= 2) newStats[type === "Defense" ? "Vitality" : "Strength"] = tier * 2;
-  if (tier >= 3) newStats[type === "Defense" ? "Resistance" : "Crit Chance"] = tier * 1;
-  if (tier >= 4) newStats[type === "Defense" ? "Regen" : "Attack Speed"] = tier * 1;
-  if (tier >= 5) newStats[type === "Defense" ? "Thorns" : "Lifesteal"] = tier * 0.5;
-  if (tier >= 6) newStats["All Attributes"] = tier;
-  if (tier >= 7) newStats["Mastery"] = tier * 2;
-  if (tier >= 8) newStats["Divine Power"] = tier * 5;
-
-  return newStats;
-};
-
-// 1. Generate Resources First
-MATERIAL_TIERS.forEach(tierDef => {
-  // Metal
-  const oreId = `ORE_${tierDef.metal.toUpperCase().replace(" ", "_")}_T${tierDef.tier}`;
-  const oreItem: Partial<GrudaItem> = { name: `${tierDef.metal} Ore`, type: "Resource", tier: tierDef.tier };
-  generatedItems.push({
-    id: oreId,
-    name: `${tierDef.metal} Ore`,
-    type: "Resource",
-    rarity: "Common",
-    tier: tierDef.tier,
-    stats: {},
-    image: resolveItemImage(oreItem),
-    description: `Raw ${tierDef.metal} ore used for smelting.`,
-    buyPrice: 5 * tierDef.tier
-  });
-  generatedNodes.push({
-    id: `NODE_ORE_T${tierDef.tier}`,
-    name: `${tierDef.metal} Deposit`,
-    type: "Ore",
-    tier: tierDef.tier,
-    rarity: "Common",
-    tool: "Pickaxe",
-    profession: "Mining",
-    minLevel: tierDef.level,
-    location: `Zone Tier ${tierDef.tier}`,
-    drops: [oreId]
-  });
-
-  // Wood
-  const woodId = `WOOD_${tierDef.wood.toUpperCase().replace(" ", "_")}_T${tierDef.tier}`;
-  const woodItem: Partial<GrudaItem> = { name: `${tierDef.wood} Log`, type: "Resource", tier: tierDef.tier };
-  generatedItems.push({
-    id: woodId,
-    name: `${tierDef.wood} Log`,
-    type: "Resource",
-    rarity: "Common",
-    tier: tierDef.tier,
-    stats: {},
-    image: resolveItemImage(woodItem),
-    description: `Raw ${tierDef.wood} wood used for crafting.`,
-    buyPrice: 4 * tierDef.tier
-  });
-  generatedNodes.push({
-    id: `NODE_WOOD_T${tierDef.tier}`,
-    name: `${tierDef.wood} Tree`,
-    type: "Wood",
-    tier: tierDef.tier,
-    rarity: "Common",
-    tool: "Axe",
-    profession: "Logging",
-    minLevel: tierDef.level,
-    location: `Forest Tier ${tierDef.tier}`,
-    drops: [woodId]
-  });
-
-  // Leather
-  const leatherId = `LEATHER_${tierDef.leather.toUpperCase().replace(" ", "_")}_T${tierDef.tier}`;
-  const leatherItem: Partial<GrudaItem> = { name: `${tierDef.leather} Leather`, type: "Resource", tier: tierDef.tier };
-  generatedItems.push({
-    id: leatherId,
-    name: `${tierDef.leather} Leather`,
-    type: "Resource",
-    rarity: "Common",
-    tier: tierDef.tier,
-    stats: {},
-    image: resolveItemImage(leatherItem),
-    description: `Cured ${tierDef.leather} used for crafting.`,
-    buyPrice: 7 * tierDef.tier
-  });
-  
-  // Herbs
-  const herbId = `HERB_${tierDef.herb.toUpperCase().replace(" ", "_")}_T${tierDef.tier}`;
-  const herbItem: Partial<GrudaItem> = { name: `${tierDef.herb} Herb`, type: "Resource", tier: tierDef.tier };
-  generatedItems.push({
-    id: herbId,
-    name: `${tierDef.herb} Herb`,
-    type: "Resource",
-    rarity: "Common",
-    tier: tierDef.tier,
-    stats: {},
-    image: resolveItemImage(herbItem),
-    description: `Magical ${tierDef.herb} herb used for alchemy.`,
-    buyPrice: 6 * tierDef.tier
-  });
-});
-
-// 2. Generate Weapons & Recipes from Grudge Warlords weapon sets
-WEAPON_CONFIGS.forEach(config => {
-  const weaponSet = GRUDGE_WEAPON_SETS[config.setKey];
-  if (!weaponSet || !Array.isArray(weaponSet)) return;
-  
-  weaponSet.forEach(weapon => {
-    MATERIAL_TIERS.forEach(tierDef => {
-      const itemId = `GRUDA_WPN_${weapon.id.toUpperCase().replace(/-/g, '_')}_T${tierDef.tier}`;
-      const resourceId = config.resourceType === 'metal' 
-        ? `ORE_${tierDef.metal.toUpperCase().replace(/ /g, "_")}_T${tierDef.tier}`
-        : `WOOD_${tierDef.wood.toUpperCase().replace(/ /g, "_")}_T${tierDef.tier}`;
-      
-      const baseDamage = Math.floor(config.baseDamage * tierDef.tier * 1.5);
-      const isStaff = config.skillType === 'STAFF';
-      const scaledStats = addBonusStats({ Damage: baseDamage }, tierDef.tier, isStaff ? "Magic" : "Melee");
-      const skills = getSkillsForWeapon(config.skillType, tierDef.tier);
-
-      const tempItem: Partial<GrudaItem> = { 
-        name: weapon.name, 
-        type: "Weapon", 
-        tier: tierDef.tier,
-        weaponId: weapon.id,
-        weaponType: config.subtype
-      };
-
-      generatedItems.push({
-        id: itemId,
-        name: weapon.name,
-        type: "Weapon",
-        slot: "MainHand",
-        rarity: tierDef.tier >= 6 ? "Rare" : tierDef.tier >= 4 ? "Uncommon" : "Common",
-        tier: tierDef.tier,
-        stats: scaledStats,
-        skills: skills,
-        image: resolveItemImage(tempItem),
-        buyPrice: 50 * tierDef.tier * tierDef.tier,
-        craftingProfession: config.profession,
-        craftingLevel: tierDef.level,
-        weaponId: weapon.id,
-        weaponType: config.subtype,
-        description: `${weapon.lore}. T${tierDef.tier} ${config.subtype}.`
-      });
-
-      generatedRecipes.push({
-        id: `RECIPE_${weapon.id.toUpperCase().replace(/-/g, '_')}_T${tierDef.tier}`,
-        outputItemId: itemId,
-        profession: config.profession,
-        levelRequired: tierDef.level,
-        durationSeconds: 10 * tierDef.tier,
-        ingredients: [
-          { itemId: resourceId, quantity: 2 + tierDef.tier },
-          { itemId: "COAL_T1", quantity: tierDef.tier }
-        ]
-      });
-    });
-  });
-});
-
-// 3. Generate Armor & Recipes from Grudge Warlords armor sets
-Object.entries(GRUDGE_ARMOR_SETS).forEach(([setKey, setData]) => {
-  ARMOR_MATERIALS.forEach(material => {
-    ARMOR_SLOTS.forEach(slotName => {
-      const slotData = ARMOR_SLOT_STATS[slotName] || { armor: 2, slot: slotName };
-      
-      MATERIAL_TIERS.forEach(tierDef => {
-        const itemId = `GRUDA_ARM_${setKey.toUpperCase()}_${material.toUpperCase()}_${slotName.toUpperCase()}_T${tierDef.tier}`;
-        
-        const profession = material === 'metal' ? 'Miner' : material === 'leather' ? 'Forester' : 'Mystic';
-        const resourceId = material === 'metal' 
-          ? `ORE_${tierDef.metal.toUpperCase().replace(/ /g, "_")}_T${tierDef.tier}`
-          : material === 'leather'
-          ? `LEATHER_${tierDef.leather.toUpperCase().replace(/ /g, "_")}_T${tierDef.tier}`
-          : `HERB_${tierDef.herb.toUpperCase().replace(/ /g, "_")}_T${tierDef.tier}`;
-        
-        const baseArmor = Math.floor(slotData.armor * tierDef.tier * 1.4);
-        const scaledStats = addBonusStats({ Armor: baseArmor }, tierDef.tier, "Defense");
-
-        const armorName = `${setData.name} ${slotName}`;
-        const tempItem: Partial<GrudaItem> = { 
-          name: armorName, 
-          type: "Armor", 
-          slot: slotData.slot, 
-          tier: tierDef.tier,
-          armorId: setKey,
-          material: material
-        };
-
-        generatedItems.push({
-          id: itemId,
-          name: armorName,
-          type: "Armor",
-          slot: slotData.slot,
-          rarity: tierDef.tier >= 6 ? "Rare" : tierDef.tier >= 4 ? "Uncommon" : "Common",
-          tier: tierDef.tier,
-          stats: scaledStats,
-          effects: [setData.setBonus],
-          image: resolveItemImage(tempItem),
-          buyPrice: 40 * tierDef.tier * tierDef.tier,
-          craftingProfession: profession,
-          craftingLevel: tierDef.level,
-          armorId: setKey,
-          material: material,
-          description: `${setData.lore}. T${tierDef.tier} ${material} ${slotName}.`
-        });
-
-        generatedRecipes.push({
-          id: `RECIPE_${setKey.toUpperCase()}_${material.toUpperCase()}_${slotName.toUpperCase()}_T${tierDef.tier}`,
-          outputItemId: itemId,
-          profession: profession,
-          levelRequired: tierDef.level,
-          durationSeconds: 10 * tierDef.tier,
-          ingredients: [
-            { itemId: resourceId, quantity: 2 + tierDef.tier }
-          ]
-        });
-      });
-    });
-  });
-});
-
-// 4. Add Accessories (T1-T8) with Grudge Warlords themed names
-const GRUDGE_ACCESSORIES = [
-  { type: 'Ring', slot: 'Ring', names: ['Bloodbound Ring', 'Wraithseal Ring', 'Oathsworn Ring', 'Grudgekeeper Ring', 'Duskward Ring', 'Emberseal Ring'] },
-  { type: 'Necklace', slot: 'Necklace', names: ['Bloodfeud Pendant', 'Wraith Charm', 'Oathbreaker Amulet', 'Kinrend Medallion', 'Dusk Chain', 'Ember Collar'] },
-];
-
-GRUDGE_ACCESSORIES.forEach(accessory => {
-  accessory.names.forEach((accName, nameIdx) => {
-    MATERIAL_TIERS.forEach(tierDef => {
-      const itemId = `GRUDA_ACC_${accName.toUpperCase().replace(/\s+/g, '_')}_T${tierDef.tier}`;
-      const tempItem: Partial<GrudaItem> = { name: accName, type: "Accessory", tier: tierDef.tier };
-
-      generatedItems.push({
-        id: itemId,
-        name: accName,
-        type: "Accessory",
-        slot: accessory.slot,
-        rarity: tierDef.tier >= 6 ? "Rare" : "Uncommon",
-        tier: tierDef.tier,
-        stats: { DamageBonus: tierDef.tier },
-        effects: [`+${tierDef.tier * 2} All Stats`],
-        image: resolveItemImage(tempItem),
-        buyPrice: 30 * tierDef.tier * tierDef.tier,
-        craftingProfession: "Jewelcrafting",
-        craftingLevel: tierDef.level,
-        description: `A powerful ${accessory.type.toLowerCase()} forged from ancient grudges.`
-      });
-      
-      generatedRecipes.push({
-        id: `RECIPE_${accName.toUpperCase().replace(/\s+/g, '_')}_T${tierDef.tier}`,
-        outputItemId: itemId,
-        profession: "Jewelcrafting",
-        levelRequired: tierDef.level,
-        durationSeconds: 15 * tierDef.tier,
-        ingredients: [
-          { itemId: `ORE_${tierDef.metal.toUpperCase().replace(/ /g, "_")}_T${tierDef.tier}`, quantity: 2 },
-          { itemId: "MANA_SHARD_T1", quantity: tierDef.tier }
-        ]
-      });
-    });
-  });
-});
-
-
-// 5. Add Legendaries
-LEGENDARY_TEMPLATES.forEach((leg, idx) => {
-  const tempItem: Partial<GrudaItem> = { name: leg.name, type: "Weapon", tier: leg.tier };
-  const legendaryStats: Record<string, number> = { ...leg.stats };
-  generatedItems.push({
-    id: `LEGENDARY_${idx}`,
-    name: leg.name,
-    type: leg.type,
-    slot: leg.slot,
-    rarity: "Legendary",
-    tier: leg.tier,
-    stats: legendaryStats,
-    effects: leg.effects,
-    skills: ["Legendary Skill 1", "Legendary Skill 2", "Legendary Ultimate"],
-    image: resolveItemImage(tempItem),
-    description: "A weapon of immense power.",
-    buyPrice: 10000 * leg.tier,
-    sellPrice: 5000 * leg.tier
-  });
-});
-
-// 6. Add Engineering Items & Recipes
-const ENGINEERING_ITEMS: { tier: number; name: string; stats: Record<string, number>; desc: string }[] = [
-  { tier: 1, name: "Basic Tool Kit", stats: { GatherSpeed: 5 }, desc: "Improves gathering efficiency." },
-  { tier: 2, name: "Reinforced Grapple", stats: { MovementSpeed: 3 }, desc: "Used for climbing and traversal." },
-  { tier: 3, name: "Clockwork Companion", stats: { Damage: 15, Defense: 5 }, desc: "A mechanical pet that aids in combat." },
-  { tier: 4, name: "Steam-Powered Drill", stats: { GatherSpeed: 20 }, desc: "Dramatically increases mining speed." },
-  { tier: 5, name: "Gyrocopter Mount", stats: { FlySpeed: 50 }, desc: "A personal flying machine." },
-  { tier: 6, name: "Siege Ballista", stats: { Damage: 100 }, desc: "A powerful war machine for sieges." },
-  { tier: 7, name: "Mech Suit Prototype", stats: { Damage: 80, Armor: 50, MaxHealth: 200 }, desc: "Advanced combat exoskeleton." },
-  { tier: 8, name: "War Colossus Core", stats: { Damage: 150, Armor: 100, MaxHealth: 500 }, desc: "The heart of a legendary war machine." },
-];
-
-ENGINEERING_ITEMS.forEach(eng => {
-  const itemId = `ENG_${eng.name.toUpperCase().replace(/\s+/g, '_')}_T${eng.tier}`;
-  const tempItem: Partial<GrudaItem> = { name: eng.name, type: "Tool", tier: eng.tier };
-  
-  generatedItems.push({
-    id: itemId,
-    name: eng.name,
-    type: "Tool",
-    rarity: eng.tier >= 6 ? "Epic" : eng.tier >= 4 ? "Rare" : "Uncommon",
-    tier: eng.tier,
-    stats: eng.stats,
-    effects: [`Engineering T${eng.tier}`],
-    image: resolveItemImage(tempItem),
-    description: eng.desc,
-    buyPrice: 100 * eng.tier * eng.tier,
-    craftingProfession: "Engineering",
-    craftingLevel: eng.tier * 10
-  });
-  
-  generatedRecipes.push({
-    id: `RECIPE_ENG_T${eng.tier}`,
-    outputItemId: itemId,
-    profession: "Engineering",
-    levelRequired: eng.tier * 10,
-    durationSeconds: 30 * eng.tier,
-    ingredients: [
-      { itemId: "WS_METAL_GEAR", quantity: eng.tier * 2 },
-      { itemId: "WS_WOODEN_COG", quantity: eng.tier }
-    ]
-  });
-});
-
-// 7. Add Cooking/Chef Recipes
-const CHEF_RECIPES: { tier: number; name: string; color: string; stats: Record<string, number>; desc: string }[] = [
-  { tier: 1, name: "Grilled Steak", color: "red", stats: { HealthRegen: 5, MaxHealth: 20 }, desc: "Hearty meal for warriors." },
-  { tier: 2, name: "Spiced Roast", color: "red", stats: { AttackDamage: 5, Defense: 3 }, desc: "Boosts physical combat." },
-  { tier: 3, name: "Warrior's Feast", color: "red", stats: { MaxHealth: 50, Block: 5 }, desc: "A mighty meal before battle." },
-  { tier: 1, name: "Fish Soup", color: "blue", stats: { ManaRegen: 5, ManaPool: 20 }, desc: "Restores magical energy." },
-  { tier: 2, name: "Clam Chowder", color: "blue", stats: { SpellDamage: 5, SpellSpeed: 2 }, desc: "Enhances spellcasting." },
-  { tier: 3, name: "Arcane Broth", color: "blue", stats: { ManaPool: 50, Resistance: 10 }, desc: "Deep magical sustenance." },
-  { tier: 1, name: "Garden Salad", color: "green", stats: { Stamina: 5, MovementSpeed: 2 }, desc: "Light and refreshing." },
-  { tier: 2, name: "Herb Medley", color: "green", stats: { AttackSpeed: 3, CritChance: 2 }, desc: "Sharpens reflexes." },
-  { tier: 3, name: "Verdant Feast", color: "green", stats: { Armor: 15, Stamina: 20 }, desc: "Nature's bounty." },
-];
-
-CHEF_RECIPES.forEach(food => {
-  const itemId = `FOOD_${food.name.toUpperCase().replace(/\s+/g, '_')}_T${food.tier}`;
-  const tempItem: Partial<GrudaItem> = { name: food.name, type: "Consumable", tier: food.tier };
-  
-  generatedItems.push({
-    id: itemId,
-    name: food.name,
-    type: "Consumable",
-    rarity: food.tier >= 3 ? "Rare" : "Uncommon",
-    tier: food.tier,
-    stats: food.stats,
-    effects: [`${food.color === 'red' ? '🔴' : food.color === 'blue' ? '🔵' : '🟢'} ${food.color.charAt(0).toUpperCase() + food.color.slice(1)} Food`],
-    image: resolveItemImage(tempItem),
-    description: food.desc,
-    buyPrice: 20 * food.tier,
-    craftingProfession: "Cooking",
-    craftingLevel: food.tier * 10
-  });
-  
-  generatedRecipes.push({
-    id: `RECIPE_FOOD_${food.color.toUpperCase()}_T${food.tier}`,
-    outputItemId: itemId,
-    profession: "Cooking",
-    levelRequired: food.tier * 10,
-    durationSeconds: 10 * food.tier,
-    ingredients: [
-      { itemId: food.color === 'red' ? 'FOOD_MEAT' : food.color === 'blue' ? 'FOOD_FISH' : 'POT_RED_FLOWER', quantity: food.tier * 2 }
-    ]
-  });
-});
-
-// 8. Add Base Reagents
-const BASE_REAGENTS: GrudaItem[] = [
-  { id: "COAL_T1", name: "Coal", type: "Resource", rarity: "Common", tier: 1, stats: {}, description: "Fuel for smelting.", buyPrice: 2 },
-  { id: "MANA_SHARD_T1", name: "Mana Shard", type: "Resource", rarity: "Common", tier: 1, stats: {}, description: "Magical essence.", buyPrice: 20 },
-  { id: "ESSENCE_COMMON_T1", name: "Common Essence", type: "Resource", rarity: "Common", tier: 1, stats: {}, description: "Magical dust.", buyPrice: 12 },
-];
-
-// ==========================================
-// EXPORTS
-// ==========================================
-
-// ── Fallback data (generated procedurally above) ──
-const FALLBACK_ITEMS = [...BASE_REAGENTS, ...WORKSTATION_ITEMS, ...generatedItems].map(item => ({
-  ...item,
-  image: item.image || resolveItemImage(item)
-}));
-const FALLBACK_RECIPES = [...generatedRecipes];
-const FALLBACK_NODES = [...generatedNodes];
-
-// ── Live exports — start as fallback, replaced by ObjectStore on sync ──
-export let ITEMS: GrudaItem[] = FALLBACK_ITEMS;
-export let RECIPES: GrudaRecipe[] = FALLBACK_RECIPES;
-export let RESOURCE_NODES: GrudaResourceNode[] = FALLBACK_NODES;
-
-/** Replace ITEMS with ObjectStore canonical data (called from App.tsx init) */
-export async function syncItemsFromObjectStore(): Promise<void> {
-  try {
-    const [itemsData, weaponsData, armorData] = await Promise.all([
-      fetchItemsDatabase(),
-      fetchWeapons(),
-      fetchArmor(),
-    ]);
-
-    // Items database from ObjectStore
-    const osItems = (itemsData as any)?.items || (itemsData as any)?.weapons;
-    if (Array.isArray(osItems) && osItems.length > 0) {
-      const mapped: GrudaItem[] = osItems.map((item: any) => ({
-        id: item.id || item.name?.replace(/\s+/g, '_').toUpperCase(),
-        name: item.name,
-        type: item.type || item.category || 'Weapon',
-        slot: item.slot,
-        rarity: item.rarity || (item.tier >= 7 ? 'Legendary' : item.tier >= 5 ? 'Epic' : item.tier >= 3 ? 'Rare' : 'Common'),
-        tier: item.tier || 1,
-        stats: item.stats || {},
-        effects: item.abilities || item.passives || [],
-        image: item.icon ? assetUrl(item.icon) : resolveItemImage({ name: item.name, type: item.type, tier: item.tier }),
-        description: item.lore || item.description || '',
-        buyPrice: item.buyPrice || item.tier * 100,
-      }));
-      // Merge: ObjectStore items take priority, keep fallback items not in ObjectStore
-      const osIds = new Set(mapped.map(i => i.id));
-      ITEMS = [...mapped, ...FALLBACK_ITEMS.filter(i => !osIds.has(i.id))];
-      console.debug('[grudaDB] Synced', mapped.length, 'items from ObjectStore');
-    }
-  } catch (err) {
-    console.warn('[grudaDB] ObjectStore sync failed, using fallback data:', err);
-  }
-}

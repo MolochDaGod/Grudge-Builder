@@ -200,7 +200,22 @@ export function fetchQuests() {
   return fetchObjectStoreData<Record<string, unknown>>("/quests.json", {});
 }
 
-// ── Cache management ─────────────────────────────────────────────────────────
+/** Fetch master items (with GRUDGE UUIDs, tier expansion, recipe links) */
+export function fetchMasterItems() {
+  return fetchObjectStoreData<Record<string, unknown>>("/master-items.json", {});
+}
+
+/** Fetch master recipes (with GRUDGE UUIDs, material links) */
+export function fetchMasterRecipes() {
+  return fetchObjectStoreData<Record<string, unknown>>("/master-recipes.json", {});
+}
+
+/** Fetch master materials (with GRUDGE UUIDs) */
+export function fetchMasterMaterials() {
+  return fetchObjectStoreData<Record<string, unknown>>("/master-materials.json", {});
+}
+
+// ── Cache management
 
 /** Clear the entire ObjectStore data cache */
 export function clearObjectStoreCache(): void {
