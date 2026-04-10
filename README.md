@@ -2,48 +2,50 @@
 
 Dark fantasy RPG game builder — character creation, turn-based combat, dungeons, islands, professions, and skill trees. Part of the **Grudge Studio** ecosystem.
 
-## Live
+## Live Services
 
-- **Web**: [grudgewarlords.com](https://grudgewarlords.com)
+- **Web**: [grudgewarlords.com](https://grudgewarlords.com) — Vercel
 - **Steam**: App ID 1318844 (Partner ID 317409)
-- **Backend API**: [api.grudge-studio.com](https://api.grudge-studio.com/health)
-- **Auth (Grudge ID)**: [id.grudge-studio.com](https://id.grudge-studio.com)
-- **Assets CDN**: [assets.grudge-studio.com](https://assets.grudge-studio.com) (R2)
-- **ObjectStore API**: [molochdagod.github.io/ObjectStore](https://molochdagod.github.io/ObjectStore) (55+ JSON endpoints, canonical)
-- **ObjectStore Worker**: [objectstore.grudge-studio.com](https://objectstore.grudge-studio.com) (R2 + D1 CRUD)
-- **Dashboard**: [dash.grudge-studio.com](https://dash.grudge-studio.com)
-- **AI Hub**: [ai.grudge-studio.com](https://ai.grudge-studio.com) (Gruda Legion)
-- **Status**: [status.grudge-studio.com](https://status.grudge-studio.com) (Uptime Kuma)
+- **Backend API**: [api.grudge-studio.com](https://api.grudge-studio.com/api/health) — VPS (Docker/Coolify)
+- **Auth (Grudge ID)**: [id.grudge-studio.com](https://id.grudge-studio.com) — VPS
+- **Account API**: [account.grudge-studio.com](https://account.grudge-studio.com/health) — VPS
+- **Assets CDN**: [assets.grudge-studio.com](https://assets.grudge-studio.com) — Cloudflare R2
+- **ObjectStore Worker**: [objectstore.grudge-studio.com](https://objectstore.grudge-studio.com/health) — Cloudflare Workers (R2 + D1)
+- **ObjectStore API**: [molochdagod.github.io/ObjectStore](https://molochdagod.github.io/ObjectStore/api/v1/master-items.json) — GitHub Pages (55+ JSON endpoints)
+- **Dashboard**: [dash.grudge-studio.com](https://dash.grudge-studio.com) — VPS
+- **AI Hub**: [ai.grudge-studio.com](https://ai.grudge-studio.com) — Cloudflare Workers
 
 ## Architecture
 
 ```
-Browser → Vercel (static SPA) → grudge-studio.com VPS backend
-          ├─ client/dist                  ├─ grudge-id    (auth, OAuth, JWT, SSO)
-          ├─ /api/auth  → id.g-s.com      ├─ account-api  (profiles, social, Grudge ID)
-          ├─ /api/game  → api.g-s.com     ├─ game-api     (game data, crafting, parties)
-          ├─ /api/wallet→ api.g-s.com     ├─ wallet-svc   (server-side Solana wallets)
-          └─ ObjectStore (data+assets)    ├─ ws-service   (WebSocket real-time)
-                                          ├─ asset-svc    (R2 CDN proxy, Cloudflare)
-                                          ├─ ai-agent     (Gruda Legion AI services)
-                                          └─ grudge-headless (Unity Mirror server)
+Browser → Vercel (static SPA) → VPS backend (grudge-studio.com)
+          ├─ client/dist                  ├─ grudge-id    (id.g-s.com — auth, OAuth, JWT)
+          ├─ /api/auth  → id.g-s.com      ├─ account-api  (account.g-s.com — profiles)
+          ├─ /api/game  → api.g-s.com     ├─ game-api     (api.g-s.com — game, crafting)
+          ├─ /api/wallet→ api.g-s.com     └─ wallet-svc   (server-side Solana wallets)
+          ├─ /api/assets→ assets.g-s.com  Cloudflare:
+          └─ ObjectStore (data+assets)    ├─ R2 CDN       (assets.g-s.com)
+                                          ├─ ObjectStore  (objectstore.g-s.com — D1+R2)
+                                          └─ AI Worker    (ai.g-s.com — Gruda Legion)
 ```
 
 ### Service Map
 
+**Live:**
 - `grudgewarlords.com` — Game frontend (this repo) — Vercel
 - `id.grudge-studio.com` — Grudge ID auth (SSO, OAuth, JWT) — VPS
-- `api.grudge-studio.com` — Game API + wallet + NFTs — VPS
+- `api.grudge-studio.com` — Game API + wallet + NFTs — VPS (routes under `/api/*`)
 - `account.grudge-studio.com` — Account profiles & social — VPS
 - `assets.grudge-studio.com` — Binary assets CDN (images, sprites, models) — Cloudflare R2
-- `assets-api.grudge-studio.com` — Asset upload/manage service — VPS
-- `objectstore.grudge-studio.com` — R2 + D1 Worker (3D models, search) — Cloudflare Workers
+- `objectstore.grudge-studio.com` — R2 + D1 Worker (3D models, search, upload) — Cloudflare Workers
 - `dash.grudge-studio.com` — Admin dashboard — VPS
 - `ai.grudge-studio.com` — Gruda Legion AI hub (sprite gen, agents) — Cloudflare Workers
-- `ws.grudge-studio.com` — WebSocket real-time (Socket.IO) — VPS
-- `launcher.grudge-studio.com` — Version manifest & entitlements — VPS
-- `status.grudge-studio.com` — Uptime monitoring — VPS (Uptime Kuma)
-- `molochdagod.github.io/ObjectStore` — Static JSON game data API (canonical, 55+ endpoints) — GitHub Pages
+- `molochdagod.github.io/ObjectStore` — Static JSON game data API (55+ endpoints) — GitHub Pages (`gh-pages` branch)
+
+**Planned (not yet deployed):**
+- `ws.grudge-studio.com` — WebSocket real-time (Socket.IO)
+- `launcher.grudge-studio.com` — Version manifest & entitlements
+- `status.grudge-studio.com` — Uptime monitoring (Uptime Kuma)
 
 ### Data Source
 
@@ -142,10 +144,40 @@ const { data: weapons, isLoading, error, refetch } = useWeapons();
 
 ## Deploy
 
-Push to `main` → Vercel auto-builds and deploys:
-
+**Frontend** — Push to `main` → Vercel auto-deploys:
 ```bash
 git push origin main
 ```
 
-Backend services run on VPS via Docker/Coolify. Domain routing managed by Cloudflare.
+**ObjectStore data** — Regenerate master data + deploy to GitHub Pages:
+```bash
+cd ObjectStore
+npm run generate:master   # regenerate master-items/recipes/materials
+npm run deploy:pages      # push to gh-pages branch → GitHub Pages
+```
+
+**Backend** — VPS services via Docker/Coolify. Domain routing via Cloudflare.
+
+### Vercel Rewrites (vercel.json)
+
+The frontend proxies all API calls through Vercel rewrites:
+- `/api/auth/*` → `id.grudge-studio.com` (Grudge ID auth)
+- `/api/account/*` → `api.grudge-studio.com` (account endpoints)
+- `/api/game/*` → `api.grudge-studio.com` (game API)
+- `/api/wallet/*` → `api.grudge-studio.com` (Solana wallets)
+- `/api/island/*` → `api.grudge-studio.com` (island system)
+- `/api/nfts/*` → `api.grudge-studio.com` (NFT endpoints)
+- `/api/assets/*` → `assets.grudge-studio.com` (R2 CDN)
+- `/api/tools/*` → `api.grudge-studio.com` (dev tools)
+
+### Repos
+
+- **[Grudge-Builder](https://github.com/MolochDaGod/Grudge-Builder)** (private) — This repo. Game frontend.
+- **[ObjectStore](https://github.com/MolochDaGod/ObjectStore)** — Game data API + asset management
+- **[grudge-backend](https://github.com/MolochDaGod/grudge-backend)** — VPS backend (auth, game API, wallets)
+- **[grudge-studio-dash](https://github.com/MolochDaGod/grudge-studio-dash)** — Admin dashboard
+- **[grudge-ai-hub](https://github.com/MolochDaGod/grudge-ai-hub)** — AI Worker (Cloudflare)
+- **[grudge-arena](https://github.com/MolochDaGod/grudge-arena)** — 3D PvP Arena
+- **[Grudge-Studio-Game](https://github.com/MolochDaGod/Grudge-Studio-Game)** — 3D Tactical RPG
+- **[Grudge-Engine-Web](https://github.com/MolochDaGod/Grudge-Engine-Web)** — BabylonJS game engine + editor
+- **[gruda-legion-sdk](https://github.com/MolochDaGod/gruda-legion-sdk)** — AI SDK for Gruda Legion
