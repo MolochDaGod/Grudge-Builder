@@ -56,6 +56,7 @@ import TowerWarsPage from "@/pages/tower-wars";
 import HarvestPage from "@/pages/Harvest";
 import HeroCodexPage from "@/pages/hero-codex";
 import CraftingPage from "@/pages/crafting";
+import Island3DPage from "@/pages/island-3d";
 
 function Router() {
   return (
@@ -107,6 +108,7 @@ function Router() {
       <Route path="/harvest" component={HarvestPage} />
       <Route path="/hero-codex" component={HeroCodexPage} />
       <Route path="/crafting" component={CraftingPage} />
+      <Route path="/island-3d" component={Island3DPage} />
       {/* Fallback to 404 */}
       <Route component={NotFound} />
     </Switch>
