@@ -55,6 +55,7 @@ import LauncherPage from "@/pages/launcher";
 import TowerWarsPage from "@/pages/tower-wars";
 import HarvestPage from "@/pages/Harvest";
 import HeroCodexPage from "@/pages/hero-codex";
+import CraftingPage from "@/pages/crafting";
 
 function Router() {
   return (
@@ -104,6 +105,7 @@ function Router() {
       <Route path="/tower-wars" component={TowerWarsPage} />
       <Route path="/harvest" component={HarvestPage} />
       <Route path="/hero-codex" component={HeroCodexPage} />
+      <Route path="/crafting" component={CraftingPage} />
       {/* Fallback to 404 */}
       <Route component={NotFound} />
     </Switch>
