@@ -1,0 +1,1372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Grudge Warlords — Crafting &amp; Professions</title>
+<link rel="icon" href="https://i.imgur.com/bGd5QJ0.png"/>
+<script src="https://js.puter.com/v2/"></script>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;900&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+/* ======================== VARIABLES ======================== */
+:root {
+  --gold: #d4a843;
+  --gold-bright: #f0c040;
+  --gold-dim: #7a5c0e;
+  --deep: #0a0a10;
+  --deep2: #0e0e18;
+  --panel: rgba(14,14,24,0.95);
+  --panel2: rgba(20,20,32,0.9);
+  --border: rgba(212,168,67,0.15);
+  --border-hot: rgba(212,168,67,0.5);
+  --text: #d0d0d0;
+  --text-dim: #666;
+  --green: #22c55e;
+  --red: #ef4444;
+  --blue: #60a5fa;
+  --purple: #a78bfa;
+  --orange: #f59e0b;
+  --cyan: #22d3ee;
+  --prof-miner: #ef4444;
+  --prof-forester: #22c55e;
+  --prof-mystic: #a78bfa;
+  --prof-chef: #f59e0b;
+  --prof-engineer: #60a5fa;
+  --sidebar-w: 220px;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'Inter', sans-serif;
+  background: var(--deep);
+  color: var(--text);
+  min-height: 100vh;
+  font-size: 13px;
+}
+
+/* ======================== LAYOUT ======================== */
+.app { display: flex; min-height: 100vh; }
+.sidebar {
+  width: var(--sidebar-w);
+  background: var(--deep2);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+}
+.main { flex: 1; overflow-y: auto; max-height: 100vh; }
+
+/* ======================== SIDEBAR ======================== */
+.sidebar-logo {
+  padding: 20px 16px 12px;
+  border-bottom: 1px solid var(--border);
+  text-align: center;
+}
+.sidebar-logo h1 {
+  font-family: 'Cinzel', serif;
+  font-size: 16px;
+  color: var(--gold);
+  letter-spacing: 0.05em;
+}
+.sidebar-logo small {
+  font-size: 9px;
+  color: var(--text-dim);
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+.sidebar-section {
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+}
+.sidebar-section-title {
+  font-size: 9px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  padding: 4px 16px 6px;
+}
+.nav-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  font-size: 12px;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.15s;
+  text-align: left;
+}
+.nav-btn:hover { background: rgba(212,168,67,0.06); color: var(--text); }
+.nav-btn.active { background: rgba(212,168,67,0.12); color: var(--gold); border-left: 2px solid var(--gold); }
+.nav-btn .icon { font-size: 16px; width: 20px; text-align: center; }
+.nav-btn .badge {
+  margin-left: auto;
+  font-size: 9px;
+  padding: 1px 6px;
+  border-radius: 8px;
+  background: rgba(212,168,67,0.15);
+  color: var(--gold);
+  font-family: 'JetBrains Mono', monospace;
+}
+.sidebar-account {
+  margin-top: auto;
+  padding: 12px 16px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.account-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: #444;
+}
+.account-dot.on { background: var(--green); box-shadow: 0 0 6px var(--green); }
+.account-name { font-size: 11px; color: var(--text-dim); }
+.auth-btn {
+  margin-left: auto;
+  padding: 4px 10px;
+  border: 1px solid var(--border);
+  background: rgba(212,168,67,0.1);
+  color: var(--gold);
+  border-radius: 4px;
+  font-size: 10px;
+  cursor: pointer;
+  font-family: inherit;
+}
+.auth-btn:hover { background: rgba(212,168,67,0.2); }
+
+/* ======================== MAIN CONTENT ======================== */
+.page { display: none; padding: 24px; }
+.page.active { display: block; }
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+.page-title {
+  font-family: 'Cinzel', serif;
+  font-size: 18px;
+  color: var(--gold);
+}
+
+/* ======================== CARDS / PANELS ======================== */
+.card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 12px;
+}
+.card-title {
+  font-family: 'Cinzel', serif;
+  font-size: 13px;
+  color: var(--gold);
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+.grid4 { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px; }
+.stat-card {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 14px;
+  text-align: center;
+}
+.stat-val {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--gold);
+}
+.stat-label { font-size: 10px; color: var(--text-dim); margin-top: 2px; letter-spacing: 0.08em; }
+
+/* ======================== PROFESSION CARDS ======================== */
+.prof-card {
+  background: rgba(255,255,255,0.02);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 16px;
+  cursor: pointer;
+  transition: all 0.2s;
+  position: relative;
+  overflow: hidden;
+}
+.prof-card:hover { border-color: var(--border-hot); transform: translateY(-2px); }
+.prof-card .prof-icon { font-size: 28px; margin-bottom: 8px; }
+.prof-card .prof-name { font-family: 'Cinzel', serif; font-size: 14px; color: var(--gold); }
+.prof-card .prof-role { font-size: 10px; color: var(--text-dim); margin-top: 2px; }
+.prof-card .prof-level {
+  position: absolute;
+  top: 10px; right: 10px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+}
+.prof-xp-bar {
+  width: 100%;
+  height: 4px;
+  background: rgba(255,255,255,0.06);
+  border-radius: 2px;
+  margin-top: 10px;
+  overflow: hidden;
+}
+.prof-xp-fill { height: 100%; border-radius: 2px; transition: width 0.3s; }
+
+/* ======================== RECIPE LIST ======================== */
+.recipe-filters {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+.filter-btn {
+  padding: 4px 12px;
+  border: 1px solid var(--border);
+  background: none;
+  color: var(--text-dim);
+  border-radius: 4px;
+  font-size: 11px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.15s;
+}
+.filter-btn:hover { border-color: var(--gold-dim); color: var(--text); }
+.filter-btn.active { background: rgba(212,168,67,0.15); border-color: var(--gold); color: var(--gold); }
+
+.recipe-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 8px;
+  max-height: 500px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+.recipe-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: rgba(255,255,255,0.02);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.recipe-item:hover { border-color: var(--gold-dim); background: rgba(212,168,67,0.04); }
+.recipe-item.selected { border-color: var(--gold); background: rgba(212,168,67,0.08); }
+.recipe-item.cant-craft { opacity: 0.5; }
+.recipe-icon { font-size: 20px; width: 28px; text-align: center; }
+.recipe-info { flex: 1; min-width: 0; }
+.recipe-name { font-size: 12px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.recipe-meta { font-size: 9px; color: var(--text-dim); }
+.recipe-tier {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  padding: 1px 5px;
+  border-radius: 3px;
+  border: 1px solid;
+}
+
+/* ======================== CRAFTING BENCH ======================== */
+.bench { display: grid; grid-template-columns: 1fr 300px; gap: 16px; }
+@media (max-width: 900px) { .bench { grid-template-columns: 1fr; } }
+.bench-slots {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.slot {
+  aspect-ratio: 1;
+  background: rgba(0,0,0,0.3);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  position: relative;
+  transition: all 0.15s;
+}
+.slot.filled { border-color: var(--gold-dim); background: rgba(212,168,67,0.04); }
+.slot.missing { border-color: var(--red); background: rgba(239,68,68,0.04); }
+.slot-qty {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  color: var(--text-dim);
+  margin-top: 2px;
+}
+.slot-qty.enough { color: var(--green); }
+.slot-qty.short { color: var(--red); }
+.slot-name { font-size: 8px; color: var(--text-dim); margin-top: 1px; text-align: center; max-width: 80px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.craft-result {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 16px;
+  background: rgba(0,0,0,0.2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  margin-bottom: 12px;
+}
+.craft-arrow { font-size: 20px; color: var(--gold-dim); }
+.result-icon { font-size: 32px; }
+.result-name { font-family: 'Cinzel', serif; font-size: 14px; color: var(--gold); }
+
+.craft-btn {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid var(--gold);
+  background: linear-gradient(135deg, rgba(212,168,67,0.2), rgba(212,168,67,0.1));
+  color: var(--gold);
+  font-family: 'Cinzel', serif;
+  font-size: 14px;
+  letter-spacing: 0.08em;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.craft-btn:hover:not(:disabled) { background: linear-gradient(135deg, rgba(212,168,67,0.35), rgba(212,168,67,0.2)); transform: translateY(-1px); }
+.craft-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+.craft-progress {
+  width: 100%;
+  height: 6px;
+  background: rgba(255,255,255,0.06);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-top: 8px;
+}
+.craft-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--gold-dim), var(--gold));
+  border-radius: 3px;
+  transition: width 0.1s linear;
+  width: 0%;
+}
+
+/* ======================== INVENTORY ======================== */
+.inv-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 6px;
+}
+.inv-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  background: rgba(255,255,255,0.02);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-size: 11px;
+}
+.inv-item .icon { font-size: 16px; }
+.inv-item .qty {
+  margin-left: auto;
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--gold);
+  font-size: 11px;
+}
+
+/* ======================== ACCOUNT ======================== */
+.account-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+@media (max-width: 700px) { .account-grid { grid-template-columns: 1fr; } .grid3 { grid-template-columns: 1fr 1fr; } }
+
+.equip-slot {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  background: rgba(0,0,0,0.2);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+}
+.equip-slot .slot-label { font-size: 9px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.1em; width: 60px; }
+.equip-slot .slot-item { font-size: 12px; color: var(--text); }
+.equip-slot .slot-empty { font-size: 11px; color: var(--text-dim); font-style: italic; }
+
+/* Log */
+.log { max-height: 200px; overflow-y: auto; }
+.log-entry {
+  padding: 4px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.03);
+  font-size: 11px;
+  color: var(--text-dim);
+  display: flex;
+  gap: 8px;
+}
+.log-entry .time { font-family: 'JetBrains Mono', monospace; font-size: 9px; color: #444; min-width: 50px; }
+.log-entry.craft { color: var(--gold); }
+.log-entry.level { color: var(--green); }
+.log-entry.fail { color: var(--red); }
+
+/* Toast */
+.toast {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  padding: 12px 20px;
+  background: var(--panel);
+  border: 1px solid var(--gold);
+  border-radius: 6px;
+  font-size: 12px;
+  color: var(--gold);
+  z-index: 999;
+  transform: translateX(120%);
+  transition: transform 0.3s;
+  max-width: 300px;
+}
+.toast.show { transform: translateX(0); }
+.toast.success { border-color: var(--green); color: var(--green); }
+.toast.error { border-color: var(--red); color: var(--red); }
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--gold-dim); border-radius: 2px; }
+
+@media (max-width: 700px) {
+  .sidebar { width: 60px; }
+  .sidebar .nav-btn span:not(.icon), .sidebar-logo small, .sidebar-section-title, .sidebar-account .account-name, .sidebar-account .auth-btn, .nav-btn .badge { display: none; }
+  .sidebar-logo h1 { font-size: 10px; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <h1>⚔ Grudge Crafting</h1>
+      <small>Warlords Profession Suite</small>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-section-title">Navigation</div>
+      <button class="nav-btn active" data-page="dashboard"><span class="icon">📊</span><span>Dashboard</span></button>
+      <button class="nav-btn" data-page="crafting"><span class="icon">🔨</span><span>Crafting Bench</span></button>
+      <button class="nav-btn" data-page="inventory"><span class="icon">🎒</span><span>Inventory</span><span class="badge" id="inv-count">0</span></button>
+      <button class="nav-btn" data-page="account"><span class="icon">👤</span><span>Account</span></button>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-section-title">Professions</div>
+      <button class="nav-btn" data-page="prof-miner"><span class="icon">⛏️</span><span>Miner</span><span class="badge prof-lvl" data-prof="Miner">1</span></button>
+      <button class="nav-btn" data-page="prof-forester"><span class="icon">🪓</span><span>Forester</span><span class="badge prof-lvl" data-prof="Forester">1</span></button>
+      <button class="nav-btn" data-page="prof-mystic"><span class="icon">🔮</span><span>Mystic</span><span class="badge prof-lvl" data-prof="Mystic">1</span></button>
+      <button class="nav-btn" data-page="prof-chef"><span class="icon">🍳</span><span>Chef</span><span class="badge prof-lvl" data-prof="Chef">1</span></button>
+      <button class="nav-btn" data-page="prof-engineer"><span class="icon">⚙️</span><span>Engineer</span><span class="badge prof-lvl" data-prof="Engineer">1</span></button>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-section-title">Links</div>
+      <a href="https://grudgewarlords.com" target="_blank" class="nav-btn"><span class="icon">🌐</span><span>Grudge Warlords</span></a>
+      <a href="https://grudgeplatform.com/craftskills" target="_blank" class="nav-btn"><span class="icon">📄</span><span>Craft Skills Docs</span></a>
+      <a href="https://warlord-crafting-suite.vercel.app" target="_blank" class="nav-btn"><span class="icon">🚀</span><span>Full Suite</span></a>
+    </div>
+
+    <div class="sidebar-account">
+      <span class="account-dot" id="acctDot"></span>
+      <span class="account-name" id="acctName">Not signed in</span>
+      <button class="auth-btn" id="authBtn" onclick="doAuth()">Sign In</button>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <div class="main">
+    <div id="toast" class="toast"></div>
+
+    <!-- DASHBOARD -->
+    <div class="page active" id="page-dashboard">
+      <div class="page-header"><h2 class="page-title">⚔ Crafting Dashboard</h2></div>
+      <div class="grid4" id="dash-stats"></div>
+      <div class="grid2" style="margin-top:16px">
+        <div class="card">
+          <div class="card-title">Professions</div>
+          <div id="dash-professions"></div>
+        </div>
+        <div class="card">
+          <div class="card-title">Recent Activity</div>
+          <div class="log" id="dash-log"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CRAFTING BENCH -->
+    <div class="page" id="page-crafting">
+      <div class="page-header">
+        <h2 class="page-title">🔨 Crafting Bench</h2>
+        <div style="display:flex;gap:8px;align-items:center">
+          <select id="bench-prof" class="filter-btn" style="background:var(--deep);color:var(--text);padding:6px 10px" onchange="renderCraftingPage()">
+            <option value="All">All Professions</option>
+            <option value="Miner">⛏️ Miner</option>
+            <option value="Forester">🪓 Forester</option>
+            <option value="Mystic">🔮 Mystic</option>
+            <option value="Chef">🍳 Chef</option>
+            <option value="Engineer">⚙️ Engineer</option>
+          </select>
+        </div>
+      </div>
+      <div class="bench">
+        <div>
+          <div class="recipe-filters" id="tier-filters"></div>
+          <div class="recipe-filters" id="type-filters"></div>
+          <div class="recipe-grid" id="recipe-list"></div>
+        </div>
+        <div>
+          <div class="card" id="bench-detail">
+            <div class="card-title">Select a Recipe</div>
+            <p style="font-size:11px;color:var(--text-dim)">Choose a recipe from the list to begin crafting.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- INVENTORY -->
+    <div class="page" id="page-inventory">
+      <div class="page-header">
+        <h2 class="page-title">🎒 Inventory</h2>
+        <button class="filter-btn" onclick="gatherMaterials()">🌿 Gather Materials</button>
+      </div>
+      <div class="recipe-filters" id="inv-filters"></div>
+      <div class="inv-grid" id="inv-grid"></div>
+    </div>
+
+    <!-- ACCOUNT -->
+    <div class="page" id="page-account">
+      <div class="page-header"><h2 class="page-title">👤 Account</h2></div>
+
+      <!-- Grudge Warlords Characters -->
+      <div class="card" style="margin-bottom:12px">
+        <div class="card-title">⚔ Your Characters <span style="font-size:10px;color:var(--text-dim);font-family:Inter">(from grudgewarlords.com)</span></div>
+        <div id="acct-characters-list" style="font-size:11px;color:var(--text-dim)">Sign in to load your characters...</div>
+      </div>
+
+      <!-- Active Character Detail -->
+      <div class="card" id="acct-active-char-card" style="margin-bottom:12px;display:none">
+        <div class="card-title">🛡 Active Character</div>
+        <div id="acct-active-char"></div>
+      </div>
+
+      <div class="account-grid">
+        <div class="card">
+          <div class="card-title">Character</div>
+          <div id="acct-char"></div>
+        </div>
+        <div class="card">
+          <div class="card-title">Equipment</div>
+          <div id="acct-equip"></div>
+        </div>
+      </div>
+      <div class="card" style="margin-top:12px">
+        <div class="card-title">Crafting Stats</div>
+        <div class="grid3" id="acct-stats"></div>
+      </div>
+      <div class="grid2" style="margin-top:12px">
+        <div class="card">
+          <div class="card-title">Save / Load</div>
+          <div id="acct-save"></div>
+        </div>
+        <div class="card">
+          <div class="card-title">Crafting Log</div>
+          <div class="log" id="acct-log"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PROFESSION PAGES (generated dynamically) -->
+    <div class="page" id="page-prof-miner"></div>
+    <div class="page" id="page-prof-forester"></div>
+    <div class="page" id="page-prof-mystic"></div>
+    <div class="page" id="page-prof-chef"></div>
+    <div class="page" id="page-prof-engineer"></div>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// STATE
+// ============================================================
+const GRUDGE_API = 'https://api.grudge-studio.com';
+const GRUDGE_AUTH = 'https://id.grudge-studio.com';
+
+const STATE = {
+  user: null,
+  grudgeToken: null,
+  grudgeCharacters: [],
+  activeCharacterId: null,
+  currentPage: 'dashboard',
+  selectedRecipe: null,
+  filterTier: 'all',
+  filterType: 'all',
+  isCrafting: false,
+  professions: {
+    Miner:     { level: 1, xp: 0, xpNext: 100, totalCrafts: 0, color: '#ef4444', icon: '⛏️', role: 'Metal · Weapons · Armor' },
+    Forester:  { level: 1, xp: 0, xpNext: 100, totalCrafts: 0, color: '#22c55e', icon: '🪓', role: 'Wood · Bows · Leather' },
+    Mystic:    { level: 1, xp: 0, xpNext: 100, totalCrafts: 0, color: '#a78bfa', icon: '🔮', role: 'Cloth · Staves · Enchants' },
+    Chef:      { level: 1, xp: 0, xpNext: 100, totalCrafts: 0, color: '#f59e0b', icon: '🍳', role: 'Food · Potions · Buffs' },
+    Engineer:  { level: 1, xp: 0, xpNext: 100, totalCrafts: 0, color: '#60a5fa', icon: '⚙️', role: 'Guns · Crossbows · Traps' },
+  },
+  inventory: {
+    'Wood Scraps': 20, 'Stone Fragments': 15, 'Plant Fiber': 25, 'Animal Hide': 8,
+    'Animal Bone': 6, 'Raw Meat': 10, 'Wild Herbs': 12, 'Water': 20,
+    'Junk Ore': 10, 'Scrap Metal': 5, 'Torn Rag': 15, 'Leather Scraps': 8,
+    'Charcoal': 6, 'Rotted Wood': 18, 'Copper Ore': 8, 'Iron Ore': 4,
+    'Pine Log': 10, 'Oak Log': 5, 'Arcane Dust': 3, 'Herb': 10,
+  },
+  equipment: {
+    head: null, chest: null, hands: null, feet: null,
+    weapon: null, shield: null, ring: null, necklace: null,
+  },
+  log: [],
+  stats: { totalCrafts: 0, itemsCrafted: 0, materialsUsed: 0, failedCrafts: 0 },
+};
+
+// ============================================================
+// RECIPES DATABASE
+// ============================================================
+const RECIPES = [
+  // === T0 UNIVERSAL ===
+  { id:'parchment', n:'Parchment', prof:'All', type:'Refining', tier:0, icon:'📜', mats:{'Plant Fiber':3}, desc:'Thin writing surface' },
+  { id:'simple-thread', n:'Simple Thread', prof:'All', type:'Refining', tier:0, icon:'🧵', mats:{'Plant Fiber':5}, desc:'Basic thread spun from fibers' },
+  { id:'ink', n:'Ink', prof:'All', type:'Refining', tier:0, icon:'🖋️', mats:{'Charcoal':1,'Water':1}, desc:'Dark writing fluid' },
+  { id:'crude-bandage', n:'Crude Bandage', prof:'All', type:'Consumable', tier:0, icon:'🩹', mats:{'Torn Rag':2}, desc:'Stops bleeding, +10 HP/10s' },
+  { id:'simple-bandage', n:'Simple Bandage', prof:'All', type:'Consumable', tier:0, icon:'🩹', mats:{'Simple Thread':2,'Herb':1}, desc:'+20 HP/10s' },
+  { id:'minor-hp', n:'Minor Health Potion', prof:'All', type:'Consumable', tier:0, icon:'❤️', mats:{'Herb':2,'Water':1}, desc:'Restores 25 HP' },
+  { id:'minor-mp', n:'Minor Mana Potion', prof:'All', type:'Consumable', tier:0, icon:'💙', mats:{'Arcane Dust':1,'Water':2}, desc:'Restores 25 Mana' },
+  { id:'wooden-club', n:'Wooden Club', prof:'All', type:'Weapon', tier:0, icon:'🏏', mats:{'Rotted Wood':3}, desc:'Crude bludgeon, 3 DMG' },
+  { id:'stone-knife', n:'Stone Knife', prof:'All', type:'Weapon', tier:0, icon:'🔪', mats:{'Stone Fragments':2,'Simple Thread':1}, desc:'Sharp stone dagger, 2 DMG' },
+  { id:'makeshift-spear', n:'Makeshift Spear', prof:'All', type:'Weapon', tier:0, icon:'🗡️', mats:{'Rotted Wood':2,'Stone Fragments':1}, desc:'Pointed stick, 4 DMG' },
+  { id:'wooden-sword', n:'Wooden Sword', prof:'All', type:'Weapon', tier:0, icon:'⚔️', mats:{'Wood Scraps':3,'Plant Fiber':1}, desc:'Starter sword, 3 DMG' },
+  { id:'tattered-shirt', n:'Tattered Shirt', prof:'All', type:'Armor', tier:0, icon:'👕', mats:{'Torn Rag':4,'Simple Thread':2}, desc:'+1 Defense' },
+  { id:'ragged-pants', n:'Ragged Pants', prof:'All', type:'Armor', tier:0, icon:'👖', mats:{'Torn Rag':3,'Simple Thread':1}, desc:'+1 Defense' },
+  { id:'scrap-helm', n:'Scrap Helm', prof:'All', type:'Armor', tier:0, icon:'⛑️', mats:{'Scrap Metal':2}, desc:'+1 Defense' },
+  { id:'hand-wraps', n:'Hand Wraps', prof:'All', type:'Armor', tier:0, icon:'🧤', mats:{'Torn Rag':2}, desc:'+1 Defense' },
+  { id:'tent', n:'Tent', prof:'All', type:'Building', tier:0, icon:'⛺', mats:{'Rotted Wood':4,'Torn Rag':6,'Simple Thread':3}, desc:'Basic shelter' },
+  { id:'campfire-b', n:'Campfire', prof:'All', type:'Building', tier:0, icon:'🔥', mats:{'Stone Fragments':5,'Rotted Wood':3}, desc:'Cooking & light' },
+  { id:'storage-chest', n:'Storage Chest', prof:'All', type:'Building', tier:0, icon:'📦', mats:{'Rotted Wood':5,'Scrap Metal':1}, desc:'Item storage' },
+
+  // === MINER T0 ===
+  { id:'smelt-scrap', n:'Smelt Scrap Metal', prof:'Miner', type:'Refining', tier:0, icon:'🔩', mats:{'Junk Ore':3}, desc:'Salvage metal from junk' },
+  { id:'broken-blade', n:'Broken Blade', prof:'Miner', type:'Weapon', tier:0, icon:'🗡️', mats:{'Scrap Metal':3,'Simple Thread':1}, desc:'Crude forged blade, 5 DMG' },
+  { id:'rusty-mace', n:'Rusty Mace', prof:'Miner', type:'Weapon', tier:0, icon:'🔨', mats:{'Scrap Metal':2,'Rotted Wood':1}, desc:'Heavy bludgeon, 6 DMG' },
+  { id:'stone-hatchet', n:'Stone Hatchet', prof:'Miner', type:'Weapon', tier:0, icon:'🪓', mats:{'Stone Fragments':2,'Wood Scraps':1,'Plant Fiber':1}, desc:'Stone axe, 5 DMG' },
+  { id:'bone-sword', n:'Sharpened Bone Blade', prof:'Miner', type:'Weapon', tier:0, icon:'🦴', mats:{'Animal Bone':2,'Plant Fiber':1}, desc:'Bone sword, 4 DMG' },
+
+  // === MINER T1 ===
+  { id:'copper-ingot', n:'Copper Ingot', prof:'Miner', type:'Refining', tier:1, icon:'🟠', mats:{'Copper Ore':3}, desc:'Refined copper bar' },
+  { id:'iron-ingot', n:'Iron Ingot', prof:'Miner', type:'Refining', tier:1, icon:'⬜', mats:{'Iron Ore':3}, desc:'Refined iron bar' },
+  { id:'bloodfeud-blade', n:'Bloodfeud Blade', prof:'Miner', type:'Weapon', tier:1, icon:'⚔️', mats:{'Copper Ingot':3,'Wooden Sword':1,'Simple Thread':2}, desc:'T1 Sword · 12 DMG · Bloodfeud set' },
+  { id:'gorehowl', n:'Gorehowl', prof:'Miner', type:'Weapon', tier:1, icon:'🪓', mats:{'Iron Ingot':2,'Stone Hatchet':1,'Animal Hide':1}, desc:'T1 Axe · 14 DMG · Gore set' },
+  { id:'grudgehammer', n:'Grudgehammer', prof:'Miner', type:'Weapon', tier:1, icon:'🔨', mats:{'Iron Ingot':3,'Rusty Mace':1}, desc:'T1 Hammer · 16 DMG' },
+  { id:'bloodshiv', n:'Bloodshiv', prof:'Miner', type:'Weapon', tier:1, icon:'🗡️', mats:{'Copper Ingot':2,'Stone Knife':1}, desc:'T1 Dagger · 8 DMG · Fast' },
+  { id:'iron-helm', n:'Iron Helm', prof:'Miner', type:'Armor', tier:1, icon:'⛑️', mats:{'Iron Ingot':2,'Scrap Helm':1}, desc:'+5 Def · Metal' },
+  { id:'iron-chest', n:'Iron Chestplate', prof:'Miner', type:'Armor', tier:1, icon:'🛡️', mats:{'Iron Ingot':4,'Tattered Shirt':1}, desc:'+8 Def · Metal' },
+
+  // === FORESTER T0 ===
+  { id:'rough-plank', n:'Rough Plank', prof:'Forester', type:'Refining', tier:0, icon:'🪵', mats:{'Rotted Wood':2}, desc:'Crude wooden plank' },
+  { id:'shortbow', n:'Shortbow', prof:'Forester', type:'Weapon', tier:0, icon:'🏹', mats:{'Wood Scraps':3,'Plant Fiber':2}, desc:'Basic bow, 4 DMG' },
+  { id:'crude-leather', n:'Crude Leather', prof:'Forester', type:'Refining', tier:0, icon:'🟤', mats:{'Animal Hide':2}, desc:'Tanned hide piece' },
+  { id:'leather-vest', n:'Leather Vest', prof:'Forester', type:'Armor', tier:0, icon:'🦺', mats:{'Crude Leather':3,'Simple Thread':2}, desc:'+2 Def · Leather' },
+  // === FORESTER T1 ===
+  { id:'pine-plank', n:'Pine Plank', prof:'Forester', type:'Refining', tier:1, icon:'🪵', mats:{'Pine Log':2}, desc:'Refined pine wood' },
+  { id:'oak-plank', n:'Oak Plank', prof:'Forester', type:'Refining', tier:1, icon:'🪵', mats:{'Oak Log':2}, desc:'Strong oak plank' },
+  { id:'wraithbone-bow', n:'Wraithbone Bow', prof:'Forester', type:'Weapon', tier:1, icon:'🏹', mats:{'Pine Plank':2,'Shortbow':1,'Simple Thread':3}, desc:'T1 Bow · 11 DMG · Spectral' },
+  { id:'hardened-leather', n:'Hardened Leather', prof:'Forester', type:'Refining', tier:1, icon:'🟤', mats:{'Crude Leather':2,'Pine Plank':1}, desc:'Treated leather' },
+  { id:'leather-armor-t1', n:'Ranger Leathers', prof:'Forester', type:'Armor', tier:1, icon:'🦺', mats:{'Hardened Leather':4,'Simple Thread':2}, desc:'+6 Def · +2 Agi' },
+
+  // === MYSTIC T0 ===
+  { id:'raw-essence', n:'Raw Essence', prof:'Mystic', type:'Refining', tier:0, icon:'✨', mats:{'Arcane Dust':2,'Water':1}, desc:'Unrefined magical energy' },
+  { id:'crude-staff', n:'Crude Staff', prof:'Mystic', type:'Weapon', tier:0, icon:'🪄', mats:{'Rotted Wood':3,'Raw Essence':1}, desc:'Basic staff, 3 DMG + 5 SP' },
+  { id:'linen-cloth', n:'Linen Cloth', prof:'Mystic', type:'Refining', tier:0, icon:'🧵', mats:{'Plant Fiber':4}, desc:'Rough woven cloth' },
+  { id:'acolyte-robe', n:'Acolyte Robe', prof:'Mystic', type:'Armor', tier:0, icon:'👘', mats:{'Linen Cloth':3,'Simple Thread':2}, desc:'+1 Def · +3 SP' },
+  // === MYSTIC T1 ===
+  { id:'minor-essence', n:'Minor Essence', prof:'Mystic', type:'Refining', tier:1, icon:'✨', mats:{'Raw Essence':3}, desc:'Concentrated magical energy' },
+  { id:'emberwrath', n:'Emberwrath', prof:'Mystic', type:'Weapon', tier:1, icon:'🔥', mats:{'Crude Staff':1,'Minor Essence':2,'Copper Ingot':1}, desc:'T1 Fire Staff · 10 DMG + 15 SP' },
+  { id:'frostbite-staff', n:'Frostbite', prof:'Mystic', type:'Weapon', tier:1, icon:'❄️', mats:{'Crude Staff':1,'Minor Essence':2,'Water':3}, desc:'T1 Frost Staff · 9 DMG + 18 SP' },
+  { id:'silk-robe', n:'Mystic Silks', prof:'Mystic', type:'Armor', tier:1, icon:'👘', mats:{'Linen Cloth':4,'Minor Essence':1,'Simple Thread':3}, desc:'+3 Def · +8 SP' },
+
+  // === CHEF T0 ===
+  { id:'charred-meat', n:'Charred Meat', prof:'Chef', type:'Consumable', tier:0, icon:'🥩', mats:{'Raw Meat':1}, desc:'+15 HP · Basic food' },
+  { id:'herb-soup', n:'Herb Soup', prof:'Chef', type:'Consumable', tier:0, icon:'🥣', mats:{'Wild Herbs':2,'Water':2}, desc:'+20 HP · +5 MP' },
+  { id:'trail-mix', n:'Trail Mix', prof:'Chef', type:'Consumable', tier:0, icon:'🥜', mats:{'Wild Herbs':1,'Plant Fiber':2}, desc:'+10 Stamina regen' },
+  // === CHEF T1 ===
+  { id:'seasoned-steak', n:'Seasoned Steak', prof:'Chef', type:'Consumable', tier:1, icon:'🥩', mats:{'Raw Meat':2,'Wild Herbs':1,'Charred Meat':1}, desc:'+40 HP · +5 STR buff 5min' },
+  { id:'mana-stew', n:'Mana Stew', prof:'Chef', type:'Consumable', tier:1, icon:'🥘', mats:{'Wild Herbs':3,'Water':2,'Arcane Dust':1}, desc:'+30 MP · +5 INT buff 5min' },
+  { id:'hp-potion-t1', n:'Health Potion', prof:'Chef', type:'Consumable', tier:1, icon:'❤️', mats:{'Herb':3,'Water':2,'Minor Health Potion':1}, desc:'Restores 75 HP' },
+  { id:'mp-potion-t1', n:'Mana Potion', prof:'Chef', type:'Consumable', tier:1, icon:'💙', mats:{'Arcane Dust':2,'Water':3,'Minor Mana Potion':1}, desc:'Restores 75 MP' },
+
+  // === ENGINEER T0 ===
+  { id:'crude-parts', n:'Crude Mechanism', prof:'Engineer', type:'Refining', tier:0, icon:'⚙️', mats:{'Scrap Metal':2,'Stone Fragments':1}, desc:'Basic mechanical parts' },
+  { id:'slingshot', n:'Slingshot', prof:'Engineer', type:'Weapon', tier:0, icon:'🎯', mats:{'Wood Scraps':2,'Leather Scraps':2}, desc:'Ranged weapon, 3 DMG' },
+  { id:'bear-trap', n:'Bear Trap', prof:'Engineer', type:'Utility', tier:0, icon:'🪤', mats:{'Scrap Metal':3,'Crude Mechanism':1}, desc:'Immobilize target 3s' },
+  // === ENGINEER T1 ===
+  { id:'gears', n:'Precision Gears', prof:'Engineer', type:'Refining', tier:1, icon:'⚙️', mats:{'Copper Ingot':2,'Crude Mechanism':1}, desc:'Refined mechanical parts' },
+  { id:'shadowflight', n:'Shadowflight Crossbow', prof:'Engineer', type:'Weapon', tier:1, icon:'🏹', mats:{'Pine Plank':2,'Precision Gears':2,'Slingshot':1}, desc:'T1 Crossbow · 13 DMG' },
+  { id:'bloodcannon', n:'Bloodcannon', prof:'Engineer', type:'Weapon', tier:1, icon:'🔫', mats:{'Iron Ingot':3,'Precision Gears':2,'Crude Mechanism':1}, desc:'T1 Gun · 15 DMG · Slow' },
+  { id:'spike-trap', n:'Spike Trap', prof:'Engineer', type:'Utility', tier:1, icon:'🪤', mats:{'Iron Ingot':2,'Precision Gears':1,'Bear Trap':1}, desc:'25 DMG + Bleed' },
+];
+
+// Map recipe output names to inventory items for crafting chains
+const RECIPE_OUTPUT_MAP = {};
+RECIPES.forEach(r => { RECIPE_OUTPUT_MAP[r.n] = r.id; });
+
+// ============================================================
+// MATERIAL ICONS
+// ============================================================
+const MAT_ICONS = {
+  'Wood Scraps':'🪵','Stone Fragments':'🪨','Plant Fiber':'🌿','Animal Hide':'🦌',
+  'Animal Bone':'🦴','Raw Meat':'🥩','Wild Herbs':'🌿','Water':'💧',
+  'Junk Ore':'⛏️','Scrap Metal':'🔩','Torn Rag':'🧵','Leather Scraps':'🟤',
+  'Charcoal':'⬛','Rotted Wood':'🪵','Copper Ore':'🟠','Iron Ore':'⬜',
+  'Pine Log':'🌲','Oak Log':'🌳','Arcane Dust':'✨','Herb':'🌿',
+  'Simple Thread':'🧵','Crude Leather':'🟤','Raw Essence':'✨','Linen Cloth':'🧶',
+  'Crude Mechanism':'⚙️','Rough Plank':'🪵','Pine Plank':'🪵','Oak Plank':'🪵',
+  'Copper Ingot':'🟠','Iron Ingot':'⬜','Hardened Leather':'🟤',
+  'Minor Essence':'💫','Precision Gears':'⚙️','Parchment':'📜','Ink':'🖋️',
+};
+
+// ============================================================
+// AUTH
+// ============================================================
+async function doAuth() {
+  try {
+    STATE.user = await puter.auth.signIn();
+    updateAuthUI();
+    await loadSaveData();
+    await loginToGrudge();
+    showToast('Signed in as ' + STATE.user.username, 'success');
+  } catch(e) { console.error(e); }
+}
+
+async function checkAuth() {
+  try {
+    STATE.user = await puter.auth.getUser();
+    updateAuthUI();
+    await loadSaveData();
+    // Also try to load Grudge characters
+    await loginToGrudge();
+  } catch(e) {}
+}
+
+function updateAuthUI() {
+  const dot = document.getElementById('acctDot');
+  const name = document.getElementById('acctName');
+  const btn = document.getElementById('authBtn');
+  if (STATE.user) {
+    dot.classList.add('on');
+    name.textContent = STATE.user.username;
+    btn.textContent = '✓';
+    btn.disabled = true;
+  }
+}
+
+// ============================================================
+// PERSISTENCE (Puter KV)
+// ============================================================
+async function saveData() {
+  if (!STATE.user) return;
+  try {
+    const data = {
+      professions: STATE.professions,
+      inventory: STATE.inventory,
+      equipment: STATE.equipment,
+      stats: STATE.stats,
+      log: STATE.log.slice(-50),
+      activeCharacterId: STATE.activeCharacterId,
+    };
+    await puter.kv.set('grudge-crafting-save', JSON.stringify(data));
+  } catch(e) { console.error('Save failed:', e); }
+}
+
+async function loadSaveData() {
+  if (!STATE.user) return;
+  try {
+    const raw = await puter.kv.get('grudge-crafting-save');
+    if (raw) {
+      const data = JSON.parse(raw);
+      if (data.professions) Object.assign(STATE.professions, data.professions);
+      if (data.inventory) STATE.inventory = data.inventory;
+      if (data.equipment) STATE.equipment = data.equipment;
+      if (data.stats) STATE.stats = data.stats;
+      if (data.log) STATE.log = data.log;
+      if (data.activeCharacterId) STATE.activeCharacterId = data.activeCharacterId;
+      renderAll();
+      showToast('Save data loaded!', 'success');
+    }
+  } catch(e) { console.error('Load failed:', e); }
+}
+
+// ============================================================
+// NAVIGATION
+// ============================================================
+function navigate(page) {
+  STATE.currentPage = page;
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  const el = document.getElementById('page-' + page);
+  if (el) el.classList.add('active');
+  const btn = document.querySelector(`[data-page="${page}"]`);
+  if (btn) btn.classList.add('active');
+  renderCurrentPage();
+}
+
+document.querySelectorAll('.nav-btn[data-page]').forEach(btn => {
+  btn.addEventListener('click', () => navigate(btn.dataset.page));
+});
+
+// ============================================================
+// RENDER FUNCTIONS
+// ============================================================
+function renderAll() {
+  updateSidebarBadges();
+  renderCurrentPage();
+}
+
+function renderCurrentPage() {
+  const p = STATE.currentPage;
+  if (p === 'dashboard') renderDashboard();
+  else if (p === 'crafting') renderCraftingPage();
+  else if (p === 'inventory') renderInventoryPage();
+  else if (p === 'account') renderAccountPage();
+  else if (p.startsWith('prof-')) renderProfessionPage(p.replace('prof-',''));
+}
+
+function updateSidebarBadges() {
+  document.querySelectorAll('.prof-lvl').forEach(el => {
+    const prof = el.dataset.prof;
+    if (STATE.professions[prof]) el.textContent = STATE.professions[prof].level;
+  });
+  const items = Object.values(STATE.inventory).reduce((a,b) => a+b, 0);
+  document.getElementById('inv-count').textContent = items;
+}
+
+// === DASHBOARD ===
+function renderDashboard() {
+  const totalLvl = Object.values(STATE.professions).reduce((a,p) => a + p.level, 0);
+  const totalItems = Object.values(STATE.inventory).reduce((a,b) => a+b, 0);
+  document.getElementById('dash-stats').innerHTML = `
+    <div class="stat-card"><div class="stat-val">${STATE.stats.totalCrafts}</div><div class="stat-label">Total Crafts</div></div>
+    <div class="stat-card"><div class="stat-val">${totalLvl}</div><div class="stat-label">Combined Level</div></div>
+    <div class="stat-card"><div class="stat-val">${RECIPES.length}</div><div class="stat-label">Known Recipes</div></div>
+    <div class="stat-card"><div class="stat-val">${totalItems}</div><div class="stat-label">Materials</div></div>
+    <div class="stat-card"><div class="stat-val">${Object.keys(STATE.inventory).length}</div><div class="stat-label">Unique Items</div></div>
+    <div class="stat-card"><div class="stat-val">${STATE.stats.materialsUsed}</div><div class="stat-label">Materials Used</div></div>
+  `;
+  document.getElementById('dash-professions').innerHTML = Object.entries(STATE.professions).map(([name, p]) => {
+    const pct = Math.min(100, (p.xp / p.xpNext) * 100);
+    return `<div class="prof-card" onclick="navigate('prof-${name.toLowerCase()}')" style="margin-bottom:8px">
+      <div style="display:flex;align-items:center;gap:10px">
+        <span style="font-size:24px">${p.icon}</span>
+        <div style="flex:1">
+          <div style="font-weight:600;font-size:13px">${name}</div>
+          <div style="font-size:10px;color:var(--text-dim)">${p.role}</div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-family:'JetBrains Mono';font-size:12px;color:${p.color}">Lv ${p.level}</div>
+          <div style="font-size:9px;color:var(--text-dim)">${p.xp}/${p.xpNext} XP</div>
+        </div>
+      </div>
+      <div class="prof-xp-bar"><div class="prof-xp-fill" style="width:${pct}%;background:${p.color}"></div></div>
+    </div>`;
+  }).join('');
+  renderLog('dash-log');
+}
+
+// === CRAFTING BENCH ===
+function renderCraftingPage() {
+  const prof = document.getElementById('bench-prof').value;
+  const filtered = RECIPES.filter(r => {
+    if (prof !== 'All' && r.prof !== prof && r.prof !== 'All') return false;
+    if (STATE.filterTier !== 'all' && r.tier !== parseInt(STATE.filterTier)) return false;
+    if (STATE.filterType !== 'all' && r.type.toLowerCase() !== STATE.filterType) return false;
+    return true;
+  });
+
+  // Tier filters
+  const tiers = [...new Set(RECIPES.map(r => r.tier))].sort();
+  document.getElementById('tier-filters').innerHTML =
+    `<button class="filter-btn ${STATE.filterTier==='all'?'active':''}" onclick="STATE.filterTier='all';renderCraftingPage()">All Tiers</button>` +
+    tiers.map(t => `<button class="filter-btn ${STATE.filterTier==String(t)?'active':''}" onclick="STATE.filterTier='${t}';renderCraftingPage()">T${t}</button>`).join('');
+
+  // Type filters
+  const types = [...new Set(RECIPES.map(r => r.type.toLowerCase()))];
+  document.getElementById('type-filters').innerHTML =
+    `<button class="filter-btn ${STATE.filterType==='all'?'active':''}" onclick="STATE.filterType='all';renderCraftingPage()">All Types</button>` +
+    types.map(t => `<button class="filter-btn ${STATE.filterType===t?'active':''}" onclick="STATE.filterType='${t}';renderCraftingPage()">${t[0].toUpperCase()+t.slice(1)}</button>`).join('');
+
+  // Recipe list
+  document.getElementById('recipe-list').innerHTML = filtered.map(r => {
+    const canCraft = checkCanCraft(r);
+    const sel = STATE.selectedRecipe && STATE.selectedRecipe.id === r.id;
+    const tierColors = ['#666','#22c55e','#60a5fa','#a78bfa','#f59e0b','#ef4444','#ec4899','#f97316','#dc2626'];
+    return `<div class="recipe-item ${sel?'selected':''} ${canCraft?'':'cant-craft'}" onclick="selectRecipe('${r.id}')">
+      <span class="recipe-icon">${r.icon||'📦'}</span>
+      <div class="recipe-info">
+        <div class="recipe-name">${r.n}</div>
+        <div class="recipe-meta">${r.prof} · ${r.type}</div>
+      </div>
+      <span class="recipe-tier" style="color:${tierColors[r.tier]};border-color:${tierColors[r.tier]}30">T${r.tier}</span>
+    </div>`;
+  }).join('') || '<div style="padding:20px;text-align:center;color:var(--text-dim)">No recipes match filters</div>';
+
+  renderBenchDetail();
+}
+
+function selectRecipe(id) {
+  STATE.selectedRecipe = RECIPES.find(r => r.id === id) || null;
+  renderCraftingPage();
+}
+
+function renderBenchDetail() {
+  const r = STATE.selectedRecipe;
+  const el = document.getElementById('bench-detail');
+  if (!r) {
+    el.innerHTML = '<div class="card-title">Select a Recipe</div><p style="font-size:11px;color:var(--text-dim)">Choose a recipe from the list to begin crafting.</p>';
+    return;
+  }
+  const canCraft = checkCanCraft(r);
+  const mats = Object.entries(r.mats || {});
+  const slotsHtml = mats.map(([name, qty]) => {
+    const have = STATE.inventory[name] || 0;
+    const enough = have >= qty;
+    return `<div class="slot ${enough?'filled':'missing'}">
+      <span>${MAT_ICONS[name]||'📦'}</span>
+      <span class="slot-qty ${enough?'enough':'short'}">${have}/${qty}</span>
+      <span class="slot-name">${name}</span>
+    </div>`;
+  }).join('');
+  // Pad empty slots
+  const emptySlots = Math.max(0, 6 - mats.length);
+  const emptySlotsHtml = Array(emptySlots).fill('<div class="slot"></div>').join('');
+
+  el.innerHTML = `
+    <div class="card-title">${r.icon} ${r.n}</div>
+    <p style="font-size:11px;color:var(--text-dim);margin-bottom:12px">${r.desc || ''}</p>
+    <div style="font-size:9px;color:var(--text-dim);margin-bottom:6px;letter-spacing:0.1em">MATERIALS REQUIRED</div>
+    <div class="bench-slots">${slotsHtml}${emptySlotsHtml}</div>
+    <div class="craft-result">
+      <span class="craft-arrow">→</span>
+      <span class="result-icon">${r.icon||'📦'}</span>
+      <div>
+        <div class="result-name">${r.n}</div>
+        <div style="font-size:9px;color:var(--text-dim)">${r.prof} · T${r.tier} · ${r.type}</div>
+      </div>
+    </div>
+    <button class="craft-btn" ${canCraft && !STATE.isCrafting ? '' : 'disabled'} onclick="craftItem('${r.id}')">
+      ${STATE.isCrafting ? '⏳ Crafting...' : canCraft ? '🔨 Craft Item' : '❌ Missing Materials'}
+    </button>
+    <div class="craft-progress"><div class="craft-progress-fill" id="craft-bar"></div></div>
+  `;
+}
+
+function checkCanCraft(recipe) {
+  if (!recipe.mats) return true;
+  return Object.entries(recipe.mats).every(([name, qty]) => (STATE.inventory[name] || 0) >= qty);
+}
+
+async function craftItem(id) {
+  const recipe = RECIPES.find(r => r.id === id);
+  if (!recipe || !checkCanCraft(recipe) || STATE.isCrafting) return;
+
+  STATE.isCrafting = true;
+  renderBenchDetail();
+
+  // Animate progress bar
+  const bar = document.getElementById('craft-bar');
+  const duration = 1500;
+  const start = Date.now();
+  const animate = () => {
+    const elapsed = Date.now() - start;
+    const pct = Math.min(100, (elapsed / duration) * 100);
+    if (bar) bar.style.width = pct + '%';
+    if (pct < 100) requestAnimationFrame(animate);
+    else finishCraft(recipe);
+  };
+  requestAnimationFrame(animate);
+}
+
+function finishCraft(recipe) {
+  // Consume materials
+  let matsUsed = 0;
+  Object.entries(recipe.mats || {}).forEach(([name, qty]) => {
+    STATE.inventory[name] = (STATE.inventory[name] || 0) - qty;
+    if (STATE.inventory[name] <= 0) delete STATE.inventory[name];
+    matsUsed += qty;
+  });
+
+  // Add result to inventory
+  STATE.inventory[recipe.n] = (STATE.inventory[recipe.n] || 0) + 1;
+
+  // XP & leveling
+  const xpGain = 15 + recipe.tier * 10;
+  const prof = recipe.prof === 'All' ? 'Miner' : recipe.prof; // Universal gives Miner XP by default
+  if (STATE.professions[prof]) {
+    STATE.professions[prof].xp += xpGain;
+    STATE.professions[prof].totalCrafts++;
+    // Level up check
+    while (STATE.professions[prof].xp >= STATE.professions[prof].xpNext) {
+      STATE.professions[prof].xp -= STATE.professions[prof].xpNext;
+      STATE.professions[prof].level++;
+      STATE.professions[prof].xpNext = Math.floor(STATE.professions[prof].xpNext * 1.5);
+      addLog(`🎉 ${prof} leveled up to ${STATE.professions[prof].level}!`, 'level');
+      showToast(`${prof} → Level ${STATE.professions[prof].level}!`, 'success');
+    }
+  }
+
+  // Stats
+  STATE.stats.totalCrafts++;
+  STATE.stats.itemsCrafted++;
+  STATE.stats.materialsUsed += matsUsed;
+
+  addLog(`🔨 Crafted ${recipe.n} (+${xpGain} ${prof} XP)`, 'craft');
+  STATE.isCrafting = false;
+  showToast(`Crafted ${recipe.icon} ${recipe.n}!`);
+  updateSidebarBadges();
+  renderCraftingPage();
+  saveData();
+}
+
+// === INVENTORY ===
+function renderInventoryPage() {
+  const items = Object.entries(STATE.inventory).sort((a,b) => b[1] - a[1]);
+  const types = ['all', 'material', 'crafted'];
+
+  document.getElementById('inv-filters').innerHTML =
+    `<button class="filter-btn active" onclick="renderInvFiltered('all',this)">All (${items.length})</button>
+     <button class="filter-btn" onclick="renderInvFiltered('material',this)">Materials</button>
+     <button class="filter-btn" onclick="renderInvFiltered('crafted',this)">Crafted</button>`;
+
+  renderInvItems(items);
+}
+
+function renderInvFiltered(type, btn) {
+  document.querySelectorAll('#inv-filters .filter-btn').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  let items = Object.entries(STATE.inventory).sort((a,b) => b[1] - a[1]);
+  if (type === 'crafted') items = items.filter(([n]) => RECIPES.some(r => r.n === n));
+  else if (type === 'material') items = items.filter(([n]) => !RECIPES.some(r => r.n === n));
+  renderInvItems(items);
+}
+
+function renderInvItems(items) {
+  document.getElementById('inv-grid').innerHTML = items.map(([name, qty]) => {
+    return `<div class="inv-item">
+      <span class="icon">${MAT_ICONS[name] || (RECIPES.find(r=>r.n===name)?.icon) || '📦'}</span>
+      <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${name}</span>
+      <span class="qty">×${qty}</span>
+    </div>`;
+  }).join('') || '<div style="padding:20px;text-align:center;color:var(--text-dim)">Inventory is empty</div>';
+}
+
+function gatherMaterials() {
+  const gatherables = [
+    'Wood Scraps','Stone Fragments','Plant Fiber','Animal Hide','Animal Bone',
+    'Raw Meat','Wild Herbs','Water','Junk Ore','Torn Rag','Leather Scraps',
+    'Charcoal','Rotted Wood','Herb','Copper Ore','Pine Log','Arcane Dust'
+  ];
+  const count = 3 + Math.floor(Math.random() * 5);
+  const gathered = [];
+  for (let i = 0; i < count; i++) {
+    const mat = gatherables[Math.floor(Math.random() * gatherables.length)];
+    const qty = 1 + Math.floor(Math.random() * 3);
+    STATE.inventory[mat] = (STATE.inventory[mat] || 0) + qty;
+    gathered.push(`${qty}× ${mat}`);
+  }
+  addLog(`🌿 Gathered: ${gathered.join(', ')}`, 'craft');
+  showToast(`Gathered ${count} items!`, 'success');
+  updateSidebarBadges();
+  renderInventoryPage();
+  saveData();
+}
+
+// === GRUDGE WARLORDS API ===
+async function fetchGrudgeCharacters() {
+  if (!STATE.grudgeToken) return;
+  try {
+    const res = await fetch(GRUDGE_API + '/characters', {
+      headers: { 'Authorization': 'Bearer ' + STATE.grudgeToken, 'Content-Type': 'application/json' }
+    });
+    if (!res.ok) throw new Error('API ' + res.status);
+    STATE.grudgeCharacters = await res.json();
+    // Auto-select first character if none selected
+    if (!STATE.activeCharacterId && STATE.grudgeCharacters.length > 0) {
+      STATE.activeCharacterId = STATE.grudgeCharacters[0].id;
+    }
+    renderCharactersList();
+    showToast('Loaded ' + STATE.grudgeCharacters.length + ' characters', 'success');
+  } catch(e) {
+    console.warn('Failed to fetch Grudge characters:', e);
+    document.getElementById('acct-characters-list').innerHTML =
+      '<div style="color:var(--red);font-size:11px">Could not load characters. <a href="https://grudgewarlords.com" target="_blank" style="color:var(--blue)">Go to grudgewarlords.com</a> to create characters.</div>';
+  }
+}
+
+async function loginToGrudge() {
+  // Try Puter bridge auth first
+  if (STATE.user) {
+    try {
+      const res = await fetch(GRUDGE_AUTH + '/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ provider: 'puter', session: STATE.user.username })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        STATE.grudgeToken = data.token;
+        localStorage.setItem('grudge_auth_token', data.token);
+        await fetchGrudgeCharacters();
+        return;
+      }
+    } catch(e) { console.warn('Puter bridge auth failed:', e); }
+  }
+  // Try stored token
+  const stored = localStorage.getItem('grudge_auth_token');
+  if (stored) {
+    STATE.grudgeToken = stored;
+    await fetchGrudgeCharacters();
+  }
+}
+
+function selectCharacter(charId) {
+  STATE.activeCharacterId = charId;
+  renderCharactersList();
+  renderActiveCharacter();
+  saveData();
+  showToast('Character selected!', 'success');
+}
+
+function renderCharactersList() {
+  const el = document.getElementById('acct-characters-list');
+  if (STATE.grudgeCharacters.length === 0) {
+    el.innerHTML = STATE.user
+      ? '<div style="padding:8px;font-size:11px;color:var(--text-dim)">No characters found. <a href="https://grudgewarlords.com/character" target="_blank" style="color:var(--gold)">Create one at grudgewarlords.com</a></div>'
+      : '<div style="padding:8px;font-size:11px;color:var(--text-dim)">Sign in to load your characters from grudgewarlords.com</div>';
+    return;
+  }
+  const classIcons = { warrior:'⚔️', mage:'🔮', rogue:'🗡️', cleric:'✨', worg:'🐺', ranger:'🏹' };
+  const raceColors = { human:'#60a5fa', orc:'#22c55e', elf:'#a78bfa', dwarf:'#f59e0b', undead:'#8b5cf6', barbarian:'#ef4444', demon:'#dc2626' };
+  el.innerHTML = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px">' +
+    STATE.grudgeCharacters.map(c => {
+      const active = STATE.activeCharacterId === c.id;
+      const raceColor = raceColors[c.race?.toLowerCase()] || '#888';
+      const classIcon = classIcons[c.class?.toLowerCase()] || '⚔️';
+      return `<div onclick="selectCharacter(${c.id})" style="
+        padding:12px;border-radius:8px;cursor:pointer;transition:all 0.15s;
+        background:${active ? 'rgba(212,168,67,0.15)' : 'rgba(255,255,255,0.02)'};
+        border:1px solid ${active ? 'var(--gold)' : 'var(--border)'};
+        ${active ? 'box-shadow:0 0 12px rgba(212,168,67,0.2);' : ''}
+      ">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="width:40px;height:40px;border-radius:50%;background:rgba(${active?'212,168,67':'255,255,255'},0.08);border:2px solid ${active?'var(--gold)':raceColor};display:flex;align-items:center;justify-content:center;font-size:18px">${classIcon}</div>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:13px;font-weight:700;color:${active?'var(--gold)':'var(--text)'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c.name}</div>
+            <div style="font-size:10px;color:${raceColor}">${c.race} ${c.class} · Lv ${c.level || 1}</div>
+          </div>
+        </div>
+        ${active ? '<div style="font-size:9px;color:var(--gold);margin-top:6px;text-align:center;letter-spacing:0.1em">✓ ACTIVE</div>' : ''}
+      </div>`;
+    }).join('') + '</div>';
+}
+
+function renderActiveCharacter() {
+  const card = document.getElementById('acct-active-char-card');
+  const el = document.getElementById('acct-active-char');
+  const char = STATE.grudgeCharacters.find(c => c.id === STATE.activeCharacterId);
+  if (!char) { card.style.display = 'none'; return; }
+  card.style.display = 'block';
+
+  const stats = char.stats || {};
+  const attrNames = ['strength','vitality','endurance','intellect','wisdom','dexterity','agility','tactics'];
+  const attrAbbr = { strength:'STR', vitality:'VIT', endurance:'END', intellect:'INT', wisdom:'WIS', dexterity:'DEX', agility:'AGI', tactics:'TAC' };
+  const attrColors = { strength:'#e74c3c', vitality:'#27ae60', endurance:'#95a5a6', intellect:'#3498db', wisdom:'#9b59b6', dexterity:'#f39c12', agility:'#1abc9c', tactics:'#34495e' };
+
+  const hasAttrs = attrNames.some(a => (stats[a] || 0) > 0);
+
+  el.innerHTML = `
+    <div style="display:flex;align-items:center;gap:16px;margin-bottom:12px">
+      <div style="width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,rgba(212,168,67,0.2),rgba(212,168,67,0.05));border:2px solid var(--gold);display:flex;align-items:center;justify-content:center;font-size:24px">⚔</div>
+      <div>
+        <div style="font-size:16px;font-weight:700;color:var(--gold);font-family:Cinzel,serif">${char.name}</div>
+        <div style="font-size:11px;color:var(--text-dim)">${char.race} ${char.class} · Level ${char.level || 1}</div>
+        <div style="font-size:10px;color:var(--gold-dim);margin-top:2px">${char.gold || 0} Gold</div>
+      </div>
+    </div>
+    ${hasAttrs ? `
+      <div style="font-size:10px;color:var(--text-dim);margin-bottom:6px;letter-spacing:0.1em;text-transform:uppercase">Attributes</div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:12px">
+        ${attrNames.map(a => `
+          <div style="text-align:center;padding:8px 4px;background:rgba(0,0,0,0.2);border:1px solid ${attrColors[a]}30;border-radius:6px">
+            <div style="font-family:'JetBrains Mono';font-size:16px;font-weight:700;color:${attrColors[a]}">${stats[a] || 0}</div>
+            <div style="font-size:9px;color:${attrColors[a]}80;letter-spacing:0.05em">${attrAbbr[a]}</div>
+          </div>
+        `).join('')}
+      </div>
+    ` : '<div style="font-size:11px;color:var(--text-dim);margin-bottom:8px">No attributes allocated yet. <a href="https://grudgewarlords.com/character" target="_blank" style="color:var(--gold)">Allocate at grudgewarlords.com</a></div>'}
+    <div style="display:flex;gap:8px">
+      <a href="https://grudgewarlords.com/character" target="_blank" style="flex:1;text-align:center;padding:8px;border:1px solid var(--border);border-radius:6px;color:var(--gold);font-size:11px;text-decoration:none;transition:all 0.15s" onmouseover="this.style.background='rgba(212,168,67,0.1)'" onmouseout="this.style.background='none'">📋 Character Sheet</a>
+      <a href="https://grudgewarlords.com/dungeon" target="_blank" style="flex:1;text-align:center;padding:8px;border:1px solid var(--border);border-radius:6px;color:var(--red);font-size:11px;text-decoration:none;transition:all 0.15s" onmouseover="this.style.background='rgba(239,68,68,0.1)'" onmouseout="this.style.background='none'">⚔ Dungeons</a>
+    </div>
+  `;
+}
+
+// === ACCOUNT ===
+function renderAccountPage() {
+  // Fetch characters if not loaded yet
+  if (STATE.grudgeCharacters.length === 0 && STATE.user) loginToGrudge();
+  renderCharactersList();
+  renderActiveCharacter();
+
+  // Character info
+  document.getElementById('acct-char').innerHTML = `
+    <div style="display:flex;align-items:center;gap:16px;margin-bottom:12px">
+      <div style="width:64px;height:64px;border-radius:50%;background:rgba(212,168,67,0.1);border:2px solid var(--gold);display:flex;align-items:center;justify-content:center;font-size:28px">⚔</div>
+      <div>
+        <div style="font-size:16px;font-weight:700;color:var(--gold)">${STATE.user ? STATE.user.username : 'Guest Warlord'}</div>
+        <div style="font-size:10px;color:var(--text-dim)">Grudge Warlords · Crafting Suite</div>
+        <div style="font-size:10px;color:var(--text-dim);margin-top:4px">Total Crafts: ${STATE.stats.totalCrafts} · Items: ${STATE.stats.itemsCrafted}</div>
+      </div>
+    </div>
+  `;
+
+  // Equipment
+  const slots = ['head','chest','hands','feet','weapon','shield','ring','necklace'];
+  const slotIcons = {head:'⛑️',chest:'🛡️',hands:'🧤',feet:'👢',weapon:'⚔️',shield:'🛡️',ring:'💍',necklace:'📿'};
+  document.getElementById('acct-equip').innerHTML = slots.map(s => {
+    const item = STATE.equipment[s];
+    return `<div class="equip-slot">
+      <span class="slot-label">${slotIcons[s]} ${s}</span>
+      ${item ? `<span class="slot-item">${item}</span>` : `<span class="slot-empty">Empty</span>`}
+    </div>`;
+  }).join('');
+
+  // Stats
+  document.getElementById('acct-stats').innerHTML = `
+    <div class="stat-card"><div class="stat-val">${STATE.stats.totalCrafts}</div><div class="stat-label">Crafts</div></div>
+    <div class="stat-card"><div class="stat-val">${STATE.stats.materialsUsed}</div><div class="stat-label">Mats Used</div></div>
+    <div class="stat-card"><div class="stat-val">${STATE.stats.failedCrafts}</div><div class="stat-label">Failed</div></div>
+  `;
+
+  // Save/Load
+  document.getElementById('acct-save').innerHTML = `
+    <p style="font-size:11px;color:var(--text-dim);margin-bottom:10px">${STATE.user ? 'Data auto-saves to Puter cloud.' : 'Sign in to enable cloud saves.'}</p>
+    <div style="display:flex;gap:8px">
+      <button class="filter-btn" onclick="saveData();showToast('Saved!','success')" ${STATE.user?'':'disabled'}>💾 Save Now</button>
+      <button class="filter-btn" onclick="loadSaveData()" ${STATE.user?'':'disabled'}>📂 Reload</button>
+      <button class="filter-btn" onclick="resetData()" style="border-color:rgba(239,68,68,0.3);color:#f87171">🗑️ Reset</button>
+    </div>
+  `;
+
+  renderLog('acct-log');
+}
+
+function resetData() {
+  if (!confirm('Reset all crafting data? This cannot be undone.')) return;
+  Object.values(STATE.professions).forEach(p => { p.level = 1; p.xp = 0; p.xpNext = 100; p.totalCrafts = 0; });
+  STATE.inventory = { 'Wood Scraps': 20, 'Stone Fragments': 15, 'Plant Fiber': 25, 'Water': 20, 'Rotted Wood': 18, 'Wild Herbs': 12, 'Herb': 10 };
+  STATE.equipment = { head:null,chest:null,hands:null,feet:null,weapon:null,shield:null,ring:null,necklace:null };
+  STATE.stats = { totalCrafts:0, itemsCrafted:0, materialsUsed:0, failedCrafts:0 };
+  STATE.log = [];
+  addLog('🗑️ Data reset', 'fail');
+  renderAll();
+  saveData();
+  showToast('Data reset!', 'error');
+}
+
+// === PROFESSION PAGE ===
+function renderProfessionPage(name) {
+  const profName = name.charAt(0).toUpperCase() + name.slice(1);
+  const prof = STATE.professions[profName];
+  if (!prof) return;
+
+  const recipes = RECIPES.filter(r => r.prof === profName);
+  const pct = Math.min(100, (prof.xp / prof.xpNext) * 100);
+
+  document.getElementById('page-prof-' + name).innerHTML = `
+    <div class="page-header">
+      <h2 class="page-title">${prof.icon} ${profName}</h2>
+      <span style="font-family:'JetBrains Mono';font-size:12px;color:${prof.color}">Level ${prof.level} · ${prof.xp}/${prof.xpNext} XP</span>
+    </div>
+    <div class="card">
+      <div class="card-title">Progression</div>
+      <div style="display:flex;align-items:center;gap:16px;margin-bottom:12px">
+        <span style="font-size:48px">${prof.icon}</span>
+        <div style="flex:1">
+          <div style="font-size:14px;font-weight:700;color:${prof.color}">${profName}</div>
+          <div style="font-size:11px;color:var(--text-dim)">${prof.role}</div>
+          <div class="prof-xp-bar" style="margin-top:8px;height:8px"><div class="prof-xp-fill" style="width:${pct}%;background:${prof.color}"></div></div>
+          <div style="font-size:10px;color:var(--text-dim);margin-top:4px">Total crafts: ${prof.totalCrafts} · Next level: ${prof.xpNext - prof.xp} XP needed</div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">${profName} Recipes (${recipes.length})</div>
+      <div class="recipe-grid">
+        ${recipes.map(r => {
+          const canCraft = checkCanCraft(r);
+          const tierColors = ['#666','#22c55e','#60a5fa','#a78bfa','#f59e0b','#ef4444','#ec4899','#f97316','#dc2626'];
+          return `<div class="recipe-item ${canCraft?'':'cant-craft'}" onclick="navigate('crafting');document.getElementById('bench-prof').value='${profName}';selectRecipe('${r.id}');renderCraftingPage()">
+            <span class="recipe-icon">${r.icon||'📦'}</span>
+            <div class="recipe-info">
+              <div class="recipe-name">${r.n}</div>
+              <div class="recipe-meta">${r.desc || ''}</div>
+            </div>
+            <span class="recipe-tier" style="color:${tierColors[r.tier]};border-color:${tierColors[r.tier]}30">T${r.tier}</span>
+          </div>`;
+        }).join('') || '<div style="color:var(--text-dim)">No recipes yet</div>'}
+      </div>
+    </div>
+  `;
+}
+
+// ============================================================
+// UTILITIES
+// ============================================================
+function addLog(msg, type='') {
+  const time = new Date().toLocaleTimeString('en-US', {hour:'2-digit',minute:'2-digit'});
+  STATE.log.unshift({ time, msg, type });
+  if (STATE.log.length > 100) STATE.log.pop();
+}
+
+function renderLog(elId) {
+  const el = document.getElementById(elId);
+  if (!el) return;
+  el.innerHTML = STATE.log.slice(0, 20).map(e =>
+    `<div class="log-entry ${e.type}"><span class="time">${e.time}</span>${e.msg}</div>`
+  ).join('') || '<div style="font-size:11px;color:var(--text-dim);padding:8px">No activity yet</div>';
+}
+
+function showToast(msg, type='') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'toast show ' + type;
+  setTimeout(() => el.classList.remove('show'), 2500);
+}
+
+// ============================================================
+// INIT
+// ============================================================
+addLog('⚔ Grudge Crafting Suite initialized');
+renderAll();
+if (typeof puter !== 'undefined') checkAuth();
+</script>
+</body>
+</html>
