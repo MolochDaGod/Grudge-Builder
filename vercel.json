@@ -59,6 +59,14 @@
       "destination": "https://api.grudge-studio.com/api/nfts"
     },
     {
+      "source": "/api/island-nfts/:path*",
+      "destination": "https://api.grudge-studio.com/api/island-nfts/:path*"
+    },
+    {
+      "source": "/api/island-nfts",
+      "destination": "https://api.grudge-studio.com/api/island-nfts"
+    },
+    {
       "source": "/api/tools/:path*",
       "destination": "https://api.grudge-studio.com/tools/:path*"
     },

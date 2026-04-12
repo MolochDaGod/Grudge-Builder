@@ -146,7 +146,7 @@ export const characterAPI = {
 
   /**
    * Check if a character already has a cNFT minted.
-   * Returns the NFT status if it exists.
+   * Uses the canonical /api/nfts/character/:characterId backend route.
    */
   getNFTStatus: async (characterId: string): Promise<{
     hasMint: boolean;
@@ -154,13 +154,15 @@ export const characterAPI = {
     mintAddress?: string;
   }> => {
     try {
-      const res = await authFetch(`${GAME_API}/characters/${characterId}/nft-status`);
+      const res = await authFetch(`/api/nfts/character/${characterId}`);
       if (!res.ok) return { hasMint: false };
       const data = await res.json();
+      const nft = data.nft;
+      if (!nft) return { hasMint: false };
       return {
-        hasMint: !!data.mintAddress || data.status === 'minted' || data.status === 'minting',
-        status: data.status,
-        mintAddress: data.mintAddress,
+        hasMint: !!nft.mintAddress || nft.status === 'minted' || nft.status === 'minting',
+        status: nft.status,
+        mintAddress: nft.mintAddress,
       };
     } catch {
       return { hasMint: false };
@@ -169,6 +171,7 @@ export const characterAPI = {
 
   /**
    * Mint a character as a compressed NFT on Solana.
+   * Uses the canonical POST /api/nfts/mint backend route.
    * One-time action — checks for existing mint first to prevent duplicates.
    */
   mintCNFT: async (characterId: string, _avatarUrl?: string, _targetWallet?: string): Promise<{
@@ -191,9 +194,10 @@ export const characterAPI = {
         };
       }
 
-      const res = await authFetch(`${GAME_API}/characters/${characterId}/mint`, {
+      const res = await authFetch(`/api/nfts/mint`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ characterId }),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
@@ -202,8 +206,8 @@ export const characterAPI = {
       const data = await res.json();
       return {
         success: true,
-        nftId: data.mintId,
-        mintAddress: data.mintId,
+        nftId: data.nftId || data.actionId,
+        mintAddress: data.nftId,
       };
     } catch (e) {
       console.error('cNFT mint error:', e);

@@ -337,6 +337,53 @@ export class CrossmintWalletService {
     }
   }
 
+  async updateNFTMetadata(
+    actionIdOrTokenId: string,
+    character: Character,
+    imageUrl: string,
+  ): Promise<{ success: boolean; error?: string }> {
+    if (!this.apiKey) {
+      return { success: false, error: 'Crossmint API key not configured' };
+    }
+
+    try {
+      const metadata = this.buildCharacterMetadata(character, imageUrl);
+
+      const response = await fetch(
+        `${this.baseUrl}/api/2022-06-09/collections/default-solana/nfts/${actionIdOrTokenId}`,
+        {
+          method: 'PATCH',
+          headers: {
+            'accept': 'application/json',
+            'content-type': 'application/json',
+            'x-api-key': this.apiKey,
+          },
+          body: JSON.stringify({
+            metadata: {
+              name: metadata.name,
+              image: metadata.image,
+              description: metadata.description,
+              attributes: metadata.attributes,
+            },
+            reuploadLinkedFiles: false,
+          }),
+        },
+      );
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('[Crossmint] NFT metadata update failed:', response.status, errorText);
+        return { success: false, error: `Crossmint API error (${response.status})` };
+      }
+
+      console.log('[Crossmint] NFT metadata updated for:', character.name);
+      return { success: true };
+    } catch (error) {
+      console.error('[Crossmint] NFT metadata update error:', error);
+      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+    }
+  }
+
   async checkMintStatus(actionId: string): Promise<CrossmintMintStatus | null> {
     if (!this.apiKey) {
       return null;

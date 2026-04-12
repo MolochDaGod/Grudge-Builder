@@ -64,6 +64,7 @@ function Router() {
       <Route path="/intro" component={IntroPage} />
       <Route path="/home" component={HomePage} />
       <Route path="/character" component={CharacterBuilder} />
+      <Route path="/characters" component={CharacterBuilder} />
       <Route path="/professions" component={ProfessionsPage} />
       <Route path="/database" component={DatabasePage} />
       <Route path="/island" component={IslandPage} />
