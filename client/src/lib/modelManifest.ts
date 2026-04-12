@@ -173,6 +173,9 @@ export const MODEL_MANIFEST: Record<string, ModelUnit> = {
   elf:        { id: "elf",        name: "Elf",        modelPath: `${CHAR_BASE}/elf.glb`,        scale: 1.0,  weaponType: "longbow",      skeleton: "mixamo-24", jointCount: 24 },
   orc:        { id: "orc",        name: "Orc",        modelPath: `${CHAR_BASE}/orc.glb`,        scale: 1.15, weaponType: "greatsword",   skeleton: "mixamo-24", jointCount: 24 },
 
+  // ── Faction NPC models ─────────────────────────────────────────────────
+  "fabled-worker": { id: "fabled-worker", name: "Fabled Worker", modelPath: `${CHAR_BASE}/fabled-worker.glb`, scale: 1.0, weaponType: "unarmed", skeleton: "mixamo-24", jointCount: 24 },
+
   // ── INCOMPATIBLE — different skeletons, cannot use shared animations ───
   // These need to be re-rigged to Mixamo-24 in Blender/Mixamo before use.
   // They fall back to their embedded animations or display as static.

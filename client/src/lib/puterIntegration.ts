@@ -442,7 +442,11 @@ export const PUTER_CONFIG = {
   author: 'RacalvinDaPirateKing',
   developerUrl: 'https://grudgestudio.com',
   savePrefix: 'grudge_warlords_',
-  serverUrl: 'https://grudge-server.puter.work'
+  // Centralized: use env var, fallback to API proxy (same-origin), then legacy Puter URL
+  serverUrl:
+    (typeof import.meta !== 'undefined' && import.meta.env?.VITE_PUTER_SERVER_URL) ||
+    '/api/game' ||
+    'https://grudge-server.puter.work',
 };
 
 export interface PuterServerResponse<T = any> {

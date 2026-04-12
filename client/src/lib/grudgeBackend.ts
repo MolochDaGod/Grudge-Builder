@@ -359,13 +359,29 @@ export async function verifyToken(): Promise<{
   const token = getToken();
   if (!token) return { valid: false };
 
+  // Quick client-side JWT expiry check (avoids unnecessary network call)
+  try {
+    const payload = JSON.parse(atob(token.split(".")[1]));
+    if (payload.exp && payload.exp * 1000 < Date.now()) {
+      console.warn("[Auth] Token expired, logging out");
+      logout();
+      return { valid: false };
+    }
+  } catch {
+    // Not a JWT or malformed — fall through to server verification
+  }
+
   try {
     const res = await fetch(`${API_BASE}/auth/verify`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ token }),
     });
-    if (!res.ok) return { valid: false };
+    if (!res.ok) {
+      // Server says invalid — clear stale session
+      if (res.status === 401) logout();
+      return { valid: false };
+    }
     const data = await res.json();
     return {
       valid: data.valid === true,
@@ -373,6 +389,37 @@ export async function verifyToken(): Promise<{
       username: data.username,
     };
   } catch {
+    // Network error — don't log out (backend might just be down)
     return { valid: false };
   }
+}
+
+// ── Periodic token re-verification (every 5 minutes) ─────────────────
+
+let _tokenCheckInterval: ReturnType<typeof setInterval> | null = null;
+const TOKEN_CHECK_MS = 5 * 60 * 1000;
+
+export function startTokenMonitor(): void {
+  if (_tokenCheckInterval) return;
+  _tokenCheckInterval = setInterval(async () => {
+    if (!getToken()) return;
+    const result = await verifyToken();
+    if (!result.valid && getToken()) {
+      // Token was present but invalid — it was revoked or expired
+      console.warn("[Auth] Session expired, clearing");
+      logout();
+    }
+  }, TOKEN_CHECK_MS);
+}
+
+export function stopTokenMonitor(): void {
+  if (_tokenCheckInterval) {
+    clearInterval(_tokenCheckInterval);
+    _tokenCheckInterval = null;
+  }
+}
+
+// Auto-start in browser
+if (typeof window !== "undefined") {
+  startTokenMonitor();
 }

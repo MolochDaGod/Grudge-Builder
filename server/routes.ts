@@ -1,4 +1,4 @@
-import type { Express } from "express";
+import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertCharacterSchema, insertPartySchema, insertUnlockedSkillSchema, insertAccountInventorySchema, islandNFTs } from "@shared/schema";
@@ -6,6 +6,7 @@ import { db } from "./db";
 import { eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import OpenAI from "openai";
+import jwt from "jsonwebtoken";
 import fs from "node:fs";
 import path from "node:path";
 import Aseprite from "ase-parser";
@@ -16,10 +17,90 @@ import { exportFoodsToSheet, generateFoodRows } from "./sheetsExport";
 import { detectSpriteType, SPRITE_TYPES } from "@shared/definitions/spriteTypes";
 import { getClassStartingGear } from "@shared/definitions/tier0Items";
 
+// ── OpenAI — support both env var names (#12) ────────────────────────────────
 const openai = new OpenAI({
-  apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
-  baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
+  apiKey: process.env.OPENAI_API_KEY || process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
+  baseURL: process.env.OPENAI_BASE_URL || process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
 });
+
+// ── JWT Auth Middleware (#9) ──────────────────────────────────────────────────
+
+const JWT_SECRET = process.env.SESSION_SECRET || process.env.JWT_SECRET || "";
+
+interface AuthPayload {
+  userId: string;
+  grudgeId?: string;
+  username?: string;
+  isAdmin?: boolean;
+}
+
+/**
+ * Extract and verify the user ID from a Bearer token.
+ * Falls back to "guest" only when no token is provided (public read routes).
+ * Admin status comes from the verified token payload, NOT from a header.
+ */
+function extractUserId(req: Request): string {
+  const authHeader = req.get("Authorization") || req.get("X-Session-Token");
+  const token = authHeader?.startsWith("Bearer ")
+    ? authHeader.slice(7)
+    : authHeader || null;
+
+  if (!token) return "guest";
+
+  // If no JWT_SECRET is configured, skip verification (dev mode)
+  if (!JWT_SECRET) return "guest";
+
+  try {
+    const payload = jwt.verify(token, JWT_SECRET) as AuthPayload;
+    return payload.userId || payload.grudgeId || "guest";
+  } catch {
+    return "guest";
+  }
+}
+
+/** Returns true if the token belongs to an admin user */
+function isAdmin(req: Request): boolean {
+  const authHeader = req.get("Authorization") || req.get("X-Session-Token");
+  const token = authHeader?.startsWith("Bearer ")
+    ? authHeader.slice(7)
+    : authHeader || null;
+
+  if (!token || !JWT_SECRET) {
+    // Fallback: allow admin in dev via env-configured password
+    const adminPw = process.env.ADMIN_PASSWORD;
+    const headerPw = req.get("X-Admin-Password");
+    return !!adminPw && !!headerPw && adminPw === headerPw;
+  }
+
+  try {
+    const payload = jwt.verify(token, JWT_SECRET) as AuthPayload;
+    return payload.isAdmin === true;
+  } catch {
+    return false;
+  }
+}
+
+/** Middleware: require authenticated user (reject guests) */
+function requireAuth(req: Request, res: Response, next: NextFunction): void {
+  const userId = extractUserId(req);
+  if (userId === "guest") {
+    res.status(401).json({ error: "Authentication required" });
+    return;
+  }
+  (req as any).userId = userId;
+  next();
+}
+
+/** Middleware: require admin */
+function requireAdmin(req: Request, res: Response, next: NextFunction): void {
+  if (!isAdmin(req)) {
+    res.status(403).json({ error: "Admin access required" });
+    return;
+  }
+  (req as any).userId = extractUserId(req);
+  (req as any).isAdmin = true;
+  next();
+}
 
 const RACE_DESCRIPTIONS: Record<string, string> = {
   human: "a human with fair skin, expressive eyes, and determined expression",
@@ -140,13 +221,8 @@ export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
-  // Helper to get userId from request - admin users get "admin", others get "guest"
-  const getUserId = (req: Request): string => {
-    const adminHeader = req.get("x-admin-mode");
-    return adminHeader === "true" ? "admin" : "guest";
-  };
-  
-  // Keep for backward compatibility
+  // Extract userId from JWT token (secure) — replaces old x-admin-mode header trust
+  const getUserId = (req: Request): string => extractUserId(req);
   const GUEST_USER_ID = "guest";
 
   // Character routes

@@ -3,11 +3,51 @@ import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { createServer } from "http";
 import path from "path";
+import cors from "cors";
 import { setupColyseus } from "./colyseus/index";
 
 const app = express();
 const httpServer = createServer(app);
 
+// ── CORS ─────────────────────────────────────────────────────────────────────
+const ALLOWED_ORIGINS = [
+  "https://grudgewarlords.com",
+  "https://www.grudgewarlords.com",
+  "https://client.grudge-studio.com",
+  "https://dash.grudge-studio.com",
+  "https://id.grudge-studio.com",
+  "https://ai.grudge-studio.com",
+  // Vercel previews
+  /\.vercel\.app$/,
+];
+
+app.use(
+  cors({
+    origin: (origin, cb) => {
+      // Allow server-to-server (no origin) and localhost in dev
+      if (
+        !origin ||
+        origin.startsWith("http://localhost") ||
+        ALLOWED_ORIGINS.some((o) =>
+          typeof o === "string" ? o === origin : o.test(origin),
+        )
+      ) {
+        return cb(null, true);
+      }
+      cb(new Error("Not allowed by CORS"));
+    },
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: [
+      "Content-Type",
+      "Authorization",
+      "X-Session-Token",
+      "X-Admin-Mode",
+    ],
+  }),
+);
+
+// ── Static assets ────────────────────────────────────────────────────────────
 app.use(express.static(path.resolve(__dirname, "..", "public")));
 app.use(express.static(path.resolve(__dirname, "..", "client", "public")));
 
@@ -23,16 +63,17 @@ declare module "http" {
   }
 }
 
+// ── Body parsing (reduced from 50mb → 5mb default for security) ──────────────
 app.use(
   express.json({
-    limit: "50mb",
+    limit: "5mb",
     verify: (req, _res, buf) => {
       req.rawBody = buf;
     },
   }),
 );
 
-app.use(express.urlencoded({ extended: false, limit: "50mb" }));
+app.use(express.urlencoded({ extended: false, limit: "5mb" }));
 
 export function log(message: string, source = "express") {
   const formattedTime = new Date().toLocaleTimeString("en-US", {
