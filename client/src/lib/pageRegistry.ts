@@ -11,6 +11,7 @@ export interface PageEntry {
 export const PAGE_REGISTRY: PageEntry[] = [
   { id: 'home', number: '1', title: 'Home', path: '/home', icon: 'home', showInNav: true },
   { id: 'character', number: '2', title: 'Character', path: '/character', icon: 'user', showInNav: true },
+  { id: 'characters', number: '2', title: 'Character', path: '/characters', showInNav: false },
   { id: 'dungeon', number: '3', title: 'Dungeon', path: '/dungeon', icon: 'sword', showInNav: true },
   { id: 'combat', number: '4', title: 'Combat', path: '/combat', icon: 'swords', showInNav: true },
   { id: 'island', number: '5', title: 'Island', path: '/island', icon: 'map', showInNav: true },
