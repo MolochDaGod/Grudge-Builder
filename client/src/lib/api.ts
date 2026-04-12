@@ -325,3 +325,125 @@ export const playerResourcesAPI = {
     return data;
   },
 };
+
+// ── Profession API (backend-first) ────────────────────────────────────
+
+export interface ProfessionLevels {
+  [professionId: string]: { level: number; xp: number; lastGainAt: number | null };
+}
+
+export interface GatherResult {
+  success: boolean;
+  profession: { id: string; level: number; xp: number; xpGained: number; leveledUp: boolean };
+  loot: { resourceId: string; quantity: number };
+}
+
+export interface CraftResult {
+  success: boolean;
+  craftedItem: { id: string; itemId: string; name: string; tier: number; rarity: string };
+  profession: { id: string; level: number; xp: number; xpGained: number; leveledUp: boolean };
+}
+
+export const professionAPI = {
+  /** Get all profession levels for a character */
+  getLevels: async (characterId: string): Promise<ProfessionLevels> => {
+    try {
+      const res = await authFetch(`/api/professions/${characterId}`);
+      if (res.ok) {
+        const data = await res.json();
+        return data.professions || {};
+      }
+    } catch { /* fallback below */ }
+    return {};
+  },
+
+  /** Process a gathering action server-side */
+  gather: async (
+    characterId: string,
+    professionId: string,
+    resourceId: string,
+    resourceTier: number = 1,
+    quantity: number = 1,
+  ): Promise<GatherResult> => {
+    const res = await authFetch(`/api/professions/${characterId}/gather`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ professionId, resourceId, resourceTier, quantity }),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || `Gather failed (${res.status})`);
+    }
+    return res.json();
+  },
+
+  /** Process a crafting action server-side (validates & deducts materials) */
+  craft: async (
+    characterId: string,
+    params: {
+      professionId: string;
+      recipeId?: string;
+      outputItemId: string;
+      outputItemName?: string;
+      outputItemTier?: number;
+      outputItemRarity?: string;
+      ingredients: { itemId: string; quantity: number }[];
+    },
+  ): Promise<CraftResult> => {
+    const res = await authFetch(`/api/professions/${characterId}/craft`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(params),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || `Craft failed (${res.status})`);
+    }
+    return res.json();
+  },
+};
+
+// ── Inventory API (account-level, backend-first) ──────────────────────
+
+export interface AccountInventoryData {
+  characterId: string;
+  accountId: string;
+  items: Array<{
+    id: string;
+    itemId: string;
+    quantity: number;
+    tier: number | null;
+    quality: string | null;
+    boundToCharacterId: string | null;
+    metadata: Record<string, unknown> | null;
+  }>;
+  resources: Record<string, number>;
+}
+
+export const inventoryAPI = {
+  /** Get full account inventory (items + resources) for a character */
+  get: async (characterId: string): Promise<AccountInventoryData> => {
+    const res = await authFetch(`/api/inventory/${characterId}`);
+    if (!res.ok) {
+      throw new Error("Failed to fetch inventory");
+    }
+    return res.json();
+  },
+
+  /** Transfer an item to/from a specific character binding */
+  transfer: async (
+    characterId: string,
+    itemId: string,
+    direction: "bind" | "unbind",
+  ): Promise<{ success: boolean }> => {
+    const res = await authFetch(`/api/inventory/${characterId}/transfer`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ itemId, direction }),
+    });
+    if (!res.ok) {
+      throw new Error("Failed to transfer item");
+    }
+    return res.json();
+  },
+};

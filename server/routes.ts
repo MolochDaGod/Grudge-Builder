@@ -1234,6 +1234,299 @@ Rules:
     }
   });
 
+  // ============================================
+  // PROFESSION, CRAFTING & INVENTORY API ROUTES
+  // ============================================
+
+  // GET /api/professions/:characterId - Get all profession levels
+  app.get("/api/professions/:characterId", async (req, res) => {
+    try {
+      const { characterId } = req.params;
+      const character = await storage.getCharacter(characterId);
+      if (!character) {
+        return res.status(404).json({ error: "Character not found" });
+      }
+
+      // Migrate legacy JSON levels → characterProfessions table if needed
+      const { migrateProfessionLevels } = await import("./professionValidation");
+      const legacyLevels = (character.professionLevels || {}) as Record<string, { level: number; xp: number }>;
+      if (Object.keys(legacyLevels).length > 0) {
+        await migrateProfessionLevels(storage, characterId, legacyLevels);
+      }
+
+      const professions = await storage.getCharacterProfessions(characterId);
+
+      // Build a merged map: characterProfessions table is authoritative,
+      // legacy JSON fills in any professions not yet in the table
+      const merged: Record<string, { level: number; xp: number; lastGainAt: number | null }> = {};
+      for (const p of professions) {
+        merged[p.professionId] = { level: p.level, xp: p.xp, lastGainAt: p.lastGainAt };
+      }
+      for (const [id, data] of Object.entries(legacyLevels)) {
+        const key = id.toLowerCase();
+        if (!merged[key]) {
+          merged[key] = { level: data.level, xp: data.xp, lastGainAt: null };
+        }
+      }
+
+      res.json({ characterId, professions: merged });
+    } catch (error: any) {
+      console.error("Error fetching professions:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // POST /api/professions/:characterId/gather - Process a gathering action
+  app.post("/api/professions/:characterId/gather", async (req, res) => {
+    try {
+      const { characterId } = req.params;
+      const { professionId, resourceId, resourceTier = 1, quantity = 1 } = req.body;
+
+      if (!professionId || !resourceId) {
+        return res.status(400).json({ error: "professionId and resourceId are required" });
+      }
+
+      const character = await storage.getCharacter(characterId);
+      if (!character) {
+        return res.status(404).json({ error: "Character not found" });
+      }
+
+      // Get or create account
+      const account = character.accountId
+        ? await storage.getAccount(character.accountId)
+        : await storage.getOrCreateAccountForUser(character.userId);
+      if (!account) {
+        return res.status(400).json({ error: "No account found for character" });
+      }
+
+      // Get current profession level
+      const normalizedProfId = professionId.toLowerCase();
+      const currentProf = await storage.getCharacterProfession(characterId, normalizedProfId);
+      const currentLevel = currentProf?.level || 1;
+      const currentXp = currentProf?.xp || 0;
+
+      // Validate tier access
+      const { validateTierAccess, computeGatherResult } = await import("./professionValidation");
+      if (!validateTierAccess(currentLevel, resourceTier)) {
+        return res.status(403).json({
+          error: `Profession level ${currentLevel} cannot gather tier ${resourceTier} resources`,
+          currentTierUnlocked: Math.min(8, Math.ceil(currentLevel / 12.5)),
+        });
+      }
+
+      // Calculate XP gain
+      const xpResult = computeGatherResult(currentLevel, currentXp, resourceTier);
+
+      // Update profession level in DB
+      const updatedProf = await storage.updateCharacterProfession(characterId, normalizedProfId, {
+        level: xpResult.newLevel,
+        xp: xpResult.newXp,
+        lastGainAt: Date.now(),
+      });
+
+      // Add gathered resources to account
+      await storage.addAccountResource(account.id, resourceId, quantity);
+
+      // Log experience event
+      await storage.logExperienceEvent({
+        characterId,
+        source: "gathering",
+        xpAmount: 0,
+        professionId: normalizedProfId,
+        professionXpAmount: xpResult.xpGained,
+        metadata: { resourceId, resourceTier, quantity },
+      });
+
+      res.json({
+        success: true,
+        profession: {
+          id: normalizedProfId,
+          level: xpResult.newLevel,
+          xp: xpResult.newXp,
+          xpGained: xpResult.xpGained,
+          leveledUp: xpResult.levelGained,
+        },
+        loot: { resourceId, quantity },
+      });
+    } catch (error: any) {
+      console.error("Error processing gather:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // POST /api/professions/:characterId/craft - Process a crafting action
+  app.post("/api/professions/:characterId/craft", async (req, res) => {
+    try {
+      const { characterId } = req.params;
+      const {
+        professionId,
+        recipeId,
+        outputItemId,
+        outputItemName,
+        outputItemTier = 1,
+        outputItemRarity = "Common",
+        ingredients, // Array<{ itemId: string; quantity: number }>
+      } = req.body;
+
+      if (!professionId || !outputItemId || !ingredients || !Array.isArray(ingredients)) {
+        return res.status(400).json({ error: "professionId, outputItemId, and ingredients[] are required" });
+      }
+
+      const character = await storage.getCharacter(characterId);
+      if (!character) {
+        return res.status(404).json({ error: "Character not found" });
+      }
+
+      const account = character.accountId
+        ? await storage.getAccount(character.accountId)
+        : await storage.getOrCreateAccountForUser(character.userId);
+      if (!account) {
+        return res.status(400).json({ error: "No account found for character" });
+      }
+
+      // Validate ingredients
+      const { validateRecipeIngredients, deductIngredients, computeCraftResult } = await import("./professionValidation");
+      const validation = await validateRecipeIngredients(storage, account.id, ingredients);
+      if (!validation.valid) {
+        return res.status(400).json({
+          error: "Insufficient materials",
+          missing: (validation as any).missing,
+        });
+      }
+
+      // Get current crafting profession level
+      const normalizedProfId = professionId.toLowerCase();
+      const currentProf = await storage.getCharacterProfession(characterId, normalizedProfId);
+      const currentLevel = currentProf?.level || 1;
+      const currentXp = currentProf?.xp || 0;
+
+      // Deduct ingredients
+      await deductIngredients(storage, account.id, ingredients);
+
+      // Add crafted item to account inventory
+      const craftedItem = await storage.addAccountInventoryItem({
+        accountId: account.id,
+        itemId: outputItemId,
+        quantity: 1,
+        tier: outputItemTier,
+        quality: outputItemRarity.toLowerCase(),
+        metadata: {
+          craftedBy: characterId,
+          craftedAt: Date.now(),
+          sourceApp: "grudgewarlords",
+        },
+      });
+
+      // Calculate crafting XP
+      const xpResult = computeCraftResult(currentLevel, currentXp, outputItemTier);
+
+      // Update profession level
+      await storage.updateCharacterProfession(characterId, normalizedProfId, {
+        level: xpResult.newLevel,
+        xp: xpResult.newXp,
+        lastGainAt: Date.now(),
+      });
+
+      // Log experience event
+      await storage.logExperienceEvent({
+        characterId,
+        source: "crafting",
+        xpAmount: 0,
+        professionId: normalizedProfId,
+        professionXpAmount: xpResult.xpGained,
+        metadata: { recipeId, outputItemId, outputItemTier, ingredientCount: ingredients.length },
+      });
+
+      res.json({
+        success: true,
+        craftedItem: {
+          id: craftedItem.id,
+          itemId: outputItemId,
+          name: outputItemName || outputItemId,
+          tier: outputItemTier,
+          rarity: outputItemRarity,
+        },
+        profession: {
+          id: normalizedProfId,
+          level: xpResult.newLevel,
+          xp: xpResult.newXp,
+          xpGained: xpResult.xpGained,
+          leveledUp: xpResult.levelGained,
+        },
+      });
+    } catch (error: any) {
+      console.error("Error processing craft:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // GET /api/inventory/:characterId - Get account inventory for a character
+  app.get("/api/inventory/:characterId", async (req, res) => {
+    try {
+      const { characterId } = req.params;
+      const character = await storage.getCharacter(characterId);
+      if (!character) {
+        return res.status(404).json({ error: "Character not found" });
+      }
+
+      const account = character.accountId
+        ? await storage.getAccount(character.accountId)
+        : await storage.getOrCreateAccountForUser(character.userId);
+      if (!account) {
+        return res.status(400).json({ error: "No account found" });
+      }
+
+      const items = await storage.getAccountInventory(account.id);
+      const resources = await storage.getAccountResources(account.id);
+
+      res.json({
+        characterId,
+        accountId: account.id,
+        items,
+        resources: resources?.resources || {},
+      });
+    } catch (error: any) {
+      console.error("Error fetching inventory:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // POST /api/inventory/:characterId/transfer - Move item to/from character binding
+  app.post("/api/inventory/:characterId/transfer", async (req, res) => {
+    try {
+      const { characterId } = req.params;
+      const { itemId, direction } = req.body; // direction: 'bind' | 'unbind'
+
+      if (!itemId || !direction) {
+        return res.status(400).json({ error: "itemId and direction ('bind'|'unbind') are required" });
+      }
+
+      const character = await storage.getCharacter(characterId);
+      if (!character) {
+        return res.status(404).json({ error: "Character not found" });
+      }
+
+      const account = character.accountId
+        ? await storage.getAccount(character.accountId)
+        : await storage.getOrCreateAccountForUser(character.userId);
+      if (!account) {
+        return res.status(400).json({ error: "No account found" });
+      }
+
+      const updated = await storage.transferItemToCharacter(
+        itemId,
+        direction === "bind" ? characterId : null,
+        account.id,
+        character.userId,
+      );
+
+      res.json({ success: true, item: updated });
+    } catch (error: any) {
+      console.error("Error transferring item:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   app.get("/api/aseprite/list", async (_req, res) => {
     try {
       const asepriteDir = path.join(process.cwd(), "public/sprites/GrudgeRPGAssets2d/Aseprite file");

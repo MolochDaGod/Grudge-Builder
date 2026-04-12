@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import Layout from "@/components/Layout";
 import { GATHERING_PROFESSIONS, CRAFTING_PROFESSIONS, ITEMS, RECIPES, RESOURCE_NODES, GrudaRecipe, GrudaProfession } from "@/lib/grudaDB";
+import { professionAPI } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { Hammer, Pickaxe, Search, Leaf, Fish, Bone, Magnet, TreePine, Wrench, ChefHat, Sparkles, ChevronRight, ChevronDown, TrendingUp, Clock, Gem, Award, Zap, Target, Package, GitBranch } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -124,24 +125,44 @@ export default function ProfessionsPage() {
     const outputItem = ITEMS.find(i => i.id === recipe.outputItemId);
     if (!outputItem) return;
 
-    const newInventory = [...activeCharacter.inventory];
-    const existingStack = newInventory.find(i => i.itemId === outputItem.id);
-    
-    if (existingStack) {
-      existingStack.quantity += 1;
-    } else {
-      newInventory.push({ itemId: outputItem.id, quantity: 1 });
+    // Determine the crafting profession from the current selection
+    const craftProfession = currentProf?.name || recipe.profession || "Miner";
+
+    try {
+      const result = await professionAPI.craft(activeCharacter.id, {
+        professionId: craftProfession,
+        recipeId: recipe.id,
+        outputItemId: outputItem.id,
+        outputItemName: outputItem.name,
+        outputItemTier: outputItem.tier || 1,
+        outputItemRarity: outputItem.rarity || "Common",
+        ingredients: recipe.ingredients,
+      });
+
+      // Show XP gain info
+      const xpMsg = result.profession.xpGained > 0
+        ? ` (+${result.profession.xpGained} ${craftProfession} XP)`
+        : "";
+      const lvlMsg = result.profession.leveledUp
+        ? ` ${craftProfession} leveled up to ${result.profession.level}!`
+        : "";
+
+      toast({
+        title: "Crafting Successful",
+        description: `You created 1x ${outputItem.name}!${xpMsg}${lvlMsg}`,
+        className: "bg-green-900 border-green-800 text-green-100",
+      });
+
+      // Refresh character to pick up any updated profession levels
+      await handleRefreshCharacter();
+    } catch (err: any) {
+      const msg = err?.message || "Crafting failed";
+      toast({
+        title: "Crafting Failed",
+        description: msg,
+        variant: "destructive",
+      });
     }
-
-    const updatedChar = { ...activeCharacter, inventory: newInventory };
-    await CharacterManager.updateCharacter(updatedChar);
-    setActiveCharacter(updatedChar);
-
-    toast({ 
-      title: "Crafting Successful", 
-      description: `You created 1x ${outputItem.name}!`,
-      className: "bg-green-900 border-green-800 text-green-100"
-    });
   };
 
   const filteredRecipes = recipes.filter(r => {
