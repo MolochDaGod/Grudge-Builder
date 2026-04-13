@@ -45,7 +45,7 @@ function notify() {
 export async function checkApiHealth(): Promise<ApiHealthStatus> {
   const start = Date.now();
   try {
-    const res = await fetch("/api/game/health", {
+    const res = await fetch("/api/health", {
       method: "GET",
       signal: AbortSignal.timeout(8000),
     });

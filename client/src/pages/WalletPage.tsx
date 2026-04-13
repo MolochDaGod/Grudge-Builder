@@ -51,18 +51,18 @@ export default function WalletPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // GET /api/wallet — returns { hasWallet, walletAddress, walletType, walletId }
+  // GET /api/wallet/status — returns { hasWallet, walletAddress, walletType, crossmintEmail }
   const { data: walletStatus, isLoading: isLoadingStatus } = useQuery<WalletStatus>({
     queryKey: ["wallet-status"],
     queryFn: async () => {
-      const res = await fetch("/api/wallet", { headers: authHeaders() });
+      const res = await fetch("/api/wallet/status", { headers: authHeaders() });
       if (!res.ok) throw new Error("Failed to fetch wallet status");
       const data = await res.json();
       return {
         hasWallet: !!data.hasWallet,
         walletType: data.walletType || null,
         walletAddress: data.walletAddress || null,
-        crossmintEmail: null, // backend doesn't expose this yet
+        crossmintEmail: data.crossmintEmail || null,
         walletId: data.walletId || null,
       };
     },
@@ -70,11 +70,11 @@ export default function WalletPage() {
 
   const walletConfig = WALLET_CONFIG;
 
-  // Fetch character cNFTs from backend
+  // Fetch character cNFTs from backend (GET /api/nfts → all account NFTs)
   const { data: nftsData, isLoading: isLoadingNfts } = useQuery<{ nfts: NFTStatus[] }>({
     queryKey: ["character-nfts"],
     queryFn: async () => {
-      const res = await fetch("/api/nfts/characters", { headers: authHeaders() });
+      const res = await fetch("/api/nfts", { headers: authHeaders() });
       if (!res.ok) return { nfts: [] };
       const data = await res.json();
       return { nfts: Array.isArray(data) ? data : data.nfts || [] };
@@ -82,14 +82,15 @@ export default function WalletPage() {
     enabled: !!walletStatus?.hasWallet,
   });
 
-  // Fetch island cNFT
+  // Fetch island cNFTs (GET /api/island-nfts → all island NFTs for account)
   const { data: islandNft } = useQuery<{ nft: NFTStatus | null }>({
     queryKey: ["island-nft"],
     queryFn: async () => {
-      const res = await fetch("/api/nfts/island", { headers: authHeaders() });
+      const res = await fetch("/api/island-nfts", { headers: authHeaders() });
       if (!res.ok) return { nft: null };
       const data = await res.json();
-      return { nft: data.nft || data || null };
+      const nfts = data.nfts || [];
+      return { nft: nfts.length > 0 ? nfts[0] : null };
     },
     enabled: !!walletStatus?.hasWallet,
   });

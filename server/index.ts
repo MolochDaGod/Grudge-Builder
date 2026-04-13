@@ -5,6 +5,7 @@ import { createServer } from "http";
 import path from "path";
 import cors from "cors";
 import { setupColyseus } from "./colyseus/index";
+import { registerBackendProxy } from "./proxy";
 
 const app = express();
 const httpServer = createServer(app);
@@ -115,6 +116,10 @@ app.use((req, res, next) => {
 (async () => {
   await registerRoutes(httpServer, app);
   await setupColyseus(httpServer, app);
+
+  // Register proxy for external backends (Grudge API, auth, assets)
+  // Must come AFTER local routes so /api/island/*, /api/account/* are handled locally
+  registerBackendProxy(app);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;

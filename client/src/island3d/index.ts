@@ -22,3 +22,17 @@ export type { Island3DEngineConfig } from './engine/Island3DEngine';
 
 // Renderer
 export { Island3DRenderer } from './render/Island3DRenderer';
+
+// Player
+export { CharacterController3D } from './player/CharacterController3D';
+export type { CharacterController3DConfig, ControlMode } from './player/CharacterController3D';
+export { AnimationManager } from './player/AnimationManager';
+export type { AnimState } from './player/AnimationManager';
+
+// Navigation
+export { TerrainNavMesh } from './navigation/TerrainNavMesh';
+export type { NavCell, NavPath } from './navigation/TerrainNavMesh';
+
+// Sync
+export { capture3DState, apply3DState, to2DNodeStates } from './sync/IslandStateSync';
+export type { SharedIslandState, SharedNodeState } from './sync/IslandStateSync';

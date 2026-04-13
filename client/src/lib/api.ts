@@ -2,8 +2,8 @@ import type { Character } from "./characterManager";
 import { authHeaders, logout } from "./grudgeBackend";
 
 /** Canonical Grudge backend — routed through Vercel rewrites.
- *  /api/game/:path* → https://api.grudge-studio.com/:path*
- *  This ensures same-origin requests (no CORS) and correct path stripping. */
+ *  /api/game/:path* → https://api.grudge-studio.com/api/:path*
+ *  This ensures same-origin requests (no CORS) and correct /api/ prefix. */
 const GAME_API = "/api/game";
 import {
   type VpsCharacter,
