@@ -39,7 +39,7 @@ export const ENEMY_TEMPLATES: Record<Enemy['type'], Omit<Enemy, 'id' | 'x' | 'y'
 
 // ── Tower Instance ────────────────────────────────────────────────────────────
 
-export type TowerType = 'beam_tower' | 'catapult_tower';
+export type TowerType = 'beam_tower' | 'catapult_tower' | 'ballista_tower' | 'fire_tower' | 'cannon_tower';
 
 export interface TowerInstance {
   id: string;
@@ -58,9 +58,21 @@ export interface TowerInstance {
   lastFiredAt: number;
 }
 
+/** Missile sprite IDs for each tower type (from SPELL_ANIMATIONS) */
+export const TOWER_PROJECTILE_SPRITES: Record<TowerType, { projectile: string; impact: string }> = {
+  beam_tower:     { projectile: 'origins_normal_spell',   impact: 'origins_cannon_tower_explosion' },
+  catapult_tower: { projectile: 'origins_catapult_rock',  impact: 'origins_ballista_impact' },
+  ballista_tower: { projectile: 'origins_ballista_bolt',  impact: 'origins_ballista_impact' },
+  fire_tower:     { projectile: 'origins_fireball',       impact: 'origins_explosion' },
+  cannon_tower:   { projectile: 'origins_cannon',         impact: 'origins_cannon_explosion' },
+};
+
 const TOWER_STATS: Record<TowerType, { range: number; fireRate: number; damage: number[]; splashRadius: number }> = {
-  beam_tower:     { range: 6, fireRate: 2.0, damage: [8, 14, 22],  splashRadius: 0 },
-  catapult_tower: { range: 8, fireRate: 0.6, damage: [15, 25, 40], splashRadius: 2 },
+  beam_tower:     { range: 6,  fireRate: 2.0,  damage: [8, 14, 22],   splashRadius: 0 },
+  catapult_tower: { range: 8,  fireRate: 0.6,  damage: [15, 25, 40],  splashRadius: 2 },
+  ballista_tower: { range: 10, fireRate: 0.8,  damage: [20, 35, 55],  splashRadius: 0 },
+  fire_tower:     { range: 5,  fireRate: 1.5,  damage: [12, 20, 32],  splashRadius: 1.5 },
+  cannon_tower:   { range: 7,  fireRate: 0.7,  damage: [18, 30, 48],  splashRadius: 2.5 },
 };
 
 export function createTowerInstance(

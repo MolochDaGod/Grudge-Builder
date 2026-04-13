@@ -54,6 +54,13 @@ const SHIP_STATS: Record<ShipSize, { maxHp: number; speed: number; cannonDmg: nu
   galleon:  { maxHp: 200, speed: 2, cannonDmg: 15 },
 };
 
+/** Missile sprite IDs for ship combat (from SPELL_ANIMATIONS) */
+export const SHIP_PROJECTILE_SPRITES: Record<ShipSize, { projectile: string; impact: string } | null> = {
+  rowboat: null, // No cannons
+  sloop:   { projectile: 'origins_cannon',     impact: 'origins_cannon_explosion' },
+  galleon: { projectile: 'origins_big_cannon',  impact: 'origins_explosion' },
+};
+
 // ── Crafting Costs ────────────────────────────────────────────────────────────
 
 export interface ShipCost {

@@ -215,6 +215,11 @@ export function fetchMasterMaterials() {
   return fetchObjectStoreData<Record<string, unknown>>("/master-materials.json", {});
 }
 
+/** Fetch projectile sprite metadata (GrudgeOrigins missiles + CDN paths) */
+export function fetchProjectiles() {
+  return fetchObjectStoreData<Record<string, unknown>>("/projectiles.json", {});
+}
+
 // ── Cache management
 
 /** Clear the entire ObjectStore data cache */
