@@ -17,6 +17,7 @@ import { placeResourceNodes, type PlacedNode3D } from '../terrain/NodePlacer';
 import { createScatterDecorations } from '../objects/ScatterDecorations';
 import { createHarvestableTree, type HarvestableTree } from '../objects/HarvestableTree';
 import { createHarvestableRock, type HarvestableRock } from '../objects/HarvestableRock';
+import { DetailLayer, createGrassBlades } from '../terrain/DetailLayers';
 
 export interface Island3DEngineConfig {
   seed: string;
@@ -42,6 +43,11 @@ export class Island3DEngine {
   public trees: HarvestableTree[] = [];
   public rocks: HarvestableRock[] = [];
   public placedNodes: PlacedNode3D[] = [];
+
+  // Detail layers (grass/sand overlay)
+  private grassLayer: DetailLayer | null = null;
+  private sandLayer: DetailLayer | null = null;
+  private grassBlades: { mesh: THREE.InstancedMesh; update: (time: number, cameraPos: THREE.Vector3) => void } | null = null;
 
   // Raycaster for mouse picking
   private raycaster = new THREE.Raycaster();
@@ -148,6 +154,9 @@ export class Island3DEngine {
 
     // 5. Scatter decorations
     this.createDecorations();
+
+    // 6. Detail layers — animated grass + sand overlays
+    this.createDetailLayers();
   }
 
   private createWaterPlane(): void {
@@ -193,6 +202,40 @@ export class Island3DEngine {
       this.terrain.gridH,
     );
     this.scene.add(decoGroup);
+  }
+
+  private createDetailLayers(): void {
+    if (!this.terrain) return;
+
+    const layerConfig = {
+      biomeMap: this.terrain.biomeMap,
+      terrainMesh: this.terrain.terrainMesh,
+      gridW: this.terrain.gridW,
+      gridH: this.terrain.gridH,
+      terrainSize: 512,
+    };
+
+    // Grass wave overlay (LOD patches)
+    this.grassLayer = new DetailLayer({ ...layerConfig, type: 'grass' });
+    this.scene.add(this.grassLayer.group);
+
+    // Sand shore overlay (LOD patches)
+    this.sandLayer = new DetailLayer({ ...layerConfig, type: 'sand' });
+    this.scene.add(this.sandLayer.group);
+
+    // Close-range instanced grass blades
+    this.grassBlades = createGrassBlades(layerConfig);
+    this.scene.add(this.grassBlades.mesh);
+  }
+
+  /** Update detail layers (grass/sand animation) */
+  private updateDetailLayers(dt: number): void {
+    const time = this.clock.elapsedTime;
+    const camPos = this.camera.position;
+
+    this.grassLayer?.update(time, camPos);
+    this.sandLayer?.update(time, camPos);
+    this.grassBlades?.update(time, camPos);
   }
 
   /** Animate water UV offset for wave effect */
@@ -255,6 +298,7 @@ export class Island3DEngine {
     this.controls.update();
     this.updateWater(dt);
     this.updateHarvestables(dt);
+    this.updateDetailLayers(dt);
 
     this.renderer.render(this.scene, this.camera);
     this.animationFrameId = requestAnimationFrame(this.loop);
@@ -310,6 +354,8 @@ export class Island3DEngine {
 
   destroy(): void {
     this.stop();
+    this.grassLayer?.dispose();
+    this.sandLayer?.dispose();
     this.renderer.dispose();
     this.controls.dispose();
     // Dispose geometries and materials
