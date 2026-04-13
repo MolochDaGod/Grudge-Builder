@@ -25,11 +25,20 @@ const OBJECT_STORE_PAGES =
 /** ObjectStore JSON API base — append endpoint paths like /weapons.json */
 const OBJECT_STORE_API = `${OBJECT_STORE_PAGES}/api/v1`;
 
+/**
+ * ObjectStore Cloudflare Worker — production API with caching, search, filtering.
+ * Serves game data collections + weapon skills with R2 cache → GitHub Pages fallback.
+ * Custom domain: objectstore.grudge-studio.com
+ */
+const OBJECTSTORE_WORKER_URL =
+  (typeof import.meta !== 'undefined' && import.meta.env?.VITE_OBJECTSTORE_WORKER_URL) ||
+  'https://objectstore.grudge-studio.com';
+
 /** Legacy alias — kept for backward compatibility but points to CDN now */
 const OBJECT_STORE_BASE = ASSET_CDN_BASE;
 
 /** Current ObjectStore data version — bump when API data changes */
-const OBJECT_STORE_VERSION = '3.1.0';
+const OBJECT_STORE_VERSION = '3.2.0';
 
 /**
  * Build a URL for a game asset (image, sprite, audio, etc.).
@@ -64,4 +73,17 @@ export function apiUrl(endpoint: string): string {
   return `${OBJECT_STORE_API}${cleanEndpoint}`;
 }
 
-export { OBJECT_STORE_BASE, OBJECT_STORE_API, ASSET_CDN_BASE, OBJECT_STORE_VERSION };
+/**
+ * Build a URL for the ObjectStore Worker API (production, with caching + filtering).
+ * Use for weapon skills, game data collections, and real-time queries.
+ *
+ * @example
+ *   workerUrl('/v1/weapon-skills/SWORD')
+ *   // => 'https://objectstore.grudge-studio.com/v1/weapon-skills/SWORD'
+ */
+export function workerUrl(path: string): string {
+  const cleanPath = path.startsWith('/') ? path : `/${path}`;
+  return `${OBJECTSTORE_WORKER_URL}${cleanPath}`;
+}
+
+export { OBJECT_STORE_BASE, OBJECT_STORE_API, ASSET_CDN_BASE, OBJECTSTORE_WORKER_URL, OBJECT_STORE_VERSION };

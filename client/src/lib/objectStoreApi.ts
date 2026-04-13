@@ -90,12 +90,38 @@ export function fetchConsumables() {
   return fetchObjectStoreData<Record<string, unknown>>("/consumables.json", {});
 }
 
-/** Fetch weapon skills (473 skills across 24 types) */
+/** Fetch weapon skills (207 skills across 17 types with cast times, projectiles, physics, damage types) */
 export function fetchWeaponSkills() {
   return fetchObjectStoreData<Record<string, unknown>>(
     "/weaponSkills.json",
     {},
   );
+}
+
+/** Fetch weapon skills for a specific class (via Worker API) */
+export async function fetchWeaponSkillsForClass(className: string) {
+  try {
+    const { workerUrl } = await import('@/lib/assetConfig');
+    const res = await fetch(workerUrl(`/v1/weapon-skills/class/${className}`));
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return await res.json();
+  } catch (err) {
+    console.warn(`[ObjectStore] Failed to fetch weapon skills for ${className}:`, err);
+    return null;
+  }
+}
+
+/** Fetch full skill tree for a specific weapon type (via Worker API) */
+export async function fetchWeaponSkillTree(weaponType: string) {
+  try {
+    const { workerUrl } = await import('@/lib/assetConfig');
+    const res = await fetch(workerUrl(`/v1/weapon-skills/${weaponType}`));
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return await res.json();
+  } catch (err) {
+    console.warn(`[ObjectStore] Failed to fetch skill tree for ${weaponType}:`, err);
+    return null;
+  }
 }
 
 /** Fetch all enemies (38 enemies across 8 tiers) */
@@ -259,5 +285,6 @@ export async function prefetchCoreData(): Promise<void> {
     fetchFactions(),
     fetchAttributes(),
     fetchSpriteMaps(),
+    fetchWeaponSkills(),
   ]);
 }
