@@ -58,7 +58,8 @@ import {
   NodeRarity,
 } from "@/lib/islandSystem";
 import { puterAI, isPuterAvailable, puterKV } from "@/lib/puterIntegration";
-import { Loader2, MapPin, Timer, Package, Users, Sparkles, RefreshCw, Home, Settings, Play, Pause, Eye, Hammer } from "lucide-react";
+import { Loader2, MapPin, Timer, Package, Users, Sparkles, RefreshCw, Home, Settings, Play, Pause, Eye, Hammer, Box, Grid2X2 } from "lucide-react";
+import { Island3DRenderer } from '@/island3d/render/Island3DRenderer';
 import { 
   CameraState, 
   worldToScreen, 
@@ -265,6 +266,7 @@ export default function IslandPage() {
   const [showCutscene, setShowCutscene] = useState(false);
   const [isCheckingStatus, setIsCheckingStatus] = useState(true);
   const [accountHomeIsland, setAccountHomeIsland] = useState<boolean | null>(null);
+  const [viewMode, setViewMode] = useState<'2d' | '3d'>('2d');
   const [activityLog, setActivityLog] = useState<ActivityLogEntry[]>([]);
   const [harvestPopups, setHarvestPopups] = useState<Array<{
     id: string;
@@ -1719,8 +1721,44 @@ export default function IslandPage() {
     }
   });
 
+  // Derive island seed from state for 3D view
+  const island3dSeed = islandState?.id || islandState?.name || 'grudge-island-default';
+
   return (
     <GameViewportLayout title="Island">
+      {/* 2D / 3D Toggle */}
+      <div className="absolute top-2 right-2 z-50 flex items-center gap-1 bg-black/60 backdrop-blur-sm rounded-lg p-1 border border-white/10">
+        <button
+          onClick={() => setViewMode('2d')}
+          className={cn(
+            "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all",
+            viewMode === '2d'
+              ? "bg-emerald-600 text-white shadow-md"
+              : "text-gray-400 hover:text-white hover:bg-white/10"
+          )}
+        >
+          <Grid2X2 className="w-3.5 h-3.5" /> 2D Sprite
+        </button>
+        <button
+          onClick={() => setViewMode('3d')}
+          className={cn(
+            "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all",
+            viewMode === '3d'
+              ? "bg-emerald-600 text-white shadow-md"
+              : "text-gray-400 hover:text-white hover:bg-white/10"
+          )}
+        >
+          <Box className="w-3.5 h-3.5" /> 3D World
+        </button>
+      </div>
+
+      {viewMode === '3d' ? (
+        /* ── 3D View ── */
+        <div className="relative w-full h-full">
+          <Island3DRenderer seed={island3dSeed} />
+        </div>
+      ) : (
+      /* ── 2D View ── */
       <div className="relative w-full h-full overflow-hidden">
         <div 
           ref={mapContainerRef}
@@ -2302,6 +2340,7 @@ export default function IslandPage() {
         {/* Communications Panel - Activity Log & Chat */}
         <CommPanel logs={logs} />
       </div>
+      )} {/* end 2D/3D ternary */}
 
       <Dialog open={!!settingsHero} onOpenChange={(open) => !open && setSettingsHero(null)}>
         <DialogContent className="bg-slate-900 border-slate-700 max-w-md">
