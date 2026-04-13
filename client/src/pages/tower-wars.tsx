@@ -37,6 +37,20 @@ const TOWER_TYPES = {
   berserker: { name: "Berserker", cost: 130, dmg: 50, range: 2.5, rate: 0.8, color: 0xdc2626, desc: "Bonus dmg at low HP" },
 };
 
+// ── GrudgeOrigins missile sprite mapping per tower type ───────────────────────
+const TOWER_MISSILE_SPRITES: Record<string, { sprite: string; impact: string; scale: number }> = {
+  arrow:     { sprite: "/sprites/2d-island/missiles/arrow.png",          impact: "/sprites/2d-island/missiles/cannon_explosion.png",             scale: 0.7 },
+  magic:     { sprite: "/sprites/2d-island/missiles/normal_spell.png",   impact: "/sprites/2d-island/missiles/exorcism.png",                     scale: 0.6 },
+  cannon:    { sprite: "/sprites/2d-island/missiles/cannon.png",         impact: "/sprites/2d-island/missiles/cannon-tower_explosion.png",       scale: 0.5 },
+  barricade: { sprite: "/sprites/2d-island/missiles/axe.png",            impact: "/sprites/2d-island/missiles/cannon_explosion.png",             scale: 0.5 },
+  snare:     { sprite: "/sprites/2d-island/missiles/rune.png",           impact: "/sprites/2d-island/missiles/green_cross.png",                  scale: 0.5 },
+  mortar:    { sprite: "/sprites/2d-island/missiles/catapult_rock.png",  impact: "/sprites/2d-island/missiles/ballista-catapult_impact.png",     scale: 0.8 },
+  fire:      { sprite: "/sprites/2d-island/missiles/fireball.png",       impact: "/sprites/2d-island/missiles/explosion.png",                    scale: 0.6 },
+  poison:    { sprite: "/sprites/2d-island/missiles/death_and_decay.png",impact: "/sprites/2d-island/missiles/green_cross.png",                  scale: 0.5 },
+  curse:     { sprite: "/sprites/2d-island/missiles/touch_of_death.png", impact: "/sprites/2d-island/missiles/exorcism.png",                     scale: 0.7 },
+  berserker: { sprite: "/sprites/2d-island/missiles/big_fire.png",       impact: "/sprites/2d-island/missiles/explosion.png",                    scale: 0.7 },
+};
+
 // ── Unit types ────────────────────────────────────────────────────────────────
 const UNIT_TYPES = [
   { name: "Scout",   hp: 60,   reward: 15,  cost: 40,  speed: 2.0, size: 0.28, color: 0x86efac },
@@ -461,22 +475,74 @@ export default function TowerWarsPage() {
             goldRef.current += best.u.reward; setGoldFnRef.current(goldRef.current);
             setScoreFnRef.current(s => s + best.u.reward);
           }
-          const proj = new THREE.Mesh(
-            new THREE.SphereGeometry(0.11, 4, 4),
-            new THREE.MeshBasicMaterial({ color: t.def.color })
-          );
-          proj.position.set(t.cx, 1.6, t.cz); scene.add(proj);
-          projectiles.push({ mesh: proj, startPos: proj.position.clone(), target: best.u.group, life: 0.3, maxLife: 0.3 });
+          // Use GrudgeOrigins missile sprite if available, else fallback sphere
+          const missileInfo = TOWER_MISSILE_SPRITES[t.type];
+          let projObj: THREE.Object3D;
+          if (missileInfo) {
+            const tex = new THREE.TextureLoader().load(missileInfo.sprite);
+            tex.colorSpace = THREE.SRGBColorSpace;
+            const spriteMat = new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: false });
+            const sprite = new THREE.Sprite(spriteMat);
+            const s = missileInfo.scale;
+            sprite.scale.set(s, s, s);
+            projObj = sprite;
+          } else {
+            projObj = new THREE.Mesh(
+              new THREE.SphereGeometry(0.11, 4, 4),
+              new THREE.MeshBasicMaterial({ color: t.def.color })
+            );
+          }
+          projObj.position.set(t.cx, 1.6, t.cz); scene.add(projObj);
+          projectiles.push({
+            mesh: projObj,
+            startPos: projObj.position.clone(),
+            target: best.u.group,
+            life: 0.3,
+            maxLife: 0.3,
+            towerType: t.type,
+          });
         }
 
         // Projectiles
         for (let i = projectiles.length - 1; i >= 0; i--) {
           const p = projectiles[i];
           p.life -= dt;
-          if (p.life <= 0 || !p.target.parent) { scene.remove(p.mesh); projectiles.splice(i, 1); continue; }
+          if (p.life <= 0 || !p.target.parent) {
+            scene.remove(p.mesh);
+            // Spawn impact sprite on arrival
+            const impactInfo = TOWER_MISSILE_SPRITES[p.towerType];
+            if (impactInfo && p.life <= 0) {
+              const impTex = new THREE.TextureLoader().load(impactInfo.impact);
+              impTex.colorSpace = THREE.SRGBColorSpace;
+              const impMat = new THREE.SpriteMaterial({ map: impTex, transparent: true, depthTest: false, opacity: 0.9 });
+              const impSprite = new THREE.Sprite(impMat);
+              const impScale = impactInfo.scale * 1.5;
+              impSprite.scale.set(impScale, impScale, impScale);
+              impSprite.position.copy(p.mesh.position);
+              scene.add(impSprite);
+              // Fade out and remove after 0.4s
+              const impStart = performance.now();
+              const fadeImpact = () => {
+                const elapsed = (performance.now() - impStart) / 400;
+                if (elapsed >= 1) { scene.remove(impSprite); impMat.dispose(); impTex.dispose(); return; }
+                impMat.opacity = 0.9 * (1 - elapsed);
+                impSprite.scale.setScalar(impScale * (1 + elapsed * 0.5));
+                requestAnimationFrame(fadeImpact);
+              };
+              requestAnimationFrame(fadeImpact);
+            }
+            projectiles.splice(i, 1);
+            continue;
+          }
           const t = 1 - p.life / p.maxLife;
           p.mesh.position.lerpVectors(p.startPos, p.target.position, t);
           p.mesh.position.y += Math.sin(t * Math.PI) * 0.55;
+          // Rotate sprite to face direction of travel
+          if (p.mesh instanceof THREE.Sprite) {
+            const dx = p.target.position.x - p.startPos.x;
+            const dz = p.target.position.z - p.startPos.z;
+            p.mesh.material.rotation = Math.atan2(dx, dz);
+          }
         }
 
         // Wave complete
