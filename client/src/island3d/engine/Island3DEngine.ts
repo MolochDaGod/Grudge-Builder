@@ -18,12 +18,15 @@ import { createScatterDecorations } from '../objects/ScatterDecorations';
 import { createHarvestableTree, type HarvestableTree } from '../objects/HarvestableTree';
 import { createHarvestableRock, type HarvestableRock } from '../objects/HarvestableRock';
 import { DetailLayer, createGrassBlades } from '../terrain/DetailLayers';
+import { MultiplayerSync, type MultiplayerConfig } from '../sync/MultiplayerSync';
 
 export interface Island3DEngineConfig {
   seed: string;
   canvas: HTMLCanvasElement;
   width: number;
   height: number;
+  /** Optional multiplayer config — omit for offline / solo play */
+  multiplayer?: MultiplayerConfig;
 }
 
 export class Island3DEngine {
@@ -48,6 +51,9 @@ export class Island3DEngine {
   private grassLayer: DetailLayer | null = null;
   private sandLayer: DetailLayer | null = null;
   private grassBlades: { mesh: THREE.InstancedMesh; update: (time: number, cameraPos: THREE.Vector3) => void } | null = null;
+
+  // Multiplayer
+  public multiplayer: MultiplayerSync | null = null;
 
   // Raycaster for mouse picking
   private raycaster = new THREE.Raycaster();
@@ -157,6 +163,12 @@ export class Island3DEngine {
 
     // 6. Detail layers — animated grass + sand overlays
     this.createDetailLayers();
+
+    // 7. Multiplayer (if configured)
+    if (this.config.multiplayer) {
+      this.multiplayer = new MultiplayerSync(this.config.multiplayer, this.scene);
+      this.multiplayer.connect();
+    }
   }
 
   private createWaterPlane(): void {
@@ -299,6 +311,7 @@ export class Island3DEngine {
     this.updateWater(dt);
     this.updateHarvestables(dt);
     this.updateDetailLayers(dt);
+    this.multiplayer?.update(dt);
 
     this.renderer.render(this.scene, this.camera);
     this.animationFrameId = requestAnimationFrame(this.loop);
@@ -354,6 +367,7 @@ export class Island3DEngine {
 
   destroy(): void {
     this.stop();
+    this.multiplayer?.destroy();
     this.grassLayer?.dispose();
     this.sandLayer?.dispose();
     this.renderer.dispose();

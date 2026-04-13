@@ -5,13 +5,16 @@
  */
 import { useRef, useEffect, useState, useCallback } from 'react';
 import { Island3DEngine } from '../engine/Island3DEngine';
+import type { MultiplayerConfig } from '../sync/MultiplayerSync';
 
 interface Island3DRendererProps {
   seed: string;
   className?: string;
+  /** Pass multiplayer config to enable Socket.IO sync */
+  multiplayer?: MultiplayerConfig;
 }
 
-export function Island3DRenderer({ seed, className = '' }: Island3DRendererProps) {
+export function Island3DRenderer({ seed, className = '', multiplayer }: Island3DRendererProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const engineRef = useRef<Island3DEngine | null>(null);
@@ -27,7 +30,7 @@ export function Island3DRenderer({ seed, className = '' }: Island3DRendererProps
     const width = container.clientWidth;
     const height = container.clientHeight;
 
-    const engine = new Island3DEngine({ seed, canvas, width, height });
+    const engine = new Island3DEngine({ seed, canvas, width, height, multiplayer });
     engineRef.current = engine;
 
     engine.init()
@@ -45,7 +48,7 @@ export function Island3DRenderer({ seed, className = '' }: Island3DRendererProps
       engine.destroy();
       engineRef.current = null;
     };
-  }, [seed]);
+  }, [seed, multiplayer]);
 
   // Resize handler
   useEffect(() => {
@@ -104,6 +107,9 @@ export function Island3DRenderer({ seed, className = '' }: Island3DRendererProps
           <p className="font-bold text-emerald-400">3D Island — {seed}</p>
           <p className="text-gray-300 mt-1">Click trees/rocks to harvest</p>
           <p className="text-gray-400">Scroll to zoom · Drag to orbit</p>
+          {multiplayer && (
+            <p className="text-sky-400 mt-1">⚡ Multiplayer connected</p>
+          )}
         </div>
       )}
     </div>
