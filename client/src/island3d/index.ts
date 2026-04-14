@@ -33,6 +33,18 @@ export type { CharacterController3DConfig, ControlMode } from './player/Characte
 export { AnimationManager } from './player/AnimationManager';
 export type { AnimState } from './player/AnimationManager';
 
+// Advanced animation (speed blending, additive layers, bone attachments)
+export { AnimationBlendManager, Spring, Spring3, smoothDamp } from './player/AnimationBlendManager';
+export type { LocomotionState, ActionState, AdditiveLayer, BoneAttachment } from './player/AnimationBlendManager';
+
+// Asset management (cached model/texture loading)
+export { CharacterAssetManager } from './player/CharacterAssetManager';
+export type { CachedModel, LoadProgress } from './player/CharacterAssetManager';
+
+// Skill VFX (dissolve, rim glow, hit flash, frost)
+export { createDissolveMaterial, createRimGlowMaterial, applyHitFlash, createFrostMaterial, SkillEffectController } from './player/SkillEffects';
+export type { ActiveEffect } from './player/SkillEffects';
+
 // Navigation
 export { TerrainNavMesh } from './navigation/TerrainNavMesh';
 export type { NavCell, NavPath } from './navigation/TerrainNavMesh';
