@@ -67,6 +67,9 @@ Frontend pages using these MUST use `BackendRequired` component for graceful deg
 - `client/src/lib/assetResolver.ts` — Smart fallback chain (CDN → ObjectStore → placeholder)
 - `client/src/lib/audioManager.ts` — BGM/SFX from ObjectStore audio
 - `client/src/lib/characterAdapter.ts` — VPS ↔ local character data bridge
+- `client/src/lib/professionSync.ts` — ObjectStore professions.json loader (6 gathering + 5 crafting, milestones, XP table, benches)
+- `client/src/components/FactionEmblems.tsx` — SVG faction emblems (Crusade/Fabled/Legion)
+- `shared/attributeSystem.ts` — Canonical 8 attributes with DR, stat caps, combat math
 - `vercel.json` — All Vercel rewrites (API routing)
 
 ## Coding Rules
@@ -81,6 +84,6 @@ Frontend pages using these MUST use `BackendRequired` component for graceful deg
 - 6 races: Human, Barbarian (Crusade), Undead, Orc (Legion), Elf, Dwarf (Fabled)
 - 4 classes: Warrior, Mage Priest, Ranger Scout, Worg Shapeshifter
 - 8 attributes: Strength, Intellect, Vitality, Dexterity, Endurance, Wisdom, Agility, Tactics
-- 17 weapon types, 6 armor sets (cloth/leather/metal), 5 harvesting professions
+- 17 weapon types, 6 armor sets (cloth/leather/metal), 6 gathering + 5 crafting professions
 - Combat: hotbar slots 1-4 skills, 6-8 consumables. Tab toggles combat/harvest mode.
 - Souls-like difficulty, MMO progression, crew system (3-5 members), faction wars

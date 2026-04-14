@@ -1,0 +1,321 @@
+{
+  "version": "1.0.0",
+  "source": "craftpix-518286-3-characters-pack",
+  "characters": {
+    "crusade-ninja": {
+      "name": "crusade-ninja",
+      "faction": "crusade",
+      "source": "craftpix-518286",
+      "animations": {
+        "dead": {
+          "file": "dead.png",
+          "frameWidth": 633,
+          "frameHeight": 523,
+          "frameCount": 50,
+          "cols": 8
+        },
+        "driving": {
+          "file": "driving.png",
+          "frameWidth": 633,
+          "frameHeight": 523,
+          "frameCount": 20,
+          "cols": 8
+        },
+        "fall": {
+          "file": "fall.png",
+          "frameWidth": 633,
+          "frameHeight": 523,
+          "frameCount": 10,
+          "cols": 8
+        },
+        "fast-run": {
+          "file": "fast-run.png",
+          "frameWidth": 633,
+          "frameHeight": 523,
+          "frameCount": 8,
+          "cols": 8
+        },
+        "glide": {
+          "file": "glide.png",
+          "frameWidth": 633,
+          "frameHeight": 523,
+          "frameCount": 10,
+          "cols": 8
+        },
+        "hit": {
+          "file": "hit.png",
+          "frameWidth": 633,
+          "frameHeight": 523,
+          "frameCount": 40,
+          "cols": 8
+        },
+        "idle": {
+          "file": "idle.png",
+          "frameWidth": 633,
+          "frameHeight": 523,
+          "frameCount": 20,
+          "cols": 8
+        },
+        "jump": {
+          "file": "jump.png",
+          "frameWidth": 633,
+          "frameHeight": 523,
+          "frameCount": 20,
+          "cols": 8
+        },
+        "parachute": {
+          "file": "parachute.png",
+          "frameWidth": 633,
+          "frameHeight": 523,
+          "frameCount": 20,
+          "cols": 8
+        },
+        "roll": {
+          "file": "roll.png",
+          "frameWidth": 633,
+          "frameHeight": 523,
+          "frameCount": 8,
+          "cols": 8
+        },
+        "run": {
+          "file": "run.png",
+          "frameWidth": 633,
+          "frameHeight": 523,
+          "frameCount": 30,
+          "cols": 8
+        },
+        "shoot": {
+          "file": "shoot.png",
+          "frameWidth": 633,
+          "frameHeight": 523,
+          "frameCount": 30,
+          "cols": 8
+        },
+        "walk": {
+          "file": "walk.png",
+          "frameWidth": 633,
+          "frameHeight": 523,
+          "frameCount": 30,
+          "cols": 8
+        },
+        "win": {
+          "file": "win.png",
+          "frameWidth": 633,
+          "frameHeight": 523,
+          "frameCount": 30,
+          "cols": 8
+        }
+      }
+    },
+    "legion-viking": {
+      "name": "legion-viking",
+      "faction": "legion",
+      "source": "craftpix-518286",
+      "animations": {
+        "dead": {
+          "file": "dead.png",
+          "frameWidth": 633,
+          "frameHeight": 523,
+          "frameCount": 50,
+          "cols": 8
+        },
+        "driving": {
+          "file": "driving.png",
+          "frameWidth": 633,
+          "frameHeight": 523,
+          "frameCount": 20,
+          "cols": 8
+        },
+        "fall": {
+          "file": "fall.png",
+          "frameWidth": 633,
+          "frameHeight": 523,
+          "frameCount": 10,
+          "cols": 8
+        },
+        "fast-run": {
+          "file": "fast-run.png",
+          "frameWidth": 633,
+          "frameHeight": 523,
+          "frameCount": 8,
+          "cols": 8
+        },
+        "glide": {
+          "file": "glide.png",
+          "frameWidth": 633,
+          "frameHeight": 523,
+          "frameCount": 10,
+          "cols": 8
+        },
+        "hit": {
+          "file": "hit.png",
+          "frameWidth": 633,
+          "frameHeight": 523,
+          "frameCount": 40,
+          "cols": 8
+        },
+        "idle": {
+          "file": "idle.png",
+          "frameWidth": 633,
+          "frameHeight": 523,
+          "frameCount": 20,
+          "cols": 8
+        },
+        "jump": {
+          "file": "jump.png",
+          "frameWidth": 633,
+          "frameHeight": 523,
+          "frameCount": 20,
+          "cols": 8
+        },
+        "parachute": {
+          "file": "parachute.png",
+          "frameWidth": 633,
+          "frameHeight": 523,
+          "frameCount": 20,
+          "cols": 8
+        },
+        "roll": {
+          "file": "roll.png",
+          "frameWidth": 633,
+          "frameHeight": 523,
+          "frameCount": 8,
+          "cols": 8
+        },
+        "run": {
+          "file": "run.png",
+          "frameWidth": 633,
+          "frameHeight": 523,
+          "frameCount": 30,
+          "cols": 8
+        },
+        "shoot": {
+          "file": "shoot.png",
+          "frameWidth": 633,
+          "frameHeight": 523,
+          "frameCount": 30,
+          "cols": 8
+        },
+        "walk": {
+          "file": "walk.png",
+          "frameWidth": 633,
+          "frameHeight": 523,
+          "frameCount": 30,
+          "cols": 8
+        },
+        "win": {
+          "file": "win.png",
+          "frameWidth": 633,
+          "frameHeight": 523,
+          "frameCount": 30,
+          "cols": 8
+        }
+      }
+    },
+    "fabled-mage": {
+      "name": "fabled-mage",
+      "faction": "fabled",
+      "source": "craftpix-518286",
+      "animations": {
+        "dead": {
+          "file": "dead.png",
+          "frameWidth": 633,
+          "frameHeight": 523,
+          "frameCount": 50,
+          "cols": 8
+        },
+        "driving": {
+          "file": "driving.png",
+          "frameWidth": 633,
+          "frameHeight": 523,
+          "frameCount": 20,
+          "cols": 8
+        },
+        "fall": {
+          "file": "fall.png",
+          "frameWidth": 633,
+          "frameHeight": 523,
+          "frameCount": 10,
+          "cols": 8
+        },
+        "fast-run": {
+          "file": "fast-run.png",
+          "frameWidth": 633,
+          "frameHeight": 523,
+          "frameCount": 8,
+          "cols": 8
+        },
+        "glide": {
+          "file": "glide.png",
+          "frameWidth": 633,
+          "frameHeight": 523,
+          "frameCount": 10,
+          "cols": 8
+        },
+        "hit": {
+          "file": "hit.png",
+          "frameWidth": 633,
+          "frameHeight": 523,
+          "frameCount": 40,
+          "cols": 8
+        },
+        "idle": {
+          "file": "idle.png",
+          "frameWidth": 633,
+          "frameHeight": 523,
+          "frameCount": 20,
+          "cols": 8
+        },
+        "jump": {
+          "file": "jump.png",
+          "frameWidth": 633,
+          "frameHeight": 523,
+          "frameCount": 20,
+          "cols": 8
+        },
+        "parachute": {
+          "file": "parachute.png",
+          "frameWidth": 633,
+          "frameHeight": 523,
+          "frameCount": 20,
+          "cols": 8
+        },
+        "roll": {
+          "file": "roll.png",
+          "frameWidth": 633,
+          "frameHeight": 523,
+          "frameCount": 8,
+          "cols": 8
+        },
+        "run": {
+          "file": "run.png",
+          "frameWidth": 633,
+          "frameHeight": 523,
+          "frameCount": 30,
+          "cols": 8
+        },
+        "shoot": {
+          "file": "shoot.png",
+          "frameWidth": 633,
+          "frameHeight": 523,
+          "frameCount": 30,
+          "cols": 8
+        },
+        "walk": {
+          "file": "walk.png",
+          "frameWidth": 633,
+          "frameHeight": 523,
+          "frameCount": 30,
+          "cols": 8
+        },
+        "win": {
+          "file": "win.png",
+          "frameWidth": 633,
+          "frameHeight": 523,
+          "frameCount": 30,
+          "cols": 8
+        }
+      }
+    }
+  }
+}

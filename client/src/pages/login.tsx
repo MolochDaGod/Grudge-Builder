@@ -15,6 +15,7 @@ import {
   setSession,
   API_BASE,
 } from "@/lib/grudgeBackend";
+import { FactionEmblemRow } from "@/components/FactionEmblems";
 
 declare global {
   interface Window {
@@ -106,11 +107,7 @@ export default function LoginPage() {
             <h1 className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-500 font-cinzel tracking-wide">GRUDGE</h1>
             <h2 className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-amber-600 to-amber-400 font-cinzel tracking-[0.2em]">WARLORDS</h2>
             <p className="text-stone-400 text-sm mt-1">Your GRUDGE ID is your gaming passport</p>
-            <div className="flex justify-center gap-3 mt-4 mb-2">
-              {["⚔️", "🌿", "💀"].map((icon, i) => (
-                <div key={i} className="w-12 h-12 rounded-lg bg-stone-800/50 border border-stone-600/30 hover:scale-110 transition-all flex items-center justify-center text-lg">{icon}</div>
-              ))}
-            </div>
+            <FactionEmblemRow size={36} className="mt-4 mb-2" />
           </div>
 
           <div className="px-6 pb-6 space-y-3">

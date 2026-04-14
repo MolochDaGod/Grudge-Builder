@@ -39,6 +39,18 @@ export const characters = pgTable("characters", {
   professionLevels: jsonb("profession_levels").notNull().$type<Record<string, { level: number; xp: number }>>().default(sql`'{}'::jsonb`),
   revivalTime: bigint("revival_time", { mode: "number" }), // Unix timestamp when hero can revive
   avatarUrl: text("avatar_url"), // AI-generated cartoon avatar
+  // UMA-style 3D modular character appearance — persisted so character looks the same everywhere
+  model3d: jsonb("model_3d").$type<{
+    baseModelId: string;           // Race base model key (e.g. 'WK_Characters_customizable')
+    equippedMeshes: Record<string, string>; // slot -> variant (e.g. { body: 'A', arms: 'B', head: 'C' })
+    weaponSlots: Record<string, string>;    // weapon slot -> variant (e.g. { sword: 'A', shield: 'B' })
+    faceVariant: string;           // Face mesh variant
+    skinColor: string;             // Hex color override for skin material
+    armorColor: string;            // Hex color override for armor tint
+    capeEnabled: boolean;          // Whether cape is shown
+    scale: number;                 // Character scale (default 1.0)
+  }>().default(sql`'{"baseModelId":"default","equippedMeshes":{},"weaponSlots":{},"faceVariant":"A","skinColor":"#ffffff","armorColor":"#ffffff","capeEnabled":false,"scale":1.0}'::jsonb`),
+  guildId: varchar("guild_id"),    // UUID linking to a guild/crew
   unspentAttributePoints: integer("unspent_attribute_points").notNull().default(0), // 7 points per level up
   skillPoints: integer("skill_points").notNull().default(1), // 1 point per level, starts with 1
   skillLoadouts: jsonb("skill_loadouts").notNull().$type<Record<string, {
@@ -262,6 +274,11 @@ export const races = pgTable("races", {
   passiveAbilities: jsonb("passive_abilities").$type<string[]>().default(sql`'[]'::jsonb`),
   spriteSheetId: text("sprite_sheet_id"),
   portraitPath: text("portrait_path"),
+  // 3D model references for the engine
+  modelUrl: text("model_url"),           // Base GLTF/FBX model URL (e.g. R2 CDN path)
+  cavalryModelUrl: text("cavalry_model_url"), // Mounted model URL
+  meshPrefix: text("mesh_prefix"),       // Equipment mesh prefix (e.g. 'WK_', 'ELF_', 'ORC_')
+  textureVariants: jsonb("texture_variants").$type<Record<string, string>>(), // name -> texture URL
 });
 
 export type Race = typeof races.$inferSelect;

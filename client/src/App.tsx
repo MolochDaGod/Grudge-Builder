@@ -120,12 +120,14 @@ function AppContent() {
 
   useEffect(() => {
     // Warm ObjectStore data cache on app init, then sync all game data
-    prefetchCoreData().then(() => {
+    prefetchCoreData().then(async () => {
       console.debug('[ObjectStore] Core data prefetched');
-      return Promise.all([
+      const [,, profData] = await Promise.all([
         syncGameDataFromObjectStore(),
         syncItemsFromObjectStore(),
+        import('@/lib/professionSync').then(m => m.loadProfessions()),
       ]);
+      console.debug(`[ProfessionSync] Loaded v${profData.version}: ${Object.keys(profData.gathering).length} gathering + ${Object.keys(profData.professions).length} crafting professions`);
     });
 
     preloadMigratedSprites().then(count => {
