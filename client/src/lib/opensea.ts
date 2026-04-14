@@ -1,0 +1,7 @@
+/** OpenSea API client for Grudge Warlords cNFT marketplace integration. */
+const OPENSEA_API = 'https://api.opensea.io/api/v2';
+export interface OpenSeaNFT { identifier: string; collection: string; name: string; description: string; image_url: string; opensea_url: string; metadata_url: string; token_standard: string; }
+export interface OpenSeaCollection { collection: string; name: string; description: string; image_url: string; banner_image_url: string; total_supply: number; }
+export async function fetchWalletNFTs(walletAddress: string, chain = 'solana', limit = 50): Promise<OpenSeaNFT[]> { try { const res = await fetch(OPENSEA_API + '/chain/' + chain + '/account/' + walletAddress + '/nfts?limit=' + limit, { headers: { 'Accept': 'application/json' } }); if (!res.ok) return []; const data = await res.json() as { nfts: OpenSeaNFT[] }; return data.nfts ?? []; } catch { return []; } }
+export async function refreshNFTMetadata(chain: string, contract: string, tokenId: string): Promise<boolean> { try { const res = await fetch(OPENSEA_API + '/chain/' + chain + '/contract/' + contract + '/nfts/' + tokenId + '/refresh', { method: 'POST' }); return res.ok; } catch { return false; } }
+export async function getCollection(slug: string): Promise<OpenSeaCollection | null> { try { const res = await fetch(OPENSEA_API + '/collections/' + slug, { headers: { 'Accept': 'application/json' } }); if (!res.ok) return null; return await res.json() as OpenSeaCollection; } catch { return null; } }
