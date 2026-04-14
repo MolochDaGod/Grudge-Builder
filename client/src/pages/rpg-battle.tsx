@@ -32,6 +32,7 @@ import {
   Trophy, Home, Star, Flame, Snowflake, Wind, User, Ghost
 } from "lucide-react";
 import { assetUrl } from "@/lib/assetConfig";
+import { useAuthGuard } from '@/hooks/use-auth-guard';
 
 type CombatAbility = SkillDefinition | SpellDefinition | WeaponAbility;
 
@@ -325,6 +326,9 @@ function getDefaultWeaponForClass(classId: string): string | undefined {
 }
 
 export default function RPGBattle() {
+  const authReady = useAuthGuard();
+  if (!authReady) return null;
+
   const [, setLocation] = useLocation();
   
   const [battleState, setBattleState] = useState<BattleState>("selecting");

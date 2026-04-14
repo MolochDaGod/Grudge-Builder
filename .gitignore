@@ -24,6 +24,13 @@ server/public/
 *.obj
 *.stl
 
+# Allow public model assets (GLTF + textures, but NOT .bin — too large for git)
+!public/models/**/*.gltf
+!public/models/**/*.png
+!public/models/**/*.jpg
+# scene.bin files are loaded at runtime but stored outside git (object storage / local)
+public/models/**/*.bin
+
 # Attached/generated assets (not needed for build)
 attached_assets/
 
@@ -52,3 +59,8 @@ diabloweb/
 # Vite config temps
 vite.config.ts.*
 .vercel
+
+# Large model files (served from ObjectStore R2 CDN, not git)
+public/models/*.glb
+public/models/*.fbx
+public/models/*.obj

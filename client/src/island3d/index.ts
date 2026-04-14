@@ -18,7 +18,11 @@ export { createScatterDecorations } from './objects/ScatterDecorations';
 
 // Engine
 export { Island3DEngine } from './engine/Island3DEngine';
-export type { Island3DEngineConfig } from './engine/Island3DEngine';
+export type { Island3DEngineConfig, Island3DMode } from './engine/Island3DEngine';
+
+// Lobby maps
+export { loadLobbyMap, getLobbyMap, LOBBY_MAPS } from './engine/LobbyIslandLoader';
+export type { LobbyMapDef, LobbyLoadResult } from './engine/LobbyIslandLoader';
 
 // Renderer
 export { Island3DRenderer } from './render/Island3DRenderer';
@@ -36,3 +40,7 @@ export type { NavCell, NavPath } from './navigation/TerrainNavMesh';
 // Sync
 export { capture3DState, apply3DState, to2DNodeStates } from './sync/IslandStateSync';
 export type { SharedIslandState, SharedNodeState } from './sync/IslandStateSync';
+
+// Multiplayer
+export { MultiplayerSync } from './sync/MultiplayerSync';
+export type { MultiplayerConfig, RemotePlayer, PveEnemy } from './sync/MultiplayerSync';

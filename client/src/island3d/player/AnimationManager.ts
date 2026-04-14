@@ -1,91 +1,66 @@
 /**
- * AnimationManager — loads GLB animations and handles blending/transitions.
+ * AnimationManager — thin wrapper over lib/modelLoader's AnimationController.
  *
- * Manages an AnimationMixer with fade-in/out transitions between states
- * (idle, walk, run, harvest, combat).
+ * Delegates to the shared AnimationController which handles Mixamo bone-name
+ * remapping, clip caching, and fadeToAction crossfading. This avoids duplicate
+ * animation logic between island3d and the rest of the app.
  */
 import * as THREE from 'three';
-import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import {
+  AnimationController,
+  loadAnimationClip,
+  loadCharacterModel,
+} from '@/lib/modelLoader';
 
 export type AnimState = 'idle' | 'walk' | 'run' | 'harvest' | 'attack' | 'death';
 
-interface AnimClip {
-  clip: THREE.AnimationClip;
-  action: THREE.AnimationAction;
-}
-
 export class AnimationManager {
-  private mixer: THREE.AnimationMixer;
-  private clips: Map<AnimState, AnimClip> = new Map();
-  private currentState: AnimState = 'idle';
-  private fadeDuration = 0.25;
+  private controller: AnimationController;
 
   constructor(public model: THREE.Object3D) {
-    this.mixer = new THREE.AnimationMixer(model);
+    const mixer = new THREE.AnimationMixer(model);
+    this.controller = new AnimationController(mixer, model);
   }
 
-  /** Load animation clips from GLB files */
+  /** Load animation clips from GLB files (with Mixamo prefix remapping) */
   async loadAnimations(animPaths: Partial<Record<AnimState, string>>): Promise<void> {
-    const loader = new GLTFLoader();
-
-    const promises = Object.entries(animPaths).map(async ([state, path]) => {
-      try {
-        const gltf = await loader.loadAsync(path);
-        if (gltf.animations.length > 0) {
-          const clip = gltf.animations[0];
-          const action = this.mixer.clipAction(clip);
-          action.setEffectiveWeight(0);
-          this.clips.set(state as AnimState, { clip, action });
+    const entries = Object.entries(animPaths) as [AnimState, string][];
+    await Promise.all(
+      entries.map(async ([state, path]) => {
+        const clip = await loadAnimationClip(path);
+        if (clip) {
+          this.controller.registerClip(state, clip);
         }
-      } catch (err) {
-        console.warn(`Failed to load animation ${state} from ${path}:`, err);
-      }
-    });
-
-    await Promise.all(promises);
-
+      }),
+    );
     // Start with idle if available
     this.play('idle');
   }
 
   /** Add a clip from an already-loaded GLTF scene's animations */
   addClipFromGLTF(state: AnimState, clip: THREE.AnimationClip): void {
-    const action = this.mixer.clipAction(clip);
-    action.setEffectiveWeight(0);
-    this.clips.set(state, { clip, action });
+    this.controller.registerClip(state, clip);
   }
 
   /** Crossfade to a new animation state */
-  play(state: AnimState): void {
-    if (state === this.currentState) return;
-
-    const newClip = this.clips.get(state);
-    const oldClip = this.clips.get(this.currentState);
-
-    if (newClip) {
-      newClip.action.reset();
-      newClip.action.setEffectiveWeight(1);
-      newClip.action.play();
-
-      if (oldClip) {
-        oldClip.action.crossFadeTo(newClip.action, this.fadeDuration, true);
-      }
-
-      this.currentState = state;
-    }
+  play(state: AnimState, opts?: { speed?: number; loop?: boolean }): void {
+    this.controller.play(state, {
+      fadeDuration: 0.25,
+      speed: opts?.speed,
+      loop: opts?.loop,
+    });
   }
 
   /** Update the mixer each frame */
   update(dt: number): void {
-    this.mixer.update(dt);
+    this.controller.update(dt);
   }
 
-  get current(): AnimState {
-    return this.currentState;
+  get current(): string {
+    return this.controller.currentState;
   }
 
   dispose(): void {
-    this.mixer.stopAllAction();
-    this.clips.clear();
+    this.controller.dispose();
   }
 }

@@ -19,6 +19,9 @@ import { createHarvestableTree, type HarvestableTree } from '../objects/Harvesta
 import { createHarvestableRock, type HarvestableRock } from '../objects/HarvestableRock';
 import { DetailLayer, createGrassBlades } from '../terrain/DetailLayers';
 import { MultiplayerSync, type MultiplayerConfig } from '../sync/MultiplayerSync';
+import { loadLobbyMap, getLobbyMap, type LobbyMapDef, type LobbyLoadResult } from './LobbyIslandLoader';
+
+export type Island3DMode = 'procedural' | 'lobby';
 
 export interface Island3DEngineConfig {
   seed: string;
@@ -27,6 +30,12 @@ export interface Island3DEngineConfig {
   height: number;
   /** Optional multiplayer config — omit for offline / solo play */
   multiplayer?: MultiplayerConfig;
+  /** 'procedural' = seed-based terrain (default), 'lobby' = pre-built GLTF map */
+  mode?: Island3DMode;
+  /** Lobby map ID (e.g. 'pirate-islands'). Only used when mode='lobby'. */
+  lobbyMapId?: string;
+  /** Progress callback for lobby map loading (0-100) */
+  onLoadProgress?: (pct: number) => void;
 }
 
 export class Island3DEngine {
@@ -54,6 +63,10 @@ export class Island3DEngine {
 
   // Multiplayer
   public multiplayer: MultiplayerSync | null = null;
+
+  // Lobby map
+  private lobbyResult: LobbyLoadResult | null = null;
+  private lobbyAnimMixer: THREE.AnimationMixer | null = null;
 
   // Raycaster for mouse picking
   private raycaster = new THREE.Raycaster();
@@ -123,8 +136,57 @@ export class Island3DEngine {
     this.scene.add(fill);
   }
 
-  /** Generate terrain, water, nodes, decorations */
+  /** Generate terrain, water, nodes, decorations — or load a lobby map */
   async init(): Promise<void> {
+    const mode = this.config.mode || 'procedural';
+
+    if (mode === 'lobby') {
+      await this.initLobby();
+    } else {
+      await this.initProcedural();
+    }
+
+    // Multiplayer (if configured) — works with both modes
+    if (this.config.multiplayer) {
+      this.multiplayer = new MultiplayerSync(this.config.multiplayer, this.scene);
+      this.multiplayer.connect();
+    }
+  }
+
+  /** Load a pre-built GLTF lobby map */
+  private async initLobby(): Promise<void> {
+    const mapDef = getLobbyMap(this.config.lobbyMapId);
+
+    this.lobbyResult = await loadLobbyMap(mapDef, this.config.onLoadProgress);
+    this.scene.add(this.lobbyResult.scene);
+
+    // Position camera to frame the map
+    this.camera.position.copy(mapDef.cameraPosition);
+    this.controls.target.copy(mapDef.cameraTarget);
+    this.controls.maxDistance = Math.max(mapDef.cameraPosition.length() * 3, 1000);
+    this.controls.minDistance = 5;
+    this.controls.maxPolarAngle = Math.PI * 0.85; // allow more vertical freedom on lobby
+    this.controls.update();
+
+    // Play any embedded animations
+    if (this.lobbyResult.animations.length > 0) {
+      this.lobbyAnimMixer = new THREE.AnimationMixer(this.lobbyResult.scene);
+      for (const clip of this.lobbyResult.animations) {
+        this.lobbyAnimMixer.clipAction(clip).play();
+      }
+    }
+
+    // Adjust fog for the larger map
+    const maxDim = Math.max(
+      this.lobbyResult.size.x,
+      this.lobbyResult.size.y,
+      this.lobbyResult.size.z,
+    );
+    this.scene.fog = new THREE.FogExp2(0x87ceeb, 0.5 / maxDim);
+  }
+
+  /** Generate procedural seed-based terrain with nodes & decorations */
+  private async initProcedural(): Promise<void> {
     // 1. Generate terrain
     const terrainMaterial = createTerrainMaterial();
     const terrainConfig: IslandTerrainConfig = {
@@ -138,7 +200,6 @@ export class Island3DEngine {
     };
 
     this.terrain = generateIslandTerrain(terrainConfig);
-    // Apply the blended material
     this.terrain.terrainMesh.material = terrainMaterial;
     this.scene.add(this.terrain.terrainScene);
 
@@ -163,12 +224,6 @@ export class Island3DEngine {
 
     // 6. Detail layers — animated grass + sand overlays
     this.createDetailLayers();
-
-    // 7. Multiplayer (if configured)
-    if (this.config.multiplayer) {
-      this.multiplayer = new MultiplayerSync(this.config.multiplayer, this.scene);
-      this.multiplayer.connect();
-    }
   }
 
   private createWaterPlane(): void {
@@ -311,6 +366,7 @@ export class Island3DEngine {
     this.updateWater(dt);
     this.updateHarvestables(dt);
     this.updateDetailLayers(dt);
+    this.lobbyAnimMixer?.update(dt);
     this.multiplayer?.update(dt);
 
     this.renderer.render(this.scene, this.camera);
@@ -368,6 +424,7 @@ export class Island3DEngine {
   destroy(): void {
     this.stop();
     this.multiplayer?.destroy();
+    this.lobbyAnimMixer?.stopAllAction();
     this.grassLayer?.dispose();
     this.sandLayer?.dispose();
     this.renderer.dispose();

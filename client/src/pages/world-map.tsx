@@ -24,6 +24,7 @@ import {
   ChevronDown
 } from 'lucide-react';
 import {
+import { useAuthGuard } from '@/hooks/use-auth-guard';
   WorldMapState,
   WorldIsland,
   generateWorldMap,
@@ -38,6 +39,9 @@ import {
 } from '@/lib/worldMapSystem';
 
 export default function WorldMapPage() {
+  const authReady = useAuthGuard();
+  if (!authReady) return null;
+
   const { toast } = useToast();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);

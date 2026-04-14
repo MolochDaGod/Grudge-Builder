@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { Search, Sword, Shield, Sparkles } from "lucide-react";
+import { useAuthGuard } from '@/hooks/use-auth-guard';
 
 const TIER_COLORS: Record<number, { border: string; bg: string; text: string; badge: string }> = {
   1: { border: "border-slate-500", bg: "bg-slate-500", text: "text-slate-300", badge: "bg-slate-600" },
@@ -155,6 +156,9 @@ function ItemCard({ item }: { item: GrudaItem }) {
 }
 
 export default function DatabasePage() {
+  const authReady = useAuthGuard();
+  if (!authReady) return null;
+
   const [search, setSearch] = useState("");
   const [filterType, setFilterType] = useState<"Weapons" | "Armor" | "All">("All");
   const [filterTier, setFilterTier] = useState<number | null>(null);

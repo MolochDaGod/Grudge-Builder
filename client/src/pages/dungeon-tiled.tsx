@@ -8,8 +8,12 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ArrowLeft, Skull, Sparkles } from 'lucide-react';
 import { deriveCharacterStats } from '@shared/rulesEngine';
+import { useAuthGuard } from '@/hooks/use-auth-guard';
 
 export default function DungeonTiledPage() {
+  const authReady = useAuthGuard();
+  if (!authReady) return null;
+
   const [, setLocation] = useLocation();
   const [characters, setCharacters] = useState<LocalCharacter[]>([]);
   const [selectedCharacter, setSelectedCharacter] = useState<LocalCharacter | null>(null);

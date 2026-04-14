@@ -16,6 +16,7 @@ import {
   ArrowLeft, Filter
 } from "lucide-react";
 import { assetUrl } from "@/lib/assetConfig";
+import { useAuthGuard } from '@/hooks/use-auth-guard';
 
 interface Mission {
   id: string;
@@ -281,6 +282,9 @@ function ActiveMissionCard({
 }
 
 export default function MissionBoardPage() {
+  const authReady = useAuthGuard();
+  if (!authReady) return null;
+
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { isAdmin } = useAdmin();

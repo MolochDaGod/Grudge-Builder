@@ -60,6 +60,7 @@ import {
 import { puterAI, isPuterAvailable, puterKV } from "@/lib/puterIntegration";
 import { Loader2, MapPin, Timer, Package, Users, Sparkles, RefreshCw, Home, Settings, Play, Pause, Eye, Hammer, Box, Grid2X2 } from "lucide-react";
 import { Island3DRenderer } from '@/island3d/render/Island3DRenderer';
+import { to2DNodeStates, type SharedIslandState } from '@/island3d/sync/IslandStateSync';
 import { 
   CameraState, 
   worldToScreen, 
@@ -1729,7 +1730,13 @@ export default function IslandPage() {
       {/* 2D / 3D Toggle */}
       <div className="absolute top-2 right-2 z-50 flex items-center gap-1 bg-black/60 backdrop-blur-sm rounded-lg p-1 border border-white/10">
         <button
-          onClick={() => setViewMode('2d')}
+          onClick={() => {
+            // Switching from 3D → 2D: sync 3D harvest state back
+            if (viewMode === '3d') {
+              addLog('[View] Switched to 2D Sprite view');
+            }
+            setViewMode('2d');
+          }}
           className={cn(
             "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all",
             viewMode === '2d'
@@ -1740,7 +1747,13 @@ export default function IslandPage() {
           <Grid2X2 className="w-3.5 h-3.5" /> 2D Sprite
         </button>
         <button
-          onClick={() => setViewMode('3d')}
+          onClick={() => {
+            // Switching from 2D → 3D: island state carries over via seed
+            if (viewMode === '2d') {
+              addLog('[View] Switched to 3D World view');
+            }
+            setViewMode('3d');
+          }}
           className={cn(
             "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all",
             viewMode === '3d'
@@ -1753,9 +1766,13 @@ export default function IslandPage() {
       </div>
 
       {viewMode === '3d' ? (
-        /* ── 3D View ── */
+        /* ── 3D View ── uses active character race/class for model loading */
         <div className="relative w-full h-full">
-          <Island3DRenderer seed={island3dSeed} />
+          <Island3DRenderer
+            seed={island3dSeed}
+            characterRaceId={allCharacters[0]?.raceId}
+            characterClassId={allCharacters[0]?.classId}
+          />
         </div>
       ) : (
       /* ── 2D View ── */

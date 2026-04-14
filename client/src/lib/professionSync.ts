@@ -8,6 +8,7 @@
  */
 
 import { fetchProfessions } from '@/lib/objectStoreApi';
+import { hydrateXpTable } from '@/lib/professionSystem';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -113,6 +114,10 @@ export async function loadProfessions(): Promise<ProfessionData> {
       const raw = await fetchProfessions();
       if (raw && typeof raw === 'object' && 'gathering' in raw) {
         _cached = raw as unknown as ProfessionData;
+        // Hydrate the synchronous professionSystem XP table with ObjectStore data
+        if (_cached.xpTable) {
+          hydrateXpTable(_cached.xpTable);
+        }
         return _cached;
       }
     } catch (e) {

@@ -11,6 +11,7 @@ import {
   type Weapon 
 } from '@shared/definitions/weaponsData';
 import { 
+import { useAuthGuard } from '@/hooks/use-auth-guard';
   CLOTH_EQUIPMENT, LEATHER_EQUIPMENT, METAL_EQUIPMENT,
   type EquipmentItem 
 } from '@shared/definitions/equipmentData';
@@ -275,6 +276,9 @@ function ArmorCard({ item, tier }: { item: EquipmentItem; tier: number }) {
 }
 
 export default function ArsenalPage() {
+  const authReady = useAuthGuard();
+  if (!authReady) return null;
+
   const [, setLocation] = useLocation();
   const [activeTab, setActiveTab] = useState<TabType>('weapons');
   const [searchQuery, setSearchQuery] = useState('');

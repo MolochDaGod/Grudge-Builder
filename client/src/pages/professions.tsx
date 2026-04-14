@@ -29,6 +29,7 @@ import { chefData } from "@/data/crafting/chef";
 import { engineerData } from "@/data/crafting/engineer";
 import type { ProfessionData } from "@/lib/craftingTypes";
 import { assetUrl } from "@/lib/assetConfig";
+import { useAuthGuard } from '@/hooks/use-auth-guard';
 
 const CRAFTING_SKILL_TREES: Record<string, ProfessionData> = {
   Miner: minerData,
@@ -72,6 +73,9 @@ const TIER_COLORS: Record<number, string> = {
 const TIER_NAMES = ["", "Novice", "Apprentice", "Journeyman", "Expert", "Artisan", "Master", "Grandmaster", "Legendary"];
 
 export default function ProfessionsPage() {
+  const authReady = useAuthGuard();
+  if (!authReady) return null;
+
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState<ProfessionTab>("gathering");
   const [selectedProf, setSelectedProf] = useState<string>("Mining");

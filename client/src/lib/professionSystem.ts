@@ -1,3 +1,11 @@
+/**
+ * Profession System — synchronous game logic for XP, levels, gathering, and crafting.
+ *
+ * XP TABLE SOURCE OF TRUTH: professionSync.ts loads from ObjectStore.
+ * This file uses a local fallback table that gets overwritten once ObjectStore data loads.
+ * All consumers import from here (synchronous); professionSync.ts hydrates the table async.
+ */
+
 export interface ProfessionLevel {
   level: number;
   xp: number;
@@ -11,7 +19,11 @@ export interface ProfessionXPResult {
   leveledUp: boolean;
 }
 
-export const PROFESSION_XP_TABLE: Record<number, number> = {
+/**
+ * XP table — local fallback, overwritten by ObjectStore data via hydrateXpTable().
+ * Do NOT duplicate this table elsewhere; use professionSync.loadProfessions() to update it.
+ */
+export let PROFESSION_XP_TABLE: Record<number, number> = {
   1: 0,
   2: 100,
   3: 250,
@@ -30,6 +42,20 @@ export const PROFESSION_XP_TABLE: Record<number, number> = {
   75: 750000,
   100: 2000000,
 };
+
+/**
+ * Called by professionSync.ts after ObjectStore data loads.
+ * Replaces the local XP table with the authoritative one.
+ */
+export function hydrateXpTable(table: Record<string, number>): void {
+  const converted: Record<number, number> = {};
+  for (const [k, v] of Object.entries(table)) {
+    converted[Number(k)] = v;
+  }
+  if (Object.keys(converted).length > 0) {
+    PROFESSION_XP_TABLE = converted;
+  }
+}
 
 export function getXpForLevel(level: number): number {
   if (PROFESSION_XP_TABLE[level] !== undefined) {

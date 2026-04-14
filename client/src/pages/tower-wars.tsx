@@ -1,9 +1,10 @@
-﻿import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import * as THREE from "three";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Zap, RefreshCw, Users } from "lucide-react";
+import { useAuthGuard } from '@/hooks/use-auth-guard';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 const GRID_W = 22;
@@ -176,6 +177,9 @@ function makeUnitMesh(def: (typeof UNIT_TYPES)[number], isBoss: boolean) {
 
 // ── Main component ─────────────────────────────────────────────────────────────
 export default function TowerWarsPage() {
+  const authReady = useAuthGuard();
+  if (!authReady) return null;
+
   const [, setLocation] = useLocation();
   const mountRef  = useRef<HTMLDivElement>(null);
   const sceneRef  = useRef<any>({});

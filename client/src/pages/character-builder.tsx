@@ -45,6 +45,7 @@ import {
 } from "@shared/definitions/classSkillTrees";
 import { assetUrl } from "@/lib/assetConfig";
 import { playBGM } from "@/lib/audioManager";
+import { useAuthGuard } from '@/hooks/use-auth-guard';
 
 // Branded gradient fallbacks when CDN backgrounds don't load
 const FACTION_GRADIENTS: Record<string, string> = {
@@ -215,6 +216,9 @@ const TIER_COLORS: Record<number, string> = {
 const TIER_NAMES = ["", "Novice", "Apprentice", "Journeyman", "Expert", "Artisan", "Master", "Grandmaster", "Legendary"];
 
 export default function CharacterBuilder() {
+  const authReady = useAuthGuard();
+  if (!authReady) return null;
+
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   // If we have characters, default to "roster" view unless creating new

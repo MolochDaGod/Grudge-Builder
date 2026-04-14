@@ -1,4 +1,9 @@
+import { useAuthGuard } from '@/hooks/use-auth-guard';
+
 export default function CraftingPage() {
+  const authReady = useAuthGuard();
+  if (!authReady) return null;
+
   return (
     <iframe
       src="https://grudge-crafting.puter.site/"

@@ -28,6 +28,7 @@ import {
 } from "@/components/ui/accordion";
 import { assetUrl } from "@/lib/assetConfig";
 import { playBGM } from "@/lib/audioManager";
+import { useAuthGuard } from '@/hooks/use-auth-guard';
 
 interface UserData {
   username: string;
@@ -50,6 +51,9 @@ const CONTRACT_ADDRESS = "34BCY9G9tvWRhUB4z6aeBR7zqd6Z5Wm7hy6fZaN8ZSrW";
 const COLLECTION_ID = "5061318d-ff65-4893-ac4b-9b28efb18ace";
 
 export default function HomePage() {
+  const authReady = useAuthGuard();
+  if (!authReady) return null;
+
   const [, setLocation] = useLocation();
   const [activeTab, setActiveTab] = useState("events");
   const [settingsSection, setSettingsSection] = useState("account");

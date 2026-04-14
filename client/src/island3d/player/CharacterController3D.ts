@@ -8,7 +8,13 @@
 import * as THREE from 'three';
 import { getTerrainHeightAt } from '../terrain/IslandTerrainGenerator';
 import { AnimationManager, type AnimState } from './AnimationManager';
-import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { loadCharacterModel, type LoadedModel } from '@/lib/modelLoader';
+import {
+  getModelForCharacter,
+  getAnimationSet,
+  resolveModelUrl,
+  type WeaponType,
+} from '@/lib/modelManifest';
 
 export type ControlMode = 'harvest' | 'combat';
 
@@ -70,43 +76,71 @@ export class CharacterController3D {
     this.setupInputListeners();
   }
 
-  /** Load a GLTF character model to replace the placeholder */
-  async loadModel(path: string): Promise<void> {
-    const loader = new GLTFLoader();
+  /**
+   * Load the active character's 3D model using the model manifest.
+   * Resolves race×class to the correct GLB and loads weapon-appropriate animations.
+   */
+  async loadCharacterFromManifest(raceId: string, classId: string): Promise<void> {
     try {
-      const gltf = await loader.loadAsync(path);
-      const loadedModel = gltf.scene;
-      loadedModel.scale.setScalar(2);
-      loadedModel.traverse((child) => {
-        if (child instanceof THREE.Mesh) {
-          child.castShadow = true;
-          child.receiveShadow = true;
-        }
-      });
+      const modelUnit = getModelForCharacter(raceId, classId);
+      const loaded = await loadCharacterModel(modelUnit.modelPath);
+      this.applyLoadedModel(loaded, modelUnit.scale);
 
-      // Remove placeholder children and add loaded model
-      while (this.model.children.length) {
-        this.model.remove(this.model.children[0]);
-      }
-      this.model.add(loadedModel);
+      // Load weapon-type animations from the manifest
+      const animSet = getAnimationSet(modelUnit.weaponType);
+      const animPaths: Partial<Record<AnimState, string>> = {};
+      if (animSet.idle) animPaths.idle = resolveModelUrl(animSet.idle.file);
+      if (animSet.run) animPaths.walk = resolveModelUrl(animSet.run.file);
+      if (animSet.attack1) animPaths.attack = resolveModelUrl(animSet.attack1.file);
+      if (animSet.death) animPaths.death = resolveModelUrl(animSet.death.file);
 
-      // Set up animations if present
-      if (gltf.animations.length > 0) {
-        this.animations = new AnimationManager(loadedModel);
-        gltf.animations.forEach((clip, i) => {
-          // Map common animation names
-          const name = clip.name.toLowerCase();
-          let state: AnimState = 'idle';
-          if (name.includes('walk') || name.includes('run forward')) state = 'walk';
-          else if (name.includes('run')) state = 'run';
-          else if (name.includes('attack') || name.includes('slash')) state = 'attack';
-          else if (name.includes('idle')) state = 'idle';
-          this.animations!.addClipFromGLTF(state, clip);
-        });
-        this.animations.play('idle');
+      if (Object.keys(animPaths).length > 0 && this.animations) {
+        await this.animations.loadAnimations(animPaths);
       }
     } catch (err) {
+      console.warn(`Failed to load character model for ${raceId}/${classId}:`, err);
+    }
+  }
+
+  /** Load a GLTF character model by direct path (legacy fallback) */
+  async loadModel(path: string): Promise<void> {
+    try {
+      const loaded = await loadCharacterModel(path);
+      this.applyLoadedModel(loaded, 2);
+    } catch (err) {
       console.warn('Failed to load character model:', err);
+    }
+  }
+
+  /** Replace placeholder with a loaded model and set up animations */
+  private applyLoadedModel(loaded: LoadedModel, scale: number): void {
+    loaded.scene.scale.setScalar(scale);
+    loaded.scene.traverse((child) => {
+      if (child instanceof THREE.Mesh) {
+        child.castShadow = true;
+        child.receiveShadow = true;
+      }
+    });
+
+    // Remove placeholder children and add loaded model
+    while (this.model.children.length) {
+      this.model.remove(this.model.children[0]);
+    }
+    this.model.add(loaded.scene);
+
+    // Set up animations from embedded clips
+    if (loaded.clips.length > 0) {
+      this.animations = new AnimationManager(loaded.scene);
+      loaded.clips.forEach((clip) => {
+        const name = clip.name.toLowerCase();
+        let state: AnimState = 'idle';
+        if (name.includes('walk') || name.includes('run forward')) state = 'walk';
+        else if (name.includes('run')) state = 'run';
+        else if (name.includes('attack') || name.includes('slash')) state = 'attack';
+        else if (name.includes('idle')) state = 'idle';
+        this.animations!.addClipFromGLTF(state, clip);
+      });
+      this.animations.play('idle');
     }
   }
 

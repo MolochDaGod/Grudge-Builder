@@ -18,6 +18,7 @@ import { SPELLS } from "@shared/definitions/spells";
 import { deriveCharacterStats } from "@shared/rulesEngine";
 import { assetUrl } from "@/lib/assetConfig";
 import { playBGM, playRandomHit, playSFX } from "@/lib/audioManager";
+import { useAuthGuard } from '@/hooks/use-auth-guard';
 
 interface Enemy {
   id: string;
@@ -258,6 +259,9 @@ interface MissionProgress {
 }
 
 export default function CombatPage() {
+  const authReady = useAuthGuard();
+  if (!authReady) return null;
+
   const searchString = useSearch();
   const [, setLocation] = useLocation();
   

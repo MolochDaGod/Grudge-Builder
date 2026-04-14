@@ -6,8 +6,12 @@ import { ORC_ANIMATIONS, VAMPIRE_ANIMATIONS, SKELETON_CRUSADER_ANIMATIONS, GRASS
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
 import { Link } from 'wouter';
+import { useAuthGuard } from '@/hooks/use-auth-guard';
 
 export default function CharacterGallery() {
+  const authReady = useAuthGuard();
+  if (!authReady) return null;
+
   const [selectedCategory, setSelectedCategory] = useState<CharacterCategory>('orcs');
   const [selectedCharacter, setSelectedCharacter] = useState<string>('orc1');
   const [selectedAnimation, setSelectedAnimation] = useState<string>('idle');

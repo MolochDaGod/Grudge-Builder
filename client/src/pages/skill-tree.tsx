@@ -10,6 +10,7 @@ import { WeaponSelectionPanel } from '@/components/WeaponSelectionPanel';
 import { WEAPON_TYPES } from '@shared/definitions/weaponDatabase';
 import { cn } from '@/lib/utils';
 import type { WeaponSkillSelection } from '@/lib/characterManager';
+import { useAuthGuard } from '@/hooks/use-auth-guard';
 
 type TreeMode = 'class' | 'weapons' | 'hotkeys';
 
@@ -39,6 +40,9 @@ const WEAPON_ICONS: Record<string, string> = {
 };
 
 export default function SkillTreePage() {
+  const authReady = useAuthGuard();
+  if (!authReady) return null;
+
   const [, setLocation] = useLocation();
   const [mode, setMode] = useState<TreeMode>('class');
   const [activeClass, setActiveClass] = useState('warrior');
