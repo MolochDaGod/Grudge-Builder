@@ -12,23 +12,66 @@ Created by **Racalvin The Pirate King**. 2D/Canvas game client with React + Vite
 - **3D models**: ObjectStore `/v1/models` endpoint (100+ glb/fbx/obj models in R2)
 - **Assets** (sprites, icons, audio, backgrounds): ObjectStore via `assetUrl()` from `assetConfig.ts`
 
-### API Routing (Vercel → VPS)
+### API Routing (Vercel → Grudge Backend)
 All API calls go through Vercel rewrites in `vercel.json`:
-- `/api/auth/*` → `id.grudge-studio.com` (auth service)
-- `/api/account/*` → `account.grudge-studio.com` (account service)
-- `/api/game/*` → `api.grudge-studio.com` (game-api, strips /api/game prefix)
-- `/api/assets/*` → `assets.grudge-studio.com` (asset service)
-- `/api/wallet/*` → `api.grudge-studio.com/api/wallet` (wallet service)
 
-**CRITICAL**: All game API calls MUST use `/api/game/` prefix (e.g., `/api/game/characters`). Never use bare `/api/characters` — it won't match any rewrite.
+**Auth (id.grudge-studio.com)**:
+- `/api/auth/*` → auth service
+- `/api/login`, `/api/register`, `/api/guest` → auth endpoints
+- `/api/discord-login`, `/api/oauth-google`, `/api/oauth-github` → OAuth
 
-### VPS Game-API Routes (api.grudge-studio.com)
-Mounted routes: `/characters`, `/factions`, `/missions`, `/crews`, `/inventory`, `/professions`, `/gouldstones`, `/economy`, `/crafting`, `/combat`, `/islands`, `/arena`, `/player-islands`, `/pvp`, `/admin`
-All require JWT auth. Health at `/health` is public.
+**Game API (api.grudge-studio.com)**:
+- `/api/characters/*` → character CRUD (direct route)
+- `/api/professions/*` → profession XP, crafting, gathering
+- `/api/island/*` → home island state, generate-map, boss-clear
+- `/api/island-nfts/*` → island NFT minting
+- `/api/nfts/*` → character NFT minting
+- `/api/inventory/*` → account inventory
+- `/api/wallet/*` → Solana wallet
+- `/api/party/*` → crew/party
+- `/api/health` → health check
+- `/api/game/*` → catch-all (strips /api/game prefix, for legacy `api.ts` client)
+
+**Assets & Data**:
+- `/api/assets/*` → `assets.grudge-studio.com` (R2 CDN)
+- `/api/tools/*` → backend tools
+- `/api/public/*` → public data
+
+**Two API client patterns exist** (both work):
+1. `api.ts` uses `/api/game/characters` (legacy, via catch-all rewrite)
+2. Direct routes like `/api/island/status` (newer, explicit rewrites)
+
+Both resolve to `api.grudge-studio.com`. New code should prefer direct routes.
+
+### Grudge Backend (api.grudge-studio.com)
+Mounted routes: `/api/characters`, `/api/professions`, `/api/island`, `/api/inventory`, `/api/nfts`, `/api/island-nfts`, `/api/wallet`, `/api/party`, `/api/health`
+Legacy routes (via /api/game/ rewrite): `/characters`, `/factions`, `/missions`, `/crews`, `/economy`, `/crafting`, `/combat`, `/arena`, `/player-islands`, `/pvp`, `/admin`
+All require JWT auth. Health at `/api/health` is public.
+
+### Object Storage (3 tiers)
+1. **R2 CDN** (`assets.grudge-studio.com`) — ALL binary assets (sprites, icons, audio, models, backgrounds). Use `assetUrl()` from `assetConfig.ts`.
+2. **GitHub Pages** (`molochdagod.github.io/ObjectStore/api/v1/*.json`) — Static JSON game data (weapons, armor, races, classes, professions, attributes). Use `apiUrl()` from `assetConfig.ts`.
+3. **Cloudflare Worker** (`objectstore.grudge-studio.com`) — Production API with caching, search, filtering. Use `workerUrl()` from `assetConfig.ts`.
+
+Key ObjectStore JSON endpoints:
+- `/api/v1/races.json` — 6 races with bonuses
+- `/api/v1/classes.json` — 4 classes with abilities
+- `/api/v1/attributes.json` — 8 attributes (STR, INT, VIT, DEX, END, WIS, AGI, TAC)
+- `/api/v1/factions.json` — 3 factions (Crusade, Legion, Fabled)
+- `/api/v1/professions.json` — 6 gathering + 5 crafting, milestones, XP table
+- `/api/v1/weapons.json` — 17 weapon types × 6 tiers
+- `/api/v1/armor.json` — 6 armor sets
+- `/api/v1/master-items.json` — unified item database with UUIDs
+- `/api/v1/master-recipes.json` — crafting recipes with material links
 
 ### Single API Client Path
-`grudgeBackend.ts` (auth/token) → `api.ts` (game API calls) → `characterManager.ts` (character CRUD)
+`grudgeBackend.ts` (auth/token) → `api.ts` (game API calls via /api/game/) → `characterManager.ts` (character CRUD)
 Token stored in localStorage as `grudge_auth_token`. JWT_SECRET shared with VPS for cross-compatibility.
+
+### Local Dev Proxy
+`server/proxy.ts` mirrors Vercel rewrites for local development (`npm run dev`).
+Local Express routes (`server/routes.ts`) handle `/api/island/*`, `/api/account/*` directly.
+External routes (`/api/game/*`, `/api/auth/*`, `/api/assets/*`) are proxied to production backends.
 
 ### What Does NOT Exist on VPS
 These routes only work on the local dev server (`server/routes.ts`):

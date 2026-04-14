@@ -29,62 +29,35 @@ interface ProxyRule {
  * Only rules for EXTERNAL backends — local Express routes take priority.
  */
 const PROXY_RULES: ProxyRule[] = [
-  // /api/game/:path* → api.grudge-studio.com/:path*
+  // ── Direct game API routes (match vercel.json explicit rewrites) ────
+  // These go to api.grudge-studio.com/api/* (keeping /api/ prefix)
+  { match: "/api/characters", target: "https://api.grudge-studio.com", pathRewrite: "keep" },
+  { match: "/api/professions", target: "https://api.grudge-studio.com", pathRewrite: "keep" },
+  { match: "/api/inventory", target: "https://api.grudge-studio.com", pathRewrite: "keep" },
+  { match: "/api/nfts", target: "https://api.grudge-studio.com", pathRewrite: "keep" },
+  { match: "/api/island-nfts", target: "https://api.grudge-studio.com", pathRewrite: "keep" },
+  { match: "/api/wallet", target: "https://api.grudge-studio.com", pathRewrite: "keep" },
+  { match: "/api/party", target: "https://api.grudge-studio.com", pathRewrite: "keep" },
+  { match: "/api/health", target: "https://api.grudge-studio.com", pathRewrite: "keep" },
+
+  // ── Legacy catch-all: /api/game/* → api.grudge-studio.com/api/* ─────
   {
     match: "/api/game",
     target: "https://api.grudge-studio.com",
     pathRewrite: "strip-prefix",
     stripPrefix: "/api/game",
   },
-  // /api/auth/:path* → id.grudge-studio.com/auth/:path*
-  {
-    match: "/api/auth",
-    target: "https://id.grudge-studio.com",
-    pathRewrite: "strip-prefix",
-    stripPrefix: "/api/auth",
-  },
-  // /api/login → id.grudge-studio.com/auth/login
-  {
-    match: "/api/login",
-    target: "https://id.grudge-studio.com",
-    pathRewrite: "strip-prefix",
-    stripPrefix: "/api",
-  },
-  // /api/register → id.grudge-studio.com/auth/register
-  {
-    match: "/api/register",
-    target: "https://id.grudge-studio.com",
-    pathRewrite: "strip-prefix",
-    stripPrefix: "/api",
-  },
-  // /api/guest → id.grudge-studio.com/auth/guest
-  {
-    match: "/api/guest",
-    target: "https://id.grudge-studio.com",
-    pathRewrite: "strip-prefix",
-    stripPrefix: "/api",
-  },
-  // /api/assets/:path* → assets.grudge-studio.com/:path*
-  {
-    match: "/api/assets",
-    target: "https://assets.grudge-studio.com",
-    pathRewrite: "strip-prefix",
-    stripPrefix: "/api/assets",
-  },
-  // /api/tools/:path* → api.grudge-studio.com/tools/:path*
-  {
-    match: "/api/tools",
-    target: "https://api.grudge-studio.com",
-    pathRewrite: "strip-prefix",
-    stripPrefix: "/api",
-  },
-  // /api/public/:path* → api.grudge-studio.com/public/:path*
-  {
-    match: "/api/public",
-    target: "https://api.grudge-studio.com",
-    pathRewrite: "strip-prefix",
-    stripPrefix: "/api",
-  },
+
+  // ── Auth routes → id.grudge-studio.com ──────────────────────────────
+  { match: "/api/auth", target: "https://id.grudge-studio.com", pathRewrite: "strip-prefix", stripPrefix: "/api/auth" },
+  { match: "/api/login", target: "https://id.grudge-studio.com", pathRewrite: "strip-prefix", stripPrefix: "/api" },
+  { match: "/api/register", target: "https://id.grudge-studio.com", pathRewrite: "strip-prefix", stripPrefix: "/api" },
+  { match: "/api/guest", target: "https://id.grudge-studio.com", pathRewrite: "strip-prefix", stripPrefix: "/api" },
+
+  // ── Asset & tool routes ────────────────────────────────────────────
+  { match: "/api/assets", target: "https://assets.grudge-studio.com", pathRewrite: "strip-prefix", stripPrefix: "/api/assets" },
+  { match: "/api/tools", target: "https://api.grudge-studio.com", pathRewrite: "strip-prefix", stripPrefix: "/api" },
+  { match: "/api/public", target: "https://api.grudge-studio.com", pathRewrite: "strip-prefix", stripPrefix: "/api" },
 ];
 
 /**
