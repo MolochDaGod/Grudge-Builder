@@ -68,6 +68,15 @@ Key ObjectStore JSON endpoints:
 `grudgeBackend.ts` (auth/token) → `api.ts` (game API calls via /api/game/) → `characterManager.ts` (character CRUD)
 Token stored in localStorage as `grudge_auth_token`. JWT_SECRET shared with VPS for cross-compatibility.
 
+**Auth → Account Sync:** On login, `handleAuthResponse()` sets `grudge_account_id` in localStorage so `CharacterManager` scopes active character selection to the correct account (not `guest`).
+
+### Wallet & NFT Service Chain
+`server/services/crossmintWallet.ts` is the **single canonical** Crossmint service. All other files re-export it:
+- `server/spriteGeneration/services/crossmintWallet.ts` → re-export
+- `server/services/nftMinting.ts` → re-exports NFTMintingService (which uses the canonical crossmint service)
+- `server/services/walletHelper.ts` → imports from canonical crossmint service
+- NFT metadata uses **full attribute names** (Strength, Vitality, etc.) with case-insensitive lookup to match client-sent data.
+
 ### Local Dev Proxy
 `server/proxy.ts` mirrors Vercel rewrites for local development (`npm run dev`).
 Local Express routes (`server/routes.ts`) handle `/api/island/*`, `/api/account/*` directly.
@@ -109,7 +118,7 @@ Frontend pages using these MUST use `BackendRequired` component for graceful deg
 - `client/src/lib/assetConfig.ts` — Asset URL helpers
 - `client/src/lib/assetResolver.ts` — Smart fallback chain (CDN → ObjectStore → placeholder)
 - `client/src/lib/audioManager.ts` — BGM/SFX from ObjectStore audio
-- `client/src/lib/characterAdapter.ts` — VPS ↔ local character data bridge
+- `client/src/lib/characterAdapter.ts` — VPS ↔ local character data bridge (saveExtendedData writes all 13 fields to VPS)
 - `client/src/lib/professionSync.ts` — ObjectStore professions.json loader (6 gathering + 5 crafting, milestones, XP table, benches)
 - `client/src/components/FactionEmblems.tsx` — SVG faction emblems (Crusade/Fabled/Legion)
 - `shared/attributeSystem.ts` — Canonical 8 attributes with DR, stat caps, combat math
@@ -121,6 +130,7 @@ Frontend pages using these MUST use `BackendRequired` component for graceful deg
 - NEVER use localStorage as primary storage for player data. Backend-first with localStorage as cache.
 - ALWAYS use `assetUrl()` for ObjectStore asset paths.
 - Token: `grudge_auth_token` in localStorage. Auth headers: `Authorization: Bearer <token>`.
+- Account sync: `grudge_account_id` in localStorage (set on login, cleared on logout). Used by `CharacterManager` for active character scoping.
 - The user prefers Node.js, Vercel for deployments, and manages grudge-studio.com via Cloudflare.
 
 ## Game Design Quick Reference

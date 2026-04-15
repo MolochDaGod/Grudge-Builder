@@ -134,10 +134,13 @@ return createAccount({
 
 Add to `.env`:
 ```bash
-# Crossmint Configuration
+# Crossmint Configuration (checked in order: SERVER > SECRET > API)
 CROSSMINT_SERVER_API_KEY=your_server_api_key_here
-CROSSMINT_API_KEY=your_api_key_here
-CROSSMINT_USE_STAGING=false  # true for testing
+CROSSMINT_SECRET_KEY=your_secret_key_here          # fallback
+CROSSMINT_API_KEY=your_api_key_here                 # fallback
+CROSSMINT_USE_STAGING=false                         # true for testing
+CROSSMINT_COLLECTION_ID=default-solana              # Crossmint collection
+CROSSMINT_ISLAND_CNFT=                              # Island template ID (optional)
 
 # Solana Network
 SOLANA_RPC_URL=https://api.mainnet-beta.solana.com
@@ -253,14 +256,20 @@ Both codebases now have **identical wallet generation**:
 
 ## 📝 Files Created/Modified
 
-### New Files ✨
-- `server/services/crossmintWallet.ts` - Crossmint API wrapper
-- `server/services/walletHelper.ts` - Wallet generation utilities
-- `WALLET_INTEGRATION.md` - This documentation
+### Canonical Services
+- `server/services/crossmintWallet.ts` — **Single source of truth** for all Crossmint API operations (wallets, character cNFTs, island cNFTs, metadata updates, mint status polling)
+- `server/services/walletHelper.ts` — Wallet generation utilities (Grudge ID, email generation, account wallet init)
+- `server/services/nftMinting.ts` — Re-exports NFTMintingService (implementation in spriteGeneration/)
+- `server/spriteGeneration/services/crossmintWallet.ts` — **Re-export only** (points to canonical `server/services/crossmintWallet.ts`)
+- `server/spriteGeneration/services/nftMinting.ts` — NFT minting logic (DB operations, mint orchestration)
 
-### Modified Files 🔧
-- `shared/schema.ts` - Added grudgeId to users & accounts tables
-- `server/storage.ts` - Integrated wallet creation in `getOrCreateAccountForUser()`
+### Other Key Files
+- `shared/schema.ts` — Drizzle schema (users, accounts, characterNFTs, islandNFTs tables)
+- `server/storage.ts` — Database CRUD, wallet creation in `getOrCreateAccountForUser()`
+- `client/src/lib/grudgeBackend.ts` — Auth + account sync (sets `grudge_account_id` for CharacterManager scoping)
+- `client/src/lib/characterManager.ts` — Character CRUD with account-scoped active character selection
+- `client/src/lib/api.ts` — Character API client with cNFT mint/status methods
+- `WALLET_INTEGRATION.md` — This documentation
 
 ---
 

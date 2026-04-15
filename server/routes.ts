@@ -947,8 +947,7 @@ export async function registerRoutes(
       // Mint island as cNFT to server wallet
       let mintResult: { actionId?: string; mintAddress?: string } = {};
       try {
-        const { CrossmintWalletService } = await import("./services/crossmintWallet");
-        const crossmint = new CrossmintWalletService();
+        const { crossmintWalletService: crossmint } = await import("./services/crossmintWallet");
         mintResult = await crossmint.mintIslandCNFT(account, island);
         if (mintResult.actionId) {
           await storage.updateAccount(account.id, { homeIslandMintActionId: mintResult.actionId });

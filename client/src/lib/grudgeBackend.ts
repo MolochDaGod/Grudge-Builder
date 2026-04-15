@@ -71,11 +71,14 @@ const SSO_AUTH_URL = "https://id.grudge-studio.com";
       localStorage.setItem(AUTH_TOKEN_KEY, ssoToken);
       localStorage.setItem(LEGACY_SESSION_TOKEN_KEY, ssoToken);
       const returnedUserId = params.get("grudge_user_id") || params.get("userId") || "";
-      const returnedGrudgeId = params.get("grudge_id") || params.get("grudgeId") || "";
+    const returnedGrudgeId = params.get("grudge_id") || params.get("grudgeId") || "";
       const returnedUsername = params.get("grudge_username") || params.get("username") || "";
       if (returnedUserId) localStorage.setItem("grudge_user_id", returnedUserId);
       if (returnedGrudgeId) localStorage.setItem("grudge_id", returnedGrudgeId);
       if (returnedUsername) localStorage.setItem("grudge_username", returnedUsername);
+      // Sync account ID for CharacterManager scoping
+      const ssoAccountId = returnedGrudgeId || returnedUserId || '';
+      if (ssoAccountId) localStorage.setItem("grudge_account_id", ssoAccountId);
       // Clean URL without reload
       params.delete("sso_token");
       params.delete("sso_required");
@@ -172,6 +175,7 @@ export function logout(): void {
   localStorage.removeItem("grudge_user_id");
   localStorage.removeItem("grudge_id");
   localStorage.removeItem("grudge_username");
+  localStorage.removeItem("grudge_account_id");
 }
 
 // ── Device ID (for guest login) ──────────────────────────────────────
@@ -226,6 +230,9 @@ async function handleAuthResponse(
   if (resolvedUserId) localStorage.setItem("grudge_user_id", resolvedUserId);
   if (resolvedGrudgeId) localStorage.setItem("grudge_id", resolvedGrudgeId);
   if (resolvedUsername) localStorage.setItem("grudge_username", resolvedUsername);
+  // Sync account ID for CharacterManager scoping (prevents "guest" fallback)
+  const accountIdForScope = resolvedGrudgeId || resolvedUserId || '';
+  if (accountIdForScope) localStorage.setItem("grudge_account_id", accountIdForScope);
   const session: GrudgeSession = {
     type: sessionType,
     username: resolvedUsername,

@@ -196,6 +196,14 @@ GITHUB_CLIENT_ID     # GitHub OAuth
 # AI Integration
 OPENAI_API_KEY       # OpenAI API key for avatar/dungeon generation
 
+# Crossmint Wallet & NFT (checked in order: SERVER > SECRET > API)
+CROSSMINT_SERVER_API_KEY  # Crossmint server API key
+CROSSMINT_SECRET_KEY      # Crossmint secret key (fallback)
+CROSSMINT_API_KEY         # Crossmint API key (fallback)
+CROSSMINT_USE_STAGING     # 'true' for staging environment
+CROSSMINT_COLLECTION_ID   # Collection ID (default: 'default-solana')
+CROSSMINT_ISLAND_CNFT     # Island cNFT template ID (optional)
+
 # Frontend overrides (Vercel env)
 VITE_OBJECT_STORE_URL   # Override ObjectStore base URL
 VITE_ASSET_CDN_URL      # Override R2 CDN URL
@@ -294,8 +302,11 @@ Express serves static files from:
 | `server/openai.ts` | OpenAI API integration |
 
 ### Wallet & NFT
-| File | Purpose |
-|------|---------|
-| `server/services/walletHelper.ts` | Server-side Solana wallet management |
-| `server/services/nftMetadata.ts` | NFT metadata generation |
-| `server/spriteGeneration/services/nftMinting.ts` | Compressed NFT minting |
+|| File | Purpose |
+||------|---------|
+|| `server/services/crossmintWallet.ts` | **Canonical** Crossmint service — wallets, character + island cNFT minting, metadata updates, status polling |
+|| `server/services/walletHelper.ts` | Server-side wallet management — Grudge ID generation, email derivation, account wallet init |
+|| `server/services/nftMinting.ts` | Re-exports NFTMintingService from spriteGeneration/ |
+|| `server/services/nftMetadata.ts` | NFT metadata generation |
+|| `server/spriteGeneration/services/nftMinting.ts` | NFT minting orchestration — DB operations, mint flow |
+|| `server/spriteGeneration/services/crossmintWallet.ts` | Re-export of canonical `server/services/crossmintWallet.ts` |
