@@ -57,11 +57,13 @@ import HarvestPage from "@/pages/Harvest";
 import HeroCodexPage from "@/pages/hero-codex";
 import CraftingPage from "@/pages/crafting";
 import Island3DPage from "@/pages/island-3d";
+import AuthCallbackPage from "@/pages/auth-callback";
 
 function Router() {
   return (
     <Switch>
       <Route path="/" component={LoginPage} />
+      <Route path="/auth/callback" component={AuthCallbackPage} />
       <Route path="/intro" component={IntroPage} />
       <Route path="/home" component={HomePage} />
       <Route path="/character" component={CharacterBuilder} />

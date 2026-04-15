@@ -49,10 +49,8 @@ const PROXY_RULES: ProxyRule[] = [
   },
 
   // ── Auth routes → id.grudge-studio.com ──────────────────────────────
-  { match: "/api/auth", target: "https://id.grudge-studio.com", pathRewrite: "strip-prefix", stripPrefix: "/api/auth" },
-  { match: "/api/login", target: "https://id.grudge-studio.com", pathRewrite: "strip-prefix", stripPrefix: "/api" },
-  { match: "/api/register", target: "https://id.grudge-studio.com", pathRewrite: "strip-prefix", stripPrefix: "/api" },
-  { match: "/api/guest", target: "https://id.grudge-studio.com", pathRewrite: "strip-prefix", stripPrefix: "/api" },
+  // /api/auth/login → id.grudge-studio.com/auth/login (strip /api, keep /auth prefix)
+  { match: "/api/auth", target: "https://id.grudge-studio.com", pathRewrite: "strip-prefix", stripPrefix: "/api" },
 
   // ── Asset & tool routes ────────────────────────────────────────────
   { match: "/api/assets", target: "https://assets.grudge-studio.com", pathRewrite: "strip-prefix", stripPrefix: "/api/assets" },

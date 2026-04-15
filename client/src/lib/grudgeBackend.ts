@@ -2,12 +2,15 @@
  * Grudge Backend Integration — Unified Auth
  *
  * Auth flows through grudgewarlords.com API (proxied via Vercel rewrites):
- *   /api/auth/login     → username/password
- *   /api/auth/register  → new account (username/password)
- *   /api/auth/puter     → Grudge Auth (Puter SDK — Google, guest)
- *   /api/auth/verify    → validate session token
- *   /api/auth/wallet    → Solana wallet connect
- *   /api/discord/login  → Discord OAuth
+ *   /api/auth/login          → username/password
+ *   /api/auth/register       → new account (username/password)
+ *   /api/auth/puter          → Grudge Auth (Puter SDK — Google, guest)
+ *   /api/auth/verify         → validate session token
+ *   /api/auth/wallet         → Solana wallet connect
+ *   /api/auth/phone/send     → Twilio SMS verification code
+ *   /api/auth/phone/verify   → verify SMS code → login/create
+ *   /api/auth/discord/start  → Discord OAuth redirect
+ *   /api/auth/google/start   → Google OAuth redirect
  *
  * On any account creation the backend automatically:
  *   1. Creates DB row
@@ -31,7 +34,7 @@ const DEVICE_ID_KEY = "grudge_device_id";
 
 // ── Session data shape (stored in localStorage) ─────────────────────
 export interface GrudgeSession {
-  type: "grudge" | "discord" | "puter" | "wallet" | "guest";
+  type: "grudge" | "discord" | "puter" | "wallet" | "guest" | "phone";
   username: string;
   grudgeId?: string;
   accountId?: number;
@@ -354,6 +357,86 @@ export async function startGithubLogin(): Promise<string> {
   const res = await fetch(`${API_BASE}/auth/github/start?state=${state}`);
   const data = await res.json();
   return data.url;
+}
+
+// ── Twilio Phone Auth ────────────────────────────────────────────────
+
+/** Send SMS verification code via Twilio */
+export async function sendPhoneCode(phone: string): Promise<{ success: boolean; message?: string }> {
+  const res = await fetch(`${API_BASE}/auth/phone/send`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ phone }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || "Failed to send code");
+  return data;
+}
+
+/** Verify SMS code → login or create account */
+export async function verifyPhoneCode(
+  phone: string,
+  code: string,
+): Promise<AuthResponse> {
+  const res = await fetch(`${API_BASE}/auth/phone/verify`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ phone, code }),
+  });
+  return handleAuthResponse(res, "phone");
+}
+
+// ── Direct browser wallet connect (Phantom / Solflare) ───────────────
+
+interface SolanaProvider {
+  isPhantom?: boolean;
+  isSolflare?: boolean;
+  connect: () => Promise<{ publicKey: { toBase58(): string } }>;
+  publicKey?: { toBase58(): string } | null;
+}
+
+/** Detect available Solana browser wallets */
+export function getAvailableWallets(): string[] {
+  const wallets: string[] = [];
+  if (typeof window === "undefined") return wallets;
+  if ((window as any).solana?.isPhantom) wallets.push("phantom");
+  if ((window as any).solflare?.isSolflare) wallets.push("solflare");
+  return wallets;
+}
+
+/** Connect to a browser wallet and authenticate */
+export async function connectBrowserWallet(
+  walletName: "phantom" | "solflare" = "phantom",
+): Promise<AuthResponse> {
+  let provider: SolanaProvider | null = null;
+  if (walletName === "phantom") provider = (window as any).solana;
+  else if (walletName === "solflare") provider = (window as any).solflare;
+
+  if (!provider) {
+    throw new Error(
+      walletName === "phantom"
+        ? "Phantom wallet not installed. Get it at phantom.app"
+        : "Solflare wallet not installed. Get it at solflare.com",
+    );
+  }
+
+  const resp = await provider.connect();
+  const address = resp.publicKey.toBase58();
+  return loginWithWallet(address);
+}
+
+// ── Puter SDK sign-in (explicit user-triggered) ──────────────────────
+
+/** Trigger Puter sign-in flow and authenticate with Grudge backend */
+export async function loginWithPuterSDK(): Promise<AuthResponse> {
+  const puter = (window as any).puter;
+  if (!puter) throw new Error("Puter SDK not loaded");
+  if (!puter.auth?.isSignedIn?.()) {
+    await puter.auth.signIn();
+  }
+  const user = await puter.auth.getUser();
+  if (!user?.uuid) throw new Error("Puter sign-in cancelled");
+  return loginWithPuter(user.uuid, user.username);
 }
 
 // ── Token verification ───────────────────────────────────────────────
