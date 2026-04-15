@@ -18,6 +18,7 @@
 
 import * as THREE from "three";
 import { GLTFLoader, type GLTF } from "three/examples/jsm/loaders/GLTFLoader.js";
+import { DRACOLoader } from "three/examples/jsm/loaders/DRACOLoader.js";
 import { resolveModelUrl } from "@/lib/modelManifest";
 
 // ── Skeleton bone-name remapping ─────────────────────────────────────────────
@@ -95,6 +96,11 @@ function collectBoneNames(root: THREE.Object3D): Set<string> {
 const gltfCache = new Map<string, GLTF>();
 const clipCache = new Map<string, THREE.AnimationClip>();
 const loader = new GLTFLoader();
+
+// Wire DRACOLoader for Draco-compressed GLBs (from gltf-transform pipeline)
+const dracoLoader = new DRACOLoader();
+dracoLoader.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.7/');
+loader.setDRACOLoader(dracoLoader);
 
 // ── Load a full GLTF model (mesh + embedded animations) ─────────────────────
 

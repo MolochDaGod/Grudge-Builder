@@ -4,7 +4,8 @@
  * Manages canvas lifecycle, resize handling, and click-to-harvest interaction.
  */
 import { useRef, useEffect, useState, useCallback } from 'react';
-import { Island3DEngine, type Island3DMode } from '../engine/Island3DEngine';
+import { Island3DEngine } from '../engine/Island3DEngine';
+import { exportSceneToFile, getSceneStats } from '@/lib/sceneExporter';
 import type { MultiplayerConfig } from '../sync/MultiplayerSync';
 
 interface Island3DRendererProps {
@@ -140,6 +141,23 @@ export function Island3DRenderer({ seed, className = '', multiplayer, mode = 'pr
           {multiplayer && (
             <p className="text-sky-400 mt-1">⚡ Multiplayer connected</p>
           )}
+          {/* Export scene as GLB */}
+          <button
+            onClick={async () => {
+              const engine = engineRef.current;
+              if (!engine) return;
+              const scene = (engine as any).scene;
+              if (!scene) return;
+              const stats = getSceneStats(scene);
+              console.log('[Export] Scene stats:', stats);
+              await exportSceneToFile(scene, `island-${seed}.glb`, {
+                metadata: { seed },
+              });
+            }}
+            className="mt-2 px-2 py-1 bg-emerald-700 hover:bg-emerald-600 rounded text-[10px] text-white w-full"
+          >
+            📦 Export Scene (.glb)
+          </button>
         </div>
       )}
     </div>

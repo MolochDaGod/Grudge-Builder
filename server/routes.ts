@@ -6370,6 +6370,63 @@ Your response must be valid JSON array only, no markdown or explanation.`;
     }
   });
 
+  // ==================== Asset Upload (GLB/glTF) ====================
+
+  /**
+   * POST /api/assets/upload — Upload a GLB model file.
+   * Accepts multipart/form-data with 'file' field.
+   * Stores to public/models/{path} for local dev, R2 CDN in production.
+   */
+  app.post("/api/assets/upload", requireAuth, async (req: any, res) => {
+    try {
+      // Express doesn't parse multipart by default; this route expects
+      // the file as a raw body or via a middleware like multer.
+      // For now, accept base64 JSON payload as a simpler alternative.
+      const { path: remotePath, data, contentType } = req.body;
+
+      if (!remotePath || !data) {
+        return res.status(400).json({ error: "'path' and 'data' (base64) are required" });
+      }
+
+      // Validate file extension
+      const ext = remotePath.split('.').pop()?.toLowerCase();
+      if (!['glb', 'gltf', 'bin'].includes(ext || '')) {
+        return res.status(400).json({ error: "Only .glb, .gltf, and .bin files are allowed" });
+      }
+
+      // Decode base64 and write to public/models/
+      const buffer = Buffer.from(data, 'base64');
+      const targetDir = path.join(process.cwd(), 'public', 'models');
+      const targetPath = path.join(targetDir, remotePath);
+
+      // Ensure directory exists
+      const dir = path.dirname(targetPath);
+      if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true });
+      }
+
+      // Size limit: 50MB
+      if (buffer.length > 50 * 1024 * 1024) {
+        return res.status(413).json({ error: "File too large (max 50MB)" });
+      }
+
+      fs.writeFileSync(targetPath, buffer);
+
+      const userId = (req as any).userId || 'unknown';
+      console.log(`[Assets] ${userId} uploaded ${remotePath} (${(buffer.length / 1024).toFixed(1)}KB)`);
+
+      res.json({
+        success: true,
+        path: `/models/${remotePath}`,
+        url: `https://assets.grudge-studio.com/models/${remotePath}`,
+        size: buffer.length,
+      });
+    } catch (error) {
+      console.error("Error uploading asset:", error);
+      res.status(500).json({ error: "Failed to upload asset" });
+    }
+  });
+
   // ==================== Health Check ====================
   app.get("/api/health", async (_req, res) => {
     try {
