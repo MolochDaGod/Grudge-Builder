@@ -3,12 +3,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { User, Wallet, Shield, Copy, Sparkles, LogOut, ChevronRight } from "lucide-react";
+import { User, Wallet, Shield, Copy, Sparkles, LogOut, ChevronRight, Swords } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAccount } from "@/hooks/use-account";
 import { getCurrentUser, getSession, logout } from "@/lib/grudgeBackend";
 import { assetUrl } from "@/lib/assetConfig";
 import Layout from "@/components/Layout";
+import CharacterSelectorPanel from "@/components/CharacterSelectorPanel";
 
 export default function AccountPage() {
   const { account, loading } = useAccount();
@@ -179,6 +180,26 @@ export default function AccountPage() {
                 )}
               </div>
             )}
+          </CardContent>
+        </Card>
+
+        {/* Characters */}
+        <Card className="mb-6 bg-slate-900/60 border-slate-700">
+          <CardHeader>
+            <CardTitle className="text-amber-400 font-cinzel flex items-center gap-2">
+              <Swords className="h-5 w-5" />
+              Your Characters
+            </CardTitle>
+            <CardDescription>Select your active character for crafting and gameplay</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <CharacterSelectorPanel
+              selectLabel="Select for Crafting"
+              columns={3}
+              onSelected={(id) => {
+                toast({ title: "Character selected", description: "Active crafter updated." });
+              }}
+            />
           </CardContent>
         </Card>
 

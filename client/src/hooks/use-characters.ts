@@ -1,0 +1,113 @@
+/**
+ * useCharacters — Grudge Backend Character Hook
+ *
+ * Fetches ALL characters owned by the authenticated user from
+ * api.grudge-studio.com, mirrors active-character selection in localStorage,
+ * and polls the backend every 60 s so the list stays fresh when crafted
+ * items / level-ups come in from other Grudge apps.
+ *
+ * Usage:
+ *   const { characters, loading, activeId, setActive, refetch } = useCharacters();
+ */
+
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { CharacterManager, type Character } from '@/lib/characterManager';
+import { authHeaders } from '@/lib/grudgeBackend';
+
+const POLL_INTERVAL_MS = 60_000; // live-sync every 60 s
+
+export interface UseCharactersReturn {
+  characters:      Character[];
+  loading:         boolean;
+  error:           string | null;
+  activeId:        string | null;
+  activeCharacter: Character | null;
+  setActive:       (id: string) => void;
+  refetch:         () => Promise<void>;
+}
+
+export function useCharacters(): UseCharactersReturn {
+  const [characters, setCharacters]   = useState<Character[]>([]);
+  const [loading,    setLoading]      = useState(true);
+  const [error,      setError]        = useState<string | null>(null);
+  const [activeId,   setActiveIdState] = useState<string | null>(null);
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // ── Fetch from Grudge backend ────────────────────────────────────────
+  const fetchCharacters = useCallback(async () => {
+    try {
+      // CharacterManager.getAll() already uses the VPS-authoritative API
+      const chars = await CharacterManager.getAll();
+      setCharacters(chars);
+      setError(null);
+
+      // Sync active ID from storage
+      const stored = CharacterManager.getActiveId();
+      if (stored && chars.some(c => c.id === stored)) {
+        setActiveIdState(stored);
+      } else if (chars.length > 0 && !stored) {
+        // Auto-select first character if nothing stored
+        CharacterManager.setActive(chars[0].id);
+        setActiveIdState(chars[0].id);
+      } else {
+        setActiveIdState(stored);
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Failed to load characters';
+      setError(msg);
+      console.error('[useCharacters]', msg);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // ── Set active character (persists to localStorage + backend) ────────
+  const setActive = useCallback((id: string) => {
+    CharacterManager.setActive(id);
+    setActiveIdState(id);
+  }, []);
+
+  // ── Mount + poll ─────────────────────────────────────────────────────
+  useEffect(() => {
+    fetchCharacters();
+
+    // Poll for backend updates (level-ups, crafting results, etc.)
+    pollRef.current = setInterval(fetchCharacters, POLL_INTERVAL_MS);
+    return () => {
+      if (pollRef.current) clearInterval(pollRef.current);
+    };
+  }, [fetchCharacters]);
+
+  // ── Also re-fetch when auth token changes (cross-app SSO login) ──────
+  useEffect(() => {
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === 'grudge_auth_token' || e.key === 'grudge_account_id') {
+        fetchCharacters();
+      }
+    };
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
+  }, [fetchCharacters]);
+
+  const activeCharacter = characters.find(c => c.id === activeId) ?? null;
+
+  return {
+    characters,
+    loading,
+    error,
+    activeId,
+    activeCharacter,
+    setActive,
+    refetch: fetchCharacters,
+  };
+}
+
+// ── Standalone (non-hook) character fetch for non-React contexts ──────
+
+export async function fetchCharactersOnce(): Promise<Character[]> {
+  try {
+    return await CharacterManager.getAll();
+  } catch {
+    return [];
+  }
+}
