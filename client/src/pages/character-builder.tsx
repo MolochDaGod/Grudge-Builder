@@ -741,9 +741,9 @@ export default function CharacterBuilder() {
                     targetId={`avatar-${activeCharacter.id}`}
                     targetType="sprite"
                     onReplaceSprite={() => handleRegenerateAvatar(activeCharacter.id)}
-                    onMove={() => console.log('Move avatar')}
-                    onResize={() => console.log('Resize avatar')}
-                    onEditCard={() => console.log('Edit avatar card')}
+                    onMove={() => toast({ title: 'Admin', description: 'Use portrait drag to reposition.' })}
+                    onResize={() => toast({ title: 'Admin', description: 'Use portrait zoom slider in admin panel.' })}
+                    onEditCard={() => handleRegenerateAvatar(activeCharacter.id)}
                   >
                     <div className={cn("w-24 h-24 rounded-full border-4 overflow-hidden shadow-xl shrink-0 bg-black/50", FACTION_COLORS[raceDef?.faction || 'Crusade'].border)}>
                       {activeCharacter.avatarUrl ? (
@@ -813,13 +813,13 @@ export default function CharacterBuilder() {
                                attack3: { label: "Attack 3", icon: "💥" },
                                cast: { label: "Cast Spell", icon: "✨" },
                                heal: { label: "Heal", icon: "💚" },
-                               idle: { label: "Idle", icon: "" },
-                               walk: { label: "Walk", icon: "" },
-                               walk2: { label: "Walk 2", icon: "" },
-                               run: { label: "Run", icon: "" },
-                               hurt: { label: "Hurt", icon: "" },
-                               death: { label: "Death", icon: "" },
-                               block: { label: "Block", icon: "" },
+                              idle: { label: "Idle", icon: "🧍" },
+                               walk: { label: "Walk", icon: "🚶" },
+                               walk2: { label: "Walk 2", icon: "🚶" },
+                               run: { label: "Run", icon: "🏃" },
+                               hurt: { label: "Hurt", icon: "💢" },
+                               death: { label: "Death", icon: "💀" },
+                               block: { label: "Block", icon: "🛡️" },
                              };
                              return attackAnims.map(anim => (
                                <DropdownMenuItem 

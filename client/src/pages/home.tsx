@@ -15,6 +15,8 @@ import {
   isAuthenticated, getCurrentUser, logout as doLogout,
   verifyToken, type GrudgeUser,
 } from "@/lib/grudgeBackend";
+import { RACES } from "@/lib/gameData";
+import { assetUrl } from "@/lib/assetConfig";
 
 const LIVE_GAMES = [
   {
@@ -110,16 +112,34 @@ const GAME_ICONS: Record<string, React.ReactNode> = {
   map: <Map className="w-6 h-6" />,
 };
 
+/** XP needed to reach next level (mirrors CharacterStats formula) */
+function xpToNextLevel(level: number): number {
+  return Math.floor(100 * Math.pow(1.4, level - 1));
+}
+
+/** Resolve best portrait URL for a character */
+function getCharPortrait(char: Character): string {
+  if (char.avatarUrl) return char.avatarUrl;
+  const race = RACES.find(r => r.id === char.raceId);
+  const portrait = race?.portraits?.[char.classId] || race?.image;
+  return portrait || assetUrl(`/images/portraits/${char.raceId}.png`);
+}
+
 export default function HomePage() {
   const [, setLocation] = useLocation();
   const [characters, setCharacters] = useState<Character[]>([]);
   const [activeCharacter, setActiveCharacter] = useState<Character | null>(null);
   const [user, setUser] = useState<GrudgeUser | null>(getCurrentUser());
+  const [serverStatus, setServerStatus] = useState<'checking' | 'online' | 'offline'>('checking');
 
   useEffect(() => {
     if (!isAuthenticated()) { setLocation("/"); return; }
     verifyToken().then((r) => { if (!r.valid) { doLogout(); setLocation("/"); } else { setUser(getCurrentUser()); } });
     CharacterManager.getAll().then((c) => { setCharacters(c); CharacterManager.getActiveCharacter().then(setActiveCharacter); }).catch(() => {});
+    // Real server health check
+    fetch('/api/health', { signal: AbortSignal.timeout(4000) })
+      .then(r => setServerStatus(r.ok ? 'online' : 'offline'))
+      .catch(() => setServerStatus('offline'));
   }, [setLocation]);
 
   // Navigate to internal routes or external games with auth token passthrough
@@ -207,19 +227,37 @@ export default function HomePage() {
             {activeCharacter ? (
               <div className="rounded-xl border border-amber-700/30 bg-gradient-to-b from-amber-950/40 to-slate-950/60 p-5 shadow-xl">
                 <div className="flex items-center gap-3 mb-4">
-                  <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-amber-600/30 to-red-900/30 border border-amber-700/30 flex items-center justify-center">
-                    <User className="w-6 h-6 text-amber-400/70" />
+                  {/* Character portrait — avatar → race portrait → initial */}
+                  <div className="w-12 h-12 rounded-lg border border-amber-700/30 overflow-hidden shrink-0 bg-black/50">
+                    <img
+                      src={getCharPortrait(activeCharacter)}
+                      alt={activeCharacter.name}
+                      className="w-full h-full object-cover object-top"
+                      onError={(e) => {
+                        const el = e.currentTarget;
+                        el.style.display = 'none';
+                        const parent = el.parentElement!;
+                        parent.classList.add('bg-gradient-to-br', 'from-amber-600/30', 'to-red-900/30', 'flex', 'items-center', 'justify-center');
+                        parent.innerHTML = `<span class="text-lg font-bold font-cinzel text-amber-300">${activeCharacter.name[0]?.toUpperCase()}</span>`;
+                      }}
+                    />
                   </div>
                   <div>
                     <h2 className="font-cinzel font-bold text-amber-300 text-sm leading-tight">{activeCharacter.name}</h2>
-                    <p className="text-xs text-muted-foreground capitalize">{activeCharacter.raceId} {activeCharacter.classId}</p>
+                    <p className="text-xs text-muted-foreground capitalize">{activeCharacter.raceId} · {activeCharacter.classId}</p>
                     <p className="text-xs text-amber-400/70">Level {activeCharacter.level}</p>
                   </div>
                 </div>
                 <div className="mb-4 space-y-1.5">
                   <div className="flex items-center gap-2 text-xs">
                     <span className="text-muted-foreground w-6">XP</span>
-                    <Progress value={(activeCharacter.xp || 0) % 100} className="flex-1 h-1.5" />
+                    <Progress
+                      value={Math.min(100, ((activeCharacter.xp || 0) / xpToNextLevel(activeCharacter.level)) * 100)}
+                      className="flex-1 h-1.5"
+                    />
+                    <span className="text-muted-foreground/60 text-[10px] w-12 text-right">
+                      {activeCharacter.xp || 0}/{xpToNextLevel(activeCharacter.level)}
+                    </span>
                   </div>
                 </div>
                 <div className="space-y-2">
@@ -286,8 +324,18 @@ export default function HomePage() {
                 <p className="text-xs text-muted-foreground mt-0.5">{LIVE_GAMES.length} live games</p>
               </div>
               <div className="flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                <span className="text-xs text-emerald-400">All servers online</span>
+                <span className={`w-1.5 h-1.5 rounded-full ${
+                  serverStatus === 'online'   ? 'bg-emerald-500 animate-pulse' :
+                  serverStatus === 'offline'  ? 'bg-red-500' :
+                  'bg-yellow-500 animate-pulse'
+                }`} />
+                <span className={`text-xs ${
+                  serverStatus === 'online'  ? 'text-emerald-400' :
+                  serverStatus === 'offline' ? 'text-red-400' :
+                  'text-yellow-400'
+                }`}>
+                  {serverStatus === 'online' ? 'Servers online' : serverStatus === 'offline' ? 'Server offline' : 'Checking...'}
+                </span>
               </div>
             </motion.div>
 

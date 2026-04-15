@@ -256,10 +256,9 @@ export function getCharacterAnimation(
 
 /** Resolve a model path to CDN URL for production */
 export function resolveModelUrl(localPath: string): string {
-  if (typeof window !== "undefined" && window.location.hostname !== "localhost") {
-    return assetUrl(localPath);
-  }
-  return localPath;
+  // In dev (Vite), serve from local public/. In production, serve from R2 CDN.
+  if (import.meta.env?.DEV) return localPath;
+  return assetUrl(localPath);
 }
 
 /** List all available animation states for a weapon type */

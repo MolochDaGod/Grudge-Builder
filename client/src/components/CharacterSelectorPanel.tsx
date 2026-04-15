@@ -29,9 +29,21 @@ function getClassName(id: string) {
 }
 
 function getCharacterPortrait(char: Character): string {
+  // 1. AI-generated avatar (best)
   if (char.avatarUrl) return char.avatarUrl;
-  // Fallback to CDN portrait by race+class
+  // 2. Race-specific class portrait from RACES data
+  const race = RACES.find(r => r.id === char.raceId);
+  if (race?.portraits?.[char.classId]) return race.portraits[char.classId];
+  // 3. Race image (portrait without class)
+  if (race?.image) return race.image;
+  // 4. CDN path by convention
   return assetUrl(`/heroes/portraits/${char.raceId}_${char.classId}.png`);
+}
+
+/** Portrait specifically for onError fallback — never recurse */
+function getPortraitFallback(char: Character): string {
+  const race = RACES.find(r => r.id === char.raceId);
+  return race?.image || assetUrl('/images/portraits/human.png');
 }
 
 function getFactionColor(raceId: string) {
@@ -79,7 +91,10 @@ function CharacterCard({ character: c, isActive, onSelect, label = 'Select' }: C
           alt={c.name}
           className="w-full h-full object-cover object-top"
           onError={(e) => {
-            (e.target as HTMLImageElement).src = assetUrl('/images/portraits/human.png');
+            const img = e.target as HTMLImageElement;
+            // Only try the race fallback once — avoid infinite loop
+            const fallback = getPortraitFallback(c);
+            if (img.src !== fallback) img.src = fallback;
           }}
         />
         {/* Level badge */}

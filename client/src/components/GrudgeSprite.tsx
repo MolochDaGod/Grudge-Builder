@@ -1,4 +1,5 @@
 import { assetUrl } from "@/lib/assetConfig";
+import { getFallback } from "@/lib/assetResolver";
 import { useState, useEffect } from "react";
 
 export type SpriteState = "idle" | "walk" | "attack" | "hurt" | "death";
@@ -185,13 +186,22 @@ export function GrudgeSprite({
   const containerHeight = frameSize * scale;
   
   if (error) {
+    // Use the sprite-category fallback from assetResolver instead of a plain "?"
+    const fallbackSrc = getFallback('/sprites/unknown.png');
     return (
-      <div 
-        className={`bg-purple-900/50 flex items-center justify-center ${className}`}
-        style={{ width: containerWidth, height: containerHeight }}
-      >
-        <span className="text-xs text-purple-300">?</span>
-      </div>
+      <div
+        className={`overflow-hidden ${className}`}
+        style={{
+          width: containerWidth,
+          height: containerHeight,
+          backgroundImage: `url(${fallbackSrc})`,
+          backgroundSize: 'contain',
+          backgroundRepeat: 'no-repeat',
+          backgroundPosition: 'center',
+          imageRendering: 'pixelated',
+          opacity: 0.4,
+        }}
+      />
     );
   }
   
