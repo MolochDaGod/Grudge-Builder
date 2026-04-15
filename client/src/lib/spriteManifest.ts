@@ -55,7 +55,23 @@ import { assetUrl } from "@/lib/assetConfig";
  * - SpriteAnimator component handles rendering with proper frame timing
  */
 
-export type AnimationState = "idle" | "walk" | "walk2" | "run" | "attack" | "attack2" | "attack3" | "cast" | "heal" | "hurt" | "death" | "block";
+export type AnimationState =
+  // ─── Locomotion ────────────────────────────────────────────────────
+  | "idle" | "walk" | "walk2" | "run"
+  | "jump"    | "swim"    | "climb"  | "turn"
+  | "getup"   | "dodge"   | "roll"
+  // ─── Attacks (look for these even if the sprite doesn't have them) ─
+  | "attack"  | "attack2" | "attack3" | "attack4"
+  // ─── Class-specific skills (class-unique combos / specials) ─────────
+  | "class1"  | "class2"  | "class3"
+  // ─── Special / magic ──────────────────────────────────────────────
+  | "special" | "cast"    | "heal"
+  // ─── Air attacks ──────────────────────────────────────────────────
+  | "jumpattack"
+  // ─── Defense ──────────────────────────────────────────────────────
+  | "block"   | "parry"
+  // ─── Damage / death ───────────────────────────────────────────────
+  | "hurt"    | "death";
 
 export type EffectType = "attack_effect" | "attack2_effect" | "attack3_effect" | "cast_effect" | "heal_effect" | "projectile";
 
@@ -679,18 +695,39 @@ export const SPRITE_MANIFEST: Record<string, SpriteUnit> = {
 };
 
 const DEFAULT_ANIMATIONS: Record<AnimationState, SpriteAnimation> = {
-  idle: { frameCount: 6, fps: 8, loop: true, file: "Idle.png" },
-  walk: { frameCount: 8, fps: 10, loop: true, file: "Walk.png" },
-  walk2: { frameCount: 8, fps: 10, loop: true, file: "Walk02.png" },
-  run: { frameCount: 8, fps: 12, loop: true, file: "Walk.png" },
-  attack: { frameCount: 6, fps: 12, loop: false, file: "Attack01.png" },
-  attack2: { frameCount: 6, fps: 12, loop: false, file: "Attack02.png" },
-  attack3: { frameCount: 6, fps: 12, loop: false, file: "Attack03.png" },
-  cast: { frameCount: 6, fps: 10, loop: false, file: "Cast.png" },
-  heal: { frameCount: 6, fps: 10, loop: false, file: "Heal.png" },
-  hurt: { frameCount: 4, fps: 8, loop: false, file: "Hurt.png" },
-  death: { frameCount: 4, fps: 8, loop: false, file: "Death.png" },
-  block: { frameCount: 4, fps: 8, loop: false, file: "Block.png" },
+  // ─── Locomotion ────────────────────────────────────────────────────
+  idle:       { frameCount: 6, fps: 8,  loop: true,  file: "Idle.png" },
+  walk:       { frameCount: 8, fps: 10, loop: true,  file: "Walk.png" },
+  walk2:      { frameCount: 8, fps: 10, loop: true,  file: "Walk02.png" },
+  run:        { frameCount: 8, fps: 12, loop: true,  file: "Walk.png" },
+  jump:       { frameCount: 6, fps: 12, loop: false, file: "Jump.png" },
+  swim:       { frameCount: 8, fps: 8,  loop: true,  file: "Swim.png" },
+  climb:      { frameCount: 6, fps: 8,  loop: true,  file: "Climb.png" },
+  turn:       { frameCount: 4, fps: 10, loop: false, file: "Turn.png" },
+  getup:      { frameCount: 6, fps: 10, loop: false, file: "GetUp.png" },
+  dodge:      { frameCount: 6, fps: 14, loop: false, file: "Dodge.png" },
+  roll:       { frameCount: 8, fps: 14, loop: false, file: "Roll.png" },
+  // ─── Attacks ──────────────────────────────────────────────────────
+  attack:     { frameCount: 6, fps: 12, loop: false, file: "Attack01.png" },
+  attack2:    { frameCount: 6, fps: 12, loop: false, file: "Attack02.png" },
+  attack3:    { frameCount: 6, fps: 12, loop: false, file: "Attack03.png" },
+  attack4:    { frameCount: 6, fps: 12, loop: false, file: "Attack04.png" },
+  // ─── Class skills ─────────────────────────────────────────────────
+  class1:     { frameCount: 8, fps: 12, loop: false, file: "Class01.png" },
+  class2:     { frameCount: 8, fps: 12, loop: false, file: "Class02.png" },
+  class3:     { frameCount: 8, fps: 12, loop: false, file: "Class03.png" },
+  // ─── Special / magic ──────────────────────────────────────────────
+  special:    { frameCount: 8, fps: 10, loop: false, file: "Special.png" },
+  cast:       { frameCount: 6, fps: 10, loop: false, file: "Cast.png" },
+  heal:       { frameCount: 6, fps: 10, loop: false, file: "Heal.png" },
+  // ─── Air attack ───────────────────────────────────────────────────
+  jumpattack: { frameCount: 6, fps: 14, loop: false, file: "JumpAttack.png" },
+  // ─── Defense ──────────────────────────────────────────────────────
+  block:      { frameCount: 4, fps: 8,  loop: false, file: "Block.png" },
+  parry:      { frameCount: 4, fps: 16, loop: false, file: "Parry.png" },
+  // ─── Damage / death ───────────────────────────────────────────────
+  hurt:       { frameCount: 4, fps: 8,  loop: false, file: "Hurt.png" },
+  death:      { frameCount: 4, fps: 8,  loop: false, file: "Death.png" },
 };
 
 export const FALLBACK_UNIT: SpriteUnit = {
@@ -720,29 +757,47 @@ export function getAvailableAnimations(id: string): AnimationState[] {
   return Object.keys(unit.animations) as AnimationState[];
 }
 
+/**
+ * Returns all "action" animations available on a sprite unit
+ * (attacks, class skills, special, magic, air attacks).
+ * States that aren't defined on the sprite are omitted — n/a is safe.
+ */
 export function getAttackAnimations(id: string): AnimationState[] {
   const unit = getSpriteUnit(id);
-  const attackTypes: AnimationState[] = ["attack", "attack2", "attack3", "cast", "heal"];
-  return attackTypes.filter(anim => unit.animations[anim] !== undefined);
+  const actionTypes: AnimationState[] = [
+    // Attacks
+    "attack", "attack2", "attack3", "attack4",
+    // Class skills
+    "class1", "class2", "class3",
+    // Special / magic
+    "special", "cast", "heal",
+    // Air
+    "jumpattack",
+    // Mobility actions
+    "jump", "dodge", "roll",
+    // Defense
+    "parry",
+  ];
+  return actionTypes.filter(anim => unit.animations[anim] !== undefined);
 }
 
 export function getEffectForAnimation(id: string, animState: AnimationState): EffectAnimation | null {
   const unit = getSpriteUnit(id);
   if (!unit.effects) return null;
   
-  const effectMap: Record<AnimationState, EffectType> = {
-    attack: "attack_effect",
-    attack2: "attack2_effect",
-    attack3: "attack3_effect",
-    cast: "cast_effect",
-    heal: "heal_effect",
-    idle: "attack_effect",
-    walk: "attack_effect",
-    walk2: "attack_effect",
-    run: "attack_effect",
-    hurt: "attack_effect",
-    death: "attack_effect",
-    block: "attack_effect",
+  const effectMap: Partial<Record<AnimationState, EffectType>> = {
+    attack:     "attack_effect",
+    attack2:    "attack2_effect",
+    attack3:    "attack3_effect",
+    attack4:    "attack3_effect",  // reuse attack3 effect until attack4_effect exists
+    class1:     "attack_effect",
+    class2:     "attack2_effect",
+    class3:     "attack3_effect",
+    special:    "attack3_effect",
+    cast:       "cast_effect",
+    heal:       "heal_effect",
+    jumpattack: "attack_effect",
+    parry:      "attack_effect",
   };
   
   const effectType = effectMap[animState];

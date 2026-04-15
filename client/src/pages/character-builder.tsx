@@ -215,6 +215,22 @@ const TIER_COLORS: Record<number, string> = {
 
 const TIER_NAMES = ["", "Novice", "Apprentice", "Journeyman", "Expert", "Artisan", "Master", "Grandmaster", "Legendary"];
 
+/** All actions that appear in the Actions dropdown (everything except locomotion basics) */
+const ACTION_DROPDOWN_ACTIONS: SpriteAction[] = [
+  // Attacks
+  "Attack", "Attack2", "Attack3", "Attack4",
+  // Class skills
+  "Class1", "Class2", "Class3",
+  // Special / magic
+  "Special", "Cast", "Heal",
+  // Air
+  "JumpAttack", "Jump",
+  // Defense
+  "Parry",
+  // Mobility
+  "Dodge", "Roll", "Dash",
+];
+
 export default function CharacterBuilder() {
   const authReady = useAuthGuard();
   if (!authReady) return null;
@@ -794,13 +810,13 @@ export default function CharacterBuilder() {
                            <button 
                              className={cn(
                                "text-[10px] px-2 py-1 rounded border transition-colors uppercase font-bold flex items-center gap-1",
-                               ["Attack", "Attack2", "Attack3", "Cast", "Heal"].includes(currentAction) 
-                                 ? "bg-red-500 text-black border-red-500" 
-                                 : "bg-black/40 text-slate-400 border-slate-700 hover:border-red-500/50"
+                           ACTION_DROPDOWN_ACTIONS.includes(currentAction as SpriteAction)
+                                ? "bg-red-500 text-black border-red-500" 
+                                : "bg-black/40 text-slate-400 border-slate-700 hover:border-red-500/50"
                              )}
                              data-testid="btn-attack-dropdown"
                            >
-                             {["Attack", "Attack2", "Attack3", "Cast", "Heal"].includes(currentAction) ? currentAction : "Attack"}
+                             {ACTION_DROPDOWN_ACTIONS.includes(currentAction as SpriteAction) ? currentAction : "Actions"}
                              <ChevronDown className="w-3 h-3" />
                            </button>
                          </DropdownMenuTrigger>
@@ -808,23 +824,53 @@ export default function CharacterBuilder() {
                            {(() => {
                              const attackAnims = getAttackAnimations(activeSpriteSet);
                              const animLabels: Record<AnimationState, { label: string; icon: string }> = {
-                               attack: { label: "Attack 1", icon: "⚔️" },
-                               attack2: { label: "Attack 2", icon: "🗡️" },
-                               attack3: { label: "Attack 3", icon: "💥" },
-                               cast: { label: "Cast Spell", icon: "✨" },
-                               heal: { label: "Heal", icon: "💚" },
-                              idle: { label: "Idle", icon: "🧍" },
-                               walk: { label: "Walk", icon: "🚶" },
-                               walk2: { label: "Walk 2", icon: "🚶" },
-                               run: { label: "Run", icon: "🏃" },
-                               hurt: { label: "Hurt", icon: "💢" },
-                               death: { label: "Death", icon: "💀" },
-                               block: { label: "Block", icon: "🛡️" },
+                               // ─── Locomotion
+                               idle:       { label: "Idle",        icon: "🧍" },
+                               walk:       { label: "Walk",        icon: "🚶" },
+                               walk2:      { label: "Walk 2",      icon: "🚶" },
+                               run:        { label: "Run",         icon: "🏃" },
+                               jump:       { label: "Jump",        icon: "🦘" },
+                               swim:       { label: "Swim",        icon: "🏊" },
+                               climb:      { label: "Climb",       icon: "🧗" },
+                               turn:       { label: "Turn",        icon: "🔄" },
+                               getup:      { label: "Get Up",      icon: "⬆️" },
+                               dodge:      { label: "Dodge",       icon: "💨" },
+                               roll:       { label: "Roll",        icon: "🌀" },
+                               // ─── Attacks
+                               attack:     { label: "Attack 1",    icon: "⚔️" },
+                               attack2:    { label: "Attack 2",    icon: "🗡️" },
+                               attack3:    { label: "Attack 3",    icon: "💥" },
+                               attack4:    { label: "Attack 4",    icon: "🌪️" },
+                               // ─── Class skills
+                               class1:     { label: "Class Skill 1", icon: "🔥" },
+                               class2:     { label: "Class Skill 2", icon: "❄️" },
+                               class3:     { label: "Class Skill 3", icon: "⚡" },
+                               // ─── Special / magic
+                               special:    { label: "Special",     icon: "🌟" },
+                               cast:       { label: "Cast Spell",  icon: "✨" },
+                               heal:       { label: "Heal",        icon: "💚" },
+                               // ─── Air
+                               jumpattack: { label: "Jump Attack", icon: "🦅" },
+                               // ─── Defense
+                               block:      { label: "Block",       icon: "🛡️" },
+                               parry:      { label: "Parry",       icon: "🤺" },
+                               // ─── Damage / death
+                               hurt:       { label: "Hurt",        icon: "💢" },
+                               death:      { label: "Death",       icon: "💀" },
                              };
                              return attackAnims.map(anim => (
                                <DropdownMenuItem 
                                  key={anim}
-                                 onClick={() => setCurrentAction(anim.charAt(0).toUpperCase() + anim.slice(1) as SpriteAction)}
+                                 onClick={() => {
+                                   // Convert AnimationState key to SpriteAction (e.g. 'jumpattack' → 'JumpAttack')
+                                   const actionKey = anim === 'jumpattack' ? 'JumpAttack'
+                                     : anim === 'getup' ? 'GetUp'
+                                     : anim === 'class1' ? 'Class1'
+                                     : anim === 'class2' ? 'Class2'
+                                     : anim === 'class3' ? 'Class3'
+                                     : (anim.charAt(0).toUpperCase() + anim.slice(1)) as SpriteAction;
+                                   setCurrentAction(actionKey as SpriteAction);
+                                 }}
                                  className="text-slate-300 hover:bg-slate-800 cursor-pointer"
                                  data-testid={`btn-attack-${anim}`}
                                >

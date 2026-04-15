@@ -2,7 +2,23 @@ import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { getSpriteUnit, getAnimation, getSpriteSheetPath, ColorPalette, COLOR_PALETTES, AnimationState, type EffectType } from "@/lib/spriteManifest";
 
-export type SpriteAction = "Idle" | "Attack" | "Attack2" | "Attack3" | "Hurt" | "Cast" | "Heal" | "Death" | "Walk" | "Walk2" | "Run" | "Block" | "Roll" | "Dash";
+export type SpriteAction =
+  // ─── Locomotion
+  | "Idle" | "Walk" | "Walk2" | "Run"
+  | "Jump"  | "Swim"  | "Climb" | "Turn" | "GetUp"
+  | "Dodge" | "Roll"  | "Dash"
+  // ─── Attacks
+  | "Attack" | "Attack2" | "Attack3" | "Attack4"
+  // ─── Class skills
+  | "Class1" | "Class2" | "Class3"
+  // ─── Special / magic
+  | "Special" | "Cast" | "Heal"
+  // ─── Air
+  | "JumpAttack"
+  // ─── Defense
+  | "Block" | "Parry"
+  // ─── Damage / death
+  | "Hurt" | "Death";
 
 interface SpriteAnimatorProps {
   spriteSet: string;
@@ -23,33 +39,68 @@ interface SpriteAnimatorProps {
 }
 
 const ACTION_MAP: Record<SpriteAction, AnimationState> = {
-  Idle: "idle",
-  Attack: "attack",
-  Attack2: "attack2",
-  Attack3: "attack3",
-  Hurt: "hurt",
-  Cast: "cast",
-  Heal: "heal",
-  Death: "death",
-  Walk: "walk",
-  Walk2: "walk2",
-  Run: "run",
-  Block: "block",
-  Roll: "run",   // Roll uses run frames (closest motion) until dedicated roll sheets exist
-  Dash: "run",   // Dash uses run frames at higher FPS
+  // ─── Locomotion
+  Idle:       "idle",
+  Walk:       "walk",
+  Walk2:      "walk2",
+  Run:        "run",
+  Jump:       "jump",
+  Swim:       "swim",
+  Climb:      "climb",
+  Turn:       "turn",
+  GetUp:      "getup",
+  Dodge:      "dodge",
+  Roll:       "roll",
+  Dash:       "run",    // Dash uses run frames at higher FPS until Dash sheet exists
+  // ─── Attacks
+  Attack:     "attack",
+  Attack2:    "attack2",
+  Attack3:    "attack3",
+  Attack4:    "attack4",
+  // ─── Class skills
+  Class1:     "class1",
+  Class2:     "class2",
+  Class3:     "class3",
+  // ─── Special / magic
+  Special:    "special",
+  Cast:       "cast",
+  Heal:       "heal",
+  // ─── Air
+  JumpAttack: "jumpattack",
+  // ─── Defense
+  Block:      "block",
+  Parry:      "parry",
+  // ─── Damage / death
+  Hurt:       "hurt",
+  Death:      "death",
 };
 
 /** Map actions to their corresponding weapon/spell effect overlay */
 const EFFECT_MAP: Partial<Record<SpriteAction, EffectType>> = {
-  Attack: "attack_effect",
-  Attack2: "attack2_effect",
-  Attack3: "attack3_effect",
-  Cast: "cast_effect",
-  Heal: "heal_effect",
+  Attack:     "attack_effect",
+  Attack2:    "attack2_effect",
+  Attack3:    "attack3_effect",
+  Attack4:    "attack3_effect",
+  Class1:     "attack_effect",
+  Class2:     "attack2_effect",
+  Class3:     "attack3_effect",
+  Special:    "attack3_effect",
+  JumpAttack: "attack_effect",
+  Cast:       "cast_effect",
+  Heal:       "heal_effect",
 };
 
 /** One-shot actions that should auto-return to idle when returnToIdle is true */
-const ONE_SHOT_ACTIONS = new Set<SpriteAction>(["Attack", "Attack2", "Attack3", "Hurt", "Cast", "Heal", "Block", "Roll", "Dash"]);
+const ONE_SHOT_ACTIONS = new Set<SpriteAction>([
+  "Attack", "Attack2", "Attack3", "Attack4",
+  "Class1", "Class2", "Class3",
+  "Special", "Cast", "Heal",
+  "JumpAttack", "Jump",
+  "Block", "Parry",
+  "Dodge", "Roll", "Dash",
+  "Turn", "GetUp",
+  "Hurt",
+]);
 
 export default function SpriteAnimator({ 
   spriteSet, 
