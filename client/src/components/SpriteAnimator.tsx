@@ -7,6 +7,8 @@ export type SpriteAction =
   | "Idle" | "Walk" | "Walk2" | "Run"
   | "Jump"  | "Swim"  | "Climb" | "Turn" | "GetUp"
   | "Dodge" | "Roll"  | "Dash"
+  // ─── Movement variants
+  | "Move1" | "Move2" | "Move3" | "Move4"
   // ─── Attacks
   | "Attack" | "Attack2" | "Attack3" | "Attack4"
   // ─── Class skills
@@ -15,6 +17,10 @@ export type SpriteAction =
   | "Special" | "Cast" | "Heal"
   // ─── Air
   | "JumpAttack"
+  // ─── Visual effects (one-shot)
+  | "Effect1" | "Effect2" | "Effect3" | "Effect4"
+  // ─── Auras (looping overlay)
+  | "Aura1" | "Aura2"
   // ─── Defense
   | "Block" | "Parry"
   // ─── Damage / death
@@ -52,6 +58,10 @@ const ACTION_MAP: Record<SpriteAction, AnimationState> = {
   Dodge:      "dodge",
   Roll:       "roll",
   Dash:       "run",    // Dash uses run frames at higher FPS until Dash sheet exists
+  Move1:      "move1",
+  Move2:      "move2",
+  Move3:      "move3",
+  Move4:      "move4",
   // ─── Attacks
   Attack:     "attack",
   Attack2:    "attack2",
@@ -67,6 +77,14 @@ const ACTION_MAP: Record<SpriteAction, AnimationState> = {
   Heal:       "heal",
   // ─── Air
   JumpAttack: "jumpattack",
+  // ─── Visual effects
+  Effect1:    "effect1",
+  Effect2:    "effect2",
+  Effect3:    "effect3",
+  Effect4:    "effect4",
+  // ─── Auras
+  Aura1:      "aura1",
+  Aura2:      "aura2",
   // ─── Defense
   Block:      "block",
   Parry:      "parry",
@@ -86,20 +104,33 @@ const EFFECT_MAP: Partial<Record<SpriteAction, EffectType>> = {
   Class3:     "attack3_effect",
   Special:    "attack3_effect",
   JumpAttack: "attack_effect",
+  Effect1:    "cast_effect",
+  Effect2:    "cast_effect",
+  Effect3:    "attack3_effect",
+  Effect4:    "attack3_effect",
   Cast:       "cast_effect",
   Heal:       "heal_effect",
 };
 
 /** One-shot actions that should auto-return to idle when returnToIdle is true */
 const ONE_SHOT_ACTIONS = new Set<SpriteAction>([
+  // Attacks
   "Attack", "Attack2", "Attack3", "Attack4",
+  // Class / special
   "Class1", "Class2", "Class3",
   "Special", "Cast", "Heal",
+  // Air
   "JumpAttack", "Jump",
+  // Effects (one-shot bursts)
+  "Effect1", "Effect2", "Effect3", "Effect4",
+  // Defense
   "Block", "Parry",
+  // Mobility
   "Dodge", "Roll", "Dash",
   "Turn", "GetUp",
+  // Damage
   "Hurt",
+  // NOTE: Move1-4 and Aura1-2 are NOT in ONE_SHOT — they loop
 ]);
 
 export default function SpriteAnimator({ 

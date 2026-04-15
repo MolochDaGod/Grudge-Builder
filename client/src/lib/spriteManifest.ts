@@ -60,17 +60,23 @@ export type AnimationState =
   | "idle" | "walk" | "walk2" | "run"
   | "jump"    | "swim"    | "climb"  | "turn"
   | "getup"   | "dodge"   | "roll"
+  // ─── Movement variants (sprint styles, stances, unique locomotion) ─
+  | "move1"   | "move2"   | "move3"  | "move4"
   // ─── Attacks (look for these even if the sprite doesn't have them) ─
   | "attack"  | "attack2" | "attack3" | "attack4"
-  // ─── Class-specific skills (class-unique combos / specials) ─────────
+  // ─── Class-specific skills (class-unique combos / specials) ────────
   | "class1"  | "class2"  | "class3"
-  // ─── Special / magic ──────────────────────────────────────────────
+  // ─── Special / magic ───────────────────────────────────────────────
   | "special" | "cast"    | "heal"
-  // ─── Air attacks ──────────────────────────────────────────────────
+  // ─── Air attacks ───────────────────────────────────────────────────
   | "jumpattack"
-  // ─── Defense ──────────────────────────────────────────────────────
+  // ─── Visual effects (particle bursts, summons, transformations) ────
+  | "effect1" | "effect2" | "effect3" | "effect4"
+  // ─── Auras (persistent looping overlays — buff, curse, stance) ─────
+  | "aura1"   | "aura2"
+  // ─── Defense ───────────────────────────────────────────────────────
   | "block"   | "parry"
-  // ─── Damage / death ───────────────────────────────────────────────
+  // ─── Damage / death ────────────────────────────────────────────────
   | "hurt"    | "death";
 
 export type EffectType = "attack_effect" | "attack2_effect" | "attack3_effect" | "cast_effect" | "heal_effect" | "projectile";
@@ -707,6 +713,11 @@ const DEFAULT_ANIMATIONS: Record<AnimationState, SpriteAnimation> = {
   getup:      { frameCount: 6, fps: 10, loop: false, file: "GetUp.png" },
   dodge:      { frameCount: 6, fps: 14, loop: false, file: "Dodge.png" },
   roll:       { frameCount: 8, fps: 14, loop: false, file: "Roll.png" },
+  // ─── Movement variants ────────────────────────────────────────────
+  move1:      { frameCount: 8, fps: 10, loop: true,  file: "Move01.png" },
+  move2:      { frameCount: 8, fps: 10, loop: true,  file: "Move02.png" },
+  move3:      { frameCount: 8, fps: 12, loop: true,  file: "Move03.png" },
+  move4:      { frameCount: 8, fps: 12, loop: true,  file: "Move04.png" },
   // ─── Attacks ──────────────────────────────────────────────────────
   attack:     { frameCount: 6, fps: 12, loop: false, file: "Attack01.png" },
   attack2:    { frameCount: 6, fps: 12, loop: false, file: "Attack02.png" },
@@ -722,6 +733,14 @@ const DEFAULT_ANIMATIONS: Record<AnimationState, SpriteAnimation> = {
   heal:       { frameCount: 6, fps: 10, loop: false, file: "Heal.png" },
   // ─── Air attack ───────────────────────────────────────────────────
   jumpattack: { frameCount: 6, fps: 14, loop: false, file: "JumpAttack.png" },
+  // ─── Visual effects (one-shot) ────────────────────────────────────
+  effect1:    { frameCount: 8, fps: 12, loop: false, file: "Effect01.png" },
+  effect2:    { frameCount: 8, fps: 12, loop: false, file: "Effect02.png" },
+  effect3:    { frameCount: 8, fps: 12, loop: false, file: "Effect03.png" },
+  effect4:    { frameCount: 8, fps: 12, loop: false, file: "Effect04.png" },
+  // ─── Auras (looping overlay) ──────────────────────────────────────
+  aura1:      { frameCount: 6, fps: 8,  loop: true,  file: "Aura01.png" },
+  aura2:      { frameCount: 6, fps: 8,  loop: true,  file: "Aura02.png" },
   // ─── Defense ──────────────────────────────────────────────────────
   block:      { frameCount: 4, fps: 8,  loop: false, file: "Block.png" },
   parry:      { frameCount: 4, fps: 16, loop: false, file: "Parry.png" },
@@ -773,6 +792,12 @@ export function getAttackAnimations(id: string): AnimationState[] {
     "special", "cast", "heal",
     // Air
     "jumpattack",
+    // Movement variants
+    "move1", "move2", "move3", "move4",
+    // Visual effects
+    "effect1", "effect2", "effect3", "effect4",
+    // Auras
+    "aura1", "aura2",
     // Mobility actions
     "jump", "dodge", "roll",
     // Defense
@@ -808,11 +833,83 @@ export function hasEffect(id: string, animState: AnimationState): boolean {
   return getEffectForAnimation(id, animState) !== null;
 }
 
+/**
+ * Cascade fallback chains for animations.
+ * When a sprite doesn't have the requested state, try each fallback in
+ * order before giving up to idle.
+ *
+ * Rule: always fall back to a simpler / lower-numbered version first.
+ *   attack4 → attack3 → attack2 → attack
+ *   class3  → class2  → class1  → special → attack
+ *   etc.
+ */
+const ANIMATION_FALLBACKS: Partial<Record<AnimationState, AnimationState[]>> = {
+  // ─── Attacks: cascade down to attack1 ─────────────────────────────
+  attack4:    ["attack3", "attack2", "attack"],
+  attack3:    ["attack2", "attack"],
+  attack2:    ["attack"],
+  // ─── Class skills: cascade down, then try special / attack ────────
+  class3:     ["class2", "class1", "special", "attack"],
+  class2:     ["class1", "special", "attack"],
+  class1:     ["special", "attack"],
+  // ─── Special / magic ───────────────────────────────────────────────
+  special:    ["cast", "attack"],
+  heal:       ["cast"],
+  // ─── Visual effects: cascade down to effect1, then special/cast ───
+  effect4:    ["effect3", "effect2", "effect1", "special", "cast"],
+  effect3:    ["effect2", "effect1", "special", "cast"],
+  effect2:    ["effect1", "special", "cast"],
+  effect1:    ["special", "cast"],
+  // ─── Auras: cascade down, then idle (auras loop) ──────────────────
+  aura2:      ["aura1"],
+  aura1:      [],   // shows idle if missing
+  // ─── Air ───────────────────────────────────────────────────────────
+  jumpattack: ["attack", "jump"],
+  jump:       ["run"],
+  // ─── Defense ───────────────────────────────────────────────────────
+  parry:      ["block"],
+  block:      [],
+  // ─── Movement variants: cascade down to walk ──────────────────────
+  move4:      ["move3", "move2", "move1", "run", "walk"],
+  move3:      ["move2", "move1", "run", "walk"],
+  move2:      ["move1", "run", "walk"],
+  move1:      ["run", "walk"],
+  // ─── Mobility ──────────────────────────────────────────────────────
+  dodge:      ["roll", "run"],
+  roll:       ["dodge", "run"],
+  run:        ["walk"],
+  walk2:      ["walk"],
+  swim:       ["walk"],
+  climb:      ["walk"],
+  turn:       [],
+  getup:      ["hurt"],
+  // ─── Damage — these should always exist, but just in case ─────────
+  hurt:       [],
+  death:      [],
+};
+
+/**
+ * Resolve the best available animation for a unit + requested state.
+ *
+ * 1. Return the animation if the unit has it directly.
+ * 2. Walk ANIMATION_FALLBACKS in order — return the first one found.
+ * 3. Fall back to idle as a last resort.
+ *
+ * This means requesting "attack4" on a sprite that only has attack2
+ * will silently show attack2 instead of a broken frame.
+ */
 export function getAnimation(unit: SpriteUnit, state: AnimationState): SpriteAnimation {
-  const anim = unit.animations[state];
-  if (anim) return anim;
-  if (unit.animations.idle) return unit.animations.idle;
-  return DEFAULT_ANIMATIONS.idle;
+  // 1. Direct hit
+  if (unit.animations[state]) return unit.animations[state]!;
+
+  // 2. Walk the fallback chain
+  const chain = ANIMATION_FALLBACKS[state] ?? [];
+  for (const fallback of chain) {
+    if (unit.animations[fallback]) return unit.animations[fallback]!;
+  }
+
+  // 3. Idle as ultimate fallback
+  return unit.animations.idle ?? DEFAULT_ANIMATIONS.idle;
 }
 
 const spriteUrlCache: Map<string, string> = new Map();

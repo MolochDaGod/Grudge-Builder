@@ -225,6 +225,12 @@ const ACTION_DROPDOWN_ACTIONS: SpriteAction[] = [
   "Special", "Cast", "Heal",
   // Air
   "JumpAttack", "Jump",
+  // Movement variants
+  "Move1", "Move2", "Move3", "Move4",
+  // Visual effects
+  "Effect1", "Effect2", "Effect3", "Effect4",
+  // Auras
+  "Aura1", "Aura2",
   // Defense
   "Parry",
   // Mobility
@@ -825,50 +831,77 @@ export default function CharacterBuilder() {
                              const attackAnims = getAttackAnimations(activeSpriteSet);
                              const animLabels: Record<AnimationState, { label: string; icon: string }> = {
                                // ─── Locomotion
-                               idle:       { label: "Idle",        icon: "🧍" },
-                               walk:       { label: "Walk",        icon: "🚶" },
-                               walk2:      { label: "Walk 2",      icon: "🚶" },
-                               run:        { label: "Run",         icon: "🏃" },
-                               jump:       { label: "Jump",        icon: "🦘" },
-                               swim:       { label: "Swim",        icon: "🏊" },
-                               climb:      { label: "Climb",       icon: "🧗" },
-                               turn:       { label: "Turn",        icon: "🔄" },
-                               getup:      { label: "Get Up",      icon: "⬆️" },
-                               dodge:      { label: "Dodge",       icon: "💨" },
-                               roll:       { label: "Roll",        icon: "🌀" },
+                               idle:       { label: "Idle",          icon: "🧍" },
+                               walk:       { label: "Walk",          icon: "🚶" },
+                               walk2:      { label: "Walk 2",        icon: "🚶" },
+                               run:        { label: "Run",           icon: "🏃" },
+                               jump:       { label: "Jump",          icon: "🦘" },
+                               swim:       { label: "Swim",          icon: "🏊" },
+                               climb:      { label: "Climb",         icon: "🧗" },
+                               turn:       { label: "Turn",          icon: "🔄" },
+                               getup:      { label: "Get Up",        icon: "⬆️" },
+                               dodge:      { label: "Dodge",         icon: "💨" },
+                               roll:       { label: "Roll",          icon: "🌀" },
+                               // ─── Movement variants
+                               move1:      { label: "Move 1",        icon: "🚴" },
+                               move2:      { label: "Move 2",        icon: "🚴" },
+                               move3:      { label: "Move 3",        icon: "🚴‍♂️" },
+                               move4:      { label: "Move 4",        icon: "🚴‍♂️" },
                                // ─── Attacks
-                               attack:     { label: "Attack 1",    icon: "⚔️" },
-                               attack2:    { label: "Attack 2",    icon: "🗡️" },
-                               attack3:    { label: "Attack 3",    icon: "💥" },
-                               attack4:    { label: "Attack 4",    icon: "🌪️" },
+                               attack:     { label: "Attack 1",      icon: "⚔️" },
+                               attack2:    { label: "Attack 2",      icon: "🗡️" },
+                               attack3:    { label: "Attack 3",      icon: "💥" },
+                               attack4:    { label: "Attack 4",      icon: "🌪️" },
                                // ─── Class skills
                                class1:     { label: "Class Skill 1", icon: "🔥" },
                                class2:     { label: "Class Skill 2", icon: "❄️" },
                                class3:     { label: "Class Skill 3", icon: "⚡" },
                                // ─── Special / magic
-                               special:    { label: "Special",     icon: "🌟" },
-                               cast:       { label: "Cast Spell",  icon: "✨" },
-                               heal:       { label: "Heal",        icon: "💚" },
+                               special:    { label: "Special",       icon: "🌟" },
+                               cast:       { label: "Cast Spell",    icon: "✨" },
+                               heal:       { label: "Heal",          icon: "💚" },
                                // ─── Air
-                               jumpattack: { label: "Jump Attack", icon: "🦅" },
+                               jumpattack: { label: "Jump Attack",   icon: "🦅" },
+                               // ─── Visual effects
+                               effect1:    { label: "Effect 1",      icon: "💠" },
+                               effect2:    { label: "Effect 2",      icon: "💠" },
+                               effect3:    { label: "Effect 3",      icon: "⭐" },
+                               effect4:    { label: "Effect 4",      icon: "⭐" },
+                               // ─── Auras
+                               aura1:      { label: "Aura 1",        icon: "🟡" },
+                               aura2:      { label: "Aura 2",        icon: "🔵" },
                                // ─── Defense
-                               block:      { label: "Block",       icon: "🛡️" },
-                               parry:      { label: "Parry",       icon: "🤺" },
+                               block:      { label: "Block",         icon: "🛡️" },
+                               parry:      { label: "Parry",         icon: "🤺" },
                                // ─── Damage / death
-                               hurt:       { label: "Hurt",        icon: "💢" },
-                               death:      { label: "Death",       icon: "💀" },
+                               hurt:       { label: "Hurt",          icon: "💢" },
+                               death:      { label: "Death",         icon: "💀" },
                              };
                              return attackAnims.map(anim => (
                                <DropdownMenuItem 
                                  key={anim}
                                  onClick={() => {
                                    // Convert AnimationState key to SpriteAction (e.g. 'jumpattack' → 'JumpAttack')
-                                   const actionKey = anim === 'jumpattack' ? 'JumpAttack'
-                                     : anim === 'getup' ? 'GetUp'
-                                     : anim === 'class1' ? 'Class1'
-                                     : anim === 'class2' ? 'Class2'
-                                     : anim === 'class3' ? 'Class3'
-                                     : (anim.charAt(0).toUpperCase() + anim.slice(1)) as SpriteAction;
+                                   // Normalise AnimationState key → SpriteAction
+                                   const normaliseMap: Partial<Record<string, SpriteAction>> = {
+                                     jumpattack: 'JumpAttack',
+                                     getup:      'GetUp',
+                                     class1:     'Class1',
+                                     class2:     'Class2',
+                                     class3:     'Class3',
+                                     move1:      'Move1',
+                                     move2:      'Move2',
+                                     move3:      'Move3',
+                                     move4:      'Move4',
+                                     effect1:    'Effect1',
+                                     effect2:    'Effect2',
+                                     effect3:    'Effect3',
+                                     effect4:    'Effect4',
+                                     aura1:      'Aura1',
+                                     aura2:      'Aura2',
+                                   };
+                                   const actionKey = normaliseMap[anim]
+                                     ?? (anim.charAt(0).toUpperCase() + anim.slice(1)) as SpriteAction;
                                    setCurrentAction(actionKey as SpriteAction);
                                  }}
                                  className="text-slate-300 hover:bg-slate-800 cursor-pointer"
