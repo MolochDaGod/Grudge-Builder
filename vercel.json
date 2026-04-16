@@ -12,11 +12,7 @@
     },
     {
       "source": "/api/auth/:path*",
-      "destination": "https://api.grudge-studio.com/api/auth/:path*"
-    },
-    {
-      "source": "/auth/:path*",
-      "destination": "https://api.grudge-studio.com/auth/:path*"
+      "destination": "https://id.grudge-studio.com/auth/:path*"
     },
     {
       "source": "/api/wallet",
