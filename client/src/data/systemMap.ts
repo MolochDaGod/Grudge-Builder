@@ -73,8 +73,11 @@ export interface ReadinessRow {
 // Domains
 // ---------------------------------------------------------------------------
 const domains: SystemNode[] = [
-  { id: "dom:grudgewarlords.com", label: "grudgewarlords.com", kind: "domain", status: "live", group: "frontend", url: "https://grudgewarlords.com", notes: "Vercel frontend (this repo)." },
-  { id: "dom:client.g-s.com",     label: "client.grudge-studio.com", kind: "domain", status: "live", group: "frontend", url: "https://client.grudge-studio.com", notes: "Vercel alias for Grudge-Engine-Web." },
+  { id: "dom:grudgewarlords.com", label: "grudgewarlords.com", kind: "domain", status: "live", group: "frontend", url: "https://grudgewarlords.com", notes: "Grudge Warlords (this repo, GrudgeBuilder). Three.js stack, Vercel." },
+  { id: "dom:client.g-s.com",     label: "client.grudge-studio.com", kind: "domain", status: "live", group: "frontend", url: "https://client.grudge-studio.com", notes: "Vercel alias for Grudge Warlords (this repo) — see vercel.json." },
+  { id: "dom:grudge-studio.com",  label: "grudge-studio.com",         kind: "domain", status: "live", group: "portal",   url: "https://grudge-studio.com", notes: "Rec0deD:88 gaming portal (emu games, accounts, tournaments, betting). Separate Vercel app — source repo TBD." },
+  { id: "dom:engine.g-s.com",     label: "engine.grudge-studio.com",  kind: "domain", status: "live", group: "engine",   url: "https://engine.grudge-studio.com", notes: "Grudge-Engine-Web (Babylon-based 3D editor). VPS Docker/Coolify — separate repo." },
+  { id: "dom:grudge-engine.vercel.app", label: "grudge-engine-web.vercel.app", kind: "domain", status: "live", group: "engine", url: "https://grudge-engine-web.vercel.app", notes: "Vercel preview of Grudge-Engine-Web." },
   { id: "dom:id.g-s.com",         label: "id.grudge-studio.com",     kind: "domain", status: "live", group: "auth",    url: "https://id.grudge-studio.com" },
   { id: "dom:api.g-s.com",        label: "api.grudge-studio.com",    kind: "domain", status: "live", group: "backend", url: "https://api.grudge-studio.com/api/health" },
   { id: "dom:account.g-s.com",    label: "account.grudge-studio.com",kind: "domain", status: "live", group: "backend", url: "https://account.grudge-studio.com/health" },
@@ -101,7 +104,9 @@ const services: SystemNode[] = [
   { id: "svc:os-static",      label: "ObjectStore JSON API",kind: "service", status: "live", group: "assets",  owner: "platform", repo: "ObjectStore", notes: "Static GitHub Pages, 55+ endpoints." },
   { id: "svc:ai-worker",      label: "Gruda Legion AI",     kind: "service", status: "live", group: "ai",      owner: "platform", repo: "grudge-ai-hub" },
   { id: "svc:dashboard",      label: "Admin Dashboard",     kind: "service", status: "live", group: "admin",   owner: "platform", repo: "grudge-studio-dash" },
-  { id: "svc:frontend",       label: "GrudgeBuilder (this SPA)", kind: "service", status: "live", group: "frontend", owner: "frontend", repo: "Grudge-Builder" },
+  { id: "svc:frontend",       label: "Grudge Warlords (Three.js SPA)", kind: "service", status: "live", group: "frontend", owner: "frontend", repo: "Grudge-Builder", notes: "This repo. React 19 + Three.js (no Babylon)." },
+  { id: "svc:engine-web",     label: "Grudge-Engine-Web (Babylon editor)", kind: "service", status: "live", group: "engine", owner: "platform", repo: "Grudge-Engine-Web", notes: "Separate app. VPS Docker/Coolify + Vercel preview. Not used by Warlords runtime." },
+  { id: "svc:gaming-portal",  label: "Rec0deD:88 gaming portal", kind: "service", status: "live", group: "portal", owner: "platform", notes: "grudge-studio.com. Emu library (~1360 NES games) + accounts/tournaments/betting. Source repo TBD." },
   { id: "svc:colyseus-lobby", label: "Colyseus lobby",      kind: "service", status: "live", group: "realtime",owner: "backend", notes: "Dev mode only; WS prod pending ws.g-s.com." },
   { id: "svc:colyseus-dungeon", label: "Colyseus dungeon",  kind: "service", status: "live", group: "realtime",owner: "backend" },
   { id: "svc:launcher",       label: "Launcher service",    kind: "service", status: "planned", group: "launcher", owner: "platform", notes: "Version manifest + entitlements + auto-update." },
@@ -244,7 +249,7 @@ const repos: SystemNode[] = [
   { id: "repo:grudge-ai-hub",     label: "grudge-ai-hub",     kind: "repo", status: "live", group: "ai",       url: "https://github.com/MolochDaGod/grudge-ai-hub" },
   { id: "repo:grudge-arena",      label: "grudge-arena",      kind: "repo", status: "live", group: "combat",   url: "https://github.com/MolochDaGod/grudge-arena" },
   { id: "repo:grudge-studio-game",label: "Grudge-Studio-Game",kind: "repo", status: "live", group: "frontend", url: "https://github.com/MolochDaGod/Grudge-Studio-Game" },
-  { id: "repo:grudge-engine-web", label: "Grudge-Engine-Web", kind: "repo", status: "live", group: "frontend", url: "https://github.com/MolochDaGod/Grudge-Engine-Web" },
+  { id: "repo:grudge-engine-web", label: "Grudge-Engine-Web", kind: "repo", status: "live", group: "engine", url: "https://github.com/MolochDaGod/Grudge-Engine-Web", notes: "Babylon + editor. Deploy via deploy.ps1 -> VPS (engine.g-s.com) or Vercel (grudge-engine-web.vercel.app)." },
   { id: "repo:gruda-legion-sdk", label: "gruda-legion-sdk",   kind: "repo", status: "live", group: "ai",       url: "https://github.com/MolochDaGod/gruda-legion-sdk" },
   { id: "repo:mission",           label: "Grudge-Studio-Mission", kind: "repo", status: "live", group: "ops",  url: "https://github.com/Grudge-Warlords/Grudge-Studio-Mission", notes: "North-star mission, architecture, roadmap." },
 ];
@@ -257,6 +262,11 @@ const edges: SystemEdge[] = [];
 // Domain -> service hosting
 edges.push(
   { source: "dom:grudgewarlords.com", target: "svc:frontend",   kind: "routes-to" },
+  { source: "dom:client.g-s.com",     target: "svc:frontend",   kind: "routes-to", notes: "Vercel alias of this repo." },
+  { source: "dom:engine.g-s.com",     target: "svc:engine-web", kind: "routes-to" },
+  { source: "dom:grudge-engine.vercel.app", target: "svc:engine-web", kind: "routes-to" },
+  { source: "dom:grudge-studio.com",  target: "svc:gaming-portal", kind: "routes-to" },
+  { source: "repo:grudge-engine-web", target: "svc:engine-web", kind: "deploys-from" },
   { source: "dom:id.g-s.com",         target: "svc:grudge-id",  kind: "routes-to" },
   { source: "dom:api.g-s.com",        target: "svc:game-api",   kind: "routes-to" },
   { source: "dom:api.g-s.com",        target: "svc:wallet-svc", kind: "routes-to" },

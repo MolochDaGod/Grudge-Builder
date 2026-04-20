@@ -1,6 +1,8 @@
-# Grudge Builder
+# Grudge Builder — Grudge Warlords deployment
 
-Dark fantasy RPG game builder — character creation, turn-based combat, dungeons, islands, professions, and skill trees. Part of the **Grudge Studio** ecosystem.
+This repo ships the **Grudge Warlords** web game at [grudgewarlords.com](https://grudgewarlords.com) (also aliased at `client.grudge-studio.com`). Character creation, turn-based combat, dungeons, islands, professions, skill trees.
+
+**Stack: React 19 + Three.js.** Babylon is *not* used here — the Babylon-based editor lives in a separate repo ([Grudge-Engine-Web](https://github.com/MolochDaGod/Grudge-Engine-Web), deployed to `engine.grudge-studio.com`) and is not consumed by this runtime.
 
 ## Live Services
 
@@ -150,6 +152,7 @@ const { data: weapons, isLoading, error, refetch } = useWeapons();
 ## Tech Stack
 
 - **Frontend**: React 19, TypeScript, Vite 7, TailwindCSS 4, Radix UI
+- **3D**: Three.js (no Babylon). See `client/src/island3d/**`, `components/ThreeScene.tsx`, `components/CharacterModel3D.tsx`.
 - **Animation**: Framer Motion, Phaser (dungeon engine)
 - **State**: TanStack Query, Grudge ID server-side (no localStorage for player data)
 - **Multiplayer**: Colyseus (WebSocket rooms)

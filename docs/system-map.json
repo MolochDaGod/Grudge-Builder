@@ -1,0 +1,1835 @@
+{
+  "generatedAt": "2026-04-20T13:46:08.558Z",
+  "counts": {
+    "nodes": 121,
+    "edges": 137,
+    "readiness": 13
+  },
+  "nodes": [
+    {
+      "id": "dom:grudgewarlords.com",
+      "label": "grudgewarlords.com",
+      "kind": "domain",
+      "status": "live",
+      "group": "frontend",
+      "url": "https://grudgewarlords.com",
+      "notes": "Grudge Warlords (this repo, GrudgeBuilder). Three.js stack, Vercel."
+    },
+    {
+      "id": "dom:client.g-s.com",
+      "label": "client.grudge-studio.com",
+      "kind": "domain",
+      "status": "live",
+      "group": "frontend",
+      "url": "https://client.grudge-studio.com",
+      "notes": "Vercel alias for Grudge Warlords (this repo) — see vercel.json."
+    },
+    {
+      "id": "dom:grudge-studio.com",
+      "label": "grudge-studio.com",
+      "kind": "domain",
+      "status": "live",
+      "group": "portal",
+      "url": "https://grudge-studio.com",
+      "notes": "Rec0deD:88 gaming portal (emu games, accounts, tournaments, betting). Separate Vercel app — source repo TBD."
+    },
+    {
+      "id": "dom:engine.g-s.com",
+      "label": "engine.grudge-studio.com",
+      "kind": "domain",
+      "status": "live",
+      "group": "engine",
+      "url": "https://engine.grudge-studio.com",
+      "notes": "Grudge-Engine-Web (Babylon-based 3D editor). VPS Docker/Coolify — separate repo."
+    },
+    {
+      "id": "dom:grudge-engine.vercel.app",
+      "label": "grudge-engine-web.vercel.app",
+      "kind": "domain",
+      "status": "live",
+      "group": "engine",
+      "url": "https://grudge-engine-web.vercel.app",
+      "notes": "Vercel preview of Grudge-Engine-Web."
+    },
+    {
+      "id": "dom:id.g-s.com",
+      "label": "id.grudge-studio.com",
+      "kind": "domain",
+      "status": "live",
+      "group": "auth",
+      "url": "https://id.grudge-studio.com"
+    },
+    {
+      "id": "dom:api.g-s.com",
+      "label": "api.grudge-studio.com",
+      "kind": "domain",
+      "status": "live",
+      "group": "backend",
+      "url": "https://api.grudge-studio.com/api/health"
+    },
+    {
+      "id": "dom:account.g-s.com",
+      "label": "account.grudge-studio.com",
+      "kind": "domain",
+      "status": "live",
+      "group": "backend",
+      "url": "https://account.grudge-studio.com/health"
+    },
+    {
+      "id": "dom:assets.g-s.com",
+      "label": "assets.grudge-studio.com",
+      "kind": "domain",
+      "status": "live",
+      "group": "assets",
+      "url": "https://assets.grudge-studio.com"
+    },
+    {
+      "id": "dom:objectstore.g-s.com",
+      "label": "objectstore.grudge-studio.com",
+      "kind": "domain",
+      "status": "live",
+      "group": "assets",
+      "url": "https://objectstore.grudge-studio.com/health"
+    },
+    {
+      "id": "dom:dash.g-s.com",
+      "label": "dash.grudge-studio.com",
+      "kind": "domain",
+      "status": "live",
+      "group": "admin",
+      "url": "https://dash.grudge-studio.com"
+    },
+    {
+      "id": "dom:ai.g-s.com",
+      "label": "ai.grudge-studio.com",
+      "kind": "domain",
+      "status": "live",
+      "group": "ai",
+      "url": "https://ai.grudge-studio.com"
+    },
+    {
+      "id": "dom:objectstore.gh",
+      "label": "molochdagod.github.io/ObjectStore",
+      "kind": "domain",
+      "status": "live",
+      "group": "assets",
+      "url": "https://molochdagod.github.io/ObjectStore"
+    },
+    {
+      "id": "dom:ws.g-s.com",
+      "label": "ws.grudge-studio.com",
+      "kind": "domain",
+      "status": "planned",
+      "group": "realtime",
+      "notes": "WebSocket real-time (Socket.IO/Colyseus)."
+    },
+    {
+      "id": "dom:launcher.g-s.com",
+      "label": "launcher.grudge-studio.com",
+      "kind": "domain",
+      "status": "planned",
+      "group": "launcher",
+      "notes": "Version manifest & entitlements."
+    },
+    {
+      "id": "dom:status.g-s.com",
+      "label": "status.grudge-studio.com",
+      "kind": "domain",
+      "status": "planned",
+      "group": "ops",
+      "notes": "Uptime Kuma status page."
+    },
+    {
+      "id": "svc:grudge-id",
+      "label": "Grudge ID (auth)",
+      "kind": "service",
+      "status": "live",
+      "group": "auth",
+      "owner": "backend",
+      "repo": "grudge-backend",
+      "notes": "JWT + OAuth (Discord, Google, GitHub, Puter, wallet, guest)."
+    },
+    {
+      "id": "svc:game-api",
+      "label": "Game API",
+      "kind": "service",
+      "status": "live",
+      "group": "backend",
+      "owner": "backend",
+      "repo": "grudge-backend"
+    },
+    {
+      "id": "svc:account-api",
+      "label": "Account API",
+      "kind": "service",
+      "status": "live",
+      "group": "backend",
+      "owner": "backend",
+      "repo": "grudge-backend"
+    },
+    {
+      "id": "svc:wallet-svc",
+      "label": "Wallet service",
+      "kind": "service",
+      "status": "live",
+      "group": "backend",
+      "owner": "backend",
+      "repo": "grudge-backend",
+      "notes": "Server-side Solana wallets."
+    },
+    {
+      "id": "svc:r2-cdn",
+      "label": "R2 CDN",
+      "kind": "service",
+      "status": "live",
+      "group": "assets",
+      "owner": "platform"
+    },
+    {
+      "id": "svc:os-worker",
+      "label": "ObjectStore Worker",
+      "kind": "service",
+      "status": "live",
+      "group": "assets",
+      "owner": "platform",
+      "repo": "ObjectStore",
+      "notes": "Cloudflare Worker (R2 + D1)."
+    },
+    {
+      "id": "svc:os-static",
+      "label": "ObjectStore JSON API",
+      "kind": "service",
+      "status": "live",
+      "group": "assets",
+      "owner": "platform",
+      "repo": "ObjectStore",
+      "notes": "Static GitHub Pages, 55+ endpoints."
+    },
+    {
+      "id": "svc:ai-worker",
+      "label": "Gruda Legion AI",
+      "kind": "service",
+      "status": "live",
+      "group": "ai",
+      "owner": "platform",
+      "repo": "grudge-ai-hub"
+    },
+    {
+      "id": "svc:dashboard",
+      "label": "Admin Dashboard",
+      "kind": "service",
+      "status": "live",
+      "group": "admin",
+      "owner": "platform",
+      "repo": "grudge-studio-dash"
+    },
+    {
+      "id": "svc:frontend",
+      "label": "Grudge Warlords (Three.js SPA)",
+      "kind": "service",
+      "status": "live",
+      "group": "frontend",
+      "owner": "frontend",
+      "repo": "Grudge-Builder",
+      "notes": "This repo. React 19 + Three.js (no Babylon)."
+    },
+    {
+      "id": "svc:engine-web",
+      "label": "Grudge-Engine-Web (Babylon editor)",
+      "kind": "service",
+      "status": "live",
+      "group": "engine",
+      "owner": "platform",
+      "repo": "Grudge-Engine-Web",
+      "notes": "Separate app. VPS Docker/Coolify + Vercel preview. Not used by Warlords runtime."
+    },
+    {
+      "id": "svc:gaming-portal",
+      "label": "Rec0deD:88 gaming portal",
+      "kind": "service",
+      "status": "live",
+      "group": "portal",
+      "owner": "platform",
+      "notes": "grudge-studio.com. Emu library (~1360 NES games) + accounts/tournaments/betting. Source repo TBD."
+    },
+    {
+      "id": "svc:colyseus-lobby",
+      "label": "Colyseus lobby",
+      "kind": "service",
+      "status": "live",
+      "group": "realtime",
+      "owner": "backend",
+      "notes": "Dev mode only; WS prod pending ws.g-s.com."
+    },
+    {
+      "id": "svc:colyseus-dungeon",
+      "label": "Colyseus dungeon",
+      "kind": "service",
+      "status": "live",
+      "group": "realtime",
+      "owner": "backend"
+    },
+    {
+      "id": "svc:launcher",
+      "label": "Launcher service",
+      "kind": "service",
+      "status": "planned",
+      "group": "launcher",
+      "owner": "platform",
+      "notes": "Version manifest + entitlements + auto-update."
+    },
+    {
+      "id": "svc:status-page",
+      "label": "Status page",
+      "kind": "service",
+      "status": "planned",
+      "group": "ops",
+      "owner": "platform"
+    },
+    {
+      "id": "route:/",
+      "label": "/",
+      "kind": "frontendRoute",
+      "status": "live",
+      "group": "account",
+      "url": "https://grudgewarlords.com/"
+    },
+    {
+      "id": "route:/auth/callback",
+      "label": "/auth/callback",
+      "kind": "frontendRoute",
+      "status": "live",
+      "group": "account",
+      "url": "https://grudgewarlords.com/auth/callback"
+    },
+    {
+      "id": "route:/intro",
+      "label": "/intro",
+      "kind": "frontendRoute",
+      "status": "live",
+      "group": "account",
+      "url": "https://grudgewarlords.com/intro"
+    },
+    {
+      "id": "route:/home",
+      "label": "/home",
+      "kind": "frontendRoute",
+      "status": "live",
+      "group": "account",
+      "url": "https://grudgewarlords.com/home"
+    },
+    {
+      "id": "route:/account",
+      "label": "/account",
+      "kind": "frontendRoute",
+      "status": "live",
+      "group": "account",
+      "url": "https://grudgewarlords.com/account"
+    },
+    {
+      "id": "route:/wallet",
+      "label": "/wallet",
+      "kind": "frontendRoute",
+      "status": "live",
+      "group": "account",
+      "url": "https://grudgewarlords.com/wallet"
+    },
+    {
+      "id": "route:/launcher",
+      "label": "/launcher",
+      "kind": "frontendRoute",
+      "status": "live",
+      "group": "account",
+      "url": "https://grudgewarlords.com/launcher",
+      "notes": "Depends on planned launcher.g-s.com."
+    },
+    {
+      "id": "route:/character",
+      "label": "/character",
+      "kind": "frontendRoute",
+      "status": "live",
+      "group": "character",
+      "url": "https://grudgewarlords.com/character"
+    },
+    {
+      "id": "route:/characters",
+      "label": "/characters",
+      "kind": "frontendRoute",
+      "status": "live",
+      "group": "character",
+      "url": "https://grudgewarlords.com/characters",
+      "notes": "Alias of /character — candidate for dedup."
+    },
+    {
+      "id": "route:/character-gallery",
+      "label": "/character-gallery",
+      "kind": "frontendRoute",
+      "status": "live",
+      "group": "character",
+      "url": "https://grudgewarlords.com/character-gallery"
+    },
+    {
+      "id": "route:/hero-codex",
+      "label": "/hero-codex",
+      "kind": "frontendRoute",
+      "status": "live",
+      "group": "character",
+      "url": "https://grudgewarlords.com/hero-codex"
+    },
+    {
+      "id": "route:/arsenal",
+      "label": "/arsenal",
+      "kind": "frontendRoute",
+      "status": "live",
+      "group": "character",
+      "url": "https://grudgewarlords.com/arsenal"
+    },
+    {
+      "id": "route:/skills",
+      "label": "/skills",
+      "kind": "frontendRoute",
+      "status": "live",
+      "group": "character",
+      "url": "https://grudgewarlords.com/skills"
+    },
+    {
+      "id": "route:/skill-tree",
+      "label": "/skill-tree",
+      "kind": "frontendRoute",
+      "status": "live",
+      "group": "character",
+      "url": "https://grudgewarlords.com/skill-tree",
+      "notes": "Alias of /skills."
+    },
+    {
+      "id": "route:/combat",
+      "label": "/combat",
+      "kind": "frontendRoute",
+      "status": "live",
+      "group": "combat",
+      "url": "https://grudgewarlords.com/combat"
+    },
+    {
+      "id": "route:/rpg-battle",
+      "label": "/rpg-battle",
+      "kind": "frontendRoute",
+      "status": "live",
+      "group": "combat",
+      "url": "https://grudgewarlords.com/rpg-battle"
+    },
+    {
+      "id": "route:/dungeon",
+      "label": "/dungeon",
+      "kind": "frontendRoute",
+      "status": "live",
+      "group": "combat",
+      "url": "https://grudgewarlords.com/dungeon"
+    },
+    {
+      "id": "route:/dungeon-tiled",
+      "label": "/dungeon-tiled",
+      "kind": "frontendRoute",
+      "status": "live",
+      "group": "combat",
+      "url": "https://grudgewarlords.com/dungeon-tiled",
+      "notes": "Alias of /dungeon."
+    },
+    {
+      "id": "route:/tower-wars",
+      "label": "/tower-wars",
+      "kind": "frontendRoute",
+      "status": "live",
+      "group": "combat",
+      "url": "https://grudgewarlords.com/tower-wars"
+    },
+    {
+      "id": "route:/island",
+      "label": "/island",
+      "kind": "frontendRoute",
+      "status": "live",
+      "group": "world",
+      "url": "https://grudgewarlords.com/island"
+    },
+    {
+      "id": "route:/island-v2",
+      "label": "/island-v2",
+      "kind": "frontendRoute",
+      "status": "live",
+      "group": "world",
+      "url": "https://grudgewarlords.com/island-v2"
+    },
+    {
+      "id": "route:/island-3d",
+      "label": "/island-3d",
+      "kind": "frontendRoute",
+      "status": "live",
+      "group": "world",
+      "url": "https://grudgewarlords.com/island-3d"
+    },
+    {
+      "id": "route:/island-phaser",
+      "label": "/island-phaser",
+      "kind": "frontendRoute",
+      "status": "live",
+      "group": "world",
+      "url": "https://grudgewarlords.com/island-phaser"
+    },
+    {
+      "id": "route:/island-grid-test",
+      "label": "/island-grid-test",
+      "kind": "frontendRoute",
+      "status": "deprecated",
+      "group": "world",
+      "url": "https://grudgewarlords.com/island-grid-test",
+      "notes": "Looks like scratch/test page."
+    },
+    {
+      "id": "route:/world-map",
+      "label": "/world-map",
+      "kind": "frontendRoute",
+      "status": "live",
+      "group": "world",
+      "url": "https://grudgewarlords.com/world-map"
+    },
+    {
+      "id": "route:/missions",
+      "label": "/missions",
+      "kind": "frontendRoute",
+      "status": "live",
+      "group": "world",
+      "url": "https://grudgewarlords.com/missions"
+    },
+    {
+      "id": "route:/harvest",
+      "label": "/harvest",
+      "kind": "frontendRoute",
+      "status": "live",
+      "group": "world",
+      "url": "https://grudgewarlords.com/harvest"
+    },
+    {
+      "id": "route:/professions",
+      "label": "/professions",
+      "kind": "frontendRoute",
+      "status": "live",
+      "group": "professions",
+      "url": "https://grudgewarlords.com/professions"
+    },
+    {
+      "id": "route:/profession/miner",
+      "label": "/profession/miner",
+      "kind": "frontendRoute",
+      "status": "live",
+      "group": "professions",
+      "url": "https://grudgewarlords.com/profession/miner"
+    },
+    {
+      "id": "route:/profession/forester",
+      "label": "/profession/forester",
+      "kind": "frontendRoute",
+      "status": "live",
+      "group": "professions",
+      "url": "https://grudgewarlords.com/profession/forester"
+    },
+    {
+      "id": "route:/profession/mystic",
+      "label": "/profession/mystic",
+      "kind": "frontendRoute",
+      "status": "live",
+      "group": "professions",
+      "url": "https://grudgewarlords.com/profession/mystic"
+    },
+    {
+      "id": "route:/profession/chef",
+      "label": "/profession/chef",
+      "kind": "frontendRoute",
+      "status": "live",
+      "group": "professions",
+      "url": "https://grudgewarlords.com/profession/chef"
+    },
+    {
+      "id": "route:/profession/engineer",
+      "label": "/profession/engineer",
+      "kind": "frontendRoute",
+      "status": "live",
+      "group": "professions",
+      "url": "https://grudgewarlords.com/profession/engineer"
+    },
+    {
+      "id": "route:/crafting",
+      "label": "/crafting",
+      "kind": "frontendRoute",
+      "status": "live",
+      "group": "professions",
+      "url": "https://grudgewarlords.com/crafting"
+    },
+    {
+      "id": "route:/database",
+      "label": "/database",
+      "kind": "frontendRoute",
+      "status": "live",
+      "group": "tools",
+      "url": "https://grudgewarlords.com/database"
+    },
+    {
+      "id": "route:/editor",
+      "label": "/editor",
+      "kind": "frontendRoute",
+      "status": "live",
+      "group": "tools",
+      "url": "https://grudgewarlords.com/editor"
+    },
+    {
+      "id": "route:/template-viewer",
+      "label": "/template-viewer",
+      "kind": "frontendRoute",
+      "status": "live",
+      "group": "tools",
+      "url": "https://grudgewarlords.com/template-viewer"
+    },
+    {
+      "id": "route:/sprites",
+      "label": "/sprites",
+      "kind": "frontendRoute",
+      "status": "live",
+      "group": "sprites",
+      "url": "https://grudgewarlords.com/sprites"
+    },
+    {
+      "id": "route:/sprite-editor",
+      "label": "/sprite-editor",
+      "kind": "frontendRoute",
+      "status": "live",
+      "group": "sprites",
+      "url": "https://grudgewarlords.com/sprite-editor"
+    },
+    {
+      "id": "route:/sprite-viewer",
+      "label": "/sprite-viewer",
+      "kind": "frontendRoute",
+      "status": "live",
+      "group": "sprites",
+      "url": "https://grudgewarlords.com/sprite-viewer"
+    },
+    {
+      "id": "route:/sprite-generator",
+      "label": "/sprite-generator",
+      "kind": "frontendRoute",
+      "status": "live",
+      "group": "sprites",
+      "url": "https://grudgewarlords.com/sprite-generator"
+    },
+    {
+      "id": "route:/sprite-library",
+      "label": "/sprite-library",
+      "kind": "frontendRoute",
+      "status": "live",
+      "group": "sprites",
+      "url": "https://grudgewarlords.com/sprite-library"
+    },
+    {
+      "id": "route:/hero-sprites",
+      "label": "/hero-sprites",
+      "kind": "frontendRoute",
+      "status": "live",
+      "group": "sprites",
+      "url": "https://grudgewarlords.com/hero-sprites"
+    },
+    {
+      "id": "route:/race-sprites",
+      "label": "/race-sprites",
+      "kind": "frontendRoute",
+      "status": "live",
+      "group": "sprites",
+      "url": "https://grudgewarlords.com/race-sprites"
+    },
+    {
+      "id": "route:/admin",
+      "label": "/admin",
+      "kind": "frontendRoute",
+      "status": "live",
+      "group": "admin",
+      "url": "https://grudgewarlords.com/admin"
+    },
+    {
+      "id": "route:/admin-map",
+      "label": "/admin-map",
+      "kind": "frontendRoute",
+      "status": "live",
+      "group": "admin",
+      "url": "https://grudgewarlords.com/admin-map"
+    },
+    {
+      "id": "route:/admin-combat",
+      "label": "/admin-combat",
+      "kind": "frontendRoute",
+      "status": "live",
+      "group": "admin",
+      "url": "https://grudgewarlords.com/admin-combat"
+    },
+    {
+      "id": "route:/admin-island-v2",
+      "label": "/admin-island-v2",
+      "kind": "frontendRoute",
+      "status": "live",
+      "group": "admin",
+      "url": "https://grudgewarlords.com/admin-island-v2"
+    },
+    {
+      "id": "route:/sprite-admin",
+      "label": "/sprite-admin",
+      "kind": "frontendRoute",
+      "status": "live",
+      "group": "admin",
+      "url": "https://grudgewarlords.com/sprite-admin"
+    },
+    {
+      "id": "route:/ai-helper",
+      "label": "/ai-helper",
+      "kind": "frontendRoute",
+      "status": "live",
+      "group": "admin",
+      "url": "https://grudgewarlords.com/ai-helper"
+    },
+    {
+      "id": "route:/organizer",
+      "label": "/organizer",
+      "kind": "frontendRoute",
+      "status": "live",
+      "group": "admin",
+      "url": "https://grudgewarlords.com/organizer",
+      "notes": "This page."
+    },
+    {
+      "id": "rw:/api/account/:path*",
+      "label": "/api/account/:path*",
+      "kind": "apiRewrite",
+      "status": "live",
+      "group": "account",
+      "url": "https://api.grudge-studio.com/api/account/:path*"
+    },
+    {
+      "id": "rw:/api/auth/:path*",
+      "label": "/api/auth/:path*",
+      "kind": "apiRewrite",
+      "status": "live",
+      "group": "auth",
+      "url": "https://id.grudge-studio.com/auth/:path*"
+    },
+    {
+      "id": "rw:/api/wallet",
+      "label": "/api/wallet",
+      "kind": "apiRewrite",
+      "status": "live",
+      "group": "wallet",
+      "url": "https://api.grudge-studio.com/api/wallet"
+    },
+    {
+      "id": "rw:/api/wallet/:path*",
+      "label": "/api/wallet/:path*",
+      "kind": "apiRewrite",
+      "status": "live",
+      "group": "wallet",
+      "url": "https://api.grudge-studio.com/api/wallet/:path*"
+    },
+    {
+      "id": "rw:/api/island/:path*",
+      "label": "/api/island/:path*",
+      "kind": "apiRewrite",
+      "status": "live",
+      "group": "world",
+      "url": "https://api.grudge-studio.com/api/island/:path*"
+    },
+    {
+      "id": "rw:/api/nfts",
+      "label": "/api/nfts",
+      "kind": "apiRewrite",
+      "status": "live",
+      "group": "wallet",
+      "url": "https://api.grudge-studio.com/api/nfts"
+    },
+    {
+      "id": "rw:/api/nfts/:path*",
+      "label": "/api/nfts/:path*",
+      "kind": "apiRewrite",
+      "status": "live",
+      "group": "wallet",
+      "url": "https://api.grudge-studio.com/api/nfts/:path*"
+    },
+    {
+      "id": "rw:/api/island-nfts",
+      "label": "/api/island-nfts",
+      "kind": "apiRewrite",
+      "status": "live",
+      "group": "world",
+      "url": "https://api.grudge-studio.com/api/island-nfts"
+    },
+    {
+      "id": "rw:/api/island-nfts/:path*",
+      "label": "/api/island-nfts/:path*",
+      "kind": "apiRewrite",
+      "status": "live",
+      "group": "world",
+      "url": "https://api.grudge-studio.com/api/island-nfts/:path*"
+    },
+    {
+      "id": "rw:/api/professions/:path*",
+      "label": "/api/professions/:path*",
+      "kind": "apiRewrite",
+      "status": "live",
+      "group": "professions",
+      "url": "https://api.grudge-studio.com/api/professions/:path*"
+    },
+    {
+      "id": "rw:/api/inventory/:path*",
+      "label": "/api/inventory/:path*",
+      "kind": "apiRewrite",
+      "status": "live",
+      "group": "character",
+      "url": "https://api.grudge-studio.com/api/inventory/:path*"
+    },
+    {
+      "id": "rw:/api/health",
+      "label": "/api/health",
+      "kind": "apiRewrite",
+      "status": "live",
+      "group": "ops",
+      "url": "https://api.grudge-studio.com/api/health"
+    },
+    {
+      "id": "rw:/api/characters",
+      "label": "/api/characters",
+      "kind": "apiRewrite",
+      "status": "live",
+      "group": "character",
+      "url": "https://api.grudge-studio.com/api/characters"
+    },
+    {
+      "id": "rw:/api/characters/:path*",
+      "label": "/api/characters/:path*",
+      "kind": "apiRewrite",
+      "status": "live",
+      "group": "character",
+      "url": "https://api.grudge-studio.com/api/characters/:path*"
+    },
+    {
+      "id": "rw:/api/party",
+      "label": "/api/party",
+      "kind": "apiRewrite",
+      "status": "live",
+      "group": "combat",
+      "url": "https://api.grudge-studio.com/api/party"
+    },
+    {
+      "id": "rw:/api/party/:path*",
+      "label": "/api/party/:path*",
+      "kind": "apiRewrite",
+      "status": "live",
+      "group": "combat",
+      "url": "https://api.grudge-studio.com/api/party/:path*"
+    },
+    {
+      "id": "rw:/api/tools/:path*",
+      "label": "/api/tools/:path*",
+      "kind": "apiRewrite",
+      "status": "live",
+      "group": "tools",
+      "url": "https://api.grudge-studio.com/api/tools/:path*"
+    },
+    {
+      "id": "rw:/api/assets/:path*",
+      "label": "/api/assets/:path*",
+      "kind": "apiRewrite",
+      "status": "live",
+      "group": "assets",
+      "url": "https://assets.grudge-studio.com/:path*"
+    },
+    {
+      "id": "rw:/api/game/:path*",
+      "label": "/api/game/:path*",
+      "kind": "apiRewrite",
+      "status": "live",
+      "group": "backend",
+      "url": "https://api.grudge-studio.com/api/:path*"
+    },
+    {
+      "id": "rw:/api/public/:path*",
+      "label": "/api/public/:path*",
+      "kind": "apiRewrite",
+      "status": "live",
+      "group": "backend",
+      "url": "https://api.grudge-studio.com/public/:path*"
+    },
+    {
+      "id": "data:master-items",
+      "label": "master-items.json (818)",
+      "kind": "dataSource",
+      "status": "live",
+      "group": "assets",
+      "url": "https://molochdagod.github.io/ObjectStore/api/v1/master-items.json"
+    },
+    {
+      "id": "data:master-recipes",
+      "label": "master-recipes.json (118)",
+      "kind": "dataSource",
+      "status": "live",
+      "group": "assets",
+      "url": "https://molochdagod.github.io/ObjectStore/api/v1/master-recipes.json"
+    },
+    {
+      "id": "data:master-materials",
+      "label": "master-materials.json (93)",
+      "kind": "dataSource",
+      "status": "live",
+      "group": "assets",
+      "url": "https://molochdagod.github.io/ObjectStore/api/v1/master-materials.json"
+    },
+    {
+      "id": "data:r2-icons",
+      "label": "R2: /icons/**",
+      "kind": "dataSource",
+      "status": "live",
+      "group": "assets"
+    },
+    {
+      "id": "data:r2-models",
+      "label": "R2: /models/**",
+      "kind": "dataSource",
+      "status": "live",
+      "group": "assets"
+    },
+    {
+      "id": "data:pg-characters",
+      "label": "Postgres: characters",
+      "kind": "dataSource",
+      "status": "live",
+      "group": "backend"
+    },
+    {
+      "id": "data:pg-accounts",
+      "label": "Postgres: accounts",
+      "kind": "dataSource",
+      "status": "live",
+      "group": "backend"
+    },
+    {
+      "id": "data:pg-inventory",
+      "label": "Postgres: inventory",
+      "kind": "dataSource",
+      "status": "live",
+      "group": "backend"
+    },
+    {
+      "id": "repo:grudge-builder",
+      "label": "Grudge-Builder",
+      "kind": "repo",
+      "status": "live",
+      "group": "frontend",
+      "url": "https://github.com/MolochDaGod/Grudge-Builder",
+      "notes": "Private."
+    },
+    {
+      "id": "repo:objectstore",
+      "label": "ObjectStore",
+      "kind": "repo",
+      "status": "live",
+      "group": "assets",
+      "url": "https://github.com/MolochDaGod/ObjectStore"
+    },
+    {
+      "id": "repo:grudge-backend",
+      "label": "grudge-backend",
+      "kind": "repo",
+      "status": "live",
+      "group": "backend",
+      "url": "https://github.com/MolochDaGod/grudge-backend"
+    },
+    {
+      "id": "repo:grudge-studio-dash",
+      "label": "grudge-studio-dash",
+      "kind": "repo",
+      "status": "live",
+      "group": "admin",
+      "url": "https://github.com/MolochDaGod/grudge-studio-dash"
+    },
+    {
+      "id": "repo:grudge-ai-hub",
+      "label": "grudge-ai-hub",
+      "kind": "repo",
+      "status": "live",
+      "group": "ai",
+      "url": "https://github.com/MolochDaGod/grudge-ai-hub"
+    },
+    {
+      "id": "repo:grudge-arena",
+      "label": "grudge-arena",
+      "kind": "repo",
+      "status": "live",
+      "group": "combat",
+      "url": "https://github.com/MolochDaGod/grudge-arena"
+    },
+    {
+      "id": "repo:grudge-studio-game",
+      "label": "Grudge-Studio-Game",
+      "kind": "repo",
+      "status": "live",
+      "group": "frontend",
+      "url": "https://github.com/MolochDaGod/Grudge-Studio-Game"
+    },
+    {
+      "id": "repo:grudge-engine-web",
+      "label": "Grudge-Engine-Web",
+      "kind": "repo",
+      "status": "live",
+      "group": "engine",
+      "url": "https://github.com/MolochDaGod/Grudge-Engine-Web",
+      "notes": "Babylon + editor. Deploy via deploy.ps1 -> VPS (engine.g-s.com) or Vercel (grudge-engine-web.vercel.app)."
+    },
+    {
+      "id": "repo:gruda-legion-sdk",
+      "label": "gruda-legion-sdk",
+      "kind": "repo",
+      "status": "live",
+      "group": "ai",
+      "url": "https://github.com/MolochDaGod/gruda-legion-sdk"
+    },
+    {
+      "id": "repo:mission",
+      "label": "Grudge-Studio-Mission",
+      "kind": "repo",
+      "status": "live",
+      "group": "ops",
+      "url": "https://github.com/Grudge-Warlords/Grudge-Studio-Mission",
+      "notes": "North-star mission, architecture, roadmap."
+    }
+  ],
+  "edges": [
+    {
+      "source": "dom:grudgewarlords.com",
+      "target": "svc:frontend",
+      "kind": "routes-to"
+    },
+    {
+      "source": "dom:client.g-s.com",
+      "target": "svc:frontend",
+      "kind": "routes-to",
+      "notes": "Vercel alias of this repo."
+    },
+    {
+      "source": "dom:engine.g-s.com",
+      "target": "svc:engine-web",
+      "kind": "routes-to"
+    },
+    {
+      "source": "dom:grudge-engine.vercel.app",
+      "target": "svc:engine-web",
+      "kind": "routes-to"
+    },
+    {
+      "source": "dom:grudge-studio.com",
+      "target": "svc:gaming-portal",
+      "kind": "routes-to"
+    },
+    {
+      "source": "repo:grudge-engine-web",
+      "target": "svc:engine-web",
+      "kind": "deploys-from"
+    },
+    {
+      "source": "dom:id.g-s.com",
+      "target": "svc:grudge-id",
+      "kind": "routes-to"
+    },
+    {
+      "source": "dom:api.g-s.com",
+      "target": "svc:game-api",
+      "kind": "routes-to"
+    },
+    {
+      "source": "dom:api.g-s.com",
+      "target": "svc:wallet-svc",
+      "kind": "routes-to"
+    },
+    {
+      "source": "dom:account.g-s.com",
+      "target": "svc:account-api",
+      "kind": "routes-to"
+    },
+    {
+      "source": "dom:assets.g-s.com",
+      "target": "svc:r2-cdn",
+      "kind": "routes-to"
+    },
+    {
+      "source": "dom:objectstore.g-s.com",
+      "target": "svc:os-worker",
+      "kind": "routes-to"
+    },
+    {
+      "source": "dom:objectstore.gh",
+      "target": "svc:os-static",
+      "kind": "routes-to"
+    },
+    {
+      "source": "dom:ai.g-s.com",
+      "target": "svc:ai-worker",
+      "kind": "routes-to"
+    },
+    {
+      "source": "dom:dash.g-s.com",
+      "target": "svc:dashboard",
+      "kind": "routes-to"
+    },
+    {
+      "source": "dom:ws.g-s.com",
+      "target": "svc:colyseus-lobby",
+      "kind": "routes-to"
+    },
+    {
+      "source": "dom:launcher.g-s.com",
+      "target": "svc:launcher",
+      "kind": "routes-to"
+    },
+    {
+      "source": "dom:status.g-s.com",
+      "target": "svc:status-page",
+      "kind": "routes-to"
+    },
+    {
+      "source": "svc:frontend",
+      "target": "rw:/api/account/:path*",
+      "kind": "calls"
+    },
+    {
+      "source": "rw:/api/account/:path*",
+      "target": "svc:account-api",
+      "kind": "rewrites-to"
+    },
+    {
+      "source": "svc:frontend",
+      "target": "rw:/api/auth/:path*",
+      "kind": "calls"
+    },
+    {
+      "source": "rw:/api/auth/:path*",
+      "target": "svc:grudge-id",
+      "kind": "rewrites-to"
+    },
+    {
+      "source": "svc:frontend",
+      "target": "rw:/api/wallet",
+      "kind": "calls"
+    },
+    {
+      "source": "rw:/api/wallet",
+      "target": "svc:wallet-svc",
+      "kind": "rewrites-to"
+    },
+    {
+      "source": "svc:frontend",
+      "target": "rw:/api/wallet/:path*",
+      "kind": "calls"
+    },
+    {
+      "source": "rw:/api/wallet/:path*",
+      "target": "svc:wallet-svc",
+      "kind": "rewrites-to"
+    },
+    {
+      "source": "svc:frontend",
+      "target": "rw:/api/island/:path*",
+      "kind": "calls"
+    },
+    {
+      "source": "rw:/api/island/:path*",
+      "target": "svc:game-api",
+      "kind": "rewrites-to"
+    },
+    {
+      "source": "svc:frontend",
+      "target": "rw:/api/nfts",
+      "kind": "calls"
+    },
+    {
+      "source": "rw:/api/nfts",
+      "target": "svc:game-api",
+      "kind": "rewrites-to"
+    },
+    {
+      "source": "svc:frontend",
+      "target": "rw:/api/nfts/:path*",
+      "kind": "calls"
+    },
+    {
+      "source": "rw:/api/nfts/:path*",
+      "target": "svc:game-api",
+      "kind": "rewrites-to"
+    },
+    {
+      "source": "svc:frontend",
+      "target": "rw:/api/island-nfts",
+      "kind": "calls"
+    },
+    {
+      "source": "rw:/api/island-nfts",
+      "target": "svc:game-api",
+      "kind": "rewrites-to"
+    },
+    {
+      "source": "svc:frontend",
+      "target": "rw:/api/island-nfts/:path*",
+      "kind": "calls"
+    },
+    {
+      "source": "rw:/api/island-nfts/:path*",
+      "target": "svc:game-api",
+      "kind": "rewrites-to"
+    },
+    {
+      "source": "svc:frontend",
+      "target": "rw:/api/professions/:path*",
+      "kind": "calls"
+    },
+    {
+      "source": "rw:/api/professions/:path*",
+      "target": "svc:game-api",
+      "kind": "rewrites-to"
+    },
+    {
+      "source": "svc:frontend",
+      "target": "rw:/api/inventory/:path*",
+      "kind": "calls"
+    },
+    {
+      "source": "rw:/api/inventory/:path*",
+      "target": "svc:game-api",
+      "kind": "rewrites-to"
+    },
+    {
+      "source": "svc:frontend",
+      "target": "rw:/api/health",
+      "kind": "calls"
+    },
+    {
+      "source": "rw:/api/health",
+      "target": "svc:game-api",
+      "kind": "rewrites-to"
+    },
+    {
+      "source": "svc:frontend",
+      "target": "rw:/api/characters",
+      "kind": "calls"
+    },
+    {
+      "source": "rw:/api/characters",
+      "target": "svc:game-api",
+      "kind": "rewrites-to"
+    },
+    {
+      "source": "svc:frontend",
+      "target": "rw:/api/characters/:path*",
+      "kind": "calls"
+    },
+    {
+      "source": "rw:/api/characters/:path*",
+      "target": "svc:game-api",
+      "kind": "rewrites-to"
+    },
+    {
+      "source": "svc:frontend",
+      "target": "rw:/api/party",
+      "kind": "calls"
+    },
+    {
+      "source": "rw:/api/party",
+      "target": "svc:game-api",
+      "kind": "rewrites-to"
+    },
+    {
+      "source": "svc:frontend",
+      "target": "rw:/api/party/:path*",
+      "kind": "calls"
+    },
+    {
+      "source": "rw:/api/party/:path*",
+      "target": "svc:game-api",
+      "kind": "rewrites-to"
+    },
+    {
+      "source": "svc:frontend",
+      "target": "rw:/api/tools/:path*",
+      "kind": "calls"
+    },
+    {
+      "source": "rw:/api/tools/:path*",
+      "target": "svc:game-api",
+      "kind": "rewrites-to"
+    },
+    {
+      "source": "svc:frontend",
+      "target": "rw:/api/assets/:path*",
+      "kind": "calls"
+    },
+    {
+      "source": "rw:/api/assets/:path*",
+      "target": "svc:r2-cdn",
+      "kind": "rewrites-to"
+    },
+    {
+      "source": "svc:frontend",
+      "target": "rw:/api/game/:path*",
+      "kind": "calls"
+    },
+    {
+      "source": "rw:/api/game/:path*",
+      "target": "svc:game-api",
+      "kind": "rewrites-to"
+    },
+    {
+      "source": "svc:frontend",
+      "target": "rw:/api/public/:path*",
+      "kind": "calls"
+    },
+    {
+      "source": "rw:/api/public/:path*",
+      "target": "svc:game-api",
+      "kind": "rewrites-to"
+    },
+    {
+      "source": "route:/",
+      "target": "svc:frontend",
+      "kind": "routes-to"
+    },
+    {
+      "source": "route:/auth/callback",
+      "target": "svc:frontend",
+      "kind": "routes-to"
+    },
+    {
+      "source": "route:/intro",
+      "target": "svc:frontend",
+      "kind": "routes-to"
+    },
+    {
+      "source": "route:/home",
+      "target": "svc:frontend",
+      "kind": "routes-to"
+    },
+    {
+      "source": "route:/account",
+      "target": "svc:frontend",
+      "kind": "routes-to"
+    },
+    {
+      "source": "route:/wallet",
+      "target": "svc:frontend",
+      "kind": "routes-to"
+    },
+    {
+      "source": "route:/launcher",
+      "target": "svc:frontend",
+      "kind": "routes-to"
+    },
+    {
+      "source": "route:/character",
+      "target": "svc:frontend",
+      "kind": "routes-to"
+    },
+    {
+      "source": "route:/characters",
+      "target": "svc:frontend",
+      "kind": "routes-to"
+    },
+    {
+      "source": "route:/character-gallery",
+      "target": "svc:frontend",
+      "kind": "routes-to"
+    },
+    {
+      "source": "route:/hero-codex",
+      "target": "svc:frontend",
+      "kind": "routes-to"
+    },
+    {
+      "source": "route:/arsenal",
+      "target": "svc:frontend",
+      "kind": "routes-to"
+    },
+    {
+      "source": "route:/skills",
+      "target": "svc:frontend",
+      "kind": "routes-to"
+    },
+    {
+      "source": "route:/skill-tree",
+      "target": "svc:frontend",
+      "kind": "routes-to"
+    },
+    {
+      "source": "route:/combat",
+      "target": "svc:frontend",
+      "kind": "routes-to"
+    },
+    {
+      "source": "route:/rpg-battle",
+      "target": "svc:frontend",
+      "kind": "routes-to"
+    },
+    {
+      "source": "route:/dungeon",
+      "target": "svc:frontend",
+      "kind": "routes-to"
+    },
+    {
+      "source": "route:/dungeon-tiled",
+      "target": "svc:frontend",
+      "kind": "routes-to"
+    },
+    {
+      "source": "route:/tower-wars",
+      "target": "svc:frontend",
+      "kind": "routes-to"
+    },
+    {
+      "source": "route:/island",
+      "target": "svc:frontend",
+      "kind": "routes-to"
+    },
+    {
+      "source": "route:/island-v2",
+      "target": "svc:frontend",
+      "kind": "routes-to"
+    },
+    {
+      "source": "route:/island-3d",
+      "target": "svc:frontend",
+      "kind": "routes-to"
+    },
+    {
+      "source": "route:/island-phaser",
+      "target": "svc:frontend",
+      "kind": "routes-to"
+    },
+    {
+      "source": "route:/island-grid-test",
+      "target": "svc:frontend",
+      "kind": "routes-to"
+    },
+    {
+      "source": "route:/world-map",
+      "target": "svc:frontend",
+      "kind": "routes-to"
+    },
+    {
+      "source": "route:/missions",
+      "target": "svc:frontend",
+      "kind": "routes-to"
+    },
+    {
+      "source": "route:/harvest",
+      "target": "svc:frontend",
+      "kind": "routes-to"
+    },
+    {
+      "source": "route:/professions",
+      "target": "svc:frontend",
+      "kind": "routes-to"
+    },
+    {
+      "source": "route:/profession/miner",
+      "target": "svc:frontend",
+      "kind": "routes-to"
+    },
+    {
+      "source": "route:/profession/forester",
+      "target": "svc:frontend",
+      "kind": "routes-to"
+    },
+    {
+      "source": "route:/profession/mystic",
+      "target": "svc:frontend",
+      "kind": "routes-to"
+    },
+    {
+      "source": "route:/profession/chef",
+      "target": "svc:frontend",
+      "kind": "routes-to"
+    },
+    {
+      "source": "route:/profession/engineer",
+      "target": "svc:frontend",
+      "kind": "routes-to"
+    },
+    {
+      "source": "route:/crafting",
+      "target": "svc:frontend",
+      "kind": "routes-to"
+    },
+    {
+      "source": "route:/database",
+      "target": "svc:frontend",
+      "kind": "routes-to"
+    },
+    {
+      "source": "route:/editor",
+      "target": "svc:frontend",
+      "kind": "routes-to"
+    },
+    {
+      "source": "route:/template-viewer",
+      "target": "svc:frontend",
+      "kind": "routes-to"
+    },
+    {
+      "source": "route:/sprites",
+      "target": "svc:frontend",
+      "kind": "routes-to"
+    },
+    {
+      "source": "route:/sprite-editor",
+      "target": "svc:frontend",
+      "kind": "routes-to"
+    },
+    {
+      "source": "route:/sprite-viewer",
+      "target": "svc:frontend",
+      "kind": "routes-to"
+    },
+    {
+      "source": "route:/sprite-generator",
+      "target": "svc:frontend",
+      "kind": "routes-to"
+    },
+    {
+      "source": "route:/sprite-library",
+      "target": "svc:frontend",
+      "kind": "routes-to"
+    },
+    {
+      "source": "route:/hero-sprites",
+      "target": "svc:frontend",
+      "kind": "routes-to"
+    },
+    {
+      "source": "route:/race-sprites",
+      "target": "svc:frontend",
+      "kind": "routes-to"
+    },
+    {
+      "source": "route:/admin",
+      "target": "svc:frontend",
+      "kind": "routes-to"
+    },
+    {
+      "source": "route:/admin-map",
+      "target": "svc:frontend",
+      "kind": "routes-to"
+    },
+    {
+      "source": "route:/admin-combat",
+      "target": "svc:frontend",
+      "kind": "routes-to"
+    },
+    {
+      "source": "route:/admin-island-v2",
+      "target": "svc:frontend",
+      "kind": "routes-to"
+    },
+    {
+      "source": "route:/sprite-admin",
+      "target": "svc:frontend",
+      "kind": "routes-to"
+    },
+    {
+      "source": "route:/ai-helper",
+      "target": "svc:frontend",
+      "kind": "routes-to"
+    },
+    {
+      "source": "route:/organizer",
+      "target": "svc:frontend",
+      "kind": "routes-to"
+    },
+    {
+      "source": "route:/",
+      "target": "svc:grudge-id",
+      "kind": "authenticates-via"
+    },
+    {
+      "source": "route:/auth/callback",
+      "target": "svc:grudge-id",
+      "kind": "authenticates-via"
+    },
+    {
+      "source": "route:/home",
+      "target": "svc:grudge-id",
+      "kind": "authenticates-via"
+    },
+    {
+      "source": "route:/account",
+      "target": "svc:grudge-id",
+      "kind": "authenticates-via"
+    },
+    {
+      "source": "route:/wallet",
+      "target": "svc:grudge-id",
+      "kind": "authenticates-via"
+    },
+    {
+      "source": "route:/launcher",
+      "target": "svc:grudge-id",
+      "kind": "authenticates-via"
+    },
+    {
+      "source": "svc:frontend",
+      "target": "data:master-items",
+      "kind": "reads"
+    },
+    {
+      "source": "svc:frontend",
+      "target": "data:master-recipes",
+      "kind": "reads"
+    },
+    {
+      "source": "svc:frontend",
+      "target": "data:master-materials",
+      "kind": "reads"
+    },
+    {
+      "source": "svc:frontend",
+      "target": "data:r2-icons",
+      "kind": "reads"
+    },
+    {
+      "source": "svc:frontend",
+      "target": "data:r2-models",
+      "kind": "reads"
+    },
+    {
+      "source": "svc:game-api",
+      "target": "data:pg-characters",
+      "kind": "reads"
+    },
+    {
+      "source": "svc:game-api",
+      "target": "data:pg-characters",
+      "kind": "writes"
+    },
+    {
+      "source": "svc:game-api",
+      "target": "data:pg-inventory",
+      "kind": "reads"
+    },
+    {
+      "source": "svc:game-api",
+      "target": "data:pg-inventory",
+      "kind": "writes"
+    },
+    {
+      "source": "svc:account-api",
+      "target": "data:pg-accounts",
+      "kind": "reads"
+    },
+    {
+      "source": "svc:account-api",
+      "target": "data:pg-accounts",
+      "kind": "writes"
+    },
+    {
+      "source": "svc:os-worker",
+      "target": "data:r2-icons",
+      "kind": "reads"
+    },
+    {
+      "source": "svc:os-worker",
+      "target": "data:r2-models",
+      "kind": "reads"
+    },
+    {
+      "source": "repo:grudge-builder",
+      "target": "svc:frontend",
+      "kind": "deploys-from"
+    },
+    {
+      "source": "repo:grudge-backend",
+      "target": "svc:game-api",
+      "kind": "deploys-from"
+    },
+    {
+      "source": "repo:grudge-backend",
+      "target": "svc:grudge-id",
+      "kind": "deploys-from"
+    },
+    {
+      "source": "repo:grudge-backend",
+      "target": "svc:account-api",
+      "kind": "deploys-from"
+    },
+    {
+      "source": "repo:grudge-backend",
+      "target": "svc:wallet-svc",
+      "kind": "deploys-from"
+    },
+    {
+      "source": "repo:grudge-studio-dash",
+      "target": "svc:dashboard",
+      "kind": "deploys-from"
+    },
+    {
+      "source": "repo:grudge-ai-hub",
+      "target": "svc:ai-worker",
+      "kind": "deploys-from"
+    },
+    {
+      "source": "repo:objectstore",
+      "target": "svc:os-worker",
+      "kind": "deploys-from"
+    },
+    {
+      "source": "repo:objectstore",
+      "target": "svc:os-static",
+      "kind": "deploys-from"
+    }
+  ],
+  "readiness": [
+    {
+      "serviceId": "svc:frontend",
+      "https": "ok",
+      "healthEndpoint": "/api/health",
+      "cors": "ok",
+      "authRequired": "n/a",
+      "rateLimit": "unknown",
+      "observability": "missing",
+      "backup": "n/a",
+      "runbook": "README.md#deploy",
+      "owner": "frontend"
+    },
+    {
+      "serviceId": "svc:grudge-id",
+      "https": "ok",
+      "healthEndpoint": "/health",
+      "cors": "ok",
+      "authRequired": "n/a",
+      "rateLimit": "missing",
+      "observability": "missing",
+      "backup": "ok",
+      "owner": "backend"
+    },
+    {
+      "serviceId": "svc:game-api",
+      "https": "ok",
+      "healthEndpoint": "/api/health",
+      "cors": "ok",
+      "authRequired": "ok",
+      "rateLimit": "missing",
+      "observability": "missing",
+      "backup": "ok",
+      "owner": "backend"
+    },
+    {
+      "serviceId": "svc:account-api",
+      "https": "ok",
+      "healthEndpoint": "/health",
+      "cors": "ok",
+      "authRequired": "ok",
+      "rateLimit": "missing",
+      "observability": "missing",
+      "backup": "ok",
+      "owner": "backend"
+    },
+    {
+      "serviceId": "svc:wallet-svc",
+      "https": "ok",
+      "healthEndpoint": "/api/wallet/health",
+      "cors": "unknown",
+      "authRequired": "ok",
+      "rateLimit": "missing",
+      "observability": "missing",
+      "backup": "ok",
+      "owner": "backend"
+    },
+    {
+      "serviceId": "svc:r2-cdn",
+      "https": "ok",
+      "cors": "ok",
+      "authRequired": "n/a",
+      "rateLimit": "ok",
+      "observability": "ok",
+      "backup": "ok",
+      "owner": "platform"
+    },
+    {
+      "serviceId": "svc:os-worker",
+      "https": "ok",
+      "healthEndpoint": "/health",
+      "cors": "ok",
+      "authRequired": "n/a",
+      "rateLimit": "ok",
+      "observability": "missing",
+      "backup": "ok",
+      "owner": "platform"
+    },
+    {
+      "serviceId": "svc:os-static",
+      "https": "ok",
+      "cors": "ok",
+      "authRequired": "n/a",
+      "rateLimit": "ok",
+      "observability": "n/a",
+      "backup": "ok",
+      "owner": "platform"
+    },
+    {
+      "serviceId": "svc:ai-worker",
+      "https": "ok",
+      "healthEndpoint": "/health",
+      "cors": "unknown",
+      "authRequired": "ok",
+      "rateLimit": "missing",
+      "observability": "missing",
+      "backup": "n/a",
+      "owner": "platform"
+    },
+    {
+      "serviceId": "svc:dashboard",
+      "https": "ok",
+      "cors": "n/a",
+      "authRequired": "ok",
+      "rateLimit": "n/a",
+      "observability": "missing",
+      "backup": "n/a",
+      "owner": "platform"
+    },
+    {
+      "serviceId": "svc:colyseus-lobby",
+      "https": "missing",
+      "cors": "missing",
+      "authRequired": "missing",
+      "rateLimit": "missing",
+      "observability": "missing",
+      "backup": "n/a",
+      "owner": "backend",
+      "runbook": "docs/multiplayer.md"
+    },
+    {
+      "serviceId": "svc:launcher",
+      "https": "missing",
+      "cors": "missing",
+      "authRequired": "missing",
+      "rateLimit": "missing",
+      "observability": "missing",
+      "backup": "missing",
+      "owner": "platform"
+    },
+    {
+      "serviceId": "svc:status-page",
+      "https": "missing",
+      "cors": "n/a",
+      "authRequired": "n/a",
+      "rateLimit": "n/a",
+      "observability": "missing",
+      "backup": "n/a",
+      "owner": "platform"
+    }
+  ]
+}
