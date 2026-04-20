@@ -59,6 +59,7 @@ import CraftingPage from "@/pages/crafting";
 import Island3DPage from "@/pages/island-3d";
 import AuthCallbackPage from "@/pages/auth-callback";
 import EditorPage from "@/pages/editor";
+import OrganizerPage from "@/pages/organizer";
 
 function Router() {
   return (
@@ -113,6 +114,7 @@ function Router() {
       <Route path="/crafting" component={CraftingPage} />
       <Route path="/island-3d" component={Island3DPage} />
       <Route path="/editor" component={EditorPage} />
+      <Route path="/organizer" component={OrganizerPage} />
       {/* Fallback to 404 */}
       <Route component={NotFound} />
     </Switch>

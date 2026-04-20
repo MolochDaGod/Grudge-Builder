@@ -88,6 +88,22 @@ grunge-builder/
 └── package.json
 ```
 
+## System Map & Organizer
+
+An interactive, data-driven system map is available at **`/organizer`** (e.g. [grudgewarlords.com/organizer](https://grudgewarlords.com/organizer)).
+
+- **Graph tab** — force-directed flow chart of domains, services, frontend routes, API rewrites, data sources and repos. Color = status (live / planned / broken / deprecated), size = fan-in.
+- **Readiness tab** — per-service production-readiness checklist (HTTPS, health, CORS, auth, rate-limit, observability, backup).
+- **Issues tab** — auto-computed inconsistencies (live services depending on planned nodes, alias/duplicate routes, deprecated pages still routed, readiness holes).
+
+The whole graph is declared in a single typed manifest at `client/src/data/systemMap.ts` — keep it in sync with `client/src/App.tsx` and `vercel.json`. The manifest is also exported as `docs/system-map.json` inside the [Grudge-Studio-Mission](https://github.com/Grudge-Warlords/Grudge-Studio-Mission) repo.
+
+## Production Readiness
+
+The studio + launcher production mission is tracked in its own repo: **[Grudge-Warlords/Grudge-Studio-Mission](https://github.com/Grudge-Warlords/Grudge-Studio-Mission)** — north-star goal, architecture snapshot, readiness checklist, launcher MVP spec, and phased roadmap.
+
+Open action items are surfaced live at `/organizer?tab=readiness` and `/organizer?tab=issues`.
+
 ## Game Features
 
 - **Character Builder** — 6 races, 4 classes, 8 attributes, equipment
@@ -181,3 +197,4 @@ The frontend proxies all API calls through Vercel rewrites:
 - **[Grudge-Studio-Game](https://github.com/MolochDaGod/Grudge-Studio-Game)** — 3D Tactical RPG
 - **[Grudge-Engine-Web](https://github.com/MolochDaGod/Grudge-Engine-Web)** — BabylonJS game engine + editor
 - **[gruda-legion-sdk](https://github.com/MolochDaGod/gruda-legion-sdk)** — AI SDK for Gruda Legion
+- **[Grudge-Studio-Mission](https://github.com/Grudge-Warlords/Grudge-Studio-Mission)** — Mission, architecture, readiness checklist, launcher MVP and roadmap for the production-deployed Grudge Studio
