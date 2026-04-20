@@ -43,6 +43,7 @@ const GAME_MODES: GameMode[] = [
 ];
 
 const ADMIN_LINKS = [
+  { name: "Scene Editor", route: "/editor", icon: Sparkles },
   { name: "Sprite Admin", route: "/admin", icon: Settings },
   { name: "Sprite Library", route: "/sprite-library", icon: BookOpen },
   { name: "Sprite Editor", route: "/sprite-editor", icon: Sparkles },

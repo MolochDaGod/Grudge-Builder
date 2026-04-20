@@ -23,8 +23,8 @@ import {
   ChevronUp,
   ChevronDown
 } from 'lucide-react';
-import {
 import { useAuthGuard } from '@/hooks/use-auth-guard';
+import {
   WorldMapState,
   WorldIsland,
   generateWorldMap,

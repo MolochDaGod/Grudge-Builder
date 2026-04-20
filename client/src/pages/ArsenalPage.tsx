@@ -10,8 +10,8 @@ import {
   GREATAXES, GREATSWORDS, HAMMERS_2H, STAVES, TOMES,
   type Weapon 
 } from '@shared/definitions/weaponsData';
-import { 
 import { useAuthGuard } from '@/hooks/use-auth-guard';
+import {
   CLOTH_EQUIPMENT, LEATHER_EQUIPMENT, METAL_EQUIPMENT,
   type EquipmentItem 
 } from '@shared/definitions/equipmentData';
