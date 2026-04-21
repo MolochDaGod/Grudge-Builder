@@ -2,7 +2,7 @@
  * AI Avatars — Faction mascot system for Grudge Studio.
  *
  * Three animated characters serve as AI assistants, tutors, and guides
- * across all Grudge apps (GDevelop editor, island, crafting, combat, etc.)
+ * across all Grudge apps (grudgeDot editor, island, crafting, combat, etc.)
  *
  * - Kira  (Crusade Ninja)  — Agile guide. Tutorials, navigation, quick tips.
  * - Varg  (Legion Viking)  — Battle mentor. Combat, stats, gear, strategy.
@@ -57,7 +57,7 @@ export const AI_AVATARS: Record<AvatarId, AIAvatar> = {
     faction: 'crusade',
     color: '#fbbf24',
     personality: 'Quick, clever, encouraging. Speaks in short punchy sentences. Uses action metaphors.',
-    domains: ['tutorial', 'navigation', 'island', 'movement', 'controls', 'gdevelop-editor'],
+    domains: ['tutorial', 'navigation', 'island', 'movement', 'controls', 'grudgedot-editor'],
     greeting: "Hey! I'm Kira. Let me show you the ropes — fast.",
     systemPrompt: 'You are Kira, a swift ninja guide for Grudge Warlords. You help players learn game controls, navigate the UI, and understand island mechanics. Keep responses short and action-oriented. Use ⚡ and 🗡️ emojis sparingly.',
     spriteBase: '/sprites/2d-platformer/crusade-ninja',
@@ -193,7 +193,7 @@ export function getTipsForContext(context: string): AvatarTip[] {
     ];
   }
 
-  // Default / GDevelop editor tips
+  // Default / grudgeDot editor tips
   return [
     { avatarId: 'crusade-ninja', text: "Welcome to Grudge Studio! I'll help you get started.", mood: 'greeting' },
     { avatarId: 'fabled-mage', text: "All game data comes from ObjectStore. Check the asset gallery for models and sprites.", mood: 'talking' },

@@ -93,12 +93,12 @@ const LIVE_GAMES = [
   },
 ];
 
-const GDEVELOP_PORTAL = "https://gdevelop-assistant.vercel.app";
+const GRUDGEDOT_PORTAL = "https://grudgedot-launcher.vercel.app";
 
 const SERVICES = [
   { id: "account", label: "My Account", desc: "Profile, stats & settings", url: "/account", color: "text-amber-400" },
   { id: "wallet", label: "Wallet & NFTs", desc: "Gold, GBUX & cNFTs", url: "/wallet", color: "text-purple-400" },
-  { id: "gdevelop", label: "Game Portal", desc: "GDevelop game launcher", url: GDEVELOP_PORTAL, color: "text-cyan-400" },
+  { id: "grudgedot", label: "Game Portal", desc: "grudgeDot game launcher", url: GRUDGEDOT_PORTAL, color: "text-cyan-400" },
   { id: "arsenal", label: "Arsenal", desc: "Weapons, armor & items", url: "/arsenal", color: "text-green-400" },
 ];
 

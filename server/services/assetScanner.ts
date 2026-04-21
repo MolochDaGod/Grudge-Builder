@@ -31,7 +31,7 @@ export interface DiscoveredAsset {
 export interface DiscoveredGame {
   id: string;
   name: string;
-  engine: "gdevelop" | "godot" | "threejs" | "phaser" | "vite-web" | "html5" | "unknown";
+  engine: "grudgedot" | "godot" | "threejs" | "phaser" | "vite-web" | "html5" | "unknown";
   projectPath: string;
   configFile: string;
   description?: string;
@@ -93,7 +93,7 @@ const EXTENSION_MAP: Record<string, AssetCategory> = {
 
 // Game engine detection patterns
 const GAME_ENGINE_INDICATORS: Record<string, string[]> = {
-  gdevelop: ["game.json"],
+  grudgedot: ["game.json"],
   godot: ["project.godot"],
   threejs: ["three"],
   phaser: ["phaser"],
@@ -187,7 +187,7 @@ function walkDirectory(
 
 function detectGameProject(dir: string): DiscoveredGame | null {
   try {
-    // Check for GDevelop project
+    // Check for grudgeDot project
     const gdGameJson = path.join(dir, "game.json");
     if (fs.existsSync(gdGameJson)) {
       try {
@@ -196,7 +196,7 @@ function detectGameProject(dir: string): DiscoveredGame | null {
           return {
             id: generateId(dir),
             name: content.properties?.name || path.basename(dir),
-            engine: "gdevelop",
+            engine: "grudgedot",
             projectPath: dir,
             configFile: gdGameJson,
             description: content.properties?.description,
@@ -204,7 +204,7 @@ function detectGameProject(dir: string): DiscoveredGame | null {
             thumbnail: undefined,
           };
         }
-      } catch { /* not valid GDevelop json */ }
+      } catch { /* not valid grudgeDot json */ }
     }
 
     // Check for Godot project

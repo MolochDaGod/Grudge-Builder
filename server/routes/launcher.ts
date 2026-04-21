@@ -342,7 +342,7 @@ router.get("/tools", (_req, res) => {
       id: "grudgedev-assistant",
       name: "GrudgeDev Assistant",
       description: "AI agents + game server + cloud storage for GrudgeDev",
-      path: "C:\\Users\\nugye\\Documents\\GitHub\\GDevelopAssistant",
+      path: "C:\\Users\\nugye\\Documents\\GitHub\\grudgedot-launcher",
       installed: true,
       category: "platform",
     },

@@ -2,7 +2,7 @@
  * AnimatedAvatar — Renders an AI avatar with sprite-sheet animation.
  *
  * Plays faction-branded character animations from sprite sheets on a canvas.
- * Used for tutorial tips, GDevelop editor assistant, and in-app guides.
+ * Used for tutorial tips, grudgeDot editor assistant, and in-app guides.
  *
  * Usage:
  *   <AnimatedAvatar avatarId="crusade-ninja" mood="greeting" size={120} />
