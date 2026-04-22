@@ -316,7 +316,6 @@ Response:
 
 ## Related Documentation
 
-- `GRUDGE_DATA_SHARING.md` - Cross-app data sharing via Google Sheets
-- `replit.md` - Project architecture overview
+- `README.md` - Project architecture overview
 - `shared/schema.ts` - Full database schema definitions
 - `server/storage.ts` - Storage interface implementation

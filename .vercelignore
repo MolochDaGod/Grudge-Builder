@@ -24,14 +24,6 @@ client/dist
 *.blend
 *.exe
 *.mpq
-.replit
-replit.nix
-pyproject.toml
-pom.xml
-uv.lock
 hs_err_pid*
 replay_pid*
-main.py
 foods_export.csv
-equipment_section.png
-sideways

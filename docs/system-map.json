@@ -1,8 +1,8 @@
 {
-  "generatedAt": "2026-04-20T13:46:08.558Z",
+  "generatedAt": "2026-04-20T14:23:07.245Z",
   "counts": {
-    "nodes": 121,
-    "edges": 137,
+    "nodes": 124,
+    "edges": 142,
     "readiness": 13
   },
   "nodes": [
@@ -31,7 +31,7 @@
       "status": "live",
       "group": "portal",
       "url": "https://grudge-studio.com",
-      "notes": "Rec0deD:88 gaming portal (emu games, accounts, tournaments, betting). Separate Vercel app — source repo TBD."
+      "notes": "Grudge Studio client portal shell. Backed by The-ENGINE on Vercel; retro library remains reachable under /games but is no longer the primary identity."
     },
     {
       "id": "dom:engine.g-s.com",
@@ -140,6 +140,14 @@
       "notes": "Uptime Kuma status page."
     },
     {
+      "id": "dom:warlords-server.railway.app",
+      "label": "Warlords server @ Railway",
+      "kind": "domain",
+      "status": "planned",
+      "group": "realtime",
+      "notes": "Home for this repo's Express + Colyseus server (server/index.ts). Configured via railway.json, domain attached on flip-on."
+    },
+    {
       "id": "svc:grudge-id",
       "label": "Grudge ID (auth)",
       "kind": "service",
@@ -245,12 +253,23 @@
     },
     {
       "id": "svc:gaming-portal",
-      "label": "Rec0deD:88 gaming portal",
+      "label": "Grudge Studio portal shell",
       "kind": "service",
       "status": "live",
       "group": "portal",
       "owner": "platform",
-      "notes": "grudge-studio.com. Emu library (~1360 NES games) + accounts/tournaments/betting. Source repo TBD."
+      "repo": "The-ENGINE",
+      "notes": "grudge-studio.com. Public entry portal for products, play, studio tools, and account flow. Retro library remains available as a secondary route."
+    },
+    {
+      "id": "svc:warlords-backend",
+      "label": "Warlords backend (Express + Colyseus)",
+      "kind": "service",
+      "status": "planned",
+      "group": "realtime",
+      "owner": "backend",
+      "repo": "Grudge-Builder",
+      "notes": "server/index.ts in this repo. Deploy target: Railway (railway.json). Hosts local /api/island/*, /api/account/* + Colyseus rooms + proxy to api.g-s.com. Complementary to VPS api.g-s.com."
     },
     {
       "id": "svc:colyseus-lobby",
@@ -259,7 +278,7 @@
       "status": "live",
       "group": "realtime",
       "owner": "backend",
-      "notes": "Dev mode only; WS prod pending ws.g-s.com."
+      "notes": "Dev mode only; prod target = Railway. WS domain ws.g-s.com will front it."
     },
     {
       "id": "svc:colyseus-dungeon",
@@ -267,7 +286,8 @@
       "kind": "service",
       "status": "live",
       "group": "realtime",
-      "owner": "backend"
+      "owner": "backend",
+      "notes": "Dev mode only; prod target = Railway."
     },
     {
       "id": "svc:launcher",
@@ -961,6 +981,15 @@
       "url": "https://github.com/MolochDaGod/grudge-ai-hub"
     },
     {
+      "id": "repo:the-engine",
+      "label": "The-ENGINE",
+      "kind": "repo",
+      "status": "live",
+      "group": "portal",
+      "url": "https://github.com/MolochDaGod/The-ENGINE",
+      "notes": "Source repo for grudge-studio.com portal shell on Vercel."
+    },
+    {
       "id": "repo:grudge-arena",
       "label": "grudge-arena",
       "kind": "repo",
@@ -1031,6 +1060,11 @@
       "kind": "routes-to"
     },
     {
+      "source": "repo:the-engine",
+      "target": "svc:gaming-portal",
+      "kind": "deploys-from"
+    },
+    {
       "source": "repo:grudge-engine-web",
       "target": "svc:engine-web",
       "kind": "deploys-from"
@@ -1083,6 +1117,26 @@
     {
       "source": "dom:ws.g-s.com",
       "target": "svc:colyseus-lobby",
+      "kind": "routes-to"
+    },
+    {
+      "source": "dom:warlords-server.railway.app",
+      "target": "svc:warlords-backend",
+      "kind": "routes-to"
+    },
+    {
+      "source": "repo:grudge-builder",
+      "target": "svc:warlords-backend",
+      "kind": "deploys-from"
+    },
+    {
+      "source": "svc:warlords-backend",
+      "target": "svc:colyseus-lobby",
+      "kind": "routes-to"
+    },
+    {
+      "source": "svc:warlords-backend",
+      "target": "svc:colyseus-dungeon",
       "kind": "routes-to"
     },
     {

@@ -20,15 +20,18 @@ This repo ships the **Grudge Warlords** web game at [grudgewarlords.com](https:/
 ## Architecture
 
 ```
-Browser → Vercel (static SPA) → VPS backend (grudge-studio.com)
-          ├─ client/dist                  ├─ grudge-id    (id.g-s.com — auth, OAuth, JWT)
-          ├─ /api/auth  → id.g-s.com      ├─ account-api  (account.g-s.com — profiles)
-          ├─ /api/game  → api.g-s.com     ├─ game-api     (api.g-s.com — game, crafting)
-          ├─ /api/wallet→ api.g-s.com     └─ wallet-svc   (server-side Solana wallets)
-          ├─ /api/assets→ assets.g-s.com  Cloudflare:
-          └─ ObjectStore (data+assets)    ├─ R2 CDN       (assets.g-s.com)
-                                          ├─ ObjectStore  (objectstore.g-s.com — D1+R2)
-                                          └─ AI Worker    (ai.g-s.com — Gruda Legion)
+Browser → Vercel (static SPA)
+          ├─ /api/auth   → id.g-s.com      VPS / Coolify:
+          ├─ /api/game   → api.g-s.com     ├─ grudge-id    (id.g-s.com — auth, OAuth, JWT)
+          ├─ /api/wallet → api.g-s.com     ├─ account-api  (account.g-s.com — profiles)
+          ├─ /api/assets → assets.g-s.com  ├─ game-api     (api.g-s.com — game, crafting)
+          └─ ObjectStore (data+assets)     └─ wallet-svc   (server-side Solana wallets)
+          └─ optional local multiplayer → Railway:
+                                             └─ warlords-backend (this repo's Express + Colyseus)
+Cloudflare:
+├─ R2 CDN       (assets.g-s.com)
+├─ ObjectStore  (objectstore.g-s.com — D1+R2)
+└─ AI Worker    (ai.g-s.com — Gruda Legion)
 ```
 
 ### Service Map
@@ -65,7 +68,7 @@ Generate master data: `npm run generate:master` in ObjectStore repo.
 Every user gets a unique **Grudge ID** on first login. Auth methods (Discord, Google, GitHub, Puter, wallet, guest) all converge to the same Grudge ID. The backend auto-creates a server-side Solana wallet and Puter cloud storage per account.
 
 ```
-grunge-builder/
+grudge-builder/
 ├── client/                  # Vite + React frontend
 │   ├── src/
 │   │   ├── pages/           # Route pages (login, home, character, combat, etc.)
@@ -81,12 +84,13 @@ grunge-builder/
 │   │   ├── data/            # Static game data & sprite maps
 │   │   └── contexts/        # React contexts
 │   └── public/              # Favicon only — assets served from ObjectStore CDN
-├── server/                  # Express backend (dev mode only; prod on VPS)
+├── server/                  # Express + Colyseus backend (local dev, optional Railway prod target)
 │   ├── colyseus/            # Multiplayer rooms (lobby, dungeon)
 │   └── routes/              # API routes (launcher, sprites)
 ├── shared/                  # Shared types, schemas, game definitions
 ├── docs/                    # System documentation
 ├── vercel.json              # Vercel rewrites → grudge-studio.com backend
+├── railway.json             # Railway deploy for this repo's Node server
 └── package.json
 ```
 
@@ -175,7 +179,11 @@ npm run generate:master   # regenerate master-items/recipes/materials
 npm run deploy:pages      # push to gh-pages branch → GitHub Pages
 ```
 
-**Backend** — VPS services via Docker/Coolify. Domain routing via Cloudflare.
+**Backend** — Two tiers:
+- **VPS / Coolify (Docker)** hosts the canonical Grudge Studio backend (`api.grudge-studio.com`, `id.grudge-studio.com`, `account.grudge-studio.com`). Managed in `grudge-backend` repo.
+- **Railway** hosts *this repo's* Node server (`server/index.ts` — Express + Colyseus lobby/dungeon rooms + local `/api/island`, `/api/account` handlers + proxy to VPS). Configured in `railway.json` (NIXPACKS build, `node dist/index.cjs`, health on `/api/health`). Flip on when you're ready to move Warlords multiplayer off dev mode; `ws.grudge-studio.com` will front it.
+
+Domain routing via Cloudflare.
 
 ### Vercel Rewrites (vercel.json)
 
