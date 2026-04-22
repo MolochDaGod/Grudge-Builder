@@ -154,17 +154,31 @@ Some items are bound to specific characters:
 | Penetration | Ignore % of target defense          |
 
 ## Item Database
-
 ### Data Source — ObjectStore (Single Source of Truth)
-
 All item data comes from **ObjectStore** at runtime. No hardcoded data in the frontend.
-
-- `master-items.json` — 818 items with GRUDGE UUIDs, tier expansion (T1-T8), recipe links, icon URLs
-- `master-recipes.json` — 118 recipes with GRUDGE UUIDs, material references
-- `master-materials.json` — 93 materials with GRUDGE UUIDs
+- `master-items.json` — tier-expanded weapons/armor/consumables with GRUDGE UUIDs, recipe links, icon URLs
+- `master-recipes.json` — recipes with GRUDGE UUIDs, material references
+- `master-materials.json` — crafting materials with GRUDGE UUIDs
+- `master-artifacts.json` — end-game, world-found items (Artifact category, D3). Honor `discovery.hiddenUntilFound` before surfacing to players.
 - `weapons.json`, `armor.json`, `consumables.json` — raw category data
-
+- `items-legacy.json` — frozen legacy items during migration (do not consume in new code)
 Regenerate: `npm run generate:master` in the ObjectStore repo.
+### Tier Labels (D5 — updated)
+| Tier | Color | Label |
+| --- | --- | --- |
+| T1 | Bronze | Common |
+| T2 | Silver | Uncommon |
+| T3 | Blue | Rare |
+| T4 | Purple | Epic |
+| T5 | Red | **Heroic** (was "Legendary") |
+| T6 | Orange | Mythic |
+| T7 | Gold | Ancient |
+| T8 | Shimmer | **Legendary** (was "Legendary Artifact") |
+"Legendary" now refers to the T8 tier label only. The Artifact weapon category is separate and covers end-game world-found items.
+### Item Classifications
+- `type: 'weapon' | 'armor' | 'food' | 'potion' | 'offhand-tome' | 'artifact' | ...`
+- **Tomes** (`offhand-tome`, D4): tier-less off-hand utility. Equipping one grants the 1h main-hand spells from the tome's `skillGrants` list. Do not render tier-label chrome on tomes.
+- **Artifacts** (`artifact`, D3): end-game fixed-stat items with a `discovery` block. Player-facing UIs must filter out items where `discovery.hiddenUntilFound === true` until the player has found the item.
 
 ### Example Item (from master-items.json)
 
