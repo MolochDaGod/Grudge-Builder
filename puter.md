@@ -1,5 +1,8 @@
 # Puter AI Integration Guide
 
+> **Canonical registry:** `docs/puter-registry.json` is the single source of truth for every Puter worker, frontend, SDK, and the auth bridge. The endpoint tables below are a developer reference; if they disagree with the registry, the registry wins.
+> See also `docs/audit-report.md` for the latest consolidation audit.
+
 ## Overview
 
 Grudge Warlords integrates with Puter.js for AI-powered features including sprite generation, chat AI, and cloud storage. This guide covers setup, development patterns, and best practices for working with Puter AI agents.

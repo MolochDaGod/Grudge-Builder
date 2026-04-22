@@ -1,0 +1,171 @@
+{
+  "$schema": "https://raw.githubusercontent.com/MolochDaGod/Grudge-Builder/main/docs/puter-registry.schema.json",
+  "generatedAt": "2026-04-21T00:00:00.000Z",
+  "owner": "Racalvin The Pirate King",
+  "policy": {
+    "kvKeyConvention": "grudge:<domain>:<id>:<field>  (e.g. grudge:island:ISL_42:state, grudge:account, grudge:world:player-block)",
+    "notes": [
+      "Keys MUST be addressable by Grudge ID (not raw puter_uuid) so that when a user claims a guest Puter account with an email, storage remains reachable.",
+      "Every auth path (Discord, Google, GitHub, phone, Puter, wallet, guest) MUST upsert exactly one (grudge_id <-> puter_uuid) row via id.grudge-studio.com /auth/puter.",
+      "Puter is a storage + AI provider, NOT a source of truth. VPS (api.grudge-studio.com) is authoritative; Puter KV is a cache with dirty-write queue (see puterIslandKV.saveState)."
+    ]
+  },
+  "workers": [
+    {
+      "id": "grudge-server",
+      "url": "https://grudge-server.puter.work",
+      "health": "https://grudge-server.puter.work/api/health",
+      "status": "live",
+      "purpose": "AI chat + vision, sprite generation jobs, NPC dialogue, game data sync",
+      "endpoints": [
+        { "method": "GET",  "path": "/api/health",          "purpose": "Server health check & version" },
+        { "method": "POST", "path": "/api/auth/consume",    "purpose": "Consume Puter auth code -> Grudge token" },
+        { "method": "GET",  "path": "/api/auth/verify",     "purpose": "Verify auth token validity" },
+        { "method": "POST", "path": "/api/ai/chat",         "purpose": "AI chat with context/history" },
+        { "method": "POST", "path": "/api/ai/vision",       "purpose": "AI image analysis" },
+        { "method": "POST", "path": "/api/sprites/generate","purpose": "Generate sprite via AI (returns jobId)" },
+        { "method": "GET",  "path": "/api/jobs/:jobId",     "purpose": "Get async job status" },
+        { "method": "GET",  "path": "/api/jobs",            "purpose": "List all jobs" },
+        { "method": "GET",  "path": "/api/data/game",       "purpose": "Full game data snapshot" },
+        { "method": "POST", "path": "/api/data/sync",       "purpose": "Push game data sync" },
+        { "method": "GET",  "path": "/api/data/:dataType",  "purpose": "Typed game data (items, recipes, materials, etc.)" },
+        { "method": "POST", "path": "/api/npc/chat",        "purpose": "NPC dialogue generation" }
+      ],
+      "consumers": [
+        "GrudgeBuilder/client/src/lib/puterIntegration.ts  (puterServer.*)"
+      ],
+      "secrets": {
+        "appKeyLocation": "Puter worker env (not in any git-tracked file)",
+        "rotationPolicy": "Manual; coordinate with backend owner before rotating — every guest Grudge ID depends on this key."
+      }
+    }
+  ],
+  "frontends": [
+    {
+      "id": "grudge-crafting",
+      "url": "https://grudge-crafting.puter.site",
+      "status": "live",
+      "purpose": "Puter-hosted crafting companion site",
+      "title": "Grudge Warlords — Crafting & Professions",
+      "dataSource": "https://molochdagod.github.io/ObjectStore/GRUDGE_Item_Database.html",
+      "rule": "n4qBEKIS1FgTYKxF1JHUHy — MUST consume icons/items/tiers/weapons/armors from molochdagod.github.io/ObjectStore.",
+      "consumers": [
+        "GrudgeBuilder/client/src/pages/crafting.tsx:6 (CRAFTING_ORIGIN postMessage gate)",
+        "GrudgeBuilder/client/src/lib/GrudgeAccountSDK.ts (embedded-mode docs/flow)"
+      ]
+    },
+    {
+      "id": "grudgewarlords-puter",
+      "url": "https://grudgewarlords.puter.site",
+      "status": "live",
+      "purpose": "UNTRACKED Grudge Warlords Puter deployment. Found during audit via HTTP probe (200, title=\"Grudge Warlords\"). Not referenced in any Grudge repo; likely a mirror or archived deployment.",
+      "title": "Grudge Warlords",
+      "dataSource": null,
+      "consumers": [],
+      "action": "Identify owner; either document intended use and wire into systemMap/CORS, or retire/redirect to grudgewarlords.com."
+    },
+    {
+      "id": "grudgestudio-puter",
+      "url": "https://grudgestudio.puter.site",
+      "status": "planned",
+      "purpose": "Grudge Game Engine (Three.js) — Puter-native surface of svc:grudge-engine-three. Same build as engine.grudge-studio.com; scenes and accounts are unified across both surfaces. Existing GRUDACHAIN content to be wiped.",
+      "title": "Grudge Game Engine (pending deploy)",
+      "dataSource": "api.grudge-studio.com /api/scenes (planned) + ObjectStore for asset picker",
+      "consumers": [],
+      "twinDeployment": "https://engine.grudge-studio.com (Vercel) — same repo, same build, env-swapped storage base.",
+      "puterStorageKeys": "grudge:scene:<sceneId>:state | grudge:scene:<sceneId>:dirty | grudge:engine:settings",
+      "accountLayer": "Grudge ID + tier (master admin Racalvin / admin / member / pleb) gates scene ownership, share, and publish. Same enum used by engine.grudge-studio.com.",
+      "landingRoute": "/launcher — GrudgeDot launcher login entry (Puter sign-in mints Grudge ID on first touch).",
+      "action": "1) wipe current deployment, 2) stand up repo grudge-game-engine (fork of github.com/mrdoob/three.js/tree/master/editor, improved), 3) ship one build to both surfaces, 4) add grudgestudio.puter.site to ALLOWED_ORIGINS (already done in this audit), 5) add engine.grudge-studio.com to ALLOWED_ORIGINS and to id.grudge-studio.com SSO return allowlist."
+    },
+    {
+      "id": "grudge-studio-puter",
+      "url": "https://grudge-studio.puter.site",
+      "status": "live",
+      "purpose": "Puter Cloud Dashboard. Referenced in grudge-platform/public/legacy-auth.html (lines 488, 652, 673, 928-929) as \"Puter Cloud\" / \"Puter\" link. legacy-auth.html is marked archived in PLATFORM.md but this deployment is still live (200, title=\"Grudge Studio - Cloud Dashboard\").",
+      "title": "Grudge Studio - Cloud Dashboard",
+      "dataSource": null,
+      "consumers": [
+        "grudge-platform/public/legacy-auth.html (archived)"
+      ],
+      "action": "Decide: keep as the live Puter cloud dashboard (update PLATFORM.md, add to systemMap + ALLOWED_ORIGINS) or deprecate and redirect to dash.grudge-studio.com."
+    },
+    {
+      "id": "grudge-puter-root",
+      "url": "https://grudge.puter.site",
+      "status": "reserved",
+      "purpose": "Reserved Puter slug. Responds 200 but shows the default Puter welcome page (title=\"Welcome to grudge.puter.site\") — no Grudge app deployed.",
+      "consumers": [],
+      "action": "Hold as a reserved namespace or deploy a real redirect landing to grudge-studio.com."
+    }
+  ],
+  "nameBreakRisks": [
+    {
+      "assumedName": "https://grudgecrafting.puter.site",
+      "reality": "404 — actual slug is grudge-crafting.puter.site (hyphenated)",
+      "mitigation": "crafting.tsx:6 uses the correct hyphenated form. Do not rename the deployment without updating CRAFTING_ORIGIN, ALLOWED_ORIGINS, and GrudgeAccountSDK.ts docs."
+    },
+    {
+      "assumedName": "https://grudge-warlords.puter.site",
+      "reality": "404 — actual slug is grudgewarlords.puter.site (no hyphen), mirroring grudgewarlords.com",
+      "mitigation": "If a dev types the hyphenated form assuming it mirrors grudge-studio.com, they'll silently 404. Document the no-hyphen convention for grudgewarlords.puter.site."
+    },
+    {
+      "assumedName": "https://grudge-platform.puter.site / https://grudge-launcher.puter.site / https://grudge-admin.puter.site / https://grudge-dash.puter.site / https://grudge-ai.puter.site / https://grudge-legion.puter.site",
+      "reality": "All 404 — no such deployments exist as of 2026-04-21 probe",
+      "mitigation": "Do not reference these URLs in code or docs until a real deployment is created. If planned, reserve the slug first and add a status=planned entry to this registry."
+    }
+  ],
+  "sdks": [
+    {
+      "id": "puter-js",
+      "url": "https://js.puter.com/v2/",
+      "status": "live",
+      "purpose": "Client-side Puter SDK (ai/kv/fs/auth). Loaded by all Grudge frontends that use AI, guest login, or cloud storage.",
+      "loadedBy": [
+        "GrudgeBuilder (index.html via script tag)",
+        "grudge-platform/public/grudge-sdk.js (assumes js.puter.com/v2 is loaded first)",
+        "grudge-crafting.puter.site"
+      ]
+    }
+  ],
+  "authBridge": {
+    "id": "puter-auth-bridge",
+    "status": "live",
+    "canonicalEndpoint": "https://id.grudge-studio.com/auth/puter",
+    "linkEndpoint": "https://id.grudge-studio.com/auth/puter-link",
+    "proxies": [
+      {
+        "from": "grudgeplatform.io",
+        "file": "grudge-platform/api/puter.js",
+        "behavior": "POST -> id.grudge-studio.com/auth/puter via _grudge-proxy::proxyToGrudge"
+      },
+      {
+        "from": "grudgeplatform.io",
+        "file": "grudge-platform/api/puter-link.js",
+        "behavior": "POST -> id.grudge-studio.com/auth/puter-link"
+      },
+      {
+        "from": "grudgewarlords.com",
+        "file": "GrudgeBuilder/vercel.json",
+        "behavior": "/api/auth/:path* rewrite to id.grudge-studio.com/auth/:path* (covers /auth/puter + /auth/puter-link)"
+      }
+    ],
+    "clientFlow": [
+      "1. Any auth path on any Grudge frontend.",
+      "2. If Puter SDK is available, call puter.auth.signIn() -> puter.auth.getUser() -> { uuid, username }.",
+      "3. POST { puterUuid, puterUsername } to /api/auth/puter (rewritten to id.g-s.com/auth/puter).",
+      "4. Backend upserts (puter_uuid <-> grudge_id). Auto-creates server-side Solana wallet + Puter cloud storage on first touch.",
+      "5. Returns { token, user } — token stored as localStorage 'grudge_auth_token'."
+    ]
+  },
+  "corsAllowlistedIn": [
+    "grudge-platform/api/_grudge-proxy.js::ALLOWED_ORIGINS (updated in this audit)"
+  ],
+  "openGaps": [
+    "No automated health poller for grudge-server.puter.work — add to /organizer Readiness tab.",
+    "No written policy for when guest puter_uuid -> email-claimed Grudge ID merges; today it relies on backend upsert uniqueness.",
+    "grudge-server.puter.work/api/auth/verify currently mirrors id.grudge-studio.com/auth/verify — confirm there is no divergent token validation path.",
+    "Three live Grudge-owned Puter deployments (grudgewarlords.puter.site, grudgestudio.puter.site, grudge-studio.puter.site) are not referenced by any current Grudge app code path. Decide per-site: keep + register, or retire + redirect."
+  ]
+}

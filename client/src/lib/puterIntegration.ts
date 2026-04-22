@@ -440,13 +440,17 @@ export const PUTER_CONFIG = {
   version: '2.5.0',
   studio: 'Grudge Studio',
   author: 'RacalvinDaPirateKing',
-  developerUrl: 'https://grudgestudio.com',
+  developerUrl: 'https://grudge-studio.com',
   savePrefix: 'grudge_warlords_',
-  // Centralized: use env var, fallback to API proxy (same-origin), then legacy Puter URL
+  // Centralized: use env var, fallback to API proxy (same-origin), then legacy Puter URL.
+  // NOTE: the previous chain used `|| '/api/game' || '...'` which made the last fallback
+  // unreachable (non-empty string is truthy). Now selects the legacy Puter URL only when
+  // VITE_PUTER_LEGACY=true; otherwise defaults to the same-origin Vercel-rewritten proxy.
   serverUrl:
     (typeof import.meta !== 'undefined' && import.meta.env?.VITE_PUTER_SERVER_URL) ||
-    '/api/game' ||
-    'https://grudge-server.puter.work',
+    (typeof import.meta !== 'undefined' && import.meta.env?.VITE_PUTER_LEGACY === 'true'
+      ? 'https://grudge-server.puter.work'
+      : '/api/game'),
 };
 
 export interface PuterServerResponse<T = any> {
