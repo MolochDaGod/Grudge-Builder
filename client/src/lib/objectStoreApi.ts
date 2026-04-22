@@ -246,9 +246,24 @@ export function fetchMasterArtifacts() {
   return fetchObjectStoreData<Record<string, unknown>>("/master-artifacts.json", {});
 }
 
-/** Fetch combined master registry (UUID index across items + artifacts) */
+/** Fetch combined master registry (UUID index across items + artifacts + professions + skills) */
 export function fetchMasterRegistry() {
   return fetchObjectStoreData<Record<string, unknown>>("/master-registry.json", {});
+}
+
+/** Fetch master professions (WCS-consolidated, 6 gathering + 5 crafting with 148 skill-tree nodes) */
+export function fetchMasterProfessions() {
+  return fetchObjectStoreData<Record<string, unknown>>("/master-professions.json", {});
+}
+
+/** Fetch master class skill trees (4 classes, 69 skills, each with a GRUDGE SKIL UUID) */
+export function fetchMasterSkillTrees() {
+  return fetchObjectStoreData<Record<string, unknown>>("/master-skillTrees.json", {});
+}
+
+/** Fetch master weapon skills (17 weapon types, 207 skills + class-restriction map) */
+export function fetchMasterWeaponSkills() {
+  return fetchObjectStoreData<Record<string, unknown>>("/master-weaponSkills.json", {});
 }
 
 /** Fetch projectile sprite metadata (GrudgeOrigins missiles + CDN paths) */
