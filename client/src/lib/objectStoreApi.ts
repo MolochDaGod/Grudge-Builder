@@ -241,6 +241,16 @@ export function fetchMasterMaterials() {
   return fetchObjectStoreData<Record<string, unknown>>("/master-materials.json", {});
 }
 
+/** Fetch master artifacts (D3 - end-game world-found items; honor discovery.hiddenUntilFound) */
+export function fetchMasterArtifacts() {
+  return fetchObjectStoreData<Record<string, unknown>>("/master-artifacts.json", {});
+}
+
+/** Fetch combined master registry (UUID index across items + artifacts) */
+export function fetchMasterRegistry() {
+  return fetchObjectStoreData<Record<string, unknown>>("/master-registry.json", {});
+}
+
 /** Fetch projectile sprite metadata (GrudgeOrigins missiles + CDN paths) */
 export function fetchProjectiles() {
   return fetchObjectStoreData<Record<string, unknown>>("/projectiles.json", {});

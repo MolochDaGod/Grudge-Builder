@@ -601,12 +601,21 @@ export let ITEMS: GrudaItem[] = [];
 export let RECIPES: GrudaRecipe[] = [];
 export let RESOURCE_NODES: GrudaResourceNode[] = [];
 
-/** Sync items from ObjectStore master-items.json (single source of truth) */
-export async function syncItemsFromObjectStore(): Promise<void> {
+/** Sync items + artifacts from ObjectStore (single source of truth).
+ *
+ * D3: Artifacts with `discovery.hiddenUntilFound === true` are filtered out
+ * before reaching the player-facing ITEMS array. Admin surfaces should use
+ * `fetchMasterArtifacts()` directly and bypass this filter.
+ */
+export async function syncItemsFromObjectStore(
+  opts: { includeHiddenArtifacts?: boolean; discoveredArtifactIds?: Set<string> } = {}
+): Promise<void> {
+  const { includeHiddenArtifacts = false, discoveredArtifactIds = new Set<string>() } = opts;
   try {
-    const [masterData, recipeData] = await Promise.all([
+    const [masterData, recipeData, artifactData] = await Promise.all([
       fetchMasterItems(),
       fetchMasterRecipes(),
+      (await import('@/lib/objectStoreApi')).fetchMasterArtifacts().catch(() => ({})),
     ]);
 
     // Items from master-items.json (has UUIDs, tiers, recipe links)
@@ -628,6 +637,30 @@ export async function syncItemsFromObjectStore(): Promise<void> {
         weaponType: item.category,
       }));
       console.debug('[grudaDB] Synced', ITEMS.length, 'items from ObjectStore master-items.json');
+    }
+
+    // Artifacts (D3) - filter out undiscovered for player surfaces
+    const osArtifacts = (artifactData as any)?.artifacts;
+    if (Array.isArray(osArtifacts) && osArtifacts.length > 0) {
+      const visible = osArtifacts.filter((a: any) =>
+        includeHiddenArtifacts || !a.discovery?.hiddenUntilFound || discoveredArtifactIds.has(a.uuid)
+      );
+      ITEMS.push(...visible.map((a: any) => ({
+        id: a.uuid,
+        name: a.name,
+        type: 'Artifact',
+        slot: 'mainhand',
+        rarity: 'Legendary',
+        tier: 8,
+        stats: a.stats || {},
+        effects: [...(a.abilities || []), ...(a.passives || [])],
+        image: a.iconUrl || '',
+        description: a.description || a.desc || '',
+        buyPrice: 0,
+        craftingProfession: null,
+        weaponType: a.artifactType || 'artifact',
+      })));
+      console.debug('[grudaDB] Synced', visible.length, 'artifacts from ObjectStore master-artifacts.json (of', osArtifacts.length, 'total)');
     }
 
     // Recipes from master-recipes.json
