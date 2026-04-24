@@ -1,0 +1,15 @@
+# Cache the immutable hashed assets forever; everything else follows default.
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# SharedArrayBuffer-heavy editor page needs cross-origin isolation.
+/editor
+  Cross-Origin-Embedder-Policy: require-corp
+  Cross-Origin-Opener-Policy: same-origin
+
+# Security headers on every response.
+/*
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: DENY
+  X-XSS-Protection: 1; mode=block
+  Referrer-Policy: strict-origin-when-cross-origin

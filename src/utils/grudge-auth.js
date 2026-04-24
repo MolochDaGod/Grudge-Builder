@@ -2,8 +2,8 @@
  * grudge-auth.js — Grudge Auth Gateway integration
  * Identity provider: https://id.grudge-studio.com (canonical Grudge ID)
  *
- * Note: The old auth-gateway-otb8qmmyd-grudgenexus.vercel.app deployment
- * has been retired. All auth now goes through id.grudge-studio.com.
+ * All auth goes through id.grudge-studio.com. Legacy Vercel deployments
+ * are retired and no longer valid origins.
  */
 export const GRUDGE_GATEWAY_URL = 'https://id.grudge-studio.com';
 

@@ -252,13 +252,14 @@ export default class Terrain {
         const actualRange = max - min;
         const optMax = typeof options.maxHeight !== 'number' ? max : options.maxHeight;
         const optMin = typeof options.minHeight !== 'number' ? min : options.minHeight;
-        const targetMax = options.stretch ? optMax : (max < optMax ? max : optMax);
+        let targetMax = options.stretch ? optMax : (max < optMax ? max : optMax);
         const targetMin = options.stretch ? optMin : (min > optMin ? min : optMin);
-        const range = targetMax - targetMin;
 
         if (targetMax < targetMin) {
             targetMax = optMax;
         }
+
+        const range = targetMax - targetMin;
 
         for (let i = 0; i < l; i++) {
             g[i] = options.easing((g[i] - min) / actualRange) * range + optMin;

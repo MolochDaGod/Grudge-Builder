@@ -4,8 +4,8 @@
  *  Drop-in auth modal for any Grudge Studio project.
  *
  *  Usage:
- *    <link rel="stylesheet" href="https://grudge-platform.vercel.app/grudge-auth-modal.css">
- *    <script src="https://grudge-platform.vercel.app/grudge-auth-modal.js"></script>
+ *    <link rel="stylesheet" href="https://id.grudge-studio.com/grudge-auth-modal.css">
+ *    <script src="https://id.grudge-studio.com/grudge-auth-modal.js"></script>
  *    <button onclick="openGrudgeAuthModal()">Sign In</button>
  *
  *  Config (optional — set BEFORE loading script or call grudgeAuthConfig()):

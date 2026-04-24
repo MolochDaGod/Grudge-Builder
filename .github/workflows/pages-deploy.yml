@@ -1,0 +1,48 @@
+name: Deploy to Cloudflare Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: pages-deploy-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      deployments: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install
+        run: npm ci --ignore-scripts
+
+      - name: Build client
+        run: npm run build:client
+        env:
+          VITE_AUTH_GATEWAY_URL: https://id.grudge-studio.com
+          VITE_API_URL: https://api.grudge-studio.com
+          VITE_WS_URL: wss://api.grudge-studio.com
+          VITE_ASSETS_URL: https://assets.grudge-studio.com
+          VITE_AI_URL: https://ale.grudge-studio.com
+          VITE_BADGE_READER_URL: https://edge.grudge-studio.com
+
+      - name: Publish to Cloudflare Pages
+        uses: cloudflare/pages-action@v1
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          projectName: grudge-client
+          directory: client/dist
+          branch: main
+          wranglerVersion: "3"

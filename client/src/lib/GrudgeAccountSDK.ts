@@ -6,7 +6,7 @@
  *
  * ─── Two operating modes ─────────────────────────────────────────────────────
  *
- *  STANDALONE (The-ENGINE, GDevelop, nexus-nemesis, etc.)
+ *  STANDALONE (The-ENGINE, grudgeDot launcher, nexus-nemesis, etc.)
  *    → Makes direct fetch() calls to api.grudge-studio.com using stored JWT.
  *
  *  EMBEDDED (grudge-crafting.puter.site inside grudgewarlords.com iframe)
