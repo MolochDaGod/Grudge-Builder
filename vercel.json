@@ -3,7 +3,7 @@
   "buildCommand": "npm run build:client",
   "outputDirectory": "client/dist",
   "devCommand": "npm run dev:client",
-  "installCommand": "npm install --ignore-scripts",
+  "installCommand": "npm install --ignore-scripts --legacy-peer-deps",
   "framework": "vite",
   "rewrites": [
     {
