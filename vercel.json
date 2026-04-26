@@ -15,6 +15,42 @@
       "destination": "https://id.grudge-studio.com/auth/:path*"
     },
     {
+      "source": "/api/oauth-google",
+      "destination": "https://id.grudge-studio.com/auth/google/start"
+    },
+    {
+      "source": "/api/oauth-google/callback",
+      "destination": "https://id.grudge-studio.com/auth/google/callback"
+    },
+    {
+      "source": "/api/oauth-github",
+      "destination": "https://id.grudge-studio.com/auth/github/start"
+    },
+    {
+      "source": "/api/oauth-github/callback",
+      "destination": "https://id.grudge-studio.com/auth/github/callback"
+    },
+    {
+      "source": "/api/discord-login",
+      "destination": "https://id.grudge-studio.com/auth/discord/start"
+    },
+    {
+      "source": "/api/discord-login/callback",
+      "destination": "https://id.grudge-studio.com/auth/discord/callback"
+    },
+    {
+      "source": "/api/login",
+      "destination": "https://id.grudge-studio.com/auth/login"
+    },
+    {
+      "source": "/api/register",
+      "destination": "https://id.grudge-studio.com/auth/register"
+    },
+    {
+      "source": "/api/guest",
+      "destination": "https://id.grudge-studio.com/auth/puter"
+    },
+    {
       "source": "/api/wallet",
       "destination": "https://api.grudge-studio.com/api/wallet"
     },
