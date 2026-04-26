@@ -18,4 +18,5 @@ export {
 } from "./objectAcl";
 
 export { registerObjectStorageRoutes } from "./routes";
+export { registerDevToolObjectStorageRoutes } from "./devToolRoutes";
 

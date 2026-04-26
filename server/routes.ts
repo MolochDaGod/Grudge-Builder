@@ -10,7 +10,10 @@ import jwt from "jsonwebtoken";
 import fs from "node:fs";
 import path from "node:path";
 import Aseprite from "ase-parser";
-import { registerObjectStorageRoutes } from "./integrations/object_storage";
+import {
+  registerObjectStorageRoutes,
+  registerDevToolObjectStorageRoutes,
+} from "./integrations/object_storage";
 import { scanAsepriteDirectory, readAsepriteFile, getAsepriteStats } from "./aseprite-reader";
 import { getSheetsClient, isConfigured, SHEET_IDS, readSheet, getCachedData, setCachedData } from "./googleSheets";
 import { exportFoodsToSheet, generateFoodRows } from "./sheetsExport";
@@ -2168,6 +2171,10 @@ export const AI_ANALYZED_SPRITES = ${JSON.stringify(manifestEntries, null, 2)};`
 
   // Register object storage routes
   registerObjectStorageRoutes(app);
+
+  // Register dev-tool object-storage routes (/api/objectstore/*)
+  // Used by the Grudge Dev Tool (Windows tray app) and scripts/upload-asset-pack.ts
+  registerDevToolObjectStorageRoutes(app);
 
   // Register image storage routes
   const imageRoutes = await import("./routes/imageRoutes");

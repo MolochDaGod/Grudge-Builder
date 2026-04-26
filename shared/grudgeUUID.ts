@@ -80,7 +80,17 @@ export const SLOT_CODES: Record<string, string> = {
   'Loot': 'loot',
   'Treasure': 'trea',
   'Artifact': 'artf',
-  
+
+  // Asset-pack content (textures, materials, models)
+  // Used by the Grudge Dev Tool when ingesting external asset packs.
+  // NOTE: avoid the key 'Material' here — it already maps to 'matl' (crafting material) above.
+  'Texture': 'texr',
+  'TextureMaterial': 'mati',  // PBR-style material image (albedo/roughness/etc.)
+  'BlendModel': 'mdlb',
+  'Sprite': 'sprt',
+  'Audio': 'audi',
+  'Mesh': 'mesh',
+
   // Fallback
   'Unknown': 'unkn',
   'Other': 'othr',
