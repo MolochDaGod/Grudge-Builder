@@ -272,22 +272,48 @@
       .catch(function (e) { showError('Network error: ' + e.message); });
   }
 
-  // Discord OAuth
+  // ── OAuth client config (2026-04-27) ───────────────────────────────
+  // The backend `/api/auth/<provider>/start` rewrites all 404 right now,
+  // but the matching `/auth/<provider>/callback` endpoints on
+  // id.grudge-studio.com are alive. We build the provider authorize URL
+  // on the client and let the provider redirect straight to the callback.
+  var DISCORD_CLIENT_ID = (window.GRUDGE_DISCORD_CLIENT_ID) || '1471046591220678677';
+  var DISCORD_REDIRECT_URI = (window.GRUDGE_DISCORD_REDIRECT_URI) || 'https://id.grudge-studio.com/auth/discord/callback';
+  var DISCORD_OAUTH_SCOPES = (window.GRUDGE_DISCORD_OAUTH_SCOPES) || 'identify email';
+
+  function buildDiscordOAuthUrl(returnUrl) {
+    var qs = 'client_id=' + encodeURIComponent(DISCORD_CLIENT_ID)
+      + '&redirect_uri=' + encodeURIComponent(DISCORD_REDIRECT_URI)
+      + '&response_type=code'
+      + '&scope=' + encodeURIComponent(DISCORD_OAUTH_SCOPES)
+      + '&state=' + encodeURIComponent(returnUrl)
+      + '&prompt=consent';
+    return 'https://discord.com/api/oauth2/authorize?' + qs;
+  }
+
+  // Discord OAuth — client-built URL (was: /api/auth/discord/start which is 404).
   function doDiscord() {
     showSuccess('Redirecting to Discord\u2026');
-    window.location.href = AUTH_BASE + '/api/auth/discord/start';
+    var returnUrl = AUTH_RETURN
+      ? (window.location.origin + AUTH_RETURN)
+      : window.location.href;
+    window.location.href = buildDiscordOAuthUrl(returnUrl);
   }
 
-  // Google OAuth
+  // Google OAuth — delegated to Puter SDK (was: /api/auth/google/start which is 404).
+  // puter.auth.signIn() shows a Puter popup that includes Google as a provider.
+  // Per project rule i5j4NUBegZNoyEEBjTkREl the visible button stays branded
+  // "Google"; only the popup chrome is Puter's.
   function doGoogle() {
-    showSuccess('Redirecting to Google\u2026');
-    window.location.href = AUTH_BASE + '/api/auth/google/start';
+    showSuccess('Opening Google sign-in\u2026');
+    doPuter();
   }
 
-  // GitHub OAuth
+  // GitHub OAuth — backend /api/auth/github/start is 404 and we don't yet have
+  // GITHUB_CLIENT_ID exposed to the browser. Surface a clear message instead
+  // of redirecting to the dead endpoint.
   function doGitHub() {
-    showSuccess('Redirecting to GitHub\u2026');
-    window.location.href = AUTH_BASE + '/api/auth/github/start';
+    showError('GitHub login is temporarily unavailable. Use Discord, Google, Puter, or email/password.');
   }
 
   // Phantom / Solana Wallet
