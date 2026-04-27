@@ -20,7 +20,7 @@ import {
   setToken,
   loginAsGuest,
   startDiscordLogin,
-  startGoogleLogin,
+  loginWithPuterSDK,
   connectBrowserWallet,
   getAvailableWallets,
 } from "@/lib/grudgeBackend";
@@ -77,8 +77,11 @@ export default function LoginPage() {
     const returnUrl = encodeURIComponent(window.location.origin + "/?sso_token=");
     window.location.href = `https://id.grudge-studio.com?return=${returnUrl}`;
   };
+  // Discord: client-built OAuth URL (backend /auth/discord/start is 404; /auth/discord/callback is alive).
   const doDiscord = () => exec(async () => { window.location.href = await startDiscordLogin(); throw new Error("__redirect__"); });
-  const doGoogle = () => exec(async () => { window.location.href = await startGoogleLogin(); throw new Error("__redirect__"); });
+  // Google: route through Puter SDK — puter.auth.signIn() popup (Google is one of its providers).
+  // Puter UUID is exchanged for a Grudge JWT via /auth/puter (which is alive).
+  const doGoogle = () => exec(() => loginWithPuterSDK(), "Welcome!");
   const doWallet = (w: "phantom" | "solflare") => exec(() => connectBrowserWallet(w), "Wallet connected!");
   const doGuest = () => exec(() => loginAsGuest(), "Welcome, Guest!");
 

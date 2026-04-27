@@ -339,23 +339,48 @@ export async function loginAsGuest(): Promise<AuthResponse> {
   return handleAuthResponse(res, "guest");
 }
 
-/** Discord OAuth — returns redirect URL */
+/**
+ * Discord OAuth (2026-04-27 — client-built URL).
+ *
+ * The backend `/auth/discord/start` endpoint returns 404 right now, but
+ * `/auth/discord/callback` is alive. We build the discord.com authorize
+ * URL on the client and redirect there directly. Discord then redirects
+ * back to `id.grudge-studio.com/auth/discord/callback` with the code; the
+ * backend exchanges it for a Grudge JWT and redirects to `state` with
+ * `?sso_token=...` (picked up by the IIFE at the top of this file).
+ */
 export async function startDiscordLogin(): Promise<string> {
-  const state = encodeURIComponent(window.location.origin + '/');
-  const res = await fetch(`${API_BASE}/auth/discord/start?state=${state}`);
-  const data = await res.json();
-  return data.url;
+  const { buildDiscordOAuthUrl } = await import("./grudgeConfig");
+  return buildDiscordOAuthUrl(window.location.origin + '/');
 }
 
-/** Google OAuth — returns redirect URL */
+/**
+ * Google sign-in (2026-04-27 — routes through Puter SDK).
+ *
+ * The backend `/auth/google/start` endpoint returns 404 right now. Instead
+ * of failing, we delegate to the Puter SDK — `puter.auth.signIn()` shows
+ * a Puter popup that includes Google as a provider. The resulting Puter
+ * UUID is then exchanged for a Grudge JWT via `/auth/puter` (alive).
+ *
+ * Per project rule i5j4NUBegZNoyEEBjTkREl the visible button stays
+ * branded "Continue with Google" — the Puter chrome is just the popup
+ * that Puter renders during sign-in.
+ *
+ * Returns a sentinel URL (`__puter_sdk__`) so callers in login.tsx can
+ * detect the in-place auth flow and not attempt a `window.location.href`
+ * redirect. Prefer calling `loginWithPuterSDK()` directly when possible.
+ */
 export async function startGoogleLogin(): Promise<string> {
-  const state = encodeURIComponent(window.location.origin + '/');
-  const res = await fetch(`${API_BASE}/auth/google/start?state=${state}`);
-  const data = await res.json();
-  return data.url;
+  await loginWithPuterSDK();
+  return '__puter_sdk__';
 }
 
-/** GitHub OAuth — returns redirect URL */
+/**
+ * GitHub OAuth — same shape as Discord. The backend `/auth/github/start`
+ * endpoint is also currently 404; left as-is until the backend restores
+ * either the start endpoint or this can be moved to a client-built URL
+ * (would require VITE_GITHUB_CLIENT_ID in env).
+ */
 export async function startGithubLogin(): Promise<string> {
   const state = encodeURIComponent(window.location.origin + '/');
   const res = await fetch(`${API_BASE}/auth/github/start?state=${state}`);

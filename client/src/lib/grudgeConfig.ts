@@ -64,6 +64,46 @@ export function isGrudgedotLauncherLive(): boolean {
 export const GRUDGE_PLATFORM_URL: string =
   env.VITE_GRUDGE_PLATFORM_URL || 'https://grudgeplatform.io';
 
+/**
+ * Discord OAuth wiring (2026-04-27).
+ *
+ * `id.grudge-studio.com/auth/discord/start` currently returns 404, but
+ * `/auth/discord/callback` is alive. We build the discord.com authorize URL
+ * on the client and let Discord redirect straight to the callback. The
+ * backend callback exchanges the code, signs a JWT, and redirects back to
+ * `state` with `?sso_token=...` — picked up by the IIFE at the top of
+ * `grudgeBackend.ts`.
+ *
+ * Client ID is the GrudgeWarlords Discord app (registered in
+ * Developer Portal). Override via VITE_DISCORD_CLIENT_ID.
+ */
+export const DISCORD_CLIENT_ID: string =
+  env.VITE_DISCORD_CLIENT_ID || '1471046591220678677';
+
+export const DISCORD_REDIRECT_URI: string =
+  env.VITE_DISCORD_REDIRECT_URI || 'https://id.grudge-studio.com/auth/discord/callback';
+
+export const DISCORD_OAUTH_SCOPES: string =
+  env.VITE_DISCORD_OAUTH_SCOPES || 'identify email';
+
+/**
+ * Construct a Discord OAuth2 authorize URL. The user is redirected here when
+ * they click "Continue with Discord"; Discord redirects back to
+ * `DISCORD_REDIRECT_URI` with a code, and the backend resolves the code into
+ * a Grudge ID + JWT and redirects to `state` with the SSO token.
+ */
+export function buildDiscordOAuthUrl(returnUrl: string): string {
+  const params = new URLSearchParams({
+    client_id: DISCORD_CLIENT_ID,
+    redirect_uri: DISCORD_REDIRECT_URI,
+    response_type: 'code',
+    scope: DISCORD_OAUTH_SCOPES,
+    state: returnUrl,
+    prompt: 'consent',
+  });
+  return `https://discord.com/api/oauth2/authorize?${params.toString()}`;
+}
+
 /** LocalStorage keys — kept centralized so logout/purge logic cannot miss any. */
 export const STORAGE_KEYS = [
   'grudge_auth_token',
@@ -124,6 +164,10 @@ export default {
   GRUDGEDOT_LAUNCHER_URL,
   isGrudgedotLauncherLive,
   GRUDGE_PLATFORM_URL,
+  DISCORD_CLIENT_ID,
+  DISCORD_REDIRECT_URI,
+  DISCORD_OAUTH_SCOPES,
+  buildDiscordOAuthUrl,
   STORAGE_KEYS,
   purgeGrudgeClientState,
   authHeaders,
