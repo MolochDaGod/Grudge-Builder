@@ -38,6 +38,32 @@ export const BADGE_READER: string =
 export const OBJECTSTORE: string =
   env.VITE_OBJECTSTORE_URL || 'https://molochdagod.github.io/ObjectStore/api/v1';
 
+/**
+ * GrudgeDot launcher canonical URL.
+ *
+ * Default points at `launcher.grudge-studio.com` (status: planned in systemMap.ts).
+ * The legacy `https://grudgedot-launcher.vercel.app` host returns 404 (probed 2026-04-26)
+ * — do not link to it. Override via VITE_GRUDGEDOT_LAUNCHER_URL for staging builds.
+ *
+ * Use `isGrudgedotLauncherLive()` to gate UI affordances until the planned domain ships.
+ */
+export const GRUDGEDOT_LAUNCHER_URL: string =
+  env.VITE_GRUDGEDOT_LAUNCHER_URL || 'https://launcher.grudge-studio.com';
+
+/** True when GRUDGEDOT_LAUNCHER_URL has been overridden away from the planned default. */
+export function isGrudgedotLauncherLive(): boolean {
+  return GRUDGEDOT_LAUNCHER_URL !== 'https://launcher.grudge-studio.com'
+    || env.VITE_GRUDGEDOT_LAUNCHER_LIVE === 'true';
+}
+
+/**
+ * Web3 / cNFT / wallet / games hub. Distinct from the launcher per owner directive
+ * (2026-04-26): grudgeplatform.io shares only auth and data layers with the rest of
+ * Grudge Studio.
+ */
+export const GRUDGE_PLATFORM_URL: string =
+  env.VITE_GRUDGE_PLATFORM_URL || 'https://grudgeplatform.io';
+
 /** LocalStorage keys — kept centralized so logout/purge logic cannot miss any. */
 export const STORAGE_KEYS = [
   'grudge_auth_token',
@@ -95,6 +121,9 @@ export default {
   AI_GATEWAY,
   BADGE_READER,
   OBJECTSTORE,
+  GRUDGEDOT_LAUNCHER_URL,
+  isGrudgedotLauncherLive,
+  GRUDGE_PLATFORM_URL,
   STORAGE_KEYS,
   purgeGrudgeClientState,
   authHeaders,

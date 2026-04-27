@@ -90,6 +90,10 @@ const domains: SystemNode[] = [
   { id: "dom:launcher.g-s.com",   label: "launcher.grudge-studio.com", kind: "domain", status: "planned", group: "launcher", notes: "Version manifest & entitlements." },
   { id: "dom:status.g-s.com",     label: "status.grudge-studio.com", kind: "domain", status: "planned", group: "ops",    notes: "Uptime Kuma status page." },
   { id: "dom:warlords-server.railway.app", label: "Warlords server @ Railway", kind: "domain", status: "planned", group: "realtime", notes: "Home for this repo's Express + Colyseus server (server/index.ts). Configured via railway.json, domain attached on flip-on." },
+  // Web3/cNFT/wallet/games hub. Kept as a separate .io brand per owner directive (2026-04-26)
+  // — grudgeplatform.io is NOT merged into the GrudgeDot launcher; it shares only auth + data layers.
+  { id: "dom:grudgeplatform.io", label: "grudgeplatform.io", kind: "domain", status: "live", group: "web3", url: "https://grudgeplatform.io", notes: "Web3 / cNFT / wallet / games hub. Connects Puter accounts → Grudge ID → Crossmint custodial wallet → Solana cNFT. Hosts /play. Currently missing art/gameplay parity with grudgewarlords.com; production work tracked in grudge-platform repo.", lastVerified: "2026-04-26" },
+  { id: "dom:grudgedot-launcher", label: "grudgedot-launcher.vercel.app", kind: "domain", status: "broken", group: "launcher", url: "https://grudgedot-launcher.vercel.app", notes: "PROBE 404 (2026-04-26). Stale Vercel host left behind by the GDevelop→GrudgeDot rename. Canonical destination is launcher.grudge-studio.com (planned). home.legacy.tsx no longer hard-codes this URL — see GRUDGEDOT_LAUNCHER_URL in grudgeConfig.ts.", lastVerified: "2026-04-26" },
   // Puter deployments — see docs/puter-registry.json for canonical list.
   { id: "dom:grudge-server.puter.work", label: "grudge-server.puter.work", kind: "domain", status: "live",  group: "puter", url: "https://grudge-server.puter.work/api/health", notes: "External Puter worker (AI chat, vision, sprite gen, NPC chat, game data sync). See GrudgeBuilder/puter.md." },
   { id: "dom:grudge-crafting.puter.site", label: "grudge-crafting.puter.site", kind: "domain", status: "live",  group: "puter", url: "https://grudge-crafting.puter.site", notes: "Puter-hosted crafting frontend. Should pull item icons/tiers from molochdagod.github.io/ObjectStore/GRUDGE_Item_Database.html per user rule." },
@@ -129,12 +133,16 @@ const services: SystemNode[] = [
   { id: "svc:puter-crafting", label: "Puter Crafting Site", kind: "service", status: "live",    group: "puter",   owner: "frontend", notes: "grudge-crafting.puter.site. Must consume ObjectStore icons/items (rule n4qBEKIS...)." },
   { id: "svc:puter-sdk",      label: "Puter SDK (ai/kv/fs/auth)", kind: "service", status: "live", group: "puter", owner: "platform", notes: "Loaded client-side from js.puter.com/v2. Consumed by GrudgeBuilder (puterIntegration.ts), grudge-sdk.js, and Puter-hosted frontends." },
   { id: "svc:puter-auth-bridge", label: "Puter \u2194 Grudge ID bridge", kind: "service", status: "live", group: "puter", owner: "backend", repo: "grudge-backend", notes: "id.grudge-studio.com /auth/puter (+ /auth/puter-link). Mints/links Grudge ID from Puter UUID; every auth path guarantees one Puter cloud storage per account. Proxied via grudge-platform api/puter.js + puter-link.js." },
+  // Web3 hub. Distinct from svc:gaming-portal (/gs) and svc:frontend (grudgewarlords.com).
+  { id: "svc:grudge-platform", label: "Grudge Platform (web3 hub)", kind: "service", status: "live", group: "web3", owner: "frontend", repo: "grudge-platform", notes: "Vercel app for grudgeplatform.io + /play. Owns Crossmint embed, cNFT mint flows, wallet UI, and Web3 onboarding. Auth: Puter SDK → id.grudge-studio.com /auth/puter via api/puter.js proxy. Pulls items/icons from ObjectStore; pulls binaries from R2 CDN. Per owner directive (2026-04-26) this is a separate brand from launcher.grudge-studio.com." },
 ];
 
 // ---------------------------------------------------------------------------
 // Frontend routes (mirrors client/src/App.tsx)
 // ---------------------------------------------------------------------------
-type RouteSeed = { path: string; label: string; group: string; status?: NodeStatus; notes?: string };
+type RouteSeed = { path: string; label: string; group: string; status?: NodeStatus; notes?: string;
+  /** Optional non-default host. When omitted, the route is anchored to grudgewarlords.com (this repo). */
+  host?: string };
 const routeSeeds: RouteSeed[] = [
   { path: "/",                  label: "Login",              group: "account" },
   { path: "/auth/callback",     label: "Auth callback",      group: "account" },
@@ -194,17 +202,24 @@ const routeSeeds: RouteSeed[] = [
   { path: "/sprite-admin",      label: "Sprite Admin",       group: "admin" },
   { path: "/ai-helper",         label: "AI Helper",          group: "admin" },
   { path: "/organizer",         label: "System Organizer",   group: "admin", notes: "This page." },
+
+  // Cross-property routes (anchored to other Grudge domains).
+  { path: "/gs",   label: "Rec0deD:88 / Grudge Studio Gaming Portal", group: "portal", host: "grudge-studio.com", notes: "Reference visual + auth surface (do not refactor). Served by The-ENGINE (svc:gaming-portal). Loads js.puter.com/v2/. Mirror its login + account UI patterns into other Grudge surfaces." },
+  { path: "/play", label: "grudgeplatform.io/play",                   group: "web3",   host: "grudgeplatform.io", notes: "Web3 play surface on the platform brand. Currently missing art/gameplay parity — see Phase 5 cross-repo checklist in docs/audit-report.md." },
 ];
 
-const frontendRoutes: SystemNode[] = routeSeeds.map(r => ({
-  id: `route:${r.path}`,
-  label: r.path,
-  kind: "frontendRoute",
-  status: r.status ?? "live",
-  group: r.group,
-  url: `https://grudgewarlords.com${r.path}`,
-  notes: r.notes,
-}));
+const frontendRoutes: SystemNode[] = routeSeeds.map(r => {
+  const host = r.host ?? "grudgewarlords.com";
+  return {
+    id: `route:${r.path}`,
+    label: r.host ? `${host}${r.path}` : r.path,
+    kind: "frontendRoute" as const,
+    status: r.status ?? "live",
+    group: r.group,
+    url: `https://${host}${r.path}`,
+    notes: r.notes,
+  };
+});
 
 // ---------------------------------------------------------------------------
 // API rewrites (mirrors vercel.json)
@@ -272,6 +287,7 @@ const repos: SystemNode[] = [
   { id: "repo:grudge-game-engine", label: "grudge-game-engine (planned)", kind: "repo", status: "planned", group: "engine", notes: "Planned repo: fork of github.com/mrdoob/three.js/tree/master/editor, improved + branded as Grudge Game Engine. Ships one build to engine.grudge-studio.com and grudgestudio.puter.site. Adds: Grudge ID auth (SSO + Puter bridge), /api/scenes persistence, ObjectStore asset picker, Rapier/Cannon physics, three retargeting for character rigs, GrudgeDot launcher entry." },
   { id: "repo:gruda-legion-sdk", label: "gruda-legion-sdk",   kind: "repo", status: "live", group: "ai",       url: "https://github.com/MolochDaGod/gruda-legion-sdk" },
   { id: "repo:mission",           label: "Grudge-Studio-Mission", kind: "repo", status: "live", group: "ops",  url: "https://github.com/Grudge-Warlords/Grudge-Studio-Mission", notes: "North-star mission, architecture, roadmap." },
+  { id: "repo:grudge-platform",   label: "grudge-platform",   kind: "repo", status: "live", group: "web3",   url: "https://github.com/MolochDaGod/grudge-platform", notes: "Source for grudgeplatform.io + /play. Hosts api/_grudge-proxy.js (CORS allowlist) and api/puter.js + api/puter-link.js (proxy to id.grudge-studio.com /auth/puter)." },
 ];
 
 // ---------------------------------------------------------------------------
@@ -325,6 +341,17 @@ edges.push(
   { source: "svc:puter-crafting", target: "svc:os-static",      kind: "reads",            notes: "Pulls items/icons from ObjectStore JSON API." },
   { source: "svc:puter-auth-bridge", target: "svc:grudge-id",   kind: "authenticates-via", notes: "/auth/puter upserts (puter_uuid \u2194 grudge_id) on id.grudge-studio.com." },
   { source: "svc:frontend",    target: "svc:puter-auth-bridge", kind: "authenticates-via", notes: "loginWithPuter() in grudgeBackend.ts posts to /api/auth/puter (Vercel rewrite to id.g-s.com)." },
+  // grudgeplatform.io (web3/cNFT/wallet/games hub)
+  { source: "dom:grudgeplatform.io", target: "svc:grudge-platform",       kind: "routes-to" },
+  { source: "repo:grudge-platform",  target: "svc:grudge-platform",       kind: "deploys-from" },
+  { source: "svc:grudge-platform",   target: "svc:puter-sdk",             kind: "calls",             notes: "Loads js.puter.com/v2/ for browser auth + AI + KV/FS." },
+  { source: "svc:grudge-platform",   target: "svc:puter-auth-bridge",     kind: "authenticates-via", notes: "Posts { puterUuid, puterUsername } via api/puter.js → id.grudge-studio.com/auth/puter." },
+  { source: "svc:grudge-platform",   target: "svc:os-static",             kind: "reads",             notes: "Items/icons/recipes from molochdagod.github.io/ObjectStore (single source of truth, no hardcoded copies)." },
+  { source: "svc:grudge-platform",   target: "svc:r2-cdn",                kind: "reads",             notes: "Binary assets from assets.grudge-studio.com." },
+  { source: "svc:grudge-platform",   target: "svc:wallet-svc",            kind: "calls",             notes: "Crossmint custodial wallet provisioning + cNFT mint via api.grudge-studio.com /api/wallet + /api/nfts." },
+  // /gs reference surface (do not refactor)
+  { source: "dom:grudge-studio.com", target: "route:/gs",                 kind: "routes-to" },
+  { source: "route:/gs",             target: "svc:gaming-portal",         kind: "routes-to" },
 );
 
 // Frontend -> rewrites
@@ -333,8 +360,12 @@ for (const rw of rewriteSeeds) {
   edges.push({ source: `rw:${rw.source}`, target: rw.target, kind: "rewrites-to" });
 }
 
-// Frontend routes -> frontend service
+// Frontend routes -> frontend service.
+// Routes with an explicit host (e.g. /gs on grudge-studio.com, /play on grudgeplatform.io)
+// are wired to their own service in the explicit `edges.push(...)` block above; do not
+// double-edge them to this repo's svc:frontend.
 for (const r of routeSeeds) {
+  if (r.host) continue;
   edges.push({ source: `route:${r.path}`, target: "svc:frontend", kind: "routes-to" });
 }
 
@@ -404,6 +435,8 @@ export const readiness: ReadinessRow[] = [
   { serviceId: "svc:puter-worker", https: "ok",       healthEndpoint: "/api/health",  cors: "unknown", authRequired: "ok",     rateLimit: "unknown", observability: "missing", backup: "n/a",    owner: "platform", runbook: "puter.md" },
   { serviceId: "svc:puter-crafting", https: "ok",                                      cors: "n/a",    authRequired: "n/a",    rateLimit: "n/a",     observability: "missing", backup: "n/a",    owner: "frontend" },
   { serviceId: "svc:puter-auth-bridge", https: "ok",  healthEndpoint: "/auth/puter",  cors: "ok",      authRequired: "n/a",    rateLimit: "missing", observability: "missing", backup: "ok",     owner: "backend" },
+  { serviceId: "svc:grudge-platform",   https: "ok",                                  cors: "ok",      authRequired: "n/a",    rateLimit: "unknown", observability: "missing", backup: "n/a",    owner: "frontend", runbook: "docs/audit-report.md#5-cross-repo-checklist" },
+  { serviceId: "svc:gaming-portal",     https: "ok",                                  cors: "ok",      authRequired: "n/a",    rateLimit: "unknown", observability: "unknown", backup: "n/a",    owner: "platform", runbook: "docs/references/gs-portal.md" },
 ];
 
 // Helpers used by the organizer UI

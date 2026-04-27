@@ -108,3 +108,76 @@ Puter surface defaults to a `/launcher` route that is the **GrudgeDot** login en
 ## 12. Repos deliberately not touched
 - `thc-labz-battle`, `doepbudz` — per user rule `11Cw4GX7NbtgVzGGutY9iF`.
 - `grudge-backend`, `grudge-studio-dash`, `grudge-ai-hub`, `The-ENGINE`, `Grudge-Engine-Web`, `grudge-arena`, `Grudge-Studio-Game`, `grim-armada-web`, `GrudgeSpaceRTS`, `TGE-Billing`, `RPG-MODULAR` — out of audit write scope. Registered in `systemMap.ts` only.
+## 13. Production parity for grudgeplatform.io, /gs, GrudgeDot, Puter (2026-04-26)
+### 13a. Live surfaces (probed 2026-04-26)
+- `https://grudgewarlords.com` — 200 ✅ (this repo's SPA, Three.js, loads `js.puter.com/v2/`).
+- `https://grudgewarlords.com/gs` — 200, but it's the SPA catch-all on this repo, **not** a real `/gs` route here.
+- `https://grudge-studio.com/gs` — 200, title `Rec0deD:88 — Grudge Studio Gaming Portal`. Served by `The-ENGINE` (`svc:gaming-portal`). This is the **canonical** `/gs` surface.
+- `https://grudgeplatform.io` — 200, title `RPG Maker Studio — Grudge Studios`. Served by `grudge-platform` repo. Now registered as `dom:grudgeplatform.io` + `svc:grudge-platform`.
+- `https://grudgeplatform.io/play` — 200. Now registered as `route:/play` (host: grudgeplatform.io).
+- `https://grudgedot-launcher.vercel.app` — **404** ❌ (probed). Stale. Removed from frontend code and registered in `systemMap.ts` as `dom:grudgedot-launcher` with `status: broken`.
+- `https://grudge-server.puter.work/api/health` — 200 ✅.
+- `https://launcher.grudge-studio.com` — 404 (planned, not yet deployed).
+- `https://grudge-studio.com/api/status` — 404 (the systems-master.html live status endpoint does not yet exist on `The-ENGINE`; tracked in §14b and §15b).
+- `https://api.grudge-studio.com/api/health` — **404 (regression).** The 2026-04-21 audit recorded this as 200; current probe returns 404. Flag for backend owner; not addressed in this pass.
+- Full probe results: 20/24 OK. Re-run any time via `node scripts/probe-deployments.mjs`.
+### 13b. Owner directives (2026-04-26)
+1. Canonical GrudgeDot launcher destination is `https://launcher.grudge-studio.com`. Until that's live, UI tiles linking to it are visually disabled.
+2. `grudgeplatform.io` is the **Web3 / cNFT / wallet / games hub**. It is **not** merged into the GrudgeDot launcher — it shares only the auth and data layers (Puter SDK → `id.grudge-studio.com /auth/puter`, ObjectStore for items, R2 for binary assets).
+3. `/gs` is the polished visual + auth reference. **Do not refactor it.** Other Grudge surfaces mirror its patterns. See `docs/references/gs-portal.md`.
+### 13c. Drift fixes applied in this pass
+- `client/src/data/systemMap.ts` — added `dom:grudgeplatform.io`, `dom:grudgedot-launcher` (broken), `svc:grudge-platform`, `repo:grudge-platform`, `route:/play` (host: grudgeplatform.io), `route:/gs` (host: grudge-studio.com), nine new edges, and two readiness rows. Extended `RouteSeed` with optional `host`. The default `route → svc:frontend` edge skips host-anchored routes.
+- `docs/puter-registry.json` — added `frontends` entry for `grudgeplatform.io`; added `namingConvention` block; expanded `corsAllowlistedIn` and `openGaps` to track the dead `grudgedot-launcher.vercel.app` and the missing-art/gameplay gap.
+- `client/src/lib/grudgeConfig.ts` — added `GRUDGEDOT_LAUNCHER_URL` (default `https://launcher.grudge-studio.com`), `isGrudgedotLauncherLive()`, and `GRUDGE_PLATFORM_URL`.
+- `client/src/pages/home.legacy.tsx` — replaced the dead `grudgedot-launcher.vercel.app` constant with `GRUDGEDOT_LAUNCHER_URL`; the launcher tile now renders disabled until the canonical host is live.
+- `docs/references/gs-portal.md` — new doc capturing the visual + auth conventions of `/gs` to mirror across surfaces.
+- `scripts/probe-deployments.mjs` — new script that hits every registered domain and `/api/status`. Run via `node scripts/probe-deployments.mjs`.
+## 14. Cross-repo checklist (Phase 5)
+Work that must happen in repos other than `GrudgeBuilder` to complete production parity. None of this is done in this pass.
+### 14a. `grudge-platform` (grudgeplatform.io + /play)
+- `api/_grudge-proxy.js::ALLOWED_ORIGINS` — must include exactly: `https://grudgewarlords.com`, `https://www.grudgewarlords.com`, `https://grudge-studio.com`, `https://grudgeplatform.io`, `https://launcher.grudge-studio.com`, `https://grudge-crafting.puter.site`, `https://grudge-server.puter.work`.
+- `api/puter.js` and `api/puter-link.js` — already proxy to `id.grudge-studio.com /auth/puter` (+ `/puter-link`); leave as-is.
+- `public/index.html` — `og:image` = `https://grudgewarlords.com/opengraph.jpg`, `og:site_name` = `Grudge Studio`, `twitter:site` = `@grudgewarlords` (per `docs/references/gs-portal.md`). Load `https://js.puter.com/v2/` exactly once with `defer`.
+- Pull items / icons / recipes from `https://molochdagod.github.io/ObjectStore/api/v1/master-items.json` (and siblings) — no hardcoded copies.
+- Pull binary assets (sprites, models, audio) from `https://assets.grudge-studio.com` via the same `assetUrl()` helper this repo uses (or its grudge-sdk equivalent).
+- Add Crossmint embed for cNFT + custodial wallet flows. Server keys live in Vercel project env vars (see `docs/audit-report.md` §14d).
+- `/play` should redirect to `https://grudgewarlords.com/?sso_token=…` for consistent identity until `/play` has its own client. Long-term: render its own client and reuse the same SSO token mechanism.
+- Remove `public/legacy-auth.html` references to deployments other than the canonical Puter ones from `docs/puter-registry.json`.
+### 14b. `The-ENGINE` (grudge-studio.com + `/gs`)
+- **Do not refactor `/gs`.** It is the visual + auth reference per owner directive.
+- Confirm `/api/status` exposes the keys `id`, `api`, `ws`, `launcher`, `assets` so the live status bar in `systems-master.html` keeps working across the studio.
+- Add `https://grudgeplatform.io`, `https://launcher.grudge-studio.com`, and `https://grudgewarlords.com` to its CORS allowlist.
+- Add the same hosts to its SSO return-URL allowlist on `id.grudge-studio.com`.
+### 14c. `grudgedot-launcher` (canonical: launcher.grudge-studio.com)
+- The legacy `grudgedot-launcher.vercel.app` host returns 404 (probed). Either redeploy it under `https://launcher.grudge-studio.com` or archive the repo.
+- Until redeployed, this repo's `home.legacy.tsx` renders the launcher tile in a disabled state via `isGrudgedotLauncherLive()`.
+- When redeployed, set `VITE_GRUDGEDOT_LAUNCHER_LIVE=true` in `GrudgeBuilder` Vercel env vars to flip the tile back on without a code change.
+### 14d. `grudge-backend` (id.grudge-studio.com / api.grudge-studio.com)
+- Confirm `/auth/puter` and `/auth/puter-link` accept the canonical `{ puterUuid, puterUsername }` payload from all three frontends (already true per `puter-registry.json::authBridge.clientFlow` — verify on next deploy).
+- SSO return-URL allowlist must include `https://grudgewarlords.com`, `https://grudge-studio.com`, `https://grudgeplatform.io`, `https://launcher.grudge-studio.com`, `https://engine.grudge-studio.com`, `https://grudgestudio.puter.site`.
+- `JWT_SECRET` rotation must coordinate with this repo's `.env` to avoid cross-app auth breakage.
+- Add `/api/status` (5-key health summary) for the systems-master live status bar (id, api, ws, launcher, assets).
+## 15. Alignment with `systems-master.html`
+User provided `C:\Users\nugye\Desktop\MouseWithoutBorders\corrected\corrected\systems-master.html` as the architectural outline (2026-04-26). Reconciled below.
+### 15a. What matches
+- **Layered architecture.** `systems-master.html` describes Vercel (Next.js) + Puter (Apps/Sites/Workers) + Shared Packages. This repo already enforces that layering: Vercel-hosted SPA on `grudgewarlords.com`, Puter SDK loaded from `js.puter.com/v2/`, Puter Worker at `grudge-server.puter.work`, Puter site at `grudge-crafting.puter.site`, ObjectStore as a shared data package.
+- **Shared auth.** `systems-master.html`'s `useGrudgeAuth()` hook pattern matches what `client/src/lib/grudgeBackend.ts` already does (Puter UUID → `/auth/puter` → `grudge_auth_token`). Documented in `docs/references/gs-portal.md`.
+- **Crossmint, custodial wallets, cNFT.** Already wired in this repo via `server/services/crossmintWallet.ts` and `/api/wallet`, `/api/nfts`, `/api/island-nfts` rewrites. `grudge-platform` is the right home for the user-facing embeds.
+- **Visual tokens.** `--g-fire #ff3d00`, `--g-neon #00ffcc`, `--g-volt #ffe600`, `--g-sky #00b4ff`, `--g-violet #9d4edd`, `--g-rose #ff006e`, Bebas Neue + Outfit + Fira Code — codified in `docs/references/gs-portal.md` for cross-surface adoption.
+- **AI routing.** `systems-master.html` recommends routing user-facing generative AI through `puter.ai.*` (user pays) and studio-only AI (moderation, lore Q&A) through server keys. This repo already does that: `server/services/aiPersonality.ts` uses server-side OpenAI; client-side avatar/sprite generation goes through `puterIntegration.ts`.
+### 15b. Discrepancies to reconcile (no change in this pass)
+- **DB engine.** `systems-master.html` labels the canonical DB as **MySQL 8**, but this repo's schema is **Postgres** via Drizzle (`shared/schema.ts`, `drizzle.config.ts`). The VPS `.env` declares both a `MYSQL_*` block (game data) and a `DATABASE_URL` Postgres URL (account/character spine via Neon). Reconcile in a follow-up audit: clarify which engine owns which table set, and update `systems-master.html` or migrate accordingly.
+- **Status bar keys.** `systems-master.html` calls `https://grudge-studio.com/api/status` and expects keys `id / api / ws / launcher / assets`. This endpoint must exist on `The-ENGINE` (Phase 5 §14b). It does not exist on `api.grudge-studio.com` — do not move it without updating the HTML.
+- **Planned Puter Sites.** `systems-master.html` lists `characters.grudge.puter.site`, `islands.grudge.puter.site`, `lore.grudge.puter.site` as planned. None exist yet (`grudge.puter.site` itself is the default Puter welcome page). When deployed, register them in `docs/puter-registry.json::frontends` first to avoid the same shadow-deployment problem documented in §9.
+- **Bull/BullMQ + Redis 7.** `systems-master.html` proposes Redis 7 (Docker) + BullMQ for rate limiting + background NFT mint jobs. The VPS `.env` already declares `REDIS_PASSWORD`; the actual queue infrastructure is not yet in this repo. Track as a `grudge-backend` follow-up.
+### 15c. systems-master.html → systemMap.ts cross-reference
+| Master HTML node | systemMap.ts id |
+|---|---|
+| Vercel (Next.js) main app | `svc:frontend` |
+| Puter Apps / Sites / Workers | `svc:puter-worker`, `svc:puter-crafting`, `svc:puter-sdk`, `svc:puter-auth-bridge` |
+| Grudge Backend (DB) | `svc:game-api` + `data:pg-characters`, `data:pg-accounts`, `data:pg-inventory` |
+| Crossmint | `svc:wallet-svc` (server-side) + `svc:grudge-platform` (client embed) |
+| Redis 7 (Docker) | not yet a node — add when the queue ships |
+| Web3 hub | `svc:grudge-platform` + `dom:grudgeplatform.io` |
+| Reference portal | `svc:gaming-portal` + `route:/gs` |
+| GrudgeDot launcher | `dom:launcher.g-s.com` (planned) + `dom:grudgedot-launcher` (broken/legacy) |

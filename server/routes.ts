@@ -449,7 +449,18 @@ export async function registerRoutes(
     }
   });
 
-  // Character AI Personality routes
+  // Character AI Personality routes (local-dev only — see AGENTS.md)
+  // ServiceDisabledError → 503 so the frontend can render BackendRequired
+  // instead of treating a missing OPENAI_API_KEY as an unexpected 500.
+  function isPersonalityDisabled(err: unknown): boolean {
+    return !!err && typeof err === "object"
+      && (err as { code?: string }).code === "AI_PERSONALITY_DISABLED";
+  }
+  const PERSONALITY_DISABLED_BODY = {
+    error: "AI personality service is not configured on this host",
+    code: "AI_PERSONALITY_DISABLED",
+  };
+
   app.post("/api/characters/:id/generate-personality", async (req, res) => {
     try {
       const { generatePersonality } = await import("./services/aiPersonality");
@@ -465,16 +476,19 @@ export async function registerRoutes(
       const classes = await storage.getClasses();
       const race = races.find(r => r.id === character.raceId);
       const cls = classes.find(c => c.id === character.classId);
-      
+
       const personality = await generatePersonality(
         race?.name || "Human",
         cls?.name || "Warrior",
         character.name
       );
-      
+
       const updated = await storage.updateCharacter(character.id, { personality } as any);
       res.json({ personality, character: updated });
     } catch (error) {
+      if (isPersonalityDisabled(error)) {
+        return res.status(503).json(PERSONALITY_DISABLED_BODY);
+      }
       console.error("Error generating personality:", error);
       res.status(500).json({ error: "Failed to generate personality" });
     }
@@ -491,16 +505,19 @@ export async function registerRoutes(
       if (character.userId !== userId) {
         return res.status(403).json({ error: "Character does not belong to your account" });
       }
-      
+
       const { message } = req.body;
       if (!message || typeof message !== 'string') {
         return res.status(400).json({ error: "Message is required" });
       }
-      
+
       const chatHistory = (character.chatHistory as any[]) || [];
       const result = await chatWithCharacter(character.id, message, chatHistory);
       res.json(result);
     } catch (error) {
+      if (isPersonalityDisabled(error)) {
+        return res.status(503).json(PERSONALITY_DISABLED_BODY);
+      }
       console.error("Error chatting with character:", error);
       res.status(500).json({ error: "Failed to chat with character" });
     }
@@ -517,10 +534,13 @@ export async function registerRoutes(
       if (character.userId !== userId) {
         return res.status(403).json({ error: "Character does not belong to your account" });
       }
-      
+
       const greeting = await generateCharacterGreeting(character.id);
       res.json({ greeting });
     } catch (error) {
+      if (isPersonalityDisabled(error)) {
+        return res.status(503).json(PERSONALITY_DISABLED_BODY);
+      }
       console.error("Error generating greeting:", error);
       res.status(500).json({ error: "Failed to generate greeting" });
     }
@@ -533,10 +553,13 @@ export async function registerRoutes(
       if (!Array.isArray(characterIds)) {
         return res.status(400).json({ error: "characterIds must be an array" });
       }
-      
+
       const discussion = await triggerRandomDiscussion(characterIds);
       res.json(discussion || { speakerId: null, message: null });
     } catch (error) {
+      if (isPersonalityDisabled(error)) {
+        return res.status(503).json(PERSONALITY_DISABLED_BODY);
+      }
       console.error("Error triggering random discussion:", error);
       res.status(500).json({ error: "Failed to trigger discussion" });
     }

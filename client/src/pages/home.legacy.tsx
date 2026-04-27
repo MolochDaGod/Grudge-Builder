@@ -17,6 +17,7 @@ import {
 } from "@/lib/grudgeBackend";
 import { RACES } from "@/lib/gameData";
 import { assetUrl } from "@/lib/assetConfig";
+import { GRUDGEDOT_LAUNCHER_URL, isGrudgedotLauncherLive } from "@/lib/grudgeConfig";
 
 const LIVE_GAMES = [
   {
@@ -93,12 +94,18 @@ const LIVE_GAMES = [
   },
 ];
 
-const GRUDGEDOT_PORTAL = "https://grudgedot-launcher.vercel.app";
+// GrudgeDot launcher — canonical URL is launcher.grudge-studio.com (status: planned).
+// The previous hard-coded grudgedot-launcher.vercel.app returned 404; we now read the
+// canonical URL from grudgeConfig and disable the tile until the planned host is live.
+const GRUDGEDOT_PORTAL = GRUDGEDOT_LAUNCHER_URL;
+const GRUDGEDOT_LIVE = isGrudgedotLauncherLive();
 
 const SERVICES = [
   { id: "account", label: "My Account", desc: "Profile, stats & settings", url: "/account", color: "text-amber-400" },
   { id: "wallet", label: "Wallet & NFTs", desc: "Gold, GBUX & cNFTs", url: "/wallet", color: "text-purple-400" },
-  { id: "grudgedot", label: "Game Portal", desc: "grudgeDot game launcher", url: GRUDGEDOT_PORTAL, color: "text-cyan-400" },
+  GRUDGEDOT_LIVE
+    ? { id: "grudgedot", label: "Game Portal", desc: "grudgeDot game launcher", url: GRUDGEDOT_PORTAL, color: "text-cyan-400" }
+    : { id: "grudgedot", label: "Game Portal", desc: "grudgeDot launcher — coming soon", url: "", color: "text-cyan-400/50", disabled: true as const },
   { id: "arsenal", label: "Arsenal", desc: "Weapons, armor & items", url: "/arsenal", color: "text-green-400" },
 ];
 
@@ -289,19 +296,26 @@ export default function HomePage() {
             <div className="rounded-xl border border-border/40 bg-card/40 p-4">
               <h3 className="font-cinzel text-xs font-bold text-muted-foreground uppercase tracking-widest mb-3">Services</h3>
               <div className="space-y-0.5">
-                {SERVICES.map((svc) => (
-                  <button key={svc.id} onClick={() => nav(svc.url, svc.url.startsWith("http"))}
-                    className="w-full flex items-center gap-3 px-2 py-2.5 rounded-lg hover:bg-muted/30 transition-colors group text-left">
-                    <span className={`${svc.color} text-lg`}>
-        {svc.id === "account" ? <UserCircle className="w-4 h-4" /> : svc.id === "engine" ? <Code2 className="w-4 h-4" /> : svc.id === "cloud" ? <Cloud className="w-4 h-4" /> : <Wallet className="w-4 h-4" />}
-                    </span>
-                    <div className="flex-1 min-w-0">
-                      <div className="text-sm font-medium leading-none mb-0.5">{svc.label}</div>
-                      <div className="text-xs text-muted-foreground/60">{svc.desc}</div>
-                    </div>
-                    <ExternalLink className="w-3 h-3 text-muted-foreground/30 group-hover:text-muted-foreground/60" />
-                  </button>
-                ))}
+                {SERVICES.map((svc) => {
+                  const disabled = (svc as { disabled?: boolean }).disabled === true;
+                  return (
+                    <button
+                      key={svc.id}
+                      disabled={disabled}
+                      onClick={() => { if (!disabled) nav(svc.url, svc.url.startsWith("http")); }}
+                      className={`w-full flex items-center gap-3 px-2 py-2.5 rounded-lg transition-colors group text-left ${disabled ? "opacity-50 cursor-not-allowed" : "hover:bg-muted/30"}`}
+                    >
+                      <span className={`${svc.color} text-lg`}>
+          {svc.id === "account" ? <UserCircle className="w-4 h-4" /> : svc.id === "engine" ? <Code2 className="w-4 h-4" /> : svc.id === "cloud" ? <Cloud className="w-4 h-4" /> : <Wallet className="w-4 h-4" />}
+                      </span>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-medium leading-none mb-0.5">{svc.label}</div>
+                        <div className="text-xs text-muted-foreground/60">{svc.desc}</div>
+                      </div>
+                      <ExternalLink className="w-3 h-3 text-muted-foreground/30 group-hover:text-muted-foreground/60" />
+                    </button>
+                  );
+                })}
               </div>
             </div>
 

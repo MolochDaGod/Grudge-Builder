@@ -97,6 +97,22 @@
       "purpose": "Reserved Puter slug. Responds 200 but shows the default Puter welcome page (title=\"Welcome to grudge.puter.site\") — no Grudge app deployed.",
       "consumers": [],
       "action": "Hold as a reserved namespace or deploy a real redirect landing to grudge-studio.com."
+    },
+    {
+      "id": "grudgeplatform-io",
+      "url": "https://grudgeplatform.io",
+      "hosting": "vercel",
+      "status": "live",
+      "purpose": "Web3 / cNFT / wallet / games hub. Per owner directive (2026-04-26) this is a SEPARATE brand from launcher.grudge-studio.com — it shares only the auth and data layers (Puter SDK → id.grudge-studio.com /auth/puter, ObjectStore for items, R2 for binary assets). Currently missing art/gameplay parity with grudgewarlords.com.",
+      "title": "RPG Maker Studio — Grudge Studios",
+      "dataSource": "https://molochdagod.github.io/ObjectStore (items/icons/recipes) + https://assets.grudge-studio.com (binary assets)",
+      "consumers": [
+        "grudge-platform/api/puter.js (POST -> id.grudge-studio.com/auth/puter)",
+        "grudge-platform/api/puter-link.js (POST -> id.grudge-studio.com/auth/puter-link)",
+        "grudge-platform/api/_grudge-proxy.js (CORS allowlist)"
+      ],
+      "systemMapNode": "svc:grudge-platform",
+      "action": "Bring art + gameplay to production parity with grudgewarlords.com by reading the same ObjectStore + R2 sources. Add Crossmint embed for cNFT + custodial wallet flows. SSO via id.grudge-studio.com (already wired). Tracked in docs/audit-report.md §5."
     }
   ],
   "nameBreakRisks": [
@@ -160,12 +176,26 @@
     ]
   },
   "corsAllowlistedIn": [
-    "grudge-platform/api/_grudge-proxy.js::ALLOWED_ORIGINS (updated in this audit)"
+    "grudge-platform/api/_grudge-proxy.js::ALLOWED_ORIGINS (must include https://grudgewarlords.com, https://grudge-studio.com, https://grudgeplatform.io, https://grudgedot.grudge-studio.com)"
   ],
+  "namingConvention": {
+    "rule": "Always reference the actual live slug. Some Grudge Puter slugs are hyphenated (grudge-crafting.puter.site, grudge-studio.puter.site) and others are not (grudgewarlords.puter.site, grudgestudio.puter.site). The skills/puter/SKILL.md naming guidance is normative; this registry's nameBreakRisks block is the do-not-type list.",
+    "liveCanonicalSlugs": [
+      "grudge-server.puter.work",
+      "grudge-crafting.puter.site",
+      "grudgewarlords.puter.site",
+      "grudgestudio.puter.site",
+      "grudge-studio.puter.site",
+      "grudge.puter.site"
+    ]
+  },
   "openGaps": [
     "No automated health poller for grudge-server.puter.work — add to /organizer Readiness tab.",
     "No written policy for when guest puter_uuid -> email-claimed Grudge ID merges; today it relies on backend upsert uniqueness.",
     "grudge-server.puter.work/api/auth/verify currently mirrors id.grudge-studio.com/auth/verify — confirm there is no divergent token validation path.",
-    "Three live Grudge-owned Puter deployments (grudgewarlords.puter.site, grudgestudio.puter.site, grudge-studio.puter.site) are not referenced by any current Grudge app code path. Decide per-site: keep + register, or retire + redirect."
+    "Three live Grudge-owned Puter deployments (grudgewarlords.puter.site, grudgestudio.puter.site, grudge-studio.puter.site) are not referenced by any current Grudge app code path. Decide per-site: keep + register, or retire + redirect.",
+    "grudgeplatform.io is missing art and gameplay; production parity work tracked in docs/audit-report.md Phase 5 (cross-repo checklist).",
+    "https://grudgedot-launcher.vercel.app returns 404 (probed 2026-04-26). The hard-coded link in client/src/pages/home.legacy.tsx has been migrated to GRUDGEDOT_LAUNCHER_URL in client/src/lib/grudgeConfig.ts and the canonical destination is launcher.grudge-studio.com (planned).",
+    "systems-master.html outline labels the canonical DB as MySQL 8 but this repo's schema is Postgres via Drizzle. Reconcile in a follow-up audit; see docs/audit-report.md §13."
   ]
 }
