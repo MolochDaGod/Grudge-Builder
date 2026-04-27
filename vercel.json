@@ -123,7 +123,7 @@
       "destination": "https://api.grudge-studio.com/public/:path*"
     },
     {
-      "source": "/(.*)",
+      "source": "/((?!.*\\.).*)",
       "destination": "/index.html"
     }
   ],
