@@ -181,3 +181,29 @@ User provided `C:\Users\nugye\Desktop\MouseWithoutBorders\corrected\corrected\sy
 | Web3 hub | `svc:grudge-platform` + `dom:grudgeplatform.io` |
 | Reference portal | `svc:gaming-portal` + `route:/gs` |
 | GrudgeDot launcher | `dom:launcher.g-s.com` (planned) + `dom:grudgedot-launcher` (broken/legacy) |
+## 16. Backend route shape change — login + game-flow regression (2026-04-27)
+### 16a. Symptom
+User reported "can't login" and "game flows aren't working" on `grudgewarlords.com`. Login page rendered, but every authenticated request returned 404 / 502.
+### 16b. Root cause
+`grudge-backend` dropped the `/api/` prefix from its public routes between the 2026-04-21 audit and 2026-04-27. Probed shape:
+- `https://api.grudge-studio.com/health` — 200 ✅ (was `/api/health`).
+- `https://api.grudge-studio.com/characters` — 401 ✅ auth-required (was `/api/characters`).
+- `https://api.grudge-studio.com/professions/list` — 401 ✅ (was `/api/professions/list`).
+- `https://api.grudge-studio.com/api/*` — **404** for every prior `/api/*` path.
+- `https://account.grudge-studio.com/health` — 200 ✅ (account API is on its own host; the prior rewrite pointed `/api/account/*` at `api.grudge-studio.com/api/account/*`, which was 404).
+- `https://id.grudge-studio.com/auth/puter` (POST) — 400 ✅ endpoint alive, expects body.
+- `https://id.grudge-studio.com/auth/login` (POST) — 400 ✅ endpoint alive.
+### 16c. Endpoints still missing on the auth host (probe 2026-04-27)
+These return 404 on `id.grudge-studio.com` and need backend attention. Listed for the owner; not addressed in this pass.
+- `/auth/verify` — client-side `verifyToken()` calls this on every page load (returns invalid → logout).
+- `/auth/sso-check` — was the cross-app SSO bootstrap target. Auto-redirect from `grudgeBackend.ts` has been disabled in this pass to break the redirect loop.
+- `/auth/google/start` — OAuth start. The Vercel rewrite is wired but the upstream returns 404. Discord/Google/GitHub OAuth from `grudgewarlords.com` will fail until restored.
+### 16d. Fixes applied in this pass (this repo)
+- `vercel.json` — every game-API rewrite destination now drops the `/api/` segment to match the new backend shape: `/api/health` → `https://api.grudge-studio.com/health`, `/api/characters` → `/characters`, `/api/island/*` → `/island/*`, `/api/wallet/*` → `/wallet/*`, `/api/professions/*` → `/professions/*`, `/api/inventory/*` → `/inventory/*`, `/api/nfts*` → `/nfts*`, `/api/island-nfts*` → `/island-nfts*`, `/api/party*` → `/party*`, `/api/tools/*` → `/tools/*`, `/api/game/:path*` → `/:path*`. `/api/account/:path*` retargeted from `api.grudge-studio.com/api/account/*` to `account.grudge-studio.com/*`. `/api/auth/:path*` already strips `/api/` and adds `/auth/` — unchanged.
+- `client/src/lib/grudgeBackend.ts` — disabled the auto-redirect to `id.grudge-studio.com/auth/sso-check` (currently 404). Removing the redirect breaks the loop on first load; the login page (`/`) and `isAuthenticated()` guards handle unauthenticated state explicitly. Comment block left in source so it can be re-enabled when the endpoint is restored.
+### 16e. Required follow-ups in `grudge-backend`
+1. Restore `GET /auth/sso-check` (or rename and update `grudgeBackend.ts` to match) so cross-app SSO works.
+2. Restore `GET /auth/verify` (or document the new path) so `verifyToken()` doesn't silently log every user out.
+3. Restore the OAuth `/auth/google/start`, `/auth/discord/start`, `/auth/github/start` endpoints, or update this repo's `login.tsx` + `vercel.json` to point at the new shape.
+4. Decide whether the `/api/` prefix removal is permanent. If it is, update `AGENTS.md` and `README.md` to reflect the new shape (currently they still document `/api/*`). If the change is provisional, restore `/api/` aliases.
+5. Add `account.grudge-studio.com/account` (or whatever path replaces it) so `/api/account/*` rewrites resolve to a real endpoint; root and `/account` currently return 404 there.

@@ -97,14 +97,18 @@ const SSO_AUTH_URL = "https://id.grudge-studio.com";
       return; // token captured, done
     }
 
-    // If no local token and we haven't checked SSO yet, redirect to SSO check
-    const hasToken = !!localStorage.getItem(AUTH_TOKEN_KEY) || !!localStorage.getItem(LEGACY_SESSION_TOKEN_KEY);
-    const ssoRequired = params.get("sso_required");
-    if (!hasToken && !ssoRequired && window.location.pathname !== "/") {
-      // Redirect to grudge-id SSO check
-      const returnUrl = encodeURIComponent(window.location.href);
-      window.location.href = `${SSO_AUTH_URL}/auth/sso-check?return=${returnUrl}`;
-    }
+    // Auto SSO-check disabled (2026-04-27): id.grudge-studio.com/auth/sso-check
+    // currently returns 404, which produced a redirect loop on every page load
+    // for unauthenticated users. The login page (route "/") handles missing auth
+    // explicitly; protected routes guard with isAuthenticated().
+    // Re-enable once /auth/sso-check is restored on the auth host — see
+    // docs/audit-report.md §16.
+    // const hasToken = !!localStorage.getItem(AUTH_TOKEN_KEY) || !!localStorage.getItem(LEGACY_SESSION_TOKEN_KEY);
+    // const ssoRequired = params.get("sso_required");
+    // if (!hasToken && !ssoRequired && window.location.pathname !== "/") {
+    //   const returnUrl = encodeURIComponent(window.location.href);
+    //   window.location.href = `${SSO_AUTH_URL}/auth/sso-check?return=${returnUrl}`;
+    // }
   } catch { /* ignore in SSR/test */ }
 })();
 

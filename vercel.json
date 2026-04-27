@@ -8,7 +8,7 @@
   "rewrites": [
     {
       "source": "/api/account/:path*",
-      "destination": "https://api.grudge-studio.com/api/account/:path*"
+      "destination": "https://account.grudge-studio.com/:path*"
     },
     {
       "source": "/api/auth/:path*",
@@ -52,63 +52,63 @@
     },
     {
       "source": "/api/wallet",
-      "destination": "https://api.grudge-studio.com/api/wallet"
+      "destination": "https://api.grudge-studio.com/wallet"
     },
     {
       "source": "/api/wallet/:path*",
-      "destination": "https://api.grudge-studio.com/api/wallet/:path*"
+      "destination": "https://api.grudge-studio.com/wallet/:path*"
     },
     {
       "source": "/api/island/:path*",
-      "destination": "https://api.grudge-studio.com/api/island/:path*"
+      "destination": "https://api.grudge-studio.com/island/:path*"
     },
     {
       "source": "/api/nfts/:path*",
-      "destination": "https://api.grudge-studio.com/api/nfts/:path*"
+      "destination": "https://api.grudge-studio.com/nfts/:path*"
     },
     {
       "source": "/api/nfts",
-      "destination": "https://api.grudge-studio.com/api/nfts"
+      "destination": "https://api.grudge-studio.com/nfts"
     },
     {
       "source": "/api/island-nfts/:path*",
-      "destination": "https://api.grudge-studio.com/api/island-nfts/:path*"
+      "destination": "https://api.grudge-studio.com/island-nfts/:path*"
     },
     {
       "source": "/api/island-nfts",
-      "destination": "https://api.grudge-studio.com/api/island-nfts"
+      "destination": "https://api.grudge-studio.com/island-nfts"
     },
     {
       "source": "/api/professions/:path*",
-      "destination": "https://api.grudge-studio.com/api/professions/:path*"
+      "destination": "https://api.grudge-studio.com/professions/:path*"
     },
     {
       "source": "/api/inventory/:path*",
-      "destination": "https://api.grudge-studio.com/api/inventory/:path*"
+      "destination": "https://api.grudge-studio.com/inventory/:path*"
     },
     {
       "source": "/api/health",
-      "destination": "https://api.grudge-studio.com/api/health"
+      "destination": "https://api.grudge-studio.com/health"
     },
     {
       "source": "/api/characters/:path*",
-      "destination": "https://api.grudge-studio.com/api/characters/:path*"
+      "destination": "https://api.grudge-studio.com/characters/:path*"
     },
     {
       "source": "/api/characters",
-      "destination": "https://api.grudge-studio.com/api/characters"
+      "destination": "https://api.grudge-studio.com/characters"
     },
     {
       "source": "/api/party",
-      "destination": "https://api.grudge-studio.com/api/party"
+      "destination": "https://api.grudge-studio.com/party"
     },
     {
       "source": "/api/party/:path*",
-      "destination": "https://api.grudge-studio.com/api/party/:path*"
+      "destination": "https://api.grudge-studio.com/party/:path*"
     },
     {
       "source": "/api/tools/:path*",
-      "destination": "https://api.grudge-studio.com/api/tools/:path*"
+      "destination": "https://api.grudge-studio.com/tools/:path*"
     },
     {
       "source": "/api/assets/:path*",
@@ -116,7 +116,7 @@
     },
     {
       "source": "/api/game/:path*",
-      "destination": "https://api.grudge-studio.com/api/:path*"
+      "destination": "https://api.grudge-studio.com/:path*"
     },
     {
       "source": "/api/public/:path*",
