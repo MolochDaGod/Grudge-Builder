@@ -85,7 +85,7 @@ const domains: SystemNode[] = [
   { id: "dom:objectstore.g-s.com",label: "objectstore.grudge-studio.com", kind: "domain", status: "live", group: "assets", url: "https://objectstore.grudge-studio.com/health" },
   { id: "dom:dash.g-s.com",       label: "dash.grudge-studio.com",   kind: "domain", status: "live", group: "admin",   url: "https://dash.grudge-studio.com" },
   { id: "dom:ai.g-s.com",         label: "ai.grudge-studio.com",     kind: "domain", status: "live", group: "ai",      url: "https://ai.grudge-studio.com" },
-  { id: "dom:objectstore.gh",     label: "molochdagod.github.io/ObjectStore", kind: "domain", status: "live", group: "assets", url: "https://molochdagod.github.io/ObjectStore" },
+  { id: "dom:objectstore.gh",     label: "grudge-objectstore.pages.dev", kind: "domain", status: "live", group: "assets", url: "https://grudge-objectstore.pages.dev" },
   { id: "dom:ws.g-s.com",         label: "ws.grudge-studio.com",     kind: "domain", status: "planned", group: "realtime", notes: "WebSocket real-time (Socket.IO/Colyseus)." },
   { id: "dom:launcher.g-s.com",   label: "launcher.grudge-studio.com", kind: "domain", status: "planned", group: "launcher", notes: "Version manifest & entitlements." },
   { id: "dom:status.g-s.com",     label: "status.grudge-studio.com", kind: "domain", status: "planned", group: "ops",    notes: "Uptime Kuma status page." },
@@ -96,7 +96,7 @@ const domains: SystemNode[] = [
   { id: "dom:grudgedot-launcher", label: "grudgedot-launcher.vercel.app", kind: "domain", status: "broken", group: "launcher", url: "https://grudgedot-launcher.vercel.app", notes: "PROBE 404 (2026-04-26). Stale Vercel host left behind by the GDevelop→GrudgeDot rename. Canonical destination is launcher.grudge-studio.com (planned). home.legacy.tsx no longer hard-codes this URL — see GRUDGEDOT_LAUNCHER_URL in grudgeConfig.ts.", lastVerified: "2026-04-26" },
   // Puter deployments — see docs/puter-registry.json for canonical list.
   { id: "dom:grudge-server.puter.work", label: "grudge-server.puter.work", kind: "domain", status: "live",  group: "puter", url: "https://grudge-server.puter.work/api/health", notes: "External Puter worker (AI chat, vision, sprite gen, NPC chat, game data sync). See GrudgeBuilder/puter.md." },
-  { id: "dom:grudge-crafting.puter.site", label: "grudge-crafting.puter.site", kind: "domain", status: "live",  group: "puter", url: "https://grudge-crafting.puter.site", notes: "Puter-hosted crafting frontend. Should pull item icons/tiers from molochdagod.github.io/ObjectStore/GRUDGE_Item_Database.html per user rule." },
+  { id: "dom:grudge-crafting.puter.site", label: "grudge-crafting.puter.site", kind: "domain", status: "live",  group: "puter", url: "https://grudge-crafting.puter.site", notes: "Puter-hosted crafting frontend. Should pull item icons/tiers from grudge-objectstore.pages.dev/GRUDGE_Item_Database.html per user rule." },
   { id: "dom:js.puter.com",       label: "js.puter.com (SDK CDN)", kind: "domain", status: "live",  group: "puter", url: "https://js.puter.com/v2/", notes: "Puter SDK script loaded by all Grudge frontends for AI/KV/FS/auth. Third-party, not owned." },
   // Shadow / untracked Puter deployments discovered via probe — see docs/puter-registry.json nameBreakRisks + frontends entries.
   { id: "dom:grudgewarlords.puter.site", label: "grudgewarlords.puter.site", kind: "domain", status: "broken", group: "puter", url: "https://grudgewarlords.puter.site", notes: "UNTRACKED live Grudge deployment (title=Grudge Warlords). Not referenced by any current code path. Owner TBD; decide keep vs retire." },
@@ -261,9 +261,9 @@ const apiRewrites: SystemNode[] = rewriteSeeds.map(r => ({
 // Data sources
 // ---------------------------------------------------------------------------
 const dataSources: SystemNode[] = [
-  { id: "data:master-items",    label: "master-items.json (818)",    kind: "dataSource", status: "live", group: "assets", url: "https://molochdagod.github.io/ObjectStore/api/v1/master-items.json" },
-  { id: "data:master-recipes",  label: "master-recipes.json (118)",  kind: "dataSource", status: "live", group: "assets", url: "https://molochdagod.github.io/ObjectStore/api/v1/master-recipes.json" },
-  { id: "data:master-materials",label: "master-materials.json (93)", kind: "dataSource", status: "live", group: "assets", url: "https://molochdagod.github.io/ObjectStore/api/v1/master-materials.json" },
+  { id: "data:master-items",    label: "master-items.json (818)",    kind: "dataSource", status: "live", group: "assets", url: "https://grudge-objectstore.pages.dev/api/v1/master-items.json" },
+  { id: "data:master-recipes",  label: "master-recipes.json (118)",  kind: "dataSource", status: "live", group: "assets", url: "https://grudge-objectstore.pages.dev/api/v1/master-recipes.json" },
+  { id: "data:master-materials",label: "master-materials.json (93)", kind: "dataSource", status: "live", group: "assets", url: "https://grudge-objectstore.pages.dev/api/v1/master-materials.json" },
   { id: "data:r2-icons",        label: "R2: /icons/**",              kind: "dataSource", status: "live", group: "assets" },
   { id: "data:r2-models",       label: "R2: /models/**",             kind: "dataSource", status: "live", group: "assets" },
   { id: "data:pg-characters",   label: "Postgres: characters",       kind: "dataSource", status: "live", group: "backend" },
@@ -346,7 +346,7 @@ edges.push(
   { source: "repo:grudge-platform",  target: "svc:grudge-platform",       kind: "deploys-from" },
   { source: "svc:grudge-platform",   target: "svc:puter-sdk",             kind: "calls",             notes: "Loads js.puter.com/v2/ for browser auth + AI + KV/FS." },
   { source: "svc:grudge-platform",   target: "svc:puter-auth-bridge",     kind: "authenticates-via", notes: "Posts { puterUuid, puterUsername } via api/puter.js → id.grudge-studio.com/auth/puter." },
-  { source: "svc:grudge-platform",   target: "svc:os-static",             kind: "reads",             notes: "Items/icons/recipes from molochdagod.github.io/ObjectStore (single source of truth, no hardcoded copies)." },
+  { source: "svc:grudge-platform",   target: "svc:os-static",             kind: "reads",             notes: "Items/icons/recipes from grudge-objectstore.pages.dev (single source of truth, no hardcoded copies)." },
   { source: "svc:grudge-platform",   target: "svc:r2-cdn",                kind: "reads",             notes: "Binary assets from assets.grudge-studio.com." },
   { source: "svc:grudge-platform",   target: "svc:wallet-svc",            kind: "calls",             notes: "Crossmint custodial wallet provisioning + cNFT mint via api.grudge-studio.com /api/wallet + /api/nfts." },
   // /gs reference surface (do not refactor)

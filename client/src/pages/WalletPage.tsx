@@ -1,12 +1,12 @@
 import { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient, type QueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Wallet, Coins, ExternalLink, CheckCircle, Loader2, AlertCircle, Copy } from "lucide-react";
+import { Wallet, Coins, ExternalLink, CheckCircle, Loader2, AlertCircle, Copy, Gift, ArrowRight } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { authHeaders } from "@/lib/grudgeBackend";
 
@@ -291,6 +291,13 @@ export default function WalletPage() {
         </CardContent>
       </Card>
 
+      {/* Escrowed NFTs — claim section */}
+      <EscrowClaimSection
+        hasWallet={!!walletStatus?.hasWallet}
+        walletConfig={walletConfig}
+        queryClient={queryClient}
+      />
+
       {/* Island cNFT Card */}
       {islandNft?.nft && (
         <Card className="mb-6">
@@ -476,5 +483,117 @@ export default function WalletPage() {
         </ul>
       </div>
     </div>
+  );
+}
+
+// ── Escrow Claim Section ────────────────────────────────────────────
+
+function EscrowClaimSection({ hasWallet, walletConfig, queryClient }: {
+  hasWallet: boolean;
+  walletConfig: { network: string };
+  queryClient: QueryClient;
+}) {
+  const { toast } = useToast();
+
+  const { data: escrowedData, isLoading } = useQuery<{ nfts: NFTStatus[] }>({
+    queryKey: ["escrowed-nfts"],
+    queryFn: async () => {
+      const res = await fetch("/api/nfts/escrowed", { headers: authHeaders() });
+      if (!res.ok) return { nfts: [] };
+      const data = await res.json();
+      return { nfts: data.nfts || [] };
+    },
+  });
+
+  const claimMutation = useMutation({
+    mutationFn: async (nftId: string) => {
+      const res = await fetch(`/api/nfts/${nftId}/claim`, {
+        method: "POST",
+        headers: { ...authHeaders(), "Content-Type": "application/json" },
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Failed to claim NFT");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      toast({ title: "NFT Claimed!", description: "Your cNFT has been transferred to your wallet." });
+      queryClient.invalidateQueries({ queryKey: ["escrowed-nfts"] });
+      queryClient.invalidateQueries({ queryKey: ["character-nfts"] });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Claim Failed", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const escrowed = escrowedData?.nfts || [];
+  if (isLoading || escrowed.length === 0) return null;
+
+  return (
+    <Card className="mb-6 border-yellow-500/30">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-yellow-600 dark:text-yellow-400">
+          <Gift className="h-5 w-5" />
+          Escrowed NFTs ({escrowed.length})
+        </CardTitle>
+        <CardDescription>
+          These cNFTs were minted during character creation and are held in escrow.
+          {hasWallet
+            ? " Claim them to transfer to your wallet."
+            : " Create a wallet first to claim them."}
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="grid gap-3">
+          {escrowed.map((nft) => (
+            <div
+              key={nft.id}
+              className="flex items-center gap-4 p-4 rounded-lg border border-yellow-500/20 bg-yellow-50/50 dark:bg-yellow-950/10"
+            >
+              {nft.character?.avatarUrl && (
+                <img
+                  src={nft.character.avatarUrl}
+                  alt={nft.character.name || "Character"}
+                  className="w-14 h-14 rounded-lg object-cover border border-yellow-500/30"
+                />
+              )}
+              <div className="flex-1 min-w-0">
+                <h4 className="font-bold text-sm">
+                  {nft.character?.name || `Character #${nft.characterId.slice(0, 8)}`}
+                </h4>
+                {nft.character && (
+                  <p className="text-xs text-muted-foreground capitalize">
+                    {nft.character.raceId} {nft.character.classId} • Level {nft.character.level}
+                  </p>
+                )}
+                <Badge variant="outline" className="mt-1 text-yellow-600 border-yellow-500/30 text-xs">
+                  Held in escrow
+                </Badge>
+              </div>
+              <Button
+                size="sm"
+                disabled={!hasWallet || claimMutation.isPending}
+                onClick={() => claimMutation.mutate(nft.id)}
+                className="bg-yellow-600 hover:bg-yellow-500 text-white"
+              >
+                {claimMutation.isPending ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <>
+                    Claim <ArrowRight className="h-3 w-3 ml-1" />
+                  </>
+                )}
+              </Button>
+            </div>
+          ))}
+        </div>
+        {!hasWallet && (
+          <p className="text-xs text-muted-foreground mt-3">
+            Create a wallet above to claim your escrowed NFTs.
+          </p>
+        )}
+      </CardContent>
+    </Card>
   );
 }

@@ -13,7 +13,7 @@ This repo ships the **Grudge Warlords** web game at [grudgewarlords.com](https:/
 - **Account API**: [account.grudge-studio.com](https://account.grudge-studio.com/health) — VPS
 - **Assets CDN**: [assets.grudge-studio.com](https://assets.grudge-studio.com) — Cloudflare R2
 - **ObjectStore Worker**: [objectstore.grudge-studio.com](https://objectstore.grudge-studio.com/health) — Cloudflare Workers (R2 + D1)
-- **ObjectStore API**: [molochdagod.github.io/ObjectStore](https://molochdagod.github.io/ObjectStore/api/v1/master-items.json) — GitHub Pages (55+ JSON endpoints)
+- **ObjectStore API**: [grudge-objectstore.pages.dev](https://grudge-objectstore.pages.dev/api/v1/master-items.json) — Cloudflare Pages (55+ JSON endpoints)
 - **Dashboard**: [dash.grudge-studio.com](https://dash.grudge-studio.com) — VPS
 - **AI Hub**: [ai.grudge-studio.com](https://ai.grudge-studio.com) — Cloudflare Workers
 
@@ -45,7 +45,7 @@ Cloudflare:
 - `objectstore.grudge-studio.com` — R2 + D1 Worker (3D models, search, upload) — Cloudflare Workers
 - `dash.grudge-studio.com` — Admin dashboard — VPS
 - `ai.grudge-studio.com` — Gruda Legion AI hub (sprite gen, agents) — Cloudflare Workers
-- `molochdagod.github.io/ObjectStore` — Static JSON game data API (55+ endpoints) — GitHub Pages (`gh-pages` branch)
+- `grudge-objectstore.pages.dev` — Static JSON game data API (55+ endpoints) — Cloudflare Pages
 
 **Planned (not yet deployed):**
 - `ws.grudge-studio.com` — WebSocket real-time (Socket.IO)
@@ -150,7 +150,7 @@ const { data: weapons, isLoading, error, refetch } = useWeapons();
 - **ObjectStore**: [github.com/MolochDaGod/ObjectStore](https://github.com/MolochDaGod/ObjectStore) — 55+ JSON endpoints, 13K+ assets, SDK v5.0, master-items with GRUDGE UUIDs
 
 ### Environment Overrides
-- `VITE_OBJECT_STORE_URL` — Override ObjectStore base URL (default: `molochdagod.github.io/ObjectStore`)
+- `VITE_OBJECT_STORE_URL` — Override ObjectStore base URL (default: `grudge-objectstore.pages.dev`)
 - `VITE_ASSET_CDN_URL` — Override CDN/asset service URL (default: `assets.grudge-studio.com`)
 
 ## Tech Stack
@@ -162,7 +162,7 @@ const { data: weapons, isLoading, error, refetch } = useWeapons();
 - **Multiplayer**: Colyseus (WebSocket rooms)
 - **Backend**: Express, Drizzle ORM, PostgreSQL (VPS)
 - **Auth**: Grudge ID (JWT) via id.grudge-studio.com — Discord, Google, GitHub, Puter, Solana wallet, guest
-- **Assets**: ObjectStore (GitHub Pages for JSON, Cloudflare R2 for binary assets)
+- **Assets**: ObjectStore (Cloudflare Pages for JSON, Cloudflare R2 for binary assets)
 - **Infrastructure**: VPS (Docker/Coolify), Vercel (frontend), Cloudflare (DNS + R2)
 
 ## Deploy

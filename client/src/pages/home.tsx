@@ -1,11 +1,8 @@
 /**
- * home.tsx — thin redirect shim to the canonical WCS /home page.
+ * home.tsx — unified Grudge Warlords home hub.
  *
- * The original in-app home is preserved at `home.legacy.tsx` for reference.
- * To revert: swap the import in App.tsx or rename the legacy file back.
+ * This is the primary navigation hub after login. All game modes,
+ * tools, and services are accessible from here. No longer redirects
+ * to WCS — all crafting is being unified into this app.
  */
-import WcsRedirect from '@/components/WcsRedirect';
-
-export default function HomePage() {
-  return <WcsRedirect to="/home" returnPath="/home" label="Open Home" />;
-}
+export { default } from './home.legacy';

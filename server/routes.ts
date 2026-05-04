@@ -5081,6 +5081,52 @@ Also suggest metadata values in this exact JSON format:
     }
   });
 
+  // POST /api/nfts/:nftId/claim - Claim an escrowed cNFT (transfer from agent wallet to player wallet)
+  app.post("/api/nfts/:nftId/claim", async (req, res) => {
+    try {
+      const { nftId } = req.params;
+      const userId = getUserId(req);
+      const account = await storage.getAccountByUserId(userId);
+      if (!account) {
+        return res.status(404).json({ error: "Account not found" });
+      }
+
+      if (!account.walletAddress) {
+        return res.status(400).json({ error: "You need a wallet before claiming. Create one first." });
+      }
+
+      const { nftMintingService } = await import("./services/nftMinting");
+      const result = await nftMintingService.claimEscrowedNFT(nftId, account.id);
+
+      if (!result.success) {
+        return res.status(400).json({ error: result.error });
+      }
+
+      res.json({ success: true, message: "NFT claimed and transferred to your wallet." });
+    } catch (error) {
+      console.error("Error claiming escrowed NFT:", error);
+      res.status(500).json({ error: "Failed to claim NFT" });
+    }
+  });
+
+  // GET /api/nfts/escrowed - Get all escrowed NFTs for the current account
+  app.get("/api/nfts/escrowed", async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      const account = await storage.getAccountByUserId(userId);
+      if (!account) {
+        return res.json({ nfts: [] });
+      }
+
+      const { nftMintingService } = await import("./services/nftMinting");
+      const escrowed = await nftMintingService.getEscrowedNFTs(account.id);
+      res.json({ nfts: escrowed });
+    } catch (error) {
+      console.error("Error fetching escrowed NFTs:", error);
+      res.status(500).json({ error: "Failed to fetch escrowed NFTs" });
+    }
+  });
+
   // POST /api/nfts/:nftId/sync-metadata - Sync NFT metadata with current character stats
   app.post("/api/nfts/:nftId/sync-metadata", async (req, res) => {
     try {

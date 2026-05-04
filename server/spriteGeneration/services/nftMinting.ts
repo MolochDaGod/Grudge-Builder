@@ -175,7 +175,22 @@ export class NFTMintingService {
       );
       targetWallet = account.walletAddress;
     } else {
-      return { success: false, error: 'No wallet or email provided' };
+      // No wallet or email — escrow to the agent AI wallet.
+      // The cNFT is held here until the player sets up a server-side wallet,
+      // at which point they can claim it from the wallet page.
+      const agentWallet = process.env.AI_AGENT_WALLET || process.env.AGENT_ESCROW_WALLET || process.env.CROSSMINT_TREASURY_WALLET;
+      if (!agentWallet) {
+        console.error('[NFT] No AGENT_ESCROW_WALLET configured — cannot escrow cNFT');
+        return { success: false, error: 'No wallet available and escrow not configured' };
+      }
+      console.log(`[NFT] Player has no wallet — escrowing cNFT to agent wallet: ${agentWallet}`);
+      mintResult = await crossmintWalletService.mintCharacterNFT(
+        character,
+        imageUrl,
+        agentWallet,
+        true
+      );
+      targetWallet = `escrow:${agentWallet}`;
     }
 
     if (!mintResult) {
@@ -339,8 +354,67 @@ export class NFTMintingService {
       return true;
     } catch (error) {
       console.error('[NFT] Failed to link external wallet:', error);
-      return false;
+    return false;
     }
+  }
+
+  /**
+   * Claim an escrowed cNFT — transfer it from the agent wallet to the player's wallet.
+   * Only works for NFTs whose ownerWalletAddress starts with "escrow:".
+   */
+  async claimEscrowedNFT(
+    nftId: string,
+    accountId: string,
+  ): Promise<{ success: boolean; error?: string }> {
+    const nfts = await this.getAccountNFTs(accountId);
+    const nft = nfts.find(n => n.id === nftId);
+    if (!nft) {
+      return { success: false, error: 'NFT not found or does not belong to this account' };
+    }
+    if (!nft.ownerWallet?.startsWith('escrow:')) {
+      return { success: false, error: 'This NFT is not in escrow' };
+    }
+
+    const [account] = await db
+      .select().from(accounts).where(eq(accounts.id, accountId)).limit(1);
+    if (!account?.walletAddress) {
+      return { success: false, error: 'You need a wallet before you can claim. Create one on the wallet page.' };
+    }
+
+    const [nftRecord] = await db
+      .select().from(characterNFTs).where(eq(characterNFTs.id, nftId)).limit(1);
+    if (!nftRecord) {
+      return { success: false, error: 'NFT record not found' };
+    }
+
+    const tokenId = nftRecord.crossmintActionId || nftRecord.assetId;
+    if (!tokenId) {
+      return { success: false, error: 'No token ID available for transfer' };
+    }
+
+    const escrowWallet = nft.ownerWallet.replace('escrow:', '');
+    console.log(`[NFT-Claim] Transferring NFT ${nftId} from escrow ${escrowWallet} → ${account.walletAddress}`);
+
+    const result = await crossmintWalletService.transferNFT(tokenId, escrowWallet, account.walletAddress);
+    if (!result.success) {
+      return { success: false, error: result.error || 'Transfer failed' };
+    }
+
+    await db.update(characterNFTs).set({
+      ownerWalletAddress: account.walletAddress,
+      status: 'minted',
+      mintedToExternal: false,
+      updatedAt: Date.now(),
+    }).where(eq(characterNFTs.id, nftId));
+
+    console.log(`[NFT-Claim] ✅ NFT ${nftId} claimed → ${account.walletAddress}`);
+    return { success: true };
+  }
+
+  /** Get all escrowed NFTs for an account (ownerWallet starts with "escrow:"). */
+  async getEscrowedNFTs(accountId: string): Promise<EnrichedNFTStatus[]> {
+    const all = await this.getAccountNFTsEnriched(accountId);
+    return all.filter(nft => nft.ownerWallet?.startsWith('escrow:'));
   }
 }
 

@@ -60,6 +60,7 @@ import Island3DPage from "@/pages/island-3d";
 import AuthCallbackPage from "@/pages/auth-callback";
 import EditorPage from "@/pages/editor";
 import OrganizerPage from "@/pages/organizer";
+import CreateCharacterPage from "@/pages/create-character";
 
 function Router() {
   return (
@@ -70,6 +71,7 @@ function Router() {
       <Route path="/home" component={HomePage} />
       <Route path="/character" component={CharacterBuilder} />
       <Route path="/characters" component={CharacterBuilder} />
+      <Route path="/create-character" component={CreateCharacterPage} />
       <Route path="/professions" component={ProfessionsPage} />
       <Route path="/database" component={DatabasePage} />
       <Route path="/island" component={IslandPage} />

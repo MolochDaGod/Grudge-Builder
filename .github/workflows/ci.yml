@@ -47,7 +47,7 @@ jobs:
 
       - name: Verify ObjectStore connection
         run: |
-          curl -sf https://molochdagod.github.io/ObjectStore/api/v1/classes.json > /dev/null && echo "✅ ObjectStore API reachable" || echo "⚠ ObjectStore API unreachable"
+          curl -sf https://grudge-objectstore.pages.dev/api/v1/classes.json > /dev/null && echo "✅ ObjectStore API reachable" || echo "⚠ ObjectStore API unreachable"
 
   notify:
     needs: validate

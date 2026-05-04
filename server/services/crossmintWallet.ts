@@ -619,6 +619,55 @@ export class CrossmintWalletService {
     }
   }
 
+  // ==================== TRANSFER (escrow → player) ====================
+
+  /**
+   * Transfer a cNFT from the agent escrow wallet to a player's wallet.
+   * Uses Crossmint's transfer API for custodial wallets.
+   */
+  async transferNFT(
+    nftActionIdOrTokenId: string,
+    fromWallet: string,
+    toWallet: string,
+  ): Promise<{ success: boolean; actionId?: string; error?: string }> {
+    if (!this.apiKey) {
+      return { success: false, error: 'Crossmint API key not configured' };
+    }
+
+    try {
+      const collectionId = CROSSMINT_COLLECTION_ID;
+      console.log(`[Crossmint] Transferring NFT ${nftActionIdOrTokenId} from ${fromWallet} → ${toWallet}`);
+
+      const response = await fetch(
+        `${this.baseUrl}/api/2022-06-09/collections/${collectionId}/nfts/${nftActionIdOrTokenId}/transfer`,
+        {
+          method: 'POST',
+          headers: {
+            'accept': 'application/json',
+            'content-type': 'application/json',
+            'x-api-key': this.apiKey,
+          },
+          body: JSON.stringify({
+            recipient: `solana:${toWallet}`,
+          }),
+        },
+      );
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('[Crossmint] Transfer failed:', response.status, errorText);
+        return { success: false, error: `Transfer failed: ${response.status} ${errorText}` };
+      }
+
+      const result = await response.json();
+      console.log('[Crossmint] Transfer initiated:', result.actionId || result.id);
+      return { success: true, actionId: result.actionId || result.id };
+    } catch (error) {
+      console.error('[Crossmint] Transfer error:', error);
+      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+    }
+  }
+
   // ==================== STATUS & POLLING ====================
 
   async checkMintStatus(actionId: string): Promise<CrossmintMintStatus | null> {

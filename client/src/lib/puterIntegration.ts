@@ -163,22 +163,37 @@ export const puterAI = {
     if (!isPuterAvailable() || !window.puter.ai.txt2img) return null;
     
     try {
-      // Card-style prompt: character portrait with name integrated as part of the design
-      const factionTheme = faction === 'Forsaken' 
-        ? 'dark purple and green hues, undead theme, eerie glow'
-        : faction === 'Horde'
-          ? 'red and black war paint, savage tribal theme'
-          : 'gold and white holy light, noble crusader theme';
+      // Race-specific physical descriptions matching the Grudge Warlords portrait style:
+      // Dark fantasy painterly bust portraits, front-facing, dramatic lighting, muted browns/dark palette
+      const RACE_FEATURES: Record<string, string> = {
+        elf:       'tall elegant elf with long golden-blonde hair, pointed ears, sharp angular features, green piercing eyes, fair skin, elven leather armor with gold filigree',
+        human:     'rugged human warrior with short dark brown hair and thick beard, weathered face, stern brown eyes, tanned skin, worn leather and chainmail armor',
+        dwarf:     'stocky dwarf with massive braided brown beard and thick eyebrows, broad nose, deep-set eyes, ruddy complexion, ornate metal armor with gold trim and horned helm',
+        orc:       'massive green-skinned orc with prominent tusks and lower fangs, scarred face, glowing amber eyes, thick jaw, heavy plate shoulder armor with metal spikes and rivets',
+        barbarian: 'fierce human barbarian with short cropped hair and full beard, battle-scarred face, intense eyes, leather headband with metal plate, fur-trimmed leather armor and pauldrons',
+        undead:    'undead skeleton knight with metallic skull face, glowing red eyes, exposed jaw mechanism, dark iron full plate helmet and armor, ghostly ethereal dark energy wisps',
+      };
+
+      const CLASS_DETAILS: Record<string, string> = {
+        warrior: 'heavy plated armor, sword and shield motif, battle-hardened stance',
+        mage:    'arcane robes with glowing runes, mystical staff or tome, magical aura particles',
+        ranger:  'hooded leather armor, quiver of arrows visible, keen hunter expression',
+        worg:    'bestial tribal armor, feral eyes with amber glow, claw-marked leather, primal energy',
+      };
+
+      const raceDesc = RACE_FEATURES[race.toLowerCase()] || `${race} fantasy warrior`;
+      const classDesc = CLASS_DETAILS[heroClass.toLowerCase()] || 'adventurer gear';
 
       const prompt = [
-        `Fantasy RPG collectible card art, ornate gold border frame,`,
-        `${race} ${heroClass} character portrait,`,
+        `Dark fantasy RPG character portrait card, ornate gold border frame,`,
+        `front-facing bust portrait of a ${raceDesc},`,
+        `${classDesc},`,
         `the name "${heroName}" engraved in stylized gold medieval font at the bottom of the card,`,
-        `dramatic heroic pose, intricate armor details, ${factionTheme},`,
-        `dark fantasy painted illustration style, cinematic lighting,`,
-        `card game artwork, legendary rarity glow effect,`,
-        `detailed face and expression, rich painterly textures,`,
-        `no watermark, high quality, 1024x1024`,
+        `dark moody background with subtle faction color glow,`,
+        `painterly digital art style, dramatic cinematic rim lighting from above,`,
+        `muted earth tones with selective gold accents, rich detailed textures,`,
+        `collectible card game artwork, legendary rarity border glow,`,
+        `hyper-detailed face, intense expression, no watermark, 1024x1024`,
       ].join(' ');
 
       const imgElement = await window.puter.ai.txt2img(prompt, {

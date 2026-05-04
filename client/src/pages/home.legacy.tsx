@@ -218,7 +218,7 @@ export default function HomePage() {
                 <Globe className="w-4 h-4 mr-2" /> Enter Game Client
               </Button>
               {!activeCharacter && (
-                <Button variant="outline" className="border-amber-700/40 text-amber-400 hover:bg-amber-900/20 font-cinzel" onClick={() => setLocation("/character")}>
+                <Button variant="outline" className="border-amber-700/40 text-amber-400 hover:bg-amber-900/20 font-cinzel" onClick={() => setLocation("/create-character")}>
                   <Plus className="w-4 h-4 mr-1" /> Create Character
                 </Button>
               )}
@@ -286,7 +286,7 @@ export default function HomePage() {
                 <Sparkles className="w-10 h-10 text-amber-400/60 mx-auto mb-3" />
                 <h3 className="font-cinzel font-bold text-amber-300 text-sm mb-1">No Character</h3>
                 <p className="text-xs text-muted-foreground mb-4">Create your hero to play all games and mint as an NFT</p>
-                <Button className="w-full bg-gradient-to-r from-amber-700 to-red-800 hover:from-amber-600 hover:to-red-700 text-white font-cinzel text-xs" onClick={() => setLocation("/character")}>
+                <Button className="w-full bg-gradient-to-r from-amber-700 to-red-800 hover:from-amber-600 hover:to-red-700 text-white font-cinzel text-xs" onClick={() => setLocation("/create-character")}>
                   <Plus className="w-3.5 h-3.5 mr-1.5" /> Create Character
                 </Button>
               </div>

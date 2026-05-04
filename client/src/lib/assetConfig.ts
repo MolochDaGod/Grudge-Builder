@@ -17,10 +17,10 @@ const ASSET_CDN_BASE =
   (typeof import.meta !== 'undefined' && import.meta.env?.VITE_ASSET_CDN_URL) ||
   'https://assets.grudge-studio.com';
 
-/** GitHub Pages — ONLY for static JSON game data, NOT for images */
+/** Cloudflare Pages — ONLY for static JSON game data, NOT for images */
 const OBJECT_STORE_PAGES =
   (typeof import.meta !== 'undefined' && import.meta.env?.VITE_OBJECT_STORE_URL) ||
-  'https://molochdagod.github.io/ObjectStore';
+  'https://grudge-objectstore.pages.dev';
 
 /** ObjectStore JSON API base — append endpoint paths like /weapons.json */
 const OBJECT_STORE_API = `${OBJECT_STORE_PAGES}/api/v1`;

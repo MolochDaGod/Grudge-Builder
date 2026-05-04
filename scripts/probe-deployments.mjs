@@ -30,7 +30,7 @@ const TARGETS = [
   { group: "backend",  url: "https://account.grudge-studio.com/health" },
   { group: "assets",   url: "https://assets.grudge-studio.com" },
   { group: "assets",   url: "https://objectstore.grudge-studio.com/health" },
-  { group: "assets",   url: "https://molochdagod.github.io/ObjectStore/api/v1/master-items.json" },
+  { group: "assets",   url: "https://grudge-objectstore.pages.dev/api/v1/master-items.json" },
   { group: "ai",       url: "https://ai.grudge-studio.com" },
   { group: "admin",    url: "https://dash.grudge-studio.com" },
   { group: "launcher", url: "https://launcher.grudge-studio.com" },

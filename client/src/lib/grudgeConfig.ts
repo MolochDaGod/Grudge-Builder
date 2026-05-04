@@ -18,9 +18,9 @@ export const AUTH_GATEWAY: string =
 export const GAME_API: string =
   env.VITE_API_URL || 'https://api.grudge-studio.com';
 
-/** WebSocket bridge for realtime gameplay. */
+/** WebSocket bridge for realtime gameplay (dedicated ws-service). */
 export const WS_URL: string =
-  env.VITE_WS_URL || 'wss://api.grudge-studio.com';
+  env.VITE_WS_URL || 'wss://ws.grudge-studio.com';
 
 /** Public R2-backed asset CDN. */
 export const ASSETS_CDN: string =
@@ -34,9 +34,9 @@ export const AI_GATEWAY: string =
 export const BADGE_READER: string =
   env.VITE_BADGE_READER_URL || 'https://edge.grudge-studio.com';
 
-/** Canonical ObjectStore API (legacy GitHub Pages backing). */
+/** Canonical ObjectStore API (Cloudflare Pages). */
 export const OBJECTSTORE: string =
-  env.VITE_OBJECTSTORE_URL || 'https://molochdagod.github.io/ObjectStore/api/v1';
+  env.VITE_OBJECTSTORE_URL || 'https://grudge-objectstore.pages.dev/api/v1';
 
 /**
  * GrudgeDot launcher canonical URL.

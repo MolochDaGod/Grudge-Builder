@@ -54,3 +54,18 @@ export {
   getDroppableInfusions,
   getProfessionInfusions
 } from './materials';
+
+// WCS Taxonomy — T0-T8 tier system, material tiers, crafting components
+export {
+  ALL_TIERS,
+  TIER_NAMES,
+  MATERIAL_TIERS,
+  CRAFTING_COMPONENTS,
+  WEAPON_TYPES,
+  ARMOR_TYPES,
+  ACCESSORY_TYPES,
+  type AllTier,
+  type AssetDefinition,
+  generateTier0Items,
+  generateComponentList,
+} from './wcsTaxonomy';
