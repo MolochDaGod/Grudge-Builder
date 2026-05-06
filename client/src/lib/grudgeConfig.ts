@@ -26,13 +26,25 @@ export const WS_URL: string =
 export const ASSETS_CDN: string =
   env.VITE_ASSETS_URL || 'https://assets.grudge-studio.com';
 
-/** AI gateway Worker (ALE). */
+/**
+ * AI gateway Worker (ALE).
+ *
+ * NOTE (2026-05-06): ale.grudge-studio.com has NO DNS record — it was never
+ * deployed. Fallback to api.grudge-studio.com/ai until the Worker is deployed
+ * and the DNS record is created in Cloudflare.
+ */
 export const AI_GATEWAY: string =
-  env.VITE_AI_URL || 'https://ale.grudge-studio.com';
+  env.VITE_AI_URL || 'https://api.grudge-studio.com/ai';
 
-/** Edge badge-reader Worker — JWT pre-check before protected origins. */
+/**
+ * Edge badge-reader Worker — JWT pre-check before protected origins.
+ *
+ * NOTE (2026-05-06): edge.grudge-studio.com has NO DNS record — the Worker
+ * source exists in grudge-backend/workers/badge-reader/ but was never deployed.
+ * Fallback to api.grudge-studio.com until deployment happens.
+ */
 export const BADGE_READER: string =
-  env.VITE_BADGE_READER_URL || 'https://edge.grudge-studio.com';
+  env.VITE_BADGE_READER_URL || 'https://api.grudge-studio.com';
 
 /** Canonical ObjectStore API (Cloudflare Pages). */
 export const OBJECTSTORE: string =

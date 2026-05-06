@@ -61,6 +61,9 @@ export interface GrudgeUser {
   class?: string;
   avatarUrl?: string;
   discordId?: string;
+  role?: string;
+  /** Linked auth providers (e.g. ["puter", "discord", "phantom"]) — returned by buildAuthResponse */
+  providers?: string[];
 }
 
 // ── SSO token pickup (from cross-app redirects like GrudgeWars) ──────
