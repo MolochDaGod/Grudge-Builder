@@ -1,4 +1,7 @@
 import dotenv from "dotenv";
+// Load .env.local first (gitignored local overrides), then .env as fallback.
+// dotenv.config() does NOT override already-set vars, so .env.local wins.
+dotenv.config({ path: ".env.local" });
 dotenv.config();
 import { fileURLToPath } from "url";
 import { dirname } from "path";

@@ -1744,7 +1744,7 @@ Rules:
       const spritesDir = path.join(process.cwd(), "public", "sprites");
       const spriteFiles: SpriteFileInfo[] = [];
       
-      function scanDirectory(dir: string, category: string = "root") {
+      const scanDirectory = (dir: string, category: string = "root"): void => {
         if (!fs.existsSync(dir)) return;
         
         const items = fs.readdirSync(dir, { withFileTypes: true });
@@ -1768,7 +1768,7 @@ Rules:
             });
           }
         }
-      }
+      };
       
       scanDirectory(spritesDir);
       
@@ -1975,7 +1975,7 @@ Respond in JSON format ONLY:
       const spritesDir = path.join(process.cwd(), "public", "sprites");
       const spriteFiles: { path: string; name: string; category: string }[] = [];
       
-      function scanDirectory(dir: string, category: string = "root") {
+      const scanDirectory = (dir: string, category: string = "root"): void => {
         if (!fs.existsSync(dir)) return;
         
         const items = fs.readdirSync(dir, { withFileTypes: true });
@@ -2412,7 +2412,7 @@ export const AI_ANALYZED_SPRITES = ${JSON.stringify(manifestEntries, null, 2)};`
       
       const filesToMigrate: string[] = [];
       
-      function scanDir(dir: string, relativePath: string = "") {
+      const scanDir = (dir: string, relativePath: string = ""): void => {
         const items = fs.readdirSync(dir, { withFileTypes: true });
         for (const item of items) {
           const itemRelPath = relativePath ? `${relativePath}/${item.name}` : item.name;
@@ -2426,7 +2426,7 @@ export const AI_ANALYZED_SPRITES = ${JSON.stringify(manifestEntries, null, 2)};`
             }
           }
         }
-      }
+      };
       
       scanDir(spritesDir);
       const limitedFiles = filesToMigrate.slice(0, limit);

@@ -26,6 +26,22 @@
     <script src="https://js.puter.com/v2/" defer></script>
     <script>window.GRUDGE_AUTH_RETURN = '/home';</script>
     <script src="/grudge-auth-modal.js"></script>
+    <!-- AFRAME stub: react-force-graph references AFRAME at module init;
+         we stub it so the 2D graph works without loading the full VR library -->
+    <script>
+      window.AFRAME = window.AFRAME || {
+        registerSystem: function() {},
+        registerComponent: function() {},
+        registerGeometry: function() {},
+        registerShader: function() {},
+        utils: { device: {}, coordinates: {}, entity: {} },
+        schema: {},
+        scenes: [],
+        components: {},
+        systems: {},
+        version: '1.0.0-stub'
+      };
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
