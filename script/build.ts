@@ -1,6 +1,6 @@
 import { build as esbuild } from "esbuild";
 import { build as viteBuild } from "vite";
-import { rm, readFile } from "fs/promises";
+import { rm, readFile, cp } from "fs/promises";
 import path from "path";
 
 // Native / binary modules that must never be bundled
@@ -78,6 +78,11 @@ async function buildAll() {
     external: externals,
     logLevel: "info",
   });
+
+  // Copy client build output into dist/public so server/static.ts can find it.
+  // static.ts resolves path.resolve(__dirname, "public") → dist/public in prod.
+  console.log("copying client dist → dist/public...");
+  await cp("client/dist", "dist/public", { recursive: true });
 }
 
 buildAll().catch((err) => {

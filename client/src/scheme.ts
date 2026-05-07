@@ -1,3 +1,8 @@
+/**
+ * @deprecated This file is a legacy client-side Drizzle schema kept for
+ * backward compatibility only. The canonical schema lives at shared/schema.ts.
+ * All new code should import from "@shared/schema" instead.
+ */
 import { sql, relations } from "drizzle-orm";
 import { pgTable, text, varchar, integer, jsonb, boolean, timestamp } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";

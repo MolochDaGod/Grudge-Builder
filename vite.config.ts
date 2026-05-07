@@ -34,30 +34,31 @@ export default defineConfig({
       deny: ["**/.*"],
     },
     proxy: {
-      // Local dev: proxy /api calls to VPS or local Express
+      // Local dev: proxy /api calls to canonical backends
+      // Must match vercel.json rewrites so dev ≡ prod
       "/api/auth": {
         target: "https://id.grudge-studio.com",
         changeOrigin: true,
         rewrite: (p) => p.replace(/^\/api\/auth/, "/auth"),
       },
       "/api/account": {
-        target: "https://api.grudge-studio.com",
+        target: "https://id.grudge-studio.com",
         changeOrigin: true,
       },
       "/api/wallet": {
-        target: "https://api.grudge-studio.com",
+        target: "https://id.grudge-studio.com",
         changeOrigin: true,
       },
       "/api/nfts": {
-        target: "https://api.grudge-studio.com",
+        target: "https://id.grudge-studio.com",
         changeOrigin: true,
       },
       "/api/island-nfts": {
-        target: "https://api.grudge-studio.com",
+        target: "https://id.grudge-studio.com",
         changeOrigin: true,
       },
       "/api/game": {
-        target: "https://api.grudge-studio.com",
+        target: "https://id.grudge-studio.com",
         changeOrigin: true,
         rewrite: (p) => p.replace(/^\/api\/game/, "/api"),
       },
@@ -67,7 +68,7 @@ export default defineConfig({
         rewrite: (p) => p.replace(/^\/api\/assets/, ""),
       },
       "/api": {
-        target: "https://api.grudge-studio.com",
+        target: "https://id.grudge-studio.com",
         changeOrigin: true,
       },
     },

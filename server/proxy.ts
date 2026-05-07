@@ -30,20 +30,21 @@ interface ProxyRule {
  */
 const PROXY_RULES: ProxyRule[] = [
   // ── Direct game API routes (match vercel.json explicit rewrites) ────
-  // These go to api.grudge-studio.com/api/* (keeping /api/ prefix)
-  { match: "/api/characters", target: "https://api.grudge-studio.com", pathRewrite: "keep" },
-  { match: "/api/professions", target: "https://api.grudge-studio.com", pathRewrite: "keep" },
-  { match: "/api/inventory", target: "https://api.grudge-studio.com", pathRewrite: "keep" },
-  { match: "/api/nfts", target: "https://api.grudge-studio.com", pathRewrite: "keep" },
-  { match: "/api/island-nfts", target: "https://api.grudge-studio.com", pathRewrite: "keep" },
-  { match: "/api/wallet", target: "https://api.grudge-studio.com", pathRewrite: "keep" },
-  { match: "/api/party", target: "https://api.grudge-studio.com", pathRewrite: "keep" },
-  { match: "/api/health", target: "https://api.grudge-studio.com", pathRewrite: "keep" },
+  // All routes now target id.grudge-studio.com (Railway backend) to match
+  // vercel.json — keeps /api/ prefix intact.
+  { match: "/api/characters", target: "https://id.grudge-studio.com", pathRewrite: "keep" },
+  { match: "/api/professions", target: "https://id.grudge-studio.com", pathRewrite: "keep" },
+  { match: "/api/inventory", target: "https://id.grudge-studio.com", pathRewrite: "keep" },
+  { match: "/api/nfts", target: "https://id.grudge-studio.com", pathRewrite: "keep" },
+  { match: "/api/island-nfts", target: "https://id.grudge-studio.com", pathRewrite: "keep" },
+  { match: "/api/wallet", target: "https://id.grudge-studio.com", pathRewrite: "keep" },
+  { match: "/api/party", target: "https://id.grudge-studio.com", pathRewrite: "keep" },
+  { match: "/api/health", target: "https://id.grudge-studio.com", pathRewrite: "keep" },
 
-  // ── Legacy catch-all: /api/game/* → api.grudge-studio.com/api/* ─────
+  // ── Legacy catch-all: /api/game/* → id.grudge-studio.com/api/* ─────
   {
     match: "/api/game",
-    target: "https://api.grudge-studio.com",
+    target: "https://id.grudge-studio.com",
     pathRewrite: "strip-prefix",
     stripPrefix: "/api/game",
   },
@@ -54,8 +55,8 @@ const PROXY_RULES: ProxyRule[] = [
 
   // ── Asset & tool routes ────────────────────────────────────────────
   { match: "/api/assets", target: "https://assets.grudge-studio.com", pathRewrite: "strip-prefix", stripPrefix: "/api/assets" },
-  { match: "/api/tools", target: "https://api.grudge-studio.com", pathRewrite: "strip-prefix", stripPrefix: "/api" },
-  { match: "/api/public", target: "https://api.grudge-studio.com", pathRewrite: "strip-prefix", stripPrefix: "/api" },
+  { match: "/api/tools", target: "https://id.grudge-studio.com", pathRewrite: "strip-prefix", stripPrefix: "/api" },
+  { match: "/api/public", target: "https://id.grudge-studio.com", pathRewrite: "strip-prefix", stripPrefix: "/api" },
 ];
 
 /**
