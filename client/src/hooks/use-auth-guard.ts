@@ -1,43 +1,40 @@
 /**
- * useAuthGuard — redirects to login page if the user is not authenticated.
+ * useAuthGuard — verifies auth state for protected pages.
  *
  * Drop this into any page component to protect it:
  *   const ready = useAuthGuard();
  *   if (!ready) return null; // or a loading spinner
  *
- * Checks the Grudge backend token synchronously first, then verifies
- * with the server. If invalid, clears the session and navigates to "/".
+ * No longer redirects to a login page — auth is handled via the
+ * Grudge auth modal (grudge-auth-modal.js) or the Grudge ID SSO.
  */
 import { useEffect, useState } from 'react';
-import { useLocation } from 'wouter';
 import { isAuthenticated, verifyToken, logout } from '@/lib/grudgeBackend';
 
 /**
- * @returns `true` once auth is confirmed, `false` while checking.
- *          Navigates to "/" if not authenticated.
+ * @returns `true` once auth is confirmed or guest access is detected,
+ *          `false` while the token is still being verified.
  */
 export function useAuthGuard(): boolean {
-  const [, setLocation] = useLocation();
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
     if (!isAuthenticated()) {
-      setLocation('/');
+      // No token — allow access; auth modal will prompt when needed
+      setReady(true);
       return;
     }
 
     verifyToken().then((r) => {
       if (!r.valid) {
         logout();
-        setLocation('/');
-      } else {
-        setReady(true);
       }
+      setReady(true);
     }).catch(() => {
       // Network error — allow offline access if token exists locally
       setReady(true);
     });
-  }, [setLocation]);
+  }, []);
 
   return ready;
 }

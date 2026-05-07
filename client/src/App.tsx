@@ -16,7 +16,6 @@ import CharacterBuilder from "@/pages/character-builder";
 import ProfessionsPage from "@/pages/professions";
 import DatabasePage from "@/pages/database";
 import IntroPage from "@/pages/intro";
-import LoginPage from "@/pages/login";
 import HomePage from "@/pages/home";
 import IslandPage from "@/pages/island";
 import CombatPage from "@/pages/combat";
@@ -65,7 +64,7 @@ import CreateCharacterPage from "@/pages/create-character";
 function Router() {
   return (
     <Switch>
-      <Route path="/" component={LoginPage} />
+      <Route path="/" component={HomePage} />
       <Route path="/auth/callback" component={AuthCallbackPage} />
       <Route path="/intro" component={IntroPage} />
       <Route path="/home" component={HomePage} />
