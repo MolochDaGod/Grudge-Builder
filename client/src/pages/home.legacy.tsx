@@ -77,6 +77,14 @@ const LIVE_GAMES = [
     badgeColor: "bg-yellow-700/80 text-yellow-200",
   },
   {
+    id: "crafting", title: "Crafting", subtitle: "Forge & Brew",
+    description: "5 crafting stations, T1-T8 recipes. Smelt ingots, cut planks, weave cloth, cook food, build gadgets.",
+    url: "/crafting", external: false,
+    icon: "hammer", color: "from-orange-950/90 via-orange-900/70 to-amber-800/40",
+    border: "border-orange-500/50 hover:border-orange-400/70", badge: "Core",
+    badgeColor: "bg-orange-600/90 text-orange-100",
+  },
+  {
     id: "skills", title: "Skill Trees", subtitle: "Class Abilities",
     description: "Class-specific skill trees. Choose 1 skill per tier as you level up. Permanent choices.",
     url: "/skills", external: false,
@@ -115,6 +123,7 @@ const GAME_ICONS: Record<string, React.ReactNode> = {
   pickaxe: <Pickaxe className="w-6 h-6" />,
   leaf: <Leaf className="w-6 h-6" />,
   sword: <Sword className="w-6 h-6" />,
+  hammer: <Hammer className="w-6 h-6" />,
   code: <Code2 className="w-6 h-6" />,
   map: <Map className="w-6 h-6" />,
 };

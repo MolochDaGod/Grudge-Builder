@@ -292,134 +292,44 @@ export const puterAuth = {
 
 export const puterIslandKV = {
   /**
-   * Save island state: VPS is authoritative, Puter KV + localStorage are caches.
-   * Write must succeed on VPS. Puter KV and localStorage are updated after.
+   * Save island state: Puter KV is authoritative, localStorage is offline fallback.
+   * No VPS backend — all player data lives in Puter user-pays cloud storage.
    */
-  _authFailCount: 0,
-  _maxAuthFails: 3,
-
   async saveState(islandId: string, state: unknown): Promise<boolean> {
-    // Circuit breaker: stop hammering VPS after repeated auth failures
-    if (this._authFailCount >= this._maxAuthFails) {
-      // Just cache locally, don't spam the server
-      await puterKV.set(`grudge:island:${islandId}:dirty`, state).catch(() => {});
-      try { localStorage.setItem(`grudge_island_${islandId}`, JSON.stringify(state)); } catch {}
-      return false;
-    }
+    // 1. Write to Puter KV (source of truth)
+    const saved = await puterKV.set(`grudge:island:${islandId}:state`, state);
 
-    // 1. VPS write (must succeed — this is the source of truth)
-    try {
-      const { authHeaders } = await import('@/lib/grudgeBackend');
-      const res = await fetch('/api/game/player-islands/state', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', ...authHeaders() },
-        body: JSON.stringify({ state }),
-      });
-      if (res.status === 401 || res.status === 403) {
-        this._authFailCount++;
-        console.warn(`VPS island save auth failed (${this._authFailCount}/${this._maxAuthFails})`);
-        await puterKV.set(`grudge:island:${islandId}:dirty`, state).catch(() => {});
-        return false;
-      }
-      if (!res.ok) throw new Error(`VPS save failed: ${res.status}`);
-      this._authFailCount = 0; // Reset on success
-    } catch (e) {
-      console.warn('VPS island save failed:', e);
-      // VPS down — queue in Puter KV as dirty write for later sync
-      await puterKV.set(`grudge:island:${islandId}:dirty`, state).catch(() => {});
-      return false;
-    }
-
-    // 2. Cache in Puter KV (fast reads on next load)
-    await puterKV.set(`grudge:island:${islandId}:state`, state).catch(() => {});
-    // 3. Cache in localStorage (offline fallback)
+    // 2. Cache in localStorage (offline fallback)
     try { localStorage.setItem(`grudge_island_${islandId}`, JSON.stringify(state)); } catch {}
-    // Clear any dirty flag
-    await puterKV.delete(`grudge:island:${islandId}:dirty`).catch(() => {});
+
+    if (!saved) {
+      // Puter unavailable — localStorage is the only copy
+      console.warn('Puter KV save failed, using localStorage only');
+      return false;
+    }
     return true;
   },
 
   /**
-   * Load island state: Puter KV cache → VPS truth → localStorage offline.
-   * If both Puter KV and VPS have data, VPS wins via lastUpdate comparison.
+   * Load island state: Puter KV (authoritative) → localStorage (offline fallback).
    */
   async loadState<T extends { lastUpdate?: number } = any>(islandId: string, userId: string): Promise<T | null> {
-    let kvState: T | null = null;
-    let vpsState: T | null = null;
-
-    // 1. Read Puter KV cache (fast)
-    kvState = await puterKV.get<T>(`grudge:island:${islandId}:state`);
-
-    // 2. Read VPS (source of truth)
-    try {
-      const { authHeaders } = await import('@/lib/grudgeBackend');
-      const res = await fetch('/api/game/player-islands', {
-        headers: authHeaders(),
-      });
-      if (res.ok) {
-        const data = await res.json();
-        const raw = data.state || data;
-        if (raw && typeof raw === 'object') vpsState = raw as T;
-      }
-    } catch { /* VPS unavailable */ }
-
-    // 3. Pick the newest by lastUpdate timestamp
-    if (vpsState && kvState) {
-      const vpsTime = (vpsState as any).lastUpdate || 0;
-      const kvTime = (kvState as any).lastUpdate || 0;
-      if (vpsTime >= kvTime) {
-        // VPS is newer or equal — use it, refresh cache
-        await puterKV.set(`grudge:island:${islandId}:state`, vpsState).catch(() => {});
-        return vpsState;
-      }
-      // KV is newer (stale VPS from a dirty write) — push to VPS
-      fetch('/api/game/player-islands/state', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ state: kvState }),
-      }).catch(() => {});
-      return kvState;
-    }
-
-    if (vpsState) {
-      await puterKV.set(`grudge:island:${islandId}:state`, vpsState).catch(() => {});
-      return vpsState;
-    }
-
+    // 1. Read Puter KV (source of truth)
+    const kvState = await puterKV.get<T>(`grudge:island:${islandId}:state`);
     if (kvState) return kvState;
 
-    // 4. localStorage last resort
+    // 2. localStorage fallback
     try {
       const cached = localStorage.getItem(`grudge_island_${islandId}`) || localStorage.getItem(`grudge_island_${userId}`);
       if (cached) {
         const parsed = JSON.parse(cached) as T;
+        // Push to Puter KV so it's available next time
         await puterKV.set(`grudge:island:${islandId}:state`, parsed).catch(() => {});
         return parsed;
       }
     } catch { /* corrupt localStorage */ }
 
     return null;
-  },
-
-  /** Retry pushing any dirty (unsynced) writes to VPS */
-  async syncDirtyWrites(islandId: string): Promise<boolean> {
-    const dirty = await puterKV.get(`grudge:island:${islandId}:dirty`);
-    if (!dirty) return true; // Nothing to sync
-    try {
-      const { authHeaders } = await import('@/lib/grudgeBackend');
-      const res = await fetch('/api/game/player-islands/state', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', ...authHeaders() },
-        body: JSON.stringify({ state: dirty }),
-      });
-      if (res.ok) {
-        this._authFailCount = 0;
-        await puterKV.delete(`grudge:island:${islandId}:dirty`);
-        await puterKV.set(`grudge:island:${islandId}:state`, dirty);
-        return true;
-      }
-    } catch {}
-    return false;
   },
 
   /** Save serialized tile grid (seed + cleared tiles only, ~2KB) */

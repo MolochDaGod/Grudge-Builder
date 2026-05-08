@@ -1,72 +1,23 @@
-// Attribute stat bonuses from the Game Attributes & Stats System guide
-// Format: { flat: per point, percent: of base per point }
-export const ATTRIBUTE_GAINS = {
-  Strength: { 
-    Health: { flat: 26, percent: 0.8 },
-    Damage: { flat: 3, percent: 2 },
-    Defense: { flat: 12, percent: 1.5 },
-    BlockChance: { flat: 0.5, percent: 5 },
-    CritChance: { flat: 0.32, percent: 7 },
-    BlockFactor: { flat: 0.85, percent: 26.3 },
-    CritFactor: { flat: 1.1, percent: 1.5 },
-  },
-  Vitality: { 
-    Health: { flat: 25, percent: 0.5 },
-    Mana: { flat: 2, percent: 0.2 },
-    Stamina: { flat: 5, percent: 0.1 },
-    Damage: { flat: 2, percent: 0.1 },
-    Defense: { flat: 12, percent: 0 },
-    BlockFactor: { flat: 0.3, percent: 17 },
-    Resistance: { flat: 0.5, percent: 0 },
-  },
-  Endurance: { 
-    Health: { flat: 10, percent: 0.1 },
-    Stamina: { flat: 1, percent: 0.3 },
-    Defense: { flat: 12, percent: 12 },
-    BlockChance: { flat: 0.11, percent: 73.5 },
-    BlockFactor: { flat: 0.27, percent: 0 },
-    Resistance: { flat: 0.46, percent: 0 },
-  },
-  Intellect: { 
-    Mana: { flat: 5, percent: 5 },
-    Damage: { flat: 4, percent: 2.5 },
-    Defense: { flat: 2, percent: 0 },
-    CritChance: { flat: 0.23, percent: 0.1 },
-    Accuracy: { flat: 0.12, percent: 33.8 },
-    Resistance: { flat: 0.38, percent: 17 },
-  },
-  Wisdom: { 
-    Health: { flat: 10, percent: 0 },
-    Mana: { flat: 20, percent: 3 },
-    Damage: { flat: 2, percent: 1.5 },
-    Defense: { flat: 2, percent: 0 },
-    CritChance: { flat: 0.5, percent: 0.15 },
-    Resistance: { flat: 0.5, percent: 0 },
-  },
-  Dexterity: { 
-    Damage: { flat: 3, percent: 1.8 },
-    Defense: { flat: 10, percent: 1 },
-    BlockChance: { flat: 0.41, percent: 1 },
-    CritChance: { flat: 0.5, percent: 1.2 },
-    Accuracy: { flat: 0.7, percent: 1.5 },
-  },
-  Agility: { 
-    Health: { flat: 2, percent: 0.6 },
-    Stamina: { flat: 5, percent: 0.5 },
-    Damage: { flat: 3, percent: 1.6 },
-    Defense: { flat: 5, percent: 0.8 },
-    CritChance: { flat: 0.42, percent: 1 },
-  },
-  Tactics: { 
-    Health: { flat: 10, percent: 8.4 },
-    Mana: { flat: 0, percent: 8.2 },
-    Stamina: { flat: 1, percent: 0 },
-    Damage: { flat: 3, percent: 0.2 },
-    Defense: { flat: 5, percent: 0.5 },
-    BlockChance: { flat: 0.27, percent: 0.8 },
-    CritChance: { flat: 0.02, percent: 2 },
-  },
-} as const;
+/**
+ * Canonical per-point attribute gains.
+ * Source of truth: "Grudge Warlords - Ultimate Character Builder.html" (JS section)
+ * Also see: client/src/lib/characterStats.ts for the full 37-stat engine.
+ *
+ * Format: { stat: perPointValue }
+ */
+export const CANONICAL_GAINS: Record<string, Record<string, number>> = {
+  Strength:  { health: 5, damage: 1.25, defense: 4, block: 0.2, drainHealth: 0.075, stagger: 0.04, mana: 1, stamina: 0.8, accuracy: 0.08, healthRegen: 0.02, damageReduction: 0.02 },
+  Intellect: { mana: 9, damage: 1.5, defense: 2, manaRegen: 0.04, cooldownReduction: 0.075, spellAccuracy: 0.15, health: 3, stamina: 0.4, accuracy: 0.1, abilityCost: 0.05 },
+  Vitality:  { health: 25, defense: 1.5, healthRegen: 0.06, damageReduction: 0.04, bleedResist: 0.15, mana: 1.5, stamina: 1, resistance: 0.08, armor: 0.2 },
+  Dexterity: { damage: 0.9, criticalChance: 0.3, accuracy: 0.25, attackSpeed: 0.2, evasion: 0.125, criticalDamage: 0.2, defense: 1.2, stamina: 0.6, movementSpeed: 0.08, reflexTime: 0.03, health: 3 },
+  Endurance: { stamina: 6, defense: 5, blockEffect: 0.175, ccResistance: 0.1, armor: 0.6, defenseBreakResist: 0.125, health: 8, mana: 1, healthRegen: 0.02, block: 0.12 },
+  Wisdom:    { mana: 6, defense: 5.5, resistance: 0.25, cdrResist: 0.2, statusEffect: 0.075, spellblock: 0.125, health: 4, stamina: 0.5, damageReduction: 0.03, spellAccuracy: 0.1 },
+  Agility:   { movementSpeed: 0.15, evasion: 0.225, dodge: 0.15, reflexTime: 0.04, criticalEvasion: 0.25, fallDamage: 0.2, stamina: 1, accuracy: 0.1, attackSpeed: 0.05, damage: 0.3, health: 3 },
+  Tactics:   { stamina: 3, abilityCost: 0.075, armorPenetration: 0.2, blockPenetration: 0.175, defenseBreak: 0.1, comboCooldownRed: 0.125, damage: 0.4, defense: 1, mana: 1.5, cooldownReduction: 0.05, health: 3 },
+};
+
+// Legacy re-export for any code still referencing the old shape
+export const ATTRIBUTE_GAINS = CANONICAL_GAINS;
 
 export const CLASS_BASE_STATS: Record<string, { hp: number; mana: number; stamina: number }> = {
   warrior: { hp: 150, mana: 30, stamina: 100 },
@@ -210,3 +161,21 @@ export function getBuildRating(combatPower: number): { letter: string; color: st
   if (combatPower >= 1000) return { letter: 'D', color: '#9ca3af' };
   return { letter: 'F', color: '#4b5563' };
 }
+
+// ── Full 37-stat engine (canonical) ──────────────────────────────────────────
+// Re-export the full stat engine so pages can import either the legacy DerivedStats
+// or the complete 37-stat breakdown from a single module.
+
+export {
+  ATTRIBUTE_IDS,
+  DERIVED_STATS,
+  BUILD_TIERS,
+  calculateDerivedStats as calculateFullStats,
+  classifyBuild,
+  calculateCombatPower as calculateFullCombatPower,
+  getBuildRating as getFullBuildRating,
+  type AttributeMap,
+  type DerivedStatDef,
+  type BuildTier,
+  type AttributeId,
+} from "../client/src/lib/characterStats";

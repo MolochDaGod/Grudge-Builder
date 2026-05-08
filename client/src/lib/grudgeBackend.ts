@@ -1,27 +1,12 @@
 /**
- * Grudge Backend Integration — Unified Auth
+ * Grudge Backend Integration — Auth & Session Management
  *
- * Auth flows through grudgewarlords.com API (proxied via Vercel rewrites):
- *   /api/auth/login          → username/password
- *   /api/auth/register       → new account (username/password)
- *   /api/auth/puter          → Grudge Auth (Puter SDK — Google, guest)
- *   /api/auth/verify         → validate session token
- *   /api/auth/wallet         → Solana wallet connect
- *   /api/auth/phone/send     → Twilio SMS verification code
- *   /api/auth/phone/verify   → verify SMS code → login/create
- *   /api/auth/discord/start  → Discord OAuth redirect
- *   /api/auth/google/start   → Google OAuth redirect
- *
- * On any account creation the backend automatically:
- *   1. Creates DB row
- *   2. Generates server-side Solana wallet
- *   3. Assigns Grudge ID
- *   4. Creates Puter cloud storage
- *
- * Uses same localStorage keys as GrudgeWars for cross-app compatibility.
+ * Auth is Puter-first (puter.auth.signIn). No VPS backend.
+ * Session tokens and user data live in localStorage.
+ * Puter KV is used for persistent player data (characters, island, inventory).
  */
 
-// ── API base (routed through Vercel rewrites in vercel.json) ─────────
+// ── API base (legacy, kept for any remaining fetch calls) ─────────
 export const API_BASE = "/api";
 
 // ── Token / Session management ───────────────────────────────────────
@@ -66,8 +51,7 @@ export interface GrudgeUser {
   providers?: string[];
 }
 
-// ── SSO token pickup (from cross-app redirects like GrudgeWars) ──────
-const SSO_AUTH_URL = "https://id.grudge-studio.com";
+// ── SSO token pickup (from cross-app redirects) ────────────────────
 
 (function pickupSsoToken() {
   try {
@@ -76,20 +60,13 @@ const SSO_AUTH_URL = "https://id.grudge-studio.com";
     if (ssoToken) {
       localStorage.setItem(AUTH_TOKEN_KEY, ssoToken);
       localStorage.setItem(LEGACY_SESSION_TOKEN_KEY, ssoToken);
-      const returnedUserId = params.get("grudge_user_id") || params.get("userId") || "";
-    const returnedGrudgeId = params.get("grudge_id") || params.get("grudgeId") || "";
+      const returnedGrudgeId = params.get("grudge_id") || params.get("grudgeId") || "";
       const returnedUsername = params.get("grudge_username") || params.get("username") || "";
-      if (returnedUserId) localStorage.setItem("grudge_user_id", returnedUserId);
       if (returnedGrudgeId) localStorage.setItem("grudge_id", returnedGrudgeId);
       if (returnedUsername) localStorage.setItem("grudge_username", returnedUsername);
-      // Sync account ID for CharacterManager scoping
-      const ssoAccountId = returnedGrudgeId || returnedUserId || '';
-      if (ssoAccountId) localStorage.setItem("grudge_account_id", ssoAccountId);
+      if (returnedGrudgeId) localStorage.setItem("grudge_account_id", returnedGrudgeId);
       // Clean URL without reload
       params.delete("sso_token");
-      params.delete("sso_required");
-      params.delete("grudge_user_id");
-      params.delete("userId");
       params.delete("grudge_id");
       params.delete("grudgeId");
       params.delete("grudge_username");
@@ -97,21 +74,7 @@ const SSO_AUTH_URL = "https://id.grudge-studio.com";
       const clean = params.toString();
       const newUrl = window.location.pathname + (clean ? `?${clean}` : "") + window.location.hash;
       window.history.replaceState(null, "", newUrl);
-      return; // token captured, done
     }
-
-    // Auto SSO-check disabled (2026-04-27): id.grudge-studio.com/auth/sso-check
-    // currently returns 404, which produced a redirect loop on every page load
-    // for unauthenticated users. The login page (route "/") handles missing auth
-    // explicitly; protected routes guard with isAuthenticated().
-    // Re-enable once /auth/sso-check is restored on the auth host — see
-    // docs/audit-report.md §16.
-    // const hasToken = !!localStorage.getItem(AUTH_TOKEN_KEY) || !!localStorage.getItem(LEGACY_SESSION_TOKEN_KEY);
-    // const ssoRequired = params.get("sso_required");
-    // if (!hasToken && !ssoRequired && window.location.pathname !== "/") {
-    //   const returnUrl = encodeURIComponent(window.location.href);
-    //   window.location.href = `${SSO_AUTH_URL}/auth/sso-check?return=${returnUrl}`;
-    // }
   } catch { /* ignore in SSR/test */ }
 })();
 
@@ -481,39 +444,25 @@ export async function verifyToken(): Promise<{
   const token = getToken();
   if (!token) return { valid: false };
 
-  // Quick client-side JWT expiry check (avoids unnecessary network call)
+  // Client-side only validation (no VPS). If it's a JWT, check expiry.
   try {
-    const payload = JSON.parse(atob(token.split(".")[1]));
-    if (payload.exp && payload.exp * 1000 < Date.now()) {
-      console.warn("[Auth] Token expired, logging out");
-      logout();
-      return { valid: false };
+    const parts = token.split(".");
+    if (parts.length === 3) {
+      const payload = JSON.parse(atob(parts[1]));
+      if (payload.exp && payload.exp * 1000 < Date.now()) {
+        console.warn("[Auth] Token expired, logging out");
+        logout();
+        return { valid: false };
+      }
     }
   } catch {
-    // Not a JWT or malformed — fall through to server verification
+    // Not a JWT — treat any non-empty token as valid (Puter session tokens aren't JWTs)
   }
 
-  try {
-    const res = await fetch(`${API_BASE}/auth/verify`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ token }),
-    });
-    if (!res.ok) {
-      // Server says invalid — clear stale session
-      if (res.status === 401) logout();
-      return { valid: false };
-    }
-    const data = await res.json();
-    return {
-      valid: data.valid === true,
-      grudgeId: data.grudgeId,
-      username: data.username,
-    };
-  } catch {
-    // Network error — don't log out (backend might just be down)
-    return { valid: false };
-  }
+  // Token exists and isn't expired — valid
+  const grudgeId = localStorage.getItem("grudge_id") || undefined;
+  const username = localStorage.getItem("grudge_username") || undefined;
+  return { valid: true, grudgeId, username };
 }
 
 // ── Periodic token re-verification (every 5 minutes) ─────────────────
