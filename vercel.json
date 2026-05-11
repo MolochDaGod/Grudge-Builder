@@ -3,8 +3,8 @@
   "buildCommand": "npm run build:client && echo CWD=$(pwd) && ls client/public/ 2>/dev/null && cp -r client/public/* client/dist/ 2>/dev/null || cp -r public/* dist/ 2>/dev/null || echo 'public copy paths tried'",
   "outputDirectory": "client/dist",
   "devCommand": "npm run dev:client",
-"installCommand": "npm install --ignore-scripts --legacy-peer-deps --include=dev",
-  "framework": "vite",
+  "installCommand": "npm install --legacy-peer-deps --include=dev",
+  "framework": null,
   "rewrites": [
     {
       "source": "/api/assets/:path*",
