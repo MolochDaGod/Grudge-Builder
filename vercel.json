@@ -1,6 +1,6 @@
 {
   "alias": ["client.grudge-studio.com", "grudgewarlords.com", "www.grudgewarlords.com"],
-  "buildCommand": "npm run build:client",
+  "buildCommand": "npm run build:client && cp -r client/public/. client/dist/",
   "outputDirectory": "client/dist",
   "devCommand": "npm run dev:client",
 "installCommand": "npm install --ignore-scripts --legacy-peer-deps --include=dev",
