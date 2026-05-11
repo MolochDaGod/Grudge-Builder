@@ -4,7 +4,7 @@
   "outputDirectory": "client/dist",
   "devCommand": "npm run dev:client",
 "installCommand": "npm install --ignore-scripts --legacy-peer-deps --include=dev",
-  "framework": "vite",
+  "framework": null,
   "rewrites": [
     {
       "source": "/api/assets/:path*",
