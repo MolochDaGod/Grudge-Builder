@@ -271,6 +271,42 @@ export function fetchProjectiles() {
   return fetchObjectStoreData<Record<string, unknown>>("/projectiles.json", {});
 }
 
+/** Fetch 3D race models (6 races, equipment slots, bone containers, textures, mounts) */
+export function fetchRaceModels() {
+  return fetchObjectStoreData<Record<string, unknown>>("/race-models.json", {});
+}
+
+// ── 3D Character Model Helpers ───────────────────────────────────────────────
+
+const RACE_CDN_BASE = 'https://assets.grudge-studio.com/asset-packs/toon-rts-characters';
+
+/** Get the CDN URL for a race's character GLB (texture-baked, ready to load with GLTFLoader) */
+export function getRaceCharacterUrl(raceId: string): string {
+  return `${RACE_CDN_BASE}/glb/characters/${raceId}.glb`;
+}
+
+/** Get the CDN URL for a shared animation GLB */
+export function getRaceAnimUrl(animName: string): string {
+  return `${RACE_CDN_BASE}/glb/anim_${animName}.glb`;
+}
+
+/** Get the CDN URL for a weapon animation FBX pack file */
+export function getWeaponAnimUrl(weaponType: string, filename: string): string {
+  return `${RACE_CDN_BASE}/weapons/${weaponType}/${encodeURIComponent(filename)}`;
+}
+
+/** All 6 race character GLB URLs for bulk preloading */
+export function getAllRaceCharacterUrls(): Record<string, string> {
+  return {
+    human: getRaceCharacterUrl('human'),
+    barbarian: getRaceCharacterUrl('barbarian'),
+    elf: getRaceCharacterUrl('elf'),
+    dwarf: getRaceCharacterUrl('dwarf'),
+    orc: getRaceCharacterUrl('orc'),
+    undead: getRaceCharacterUrl('undead'),
+  };
+}
+
 // ── Cache management
 
 /** Clear the entire ObjectStore data cache */

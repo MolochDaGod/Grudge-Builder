@@ -1,18 +1,20 @@
 /**
  * MODEL MANIFEST — Central registry for all 3D character models & animations
  *
- * Mirrors the pattern of spriteManifest.ts but for GLB/GLTF 3D assets.
- *
- * ASSET LOCATIONS:
- *   Local dev:  /models/characters/*.glb, /models/animations/<weapon>/*.glb
- *   Production: assets.grudge-studio.com/models/... (R2 CDN)
+ * ALL assets served from R2 CDN: assets.grudge-studio.com
+ *   Race models:  /models/characters/races/{race}.glb
+ *   Characters:   /models/characters/{name}.glb
+ *   Animations:   /models/animations/{weapon-type}/{file}.glb
  *
  * USAGE:
  *   getModelForCharacter(raceId, classId) → ModelUnit
  *   getAnimationSet(weaponType)           → Record<AnimState3D, string>
  */
 
-import { assetUrl } from "@/lib/assetConfig";
+import { ASSET_CDN_BASE } from "@/lib/assetConfig";
+
+// ── R2 CDN base ─────────────────────────────────────────────────────────────
+const CDN = ASSET_CDN_BASE; // https://assets.grudge-studio.com
 
 // ── Animation state names (3D) ──────────────────────────────────────────────
 
@@ -42,7 +44,7 @@ export type WeaponType = "sword-shield" | "greatsword" | "longbow" | "magic" | "
 // ── Types ────────────────────────────────────────────────────────────────────
 
 export interface AnimationDef {
-  file: string;       // path relative to /models/animations/<weapon>/
+  file: string;       // absolute CDN URL to animation GLB
   loop: boolean;
   speed?: number;     // timeScale multiplier (default 1)
 }
@@ -69,7 +71,7 @@ export type SkeletonType = "mixamo-24" | "mixamo-62" | "custom" | "static";
 export interface ModelUnit {
   id: string;
   name: string;
-  /** Path to character GLB (local: /models/characters/X.glb) */
+  /** Absolute CDN URL to character GLB */
   modelPath: string;
   /** Scale multiplier for the mesh */
   scale: number;
@@ -85,7 +87,7 @@ export interface ModelUnit {
 
 // ── Animation sets per weapon type ──────────────────────────────────────────
 
-const ANIM_BASE = "/models/animations";
+const ANIM_BASE = `${CDN}/models/animations`;
 
 function animPath(weapon: string, file: string): string {
   return `${ANIM_BASE}/${weapon}/${file}`;
@@ -163,23 +165,37 @@ export const WEAPON_ANIMATION_SETS: Record<WeaponType, Partial<Record<AnimState3
 
 // ── Character model registry ────────────────────────────────────────────────
 
-const CHAR_BASE = "/models/characters";
+/** Race models on R2 — /models/characters/races/ */
+const RACE_BASE = `${CDN}/models/characters/races`;
+/** Detailed character models on R2 — /models/characters/ */
+const CHAR_BASE = `${CDN}/models/characters`;
 
 export const MODEL_MANIFEST: Record<string, ModelUnit> = {
-  // ── Mixamo-24 (COMPATIBLE — these share all weapon animations) ─────────
-  human:      { id: "human",      name: "Human",      modelPath: `${CHAR_BASE}/human.glb`,      scale: 1.0,  weaponType: "sword-shield", skeleton: "mixamo-24", jointCount: 24 },
-  barbarian:  { id: "barbarian",  name: "Barbarian",  modelPath: `${CHAR_BASE}/barbarian.glb`,  scale: 1.1,  weaponType: "greatsword",   skeleton: "mixamo-24", jointCount: 24 },
-  dwarf:      { id: "dwarf",      name: "Dwarf",      modelPath: `${CHAR_BASE}/dwarf.glb`,      scale: 0.85, weaponType: "sword-shield", skeleton: "mixamo-24", jointCount: 24 },
-  elf:        { id: "elf",        name: "Elf",        modelPath: `${CHAR_BASE}/elf.glb`,        scale: 1.0,  weaponType: "longbow",      skeleton: "mixamo-24", jointCount: 24 },
-  orc:        { id: "orc",        name: "Orc",        modelPath: `${CHAR_BASE}/orc.glb`,        scale: 1.15, weaponType: "greatsword",   skeleton: "mixamo-24", jointCount: 24 },
+  // ── Mixamo-24 race models (COMPATIBLE — share all weapon animations) ────
+  human:      { id: "human",      name: "Human",      modelPath: `${RACE_BASE}/human.glb`,      scale: 1.0,  weaponType: "sword-shield", skeleton: "mixamo-24", jointCount: 24 },
+  barbarian:  { id: "barbarian",  name: "Barbarian",  modelPath: `${RACE_BASE}/barbarian.glb`,  scale: 1.1,  weaponType: "greatsword",   skeleton: "mixamo-24", jointCount: 24 },
+  dwarf:      { id: "dwarf",      name: "Dwarf",      modelPath: `${RACE_BASE}/dwarf.glb`,      scale: 0.85, weaponType: "sword-shield", skeleton: "mixamo-24", jointCount: 24 },
+  elf:        { id: "elf",        name: "Elf",        modelPath: `${RACE_BASE}/elf.glb`,        scale: 1.0,  weaponType: "longbow",      skeleton: "mixamo-24", jointCount: 24 },
+  orc:        { id: "orc",        name: "Orc",        modelPath: `${RACE_BASE}/orc.glb`,        scale: 1.15, weaponType: "greatsword",   skeleton: "mixamo-24", jointCount: 24 },
+  undead:     { id: "undead",     name: "Undead",     modelPath: `${RACE_BASE}/undead.glb`,     scale: 1.0,  weaponType: "sword-shield", skeleton: "custom",    jointCount: 0  },
 
   // ── Faction NPC models ─────────────────────────────────────────────────
-  "fabled-worker": { id: "fabled-worker", name: "Fabled Worker", modelPath: `${CHAR_BASE}/fabled-worker.glb`, scale: 1.0, weaponType: "unarmed", skeleton: "mixamo-24", jointCount: 24 },
+  "fabled-worker": { id: "fabled-worker", name: "Fabled Worker", modelPath: `${CHAR_BASE}/fabledworker.glb`, scale: 1.0, weaponType: "unarmed", skeleton: "mixamo-24", jointCount: 24 },
 
-  // ── INCOMPATIBLE — different skeletons, cannot use shared animations ───
-  // These need to be re-rigged to Mixamo-24 in Blender/Mixamo before use.
-  // They fall back to their embedded animations or display as static.
-  undead:     { id: "undead",     name: "Undead",     modelPath: `${CHAR_BASE}/undead.glb`,     scale: 1.0,  weaponType: "sword-shield", skeleton: "custom",    jointCount: 0  },
+  // ── Detailed character models (R2: /models/characters/) ────────────────
+  "barbarian-glad":   { id: "barbarian-glad",   name: "Barbarian Gladiator", modelPath: `${CHAR_BASE}/barbarianglad.glb`,         scale: 1.1,  weaponType: "greatsword",   skeleton: "mixamo-24", jointCount: 24 },
+  berserker:          { id: "berserker",         name: "Berserker",          modelPath: `${CHAR_BASE}/berserker.glb`,            scale: 1.1,  weaponType: "greatsword",   skeleton: "mixamo-24", jointCount: 24 },
+  "elf-ranger":       { id: "elf-ranger",        name: "Elf Ranger",         modelPath: `${CHAR_BASE}/elfranger.glb`,            scale: 1.0,  weaponType: "longbow",      skeleton: "mixamo-24", jointCount: 24 },
+  "goblin-crew":      { id: "goblin-crew",       name: "Goblin Crew",        modelPath: `${CHAR_BASE}/goblincr3w.glb`,           scale: 0.8,  weaponType: "unarmed",      skeleton: "mixamo-24", jointCount: 24 },
+  siegeman:           { id: "siegeman",           name: "Siege Man",          modelPath: `${CHAR_BASE}/siegeman.glb`,             scale: 1.1,  weaponType: "greatsword",   skeleton: "mixamo-24", jointCount: 24 },
+  "crusaders-knight": { id: "crusaders-knight",  name: "Crusader Knight",    modelPath: `${CHAR_BASE}/crusaders_knight.glb`,     scale: 1.0,  weaponType: "sword-shield", skeleton: "custom",    jointCount: 0  },
+  demon:              { id: "demon",             name: "Demon",              modelPath: `${CHAR_BASE}/demon.glb`,                scale: 1.2,  weaponType: "greatsword",   skeleton: "custom",    jointCount: 0  },
+  dragon:             { id: "dragon",            name: "Dragon",             modelPath: `${CHAR_BASE}/dragon.glb`,               scale: 1.5,  weaponType: "unarmed",      skeleton: "custom",    jointCount: 0  },
+  wolf:               { id: "wolf",              name: "Wolf",               modelPath: `${CHAR_BASE}/wolf.glb`,                 scale: 1.0,  weaponType: "unarmed",      skeleton: "custom",    jointCount: 0  },
+  hawk:               { id: "hawk",              name: "Hawk",               modelPath: `${CHAR_BASE}/hawk-lp-rigged-flight-animated.glb`, scale: 0.8, weaponType: "unarmed", skeleton: "custom", jointCount: 0 },
+  velociraptor:       { id: "velociraptor",      name: "Velociraptor",       modelPath: `${CHAR_BASE}/velociraptor.glb`,         scale: 1.0,  weaponType: "unarmed",      skeleton: "custom",    jointCount: 0  },
+
+  // ── INCOMPATIBLE — different skeletons ──────────────────────────────────
   knight:     { id: "knight",     name: "Knight",     modelPath: `${CHAR_BASE}/knight.glb`,     scale: 1.0,  weaponType: "sword-shield", skeleton: "custom",    jointCount: 31 },
   soldier:    { id: "soldier",    name: "Soldier",    modelPath: `${CHAR_BASE}/soldier.glb`,    scale: 1.0,  weaponType: "sword-shield", skeleton: "custom",    jointCount: 0  },
   adventurer: { id: "adventurer", name: "Adventurer", modelPath: `${CHAR_BASE}/adventurer.glb`, scale: 1.0,  weaponType: "sword-shield", skeleton: "mixamo-62", jointCount: 62 },
@@ -254,11 +270,12 @@ export function getCharacterAnimation(
   return set[state] ?? null;
 }
 
-/** Resolve a model path to CDN URL for production */
-export function resolveModelUrl(localPath: string): string {
-  // In dev (Vite), serve from local public/. In production, serve from R2 CDN.
-  if (import.meta.env?.DEV) return localPath;
-  return assetUrl(localPath);
+/** Resolve a model path to a loadable URL.
+ *  Paths that are already absolute CDN URLs are returned as-is.
+ *  All models live on R2 CDN — no local fallback needed. */
+export function resolveModelUrl(path: string): string {
+  if (path.startsWith('https://') || path.startsWith('http://')) return path;
+  return `${CDN}${path.startsWith('/') ? path : '/' + path}`;
 }
 
 /** List all available animation states for a weapon type */

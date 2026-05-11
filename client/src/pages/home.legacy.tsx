@@ -100,6 +100,14 @@ const LIVE_GAMES = [
     border: "border-slate-600/40 hover:border-slate-400/60", badge: "3D",
     badgeColor: "bg-slate-600/80 text-slate-200",
   },
+  {
+    id: "nexus-admin", title: "Nexus Admin", subtitle: "Admin Panel",
+    description: "Manage users, GBUX balances, reward packs, cards, and live game statistics.",
+    url: "https://nexus-nemesis.vercel.app", external: true,
+    icon: "crown", color: "from-red-950/90 via-rose-900/70 to-red-800/40",
+    border: "border-red-700/40 hover:border-red-500/60", badge: "Admin",
+    badgeColor: "bg-red-800/90 text-red-100", adminOnly: true,
+  },
 ];
 
 // GrudgeDot launcher — canonical URL is launcher.grudge-studio.com (status: planned).
@@ -115,6 +123,7 @@ const SERVICES = [
     ? { id: "grudgedot", label: "Game Portal", desc: "grudgeDot game launcher", url: GRUDGEDOT_PORTAL, color: "text-cyan-400" }
     : { id: "grudgedot", label: "Game Portal", desc: "grudgeDot launcher — coming soon", url: "", color: "text-cyan-400/50", disabled: true as const },
   { id: "arsenal", label: "Arsenal", desc: "Weapons, armor & items", url: "/arsenal", color: "text-green-400" },
+  { id: "nexus-admin", label: "Nexus Admin", desc: "Users, GBUX, cards & packs", url: "https://nexus-nemesis.vercel.app", color: "text-red-400", adminOnly: true as const },
 ];
 
 const GAME_ICONS: Record<string, React.ReactNode> = {
@@ -126,6 +135,7 @@ const GAME_ICONS: Record<string, React.ReactNode> = {
   hammer: <Hammer className="w-6 h-6" />,
   code: <Code2 className="w-6 h-6" />,
   map: <Map className="w-6 h-6" />,
+  crown: <Crown className="w-6 h-6" />,
 };
 
 /** XP needed to reach next level (mirrors CharacterStats formula) */
@@ -305,7 +315,11 @@ export default function HomePage() {
             <div className="rounded-xl border border-border/40 bg-card/40 p-4">
               <h3 className="font-cinzel text-xs font-bold text-muted-foreground uppercase tracking-widest mb-3">Services</h3>
               <div className="space-y-0.5">
-                {SERVICES.map((svc) => {
+                {SERVICES.filter((svc) => {
+                  // Hide admin-only services for non-admin users
+                  if ((svc as { adminOnly?: boolean }).adminOnly && role !== "master" && role !== "admin") return false;
+                  return true;
+                }).map((svc) => {
                   const disabled = (svc as { disabled?: boolean }).disabled === true;
                   return (
                     <button
@@ -363,7 +377,7 @@ export default function HomePage() {
             </motion.div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-              {LIVE_GAMES.map((game, i) => (
+              {LIVE_GAMES.filter((g) => !(g as { adminOnly?: boolean }).adminOnly || role === "master" || role === "admin").map((game, i) => (
                 <motion.div key={game.id} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.07 * i }}>
                   <div onClick={() => nav(game.url, game.external)}
                     className={`relative overflow-hidden rounded-xl border ${game.border} bg-gradient-to-br ${game.color} cursor-pointer group transition-all duration-200 hover:scale-[1.02] hover:shadow-xl p-5 flex flex-col h-full min-h-[156px]`}>

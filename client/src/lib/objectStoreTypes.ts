@@ -222,6 +222,71 @@ export interface OSSpriteMap {
   armorMaps: Record<string, string>;
 }
 
+// ── 3D Race Models (/api/v1/race-models.json) ────────────────────────────────
+
+export type MountType = 'horse' | 'warhorse' | 'stag' | 'boar' | 'wolf' | 'skeletal_horse';
+export type ColorVariant = 'black' | 'blue' | 'brown' | 'green' | 'red' | 'white';
+export type EquipSlotGroup = 'armor' | 'mainHand' | 'offHand' | 'shield' | 'utility';
+
+export interface OSEquipSlotDef {
+  variants?: string[];
+  single?: boolean;
+  mesh: string;
+}
+
+export interface OSBoneContainers {
+  mainHand: string;   // R_hand_container
+  offHand: string;    // L_hand_container
+  shield: string;     // L_shield_container
+  back: string;       // Bone_bag
+  woodSlot: string;   // Bone_wood
+  quiver: string;     // Quiver_container
+}
+
+export interface OSEquipmentSlots {
+  armor: Record<string, OSEquipSlotDef>;
+  mainHand: Record<string, OSEquipSlotDef>;
+  offHand: Record<string, OSEquipSlotDef>;
+  shield: Record<string, OSEquipSlotDef>;
+  utility: Record<string, OSEquipSlotDef>;
+}
+
+export interface OSSubRaceTexture {
+  texture: string;
+  colorVariants: ColorVariant[];
+}
+
+export interface OSRaceModel3D {
+  id: RaceId;
+  name: string;
+  prefix: string;
+  faction: FactionId;
+  factionColor: string;
+  characterModel: string;
+  cavalryModel: string | null;
+  siegeModel: string | null;
+  mountType: MountType;
+  defaultTexture: string;
+  mountTexture: string | null;
+  colorVariants: ColorVariant[];
+  subRaces?: Record<string, OSSubRaceTexture>;
+  extraWeapons: string[];
+  animationSets: string[];
+}
+
+export interface OSRaceModelsResponse {
+  version: string;
+  updated: string;
+  total: number;
+  grudgeType: 'raceModels3D';
+  cdnBase: string;
+  skeleton: string;
+  boneContainers: OSBoneContainers;
+  equipmentSlots: OSEquipmentSlots;
+  races: Record<RaceId, OSRaceModel3D>;
+  sharedAnimationPacks: string[];
+}
+
 // ── Generic API response wrapper ─────────────────────────────────────────────
 
 export interface OSApiResponse<T> {

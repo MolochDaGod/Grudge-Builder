@@ -11,6 +11,10 @@
       "destination": "https://assets.grudge-studio.com/:path*"
     },
     {
+      "source": "/api/:path*",
+      "destination": "https://api.grudge-studio.com/api/:path*"
+    },
+    {
       "source": "/((?!.*\\.).*)",
       "destination": "/index.html"
     }

@@ -43,6 +43,7 @@ attached_assets/
 .config/
 .local/
 .vercel/
+.wrangler/
 
 # Crash dumps
 hs_err_pid*.log

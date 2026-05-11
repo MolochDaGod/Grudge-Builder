@@ -200,6 +200,7 @@
     "zod-validation-error": "^3.5.4"
   },
   "devDependencies": {
+    "@heyputer/puter.js": "^2.3.2",
     "@tailwindcss/vite": "^4.1.14",
     "@types/connect-pg-simple": "^7.0.3",
     "@types/cors": "^2.8.19",

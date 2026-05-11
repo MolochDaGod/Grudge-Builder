@@ -5,7 +5,7 @@
  * Uses existing game data from gameData.ts + classSkillTrees.ts.
  * Connected to backend via /api/characters for real character creation.
  */
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import { Loader2, Sparkles, RotateCcw, Lock, ChevronRight, ImagePlus, Gem, Check } from "lucide-react";
@@ -24,6 +24,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import SpriteAnimator from "@/components/SpriteAnimator";
+import ThreeScene, { type ThreeSceneHandle } from "@/components/ThreeScene";
+import CharacterModel3D from "@/components/CharacterModel3D";
+import { getAvailableStates, CLASS_WEAPON_MAP, type AnimState3D } from "@/lib/modelManifest";
 import { assetUrl } from "@/lib/assetConfig";
 import { useAuthGuard } from "@/hooks/use-auth-guard";
 import { isAuthenticated, getCurrentUser } from "@/lib/grudgeBackend";
@@ -63,6 +66,10 @@ export default function CreateCharacterPage() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   useAuthGuard();
+
+  // 3D preview refs + state
+  const threeSceneRef = useRef<ThreeSceneHandle | null>(null);
+  const [anim3D, setAnim3D] = useState<AnimState3D>("idle");
 
   // State
   const [selectedRace, setSelectedRace] = useState<string | null>(null);
@@ -482,16 +489,44 @@ export default function CreateCharacterPage() {
               </div>
             </div>
 
-            {/* Sprite preview */}
+            {/* 3D / Sprite preview */}
             {selectedRace && selectedClass && (
-              <div className="flex justify-center mb-4">
-                <div className="w-24 h-24 bg-stone-950 rounded-xl border border-stone-800 flex items-center justify-center overflow-hidden">
-                  <SpriteAnimator
-                    spriteSet={getSpriteSetForCharacter(selectedRace, selectedClass)}
-                    action="Idle"
-                    scale={2}
-                    flip={false}
+              <div className="mb-4">
+                {/* 3D Model Preview */}
+                <div className="relative mx-auto rounded-xl overflow-hidden border border-stone-800" style={{ height: 260 }}>
+                  <ThreeScene
+                    ref={threeSceneRef}
+                    className="w-full h-full"
+                    cameraMode="orbit"
+                    cameraDistance={4}
+                    cameraHeight={2.2}
+                    orbitSpeed={15}
+                    bgColor="#0a0c14"
                   />
+                  <CharacterModel3D
+                    sceneRef={threeSceneRef}
+                    raceId={selectedRace}
+                    classId={selectedClass}
+                    animation={anim3D}
+                    onAnimationComplete={() => setAnim3D("idle")}
+                  />
+                </div>
+                {/* Anim buttons */}
+                <div className="flex gap-1 flex-wrap mt-2 justify-center">
+                  {(getAvailableStates(CLASS_WEAPON_MAP[selectedClass] ?? "sword-shield")).slice(0, 6).map(state => (
+                    <button
+                      key={state}
+                      onClick={() => setAnim3D(state)}
+                      className={cn(
+                        "text-[9px] px-1.5 py-0.5 rounded border font-bold uppercase transition-colors",
+                        anim3D === state
+                          ? "bg-amber-500 text-stone-900 border-amber-500"
+                          : "bg-stone-900/60 text-stone-500 border-stone-700 hover:border-amber-600/50"
+                      )}
+                    >
+                      {state}
+                    </button>
+                  ))}
                 </div>
               </div>
             )}

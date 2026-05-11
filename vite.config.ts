@@ -34,11 +34,16 @@ export default defineConfig({
       deny: ["**/.*"],
     },
     proxy: {
-      // Assets CDN proxy only — no VPS backend
+      // R2 asset CDN (must come before catch-all /api)
       "/api/assets": {
         target: "https://assets.grudge-studio.com",
         changeOrigin: true,
         rewrite: (p) => p.replace(/^\/api\/assets/, ""),
+      },
+      // All other API calls → Railway backend (behind Cloudflare)
+      "/api": {
+        target: "https://api.grudge-studio.com",
+        changeOrigin: true,
       },
     },
   },
