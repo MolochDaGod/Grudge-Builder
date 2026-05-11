@@ -2,11 +2,19 @@
   "buildCommand": "cd client && npx vite build",
   "outputDirectory": "client/dist",
   "devCommand": "npm run dev:client",
-  "installCommand": "npm install",
+  "installCommand": "npm install --legacy-peer-deps --include=dev",
   "framework": null,
   "rewrites": [
     {
-      "source": "/(.*)",
+      "source": "/api/assets/:path*",
+      "destination": "https://assets.grudge-studio.com/:path*"
+    },
+    {
+      "source": "/api/:path*",
+      "destination": "https://api.grudge-studio.com/api/:path*"
+    },
+    {
+      "source": "/((?!.*\\.).*)",
       "destination": "/index.html"
     }
   ],
