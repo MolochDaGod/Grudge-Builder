@@ -2,6 +2,13 @@ import { useState, useRef, useEffect } from "react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
+import { isAuthenticated } from "@/lib/grudgeBackend";
+
+// Typed global from grudge-auth-modal.js
+declare global {
+  function openGrudgeAuthModal(): void;
+  function grudgeAuthIsLoggedIn(): boolean;
+}
 
 export default function IntroPage() {
   const [, setLocation] = useLocation();
@@ -9,13 +16,36 @@ export default function IntroPage() {
   const [showEnter, setShowEnter] = useState(false);
 
   useEffect(() => {
+    // If already authenticated, skip intro → go to /home
+    if (isAuthenticated()) {
+      setLocation("/home");
+      return;
+    }
     // Show enter button after a short delay or when video ends
     const timer = setTimeout(() => setShowEnter(true), 2000);
     return () => clearTimeout(timer);
-  }, []);
+  }, [setLocation]);
+
+  // Listen for auth success event (fired by grudge-auth-modal.js)
+  useEffect(() => {
+    const onAuth = () => setLocation("/home");
+    window.addEventListener("grudge:auth:success", onAuth);
+    return () => window.removeEventListener("grudge:auth:success", onAuth);
+  }, [setLocation]);
 
   const handleEnter = () => {
-    setLocation("/home");
+    // If authenticated, go straight to home
+    if (isAuthenticated()) {
+      setLocation("/home");
+      return;
+    }
+    // Otherwise, open the auth modal (login/register/guest)
+    if (typeof openGrudgeAuthModal === "function") {
+      openGrudgeAuthModal();
+    } else {
+      // Fallback: navigate anyway (home page will redirect back)
+      setLocation("/home");
+    }
   };
 
   return (

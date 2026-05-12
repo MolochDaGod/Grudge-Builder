@@ -44,7 +44,8 @@ const PROTECTED_PREFIXES = [
   "/harvest",
   "/world-map",
   "/missions",
-  // ── Progression ──────────────────────────────────────────────────
+  "/tower-wars",
+  // ── Progression
   "/crafting",
   "/professions",
   "/profession",
@@ -52,12 +53,18 @@ const PROTECTED_PREFIXES = [
   "/skill-tree",
   "/arsenal",
   "/hero-codex",
+  "/database",
   // ── Account ───────────────────────────────────────────────────────
   "/wallet",
   "/account",
   // ── Tools (admin) ─────────────────────────────────────────────────
   "/editor",
   "/organizer",
+  "/admin",
+  "/admin-map",
+  "/admin-combat",
+  "/admin-island-v2",
+  "/sprite-admin",
 ];
 
 /** Redirect to /home if already authenticated (no point showing intro again) */
@@ -108,10 +115,10 @@ export default function middleware(request: Request): Response | void {
   }
 }
 
-// ── Matcher — skip static files, Vercel internals, Cloudflare infra ──────────
+// ── Matcher — skip static files, API routes, Vercel internals, Cloudflare infra
 export const config = {
   matcher: [
-    // Skip: static assets, Vercel internals, CF health/special paths
-    "/((?!_next/static|_next/image|favicon\.ico|assets/|images/|sprites/|avatars/|models/|api/health|cdn-cgi/).*)",
+    // Skip: static assets, ALL API routes, Vercel internals, CF health/special paths
+    "/((?!_next/static|_next/image|favicon\.ico|assets/|images/|sprites/|avatars/|models/|api/|cdn-cgi/).*)",
   ],
 }

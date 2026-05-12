@@ -9,6 +9,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { CharacterManager, Character } from "@/lib/characterManager";
 import { useAccount } from "@/hooks/use-account";
+import { isAuthenticated, getCurrentUser } from "@/lib/grudgeBackend";
 
 interface SavedAccount {
   username: string;
@@ -44,10 +45,21 @@ export default function HomePage() {
   const { account } = useAccount();
 
   useEffect(() => {
-    // Try grudge_user (set by auth modal), fallback to grudge-session
+    // Check canonical auth token (synced to cookies for middleware compat)
+    if (!isAuthenticated()) {
+      setLocation("/");
+      return;
+    }
+    // Try grudge_user (set by auth modal), fallback to grudge-session, fallback to token user
     const saved = localStorage.getItem("grudge_user") || localStorage.getItem("grudge-session");
-    if (!saved) { setLocation("/"); return; }
-    try { setUser(JSON.parse(saved)); } catch { setLocation("/"); return; }
+    if (saved) {
+      try { setUser(JSON.parse(saved)); } catch { /* ignore parse errors */ }
+    } else {
+      const currentUser = getCurrentUser();
+      if (currentUser) {
+        setUser({ username: currentUser.username || "Warlord", level: 1, gold: 0 });
+      }
+    }
     CharacterManager.getAll()
       .then((c) => { setCharacters(c); CharacterManager.getActiveCharacter().then(setActiveCharacter); })
       .catch(() => {});
@@ -55,6 +67,9 @@ export default function HomePage() {
 
   const handleLogout = () => {
     ["grudge_user", "grudge-session", "grudge_auth_token", "grudge_user_id", "grudge_id", "grudge_username"].forEach(k => localStorage.removeItem(k));
+    // Clear cookies so middleware sees logout on next page load
+    document.cookie = "grudge_auth_token=; path=/; max-age=0; SameSite=Lax";
+    document.cookie = "grudge_id=; path=/; max-age=0; SameSite=Lax";
     setLocation("/");
   };
   const displayName = user?.username || "Warlord";

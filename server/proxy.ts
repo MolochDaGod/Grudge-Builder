@@ -38,6 +38,7 @@ const LOCAL_API_PREFIXES = [
   "/api/party",
   "/api/account",
   "/api/island",
+  "/api/islands",
   "/api/resources",
   "/api/resource-nodes",
   "/api/crafting",
@@ -52,6 +53,19 @@ const LOCAL_API_PREFIXES = [
   "/api/spells",
   "/api/skills",
   "/api/monsters",
+  "/api/professions",
+  "/api/game",
+  "/api/generate-dungeon",
+  "/api/harvest",
+  "/api/lore",
+  "/api/combat",
+  "/api/activity",
+  "/api/analytics",
+  "/api/sprites",
+  "/api/object-storage",
+  "/api/sheets",
+  "/api/maps",
+  "/api/launcher",
 ];
 
 const PROXY_RULES: ProxyRule[] = [
