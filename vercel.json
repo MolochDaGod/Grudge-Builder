@@ -3,7 +3,7 @@
   "buildCommand": "npm run build:client",
   "outputDirectory": "client/dist",
   "devCommand": "npm run dev:client",
-  "installCommand": "npm install --legacy-peer-deps --ignore-scripts",
+  "installCommand": "npm install --legacy-peer-deps --include=dev --ignore-scripts",
   "framework": null,
   "rewrites": [
     {
