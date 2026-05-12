@@ -16,18 +16,6 @@
       "destination": "https://assets.grudge-studio.com/:path*"
     },
     {
-      "source": "/api/auth/:path*",
-      "destination": "https://id.grudge-studio.com/auth/:path*"
-    },
-    {
-      "source": "/api/tools/:path*",
-      "destination": "https://id.grudge-studio.com/tools/:path*"
-    },
-    {
-      "source": "/api/public/:path*",
-      "destination": "https://id.grudge-studio.com/public/:path*"
-    },
-    {
       "source": "/api/:path*",
       "destination": "https://api.grudge-studio.com/api/:path*"
     },

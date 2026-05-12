@@ -71,14 +71,7 @@ const LOCAL_API_PREFIXES = [
 const PROXY_RULES: ProxyRule[] = [
   // ── Asset CDN → Cloudflare R2 (via objectstore worker) ────────────────
   { match: "/api/assets", target: "https://assets.grudge-studio.com", pathRewrite: "strip-prefix", stripPrefix: "/api/assets" },
-
-  // ── Auth SSO → id.grudge-studio.com ────────────────────────────────
-  // /api/auth/* → id.grudge-studio.com/auth/* (strip /api, keep /auth)
-  { match: "/api/auth", target: "https://id.grudge-studio.com", pathRewrite: "strip-prefix", stripPrefix: "/api" },
-
-  // ── Tool / public data passthrough ────────────────────────────────
-  { match: "/api/tools", target: "https://id.grudge-studio.com", pathRewrite: "strip-prefix", stripPrefix: "/api" },
-  { match: "/api/public", target: "https://id.grudge-studio.com", pathRewrite: "strip-prefix", stripPrefix: "/api" },
+  // All other /api/* routes are handled locally by Express (auth, characters, etc.)
 ];
 
 /**
