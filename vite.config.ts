@@ -21,6 +21,10 @@ const THREE_GLOBAL_PACKAGES = [
   "/stage-js/",
   "/@davi-ai/bodyengine-three/",
   "/phaser-ce/",
+  // aframe-extras is pulled in transitively by react-force-graph (VR variant)
+  // via: react-force-graph → 3d-force-graph-vr → aframe-forcegraph-component → aframe-extras
+  "/aframe-extras/",
+  "/aframe-forcegraph-component/",
 ];
 
 // engine.io-client packaging bug: the ESM build imports './globals.node.js'

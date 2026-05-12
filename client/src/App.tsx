@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, lazy, Suspense } from "react";
 import { Switch, Route } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -51,7 +51,10 @@ import CraftingPage from "@/pages/crafting";
 import Island3DPage from "@/pages/island-3d";
 import AuthCallbackPage from "@/pages/auth-callback";
 import EditorPage from "@/pages/editor";
-import OrganizerPage from "@/pages/organizer";
+// Lazy-load the organizer page: it pulls in react-force-graph → aframe-extras
+// (A-Frame VR lib that uses THREE as a global). Code-splitting it keeps
+// aframe out of the main bundle and loads it only when /organizer is visited.
+const OrganizerPage = lazy(() => import("@/pages/organizer"));
 import CreateCharacterPage from "@/pages/create-character";
 import CharacterCreatorPage from "@/pages/character-creator";
 
@@ -103,7 +106,7 @@ function Router() {
       <Route path="/crafting" component={CraftingPage} />
       <Route path="/island-3d" component={Island3DPage} />
       <Route path="/editor" component={EditorPage} />
-      <Route path="/organizer" component={OrganizerPage} />
+      <Route path="/organizer">{() => <Suspense fallback={null}><OrganizerPage /></Suspense>}</Route>
       {/* Fallback to 404 */}
       <Route component={NotFound} />
     </Switch>
