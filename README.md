@@ -1,8 +1,8 @@
 # Grudge Builder — Grudge Warlords deployment
 
-This repo ships the **Grudge Warlords** web game at [grudgewarlords.com](https://grudgewarlords.com) (also aliased at `client.grudge-studio.com`). Character creation, turn-based combat, dungeons, islands, professions, skill trees.
+This repo ships the **Grudge Warlords** web game at [grudgewarlords.com](https://grudgewarlords.com) (also aliased at `client.grudge-studio.com`). Six-step character creation (race → class → stats → avatar → island preview → island launch), turn-based combat, dungeons, islands, professions, skill trees, sprite generation, cNFT minting.
 
-**Stack: React 19 + Three.js.** Babylon is *not* used here — the Babylon-based editor lives in a separate repo ([Grudge-Engine-Web](https://github.com/MolochDaGod/Grudge-Engine-Web), deployed to `engine.grudge-studio.com`) and is not consumed by this runtime.
+**Stack: React 19 + Three.js + Phaser 3.** Babylon is *not* used here — the Babylon-based editor lives in a separate repo ([Grudge-Engine-Web](https://github.com/MolochDaGod/Grudge-Engine-Web), deployed to `engine.grudge-studio.com`) and is not consumed by this runtime.
 
 ## Live Services
 
@@ -71,7 +71,26 @@ Every user gets a unique **Grudge ID** on first login. Auth methods (Discord, Go
 grudge-builder/
 ├── client/                  # Vite + React frontend
 │   ├── src/
-│   │   ├── pages/           # Route pages (login, home, character, combat, etc.)
+│   │   ├── pages/           # Route pages
+│   │   │   ├── character-creator/   # 6-step character + island creation wizard
+│   │   │   ├── profession/          # Profession advancement UI
+│   │   │   ├── island.tsx           # Home island (2D harvest)
+│   │   │   ├── island-3d.tsx        # Home island (3D terrain view)
+│   │   │   ├── island-v2.tsx        # Island v2 renderer
+│   │   │   ├── combat.tsx           # Turn-based combat
+│   │   │   ├── dungeon-tiled.tsx    # Tiled dungeon explorer
+│   │   │   ├── skill-tree.tsx       # Class skill trees
+│   │   │   ├── crafting.tsx         # Crafting system
+│   │   │   ├── world-map.tsx        # Sailing world map
+│   │   │   ├── tower-wars.tsx       # Tower defense mode
+│   │   │   ├── rpg-battle.tsx       # RPG battle mode
+│   │   │   ├── mission-board.tsx    # AI faction missions
+│   │   │   ├── hero-codex.tsx       # Hero lore codex
+│   │   │   ├── hero-sprites.tsx     # Sprite preview viewer
+│   │   │   ├── sprite-engine.tsx    # Sprite engine tooling
+│   │   │   ├── sprite-library.tsx   # Sprite asset browser
+│   │   │   ├── ai-helper-generator.tsx  # AI sprite/asset generator
+│   │   │   └── organizer.tsx        # System map & readiness dashboard
 │   │   ├── components/      # Reusable UI components
 │   │   ├── hooks/           # Custom React hooks
 │   │   │   └── use-object-store.ts  # ObjectStore data hooks
@@ -81,16 +100,31 @@ grudge-builder/
 │   │   │   ├── grudgeBackend.ts     # Grudge ID auth, SSO, session management
 │   │   │   ├── grudaDB.ts           # Item database & icon resolver
 │   │   │   └── gameData.ts          # Races, classes, attributes definitions
+│   │   ├── island/          # 2D island engine (auto-harvest, node graph)
+│   │   ├── island3d/        # Three.js 3D island terrain engine
 │   │   ├── data/            # Static game data & sprite maps
-│   │   └── contexts/        # React contexts
+│   │   ├── contexts/        # React contexts
+│   │   └── scheme.ts        # Shared color/theme scheme
 │   └── public/              # Favicon only — assets served from ObjectStore CDN
 ├── server/                  # Express + Colyseus backend (local dev, optional Railway prod target)
 │   ├── colyseus/            # Multiplayer rooms (lobby, dungeon)
-│   └── routes/              # API routes (launcher, sprites)
+│   ├── routes/              # Modular API route files
+│   ├── integrations/        # Third-party integrations (ObjectStore, etc.)
+│   ├── services/            # Business logic services (Crossmint, wallet, etc.)
+│   ├── utilities/           # Server utilities (islandGeneration, etc.)
+│   ├── spriteGeneration/    # AI sprite generation pipeline
+│   ├── seeds/               # Database seed scripts
+│   └── routes.ts            # Main route registration
 ├── shared/                  # Shared types, schemas, game definitions
+│   ├── schema.ts            # Drizzle ORM schema (all tables)
+│   ├── definitions/         # Game data definitions (items, classes, tiers)
+│   ├── models/              # Shared model types
+│   └── utils/               # Shared utilities
+├── migrations/              # SQL migration files
 ├── docs/                    # System documentation
 ├── vercel.json              # Vercel rewrites → grudge-studio.com backend
 ├── railway.json             # Railway deploy for this repo's Node server
+├── drizzle.config.ts        # Drizzle ORM config
 └── package.json
 ```
 
@@ -112,13 +146,18 @@ Open action items are surfaced live at `/organizer?tab=readiness` and `/organize
 
 ## Game Features
 
-- **Character Builder** — 6 races, 4 classes, 8 attributes, equipment
-- **Turn-Based Combat** — Party vs enemy encounters with abilities & VFX
-- **Dungeon Explorer** — Procedural tiled dungeons with fog of war
-- **Island System** — Build and manage your base with buildings & NPCs
-- **Professions** — Mining, foresting, cooking, engineering, mysticism
-- **Skill Trees** — Class-specific ability progression
+- **Character Creator (6-Step)** — Race selection (6 races), class selection (4 classes), stat allocation (8 attributes), avatar HSL sprite customization + cNFT mint, island preview, island finalize + cNFT mint → launches into gameplay
+- **Island System** — Seeded RNG deterministic generation: harvest nodes (ore, wood, herbs, fish), animal spawns, terrain zones, camp position. Rerollable until committed. Both character and island minted as Solana cNFTs via Crossmint
+- **Turn-Based Combat** — Party vs enemy encounters with abilities, VFX, and skill hotbar
+- **Dungeon Explorer** — Procedural Phaser-tiled dungeons with fog of war and loot
+- **Tower Wars** — Tower defense game mode
+- **RPG Battle** — Standalone RPG battle mode
+- **Professions** — 5 professions (mining, foresting, fishing, hunting, herbalism) with advancement trees and tiered resource unlocks
+- **Skill Trees** — Class-specific ability progression (Warriors, Mages, Rangers, Worges)
 - **World Map** — Explore interconnected islands and sailing zones
+- **Mission Board** — AI-driven faction missions with dynamic objectives
+- **Hero Codex** — Lore browser for heroes, factions, and races
+- **Sprite Tools** — AI sprite generation, race sprite generator, sprite library browser, template viewer
 - **Arena PvP** — Ranked team battles with challenge system
 - **Multiplayer** — Colyseus WebSocket rooms for real-time gameplay
 - **Discord Integration** — Webhook notifications for events, patches, arena
@@ -188,14 +227,29 @@ Domain routing via Cloudflare.
 ### Vercel Rewrites (vercel.json)
 
 The frontend proxies all API calls through Vercel rewrites:
-- `/api/auth/*` → `id.grudge-studio.com` (Grudge ID auth)
-- `/api/account/*` → `api.grudge-studio.com` (account endpoints)
-- `/api/game/*` → `api.grudge-studio.com` (game API)
-- `/api/wallet/*` → `api.grudge-studio.com` (Solana wallets)
-- `/api/island/*` → `api.grudge-studio.com` (island system)
-- `/api/nfts/*` → `api.grudge-studio.com` (NFT endpoints)
+- `/api/auth/*` → `id.grudge-studio.com/auth/*` (Grudge ID auth)
+- `/api/login` → `id.grudge-studio.com/auth/login`
+- `/api/register` → `id.grudge-studio.com/auth/register`
+- `/api/guest` → `id.grudge-studio.com/auth/puter` (Puter guest login)
+- `/api/oauth-google` → `id.grudge-studio.com/auth/google/start`
+- `/api/oauth-github` → `id.grudge-studio.com/auth/github/start`
+- `/api/discord-login` → `id.grudge-studio.com/auth/discord/start`
+- `/api/account/*` → `account.grudge-studio.com/*`
+- `/api/characters` + `/api/characters/*` → `api.grudge-studio.com`
+- `/api/party` + `/api/party/*` → `api.grudge-studio.com`
+- `/api/wallet` + `/api/wallet/*` → `api.grudge-studio.com`
+- `/api/island/*` → `api.grudge-studio.com`
+- `/api/island-nfts` + `/api/island-nfts/*` → `api.grudge-studio.com`
+- `/api/nfts` + `/api/nfts/*` → `api.grudge-studio.com`
+- `/api/professions/*` → `api.grudge-studio.com`
+- `/api/inventory/*` → `api.grudge-studio.com`
+- `/api/game/*` → `api.grudge-studio.com` (generic game API)
+- `/api/public/*` → `api.grudge-studio.com`
 - `/api/assets/*` → `assets.grudge-studio.com` (R2 CDN)
 - `/api/tools/*` → `api.grudge-studio.com` (dev tools)
+- `/api/health` → `api.grudge-studio.com/health`
+
+Headers: `/editor` gets `COOP/COEP` for SharedArrayBuffer; `/assets/*` is cached immutably.
 
 ### Repos
 
