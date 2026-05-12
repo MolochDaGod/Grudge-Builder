@@ -58,7 +58,7 @@ export default function IntroPage() {
         className="absolute inset-0 w-full h-full object-cover opacity-60"
         onEnded={() => setShowEnter(true)}
       >
-        <source src="https://i.imgur.com/qpcjvpR.mp4" type="video/mp4" />
+        <source src="https://i.imgur.com/wSesBRh.mp4" type="video/mp4" />
       </video>
 
       <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black/50" />

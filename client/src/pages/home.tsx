@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { CharacterManager, Character } from "@/lib/characterManager";
 import { useAccount } from "@/hooks/use-account";
 import { isAuthenticated, getCurrentUser } from "@/lib/grudgeBackend";
+import { GAME_CARD_BACKGROUNDS } from "@/lib/artAssets";
 
 interface SavedAccount {
   username: string;
@@ -76,7 +77,11 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <div className="fixed inset-0 pointer-events-none opacity-50" style={{ backgroundImage: "radial-gradient(ellipse at 15% 0%, hsla(45,30%,30%,0.06) 0%, transparent 55%), radial-gradient(ellipse at 85% 100%, hsla(210,20%,30%,0.05) 0%, transparent 55%)" }} />
+      {/* Background art layer */}
+      <div className="fixed inset-0 pointer-events-none">
+        <img src="https://i.imgur.com/byUrl5f.png" alt="" className="w-full h-full object-cover opacity-[0.04]" loading="lazy" />
+        <div className="absolute inset-0 bg-gradient-to-b from-background via-background/95 to-background" />
+      </div>
       <header className="sticky top-0 z-50 border-b border-border/40 bg-background/85 backdrop-blur-md">
         <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -123,6 +128,10 @@ export default function HomePage() {
             <motion.div key={game.id} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.07 * i }}>
               <div onClick={() => game.external ? window.open(game.url, "_blank", "noopener") : setLocation(game.url)}
                 className={`relative overflow-hidden rounded-xl border ${game.border} bg-gradient-to-br ${game.color} cursor-pointer group transition-all duration-200 hover:scale-[1.02] hover:shadow-xl p-5 flex flex-col h-full min-h-[156px]`}>
+                {/* Card background art */}
+                {GAME_CARD_BACKGROUNDS[game.id] && (
+                  <img src={GAME_CARD_BACKGROUNDS[game.id]} alt="" className="absolute inset-0 w-full h-full object-cover opacity-[0.08] group-hover:opacity-[0.14] transition-opacity" loading="lazy" />
+                )}
                 <div className="absolute top-3 right-3"><span className={`text-xs px-2 py-0.5 rounded-full font-medium ${game.badgeColor}`}>{game.badge}</span></div>
                 <div className="flex items-start gap-3 mb-2.5">
                   <div className="text-foreground/60 group-hover:text-foreground/90 transition-colors mt-0.5">{GAME_ICONS[game.icon]}</div>
