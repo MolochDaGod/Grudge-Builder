@@ -92,8 +92,7 @@ export default function middleware(request: Request): Response | void {
   const token    = getCookie(cookies, "grudge_auth_token")
   const grudgeId = getCookie(cookies, "grudge_id")
 
-  // ── Skip Cloudflare health probes & pre-flight ─────────────────────────────
-  const cfRay = request.headers.get("cf-ray")
+  // ── Skip pre-flight requests ────────────────────────────────────────────
   if (request.method === "OPTIONS") return
 
   // ── 1. Unauthenticated user hitting a protected route ─────────────────────

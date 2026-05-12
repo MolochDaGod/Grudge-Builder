@@ -27,8 +27,13 @@ const ALLOWED_ORIGINS = [
   "https://dash.grudge-studio.com",
   "https://id.grudge-studio.com",
   "https://ai.grudge-studio.com",
+  "https://objectstore.grudge-studio.com",
+  // Cloudflare Pages (ObjectStore)
+  /\.pages\.dev$/,
   // Vercel previews
   /\.vercel\.app$/,
+  // Railway previews
+  /\.up\.railway\.app$/,
 ];
 
 app.use(

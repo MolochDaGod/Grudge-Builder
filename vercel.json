@@ -38,7 +38,8 @@
   ],
   "env": {
     "GRUDGE_API_URL": "https://api.grudge-studio.com",
-    "VITE_PVP_SERVER_URL": "wss://pvp.grudge-studio.com"
+    "VITE_PVP_SERVER_URL": "wss://pvp.grudge-studio.com",
+    "VITE_ASSETS_URL": "https://assets.grudge-studio.com"
   },
   "headers": [
     {
