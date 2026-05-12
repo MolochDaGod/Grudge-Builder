@@ -474,7 +474,5 @@ export function generateIslandState(
   return islandState;
 }
 
-/**
- * Export for testing
- */
-export { seededRandom, generateTerrainZones, generateResourceNodes, generateAnimals };
+// Note: seededRandom, generateTerrainZones, generateResourceNodes, generateAnimals
+// are already exported at their declaration sites above.
