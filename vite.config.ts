@@ -2,9 +2,43 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import path from "path";
+import type { Plugin } from "vite";
+
+/**
+ * Some node_module packages (e.g. @enable3d/phaser-extension, stage-js,
+ * @davi-ai/bodyengine-three) were compiled as UMD and reference THREE as a
+ * bare global instead of importing it. Rollup includes their module-level
+ * code before main.tsx runs, so window.THREE = THREE is always too late.
+ *
+ * This plugin runs at the Rollup transform stage: it injects
+ * `import * as THREE from 'three'` at the top of any node_module file
+ * that references THREE without already importing it.
+ */
+const injectThreeGlobal: Plugin = {
+  name: "inject-three-global",
+  enforce: "pre",
+  transform(code: string, id: string) {
+    // Only target node_modules
+    if (!id.includes("node_modules")) return null;
+    // Only act if the file references THREE as an identifier
+    if (!code.includes("THREE")) return null;
+    // Skip if it already imports three
+    if (
+      code.includes("from 'three'") ||
+      code.includes('from "three"') ||
+      code.includes("require('three')") ||
+      code.includes('require("three")')
+    ) return null;
+    return {
+      code: `import * as THREE from 'three';\n${code}`,
+      map: null,
+    };
+  },
+};
 
 export default defineConfig({
   plugins: [
+    injectThreeGlobal,
     react(),
     tailwindcss(),
   ],

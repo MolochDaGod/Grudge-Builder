@@ -65,3 +65,4 @@ vite.config.ts.*
 public/models/*.glb
 public/models/*.fbx
 public/models/*.obj
+.env*.local

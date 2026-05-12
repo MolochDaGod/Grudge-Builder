@@ -1,8 +1,12 @@
 {
-  "name": "rest-express",
+  "name": "grudge-builder",
   "version": "1.0.0",
   "type": "module",
   "license": "MIT",
+  "engines": {
+    "node": ">=20.0.0",
+    "npm": ">=10.0.0"
+  },
   "scripts": {
     "dev:client": "vite dev --port 5000",
     "dev": "cross-env NODE_ENV=development tsx server/index.ts",
@@ -148,7 +152,7 @@
     "next-themes": "^0.4.6",
     "ng-svg-icon-sprite": "^1.14.0",
     "node-gimp": "^0.0.3",
-    "node-sass": "^9.0.0",
+    "sass": "^1.77.0",
     "node-unrar-js": "^2.0.2",
     "openai": "^6.15.0",
     "p-limit": "^7.2.0",

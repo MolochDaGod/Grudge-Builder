@@ -5,6 +5,11 @@
   "devCommand": "npm run dev:client",
   "installCommand": "npm install --legacy-peer-deps --include=dev --ignore-scripts",
   "framework": null,
+  "build": {
+    "env": {
+      "NODE_VERSION": "20"
+    }
+  },
   "rewrites": [
     {
       "source": "/api/assets/:path*",
