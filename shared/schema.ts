@@ -81,6 +81,16 @@ export const characters = pgTable("characters", {
     content: string;
     timestamp: number;
   }>>().default(sql`'[]'::jsonb`),
+  // Phase 1: Sprite customization (HSL palette for 2D sprite colors)
+  spriteConfig: jsonb("sprite_config").$type<{
+    skinTone: number;   // 0-360 (HSL hue)
+    hairColor: number;  // 0-360
+    armorColor: number; // 0-360
+    clothColor: number; // 0-360
+  }>().default(sql`'{"skinTone":0,"hairColor":0,"armorColor":0,"clothColor":0}'::jsonb`),
+  // Phase 1: cNFT tracking for character avatar
+  cnftId: text("cnft_id"),           // Crossmint transaction ID
+  cnftAddress: text("cnft_address"), // Solana mint address
   createdAt: bigint("created_at", { mode: "number" }).notNull().default(sql`extract(epoch from now()) * 1000`),
 });
 
@@ -637,6 +647,11 @@ export const homeIslands = pgTable("home_islands", {
   mapImageUrl: text("map_image_url"), // Generated island map image
   thumbnailUrl: text("thumbnail_url"), // Low-res thumbnail
   state: jsonb("state").notNull().$type<Record<string, unknown>>().default(sql`'{}'::jsonb`),
+  // Phase 1: cNFT tracking for island
+  cnftId: text("cnft_id"),           // Crossmint transaction ID
+  cnftAddress: text("cnft_address"), // Solana mint address
+  // Phase 1: Validation timestamp (null = ephemeral, set = committed to gameplay)
+  validatedAt: bigint("validated_at", { mode: "number" }), // Epoch milliseconds
   createdAt: bigint("created_at", { mode: "number" }).notNull().default(sql`extract(epoch from now()) * 1000`),
   updatedAt: bigint("updated_at", { mode: "number" }).notNull().default(sql`extract(epoch from now()) * 1000`),
 });
