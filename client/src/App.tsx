@@ -44,7 +44,8 @@ import AdminCombatPage from "@/pages/admin-combat";
 import IslandV2Page from "@/pages/island-v2";
 import AdminIslandV2Page from "@/pages/admin-island-v2";
 import LauncherPage from "@/pages/launcher";
-import TowerWarsPage from "@/pages/tower-wars";
+import RtsGrudgePage from "@/pages/rts-grudge";
+const TowerWarsPage = lazy(() => import("@/pages/tower-wars")); // legacy, keep route
 import HarvestPage from "@/pages/Harvest";
 import HeroCodexPage from "@/pages/hero-codex";
 import CraftingPage from "@/pages/crafting";
@@ -100,7 +101,8 @@ function Router() {
       <Route path="/island-v2" component={IslandV2Page} />
       <Route path="/admin-island-v2" component={AdminIslandV2Page} />
       <Route path="/launcher" component={LauncherPage} />
-      <Route path="/tower-wars" component={TowerWarsPage} />
+      <Route path="/rts-grudge" component={RtsGrudgePage} />
+      <Route path="/tower-wars">{() => <Suspense fallback={null}><TowerWarsPage /></Suspense>}</Route>
       <Route path="/harvest" component={HarvestPage} />
       <Route path="/hero-codex" component={HeroCodexPage} />
       <Route path="/crafting" component={CraftingPage} />

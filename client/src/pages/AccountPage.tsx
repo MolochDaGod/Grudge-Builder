@@ -281,7 +281,7 @@ export default function AccountPage() {
               {[
                 { href: '/island-v2',    icon: <Leaf className="w-4 h-4" />,     label: 'Home Island',     color: 'text-emerald-400', sub: 'Auto-Harvest' },
                 { href: '/crafting',     icon: <Hammer className="w-4 h-4" />,   label: 'Crafting',        color: 'text-orange-400',  sub: 'Forge gear' },
-                { href: '/tower-wars',   icon: <Shield className="w-4 h-4" />,   label: 'Tower Wars',      color: 'text-red-400',     sub: 'RTS Grudge' },
+                { href: '/rts-grudge',   icon: <Shield className="w-4 h-4" />,   label: 'RTS GRUDGE',      color: 'text-red-400',     sub: '3D Battle' },
                 { href: '/combat',       icon: <Swords className="w-4 h-4" />,   label: 'Combat',          color: 'text-slate-300',   sub: 'RPG Battle' },
                 { href: '/dungeon',      icon: <Pickaxe className="w-4 h-4" />,  label: 'Dungeon',         color: 'text-zinc-400',    sub: 'Roguelike' },
                 { href: '/harvest',      icon: <Leaf className="w-4 h-4" />,     label: 'Harvest',         color: 'text-lime-400',    sub: 'Gathering' },
