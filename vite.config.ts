@@ -23,6 +23,28 @@ const THREE_GLOBAL_PACKAGES = [
   "/phaser-ce/",
 ];
 
+// engine.io-client packaging bug: the ESM build imports './globals.node.js'
+// (a Node.js-specific file) but the browser version 'globals.js' was never
+// published. Intercept the relative import at resolve time.
+const engineIoGlobalsShim: Plugin = {
+  name: "engine-io-globals-browser-shim",
+  enforce: "pre",
+  resolveId(id: string, importer?: string) {
+    if (
+      // Match any relative depth: ./globals.node.js or ../globals.node.js etc.
+      /(\.\.\/)*globals\.node\.js$/.test(id) &&
+      importer &&
+      importer.replace(/\\/g, "/").includes("/engine.io-client/")
+    ) {
+      return path.resolve(
+        import.meta.dirname,
+        "client/src/lib/engine-io-browser-globals.js"
+      );
+    }
+    return null;
+  },
+};
+
 const injectThreeForKnownPackages: Plugin = {
   name: "inject-three-for-known-packages",
   enforce: "post",
@@ -48,6 +70,7 @@ const injectThreeForKnownPackages: Plugin = {
 
 export default defineConfig({
   plugins: [
+    engineIoGlobalsShim,
     injectThreeForKnownPackages,
     react(),
     tailwindcss(),
