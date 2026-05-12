@@ -12,13 +12,16 @@
     },
     {
       "source": "/api/:path*",
-      "destination": "https://api.grudge-studio.com/api/:path*"
+      "destination": "$GRUDGE_API_URL/api/:path*"
     },
     {
       "source": "/((?!.*\\.).*)",
       "destination": "/index.html"
     }
   ],
+  "env": {
+    "GRUDGE_API_URL": "https://api.grudge-studio.com"
+  },
   "headers": [
     {
       "source": "/editor",
