@@ -4,10 +4,11 @@ import { motion } from "framer-motion";
 import {
   Sword, Shield, Pickaxe, Leaf, Hammer, LogOut,
   ChevronRight, Crown, Zap, Map, Swords,
-  Plus, Check, Globe, Code2,
+  Plus, Check, Globe, Code2, Flame, Coins,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CharacterManager, Character } from "@/lib/characterManager";
+import { useAccount } from "@/hooks/use-account";
 
 interface SavedAccount {
   username: string;
@@ -16,19 +17,23 @@ interface SavedAccount {
 }
 
 const LIVE_GAMES = [
-  { id: "island", title: "Island Builder", subtitle: "Auto-Harvest & Build", description: "Your home island. Heroes auto-harvest resources, build structures, craft gear.", url: "/island", external: false, icon: "leaf", color: "from-emerald-950/90 via-emerald-900/70 to-emerald-800/40", border: "border-emerald-500/50 hover:border-emerald-400/70", badge: "Core", badgeColor: "bg-emerald-600/90 text-emerald-100" },
-  { id: "character", title: "Character Builder", subtitle: "Heroes & Stats", description: "Create heroes, allocate attributes, equip gear, and manage your roster.", url: "/character", external: false, icon: "sword", color: "from-amber-950/90 via-yellow-900/70 to-amber-800/40", border: "border-amber-500/50 hover:border-amber-400/70", badge: "Core", badgeColor: "bg-amber-600/90 text-amber-100" },
-  { id: "combat", title: "Combat Arena", subtitle: "RPG Battle", description: "Turn-based combat with class skills, abilities, and party tactics.", url: "/combat", external: false, icon: "swords", color: "from-slate-950/90 via-slate-800/70 to-slate-700/40", border: "border-slate-600/40 hover:border-slate-400/60", badge: "Battle", badgeColor: "bg-slate-600/80 text-slate-200" },
-  { id: "dungeon", title: "Dungeon Crawler", subtitle: "Roguelike", description: "Procedural dungeons with enemies, loot, and boss fights.", url: "/dungeon", external: false, icon: "pickaxe", color: "from-zinc-950/90 via-zinc-800/70 to-zinc-700/40", border: "border-zinc-600/40 hover:border-zinc-400/60", badge: "Solo", badgeColor: "bg-zinc-600/80 text-zinc-200" },
-  { id: "professions", title: "Professions", subtitle: "Gathering & Crafting", description: "Level 1\u2013100 gathering and crafting professions with tier unlocks.", url: "/professions", external: false, icon: "pickaxe", color: "from-green-950/90 via-green-900/70 to-green-800/40", border: "border-green-700/40 hover:border-green-500/60", badge: "Craft", badgeColor: "bg-green-700/80 text-green-200" },
-  { id: "worldmap", title: "World Map", subtitle: "Explore & Capture", description: "100\u00d7100 zone grid with capturable territory and weekly rotation.", url: "/world-map", external: false, icon: "map", color: "from-teal-950/90 via-teal-900/70 to-teal-800/40", border: "border-teal-700/40 hover:border-teal-500/60", badge: "Explore", badgeColor: "bg-teal-700/80 text-teal-200" },
-  { id: "skills", title: "Skill Trees", subtitle: "Class Abilities", description: "Class-specific skill trees. Choose 1 skill per tier as you level up.", url: "/skills", external: false, icon: "code", color: "from-blue-950/90 via-blue-900/70 to-blue-800/40", border: "border-blue-700/40 hover:border-blue-500/60", badge: "Skills", badgeColor: "bg-blue-700/80 text-blue-200" },
+  { id: "island",    title: "Home Island",       subtitle: "Auto-Harvest & Build",      description: "Your home island. Heroes auto-harvest resources, build structures, craft gear.",         url: "/island-v2",   external: false, icon: "leaf",   color: "from-emerald-950/90 via-emerald-900/70 to-emerald-800/40", border: "border-emerald-500/50 hover:border-emerald-400/70", badge: "Core",    badgeColor: "bg-emerald-600/90 text-emerald-100" },
+  { id: "crafting", title: "Warlord Crafting",   subtitle: "Forge Weapons & Armor",     description: "Craft weapons, armor, consumables, and materials using your profession skills.",        url: "/crafting",    external: false, icon: "hammer", color: "from-orange-950/90 via-orange-900/70 to-orange-800/40", border: "border-orange-500/50 hover:border-orange-400/70", badge: "Craft",   badgeColor: "bg-orange-600/90 text-orange-100" },
+  { id: "character",title: "Character Builder",  subtitle: "Heroes & Stats",            description: "Create heroes, allocate attributes, equip gear, and manage your roster.",              url: "/character",   external: false, icon: "sword",  color: "from-amber-950/90 via-yellow-900/70 to-amber-800/40",   border: "border-amber-500/50 hover:border-amber-400/70",   badge: "Core",    badgeColor: "bg-amber-600/90 text-amber-100" },
+  { id: "towerwars",title: "Tower Wars",         subtitle: "RTS Grudge",               description: "Build towers, recruit units, and defend your base through 15 waves of enemies.",      url: "/tower-wars",  external: false, icon: "shield", color: "from-red-950/90 via-red-900/70 to-red-800/40",         border: "border-red-600/40 hover:border-red-400/60",       badge: "RTS",     badgeColor: "bg-red-700/80 text-red-200" },
+  { id: "combat",   title: "Combat Arena",       subtitle: "RPG Battle",               description: "Turn-based combat with class skills, abilities, and party tactics.",                  url: "/combat",      external: false, icon: "swords", color: "from-slate-950/90 via-slate-800/70 to-slate-700/40",   border: "border-slate-600/40 hover:border-slate-400/60",   badge: "Battle",  badgeColor: "bg-slate-600/80 text-slate-200" },
+  { id: "dungeon",  title: "Dungeon Crawler",    subtitle: "Roguelike",                description: "Procedural dungeons with enemies, loot, and boss fights.",                           url: "/dungeon",     external: false, icon: "pickaxe",color: "from-zinc-950/90 via-zinc-800/70 to-zinc-700/40",     border: "border-zinc-600/40 hover:border-zinc-400/60",     badge: "Solo",    badgeColor: "bg-zinc-600/80 text-zinc-200" },
+  { id: "professions",title:"Professions",       subtitle: "Gathering & Crafting",     description: "Level 1\u2013100 gathering and crafting professions with tier unlocks.",           url: "/professions", external: false, icon: "pickaxe",color: "from-green-950/90 via-green-900/70 to-green-800/40",   border: "border-green-700/40 hover:border-green-500/60",   badge: "Craft",   badgeColor: "bg-green-700/80 text-green-200" },
+  { id: "worldmap", title: "World Map",          subtitle: "Explore & Capture",        description: "100\u00d7100 zone grid with capturable territory and weekly rotation.",             url: "/world-map",   external: false, icon: "map",    color: "from-teal-950/90 via-teal-900/70 to-teal-800/40",     border: "border-teal-700/40 hover:border-teal-500/60",     badge: "Explore", badgeColor: "bg-teal-700/80 text-teal-200" },
+  { id: "skills",   title: "Skill Trees",        subtitle: "Class Abilities",          description: "Class-specific skill trees. Choose 1 skill per tier as you level up.",              url: "/skills",      external: false, icon: "code",   color: "from-blue-950/90 via-blue-900/70 to-blue-800/40",     border: "border-blue-700/40 hover:border-blue-500/60",     badge: "Skills",  badgeColor: "bg-blue-700/80 text-blue-200" },
+  { id: "harvest",  title: "Harvest Mode",       subtitle: "Live Resource Gathering",  description: "Send heroes to gather resources in real-time on your personal island.",             url: "/harvest",     external: false, icon: "leaf",   color: "from-lime-950/90 via-lime-900/70 to-lime-800/40",     border: "border-lime-700/40 hover:border-lime-500/60",     badge: "Gather",  badgeColor: "bg-lime-700/80 text-lime-200" },
 ];
 
 const GAME_ICONS: Record<string, React.ReactNode> = {
   globe: <Globe className="w-6 h-6" />, swords: <Swords className="w-6 h-6" />, pickaxe: <Pickaxe className="w-6 h-6" />,
   leaf: <Leaf className="w-6 h-6" />, sword: <Sword className="w-6 h-6" />, hammer: <Hammer className="w-6 h-6" />,
   code: <Code2 className="w-6 h-6" />, map: <Map className="w-6 h-6" />, crown: <Crown className="w-6 h-6" />,
+  shield: <Shield className="w-6 h-6" />, flame: <Flame className="w-6 h-6" />,
 };
 
 export default function HomePage() {
@@ -36,6 +41,7 @@ export default function HomePage() {
   const [characters, setCharacters] = useState<Character[]>([]);
   const [activeCharacter, setActiveCharacter] = useState<Character | null>(null);
   const [user, setUser] = useState<SavedAccount | null>(null);
+  const { account } = useAccount();
 
   useEffect(() => {
     // Try grudge_user (set by auth modal), fallback to grudge-session
@@ -63,8 +69,23 @@ export default function HomePage() {
             <span className="font-cinzel font-bold tracking-wider text-sm"><span className="text-amber-400">GRUDGE </span><span className="text-white">WARLORDS</span></span>
           </div>
           <div className="flex items-center gap-3">
+            {account && (
+              <div className="hidden sm:flex items-center gap-2 text-xs text-muted-foreground">
+                {account.gbuxBalance > 0 && (
+                  <span className="flex items-center gap-1 bg-cyan-950/50 border border-cyan-800/40 px-2 py-0.5 rounded-full text-cyan-300 font-mono">
+                    <Coins className="w-3 h-3" />{account.gbuxBalance.toLocaleString()}
+                  </span>
+                )}
+                {(account.characterTokens ?? 0) > 0 && (
+                  <span className="flex items-center gap-1 bg-amber-950/50 border border-amber-800/40 px-2 py-0.5 rounded-full text-amber-300">
+                    <Crown className="w-3 h-3" />{account.characterTokens} token{account.characterTokens !== 1 ? "s" : ""}
+                  </span>
+                )}
+              </div>
+            )}
             <div className="w-7 h-7 rounded-full bg-gradient-to-br from-amber-600 to-amber-800 flex items-center justify-center text-xs font-bold text-white border border-amber-700/50">{displayName[0]?.toUpperCase()}</div>
             <span className="hidden sm:block text-sm font-medium">{displayName}</span>
+            <Button variant="ghost" size="sm" onClick={() => setLocation("/account")} className="text-muted-foreground hover:text-amber-400 h-8 w-8 p-0" title="Account"><Crown className="w-4 h-4" /></Button>
             <Button variant="ghost" size="sm" onClick={handleLogout} className="text-muted-foreground hover:text-slate-300 h-8 w-8 p-0"><LogOut className="w-4 h-4" /></Button>
           </div>
         </div>

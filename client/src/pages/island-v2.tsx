@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { GameViewportLayout } from "@/components/GameViewportLayout";
 import { CharacterManager, Character } from "@/lib/characterManager";
+import { getDeviceId, getCurrentUser } from "@/lib/grudgeBackend";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
@@ -90,8 +91,10 @@ export default function IslandV2Page() {
       
       const chars = await CharacterManager.getAll();
       setCharacters(chars);
-      
-      const userId = "guest";
+
+      // Use the authenticated user's ID; fall back to device ID for guests
+      const authUser = getCurrentUser();
+      const userId = authUser?.grudgeId || authUser?.id?.toString() || getDeviceId();
       let state = await loadIslandState(userId);
       if (!state) {
         state = createNewIsland(userId);
