@@ -1,9 +1,9 @@
 {
   "alias": ["client.grudge-studio.com", "grudgewarlords.com", "www.grudgewarlords.com"],
-  "buildCommand": "cd client && npx vite build",
+  "buildCommand": "npm run build:client",
   "outputDirectory": "client/dist",
   "devCommand": "npm run dev:client",
-  "installCommand": "npm install --legacy-peer-deps --include=dev",
+  "installCommand": "npm install --legacy-peer-deps --ignore-scripts",
   "framework": null,
   "rewrites": [
     {

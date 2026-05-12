@@ -53,6 +53,7 @@ import AuthCallbackPage from "@/pages/auth-callback";
 import EditorPage from "@/pages/editor";
 import OrganizerPage from "@/pages/organizer";
 import CreateCharacterPage from "@/pages/create-character";
+import CharacterCreatorPage from "@/pages/character-creator";
 
 function Router() {
   return (
@@ -64,6 +65,7 @@ function Router() {
       <Route path="/character" component={CharacterBuilder} />
       <Route path="/characters" component={CharacterBuilder} />
       <Route path="/create-character" component={CreateCharacterPage} />
+      <Route path="/character-creator" component={CharacterCreatorPage} />
       <Route path="/professions" component={ProfessionsPage} />
       <Route path="/database" component={DatabasePage} />
       <Route path="/combat" component={CombatPage} />
