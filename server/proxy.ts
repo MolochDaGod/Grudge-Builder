@@ -28,33 +28,41 @@ interface ProxyRule {
  * Proxy rules matching vercel.json rewrites.
  * Only rules for EXTERNAL backends — local Express routes take priority.
  */
+/**
+ * Routes that are handled LOCALLY by Express and must NOT be proxied.
+ * Anything not in this list and not in PROXY_RULES will 404 naturally.
+ */
+const LOCAL_API_PREFIXES = [
+  "/api/health",       // added to server/index.ts
+  "/api/characters",
+  "/api/party",
+  "/api/account",
+  "/api/island",
+  "/api/resources",
+  "/api/resource-nodes",
+  "/api/crafting",
+  "/api/missions",
+  "/api/wallet",
+  "/api/nfts",
+  "/api/island-nfts",
+  "/api/admin",
+  "/api/races",
+  "/api/classes",
+  "/api/items",
+  "/api/spells",
+  "/api/skills",
+  "/api/monsters",
+];
+
 const PROXY_RULES: ProxyRule[] = [
-  // ── Direct game API routes (match vercel.json explicit rewrites) ────
-  // All routes now target id.grudge-studio.com (Railway backend) to match
-  // vercel.json — keeps /api/ prefix intact.
-  { match: "/api/characters", target: "https://id.grudge-studio.com", pathRewrite: "keep" },
-  { match: "/api/professions", target: "https://id.grudge-studio.com", pathRewrite: "keep" },
-  { match: "/api/inventory", target: "https://id.grudge-studio.com", pathRewrite: "keep" },
-  { match: "/api/nfts", target: "https://id.grudge-studio.com", pathRewrite: "keep" },
-  { match: "/api/island-nfts", target: "https://id.grudge-studio.com", pathRewrite: "keep" },
-  { match: "/api/wallet", target: "https://id.grudge-studio.com", pathRewrite: "keep" },
-  { match: "/api/party", target: "https://id.grudge-studio.com", pathRewrite: "keep" },
-  { match: "/api/health", target: "https://id.grudge-studio.com", pathRewrite: "keep" },
+  // ── Asset CDN → Cloudflare R2 (via objectstore worker) ────────────────
+  { match: "/api/assets", target: "https://assets.grudge-studio.com", pathRewrite: "strip-prefix", stripPrefix: "/api/assets" },
 
-  // ── Legacy catch-all: /api/game/* → id.grudge-studio.com/api/* ─────
-  {
-    match: "/api/game",
-    target: "https://id.grudge-studio.com",
-    pathRewrite: "strip-prefix",
-    stripPrefix: "/api/game",
-  },
-
-  // ── Auth routes → id.grudge-studio.com ──────────────────────────────
-  // /api/auth/login → id.grudge-studio.com/auth/login (strip /api, keep /auth prefix)
+  // ── Auth SSO → id.grudge-studio.com ────────────────────────────────
+  // /api/auth/* → id.grudge-studio.com/auth/* (strip /api, keep /auth)
   { match: "/api/auth", target: "https://id.grudge-studio.com", pathRewrite: "strip-prefix", stripPrefix: "/api" },
 
-  // ── Asset & tool routes ────────────────────────────────────────────
-  { match: "/api/assets", target: "https://assets.grudge-studio.com", pathRewrite: "strip-prefix", stripPrefix: "/api/assets" },
+  // ── Tool / public data passthrough ────────────────────────────────
   { match: "/api/tools", target: "https://id.grudge-studio.com", pathRewrite: "strip-prefix", stripPrefix: "/api" },
   { match: "/api/public", target: "https://id.grudge-studio.com", pathRewrite: "strip-prefix", stripPrefix: "/api" },
 ];
@@ -67,14 +75,19 @@ function proxyRequest(req: Request, res: Response, targetUrl: string): void {
   const isHttps = url.protocol === "https:";
   const transport = isHttps ? https : http;
 
-  // Forward relevant headers
+  // Forward relevant headers (include Cloudflare identification headers)
   const headers: Record<string, string> = {};
-  for (const key of ["authorization", "x-session-token", "content-type", "accept", "x-admin-mode"]) {
+  for (const key of [
+    "authorization", "x-session-token", "content-type", "accept",
+    "x-admin-mode", "cf-ray", "cf-connecting-ip", "cf-ipcountry",
+    "x-forwarded-proto",
+  ]) {
     const val = req.get(key);
     if (val) headers[key] = val;
   }
   headers["host"] = url.host;
-  headers["x-forwarded-for"] = req.ip || "127.0.0.1";
+  headers["x-forwarded-for"] = req.ip || req.get("cf-connecting-ip") || "127.0.0.1";
+  headers["x-grudge-origin"] = "grudge-builder-proxy";
 
   const options: https.RequestOptions = {
     hostname: url.hostname,
@@ -137,6 +150,11 @@ export function registerBackendProxy(app: Express): void {
 
   for (const rule of PROXY_RULES) {
     const handler = (req: Request, res: Response) => {
+      // Never proxy routes that are handled locally
+      if (LOCAL_API_PREFIXES.some(p => req.originalUrl === p || req.originalUrl.startsWith(p + "/") || req.originalUrl.startsWith(p + "?"))) {
+        res.status(404).json({ error: "Not found" });
+        return;
+      }
       let targetPath: string;
       if (rule.pathRewrite === "strip-prefix" && rule.stripPrefix) {
         targetPath = req.originalUrl.replace(rule.stripPrefix, "");

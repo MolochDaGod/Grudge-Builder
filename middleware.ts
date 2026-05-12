@@ -24,27 +24,38 @@ function getCookie(header: string, name: string): string | null {
 
 /** Require a valid grudge_auth_token cookie */
 const PROTECTED_PREFIXES = [
-  "/island",
+  // ── Core game routes ─────────────────────────────────────────────
+  "/home",
+  "/launcher",
+  // ── Characters ───────────────────────────────────────────────────
   "/character",
   "/characters",
   "/create-character",
   "/character-creator",
+  "/character-gallery",
+  // ── Games ────────────────────────────────────────────────────────
+  "/island-v2",      // Home Island (auto-harvest)
+  "/island-3d",      // 3D open-world / RTS entrance
+  "/rts-grudge",     // RTS GRUDGE lobby
   "/combat",
   "/dungeon",
+  "/dungeon-tiled",
+  "/rpg-battle",
+  "/harvest",
+  "/world-map",
+  "/missions",
+  // ── Progression ──────────────────────────────────────────────────
   "/crafting",
   "/professions",
   "/profession",
-  "/harvest",
   "/skills",
   "/skill-tree",
-  "/world-map",
-  "/missions",
-  "/wallet",
-  "/account",
   "/arsenal",
   "/hero-codex",
-  "/rpg-battle",
-  "/tower-wars",
+  // ── Account ───────────────────────────────────────────────────────
+  "/wallet",
+  "/account",
+  // ── Tools (admin) ─────────────────────────────────────────────────
   "/editor",
   "/organizer",
 ];
@@ -67,14 +78,18 @@ function isGuestOnly(pathname: string): boolean {
 // ── Middleware ───────────────────────────────────────────────────────────────
 // Native Web API — no next/server or @vercel/edge import needed.
 
-export default function middleware(request: Request): Response | undefined {
+export default function middleware(request: Request): Response | void {
   const url      = new URL(request.url)
   const pathname = url.pathname
   const cookies  = request.headers.get("cookie") ?? ""
   const token    = getCookie(cookies, "grudge_auth_token")
   const grudgeId = getCookie(cookies, "grudge_id")
 
-  // ── 1. Unauthenticated user hitting a protected route ────────────────────
+  // ── Skip Cloudflare health probes & pre-flight ─────────────────────────────
+  const cfRay = request.headers.get("cf-ray")
+  if (request.method === "OPTIONS") return
+
+  // ── 1. Unauthenticated user hitting a protected route ─────────────────────
   if (isProtected(pathname) && !token) {
     const dest = new URL(request.url)
     dest.pathname = "/"
@@ -91,14 +106,12 @@ export default function middleware(request: Request): Response | undefined {
     dest.search    = ""
     return Response.redirect(dest.toString(), 307)
   }
-
-  // Pass through — no intercept needed
-  return undefined
 }
 
-// ── Matcher — skip static files, Vercel internals ────────────────────────────
+// ── Matcher — skip static files, Vercel internals, Cloudflare infra ──────────
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon\\.ico|assets/|images/|sprites/|avatars/).*)",
+    // Skip: static assets, Vercel internals, CF health/special paths
+    "/((?!_next/static|_next/image|favicon\.ico|assets/|images/|sprites/|avatars/|models/|api/health|cdn-cgi/).*)",
   ],
 }

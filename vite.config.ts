@@ -108,6 +108,13 @@ export default defineConfig({
       define: { global: "globalThis" },
     },
   },
+  define: {
+    // Expose PvP server URL to the client bundle (set in .env.local or CI)
+    // Fallback to localhost:4321 for local development
+    "import.meta.env.VITE_PVP_SERVER_URL": JSON.stringify(
+      process.env.VITE_PVP_SERVER_URL || "http://localhost:4321"
+    ),
+  },
   server: {
     host: "0.0.0.0",
     allowedHosts: true,
@@ -116,16 +123,19 @@ export default defineConfig({
       deny: ["**/.*"],
     },
     proxy: {
-      // R2 asset CDN (must come before catch-all /api)
+      // R2 asset CDN — forward directly to Cloudflare R2 (must come before /api catch-all)
       "/api/assets": {
         target: "https://assets.grudge-studio.com",
         changeOrigin: true,
         rewrite: (p) => p.replace(/^\/api\/assets/, ""),
       },
-      // All other API calls → Railway backend (behind Cloudflare)
+      // All other /api calls → local Express server (port 5000).
+      // In production, Vercel rewrites handle this via GRUDGE_API_URL.
+      // NEVER proxy to api.grudge-studio.com in dev — that bypasses local routes.
       "/api": {
-        target: "https://api.grudge-studio.com",
-        changeOrigin: true,
+        target: "http://localhost:5000",
+        changeOrigin: false,
+        secure: false,
       },
     },
   },
