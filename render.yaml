@@ -1,0 +1,106 @@
+## ═══════════════════════════════════════════════════════════════
+## Render.com — Grudge Builder deployment manifest
+## Two services:
+##   grudge-api     → Main Express API  (port $PORT, Railway/Render auto-assigns)
+##   grudge-pvp     → Island Socket.IO PvP server (port 4321 → exposed via WS)
+## ═══════════════════════════════════════════════════════════════
+
+services:
+
+  # ─── Main Express API ──────────────────────────────────────────────────────
+  - type: web
+    name: grudge-api
+    runtime: node
+    region: ohio        # closest to VPS / Neon DB in us-east-1
+    plan: starter
+
+    buildCommand: "npm install --legacy-peer-deps --include=dev --ignore-scripts && npm run build:server"
+    startCommand: "node dist/index.cjs"
+
+    healthCheckPath: /api/health
+
+    autoDeploy: true
+    branch: main
+
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: "5000"
+      - key: NODE_VERSION
+        value: "22"
+
+      # ── Secrets — set these in Render Dashboard → Environment ──
+      - key: DATABASE_URL
+        sync: false         # pull from Render secret store
+      - key: JWT_SECRET
+        sync: false
+      - key: SESSION_SECRET
+        sync: false
+      - key: INTERNAL_API_KEY
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: CROSSMINT_SERVER_API_KEY
+        sync: false
+      - key: CROSSMINT_PROJECT_ID
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: DISCORD_CLIENT_ID
+        sync: false
+      - key: DISCORD_CLIENT_SECRET
+        sync: false
+      - key: DISCORD_BOT_TOKEN
+        sync: false
+      - key: GITHUB_TOKEN
+        sync: false
+      - key: SOLANA_RPC_URL
+        sync: false
+
+      # ── Public / non-secret ────────────────────────────────────
+      - key: CORS_ORIGINS
+        value: "https://grudgewarlords.com,https://client.grudge-studio.com,https://grudge-studio.com"
+      - key: ISLAND_SERVER_URL
+        fromService:
+          name: grudge-pvp
+          type: web
+          property: host    # injected at runtime once pvp service is deployed
+
+  # ─── Island / PvP Socket.IO Server ────────────────────────────────────────
+  - type: web
+    name: grudge-pvp
+    runtime: node
+    region: ohio
+    plan: starter
+
+    buildCommand: "npm install --legacy-peer-deps --include=dev --ignore-scripts && npm run build:island"
+    startCommand: "node dist/island-server.cjs"
+
+    # Socket.IO health endpoint lives at /health (not /api/health)
+    healthCheckPath: /health
+
+    autoDeploy: true
+    branch: main
+
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: ISLAND_PORT
+        value: "4321"
+      - key: NODE_VERSION
+        value: "22"
+
+      # ── Secrets ────────────────────────────────────────────────
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: INTERNAL_API_KEY
+        sync: false
+
+      # ── CORS for PvP ──────────────────────────────────────────
+      - key: CORS_ORIGINS
+        value: "https://grudgewarlords.com,https://client.grudge-studio.com"

@@ -9,6 +9,7 @@ import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import { Island3DRenderer } from "@/island3d/render/Island3DRenderer";
+import { PVP_SERVER_URL } from "@/island3d/sync/MultiplayerSync";
 import { CharacterManager, type Character } from "@/lib/characterManager";
 import { useAccount } from "@/hooks/use-account";
 import { getCurrentUser, authHeaders } from "@/lib/grudgeBackend";
@@ -130,9 +131,15 @@ export default function RtsGrudgePage() {
       return;
     }
     setEntering(true);
-    // For now navigate to island-3d lobby; future: connect multiplayer socket
+    // Navigate to island-3d lobby with multiplayer config
+    const params = new URLSearchParams({
+      mode: 'lobby',
+      map: 'pirate-islands',
+      island: mode.islandId,
+      pvp: PVP_SERVER_URL,
+    });
     setTimeout(() => {
-      setLocation(`/island-3d?mode=lobby&map=pirate-islands`);
+      setLocation(`/island-3d?${params.toString()}`);
     }, 600);
   };
 

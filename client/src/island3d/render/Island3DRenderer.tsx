@@ -4,7 +4,7 @@
  * Manages canvas lifecycle, resize handling, and click-to-harvest interaction.
  */
 import { useRef, useEffect, useState, useCallback } from 'react';
-import { Island3DEngine } from '../engine/Island3DEngine';
+import { Island3DEngine, type Island3DMode } from '../engine/Island3DEngine';
 import { exportSceneToFile, getSceneStats } from '@/lib/sceneExporter';
 import type { MultiplayerConfig } from '../sync/MultiplayerSync';
 

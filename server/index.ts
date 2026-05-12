@@ -122,6 +122,18 @@ app.use((req, res, next) => {
   next();
 });
 
+// ── Health check (required by Railway / Render load balancers) ───────────────
+app.get("/api/health", (_req, res) => {
+  res.json({
+    status: "ok",
+    service: "grudge-api",
+    version: process.env.npm_package_version || "1.0.0",
+    uptime: Math.floor(process.uptime()),
+    env: process.env.NODE_ENV || "production",
+    ts: Date.now(),
+  });
+});
+
 (async () => {
   await registerRoutes(httpServer, app);
   await setupColyseus(httpServer, app);

@@ -4,7 +4,105 @@
  * All generation uses seeded RNG to ensure same seed = same island everywhere
  */
 
-import { IslandState, ResourceNode, Animal, TerrainArea, NodeRarity, rollNodeRarity, CRAFTING_RESOURCES, ANIMAL_CONFIGS, NODE_RARITY_CONFIG } from '@shared/schema';
+// Types that were formerly expected from @shared/schema but live locally
+export type NodeRarity = 'common' | 'rare' | 'epic' | 'legendary';
+
+export interface TerrainArea {
+  zone: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+export interface Animal {
+  id: string;
+  type: 'hare' | 'fox' | 'deer' | 'boar';
+  x: number;
+  y: number;
+  hp?: number;
+  spawnedAt?: number;
+  state?: string;
+  direction?: string;
+}
+
+export interface ResourceNode {
+  id: string;
+  name: string;
+  type: string;
+  x: number;
+  y: number;
+  tier: number;
+  nodeLevel: number;
+  rarity: NodeRarity;
+  profession: string;
+  icon: string;
+  color: string;
+  isWaterNode: boolean;
+  uptime: number;
+  cooldownHours: number;
+  harvestIntervalMinutes: number;
+  drops: Array<{ itemId: string; name: string; chance: number; minQuantity: number; maxQuantity: number }>;
+}
+
+export interface IslandState {
+  id?: string;
+  characterId?: string;
+  seed?: string;
+  name?: string;
+  mapStyle?: string;
+  nodes: ResourceNode[];
+  animals?: Animal[];
+  sheep?: Animal[];
+  skinningNodes?: unknown[];
+  assignedHeroes?: Record<string, string>;
+  isFirstVisit?: boolean;
+  terrainZones: TerrainArea[];
+  campPosition: { x: number; y: number };
+  clearings?: Array<{ x: number; y: number; radius?: number } | undefined>;
+  createdAt?: number;
+  lastUpdate?: number;
+  updatedAt?: number;
+  stats?: {
+    nodeCount: number;
+    animalCount: number;
+    terrainZoneCount: number;
+    resourceBreakdown: Record<string, number>;
+  };
+}
+
+export function rollNodeRarity(rng: () => number): NodeRarity {
+  const roll = rng() * 100;
+  if (roll < 60) return 'common';
+  if (roll < 85) return 'rare';
+  if (roll < 97) return 'epic';
+  return 'legendary';
+}
+
+export const NODE_RARITY_CONFIG: Record<NodeRarity, { name: string; color: string }> = {
+  common:    { name: 'Common',    color: '#d4d4d4' },
+  rare:      { name: 'Rare',      color: '#3b82f6' },
+  epic:      { name: 'Epic',      color: '#a855f7' },
+  legendary: { name: 'Legendary', color: '#9333ea' },
+};
+
+export const CRAFTING_RESOURCES: Record<string, Array<{ itemId: string; name: string; chance: number; minQuantity: number; maxQuantity: number }>> = {
+  ore:   [{ itemId: 'ore_chunk', name: 'Ore Chunk', chance: 0.8, minQuantity: 1, maxQuantity: 2 }],
+  stone: [{ itemId: 'stone_block', name: 'Stone Block', chance: 0.9, minQuantity: 1, maxQuantity: 3 }],
+  gem:   [{ itemId: 'rough_gem', name: 'Rough Gem', chance: 0.5, minQuantity: 1, maxQuantity: 1 }],
+  wood:  [{ itemId: 'wood_log', name: 'Wood Log', chance: 0.8, minQuantity: 1, maxQuantity: 2 }],
+  hemp:  [{ itemId: 'hemp_fiber', name: 'Hemp Fiber', chance: 0.9, minQuantity: 1, maxQuantity: 3 }],
+  herb:  [{ itemId: 'herb_bundle', name: 'Herb Bundle', chance: 0.7, minQuantity: 1, maxQuantity: 2 }],
+  fish:  [{ itemId: 'fresh_fish', name: 'Fresh Fish', chance: 0.7, minQuantity: 1, maxQuantity: 2 }],
+  oil:   [{ itemId: 'oil_flask', name: 'Oil Flask', chance: 0.5, minQuantity: 1, maxQuantity: 1 }],
+};
+
+export const ANIMAL_CONFIGS: Record<string, { zones: string[]; hp: number }> = {
+  hare: { zones: ['forest', 'field', 'clearing'], hp: 15 },
+  fox:  { zones: ['forest', 'mountain'], hp: 30 },
+  deer: { zones: ['field', 'forest'], hp: 50 },
+  boar: { zones: ['mountain', 'forest'], hp: 80 },
+};
 
 /**
  * Seeded deterministic RNG from UUID

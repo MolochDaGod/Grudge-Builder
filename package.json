@@ -10,9 +10,13 @@
   "scripts": {
     "dev:client": "vite dev --port 5000",
     "dev": "cross-env NODE_ENV=development tsx server/index.ts",
+    "dev:island": "cross-env NODE_ENV=development tsx server/island-server.ts",
     "build": "tsx script/build.ts",
     "build:client": "vite build",
+    "build:server": "esbuild server/index.ts --bundle --platform=node --format=cjs --outfile=dist/index.cjs --external:@shared --external:pg-native --packages=external",
+    "build:island": "esbuild server/island-server.ts --bundle --platform=node --format=cjs --outfile=dist/island-server.cjs --packages=external",
     "start": "node dist/index.cjs",
+    "start:island": "node dist/island-server.cjs",
     "check": "tsc",
     "db:push": "drizzle-kit push"
   },
@@ -179,6 +183,7 @@
     "rot-js": "^2.2.1",
     "sass": "^1.77.0",
     "sass-loader": "^16.0.6",
+    "socket.io": "^4.8.3",
     "socket.io-client": "^4.8.3",
     "sonner": "^2.0.7",
     "sprite-reader": "^0.1.6",

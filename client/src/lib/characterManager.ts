@@ -101,12 +101,10 @@ export const CharacterManager = {
         weaponSkillSelections: character.weaponSkillSelections ?? {},
         equippedWeaponId: character.equippedWeaponId ?? null,
         selectedSkills: character.selectedSkills ?? {},
-        accountId: null,
-        homeIslandId: null,
         personality: null,
         chatTemperature: null,
         chatHistory: null,
-      });
+      } as any);
       CharacterManager.setActive(newChar.id);
       
       // Generate AI avatar asynchronously
