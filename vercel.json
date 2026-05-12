@@ -29,7 +29,7 @@
     },
     {
       "source": "/api/:path*",
-      "destination": "$GRUDGE_API_URL/api/:path*"
+      "destination": "https://api.grudge-studio.com/api/:path*"
     },
     {
       "source": "/((?!.*\\.).*)",
