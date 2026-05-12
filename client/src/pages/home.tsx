@@ -38,7 +38,8 @@ export default function HomePage() {
   const [user, setUser] = useState<SavedAccount | null>(null);
 
   useEffect(() => {
-    const saved = localStorage.getItem("grudge_current_user");
+    // Try grudge_user (set by auth modal), fallback to grudge-session
+    const saved = localStorage.getItem("grudge_user") || localStorage.getItem("grudge-session");
     if (!saved) { setLocation("/"); return; }
     try { setUser(JSON.parse(saved)); } catch { setLocation("/"); return; }
     CharacterManager.getAll()
@@ -46,7 +47,10 @@ export default function HomePage() {
       .catch(() => {});
   }, [setLocation]);
 
-  const handleLogout = () => { localStorage.removeItem("grudge_current_user"); setLocation("/"); };
+  const handleLogout = () => {
+    ["grudge_user", "grudge-session", "grudge_auth_token", "grudge_user_id", "grudge_id", "grudge_username"].forEach(k => localStorage.removeItem(k));
+    setLocation("/");
+  };
   const displayName = user?.username || "Warlord";
 
   return (

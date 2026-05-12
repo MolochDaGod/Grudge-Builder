@@ -14,7 +14,7 @@ diabloweb
 puter-vanilla
 docs
 migrations
-public
+/public
 dist
 client/dist
 *.log

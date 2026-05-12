@@ -64,7 +64,7 @@ import CreateCharacterPage from "@/pages/create-character";
 function Router() {
   return (
     <Switch>
-      <Route path="/" component={HomePage} />
+      <Route path="/" component={IntroPage} />
       <Route path="/auth/callback" component={AuthCallbackPage} />
       <Route path="/intro" component={IntroPage} />
       <Route path="/home" component={HomePage} />
