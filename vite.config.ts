@@ -27,6 +27,23 @@ export default defineConfig({
     outDir: path.resolve(import.meta.dirname, "client/dist"),
     emptyOutDir: true,
     copyPublicDir: true,
+    commonjsOptions: {
+      // Allow packages that use THREE as a global to resolve it
+      transformMixedEsModules: true,
+    },
+  },
+  optimizeDeps: {
+    // Pre-bundle these UMD/CJS libs that reference THREE as a global
+    include: [
+      "@enable3d/phaser-extension",
+      "@davi-ai/bodyengine-three",
+      "stage-js",
+    ],
+    esbuildOptions: {
+      define: {
+        global: "globalThis",
+      },
+    },
   },
   server: {
     host: "0.0.0.0",
