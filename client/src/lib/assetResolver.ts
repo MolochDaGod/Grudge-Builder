@@ -10,7 +10,7 @@
  *   <img src={resolveAsset("/icons/weapons/swords/bloodfeud.png")} onError={onImageError} />
  */
 
-import { assetUrl, cdnAssetUrl, ASSET_CDN_BASE } from "@/lib/assetConfig";
+import { assetUrl, cdnAssetUrl, ASSET_CDN_BASE, OBJECT_STORE_API } from "@/lib/assetConfig";
 
 // ── Placeholder fallbacks per asset category ─────────────────────────────────
 
@@ -116,7 +116,7 @@ export function onImageError(e: React.SyntheticEvent<HTMLImageElement>): void {
 export async function preloadAsset(path: string): Promise<string> {
   if (resolvedCache.has(path)) return resolvedCache.get(path)!;
 
-  // Try CDN first
+  // Try R2 CDN first
   try {
     const cdnUrl = cdnAssetUrl(path);
     const res = await fetch(cdnUrl, { method: "HEAD" });
@@ -124,15 +124,15 @@ export async function preloadAsset(path: string): Promise<string> {
       resolvedCache.set(path, cdnUrl);
       return cdnUrl;
     }
-  } catch { /* CDN failed, try ObjectStore */ }
+  } catch { /* CDN failed, try ObjectStore GitHub Pages */ }
 
-  // Try ObjectStore
+  // Try ObjectStore GitHub Pages (has weapon/armor icons that R2 may not have yet)
   try {
-    const osUrl = assetUrl(path);
-    const res = await fetch(osUrl, { method: "HEAD" });
+    const osGhUrl = `https://molochdagod.github.io/ObjectStore${path.startsWith('/') ? path : '/' + path}`;
+    const res = await fetch(osGhUrl, { method: "HEAD" });
     if (res.ok) {
-      resolvedCache.set(path, osUrl);
-      return osUrl;
+      resolvedCache.set(path, osGhUrl);
+      return osGhUrl;
     }
   } catch { /* ObjectStore failed */ }
 

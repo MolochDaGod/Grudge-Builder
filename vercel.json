@@ -17,7 +17,7 @@
     },
     {
       "source": "/api/:path*",
-      "destination": "https://api.grudge-studio.com/api/:path*"
+      "destination": "https://grudge-api-production.up.railway.app/api/:path*"
     },
     {
       "source": "/((?!.*\\.).*)",
@@ -25,7 +25,7 @@
     }
   ],
   "env": {
-    "GRUDGE_API_URL": "https://api.grudge-studio.com",
+    "GRUDGE_API_URL": "https://grudge-api-production.up.railway.app",
     "VITE_PVP_SERVER_URL": "wss://pvp.grudge-studio.com",
     "VITE_ASSETS_URL": "https://assets.grudge-studio.com"
   },
