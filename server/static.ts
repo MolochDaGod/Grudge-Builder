@@ -1,7 +1,7 @@
 import { fileURLToPath } from "url";
 import { dirname } from "path";
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+const __filename = import.meta.url ? fileURLToPath(import.meta.url) : '';
+const __dirname = __filename ? dirname(__filename) : process.cwd();
 import express, { type Express } from "express";
 import fs from "fs";
 import path from "path";
