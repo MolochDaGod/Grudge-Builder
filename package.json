@@ -13,7 +13,7 @@
     "dev:island": "cross-env NODE_ENV=development tsx server/island-server.ts",
     "build": "tsx script/build.ts",
     "build:client": "vite build",
-    "build:server": "esbuild server/index.ts --bundle --platform=node --format=cjs --outfile=dist/index.cjs --external:@shared --external:pg-native --packages=external",
+    "build:server": "esbuild server/index.ts --bundle --platform=node --format=cjs --outfile=dist/index.cjs --alias:@shared=./shared --external:pg-native --packages=external",
     "build:island": "esbuild server/island-server.ts --bundle --platform=node --format=cjs --outfile=dist/island-server.cjs --packages=external",
     "start": "node dist/index.cjs",
     "start:island": "node dist/island-server.cjs",

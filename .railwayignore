@@ -1,0 +1,15 @@
+node_modules
+client
+.git
+diabloweb
+puter-vanilla
+docs
+migrations
+public/sprites
+public/avatars
+public/models
+*.zip
+*.rar
+*.7z
+*.tar.gz
+dist
