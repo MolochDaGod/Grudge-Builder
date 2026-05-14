@@ -281,7 +281,7 @@ export async function loginWithPuter(
   const res = await fetch(`${API_BASE}/auth/puter`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ puterUuid, puterUsername }),
+    body: JSON.stringify({ puterId: puterUuid, displayName: puterUsername }),
   });
   return handleAuthResponse(res, "puter", { puterUsername });
 }
@@ -323,8 +323,8 @@ export async function loginAsGuest(): Promise<AuthResponse> {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      puterUuid: `guest_${getDeviceId()}`,
-      puterUsername: "Guest",
+      puterId: `guest_${getDeviceId()}`,
+      displayName: "Guest",
     }),
   });
   return handleAuthResponse(res, "guest");

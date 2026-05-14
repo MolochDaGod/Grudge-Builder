@@ -219,7 +219,7 @@
               fetch(AUTH_BASE + '/api/auth/puter-link', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
-                body: JSON.stringify({ puterUuid: puterUser.uuid, puterUsername: puterUser.username }),
+                body: JSON.stringify({ puterId: puterUser.uuid, displayName: puterUser.username }),
               }).then(resolve).catch(resolve);
             }).catch(resolve);
             return;
@@ -384,7 +384,7 @@
         return fetch(AUTH_BASE + '/api/auth/puter', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ puterUuid: user.uuid, puterUsername: user.username }),
+          body: JSON.stringify({ puterId: user.uuid, displayName: user.username }),
         })
           .then(function (r) { return r.json(); })
           .then(function (data) {
@@ -406,7 +406,7 @@
     fetch(AUTH_BASE + '/api/auth/puter', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ puterUuid: 'guest_' + deviceId, puterUsername: 'Guest' }),
+      body: JSON.stringify({ puterId: 'guest_' + deviceId, displayName: 'Guest' }),
     })
       .then(function (r) { return r.json(); })
       .then(function (data) {
