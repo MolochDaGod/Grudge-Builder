@@ -13,30 +13,23 @@
  * Grudge ID source: `grudge_id` cookie (set by grudgeBackend.ts setSession())
  */
 
-// ── Cookie parser ───────────────────────────────────────────────────────────
-
 function getCookie(header: string, name: string): string | null {
   const match = header.match(new RegExp(`(?:^|;\\s*)${name}=([^;]*)`))
   return match ? decodeURIComponent(match[1]) : null
 }
 
-// ── Route groups ────────────────────────────────────────────────────────────
-
 /** Require a valid grudge_auth_token cookie */
 const PROTECTED_PREFIXES = [
-  // ── Core game routes ─────────────────────────────────────────────
   "/home",
   "/launcher",
-  // ── Characters ───────────────────────────────────────────────────
   "/character",
   "/characters",
   "/create-character",
   "/character-creator",
   "/character-gallery",
-  // ── Games ────────────────────────────────────────────────────────
-  "/island-v2",      // Home Island (auto-harvest)
-  "/island-3d",      // 3D open-world / RTS entrance
-  "/rts-grudge",     // RTS GRUDGE lobby
+  "/island-v2",
+  "/island-3d",
+  "/rts-grudge",
   "/combat",
   "/dungeon",
   "/dungeon-tiled",
@@ -45,7 +38,6 @@ const PROTECTED_PREFIXES = [
   "/world-map",
   "/missions",
   "/tower-wars",
-  // ── Progression
   "/crafting",
   "/professions",
   "/profession",
@@ -54,10 +46,8 @@ const PROTECTED_PREFIXES = [
   "/arsenal",
   "/hero-codex",
   "/database",
-  // ── Account ───────────────────────────────────────────────────────
   "/wallet",
   "/account",
-  // ── Tools (admin) ─────────────────────────────────────────────────
   "/editor",
   "/organizer",
   "/admin",
@@ -70,7 +60,17 @@ const PROTECTED_PREFIXES = [
 /** Redirect to /home if already authenticated (no point showing intro again) */
 const GUEST_ONLY_PATHS = ["/", "/intro"];
 
-// ── Helpers ─────────────────────────────────────────────────────────────────
+/**
+ * Routes that must remain reachable before middleware sees an auth cookie.
+ * These are used by direct IdP / Cloudflare / OAuth handoffs to land on the
+ * frontend, persist cookies on the frontend origin, then continue into the app.
+ */
+const AUTH_BOOTSTRAP_PATHS = [
+  "/auth/callback",
+  "/auth/complete",
+  "/login",
+  "/logout-hard.html",
+];
 
 function isProtected(pathname: string): boolean {
   return PROTECTED_PREFIXES.some(
@@ -82,8 +82,11 @@ function isGuestOnly(pathname: string): boolean {
   return GUEST_ONLY_PATHS.includes(pathname)
 }
 
-// ── Middleware ───────────────────────────────────────────────────────────────
-// Native Web API — no next/server or @vercel/edge import needed.
+function isAuthBootstrap(pathname: string): boolean {
+  return AUTH_BOOTSTRAP_PATHS.some(
+    (p) => pathname === p || pathname.startsWith(p + "/")
+  )
+}
 
 export default function middleware(request: Request): Response | void {
   const url      = new URL(request.url)
@@ -92,10 +95,12 @@ export default function middleware(request: Request): Response | void {
   const token    = getCookie(cookies, "grudge_auth_token")
   const grudgeId = getCookie(cookies, "grudge_id")
 
-  // ── Skip pre-flight requests ────────────────────────────────────────────
   if (request.method === "OPTIONS") return
 
-  // ── 1. Unauthenticated user hitting a protected route ─────────────────────
+  // Allow auth bootstrap / callback routes to load even before a cookie exists.
+  // These routes are responsible for persisting the token on the frontend origin.
+  if (isAuthBootstrap(pathname)) return
+
   if (isProtected(pathname) && !token) {
     const dest = new URL(request.url)
     dest.pathname = "/"
@@ -104,7 +109,6 @@ export default function middleware(request: Request): Response | void {
     return Response.redirect(dest.toString(), 307)
   }
 
-  // ── 2. Authenticated user hitting intro/login — bounce to /home ──────────
   if (isGuestOnly(pathname) && token && grudgeId) {
     const intended = url.searchParams.get("redirect")
     const dest     = new URL(request.url)
@@ -114,10 +118,8 @@ export default function middleware(request: Request): Response | void {
   }
 }
 
-// ── Matcher — skip static files, API routes, Vercel internals, Cloudflare infra
 export const config = {
   matcher: [
-    // Skip: static assets, ALL API routes, Vercel internals, CF health/special paths
-    "/((?!_next/static|_next/image|favicon\.ico|assets/|images/|sprites/|avatars/|models/|api/|cdn-cgi/).*)",
+    "/((?!_next/static|_next/image|favicon\\.ico|assets/|images/|sprites/|avatars/|models/|api/|cdn-cgi/).*)",
   ],
 }
