@@ -39,22 +39,22 @@ const CRAFTING_SKILL_TREES: Record<string, ProfessionData> = {
   Engineer: engineerData,
 };
 
-/** Profession icon art from ObjectStore */
+/** Profession icon art — local assets (copied from WCS) */
 const PROFESSION_ICONS: Record<string, string> = {
-  Miner: assetUrl('/images/professions/miner_profession_game_icon.png'),
-  Forester: assetUrl('/images/professions/forester_profession_game_icon.png'),
-  Mystic: assetUrl('/images/professions/mystic_profession_game_icon.png'),
-  Chef: assetUrl('/images/professions/chef_profession_game_icon.png'),
-  Engineer: assetUrl('/images/professions/engineer_profession_game_icon.png'),
+  Miner: '/assets/professions/miner_profession_game_icon.png',
+  Forester: '/assets/professions/forester_profession_game_icon.png',
+  Mystic: '/assets/professions/mystic_profession_game_icon.png',
+  Chef: '/assets/professions/chef_profession_game_icon.png',
+  Engineer: '/assets/professions/engineer_profession_game_icon.png',
 };
 
-/** Profession background art for skill trees and headers */
+/** Profession background art — local assets */
 const PROFESSION_BG: Record<string, string> = {
-  Miner: assetUrl('/images/professions/dark_underground_mine_with_glowing_crystals.png'),
-  Forester: assetUrl('/images/professions/ancient_mystical_forest_with_glowing_particles.png'),
-  Mystic: assetUrl('/images/professions/cosmic_arcane_void_magic_background.png'),
-  Chef: assetUrl('/images/professions/rustic_fantasy_kitchen_hearth.png'),
-  Engineer: assetUrl('/images/professions/steampunk_blueprint_background_with_gears.png'),
+  Miner: '/assets/professions/dark_underground_mine_with_glowing_crystals.png',
+  Forester: '/assets/professions/ancient_mystical_forest_with_glowing_particles.png',
+  Mystic: '/assets/professions/cosmic_arcane_void_magic_background.png',
+  Chef: '/assets/professions/rustic_fantasy_kitchen_hearth.png',
+  Engineer: '/assets/professions/steampunk_blueprint_background_with_gears.png',
 };
 
 type ProfessionTab = "gathering" | "crafting" | "skillTrees";

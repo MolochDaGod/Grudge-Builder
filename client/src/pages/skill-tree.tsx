@@ -11,14 +11,15 @@ import { WEAPON_TYPES } from '@shared/definitions/weaponDatabase';
 import { cn } from '@/lib/utils';
 import type { WeaponSkillSelection } from '@/lib/characterManager';
 import { useAuthGuard } from '@/hooks/use-auth-guard';
+import { CLASS_HERO_IMAGES } from '@/lib/artAssets';
 
 type TreeMode = 'class' | 'weapons' | 'hotkeys';
 
 const CLASS_COLORS: Record<string, string> = {
-  warrior: '#ef4444',
-  mage: '#8b5cf6',
-  worg: '#d97706',
-  ranger: '#22c55e'
+  warrior: '#ff6b57',
+  mage: '#6aa9ff',
+  worg: '#c792ff',
+  ranger: '#6bdc8b'
 };
 
 const CLASS_ICONS: Record<string, string> = {
@@ -182,15 +183,25 @@ export default function SkillTreePage() {
 
   const bonuses = calculateBonuses();
 
+  const classBg = CLASS_HERO_IMAGES[activeClass as keyof typeof CLASS_HERO_IMAGES];
+  const classColor = CLASS_COLORS[activeClass] || '#f6c945';
+
   return (
     <Layout>
-      <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 text-white">
-        <header className="sticky top-0 z-50 bg-slate-950/90 backdrop-blur-sm border-b border-slate-800 px-4 py-3">
+      <div className="min-h-screen bg-[#05060c] text-white relative">
+        {/* Class-themed background */}
+        {classBg && (
+          <div className="fixed inset-0 pointer-events-none z-0">
+            <img src={classBg} alt="" className="w-full h-full object-cover opacity-[0.07] transition-opacity duration-700" />
+            <div className="absolute inset-0" style={{ background: 'radial-gradient(900px 500px at 50% 0%, rgba(5,6,12,.4), rgba(5,6,12,.95) 60%), linear-gradient(180deg, rgba(5,6,12,.3), rgba(5,6,12,.95))' }} />
+          </div>
+        )}
+        <header className="sticky top-0 z-50 bg-[#05060c]/85 backdrop-blur-xl border-b border-white/[.06] px-4 py-3">
           <div className="flex items-center justify-between max-w-7xl mx-auto">
             <Button
               variant="ghost"
               onClick={() => setLocation('/character')}
-              className="text-slate-400 hover:text-white"
+              className="text-white/40 hover:text-white"
               data-testid="btn-back"
             >
               <ChevronLeft className="w-4 h-4 mr-2" /> Back to Character
