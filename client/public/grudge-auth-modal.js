@@ -129,11 +129,25 @@
 
   function getAuthToken() { return localStorage.getItem(TK); }
 
+  var COOKIE_MAX_AGE = 7 * 24 * 60 * 60; // 7 days
+
+  function setCookie(name, value) {
+    try {
+      document.cookie = name + '=' + encodeURIComponent(value) + '; path=/; max-age=' + COOKIE_MAX_AGE + '; SameSite=Lax';
+    } catch (_) {}
+  }
+
   function setAuthData(data) {
-    if (data.token) localStorage.setItem(TK, data.token);
-    if (data.sessionToken) localStorage.setItem(TK, data.sessionToken);
+    var token = data.sessionToken || data.token;
+    if (token) {
+      localStorage.setItem(TK, token);
+      setCookie('grudge_auth_token', token);
+    }
     if (data.userId) localStorage.setItem(UID, data.userId);
-    if (data.grudgeId) localStorage.setItem(GID, data.grudgeId);
+    if (data.grudgeId) {
+      localStorage.setItem(GID, data.grudgeId);
+      setCookie('grudge_id', data.grudgeId);
+    }
     if (data.username) localStorage.setItem(UNAME, data.username);
     // Also store in grudge_user / grudge-session for cross-app compat
     try {
@@ -152,6 +166,11 @@
     [TK, UID, GID, UNAME, 'grudge_user', 'grudge-session', 'grudge_auth_user'].forEach(function (k) {
       localStorage.removeItem(k);
     });
+    // Clear cookies so middleware sees logout
+    try {
+      document.cookie = 'grudge_auth_token=; path=/; max-age=0; SameSite=Lax';
+      document.cookie = 'grudge_id=; path=/; max-age=0; SameSite=Lax';
+    } catch (_) {}
   }
 
   // ── UI Helpers ─────────────────────────────────────────────────────

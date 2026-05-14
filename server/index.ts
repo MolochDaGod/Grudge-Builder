@@ -5,8 +5,9 @@ dotenv.config({ path: ".env.local" });
 dotenv.config();
 import { fileURLToPath } from "url";
 import { dirname } from "path";
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+// import.meta.url is undefined when esbuild bundles to CJS — fall back to cwd
+const __filename = import.meta.url ? fileURLToPath(import.meta.url) : '';
+const __dirname = __filename ? dirname(__filename) : process.cwd();
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
@@ -27,8 +28,13 @@ const ALLOWED_ORIGINS = [
   "https://dash.grudge-studio.com",
   "https://id.grudge-studio.com",
   "https://ai.grudge-studio.com",
+  "https://objectstore.grudge-studio.com",
+  // Cloudflare Pages (ObjectStore)
+  /\.pages\.dev$/,
   // Vercel previews
   /\.vercel\.app$/,
+  // Railway previews
+  /\.up\.railway\.app$/,
 ];
 
 app.use(
@@ -122,36 +128,52 @@ app.use((req, res, next) => {
   next();
 });
 
-(async () => {
-  await registerRoutes(httpServer, app);
-  await setupColyseus(httpServer, app);
-
-  // Register proxy for external backends (Grudge API, auth, assets)
-  // Must come AFTER local routes so /api/island/*, /api/account/* are handled locally
-  registerBackendProxy(app);
-
-  app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-    const status = err.status || err.statusCode || 500;
-    const message = err.message || "Internal Server Error";
-
-    res.status(status).json({ message });
-    throw err;
+// ── Health check (required by Railway / Render load balancers) ───────────────
+app.get("/api/health", (_req, res) => {
+  res.json({
+    status: "ok",
+    service: "grudge-api",
+    version: process.env.npm_package_version || "1.0.0",
+    uptime: Math.floor(process.uptime()),
+    env: process.env.NODE_ENV || "production",
+    ts: Date.now(),
   });
+});
 
-  // importantly only setup vite in development and after
-  // setting up all the other routes so the catch-all route
-  // doesn't interfere with the other routes
-  if (process.env.NODE_ENV === "production") {
-    serveStatic(app);
-  } else {
-    const { setupVite } = await import("./vite");
-    await setupVite(httpServer, app);
+(async () => {
+  try {
+    await registerRoutes(httpServer, app);
+    await setupColyseus(httpServer, app);
+
+    // Register proxy for external backends (Grudge API, auth, assets)
+    // Must come AFTER local routes so /api/island/*, /api/account/* are handled locally
+    registerBackendProxy(app);
+
+    app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
+      const status = err.status || err.statusCode || 500;
+      const message = err.message || "Internal Server Error";
+      res.status(status).json({ message });
+    });
+
+    // Setup static serving (production) or Vite dev middleware (development).
+    // serveStatic is safe to call even if client dist doesn't exist — it skips gracefully.
+    if (process.env.NODE_ENV === "production") {
+      serveStatic(app);
+    } else {
+      try {
+        const { setupVite } = await import("./vite");
+        await setupVite(httpServer, app);
+      } catch (e) {
+        log(`Vite dev server not available (${(e as Error).message}) — API-only mode`, "warn");
+      }
+    }
+  } catch (e) {
+    log(`Route registration failed: ${(e as Error).message}`, "error");
+    console.error(e);
   }
 
-  // ALWAYS serve the app on the port specified in the environment variable PORT
-  // Other ports are firewalled. Default to 5000 if not specified.
-  // this serves both the API and the client.
-  // It is the only port that is not firewalled.
+  // ALWAYS start the server even if route registration partially fails.
+  // Health check is registered above and will still work.
   const port = parseInt(process.env.PORT || "5000", 10);
   httpServer.listen(
     {

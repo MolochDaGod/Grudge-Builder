@@ -19,6 +19,7 @@ import { getSheetsClient, isConfigured, SHEET_IDS, readSheet, getCachedData, set
 import { exportFoodsToSheet, generateFoodRows } from "./sheetsExport";
 import { detectSpriteType, SPRITE_TYPES } from "@shared/definitions/spriteTypes";
 import { getClassStartingGear } from "@shared/definitions/tier0Items";
+import { generateIslandState, validateIslandAssets } from "./utilities/islandGeneration";
 
 // ── OpenAI — support both env var names (#12) ────────────────────────────────
 const openai = new OpenAI({
@@ -297,6 +298,12 @@ export async function registerRoutes(
         userId,
         equipment,
         inventory,
+        spriteConfig: req.body.spriteConfig || {
+          skinTone: 0,
+          hairColor: 0,
+          armorColor: 0,
+          clothColor: 0,
+        },
       });
       
       const character = await storage.createCharacter(validated);
@@ -395,6 +402,94 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Error deleting character:", error);
       res.status(500).json({ error: "Failed to delete character" });
+    }
+  });
+
+  // ── Phase 1: Step 5 - Generate Island Preview ────────────────────────────
+  app.post("/api/characters/:id/generate-island", async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      const characterId = req.params.id;
+
+      // Verify character exists and belongs to user
+      const character = await storage.getCharacter(characterId);
+      if (!character) {
+        return res.status(404).json({ error: "Character not found" });
+      }
+      if (character.userId !== userId) {
+        return res.status(403).json({ error: "Character does not belong to your account" });
+      }
+
+      // Get or create home island for this character
+      const account = await storage.getOrCreateAccountForUser(userId);
+      let island = await storage.getOrCreateHomeIsland(account.id);
+
+      // If island doesn't have generated state, generate it now
+      if (!island.state || Object.keys(island.state).length === 0) {
+        const generatedState = generateIslandState(characterId, island.seed);
+        island = await storage.updateHomeIsland(island.id, {
+          state: generatedState,
+        } as any);
+      }
+
+      // Parse and return normalized island state
+      const islandState = island.state as Record<string, unknown>;
+
+      res.json({
+        homeIslandId: island.id,
+        islandState: islandState,
+      });
+    } catch (error) {
+      console.error("Error generating island:", error);
+      res.status(500).json({ error: "Failed to generate island" });
+    }
+  });
+
+  // ── Phase 1: Step 6 - Reroll Island ─────────────────────────────────────
+  app.post("/api/islands/:id/regenerate", async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      const islandId = req.params.id;
+
+      // Verify island exists
+      const island = await storage.getHomeIsland(islandId);
+      if (!island) {
+        return res.status(404).json({ error: "Island not found" });
+      }
+
+      // Verify island belongs to user
+      const account = await storage.getAccount(island.accountId);
+      if (account?.userId !== userId) {
+        return res.status(403).json({ error: "Island does not belong to your account" });
+      }
+
+      // Prevent rerolling a validated (committed) island
+      if ((island as any).validatedAt) {
+        return res.status(409).json({
+          error: "Cannot reroll a validated island",
+          validatedAt: (island as any).validatedAt,
+        });
+      }
+
+      // Generate fresh island state with new seed
+      const { v4: uuidv4 } = await import("uuid");
+      const newSeed = uuidv4();
+      const characterId = account?.id || "unknown"; // Use account ID as proxy
+      const newIslandState = generateIslandState(characterId, newSeed);
+
+      // Update island with new seed and state (but DON'T set validatedAt)
+      const updatedIsland = await storage.updateHomeIsland(island.id, {
+        seed: newSeed,
+        state: newIslandState,
+      } as any);
+
+      res.json({
+        islandState: updatedIsland.state,
+        rerollCount: (req.body.rerollCount || 0) + 1,
+      });
+    } catch (error) {
+      console.error("Error regenerating island:", error);
+      res.status(500).json({ error: "Failed to regenerate island" });
     }
   });
 
@@ -963,12 +1058,28 @@ export async function registerRoutes(
       
       // Create/get the home island
       const island = await storage.getOrCreateHomeIsland(account.id);
-      
+
+      // Validate island state structure before commitment
+      const islandState = island.state as Record<string, unknown>;
+      const validation = validateIslandAssets(islandState as any);
+      if (!validation.valid) {
+        return res.status(400).json({
+          error: "Invalid island state",
+          details: validation.errors,
+        });
+      }
+
       // Update account with homeIsland = true
       const updatedAccount = await storage.updateAccount(account.id, {
         homeIsland: true,
         homeIslandId: island.id,
       });
+
+      // Set validatedAt timestamp to mark as committed
+      const now = Date.now();
+      await storage.updateHomeIsland(island.id, {
+        validatedAt: now,
+      } as any);
       
       // Mint island as cNFT to server wallet
       let mintResult: { actionId?: string; mintAddress?: string } = {};

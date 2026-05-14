@@ -65,6 +65,10 @@ export interface GrudgeUser {
       if (returnedGrudgeId) localStorage.setItem("grudge_id", returnedGrudgeId);
       if (returnedUsername) localStorage.setItem("grudge_username", returnedUsername);
       if (returnedGrudgeId) localStorage.setItem("grudge_account_id", returnedGrudgeId);
+      // Also set cookies so Edge Middleware picks them up immediately
+      const maxAge = 7 * 24 * 60 * 60;
+      document.cookie = `grudge_auth_token=${encodeURIComponent(ssoToken)}; path=/; max-age=${maxAge}; SameSite=Lax`;
+      if (returnedGrudgeId) document.cookie = `grudge_id=${encodeURIComponent(returnedGrudgeId)}; path=/; max-age=${maxAge}; SameSite=Lax`;
       // Clean URL without reload
       params.delete("sso_token");
       params.delete("grudge_id");
@@ -84,14 +88,32 @@ export function getToken(): string | null {
   return localStorage.getItem(AUTH_TOKEN_KEY) || localStorage.getItem(LEGACY_SESSION_TOKEN_KEY);
 }
 
+/** Cookie TTL — 7 days, matches a typical session lifetime */
+const COOKIE_MAX_AGE = 7 * 24 * 60 * 60;
+
+function setCookie(name: string, value: string, maxAge = COOKIE_MAX_AGE): void {
+  try {
+    document.cookie = `${name}=${encodeURIComponent(value)}; path=/; max-age=${maxAge}; SameSite=Lax`;
+  } catch { /* SSR/test guard */ }
+}
+
+function clearCookie(name: string): void {
+  try {
+    document.cookie = `${name}=; path=/; max-age=0; SameSite=Lax`;
+  } catch { /* SSR/test guard */ }
+}
+
 export function setToken(token: string): void {
   localStorage.setItem(AUTH_TOKEN_KEY, token);
   localStorage.setItem(LEGACY_SESSION_TOKEN_KEY, token);
+  // Mirror to cookie so Vercel Edge Middleware can read it
+  setCookie("grudge_auth_token", token);
 }
 
 export function clearToken(): void {
   localStorage.removeItem(AUTH_TOKEN_KEY);
   localStorage.removeItem(LEGACY_SESSION_TOKEN_KEY);
+  clearCookie("grudge_auth_token");
 }
 
 export function isAuthenticated(): boolean {
@@ -118,6 +140,8 @@ export function getSession(): GrudgeSession | null {
 
 export function setSession(session: GrudgeSession): void {
   localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+  // Mirror grudge_id to cookie for Edge Middleware single-account enforcement
+  if (session.grudgeId) setCookie("grudge_id", session.grudgeId);
 }
 
 export function getCurrentUser(): GrudgeUser | null {
@@ -144,6 +168,7 @@ export function getCurrentUser(): GrudgeUser | null {
 
 export function logout(): void {
   clearToken();
+  clearCookie("grudge_id");
   localStorage.removeItem(SESSION_KEY);
   localStorage.removeItem("grudge_user_id");
   localStorage.removeItem("grudge_id");

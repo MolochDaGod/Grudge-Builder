@@ -1,45 +1,78 @@
 {
   "alias": ["client.grudge-studio.com", "grudgewarlords.com", "www.grudgewarlords.com"],
-  "buildCommand": "cd client && npx vite build",
+  "buildCommand": "npm run build:client",
   "outputDirectory": "client/dist",
   "devCommand": "npm run dev:client",
-  "installCommand": "npm install --legacy-peer-deps --include=dev",
+  "installCommand": "npm install --legacy-peer-deps --include=dev --ignore-scripts",
   "framework": null,
+  "build": {
+    "env": {
+      "NODE_VERSION": "22"
+    }
+  },
   "rewrites": [
     {
       "source": "/api/assets/:path*",
       "destination": "https://assets.grudge-studio.com/:path*"
     },
     {
+      "source": "/api/auth/:path*",
+      "destination": "https://id.grudge-studio.com/auth/:path*"
+    },
+    {
       "source": "/api/:path*",
-      "destination": "https://api.grudge-studio.com/api/:path*"
+      "destination": "https://grudge-api-production.up.railway.app/api/:path*"
     },
     {
       "source": "/((?!.*\\.).*)",
       "destination": "/index.html"
     }
   ],
+  "env": {
+    "GRUDGE_API_URL": "https://grudge-api-production.up.railway.app",
+    "VITE_PVP_SERVER_URL": "wss://pvp.grudge-studio.com",
+    "VITE_ASSETS_URL": "https://assets.grudge-studio.com"
+  },
   "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        { "key": "X-Content-Type-Options",    "value": "nosniff" },
+        { "key": "X-Frame-Options",            "value": "SAMEORIGIN" },
+        { "key": "Referrer-Policy",            "value": "strict-origin-when-cross-origin" },
+        { "key": "Permissions-Policy",         "value": "camera=(), microphone=(), geolocation=()" }
+      ]
+    },
     {
       "source": "/editor",
       "headers": [
-        {
-          "key": "Cross-Origin-Embedder-Policy",
-          "value": "require-corp"
-        },
-        {
-          "key": "Cross-Origin-Opener-Policy",
-          "value": "same-origin"
-        }
+        { "key": "Cross-Origin-Embedder-Policy", "value": "require-corp" },
+        { "key": "Cross-Origin-Opener-Policy",   "value": "same-origin" }
       ]
     },
     {
       "source": "/assets/(.*)",
       "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "public, max-age=31536000, immutable"
-        }
+        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
+      ]
+    },
+    {
+      "source": "/sprites/(.*)",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=86400, stale-while-revalidate=3600" }
+      ]
+    },
+    {
+      "source": "/models/(.*)",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=86400, stale-while-revalidate=3600" }
+      ]
+    },
+    {
+      "source": "/api/:path*",
+      "headers": [
+        { "key": "Cache-Control",              "value": "no-store" },
+        { "key": "X-Grudge-Proxy",             "value": "vercel" }
       ]
     }
   ]

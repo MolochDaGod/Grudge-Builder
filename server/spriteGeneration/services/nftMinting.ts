@@ -1,4 +1,4 @@
-import { db } from '../db';
+import { db } from '../../db';
 import { characterNFTs, characters, accounts } from '@shared/schema';
 import { eq, and } from 'drizzle-orm';
 import { crossmintWalletService } from './crossmintWallet';

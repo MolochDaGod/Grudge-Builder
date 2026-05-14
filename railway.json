@@ -2,14 +2,14 @@
   "$schema": "https://railway.com/railway.schema.json",
   "build": {
     "builder": "NIXPACKS",
-    "buildCommand": "npm install --include=dev && npm run build"
+    "buildCommand": "npm install --legacy-peer-deps --include=dev --ignore-scripts && npm run build:server"
   },
   "deploy": {
     "numReplicas": 1,
-    "startCommand": "node dist/index.cjs",
+    "startCommand": "NODE_ENV=production node dist/index.cjs",
     "healthcheckPath": "/api/health",
-    "healthcheckTimeout": 100,
+    "healthcheckTimeout": 300,
     "restartPolicyType": "ON_FAILURE",
-    "restartPolicyMaxRetries": 10
+    "restartPolicyMaxRetries": 5
   }
 }
