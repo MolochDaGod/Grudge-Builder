@@ -52,27 +52,15 @@
           '<div id="grudgeAuthError" class="grudge-auth-error"></div>' +
           '<div id="grudgeAuthSuccess" class="grudge-auth-success"></div>' +
 
-          /* Social / OAuth Buttons */
-          '<div class="grudge-social-grid">' +
-            '<button class="grudge-social-btn discord" onclick="window._grudgeAuth.doDiscord()">' + ICONS.discord + ' Discord</button>' +
+          /* Primary Auth — 2×2 grid: the 4 ways to connect */
+          '<div class="grudge-social-grid grudge-social-grid-2x2">' +
             '<button class="grudge-social-btn google" onclick="window._grudgeAuth.doGoogle()">' + ICONS.google + ' Google</button>' +
-            '<button class="grudge-social-btn github" onclick="window._grudgeAuth.doGitHub()">' + ICONS.github + ' GitHub</button>' +
-            '<button class="grudge-social-btn phantom" onclick="window._grudgeAuth.doWallet()">' + ICONS.wallet + ' Phantom</button>' +
-            '<button class="grudge-social-btn puter" onclick="window._grudgeAuth.doPuter()">' + ICONS.cloud + ' Puter</button>' +
-            '<button class="grudge-social-btn phone" onclick="window._grudgeAuth.togglePhone()">' + ICONS.phone + ' Phone</button>' +
+            '<button class="grudge-social-btn phantom" onclick="window._grudgeAuth.doWallet()">' + ICONS.wallet + ' Wallet</button>' +
+            '<button class="grudge-social-btn discord" onclick="window._grudgeAuth.doDiscord()">' + ICONS.discord + ' Discord</button>' +
+            '<button class="grudge-social-btn guest-primary" onclick="window._grudgeAuth.doGuest()">' + ICONS.guest + ' Guest</button>' +
           '</div>' +
 
-          /* Phone Panel */
-          '<div class="grudge-phone-panel" id="grudgePhonePanel" style="display:none">' +
-            '<input class="grudge-auth-field" id="grudgePhoneNum" placeholder="+1 (555) 000-0000" type="tel" />' +
-            '<button class="grudge-btn-gold" style="margin-bottom:8px" onclick="window._grudgeAuth.sendPhoneCode()">Send Code</button>' +
-            '<div id="grudgePhoneCodeSection" style="display:none">' +
-              '<input class="grudge-auth-field" id="grudgePhoneCode" placeholder="Enter 6-digit code" maxlength="6" />' +
-              '<button class="grudge-btn-gold" onclick="window._grudgeAuth.verifyPhoneCode()">Verify &amp; Sign In</button>' +
-            '</div>' +
-          '</div>' +
-
-          '<div class="grudge-auth-divider"><span>or</span></div>' +
+          '<div class="grudge-auth-divider"><span>or sign in with email</span></div>' +
 
           /* Sign In / Register Toggle */
           '<div class="grudge-form-toggle">' +
@@ -91,14 +79,12 @@
           '<div id="grudgeFormRegister" style="display:none">' +
             '<input class="grudge-auth-field" id="grudgeRegUser" placeholder="Username (3\u201320 chars)" />' +
             '<input class="grudge-auth-field" id="grudgeRegEmail" placeholder="Email" type="email" />' +
-            '<input class="grudge-auth-field" id="grudgeRegPhone" placeholder="Phone (optional)" type="tel" />' +
             '<input class="grudge-auth-field" id="grudgeRegPass" type="password" placeholder="Password (4+ chars)" />' +
             '<button class="grudge-btn-gold" onclick="window._grudgeAuth.doRegister()">Create Account</button>' +
           '</div>' +
 
           '<div class="grudge-auth-footer">' +
-            '<button class="grudge-guest-btn" onclick="window._grudgeAuth.doGuest()">' + ICONS.guest + ' Continue as Guest</button>' +
-            '<p class="grudge-puter-note">' + ICONS.cloud + ' Every account gets a Puter cloud ID for sync &amp; storage</p>' +
+            '<p class="grudge-puter-note">' + ICONS.shield + ' Every account is linked to a Grudge ID for cross-game sync</p>' +
           '</div>' +
         '</div>' +
       '</div>';
@@ -328,21 +314,35 @@
     doPuter();
   }
 
-  // GitHub OAuth — backend /api/auth/github/start is 404 and we don't yet have
-  // GITHUB_CLIENT_ID exposed to the browser. Surface a clear message instead
-  // of redirecting to the dead endpoint.
+  // GitHub OAuth — removed from primary UI; endpoint is 404.
   function doGitHub() {
-    showError('GitHub login is temporarily unavailable. Use Discord, Google, Puter, or email/password.');
+    showError('GitHub login is coming soon. Use Google, Discord, or Wallet.');
   }
 
-  // Phantom / Solana Wallet
+  // ── Solana Wallet (Phantom, Solflare, Backpack, any standard wallet) ──
+  function detectSolanaWallet() {
+    // Try each known provider in priority order
+    if (window.phantom && window.phantom.solana && window.phantom.solana.isPhantom)
+      return { provider: window.phantom.solana, name: 'Phantom' };
+    if (window.solana && window.solana.isPhantom)
+      return { provider: window.solana, name: 'Phantom' };
+    if (window.solflare && window.solflare.isSolflare)
+      return { provider: window.solflare, name: 'Solflare' };
+    if (window.backpack && window.backpack.solana)
+      return { provider: window.backpack.solana, name: 'Backpack' };
+    // Generic standard wallet adapter
+    if (window.solana)
+      return { provider: window.solana, name: 'Solana Wallet' };
+    return null;
+  }
+
   function doWallet() {
-    var solana = window.solana || (window.phantom && window.phantom.solana);
-    if (!solana || !solana.isPhantom) {
-      return showError('Phantom wallet not found \u2014 install it at phantom.app');
+    var wallet = detectSolanaWallet();
+    if (!wallet) {
+      return showError('No Solana wallet found. Install Phantom (phantom.app) or Solflare (solflare.com).');
     }
-    showSuccess('Connecting Phantom wallet\u2026');
-    solana.connect()
+    showSuccess('Connecting ' + wallet.name + '\u2026');
+    wallet.provider.connect()
       .then(function (resp) {
         var walletAddress = resp.publicKey.toString();
         return fetch(AUTH_BASE + '/api/auth/wallet', {
@@ -354,7 +354,7 @@
       .then(function (r) { return r.json(); })
       .then(function (data) {
         if (!data.success) return showError(data.error || 'Wallet auth failed');
-        onAuthSuccess(data, 'Signed in via Phantom wallet');
+        onAuthSuccess(data, 'Signed in via ' + wallet.name);
       })
       .catch(function (e) { showError('Wallet error: ' + e.message); });
   }
@@ -539,10 +539,7 @@
     doWallet: doWallet,
     doPuter: doPuter,
     doGuest: doGuest,
-    sendPhoneCode: sendPhoneCode,
-    verifyPhoneCode: verifyPhoneCode,
     setMode: setMode,
-    togglePhone: togglePhone,
   };
 
   // ── Auto-run on load ───────────────────────────────────────────────

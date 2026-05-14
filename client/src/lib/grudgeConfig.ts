@@ -14,7 +14,7 @@ const env = (import.meta as any).env ?? {};
 export const AUTH_GATEWAY: string =
   env.VITE_AUTH_GATEWAY_URL || 'https://id.grudge-studio.com';
 
-/** Game API (Express backend, behind Cloudflare Tunnel on the VPS). */
+/** Game API (Express backend on Railway, routed via Cloudflare DNS). */
 export const GAME_API: string =
   env.VITE_API_URL || 'https://api.grudge-studio.com';
 

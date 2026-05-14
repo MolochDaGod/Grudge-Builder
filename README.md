@@ -8,27 +8,26 @@ This repo ships the **Grudge Warlords** web game at [grudgewarlords.com](https:/
 
 - **Web**: [grudgewarlords.com](https://grudgewarlords.com) — Vercel
 - **Steam**: App ID 1318844 (Partner ID 317409)
-- **Backend API**: [api.grudge-studio.com](https://api.grudge-studio.com/api/health) — VPS (Docker/Coolify)
-- **Auth (Grudge ID)**: [id.grudge-studio.com](https://id.grudge-studio.com) — VPS
-- **Account API**: [account.grudge-studio.com](https://account.grudge-studio.com/health) — VPS
+- **Backend API**: [api.grudge-studio.com](https://api.grudge-studio.com/api/health) — Railway (Docker)
+- **Auth (Grudge ID)**: [id.grudge-studio.com](https://id.grudge-studio.com) — Railway
+- **Account API**: [account.grudge-studio.com](https://account.grudge-studio.com/health) — Railway
 - **Assets CDN**: [assets.grudge-studio.com](https://assets.grudge-studio.com) — Cloudflare R2
 - **ObjectStore Worker**: [objectstore.grudge-studio.com](https://objectstore.grudge-studio.com/health) — Cloudflare Workers (R2 + D1)
 - **ObjectStore API**: [grudge-objectstore.pages.dev](https://grudge-objectstore.pages.dev/api/v1/master-items.json) — Cloudflare Pages (55+ JSON endpoints)
-- **Dashboard**: [dash.grudge-studio.com](https://dash.grudge-studio.com) — VPS
+- **Dashboard**: [dash.grudge-studio.com](https://dash.grudge-studio.com) — Vercel
 - **AI Hub**: [ai.grudge-studio.com](https://ai.grudge-studio.com) — Cloudflare Workers
 
 ## Architecture
 
 ```
 Browser → Vercel (static SPA)
-          ├─ /api/auth   → id.g-s.com      VPS / Coolify:
-          ├─ /api/game   → api.g-s.com     ├─ grudge-id    (id.g-s.com — auth, OAuth, JWT)
+          ├─ /api/auth   → id.g-s.com      Railway:
+          ├─ /api/*      → api.g-s.com     ├─ grudge-id    (id.g-s.com — auth, OAuth, JWT)
           ├─ /api/wallet → api.g-s.com     ├─ account-api  (account.g-s.com — profiles)
           ├─ /api/assets → assets.g-s.com  ├─ game-api     (api.g-s.com — game, crafting)
           └─ ObjectStore (data+assets)     └─ wallet-svc   (server-side Solana wallets)
-          └─ optional local multiplayer → Railway:
-                                             └─ warlords-backend (this repo's Express + Colyseus)
 Cloudflare:
+├─ DNS + CDN    (grudge-studio.com zone)
 ├─ R2 CDN       (assets.g-s.com)
 ├─ ObjectStore  (objectstore.g-s.com — D1+R2)
 └─ AI Worker    (ai.g-s.com — Gruda Legion)
@@ -38,12 +37,12 @@ Cloudflare:
 
 **Live:**
 - `grudgewarlords.com` — Game frontend (this repo) — Vercel
-- `id.grudge-studio.com` — Grudge ID auth (SSO, OAuth, JWT) — VPS
-- `api.grudge-studio.com` — Game API + wallet + NFTs — VPS (routes under `/api/*`)
-- `account.grudge-studio.com` — Account profiles & social — VPS
+- `id.grudge-studio.com` — Grudge ID auth (SSO, OAuth, JWT) — Railway
+- `api.grudge-studio.com` — Game API + wallet + NFTs — Railway (routes under `/api/*`)
+- `account.grudge-studio.com` — Account profiles & social — Railway
 - `assets.grudge-studio.com` — Binary assets CDN (images, sprites, models) — Cloudflare R2
 - `objectstore.grudge-studio.com` — R2 + D1 Worker (3D models, search, upload) — Cloudflare Workers
-- `dash.grudge-studio.com` — Admin dashboard — VPS
+- `dash.grudge-studio.com` — Admin dashboard — Vercel
 - `ai.grudge-studio.com` — Gruda Legion AI hub (sprite gen, agents) — Cloudflare Workers
 - `grudge-objectstore.pages.dev` — Static JSON game data API (55+ endpoints) — Cloudflare Pages
 
@@ -199,10 +198,10 @@ const { data: weapons, isLoading, error, refetch } = useWeapons();
 - **Animation**: Framer Motion, Phaser (dungeon engine)
 - **State**: TanStack Query, Grudge ID server-side (no localStorage for player data)
 - **Multiplayer**: Colyseus (WebSocket rooms)
-- **Backend**: Express, Drizzle ORM, PostgreSQL (VPS)
+- **Backend**: Express, Drizzle ORM, PostgreSQL (Railway)
 - **Auth**: Grudge ID (JWT) via id.grudge-studio.com — Discord, Google, GitHub, Puter, Solana wallet, guest
 - **Assets**: ObjectStore (Cloudflare Pages for JSON, Cloudflare R2 for binary assets)
-- **Infrastructure**: VPS (Docker/Coolify), Vercel (frontend), Cloudflare (DNS + R2)
+- **Infrastructure**: Railway (Docker backend), Vercel (frontend), Cloudflare (DNS + R2 + Workers)
 
 ## Deploy
 
@@ -218,9 +217,9 @@ npm run generate:master   # regenerate master-items/recipes/materials
 npm run deploy:pages      # push to gh-pages branch → GitHub Pages
 ```
 
-**Backend** — Two tiers:
-- **VPS / Coolify (Docker)** hosts the canonical Grudge Studio backend (`api.grudge-studio.com`, `id.grudge-studio.com`, `account.grudge-studio.com`). Managed in `grudge-backend` repo.
-- **Railway** hosts *this repo's* Node server (`server/index.ts` — Express + Colyseus lobby/dungeon rooms + local `/api/island`, `/api/account` handlers + proxy to VPS). Configured in `railway.json` (NIXPACKS build, `node dist/index.cjs`, health on `/api/health`). Flip on when you're ready to move Warlords multiplayer off dev mode; `ws.grudge-studio.com` will front it.
+**Backend** — Railway (Docker):
+- **Railway** hosts the canonical Grudge Studio backend (`api.grudge-studio.com`, `id.grudge-studio.com`, `account.grudge-studio.com`). Managed in `grudge-backend` repo. Vercel rewrites in `vercel.json` proxy all `/api/*` calls to `grudge-api-production.up.railway.app`.
+- This repo's Node server (`server/index.ts` — Express + Colyseus) can also deploy to Railway via `railway.json` for multiplayer rooms. `ws.grudge-studio.com` will front it when ready.
 
 Domain routing via Cloudflare.
 
@@ -255,7 +254,7 @@ Headers: `/editor` gets `COOP/COEP` for SharedArrayBuffer; `/assets/*` is cached
 
 - **[Grudge-Builder](https://github.com/MolochDaGod/Grudge-Builder)** (private) — This repo. Game frontend.
 - **[ObjectStore](https://github.com/MolochDaGod/ObjectStore)** — Game data API + asset management
-- **[grudge-backend](https://github.com/MolochDaGod/grudge-backend)** — VPS backend (auth, game API, wallets)
+- **[grudge-backend](https://github.com/MolochDaGod/grudge-backend)** — Railway backend (auth, game API, wallets)
 - **[grudge-studio-dash](https://github.com/MolochDaGod/grudge-studio-dash)** — Admin dashboard
 - **[grudge-ai-hub](https://github.com/MolochDaGod/grudge-ai-hub)** — AI Worker (Cloudflare)
 - **[grudge-arena](https://github.com/MolochDaGod/grudge-arena)** — 3D PvP Arena

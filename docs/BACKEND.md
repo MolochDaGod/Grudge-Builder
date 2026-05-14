@@ -7,7 +7,7 @@
 - **Build:** esbuild for server bundling
 - **Auth:** Grudge ID (JWT) via id.grudge-studio.com
 - **AI:** OpenAI API for avatar/dungeon generation
-- **Hosting:** VPS (Docker/Coolify) — NOT Replit
+- **Hosting:** Railway (Docker) — NOT Replit, NOT VPS
 
 ## Authentication (Grudge ID)
 
@@ -178,7 +178,7 @@ Uses OpenAI's chat API (`gpt-4o-mini`):
 ## Environment Variables
 
 ```bash
-# Database (VPS PostgreSQL)
+# Database (Railway PostgreSQL)
 DATABASE_URL          # PostgreSQL connection string
 PGHOST               # PostgreSQL host
 PGPORT               # PostgreSQL port
@@ -268,10 +268,11 @@ Express serves static files from:
 
 ### Production
 - Frontend: Vite builds → Vercel (static SPA)
-- Backend: VPS Docker containers via Coolify
+- Backend: Railway Docker containers (grudge-api-production.up.railway.app)
 - API proxied through Vercel rewrites (see vercel.json)
-- Assets served from R2 CDN (assets.grudge-studio.com)
-- Game data from ObjectStore GitHub Pages
+- Assets served from Cloudflare R2 CDN (assets.grudge-studio.com)
+- Game data from ObjectStore (Cloudflare Pages)
+- DNS/CDN managed via Cloudflare
 
 ---
 

@@ -86,6 +86,10 @@
   gap: 7px;
   margin-bottom: 14px;
 }
+.grudge-social-grid.grudge-social-grid-2x2 {
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
 .grudge-social-btn {
   display: flex;
   align-items: center;
@@ -117,8 +121,8 @@
 .grudge-social-btn.phantom:hover  { opacity: 0.9; }
 .grudge-social-btn.puter    { background: #1e3a5f; border-color: #2d5a8e; color: #7ec8e3; }
 .grudge-social-btn.puter:hover    { background: #234674; }
-.grudge-social-btn.phone    { background: hsl(143 50% 16%); border-color: hsl(143 40% 30%); color: hsl(143 60% 65%); }
-.grudge-social-btn.phone:hover    { background: hsl(143 50% 22%); }
+.grudge-social-btn.guest-primary { background: hsl(225 25% 14%); border-color: hsl(225 20% 25%); color: hsl(40 20% 70%); }
+.grudge-social-btn.guest-primary:hover { background: hsl(225 25% 18%); color: hsl(40 30% 80%); }
 
 /* ── Phone Panel ── */
 .grudge-phone-panel {
