@@ -17,7 +17,7 @@
     },
     {
       "source": "/api/auth/:path*",
-      "destination": "https://id.grudge-studio.com/auth/:path*"
+      "destination": "https://grudge-api-production.up.railway.app/api/auth/:path*"
     },
     {
       "source": "/api/:path*",

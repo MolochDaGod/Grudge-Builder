@@ -14,6 +14,7 @@ import {
   registerObjectStorageRoutes,
   registerDevToolObjectStorageRoutes,
 } from "./integrations/object_storage";
+import { registerAuthRoutes } from "./routes/auth";
 import { scanAsepriteDirectory, readAsepriteFile, getAsepriteStats } from "./aseprite-reader";
 import { getSheetsClient, isConfigured, SHEET_IDS, readSheet, getCachedData, setCachedData } from "./googleSheets";
 import { exportFoodsToSheet, generateFoodRows } from "./sheetsExport";
@@ -225,6 +226,9 @@ export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
+  // ── Auth routes (Grudge ID — puter, wallet, login, register, verify, discord) ──
+  registerAuthRoutes(app);
+
   // Extract userId from JWT token (secure) — replaces old x-admin-mode header trust
   const getUserId = (req: Request): string => extractUserId(req);
   const GUEST_USER_ID = "guest";
