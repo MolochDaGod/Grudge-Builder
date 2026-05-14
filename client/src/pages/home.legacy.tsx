@@ -40,17 +40,17 @@ const LIVE_GAMES = [
     id: "combat", title: "Combat Arena", subtitle: "RPG Battle",
     description: "Turn-based combat with class skills, abilities, and party tactics.",
     url: "/combat", external: false,
-    icon: "swords", color: "from-red-950/90 via-red-900/70 to-red-800/40",
-    border: "border-red-700/40 hover:border-red-500/60", badge: "Battle",
-    badgeColor: "bg-red-700/80 text-red-200",
+    icon: "swords", color: "from-slate-950/90 via-slate-800/70 to-slate-700/40",
+    border: "border-slate-600/40 hover:border-slate-400/60", badge: "Battle",
+    badgeColor: "bg-slate-600/80 text-slate-200",
   },
   {
     id: "dungeon", title: "Dungeon Crawler", subtitle: "Roguelike",
     description: "Procedural dungeons with enemies, loot, and boss fights. Clear for character tokens.",
     url: "/dungeon", external: false,
-    icon: "pickaxe", color: "from-purple-950/90 via-purple-900/70 to-purple-800/40",
-    border: "border-purple-700/40 hover:border-purple-500/60", badge: "Solo",
-    badgeColor: "bg-purple-700/80 text-purple-200",
+    icon: "pickaxe", color: "from-zinc-950/90 via-zinc-800/70 to-zinc-700/40",
+    border: "border-zinc-600/40 hover:border-zinc-400/60", badge: "Solo",
+    badgeColor: "bg-zinc-600/80 text-zinc-200",
   },
   {
     id: "professions", title: "Professions", subtitle: "Gathering & Crafting",
@@ -72,17 +72,17 @@ const LIVE_GAMES = [
     id: "tower-wars", title: "Tower Defense", subtitle: "Island Defense",
     description: "Build beam & catapult towers on capturable islands. Defend against PvE waves.",
     url: "/tower-wars", external: false,
-    icon: "sword", color: "from-yellow-950/90 via-yellow-900/70 to-orange-800/40",
-    border: "border-yellow-700/40 hover:border-yellow-500/60", badge: "Defense",
-    badgeColor: "bg-yellow-700/80 text-yellow-200",
+    icon: "sword", color: "from-stone-950/90 via-stone-800/70 to-stone-700/40",
+    border: "border-stone-600/40 hover:border-stone-400/60", badge: "Defense",
+    badgeColor: "bg-stone-600/80 text-stone-200",
   },
   {
     id: "crafting", title: "Crafting", subtitle: "Forge & Brew",
     description: "5 crafting stations, T1-T8 recipes. Smelt ingots, cut planks, weave cloth, cook food, build gadgets.",
     url: "/crafting", external: false,
-    icon: "hammer", color: "from-orange-950/90 via-orange-900/70 to-amber-800/40",
-    border: "border-orange-500/50 hover:border-orange-400/70", badge: "Core",
-    badgeColor: "bg-orange-600/90 text-orange-100",
+    icon: "hammer", color: "from-stone-950/90 via-stone-900/70 to-stone-800/40",
+    border: "border-amber-700/40 hover:border-amber-500/60", badge: "Core",
+    badgeColor: "bg-amber-700/80 text-amber-200",
   },
   {
     id: "skills", title: "Skill Trees", subtitle: "Class Abilities",
@@ -104,9 +104,9 @@ const LIVE_GAMES = [
     id: "nexus-admin", title: "Nexus Admin", subtitle: "Admin Panel",
     description: "Manage users, GBUX balances, reward packs, cards, and live game statistics.",
     url: "https://nexus-nemesis.vercel.app", external: true,
-    icon: "crown", color: "from-red-950/90 via-rose-900/70 to-red-800/40",
-    border: "border-red-700/40 hover:border-red-500/60", badge: "Admin",
-    badgeColor: "bg-red-800/90 text-red-100", adminOnly: true,
+    icon: "crown", color: "from-neutral-950/90 via-neutral-800/70 to-neutral-700/40",
+    border: "border-neutral-600/40 hover:border-neutral-400/60", badge: "Admin",
+    badgeColor: "bg-neutral-700/90 text-neutral-200", adminOnly: true,
   },
 ];
 
@@ -187,13 +187,13 @@ export default function HomePage() {
     <div className="min-h-screen bg-background text-foreground">
       {/* Background */}
       <div className="fixed inset-0 pointer-events-none opacity-50"
-        style={{ backgroundImage: `radial-gradient(ellipse at 15% 0%, hsla(45,70%,40%,0.08) 0%, transparent 55%), radial-gradient(ellipse at 85% 100%, hsla(265,60%,50%,0.07) 0%, transparent 55%)` }} />
+        style={{ backgroundImage: `radial-gradient(ellipse at 15% 0%, hsla(45,30%,30%,0.06) 0%, transparent 55%), radial-gradient(ellipse at 85% 100%, hsla(210,20%,30%,0.05) 0%, transparent 55%)` }} />
 
       {/* Header */}
       <header className="sticky top-0 z-50 border-b border-border/40 bg-background/85 backdrop-blur-md">
         <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded bg-gradient-to-br from-amber-500 to-red-700 flex items-center justify-center shadow">
+            <div className="w-8 h-8 rounded bg-gradient-to-br from-amber-500 to-amber-700 flex items-center justify-center shadow">
               <Crown className="w-4 h-4 text-white" />
             </div>
             <span className="font-cinzel font-bold tracking-wider text-sm">
@@ -204,7 +204,7 @@ export default function HomePage() {
           <div className="flex items-center gap-3">
             {grudgeIdShort && <span className="hidden sm:block text-xs text-muted-foreground font-mono">{grudgeIdShort}</span>}
             <div className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded-full bg-gradient-to-br from-amber-600 to-red-800 flex items-center justify-center text-xs font-bold text-white border border-amber-700/50">
+              <div className="w-7 h-7 rounded-full bg-gradient-to-br from-amber-600 to-amber-800 flex items-center justify-center text-xs font-bold text-white border border-amber-700/50">
                 {displayName[0]?.toUpperCase()}
               </div>
               <span className="hidden sm:block text-sm font-medium">{displayName}</span>
@@ -231,7 +231,7 @@ export default function HomePage() {
             </div>
             <div className="flex gap-2 flex-shrink-0">
               <Button
-                className="bg-gradient-to-r from-amber-600 to-red-700 hover:from-amber-500 hover:to-red-600 text-white font-cinzel tracking-wider shadow-lg shadow-amber-900/30 border border-amber-500/30"
+                className="bg-gradient-to-r from-amber-600 to-amber-800 hover:from-amber-500 hover:to-amber-700 text-white font-cinzel tracking-wider shadow-lg shadow-amber-900/30 border border-amber-500/30"
                 onClick={() => window.open("https://play.grudge-studio.com", "_blank", "noopener")}
               >
                 <Globe className="w-4 h-4 mr-2" /> Enter Game Client
@@ -263,7 +263,7 @@ export default function HomePage() {
                         const el = e.currentTarget;
                         el.style.display = 'none';
                         const parent = el.parentElement!;
-                        parent.classList.add('bg-gradient-to-br', 'from-amber-600/30', 'to-red-900/30', 'flex', 'items-center', 'justify-center');
+                        parent.classList.add('bg-gradient-to-br', 'from-amber-600/30', 'to-amber-900/30', 'flex', 'items-center', 'justify-center');
                         parent.innerHTML = `<span class="text-lg font-bold font-cinzel text-amber-300">${activeCharacter.name[0]?.toUpperCase()}</span>`;
                       }}
                     />
@@ -287,7 +287,7 @@ export default function HomePage() {
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Button className="w-full bg-gradient-to-r from-red-800 to-red-700 hover:from-red-700 hover:to-red-600 text-white font-cinzel text-xs tracking-wider" size="sm" onClick={() => window.open("https://pvp.grudge-studio.com", "_blank", "noopener")}>
+                  <Button className="w-full bg-gradient-to-r from-slate-700 to-slate-600 hover:from-slate-600 hover:to-slate-500 text-white font-cinzel text-xs tracking-wider" size="sm" onClick={() => window.open("https://pvp.grudge-studio.com", "_blank", "noopener")}>
                     <Swords className="w-3.5 h-3.5 mr-2" /> Play GrudaWars
                   </Button>
                   <div className="grid grid-cols-2 gap-2">
@@ -305,7 +305,7 @@ export default function HomePage() {
                 <Sparkles className="w-10 h-10 text-amber-400/60 mx-auto mb-3" />
                 <h3 className="font-cinzel font-bold text-amber-300 text-sm mb-1">No Character</h3>
                 <p className="text-xs text-muted-foreground mb-4">Create your hero to play all games and mint as an NFT</p>
-                <Button className="w-full bg-gradient-to-r from-amber-700 to-red-800 hover:from-amber-600 hover:to-red-700 text-white font-cinzel text-xs" onClick={() => setLocation("/create-character")}>
+                <Button className="w-full bg-gradient-to-r from-amber-700 to-amber-900 hover:from-amber-600 hover:to-amber-800 text-white font-cinzel text-xs" onClick={() => setLocation("/create-character")}>
                   <Plus className="w-3.5 h-3.5 mr-1.5" /> Create Character
                 </Button>
               </div>

@@ -117,9 +117,9 @@ const FACTION_WORG_SPRITES: Record<string, string> = {
 };
 
 const FACTION_WORG_COLORS: Record<string, string> = {
-  Crusade: "from-red-600 to-red-900",
-  Legion: "from-purple-600 to-purple-900",
-  Fabled: "from-cyan-500 to-blue-800",
+  Crusade: "from-amber-700 to-amber-900",
+  Legion: "from-slate-600 to-slate-800",
+  Fabled: "from-cyan-700 to-cyan-900",
 };
 
 const DEFAULT_INVENTORY: InventoryItem[] = [

@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Redirecting…</title>
+  <script>
+    // SPA fallback: redirect any sub-route back to root so the client-side
+    // router can handle it. Puter static hosting doesn't support rewrites,
+    // so this 404.html acts as the catch-all.
+    (function () {
+      var path = window.location.pathname + window.location.search + window.location.hash;
+      // Store the original path so the SPA can restore it after load
+      sessionStorage.setItem('spa_redirect', path);
+      window.location.replace('/');
+    })();
+  </script>
+</head>
+<body>
+  <noscript>
+    <meta http-equiv="refresh" content="0;url=/">
+  </noscript>
+  <p>Redirecting&hellip;</p>
+</body>
+</html>

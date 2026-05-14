@@ -1,0 +1,1177 @@
+[
+  {
+    "status": 200,
+    "type": "service",
+    "url": "https://dapp-nft-grudge-sjnq4.puter.site",
+    "subdomain": "dapp-nft-grudge-sjnq4",
+    "bodyLength": 10556,
+    "title": "Download Grudge NFT"
+  },
+  {
+    "status": 404,
+    "type": "error",
+    "url": "https://grudge-launcher-xu9q5.puter.site",
+    "subdomain": "grudge-launcher-xu9q5",
+    "bodyLength": 0,
+    "error": "Response status code does not indicate success: 404 (Not Found).",
+    "title": ""
+  },
+  {
+    "status": 200,
+    "type": "auth",
+    "url": "https://grudachain-ve8e8.puter.site",
+    "subdomain": "grudachain-ve8e8",
+    "bodyLength": 62682,
+    "title": "🏴‍☠️ GRUDA Legion Pro - Standalone Edition"
+  },
+  {
+    "status": 200,
+    "type": "auth",
+    "url": "https://brave-fish-9182.puter.site",
+    "subdomain": "brave-fish-9182",
+    "bodyLength": 7857,
+    "title": "Grudge Studio Auth"
+  },
+  {
+    "status": 200,
+    "type": "empty",
+    "url": "https://tge.puter.site",
+    "subdomain": "tge",
+    "bodyLength": 0,
+    "title": ""
+  },
+  {
+    "status": 200,
+    "type": "game",
+    "url": "https://diligent-rain-7944.puter.site",
+    "subdomain": "diligent-rain-7944",
+    "bodyLength": 347,
+    "title": "Myth"
+  },
+  {
+    "status": 200,
+    "type": "editor",
+    "url": "https://agile-bicycle-9847.puter.site",
+    "subdomain": "agile-bicycle-9847",
+    "bodyLength": 3894,
+    "title": ""
+  },
+  {
+    "status": 404,
+    "type": "error",
+    "url": "https://colorful-puppy-4769-zilvf.puter.site",
+    "subdomain": "colorful-puppy-4769-zilvf",
+    "bodyLength": 0,
+    "error": "Response status code does not indicate success: 404 (Not Found).",
+    "title": ""
+  },
+  {
+    "status": 200,
+    "type": "auth",
+    "url": "https://clever-panda-9749.puter.site",
+    "subdomain": "clever-panda-9749",
+    "bodyLength": 13598,
+    "title": "GRUDGE STUDIO AI Legion - Deployment Console"
+  },
+  {
+    "status": 200,
+    "type": "game",
+    "url": "https://creative-puppy-9315.puter.site",
+    "subdomain": "creative-puppy-9315",
+    "bodyLength": 10209,
+    "title": "RPG Level Builder"
+  },
+  {
+    "status": 200,
+    "type": "auth",
+    "url": "https://active-meerkat-8204.puter.site",
+    "subdomain": "active-meerkat-8204",
+    "bodyLength": 25327,
+    "title": "GRUDGE Warlords - Login"
+  },
+  {
+    "status": 200,
+    "type": "editor",
+    "url": "https://optimistic-dog-4415.puter.site",
+    "subdomain": "optimistic-dog-4415",
+    "bodyLength": 2969,
+    "title": "Welcome to tge.puter.site"
+  },
+  {
+    "status": 200,
+    "type": "editor",
+    "url": "https://polite-ocean-7534.puter.site",
+    "subdomain": "polite-ocean-7534",
+    "bodyLength": 2969,
+    "title": "Welcome to tge.puter.site"
+  },
+  {
+    "status": 200,
+    "type": "auth",
+    "url": "https://ga-grd1-7.puter.site",
+    "subdomain": "ga-grd1-7",
+    "bodyLength": 9108,
+    "title": "GA-grd1-7 | GRD1.7 - GRUDGE STUDIO AI Agent"
+  },
+  {
+    "status": 200,
+    "type": "auth",
+    "url": "https://ga-grd2-7.puter.site",
+    "subdomain": "ga-grd2-7",
+    "bodyLength": 9114,
+    "title": "GA-grd2-7 | GRD2.7 - GRUDGE STUDIO AI Agent"
+  },
+  {
+    "status": 200,
+    "type": "auth",
+    "url": "https://ga-aleofthought.puter.site",
+    "subdomain": "ga-aleofthought",
+    "bodyLength": 9132,
+    "title": "GA-aleofthought | ALEofThought - GRUDGE STUDIO AI Agent"
+  },
+  {
+    "status": 200,
+    "type": "auth",
+    "url": "https://ga-perplexity.puter.site",
+    "subdomain": "ga-perplexity",
+    "bodyLength": 9099,
+    "title": "GA-perplexity | Perplexity - GRUDGE STUDIO AI Agent"
+  },
+  {
+    "status": 200,
+    "type": "auth",
+    "url": "https://ga-dangrd.puter.site",
+    "subdomain": "ga-dangrd",
+    "bodyLength": 9093,
+    "title": "GA-dangrd | DANGRD - GRUDGE STUDIO AI Agent"
+  },
+  {
+    "status": 200,
+    "type": "auth",
+    "url": "https://ga-grdviz.puter.site",
+    "subdomain": "ga-grdviz",
+    "bodyLength": 9090,
+    "title": "GA-grdviz | GRDVIZ - GRUDGE STUDIO AI Agent"
+  },
+  {
+    "status": 200,
+    "type": "auth",
+    "url": "https://ga-norightanswergrd.puter.site",
+    "subdomain": "ga-norightanswergrd",
+    "bodyLength": 9144,
+    "title": "GA-norightanswergrd | NoRightAnswerGRD - GRUDGE STUDIO AI Agent"
+  },
+  {
+    "status": 200,
+    "type": "auth",
+    "url": "https://ga-ale.puter.site",
+    "subdomain": "ga-ale",
+    "bodyLength": 9081,
+    "title": "GA-ale | ALE - GRUDGE STUDIO AI Agent"
+  },
+  {
+    "status": 200,
+    "type": "auth",
+    "url": "https://ga-grdsprint.puter.site",
+    "subdomain": "ga-grdsprint",
+    "bodyLength": 9120,
+    "title": "GA-grdsprint | GRDSPRINT - GRUDGE STUDIO AI Agent"
+  },
+  {
+    "status": 200,
+    "type": "auth",
+    "url": "https://grudge-launcher-1-h38fg.puter.site",
+    "subdomain": "grudge-launcher-1-h38fg",
+    "bodyLength": 8378,
+    "title": "GRUDGE STUDIO - AI Legion Platform"
+  },
+  {
+    "status": 200,
+    "type": "auth",
+    "url": "https://grudaailegion-s9kqf.puter.site",
+    "subdomain": "grudaailegion-s9kqf",
+    "bodyLength": 9108,
+    "title": "GA-grd1-7 | GRD1.7 - GRUDGE STUDIO AI Agent"
+  },
+  {
+    "status": 200,
+    "type": "game",
+    "url": "https://grudgegameengine-1-ln4hp.puter.site",
+    "subdomain": "grudgegameengine-1-ln4hp",
+    "bodyLength": 10209,
+    "title": "RPG Level Builder"
+  },
+  {
+    "status": 200,
+    "type": "auth",
+    "url": "https://brave-room-6097.puter.site",
+    "subdomain": "brave-room-6097",
+    "bodyLength": 13034,
+    "title": "Puter Organization Agent"
+  },
+  {
+    "status": 200,
+    "type": "game",
+    "url": "https://gge-bl4d7.puter.site",
+    "subdomain": "gge-bl4d7",
+    "bodyLength": 8920,
+    "title": "Grudge Warlords - Tower Defense MMORPG"
+  },
+  {
+    "status": 200,
+    "type": "launcher",
+    "url": "https://agile-frog-4851.puter.site",
+    "subdomain": "agile-frog-4851",
+    "bodyLength": 472,
+    "title": "Heroic Games Launcher"
+  },
+  {
+    "status": 200,
+    "type": "editor",
+    "url": "https://meta-build-jb36g.puter.site",
+    "subdomain": "meta-build-jb36g",
+    "bodyLength": 432,
+    "title": "Grudge Studio - 3D Game Editor"
+  },
+  {
+    "status": 404,
+    "type": "error",
+    "url": "https://grudgecloud-85c9p.puter.site",
+    "subdomain": "grudgecloud-85c9p",
+    "bodyLength": 0,
+    "error": "Response status code does not indicate success: 404 (Not Found).",
+    "title": ""
+  },
+  {
+    "status": 200,
+    "type": "auth",
+    "url": "https://avid-zebra-1033.puter.site",
+    "subdomain": "avid-zebra-1033",
+    "bodyLength": 13598,
+    "title": "GRUDGE STUDIO AI Legion - Deployment Console"
+  },
+  {
+    "status": 200,
+    "type": "auth",
+    "url": "https://polite-koala-1379.puter.site",
+    "subdomain": "polite-koala-1379",
+    "bodyLength": 13952,
+    "title": "Deploy GRUDGE Sprite Worker"
+  },
+  {
+    "status": 200,
+    "type": "auth",
+    "url": "https://grudge-auth.puter.site",
+    "subdomain": "grudge-auth",
+    "bodyLength": 9800,
+    "title": "GRUDGE Auth"
+  },
+  {
+    "status": 200,
+    "type": "auth",
+    "url": "https://grudge-cloud.puter.site",
+    "subdomain": "grudge-cloud",
+    "bodyLength": 15384,
+    "title": "GRUDGE Cloud Admin"
+  },
+  {
+    "status": 404,
+    "type": "error",
+    "url": "https://strong-ocean-7021.puter.site",
+    "subdomain": "strong-ocean-7021",
+    "bodyLength": 0,
+    "error": "Response status code does not indicate success: 404 (Not Found).",
+    "title": ""
+  },
+  {
+    "status": 200,
+    "type": "service",
+    "url": "https://crafting-vdz7h.puter.site",
+    "subdomain": "crafting-vdz7h",
+    "bodyLength": 2554,
+    "title": "GRUDGE Warlords - GRUDACHAIN"
+  },
+  {
+    "status": 200,
+    "type": "empty",
+    "url": "https://strong-game-8916.puter.site",
+    "subdomain": "strong-game-8916",
+    "bodyLength": 22,
+    "title": ""
+  },
+  {
+    "status": 404,
+    "type": "error",
+    "url": "https://grudge-apps.puter.site",
+    "subdomain": "grudge-apps",
+    "bodyLength": 0,
+    "error": "Response status code does not indicate success: 404 (Not Found).",
+    "title": ""
+  },
+  {
+    "status": 404,
+    "type": "error",
+    "url": "https://gruda-search-k7ilxk5jdxn.puter.site",
+    "subdomain": "gruda-search-k7ilxk5jdxn",
+    "bodyLength": 0,
+    "error": "Response status code does not indicate success: 404 (Not Found).",
+    "title": ""
+  },
+  {
+    "status": 200,
+    "type": "game",
+    "url": "https://nice-sun-1614.puter.site",
+    "subdomain": "nice-sun-1614",
+    "bodyLength": 13375,
+    "title": "DiGrudge - Puter Launcher"
+  },
+  {
+    "status": 200,
+    "type": "service",
+    "url": "https://bold-wind-904.puter.site",
+    "subdomain": "bold-wind-904",
+    "bodyLength": 1846,
+    "title": "Grudge Studio"
+  },
+  {
+    "status": 200,
+    "type": "service",
+    "url": "https://elegant-river-5347.puter.site",
+    "subdomain": "elegant-river-5347",
+    "bodyLength": 1026,
+    "title": "Grudge Network Gruda Browser"
+  },
+  {
+    "status": 200,
+    "type": "service",
+    "url": "https://grudge-network-zk1qm.puter.site",
+    "subdomain": "grudge-network-zk1qm",
+    "bodyLength": 1026,
+    "title": "Grudge Network Gruda Browser"
+  },
+  {
+    "status": 200,
+    "type": "service",
+    "url": "https://witty-panda-583.puter.site",
+    "subdomain": "witty-panda-583",
+    "bodyLength": 1026,
+    "title": "Grudge Network Gruda Browser"
+  },
+  {
+    "status": 404,
+    "type": "error",
+    "url": "https://young-puppy-2675.puter.site",
+    "subdomain": "young-puppy-2675",
+    "bodyLength": 0,
+    "error": "Response status code does not indicate success: 404 (Not Found).",
+    "title": ""
+  },
+  {
+    "status": 200,
+    "type": "auth",
+    "url": "https://creative-spider-1846.puter.site",
+    "subdomain": "creative-spider-1846",
+    "bodyLength": 21754,
+    "title": "Deploy to Puter - Grudge Studio"
+  },
+  {
+    "status": 200,
+    "type": "launcher",
+    "url": "https://relaxed-bee-4205.puter.site",
+    "subdomain": "relaxed-bee-4205",
+    "bodyLength": 472,
+    "title": "Heroic Games Launcher"
+  },
+  {
+    "status": 200,
+    "type": "auth",
+    "url": "https://platformtest-wn11oh.puter.site",
+    "subdomain": "platformtest-wn11oh",
+    "bodyLength": 21754,
+    "title": "Deploy to Puter - Grudge Studio"
+  },
+  {
+    "status": 404,
+    "type": "error",
+    "url": "https://capable-deer-5348.puter.site",
+    "subdomain": "capable-deer-5348",
+    "bodyLength": 0,
+    "error": "Response status code does not indicate success: 404 (Not Found).",
+    "title": ""
+  },
+  {
+    "status": 200,
+    "type": "auth",
+    "url": "https://victorious-idea-4950.puter.site",
+    "subdomain": "victorious-idea-4950",
+    "bodyLength": 19430,
+    "title": "GRUDGE Warlords - Login"
+  },
+  {
+    "status": 404,
+    "type": "error",
+    "url": "https://relaxed-mouse-3425.puter.site",
+    "subdomain": "relaxed-mouse-3425",
+    "bodyLength": 0,
+    "error": "Response status code does not indicate success: 404 (Not Found).",
+    "title": ""
+  },
+  {
+    "status": 200,
+    "type": "service",
+    "url": "https://active-camel-784.puter.site",
+    "subdomain": "active-camel-784",
+    "bodyLength": 2454,
+    "title": "GRUDACHAIN Memory Worker"
+  },
+  {
+    "status": 404,
+    "type": "error",
+    "url": "https://optimistic-cow-5660.puter.site",
+    "subdomain": "optimistic-cow-5660",
+    "bodyLength": 0,
+    "error": "Response status code does not indicate success: 404 (Not Found).",
+    "title": ""
+  },
+  {
+    "status": 404,
+    "type": "error",
+    "url": "https://silly-idea-5187.puter.site",
+    "subdomain": "silly-idea-5187",
+    "bodyLength": 0,
+    "error": "Response status code does not indicate success: 404 (Not Found).",
+    "title": ""
+  },
+  {
+    "status": 200,
+    "type": "game",
+    "url": "https://strong-puppy-947.puter.site",
+    "subdomain": "strong-puppy-947",
+    "bodyLength": 126990,
+    "title": "Grudge Warlords - Web3 NFT MMO"
+  },
+  {
+    "status": 200,
+    "type": "editor",
+    "url": "https://grudge.puter.site",
+    "subdomain": "grudge",
+    "bodyLength": 2978,
+    "title": "Welcome to grudge.puter.site"
+  },
+  {
+    "status": 200,
+    "type": "game",
+    "url": "https://young-spider-9867.puter.site",
+    "subdomain": "young-spider-9867",
+    "bodyLength": 20821,
+    "title": "GRUDGE Sprite Analyzer"
+  },
+  {
+    "status": 200,
+    "type": "game",
+    "url": "https://helpful-ant-682.puter.site",
+    "subdomain": "helpful-ant-682",
+    "bodyLength": 20821,
+    "title": "GRUDGE Sprite Analyzer"
+  },
+  {
+    "status": 200,
+    "type": "editor",
+    "url": "https://fancy-penguin-6914.puter.site",
+    "subdomain": "fancy-penguin-6914",
+    "bodyLength": 432,
+    "title": "Grudge Studio - 3D Game Editor"
+  },
+  {
+    "status": 200,
+    "type": "editor",
+    "url": "https://sensible-snake-8785.puter.site",
+    "subdomain": "sensible-snake-8785",
+    "bodyLength": 683,
+    "title": "Grudge Studio - 3D Game Editor"
+  },
+  {
+    "status": 200,
+    "type": "editor",
+    "url": "https://optimistic-lion-7949.puter.site",
+    "subdomain": "optimistic-lion-7949",
+    "bodyLength": 432,
+    "title": "Grudge Studio - 3D Game Editor"
+  },
+  {
+    "status": 200,
+    "type": "editor",
+    "url": "https://fancy-morning-7078.puter.site",
+    "subdomain": "fancy-morning-7078",
+    "bodyLength": 432,
+    "title": "Grudge Studio - 3D Game Editor"
+  },
+  {
+    "status": 404,
+    "type": "error",
+    "url": "https://smart-road-3590.puter.site",
+    "subdomain": "smart-road-3590",
+    "bodyLength": 0,
+    "error": "Response status code does not indicate success: 404 (Not Found).",
+    "title": ""
+  },
+  {
+    "status": 200,
+    "type": "game",
+    "url": "https://bold-island-436.puter.site",
+    "subdomain": "bold-island-436",
+    "bodyLength": 8920,
+    "title": "Grudge Warlords - Tower Defense MMORPG"
+  },
+  {
+    "status": 200,
+    "type": "auth",
+    "url": "https://helpful-room-4807.puter.site",
+    "subdomain": "helpful-room-4807",
+    "bodyLength": 6956,
+    "title": "GRUDGE Server API"
+  },
+  {
+    "status": 200,
+    "type": "service",
+    "url": "https://polite-whale-1446.puter.site",
+    "subdomain": "polite-whale-1446",
+    "bodyLength": 1026,
+    "title": "Grudge Network Gruda Browser"
+  },
+  {
+    "status": 200,
+    "type": "game",
+    "url": "https://bold-frog-1097.puter.site",
+    "subdomain": "bold-frog-1097",
+    "bodyLength": 20821,
+    "title": "GRUDGE Sprite Analyzer"
+  },
+  {
+    "status": 200,
+    "type": "game",
+    "url": "https://smart-wind-871.puter.site",
+    "subdomain": "smart-wind-871",
+    "bodyLength": 1381,
+    "title": "Grudge Builder - GRUDGE Warlords"
+  },
+  {
+    "status": 200,
+    "type": "game",
+    "url": "https://polite-car-9159.puter.site",
+    "subdomain": "polite-car-9159",
+    "bodyLength": 39123,
+    "title": "Grudge Warlords - Island Base"
+  },
+  {
+    "status": 404,
+    "type": "error",
+    "url": "https://merry-crab-3757.puter.site",
+    "subdomain": "merry-crab-3757",
+    "bodyLength": 0,
+    "error": "Response status code does not indicate success: 404 (Not Found).",
+    "title": ""
+  },
+  {
+    "status": 200,
+    "type": "game",
+    "url": "https://victorious-seal-3327.puter.site",
+    "subdomain": "victorious-seal-3327",
+    "bodyLength": 39123,
+    "title": "Grudge Warlords - Island Base"
+  },
+  {
+    "status": 200,
+    "type": "service",
+    "url": "https://honest-rabbit-2754.puter.site",
+    "subdomain": "honest-rabbit-2754",
+    "bodyLength": 16783,
+    "title": "Deploy to Puter - PvPGN Server Hub"
+  },
+  {
+    "status": 200,
+    "type": "service",
+    "url": "https://gateway-installer.puter.site",
+    "subdomain": "gateway-installer",
+    "bodyLength": 6642,
+    "title": "Gateway Installer - PvPGN Server Hub"
+  },
+  {
+    "status": 200,
+    "type": "service",
+    "url": "https://downloads.puter.site",
+    "subdomain": "downloads",
+    "bodyLength": 4808,
+    "title": "Game Downloads - PvPGN Server Hub"
+  },
+  {
+    "status": 200,
+    "type": "service",
+    "url": "https://setup-guide.puter.site",
+    "subdomain": "setup-guide",
+    "bodyLength": 6424,
+    "title": "Setup Guide - PvPGN Server Hub"
+  },
+  {
+    "status": 200,
+    "type": "service",
+    "url": "https://server-status.puter.site",
+    "subdomain": "server-status",
+    "bodyLength": 7415,
+    "title": "Server Status - PvPGN Server Hub"
+  },
+  {
+    "status": 200,
+    "type": "service",
+    "url": "https://pvpgn-downloads-jolly-.puter.site",
+    "subdomain": "pvpgn-downloads-jolly-",
+    "bodyLength": 2428,
+    "title": "Game Downloads - PvPGN Server Hub"
+  },
+  {
+    "status": 200,
+    "type": "service",
+    "url": "https://pvpgn-setup-happy-.puter.site",
+    "subdomain": "pvpgn-setup-happy-",
+    "bodyLength": 2268,
+    "title": "Setup Guide - PvPGN Server Hub"
+  },
+  {
+    "status": 200,
+    "type": "service",
+    "url": "https://pvpgn-gateway-charmi.puter.site",
+    "subdomain": "pvpgn-gateway-charmi",
+    "bodyLength": 2860,
+    "title": "Gateway Installer"
+  },
+  {
+    "status": 200,
+    "type": "service",
+    "url": "https://pvpgn-status-loyal-.puter.site",
+    "subdomain": "pvpgn-status-loyal-",
+    "bodyLength": 1603,
+    "title": "Server Status"
+  },
+  {
+    "status": 404,
+    "type": "error",
+    "url": "https://young-tree-498.puter.site",
+    "subdomain": "young-tree-498",
+    "bodyLength": 0,
+    "error": "Response status code does not indicate success: 404 (Not Found).",
+    "title": ""
+  },
+  {
+    "status": 200,
+    "type": "service",
+    "url": "https://pvpgn-downloads-clever.puter.site",
+    "subdomain": "pvpgn-downloads-clever",
+    "bodyLength": 2428,
+    "title": "Game Downloads - PvPGN Server Hub"
+  },
+  {
+    "status": 200,
+    "type": "service",
+    "url": "https://pvpgn-setup-creati.puter.site",
+    "subdomain": "pvpgn-setup-creati",
+    "bodyLength": 2268,
+    "title": "Setup Guide - PvPGN Server Hub"
+  },
+  {
+    "status": 200,
+    "type": "service",
+    "url": "https://pvpgn-gateway-bold-k.puter.site",
+    "subdomain": "pvpgn-gateway-bold-k",
+    "bodyLength": 2860,
+    "title": "Gateway Installer"
+  },
+  {
+    "status": 200,
+    "type": "service",
+    "url": "https://pvpgn-status-active.puter.site",
+    "subdomain": "pvpgn-status-active",
+    "bodyLength": 1603,
+    "title": "Server Status"
+  },
+  {
+    "status": 200,
+    "type": "game",
+    "url": "https://victorious-car-215.puter.site",
+    "subdomain": "victorious-car-215",
+    "bodyLength": 15553,
+    "title": "DevilutionX Multiplayer Launcher"
+  },
+  {
+    "status": 200,
+    "type": "service",
+    "url": "https://calm-house-2576.puter.site",
+    "subdomain": "calm-house-2576",
+    "bodyLength": 27267,
+    "title": "Grudge Studio - Game Development Platform"
+  },
+  {
+    "status": 200,
+    "type": "info",
+    "url": "https://intelligent-sea-311.puter.site",
+    "subdomain": "intelligent-sea-311",
+    "bodyLength": 2096,
+    "title": "DIABLO"
+  },
+  {
+    "status": 200,
+    "type": "auth",
+    "url": "https://grudge-server-ambkk.puter.site",
+    "subdomain": "grudge-server-ambkk",
+    "bodyLength": 6956,
+    "title": "GRUDGE Server API"
+  },
+  {
+    "status": 200,
+    "type": "service",
+    "url": "https://jolly-sun-1625.puter.site",
+    "subdomain": "jolly-sun-1625",
+    "bodyLength": 23982,
+    "title": "Grudge Warlords - Admin Dashboard"
+  },
+  {
+    "status": 200,
+    "type": "game",
+    "url": "https://jolly-panda-1821.puter.site",
+    "subdomain": "jolly-panda-1821",
+    "bodyLength": 126990,
+    "title": "Grudge Warlords - Web3 NFT MMO"
+  },
+  {
+    "status": 200,
+    "type": "chat/ai",
+    "url": "https://chatgrudge.puter.site",
+    "subdomain": "chatgrudge",
+    "bodyLength": 1584,
+    "title": "Multiplayer Chat"
+  },
+  {
+    "status": 200,
+    "type": "auth",
+    "url": "https://3dputer.puter.site",
+    "subdomain": "3dputer",
+    "bodyLength": 7092,
+    "title": "GStudio 3D Viewer - Grudge Studio"
+  },
+  {
+    "status": 404,
+    "type": "error",
+    "url": "https://grudgechain-ai-email-fixed-ffb919a4.puter.site",
+    "subdomain": "grudgechain-ai-email-fixed-ffb919a4",
+    "bodyLength": 0,
+    "error": "Response status code does not indicate success: 404 (Not Found).",
+    "title": ""
+  },
+  {
+    "status": 200,
+    "type": "service",
+    "url": "https://sensible-mouse-1616-st9xz.puter.site",
+    "subdomain": "sensible-mouse-1616-st9xz",
+    "bodyLength": 24968,
+    "title": "2D Sprite Viewer - Puter App"
+  },
+  {
+    "status": 200,
+    "type": "service",
+    "url": "https://grudgeweb-vh3c.puter.site",
+    "subdomain": "grudgeweb-vh3c",
+    "bodyLength": 14564,
+    "title": "Profession Guides - Grudge Warlords"
+  },
+  {
+    "status": 200,
+    "type": "game",
+    "url": "https://grudge-client-exi57.puter.site",
+    "subdomain": "grudge-client-exi57",
+    "bodyLength": 23158,
+    "title": "Grudge Attack Motion System - Live Demo"
+  },
+  {
+    "status": 200,
+    "type": "game",
+    "url": "https://grudge-attack-system.puter.site",
+    "subdomain": "grudge-attack-system",
+    "bodyLength": 23158,
+    "title": "Grudge Attack Motion System - Live Demo"
+  },
+  {
+    "status": 200,
+    "type": "auth",
+    "url": "https://victorious-lion-8099.puter.site",
+    "subdomain": "victorious-lion-8099",
+    "bodyLength": 19863,
+    "title": "GRUDGE Auth - Warlords Login Portal"
+  },
+  {
+    "status": 200,
+    "type": "service",
+    "url": "https://zealous-butterfly-6883.puter.site",
+    "subdomain": "zealous-butterfly-6883",
+    "bodyLength": 8371,
+    "title": "GRUDGE Warlords - Crafting Suite"
+  },
+  {
+    "status": 404,
+    "type": "error",
+    "url": "https://islands-lxzcll.puter.site",
+    "subdomain": "islands-lxzcll",
+    "bodyLength": 0,
+    "error": "Response status code does not indicate success: 404 (Not Found).",
+    "title": ""
+  },
+  {
+    "status": 404,
+    "type": "error",
+    "url": "https://grudgetoons-ohk4k.puter.site",
+    "subdomain": "grudgetoons-ohk4k",
+    "bodyLength": 0,
+    "error": "Response status code does not indicate success: 404 (Not Found).",
+    "title": ""
+  },
+  {
+    "status": 200,
+    "type": "auth",
+    "url": "https://grudgetoons-vilumg.puter.site",
+    "subdomain": "grudgetoons-vilumg",
+    "bodyLength": 37335,
+    "title": "Tethical 2D Sprite Viewer"
+  },
+  {
+    "status": 404,
+    "type": "error",
+    "url": "https://kind-monkey-980.puter.site",
+    "subdomain": "kind-monkey-980",
+    "bodyLength": 0,
+    "error": "Response status code does not indicate success: 404 (Not Found).",
+    "title": ""
+  },
+  {
+    "status": 404,
+    "type": "error",
+    "url": "https://capable-snow-4029.puter.site",
+    "subdomain": "capable-snow-4029",
+    "bodyLength": 0,
+    "error": "Response status code does not indicate success: 404 (Not Found).",
+    "title": ""
+  },
+  {
+    "status": 404,
+    "type": "error",
+    "url": "https://young-tv-9393.puter.site",
+    "subdomain": "young-tv-9393",
+    "bodyLength": 0,
+    "error": "Response status code does not indicate success: 404 (Not Found).",
+    "title": ""
+  },
+  {
+    "status": 200,
+    "type": "auth",
+    "url": "https://rampgrudge-4gv43.puter.site",
+    "subdomain": "rampgrudge-4gv43",
+    "bodyLength": 24882,
+    "title": "GRUDGE Warlords - Login"
+  },
+  {
+    "status": 200,
+    "type": "auth",
+    "url": "https://authgrudge.puter.site",
+    "subdomain": "authgrudge",
+    "bodyLength": 24882,
+    "title": "GRUDGE Warlords - Login"
+  },
+  {
+    "status": 200,
+    "type": "service",
+    "url": "https://grudge-warlords-7dp9c.puter.site",
+    "subdomain": "grudge-warlords-7dp9c",
+    "bodyLength": 1057,
+    "title": "Grudge Warlords - 2D RPG"
+  },
+  {
+    "status": 404,
+    "type": "error",
+    "url": "https://grudgechain-ai-email-system-eihtfh.puter.site",
+    "subdomain": "grudgechain-ai-email-system-eihtfh",
+    "bodyLength": 0,
+    "error": "Response status code does not indicate success: 404 (Not Found).",
+    "title": ""
+  },
+  {
+    "status": 200,
+    "type": "service",
+    "url": "https://app-connection-26p04.puter.site",
+    "subdomain": "app-connection-26p04",
+    "bodyLength": 8205,
+    "title": "GrudaChain Control Center"
+  },
+  {
+    "status": 200,
+    "type": "auth",
+    "url": "https://helpful-street-3694.puter.site",
+    "subdomain": "helpful-street-3694",
+    "bodyLength": 16510,
+    "title": "GRUDGE Studio - Universal Auth"
+  },
+  {
+    "status": 200,
+    "type": "auth",
+    "url": "https://optimistic-snail-5713.puter.site",
+    "subdomain": "optimistic-snail-5713",
+    "bodyLength": 24401,
+    "title": "DiabloGrudge - Puter Edition"
+  },
+  {
+    "status": 404,
+    "type": "error",
+    "url": "https://colorful-shrimp-7248.puter.site",
+    "subdomain": "colorful-shrimp-7248",
+    "bodyLength": 0,
+    "error": "Response status code does not indicate success: 404 (Not Found).",
+    "title": ""
+  },
+  {
+    "status": 200,
+    "type": "game",
+    "url": "https://clever-clock-1298.puter.site",
+    "subdomain": "clever-clock-1298",
+    "bodyLength": 8920,
+    "title": "Grudge Warlords - Tower Defense MMORPG"
+  },
+  {
+    "status": 200,
+    "type": "game",
+    "url": "https://grudge-ai-cloud-mm636.puter.site",
+    "subdomain": "grudge-ai-cloud-mm636",
+    "bodyLength": 23158,
+    "title": "Grudge Attack Motion System - Live Demo"
+  },
+  {
+    "status": 200,
+    "type": "game",
+    "url": "https://grudgestudio-1-m3p7.puter.site",
+    "subdomain": "grudgestudio-1-m3p7",
+    "bodyLength": 53890,
+    "title": "GRUDGE Index - Asset Database & Resource Library"
+  },
+  {
+    "status": 200,
+    "type": "service",
+    "url": "https://genius-ant-7181.puter.site",
+    "subdomain": "genius-ant-7181",
+    "bodyLength": 9340,
+    "title": "GRUDGE MMORPG - Download & Play"
+  },
+  {
+    "status": 200,
+    "type": "service",
+    "url": "https://game-35-03bzd.puter.site",
+    "subdomain": "game-35-03bzd",
+    "bodyLength": 9340,
+    "title": "GRUDGE MMORPG - Download & Play"
+  },
+  {
+    "status": 200,
+    "type": "auth",
+    "url": "https://bold-sun-3560.puter.site",
+    "subdomain": "bold-sun-3560",
+    "bodyLength": 5397,
+    "title": "GRUDGE Warlords - GRUDACHAIN"
+  },
+  {
+    "status": 200,
+    "type": "service",
+    "url": "https://kind-star-1186.puter.site",
+    "subdomain": "kind-star-1186",
+    "bodyLength": 956,
+    "title": "Grudge Warlords - 2D RPG"
+  },
+  {
+    "status": 200,
+    "type": "service",
+    "url": "https://grudgechain-ai-email-fixed-bnwef.puter.site",
+    "subdomain": "grudgechain-ai-email-fixed-bnwef",
+    "bodyLength": 27267,
+    "title": "Grudge Studio - Game Development Platform"
+  },
+  {
+    "status": 200,
+    "type": "auth",
+    "url": "https://generated-islands-l731yi.puter.site",
+    "subdomain": "generated-islands-l731yi",
+    "bodyLength": 9867,
+    "title": "GRUDGE Warlords - System Architecture"
+  },
+  {
+    "status": 200,
+    "type": "service",
+    "url": "https://pvpgn-downloads-loyal-.puter.site",
+    "subdomain": "pvpgn-downloads-loyal-",
+    "bodyLength": 2428,
+    "title": "Game Downloads - PvPGN Server Hub"
+  },
+  {
+    "status": 200,
+    "type": "service",
+    "url": "https://pvpgn-setup-polite.puter.site",
+    "subdomain": "pvpgn-setup-polite",
+    "bodyLength": 2268,
+    "title": "Setup Guide - PvPGN Server Hub"
+  },
+  {
+    "status": 200,
+    "type": "service",
+    "url": "https://pvpgn-gateway-colorf.puter.site",
+    "subdomain": "pvpgn-gateway-colorf",
+    "bodyLength": 2860,
+    "title": "Gateway Installer"
+  },
+  {
+    "status": 200,
+    "type": "service",
+    "url": "https://grudaputer-nkkza.puter.site",
+    "subdomain": "grudaputer-nkkza",
+    "bodyLength": 16783,
+    "title": "Deploy to Puter - PvPGN Server Hub"
+  },
+  {
+    "status": 404,
+    "type": "error",
+    "url": "https://gruda-code.puter.site",
+    "subdomain": "gruda-code",
+    "bodyLength": 0,
+    "error": "Response status code does not indicate success: 404 (Not Found).",
+    "title": ""
+  },
+  {
+    "status": 200,
+    "type": "service",
+    "url": "https://silly-zebra-2632.puter.site",
+    "subdomain": "silly-zebra-2632",
+    "bodyLength": 1493,
+    "title": "Grudge Warlords - Dark Fantasy RPG"
+  },
+  {
+    "status": 200,
+    "type": "service",
+    "url": "https://grudgesozne-uvtggj.puter.site",
+    "subdomain": "grudgesozne-uvtggj",
+    "bodyLength": 1493,
+    "title": "Grudge Warlords - Dark Fantasy RPG"
+  },
+  {
+    "status": 200,
+    "type": "service",
+    "url": "https://fancy-roof-2425.puter.site",
+    "subdomain": "fancy-roof-2425",
+    "bodyLength": 957,
+    "title": "Grudge Warlords - 2D RPG"
+  },
+  {
+    "status": 200,
+    "type": "game",
+    "url": "https://witty-harp-3824.puter.site",
+    "subdomain": "witty-harp-3824",
+    "bodyLength": 53890,
+    "title": "GRUDGE Index - Asset Database & Resource Library"
+  },
+  {
+    "status": 200,
+    "type": "game",
+    "url": "https://grudgedev-nlpqf.puter.site",
+    "subdomain": "grudgedev-nlpqf",
+    "bodyLength": 23158,
+    "title": "Grudge Attack Motion System - Live Demo"
+  },
+  {
+    "status": 200,
+    "type": "service",
+    "url": "https://grudgegruda-5b72ol.puter.site",
+    "subdomain": "grudgegruda-5b72ol",
+    "bodyLength": 957,
+    "title": "Grudge Warlords - 2D RPG"
+  },
+  {
+    "status": 200,
+    "type": "game",
+    "url": "https://witty-otter-7146.puter.site",
+    "subdomain": "witty-otter-7146",
+    "bodyLength": 669,
+    "title": "Avast!"
+  },
+  {
+    "status": 200,
+    "type": "service",
+    "url": "https://jolly-table-5628.puter.site",
+    "subdomain": "jolly-table-5628",
+    "bodyLength": 1282,
+    "title": "Grudge Engine - Game Development Studio"
+  },
+  {
+    "status": 200,
+    "type": "service",
+    "url": "https://grudgegameengine-fltks.puter.site",
+    "subdomain": "grudgegameengine-fltks",
+    "bodyLength": 1282,
+    "title": "Grudge Engine - Game Development Studio"
+  },
+  {
+    "status": 200,
+    "type": "service",
+    "url": "https://grudaway-1eek9.puter.site",
+    "subdomain": "grudaway-1eek9",
+    "bodyLength": 738,
+    "title": "Grudge Warlords"
+  },
+  {
+    "status": 200,
+    "type": "game",
+    "url": "https://young-roof-7419.puter.site",
+    "subdomain": "young-roof-7419",
+    "bodyLength": 23158,
+    "title": "Grudge Attack Motion System - Live Demo"
+  },
+  {
+    "status": 200,
+    "type": "service",
+    "url": "https://bold-book-7810.puter.site",
+    "subdomain": "bold-book-7810",
+    "bodyLength": 1057,
+    "title": "Grudge Warlords - 2D RPG"
+  },
+  {
+    "status": 200,
+    "type": "game",
+    "url": "https://grudgechain-fixed-v2-wx18h.puter.site",
+    "subdomain": "grudgechain-fixed-v2-wx18h",
+    "bodyLength": 9057,
+    "title": "Grudge Arena 3D"
+  },
+  {
+    "status": 200,
+    "type": "service",
+    "url": "https://grudgestudio.puter.site",
+    "subdomain": "grudgestudio",
+    "bodyLength": 2400,
+    "title": "GRUDGE Warlords - GRUDACHAIN"
+  },
+  {
+    "status": 200,
+    "type": "auth",
+    "url": "https://grudge-studio.puter.site",
+    "subdomain": "grudge-studio",
+    "bodyLength": 10134,
+    "title": "Grudge Studio - Cloud Dashboard"
+  },
+  {
+    "status": 200,
+    "type": "service",
+    "url": "https://grudgewarlords.puter.site",
+    "subdomain": "grudgewarlords",
+    "bodyLength": 738,
+    "title": "Grudge Warlords"
+  }
+]
