@@ -12,8 +12,33 @@ if (!process.env.DATABASE_URL) {
   );
 }
 
+// Railway internal networking doesn't need SSL; external connections do.
+const isRailwayInternal = !!process.env.RAILWAY_ENVIRONMENT_ID;
+const needsSsl =
+  process.env.NODE_ENV === "production" && !isRailwayInternal;
+
 export const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: process.env.NODE_ENV === "production" ? { rejectUnauthorized: false } : undefined,
+  ssl: needsSsl ? { rejectUnauthorized: false } : undefined,
+  max: 20,
+  idleTimeoutMillis: 30_000,
+  connectionTimeoutMillis: 10_000,
 });
+
+pool.on("error", (err) => {
+  console.error("[db] Unexpected pool error:", err.message);
+});
+
 export const db = drizzle(pool, { schema });
+
+/** Quick connectivity check — used by health endpoint */
+export async function checkDbHealth(): Promise<boolean> {
+  try {
+    const client = await pool.connect();
+    await client.query("SELECT 1");
+    client.release();
+    return true;
+  } catch {
+    return false;
+  }
+}

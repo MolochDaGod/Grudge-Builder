@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { CharacterManager, Character } from "@/lib/characterManager";
 import { useAccount } from "@/hooks/use-account";
 import { isAuthenticated, getCurrentUser } from "@/lib/grudgeBackend";
+import { redirectToGrudgeAuth } from "@/lib/authRedirect";
 import { GAME_CARD_BACKGROUNDS, FACTION_EMBLEMS, RACE_PORTRAITS, PROFESSION_ICONS } from "@/lib/artAssets";
 
 interface SavedAccount {
@@ -46,9 +47,9 @@ export default function HomePage() {
   const { account } = useAccount();
 
   useEffect(() => {
-    // Check canonical auth token (synced to cookies for middleware compat)
+    // Not authenticated → redirect to Grudge SSO
     if (!isAuthenticated()) {
-      setLocation("/");
+      redirectToGrudgeAuth("/home");
       return;
     }
     // Try grudge_user (set by auth modal), fallback to grudge-session, fallback to token user

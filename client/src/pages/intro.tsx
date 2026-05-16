@@ -3,12 +3,7 @@ import { useLocation } from "wouter";
 import { motion } from "framer-motion";
 import { isAuthenticated } from "@/lib/grudgeBackend";
 import { RACE_PORTRAITS, FACTION_EMBLEMS, CLASS_HERO_IMAGES } from "@/lib/artAssets";
-
-// Typed global from grudge-auth-modal.js
-declare global {
-  function openGrudgeAuthModal(): void;
-  function grudgeAuthIsLoggedIn(): boolean;
-}
+import { redirectToGrudgeAuth } from "@/lib/authRedirect";
 
 export default function IntroPage() {
   const [, setLocation] = useLocation();
@@ -24,22 +19,12 @@ export default function IntroPage() {
     return () => clearTimeout(timer);
   }, [setLocation]);
 
-  useEffect(() => {
-    const onAuth = () => setLocation("/home");
-    window.addEventListener("grudge:auth:success", onAuth);
-    return () => window.removeEventListener("grudge:auth:success", onAuth);
-  }, [setLocation]);
-
   const handleEnter = () => {
     if (isAuthenticated()) {
       setLocation("/home");
       return;
     }
-    if (typeof openGrudgeAuthModal === "function") {
-      openGrudgeAuthModal();
-    } else {
-      setLocation("/home");
-    }
+    redirectToGrudgeAuth();
   };
 
   return (

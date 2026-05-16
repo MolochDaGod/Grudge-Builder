@@ -24,6 +24,8 @@ const httpServer = createServer(app);
 const ALLOWED_ORIGINS = [
   "https://grudgewarlords.com",
   "https://www.grudgewarlords.com",
+  "https://grudge-studio.com",
+  "https://www.grudge-studio.com",
   "https://client.grudge-studio.com",
   "https://dash.grudge-studio.com",
   "https://id.grudge-studio.com",
@@ -129,13 +131,16 @@ app.use((req, res, next) => {
 });
 
 // ── Health check (required by Railway / Render load balancers) ───────────────
-app.get("/api/health", (_req, res) => {
-  res.json({
-    status: "ok",
+import { checkDbHealth } from "./db";
+app.get("/api/health", async (_req, res) => {
+  const dbOk = await checkDbHealth();
+  res.status(dbOk ? 200 : 503).json({
+    status: dbOk ? "ok" : "degraded",
     service: "grudge-api",
     version: process.env.npm_package_version || "1.0.0",
     uptime: Math.floor(process.uptime()),
     env: process.env.NODE_ENV || "production",
+    db: dbOk ? "connected" : "unreachable",
     ts: Date.now(),
   });
 });
@@ -167,6 +172,16 @@ app.get("/api/health", (_req, res) => {
         log(`Vite dev server not available (${(e as Error).message}) — API-only mode`, "warn");
       }
     }
+
+    // Fallback root for API-only deploys (Railway) — no client bundle present
+    app.get("/", (_req, res) => {
+      res.json({
+        service: "grudge-api",
+        version: process.env.npm_package_version || "1.0.0",
+        docs: "/api/health",
+        frontend: "https://grudgewarlords.com",
+      });
+    });
   } catch (e) {
     log(`Route registration failed: ${(e as Error).message}`, "error");
     console.error(e);

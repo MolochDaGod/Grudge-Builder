@@ -1,5 +1,5 @@
 {
-  "alias": ["client.grudge-studio.com", "grudgewarlords.com", "www.grudgewarlords.com"],
+  "alias": ["grudge-studio.com", "www.grudge-studio.com", "client.grudge-studio.com", "warlord3d.grudge-studio.com", "grudgewarlords.com", "www.grudgewarlords.com"],
   "buildCommand": "npm run build:client",
   "outputDirectory": "client/dist",
   "devCommand": "npm run dev:client",
@@ -17,11 +17,11 @@
     },
     {
       "source": "/api/auth/:path*",
-      "destination": "https://grudge-api-production.up.railway.app/api/auth/:path*"
+      "destination": "https://api.grudge-studio.com/api/auth/:path*"
     },
     {
       "source": "/api/:path*",
-      "destination": "https://grudge-api-production.up.railway.app/api/:path*"
+      "destination": "https://api.grudge-studio.com/api/:path*"
     },
     {
       "source": "/((?!.*\\.).*)",
@@ -29,7 +29,7 @@
     }
   ],
   "env": {
-    "GRUDGE_API_URL": "https://grudge-api-production.up.railway.app",
+    "GRUDGE_API_URL": "https://api.grudge-studio.com",
     "VITE_PVP_SERVER_URL": "wss://pvp.grudge-studio.com",
     "VITE_ASSETS_URL": "https://assets.grudge-studio.com"
   },
