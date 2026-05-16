@@ -316,13 +316,13 @@ export default function MissionBoardPage() {
         const res = await fetch("/api/game/factions/list", { headers });
         if (!res.ok) return [];
         const data = await res.json();
-        // VPS returns { factions: ['pirate','undead','elven','orcish'] }
+        // Backend returns { factions: ['pirate','undead','elven','orcish'] }
         return (data.factions || []).map((f: string) => ({ id: f, name: f, type: 'faction' }));
       } catch { return []; }
     },
   });
 
-  // VPS missions route: GET /missions returns user's missions (JWT-scoped)
+  // Backend missions route: GET /missions returns user's missions (JWT-scoped)
   const { data: playerProgress = [] } = useQuery<MissionProgress[]>({
     queryKey: ["/api/game/missions", "player"],
     queryFn: async () => {
@@ -336,7 +336,7 @@ export default function MissionBoardPage() {
 
   const acceptMutation = useMutation({
     mutationFn: async (missionId: string) => {
-      // VPS: POST /missions creates a new mission for the user
+      // Backend: POST /missions creates a new mission for the user
       const res = await fetch(`/api/game/missions`, {
         method: "POST",
         headers: { ...headers, "Content-Type": "application/json" },

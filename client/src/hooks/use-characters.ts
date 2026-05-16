@@ -36,7 +36,7 @@ export function useCharacters(): UseCharactersReturn {
   // ── Fetch from Grudge backend ────────────────────────────────────────
   const fetchCharacters = useCallback(async () => {
     try {
-      // CharacterManager.getAll() already uses the VPS-authoritative API
+      // CharacterManager.getAll() already uses the backend-authoritative API
       const chars = await CharacterManager.getAll();
       setCharacters(chars);
       setError(null);

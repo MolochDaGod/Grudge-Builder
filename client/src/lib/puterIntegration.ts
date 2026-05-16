@@ -293,7 +293,7 @@ export const puterAuth = {
 export const puterIslandKV = {
   /**
    * Save island state: Puter KV is authoritative, localStorage is offline fallback.
-   * No VPS backend — all player data lives in Puter user-pays cloud storage.
+   * No backend — all player data lives in Puter user-pays cloud storage.
    */
   async saveState(islandId: string, state: unknown): Promise<boolean> {
     // 1. Write to Puter KV (source of truth)

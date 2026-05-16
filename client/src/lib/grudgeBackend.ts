@@ -1,7 +1,7 @@
 /**
  * Grudge Backend Integration — Auth & Session Management
  *
- * Auth is Puter-first (puter.auth.signIn). No VPS backend.
+ * Auth is Puter-first (puter.auth.signIn). No backend.
  * Session tokens and user data live in localStorage.
  * Puter KV is used for persistent player data (characters, island, inventory).
  */
@@ -469,7 +469,7 @@ export async function verifyToken(): Promise<{
   const token = getToken();
   if (!token) return { valid: false };
 
-  // Client-side only validation (no VPS). If it's a JWT, check expiry.
+  // Client-side only validation (No separate backend). If it's a JWT, check expiry.
   try {
     const parts = token.split(".");
     if (parts.length === 3) {

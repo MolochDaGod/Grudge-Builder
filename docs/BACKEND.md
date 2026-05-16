@@ -7,7 +7,7 @@
 - **Build:** esbuild for server bundling
 - **Auth:** Grudge ID (JWT) via id.grudge-studio.com
 - **AI:** OpenAI API for avatar/dungeon generation
-- **Hosting:** Railway (Docker) — NOT Replit, NOT VPS
+- **Hosting:** Railway (Docker) — deployed via Railway, frontend via Vercel
 
 ## Authentication (Grudge ID)
 

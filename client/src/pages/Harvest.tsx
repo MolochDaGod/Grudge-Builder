@@ -76,12 +76,12 @@ export default function HomePage() {
   const { toast } = useToast();
 
   useEffect(() => {
-    // Check VPS auth token, fall back to legacy localStorage
+    // Check backend auth token, fall back to legacy localStorage
     const token = localStorage.getItem('grudge_token');
-    const vpsUser = localStorage.getItem('grudge_user');
-    if (token && vpsUser) {
+    const backendUser = localStorage.getItem('grudge_user');
+    if (token && backendUser) {
       try {
-        const parsed = JSON.parse(vpsUser);
+        const parsed = JSON.parse(backendUser);
         setUser({ username: parsed.username || parsed.displayName || 'Warlord', level: 1, gold: parsed.gold || 0 });
       } catch {
         setLocation("/login");

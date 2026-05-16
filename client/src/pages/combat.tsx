@@ -313,7 +313,7 @@ export default function CombatPage() {
     if (!activeMission || objectivesCompleted.has(objectiveId)) return;
     
     try {
-      // Mission completion is handled via PATCH /missions/:id/complete on VPS
+      // Mission completion is handled via PATCH /missions/:id/complete on the backend
       await fetch(`/api/game/missions/${activeMission.id}/complete`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },

@@ -883,27 +883,27 @@ export function rollLoot(drops: LootDrop[], professionLevel: number = 1): { item
 }
 
 export async function saveIslandState(userId: string, state: IslandState): Promise<boolean> {
-  // Stamp lastUpdate so VPS vs cache conflicts resolve correctly
+  // Stamp lastUpdate so backend vs cache conflicts resolve correctly
   state.lastUpdate = Date.now();
 
-  // VPS-authoritative: puterIslandKV.saveState writes to VPS first,
-  // then caches in Puter KV + localStorage. Returns false if VPS rejects.
+  // backend-authoritative: puterIslandKV.saveState writes to backend first,
+  // then caches in Puter KV + localStorage. Returns false If backend rejects.
   const saved = await puterIslandKV.saveState(state.id || userId, state);
   if (saved) return true;
 
-  // VPS was down — puterIslandKV already queued a dirty write in Puter KV.
+  // backend was down — puterIslandKV already queued a dirty write in Puter KV.
   // Also cache in localStorage as offline fallback.
   try { localStorage.setItem(`grudge_island_${userId}`, JSON.stringify(state)); } catch {}
   return false;
 }
 
 export async function loadIslandState(userId: string): Promise<IslandState | null> {
-  // puterIslandKV.loadState reads KV cache + VPS truth, compares lastUpdate,
+  // puterIslandKV.loadState reads KV cache + backend truth, compares lastUpdate,
   // and auto-syncs dirty writes. Returns the freshest state.
   const raw = await puterIslandKV.loadState<IslandState>(userId, userId);
   if (raw) return normalizeIslandStateData(raw, userId);
 
-  // If puterIslandKV returned null (no KV, no VPS), try localStorage
+  // If puterIslandKV returned null (no KV, No separate backend), try localStorage
   try {
     const cached = localStorage.getItem(`grudge_island_${userId}`);
     if (cached) return normalizeIslandStateData(JSON.parse(cached), userId);

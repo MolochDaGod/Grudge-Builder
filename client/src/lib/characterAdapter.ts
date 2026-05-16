@@ -2,21 +2,21 @@
  * Character Data Adapter
  *
  * Bridges the gap between Grudge Builder's rich character model (JSON blobs for
- * inventory, equipment, skills, professions, etc.) and the VPS game-api's flat
+ * inventory, equipment, skills, professions, etc.) and the backend game-api's flat
  * character table (id, grudge_id, name, race, class, level, hp, stats).
  *
  * Strategy:
- *   - Basic fields (name, race, class, level, hp, stats) → VPS
+ *   - Basic fields (name, race, class, level, hp, stats) → backend
  *   - Extended fields (inventory, equipment, professions, skills) → localStorage
- *     keyed by VPS character ID, until VPS schema is extended.
+ *     keyed by backend character ID, until backend schema is extended.
  */
 
 import type { Character } from "./characterManager";
 
 const EXT_PREFIX = "grudge_char_ext_";
 
-// ── VPS character shape (what api.grudge-studio.com returns) ──
-export interface VpsCharacter {
+// ── backend character shape (what api.grudge-studio.com returns) ──
+export interface BackendCharacter {
   id: number;
   grudge_id: string;
   name: string;
@@ -63,8 +63,8 @@ interface ExtendedCharacterData {
   chatHistory: Array<unknown>;
 }
 
-// ── Convert builder character → VPS create payload ───────────
-export function toVpsCreatePayload(char: Partial<Character>): {
+// ── Convert builder character → backend create payload ───────────
+export function toBackendCreatePayload(char: Partial<Character>): {
   name: string;
   race: string;
   class: string;
@@ -76,35 +76,35 @@ export function toVpsCreatePayload(char: Partial<Character>): {
   };
 }
 
-// ── Convert VPS character → Builder character (VPS is truth, localStorage is fallback) ──
-export function fromVpsCharacter(vps: VpsCharacter): Character {
-  const ext = loadExtendedData(String(vps.id));
-  // VPS character may now carry extended fields directly (JSONB columns)
-  const v = vps as any;
-  const hasVpsExtended = v.professionLevels || v.skillLoadouts || v.equipment;
+// ── Convert backend character → Builder character (backend is truth, localStorage is fallback) ──
+export function fromBackendCharacter(src: BackendCharacter): Character {
+  const ext = loadExtendedData(String(src.id));
+  // backend character may now carry extended fields directly (JSONB columns)
+  const v = src as any;
+  const hasBackendExtended = v.professionLevels || v.skillLoadouts || v.equipment;
 
   return {
-    id: String(vps.id),
-    name: vps.name,
-    raceId: vps.race,
-    classId: vps.class,
-    level: vps.level || 1,
+    id: String(src.id),
+    name: src.name,
+    raceId: src.race,
+    classId: src.class,
+    level: src.level || 1,
     xp: v.xp ?? ext?.xp ?? 0,
-    hp: vps.hp ?? ext?.hp ?? 100,
+    hp: src.hp ?? ext?.hp ?? 100,
     energy: v.energy ?? ext?.energy ?? 50,
     attributes: v.attributes ?? ext?.attributes ?? {
-      strength: vps.strength || 10,
-      dexterity: vps.dexterity || 10,
-      intelligence: vps.intelligence || 10,
+      strength: src.strength || 10,
+      dexterity: src.dexterity || 10,
+      intelligence: src.intelligence || 10,
     },
     equipment: v.equipment ?? ext?.equipment ?? {},
     inventory: v.inventory ?? ext?.inventory ?? [],
     professionLevels: v.professionLevels ?? ext?.professionLevels ?? {
-      mining: { level: vps.mining_lvl || 1, xp: 0 },
-      fishing: { level: vps.fishing_lvl || 1, xp: 0 },
-      woodcutting: { level: vps.woodcutting_lvl || 1, xp: 0 },
-      farming: { level: vps.farming_lvl || 1, xp: 0 },
-      hunting: { level: vps.hunting_lvl || 1, xp: 0 },
+      mining: { level: src.mining_lvl || 1, xp: 0 },
+      fishing: { level: src.fishing_lvl || 1, xp: 0 },
+      woodcutting: { level: src.woodcutting_lvl || 1, xp: 0 },
+      farming: { level: src.farming_lvl || 1, xp: 0 },
+      hunting: { level: src.hunting_lvl || 1, xp: 0 },
     },
     revivalTime: v.revivalTime ?? ext?.revivalTime ?? null,
     avatarUrl: v.avatarUrl ?? ext?.avatarUrl ?? null,
@@ -115,11 +115,11 @@ export function fromVpsCharacter(vps: VpsCharacter): Character {
     weaponSkillSelections: (v.weaponSkillSelections ?? ext?.weaponSkillSelections ?? {}) as any,
     equippedWeaponId: v.equippedWeaponId ?? ext?.equippedWeaponId ?? null,
     selectedSkills: v.selectedSkills ?? ext?.selectedSkills ?? {},
-    createdAt: vps.created_at ? new Date(vps.created_at).getTime() : Date.now(),
+    createdAt: src.created_at ? new Date(src.created_at).getTime() : Date.now(),
   };
 }
 
-// ── Save extended builder data (VPS-authoritative + localStorage cache) ──
+// ── Save extended builder data (backend-authoritative + localStorage cache) ──
 export async function saveExtendedData(
   charId: string,
   char: Partial<Character>,
@@ -145,7 +145,7 @@ export async function saveExtendedData(
     chatHistory: [],
   };
 
-  // VPS write — send ALL extended fields (characters table has JSONB columns for all of these)
+  // Backend write — send ALL extended fields (characters table has JSONB columns for all of these)
   try {
     const { authHeaders } = await import('@/lib/grudgeBackend');
     const res = await fetch(`/api/game/characters/${charId}`, {
@@ -168,9 +168,9 @@ export async function saveExtendedData(
         selectedSkills: data.selectedSkills,
       }),
     });
-    if (!res.ok) console.warn(`VPS character save failed: ${res.status}`);
+    if (!res.ok) console.warn(`backend character save failed: ${res.status}`);
   } catch (e) {
-    console.warn('VPS character sync failed, localStorage has the data:', e);
+    console.warn('backend character sync failed, localStorage has the data:', e);
   }
 
   // Always cache locally for fast reads + offline fallback

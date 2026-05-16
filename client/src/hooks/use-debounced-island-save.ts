@@ -2,7 +2,7 @@
  * Debounced Island Save Hook
  *
  * Instead of calling saveIslandState() on every React state update,
- * this hook marks state as dirty and flushes to VPS every 5 seconds.
+ * this hook marks state as dirty and flushes to backend every 5 seconds.
  * Prevents hammering the backend with rapid-fire PATCHes during
  * auto-harvest loops and hero movement.
  */
@@ -34,7 +34,7 @@ export function useDebouncedIslandSave(userId: string) {
     try {
       const ok = await saveIslandState(userId, state);
       if (!ok) {
-        // Save returned false (auth failure / VPS down) — don't re-dirty,
+        // Save returned false (auth failure / backend down) — don't re-dirty,
         // the data is already cached locally by saveIslandState.
         // The circuit breaker in puterIslandKV will prevent further spam.
       }

@@ -97,8 +97,6 @@ Frontend pages using these MUST use `BackendRequired` component for graceful deg
 | Service | URL | Host |
 |---------|-----|------|
 | Game Client | grudgewarlords.com | Vercel |
-| GrudgeDev Assistant | grudgedev-assistant.vercel.app | Vercel |
-| Grudge Engine Web (BabylonJS) | grudge-engine-web.vercel.app | Vercel (deprecated) |
 | Dashboard | dash.grudge-studio.com | Vercel |
 | Game API | api.grudge-studio.com | Railway (Docker) |
 | Auth / Identity | id.grudge-studio.com | Railway (Docker) |
