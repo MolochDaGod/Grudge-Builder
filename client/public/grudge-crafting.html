@@ -438,6 +438,289 @@ body {
 .toast.success { border-color: var(--green); color: var(--green); }
 .toast.error { border-color: var(--red); color: var(--red); }
 
+/* ======================== ACCOUNT SUB-TABS ======================== */
+.acct-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 16px;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 0;
+}
+.acct-tab-btn {
+  padding: 8px 18px;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--text-dim);
+  font-size: 12px;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.15s;
+  margin-bottom: -1px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.acct-tab-btn:hover { color: var(--text); }
+.acct-tab-btn.active { color: var(--gold); border-bottom-color: var(--gold); }
+.acct-tab-content { display: none; }
+.acct-tab-content.active { display: block; }
+
+/* Harvest result rows */
+.harvest-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 10px;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  font-size: 11px;
+}
+.harvest-row:last-child { border-bottom: none; }
+.harvest-row .mat-icon { font-size: 16px; width: 22px; text-align: center; }
+.harvest-row .mat-name { flex: 1; }
+.harvest-row .mat-qty {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--green);
+}
+.harvest-row .mat-time { font-size: 9px; color: var(--text-dim); min-width: 40px; text-align: right; }
+
+/* ======================== REWARD & LEVEL-UP ANIMATIONS ======================== */
+@keyframes rewardFloat {
+  0%   { opacity:1; transform:translateY(0) scale(1); }
+  50%  { opacity:1; transform:translateY(-55px) scale(1.06); }
+  100% { opacity:0; transform:translateY(-95px) scale(0.88); }
+}
+@keyframes levelBurst {
+  0%   { opacity:0; transform:scale(0.3) rotate(-8deg); }
+  25%  { opacity:1; transform:scale(1.06) rotate(1deg); }
+  65%  { opacity:1; transform:scale(1) rotate(0); }
+  85%  { opacity:1; transform:scale(1.02); }
+  100% { opacity:0; transform:scale(0.96); }
+}
+@keyframes shimmerSlide {
+  0%   { background-position:-200% center; }
+  100% { background-position:200% center; }
+}
+@keyframes harvestNew {
+  0%   { opacity:0; transform:translateX(-14px); background:rgba(34,197,94,0.14); }
+  35%  { background:rgba(34,197,94,0.07); }
+  100% { opacity:1; transform:translateX(0); background:transparent; }
+}
+@keyframes xpPop {
+  0%,100% { transform:scaleX(1); }
+  40%      { transform:scaleX(1.04); filter:brightness(1.5); }
+}
+@keyframes confettiFall {
+  0%   { transform:translateY(-12px) rotate(0deg) scale(1); opacity:1; }
+  100% { transform:translateY(70px) rotate(480deg) scale(0.6); opacity:0; }
+}
+@keyframes craftReadyPulse {
+  0%,100% { box-shadow:0 0 0 0 rgba(212,168,67,0); }
+  50%      { box-shadow:0 0 0 5px rgba(212,168,67,0.15); }
+}
+@keyframes slideDown {
+  from { opacity:0; transform:translateY(-8px); }
+  to   { opacity:1; transform:translateY(0); }
+}
+
+/* Level-up overlay */
+.lvl-overlay {
+  display:none;
+  position:fixed;
+  inset:0;
+  z-index:9000;
+  background:rgba(0,0,0,0.82);
+  backdrop-filter:blur(6px);
+  align-items:center;
+  justify-content:center;
+  flex-direction:column;
+  cursor:pointer;
+}
+.lvl-overlay.show { display:flex; animation:levelBurst 2.6s cubic-bezier(0.22,1,0.36,1) forwards; }
+.lvl-inner {
+  text-align:center;
+  padding:44px 64px;
+  background:linear-gradient(150deg,rgba(20,14,4,0.98),rgba(8,7,2,0.99));
+  border:2px solid var(--gold);
+  border-radius:20px;
+  box-shadow:0 0 80px rgba(212,168,67,0.45), 0 0 160px rgba(212,168,67,0.12), inset 0 0 40px rgba(212,168,67,0.03);
+  position:relative;
+  overflow:hidden;
+  min-width:320px;
+}
+.lvl-inner::before {
+  content:'';
+  position:absolute;
+  inset:0;
+  background:linear-gradient(90deg,transparent 0%,rgba(212,168,67,0.07) 50%,transparent 100%);
+  background-size:200% 100%;
+  animation:shimmerSlide 1.6s linear infinite;
+}
+.lvl-confetti { position:absolute; inset:0; pointer-events:none; overflow:hidden; }
+.confetti-dot {
+  position:absolute;
+  width:7px;
+  height:7px;
+  border-radius:2px;
+  animation:confettiFall 1.2s ease-in forwards;
+}
+.lvl-badge { font-size:64px; line-height:1; margin-bottom:10px; }
+.lvl-title {
+  font-family:'Cinzel',serif;
+  font-size:10px;
+  letter-spacing:0.4em;
+  text-transform:uppercase;
+  color:var(--gold-dim);
+  margin-bottom:8px;
+}
+.lvl-prof {
+  font-family:'Cinzel',serif;
+  font-size:24px;
+  font-weight:900;
+  color:var(--gold-bright);
+  text-shadow:0 0 28px var(--gold);
+  margin-bottom:6px;
+}
+.lvl-number {
+  font-family:'JetBrains Mono',monospace;
+  font-size:80px;
+  font-weight:700;
+  color:var(--gold);
+  line-height:0.9;
+  text-shadow:0 0 50px var(--gold), 0 0 20px rgba(255,200,50,0.5);
+}
+.lvl-desc {
+  font-size:11px;
+  color:var(--text-dim);
+  margin-top:14px;
+  letter-spacing:0.08em;
+}
+.lvl-dismiss {
+  font-size:9px;
+  color:rgba(255,255,255,0.2);
+  margin-top:20px;
+  letter-spacing:0.2em;
+  text-transform:uppercase;
+}
+
+/* Floating reward popups */
+.reward-popup {
+  position:fixed;
+  pointer-events:none;
+  z-index:8000;
+  animation:rewardFloat 1.8s ease-out forwards;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:3px;
+}
+.reward-line {
+  font-family:'JetBrains Mono',monospace;
+  font-size:13px;
+  font-weight:700;
+  padding:3px 10px;
+  background:rgba(0,0,0,0.82);
+  border-radius:5px;
+  border:1px solid rgba(255,255,255,0.08);
+  white-space:nowrap;
+  text-shadow:0 2px 8px rgba(0,0,0,0.9);
+}
+.reward-line.gold  { color:var(--gold); border-color:rgba(212,168,67,0.25); }
+.reward-line.green { color:var(--green); border-color:rgba(34,197,94,0.25); }
+.reward-line.blue  { color:var(--blue);  border-color:rgba(96,165,250,0.25); }
+.reward-line.lvl   { color:#facc15; border-color:rgba(250,204,21,0.4); font-size:14px; }
+
+/* Craft-ready suggestion cards */
+.craft-hint {
+  display:flex;
+  align-items:center;
+  gap:12px;
+  padding:10px 14px;
+  border-radius:8px;
+  border:1px solid rgba(212,168,67,0.28);
+  background:linear-gradient(135deg,rgba(212,168,67,0.07),rgba(212,168,67,0.02));
+  cursor:pointer;
+  transition:all 0.16s;
+  margin-bottom:6px;
+  position:relative;
+  overflow:hidden;
+  animation:slideDown 0.25s ease;
+}
+.craft-hint::after {
+  content:'';
+  position:absolute;
+  inset:0;
+  background:linear-gradient(90deg,transparent,rgba(212,168,67,0.05),transparent);
+  background-size:200% 100%;
+  animation:shimmerSlide 2.8s linear infinite;
+}
+.craft-hint:hover { border-color:var(--gold); transform:translateY(-1px); box-shadow:0 4px 16px rgba(212,168,67,0.12); }
+.craft-hint.new-unlock { animation:craftReadyPulse 1.2s ease 3; }
+.ch-icon { font-size:24px; }
+.ch-info { flex:1; min-width:0; }
+.ch-name { font-size:12px; font-weight:700; color:var(--text); }
+.ch-sub  { font-size:9px; color:var(--text-dim); margin-top:2px; }
+.ch-badge {
+  padding:3px 9px;
+  border-radius:5px;
+  font-family:'JetBrains Mono',monospace;
+  font-size:9px;
+  font-weight:700;
+  white-space:nowrap;
+  flex-shrink:0;
+}
+.ch-badge.ready  { background:rgba(34,197,94,0.15);  border:1px solid rgba(34,197,94,0.4);  color:var(--green); }
+.ch-badge.almost { background:rgba(245,158,11,0.12);  border:1px solid rgba(245,158,11,0.35); color:var(--orange); }
+
+/* Material progress bars (toward recipe threshold) */
+.mat-prog-row {
+  display:grid;
+  grid-template-columns:24px 1fr 2fr 52px;
+  align-items:center;
+  gap:8px;
+  padding:6px 2px;
+  border-bottom:1px solid rgba(255,255,255,0.03);
+}
+.mat-prog-row:last-child { border-bottom:none; }
+.mat-prog-icon { font-size:15px; text-align:center; }
+.mat-prog-name { font-size:11px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.mat-prog-wrap {
+  height:7px;
+  background:rgba(255,255,255,0.06);
+  border-radius:4px;
+  overflow:hidden;
+}
+.mat-prog-fill {
+  height:100%;
+  border-radius:4px;
+  transition:width 0.5s cubic-bezier(0.4,0,0.2,1);
+}
+.mat-prog-qty {
+  font-family:'JetBrains Mono',monospace;
+  font-size:10px;
+  text-align:right;
+}
+
+/* Gather streak badge */
+.streak-badge {
+  display:inline-flex;
+  align-items:center;
+  gap:5px;
+  padding:4px 12px;
+  border-radius:14px;
+  font-family:'JetBrains Mono',monospace;
+  font-size:11px;
+  font-weight:700;
+  background:linear-gradient(135deg,rgba(245,158,11,0.22),rgba(212,168,67,0.1));
+  border:1px solid rgba(245,158,11,0.45);
+  color:var(--orange);
+  animation:xpPop 0.45s ease;
+}
+
+/* Harvest-entry new flash */
+.harvest-entry-new { animation:harvestNew 0.55s ease-out; }
+
 /* Scrollbar */
 ::-webkit-scrollbar { width: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
@@ -494,6 +777,19 @@ body {
   <div class="main">
     <div id="toast" class="toast"></div>
 
+    <!-- LEVEL-UP OVERLAY (shown via showLevelUpBanner) -->
+    <div id="lvl-overlay" class="lvl-overlay" onclick="this.classList.remove('show')">
+      <div class="lvl-inner">
+        <div class="lvl-confetti" id="lvl-confetti"></div>
+        <div class="lvl-badge" id="lvl-badge">⚔️</div>
+        <div class="lvl-title">Profession Level Up</div>
+        <div class="lvl-prof" id="lvl-prof">Miner</div>
+        <div class="lvl-number" id="lvl-number">2</div>
+        <div class="lvl-desc" id="lvl-desc">New recipes unlocked. Keep crafting!</div>
+        <div class="lvl-dismiss">Tap to continue</div>
+      </div>
+    </div>
+
     <!-- DASHBOARD -->
     <div class="page active" id="page-dashboard">
       <div class="page-header"><h2 class="page-title">⚔ Crafting Dashboard</h2></div>
@@ -547,6 +843,8 @@ body {
         <button class="filter-btn" onclick="gatherMaterials()">🌿 Gather Materials</button>
       </div>
       <div class="recipe-filters" id="inv-filters"></div>
+      <!-- Ready-to-craft suggestions (updated after every gather) -->
+      <div id="inv-craft-ready"></div>
       <div class="inv-grid" id="inv-grid"></div>
     </div>
 
@@ -554,40 +852,102 @@ body {
     <div class="page" id="page-account">
       <div class="page-header"><h2 class="page-title">👤 Account</h2></div>
 
-      <!-- Grudge Warlords Characters -->
-      <div class="card" style="margin-bottom:12px">
-        <div class="card-title">⚔ Your Characters <span style="font-size:10px;color:var(--text-dim);font-family:Inter">(from grudgewarlords.com)</span></div>
-        <div id="acct-characters-list" style="font-size:11px;color:var(--text-dim)">Sign in to load your characters...</div>
+      <!-- Sub-tab bar -->
+      <div class="acct-tabs">
+        <button class="acct-tab-btn active" data-acct-tab="characters">⚔ Characters</button>
+        <button class="acct-tab-btn" data-acct-tab="crafting">🔨 Crafting Log</button>
+        <button class="acct-tab-btn" data-acct-tab="island">🏝 Home Island</button>
       </div>
 
-      <!-- Active Character Detail -->
-      <div class="card" id="acct-active-char-card" style="margin-bottom:12px;display:none">
-        <div class="card-title">🛡 Active Character</div>
-        <div id="acct-active-char"></div>
+      <!-- TAB: CHARACTERS -->
+      <div class="acct-tab-content active" id="acct-tab-characters">
+        <!-- All characters grid -->
+        <div class="card" style="margin-bottom:12px">
+          <div class="card-title">⚔ Your Characters
+            <span style="font-size:10px;color:var(--text-dim);font-family:Inter;font-weight:400">(from grudgewarlords.com)</span>
+            <button class="filter-btn" onclick="loginToGrudge()" style="float:right;margin-top:-2px">🔄 Refresh</button>
+          </div>
+          <div id="acct-characters-list" style="font-size:11px;color:var(--text-dim)">Sign in to load your characters...</div>
+        </div>
+        <!-- Active character detail -->
+        <div class="card" id="acct-active-char-card" style="margin-bottom:12px;display:none">
+          <div class="card-title">🛡 Active Character</div>
+          <div id="acct-active-char"></div>
+        </div>
+        <!-- Equipment & save/load -->
+        <div class="account-grid">
+          <div class="card">
+            <div class="card-title">Equipment</div>
+            <div id="acct-equip"></div>
+          </div>
+          <div class="card">
+            <div class="card-title">Save / Load</div>
+            <div id="acct-save"></div>
+          </div>
+        </div>
       </div>
 
-      <div class="account-grid">
+      <!-- TAB: CRAFTING LOG -->
+      <div class="acct-tab-content" id="acct-tab-crafting">
         <div class="card">
-          <div class="card-title">Character</div>
-          <div id="acct-char"></div>
+          <div class="card-title">🔨 Crafting Stats</div>
+          <div class="grid3" id="acct-stats" style="margin-bottom:12px"></div>
         </div>
         <div class="card">
-          <div class="card-title">Equipment</div>
-          <div id="acct-equip"></div>
+          <div class="card-title">Character Crafting History
+            <span id="acct-crafting-char-label" style="font-size:10px;color:var(--text-dim);font-weight:400;margin-left:6px"></span>
+          </div>
+          <!-- Per-character craft list -->
+          <div id="acct-char-craft-list"
+               style="max-height:340px;overflow-y:auto">
+            <div style="padding:12px;font-size:11px;color:var(--text-dim)">
+              Select a character from the Characters tab, then craft items to see them here.
+            </div>
+          </div>
         </div>
-      </div>
-      <div class="card" style="margin-top:12px">
-        <div class="card-title">Crafting Stats</div>
-        <div class="grid3" id="acct-stats"></div>
-      </div>
-      <div class="grid2" style="margin-top:12px">
-        <div class="card">
-          <div class="card-title">Save / Load</div>
-          <div id="acct-save"></div>
-        </div>
-        <div class="card">
-          <div class="card-title">Crafting Log</div>
+        <div class="card" style="margin-top:12px">
+          <div class="card-title">Full Activity Log</div>
           <div class="log" id="acct-log"></div>
+        </div>
+      </div>
+
+      <!-- TAB: HOME ISLAND -->
+      <div class="acct-tab-content" id="acct-tab-island">
+
+        <!-- Craft Suggestions from island stockpile -->
+        <div class="card">
+          <div class="card-title">✨ Suggested Crafts
+            <span style="font-size:9px;color:var(--text-dim);font-weight:400;margin-left:6px">from island stockpile · click to go craft</span>
+          </div>
+          <div id="island-craft-suggestions">
+            <div style="font-size:11px;color:var(--text-dim)">Load island data to see suggestions.</div>
+          </div>
+        </div>
+
+        <!-- Auto Harvest Live Feed -->
+        <div class="card">
+          <div class="card-title">🌱 Auto Harvest Feed
+            <button class="filter-btn" onclick="refreshIslandData()" style="float:right;margin-top:-2px">🔄 Refresh</button>
+          </div>
+          <div id="acct-island-harvest" style="font-size:11px;color:var(--text-dim)">
+            Loading island data...
+          </div>
+        </div>
+
+        <!-- Island Resource Progress (bars toward next recipe) -->
+        <div class="card">
+          <div class="card-title">📦 Island Stockpile
+            <span style="font-size:9px;color:var(--text-dim);font-weight:400;margin-left:6px">bars show progress toward nearest recipe</span>
+          </div>
+          <div id="acct-island-resources"></div>
+        </div>
+
+        <!-- Crafting Queue -->
+        <div class="card">
+          <div class="card-title">⚗ Island Crafting Queue</div>
+          <div id="acct-island-queue" style="font-size:11px;color:var(--text-dim)">
+            No queued crafts.
+          </div>
         </div>
       </div>
     </div>
@@ -614,6 +974,12 @@ const STATE = {
   grudgeCharacters: [],
   activeCharacterId: null,
   currentPage: 'dashboard',
+  // Account sub-tab: 'characters' | 'crafting' | 'island'
+  acctTab: 'characters',
+  // Per-character crafting history: { [charId]: CraftRecord[] }
+  characterCrafting: {},
+  // Home-island data per character fetched from Grudge API
+  islandData: {},
   selectedRecipe: null,
   filterTier: 'all',
   filterType: 'all',
@@ -638,6 +1004,8 @@ const STATE = {
   },
   log: [],
   stats: { totalCrafts: 0, itemsCrafted: 0, materialsUsed: 0, failedCrafts: 0 },
+  // Consecutive gather streak (resets if you navigate away and back)
+  gatherStreak: 0,
 };
 
 // ============================================================
@@ -792,6 +1160,7 @@ async function saveData() {
       stats: STATE.stats,
       log: STATE.log.slice(-50),
       activeCharacterId: STATE.activeCharacterId,
+      characterCrafting: STATE.characterCrafting,
     };
     await puter.kv.set('grudge-crafting-save', JSON.stringify(data));
   } catch(e) { console.error('Save failed:', e); }
@@ -809,6 +1178,7 @@ async function loadSaveData() {
       if (data.stats) STATE.stats = data.stats;
       if (data.log) STATE.log = data.log;
       if (data.activeCharacterId) STATE.activeCharacterId = data.activeCharacterId;
+      if (data.characterCrafting) STATE.characterCrafting = data.characterCrafting;
       renderAll();
       showToast('Save data loaded!', 'success');
     }
@@ -1028,7 +1398,17 @@ function finishCraft(recipe) {
       STATE.professions[prof].level++;
       STATE.professions[prof].xpNext = Math.floor(STATE.professions[prof].xpNext * 1.5);
       addLog(`🎉 ${prof} leveled up to ${STATE.professions[prof].level}!`, 'level');
-      showToast(`${prof} → Level ${STATE.professions[prof].level}!`, 'success');
+      // Full-screen level-up banner + floating XP pop
+      showLevelUpBanner(
+        prof,
+        STATE.professions[prof].level,
+        STATE.professions[prof].color,
+        STATE.professions[prof].icon
+      );
+      spawnRewardPop([
+        { text: `🎉 LEVEL UP!`, cls: 'lvl' },
+        { text: `${STATE.professions[prof].icon} ${prof} → Lv ${STATE.professions[prof].level}`, cls: 'gold' },
+      ]);
     }
   }
 
@@ -1036,6 +1416,19 @@ function finishCraft(recipe) {
   STATE.stats.totalCrafts++;
   STATE.stats.itemsCrafted++;
   STATE.stats.materialsUsed += matsUsed;
+
+  // Tag craft to active character for the Crafting Log sub-tab
+  if (STATE.activeCharacterId) {
+    if (!STATE.characterCrafting[STATE.activeCharacterId]) STATE.characterCrafting[STATE.activeCharacterId] = [];
+    STATE.characterCrafting[STATE.activeCharacterId].unshift({
+      item: recipe.n, icon: recipe.icon || '📦',
+      profession: prof, tier: recipe.tier, xp: xpGain,
+      time: new Date().toISOString(),
+    });
+    // Cap per-character history to 200 entries
+    if (STATE.characterCrafting[STATE.activeCharacterId].length > 200)
+      STATE.characterCrafting[STATE.activeCharacterId].length = 200;
+  }
 
   addLog(`🔨 Crafted ${recipe.n} (+${xpGain} ${prof} XP)`, 'craft');
   STATE.isCrafting = false;
@@ -1048,12 +1441,40 @@ function finishCraft(recipe) {
 // === INVENTORY ===
 function renderInventoryPage() {
   const items = Object.entries(STATE.inventory).sort((a,b) => b[1] - a[1]);
-  const types = ['all', 'material', 'crafted'];
 
   document.getElementById('inv-filters').innerHTML =
     `<button class="filter-btn active" onclick="renderInvFiltered('all',this)">All (${items.length})</button>
      <button class="filter-btn" onclick="renderInvFiltered('material',this)">Materials</button>
      <button class="filter-btn" onclick="renderInvFiltered('crafted',this)">Crafted</button>`;
+
+  // Ready-to-craft panel above the grid
+  const readyEl = document.getElementById('inv-craft-ready');
+  if (readyEl) {
+    const { ready } = getCraftSuggestions(STATE.inventory);
+    if (ready.length > 0) {
+      readyEl.innerHTML = `
+        <div style="margin-bottom:10px">
+          <div style="font-size:10px;letter-spacing:0.12em;text-transform:uppercase;
+                      color:var(--gold-dim);margin-bottom:8px;display:flex;align-items:center;gap:8px">
+            ✨ READY TO CRAFT
+            ${STATE.gatherStreak >= 3
+              ? `<span class="streak-badge">🔥 Streak ×${STATE.gatherStreak}</span>`
+              : ''}
+          </div>
+          ${ready.slice(0,6).map(r => `
+            <div class="craft-hint" onclick="navigate('crafting');selectRecipe('${r.id}');renderCraftingPage()">
+              <span class="ch-icon">${r.icon||'\ud83d\udce6'}</span>
+              <div class="ch-info">
+                <div class="ch-name">${r.n}</div>
+                <div class="ch-sub">${r.prof} · T${r.tier} · ${r.desc}</div>
+              </div>
+              <span class="ch-badge ready">✓ CRAFT NOW</span>
+            </div>`).join('')}
+        </div>`;
+    } else {
+      readyEl.innerHTML = '';
+    }
+  }
 
   renderInvItems(items);
 }
@@ -1077,25 +1498,255 @@ function renderInvItems(items) {
   }).join('') || '<div style="padding:20px;text-align:center;color:var(--text-dim)">Inventory is empty</div>';
 }
 
+// ============================================================
+// REWARD UX: level-up banner, floating pops, craft suggestions
+// ============================================================
+
+/**
+ * Show the full-screen level-up overlay with confetti.
+ */
+function showLevelUpBanner(profName, level, color, icon) {
+  const overlay = document.getElementById('lvl-overlay');
+  if (!overlay) return;
+
+  document.getElementById('lvl-badge').textContent  = icon;
+  document.getElementById('lvl-prof').textContent   = profName;
+  document.getElementById('lvl-prof').style.color   = color;
+  document.getElementById('lvl-number').textContent = level;
+  document.getElementById('lvl-number').style.textShadow = `0 0 50px ${color}, 0 0 20px ${color}50`;
+
+  // Profession-specific level desc
+  const descs = {
+    Miner:'New ore veins unlocked. Forge stronger weapons.',
+    Forester:'Deeper timber and better leather await.',
+    Mystic:'Arcane energies bend to your will.',
+    Chef:'Richer recipes and mightier buffs unlocked.',
+    Engineer:'Advanced mechanisms are now within reach.',
+  };
+  document.getElementById('lvl-desc').textContent = descs[profName] || 'New crafting recipes unlocked!';
+
+  // Confetti burst
+  const confettiEl = document.getElementById('lvl-confetti');
+  confettiEl.innerHTML = '';
+  const colors = [color, '#f0c040', '#ffffff', '#22c55e', '#60a5fa', '#a78bfa'];
+  for (let i = 0; i < 22; i++) {
+    const dot = document.createElement('div');
+    dot.className = 'confetti-dot';
+    dot.style.cssText = [
+      `left:${5 + Math.random() * 90}%`,
+      `top:${10 + Math.random() * 60}%`,
+      `background:${colors[i % colors.length]}`,
+      `animation-delay:${Math.random() * 0.4}s`,
+      `animation-duration:${0.8 + Math.random() * 0.7}s`,
+      `width:${4 + Math.random() * 6}px`,
+      `height:${4 + Math.random() * 6}px`,
+    ].join(';');
+    confettiEl.appendChild(dot);
+  }
+
+  // Restart animation
+  overlay.classList.remove('show');
+  void overlay.offsetWidth; // reflow
+  overlay.classList.add('show');
+
+  // Auto-dismiss after 2.8s
+  setTimeout(() => overlay.classList.remove('show'), 2800);
+}
+
+/**
+ * Spawn a floating reward popup at the center-bottom of the screen.
+ * items: array of { text, cls } where cls is 'gold'|'green'|'blue'|'lvl'
+ */
+function spawnRewardPop(items) {
+  const pop = document.createElement('div');
+  pop.className = 'reward-popup';
+  // Position roughly center of viewport, slightly above bottom
+  const vx = window.innerWidth  * 0.5;
+  const vy = window.innerHeight * 0.65;
+  pop.style.left = (vx - 60) + 'px';
+  pop.style.top  = vy + 'px';
+  items.forEach(({ text, cls }) => {
+    const line = document.createElement('div');
+    line.className = 'reward-line ' + (cls || 'green');
+    line.textContent = text;
+    pop.appendChild(line);
+  });
+  document.body.appendChild(pop);
+  setTimeout(() => pop.remove(), 1900);
+}
+
+/**
+ * Compute craft suggestions from a given inventory map.
+ * Returns { ready: Recipe[], almost: Recipe[] } — ready = all mats present;
+ * almost = missing at most 1 unique material type.
+ */
+function getCraftSuggestions(inv) {
+  const ready = [], almost = [];
+  for (const r of RECIPES) {
+    if (!r.mats) continue;
+    const mats = Object.entries(r.mats);
+    const missingMats = mats.filter(([n, q]) => (inv[n] || 0) < q);
+    if (missingMats.length === 0) {
+      ready.push(r);
+    } else if (missingMats.length === 1) {
+      const [n, need] = missingMats[0];
+      const have = inv[n] || 0;
+      // Only "almost" if at least 50% of that one material is in stock
+      if (have >= need * 0.5) almost.push(r);
+    }
+  }
+  return { ready: ready.slice(0, 8), almost: almost.slice(0, 6) };
+}
+
+/**
+ * Render craft suggestion cards into a DOM element by id.
+ * source: 'inventory' | 'island'
+ */
+function renderCraftSuggestionsPanel(elId, inv, source) {
+  const el = document.getElementById(elId);
+  if (!el) return;
+  const { ready, almost } = getCraftSuggestions(inv);
+
+  if (ready.length === 0 && almost.length === 0) {
+    el.innerHTML = `<div style="font-size:11px;color:var(--text-dim);padding:4px">
+      Gather more materials to unlock crafting suggestions.
+    </div>`;
+    return;
+  }
+
+  const cards = [
+    ...ready.map(r => ({
+      r, badge: 'ready', label: '✓ READY',
+      sub: r.prof + ' · T' + r.tier + ' · ' + r.type + ' · ' + r.desc,
+    })),
+    ...almost.map(r => {
+      const missMat = Object.entries(r.mats).find(([n,q]) => (inv[n]||0) < q);
+      const stillNeed = missMat ? `${r.mats[missMat[0]] - (inv[missMat[0]]||0)}× ${missMat[0]}` : '';
+      return { r, badge: 'almost', label: `≈ ALMOST (+${stillNeed})`,
+        sub: r.prof + ' · T' + r.tier + ' · ' + r.desc };
+    }),
+  ];
+
+  el.innerHTML = cards.map(({ r, badge, label, sub }) =>
+    `<div class="craft-hint ${badge === 'ready' ? 'new-unlock' : ''}" onclick="navigate('crafting');selectRecipe('${r.id}');renderCraftingPage()">
+      <span class="ch-icon">${r.icon || '\ud83d\udce6'}</span>
+      <div class="ch-info">
+        <div class="ch-name">${r.n}</div>
+        <div class="ch-sub">${sub}</div>
+      </div>
+      <span class="ch-badge ${badge}">${label}</span>
+    </div>`
+  ).join('');
+}
+
+/**
+ * Render material-progress bars toward the nearest recipe needing each mat.
+ * Renders into `elId`.
+ */
+function renderMatProgressBars(elId, inv) {
+  const el = document.getElementById(elId);
+  if (!el) return;
+  if (!inv || Object.keys(inv).length === 0) {
+    el.innerHTML = '<div style="font-size:11px;color:var(--text-dim)">No resources stockpiled yet.</div>';
+    return;
+  }
+
+  // For each material in inv, find the maximum required qty across recipes
+  const rows = Object.entries(inv)
+    .map(([mat, have]) => {
+      const maxNeeded = RECIPES.reduce((mx, r) => {
+        return Math.max(mx, r.mats?.[mat] || 0);
+      }, 0);
+      return { mat, have, need: maxNeeded || have };
+    })
+    .sort((a, b) => (b.have / b.need) - (a.have / a.need))
+    .slice(0, 16);
+
+  if (rows.length === 0) {
+    el.innerHTML = '<div style="font-size:11px;color:var(--text-dim)">No resources.</div>';
+    return;
+  }
+
+  el.innerHTML = rows.map(({ mat, have, need }) => {
+    const pct = Math.min(100, Math.round((have / need) * 100));
+    const color = pct >= 100 ? 'var(--green)' : pct >= 50 ? 'var(--gold)' : 'var(--orange)';
+    return `<div class="mat-prog-row">
+      <span class="mat-prog-icon">${MAT_ICONS[mat] || '\ud83d\udce6'}</span>
+      <span class="mat-prog-name">${mat}</span>
+      <div class="mat-prog-wrap"><div class="mat-prog-fill" style="width:${pct}%;background:${color}"></div></div>
+      <span class="mat-prog-qty" style="color:${pct>=100?'var(--green)':'var(--gold)'}">×${have}</span>
+    </div>`;
+  }).join('');
+}
+
+// ============================================================
+// ENHANCED GATHER MATERIALS
+// ============================================================
 function gatherMaterials() {
   const gatherables = [
     'Wood Scraps','Stone Fragments','Plant Fiber','Animal Hide','Animal Bone',
     'Raw Meat','Wild Herbs','Water','Junk Ore','Torn Rag','Leather Scraps',
     'Charcoal','Rotted Wood','Herb','Copper Ore','Pine Log','Arcane Dust'
   ];
-  const count = 3 + Math.floor(Math.random() * 5);
+
+  // Bonus rolls every 3rd consecutive gather (streak system)
+  STATE.gatherStreak = (STATE.gatherStreak || 0) + 1;
+  const bonusRolls = Math.floor(STATE.gatherStreak / 3);
+  const count = 3 + Math.floor(Math.random() * 5) + bonusRolls;
+
   const gathered = [];
+  const newlyUnlocked = []; // recipes just-become-craftable this gather
+
+  // Snapshot crafting state before gather to detect newly unlocked recipes
+  const preReady = new Set(RECIPES.filter(r => checkCanCraft(r)).map(r => r.id));
+
   for (let i = 0; i < count; i++) {
     const mat = gatherables[Math.floor(Math.random() * gatherables.length)];
     const qty = 1 + Math.floor(Math.random() * 3);
     STATE.inventory[mat] = (STATE.inventory[mat] || 0) + qty;
-    gathered.push(`${qty}× ${mat}`);
+    gathered.push({ mat, qty, icon: MAT_ICONS[mat] || '\ud83d\udce6' });
   }
-  addLog(`🌿 Gathered: ${gathered.join(', ')}`, 'craft');
-  showToast(`Gathered ${count} items!`, 'success');
+
+  // Detect newly-craftable recipes after gather
+  RECIPES.forEach(r => {
+    if (!preReady.has(r.id) && checkCanCraft(r)) newlyUnlocked.push(r);
+  });
+
+  // Log
+  const logStr = gathered.map(g => `${g.qty}× ${g.mat}`).join(', ');
+  addLog(`🌿 Gathered: ${logStr}${bonusRolls ? ' (+bonus roll!)' : ''}`, 'craft');
+
+  // --- Floating reward pop ---
+  const popItems = gathered.slice(0, 5).map(g => ({
+    text: `+${g.qty}  ${g.icon} ${g.mat}`,
+    cls: 'green',
+  }));
+  if (gathered.length > 5) popItems.push({ text: `+${gathered.length - 5} more…`, cls: 'gold' });
+  if (newlyUnlocked.length > 0) {
+    popItems.push({ text: `✨ ${newlyUnlocked.length} recipe${newlyUnlocked.length > 1 ? 's' : ''} ready!`, cls: 'lvl' });
+  }
+  if (bonusRolls > 0) {
+    popItems.unshift({ text: `🔥 Streak x${STATE.gatherStreak} — bonus items!`, cls: 'gold' });
+  }
+  spawnRewardPop(popItems);
+
+  // --- Streak badge in log area ---
+  if (STATE.gatherStreak >= 3) {
+    showToast(`🔥 Gather streak ${STATE.gatherStreak}! Bonus loot added.`, 'success');
+  } else {
+    showToast(`Gathered ${count} items!`, 'success');
+  }
+
   updateSidebarBadges();
   renderInventoryPage();
   saveData();
+
+  // --- Newly-unlocked recipe toast with small delay ---
+  if (newlyUnlocked.length > 0) {
+    setTimeout(() => {
+      showToast(`✨ ${newlyUnlocked[0].n} is now craftable!`, 'success');
+    }, 600);
+  }
 }
 
 // === GRUDGE WARLORDS API ===
@@ -1228,28 +1879,43 @@ function renderActiveCharacter() {
   `;
 }
 
-// === ACCOUNT ===
+// ============================================================
+// ACCOUNT PAGE — sub-tab dispatch
+// ============================================================
 function renderAccountPage() {
   // Fetch characters if not loaded yet
   if (STATE.grudgeCharacters.length === 0 && STATE.user) loginToGrudge();
+
+  // Route to active sub-tab
+  const t = STATE.acctTab;
+  if (t === 'characters') renderAcctCharacters();
+  else if (t === 'crafting')  renderAcctCrafting();
+  else if (t === 'island')    renderAcctIsland();
+}
+
+// Wire tab buttons (runs once after DOM ready)
+function initAcctTabs() {
+  document.querySelectorAll('.acct-tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.acct-tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.acct-tab-content').forEach(c => c.classList.remove('active'));
+      btn.classList.add('active');
+      const id = 'acct-tab-' + btn.dataset.acctTab;
+      document.getElementById(id)?.classList.add('active');
+      STATE.acctTab = btn.dataset.acctTab;
+      renderAccountPage();
+    });
+  });
+}
+
+// --- Characters sub-tab ---
+function renderAcctCharacters() {
   renderCharactersList();
   renderActiveCharacter();
 
-  // Character info
-  document.getElementById('acct-char').innerHTML = `
-    <div style="display:flex;align-items:center;gap:16px;margin-bottom:12px">
-      <div style="width:64px;height:64px;border-radius:50%;background:rgba(212,168,67,0.1);border:2px solid var(--gold);display:flex;align-items:center;justify-content:center;font-size:28px">⚔</div>
-      <div>
-        <div style="font-size:16px;font-weight:700;color:var(--gold)">${STATE.user ? STATE.user.username : 'Guest Warlord'}</div>
-        <div style="font-size:10px;color:var(--text-dim)">Grudge Warlords · Crafting Suite</div>
-        <div style="font-size:10px;color:var(--text-dim);margin-top:4px">Total Crafts: ${STATE.stats.totalCrafts} · Items: ${STATE.stats.itemsCrafted}</div>
-      </div>
-    </div>
-  `;
-
   // Equipment
   const slots = ['head','chest','hands','feet','weapon','shield','ring','necklace'];
-  const slotIcons = {head:'⛑️',chest:'🛡️',hands:'🧤',feet:'👢',weapon:'⚔️',shield:'🛡️',ring:'💍',necklace:'📿'};
+  const slotIcons = {head:'\u26d1\ufe0f',chest:'\ud83d\udee1\ufe0f',hands:'\ud83e\udde4',feet:'\ud83d\udc62',weapon:'\u2694\ufe0f',shield:'\ud83d\udee1\ufe0f',ring:'\ud83d\udc8d',necklace:'\ud83d\udce7'};
   document.getElementById('acct-equip').innerHTML = slots.map(s => {
     const item = STATE.equipment[s];
     return `<div class="equip-slot">
@@ -1258,6 +1924,21 @@ function renderAccountPage() {
     </div>`;
   }).join('');
 
+  // Save/Load
+  document.getElementById('acct-save').innerHTML = `
+    <p style="font-size:11px;color:var(--text-dim);margin-bottom:10px">
+      ${STATE.user ? `Signed in as <strong>${STATE.user.username}</strong>. Data auto-saves to Puter cloud.` : 'Sign in to enable cloud saves.'}
+    </p>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="filter-btn" onclick="saveData();showToast('Saved!','success')" ${STATE.user?'':'disabled'}>\ud83d\udcbe Save Now</button>
+      <button class="filter-btn" onclick="loadSaveData()" ${STATE.user?'':'disabled'}>\ud83d\udcc2 Reload</button>
+      <button class="filter-btn" onclick="resetData()" style="border-color:rgba(239,68,68,0.3);color:#f87171">\ud83d\uddd1\ufe0f Reset</button>
+    </div>
+  `;
+}
+
+// --- Crafting Log sub-tab ---
+function renderAcctCrafting() {
   // Stats
   document.getElementById('acct-stats').innerHTML = `
     <div class="stat-card"><div class="stat-val">${STATE.stats.totalCrafts}</div><div class="stat-label">Crafts</div></div>
@@ -1265,17 +1946,177 @@ function renderAccountPage() {
     <div class="stat-card"><div class="stat-val">${STATE.stats.failedCrafts}</div><div class="stat-label">Failed</div></div>
   `;
 
-  // Save/Load
-  document.getElementById('acct-save').innerHTML = `
-    <p style="font-size:11px;color:var(--text-dim);margin-bottom:10px">${STATE.user ? 'Data auto-saves to Puter cloud.' : 'Sign in to enable cloud saves.'}</p>
-    <div style="display:flex;gap:8px">
-      <button class="filter-btn" onclick="saveData();showToast('Saved!','success')" ${STATE.user?'':'disabled'}>💾 Save Now</button>
-      <button class="filter-btn" onclick="loadSaveData()" ${STATE.user?'':'disabled'}>📂 Reload</button>
-      <button class="filter-btn" onclick="resetData()" style="border-color:rgba(239,68,68,0.3);color:#f87171">🗑️ Reset</button>
-    </div>
-  `;
+  // Per-character craft list
+  const char = STATE.grudgeCharacters.find(c => c.id === STATE.activeCharacterId);
+  const labelEl = document.getElementById('acct-crafting-char-label');
+  if (labelEl) labelEl.textContent = char ? `— ${char.name}` : '(no character selected)';
+
+  const listEl = document.getElementById('acct-char-craft-list');
+  if (!listEl) return;
+  const charCrafts = (STATE.activeCharacterId && STATE.characterCrafting[STATE.activeCharacterId]) || [];
+
+  if (!STATE.activeCharacterId) {
+    listEl.innerHTML = '<div style="padding:12px;font-size:11px;color:var(--text-dim)">Select a character from the Characters tab.</div>';
+  } else if (charCrafts.length === 0) {
+    listEl.innerHTML = '<div style="padding:12px;font-size:11px;color:var(--text-dim)">No crafts recorded for this character yet. Go craft something!</div>';
+  } else {
+    const profColors = { Miner:'#ef4444',Forester:'#22c55e',Mystic:'#a78bfa',Chef:'#f59e0b',Engineer:'#60a5fa',All:'#888' };
+    listEl.innerHTML = charCrafts.slice(0, 60).map(r => {
+      const t = new Date(r.time).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
+      const col = profColors[r.profession] || '#888';
+      return `<div class="harvest-row">
+        <span class="mat-icon">${r.icon || '\ud83d\udce6'}</span>
+        <span class="mat-name">${r.item}</span>
+        <span style="font-size:9px;color:${col};min-width:60px">${r.profession} T${r.tier}</span>
+        <span class="mat-qty">+${r.xp} XP</span>
+        <span class="mat-time">${t}</span>
+      </div>`;
+    }).join('');
+  }
 
   renderLog('acct-log');
+}
+
+// --- Home Island sub-tab (fully enhanced) ---
+function renderAcctIsland() {
+  const id = STATE.activeCharacterId;
+  const island = id ? STATE.islandData[id] : null;
+
+  const harvestEl  = document.getElementById('acct-island-harvest');
+  const queueEl    = document.getElementById('acct-island-queue');
+  const resEl      = document.getElementById('acct-island-resources');
+  const suggestEl  = document.getElementById('island-craft-suggestions');
+
+  if (!id) {
+    if (harvestEl)  harvestEl.innerHTML  = '<div style="padding:8px;font-size:11px;color:var(--text-dim)">Select a character from the Characters tab first.</div>';
+    if (queueEl)    queueEl.innerHTML    = '<div style="font-size:11px;color:var(--text-dim)">No character selected.</div>';
+    if (resEl)      resEl.innerHTML      = '';
+    if (suggestEl)  suggestEl.innerHTML  = '<div style="font-size:11px;color:var(--text-dim)">Select a character to see suggestions.</div>';
+    return;
+  }
+
+  if (!island) {
+    if (harvestEl)  harvestEl.innerHTML  = '<div style="padding:8px;font-size:11px;color:var(--text-dim)">Fetching island data…</div>';
+    if (suggestEl)  suggestEl.innerHTML  = '<div style="font-size:11px;color:var(--text-dim)">Loading…</div>';
+    fetchIslandData(id);
+    return;
+  }
+
+  // ── Craft suggestions from island stockpile ────────────────────────────
+  const resources  = island.resources || {};
+  renderCraftSuggestionsPanel('island-craft-suggestions', resources, 'island');
+
+  // ── Auto-harvest live feed ─────────────────────────────────────────────
+  const harvests = island.harvests || [];
+  if (harvestEl) {
+    if (harvests.length === 0) {
+      harvestEl.innerHTML = `<div style="padding:12px;font-size:11px;color:var(--text-dim);text-align:center">
+        🌳 Your island workers are en route. Check back soon!
+      </div>`;
+    } else {
+      // Running total across all harvests
+      const totals = {};
+      harvests.forEach(h => { totals[h.material] = (totals[h.material] || 0) + h.quantity; });
+      const totalLines = Object.entries(totals)
+        .sort((a,b) => b[1] - a[1]).slice(0, 4)
+        .map(([m,q]) => `<span style="font-size:10px;padding:1px 6px;border-radius:4px;background:rgba(34,197,94,0.12);color:var(--green)">${MAT_ICONS[m]||'\ud83d\udce6'} ${q}</span>`).join(' ');
+
+      harvestEl.innerHTML = `
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap">
+          <span style="font-size:10px;color:var(--text-dim)">This session:</span>
+          ${totalLines}
+          <span style="font-size:9px;color:var(--text-dim);margin-left:auto">${harvests.length} harvest events</span>
+        </div>
+        <div style="max-height:240px;overflow-y:auto">
+          ${harvests.map((h, i) => `
+            <div class="harvest-row ${i < 3 ? 'harvest-entry-new' : ''}" style="animation-delay:${i * 0.05}s">
+              <span class="mat-icon">${MAT_ICONS[h.material] || '\ud83d\udce6'}</span>
+              <span class="mat-name">${h.material}</span>
+              <span style="font-size:9px;color:var(--text-dim);min-width:55px">${h.source || 'Island'}</span>
+              <span class="mat-qty">+${h.quantity}</span>
+              <span class="mat-time">${h.elapsed || ''}</span>
+            </div>`).join('')}
+        </div>`;
+    }
+  }
+
+  // ── Resource progress bars ─────────────────────────────────────────────
+  renderMatProgressBars('acct-island-resources', resources);
+
+  // ── Crafting queue with progress bars ─────────────────────────────────
+  const queue = island.craftingQueue || [];
+  if (queueEl) {
+    if (queue.length === 0) {
+      queueEl.innerHTML = `<div style="font-size:11px;color:var(--text-dim)">
+        No crafts queued. <a href="https://grudgewarlords.com" target="_blank" style="color:var(--gold)">Visit grudgewarlords.com</a> to queue island crafts.
+      </div>`;
+    } else {
+      const totalDone = queue.filter(q => (q.progress||0) >= 100).length;
+      queueEl.innerHTML = `
+        ${totalDone > 0 ? `<div style="font-size:10px;color:var(--green);margin-bottom:8px">✓ ${totalDone} craft${totalDone>1?'s':''} complete — collect in game!</div>` : ''}
+        ${queue.map(q => {
+          const pct = q.progress || 0;
+          const done = pct >= 100;
+          const barColor = done ? 'var(--green)' : 'var(--gold)';
+          return `<div style="padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.04)">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">
+              <span style="font-size:12px">${q.icon||'\ud83d\udce6'} ${q.item}</span>
+              <span style="font-size:10px;color:${done?'var(--green)':'var(--text-dim)'}">${done ? '✓ Done' : pct + '%'}</span>
+            </div>
+            <div style="height:6px;background:rgba(255,255,255,0.06);border-radius:3px;overflow:hidden">
+              <div style="height:100%;width:${pct}%;background:${barColor};border-radius:3px;transition:width 0.5s ease"></div>
+            </div>
+          </div>`;
+        }).join('')}`;
+    }
+  }
+}
+
+// --- Fetch island data from Grudge API (with Puter KV fallback) ---
+async function fetchIslandData(charId) {
+  try {
+    if (STATE.grudgeToken) {
+      const res = await fetch(`${GRUDGE_API}/characters/${charId}/island`, {
+        headers: { 'Authorization': 'Bearer ' + STATE.grudgeToken }
+      });
+      if (res.ok) {
+        STATE.islandData[charId] = await res.json();
+        if (STATE.acctTab === 'island') renderAcctIsland();
+        // Cache result in Puter KV
+        if (STATE.user) {
+          try { await puter.kv.set(`grudge-island-${charId}`, JSON.stringify(STATE.islandData[charId])); } catch {}
+        }
+        return;
+      }
+    }
+  } catch(e) { console.warn('Island API failed:', e); }
+
+  // Puter KV fallback
+  try {
+    if (STATE.user) {
+      const raw = await puter.kv.get(`grudge-island-${charId}`);
+      if (raw) {
+        STATE.islandData[charId] = JSON.parse(raw);
+        if (STATE.acctTab === 'island') renderAcctIsland();
+        return;
+      }
+    }
+  } catch {}
+
+  // Nothing found — show empty state
+  STATE.islandData[charId] = { harvests: [], craftingQueue: [], resources: {} };
+  const el = document.getElementById('acct-island-harvest');
+  if (el) el.innerHTML = `<div style="padding:8px;font-size:11px;color:var(--text-dim)">
+    Island data not available yet. <a href="https://grudgewarlords.com" target="_blank" style="color:var(--gold)">Visit grudgewarlords.com</a> to set up your home island.
+  </div>`;
+}
+
+// Refresh button handler for island tab
+function refreshIslandData() {
+  const id = STATE.activeCharacterId;
+  if (!id) { showToast('Select a character first', 'error'); return; }
+  delete STATE.islandData[id];
+  renderAcctIsland();
 }
 
 function resetData() {
@@ -1365,6 +2206,7 @@ function showToast(msg, type='') {
 // INIT
 // ============================================================
 addLog('⚔ Grudge Crafting Suite initialized');
+initAcctTabs();
 renderAll();
 if (typeof puter !== 'undefined') checkAuth();
 </script>
