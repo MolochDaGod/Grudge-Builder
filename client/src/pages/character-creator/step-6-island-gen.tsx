@@ -5,6 +5,9 @@ import { ChevronLeft, Loader2, RotateCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { CharacterCreatorState } from "./index";
+import { CharacterManager } from "@/lib/characterManager";
+import HomeIslandPreview from "@/components/HomeIslandPreview";
+import { normalizeHomeIslandResponse } from "@/lib/homeIslandApi";
 
 interface Step6IslandGenProps {
   state: CharacterCreatorState;
@@ -17,8 +20,10 @@ export default function Step6IslandGen({ state, updateState, onPrev }: Step6Isla
   const { toast } = useToast();
   const [isRerolling, setIsRerolling] = useState(false);
   const [isLaunching, setIsLaunching] = useState(false);
+  const [launchReady, setLaunchReady] = useState(false);
 
-  const islandState = state.islandState;
+  const islandDto = state.homeIsland ? normalizeHomeIslandResponse(state.homeIsland) : null;
+  const islandState = islandDto?.state ?? state.islandState;
 
   const handleRerollIsland = async () => {
     if (!state.homeIsland?.id) return;
@@ -29,15 +34,16 @@ export default function Step6IslandGen({ state, updateState, onPrev }: Step6Isla
         method: "POST",
         headers: { "Content-Type": "application/json" }
       });
+      setLaunchReady(false);
 
       if (!response.ok) {
         throw new Error("Failed to regenerate island");
       }
 
-      const newIsland = await response.json();
+      const newIsland = normalizeHomeIslandResponse(await response.json());
       updateState({
         homeIsland: newIsland,
-        islandState: newIsland
+        islandState: newIsland.state
       });
 
       toast({
@@ -84,17 +90,20 @@ export default function Step6IslandGen({ state, updateState, onPrev }: Step6Isla
       }
 
       const result = await response.json();
+      const resolvedIsland = normalizeHomeIslandResponse(result?.island ?? state.homeIsland);
+      updateState({
+        homeIsland: resolvedIsland,
+        islandState: resolvedIsland.state,
+      });
+      if (state.character?.id) {
+        CharacterManager.setActive(state.character.id);
+      }
 
       toast({
         title: "Welcome Commander!",
-        description: "Your empire awaits. Launching Grudge Wars..."
+        description: "Your home island is committed. Choose how you want to enter the world."
       });
-
-      // Redirect to game or show success modal
-      // For now, navigate to home or specific game route
-      setTimeout(() => {
-        navigate("/rts-grudge");
-      }, 1500);
+      setLaunchReady(true);
     } catch (error) {
       console.error("Land commitment failed:", error);
       toast({
@@ -123,59 +132,43 @@ export default function Step6IslandGen({ state, updateState, onPrev }: Step6Isla
       {/* Island Preview */}
       {islandState ? (
         <div className="space-y-6 mb-8">
-          {/* Island Display Placeholder */}
-          {/* In a real implementation, this would be the IslandRenderer component */}
-          <div className="bg-gradient-to-b from-slate-800 to-slate-900 border border-slate-700 rounded-xl p-8 min-h-[400px] flex flex-col items-center justify-center relative overflow-hidden">
-            {/* Background pattern */}
-            <div className="absolute inset-0 opacity-5">
-              <div className="w-full h-full" style={{
-                backgroundImage: 'radial-gradient(circle, #fff 1px, transparent 1px)',
-                backgroundSize: '20px 20px'
-              }} />
-            </div>
-
-            <div className="relative z-10 text-center">
-              <div className="text-8xl mb-4 animate-bounce">🏝️</div>
-              <h4 className="text-3xl font-cinzel text-amber-300 mb-2">Island Preview</h4>
-              <p className="text-slate-400 text-sm max-w-md">
-                Island visualization will render here with terrain zones, resource nodes, and animals
-              </p>
-            </div>
-          </div>
+          {islandDto && (
+            <HomeIslandPreview island={islandDto} className="min-h-[400px]" />
+          )}
 
           {/* Island Stats Dashboard */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div className="bg-gradient-to-br from-amber-900/30 to-amber-950/20 border border-amber-700/30 rounded-lg p-4">
               <div className="text-xs text-amber-400 uppercase tracking-widest mb-2 font-bold">Resource Nodes</div>
-              <div className="text-4xl font-bold text-amber-300">{islandState.nodes?.length || 0}</div>
+              <div className="text-4xl font-bold text-amber-300">{islandDto?.state.nodes.length || islandState.nodes?.length || 0}</div>
               <div className="text-xs text-slate-400 mt-1">
-                {islandState.nodes?.reduce((acc: any, n: any) => acc + (n.drops?.length || 0), 0) || 0} items total
+                {Object.keys(islandDto?.state.stats?.resourceBreakdown || {}).length || 0} resource families
               </div>
             </div>
 
             <div className="bg-gradient-to-br from-green-900/30 to-green-950/20 border border-green-700/30 rounded-lg p-4">
               <div className="text-xs text-green-400 uppercase tracking-widest mb-2 font-bold">Animals</div>
-              <div className="text-4xl font-bold text-green-300">{islandState.sheep?.length || 0}</div>
+              <div className="text-4xl font-bold text-green-300">{islandDto?.state.animals.length || 0}</div>
               <div className="text-xs text-slate-400 mt-1">
-                {Array.from(new Set(islandState.sheep?.map((a: any) => a.type) || [])).length} types
+                {Array.from(new Set(islandDto?.state.animals.map((a: any) => a.type) || [])).length} types
               </div>
             </div>
 
             <div className="bg-gradient-to-br from-blue-900/30 to-blue-950/20 border border-blue-700/30 rounded-lg p-4">
               <div className="text-xs text-blue-400 uppercase tracking-widest mb-2 font-bold">Terrain Zones</div>
-              <div className="text-4xl font-bold text-blue-300">{islandState.terrainZones?.length || 0}</div>
+              <div className="text-4xl font-bold text-blue-300">{islandDto?.state.terrainZones.length || islandState.terrainZones?.length || 0}</div>
               <div className="text-xs text-slate-400 mt-1">
-                6 unique biomes
+                live terrain layout
               </div>
             </div>
 
             <div className="bg-gradient-to-br from-purple-900/30 to-purple-950/20 border border-purple-700/30 rounded-lg p-4">
               <div className="text-xs text-purple-400 uppercase tracking-widest mb-2 font-bold">Camp Position</div>
               <div className="text-lg font-bold text-purple-300 font-mono">
-                ({islandState.campPosition?.x.toFixed(0)}, {islandState.campPosition?.y.toFixed(0)})
+                ({(islandDto?.state.campPosition?.x ?? islandState.campPosition?.x ?? 0).toFixed(0)}, {(islandDto?.state.campPosition?.y ?? islandState.campPosition?.y ?? 0).toFixed(0)})
               </div>
               <div className="text-xs text-slate-400 mt-1">
-                {islandState.clearings?.length || 0} clearing(s)
+                {islandDto?.state.clearings.length || islandState.clearings?.length || 0} clearing(s)
               </div>
             </div>
           </div>
@@ -184,8 +177,8 @@ export default function Step6IslandGen({ state, updateState, onPrev }: Step6Isla
           <div className="bg-slate-900/40 border border-slate-700 rounded-xl p-6">
             <h4 className="text-lg font-cinzel text-amber-300 mb-4">Resource Distribution</h4>
             <div className="grid grid-cols-3 md:grid-cols-5 gap-3">
-              {Array.from(new Set(islandState.nodes?.map((n: any) => n.type) || [])).map((nodeType: any) => {
-                const nodes = islandState.nodes?.filter((n: any) => n.type === nodeType) || [];
+              {Array.from(new Set((islandDto?.state.nodes || islandState.nodes || []).map((n: any) => n.type) || [])).map((nodeType: any) => {
+                const nodes = (islandDto?.state.nodes || islandState.nodes || []).filter((n: any) => n.type === nodeType) || [];
                 const rarityBreakdown: Record<string, number> = {};
                 nodes.forEach((n: any) => {
                   rarityBreakdown[n.rarity] = (rarityBreakdown[n.rarity] || 0) + 1;
@@ -223,21 +216,22 @@ export default function Step6IslandGen({ state, updateState, onPrev }: Step6Isla
               <div>
                 <h4 className="text-lg font-cinzel text-amber-300 mb-1">Map Style</h4>
                 <p className="text-sm text-slate-400">
-                  Terrain visualization: <span className="text-amber-300 font-bold capitalize">{islandState.mapStyle || 'fantasy'}</span>
+                  Terrain visualization: <span className="text-amber-300 font-bold capitalize">{islandDto?.mapStyle || islandState.mapStyle || 'fantasy'}</span>
                 </p>
               </div>
               <div className="text-5xl">
-                {islandState.mapStyle === 'fantasy' && '🌲'}
-                {islandState.mapStyle === 'tactical' && '⚔️'}
-                {islandState.mapStyle === 'iron' && '⚙️'}
-                {islandState.mapStyle === 'night' && '🌙'}
-                {!islandState.mapStyle && '🌍'}
+                {(islandDto?.mapStyle || islandState.mapStyle) === 'fantasy' && '🌲'}
+                {(islandDto?.mapStyle || islandState.mapStyle) === 'tactical' && '⚔️'}
+                {(islandDto?.mapStyle || islandState.mapStyle) === 'iron' && '⚙️'}
+                {(islandDto?.mapStyle || islandState.mapStyle) === 'night' && '🌙'}
+                {!(islandDto?.mapStyle || islandState.mapStyle) && '🌍'}
               </div>
             </div>
           </div>
 
           {/* Action Buttons */}
           <div className="bg-gradient-to-r from-amber-950/40 to-black/40 border border-amber-700/30 rounded-xl p-6">
+            {!launchReady ? (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <Button
                 onClick={handleRerollIsland}
@@ -270,11 +264,32 @@ export default function Step6IslandGen({ state, updateState, onPrev }: Step6Isla
                   </>
                 ) : (
                   <>
-                    ⚔️ Find Land & Launch
+                    ⚔️ Commit Home Island
                   </>
                 )}
               </Button>
             </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="text-sm text-slate-300">
+                  Your island is committed to this character. Choose whether to enter the generated home island in 2D GrudaWars mode or 3D RTS GRUDGE mode.
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <Button
+                    onClick={() => navigate(`/grudawars?characterId=${encodeURIComponent(state.character?.id || '')}&islandId=${encodeURIComponent(islandDto?.id || '')}`)}
+                    className="bg-emerald-700 hover:bg-emerald-600 text-white font-bold"
+                  >
+                    Enter 2D GrudaWars
+                  </Button>
+                  <Button
+                    onClick={() => navigate(`/island-3d?mode=home-island&characterId=${encodeURIComponent(state.character?.id || '')}&islandId=${encodeURIComponent(islandDto?.id || '')}`)}
+                    className="bg-blue-700 hover:bg-blue-600 text-white font-bold"
+                  >
+                    Enter 3D RTS GRUDGE
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       ) : null}

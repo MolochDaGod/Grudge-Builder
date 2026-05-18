@@ -4,6 +4,8 @@ import { ChevronRight, ChevronLeft, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { CharacterCreatorState } from "./index";
+import HomeIslandPreview from "@/components/HomeIslandPreview";
+import { normalizeHomeIslandResponse } from "@/lib/homeIslandApi";
 
 interface Step5IslandIntroProps {
   state: CharacterCreatorState;
@@ -37,10 +39,10 @@ export default function Step5IslandIntro({ state, updateState, onNext, onPrev }:
         throw new Error("Failed to generate island");
       }
 
-      const islandState = await response.json();
+      const islandState = normalizeHomeIslandResponse(await response.json());
       updateState({
         homeIsland: islandState,
-        islandState: islandState
+        islandState: islandState.state
       });
       setIslandGenerated(true);
 
@@ -61,6 +63,7 @@ export default function Step5IslandIntro({ state, updateState, onNext, onPrev }:
   };
 
   const islandState = state.islandState;
+  const islandDto = state.homeIsland ? normalizeHomeIslandResponse(state.homeIsland) : null;
 
   return (
     <motion.div
@@ -82,33 +85,27 @@ export default function Step5IslandIntro({ state, updateState, onNext, onPrev }:
         </div>
       ) : islandState ? (
         <div className="space-y-6 mb-8">
-          {/* Island Preview Placeholder */}
-          {/* In a real implementation, this would be an IslandRenderer component */}
-          <div className="bg-gradient-to-b from-slate-800 to-slate-900 border border-slate-700 rounded-xl p-8 min-h-[300px] flex flex-col items-center justify-center">
-            <div className="text-center mb-4">
-              <div className="text-6xl mb-4">🏝️</div>
-              <h4 className="text-2xl font-cinzel text-amber-300 mb-2">Island Preview</h4>
-              <p className="text-slate-400 text-sm">Island rendering component will display here</p>
-            </div>
-          </div>
+          {islandDto && (
+            <HomeIslandPreview island={islandDto} className="min-h-[320px]" />
+          )}
 
           {/* Island Stats */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="bg-slate-900/40 border border-slate-700 rounded-lg p-4">
               <div className="text-xs text-slate-400 uppercase tracking-widest mb-2">Resource Nodes</div>
-              <div className="text-3xl font-bold text-amber-400">{islandState.nodes?.length || 0}</div>
+              <div className="text-3xl font-bold text-amber-400">{islandDto?.state.nodes.length || islandState.nodes?.length || 0}</div>
               <p className="text-xs text-slate-500 mt-1">Ready to harvest</p>
             </div>
 
             <div className="bg-slate-900/40 border border-slate-700 rounded-lg p-4">
               <div className="text-xs text-slate-400 uppercase tracking-widest mb-2">Animals</div>
-              <div className="text-3xl font-bold text-amber-400">{islandState.sheep?.length || 0}</div>
-              <p className="text-xs text-slate-500 mt-1">Available for skinning</p>
+              <div className="text-3xl font-bold text-amber-400">{islandDto?.state.animals.length || 0}</div>
+              <p className="text-xs text-slate-500 mt-1">Wildlife on the island</p>
             </div>
 
             <div className="bg-slate-900/40 border border-slate-700 rounded-lg p-4">
               <div className="text-xs text-slate-400 uppercase tracking-widest mb-2">Terrain Zones</div>
-              <div className="text-3xl font-bold text-amber-400">{islandState.terrainZones?.length || 0}</div>
+              <div className="text-3xl font-bold text-amber-400">{islandDto?.state.terrainZones.length || islandState.terrainZones?.length || 0}</div>
               <p className="text-xs text-slate-500 mt-1">Different biomes</p>
             </div>
           </div>
@@ -117,8 +114,8 @@ export default function Step5IslandIntro({ state, updateState, onNext, onPrev }:
           <div className="bg-slate-900/40 border border-slate-700 rounded-xl p-6">
             <h4 className="text-lg font-cinzel text-amber-300 mb-4">Island Resources</h4>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              {Array.from(new Set(islandState.nodes?.map((n: any) => n.type) || [])).map((nodeType: any) => {
-                const count = islandState.nodes?.filter((n: any) => n.type === nodeType).length || 0;
+              {Array.from(new Set((islandDto?.state.nodes || islandState.nodes || []).map((n: any) => n.type) || [])).map((nodeType: any) => {
+                const count = (islandDto?.state.nodes || islandState.nodes || []).filter((n: any) => n.type === nodeType).length || 0;
                 return (
                   <div key={nodeType} className="bg-black/30 border border-slate-600 rounded-lg p-3 text-center">
                     <div className="text-2xl mb-1">
@@ -143,7 +140,7 @@ export default function Step5IslandIntro({ state, updateState, onNext, onPrev }:
           {/* Action Buttons */}
           <div className="bg-gradient-to-r from-slate-800/50 to-slate-900/50 border border-slate-700 rounded-xl p-6">
             <p className="text-slate-400 text-sm mb-4">
-              Explore your island's terrain, resource nodes, and animals. When you're ready, proceed to finalize your settlement.
+              Explore the real generated island layout that will feed your 2D and 3D play modes. When you're ready, proceed to finalize your settlement.
             </p>
             <div className="flex flex-col sm:flex-row gap-3">
               <Button

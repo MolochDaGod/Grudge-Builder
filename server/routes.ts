@@ -449,6 +449,27 @@ export async function registerRoutes(
     }
   });
 
+  // ── GET /api/islands/:id — fetch a specific island by DB id ─────────────
+  app.get("/api/islands/:id", async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      const island = await storage.getHomeIsland(req.params.id);
+      if (!island) {
+        return res.status(404).json({ error: "Island not found" });
+      }
+      // Verify ownership (admins may bypass)
+      const account = await storage.getAccount(island.accountId);
+      if (!isAdmin(req) && account?.userId !== userId) {
+        return res.status(403).json({ error: "Island does not belong to your account" });
+      }
+      const normalizedState = normalizeIslandState(island);
+      res.json({ ...island, state: normalizedState });
+    } catch (error) {
+      console.error("Error fetching island:", error);
+      res.status(500).json({ error: "Failed to fetch island" });
+    }
+  });
+
   // ── Phase 1: Step 6 - Reroll Island ─────────────────────────────────────
   app.post("/api/islands/:id/regenerate", async (req, res) => {
     try {
@@ -487,8 +508,11 @@ export async function registerRoutes(
         state: newIslandState,
       } as any);
 
+      const normalizedState = normalizeIslandState(updatedIsland);
       res.json({
-        islandState: updatedIsland.state,
+        ...updatedIsland,
+        state: normalizedState,
+        islandState: normalizedState,
         rerollCount: (req.body.rerollCount || 0) + 1,
       });
     } catch (error) {

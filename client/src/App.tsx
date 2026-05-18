@@ -58,6 +58,7 @@ import EditorPage from "@/pages/editor";
 const OrganizerPage = lazy(() => import("@/pages/organizer"));
 import CreateCharacterPage from "@/pages/create-character";
 import CharacterCreatorPage from "@/pages/character-creator";
+import GrudaWarsPage from "@/pages/grudawars";
 
 function Router() {
   return (
@@ -111,6 +112,7 @@ function Router() {
       <Route path="/island-3d" component={Island3DPage} />
       <Route path="/editor" component={EditorPage} />
       <Route path="/organizer">{() => <Suspense fallback={null}><OrganizerPage /></Suspense>}</Route>
+      <Route path="/grudawars" component={GrudaWarsPage} />
       {/* Fallback to 404 */}
       <Route component={NotFound} />
     </Switch>

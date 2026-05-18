@@ -103,14 +103,19 @@ export default function RtsGrudgePage() {
     });
   }, []);
 
-  // Check server status
+  // Check server status — fetch live telemetry from the island-server HTTP status endpoint
   useEffect(() => {
     const check = async () => {
       try {
-        const res = await fetch("/api/island/status", { headers: authHeaders() });
-        setServerOnline(res.ok);
-        // TODO: pull actual player count from a future /api/rts/status endpoint
-        setPlayerCount(Math.floor(Math.random() * 80) + 12);
+        const res = await fetch(`${PVP_SERVER_URL}/status`);
+        if (res.ok) {
+          const data = await res.json();
+          setServerOnline(true);
+          setPlayerCount(typeof data.totalPlayers === 'number' ? data.totalPlayers : null);
+        } else {
+          setServerOnline(false);
+          setPlayerCount(null);
+        }
       } catch {
         setServerOnline(false);
         setPlayerCount(null);

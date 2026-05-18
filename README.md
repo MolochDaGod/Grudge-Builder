@@ -2,7 +2,9 @@
 
 This repo ships the **Grudge Warlords** web game at [grudgewarlords.com](https://grudgewarlords.com) (also aliased at `client.grudge-studio.com`). Six-step character creation (race → class → stats → avatar → island preview → island launch), turn-based combat, dungeons, islands, professions, skill trees, sprite generation, cNFT minting.
 
-**Stack: React 19 + Three.js + Phaser 3.** Babylon is *not* used here — the Babylon-based editor lives in a separate repo ([Grudge-Engine-Web](https://github.com/MolochDaGod/Grudge-Engine-Web), deployed to `engine.grudge-studio.com`) and is not consumed by this runtime.
+> **Production cutover complete (May 2026):** All placeholder/hardcoded data removed. Character creator → island flow is fully real-API-driven. After committing your home island you choose between 2D GrudaWars or 3D RTS GRUDGE. Server telemetry (live player count) sourced from the island-server Socket.IO process. New routes: `/grudawars` (2D launcher), `GET /api/islands/:id` (fetch island by DB id), `POST /api/islands/:id/regenerate` now returns full island DTO.
+
+**Stack: React 19 + Three.js + Phaser 3.**
 
 ## Live Services
 
@@ -74,8 +76,9 @@ grudge-builder/
 │   │   │   ├── character-creator/   # 6-step character + island creation wizard
 │   │   │   ├── profession/          # Profession advancement UI
 │   │   │   ├── island.tsx           # Home island (2D harvest)
-│   │   │   ├── island-3d.tsx        # Home island (3D terrain view)
-│   │   │   ├── island-v2.tsx        # Island v2 renderer
+    │   │   ├── island-3d.tsx        # Home island (3D terrain view, home-island mode via ?mode=home-island&islandId=)
+    │   │   ├── grudawars.tsx        # GrudaWars launcher — loads live char+island, deep-links to grudgewarlords.com
+    │   │   ├── island-v2.tsx        # Island v2 renderer
 │   │   │   ├── combat.tsx           # Turn-based combat
 │   │   │   ├── dungeon-tiled.tsx    # Tiled dungeon explorer
 │   │   │   ├── skill-tree.tsx       # Class skill trees
@@ -97,8 +100,11 @@ grudge-builder/
 │   │   │   ├── assetConfig.ts       # ObjectStore URL config + assetUrl/apiUrl/cdnAssetUrl
 │   │   │   ├── objectStoreApi.ts    # ObjectStore API client (23 endpoints, caching)
 │   │   │   ├── grudgeBackend.ts     # Grudge ID auth, SSO, session management
-│   │   │   ├── grudaDB.ts           # Item database & icon resolver
-│   │   │   └── gameData.ts          # Races, classes, attributes definitions
+    │   │   ├── grudaDB.ts           # Item database & icon resolver
+    │   │   ├── homeIslandApi.ts     # Island DTO normalizer (normalizeHomeIslandResponse) + fetchRtsStatus
+    │   │   └── gameData.ts          # Races, classes, attributes definitions
+    │   ├── components/
+    │   │   └── HomeIslandPreview.tsx  # Visual island preview component (terrain zones, nodes, animals)
 │   │   ├── island/          # 2D island engine (auto-harvest, node graph)
 │   │   ├── island3d/        # Three.js 3D island terrain engine
 │   │   ├── data/            # Static game data & sprite maps
@@ -145,9 +151,10 @@ Open action items are surfaced live at `/organizer?tab=readiness` and `/organize
 
 ## Game Features
 
-- **Character Creator (6-Step)** — Race selection (6 races), class selection (4 classes), stat allocation (8 attributes), avatar HSL sprite customization + cNFT mint, island preview, island finalize + cNFT mint → launches into gameplay
-- **Island System** — Seeded RNG deterministic generation: harvest nodes (ore, wood, herbs, fish), animal spawns, terrain zones, camp position. Rerollable until committed. Both character and island minted as Solana cNFTs via Crossmint
-- **Turn-Based Combat** — Party vs enemy encounters with abilities, VFX, and skill hotbar
+- **Character Creator (6-Step)** — Race selection (6 races), class selection (4 classes), stat allocation (8 attributes), avatar HSL sprite customization + cNFT mint, island preview, island finalize + cNFT mint → **live 2D/3D mode chooser** (no redirects until user picks)
+- **Island System** — Seeded RNG deterministic generation: harvest nodes (ore, wood, herbs, fish), animal spawns, terrain zones, camp position. Rerollable until committed. Both character and island minted as Solana cNFTs via Crossmint. Persisted island accessible via `GET /api/islands/:id`, rendered in both 2D GrudaWars and 3D home-island modes
+- **GrudaWars Launcher** (`/grudawars`) — Bridge page that loads live character + island from the backend and deep-links into the external 2D GrudaWars game with full context in query params
+- **Turn-Based Combat**
 - **Dungeon Explorer** — Procedural Phaser-tiled dungeons with fog of war and loot
 - **Tower Wars** — Tower defense game mode
 - **RPG Battle** — Standalone RPG battle mode
@@ -238,7 +245,8 @@ The frontend proxies all API calls through Vercel rewrites:
 - `/api/party` + `/api/party/*` → `api.grudge-studio.com`
 - `/api/wallet` + `/api/wallet/*` → `api.grudge-studio.com`
 - `/api/island/*` → `api.grudge-studio.com`
-- `/api/island-nfts` + `/api/island-nfts/*` → `api.grudge-studio.com`
+- `/api/islands/*` → `api.grudge-studio.com` (`GET /api/islands/:id` fetch by id; `POST /api/islands/:id/regenerate` reroll)
+- `/api/island-nfts`
 - `/api/nfts` + `/api/nfts/*` → `api.grudge-studio.com`
 - `/api/professions/*` → `api.grudge-studio.com`
 - `/api/inventory/*` → `api.grudge-studio.com`

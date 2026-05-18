@@ -108,10 +108,36 @@ function startEnemySpawner(io: Server, islandId: string): NodeJS.Timeout {
 
 const islandSpawners = new Map<string, NodeJS.Timeout>();
 
+function buildServerStatus() {
+  let totalPlayers = 0;
+  let totalEnemies = 0;
+  const islands = Array.from(islandPlayers.entries()).map(([islandId, players]) => {
+    const enemyCount = islandEnemies.get(islandId)?.size ?? 0;
+    totalPlayers += players.size;
+    totalEnemies += enemyCount;
+    return {
+      islandId,
+      players: players.size,
+      enemies: enemyCount,
+    };
+  });
+
+  return {
+    online: true,
+    service: "island-server",
+    uptime: Math.floor(process.uptime()),
+    totalPlayers,
+    activeIslands: islands.length,
+    totalEnemies,
+    islands,
+  };
+}
+
 // ─── App & HTTP server ────────────────────────────────────────────────────────
 
 const app = express();
-app.get("/health", (_req, res) => res.json({ status: "ok", service: "island-server" }));
+app.get("/health", (_req, res) => res.json({ status: "ok", ...buildServerStatus() }));
+app.get("/status", (_req, res) => res.json(buildServerStatus()));
 
 const httpServer = createServer(app);
 
