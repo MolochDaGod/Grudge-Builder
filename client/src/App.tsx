@@ -102,6 +102,7 @@ function Router() {
       <Route path="/admin-island-v2" component={AdminIslandV2Page} />
       <Route path="/launcher" component={LauncherPage} />
       <Route path="/rts-grudge" component={RtsGrudgePage} />
+      <Route path="/sailing" component={RtsGrudgePage} />
       <Route path="/tower-wars">{() => <Suspense fallback={null}><TowerWarsPage /></Suspense>}</Route>
       <Route path="/harvest" component={HarvestPage} />
       <Route path="/hero-codex" component={HeroCodexPage} />
