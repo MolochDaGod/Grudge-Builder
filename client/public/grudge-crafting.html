@@ -721,6 +721,105 @@ body {
 /* Harvest-entry new flash */
 .harvest-entry-new { animation:harvestNew 0.55s ease-out; }
 
+/* ======================== CHARACTER PANEL (sidebar) ======================== */
+.char-panel {
+  padding:12px 16px;
+  border-bottom:1px solid var(--border);
+  cursor:pointer;
+  transition:background 0.15s;
+}
+.char-panel:hover { background:rgba(212,168,67,0.05); }
+.char-panel-inner { display:flex; align-items:center; gap:10px; }
+.char-avatar {
+  width:40px; height:40px;
+  border-radius:50%;
+  border:2px solid var(--border);
+  display:flex; align-items:center; justify-content:center;
+  font-size:18px; flex-shrink:0;
+  background:rgba(0,0,0,0.2);
+  transition:border-color 0.2s, box-shadow 0.2s;
+}
+.char-info { flex:1; min-width:0; }
+.char-name {
+  font-family:'Cinzel',serif;
+  font-size:12px; font-weight:700;
+  color:var(--gold);
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.char-sub {
+  font-size:9px; color:var(--text-dim);
+  margin-top:1px;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.char-lvl-bar {
+  height:3px;
+  background:rgba(255,255,255,0.06);
+  border-radius:2px;
+  margin-top:4px; overflow:hidden;
+}
+.char-lvl-fill { height:100%; border-radius:2px; }
+.char-none {
+  font-size:10px; color:var(--text-dim);
+  font-style:italic; text-align:center; padding:4px 0;
+}
+
+/* Character banner on dashboard */
+.char-banner {
+  display:flex; align-items:center; gap:16px;
+  padding:16px;
+  background:linear-gradient(135deg,rgba(212,168,67,0.09),rgba(212,168,67,0.02));
+  border:1px solid rgba(212,168,67,0.35);
+  border-radius:10px;
+  margin-bottom:16px;
+  cursor:pointer;
+  transition:all 0.15s;
+  position:relative; overflow:hidden;
+}
+.char-banner::after {
+  content:'';
+  position:absolute; inset:0;
+  background:linear-gradient(90deg,transparent,rgba(212,168,67,0.04),transparent);
+  background-size:200% 100%;
+  animation:shimmerSlide 3s linear infinite;
+}
+.char-banner:hover { border-color:var(--gold); box-shadow:0 0 20px rgba(212,168,67,0.1); }
+.char-banner-avatar {
+  width:56px; height:56px;
+  border-radius:50%;
+  border:2px solid var(--gold);
+  display:flex; align-items:center; justify-content:center;
+  font-size:26px;
+  background:linear-gradient(135deg,rgba(212,168,67,0.15),rgba(0,0,0,0.3));
+  flex-shrink:0;
+}
+.char-banner-info { flex:1; min-width:0; }
+.char-banner-name {
+  font-family:'Cinzel',serif;
+  font-size:18px; font-weight:900;
+  color:var(--gold);
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.char-banner-sub { font-size:11px; color:var(--text-dim); margin-top:2px; }
+.char-banner-attrs {
+  display:flex; gap:5px; flex-wrap:wrap; margin-top:8px;
+}
+.char-attr-mini {
+  font-family:'JetBrains Mono',monospace;
+  font-size:9px; font-weight:700;
+  padding:2px 7px; border-radius:3px; border:1px solid;
+}
+.char-banner-none {
+  font-size:11px; color:var(--text-dim);
+  display:flex; align-items:center; gap:10px;
+}
+
+/* Responsive: hide char text labels in compact sidebar */
+@media (max-width: 700px) {
+  .char-info, .char-none { display:none; }
+  .char-panel { padding:8px; }
+  .char-avatar { width:36px; height:36px; font-size:16px; }
+}
+
 /* Scrollbar */
 ::-webkit-scrollbar { width: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
@@ -741,6 +840,9 @@ body {
       <h1>⚔ Grudge Crafting</h1>
       <small>Warlords Profession Suite</small>
     </div>
+
+    <!-- ACTIVE CHARACTER PANEL — shown once characters load -->
+    <div id="sidebar-char-panel" class="char-panel" onclick="navigate('account')" style="display:none"></div>
 
     <div class="sidebar-section">
       <div class="sidebar-section-title">Navigation</div>
@@ -793,6 +895,8 @@ body {
     <!-- DASHBOARD -->
     <div class="page active" id="page-dashboard">
       <div class="page-header"><h2 class="page-title">⚔ Crafting Dashboard</h2></div>
+      <!-- Active character banner (populated by renderDashboard) -->
+      <div id="dash-char-banner"></div>
       <div class="grid4" id="dash-stats"></div>
       <div class="grid2" style="margin-top:16px">
         <div class="card">
@@ -1227,10 +1331,107 @@ function updateSidebarBadges() {
   });
   const items = Object.values(STATE.inventory).reduce((a,b) => a+b, 0);
   document.getElementById('inv-count').textContent = items;
+  updateCharacterUI();
+}
+
+// ── Character UI helpers ──────────────────────────────────────────────────────
+const CLASS_ICONS  = { warrior:'⚔️', mage:'🔮', rogue:'🗡️', cleric:'✨', worg:'🐺', ranger:'🏹' };
+const RACE_COLORS  = { human:'#60a5fa', orc:'#22c55e', elf:'#a78bfa', dwarf:'#f59e0b', undead:'#8b5cf6', barbarian:'#ef4444', demon:'#dc2626' };
+
+/** Updates the sidebar character panel and the dashboard banner. */
+function updateCharacterUI() {
+  const panel = document.getElementById('sidebar-char-panel');
+  if (!panel) return;
+
+  const char = STATE.grudgeCharacters.find(c => c.id === STATE.activeCharacterId);
+
+  if (!char) {
+    // No character selected — show a prompt to sign in or select
+    if (STATE.grudgeCharacters.length > 0) {
+      panel.style.display = 'block';
+      panel.innerHTML = `<div class="char-none">⚔ Pick your Warlord ↑</div>`;
+    } else if (STATE.user) {
+      panel.style.display = 'block';
+      panel.innerHTML = `<div class="char-none">Loading characters…</div>`;
+    } else {
+      panel.style.display = 'none';
+    }
+    return;
+  }
+
+  const classIcon  = CLASS_ICONS[char.class?.toLowerCase()]  || '⚔️';
+  const raceColor  = RACE_COLORS[char.race?.toLowerCase()]   || 'var(--gold)';
+  const lvl        = char.level || 1;
+  // XP bar: use a rough 0-100% based on level progress if available
+  const xpPct      = char.xp_percent ?? Math.min(100, ((lvl % 10) / 10) * 100);
+
+  panel.style.display = 'block';
+  panel.innerHTML = `
+    <div class="char-panel-inner">
+      <div class="char-avatar" style="border-color:${raceColor};box-shadow:0 0 8px ${raceColor}40">${classIcon}</div>
+      <div class="char-info">
+        <div class="char-name">${char.name}</div>
+        <div class="char-sub">${char.race} ${char.class} · Lv ${lvl}</div>
+        <div class="char-lvl-bar">
+          <div class="char-lvl-fill" style="width:${xpPct}%;background:${raceColor}"></div>
+        </div>
+      </div>
+    </div>`;
 }
 
 // === DASHBOARD ===
 function renderDashboard() {
+  // ── Character banner ──────────────────────────────────────────────────────
+  const bannerEl = document.getElementById('dash-char-banner');
+  if (bannerEl) {
+    const char = STATE.grudgeCharacters.find(c => c.id === STATE.activeCharacterId);
+    if (char) {
+      const classIcon = CLASS_ICONS[char.class?.toLowerCase()] || '⚔️';
+      const raceColor = RACE_COLORS[char.race?.toLowerCase()]   || 'var(--gold)';
+      const stats     = char.stats || {};
+      const attrMap   = [
+        {k:'strength',a:'STR',col:'#e74c3c'}, {k:'vitality',a:'VIT',col:'#27ae60'},
+        {k:'endurance',a:'END',col:'#95a5a6'},{k:'intellect',a:'INT',col:'#3498db'},
+        {k:'wisdom',a:'WIS',col:'#9b59b6'},  {k:'dexterity',a:'DEX',col:'#f39c12'},
+        {k:'agility',a:'AGI',col:'#1abc9c'}, {k:'tactics',a:'TAC',col:'#7f8c8d'},
+      ];
+      const attrHtml = attrMap.some(a => (stats[a.k] || 0) > 0)
+        ? attrMap.map(a => `<span class="char-attr-mini" style="color:${a.col};border-color:${a.col}40">${a.a} ${stats[a.k] || 0}</span>`).join('')
+        : '';
+      bannerEl.innerHTML = `
+        <div class="char-banner" onclick="navigate('account')">
+          <div class="char-banner-avatar" style="border-color:${raceColor};box-shadow:0 0 16px ${raceColor}40">${classIcon}</div>
+          <div class="char-banner-info">
+            <div class="char-banner-name">${char.name}</div>
+            <div class="char-banner-sub">${char.race} · ${char.class} · Level ${char.level || 1} · ${char.gold || 0} Gold</div>
+            ${attrHtml ? `<div class="char-banner-attrs">${attrHtml}</div>` : ''}
+          </div>
+          <div style="flex-shrink:0;text-align:right">
+            <div style="font-size:9px;color:var(--text-dim);margin-bottom:4px">Active Warlord</div>
+            <a href="https://grudgewarlords.com" target="_blank" onclick="event.stopPropagation()"
+               style="font-size:10px;color:var(--gold);text-decoration:none;border:1px solid var(--border);
+                      padding:3px 8px;border-radius:4px;white-space:nowrap;display:block">🌐 Warlords</a>
+          </div>
+        </div>`;
+    } else if (STATE.user && STATE.grudgeCharacters.length === 0) {
+      bannerEl.innerHTML = `
+        <div class="char-banner" onclick="navigate('account')">
+          <div class="char-banner-none">
+            <span style="font-size:28px">⚔</span>
+            <div>
+              <div style="font-size:13px;font-weight:700;color:var(--gold)">No character selected</div>
+              <div style="font-size:11px;margin-top:2px">Connect your Grudge Warlords characters to personalize crafting</div>
+            </div>
+            <a href="https://grudgewarlords.com" target="_blank" onclick="event.stopPropagation()"
+               style="margin-left:auto;font-size:10px;color:var(--gold);text-decoration:none;border:1px solid var(--border);
+                      padding:4px 10px;border-radius:4px;white-space:nowrap">Open Warlords →</a>
+          </div>
+        </div>`;
+    } else {
+      bannerEl.innerHTML = '';
+    }
+  }
+
   const totalLvl = Object.values(STATE.professions).reduce((a,p) => a + p.level, 0);
   const totalItems = Object.values(STATE.inventory).reduce((a,b) => a+b, 0);
   document.getElementById('dash-stats').innerHTML = `
@@ -1398,6 +1599,8 @@ function finishCraft(recipe) {
       STATE.professions[prof].level++;
       STATE.professions[prof].xpNext = Math.floor(STATE.professions[prof].xpNext * 1.5);
       addLog(`🎉 ${prof} leveled up to ${STATE.professions[prof].level}!`, 'level');
+      // Push updated profession levels cross-game on every level-up
+      if (STATE.activeCharacterId) GrudgeSyncService.push(STATE.activeCharacterId);
       // Full-screen level-up banner + floating XP pop
       showLevelUpBanner(
         prof,
@@ -1749,6 +1952,156 @@ function gatherMaterials() {
   }
 }
 
+// ============================================================
+// GRUDGE SYNC SERVICE — cross-game character data sync
+// ============================================================
+const GrudgeSyncService = (() => {
+  const API_BASE          = 'https://api.grudge-studio.com';
+  const TOKEN_LS_KEY      = 'grudge.token';          // shared with GrudgeSession.ts
+  const ACTIVE_CHAR_LS_KEY = 'grudge.activeCharId';  // shared with RTS + survival
+  const CACHE_PREFIX      = 'grudge.xgame.cache.';
+  const QUEUE_KEY         = 'grudge.xgame.queue';
+  const MAX_QUEUE         = 20;
+  const DEBOUNCE_MS       = 5_000;
+
+  const _timers = {};
+  let _flushBusy = false;
+
+  function ls(k)     { try { return localStorage.getItem(k); } catch { return null; } }
+  function lsSet(k,v){ try { localStorage.setItem(k, v); }    catch {} }
+  function lsDel(k)  { try { localStorage.removeItem(k); }    catch {} }
+
+  function getToken() { return ls(TOKEN_LS_KEY); }
+
+  function headers() {
+    const h = { 'Content-Type': 'application/json' };
+    const t = getToken() || STATE.grudgeToken;
+    if (t) h['Authorization'] = 'Bearer ' + t;
+    return h;
+  }
+
+  // Active character — persisted so all Grudge apps agree
+  function getActiveCharId() {
+    return ls(ACTIVE_CHAR_LS_KEY) || (STATE.activeCharacterId ? String(STATE.activeCharacterId) : null);
+  }
+  function setActiveCharId(id) {
+    if (id) lsSet(ACTIVE_CHAR_LS_KEY, String(id)); else lsDel(ACTIVE_CHAR_LS_KEY);
+  }
+
+  // Cache
+  function readCache(cid)      { try { const r = ls(CACHE_PREFIX+cid); return r ? JSON.parse(r) : null; } catch { return null; } }
+  function writeCache(cid, d)  { try { lsSet(CACHE_PREFIX+cid, JSON.stringify(d)); } catch {} }
+
+  // Offline queue
+  function readQueue()          { try { const r = ls(QUEUE_KEY); return r ? JSON.parse(r) : []; } catch { return []; } }
+  function writeQueue(q)        { try { lsSet(QUEUE_KEY, JSON.stringify(q.slice(-MAX_QUEUE))); } catch {} }
+  function enqueue(cid, patch)  { const q = readQueue(); q.push({ cid, patch, ts: Date.now() }); writeQueue(q); }
+
+  // Debounce
+  function debounce(key, fn, ms) {
+    clearTimeout(_timers[key]);
+    _timers[key] = setTimeout(() => { delete _timers[key]; fn(); }, ms);
+  }
+
+  // Remote PATCH
+  async function patchRemote(cid, patch) {
+    try {
+      const res = await fetch(`${API_BASE}/characters/${encodeURIComponent(cid)}/cross-game`, {
+        method: 'PATCH', headers: headers(),
+        body: JSON.stringify({ ...patch, syncedAt: Date.now() }),
+        signal: AbortSignal.timeout(8000),
+      });
+      if (res.ok) { const c = readCache(cid) || {}; writeCache(cid, { ...c, ...patch, syncedAt: Date.now() }); }
+      return res.ok;
+    } catch { return false; }
+  }
+
+  // Remote GET
+  async function getRemote(cid) {
+    try {
+      const res = await fetch(`${API_BASE}/characters/${encodeURIComponent(cid)}/cross-game`, {
+        headers: headers(), signal: AbortSignal.timeout(6000),
+      });
+      if (res.ok) { const d = await res.json(); writeCache(cid, d); return d; }
+    } catch {}
+    return readCache(cid);
+  }
+
+  // Flush offline queue
+  async function flushQueue() {
+    if (_flushBusy) return;
+    _flushBusy = true;
+    try {
+      const q = readQueue();
+      if (!q.length) return;
+      const rem = [];
+      for (const e of q) { const ok = await patchRemote(e.cid, e.patch); if (!ok) rem.push(e); }
+      writeQueue(rem);
+    } finally { _flushBusy = false; }
+  }
+
+  window.addEventListener('online', () => flushQueue());
+  setTimeout(flushQueue, 3000);
+
+  // Public interface
+  return {
+    setActiveCharId,
+    getActiveCharId,
+
+    /** Pull cross-game data for a character and merge into STATE. */
+    async pull(charId) {
+      const cid = String(charId);
+      const data = await getRemote(cid);
+      if (!data) return;
+      // Merge profession levels if they're higher than local (never regress)
+      if (data.professions) {
+        const profMap = { miner:'Miner', forester:'Forester', chef:'Chef', engineer:'Engineer', mystic:'Mystic' };
+        for (const [key, label] of Object.entries(profMap)) {
+          const remote = data.professions[key];
+          if (!remote) continue;
+          const local = STATE.professions[label];
+          if (local && remote.level > local.level) {
+            STATE.professions[label].level = remote.level;
+            STATE.professions[label].xp    = remote.xp || 0;
+            STATE.professions[label].xpNext = remote.xpNext || local.xpNext;
+          }
+        }
+        renderAll();
+      }
+      // Merge crafting inventory (add missing items without reducing existing)
+      if (data.craftingInventory) {
+        for (const [item, qty] of Object.entries(data.craftingInventory)) {
+          if (!STATE.inventory[item] || STATE.inventory[item] < qty) {
+            STATE.inventory[item] = qty;
+          }
+        }
+      }
+    },
+
+    /** Push current professions + inventory to cross-game API. */
+    push(charId) {
+      const cid = String(charId);
+      // Build professions payload (lowercase canonical keys)
+      const profMap = { Miner:'miner', Forester:'forester', Chef:'chef', Engineer:'engineer', Mystic:'mystic' };
+      const professions = {};
+      for (const [label, key] of Object.entries(profMap)) {
+        const p = STATE.professions[label];
+        if (p) professions[key] = { level: p.level, xp: p.xp, xpNext: p.xpNext, totalCrafts: p.totalCrafts || 0 };
+      }
+      const craftingInventory = { ...STATE.inventory };
+      const patch = { professions, craftingInventory, syncSource: 'crafting' };
+      // Write to cache immediately
+      const c = readCache(cid) || {};
+      writeCache(cid, { ...c, ...patch, syncedAt: Date.now() });
+      // Debounced remote push
+      debounce(cid + ':crafting', async () => {
+        const ok = await patchRemote(cid, patch);
+        if (!ok) enqueue(cid, patch);
+      }, DEBOUNCE_MS);
+    },
+  };
+})();
+
 // === GRUDGE WARLORDS API ===
 async function fetchGrudgeCharacters() {
   if (!STATE.grudgeToken) return;
@@ -1763,6 +2116,11 @@ async function fetchGrudgeCharacters() {
       STATE.activeCharacterId = STATE.grudgeCharacters[0].id;
     }
     renderCharactersList();
+    updateCharacterUI();   // show active character in sidebar immediately
+    renderAll();           // refresh dashboard banner if on dashboard
+    // Pull cross-game data for the active character
+    const activeId = STATE.activeCharacterId;
+    if (activeId) GrudgeSyncService.pull(activeId).catch(() => {});
     showToast('Loaded ' + STATE.grudgeCharacters.length + ' characters', 'success');
   } catch(e) {
     console.warn('Failed to fetch Grudge characters:', e);
@@ -1799,8 +2157,14 @@ async function loginToGrudge() {
 
 function selectCharacter(charId) {
   STATE.activeCharacterId = charId;
+  GrudgeSyncService.setActiveCharId(charId ? String(charId) : null);
   renderCharactersList();
   renderActiveCharacter();
+  updateCharacterUI();         // update sidebar panel
+  if (STATE.currentPage === 'dashboard') renderDashboard(); // refresh banner
+  // Pull cross-game data for the newly selected character
+  // (profession levels from RTS, survival progress, etc.)
+  if (charId) GrudgeSyncService.pull(charId).catch(() => {});
   saveData();
   showToast('Character selected!', 'success');
 }
@@ -1915,7 +2279,7 @@ function renderAcctCharacters() {
 
   // Equipment
   const slots = ['head','chest','hands','feet','weapon','shield','ring','necklace'];
-  const slotIcons = {head:'\u26d1\ufe0f',chest:'\ud83d\udee1\ufe0f',hands:'\ud83e\udde4',feet:'\ud83d\udc62',weapon:'\u2694\ufe0f',shield:'\ud83d\udee1\ufe0f',ring:'\ud83d\udc8d',necklace:'\ud83d\udce7'};
+  const slotIcons = {head:'\u26d1\ufe0f',chest:'\ud83e\udde5',hands:'\ud83e\udde4',feet:'\ud83d\udc62',weapon:'\u2694\ufe0f',shield:'\ud83d\udee1\ufe0f',ring:'\ud83d\udc8d',necklace:'\ud83d\udc9f'};
   document.getElementById('acct-equip').innerHTML = slots.map(s => {
     const item = STATE.equipment[s];
     return `<div class="equip-slot">
