@@ -2162,8 +2162,8 @@ function selectCharacter(charId) {
   renderActiveCharacter();
   updateCharacterUI();         // update sidebar panel
   if (STATE.currentPage === 'dashboard') renderDashboard(); // refresh banner
-  // Pull cross-game data for the newly selected character
-  // (profession levels from RTS, survival progress, etc.)
+  // Pull cross-game data for the newly selected character:
+  // profession levels gained in RTS-Grudge, Hero Forge loadout, etc.
   if (charId) GrudgeSyncService.pull(charId).catch(() => {});
   saveData();
   showToast('Character selected!', 'success');
