@@ -29,7 +29,7 @@ export { Island3DRenderer } from './render/Island3DRenderer';
 
 // Player
 export { CharacterController3D } from './player/CharacterController3D';
-export type { CharacterController3DConfig, ControlMode } from './player/CharacterController3D';
+export type { CharacterController3DConfig, ControlMode, MovementState, PhysicsConfig, PhysicsCallbacks } from './player/CharacterController3D';
 export { AnimationManager } from './player/AnimationManager';
 export type { AnimState } from './player/AnimationManager';
 
@@ -56,3 +56,23 @@ export type { SharedIslandState, SharedNodeState } from './sync/IslandStateSync'
 // Multiplayer
 export { MultiplayerSync } from './sync/MultiplayerSync';
 export type { MultiplayerConfig, RemotePlayer, PveEnemy } from './sync/MultiplayerSync';
+
+// Water (Gerstner wave ocean)
+export { createOceanMesh, createOceanMaterial, getWaveHeightAt, updateOceanMaterial } from './terrain/WaterMaterial';
+export type { OceanConfig, WaveSet } from './terrain/WaterMaterial';
+
+// Post-processing
+export { PostProcessing } from './render/PostProcessing';
+export type { QualityPreset, PostProcessingConfig } from './render/PostProcessing';
+
+// Day/Night cycle
+export { DayNightCycle } from './environment/DayNightCycle';
+export type { DayPhase, DayNightConfig } from './environment/DayNightCycle';
+
+// Ally AI (Gouldstone system)
+export { AllyController, AllyManager, MAX_ALLIES } from './ai/AllyController';
+export type { AllyState, AllyStats, AllyConfig, CombatTarget } from './ai/AllyController';
+
+// Building system
+export { BuildingSystem, PIECE_DEFS } from './building/BuildingSystem';
+export type { PieceType, SnapSocket, PieceDefinition, PlacedPiece } from './building/BuildingSystem';

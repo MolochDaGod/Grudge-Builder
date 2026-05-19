@@ -1,0 +1,426 @@
+/**
+ * BuildingSystem — Conan-style snap-point construction with structural integrity.
+ *
+ * Each piece type defines snap sockets. During placement, the ghost mesh snaps
+ * to the nearest compatible socket. Stability propagates via BFS from
+ * foundations; pieces at 0 stability cascade-collapse.
+ */
+import * as THREE from 'three';
+
+// ─── Building Piece Definitions ───────────────────────────────────────────────
+
+export type PieceType = 'foundation' | 'wall' | 'ceiling' | 'stairs' | 'pillar' | 'doorframe' | 'window';
+
+export interface SnapSocket {
+  id: string;
+  /** Position relative to piece origin */
+  localPosition: THREE.Vector3;
+  /** Rotation relative to piece origin */
+  localRotation: THREE.Euler;
+  /** Which piece types can connect here */
+  compatibleWith: PieceType[];
+}
+
+export interface PieceDefinition {
+  type: PieceType;
+  /** Base stability value (foundation=100) */
+  stability: number;
+  /** Stability cost subtracted when connecting through this piece */
+  stabilityCost: number;
+  /** Mesh geometry dimensions */
+  size: THREE.Vector3;
+  /** Snap sockets */
+  sockets: SnapSocket[];
+  /** Color for placeholder mesh */
+  color: number;
+}
+
+const S = 4; // standard grid unit (4m like Conan)
+
+export const PIECE_DEFS: Record<PieceType, PieceDefinition> = {
+  foundation: {
+    type: 'foundation',
+    stability: 100,
+    stabilityCost: 0,
+    size: new THREE.Vector3(S, 0.5, S),
+    color: 0x888888,
+    sockets: [
+      { id: 'top',   localPosition: new THREE.Vector3(0, 0.5, 0),   localRotation: new THREE.Euler(), compatibleWith: ['wall', 'pillar', 'doorframe', 'stairs'] },
+      { id: 'north', localPosition: new THREE.Vector3(0, 0.25, -S/2), localRotation: new THREE.Euler(), compatibleWith: ['foundation', 'wall'] },
+      { id: 'south', localPosition: new THREE.Vector3(0, 0.25, S/2),  localRotation: new THREE.Euler(), compatibleWith: ['foundation', 'wall'] },
+      { id: 'east',  localPosition: new THREE.Vector3(S/2, 0.25, 0),  localRotation: new THREE.Euler(), compatibleWith: ['foundation', 'wall'] },
+      { id: 'west',  localPosition: new THREE.Vector3(-S/2, 0.25, 0), localRotation: new THREE.Euler(), compatibleWith: ['foundation', 'wall'] },
+    ],
+  },
+  wall: {
+    type: 'wall',
+    stability: 80,
+    stabilityCost: 20,
+    size: new THREE.Vector3(S, S, 0.3),
+    color: 0xaa8844,
+    sockets: [
+      { id: 'bottom', localPosition: new THREE.Vector3(0, 0, 0),      localRotation: new THREE.Euler(), compatibleWith: ['foundation'] },
+      { id: 'top',    localPosition: new THREE.Vector3(0, S, 0),      localRotation: new THREE.Euler(), compatibleWith: ['ceiling', 'wall'] },
+      { id: 'left',   localPosition: new THREE.Vector3(-S/2, S/2, 0), localRotation: new THREE.Euler(), compatibleWith: ['wall', 'doorframe', 'window'] },
+      { id: 'right',  localPosition: new THREE.Vector3(S/2, S/2, 0),  localRotation: new THREE.Euler(), compatibleWith: ['wall', 'doorframe', 'window'] },
+    ],
+  },
+  ceiling: {
+    type: 'ceiling',
+    stability: 60,
+    stabilityCost: 20,
+    size: new THREE.Vector3(S, 0.3, S),
+    color: 0x666666,
+    sockets: [
+      { id: 'bottom', localPosition: new THREE.Vector3(0, 0, 0),     localRotation: new THREE.Euler(), compatibleWith: ['wall', 'pillar'] },
+      { id: 'top',    localPosition: new THREE.Vector3(0, 0.3, 0),   localRotation: new THREE.Euler(), compatibleWith: ['wall', 'pillar', 'stairs'] },
+    ],
+  },
+  stairs: {
+    type: 'stairs',
+    stability: 70,
+    stabilityCost: 15,
+    size: new THREE.Vector3(S, S, S),
+    color: 0x997755,
+    sockets: [
+      { id: 'bottom', localPosition: new THREE.Vector3(0, 0, S/2),   localRotation: new THREE.Euler(), compatibleWith: ['foundation', 'ceiling'] },
+      { id: 'top',    localPosition: new THREE.Vector3(0, S, -S/2),  localRotation: new THREE.Euler(), compatibleWith: ['ceiling', 'foundation'] },
+    ],
+  },
+  pillar: {
+    type: 'pillar',
+    stability: 90,
+    stabilityCost: 10,
+    size: new THREE.Vector3(0.5, S, 0.5),
+    color: 0x555555,
+    sockets: [
+      { id: 'bottom', localPosition: new THREE.Vector3(0, 0, 0),     localRotation: new THREE.Euler(), compatibleWith: ['foundation', 'ceiling'] },
+      { id: 'top',    localPosition: new THREE.Vector3(0, S, 0),     localRotation: new THREE.Euler(), compatibleWith: ['ceiling'] },
+    ],
+  },
+  doorframe: {
+    type: 'doorframe',
+    stability: 75,
+    stabilityCost: 20,
+    size: new THREE.Vector3(S, S, 0.3),
+    color: 0x996633,
+    sockets: [
+      { id: 'bottom', localPosition: new THREE.Vector3(0, 0, 0),     localRotation: new THREE.Euler(), compatibleWith: ['foundation'] },
+      { id: 'top',    localPosition: new THREE.Vector3(0, S, 0),     localRotation: new THREE.Euler(), compatibleWith: ['ceiling', 'wall'] },
+    ],
+  },
+  window: {
+    type: 'window',
+    stability: 75,
+    stabilityCost: 20,
+    size: new THREE.Vector3(S, S, 0.3),
+    color: 0x88aacc,
+    sockets: [
+      { id: 'bottom', localPosition: new THREE.Vector3(0, 0, 0),     localRotation: new THREE.Euler(), compatibleWith: ['foundation'] },
+      { id: 'top',    localPosition: new THREE.Vector3(0, S, 0),     localRotation: new THREE.Euler(), compatibleWith: ['ceiling', 'wall'] },
+    ],
+  },
+};
+
+// ─── Placed piece ─────────────────────────────────────────────────────────────
+
+export interface PlacedPiece {
+  id: string;
+  type: PieceType;
+  position: THREE.Vector3;
+  rotation: THREE.Euler;
+  stability: number;
+  connections: string[]; // IDs of connected pieces
+  mesh: THREE.Mesh;
+}
+
+// ─── Building System ──────────────────────────────────────────────────────────
+
+export class BuildingSystem {
+  private scene: THREE.Scene;
+  private camera: THREE.PerspectiveCamera;
+  private pieces = new Map<string, PlacedPiece>();
+  private raycaster = new THREE.Raycaster();
+  private mouse = new THREE.Vector2();
+
+  // Ghost (build preview)
+  private ghost: THREE.Mesh | null = null;
+  private ghostType: PieceType | null = null;
+  private ghostValid = false;
+  private snapTarget: { pieceId: string; socketId: string; worldPos: THREE.Vector3; rotation: THREE.Euler } | null = null;
+
+  // Materials
+  private validGhostMat: THREE.MeshBasicMaterial;
+  private invalidGhostMat: THREE.MeshBasicMaterial;
+
+  constructor(scene: THREE.Scene, camera: THREE.PerspectiveCamera) {
+    this.scene = scene;
+    this.camera = camera;
+    this.validGhostMat = new THREE.MeshBasicMaterial({ color: 0x44ff44, transparent: true, opacity: 0.5 });
+    this.invalidGhostMat = new THREE.MeshBasicMaterial({ color: 0xff4444, transparent: true, opacity: 0.5 });
+  }
+
+  /** Enter build mode for a piece type */
+  startPlacement(type: PieceType): void {
+    this.cancelPlacement();
+    this.ghostType = type;
+    const def = PIECE_DEFS[type];
+    const geo = new THREE.BoxGeometry(def.size.x, def.size.y, def.size.z);
+    this.ghost = new THREE.Mesh(geo, this.validGhostMat);
+    this.ghost.castShadow = false;
+    this.ghost.receiveShadow = false;
+    this.scene.add(this.ghost);
+  }
+
+  /** Cancel build mode */
+  cancelPlacement(): void {
+    if (this.ghost) {
+      this.scene.remove(this.ghost);
+      this.ghost.geometry.dispose();
+      this.ghost = null;
+    }
+    this.ghostType = null;
+    this.snapTarget = null;
+    this.ghostValid = false;
+  }
+
+  /** Update ghost position from mouse coords (call on mousemove) */
+  updateGhostPosition(clientX: number, clientY: number, canvas: HTMLCanvasElement): void {
+    if (!this.ghost || !this.ghostType) return;
+
+    const rect = canvas.getBoundingClientRect();
+    this.mouse.x = ((clientX - rect.left) / rect.width) * 2 - 1;
+    this.mouse.y = -((clientY - rect.top) / rect.height) * 2 + 1;
+    this.raycaster.setFromCamera(this.mouse, this.camera);
+
+    // If we have existing pieces, try to snap to their sockets
+    this.snapTarget = this.findNearestSocket();
+
+    if (this.snapTarget) {
+      this.ghost.position.copy(this.snapTarget.worldPos);
+      this.ghost.rotation.copy(this.snapTarget.rotation);
+      this.ghostValid = true;
+    } else if (this.ghostType === 'foundation') {
+      // Foundations can be placed freely on terrain
+      const allMeshes = this.scene.children.filter(c => c instanceof THREE.Mesh && c !== this.ghost) as THREE.Mesh[];
+      const hits = this.raycaster.intersectObjects(allMeshes);
+      if (hits.length > 0) {
+        const pt = hits[0].point;
+        // Snap to grid
+        this.ghost.position.set(
+          Math.round(pt.x / S) * S,
+          pt.y + 0.25,
+          Math.round(pt.z / S) * S,
+        );
+        this.ghostValid = true;
+      } else {
+        this.ghostValid = false;
+      }
+    } else {
+      this.ghostValid = false;
+    }
+
+    this.ghost.material = this.ghostValid ? this.validGhostMat : this.invalidGhostMat;
+  }
+
+  /** Confirm placement */
+  confirmPlacement(): PlacedPiece | null {
+    if (!this.ghost || !this.ghostType || !this.ghostValid) return null;
+
+    const def = PIECE_DEFS[this.ghostType];
+    const id = `piece_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+
+    // Create permanent mesh
+    const geo = new THREE.BoxGeometry(def.size.x, def.size.y, def.size.z);
+    const mat = new THREE.MeshStandardMaterial({ color: def.color, roughness: 0.8, metalness: 0.1 });
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.position.copy(this.ghost.position);
+    mesh.rotation.copy(this.ghost.rotation);
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
+    this.scene.add(mesh);
+
+    const piece: PlacedPiece = {
+      id,
+      type: this.ghostType,
+      position: this.ghost.position.clone(),
+      rotation: this.ghost.rotation.clone(),
+      stability: def.stability,
+      connections: [],
+      mesh,
+    };
+
+    // Connect to snap source
+    if (this.snapTarget) {
+      const sourcePiece = this.pieces.get(this.snapTarget.pieceId);
+      if (sourcePiece) {
+        sourcePiece.connections.push(id);
+        piece.connections.push(sourcePiece.id);
+      }
+    }
+
+    this.pieces.set(id, piece);
+    this.recalculateStability();
+    this.cancelPlacement();
+
+    return piece;
+  }
+
+  /** Remove a piece and cascade-collapse unstable pieces */
+  removePiece(id: string): string[] {
+    const piece = this.pieces.get(id);
+    if (!piece) return [];
+
+    // Remove from scene
+    this.scene.remove(piece.mesh);
+    piece.mesh.geometry.dispose();
+    (piece.mesh.material as THREE.Material).dispose();
+
+    // Remove connections
+    for (const connId of piece.connections) {
+      const conn = this.pieces.get(connId);
+      if (conn) {
+        conn.connections = conn.connections.filter(c => c !== id);
+      }
+    }
+
+    this.pieces.delete(id);
+
+    // Recalculate and collapse
+    return this.recalculateStability();
+  }
+
+  // ─── Stability BFS ──────────────────────────────────────────────────────────
+
+  private recalculateStability(): string[] {
+    // Reset all to 0
+    for (const [, piece] of this.pieces) {
+      piece.stability = 0;
+    }
+
+    // BFS from foundations
+    const queue: string[] = [];
+    for (const [id, piece] of this.pieces) {
+      if (piece.type === 'foundation') {
+        piece.stability = PIECE_DEFS.foundation.stability;
+        queue.push(id);
+      }
+    }
+
+    const visited = new Set<string>();
+    while (queue.length > 0) {
+      const currentId = queue.shift()!;
+      if (visited.has(currentId)) continue;
+      visited.add(currentId);
+
+      const current = this.pieces.get(currentId);
+      if (!current) continue;
+
+      for (const connId of current.connections) {
+        if (visited.has(connId)) continue;
+        const conn = this.pieces.get(connId);
+        if (!conn) continue;
+
+        const def = PIECE_DEFS[conn.type];
+        const propagated = current.stability - def.stabilityCost;
+        if (propagated > conn.stability) {
+          conn.stability = propagated;
+          queue.push(connId);
+        }
+      }
+    }
+
+    // Collapse pieces with 0 stability (not foundations)
+    const collapsed: string[] = [];
+    for (const [id, piece] of this.pieces) {
+      if (piece.stability <= 0 && piece.type !== 'foundation') {
+        collapsed.push(id);
+      }
+    }
+
+    for (const id of collapsed) {
+      const piece = this.pieces.get(id);
+      if (piece) {
+        this.scene.remove(piece.mesh);
+        piece.mesh.geometry.dispose();
+        (piece.mesh.material as THREE.Material).dispose();
+        // Clean connections
+        for (const connId of piece.connections) {
+          const conn = this.pieces.get(connId);
+          if (conn) conn.connections = conn.connections.filter(c => c !== id);
+        }
+        this.pieces.delete(id);
+      }
+    }
+
+    return collapsed;
+  }
+
+  // ─── Socket detection ───────────────────────────────────────────────────────
+
+  private findNearestSocket(): { pieceId: string; socketId: string; worldPos: THREE.Vector3; rotation: THREE.Euler } | null {
+    if (!this.ghostType) return null;
+
+    const rayOrigin = this.raycaster.ray.origin;
+    const rayDir = this.raycaster.ray.direction;
+
+    let best: { pieceId: string; socketId: string; worldPos: THREE.Vector3; rotation: THREE.Euler; dist: number } | null = null;
+    const snapRange = 3;
+
+    for (const [pieceId, piece] of this.pieces) {
+      const def = PIECE_DEFS[piece.type];
+      for (const socket of def.sockets) {
+        if (!socket.compatibleWith.includes(this.ghostType)) continue;
+
+        // Socket world position
+        const worldPos = socket.localPosition.clone()
+          .applyEuler(piece.rotation)
+          .add(piece.position);
+
+        // Distance from ray to socket
+        const toSocket = worldPos.clone().sub(rayOrigin);
+        const projLen = toSocket.dot(rayDir);
+        if (projLen < 0) continue;
+        const closest = rayOrigin.clone().add(rayDir.clone().multiplyScalar(projLen));
+        const dist = closest.distanceTo(worldPos);
+
+        if (dist < snapRange && (!best || dist < best.dist)) {
+          best = {
+            pieceId,
+            socketId: socket.id,
+            worldPos,
+            rotation: new THREE.Euler(
+              piece.rotation.x + socket.localRotation.x,
+              piece.rotation.y + socket.localRotation.y,
+              piece.rotation.z + socket.localRotation.z,
+            ),
+            dist,
+          };
+        }
+      }
+    }
+
+    return best ? { pieceId: best.pieceId, socketId: best.socketId, worldPos: best.worldPos, rotation: best.rotation } : null;
+  }
+
+  // ─── Queries ────────────────────────────────────────────────────────────────
+
+  get isBuilding(): boolean { return this.ghost !== null; }
+  get pieceCount(): number { return this.pieces.size; }
+
+  getAllPieces(): PlacedPiece[] { return Array.from(this.pieces.values()); }
+
+  getPiece(id: string): PlacedPiece | undefined { return this.pieces.get(id); }
+
+  destroy(): void {
+    this.cancelPlacement();
+    for (const [, piece] of this.pieces) {
+      this.scene.remove(piece.mesh);
+      piece.mesh.geometry.dispose();
+      (piece.mesh.material as THREE.Material).dispose();
+    }
+    this.pieces.clear();
+    this.validGhostMat.dispose();
+    this.invalidGhostMat.dispose();
+  }
+}

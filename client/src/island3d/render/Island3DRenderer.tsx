@@ -1,12 +1,16 @@
 /**
  * Island3DRenderer — React component that mounts the 3D island engine.
  *
- * Manages canvas lifecycle, resize handling, and click-to-harvest interaction.
+ * Manages canvas lifecycle, resize handling, click-to-harvest, building
+ * ghost preview, character controls, and HUD overlay for all new systems.
  */
 import { useRef, useEffect, useState, useCallback } from 'react';
 import { Island3DEngine, type Island3DMode } from '../engine/Island3DEngine';
 import { exportSceneToFile, getSceneStats } from '@/lib/sceneExporter';
 import type { MultiplayerConfig } from '../sync/MultiplayerSync';
+import type { QualityPreset } from '../render/PostProcessing';
+import type { DayNightConfig } from '../environment/DayNightCycle';
+import type { PhysicsCallbacks, MovementState } from '../player/CharacterController3D';
 
 interface Island3DRendererProps {
   seed: string;
@@ -17,15 +21,37 @@ interface Island3DRendererProps {
   mode?: Island3DMode;
   /** Lobby map ID (e.g. 'pirate-islands'). Only used when mode='lobby'. */
   lobbyMapId?: string;
+  /** Post-processing quality (default 'medium') */
+  quality?: QualityPreset;
+  /** Day/night cycle config (omit to disable) */
+  dayNight?: Partial<DayNightConfig>;
+  /** Enable the playable character controller (default true for procedural) */
+  enableCharacter?: boolean;
+  /** Expose the engine ref for external control (building, allies, etc.) */
+  onEngineReady?: (engine: Island3DEngine) => void;
 }
 
-export function Island3DRenderer({ seed, className = '', multiplayer, mode = 'procedural', lobbyMapId }: Island3DRendererProps) {
+export function Island3DRenderer({
+  seed, className = '', multiplayer, mode = 'procedural', lobbyMapId,
+  quality = 'medium', dayNight, enableCharacter, onEngineReady,
+}: Island3DRendererProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const engineRef = useRef<Island3DEngine | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadProgress, setLoadProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
+
+  // HUD state driven by physics callbacks
+  const [movementState, setMovementState] = useState<MovementState>('ground');
+  const [oxygen, setOxygen] = useState(1); // 0-1 ratio
+  const [dayPhase, setDayPhase] = useState('day');
+
+  // Physics callbacks (bridge engine events → React state)
+  const physicsCallbacks: PhysicsCallbacks = {
+    onMovementStateChange: (_prev, next) => setMovementState(next),
+    onOxygenChange: (o2, max) => setOxygen(max > 0 ? o2 / max : 1),
+  };
 
   // Init engine
   useEffect(() => {
@@ -44,6 +70,10 @@ export function Island3DRenderer({ seed, className = '', multiplayer, mode = 'pr
       multiplayer,
       mode,
       lobbyMapId,
+      quality,
+      dayNight,
+      enableCharacter,
+      physicsCallbacks,
       onLoadProgress: (pct) => setLoadProgress(pct),
     });
     engineRef.current = engine;
@@ -52,6 +82,7 @@ export function Island3DRenderer({ seed, className = '', multiplayer, mode = 'pr
       .then(() => {
         setLoading(false);
         engine.start();
+        onEngineReady?.(engine);
       })
       .catch((err) => {
         console.error('Island3D init failed:', err);
@@ -64,6 +95,16 @@ export function Island3DRenderer({ seed, className = '', multiplayer, mode = 'pr
       engineRef.current = null;
     };
   }, [seed, multiplayer, mode, lobbyMapId]);
+
+  // Day phase polling (lightweight — once per second)
+  useEffect(() => {
+    if (loading) return;
+    const interval = setInterval(() => {
+      const phase = engineRef.current?.dayNight?.getPhase();
+      if (phase) setDayPhase(phase);
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [loading]);
 
   // Resize handler
   useEffect(() => {
@@ -83,10 +124,36 @@ export function Island3DRenderer({ seed, className = '', multiplayer, mode = 'pr
     return () => observer.disconnect();
   }, []);
 
-  // Click handler
+  // Click handler (harvesting or building confirm)
   const handleClick = useCallback((e: React.MouseEvent) => {
     engineRef.current?.handleClick(e.clientX, e.clientY);
   }, []);
+
+  // Mouse move handler (building ghost snap preview)
+  const handleMouseMove = useCallback((e: React.MouseEvent) => {
+    engineRef.current?.handleMouseMove(e.clientX, e.clientY);
+  }, []);
+
+  // Keyboard: Escape cancels building
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') engineRef.current?.cancelBuilding();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+
+  // Movement state label
+  const stateLabel: Record<MovementState, string> = {
+    ground: '🚶 Ground',
+    falling: '💨 Falling',
+    jumping: '⬆️ Jumping',
+    swimming_surface: '🏊 Swimming',
+    swimming_underwater: '🤿 Underwater',
+    climbing: '🧗 Climbing',
+  };
+
+  const isSwimming = movementState === 'swimming_surface' || movementState === 'swimming_underwater';
 
   return (
     <div
@@ -98,6 +165,7 @@ export function Island3DRenderer({ seed, className = '', multiplayer, mode = 'pr
         ref={canvasRef}
         className="w-full h-full block"
         onClick={handleClick}
+        onMouseMove={handleMouseMove}
       />
 
       {loading && (
@@ -128,37 +196,66 @@ export function Island3DRenderer({ seed, className = '', multiplayer, mode = 'pr
         </div>
       )}
 
-      {/* HUD overlay */}
+      {/* ── HUD overlay ──────────────────────────────────────────────── */}
       {!loading && !error && (
-        <div className="absolute top-4 left-4 z-10 bg-black/50 text-white text-xs px-3 py-2 rounded">
-          <p className="font-bold text-emerald-400">
-            {mode === 'lobby' ? `🏝️ Lobby — ${lobbyMapId || 'pirate-islands'}` : `3D Island — ${seed}`}
-          </p>
-          {mode === 'procedural' && (
-            <p className="text-gray-300 mt-1">Click trees/rocks to harvest</p>
+        <>
+          {/* Top-left info panel */}
+          <div className="absolute top-4 left-4 z-10 bg-black/60 text-white text-xs px-3 py-2 rounded space-y-1">
+            <p className="font-bold text-emerald-400">
+              {mode === 'lobby' ? `🏕️ Lobby — ${lobbyMapId || 'pirate-islands'}` : `3D Island — ${seed}`}
+            </p>
+            {mode === 'procedural' && (
+              <>
+                <p className="text-gray-300">{stateLabel[movementState] || movementState}</p>
+                <p className="text-gray-400">WASD move · Space jump · Tab combat/harvest</p>
+                <p className="text-gray-400">LMB+drag camera · Click to harvest</p>
+              </>
+            )}
+            {multiplayer && (
+              <p className="text-sky-400">⚡ Multiplayer connected</p>
+            )}
+            {dayNight !== undefined && (
+              <p className="text-amber-300">☀️ {dayPhase.charAt(0).toUpperCase() + dayPhase.slice(1)}</p>
+            )}
+            {/* Export */}
+            <button
+              onClick={async () => {
+                const engine = engineRef.current;
+                if (!engine) return;
+                const scene = (engine as any).scene;
+                if (!scene) return;
+                const stats = getSceneStats(scene);
+                console.log('[Export] Scene stats:', stats);
+                await exportSceneToFile(scene, `island-${seed}.glb`, {
+                  metadata: { seed },
+                });
+              }}
+              className="mt-1 px-2 py-1 bg-emerald-700 hover:bg-emerald-600 rounded text-[10px] text-white w-full"
+            >
+              📦 Export Scene (.glb)
+            </button>
+          </div>
+
+          {/* Oxygen bar (only when swimming) */}
+          {isSwimming && (
+            <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 w-48">
+              <div className="bg-black/60 rounded px-2 py-1">
+                <p className="text-[10px] text-cyan-300 text-center mb-1">
+                  🤿 Oxygen {Math.round(oxygen * 100)}%
+                </p>
+                <div className="w-full h-2 bg-gray-700 rounded-full overflow-hidden">
+                  <div
+                    className="h-full rounded-full transition-all duration-300"
+                    style={{
+                      width: `${oxygen * 100}%`,
+                      backgroundColor: oxygen > 0.3 ? '#22d3ee' : '#ef4444',
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
           )}
-          <p className="text-gray-400">Scroll to zoom · Drag to orbit</p>
-          {multiplayer && (
-            <p className="text-sky-400 mt-1">⚡ Multiplayer connected</p>
-          )}
-          {/* Export scene as GLB */}
-          <button
-            onClick={async () => {
-              const engine = engineRef.current;
-              if (!engine) return;
-              const scene = (engine as any).scene;
-              if (!scene) return;
-              const stats = getSceneStats(scene);
-              console.log('[Export] Scene stats:', stats);
-              await exportSceneToFile(scene, `island-${seed}.glb`, {
-                metadata: { seed },
-              });
-            }}
-            className="mt-2 px-2 py-1 bg-emerald-700 hover:bg-emerald-600 rounded text-[10px] text-white w-full"
-          >
-            📦 Export Scene (.glb)
-          </button>
-        </div>
+        </>
       )}
     </div>
   );

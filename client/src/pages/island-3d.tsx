@@ -175,6 +175,9 @@ export default function Island3DPage() {
           seed={seed}
           mode={mode}
           lobbyMapId={lobbyMapId}
+          quality="medium"
+          dayNight={{ dayDurationSeconds: 600, startTime: 0.35 }}
+          enableCharacter={mode === 'procedural'}
         />
         {/* Home-island stats overlay */}
         {isHomeIslandMode && homeIsland && (

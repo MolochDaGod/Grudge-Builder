@@ -20,6 +20,13 @@ import { createHarvestableRock, type HarvestableRock } from '../objects/Harvesta
 import { DetailLayer, createGrassBlades } from '../terrain/DetailLayers';
 import { MultiplayerSync, type MultiplayerConfig } from '../sync/MultiplayerSync';
 import { loadLobbyMap, getLobbyMap, type LobbyMapDef, type LobbyLoadResult } from './LobbyIslandLoader';
+import { createOceanMesh, updateOceanMaterial } from '../terrain/WaterMaterial';
+import { PostProcessing, type QualityPreset } from '../render/PostProcessing';
+import { DayNightCycle, type DayNightConfig } from '../environment/DayNightCycle';
+import { CharacterController3D, type CharacterController3DConfig, type PhysicsCallbacks } from '../player/CharacterController3D';
+import { TerrainNavMesh } from '../navigation/TerrainNavMesh';
+import { AllyManager, type CombatTarget } from '../ai/AllyController';
+import { BuildingSystem, type PieceType } from '../building/BuildingSystem';
 
 export type Island3DMode = 'procedural' | 'lobby';
 
@@ -36,6 +43,14 @@ export interface Island3DEngineConfig {
   lobbyMapId?: string;
   /** Progress callback for lobby map loading (0-100) */
   onLoadProgress?: (pct: number) => void;
+  /** Post-processing quality (default 'medium') */
+  quality?: QualityPreset;
+  /** Day/night cycle config (omit to disable) */
+  dayNight?: Partial<DayNightConfig>;
+  /** Enable the playable character controller (default true for procedural) */
+  enableCharacter?: boolean;
+  /** Physics callbacks from the character controller */
+  physicsCallbacks?: PhysicsCallbacks;
 }
 
 export class Island3DEngine {
@@ -64,9 +79,28 @@ export class Island3DEngine {
   // Multiplayer
   public multiplayer: MultiplayerSync | null = null;
 
+  // Post-processing
+  private postProcessing: PostProcessing | null = null;
+
+  // Day/night cycle
+  public dayNight: DayNightCycle | null = null;
+  private sunLight: THREE.DirectionalLight | null = null;
+  private hemiLight: THREE.HemisphereLight | null = null;
+
   // Lobby map
   private lobbyResult: LobbyLoadResult | null = null;
   private lobbyAnimMixer: THREE.AnimationMixer | null = null;
+
+  // Player character
+  public character: CharacterController3D | null = null;
+  private characterActive = false;
+
+  // Navigation + AI
+  public navMesh: TerrainNavMesh | null = null;
+  public allyManager: AllyManager | null = null;
+
+  // Building
+  public building: BuildingSystem | null = null;
 
   // Raycaster for mouse picking
   private raycaster = new THREE.Raycaster();
@@ -108,32 +142,45 @@ export class Island3DEngine {
     this.clock = new THREE.Clock();
 
     this.setupLighting();
+
+    // Post-processing
+    this.postProcessing = new PostProcessing(
+      this.renderer, this.scene, this.camera,
+      { quality: config.quality || 'medium' },
+    );
   }
 
   private setupLighting(): void {
     // Hemisphere light — sky + ground ambient
-    const hemi = new THREE.HemisphereLight(0x87ceeb, 0x3a5f0b, 0.6);
-    this.scene.add(hemi);
+    this.hemiLight = new THREE.HemisphereLight(0x87ceeb, 0x3a5f0b, 0.6);
+    this.scene.add(this.hemiLight);
 
     // Directional sun light with shadows
-    const sun = new THREE.DirectionalLight(0xfff4e0, 1.2);
-    sun.position.set(150, 200, 100);
-    sun.castShadow = true;
-    sun.shadow.mapSize.width = 2048;
-    sun.shadow.mapSize.height = 2048;
-    sun.shadow.camera.left = -300;
-    sun.shadow.camera.right = 300;
-    sun.shadow.camera.top = 300;
-    sun.shadow.camera.bottom = -300;
-    sun.shadow.camera.near = 1;
-    sun.shadow.camera.far = 800;
-    sun.shadow.bias = -0.001;
-    this.scene.add(sun);
+    this.sunLight = new THREE.DirectionalLight(0xfff4e0, 1.2);
+    this.sunLight.position.set(150, 200, 100);
+    this.sunLight.castShadow = true;
+    this.sunLight.shadow.mapSize.width = 2048;
+    this.sunLight.shadow.mapSize.height = 2048;
+    this.sunLight.shadow.camera.left = -300;
+    this.sunLight.shadow.camera.right = 300;
+    this.sunLight.shadow.camera.top = 300;
+    this.sunLight.shadow.camera.bottom = -300;
+    this.sunLight.shadow.camera.near = 1;
+    this.sunLight.shadow.camera.far = 800;
+    this.sunLight.shadow.bias = -0.001;
+    this.scene.add(this.sunLight);
 
     // Subtle fill light from opposite side
     const fill = new THREE.DirectionalLight(0x8ec8e8, 0.3);
     fill.position.set(-100, 80, -100);
     this.scene.add(fill);
+
+    // Day/night cycle (if configured)
+    if (this.config.dayNight !== undefined && this.sunLight && this.hemiLight) {
+      this.dayNight = new DayNightCycle(
+        this.scene, this.sunLight, this.hemiLight, this.config.dayNight,
+      );
+    }
   }
 
   /** Generate terrain, water, nodes, decorations — or load a lobby map */
@@ -224,22 +271,31 @@ export class Island3DEngine {
 
     // 6. Detail layers — animated grass + sand overlays
     this.createDetailLayers();
+
+    // 7. Navigation mesh (needed by AI allies)
+    this.navMesh = new TerrainNavMesh(
+      this.terrain.terrainMesh,
+      this.terrain.biomeMap,
+      this.terrain.gridW,
+      this.terrain.gridH,
+      512, 512,
+      8, // cell size
+    );
+
+    // 8. Ally manager (Gouldstone system)
+    this.allyManager = new AllyManager(this.scene, this.navMesh, this.terrain.terrainMesh);
+
+    // 9. Building system
+    this.building = new BuildingSystem(this.scene, this.camera);
+
+    // 10. Character controller (over-the-shoulder, replaces orbit)
+    if (this.config.enableCharacter !== false) {
+      this.spawnCharacter();
+    }
   }
 
   private createWaterPlane(): void {
-    const waterGeo = new THREE.PlaneGeometry(800, 800, 1, 1);
-    const waterMat = new THREE.MeshPhongMaterial({
-      color: 0x1a6e8e,
-      transparent: true,
-      opacity: 0.7,
-      shininess: 100,
-      specular: 0x4488aa,
-      side: THREE.DoubleSide,
-    });
-    this.waterPlane = new THREE.Mesh(waterGeo, waterMat);
-    this.waterPlane.rotation.x = -Math.PI / 2;
-    this.waterPlane.position.y = -2; // slightly below terrain water level
-    this.waterPlane.receiveShadow = true;
+    this.waterPlane = createOceanMesh({ waterLevel: -2 });
     this.scene.add(this.waterPlane);
   }
 
@@ -295,6 +351,28 @@ export class Island3DEngine {
     this.scene.add(this.grassBlades.mesh);
   }
 
+  /** Spawn or respawn the playable character */
+  private spawnCharacter(): void {
+    if (!this.terrain) return;
+
+    // Find a walkable spawn point near island center
+    const spawnY = getTerrainHeightAt(this.terrain.terrainMesh, 0, 0) ?? 20;
+    const startPos = new THREE.Vector3(0, spawnY + 2, 0);
+
+    this.character = new CharacterController3D({
+      scene: this.scene,
+      camera: this.camera,
+      terrainMesh: this.terrain.terrainMesh,
+      startPosition: startPos,
+      physics: { waterLevel: -2 },
+      callbacks: this.config.physicsCallbacks,
+    });
+
+    // Disable orbit controls — character owns the camera now
+    this.controls.enabled = false;
+    this.characterActive = true;
+  }
+
   /** Update detail layers (grass/sand animation) */
   private updateDetailLayers(dt: number): void {
     const time = this.clock.elapsedTime;
@@ -305,16 +383,14 @@ export class Island3DEngine {
     this.grassBlades?.update(time, camPos);
   }
 
-  /** Animate water UV offset for wave effect */
+  /** Update Gerstner wave ocean shader + sync sun direction from day/night */
   private updateWater(dt: number): void {
     if (!this.waterPlane) return;
-    const mat = this.waterPlane.material as THREE.MeshPhongMaterial;
-    if (mat.map) {
-      mat.map.offset.x += dt * 0.01;
-      mat.map.offset.y += dt * 0.005;
+    const mat = this.waterPlane.material;
+    if (mat && 'uniforms' in mat) {
+      const sunDir = this.dayNight?.getSunDirection();
+      updateOceanMaterial(mat as THREE.ShaderMaterial, this.clock.elapsedTime, sunDir);
     }
-    // Gentle bobbing
-    this.waterPlane.position.y = -2 + Math.sin(this.clock.elapsedTime * 0.5) * 0.3;
   }
 
   /** Update harvestable animations */
@@ -362,14 +438,45 @@ export class Island3DEngine {
     if (!this.isRunning) return;
 
     const dt = Math.min(this.clock.getDelta(), 0.05);
-    this.controls.update();
+
+    // Camera: either character controller or orbit controls
+    if (this.characterActive && this.character) {
+      this.character.update(dt);
+    } else {
+      this.controls.update();
+    }
+
     this.updateWater(dt);
     this.updateHarvestables(dt);
     this.updateDetailLayers(dt);
     this.lobbyAnimMixer?.update(dt);
     this.multiplayer?.update(dt);
 
-    this.renderer.render(this.scene, this.camera);
+    // Day/night cycle
+    this.dayNight?.update(dt);
+
+    // Ally AI — feed player position + current enemies from multiplayer
+    if (this.allyManager && this.character) {
+      const enemies: CombatTarget[] = [];
+      if (this.multiplayer) {
+        for (const [, e] of this.multiplayer.enemies) {
+          enemies.push({
+            id: e.id,
+            position: new THREE.Vector3(e.x, e.y, e.z),
+            hp: e.hp,
+            dead: e.hp <= 0,
+          });
+        }
+      }
+      this.allyManager.update(dt, this.character.getPosition(), enemies);
+    }
+
+    // Render via post-processing pipeline (or raw fallback)
+    if (this.postProcessing) {
+      this.postProcessing.render();
+    } else {
+      this.renderer.render(this.scene, this.camera);
+    }
     this.animationFrameId = requestAnimationFrame(this.loop);
   };
 
@@ -377,10 +484,17 @@ export class Island3DEngine {
     this.camera.aspect = width / height;
     this.camera.updateProjectionMatrix();
     this.renderer.setSize(width, height);
+    this.postProcessing?.resize(width, height);
   }
 
-  /** Handle mouse click for harvesting */
+  /** Handle mouse click — building placement or harvesting */
   handleClick(clientX: number, clientY: number): void {
+    // If building mode is active, confirm placement
+    if (this.building?.isBuilding) {
+      this.building.confirmPlacement();
+      return;
+    }
+
     const rect = this.config.canvas.getBoundingClientRect();
     this.mouse.x = ((clientX - rect.left) / rect.width) * 2 - 1;
     this.mouse.y = -((clientY - rect.top) / rect.height) * 2 + 1;
@@ -396,7 +510,6 @@ export class Island3DEngine {
         tree.shakeTime = 0;
         if (tree.health <= 0) {
           tree.group.visible = false;
-          // TODO: trigger loot drop, respawn timer
         }
         return;
       }
@@ -409,24 +522,49 @@ export class Island3DEngine {
         rock.health--;
         rock.chipping = true;
         rock.chipTime = 0;
-        // Scale down to simulate chipping
         const scale = Math.max(0.3, rock.health / rock.maxHealth);
         rock.group.scale.setScalar(rock.baseScale * scale);
         if (rock.health <= 0) {
           rock.group.visible = false;
-          // TODO: trigger loot drop, respawn timer
         }
         return;
       }
     }
   }
 
+  /** Handle mouse move — building ghost snap preview */
+  handleMouseMove(clientX: number, clientY: number): void {
+    if (this.building?.isBuilding) {
+      this.building.updateGhostPosition(clientX, clientY, this.config.canvas);
+    }
+  }
+
+  /** Enter building mode for a piece type */
+  startBuilding(type: PieceType): void {
+    this.building?.startPlacement(type);
+  }
+
+  /** Cancel building mode */
+  cancelBuilding(): void {
+    this.building?.cancelPlacement();
+  }
+
+  /** Toggle between orbit controls and character controller */
+  toggleCharacterControl(enabled: boolean): void {
+    this.characterActive = enabled;
+    this.controls.enabled = !enabled;
+  }
+
   destroy(): void {
     this.stop();
+    this.character?.destroy();
+    this.allyManager?.destroy();
+    this.building?.destroy();
     this.multiplayer?.destroy();
     this.lobbyAnimMixer?.stopAllAction();
     this.grassLayer?.dispose();
     this.sandLayer?.dispose();
+    this.postProcessing?.dispose();
     this.renderer.dispose();
     this.controls.dispose();
     // Dispose geometries and materials
