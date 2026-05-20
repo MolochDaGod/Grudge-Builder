@@ -66,7 +66,7 @@ Key ObjectStore JSON endpoints:
 
 ### Single API Client Path
 `grudgeBackend.ts` (auth/token) → `api.ts` (game API calls via /api/game/) → `characterManager.ts` (character CRUD)
-Token stored in localStorage as `grudge_auth_token`. JWT_SECRET shared with Railway backend for cross-compatibility.
+Token stored in localStorage as `grudge_auth_token`. JWT_SECRET shared across Cloudflare Workers for cross-compatibility.
 
 **Auth → Account Sync:** On login, `handleAuthResponse()` sets `grudge_account_id` in localStorage so `CharacterManager` scopes active character selection to the correct account (not `guest`).
 
@@ -82,7 +82,7 @@ Token stored in localStorage as `grudge_auth_token`. JWT_SECRET shared with Rail
 Local Express routes (`server/routes.ts`) handle `/api/island/*`, `/api/account/*` directly.
 External routes (`/api/game/*`, `/api/auth/*`, `/api/assets/*`) are proxied to production backends.
 
-### What Does NOT Exist on Railway Backend
+### What Only Exists on Local Dev Server
 These routes only work on the local dev server (`server/routes.ts`):
 - Sprite scanning/analysis/generation (`/api/sprites/*`)
 - Aseprite file parsing (`/api/aseprite/*`)
@@ -98,10 +98,10 @@ Frontend pages using these MUST use `BackendRequired` component for graceful deg
 |---------|-----|------|
 | Game Client | grudgewarlords.com | Vercel |
 | Dashboard | dash.grudge-studio.com | Vercel |
-| Game API | api.grudge-studio.com | Railway (Docker) |
-| Auth / Identity | id.grudge-studio.com | Railway (Docker) |
-| Account API | account.grudge-studio.com | Railway (Docker) |
-| Asset CDN | assets.grudge-studio.com | Cloudflare R2 |
+| Game API | api.grudge-studio.com | Cloudflare Workers |
+| Auth / Identity | id.grudge-studio.com | Cloudflare Workers |
+| Account API | account.grudge-studio.com | Cloudflare Workers |
+| Asset CDN | assets.grudge-studio.com | Cloudflare Worker (R2 + GitHub Pages fallback) |
 | ObjectStore API | objectstore.grudge-studio.com | Cloudflare Worker |
 | AI Hub Worker | ai.grudge-studio.com | Cloudflare Worker |
 | Route Monitor | grudge-route-monitor.grudge.workers.dev | Cloudflare Worker |
@@ -116,7 +116,7 @@ Frontend pages using these MUST use `BackendRequired` component for graceful deg
 - `client/src/lib/assetConfig.ts` — Asset URL helpers
 - `client/src/lib/assetResolver.ts` — Smart fallback chain (CDN → ObjectStore → placeholder)
 - `client/src/lib/audioManager.ts` — BGM/SFX from ObjectStore audio
-- `client/src/lib/characterAdapter.ts` — Backend ↔ local character data bridge (saveExtendedData writes all 13 fields to Railway backend)
+- `client/src/lib/characterAdapter.ts` — Backend ↔ local character data bridge (saveExtendedData writes all 13 fields to backend)
 - `client/src/lib/professionSync.ts` — ObjectStore professions.json loader (6 gathering + 5 crafting, milestones, XP table, benches)
 - `client/src/components/FactionEmblems.tsx` — SVG faction emblems (Crusade/Fabled/Legion)
 - `shared/attributeSystem.ts` — Canonical 8 attributes with DR, stat caps, combat math

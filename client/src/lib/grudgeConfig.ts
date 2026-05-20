@@ -27,14 +27,13 @@ export const ASSETS_CDN: string =
   env.VITE_ASSETS_URL || 'https://assets.grudge-studio.com';
 
 /**
- * AI gateway Worker (ALE).
- *
- * NOTE (2026-05-06): ale.grudge-studio.com has NO DNS record — it was never
- * deployed. Fallback to api.grudge-studio.com/ai until the Worker is deployed
- * and the DNS record is created in Cloudflare.
+ * AI Gateway Worker — unified model hub for all Grudge AI calls.
+ * Deployed at ai.grudge-studio.com (Cloudflare Worker).
+ * Routes chat, image, video, speech, music, and agent pipelines
+ * through Cloudflare AI Gateway to 137+ models.
  */
 export const AI_GATEWAY: string =
-  env.VITE_AI_URL || 'https://api.grudge-studio.com/ai';
+  env.VITE_AI_URL || 'https://ai.grudge-studio.com';
 
 /**
  * Edge badge-reader Worker — JWT pre-check before protected origins.
@@ -77,6 +76,37 @@ export const GRUDGE_PLATFORM_URL: string =
   env.VITE_GRUDGE_PLATFORM_URL || 'https://grudgeplatform.io';
 
 /**
+ * All Grudge Studio domains — used for SSO redirect validation,
+ * cookie clearing, and CORS allowlisting.
+ *
+ * Every domain that hosts a Grudge app MUST be listed here so that:
+ *   1. buildSsoLoginUrl() can redirect back to it after login
+ *   2. purgeGrudgeClientState() clears cookies on all domains
+ *   3. Backend CORS_ORIGINS env var includes it
+ */
+export const GRUDGE_DOMAINS = [
+  'grudge-studio.com',
+  'grudgestudio.org',
+  'grudgeplatform.io',
+  'grudgewarlords.com',
+] as const;
+
+/** Subdomains that host Grudge services (for CORS regex matching). */
+export const GRUDGE_SUBDOMAINS = [
+  'id.grudge-studio.com',
+  'api.grudge-studio.com',
+  'account.grudge-studio.com',
+  'assets.grudge-studio.com',
+  'ai.grudge-studio.com',
+  'dash.grudge-studio.com',
+  'objectstore.grudge-studio.com',
+  'ws.grudge-studio.com',
+  'client.grudge-studio.com',
+  'engine.grudge-studio.com',
+  'launcher.grudge-studio.com',
+] as const;
+
+/**
  * Discord OAuth wiring (2026-04-27).
  *
  * `id.grudge-studio.com/auth/discord/start` currently returns 404, but
@@ -116,6 +146,19 @@ export function buildDiscordOAuthUrl(returnUrl: string): string {
   return `https://discord.com/api/oauth2/authorize?${params.toString()}`;
 }
 
+/**
+ * Build a full SSO login URL that sends the user to `id.grudge-studio.com`
+ * for authentication and redirects back to this app's `/auth/callback` with:
+ *   ?sso_token=JWT&grudge_id=GRDG-XXXX&grudge_username=Player
+ *
+ * Any Grudge Studio app can use this to initiate the centralized SSO flow.
+ */
+export function buildSsoLoginUrl(returnOrigin?: string): string {
+  const origin = returnOrigin || (typeof window !== 'undefined' ? window.location.origin : 'https://grudgewarlords.com');
+  const redirectUri = `${origin}/auth/callback`;
+  return `${AUTH_GATEWAY}/login?redirect_uri=${encodeURIComponent(redirectUri)}`;
+}
+
 /** LocalStorage keys — kept centralized so logout/purge logic cannot miss any. */
 export const STORAGE_KEYS = [
   'grudge_auth_token',
@@ -148,8 +191,10 @@ export function purgeGrudgeClientState(): void {
       const name = c.replace(/^ +/, '').split('=')[0];
       if (!name) return;
       document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/`;
-      document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; domain=.grudge-studio.com`;
-      document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; domain=.grudgewarlords.com`;
+      // Clear cookies on ALL Grudge domains
+      for (const domain of GRUDGE_DOMAINS) {
+        document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; domain=.${domain}`;
+      }
     });
   } catch {
     /* not in a browser context */
@@ -176,10 +221,13 @@ export default {
   GRUDGEDOT_LAUNCHER_URL,
   isGrudgedotLauncherLive,
   GRUDGE_PLATFORM_URL,
+  GRUDGE_DOMAINS,
+  GRUDGE_SUBDOMAINS,
   DISCORD_CLIENT_ID,
   DISCORD_REDIRECT_URI,
   DISCORD_OAUTH_SCOPES,
   buildDiscordOAuthUrl,
+  buildSsoLoginUrl,
   STORAGE_KEYS,
   purgeGrudgeClientState,
   authHeaders,
