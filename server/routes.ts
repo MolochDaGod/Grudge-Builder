@@ -21,6 +21,9 @@ import { exportFoodsToSheet, generateFoodRows } from "./sheetsExport";
 import { detectSpriteType, SPRITE_TYPES } from "@shared/definitions/spriteTypes";
 import { getClassStartingGear } from "@shared/definitions/tier0Items";
 import { generateIslandState, validateIslandAssets } from "./utilities/islandGeneration";
+import { CrossmintWalletService } from "./services/crossmintWallet";
+
+const crossmintService = new CrossmintWalletService();
 
 // ── OpenAI — support both env var names (#12) ────────────────────────────────
 const openai = new OpenAI({
@@ -320,6 +323,7 @@ export async function registerRoutes(
       }
       
       // Only generate avatar if one wasn't provided and skipAvatarGeneration is not set
+      let finalCharacter = character;
       if (!character.avatarUrl && !req.body.skipAvatarGeneration) {
         const avatarUrl = await generateCharacterAvatar(
           character.name, 
@@ -328,13 +332,37 @@ export async function registerRoutes(
         );
         
         if (avatarUrl) {
-          const updatedCharacter = await storage.updateCharacter(character.id, { avatarUrl });
-          res.json(updatedCharacter);
-          return;
+          finalCharacter = await storage.updateCharacter(character.id, { avatarUrl });
         }
       }
-      
-      res.json(character);
+
+      // Mint character as cNFT (non-blocking — character works even if mint fails)
+      try {
+        const avatarForMint = finalCharacter.avatarUrl || '/avatars/default.png';
+        const imageUrl = avatarForMint.startsWith('http')
+          ? avatarForMint
+          : `${req.protocol}://${req.get('host')}${avatarForMint}`;
+
+        if (account.walletAddress) {
+          const mintResult = await crossmintService.mintCharacterNFT(
+            finalCharacter,
+            imageUrl,
+            account.walletAddress,
+          );
+          if (mintResult?.actionId) {
+            finalCharacter = await storage.updateCharacter(finalCharacter.id, {
+              cnftId: mintResult.actionId,
+            } as any);
+            console.log(`[cNFT] Character ${finalCharacter.name} mint initiated: ${mintResult.actionId}`);
+          }
+        } else {
+          console.log(`[cNFT] Skipped mint for ${finalCharacter.name} — no wallet on account`);
+        }
+      } catch (mintErr) {
+        console.warn(`[cNFT] Character mint skipped:`, mintErr);
+      }
+
+      res.json(finalCharacter);
     } catch (error) {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ error: error.errors });
@@ -434,6 +462,11 @@ export async function registerRoutes(
         island = await storage.updateHomeIsland(island.id, {
           state: generatedState,
         } as any);
+      }
+
+      // Link character to this island if not already linked
+      if (!character.homeIslandId || character.homeIslandId !== island.id) {
+        await storage.updateCharacter(characterId, { homeIslandId: island.id } as any);
       }
 
       // Parse and return normalized island state

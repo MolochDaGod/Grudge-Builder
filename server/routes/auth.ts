@@ -20,6 +20,9 @@ import { users, accounts } from "@shared/schema";
 import { eq } from "drizzle-orm";
 import jwt from "jsonwebtoken";
 import crypto from "node:crypto";
+import { CrossmintWalletService } from "../services/crossmintWallet";
+
+const crossmint = new CrossmintWalletService();
 
 const JWT_SECRET = process.env.SESSION_SECRET || process.env.JWT_SECRET || "grudge-dev-secret";
 const JWT_EXPIRES = "7d";
@@ -94,17 +97,39 @@ function buildAuthResponse(
 
 // ── Ensure account row exists for a user ─────────────────────────────
 
-async function ensureAccount(userId: string, grudgeId: string) {
-  const existing = await db.select().from(accounts).where(eq(accounts.userId, userId)).limit(1);
-  if (existing.length > 0) return existing[0];
+async function ensureAccount(userId: string, grudgeId: string, email?: string) {
+  let existing = await db.select().from(accounts).where(eq(accounts.userId, userId)).limit(1);
+  let account = existing[0];
 
-  const [created] = await db
-    .insert(accounts)
-    .values({ userId, grudgeId })
-    .onConflictDoNothing()
-    .returning();
+  if (!account) {
+    const [created] = await db
+      .insert(accounts)
+      .values({ userId, grudgeId })
+      .onConflictDoNothing()
+      .returning();
+    account = created || (await db.select().from(accounts).where(eq(accounts.userId, userId)).limit(1))[0];
+  }
 
-  return created || existing[0];
+  // Auto-create Crossmint wallet if account has no wallet and we have an email
+  if (account && !account.walletAddress && email) {
+    try {
+      const wallet = await crossmint.getOrCreateWallet(email);
+      if (wallet?.address) {
+        await db.update(accounts).set({
+          walletAddress: wallet.address,
+          walletType: 'crossmint',
+          crossmintWalletId: wallet.id,
+          crossmintEmail: email,
+        }).where(eq(accounts.id, account.id));
+        account = { ...account, walletAddress: wallet.address, walletType: 'crossmint', crossmintWalletId: wallet.id };
+        console.log(`[Auth] Auto-created wallet for ${grudgeId}: ${wallet.address}`);
+      }
+    } catch (walletErr) {
+      console.warn('[Auth] Wallet auto-creation skipped:', walletErr);
+    }
+  }
+
+  return account;
 }
 
 // ── Register routes ──────────────────────────────────────────────────
@@ -303,7 +328,7 @@ export function registerAuthRoutes(app: Express) {
         })
         .returning();
 
-      const account = await ensureAccount(user.id, grudgeId);
+      const account = await ensureAccount(user.id, grudgeId, email || undefined);
       res.json({
         ...buildAuthResponse(user, account),
         message: "Welcome to Grudge Warlords!",
