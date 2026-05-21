@@ -51,50 +51,70 @@ export const isPuterAvailable = (): boolean => {
   return typeof window !== 'undefined' && typeof window.puter !== 'undefined';
 };
 
+/**
+ * Check if Puter is available AND the user has an active auth session.
+ * Use this before any kv/fs/ai call to avoid 401/404 cascading errors
+ * when the Puter SDK is loaded but the session is expired or missing.
+ */
+export const isPuterReady = (): boolean => {
+  if (!isPuterAvailable()) return false;
+  try {
+    return window.puter.auth?.isSignedIn?.() ?? false;
+  } catch {
+    return false;
+  }
+};
+
 export const puterKV = {
   async get<T>(key: string): Promise<T | null> {
-    if (!isPuterAvailable()) return null;
+    if (!isPuterReady()) return null;
     try {
       const value = await window.puter.kv.get(key);
       return value ? JSON.parse(value) : null;
     } catch (e) {
-      console.error('Puter KV get error:', e);
+      if (!isAuthError(e)) console.error('Puter KV get error:', e);
       return null;
     }
   },
 
   async set<T>(key: string, value: T): Promise<boolean> {
-    if (!isPuterAvailable()) return false;
+    if (!isPuterReady()) return false;
     try {
       await window.puter.kv.set(key, JSON.stringify(value));
       return true;
     } catch (e) {
-      console.error('Puter KV set error:', e);
+      if (!isAuthError(e)) console.error('Puter KV set error:', e);
       return false;
     }
   },
 
   async delete(key: string): Promise<boolean> {
-    if (!isPuterAvailable()) return false;
+    if (!isPuterReady()) return false;
     try {
       await window.puter.kv.del(key);
       return true;
     } catch (e) {
-      console.error('Puter KV delete error:', e);
+      if (!isAuthError(e)) console.error('Puter KV delete error:', e);
       return false;
     }
   },
 
   async list(prefix?: string): Promise<string[]> {
-    if (!isPuterAvailable()) return [];
+    if (!isPuterReady()) return [];
     try {
       return await window.puter.kv.list(prefix);
     } catch (e) {
-      console.error('Puter KV list error:', e);
+      if (!isAuthError(e)) console.error('Puter KV list error:', e);
       return [];
     }
   }
 };
+
+/** Suppress noisy 401/connection errors from Puter SDK when session is stale */
+function isAuthError(e: unknown): boolean {
+  const msg = String(e);
+  return msg.includes('401') || msg.includes('not exist') || msg.includes('connection') || msg.includes('Unauthorized');
+}
 
 export const puterAI = {
   async chat(prompt: string, options?: {
@@ -102,7 +122,7 @@ export const puterAI = {
     temperature?: number;
     maxTokens?: number;
   }): Promise<string | null> {
-    if (!isPuterAvailable()) return null;
+    if (!isPuterReady()) return null;
     try {
       const response = await window.puter.ai.chat(prompt, {
         model: options?.model || 'gpt-4o-mini',
@@ -135,7 +155,7 @@ export const puterAI = {
   },
 
   async generateIslandMap(seed: string, style: 'iron' | 'fantasy' | 'tactical' | 'night' = 'fantasy'): Promise<string | null> {
-    if (!isPuterAvailable() || !window.puter.ai.txt2img) return null;
+    if (!isPuterReady() || !window.puter.ai?.txt2img) return null;
     
     const baseStyle = "16-bit SNES pixel art style, top-down RPG world map view, bright vibrant green forests covering most of the island, thin golden sandy coastline beaches, deep blue ocean surrounding the island, tiny detailed pixel village buildings, snow-capped mountains only in far corners of the island not center, crisp pixel shading, retro video game aesthetic, single large landmass island shape";
     
@@ -160,7 +180,7 @@ export const puterAI = {
   },
 
   async generateHeroAvatar(heroName: string, race: string, heroClass: string, faction?: string): Promise<string | null> {
-    if (!isPuterAvailable() || !window.puter.ai.txt2img) return null;
+    if (!isPuterReady() || !window.puter.ai?.txt2img) return null;
     
     try {
       // Race-specific physical descriptions matching the Grudge Warlords portrait style:
@@ -211,7 +231,7 @@ export const puterAI = {
 
 export const puterFS = {
   async saveGameState(userId: string, gameState: object): Promise<boolean> {
-    if (!isPuterAvailable()) return false;
+    if (!isPuterReady()) return false;
     try {
       const path = `/GrudgeWarlords/saves/${userId}_save.json`;
       await window.puter.fs.mkdir('/GrudgeWarlords/saves').catch(() => {});
@@ -224,7 +244,7 @@ export const puterFS = {
   },
 
   async loadGameState(userId: string): Promise<object | null> {
-    if (!isPuterAvailable()) return null;
+    if (!isPuterReady()) return null;
     try {
       const path = `/GrudgeWarlords/saves/${userId}_save.json`;
       const blob = await window.puter.fs.read(path);
@@ -237,7 +257,7 @@ export const puterFS = {
   },
 
   async listSaves(): Promise<string[]> {
-    if (!isPuterAvailable()) return [];
+    if (!isPuterReady()) return [];
     try {
       const files = await window.puter.fs.readdir('/GrudgeWarlords/saves');
       return files.map((f: any) => f.name).filter((n: string) => n.endsWith('_save.json'));
@@ -756,7 +776,7 @@ export const puterVideo = {
     animation: HelperAnimationState,
     options?: { testMode?: boolean; seconds?: number }
   ): Promise<HTMLVideoElement | null> {
-    if (!isPuterAvailable() || !window.puter.ai.txt2vid) {
+    if (!isPuterReady() || !window.puter.ai?.txt2vid) {
       console.error('Puter txt2vid not available');
       return null;
     }
