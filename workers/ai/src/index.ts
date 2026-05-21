@@ -24,6 +24,8 @@ import { MODEL_REGISTRY, DEFAULTS, getModelsByCapability } from './models';
 import chatRoute from './routes/chat';
 import imageRoute from './routes/image';
 import mediaRoute from './routes/media';
+import agentRoute from './routes/agent';
+import { handleQueue } from './queue';
 
 const app = new Hono<{ Bindings: Env }>();
 
@@ -94,6 +96,7 @@ app.use('/v1/*', authMiddleware);
 app.route('/v1/chat', chatRoute);
 app.route('/v1/image', imageRoute);
 app.route('/v1', mediaRoute); // mounts /video, /speech, /music under /v1/
+app.route('/v1/agent', agentRoute);
 
 // ── Job polling ──────────────────────────────────────────────────────────────
 
@@ -155,4 +158,14 @@ app.onError((err, c) => {
   }, 500);
 });
 
-export default app;
+// ── Worker Export ────────────────────────────────────────────────────────────
+// Cloudflare Workers with Queues must export an object with both `fetch` and
+// `queue` handlers.  The Hono app handles HTTP; the queue handler processes
+// async video/music generation jobs.
+
+export default {
+  fetch: app.fetch,
+  async queue(batch: MessageBatch<unknown>, env: Env): Promise<void> {
+    await handleQueue(batch as any, env);
+  },
+};

@@ -342,7 +342,8 @@ export async function loginAsGuest(): Promise<AuthResponse> {
  */
 export async function startDiscordLogin(): Promise<string> {
   const { buildDiscordOAuthUrl } = await import("./grudgeConfig");
-  return buildDiscordOAuthUrl(window.location.origin + '/');
+  // Always redirect back to /auth/callback so SSO params arrive there
+  return buildDiscordOAuthUrl(window.location.origin + '/auth/callback');
 }
 
 /**

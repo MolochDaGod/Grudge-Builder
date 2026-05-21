@@ -1,4 +1,6 @@
 import { isPuterAvailable } from "./puterIntegration";
+import { aiGateway } from "./aiGateway";
+import { AI_DEFAULTS } from "@shared/aiModels";
 import { buildPromptFromSpec, DEFAULT_ANIMATIONS, getSpriteFilename, getSpriteUnitFolderStructure } from "@shared/definitions/spriteGeneration";
 import type { AnimationSlot, SpriteUnitSpec, SpriteGenerationJob } from "@shared/schema";
 import { AnimationSlots } from "@shared/schema";
@@ -27,8 +29,27 @@ export async function generateSpriteFromPrompt(
     size?: string;
     quality?: string;
     model?: string;
+    transparent?: boolean;
   }
 ): Promise<string | null> {
+  // Primary path: use Grudge AI Gateway (ai.grudge-studio.com)
+  try {
+    const result = await aiGateway.image({
+      prompt,
+      model: options?.model || AI_DEFAULTS.image.default,
+      size: options?.size || '1024x1024',
+      quality: options?.quality || 'medium',
+      transparent: options?.transparent ?? true,
+      upload_to_r2: true,
+    });
+    // Prefer CDN URL, fall back to base64
+    const img = result.images?.[0];
+    return img?.url || (img?.b64_json ? `data:image/png;base64,${img.b64_json}` : null);
+  } catch (gatewayError) {
+    console.warn('AI Gateway unavailable, falling back to Puter:', gatewayError);
+  }
+
+  // Fallback: Puter txt2img
   if (!isPuterAvailable() || !window.puter?.ai?.txt2img) {
     console.warn("Puter AI not available for sprite generation");
     return null;
@@ -36,7 +57,7 @@ export async function generateSpriteFromPrompt(
 
   try {
     const imgElement = await window.puter.ai.txt2img(prompt, {
-      model: options?.model || "black-forest-labs/FLUX.1-schnell",
+      model: options?.model || AI_DEFAULTS.image.bulk,
       quality: options?.quality || "medium",
       size: options?.size || "1024x1024",
     });
