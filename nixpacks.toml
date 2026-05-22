@@ -8,7 +8,7 @@ nixPkgs = ["nodejs_22", "npm-10_x"]
 cmds = ["npm install --legacy-peer-deps --include=dev"]
 
 [phases.build]
-cmds = ["npm run build:server", "npx drizzle-kit push"]
+cmds = ["npm run build:server"]
 
 [start]
-cmd = "NODE_ENV=production node dist/index.cjs"
+cmd = "npx drizzle-kit push --force && NODE_ENV=production node dist/index.cjs"
