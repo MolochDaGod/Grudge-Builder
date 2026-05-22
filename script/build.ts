@@ -48,8 +48,18 @@ const allowlist = [
 async function buildAll() {
   await rm("dist", { recursive: true, force: true });
 
-  console.log("building client...");
-  await viteBuild();
+  // Client build: skip gracefully if client/ directory is absent (Railway deploys server-only)
+  try {
+    const { existsSync } = await import("fs");
+    if (existsSync("client")) {
+      console.log("building client...");
+      await viteBuild();
+    } else {
+      console.log("client/ not found — skipping Vite build (server-only deploy)");
+    }
+  } catch (e: any) {
+    console.warn("client build skipped:", e.message);
+  }
 
   console.log("building server...");
   const pkg = JSON.parse(await readFile("package.json", "utf-8"));
@@ -81,8 +91,17 @@ async function buildAll() {
 
   // Copy client build output into dist/public so server/static.ts can find it.
   // static.ts resolves path.resolve(__dirname, "public") → dist/public in prod.
-  console.log("copying client dist → dist/public...");
-  await cp("client/dist", "dist/public", { recursive: true });
+  try {
+    const { existsSync } = await import("fs");
+    if (existsSync("client/dist")) {
+      console.log("copying client dist → dist/public...");
+      await cp("client/dist", "dist/public", { recursive: true });
+    } else {
+      console.log("no client/dist — server-only deploy (no static files)");
+    }
+  } catch (e: any) {
+    console.warn("client copy skipped:", e.message);
+  }
 }
 
 buildAll().catch((err) => {
