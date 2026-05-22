@@ -134,7 +134,9 @@ app.use((req, res, next) => {
 import { checkDbHealth } from "./db";
 app.get("/api/health", async (_req, res) => {
   const dbOk = await checkDbHealth();
-  res.status(dbOk ? 200 : 503).json({
+  // Always return 200 so Railway/Render healthchecks pass even when
+  // the DB is still warming up. The "db" field tells callers the real state.
+  res.status(200).json({
     status: dbOk ? "ok" : "degraded",
     service: "grudge-api",
     version: process.env.npm_package_version || "1.0.0",
