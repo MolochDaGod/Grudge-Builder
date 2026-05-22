@@ -16,6 +16,12 @@ const nativeModules = [
 
 // server deps to bundle to reduce openat(2) syscalls
 const allowlist = [
+  "@colyseus/core",
+  "@colyseus/monitor",
+  "@colyseus/playground",
+  "@colyseus/schema",
+  "@colyseus/ws-transport",
+  "colyseus",
   "@google/generative-ai",
   "axios",
   "connect-pg-simple",
