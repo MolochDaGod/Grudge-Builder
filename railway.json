@@ -6,7 +6,7 @@
   },
   "deploy": {
     "numReplicas": 1,
-    "startCommand": "npx drizzle-kit push --force && NODE_ENV=production node dist/index.cjs",
+    "startCommand": "NODE_ENV=production node dist/index.cjs",
     "healthcheckPath": "/api/health",
     "healthcheckTimeout": 300,
     "restartPolicyType": "ON_FAILURE",
