@@ -9,8 +9,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { CharacterManager, Character } from "@/lib/characterManager";
 import { useAccount } from "@/hooks/use-account";
-import { isAuthenticated, getCurrentUser } from "@/lib/grudgeBackend";
-import { redirectToGrudgeAuth } from "@/lib/authRedirect";
+import { getCurrentUser } from "@/lib/grudgeBackend";
 import { GAME_CARD_BACKGROUNDS, FACTION_EMBLEMS, RACE_PORTRAITS, PROFESSION_ICONS } from "@/lib/artAssets";
 
 interface SavedAccount {
@@ -49,12 +48,11 @@ export default function HomePage() {
   const { account } = useAccount();
 
   useEffect(() => {
-    // Not authenticated → redirect to Grudge SSO
-    if (!isAuthenticated()) {
-      redirectToGrudgeAuth("/home");
-      return;
-    }
-    // Try grudge_user (set by auth modal), fallback to grudge-session, fallback to token user
+    // Load user info from any available source — never hard-redirect.
+    // Unauthenticated users can still browse the game library and log in
+    // via the header button. Hard-redirecting here caused an infinite loop
+    // when id.grudge-studio.com was unreachable or the SSO token pickup
+    // failed (token race condition on page load).
     const saved = localStorage.getItem("grudge_user") || localStorage.getItem("grudge-session");
     if (saved) {
       try { setUser(JSON.parse(saved)); } catch { /* ignore parse errors */ }

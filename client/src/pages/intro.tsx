@@ -1,9 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
-import { isAuthenticated } from "@/lib/grudgeBackend";
 import { RACE_PORTRAITS, FACTION_EMBLEMS, CLASS_HERO_IMAGES } from "@/lib/artAssets";
-import { redirectToGrudgeAuth } from "@/lib/authRedirect";
 
 export default function IntroPage() {
   const [, setLocation] = useLocation();
@@ -11,20 +9,17 @@ export default function IntroPage() {
   const [showEnter, setShowEnter] = useState(false);
 
   useEffect(() => {
-    if (isAuthenticated()) {
-      setLocation("/home");
-      return;
-    }
+    // Show the enter button after 2s regardless of auth state.
+    // Authenticated users see "Continue" (goes to /home).
+    // Guests see "Enter World" (also goes to /home — no forced redirect).
     const timer = setTimeout(() => setShowEnter(true), 2000);
     return () => clearTimeout(timer);
-  }, [setLocation]);
+  }, []);
 
   const handleEnter = () => {
-    if (isAuthenticated()) {
-      setLocation("/home");
-      return;
-    }
-    redirectToGrudgeAuth();
+    // Always navigate to /home. If not authenticated, home.tsx will show
+    // a login prompt — never a hard redirect that loops.
+    setLocation("/home");
   };
 
   return (
