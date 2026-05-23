@@ -41,6 +41,9 @@ export const VIDEOS = {
   /** Intro/loading screen cinematic */
   loading: 'https://i.imgur.com/wSesBRh.mp4',
 
+  /** Pirate King banner — loading transitions between game modes */
+  pirateKingBanner: '/assets/videos/piratekingbanner.mp4',
+
   /** Legacy intro video (fallback) */
   introLegacy: 'https://i.imgur.com/qpcjvpR.mp4',
 } as const;
