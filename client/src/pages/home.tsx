@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { CharacterManager, Character } from "@/lib/characterManager";
 import { useAccount } from "@/hooks/use-account";
 import { getCurrentUser } from "@/lib/grudgeBackend";
+import { navigateToGame } from "@/lib/gameNav";
 import {
   GAME_CARD_BACKGROUNDS, FACTION_EMBLEMS, RACE_PORTRAITS,
   PROFESSION_ICONS, CLASS_HERO_IMAGES, BACKGROUNDS,
