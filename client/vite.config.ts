@@ -51,11 +51,14 @@ export default defineConfig({
       transformMixedEsModules: true,
     },
     rollupOptions: {
-      // Suppress "is not exported" warnings for Three.js symbols that
-      // don't exist in v0.160 but are expected by newer transitive deps
-      // (three-render-objects, react-force-graph, etc.).
+      // three-render-objects imports Timer, WebGPURenderer etc. from three.js
+      // that don't exist in v0.160. shimMissingExports creates undefined stubs
+      // so the build doesn't crash. These code paths are never reached at runtime
+      // (force-graph VR branch only).
+      shimMissingExports: true,
       onwarn(warning, warn) {
         if (warning.code === "MISSING_EXPORT" && warning.exporter?.includes("three")) return;
+        if (warning.code === "SHIMMED_EXPORT") return;
         warn(warning);
       },
       plugins: [
