@@ -119,6 +119,23 @@ export default defineConfig({
       // Allow packages that use THREE as a global to resolve it
       transformMixedEsModules: true,
     },
+    rollupOptions: {
+      plugins: [
+        {
+          // Intercept three/webgpu and three/tsl at the Rollup resolver level.
+          // The [commonjs--resolver] fires before Vite plugins, so we need
+          // a Rollup-level plugin here to catch it in time.
+          name: "rollup-three-webgpu-shim",
+          resolveId(id: string) {
+            if (id === "three/webgpu" || id === "three/tsl") {
+              // Redirect to main three entry — webgpu export doesn't exist in v0.160
+              return { id: "three", external: false };
+            }
+            return null;
+          },
+        },
+      ],
+    },
   },
   optimizeDeps: {
     esbuildOptions: {
