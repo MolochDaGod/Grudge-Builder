@@ -51,6 +51,13 @@ export default defineConfig({
       transformMixedEsModules: true,
     },
     rollupOptions: {
+      // Suppress "is not exported" warnings for Three.js symbols that
+      // don't exist in v0.160 but are expected by newer transitive deps
+      // (three-render-objects, react-force-graph, etc.).
+      onwarn(warning, warn) {
+        if (warning.code === "MISSING_EXPORT" && warning.exporter?.includes("three")) return;
+        warn(warning);
+      },
       plugins: [
         {
           name: "rollup-three-webgpu-shim",
