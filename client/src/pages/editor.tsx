@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useLocation } from "wouter";
-import Editor from "@monaco-editor/react";
+import { lazy, Suspense } from "react";
+const MonacoEditor = lazy(() => import("@monaco-editor/react"));
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -11,7 +12,6 @@ import {
 } from "lucide-react";
 import { getCurrentUser } from "@/lib/grudgeBackend";
 import { getWebContainer, isWebContainerSupported, EDITOR_TEMPLATES } from "@/lib/webcontainer";
-import type { WebContainer } from "@webcontainer/api";
 
 type EditorStatus = "idle" | "booting" | "installing" | "running" | "error";
 
@@ -31,7 +31,7 @@ export default function EditorPage() {
   const [activeFile, setActiveFile] = useState("src/main.js");
 
   // Refs
-  const wcRef = useRef<WebContainer | null>(null);
+  const wcRef = useRef<any>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const terminalEndRef = useRef<HTMLDivElement>(null);
   const writeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -290,23 +290,25 @@ export default function EditorPage() {
           </div>
 
           <div className="flex-1 min-h-0">
-            <Editor
-              height="100%"
-              language={activeFile.endsWith(".json") ? "json" : "javascript"}
-              theme="vs-dark"
-              value={code}
-              onChange={handleCodeChange}
-              options={{
-                fontSize: 13,
-                minimap: { enabled: false },
-                lineNumbers: "on",
-                scrollBeyondLastLine: false,
-                wordWrap: "on",
-                tabSize: 2,
-                automaticLayout: true,
-                padding: { top: 8 },
-              }}
-            />
+            <Suspense fallback={<div className="p-4 text-slate-500">Loading editor...</div>}>
+              <MonacoEditor
+                height="100%"
+                language={activeFile.endsWith(".json") ? "json" : "javascript"}
+                theme="vs-dark"
+                value={code}
+                onChange={handleCodeChange}
+                options={{
+                  fontSize: 13,
+                  minimap: { enabled: false },
+                  lineNumbers: "on",
+                  scrollBeyondLastLine: false,
+                  wordWrap: "on",
+                  tabSize: 2,
+                  automaticLayout: true,
+                  padding: { top: 8 },
+                }}
+              />
+            </Suspense>
           </div>
         </div>
 
