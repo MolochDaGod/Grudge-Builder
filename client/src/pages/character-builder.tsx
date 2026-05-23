@@ -239,8 +239,6 @@ const ACTION_DROPDOWN_ACTIONS: SpriteAction[] = [
 
 export default function CharacterBuilder() {
   const authReady = useAuthGuard();
-  if (!authReady) return null;
-
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   // If we have characters, default to "roster" view unless creating new
@@ -578,6 +576,9 @@ export default function CharacterBuilder() {
     { id: "attributes", label: "Attributes" },
     { id: "summary", label: "Summary" }
   ];
+
+  // Auth guard — must come AFTER all hooks to satisfy Rules of Hooks
+  if (!authReady) return null;
 
   // RENDER ROSTER VIEW
   if (viewMode === "roster") {
