@@ -30,6 +30,19 @@ const THREE_GLOBAL_PACKAGES = [
 // engine.io-client packaging bug: the ESM build imports './globals.node.js'
 // (a Node.js-specific file) but the browser version 'globals.js' was never
 // published. Intercept the relative import at resolve time.
+// three/webgpu doesn't exist in v0.160 — a transitive dep imports it.
+// Must intercept at resolve time (before commonjs plugin) to avoid crash.
+const threeWebgpuShim: Plugin = {
+  name: "three-webgpu-shim",
+  enforce: "pre",
+  resolveId(id: string) {
+    if (id === "three/webgpu" || id === "three/tsl") {
+      return { id: "three", external: false };
+    }
+    return null;
+  },
+};
+
 const engineIoGlobalsShim: Plugin = {
   name: "engine-io-globals-browser-shim",
   enforce: "pre",
@@ -74,6 +87,7 @@ const injectThreeForKnownPackages: Plugin = {
 
 export default defineConfig({
   plugins: [
+    threeWebgpuShim,
     engineIoGlobalsShim,
     injectThreeForKnownPackages,
     react(),
