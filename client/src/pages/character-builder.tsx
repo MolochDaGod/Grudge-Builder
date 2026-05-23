@@ -591,7 +591,7 @@ export default function CharacterBuilder() {
         <div className="flex flex-col relative overflow-hidden bg-background text-foreground rounded-xl border border-slate-800 shadow-2xl min-h-[calc(100vh-100px)]">
            <div 
             className="absolute inset-0 pointer-events-none z-0 opacity-20 mix-blend-overlay"
-            style={{ backgroundImage: `url(${bgTexture})`, backgroundSize: 'cover', backgroundPosition: 'center' }}
+            style={{ backgroundImage: `url(${assetUrl('/sprites/ui/PNG/character-panel.png')})`, backgroundSize: 'cover', backgroundPosition: 'center' }}
           ></div>
 
           <div className="relative z-10 flex flex-col md:flex-row h-full min-h-[800px]">
