@@ -84,6 +84,9 @@ export default defineConfig({
       "@": path.resolve(import.meta.dirname, "client", "src"),
       "@shared": path.resolve(import.meta.dirname, "shared"),
       "@assets": path.resolve(import.meta.dirname, "attached_assets"),
+      // three/webgpu was added in r167+; our pinned v0.160 doesn't have it.
+      // Alias to the main three entry so deps importing it don't crash the build.
+      "three/webgpu": "three",
     },
     extensions: ['.mjs', '.js', '.mts', '.ts', '.jsx', '.tsx', '.json']
   },
