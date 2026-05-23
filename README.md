@@ -198,6 +198,73 @@ const { data: weapons, isLoading, error, refetch } = useWeapons();
 - `VITE_OBJECT_STORE_URL` — Override ObjectStore base URL (default: `grudge-objectstore.pages.dev`)
 - `VITE_ASSET_CDN_URL` — Override CDN/asset service URL (default: `assets.grudge-studio.com`)
 
+## Grudge Fleet
+
+Grudge-Builder is the **hub** for the Grudge Warlords fleet. All games share the same Grudge ID, characters, and backend.
+
+| Game | Repo | Domain | Engine |
+|---|---|---|---|
+| **Grudge Warlords** (this repo) | Grudge-Builder | grudgewarlords.com | React + Three.js + Phaser |
+| **RTS Grudge** | RTS-Grudge | rts-grudge.vercel.app | React-Three-Fiber + Rapier |
+| **Dungeon Crawler Quest** | Dungeon-Crawler-Quest | dcq.grudge-studio.com | BabylonJS + Havok |
+
+All games connect to:
+- `api.grudge-studio.com` — Game API (characters, saves, inventory)
+- `id.grudge-studio.com` — Auth (SSO, OAuth, JWT)
+- `assets.grudge-studio.com` — Asset CDN (R2)
+- `grudge-objectstore.pages.dev` — Game data (weapons, armor, classes)
+
+### Cross-Game SSO & Navigation
+
+All fleet games use the same SSO flow. A player authenticated on one game stays authenticated when navigating to another:
+
+```
+Player on grudgewarlords.com (has grudge_auth_token)
+  │
+  ├─ Clicks “RTS GRUDGE” card
+  │   └─ gameNav.ts appends ?sso_token=<token>&grudge_id=<id>&username=<name>
+  │   └─ Navigates to rts-grudge.vercel.app?sso_token=...
+  │
+  └─ RTS-Grudge picks up ?sso_token= on load (grudgeBackend.ts / GrudgeSession.ts)
+     └─ Stores token in localStorage, cleans URL
+     └─ Player is authenticated — characters load from api.grudge-studio.com
+```
+
+**Auth module per game:**
+
+| Game | Auth Module | Token Key | SSO Pickup |
+|---|---|---|---|
+| GrudgeBuilder | `lib/grudgeBackend.ts` | `grudge_auth_token` | `?sso_token=` query param |
+| RTS-Grudge | `lib/auth/GrudgeSession.ts` | `grudge.token` | `?grudge_token=` + `?sso_token=` |
+| DCQ | `lib/grudgeBackend.ts` | `grudge_auth_token` | `?sso_token=` + legacy `#token=` |
+
+**Cross-game navigation** (`client/src/lib/gameNav.ts`):
+
+```typescript
+import { navigateToGame } from "@/lib/gameNav";
+
+// Same-origin (local page) — uses wouter
+navigateToGame("/character", setLocation);
+
+// External game — appends auth token to URL
+navigateToGame("https://rts-grudge.vercel.app", setLocation);
+
+// Build auth-carrying URL for a fleet game
+import { getGameUrl } from "@/lib/gameNav";
+const url = getGameUrl("rts-grudge", "/character");
+// => "https://rts-grudge.vercel.app/character?sso_token=...&grudge_id=..."
+```
+
+**Key principles:**
+- Never hard-redirect for auth — guests always play immediately
+- Auth is user-triggered (click "Sign In") or SSO-carried (cross-game nav)
+- Characters persist across all games via `api.grudge-studio.com/api/characters`
+- Token validation is client-side JWT expiry check — no blocking server round-trip
+
+---
+
+*Grudge Studio · Built by Racalvin The Pirate King*
+
 ## Tech Stack
 
 - **Frontend**: React 19, TypeScript, Vite 7, TailwindCSS 4, Radix UI
