@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
-import { RACE_PORTRAITS, FACTION_EMBLEMS, CLASS_HERO_IMAGES } from "@/lib/artAssets";
+import { RACE_PORTRAITS, FACTION_EMBLEMS, CLASS_HERO_IMAGES, VIDEOS } from "@/lib/artAssets";
 
 export default function IntroPage() {
   const [, setLocation] = useLocation();
@@ -40,7 +40,7 @@ export default function IntroPage() {
         className="absolute inset-0 w-full h-full object-cover opacity-40"
         onEnded={() => setShowEnter(true)}
       >
-        <source src="https://i.imgur.com/wSesBRh.mp4" type="video/mp4" />
+        <source src={VIDEOS.pirateKingBanner} type="video/mp4" />
       </video>
 
       {/* Overlay gradients */}
@@ -129,7 +129,7 @@ export default function IntroPage() {
 
       {/* Footer */}
       <div className="absolute bottom-6 text-[#9aa3c7]/30 text-[10px] tracking-[4px] font-cinzel">
-        GRUDGE WARLORDS v2.5.0 · © GRUDGE STUDIO
+        GRUDGE WARLORDS v2.6.0 · © GRUDGE STUDIO
       </div>
     </div>
   );
