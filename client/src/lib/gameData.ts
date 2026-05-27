@@ -65,37 +65,37 @@ const SPRITE_MATRIX: Record<string, Record<string, string>> = {
     warrior: "Soldier",
     mage:    "Wizard",
     ranger:  "Archer",
-    worg:    "Werewolf",
+    worge:    "Werewolf",
   },
   barbarian: {
     warrior: "Armored Axeman",
     mage:    "Mage",           // from spriteManifest (128×128 enemy/fantasy set)
     ranger:  "Elite Orc",     // heavy ranged barbarian 
-    worg:    "Werewolf",
+    worge:    "Werewolf",
   },
   undead: {
     warrior: "Armored Skeleton",
     mage:    "Greatsword Skeleton", // undead caster uses skeleton variant
     ranger:  "Skeleton",            // base skeleton for ranged undead
-    worg:    "Skeleton",
+    worge:    "Skeleton",
   },
   orc: {
     warrior: "Armored Orc",
     mage:    "Orc",            // orc base for caster orcs
     ranger:  "Elite Orc",
-    worg:    "Armored Orc",
+    worge:    "Armored Orc",
   },
   elf: {
     warrior: "Knight",         // elven knight aesthetic
     mage:    "Wizard",
     ranger:  "Archer",
-    worg:    "Werewolf",
+    worge:    "Werewolf",
   },
   dwarf: {
     warrior: "Knight",
     mage:    "Mage",
     ranger:  "Soldier",        // dwarf gunner uses soldier base
-    worg:    "Knight",
+    worge:    "Knight",
   },
 };
 
@@ -121,12 +121,12 @@ const SPRITE_SET_MAP = SPRITE_SET_MAP_FALLBACK;
 
 // Canonical race stats from grudge-guide.html / ObjectStore
 const FALLBACK_RACES: RaceDef[] = [
-  { id: "human",     name: "Human",     faction: "Crusade", description: "Versatile and adaptable — masters of none, capable of all. Start with +1 bonus across every attribute.",      image: assetUrl("/images/portraits/human.png"),     cardBg: assetUrl("/backgrounds/bg_warrior.png"), portraits: { warrior: assetUrl("/heroes/portraits/human_warrior.png"), mage: assetUrl("/heroes/portraits/human_mage.png"), ranger: assetUrl("/heroes/portraits/human_ranger.png"), worg: assetUrl("/heroes/portraits/human_worg.png") }, baseStats: { Strength: 1, Intellect: 1, Vitality: 1, Dexterity: 1, Endurance: 1, Wisdom: 1, Agility: 1, Tactics: 1 }, spriteSet: "Soldier" },
-  { id: "orc",       name: "Orc",       faction: "Legion",  description: "Savage brutes bred for war — crushing strength and iron will. Natural Warriors and Barbarians.",      image: assetUrl("/images/portraits/orc.png"),       cardBg: assetUrl("/backgrounds/battle_arena_default.png"), portraits: { warrior: assetUrl("/heroes/portraits/orc_warrior.png"), mage: assetUrl("/heroes/portraits/orc_mage.png"), ranger: assetUrl("/heroes/portraits/orc_ranger.png"), worg: assetUrl("/heroes/portraits/orc_worg.png") }, baseStats: { Strength: 4, Intellect: 0, Vitality: 2, Dexterity: 0, Endurance: 2, Wisdom: 0, Agility: 0, Tactics: 0 }, spriteSet: "Orc" },
-  { id: "elf",       name: "Elf",       faction: "Fabled",  description: "Ancient and graceful — wielders of arcane arts and deadly precision. Superb Mage Priests and Rangers.",  image: assetUrl("/images/portraits/elf.png"),       cardBg: assetUrl("/backgrounds/bg_elf.png"), portraits: { warrior: assetUrl("/heroes/portraits/elf_warrior.png"), mage: assetUrl("/heroes/portraits/elf_mage.png"), ranger: assetUrl("/heroes/portraits/elf_ranger.png"), worg: assetUrl("/heroes/portraits/elf_worg.png") }, baseStats: { Strength: 0, Intellect: 3, Vitality: 0, Dexterity: 2, Endurance: 0, Wisdom: 1, Agility: 2, Tactics: 0 }, spriteSet: "Archer" },
-  { id: "undead",    name: "Undead",    faction: "Legion",  description: "Death-touched revenants fueled by dark energy. Tanky, resistant, and patient.",   image: assetUrl("/images/portraits/undead.png"),    cardBg: assetUrl("/backgrounds/bg_undead.png"), portraits: { warrior: assetUrl("/heroes/portraits/undead_warrior.png"), mage: assetUrl("/heroes/portraits/undead_mage.png"), ranger: assetUrl("/heroes/portraits/undead_ranger.png"), worg: assetUrl("/heroes/portraits/undead_worg.png") }, baseStats: { Strength: 1, Intellect: 0, Vitality: 3, Dexterity: 0, Endurance: 2, Wisdom: 2, Agility: 0, Tactics: 0 }, spriteSet: "Skeleton" },
-  { id: "barbarian", name: "Barbarian", faction: "Crusade", description: "Untamed fury given form — raw power and relentless aggression. Natural greatsword and greataxe wielders.",     image: assetUrl("/images/portraits/barbarian.png"), cardBg: assetUrl("/sprites/backgrounds/barbarian_warrior_silhouette_background.png"), portraits: { warrior: assetUrl("/heroes/portraits/barbarian_warrior.png"), mage: assetUrl("/heroes/portraits/barbarian_mage.png"), ranger: assetUrl("/heroes/portraits/barbarian_ranger.png"), worg: assetUrl("/heroes/portraits/barbarian_worg.png") }, baseStats: { Strength: 3, Intellect: 0, Vitality: 1, Dexterity: 0, Endurance: 1, Wisdom: 0, Agility: 2, Tactics: 1 }, spriteSet: "Armored Axeman" },
-  { id: "dwarf",     name: "Dwarf",     faction: "Fabled",  description: "Stout mountain folk — unyielding defense and masterful craftsmanship. Premier tanks and crafters.",     image: assetUrl("/images/portraits/dwarf.png"),     cardBg: assetUrl("/sprites/backgrounds/dwarf_warrior_silhouette_background.png"), portraits: { warrior: assetUrl("/heroes/portraits/dwarf_warrior.png"), mage: assetUrl("/heroes/portraits/dwarf_mage.png"), ranger: assetUrl("/heroes/portraits/dwarf_ranger.png"), worg: assetUrl("/heroes/portraits/dwarf_worg.png") }, baseStats: { Strength: 1, Intellect: 0, Vitality: 2, Dexterity: 1, Endurance: 3, Wisdom: 1, Agility: 0, Tactics: 0 }, spriteSet: "Knight" },
+  { id: "human",     name: "Human",     faction: "Crusade", description: "Versatile and adaptable — masters of none, capable of all. Start with +1 bonus across every attribute.",      image: assetUrl("/images/portraits/human.png"),     cardBg: assetUrl("/backgrounds/bg_warrior.png"), portraits: { warrior: assetUrl("/heroes/portraits/human_warrior.png"), mage: assetUrl("/heroes/portraits/human_mage.png"), ranger: assetUrl("/heroes/portraits/human_ranger.png"), worge: assetUrl("/heroes/portraits/human_worg.png") }, baseStats: { Strength: 1, Intellect: 1, Vitality: 1, Dexterity: 1, Endurance: 1, Wisdom: 1, Agility: 1, Tactics: 1 }, spriteSet: "Soldier" },
+  { id: "orc",       name: "Orc",       faction: "Legion",  description: "Savage brutes bred for war — crushing strength and iron will. Natural Warriors and Barbarians.",      image: assetUrl("/images/portraits/orc.png"),       cardBg: assetUrl("/backgrounds/battle_arena_default.png"), portraits: { warrior: assetUrl("/heroes/portraits/orc_warrior.png"), mage: assetUrl("/heroes/portraits/orc_mage.png"), ranger: assetUrl("/heroes/portraits/orc_ranger.png"), worge: assetUrl("/heroes/portraits/orc_worg.png") }, baseStats: { Strength: 4, Intellect: 0, Vitality: 2, Dexterity: 0, Endurance: 2, Wisdom: 0, Agility: 0, Tactics: 0 }, spriteSet: "Orc" },
+  { id: "elf",       name: "Elf",       faction: "Fabled",  description: "Ancient and graceful — wielders of arcane arts and deadly precision. Superb Mage Priests and Rangers.",  image: assetUrl("/images/portraits/elf.png"),       cardBg: assetUrl("/backgrounds/bg_elf.png"), portraits: { warrior: assetUrl("/heroes/portraits/elf_warrior.png"), mage: assetUrl("/heroes/portraits/elf_mage.png"), ranger: assetUrl("/heroes/portraits/elf_ranger.png"), worge: assetUrl("/heroes/portraits/elf_worg.png") }, baseStats: { Strength: 0, Intellect: 3, Vitality: 0, Dexterity: 2, Endurance: 0, Wisdom: 1, Agility: 2, Tactics: 0 }, spriteSet: "Archer" },
+  { id: "undead",    name: "Undead",    faction: "Legion",  description: "Death-touched revenants fueled by dark energy. Tanky, resistant, and patient.",   image: assetUrl("/images/portraits/undead.png"),    cardBg: assetUrl("/backgrounds/bg_undead.png"), portraits: { warrior: assetUrl("/heroes/portraits/undead_warrior.png"), mage: assetUrl("/heroes/portraits/undead_mage.png"), ranger: assetUrl("/heroes/portraits/undead_ranger.png"), worge: assetUrl("/heroes/portraits/undead_worg.png") }, baseStats: { Strength: 1, Intellect: 0, Vitality: 3, Dexterity: 0, Endurance: 2, Wisdom: 2, Agility: 0, Tactics: 0 }, spriteSet: "Skeleton" },
+  { id: "barbarian", name: "Barbarian", faction: "Crusade", description: "Untamed fury given form — raw power and relentless aggression. Natural greatsword and greataxe wielders.",     image: assetUrl("/images/portraits/barbarian.png"), cardBg: assetUrl("/sprites/backgrounds/barbarian_warrior_silhouette_background.png"), portraits: { warrior: assetUrl("/heroes/portraits/barbarian_warrior.png"), mage: assetUrl("/heroes/portraits/barbarian_mage.png"), ranger: assetUrl("/heroes/portraits/barbarian_ranger.png"), worge: assetUrl("/heroes/portraits/barbarian_worg.png") }, baseStats: { Strength: 3, Intellect: 0, Vitality: 1, Dexterity: 0, Endurance: 1, Wisdom: 0, Agility: 2, Tactics: 1 }, spriteSet: "Armored Axeman" },
+  { id: "dwarf",     name: "Dwarf",     faction: "Fabled",  description: "Stout mountain folk — unyielding defense and masterful craftsmanship. Premier tanks and crafters.",     image: assetUrl("/images/portraits/dwarf.png"),     cardBg: assetUrl("/sprites/backgrounds/dwarf_warrior_silhouette_background.png"), portraits: { warrior: assetUrl("/heroes/portraits/dwarf_warrior.png"), mage: assetUrl("/heroes/portraits/dwarf_mage.png"), ranger: assetUrl("/heroes/portraits/dwarf_ranger.png"), worge: assetUrl("/heroes/portraits/dwarf_worg.png") }, baseStats: { Strength: 1, Intellect: 0, Vitality: 2, Dexterity: 1, Endurance: 3, Wisdom: 1, Agility: 0, Tactics: 0 }, spriteSet: "Knight" },
 ];
 
 export let RACES: RaceDef[] = [...FALLBACK_RACES];
@@ -187,7 +187,7 @@ const FALLBACK_CLASSES: ClassDef[] = [
     coreAbilities: ["Quick Shot — swift basic arrow", "Aimed Shot — +50% damage single target", "Multi Shot — 3 arrows in spread", "Piercing Arrow — line-clear", "Rain of Arrows — AoE barrage"],
   },
   {
-    id: "worg", name: "Worge Shapeshifter",
+    id: "worge", name: "Worge Shapeshifter",
     description: "Walk between worlds. Human form uses staves, spears, daggers, bows, and 1H hammers to summon totems and beast companions. Transform into Bear, Raptor, or Large Bird.",
     role: "Tank / DPS / Utility",
     baseStats: { Strength: 1, Intellect: 0, Vitality: 2, Dexterity: 0, Endurance: 1, Wisdom: 0, Agility: 1, Tactics: 0 },

@@ -158,7 +158,7 @@ function getClassSpecial(classId: string, faction?: string): CombatAbility {
       id: "special_primal_shift",
       name: "Primal Shift",
       icon: <Moon className="w-4 h-4" />,
-      description: `Transform into ${faction ? FACTION_WORG_SPRITES[faction] || "Worg" : "Worg"} form. Gain attack/speed and taunt, but lose control`,
+      description: `Transform into ${faction ? FACTION_WORG_SPRITES[faction] || "worge" : "worge"} form. Gain attack/speed and taunt, but lose control`,
       damage: 0,
       manaCost: 0,
       staminaCost: 30,
@@ -181,7 +181,7 @@ function getClassSpecial(classId: string, faction?: string): CombatAbility {
 }
 
 function getClassSkills(classId: string): CombatAbility[] {
-  const tree = CLASS_SKILL_TREES[classId === "shapeshifter" ? "worg" : classId];
+  const tree = CLASS_SKILL_TREES[classId === "shapeshifter" ? "worge" : classId];
   if (!tree) return [];
   
   const abilities: CombatAbility[] = [];

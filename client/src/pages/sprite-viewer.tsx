@@ -31,7 +31,7 @@ function categorizeSpriteId(id: string): SpriteCategory {
   if (lower.includes("vampire") || lower.includes("countess") || lower.includes("converted")) return "vampire";
   if (lower.includes("satyr")) return "satyr";
   if (lower.includes("shinobi") || lower.includes("samurai") || lower.includes("fighter")) return "shinobi";
-  if (lower.includes("werewolf") || lower.includes("worg")) return "werewolf";
+  if (lower.includes("werewolf") || lower.includes("worge")) return "werewolf";
   if (lower.includes("knight_")) return "knight";
   if (lower.includes("fire_spirit") || lower.includes("plent") || lower.includes("fantasy_skeleton")) return "fantasy";
   
