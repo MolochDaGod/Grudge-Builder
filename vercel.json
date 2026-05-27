@@ -12,11 +12,11 @@
   },
   "rewrites": [
     { "source": "/api/assets/:path*", "destination": "https://assets.grudge-studio.com/:path*" },
-    { "source": "/api/auth/:path*",   "destination": "https://grudge-api-production.up.railway.app/api/auth/:path*" },
-    { "source": "/api/:path*",        "destination": "https://grudge-api-production.up.railway.app/api/:path*" }
+    { "source": "/api/auth/:path*",   "destination": "https://grudge-warlords-rpg-production-757f.up.railway.app/api/auth/:path*" },
+    { "source": "/api/:path*",        "destination": "https://grudge-warlords-rpg-production-757f.up.railway.app/api/:path*" }
   ],
   "env": {
-    "GRUDGE_API_URL": "https://grudge-api-production.up.railway.app",
+    "GRUDGE_API_URL": "https://grudge-warlords-rpg-production-757f.up.railway.app",
     "VITE_PVP_SERVER_URL": "wss://pvp.grudge-studio.com",
     "VITE_ASSETS_URL": "https://assets.grudge-studio.com"
   },
