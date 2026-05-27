@@ -209,6 +209,15 @@ async function handleAuthResponse(
   sessionType: GrudgeSession["type"],
   extra?: Partial<GrudgeSession>,
 ): Promise<AuthResponse> {
+  // Detect backend-down: if we got HTML back instead of JSON, the API
+  // proxy is routing to a frontend deployment instead of Express.
+  const contentType = res.headers.get("content-type") || "";
+  if (contentType.includes("text/html")) {
+    throw new Error(
+      "Server is temporarily unavailable. Try again in a moment.",
+    );
+  }
+
   if (!res.ok) {
     const body = await res.json().catch(() => ({ error: res.statusText }));
     throw new Error(body.error || `Auth failed (${res.status})`);
@@ -451,12 +460,28 @@ export async function connectBrowserWallet(
 /** Trigger Puter sign-in flow and authenticate with Grudge backend */
 export async function loginWithPuterSDK(): Promise<AuthResponse> {
   const puter = (window as any).puter;
-  if (!puter) throw new Error("Puter SDK not loaded");
-  if (!puter.auth?.isSignedIn?.()) {
-    await puter.auth.signIn();
+  if (!puter) throw new Error("Puter SDK not loaded. Refresh the page and try again.");
+
+  try {
+    if (!puter.auth?.isSignedIn?.()) {
+      await puter.auth.signIn();
+    }
+  } catch (e: any) {
+    // Puter popup may fail with "No referrer found" or be blocked by the browser
+    const msg = e?.message || String(e);
+    if (msg.includes("referrer") || msg.includes("popup")) {
+      throw new Error("Sign-in popup was blocked. Allow popups for this site and try again.");
+    }
+    throw new Error(`Google sign-in failed: ${msg}`);
   }
-  const user = await puter.auth.getUser();
-  if (!user?.uuid) throw new Error("Puter sign-in cancelled");
+
+  let user: any;
+  try {
+    user = await puter.auth.getUser();
+  } catch {
+    throw new Error("Could not retrieve account. Try again.");
+  }
+  if (!user?.uuid) throw new Error("Sign-in was cancelled.");
   return loginWithPuter(user.uuid, user.username);
 }
 
