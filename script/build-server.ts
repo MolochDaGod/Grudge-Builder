@@ -31,7 +31,7 @@ const allowlist = [
   "multer",
   "nanoid",
   "nodemailer",
-  "openai",
+  // "openai" removed from allowlist — ESM-to-CJS conversion dumps source to stdout
   "passport",
   "passport-local",
   "pg",

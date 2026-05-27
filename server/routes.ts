@@ -25,11 +25,21 @@ import { CrossmintWalletService } from "./services/crossmintWallet";
 
 const crossmintService = new CrossmintWalletService();
 
-// ── OpenAI — support both env var names (#12) ────────────────────────────────
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY || process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
-  baseURL: process.env.OPENAI_BASE_URL || process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
-});
+// ── OpenAI — lazy init so server starts even without OPENAI_API_KEY ────────
+let _openai: OpenAI | null = null;
+function getOpenAI(): OpenAI | null {
+  if (_openai) return _openai;
+  const apiKey = process.env.OPENAI_API_KEY || process.env.AI_INTEGRATIONS_OPENAI_API_KEY;
+  if (!apiKey) {
+    console.warn('[OpenAI] No API key configured — avatar generation disabled');
+    return null;
+  }
+  _openai = new OpenAI({
+    apiKey,
+    baseURL: process.env.OPENAI_BASE_URL || process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
+  });
+  return _openai;
+}
 
 // ── JWT Auth Middleware (#9) ──────────────────────────────────────────────────
 
@@ -154,7 +164,9 @@ async function generateCharacterAvatar(
     
     const prompt = `Create a unique cartoon-style fantasy RPG character portrait of ${raceDesc}, ${classDesc}. Character has ${uniqueFeature}. The character's name is "${characterName}". Style: colorful cartoon illustration, dark fantasy theme, ${lighting} lighting, detailed face portrait from chest up, vibrant colors, bold outlines, heroic pose. Background: simple dark gradient. High quality digital art. Unique seed: ${uniqueSeed}`;
     
-    const response = await openai.images.generate({
+    const ai = getOpenAI();
+    if (!ai) return null;
+    const response = await ai.images.generate({
       model: "gpt-image-1",
       prompt,
       n: 1,
@@ -1292,7 +1304,7 @@ export async function registerRoutes(
 
       const prompt = `Fantasy RPG game island map, top-down view, ${styleDescriptions[style] || styleDescriptions.temperate}. Includes resource nodes (ore veins, tree groves, herb patches), a small village with medieval buildings, pathways connecting locations. Style: hand-painted fantasy map, vibrant colors, detailed terrain textures, game asset quality. Seed: ${island.seed}`;
 
-      const response = await openai.images.generate({
+      const response = await getOpenAI()!.images.generate({
         model: "gpt-image-1",
         prompt,
         n: 1,
@@ -1423,7 +1435,7 @@ Rules:
 - Higher floors have more complex layouts
 - Theme affects decoration density`;
 
-      const response = await openai.chat.completions.create({
+      const response = await getOpenAI()!.chat.completions.create({
         model: "gpt-4o-mini",
         messages: [
           { role: "system", content: systemPrompt },
@@ -2051,7 +2063,7 @@ Respond in JSON format ONLY:
   "notes": "string explaining analysis"
 }`;
 
-      const response = await openai.chat.completions.create({
+      const response = await getOpenAI()!.chat.completions.create({
         model: "gpt-4o-mini",
         messages: [{ role: "user", content: analysisPrompt }],
         response_format: { type: "json_object" }
@@ -2248,7 +2260,7 @@ Respond in JSON format ONLY:
   "notes": "string explaining analysis"
 }`;
 
-          const response = await openai.chat.completions.create({
+          const response = await getOpenAI()!.chat.completions.create({
             model: "gpt-4o-mini",
             messages: [{ role: "user", content: analysisPrompt }],
             response_format: { type: "json_object" }
@@ -2930,7 +2942,7 @@ Provide helpful, concise responses about:
 - Usage recommendations for game development
 - Technical details about sprite formats`;
 
-      const completion = await openai.chat.completions.create({
+      const completion = await getOpenAI()!.chat.completions.create({
         model: "gpt-4o-mini",
         messages: [
           { role: "system", content: systemPrompt },
@@ -2974,7 +2986,7 @@ Also suggest metadata values in this exact JSON format:
   }
 }`;
 
-      const completion = await openai.chat.completions.create({
+      const completion = await getOpenAI()!.chat.completions.create({
         model: "gpt-4o-mini",
         messages: [
           { role: "system", content: "You are a sprite analysis expert. Provide concise, helpful analysis." },
@@ -6562,7 +6574,7 @@ The user wants to: ${prompt}
 Return a JSON array of the modified data. Only include rows that have been changed.
 Your response must be valid JSON array only, no markdown or explanation.`;
 
-      const response = await openai.chat.completions.create({
+      const response = await getOpenAI()!.chat.completions.create({
         model: "gpt-4o-mini",
         messages: [
           { role: "system", content: systemPrompt },

@@ -1,3 +1,22 @@
+// ── Crash guard: catch ANY top-level error so Railway logs show the real cause ──
+process.on('uncaughtException', (err) => {
+  console.error('[FATAL] Uncaught exception:', err.message);
+  console.error(err.stack);
+  process.exit(1);
+});
+process.on('unhandledRejection', (reason) => {
+  console.error('[FATAL] Unhandled rejection:', reason);
+  process.exit(1);
+});
+
+console.log('[boot] Starting grudge-api...');
+console.log('[boot] NODE_ENV:', process.env.NODE_ENV);
+console.log('[boot] PORT:', process.env.PORT);
+console.log('[boot] DATABASE_URL set:', !!process.env.DATABASE_URL);
+console.log('[boot] DATABASE_URL length:', (process.env.DATABASE_URL || '').length);
+console.log('[boot] RAILWAY_ENVIRONMENT_ID:', process.env.RAILWAY_ENVIRONMENT_ID || 'not set');
+console.log('[boot] cwd:', process.cwd());
+
 import dotenv from "dotenv";
 // Load .env.local first (gitignored local overrides), then .env as fallback.
 // dotenv.config() does NOT override already-set vars, so .env.local wins.
@@ -8,6 +27,9 @@ import { dirname } from "path";
 // import.meta.url is undefined when esbuild bundles to CJS — fall back to cwd
 const __filename = import.meta.url ? fileURLToPath(import.meta.url) : '';
 const __dirname = __filename ? dirname(__filename) : process.cwd();
+
+console.log('[boot] __dirname resolved to:', __dirname);
+
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
@@ -16,6 +38,8 @@ import path from "path";
 import cors from "cors";
 import { setupColyseus } from "./colyseus/index";
 import { registerBackendProxy } from "./proxy";
+
+console.log('[boot] All imports loaded successfully');
 
 const app = express();
 const httpServer = createServer(app);
