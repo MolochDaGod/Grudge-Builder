@@ -35,8 +35,8 @@ export interface OceanConfig {
 }
 
 const DEFAULT_OCEAN: OceanConfig = {
-  size: 800,
-  segments: 128,
+  size: 1200,
+  segments: 4,
   waterLevel: -2,
   shallowColor: new THREE.Color(0x1abbc4),
   deepColor: new THREE.Color(0x0a2e5c),
@@ -51,59 +51,13 @@ const DEFAULT_OCEAN: OceanConfig = {
 // ─── Shader code ──────────────────────────────────────────────────────────────
 
 const vertexShader = /* glsl */ `
-  uniform float uTime;
-  uniform vec4 uWave0; // xy=direction, z=steepness, w=wavelength
-  uniform vec4 uWave1;
-  uniform vec4 uWave2;
-
   varying vec3 vWorldPos;
-  varying vec3 vNormal;
   varying vec2 vUv;
-  varying float vWaveHeight;
-
-  // Gerstner wave displacement
-  vec3 gerstner(vec3 pos, vec4 wave, float t) {
-    float steepness = wave.z;
-    float wavelength = wave.w;
-    float k = 6.2831853 / wavelength;
-    float c = sqrt(9.8 / k);
-    vec2 d = normalize(wave.xy);
-    float f = k * (dot(d, pos.xz) - c * t);
-    float a = steepness / k;
-
-    return vec3(
-      d.x * (a * cos(f)),
-      a * sin(f),
-      d.y * (a * cos(f))
-    );
-  }
 
   void main() {
     vUv = uv;
-    vec3 pos = position;
-
-    // Sum 3 Gerstner waves
-    vec3 g0 = gerstner(pos, uWave0, uTime);
-    vec3 g1 = gerstner(pos, uWave1, uTime);
-    vec3 g2 = gerstner(pos, uWave2, uTime);
-
-    pos += g0 + g1 + g2;
-    vWaveHeight = g0.y + g1.y + g2.y;
-
-    // Compute tangent/bitangent for wave normal
-    vec3 tangent = vec3(1.0, 0.0, 0.0);
-    vec3 bitangent = vec3(0.0, 0.0, 1.0);
-
-    // Approximate normal from wave derivatives
-    float eps = 0.01;
-    vec3 pX = position + vec3(eps, 0.0, 0.0);
-    vec3 pZ = position + vec3(0.0, 0.0, eps);
-    vec3 dX = pX + gerstner(pX, uWave0, uTime) + gerstner(pX, uWave1, uTime) + gerstner(pX, uWave2, uTime) - pos;
-    vec3 dZ = pZ + gerstner(pZ, uWave0, uTime) + gerstner(pZ, uWave1, uTime) + gerstner(pZ, uWave2, uTime) - pos;
-    vNormal = normalize(cross(dZ, dX));
-
-    vWorldPos = (modelMatrix * vec4(pos, 1.0)).xyz;
-    gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
+    vWorldPos = (modelMatrix * vec4(position, 1.0)).xyz;
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
   }
 `;
 
@@ -111,46 +65,30 @@ const fragmentShader = /* glsl */ `
   uniform float uTime;
   uniform vec3 uShallowColor;
   uniform vec3 uDeepColor;
-  uniform vec3 uFoamColor;
-  uniform float uFoamThreshold;
   uniform vec3 uSunDirection;
 
   varying vec3 vWorldPos;
-  varying vec3 vNormal;
   varying vec2 vUv;
-  varying float vWaveHeight;
 
   void main() {
     vec3 viewDir = normalize(cameraPosition - vWorldPos);
-    vec3 normal = normalize(vNormal);
 
-    // Fresnel — more reflective at glancing angles
-    float fresnel = pow(1.0 - max(0.0, dot(viewDir, normal)), 3.0);
-    fresnel = clamp(fresnel, 0.15, 0.95);
+    // Simple animated color blend — no vertex displacement, fragment only
+    vec2 uv = vUv * 6.0;
+    float wave = sin(uv.x * 4.0 + uTime * 0.8) * cos(uv.y * 3.0 + uTime * 0.6) * 0.5 + 0.5;
+    vec3 waterColor = mix(uDeepColor, uShallowColor, wave * 0.4 + 0.3);
 
-    // Depth-based color (wave height as proxy for depth)
-    float depthFactor = smoothstep(-3.0, 3.0, vWaveHeight);
-    vec3 waterColor = mix(uDeepColor, uShallowColor, depthFactor);
+    // Simple fresnel from view angle to surface
+    float fresnel = pow(1.0 - max(0.0, viewDir.y), 2.0);
+    fresnel = clamp(fresnel, 0.1, 0.7);
 
-    // Specular highlight (sun reflection)
-    vec3 halfDir = normalize(uSunDirection + viewDir);
-    float spec = pow(max(0.0, dot(normal, halfDir)), 128.0);
+    // Subtle specular
+    float spec = pow(max(0.0, dot(reflect(-uSunDirection, vec3(0.0, 1.0, 0.0)), viewDir)), 64.0);
 
-    // Shore foam (wave crests)
-    float foam = smoothstep(uFoamThreshold - 0.3, uFoamThreshold, vWaveHeight);
+    vec3 color = mix(waterColor, vec3(0.7, 0.85, 1.0), fresnel * 0.3);
+    color += spec * 0.3;
 
-    // Caustic UV distortion
-    vec2 causticUv = vUv * 8.0 + uTime * 0.02;
-    float caustic = sin(causticUv.x * 12.0) * cos(causticUv.y * 10.0 + uTime * 0.5) * 0.5 + 0.5;
-    waterColor += caustic * 0.03;
-
-    // Combine
-    vec3 color = mix(waterColor, vec3(0.8, 0.9, 1.0), fresnel * 0.4);
-    color += spec * 0.6;
-    color = mix(color, uFoamColor, foam * 0.5);
-
-    float alpha = mix(0.65, 0.9, fresnel);
-    gl_FragColor = vec4(color, alpha);
+    gl_FragColor = vec4(color, 0.75);
   }
 `;
 
@@ -158,18 +96,12 @@ const fragmentShader = /* glsl */ `
 
 export function createOceanMaterial(config: Partial<OceanConfig> = {}): THREE.ShaderMaterial {
   const c = { ...DEFAULT_OCEAN, ...config };
-  const w = c.waves;
 
   return new THREE.ShaderMaterial({
     uniforms: {
       uTime: { value: 0 },
-      uWave0: { value: new THREE.Vector4(w[0].direction.x, w[0].direction.y, w[0].steepness, w[0].wavelength) },
-      uWave1: { value: new THREE.Vector4(w[1].direction.x, w[1].direction.y, w[1].steepness, w[1].wavelength) },
-      uWave2: { value: new THREE.Vector4(w[2].direction.x, w[2].direction.y, w[2].steepness, w[2].wavelength) },
       uShallowColor: { value: c.shallowColor },
       uDeepColor: { value: c.deepColor },
-      uFoamColor: { value: c.foamColor },
-      uFoamThreshold: { value: 1.8 },
       uSunDirection: { value: new THREE.Vector3(0.5, 0.8, 0.3).normalize() },
     },
     vertexShader,

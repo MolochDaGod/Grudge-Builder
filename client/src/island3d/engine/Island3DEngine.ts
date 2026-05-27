@@ -143,10 +143,10 @@ export class Island3DEngine {
 
     this.setupLighting();
 
-    // Post-processing
+    // Post-processing — default to 'low' for performance
     this.postProcessing = new PostProcessing(
       this.renderer, this.scene, this.camera,
-      { quality: config.quality || 'medium' },
+      { quality: config.quality || 'low' },
     );
   }
 
@@ -238,10 +238,10 @@ export class Island3DEngine {
     const terrainMaterial = createTerrainMaterial();
     const terrainConfig: IslandTerrainConfig = {
       seed: this.config.seed,
-      xSegments: 127,
-      ySegments: 127,
-      xSize: 512,
-      ySize: 512,
+      xSegments: 63,
+      ySegments: 63,
+      xSize: 1024,
+      ySize: 1024,
       minHeight: -30,
       maxHeight: 80,
     };
@@ -259,7 +259,7 @@ export class Island3DEngine {
       this.terrain.terrainMesh,
       this.terrain.gridW,
       this.terrain.gridH,
-      512, 512,
+      1024, 1024,
       this.config.seed,
     );
 
@@ -278,8 +278,8 @@ export class Island3DEngine {
       this.terrain.biomeMap,
       this.terrain.gridW,
       this.terrain.gridH,
-      512, 512,
-      8, // cell size
+      1024, 1024,
+      16, // cell size (doubled for 2x terrain)
     );
 
     // 8. Ally manager (Gouldstone system)
@@ -295,7 +295,7 @@ export class Island3DEngine {
   }
 
   private createWaterPlane(): void {
-    this.waterPlane = createOceanMesh({ waterLevel: -2 });
+    this.waterPlane = createOceanMesh({ waterLevel: -2, size: 1200, segments: 4 });
     this.scene.add(this.waterPlane);
   }
 
@@ -335,7 +335,7 @@ export class Island3DEngine {
       terrainMesh: this.terrain.terrainMesh,
       gridW: this.terrain.gridW,
       gridH: this.terrain.gridH,
-      terrainSize: 512,
+      terrainSize: 1024,
     };
 
     // Grass wave overlay (LOD patches)
@@ -346,9 +346,9 @@ export class Island3DEngine {
     this.sandLayer = new DetailLayer({ ...layerConfig, type: 'sand' });
     this.scene.add(this.sandLayer.group);
 
-    // Close-range instanced grass blades
-    this.grassBlades = createGrassBlades(layerConfig);
-    this.scene.add(this.grassBlades.mesh);
+    // Grass blades disabled — biggest GPU cost, kills mobile/low-end perf
+    // this.grassBlades = createGrassBlades(layerConfig);
+    // this.scene.add(this.grassBlades.mesh);
   }
 
   /** Spawn or respawn the playable character */

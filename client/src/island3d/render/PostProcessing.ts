@@ -82,9 +82,9 @@ const ColorGradingShader = {
 // ─── Preset definitions ───────────────────────────────────────────────────────
 
 const PRESET_BLOOM: Record<QualityPreset, { strength: number; radius: number; threshold: number }> = {
-  low:    { strength: 0,    radius: 0,    threshold: 1.0 },
-  medium: { strength: 0.3,  radius: 0.4,  threshold: 0.85 },
-  high:   { strength: 0.6,  radius: 0.6,  threshold: 0.7 },
+  low:    { strength: 0,    radius: 0,    threshold: 1.0 },  // no bloom, no SMAA — raw render + color grading only
+  medium: { strength: 0.2,  radius: 0.3,  threshold: 0.9 },
+  high:   { strength: 0.5,  radius: 0.5,  threshold: 0.75 },
 };
 
 // ─── PostProcessing class ─────────────────────────────────────────────────────
