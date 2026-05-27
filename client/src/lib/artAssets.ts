@@ -107,6 +107,24 @@ export const FACTION_EMBLEMS: Record<string, string> = {
   legion:  '/assets/factions/legion-emblem.png',
 } as const;
 
+// ── Class stage backgrounds (cycling hero-art from RTS-Grudge) ───────────────
+
+export const CLASS_STAGE_BACKGROUNDS: Record<string, string> = {
+  mage:    'https://i.imgur.com/vKQR4UT.png',
+  warrior: 'https://i.imgur.com/Wj2mUH2.png',
+  ranger:  'https://i.imgur.com/5A6e5kL.png',
+  worge:   'https://i.imgur.com/BrQH0Bx.png',
+} as const;
+
+export const CLASS_ACCENT_COLORS: Record<string, string> = {
+  mage:    '#6aa9ff',
+  warrior: '#ff6b57',
+  ranger:  '#6bdc8b',
+  worge:   '#c792ff',
+} as const;
+
+export const CLASS_CYCLE = ['warrior', 'mage', 'ranger', 'worge'] as const;
+
 // ── Class colors (for themed borders, glows, etc.) ───────────────────────────
 
 export const CLASS_COLORS = {

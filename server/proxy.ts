@@ -34,6 +34,7 @@ interface ProxyRule {
  */
 const LOCAL_API_PREFIXES = [
   "/api/health",       // added to server/index.ts
+  "/api/auth",         // all auth routes handled locally
   "/api/characters",
   "/api/party",
   "/api/account",

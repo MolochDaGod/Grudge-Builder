@@ -5,13 +5,17 @@
  * Every auth method converges to the same Grudge ID + JWT.
  *
  * Endpoints:
- *   POST /api/auth/puter      — Puter UUID login (also used for guest)
- *   POST /api/auth/wallet     — Solana wallet address login
- *   POST /api/auth/login      — Username + password
- *   POST /api/auth/register   — Create account with username + password
- *   GET  /api/auth/verify     — Verify JWT token
- *   POST /api/auth/puter-link — Link Puter UUID to existing account (background)
- *   GET  /api/auth/discord/callback — Discord OAuth callback
+ *   POST /api/auth/puter             — Puter UUID login (also used for guest)
+ *   POST /api/auth/wallet            — Solana wallet address login
+ *   POST /api/auth/login             — Username + password
+ *   POST /api/auth/register          — Create account with username + password
+ *   GET  /api/auth/verify            — Verify JWT token
+ *   GET  /api/auth/me                — Get full user profile from JWT
+ *   POST /api/auth/puter-link        — Link Puter UUID to existing account
+ *   GET  /api/auth/discord/callback  — Discord OAuth callback
+ *   GET  /api/auth/google/start      — Google OAuth (delegates to Puter SDK)
+ *   POST /api/auth/phone/send        — Send SMS verification code
+ *   POST /api/auth/phone/verify      — Verify SMS code and login
  */
 
 import type { Express, Request, Response } from "express";
@@ -20,12 +24,38 @@ import { users, accounts } from "@shared/schema";
 import { eq } from "drizzle-orm";
 import jwt from "jsonwebtoken";
 import crypto from "node:crypto";
-import { CrossmintWalletService } from "../services/crossmintWallet";
-
-const crossmint = new CrossmintWalletService();
+import { storage } from "../storage";
 
 const JWT_SECRET = process.env.SESSION_SECRET || process.env.JWT_SECRET || "grudge-dev-secret";
 const JWT_EXPIRES = "7d";
+
+// ── Simple in-memory rate limiter (per-IP, resets every window) ──────
+
+const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
+const RATE_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
+const RATE_MAX_AUTH = 20; // max auth attempts per window
+const RATE_MAX_PHONE = 5; // max SMS sends per window
+
+function rateLimit(key: string, max: number): boolean {
+  const now = Date.now();
+  const entry = rateLimitMap.get(key);
+  if (!entry || now > entry.resetAt) {
+    rateLimitMap.set(key, { count: 1, resetAt: now + RATE_WINDOW_MS });
+    return true;
+  }
+  if (entry.count >= max) return false;
+  entry.count++;
+  return true;
+}
+
+function getClientIp(req: Request): string {
+  return (
+    (req.get("cf-connecting-ip") as string) ||
+    (req.get("x-forwarded-for") as string)?.split(",")[0]?.trim() ||
+    req.ip ||
+    "unknown"
+  );
+}
 
 // ── Grudge ID generator ─────────────────────────────────────────────
 
@@ -68,15 +98,34 @@ function signToken(payload: {
   return jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRES });
 }
 
+/**
+ * Detect which auth providers are linked based on username patterns.
+ * Provider prefixes in the users table: puter:, wallet:, discord:, phone:
+ */
+function detectProviders(username: string): string[] {
+  const providers: string[] = [];
+  if (username.startsWith("puter:")) providers.push("puter");
+  else if (username.startsWith("wallet:")) providers.push("phantom");
+  else if (username.startsWith("discord:")) providers.push("discord");
+  else if (username.startsWith("phone:")) providers.push("phone");
+  else providers.push("grudge"); // username+password account
+  return providers;
+}
+
 function buildAuthResponse(
   user: { id: string; username: string; grudgeId: string | null },
-  account: { id: string; walletAddress: string | null; grudgeId: string | null } | null,
+  account: { id: string; walletAddress: string | null; grudgeId: string | null; displayName?: string | null } | null,
 ) {
   const grudgeId = user.grudgeId || account?.grudgeId || "";
+  const providers = detectProviders(user.username);
+  // Display name: strip provider prefix for display
+  const displayName =
+    (account as any)?.displayName ||
+    (user.username.includes(":") ? user.username.split(":").slice(1).join(":") : user.username);
   const token = signToken({
     userId: user.id,
     grudgeId,
-    username: user.username,
+    username: displayName,
   });
 
   return {
@@ -84,63 +133,47 @@ function buildAuthResponse(
     token,
     sessionToken: token,
     grudgeId,
-    username: user.username,
+    username: displayName,
     userId: user.id,
     user: {
       id: user.id,
       grudgeId,
-      username: user.username,
+      username: displayName,
+      displayName,
       walletAddress: account?.walletAddress || null,
+      providers,
     },
   };
 }
 
-// ── Ensure account row exists for a user ─────────────────────────────
+// ── Ensure account row exists for a user ─────────────────────
+// Delegates to the canonical storage.getOrCreateAccountForUser so Grudge ID
+// generation, Crossmint wallet creation, and account defaults are consistent
+// across auth routes AND the rest of the app (characters, inventory, etc.).
 
-async function ensureAccount(userId: string, grudgeId: string, email?: string) {
-  let existing = await db.select().from(accounts).where(eq(accounts.userId, userId)).limit(1);
-  let account = existing[0];
-
-  if (!account) {
-    const [created] = await db
-      .insert(accounts)
-      .values({ userId, grudgeId })
-      .onConflictDoNothing()
-      .returning();
-    account = created || (await db.select().from(accounts).where(eq(accounts.userId, userId)).limit(1))[0];
-  }
-
-  // Auto-create Crossmint wallet if account has no wallet and we have an email
-  if (account && !account.walletAddress && email) {
-    try {
-      const wallet = await crossmint.getOrCreateWallet(email);
-      if (wallet?.address) {
-        await db.update(accounts).set({
-          walletAddress: wallet.address,
-          walletType: 'crossmint',
-          crossmintWalletId: wallet.id,
-          crossmintEmail: email,
-        }).where(eq(accounts.id, account.id));
-        account = { ...account, walletAddress: wallet.address, walletType: 'crossmint', crossmintWalletId: wallet.id };
-        console.log(`[Auth] Auto-created wallet for ${grudgeId}: ${wallet.address}`);
-      }
-    } catch (walletErr) {
-      console.warn('[Auth] Wallet auto-creation skipped:', walletErr);
-    }
-  }
-
-  return account;
+async function ensureAccount(userId: string) {
+  return storage.getOrCreateAccountForUser(userId);
 }
 
 // ── Register routes ──────────────────────────────────────────────────
 
 export function registerAuthRoutes(app: Express) {
+
+  // ── Rate-limit middleware for auth routes ────────────────────────────
+  const authRateLimit = (req: Request, res: Response, next: Function) => {
+    const ip = getClientIp(req);
+    if (!rateLimit(`auth:${ip}`, RATE_MAX_AUTH)) {
+      return res.status(429).json({ success: false, error: "Too many requests. Try again later." });
+    }
+    next();
+  };
+
   /**
    * POST /api/auth/puter
    * Puter UUID login — creates account if new. Also handles guest logins
    * (puterUuid starts with "guest_").
    */
-  app.post("/api/auth/puter", async (req: Request, res: Response) => {
+  app.post("/api/auth/puter", authRateLimit, async (req: Request, res: Response) => {
     try {
       const puterUuid = req.body.puterUuid || req.body.puterId;
       const puterUsername = req.body.puterUsername || req.body.displayName;
@@ -188,7 +221,7 @@ export function registerAuthRoutes(app: Express) {
         return res.status(500).json({ success: false, error: "Failed to create account" });
       }
 
-      const account = await ensureAccount(user.id, user.grudgeId || generateGrudgeId());
+      const account = await ensureAccount(user.id);
       const response = buildAuthResponse(
         { ...user, username: username },
         account,
@@ -205,7 +238,7 @@ export function registerAuthRoutes(app: Express) {
    * POST /api/auth/wallet
    * Solana wallet login — creates account if new.
    */
-  app.post("/api/auth/wallet", async (req: Request, res: Response) => {
+  app.post("/api/auth/wallet", authRateLimit, async (req: Request, res: Response) => {
     try {
       const walletAddress = req.body.wallet_address || req.body.walletAddress;
       if (!walletAddress) {
@@ -239,11 +272,11 @@ export function registerAuthRoutes(app: Express) {
         return res.status(500).json({ success: false, error: "Failed to create wallet account" });
       }
 
-      const account = await ensureAccount(user.id, user.grudgeId || generateGrudgeId());
+      const account = await ensureAccount(user.id);
 
-      // Update wallet address on account if not set
+      // Update wallet address on account if not set (external wallet, not Crossmint)
       if (account && !account.walletAddress) {
-        await db.update(accounts).set({ walletAddress }).where(eq(accounts.id, account.id));
+        await storage.updateAccount(account.id, { walletAddress, walletType: 'external' } as any);
       }
 
       const shortAddr = `${walletAddress.slice(0, 4)}...${walletAddress.slice(-4)}`;
@@ -258,7 +291,7 @@ export function registerAuthRoutes(app: Express) {
    * POST /api/auth/login
    * Username + password login.
    */
-  app.post("/api/auth/login", async (req: Request, res: Response) => {
+  app.post("/api/auth/login", authRateLimit, async (req: Request, res: Response) => {
     try {
       const { username, password } = req.body;
       if (!username || !password) {
@@ -280,7 +313,7 @@ export function registerAuthRoutes(app: Express) {
         return res.status(401).json({ success: false, error: "Invalid username or password" });
       }
 
-      const account = await ensureAccount(user.id, user.grudgeId || generateGrudgeId());
+      const account = await ensureAccount(user.id);
       res.json(buildAuthResponse(user, account));
     } catch (e: any) {
       console.error("[Auth/Login]", e);
@@ -292,7 +325,7 @@ export function registerAuthRoutes(app: Express) {
    * POST /api/auth/register
    * Create new account with username + password.
    */
-  app.post("/api/auth/register", async (req: Request, res: Response) => {
+  app.post("/api/auth/register", authRateLimit, async (req: Request, res: Response) => {
     try {
       const { username, password, email } = req.body;
       if (!username || !password) {
@@ -329,7 +362,7 @@ export function registerAuthRoutes(app: Express) {
         })
         .returning();
 
-      const account = await ensureAccount(user.id, grudgeId, email || undefined);
+      const account = await ensureAccount(user.id);
       res.json({
         ...buildAuthResponse(user, account),
         message: "Welcome to Grudge Warlords!",
@@ -461,7 +494,7 @@ export function registerAuthRoutes(app: Express) {
         return res.redirect(`${returnUrl}?error=Account+creation+failed`);
       }
 
-      await ensureAccount(user.id, user.grudgeId || generateGrudgeId());
+      await ensureAccount(user.id);
 
       const displayName = discordUser.global_name || discordUser.username;
       const ssoToken = signToken({
@@ -478,5 +511,172 @@ export function registerAuthRoutes(app: Express) {
     }
   });
 
-  console.log("[Auth] Routes registered: /api/auth/{puter,wallet,login,register,verify,puter-link,discord/callback}");
+  // ── GET /api/auth/me — Full user profile from JWT ─────────────────
+
+  app.get("/api/auth/me", async (req: Request, res: Response) => {
+    try {
+      const authHeader = req.get("Authorization") || req.get("X-Session-Token") || "";
+      const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : authHeader;
+      if (!token) {
+        return res.status(401).json({ success: false, error: "No token provided" });
+      }
+
+      const payload = jwt.verify(token, JWT_SECRET) as any;
+      const userId = payload.userId;
+
+      const [user] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+      if (!user) {
+        return res.status(404).json({ success: false, error: "User not found" });
+      }
+
+      let [account] = await db.select().from(accounts).where(eq(accounts.userId, userId)).limit(1);
+
+      const providers = detectProviders(user.username);
+      const displayName =
+        account?.displayName ||
+        (user.username.includes(":") ? user.username.split(":").slice(1).join(":") : user.username);
+
+      res.json({
+        success: true,
+        grudgeId: user.grudgeId || account?.grudgeId || "",
+        username: displayName,
+        displayName,
+        email: user.email || null,
+        walletAddress: account?.walletAddress || null,
+        gbuxBalance: account?.gbuxBalance || 0,
+        accountXp: account?.accountXp || 0,
+        isPremium: (account?.premiumCurrency || 0) > 0,
+        avatarUrl: account?.avatarUrl || null,
+        providers,
+      });
+    } catch {
+      res.status(401).json({ success: false, error: "Invalid or expired token" });
+    }
+  });
+
+  // ── GET /api/auth/google/start — Google OAuth ─────────────────────
+  // Google sign-in routes through the Puter SDK on the client side.
+  // This endpoint exists so the client doesn't 404 — it returns
+  // instructions to use the Puter SDK popup instead.
+
+  app.get("/api/auth/google/start", (_req: Request, res: Response) => {
+    res.json({
+      success: false,
+      error: "Google OAuth is handled via Puter SDK on the client. Call loginWithPuterSDK() instead.",
+      method: "puter_sdk",
+    });
+  });
+
+  // ── POST /api/auth/phone/send — Send SMS verification code ────────
+  // Requires TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_PHONE_NUMBER
+
+  app.post("/api/auth/phone/send", async (req: Request, res: Response) => {
+    const ip = getClientIp(req);
+    if (!rateLimit(`phone:${ip}`, RATE_MAX_PHONE)) {
+      return res.status(429).json({ success: false, error: "Too many SMS requests. Try again later." });
+    }
+
+    try {
+      const { phone } = req.body;
+      if (!phone || typeof phone !== "string" || phone.length < 10) {
+        return res.status(400).json({ success: false, error: "Valid phone number required" });
+      }
+
+      const accountSid = process.env.TWILIO_ACCOUNT_SID;
+      const authToken = process.env.TWILIO_AUTH_TOKEN;
+      const fromNumber = process.env.TWILIO_PHONE_NUMBER;
+
+      if (!accountSid || !authToken || !fromNumber) {
+        return res.status(501).json({ success: false, error: "SMS not configured. Use another sign-in method." });
+      }
+
+      // Generate 6-digit code, store in memory with 10-min TTL
+      const code = crypto.randomInt(100000, 999999).toString();
+      const codeKey = `phone_code:${phone}`;
+      rateLimitMap.set(codeKey, { count: parseInt(code), resetAt: Date.now() + 10 * 60 * 1000 });
+
+      // Send via Twilio REST API (no SDK dependency)
+      const twilioUrl = `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`;
+      const twilioAuth = Buffer.from(`${accountSid}:${authToken}`).toString("base64");
+
+      const smsRes = await fetch(twilioUrl, {
+        method: "POST",
+        headers: {
+          Authorization: `Basic ${twilioAuth}`,
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: new URLSearchParams({
+          To: phone,
+          From: fromNumber,
+          Body: `Your Grudge Warlords code is: ${code}. Valid for 10 minutes.`,
+        }),
+      });
+
+      if (!smsRes.ok) {
+        const err = await smsRes.text();
+        console.error("[Auth/Phone] Twilio error:", err);
+        return res.status(502).json({ success: false, error: "Failed to send SMS" });
+      }
+
+      res.json({ success: true, message: "Verification code sent" });
+    } catch (e: any) {
+      console.error("[Auth/Phone/Send]", e);
+      res.status(500).json({ success: false, error: e.message });
+    }
+  });
+
+  // ── POST /api/auth/phone/verify — Verify SMS code → login ─────────
+
+  app.post("/api/auth/phone/verify", authRateLimit, async (req: Request, res: Response) => {
+    try {
+      const { phone, code } = req.body;
+      if (!phone || !code) {
+        return res.status(400).json({ success: false, error: "Phone and code required" });
+      }
+
+      // Check stored code
+      const codeKey = `phone_code:${phone}`;
+      const stored = rateLimitMap.get(codeKey);
+      if (!stored || Date.now() > stored.resetAt) {
+        return res.status(401).json({ success: false, error: "Code expired. Request a new one." });
+      }
+      if (stored.count.toString() !== code.toString()) {
+        return res.status(401).json({ success: false, error: "Invalid code" });
+      }
+
+      // Code valid — consume it
+      rateLimitMap.delete(codeKey);
+
+      // Find or create user by phone
+      const phoneKey = `phone:${phone}`;
+      let [user] = await db.select().from(users).where(eq(users.username, phoneKey)).limit(1);
+
+      if (!user) {
+        const grudgeId = generateGrudgeId();
+        const dummyPw = await hashPassword(crypto.randomBytes(32).toString("hex"));
+        [user] = await db
+          .insert(users)
+          .values({ username: phoneKey, password: dummyPw, grudgeId })
+          .onConflictDoNothing()
+          .returning();
+
+        if (!user) {
+          [user] = await db.select().from(users).where(eq(users.username, phoneKey)).limit(1);
+        }
+      }
+
+      if (!user) {
+        return res.status(500).json({ success: false, error: "Failed to create phone account" });
+      }
+
+      const account = await ensureAccount(user.id);
+      const shortPhone = `${phone.slice(0, 3)}***${phone.slice(-4)}`;
+      res.json(buildAuthResponse({ ...user, username: shortPhone }, account));
+    } catch (e: any) {
+      console.error("[Auth/Phone/Verify]", e);
+      res.status(500).json({ success: false, error: e.message });
+    }
+  });
+
+  console.log("[Auth] Routes registered: /api/auth/{puter,wallet,login,register,verify,me,puter-link,discord/callback,google/start,phone/send,phone/verify}");
 }

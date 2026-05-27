@@ -16,6 +16,7 @@ import { navigateToGame } from "@/lib/gameNav";
 import {
   GAME_CARD_BACKGROUNDS, FACTION_EMBLEMS, RACE_PORTRAITS,
   PROFESSION_ICONS, CLASS_HERO_IMAGES, BACKGROUNDS,
+  CLASS_STAGE_BACKGROUNDS, CLASS_ACCENT_COLORS, CLASS_CYCLE,
 } from "@/lib/artAssets";
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -89,6 +90,7 @@ export default function HomePage() {
   const [activeCharacter, setActiveCharacter] = useState<Character | null>(null);
   const [user, setUser] = useState<{ username: string } | null>(null);
   const [activeTier, setActiveTier] = useState<string | "all">("all");
+  const [activeClass, setActiveClass] = useState<string>("warrior");
   const { account } = useAccount();
   const { isAuthenticated, openLogin, handleLogout: authLogout } = useAuth();
 
@@ -105,6 +107,16 @@ export default function HomePage() {
       .catch(() => {});
   }, []);
 
+  // Cycle class backgrounds every 7s
+  useEffect(() => {
+    let idx = 0;
+    const timer = setInterval(() => {
+      idx = (idx + 1) % CLASS_CYCLE.length;
+      setActiveClass(CLASS_CYCLE[idx]);
+    }, 7000);
+    return () => clearInterval(timer);
+  }, []);
+
   const handleLogout = () => {
     authLogout();
     setLocation("/");
@@ -116,11 +128,18 @@ export default function HomePage() {
   return (
     <div className="min-h-screen text-[#eef2ff]" style={{ background: "#05060c", fontFamily: FONTS.ui }}>
 
-      {/* ── BG ── */}
+      {/* ── BG — cycling class stage backgrounds ── */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden">
-        <img src={BACKGROUNDS.darkFantasy4} alt="" className="w-full h-full object-cover opacity-[0.05]" loading="lazy" />
+        {CLASS_CYCLE.map(cls => (
+          <div key={cls} style={{
+            position: 'absolute', inset: '-4%', backgroundSize: 'cover', backgroundPosition: 'center',
+            backgroundImage: `url('${CLASS_STAGE_BACKGROUNDS[cls]}')`,
+            filter: 'saturate(1.1) brightness(.35)', transform: cls === activeClass ? 'scale(1.02)' : 'scale(1.06)',
+            transition: 'opacity 1.4s ease, transform 8s ease', opacity: cls === activeClass ? 1 : 0,
+          }} />  
+        ))}
         <div className="absolute inset-0" style={{ background: "radial-gradient(1200px 700px at 50% 110%,rgba(0,0,0,.75),transparent 55%),radial-gradient(900px 500px at 10% -10%,rgba(10,15,40,.6),transparent 60%),linear-gradient(180deg,rgba(5,6,12,.4),rgba(5,6,12,.92))" }} />
-        <div className="absolute -inset-[20%] opacity-60" style={{ background: "conic-gradient(from 0deg at 30% 40%,rgba(246,201,69,.06),transparent 25%,rgba(199,146,255,.04) 55%,transparent 80%)", filter: "blur(60px)", animation: "spin 50s linear infinite" }} />
+        <div className="absolute -inset-[20%] opacity-60" style={{ background: `conic-gradient(from 0deg at 30% 40%,${CLASS_ACCENT_COLORS[activeClass] ?? '#f6c945'}18,transparent 25%,rgba(199,146,255,.04) 55%,transparent 80%)`, filter: "blur(60px)", animation: "spin 50s linear infinite" }} />
       </div>
       <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
 

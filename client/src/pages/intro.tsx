@@ -1,26 +1,50 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
-import { RACE_PORTRAITS, FACTION_EMBLEMS, CLASS_HERO_IMAGES, VIDEOS } from "@/lib/artAssets";
+import { LogIn } from "lucide-react";
+import {
+  RACE_PORTRAITS, FACTION_EMBLEMS, VIDEOS,
+  CLASS_STAGE_BACKGROUNDS, CLASS_ACCENT_COLORS, CLASS_CYCLE,
+} from "@/lib/artAssets";
+import { useAuth } from "@/contexts/AuthContext";
+
+const PARTICLE_COUNT = 50;
 
 export default function IntroPage() {
   const [, setLocation] = useLocation();
   const videoRef = useRef<HTMLVideoElement>(null);
   const [showEnter, setShowEnter] = useState(false);
+  const [activeClass, setActiveClass] = useState<string>("warrior");
+  const { isAuthenticated, user, openLogin } = useAuth();
+
+  // Stable particle definitions (no re-randomize on render)
+  const particles = useMemo(() =>
+    Array.from({ length: PARTICLE_COUNT }, (_, i) => ({
+      id: i,
+      left: `${Math.random() * 100}%`,
+      delay: `${Math.random() * 20}s`,
+      duration: `${6 + Math.random() * 14}s`,
+      size: `${1 + Math.random() * 2.5}px`,
+    })),
+  []);
 
   useEffect(() => {
-    // Show the enter button after 2s regardless of auth state.
-    // Authenticated users see "Continue" (goes to /home).
-    // Guests see "Enter World" (also goes to /home — no forced redirect).
     const timer = setTimeout(() => setShowEnter(true), 2000);
     return () => clearTimeout(timer);
   }, []);
 
-  const handleEnter = () => {
-    // Always navigate to /home. If not authenticated, home.tsx will show
-    // a login prompt — never a hard redirect that loops.
-    setLocation("/home");
-  };
+  // Cycle through class backgrounds every 7s (matches RTS-Grudge MenuScreen)
+  useEffect(() => {
+    let idx = 0;
+    const timer = setInterval(() => {
+      idx = (idx + 1) % CLASS_CYCLE.length;
+      setActiveClass(CLASS_CYCLE[idx]);
+    }, 7000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const handleEnter = () => setLocation("/home");
+  const accentColor = CLASS_ACCENT_COLORS[activeClass] ?? "#f6c945";
 
   return (
     <div className="fixed inset-0 z-50 bg-[#05060c] flex items-center justify-center overflow-hidden">
@@ -28,32 +52,69 @@ export default function IntroPage() {
         @keyframes intro-spin { to { transform: rotate(360deg) } }
         @keyframes intro-drift {
           0% { opacity:0; transform:translateY(0) scale(.6) }
-          10% { opacity:.7 }
-          100% { opacity:0; transform:translateY(-110vh) scale(1.2) }
+          10% { opacity:.8 }
+          100% { opacity:0; transform:translateY(-110vh) scale(1.3) }
+        }
+        .stage-bg {
+          position:absolute; inset:-4%; background-size:cover; background-position:center;
+          filter:saturate(1.1) brightness(.4); transform:scale(1.06);
+          transition:opacity 1.4s ease, transform 8s ease; opacity:0;
+        }
+        .stage-bg.active { opacity:1; transform:scale(1.02) }
+        .race-card {
+          position:relative; cursor:pointer; border:1px solid rgba(255,255,255,.08);
+          border-radius:12px; overflow:hidden; background:#0b0f1e;
+          transition:transform .22s ease, border-color .22s ease, box-shadow .22s ease;
+        }
+        .race-card:hover { transform:translateY(-3px); border-color:rgba(255,255,255,.22) }
+        .race-card .portrait {
+          position:absolute; inset:0; background-size:cover; background-position:center top;
+          transform:scale(1.03); transition:transform .5s ease, filter .3s ease;
+          filter:saturate(.85) brightness(.8);
+        }
+        .race-card:hover .portrait { transform:scale(1.12); filter:saturate(1.1) brightness(1) }
+        .race-card::after {
+          content:""; position:absolute; inset:0;
+          background:linear-gradient(180deg, transparent 35%, rgba(6,8,16,.85));
+        }
+        .race-card .race-label {
+          position:absolute; left:0; right:0; bottom:3px; z-index:2; text-align:center;
+          font-family:'Cinzel',serif; font-size:8px; letter-spacing:1.5px; color:#fff;
+          text-shadow:0 2px 6px rgba(0,0,0,.9); text-transform:capitalize;
         }
       `}</style>
 
-      {/* Video background */}
-      <video
-        ref={videoRef}
-        autoPlay muted playsInline loop
-        className="absolute inset-0 w-full h-full object-cover opacity-40"
-        onEnded={() => setShowEnter(true)}
-      >
-        <source src={VIDEOS.pirateKingBanner} type="video/mp4" />
-      </video>
-
-      {/* Overlay gradients */}
-      <div className="absolute inset-0" style={{ background: 'radial-gradient(1200px 700px at 50% 110%, rgba(0,0,0,.8), transparent 55%), radial-gradient(800px 400px at 10% -10%, rgba(10,15,40,.6), transparent 60%), linear-gradient(180deg, rgba(5,6,12,.5), rgba(5,6,12,.9))' }} />
-
-      {/* Animated conic sheen */}
-      <div className="absolute -inset-[20%] pointer-events-none opacity-60" style={{ background: 'conic-gradient(from 0deg at 30% 40%, rgba(246,201,69,.06), transparent 25%, rgba(199,146,255,.05) 55%, transparent 80%, rgba(107,220,139,.04))', filter: 'blur(60px)', animation: 'intro-spin 45s linear infinite' }} />
-
-      {/* Particle stars */}
-      <div className="absolute inset-0 pointer-events-none overflow-hidden mix-blend-screen opacity-60">
-        {Array.from({ length: 30 }).map((_, i) => (
-          <span key={i} className="absolute block w-[2px] h-[2px] rounded-full bg-white" style={{ left: `${Math.random() * 100}%`, bottom: `${Math.random() * 20}%`, animation: `intro-drift ${5 + Math.random() * 10}s linear ${Math.random() * 5}s infinite` }} />
+      {/* Cycling class stage backgrounds */}
+      <div className="absolute inset-0 overflow-hidden">
+        {CLASS_CYCLE.map(cls => (
+          <div
+            key={cls}
+            className={`stage-bg${cls === activeClass ? " active" : ""}`}
+            style={{ backgroundImage: `url('${CLASS_STAGE_BACKGROUNDS[cls]}')` }}
+          />
         ))}
+
+        {/* Video background (layered beneath class art, low opacity) */}
+        <video
+          ref={videoRef}
+          autoPlay muted playsInline loop
+          className="absolute inset-0 w-full h-full object-cover opacity-20"
+        >
+          <source src={VIDEOS.pirateKingBanner} type="video/mp4" />
+        </video>
+
+        {/* Dark vignette overlay */}
+        <div className="absolute inset-0" style={{ background: 'radial-gradient(1200px 700px at 50% 110%, rgba(0,0,0,.78), transparent 55%), radial-gradient(900px 500px at 10% -10%, rgba(5,6,18,.65), transparent 60%), linear-gradient(180deg, rgba(5,6,12,.5), rgba(5,6,12,.88))' }} />
+
+        {/* Accent-colored conic sheen that changes with active class */}
+        <div className="absolute -inset-[20%] pointer-events-none opacity-70" style={{ background: `conic-gradient(from 0deg at 30% 40%, ${accentColor}18, transparent 25%, rgba(199,146,255,.10) 55%, transparent 80%)`, filter: 'blur(60px)', animation: 'intro-spin 40s linear infinite' }} />
+
+        {/* Floating particles */}
+        <div className="absolute inset-0 pointer-events-none overflow-hidden mix-blend-screen opacity-70">
+          {particles.map(p => (
+            <span key={p.id} className="absolute block rounded-full bg-white" style={{ width: p.size, height: p.size, left: p.left, bottom: '-10px', opacity: 0, animation: `intro-drift ${p.duration} ${p.delay} linear infinite` }} />
+          ))}
+        </div>
       </div>
 
       {/* Content */}
@@ -72,6 +133,17 @@ export default function IntroPage() {
             WARLORDS
           </h2>
           <p className="text-[#9aa3c7] text-xs tracking-[4px] uppercase">By Racalvin The Pirate King</p>
+
+          {/* Class cycle indicator dots */}
+          <div className="flex items-center justify-center gap-2 mt-3">
+            {CLASS_CYCLE.map(cls => (
+              <div key={cls} className="transition-all duration-400" style={{
+                width: 8, height: 8, borderRadius: '50%',
+                background: cls === activeClass ? CLASS_ACCENT_COLORS[cls] : 'rgba(255,255,255,.15)',
+                boxShadow: cls === activeClass ? `0 0 12px ${CLASS_ACCENT_COLORS[cls]}` : 'none',
+              }} />
+            ))}
+          </div>
         </motion.div>
 
         {/* Faction emblems */}
@@ -88,7 +160,7 @@ export default function IntroPage() {
           ))}
         </motion.div>
 
-        {/* Race portrait strip */}
+        {/* Race portrait strip — animated card style from RTS-Grudge */}
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: showEnter ? 1 : 0, y: showEnter ? 0 : 10 }}
@@ -96,8 +168,9 @@ export default function IntroPage() {
           className="flex gap-2.5 mb-8"
         >
           {Object.entries(RACE_PORTRAITS).map(([race, src]) => (
-            <div key={race} className="w-14 h-14 rounded-xl overflow-hidden border border-white/[.06] bg-[#0b0f1e] group cursor-pointer hover:-translate-y-1 transition-all hover:border-amber-500/40 hover:shadow-lg hover:shadow-amber-900/20">
-              <img src={src} alt={race} className="w-full h-full object-cover object-top scale-105 group-hover:scale-115 transition-transform duration-500 saturate-[.85] brightness-[.8] group-hover:saturate-110 group-hover:brightness-100" />
+            <div key={race} className="race-card" style={{ width: 56, height: 56 }}>
+              <div className="portrait" style={{ backgroundImage: `url('${src}')` }} />
+              <span className="race-label">{race}</span>
             </div>
           ))}
         </motion.div>
@@ -112,18 +185,45 @@ export default function IntroPage() {
             "In the ashes of the old world, three factions rise to claim dominion. Choose your allegiance, forge your destiny."
           </p>
 
-          <button
-            onClick={handleEnter}
-            className="mt-4 font-cinzel font-black text-lg px-14 py-4 rounded-xl border-0 cursor-pointer transition-all hover:-translate-y-1"
-            style={{
-              background: 'linear-gradient(180deg, #f6c945, #d8a819)',
-              color: '#20180a',
-              boxShadow: '0 14px 40px -10px rgba(246,201,69,.6)',
-              letterSpacing: '2px',
-            }}
-          >
-            ENTER WORLD
-          </button>
+          <div className="flex flex-col sm:flex-row items-center gap-3 mt-4">
+            {/* Primary CTA — authenticated users go straight in, guests see the same */}
+            <button
+              onClick={handleEnter}
+              className="font-cinzel font-black text-lg px-14 py-4 rounded-xl border-0 cursor-pointer transition-all hover:-translate-y-1"
+              style={{
+                background: 'linear-gradient(180deg, #f6c945, #d8a819)',
+                color: '#20180a',
+                boxShadow: '0 14px 40px -10px rgba(246,201,69,.6)',
+                letterSpacing: '2px',
+              }}
+            >
+              {isAuthenticated ? 'CONTINUE' : 'ENTER WORLD'}
+            </button>
+
+            {/* Sign In button — only shown when not authenticated */}
+            {!isAuthenticated && (
+              <button
+                onClick={openLogin}
+                className="flex items-center gap-2 font-cinzel font-bold text-sm px-8 py-3 rounded-xl cursor-pointer transition-all hover:-translate-y-0.5"
+                style={{
+                  background: 'rgba(255,255,255,.06)',
+                  color: '#cfd5f5',
+                  border: '1px solid rgba(255,255,255,.12)',
+                  letterSpacing: '2px',
+                }}
+              >
+                <LogIn className="w-4 h-4" />
+                SIGN IN
+              </button>
+            )}
+          </div>
+
+          {/* Welcome back line for authenticated users */}
+          {isAuthenticated && user && (
+            <p className="text-amber-400/60 text-xs mt-3 font-cinzel tracking-wider">
+              Welcome back, {user.username || 'Warlord'}
+            </p>
+          )}
         </motion.div>
       </div>
 
