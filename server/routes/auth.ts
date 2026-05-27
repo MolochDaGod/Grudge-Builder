@@ -142,9 +142,10 @@ export function registerAuthRoutes(app: Express) {
    */
   app.post("/api/auth/puter", async (req: Request, res: Response) => {
     try {
-      const { puterUuid, puterUsername } = req.body;
+      const puterUuid = req.body.puterUuid || req.body.puterId;
+      const puterUsername = req.body.puterUsername || req.body.displayName;
       if (!puterUuid) {
-        return res.status(400).json({ success: false, error: "puterUuid required" });
+        return res.status(400).json({ success: false, error: "puterUuid or puterId required" });
       }
 
       const isGuest = puterUuid.startsWith("guest_");

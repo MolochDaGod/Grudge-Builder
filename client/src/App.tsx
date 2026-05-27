@@ -7,6 +7,8 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { PuterFooter } from "@/components/PuterFooter";
 import { AdminTransitionScreen } from "@/components/AdminTransitionScreen";
 import { AdminProvider, useAdmin } from "@/contexts/AdminContext";
+import { AuthProvider } from "@/contexts/AuthContext";
+import { LoginModal } from "@/components/LoginModal";
 import { preloadMigratedSprites } from "@/hooks/use-sprite-url";
 import { prefetchCoreData } from "@/lib/objectStoreApi";
 import { syncGameDataFromObjectStore } from "@/lib/gameData";
@@ -41,6 +43,7 @@ import AdminMapPage from "@/pages/admin-map";
 import RaceSpriteGeneratorPage from "@/pages/race-sprite-generator";
 import CharacterGalleryPage from "@/pages/character-gallery";
 import AdminCombatPage from "@/pages/admin-combat";
+import IslandPage from "@/pages/island";
 import IslandV2Page from "@/pages/island-v2";
 import AdminIslandV2Page from "@/pages/admin-island-v2";
 import LauncherPage from "@/pages/launcher";
@@ -99,8 +102,10 @@ function Router() {
       <Route path="/race-sprites" component={RaceSpriteGeneratorPage} />
       <Route path="/character-gallery" component={CharacterGalleryPage} />
       <Route path="/admin-combat" component={AdminCombatPage} />
+      <Route path="/island" component={IslandPage} />
       <Route path="/island-v2" component={IslandV2Page} />
       <Route path="/admin-island-v2" component={AdminIslandV2Page} />
+      <Route path="/lobby" component={HomePage} />
       <Route path="/launcher" component={LauncherPage} />
       <Route path="/rts-grudge" component={RtsGrudgePage} />
       <Route path="/sailing" component={RtsGrudgePage} />
@@ -156,9 +161,12 @@ function AppContent() {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <AdminProvider>
-        <AppContent />
-      </AdminProvider>
+      <AuthProvider>
+        <AdminProvider>
+          <LoginModal />
+          <AppContent />
+        </AdminProvider>
+      </AuthProvider>
     </QueryClientProvider>
   );
 }

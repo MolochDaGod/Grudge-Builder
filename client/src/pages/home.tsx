@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { CharacterManager, Character } from "@/lib/characterManager";
 import { useAccount } from "@/hooks/use-account";
 import { getCurrentUser } from "@/lib/grudgeBackend";
+import { useAuth } from "@/contexts/AuthContext";
 import { navigateToGame } from "@/lib/gameNav";
 import {
   GAME_CARD_BACKGROUNDS, FACTION_EMBLEMS, RACE_PORTRAITS,
@@ -85,6 +86,7 @@ export default function HomePage() {
   const [user, setUser] = useState<{ username: string } | null>(null);
   const [activeTier, setActiveTier] = useState<string | "all">("all");
   const { account } = useAccount();
+  const { isAuthenticated, openLogin, handleLogout: authLogout } = useAuth();
 
   useEffect(() => {
     const saved = localStorage.getItem("grudge_user") || localStorage.getItem("grudge-session");
@@ -100,9 +102,7 @@ export default function HomePage() {
   }, []);
 
   const handleLogout = () => {
-    ["grudge_user", "grudge-session", "grudge_auth_token", "grudge_user_id", "grudge_id", "grudge_username"].forEach(k => localStorage.removeItem(k));
-    document.cookie = "grudge_auth_token=; path=/; max-age=0; SameSite=Lax";
-    document.cookie = "grudge_id=; path=/; max-age=0; SameSite=Lax";
+    authLogout();
     setLocation("/");
   };
 
@@ -140,8 +140,21 @@ export default function HomePage() {
             )}
             <div className="w-6 h-6 rounded-full bg-gradient-to-br from-amber-500 to-amber-700 flex items-center justify-center text-[10px] font-bold text-[#05060c] border border-amber-600/50">{displayName[0]?.toUpperCase()}</div>
             <span className="hidden sm:block text-xs font-medium text-white/70">{displayName}</span>
-            <Button variant="ghost" size="sm" onClick={() => setLocation("/account")} className="text-white/30 hover:text-amber-400 h-7 w-7 p-0" title="Account"><Crown className="w-3.5 h-3.5" /></Button>
-            <Button variant="ghost" size="sm" onClick={handleLogout} className="text-white/30 hover:text-white/60 h-7 w-7 p-0"><LogOut className="w-3.5 h-3.5" /></Button>
+            {isAuthenticated ? (
+              <>
+                <Button variant="ghost" size="sm" onClick={() => setLocation("/account")} className="text-white/30 hover:text-amber-400 h-7 w-7 p-0" title="Account"><Crown className="w-3.5 h-3.5" /></Button>
+                <Button variant="ghost" size="sm" onClick={handleLogout} className="text-white/30 hover:text-white/60 h-7 w-7 p-0"><LogOut className="w-3.5 h-3.5" /></Button>
+              </>
+            ) : (
+              <Button
+                size="sm"
+                onClick={openLogin}
+                className="font-cinzel text-[11px] px-4 h-7"
+                style={{ background: 'linear-gradient(180deg, #f6c945, #d8a819)', color: '#20180a' }}
+              >
+                Sign In
+              </Button>
+            )}
           </div>
         </div>
       </header>

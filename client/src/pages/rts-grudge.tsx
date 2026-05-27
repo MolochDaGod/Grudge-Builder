@@ -104,10 +104,15 @@ export default function RtsGrudgePage() {
   }, []);
 
   // Check server status — fetch live telemetry from the island-server HTTP status endpoint
+  // Convert wss:// → https:// (or ws:// → http://) so fetch() works against the HTTP health endpoint
+  const pvpHttpUrl = PVP_SERVER_URL
+    .replace(/^wss:\/\//, 'https://')
+    .replace(/^ws:\/\//, 'http://');
+
   useEffect(() => {
     const check = async () => {
       try {
-        const res = await fetch(`${PVP_SERVER_URL}/status`);
+        const res = await fetch(`${pvpHttpUrl}/status`);
         if (res.ok) {
           const data = await res.json();
           setServerOnline(true);
