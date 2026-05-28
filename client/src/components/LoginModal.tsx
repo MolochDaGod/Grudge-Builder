@@ -99,9 +99,11 @@ export function LoginModal() {
     setError("");
     setLoading("puter");
     try {
+      console.debug("[LoginModal] Google/Puter sign-in clicked");
       await loginWithPuterSDK();
       await onSuccess();
     } catch (e) {
+      console.error("[LoginModal] Google/Puter sign-in error:", e);
       handleError(e);
     }
   };
@@ -110,15 +112,16 @@ export function LoginModal() {
     setError("");
     setLoading("discord");
     try {
+      console.debug("[LoginModal] Discord login clicked");
       const url = await startDiscordLogin();
       if (url && url !== "__puter_sdk__") {
-        // Discord requires a redirect — this is the one exception
+        console.debug("[LoginModal] Discord redirect →", url.slice(0, 60));
         window.location.href = url;
         return;
       }
-      // If it returned __puter_sdk__ it went through Puter instead
       await onSuccess();
     } catch (e) {
+      console.error("[LoginModal] Discord login error:", e);
       handleError(e);
     }
   };
@@ -127,9 +130,11 @@ export function LoginModal() {
     setError("");
     setLoading("guest");
     try {
+      console.debug("[LoginModal] Guest login clicked");
       await loginAsGuest();
       await onSuccess();
     } catch (e) {
+      console.error("[LoginModal] Guest login error:", e);
       handleError(e);
     }
   };

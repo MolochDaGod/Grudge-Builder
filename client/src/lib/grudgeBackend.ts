@@ -308,26 +308,27 @@ export async function loginWithWallet(
   return handleAuthResponse(res, "wallet", { walletAddress });
 }
 
-/** Guest login — uses Puter quiet guest under the hood */
+/** Guest login — device-based by default, upgrades to Puter if already signed in.
+ *  Never opens a popup — that's `loginWithPuterSDK()`. */
 export async function loginAsGuest(): Promise<AuthResponse> {
-  // Try Puter quiet guest first
-  const hasPuter = typeof window !== "undefined" && !!(window as any).puter;
-  if (hasPuter) {
+  // If the user already has a Puter session, use it (no popup)
+  if (isPuterReady()) {
     try {
       const puter = (window as any).puter;
-      if (!puter.auth?.isSignedIn?.()) {
-        await puter.auth.signIn();
+      if (puter.auth?.isSignedIn?.()) {
+        const user = await puter.auth.getUser();
+        if (user?.uuid) {
+          console.debug("[Auth] Guest → existing Puter session", user.username);
+          return loginWithPuter(user.uuid, user.username);
+        }
       }
-      const user = await puter.auth.getUser();
-      if (user?.uuid) {
-        return loginWithPuter(user.uuid, user.username);
-      }
-    } catch {
-      // Fall through to device-based guest
+    } catch (e) {
+      console.warn("[Auth] Puter session check failed, using device guest", e);
     }
   }
 
-  // Fallback: device-based guest
+  // Device-based guest — always works, no SDK needed
+  console.debug("[Auth] Guest → device-based", getDeviceId());
   const res = await fetch(`${API_BASE}/auth/puter`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -455,33 +456,79 @@ export async function connectBrowserWallet(
   return loginWithWallet(address);
 }
 
+// ── Puter SDK readiness ──────────────────────────────────────────────
+
+/** True when the Puter SDK script has loaded and the global is available. */
+export function isPuterReady(): boolean {
+  return typeof window !== "undefined" && !!(window as any).puter?.auth;
+}
+
+/** Wait for the Puter SDK to become available (max 8 s). Resolves true if
+ *  ready, false if the script never loaded. */
+function waitForPuter(timeoutMs = 8000): Promise<boolean> {
+  if (isPuterReady()) return Promise.resolve(true);
+  return new Promise((resolve) => {
+    const start = Date.now();
+    const check = () => {
+      if (isPuterReady()) return resolve(true);
+      if (Date.now() - start > timeoutMs) {
+        console.warn("[Auth] Puter SDK did not load within", timeoutMs, "ms");
+        return resolve(false);
+      }
+      setTimeout(check, 200);
+    };
+    check();
+  });
+}
+
 // ── Puter SDK sign-in (explicit user-triggered) ──────────────────────
 
-/** Trigger Puter sign-in flow and authenticate with Grudge backend */
+/** Trigger Puter sign-in flow and authenticate with Grudge backend.
+ *  Waits for the SDK to load, opens the sign-in popup, then exchanges
+ *  the resulting Puter UUID for a Grudge JWT. */
 export async function loginWithPuterSDK(): Promise<AuthResponse> {
+  const ready = await waitForPuter();
+  if (!ready) {
+    throw new Error(
+      "Sign-in service is still loading. Please wait a moment and try again.",
+    );
+  }
+
   const puter = (window as any).puter;
-  if (!puter) throw new Error("Puter SDK not loaded. Refresh the page and try again.");
+  console.debug("[Auth] Puter SDK ready, starting sign-in flow");
 
   try {
     if (!puter.auth?.isSignedIn?.()) {
       await puter.auth.signIn();
     }
   } catch (e: any) {
-    // Puter popup may fail with "No referrer found" or be blocked by the browser
     const msg = e?.message || String(e);
-    if (msg.includes("referrer") || msg.includes("popup")) {
-      throw new Error("Sign-in popup was blocked. Allow popups for this site and try again.");
+    console.error("[Auth] Puter signIn() failed:", msg, e);
+    if (msg.includes("referrer") || msg.includes("popup") || msg.includes("blocked")) {
+      throw new Error(
+        "Sign-in popup was blocked by your browser. Allow popups for this site and try again.",
+      );
     }
-    throw new Error(`Google sign-in failed: ${msg}`);
+    if (msg.includes("cancel") || msg.includes("closed")) {
+      throw new Error("Sign-in was cancelled.");
+    }
+    throw new Error(`Sign-in failed: ${msg}`);
   }
 
   let user: any;
   try {
     user = await puter.auth.getUser();
-  } catch {
-    throw new Error("Could not retrieve account. Try again.");
+    console.debug("[Auth] Puter user:", user?.username, user?.uuid?.slice(0, 8));
+  } catch (e) {
+    console.error("[Auth] puter.auth.getUser() failed:", e);
+    throw new Error("Could not retrieve your account. Please try again.");
   }
-  if (!user?.uuid) throw new Error("Sign-in was cancelled.");
+
+  if (!user?.uuid) {
+    console.warn("[Auth] Puter user has no UUID — sign-in was cancelled or incomplete");
+    throw new Error("Sign-in was cancelled.");
+  }
+
   return loginWithPuter(user.uuid, user.username);
 }
 
