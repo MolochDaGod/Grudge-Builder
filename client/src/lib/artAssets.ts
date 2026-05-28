@@ -48,22 +48,24 @@ export const VIDEOS = {
   introLegacy: 'https://i.imgur.com/qpcjvpR.mp4',
 } as const;
 
-// ── Character portraits (existing, from create-character.tsx) ────────────────
+// ── Character portraits ──────────────────────────────────────────────────────
+// Local hero-codex portraits (no external CDN dependency).
+// Imgur fallbacks kept in comments for reference.
 
 export const RACE_PORTRAITS = {
-  elf:       'https://i.imgur.com/rWEKVAw.png',
-  human:     'https://i.imgur.com/qBSRLZG.png',
-  dwarf:     'https://i.imgur.com/6A4px2O.png',
-  orc:       'https://i.imgur.com/4PyTEN5.png',
-  barbarian: 'https://i.imgur.com/7WKJ8Bw.png',
-  undead:    'https://i.imgur.com/mPTojTj.png',
+  elf:       '/hero-codex/hero-portraits/elf_warrior.png',
+  human:     '/hero-codex/hero-portraits/human_warrior.png',
+  dwarf:     '/hero-codex/hero-portraits/dwarf_warrior.png',
+  orc:       '/hero-codex/hero-portraits/orc_warrior.png',
+  barbarian: '/hero-codex/hero-portraits/barbarian_warrior.png',
+  undead:    '/hero-codex/hero-portraits/undead_warrior.png',
 } as const;
 
 export const CLASS_HERO_IMAGES = {
-  mage:    'https://i.imgur.com/vKQR4UT.png',
-  warrior: 'https://i.imgur.com/Wj2mUH2.png',
-  ranger:  'https://i.imgur.com/5A6e5kL.png',
-  worg:    'https://i.imgur.com/BrQH0Bx.png',
+  mage:    '/hero-codex/hero-portraits/human_mage.png',
+  warrior: '/hero-codex/hero-portraits/human_warrior.png',
+  ranger:  '/hero-codex/hero-portraits/elf_ranger.png',
+  worg:    '/hero-codex/hero-portraits/orc_worg.png',
 } as const;
 
 // ── Game card background images ──────────────────────────────────────────────
@@ -107,13 +109,13 @@ export const FACTION_EMBLEMS: Record<string, string> = {
   legion:  '/assets/factions/legion-emblem.png',
 } as const;
 
-// ── Class stage backgrounds (cycling hero-art from RTS-Grudge) ───────────────
+// ── Class stage backgrounds (cycling hero-art) ──────────────────────────────
 
 export const CLASS_STAGE_BACKGROUNDS: Record<string, string> = {
-  mage:    'https://i.imgur.com/vKQR4UT.png',
-  warrior: 'https://i.imgur.com/Wj2mUH2.png',
-  ranger:  'https://i.imgur.com/5A6e5kL.png',
-  worge:   'https://i.imgur.com/BrQH0Bx.png',
+  mage:    '/hero-codex/hero-portraits/human_mage.png',
+  warrior: '/hero-codex/hero-portraits/human_warrior.png',
+  ranger:  '/hero-codex/hero-portraits/elf_ranger.png',
+  worge:   '/hero-codex/hero-portraits/orc_worg.png',
 } as const;
 
 export const CLASS_ACCENT_COLORS: Record<string, string> = {
@@ -137,22 +139,22 @@ export const CLASS_COLORS = {
 // ── Hero codex character portraits (local) ───────────────────────────────────
 
 export const HERO_PORTRAITS: Record<string, string> = {
-  barbarian_warrior: '/hero-codex/sprites/units/barbarian-warrior.png',
-  barbarian_mage:    '/hero-codex/sprites/units/barbarian-mage.png',
-  barbarian_ranger:  '/hero-codex/sprites/units/barbarian-archer.png',
-  dwarf_warrior:     '/hero-codex/sprites/units/dwarf-warrior.png',
-  dwarf_mage:        '/hero-codex/sprites/units/dwarf-mage.png',
-  dwarf_ranger:      '/hero-codex/sprites/units/dwarf-archer.png',
-  elf_warrior:       '/hero-codex/sprites/units/elf-warrior.png',
-  elf_mage:          '/hero-codex/sprites/units/elf-mage.png',
-  elf_ranger:        '/hero-codex/sprites/units/elf-archer.png',
-  human_warrior:     '/hero-codex/sprites/units/human-warrior.png',
-  human_mage:        '/hero-codex/sprites/units/human-mage.png',
-  human_ranger:      '/hero-codex/sprites/units/human-archer.png',
-  orc_warrior:       '/hero-codex/sprites/units/orc-warrior.png',
-  orc_mage:          '/hero-codex/sprites/units/orc-mage.png',
-  orc_ranger:        '/hero-codex/sprites/units/orc-archer.png',
-  undead_warrior:    '/hero-codex/sprites/units/undead-warrior.png',
-  undead_mage:       '/hero-codex/sprites/units/undead-mage.png',
-  undead_ranger:     '/hero-codex/sprites/units/undead-archer.png',
+  barbarian_warrior: '/hero-codex/sprites/entities/units/barbarian/barbarian_warrior.png',
+  barbarian_mage:    '/hero-codex/sprites/entities/units/barbarian/barbarian_mage.png',
+  barbarian_ranger:  '/hero-codex/sprites/entities/units/barbarian/barbarian_archer.png',
+  dwarf_warrior:     '/hero-codex/sprites/entities/units/dwarf/dwarf_warrior.png',
+  dwarf_mage:        '/hero-codex/sprites/entities/units/dwarf/dwarf_mage.png',
+  dwarf_ranger:      '/hero-codex/sprites/entities/units/dwarf/dwarf_archer.png',
+  elf_warrior:       '/hero-codex/sprites/entities/units/elf/elf_warrior.png',
+  elf_mage:          '/hero-codex/sprites/entities/units/elf/elf_mage.png',
+  elf_ranger:        '/hero-codex/sprites/entities/units/elf/elf_archer.png',
+  human_warrior:     '/hero-codex/sprites/entities/units/human/human_warrior.png',
+  human_mage:        '/hero-codex/sprites/entities/units/human/human_mage.png',
+  human_ranger:      '/hero-codex/sprites/entities/units/human/human_archer.png',
+  orc_warrior:       '/hero-codex/sprites/entities/units/orc/orc_warrior.png',
+  orc_mage:          '/hero-codex/sprites/entities/units/orc/orc_mage.png',
+  orc_ranger:        '/hero-codex/sprites/entities/units/orc/orc_archer.png',
+  undead_warrior:    '/hero-codex/sprites/entities/units/undead/undead_warrior.png',
+  undead_mage:       '/hero-codex/sprites/entities/units/undead/undead_mage.png',
+  undead_ranger:     '/hero-codex/sprites/entities/units/undead/undead_archer.png',
 } as const;
