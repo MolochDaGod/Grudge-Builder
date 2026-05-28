@@ -347,10 +347,10 @@ export default function IslandPage() {
       setHeroPositions(pos);
       
       // Generate map if needed
-      if (isPuterAvailable() && !updatedState.mapImageUrl) {
-        generateIslandMapImage(updatedState.mapStyle, userId);
-      } else if (updatedState.mapImageUrl) {
+      if (updatedState.mapImageUrl) {
         setMapImageUrl(updatedState.mapImageUrl);
+      } else {
+        generateIslandMapImage(updatedState.mapStyle, userId);
       }
       
       addLog(`Welcome to ${islandName}! Your heroes have established camp.`);
@@ -631,7 +631,6 @@ export default function IslandPage() {
       if (state.mapImageUrl) {
         setMapImageUrl(state.mapImageUrl);
       } else {
-        // Aggressively generate map — try Puter AI first, then server-side fallback
         generateIslandMapImage(state.mapStyle, state.id || userId);
       }
     };
@@ -753,10 +752,10 @@ export default function IslandPage() {
         });
         setHeroPositions(pos);
         
-        if (isPuterAvailable() && !state.mapImageUrl) {
-          generateIslandMapImage(state.mapStyle, userId);
-        } else if (state.mapImageUrl) {
+        if (state.mapImageUrl) {
           setMapImageUrl(state.mapImageUrl);
+        } else {
+          generateIslandMapImage(state.mapStyle, userId);
         }
       };
       loadIslandAfterCutscene();
