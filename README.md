@@ -277,6 +277,14 @@ const url = getGameUrl("rts-grudge", "/character");
 - **Assets**: ObjectStore (Cloudflare Pages for JSON, Cloudflare R2 for binary assets)
 - **Infrastructure**: Cloudflare (Workers, D1, R2, DNS), Vercel (frontend), Railway (game servers only)
 
+## Testing
+
+- Run the client suite with `npm run test:client`
+- Auth/session regression coverage lives in:
+  - `client/src/test/login-modal.test.tsx`
+  - `client/src/test/session-persistence.test.ts`
+  - `client/src/test/auth-context.test.tsx`
+
 ## Deploy
 
 **Frontend** — Push to `main` → Vercel auto-deploys:
