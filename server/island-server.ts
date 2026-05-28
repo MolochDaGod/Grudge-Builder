@@ -12,6 +12,7 @@ import { createServer } from "http";
 import { Server, type Socket } from "socket.io";
 import cors from "cors";
 import express from "express";
+import { GRUDGE_SOCKETIO_CORS } from "./cors";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -142,18 +143,7 @@ app.get("/status", (_req, res) => res.json(buildServerStatus()));
 const httpServer = createServer(app);
 
 const io = new Server(httpServer, {
-  cors: {
-    origin: [
-      "http://localhost:5000",
-      "http://localhost:4321",
-      "http://localhost:3000",
-      "https://grudgewarlords.com",
-      "https://client.grudge-studio.com",
-      /\.vercel\.app$/,
-    ],
-    methods: ["GET", "POST"],
-    credentials: true,
-  },
+  cors: GRUDGE_SOCKETIO_CORS,
   transports: ["websocket", "polling"],
   pingInterval: 5_000,
   pingTimeout: 10_000,

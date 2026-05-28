@@ -38,56 +38,15 @@ import path from "path";
 import cors from "cors";
 import { setupColyseus } from "./colyseus/index";
 import { registerBackendProxy } from "./proxy";
+import { GRUDGE_CORS_OPTIONS } from "./cors";
 
 console.log('[boot] All imports loaded successfully');
 
 const app = express();
 const httpServer = createServer(app);
 
-// ── CORS ─────────────────────────────────────────────────────────────────────
-const ALLOWED_ORIGINS = [
-  "https://grudgewarlords.com",
-  "https://www.grudgewarlords.com",
-  "https://grudge-studio.com",
-  "https://www.grudge-studio.com",
-  "https://client.grudge-studio.com",
-  "https://dash.grudge-studio.com",
-  "https://id.grudge-studio.com",
-  "https://ai.grudge-studio.com",
-  "https://objectstore.grudge-studio.com",
-  // Cloudflare Pages (ObjectStore)
-  /\.pages\.dev$/,
-  // Vercel previews
-  /\.vercel\.app$/,
-  // Railway previews
-  /\.up\.railway\.app$/,
-];
-
-app.use(
-  cors({
-    origin: (origin, cb) => {
-      // Allow server-to-server (no origin) and localhost in dev
-      if (
-        !origin ||
-        origin.startsWith("http://localhost") ||
-        ALLOWED_ORIGINS.some((o) =>
-          typeof o === "string" ? o === origin : o.test(origin),
-        )
-      ) {
-        return cb(null, true);
-      }
-      cb(new Error("Not allowed by CORS"));
-    },
-    credentials: true,
-    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allowedHeaders: [
-      "Content-Type",
-      "Authorization",
-      "X-Session-Token",
-      "X-Admin-Mode",
-    ],
-  }),
-);
+// ── CORS (shared config from server/cors.ts) ─────────────────────────────────
+app.use(cors(GRUDGE_CORS_OPTIONS));
 
 // ── Static assets ────────────────────────────────────────────────────────────
 app.use(express.static(path.resolve(__dirname, "..", "public")));

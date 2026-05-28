@@ -101,7 +101,11 @@ export const GRUDGE_SUBDOMAINS = [
   'dash.grudge-studio.com',
   'objectstore.grudge-studio.com',
   'ws.grudge-studio.com',
+  'pvp.grudge-studio.com',
   'client.grudge-studio.com',
+  'warlord3d.grudge-studio.com',
+  'wcs.grudge-studio.com',
+  'wow.grudge-studio.com',
   'engine.grudge-studio.com',
   'launcher.grudge-studio.com',
 ] as const;
