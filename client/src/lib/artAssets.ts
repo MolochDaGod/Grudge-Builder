@@ -1,69 +1,63 @@
 /**
  * Art Assets — CDN-hosted background images, logos, and videos.
  *
- * All assets are served from Imgur CDN. For R2 migration, replace these URLs
- * with assets.grudge-studio.com paths and update assetUrl() calls.
- *
- * Albums:
- *   https://imgur.com/a/D92MEoS — GRUDGE RTS logo
- *   https://imgur.com/a/E9EEjua — Dark fantasy art 2
- *   https://imgur.com/a/nzpLJGf — Dark fantasy art 3
- *   https://imgur.com/a/a4piu0x — Dark fantasy art 4
- *   https://imgur.com/a/LI7di76 — Dark fantasy art 5
- *   https://imgur.com/a/1p1ZaTO — Dark fantasy art 6
+ * All assets served from R2 CDN (assets.grudge-studio.com).
+ * Migrated from Imgur on 2026-05-28.
  */
+
+import { assetUrl } from './assetConfig';
 
 // ── Background images ────────────────────────────────────────────────────────
 
 export const BACKGROUNDS = {
   /** GRUDGE RTS logo — pixel knight with banner (transparent PNG) */
-  grudgeRtsLogo: 'https://i.imgur.com/pluH0k6.png',
+  grudgeRtsLogo: assetUrl('/backgrounds/grudge-rts-logo.png'),
 
   /** Dark fantasy landscape 1 — atmospheric scene */
-  darkFantasy1: 'https://i.imgur.com/7ZTde2Z.png',
+  darkFantasy1: assetUrl('/backgrounds/dark-fantasy-1.png'),
 
   /** Dark fantasy element 2 — small icon/element */
-  darkFantasy2: 'https://i.imgur.com/pE6c2nh.png',
+  darkFantasy2: assetUrl('/backgrounds/dark-fantasy-2.png'),
 
   /** Dark fantasy landscape 3 — environment art */
-  darkFantasy3: 'https://i.imgur.com/jOfNKpl.png',
+  darkFantasy3: assetUrl('/backgrounds/dark-fantasy-3.png'),
 
   /** Dark fantasy landscape 4 — environment art */
-  darkFantasy4: 'https://i.imgur.com/byUrl5f.png',
+  darkFantasy4: assetUrl('/backgrounds/dark-fantasy-4.png'),
 
   /** Dark fantasy landscape 5 — environment art */
-  darkFantasy5: 'https://i.imgur.com/ibZp0vj.png',
+  darkFantasy5: assetUrl('/backgrounds/dark-fantasy-5.png'),
 } as const;
 
 // ── Videos ───────────────────────────────────────────────────────────────────
 
 export const VIDEOS = {
   /** Intro/loading screen cinematic */
-  loading: 'https://i.imgur.com/wSesBRh.mp4',
+  loading: assetUrl('/videos/loading-cinematic.mp4'),
 
   /** Pirate King banner — loading transitions between game modes */
   pirateKingBanner: '/assets/videos/piratekingbanner.mp4',
 
   /** Legacy intro video (fallback) */
-  introLegacy: 'https://i.imgur.com/qpcjvpR.mp4',
+  introLegacy: assetUrl('/videos/intro-legacy.mp4'),
 } as const;
 
-// ── Character portraits (existing, from class-selector.html) ────────────────
+// ── Character portraits ──────────────────────────────────────────────────────
 
 export const RACE_PORTRAITS = {
-  elf:       'https://i.imgur.com/rWEKVAw.png',
-  human:     'https://i.imgur.com/qBSRLZG.png',
-  dwarf:     'https://i.imgur.com/6A4px2O.png',
-  orc:       'https://i.imgur.com/4PyTEN5.png',
-  barbarian: 'https://i.imgur.com/7WKJ8Bw.png',
-  undead:    'https://i.imgur.com/mPTojTj.png',
+  elf:       assetUrl('/races/elf-portrait.png'),
+  human:     assetUrl('/races/human-portrait.png'),
+  dwarf:     assetUrl('/races/dwarf-portrait.png'),
+  orc:       assetUrl('/races/orc-portrait.png'),
+  barbarian: assetUrl('/races/barbarian-portrait.png'),
+  undead:    assetUrl('/races/undead-portrait.png'),
 } as const;
 
 export const CLASS_HERO_IMAGES = {
-  mage:    'https://i.imgur.com/vKQR4UT.png',
-  warrior: 'https://i.imgur.com/Wj2mUH2.png',
-  ranger:  'https://i.imgur.com/5A6e5kL.png',
-  worg:    'https://i.imgur.com/BrQH0Bx.png',
+  mage:    assetUrl('/classes/mage-hero.png'),
+  warrior: assetUrl('/classes/warrior-hero.png'),
+  ranger:  assetUrl('/classes/ranger-hero.png'),
+  worg:    assetUrl('/classes/worg-hero.png'),
 } as const;
 
 // ── Game card background images ──────────────────────────────────────────────
@@ -110,10 +104,10 @@ export const FACTION_EMBLEMS: Record<string, string> = {
 // ── Class stage backgrounds (cycling hero-art from class-selector.html) ──────
 
 export const CLASS_STAGE_BACKGROUNDS: Record<string, string> = {
-  mage:    'https://i.imgur.com/vKQR4UT.png',
-  warrior: 'https://i.imgur.com/Wj2mUH2.png',
-  ranger:  'https://i.imgur.com/5A6e5kL.png',
-  worge:   'https://i.imgur.com/BrQH0Bx.png',
+  mage:    assetUrl('/classes/mage-hero.png'),
+  warrior: assetUrl('/classes/warrior-hero.png'),
+  ranger:  assetUrl('/classes/ranger-hero.png'),
+  worge:   assetUrl('/classes/worg-hero.png'),
 } as const;
 
 export const CLASS_ACCENT_COLORS: Record<string, string> = {
