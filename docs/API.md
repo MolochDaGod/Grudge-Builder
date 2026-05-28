@@ -9,8 +9,8 @@ All API endpoints are prefixed with `/api/`. In production, Vercel rewrites prox
 | `/api/auth/*` | `id.grudge-studio.com/auth/*` |
 | `/api/account/*` | `account.grudge-studio.com/*` |
 | `/api/game/*` | `api.grudge-studio.com/*` |
-| `/api/wallet/*` | `api.grudge-studio.com/api/wallet/*` |
-| `/api/nfts/*` | `api.grudge-studio.com/api/nfts/*` |
+| `/api/wallet/*` | `api.grudge-studio.com/wallet/*` |
+| `/api/nfts/*` | `api.grudge-studio.com/nfts/*` |
 | `/api/assets/*` | `assets.grudge-studio.com/*` |
 
 See `vercel.json` for the full rewrite map.

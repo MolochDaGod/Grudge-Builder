@@ -300,7 +300,7 @@ npm run deploy:pages      # push to gh-pages branch → GitHub Pages
 ```
 
 **Backend** — Cloudflare Workers:
-- **Railway** hosts the canonical Grudge Studio backend (`api.grudge-studio.com`, `id.grudge-studio.com`, `account.grudge-studio.com`). Managed in `grudge-backend` repo. Vercel rewrites in `vercel.json` proxy all `/api/*` calls to `grudge-api-production.up.railway.app`.
+- **Railway** hosts the canonical Grudge Studio backend (`api.grudge-studio.com`, `id.grudge-studio.com`, `account.grudge-studio.com`). Managed in `grudge-backend` repo. Vercel rewrites in `vercel.json` proxy frontend `/api/*` requests to the correct Cloudflare auth/account hosts and to the backend's prefix-less public routes.
 - This repo's Node server (`server/index.ts` — Express + Colyseus) can also deploy to Railway via `railway.json` for multiplayer rooms. `ws.grudge-studio.com` will front it when ready.
 
 Domain routing via Cloudflare.

@@ -1,5 +1,5 @@
 {
-  "alias": ["grudge-studio.com", "www.grudge-studio.com", "client.grudge-studio.com", "warlord3d.grudge-studio.com", "grudgewarlords.com", "www.grudgewarlords.com"],
+  "alias": ["client.grudge-studio.com", "warlord3d.grudge-studio.com", "grudgewarlords.com", "www.grudgewarlords.com"],
   "buildCommand": "npm run build:client",
   "outputDirectory": "client/dist",
   "devCommand": "npm run dev:client",
@@ -20,8 +20,108 @@
       "dest": "https://id.grudge-studio.com/auth/$1"
     },
     {
+      "src": "/api/login",
+      "dest": "https://id.grudge-studio.com/auth/login"
+    },
+    {
+      "src": "/api/register",
+      "dest": "https://id.grudge-studio.com/auth/register"
+    },
+    {
+      "src": "/api/guest",
+      "dest": "https://id.grudge-studio.com/auth/puter"
+    },
+    {
+      "src": "/api/oauth-google",
+      "dest": "https://id.grudge-studio.com/auth/google/start"
+    },
+    {
+      "src": "/api/oauth-github",
+      "dest": "https://id.grudge-studio.com/auth/github/start"
+    },
+    {
+      "src": "/api/discord-login",
+      "dest": "https://id.grudge-studio.com/auth/discord/start"
+    },
+    {
+      "src": "/api/account/(.*)",
+      "dest": "https://account.grudge-studio.com/$1"
+    },
+    {
+      "src": "/api/health",
+      "dest": "https://api.grudge-studio.com/health"
+    },
+    {
+      "src": "/api/characters",
+      "dest": "https://api.grudge-studio.com/characters"
+    },
+    {
+      "src": "/api/characters/(.*)",
+      "dest": "https://api.grudge-studio.com/characters/$1"
+    },
+    {
+      "src": "/api/islands/(.*)",
+      "dest": "https://api.grudge-studio.com/islands/$1"
+    },
+    {
+      "src": "/api/island/(.*)",
+      "dest": "https://api.grudge-studio.com/island/$1"
+    },
+    {
+      "src": "/api/wallet",
+      "dest": "https://api.grudge-studio.com/wallet"
+    },
+    {
+      "src": "/api/wallet/(.*)",
+      "dest": "https://api.grudge-studio.com/wallet/$1"
+    },
+    {
+      "src": "/api/nfts",
+      "dest": "https://api.grudge-studio.com/nfts"
+    },
+    {
+      "src": "/api/nfts/(.*)",
+      "dest": "https://api.grudge-studio.com/nfts/$1"
+    },
+    {
+      "src": "/api/island-nfts",
+      "dest": "https://api.grudge-studio.com/island-nfts"
+    },
+    {
+      "src": "/api/island-nfts/(.*)",
+      "dest": "https://api.grudge-studio.com/island-nfts/$1"
+    },
+    {
+      "src": "/api/professions/(.*)",
+      "dest": "https://api.grudge-studio.com/professions/$1"
+    },
+    {
+      "src": "/api/inventory/(.*)",
+      "dest": "https://api.grudge-studio.com/inventory/$1"
+    },
+    {
+      "src": "/api/party",
+      "dest": "https://api.grudge-studio.com/party"
+    },
+    {
+      "src": "/api/party/(.*)",
+      "dest": "https://api.grudge-studio.com/party/$1"
+    },
+    {
+      "src": "/api/tools/(.*)",
+      "dest": "https://api.grudge-studio.com/tools/$1"
+    },
+    {
+      "src": "/api/game/(.*)",
+      "dest": "https://api.grudge-studio.com/$1"
+    },
+    {
+      "src": "/api/public/(.*)",
+      "dest": "https://api.grudge-studio.com/public/$1"
+    },
+    {
       "src": "/api/(.*)",
-      "dest": "https://api.grudge-studio.com/api/$1"
+      "dest": "https://api.grudge-studio.com/$1"
     },
     {
       "src": "/assets/(.*)",
