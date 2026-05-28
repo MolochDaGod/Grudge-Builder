@@ -61,6 +61,7 @@ import { puterAI, isPuterAvailable, puterKV } from "@/lib/puterIntegration";
 import { Loader2, MapPin, Timer, Package, Users, Sparkles, RefreshCw, Home, Settings, Play, Pause, Eye, Hammer, Box, Grid2X2 } from "lucide-react";
 import { Island3DRenderer } from '@/island3d/render/Island3DRenderer';
 import { to2DNodeStates, type SharedIslandState } from '@/island3d/sync/IslandStateSync';
+import { captureIslandTopDown, clearTopDownCache } from '@/island3d/render/IslandTopDownCapture';
 import { 
   CameraState, 
   worldToScreen, 
@@ -762,49 +763,24 @@ export default function IslandPage() {
     }
   }, [accountHomeIsland, islandState, showCutscene, allCharacters]);
 
-  const generateIslandMapImage = async (style: IslandState['mapStyle'], seed: string) => {
+  const generateIslandMapImage = async (_style: IslandState['mapStyle'], seed: string) => {
     setIsGeneratingMap(true);
-    let url: string | null = null;
-
-    // 1. Try Puter AI (client-side, uses user's own Puter account)
-    if (isPuterAvailable()) {
-      try {
-        url = await puterAI.generateIslandMap(seed, style);
-      } catch (e) {
-        console.warn('Puter map gen failed, trying server:', e);
-      }
-    }
-
-    // 2. Fallback: server-side generation via /api/island/generate-map
-    if (!url) {
-      try {
-        const { authHeaders } = await import('@/lib/grudgeBackend');
-        const res = await fetch('/api/island/generate-map', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', ...authHeaders() },
-        });
-        if (res.ok) {
-          const data = await res.json();
-          url = data.mapImageUrl || data.imageUrl || null;
-        }
-      } catch (e) {
-        console.warn('Server map gen failed:', e);
-      }
-    }
-
-    if (url) {
+    try {
+      // Render a top-down orthographic capture from the 3D island engine
+      const url = await captureIslandTopDown(seed, 1024);
       setMapImageUrl(url);
       setIslandState(prev => {
         if (prev) {
-          const updated = { ...prev, mapImageUrl: url! };
+          const updated = { ...prev, mapImageUrl: url };
           saveIslandState(prev.id, updated);
           return updated;
         }
         return prev;
       });
-      addLog(`Generated unique ${style} island map!`);
-    } else {
-      addLog('Map generation unavailable — using terrain view.');
+      addLog('Island terrain rendered.');
+    } catch (e) {
+      console.warn('Top-down capture failed:', e);
+      addLog('Terrain render unavailable — using fallback view.');
     }
     setIsGeneratingMap(false);
   };
@@ -1254,23 +1230,17 @@ export default function IslandPage() {
     addLog("Island resources refreshed!");
   };
 
-  const cycleMapStyle = async () => {
+  const regenerateMap = async () => {
     if (!islandState || isGeneratingMap) return;
-    const currentIndex = MAP_STYLES.indexOf(islandState.mapStyle);
-    const nextStyle = MAP_STYLES[(currentIndex + 1) % MAP_STYLES.length];
-    
     setMapImageUrl(null);
-    
+    clearTopDownCache(islandState.id);
     setIslandState(prev => {
       if (!prev) return prev;
-      const updated = { ...prev, mapStyle: nextStyle, mapImageUrl: undefined };
+      const updated = { ...prev, mapImageUrl: undefined };
       saveIslandState(prev.id, updated);
       return updated;
     });
-    
-    if (isPuterAvailable()) {
-      await generateIslandMapImage(nextStyle, islandState.id);
-    }
+    await generateIslandMapImage(islandState.mapStyle, islandState.id);
   };
 
   const [, setTick] = useState(0);
@@ -2179,18 +2149,17 @@ export default function IslandPage() {
             </div>
           </div>
 
-          <div className="absolute top-4 left-28 bg-slate-900/90 text-slate-300 px-2 py-1 rounded text-[10px] z-20 border border-slate-700 flex items-center gap-2">
-            <span>WASD/Drag: Pan | Scroll: Zoom</span>
-            <span className="text-slate-500">|</span>
+          <div className="absolute top-4 left-28 bg-black/70 backdrop-blur-sm text-slate-300 px-3 py-1.5 rounded-lg text-[10px] z-20 border border-white/10 flex items-center gap-2">
             <Button 
               size="sm" 
               variant="ghost" 
-              onClick={cycleMapStyle}
+              onClick={regenerateMap}
               disabled={isGeneratingMap}
               className="text-xs h-5 px-2 text-amber-400 hover:text-amber-300"
-              data-testid="cycle-map-style-button"
+              data-testid="regenerate-map-button"
+              title="Re-render terrain"
             >
-              {isGeneratingMap ? <Loader2 className="w-3 h-3 animate-spin" /> : "Style"}
+              {isGeneratingMap ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
             </Button>
             <Button 
               size="sm" 
@@ -2198,13 +2167,11 @@ export default function IslandPage() {
               onClick={refreshNodes} 
               className="text-xs h-5 px-2 text-amber-400 hover:text-amber-300"
               data-testid="refresh-nodes-button"
+              title="Refresh resource nodes"
             >
-              <RefreshCw className="w-3 h-3" />
+              <MapPin className="w-3 h-3" />
             </Button>
-            <Badge variant="outline" className="text-[9px] capitalize">
-              {islandState?.mapStyle || 'fantasy'}
-            </Badge>
-            <span className="text-slate-500">|</span>
+            <span className="text-white/20">|</span>
             <Button
               size="sm"
               variant="ghost"

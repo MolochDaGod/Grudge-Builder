@@ -555,6 +555,76 @@ export class Island3DEngine {
     this.controls.enabled = !enabled;
   }
 
+  /**
+   * Capture a top-down orthographic render of the island.
+   * Returns a data URL (PNG) showing terrain + water + decorations only.
+   * No buildings, no character — pure landscape.
+   */
+  captureTopDown(resolution = 1024): string {
+    const halfSize = 520; // slightly larger than terrain (1024/2) to show water edge
+    const ortho = new THREE.OrthographicCamera(
+      -halfSize, halfSize, halfSize, -halfSize, 1, 500,
+    );
+    ortho.position.set(0, 300, 0);
+    ortho.lookAt(0, 0, 0);
+    ortho.updateProjectionMatrix();
+
+    // Hide character + building ghosts for a clean capture
+    const hiddenObjects: THREE.Object3D[] = [];
+    if (this.character) {
+      const charModel = (this.character as any).model;
+      if (charModel && charModel.visible) {
+        charModel.visible = false;
+        hiddenObjects.push(charModel);
+      }
+    }
+    if (this.building) {
+      const ghost = (this.building as any).ghostMesh;
+      if (ghost && ghost.visible) {
+        ghost.visible = false;
+        hiddenObjects.push(ghost);
+      }
+    }
+
+    // Render to offscreen target
+    const rt = new THREE.WebGLRenderTarget(resolution, resolution, {
+      minFilter: THREE.LinearFilter,
+      magFilter: THREE.LinearFilter,
+      format: THREE.RGBAFormat,
+    });
+
+    const prevTarget = this.renderer.getRenderTarget();
+    this.renderer.setRenderTarget(rt);
+    this.renderer.render(this.scene, ortho);
+    this.renderer.setRenderTarget(prevTarget);
+
+    // Read pixels into canvas
+    const pixels = new Uint8Array(resolution * resolution * 4);
+    this.renderer.readRenderTargetPixels(rt, 0, 0, resolution, resolution, pixels);
+
+    const canvas = document.createElement('canvas');
+    canvas.width = resolution;
+    canvas.height = resolution;
+    const ctx = canvas.getContext('2d')!;
+    const imageData = ctx.createImageData(resolution, resolution);
+
+    // WebGL reads bottom-up, flip vertically
+    for (let y = 0; y < resolution; y++) {
+      const srcRow = (resolution - 1 - y) * resolution * 4;
+      const dstRow = y * resolution * 4;
+      for (let x = 0; x < resolution * 4; x++) {
+        imageData.data[dstRow + x] = pixels[srcRow + x];
+      }
+    }
+    ctx.putImageData(imageData, 0, 0);
+
+    // Cleanup
+    rt.dispose();
+    for (const obj of hiddenObjects) obj.visible = true;
+
+    return canvas.toDataURL('image/png');
+  }
+
   destroy(): void {
     this.stop();
     this.character?.destroy();
