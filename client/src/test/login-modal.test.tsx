@@ -227,15 +227,22 @@ describe("LoginModal", () => {
   });
 
   describe("Discord", () => {
+    let mockLocation: { href: string };
+
+    beforeEach(() => {
+      mockLocation = { href: "" };
+      vi.spyOn(window, "location", "get").mockReturnValue(
+        mockLocation as unknown as Location,
+      );
+    });
+
+    afterEach(() => {
+      vi.restoreAllMocks();
+    });
+
     it("redirects to Discord OAuth URL on click", async () => {
       const discordUrl = "https://discord.com/api/oauth2/authorize?client_id=123";
       mockStartDiscordLogin.mockResolvedValue(discordUrl);
-
-      // Mock window.location.href assignment so we can assert on it
-      const mockLocation = { href: "" };
-      const hrefSpy = vi.spyOn(window, "location", "get").mockReturnValue(
-        mockLocation as unknown as Location
-      );
 
       const user = userEvent.setup();
       renderOpenModal();
@@ -248,8 +255,6 @@ describe("LoginModal", () => {
         expect(mockStartDiscordLogin).toHaveBeenCalledOnce();
         expect(mockLocation.href).toBe(discordUrl);
       });
-
-      hrefSpy.mockRestore();
     });
   });
 

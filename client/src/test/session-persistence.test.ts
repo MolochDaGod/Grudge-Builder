@@ -8,7 +8,7 @@
  *   - verifyToken() JWT expiry detection
  *   - logout() complete cleanup
  */
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
 // We must import dynamically because grudgeBackend.ts has a top-level IIFE
 // (pickupSsoToken) and auto-starts a token monitor. We isolate each import.
@@ -17,6 +17,15 @@ async function loadModule() {
   vi.resetModules();
   return import("@/lib/grudgeBackend");
 }
+
+// grudgeBackend auto-starts a setInterval on import; use fake timers so
+// repeated loadModule() calls don't accumulate live handles.
+beforeEach(() => {
+  vi.useFakeTimers();
+});
+afterEach(() => {
+  vi.useRealTimers();
+});
 
 describe("Token helpers", () => {
   beforeEach(() => {
@@ -50,6 +59,7 @@ describe("Token helpers", () => {
 
     expect(localStorage.getItem("grudge_auth_token")).toBeNull();
     expect(localStorage.getItem("grudge_session_token")).toBeNull();
+    expect(document.cookie).not.toContain("grudge_auth_token=");
   });
 
   it("isAuthenticated returns true iff a token exists", async () => {
@@ -240,6 +250,8 @@ describe("logout", () => {
     expect(localStorage.getItem("grudge_id")).toBeNull();
     expect(localStorage.getItem("grudge_username")).toBeNull();
     expect(localStorage.getItem("grudge_account_id")).toBeNull();
+    expect(document.cookie).not.toContain("grudge_auth_token=");
+    expect(document.cookie).not.toContain("grudge_id=");
   });
 });
 
