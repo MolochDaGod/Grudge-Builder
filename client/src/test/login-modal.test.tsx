@@ -22,7 +22,8 @@ const mockLoginWithCredentials = vi.fn();
 const mockRegisterAccount = vi.fn();
 const mockLoginWithPuterSDK = vi.fn();
 const mockConnectBrowserWallet = vi.fn();
-const mockGetAvailableWallets = vi.fn(() => [] as string[]);
+const mockConnectPhantomEmbedded = vi.fn();
+const mockGetAvailableWallets = vi.fn(() => ['phantom'] as string[]);
 const mockStartDiscordLogin = vi.fn();
 const mockLoginAsGuest = vi.fn();
 
@@ -38,6 +39,8 @@ vi.mock("@/lib/grudgeBackend", () => ({
   loginWithPuterSDK: (...args: unknown[]) => mockLoginWithPuterSDK(...args),
   connectBrowserWallet: (...args: unknown[]) =>
     mockConnectBrowserWallet(...args),
+  connectPhantomEmbedded: (...args: unknown[]) =>
+    mockConnectPhantomEmbedded(...args),
   getAvailableWallets: () => mockGetAvailableWallets(),
   startDiscordLogin: (...args: unknown[]) => mockStartDiscordLogin(...args),
   loginAsGuest: (...args: unknown[]) => mockLoginAsGuest(...args),
@@ -94,7 +97,7 @@ describe("LoginModal", () => {
     mockBackend.getCurrentUser.mockReturnValue(null);
     mockBackend.getSession.mockReturnValue(null);
     mockBackend.verifyToken.mockResolvedValue({ valid: false });
-    mockGetAvailableWallets.mockReturnValue([]);
+    mockGetAvailableWallets.mockReturnValue(['phantom']);
   });
 
   describe("Modal visibility", () => {
@@ -120,16 +123,16 @@ describe("LoginModal", () => {
       expect(
         screen.getByText("Sign in to save your progress across devices"),
       ).toBeInTheDocument();
-      expect(screen.getByText("Continue with Google")).toBeInTheDocument();
+      expect(screen.getByText("Grudge Login")).toBeInTheDocument();
+      expect(screen.getByText("Continue with Phantom")).toBeInTheDocument();
       expect(screen.getByText("Continue with Discord")).toBeInTheDocument();
       expect(screen.getByText("Sign in with Username")).toBeInTheDocument();
       expect(screen.getByText("Continue as Guest")).toBeInTheDocument();
     });
   });
 
-  describe("Wallet buttons", () => {
-    it("shows Phantom button when wallet is detected", async () => {
-      mockGetAvailableWallets.mockReturnValue(["phantom"]);
+  describe("Phantom Embedded SDK", () => {
+    it("always shows Phantom button (embedded SDK, no extension needed)", async () => {
       const user = userEvent.setup();
       renderOpenModal();
       await act(async () => {});
@@ -138,22 +141,8 @@ describe("LoginModal", () => {
       expect(screen.getByText("Continue with Phantom")).toBeInTheDocument();
     });
 
-    it("hides wallet buttons when no wallets detected", async () => {
-      mockGetAvailableWallets.mockReturnValue([]);
-      const user = userEvent.setup();
-      renderOpenModal();
-      await act(async () => {});
-      await openModal(user);
-
-      expect(
-        screen.queryByText("Continue with Phantom"),
-      ).not.toBeInTheDocument();
-    });
-
-    it("calls connectBrowserWallet('phantom') on Phantom click", async () => {
-      mockGetAvailableWallets.mockReturnValue(["phantom"]);
-      mockConnectBrowserWallet.mockResolvedValue(fakeAuthResponse);
-      // After success, refreshAuth will check
+    it("calls connectPhantomEmbedded on Phantom click", async () => {
+      mockConnectPhantomEmbedded.mockResolvedValue(fakeAuthResponse);
       mockBackend.verifyToken.mockResolvedValue({ valid: true });
       mockBackend.getCurrentUser.mockReturnValue({
         grudgeId: "GRUDGE_TEST",
@@ -168,14 +157,13 @@ describe("LoginModal", () => {
       await user.click(screen.getByText("Continue with Phantom"));
 
       await waitFor(() => {
-        expect(mockConnectBrowserWallet).toHaveBeenCalledWith("phantom");
+        expect(mockConnectPhantomEmbedded).toHaveBeenCalledOnce();
       });
     });
 
-    it("shows error when Phantom is not installed", async () => {
-      mockGetAvailableWallets.mockReturnValue(["phantom"]);
-      mockConnectBrowserWallet.mockRejectedValue(
-        new Error("Phantom wallet not installed. Get it at phantom.app"),
+    it("shows error when Phantom SDK fails", async () => {
+      mockConnectPhantomEmbedded.mockRejectedValue(
+        new Error("No Solana address returned from Phantom. Please try again."),
       );
 
       const user = userEvent.setup();
@@ -186,13 +174,13 @@ describe("LoginModal", () => {
       await user.click(screen.getByText("Continue with Phantom"));
 
       await waitFor(() => {
-        expect(screen.getByText(/Phantom wallet not installed/)).toBeInTheDocument();
+        expect(screen.getByText(/No Solana address/)).toBeInTheDocument();
       });
     });
   });
 
-  describe("Puter / Google", () => {
-    it("calls loginWithPuterSDK on Google button click", async () => {
+  describe("Grudge Login (Puter SDK)", () => {
+    it("calls loginWithPuterSDK on Grudge Login button click", async () => {
       mockLoginWithPuterSDK.mockResolvedValue(fakeAuthResponse);
       mockBackend.verifyToken.mockResolvedValue({ valid: true });
 
@@ -201,7 +189,7 @@ describe("LoginModal", () => {
       await act(async () => {});
       await openModal(user);
 
-      await user.click(screen.getByText("Continue with Google"));
+      await user.click(screen.getByText("Grudge Login"));
 
       await waitFor(() => {
         expect(mockLoginWithPuterSDK).toHaveBeenCalledOnce();
@@ -218,7 +206,7 @@ describe("LoginModal", () => {
       await act(async () => {});
       await openModal(user);
 
-      await user.click(screen.getByText("Continue with Google"));
+      await user.click(screen.getByText("Grudge Login"));
 
       await waitFor(() => {
         expect(screen.getByText("Puter SDK not loaded")).toBeInTheDocument();
@@ -392,7 +380,7 @@ describe("LoginModal", () => {
       expect(screen.getByPlaceholderText("Username")).toBeInTheDocument();
 
       await user.click(screen.getByText("← Back"));
-      expect(screen.getByText("Continue with Google")).toBeInTheDocument();
+      expect(screen.getByText("Grudge Login")).toBeInTheDocument();
     });
   });
 

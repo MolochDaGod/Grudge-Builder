@@ -126,6 +126,17 @@ export const GRUDGE_SUBDOMAINS = [
 export const DISCORD_CLIENT_ID: string =
   env.VITE_DISCORD_CLIENT_ID || '1471046591220678677';
 
+/**
+ * Discord redirect URI.
+ *
+ * The backend callback at id.grudge-studio.com exchanges the code for a JWT
+ * and redirects back to the `state` param with ?sso_token=...
+ *
+ * Registered redirects in Discord Developer Portal:
+ *   - https://grudgewarlords.com/auth/callback
+ *   - https://grudge-studio.com
+ *   - https://id.grudge-studio.com/*
+ */
 export const DISCORD_REDIRECT_URI: string =
   env.VITE_DISCORD_REDIRECT_URI || 'https://id.grudge-studio.com/auth/discord/callback';
 

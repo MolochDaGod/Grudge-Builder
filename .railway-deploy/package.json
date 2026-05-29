@@ -1,0 +1,19 @@
+{
+  "name": "grudge-api",
+  "version": "1.0.0",
+  "scripts": { "start": "node index.cjs" },
+  "dependencies": {
+    "colyseus": "0.16.5",
+    "@colyseus/ws-transport": "0.16.5",
+    "@colyseus/playground": "0.16.4",
+    "@colyseus/monitor": "0.16.7",
+    "@colyseus/schema": "3.0.76",
+    "@google-cloud/storage": "7.18.0",
+    "googleapis": "148.0.0",
+    "openai": "6.15.0",
+    "ase-parser": "0.0.18",
+    "iconv-lite": "0.6.3",
+    "p-limit": "7.2.0",
+    "pngjs": "7.0.0"
+  }
+}

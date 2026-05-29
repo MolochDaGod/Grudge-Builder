@@ -30,14 +30,17 @@ const THREE_GLOBAL_PACKAGES = [
 // engine.io-client packaging bug: the ESM build imports './globals.node.js'
 // (a Node.js-specific file) but the browser version 'globals.js' was never
 // published. Intercept the relative import at resolve time.
-// three/webgpu doesn't exist in v0.160 — a transitive dep imports it.
-// Must intercept at resolve time (before commonjs plugin) to avoid crash.
+// three/webgpu doesn't exist in v0.160 — a transitive dep imports WebGPURenderer.
+// Redirect to a stub that exports a dummy class + re-exports all of 'three'.
+const THREE_WEBGPU_STUB = path.resolve(
+  import.meta.dirname, "client/src/lib/three-webgpu-stub.js"
+);
 const threeWebgpuShim: Plugin = {
   name: "three-webgpu-shim",
   enforce: "pre",
   resolveId(id: string) {
     if (id === "three/webgpu" || id === "three/tsl") {
-      return { id: "three", external: false };
+      return { id: THREE_WEBGPU_STUB, external: false };
     }
     return null;
   },
@@ -99,8 +102,9 @@ export default defineConfig({
       "@shared": path.resolve(import.meta.dirname, "shared"),
       "@assets": path.resolve(import.meta.dirname, "attached_assets"),
       // three/webgpu was added in r167+; our pinned v0.160 doesn't have it.
-      // Alias to the main three entry so deps importing it don't crash the build.
-      "three/webgpu": "three",
+      // Alias to stub module that exports dummy WebGPURenderer + re-exports three.
+      "three/webgpu": path.resolve(import.meta.dirname, "client/src/lib/three-webgpu-stub.js"),
+      "three/tsl": path.resolve(import.meta.dirname, "client/src/lib/three-webgpu-stub.js"),
     },
     extensions: ['.mjs', '.js', '.mts', '.ts', '.jsx', '.tsx', '.json']
   },
@@ -128,8 +132,10 @@ export default defineConfig({
           name: "rollup-three-webgpu-shim",
           resolveId(id: string) {
             if (id === "three/webgpu" || id === "three/tsl") {
-              // Redirect to main three entry — webgpu export doesn't exist in v0.160
-              return { id: "three", external: false };
+              return {
+                id: path.resolve(import.meta.dirname, "client/src/lib/three-webgpu-stub.js"),
+                external: false,
+              };
             }
             return null;
           },

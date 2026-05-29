@@ -17,10 +17,14 @@ interface Island3DRendererProps {
   className?: string;
   /** Pass multiplayer config to enable Socket.IO sync */
   multiplayer?: MultiplayerConfig;
-  /** 'procedural' (default) or 'lobby' to load a pre-built GLTF map */
+  /** 'procedural' (default), 'lobby', or 'zone' */
   mode?: Island3DMode;
   /** Lobby map ID (e.g. 'pirate-islands'). Only used when mode='lobby'. */
   lobbyMapId?: string;
+  /** Sector ID from WORLD_SECTORS. Only used when mode='zone'. */
+  sectorId?: string;
+  /** World seed shared across zone instances. Only used when mode='zone'. */
+  worldSeed?: string;
   /** Post-processing quality (default 'medium') */
   quality?: QualityPreset;
   /** Day/night cycle config (omit to disable) */
@@ -33,6 +37,7 @@ interface Island3DRendererProps {
 
 export function Island3DRenderer({
   seed, className = '', multiplayer, mode = 'procedural', lobbyMapId,
+  sectorId, worldSeed,
   quality = 'medium', dayNight, enableCharacter, onEngineReady,
 }: Island3DRendererProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -70,6 +75,8 @@ export function Island3DRenderer({
       multiplayer,
       mode,
       lobbyMapId,
+      sectorId,
+      worldSeed,
       quality,
       dayNight,
       enableCharacter,
@@ -94,7 +101,7 @@ export function Island3DRenderer({
       engine.destroy();
       engineRef.current = null;
     };
-  }, [seed, multiplayer, mode, lobbyMapId]);
+  }, [seed, multiplayer, mode, lobbyMapId, sectorId, worldSeed]);
 
   // Day phase polling (lightweight — once per second)
   useEffect(() => {
@@ -173,7 +180,7 @@ export function Island3DRenderer({
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-400 mx-auto mb-4" />
             <p className="text-emerald-400 font-medium">
-              {mode === 'lobby' ? 'Loading lobby map...' : 'Generating island terrain...'}
+              {mode === 'lobby' ? 'Loading lobby map...' : mode === 'zone' ? 'Loading zone...' : 'Generating island terrain...'}
             </p>
             {mode === 'lobby' && loadProgress > 0 && (
               <div className="w-48 h-2 bg-gray-700 rounded-full mt-3 mx-auto overflow-hidden">
@@ -202,9 +209,9 @@ export function Island3DRenderer({
           {/* Top-left info panel */}
           <div className="absolute top-4 left-4 z-10 bg-black/60 text-white text-xs px-3 py-2 rounded space-y-1">
             <p className="font-bold text-emerald-400">
-              {mode === 'lobby' ? `🏕️ Lobby — ${lobbyMapId || 'pirate-islands'}` : `3D Island — ${seed}`}
+              {mode === 'zone' ? `🌊 Zone — ${sectorId || 'unknown'}` : mode === 'lobby' ? `🏕️ Lobby — ${lobbyMapId || 'pirate-islands'}` : `3D Island — ${seed}`}
             </p>
-            {mode === 'procedural' && (
+            {(mode === 'procedural' || mode === 'zone') && (
               <>
                 <p className="text-gray-300">{stateLabel[movementState] || movementState}</p>
                 <p className="text-gray-400">WASD move · Space jump · Tab combat/harvest</p>

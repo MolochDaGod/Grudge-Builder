@@ -417,7 +417,51 @@ export async function verifyPhoneCode(
   return handleAuthResponse(res, "phone");
 }
 
-// ── Direct browser wallet connect (Phantom / Solflare) ───────────────
+// ── Phantom Embedded SDK ──────────────────────────────────────────────
+
+import { BrowserSDK, AddressType } from '@phantom/browser-sdk';
+
+/** Phantom Portal app ID — registered for grudge-studio.com + grudgewarlords.com */
+const PHANTOM_APP_ID = '656b4ef2-7acc-44fe-bec7-4b288cfdd2e9';
+
+let _phantomSdk: InstanceType<typeof BrowserSDK> | null = null;
+
+/** Get or create the Phantom embedded SDK singleton */
+function getPhantomSDK(): InstanceType<typeof BrowserSDK> {
+  if (!_phantomSdk) {
+    _phantomSdk = new BrowserSDK({
+      providerType: 'embedded',
+      addressTypes: [AddressType.solana],
+      appId: PHANTOM_APP_ID,
+      authOptions: {
+        authUrl: 'https://connect.phantom.app/login',
+        redirectUrl: window.location.origin,
+      },
+    });
+  }
+  return _phantomSdk;
+}
+
+/**
+ * Connect via Phantom Embedded SDK → authenticate with Grudge backend.
+ * Works without the browser extension installed — Phantom provides
+ * an embedded wallet via their SDK.
+ */
+export async function connectPhantomEmbedded(): Promise<AuthResponse> {
+  const sdk = getPhantomSDK();
+  const { addresses } = await sdk.connect();
+  const solAddress = addresses?.find((a: any) => a.type === 'solana');
+  if (!solAddress) {
+    throw new Error('No Solana address returned from Phantom. Please try again.');
+  }
+  const address = typeof solAddress === 'string' ? solAddress : (solAddress as any).address || (solAddress as any).publicKey;
+  if (!address) {
+    throw new Error('Could not read Solana address from Phantom response.');
+  }
+  return loginWithWallet(address);
+}
+
+// ── Direct browser wallet connect (Solflare extension) ───────────────
 
 interface SolanaProvider {
   isPhantom?: boolean;
@@ -426,12 +470,13 @@ interface SolanaProvider {
   publicKey?: { toBase58(): string } | null;
 }
 
-/** Detect available Solana browser wallets */
+/** Detect available Solana browser wallets (extension-based) */
 export function getAvailableWallets(): string[] {
   const wallets: string[] = [];
   if (typeof window === "undefined") return wallets;
-  if ((window as any).solana?.isPhantom) wallets.push("phantom");
-  if ((window as any).solflare?.isSolflare) wallets.push("solflare");
+  // Phantom is always available via embedded SDK — no extension needed
+  wallets.push('phantom');
+  if ((window as any).solflare?.isSolflare) wallets.push('solflare');
   return wallets;
 }
 
@@ -439,16 +484,15 @@ export function getAvailableWallets(): string[] {
 export async function connectBrowserWallet(
   walletName: "phantom" | "solflare" = "phantom",
 ): Promise<AuthResponse> {
-  let provider: SolanaProvider | null = null;
-  if (walletName === "phantom") provider = (window as any).solana;
-  else if (walletName === "solflare") provider = (window as any).solflare;
+  // Phantom uses embedded SDK (no extension required)
+  if (walletName === 'phantom') {
+    return connectPhantomEmbedded();
+  }
 
+  // Solflare still uses browser extension
+  const provider: SolanaProvider | null = (window as any).solflare;
   if (!provider) {
-    throw new Error(
-      walletName === "phantom"
-        ? "Phantom wallet not installed. Get it at phantom.app"
-        : "Solflare wallet not installed. Get it at solflare.com",
-    );
+    throw new Error('Solflare wallet not installed. Get it at solflare.com');
   }
 
   const resp = await provider.connect();

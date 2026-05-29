@@ -1,4 +1,5 @@
 import { v4 as uuidv4 } from 'uuid';
+import { getSectorAt, getSectorTileColor, type WorldSector } from '@shared/definitions/worldMapSectors';
 
 export interface WorldMapConfig {
   width: number;
@@ -472,6 +473,10 @@ export function updateCannonballs(state: WorldMapState, deltaTime: number): Worl
 }
 
 export function getTileColor(tile: WorldMapTile, discovered: boolean): string {
+  // Check for sector-specific coloring first
+  const sectorColor = getSectorTileColor(tile.type, tile.elevation, tile.x, tile.y, discovered);
+  if (sectorColor) return sectorColor;
+
   if (!discovered) return '#1a1a2e';
   
   switch (tile.type) {
@@ -490,6 +495,11 @@ export function getTileColor(tile: WorldMapTile, discovered: boolean): string {
     default:
       return '#1e3a5f';
   }
+}
+
+/** Get the sector a tile belongs to (for UI display) */
+export function getTileSector(x: number, y: number): WorldSector | null {
+  return getSectorAt(x, y);
 }
 
 export const WORLD_MAP_DEFAULTS: WorldMapConfig = {

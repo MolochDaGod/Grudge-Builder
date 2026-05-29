@@ -9,6 +9,7 @@ import type { Island3DMode } from '@/island3d/engine/Island3DEngine';
 import { LOBBY_MAPS } from '@/island3d/engine/LobbyIslandLoader';
 import { authHeaders } from '@/lib/grudgeBackend';
 import { normalizeHomeIslandResponse } from '@/lib/homeIslandApi';
+import { WORLD_SECTORS } from '@shared/definitions/worldMapSectors';
 import { Loader2 } from 'lucide-react';
 
 export default function Island3DPage() {
@@ -26,6 +27,9 @@ export default function Island3DPage() {
   );
   const [lobbyMapId, setLobbyMapId] = useState(
     params.get('map') || 'pirate-islands',
+  );
+  const [sectorId, setSectorId] = useState(
+    params.get('sector') || 'ethereal_falls',
   );
   const [_, navigate] = useLocation();
 
@@ -76,8 +80,13 @@ export default function Island3DPage() {
   const handleLobbyMap = (mapId: string) => {
     setLobbyMapId(mapId);
     setMode('lobby');
-    // Force re-render by updating seed key
     setSeed(`lobby-${mapId}-${Date.now()}`);
+  };
+
+  const handleZoneMode = (id: string) => {
+    setSectorId(id);
+    setMode('zone' as Island3DMode);
+    setSeed(`zone-${id}-${Date.now()}`);
   };
 
   if (isHomeIslandMode && homeIslandLoading) {
@@ -129,6 +138,16 @@ export default function Island3DPage() {
           >
             Lobby Map
           </button>
+          <button
+            onClick={() => handleZoneMode(sectorId)}
+            className={`text-xs px-2.5 py-1 rounded transition-colors ${
+              mode === 'zone'
+                ? 'bg-purple-600 text-white'
+                : 'text-gray-400 hover:text-white'
+            }`}
+          >
+            Zone
+          </button>
         </div>
 
         {mode === 'procedural' ? (
@@ -154,6 +173,18 @@ export default function Island3DPage() {
               Random
             </button>
           </>
+        ) : mode === 'zone' ? (
+          <select
+            value={sectorId}
+            onChange={(e) => handleZoneMode(e.target.value)}
+            className="bg-gray-800 border border-gray-700 text-white text-xs px-3 py-1.5 rounded focus:outline-none focus:border-purple-500"
+          >
+            {WORLD_SECTORS.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.name} (Lv{s.difficultyMin}-{s.difficultyMax})
+              </option>
+            ))}
+          </select>
         ) : (
           <select
             value={lobbyMapId}
@@ -175,9 +206,11 @@ export default function Island3DPage() {
           seed={seed}
           mode={mode}
           lobbyMapId={lobbyMapId}
+          sectorId={mode === 'zone' ? sectorId : undefined}
+          worldSeed="grudge-world-1"
           quality="medium"
           dayNight={{ dayDurationSeconds: 600, startTime: 0.35 }}
-          enableCharacter={mode === 'procedural'}
+          enableCharacter={mode === 'procedural' || mode === 'zone'}
         />
         {/* Home-island stats overlay */}
         {isHomeIslandMode && homeIsland && (

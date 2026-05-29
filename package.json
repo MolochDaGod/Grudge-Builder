@@ -5,7 +5,7 @@
   "license": "MIT",
   "scripts": {
     "dev:client": "vite dev --port 5000",
-    "dev": "NODE_ENV=development tsx server/index.ts",
+    "dev": "npx cross-env NODE_ENV=development tsx server/index.ts",
     "build": "tsx script/build.ts",
     "build:server": "tsx script/build-server.ts",
     "build:client": "cd client && npx vite build",
@@ -37,6 +37,7 @@
     "@monaco-editor/react": "^4.7.0",
     "@mux/mux-player": "^3.10.2",
     "@octokit/rest": "^22.0.0",
+    "@phantom/browser-sdk": "^2.0.2",
     "@phaserjs/create-game": "^1.3.0",
     "@phaserjs/editor-scripts-base": "^2.0.1",
     "@pixi/canvas-sprite": "^7.4.3",
@@ -196,6 +197,15 @@
     "zod": "^3.25.76",
     "zod-validation-error": "^3.5.4"
   },
+  "overrides": {
+    "three-render-objects": "1.29.5",
+    "3d-force-graph": {
+      "three-render-objects": "1.29.5"
+    },
+    "3d-force-graph-vr": {
+      "three-render-objects": "1.29.5"
+    }
+  },
   "devDependencies": {
     "@tailwindcss/vite": "^4.3.0",
     "@testing-library/dom": "^10.4.1",
@@ -215,6 +225,7 @@
     "@types/ws": "^8.5.13",
     "@vitejs/plugin-react": "^5.2.0",
     "autoprefixer": "^10.4.21",
+    "cross-env": "^10.1.0",
     "drizzle-kit": "^0.31.8",
     "esbuild": "^0.25.0",
     "jsdom": "^29.1.1",
