@@ -45,12 +45,12 @@ export const VIDEOS = {
 // ── Character portraits ──────────────────────────────────────────────────────
 
 export const RACE_PORTRAITS = {
-  elf:       assetUrl('/races/elf-portrait.png'),
-  human:     assetUrl('/races/human-portrait.png'),
-  dwarf:     assetUrl('/races/dwarf-portrait.png'),
-  orc:       assetUrl('/races/orc-portrait.png'),
-  barbarian: assetUrl('/races/barbarian-portrait.png'),
-  undead:    assetUrl('/races/undead-portrait.png'),
+  elf:       '/races/elf-portrait.png',
+  human:     '/races/human-portrait.png',
+  dwarf:     '/races/dwarf-portrait.png',
+  orc:       '/races/orc-portrait.png',
+  barbarian: '/races/barbarian-portrait.png',
+  undead:    '/races/undead-portrait.png',
 } as const;
 
 export const CLASS_HERO_IMAGES = {
