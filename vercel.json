@@ -1,5 +1,5 @@
 {
-  "alias": ["grudge-studio.com", "www.grudge-studio.com", "client.grudge-studio.com", "warlord3d.grudge-studio.com", "grudgewarlords.com", "www.grudgewarlords.com"],
+  "alias": ["client.grudge-studio.com", "warlord3d.grudge-studio.com", "grudgewarlords.com", "www.grudgewarlords.com"],
   "buildCommand": "npm run build:client",
   "outputDirectory": "client/dist",
   "devCommand": "npm run dev:client",
