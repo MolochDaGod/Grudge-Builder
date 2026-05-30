@@ -28,7 +28,12 @@ export type NodeCategory =
   | 'boss_arena'
   | 'spawn_point'
   | 'sea_creature'
-  | 'current';
+  | 'current'
+  // Instanced zones — portals to separate scenes
+  | 'home_island'
+  | 'dungeon_entrance'
+  | 'building_interior'
+  | 'player_home';
 
 export interface ZoneNode {
   /** Unique within this zone (deterministic from seed) */
@@ -241,7 +246,7 @@ export interface BossArenaNode extends ZoneNode {
   isWorldBoss: boolean;
 }
 
-// ── Spawn Points ─────────────────────────────────────────────────────────────
+// ── Spawn Points ───────────────────────────────────────────────────────
 
 export interface SpawnPointNode extends ZoneNode {
   category: 'spawn_point';
@@ -253,7 +258,93 @@ export interface SpawnPointNode extends ZoneNode {
   safeRadius: number;
 }
 
-// ── Union Type ───────────────────────────────────────────────────────────────
+// ── Instanced Zones (portals to separate scenes) ─────────────────────
+
+/** Home Island — each player’s personal island accessible from any sector dock */
+export interface HomeIslandNode extends ZoneNode {
+  category: 'home_island';
+  /** The dock this portal is attached to */
+  parentDockId: string;
+  /** Parent island ID */
+  parentIslandId: string;
+  /** Instance type determines how the home island loads */
+  instanceType: 'personal' | 'guild';
+  /** Max visitors allowed (0 = owner only) */
+  maxVisitors: number;
+  /** Island seed — player’s home island uses their account seed */
+  ownerSeed: string;
+  /** Label shown on the dock UI */
+  label: string;
+}
+
+/** Dungeon Entrance — portal to an instanced dungeon with waves/boss */
+export type DungeonTier = 'normal' | 'heroic' | 'mythic';
+
+export interface DungeonEntranceNode extends ZoneNode {
+  category: 'dungeon_entrance';
+  /** Dungeon template ID */
+  dungeonId: string;
+  /** Display name */
+  dungeonName: string;
+  /** Tier determines mob levels and loot quality */
+  tier: DungeonTier;
+  /** Recommended party size */
+  partySize: number;
+  /** Minimum player level to enter */
+  minLevel: number;
+  /** Number of floors/rooms */
+  floorCount: number;
+  /** Boss IDs at the end of the dungeon */
+  bossIds: string[];
+  /** Cooldown between runs (seconds, 0 = no limit) */
+  lockoutSec: number;
+  /** Parent island ID */
+  parentIslandId: string;
+  /** Visual: entrance model variant (cave, ruins, portal, gate) */
+  entranceModel: 'cave' | 'ruins' | 'portal' | 'gate' | 'tree_hollow';
+}
+
+/** Building Interior — enter a building (inn, blacksmith, etc.) as a separate scene */
+export interface BuildingInteriorNode extends ZoneNode {
+  category: 'building_interior';
+  /** Building piece ID from modularBuildings catalog */
+  buildingId: string;
+  /** Building name shown on approach */
+  buildingName: string;
+  /** Interior template (determines layout, lighting, NPCs inside) */
+  interiorTemplate: 'tavern' | 'forge' | 'shop' | 'mill' | 'stable' | 'tower' | 'house';
+  /** NPCs inside this building */
+  interiorNPCs: { role: NPCRole; faction: NPCFaction }[];
+  /** Whether players can trade inside */
+  hasTrade: boolean;
+  /** Whether this building has a crafting station */
+  hasCraftingStation: boolean;
+  /** Parent island ID */
+  parentIslandId: string;
+}
+
+/** Player Home — entrance to a player-built house interior (furniture, storage, trophies) */
+export interface PlayerHomeNode extends ZoneNode {
+  category: 'player_home';
+  /** Owner’s Grudge ID */
+  ownerId: string;
+  /** Home name set by the player */
+  homeName: string;
+  /** Building piece ID that this home is attached to */
+  buildingPieceId: string;
+  /** Interior size (determines room count and furniture slots) */
+  interiorSize: 'small' | 'medium' | 'large' | 'manor';
+  /** Number of storage chests */
+  storageSlots: number;
+  /** Number of trophy display mounts */
+  trophySlots: number;
+  /** Whether visitors can enter (public/friends/locked) */
+  accessLevel: 'public' | 'friends' | 'locked';
+  /** Parent island ID */
+  parentIslandId: string;
+}
+
+// ── Union Type ─────────────────────────────────────────────────────────
 
 export type AnyZoneNode =
   | IslandNode
@@ -268,7 +359,11 @@ export type AnyZoneNode =
   | OceanCurrentNode
   | POINode
   | BossArenaNode
-  | SpawnPointNode;
+  | SpawnPointNode
+  | HomeIslandNode
+  | DungeonEntranceNode
+  | BuildingInteriorNode
+  | PlayerHomeNode;
 
 // ── Zone Population Snapshot ─────────────────────────────────────────────────
 
@@ -694,6 +789,137 @@ export function generateZonePopulation(
     spawnType: 'ship',
     safeRadius: 100,
   } as SpawnPointNode);
+
+  // ── Instance Nodes (portals to separate scenes) ────────────
+
+  // Home Island portals — one at every dock
+  for (const dock of dockNodes) {
+    const hiId = nextId('home_island');
+    const hi: HomeIslandNode = {
+      id: hiId,
+      category: 'home_island',
+      position: [dock.position[0] - 5, dock.position[1], dock.position[2]],
+      state: 'active',
+      respawnSec: 0,
+      difficulty: 0,
+      parentDockId: dock.id,
+      parentIslandId: dock.parentIslandId,
+      instanceType: 'personal',
+      maxVisitors: 4,
+      ownerSeed: '', // filled at runtime with player's account seed
+      label: 'Sail to Home Island',
+    };
+    nodes.set(hiId, hi);
+  }
+
+  // Dungeon entrances — on medium+ islands, biome-themed
+  const dungeonTemplates: Record<string, { name: string; model: DungeonEntranceNode['entranceModel']; floors: number; bosses: string[] }> = {
+    ethereal:  { name: 'Spectral Hollow',       model: 'portal',      floors: 5, bosses: ['boss_phantom_warden'] },
+    frozen:    { name: 'Glacial Depths',         model: 'cave',        floors: 4, bosses: ['boss_frost_wyrm'] },
+    storm:     { name: 'Tempest Grotto',         model: 'cave',        floors: 3, bosses: ['boss_storm_elemental'] },
+    forest:    { name: 'Thornwood Labyrinth',    model: 'tree_hollow', floors: 4, bosses: ['boss_ancient_treant'] },
+    desert:    { name: 'Sunken Tomb',            model: 'ruins',       floors: 5, bosses: ['boss_sand_pharaoh'] },
+    nexus:     { name: 'Ley Line Nexus',         model: 'portal',      floors: 6, bosses: ['boss_void_avatar', 'boss_gould_flame'] },
+    abyssal:   { name: 'Drowned Cathedral',      model: 'ruins',       floors: 5, bosses: ['boss_leviathan_priest'] },
+    volcanic:  { name: 'Magma Core',             model: 'gate',        floors: 4, bosses: ['boss_fire_colossus'] },
+    tropical:  { name: 'Pirate\'s Crypt',        model: 'cave',        floors: 3, bosses: ['boss_undead_captain'] },
+  };
+
+  const allIslands = getNodesByCategory<IslandNode>({ sectorId, worldSeed, nodes, islandIds, lastTickMs: 0, playerCount: 0 }, 'island');
+  const dungeonIslands = allIslands.filter(i => i.size === 'large' || i.size === 'fortress' || (i.size === 'medium' && rng() > 0.6));
+  const dt = dungeonTemplates[biome] ?? dungeonTemplates.tropical;
+  const tiers: DungeonTier[] = ['normal', 'heroic', 'mythic'];
+
+  for (let d = 0; d < Math.min(dungeonIslands.length, 2); d++) {
+    const dIsland = dungeonIslands[d];
+    const dId = nextId('dungeon');
+    const tier = tiers[Math.min(d, tiers.length - 1)];
+    const dungeon: DungeonEntranceNode = {
+      id: dId,
+      category: 'dungeon_entrance',
+      position: randOnIsland(dIsland.position[0], dIsland.position[2], dIsland.radiusM * 0.5),
+      state: 'active',
+      respawnSec: 0,
+      difficulty: difficultyMax,
+      dungeonId: `${biome}_dungeon_${d}`,
+      dungeonName: dt.name,
+      tier,
+      partySize: tier === 'mythic' ? 5 : tier === 'heroic' ? 3 : 1,
+      minLevel: Math.max(1, difficultyMin * 2),
+      floorCount: dt.floors + (tier === 'mythic' ? 2 : tier === 'heroic' ? 1 : 0),
+      bossIds: dt.bosses,
+      lockoutSec: tier === 'mythic' ? 86400 : tier === 'heroic' ? 3600 : 0,
+      parentIslandId: dIsland.id,
+      entranceModel: dt.model,
+    };
+    nodes.set(dId, dungeon);
+    dIsland.childNodeIds.push(dId);
+  }
+
+  // Building interiors — on settlement islands
+  const settlementIslands = allIslands.filter(i => i.hasSettlement);
+  const interiorTemplates: BuildingInteriorNode['interiorTemplate'][] = ['tavern', 'forge', 'shop', 'stable'];
+
+  for (const sIsland of settlementIslands) {
+    // Each settlement gets 1-3 enterable buildings based on size
+    const buildingCount = sIsland.size === 'fortress' ? 3 : sIsland.size === 'large' ? 2 : 1;
+    for (let b = 0; b < buildingCount; b++) {
+      const bId = nextId('interior');
+      const template = interiorTemplates[b % interiorTemplates.length];
+      const interior: BuildingInteriorNode = {
+        id: bId,
+        category: 'building_interior',
+        position: randOnIsland(sIsland.position[0], sIsland.position[2], sIsland.radiusM * 0.35),
+        state: 'active',
+        respawnSec: 0,
+        difficulty: 0,
+        buildingId: template === 'tavern' ? 'inn' : template === 'forge' ? 'blacksmith' : template === 'shop' ? 'market_stand_1' : 'stable',
+        buildingName: template === 'tavern' ? 'The Salty Anchor' : template === 'forge' ? 'Iron Anvil Forge' : template === 'shop' ? 'Trade Post' : 'Stables',
+        interiorTemplate: template,
+        interiorNPCs: template === 'tavern'
+          ? [{ role: 'innkeeper', faction: 'neutral' }, { role: 'vendor', faction: 'neutral' }]
+          : template === 'forge'
+            ? [{ role: 'blacksmith', faction: 'neutral' }]
+            : template === 'shop'
+              ? [{ role: 'vendor', faction: 'neutral' }, { role: 'quest_giver', faction: 'neutral' }]
+              : [{ role: 'trainer', faction: 'neutral' }],
+        hasTrade: template === 'tavern' || template === 'shop',
+        hasCraftingStation: template === 'forge',
+        parentIslandId: sIsland.id,
+      };
+      nodes.set(bId, interior);
+      sIsland.childNodeIds.push(bId);
+    }
+  }
+
+  // Player home plots — on medium+ islands with docks (places where players can build homes)
+  const homeIslands = allIslands.filter(i => i.hasDock && (i.size === 'medium' || i.size === 'large' || i.size === 'fortress'));
+  for (const hIsland of homeIslands) {
+    const plotCount = hIsland.size === 'fortress' ? 6 : hIsland.size === 'large' ? 4 : 2;
+    for (let p = 0; p < plotCount; p++) {
+      const phId = nextId('player_home');
+      const sizeOptions: PlayerHomeNode['interiorSize'][] = ['small', 'medium', 'large', 'manor'];
+      const plotSize = sizeOptions[Math.min(p, sizeOptions.length - 1)];
+      const home: PlayerHomeNode = {
+        id: phId,
+        category: 'player_home',
+        position: randOnIsland(hIsland.position[0], hIsland.position[2], hIsland.radiusM * 0.6),
+        state: 'active',
+        respawnSec: 0,
+        difficulty: 0,
+        ownerId: '', // claimed at runtime
+        homeName: `Plot ${p + 1}`,
+        buildingPieceId: plotSize === 'manor' ? 'house_3' : plotSize === 'large' ? 'house_2' : 'house_1',
+        interiorSize: plotSize,
+        storageSlots: plotSize === 'manor' ? 12 : plotSize === 'large' ? 8 : plotSize === 'medium' ? 5 : 3,
+        trophySlots: plotSize === 'manor' ? 8 : plotSize === 'large' ? 5 : plotSize === 'medium' ? 3 : 1,
+        accessLevel: 'locked', // default locked until claimed
+        parentIslandId: hIsland.id,
+      };
+      nodes.set(phId, home);
+      hIsland.childNodeIds.push(phId);
+    }
+  }
 
   return {
     sectorId,
