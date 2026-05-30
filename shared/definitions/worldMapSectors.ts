@@ -1,20 +1,27 @@
 /**
  * World Map Sectors — 9 named macro-regions dividing the 100×100 world grid.
  *
- * Layout (3×3):
+ * Layout (3×3) — geographic logic:
  *   ┌─────────────┬─────────────┬─────────────┐
- *   │ Frostbite   │ Stormbreak  │ Thornwood   │
- *   │ Expanse     │ Reef        │ Wilds       │
+ *   │ Ethereal    │ Frostbite   │ Thornwood   │
+ *   │ Falls       │ Expanse     │ Wilds       │
  *   ├─────────────┼─────────────┼─────────────┤
- *   │ Ashen       │ Convergence │ Ethereal    │
- *   │ Wastes      │ Nexus       │ Falls       │
+ *   │ Stormbreak  │ Convergence │ Ashen       │
+ *   │ Reef        │ Nexus       │ Wastes      │
  *   ├─────────────┼─────────────┼─────────────┤
- *   │ Abyssal     │ Ember       │ Haven       │
- *   │ Trench      │ Depths      │ Shore       │
+ *   │ Abyssal     │ Haven       │ Ember       │
+ *   │ Trench      │ Shore       │ Depths      │
  *   └─────────────┴─────────────┴─────────────┘
  *
- * Each sector is ~33×33 tiles. The center sector (Convergence Nexus) is the
- * contested endgame zone; Haven Shore (bottom-right) is the safe starting area.
+ * Top-left:     Ethereal Falls — remote magical corner, the First God's tears
+ * Top-center:   Frostbite Expanse — frozen northern shelf
+ * Top-right:    Thornwood Wilds — ancient forest, Worge territory
+ * Mid-left:     Stormbreak Reef — perpetual storms between magic and the deep
+ * Center:       Convergence Nexus — where all factions clash
+ * Mid-right:    Ashen Wastes — scorched desert of glass and bone
+ * Bottom-left:  Abyssal Trench — the deepest waters, leviathans
+ * Bottom-center: Haven Shore — safe starting zone, calm tropical waters
+ * Bottom-right: Ember Depths — volcanic, where the Legion was born
  */
 
 // ── Sector Type ──────────────────────────────────────────────────────────────
@@ -143,7 +150,7 @@ export const WORLD_SECTORS: WorldSector[] = [
     biome: 'frozen',
     difficultyMin: 4,
     difficultyMax: 7,
-    bounds: sectorBounds(0, 0),
+    bounds: sectorBounds(1, 0),  // top-center
     colors: { deep: '#0a1628', mid: '#1a3a5c', accent: '#7dd3fc' },
     hazards: ['blizzard_damage', 'ice_patches', 'frostbite_dot', 'avalanche_zones'],
     ambientFx: ['snowfall', 'fog_dense', 'ice_sparkle'],
@@ -171,7 +178,7 @@ export const WORLD_SECTORS: WorldSector[] = [
     biome: 'storm',
     difficultyMin: 3,
     difficultyMax: 6,
-    bounds: sectorBounds(1, 0),
+    bounds: sectorBounds(0, 1),  // mid-left
     colors: { deep: '#0f172a', mid: '#334155', accent: '#fbbf24' },
     hazards: ['lightning_strikes', 'whirlpools', 'reef_damage', 'rogue_waves'],
     ambientFx: ['rain_heavy', 'lightning_flashes', 'wave_spray'],
@@ -231,7 +238,7 @@ export const WORLD_SECTORS: WorldSector[] = [
     biome: 'desert',
     difficultyMin: 5,
     difficultyMax: 8,
-    bounds: sectorBounds(0, 1),
+    bounds: sectorBounds(2, 1),  // mid-right
     colors: { deep: '#451a03', mid: '#92400e', accent: '#fbbf24' },
     hazards: ['heat_exhaustion', 'sandstorm', 'glass_shard_terrain', 'cursed_relics'],
     ambientFx: ['dust_swirl', 'heat_shimmer', 'sand_particles'],
@@ -293,7 +300,7 @@ export const WORLD_SECTORS: WorldSector[] = [
     biome: 'ethereal',
     difficultyMin: 6,
     difficultyMax: 9,
-    bounds: sectorBounds(2, 1),
+    bounds: sectorBounds(0, 0),  // top-left — remote magical corner
     colors: {
       deep: '#0c0a1a',      // void-dark purple-black
       mid: '#2d1b69',       // deep spectral purple
@@ -386,7 +393,7 @@ export const WORLD_SECTORS: WorldSector[] = [
     biome: 'volcanic',
     difficultyMin: 5,
     difficultyMax: 9,
-    bounds: sectorBounds(1, 2),
+    bounds: sectorBounds(2, 2),  // bottom-right — where the Legion was born
     colors: { deep: '#1c0a00', mid: '#7c2d12', accent: '#f97316', glow: '#ef4444' },
     hazards: ['lava_flows', 'eruption_events', 'toxic_gas', 'fire_elementals'],
     ambientFx: ['ember_rain', 'lava_glow', 'smoke_plumes', 'heat_distortion'],
@@ -415,7 +422,7 @@ export const WORLD_SECTORS: WorldSector[] = [
     biome: 'tropical',
     difficultyMin: 1,
     difficultyMax: 3,
-    bounds: sectorBounds(2, 2),
+    bounds: sectorBounds(1, 2),  // bottom-center — safe starting zone, accessible
     colors: { deep: '#164e63', mid: '#0891b2', accent: '#fbbf24' },
     hazards: [],
     ambientFx: ['gentle_waves', 'seagulls', 'palm_sway', 'sunset_glow'],
