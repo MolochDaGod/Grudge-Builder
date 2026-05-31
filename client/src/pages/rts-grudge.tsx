@@ -9,7 +9,7 @@ import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import { Island3DRenderer } from "@/island3d/render/Island3DRenderer";
-import { PVP_SERVER_URL } from "@/island3d/sync/MultiplayerSync";
+import { WORLD_SERVER_URL } from "@/island3d/sync/MultiplayerSync";
 import { CharacterManager, type Character } from "@/lib/characterManager";
 import { useAccount } from "@/hooks/use-account";
 import { getCurrentUser, authHeaders } from "@/lib/grudgeBackend";
@@ -105,7 +105,7 @@ export default function RtsGrudgePage() {
 
   // Check server status — fetch live telemetry from the island-server HTTP status endpoint
   // Convert wss:// → https:// (or ws:// → http://) so fetch() works against the HTTP health endpoint
-  const pvpHttpUrl = PVP_SERVER_URL
+  const pvpHttpUrl = WORLD_SERVER_URL
     .replace(/^wss:\/\//, 'https://')
     .replace(/^ws:\/\//, 'http://');
 
@@ -146,7 +146,7 @@ export default function RtsGrudgePage() {
       mode: 'lobby',
       map: 'pirate-islands',
       island: mode.islandId,
-      pvp: PVP_SERVER_URL,
+      pvp: WORLD_SERVER_URL,
     });
     setTimeout(() => {
       setLocation(`/island-3d?${params.toString()}`);

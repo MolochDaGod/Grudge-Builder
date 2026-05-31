@@ -149,7 +149,7 @@ export default defineConfig({
     },
   },
   define: {
-    // Expose PvP server URL to the client bundle (set in .env.local or CI)
+    // Expose world server URL to the client bundle (set in .env.local or CI)
     // Fallback to localhost:4321 for local development
     "import.meta.env.VITE_PVP_SERVER_URL": JSON.stringify(
       process.env.VITE_PVP_SERVER_URL || "http://localhost:4321"

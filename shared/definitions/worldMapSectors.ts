@@ -65,6 +65,32 @@ export interface ZoneTerrain3DConfig {
   spawnPoints: [number, number, number][];
 }
 
+// ── Sector Imagery ───────────────────────────────────────────────────────────
+
+export interface SectorImagery {
+  /** Background image URL rendered behind tiles when the sector is discovered */
+  backgroundUrl: string;
+  /** Thumbnail used in sector list panels and minimap tooltips */
+  thumbnailUrl: string;
+  /** Optional looping video background (overrides backgroundUrl when playing) */
+  videoUrl?: string;
+  /** Canvas overlay FX key — drives animated particle/mist effects */
+  overlayFx?: SectorOverlayFx[];
+}
+
+export interface SectorOverlayFx {
+  type: 'waterfall_streams' | 'spectral_mist' | 'floating_islands' | 'phantom_wisps'
+      | 'snowfall' | 'rain_heavy' | 'ember_rain' | 'lightning_flashes'
+      | 'energy_vortex' | 'bioluminescence' | 'dust_swirl' | 'gentle_waves'
+      | 'fireflies' | 'aurora';
+  /** Intensity 0-1 */
+  intensity: number;
+  /** Primary FX color (hex) */
+  color: string;
+  /** Secondary FX color (hex, optional) */
+  color2?: string;
+}
+
 export interface WorldSector {
   id: string;
   name: string;
@@ -94,6 +120,8 @@ export interface WorldSector {
   isContested?: boolean;
   /** Full 3D zone terrain + multiplayer configuration */
   terrain3d: ZoneTerrain3DConfig;
+  /** Sector visual imagery — backgrounds, videos, overlay FX */
+  imagery: SectorImagery;
 }
 
 // ── Sector Grid Layout ───────────────────────────────────────────────────────
@@ -169,6 +197,14 @@ export const WORLD_SECTORS: WorldSector[] = [
       sunDirection: [0.2, 0.4, 0.5],
       spawnPoints: [[400, 20, 400], [-300, 15, 600], [800, 25, -200]],
     }),
+    imagery: {
+      backgroundUrl: '/assets/backgrounds/dark-fantasy-4.png',
+      thumbnailUrl: '/assets/backgrounds/dark-fantasy-4.png',
+      overlayFx: [
+        { type: 'snowfall', intensity: 0.8, color: '#dbeafe' },
+        { type: 'aurora', intensity: 0.3, color: '#7dd3fc', color2: '#a78bfa' },
+      ],
+    },
   },
   {
     id: 'stormbreak_reef',
@@ -198,6 +234,14 @@ export const WORLD_SECTORS: WorldSector[] = [
       sunDirection: [0.1, 0.3, 0.6],
       spawnPoints: [[0, 10, 0], [600, 8, -400]],
     }),
+    imagery: {
+      backgroundUrl: '/assets/backgrounds/dark-fantasy-3.png',
+      thumbnailUrl: '/assets/backgrounds/dark-fantasy-3.png',
+      overlayFx: [
+        { type: 'rain_heavy', intensity: 0.9, color: '#94a3b8' },
+        { type: 'lightning_flashes', intensity: 0.6, color: '#fbbf24' },
+      ],
+    },
   },
   {
     id: 'thornwood_wilds',
@@ -227,6 +271,13 @@ export const WORLD_SECTORS: WorldSector[] = [
       sunDirection: [0.3, 0.5, 0.2],
       spawnPoints: [[200, 15, 200], [-500, 20, 300], [700, 10, -600]],
     }),
+    imagery: {
+      backgroundUrl: '/assets/professions/ancient_mystical_forest_with_glowing_particles.png',
+      thumbnailUrl: '/assets/professions/ancient_mystical_forest_with_glowing_particles.png',
+      overlayFx: [
+        { type: 'fireflies', intensity: 0.7, color: '#4ade80' },
+      ],
+    },
   },
 
   // ── Row 1 (middle) ──
@@ -257,6 +308,13 @@ export const WORLD_SECTORS: WorldSector[] = [
       sunDirection: [0.5, 0.9, 0.2],
       spawnPoints: [[0, 5, 0], [-800, 8, -800], [900, 12, 500]],
     }),
+    imagery: {
+      backgroundUrl: '/assets/backgrounds/dark-fantasy-5.png',
+      thumbnailUrl: '/assets/backgrounds/dark-fantasy-5.png',
+      overlayFx: [
+        { type: 'dust_swirl', intensity: 0.6, color: '#d4a574' },
+      ],
+    },
   },
   {
     id: 'convergence_nexus',
@@ -291,6 +349,14 @@ export const WORLD_SECTORS: WorldSector[] = [
         [0, 30, 800], [0, 30, -800], [800, 30, 0], [-800, 30, 0],
       ],
     }),
+    imagery: {
+      backgroundUrl: '/assets/professions/cosmic_arcane_void_magic_background.png',
+      thumbnailUrl: '/assets/professions/cosmic_arcane_void_magic_background.png',
+      overlayFx: [
+        { type: 'energy_vortex', intensity: 0.8, color: '#c084fc', color2: '#fbbf24' },
+        { type: 'aurora', intensity: 0.5, color: '#4338ca', color2: '#c084fc' },
+      ],
+    },
   },
   {
     id: 'ethereal_falls',
@@ -353,6 +419,17 @@ export const WORLD_SECTORS: WorldSector[] = [
         [-200, 80, -700], [800, 55, 100],
       ],
     }),
+    imagery: {
+      backgroundUrl: '/assets/professions/cosmic_arcane_void_magic_background.png',
+      thumbnailUrl: '/assets/professions/cosmic_arcane_void_magic_background.png',
+      videoUrl: '/assets/videos/ethereal-falls-ambient.mp4',
+      overlayFx: [
+        { type: 'waterfall_streams', intensity: 1.0, color: '#00e5ff', color2: '#bf40ff' },
+        { type: 'spectral_mist', intensity: 0.8, color: '#2d1b69', color2: '#0c0a1a' },
+        { type: 'floating_islands', intensity: 0.6, color: '#bf40ff' },
+        { type: 'phantom_wisps', intensity: 0.7, color: '#bf40ff', color2: '#00e5ff' },
+      ],
+    },
   },
 
   // ── Row 2 (bottom) ──
@@ -384,6 +461,13 @@ export const WORLD_SECTORS: WorldSector[] = [
       sunDirection: [0.0, 0.2, 0.4],
       spawnPoints: [[0, 20, 0], [500, 18, -300]],
     }),
+    imagery: {
+      backgroundUrl: '/assets/backgrounds/dark-fantasy-1.png',
+      thumbnailUrl: '/assets/backgrounds/dark-fantasy-1.png',
+      overlayFx: [
+        { type: 'bioluminescence', intensity: 0.7, color: '#22d3ee', color2: '#06b6d4' },
+      ],
+    },
   },
   {
     id: 'ember_depths',
@@ -413,6 +497,13 @@ export const WORLD_SECTORS: WorldSector[] = [
       sunDirection: [0.3, 0.6, 0.1],
       spawnPoints: [[0, 15, 0], [-600, 20, 400], [700, 25, -300]],
     }),
+    imagery: {
+      backgroundUrl: '/assets/backgrounds/dark-fantasy-5.png',
+      thumbnailUrl: '/assets/backgrounds/dark-fantasy-5.png',
+      overlayFx: [
+        { type: 'ember_rain', intensity: 0.8, color: '#f97316', color2: '#ef4444' },
+      ],
+    },
   },
   {
     id: 'haven_shore',
@@ -442,6 +533,13 @@ export const WORLD_SECTORS: WorldSector[] = [
       sunDirection: [0.4, 0.8, 0.3],
       spawnPoints: [[0, 5, 0], [300, 8, -200], [-400, 6, 500]],
     }),
+    imagery: {
+      backgroundUrl: '/assets/backgrounds/general.png',
+      thumbnailUrl: '/assets/backgrounds/general.png',
+      overlayFx: [
+        { type: 'gentle_waves', intensity: 0.4, color: '#0891b2' },
+      ],
+    },
   },
 ];
 

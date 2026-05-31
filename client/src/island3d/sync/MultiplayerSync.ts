@@ -73,11 +73,14 @@ export type MultiplayerEventMap = {
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
-/** Resolved PvP server URL — falls back to localhost:4321 in dev */
-export const PVP_SERVER_URL: string =
+/** Resolved world server URL — falls back to localhost:4321 in dev */
+export const WORLD_SERVER_URL: string =
   (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_PVP_SERVER_URL) ||
-  (typeof window !== 'undefined' && (window as any).__GRUDGE_PVP_URL__) ||
+  (typeof window !== 'undefined' && (window as any).__GRUDGE_WORLD_URL__) ||
   'http://localhost:4321';
+
+/** @deprecated Use WORLD_SERVER_URL instead */
+export const PVP_SERVER_URL = WORLD_SERVER_URL;
 
 const SEND_RATE_MS = 1000 / 15; // 15 Hz
 const LERP_SPEED = 8;           // interpolation speed
