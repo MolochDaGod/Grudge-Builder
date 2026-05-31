@@ -286,11 +286,12 @@ export async function registerAccount(
 export async function loginWithPuter(
   puterUuid: string,
   puterUsername?: string,
+  email?: string,
 ): Promise<AuthResponse> {
   const res = await fetch(`${API_BASE}/auth/puter`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ puterId: puterUuid, displayName: puterUsername }),
+    body: JSON.stringify({ puterId: puterUuid, displayName: puterUsername, ...(email ? { email } : {}) }),
   });
   return handleAuthResponse(res, "puter", { puterUsername });
 }
@@ -573,7 +574,9 @@ export async function loginWithPuterSDK(): Promise<AuthResponse> {
     throw new Error("Sign-in was cancelled.");
   }
 
-  return loginWithPuter(user.uuid, user.username);
+  const email: string | undefined = user.email || undefined;
+  console.debug("[Auth] Puter email check:", email ? "email present" : "no email");
+  return loginWithPuter(user.uuid, user.username, email);
 }
 
 // ── Token verification ───────────────────────────────────────────────

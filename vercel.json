@@ -11,12 +11,27 @@
     }
   },
   "rewrites": [
-    { "source": "/api/assets/:path*",   "destination": "https://assets.grudge-studio.com/:path*" },
-    { "source": "/api/auth/:path*",     "destination": "https://api.grudge-studio.com/api/auth/:path*" },
-    { "source": "/api/account/:path*",  "destination": "https://api.grudge-studio.com/api/account/:path*" },
-    { "source": "/api/ai/:path*",       "destination": "https://ai.grudge-studio.com/:path*" },
-    { "source": "/api/:path*",          "destination": "https://api.grudge-studio.com/api/:path*" },
-    { "source": "/(.*)",                "destination": "/index.html" }
+    {
+      "source": "/api/assets/:path*",
+      "destination": "https://assets.grudge-studio.com/:path*"
+    },
+    {
+      "source": "/api/auth/:path*",
+      "destination": "https://id.grudge-studio.com/auth/:path*"
+    },
+    {
+      "source": "/api/account/:path*",
+      "destination": "https://id.grudge-studio.com/account/:path*"
+    },
+    {
+      "source": "/api/ai/:path*",
+      "destination": "https://ai.grudge-studio.com/:path*"
+    },
+    {
+      "source": "/api/:path*",
+      "destination": "https://api.grudge-studio.com/api/:path*"
+    },
+    { "source": "/(.*)", "destination": "/index.html" }
   ],
   "env": {
     "VITE_API_URL": "https://api.grudge-studio.com",
