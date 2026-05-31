@@ -48,6 +48,43 @@ export interface OSItem {
     source: string;
     revealCondition: string;
   };
+  /** Artifact: level scaling (no tiers — stats scale with character level) */
+  levelScaling?: {
+    enabled: boolean;
+    minLevel: number;
+    maxLevel: number;
+    scaleFactor: number;
+    description: string;
+  };
+  /** Artifact: weapon subtype (sword, greatsword, axe, hammer, spear, staff, tome, bow, mace) */
+  weaponSubtype?: string;
+  /** Artifact: 1h or 2h */
+  handedness?: '1h' | '2h';
+  /** Artifact: element type (lightning, fire, frost, holy, shadow, arcane, nature, etc.) */
+  artifactType?: string;
+  /** Artifact: how to obtain */
+  dropSources?: {
+    primary: string;
+    alternates: string[];
+    factionVendor: { faction: string; reputationRequired: string } | null;
+    eventOnly: boolean;
+    bossDropTable: string[];
+    locationHints: string[];
+  };
+  /** Artifact: 3D asset references for rendering */
+  prefab?: {
+    modelId: string;
+    modelUrl: string;
+    effectUrl: string;
+    soundOnEquip: string;
+    soundOnSwing: string;
+    soundSignature: string;
+    particleColor: string;
+    glowIntensity: number;
+    trailEnabled: boolean;
+  };
+  /** Basic ability (artifacts + weapons) */
+  basicAbility?: string;
   /** Tome-only */
   skillGrants?: string[];
 }
@@ -178,7 +215,67 @@ export function useObjectStoreData() {
   };
 }
 
-// ── Utility helpers ──────────────────────────────────────────────────
+// ── Artifact helpers ──────────────────────────────────────────────────────────────────
+
+/**
+ * Compute level-scaled stats for an artifact weapon.
+ * Artifacts have no tier system — their stats scale with the character’s level.
+ *
+ * Formula: stat = baseValue * (1 + (characterLevel - 1) * scaleFactor)
+ * At level 1: 1x base. At level 100: ~5x base (with 0.04 factor).
+ *
+ * @example
+ *   const scaled = getArtifactStatsAtLevel(artifact, 50);
+ *   // { damage: 255, speed: 330, crit: 36, ... }
+ */
+export function getArtifactStatsAtLevel(
+  artifact: OSItem,
+  characterLevel: number
+): Record<string, number> {
+  const scaling = artifact.levelScaling;
+  if (!scaling?.enabled) return artifact.stats as unknown as Record<string, number>;
+
+  const level = Math.max(scaling.minLevel, Math.min(characterLevel, scaling.maxLevel));
+  const multiplier = 1 + (level - 1) * scaling.scaleFactor;
+
+  const scaled: Record<string, number> = {};
+  for (const [key, value] of Object.entries(artifact.stats)) {
+    if (typeof value === 'number' && value !== 0) {
+      scaled[key] = Math.round(value * multiplier);
+    }
+  }
+  return scaled;
+}
+
+/**
+ * Check if a player has discovered an artifact (visible in codex).
+ * Artifacts with discovery.hiddenUntilFound=true should be hidden
+ * until the player’s discoveredArtifacts set includes the UUID.
+ */
+export function isArtifactDiscovered(
+  artifact: OSItem,
+  discoveredUuids: Set<string>
+): boolean {
+  if (!artifact.discovery?.hiddenUntilFound) return true;
+  return discoveredUuids.has(artifact.uuid);
+}
+
+/** Fetch master artifacts (level-scaled legendary weapons, hidden until found) */
+export async function fetchArtifacts() {
+  return fetchJSON<{ artifacts: OSItem[]; total: number }>(`${OS_CDN}/master-artifacts.json`);
+}
+
+export function useOSArtifacts() {
+  return useQuery<{ artifacts: OSItem[]; total: number }>({
+    queryKey: ["objectstore", "artifacts"],
+    queryFn: fetchArtifacts,
+    staleTime: STALE_MS,
+    gcTime: GC_MS,
+    retry: 2,
+  });
+}
+
+// ── Utility helpers ────────────────────────────────────────────────────────────────────
 
 /** Get unique weapon categories from items list */
 export function getWeaponCategories(items: OSItem[]): string[] {
