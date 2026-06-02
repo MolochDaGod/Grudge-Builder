@@ -2391,6 +2391,14 @@ export const AI_ANALYZED_SPRITES = ${JSON.stringify(manifestEntries, null, 2)};`
   const launcherRoutes = await import("./routes/launcher");
   app.use("/api/launcher", launcherRoutes.default);
 
+  // Register Ollama AI routes (Grudge IDE single-button AI)
+  const ollamaRoutes = await import("./routes/ollamaAI");
+  app.use("/api/ai/ollama", ollamaRoutes.default);
+
+  // Register unified AI Gateway routes (Ollama local + ai.grudge-studio.com cloud)
+  const aiGatewayRoutes = await import("./routes/aiGatewayRoutes");
+  app.use("/api/ai/gateway", aiGatewayRoutes.default);
+
   // ============================================
   // SPRITE MANIFEST API
   // ============================================
@@ -6280,6 +6288,208 @@ Also suggest metadata values in this exact JSON format:
     } catch (error) {
       console.error("Error processing upgrade:", error);
       res.status(500).json({ error: "Failed to process upgrade" });
+    }
+  });
+
+  // ==================== UUID Service Routes (drops, crafting, rewards) ====================
+
+  const { UUIDService } = await import("./services/uuidService");
+  const uuidService = new UUIDService(storage);
+
+  // POST /api/island/resolve-drops — Stamp Grudge UUIDs on rolled loot drops
+  app.post("/api/island/resolve-drops", requireAuth, async (req: any, res) => {
+    try {
+      const accountId = req.accountId || req.body.accountId;
+      if (!accountId) return res.status(401).json({ error: "accountId required" });
+
+      const { drops, sourceType, sourceRef, characterId } = req.body;
+      if (!Array.isArray(drops) || drops.length === 0) {
+        return res.status(400).json({ error: "drops array is required" });
+      }
+
+      const resolved = await uuidService.resolveDrops(
+        drops,
+        accountId,
+        sourceType || "drop",
+        sourceRef,
+        characterId,
+      );
+
+      res.json({
+        success: true,
+        count: resolved.length,
+        items: resolved,
+      });
+    } catch (error: any) {
+      console.error("Error resolving drops:", error);
+      res.status(500).json({ error: error.message || "Failed to resolve drops" });
+    }
+  });
+
+  // POST /api/crafting/craft — Full crafting pipeline with UUID validation
+  app.post("/api/crafting/craft", requireAuth, async (req: any, res) => {
+    try {
+      const accountId = req.accountId || req.body.accountId;
+      if (!accountId) return res.status(401).json({ error: "accountId required" });
+
+      const {
+        inputUuids,
+        recipeId,
+        outputSlot,
+        outputTier,
+        outputItemId,
+        outputItemName,
+        characterId,
+      } = req.body;
+
+      if (!Array.isArray(inputUuids) || inputUuids.length === 0) {
+        return res.status(400).json({ error: "inputUuids array is required" });
+      }
+      if (!recipeId || !outputItemName) {
+        return res.status(400).json({ error: "recipeId and outputItemName are required" });
+      }
+
+      const result = await uuidService.craft({
+        inputUuids,
+        outputSlot: outputSlot || "Item",
+        outputTier: outputTier ?? 1,
+        outputItemId: outputItemId ?? Date.now() % 10000,
+        outputItemName,
+        accountId,
+        characterId,
+        recipeId,
+      });
+
+      res.json({
+        success: true,
+        consumedCount: inputUuids.length,
+        craftedItem: result,
+      });
+    } catch (error: any) {
+      console.error("Error crafting:", error);
+      const status = error.message?.includes("not owned") ? 403
+        : error.message?.includes("Invalid") ? 400
+        : 500;
+      res.status(status).json({ error: error.message || "Crafting failed" });
+    }
+  });
+
+  // POST /api/rewards/grant — Grant UUID-stamped items as rewards
+  app.post("/api/rewards/grant", requireAuth, async (req: any, res) => {
+    try {
+      const accountId = req.accountId || req.body.accountId;
+      if (!accountId) return res.status(401).json({ error: "accountId required" });
+
+      const { items, sourceType, sourceRef, characterId } = req.body;
+      if (!Array.isArray(items) || items.length === 0) {
+        return res.status(400).json({ error: "items array is required" });
+      }
+
+      const resolved = await uuidService.resolveDrops(
+        items,
+        accountId,
+        sourceType || "reward",
+        sourceRef,
+        characterId,
+      );
+
+      res.json({
+        success: true,
+        count: resolved.length,
+        items: resolved,
+      });
+    } catch (error: any) {
+      console.error("Error granting rewards:", error);
+      res.status(500).json({ error: error.message || "Failed to grant rewards" });
+    }
+  });
+
+  // POST /api/uuid/transfer — Transfer item ownership
+  app.post("/api/uuid/transfer", requireAuth, async (req: any, res) => {
+    try {
+      const { grudgeUuid, fromAccountId, toAccountId, sourceRef } = req.body;
+      if (!grudgeUuid || !fromAccountId || !toAccountId) {
+        return res.status(400).json({ error: "grudgeUuid, fromAccountId, toAccountId required" });
+      }
+
+      await uuidService.transferUUID({ grudgeUuid, fromAccountId, toAccountId, sourceRef });
+      res.json({ success: true, grudgeUuid, newOwner: toAccountId });
+    } catch (error: any) {
+      console.error("Error transferring UUID:", error);
+      const status = error.message?.includes("not owned") ? 403 : 500;
+      res.status(status).json({ error: error.message || "Transfer failed" });
+    }
+  });
+
+  // POST /api/uuid/equip — Log equip event
+  app.post("/api/uuid/equip", requireAuth, async (req: any, res) => {
+    try {
+      const accountId = req.accountId || req.body.accountId;
+      const { grudgeUuid, characterId } = req.body;
+      if (!grudgeUuid || !characterId) {
+        return res.status(400).json({ error: "grudgeUuid and characterId required" });
+      }
+      await uuidService.equipUUID(grudgeUuid, accountId, characterId);
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("Error equipping:", error);
+      res.status(500).json({ error: error.message || "Equip failed" });
+    }
+  });
+
+  // POST /api/uuid/unequip — Log unequip event
+  app.post("/api/uuid/unequip", requireAuth, async (req: any, res) => {
+    try {
+      const accountId = req.accountId || req.body.accountId;
+      const { grudgeUuid, characterId } = req.body;
+      if (!grudgeUuid || !characterId) {
+        return res.status(400).json({ error: "grudgeUuid and characterId required" });
+      }
+      await uuidService.unequipUUID(grudgeUuid, accountId, characterId);
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("Error unequipping:", error);
+      res.status(500).json({ error: error.message || "Unequip failed" });
+    }
+  });
+
+  // POST /api/uuid/destroy — Permanently destroy an item
+  app.post("/api/uuid/destroy", requireAuth, async (req: any, res) => {
+    try {
+      const accountId = req.accountId || req.body.accountId;
+      const { grudgeUuid, reason } = req.body;
+      if (!grudgeUuid) return res.status(400).json({ error: "grudgeUuid required" });
+      await uuidService.destroyUUID(grudgeUuid, accountId, reason);
+      res.json({ success: true, destroyed: grudgeUuid });
+    } catch (error: any) {
+      console.error("Error destroying UUID:", error);
+      res.status(500).json({ error: error.message || "Destroy failed" });
+    }
+  });
+
+  // POST /api/uuid/upgrade — Upgrade item tier (archive old, create new)
+  app.post("/api/uuid/upgrade", requireAuth, async (req: any, res) => {
+    try {
+      const accountId = req.accountId || req.body.accountId;
+      const { oldUuid, newSlot, newTier, newItemId, newItemName, characterId } = req.body;
+      if (!oldUuid || newTier === undefined) {
+        return res.status(400).json({ error: "oldUuid and newTier required" });
+      }
+
+      const result = await uuidService.upgradeUUID({
+        oldUuid,
+        newSlot: newSlot || "Item",
+        newTier,
+        newItemId: newItemId ?? Date.now() % 10000,
+        newItemName: newItemName || "Upgraded Item",
+        accountId,
+        characterId,
+      });
+
+      res.json({ success: true, ...result });
+    } catch (error: any) {
+      console.error("Error upgrading UUID:", error);
+      res.status(500).json({ error: error.message || "Upgrade failed" });
     }
   });
 

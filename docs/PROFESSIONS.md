@@ -178,7 +178,7 @@ POST /api/craft                        - Craft an item
 
 Profession data is also available from ObjectStore:
 ```
-GET  https://molochdagod.github.io/ObjectStore/api/v1/professions.json
+GET  https://objectstore.grudge-studio.com/api/v1/professions.json
 ```
 
 ## Implementation Files
