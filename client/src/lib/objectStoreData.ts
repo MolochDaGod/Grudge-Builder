@@ -1,8 +1,8 @@
 /**
  * ObjectStore Live Data Layer
  *
- * Fetches canonical item, recipe, and material data from the ObjectStore CDN.
- * Source of truth: https://molochdagod.github.io/ObjectStore/api/v1/
+ * Fetches canonical item, recipe, and material data from ObjectStore.
+ * Source of truth: https://objectstore.grudge-studio.com/api/v1/
  *
  * Data shape matches master-items.json, master-recipes.json, master-materials.json.
  * React Query hooks cache with 5-min stale time; falls back to local data on error.
@@ -11,7 +11,7 @@
 import { useQuery } from "@tanstack/react-query";
 
 // ── CDN Base ─────────────────────────────────────────────────────────
-const OS_CDN = "https://molochdagod.github.io/ObjectStore/api/v1";
+const OS_CDN = "https://objectstore.grudge-studio.com/api/v1";
 
 // ── TypeScript interfaces (match ObjectStore JSON schema) ────────────
 

@@ -7,7 +7,7 @@ Out of scope: `thc-labz-battle`, `doepbudz` (per user policy).
 - **Deployment graph**: `client/src/data/systemMap.ts` (+ mirrored `docs/system-map.json`). Extended in this audit with four Puter nodes: `svc:puter-worker`, `svc:puter-crafting`, `svc:puter-sdk`, `svc:puter-auth-bridge`, plus three Puter domains.
 - **Puter registry**: `docs/puter-registry.json` (new). Holds workers, frontends, SDKs, auth-bridge, CORS allowlist references, key convention, and open gaps.
 - **Identity SSOT**: `id.grudge-studio.com` — every auth path (Discord, Google, GitHub, phone, Puter, Solana wallet, guest) converges here.
-- **Game data SSOT**: `https://molochdagod.github.io/ObjectStore/api/v1` (55+ static JSON endpoints), consumed via `lib/assetConfig.ts::apiUrl()`.
+- **Game data SSOT**: `https://objectstore.grudge-studio.com/api/v1` (55+ JSON endpoints), consumed via `lib/assetConfig.ts::apiUrl()`.
 - **Binary asset SSOT**: `https://assets.grudge-studio.com` (Cloudflare R2), consumed via `lib/assetConfig.ts::assetUrl()`.
 - **Auth token**: single key `grudge_auth_token` in localStorage. Legacy alias `grudge_session_token` still written by `grudgeBackend.ts` for backward compatibility.
 ## 2. Live health snapshot (curl at audit time)
@@ -15,7 +15,7 @@ Out of scope: `thc-labz-battle`, `doepbudz` (per user policy).
 - `api.grudge-studio.com/api/health` — 200 ✅
 - `account.grudge-studio.com/health` — 200 ✅
 - `objectstore.grudge-studio.com/health` — 200 ✅
-- `molochdagod.github.io/ObjectStore/api/v1/master-items.json` — 200 ✅
+- `objectstore.grudge-studio.com/api/v1/master-items.json` — 200 ✅
 - `grudge-server.puter.work/api/health` — 200 ✅
 - `grudgewarlords.com` — 200 ✅
 - `grudgeplatform.io` — 200 ✅
@@ -138,7 +138,7 @@ Work that must happen in repos other than `GrudgeBuilder` to complete production
 - `api/_grudge-proxy.js::ALLOWED_ORIGINS` — must include exactly: `https://grudgewarlords.com`, `https://www.grudgewarlords.com`, `https://grudge-studio.com`, `https://grudgeplatform.io`, `https://launcher.grudge-studio.com`, `https://grudge-crafting.puter.site`, `https://grudge-server.puter.work`.
 - `api/puter.js` and `api/puter-link.js` — already proxy to `id.grudge-studio.com /auth/puter` (+ `/puter-link`); leave as-is.
 - `public/index.html` — `og:image` = `https://grudgewarlords.com/opengraph.jpg`, `og:site_name` = `Grudge Studio`, `twitter:site` = `@grudgewarlords` (per `docs/references/gs-portal.md`). Load `https://js.puter.com/v2/` exactly once with `defer`.
-- Pull items / icons / recipes from `https://molochdagod.github.io/ObjectStore/api/v1/master-items.json` (and siblings) — no hardcoded copies.
+- Pull items / icons / recipes from `https://objectstore.grudge-studio.com/api/v1/master-items.json` (and siblings) — no hardcoded copies.
 - Pull binary assets (sprites, models, audio) from `https://assets.grudge-studio.com` via the same `assetUrl()` helper this repo uses (or its grudge-sdk equivalent).
 - Add Crossmint embed for cNFT + custodial wallet flows. Server keys live in Vercel project env vars (see `docs/audit-report.md` §14d).
 - `/play` should redirect to `https://grudgewarlords.com/?sso_token=…` for consistent identity until `/play` has its own client. Long-term: render its own client and reuse the same SSO token mechanism.

@@ -126,13 +126,13 @@ export async function preloadAsset(path: string): Promise<string> {
     }
   } catch { /* CDN failed, try ObjectStore GitHub Pages */ }
 
-  // Try ObjectStore GitHub Pages (has weapon/armor icons that R2 may not have yet)
+  // Try ObjectStore (objectstore.grudge-studio.com — unified asset + data host)
   try {
-    const osGhUrl = `https://molochdagod.github.io/ObjectStore${path.startsWith('/') ? path : '/' + path}`;
-    const res = await fetch(osGhUrl, { method: "HEAD" });
+    const osUrl = `https://objectstore.grudge-studio.com${path.startsWith('/') ? path : '/' + path}`;
+    const res = await fetch(osUrl, { method: "HEAD" });
     if (res.ok) {
-      resolvedCache.set(path, osGhUrl);
-      return osGhUrl;
+      resolvedCache.set(path, osUrl);
+      return osUrl;
     }
   } catch { /* ObjectStore failed */ }
 

@@ -15,7 +15,7 @@ This repo ships the **Grudge Warlords** web game at [grudgewarlords.com](https:/
 - **Account API**: [account.grudge-studio.com](https://account.grudge-studio.com/health) — Cloudflare
 - **Assets CDN**: [assets.grudge-studio.com](https://assets.grudge-studio.com) — Cloudflare R2
 - **ObjectStore Worker**: [objectstore.grudge-studio.com](https://objectstore.grudge-studio.com/health) — Cloudflare Workers (R2 + D1)
-- **ObjectStore API**: [grudge-objectstore.pages.dev](https://grudge-objectstore.pages.dev/api/v1/master-items.json) — Cloudflare Pages (55+ JSON endpoints)
+- **ObjectStore API**: [objectstore.grudge-studio.com](https://objectstore.grudge-studio.com/api/v1/master-items.json) — Cloudflare Workers (55+ JSON endpoints)
 - **Dashboard**: [dash.grudge-studio.com](https://dash.grudge-studio.com) — Vercel
 - **AI Hub**: [ai.grudge-studio.com](https://ai.grudge-studio.com) — Cloudflare Workers
 
@@ -46,7 +46,7 @@ Cloudflare:
 - `objectstore.grudge-studio.com` — R2 + D1 Worker (3D models, search, upload) — Cloudflare Workers
 - `dash.grudge-studio.com` — Admin dashboard — Vercel
 - `ai.grudge-studio.com` — Gruda Legion AI hub (sprite gen, agents) — Cloudflare Workers
-- `grudge-objectstore.pages.dev` — Static JSON game data API (55+ endpoints) — Cloudflare Pages
+- `objectstore.grudge-studio.com` — ObjectStore API (55+ JSON endpoints, 3D models, search) — Cloudflare Workers
 
 **Planned (not yet deployed):**
 - `ws.grudge-studio.com` — WebSocket real-time (Socket.IO)
@@ -195,7 +195,7 @@ const { data: weapons, isLoading, error, refetch } = useWeapons();
 - **ObjectStore**: [github.com/MolochDaGod/ObjectStore](https://github.com/MolochDaGod/ObjectStore) — 55+ JSON endpoints, 13K+ assets, SDK v5.0, master-items with GRUDGE UUIDs
 
 ### Environment Overrides
-- `VITE_OBJECT_STORE_URL` — Override ObjectStore base URL (default: `grudge-objectstore.pages.dev`)
+- `VITE_OBJECT_STORE_URL` — Override ObjectStore base URL (default: `objectstore.grudge-studio.com`)
 - `VITE_ASSET_CDN_URL` — Override CDN/asset service URL (default: `assets.grudge-studio.com`)
 
 ## Grudge Fleet
@@ -212,7 +212,7 @@ All games connect to:
 - `api.grudge-studio.com` — Game API (characters, saves, inventory)
 - `id.grudge-studio.com` — Auth (SSO, OAuth, JWT)
 - `assets.grudge-studio.com` — Asset CDN (R2)
-- `grudge-objectstore.pages.dev` — Game data (weapons, armor, classes)
+- `objectstore.grudge-studio.com` — Game data (weapons, armor, classes)
 
 ### Cross-Game SSO & Navigation
 

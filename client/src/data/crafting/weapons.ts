@@ -3,7 +3,7 @@
  *
  * This file contains hardcoded weapon data that duplicates the ObjectStore.
  * The single source of truth for all items is:
- *   https://molochdagod.github.io/ObjectStore/api/v1/master-weapons.json
+ *   https://objectstore.grudge-studio.com/api/v1/master-weapons.json
  *
  * Use objectStoreData.ts hooks instead:
  *   import { useOSItems, fetchItems } from '@/lib/objectStoreData';

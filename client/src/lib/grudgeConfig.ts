@@ -45,9 +45,9 @@ export const AI_GATEWAY: string =
 export const BADGE_READER: string =
   env.VITE_BADGE_READER_URL || 'https://api.grudge-studio.com';
 
-/** Canonical ObjectStore API (Cloudflare Pages). */
+/** Canonical ObjectStore API (objectstore.grudge-studio.com). */
 export const OBJECTSTORE: string =
-  env.VITE_OBJECTSTORE_URL || 'https://grudge-objectstore.pages.dev/api/v1';
+  env.VITE_OBJECTSTORE_URL || 'https://objectstore.grudge-studio.com/api/v1';
 
 /**
  * GrudgeDot launcher canonical URL.

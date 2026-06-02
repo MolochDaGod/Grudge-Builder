@@ -7,7 +7,7 @@ Created by **Racalvin The Pirate King**. 2D/Canvas game client with React + Vite
 ## Architecture — The One Truth
 
 ### Single Source of Truth
-- **Game data** (races, classes, weapons, armor, attributes): ObjectStore API at `molochdagod.github.io/ObjectStore/api/v1/*.json`
+- **Game data** (races, classes, weapons, armor, attributes): ObjectStore API at `objectstore.grudge-studio.com/api/v1/*.json`
 - **Frontend data layer**: `gameData.ts` fetches from ObjectStore on init, falls back to hardcoded. NEVER add new hardcoded data — update ObjectStore instead.
 - **3D models**: ObjectStore `/v1/models` endpoint (100+ glb/fbx/obj models in R2)
 - **Assets** (sprites, icons, audio, backgrounds): ObjectStore via `assetUrl()` from `assetConfig.ts`
@@ -50,8 +50,8 @@ All require JWT auth. Health at `/api/health` is public.
 
 ### Object Storage (3 tiers)
 1. **R2 CDN** (`assets.grudge-studio.com`) — ALL binary assets (sprites, icons, audio, models, backgrounds). Use `assetUrl()` from `assetConfig.ts`.
-2. **GitHub Pages** (`molochdagod.github.io/ObjectStore/api/v1/*.json`) — Static JSON game data (weapons, armor, races, classes, professions, attributes). Use `apiUrl()` from `assetConfig.ts`.
-3. **Cloudflare Worker** (`objectstore.grudge-studio.com`) — Production API with caching, search, filtering. Use `workerUrl()` from `assetConfig.ts`.
+2. **ObjectStore** (`objectstore.grudge-studio.com/api/v1/*.json`) — All JSON game data (weapons, armor, races, classes, professions, attributes). Use `apiUrl()` from `assetConfig.ts`.
+3. **ObjectStore Worker** (`objectstore.grudge-studio.com`) — Production API with caching, search, filtering. Use `workerUrl()` from `assetConfig.ts`.
 
 Key ObjectStore JSON endpoints:
 - `/api/v1/races.json` — 6 races with bonuses
@@ -101,11 +101,10 @@ Frontend pages using these MUST use `BackendRequired` component for graceful deg
 | Game API | api.grudge-studio.com | Cloudflare Workers |
 | Auth / Identity | id.grudge-studio.com | Cloudflare Workers |
 | Account API | account.grudge-studio.com | Cloudflare Workers |
-| Asset CDN | assets.grudge-studio.com | Cloudflare Worker (R2 + GitHub Pages fallback) |
-| ObjectStore API | objectstore.grudge-studio.com | Cloudflare Worker |
+| Asset CDN | assets.grudge-studio.com | Cloudflare R2 CDN |
+| ObjectStore API | objectstore.grudge-studio.com | Cloudflare Worker (R2 + D1) |
 | AI Hub Worker | ai.grudge-studio.com | Cloudflare Worker |
-| Route Monitor | grudge-route-monitor.grudge.workers.dev | Cloudflare Worker |
-| ObjectStore Static | molochdagod.github.io/ObjectStore | GitHub Pages |
+| AI Gateway (local) | localhost:11434 (Ollama) | Local — grudge-dev model |
 
 ## Key Files
 - `client/src/lib/gameData.ts` — Races, classes, attributes (ObjectStore-first with fallback)

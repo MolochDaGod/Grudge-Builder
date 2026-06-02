@@ -1,5 +1,16 @@
 {
     "DockerRun.DisableDockerrc": true,
     "serverpulse.ai.enabled": true,
-    "serverpulse.ai.optInShown": true
+    "serverpulse.ai.optInShown": true,
+    "serverpulse.enableHealthCheck": false,
+    "serverpulse.services": [
+        {
+            "name": "undefined (nodejs)",
+            "type": "nodejs",
+            "port": 8000,
+            "healthCheckPath": "",
+            "enableHealthCheck": false,
+            "healthCheckInterval": 30000
+        }
+    ]
 }

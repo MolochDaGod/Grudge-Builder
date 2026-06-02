@@ -10,7 +10,7 @@
  *   - Stale-while-revalidate pattern for fast subsequent loads
  *   - Graceful fallback on fetch failure (returns cached or empty data)
  *
- * @see https://grudge-objectstore.pages.dev/docs
+ * @see https://objectstore.grudge-studio.com/docs
  */
 
 import { apiUrl, OBJECT_STORE_VERSION } from "@/lib/assetConfig";
