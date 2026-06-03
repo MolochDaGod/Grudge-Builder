@@ -55,6 +55,8 @@ import CraftingPage from "@/pages/crafting";
 import Island3DPage from "@/pages/island-3d";
 import AuthCallbackPage from "@/pages/auth-callback";
 import EditorPage from "@/pages/editor";
+import ForgePage from "@/pages/forge";
+import GrudgeAI from "@/components/GrudgeAI";
 // Lazy-load the organizer page: it pulls in react-force-graph → aframe-extras
 // (A-Frame VR lib that uses THREE as a global). Code-splitting it keeps
 // aframe out of the main bundle and loads it only when /organizer is visited.
@@ -116,6 +118,7 @@ function Router() {
       <Route path="/crafting-suite" component={CraftingPage} />
       <Route path="/island-3d" component={Island3DPage} />
       <Route path="/editor" component={EditorPage} />
+      <Route path="/forge" component={ForgePage} />
       <Route path="/organizer">{() => <Suspense fallback={null}><OrganizerPage /></Suspense>}</Route>
       <Route path="/grudawars" component={GrudaWarsPage} />
       {/* Fallback to 404 */}
@@ -152,6 +155,7 @@ function AppContent() {
       <TooltipProvider>
         <Toaster />
         <Router />
+        <GrudgeAI />
         <PuterFooter />
       </TooltipProvider>
     </>
