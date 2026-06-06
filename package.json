@@ -29,6 +29,7 @@
     "@colyseus/ws-transport": "^0.16.5",
     "@cspell/dict-lua": "^4.0.8",
     "@davi-ai/bodyengine-three": "^1.0.6",
+    "@dimforge/rapier3d-compat": "^0.19.3",
     "@dobuki/phaser-game": "^1.0.36",
     "@enable3d/phaser-extension": "^0.26.1",
     "@esotericsoftware/spine-phaser-v3": "^4.2.96",
@@ -81,6 +82,9 @@
     "@radix-ui/react-toggle": "^1.1.10",
     "@radix-ui/react-toggle-group": "^1.1.11",
     "@radix-ui/react-tooltip": "^1.2.8",
+    "@react-three/drei": "^10.7.7",
+    "@react-three/fiber": "^9.6.1",
+    "@react-three/rapier": "^2.2.0",
     "@rpgjs/physic": "^5.0.0-alpha.29",
     "@tanstack/react-query": "^5.60.5",
     "@types/babylon": "^6.16.9",
@@ -244,7 +248,7 @@
     "tailwindcss": "^4.1.14",
     "tsx": "^4.20.5",
     "typescript": "5.6.3",
-    "vite": "^7.3.3",
+    "vite": "^7.3.5",
     "vitest": "^4.1.7"
   },
   "optionalDependencies": {

@@ -127,7 +127,7 @@ export interface WorldSector {
 // ── Sector Grid Layout ───────────────────────────────────────────────────────
 
 const SECTOR_SIZE = 34; // ~33 tiles per sector, last sector absorbs remainder
-const ZONE_SIZE = 4000; // 4km × 4km per zone in world-space meters
+const ZONE_SIZE = 10_000; // canonical: matches worldSectors.ts SECTOR_SIZE // 4km × 4km per zone in world-space meters
 const ZONE_SEGMENTS = 255; // 256×256 vertex grid (good LOD balance)
 const ZONE_MAX_PLAYERS = 64; // default concurrent players
 

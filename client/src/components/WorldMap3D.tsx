@@ -93,7 +93,7 @@ const FACTION_COLORS: Record<string, number> = {
 
 // ── Sector grid layout ──────────────────────────────────────────
 
-const SECTOR_SIZE = 6000;
+const SECTOR_SIZE = 10_000;
 const GRID: Record<string, { col: number; row: number }> = {
   NW: { col: 0, row: 0 }, N:      { col: 1, row: 0 }, NE: { col: 2, row: 0 },
   W:  { col: 0, row: 1 }, CENTER: { col: 1, row: 1 }, E:  { col: 2, row: 1 },

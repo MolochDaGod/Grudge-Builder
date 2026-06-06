@@ -1,0 +1,38 @@
+[2m12:08:21 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m Re-optimizing dependencies because vite config has changed
+
+  [32m[1mVITE[22m v7.3.5[39m  [2mready in [0m[1m1817[22m[2m[0m ms[22m
+
+  [32m➜[39m  [1mLocal[22m:   [36mhttp://localhost:[1m3000[22m/[39m
+  [32m➜[39m  [1mNetwork[22m: [36mhttp://26.216.42.47:[1m3000[22m/[39m
+  [32m➜[39m  [1mNetwork[22m: [36mhttp://172.19.0.1:[1m3000[22m/[39m
+  [32m➜[39m  [1mNetwork[22m: [36mhttp://172.23.64.1:[1m3000[22m/[39m
+  [32m➜[39m  [1mNetwork[22m: [36mhttp://10.0.0.56:[1m3000[22m/[39m
+[2m[32m  ➜[39m[22m[2m  press [22m[1mh + enter[22m[2m to show help[22m
+X [ERROR] No matching export in "node_modules/three/build/three.module.js" for import "WebGPURenderer"
+
+    node_modules/3d-force-graph/node_modules/three-render-objects/dist/three-render-objects.mjs:2:9:
+      2 │ import { WebGPURenderer } from 'three/webgpu';
+        ╵          ~~~~~~~~~~~~~~
+
+E:\Grudge-Builder\node_modules\vite\node_modules\esbuild\lib\main.js:1748
+  let error = new Error(text);
+              ^
+
+Error: [31mError during dependency optimization:
+
+[39m[31mX [41;31m[[41;97mERROR[41;31m][0m [1mNo matching export in "node_modules/three/build/three.module.js" for import "WebGPURenderer"[0m
+
+    node_modules/3d-force-graph/node_modules/three-render-objects/dist/three-render-objects.mjs:2:9:
+[37m      2 │ import { [32mWebGPURenderer[37m } from 'three/webgpu';
+        ╵          [32m~~~~~~~~~~~~~~[0m
+
+
+    at failureErrorWithLog (E:\Grudge-Builder\node_modules\vite\node_modules\esbuild\lib\main.js:1748:15)
+    at E:\Grudge-Builder\node_modules\vite\node_modules\esbuild\lib\main.js:1207:25
+    at E:\Grudge-Builder\node_modules\vite\node_modules\esbuild\lib\main.js:1626:9
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5) {
+  errors: [Getter/Setter],
+  warnings: [Getter/Setter]
+}
+
+Node.js v24.12.0
