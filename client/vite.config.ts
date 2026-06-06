@@ -25,6 +25,8 @@ const threeWebgpuShim: Plugin = {
 };
 
 export default defineConfig({
+  // Use repo-root public/ so skill-tree.html, icons-src/, etc. are included in builds
+  publicDir: path.resolve(__dir, '..', 'public'),
   plugins: [
     threeWebgpuShim,
     react(),
