@@ -69,7 +69,14 @@ export const GODS: Record<GodId, God> = {
 // FACTIONS
 // ═══════════════════════════════════════════════════════════════
 
+/** Player-selectable factions. Pirate unlocks via endgame quest. */
 export type FactionId = "crusade" | "legion" | "fabled";
+
+/** NPC-only factions — not selectable at character creation. */
+export type NPCFactionId = "pirate" | "neutral" | "hostile";
+
+/** Any faction identifier (player or NPC). */
+export type AnyFactionId = FactionId | NPCFactionId;
 
 export interface Faction {
   id: FactionId;
@@ -80,7 +87,10 @@ export interface Faction {
   races: RaceId[];
   color: string;        // hex
   pirateColor: string;  // sprite tint key (from pirateUnits.ts)
+  /** All player factions this faction is hostile to on sight. */
   hostileTo: FactionId[];
+  /** Factions whose NPCs will assist this faction's players in combat. */
+  alliedTo: FactionId[];
 }
 
 export const FACTIONS: Record<FactionId, Faction> = {
@@ -93,7 +103,8 @@ export const FACTIONS: Record<FactionId, Faction> = {
     races: ["human", "orc"],
     color: "#3b82f6",
     pirateColor: "blue",
-    hostileTo: ["legion"],
+    hostileTo: ["legion", "fabled"],
+    alliedTo: [],
   },
   legion: {
     id: "legion",
@@ -104,7 +115,8 @@ export const FACTIONS: Record<FactionId, Faction> = {
     races: ["orc", "undead"],
     color: "#ef4444",
     pirateColor: "red",
-    hostileTo: ["crusade"],
+    hostileTo: ["crusade", "fabled"],
+    alliedTo: [],
   },
   fabled: {
     id: "fabled",
@@ -115,9 +127,142 @@ export const FACTIONS: Record<FactionId, Faction> = {
     races: ["elf", "dwarf"],
     color: "#22c55e",
     pirateColor: "green",
-    hostileTo: [],
+    hostileTo: ["crusade", "legion"],
+    alliedTo: [],
   },
 };
+
+// ═══════════════════════════════════════════════════════════════
+// NPC FACTIONS (non-player)
+// ═══════════════════════════════════════════════════════════════
+
+export interface NPCFaction {
+  id: NPCFactionId;
+  name: string;
+  color: string;
+  /** Default disposition toward all player factions. */
+  defaultDisposition: "friendly" | "neutral" | "hostile";
+  /**
+   * Condition that overrides default disposition to hostile.
+   * For pirates: holding a capture flag in the nexus sector.
+   */
+  hostilityCondition?: string;
+  /** Has quests, vendors, black market traders? */
+  hasServices: boolean;
+}
+
+export const NPC_FACTIONS: Record<NPCFactionId, NPCFaction> = {
+  pirate: {
+    id: "pirate",
+    name: "The Pirate Confederacy",
+    color: "#d4a437",
+    defaultDisposition: "neutral",
+    hostilityCondition: "player_holds_claim_in_nexus",
+    hasServices: true,
+  },
+  neutral: {
+    id: "neutral",
+    name: "Neutral",
+    color: "#9ca3af",
+    defaultDisposition: "neutral",
+    hasServices: false,
+  },
+  hostile: {
+    id: "hostile",
+    name: "Hostile Wildlife",
+    color: "#ef4444",
+    defaultDisposition: "hostile",
+    hasServices: false,
+  },
+};
+
+// ═══════════════════════════════════════════════════════════════
+// FACTION HOSTILITY & AGGRO SYSTEM
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Aggro circle configuration.
+ *
+ * NPCs have 3 concentric zones:
+ *   - Detection: NPC becomes aware, turns to face (no combat)
+ *   - Aggro:     NPC attacks if target is hostile faction
+ *   - Assist:    NPC runs to help an ally under attack
+ *
+ * All distances measured from NPC center to target center.
+ * Scale: 2m barbarian height reference. Doorways 3m+, caves 4m+.
+ */
+export const AGGRO_CONFIG = {
+  /** NPC notices a player, turns to face. No combat yet. */
+  detectionRadius: 25,
+  /** NPC attacks hostile-faction players within this range. */
+  aggroRadius: 15,
+  /** NPC runs to assist a same-faction NPC or player under attack. */
+  assistRadius: 30,
+  /** NPC stops chasing and returns to patrol after this distance. */
+  leashRadius: 50,
+  /** Seconds before NPC de-aggros after losing line of sight. */
+  losTimeoutSeconds: 8,
+  /** Minimum time (ms) between aggro checks per NPC to avoid CPU spikes. */
+  aggroCheckIntervalMs: 500,
+  /** Players who attack a neutral/pirate NPC get flagged hostile for this duration. */
+  attackFlagDurationMs: 5 * 60 * 1000, // 5 minutes
+} as const;
+
+/**
+ * Determine NPC disposition toward a player.
+ *
+ * Rules (evaluated in order):
+ *   1. If player attacked this NPC or its group → hostile (attack flag)
+ *   2. If NPC is player's own faction → allied (will assist)
+ *   3. If NPC faction is in player faction's hostileTo → hostile (aggro on sight)
+ *   4. If NPC is pirate and player holds nexus claim → hostile
+ *   5. If NPC is pirate/neutral → neutral (friendly, has services)
+ *   6. Otherwise → neutral
+ */
+export type Disposition = "allied" | "neutral" | "hostile";
+
+export function getNPCDisposition(
+  npcFaction: AnyFactionId,
+  playerFaction: FactionId,
+  playerFlags: { attackedNPC?: boolean; holdsNexusClaim?: boolean },
+): Disposition {
+  // Rule 1: Player attacked this NPC
+  if (playerFlags.attackedNPC) return "hostile";
+
+  // Rule 2: Same player faction → allied
+  if (npcFaction === playerFaction) return "allied";
+
+  // Rule 3: NPC is a player faction that's hostile to the player's faction
+  if (npcFaction in FACTIONS) {
+    const npcPlayerFaction = FACTIONS[npcFaction as FactionId];
+    if (npcPlayerFaction.hostileTo.includes(playerFaction)) return "hostile";
+  }
+
+  // Rule 4: Pirate + player holds nexus claim → hostile
+  if (npcFaction === "pirate" && playerFlags.holdsNexusClaim) return "hostile";
+
+  // Rule 5: Pirate/neutral → neutral (services available)
+  if (npcFaction === "pirate" || npcFaction === "neutral") return "neutral";
+
+  // Rule 6: hostile wildlife
+  if (npcFaction === "hostile") return "hostile";
+
+  return "neutral";
+}
+
+/** Check if two player factions are enemies. */
+export function areFactionsHostile(a: FactionId, b: FactionId): boolean {
+  if (a === b) return false;
+  return FACTIONS[a].hostileTo.includes(b);
+}
+
+/** Check if an NPC would assist a player (same faction, within assist radius). */
+export function wouldNPCAssist(
+  npcFaction: AnyFactionId,
+  playerFaction: FactionId,
+): boolean {
+  return npcFaction === playerFaction;
+}
 
 // ═══════════════════════════════════════════════════════════════
 // RACES

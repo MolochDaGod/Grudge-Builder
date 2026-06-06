@@ -6,6 +6,7 @@ import { LobbyRoom } from "./rooms/LobbyRoom";
 import { DungeonRoom } from "./rooms/DungeonRoom";
 import { SectorRoom } from "./rooms/SectorRoom";
 import { WorldRoom } from "./rooms/WorldRoom";
+import { TownRoom } from "./rooms/TownRoom";
 import { setupMapRoutes } from "./routes/mapAdmin";
 import type { Server as HttpServer } from "http";
 import type { Express } from "express";
@@ -33,6 +34,7 @@ export async function setupColyseus(httpServer: HttpServer, app: Express) {
   gameServer.define("dungeon", DungeonRoom);
   gameServer.define("sector", SectorRoom);
   gameServer.define("world", WorldRoom);
+  gameServer.define("town", TownRoom);
 
   app.use("/colyseus-playground", playground);
   app.use("/colyseus", monitor());

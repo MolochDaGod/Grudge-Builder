@@ -1,0 +1,1393 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Grudge Warlords — Inventory & Codex</title>
+<link rel="icon" href="https://assets.grudge-studio.com/icons/grudge-crest.png"/>
+<script src="https://js.puter.com/v2/"></script>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;900&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+/* ======================== VARIABLES ======================== */
+:root {
+  --gold: #d4a843;
+  --gold-bright: #f0c040;
+  --gold-dim: #7a5c0e;
+  --deep: #0a0a10;
+  --deep2: #0e0e18;
+  --panel: rgba(14,14,24,0.95);
+  --panel2: rgba(20,20,32,0.9);
+  --border: rgba(212,168,67,0.15);
+  --border-hot: rgba(212,168,67,0.5);
+  --text: #d0d0d0;
+  --text-dim: #777;
+  --green: #22c55e;
+  --red: #ef4444;
+  --blue: #60a5fa;
+  --purple: #a78bfa;
+  --orange: #f59e0b;
+  --cyan: #22d3ee;
+  --sidebar-w: 220px;
+  /* Tier colors mirror master-items.json */
+  --t0: #6b6b6b;
+  --t1: #8b7355;
+  --t2: #a8a8a8;
+  --t3: #4a9eff;
+  --t4: #9d4dff;
+  --t5: #ff4d4d;
+  --t6: #ffaa00;
+  --t7: #d4a84b;
+  --t8: #f0d890;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'Inter', sans-serif;
+  background: radial-gradient(ellipse at top, #15151f 0%, var(--deep) 60%);
+  color: var(--text);
+  min-height: 100vh;
+  font-size: 13px;
+}
+
+/* ======================== LAYOUT ======================== */
+.app { display: flex; min-height: 100vh; }
+.sidebar {
+  width: var(--sidebar-w);
+  background: var(--deep2);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+}
+.main { flex: 1; overflow-y: auto; max-height: 100vh; }
+
+/* ======================== SIDEBAR ======================== */
+.sidebar-logo {
+  padding: 20px 16px 14px;
+  border-bottom: 1px solid var(--border);
+  text-align: center;
+}
+.sidebar-logo h1 {
+  font-family: 'Cinzel', serif;
+  font-size: 16px;
+  color: var(--gold);
+  letter-spacing: 0.05em;
+}
+.sidebar-logo small {
+  font-size: 9px;
+  color: var(--text-dim);
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+.sidebar-section { padding: 8px 0; border-bottom: 1px solid var(--border); }
+.sidebar-section-title {
+  font-size: 9px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  padding: 4px 16px 6px;
+}
+.nav-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 16px;
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  font-size: 12px;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.15s;
+  text-align: left;
+}
+.nav-btn:hover { background: rgba(212,168,67,0.06); color: var(--text); }
+.nav-btn.active { background: rgba(212,168,67,0.12); color: var(--gold); border-left: 2px solid var(--gold); }
+.nav-btn .icon { font-size: 16px; width: 20px; text-align: center; }
+.nav-btn .badge {
+  margin-left: auto;
+  font-size: 9px;
+  padding: 1px 6px;
+  border-radius: 8px;
+  background: rgba(212,168,67,0.15);
+  color: var(--gold);
+  font-family: 'JetBrains Mono', monospace;
+}
+.sidebar-account {
+  margin-top: auto;
+  padding: 12px 16px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.account-dot { width: 8px; height: 8px; border-radius: 50%; background: #444; }
+.account-dot.on { background: var(--green); box-shadow: 0 0 6px var(--green); }
+.account-name { font-size: 11px; color: var(--text-dim); }
+.auth-btn {
+  margin-left: auto;
+  padding: 4px 10px;
+  border: 1px solid var(--border);
+  background: rgba(212,168,67,0.1);
+  color: var(--gold);
+  border-radius: 4px;
+  font-size: 10px;
+  cursor: pointer;
+  font-family: inherit;
+}
+.auth-btn:hover { background: rgba(212,168,67,0.2); }
+
+/* ======================== MAIN ======================== */
+.page { display: none; padding: 24px; }
+.page.active { display: block; }
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 18px;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.page-title { font-family: 'Cinzel', serif; font-size: 18px; color: var(--gold); }
+.page-sub { font-size: 11px; color: var(--text-dim); margin-top: 2px; }
+
+/* ======================== STATS ROW ======================== */
+.stats-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px;
+  margin-bottom: 18px;
+}
+.stat-card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 14px;
+  text-align: center;
+}
+.stat-val {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--gold);
+}
+.stat-label { font-size: 10px; color: var(--text-dim); margin-top: 2px; letter-spacing: 0.08em; text-transform: uppercase; }
+
+/* ======================== FILTERS ======================== */
+.filter-bar {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.search-box {
+  flex: 1;
+  min-width: 200px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px 12px;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 12px;
+}
+.search-box:focus { outline: none; border-color: var(--border-hot); }
+.filter-select {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px 10px;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+.filter-chip {
+  padding: 5px 10px;
+  border: 1px solid var(--border);
+  background: rgba(255,255,255,0.02);
+  border-radius: 14px;
+  cursor: pointer;
+  font-size: 11px;
+  color: var(--text-dim);
+  transition: all 0.15s;
+  font-family: inherit;
+}
+.filter-chip:hover { color: var(--text); border-color: var(--border-hot); }
+.filter-chip.active { background: rgba(212,168,67,0.14); border-color: var(--border-hot); color: var(--gold); }
+
+/* ======================== ITEM GRID ======================== */
+.item-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  gap: 10px;
+}
+.item-card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px;
+  cursor: pointer;
+  transition: all 0.15s;
+  position: relative;
+  overflow: hidden;
+}
+.item-card:hover { transform: translateY(-2px); border-color: var(--border-hot); box-shadow: 0 6px 18px rgba(0,0,0,0.4); }
+.item-card .tier-bar {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: var(--tier, var(--gold));
+}
+.item-icon-wrap {
+  width: 64px; height: 64px;
+  margin: 4px auto 8px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+.item-icon-wrap img {
+  max-width: 56px;
+  max-height: 56px;
+  image-rendering: pixelated;
+  object-fit: contain;
+}
+.item-icon-wrap .fallback {
+  font-size: 28px;
+  color: var(--text-dim);
+}
+.item-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+  text-align: center;
+  margin-bottom: 4px;
+  line-height: 1.2;
+  min-height: 28px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.item-tier {
+  font-size: 9px;
+  text-align: center;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+.item-meta {
+  font-size: 9px;
+  color: var(--text-dim);
+  text-align: center;
+  margin-top: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+/* ======================== RECIPE LIST ======================== */
+.recipe-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 10px; }
+.recipe-card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.recipe-card:hover { border-color: var(--border-hot); }
+.recipe-name { font-family: 'Cinzel', serif; font-size: 13px; color: var(--gold); margin-bottom: 6px; }
+.recipe-prof { font-size: 10px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px; }
+.recipe-mats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+}
+.mat-pill {
+  font-size: 10px;
+  padding: 3px 8px;
+  border-radius: 10px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--border);
+  color: var(--text);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.mat-pill .qty { color: var(--gold); font-weight: 600; font-family: 'JetBrains Mono', monospace; }
+
+/* ======================== MODAL ======================== */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.85);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  padding: 20px;
+}
+.modal-overlay.active { display: flex; }
+.modal {
+  background: var(--deep2);
+  border: 1px solid var(--border-hot);
+  border-radius: 12px;
+  max-width: 520px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  padding: 24px;
+  position: relative;
+  box-shadow: 0 0 40px rgba(212,168,67,0.15);
+}
+.modal-close {
+  position: absolute;
+  top: 12px; right: 12px;
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  font-size: 22px;
+  cursor: pointer;
+  width: 32px; height: 32px;
+  border-radius: 4px;
+}
+.modal-close:hover { color: var(--text); background: rgba(255,255,255,0.06); }
+.modal-icon {
+  width: 96px; height: 96px;
+  margin: 0 auto 12px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.modal-icon img { max-width: 80px; max-height: 80px; image-rendering: pixelated; object-fit: contain; }
+.modal-title { font-family: 'Cinzel', serif; font-size: 20px; color: var(--gold); text-align: center; }
+.modal-tier { text-align: center; font-size: 11px; text-transform: uppercase; letter-spacing: 0.12em; margin-top: 4px; font-weight: 600; }
+.modal-desc { font-size: 12px; color: var(--text); text-align: center; margin: 12px 0; font-style: italic; line-height: 1.4; }
+.modal-section { margin-top: 16px; }
+.modal-section-title {
+  font-size: 10px;
+  text-transform: uppercase;
+  color: var(--gold);
+  letter-spacing: 0.12em;
+  margin-bottom: 6px;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 4px;
+}
+.stat-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 4px 0;
+  font-size: 12px;
+  border-bottom: 1px dotted rgba(255,255,255,0.04);
+}
+.stat-row:last-child { border-bottom: none; }
+.stat-row .k { color: var(--text-dim); text-transform: capitalize; }
+.stat-row .v { color: var(--gold); font-family: 'JetBrains Mono', monospace; font-weight: 600; }
+.uuid-line { font-size: 9px; color: var(--text-dim); font-family: 'JetBrains Mono', monospace; margin-top: 12px; word-break: break-all; }
+
+/* ======================== STATES ======================== */
+.loading {
+  text-align: center;
+  padding: 48px 16px;
+  color: var(--text-dim);
+}
+.loading::after {
+  content: '';
+  display: inline-block;
+  width: 20px; height: 20px;
+  border: 2px solid var(--border);
+  border-top-color: var(--gold);
+  border-radius: 50%;
+  margin-left: 8px;
+  vertical-align: middle;
+  animation: spin 0.7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.empty-state {
+  text-align: center;
+  padding: 48px 16px;
+  color: var(--text-dim);
+  font-size: 13px;
+}
+.error {
+  background: rgba(239,68,68,0.1);
+  border: 1px solid rgba(239,68,68,0.3);
+  color: #fca5a5;
+  padding: 12px 16px;
+  border-radius: 6px;
+  margin-bottom: 16px;
+  font-size: 12px;
+}
+
+/* ======================== ATTRIBUTES ======================== */
+.attr-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
+.attr-card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent, var(--gold));
+  border-radius: 8px;
+  padding: 16px;
+}
+.attr-head { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+.attr-emoji { font-size: 28px; }
+.attr-name { font-family: 'Cinzel', serif; font-size: 16px; font-weight: 700; }
+.attr-id { font-size: 9px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.12em; font-family: 'JetBrains Mono', monospace; }
+.attr-desc { font-size: 12px; color: var(--text); line-height: 1.5; margin-bottom: 10px; }
+.attr-formula {
+  background: rgba(0,0,0,0.3);
+  border: 1px dashed var(--border);
+  border-radius: 6px;
+  padding: 8px 10px;
+  font-size: 11px;
+}
+.attr-formula .k {
+  display: block;
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--gold);
+  margin-bottom: 4px;
+}
+.attr-formula code {
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--text);
+  font-size: 11px;
+  word-break: break-word;
+}
+
+/* ======================== STATIONS ======================== */
+.stations-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; }
+.station-card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 18px;
+  text-align: center;
+  transition: all 0.15s;
+}
+.station-card:hover { border-color: var(--border-hot); transform: translateY(-2px); }
+.station-icon { font-size: 32px; margin-bottom: 8px; }
+.station-name { font-family: 'Cinzel', serif; font-size: 14px; color: var(--gold); margin-bottom: 6px; }
+.station-desc { font-size: 11px; color: var(--text-dim); line-height: 1.4; }
+
+/* ======================== PROVIDERS ======================== */
+.providers { display: grid; grid-template-columns: 1fr; gap: 10px; max-width: 760px; }
+.provider-card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 14px;
+  display: grid;
+  grid-template-columns: 48px 1fr auto;
+  gap: 14px;
+  align-items: center;
+}
+.provider-icon {
+  width: 48px; height: 48px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  font-weight: 600;
+}
+.provider-name { font-family: 'Cinzel', serif; font-size: 14px; color: var(--text); }
+.provider-desc { font-size: 11px; color: var(--text-dim); margin-top: 4px; line-height: 1.4; }
+.provider-action { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+.provider-status {
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-dim);
+}
+.provider-status.linked { color: var(--green); }
+.provider-btn {
+  padding: 7px 14px;
+  border: 1px solid var(--border-hot);
+  background: rgba(212,168,67,0.1);
+  color: var(--gold);
+  border-radius: 6px;
+  font-size: 11px;
+  cursor: pointer;
+  font-family: inherit;
+  text-decoration: none;
+  display: inline-block;
+}
+.provider-btn:hover { background: rgba(212,168,67,0.2); }
+.provider-btn.steam {
+  background: #1b2838;
+  border-color: rgba(102,192,244,0.4);
+  color: #66c0f4;
+}
+.provider-btn.steam:hover { background: #2a475e; }
+.provider-btn.discord {
+  background: rgba(88,101,242,0.15);
+  border-color: rgba(88,101,242,0.4);
+  color: #a5b1ff;
+}
+.provider-btn.discord:hover { background: rgba(88,101,242,0.3); }
+.provider-btn.linked {
+  background: rgba(34,197,94,0.1);
+  border-color: rgba(34,197,94,0.4);
+  color: var(--green);
+  cursor: default;
+}
+@media (max-width: 600px) {
+  .provider-card { grid-template-columns: 40px 1fr; }
+  .provider-action { grid-column: 1 / -1; flex-direction: row; align-items: center; justify-content: space-between; }
+}
+
+/* ======================== MOBILE ======================== */
+@media (max-width: 720px) {
+  .sidebar { width: 60px; }
+  .sidebar-logo h1, .sidebar-logo small, .nav-btn span:not(.icon):not(.badge), .sidebar-section-title, .account-name { display: none; }
+  .nav-btn { justify-content: center; padding: 12px 8px; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- ======================== SIDEBAR ======================== -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <h1>Grudge Warlords</h1>
+      <small>Inventory Codex</small>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-section-title">Browse</div>
+      <button class="nav-btn active" data-page="all">
+        <span class="icon">📦</span><span>All Items</span>
+        <span class="badge" id="count-all">·</span>
+      </button>
+      <button class="nav-btn" data-page="weapons">
+        <span class="icon">⚔️</span><span>Weapons</span>
+        <span class="badge" id="count-weapons">·</span>
+      </button>
+      <button class="nav-btn" data-page="armor">
+        <span class="icon">🛡️</span><span>Armor</span>
+        <span class="badge" id="count-armor">·</span>
+      </button>
+      <button class="nav-btn" data-page="materials">
+        <span class="icon">🪨</span><span>Materials</span>
+        <span class="badge" id="count-materials">·</span>
+      </button>
+      <button class="nav-btn" data-page="harvestables">
+        <span class="icon">🌿</span><span>Harvestables</span>
+        <span class="badge" id="count-harvestables">·</span>
+      </button>
+      <button class="nav-btn" data-page="consumables">
+        <span class="icon">🍖</span><span>Consumables</span>
+        <span class="badge" id="count-consumables">·</span>
+      </button>
+      <button class="nav-btn" data-page="recipes">
+        <span class="icon">📜</span><span>Recipes</span>
+        <span class="badge" id="count-recipes">·</span>
+      </button>
+      <button class="nav-btn" data-page="attributes">
+        <span class="icon">📊</span><span>Attributes</span>
+        <span class="badge" id="count-attributes">·</span>
+      </button>
+      <button class="nav-btn" data-page="stations">
+        <span class="icon">🔨</span><span>Stations</span>
+        <span class="badge">6</span>
+      </button>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-section-title">Account</div>
+      <button class="nav-btn" data-page="account">
+        <span class="icon">👤</span><span>Linked Accounts</span>
+      </button>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-section-title">Links</div>
+      <a class="nav-btn" href="https://info.grudge-studio.com" target="_blank" rel="noopener">
+        <span class="icon">🔗</span><span>Data Hub</span>
+      </a>
+      <a class="nav-btn" href="https://grudge-crafting.puter.site" target="_blank" rel="noopener">
+        <span class="icon">🔨</span><span>Crafting</span>
+      </a>
+      <a class="nav-btn" href="https://grudgewarlords.com" target="_blank" rel="noopener">
+        <span class="icon">🏰</span><span>Game</span>
+      </a>
+    </div>
+
+    <div class="sidebar-account">
+      <span class="account-dot" id="auth-dot"></span>
+      <span class="account-name" id="auth-name">Guest</span>
+      <button class="auth-btn" id="auth-btn">Login</button>
+    </div>
+  </aside>
+
+  <!-- ======================== MAIN ======================== -->
+  <main class="main">
+
+    <!-- ============== Page: ALL / WEAPONS / ARMOR / MATERIALS / HARVESTABLES / CONSUMABLES ============== -->
+    <section class="page active" id="page-items">
+      <div class="page-header">
+        <div>
+          <div class="page-title" id="items-title">All Items</div>
+          <div class="page-sub" id="items-sub">Loading inventory from info.grudge-studio.com…</div>
+        </div>
+      </div>
+
+      <div class="stats-row">
+        <div class="stat-card"><div class="stat-val" id="stat-total">·</div><div class="stat-label">Total</div></div>
+        <div class="stat-card"><div class="stat-val" id="stat-shown">·</div><div class="stat-label">Filtered</div></div>
+        <div class="stat-card"><div class="stat-val" id="stat-recipes">·</div><div class="stat-label">Recipes</div></div>
+        <div class="stat-card"><div class="stat-val" id="stat-mats">·</div><div class="stat-label">Materials</div></div>
+      </div>
+
+      <div class="filter-bar">
+        <input type="text" class="search-box" id="search" placeholder="Search items, weapons, materials…"/>
+        <select class="filter-select" id="filter-tier">
+          <option value="">All Tiers</option>
+          <option value="1">T1 — Common</option>
+          <option value="2">T2 — Uncommon</option>
+          <option value="3">T3 — Rare</option>
+          <option value="4">T4 — Epic</option>
+          <option value="5">T5 — Legendary</option>
+          <option value="6">T6 — Mythic</option>
+          <option value="7">T7 — Ancient</option>
+          <option value="8">T8 — Artifact</option>
+        </select>
+        <select class="filter-select" id="filter-cat">
+          <option value="">All Categories</option>
+        </select>
+      </div>
+
+      <div id="items-container" class="item-grid">
+        <div class="loading">Loading inventory</div>
+      </div>
+    </section>
+
+    <!-- ============== Page: ACCOUNT / LINKED PROVIDERS ============== -->
+    <section class="page" id="page-account">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Linked Accounts</div>
+          <div class="page-sub">Connect a third-party provider so you can sign in on any device. All providers route through grudgewarlords.com auth.</div>
+        </div>
+      </div>
+
+      <div class="providers" id="providers-list">
+        <!-- Steam -->
+        <div class="provider-card" data-provider="steam">
+          <div class="provider-icon" style="background:#1b2838;color:#66c0f4">🎮</div>
+          <div class="provider-meta">
+            <div class="provider-name">Steam</div>
+            <div class="provider-desc">Sign in with your Steam account via OpenID 2.0. Links your SteamID for friend matching, achievements, and Steam library detection.</div>
+          </div>
+          <div class="provider-action">
+            <span class="provider-status" id="status-steam">Not connected</span>
+            <button class="provider-btn steam" data-action="connect" data-provider="steam">Connect Steam</button>
+          </div>
+        </div>
+
+        <!-- Discord -->
+        <div class="provider-card" data-provider="discord">
+          <div class="provider-icon" style="background:rgba(88,101,242,0.15);color:#a5b1ff">D</div>
+          <div class="provider-meta">
+            <div class="provider-name">Discord</div>
+            <div class="provider-desc">OAuth login with Discord plus community role perks and friend imports.</div>
+          </div>
+          <div class="provider-action">
+            <span class="provider-status" id="status-discord">Not connected</span>
+            <button class="provider-btn discord" data-action="connect" data-provider="discord">Connect Discord</button>
+          </div>
+        </div>
+
+        <!-- Google -->
+        <div class="provider-card" data-provider="google">
+          <div class="provider-icon" style="background:rgba(255,255,255,0.04);color:#ea4335;font-weight:700">G</div>
+          <div class="provider-meta">
+            <div class="provider-name">Google</div>
+            <div class="provider-desc">OAuth via Google account.</div>
+          </div>
+          <div class="provider-action">
+            <span class="provider-status" id="status-google">Not connected</span>
+            <button class="provider-btn" data-action="connect" data-provider="google">Connect Google</button>
+          </div>
+        </div>
+
+        <!-- Puter -->
+        <div class="provider-card" data-provider="puter">
+          <div class="provider-icon" style="background:rgba(212,168,67,0.15);color:#d4a843">☁️</div>
+          <div class="provider-meta">
+            <div class="provider-name">Puter</div>
+            <div class="provider-desc">Cloud storage backing every Grudge ID. Auto-created on signup; sign-in links your Puter UUID.</div>
+          </div>
+          <div class="provider-action">
+            <span class="provider-status" id="status-puter">Not connected</span>
+            <button class="provider-btn" data-action="connect" data-provider="puter">Connect Puter</button>
+          </div>
+        </div>
+
+        <!-- Wallet -->
+        <div class="provider-card" data-provider="wallet">
+          <div class="provider-icon" style="background:rgba(167,139,250,0.15);color:#a78bfa">◈</div>
+          <div class="provider-meta">
+            <div class="provider-name">Solana Wallet</div>
+            <div class="provider-desc">Connect a Solana wallet (Web3Auth) for cNFT characters and on-chain perks.</div>
+          </div>
+          <div class="provider-action">
+            <span class="provider-status" id="status-wallet">Not connected</span>
+            <a class="provider-btn" href="https://grudgewarlords.com/wallet" target="_blank" rel="noopener">Open Wallet</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============== Page: RECIPES ============== -->
+    <section class="page" id="page-recipes">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Crafting Recipes</div>
+          <div class="page-sub">Profession-locked recipes from the master database</div>
+        </div>
+      </div>
+
+      <div class="filter-bar">
+        <input type="text" class="search-box" id="recipe-search" placeholder="Search recipes…"/>
+        <select class="filter-select" id="filter-prof">
+          <option value="">All Professions</option>
+          <option value="Miner">Miner</option>
+          <option value="Forester">Forester</option>
+          <option value="Mystic">Mystic</option>
+          <option value="Chef">Chef</option>
+          <option value="Engineer">Engineer</option>
+        </select>
+      </div>
+
+      <div id="recipes-container" class="recipe-list">
+        <div class="loading">Loading recipes</div>
+      </div>
+    </section>
+
+    <!-- ============== Page: ATTRIBUTES (8 attrs from master-attributes.json) ============== -->
+    <section class="page" id="page-attributes">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Attributes</div>
+          <div class="page-sub">160 points across 8 attributes — 37 derived stats. Mirrored from <code>info.grudge-studio.com/data/master-attributes.json</code>.</div>
+        </div>
+      </div>
+      <div id="attributes-container" class="attr-grid">
+        <div class="loading">Loading attributes</div>
+      </div>
+    </section>
+
+    <!-- ============== Page: CRAFTING STATIONS (6 stations from info.grudge-studio.com/crafting.html) ============== -->
+    <section class="page" id="page-stations">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Crafting Stations</div>
+          <div class="page-sub">The six stations recipes are crafted at, per info.grudge-studio.com/crafting.html.</div>
+        </div>
+      </div>
+      <div id="stations-container" class="stations-grid"></div>
+    </section>
+  </main>
+</div>
+
+<!-- ======================== MODAL ======================== -->
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <button class="modal-close" id="modal-close">×</button>
+    <div id="modal-body"></div>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+ * Grudge Warlords — Inventory Codex
+ * Mirrors the canonical hub at https://info.grudge-studio.com
+ *
+ * Data sources (master JSON, version-locked to info hub):
+ *   • Items:      https://info.grudge-studio.com/data/master-items.json       (920+ items)
+ *   • Recipes:    https://info.grudge-studio.com/data/master-recipes.json     (220 recipes)
+ *   • Materials:  https://info.grudge-studio.com/data/master-materials.json   (254 materials)
+ *   • Attributes: https://info.grudge-studio.com/data/master-attributes.json  (8 attrs, 37 derived stats)
+ *   • Icons:      https://assets.grudge-studio.com/icons/...
+ *
+ * Professions (5):  Miner, Forester, Mystic, Chef, Engineer
+ * Stations (6):     Forge, Workbench, Alchemy Table, Loom, Tannery, Enchanting Altar
+ * Tiers (8):        T1 Common → T8 Artifact
+ * ============================================================ */
+
+const API = {
+  items:      'https://info.grudge-studio.com/data/master-items.json',
+  recipes:    'https://info.grudge-studio.com/data/master-recipes.json',
+  materials:  'https://info.grudge-studio.com/data/master-materials.json',
+  attributes: 'https://info.grudge-studio.com/data/master-attributes.json',
+  // Fallback to the GitHub Pages mirror if info.grudge-studio.com is unreachable
+  fallbackItems:      'https://assets.grudge-studio.com/api/v1/master-items.json',
+  fallbackRecipes:    'https://assets.grudge-studio.com/api/v1/master-recipes.json',
+  fallbackMaterials:  'https://assets.grudge-studio.com/api/v1/master-materials.json',
+  fallbackAttributes: 'https://assets.grudge-studio.com/api/v1/master-attributes.json',
+};
+
+// Auth API (proxied at grudgewarlords.com)
+const AUTH_BASE = 'https://grudgewarlords.com/api';
+const AUTH_RETURN = encodeURIComponent('https://grudge-launcher-xu9q5.puter.site/');
+
+const PROVIDER_STARTERS = {
+  steam:   () => fetchAuthUrl(`${AUTH_BASE}/auth/steam/start?state=${AUTH_RETURN}`),
+  discord: () => fetchAuthUrl(`${AUTH_BASE}/auth/discord/start?state=${AUTH_RETURN}`),
+  google:  () => fetchAuthUrl(`${AUTH_BASE}/auth/google/start?state=${AUTH_RETURN}`),
+  puter:   async () => {
+    if (typeof puter === 'undefined') throw new Error('Puter SDK not loaded');
+    if (!(await puter.auth.isSignedIn())) await puter.auth.signIn();
+    return null; // No redirect needed; Puter handles in-page
+  },
+};
+
+async function fetchAuthUrl(endpoint) {
+  const res = await fetch(endpoint);
+  if (!res.ok) throw new Error(`Auth start failed: ${res.status}`);
+  const data = await res.json();
+  return data.url;
+}
+
+const TIER_NAMES = {
+  0: 'Junk', 1: 'Common', 2: 'Uncommon', 3: 'Rare', 4: 'Epic',
+  5: 'Legendary', 6: 'Mythic', 7: 'Ancient', 8: 'Artifact'
+};
+
+// 5 professions per info.grudge-studio.com (Miner, Forester, Mystic = harvest+craft; Chef, Engineer = craft only)
+const PROFESSIONS = ['Miner', 'Forester', 'Mystic', 'Chef', 'Engineer'];
+// Only these gather raw materials (harvestables)
+const HARVEST_PROFS = new Set(['Miner', 'Forester', 'Mystic']);
+
+// 6 crafting stations per info.grudge-studio.com/crafting.html
+const CRAFTING_STATIONS = [
+  { id: 'forge',     name: 'Forge',             icon: '🔥', desc: 'Weapons & heavy armor. Requires ore and fuel.' },
+  { id: 'workbench', name: 'Workbench',         icon: '🪚', desc: 'General crafting, wood items, bows, and tools.' },
+  { id: 'alchemy',   name: 'Alchemy Table',     icon: '⚗️', desc: 'Potions, elixirs, poisons, and enchanting oils.' },
+  { id: 'loom',      name: 'Loom',              icon: '🧵', desc: 'Cloth armor, capes, bags, and magical fabrics.' },
+  { id: 'tannery',   name: 'Tannery',           icon: '🐂', desc: 'Leather armor, belts, boots from hides and skins.' },
+  { id: 'enchant',   name: 'Enchanting Altar',  icon: '✨', desc: 'Apply enchantments, runes, and magical properties to gear.' },
+];
+
+// Categories that count as consumables
+const CONSUMABLE_TYPES = new Set(['food', 'potion', 'consumable', 'elixir', 'scroll']);
+
+const state = {
+  items: [],
+  recipes: [],
+  materials: [],
+  attributes: [],
+  matsByUuid: {},
+  itemsByUuid: {},
+  page: 'all',
+  search: '',
+  tier: '',
+  cat: '',
+  prof: '',
+  recipeSearch: '',
+};
+
+/* ─────────── DATA LOADING ─────────── */
+
+async function fetchWithFallback(primary, fallback) {
+  try {
+    const r = await fetch(primary, { cache: 'no-cache' });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    return await r.json();
+  } catch (e) {
+    console.warn('[Grudge] Primary fetch failed, using fallback:', primary, e);
+    const r = await fetch(fallback, { cache: 'no-cache' });
+    if (!r.ok) throw new Error('Fallback failed: HTTP ' + r.status);
+    return await r.json();
+  }
+}
+
+async function loadAll() {
+  try {
+    const [itemsData, recipesData, matsData, attrsData] = await Promise.all([
+      fetchWithFallback(API.items, API.fallbackItems),
+      fetchWithFallback(API.recipes, API.fallbackRecipes),
+      fetchWithFallback(API.materials, API.fallbackMaterials),
+      fetchWithFallback(API.attributes, API.fallbackAttributes).catch(() => ({ attributes: [] })),
+    ]);
+
+    state.items      = itemsData.items      || [];
+    state.recipes    = recipesData.recipes  || [];
+    state.materials  = matsData.materials   || [];
+    state.attributes = attrsData.attributes || [];
+
+    state.matsByUuid  = Object.fromEntries(state.materials.map(m => [m.uuid, m]));
+    state.itemsByUuid = Object.fromEntries(state.items.map(i => [i.uuid, i]));
+
+    populateCategoryFilter();
+    updateCounts();
+    render();
+
+    document.getElementById('items-sub').textContent =
+      `Loaded ${state.items.length} items, ${state.recipes.length} recipes, ${state.materials.length} materials, ${state.attributes.length} attributes from info.grudge-studio.com`;
+  } catch (err) {
+    console.error('[Grudge] Failed to load data', err);
+    document.getElementById('items-container').innerHTML =
+      `<div class="error">Failed to load: ${err.message}<br>Please check your connection or try again.</div>`;
+  }
+}
+
+/* ─────────── HELPERS ─────────── */
+
+function tierColor(tier) {
+  return `var(--t${tier ?? 1})`;
+}
+
+function iconHtml(item, size = 56) {
+  const url = item?.iconUrl;
+  const emoji = item?.emoji || '📦';
+  if (!url) return `<span class="fallback">${emoji}</span>`;
+  return `<img src="${url}" alt="${item.name || ''}" loading="lazy" onerror="this.outerHTML='<span class=&quot;fallback&quot;>${emoji}</span>'"/>`;
+}
+
+function getDataset() {
+  switch (state.page) {
+    case 'weapons':
+      return state.items.filter(i => i.type === 'weapon');
+    case 'armor':
+      return state.items.filter(i => i.type === 'armor');
+    case 'consumables':
+      return [
+        ...state.items.filter(i => CONSUMABLE_TYPES.has((i.type || '').toLowerCase())),
+        ...state.materials.filter(m => CONSUMABLE_TYPES.has((m.type || '').toLowerCase()))
+      ];
+    case 'materials':
+      return state.materials;
+    case 'harvestables':
+      return state.materials.filter(m => HARVEST_PROFS.has(m.gatheredBy));
+    case 'all':
+    default:
+      // Combined view — items + materials together
+      return [...state.items, ...state.materials.map(m => ({ ...m, type: m.type || 'material' }))];
+  }
+}
+
+function applyFilters(list) {
+  return list.filter(it => {
+    if (state.tier && String(it.tier ?? '') !== state.tier) return false;
+    if (state.cat && it.category !== state.cat) return false;
+    if (state.search) {
+      const q = state.search.toLowerCase();
+      const hay = `${it.name || ''} ${it.baseName || ''} ${it.description || ''} ${it.category || ''} ${it.type || ''}`.toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
+    return true;
+  });
+}
+
+/* ─────────── RENDER ─────────── */
+
+function updateCounts() {
+  const items = state.items;
+  const mats = state.materials;
+  document.getElementById('count-all').textContent = items.length + mats.length;
+  document.getElementById('count-weapons').textContent = items.filter(i => i.type === 'weapon').length;
+  document.getElementById('count-armor').textContent = items.filter(i => i.type === 'armor').length;
+  document.getElementById('count-materials').textContent = mats.length;
+  document.getElementById('count-harvestables').textContent = mats.filter(m => HARVEST_PROFS.has(m.gatheredBy)).length;
+  document.getElementById('count-consumables').textContent =
+    items.filter(i => CONSUMABLE_TYPES.has((i.type || '').toLowerCase())).length +
+    mats.filter(m => CONSUMABLE_TYPES.has((m.type || '').toLowerCase())).length;
+  document.getElementById('count-recipes').textContent = state.recipes.length;
+  document.getElementById('count-attributes').textContent = state.attributes.length;
+  document.getElementById('stat-recipes').textContent = state.recipes.length;
+  document.getElementById('stat-mats').textContent = mats.length;
+}
+
+function populateCategoryFilter() {
+  const sel = document.getElementById('filter-cat');
+  const cats = new Set();
+  state.items.forEach(i => i.category && cats.add(i.category));
+  state.materials.forEach(m => m.category && cats.add(m.category));
+  sel.innerHTML = '<option value="">All Categories</option>' +
+    [...cats].sort().map(c => `<option value="${c}">${c}</option>`).join('');
+}
+
+function renderItems() {
+  const titles = {
+    all: 'All Items', weapons: 'Weapons', armor: 'Armor',
+    materials: 'Materials', harvestables: 'Harvestables', consumables: 'Consumables'
+  };
+  document.getElementById('items-title').textContent = titles[state.page] || 'Items';
+
+  const dataset = getDataset();
+  const filtered = applyFilters(dataset);
+
+  document.getElementById('stat-total').textContent = dataset.length;
+  document.getElementById('stat-shown').textContent = filtered.length;
+
+  const c = document.getElementById('items-container');
+  if (!filtered.length) {
+    c.innerHTML = '<div class="empty-state">No items match the current filters.</div>';
+    return;
+  }
+
+  c.innerHTML = filtered.slice(0, 600).map(it => {
+    const tier = it.tier ?? 1;
+    const tierLabel = it.tierLabel || TIER_NAMES[tier] || '';
+    const color = it.tierColor || '';
+    return `
+      <div class="item-card" style="--tier:${color || tierColor(tier)}" data-uuid="${it.uuid}">
+        <div class="tier-bar"></div>
+        <div class="item-icon-wrap">${iconHtml(it)}</div>
+        <div class="item-name">${escapeHtml(it.name || it.baseName || 'Unknown')}</div>
+        <div class="item-tier" style="color:${color || tierColor(tier)}">${tierLabel}</div>
+        <div class="item-meta">${escapeHtml(it.category || it.type || '')}</div>
+      </div>`;
+  }).join('') + (filtered.length > 600 ? `<div class="empty-state" style="grid-column:1/-1">… ${filtered.length - 600} more (refine filters to see)</div>` : '');
+
+  c.querySelectorAll('.item-card').forEach(el => {
+    el.addEventListener('click', () => openItemModal(el.dataset.uuid));
+  });
+}
+
+function renderRecipes() {
+  let list = state.recipes;
+  if (state.prof) list = list.filter(r => r.profession === state.prof);
+  if (state.recipeSearch) {
+    const q = state.recipeSearch.toLowerCase();
+    list = list.filter(r =>
+      (r.name || '').toLowerCase().includes(q) ||
+      (r.resultName || '').toLowerCase().includes(q) ||
+      (r.profession || '').toLowerCase().includes(q)
+    );
+  }
+
+  const c = document.getElementById('recipes-container');
+  if (!list.length) {
+    c.innerHTML = '<div class="empty-state">No recipes match the current filters.</div>';
+    return;
+  }
+
+  c.innerHTML = list.slice(0, 400).map(r => {
+    const mats = (r.materials || []).map(m => {
+      const mat = state.matsByUuid[m.uuid];
+      const icon = mat ? `<img src="${mat.iconUrl}" alt="" style="width:14px;height:14px;object-fit:contain" onerror="this.style.display='none'"/>` : (mat?.emoji || '');
+      return `<span class="mat-pill">${icon}<span>${escapeHtml(m.name || mat?.name || '?')}</span><span class="qty">×${m.quantity}</span></span>`;
+    }).join('');
+    return `
+      <div class="recipe-card" data-uuid="${r.uuid}">
+        <div class="recipe-name">${escapeHtml(r.name || '')}</div>
+        <div class="recipe-prof">${escapeHtml(r.profession || '?')} · ${escapeHtml(r.category || '')}</div>
+        <div style="font-size:11px;color:var(--text)">→ <strong style="color:var(--gold-bright)">${escapeHtml(r.resultName || '')}</strong></div>
+        <div class="recipe-mats">${mats || '<span style="font-size:10px;color:var(--text-dim)">No materials</span>'}</div>
+      </div>`;
+  }).join('');
+
+  c.querySelectorAll('.recipe-card').forEach(el => {
+    el.addEventListener('click', () => openRecipeModal(el.dataset.uuid));
+  });
+}
+
+/* ─────────── MODAL ─────────── */
+
+function openItemModal(uuid) {
+  const it = state.itemsByUuid[uuid] || state.matsByUuid[uuid];
+  if (!it) return;
+  const tier = it.tier ?? 1;
+  const tierLabel = it.tierLabel || TIER_NAMES[tier] || '';
+  const color = it.tierColor || tierColor(tier);
+
+  const stats = it.stats ? Object.entries(it.stats).map(([k, v]) =>
+    `<div class="stat-row"><span class="k">${k}</span><span class="v">${v}</span></div>`).join('') : '';
+
+  const abilities = (it.abilities || []).map(a => `<div class="stat-row"><span class="k">${escapeHtml(a)}</span></div>`).join('');
+  const passives  = (it.passives  || []).map(p => `<div class="stat-row"><span class="k">${escapeHtml(p)}</span></div>`).join('');
+
+  const recipe = it.recipeUuid ? state.recipes.find(r => r.uuid === it.recipeUuid) : null;
+  const recipeBlock = recipe ? `
+    <div class="modal-section">
+      <div class="modal-section-title">Recipe — ${escapeHtml(recipe.profession || '')}</div>
+      ${(recipe.materials || []).map(m => {
+        const mat = state.matsByUuid[m.uuid];
+        const icon = mat ? `<img src="${mat.iconUrl}" alt="" style="width:14px;height:14px;object-fit:contain;vertical-align:middle" onerror="this.style.display='none'"/> ` : '';
+        return `<div class="stat-row"><span class="k">${icon}${escapeHtml(m.name || mat?.name || '?')}</span><span class="v">×${m.quantity}</span></div>`;
+      }).join('')}
+    </div>` : '';
+
+  document.getElementById('modal-body').innerHTML = `
+    <div class="modal-icon">${iconHtml(it, 80)}</div>
+    <div class="modal-title">${escapeHtml(it.name || it.baseName || 'Unknown')}</div>
+    <div class="modal-tier" style="color:${color}">${tierLabel}${it.subCategory ? ' · ' + escapeHtml(it.subCategory) : ''}</div>
+    ${it.description ? `<div class="modal-desc">"${escapeHtml(it.description)}"</div>` : ''}
+    ${stats ? `<div class="modal-section"><div class="modal-section-title">Stats</div>${stats}</div>` : ''}
+    ${it.signature ? `<div class="modal-section"><div class="modal-section-title">Signature</div><div class="stat-row"><span class="k">${escapeHtml(it.signature)}</span></div></div>` : ''}
+    ${abilities ? `<div class="modal-section"><div class="modal-section-title">Abilities</div>${abilities}</div>` : ''}
+    ${passives ? `<div class="modal-section"><div class="modal-section-title">Passives</div>${passives}</div>` : ''}
+    ${it.craftedBy ? `<div class="modal-section"><div class="modal-section-title">Crafted By</div><div class="stat-row"><span class="k">${escapeHtml(it.craftedBy)}</span></div></div>` : ''}
+    ${it.gatheredBy ? `<div class="modal-section"><div class="modal-section-title">Gathered By</div><div class="stat-row"><span class="k">${escapeHtml(it.gatheredBy)}</span></div></div>` : ''}
+    ${recipeBlock}
+    <div class="uuid-line">${escapeHtml(it.uuid || '')}</div>
+  `;
+  document.getElementById('modal').classList.add('active');
+}
+
+function openRecipeModal(uuid) {
+  const r = state.recipes.find(x => x.uuid === uuid);
+  if (!r) return;
+  const result = state.itemsByUuid[r.resultItemId] || state.matsByUuid[r.resultItemId];
+  const tier = result?.tier ?? 1;
+  const color = result?.tierColor || tierColor(tier);
+
+  const matRows = (r.materials || []).map(m => {
+    const mat = state.matsByUuid[m.uuid];
+    const icon = mat ? `<img src="${mat.iconUrl}" alt="" style="width:14px;height:14px;object-fit:contain;vertical-align:middle" onerror="this.style.display='none'"/> ` : '';
+    return `<div class="stat-row"><span class="k">${icon}${escapeHtml(m.name || mat?.name || '?')}</span><span class="v">×${m.quantity}</span></div>`;
+  }).join('');
+
+  document.getElementById('modal-body').innerHTML = `
+    <div class="modal-icon">${result ? iconHtml(result, 80) : '<span class="fallback">📜</span>'}</div>
+    <div class="modal-title">${escapeHtml(r.name || '')}</div>
+    <div class="modal-tier" style="color:${color}">${escapeHtml(r.profession || '')} · ${escapeHtml(r.category || '')}</div>
+    <div class="modal-desc">→ <strong style="color:var(--gold-bright)">${escapeHtml(r.resultName || '')}</strong></div>
+    <div class="modal-section">
+      <div class="modal-section-title">Materials</div>
+      ${matRows || '<div class="stat-row"><span class="k">No materials</span></div>'}
+    </div>
+    <div class="uuid-line">${escapeHtml(r.uuid || '')}</div>
+  `;
+  document.getElementById('modal').classList.add('active');
+}
+
+function closeModal() {
+  document.getElementById('modal').classList.remove('active');
+}
+
+/* ─────────── UTILS ─────────── */
+
+function escapeHtml(s) {
+  return String(s ?? '').replace(/[&<>"']/g, c => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  }[c]));
+}
+
+function debounce(fn, ms = 200) {
+  let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); };
+}
+
+/* ─────────── EVENTS ─────────── */
+
+document.querySelectorAll('.nav-btn[data-page]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    state.page = btn.dataset.page;
+    state.search = ''; state.tier = ''; state.cat = '';
+    const searchEl = document.getElementById('search');
+    const tierEl = document.getElementById('filter-tier');
+    const catEl = document.getElementById('filter-cat');
+    if (searchEl) searchEl.value = '';
+    if (tierEl) tierEl.value = '';
+    if (catEl) catEl.value = '';
+    render();
+  });
+});
+
+/* ─────────── PROVIDER LINKING ─────────── */
+
+document.querySelectorAll('.provider-btn[data-action="connect"]').forEach(btn => {
+  btn.addEventListener('click', async () => {
+    const provider = btn.dataset.provider;
+    const starter = PROVIDER_STARTERS[provider];
+    if (!starter) return;
+    const original = btn.textContent;
+    btn.textContent = 'Redirecting…';
+    btn.disabled = true;
+    try {
+      const url = await starter();
+      if (url) {
+        window.location.href = url;
+      } else {
+        // Provider handled in-page (e.g. Puter)
+        await refreshProviderStatus();
+        btn.textContent = original;
+        btn.disabled = false;
+      }
+    } catch (err) {
+      console.error(`[Grudge] ${provider} connect failed`, err);
+      alert(`${provider} login failed: ${err.message}`);
+      btn.textContent = original;
+      btn.disabled = false;
+    }
+  });
+});
+
+function render() {
+  if (state.page === 'recipes') {
+    renderRecipes();
+    showOnly('page-recipes');
+  } else if (state.page === 'account') {
+    showOnly('page-account');
+    refreshProviderStatus();
+  } else if (state.page === 'attributes') {
+    renderAttributes();
+    showOnly('page-attributes');
+  } else if (state.page === 'stations') {
+    renderStations();
+    showOnly('page-stations');
+  } else {
+    renderItems();
+    showOnly('page-items');
+  }
+}
+
+function renderAttributes() {
+  const c = document.getElementById('attributes-container');
+  if (!c) return;
+  if (!state.attributes.length) {
+    c.innerHTML = '<div class="empty-state">No attributes loaded.</div>';
+    return;
+  }
+  c.innerHTML = state.attributes.map(a => `
+    <div class="attr-card" style="--accent:${a.color}">
+      <div class="attr-head">
+        <div class="attr-emoji">${a.emoji || '✨'}</div>
+        <div>
+          <div class="attr-name" style="color:${a.color}">${escapeHtml(a.name)}</div>
+          <div class="attr-id">${escapeHtml(a.id)}</div>
+        </div>
+      </div>
+      <div class="attr-desc">${escapeHtml(a.description || '')}</div>
+      ${a.formula ? `<div class="attr-formula"><span class="k">Formula</span><code>${escapeHtml(a.formula)}</code></div>` : ''}
+      <div class="uuid-line">${escapeHtml(a.uuid || '')}</div>
+    </div>`).join('');
+}
+
+function renderStations() {
+  const c = document.getElementById('stations-container');
+  if (!c) return;
+  c.innerHTML = CRAFTING_STATIONS.map(s => `
+    <div class="station-card">
+      <div class="station-icon">${s.icon}</div>
+      <div class="station-name">${escapeHtml(s.name)}</div>
+      <div class="station-desc">${escapeHtml(s.desc)}</div>
+    </div>`).join('');
+}
+function showOnly(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  const el = document.getElementById(id);
+  if (el) el.classList.add('active');
+}
+
+async function refreshProviderStatus() {
+  // Read existing session from localStorage (set by SSO redirect from grudgewarlords.com)
+  let session = null;
+  try { session = JSON.parse(localStorage.getItem('grudge-session') || 'null'); } catch {}
+
+  setStatus('steam',   session?.type === 'steam'   || !!session?.steamId);
+  setStatus('discord', session?.type === 'discord');
+  setStatus('google',  session?.type === 'google');
+  setStatus('wallet',  session?.type === 'wallet'  || !!session?.walletAddress);
+
+  // Puter — query the SDK directly
+  let puterLinked = false;
+  try {
+    if (typeof puter !== 'undefined' && await puter.auth.isSignedIn()) {
+      puterLinked = true;
+    }
+  } catch {}
+  setStatus('puter', puterLinked || session?.type === 'puter');
+}
+
+function setStatus(provider, linked) {
+  const status = document.getElementById(`status-${provider}`);
+  const card = document.querySelector(`.provider-card[data-provider="${provider}"]`);
+  if (!status || !card) return;
+  const btn = card.querySelector('.provider-btn[data-action="connect"]');
+  if (linked) {
+    status.textContent = 'Connected';
+    status.classList.add('linked');
+    if (btn) {
+      btn.textContent = 'Linked';
+      btn.classList.add('linked');
+      btn.disabled = true;
+    }
+  } else {
+    status.textContent = 'Not connected';
+    status.classList.remove('linked');
+  }
+}
+
+document.getElementById('search').addEventListener('input', debounce(e => {
+  state.search = e.target.value.trim();
+  render();
+}, 200));
+
+document.getElementById('filter-tier').addEventListener('change', e => {
+  state.tier = e.target.value;
+  render();
+});
+
+document.getElementById('filter-cat').addEventListener('change', e => {
+  state.cat = e.target.value;
+  render();
+});
+
+document.getElementById('recipe-search').addEventListener('input', debounce(e => {
+  state.recipeSearch = e.target.value.trim();
+  renderRecipes();
+}, 200));
+
+document.getElementById('filter-prof').addEventListener('change', e => {
+  state.prof = e.target.value;
+  renderRecipes();
+});
+
+document.getElementById('modal-close').addEventListener('click', closeModal);
+document.getElementById('modal').addEventListener('click', e => {
+  if (e.target.id === 'modal') closeModal();
+});
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+/* ─────────── PUTER AUTH (optional) ─────────── */
+
+(async function setupAuth() {
+  try {
+    if (typeof puter === 'undefined') return;
+    const signedIn = await puter.auth.isSignedIn();
+    const dot = document.getElementById('auth-dot');
+    const name = document.getElementById('auth-name');
+    const btn = document.getElementById('auth-btn');
+    if (signedIn) {
+      const user = await puter.auth.getUser();
+      dot.classList.add('on');
+      name.textContent = user?.username || 'Signed in';
+      btn.textContent = 'Logout';
+      btn.onclick = async () => { await puter.auth.signOut(); location.reload(); };
+    } else {
+      btn.onclick = async () => { await puter.auth.signIn(); location.reload(); };
+    }
+  } catch (e) {
+    console.warn('[Grudge] Puter auth not available', e);
+  }
+})();
+
+/* ─────────── BOOT ─────────── */
+
+loadAll();
+</script>
+</body>
+</html>

@@ -182,6 +182,11 @@ export const MODEL_MANIFEST: Record<string, ModelUnit> = {
   // ── Faction NPC models ─────────────────────────────────────────────────
   "fabled-worker": { id: "fabled-worker", name: "Fabled Worker", modelPath: `${CHAR_BASE}/fabledworker.glb`, scale: 1.0, weaponType: "unarmed", skeleton: "mixamo-24", jointCount: 24 },
 
+  // ── Town models (environment GLBs — static skeleton, no character anims) ──
+  "town-crusade":  { id: "town-crusade",  name: "Dried Basin Garrison",  modelPath: `/models/medieval_town.glb`,           scale: 1.0, weaponType: "unarmed", skeleton: "static", jointCount: 0 },
+  "town-legion":   { id: "town-legion",   name: "The Pit Foundry",       modelPath: `${CDN}/models/towns/pit_foundry.glb`, scale: 1.0, weaponType: "unarmed", skeleton: "static", jointCount: 0 },
+  "town-fabled":   { id: "town-fabled",   name: "Cathedral Sanctum",     modelPath: `${CDN}/models/towns/cathedral_sanctum.glb`, scale: 1.0, weaponType: "unarmed", skeleton: "static", jointCount: 0 },
+
   // ── Detailed character models (R2: /models/characters/) ────────────────
   "barbarian-glad":   { id: "barbarian-glad",   name: "Barbarian Gladiator", modelPath: `${CHAR_BASE}/barbarianglad.glb`,         scale: 1.1,  weaponType: "greatsword",   skeleton: "mixamo-24", jointCount: 24 },
   berserker:          { id: "berserker",         name: "Berserker",          modelPath: `${CHAR_BASE}/berserker.glb`,            scale: 1.1,  weaponType: "greatsword",   skeleton: "mixamo-24", jointCount: 24 },

@@ -60,7 +60,7 @@ function getEnemyTypesForSector(sectorId: SectorId): string[] {
 const ENEMY_SPAWN_INTERVAL_MS = 15_000;
 const MAX_ENEMIES_DEFAULT = 8;
 const NODE_RESPAWN_MS = 60_000;
-const SECTOR_SIZE = 6000; // matches GrudgesTerrainSystem.js
+const SECTOR_SIZE = 10_000; // canonical: 10km per sector, 30km total world
 const TICK_RATE = 20;     // 20 ticks/sec
 
 // ── Difficulty scaling ──────────────────────────────────────────

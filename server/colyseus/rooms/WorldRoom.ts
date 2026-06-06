@@ -29,6 +29,7 @@ import {
   getTideHeight,
   type SectorPosition,
 } from "@shared/definitions/lore";
+import { sectorHasTown, getTownForSector } from "@shared/definitions/factionTowns";
 
 // ── Join Options ────────────────────────────────────────────────
 
@@ -116,6 +117,13 @@ export class WorldRoom extends Room<WorldState> {
         };
       });
       client.send("sectors_list", sectors);
+    });
+
+    // Client wants to enter a town in a sector
+    this.onMessage("enter_town", async (client, data: {
+      sectorId: SectorId;
+    }) => {
+      await this.handleEnterTown(client, data.sectorId);
     });
 
     // Chat (world-wide)
@@ -271,6 +279,57 @@ export class WorldRoom extends Room<WorldState> {
       this.state.totalPlayers = this.clients_.size;
     } catch {
       // matchMaker query can fail during shutdown
+    }
+  }
+
+  // ── Enter Town ──────────────────────────────────────────────
+  //
+  // When a client requests a town, we find or create the TownRoom
+  // for the sector and send back the roomId.
+
+  private async handleEnterTown(client: Client, sectorId: SectorId) {
+    const wc = this.clients_.get(client.sessionId);
+    if (!wc) return;
+
+    if (!sectorHasTown(sectorId as SectorPosition)) {
+      client.send("enter_town_error", { error: `No town in sector: ${sectorId}` });
+      return;
+    }
+
+    const town = getTownForSector(sectorId as SectorPosition);
+    if (!town) {
+      client.send("enter_town_error", { error: `Town definition missing for: ${sectorId}` });
+      return;
+    }
+
+    try {
+      // Find existing TownRoom for this sector, or create one
+      const rooms = await matchMaker.query({ name: "town", metadata: { sectorId } });
+      let roomId: string;
+
+      if (rooms.length > 0) {
+        roomId = rooms[0].roomId;
+      } else {
+        const room = await matchMaker.createRoom("town", { sectorId });
+        roomId = room.roomId;
+      }
+
+      wc.currentSector = sectorId;
+
+      client.send("enter_town_ready", {
+        sectorId,
+        roomId,
+        townId: town.id,
+        townName: town.name,
+        factionId: town.factionId,
+      });
+
+      console.log(
+        `[WorldRoom] ${wc.characterName} → town ${town.name} (room ${roomId})`
+      );
+    } catch (err: any) {
+      console.error(`[WorldRoom] Failed to enter town in ${sectorId}:`, err.message);
+      client.send("enter_town_error", { error: err.message });
     }
   }
 

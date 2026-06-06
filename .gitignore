@@ -66,3 +66,11 @@ public/models/*.glb
 public/models/*.fbx
 public/models/*.obj
 .env*.local
+
+# Town GLB assets (too large for git, served from R2 CDN in prod)
+public/models/towns/**/*.glb
+public/models/instances/**/*.glb
+# Temp files
+D:/*.ts
+.env.local
+scripts/pull-railway-db.mjs

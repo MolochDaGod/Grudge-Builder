@@ -1,0 +1,542 @@
+{
+  "crusade/exterior": {
+    "file": "crusade/exterior.glb",
+    "originalSize": [
+      40.15,
+      40.11,
+      22.31
+    ],
+    "originalCenter": [
+      -0.16,
+      19.55,
+      -2.41
+    ],
+    "maxDimension": 40.15,
+    "scaleFactor": 1.9927,
+    "scaledSize": [
+      80,
+      79.9,
+      44.5
+    ],
+    "centerOffset": [
+      0.31,
+      -38.97,
+      4.81
+    ],
+    "meshCount": 340,
+    "materialCount": 66,
+    "nodeCount": 556,
+    "fileSizeMB": 12.6,
+    "targetSize": 80
+  },
+  "crusade/tavern": {
+    "file": "crusade/tavern.glb",
+    "originalSize": [
+      126.08,
+      241.22,
+      99.76
+    ],
+    "originalCenter": [
+      -43.93,
+      -9.18,
+      132.83
+    ],
+    "maxDimension": 241.22,
+    "scaleFactor": 0.0829,
+    "scaledSize": [
+      10.5,
+      20,
+      8.3
+    ],
+    "centerOffset": [
+      3.64,
+      0.76,
+      -11.01
+    ],
+    "meshCount": 66,
+    "materialCount": 66,
+    "nodeCount": 71,
+    "fileSizeMB": 2.8,
+    "targetSize": 20
+  },
+  "crusade/cottage": {
+    "file": "crusade/cottage.glb",
+    "originalSize": [
+      18018.25,
+      21393.92,
+      8616.33
+    ],
+    "originalCenter": [
+      1414.05,
+      466.36,
+      4245.2
+    ],
+    "maxDimension": 21393.92,
+    "scaleFactor": 0.0006,
+    "scaledSize": [
+      10.1,
+      12,
+      4.8
+    ],
+    "centerOffset": [
+      -0.79,
+      -0.26,
+      -2.38
+    ],
+    "meshCount": 60,
+    "materialCount": 59,
+    "nodeCount": 65,
+    "fileSizeMB": 2.3,
+    "targetSize": 12
+  },
+  "crusade/cathedral": {
+    "file": "crusade/cathedral.glb",
+    "originalSize": [
+      3720.85,
+      1555.94,
+      2288.2
+    ],
+    "originalCenter": [
+      -60.52,
+      651.53,
+      -38.71
+    ],
+    "maxDimension": 3720.85,
+    "scaleFactor": 0.0081,
+    "scaledSize": [
+      30,
+      12.5,
+      18.4
+    ],
+    "centerOffset": [
+      0.49,
+      -5.25,
+      0.31
+    ],
+    "meshCount": 103,
+    "materialCount": 25,
+    "nodeCount": 211,
+    "fileSizeMB": 33.7,
+    "targetSize": 30
+  },
+  "legion/dark_town": {
+    "file": "legion/dark_town.glb",
+    "originalSize": [
+      144.42,
+      65.42,
+      159.14
+    ],
+    "originalCenter": [
+      -16.24,
+      23.79,
+      -15
+    ],
+    "maxDimension": 159.14,
+    "scaleFactor": 0.5027,
+    "scaledSize": [
+      72.6,
+      32.9,
+      80
+    ],
+    "centerOffset": [
+      8.16,
+      -11.96,
+      7.54
+    ],
+    "meshCount": 66,
+    "materialCount": 19,
+    "nodeCount": 101,
+    "fileSizeMB": 23.8,
+    "targetSize": 80
+  },
+  "legion/orc_buildings": {
+    "file": "legion/orc_buildings.glb",
+    "originalSize": [
+      176.81,
+      20.01,
+      98.96
+    ],
+    "originalCenter": [
+      9.19,
+      6.57,
+      -34.83
+    ],
+    "maxDimension": 176.81,
+    "scaleFactor": 0.3394,
+    "scaledSize": [
+      60,
+      6.8,
+      33.6
+    ],
+    "centerOffset": [
+      -3.12,
+      -2.23,
+      11.82
+    ],
+    "meshCount": 198,
+    "materialCount": 1,
+    "nodeCount": 594,
+    "fileSizeMB": 32.4,
+    "targetSize": 60
+  },
+  "legion/madra_shrine": {
+    "file": "legion/madra_shrine.glb",
+    "originalSize": [
+      693.23,
+      1019.31,
+      311.59
+    ],
+    "originalCenter": [
+      3.08,
+      -241.56,
+      117.48
+    ],
+    "maxDimension": 1019.31,
+    "scaleFactor": 0.0147,
+    "scaledSize": [
+      10.2,
+      15,
+      4.6
+    ],
+    "centerOffset": [
+      -0.05,
+      3.55,
+      -1.73
+    ],
+    "meshCount": 34,
+    "materialCount": 6,
+    "nodeCount": 71,
+    "fileSizeMB": 7,
+    "targetSize": 15
+  },
+  "legion/cave_forge": {
+    "file": "legion/cave_forge.glb",
+    "originalSize": [
+      124460.95,
+      166618,
+      46658.24
+    ],
+    "originalCenter": [
+      -11136.18,
+      -33578.69,
+      13855.92
+    ],
+    "maxDimension": 166618,
+    "scaleFactor": 0.0001,
+    "scaledSize": [
+      11.2,
+      15,
+      4.2
+    ],
+    "centerOffset": [
+      1,
+      3.02,
+      -1.25
+    ],
+    "meshCount": 26,
+    "materialCount": 25,
+    "nodeCount": 35,
+    "fileSizeMB": 3.5,
+    "targetSize": 15
+  },
+  "fabled/platforms": {
+    "file": "fabled/platforms.glb",
+    "originalSize": [
+      16610.08,
+      18964.57,
+      10230.31
+    ],
+    "originalCenter": [
+      -5857.2,
+      1946.57,
+      -1637.57
+    ],
+    "maxDimension": 18964.57,
+    "scaleFactor": 0.0042,
+    "scaledSize": [
+      70.1,
+      80,
+      43.2
+    ],
+    "centerOffset": [
+      24.71,
+      -8.21,
+      6.91
+    ],
+    "meshCount": 114,
+    "materialCount": 100,
+    "nodeCount": 119,
+    "fileSizeMB": 16.3,
+    "targetSize": 80
+  },
+  "fabled/dwarf_gate": {
+    "file": "fabled/dwarf_gate.glb",
+    "originalSize": [
+      36249.82,
+      25413.06,
+      69931.43
+    ],
+    "originalCenter": [
+      -5974.06,
+      11852.78,
+      5776.01
+    ],
+    "maxDimension": 69931.43,
+    "scaleFactor": 0.0006,
+    "scaledSize": [
+      20.7,
+      14.5,
+      40
+    ],
+    "centerOffset": [
+      3.42,
+      -6.78,
+      -3.3
+    ],
+    "meshCount": 109,
+    "materialCount": 9,
+    "nodeCount": 162,
+    "fileSizeMB": 68,
+    "targetSize": 40
+  },
+  "fabled/cottage": {
+    "file": "fabled/cottage.glb",
+    "originalSize": [
+      14.41,
+      6.89,
+      17.12
+    ],
+    "originalCenter": [
+      1.13,
+      3.4,
+      -0.37
+    ],
+    "maxDimension": 17.12,
+    "scaleFactor": 0.7011,
+    "scaledSize": [
+      10.1,
+      4.8,
+      12
+    ],
+    "centerOffset": [
+      -0.79,
+      -2.38,
+      0.26
+    ],
+    "meshCount": 60,
+    "materialCount": 60,
+    "nodeCount": 70,
+    "fileSizeMB": 1.2,
+    "targetSize": 12
+  },
+  "fabled/library": {
+    "file": "fabled/library.glb",
+    "originalSize": [
+      3720.85,
+      1555.94,
+      2288.2
+    ],
+    "originalCenter": [
+      -60.52,
+      651.53,
+      -38.71
+    ],
+    "maxDimension": 3720.85,
+    "scaleFactor": 0.0081,
+    "scaledSize": [
+      30,
+      12.5,
+      18.4
+    ],
+    "centerOffset": [
+      0.49,
+      -5.25,
+      0.31
+    ],
+    "meshCount": 103,
+    "materialCount": 25,
+    "nodeCount": 211,
+    "fileSizeMB": 33.7,
+    "targetSize": 30
+  },
+  "fabled/forest_lodge": {
+    "file": "fabled/forest_lodge.glb",
+    "originalSize": [
+      3668.75,
+      3920.6,
+      5192.48
+    ],
+    "originalCenter": [
+      -665.48,
+      398.6,
+      613.5
+    ],
+    "maxDimension": 5192.48,
+    "scaleFactor": 0.0029,
+    "scaledSize": [
+      10.6,
+      11.3,
+      15
+    ],
+    "centerOffset": [
+      1.92,
+      -1.15,
+      -1.77
+    ],
+    "meshCount": 53,
+    "materialCount": 53,
+    "nodeCount": 58,
+    "fileSizeMB": 7.7,
+    "targetSize": 15
+  },
+  "center/neutral_hub": {
+    "file": "center/neutral_hub.glb",
+    "originalSize": [
+      228.05,
+      201.03,
+      498.02
+    ],
+    "originalCenter": [
+      -49.22,
+      -40.1,
+      211.64
+    ],
+    "maxDimension": 498.02,
+    "scaleFactor": 0.2008,
+    "scaledSize": [
+      45.8,
+      40.4,
+      100
+    ],
+    "centerOffset": [
+      9.88,
+      8.05,
+      -42.5
+    ],
+    "meshCount": 637,
+    "materialCount": 48,
+    "nodeCount": 1284,
+    "fileSizeMB": 18.5,
+    "targetSize": 100
+  },
+  "center/arena": {
+    "file": "center/arena.glb",
+    "originalSize": [
+      323.43,
+      325.33,
+      194.83
+    ],
+    "originalCenter": [
+      7.12,
+      6.89,
+      8.43
+    ],
+    "maxDimension": 325.33,
+    "scaleFactor": 0.1844,
+    "scaledSize": [
+      59.6,
+      60,
+      35.9
+    ],
+    "centerOffset": [
+      -1.31,
+      -1.27,
+      -1.55
+    ],
+    "meshCount": 35,
+    "materialCount": 33,
+    "nodeCount": 37,
+    "fileSizeMB": 13.2,
+    "targetSize": 60
+  },
+  "shared/inn": {
+    "file": "shared/inn.glb",
+    "originalSize": [
+      126.08,
+      241.22,
+      99.76
+    ],
+    "originalCenter": [
+      -43.93,
+      -9.18,
+      132.83
+    ],
+    "maxDimension": 241.22,
+    "scaleFactor": 0.0829,
+    "scaledSize": [
+      10.5,
+      20,
+      8.3
+    ],
+    "centerOffset": [
+      3.64,
+      0.76,
+      -11.01
+    ],
+    "meshCount": 66,
+    "materialCount": 66,
+    "nodeCount": 71,
+    "fileSizeMB": 2.8,
+    "targetSize": 20
+  },
+  "shared/modular_terrain": {
+    "file": "shared/modular_terrain.glb",
+    "originalSize": [
+      1089.3,
+      463.97,
+      1088.73
+    ],
+    "originalCenter": [
+      0,
+      231.87,
+      0
+    ],
+    "maxDimension": 1089.3,
+    "scaleFactor": 0.0367,
+    "scaledSize": [
+      40,
+      17,
+      40
+    ],
+    "centerOffset": [
+      0,
+      -8.51,
+      0
+    ],
+    "meshCount": 33,
+    "materialCount": 1,
+    "nodeCount": 69,
+    "fileSizeMB": 0.8,
+    "targetSize": 40
+  },
+  "shared/training_field": {
+    "file": "shared/training_field.glb",
+    "originalSize": [
+      3902.8,
+      334,
+      3840.65
+    ],
+    "originalCenter": [
+      -18.67,
+      81.38,
+      7.33
+    ],
+    "maxDimension": 3902.8,
+    "scaleFactor": 0.0102,
+    "scaledSize": [
+      40,
+      3.4,
+      39.4
+    ],
+    "centerOffset": [
+      0.19,
+      -0.83,
+      -0.08
+    ],
+    "meshCount": 133,
+    "materialCount": 41,
+    "nodeCount": 404,
+    "fileSizeMB": 29.8,
+    "targetSize": 40
+  }
+}
