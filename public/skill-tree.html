@@ -1,9 +1,9 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>GRUDGE — Class Selector (Fancy)</title>
+<title>GRUDGE â€” Class Selector (Fancy)</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;900&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
@@ -416,8 +416,8 @@ body{
 <div class="shell">
 
   <div class="topbar">
-    <div class="brand">GRUDGE WARLORDS<small>RACE · CLASS · SKILL CODEX</small></div>
-    <div class="crumbs">Distribution · <b>0</b>·1·5·10·15·20</div>
+    <div class="brand">GRUDGE WARLORDS<small>RACE Â· CLASS Â· SKILL CODEX</small></div>
+    <div class="crumbs">Distribution Â· <b>0</b>Â·1Â·5Â·10Â·15Â·20</div>
   </div>
 
   <!-- races -->
@@ -431,7 +431,7 @@ body{
     <section class="board">
       <div class="board-head">
         <h2 id="className">Choose your Class</h2>
-        <span class="tag" id="roleTag">—</span>
+        <span class="tag" id="roleTag">â€”</span>
       </div>
 
       <div class="progress"><div class="fill" id="progFill"></div>
@@ -443,7 +443,7 @@ body{
 
     <aside class="side">
       <div class="hero"><div class="img" id="heroImg"></div>
-        <div class="title"><h3 id="heroName">—</h3><span id="heroRole">Select a class to begin</span></div>
+        <div class="title"><h3 id="heroName">â€”</h3><span id="heroRole">Select a class to begin</span></div>
       </div>
 
       <div class="build" id="build"></div>
@@ -476,133 +476,133 @@ const PANEL_BG = "https://i.imgur.com/0SOCXgv.png";
 /* -------- data (merged from your Unity .asset files + reference distribution) -------- */
 const CLASSES = {
   mage: {
-    name:"Mage Priest", role:"Primary Healer · Magic DPS · Utility", emoji:"🔮",
-    desc:"Mana Shield & Mobility — mana-based shield, Blink teleport, and portals.",
+    name:"Mage Priest", role:"Primary Healer Â· Magic DPS Â· Utility", emoji:"ðŸ”®",
+    desc:"Mana Shield & Mobility â€” mana-based shield, Blink teleport, and portals.",
     color:"var(--c-mage)",
     hero:"https://i.imgur.com/vKQR4UT.png",
     tiers:[
       {lvl:0,label:"Arcane Affinity",hint:"Automatic",auto:true,skills:[
-        {n:"Mana Shield",i:"◈",d:"Passive shield based on mana %. Active: 15s massive crit/spell boost.",stats:{"Mana":20,"CD":"30s","Duration":"15s","Range":"10y"}},
+        {n:"Mana Shield",i:"â—ˆ",d:"Passive shield based on mana %. Active: 15s massive crit/spell boost.",stats:{"Mana":20,"CD":"30s","Duration":"15s","Range":"10y"}},
       ]},
       {lvl:1,label:"Basic Arts",hint:"Pick 1 of 2",skills:[
-        {n:"Magic Missile",i:"✶",d:"Multi-projectile damage. Fast, cheap, reliable.",stats:{"Mana":5,"CD":"0.5s","DMG":10,"Range":"25y"}},
-        {n:"Heal",i:"✚",d:"Direct single-target healing spell.",stats:{"Mana":15,"CD":"8s","Duration":"3s","Range":"20y"}},
+        {n:"Magic Missile",i:"âœ¶",d:"Multi-projectile damage. Fast, cheap, reliable.",stats:{"Mana":5,"CD":"0.5s","DMG":10,"Range":"25y"}},
+        {n:"Heal",i:"âœš",d:"Direct single-target healing spell.",stats:{"Mana":15,"CD":"8s","Duration":"3s","Range":"20y"}},
       ]},
       {lvl:5,label:"Specialization",hint:"Pick 1 of 2",skills:[
-        {n:"Fireball",i:"🔥",d:"AoE fire damage. Explodes on impact.",stats:{"Mana":20,"CD":"6s","DMG":25,"AoE":"Yes"}},
-        {n:"Greater Heal",i:"✦",d:"Powerful single-target heal with +50% healing power.",stats:{"Mana":30,"CD":"12s","Duration":"5s","Range":"25y"}},
+        {n:"Fireball",i:"ðŸ”¥",d:"AoE fire damage. Explodes on impact.",stats:{"Mana":20,"CD":"6s","DMG":25,"AoE":"Yes"}},
+        {n:"Greater Heal",i:"âœ¦",d:"Powerful single-target heal with +50% healing power.",stats:{"Mana":30,"CD":"12s","Duration":"5s","Range":"25y"}},
       ]},
       {lvl:10,label:"Advanced Magic",hint:"Pick 1 of 3",skills:[
-        {n:"Lightning Chain",i:"⚝",d:"Chains to up to 5 targets for multi-target damage.",stats:{"Mana":35,"CD":"10s","DMG":30,"Range":"30y"}},
-        {n:"Blink",i:"⚡",d:"10-yard directional teleport. Instant movement.",stats:{"Mana":20,"CD":"15s","Range":"10y"}},
-        {n:"Group Heal",i:"✧",d:"AoE heal for party. Restores nearby allies.",stats:{"Mana":40,"CD":"20s","Duration":"5s","Range":"15y"}},
+        {n:"Lightning Chain",i:"âš",d:"Chains to up to 5 targets for multi-target damage.",stats:{"Mana":35,"CD":"10s","DMG":30,"Range":"30y"}},
+        {n:"Blink",i:"âš¡",d:"10-yard directional teleport. Instant movement.",stats:{"Mana":20,"CD":"15s","Range":"10y"}},
+        {n:"Group Heal",i:"âœ§",d:"AoE heal for party. Restores nearby allies.",stats:{"Mana":40,"CD":"20s","Duration":"5s","Range":"15y"}},
       ]},
       {lvl:15,label:"Master Tier",hint:"Pick 1 of 2",skills:[
-        {n:"Meteor",i:"☄",d:"Delayed massive AoE damage. Massive destruction.",stats:{"Mana":60,"CD":"45s","DMG":100,"AoE":"Yes"}},
-        {n:"Portal",i:"◉",d:"Place/connect portals for team teleportation.",stats:{"Mana":50,"CD":"120s","Duration":"30s","Range":"10y"}},
+        {n:"Meteor",i:"â˜„",d:"Delayed massive AoE damage. Massive destruction.",stats:{"Mana":60,"CD":"45s","DMG":100,"AoE":"Yes"}},
+        {n:"Portal",i:"â—‰",d:"Place/connect portals for team teleportation.",stats:{"Mana":50,"CD":"120s","Duration":"30s","Range":"10y"}},
       ]},
       {lvl:20,label:"Legendary Magic",hint:"Pick 1 of 2",skills:[
-        {n:"Archmage",i:"✪",d:"+40% Spell Power. Reduced costs & cooldowns. Ultimate power.",stats:{"Mana":80,"CD":"180s","Duration":"30s","+SP":"40%"}},
-        {n:"Reality Tear",i:"✺",d:"Devastating line-of-effect reality-warping damage.",stats:{"Mana":90,"CD":"150s","DMG":180,"AoE":"Line"}},
+        {n:"Archmage",i:"âœª",d:"+40% Spell Power. Reduced costs & cooldowns. Ultimate power.",stats:{"Mana":80,"CD":"180s","Duration":"30s","+SP":"40%"}},
+        {n:"Reality Tear",i:"âœº",d:"Devastating line-of-effect reality-warping damage.",stats:{"Mana":90,"CD":"150s","DMG":180,"AoE":"Line"}},
       ]},
     ],
   },
 
   warrior: {
-    name:"Warrior", role:"Tank · DPS · Paladin", emoji:"🗡️",
-    desc:"Flexible fighter — can spec tank, DPS, or paladin support.",
+    name:"Warrior", role:"Tank Â· DPS Â· Paladin", emoji:"ðŸ—¡ï¸",
+    desc:"Flexible fighter â€” can spec tank, DPS, or paladin support.",
     color:"var(--c-warrior)",
     hero:"https://i.imgur.com/Wj2mUH2.png",
     tiers:[
       {lvl:0,label:"Invincibility",hint:"Automatic",auto:true,skills:[
-        {n:"Invulnerability",i:"⛨",d:"Temporary immunity (1–4s). Scales with trait level.",stats:{"Mana":30,"CD":"60s","Duration":"1s","Range":"Self"}},
+        {n:"Invulnerability",i:"â›¨",d:"Temporary immunity (1â€“4s). Scales with trait level.",stats:{"Mana":30,"CD":"60s","Duration":"1s","Range":"Self"}},
       ]},
       {lvl:1,label:"Combat Basics",hint:"Pick 1 of 2",skills:[
-        {n:"Taunt",i:"❢",d:"Force enemies to target you. Threat generation.",stats:{"Mana":10,"CD":"15s","Duration":"5s","Range":"10y"}},
-        {n:"Quick Strike",i:"⚔",d:"Fast attack with +15% attack speed bonus.",stats:{"Mana":5,"CD":"3s","DMG":8,"Range":"3y"}},
+        {n:"Taunt",i:"â¢",d:"Force enemies to target you. Threat generation.",stats:{"Mana":10,"CD":"15s","Duration":"5s","Range":"10y"}},
+        {n:"Quick Strike",i:"âš”",d:"Fast attack with +15% attack speed bonus.",stats:{"Mana":5,"CD":"3s","DMG":8,"Range":"3y"}},
       ]},
       {lvl:5,label:"Specialization",hint:"Pick 1 of 2",skills:[
-        {n:"Damage Surge",i:"↑",d:"+25% damage for 5s. Temporary damage boost.",stats:{"Mana":15,"CD":"20s","Duration":"5s","+DMG":"25%"}},
-        {n:"Guardian's Aura",i:"◎",d:"+15% party defense within range. Ally buff.",stats:{"Mana":20,"CD":"45s","Duration":"30s","Range":"15y"}},
+        {n:"Damage Surge",i:"â†‘",d:"+25% damage for 5s. Temporary damage boost.",stats:{"Mana":15,"CD":"20s","Duration":"5s","+DMG":"25%"}},
+        {n:"Guardian's Aura",i:"â—Ž",d:"+15% party defense within range. Ally buff.",stats:{"Mana":20,"CD":"45s","Duration":"30s","Range":"15y"}},
       ]},
       {lvl:10,label:"Advanced Combat",hint:"Pick 1 of 3",skills:[
-        {n:"Dual Wield",i:"✕",d:"Attack speed and multi-hit capability.",stats:{"Passive":"Yes","+AS":"20%","Hits":"2","Range":"3y"}},
-        {n:"Shield Specialist",i:"✜",d:"Increases block chance and defense.",stats:{"Passive":"Yes","Block":"+15%","Def":"+10%"}},
-        {n:"Life Drain",i:"♡",d:"Damage heals you for 10% of damage dealt.",stats:{"Mana":15,"CD":"15s","DMG":20,"Heal":"10%"}},
+        {n:"Dual Wield",i:"âœ•",d:"Attack speed and multi-hit capability.",stats:{"Passive":"Yes","+AS":"20%","Hits":"2","Range":"3y"}},
+        {n:"Shield Specialist",i:"âœœ",d:"Increases block chance and defense.",stats:{"Passive":"Yes","Block":"+15%","Def":"+10%"}},
+        {n:"Life Drain",i:"â™¡",d:"Damage heals you for 10% of damage dealt.",stats:{"Mana":15,"CD":"15s","DMG":20,"Heal":"10%"}},
       ]},
       {lvl:15,label:"Master Warrior",hint:"Pick 1 of 2",skills:[
-        {n:"Execute",i:"⚒",d:"+50% damage vs enemies below 30% HP.",stats:{"Mana":25,"CD":"20s","DMG":40,"Bonus":"+50% <30%"}},
-        {n:"Double Strike",i:"✖",d:"Two consecutive attacks for 2× damage.",stats:{"Mana":12,"CD":"8s","DMG":"15×2","Range":"3y"}},
+        {n:"Execute",i:"âš’",d:"+50% damage vs enemies below 30% HP.",stats:{"Mana":25,"CD":"20s","DMG":40,"Bonus":"+50% <30%"}},
+        {n:"Double Strike",i:"âœ–",d:"Two consecutive attacks for 2Ã— damage.",stats:{"Mana":12,"CD":"8s","DMG":"15Ã—2","Range":"3y"}},
       ]},
       {lvl:20,label:"Legendary Warrior",hint:"Pick 1 of 2",skills:[
-        {n:"Avatar Form",i:"✪",d:"All stats boosted + increased size. Ultimate transformation.",stats:{"Mana":50,"CD":"120s","Duration":"15s","+All":"30%"}},
-        {n:"Perfect Counter",i:"◈",d:"Chance to fully counter incoming attacks and retaliate.",stats:{"Passive":"Yes","Chance":"25%","Counter":"+100%"}},
+        {n:"Avatar Form",i:"âœª",d:"All stats boosted + increased size. Ultimate transformation.",stats:{"Mana":50,"CD":"120s","Duration":"15s","+All":"30%"}},
+        {n:"Perfect Counter",i:"â—ˆ",d:"Chance to fully counter incoming attacks and retaliate.",stats:{"Passive":"Yes","Chance":"25%","Counter":"+100%"}},
       ]},
     ],
   },
 
   ranger: {
-    name:"Ranger Scout", role:"Primary DPS · Utility · Off-Tank", emoji:"🏹",
-    desc:"Dual specialization — ranged master or melee assassin with traps and mobility.",
+    name:"Ranger Scout", role:"Primary DPS Â· Utility Â· Off-Tank", emoji:"ðŸ¹",
+    desc:"Dual specialization â€” ranged master or melee assassin with traps and mobility.",
     color:"var(--c-ranger)",
     hero:"https://i.imgur.com/5A6e5kL.png",
     tiers:[
       {lvl:0,label:"Hunter's Instinct",hint:"Automatic",auto:true,skills:[
-        {n:"Precision",i:"◇",d:"Passive accuracy/crit bonus & movement speed in natural terrain.",stats:{"Mana":15,"CD":"45s","Duration":"30s","+Acc":"10%"}},
+        {n:"Precision",i:"â—‡",d:"Passive accuracy/crit bonus & movement speed in natural terrain.",stats:{"Mana":15,"CD":"45s","Duration":"30s","+Acc":"10%"}},
       ]},
       {lvl:1,label:"Basic Training",hint:"Pick 1 of 2",skills:[
-        {n:"Power Shot",i:"➤",d:"High damage ranged attack. +25% ranged damage.",stats:{"Mana":5,"CD":"0.5s","DMG":15,"Range":"30y"}},
-        {n:"Stealth Strike",i:"✦",d:"Melee attack from stealth — guaranteed crit.",stats:{"Mana":10,"CD":"10s","DMG":20,"Range":"3y"}},
+        {n:"Power Shot",i:"âž¤",d:"High damage ranged attack. +25% ranged damage.",stats:{"Mana":5,"CD":"0.5s","DMG":15,"Range":"30y"}},
+        {n:"Stealth Strike",i:"âœ¦",d:"Melee attack from stealth â€” guaranteed crit.",stats:{"Mana":10,"CD":"10s","DMG":20,"Range":"3y"}},
       ]},
       {lvl:5,label:"Specialization",hint:"Pick 1 of 2",skills:[
-        {n:"Multi Shot",i:"⋯",d:"Fire multiple arrows. Hits up to 3 targets.",stats:{"Mana":15,"CD":"8s","DMG":12,"Targets":3}},
-        {n:"Shadow Step",i:"➶",d:"Short-range teleport behind enemy. Instant reposition.",stats:{"Mana":12,"CD":"12s","Duration":"3s","Range":"10y"}},
+        {n:"Multi Shot",i:"â‹¯",d:"Fire multiple arrows. Hits up to 3 targets.",stats:{"Mana":15,"CD":"8s","DMG":12,"Targets":3}},
+        {n:"Shadow Step",i:"âž¶",d:"Short-range teleport behind enemy. Instant reposition.",stats:{"Mana":12,"CD":"12s","Duration":"3s","Range":"10y"}},
       ]},
       {lvl:10,label:"Advanced Techniques",hint:"Pick 1 of 3",skills:[
-        {n:"Explosive Shot",i:"✺",d:"AoE ranged damage. Explodes on impact.",stats:{"Mana":25,"CD":"15s","DMG":35,"AoE":"Yes"}},
-        {n:"Poison Blade",i:"☠",d:"Melee attacks apply a poison DoT.",stats:{"Mana":10,"CD":"6s","DMG":10,"DoT":"Yes"}},
-        {n:"Trap Mastery",i:"◈",d:"Deploy and upgrade multiple trap types.",stats:{"Mana":20,"CD":"30s","Duration":"60s"}},
+        {n:"Explosive Shot",i:"âœº",d:"AoE ranged damage. Explodes on impact.",stats:{"Mana":25,"CD":"15s","DMG":35,"AoE":"Yes"}},
+        {n:"Poison Blade",i:"â˜ ",d:"Melee attacks apply a poison DoT.",stats:{"Mana":10,"CD":"6s","DMG":10,"DoT":"Yes"}},
+        {n:"Trap Mastery",i:"â—ˆ",d:"Deploy and upgrade multiple trap types.",stats:{"Mana":20,"CD":"30s","Duration":"60s"}},
       ]},
       {lvl:15,label:"Master Hunter",hint:"Pick 1 of 2",skills:[
-        {n:"Rain of Arrows",i:"⇊",d:"Massive AoE ranged barrage.",stats:{"Mana":40,"CD":"30s","DMG":60,"AoE":"Yes"}},
-        {n:"Assassinate",i:"✖",d:"High-damage stealth execution. +200% stealth damage.",stats:{"Mana":30,"CD":"25s","DMG":50,"Bonus":"+200% stealth"}},
+        {n:"Rain of Arrows",i:"â‡Š",d:"Massive AoE ranged barrage.",stats:{"Mana":40,"CD":"30s","DMG":60,"AoE":"Yes"}},
+        {n:"Assassinate",i:"âœ–",d:"High-damage stealth execution. +200% stealth damage.",stats:{"Mana":30,"CD":"25s","DMG":50,"Bonus":"+200% stealth"}},
       ]},
       {lvl:20,label:"Legendary Skills",hint:"Pick 1 of 2",skills:[
-        {n:"Storm of Arrows",i:"✪",d:"Ultimate ranged devastation. Massive AoE damage.",stats:{"Mana":60,"CD":"60s","DMG":120,"AoE":"Yes"}},
-        {n:"Shadow Master",i:"◆",d:"Enhanced stealth: multiple strikes, perma-stealth.",stats:{"Mana":50,"CD":"120s","Duration":"20s"}},
+        {n:"Storm of Arrows",i:"âœª",d:"Ultimate ranged devastation. Massive AoE damage.",stats:{"Mana":60,"CD":"60s","DMG":120,"AoE":"Yes"}},
+        {n:"Shadow Master",i:"â—†",d:"Enhanced stealth: multiple strikes, perma-stealth.",stats:{"Mana":50,"CD":"120s","Duration":"20s"}},
       ]},
     ],
   },
 
   worge: {
-    name:"Worg Shapeshifter", role:"Primary Tank · Burst DPS · Utility", emoji:"🐺",
+    name:"Worg Shapeshifter", role:"Primary Tank Â· Burst DPS Â· Utility", emoji:"ðŸº",
     desc:"Shapeshifting: become different animal forms with unique stats and roles.",
     color:"var(--c-worge)",
     hero:"https://i.imgur.com/BrQH0Bx.png",
     tiers:[
       {lvl:0,label:"Primal Shift",hint:"Automatic",auto:true,skills:[
-        {n:"Bear Form",i:"🐻",d:"Transform into WorgBear: massive HP/Defense, threat generation, damage reduction.",stats:{"Mana":25,"CD":"30s","Duration":"60s","+HP":"50%"}},
+        {n:"Bear Form",i:"ðŸ»",d:"Transform into WorgBear: massive HP/Defense, threat generation, damage reduction.",stats:{"Mana":25,"CD":"30s","Duration":"60s","+HP":"50%"}},
       ]},
       {lvl:1,label:"Pack Instincts",hint:"Pick 1 of 2",skills:[
-        {n:"Howl",i:"♪",d:"AoE fear + debuff enemies around you.",stats:{"Mana":15,"CD":"20s","Duration":"3s","Range":"10y"}},
-        {n:"Pack Hunt",i:"◉",d:"Damage bonus when near allied units.",stats:{"Mana":15,"CD":"25s","Duration":"20s","+DMG":"20%"}},
+        {n:"Howl",i:"â™ª",d:"AoE fear + debuff enemies around you.",stats:{"Mana":15,"CD":"20s","Duration":"3s","Range":"10y"}},
+        {n:"Pack Hunt",i:"â—‰",d:"Damage bonus when near allied units.",stats:{"Mana":15,"CD":"25s","Duration":"20s","+DMG":"20%"}},
       ]},
       {lvl:5,label:"Primal Mastery",hint:"Pick 1 of 2",skills:[
-        {n:"Feral Rage",i:"✱",d:"+25% attack speed for duration.",stats:{"Mana":20,"CD":"30s","Duration":"10s","+AS":"25%"}},
-        {n:"Alpha Call",i:"✦",d:"Summon 2 temporary wolf allies.",stats:{"Mana":30,"CD":"60s","Duration":"30s","Summons":2}},
+        {n:"Feral Rage",i:"âœ±",d:"+25% attack speed for duration.",stats:{"Mana":20,"CD":"30s","Duration":"10s","+AS":"25%"}},
+        {n:"Alpha Call",i:"âœ¦",d:"Summon 2 temporary wolf allies.",stats:{"Mana":30,"CD":"60s","Duration":"30s","Summons":2}},
       ]},
       {lvl:10,label:"Advanced",hint:"Pick 1 of 3",skills:[
-        {n:"Alpha Bear",i:"✜",d:"AoE taunt + tanking buffs while in Bear form.",stats:{"Mana":25,"CD":"30s","Duration":"10s","Range":"15y"}},
-        {n:"Raptor Form",i:"🦖",d:"Stealth DPS form. Crit strike bonus.",stats:{"Mana":25,"CD":"30s","Duration":"45s"}},
-        {n:"Blood Frenzy",i:"♥",d:"Damage increases as health decreases.",stats:{"Mana":20,"CD":"45s","Duration":"15s","+DMG":"50% lowHP"}},
+        {n:"Alpha Bear",i:"âœœ",d:"AoE taunt + tanking buffs while in Bear form.",stats:{"Mana":25,"CD":"30s","Duration":"10s","Range":"15y"}},
+        {n:"Raptor Form",i:"ðŸ¦–",d:"Stealth DPS form. Crit strike bonus.",stats:{"Mana":25,"CD":"30s","Duration":"45s"}},
+        {n:"Blood Frenzy",i:"â™¥",d:"Damage increases as health decreases.",stats:{"Mana":20,"CD":"45s","Duration":"15s","+DMG":"50% lowHP"}},
       ]},
       {lvl:15,label:"Apex Predator",hint:"Pick 1 of 2",skills:[
-        {n:"Apex Predator",i:"◆",d:"Enhanced tracking. +30% damage vs wounded targets.",stats:{"Mana":35,"CD":"60s","Duration":"20s","+DMG":"30%"}},
-        {n:"Primal Fury",i:"⚡",d:"+100% all stats, costs HP/s while active.",stats:{"Mana":40,"CD":"90s","Duration":"10s","+All":"100%"}},
+        {n:"Apex Predator",i:"â—†",d:"Enhanced tracking. +30% damage vs wounded targets.",stats:{"Mana":35,"CD":"60s","Duration":"20s","+DMG":"30%"}},
+        {n:"Primal Fury",i:"âš¡",d:"+100% all stats, costs HP/s while active.",stats:{"Mana":40,"CD":"90s","Duration":"10s","+All":"100%"}},
       ]},
       {lvl:20,label:"Legendary Choices",hint:"Pick 2 of 2",picks:2,skills:[
-        {n:"Worg Lord",i:"✪",d:"Ultimate tank form. Pack summoning + ultimate power.",stats:{"Mana":60,"CD":"180s","Duration":"30s","+HP":"+100%"}},
-        {n:"Primal Avatar",i:"☽",d:"Colossal form: huge stat increase and fear aura.",stats:{"Mana":70,"CD":"180s","Duration":"25s","+Size":"Yes"}},
+        {n:"Worg Lord",i:"âœª",d:"Ultimate tank form. Pack summoning + ultimate power.",stats:{"Mana":60,"CD":"180s","Duration":"30s","+HP":"+100%"}},
+        {n:"Primal Avatar",i:"â˜½",d:"Colossal form: huge stat increase and fear aura.",stats:{"Mana":70,"CD":"180s","Duration":"25s","+Size":"Yes"}},
       ]},
     ],
   },
@@ -616,11 +616,11 @@ function save(){try{localStorage.setItem(KEY,JSON.stringify(state))}catch(e){}}
 
 /* -------- real skill icons -------- */
 const ICON_DIR = {
-  earth: "icons-src/EarthMage_Free/EarthMage_Free",
-  fire: "icons-src/FireMage_Free/FireMage_Free",
-  frost: "icons-src/FrostMage_Free/FrostMage_Free",
-  hunter: "icons-src/Hunter_Free/Hunter_Free",
-  necro: "icons-src/Necromancer_Free/Necromancer_Free"
+  earth: "/icons-src/EarthMage_Free/EarthMage_Free",
+  fire: "/icons-src/FireMage_Free/FireMage_Free",
+  frost: "/icons-src/FrostMage_Free/FrostMage_Free",
+  hunter: "/icons-src/Hunter_Free/Hunter_Free",
+  necro: "/icons-src/Necromancer_Free/Necromancer_Free"
 };
 const ICONS = {
   mage: {
@@ -726,7 +726,7 @@ function renderRaces(){
     const n = document.createElement("div");
     n.className = "race"+(state.race===k?" active":"");
     n.dataset.k = k;
-    n.title = `${r.name} — ${r.blurb}`;
+    n.title = `${r.name} â€” ${r.blurb}`;
     n.innerHTML = `
       <div class="portrait" style="background-image:url('${r.img}')"></div>
       <div class="label">${r.name}</div>`;
@@ -779,11 +779,11 @@ function renderTree(){
   treeEl.innerHTML = "";
   if(!k){
     treeEl.innerHTML = `<div style="padding:40px;color:var(--mute);text-align:center;font-size:14px">
-      <div style="font-family:'Cinzel',serif;font-size:18px;letter-spacing:2px;color:#fff;margin-bottom:8px">⚔ Select a Class ⚔</div>
+      <div style="font-family:'Cinzel',serif;font-size:18px;letter-spacing:2px;color:#fff;margin-bottom:8px">âš” Select a Class âš”</div>
       Choose from Mage, Warrior, Ranger, or Worge above to view its skill tree.
     </div>`;
     nameEl.textContent = "Choose your Class";
-    roleEl.textContent = "—";
+    roleEl.textContent = "â€”";
     return;
   }
   const c = CLASSES[k];
@@ -861,7 +861,7 @@ function togglePick(k,lvl,name,picks){
 function renderSide(){
   const k = state.cls;
   if(!k){
-    heroName.textContent = "—";
+    heroName.textContent = "â€”";
     heroRole.textContent = "Select a class to begin";
     heroImg.style.backgroundImage = "";
     buildEl.innerHTML = `<div style="color:var(--mute);font-size:12px;padding:6px 2px">No class selected.</div>`;
@@ -874,12 +874,12 @@ function renderSide(){
   heroImg.style.backgroundImage = `url('${r ? r.img : PANEL_BG}')`;
   heroImg.style.backgroundPosition = r ? "center top" : "center";
   heroName.textContent = (r?r.name+" ":"")+c.name;
-  heroRole.textContent = r ? (r.blurb+" · "+c.role) : c.role;
+  heroRole.textContent = r ? (r.blurb+" Â· "+c.role) : c.role;
 
   // build list
   buildEl.innerHTML = c.tiers.map(t=>{
     const arr = (state.picks[k]||{})[t.lvl]||[];
-    const names = arr.length ? arr.join(" + ") : "—";
+    const names = arr.length ? arr.join(" + ") : "â€”";
     const picked = arr.length>0;
     return `<div class="bline ${picked?"picked":""}">
       <div class="dot"></div>
@@ -905,7 +905,7 @@ function showTip(e,s,t){
   tip.innerHTML = `<div style="display:flex;gap:10px;align-items:flex-start">
     ${iconPath ? `<div class="thumb"><img src="${iconPath}" alt="${s.n}"></div>` : ``}
     <div style="flex:1">
-    <b>${s.n}</b> <span style="color:var(--mute);font-size:11px">· Lv ${t.lvl}</span>
+    <b>${s.n}</b> <span style="color:var(--mute);font-size:11px">Â· Lv ${t.lvl}</span>
     <div style="margin-top:6px">${s.d}</div>
     <div class="row">${Object.entries(s.stats).map(([k,v])=>`<span>${k}: ${v}</span>`).join("")}</div>
     </div></div>`;
@@ -924,7 +924,7 @@ confirmBtn.onclick = ()=>{
   curtain.classList.add("show");
   setTimeout(()=>curtain.classList.remove("show"),900);
   const raceName = state.race ? RACES[state.race].name+" " : "";
-  toastEl.textContent = "⚔ "+raceName+CLASSES[k].name+" Build Locked";
+  toastEl.textContent = "âš” "+raceName+CLASSES[k].name+" Build Locked";
   toastEl.classList.add("show");
   setTimeout(()=>toastEl.classList.remove("show"),1900);
   console.log("Locked build:", {race:state.race, class:k, picks:state.picks[k]});
@@ -955,3 +955,4 @@ render();
 </script>
 </body>
 </html>
+
