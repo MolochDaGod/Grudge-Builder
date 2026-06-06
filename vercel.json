@@ -31,7 +31,8 @@
       "source": "/api/:path*",
       "destination": "https://api.grudge-studio.com/api/:path*"
     },
-    { "source": "/(.*)", "destination": "/index.html" }
+    { "source": "/skill-tree.html", "destination": "/skill-tree.html" },
+    { "source": "/((?!.*\\.html$).*)", "destination": "/index.html" }
   ],
   "env": {
     "VITE_API_URL": "https://api.grudge-studio.com",
