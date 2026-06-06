@@ -19,8 +19,9 @@ import { useToast } from "@/hooks/use-toast";
 import {
   Swords, Shield, Users, Crown, Zap, ArrowLeft,
   Wifi, WifiOff, Globe, Lock, Play, RefreshCw,
-  ChevronRight, Star,
+  ChevronRight, Star, Map,
 } from "lucide-react";
+import WorldMap3D from "@/components/WorldMap3D";
 
 // ── Game mode definitions ────────────────────────────────────────────────────
 const GAME_MODES = [
@@ -92,6 +93,9 @@ export default function RtsGrudgePage() {
   const [serverOnline, setServerOnline] = useState<boolean | null>(null);
   const [playerCount, setPlayerCount] = useState<number | null>(null);
   const [entering, setEntering] = useState(false);
+  const [showWorldMap, setShowWorldMap] = useState(false);
+  const [showForgeMap, setShowForgeMap] = useState(false);
+  const isAdmin = account?.role === "admin" || account?.role === "master_admin";
 
   // Load characters from backend
   useEffect(() => {
@@ -173,6 +177,37 @@ export default function RtsGrudgePage() {
         }}
       />
 
+      {/* ── World Map 3D Overlay (Player) ─────────────────────────── */}
+      {showWorldMap && (
+        <div className="absolute inset-0 z-40">
+          <WorldMap3D
+            mode="player"
+            onClose={() => setShowWorldMap(false)}
+            onSectorSelect={(sectorId) => {
+              setShowWorldMap(false);
+              setSelectedMode("open-world");
+              toast({ title: `Navigating to ${sectorId}`, description: "Entering sector..." });
+            }}
+          />
+        </div>
+      )}
+
+      {/* ── Forge Admin Map Overlay ──────────────────────────────── */}
+      {showForgeMap && (
+        <div className="absolute inset-0 z-40">
+          <WorldMap3D
+            mode="admin"
+            onClose={() => setShowForgeMap(false)}
+            onSectorSelect={(sectorId) => {
+              toast({ title: `Forge: ${sectorId}`, description: "Editing sector..." });
+            }}
+            onTeleport={(sectorId, x, z) => {
+              toast({ title: "Teleport", description: `Teleporting to ${sectorId} (${x}, ${z})` });
+            }}
+          />
+        </div>
+      )}
+
       {/* ── Back button ───────────────────────────────────────────────── */}
       <button
         onClick={() => setLocation("/home")}
@@ -181,6 +216,26 @@ export default function RtsGrudgePage() {
         <ArrowLeft className="w-4 h-4" />
         Back
       </button>
+
+      {/* ── World Map toggle ──────────────────────────────────────────── */}
+      <button
+        onClick={() => setShowWorldMap(true)}
+        className="absolute top-4 left-20 z-30 flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-black/50 border border-amber-600/30 text-amber-400/70 hover:text-amber-300 hover:bg-black/70 transition-all text-sm"
+      >
+        <Map className="w-4 h-4" />
+        World Map
+      </button>
+
+      {/* ── Forge Admin toggle (admin only) ──────────────────────── */}
+      {isAdmin && (
+        <button
+          onClick={() => setShowForgeMap(true)}
+          className="absolute top-4 left-48 z-30 flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-black/50 border border-red-600/30 text-red-400/70 hover:text-red-300 hover:bg-black/70 transition-all text-sm"
+        >
+          <Shield className="w-4 h-4" />
+          Forge
+        </button>
+      )}
 
       {/* ── Server status pill ────────────────────────────────────────── */}
       <div className="absolute top-4 right-4 z-30 flex items-center gap-2 px-3 py-1.5 rounded-lg bg-black/50 border border-white/10 text-xs">

@@ -1,0 +1,704 @@
+/**
+ * lore.ts
+ * ─────────────────────────────────────────────────────────────
+ * Grudge Warlords — Canonical Lore Constants
+ * Single source of truth for all server rooms and client code.
+ *
+ * Everything here comes from:
+ *   - loreSeed.ts (gods, factions, heroes)
+ *   - loreHeroes.txt (full hero profiles, AI configs)
+ *   - RACES_CLASSES.md (race bonuses, class abilities)
+ *   - pirateUnits.ts (unit roles, faction colors)
+ *   - worldMap.ts (zone types, player blocks)
+ *   - GrudgesTerrainSystem.js (sector biomes, layer system)
+ *   - zoneCutscenes.js (zone lore descriptions)
+ * ─────────────────────────────────────────────────────────────
+ */
+
+// ═══════════════════════════════════════════════════════════════
+// GODS
+// ═══════════════════════════════════════════════════════════════
+
+export type GodId = "odin" | "madra" | "omni";
+
+export interface God {
+  id: GodId;
+  name: string;
+  title: string;
+  domain: string;
+  factionId: FactionId;
+  artifacts: string[];
+  blessingEffect: string;
+  templeLocation: string;
+}
+
+export const GODS: Record<GodId, God> = {
+  odin: {
+    id: "odin",
+    name: "Odin",
+    title: "The All-Father",
+    domain: "War, Wisdom, Fate, Victory",
+    factionId: "crusade",
+    artifacts: ["Gungnir (cosmic spear)", "Ravens Huginn & Muninn", "Wolves Geri & Freki"],
+    blessingEffect: "+25% combat damage, reveals enemy weaknesses",
+    templeLocation: "Mountain peaks near the Waterfall's edge",
+  },
+  madra: {
+    id: "madra",
+    name: "Madra",
+    title: "The Chaos Mother",
+    domain: "Entropy, Transformation, Destruction, Rebirth",
+    factionId: "legion",
+    artifacts: ["The Void Crown", "Arms of Infinite Reach", "The Shatter Stone"],
+    blessingEffect: "+30% chaos damage, chance to corrupt enemy abilities",
+    templeLocation: "Islands closest to the Waterfall (most dangerous)",
+  },
+  omni: {
+    id: "omni",
+    name: "The Omni",
+    title: "The Eternal One",
+    domain: "Balance, Unity, Infinity, Harmony",
+    factionId: "fabled",
+    artifacts: ["Third Eye of Creation", "Scales of Existence", "The Unifying Light"],
+    blessingEffect: "+20% all resistances, healing amplification",
+    templeLocation: "Central islands, equidistant from Waterfall and outer rim",
+  },
+};
+
+// ═══════════════════════════════════════════════════════════════
+// FACTIONS
+// ═══════════════════════════════════════════════════════════════
+
+export type FactionId = "crusade" | "legion" | "fabled";
+
+export interface Faction {
+  id: FactionId;
+  name: string;
+  title: string;
+  motto: string;
+  patronGodId: GodId;
+  races: RaceId[];
+  color: string;        // hex
+  pirateColor: string;  // sprite tint key (from pirateUnits.ts)
+  hostileTo: FactionId[];
+}
+
+export const FACTIONS: Record<FactionId, Faction> = {
+  crusade: {
+    id: "crusade",
+    name: "The Crusade",
+    title: "Victory Through Valor",
+    motto: "We March Forward!",
+    patronGodId: "odin",
+    races: ["human", "orc"],
+    color: "#3b82f6",
+    pirateColor: "blue",
+    hostileTo: ["legion"],
+  },
+  legion: {
+    id: "legion",
+    name: "The Legion",
+    title: "Through Chaos, We Are Reborn",
+    motto: "We Consume All!",
+    patronGodId: "madra",
+    races: ["orc", "undead"],
+    color: "#ef4444",
+    pirateColor: "red",
+    hostileTo: ["crusade"],
+  },
+  fabled: {
+    id: "fabled",
+    name: "The Fabled",
+    title: "In Balance, We Find Eternity",
+    motto: "Unity Through Wisdom",
+    patronGodId: "omni",
+    races: ["elf", "dwarf"],
+    color: "#22c55e",
+    pirateColor: "green",
+    hostileTo: [],
+  },
+};
+
+// ═══════════════════════════════════════════════════════════════
+// RACES
+// ═══════════════════════════════════════════════════════════════
+
+export type RaceId = "human" | "orc" | "elf" | "dwarf" | "undead" | "demon";
+
+export interface Race {
+  id: RaceId;
+  name: string;
+  lore: string;
+  bonuses: { type: string; effect: string }[];
+  defaultFaction: FactionId;
+}
+
+export const RACES: Record<RaceId, Race> = {
+  human: {
+    id: "human", name: "Human",
+    lore: "Adaptable survivors who thrive in any environment.",
+    bonuses: [
+      { type: "XP Gain", effect: "+10% experience from all sources" },
+      { type: "Skill Points", effect: "+1 starting skill point" },
+      { type: "Diplomacy", effect: "Better prices from merchants" },
+    ],
+    defaultFaction: "crusade",
+  },
+  orc: {
+    id: "orc", name: "Orc",
+    lore: "Fierce warriors from the volcanic wastes. Born of magma-forges and ash.",
+    bonuses: [
+      { type: "Strength", effect: "+2 starting STR" },
+      { type: "Damage", effect: "+5% physical damage" },
+      { type: "Berserk", effect: "Gain power when health drops low" },
+    ],
+    defaultFaction: "legion",
+  },
+  elf: {
+    id: "elf", name: "Elf",
+    lore: "Ancient beings with deep connection to magic and nature.",
+    bonuses: [
+      { type: "Intellect", effect: "+2 starting INT" },
+      { type: "Mana", effect: "+10% maximum mana" },
+      { type: "Precision", effect: "+5% critical chance" },
+    ],
+    defaultFaction: "fabled",
+  },
+  dwarf: {
+    id: "dwarf", name: "Dwarf",
+    lore: "Stout mountain folk, master smiths. The Omni taught them the forge.",
+    bonuses: [
+      { type: "Endurance", effect: "+2 starting END" },
+      { type: "Defense", effect: "+10% physical defense" },
+      { type: "Crafting", effect: "+10% crafting quality bonus" },
+    ],
+    defaultFaction: "fabled",
+  },
+  undead: {
+    id: "undead", name: "Undead",
+    lore: "Risen souls bound by Madra. She refused to let her children truly die.",
+    bonuses: [
+      { type: "Resistance", effect: "+15% debuff resistance" },
+      { type: "Drain", effect: "+5% lifesteal on attacks" },
+      { type: "Immortal Will", effect: "Can fight at 0 HP briefly" },
+    ],
+    defaultFaction: "legion",
+  },
+  demon: {
+    id: "demon", name: "Demon",
+    lore: "Infernal beings of chaos and destruction. Masters of dark magic.",
+    bonuses: [
+      { type: "Damage", effect: "+8% all damage" },
+      { type: "Critical Factor", effect: "+10% critical damage multiplier" },
+      { type: "Corruption", effect: "Attacks can inflict debuffs" },
+    ],
+    defaultFaction: "legion",
+  },
+};
+
+// ═══════════════════════════════════════════════════════════════
+// CLASSES
+// ═══════════════════════════════════════════════════════════════
+
+export type ClassId = "warrior" | "mage" | "rogue" | "cleric";
+
+export interface GameClass {
+  id: ClassId;
+  name: string;
+  role: string;
+  primaryStats: AttributeId[];
+  armorTypes: string[];
+  weaponTypes: string[];
+  resource: string;
+  startingAttributes: Partial<Record<AttributeId, number>>;
+}
+
+export const CLASSES: Record<ClassId, GameClass> = {
+  warrior: {
+    id: "warrior", name: "Warrior", role: "Tank / Melee DPS",
+    primaryStats: ["str", "vit", "end"],
+    armorTypes: ["Mail", "Plate"],
+    weaponTypes: ["Swords", "Axes", "Maces", "Shields"],
+    resource: "Rage",
+    startingAttributes: { str: 10, vit: 5, end: 5 },
+  },
+  mage: {
+    id: "mage", name: "Mage", role: "Magic DPS / Crowd Control",
+    primaryStats: ["int", "wis"],
+    armorTypes: ["Cloth"],
+    weaponTypes: ["Staves", "Wands", "Orbs"],
+    resource: "Mana",
+    startingAttributes: { int: 10, wis: 10 },
+  },
+  rogue: {
+    id: "rogue", name: "Rogue", role: "Melee DPS / Assassin",
+    primaryStats: ["dex", "agi", "str"],
+    armorTypes: ["Leather"],
+    weaponTypes: ["Daggers", "Swords", "Bows"],
+    resource: "Energy",
+    startingAttributes: { str: 6, dex: 7, agi: 7 },
+  },
+  cleric: {
+    id: "cleric", name: "Cleric", role: "Healer / Support",
+    primaryStats: ["wis", "vit", "int"],
+    armorTypes: ["Cloth", "Mail"],
+    weaponTypes: ["Maces", "Staves", "Shields"],
+    resource: "Mana + Holy Power",
+    startingAttributes: { vit: 5, int: 5, wis: 10 },
+  },
+};
+
+// ═══════════════════════════════════════════════════════════════
+// ATTRIBUTES (the 8 Grudge stats)
+// ═══════════════════════════════════════════════════════════════
+
+export type AttributeId = "str" | "vit" | "end" | "dex" | "agi" | "int" | "wis" | "tac";
+
+export interface Attribute {
+  id: AttributeId;
+  name: string;
+  abbr: string;
+  color: string;
+  primaryGains: string;
+}
+
+export const ATTRIBUTES: Record<AttributeId, Attribute> = {
+  str: { id: "str", name: "Strength",  abbr: "STR", color: "#ef4444", primaryGains: "Physical damage, defense, health, lifesteal" },
+  vit: { id: "vit", name: "Vitality",  abbr: "VIT", color: "#22c55e", primaryGains: "Max health, health regen, damage reduction" },
+  end: { id: "end", name: "Endurance", abbr: "END", color: "#6b7280", primaryGains: "Stamina, physical defense, block, armor" },
+  dex: { id: "dex", name: "Dexterity", abbr: "DEX", color: "#f59e0b", primaryGains: "Crit chance, attack speed, accuracy, evasion" },
+  agi: { id: "agi", name: "Agility",   abbr: "AGI", color: "#06b6d4", primaryGains: "Movement speed, evasion, dodge, crit evasion" },
+  int: { id: "int", name: "Intellect", abbr: "INT", color: "#3b82f6", primaryGains: "Mana, magic damage, cooldown reduction" },
+  wis: { id: "wis", name: "Wisdom",    abbr: "WIS", color: "#a855f7", primaryGains: "Magic resistance, mana, spell block" },
+  tac: { id: "tac", name: "Tactics",   abbr: "TAC", color: "#64748b", primaryGains: "Armor pen, block pen, % bonus to all stats" },
+};
+
+/** Progression: 20 starting + 7 per level, max level 20 = 160 total */
+export const ATTRIBUTE_PROGRESSION = {
+  startingPoints: 20,
+  pointsPerLevel: 7,
+  maxLevel: 20,
+  maxPoints: 160,
+  /** Diminishing returns: full 0-25, 50% 26-50, 25% 51+ */
+  diminishingBreakpoints: [25, 50],
+} as const;
+
+// ═══════════════════════════════════════════════════════════════
+// HERO UNIT SYSTEM
+// ═══════════════════════════════════════════════════════════════
+
+/** Units become heroes at level 100 */
+export const UNIT_HERO_LEVEL = 100;
+
+/** Unit max level for player characters */
+export const PLAYER_MAX_LEVEL = 20;
+
+// ═══════════════════════════════════════════════════════════════
+// UNIT ROLES (RTS island management)
+// ═══════════════════════════════════════════════════════════════
+
+export type UnitRole =
+  | "guard"       // defend structures, patrol
+  | "gunner"      // ranged defense
+  | "worker"      // auto-harvest resources
+  | "sailor"      // ship crew
+  | "builder"     // construct/repair buildings
+  | "crafter"     // auto-craft items at stations
+  | "scout"       // patrol wide area, report enemies
+  | "merchant"    // auto-trade at docks
+  | "healer"      // heal garrison units
+  | "commander";  // boost nearby unit stats
+
+export interface UnitRoleConfig {
+  role: UnitRole;
+  hp: number;
+  damage: number;
+  attackRange: number;
+  attackCooldownMs: number;
+  recruitCost: { gold: number; food?: number };
+  aiTasks: string[];
+}
+
+export const UNIT_ROLES: Record<UnitRole, UnitRoleConfig> = {
+  guard:     { role: "guard",     hp: 60,  damage: 8,  attackRange: 1.5, attackCooldownMs: 1200, recruitCost: { gold: 50,  food: 10 }, aiTasks: ["patrol", "defend_structure", "chase_intruder"] },
+  gunner:    { role: "gunner",    hp: 40,  damage: 12, attackRange: 5.0, attackCooldownMs: 2000, recruitCost: { gold: 80,  food: 15 }, aiTasks: ["man_tower", "ranged_defense", "fire_at_ships"] },
+  worker:    { role: "worker",    hp: 35,  damage: 3,  attackRange: 1.0, attackCooldownMs: 1500, recruitCost: { gold: 30,  food: 5  }, aiTasks: ["harvest_wood", "harvest_stone", "harvest_ore", "harvest_fish", "carry_to_storage"] },
+  sailor:    { role: "sailor",    hp: 50,  damage: 6,  attackRange: 1.5, attackCooldownMs: 1400, recruitCost: { gold: 40,  food: 8  }, aiTasks: ["crew_ship", "navigate", "board_enemy", "repair_ship"] },
+  builder:   { role: "builder",   hp: 45,  damage: 4,  attackRange: 1.0, attackCooldownMs: 1800, recruitCost: { gold: 60,  food: 10 }, aiTasks: ["build_wall", "build_tower", "repair_structure", "upgrade_structure"] },
+  crafter:   { role: "crafter",   hp: 30,  damage: 2,  attackRange: 1.0, attackCooldownMs: 2000, recruitCost: { gold: 70,  food: 8  }, aiTasks: ["craft_weapons", "craft_armor", "craft_potions", "craft_ammo"] },
+  scout:     { role: "scout",     hp: 35,  damage: 5,  attackRange: 3.0, attackCooldownMs: 1600, recruitCost: { gold: 45,  food: 6  }, aiTasks: ["patrol_perimeter", "report_enemy", "stealth_recon", "mark_target"] },
+  merchant:  { role: "merchant",  hp: 25,  damage: 1,  attackRange: 1.0, attackCooldownMs: 3000, recruitCost: { gold: 100, food: 5  }, aiTasks: ["trade_at_dock", "buy_resources", "sell_surplus", "negotiate_price"] },
+  healer:    { role: "healer",    hp: 40,  damage: 2,  attackRange: 4.0, attackCooldownMs: 2500, recruitCost: { gold: 90,  food: 12 }, aiTasks: ["heal_garrison", "cure_debuff", "buff_allies", "triage_wounded"] },
+  commander: { role: "commander", hp: 80,  damage: 10, attackRange: 2.0, attackCooldownMs: 1500, recruitCost: { gold: 150, food: 20 }, aiTasks: ["boost_morale", "coordinate_defense", "rally_troops", "lead_charge"] },
+};
+
+// ═══════════════════════════════════════════════════════════════
+// SECTOR MAP — THE 9 ZONES (lore-named)
+// ═══════════════════════════════════════════════════════════════
+
+export type SectorPosition = "NW" | "N" | "NE" | "W" | "CENTER" | "E" | "SW" | "S" | "SE";
+
+export interface SectorLore {
+  position: SectorPosition;
+  name: string;
+  subtitle: string;
+  biome: string;
+  difficulty: number;
+  description: string;
+  controllingFaction: FactionId | null;  // starting control, null = contested
+  hasVendors: boolean;
+  hasDockyards: boolean;
+  specialFeatures: string[];
+}
+
+export const SECTOR_LORE: Record<SectorPosition, SectorLore> = {
+  NW: {
+    position: "NW", name: "Dried Basin", subtitle: "The Scorched Flats",
+    biome: "arid", difficulty: 3,
+    description: "Sun-bleached salt flats where water is currency. Crusade prospectors mine rare minerals from the cracked earth.",
+    controllingFaction: "crusade", hasVendors: true, hasDockyards: false,
+    specialFeatures: ["salt_mines", "oasis_camps", "mirage_events"],
+  },
+  N: {
+    position: "N", name: "Cathedral Highlands", subtitle: "Spires of the Faithful",
+    biome: "highland", difficulty: 5,
+    description: "Towering stone formations carved by ancient winds into cathedral-like spires. The Fabled maintain shrines to The Omni here.",
+    controllingFaction: "fabled", hasVendors: true, hasDockyards: false,
+    specialFeatures: ["omni_shrines", "wind_bridges", "highland_beasts"],
+  },
+  NE: {
+    position: "NE", name: "Crown Peaks", subtitle: "Roof of the World",
+    biome: "mountain", difficulty: 7,
+    description: "Jagged peaks claw at storm clouds. Frost wyrms circle overhead. The Dwarven clans sealed their forge-gates here during the Grudge Wars.",
+    controllingFaction: null, hasVendors: false, hasDockyards: false,
+    specialFeatures: ["dwarf_ruins", "frost_wyrms", "storm_forges", "vertical_combat"],
+  },
+  W: {
+    position: "W", name: "Switchyard", subtitle: "Iron and Smoke",
+    biome: "industrial", difficulty: 4,
+    description: "Massive dockyards where warships are built and repaired. Faction workshops compete for control of the shipbuilding monopoly.",
+    controllingFaction: null, hasVendors: true, hasDockyards: true,
+    specialFeatures: ["warship_construction", "faction_workshops", "trade_hub", "smuggler_docks"],
+  },
+  CENTER: {
+    position: "CENTER", name: "Racalvin's Domain", subtitle: "The Pirate King's Waters",
+    biome: "pirate", difficulty: 1,
+    description: "Open waters ruled by Racalvin the Pirate King. The central hub — neutral docks, faction headquarters, the Arena, and merchant guilds. Ships arrive from all 8 surrounding sectors.",
+    controllingFaction: null, hasVendors: true, hasDockyards: true,
+    specialFeatures: ["pirate_king_throne", "arena", "faction_hqs", "merchant_guild", "neutral_docks", "tavern"],
+  },
+  E: {
+    position: "E", name: "Junkyards", subtitle: "Graveyard of Ships",
+    biome: "urban_ruin", difficulty: 6,
+    description: "A sprawling wreckage field of destroyed warships and collapsed structures. Scavengers pick through the remains while bandits ambush the unwary.",
+    controllingFaction: null, hasVendors: false, hasDockyards: false,
+    specialFeatures: ["salvage_nodes", "bandit_camps", "hidden_caches", "wreck_dungeons"],
+  },
+  SW: {
+    position: "SW", name: "Drowned Quarter", subtitle: "Where the Sea Reclaims",
+    biome: "flooded", difficulty: 5,
+    description: "Half-submerged ruins of a once-great city. Undead priests perform rituals in flooded chambers. The ocean slowly swallows everything.",
+    controllingFaction: "legion", hasVendors: false, hasDockyards: false,
+    specialFeatures: ["underwater_temples", "undead_patrols", "flooded_dungeons", "tide_gates"],
+  },
+  S: {
+    position: "S", name: "The Pit", subtitle: "Volcanic Creations",
+    biome: "crater", difficulty: 8,
+    description: "The volcanic caldera where the Legion was born. Rivers of liquid fire carve through obsidian. Magma-forges create lava-born war machines. Madra's temples pulse with power.",
+    controllingFaction: "legion", hasVendors: false, hasDockyards: false,
+    specialFeatures: ["volcanic_forges", "madra_temples", "lava_born_enemies", "ember_sanctuaries", "ash_sorcerers"],
+  },
+  SE: {
+    position: "SE", name: "Grinding March", subtitle: "The Eternal Battlefield",
+    biome: "contested", difficulty: 9,
+    description: "Endgame PvP warzone. All three factions clash here over the Shattered Nexus — a cross-realm anchor point. Claim flags change hands hourly.",
+    controllingFaction: null, hasVendors: false, hasDockyards: false,
+    specialFeatures: ["shattered_nexus", "faction_siege", "claim_wars", "world_boss_spawns", "relic_drops"],
+  },
+};
+
+// ═══════════════════════════════════════════════════════════════
+// ISLAND & CLAIM SYSTEM
+// ═══════════════════════════════════════════════════════════════
+
+export const ISLAND_CONFIG = {
+  /** Home islands are private, 1 per account, max 4 players (owner + 3) */
+  homeIslandMaxVisitors: 3,
+  /** Claim flags in world sectors are real ownership */
+  claimFlagCaptureTimeMs: 30_000,    // 30 seconds to capture
+  claimFlagContestRadiusUnits: 200,  // PvP radius around flag
+  /** Islands in sectors can rise and sink */
+  islandRiseCycleMs: 24 * 60 * 60 * 1000, // 24 hours
+  /** Structures on claimed islands auto-function */
+  autoHarvestIntervalMs: 60_000,     // workers harvest every 60s
+  autoDefenseCheckMs: 5_000,         // guards check for enemies every 5s
+} as const;
+
+// ═══════════════════════════════════════════════════════════════
+// THE COSMIC WATERFALL / ETHEREAL FALLS
+// ═══════════════════════════════════════════════════════════════
+
+export const WATERFALL_CONFIG = {
+  /** The Waterfall is Madra's domain expanding — consumes islands at the edge */
+  description: "A void of pure entropy at the edge of existence that slowly consumes islands.",
+  /** Closer to Waterfall = stronger magic but more danger */
+  magicScalingPerSector: 0.15,  // +15% magic power per sector closer to edge
+  /** Sector difficulty increases near Waterfall (SE, S, NE are closest) */
+  waterfallProximitySectors: ["SE", "S", "NE"] as SectorPosition[],
+  /** Falls of Eternity — periodic zone resets */
+  fallsOfEternityIntervalMs: 7 * 24 * 60 * 60 * 1000, // weekly
+} as const;
+
+// ═══════════════════════════════════════════════════════════════
+// OCEAN SYSTEM
+// ═══════════════════════════════════════════════════════════════
+
+export const OCEAN_CONFIG = {
+  baseHeight: 0,
+  tideAmplitude: 2.0,
+  tideCycleMs: 10 * 60 * 1000, // 10 min full cycle
+  /** Ocean covers all 9 sectors as one continuous plane */
+  worldOcean: true,
+  /** Ocean of Echoes — living sea that records memories */
+  echoes: {
+    enabled: true,
+    ancestralVoiceChance: 0.05, // 5% chance per minute at sea
+    description: "Sailors hear ancestral voices that may guide or misguide explorers.",
+  },
+} as const;
+
+/** Calculate tide height from server time */
+export function getTideHeight(serverTime: number): number {
+  const phase = (serverTime % OCEAN_CONFIG.tideCycleMs) / OCEAN_CONFIG.tideCycleMs;
+  return OCEAN_CONFIG.baseHeight + Math.sin(phase * Math.PI * 2) * OCEAN_CONFIG.tideAmplitude;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// HERO ROSTER (the 24 canonical heroes)
+// ═══════════════════════════════════════════════════════════════
+
+export interface HeroDefinition {
+  id: string;
+  name: string;
+  title: string;
+  factionId: FactionId;
+  raceId: RaceId | "barbarian"; // barbarians are human sub-race in Crusade
+  classId: ClassId | "worges" | "ranger" | "necromancer" | "shaman";
+  level: number;
+  sectorSpawn: SectorPosition;  // which sector this hero NPC spawns in
+  isQuestGiver: boolean;
+}
+
+export const HERO_ROSTER: HeroDefinition[] = [
+  // ── THE CRUSADE (8 heroes) ──────────────────────────────────
+  { id: "aurion",  name: "Aurion",  title: "The Radiant",       factionId: "crusade", raceId: "human",     classId: "mage",    level: 50, sectorSpawn: "NW",     isQuestGiver: true },
+  { id: "sigurd",  name: "Sigurd",  title: "The Unbreakable",   factionId: "crusade", raceId: "human",     classId: "warrior", level: 55, sectorSpawn: "N",      isQuestGiver: true },
+  { id: "kael",    name: "Kael",    title: "The Shadowblade",   factionId: "crusade", raceId: "human",     classId: "ranger",  level: 48, sectorSpawn: "W",      isQuestGiver: true },
+  { id: "theron",  name: "Theron",  title: "Wildkin",           factionId: "crusade", raceId: "human",     classId: "worges",  level: 45, sectorSpawn: "NW",     isQuestGiver: true },
+  { id: "thrax",   name: "Thrax",   title: "The Savage",        factionId: "crusade", raceId: "barbarian", classId: "warrior", level: 52, sectorSpawn: "CENTER", isQuestGiver: true },
+  { id: "grok",    name: "Grok",    title: "Spiritcaller",      factionId: "crusade", raceId: "barbarian", classId: "shaman",  level: 47, sectorSpawn: "N",      isQuestGiver: true },
+  { id: "kira",    name: "Kira",    title: "The Fang",          factionId: "crusade", raceId: "barbarian", classId: "worges",  level: 52, sectorSpawn: "NE",     isQuestGiver: true },
+  { id: "vox",     name: "Vox",     title: "Skyhunter",         factionId: "crusade", raceId: "barbarian", classId: "ranger",  level: 48, sectorSpawn: "E",      isQuestGiver: true },
+
+  // ── THE LEGION (8 heroes) ───────────────────────────────────
+  { id: "gruk",     name: "Gruk",     title: "Skullcrusher",    factionId: "legion", raceId: "orc",    classId: "warrior",     level: 58, sectorSpawn: "S",  isQuestGiver: true },
+  { id: "nazgrim",  name: "Nazgrim",  title: "The Profane",     factionId: "legion", raceId: "orc",    classId: "necromancer", level: 53, sectorSpawn: "SW", isQuestGiver: true },
+  { id: "vexol",    name: "Vexol",    title: "The Silent",      factionId: "legion", raceId: "orc",    classId: "ranger",      level: 48, sectorSpawn: "SE", isQuestGiver: true },
+  { id: "morgash",  name: "Morgash",  title: "The Flamecaller", factionId: "legion", raceId: "orc",    classId: "mage",        level: 50, sectorSpawn: "S",  isQuestGiver: true },
+  { id: "silesh",   name: "Silesh",   title: "The Dread",       factionId: "legion", raceId: "undead", classId: "mage",        level: 55, sectorSpawn: "SW", isQuestGiver: true },
+  { id: "bone",     name: "Bone",     title: "The Collector",   factionId: "legion", raceId: "undead", classId: "warrior",     level: 50, sectorSpawn: "SE", isQuestGiver: true },
+  { id: "whisper",  name: "Whisper",  title: "The Hollow",      factionId: "legion", raceId: "undead", classId: "rogue",       level: 47, sectorSpawn: "E",  isQuestGiver: true },
+  { id: "dredge",   name: "Dredge",   title: "The Risen",       factionId: "legion", raceId: "undead", classId: "cleric",      level: 45, sectorSpawn: "SW", isQuestGiver: true },
+
+  // ── THE FABLED (8 heroes) ───────────────────────────────────
+  { id: "aelindor",  name: "Aelindor",  title: "The Swift",       factionId: "fabled", raceId: "elf",   classId: "warrior", level: 50, sectorSpawn: "N",      isQuestGiver: true },
+  { id: "silvaine",  name: "Silvaine",  title: "Starwhisper",     factionId: "fabled", raceId: "elf",   classId: "mage",    level: 52, sectorSpawn: "NE",     isQuestGiver: true },
+  { id: "lyra",      name: "Lyra",      title: "The Weaver",      factionId: "fabled", raceId: "elf",   classId: "cleric",  level: 48, sectorSpawn: "CENTER", isQuestGiver: true },
+  { id: "fenwick",   name: "Fenwick",   title: "Shadowleaf",      factionId: "fabled", raceId: "elf",   classId: "rogue",   level: 46, sectorSpawn: "W",      isQuestGiver: true },
+  { id: "durgin",    name: "Durgin",    title: "Ironheart",       factionId: "fabled", raceId: "dwarf", classId: "warrior", level: 55, sectorSpawn: "NE",     isQuestGiver: true },
+  { id: "brenna",    name: "Brenna",    title: "The Forgemaster", factionId: "fabled", raceId: "dwarf", classId: "warrior", level: 50, sectorSpawn: "W",      isQuestGiver: true },
+  { id: "thordak",   name: "Thordak",   title: "Runekeeper",      factionId: "fabled", raceId: "dwarf", classId: "mage",    level: 48, sectorSpawn: "N",      isQuestGiver: true },
+  { id: "helga",     name: "Helga",     title: "The Mender",      factionId: "fabled", raceId: "dwarf", classId: "cleric",  level: 45, sectorSpawn: "CENTER", isQuestGiver: true },
+];
+
+/** Get heroes that spawn in a specific sector */
+export function getHeroesForSector(sector: SectorPosition): HeroDefinition[] {
+  return HERO_ROSTER.filter(h => h.sectorSpawn === sector);
+}
+
+/** Get heroes by faction */
+export function getHeroesByFaction(faction: FactionId): HeroDefinition[] {
+  return HERO_ROSTER.filter(h => h.factionId === faction);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// TUTORIAL (Shipwreck Island)
+// ═══════════════════════════════════════════════════════════════
+
+export const TUTORIAL_CONFIG = {
+  steps: [
+    { id: "intro_video",    title: "Intro Cinematic",         description: "Watch the opening cinematic — your ship is destroyed in a storm" },
+    { id: "wash_ashore",    title: "Wash Ashore",             description: "Wake up on Shipwreck Island beach" },
+    { id: "gather_wood",    title: "Gather Resources",        description: "Harvest 10 wood and 5 stone from the wreckage" },
+    { id: "craft_axe",      title: "Craft Your First Tool",   description: "Craft a stone axe at the makeshift workbench" },
+    { id: "fight_crabs",    title: "First Combat",            description: "Defeat 3 shore crabs threatening the camp" },
+    { id: "build_shelter",  title: "Build a Shelter",         description: "Place walls and a roof to create a basic shelter" },
+    { id: "find_npc",       title: "Find the Castaway",       description: "Discover an NPC survivor who teaches advanced crafting" },
+    { id: "craft_sword",    title: "Forge a Weapon",          description: "Craft an iron sword at the castaway's forge" },
+    { id: "defeat_boss",    title: "Clear the Island",        description: "Defeat the Shipwreck Brute guarding the lumber supply" },
+    { id: "build_raft",     title: "Build Your Raft",         description: "Construct a raft at the beach dock — your ticket out" },
+    { id: "sail_off",       title: "Set Sail",                description: "Launch from Shipwreck Island — cutscene to Home Island" },
+  ],
+  enemies: [
+    { type: "shore_crab",      hp: 20,  damage: 3,  level: 1 },
+    { type: "stranded_pirate", hp: 40,  damage: 6,  level: 2 },
+    { type: "shipwreck_brute", hp: 120, damage: 12, level: 3 },  // mini-boss
+  ],
+} as const;
+
+// ═══════════════════════════════════════════════════════════════
+// DUNGEONS (cave instances on random islands)
+// ═══════════════════════════════════════════════════════════════
+
+export type DungeonType = "cave" | "ruins" | "vault" | "abyss";
+
+export interface DungeonDefinition {
+  id: string;
+  type: DungeonType;
+  name: string;
+  description: string;
+  minLevel: number;
+  maxPlayers: number;
+  floors: number;
+  bossId: string;
+  bossName: string;
+  bossHp: number;
+  /** Enemy types that spawn inside this dungeon */
+  enemyTypes: string[];
+  /** Loot theme affects drop tables */
+  lootTheme: "weapons" | "armor" | "relics" | "gold" | "mixed";
+  /** Which sectors this dungeon type can spawn in (null = any) */
+  allowedSectors: SectorPosition[] | null;
+  /** Faction affinity — enemies match this faction's theme */
+  factionAffinity: FactionId | null;
+  /** Asset path for the cave entrance model */
+  entranceModel: string;
+}
+
+export const DUNGEON_DEFINITIONS: DungeonDefinition[] = [
+  // ── Cave tier (easy, levels 1-5) ──────────────────────────────
+  {
+    id: "cave_crabs", type: "cave", name: "Crab Hollow",
+    description: "A shallow sea cave infested with giant shore crabs and their broodmother.",
+    minLevel: 1, maxPlayers: 4, floors: 1, bossId: "broodmother_crab", bossName: "Broodmother Chelura", bossHp: 300,
+    enemyTypes: ["shore_crab", "sand_lurker", "tide_crawler"],
+    lootTheme: "mixed", allowedSectors: ["NW", "W", "CENTER", "SW"], factionAffinity: null,
+    entranceModel: "/models/evil_rock_mountains_cave.glb",
+  },
+  {
+    id: "cave_bandits", type: "cave", name: "Smuggler's Grotto",
+    description: "A network of tunnels used by pirate smugglers. Their captain guards the loot vault.",
+    minLevel: 3, maxPlayers: 4, floors: 2, bossId: "smuggler_captain", bossName: "Captain Blacktide", bossHp: 500,
+    enemyTypes: ["pirate_thug", "cutlass_raider", "powder_monkey"],
+    lootTheme: "gold", allowedSectors: ["CENTER", "E", "W"], factionAffinity: null,
+    entranceModel: "/models/evil_rock_mountains_cave.glb",
+  },
+  // ── Ruins tier (mid, levels 5-10) ─────────────────────────────
+  {
+    id: "ruins_crusade", type: "ruins", name: "Sunken Bastion",
+    description: "Flooded Crusade fortress overrun by corrupted soldiers. Their undead general commands from the throne room.",
+    minLevel: 5, maxPlayers: 4, floors: 3, bossId: "undead_general", bossName: "General Aldric the Fallen", bossHp: 800,
+    enemyTypes: ["undead_soldier", "corrupted_knight", "ghost_archer"],
+    lootTheme: "armor", allowedSectors: ["N", "NW", "W"], factionAffinity: "crusade",
+    entranceModel: "/models/evil_rock_mountains_cave.glb",
+  },
+  {
+    id: "ruins_legion", type: "ruins", name: "Ash Forge",
+    description: "An active volcanic forge where the Legion creates lava-born war machines. The Forgemaster must be stopped.",
+    minLevel: 7, maxPlayers: 4, floors: 3, bossId: "forgemaster", bossName: "Forgemaster Molkoth", bossHp: 1200,
+    enemyTypes: ["ash_sorcerer", "lava_golem", "ember_hound", "slag_warrior"],
+    lootTheme: "weapons", allowedSectors: ["S", "SW", "SE"], factionAffinity: "legion",
+    entranceModel: "/models/evil_rock_mountains_cave.glb",
+  },
+  // ── Vault tier (hard, levels 10-15) ────────────────────────────
+  {
+    id: "vault_omni", type: "vault", name: "Vault of Echoes",
+    description: "An ancient Fabled temple sealed by The Omni. The crystallized memories inside have become hostile.",
+    minLevel: 10, maxPlayers: 4, floors: 4, bossId: "memory_warden", bossName: "Warden of Lost Thoughts", bossHp: 2000,
+    enemyTypes: ["crystal_spider", "echo_wraith", "memory_golem", "thought_parasite"],
+    lootTheme: "relics", allowedSectors: ["N", "NE"], factionAffinity: "fabled",
+    entranceModel: "/models/evil_rock_mountains_cave.glb",
+  },
+  {
+    id: "vault_madra", type: "vault", name: "Madra's Womb",
+    description: "A pulsing cavity at the edge of the Waterfall where Madra births her newest creations. Pure chaos reigns.",
+    minLevel: 12, maxPlayers: 4, floors: 5, bossId: "chaos_spawn", bossName: "The Unborn", bossHp: 3000,
+    enemyTypes: ["void_wraith", "chaos_imp", "entropy_beast", "flesh_horror"],
+    lootTheme: "relics", allowedSectors: ["S", "SE"], factionAffinity: "legion",
+    entranceModel: "/models/evil_rock_mountains_cave.glb",
+  },
+  // ── Abyss tier (endgame, levels 15-20) ─────────────────────────
+  {
+    id: "abyss_waterfall", type: "abyss", name: "The Abyssal Maw",
+    description: "A rift into the Cosmic Waterfall itself. Reality fractures. Time loops. The Void King waits at the bottom.",
+    minLevel: 15, maxPlayers: 4, floors: 7, bossId: "void_king", bossName: "Xul'tharak, Void King", bossHp: 5000,
+    enemyTypes: ["void_wraith", "reality_shard", "time_echo", "entropy_titan"],
+    lootTheme: "relics", allowedSectors: ["SE"], factionAffinity: null,
+    entranceModel: "/models/evil_rock_mountains_cave.glb",
+  },
+];
+
+/** Dungeon spawn config for islands */
+export const DUNGEON_SPAWN_CONFIG = {
+  /** Max dungeon portals per sector */
+  maxPerSector: 3,
+  /** Min respawn time after dungeon is cleared (ms) */
+  minRespawnMs: 30 * 60 * 1000,   // 30 minutes
+  /** Max respawn time (ms) — actual is random between min and max */
+  maxRespawnMs: 4 * 60 * 60 * 1000, // 4 hours
+  /** Chance of a dungeon spawning on any given island (0-1) */
+  spawnChancePerIsland: 0.15,
+  /** Entrance model scale to fit player walking into caves */
+  entranceScale: { x: 0.08, y: 0.08, z: 0.08 },
+  /** Portal swirl animation config */
+  portalSwirl: {
+    color: 0x8844ff,
+    secondaryColor: 0x22ccff,
+    radius: 3.0,
+    speed: 2.0,
+    particleCount: 120,
+    interactionRange: 5.0,  // units — player must be within this to press E
+  },
+} as const;
+
+/** Pick a random dungeon valid for a sector and difficulty */
+export function pickDungeonForSector(
+  sectorId: SectorPosition,
+  sectorDifficulty: number,
+): DungeonDefinition | null {
+  const eligible = DUNGEON_DEFINITIONS.filter(d => {
+    if (d.allowedSectors && !d.allowedSectors.includes(sectorId)) return false;
+    if (d.minLevel > sectorDifficulty * 2) return false;
+    return true;
+  });
+  if (eligible.length === 0) return null;
+  return eligible[Math.floor(Math.random() * eligible.length)];
+}
+
+/** Calculate a random respawn time */
+export function randomDungeonRespawnMs(): number {
+  const { minRespawnMs, maxRespawnMs } = DUNGEON_SPAWN_CONFIG;
+  return minRespawnMs + Math.random() * (maxRespawnMs - minRespawnMs);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// CITIES & LOCATIONS (from cities.js)
+// ═══════════════════════════════════════════════════════════════
+
+export const WORLD_CITIES = [
+  { id: "greenhollow",  name: "Camp",           sector: "CENTER" as SectorPosition, unlockLevel: 0 },
+  { id: "ironkeep",     name: "Ironkeep",       sector: "NE"     as SectorPosition, unlockLevel: 6 },
+  { id: "shadowhaven",  name: "Shadowhaven",    sector: "E"      as SectorPosition, unlockLevel: 11 },
+  { id: "emberpeak",    name: "Emberpeak",      sector: "S"      as SectorPosition, unlockLevel: 8 },
+  { id: "crystalspire", name: "Crystal Spire",  sector: "N"      as SectorPosition, unlockLevel: 13 },
+] as const;
