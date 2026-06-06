@@ -2,14 +2,12 @@
   "$schema": "https://railway.com/railway.schema.json",
   "build": {
     "builder": "NIXPACKS",
-    "buildCommand": "npm install --legacy-peer-deps --include=dev --ignore-scripts && npm run build:server && npx drizzle-kit push"
+    "buildCommand": "npm install --legacy-peer-deps --include=dev && npm install @colyseus/core @colyseus/auth @colyseus/redis-presence @colyseus/redis-driver --legacy-peer-deps && npm run build:server"
   },
   "deploy": {
     "numReplicas": 1,
-    "startCommand": "NODE_ENV=production node dist/index.cjs",
-    "healthcheckPath": "/api/health",
-    "healthcheckTimeout": 300,
+    "startCommand": "echo 'Starting grudge-api...' && echo "DATABASE_URL length: ${#DATABASE_URL}" && echo "PORT: $PORT" && node dist/index.cjs",
     "restartPolicyType": "ON_FAILURE",
-    "restartPolicyMaxRetries": 5
+    "restartPolicyMaxRetries": 3
   }
 }

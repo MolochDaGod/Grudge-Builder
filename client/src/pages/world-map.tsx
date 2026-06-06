@@ -12,9 +12,7 @@ import {
   Anchor,
   Compass,
   MapPin,
-  Target,
   Crosshair,
-  Wind,
   Navigation,
   Home,
   Eye,
@@ -26,7 +24,6 @@ import {
 import { useAuthGuard } from '@/hooks/use-auth-guard';
 import {
   WorldMapState,
-  WorldIsland,
   generateWorldMap,
   moveShip,
   dockAtIsland,
@@ -37,43 +34,61 @@ import {
   getTileColor,
   WORLD_MAP_DEFAULTS
 } from '@/lib/worldMapSystem';
+import { SectorImageryRenderer } from '@/lib/sectorImageryRenderer';
 
 export default function WorldMapPage() {
   const authReady = useAuthGuard();
-  if (!authReady) return null;
 
   const { toast } = useToast();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  
+  const imageryRef = useRef<SectorImageryRenderer | null>(null);
+  const animFrameRef = useRef<number>(0);
+  const lastTimeRef = useRef<number>(0);
+
   const [worldState, setWorldState] = useState<WorldMapState | null>(null);
   const [cameraOffset, setCameraOffset] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1.5);
   const [selectedIslandId, setSelectedIslandId] = useState<string | null>(null);
   const [showMinimap, setShowMinimap] = useState(true);
   const [isAiming, setIsAiming] = useState(false);
-  
-  const selectedIsland = selectedIslandId 
-    ? worldState?.islands.find(i => i.id === selectedIslandId) || null 
+  const [canvasSize, setCanvasSize] = useState({ w: window.innerWidth, h: window.innerHeight });
+
+  const selectedIsland = selectedIslandId
+    ? worldState?.islands.find(i => i.id === selectedIslandId) || null
     : null;
-  
+
+  // Handle window resize for canvas
+  useEffect(() => {
+    const onResize = () => setCanvasSize({ w: window.innerWidth, h: window.innerHeight });
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
+
   useEffect(() => {
     const savedSeed = localStorage.getItem('worldMapSeed');
     const seed = savedSeed || WORLD_MAP_DEFAULTS.seed;
-    
+
     if (!savedSeed) {
       localStorage.setItem('worldMapSeed', seed);
     }
-    
+
     const state = generateWorldMap({ ...WORLD_MAP_DEFAULTS, seed });
     setWorldState(state);
-    
+
     setCameraOffset({
       x: state.playerShip.position.x * state.config.tileSize - 400,
       y: state.playerShip.position.y * state.config.tileSize - 300
     });
+
+    // Initialize sector imagery renderer
+    const imagery = new SectorImageryRenderer();
+    imagery.preloadAll();
+    imageryRef.current = imagery;
+
+    return () => imagery.dispose();
   }, []);
-  
+
   useEffect(() => {
     if (!worldState) return;
     
@@ -216,36 +231,41 @@ export default function WorldMapPage() {
     setWorldState(s => s ? aimCannon(s, angle) : s);
   }, [worldState, isAiming, cameraOffset, zoom]);
   
-  useEffect(() => {
+  // ── Main render loop with animation frame for FX ─────────────────────────
+  const renderFrame = useCallback((timestamp: number) => {
     if (!worldState || !canvasRef.current) return;
-    
+
+    const dt = lastTimeRef.current ? Math.min((timestamp - lastTimeRef.current) / 1000, 0.1) : 0.016;
+    lastTimeRef.current = timestamp;
+
     const canvas = canvasRef.current;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
-    
+
     const { tiles, config, playerShip, islands, cannonballs } = worldState;
     const { tileSize } = config;
     const scaledTileSize = tileSize * zoom;
-    
+
     ctx.fillStyle = '#0a0a1a';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
-    
+
     const startTileX = Math.max(0, Math.floor(cameraOffset.x / scaledTileSize));
     const startTileY = Math.max(0, Math.floor(cameraOffset.y / scaledTileSize));
     const endTileX = Math.min(config.width, Math.ceil((cameraOffset.x + canvas.width) / scaledTileSize) + 1);
     const endTileY = Math.min(config.height, Math.ceil((cameraOffset.y + canvas.height) / scaledTileSize) + 1);
-    
+
+    // ── Draw tiles ──
     for (let y = startTileY; y < endTileY; y++) {
       for (let x = startTileX; x < endTileX; x++) {
         const tile = tiles[y]?.[x];
         if (!tile) continue;
-        
+
         const screenX = x * scaledTileSize - cameraOffset.x;
         const screenY = y * scaledTileSize - cameraOffset.y;
-        
+
         ctx.fillStyle = getTileColor(tile, tile.discovered);
         ctx.fillRect(screenX, screenY, scaledTileSize + 1, scaledTileSize + 1);
-        
+
         if (tile.islandId && tile.discovered) {
           ctx.fillStyle = '#2d5a2d';
           ctx.beginPath();
@@ -254,25 +274,42 @@ export default function WorldMapPage() {
         }
       }
     }
-    
+
+    // ── Sector imagery overlay (backgrounds, FX, labels, transitions) ──
+    if (imageryRef.current) {
+      imageryRef.current.render(
+        ctx,
+        playerShip.position.x,
+        playerShip.position.y,
+        cameraOffset.x,
+        cameraOffset.y,
+        scaledTileSize,
+        canvas.width,
+        canvas.height,
+        dt,
+      );
+    }
+
+    // ── Island names ──
     islands.forEach(island => {
       if (!island.discovered) return;
-      
+
       const screenX = island.worldX * scaledTileSize - cameraOffset.x;
       const screenY = island.worldY * scaledTileSize - cameraOffset.y;
-      
+
       ctx.fillStyle = '#fbbf24';
       ctx.font = `${10 * zoom}px sans-serif`;
       ctx.textAlign = 'center';
       ctx.fillText(island.name, screenX + scaledTileSize / 2, screenY - 5);
     });
-    
-    const shipX = playerShip.position.x * scaledTileSize - cameraOffset.x + scaledTileSize / 2;
-    const shipY = playerShip.position.y * scaledTileSize - cameraOffset.y + scaledTileSize / 2;
-    
+
+    // ── Ship ──
+    const shipScreenX = playerShip.position.x * scaledTileSize - cameraOffset.x + scaledTileSize / 2;
+    const shipScreenY = playerShip.position.y * scaledTileSize - cameraOffset.y + scaledTileSize / 2;
+
     ctx.save();
-    ctx.translate(shipX, shipY);
-    
+    ctx.translate(shipScreenX, shipScreenY);
+
     let rotation = 0;
     switch (playerShip.direction) {
       case 'up': rotation = -Math.PI / 2; break;
@@ -281,7 +318,7 @@ export default function WorldMapPage() {
       case 'right': rotation = 0; break;
     }
     ctx.rotate(rotation);
-    
+
     ctx.fillStyle = '#8b4513';
     ctx.beginPath();
     ctx.moveTo(scaledTileSize * 0.6, 0);
@@ -289,7 +326,7 @@ export default function WorldMapPage() {
     ctx.lineTo(-scaledTileSize * 0.4, scaledTileSize * 0.3);
     ctx.closePath();
     ctx.fill();
-    
+
     ctx.fillStyle = '#f5f5dc';
     ctx.beginPath();
     ctx.moveTo(0, -scaledTileSize * 0.5);
@@ -297,41 +334,52 @@ export default function WorldMapPage() {
     ctx.lineTo(-scaledTileSize * 0.3, scaledTileSize * 0.1);
     ctx.closePath();
     ctx.fill();
-    
+
     ctx.restore();
-    
+
+    // ── Cannon aiming ──
     if (isAiming) {
       const aimLength = playerShip.cannonPower * scaledTileSize;
-      const aimEndX = shipX + Math.cos(playerShip.cannonAngle * Math.PI / 180) * aimLength;
-      const aimEndY = shipY + Math.sin(playerShip.cannonAngle * Math.PI / 180) * aimLength;
-      
+      const aimEndX = shipScreenX + Math.cos(playerShip.cannonAngle * Math.PI / 180) * aimLength;
+      const aimEndY = shipScreenY + Math.sin(playerShip.cannonAngle * Math.PI / 180) * aimLength;
+
       ctx.strokeStyle = 'rgba(255, 100, 100, 0.7)';
       ctx.lineWidth = 2;
       ctx.setLineDash([5, 5]);
       ctx.beginPath();
-      ctx.moveTo(shipX, shipY);
+      ctx.moveTo(shipScreenX, shipScreenY);
       ctx.lineTo(aimEndX, aimEndY);
       ctx.stroke();
       ctx.setLineDash([]);
-      
+
       ctx.fillStyle = 'rgba(255, 100, 100, 0.5)';
       ctx.beginPath();
       ctx.arc(aimEndX, aimEndY, 8, 0, Math.PI * 2);
       ctx.fill();
     }
-    
+
+    // ── Cannonballs ──
     cannonballs.forEach(ball => {
       const ballX = ball.position.x * scaledTileSize - cameraOffset.x;
       const ballY = ball.position.y * scaledTileSize - cameraOffset.y;
-      
+
       ctx.fillStyle = '#1a1a1a';
       ctx.beginPath();
       ctx.arc(ballX, ballY, 4, 0, Math.PI * 2);
       ctx.fill();
     });
-    
+
+    // Request next frame for continuous FX animation
+    animFrameRef.current = requestAnimationFrame(renderFrame);
   }, [worldState, cameraOffset, zoom, isAiming]);
-  
+
+  // Start/stop animation loop
+  useEffect(() => {
+    if (!worldState) return;
+    animFrameRef.current = requestAnimationFrame(renderFrame);
+    return () => cancelAnimationFrame(animFrameRef.current);
+  }, [worldState, renderFrame]);
+
   const focusOnShip = () => {
     if (!worldState) return;
     const { playerShip, config } = worldState;
@@ -344,8 +392,9 @@ export default function WorldMapPage() {
   
   const discoveredIslands = worldState?.islands.filter(i => i.discovered) || [];
   const exploredCount = worldState?.islands.filter(i => i.explored).length || 0;
-  
-  if (!worldState) {
+
+  // Auth + loading guards — AFTER all hooks
+  if (!authReady || !worldState) {
     return (
       <div className="min-h-screen bg-slate-950 flex items-center justify-center">
         <div className="text-amber-400 text-xl font-cinzel">Generating World Map...</div>
@@ -404,8 +453,8 @@ export default function WorldMapPage() {
 
       <canvas
         ref={canvasRef}
-        width={window.innerWidth}
-        height={window.innerHeight}
+        width={canvasSize.w}
+        height={canvasSize.h}
         className="absolute inset-0 cursor-crosshair"
         onClick={handleCanvasClick}
         onMouseMove={handleCanvasMouseMove}

@@ -5,11 +5,16 @@
   "license": "MIT",
   "scripts": {
     "dev:client": "vite dev --port 5000",
-    "dev": "NODE_ENV=development tsx server/index.ts",
+    "dev": "npx cross-env NODE_ENV=development tsx server/index.ts",
     "build": "tsx script/build.ts",
+    "build:server": "tsx script/build-server.ts",
     "build:client": "cd client && npx vite build",
+    "build:world": "npx esbuild server/island-server.ts --bundle --platform=node --format=cjs --outfile=dist/world-server.cjs --packages=external --minify",
     "start": "node dist/index.cjs",
+    "start:world": "node dist/world-server.cjs",
     "check": "tsc",
+    "test:client": "vitest run --config client/vitest.config.ts",
+    "test:client:watch": "vitest --config client/vitest.config.ts",
     "db:push": "drizzle-kit push"
   },
   "dependencies": {
@@ -31,8 +36,10 @@
     "@hookform/resolvers": "^3.10.0",
     "@johnnymorganz/stylua-bin": "^2.3.1",
     "@jridgewell/trace-mapping": "^0.3.25",
+    "@monaco-editor/react": "^4.7.0",
     "@mux/mux-player": "^3.10.2",
     "@octokit/rest": "^22.0.0",
+    "@phantom/browser-sdk": "^2.0.2",
     "@phaserjs/create-game": "^1.3.0",
     "@phaserjs/editor-scripts-base": "^2.0.1",
     "@pixi/canvas-sprite": "^7.4.3",
@@ -73,11 +80,12 @@
     "@tanstack/react-query": "^5.60.5",
     "@types/babylon": "^6.16.9",
     "@types/pngjs": "^6.0.5",
-    "@types/three": "^0.160.0",
+    "@types/three": "^0.184.1",
     "@uppy/aws-s3": "^5.1.0",
     "@uppy/core": "^5.2.0",
     "@uppy/dashboard": "^5.1.0",
     "@uppy/react": "^5.1.1",
+    "@webcontainer/api": "^1.6.4",
     "account": "^1.0.0",
     "ai": "^6.0.3",
     "animejs": "^4.2.2",
@@ -142,7 +150,6 @@
     "next-themes": "^0.4.6",
     "ng-svg-icon-sprite": "^1.14.0",
     "node-gimp": "^0.0.3",
-    "sass": "^1.77.0",
     "node-unrar-js": "^2.0.2",
     "openai": "^6.15.0",
     "p-limit": "^7.2.0",
@@ -167,7 +174,9 @@
     "recharts": "^2.15.4",
     "rest": "^2.0.0",
     "rot-js": "^2.2.1",
+    "sass": "^1.77.0",
     "sass-loader": "^16.0.6",
+    "socket.io": "^4.8.3",
     "socket.io-client": "^4.8.3",
     "sonner": "^2.0.7",
     "sprite": "^0.0.1",
@@ -181,7 +190,8 @@
     "tff": "^0.0.1",
     "tff-ckeditor5": "^1.0.3",
     "tff-models": "^0.0.158",
-    "three": "^0.160.0",
+    "three": "^0.184.0",
+    "three-mesh-bvh": "^0.9.10",
     "ttfinfo": "^0.2.0",
     "tw-animate-css": "^1.4.0",
     "uuid": "^13.0.0",
@@ -191,8 +201,21 @@
     "zod": "^3.25.76",
     "zod-validation-error": "^3.5.4"
   },
+  "overrides": {
+    "three-render-objects": "1.29.5",
+    "3d-force-graph": {
+      "three-render-objects": "1.29.5"
+    },
+    "3d-force-graph-vr": {
+      "three-render-objects": "1.29.5"
+    }
+  },
   "devDependencies": {
-    "@tailwindcss/vite": "^4.1.14",
+    "@tailwindcss/vite": "^4.3.0",
+    "@testing-library/dom": "^10.4.1",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.1",
     "@types/connect-pg-simple": "^7.0.3",
     "@types/cors": "^2.8.19",
     "@types/express": "4.17.21",
@@ -204,15 +227,18 @@
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
     "@types/ws": "^8.5.13",
-    "@vitejs/plugin-react": "^5.0.4",
+    "@vitejs/plugin-react": "^5.2.0",
     "autoprefixer": "^10.4.21",
+    "cross-env": "^10.1.0",
     "drizzle-kit": "^0.31.8",
     "esbuild": "^0.25.0",
+    "jsdom": "^29.1.1",
     "postcss": "^8.5.6",
     "tailwindcss": "^4.1.14",
     "tsx": "^4.20.5",
     "typescript": "5.6.3",
-    "vite": "^7.1.9"
+    "vite": "^7.3.3",
+    "vitest": "^4.1.7"
   },
   "optionalDependencies": {
     "bufferutil": "^4.0.8"

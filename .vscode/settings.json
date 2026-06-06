@@ -1,3 +1,23 @@
 {
-    "DockerRun.DisableDockerrc": true
+    "DockerRun.DisableDockerrc": true,
+    "serverpulse.ai.enabled": true,
+    "serverpulse.ai.optInShown": true,
+    "serverpulse.enableHealthCheck": false,
+    "serverpulse.services": [
+        {
+            "name": "undefined (nodejs)",
+            "type": "nodejs",
+            "port": 8000,
+            "healthCheckPath": "",
+            "enableHealthCheck": false,
+            "healthCheckInterval": 30000
+        }
+    ],
+    "python-envs.pythonProjects": [
+        {
+            "path": ".",
+            "envManager": "ms-python.python:venv",
+            "packageManager": "ms-python.python:pip"
+        }
+    ]
 }

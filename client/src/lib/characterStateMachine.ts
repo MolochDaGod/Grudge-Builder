@@ -7,6 +7,12 @@ export type CharacterState =
   | 'combat'
   | 'sailing'
   | 'fishing'
+  | 'fishing_idle'
+  | 'fishing_casting'
+  | 'fishing_waiting'
+  | 'fishing_reeling'
+  | 'fishing_catching'
+  | 'fishing_failed'
   | 'crafting'
   | 'trading'
   | 'talking';
@@ -85,9 +91,57 @@ const STATE_CONFIGS: Record<CharacterState, StateConfig> = {
     minDuration: 0
   },
   fishing: {
-    enterAnimation: 'Attack',
-    allowedTransitions: ['idle', 'sailing', 'combat'],
-    minDuration: 3000
+    enterAnimation: 'Idle',
+    allowedTransitions: ['idle', 'sailing', 'combat', 'fishing_idle'],
+    minDuration: 0
+  },
+  fishing_idle: {
+    enterAnimation: 'FishingIdle',
+    allowedTransitions: ['idle', 'fishing_casting', 'combat'],
+    minDuration: 0,
+    onEnter: (ctx) => {
+      console.log(`[StateMachine] ${ctx.characterId} equipped rod, ready to fish`);
+    }
+  },
+  fishing_casting: {
+    enterAnimation: 'FishingCast',
+    allowedTransitions: ['fishing_waiting', 'fishing_idle', 'combat'],
+    minDuration: 800,
+    onEnter: (ctx) => {
+      console.log(`[StateMachine] ${ctx.characterId} casting line...`);
+    }
+  },
+  fishing_waiting: {
+    enterAnimation: 'FishingWait',
+    allowedTransitions: ['fishing_reeling', 'fishing_idle', 'combat'],
+    minDuration: 2000,
+    onEnter: (ctx) => {
+      console.log(`[StateMachine] ${ctx.characterId} waiting for bite...`);
+    }
+  },
+  fishing_reeling: {
+    enterAnimation: 'FishingReel',
+    allowedTransitions: ['fishing_catching', 'fishing_failed', 'combat'],
+    minDuration: 1500,
+    onEnter: (ctx) => {
+      console.log(`[StateMachine] ${ctx.characterId} got a bite! Reeling...`);
+    }
+  },
+  fishing_catching: {
+    enterAnimation: 'FishingCatch',
+    allowedTransitions: ['fishing_idle', 'idle'],
+    minDuration: 1500,
+    onEnter: (ctx) => {
+      console.log(`[StateMachine] ${ctx.characterId} caught a fish!`);
+    }
+  },
+  fishing_failed: {
+    enterAnimation: 'FishingFail',
+    allowedTransitions: ['fishing_idle', 'idle'],
+    minDuration: 1000,
+    onEnter: (ctx) => {
+      console.log(`[StateMachine] ${ctx.characterId} the fish got away!`);
+    }
   },
   crafting: {
     enterAnimation: 'Idle',

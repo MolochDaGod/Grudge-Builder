@@ -10,12 +10,12 @@ This repo ships the **Grudge Warlords** web game at [grudgewarlords.com](https:/
 
 - **Web**: [grudgewarlords.com](https://grudgewarlords.com) — Vercel
 - **Steam**: App ID 1318844 (Partner ID 317409)
-- **Backend API**: [api.grudge-studio.com](https://api.grudge-studio.com/api/health) — Railway (Docker)
-- **Auth (Grudge ID)**: [id.grudge-studio.com](https://id.grudge-studio.com) — Railway
-- **Account API**: [account.grudge-studio.com](https://account.grudge-studio.com/health) — Railway
+- **Backend API**: [api.grudge-studio.com](https://api.grudge-studio.com/api/health) — Cloudflare Workers
+- **Auth (Grudge ID)**: [id.grudge-studio.com](https://id.grudge-studio.com) — Cloudflare
+- **Account API**: [account.grudge-studio.com](https://account.grudge-studio.com/health) — Cloudflare
 - **Assets CDN**: [assets.grudge-studio.com](https://assets.grudge-studio.com) — Cloudflare R2
 - **ObjectStore Worker**: [objectstore.grudge-studio.com](https://objectstore.grudge-studio.com/health) — Cloudflare Workers (R2 + D1)
-- **ObjectStore API**: [grudge-objectstore.pages.dev](https://grudge-objectstore.pages.dev/api/v1/master-items.json) — Cloudflare Pages (55+ JSON endpoints)
+- **ObjectStore API**: [objectstore.grudge-studio.com](https://objectstore.grudge-studio.com/api/v1/master-items.json) — Cloudflare Workers (55+ JSON endpoints)
 - **Dashboard**: [dash.grudge-studio.com](https://dash.grudge-studio.com) — Vercel
 - **AI Hub**: [ai.grudge-studio.com](https://ai.grudge-studio.com) — Cloudflare Workers
 
@@ -23,7 +23,7 @@ This repo ships the **Grudge Warlords** web game at [grudgewarlords.com](https:/
 
 ```
 Browser → Vercel (static SPA)
-          ├─ /api/auth   → id.g-s.com      Railway:
+          ├─ /api/auth   → id.g-s.com      Cloudflare Workers:
           ├─ /api/*      → api.g-s.com     ├─ grudge-id    (id.g-s.com — auth, OAuth, JWT)
           ├─ /api/wallet → api.g-s.com     ├─ account-api  (account.g-s.com — profiles)
           ├─ /api/assets → assets.g-s.com  ├─ game-api     (api.g-s.com — game, crafting)
@@ -39,14 +39,14 @@ Cloudflare:
 
 **Live:**
 - `grudgewarlords.com` — Game frontend (this repo) — Vercel
-- `id.grudge-studio.com` — Grudge ID auth (SSO, OAuth, JWT) — Railway
-- `api.grudge-studio.com` — Game API + wallet + NFTs — Railway (routes under `/api/*`)
-- `account.grudge-studio.com` — Account profiles & social — Railway
+- `id.grudge-studio.com` — Grudge ID auth (SSO, OAuth, JWT) — Cloudflare
+- `api.grudge-studio.com` — Game API + wallet + NFTs — Cloudflare (routes under `/api/*`)
+- `account.grudge-studio.com` — Account profiles & social — Cloudflare
 - `assets.grudge-studio.com` — Binary assets CDN (images, sprites, models) — Cloudflare R2
 - `objectstore.grudge-studio.com` — R2 + D1 Worker (3D models, search, upload) — Cloudflare Workers
 - `dash.grudge-studio.com` — Admin dashboard — Vercel
 - `ai.grudge-studio.com` — Gruda Legion AI hub (sprite gen, agents) — Cloudflare Workers
-- `grudge-objectstore.pages.dev` — Static JSON game data API (55+ endpoints) — Cloudflare Pages
+- `objectstore.grudge-studio.com` — ObjectStore API (55+ JSON endpoints, 3D models, search) — Cloudflare Workers
 
 **Planned (not yet deployed):**
 - `ws.grudge-studio.com` — WebSocket real-time (Socket.IO)
@@ -195,8 +195,75 @@ const { data: weapons, isLoading, error, refetch } = useWeapons();
 - **ObjectStore**: [github.com/MolochDaGod/ObjectStore](https://github.com/MolochDaGod/ObjectStore) — 55+ JSON endpoints, 13K+ assets, SDK v5.0, master-items with GRUDGE UUIDs
 
 ### Environment Overrides
-- `VITE_OBJECT_STORE_URL` — Override ObjectStore base URL (default: `grudge-objectstore.pages.dev`)
+- `VITE_OBJECT_STORE_URL` — Override ObjectStore base URL (default: `objectstore.grudge-studio.com`)
 - `VITE_ASSET_CDN_URL` — Override CDN/asset service URL (default: `assets.grudge-studio.com`)
+
+## Grudge Fleet
+
+Grudge-Builder is the **hub** for the Grudge Warlords fleet. All games share the same Grudge ID, characters, and backend.
+
+| Game | Repo | Domain | Engine |
+|---|---|---|---|
+| **Grudge Warlords** (this repo) | Grudge-Builder | grudgewarlords.com | React + Three.js + Phaser |
+| **RTS Grudge** | RTS-Grudge | rts-grudge.vercel.app | React-Three-Fiber + Rapier |
+| **Dungeon Crawler Quest** | Dungeon-Crawler-Quest | dcq.grudge-studio.com | BabylonJS + Havok |
+
+All games connect to:
+- `api.grudge-studio.com` — Game API (characters, saves, inventory)
+- `id.grudge-studio.com` — Auth (SSO, OAuth, JWT)
+- `assets.grudge-studio.com` — Asset CDN (R2)
+- `objectstore.grudge-studio.com` — Game data (weapons, armor, classes)
+
+### Cross-Game SSO & Navigation
+
+All fleet games use the same SSO flow. A player authenticated on one game stays authenticated when navigating to another:
+
+```
+Player on grudgewarlords.com (has grudge_auth_token)
+  │
+  ├─ Clicks “RTS GRUDGE” card
+  │   └─ gameNav.ts appends ?sso_token=<token>&grudge_id=<id>&username=<name>
+  │   └─ Navigates to rts-grudge.vercel.app?sso_token=...
+  │
+  └─ RTS-Grudge picks up ?sso_token= on load (grudgeBackend.ts / GrudgeSession.ts)
+     └─ Stores token in localStorage, cleans URL
+     └─ Player is authenticated — characters load from api.grudge-studio.com
+```
+
+**Auth module per game:**
+
+| Game | Auth Module | Token Key | SSO Pickup |
+|---|---|---|---|
+| GrudgeBuilder | `lib/grudgeBackend.ts` | `grudge_auth_token` | `?sso_token=` query param |
+| RTS-Grudge | `lib/auth/GrudgeSession.ts` | `grudge.token` | `?grudge_token=` + `?sso_token=` |
+| DCQ | `lib/grudgeBackend.ts` | `grudge_auth_token` | `?sso_token=` + legacy `#token=` |
+
+**Cross-game navigation** (`client/src/lib/gameNav.ts`):
+
+```typescript
+import { navigateToGame } from "@/lib/gameNav";
+
+// Same-origin (local page) — uses wouter
+navigateToGame("/character", setLocation);
+
+// External game — appends auth token to URL
+navigateToGame("https://rts-grudge.vercel.app", setLocation);
+
+// Build auth-carrying URL for a fleet game
+import { getGameUrl } from "@/lib/gameNav";
+const url = getGameUrl("rts-grudge", "/character");
+// => "https://rts-grudge.vercel.app/character?sso_token=...&grudge_id=..."
+```
+
+**Key principles:**
+- Never hard-redirect for auth — guests always play immediately
+- Auth is user-triggered (click "Sign In") or SSO-carried (cross-game nav)
+- Characters persist across all games via `api.grudge-studio.com/api/characters`
+- Token validation is client-side JWT expiry check — no blocking server round-trip
+
+---
+
+*Grudge Studio · Built by Racalvin The Pirate King*
 
 ## Tech Stack
 
@@ -205,10 +272,10 @@ const { data: weapons, isLoading, error, refetch } = useWeapons();
 - **Animation**: Framer Motion, Phaser (dungeon engine)
 - **State**: TanStack Query, Grudge ID server-side (no localStorage for player data)
 - **Multiplayer**: Colyseus (WebSocket rooms)
-- **Backend**: Express, Drizzle ORM, PostgreSQL (Railway)
+- **Backend**: Express, Drizzle ORM, PostgreSQL (Cloudflare Workers + D1)
 - **Auth**: Grudge ID (JWT) via id.grudge-studio.com — Discord, Google, GitHub, Puter, Solana wallet, guest
 - **Assets**: ObjectStore (Cloudflare Pages for JSON, Cloudflare R2 for binary assets)
-- **Infrastructure**: Railway (Docker backend), Vercel (frontend), Cloudflare (DNS + R2 + Workers)
+- **Infrastructure**: Cloudflare (Workers, D1, R2, DNS), Vercel (frontend), Railway (game servers only)
 
 ## Deploy
 
@@ -224,7 +291,7 @@ npm run generate:master   # regenerate master-items/recipes/materials
 npm run deploy:pages      # push to gh-pages branch → GitHub Pages
 ```
 
-**Backend** — Railway (Docker):
+**Backend** — Cloudflare Workers:
 - **Railway** hosts the canonical Grudge Studio backend (`api.grudge-studio.com`, `id.grudge-studio.com`, `account.grudge-studio.com`). Managed in `grudge-backend` repo. Vercel rewrites in `vercel.json` proxy all `/api/*` calls to `grudge-api-production.up.railway.app`.
 - This repo's Node server (`server/index.ts` — Express + Colyseus) can also deploy to Railway via `railway.json` for multiplayer rooms. `ws.grudge-studio.com` will front it when ready.
 
@@ -262,7 +329,7 @@ Headers: `/editor` gets `COOP/COEP` for SharedArrayBuffer; `/assets/*` is cached
 
 - **[Grudge-Builder](https://github.com/MolochDaGod/Grudge-Builder)** (private) — This repo. Game frontend.
 - **[ObjectStore](https://github.com/MolochDaGod/ObjectStore)** — Game data API + asset management
-- **[grudge-backend](https://github.com/MolochDaGod/grudge-backend)** — Railway backend (auth, game API, wallets)
+- **[grudge-backend](https://github.com/MolochDaGod/grudge-backend)** — Cloudflare backend (auth, game API, wallets)
 - **[grudge-studio-dash](https://github.com/MolochDaGod/grudge-studio-dash)** — Admin dashboard
 - **[grudge-ai-hub](https://github.com/MolochDaGod/grudge-ai-hub)** — AI Worker (Cloudflare)
 - **[grudge-arena](https://github.com/MolochDaGod/grudge-arena)** — 3D PvP Arena

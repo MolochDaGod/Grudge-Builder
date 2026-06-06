@@ -2,17 +2,25 @@
  * WebContainer singleton — boots once per page, manages in-browser Node.js runtime.
  * Used by the /editor page for live Three.js/BabylonJS preview with full npm support.
  */
-import { WebContainer, type FileSystemTree } from '@webcontainer/api';
+// Dynamic import — @webcontainer/api is only needed on the /editor page and
+// may not be installed in all environments (Railway server-only deploy).
+// Using dynamic import() prevents Rollup from failing the entire build.
 
-let _instance: WebContainer | null = null;
-let _booting: Promise<WebContainer> | null = null;
+// Type-only re-export for consumers that need the FileSystemTree type.
+// Rollup strips type-only imports so this won't cause a resolve failure.
+export type FileSystemTree = Record<string, any>;
+
+let _instance: any = null;
+let _booting: Promise<any> | null = null;
 
 /** Boot or return the singleton WebContainer instance */
-export async function getWebContainer(): Promise<WebContainer> {
+export async function getWebContainer(): Promise<any> {
   if (_instance) return _instance;
   if (_booting) return _booting;
 
-  _booting = WebContainer.boot().then(wc => {
+  _booting = import('@webcontainer/api').then(({ WebContainer }) =>
+    WebContainer.boot()
+  ).then(wc => {
     _instance = wc;
     _booting = null;
     return wc;

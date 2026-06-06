@@ -189,17 +189,18 @@
 
   // ── Post-auth handler ──────────────────────────────────────────────
   function onAuthSuccess(data, msg) {
-    setAuthData(data);
     closeGrudgeAuthModal();
     toast(msg || 'Signed in!');
-    // Link Puter identity in background
-    linkPuterIdentity(data.token || data.sessionToken).catch(function () {});
-    // Fire custom event so host app can react
-    window.dispatchEvent(new CustomEvent('grudge:auth:success', { detail: data }));
-    // Optional redirect
-    if (AUTH_RETURN) {
-      setTimeout(function () { window.location.href = AUTH_RETURN; }, 300);
-    }
+    // Build the SSO callback redirect URL with all three params
+    var token = data.sessionToken || data.token || '';
+    var gid = data.grudgeId || '';
+    var uname = data.username || '';
+    var callbackUrl = '/auth/callback'
+      + '?sso_token=' + encodeURIComponent(token)
+      + '&grudge_id=' + encodeURIComponent(gid)
+      + '&grudge_username=' + encodeURIComponent(uname);
+    // Redirect through the SSO callback — pickupSsoToken() handles storage
+    setTimeout(function () { window.location.href = callbackUrl; }, 200);
   }
 
   // ── Puter ID linker (runs silently after every auth) ───────────────
@@ -299,9 +300,8 @@
   // Discord OAuth — client-built URL (was: /api/auth/discord/start which is 404).
   function doDiscord() {
     showSuccess('Redirecting to Discord\u2026');
-    var returnUrl = AUTH_RETURN
-      ? (window.location.origin + AUTH_RETURN)
-      : window.location.href;
+    // Always redirect back to /auth/callback so SSO params arrive there
+    var returnUrl = window.location.origin + '/auth/callback';
     window.location.href = buildDiscordOAuthUrl(returnUrl);
   }
 

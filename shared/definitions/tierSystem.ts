@@ -1,7 +1,7 @@
 /**
  * Canonical Grudge Warlords Tier System (T1–T8)
  *
- * Source of truth: https://info.grudge-studio.com/items-guide.html
+ * Source of truth: https://info.grudge-studio.com/GRUDGE_Item_Database.html
  * ObjectStore master-items.json uses these exact labels.
  */
 
@@ -39,7 +39,7 @@ export function getTierColor(tier: number): string {
   return getTierDef(tier).color;
 }
 
-/** Crafting station definitions (from info.grudge-studio.com/crafting.html) */
+/** Crafting station definitions (from info.grudge-studio.com/GRUDGE_Item_Database.html) */
 export const CRAFTING_STATIONS = [
   { id: "forge",     name: "Forge",           icon: "⚒️",  profession: "Miner",    desc: "Weapons & heavy armor. Requires ore and fuel." },
   { id: "workbench", name: "Workbench",       icon: "🪵",  profession: "Forester", desc: "Wood items, bows, and tools." },

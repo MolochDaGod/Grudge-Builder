@@ -1,0 +1,58 @@
+# Grudge AI Gateway Worker — unified AI model hub at ai.grudge-studio.com
+# Routes ALL AI calls (chat, image, video, speech, music, agent) through
+# Cloudflare AI Gateway to 137+ models.
+name = "grudge-ai-gateway"
+main = "src/index.ts"
+compatibility_date = "2024-09-23"
+node_compat = true
+
+# ── AI Gateway ────────────────────────────────────────────────────────────────
+# Cloudflare AI Gateway proxies requests to third-party AI providers.
+# Dashboard: https://dash.cloudflare.com/ee475864561b02d4588180b8b9acf694/ai/models
+[ai]
+binding = "AI"
+
+# ── R2 Bucket (same as CDN worker — write generated assets here) ──────────────
+[[r2_buckets]]
+binding = "ASSETS"
+bucket_name = "grudge-assets"
+
+# ── D1 Database (async job tracking for video/music/agent pipelines) ──────────
+[[d1_databases]]
+binding = "JOBS_DB"
+database_name = "grudge-ai-jobs"
+database_id = ""  # Fill after `wrangler d1 create grudge-ai-jobs`
+
+# ── Queue (async generation tasks) ────────────────────────────────────────────
+[[queues.producers]]
+binding = "JOB_QUEUE"
+queue = "grudge-ai-jobs"
+
+[[queues.consumers]]
+queue = "grudge-ai-jobs"
+max_batch_size = 5
+max_retries = 3
+
+# ── Custom domain ─────────────────────────────────────────────────────────────
+[[routes]]
+pattern = "ai.grudge-studio.com/*"
+zone_name = "grudge-studio.com"
+
+# ── Secrets (set via `wrangler secret put`) ───────────────────────────────────
+# JWT_SECRET         — shared with VPS for Grudge ID token validation
+# CF_AI_GATEWAY_TOKEN — Cloudflare AI Gateway API token (if needed)
+
+# ── Vars ──────────────────────────────────────────────────────────────────────
+[vars]
+ENVIRONMENT = "production"
+ASSETS_CDN_URL = "https://assets.grudge-studio.com"
+CF_ACCOUNT_ID = "ee475864561b02d4588180b8b9acf694"
+
+# ── Environment overrides ─────────────────────────────────────────────────────
+[env.production]
+name = "grudge-ai-gateway"
+
+[env.staging]
+name = "grudge-ai-gateway-staging"
+[env.staging.vars]
+ENVIRONMENT = "staging"

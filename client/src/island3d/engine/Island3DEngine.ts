@@ -27,8 +27,14 @@ import { CharacterController3D, type CharacterController3DConfig, type PhysicsCa
 import { TerrainNavMesh } from '../navigation/TerrainNavMesh';
 import { AllyManager, type CombatTarget } from '../ai/AllyController';
 import { BuildingSystem, type PieceType } from '../building/BuildingSystem';
+import { getSectorById, type WorldSector } from '@shared/definitions/worldMapSectors';
+import {
+  generateZonePopulation, getNodesByCategory,
+  type ZonePopulation, type IslandNode, type SpawnPointNode, type DockNode,
+} from '@shared/definitions/zoneServerNodes';
+import { buildZoneScene, type ZoneSceneResult } from './ZoneSceneBuilder';
 
-export type Island3DMode = 'procedural' | 'lobby';
+export type Island3DMode = 'procedural' | 'lobby' | 'zone';
 
 export interface Island3DEngineConfig {
   seed: string;
@@ -37,10 +43,14 @@ export interface Island3DEngineConfig {
   height: number;
   /** Optional multiplayer config — omit for offline / solo play */
   multiplayer?: MultiplayerConfig;
-  /** 'procedural' = seed-based terrain (default), 'lobby' = pre-built GLTF map */
+  /** 'procedural' = seed-based terrain (default), 'lobby' = pre-built GLTF map, 'zone' = full sector */
   mode?: Island3DMode;
   /** Lobby map ID (e.g. 'pirate-islands'). Only used when mode='lobby'. */
   lobbyMapId?: string;
+  /** Sector ID from WORLD_SECTORS. Only used when mode='zone'. */
+  sectorId?: string;
+  /** World seed shared across all zone instances for determinism. */
+  worldSeed?: string;
   /** Progress callback for lobby map loading (0-100) */
   onLoadProgress?: (pct: number) => void;
   /** Post-processing quality (default 'medium') */
@@ -90,6 +100,11 @@ export class Island3DEngine {
   // Lobby map
   private lobbyResult: LobbyLoadResult | null = null;
   private lobbyAnimMixer: THREE.AnimationMixer | null = null;
+
+  // Zone mode
+  public zoneScene: ZoneSceneResult | null = null;
+  public zonePopulation: ZonePopulation | null = null;
+  public zoneSector: WorldSector | null = null;
 
   // Player character
   public character: CharacterController3D | null = null;
@@ -143,10 +158,10 @@ export class Island3DEngine {
 
     this.setupLighting();
 
-    // Post-processing
+    // Post-processing — default to 'low' for performance
     this.postProcessing = new PostProcessing(
       this.renderer, this.scene, this.camera,
-      { quality: config.quality || 'medium' },
+      { quality: config.quality || 'low' },
     );
   }
 
@@ -183,12 +198,14 @@ export class Island3DEngine {
     }
   }
 
-  /** Generate terrain, water, nodes, decorations — or load a lobby map */
+  /** Generate terrain, water, nodes, decorations — or load a lobby/zone map */
   async init(): Promise<void> {
     const mode = this.config.mode || 'procedural';
 
     if (mode === 'lobby') {
       await this.initLobby();
+    } else if (mode === 'zone') {
+      await this.initZone();
     } else {
       await this.initProcedural();
     }
@@ -238,10 +255,10 @@ export class Island3DEngine {
     const terrainMaterial = createTerrainMaterial();
     const terrainConfig: IslandTerrainConfig = {
       seed: this.config.seed,
-      xSegments: 127,
-      ySegments: 127,
-      xSize: 512,
-      ySize: 512,
+      xSegments: 63,
+      ySegments: 63,
+      xSize: 1024,
+      ySize: 1024,
       minHeight: -30,
       maxHeight: 80,
     };
@@ -259,7 +276,7 @@ export class Island3DEngine {
       this.terrain.terrainMesh,
       this.terrain.gridW,
       this.terrain.gridH,
-      512, 512,
+      1024, 1024,
       this.config.seed,
     );
 
@@ -278,8 +295,8 @@ export class Island3DEngine {
       this.terrain.biomeMap,
       this.terrain.gridW,
       this.terrain.gridH,
-      512, 512,
-      8, // cell size
+      1024, 1024,
+      16, // cell size (doubled for 2x terrain)
     );
 
     // 8. Ally manager (Gouldstone system)
@@ -294,8 +311,106 @@ export class Island3DEngine {
     }
   }
 
+  /** Build a full 4 km ocean sector with islands, NPCs, hazards, docks */
+  private async initZone(): Promise<void> {
+    const sectorId = this.config.sectorId;
+    const worldSeed = this.config.worldSeed || 'grudge-world-1';
+
+    if (!sectorId) {
+      console.error('[Island3DEngine] mode="zone" requires config.sectorId');
+      return this.initProcedural(); // fallback
+    }
+
+    const sector = getSectorById(sectorId);
+    if (!sector) {
+      console.error(`[Island3DEngine] Unknown sector: ${sectorId}`);
+      return this.initProcedural();
+    }
+
+    this.zoneSector = sector;
+    const cfg = sector.terrain3d;
+
+    // 1. Generate deterministic zone population (shared with server)
+    this.zonePopulation = generateZonePopulation(
+      sectorId, worldSeed, cfg.sizeMeters,
+      sector.difficultyMin, sector.difficultyMax,
+      sector.resources, sector.biome,
+    );
+
+    // 2. Build the Three.js scene (ocean, islands, markers, lighting)
+    this.zoneScene = buildZoneScene(sector, this.zonePopulation);
+    this.scene.add(this.zoneScene.root);
+
+    // 3. Apply sector sky + fog
+    this.scene.background = new THREE.Color(cfg.skyColor);
+    this.scene.fog = new THREE.FogExp2(cfg.fog.color, cfg.fog.density);
+
+    // 4. Replace default lighting with zone lighting
+    // (remove the lights setupLighting() created — zone scene has its own)
+    if (this.sunLight) { this.scene.remove(this.sunLight); this.sunLight = null; }
+    if (this.hemiLight) { this.scene.remove(this.hemiLight); this.hemiLight = null; }
+
+    // 5. Day/night cycle with zone sun
+    if (this.config.dayNight !== undefined) {
+      this.dayNight = new DayNightCycle(
+        this.scene, this.zoneScene.sunLight, this.zoneScene.hemiLight,
+        this.config.dayNight,
+      );
+    }
+
+    // 6. Camera — zoom out for the 4 km zone, center on first dock or spawn
+    const spawns = getNodesByCategory<SpawnPointNode>(this.zonePopulation, 'spawn_point')
+      .filter(s => s.spawnType === 'player');
+    const docks = getNodesByCategory<DockNode>(this.zonePopulation, 'dock');
+    const entryPoint = spawns[0]?.position ?? docks[0]?.position ?? cfg.spawnPoints[0] ?? [0, 20, 0];
+
+    this.camera.position.set(entryPoint[0], entryPoint[1] + 150, entryPoint[2] + 250);
+    this.controls.target.set(entryPoint[0], entryPoint[1], entryPoint[2]);
+    this.controls.maxDistance = 2000;
+    this.controls.minDistance = 10;
+    this.controls.maxPolarAngle = Math.PI * 0.85;
+    this.controls.update();
+
+    // 7. Grab the first island's terrain mesh for character ground detection
+    const firstIslandId = this.zonePopulation.islandIds[0];
+    const firstIslandMesh = firstIslandId ? this.zoneScene.islandMeshes.get(firstIslandId) : null;
+
+    // 8. Character controller (spawns at first dock)
+    if (this.config.enableCharacter !== false && firstIslandMesh) {
+      this.terrain = {
+        terrainScene: this.zoneScene.root,
+        terrainMesh: firstIslandMesh,
+        biomeMap: [],
+        elevationMap: new Float32Array(0),
+        moistureMap: new Float32Array(0),
+        gridW: 0,
+        gridH: 0,
+      };
+      const spawnPos = new THREE.Vector3(entryPoint[0], entryPoint[1] + 3, entryPoint[2]);
+      this.character = new CharacterController3D({
+        scene: this.scene,
+        camera: this.camera,
+        terrainMesh: firstIslandMesh,
+        startPosition: spawnPos,
+        physics: { waterLevel: cfg.waterLevel },
+        callbacks: this.config.physicsCallbacks,
+      });
+      this.controls.enabled = false;
+      this.characterActive = true;
+    }
+
+    // 9. Building system works in zone mode too
+    this.building = new BuildingSystem(this.scene, this.camera);
+
+    console.log(
+      `[Island3DEngine] Zone "${sector.name}" loaded:`,
+      `${this.zonePopulation.islandIds.length} islands,`,
+      `${this.zonePopulation.nodes.size} total nodes`,
+    );
+  }
+
   private createWaterPlane(): void {
-    this.waterPlane = createOceanMesh({ waterLevel: -2 });
+    this.waterPlane = createOceanMesh({ waterLevel: -2, size: 1200, segments: 4 });
     this.scene.add(this.waterPlane);
   }
 
@@ -335,7 +450,7 @@ export class Island3DEngine {
       terrainMesh: this.terrain.terrainMesh,
       gridW: this.terrain.gridW,
       gridH: this.terrain.gridH,
-      terrainSize: 512,
+      terrainSize: 1024,
     };
 
     // Grass wave overlay (LOD patches)
@@ -346,9 +461,9 @@ export class Island3DEngine {
     this.sandLayer = new DetailLayer({ ...layerConfig, type: 'sand' });
     this.scene.add(this.sandLayer.group);
 
-    // Close-range instanced grass blades
-    this.grassBlades = createGrassBlades(layerConfig);
-    this.scene.add(this.grassBlades.mesh);
+    // Grass blades disabled — biggest GPU cost, kills mobile/low-end perf
+    // this.grassBlades = createGrassBlades(layerConfig);
+    // this.scene.add(this.grassBlades.mesh);
   }
 
   /** Spawn or respawn the playable character */
@@ -449,6 +564,7 @@ export class Island3DEngine {
     this.updateWater(dt);
     this.updateHarvestables(dt);
     this.updateDetailLayers(dt);
+    this.zoneScene?.update(dt, this.clock.elapsedTime);
     this.lobbyAnimMixer?.update(dt);
     this.multiplayer?.update(dt);
 
@@ -555,6 +671,76 @@ export class Island3DEngine {
     this.controls.enabled = !enabled;
   }
 
+  /**
+   * Capture a top-down orthographic render of the island.
+   * Returns a data URL (PNG) showing terrain + water + decorations only.
+   * No buildings, no character — pure landscape.
+   */
+  captureTopDown(resolution = 1024): string {
+    const halfSize = 520; // slightly larger than terrain (1024/2) to show water edge
+    const ortho = new THREE.OrthographicCamera(
+      -halfSize, halfSize, halfSize, -halfSize, 1, 500,
+    );
+    ortho.position.set(0, 300, 0);
+    ortho.lookAt(0, 0, 0);
+    ortho.updateProjectionMatrix();
+
+    // Hide character + building ghosts for a clean capture
+    const hiddenObjects: THREE.Object3D[] = [];
+    if (this.character) {
+      const charModel = (this.character as any).model;
+      if (charModel && charModel.visible) {
+        charModel.visible = false;
+        hiddenObjects.push(charModel);
+      }
+    }
+    if (this.building) {
+      const ghost = (this.building as any).ghostMesh;
+      if (ghost && ghost.visible) {
+        ghost.visible = false;
+        hiddenObjects.push(ghost);
+      }
+    }
+
+    // Render to offscreen target
+    const rt = new THREE.WebGLRenderTarget(resolution, resolution, {
+      minFilter: THREE.LinearFilter,
+      magFilter: THREE.LinearFilter,
+      format: THREE.RGBAFormat,
+    });
+
+    const prevTarget = this.renderer.getRenderTarget();
+    this.renderer.setRenderTarget(rt);
+    this.renderer.render(this.scene, ortho);
+    this.renderer.setRenderTarget(prevTarget);
+
+    // Read pixels into canvas
+    const pixels = new Uint8Array(resolution * resolution * 4);
+    this.renderer.readRenderTargetPixels(rt, 0, 0, resolution, resolution, pixels);
+
+    const canvas = document.createElement('canvas');
+    canvas.width = resolution;
+    canvas.height = resolution;
+    const ctx = canvas.getContext('2d')!;
+    const imageData = ctx.createImageData(resolution, resolution);
+
+    // WebGL reads bottom-up, flip vertically
+    for (let y = 0; y < resolution; y++) {
+      const srcRow = (resolution - 1 - y) * resolution * 4;
+      const dstRow = y * resolution * 4;
+      for (let x = 0; x < resolution * 4; x++) {
+        imageData.data[dstRow + x] = pixels[srcRow + x];
+      }
+    }
+    ctx.putImageData(imageData, 0, 0);
+
+    // Cleanup
+    rt.dispose();
+    for (const obj of hiddenObjects) obj.visible = true;
+
+    return canvas.toDataURL('image/png');
+  }
+
   destroy(): void {
     this.stop();
     this.character?.destroy();
@@ -562,6 +748,7 @@ export class Island3DEngine {
     this.building?.destroy();
     this.multiplayer?.destroy();
     this.lobbyAnimMixer?.stopAllAction();
+    this.zoneScene?.dispose();
     this.grassLayer?.dispose();
     this.sandLayer?.dispose();
     this.postProcessing?.dispose();

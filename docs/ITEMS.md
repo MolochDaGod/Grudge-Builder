@@ -194,7 +194,7 @@ Regenerate: `npm run generate:master` in the ObjectStore repo.
   "tier": 1,
   "tierLabel": "Common",
   "tierColor": "#8b7355",
-  "iconUrl": "https://molochdagod.github.io/ObjectStore/icons/pack/weapons/Sword_01.png",
+  "iconUrl": "https://assets.grudge-studio.com/icons/pack/weapons/Sword_01.png",
   "stats": { "damage": 50, "speed": 100, "crit": 3, "block": 5, "defense": 20 },
   "craftedBy": "Miner",
   "recipeUuid": "RECP-20260409062100-000002-DA4E2014",
@@ -234,4 +234,4 @@ PUT  /api/equipment/:characterId - Equip/unequip item
 | Source | Contents |
 |--------|----------|
 | `assets.grudge-studio.com` (R2 CDN) | All binary assets (sprites, icons, models) |
-| `molochdagod.github.io/ObjectStore/api/v1/` | All JSON game data (items, recipes, etc.) |
+| `objectstore.grudge-studio.com/api/v1/` | All JSON game data (items, recipes, etc.) |

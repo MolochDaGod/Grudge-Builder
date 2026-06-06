@@ -67,10 +67,13 @@ export const characterAPI = {
     } catch { return { hasMint: false }; }
   },
 
-  mintCNFT: async (characterId: string): Promise<{ success: boolean; mintAddress?: string; error?: string; alreadyMinted?: boolean }> => {
+  mintCNFT: async (characterId: string, avatarUrl?: string): Promise<{ success: boolean; mintAddress?: string; assetId?: string; error?: string; alreadyMinted?: boolean }> => {
     try {
-      return await apiFetch<{ success: boolean; mintAddress?: string; alreadyMinted?: boolean }>(
-        `/api/characters/${characterId}/mint`, { method: "POST" },
+      return await apiFetch<{ success: boolean; mintAddress?: string; assetId?: string; alreadyMinted?: boolean }>(
+        `/api/characters/${characterId}/mint`, {
+          method: "POST",
+          body: JSON.stringify({ avatarUrl: avatarUrl || undefined }),
+        },
       );
     } catch (e: any) { return { success: false, error: e.message }; }
   },

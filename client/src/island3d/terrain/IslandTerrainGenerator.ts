@@ -95,10 +95,10 @@ export interface IslandTerrainResult {
 export function generateIslandTerrain(config: IslandTerrainConfig): IslandTerrainResult {
   const {
     seed,
-    xSegments = 127,
-    ySegments = 127,
-    xSize = 512,
-    ySize = 512,
+    xSegments = 63,
+    ySegments = 63,
+    xSize = 1024,
+    ySize = 1024,
     minHeight = -30,
     maxHeight = 80,
   } = config;
@@ -109,8 +109,8 @@ export function generateIslandTerrain(config: IslandTerrainConfig): IslandTerrai
   // Generate noise maps with the SAME seeded PRNG as 2D
   const rng = makePrng(seed);
   const rng2 = makePrng(seed + '_m');
-  const elevationMap = octaveNoise(rng, gridW, gridH, 4);
-  const moistureMap = octaveNoise(rng2, gridW, gridH, 3);
+  const elevationMap = octaveNoise(rng, gridW, gridH, 3);
+  const moistureMap = octaveNoise(rng2, gridW, gridH, 2);
 
   // Build biome map
   const cx = gridW / 2, cy = gridH / 2;

@@ -1,4 +1,3 @@
-import OpenAI from "openai";
 import fs from "fs";
 import path from "path";
 import { PNG } from "pngjs";
@@ -12,11 +11,10 @@ import {
   getBarbarian16x32Prompt,
   BARBARIAN_REFERENCE,
 } from "./promptTemplates";
+import { AI_DEFAULTS } from "@shared/aiModels";
 
-const openai = new OpenAI({
-  apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
-  baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
-});
+/** AI Gateway URL — all image generation goes through ai.grudge-studio.com */
+const AI_GATEWAY = process.env.AI_GATEWAY_URL || 'https://ai.grudge-studio.com';
 
 export interface GenerationJob {
   id: string;
@@ -91,16 +89,37 @@ export class SpriteGeneratorService {
     console.log(`Prompt: ${prompt.substring(0, 200)}...`);
 
     try {
-      const response = await openai.images.generate({
-        model: "gpt-image-1",
-        prompt: `${buildMasterSystemPrompt()}\n\n${prompt}`,
-        n: 1,
-        size: "1024x1024",
+      const gatewayRes = await fetch(`${AI_GATEWAY}/v1/image`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(process.env.GRUDGE_AUTH_TOKEN
+            ? { Authorization: `Bearer ${process.env.GRUDGE_AUTH_TOKEN}` }
+            : {}),
+        },
+        body: JSON.stringify({
+          model: AI_DEFAULTS.image.default,
+          prompt: `${buildMasterSystemPrompt()}\n\n${prompt}`,
+          size: '1024x1024',
+          transparent: true,
+          upload_to_r2: true,
+          r2_path: `sprites/generated/${animationType.toLowerCase()}_${direction.replace("-", "_")}.png`,
+        }),
       });
 
-      const imageData = response.data[0];
+      const gatewayJson = await gatewayRes.json() as {
+        ok: boolean;
+        data?: { images: Array<{ b64_json?: string; url?: string }> };
+        error?: string;
+      };
 
-      if (!imageData.b64_json) {
+      if (!gatewayJson.ok || !gatewayJson.data?.images?.[0]) {
+        throw new Error(gatewayJson.error || 'No image data returned from AI Gateway');
+      }
+
+      const imageData = gatewayJson.data.images[0];
+
+      if (!imageData.b64_json && !imageData.url) {
         throw new Error("No image data returned");
       }
 

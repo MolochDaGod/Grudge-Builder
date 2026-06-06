@@ -11,8 +11,8 @@
  */
 
 const OBJECTSTORE_URL = 'https://objectstore.grudge-studio.com';
-// Fallback to workers.dev if custom domain is slow to propagate
-const OBJECTSTORE_FALLBACK = 'https://grudgeassets.grudge.workers.dev';
+// Fallback — same domain, custom domain is stable now
+const OBJECTSTORE_FALLBACK = 'https://objectstore.grudge-studio.com';
 
 export interface Model3D {
   id: string;

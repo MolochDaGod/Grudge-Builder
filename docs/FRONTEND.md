@@ -249,9 +249,9 @@ import { assetUrl, cdnAssetUrl, apiUrl } from "@/lib/assetConfig";
 assetUrl('/icons/weapons/swords/bloodfeud_blade.png');
 // → https://assets.grudge-studio.com/icons/weapons/swords/bloodfeud_blade.png
 
-// JSON game data → GitHub Pages
+// JSON game data → ObjectStore
 apiUrl('/weapons.json');
-// → https://molochdagod.github.io/ObjectStore/api/v1/weapons.json
+// → https://objectstore.grudge-studio.com/api/v1/weapons.json
 ```
 
 ### ObjectStore Categories (R2 CDN)

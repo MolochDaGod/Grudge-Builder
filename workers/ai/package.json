@@ -1,0 +1,22 @@
+{
+  "name": "grudge-ai-gateway",
+  "version": "1.0.0",
+  "description": "Grudge AI Gateway — unified model hub at ai.grudge-studio.com",
+  "private": true,
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "deploy:staging": "wrangler deploy --env staging",
+    "tail": "wrangler tail",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "hono": "^4.7.0"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20250501.0",
+    "typescript": "^5.8.0",
+    "vitest": "^4.1.7",
+    "wrangler": "^4.14.0"
+  }
+}

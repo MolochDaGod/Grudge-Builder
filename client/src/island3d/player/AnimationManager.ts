@@ -12,7 +12,20 @@ import {
   loadCharacterModel,
 } from '@/lib/modelLoader';
 
-export type AnimState = 'idle' | 'walk' | 'run' | 'harvest' | 'attack' | 'death';
+export type AnimState =
+  | 'idle' | 'idle_alt'
+  | 'walk' | 'run' | 'run_stop'
+  | 'harvest' | 'attack' | 'death'
+  // Parkour / falling
+  | 'falling' | 'fall_roll' | 'hard_landing' | 'jump'
+  // Climbing
+  | 'climb_top'
+  // Cover system
+  | 'enter_cover' | 'exit_cover' | 'cover_sneak_l' | 'cover_sneak_r'
+  // Stealth
+  | 'crouch_sneak_l' | 'crouch_sneak_r'
+  // Swimming (placeholder until swim anims arrive)
+  | 'swim_surface' | 'swim_underwater';
 
 export class AnimationManager {
   private controller: AnimationController;

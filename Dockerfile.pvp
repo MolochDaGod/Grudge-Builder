@@ -1,10 +1,10 @@
-# ── Grudge PvP Island Server — Docker image ────────────────────────────────
-# Island Socket.IO server (port 4321).
+# ── Grudge World Server — Docker image ──────────────────────────────────────
+# World Socket.IO server (port 4321).
 # Runs standalone with tsx (no build step needed for simple deploys).
-# For production, prefer: npm run build:island && node dist/island-server.cjs
+# For production, prefer: npm run build:world && npm run start:world
 #
-# Build:  docker build -f Dockerfile.pvp -t grudge-pvp .
-# Run:    docker run -p 4321:4321 --env-file .env grudge-pvp
+# Build:  docker build -f Dockerfile.pvp -t grudge-world .
+# Run:    docker run -p 4321:4321 --env-file .env grudge-world
 
 FROM node:22-alpine AS base
 
@@ -20,14 +20,16 @@ RUN npm install --legacy-peer-deps --ignore-scripts --omit=dev \
 FROM base AS builder
 
 COPY server/island-server.ts ./server/
+COPY server/cors.ts ./server/
 COPY tsconfig.json ./
 
 RUN npx esbuild server/island-server.ts \
     --bundle \
     --platform=node \
     --format=cjs \
-    --outfile=dist/island-server.cjs \
-    --packages=external
+    --outfile=dist/world-server.cjs \
+    --packages=external \
+    --minify
 
 # ── Final stage ──────────────────────────────────────────────────────────────
 FROM node:22-alpine AS final
@@ -38,14 +40,14 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm install --legacy-peer-deps --ignore-scripts --omit=dev
 
-COPY --from=builder /app/dist/island-server.cjs ./dist/
+COPY --from=builder /app/dist/world-server.cjs ./dist/
 
 EXPOSE 4321
 
 ENV NODE_ENV=production
-ENV ISLAND_PORT=4321
+ENV WORLD_PORT=4321
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
   CMD wget -qO- http://localhost:4321/health || exit 1
 
-CMD ["node", "dist/island-server.cjs"]
+CMD ["node", "dist/world-server.cjs"]

@@ -76,3 +76,11 @@ export type { AllyState, AllyStats, AllyConfig, CombatTarget } from './ai/AllyCo
 // Building system
 export { BuildingSystem, PIECE_DEFS } from './building/BuildingSystem';
 export type { PieceType, SnapSocket, PieceDefinition, PlacedPiece } from './building/BuildingSystem';
+
+// Zone terrain (4 km × 4 km sector heightmaps)
+export { generateZoneTerrain, sampleHeightmap, getZoneHeightAt } from './terrain/ZoneTerrainGenerator';
+export type { ZoneTerrainResult } from './terrain/ZoneTerrainGenerator';
+
+// Zone scene builder (assembles full 3D sector)
+export { buildZoneScene } from './engine/ZoneSceneBuilder';
+export type { ZoneSceneResult } from './engine/ZoneSceneBuilder';

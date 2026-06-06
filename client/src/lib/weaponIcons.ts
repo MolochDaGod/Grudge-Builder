@@ -22,8 +22,7 @@ const WEAPON_CATEGORIES = [
   { start: 288, end: 311, category: "polearm", prefix: "Polearm" },
   { start: 312, end: 335, category: "claw", prefix: "Claw" },
   { start: 336, end: 359, category: "fist", prefix: "Fist" },
-  { start: 360, end: 383, category: "scythe", prefix: "Scythe" },
-  { start: 384, end: 407, category: "flail", prefix: "Flail" },
+  { start: 360, end: 383, category: "flail", prefix: "Flail" },
   { start: 408, end: 431, category: "whip", prefix: "Whip" },
   { start: 432, end: 455, category: "boomerang", prefix: "Boomerang" },
   { start: 456, end: 479, category: "misc", prefix: "Misc Weapon" },
@@ -67,5 +66,5 @@ export function getWeaponIcon(id: string): WeaponIcon | undefined {
 export const WEAPON_CATEGORY_LIST = [
   "all", "sword", "dagger", "axe", "mace", "spear", "bow", "staff", "wand",
   "shield", "hammer", "crossbow", "throwing", "polearm", "claw", "fist",
-  "scythe", "flail", "whip", "boomerang", "misc"
+  "flail", "whip", "boomerang", "misc"
 ];

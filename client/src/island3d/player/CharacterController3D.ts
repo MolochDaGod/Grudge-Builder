@@ -91,6 +91,13 @@ export class CharacterController3D {
   public animations: AnimationManager | null = null;
   public mode: ControlMode = 'harvest';
   public movementState: MovementState = 'falling';
+  /** Track whether we were moving last frame (for run→stop transition) */
+  private wasMoving = false;
+  /** Timer for one-shot anims (hard landing, climb-to-top) */
+  private oneShotTimer = 0;
+  /** Idle variant timer — switch idle animation every 8-12s */
+  private idleVariantTimer = 0;
+  private useAltIdle = false;
 
   // Physics
   public readonly physics: PhysicsConfig;
@@ -352,10 +359,24 @@ export class CharacterController3D {
         const distToGround = groundHeight !== null ? feetY - groundHeight : 999;
 
         if (distToGround <= 0.2 && this.verticalVelocity <= 0) {
-          // Landing
-          if (!this.isGrounded && this.verticalVelocity < -this.physics.fallDamageThreshold) {
-            const damage = (Math.abs(this.verticalVelocity) - this.physics.fallDamageThreshold) * this.physics.fallDamageScale;
-            this.callbacks.onFallDamage?.(damage);
+          // Landing — choose animation based on fall speed
+          if (!this.isGrounded) {
+            const fallSpeed = Math.abs(this.verticalVelocity);
+            if (fallSpeed > this.physics.fallDamageThreshold) {
+              // Hard landing — take damage + play impact anim
+              const damage = (fallSpeed - this.physics.fallDamageThreshold) * this.physics.fallDamageScale;
+              this.callbacks.onFallDamage?.(damage);
+              if (this.animations) {
+                this.animations.play('hard_landing', { loop: false });
+                this.oneShotTimer = 0.8;
+              }
+            } else if (fallSpeed > 8) {
+              // Medium fall — parkour roll landing
+              if (this.animations) {
+                this.animations.play('fall_roll', { loop: false });
+                this.oneShotTimer = 0.6;
+              }
+            }
           }
           this.isGrounded = true;
           this.jumpCount = 0;
@@ -409,16 +430,63 @@ export class CharacterController3D {
 
     // ── Animations ───────────────────────────────────────────────────────────
     if (this.animations) {
-      const swimAnim = this.movementState === 'swimming_surface' || this.movementState === 'swimming_underwater';
-      if (swimAnim) {
-        this.animations.play(moving ? 'walk' : 'idle'); // TODO: swap to swim clips when available
-      } else if (moving) {
-        this.animations.play(this.keys.has('shift') ? 'run' : 'walk');
-      } else {
-        this.animations.play('idle');
+      // One-shot timer (hard landing, climb-to-top) — don't interrupt until done
+      if (this.oneShotTimer > 0) {
+        this.oneShotTimer -= dt;
+        this.animations.update(dt);
+        this.wasMoving = moving;
+        return; // skip normal anim selection until one-shot finishes
       }
+
+      // Run → stop deceleration transition
+      if (this.wasMoving && !moving && this.movementState === 'ground') {
+        this.animations.play('run_stop', { loop: false });
+        this.oneShotTimer = 0.4; // brief stop anim
+      }
+
+      // State-driven animation selection
+      switch (this.movementState) {
+        case 'climbing':
+          this.animations.play('climb_top');
+          break;
+
+        case 'falling':
+          this.animations.play('falling');
+          break;
+
+        case 'jumping':
+          this.animations.play('jump');
+          break;
+
+        case 'swimming_surface':
+          this.animations.play(moving ? 'swim_surface' : 'idle');
+          break;
+
+        case 'swimming_underwater':
+          this.animations.play('swim_underwater');
+          break;
+
+        case 'ground':
+        default:
+          if (moving) {
+            this.animations.play(this.keys.has('shift') ? 'run' : 'walk');
+            this.idleVariantTimer = 0;
+          } else {
+            // Alternate idle variants for ambient life
+            this.idleVariantTimer += dt;
+            if (this.idleVariantTimer > 8 + Math.random() * 4) {
+              this.idleVariantTimer = 0;
+              this.useAltIdle = !this.useAltIdle;
+            }
+            this.animations.play(this.useAltIdle ? 'idle_alt' : 'idle');
+          }
+          break;
+      }
+
       this.animations.update(dt);
     }
+
+    this.wasMoving = moving;
   }
 
   // ─── Climbing detection ────────────────────────────────────────────────────

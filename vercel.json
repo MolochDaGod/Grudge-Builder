@@ -1,9 +1,9 @@
 {
-  "alias": ["grudge-studio.com", "www.grudge-studio.com", "client.grudge-studio.com", "warlord3d.grudge-studio.com", "grudgewarlords.com", "www.grudgewarlords.com"],
+  "alias": ["client.grudge-studio.com", "warlord3d.grudge-studio.com", "grudgewarlords.com", "www.grudgewarlords.com"],
   "buildCommand": "npm run build:client",
   "outputDirectory": "client/dist",
   "devCommand": "npm run dev:client",
-  "installCommand": "npm install --legacy-peer-deps --include=dev --ignore-scripts",
+  "installCommand": "npm install --legacy-peer-deps --include=dev",
   "framework": null,
   "build": {
     "env": {
@@ -17,21 +17,28 @@
     },
     {
       "source": "/api/auth/:path*",
-      "destination": "https://api.grudge-studio.com/api/auth/:path*"
+      "destination": "https://id.grudge-studio.com/auth/:path*"
+    },
+    {
+      "source": "/api/account/:path*",
+      "destination": "https://id.grudge-studio.com/account/:path*"
+    },
+    {
+      "source": "/api/ai/:path*",
+      "destination": "https://ai.grudge-studio.com/:path*"
     },
     {
       "source": "/api/:path*",
       "destination": "https://api.grudge-studio.com/api/:path*"
     },
-    {
-      "source": "/((?!.*\\.).*)",
-      "destination": "/index.html"
-    }
+    { "source": "/(.*)", "destination": "/index.html" }
   ],
   "env": {
-    "GRUDGE_API_URL": "https://api.grudge-studio.com",
-    "VITE_PVP_SERVER_URL": "wss://pvp.grudge-studio.com",
-    "VITE_ASSETS_URL": "https://assets.grudge-studio.com"
+    "VITE_API_URL": "https://api.grudge-studio.com",
+    "VITE_PVP_SERVER_URL": "wss://world.grudge-studio.com",
+    "VITE_ASSETS_URL": "https://assets.grudge-studio.com",
+    "VITE_AI_URL": "https://ai.grudge-studio.com",
+    "VITE_AUTH_GATEWAY_URL": "https://id.grudge-studio.com"
   },
   "headers": [
     {
@@ -39,8 +46,9 @@
       "headers": [
         { "key": "X-Content-Type-Options",    "value": "nosniff" },
         { "key": "X-Frame-Options",            "value": "SAMEORIGIN" },
-        { "key": "Referrer-Policy",            "value": "strict-origin-when-cross-origin" },
-        { "key": "Permissions-Policy",         "value": "camera=(), microphone=(), geolocation=()" }
+        { "key": "Referrer-Policy",            "value": "no-referrer-when-downgrade" },
+        { "key": "Permissions-Policy",         "value": "camera=(), microphone=(), geolocation=()" },
+{ "key": "Content-Security-Policy",    "value": "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.puter.com https://*.grudge-studio.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://assets.grudge-studio.com https://*.grudge-studio.com https://*.githubusercontent.com https://*.puter.com; connect-src 'self' https://*.grudge-studio.com https://*.puter.com wss://*.grudge-studio.com wss://world.grudge-studio.com https://discord.com https://api.puter.com; frame-src 'self' https://*.puter.com https://*.grudge-studio.com; media-src 'self' https://assets.grudge-studio.com blob:; worker-src 'self' blob:" }
       ]
     },
     {

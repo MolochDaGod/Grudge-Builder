@@ -29,23 +29,39 @@ const PUTER_CONFIG = {
   rateLimitPerMinute: 60,
 };
 
+/**
+ * AI model IDs — synced with shared/aiModels.ts (the shared source of truth).
+ * These are used as Puter-side fallbacks when the AI Gateway Worker is unreachable.
+ * Prefer routing through https://ai.grudge-studio.com for centralized billing/logs.
+ */
 const AI_MODELS = {
   chat: {
-    default: 'gpt-4o-mini',
-    premium: 'gpt-4o',
-    claude: 'claude-3-5-sonnet',
-    deepseek: 'deepseek-chat',
-    fast: 'gpt-3.5-turbo',
+    default: 'gpt-5.4-pro',
+    premium: 'gpt-5.5',
+    claude: 'claude-opus-4.7',
+    agentic: 'kimi-k2.6',
+    budget: 'qwen3-max',
+    fast: 'gpt-5.4-pro',
   },
   image: {
-    default: 'black-forest-labs/FLUX.1-schnell',
-    quality: 'black-forest-labs/FLUX.1-dev',
-    stable: 'stability-ai/stable-diffusion-xl',
+    default: 'gpt-image-1.5',   // Transparent PNGs (sprites)
+    quality: 'gpt-image-2',
+    design: 'recraftv3',
+    bulk: 'wan-2.6-image',
+    edit: 'grok-imagine-image',
+  },
+  video: {
+    default: 'seedance-2.0',
+    fast: 'seedance-2.0-fast',
+    budget: 'hh1-t2v',
   },
   voice: {
     voices: ['alloy', 'echo', 'fable', 'onyx', 'nova', 'shimmer'],
     defaultVoice: 'nova',
-    engine: 'openai',
+    default: 'tts-2',
+  },
+  music: {
+    default: 'music-2.6',
   },
 };
 

@@ -30,6 +30,7 @@ import { getAvailableStates, CLASS_WEAPON_MAP, type AnimState3D } from "@/lib/mo
 import { assetUrl } from "@/lib/assetConfig";
 import { useAuthGuard } from "@/hooks/use-auth-guard";
 import { isAuthenticated, getCurrentUser } from "@/lib/grudgeBackend";
+import { RACE_PORTRAITS, CLASS_HERO_IMAGES } from "@/lib/artAssets";
 
 // ── Class color map ──────────────────────────────────────────────────
 const CLASS_COLORS: Record<string, { accent: string; glow: string; bg: string }> = {
@@ -43,22 +44,7 @@ const CLASS_EMOJI: Record<string, string> = {
   warrior: "🗡️", mage: "🔮", ranger: "🏹", worg: "🐺",
 };
 
-// ── Race portrait images (match class-selector.html) ─────────────────
-const RACE_PORTRAITS: Record<string, string> = {
-  elf:       "https://i.imgur.com/rWEKVAw.png",
-  human:     "https://i.imgur.com/qBSRLZG.png",
-  dwarf:     "https://i.imgur.com/6A4px2O.png",
-  orc:       "https://i.imgur.com/4PyTEN5.png",
-  barbarian: "https://i.imgur.com/7WKJ8Bw.png",
-  undead:    "https://i.imgur.com/mPTojTj.png",
-};
-
-const CLASS_HERO_IMAGES: Record<string, string> = {
-  mage:    "https://i.imgur.com/vKQR4UT.png",
-  warrior: "https://i.imgur.com/Wj2mUH2.png",
-  ranger:  "https://i.imgur.com/5A6e5kL.png",
-  worg:    "https://i.imgur.com/BrQH0Bx.png",
-};
+// Race + class portraits now imported from @/lib/artAssets (local hero-codex images)
 
 // ── Component ────────────────────────────────────────────────────────
 

@@ -7,7 +7,7 @@ Created by **Racalvin The Pirate King**. 2D/Canvas game client with React + Vite
 ## Architecture — The One Truth
 
 ### Single Source of Truth
-- **Game data** (races, classes, weapons, armor, attributes): ObjectStore API at `molochdagod.github.io/ObjectStore/api/v1/*.json`
+- **Game data** (races, classes, weapons, armor, attributes): ObjectStore API at `objectstore.grudge-studio.com/api/v1/*.json`
 - **Frontend data layer**: `gameData.ts` fetches from ObjectStore on init, falls back to hardcoded. NEVER add new hardcoded data — update ObjectStore instead.
 - **3D models**: ObjectStore `/v1/models` endpoint (100+ glb/fbx/obj models in R2)
 - **Assets** (sprites, icons, audio, backgrounds): ObjectStore via `assetUrl()` from `assetConfig.ts`
@@ -50,8 +50,8 @@ All require JWT auth. Health at `/api/health` is public.
 
 ### Object Storage (3 tiers)
 1. **R2 CDN** (`assets.grudge-studio.com`) — ALL binary assets (sprites, icons, audio, models, backgrounds). Use `assetUrl()` from `assetConfig.ts`.
-2. **GitHub Pages** (`molochdagod.github.io/ObjectStore/api/v1/*.json`) — Static JSON game data (weapons, armor, races, classes, professions, attributes). Use `apiUrl()` from `assetConfig.ts`.
-3. **Cloudflare Worker** (`objectstore.grudge-studio.com`) — Production API with caching, search, filtering. Use `workerUrl()` from `assetConfig.ts`.
+2. **ObjectStore** (`objectstore.grudge-studio.com/api/v1/*.json`) — All JSON game data (weapons, armor, races, classes, professions, attributes). Use `apiUrl()` from `assetConfig.ts`.
+3. **ObjectStore Worker** (`objectstore.grudge-studio.com`) — Production API with caching, search, filtering. Use `workerUrl()` from `assetConfig.ts`.
 
 Key ObjectStore JSON endpoints:
 - `/api/v1/races.json` — 6 races with bonuses
@@ -66,7 +66,7 @@ Key ObjectStore JSON endpoints:
 
 ### Single API Client Path
 `grudgeBackend.ts` (auth/token) → `api.ts` (game API calls via /api/game/) → `characterManager.ts` (character CRUD)
-Token stored in localStorage as `grudge_auth_token`. JWT_SECRET shared with Railway backend for cross-compatibility.
+Token stored in localStorage as `grudge_auth_token`. JWT_SECRET shared across Cloudflare Workers for cross-compatibility.
 
 **Auth → Account Sync:** On login, `handleAuthResponse()` sets `grudge_account_id` in localStorage so `CharacterManager` scopes active character selection to the correct account (not `guest`).
 
@@ -82,7 +82,7 @@ Token stored in localStorage as `grudge_auth_token`. JWT_SECRET shared with Rail
 Local Express routes (`server/routes.ts`) handle `/api/island/*`, `/api/account/*` directly.
 External routes (`/api/game/*`, `/api/auth/*`, `/api/assets/*`) are proxied to production backends.
 
-### What Does NOT Exist on Railway Backend
+### What Only Exists on Local Dev Server
 These routes only work on the local dev server (`server/routes.ts`):
 - Sprite scanning/analysis/generation (`/api/sprites/*`)
 - Aseprite file parsing (`/api/aseprite/*`)
@@ -98,14 +98,13 @@ Frontend pages using these MUST use `BackendRequired` component for graceful deg
 |---------|-----|------|
 | Game Client | grudgewarlords.com | Vercel |
 | Dashboard | dash.grudge-studio.com | Vercel |
-| Game API | api.grudge-studio.com | Railway (Docker) |
-| Auth / Identity | id.grudge-studio.com | Railway (Docker) |
-| Account API | account.grudge-studio.com | Railway (Docker) |
-| Asset CDN | assets.grudge-studio.com | Cloudflare R2 |
-| ObjectStore API | objectstore.grudge-studio.com | Cloudflare Worker |
+| Game API | api.grudge-studio.com | Cloudflare Workers |
+| Auth / Identity | id.grudge-studio.com | Cloudflare Workers |
+| Account API | account.grudge-studio.com | Cloudflare Workers |
+| Asset CDN | assets.grudge-studio.com | Cloudflare R2 CDN |
+| ObjectStore API | objectstore.grudge-studio.com | Cloudflare Worker (R2 + D1) |
 | AI Hub Worker | ai.grudge-studio.com | Cloudflare Worker |
-| Route Monitor | grudge-route-monitor.grudge.workers.dev | Cloudflare Worker |
-| ObjectStore Static | molochdagod.github.io/ObjectStore | GitHub Pages |
+| AI Gateway (local) | localhost:11434 (Ollama) | Local — grudge-dev model |
 
 ## Key Files
 - `client/src/lib/gameData.ts` — Races, classes, attributes (ObjectStore-first with fallback)
@@ -116,7 +115,7 @@ Frontend pages using these MUST use `BackendRequired` component for graceful deg
 - `client/src/lib/assetConfig.ts` — Asset URL helpers
 - `client/src/lib/assetResolver.ts` — Smart fallback chain (CDN → ObjectStore → placeholder)
 - `client/src/lib/audioManager.ts` — BGM/SFX from ObjectStore audio
-- `client/src/lib/characterAdapter.ts` — Backend ↔ local character data bridge (saveExtendedData writes all 13 fields to Railway backend)
+- `client/src/lib/characterAdapter.ts` — Backend ↔ local character data bridge (saveExtendedData writes all 13 fields to backend)
 - `client/src/lib/professionSync.ts` — ObjectStore professions.json loader (6 gathering + 5 crafting, milestones, XP table, benches)
 - `client/src/components/FactionEmblems.tsx` — SVG faction emblems (Crusade/Fabled/Legion)
 - `shared/attributeSystem.ts` — Canonical 8 attributes with DR, stat caps, combat math

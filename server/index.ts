@@ -1,3 +1,22 @@
+// ── Crash guard: catch ANY top-level error so Railway logs show the real cause ──
+process.on('uncaughtException', (err) => {
+  console.error('[FATAL] Uncaught exception:', err.message);
+  console.error(err.stack);
+  process.exit(1);
+});
+process.on('unhandledRejection', (reason) => {
+  console.error('[FATAL] Unhandled rejection:', reason);
+  process.exit(1);
+});
+
+console.log('[boot] Starting grudge-api...');
+console.log('[boot] NODE_ENV:', process.env.NODE_ENV);
+console.log('[boot] PORT:', process.env.PORT);
+console.log('[boot] DATABASE_URL set:', !!process.env.DATABASE_URL);
+console.log('[boot] DATABASE_URL length:', (process.env.DATABASE_URL || '').length);
+console.log('[boot] RAILWAY_ENVIRONMENT_ID:', process.env.RAILWAY_ENVIRONMENT_ID || 'not set');
+console.log('[boot] cwd:', process.cwd());
+
 import dotenv from "dotenv";
 // Load .env.local first (gitignored local overrides), then .env as fallback.
 // dotenv.config() does NOT override already-set vars, so .env.local wins.
@@ -8,6 +27,9 @@ import { dirname } from "path";
 // import.meta.url is undefined when esbuild bundles to CJS — fall back to cwd
 const __filename = import.meta.url ? fileURLToPath(import.meta.url) : '';
 const __dirname = __filename ? dirname(__filename) : process.cwd();
+
+console.log('[boot] __dirname resolved to:', __dirname);
+
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
@@ -16,54 +38,15 @@ import path from "path";
 import cors from "cors";
 import { setupColyseus } from "./colyseus/index";
 import { registerBackendProxy } from "./proxy";
+import { GRUDGE_CORS_OPTIONS } from "./cors";
+
+console.log('[boot] All imports loaded successfully');
 
 const app = express();
 const httpServer = createServer(app);
 
-// ── CORS ─────────────────────────────────────────────────────────────────────
-const ALLOWED_ORIGINS = [
-  "https://grudgewarlords.com",
-  "https://www.grudgewarlords.com",
-  "https://grudge-studio.com",
-  "https://www.grudge-studio.com",
-  "https://client.grudge-studio.com",
-  "https://dash.grudge-studio.com",
-  "https://id.grudge-studio.com",
-  "https://ai.grudge-studio.com",
-  "https://objectstore.grudge-studio.com",
-  // Cloudflare Pages (ObjectStore)
-  /\.pages\.dev$/,
-  // Vercel previews
-  /\.vercel\.app$/,
-  // Railway previews
-  /\.up\.railway\.app$/,
-];
-
-app.use(
-  cors({
-    origin: (origin, cb) => {
-      // Allow server-to-server (no origin) and localhost in dev
-      if (
-        !origin ||
-        origin.startsWith("http://localhost") ||
-        ALLOWED_ORIGINS.some((o) =>
-          typeof o === "string" ? o === origin : o.test(origin),
-        )
-      ) {
-        return cb(null, true);
-      }
-      cb(new Error("Not allowed by CORS"));
-    },
-    credentials: true,
-    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allowedHeaders: [
-      "Content-Type",
-      "Authorization",
-      "X-Session-Token",
-      "X-Admin-Mode",
-    ],
-  }),
-);
+// ── CORS (shared config from server/cors.ts) ─────────────────────────────────
+app.use(cors(GRUDGE_CORS_OPTIONS));
 
 // ── Static assets ────────────────────────────────────────────────────────────
 app.use(express.static(path.resolve(__dirname, "..", "public")));
@@ -134,7 +117,9 @@ app.use((req, res, next) => {
 import { checkDbHealth } from "./db";
 app.get("/api/health", async (_req, res) => {
   const dbOk = await checkDbHealth();
-  res.status(dbOk ? 200 : 503).json({
+  // Always return 200 so Railway/Render healthchecks pass even when
+  // the DB is still warming up. The "db" field tells callers the real state.
+  res.status(200).json({
     status: dbOk ? "ok" : "degraded",
     service: "grudge-api",
     version: process.env.npm_package_version || "1.0.0",
