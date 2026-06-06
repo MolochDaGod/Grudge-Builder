@@ -125,6 +125,8 @@ export default function HomePage() {
   const displayName = user?.username || "Warlord";
   const filtered = activeTier === "all" ? GAME_MODES : GAME_MODES.filter(g => g.tier === activeTier);
 
+  const handleEnterWorld = () => setLocation("/play");
+
   return (
     <div className="min-h-screen text-[#eef2ff]" style={{ background: "#05060c", fontFamily: FONTS.ui }}>
 
@@ -181,6 +183,28 @@ export default function HomePage() {
           </div>
         </div>
       </header>
+
+      {/* ── Enter World Banner ── */}
+      <div className="relative z-10 max-w-7xl mx-auto px-4 pt-4">
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="rounded-2xl border border-amber-600/30 p-4 flex items-center justify-between"
+          style={{ background: 'linear-gradient(135deg, rgba(246,201,69,.08), rgba(246,201,69,.02))' }}
+        >
+          <div>
+            <h2 style={{ fontFamily: FONTS.title }} className="text-lg font-bold text-amber-300 tracking-wider">ENTER THE WORLD</h2>
+            <p className="text-white/40 text-xs">Join Aethermoor — 9 sectors, faction warfare, open world PvP</p>
+          </div>
+          <button
+            onClick={handleEnterWorld}
+            className="font-cinzel font-black text-sm px-8 py-3 rounded-xl border-0 cursor-pointer transition-all hover:-translate-y-0.5"
+            style={{ background: 'linear-gradient(180deg, #f6c945, #d8a819)', color: '#20180a', boxShadow: '0 10px 30px -10px rgba(246,201,69,.5)', letterSpacing: '2px' }}
+          >
+            PLAY NOW
+          </button>
+        </motion.div>
+      </div>
 
       <main className="relative z-10 max-w-7xl mx-auto px-4 py-6">
 
