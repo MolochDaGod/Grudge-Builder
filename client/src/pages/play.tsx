@@ -4,12 +4,18 @@
  * Flow: Connect to WorldRoom → select/auto-join sector → render 3D world → HUD overlay.
  * Uses Island3DEngine in 'zone' mode with Colyseus state sync.
  */
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useLocation } from 'wouter';
 import { useColyseus, type PlayerInfo } from '@/hooks/use-colyseus';
 import { GameHUD } from '@/components/GameHUD';
 import { Island3DEngine, type Island3DEngineConfig } from '@/island3d/engine/Island3DEngine';
-import { SECTOR_BIOMES } from '@shared/definitions/worldMapSectors';
+
+// Sector biome names (mirrored from server SectorState.ts for display only)
+const SECTOR_BIOME_NAMES: Record<string, string> = {
+  NW: 'Arid Wasteland', N: 'Highland Plateau', NE: 'Crown Peaks',
+  W: 'Industrial Yard', CENTER: 'The Crucible', E: 'Urban Ruins',
+  SW: 'Drowned Quarter', S: 'The Pit', SE: 'Grinding March',
+};
 
 // ── Default player for testing (will be replaced by character select) ────
 
@@ -144,7 +150,7 @@ export default function PlayPage() {
     : null;
 
   const sectorBiome = colyseus.sectorId
-    ? (SECTOR_BIOMES as Record<string, string>)[colyseus.sectorId] || ''
+    ? SECTOR_BIOME_NAMES[colyseus.sectorId] || ''
     : '';
 
   return (
