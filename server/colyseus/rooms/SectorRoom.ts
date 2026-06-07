@@ -89,6 +89,13 @@ interface SectorJoinOptions {
   sourceGame?: string; // warlords | rts | tactical
   zoneType?: string;
   difficulty?: number;
+  // 3D model data from character record
+  baseModelId?: string;
+  equippedMeshes?: Record<string, string>;
+  weaponSlots?: Record<string, string>;
+  skinColor?: string;
+  armorColor?: string;
+  equippedWeaponType?: string;
 }
 
 // ── SectorRoom ──────────────────────────────────────────────────
@@ -286,6 +293,14 @@ export class SectorRoom extends Room<SectorState> {
     player.faction = options.faction || "";
     player.level = options.level || 1;
     player.sourceGame = options.sourceGame || "warlords";
+
+    // 3D model data — sync to all clients for mesh loading
+    player.baseModelId = options.baseModelId || options.heroRace || "human";
+    player.equippedMeshJson = JSON.stringify(options.equippedMeshes || {});
+    player.weaponSlotsJson = JSON.stringify(options.weaponSlots || {});
+    player.skinColor = options.skinColor || "#ffffff";
+    player.armorColor = options.armorColor || "#ffffff";
+    player.equippedWeaponType = options.equippedWeaponType || "sword-shield";
 
     // Spawn position — random within sector center area
     player.x = (Math.random() - 0.5) * SECTOR_SIZE * 0.3;

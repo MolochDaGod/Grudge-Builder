@@ -9,6 +9,7 @@ import { useLocation } from 'wouter';
 import { useColyseus, type PlayerInfo } from '@/hooks/use-colyseus';
 import { GameHUD } from '@/components/GameHUD';
 import { Island3DEngine, type Island3DEngineConfig } from '@/island3d/engine/Island3DEngine';
+import { characterAPI } from '@/lib/api';
 
 // Sector biome names (mirrored from server SectorState.ts for display only)
 const SECTOR_BIOME_NAMES: Record<string, string> = {
@@ -39,33 +40,62 @@ export default function PlayPage() {
   const [loaded, setLoaded] = useState(false);
   const [loadProgress, setLoadProgress] = useState(0);
 
-  // Player info — use localStorage character or default
-  const [playerInfo] = useState<PlayerInfo>(() => {
-    try {
-      const saved = localStorage.getItem('grudge_active_character');
-      if (saved) {
-        const c = JSON.parse(saved);
-        return {
-          characterName: c.name || 'Warlord',
-          heroClass: c.classId || 'warrior',
-          heroRace: c.raceId || 'human',
-          faction: c.faction || 'crusade',
-          level: c.level || 1,
-          characterId: c.id,
-        };
+  // Player info — loaded from backend DB with model3d data
+  const [playerInfo, setPlayerInfo] = useState<PlayerInfo>(DEFAULT_PLAYER);
+  const [characterLoaded, setCharacterLoaded] = useState(false);
+
+  // Load the active character from the backend (includes model3d, equipment, etc.)
+  useEffect(() => {
+    async function loadCharacter() {
+      try {
+        // Check for active character ID in localStorage
+        const activeId = localStorage.getItem('grudge_active_character') ||
+          localStorage.getItem('gruda_active_character_guest');
+
+        if (activeId) {
+          const char = await characterAPI.get(activeId);
+          const model3d = (char as any).model3d || {};
+          // Map class to weapon type
+          const CLASS_WEAPON_MAP: Record<string, string> = {
+            warrior: 'sword-shield', mage: 'magic', ranger: 'longbow', worge: 'greatsword',
+          };
+          setPlayerInfo({
+            characterName: char.name,
+            heroClass: char.classId,
+            heroRace: char.raceId,
+            faction: (char as any).faction || 'crusade',
+            level: char.level,
+            characterId: char.id,
+            accountId: (char as any).accountId,
+            baseModelId: model3d.baseModelId || char.raceId || 'human',
+            equippedMeshes: model3d.equippedMeshes || {},
+            weaponSlots: model3d.weaponSlots || {},
+            skinColor: model3d.skinColor || '#ffffff',
+            armorColor: model3d.armorColor || '#ffffff',
+            equippedWeaponType: CLASS_WEAPON_MAP[char.classId] || 'sword-shield',
+          });
+          // Save for the 3D engine to use
+          localStorage.setItem('grudge_active_character_data', JSON.stringify(char));
+          console.log(`[Play] Loaded character: ${char.name} (${char.raceId} ${char.classId})`);
+        }
+      } catch (err) {
+        console.warn('[Play] Could not load character from API, using defaults:', err);
       }
-    } catch {}
-    return DEFAULT_PLAYER;
-  });
+      setCharacterLoaded(true);
+    }
+    loadCharacter();
+  }, []);
 
   // Colyseus connection
   const colyseus = useColyseus(playerInfo);
 
-  // ── Connect on mount ──────────────────────────────────────────
+  // ── Connect after character is loaded ───────────────────────────────
 
   useEffect(() => {
-    colyseus.connect();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    if (characterLoaded) {
+      colyseus.connect();
+    }
+  }, [characterLoaded]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Auto-join sector once connected ───────────────────────────
 

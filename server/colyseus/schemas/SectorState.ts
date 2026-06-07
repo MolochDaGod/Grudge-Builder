@@ -94,6 +94,14 @@ export class SectorPlayer extends Schema {
 
   /** Source game the player entered from */
   @type("string")  sourceGame: string = "warlords"; // warlords | rts | tactical
+
+  // 3D model data — synced so other clients can load the correct mesh
+  @type("string")  baseModelId: string = "human";    // race model key from MODEL_MANIFEST
+  @type("string")  equippedMeshJson: string = "{}";   // JSON: slot -> variant (body, arms, head)
+  @type("string")  weaponSlotsJson: string = "{}";    // JSON: weapon slot -> variant
+  @type("string")  skinColor: string = "#ffffff";
+  @type("string")  armorColor: string = "#ffffff";
+  @type("string")  equippedWeaponType: string = "sword-shield"; // weapon type for animation set
 }
 
 export class SectorEnemy extends Schema {

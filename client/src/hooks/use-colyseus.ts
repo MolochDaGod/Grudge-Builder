@@ -32,6 +32,13 @@ export interface PlayerInfo {
   level: number;
   accountId?: string;
   characterId?: string;
+  // 3D model data (from character.model3d DB field)
+  baseModelId?: string;
+  equippedMeshes?: Record<string, string>;
+  weaponSlots?: Record<string, string>;
+  skinColor?: string;
+  armorColor?: string;
+  equippedWeaponType?: string;
 }
 
 export interface ColyseusState {
@@ -141,6 +148,13 @@ export function useColyseus(playerInfo: PlayerInfo | null) {
         level: playerInfo.level,
         accountId: playerInfo.accountId,
         sourceGame: 'warlords',
+        // 3D model data for mesh sync
+        baseModelId: playerInfo.baseModelId || playerInfo.heroRace || 'human',
+        equippedMeshes: playerInfo.equippedMeshes || {},
+        weaponSlots: playerInfo.weaponSlots || {},
+        skinColor: playerInfo.skinColor || '#ffffff',
+        armorColor: playerInfo.armorColor || '#ffffff',
+        equippedWeaponType: playerInfo.equippedWeaponType || 'sword-shield',
       });
 
       sectorRoomRef.current = sectorRoom;
