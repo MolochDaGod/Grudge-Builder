@@ -74,3 +74,5 @@ public/models/instances/**/*.glb
 D:/*.ts
 .env.local
 scripts/pull-railway-db.mjs
+
+*.log

@@ -14,6 +14,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useLocation } from 'wouter';
 import { Client, Room } from 'colyseus.js';
+import * as THREE from 'three';
 import { Island3DEngine, type Island3DEngineConfig } from '@/island3d/engine/Island3DEngine';
 import { characterAPI } from '@/lib/api';
 import { Check, Circle, Sword, Axe, TreePine, Hammer, Ship } from 'lucide-react';
@@ -66,6 +67,12 @@ export default function TutorialPage() {
   const [characterName, setCharacterName] = useState('Shipwrecked');
   const [heroRace, setHeroRace] = useState('human');
   const [heroClass, setHeroClass] = useState('warrior');
+
+  // Synced entities from ShipwreckRoom state
+  const enemiesRef = useRef<Map<string, { id: string; x: number; z: number; hp: number; state: string }>>(new Map());
+  const nodesRef = useRef<Map<string, { id: string; type: string; x: number; z: number; depleted: boolean }>>(new Map());
+  // 3D markers for entities
+  const markerMeshesRef = useRef<Map<string, THREE.Mesh>>(new Map());
 
   // ── Load character data ────────────────────────────────────────
 
@@ -149,6 +156,45 @@ export default function TutorialPage() {
           setTimeout(() => setLocation('/home-island'), 3000);
         });
 
+        // ── Sync enemies from room state ──────────────────────────
+        room.state.enemies?.onAdd?.((enemy: any, id: string) => {
+          enemiesRef.current.set(id, {
+            id, x: enemy.x, z: enemy.z, hp: enemy.hp, state: enemy.state,
+          });
+          enemy.onChange?.(() => {
+            enemiesRef.current.set(id, {
+              id, x: enemy.x, z: enemy.z, hp: enemy.hp, state: enemy.state,
+            });
+            // Update 3D marker position
+            const marker = markerMeshesRef.current.get(`enemy_${id}`);
+            if (marker) {
+              marker.position.set(enemy.x, 2, enemy.z);
+              marker.visible = enemy.state !== 'dead';
+            }
+          });
+          // Spawn 3D marker
+          addEntityMarker(`enemy_${id}`, enemy.x, enemy.z, 'enemy');
+        });
+        room.state.enemies?.onRemove?.((_: any, id: string) => {
+          enemiesRef.current.delete(id);
+          removeEntityMarker(`enemy_${id}`);
+        });
+
+        // ── Sync harvest nodes from room state ───────────────────
+        room.state.harvestNodes?.onAdd?.((node: any, id: string) => {
+          nodesRef.current.set(id, {
+            id, type: node.resourceType, x: node.x, z: node.z, depleted: node.depleted,
+          });
+          node.onChange?.(() => {
+            nodesRef.current.set(id, {
+              id, type: node.resourceType, x: node.x, z: node.z, depleted: node.depleted,
+            });
+            const marker = markerMeshesRef.current.get(`node_${id}`);
+            if (marker) marker.visible = !node.depleted;
+          });
+          addEntityMarker(`node_${id}`, node.x, node.z, node.resourceType === 'forest' ? 'wood' : 'stone');
+        });
+
         console.log('[Tutorial] Connected to ShipwreckRoom');
       } catch (err) {
         console.error('[Tutorial] Connection failed:', err);
@@ -160,8 +206,52 @@ export default function TutorialPage() {
     return () => {
       room?.leave();
       roomRef.current = null;
+      // Cleanup markers
+      markerMeshesRef.current.forEach((mesh) => {
+        mesh.geometry?.dispose();
+        (mesh.material as THREE.Material)?.dispose();
+      });
+      markerMeshesRef.current.clear();
     };
   }, [characterName]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── 3D entity marker helpers ────────────────────────────────────
+
+  function addEntityMarker(key: string, x: number, z: number, type: 'enemy' | 'wood' | 'stone') {
+    const engine = engineRef.current;
+    if (!engine) return;
+    const scene = engine.getScene();
+
+    let geom: THREE.BufferGeometry;
+    let color: number;
+    if (type === 'enemy') {
+      geom = new THREE.SphereGeometry(1.2, 8, 8);
+      color = 0xff3333;
+    } else if (type === 'wood') {
+      geom = new THREE.CylinderGeometry(0.4, 0.4, 3, 6);
+      color = 0x44aa44;
+    } else {
+      geom = new THREE.BoxGeometry(1.2, 1.2, 1.2);
+      color = 0x999999;
+    }
+
+    const mat = new THREE.MeshLambertMaterial({ color, emissive: color, emissiveIntensity: 0.3 });
+    const mesh = new THREE.Mesh(geom, mat);
+    mesh.position.set(x, type === 'wood' ? 1.5 : 1, z);
+    mesh.castShadow = true;
+    scene.add(mesh);
+    markerMeshesRef.current.set(key, mesh);
+  }
+
+  function removeEntityMarker(key: string) {
+    const mesh = markerMeshesRef.current.get(key);
+    if (mesh) {
+      mesh.parent?.remove(mesh);
+      mesh.geometry?.dispose();
+      (mesh.material as THREE.Material)?.dispose();
+      markerMeshesRef.current.delete(key);
+    }
+  }
 
   // ── Initialize 3D engine ───────────────────────────────────────
 
@@ -239,11 +329,33 @@ export default function TutorialPage() {
     roomRef.current?.send('intro_complete');
   };
 
-  // ── Action buttons ─────────────────────────────────────────────
+  // ── Action buttons (proximity-based) ─────────────────────────────
+
+  const getPlayerPos = (): { x: number; z: number } => {
+    const engine = engineRef.current;
+    if (!engine?.character) return { x: 0, z: 0 };
+    const pos = engine.character.getPosition();
+    return { x: pos.x, z: pos.z };
+  };
 
   const handleHarvest = () => {
-    // Find nearest node via raycasting (simplified: harvest closest)
-    roomRef.current?.send('harvest', { nodeId: 'drift_1' });
+    const { x, z } = getPlayerPos();
+    let nearest: string | null = null;
+    let nearestDist = Infinity;
+    nodesRef.current.forEach((node) => {
+      if (node.depleted) return;
+      const dx = node.x - x, dz = node.z - z;
+      const dist = Math.sqrt(dx * dx + dz * dz);
+      if (dist < nearestDist && dist < 20) {
+        nearestDist = dist;
+        nearest = node.id;
+      }
+    });
+    if (nearest) {
+      roomRef.current?.send('harvest', { nodeId: nearest });
+    } else {
+      showNotification('No resource node nearby');
+    }
   };
 
   const handleCraft = () => {
@@ -255,8 +367,23 @@ export default function TutorialPage() {
   };
 
   const handleAttack = () => {
-    // Attack nearest enemy
-    roomRef.current?.send('pve_attack', { enemyId: 'crab_' + Date.now(), damage: 15 });
+    const { x, z } = getPlayerPos();
+    let nearest: string | null = null;
+    let nearestDist = Infinity;
+    enemiesRef.current.forEach((enemy) => {
+      if (enemy.state === 'dead') return;
+      const dx = enemy.x - x, dz = enemy.z - z;
+      const dist = Math.sqrt(dx * dx + dz * dz);
+      if (dist < nearestDist && dist < 20) {
+        nearestDist = dist;
+        nearest = enemy.id;
+      }
+    });
+    if (nearest) {
+      roomRef.current?.send('pve_attack', { enemyId: nearest, damage: 15 });
+    } else {
+      showNotification('No enemy nearby');
+    }
   };
 
   // ── Render ─────────────────────────────────────────────────────
