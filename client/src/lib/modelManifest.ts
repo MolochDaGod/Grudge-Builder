@@ -66,7 +66,7 @@ export interface AnimationDef {
  * - "static"     = No skeleton (static mesh, cannot be animated).
  *                  Used by: ogre.glb, elf-knight.glb
  */
-export type SkeletonType = "mixamo-24" | "mixamo-62" | "custom" | "static";
+export type SkeletonType = "mixamo-24" | "mixamo-62" | "kaykit-41" | "custom" | "static";
 
 export interface ModelUnit {
   id: string;
@@ -177,7 +177,7 @@ export const MODEL_MANIFEST: Record<string, ModelUnit> = {
   dwarf:      { id: "dwarf",      name: "Dwarf",      modelPath: `${RACE_BASE}/dwarf.glb`,      scale: 0.85, weaponType: "sword-shield", skeleton: "mixamo-24", jointCount: 24 },
   elf:        { id: "elf",        name: "Elf",        modelPath: `${RACE_BASE}/elf.glb`,        scale: 1.0,  weaponType: "longbow",      skeleton: "mixamo-24", jointCount: 24 },
   orc:        { id: "orc",        name: "Orc",        modelPath: `${RACE_BASE}/orc.glb`,        scale: 1.15, weaponType: "greatsword",   skeleton: "mixamo-24", jointCount: 24 },
-  undead:     { id: "undead",     name: "Undead",     modelPath: `${RACE_BASE}/undead.glb`,     scale: 1.0,  weaponType: "sword-shield", skeleton: "custom",    jointCount: 0  },
+  undead:     { id: "undead",     name: "Undead",     modelPath: `${RACE_BASE}/undead.glb`,     scale: 1.0,  weaponType: "sword-shield", skeleton: "kaykit-41", jointCount: 41 },
 
   // ── Faction NPC models ─────────────────────────────────────────────────
   "fabled-worker": { id: "fabled-worker", name: "Fabled Worker", modelPath: `${CHAR_BASE}/fabledworker.glb`, scale: 1.0, weaponType: "unarmed", skeleton: "mixamo-24", jointCount: 24 },
@@ -208,6 +208,81 @@ export const MODEL_MANIFEST: Record<string, ModelUnit> = {
   elfKnight:  { id: "elfKnight",  name: "Elf Knight", modelPath: `${CHAR_BASE}/elf-knight.glb`, scale: 1.0,  weaponType: "sword-shield", skeleton: "static",   jointCount: 0  },
 };
 
+// ── KayKit embedded animation mapping ────────────────────────────────────────
+//
+// KayKit toon models (skeleton: "kaykit-41") ship with 95 embedded animation
+// clips using their own bone rig (41 joints with IK).  External Mixamo
+// animations are NOT compatible — use the embedded clips directly.
+//
+// This map translates KayKit clip names → our AnimState keys so the
+// RemotePlayerManager (and local player) can drive them uniformly.
+
+export const KAYKIT_ANIM_MAP: Record<string, Record<string, string>> = {
+  /** Class-agnostic base animations (always registered) */
+  base: {
+    idle:     'Idle',
+    walk:     'Walking_A',
+    run:      'Running_A',
+    death:    'Death_A',
+    jump:     'Jump_Full_Short',
+    dodge:    'Dodge_Forward',
+    block:    'Blocking',
+    harvest:  'Interact',
+    crouch:   'Lie_Down',
+    impact:   'Hit_A',
+    taunt:    'Taunt',
+    spawn:    'Skeletons_Awaken_Standing',
+  },
+  /** Warrior / sword-shield overrides */
+  'sword-shield': {
+    idle:     'Idle_Combat',
+    attack1:  '1H_Melee_Attack_Chop',
+    attack2:  '1H_Melee_Attack_Slice_Diagonal',
+    attack3:  '1H_Melee_Attack_Stab',
+    block:    'Block',
+    blockIdle:'Blocking',
+    kick:     'Unarmed_Melee_Attack_Kick',
+  },
+  /** Greatsword / 2H overrides */
+  greatsword: {
+    idle:     '2H_Melee_Idle',
+    attack1:  '2H_Melee_Attack_Chop',
+    attack2:  '2H_Melee_Attack_Slice',
+    attack3:  '2H_Melee_Attack_Spin',
+    special:  '2H_Melee_Attack_Spinning',
+  },
+  /** Longbow / ranged overrides */
+  longbow: {
+    attack1:  '1H_Ranged_Shoot',
+    attack2:  '1H_Ranged_Shooting',
+    draw:     '1H_Ranged_Aiming',
+  },
+  /** Magic / caster overrides */
+  magic: {
+    attack1:  'Spellcast_Shoot',
+    attack2:  'Spellcast_Raise',
+    cast:     'Spellcasting',
+    special:  'Spellcast_Summon',
+  },
+};
+
+/** Check if a skeleton type uses embedded KayKit animations */
+export function isKaykitModel(skeletonType: SkeletonType): boolean {
+  return skeletonType === 'kaykit-41';
+}
+
+/** Build the full embedded clip-name → AnimState map for a KayKit model + weapon */
+export function getKaykitAnimMap(weaponType: WeaponType): Record<string, string> {
+  // Merge: base defaults ← weapon overrides  (animState → clipName)
+  const merged = { ...KAYKIT_ANIM_MAP.base, ...(KAYKIT_ANIM_MAP[weaponType] || {}) };
+  // Invert: clipName → animState (what RemotePlayerManager needs to register clips)
+  const inverted: Record<string, string> = {};
+  for (const [state, clipName] of Object.entries(merged)) {
+    inverted[clipName] = state;
+  }
+  return inverted;
+}
+
 // ── Race × Class → Model + Weapon mapping ───────────────────────────────────
 
 /** Class → default weapon type */
@@ -235,8 +310,9 @@ export function getModelForCharacter(raceId: string, classId: string): ModelUnit
   const modelId = RACE_MODEL_MATRIX[raceId]?.[classId] ?? raceId;
   let unit = MODEL_MANIFEST[modelId];
 
-  // If the resolved model isn't animation-compatible, fall back to human
-  if (!unit || unit.skeleton !== "mixamo-24") {
+  // Fall back to human only for truly incompatible skeletons.
+  // "kaykit-41" models have their own embedded animations — no fallback needed.
+  if (!unit || (unit.skeleton !== "mixamo-24" && unit.skeleton !== "kaykit-41")) {
     unit = MODEL_MANIFEST.human;
   }
 
@@ -245,10 +321,10 @@ export function getModelForCharacter(raceId: string, classId: string): ModelUnit
   return { ...unit, weaponType };
 }
 
-/** Check if a model can use the shared Mixamo animation library */
+/** Check if a model can be animated (Mixamo shared lib OR embedded KayKit clips) */
 export function isAnimationCompatible(modelId: string): boolean {
   const unit = MODEL_MANIFEST[modelId];
-  return unit?.skeleton === "mixamo-24";
+  return unit?.skeleton === "mixamo-24" || unit?.skeleton === "kaykit-41";
 }
 
 /** Get only animation-compatible model IDs */

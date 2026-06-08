@@ -19,6 +19,7 @@
 import * as THREE from "three";
 import { GLTFLoader, type GLTF } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { DRACOLoader } from "three/examples/jsm/loaders/DRACOLoader.js";
+import { SkeletonUtils } from "three/examples/jsm/utils/SkeletonUtils.js";
 import { resolveModelUrl } from "@/lib/modelManifest";
 
 // ── Skeleton bone-name remapping ─────────────────────────────────────────────
@@ -122,24 +123,29 @@ export async function loadCharacterModel(path: string): Promise<LoadedModel> {
     gltfCache.set(url, gltf);
   }
 
-  // Clone the scene so multiple characters can use the same model
-  const scene = gltf.scene.clone(true);
+  // SkeletonUtils.clone properly handles SkinnedMesh + skeleton bindings.
+  // The plain Object3D.clone(true) breaks skeleton→bone references, causing
+  // models to render as distorted white blobs.
+  const scene = SkeletonUtils.clone(gltf.scene) as THREE.Group;
 
-  // Enable shadows on all meshes
+  // Clone materials per-instance so tinting/metalness edits on one character
+  // don't corrupt all other instances that share the cached GLTF.
   scene.traverse((child) => {
     if ((child as THREE.Mesh).isMesh) {
       child.castShadow = true;
       child.receiveShadow = true;
-      // Ensure materials render correctly
       const mesh = child as THREE.Mesh;
       if (mesh.material) {
+        if (Array.isArray(mesh.material)) {
+          mesh.material = mesh.material.map(m => m.clone());
+        } else {
+          mesh.material = mesh.material.clone();
+        }
         const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
         mats.forEach((mat) => {
           if ((mat as THREE.MeshStandardMaterial).metalness !== undefined) {
-            // Clamp metalness for better look under basic lighting
             (mat as THREE.MeshStandardMaterial).metalness = Math.min(
-              (mat as THREE.MeshStandardMaterial).metalness,
-              0.6
+              (mat as THREE.MeshStandardMaterial).metalness, 0.6,
             );
           }
         });
@@ -150,16 +156,17 @@ export async function loadCharacterModel(path: string): Promise<LoadedModel> {
   const mixer = new THREE.AnimationMixer(scene);
   const actions = new Map<string, THREE.AnimationAction>();
 
-  // Register embedded animation clips (remap bone names for consistency)
-  const remappedClips: THREE.AnimationClip[] = [];
+  // Clone animation clips so Mixamo prefix stripping doesn't mutate the cache.
+  const clonedClips: THREE.AnimationClip[] = [];
   for (const clip of gltf.animations) {
-    remapClipBoneNames(clip);
-    remappedClips.push(clip);
-    const action = mixer.clipAction(clip, scene);
-    actions.set(clip.name, action);
+    const cloned = clip.clone();
+    remapClipBoneNames(cloned);
+    clonedClips.push(cloned);
+    const action = mixer.clipAction(cloned, scene);
+    actions.set(cloned.name, action);
   }
 
-  return { scene, clips: remappedClips, mixer, actions };
+  return { scene, clips: clonedClips, mixer, actions };
 }
 
 // ── Load a standalone animation GLB (extract clip only) ─────────────────────
