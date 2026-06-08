@@ -519,6 +519,14 @@ export class CharacterController3D {
     return this.model.position.clone();
   }
 
+  getFacing(): number {
+    return this.model.rotation.y;
+  }
+
+  isMoving(): boolean {
+    return this.velocity.length() > 0.5;
+  }
+
   getMovementState(): MovementState {
     return this.movementState;
   }

@@ -71,6 +71,8 @@ export class Island3DEngine {
   private clock: THREE.Clock;
   private animationFrameId: number | null = null;
   private isRunning = false;
+  /** External update callbacks — added via onUpdate(), called each frame */
+  private externalUpdates: Array<(dt: number) => void> = [];
 
   // Terrain
   public terrain: IslandTerrainResult | null = null;
@@ -587,6 +589,9 @@ export class Island3DEngine {
       this.allyManager.update(dt, this.character.getPosition(), enemies);
     }
 
+    // External update hooks (RemotePlayerManager, TownNPCController, etc.)
+    for (const fn of this.externalUpdates) fn(dt);
+
     // Render via post-processing pipeline (or raw fallback)
     if (this.postProcessing) {
       this.postProcessing.render();
@@ -663,6 +668,19 @@ export class Island3DEngine {
   /** Cancel building mode */
   cancelBuilding(): void {
     this.building?.cancelPlacement();
+  }
+
+  /** Get the Three.js scene (for adding remote player meshes, etc.) */
+  getScene(): THREE.Scene {
+    return this.scene;
+  }
+
+  /** Register an external update function that runs each frame */
+  onUpdate(fn: (dt: number) => void): () => void {
+    this.externalUpdates.push(fn);
+    return () => {
+      this.externalUpdates = this.externalUpdates.filter(f => f !== fn);
+    };
   }
 
   /** Toggle between orbit controls and character controller */

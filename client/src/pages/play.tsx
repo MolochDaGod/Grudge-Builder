@@ -186,10 +186,13 @@ export default function PlayPage() {
     // Create RemotePlayerManager bound to the engine's scene
     const engine = engineRef.current;
     const rpm = new RemotePlayerManager(
-      (engine as any).scene || (engine as any).getScene?.(),
+      engine.getScene(),
       colyseus.localSessionId,
     );
     remotePlayersRef.current = rpm;
+
+    // Register RemotePlayerManager in the engine's game loop
+    const unregister = engine.onUpdate((dt) => rpm.update(dt));
 
     // Listen for player add/remove on the SectorRoom state
     const room = colyseus.sectorRoom;
@@ -230,17 +233,10 @@ export default function PlayPage() {
       rpm.removePlayer(sessionId);
     });
 
-    // Add RemotePlayerManager update to the engine's game loop
-    const originalUpdate = (engine as any)._userUpdate;
-    (engine as any)._userUpdate = (dt: number) => {
-      originalUpdate?.(dt);
-      rpm.update(dt);
-    };
-
     return () => {
+      unregister();
       rpm.dispose();
       remotePlayersRef.current = null;
-      (engine as any)._userUpdate = originalUpdate;
     };
   }, [colyseus.sectorRoom, colyseus.localSessionId]); // eslint-disable-line react-hooks/exhaustive-deps
 
