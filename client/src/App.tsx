@@ -65,6 +65,7 @@ import CreateCharacterPage from "@/pages/create-character";
 import CharacterCreatorPage from "@/pages/character-creator";
 import GrudaWarsPage from "@/pages/grudawars";
 import PlayPage from "@/pages/play";
+import TutorialPage from "@/pages/tutorial";
 
 function Router() {
   return (
@@ -123,6 +124,7 @@ function Router() {
       <Route path="/organizer">{() => <Suspense fallback={null}><OrganizerPage /></Suspense>}</Route>
       <Route path="/grudawars" component={GrudaWarsPage} />
       <Route path="/play" component={PlayPage} />
+      <Route path="/tutorial" component={TutorialPage} />
       {/* Fallback to 404 */}
       <Route component={NotFound} />
     </Switch>

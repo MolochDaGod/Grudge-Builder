@@ -469,10 +469,10 @@ export default function CharacterBuilder() {
         Endurance: 0, Wisdom: 0, Agility: 0, Tactics: 0
       });
 
-      // First character? Go straight to play
+      // First character? Go through tutorial first
       if (chars.length === 1) {
-        toast({ title: "Hero Created!", description: `${heroName} is ready. Entering the world...` });
-        setLocation("/play");
+        toast({ title: "Hero Created!", description: `${heroName} is ready. Beginning your journey...` });
+        setLocation("/tutorial");
         return;
       }
 

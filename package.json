@@ -190,7 +190,6 @@
     "socket.io": "^4.8.3",
     "socket.io-client": "^4.8.3",
     "sonner": "^2.0.7",
-    "sprite": "^0.0.1",
     "sprite-reader": "^0.1.6",
     "spritesheet-templates": "^10.5.2",
     "stage-js": "^1.0.0-alpha.17",
