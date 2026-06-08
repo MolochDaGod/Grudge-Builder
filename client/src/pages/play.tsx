@@ -9,6 +9,7 @@ import { useLocation } from 'wouter';
 import { useColyseus, type PlayerInfo } from '@/hooks/use-colyseus';
 import { GameHUD } from '@/components/GameHUD';
 import { Island3DEngine, type Island3DEngineConfig } from '@/island3d/engine/Island3DEngine';
+import { RemotePlayerManager, type RemotePlayerData } from '@/island3d/sync/RemotePlayerManager';
 import { characterAPI } from '@/lib/api';
 
 // Sector biome names (mirrored from server SectorState.ts for display only)
@@ -36,6 +37,7 @@ export default function PlayPage() {
   const [, setLocation] = useLocation();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const engineRef = useRef<Island3DEngine | null>(null);
+  const remotePlayersRef = useRef<RemotePlayerManager | null>(null);
   const moveIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [loadProgress, setLoadProgress] = useState(0);
@@ -152,7 +154,7 @@ export default function PlayPage() {
     };
   }, []);
 
-  // ── Send position updates at 15Hz ─────────────────────────────
+  // ── Send position updates at 15Hz ─────────────────────────
 
   useEffect(() => {
     if (!colyseus.sectorRoom || !engineRef.current) return;
@@ -172,6 +174,72 @@ export default function PlayPage() {
       if (moveIntervalRef.current) clearInterval(moveIntervalRef.current);
     };
   }, [colyseus.sectorRoom]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Sync remote players from Colyseus state ────────────────
+
+  useEffect(() => {
+    if (!colyseus.sectorRoom || !engineRef.current || !colyseus.localSessionId) return;
+
+    // Create RemotePlayerManager bound to the engine's scene
+    const engine = engineRef.current;
+    const rpm = new RemotePlayerManager(
+      (engine as any).scene || (engine as any).getScene?.(),
+      colyseus.localSessionId,
+    );
+    remotePlayersRef.current = rpm;
+
+    // Listen for player add/remove on the SectorRoom state
+    const room = colyseus.sectorRoom;
+
+    room.state.players.onAdd((player: any, sessionId: string) => {
+      if (sessionId === colyseus.localSessionId) return;
+      rpm.addPlayer(sessionId, {
+        id: player.id,
+        characterName: player.characterName,
+        heroClass: player.heroClass,
+        heroRace: player.heroRace,
+        faction: player.faction,
+        level: player.level,
+        x: player.x, y: player.y, z: player.z,
+        facing: player.facing,
+        state: player.state,
+        hp: player.hp, maxHp: player.maxHp,
+        baseModelId: player.baseModelId,
+        equippedMeshJson: player.equippedMeshJson,
+        weaponSlotsJson: player.weaponSlotsJson,
+        skinColor: player.skinColor,
+        armorColor: player.armorColor,
+        equippedWeaponType: player.equippedWeaponType,
+      });
+
+      // Listen for property changes on this player
+      player.onChange(() => {
+        rpm.updatePlayer(sessionId, {
+          x: player.x, y: player.y, z: player.z,
+          facing: player.facing,
+          state: player.state,
+          hp: player.hp, maxHp: player.maxHp,
+        });
+      });
+    });
+
+    room.state.players.onRemove((_player: any, sessionId: string) => {
+      rpm.removePlayer(sessionId);
+    });
+
+    // Add RemotePlayerManager update to the engine's game loop
+    const originalUpdate = (engine as any)._userUpdate;
+    (engine as any)._userUpdate = (dt: number) => {
+      originalUpdate?.(dt);
+      rpm.update(dt);
+    };
+
+    return () => {
+      rpm.dispose();
+      remotePlayersRef.current = null;
+      (engine as any)._userUpdate = originalUpdate;
+    };
+  }, [colyseus.sectorRoom, colyseus.localSessionId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Get local player state ────────────────────────────────────
 
