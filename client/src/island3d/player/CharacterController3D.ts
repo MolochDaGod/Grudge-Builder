@@ -13,8 +13,6 @@ import { loadCharacterModel, type LoadedModel } from '@/lib/modelLoader';
 import {
   getModelForCharacter,
   getAnimationSet,
-  getKaykitAnimMap,
-  isKaykitModel,
   resolveModelUrl,
   type WeaponType,
 } from '@/lib/modelManifest';
@@ -178,25 +176,19 @@ export class CharacterController3D {
       const modelUnit = getModelForCharacter(raceId, classId);
       const loaded = await loadCharacterModel(modelUnit.modelPath);
 
-      if (isKaykitModel(modelUnit.skeleton)) {
-        // ── KayKit toon models: use embedded clips with proper mapping ──
-        this.applyLoadedModelKaykit(loaded, modelUnit.scale, modelUnit.weaponType);
-      } else {
-        // ── Mixamo / standard models: heuristic clip names + external anims ──
-        this.applyLoadedModel(loaded, modelUnit.scale);
+      // All 6 Grudge race characters use Mixamo-24 skeleton.
+      // Apply model, register embedded clips by name, then load weapon-specific anims.
+      this.applyLoadedModel(loaded, modelUnit.scale);
 
-        if (modelUnit.skeleton === 'mixamo-24') {
-          const animSet = getAnimationSet(modelUnit.weaponType);
-          const animPaths: Partial<Record<AnimState, string>> = {};
-          if (animSet.idle) animPaths.idle = resolveModelUrl(animSet.idle.file);
-          if (animSet.run) animPaths.walk = resolveModelUrl(animSet.run.file);
-          if (animSet.attack1) animPaths.attack = resolveModelUrl(animSet.attack1.file);
-          if (animSet.death) animPaths.death = resolveModelUrl(animSet.death.file);
+      const animSet = getAnimationSet(modelUnit.weaponType);
+      const animPaths: Partial<Record<AnimState, string>> = {};
+      if (animSet.idle) animPaths.idle = resolveModelUrl(animSet.idle.file);
+      if (animSet.run) animPaths.walk = resolveModelUrl(animSet.run.file);
+      if (animSet.attack1) animPaths.attack = resolveModelUrl(animSet.attack1.file);
+      if (animSet.death) animPaths.death = resolveModelUrl(animSet.death.file);
 
-          if (Object.keys(animPaths).length > 0 && this.animations) {
-            await this.animations.loadAnimations(animPaths);
-          }
-        }
+      if (Object.keys(animPaths).length > 0 && this.animations) {
+        await this.animations.loadAnimations(animPaths);
       }
     } catch (err) {
       console.warn(`Failed to load character model for ${raceId}/${classId}:`, err);
@@ -238,35 +230,6 @@ export class CharacterController3D {
         else if (name.includes('idle')) state = 'idle';
         this.animations!.addClipFromGLTF(state, clip);
       });
-      this.animations.play('idle');
-    }
-  }
-
-  /** Apply a KayKit toon model with embedded animations using the proper clip-name → state mapping */
-  private applyLoadedModelKaykit(loaded: LoadedModel, scale: number, weaponType: WeaponType): void {
-    loaded.scene.scale.setScalar(scale);
-    loaded.scene.traverse((child) => {
-      if (child instanceof THREE.Mesh) {
-        child.castShadow = true;
-        child.receiveShadow = true;
-      }
-    });
-
-    while (this.model.children.length) {
-      this.model.remove(this.model.children[0]);
-    }
-    this.model.add(loaded.scene);
-
-    if (loaded.clips.length > 0) {
-      this.animations = new AnimationManager(loaded.scene);
-      // Use the KAYKIT_ANIM_MAP: clipName → animState
-      const clipNameToState = getKaykitAnimMap(weaponType);
-      for (const clip of loaded.clips) {
-        const state = clipNameToState[clip.name];
-        if (state) {
-          this.animations.addClipFromGLTF(state as AnimState, clip);
-        }
-      }
       this.animations.play('idle');
     }
   }

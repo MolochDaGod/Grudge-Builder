@@ -171,13 +171,16 @@ const RACE_BASE = `${CDN}/models/characters/races`;
 const CHAR_BASE = `${CDN}/models/characters`;
 
 export const MODEL_MANIFEST: Record<string, ModelUnit> = {
-  // ── Mixamo-24 race models (COMPATIBLE — share all weapon animations) ────
+  // ── THE 6 GRUDGE RACE CHARACTERS (all Mixamo-24, share all weapon animations) ──
+  // These are the canonical player models from Grudge Warlords (Unity port).
+  // All 6 use the same Mixamo 24-joint skeleton so they share the full weapon
+  // animation library. Do NOT change these to kaykit or custom skeletons.
   human:      { id: "human",      name: "Human",      modelPath: `${RACE_BASE}/human.glb`,      scale: 1.0,  weaponType: "sword-shield", skeleton: "mixamo-24", jointCount: 24 },
   barbarian:  { id: "barbarian",  name: "Barbarian",  modelPath: `${RACE_BASE}/barbarian.glb`,  scale: 1.1,  weaponType: "greatsword",   skeleton: "mixamo-24", jointCount: 24 },
   dwarf:      { id: "dwarf",      name: "Dwarf",      modelPath: `${RACE_BASE}/dwarf.glb`,      scale: 0.85, weaponType: "sword-shield", skeleton: "mixamo-24", jointCount: 24 },
   elf:        { id: "elf",        name: "Elf",        modelPath: `${RACE_BASE}/elf.glb`,        scale: 1.0,  weaponType: "longbow",      skeleton: "mixamo-24", jointCount: 24 },
   orc:        { id: "orc",        name: "Orc",        modelPath: `${RACE_BASE}/orc.glb`,        scale: 1.15, weaponType: "greatsword",   skeleton: "mixamo-24", jointCount: 24 },
-  undead:     { id: "undead",     name: "Undead",     modelPath: `${RACE_BASE}/undead.glb`,     scale: 1.0,  weaponType: "sword-shield", skeleton: "kaykit-41", jointCount: 41 },
+  undead:     { id: "undead",     name: "Undead",     modelPath: `${RACE_BASE}/undead.glb`,     scale: 1.0,  weaponType: "sword-shield", skeleton: "mixamo-24", jointCount: 24 },
 
   // ── Faction NPC models ─────────────────────────────────────────────────
   "fabled-worker": { id: "fabled-worker", name: "Fabled Worker", modelPath: `${CHAR_BASE}/fabledworker.glb`, scale: 1.0, weaponType: "unarmed", skeleton: "mixamo-24", jointCount: 24 },
@@ -310,9 +313,10 @@ export function getModelForCharacter(raceId: string, classId: string): ModelUnit
   const modelId = RACE_MODEL_MATRIX[raceId]?.[classId] ?? raceId;
   let unit = MODEL_MANIFEST[modelId];
 
-  // Fall back to human only for truly incompatible skeletons.
-  // "kaykit-41" models have their own embedded animations — no fallback needed.
-  if (!unit || (unit.skeleton !== "mixamo-24" && unit.skeleton !== "kaykit-41")) {
+  // Fall back to human for incompatible skeletons.
+  // All 6 Grudge race characters are mixamo-24 — this catches edge cases
+  // where a model lookup resolves to a static/custom skeleton.
+  if (!unit || unit.skeleton !== "mixamo-24") {
     unit = MODEL_MANIFEST.human;
   }
 
@@ -321,10 +325,10 @@ export function getModelForCharacter(raceId: string, classId: string): ModelUnit
   return { ...unit, weaponType };
 }
 
-/** Check if a model can be animated (Mixamo shared lib OR embedded KayKit clips) */
+/** Check if a model can be animated (uses the shared Mixamo animation library) */
 export function isAnimationCompatible(modelId: string): boolean {
   const unit = MODEL_MANIFEST[modelId];
-  return unit?.skeleton === "mixamo-24" || unit?.skeleton === "kaykit-41";
+  return unit?.skeleton === "mixamo-24";
 }
 
 /** Get only animation-compatible model IDs */
