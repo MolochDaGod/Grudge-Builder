@@ -121,7 +121,7 @@ export const WEAPON_ANIMATION_SETS: Record<WeaponType, Partial<Record<AnimState3
     slash2:    { file: animPath("greatsword", "great sword slash (2).glb"), loop: false },
     attack2:   { file: animPath("greatsword", "great sword slash (3).glb"), loop: false },
     block:     { file: animPath("greatsword", "great sword blocking.glb"), loop: false },
-    death:     { file: animPath("greatsword", "two handed sword death.glb"), loop: false },
+    death:     { file: animPath("sword-shield", "sword and shield death.glb"), loop: false },
     jump:      { file: animPath("greatsword", "great sword jump.glb"), loop: false },
     special:   { file: animPath("greatsword", "great sword high spin attack.glb"), loop: false },
     kick:      { file: animPath("greatsword", "great sword kick.glb"), loop: false },
