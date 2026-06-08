@@ -110,8 +110,9 @@ export default function GrudgeAI() {
 
   const ollamaOnline = status?.ollama?.online ?? false;
   const cloudOnline = status?.cloud?.online ?? false;
-  const providerLabel = ollamaOnline ? "Local (Ollama)" : cloudOnline ? "Cloud" : "Offline";
-  const providerColor = ollamaOnline ? "#22c55e" : cloudOnline ? "#3b82f6" : "#ef4444";
+  const puterOnline = status?.puter?.online ?? false;
+  const providerLabel = ollamaOnline ? "Local (Ollama)" : cloudOnline ? "Cloud" : puterOnline ? "Puter AI (Free)" : "Offline";
+  const providerColor = ollamaOnline ? "#22c55e" : cloudOnline ? "#3b82f6" : puterOnline ? "#a855f7" : "#ef4444";
 
   // ── Floating button (collapsed) ───────────────────────────────────
 
@@ -212,8 +213,8 @@ export default function GrudgeAI() {
           <div className="text-center text-slate-500 text-sm mt-8">
             <p className="text-2xl mb-2">⚡</p>
             <p>Ask anything about Grudge Studio</p>
-            <p className="text-xs mt-1 text-slate-600">
-              {ollamaOnline ? "Using local grudge-dev model" : "Using cloud AI"}
+          <p className="text-xs mt-1 text-slate-600">
+              {ollamaOnline ? "Using local grudge-dev model" : cloudOnline ? "Using cloud AI" : puterOnline ? "Using Puter AI (free via Puter SDK)" : "Sign in to activate AI"}
             </p>
           </div>
         )}

@@ -11,11 +11,12 @@
  */
 
 import { useQuery } from "@tanstack/react-query";
+import { isPuterAvailable, isPuterReady, puterAI } from "./puterIntegration";
 
 // ── Types ───────────────────────────────────────────────────────────
 
 export type AITaskType = "code" | "game" | "vision" | "chat" | "embed" | "quick" | "debug" | "generate" | "image" | "speech" | "music" | "video";
-export type AIProvider = "ollama" | "cloud" | "auto";
+export type AIProvider = "ollama" | "cloud" | "puter" | "auto";
 
 export interface AIRouteInfo {
   task: string;
@@ -29,6 +30,7 @@ export interface AIRouteInfo {
 export interface AIStatus {
   ollama: { online: boolean; models: string[]; host: string };
   cloud: { online: boolean; host: string };
+  puter: { online: boolean; model: string };
   routing: AIRouteInfo[];
 }
 
@@ -81,12 +83,36 @@ class GrudgeAIClient {
       return this.statusCache;
     }
 
-    const res = await fetch("/api/ai/gateway/status");
-    if (!res.ok) throw new Error("Failed to fetch AI status");
-    const data = await res.json();
-    this.statusCache = data;
+    // Try cloud gateway first
+    let cloudOnline = false;
+    let ollamaOnline = false;
+    let ollamaModels: string[] = [];
+    let routing: AIRouteInfo[] = [];
+
+    try {
+      const res = await fetch("/api/ai/gateway/status");
+      if (res.ok) {
+        const data = await res.json();
+        cloudOnline = data.cloud?.online ?? false;
+        ollamaOnline = data.ollama?.online ?? false;
+        ollamaModels = data.ollama?.models ?? [];
+        routing = data.routing ?? [];
+      }
+    } catch { /* gateway unreachable */ }
+
+    // Puter AI: always available if SDK loaded + user signed in
+    const puterOnline = isPuterReady();
+
+    const status: AIStatus = {
+      ollama: { online: ollamaOnline, models: ollamaModels, host: "localhost:11434" },
+      cloud: { online: cloudOnline, host: "ai.grudge-studio.com" },
+      puter: { online: puterOnline, model: "gpt-4o-mini" },
+      routing,
+    };
+
+    this.statusCache = status;
     this.statusCacheTime = now;
-    return data;
+    return status;
   }
 
   // ── Preferences ──
@@ -125,69 +151,145 @@ class GrudgeAIClient {
     temperature?: number;
     agent?: string;
   }): Promise<AIChatResult> {
-    const body = {
-      task: opts.task || "chat",
-      messages: opts.messages,
-      preferLocal: this.prefs.preferLocal,
-      provider: opts.provider || this.prefs.taskOverrides[opts.task || "chat"],
-      model: opts.model,
-      temperature: opts.temperature,
-      agent: opts.agent,
-    };
+    // If explicitly forcing puter, or cloud is down and puter is ready → use Puter AI
+    const forcePuter = opts.provider === "puter";
+    const status = this.statusCache;
+    const cloudDown = status && !status.cloud.online && !status.ollama.online;
+    const puterReady = isPuterReady();
 
-    const res = await fetch("/api/ai/gateway/chat", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    });
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({ error: res.statusText }));
-      throw new Error((err as any).error || `HTTP ${res.status}`);
+    if ((forcePuter || cloudDown) && puterReady) {
+      return this.chatViaPuter(opts);
     }
-    return res.json();
+
+    // Try cloud/ollama gateway
+    try {
+      const body = {
+        task: opts.task || "chat",
+        messages: opts.messages,
+        preferLocal: this.prefs.preferLocal,
+        provider: opts.provider || this.prefs.taskOverrides[opts.task || "chat"],
+        model: opts.model,
+        temperature: opts.temperature,
+        agent: opts.agent,
+      };
+
+      const res = await fetch("/api/ai/gateway/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) {
+        // Gateway returned error — fall back to Puter if available
+        if (puterReady) return this.chatViaPuter(opts);
+        const err = await res.json().catch(() => ({ error: res.statusText }));
+        throw new Error((err as any).error || `HTTP ${res.status}`);
+      }
+      return res.json();
+    } catch (gatewayErr) {
+      // Network error or gateway down — fall back to Puter
+      if (puterReady) return this.chatViaPuter(opts);
+      throw gatewayErr;
+    }
+  }
+
+  /** Chat via Puter SDK (free, user-pays model). */
+  private async chatViaPuter(opts: {
+    messages: Array<{ role: string; content: string }>;
+    temperature?: number;
+  }): Promise<AIChatResult> {
+    // Build a single prompt from messages (Puter chat takes a string or message array)
+    const prompt = opts.messages.map(m => {
+      if (m.role === "system") return `[System] ${m.content}`;
+      if (m.role === "user") return m.content;
+      return `[Assistant] ${m.content}`;
+    }).join("\n\n");
+
+    const result = await puterAI.chat(prompt, {
+      temperature: opts.temperature,
+      maxTokens: 1000,
+    });
+
+    if (!result) throw new Error("Puter AI returned no response");
+
+    return {
+      provider: "puter",
+      model: "gpt-4o-mini",
+      content: result,
+    };
   }
 
   // ── Streaming chat (SSE) ──
 
   async *chatStream(task: AITaskType, userMessage: string, systemMessage?: string): AsyncGenerator<string> {
     const override = this.prefs.taskOverrides[task];
+    const messages = [
+      ...(systemMessage ? [{ role: "system", content: systemMessage }] : []),
+      { role: "user", content: userMessage },
+    ];
 
-    // If forced to local or auto-local, use Ollama streaming
-    const body = {
-      task,
-      messages: [
-        ...(systemMessage ? [{ role: "system", content: systemMessage }] : []),
-        { role: "user", content: userMessage },
-      ],
-      preferLocal: this.prefs.preferLocal,
-      provider: override,
-    };
+    // Check if we should use Puter AI directly (no streaming, but works)
+    const status = this.statusCache;
+    const cloudDown = status && !status.cloud.online && !status.ollama.online;
+    const puterReady = isPuterReady();
 
-    const res = await fetch("/api/ai/gateway/chat/stream", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    });
+    if ((override === "puter" || cloudDown) && puterReady) {
+      // Puter doesn't support SSE streaming — do a full request and yield the result
+      const result = await this.chatViaPuter({ messages, temperature: undefined });
+      yield result.content;
+      return;
+    }
 
-    if (!res.ok || !res.body) throw new Error(`Stream failed: ${res.status}`);
+    // Try cloud/ollama streaming gateway
+    try {
+      const body = {
+        task,
+        messages,
+        preferLocal: this.prefs.preferLocal,
+        provider: override,
+      };
 
-    const reader = res.body.getReader();
-    const decoder = new TextDecoder();
+      const res = await fetch("/api/ai/gateway/chat/stream", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
 
-    while (true) {
-      const { value, done } = await reader.read();
-      if (done) break;
-      const chunk = decoder.decode(value, { stream: true });
-      for (const line of chunk.split("\n")) {
-        if (!line.startsWith("data: ")) continue;
-        const payload = line.slice(6).trim();
-        if (payload === "[DONE]") return;
-        try {
-          const parsed = JSON.parse(payload);
-          const token = parsed.message?.content || parsed.choices?.[0]?.delta?.content || "";
-          if (token) yield token;
-        } catch { /* partial JSON */ }
+      if (!res.ok || !res.body) {
+        // Stream failed — fall back to Puter non-streaming
+        if (puterReady) {
+          const result = await this.chatViaPuter({ messages, temperature: undefined });
+          yield result.content;
+          return;
+        }
+        throw new Error(`Stream failed: ${res.status}`);
       }
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        const chunk = decoder.decode(value, { stream: true });
+        for (const line of chunk.split("\n")) {
+          if (!line.startsWith("data: ")) continue;
+          const payload = line.slice(6).trim();
+          if (payload === "[DONE]") return;
+          try {
+            const parsed = JSON.parse(payload);
+            const token = parsed.message?.content || parsed.choices?.[0]?.delta?.content || "";
+            if (token) yield token;
+          } catch { /* partial JSON */ }
+        }
+      }
+    } catch (err) {
+      // Gateway network error — fall back to Puter
+      if (puterReady) {
+        const result = await this.chatViaPuter({ messages, temperature: undefined });
+        yield result.content;
+        return;
+      }
+      throw err;
     }
   }
 }
