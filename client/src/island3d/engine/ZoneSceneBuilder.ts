@@ -129,25 +129,14 @@ export function buildZoneScene(
   accentLight.position.set(0, 200, 0);
   root.add(accentLight);
 
-  // ── 3. Ocean Water Plane ───────────────────────────────────
+  // ── 3. Ocean Water Plane (single shader ocean — no fallback) ─
 
-  let ocean: THREE.Mesh;
-  try {
-    ocean = createOceanMesh({ size: cfg.sizeMeters * 1.2, waterLevel: cfg.waterLevel });
-  } catch {
-    // Fallback if createOceanMesh isn't available
-    const oceanGeo = new THREE.PlaneGeometry(cfg.sizeMeters * 1.2, cfg.sizeMeters * 1.2, 64, 64);
-    oceanGeo.rotateX(-Math.PI / 2);
-    const oceanMat = new THREE.MeshStandardMaterial({
-      color: hexToColor(sector.colors.mid).getHex(),
-      transparent: true,
-      opacity: 0.85,
-      roughness: 0.2,
-      metalness: 0.1,
-    });
-    ocean = new THREE.Mesh(oceanGeo, oceanMat);
-    ocean.position.y = cfg.waterLevel;
-  }
+  const ocean = createOceanMesh({
+    size: cfg.sizeMeters * 1.2,
+    waterLevel: cfg.waterLevel,
+    shallowColor: hexToColor(sector.colors.mid),
+    deepColor: hexToColor(sector.colors.deep),
+  });
   ocean.receiveShadow = true;
   ocean.name = 'ocean';
   root.add(ocean);
@@ -158,12 +147,15 @@ export function buildZoneScene(
 
   for (const island of islands) {
     // Map island size to terrain config
+    // Home islands need to be large enough for base building, farming, and exploration.
+    // A 4 km sector means a home island at 1500-2000m feels substantial.
     const sizeToConfig: Record<string, Partial<IslandTerrainConfig>> = {
-      atoll:    { xSegments: 31, ySegments: 31, xSize: 120, ySize: 120, maxHeight: 15 },
-      small:    { xSegments: 47, ySegments: 47, xSize: 240, ySize: 240, maxHeight: 35 },
-      medium:   { xSegments: 63, ySegments: 63, xSize: 440, ySize: 440, maxHeight: 60 },
-      large:    { xSegments: 95, ySegments: 95, xSize: 760, ySize: 760, maxHeight: 90 },
-      fortress: { xSegments: 127, ySegments: 127, xSize: 1000, ySize: 1000, maxHeight: 120 },
+      atoll:    { xSegments: 31, ySegments: 31, xSize: 150, ySize: 150, maxHeight: 12 },
+      small:    { xSegments: 47, ySegments: 47, xSize: 350, ySize: 350, maxHeight: 40 },
+      medium:   { xSegments: 63, ySegments: 63, xSize: 600, ySize: 600, maxHeight: 70 },
+      large:    { xSegments: 95, ySegments: 95, xSize: 1000, ySize: 1000, maxHeight: 100 },
+      home:     { xSegments: 127, ySegments: 127, xSize: 1800, ySize: 1800, maxHeight: 140 },
+      fortress: { xSegments: 159, ySegments: 159, xSize: 2200, ySize: 2200, maxHeight: 180 },
     };
     const sizeConfig = sizeToConfig[island.size] ?? sizeToConfig.medium;
 
