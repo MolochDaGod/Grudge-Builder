@@ -39,7 +39,71 @@ export type AnimState3D =
   | "draw"
   | "special";
 
-export type WeaponType = "sword-shield" | "greatsword" | "longbow" | "magic" | "unarmed";
+/**
+ * WeaponType — all 17 weapon types from the Grudge Warlords game design.
+ *
+ * Each weapon type maps to one of 4 animation categories (CDN folders):
+ *   1h-melee  → sword-shield animations  (Sword, Axe, Dagger, Hammer1h, Mace)
+ *   2h-melee  → greatsword animations    (Greatsword, Greataxe, Hammer2h, Spear)
+ *   ranged    → longbow animations       (Bow, Crossbow, Gun)
+ *   caster    → magic animations         (Fire/Frost/Nature/Holy/Arcane/Lightning Staff + Tomes)
+ *
+ * The AnimCategory type below is used internally for CDN folder resolution.
+ * WeaponType is the full list used by game logic and skill systems.
+ */
+export type WeaponType =
+  // 1h melee
+  | "sword" | "axe" | "dagger" | "hammer1h" | "mace"
+  // 2h melee
+  | "greatsword" | "greataxe" | "hammer2h" | "spear"
+  // Ranged
+  | "bow" | "crossbow" | "gun"
+  // Caster (staves)
+  | "fire-staff" | "frost-staff" | "nature-staff" | "holy-staff" | "arcane-staff" | "lightning-staff"
+  // Caster (tomes — 1h, same caster animations)
+  | "fire-tome" | "frost-tome" | "nature-tome" | "holy-tome" | "arcane-tome" | "lightning-tome"
+  // Legacy / special
+  | "sword-shield" | "longbow" | "magic" | "unarmed";
+
+/** The 4 animation categories on R2 CDN */
+export type AnimCategory = "sword-shield" | "greatsword" | "longbow" | "magic";
+
+/** Map every WeaponType to its animation category (CDN folder) */
+export const WEAPON_ANIM_CATEGORY: Record<WeaponType, AnimCategory> = {
+  // 1h melee → sword-shield animations
+  "sword":         "sword-shield",
+  "sword-shield":  "sword-shield",
+  "axe":           "sword-shield",
+  "dagger":        "sword-shield",
+  "hammer1h":      "sword-shield",
+  "mace":          "sword-shield",
+  // 2h melee → greatsword animations
+  "greatsword":    "greatsword",
+  "greataxe":      "greatsword",
+  "hammer2h":      "greatsword",
+  "spear":         "greatsword",
+  // Ranged → longbow animations
+  "bow":           "longbow",
+  "longbow":       "longbow",
+  "crossbow":      "longbow",
+  "gun":           "longbow",
+  // Caster → magic animations
+  "fire-staff":    "magic",
+  "frost-staff":   "magic",
+  "nature-staff":  "magic",
+  "holy-staff":    "magic",
+  "arcane-staff":  "magic",
+  "lightning-staff":"magic",
+  "fire-tome":     "magic",
+  "frost-tome":    "magic",
+  "nature-tome":   "magic",
+  "holy-tome":     "magic",
+  "arcane-tome":   "magic",
+  "lightning-tome": "magic",
+  "magic":         "magic",
+  // Unarmed → sword-shield without weapon visuals
+  "unarmed":       "sword-shield",
+};
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -93,7 +157,7 @@ function animPath(weapon: string, file: string): string {
   return `${ANIM_BASE}/${weapon}/${file}`;
 }
 
-export const WEAPON_ANIMATION_SETS: Record<WeaponType, Partial<Record<AnimState3D, AnimationDef>>> = {
+export const WEAPON_ANIMATION_SETS: Record<AnimCategory, Partial<Record<AnimState3D, AnimationDef>>> = {
   "sword-shield": {
     idle:      { file: animPath("sword-shield", "sword and shield idle.glb"), loop: true },
     run:       { file: animPath("sword-shield", "sword and shield run.glb"), loop: true },
@@ -154,13 +218,6 @@ export const WEAPON_ANIMATION_SETS: Record<WeaponType, Partial<Record<AnimState3
     blockIdle: { file: animPath("magic", "Standing Block Idle.glb"), loop: true },
     crouch:    { file: animPath("magic", "Crouch Idle.glb"), loop: true },
   },
-  unarmed: {
-    // Unarmed falls back to sword-shield without weapon visuals
-    idle:      { file: animPath("sword-shield", "sword and shield idle.glb"), loop: true },
-    run:       { file: animPath("sword-shield", "sword and shield run.glb"), loop: true },
-    attack1:   { file: animPath("sword-shield", "sword and shield kick.glb"), loop: false },
-    death:     { file: animPath("sword-shield", "sword and shield death.glb"), loop: false },
-  },
 };
 
 // ── Character model registry ────────────────────────────────────────────────
@@ -175,12 +232,12 @@ export const MODEL_MANIFEST: Record<string, ModelUnit> = {
   // These are the canonical player models from Grudge Warlords (Unity port).
   // All 6 use the same Mixamo 24-joint skeleton so they share the full weapon
   // animation library. Do NOT change these to kaykit or custom skeletons.
-  human:      { id: "human",      name: "Human",      modelPath: `${RACE_BASE}/human.glb`,      scale: 1.0,  weaponType: "sword-shield", skeleton: "mixamo-24", jointCount: 24 },
-  barbarian:  { id: "barbarian",  name: "Barbarian",  modelPath: `${RACE_BASE}/barbarian.glb`,  scale: 1.1,  weaponType: "greatsword",   skeleton: "mixamo-24", jointCount: 24 },
-  dwarf:      { id: "dwarf",      name: "Dwarf",      modelPath: `${RACE_BASE}/dwarf.glb`,      scale: 0.85, weaponType: "sword-shield", skeleton: "mixamo-24", jointCount: 24 },
-  elf:        { id: "elf",        name: "Elf",        modelPath: `${RACE_BASE}/elf.glb`,        scale: 1.0,  weaponType: "longbow",      skeleton: "mixamo-24", jointCount: 24 },
+  human:      { id: "human",      name: "Human",      modelPath: `${RACE_BASE}/human.glb`,      scale: 1.0,  weaponType: "sword",       skeleton: "mixamo-24", jointCount: 24 },
+  barbarian:  { id: "barbarian",  name: "Barbarian",  modelPath: `${RACE_BASE}/barbarian.glb`,  scale: 1.1,  weaponType: "greataxe",    skeleton: "mixamo-24", jointCount: 24 },
+  dwarf:      { id: "dwarf",      name: "Dwarf",      modelPath: `${RACE_BASE}/dwarf.glb`,      scale: 0.85, weaponType: "hammer1h",    skeleton: "mixamo-24", jointCount: 24 },
+  elf:        { id: "elf",        name: "Elf",        modelPath: `${RACE_BASE}/elf.glb`,        scale: 1.0,  weaponType: "bow",         skeleton: "mixamo-24", jointCount: 24 },
   orc:        { id: "orc",        name: "Orc",        modelPath: `${RACE_BASE}/orc.glb`,        scale: 1.15, weaponType: "greatsword",   skeleton: "mixamo-24", jointCount: 24 },
-  undead:     { id: "undead",     name: "Undead",     modelPath: `${RACE_BASE}/undead.glb`,     scale: 1.0,  weaponType: "sword-shield", skeleton: "mixamo-24", jointCount: 24 },
+  undead:     { id: "undead",     name: "Undead",     modelPath: `${RACE_BASE}/undead.glb`,     scale: 1.0,  weaponType: "sword",       skeleton: "mixamo-24", jointCount: 24 },
 
   // ── Faction NPC models ─────────────────────────────────────────────────
   "fabled-worker": { id: "fabled-worker", name: "Fabled Worker", modelPath: `${CHAR_BASE}/fabledworker.glb`, scale: 1.0, weaponType: "unarmed", skeleton: "mixamo-24", jointCount: 24 },
@@ -290,9 +347,9 @@ export function getKaykitAnimMap(weaponType: WeaponType): Record<string, string>
 
 /** Class → default weapon type */
 export const CLASS_WEAPON_MAP: Record<string, WeaponType> = {
-  warrior: "sword-shield",
-  ranger:  "longbow",
-  mage:    "magic",
+  warrior: "sword",
+  ranger:  "bow",
+  mage:    "arcane-staff",
   worg:    "greatsword",
 };
 
@@ -336,9 +393,16 @@ export function getCompatibleModelIds(): string[] {
   return Object.keys(MODEL_MANIFEST).filter(isAnimationCompatible);
 }
 
-/** Get the animation set for a weapon type */
+/** Get the animation set for a weapon type.
+ *  Resolves all 17+ weapon types to the correct animation category. */
 export function getAnimationSet(weaponType: WeaponType): Partial<Record<AnimState3D, AnimationDef>> {
-  return WEAPON_ANIMATION_SETS[weaponType] ?? WEAPON_ANIMATION_SETS["sword-shield"];
+  // Direct match first (legacy weapon types match CDN folders directly)
+  if (weaponType in WEAPON_ANIMATION_SETS) {
+    return WEAPON_ANIMATION_SETS[weaponType as AnimCategory];
+  }
+  // Resolve via category map
+  const category = WEAPON_ANIM_CATEGORY[weaponType] ?? "sword-shield";
+  return WEAPON_ANIMATION_SETS[category];
 }
 
 /** Get a single animation def for a character + state */

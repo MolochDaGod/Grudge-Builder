@@ -71,11 +71,13 @@ const NAMEPLATE_HEIGHT = 4.5;
 const HEALTH_BAR_HEIGHT = 4.0;
 const HEALTH_BAR_WIDTH = 1.5;
 
-// Map class to default weapon type
+// Map class to default weapon type (uses CLASS_WEAPON_MAP from modelManifest
+// for consistency, but keep a local copy for remote player fallback)
 const CLASS_WEAPON_MAP: Record<string, WeaponType> = {
-  warrior: 'sword-shield',
-  mage: 'magic',
-  ranger: 'longbow',
+  warrior: 'sword',
+  mage: 'arcane-staff',
+  ranger: 'bow',
+  worg: 'greatsword',
   worge: 'greatsword',
 };
 
