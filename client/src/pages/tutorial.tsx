@@ -145,8 +145,8 @@ export default function TutorialPage() {
 
         room.onMessage('tutorial_complete', () => {
           setCompleted(true);
-          showNotification('🎉 Tutorial Complete! Setting sail...');
-          setTimeout(() => setLocation('/play'), 3000);
+          showNotification('🎉 Tutorial Complete! Setting sail to your island...');
+          setTimeout(() => setLocation('/home-island'), 3000);
         });
 
         console.log('[Tutorial] Connected to ShipwreckRoom');

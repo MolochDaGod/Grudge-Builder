@@ -66,6 +66,7 @@ import CharacterCreatorPage from "@/pages/character-creator";
 import GrudaWarsPage from "@/pages/grudawars";
 import PlayPage from "@/pages/play";
 import TutorialPage from "@/pages/tutorial";
+import HomeIslandPage from "@/pages/home-island";
 
 function Router() {
   return (
@@ -125,6 +126,7 @@ function Router() {
       <Route path="/grudawars" component={GrudaWarsPage} />
       <Route path="/play" component={PlayPage} />
       <Route path="/tutorial" component={TutorialPage} />
+      <Route path="/home-island" component={HomeIslandPage} />
       {/* Fallback to 404 */}
       <Route component={NotFound} />
     </Switch>
