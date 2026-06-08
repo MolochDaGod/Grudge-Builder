@@ -16,6 +16,8 @@ import {
   MODEL_MANIFEST,
   WEAPON_ANIMATION_SETS,
   getAnimationSet,
+  getKaykitAnimMap,
+  isKaykitModel,
   resolveModelUrl,
   type WeaponType,
   type ModelUnit,
@@ -278,25 +280,38 @@ export class RemotePlayerManager {
 
       instance.animations = new AnimationManager(loaded.scene);
 
-      // Register embedded clips
-      for (const clip of loaded.clips) {
-        const name = clip.name.toLowerCase();
-        let state: AnimState = 'idle';
-        if (name.includes('walk') || name.includes('run')) state = 'walk';
-        else if (name.includes('attack') || name.includes('slash')) state = 'attack';
-        else if (name.includes('death')) state = 'death';
-        instance.animations.addClipFromGLTF(state, clip);
-      }
+      if (isKaykitModel(manifest.skeleton)) {
+        // ── KayKit models: use 95 embedded clips with clip-name → state mapping ──
+        const clipNameToState = getKaykitAnimMap(weaponType);
+        for (const clip of loaded.clips) {
+          const state = clipNameToState[clip.name];
+          if (state) {
+            instance.animations.addClipFromGLTF(state as AnimState, clip);
+          }
+        }
+      } else {
+        // ── Mixamo / other models: register embedded clips by name heuristic ──
+        for (const clip of loaded.clips) {
+          const name = clip.name.toLowerCase();
+          let state: AnimState = 'idle';
+          if (name.includes('walk') || name.includes('run')) state = 'walk';
+          else if (name.includes('attack') || name.includes('slash')) state = 'attack';
+          else if (name.includes('death')) state = 'death';
+          instance.animations.addClipFromGLTF(state, clip);
+        }
 
-      // Load external weapon-specific animations
-      const animSet = getAnimationSet(weaponType);
-      const animPaths: Partial<Record<AnimState, string>> = {};
-      if (animSet.idle) animPaths.idle = resolveModelUrl(animSet.idle.file);
-      if (animSet.run) animPaths.walk = resolveModelUrl(animSet.run.file);
-      if (animSet.attack1) animPaths.attack = resolveModelUrl(animSet.attack1.file);
+        // Load external weapon-specific Mixamo animations (only for mixamo-24)
+        if (manifest.skeleton === 'mixamo-24') {
+          const animSet = getAnimationSet(weaponType);
+          const animPaths: Partial<Record<AnimState, string>> = {};
+          if (animSet.idle) animPaths.idle = resolveModelUrl(animSet.idle.file);
+          if (animSet.run) animPaths.walk = resolveModelUrl(animSet.run.file);
+          if (animSet.attack1) animPaths.attack = resolveModelUrl(animSet.attack1.file);
 
-      if (Object.keys(animPaths).length > 0) {
-        await instance.animations.loadAnimations(animPaths).catch(() => {});
+          if (Object.keys(animPaths).length > 0) {
+            await instance.animations.loadAnimations(animPaths).catch(() => {});
+          }
+        }
       }
 
       // Play initial animation
