@@ -125,7 +125,14 @@ export default function HomePage() {
   const displayName = user?.username || "Warlord";
   const filtered = activeTier === "all" ? GAME_MODES : GAME_MODES.filter(g => g.tier === activeTier);
 
-  const handleEnterWorld = () => setLocation("/play");
+  const handleEnterWorld = () => {
+    // If no characters, go to character creation first
+    if (characters.length === 0) {
+      setLocation("/character");
+    } else {
+      setLocation("/play");
+    }
+  };
 
   return (
     <div className="min-h-screen text-[#eef2ff]" style={{ background: "#05060c", fontFamily: FONTS.ui }}>
@@ -189,20 +196,37 @@ export default function HomePage() {
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="rounded-2xl border border-amber-600/30 p-4 flex items-center justify-between"
+          className="rounded-2xl border border-amber-600/30 p-4 flex items-center justify-between gap-4"
           style={{ background: 'linear-gradient(135deg, rgba(246,201,69,.08), rgba(246,201,69,.02))' }}
         >
           <div>
-            <h2 style={{ fontFamily: FONTS.title }} className="text-lg font-bold text-amber-300 tracking-wider">ENTER THE WORLD</h2>
-            <p className="text-white/40 text-xs">Join Aethermoor — 9 sectors, faction warfare, open world PvP</p>
+            <h2 style={{ fontFamily: FONTS.title }} className="text-lg font-bold text-amber-300 tracking-wider">
+              {characters.length > 0 ? 'ENTER THE WORLD' : 'CREATE YOUR HERO'}
+            </h2>
+            <p className="text-white/40 text-xs">
+              {characters.length > 0
+                ? `Playing as ${activeCharacter?.name || 'your hero'} — 9 sectors, faction warfare, open world PvP`
+                : 'Choose your race, class, and skills to begin your journey in Aethermoor'}
+            </p>
           </div>
-          <button
-            onClick={handleEnterWorld}
-            className="font-cinzel font-black text-sm px-8 py-3 rounded-xl border-0 cursor-pointer transition-all hover:-translate-y-0.5"
-            style={{ background: 'linear-gradient(180deg, #f6c945, #d8a819)', color: '#20180a', boxShadow: '0 10px 30px -10px rgba(246,201,69,.5)', letterSpacing: '2px' }}
-          >
-            PLAY NOW
-          </button>
+          <div className="flex items-center gap-2">
+            {characters.length > 0 && (
+              <button
+                onClick={() => setLocation('/character')}
+                className="font-cinzel font-bold text-[11px] px-4 py-2.5 rounded-xl border cursor-pointer transition-all hover:-translate-y-0.5"
+                style={{ background: 'transparent', color: '#f6c945', border: '1px solid rgba(246,201,69,.3)', letterSpacing: '1px' }}
+              >
+                HEROES
+              </button>
+            )}
+            <button
+              onClick={handleEnterWorld}
+              className="font-cinzel font-black text-sm px-8 py-3 rounded-xl border-0 cursor-pointer transition-all hover:-translate-y-0.5"
+              style={{ background: 'linear-gradient(180deg, #f6c945, #d8a819)', color: '#20180a', boxShadow: '0 10px 30px -10px rgba(246,201,69,.5)', letterSpacing: '2px' }}
+            >
+              {characters.length > 0 ? 'PLAY NOW' : 'CREATE HERO'}
+            </button>
+          </div>
         </motion.div>
       </div>
 

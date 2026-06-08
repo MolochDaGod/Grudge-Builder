@@ -51,7 +51,7 @@ const CLASS_EMOJI: Record<string, string> = {
 export default function CreateCharacterPage() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
-  useAuthGuard();
+  // Auth guard removed — guests can create characters (linked to guest account)
 
   // 3D preview refs + state
   const threeSceneRef = useRef<ThreeSceneHandle | null>(null);
@@ -630,8 +630,8 @@ export default function CreateCharacterPage() {
                       </div>
                     </div>
                   </div>
-                  <Button onClick={() => setLocation("/character")} className="w-full bg-gradient-to-b from-amber-500 to-amber-700 text-stone-900 font-cinzel font-bold">
-                    Continue to Character
+                  <Button onClick={() => setLocation("/play")} className="w-full bg-gradient-to-b from-amber-500 to-amber-700 text-stone-900 font-cinzel font-bold">
+                    ENTER THE WORLD
                   </Button>
                 </>
               ) : (

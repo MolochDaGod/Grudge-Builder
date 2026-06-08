@@ -51,7 +51,10 @@ export default function PlayPage() {
     async function loadCharacter() {
       try {
         // Check for active character ID in localStorage
-        const activeId = localStorage.getItem('grudge_active_character') ||
+        // Check all possible active character key formats
+        const grudgeId = localStorage.getItem('grudge_account_id') || 'guest';
+        const activeId = localStorage.getItem(`gruda_active_character_${grudgeId}`) ||
+          localStorage.getItem('grudge_active_character') ||
           localStorage.getItem('gruda_active_character_guest');
 
         if (activeId) {
