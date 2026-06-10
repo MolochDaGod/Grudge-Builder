@@ -126,6 +126,19 @@ export class HarvestNode extends Schema {
   @type("number")  z: number = 0;
 }
 
+// ── Placed Building (synced across all clients in room) ───────
+
+export class PlacedBuilding extends Schema {
+  @type("string")  id: string = "";
+  @type("string")  assetId: string = "";    // key from BuildAssetManifest
+  @type("string")  ownerId: string = "";    // sessionId of player who placed it
+  @type("string")  ownerName: string = "";
+  @type("number")  x: number = 0;
+  @type("number")  y: number = 0;
+  @type("number")  z: number = 0;
+  @type("number")  rotation: number = 0;    // Y rotation in radians
+}
+
 // ── Chat Message (not synced via state — sent as broadcast) ─────
 
 export interface ChatMessage {
@@ -152,6 +165,7 @@ export class SectorState extends Schema {
   @type({ map: SectorPlayer })  players = new MapSchema<SectorPlayer>();
   @type({ map: SectorEnemy })   enemies = new MapSchema<SectorEnemy>();
   @type({ map: HarvestNode })   harvestNodes = new MapSchema<HarvestNode>();
+  @type({ map: PlacedBuilding }) buildings = new MapSchema<PlacedBuilding>();
 
   // Sector population caps
   @type("number")  maxPlayers: number = 50;
@@ -209,6 +223,7 @@ export class HomeIslandState extends Schema {
   @type("number")  tick: number = 0;
   @type({ map: SectorPlayer }) players = new MapSchema<SectorPlayer>();
   @type({ map: HarvestNode })  harvestNodes = new MapSchema<HarvestNode>();
+  @type({ map: PlacedBuilding }) buildings = new MapSchema<PlacedBuilding>();
   @type("boolean") dockBuilt: boolean = true;  // starts with dock
   @type("number")  buildingCount: number = 0;
   @type("number")  tideHeight: number = 0;

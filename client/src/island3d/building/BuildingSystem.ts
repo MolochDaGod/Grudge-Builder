@@ -6,6 +6,11 @@
  * foundations; pieces at 0 stability cascade-collapse.
  */
 import * as THREE from 'three';
+import { loadCharacterModel } from '@/lib/modelLoader';
+import {
+  BUILD_ASSETS, getBuildAsset,
+  type BuildAssetDef, type BuildCategory,
+} from './BuildAssetManifest';
 
 // ─── Building Piece Definitions ───────────────────────────────────────────────
 
@@ -149,6 +154,13 @@ export class BuildingSystem {
   private ghostValid = false;
   private snapTarget: { pieceId: string; socketId: string; worldPos: THREE.Vector3; rotation: THREE.Euler } | null = null;
 
+  // ─── Prop placement (from BuildAssetManifest) ───────────────────────────────
+  private propGhost: THREE.Group | null = null;
+  private propAsset: BuildAssetDef | null = null;
+  private propRotation = 0; // Y rotation in 90° increments
+  private propValid = false;
+  private placedProps: Array<{ id: string; assetId: string; group: THREE.Group; position: THREE.Vector3; rotation: number }> = [];
+
   // Materials
   private validGhostMat: THREE.MeshBasicMaterial;
   private invalidGhostMat: THREE.MeshBasicMaterial;
@@ -158,6 +170,16 @@ export class BuildingSystem {
     this.camera = camera;
     this.validGhostMat = new THREE.MeshBasicMaterial({ color: 0x44ff44, transparent: true, opacity: 0.5 });
     this.invalidGhostMat = new THREE.MeshBasicMaterial({ color: 0xff4444, transparent: true, opacity: 0.5 });
+
+    // R key rotates prop 90°
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'r' || e.key === 'R') {
+        if (this.propGhost) {
+          this.propRotation = (this.propRotation + Math.PI / 2) % (Math.PI * 2);
+          this.propGhost.rotation.y = this.propRotation;
+        }
+      }
+    });
   }
 
   /** Enter build mode for a piece type */
@@ -403,23 +425,233 @@ export class BuildingSystem {
     return best ? { pieceId: best.pieceId, socketId: best.socketId, worldPos: best.worldPos, rotation: best.rotation } : null;
   }
 
+  // ═══════════════════════════════════════════════════════════════════════════
+  // PROP PLACEMENT (terrain-snapping, free rotation)
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  /** Enter prop build mode for an asset from the manifest */
+  startPropPlacement(assetId: string): void {
+    const asset = getBuildAsset(assetId);
+    if (!asset) return;
+
+    this.cancelPlacement();
+    this.cancelPropPlacement();
+    this.propAsset = asset;
+    this.propRotation = 0;
+
+    // Create ghost group with placeholder geometry
+    this.propGhost = new THREE.Group();
+    const [w, h, d] = asset.size;
+    const geo = new THREE.BoxGeometry(w, h, d);
+    const mesh = new THREE.Mesh(geo, this.validGhostMat.clone());
+    mesh.position.y = h / 2;
+    this.propGhost.add(mesh);
+    this.scene.add(this.propGhost);
+
+    // Try to load the actual GLB model in background
+    if (asset.modelPath) {
+      loadCharacterModel(asset.modelPath).then((loaded) => {
+        if (!this.propGhost || this.propAsset?.id !== assetId) return;
+        // Replace placeholder with loaded model
+        while (this.propGhost.children.length) this.propGhost.remove(this.propGhost.children[0]);
+        loaded.scene.scale.setScalar(asset.scale);
+        loaded.scene.traverse((child) => {
+          if ((child as THREE.Mesh).isMesh) {
+            const m = child as THREE.Mesh;
+            if (Array.isArray(m.material)) {
+              m.material = m.material.map(mt => { const c = mt.clone(); (c as any).transparent = true; (c as any).opacity = 0.6; return c; });
+            } else {
+              m.material = m.material.clone(); (m.material as any).transparent = true; (m.material as any).opacity = 0.6;
+            }
+          }
+        });
+        this.propGhost!.add(loaded.scene);
+      }).catch(() => {});
+    }
+  }
+
+  /** Cancel prop placement */
+  cancelPropPlacement(): void {
+    if (this.propGhost) {
+      this.scene.remove(this.propGhost);
+      this.propGhost.traverse((child) => {
+        if ((child as THREE.Mesh).isMesh) {
+          const m = child as THREE.Mesh;
+          m.geometry?.dispose();
+          if (Array.isArray(m.material)) m.material.forEach(mt => mt.dispose());
+          else m.material?.dispose();
+        }
+      });
+      this.propGhost = null;
+    }
+    this.propAsset = null;
+    this.propValid = false;
+  }
+
+  /** Update prop ghost position from mouse (raycast to terrain) */
+  updatePropGhostPosition(clientX: number, clientY: number, canvas: HTMLCanvasElement): void {
+    if (!this.propGhost || !this.propAsset) return;
+
+    const rect = canvas.getBoundingClientRect();
+    this.mouse.x = ((clientX - rect.left) / rect.width) * 2 - 1;
+    this.mouse.y = -((clientY - rect.top) / rect.height) * 2 + 1;
+    this.raycaster.setFromCamera(this.mouse, this.camera);
+
+    // Raycast against all meshes in scene (terrain, foundations, floors)
+    const ghostChildren = this.propGhost ? Array.from(this.propGhost.children) : [];
+    const targets = this.scene.children.filter(
+      c => c instanceof THREE.Mesh && (c as THREE.Object3D) !== this.propGhost && !ghostChildren.includes(c)
+    ) as THREE.Mesh[];
+    const hits = this.raycaster.intersectObjects(targets, true);
+
+    if (hits.length > 0) {
+      const pt = hits[0].point;
+      const normal = hits[0].face?.normal;
+
+      // Terrain surface: check if the surface is roughly horizontal
+      const isFlat = normal ? normal.y > 0.7 : true;
+
+      if (this.propAsset.terrainPlaceable || this.isOnFoundation(pt)) {
+        this.propGhost.position.set(pt.x, pt.y, pt.z);
+        this.propGhost.rotation.y = this.propRotation;
+        this.propValid = isFlat;
+      } else {
+        this.propValid = false;
+      }
+    } else {
+      this.propValid = false;
+    }
+
+    // Update ghost material color
+    this.propGhost.traverse((child) => {
+      if ((child as THREE.Mesh).isMesh) {
+        const m = child as THREE.Mesh;
+        const mats = Array.isArray(m.material) ? m.material : [m.material];
+        for (const mat of mats) {
+          if ((mat as THREE.MeshBasicMaterial).color) {
+            // Only tint placeholder geometry (not loaded models)
+            if (mat.type === 'MeshBasicMaterial') {
+              (mat as THREE.MeshBasicMaterial).color.setHex(this.propValid ? 0x44ff44 : 0xff4444);
+            }
+          }
+        }
+      }
+    });
+  }
+
+  /** Confirm prop placement */
+  confirmPropPlacement(): { id: string; assetId: string } | null {
+    if (!this.propGhost || !this.propAsset || !this.propValid) return null;
+
+    const id = `prop_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+    const asset = this.propAsset;
+    const pos = this.propGhost.position.clone();
+    const rot = this.propRotation;
+
+    // Create permanent mesh
+    const group = new THREE.Group();
+    group.position.copy(pos);
+    group.rotation.y = rot;
+
+    // Start with placeholder
+    const [w, h, d] = asset.size;
+    const geo = new THREE.BoxGeometry(w, h, d);
+    const mat = new THREE.MeshStandardMaterial({ color: asset.color, roughness: 0.8, metalness: 0.1 });
+    const placeholder = new THREE.Mesh(geo, mat);
+    placeholder.position.y = h / 2;
+    placeholder.castShadow = true;
+    placeholder.receiveShadow = true;
+    placeholder.name = '__placeholder';
+    group.add(placeholder);
+    this.scene.add(group);
+
+    // Load actual model in background
+    if (asset.modelPath) {
+      loadCharacterModel(asset.modelPath).then((loaded) => {
+        const ph = group.getObjectByName('__placeholder');
+        if (ph) group.remove(ph);
+        loaded.scene.scale.setScalar(asset.scale);
+        loaded.scene.traverse((child) => {
+          if ((child as THREE.Mesh).isMesh) {
+            child.castShadow = true;
+            child.receiveShadow = true;
+          }
+        });
+        group.add(loaded.scene);
+      }).catch(() => {});
+    }
+
+    this.placedProps.push({ id, assetId: asset.id, group, position: pos, rotation: rot });
+    this.cancelPropPlacement();
+
+    return { id, assetId: asset.id };
+  }
+
+  /** Remove a placed prop */
+  removeProp(propId: string): boolean {
+    const idx = this.placedProps.findIndex(p => p.id === propId);
+    if (idx === -1) return false;
+
+    const prop = this.placedProps[idx];
+    this.scene.remove(prop.group);
+    prop.group.traverse((child) => {
+      if ((child as THREE.Mesh).isMesh) {
+        const m = child as THREE.Mesh;
+        m.geometry?.dispose();
+        if (Array.isArray(m.material)) m.material.forEach(mt => mt.dispose());
+        else m.material?.dispose();
+      }
+    });
+    this.placedProps.splice(idx, 1);
+    return true;
+  }
+
+  /** Check if a point is on top of a placed foundation */
+  private isOnFoundation(point: THREE.Vector3): boolean {
+    for (const [, piece] of this.pieces) {
+      if (piece.type !== 'foundation') continue;
+      const dx = Math.abs(point.x - piece.position.x);
+      const dz = Math.abs(point.z - piece.position.z);
+      const dy = point.y - piece.position.y;
+      if (dx < S / 2 && dz < S / 2 && dy >= 0 && dy < 1) return true;
+    }
+    return false;
+  }
+
   // ─── Queries ────────────────────────────────────────────────────────────────
 
-  get isBuilding(): boolean { return this.ghost !== null; }
+  get isBuilding(): boolean { return this.ghost !== null || this.propGhost !== null; }
   get pieceCount(): number { return this.pieces.size; }
+  get propCount(): number { return this.placedProps.length; }
 
   getAllPieces(): PlacedPiece[] { return Array.from(this.pieces.values()); }
+  getAllProps(): typeof this.placedProps { return this.placedProps; }
 
   getPiece(id: string): PlacedPiece | undefined { return this.pieces.get(id); }
 
+  /** Get total effect values from all placed props of a given type */
+  getEffectTotal(effectType: string): number {
+    let total = 0;
+    for (const prop of this.placedProps) {
+      const asset = getBuildAsset(prop.assetId);
+      if (asset?.effect?.type === effectType) total += asset.effect.value;
+    }
+    return total;
+  }
+
   destroy(): void {
     this.cancelPlacement();
+    this.cancelPropPlacement();
     for (const [, piece] of this.pieces) {
       this.scene.remove(piece.mesh);
       piece.mesh.geometry.dispose();
       (piece.mesh.material as THREE.Material).dispose();
     }
     this.pieces.clear();
+    for (const prop of this.placedProps) {
+      this.scene.remove(prop.group);
+    }
+    this.placedProps = [];
     this.validGhostMat.dispose();
     this.invalidGhostMat.dispose();
   }

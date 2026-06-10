@@ -16,19 +16,11 @@ import { Client, Room } from 'colyseus.js';
 import { Island3DEngine, type Island3DEngineConfig } from '@/island3d/engine/Island3DEngine';
 import { RemotePlayerManager } from '@/island3d/sync/RemotePlayerManager';
 import { characterAPI } from '@/lib/api';
+import { getColyseusEndpoint } from '@/lib/colyseusEndpoint';
 import {
   TreePine, Pickaxe, Fish, Leaf, Users, Package,
   Hammer, LogOut, Home,
 } from 'lucide-react';
-
-// ── Colyseus endpoint ────────────────────────────────────────────
-
-function getColyseusEndpoint(): string {
-  const envUrl = (import.meta as any).env?.VITE_API_URL;
-  if (envUrl) return envUrl.replace(/^http/, 'ws');
-  const proto = window.location.protocol === 'https:' ? 'wss' : 'ws';
-  return `${proto}://${window.location.hostname}:5000`;
-}
 
 // ── Resource icons ───────────────────────────────────────────────
 

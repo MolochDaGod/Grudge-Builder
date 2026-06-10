@@ -4,32 +4,24 @@
  * Flow: Connect to WorldRoom → select/auto-join sector → render 3D world → HUD overlay.
  * Uses Island3DEngine in 'zone' mode with Colyseus state sync.
  */
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { useLocation } from 'wouter';
 import { useColyseus, type PlayerInfo } from '@/hooks/use-colyseus';
 import { GameHUD } from '@/components/GameHUD';
 import { Island3DEngine, type Island3DEngineConfig } from '@/island3d/engine/Island3DEngine';
 import { RemotePlayerManager, type RemotePlayerData } from '@/island3d/sync/RemotePlayerManager';
+import { BuildModePanel } from '@/components/BuildModePanel';
 import { characterAPI } from '@/lib/api';
+import { CLASS_WEAPON_MAP } from '@/lib/modelManifest';
+import type { CreatureLootEvent } from '@/island3d/creatures/CreatureManager';
 
-// Sector biome names (mirrored from server SectorState.ts for display only)
 const SECTOR_BIOME_NAMES: Record<string, string> = {
   NW: 'Arid Wasteland', N: 'Highland Plateau', NE: 'Crown Peaks',
   W: 'Industrial Yard', CENTER: 'The Crucible', E: 'Urban Ruins',
   SW: 'Drowned Quarter', S: 'The Pit', SE: 'Grinding March',
 };
 
-// ── Default player for testing (will be replaced by character select) ────
-
-const DEFAULT_PLAYER: PlayerInfo = {
-  characterName: 'Warlord',
-  heroClass: 'warrior',
-  heroRace: 'human',
-  faction: 'crusade',
-  level: 1,
-};
-
-const DEFAULT_SECTOR = 'CENTER'; // Start in The Crucible
+const DEFAULT_SECTOR = 'CENTER';
 
 // ── Component ────────────────────────────────────────────────────
 
@@ -41,55 +33,56 @@ export default function PlayPage() {
   const moveIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [loadProgress, setLoadProgress] = useState(0);
+  const [lootNotification, setLootNotification] = useState<string | null>(null);
+  const [buildPlacing, setBuildPlacing] = useState(false);
+  const [buildSelectedAsset, setBuildSelectedAsset] = useState<string | null>(null);
 
-  // Player info — loaded from backend DB with model3d data
-  const [playerInfo, setPlayerInfo] = useState<PlayerInfo>(DEFAULT_PLAYER);
+  // Player info — loaded from backend DB (no hardcoded fallback)
+  const [playerInfo, setPlayerInfo] = useState<PlayerInfo | null>(null);
   const [characterLoaded, setCharacterLoaded] = useState(false);
 
-  // Load the active character from the backend (includes model3d, equipment, etc.)
+  // Load the active character — redirect to creation if none exists
   useEffect(() => {
     async function loadCharacter() {
       try {
-        // Check for active character ID in localStorage
-        // Check all possible active character key formats
         const grudgeId = localStorage.getItem('grudge_account_id') || 'guest';
         const activeId = localStorage.getItem(`gruda_active_character_${grudgeId}`) ||
           localStorage.getItem('grudge_active_character') ||
           localStorage.getItem('gruda_active_character_guest');
 
-        if (activeId) {
-          const char = await characterAPI.get(activeId);
-          const model3d = (char as any).model3d || {};
-          // Map class to weapon type
-          const CLASS_WEAPON_MAP: Record<string, string> = {
-            warrior: 'sword-shield', mage: 'magic', ranger: 'longbow', worge: 'greatsword',
-          };
-          setPlayerInfo({
-            characterName: char.name,
-            heroClass: char.classId,
-            heroRace: char.raceId,
-            faction: (char as any).faction || 'crusade',
-            level: char.level,
-            characterId: char.id,
-            accountId: (char as any).accountId,
-            baseModelId: model3d.baseModelId || char.raceId || 'human',
-            equippedMeshes: model3d.equippedMeshes || {},
-            weaponSlots: model3d.weaponSlots || {},
-            skinColor: model3d.skinColor || '#ffffff',
-            armorColor: model3d.armorColor || '#ffffff',
-            equippedWeaponType: CLASS_WEAPON_MAP[char.classId] || 'sword-shield',
-          });
-          // Save for the 3D engine to use
-          localStorage.setItem('grudge_active_character_data', JSON.stringify(char));
-          console.log(`[Play] Loaded character: ${char.name} (${char.raceId} ${char.classId})`);
+        if (!activeId) {
+          console.warn('[Play] No active character — redirecting to creation');
+          setLocation('/create-character');
+          return;
         }
+
+        const char = await characterAPI.get(activeId);
+        const model3d = (char as any).model3d || {};
+        setPlayerInfo({
+          characterName: char.name,
+          heroClass: char.classId,
+          heroRace: char.raceId,
+          faction: (char as any).faction || 'crusade',
+          level: char.level,
+          characterId: char.id,
+          accountId: (char as any).accountId,
+          baseModelId: model3d.baseModelId || char.raceId || 'human',
+          equippedMeshes: model3d.equippedMeshes || {},
+          weaponSlots: model3d.weaponSlots || {},
+          skinColor: model3d.skinColor || '#ffffff',
+          armorColor: model3d.armorColor || '#ffffff',
+          equippedWeaponType: CLASS_WEAPON_MAP[char.classId] || 'sword-shield',
+        });
+        console.log(`[Play] Loaded character: ${char.name} (${char.raceId} ${char.classId})`);
       } catch (err) {
-        console.warn('[Play] Could not load character from API, using defaults:', err);
+        console.warn('[Play] Could not load character — redirecting:', err);
+        setLocation('/create-character');
+        return;
       }
       setCharacterLoaded(true);
     }
     loadCharacter();
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Colyseus connection
   const colyseus = useColyseus(playerInfo);
@@ -97,10 +90,10 @@ export default function PlayPage() {
   // ── Connect after character is loaded ───────────────────────────────
 
   useEffect(() => {
-    if (characterLoaded) {
+    if (characterLoaded && playerInfo) {
       colyseus.connect();
     }
-  }, [characterLoaded]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [characterLoaded, playerInfo]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Auto-join sector once connected ───────────────────────────
 
@@ -136,9 +129,17 @@ export default function PlayPage() {
     engine.init().then(() => {
       setLoaded(true);
       engine.start();
+
+      // Wire creature loot notifications
+      if (engine.creatures) {
+        engine.creatures.onLootDrop = (event: CreatureLootEvent) => {
+          const items = event.loot.map(l => `${l.name} ×${l.quantity}`).join(', ');
+          setLootNotification(`${event.creatureName}: ${items}`);
+          setTimeout(() => setLootNotification(null), 4000);
+        };
+      }
     }).catch((err) => {
       console.error('[Play] Engine init failed:', err);
-      // Fallback: start with procedural terrain
       engine.start();
       setLoaded(true);
     });
@@ -233,6 +234,36 @@ export default function PlayPage() {
       rpm.removePlayer(sessionId);
     });
 
+    // ── Sync remote buildings from room state ─────────────────────
+    room.state.buildings?.onAdd?.((building: any, id: string) => {
+      // Skip our own placements (already rendered locally)
+      if (building.ownerId === colyseus.localSessionId) return;
+      // Place a prop in the local engine for this remote building
+      if (engine.building) {
+        engine.building.startPropPlacement(building.assetId);
+        // Force position and confirm
+        if (engine.building['propGhost']) {
+          engine.building['propGhost'].position.set(building.x, building.y, building.z);
+          engine.building['propGhost'].rotation.y = building.rotation;
+          engine.building['propRotation'] = building.rotation;
+          engine.building['propValid'] = true;
+          engine.building.confirmPropPlacement();
+        }
+      }
+    });
+
+    room.state.buildings?.onRemove?.((building: any, id: string) => {
+      if (building.ownerId === colyseus.localSessionId) return;
+      // Find and remove the matching local prop
+      const props = engine.building?.getAllProps() || [];
+      const match = props.find(p => p.assetId === building.assetId &&
+        Math.abs(p.position.x - building.x) < 0.5 &&
+        Math.abs(p.position.z - building.z) < 0.5);
+      if (match && engine.building) {
+        engine.building.removeProp(match.id);
+      }
+    });
+
     return () => {
       unregister();
       rpm.dispose();
@@ -290,10 +321,74 @@ export default function PlayPage() {
         ref={canvasRef}
         className="w-full h-full"
         style={{ display: loaded ? 'block' : 'none' }}
+        onClick={(e) => {
+          const engine = engineRef.current;
+          if (!engine) return;
+          if (buildPlacing && engine.building) {
+            const result = engine.building.confirmPropPlacement();
+            if (result) {
+              // Send to Colyseus for sync
+              const pos = engine.building.getAllProps().find(p => p.id === result.id);
+              if (pos && colyseus.sectorRoom) {
+                colyseus.sectorRoom.send('place_building', {
+                  id: result.id,
+                  assetId: result.assetId,
+                  x: pos.position.x,
+                  y: pos.position.y,
+                  z: pos.position.z,
+                  rotation: pos.rotation,
+                });
+              }
+              setBuildPlacing(false);
+              setBuildSelectedAsset(null);
+            }
+          } else {
+            engine.handleClick(e.clientX, e.clientY);
+          }
+        }}
+        onMouseMove={(e) => {
+          const engine = engineRef.current;
+          if (!engine) return;
+          if (buildPlacing && engine.building) {
+            engine.building.updatePropGhostPosition(e.clientX, e.clientY, e.currentTarget);
+          } else {
+            engine.handleMouseMove(e.clientX, e.clientY);
+          }
+        }}
       />
 
-      {/* Game HUD overlay */}
+      {/* Loot notification */}
+      {lootNotification && (
+        <div className="absolute top-20 left-1/2 -translate-x-1/2 z-50">
+          <div className="bg-black/80 backdrop-blur-sm rounded-xl border border-amber-600/30 px-5 py-2.5 text-amber-300 text-sm font-bold tracking-wider">
+            🎯 {lootNotification}
+          </div>
+        </div>
+      )}
+
+      {/* Build Mode Panel */}
       {loaded && (
+        <BuildModePanel
+          isPlacing={buildPlacing}
+          selectedAssetId={buildSelectedAsset}
+          onSelectItem={(assetId) => {
+            const engine = engineRef.current;
+            if (!engine?.building) return;
+            engine.building.startPropPlacement(assetId);
+            setBuildPlacing(true);
+            setBuildSelectedAsset(assetId);
+          }}
+          onCancel={() => {
+            const engine = engineRef.current;
+            engine?.building?.cancelPropPlacement();
+            setBuildPlacing(false);
+            setBuildSelectedAsset(null);
+          }}
+        />
+      )}
+
+      {/* Game HUD overlay */}
+      {loaded && playerInfo && (
         <GameHUD
           hp={localPlayer?.hp ?? 200}
           maxHp={localPlayer?.maxHp ?? 200}

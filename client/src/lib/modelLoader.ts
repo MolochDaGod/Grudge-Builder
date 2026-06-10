@@ -19,7 +19,7 @@
 import * as THREE from "three";
 import { GLTFLoader, type GLTF } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { DRACOLoader } from "three/examples/jsm/loaders/DRACOLoader.js";
-import { SkeletonUtils } from "three/examples/jsm/utils/SkeletonUtils.js";
+import * as SkeletonUtils from "three/examples/jsm/utils/SkeletonUtils.js";
 import { resolveModelUrl } from "@/lib/modelManifest";
 
 // ── Skeleton bone-name remapping ─────────────────────────────────────────────
@@ -126,7 +126,7 @@ export async function loadCharacterModel(path: string): Promise<LoadedModel> {
   // SkeletonUtils.clone properly handles SkinnedMesh + skeleton bindings.
   // The plain Object3D.clone(true) breaks skeleton→bone references, causing
   // models to render as distorted white blobs.
-  const scene = SkeletonUtils.clone(gltf.scene) as THREE.Group;
+  const scene = (SkeletonUtils as any).clone(gltf.scene) as THREE.Group;
 
   // Clone materials per-instance so tinting/metalness edits on one character
   // don't corrupt all other instances that share the cached GLTF.

@@ -44,6 +44,9 @@ interface NPCInstance {
   targetPos: THREE.Vector3;
   speed: number;
   moving: boolean;
+  // Pathfinding
+  currentPath: THREE.Vector3[];
+  pathIndex: number;
   // Patrol
   patrolPoints: THREE.Vector3[];
   patrolIndex: number;
@@ -111,7 +114,6 @@ class TownNavGrid {
     this.cols = Math.ceil((maxX - this.minX) / this.cellSize);
     this.rows = Math.ceil((maxZ - this.minZ) / this.cellSize);
 
-    // Build walkability grid
     this.grid = [];
     for (let r = 0; r < this.rows; r++) {
       this.grid[r] = [];
@@ -130,9 +132,22 @@ class TownNavGrid {
     return false;
   }
 
+  private worldToGrid(wx: number, wz: number): [number, number] {
+    return [
+      Math.floor((wx - this.minX) / this.cellSize),
+      Math.floor((wz - this.minZ) / this.cellSize),
+    ];
+  }
+
+  private gridToWorld(c: number, r: number): [number, number] {
+    return [
+      this.minX + c * this.cellSize + this.cellSize / 2,
+      this.minZ + r * this.cellSize + this.cellSize / 2,
+    ];
+  }
+
   isWalkable(wx: number, wz: number): boolean {
-    const c = Math.floor((wx - this.minX) / this.cellSize);
-    const r = Math.floor((wz - this.minZ) / this.cellSize);
+    const [c, r] = this.worldToGrid(wx, wz);
     return this.grid[r]?.[c] ?? false;
   }
 
@@ -149,6 +164,140 @@ class TownNavGrid {
     }
     return null;
   }
+
+  /** A* pathfinding between two world positions. Returns waypoints or null. */
+  findPath(fromX: number, fromZ: number, toX: number, toZ: number): THREE.Vector3[] | null {
+    const [sc, sr] = this.worldToGrid(fromX, fromZ);
+    const [ec, er] = this.worldToGrid(toX, toZ);
+
+    if (!this.grid[sr]?.[sc] || !this.grid[er]?.[ec]) return null;
+    if (sc === ec && sr === er) return [new THREE.Vector3(toX, 0, toZ)];
+
+    // A* with binary heap priority queue
+    const key = (c: number, r: number) => r * this.cols + c;
+    const heuristic = (c: number, r: number) => Math.abs(c - ec) + Math.abs(r - er);
+
+    const gScore = new Map<number, number>();
+    const fScore = new Map<number, number>();
+    const cameFrom = new Map<number, number>();
+    const openSet = new Set<number>();
+    const closedSet = new Set<number>();
+
+    const startKey = key(sc, sr);
+    const endKey = key(ec, er);
+    gScore.set(startKey, 0);
+    fScore.set(startKey, heuristic(sc, sr));
+    openSet.add(startKey);
+
+    while (openSet.size > 0) {
+      // Find lowest fScore in open set
+      let currentKey = -1;
+      let bestF = Infinity;
+      for (const k of openSet) {
+        const f = fScore.get(k) ?? Infinity;
+        if (f < bestF) { bestF = f; currentKey = k; }
+      }
+      if (currentKey === -1) return null;
+
+      if (currentKey === endKey) {
+        // Reconstruct path
+        const rawPath: [number, number][] = [];
+        let ck = currentKey;
+        while (ck !== startKey) {
+          const c = ck % this.cols;
+          const r = Math.floor(ck / this.cols);
+          rawPath.unshift([c, r]);
+          ck = cameFrom.get(ck)!;
+        }
+        // Convert grid cells to world positions and smooth
+        return this.smoothPath(rawPath, toX, toZ);
+      }
+
+      openSet.delete(currentKey);
+      closedSet.add(currentKey);
+
+      const cc = currentKey % this.cols;
+      const cr = Math.floor(currentKey / this.cols);
+      const currentG = gScore.get(currentKey) ?? Infinity;
+
+      // 8-directional neighbors
+      for (let dr = -1; dr <= 1; dr++) {
+        for (let dc = -1; dc <= 1; dc++) {
+          if (dc === 0 && dr === 0) continue;
+          const nc = cc + dc;
+          const nr = cr + dr;
+          if (nr < 0 || nr >= this.rows || nc < 0 || nc >= this.cols) continue;
+          if (!this.grid[nr][nc]) continue;
+
+          const nk = key(nc, nr);
+          if (closedSet.has(nk)) continue;
+
+          // Diagonal check: prevent cutting corners
+          if (dc !== 0 && dr !== 0) {
+            if (!this.grid[cr][cc + dc] || !this.grid[cr + dr][cc]) continue;
+          }
+
+          const moveCost = (dc !== 0 && dr !== 0) ? 1.414 : 1.0;
+          const tentativeG = currentG + moveCost;
+
+          if (tentativeG < (gScore.get(nk) ?? Infinity)) {
+            cameFrom.set(nk, currentKey);
+            gScore.set(nk, tentativeG);
+            fScore.set(nk, tentativeG + heuristic(nc, nr));
+            openSet.add(nk);
+          }
+        }
+      }
+    }
+
+    return null; // No path found
+  }
+
+  /** Smooth a grid path by removing unnecessary waypoints via line-of-sight checks */
+  private smoothPath(gridPath: [number, number][], destX: number, destZ: number): THREE.Vector3[] {
+    if (gridPath.length === 0) return [new THREE.Vector3(destX, 0, destZ)];
+
+    // Convert to world positions
+    const worldPoints: THREE.Vector3[] = gridPath.map(([c, r]) => {
+      const [wx, wz] = this.gridToWorld(c, r);
+      return new THREE.Vector3(wx, 0, wz);
+    });
+    // Replace last point with exact destination
+    worldPoints[worldPoints.length - 1].set(destX, 0, destZ);
+
+    // Greedy line-of-sight smoothing: skip waypoints we can reach directly
+    const smoothed: THREE.Vector3[] = [worldPoints[0]];
+    let current = 0;
+
+    while (current < worldPoints.length - 1) {
+      let farthestVisible = current + 1;
+      for (let i = current + 2; i < worldPoints.length; i++) {
+        if (this.hasLineOfSight(worldPoints[current], worldPoints[i])) {
+          farthestVisible = i;
+        }
+      }
+      smoothed.push(worldPoints[farthestVisible]);
+      current = farthestVisible;
+    }
+
+    return smoothed;
+  }
+
+  /** Check if a straight line between two points crosses any unwalkable cell */
+  private hasLineOfSight(a: THREE.Vector3, b: THREE.Vector3): boolean {
+    const dx = b.x - a.x;
+    const dz = b.z - a.z;
+    const dist = Math.sqrt(dx * dx + dz * dz);
+    const steps = Math.ceil(dist / (this.cellSize * 0.5));
+
+    for (let i = 1; i < steps; i++) {
+      const t = i / steps;
+      const wx = a.x + dx * t;
+      const wz = a.z + dz * t;
+      if (!this.isWalkable(wx, wz)) return false;
+    }
+    return true;
+  }
 }
 
 // ── TownNPCController ────────────────────────────────────────────
@@ -159,6 +308,8 @@ export class TownNPCController {
   private navGrid: TownNavGrid;
   private townDef: FactionTown;
   private playerPosition: THREE.Vector3 = new THREE.Vector3();
+  /** When true, patrol NPCs follow server positions instead of local simulation */
+  private useServerSync = false;
 
   constructor(scene: THREE.Scene, townDef: FactionTown) {
     this.scene = scene;
@@ -226,6 +377,8 @@ export class TownNPCController {
         targetPos: new THREE.Vector3(spawn.position[0], spawn.position[1], spawn.position[2]),
         speed: behavior === 'wander' ? NPC_WANDER_SPEED : NPC_MOVE_SPEED,
         moving: false,
+        currentPath: [],
+        pathIndex: 0,
         patrolPoints,
         patrolIndex: 0,
         patrolWaitTimer: Math.random() * PATROL_WAIT_MAX,
@@ -250,12 +403,63 @@ export class TownNPCController {
     this.playerPosition.copy(pos);
   }
 
+  /**
+   * Sync NPC positions + lock state from TownRoom server state.
+   * Call this each frame with the latest useTownRoom().npcs map.
+   * Patrol guards interpolate to server positions; locked NPCs freeze.
+   */
+  syncFromServer(serverNpcs: Map<string, { id: string; x: number; y: number; z: number; lockedBy: string }>): void {
+    this.useServerSync = true;
+
+    for (const [id, serverData] of serverNpcs) {
+      const npc = this.npcs.get(id);
+      if (!npc) continue;
+
+      // If NPC is locked by a player, stop movement and face the locker
+      if (serverData.lockedBy) {
+        npc.moving = false;
+        npc.currentPath = [];
+        npc.pathIndex = 0;
+        this.setAnimation(npc, 'idle');
+
+        // Face toward the locking player (we don't know their exact pos, but
+        // the interaction sphere is already in front of the NPC, so just idle)
+        continue;
+      }
+
+      // Patrol guards: interpolate to server-authoritative position
+      if (npc.behavior === 'patrol') {
+        const serverPos = new THREE.Vector3(serverData.x, serverData.y, serverData.z);
+        const dist = npc.currentPos.distanceTo(serverPos);
+
+        if (dist > 0.3) {
+          // Lerp toward server position
+          npc.currentPos.lerp(serverPos, 0.15);
+          npc.group.position.copy(npc.currentPos);
+
+          // Face movement direction
+          const dx = serverPos.x - npc.currentPos.x;
+          const dz = serverPos.z - npc.currentPos.z;
+          if (Math.abs(dx) > 0.01 || Math.abs(dz) > 0.01) {
+            npc.group.rotation.y = Math.atan2(dx, dz);
+          }
+          this.setAnimation(npc, 'walk');
+        } else {
+          npc.currentPos.copy(serverPos);
+          npc.group.position.copy(serverPos);
+          this.setAnimation(npc, 'idle');
+        }
+      }
+    }
+  }
+
   /** Main update loop — call from game tick */
   update(dt: number): void {
     for (const [, npc] of this.npcs) {
       switch (npc.behavior) {
         case 'patrol':
-          this.updatePatrol(npc, dt);
+          // Skip local patrol sim when server is driving positions
+          if (!this.useServerSync) this.updatePatrol(npc, dt);
           break;
         case 'wander':
           this.updateWander(npc, dt);
@@ -265,24 +469,48 @@ export class TownNPCController {
           break;
       }
 
-      // Move toward target
+      // Follow path waypoints
       if (npc.moving) {
-        const dir = new THREE.Vector3().subVectors(npc.targetPos, npc.currentPos);
-        const dist = dir.length();
+        if (npc.currentPath.length > 0 && npc.pathIndex < npc.currentPath.length) {
+          // Move toward current path waypoint
+          const waypoint = npc.currentPath[npc.pathIndex];
+          const dir = new THREE.Vector3().subVectors(waypoint, npc.currentPos);
+          const dist = dir.length();
 
-        if (dist < 0.3) {
-          // Arrived
-          npc.moving = false;
-          npc.currentPos.copy(npc.targetPos);
-          this.setAnimation(npc, 'idle');
+          if (dist < 0.5) {
+            // Reached waypoint — advance to next
+            npc.pathIndex++;
+            if (npc.pathIndex >= npc.currentPath.length) {
+              // Path complete
+              npc.moving = false;
+              npc.currentPath = [];
+              npc.pathIndex = 0;
+              npc.currentPos.copy(waypoint);
+              this.setAnimation(npc, 'idle');
+            }
+          } else {
+            dir.normalize();
+            const step = Math.min(npc.speed * dt, dist);
+            npc.currentPos.add(dir.multiplyScalar(step));
+            npc.group.rotation.y = Math.atan2(dir.x, dir.z);
+            this.setAnimation(npc, 'walk');
+          }
         } else {
-          dir.normalize();
-          const step = Math.min(npc.speed * dt, dist);
-          npc.currentPos.add(dir.multiplyScalar(step));
+          // Fallback: direct movement (patrol guards use fixed waypoints)
+          const dir = new THREE.Vector3().subVectors(npc.targetPos, npc.currentPos);
+          const dist = dir.length();
 
-          // Face movement direction
-          npc.group.rotation.y = Math.atan2(dir.x, dir.z);
-          this.setAnimation(npc, 'walk');
+          if (dist < 0.3) {
+            npc.moving = false;
+            npc.currentPos.copy(npc.targetPos);
+            this.setAnimation(npc, 'idle');
+          } else {
+            dir.normalize();
+            const step = Math.min(npc.speed * dt, dist);
+            npc.currentPos.add(dir.multiplyScalar(step));
+            npc.group.rotation.y = Math.atan2(dir.x, dir.z);
+            this.setAnimation(npc, 'walk');
+          }
         }
 
         npc.group.position.copy(npc.currentPos);
@@ -325,7 +553,7 @@ export class TownNPCController {
     npc.patrolWaitTimer = PATROL_WAIT_MIN + Math.random() * (PATROL_WAIT_MAX - PATROL_WAIT_MIN);
   }
 
-  // ── Wander behavior ────────────────────────────────────────────
+  // ── Wander behavior (with A* pathfinding) ─────────────────────────
 
   private updateWander(npc: NPCInstance, dt: number): void {
     if (npc.moving) return;
@@ -338,8 +566,18 @@ export class TownNPCController {
     const target = this.navGrid.randomWalkableNear(spawnPos.x, spawnPos.z, WANDER_RADIUS);
 
     if (target) {
-      npc.targetPos.copy(target);
-      npc.moving = true;
+      // Use A* pathfinding to navigate around obstacles
+      const path = this.navGrid.findPath(
+        npc.currentPos.x, npc.currentPos.z,
+        target.x, target.z,
+      );
+
+      if (path && path.length > 0) {
+        npc.currentPath = path;
+        npc.pathIndex = 0;
+        npc.targetPos.copy(target);
+        npc.moving = true;
+      }
     }
 
     npc.wanderTimer = npc.wanderCooldown;

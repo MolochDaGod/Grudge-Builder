@@ -98,6 +98,65 @@ app.route('/v1/image', imageRoute);
 app.route('/v1', mediaRoute); // mounts /video, /speech, /music under /v1/
 app.route('/v1/agent', agentRoute);
 
+// ── Direct asset upload to R2 (admin only) ────────────────────────────────
+// POST /v1/upload-asset  { r2_path: string, content_type?: string }
+// Body: raw binary (file), r2_path + content_type in query/headers
+app.post('/v1/upload-asset', async (c) => {
+  const requestId = getRequestId(c);
+  const user = (c as any).grudgeUser;
+
+  // Admin-only check
+  if (user?.tier !== 'master_admin' && user?.tier !== 'admin') {
+    return c.json<ApiResponse>({
+      ok: false, error: 'Admin access required for asset uploads', request_id: requestId,
+    }, 403);
+  }
+
+  const r2Path = c.req.query('path') || c.req.header('X-R2-Path');
+  if (!r2Path) {
+    return c.json<ApiResponse>({
+      ok: false, error: 'Missing r2_path (query param "path" or header "X-R2-Path")', request_id: requestId,
+    }, 400);
+  }
+
+  try {
+    const body = await c.req.arrayBuffer();
+    if (body.byteLength === 0) {
+      return c.json<ApiResponse>({ ok: false, error: 'Empty body', request_id: requestId }, 400);
+    }
+
+    const ext = r2Path.split('.').pop()?.toLowerCase() ?? '';
+    const ctMap: Record<string, string> = {
+      glb: 'model/gltf-binary', gltf: 'model/gltf+json',
+      png: 'image/png', jpg: 'image/jpeg', webp: 'image/webp',
+      json: 'application/json', mp3: 'audio/mpeg',
+    };
+    const contentType = c.req.query('content_type') || ctMap[ext] || 'application/octet-stream';
+
+    const key = r2Path.replace(/^\/+/, '');
+    const obj = await c.env.ASSETS.put(key, body, {
+      httpMetadata: { contentType, cacheControl: 'public, max-age=31536000, immutable' },
+      customMetadata: { uploaded_by: user?.grudge_id || 'admin', uploaded_at: new Date().toISOString() },
+    });
+
+    return c.json<ApiResponse>({
+      ok: true,
+      data: {
+        r2_path: key,
+        cdn_url: `${c.env.ASSETS_CDN_URL}/${key}`,
+        size: body.byteLength,
+        etag: obj.etag,
+        content_type: contentType,
+      },
+      request_id: requestId,
+    });
+  } catch (error) {
+    return c.json<ApiResponse>({
+      ok: false, error: error instanceof Error ? error.message : 'Upload failed', request_id: requestId,
+    }, 500);
+  }
+});
+
 // ── Job polling ──────────────────────────────────────────────────────────────
 
 app.get('/v1/jobs/:id', async (c) => {

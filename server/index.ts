@@ -48,15 +48,9 @@ const httpServer = createServer(app);
 // ── CORS (shared config from server/cors.ts) ─────────────────────────────────
 app.use(cors(GRUDGE_CORS_OPTIONS));
 
-// ── Static assets ────────────────────────────────────────────────────────────
-app.use(express.static(path.resolve(__dirname, "..", "public")));
-app.use(express.static(path.resolve(__dirname, "..", "client", "public")));
-
-// Serve DiabloWeb at /diabloweb
-app.use("/diabloweb", express.static(path.resolve(__dirname, "..", "diabloweb", "diabloweb-master", "build")));
-app.get("/diabloweb/*", (_req, res) => {
-  res.sendFile(path.resolve(__dirname, "..", "diabloweb", "diabloweb-master", "build", "index.html"));
-});
+// NOTE: Static file serving is registered AFTER API routes (see below).
+// This prevents public/index.html from intercepting /api/* requests
+// when route registration partially fails.
 
 declare module "http" {
   interface IncomingMessage {
@@ -115,65 +109,104 @@ app.use((req, res, next) => {
 
 // ── Health check (required by Railway / Render load balancers) ───────────────
 import { checkDbHealth } from "./db";
+// Track route registration status (set by async boot below)
+let _routesRegistered = false;
+
 app.get("/api/health", async (_req, res) => {
   const dbOk = await checkDbHealth();
-  // Always return 200 so Railway/Render healthchecks pass even when
-  // the DB is still warming up. The "db" field tells callers the real state.
+  const mem = process.memoryUsage();
   res.status(200).json({
-    status: dbOk ? "ok" : "degraded",
+    status: dbOk && _routesRegistered ? "healthy" : "degraded",
     service: "grudge-api",
     version: process.env.npm_package_version || "1.0.0",
     uptime: Math.floor(process.uptime()),
     env: process.env.NODE_ENV || "production",
-    db: dbOk ? "connected" : "unreachable",
+    database: dbOk ? "connected" : "unreachable",
+    routes: _routesRegistered ? "ok" : "FAILED",
     ts: Date.now(),
+    memory: { rss: Math.round(mem.rss / 1048576), heap: Math.round(mem.heapUsed / 1048576) },
   });
 });
 
 (async () => {
+  // ── 1. Register API routes (must come BEFORE static file serving) ────────
+  let routesOk = false;
   try {
     await registerRoutes(httpServer, app);
-    await setupColyseus(httpServer, app);
-
-    // Register proxy for external backends (Grudge API, auth, assets)
-    // Must come AFTER local routes so /api/island/*, /api/account/* are handled locally
-    registerBackendProxy(app);
-
-    app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-      const status = err.status || err.statusCode || 500;
-      const message = err.message || "Internal Server Error";
-      res.status(status).json({ message });
-    });
-
-    // Setup static serving (production) or Vite dev middleware (development).
-    // serveStatic is safe to call even if client dist doesn't exist — it skips gracefully.
-    if (process.env.NODE_ENV === "production") {
-      serveStatic(app);
-    } else {
-      try {
-        const { setupVite } = await import("./vite");
-        await setupVite(httpServer, app);
-      } catch (e) {
-        log(`Vite dev server not available (${(e as Error).message}) — API-only mode`, "warn");
-      }
-    }
-
-    // Fallback root for API-only deploys (Railway) — no client bundle present
-    app.get("/", (_req, res) => {
-      res.json({
-        service: "grudge-api",
-        version: process.env.npm_package_version || "1.0.0",
-        docs: "/api/health",
-        frontend: "https://grudgewarlords.com",
-      });
-    });
+    routesOk = true;
+    _routesRegistered = true;
+    log('API routes registered successfully');
   } catch (e) {
-    log(`Route registration failed: ${(e as Error).message}`, "error");
+    log(`API route registration failed: ${(e as Error).message}`, 'error');
+    console.error(e);
+    // Server continues — health check still works, other routes may partially work
+  }
+
+  // ── 2. Colyseus game server ─────────────────────────────────────────────
+  try {
+    await setupColyseus(httpServer, app);
+  } catch (e) {
+    log(`Colyseus setup failed: ${(e as Error).message}`, 'error');
     console.error(e);
   }
 
-  // ALWAYS start the server even if route registration partially fails.
-  // Health check is registered above and will still work.
+  // ── 3. Dev-only proxy for external backends ─────────────────────────────
+  registerBackendProxy(app);
+
+  // ── 4. Error handler for API routes ─────────────────────────────────────
+  app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
+    const status = err.status || err.statusCode || 500;
+    const message = err.message || "Internal Server Error";
+    res.status(status).json({ message });
+  });
+
+  // ── 5. API 404 guard — MUST come before static serving ──────────────────
+  //    Any /api/* request that wasn't handled by a route gets a JSON 404.
+  //    This prevents static/SPA middleware from ever serving HTML for /api/*.
+  app.use("/api", (_req: Request, res: Response) => {
+    res.status(404).json({
+      error: "API route not found",
+      path: _req.originalUrl,
+      hint: routesOk
+        ? "This endpoint does not exist."
+        : "Route registration failed on startup — check Railway logs.",
+    });
+  });
+
+  // ── 6. Static assets (AFTER API routes so /api/* never gets HTML) ───────
+  app.use(express.static(path.resolve(__dirname, "..", "public")));
+  app.use(express.static(path.resolve(__dirname, "..", "client", "public")));
+
+  // DiabloWeb sub-app
+  app.use("/diabloweb", express.static(path.resolve(__dirname, "..", "diabloweb", "diabloweb-master", "build")));
+  app.get("/diabloweb/*", (_req, res) => {
+    res.sendFile(path.resolve(__dirname, "..", "diabloweb", "diabloweb-master", "build", "index.html"));
+  });
+
+  // ── 7. SPA serving (production) or Vite dev middleware ──────────────────
+  if (process.env.NODE_ENV === "production") {
+    serveStatic(app);
+  } else {
+    try {
+      const { setupVite } = await import("./vite");
+      await setupVite(httpServer, app);
+    } catch (e) {
+      log(`Vite dev server not available (${(e as Error).message}) — API-only mode`, "warn");
+    }
+  }
+
+  // ── 8. Fallback root for API-only deploys (Railway) ─────────────────────
+  app.get("/", (_req, res) => {
+    res.json({
+      service: "grudge-api",
+      version: process.env.npm_package_version || "1.0.0",
+      docs: "/api/health",
+      frontend: "https://grudgewarlords.com",
+      routes_ok: routesOk,
+    });
+  });
+
+  // ── 9. Start listening ──────────────────────────────────────────────────
   const port = parseInt(process.env.PORT || "5000", 10);
   httpServer.listen(
     {
@@ -182,6 +215,9 @@ app.get("/api/health", async (_req, res) => {
     },
     () => {
       log(`serving on port ${port}`);
+      if (!routesOk) {
+        log('⚠️  API routes failed to register — only /api/health is available', 'warn');
+      }
     },
   );
 })();

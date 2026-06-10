@@ -29,10 +29,17 @@ export interface NPCInstance {
   interactionSphere: THREE.Mesh | null;
   /** Name tag sprite */
   nameTag: THREE.Sprite;
+  /** Role indicator sprite (!, $, etc.) */
+  roleIndicator: THREE.Sprite | null;
   // Patrol state
   patrolIndex: number;
   patrolSpeed: number;
   isPatrolling: boolean;
+  // Civilian wander state
+  wanderState: 'idle' | 'walking';
+  wanderTimer: number;
+  wanderTarget: THREE.Vector3;
+  spawnOrigin: THREE.Vector3;
 }
 
 export interface TownNPCManagerResult {
@@ -67,6 +74,21 @@ const ROLE_COLORS: Record<string, number> = {
   civilian: 0xd4d4d8,
 };
 
+/** Floating role indicator symbols */
+const ROLE_INDICATORS: Record<string, { symbol: string; color: string; yOffset: number }> = {
+  questGiver: { symbol: '!', color: '#f59e0b', yOffset: 4.0 },
+  hero:       { symbol: '!', color: '#fbbf24', yOffset: 4.0 },
+  merchant:   { symbol: '$', color: '#22c55e', yOffset: 3.8 },
+  factionVendor: { symbol: '$', color: '#3b82f6', yOffset: 3.8 },
+  shrineKeeper: { symbol: '✦', color: '#c084fc', yOffset: 4.0 },
+};
+
+/** Civilian wander config */
+const CIVILIAN_WANDER_RADIUS = 8;
+const CIVILIAN_WANDER_SPEED = 0.8;
+const CIVILIAN_IDLE_MIN = 3;
+const CIVILIAN_IDLE_MAX = 8;
+
 // ── Builder ──────────────────────────────────────────────────────────────────
 
 export async function createTownNPCs(
@@ -97,8 +119,17 @@ export async function createTownNPCs(
   function update(dt: number): void {
     for (const npc of npcs) {
       npc.mixer.update(dt);
+
       if (npc.isPatrolling && npc.npcDef.patrolPath && npc.npcDef.patrolPath.length > 0) {
         updatePatrol(npc, dt);
+      } else if (npc.npcDef.role === 'civilian') {
+        updateCivilianWander(npc, dt);
+      }
+
+      // Animate role indicator (bob up and down)
+      if (npc.roleIndicator) {
+        const base = ROLE_INDICATORS[npc.npcDef.role]?.yOffset ?? 4;
+        npc.roleIndicator.position.y = base + Math.sin(Date.now() * 0.003) * 0.2;
       }
     }
   }
@@ -212,8 +243,20 @@ async function loadSingleNPC(
     nameTag.position.y = NAME_TAG_HEIGHT;
     npcRoot.add(nameTag);
 
+    // Role indicator (floating ! or $ above head)
+    let roleIndicator: THREE.Sprite | null = null;
+    const indicatorDef = ROLE_INDICATORS[npcDef.role];
+    if (indicatorDef) {
+      roleIndicator = createRoleIndicator(indicatorDef.symbol, indicatorDef.color);
+      roleIndicator.position.y = indicatorDef.yOffset;
+      npcRoot.add(roleIndicator);
+    }
+
     // Patrol setup
     const isPatrolling = !!npcDef.patrolPath && npcDef.patrolPath.length > 0;
+
+    // Record spawn origin for civilian wandering
+    const spawnOrigin = npcRoot.position.clone();
 
     return {
       npcDef,
@@ -222,9 +265,14 @@ async function loadSingleNPC(
       currentAction,
       interactionSphere,
       nameTag,
+      roleIndicator,
       patrolIndex: 0,
       patrolSpeed: PATROL_SPEED,
       isPatrolling,
+      wanderState: 'idle' as const,
+      wanderTimer: CIVILIAN_IDLE_MIN + Math.random() * CIVILIAN_IDLE_MAX,
+      wanderTarget: spawnOrigin.clone(),
+      spawnOrigin,
     };
   } catch (err) {
     console.warn(`[TownNPCManager] Failed to load NPC ${npcDef.id}:`, err);
@@ -290,6 +338,76 @@ function createNameTag(name: string, color: number): THREE.Sprite {
   const sprite = new THREE.Sprite(mat);
   sprite.scale.set(4, 1, 1);
   sprite.name = `nametag_${name}`;
+  return sprite;
+}
+
+// ── Civilian Wander Logic ───────────────────────────────────────────────
+
+function updateCivilianWander(npc: NPCInstance, dt: number): void {
+  npc.wanderTimer -= dt;
+
+  if (npc.wanderState === 'idle') {
+    if (npc.wanderTimer <= 0) {
+      // Pick a new wander target near spawn
+      const angle = Math.random() * Math.PI * 2;
+      const dist = 2 + Math.random() * CIVILIAN_WANDER_RADIUS;
+      npc.wanderTarget.set(
+        npc.spawnOrigin.x + Math.cos(angle) * dist,
+        npc.spawnOrigin.y,
+        npc.spawnOrigin.z + Math.sin(angle) * dist,
+      );
+      npc.wanderState = 'walking';
+      npc.wanderTimer = 3 + Math.random() * 5; // walk for 3-8s max
+    }
+  } else {
+    // Walking toward target
+    const dx = npc.wanderTarget.x - npc.root.position.x;
+    const dz = npc.wanderTarget.z - npc.root.position.z;
+    const dist = Math.sqrt(dx * dx + dz * dz);
+
+    if (dist < 0.5 || npc.wanderTimer <= 0) {
+      // Arrived or timeout — go idle
+      npc.wanderState = 'idle';
+      npc.wanderTimer = CIVILIAN_IDLE_MIN + Math.random() * (CIVILIAN_IDLE_MAX - CIVILIAN_IDLE_MIN);
+    } else {
+      const step = CIVILIAN_WANDER_SPEED * dt;
+      npc.root.position.x += (dx / dist) * Math.min(step, dist);
+      npc.root.position.z += (dz / dist) * Math.min(step, dist);
+      npc.root.rotation.y = Math.atan2(dx, dz);
+    }
+  }
+}
+
+// ── Role Indicator Sprite ──────────────────────────────────────────────
+
+function createRoleIndicator(symbol: string, color: string): THREE.Sprite {
+  const canvas = document.createElement('canvas');
+  canvas.width = 64;
+  canvas.height = 64;
+  const ctx = canvas.getContext('2d')!;
+
+  // Glow circle background
+  const grad = ctx.createRadialGradient(32, 32, 8, 32, 32, 28);
+  grad.addColorStop(0, color + 'cc');
+  grad.addColorStop(1, color + '00');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, 64, 64);
+
+  // Symbol
+  ctx.fillStyle = '#ffffff';
+  ctx.font = 'bold 36px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.shadowColor = color;
+  ctx.shadowBlur = 8;
+  ctx.fillText(symbol, 32, 32);
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.minFilter = THREE.LinearFilter;
+  const mat = new THREE.SpriteMaterial({ map: texture, transparent: true, depthTest: false });
+  const sprite = new THREE.Sprite(mat);
+  sprite.scale.set(1.5, 1.5, 1);
+  sprite.name = `indicator_${symbol}`;
   return sprite;
 }
 

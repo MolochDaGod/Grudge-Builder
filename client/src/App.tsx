@@ -67,6 +67,7 @@ import GrudaWarsPage from "@/pages/grudawars";
 import PlayPage from "@/pages/play";
 import TutorialPage from "@/pages/tutorial";
 import HomeIslandPage from "@/pages/home-island";
+import WeaponModelAdminPage from "@/pages/weapon-model-admin";
 
 function Router() {
   return (
@@ -127,6 +128,7 @@ function Router() {
       <Route path="/play" component={PlayPage} />
       <Route path="/tutorial" component={TutorialPage} />
       <Route path="/home-island" component={HomeIslandPage} />
+      <Route path="/weapon-admin" component={WeaponModelAdminPage} />
       {/* Fallback to 404 */}
       <Route component={NotFound} />
     </Switch>

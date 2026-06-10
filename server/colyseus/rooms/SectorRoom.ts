@@ -18,6 +18,7 @@ import {
   SectorPlayer,
   SectorEnemy,
   HarvestNode,
+  PlacedBuilding,
   SECTOR_BIOMES,
   SECTOR_GRID,
   type SectorId,
@@ -200,6 +201,33 @@ export class SectorRoom extends Room<SectorState> {
         timestamp: Date.now(),
       };
       this.broadcast("chat", msg);
+    });
+
+    // ── Building placement ──────────────────────────────────────
+
+    this.onMessage("place_building", (client, data: {
+      id: string; assetId: string; x: number; y: number; z: number; rotation: number;
+    }) => {
+      const player = this.state.players.get(client.sessionId);
+      if (!player) return;
+      const building = new PlacedBuilding();
+      building.id = data.id;
+      building.assetId = data.assetId;
+      building.ownerId = client.sessionId;
+      building.ownerName = player.characterName;
+      building.x = data.x;
+      building.y = data.y;
+      building.z = data.z;
+      building.rotation = data.rotation;
+      this.state.buildings.set(building.id, building);
+    });
+
+    this.onMessage("remove_building", (client, data: { id: string }) => {
+      const building = this.state.buildings.get(data.id);
+      if (!building) return;
+      // Only owner can remove
+      if (building.ownerId !== client.sessionId) return;
+      this.state.buildings.delete(data.id);
     });
 
     // Sector transition request

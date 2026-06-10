@@ -17,6 +17,7 @@ import { Client, Room } from 'colyseus.js';
 import * as THREE from 'three';
 import { Island3DEngine, type Island3DEngineConfig } from '@/island3d/engine/Island3DEngine';
 import { characterAPI } from '@/lib/api';
+import { getColyseusEndpoint } from '@/lib/colyseusEndpoint';
 import { Check, Circle, Sword, Axe, TreePine, Hammer, Ship } from 'lucide-react';
 
 // ── Types ────────────────────────────────────────────────────────
@@ -25,15 +26,6 @@ interface TutorialStep {
   id: string;
   title: string;
   completed: boolean;
-}
-
-// ── Colyseus endpoint ────────────────────────────────────────────
-
-function getColyseusEndpoint(): string {
-  const envUrl = (import.meta as any).env?.VITE_API_URL;
-  if (envUrl) return envUrl.replace(/^http/, 'ws');
-  const proto = window.location.protocol === 'https:' ? 'wss' : 'ws';
-  return `${proto}://${window.location.hostname}:5000`;
 }
 
 // ── Step icons ───────────────────────────────────────────────────

@@ -7,7 +7,7 @@
 import * as THREE from 'three';
 import { getTerrainHeightAt, type BiomeType } from './IslandTerrainGenerator';
 
-export type NodePlacementType = 'tree' | 'rock' | 'bush' | 'herb' | 'fish';
+export type NodePlacementType = 'tree' | 'rock' | 'bush' | 'herb' | 'fish' | 'crystal' | 'hemp' | 'flower' | 'dock';
 
 export interface PlacedNode3D {
   id: string;
@@ -56,11 +56,15 @@ interface NodeRule {
 }
 
 const NODE_RULES: NodeRule[] = [
-  { type: 'tree',  biomes: ['forest', 'grass'], count: 25, minSpacing: 20, scaleMin: 0.8, scaleMax: 1.5 },
-  { type: 'rock',  biomes: ['rock', 'grass'],   count: 12, minSpacing: 25, scaleMin: 0.6, scaleMax: 1.2 },
-  { type: 'bush',  biomes: ['grass', 'forest'],  count: 15, minSpacing: 15, scaleMin: 0.5, scaleMax: 0.9 },
-  { type: 'herb',  biomes: ['forest'],           count: 8,  minSpacing: 18, scaleMin: 0.4, scaleMax: 0.7 },
-  { type: 'fish',  biomes: ['beach'],            count: 6,  minSpacing: 30, scaleMin: 1.0, scaleMax: 1.0 },
+  { type: 'tree',    biomes: ['forest', 'grass'], count: 25, minSpacing: 20, scaleMin: 0.8, scaleMax: 1.5 },
+  { type: 'rock',    biomes: ['rock', 'grass'],   count: 12, minSpacing: 25, scaleMin: 0.6, scaleMax: 1.2 },
+  { type: 'crystal', biomes: ['rock'],            count: 5,  minSpacing: 35, scaleMin: 0.5, scaleMax: 1.0 },
+  { type: 'bush',    biomes: ['grass', 'forest'],  count: 15, minSpacing: 15, scaleMin: 0.5, scaleMax: 0.9 },
+  { type: 'hemp',    biomes: ['grass'],            count: 8,  minSpacing: 22, scaleMin: 0.6, scaleMax: 1.0 },
+  { type: 'flower',  biomes: ['grass', 'forest'],  count: 10, minSpacing: 18, scaleMin: 0.4, scaleMax: 0.7 },
+  { type: 'herb',    biomes: ['forest'],           count: 8,  minSpacing: 18, scaleMin: 0.4, scaleMax: 0.7 },
+  { type: 'fish',    biomes: ['beach'],            count: 6,  minSpacing: 30, scaleMin: 1.0, scaleMax: 1.0 },
+  { type: 'dock',    biomes: ['beach'],            count: 1,  minSpacing: 100, scaleMin: 1.0, scaleMax: 1.0 },
 ];
 
 /**

@@ -15,6 +15,7 @@ import { Room, Client } from "colyseus";
 import { Schema, MapSchema, type } from "@colyseus/schema";
 import { getTownForSector, type FactionTown } from "@shared/definitions/factionTowns";
 import type { SectorPosition } from "@shared/definitions/lore";
+import { HarvestNode } from "../schemas/SectorState";
 
 // ── State Schemas ────────────────────────────────────────────
 
@@ -50,6 +51,7 @@ class TownState extends Schema {
   @type("number") tick: number = 0;
   @type({ map: TownPlayer }) players = new MapSchema<TownPlayer>();
   @type({ map: TownNPCState }) npcs = new MapSchema<TownNPCState>();
+  @type({ map: HarvestNode }) harvestNodes = new MapSchema<HarvestNode>();
 }
 
 // ── Join Options ─────────────────────────────────────────────
@@ -102,9 +104,14 @@ export class TownRoom extends Room<TownState> {
       }
     }
 
-    // Low-frequency tick
-    this.setSimulationInterval(() => {
+    // Seed town harvest nodes (barrels, crates, herb patches in market area)
+    this.seedTownHarvestNodes();
+
+    // Low-frequency tick — also updates NPC patrol positions
+    this.setSimulationInterval((delta) => {
       this.state.tick++;
+      this.updateNPCPositions(delta);
+      this.updateHarvestRespawns();
     }, 1000 / TICK_RATE);
 
     // ── Message Handlers ─────────────────────────────────────
@@ -213,6 +220,23 @@ export class TownRoom extends Room<TownState> {
       });
     });
 
+    // Harvest town node
+    this.onMessage("harvest", (client, data: { nodeId: string }) => {
+      const node = this.state.harvestNodes.get(data.nodeId);
+      if (!node || node.depleted) return;
+
+      node.depleted = true;
+      node.respawnAt = Date.now() + 60_000; // 60s respawn
+
+      const player = this.state.players.get(client.sessionId);
+      this.broadcast("harvest_complete", {
+        nodeId: data.nodeId,
+        resource: node.resourceType,
+        quantity: 1,
+        gatheredBy: player?.characterName || "Unknown",
+      });
+    });
+
     // Leave town (back to sector)
     this.onMessage("leave_town", (client) => {
       client.send("town_exit", { sectorId: state.sectorId });
@@ -220,7 +244,8 @@ export class TownRoom extends Room<TownState> {
 
     console.log(
       `[TownRoom] Created: ${this.townDef?.name || sectorId} ` +
-      `(${state.factionId}, ${this.townDef?.npcs.length || 0} NPCs)`
+      `(${state.factionId}, ${this.townDef?.npcs.length || 0} NPCs, ` +
+      `${this.state.harvestNodes.size} nodes)`
     );
   }
 
@@ -269,5 +294,79 @@ export class TownRoom extends Room<TownState> {
 
   onDispose() {
     console.log(`[TownRoom:${this.state.townId}] Disposed`);
+  }
+
+  // ── Town harvest nodes ──────────────────────────────────────
+
+  private seedTownHarvestNodes(): void {
+    if (!this.townDef) return;
+
+    // Place harvestable barrels, crates, and herb patches in the market area
+    const townNodes = [
+      { id: 'town_barrel_1', type: 'forest',  x: -10, z: 8 },
+      { id: 'town_barrel_2', type: 'forest',  x: 14,  z: 12 },
+      { id: 'town_crate_1',  type: 'mining',  x: -8,  z: -8 },
+      { id: 'town_crate_2',  type: 'mining',  x: 18,  z: -5 },
+      { id: 'town_herb_1',   type: 'herbalism', x: -20, z: -15 },
+      { id: 'town_herb_2',   type: 'herbalism', x: 22,  z: -18 },
+    ];
+
+    for (const n of townNodes) {
+      const node = new HarvestNode();
+      node.id = n.id;
+      node.resourceType = n.type;
+      node.x = n.x;
+      node.z = n.z;
+      node.depleted = false;
+      node.respawnAt = 0;
+      this.state.harvestNodes.set(n.id, node);
+    }
+  }
+
+  // ── NPC patrol position updates (server-authoritative) ─────
+
+  private updateNPCPositions(delta: number): void {
+    if (!this.townDef) return;
+
+    for (const npcDef of this.townDef.npcs) {
+      if (!npcDef.patrolPath || npcDef.patrolPath.length === 0) continue;
+
+      const npcState = this.state.npcs.get(npcDef.id);
+      if (!npcState || npcState.lockedBy) continue; // don't move locked NPCs
+
+      // Simple server-side patrol: move toward current waypoint
+      const path = npcDef.patrolPath;
+      const speed = 3.0;
+      const dt = delta / 1000;
+
+      // Use tick-based waypoint index (deterministic across server restarts)
+      const cycleLength = path.length * 200; // ~200 ticks per waypoint at 5Hz
+      const phase = this.state.tick % cycleLength;
+      const waypointIndex = Math.floor(phase / 200) % path.length;
+      const target = path[waypointIndex];
+
+      const dx = target[0] - npcState.x;
+      const dz = target[2] - npcState.z;
+      const dist = Math.sqrt(dx * dx + dz * dz);
+
+      if (dist > 0.5) {
+        const step = Math.min(speed * dt, dist);
+        npcState.x += (dx / dist) * step;
+        npcState.z += (dz / dist) * step;
+      }
+    }
+  }
+
+  // ── Harvest respawn ────────────────────────────────────────
+
+  private updateHarvestRespawns(): void {
+    if (this.state.tick % 10 !== 0) return; // check every 2 seconds
+    const now = Date.now();
+    this.state.harvestNodes.forEach((node) => {
+      if (node.depleted && node.respawnAt > 0 && now >= node.respawnAt) {
+        node.depleted = false;
+        node.respawnAt = 0;
+      }
+    });
   }
 }

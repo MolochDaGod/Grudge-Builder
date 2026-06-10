@@ -17,6 +17,10 @@ import { placeResourceNodes, type PlacedNode3D } from '../terrain/NodePlacer';
 import { createScatterDecorations } from '../objects/ScatterDecorations';
 import { createHarvestableTree, type HarvestableTree } from '../objects/HarvestableTree';
 import { createHarvestableRock, type HarvestableRock } from '../objects/HarvestableRock';
+import {
+  createCrystalCluster, createHempPlant, createFlowerPatch, createDock,
+  type HarvestableCrystal, type HarvestableHemp, type HarvestableFlower,
+} from '../objects/HomeIslandNodes';
 import { DetailLayer, createGrassBlades } from '../terrain/DetailLayers';
 import { MultiplayerSync, type MultiplayerConfig } from '../sync/MultiplayerSync';
 import { loadLobbyMap, getLobbyMap, type LobbyMapDef, type LobbyLoadResult } from './LobbyIslandLoader';
@@ -33,6 +37,7 @@ import {
   type ZonePopulation, type IslandNode, type SpawnPointNode, type DockNode,
 } from '@shared/definitions/zoneServerNodes';
 import { buildZoneScene, type ZoneSceneResult } from './ZoneSceneBuilder';
+import { CreatureManager, type CreatureLootEvent } from '../creatures/CreatureManager';
 
 export type Island3DMode = 'procedural' | 'lobby' | 'zone';
 
@@ -81,6 +86,9 @@ export class Island3DEngine {
   // Interactable objects
   public trees: HarvestableTree[] = [];
   public rocks: HarvestableRock[] = [];
+  public crystals: HarvestableCrystal[] = [];
+  public hemps: HarvestableHemp[] = [];
+  public flowers: HarvestableFlower[] = [];
   public placedNodes: PlacedNode3D[] = [];
 
   // Detail layers (grass/sand overlay)
@@ -118,6 +126,9 @@ export class Island3DEngine {
 
   // Building
   public building: BuildingSystem | null = null;
+
+  // Wildlife
+  public creatures: CreatureManager | null = null;
 
   // Raycaster for mouse picking
   private raycaster = new THREE.Raycaster();
@@ -311,6 +322,11 @@ export class Island3DEngine {
     if (this.config.enableCharacter !== false) {
       this.spawnCharacter();
     }
+
+    // 11. Wildlife — land animals + fish
+    this.creatures = new CreatureManager(this.scene, -2, this.config.seed.length);
+    this.creatures.spawnLandCreatures(this.terrain.terrainMesh, 15, 400);
+    this.creatures.spawnFish(10, 450);
   }
 
   /** Build a full 4 km ocean sector with islands, NPCs, hazards, docks */
@@ -404,10 +420,18 @@ export class Island3DEngine {
     // 9. Building system works in zone mode too
     this.building = new BuildingSystem(this.scene, this.camera);
 
+    // 10. Wildlife — scale to zone size
+    this.creatures = new CreatureManager(this.scene, cfg.waterLevel, sectorId.length + 99);
+    if (firstIslandMesh) {
+      this.creatures.spawnLandCreatures(firstIslandMesh, 12, cfg.sizeMeters * 0.3);
+    }
+    this.creatures.spawnFish(8, cfg.sizeMeters * 0.4);
+
     console.log(
       `[Island3DEngine] Zone "${sector.name}" loaded:`,
       `${this.zonePopulation.islandIds.length} islands,`,
-      `${this.zonePopulation.nodes.size} total nodes`,
+      `${this.zonePopulation.nodes.size} total nodes,`,
+      `${this.creatures.count} creatures`,
     );
   }
 
@@ -420,14 +444,43 @@ export class Island3DEngine {
     if (!this.terrain) return;
 
     for (const node of this.placedNodes) {
-      if (node.type === 'tree') {
-        const tree = createHarvestableTree(node.position, node.scale);
-        this.trees.push(tree);
-        this.scene.add(tree.group);
-      } else if (node.type === 'rock') {
-        const rock = createHarvestableRock(node.position, node.scale);
-        this.rocks.push(rock);
-        this.scene.add(rock.group);
+      switch (node.type) {
+        case 'tree': {
+          const tree = createHarvestableTree(node.position, node.scale);
+          this.trees.push(tree);
+          this.scene.add(tree.group);
+          break;
+        }
+        case 'rock': {
+          const rock = createHarvestableRock(node.position, node.scale);
+          this.rocks.push(rock);
+          this.scene.add(rock.group);
+          break;
+        }
+        case 'crystal': {
+          const crystal = createCrystalCluster(node.position, node.scale);
+          this.crystals.push(crystal);
+          this.scene.add(crystal.group);
+          break;
+        }
+        case 'hemp': {
+          const hemp = createHempPlant(node.position, node.scale);
+          this.hemps.push(hemp);
+          this.scene.add(hemp.group);
+          break;
+        }
+        case 'flower': {
+          const flower = createFlowerPatch(node.position, node.scale);
+          this.flowers.push(flower);
+          this.scene.add(flower.group);
+          break;
+        }
+        case 'dock': {
+          const dock = createDock(node.position);
+          this.scene.add(dock);
+          break;
+        }
+        // bush, herb, fish — handled by scatter decorations / creatures
       }
     }
   }
@@ -589,6 +642,13 @@ export class Island3DEngine {
       this.allyManager.update(dt, this.character.getPosition(), enemies);
     }
 
+    // Wildlife AI
+    if (this.creatures && this.character) {
+      this.creatures.update(dt, this.character.getPosition());
+    } else if (this.creatures) {
+      this.creatures.update(dt, this.camera.position);
+    }
+
     // External update hooks (RemotePlayerManager, TownNPCController, etc.)
     for (const fn of this.externalUpdates) fn(dt);
 
@@ -621,6 +681,16 @@ export class Island3DEngine {
     this.mouse.y = -((clientY - rect.top) / rect.height) * 2 + 1;
 
     this.raycaster.setFromCamera(this.mouse, this.camera);
+
+    // In combat mode, attack nearest creature
+    if (this.character?.mode === 'combat' && this.creatures) {
+      const playerPos = this.character.getPosition();
+      const nearest = this.creatures.findNearest(playerPos, 20);
+      if (nearest) {
+        this.creatures.dealDamage(nearest.id, 15);
+        return;
+      }
+    }
 
     // Check tree hits
     for (const tree of this.trees) {
@@ -759,8 +829,14 @@ export class Island3DEngine {
     return canvas.toDataURL('image/png');
   }
 
+  /** Cleanup — alias for destroy() (pages call dispose()) */
+  dispose(): void {
+    this.destroy();
+  }
+
   destroy(): void {
     this.stop();
+    this.creatures?.dispose();
     this.character?.destroy();
     this.allyManager?.destroy();
     this.building?.destroy();

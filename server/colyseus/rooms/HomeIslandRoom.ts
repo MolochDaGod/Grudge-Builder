@@ -21,6 +21,7 @@ import {
   HomeIslandState,
   SectorPlayer,
   HarvestNode,
+  PlacedBuilding,
   getTideHeight,
 } from "../schemas/SectorState";
 import { db, SANDBOX_MODE } from "../../db";
@@ -135,24 +136,32 @@ export class HomeIslandRoom extends Room<HomeIslandState> {
       });
     });
 
-    // Place building (owner only)
-    this.onMessage("place_building", (client, data: { buildingId: string; x: number; z: number; rotation: number }) => {
+    // Place building (owner only) — synced via PlacedBuilding schema
+    this.onMessage("place_building", (client, data: {
+      id: string; assetId: string; x: number; y: number; z: number; rotation: number;
+    }) => {
       if (!this.isOwner(client)) return;
-      state.buildingCount++;
-      this.broadcast("building_placed", {
-        buildingId: data.buildingId,
-        x: data.x,
-        z: data.z,
-        rotation: data.rotation,
-        totalBuildings: state.buildingCount,
-      });
+      const player = state.players.get(client.sessionId);
+      const building = new PlacedBuilding();
+      building.id = data.id;
+      building.assetId = data.assetId;
+      building.ownerId = client.sessionId;
+      building.ownerName = player?.characterName || "Owner";
+      building.x = data.x;
+      building.y = data.y;
+      building.z = data.z;
+      building.rotation = data.rotation;
+      state.buildings.set(building.id, building);
+      state.buildingCount = state.buildings.size;
     });
 
     // Remove building (owner only)
-    this.onMessage("remove_building", (client, data: { buildingId: string }) => {
+    this.onMessage("remove_building", (client, data: { id: string }) => {
       if (!this.isOwner(client)) return;
-      if (state.buildingCount > 0) state.buildingCount--;
-      this.broadcast("building_removed", { buildingId: data.buildingId });
+      const building = state.buildings.get(data.id);
+      if (!building) return;
+      state.buildings.delete(data.id);
+      state.buildingCount = state.buildings.size;
     });
 
     // Get harvested resources
