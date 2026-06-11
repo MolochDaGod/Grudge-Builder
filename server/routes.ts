@@ -6896,6 +6896,51 @@ Your response must be valid JSON array only, no markdown or explanation.`;
     }
   });
 
+  // ==================== NFT Verification ====================
+
+  // POST /api/admin/verify-nfts — Sync all cNFT mint status with Crossmint + DB
+  app.post("/api/admin/verify-nfts", requireAdmin, async (_req, res) => {
+    try {
+      const { verifyAllNFTs } = await import("./services/nftVerification");
+      const result = await verifyAllNFTs();
+      res.json(result);
+    } catch (error) {
+      console.error("Error verifying NFTs:", error);
+      res.status(500).json({ error: "NFT verification failed" });
+    }
+  });
+
+  // GET /api/admin/accounts-summary — Get all accounts with wallets + GBUX balances
+  app.get("/api/admin/accounts-summary", requireAdmin, async (_req, res) => {
+    try {
+      const { verifyAllNFTs } = await import("./services/nftVerification");
+      // Just get account summaries without full NFT verification
+      const rows = await db
+        .select({
+          accountId: accounts.id,
+          displayName: accounts.displayName,
+          grudgeId: accounts.grudgeId,
+          walletAddress: accounts.walletAddress,
+          walletType: accounts.walletType,
+          gbuxBalance: accounts.gbuxBalance,
+          characterTokens: accounts.characterTokens,
+          createdAt: accounts.createdAt,
+        })
+        .from(accounts)
+        .orderBy(sql`${accounts.gbuxBalance} DESC`);
+
+      res.json({
+        total: rows.length,
+        withWallets: rows.filter(r => r.walletAddress).length,
+        totalGbux: rows.reduce((sum, r) => sum + r.gbuxBalance, 0),
+        accounts: rows,
+      });
+    } catch (error) {
+      console.error("Error fetching accounts summary:", error);
+      res.status(500).json({ error: "Failed to fetch accounts summary" });
+    }
+  });
+
   // ==================== Health Check ====================
   app.get("/api/health", async (_req, res) => {
     try {

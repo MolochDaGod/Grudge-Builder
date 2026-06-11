@@ -1,0 +1,1562 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>GRUDGE — Weapons Mastery</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#0a0705;--panel:#140d08;--card:#1e1510;--border:#3a2a1a;--border2:#7a5c1e;
+  --gold:#d4a400;--muted:#9b7d52;--dim:#6b5535;--text:#e7d8be;
+  --font:'Cinzel',Georgia,serif;--font-body:system-ui,-apple-system,sans-serif;
+  --font-mono:'JetBrains Mono',ui-monospace,monospace;
+}
+body{font-family:var(--font-body);background:var(--bg);color:var(--text);line-height:1.55;padding:32px 20px 64px;max-width:1180px;margin:0 auto}
+h1{font-family:var(--font);font-size:34px;color:var(--gold);letter-spacing:1px}
+h2{font-family:var(--font);letter-spacing:.5px}
+.lede{color:var(--muted);font-size:14px;margin:6px 0 24px;max-width:760px}
+.rules{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:32px}
+.rule{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:12px 16px;min-width:150px}
+.rule strong{display:block;font-family:var(--font);font-size:22px;color:var(--gold)}
+.rule span{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px}
+.trees{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:20px}
+.tree{background:var(--panel);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+.tree-head{padding:14px 16px;border-bottom:2px solid var(--border)}
+.tree-head h2{font-size:19px}
+.tree-head p{font-size:12px;color:var(--muted);margin-top:2px}
+.tree-cap{font-size:11px;color:var(--dim);margin-top:6px;font-family:var(--font-mono)}
+.chart{position:relative;margin:8px}
+.edges{position:absolute;inset:0;pointer-events:none}
+.node{position:absolute;transform:translate(-50%,-50%);text-align:center}
+.orb{border:2px solid var(--border2);border-radius:12px;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#1e1510,#120c07);margin:0 auto;position:relative}
+.orb-sig{border-radius:50%}
+.orb .ranks{font-family:var(--font-mono);font-weight:700;font-size:13px}
+.nlabel{font-family:var(--font);font-size:11px;margin-top:8px;color:var(--text);line-height:1.2}
+.ndesc{font-size:10px;color:var(--gold);margin-top:2px}
+.nmeta{font-size:9px;color:var(--dim);font-family:var(--font-mono)}
+.sig{font-size:9px;text-transform:uppercase;letter-spacing:1px;font-weight:700}
+.legend{margin-top:40px;background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:18px 20px}
+.legend p{color:var(--muted);font-size:13px;margin:6px 0 14px;max-width:720px}
+.legend table{width:100%;border-collapse:collapse;font-size:13px}
+.legend th{text-align:left;color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:1px;padding:6px 10px;border-bottom:1px solid var(--border)}
+.legend td{padding:8px 10px;border-bottom:1px solid var(--border)}
+.legend code{font-family:var(--font-mono);color:var(--gold);font-size:12px}
+footer{margin-top:36px;color:var(--dim);font-size:11px;text-align:center}
+</style>
+</head>
+<body>
+  <h1>Weapons Mastery</h1>
+  <p class="lede">A point-allocation talent tree per weapon type. Spend a shared mastery pool — one point per character level — across any of the 9 trees. Generic passive bonuses fold directly into your combat stats, so you can fully master a few weapons but never all of them. This page is generated from the same shipped defs as the in-game tree.</p>
+  <div class="rules">
+    <div class="rule"><strong>100</strong><span>Shared pool cap</span></div>
+    <div class="rule"><strong>1 / level</strong><span>Points earned</span></div>
+    <div class="rule"><strong>9</strong><span>Weapon trees</span></div>
+    <div class="rule"><strong>1 / 3 / 5</strong><span>Ranks per node</span></div>
+  </div>
+  <div class="trees">
+
+  <section class="tree" id="tree-swords">
+    <header class="tree-head" style="border-color:#7dd3fc">
+      <h2 style="color:#7dd3fc">Swords</h2>
+      <p>One-handed &amp; two-handed blades — the balanced duelist.</p>
+      <div class="tree-cap">Fully fills at <strong>25</strong> points</div>
+    </header>
+    <div class="chart" style="height:360px;background:radial-gradient(circle at 50% 38%, #7dd3fc14, transparent 70%)">
+      <svg class="edges" width="100%" height="100%"><line x1="18%" y1="10%" x2="50%" y2="30%" stroke="#7dd3fc55" stroke-width="1.5" stroke-dasharray="4 4"/><line x1="82%" y1="10%" x2="50%" y2="30%" stroke="#7dd3fc55" stroke-width="1.5" stroke-dasharray="4 4"/><line x1="50%" y1="30%" x2="18%" y2="50%" stroke="#7dd3fc55" stroke-width="1.5" stroke-dasharray="4 4"/><line x1="50%" y1="30%" x2="82%" y2="50%" stroke="#7dd3fc55" stroke-width="1.5" stroke-dasharray="4 4"/><line x1="18%" y1="50%" x2="50%" y2="70%" stroke="#7dd3fc55" stroke-width="1.5" stroke-dasharray="4 4"/><line x1="82%" y1="50%" x2="50%" y2="70%" stroke="#7dd3fc55" stroke-width="1.5" stroke-dasharray="4 4"/><line x1="50%" y1="70%" x2="50%" y2="90%" stroke="#7dd3fc55" stroke-width="1.5" stroke-dasharray="4 4"/></svg>
+      
+    <div class="node" style="left:18%;top:10%;width:52px">
+      <div class="orb" style="width:52px;height:52px;border-color:#7dd3fc;box-shadow:0 0 10px #7dd3fc55">
+        <span class="ranks" style="color:#7dd3fc">5</span>
+      </div>
+      <div class="nlabel">Honed Edge</div>
+      <div class="ndesc">+2% Critical Chance per rank</div>
+      <div class="nmeta">no requirement</div>
+      
+    </div>
+    <div class="node" style="left:82%;top:10%;width:52px">
+      <div class="orb" style="width:52px;height:52px;border-color:#7dd3fc;box-shadow:0 0 10px #7dd3fc55">
+        <span class="ranks" style="color:#7dd3fc">5</span>
+      </div>
+      <div class="nlabel">Tempered Steel</div>
+      <div class="ndesc">+3% Damage per rank</div>
+      <div class="nmeta">no requirement</div>
+      
+    </div>
+    <div class="node" style="left:50%;top:30%;width:52px">
+      <div class="orb" style="width:52px;height:52px;border-color:#7dd3fc;box-shadow:0 0 10px #7dd3fc55">
+        <span class="ranks" style="color:#7dd3fc">3</span>
+      </div>
+      <div class="nlabel">Flurry</div>
+      <div class="ndesc">+2% Attack Speed per rank</div>
+      <div class="nmeta">req 5 pts</div>
+      
+    </div>
+    <div class="node" style="left:18%;top:50%;width:52px">
+      <div class="orb" style="width:52px;height:52px;border-color:#7dd3fc;box-shadow:0 0 10px #7dd3fc55">
+        <span class="ranks" style="color:#7dd3fc">3</span>
+      </div>
+      <div class="nlabel">Vital Strike</div>
+      <div class="ndesc">+5% Critical Damage per rank</div>
+      <div class="nmeta">req 10 pts</div>
+      
+    </div>
+    <div class="node" style="left:82%;top:50%;width:52px">
+      <div class="orb" style="width:52px;height:52px;border-color:#7dd3fc;box-shadow:0 0 10px #7dd3fc55">
+        <span class="ranks" style="color:#7dd3fc">3</span>
+      </div>
+      <div class="nlabel">Sundering Cuts</div>
+      <div class="ndesc">+3% Armor Penetration per rank</div>
+      <div class="nmeta">req 10 pts</div>
+      
+    </div>
+    <div class="node" style="left:50%;top:70%;width:52px">
+      <div class="orb" style="width:52px;height:52px;border-color:#7dd3fc;box-shadow:0 0 10px #7dd3fc55">
+        <span class="ranks" style="color:#7dd3fc">5</span>
+      </div>
+      <div class="nlabel">Bloodletting</div>
+      <div class="ndesc">+2% Lifesteal per rank</div>
+      <div class="nmeta">req 16 pts</div>
+      
+    </div>
+    <div class="node" style="left:50%;top:90%;width:64px">
+      <div class="orb orb-sig" style="width:64px;height:64px;border-color:#7dd3fc;box-shadow:0 0 10px #7dd3fc55">
+        <span class="ranks" style="color:#7dd3fc">1</span>
+      </div>
+      <div class="nlabel">Master Swordsman</div>
+      <div class="ndesc">+8% Critical Chance</div>
+      <div class="nmeta">req 22 pts</div>
+      <span class="sig" style="color:#7dd3fc">Signature</span>
+    </div>
+    </div>
+  </section>
+
+  <section class="tree" id="tree-axes">
+    <header class="tree-head" style="border-color:#ef4444">
+      <h2 style="color:#ef4444">Axes</h2>
+      <p>One-handed &amp; two-handed axes — brutal, reckless damage.</p>
+      <div class="tree-cap">Fully fills at <strong>25</strong> points</div>
+    </header>
+    <div class="chart" style="height:360px;background:radial-gradient(circle at 50% 38%, #ef444414, transparent 70%)">
+      <svg class="edges" width="100%" height="100%"><line x1="18%" y1="10%" x2="50%" y2="30%" stroke="#ef444455" stroke-width="1.5" stroke-dasharray="4 4"/><line x1="82%" y1="10%" x2="50%" y2="30%" stroke="#ef444455" stroke-width="1.5" stroke-dasharray="4 4"/><line x1="50%" y1="30%" x2="18%" y2="50%" stroke="#ef444455" stroke-width="1.5" stroke-dasharray="4 4"/><line x1="50%" y1="30%" x2="82%" y2="50%" stroke="#ef444455" stroke-width="1.5" stroke-dasharray="4 4"/><line x1="18%" y1="50%" x2="50%" y2="70%" stroke="#ef444455" stroke-width="1.5" stroke-dasharray="4 4"/><line x1="82%" y1="50%" x2="50%" y2="70%" stroke="#ef444455" stroke-width="1.5" stroke-dasharray="4 4"/><line x1="50%" y1="70%" x2="50%" y2="90%" stroke="#ef444455" stroke-width="1.5" stroke-dasharray="4 4"/></svg>
+      
+    <div class="node" style="left:18%;top:10%;width:52px">
+      <div class="orb" style="width:52px;height:52px;border-color:#ef4444;box-shadow:0 0 10px #ef444455">
+        <span class="ranks" style="color:#ef4444">5</span>
+      </div>
+      <div class="nlabel">Savage Swings</div>
+      <div class="ndesc">+3% Damage per rank</div>
+      <div class="nmeta">no requirement</div>
+      
+    </div>
+    <div class="node" style="left:82%;top:10%;width:52px">
+      <div class="orb" style="width:52px;height:52px;border-color:#ef4444;box-shadow:0 0 10px #ef444455">
+        <span class="ranks" style="color:#ef4444">5</span>
+      </div>
+      <div class="nlabel">Brutal Cleave</div>
+      <div class="ndesc">+5% Critical Damage per rank</div>
+      <div class="nmeta">no requirement</div>
+      
+    </div>
+    <div class="node" style="left:50%;top:30%;width:52px">
+      <div class="orb" style="width:52px;height:52px;border-color:#ef4444;box-shadow:0 0 10px #ef444455">
+        <span class="ranks" style="color:#ef4444">3</span>
+      </div>
+      <div class="nlabel">Rending Blows</div>
+      <div class="ndesc">+3% Armor Penetration per rank</div>
+      <div class="nmeta">req 5 pts</div>
+      
+    </div>
+    <div class="node" style="left:18%;top:50%;width:52px">
+      <div class="orb" style="width:52px;height:52px;border-color:#ef4444;box-shadow:0 0 10px #ef444455">
+        <span class="ranks" style="color:#ef4444">3</span>
+      </div>
+      <div class="nlabel">Reckless Fury</div>
+      <div class="ndesc">+2% Critical Chance per rank</div>
+      <div class="nmeta">req 10 pts</div>
+      
+    </div>
+    <div class="node" style="left:82%;top:50%;width:52px">
+      <div class="orb" style="width:52px;height:52px;border-color:#ef4444;box-shadow:0 0 10px #ef444455">
+        <span class="ranks" style="color:#ef4444">3</span>
+      </div>
+      <div class="nlabel">Gore Drinker</div>
+      <div class="ndesc">+2% Lifesteal per rank</div>
+      <div class="nmeta">req 10 pts</div>
+      
+    </div>
+    <div class="node" style="left:50%;top:70%;width:52px">
+      <div class="orb" style="width:52px;height:52px;border-color:#ef4444;box-shadow:0 0 10px #ef444455">
+        <span class="ranks" style="color:#ef4444">5</span>
+      </div>
+      <div class="nlabel">Frenzied Chops</div>
+      <div class="ndesc">+2% Attack Speed per rank</div>
+      <div class="nmeta">req 16 pts</div>
+      
+    </div>
+    <div class="node" style="left:50%;top:90%;width:64px">
+      <div class="orb orb-sig" style="width:64px;height:64px;border-color:#ef4444;box-shadow:0 0 10px #ef444455">
+        <span class="ranks" style="color:#ef4444">1</span>
+      </div>
+      <div class="nlabel">Berserker's Edge</div>
+      <div class="ndesc">+12% Damage</div>
+      <div class="nmeta">req 22 pts</div>
+      <span class="sig" style="color:#ef4444">Signature</span>
+    </div>
+    </div>
+  </section>
+
+  <section class="tree" id="tree-hammers">
+    <header class="tree-head" style="border-color:#f59e0b">
+      <h2 style="color:#f59e0b">Hammers</h2>
+      <p>One-handed &amp; two-handed hammers — crushing, armor-shattering force.</p>
+      <div class="tree-cap">Fully fills at <strong>25</strong> points</div>
+    </header>
+    <div class="chart" style="height:360px;background:radial-gradient(circle at 50% 38%, #f59e0b14, transparent 70%)">
+      <svg class="edges" width="100%" height="100%"><line x1="18%" y1="10%" x2="50%" y2="30%" stroke="#f59e0b55" stroke-width="1.5" stroke-dasharray="4 4"/><line x1="82%" y1="10%" x2="50%" y2="30%" stroke="#f59e0b55" stroke-width="1.5" stroke-dasharray="4 4"/><line x1="50%" y1="30%" x2="18%" y2="50%" stroke="#f59e0b55" stroke-width="1.5" stroke-dasharray="4 4"/><line x1="50%" y1="30%" x2="82%" y2="50%" stroke="#f59e0b55" stroke-width="1.5" stroke-dasharray="4 4"/><line x1="18%" y1="50%" x2="50%" y2="70%" stroke="#f59e0b55" stroke-width="1.5" stroke-dasharray="4 4"/><line x1="82%" y1="50%" x2="50%" y2="70%" stroke="#f59e0b55" stroke-width="1.5" stroke-dasharray="4 4"/><line x1="50%" y1="70%" x2="50%" y2="90%" stroke="#f59e0b55" stroke-width="1.5" stroke-dasharray="4 4"/></svg>
+      
+    <div class="node" style="left:18%;top:10%;width:52px">
+      <div class="orb" style="width:52px;height:52px;border-color:#f59e0b;box-shadow:0 0 10px #f59e0b55">
+        <span class="ranks" style="color:#f59e0b">5</span>
+      </div>
+      <div class="nlabel">Crushing Blow</div>
+      <div class="ndesc">+5% Critical Damage per rank</div>
+      <div class="nmeta">no requirement</div>
+      
+    </div>
+    <div class="node" style="left:82%;top:10%;width:52px">
+      <div class="orb" style="width:52px;height:52px;border-color:#f59e0b;box-shadow:0 0 10px #f59e0b55">
+        <span class="ranks" style="color:#f59e0b">5</span>
+      </div>
+      <div class="nlabel">Plate Breaker</div>
+      <div class="ndesc">+3% Armor Penetration per rank</div>
+      <div class="nmeta">no requirement</div>
+      
+    </div>
+    <div class="node" style="left:50%;top:30%;width:52px">
+      <div class="orb" style="width:52px;height:52px;border-color:#f59e0b;box-shadow:0 0 10px #f59e0b55">
+        <span class="ranks" style="color:#f59e0b">3</span>
+      </div>
+      <div class="nlabel">Heavy Impact</div>
+      <div class="ndesc">+3% Damage per rank</div>
+      <div class="nmeta">req 5 pts</div>
+      
+    </div>
+    <div class="node" style="left:18%;top:50%;width:52px">
+      <div class="orb" style="width:52px;height:52px;border-color:#f59e0b;box-shadow:0 0 10px #f59e0b55">
+        <span class="ranks" style="color:#f59e0b">3</span>
+      </div>
+      <div class="nlabel">Concussive Strike</div>
+      <div class="ndesc">+2% Critical Chance per rank</div>
+      <div class="nmeta">req 10 pts</div>
+      
+    </div>
+    <div class="node" style="left:82%;top:50%;width:52px">
+      <div class="orb" style="width:52px;height:52px;border-color:#f59e0b;box-shadow:0 0 10px #f59e0b55">
+        <span class="ranks" style="color:#f59e0b">3</span>
+      </div>
+      <div class="nlabel">Momentum</div>
+      <div class="ndesc">+2% Attack Speed per rank</div>
+      <div class="nmeta">req 10 pts</div>
+      
+    </div>
+    <div class="node" style="left:50%;top:70%;width:52px">
+      <div class="orb" style="width:52px;height:52px;border-color:#f59e0b;box-shadow:0 0 10px #f59e0b55">
+        <span class="ranks" style="color:#f59e0b">5</span>
+      </div>
+      <div class="nlabel">Lifebreaker</div>
+      <div class="ndesc">+2% Lifesteal per rank</div>
+      <div class="nmeta">req 16 pts</div>
+      
+    </div>
+    <div class="node" style="left:50%;top:90%;width:64px">
+      <div class="orb orb-sig" style="width:64px;height:64px;border-color:#f59e0b;box-shadow:0 0 10px #f59e0b55">
+        <span class="ranks" style="color:#f59e0b">1</span>
+      </div>
+      <div class="nlabel">Earthshatter</div>
+      <div class="ndesc">+20% Critical Damage</div>
+      <div class="nmeta">req 22 pts</div>
+      <span class="sig" style="color:#f59e0b">Signature</span>
+    </div>
+    </div>
+  </section>
+
+  <section class="tree" id="tree-guns">
+    <header class="tree-head" style="border-color:#94a3b8">
+      <h2 style="color:#94a3b8">Guns</h2>
+      <p>Firearms — armor-piercing precision at range.</p>
+      <div class="tree-cap">Fully fills at <strong>25</strong> points</div>
+    </header>
+    <div class="chart" style="height:360px;background:radial-gradient(circle at 50% 38%, #94a3b814, transparent 70%)">
+      <svg class="edges" width="100%" height="100%"><line x1="18%" y1="10%" x2="50%" y2="30%" stroke="#94a3b855" stroke-width="1.5" stroke-dasharray="4 4"/><line x1="82%" y1="10%" x2="50%" y2="30%" stroke="#94a3b855" stroke-width="1.5" stroke-dasharray="4 4"/><line x1="50%" y1="30%" x2="18%" y2="50%" stroke="#94a3b855" stroke-width="1.5" stroke-dasharray="4 4"/><line x1="50%" y1="30%" x2="82%" y2="50%" stroke="#94a3b855" stroke-width="1.5" stroke-dasharray="4 4"/><line x1="18%" y1="50%" x2="50%" y2="70%" stroke="#94a3b855" stroke-width="1.5" stroke-dasharray="4 4"/><line x1="82%" y1="50%" x2="50%" y2="70%" stroke="#94a3b855" stroke-width="1.5" stroke-dasharray="4 4"/><line x1="50%" y1="70%" x2="50%" y2="90%" stroke="#94a3b855" stroke-width="1.5" stroke-dasharray="4 4"/></svg>
+      
+    <div class="node" style="left:18%;top:10%;width:52px">
+      <div class="orb" style="width:52px;height:52px;border-color:#94a3b8;box-shadow:0 0 10px #94a3b855">
+        <span class="ranks" style="color:#94a3b8">5</span>
+      </div>
+      <div class="nlabel">Armor Piercer</div>
+      <div class="ndesc">+3% Armor Penetration per rank</div>
+      <div class="nmeta">no requirement</div>
+      
+    </div>
+    <div class="node" style="left:82%;top:10%;width:52px">
+      <div class="orb" style="width:52px;height:52px;border-color:#94a3b8;box-shadow:0 0 10px #94a3b855">
+        <span class="ranks" style="color:#94a3b8">5</span>
+      </div>
+      <div class="nlabel">Steady Aim</div>
+      <div class="ndesc">+2% Critical Chance per rank</div>
+      <div class="nmeta">no requirement</div>
+      
+    </div>
+    <div class="node" style="left:50%;top:30%;width:52px">
+      <div class="orb" style="width:52px;height:52px;border-color:#94a3b8;box-shadow:0 0 10px #94a3b855">
+        <span class="ranks" style="color:#94a3b8">3</span>
+      </div>
+      <div class="nlabel">Rapid Fire</div>
+      <div class="ndesc">+2% Attack Speed per rank</div>
+      <div class="nmeta">req 5 pts</div>
+      
+    </div>
+    <div class="node" style="left:18%;top:50%;width:52px">
+      <div class="orb" style="width:52px;height:52px;border-color:#94a3b8;box-shadow:0 0 10px #94a3b855">
+        <span class="ranks" style="color:#94a3b8">3</span>
+      </div>
+      <div class="nlabel">Heavy Rounds</div>
+      <div class="ndesc">+3% Damage per rank</div>
+      <div class="nmeta">req 10 pts</div>
+      
+    </div>
+    <div class="node" style="left:82%;top:50%;width:52px">
+      <div class="orb" style="width:52px;height:52px;border-color:#94a3b8;box-shadow:0 0 10px #94a3b855">
+        <span class="ranks" style="color:#94a3b8">3</span>
+      </div>
+      <div class="nlabel">Kill Shot</div>
+      <div class="ndesc">+5% Critical Damage per rank</div>
+      <div class="nmeta">req 10 pts</div>
+      
+    </div>
+    <div class="node" style="left:50%;top:70%;width:52px">
+      <div class="orb" style="width:52px;height:52px;border-color:#94a3b8;box-shadow:0 0 10px #94a3b855">
+        <span class="ranks" style="color:#94a3b8">5</span>
+      </div>
+      <div class="nlabel">Siphon Rounds</div>
+      <div class="ndesc">+2% Lifesteal per rank</div>
+      <div class="nmeta">req 16 pts</div>
+      
+    </div>
+    <div class="node" style="left:50%;top:90%;width:64px">
+      <div class="orb orb-sig" style="width:64px;height:64px;border-color:#94a3b8;box-shadow:0 0 10px #94a3b855">
+        <span class="ranks" style="color:#94a3b8">1</span>
+      </div>
+      <div class="nlabel">Deadeye</div>
+      <div class="ndesc">+12% Armor Penetration</div>
+      <div class="nmeta">req 22 pts</div>
+      <span class="sig" style="color:#94a3b8">Signature</span>
+    </div>
+    </div>
+  </section>
+
+  <section class="tree" id="tree-bows">
+    <header class="tree-head" style="border-color:#22c55e">
+      <h2 style="color:#22c55e">Bows</h2>
+      <p>Bows — agile, fast-firing marksmanship.</p>
+      <div class="tree-cap">Fully fills at <strong>25</strong> points</div>
+    </header>
+    <div class="chart" style="height:360px;background:radial-gradient(circle at 50% 38%, #22c55e14, transparent 70%)">
+      <svg class="edges" width="100%" height="100%"><line x1="18%" y1="10%" x2="50%" y2="30%" stroke="#22c55e55" stroke-width="1.5" stroke-dasharray="4 4"/><line x1="82%" y1="10%" x2="50%" y2="30%" stroke="#22c55e55" stroke-width="1.5" stroke-dasharray="4 4"/><line x1="50%" y1="30%" x2="18%" y2="50%" stroke="#22c55e55" stroke-width="1.5" stroke-dasharray="4 4"/><line x1="50%" y1="30%" x2="82%" y2="50%" stroke="#22c55e55" stroke-width="1.5" stroke-dasharray="4 4"/><line x1="18%" y1="50%" x2="50%" y2="70%" stroke="#22c55e55" stroke-width="1.5" stroke-dasharray="4 4"/><line x1="82%" y1="50%" x2="50%" y2="70%" stroke="#22c55e55" stroke-width="1.5" stroke-dasharray="4 4"/><line x1="50%" y1="70%" x2="50%" y2="90%" stroke="#22c55e55" stroke-width="1.5" stroke-dasharray="4 4"/></svg>
+      
+    <div class="node" style="left:18%;top:10%;width:52px">
+      <div class="orb" style="width:52px;height:52px;border-color:#22c55e;box-shadow:0 0 10px #22c55e55">
+        <span class="ranks" style="color:#22c55e">5</span>
+      </div>
+      <div class="nlabel">Quick Draw</div>
+      <div class="ndesc">+2% Attack Speed per rank</div>
+      <div class="nmeta">no requirement</div>
+      
+    </div>
+    <div class="node" style="left:82%;top:10%;width:52px">
+      <div class="orb" style="width:52px;height:52px;border-color:#22c55e;box-shadow:0 0 10px #22c55e55">
+        <span class="ranks" style="color:#22c55e">5</span>
+      </div>
+      <div class="nlabel">Eagle Eye</div>
+      <div class="ndesc">+2% Critical Chance per rank</div>
+      <div class="nmeta">no requirement</div>
+      
+    </div>
+    <div class="node" style="left:50%;top:30%;width:52px">
+      <div class="orb" style="width:52px;height:52px;border-color:#22c55e;box-shadow:0 0 10px #22c55e55">
+        <span class="ranks" style="color:#22c55e">3</span>
+      </div>
+      <div class="nlabel">Power Shot</div>
+      <div class="ndesc">+3% Damage per rank</div>
+      <div class="nmeta">req 5 pts</div>
+      
+    </div>
+    <div class="node" style="left:18%;top:50%;width:52px">
+      <div class="orb" style="width:52px;height:52px;border-color:#22c55e;box-shadow:0 0 10px #22c55e55">
+        <span class="ranks" style="color:#22c55e">3</span>
+      </div>
+      <div class="nlabel">Vital Aim</div>
+      <div class="ndesc">+5% Critical Damage per rank</div>
+      <div class="nmeta">req 10 pts</div>
+      
+    </div>
+    <div class="node" style="left:82%;top:50%;width:52px">
+      <div class="orb" style="width:52px;height:52px;border-color:#22c55e;box-shadow:0 0 10px #22c55e55">
+        <span class="ranks" style="color:#22c55e">3</span>
+      </div>
+      <div class="nlabel">Bodkin Tips</div>
+      <div class="ndesc">+3% Armor Penetration per rank</div>
+      <div class="nmeta">req 10 pts</div>
+      
+    </div>
+    <div class="node" style="left:50%;top:70%;width:52px">
+      <div class="orb" style="width:52px;height:52px;border-color:#22c55e;box-shadow:0 0 10px #22c55e55">
+        <span class="ranks" style="color:#22c55e">5</span>
+      </div>
+      <div class="nlabel">Leeching Arrows</div>
+      <div class="ndesc">+2% Lifesteal per rank</div>
+      <div class="nmeta">req 16 pts</div>
+      
+    </div>
+    <div class="node" style="left:50%;top:90%;width:64px">
+      <div class="orb orb-sig" style="width:64px;height:64px;border-color:#22c55e;box-shadow:0 0 10px #22c55e55">
+        <span class="ranks" style="color:#22c55e">1</span>
+      </div>
+      <div class="nlabel">Master Archer</div>
+      <div class="ndesc">+8% Attack Speed</div>
+      <div class="nmeta">req 22 pts</div>
+      <span class="sig" style="color:#22c55e">Signature</span>
+    </div>
+    </div>
+  </section>
+
+  <section class="tree" id="tree-crossbows">
+    <header class="tree-head" style="border-color:#b45309">
+      <h2 style="color:#b45309">Crossbows</h2>
+      <p>Crossbows — heavy bolts that punch through armor.</p>
+      <div class="tree-cap">Fully fills at <strong>25</strong> points</div>
+    </header>
+    <div class="chart" style="height:360px;background:radial-gradient(circle at 50% 38%, #b4530914, transparent 70%)">
+      <svg class="edges" width="100%" height="100%"><line x1="18%" y1="10%" x2="50%" y2="30%" stroke="#b4530955" stroke-width="1.5" stroke-dasharray="4 4"/><line x1="82%" y1="10%" x2="50%" y2="30%" stroke="#b4530955" stroke-width="1.5" stroke-dasharray="4 4"/><line x1="50%" y1="30%" x2="18%" y2="50%" stroke="#b4530955" stroke-width="1.5" stroke-dasharray="4 4"/><line x1="50%" y1="30%" x2="82%" y2="50%" stroke="#b4530955" stroke-width="1.5" stroke-dasharray="4 4"/><line x1="18%" y1="50%" x2="50%" y2="70%" stroke="#b4530955" stroke-width="1.5" stroke-dasharray="4 4"/><line x1="82%" y1="50%" x2="50%" y2="70%" stroke="#b4530955" stroke-width="1.5" stroke-dasharray="4 4"/><line x1="50%" y1="70%" x2="50%" y2="90%" stroke="#b4530955" stroke-width="1.5" stroke-dasharray="4 4"/></svg>
+      
+    <div class="node" style="left:18%;top:10%;width:52px">
+      <div class="orb" style="width:52px;height:52px;border-color:#b45309;box-shadow:0 0 10px #b4530955">
+        <span class="ranks" style="color:#b45309">5</span>
+      </div>
+      <div class="nlabel">Bolt Driver</div>
+      <div class="ndesc">+3% Armor Penetration per rank</div>
+      <div class="nmeta">no requirement</div>
+      
+    </div>
+    <div class="node" style="left:82%;top:10%;width:52px">
+      <div class="orb" style="width:52px;height:52px;border-color:#b45309;box-shadow:0 0 10px #b4530955">
+        <span class="ranks" style="color:#b45309">5</span>
+      </div>
+      <div class="nlabel">Punch Through</div>
+      <div class="ndesc">+5% Critical Damage per rank</div>
+      <div class="nmeta">no requirement</div>
+      
+    </div>
+    <div class="node" style="left:50%;top:30%;width:52px">
+      <div class="orb" style="width:52px;height:52px;border-color:#b45309;box-shadow:0 0 10px #b4530955">
+        <span class="ranks" style="color:#b45309">3</span>
+      </div>
+      <div class="nlabel">Marksmanship</div>
+      <div class="ndesc">+2% Critical Chance per rank</div>
+      <div class="nmeta">req 5 pts</div>
+      
+    </div>
+    <div class="node" style="left:18%;top:50%;width:52px">
+      <div class="orb" style="width:52px;height:52px;border-color:#b45309;box-shadow:0 0 10px #b4530955">
+        <span class="ranks" style="color:#b45309">3</span>
+      </div>
+      <div class="nlabel">Heavy Bolts</div>
+      <div class="ndesc">+3% Damage per rank</div>
+      <div class="nmeta">req 10 pts</div>
+      
+    </div>
+    <div class="node" style="left:82%;top:50%;width:52px">
+      <div class="orb" style="width:52px;height:52px;border-color:#b45309;box-shadow:0 0 10px #b4530955">
+        <span class="ranks" style="color:#b45309">3</span>
+      </div>
+      <div class="nlabel">Crank Loader</div>
+      <div class="ndesc">+2% Attack Speed per rank</div>
+      <div class="nmeta">req 10 pts</div>
+      
+    </div>
+    <div class="node" style="left:50%;top:70%;width:52px">
+      <div class="orb" style="width:52px;height:52px;border-color:#b45309;box-shadow:0 0 10px #b4530955">
+        <span class="ranks" style="color:#b45309">5</span>
+      </div>
+      <div class="nlabel">Draining Bolts</div>
+      <div class="ndesc">+2% Lifesteal per rank</div>
+      <div class="nmeta">req 16 pts</div>
+      
+    </div>
+    <div class="node" style="left:50%;top:90%;width:64px">
+      <div class="orb orb-sig" style="width:64px;height:64px;border-color:#b45309;box-shadow:0 0 10px #b4530955">
+        <span class="ranks" style="color:#b45309">1</span>
+      </div>
+      <div class="nlabel">Siege Sniper</div>
+      <div class="ndesc">+12% Armor Penetration</div>
+      <div class="nmeta">req 22 pts</div>
+      <span class="sig" style="color:#b45309">Signature</span>
+    </div>
+    </div>
+  </section>
+
+  <section class="tree" id="tree-staves">
+    <header class="tree-head" style="border-color:#14b8a6">
+      <h2 style="color:#14b8a6">Staves</h2>
+      <p>Battle staves — disciplined, sweeping melee force.</p>
+      <div class="tree-cap">Fully fills at <strong>25</strong> points</div>
+    </header>
+    <div class="chart" style="height:360px;background:radial-gradient(circle at 50% 38%, #14b8a614, transparent 70%)">
+      <svg class="edges" width="100%" height="100%"><line x1="18%" y1="10%" x2="50%" y2="30%" stroke="#14b8a655" stroke-width="1.5" stroke-dasharray="4 4"/><line x1="82%" y1="10%" x2="50%" y2="30%" stroke="#14b8a655" stroke-width="1.5" stroke-dasharray="4 4"/><line x1="50%" y1="30%" x2="18%" y2="50%" stroke="#14b8a655" stroke-width="1.5" stroke-dasharray="4 4"/><line x1="50%" y1="30%" x2="82%" y2="50%" stroke="#14b8a655" stroke-width="1.5" stroke-dasharray="4 4"/><line x1="18%" y1="50%" x2="50%" y2="70%" stroke="#14b8a655" stroke-width="1.5" stroke-dasharray="4 4"/><line x1="82%" y1="50%" x2="50%" y2="70%" stroke="#14b8a655" stroke-width="1.5" stroke-dasharray="4 4"/><line x1="50%" y1="70%" x2="50%" y2="90%" stroke="#14b8a655" stroke-width="1.5" stroke-dasharray="4 4"/></svg>
+      
+    <div class="node" style="left:18%;top:10%;width:52px">
+      <div class="orb" style="width:52px;height:52px;border-color:#14b8a6;box-shadow:0 0 10px #14b8a655">
+        <span class="ranks" style="color:#14b8a6">5</span>
+      </div>
+      <div class="nlabel">Focused Force</div>
+      <div class="ndesc">+3% Damage per rank</div>
+      <div class="nmeta">no requirement</div>
+      
+    </div>
+    <div class="node" style="left:82%;top:10%;width:52px">
+      <div class="orb" style="width:52px;height:52px;border-color:#14b8a6;box-shadow:0 0 10px #14b8a655">
+        <span class="ranks" style="color:#14b8a6">5</span>
+      </div>
+      <div class="nlabel">Keen Insight</div>
+      <div class="ndesc">+2% Critical Chance per rank</div>
+      <div class="nmeta">no requirement</div>
+      
+    </div>
+    <div class="node" style="left:50%;top:30%;width:52px">
+      <div class="orb" style="width:52px;height:52px;border-color:#14b8a6;box-shadow:0 0 10px #14b8a655">
+        <span class="ranks" style="color:#14b8a6">3</span>
+      </div>
+      <div class="nlabel">Empowered Strikes</div>
+      <div class="ndesc">+5% Critical Damage per rank</div>
+      <div class="nmeta">req 5 pts</div>
+      
+    </div>
+    <div class="node" style="left:18%;top:50%;width:52px">
+      <div class="orb" style="width:52px;height:52px;border-color:#14b8a6;box-shadow:0 0 10px #14b8a655">
+        <span class="ranks" style="color:#14b8a6">3</span>
+      </div>
+      <div class="nlabel">Whirling Staff</div>
+      <div class="ndesc">+2% Attack Speed per rank</div>
+      <div class="nmeta">req 10 pts</div>
+      
+    </div>
+    <div class="node" style="left:82%;top:50%;width:52px">
+      <div class="orb" style="width:52px;height:52px;border-color:#14b8a6;box-shadow:0 0 10px #14b8a655">
+        <span class="ranks" style="color:#14b8a6">3</span>
+      </div>
+      <div class="nlabel">Spirit Siphon</div>
+      <div class="ndesc">+2% Lifesteal per rank</div>
+      <div class="nmeta">req 10 pts</div>
+      
+    </div>
+    <div class="node" style="left:50%;top:70%;width:52px">
+      <div class="orb" style="width:52px;height:52px;border-color:#14b8a6;box-shadow:0 0 10px #14b8a655">
+        <span class="ranks" style="color:#14b8a6">5</span>
+      </div>
+      <div class="nlabel">Mind Over Armor</div>
+      <div class="ndesc">+3% Armor Penetration per rank</div>
+      <div class="nmeta">req 16 pts</div>
+      
+    </div>
+    <div class="node" style="left:50%;top:90%;width:64px">
+      <div class="orb orb-sig" style="width:64px;height:64px;border-color:#14b8a6;box-shadow:0 0 10px #14b8a655">
+        <span class="ranks" style="color:#14b8a6">1</span>
+      </div>
+      <div class="nlabel">Staff Grandmaster</div>
+      <div class="ndesc">+12% Damage</div>
+      <div class="nmeta">req 22 pts</div>
+      <span class="sig" style="color:#14b8a6">Signature</span>
+    </div>
+    </div>
+  </section>
+
+  <section class="tree" id="tree-spears">
+    <header class="tree-head" style="border-color:#e879f9">
+      <h2 style="color:#e879f9">Spears</h2>
+      <p>Spears &amp; polearms — swift, impaling reach.</p>
+      <div class="tree-cap">Fully fills at <strong>25</strong> points</div>
+    </header>
+    <div class="chart" style="height:360px;background:radial-gradient(circle at 50% 38%, #e879f914, transparent 70%)">
+      <svg class="edges" width="100%" height="100%"><line x1="18%" y1="10%" x2="50%" y2="30%" stroke="#e879f955" stroke-width="1.5" stroke-dasharray="4 4"/><line x1="82%" y1="10%" x2="50%" y2="30%" stroke="#e879f955" stroke-width="1.5" stroke-dasharray="4 4"/><line x1="50%" y1="30%" x2="18%" y2="50%" stroke="#e879f955" stroke-width="1.5" stroke-dasharray="4 4"/><line x1="50%" y1="30%" x2="82%" y2="50%" stroke="#e879f955" stroke-width="1.5" stroke-dasharray="4 4"/><line x1="18%" y1="50%" x2="50%" y2="70%" stroke="#e879f955" stroke-width="1.5" stroke-dasharray="4 4"/><line x1="82%" y1="50%" x2="50%" y2="70%" stroke="#e879f955" stroke-width="1.5" stroke-dasharray="4 4"/><line x1="50%" y1="70%" x2="50%" y2="90%" stroke="#e879f955" stroke-width="1.5" stroke-dasharray="4 4"/></svg>
+      
+    <div class="node" style="left:18%;top:10%;width:52px">
+      <div class="orb" style="width:52px;height:52px;border-color:#e879f9;box-shadow:0 0 10px #e879f955">
+        <span class="ranks" style="color:#e879f9">5</span>
+      </div>
+      <div class="nlabel">Swift Thrusts</div>
+      <div class="ndesc">+2% Attack Speed per rank</div>
+      <div class="nmeta">no requirement</div>
+      
+    </div>
+    <div class="node" style="left:82%;top:10%;width:52px">
+      <div class="orb" style="width:52px;height:52px;border-color:#e879f9;box-shadow:0 0 10px #e879f955">
+        <span class="ranks" style="color:#e879f9">5</span>
+      </div>
+      <div class="nlabel">Impaling Force</div>
+      <div class="ndesc">+3% Damage per rank</div>
+      <div class="nmeta">no requirement</div>
+      
+    </div>
+    <div class="node" style="left:50%;top:30%;width:52px">
+      <div class="orb" style="width:52px;height:52px;border-color:#e879f9;box-shadow:0 0 10px #e879f955">
+        <span class="ranks" style="color:#e879f9">3</span>
+      </div>
+      <div class="nlabel">Precise Lunge</div>
+      <div class="ndesc">+2% Critical Chance per rank</div>
+      <div class="nmeta">req 5 pts</div>
+      
+    </div>
+    <div class="node" style="left:18%;top:50%;width:52px">
+      <div class="orb" style="width:52px;height:52px;border-color:#e879f9;box-shadow:0 0 10px #e879f955">
+        <span class="ranks" style="color:#e879f9">3</span>
+      </div>
+      <div class="nlabel">Phalanx Pierce</div>
+      <div class="ndesc">+3% Armor Penetration per rank</div>
+      <div class="nmeta">req 10 pts</div>
+      
+    </div>
+    <div class="node" style="left:82%;top:50%;width:52px">
+      <div class="orb" style="width:52px;height:52px;border-color:#e879f9;box-shadow:0 0 10px #e879f955">
+        <span class="ranks" style="color:#e879f9">3</span>
+      </div>
+      <div class="nlabel">Skewer</div>
+      <div class="ndesc">+5% Critical Damage per rank</div>
+      <div class="nmeta">req 10 pts</div>
+      
+    </div>
+    <div class="node" style="left:50%;top:70%;width:52px">
+      <div class="orb" style="width:52px;height:52px;border-color:#e879f9;box-shadow:0 0 10px #e879f955">
+        <span class="ranks" style="color:#e879f9">5</span>
+      </div>
+      <div class="nlabel">Bloodspear</div>
+      <div class="ndesc">+2% Lifesteal per rank</div>
+      <div class="nmeta">req 16 pts</div>
+      
+    </div>
+    <div class="node" style="left:50%;top:90%;width:64px">
+      <div class="orb orb-sig" style="width:64px;height:64px;border-color:#e879f9;box-shadow:0 0 10px #e879f955">
+        <span class="ranks" style="color:#e879f9">1</span>
+      </div>
+      <div class="nlabel">Dragoon's Reach</div>
+      <div class="ndesc">+8% Attack Speed</div>
+      <div class="nmeta">req 22 pts</div>
+      <span class="sig" style="color:#e879f9">Signature</span>
+    </div>
+    </div>
+  </section>
+
+  <section class="tree" id="tree-staffs">
+    <header class="tree-head" style="border-color:#a855f7">
+      <h2 style="color:#a855f7">Staffs</h2>
+      <p>Arcane staffs — bursting spellcraft and soul-draining magic.</p>
+      <div class="tree-cap">Fully fills at <strong>25</strong> points</div>
+    </header>
+    <div class="chart" style="height:360px;background:radial-gradient(circle at 50% 38%, #a855f714, transparent 70%)">
+      <svg class="edges" width="100%" height="100%"><line x1="18%" y1="10%" x2="50%" y2="30%" stroke="#a855f755" stroke-width="1.5" stroke-dasharray="4 4"/><line x1="82%" y1="10%" x2="50%" y2="30%" stroke="#a855f755" stroke-width="1.5" stroke-dasharray="4 4"/><line x1="50%" y1="30%" x2="18%" y2="50%" stroke="#a855f755" stroke-width="1.5" stroke-dasharray="4 4"/><line x1="50%" y1="30%" x2="82%" y2="50%" stroke="#a855f755" stroke-width="1.5" stroke-dasharray="4 4"/><line x1="18%" y1="50%" x2="50%" y2="70%" stroke="#a855f755" stroke-width="1.5" stroke-dasharray="4 4"/><line x1="82%" y1="50%" x2="50%" y2="70%" stroke="#a855f755" stroke-width="1.5" stroke-dasharray="4 4"/><line x1="50%" y1="70%" x2="50%" y2="90%" stroke="#a855f755" stroke-width="1.5" stroke-dasharray="4 4"/></svg>
+      
+    <div class="node" style="left:18%;top:10%;width:52px">
+      <div class="orb" style="width:52px;height:52px;border-color:#a855f7;box-shadow:0 0 10px #a855f755">
+        <span class="ranks" style="color:#a855f7">5</span>
+      </div>
+      <div class="nlabel">Arcane Surge</div>
+      <div class="ndesc">+5% Critical Damage per rank</div>
+      <div class="nmeta">no requirement</div>
+      
+    </div>
+    <div class="node" style="left:82%;top:10%;width:52px">
+      <div class="orb" style="width:52px;height:52px;border-color:#a855f7;box-shadow:0 0 10px #a855f755">
+        <span class="ranks" style="color:#a855f7">5</span>
+      </div>
+      <div class="nlabel">Mana Burn</div>
+      <div class="ndesc">+3% Damage per rank</div>
+      <div class="nmeta">no requirement</div>
+      
+    </div>
+    <div class="node" style="left:50%;top:30%;width:52px">
+      <div class="orb" style="width:52px;height:52px;border-color:#a855f7;box-shadow:0 0 10px #a855f755">
+        <span class="ranks" style="color:#a855f7">3</span>
+      </div>
+      <div class="nlabel">Spell Crit</div>
+      <div class="ndesc">+2% Critical Chance per rank</div>
+      <div class="nmeta">req 5 pts</div>
+      
+    </div>
+    <div class="node" style="left:18%;top:50%;width:52px">
+      <div class="orb" style="width:52px;height:52px;border-color:#a855f7;box-shadow:0 0 10px #a855f755">
+        <span class="ranks" style="color:#a855f7">3</span>
+      </div>
+      <div class="nlabel">Soul Tap</div>
+      <div class="ndesc">+2% Lifesteal per rank</div>
+      <div class="nmeta">req 10 pts</div>
+      
+    </div>
+    <div class="node" style="left:82%;top:50%;width:52px">
+      <div class="orb" style="width:52px;height:52px;border-color:#a855f7;box-shadow:0 0 10px #a855f755">
+        <span class="ranks" style="color:#a855f7">3</span>
+      </div>
+      <div class="nlabel">Quickcast</div>
+      <div class="ndesc">+2% Attack Speed per rank</div>
+      <div class="nmeta">req 10 pts</div>
+      
+    </div>
+    <div class="node" style="left:50%;top:70%;width:52px">
+      <div class="orb" style="width:52px;height:52px;border-color:#a855f7;box-shadow:0 0 10px #a855f755">
+        <span class="ranks" style="color:#a855f7">5</span>
+      </div>
+      <div class="nlabel">Mage Ward Pierce</div>
+      <div class="ndesc">+3% Armor Penetration per rank</div>
+      <div class="nmeta">req 16 pts</div>
+      
+    </div>
+    <div class="node" style="left:50%;top:90%;width:64px">
+      <div class="orb orb-sig" style="width:64px;height:64px;border-color:#a855f7;box-shadow:0 0 10px #a855f755">
+        <span class="ranks" style="color:#a855f7">1</span>
+      </div>
+      <div class="nlabel">Archmage's Fury</div>
+      <div class="ndesc">+20% Critical Damage</div>
+      <div class="nmeta">req 22 pts</div>
+      <span class="sig" style="color:#a855f7">Signature</span>
+    </div>
+    </div>
+  </section>
+  </div>
+  
+  <section class="legend">
+    <h2>Combat Bonuses</h2>
+    <p>Every talent grants a generic passive that folds straight into the character stat engine. Bonuses sum across all weapon trees.</p>
+    <table>
+      <thead><tr><th>Bonus</th><th>Stat key</th><th>Mode</th><th>Per rank</th></tr></thead>
+      <tbody>
+      <tr>
+        <td>Damage</td>
+        <td><code>damage</code></td>
+        <td>multiplicative</td>
+        <td>+3% / rank</td>
+      </tr>
+      <tr>
+        <td>Critical Chance</td>
+        <td><code>criticalChance</code></td>
+        <td>additive (pts)</td>
+        <td>+2% / rank</td>
+      </tr>
+      <tr>
+        <td>Critical Damage</td>
+        <td><code>criticalDamage</code></td>
+        <td>additive (pts)</td>
+        <td>+5% / rank</td>
+      </tr>
+      <tr>
+        <td>Attack Speed</td>
+        <td><code>attackSpeed</code></td>
+        <td>additive (pts)</td>
+        <td>+2% / rank</td>
+      </tr>
+      <tr>
+        <td>Armor Penetration</td>
+        <td><code>armorPenetration</code></td>
+        <td>additive (pts)</td>
+        <td>+3% / rank</td>
+      </tr>
+      <tr>
+        <td>Lifesteal</td>
+        <td><code>drainHealth</code></td>
+        <td>additive (pts)</td>
+        <td>+2% / rank</td>
+      </tr></tbody>
+    </table>
+  </section>
+  <footer>Generated from lib/game-content/src/mastery.ts · do not hand-edit — run <code>pnpm --filter @workspace/scripts run gen-mastery-html</code></footer>
+</body>
+</html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>GRUDGE — Weapons Mastery</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#0a0705;--panel:#140d08;--card:#1e1510;--border:#3a2a1a;--border2:#7a5c1e;
+  --gold:#d4a400;--muted:#9b7d52;--dim:#6b5535;--text:#e7d8be;
+  --font:'Cinzel',Georgia,serif;--font-body:system-ui,-apple-system,sans-serif;
+  --font-mono:'JetBrains Mono',ui-monospace,monospace;
+}
+body{font-family:var(--font-body);background:var(--bg);color:var(--text);line-height:1.55;padding:32px 20px 64px;max-width:1180px;margin:0 auto}
+h1{font-family:var(--font);font-size:34px;color:var(--gold);letter-spacing:1px}
+h2{font-family:var(--font);letter-spacing:.5px}
+.lede{color:var(--muted);font-size:14px;margin:6px 0 24px;max-width:760px}
+.rules{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:32px}
+.rule{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:12px 16px;min-width:150px}
+.rule strong{display:block;font-family:var(--font);font-size:22px;color:var(--gold)}
+.rule span{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px}
+.trees{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:20px}
+.tree{background:var(--panel);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+.tree-head{padding:14px 16px;border-bottom:2px solid var(--border)}
+.tree-head h2{font-size:19px}
+.tree-head p{font-size:12px;color:var(--muted);margin-top:2px}
+.tree-cap{font-size:11px;color:var(--dim);margin-top:6px;font-family:var(--font-mono)}
+.chart{position:relative;margin:8px}
+.edges{position:absolute;inset:0;pointer-events:none}
+.node{position:absolute;transform:translate(-50%,-50%);text-align:center}
+.orb{border:2px solid var(--border2);border-radius:12px;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#1e1510,#120c07);margin:0 auto;position:relative}
+.orb-sig{border-radius:50%}
+.orb .ranks{font-family:var(--font-mono);font-weight:700;font-size:13px}
+.nlabel{font-family:var(--font);font-size:11px;margin-top:8px;color:var(--text);line-height:1.2}
+.ndesc{font-size:10px;color:var(--gold);margin-top:2px}
+.nmeta{font-size:9px;color:var(--dim);font-family:var(--font-mono)}
+.sig{font-size:9px;text-transform:uppercase;letter-spacing:1px;font-weight:700}
+.legend{margin-top:40px;background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:18px 20px}
+.legend p{color:var(--muted);font-size:13px;margin:6px 0 14px;max-width:720px}
+.legend table{width:100%;border-collapse:collapse;font-size:13px}
+.legend th{text-align:left;color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:1px;padding:6px 10px;border-bottom:1px solid var(--border)}
+.legend td{padding:8px 10px;border-bottom:1px solid var(--border)}
+.legend code{font-family:var(--font-mono);color:var(--gold);font-size:12px}
+footer{margin-top:36px;color:var(--dim);font-size:11px;text-align:center}
+</style>
+</head>
+<body>
+  <h1>Weapons Mastery</h1>
+  <p class="lede">A point-allocation talent tree per weapon type. Spend a shared mastery pool — one point per character level — across any of the 9 trees. Generic passive bonuses fold directly into your combat stats, so you can fully master a few weapons but never all of them. This page is generated from the same shipped defs as the in-game tree.</p>
+  <div class="rules">
+    <div class="rule"><strong>100</strong><span>Shared pool cap</span></div>
+    <div class="rule"><strong>1 / level</strong><span>Points earned</span></div>
+    <div class="rule"><strong>9</strong><span>Weapon trees</span></div>
+    <div class="rule"><strong>1 / 3 / 5</strong><span>Ranks per node</span></div>
+  </div>
+  <div class="trees">
+
+  <section class="tree" id="tree-swords">
+    <header class="tree-head" style="border-color:#7dd3fc">
+      <h2 style="color:#7dd3fc">Swords</h2>
+      <p>One-handed &amp; two-handed blades — the balanced duelist.</p>
+      <div class="tree-cap">Fully fills at <strong>25</strong> points</div>
+    </header>
+    <div class="chart" style="height:360px;background:radial-gradient(circle at 50% 38%, #7dd3fc14, transparent 70%)">
+      <svg class="edges" width="100%" height="100%"><line x1="18%" y1="10%" x2="50%" y2="30%" stroke="#7dd3fc55" stroke-width="1.5" stroke-dasharray="4 4"/><line x1="82%" y1="10%" x2="50%" y2="30%" stroke="#7dd3fc55" stroke-width="1.5" stroke-dasharray="4 4"/><line x1="50%" y1="30%" x2="18%" y2="50%" stroke="#7dd3fc55" stroke-width="1.5" stroke-dasharray="4 4"/><line x1="50%" y1="30%" x2="82%" y2="50%" stroke="#7dd3fc55" stroke-width="1.5" stroke-dasharray="4 4"/><line x1="18%" y1="50%" x2="50%" y2="70%" stroke="#7dd3fc55" stroke-width="1.5" stroke-dasharray="4 4"/><line x1="82%" y1="50%" x2="50%" y2="70%" stroke="#7dd3fc55" stroke-width="1.5" stroke-dasharray="4 4"/><line x1="50%" y1="70%" x2="50%" y2="90%" stroke="#7dd3fc55" stroke-width="1.5" stroke-dasharray="4 4"/></svg>
+      
+    <div class="node" style="left:18%;top:10%;width:52px">
+      <div class="orb" style="width:52px;height:52px;border-color:#7dd3fc;box-shadow:0 0 10px #7dd3fc55">
+        <span class="ranks" style="color:#7dd3fc">5</span>
+      </div>
+      <div class="nlabel">Honed Edge</div>
+      <div class="ndesc">+2% Critical Chance per rank</div>
+      <div class="nmeta">no requirement</div>
+      
+    </div>
+    <div class="node" style="left:82%;top:10%;width:52px">
+      <div class="orb" style="width:52px;height:52px;border-color:#7dd3fc;box-shadow:0 0 10px #7dd3fc55">
+        <span class="ranks" style="color:#7dd3fc">5</span>
+      </div>
+      <div class="nlabel">Tempered Steel</div>
+      <div class="ndesc">+3% Damage per rank</div>
+      <div class="nmeta">no requirement</div>
+      
+    </div>
+    <div class="node" style="left:50%;top:30%;width:52px">
+      <div class="orb" style="width:52px;height:52px;border-color:#7dd3fc;box-shadow:0 0 10px #7dd3fc55">
+        <span class="ranks" style="color:#7dd3fc">3</span>
+      </div>
+      <div class="nlabel">Flurry</div>
+      <div class="ndesc">+2% Attack Speed per rank</div>
+      <div class="nmeta">req 5 pts</div>
+      
+    </div>
+    <div class="node" style="left:18%;top:50%;width:52px">
+      <div class="orb" style="width:52px;height:52px;border-color:#7dd3fc;box-shadow:0 0 10px #7dd3fc55">
+        <span class="ranks" style="color:#7dd3fc">3</span>
+      </div>
+      <div class="nlabel">Vital Strike</div>
+      <div class="ndesc">+5% Critical Damage per rank</div>
+      <div class="nmeta">req 10 pts</div>
+      
+    </div>
+    <div class="node" style="left:82%;top:50%;width:52px">
+      <div class="orb" style="width:52px;height:52px;border-color:#7dd3fc;box-shadow:0 0 10px #7dd3fc55">
+        <span class="ranks" style="color:#7dd3fc">3</span>
+      </div>
+      <div class="nlabel">Sundering Cuts</div>
+      <div class="ndesc">+3% Armor Penetration per rank</div>
+      <div class="nmeta">req 10 pts</div>
+      
+    </div>
+    <div class="node" style="left:50%;top:70%;width:52px">
+      <div class="orb" style="width:52px;height:52px;border-color:#7dd3fc;box-shadow:0 0 10px #7dd3fc55">
+        <span class="ranks" style="color:#7dd3fc">5</span>
+      </div>
+      <div class="nlabel">Bloodletting</div>
+      <div class="ndesc">+2% Lifesteal per rank</div>
+      <div class="nmeta">req 16 pts</div>
+      
+    </div>
+    <div class="node" style="left:50%;top:90%;width:64px">
+      <div class="orb orb-sig" style="width:64px;height:64px;border-color:#7dd3fc;box-shadow:0 0 10px #7dd3fc55">
+        <span class="ranks" style="color:#7dd3fc">1</span>
+      </div>
+      <div class="nlabel">Master Swordsman</div>
+      <div class="ndesc">+8% Critical Chance</div>
+      <div class="nmeta">req 22 pts</div>
+      <span class="sig" style="color:#7dd3fc">Signature</span>
+    </div>
+    </div>
+  </section>
+
+  <section class="tree" id="tree-axes">
+    <header class="tree-head" style="border-color:#ef4444">
+      <h2 style="color:#ef4444">Axes</h2>
+      <p>One-handed &amp; two-handed axes — brutal, reckless damage.</p>
+      <div class="tree-cap">Fully fills at <strong>25</strong> points</div>
+    </header>
+    <div class="chart" style="height:360px;background:radial-gradient(circle at 50% 38%, #ef444414, transparent 70%)">
+      <svg class="edges" width="100%" height="100%"><line x1="18%" y1="10%" x2="50%" y2="30%" stroke="#ef444455" stroke-width="1.5" stroke-dasharray="4 4"/><line x1="82%" y1="10%" x2="50%" y2="30%" stroke="#ef444455" stroke-width="1.5" stroke-dasharray="4 4"/><line x1="50%" y1="30%" x2="18%" y2="50%" stroke="#ef444455" stroke-width="1.5" stroke-dasharray="4 4"/><line x1="50%" y1="30%" x2="82%" y2="50%" stroke="#ef444455" stroke-width="1.5" stroke-dasharray="4 4"/><line x1="18%" y1="50%" x2="50%" y2="70%" stroke="#ef444455" stroke-width="1.5" stroke-dasharray="4 4"/><line x1="82%" y1="50%" x2="50%" y2="70%" stroke="#ef444455" stroke-width="1.5" stroke-dasharray="4 4"/><line x1="50%" y1="70%" x2="50%" y2="90%" stroke="#ef444455" stroke-width="1.5" stroke-dasharray="4 4"/></svg>
+      
+    <div class="node" style="left:18%;top:10%;width:52px">
+      <div class="orb" style="width:52px;height:52px;border-color:#ef4444;box-shadow:0 0 10px #ef444455">
+        <span class="ranks" style="color:#ef4444">5</span>
+      </div>
+      <div class="nlabel">Savage Swings</div>
+      <div class="ndesc">+3% Damage per rank</div>
+      <div class="nmeta">no requirement</div>
+      
+    </div>
+    <div class="node" style="left:82%;top:10%;width:52px">
+      <div class="orb" style="width:52px;height:52px;border-color:#ef4444;box-shadow:0 0 10px #ef444455">
+        <span class="ranks" style="color:#ef4444">5</span>
+      </div>
+      <div class="nlabel">Brutal Cleave</div>
+      <div class="ndesc">+5% Critical Damage per rank</div>
+      <div class="nmeta">no requirement</div>
+      
+    </div>
+    <div class="node" style="left:50%;top:30%;width:52px">
+      <div class="orb" style="width:52px;height:52px;border-color:#ef4444;box-shadow:0 0 10px #ef444455">
+        <span class="ranks" style="color:#ef4444">3</span>
+      </div>
+      <div class="nlabel">Rending Blows</div>
+      <div class="ndesc">+3% Armor Penetration per rank</div>
+      <div class="nmeta">req 5 pts</div>
+      
+    </div>
+    <div class="node" style="left:18%;top:50%;width:52px">
+      <div class="orb" style="width:52px;height:52px;border-color:#ef4444;box-shadow:0 0 10px #ef444455">
+        <span class="ranks" style="color:#ef4444">3</span>
+      </div>
+      <div class="nlabel">Reckless Fury</div>
+      <div class="ndesc">+2% Critical Chance per rank</div>
+      <div class="nmeta">req 10 pts</div>
+      
+    </div>
+    <div class="node" style="left:82%;top:50%;width:52px">
+      <div class="orb" style="width:52px;height:52px;border-color:#ef4444;box-shadow:0 0 10px #ef444455">
+        <span class="ranks" style="color:#ef4444">3</span>
+      </div>
+      <div class="nlabel">Gore Drinker</div>
+      <div class="ndesc">+2% Lifesteal per rank</div>
+      <div class="nmeta">req 10 pts</div>
+      
+    </div>
+    <div class="node" style="left:50%;top:70%;width:52px">
+      <div class="orb" style="width:52px;height:52px;border-color:#ef4444;box-shadow:0 0 10px #ef444455">
+        <span class="ranks" style="color:#ef4444">5</span>
+      </div>
+      <div class="nlabel">Frenzied Chops</div>
+      <div class="ndesc">+2% Attack Speed per rank</div>
+      <div class="nmeta">req 16 pts</div>
+      
+    </div>
+    <div class="node" style="left:50%;top:90%;width:64px">
+      <div class="orb orb-sig" style="width:64px;height:64px;border-color:#ef4444;box-shadow:0 0 10px #ef444455">
+        <span class="ranks" style="color:#ef4444">1</span>
+      </div>
+      <div class="nlabel">Berserker's Edge</div>
+      <div class="ndesc">+12% Damage</div>
+      <div class="nmeta">req 22 pts</div>
+      <span class="sig" style="color:#ef4444">Signature</span>
+    </div>
+    </div>
+  </section>
+
+  <section class="tree" id="tree-hammers">
+    <header class="tree-head" style="border-color:#f59e0b">
+      <h2 style="color:#f59e0b">Hammers</h2>
+      <p>One-handed &amp; two-handed hammers — crushing, armor-shattering force.</p>
+      <div class="tree-cap">Fully fills at <strong>25</strong> points</div>
+    </header>
+    <div class="chart" style="height:360px;background:radial-gradient(circle at 50% 38%, #f59e0b14, transparent 70%)">
+      <svg class="edges" width="100%" height="100%"><line x1="18%" y1="10%" x2="50%" y2="30%" stroke="#f59e0b55" stroke-width="1.5" stroke-dasharray="4 4"/><line x1="82%" y1="10%" x2="50%" y2="30%" stroke="#f59e0b55" stroke-width="1.5" stroke-dasharray="4 4"/><line x1="50%" y1="30%" x2="18%" y2="50%" stroke="#f59e0b55" stroke-width="1.5" stroke-dasharray="4 4"/><line x1="50%" y1="30%" x2="82%" y2="50%" stroke="#f59e0b55" stroke-width="1.5" stroke-dasharray="4 4"/><line x1="18%" y1="50%" x2="50%" y2="70%" stroke="#f59e0b55" stroke-width="1.5" stroke-dasharray="4 4"/><line x1="82%" y1="50%" x2="50%" y2="70%" stroke="#f59e0b55" stroke-width="1.5" stroke-dasharray="4 4"/><line x1="50%" y1="70%" x2="50%" y2="90%" stroke="#f59e0b55" stroke-width="1.5" stroke-dasharray="4 4"/></svg>
+      
+    <div class="node" style="left:18%;top:10%;width:52px">
+      <div class="orb" style="width:52px;height:52px;border-color:#f59e0b;box-shadow:0 0 10px #f59e0b55">
+        <span class="ranks" style="color:#f59e0b">5</span>
+      </div>
+      <div class="nlabel">Crushing Blow</div>
+      <div class="ndesc">+5% Critical Damage per rank</div>
+      <div class="nmeta">no requirement</div>
+      
+    </div>
+    <div class="node" style="left:82%;top:10%;width:52px">
+      <div class="orb" style="width:52px;height:52px;border-color:#f59e0b;box-shadow:0 0 10px #f59e0b55">
+        <span class="ranks" style="color:#f59e0b">5</span>
+      </div>
+      <div class="nlabel">Plate Breaker</div>
+      <div class="ndesc">+3% Armor Penetration per rank</div>
+      <div class="nmeta">no requirement</div>
+      
+    </div>
+    <div class="node" style="left:50%;top:30%;width:52px">
+      <div class="orb" style="width:52px;height:52px;border-color:#f59e0b;box-shadow:0 0 10px #f59e0b55">
+        <span class="ranks" style="color:#f59e0b">3</span>
+      </div>
+      <div class="nlabel">Heavy Impact</div>
+      <div class="ndesc">+3% Damage per rank</div>
+      <div class="nmeta">req 5 pts</div>
+      
+    </div>
+    <div class="node" style="left:18%;top:50%;width:52px">
+      <div class="orb" style="width:52px;height:52px;border-color:#f59e0b;box-shadow:0 0 10px #f59e0b55">
+        <span class="ranks" style="color:#f59e0b">3</span>
+      </div>
+      <div class="nlabel">Concussive Strike</div>
+      <div class="ndesc">+2% Critical Chance per rank</div>
+      <div class="nmeta">req 10 pts</div>
+      
+    </div>
+    <div class="node" style="left:82%;top:50%;width:52px">
+      <div class="orb" style="width:52px;height:52px;border-color:#f59e0b;box-shadow:0 0 10px #f59e0b55">
+        <span class="ranks" style="color:#f59e0b">3</span>
+      </div>
+      <div class="nlabel">Momentum</div>
+      <div class="ndesc">+2% Attack Speed per rank</div>
+      <div class="nmeta">req 10 pts</div>
+      
+    </div>
+    <div class="node" style="left:50%;top:70%;width:52px">
+      <div class="orb" style="width:52px;height:52px;border-color:#f59e0b;box-shadow:0 0 10px #f59e0b55">
+        <span class="ranks" style="color:#f59e0b">5</span>
+      </div>
+      <div class="nlabel">Lifebreaker</div>
+      <div class="ndesc">+2% Lifesteal per rank</div>
+      <div class="nmeta">req 16 pts</div>
+      
+    </div>
+    <div class="node" style="left:50%;top:90%;width:64px">
+      <div class="orb orb-sig" style="width:64px;height:64px;border-color:#f59e0b;box-shadow:0 0 10px #f59e0b55">
+        <span class="ranks" style="color:#f59e0b">1</span>
+      </div>
+      <div class="nlabel">Earthshatter</div>
+      <div class="ndesc">+20% Critical Damage</div>
+      <div class="nmeta">req 22 pts</div>
+      <span class="sig" style="color:#f59e0b">Signature</span>
+    </div>
+    </div>
+  </section>
+
+  <section class="tree" id="tree-guns">
+    <header class="tree-head" style="border-color:#94a3b8">
+      <h2 style="color:#94a3b8">Guns</h2>
+      <p>Firearms — armor-piercing precision at range.</p>
+      <div class="tree-cap">Fully fills at <strong>25</strong> points</div>
+    </header>
+    <div class="chart" style="height:360px;background:radial-gradient(circle at 50% 38%, #94a3b814, transparent 70%)">
+      <svg class="edges" width="100%" height="100%"><line x1="18%" y1="10%" x2="50%" y2="30%" stroke="#94a3b855" stroke-width="1.5" stroke-dasharray="4 4"/><line x1="82%" y1="10%" x2="50%" y2="30%" stroke="#94a3b855" stroke-width="1.5" stroke-dasharray="4 4"/><line x1="50%" y1="30%" x2="18%" y2="50%" stroke="#94a3b855" stroke-width="1.5" stroke-dasharray="4 4"/><line x1="50%" y1="30%" x2="82%" y2="50%" stroke="#94a3b855" stroke-width="1.5" stroke-dasharray="4 4"/><line x1="18%" y1="50%" x2="50%" y2="70%" stroke="#94a3b855" stroke-width="1.5" stroke-dasharray="4 4"/><line x1="82%" y1="50%" x2="50%" y2="70%" stroke="#94a3b855" stroke-width="1.5" stroke-dasharray="4 4"/><line x1="50%" y1="70%" x2="50%" y2="90%" stroke="#94a3b855" stroke-width="1.5" stroke-dasharray="4 4"/></svg>
+      
+    <div class="node" style="left:18%;top:10%;width:52px">
+      <div class="orb" style="width:52px;height:52px;border-color:#94a3b8;box-shadow:0 0 10px #94a3b855">
+        <span class="ranks" style="color:#94a3b8">5</span>
+      </div>
+      <div class="nlabel">Armor Piercer</div>
+      <div class="ndesc">+3% Armor Penetration per rank</div>
+      <div class="nmeta">no requirement</div>
+      
+    </div>
+    <div class="node" style="left:82%;top:10%;width:52px">
+      <div class="orb" style="width:52px;height:52px;border-color:#94a3b8;box-shadow:0 0 10px #94a3b855">
+        <span class="ranks" style="color:#94a3b8">5</span>
+      </div>
+      <div class="nlabel">Steady Aim</div>
+      <div class="ndesc">+2% Critical Chance per rank</div>
+      <div class="nmeta">no requirement</div>
+      
+    </div>
+    <div class="node" style="left:50%;top:30%;width:52px">
+      <div class="orb" style="width:52px;height:52px;border-color:#94a3b8;box-shadow:0 0 10px #94a3b855">
+        <span class="ranks" style="color:#94a3b8">3</span>
+      </div>
+      <div class="nlabel">Rapid Fire</div>
+      <div class="ndesc">+2% Attack Speed per rank</div>
+      <div class="nmeta">req 5 pts</div>
+      
+    </div>
+    <div class="node" style="left:18%;top:50%;width:52px">
+      <div class="orb" style="width:52px;height:52px;border-color:#94a3b8;box-shadow:0 0 10px #94a3b855">
+        <span class="ranks" style="color:#94a3b8">3</span>
+      </div>
+      <div class="nlabel">Heavy Rounds</div>
+      <div class="ndesc">+3% Damage per rank</div>
+      <div class="nmeta">req 10 pts</div>
+      
+    </div>
+    <div class="node" style="left:82%;top:50%;width:52px">
+      <div class="orb" style="width:52px;height:52px;border-color:#94a3b8;box-shadow:0 0 10px #94a3b855">
+        <span class="ranks" style="color:#94a3b8">3</span>
+      </div>
+      <div class="nlabel">Kill Shot</div>
+      <div class="ndesc">+5% Critical Damage per rank</div>
+      <div class="nmeta">req 10 pts</div>
+      
+    </div>
+    <div class="node" style="left:50%;top:70%;width:52px">
+      <div class="orb" style="width:52px;height:52px;border-color:#94a3b8;box-shadow:0 0 10px #94a3b855">
+        <span class="ranks" style="color:#94a3b8">5</span>
+      </div>
+      <div class="nlabel">Siphon Rounds</div>
+      <div class="ndesc">+2% Lifesteal per rank</div>
+      <div class="nmeta">req 16 pts</div>
+      
+    </div>
+    <div class="node" style="left:50%;top:90%;width:64px">
+      <div class="orb orb-sig" style="width:64px;height:64px;border-color:#94a3b8;box-shadow:0 0 10px #94a3b855">
+        <span class="ranks" style="color:#94a3b8">1</span>
+      </div>
+      <div class="nlabel">Deadeye</div>
+      <div class="ndesc">+12% Armor Penetration</div>
+      <div class="nmeta">req 22 pts</div>
+      <span class="sig" style="color:#94a3b8">Signature</span>
+    </div>
+    </div>
+  </section>
+
+  <section class="tree" id="tree-bows">
+    <header class="tree-head" style="border-color:#22c55e">
+      <h2 style="color:#22c55e">Bows</h2>
+      <p>Bows — agile, fast-firing marksmanship.</p>
+      <div class="tree-cap">Fully fills at <strong>25</strong> points</div>
+    </header>
+    <div class="chart" style="height:360px;background:radial-gradient(circle at 50% 38%, #22c55e14, transparent 70%)">
+      <svg class="edges" width="100%" height="100%"><line x1="18%" y1="10%" x2="50%" y2="30%" stroke="#22c55e55" stroke-width="1.5" stroke-dasharray="4 4"/><line x1="82%" y1="10%" x2="50%" y2="30%" stroke="#22c55e55" stroke-width="1.5" stroke-dasharray="4 4"/><line x1="50%" y1="30%" x2="18%" y2="50%" stroke="#22c55e55" stroke-width="1.5" stroke-dasharray="4 4"/><line x1="50%" y1="30%" x2="82%" y2="50%" stroke="#22c55e55" stroke-width="1.5" stroke-dasharray="4 4"/><line x1="18%" y1="50%" x2="50%" y2="70%" stroke="#22c55e55" stroke-width="1.5" stroke-dasharray="4 4"/><line x1="82%" y1="50%" x2="50%" y2="70%" stroke="#22c55e55" stroke-width="1.5" stroke-dasharray="4 4"/><line x1="50%" y1="70%" x2="50%" y2="90%" stroke="#22c55e55" stroke-width="1.5" stroke-dasharray="4 4"/></svg>
+      
+    <div class="node" style="left:18%;top:10%;width:52px">
+      <div class="orb" style="width:52px;height:52px;border-color:#22c55e;box-shadow:0 0 10px #22c55e55">
+        <span class="ranks" style="color:#22c55e">5</span>
+      </div>
+      <div class="nlabel">Quick Draw</div>
+      <div class="ndesc">+2% Attack Speed per rank</div>
+      <div class="nmeta">no requirement</div>
+      
+    </div>
+    <div class="node" style="left:82%;top:10%;width:52px">
+      <div class="orb" style="width:52px;height:52px;border-color:#22c55e;box-shadow:0 0 10px #22c55e55">
+        <span class="ranks" style="color:#22c55e">5</span>
+      </div>
+      <div class="nlabel">Eagle Eye</div>
+      <div class="ndesc">+2% Critical Chance per rank</div>
+      <div class="nmeta">no requirement</div>
+      
+    </div>
+    <div class="node" style="left:50%;top:30%;width:52px">
+      <div class="orb" style="width:52px;height:52px;border-color:#22c55e;box-shadow:0 0 10px #22c55e55">
+        <span class="ranks" style="color:#22c55e">3</span>
+      </div>
+      <div class="nlabel">Power Shot</div>
+      <div class="ndesc">+3% Damage per rank</div>
+      <div class="nmeta">req 5 pts</div>
+      
+    </div>
+    <div class="node" style="left:18%;top:50%;width:52px">
+      <div class="orb" style="width:52px;height:52px;border-color:#22c55e;box-shadow:0 0 10px #22c55e55">
+        <span class="ranks" style="color:#22c55e">3</span>
+      </div>
+      <div class="nlabel">Vital Aim</div>
+      <div class="ndesc">+5% Critical Damage per rank</div>
+      <div class="nmeta">req 10 pts</div>
+      
+    </div>
+    <div class="node" style="left:82%;top:50%;width:52px">
+      <div class="orb" style="width:52px;height:52px;border-color:#22c55e;box-shadow:0 0 10px #22c55e55">
+        <span class="ranks" style="color:#22c55e">3</span>
+      </div>
+      <div class="nlabel">Bodkin Tips</div>
+      <div class="ndesc">+3% Armor Penetration per rank</div>
+      <div class="nmeta">req 10 pts</div>
+      
+    </div>
+    <div class="node" style="left:50%;top:70%;width:52px">
+      <div class="orb" style="width:52px;height:52px;border-color:#22c55e;box-shadow:0 0 10px #22c55e55">
+        <span class="ranks" style="color:#22c55e">5</span>
+      </div>
+      <div class="nlabel">Leeching Arrows</div>
+      <div class="ndesc">+2% Lifesteal per rank</div>
+      <div class="nmeta">req 16 pts</div>
+      
+    </div>
+    <div class="node" style="left:50%;top:90%;width:64px">
+      <div class="orb orb-sig" style="width:64px;height:64px;border-color:#22c55e;box-shadow:0 0 10px #22c55e55">
+        <span class="ranks" style="color:#22c55e">1</span>
+      </div>
+      <div class="nlabel">Master Archer</div>
+      <div class="ndesc">+8% Attack Speed</div>
+      <div class="nmeta">req 22 pts</div>
+      <span class="sig" style="color:#22c55e">Signature</span>
+    </div>
+    </div>
+  </section>
+
+  <section class="tree" id="tree-crossbows">
+    <header class="tree-head" style="border-color:#b45309">
+      <h2 style="color:#b45309">Crossbows</h2>
+      <p>Crossbows — heavy bolts that punch through armor.</p>
+      <div class="tree-cap">Fully fills at <strong>25</strong> points</div>
+    </header>
+    <div class="chart" style="height:360px;background:radial-gradient(circle at 50% 38%, #b4530914, transparent 70%)">
+      <svg class="edges" width="100%" height="100%"><line x1="18%" y1="10%" x2="50%" y2="30%" stroke="#b4530955" stroke-width="1.5" stroke-dasharray="4 4"/><line x1="82%" y1="10%" x2="50%" y2="30%" stroke="#b4530955" stroke-width="1.5" stroke-dasharray="4 4"/><line x1="50%" y1="30%" x2="18%" y2="50%" stroke="#b4530955" stroke-width="1.5" stroke-dasharray="4 4"/><line x1="50%" y1="30%" x2="82%" y2="50%" stroke="#b4530955" stroke-width="1.5" stroke-dasharray="4 4"/><line x1="18%" y1="50%" x2="50%" y2="70%" stroke="#b4530955" stroke-width="1.5" stroke-dasharray="4 4"/><line x1="82%" y1="50%" x2="50%" y2="70%" stroke="#b4530955" stroke-width="1.5" stroke-dasharray="4 4"/><line x1="50%" y1="70%" x2="50%" y2="90%" stroke="#b4530955" stroke-width="1.5" stroke-dasharray="4 4"/></svg>
+      
+    <div class="node" style="left:18%;top:10%;width:52px">
+      <div class="orb" style="width:52px;height:52px;border-color:#b45309;box-shadow:0 0 10px #b4530955">
+        <span class="ranks" style="color:#b45309">5</span>
+      </div>
+      <div class="nlabel">Bolt Driver</div>
+      <div class="ndesc">+3% Armor Penetration per rank</div>
+      <div class="nmeta">no requirement</div>
+      
+    </div>
+    <div class="node" style="left:82%;top:10%;width:52px">
+      <div class="orb" style="width:52px;height:52px;border-color:#b45309;box-shadow:0 0 10px #b4530955">
+        <span class="ranks" style="color:#b45309">5</span>
+      </div>
+      <div class="nlabel">Punch Through</div>
+      <div class="ndesc">+5% Critical Damage per rank</div>
+      <div class="nmeta">no requirement</div>
+      
+    </div>
+    <div class="node" style="left:50%;top:30%;width:52px">
+      <div class="orb" style="width:52px;height:52px;border-color:#b45309;box-shadow:0 0 10px #b4530955">
+        <span class="ranks" style="color:#b45309">3</span>
+      </div>
+      <div class="nlabel">Marksmanship</div>
+      <div class="ndesc">+2% Critical Chance per rank</div>
+      <div class="nmeta">req 5 pts</div>
+      
+    </div>
+    <div class="node" style="left:18%;top:50%;width:52px">
+      <div class="orb" style="width:52px;height:52px;border-color:#b45309;box-shadow:0 0 10px #b4530955">
+        <span class="ranks" style="color:#b45309">3</span>
+      </div>
+      <div class="nlabel">Heavy Bolts</div>
+      <div class="ndesc">+3% Damage per rank</div>
+      <div class="nmeta">req 10 pts</div>
+      
+    </div>
+    <div class="node" style="left:82%;top:50%;width:52px">
+      <div class="orb" style="width:52px;height:52px;border-color:#b45309;box-shadow:0 0 10px #b4530955">
+        <span class="ranks" style="color:#b45309">3</span>
+      </div>
+      <div class="nlabel">Crank Loader</div>
+      <div class="ndesc">+2% Attack Speed per rank</div>
+      <div class="nmeta">req 10 pts</div>
+      
+    </div>
+    <div class="node" style="left:50%;top:70%;width:52px">
+      <div class="orb" style="width:52px;height:52px;border-color:#b45309;box-shadow:0 0 10px #b4530955">
+        <span class="ranks" style="color:#b45309">5</span>
+      </div>
+      <div class="nlabel">Draining Bolts</div>
+      <div class="ndesc">+2% Lifesteal per rank</div>
+      <div class="nmeta">req 16 pts</div>
+      
+    </div>
+    <div class="node" style="left:50%;top:90%;width:64px">
+      <div class="orb orb-sig" style="width:64px;height:64px;border-color:#b45309;box-shadow:0 0 10px #b4530955">
+        <span class="ranks" style="color:#b45309">1</span>
+      </div>
+      <div class="nlabel">Siege Sniper</div>
+      <div class="ndesc">+12% Armor Penetration</div>
+      <div class="nmeta">req 22 pts</div>
+      <span class="sig" style="color:#b45309">Signature</span>
+    </div>
+    </div>
+  </section>
+
+  <section class="tree" id="tree-staves">
+    <header class="tree-head" style="border-color:#14b8a6">
+      <h2 style="color:#14b8a6">Staves</h2>
+      <p>Battle staves — disciplined, sweeping melee force.</p>
+      <div class="tree-cap">Fully fills at <strong>25</strong> points</div>
+    </header>
+    <div class="chart" style="height:360px;background:radial-gradient(circle at 50% 38%, #14b8a614, transparent 70%)">
+      <svg class="edges" width="100%" height="100%"><line x1="18%" y1="10%" x2="50%" y2="30%" stroke="#14b8a655" stroke-width="1.5" stroke-dasharray="4 4"/><line x1="82%" y1="10%" x2="50%" y2="30%" stroke="#14b8a655" stroke-width="1.5" stroke-dasharray="4 4"/><line x1="50%" y1="30%" x2="18%" y2="50%" stroke="#14b8a655" stroke-width="1.5" stroke-dasharray="4 4"/><line x1="50%" y1="30%" x2="82%" y2="50%" stroke="#14b8a655" stroke-width="1.5" stroke-dasharray="4 4"/><line x1="18%" y1="50%" x2="50%" y2="70%" stroke="#14b8a655" stroke-width="1.5" stroke-dasharray="4 4"/><line x1="82%" y1="50%" x2="50%" y2="70%" stroke="#14b8a655" stroke-width="1.5" stroke-dasharray="4 4"/><line x1="50%" y1="70%" x2="50%" y2="90%" stroke="#14b8a655" stroke-width="1.5" stroke-dasharray="4 4"/></svg>
+      
+    <div class="node" style="left:18%;top:10%;width:52px">
+      <div class="orb" style="width:52px;height:52px;border-color:#14b8a6;box-shadow:0 0 10px #14b8a655">
+        <span class="ranks" style="color:#14b8a6">5</span>
+      </div>
+      <div class="nlabel">Focused Force</div>
+      <div class="ndesc">+3% Damage per rank</div>
+      <div class="nmeta">no requirement</div>
+      
+    </div>
+    <div class="node" style="left:82%;top:10%;width:52px">
+      <div class="orb" style="width:52px;height:52px;border-color:#14b8a6;box-shadow:0 0 10px #14b8a655">
+        <span class="ranks" style="color:#14b8a6">5</span>
+      </div>
+      <div class="nlabel">Keen Insight</div>
+      <div class="ndesc">+2% Critical Chance per rank</div>
+      <div class="nmeta">no requirement</div>
+      
+    </div>
+    <div class="node" style="left:50%;top:30%;width:52px">
+      <div class="orb" style="width:52px;height:52px;border-color:#14b8a6;box-shadow:0 0 10px #14b8a655">
+        <span class="ranks" style="color:#14b8a6">3</span>
+      </div>
+      <div class="nlabel">Empowered Strikes</div>
+      <div class="ndesc">+5% Critical Damage per rank</div>
+      <div class="nmeta">req 5 pts</div>
+      
+    </div>
+    <div class="node" style="left:18%;top:50%;width:52px">
+      <div class="orb" style="width:52px;height:52px;border-color:#14b8a6;box-shadow:0 0 10px #14b8a655">
+        <span class="ranks" style="color:#14b8a6">3</span>
+      </div>
+      <div class="nlabel">Whirling Staff</div>
+      <div class="ndesc">+2% Attack Speed per rank</div>
+      <div class="nmeta">req 10 pts</div>
+      
+    </div>
+    <div class="node" style="left:82%;top:50%;width:52px">
+      <div class="orb" style="width:52px;height:52px;border-color:#14b8a6;box-shadow:0 0 10px #14b8a655">
+        <span class="ranks" style="color:#14b8a6">3</span>
+      </div>
+      <div class="nlabel">Spirit Siphon</div>
+      <div class="ndesc">+2% Lifesteal per rank</div>
+      <div class="nmeta">req 10 pts</div>
+      
+    </div>
+    <div class="node" style="left:50%;top:70%;width:52px">
+      <div class="orb" style="width:52px;height:52px;border-color:#14b8a6;box-shadow:0 0 10px #14b8a655">
+        <span class="ranks" style="color:#14b8a6">5</span>
+      </div>
+      <div class="nlabel">Mind Over Armor</div>
+      <div class="ndesc">+3% Armor Penetration per rank</div>
+      <div class="nmeta">req 16 pts</div>
+      
+    </div>
+    <div class="node" style="left:50%;top:90%;width:64px">
+      <div class="orb orb-sig" style="width:64px;height:64px;border-color:#14b8a6;box-shadow:0 0 10px #14b8a655">
+        <span class="ranks" style="color:#14b8a6">1</span>
+      </div>
+      <div class="nlabel">Staff Grandmaster</div>
+      <div class="ndesc">+12% Damage</div>
+      <div class="nmeta">req 22 pts</div>
+      <span class="sig" style="color:#14b8a6">Signature</span>
+    </div>
+    </div>
+  </section>
+
+  <section class="tree" id="tree-spears">
+    <header class="tree-head" style="border-color:#e879f9">
+      <h2 style="color:#e879f9">Spears</h2>
+      <p>Spears &amp; polearms — swift, impaling reach.</p>
+      <div class="tree-cap">Fully fills at <strong>25</strong> points</div>
+    </header>
+    <div class="chart" style="height:360px;background:radial-gradient(circle at 50% 38%, #e879f914, transparent 70%)">
+      <svg class="edges" width="100%" height="100%"><line x1="18%" y1="10%" x2="50%" y2="30%" stroke="#e879f955" stroke-width="1.5" stroke-dasharray="4 4"/><line x1="82%" y1="10%" x2="50%" y2="30%" stroke="#e879f955" stroke-width="1.5" stroke-dasharray="4 4"/><line x1="50%" y1="30%" x2="18%" y2="50%" stroke="#e879f955" stroke-width="1.5" stroke-dasharray="4 4"/><line x1="50%" y1="30%" x2="82%" y2="50%" stroke="#e879f955" stroke-width="1.5" stroke-dasharray="4 4"/><line x1="18%" y1="50%" x2="50%" y2="70%" stroke="#e879f955" stroke-width="1.5" stroke-dasharray="4 4"/><line x1="82%" y1="50%" x2="50%" y2="70%" stroke="#e879f955" stroke-width="1.5" stroke-dasharray="4 4"/><line x1="50%" y1="70%" x2="50%" y2="90%" stroke="#e879f955" stroke-width="1.5" stroke-dasharray="4 4"/></svg>
+      
+    <div class="node" style="left:18%;top:10%;width:52px">
+      <div class="orb" style="width:52px;height:52px;border-color:#e879f9;box-shadow:0 0 10px #e879f955">
+        <span class="ranks" style="color:#e879f9">5</span>
+      </div>
+      <div class="nlabel">Swift Thrusts</div>
+      <div class="ndesc">+2% Attack Speed per rank</div>
+      <div class="nmeta">no requirement</div>
+      
+    </div>
+    <div class="node" style="left:82%;top:10%;width:52px">
+      <div class="orb" style="width:52px;height:52px;border-color:#e879f9;box-shadow:0 0 10px #e879f955">
+        <span class="ranks" style="color:#e879f9">5</span>
+      </div>
+      <div class="nlabel">Impaling Force</div>
+      <div class="ndesc">+3% Damage per rank</div>
+      <div class="nmeta">no requirement</div>
+      
+    </div>
+    <div class="node" style="left:50%;top:30%;width:52px">
+      <div class="orb" style="width:52px;height:52px;border-color:#e879f9;box-shadow:0 0 10px #e879f955">
+        <span class="ranks" style="color:#e879f9">3</span>
+      </div>
+      <div class="nlabel">Precise Lunge</div>
+      <div class="ndesc">+2% Critical Chance per rank</div>
+      <div class="nmeta">req 5 pts</div>
+      
+    </div>
+    <div class="node" style="left:18%;top:50%;width:52px">
+      <div class="orb" style="width:52px;height:52px;border-color:#e879f9;box-shadow:0 0 10px #e879f955">
+        <span class="ranks" style="color:#e879f9">3</span>
+      </div>
+      <div class="nlabel">Phalanx Pierce</div>
+      <div class="ndesc">+3% Armor Penetration per rank</div>
+      <div class="nmeta">req 10 pts</div>
+      
+    </div>
+    <div class="node" style="left:82%;top:50%;width:52px">
+      <div class="orb" style="width:52px;height:52px;border-color:#e879f9;box-shadow:0 0 10px #e879f955">
+        <span class="ranks" style="color:#e879f9">3</span>
+      </div>
+      <div class="nlabel">Skewer</div>
+      <div class="ndesc">+5% Critical Damage per rank</div>
+      <div class="nmeta">req 10 pts</div>
+      
+    </div>
+    <div class="node" style="left:50%;top:70%;width:52px">
+      <div class="orb" style="width:52px;height:52px;border-color:#e879f9;box-shadow:0 0 10px #e879f955">
+        <span class="ranks" style="color:#e879f9">5</span>
+      </div>
+      <div class="nlabel">Bloodspear</div>
+      <div class="ndesc">+2% Lifesteal per rank</div>
+      <div class="nmeta">req 16 pts</div>
+      
+    </div>
+    <div class="node" style="left:50%;top:90%;width:64px">
+      <div class="orb orb-sig" style="width:64px;height:64px;border-color:#e879f9;box-shadow:0 0 10px #e879f955">
+        <span class="ranks" style="color:#e879f9">1</span>
+      </div>
+      <div class="nlabel">Dragoon's Reach</div>
+      <div class="ndesc">+8% Attack Speed</div>
+      <div class="nmeta">req 22 pts</div>
+      <span class="sig" style="color:#e879f9">Signature</span>
+    </div>
+    </div>
+  </section>
+
+  <section class="tree" id="tree-staffs">
+    <header class="tree-head" style="border-color:#a855f7">
+      <h2 style="color:#a855f7">Staffs</h2>
+      <p>Arcane staffs — bursting spellcraft and soul-draining magic.</p>
+      <div class="tree-cap">Fully fills at <strong>25</strong> points</div>
+    </header>
+    <div class="chart" style="height:360px;background:radial-gradient(circle at 50% 38%, #a855f714, transparent 70%)">
+      <svg class="edges" width="100%" height="100%"><line x1="18%" y1="10%" x2="50%" y2="30%" stroke="#a855f755" stroke-width="1.5" stroke-dasharray="4 4"/><line x1="82%" y1="10%" x2="50%" y2="30%" stroke="#a855f755" stroke-width="1.5" stroke-dasharray="4 4"/><line x1="50%" y1="30%" x2="18%" y2="50%" stroke="#a855f755" stroke-width="1.5" stroke-dasharray="4 4"/><line x1="50%" y1="30%" x2="82%" y2="50%" stroke="#a855f755" stroke-width="1.5" stroke-dasharray="4 4"/><line x1="18%" y1="50%" x2="50%" y2="70%" stroke="#a855f755" stroke-width="1.5" stroke-dasharray="4 4"/><line x1="82%" y1="50%" x2="50%" y2="70%" stroke="#a855f755" stroke-width="1.5" stroke-dasharray="4 4"/><line x1="50%" y1="70%" x2="50%" y2="90%" stroke="#a855f755" stroke-width="1.5" stroke-dasharray="4 4"/></svg>
+      
+    <div class="node" style="left:18%;top:10%;width:52px">
+      <div class="orb" style="width:52px;height:52px;border-color:#a855f7;box-shadow:0 0 10px #a855f755">
+        <span class="ranks" style="color:#a855f7">5</span>
+      </div>
+      <div class="nlabel">Arcane Surge</div>
+      <div class="ndesc">+5% Critical Damage per rank</div>
+      <div class="nmeta">no requirement</div>
+      
+    </div>
+    <div class="node" style="left:82%;top:10%;width:52px">
+      <div class="orb" style="width:52px;height:52px;border-color:#a855f7;box-shadow:0 0 10px #a855f755">
+        <span class="ranks" style="color:#a855f7">5</span>
+      </div>
+      <div class="nlabel">Mana Burn</div>
+      <div class="ndesc">+3% Damage per rank</div>
+      <div class="nmeta">no requirement</div>
+      
+    </div>
+    <div class="node" style="left:50%;top:30%;width:52px">
+      <div class="orb" style="width:52px;height:52px;border-color:#a855f7;box-shadow:0 0 10px #a855f755">
+        <span class="ranks" style="color:#a855f7">3</span>
+      </div>
+      <div class="nlabel">Spell Crit</div>
+      <div class="ndesc">+2% Critical Chance per rank</div>
+      <div class="nmeta">req 5 pts</div>
+      
+    </div>
+    <div class="node" style="left:18%;top:50%;width:52px">
+      <div class="orb" style="width:52px;height:52px;border-color:#a855f7;box-shadow:0 0 10px #a855f755">
+        <span class="ranks" style="color:#a855f7">3</span>
+      </div>
+      <div class="nlabel">Soul Tap</div>
+      <div class="ndesc">+2% Lifesteal per rank</div>
+      <div class="nmeta">req 10 pts</div>
+      
+    </div>
+    <div class="node" style="left:82%;top:50%;width:52px">
+      <div class="orb" style="width:52px;height:52px;border-color:#a855f7;box-shadow:0 0 10px #a855f755">
+        <span class="ranks" style="color:#a855f7">3</span>
+      </div>
+      <div class="nlabel">Quickcast</div>
+      <div class="ndesc">+2% Attack Speed per rank</div>
+      <div class="nmeta">req 10 pts</div>
+      
+    </div>
+    <div class="node" style="left:50%;top:70%;width:52px">
+      <div class="orb" style="width:52px;height:52px;border-color:#a855f7;box-shadow:0 0 10px #a855f755">
+        <span class="ranks" style="color:#a855f7">5</span>
+      </div>
+      <div class="nlabel">Mage Ward Pierce</div>
+      <div class="ndesc">+3% Armor Penetration per rank</div>
+      <div class="nmeta">req 16 pts</div>
+      
+    </div>
+    <div class="node" style="left:50%;top:90%;width:64px">
+      <div class="orb orb-sig" style="width:64px;height:64px;border-color:#a855f7;box-shadow:0 0 10px #a855f755">
+        <span class="ranks" style="color:#a855f7">1</span>
+      </div>
+      <div class="nlabel">Archmage's Fury</div>
+      <div class="ndesc">+20% Critical Damage</div>
+      <div class="nmeta">req 22 pts</div>
+      <span class="sig" style="color:#a855f7">Signature</span>
+    </div>
+    </div>
+  </section>
+  </div>
+  
+  <section class="legend">
+    <h2>Combat Bonuses</h2>
+    <p>Every talent grants a generic passive that folds straight into the character stat engine. Bonuses sum across all weapon trees.</p>
+    <table>
+      <thead><tr><th>Bonus</th><th>Stat key</th><th>Mode</th><th>Per rank</th></tr></thead>
+      <tbody>
+      <tr>
+        <td>Damage</td>
+        <td><code>damage</code></td>
+        <td>multiplicative</td>
+        <td>+3% / rank</td>
+      </tr>
+      <tr>
+        <td>Critical Chance</td>
+        <td><code>criticalChance</code></td>
+        <td>additive (pts)</td>
+        <td>+2% / rank</td>
+      </tr>
+      <tr>
+        <td>Critical Damage</td>
+        <td><code>criticalDamage</code></td>
+        <td>additive (pts)</td>
+        <td>+5% / rank</td>
+      </tr>
+      <tr>
+        <td>Attack Speed</td>
+        <td><code>attackSpeed</code></td>
+        <td>additive (pts)</td>
+        <td>+2% / rank</td>
+      </tr>
+      <tr>
+        <td>Armor Penetration</td>
+        <td><code>armorPenetration</code></td>
+        <td>additive (pts)</td>
+        <td>+3% / rank</td>
+      </tr>
+      <tr>
+        <td>Lifesteal</td>
+        <td><code>drainHealth</code></td>
+        <td>additive (pts)</td>
+        <td>+2% / rank</td>
+      </tr></tbody>
+    </table>
+  </section>
+  <footer>Generated from lib/game-content/src/mastery.ts · do not hand-edit — run <code>pnpm --filter @workspace/scripts run gen-mastery-html</code></footer>
+</body>
+</html>
