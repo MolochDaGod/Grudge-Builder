@@ -69,6 +69,7 @@ import TutorialPage from "@/pages/tutorial";
 import HomeIslandPage from "@/pages/home-island";
 import WeaponModelAdminPage from "@/pages/weapon-model-admin";
 import WeaponSkillsPage from "@/pages/weapon-skills";
+import TownPage from "@/pages/town";
 
 function Router() {
   return (
@@ -131,6 +132,7 @@ function Router() {
       <Route path="/home-island" component={HomeIslandPage} />
       <Route path="/weapon-admin" component={WeaponModelAdminPage} />
       <Route path="/weapon-skills" component={WeaponSkillsPage} />
+      <Route path="/town" component={TownPage} />
       <Route path="/weaponskills" component={WeaponSkillsPage} />
       {/* Fallback to 404 */}
       <Route component={NotFound} />
