@@ -36,7 +36,7 @@ export const VIDEOS = {
   loading: assetUrl('/videos/loading-cinematic.mp4'),
 
   /** Pirate King banner — loading transitions between game modes */
-  pirateKingBanner: '/assets/videos/piratekingbanner.mp4',
+  pirateKingBanner: assetUrl('/videos/piratekingbanner.mp4'),
 
   /** Legacy intro video (fallback) */
   introLegacy: assetUrl('/videos/intro-legacy.mp4'),
@@ -65,34 +65,61 @@ export const CLASS_HERO_IMAGES: Record<string, string> = {
 // ── Game card background images ──────────────────────────────────────────────
 
 export const GAME_CARD_BACKGROUNDS: Record<string, string> = {
-  island:      '/assets/backgrounds/island-map.png',
-  crafting:    '/assets/professions/steampunk_blueprint_background_with_gears.png',
+  island:      assetUrl('/backgrounds/island-map.png'),
+  crafting:    assetUrl('/images/professions/steampunk_blueprint_background_with_gears.png'),
   character:   BACKGROUNDS.darkFantasy1,
-  rtsgrudge:   '/assets/events/faction-war.png',
-  combat:      '/assets/backgrounds/main-menu.png',
-  dungeon:     '/assets/events/dungeon-raid-1.png',
-  professions: '/assets/professions/dark_underground_mine_with_glowing_crystals.png',
-  worldmap:    '/assets/backgrounds/general.png',
-  skills:      '/assets/professions/cosmic_arcane_void_magic_background.png',
-  harvest:     '/assets/professions/ancient_mystical_forest_with_glowing_particles.png',
+  rtsgrudge:   assetUrl('/images/events/faction-war.png'),
+  combat:      assetUrl('/backgrounds/main-menu.png'),
+  dungeon:     assetUrl('/images/events/dungeon-raid-1.png'),
+  professions: assetUrl('/images/professions/dark_underground_mine_with_glowing_crystals.png'),
+  worldmap:    assetUrl('/backgrounds/general.png'),
+  skills:      assetUrl('/images/professions/cosmic_arcane_void_magic_background.png'),
+  harvest:     assetUrl('/images/professions/ancient_mystical_forest_with_glowing_particles.png'),
 } as const;
 
-// ── Profession icons (local assets from WCS) ─────────────────────────────────
+// ── Profession icons & backgrounds (CDN — migrated from /assets/professions/) ──
 
 export const PROFESSION_ICONS: Record<string, string> = {
-  miner:    '/assets/professions/miner_profession_game_icon.png',
-  forester: '/assets/professions/forester_profession_game_icon.png',
-  mystic:   '/assets/professions/mystic_profession_game_icon.png',
-  chef:     '/assets/professions/chef_profession_game_icon.png',
-  engineer: '/assets/professions/engineer_profession_game_icon.png',
+  miner:    assetUrl('/images/professions/miner_profession_game_icon.png'),
+  forester: assetUrl('/images/professions/forester_profession_game_icon.png'),
+  mystic:   assetUrl('/images/professions/mystic_profession_game_icon.png'),
+  chef:     assetUrl('/images/professions/chef_profession_game_icon.png'),
+  engineer: assetUrl('/images/professions/engineer_profession_game_icon.png'),
+} as const;
+
+/** Capitalized keys for profession pages (Miner, Forester, …) */
+export const PROFESSION_ICONS_BY_NAME: Record<string, string> = {
+  Miner:    PROFESSION_ICONS.miner,
+  Forester: PROFESSION_ICONS.forester,
+  Mystic:   PROFESSION_ICONS.mystic,
+  Chef:     PROFESSION_ICONS.chef,
+  Engineer: PROFESSION_ICONS.engineer,
 } as const;
 
 export const PROFESSION_BACKGROUNDS: Record<string, string> = {
-  miner:    '/assets/professions/dark_underground_mine_with_glowing_crystals.png',
-  forester: '/assets/professions/ancient_mystical_forest_with_glowing_particles.png',
-  mystic:   '/assets/professions/cosmic_arcane_void_magic_background.png',
-  chef:     '/assets/professions/rustic_fantasy_kitchen_hearth.png',
-  engineer: '/assets/professions/steampunk_blueprint_background_with_gears.png',
+  miner:    assetUrl('/images/professions/dark_underground_mine_with_glowing_crystals.png'),
+  forester: assetUrl('/images/professions/ancient_mystical_forest_with_glowing_particles.png'),
+  mystic:   assetUrl('/images/professions/cosmic_arcane_void_magic_background.png'),
+  chef:     assetUrl('/images/professions/rustic_fantasy_kitchen_hearth.png'),
+  engineer: assetUrl('/images/professions/steampunk_blueprint_background_with_gears.png'),
+} as const;
+
+/** Capitalized keys for profession pages */
+export const PROFESSION_BACKGROUNDS_BY_NAME: Record<string, string> = {
+  Miner:    PROFESSION_BACKGROUNDS.miner,
+  Forester: PROFESSION_BACKGROUNDS.forester,
+  Mystic:   PROFESSION_BACKGROUNDS.mystic,
+  Chef:     PROFESSION_BACKGROUNDS.chef,
+  Engineer: PROFESSION_BACKGROUNDS.engineer,
+} as const;
+
+/** Illustrated skill-tree panel backgrounds (crafting art) */
+export const PROFESSION_SKILL_TREE_BACKGROUNDS: Record<string, string> = {
+  Miner:    assetUrl('/images/professions/miner_skill_tree_background_illustrated_style.png'),
+  Forester: assetUrl('/images/professions/forester_skill_tree_background_illustrated_style.png'),
+  Mystic:   assetUrl('/images/professions/mystic_skill_tree_background_illustrated_style.png'),
+  Chef:     assetUrl('/images/professions/rustic_fantasy_kitchen_hearth.png'),
+  Engineer: assetUrl('/images/professions/engineer_skill_tree_background_illustrated_style.png'),
 } as const;
 
 // ── Faction emblems ──────────────────────────────────────────────────────────

@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
+import { assetUrl } from "@/lib/assetConfig";
 import { 
   CameraState, 
   worldToScreen, 
@@ -462,7 +463,7 @@ export default function AdminMapPage() {
           <div 
             className="absolute bg-cover bg-center bg-no-repeat"
             style={{ 
-              backgroundImage: `url(/assets/backgrounds/island-map.png)`,
+              backgroundImage: `url(${assetUrl('/backgrounds/island-map.png')})`,
               backgroundSize: 'cover',
               width: '200%',
               height: '200%',

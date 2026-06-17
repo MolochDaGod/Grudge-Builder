@@ -14,6 +14,7 @@
  */
 import type { WorldSector, SectorOverlayFx } from '@shared/definitions/worldMapSectors';
 import { WORLD_SECTORS, getSectorAt } from '@shared/definitions/worldMapSectors';
+import { assetUrl } from '@/lib/assetConfig';
 
 // ── Particle Types ───────────────────────────────────────────────────────────
 
@@ -36,27 +37,33 @@ interface Particle {
 const imageCache = new Map<string, HTMLImageElement>();
 const videoCache = new Map<string, HTMLVideoElement>();
 
+function resolveAssetUrl(url: string): string {
+  return url.startsWith('http') ? url : assetUrl(url);
+}
+
 function preloadImage(url: string): HTMLImageElement | null {
-  if (imageCache.has(url)) return imageCache.get(url)!;
+  const resolved = resolveAssetUrl(url);
+  if (imageCache.has(resolved)) return imageCache.get(resolved)!;
   const img = new Image();
   img.crossOrigin = 'anonymous';
-  img.src = url;
-  img.onload = () => imageCache.set(url, img);
+  img.src = resolved;
+  img.onload = () => imageCache.set(resolved, img);
   img.onerror = () => {}; // Silently fail — sector renders without background
   return null; // Not loaded yet
 }
 
 function preloadVideo(url: string): HTMLVideoElement | null {
-  if (videoCache.has(url)) return videoCache.get(url)!;
+  const resolved = resolveAssetUrl(url);
+  if (videoCache.has(resolved)) return videoCache.get(resolved)!;
   const video = document.createElement('video');
   video.crossOrigin = 'anonymous';
-  video.src = url;
+  video.src = resolved;
   video.loop = true;
   video.muted = true;
   video.playsInline = true;
   video.preload = 'auto';
-  video.oncanplay = () => {
-    videoCache.set(url, video);
+    video.oncanplay = () => {
+    videoCache.set(resolved, video);
     video.play().catch(() => {});
   };
   video.onerror = () => {};
@@ -174,8 +181,8 @@ export class SectorImageryRenderer {
     if (clipW <= 0 || clipH <= 0) return;
 
     // Try video first, then image
-    const videoEl = sector.imagery.videoUrl ? videoCache.get(sector.imagery.videoUrl) : null;
-    const imgEl = imageCache.get(sector.imagery.backgroundUrl);
+    const videoEl = sector.imagery.videoUrl ? videoCache.get(resolveAssetUrl(sector.imagery.videoUrl)) : null;
+    const imgEl = imageCache.get(resolveAssetUrl(sector.imagery.backgroundUrl));
 
     // Pick the best available source (video if loaded + has a frame, else image)
     const videoReady = videoEl && videoEl.readyState >= 2; // HAVE_CURRENT_DATA

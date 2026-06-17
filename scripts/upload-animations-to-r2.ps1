@@ -3,39 +3,27 @@
 param([switch]$DryRun)
 
 $BUCKET = "grudge-assets"
+$GrudgeReposRoot = if ($env:GRUDGE_REPOS_ROOT) { $env:GRUDGE_REPOS_ROOT } else { "D:\GrudgeRepos" }
+$GrudgeArenaRoot = if ($env:GRUDGE_ARENA_ROOT) { $env:GRUDGE_ARENA_ROOT } else { "C:\Users\david\Desktop\grudge-arena" }
+$ArenaAnims = Join-Path $GrudgeArenaRoot "public\assets\animations"
 
 # Source dir -> R2 prefix (pick the most complete set for each weapon type)
 $mappings = @(
-    # Sword & Shield (51 files from RTS-Grudge - most complete sword_shield set)
-    @{ Source = "F:\GitHub\RTS-Grudge\Models\models\animations\sword_shield"; Prefix = "models/animations/sword-shield" }
-    # Greatsword (12 from RTS-Grudge racalvin_greatsword)
-    @{ Source = "F:\GitHub\RTS-Grudge\Models\models\animations\racalvin_greatsword"; Prefix = "models/animations/greatsword" }
-    # Longbow (39 from Arena - much more complete than RTS 12)
-    @{ Source = "F:\GitHub\grudge-arena\dist\assets\animations\longbow"; Prefix = "models/animations/longbow" }
-    # Magic (56 from Arena - much more complete than RTS 14)
-    @{ Source = "F:\GitHub\grudge-arena\dist\assets\animations\magic"; Prefix = "models/animations/magic" }
-    # Axe (47 from Arena - only source)
-    @{ Source = "F:\GitHub\grudge-arena\dist\assets\animations\axe"; Prefix = "models/animations/axe" }
-    # Rifle (49 from Arena)
-    @{ Source = "F:\GitHub\grudge-arena\dist\assets\animations\rifle"; Prefix = "models/animations/rifle" }
-    # Unarmed (9 from RTS-Grudge racalvin_unarmed)
-    @{ Source = "F:\GitHub\RTS-Grudge\Models\models\animations\racalvin_unarmed"; Prefix = "models/animations/unarmed" }
-    # Generic base (10 from RTS racalvin_base)
-    @{ Source = "F:\GitHub\RTS-Grudge\Models\models\animations\racalvin_base"; Prefix = "models/animations/generic" }
-    # Action-adventure generic (18 from RTS action)
-    @{ Source = "F:\GitHub\RTS-Grudge\Models\models\animations\action"; Prefix = "models/animations/action" }
-    # Racalvin sword_shield variant (14)
-    @{ Source = "F:\GitHub\RTS-Grudge\Models\models\animations\racalvin_sword_shield"; Prefix = "models/animations/racalvin-sword-shield" }
-    # Racalvin magic variant (10)
-    @{ Source = "F:\GitHub\RTS-Grudge\Models\models\animations\racalvin_magic"; Prefix = "models/animations/racalvin-magic" }
-    # Racalvin melee axe (10)
-    @{ Source = "F:\GitHub\RTS-Grudge\Models\models\animations\racalvin_melee_axe"; Prefix = "models/animations/racalvin-axe" }
-    # RTS longbow (12 - secondary source, different filenames)
-    @{ Source = "F:\GitHub\RTS-Grudge\Models\models\animations\longbow"; Prefix = "models/animations/longbow-alt" }
-    # RTS magic (14 - secondary source)
-    @{ Source = "F:\GitHub\RTS-Grudge\Models\models\animations\magic"; Prefix = "models/animations/magic-alt" }
-    # Arena sword_shield (51 - mirror of RTS for redundancy check)
-    @{ Source = "F:\GitHub\grudge-arena\dist\assets\animations\sword_shield"; Prefix = "models/animations/sword-shield-arena" }
+    @{ Source = (Join-Path $ArenaAnims "sword_shield"); Prefix = "models/animations/sword-shield" }
+    @{ Source = (Join-Path $ArenaAnims "greatsword"); Prefix = "models/animations/greatsword" }
+    @{ Source = (Join-Path $ArenaAnims "longbow"); Prefix = "models/animations/longbow" }
+    @{ Source = (Join-Path $ArenaAnims "magic"); Prefix = "models/animations/magic" }
+    @{ Source = (Join-Path $ArenaAnims "axe"); Prefix = "models/animations/axe" }
+    @{ Source = (Join-Path $ArenaAnims "rifle"); Prefix = "models/animations/rifle" }
+    @{ Source = (Join-Path $ArenaAnims "unarmed"); Prefix = "models/animations/unarmed" }
+    @{ Source = (Join-Path $ArenaAnims "generic"); Prefix = "models/animations/generic" }
+    @{ Source = (Join-Path $ArenaAnims "action"); Prefix = "models/animations/action" }
+    @{ Source = (Join-Path $ArenaAnims "racalvin_sword_shield"); Prefix = "models/animations/racalvin-sword-shield" }
+    @{ Source = (Join-Path $ArenaAnims "racalvin_magic"); Prefix = "models/animations/racalvin-magic" }
+    @{ Source = (Join-Path $ArenaAnims "racalvin_melee_axe"); Prefix = "models/animations/racalvin-axe" }
+    @{ Source = (Join-Path $ArenaAnims "longbow-alt"); Prefix = "models/animations/longbow-alt" }
+    @{ Source = (Join-Path $ArenaAnims "magic-alt"); Prefix = "models/animations/magic-alt" }
+    @{ Source = (Join-Path $ArenaAnims "sword_shield"); Prefix = "models/animations/sword-shield-arena" }
 )
 
 $totalFiles = 0; $uploaded = 0; $failed = 0

@@ -29,6 +29,7 @@ import { chefData } from "@/data/crafting/chef";
 import { engineerData } from "@/data/crafting/engineer";
 import type { ProfessionData } from "@/lib/craftingTypes";
 import { assetUrl } from "@/lib/assetConfig";
+import { PROFESSION_ICONS_BY_NAME, PROFESSION_BACKGROUNDS_BY_NAME } from "@/lib/artAssets";
 import { useAuthGuard } from '@/hooks/use-auth-guard';
 
 const CRAFTING_SKILL_TREES: Record<string, ProfessionData> = {
@@ -39,23 +40,8 @@ const CRAFTING_SKILL_TREES: Record<string, ProfessionData> = {
   Engineer: engineerData,
 };
 
-/** Profession icon art — local assets (copied from WCS) */
-const PROFESSION_ICONS: Record<string, string> = {
-  Miner: '/assets/professions/miner_profession_game_icon.png',
-  Forester: '/assets/professions/forester_profession_game_icon.png',
-  Mystic: '/assets/professions/mystic_profession_game_icon.png',
-  Chef: '/assets/professions/chef_profession_game_icon.png',
-  Engineer: '/assets/professions/engineer_profession_game_icon.png',
-};
-
-/** Profession background art — local assets */
-const PROFESSION_BG: Record<string, string> = {
-  Miner: '/assets/professions/dark_underground_mine_with_glowing_crystals.png',
-  Forester: '/assets/professions/ancient_mystical_forest_with_glowing_particles.png',
-  Mystic: '/assets/professions/cosmic_arcane_void_magic_background.png',
-  Chef: '/assets/professions/rustic_fantasy_kitchen_hearth.png',
-  Engineer: '/assets/professions/steampunk_blueprint_background_with_gears.png',
-};
+const PROFESSION_ICONS = PROFESSION_ICONS_BY_NAME;
+const PROFESSION_BG = PROFESSION_BACKGROUNDS_BY_NAME;
 
 type ProfessionTab = "gathering" | "crafting" | "skillTrees";
 

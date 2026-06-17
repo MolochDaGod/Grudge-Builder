@@ -1246,10 +1246,14 @@ function CombatStage({
 }
 
 const BACKGROUNDS = [
-  { path: assetUrl("/sprites/backgrounds/combat/battle_bg_fields.png"), name: "Fields" },
-  { path: assetUrl("/sprites/backgrounds/combat/battle_bg_town_market.png"), name: "Town Market" },
-  { path: assetUrl("/sprites/backgrounds/combat/battle_bg_settlement.png"), name: "Settlement" },
-  { path: assetUrl("/sprites/backgrounds/combat/battle_bg_island_coast.png"), name: "Island Coast" }
+  { path: assetUrl("/backgrounds/verdant_plains.png"), name: "Open Fields" },
+  { path: assetUrl("/backgrounds/tavern_bg.png"), name: "Town Market" },
+  { path: assetUrl("/backgrounds/castle_arena.jpg"), name: "Settlement Gates" },
+  { path: assetUrl("/backgrounds/ocean_battle.png"), name: "Island Coast" },
+  { path: assetUrl("/backgrounds/purple_dungeon.png"), name: "Shadow Depths" },
+  { path: assetUrl("/backgrounds/volcanic_battle.png"), name: "Volcanic Field" },
+  { path: assetUrl("/backgrounds/frozen_battle.png"), name: "Frozen Wastes" },
+  { path: assetUrl("/backgrounds/arena_battle.png"), name: "Arena" },
 ];
 
 export default function AdminCombatPage() {

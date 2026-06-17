@@ -1,10 +1,12 @@
 import { ProfessionData } from "@/lib/craftingTypes";
+import { PROFESSION_SKILL_TREE_BACKGROUNDS } from "@/lib/artAssets";
 
 export const engineerData: ProfessionData = {
   name: "Engineer",
   role: "Mechanist & Siege Master",
   color: "text-orange-500",
   icon: "🔧",
+  bgImage: PROFESSION_SKILL_TREE_BACKGROUNDS.Engineer,
   treeData: [
     // ═══════════════════════════════════════════════════════════════
     // WORKSHOP CORE - Central starting nodes

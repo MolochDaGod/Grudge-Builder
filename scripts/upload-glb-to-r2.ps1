@@ -13,6 +13,8 @@ param(
 )
 
 $BUCKET = "grudge-assets"
+$GrudgeReposRoot = if ($env:GRUDGE_REPOS_ROOT) { $env:GRUDGE_REPOS_ROOT } else { "D:\GrudgeRepos" }
+$GrudgeArenaRoot = if ($env:GRUDGE_ARENA_ROOT) { $env:GRUDGE_ARENA_ROOT } else { "C:\Users\david\Desktop\grudge-arena" }
 
 # ── Source directory → R2 prefix mapping ──────────────────────────────
 $mappings = @(
@@ -20,8 +22,8 @@ $mappings = @(
     @{ Source = "D:\Grudge\3DCharacters\characters";       Prefix = "models/characters" }
     @{ Source = "D:\grudge-studio-dash\public\models\characters"; Prefix = "models/characters/races" }
     @{ Source = "D:\Grudge\puterale\biped";                Prefix = "models/characters/animated-biped" }
-    @{ Source = "F:\GitHub\Grudge-Studio-Game\new";        Prefix = "models/characters/new-races" }
-    @{ Source = "F:\GitHub\Grudge-Studio-Game\grudge-threejs-player-and-grass\character\races"; Prefix = "models/characters/race-base" }
+    @{ Source = "$GrudgeReposRoot\Grudge-Studio-Game\new"; Prefix = "models/characters/new-races" }
+    @{ Source = "$GrudgeReposRoot\Grudge-Studio-Game\artifacts\grudge-studio-game\character\races"; Prefix = "models/characters/race-base" }
 
     # Buildings
     @{ Source = "D:\Grudge\3DCharacters\Buildings";        Prefix = "models/buildings" }
@@ -34,7 +36,7 @@ $mappings = @(
 
     # Effects / VFX
     @{ Source = "D:\Games\grudge-effects-glb";             Prefix = "models/effects" }
-    @{ Source = "F:\GitHub\GrudgeBably\public\effects";    Prefix = "models/effects/babylon" }
+    @{ Source = "$GrudgeReposRoot\Grudge-Studio-Forge\artifacts\game-forge-desktop\public\effects"; Prefix = "models/effects/babylon" }
 
     # Creatures / Animals / Fish
     @{ Source = "D:\Games\grudge-voxel\_extracted_chars\animals"; Prefix = "models/creatures/survival-items" }
@@ -47,15 +49,15 @@ $mappings = @(
     @{ Source = "D:\Grudge\1";                             Prefix = "models/environment/misc" }
 
     # Animations
-    @{ Source = "F:\GitHub\RTS-Grudge\Models\models\animations"; Prefix = "models/animations" }
-    @{ Source = "F:\GitHub\RTS-Grudge\Models\models\characters"; Prefix = "models/characters/rts" }
+    @{ Source = "$GrudgeArenaRoot\public\assets\animations"; Prefix = "models/animations" }
+    @{ Source = "$GrudgeReposRoot\RTS-Grudge\attached_assets"; Prefix = "models/characters/rts" }
 
     # Arena
-    @{ Source = "F:\GitHub\GrudgeBably\public\assets\arena"; Prefix = "models/arena" }
-    @{ Source = "F:\GitHub\grudge-arena\public\models";    Prefix = "models/arena/base" }
+    @{ Source = "$GrudgeArenaRoot\public\assets\arena";    Prefix = "models/arena" }
+    @{ Source = "$GrudgeArenaRoot\public\models";          Prefix = "models/arena/base" }
 
     # Space RTS
-    @{ Source = "F:\GitHub\GrudgeSpaceRTS\assets";         Prefix = "models/space" }
+    @{ Source = "$GrudgeReposRoot\GrudgeSpaceRTS\assets";  Prefix = "models/space" }
 )
 
 # ── Category filter ──────────────────────────────────────────────────
