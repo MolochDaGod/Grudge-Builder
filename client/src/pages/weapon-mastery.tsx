@@ -6,6 +6,7 @@
  */
 import {
   MASTERY_TREES, MASTERY_POOL_CAP, MASTERY_TREE_COUNT, MASTERY_STAT_BONUSES,
+  MASTERY_TREE_FILL_POINTS, MASTERY_MICRO_COUNT,
   type MasteryTree, type MasteryNode,
 } from '@shared/definitions/weaponMastery';
 
@@ -14,10 +15,10 @@ export default function WeaponMasteryPage() {
     <div style={{ fontFamily:"system-ui,-apple-system,sans-serif", background:'#0a0705', color:'#e7d8be', lineHeight:1.55, padding:'32px 20px 64px', maxWidth:1180, margin:'0 auto', minHeight:'100vh' }}>
       <h1 style={{ fontFamily:"'Cinzel',Georgia,serif", fontSize:34, color:'#d4a400', letterSpacing:1 }}>Weapons Mastery</h1>
       <p style={{ color:'#9b7d52', fontSize:14, margin:'6px 0 24px', maxWidth:760 }}>
-        A point-allocation talent tree per weapon type. Spend a shared mastery pool — one point per character level — across any of the {MASTERY_TREE_COUNT} trees. Generic passive bonuses fold directly into your combat stats, so you can fully master a few weapons but never all of them.
+        A point-allocation talent tree per weapon type. Spend a shared mastery pool — one point per character level — across any of the {MASTERY_TREE_COUNT} trees. Each tree has 7 core talents, {MASTERY_MICRO_COUNT} micro nodes (small passives, crits, procs), and a signature capstone — {MASTERY_TREE_FILL_POINTS} points to fill. Generic passive bonuses fold directly into your combat stats.
       </p>
       <div style={{ display:'flex', gap:12, flexWrap:'wrap', marginBottom:32 }}>
-        {[{v:MASTERY_POOL_CAP,l:'Shared pool cap'},{v:'1 / level',l:'Points earned'},{v:MASTERY_TREE_COUNT,l:'Weapon trees'},{v:'1 / 3 / 5',l:'Ranks per node'}].map(r=>(
+        {[{v:MASTERY_POOL_CAP,l:'Shared pool cap'},{v:'1 / level',l:'Points earned'},{v:MASTERY_TREE_COUNT,l:'Weapon trees'},{v:String(MASTERY_TREE_FILL_POINTS),l:'Pts per tree'},{v:'1 / 3 / 5',l:'Core ranks'}].map(r=>(
           <div key={r.l} style={{ background:'#140d08', border:'1px solid #3a2a1a', borderRadius:10, padding:'12px 16px', minWidth:150 }}>
             <strong style={{ display:'block', fontFamily:"'Cinzel',Georgia,serif", fontSize:22, color:'#d4a400' }}>{r.v}</strong>
             <span style={{ fontSize:11, color:'#9b7d52', textTransform:'uppercase', letterSpacing:1 }}>{r.l}</span>
@@ -48,7 +49,7 @@ function TreeCard({ tree }: { tree: MasteryTree }) {
         <p style={{ fontSize:12, color:'#9b7d52', marginTop:2 }}>{tree.description}</p>
         <div style={{ fontSize:11, color:'#6b5535', marginTop:6, fontFamily:"'JetBrains Mono',monospace" }}>Fully fills at <strong>{tree.totalPoints}</strong> points</div>
       </header>
-      <div style={{ position:'relative', height:360, margin:8, background:`radial-gradient(circle at 50% 38%, ${tree.color}14, transparent 70%)` }}>
+      <div style={{ position:'relative', height:480, margin:8, background:`radial-gradient(circle at 50% 38%, ${tree.color}14, transparent 70%)` }}>
         <svg style={{ position:'absolute', inset:0, pointerEvents:'none' }} width="100%" height="100%">
           {tree.edges.map(([from,to],i)=>{const a=tree.nodes[from],b=tree.nodes[to];if(!a||!b)return null;return <line key={i} x1={`${a.position.x}%`} y1={`${a.position.y}%`} x2={`${b.position.x}%`} y2={`${b.position.y}%`} stroke={`${tree.color}55`} strokeWidth={1.5} strokeDasharray="4 4"/>;})}
         </svg>
@@ -59,16 +60,31 @@ function TreeCard({ tree }: { tree: MasteryTree }) {
 }
 
 function NodeOrb({ node, color }: { node: MasteryNode; color: string }) {
-  const s = node.isSignature ? 64 : 52;
+  const isMicro = node.kind === 'micro';
+  const isSig = node.kind === 'signature';
+  const s = isSig ? 64 : isMicro ? 36 : 52;
+  const labelW = isMicro ? 72 : s;
   return (
-    <div style={{ position:'absolute', left:`${node.position.x}%`, top:`${node.position.y}%`, transform:'translate(-50%,-50%)', textAlign:'center', width:s }}>
-      <div style={{ width:s, height:s, border:`2px solid ${color}`, borderRadius:node.isSignature?'50%':12, display:'flex', alignItems:'center', justifyContent:'center', background:'linear-gradient(135deg,#1e1510,#120c07)', margin:'0 auto', boxShadow:`0 0 10px ${color}55` }}>
-        <span style={{ fontFamily:"'JetBrains Mono',monospace", fontWeight:700, fontSize:13, color }}>{node.maxRanks}</span>
+    <div style={{ position:'absolute', left:`${node.position.x}%`, top:`${node.position.y}%`, transform:'translate(-50%,-50%)', textAlign:'center', width:labelW, zIndex: isMicro ? 1 : 2 }}>
+      <div style={{
+        width:s, height:s, border:`2px solid ${isMicro ? `${color}99` : color}`,
+        borderRadius: isSig ? '50%' : isMicro ? 8 : 12,
+        display:'flex', alignItems:'center', justifyContent:'center',
+        background: isMicro ? 'linear-gradient(135deg,#120c07,#0a0705)' : 'linear-gradient(135deg,#1e1510,#120c07)',
+        margin:'0 auto', boxShadow: isMicro ? `0 0 6px ${color}33` : `0 0 10px ${color}55`,
+        opacity: isMicro ? 0.92 : 1,
+      }}>
+        <span style={{ fontFamily:"'JetBrains Mono',monospace", fontWeight:700, fontSize: isMicro ? 10 : 13, color }}>{node.maxRanks}</span>
       </div>
-      <div style={{ fontFamily:"'Cinzel',Georgia,serif", fontSize:11, marginTop:8, color:'#e7d8be', lineHeight:1.2 }}>{node.name}</div>
-      <div style={{ fontSize:10, color:'#d4a400', marginTop:2 }}>{node.description}</div>
-      <div style={{ fontSize:9, color:'#6b5535', fontFamily:"'JetBrains Mono',monospace" }}>{node.requirement===0?'no requirement':`req ${node.requirement} pts`}</div>
-      {node.isSignature && <span style={{ fontSize:9, textTransform:'uppercase', letterSpacing:1, fontWeight:700, color }}>Signature</span>}
+      <div style={{ fontFamily:"'Cinzel',Georgia,serif", fontSize: isMicro ? 9 : 11, marginTop: isMicro ? 4 : 8, color:'#e7d8be', lineHeight:1.2 }}>{node.name}</div>
+      <div style={{ fontSize: isMicro ? 8 : 10, color:'#d4a400', marginTop:2, lineHeight:1.2 }}>{node.description}</div>
+      {!isMicro && (
+        <div style={{ fontSize:9, color:'#6b5535', fontFamily:"'JetBrains Mono',monospace" }}>
+          {node.requirement === 0 ? 'no requirement' : `req ${node.requirement} pts`}
+        </div>
+      )}
+      {isSig && <span style={{ fontSize:9, textTransform:'uppercase', letterSpacing:1, fontWeight:700, color }}>Signature</span>}
+      {isMicro && <span style={{ fontSize:8, textTransform:'uppercase', letterSpacing:0.5, color:'#6b5535' }}>Micro</span>}
     </div>
   );
 }
