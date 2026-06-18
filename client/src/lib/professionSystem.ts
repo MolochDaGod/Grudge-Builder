@@ -118,7 +118,8 @@ export const CRAFTING_PROFESSION_MAP: Record<string, string> = {
   Alchemy: "Alchemy",
 };
 
-export const PROFESSION_ICONS: Record<string, string> = {
+/** Emoji fallbacks for gathering/crafting profession labels (not CDN image art). */
+export const GATHERING_PROFESSION_EMOJIS: Record<string, string> = {
   Mining: "⛏️",
   Logging: "🪓",
   Herbalism: "🌿",

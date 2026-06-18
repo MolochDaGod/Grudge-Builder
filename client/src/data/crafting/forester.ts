@@ -1,12 +1,12 @@
 import { ProfessionData } from "@/lib/craftingTypes";
-import { PROFESSION_SKILL_TREE_BACKGROUNDS } from "@/lib/artAssets";
+import { professionSkillTreeBackground } from "@/lib/artAssets";
 
 export const foresterData: ProfessionData = {
   name: "Forester",
   role: "Forester Specialization System",
   color: "text-green-500",
   icon: "🌲",
-  bgImage: PROFESSION_SKILL_TREE_BACKGROUNDS.Forester,
+  bgImage: professionSkillTreeBackground("Forester"),
   treeData: [
     { id: 1, n: "Logging Basics", x: 50, y: 90, req: 0, p: null, nodeType: "stat" },
     { id: 2, n: "Skinning Basics", x: 50, y: 80, req: 5, p: 1, nodeType: "stat" },

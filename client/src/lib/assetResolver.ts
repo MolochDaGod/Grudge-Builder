@@ -10,7 +10,8 @@
  *   <img src={resolveAsset("/icons/weapons/swords/bloodfeud.png")} onError={onImageError} />
  */
 
-import { assetUrl, cdnAssetUrl, ASSET_CDN_BASE, OBJECT_STORE_API } from "@/lib/assetConfig";
+import { assetUrl, cdnAssetUrl, ASSET_CDN_BASE } from "@/lib/assetConfig";
+import { normalizeAssetPath } from "@/lib/legacyAssetPaths";
 
 // ── Placeholder fallbacks per asset category ─────────────────────────────────
 
@@ -64,9 +65,9 @@ const failedPaths = new Set<string>();
  * Use preloadAsset() to verify and cache the best source.
  */
 export function resolveAsset(path: string): string {
-  if (resolvedCache.has(path)) return resolvedCache.get(path)!;
-  // Default: ObjectStore (most paths exist there)
-  return assetUrl(path);
+  const canonical = normalizeAssetPath(path);
+  if (resolvedCache.has(canonical)) return resolvedCache.get(canonical)!;
+  return assetUrl(canonical);
 }
 
 /**

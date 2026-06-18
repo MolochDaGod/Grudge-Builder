@@ -2374,7 +2374,7 @@ export default function IslandPage() {
                           data-testid={`priority-${prof.toLowerCase()}`}
                         >
                           <span className="text-slate-500 text-sm w-4">{index + 1}.</span>
-                          <span className="text-lg">{professionSystem.PROFESSION_ICONS[prof] || "📦"}</span>
+                          <span className="text-lg">{professionSystem.GATHERING_PROFESSION_EMOJIS[prof] || "📦"}</span>
                           <span className="text-white flex-1">{prof}</span>
                           <Badge variant="outline" className="text-xs border-slate-600">
                             Lv{level}

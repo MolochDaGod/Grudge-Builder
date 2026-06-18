@@ -1,12 +1,12 @@
 import { ProfessionData } from "@/lib/craftingTypes";
-import { PROFESSION_SKILL_TREE_BACKGROUNDS } from "@/lib/artAssets";
+import { professionSkillTreeBackground } from "@/lib/artAssets";
 
 export const chefData: ProfessionData = {
   name: "Chef",
   role: "Culinary Master & Alchemist",
   color: "text-orange-500",
   icon: "🍲",
-  bgImage: PROFESSION_SKILL_TREE_BACKGROUNDS.Chef,
+  bgImage: professionSkillTreeBackground("Chef"),
   treeData: [
     // ═══════════════════════════════════════════════════════════════
     // HEARTH CORE - Central starting node

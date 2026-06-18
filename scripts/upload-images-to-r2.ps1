@@ -12,12 +12,20 @@ $ObjectStoreRoot = if ($env:OBJECT_STORE_ROOT) { $env:OBJECT_STORE_ROOT } else {
 # Wrangler cache breaks when cwd is a system directory (e.g. C:\Windows\System32)
 $env:WRANGLER_HOME = Join-Path $env:USERPROFILE ".wrangler"
 
+$GrudgeBuilderPublic = if ($env:GRUDGE_BUILDER_ROOT) {
+    Join-Path $env:GRUDGE_BUILDER_ROOT "client\public"
+} else {
+    "E:\Grudge-Builder\client\public"
+}
+
 $mappings = @(
     @{ Source = Join-Path $ObjectStoreRoot "backgrounds"; Prefix = "backgrounds" }
     @{ Source = Join-Path $ObjectStoreRoot "images\professions"; Prefix = "images/professions" }
     @{ Source = Join-Path $ObjectStoreRoot "images\events"; Prefix = "images/events" }
     @{ Source = Join-Path $ObjectStoreRoot "images\ui"; Prefix = "images/ui" }
+    @{ Source = Join-Path $ObjectStoreRoot "icons\sigils"; Prefix = "icons/sigils" }
     @{ Source = Join-Path $ObjectStoreRoot "videos"; Prefix = "videos" }
+    @{ Source = Join-Path $GrudgeBuilderPublic "assets\skill-icons"; Prefix = "images/skill-icons" }
 )
 
 $extContentType = @{
@@ -35,6 +43,10 @@ if ($Category -eq "backgrounds") {
     $mappings = $mappings | Where-Object { $_.Prefix -eq "backgrounds" }
 } elseif ($Category -eq "professions") {
     $mappings = $mappings | Where-Object { $_.Prefix -eq "images/professions" }
+} elseif ($Category -eq "skill-icons") {
+    $mappings = $mappings | Where-Object { $_.Prefix -eq "images/skill-icons" }
+} elseif ($Category -eq "sigils") {
+    $mappings = $mappings | Where-Object { $_.Prefix -eq "icons/sigils" }
 }
 
 $uploaded = 0

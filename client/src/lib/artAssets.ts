@@ -1,11 +1,17 @@
 /**
- * Art Assets — CDN-hosted background images, logos, and videos.
+ * Art Assets — single source of truth for curated UI art.
  *
- * All assets served from R2 CDN (assets.grudge-studio.com).
- * Migrated from Imgur on 2026-05-28.
+ * All binary assets resolve through assetUrl() → R2 CDN.
+ * Legacy /assets/* paths are normalized automatically via legacyAssetPaths.
  */
 
 import { assetUrl } from './assetConfig';
+
+export interface CombatBackground {
+  id: string;
+  name: string;
+  path: string;
+}
 
 // ── Background images ────────────────────────────────────────────────────────
 
@@ -62,6 +68,30 @@ export const CLASS_HERO_IMAGES: Record<string, string> = {
   worge:   'https://i.imgur.com/BrQH0Bx.png',
 } as const;
 
+/** Combat arena backgrounds — shared by CombatArena + admin-combat */
+export const COMBAT_BACKGROUNDS: CombatBackground[] = [
+  { id: 'fields', name: 'Open Fields', path: assetUrl('/backgrounds/verdant_plains.png') },
+  { id: 'market', name: 'Town Market', path: assetUrl('/backgrounds/tavern_bg.png') },
+  { id: 'settlement', name: 'Settlement Gates', path: assetUrl('/backgrounds/castle_arena.jpg') },
+  { id: 'coast', name: 'Island Coast', path: assetUrl('/backgrounds/ocean_battle.png') },
+  { id: 'dungeon', name: 'Shadow Depths', path: assetUrl('/backgrounds/purple_dungeon.png') },
+  { id: 'lava', name: 'Volcanic Field', path: assetUrl('/backgrounds/volcanic_battle.png') },
+  { id: 'frozen', name: 'Frozen Wastes', path: assetUrl('/backgrounds/frozen_battle.png') },
+  { id: 'arena', name: 'Arena', path: assetUrl('/backgrounds/arena_battle.png') },
+];
+
+/** Attribute sigil icons (8 core stats) */
+export const ATTRIBUTE_SIGILS: Record<string, string> = {
+  strength:  assetUrl('/icons/sigils/strength.png'),
+  vitality:  assetUrl('/icons/sigils/vitality.png'),
+  endurance: assetUrl('/icons/sigils/endurance.png'),
+  intellect: assetUrl('/icons/sigils/intellect.png'),
+  wisdom:    assetUrl('/icons/sigils/wisdom.png'),
+  dexterity: assetUrl('/icons/sigils/dexterity.png'),
+  agility:   assetUrl('/icons/sigils/agility.png'),
+  tactics:   assetUrl('/icons/sigils/tactics.png'),
+} as const;
+
 // ── Game card background images ──────────────────────────────────────────────
 
 export const GAME_CARD_BACKGROUNDS: Record<string, string> = {
@@ -87,15 +117,6 @@ export const PROFESSION_ICONS: Record<string, string> = {
   engineer: assetUrl('/images/professions/engineer_profession_game_icon.png'),
 } as const;
 
-/** Capitalized keys for profession pages (Miner, Forester, …) */
-export const PROFESSION_ICONS_BY_NAME: Record<string, string> = {
-  Miner:    PROFESSION_ICONS.miner,
-  Forester: PROFESSION_ICONS.forester,
-  Mystic:   PROFESSION_ICONS.mystic,
-  Chef:     PROFESSION_ICONS.chef,
-  Engineer: PROFESSION_ICONS.engineer,
-} as const;
-
 export const PROFESSION_BACKGROUNDS: Record<string, string> = {
   miner:    assetUrl('/images/professions/dark_underground_mine_with_glowing_crystals.png'),
   forester: assetUrl('/images/professions/ancient_mystical_forest_with_glowing_particles.png'),
@@ -104,23 +125,39 @@ export const PROFESSION_BACKGROUNDS: Record<string, string> = {
   engineer: assetUrl('/images/professions/steampunk_blueprint_background_with_gears.png'),
 } as const;
 
-/** Capitalized keys for profession pages */
-export const PROFESSION_BACKGROUNDS_BY_NAME: Record<string, string> = {
-  Miner:    PROFESSION_BACKGROUNDS.miner,
-  Forester: PROFESSION_BACKGROUNDS.forester,
-  Mystic:   PROFESSION_BACKGROUNDS.mystic,
-  Chef:     PROFESSION_BACKGROUNDS.chef,
-  Engineer: PROFESSION_BACKGROUNDS.engineer,
-} as const;
-
 /** Illustrated skill-tree panel backgrounds (crafting art) */
 export const PROFESSION_SKILL_TREE_BACKGROUNDS: Record<string, string> = {
-  Miner:    assetUrl('/images/professions/miner_skill_tree_background_illustrated_style.png'),
-  Forester: assetUrl('/images/professions/forester_skill_tree_background_illustrated_style.png'),
-  Mystic:   assetUrl('/images/professions/mystic_skill_tree_background_illustrated_style.png'),
-  Chef:     assetUrl('/images/professions/rustic_fantasy_kitchen_hearth.png'),
-  Engineer: assetUrl('/images/professions/engineer_skill_tree_background_illustrated_style.png'),
+  miner:    assetUrl('/images/professions/miner_skill_tree_background_illustrated_style.png'),
+  forester: assetUrl('/images/professions/forester_skill_tree_background_illustrated_style.png'),
+  mystic:   assetUrl('/images/professions/mystic_skill_tree_background_illustrated_style.png'),
+  chef:     assetUrl('/images/professions/rustic_fantasy_kitchen_hearth.png'),
+  engineer: assetUrl('/images/professions/engineer_skill_tree_background_illustrated_style.png'),
 } as const;
+
+/** Home page quick-access tile icons */
+export const QUICK_ACCESS_ICONS = {
+  professions: PROFESSION_ICONS.miner,
+  skillTree:   assetUrl('/images/skill-icons/FireMage_Free/FireMage_1.png'),
+  arsenal:     assetUrl('/images/skill-icons/Hunter_Free/Hunter_1.png'),
+  missions:    assetUrl('/images/skill-icons/Necromancer_Free/Necromancer_1.png'),
+} as const;
+
+/** Resolve profession art by any casing ("Miner", "miner", "MINER") */
+export function professionIcon(name: string): string | undefined {
+  return PROFESSION_ICONS[name.toLowerCase()];
+}
+
+export function professionBackground(name: string): string | undefined {
+  return PROFESSION_BACKGROUNDS[name.toLowerCase()];
+}
+
+export function professionSkillTreeBackground(name: string): string | undefined {
+  return PROFESSION_SKILL_TREE_BACKGROUNDS[name.toLowerCase()];
+}
+
+export function attributeSigil(attrId: string): string | undefined {
+  return ATTRIBUTE_SIGILS[attrId.toLowerCase()];
+}
 
 // ── Faction emblems ──────────────────────────────────────────────────────────
 // TODO: migrate to CDN or local. Using placeholder gradients via onerror in UI.

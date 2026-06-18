@@ -1,3 +1,5 @@
+import { normalizeAssetPath } from './legacyAssetPaths';
+
 /**
  * ObjectStore Asset & API URL Configuration
  *
@@ -51,7 +53,7 @@ const OBJECT_STORE_VERSION = '3.2.0';
  *   // => 'https://assets.grudge-studio.com/backgrounds/general.png'
  */
 export function assetUrl(path: string): string {
-  const cleanPath = path.startsWith('/') ? path : `/${path}`;
+  const cleanPath = normalizeAssetPath(path);
   return `${ASSET_CDN_BASE}${cleanPath}`;
 }
 
@@ -59,8 +61,7 @@ export function assetUrl(path: string): string {
  * CDN asset URL — same as assetUrl() now (both point to R2 CDN).
  */
 export function cdnAssetUrl(path: string): string {
-  const cleanPath = path.startsWith('/') ? path : `/${path}`;
-  return `${ASSET_CDN_BASE}${cleanPath}`;
+  return assetUrl(path);
 }
 
 /**

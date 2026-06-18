@@ -14,7 +14,7 @@
  */
 import type { WorldSector, SectorOverlayFx } from '@shared/definitions/worldMapSectors';
 import { WORLD_SECTORS, getSectorAt } from '@shared/definitions/worldMapSectors';
-import { assetUrl } from '@/lib/assetConfig';
+import { resolveAsset } from '@/lib/assetResolver';
 
 // ── Particle Types ───────────────────────────────────────────────────────────
 
@@ -38,7 +38,7 @@ const imageCache = new Map<string, HTMLImageElement>();
 const videoCache = new Map<string, HTMLVideoElement>();
 
 function resolveAssetUrl(url: string): string {
-  return url.startsWith('http') ? url : assetUrl(url);
+  return url.startsWith('http') ? url : resolveAsset(url);
 }
 
 function preloadImage(url: string): HTMLImageElement | null {

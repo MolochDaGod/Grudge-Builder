@@ -15,7 +15,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { navigateToGame } from "@/lib/gameNav";
 import {
   GAME_CARD_BACKGROUNDS, FACTION_EMBLEMS, RACE_PORTRAITS,
-  PROFESSION_ICONS, CLASS_HERO_IMAGES, BACKGROUNDS,
+  QUICK_ACCESS_ICONS, CLASS_HERO_IMAGES, BACKGROUNDS,
   CLASS_STAGE_BACKGROUNDS, CLASS_ACCENT_COLORS, CLASS_CYCLE,
 } from "@/lib/artAssets";
 
@@ -403,10 +403,10 @@ export default function HomePage() {
           </h2>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
             {[
-              { label: "Professions", path: "/professions", img: PROFESSION_ICONS.miner },
-              { label: "Skill Tree", path: "/skill-tree", img: "/assets/skill-icons/FireMage_Free/FireMage_1.png" },
-              { label: "Arsenal", path: "/arsenal", img: "/assets/skill-icons/Hunter_Free/Hunter_1.png" },
-              { label: "Missions", path: "/missions", img: "/assets/skill-icons/Necromancer_Free/Necromancer_1.png" },
+              { label: "Professions", path: "/professions", img: QUICK_ACCESS_ICONS.professions },
+              { label: "Skill Tree", path: "/skill-tree", img: QUICK_ACCESS_ICONS.skillTree },
+              { label: "Arsenal", path: "/arsenal", img: QUICK_ACCESS_ICONS.arsenal },
+              { label: "Missions", path: "/missions", img: QUICK_ACCESS_ICONS.missions },
             ].map(item => (
               <button key={item.path} onClick={() => setLocation(item.path)} className="flex items-center gap-2 px-2.5 py-2 rounded-lg border border-white/[.04] hover:border-white/[.1] transition-all group cursor-pointer hover:-translate-y-0.5" style={{ background: "linear-gradient(180deg,rgba(14,18,32,.4),rgba(8,10,20,.4))" }}>
                 <div className="w-7 h-7 rounded-md overflow-hidden border border-white/[.05] flex-shrink-0 bg-white/[.03]">

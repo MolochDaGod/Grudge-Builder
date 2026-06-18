@@ -29,7 +29,7 @@ import { chefData } from "@/data/crafting/chef";
 import { engineerData } from "@/data/crafting/engineer";
 import type { ProfessionData } from "@/lib/craftingTypes";
 import { assetUrl } from "@/lib/assetConfig";
-import { PROFESSION_ICONS_BY_NAME, PROFESSION_BACKGROUNDS_BY_NAME } from "@/lib/artAssets";
+import { professionIcon, professionBackground } from "@/lib/artAssets";
 import { useAuthGuard } from '@/hooks/use-auth-guard';
 
 const CRAFTING_SKILL_TREES: Record<string, ProfessionData> = {
@@ -39,9 +39,6 @@ const CRAFTING_SKILL_TREES: Record<string, ProfessionData> = {
   Chef: chefData,
   Engineer: engineerData,
 };
-
-const PROFESSION_ICONS = PROFESSION_ICONS_BY_NAME;
-const PROFESSION_BG = PROFESSION_BACKGROUNDS_BY_NAME;
 
 type ProfessionTab = "gathering" | "crafting" | "skillTrees";
 
@@ -702,7 +699,7 @@ function ProfessionGrid({ professions, selectedProf, setSelectedProf, category }
   return (
     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
       {professions.map((prof) => {
-        const iconSrc = PROFESSION_ICONS[prof.name];
+        const iconSrc = professionIcon(prof.name);
         return (
           <button
             key={prof.id}
@@ -731,8 +728,8 @@ function ProfessionGrid({ professions, selectedProf, setSelectedProf, category }
 function ProfessionInfoCard({ profession }: { profession: GrudaProfession }) {
   const [, setLocation] = useLocation();
   const professionRoute = `/profession/${profession.name.toLowerCase()}`;
-  const bgSrc = PROFESSION_BG[profession.name];
-  const iconSrc = PROFESSION_ICONS[profession.name];
+  const bgSrc = professionBackground(profession.name);
+  const iconSrc = professionIcon(profession.name);
   
   return (
     <div className="bg-slate-900 rounded-xl border border-slate-800 shadow-xl overflow-hidden">

@@ -1,12 +1,12 @@
 import { ProfessionData } from "@/lib/craftingTypes";
-import { PROFESSION_SKILL_TREE_BACKGROUNDS } from "@/lib/artAssets";
+import { professionSkillTreeBackground } from "@/lib/artAssets";
 
 export const minerData: ProfessionData = {
   name: "Miner",
   role: "Weaponsmith & Armorsmith",
   color: "text-amber-500", 
   icon: "⛏️",
-  bgImage: PROFESSION_SKILL_TREE_BACKGROUNDS.Miner,
+  bgImage: professionSkillTreeBackground("Miner"),
   treeData: [
     // ═══════════════════════════════════════════════════════════════
     // CORE NODE - Central Hub (Bottom Center)

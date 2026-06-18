@@ -1,23 +1,9 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { cn } from "@/lib/utils";
-import { assetUrl } from "@/lib/assetConfig";
+import { COMBAT_BACKGROUNDS, type CombatBackground } from "@/lib/artAssets";
 
-export interface CombatBackground {
-  id: string;
-  name: string;
-  path: string;
-}
-
-export const COMBAT_BACKGROUNDS: CombatBackground[] = [
-  { id: "fields", name: "Open Fields", path: assetUrl("/backgrounds/verdant_plains.png") },
-  { id: "market", name: "Town Market", path: assetUrl("/backgrounds/tavern_bg.png") },
-  { id: "settlement", name: "Settlement Gates", path: assetUrl("/backgrounds/castle_arena.jpg") },
-  { id: "coast", name: "Island Coast", path: assetUrl("/backgrounds/ocean_battle.png") },
-  { id: "dungeon", name: "Shadow Depths", path: assetUrl("/backgrounds/purple_dungeon.png") },
-  { id: "lava", name: "Volcanic Field", path: assetUrl("/backgrounds/volcanic_battle.png") },
-  { id: "frozen", name: "Frozen Wastes", path: assetUrl("/backgrounds/frozen_battle.png") },
-  { id: "arena", name: "Arena", path: assetUrl("/backgrounds/arena_battle.png") },
-];
+export type { CombatBackground };
+export { COMBAT_BACKGROUNDS };
 
 export interface GridPosition {
   row: number;

@@ -157,7 +157,7 @@ export const ATTRIBUTES: Record<AttributeId, AttributeDefinition> = {
     role: 'Tank / Melee DPS',
     description: 'High health, damage, and defense with strong combat modifiers',
     color: '#e74c3c',
-    icon: '/assets/ui/sigils/strength.png',
+    icon: '/icons/sigils/strength.png',
     effects: [
       { stat: 'health', flat: 26, percent: 0.008 },
       { stat: 'damage', flat: 3, percent: 0.02 },        // Fixed from -39.1% to +2%
@@ -176,7 +176,7 @@ export const ATTRIBUTES: Record<AttributeId, AttributeDefinition> = {
     role: 'Tank / Survivability',
     description: 'Maximum health, defense, and damage mitigation',
     color: '#27ae60',
-    icon: '/assets/ui/sigils/vitality.png',
+    icon: '/icons/sigils/vitality.png',
     effects: [
       { stat: 'health', flat: 25, percent: 0.005 },
       { stat: 'mana', flat: 2, percent: 0.002 },
@@ -195,7 +195,7 @@ export const ATTRIBUTES: Record<AttributeId, AttributeDefinition> = {
     role: 'Defensive Specialist',
     description: 'Defense, block mechanics, and critical evasion',
     color: '#95a5a6',
-    icon: '/assets/ui/sigils/endurance.png',
+    icon: '/icons/sigils/endurance.png',
     effects: [
       { stat: 'health', flat: 10, percent: 0.001 },
       { stat: 'stamina', flat: 1, percent: 0.003 },
@@ -213,7 +213,7 @@ export const ATTRIBUTES: Record<AttributeId, AttributeDefinition> = {
     role: 'Mage / Caster',
     description: 'Mana, magic damage, and spell accuracy',
     color: '#3498db',
-    icon: '/assets/ui/sigils/intellect.png',
+    icon: '/icons/sigils/intellect.png',
     effects: [
       { stat: 'mana', flat: 5, percent: 0.05 },
       { stat: 'damage', flat: 4, percent: 0.025 },       // Fixed from -23.7% to +2.5%
@@ -231,7 +231,7 @@ export const ATTRIBUTES: Record<AttributeId, AttributeDefinition> = {
     role: 'Healer / Support',
     description: 'Mana efficiency, survivability, and spell effectiveness',
     color: '#9b59b6',
-    icon: '/assets/ui/sigils/wisdom.png',
+    icon: '/icons/sigils/wisdom.png',
     effects: [
       { stat: 'health', flat: 10, percent: 0 },
       { stat: 'mana', flat: 20, percent: 0.03 },         // Fixed from +0.2% to +3%
@@ -249,7 +249,7 @@ export const ATTRIBUTES: Record<AttributeId, AttributeDefinition> = {
     role: 'Rogue / Precision Fighter',
     description: 'Critical strikes, accuracy, and evasion',
     color: '#f39c12',
-    icon: '/assets/ui/sigils/dexterity.png',
+    icon: '/icons/sigils/dexterity.png',
     effects: [
       { stat: 'damage', flat: 3, percent: 0.018 },       // Fixed from -26.1% to +1.8%
       { stat: 'defense', flat: 10, percent: 0.01 },
@@ -266,7 +266,7 @@ export const ATTRIBUTES: Record<AttributeId, AttributeDefinition> = {
     role: 'Mobile DPS / Dodge Tank',
     description: 'Mobility, critical strikes, and defensive penetration',
     color: '#1abc9c',
-    icon: '/assets/ui/sigils/agility.png',
+    icon: '/icons/sigils/agility.png',
     effects: [
       { stat: 'health', flat: 2, percent: 0.006 },
       { stat: 'stamina', flat: 5, percent: 0.005 },      // Fixed from 0% to +0.5%
@@ -283,7 +283,7 @@ export const ATTRIBUTES: Record<AttributeId, AttributeDefinition> = {
     role: 'Strategic Fighter / Commander',
     description: 'Balanced combat stats with penetration abilities',
     color: '#34495e',
-    icon: '/assets/ui/sigils/tactics.png',
+    icon: '/icons/sigils/tactics.png',
     effects: [
       { stat: 'health', flat: 10, percent: 0.084 },
       { stat: 'mana', flat: 0, percent: 0.082 },

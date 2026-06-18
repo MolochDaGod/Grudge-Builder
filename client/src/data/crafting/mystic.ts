@@ -1,12 +1,12 @@
 import { ProfessionData } from "@/lib/craftingTypes";
-import { PROFESSION_SKILL_TREE_BACKGROUNDS } from "@/lib/artAssets";
+import { professionSkillTreeBackground } from "@/lib/artAssets";
 
 export const mysticData: ProfessionData = {
   name: "Mystic",
   role: "Arcane Crafter & Enchanter",
   color: "text-purple-400",
   icon: "🔮",
-  bgImage: PROFESSION_SKILL_TREE_BACKGROUNDS.Mystic,
+  bgImage: professionSkillTreeBackground("Mystic"),
   treeData: [
     // ═══════════════════════════════════════════════════════════════
     // ASTRAL NEXUS - Central Hub (Bottom Center)

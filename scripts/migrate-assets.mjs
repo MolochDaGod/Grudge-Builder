@@ -21,7 +21,7 @@ const __dirname = path.dirname(__filename);
 
 // ── Config ──────────────────────────────────────────────────────────
 const SRC_ROOT = path.resolve(__dirname, '..', 'client', 'public');
-const DEST_ROOT = 'D:\\ObjectStore';
+const DEST_ROOT = process.env.OBJECT_STORE_ROOT || 'C:\\Users\\david\\Desktop\\ObjectStore';
 const MANIFEST_OUT = path.resolve(__dirname, '..', 'asset-migration-manifest.json');
 
 const MEDIA_EXTS = new Set([
