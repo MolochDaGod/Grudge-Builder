@@ -12,10 +12,16 @@ import { AnimationManager, type AnimState } from './AnimationManager';
 import { loadCharacterModel, type LoadedModel } from '@/lib/modelLoader';
 import {
   getModelForCharacter,
-  getAnimationSet,
-  resolveModelUrl,
   type WeaponType,
 } from '@/lib/modelManifest';
+import { buildAnimLoadMap } from '@/lib/animation/animationCatalog';
+import { CharacterAnimOrchestrator } from '@/lib/animation/characterAnimOrchestrator';
+import {
+  CharacterStateMachine,
+  globalStateManager,
+  type CharacterState,
+  type StateContext,
+} from '@/lib/characterStateMachine';
 
 export type ControlMode = 'harvest' | 'combat';
 
@@ -84,11 +90,18 @@ export interface CharacterController3DConfig {
   startPosition?: THREE.Vector3;
   physics?: Partial<PhysicsConfig>;
   callbacks?: PhysicsCallbacks;
+  /** Character id for state machine + multiplayer sync */
+  characterId?: string;
+  raceId?: string;
+  classId?: string;
 }
 
 export class CharacterController3D {
   public model: THREE.Group;
   public animations: AnimationManager | null = null;
+  public stateMachine: CharacterStateMachine | null = null;
+  public orchestrator: CharacterAnimOrchestrator | null = null;
+  public weaponType: WeaponType = 'sword';
   public mode: ControlMode = 'harvest';
   public movementState: MovementState = 'falling';
   /** Track whether we were moving last frame (for run→stop transition) */
@@ -171,27 +184,60 @@ export class CharacterController3D {
 
   // ─── Model loading (unchanged API) ─────────────────────────────────────────
 
-  async loadCharacterFromManifest(raceId: string, classId: string): Promise<void> {
+  async loadCharacterFromManifest(
+    raceId: string,
+    classId: string,
+    characterId?: string,
+  ): Promise<void> {
     try {
       const modelUnit = getModelForCharacter(raceId, classId);
+      this.weaponType = modelUnit.weaponType;
       const loaded = await loadCharacterModel(modelUnit.modelPath);
 
-      // All 6 Grudge race characters use Mixamo-24 skeleton.
-      // Apply model, register embedded clips by name, then load weapon-specific anims.
       this.applyLoadedModel(loaded, modelUnit.scale);
 
-      const animSet = getAnimationSet(modelUnit.weaponType);
-      const animPaths: Partial<Record<AnimState, string>> = {};
-      if (animSet.idle) animPaths.idle = resolveModelUrl(animSet.idle.file);
-      if (animSet.run) animPaths.walk = resolveModelUrl(animSet.run.file);
-      if (animSet.attack1) animPaths.attack = resolveModelUrl(animSet.attack1.file);
-      if (animSet.death) animPaths.death = resolveModelUrl(animSet.death.file);
-
+      const animPaths = buildAnimLoadMap(modelUnit.weaponType) as Partial<Record<AnimState, string>>;
       if (Object.keys(animPaths).length > 0 && this.animations) {
         await this.animations.loadAnimations(animPaths);
+        console.log(
+          `[CharacterController3D] Loaded ${this.animations.loadedClips.length} clips for ${modelUnit.weaponType}:`,
+          this.animations.loadedClips.join(', '),
+        );
       }
+
+      this.initStateMachine(characterId ?? 'local-player', raceId, classId, modelUnit.weaponType);
     } catch (err) {
       console.warn(`Failed to load character model for ${raceId}/${classId}:`, err);
+    }
+  }
+
+  private initStateMachine(
+    characterId: string,
+    raceId: string,
+    classId: string,
+    weaponType: WeaponType,
+  ): void {
+    const context: StateContext = {
+      characterId,
+      stamina: 100,
+      maxStamina: 100,
+      health: 100,
+      maxHealth: 100,
+      position: { x: this.model.position.x, y: this.model.position.z },
+      inCombat: this.mode === 'combat',
+      isSailing: false,
+      currentActivity: `${raceId}/${classId}`,
+    };
+
+    this.stateMachine = globalStateManager.getOrCreate(characterId, context);
+
+    if (this.animations) {
+      this.orchestrator?.dispose();
+      this.orchestrator = new CharacterAnimOrchestrator(
+        this.animations,
+        this.stateMachine,
+        weaponType,
+      );
     }
   }
 
@@ -242,13 +288,35 @@ export class CharacterController3D {
       if (e.key === 'Tab') {
         e.preventDefault();
         this.mode = this.mode === 'harvest' ? 'combat' : 'harvest';
+        this.stateMachine?.updateContext({ inCombat: this.mode === 'combat' });
+        if (this.mode === 'combat') {
+          this.stateMachine?.transition('combat');
+        } else if (this.stateMachine?.getState() === 'combat') {
+          this.stateMachine.transition('idle');
+        }
+      }
+      // Combat bindings — use easy-win clips from catalog
+      if (this.mode === 'combat' && this.orchestrator) {
+        if (e.key === 'f' || e.key === 'F') {
+          this.orchestrator.playDodge();
+        }
+        if (e.key === 'r' || e.key === 'R') {
+          this.orchestrator.playBlock();
+        }
       }
     });
     window.addEventListener('keyup', (e) => {
       this.keys.delete(e.key.toLowerCase());
     });
     window.addEventListener('mousedown', (e) => {
-      if (e.button === 0) this.mouseDown = true;
+      if (e.button === 0) {
+        this.mouseDown = true;
+        if (this.mode === 'combat' && this.orchestrator) {
+          this.orchestrator.playComboHit();
+        } else if (this.mode === 'harvest' && this.stateMachine?.canTransitionTo('harvesting')) {
+          this.stateMachine.transition('harvesting');
+        }
+      }
     });
     window.addEventListener('mouseup', () => {
       this.mouseDown = false;
@@ -432,14 +500,43 @@ export class CharacterController3D {
     this.camera.position.lerp(desiredCamPos, dt * 5);
     this.camera.lookAt(cameraTarget.x, cameraTarget.y + 3, cameraTarget.z);
 
+    // ── State machine sync ─────────────────────────────────────────────────────
+    if (this.stateMachine) {
+      const pos = this.model.position;
+      this.stateMachine.updateContext({
+        position: { x: pos.x, y: pos.z },
+        inCombat: this.mode === 'combat',
+      });
+
+      const smState = this.stateMachine.getState();
+      if (moving && smState === 'idle' && !this.orchestrator?.hasActivityOverride()) {
+        this.stateMachine.transition('moving');
+      } else if (!moving && smState === 'moving' && !this.orchestrator?.hasActivityOverride()) {
+        this.stateMachine.transition('idle');
+      }
+      if (smState === 'harvesting' && !moving) {
+        this.stateMachine.transition('idle');
+      }
+
+      this.stateMachine.update(dt);
+      this.orchestrator?.update(dt);
+    }
+
     // ── Animations ───────────────────────────────────────────────────────────
     if (this.animations) {
+      // Activity/combat override from orchestrator
+      if (this.orchestrator?.hasActivityOverride()) {
+        this.animations.update(dt);
+        this.wasMoving = moving;
+        return;
+      }
+
       // One-shot timer (hard landing, climb-to-top) — don't interrupt until done
       if (this.oneShotTimer > 0) {
         this.oneShotTimer -= dt;
         this.animations.update(dt);
         this.wasMoving = moving;
-        return; // skip normal anim selection until one-shot finishes
+        return;
       }
 
       // Run → stop deceleration transition
@@ -549,7 +646,18 @@ export class CharacterController3D {
     (this.physics as any).doubleJump = enabled;
   }
 
+  /** Play a move from shared/animation/moveLanguage by id */
+  playMove(moveId: string): boolean {
+    return this.orchestrator?.playMove(moveId) ?? false;
+  }
+
+  getActivityState(): CharacterState {
+    return this.stateMachine?.getState() ?? 'idle';
+  }
+
   destroy(): void {
+    this.orchestrator?.dispose();
+    this.orchestrator = null;
     this.animations?.dispose();
     this.model.parent?.remove(this.model);
   }

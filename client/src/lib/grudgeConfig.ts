@@ -24,7 +24,15 @@ export const WS_URL: string =
 
 /** Public R2-backed asset CDN. */
 export const ASSETS_CDN: string =
-  env.VITE_ASSETS_URL || 'https://assets.grudge-studio.com';
+  env.VITE_ASSETS_URL || env.VITE_ASSET_CDN_URL || 'https://assets.grudge-studio.com';
+
+/**
+ * VFX effects registry API (api-server stack from vfx-sandbox).
+ * Defaults to same-origin `/api/effects` via Vercel rewrite → api.grudge-studio.com.
+ * Set VITE_EFFECTS_API_URL=off for fully offline sandbox mode.
+ */
+export const EFFECTS_API: string =
+  env.VITE_EFFECTS_API_URL ?? '';
 
 /**
  * AI Gateway Worker — unified model hub for all Grudge AI calls.
@@ -230,6 +238,7 @@ export default {
   GAME_API,
   WS_URL,
   ASSETS_CDN,
+  EFFECTS_API,
   AI_GATEWAY,
   BADGE_READER,
   OBJECTSTORE,

@@ -15,7 +15,10 @@ import {
 export type AnimState =
   | 'idle' | 'idle_alt'
   | 'walk' | 'run' | 'run_stop'
-  | 'harvest' | 'attack' | 'death'
+  | 'harvest' | 'attack' | 'attack2' | 'attack3'
+  | 'slash1' | 'slash2' | 'block' | 'block_idle'
+  | 'dodge' | 'cast' | 'kick' | 'crouch' | 'draw' | 'special' | 'impact'
+  | 'death'
   // Parkour / falling
   | 'falling' | 'fall_roll' | 'hard_landing' | 'jump'
   // Climbing
@@ -25,7 +28,10 @@ export type AnimState =
   // Stealth
   | 'crouch_sneak_l' | 'crouch_sneak_r'
   // Swimming (placeholder until swim anims arrive)
-  | 'swim_surface' | 'swim_underwater';
+  | 'swim_surface' | 'swim_underwater'
+  // Fishing
+  | 'fishing_idle' | 'fishing_cast' | 'fishing_wait'
+  | 'fishing_reel' | 'fishing_catch' | 'fishing_fail';
 
 export class AnimationManager {
   private controller: AnimationController;
@@ -71,6 +77,14 @@ export class AnimationManager {
 
   get current(): string {
     return this.controller.currentState;
+  }
+
+  hasClip(state: AnimState): boolean {
+    return this.controller.hasClip(state);
+  }
+
+  get loadedClips(): string[] {
+    return this.controller.loadedStates;
   }
 
   dispose(): void {

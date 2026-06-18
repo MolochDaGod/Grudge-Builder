@@ -630,9 +630,14 @@ export default function CreateCharacterPage() {
                       </div>
                     </div>
                   </div>
-                  <Button onClick={() => setLocation("/play")} className="w-full bg-gradient-to-b from-amber-500 to-amber-700 text-stone-900 font-cinzel font-bold">
-                    ENTER THE WORLD
-                  </Button>
+                  <div className="flex gap-3">
+                    <Button onClick={() => setLocation("/game/character")} className="flex-1 bg-gradient-to-b from-amber-500 to-amber-700 text-stone-900 font-cinzel font-bold">
+                      VIEW CHARACTER
+                    </Button>
+                    <Button onClick={() => setLocation("/play")} variant="outline" className="flex-1 border-amber-700 text-amber-400 hover:bg-amber-900/20 font-cinzel font-bold">
+                      ENTER WORLD
+                    </Button>
+                  </div>
                 </>
               ) : (
                 /* In-progress creation steps */

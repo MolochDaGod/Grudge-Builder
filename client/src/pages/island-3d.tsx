@@ -9,6 +9,7 @@ import type { Island3DMode } from '@/island3d/engine/Island3DEngine';
 import { LOBBY_MAPS } from '@/island3d/engine/LobbyIslandLoader';
 import { authHeaders } from '@/lib/grudgeBackend';
 import { normalizeHomeIslandResponse } from '@/lib/homeIslandApi';
+import { characterAPI } from '@/lib/api';
 import { WORLD_SECTORS } from '@shared/definitions/worldMapSectors';
 import { Loader2 } from 'lucide-react';
 
@@ -37,6 +38,11 @@ export default function Island3DPage() {
   const [homeIsland, setHomeIsland] = useState<any>(null);
   const [homeIslandLoading, setHomeIslandLoading] = useState(isHomeIslandMode);
 
+  // Character for 3D manifest loading
+  const [heroRace, setHeroRace] = useState('human');
+  const [heroClass, setHeroClass] = useState('warrior');
+  const [heroCharacterId, setHeroCharacterId] = useState(characterIdParam);
+
   useEffect(() => {
     if (!isHomeIslandMode) return;
     const load = async () => {
@@ -62,6 +68,19 @@ export default function Island3DPage() {
     load();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    if (!characterIdParam) return;
+    characterAPI.get(characterIdParam)
+      .then((char) => {
+        setHeroRace(char.raceId || 'human');
+        setHeroClass(char.classId || 'warrior');
+        setHeroCharacterId(char.id);
+      })
+      .catch(() => {
+        setHeroCharacterId(characterIdParam);
+      });
+  }, [characterIdParam]);
 
   const handleNewSeed = () => {
     if (inputSeed.trim()) {
@@ -210,7 +229,10 @@ export default function Island3DPage() {
           worldSeed="grudge-world-1"
           quality="medium"
           dayNight={{ dayDurationSeconds: 600, startTime: 0.35 }}
-          enableCharacter={mode === 'procedural' || mode === 'zone'}
+          enableCharacter={mode === 'procedural' || mode === 'zone' || isHomeIslandMode}
+          characterId={heroCharacterId}
+          raceId={heroRace}
+          classId={heroClass}
         />
         {/* Home-island stats overlay */}
         {isHomeIslandMode && homeIsland && (

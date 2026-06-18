@@ -1739,8 +1739,9 @@ export default function IslandPage() {
         <div className="relative w-full h-full">
           <Island3DRenderer
             seed={island3dSeed}
-            characterRaceId={allCharacters[0]?.raceId}
-            characterClassId={allCharacters[0]?.classId}
+            characterId={allCharacters[0]?.id}
+            raceId={allCharacters[0]?.raceId ?? 'human'}
+            classId={allCharacters[0]?.classId ?? 'warrior'}
           />
         </div>
       ) : (

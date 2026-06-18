@@ -1,12 +1,17 @@
+import "./instrument"; // Sentry.init() — must run before anything else
+import * as Sentry from "@sentry/node";
+
 // ── Crash guard: catch ANY top-level error so Railway logs show the real cause ──
 process.on('uncaughtException', (err) => {
   console.error('[FATAL] Uncaught exception:', err.message);
   console.error(err.stack);
-  process.exit(1);
+  Sentry.captureException(err);
+  Sentry.flush(2000).finally(() => process.exit(1));
 });
 process.on('unhandledRejection', (reason) => {
   console.error('[FATAL] Unhandled rejection:', reason);
-  process.exit(1);
+  Sentry.captureException(reason);
+  Sentry.flush(2000).finally(() => process.exit(1));
 });
 
 console.log('[boot] Starting grudge-api...');
@@ -157,6 +162,7 @@ app.get("/api/health", async (_req, res) => {
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";
+    if (status >= 500) Sentry.captureException(err); // report server errors
     res.status(status).json({ message });
   });
 

@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Grudge Studio — Production Deployment Topology</title>
+<style>
+  body{background:#0b0e14;color:#e6e6e6;font-family:Segoe UI,system-ui,Arial,sans-serif;margin:0;padding:16px}
+  h1{font-size:18px;margin:0 0 12px}
+  .bar{margin-bottom:12px}
+  button{background:#1f6feb;color:#fff;border:0;padding:8px 14px;border-radius:6px;cursor:pointer;font-size:14px}
+  #out{overflow:auto;background:#0b0e14;border:1px solid #222;border-radius:8px;padding:8px}
+</style>
+</head>
+<body>
+  <h1>Grudge Studio — Production Deployment Topology</h1>
+  <div class="bar"><button id="dl">Download SVG</button> <span id="status"></span></div>
+  <div id="out">Rendering…</div>
+  <script type="module">
+    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+    const def = `flowchart LR
+  Players(("Players"))
+  subgraph EDGE["Cloudflare (DNS / proxy / WAF)"]
+    DNS["DNS + WAF"]
+    R2["R2: assets.grudge-studio.com"]
+    OBJ["ObjectStore: weapons/items/recipes/classes"]
+    ALE["ALE Worker: ai.grudge-studio.com"]
+    OBS["observatory: telemetry"]
+    MAIL["grudge-mail (Resend)"]
+  end
+  subgraph CLIENT["Client (Cloudflare Pages, off Vercel)"]
+    GW["grudgewarlords.com<br/>Grudge-Builder: client, controller,<br/>home-island, character assets"]
+    WCSUI["WCS crafting/arsenal"]
+  end
+  subgraph RAIL["Railway (Docker)"]
+    ID["id.: SSO/JWT (grudge-backend)"]
+    API["api.: accounts, characters, economy,<br/>crafting, harvesting, missions, crews,<br/>factions, combat, wallets/cNFT (grudge-backend)"]
+    WS["Colyseus /ws: world(9-sector), sector,<br/>town, shipwreck, home_island, dungeon, lobby<br/>(Grudge-Builder server)"]
+    PG[("PostgreSQL + Drizzle")]
+  end
+  subgraph VPS["VPS GRUDGEYONKO (CF Tunnel)"]
+    CONAN["Conan Exiles + conan-admin"]
+  end
+  subgraph SRC["Production-ready source repos -> Warlords"]
+    CORE["grudge-game-core"]
+    RTS["RTS-Grudge / grudge-warlords-rts"]
+    FORGE["grudge-forge-arena"]
+    CHAR["CharacterStudio / grudge-character-creator"]
+  end
+  Players --> DNS --> CLIENT
+  GW -->|/api/*| API
+  GW -->|wss| WS
+  GW --> R2
+  GW --> OBJ
+  GW --> ALE
+  ID --> PG
+  API --> PG
+  WS --> PG
+  API --> OBS
+  CORE --> GW
+  RTS --> GW
+  FORGE --> GW
+  CHAR --> R2
+  WCSUI --> API
+  OBS --> DASH["Dashboard: dash + grudge-fleet + observatory"]
+  PG --> DASH`;
+    mermaid.initialize({ startOnLoad:false, theme:'dark' });
+    try {
+      const { svg } = await mermaid.render('topo', def);
+      document.getElementById('out').innerHTML = svg;
+      document.getElementById('status').textContent = 'rendered';
+      document.getElementById('dl').addEventListener('click', () => {
+        const s = document.querySelector('#out svg');
+        const blob = new Blob([s.outerHTML], { type: 'image/svg+xml' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'production-deployment.svg';
+        a.click();
+      });
+    } catch (e) {
+      document.getElementById('out').textContent = 'Render error: ' + e.message;
+    }
+  </script>
+</body>
+</html>

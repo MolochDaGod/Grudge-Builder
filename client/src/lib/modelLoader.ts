@@ -319,6 +319,14 @@ export class AnimationController {
     return !this.currentAction.isRunning();
   }
 
+  hasClip(stateName: string): boolean {
+    return this.actions.has(stateName);
+  }
+
+  get loadedStates(): string[] {
+    return Array.from(this.actions.keys());
+  }
+
   dispose(): void {
     this.stop();
     this.actions.clear();

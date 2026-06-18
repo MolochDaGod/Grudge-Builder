@@ -1,21 +1,9 @@
-export type CharacterState = 
-  | 'idle'
-  | 'moving'
-  | 'harvesting'
-  | 'building'
-  | 'sleeping'
-  | 'combat'
-  | 'sailing'
-  | 'fishing'
-  | 'fishing_idle'
-  | 'fishing_casting'
-  | 'fishing_waiting'
-  | 'fishing_reeling'
-  | 'fishing_catching'
-  | 'fishing_failed'
-  | 'crafting'
-  | 'trading'
-  | 'talking';
+import {
+  resolveStateAnim,
+  type CharacterState,
+} from '@shared/animation/stateAnimBridge';
+
+export type { CharacterState };
 
 export interface StateTransition {
   from: CharacterState | '*';
@@ -48,19 +36,23 @@ export interface StateConfig {
   minDuration?: number;
 }
 
+function animForState(state: CharacterState): string {
+  return resolveStateAnim(state).enter;
+}
+
 const STATE_CONFIGS: Record<CharacterState, StateConfig> = {
   idle: {
-    enterAnimation: 'Idle',
+    enterAnimation: animForState('idle'),
     allowedTransitions: ['moving', 'harvesting', 'building', 'sleeping', 'combat', 'sailing', 'fishing', 'crafting', 'trading', 'talking'],
     minDuration: 0
   },
   moving: {
-    enterAnimation: 'Walk',
+    enterAnimation: animForState('moving'),
     allowedTransitions: ['idle', 'harvesting', 'building', 'combat', 'sailing'],
     minDuration: 100
   },
   harvesting: {
-    enterAnimation: 'Attack',
+    enterAnimation: animForState('harvesting'),
     allowedTransitions: ['idle', 'moving', 'combat', 'sleeping'],
     minDuration: 1000,
     onEnter: (ctx) => {
@@ -68,12 +60,12 @@ const STATE_CONFIGS: Record<CharacterState, StateConfig> = {
     }
   },
   building: {
-    enterAnimation: 'Attack',
+    enterAnimation: animForState('building'),
     allowedTransitions: ['idle', 'moving', 'combat'],
     minDuration: 2000
   },
   sleeping: {
-    enterAnimation: 'Idle',
+    enterAnimation: animForState('sleeping'),
     allowedTransitions: ['idle'],
     minDuration: 5000,
     onEnter: (ctx) => {
@@ -81,22 +73,22 @@ const STATE_CONFIGS: Record<CharacterState, StateConfig> = {
     }
   },
   combat: {
-    enterAnimation: 'Attack',
+    enterAnimation: animForState('combat'),
     allowedTransitions: ['idle', 'moving', 'sleeping'],
     minDuration: 500
   },
   sailing: {
-    enterAnimation: 'Idle',
+    enterAnimation: animForState('sailing'),
     allowedTransitions: ['idle', 'combat', 'fishing'],
     minDuration: 0
   },
   fishing: {
-    enterAnimation: 'Idle',
+    enterAnimation: animForState('fishing'),
     allowedTransitions: ['idle', 'sailing', 'combat', 'fishing_idle'],
     minDuration: 0
   },
   fishing_idle: {
-    enterAnimation: 'FishingIdle',
+    enterAnimation: animForState('fishing_idle'),
     allowedTransitions: ['idle', 'fishing_casting', 'combat'],
     minDuration: 0,
     onEnter: (ctx) => {
@@ -104,7 +96,7 @@ const STATE_CONFIGS: Record<CharacterState, StateConfig> = {
     }
   },
   fishing_casting: {
-    enterAnimation: 'FishingCast',
+    enterAnimation: animForState('fishing_casting'),
     allowedTransitions: ['fishing_waiting', 'fishing_idle', 'combat'],
     minDuration: 800,
     onEnter: (ctx) => {
@@ -112,7 +104,7 @@ const STATE_CONFIGS: Record<CharacterState, StateConfig> = {
     }
   },
   fishing_waiting: {
-    enterAnimation: 'FishingWait',
+    enterAnimation: animForState('fishing_waiting'),
     allowedTransitions: ['fishing_reeling', 'fishing_idle', 'combat'],
     minDuration: 2000,
     onEnter: (ctx) => {
@@ -120,7 +112,7 @@ const STATE_CONFIGS: Record<CharacterState, StateConfig> = {
     }
   },
   fishing_reeling: {
-    enterAnimation: 'FishingReel',
+    enterAnimation: animForState('fishing_reeling'),
     allowedTransitions: ['fishing_catching', 'fishing_failed', 'combat'],
     minDuration: 1500,
     onEnter: (ctx) => {
@@ -128,7 +120,7 @@ const STATE_CONFIGS: Record<CharacterState, StateConfig> = {
     }
   },
   fishing_catching: {
-    enterAnimation: 'FishingCatch',
+    enterAnimation: animForState('fishing_catching'),
     allowedTransitions: ['fishing_idle', 'idle'],
     minDuration: 1500,
     onEnter: (ctx) => {
@@ -136,7 +128,7 @@ const STATE_CONFIGS: Record<CharacterState, StateConfig> = {
     }
   },
   fishing_failed: {
-    enterAnimation: 'FishingFail',
+    enterAnimation: animForState('fishing_failed'),
     allowedTransitions: ['fishing_idle', 'idle'],
     minDuration: 1000,
     onEnter: (ctx) => {
@@ -144,17 +136,17 @@ const STATE_CONFIGS: Record<CharacterState, StateConfig> = {
     }
   },
   crafting: {
-    enterAnimation: 'Idle',
+    enterAnimation: animForState('crafting'),
     allowedTransitions: ['idle', 'moving'],
     minDuration: 1000
   },
   trading: {
-    enterAnimation: 'Idle',
+    enterAnimation: animForState('trading'),
     allowedTransitions: ['idle', 'moving'],
     minDuration: 0
   },
   talking: {
-    enterAnimation: 'Idle',
+    enterAnimation: animForState('talking'),
     allowedTransitions: ['idle', 'moving', 'combat'],
     minDuration: 0
   }

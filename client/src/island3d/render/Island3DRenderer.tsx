@@ -31,6 +31,10 @@ interface Island3DRendererProps {
   dayNight?: Partial<DayNightConfig>;
   /** Enable the playable character controller (default true for procedural) */
   enableCharacter?: boolean;
+  /** Load manifest character after engine init */
+  characterId?: string;
+  raceId?: string;
+  classId?: string;
   /** Expose the engine ref for external control (building, allies, etc.) */
   onEngineReady?: (engine: Island3DEngine) => void;
 }
@@ -39,6 +43,7 @@ export function Island3DRenderer({
   seed, className = '', multiplayer, mode = 'procedural', lobbyMapId,
   sectorId, worldSeed,
   quality = 'medium', dayNight, enableCharacter, onEngineReady,
+  characterId, raceId, classId,
 }: Island3DRendererProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -86,9 +91,12 @@ export function Island3DRenderer({
     engineRef.current = engine;
 
     engine.init()
-      .then(() => {
+      .then(async () => {
         setLoading(false);
         engine.start();
+        if (engine.character && raceId && classId) {
+          await engine.character.loadCharacterFromManifest(raceId, classId, characterId);
+        }
         onEngineReady?.(engine);
       })
       .catch((err) => {
@@ -101,7 +109,7 @@ export function Island3DRenderer({
       engine.destroy();
       engineRef.current = null;
     };
-  }, [seed, multiplayer, mode, lobbyMapId, sectorId, worldSeed]);
+  }, [seed, multiplayer, mode, lobbyMapId, sectorId, worldSeed, characterId, raceId, classId]);
 
   // Day phase polling (lightweight — once per second)
   useEffect(() => {
@@ -215,6 +223,7 @@ export function Island3DRenderer({
               <>
                 <p className="text-gray-300">{stateLabel[movementState] || movementState}</p>
                 <p className="text-gray-400">WASD move · Space jump · Tab combat/harvest</p>
+                <p className="text-gray-400">Combat: LMB combo · F dodge · R block</p>
                 <p className="text-gray-400">LMB+drag camera · Click to harvest</p>
               </>
             )}

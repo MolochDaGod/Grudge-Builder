@@ -17,14 +17,16 @@ import { normalizeAssetPath } from './legacyAssetPaths';
 
 /** R2 CDN — primary for ALL binary assets (images, sprites, audio, models) */
 const ASSET_CDN_BASE =
-  (typeof import.meta !== 'undefined' && import.meta.env?.VITE_ASSET_CDN_URL) ||
+  (typeof import.meta !== 'undefined' &&
+    (import.meta.env?.VITE_ASSETS_URL || import.meta.env?.VITE_ASSET_CDN_URL)) ||
   'https://assets.grudge-studio.com';
 
 /** ObjectStore — canonical source for all game data and assets.
  *  Hosted on Vercel at objectstore.grudge-studio.com.
  *  GitHub Pages (molochdagod.github.io/ObjectStore) is deprecated. */
 const OBJECT_STORE_PAGES =
-  (typeof import.meta !== 'undefined' && import.meta.env?.VITE_OBJECT_STORE_URL) ||
+  (typeof import.meta !== 'undefined' &&
+    (import.meta.env?.VITE_OBJECTSTORE_URL || import.meta.env?.VITE_OBJECT_STORE_URL)) ||
   'https://objectstore.grudge-studio.com';
 
 /** ObjectStore JSON API base — append endpoint paths like /weapons.json */

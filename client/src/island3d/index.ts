@@ -37,6 +37,17 @@ export type { AnimState } from './player/AnimationManager';
 export { AnimationBlendManager, Spring, Spring3, smoothDamp } from './player/AnimationBlendManager';
 export type { LocomotionState, ActionState, AdditiveLayer, BoneAttachment } from './player/AnimationBlendManager';
 
+// Team animation system (catalog + orchestrator + effects API)
+export {
+  buildAnimLoadMap,
+  getCatalogForWeapon,
+  getEasyBlendClips,
+  getUnusedEasyWins,
+  getAttackComboChain,
+} from '@/lib/animation/animationCatalog';
+export { CharacterAnimOrchestrator } from '@/lib/animation/characterAnimOrchestrator';
+export { listEffects, getEffect, EFFECTS_API_ENABLED } from '@/lib/effectsApi';
+
 // Asset management (cached model/texture loading)
 export { CharacterAssetManager } from './player/CharacterAssetManager';
 export type { CachedModel, LoadProgress } from './player/CharacterAssetManager';

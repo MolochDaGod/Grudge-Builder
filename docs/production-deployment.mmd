@@ -1,0 +1,46 @@
+﻿flowchart LR
+  Players(("Players"))
+  subgraph EDGE["Cloudflare (DNS / proxy / WAF)"]
+    DNS["DNS + WAF"]
+    R2["R2: assets.grudge-studio.com"]
+    OBJ["ObjectStore: weapons/items/recipes/classes"]
+    ALE["ALE Worker: ai.grudge-studio.com"]
+    OBS["observatory: telemetry"]
+    MAIL["grudge-mail (Resend)"]
+  end
+  subgraph CLIENT["Client (Cloudflare Pages, off Vercel)"]
+    GW["grudgewarlords.com<br/>Grudge-Builder: client, controller,<br/>home-island, character assets"]
+    WCSUI["WCS crafting/arsenal"]
+  end
+  subgraph RAIL["Railway (Docker)"]
+    ID["id.: SSO/JWT (grudge-backend)"]
+    API["api.: accounts, characters, economy,<br/>crafting, harvesting, missions, crews,<br/>factions, combat, wallets/cNFT (grudge-backend)"]
+    WS["Colyseus /ws: world(9-sector), sector,<br/>town, shipwreck, home_island, dungeon, lobby<br/>(Grudge-Builder server)"]
+    PG[("PostgreSQL + Drizzle")]
+  end
+  subgraph VPS["VPS GRUDGEYONKO (CF Tunnel)"]
+    CONAN["Conan Exiles + conan-admin"]
+  end
+  subgraph SRC["Production-ready source repos -> Warlords"]
+    CORE["grudge-game-core"]
+    RTS["RTS-Grudge / grudge-warlords-rts"]
+    FORGE["grudge-forge-arena"]
+    CHAR["CharacterStudio / grudge-character-creator"]
+  end
+  Players --> DNS --> CLIENT
+  GW -->|/api/*| API
+  GW -->|wss| WS
+  GW --> R2
+  GW --> OBJ
+  GW --> ALE
+  ID --> PG
+  API --> PG
+  WS --> PG
+  API --> OBS
+  CORE --> GW
+  RTS --> GW
+  FORGE --> GW
+  CHAR --> R2
+  WCSUI --> API
+  OBS --> DASH["Dashboard: dash + grudge-fleet + observatory"]
+  PG --> DASH
