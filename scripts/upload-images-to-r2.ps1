@@ -9,6 +9,9 @@ param(
 $BUCKET = "grudge-assets"
 $ObjectStoreRoot = if ($env:OBJECT_STORE_ROOT) { $env:OBJECT_STORE_ROOT } else { "C:\Users\david\Desktop\ObjectStore" }
 
+# Wrangler cache breaks when cwd is a system directory (e.g. C:\Windows\System32)
+$env:WRANGLER_HOME = Join-Path $env:USERPROFILE ".wrangler"
+
 $mappings = @(
     @{ Source = Join-Path $ObjectStoreRoot "backgrounds"; Prefix = "backgrounds" }
     @{ Source = Join-Path $ObjectStoreRoot "images\professions"; Prefix = "images/professions" }
