@@ -15,7 +15,8 @@
     "check": "tsc",
     "test:client": "vitest run --config client/vitest.config.ts",
     "test:client:watch": "vitest --config client/vitest.config.ts",
-    "db:push": "drizzle-kit push"
+    "db:push": "drizzle-kit push",
+    "check:ai": "node scripts/checks/index.mjs"
   },
   "dependencies": {
     "@colyseus/auth": "^0.17.9",

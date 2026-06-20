@@ -1,0 +1,26 @@
+name: AI Checks — Grudge Builder
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ai-checks-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ai-checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      # AI checks use ONLY Node built-ins (fs, path, buffer). No heavy npm install required.
+      - name: Run AI consistency checks
+        run: node scripts/checks/index.mjs
