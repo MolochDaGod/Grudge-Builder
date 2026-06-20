@@ -60,12 +60,28 @@
       "destination": "https://grudge-builder-production.up.railway.app/api/auth/verify"
     },
     {
-      "source": "/api/auth/:path*",
-      "destination": "https://id.grudge-studio.com/auth/:path*"
+      "source": "/api/auth/session/exchange",
+      "destination": "https://api.grudge-studio.com/api/auth/session/exchange"
+    },
+    {
+      "source": "/api/account",
+      "destination": "https://grudge-builder-production.up.railway.app/api/account"
     },
     {
       "source": "/api/account/:path*",
-      "destination": "https://id.grudge-studio.com/account/:path*"
+      "destination": "https://grudge-builder-production.up.railway.app/api/account/:path*"
+    },
+    {
+      "source": "/api/inventory/:path*",
+      "destination": "https://grudge-builder-production.up.railway.app/api/inventory/:path*"
+    },
+    {
+      "source": "/api/party/:path*",
+      "destination": "https://grudge-builder-production.up.railway.app/api/party/:path*"
+    },
+    {
+      "source": "/api/auth/:path*",
+      "destination": "https://id.grudge-studio.com/auth/:path*"
     },
     {
       "source": "/api/ai/:path*",

@@ -74,8 +74,14 @@ type CharacterCallback = (character: GrudgeCharacter | null) => void;
 
 // ── SDK singleton ──────────────────────────────────────────────────────────────
 
+function defaultApiBase(): string {
+  // Browser: same-origin /api → Vercel fleet rewrites → Railway game data
+  if (typeof window !== 'undefined') return '';
+  return 'https://grudge-builder-production.up.railway.app';
+}
+
 class _GrudgeAccountSDK {
-  private _apiBase    = 'https://api.grudge-studio.com';
+  private _apiBase    = defaultApiBase();
   private _token: string | null = null;
   private _user: GrudgeUser | null = null;
   private _characters: GrudgeCharacter[] = [];
@@ -272,6 +278,82 @@ class _GrudgeAccountSDK {
   /**
    * Save a character update to the backend (partial update).
    */
+  /** Create a new character (consumes character token on account). */
+  async createCharacter(
+    data: Pick<GrudgeCharacter, 'name' | 'raceId' | 'classId'> & Partial<GrudgeCharacter>,
+  ): Promise<GrudgeCharacter | null> {
+    const token = this.getToken();
+    if (!token) return null;
+    const BASE = 10;
+    const attrs = data.attributes ?? {
+      Strength: BASE, Vitality: BASE, Endurance: BASE, Intellect: BASE,
+      Wisdom: BASE, Dexterity: BASE, Agility: BASE, Tactics: BASE,
+    };
+    try {
+      const res = await fetch(`${this._apiBase}/api/characters`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ ...data, attributes: attrs, gameOrigin: 'grudge-fleet' }),
+      });
+      if (!res.ok) return null;
+      const created: GrudgeCharacter = await res.json();
+      this._characters.push(created);
+      this.selectCharacter(created.id);
+      return created;
+    } catch {
+      return null;
+    }
+  }
+
+  /** Mint character as Solana cNFT via Crossmint (server-side wallet). */
+  async mintCharacterCNFT(characterId: string, avatarUrl?: string): Promise<{
+    success: boolean; mintAddress?: string; assetId?: string; error?: string;
+  }> {
+    const token = this.getToken();
+    if (!token) return { success: false, error: 'Not authenticated' };
+    try {
+      const res = await fetch(`${this._apiBase}/api/characters/${characterId}/mint`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ avatarUrl }),
+      });
+      return await res.json();
+    } catch (e: any) {
+      return { success: false, error: e?.message || 'Mint failed' };
+    }
+  }
+
+  /** Ensure Crossmint server wallet exists for this account. */
+  async ensureWallet(): Promise<{ walletAddress?: string; error?: string }> {
+    const token = this.getToken();
+    if (!token) return { error: 'Not authenticated' };
+    try {
+      const status = await fetch(`${this._apiBase}/api/wallet/status`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (status.ok) {
+        const d = await status.json();
+        if (d.walletAddress) return { walletAddress: d.walletAddress };
+      }
+      const create = await fetch(`${this._apiBase}/api/wallet/create`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: '{}',
+      });
+      if (!create.ok) return { error: 'Wallet creation failed' };
+      const d = await create.json();
+      return { walletAddress: d.walletAddress };
+    } catch (e: any) {
+      return { error: e?.message };
+    }
+  }
+
   async saveCharacter(id: string, updates: Partial<GrudgeCharacter>): Promise<GrudgeCharacter | null> {
     const token = this.getToken();
     if (!token) return null;

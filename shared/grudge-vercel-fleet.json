@@ -1,0 +1,25 @@
+{
+  "_comment": "Copy rewrites into any Grudge Studio Vercel game. Order matters — specific routes before catch-all.",
+  "rewrites": [
+    { "source": "/api/assets/:path*", "destination": "https://assets.grudge-studio.com/:path*" },
+    { "source": "/api/characters", "destination": "https://grudge-builder-production.up.railway.app/api/characters" },
+    { "source": "/api/characters/:path*", "destination": "https://grudge-builder-production.up.railway.app/api/characters/:path*" },
+    { "source": "/api/wallet/:path*", "destination": "https://grudge-builder-production.up.railway.app/api/wallet/:path*" },
+    { "source": "/api/nfts/:path*", "destination": "https://grudge-builder-production.up.railway.app/api/nfts/:path*" },
+    { "source": "/api/island/:path*", "destination": "https://grudge-builder-production.up.railway.app/api/island/:path*" },
+    { "source": "/api/islands/:path*", "destination": "https://grudge-builder-production.up.railway.app/api/islands/:path*" },
+    { "source": "/api/account", "destination": "https://grudge-builder-production.up.railway.app/api/account" },
+    { "source": "/api/account/:path*", "destination": "https://grudge-builder-production.up.railway.app/api/account/:path*" },
+    { "source": "/api/inventory/:path*", "destination": "https://grudge-builder-production.up.railway.app/api/inventory/:path*" },
+    { "source": "/api/party/:path*", "destination": "https://grudge-builder-production.up.railway.app/api/party/:path*" },
+    { "source": "/api/auth/puter", "destination": "https://grudge-builder-production.up.railway.app/api/auth/puter" },
+    { "source": "/api/auth/login", "destination": "https://grudge-builder-production.up.railway.app/api/auth/login" },
+    { "source": "/api/auth/register", "destination": "https://grudge-builder-production.up.railway.app/api/auth/register" },
+    { "source": "/api/auth/me", "destination": "https://grudge-builder-production.up.railway.app/api/auth/me" },
+    { "source": "/api/auth/verify", "destination": "https://grudge-builder-production.up.railway.app/api/auth/verify" },
+    { "source": "/api/auth/session/exchange", "destination": "https://api.grudge-studio.com/api/auth/session/exchange" },
+    { "source": "/api/auth/:path*", "destination": "https://id.grudge-studio.com/auth/:path*" },
+    { "source": "/api/ai/:path*", "destination": "https://ai.grudge-studio.com/:path*" },
+    { "source": "/api/:path*", "destination": "https://api.grudge-studio.com/api/:path*" }
+  ]
+}

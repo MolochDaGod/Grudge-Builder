@@ -14,9 +14,23 @@ const env = (import.meta as any).env ?? {};
 export const AUTH_GATEWAY: string =
   env.VITE_AUTH_GATEWAY_URL || 'https://id.grudge-studio.com';
 
-/** Game API (Express backend on Railway, routed via Cloudflare DNS). */
+/**
+ * Identity API (The-ENGINE on Railway) — OAuth, session exchange, GBUX shell.
+ * NOT the source of truth for characters/wallets; use fleetApi() for game data.
+ */
 export const GAME_API: string =
   env.VITE_API_URL || 'https://api.grudge-studio.com';
+
+/**
+ * Authoritative game-state API (GrudgeBuilder Postgres on Railway).
+ * Vercel apps proxy /api/characters|wallet|account here via vercel.json.
+ */
+export const GAME_DATA_API: string =
+  env.VITE_GAME_DATA_API || 'https://grudge-builder-production.up.railway.app';
+
+/** Crossmint character cNFT collection UUID */
+export const CROSSMINT_CHARACTER_COLLECTION: string =
+  env.VITE_CROSSMINT_CHARACTER_COLLECTION || '5061318d-ff65-4893-ac4b-9b28efb18ace';
 
 /** WebSocket bridge for realtime gameplay (dedicated ws-service). */
 export const WS_URL: string =
@@ -116,6 +130,8 @@ export const GRUDGE_SUBDOMAINS = [
   'wow.grudge-studio.com',
   'engine.grudge-studio.com',
   'launcher.grudge-studio.com',
+  'grudge6.grudge-studio.com',
+  'characters.grudge-studio.com',
 ] as const;
 
 /**
