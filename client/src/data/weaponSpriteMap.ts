@@ -1,4 +1,4 @@
-import { assetUrl } from "@/lib/assetConfig";
+import { assetUrl, resolveIconUrl, getPackIconForCategory } from "@/lib/assetConfig";
 
 export const WEAPON_SPRITE_MAP: Record<string, string> = {
   "sword-bloodfeud": "bloodfeud_blade",
@@ -268,10 +268,9 @@ export const ARMOR_SPRITE_MAP: Record<string, string> = {
 export function getWeaponSpritePath(weaponId: string, weaponType: string): string {
   const spriteName = WEAPON_SPRITE_MAP[weaponId];
   if (spriteName) {
-    const typeFolder = getWeaponTypeFolder(weaponType);
-    return assetUrl(`/icons/weapons/${typeFolder}/${spriteName}.png`);
+    return resolveIconUrl(`/icons/weapons/${spriteName}.png`, { weaponType, category: weaponType });
   }
-  return getDefaultWeaponSprite(weaponType);
+  return getPackIconForCategory({ weaponType, category: weaponType });
 }
 
 export function getArmorSpritePath(armorId: string, slot: string, material: string): string {
@@ -311,8 +310,7 @@ function getWeaponTypeFolder(weaponType: string): string {
 }
 
 function getDefaultWeaponSprite(weaponType: string): string {
-  const typeFolder = getWeaponTypeFolder(weaponType);
-  return assetUrl(`/icons/weapons/${typeFolder}/default.png`);
+  return getPackIconForCategory({ weaponType, category: weaponType });
 }
 
 function getDefaultArmorSprite(slot: string, material: string): string {

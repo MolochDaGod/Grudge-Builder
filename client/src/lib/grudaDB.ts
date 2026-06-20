@@ -6,8 +6,8 @@
  * syncItemsFromObjectStore() replaces ITEMS/RECIPES with canonical data on app init.
  */
 
-import { WEAPON_SPRITE_MAP, ARMOR_SPRITE_MAP, getWeaponSpritePath, getArmorSpritePath } from '@/data/weaponSpriteMap';
-import { assetUrl } from "@/lib/assetConfig";
+import { WEAPON_SPRITE_MAP, ARMOR_SPRITE_MAP, getWeaponSpritePath, getArmorSpritePath, getTomeIconPath } from '@/data/weaponSpriteMap';
+import { assetUrl, resolveIconUrl } from "@/lib/assetConfig";
 import { fetchMasterItems, fetchMasterRecipes } from "@/lib/objectStoreApi";
 
 export interface GrudaItem {
@@ -36,6 +36,15 @@ export interface GrudaItem {
 // Helper to resolve icon path using parsed gear sprites
 export const resolveItemImage = (item: Partial<GrudaItem>): string => {
   const tier = Math.min(Math.max(item.tier || 1, 1), 8) as 1|2|3|4|5|6|7|8;
+
+  if (item.image) {
+    return resolveIconUrl(item.image, {
+      category: item.weaponType || item.type,
+      type: item.type,
+      name: item.name,
+      weaponType: item.weaponType,
+    });
+  }
 
   // Check for weapon ID mapping first (priority over name-based)
   if (item.weaponId && WEAPON_SPRITE_MAP[item.weaponId]) {
@@ -174,6 +183,9 @@ export const resolveItemImage = (item: Partial<GrudaItem>): string => {
     return assetUrl(`/icons/weapons/axes/axe${is1h ? "1h" : "2h"}_t${tier}.png`);
   }
   if (item.name?.includes("Crossbow")) return assetUrl(`/icons/weapons/crossbows/crossbow_t${tier}.png`);
+  // Element-specific tome icons (bundled local PNGs — served from public, not R2)
+  const tomeIcon = getTomeIconPath(item.weaponType || item.name || "");
+  if (tomeIcon) return tomeIcon;
   if (item.name?.includes("Tome") || item.name?.includes("Book") || item.name?.includes("Grimoire")) return assetUrl(`/icons/weapons/tomes/tome_t${tier}.png`);
   if (item.name?.includes("Hammer") || item.name?.includes("Mallet")) {
     const n = item.name?.toLowerCase() || "";
@@ -630,7 +642,12 @@ export async function syncItemsFromObjectStore(
         tier: item.tier || 1,
         stats: item.stats || {},
         effects: item.abilities || item.passives || [],
-        image: item.iconUrl || resolveItemImage({ name: item.name, type: item.type, tier: item.tier }),
+        image: resolveIconUrl(item.iconUrl, {
+          category: item.category,
+          type: item.type,
+          name: item.name,
+          weaponType: item.category,
+        }) || resolveItemImage({ name: item.name, type: item.type, tier: item.tier, weaponType: item.category }),
         description: item.description || '',
         buyPrice: item.buyPrice || item.tier * 100,
         craftingProfession: item.craftedBy,
@@ -654,7 +671,7 @@ export async function syncItemsFromObjectStore(
         tier: 8,
         stats: a.stats || {},
         effects: [...(a.abilities || []), ...(a.passives || [])],
-        image: a.iconUrl || '',
+        image: resolveIconUrl(a.iconUrl, { category: a.artifactType, type: 'artifact', name: a.name }) || '',
         description: a.description || a.desc || '',
         buyPrice: 0,
         craftingProfession: null,

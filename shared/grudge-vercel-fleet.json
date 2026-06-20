@@ -2,6 +2,7 @@
   "_comment": "Copy rewrites into any Grudge Studio Vercel game. Order matters — specific routes before catch-all.",
   "rewrites": [
     { "source": "/api/assets/:path*", "destination": "https://assets.grudge-studio.com/:path*" },
+    { "source": "/api/objectstore/:path*", "destination": "https://objectstore.grudge-studio.com/api/:path*" },
     { "source": "/api/characters", "destination": "https://grudge-builder-production.up.railway.app/api/characters" },
     { "source": "/api/characters/:path*", "destination": "https://grudge-builder-production.up.railway.app/api/characters/:path*" },
     { "source": "/api/wallet/:path*", "destination": "https://grudge-builder-production.up.railway.app/api/wallet/:path*" },

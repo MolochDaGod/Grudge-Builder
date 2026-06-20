@@ -9,9 +9,10 @@
  */
 
 import { useQuery } from "@tanstack/react-query";
+import { apiUrl } from "@/lib/assetConfig";
 
-// ── CDN Base ─────────────────────────────────────────────────────────
-const OS_CDN = "https://objectstore.grudge-studio.com/api/v1";
+// ── ObjectStore JSON base (same-origin /api/objectstore via fleet rewrites) ──
+const osEndpoint = (path: string) => apiUrl(path.startsWith('/') ? path : `/${path}`);
 
 // ── TypeScript interfaces (match ObjectStore JSON schema) ────────────
 
@@ -147,15 +148,15 @@ async function fetchJSON<T>(url: string): Promise<T> {
 }
 
 export async function fetchItems(): Promise<OSItemsResponse> {
-  return fetchJSON<OSItemsResponse>(`${OS_CDN}/master-items.json`);
+  return fetchJSON<OSItemsResponse>(osEndpoint('/master-items.json'));
 }
 
 export async function fetchRecipes(): Promise<OSRecipesResponse> {
-  return fetchJSON<OSRecipesResponse>(`${OS_CDN}/master-recipes.json`);
+  return fetchJSON<OSRecipesResponse>(osEndpoint('/master-recipes.json'));
 }
 
 export async function fetchMaterials(): Promise<OSMaterialsResponse> {
-  return fetchJSON<OSMaterialsResponse>(`${OS_CDN}/master-materials.json`);
+  return fetchJSON<OSMaterialsResponse>(osEndpoint('/master-materials.json'));
 }
 
 // ── React Query hooks (5-min stale, 30-min GC) ──────────────────────
@@ -262,7 +263,7 @@ export function isArtifactDiscovered(
 
 /** Fetch master artifacts (level-scaled legendary weapons, hidden until found) */
 export async function fetchArtifacts() {
-  return fetchJSON<{ artifacts: OSItem[]; total: number }>(`${OS_CDN}/master-artifacts.json`);
+  return fetchJSON<{ artifacts: OSItem[]; total: number }>(osEndpoint('/master-artifacts.json'));
 }
 
 export function useOSArtifacts() {

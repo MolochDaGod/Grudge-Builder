@@ -29,8 +29,15 @@ const OBJECT_STORE_PAGES =
     (import.meta.env?.VITE_OBJECTSTORE_URL || import.meta.env?.VITE_OBJECT_STORE_URL)) ||
   'https://objectstore.grudge-studio.com';
 
-/** ObjectStore JSON API base — append endpoint paths like /weapons.json */
-const OBJECT_STORE_API = `${OBJECT_STORE_PAGES}/api/v1`;
+/** ObjectStore JSON API base — same-origin /api/objectstore in browser (Vercel rewrite). */
+function objectStoreApiBase(): string {
+  if (typeof window !== 'undefined' && !(import.meta as any).env?.VITE_OBJECTSTORE_URL) {
+    return '/api/objectstore/v1';
+  }
+  return `${OBJECT_STORE_PAGES}/api/v1`;
+}
+
+const OBJECT_STORE_API = objectStoreApiBase();
 
 /**
  * ObjectStore Worker — production API with caching, search, filtering.
@@ -91,4 +98,5 @@ export function workerUrl(path: string): string {
   return `${OBJECTSTORE_WORKER_URL}${cleanPath}`;
 }
 
-export { OBJECT_STORE_BASE, OBJECT_STORE_API, ASSET_CDN_BASE, OBJECTSTORE_WORKER_URL, OBJECT_STORE_VERSION };
+export { OBJECT_STORE_BASE, OBJECT_STORE_API, ASSET_CDN_BASE, OBJECTSTORE_WORKER_URL, OBJECT_STORE_VERSION, objectStoreApiBase };
+export { resolveIconUrl, getPackIconForCategory, iconOnError } from './iconResolver';

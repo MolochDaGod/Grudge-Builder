@@ -27,6 +27,7 @@ import {
   type OSRecipe,
 } from "@/lib/objectStoreData";
 import { TIERS as TIER_DEFS, getTierDef } from "@shared/definitions/tierSystem";
+import { resolveIconUrl, iconOnError } from "@/lib/iconResolver";
 
 // ── Types ────────────────────────────────────────────────────────────
 interface CraftingJob {
@@ -346,7 +347,12 @@ export default function CraftingPage() {
                     return (
                       <div key={mat.uuid} className="bg-stone-900/80 border border-stone-700/60 rounded-lg p-3">
                         <div className="flex items-center gap-2">
-                          {mat.iconUrl && <img src={mat.iconUrl} alt="" className="w-8 h-8 rounded" />}
+                          <img
+                            src={resolveIconUrl(mat.iconUrl, { category: mat.category, name: mat.name })}
+                            alt=""
+                            className="w-8 h-8 rounded object-contain"
+                            onError={(e) => iconOnError(e, { category: mat.category, name: mat.name })}
+                          />
                           <div className="min-w-0">
                             <p className="text-sm font-medium text-stone-200 truncate">{mat.name}</p>
                             <p className="text-xs text-stone-500">{mat.category}</p>
@@ -383,10 +389,10 @@ export default function CraftingPage() {
                       >
                         <div className="flex items-start gap-3">
                           <img
-                            src={item.iconUrl}
+                            src={resolveIconUrl(item.iconUrl, { category: item.category, type: item.type, name: item.name })}
                             alt={item.name}
                             className="w-10 h-10 rounded-lg border border-stone-700/50 bg-stone-800 object-contain"
-                            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                            onError={(e) => iconOnError(e, { category: item.category, type: item.type, name: item.name })}
                           />
                           <div className="min-w-0 flex-1">
                             <p className="font-medium text-sm text-stone-200 truncate">{item.name}</p>
@@ -421,7 +427,12 @@ export default function CraftingPage() {
               <Card className="bg-stone-900 border-stone-700">
                 <CardHeader className="pb-3">
                   <div className="flex items-start gap-3">
-                    <img src={selectedItem.iconUrl} alt="" className="w-14 h-14 rounded-lg border border-stone-700/50 bg-stone-800 object-contain" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                    <img
+                      src={resolveIconUrl(selectedItem.iconUrl, { category: selectedItem.category, type: selectedItem.type, name: selectedItem.name })}
+                      alt=""
+                      className="w-14 h-14 rounded-lg border border-stone-700/50 bg-stone-800 object-contain"
+                      onError={(e) => iconOnError(e, { category: selectedItem.category, type: selectedItem.type, name: selectedItem.name })}
+                    />
                     <div className="min-w-0 flex-1">
                       <CardTitle className="text-stone-200 text-lg">{selectedItem.name}</CardTitle>
                       <p className="text-xs text-stone-500 mt-1">{selectedItem.description}</p>

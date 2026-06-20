@@ -57,6 +57,7 @@ import AuthCallbackPage from "@/pages/auth-callback";
 import EditorPage from "@/pages/editor";
 import ForgePage from "@/pages/forge";
 import GrudgeAI from "@/components/GrudgeAI";
+import { GrudgeTruthBadge } from "@/components/GrudgeTruthBadge";
 // Lazy-load the organizer page: it pulls in react-force-graph → aframe-extras
 // (A-Frame VR lib that uses THREE as a global). Code-splitting it keeps
 // aframe out of the main bundle and loads it only when /organizer is visited.
@@ -66,6 +67,7 @@ import CharacterCreatorPage from "@/pages/character-creator";
 import GrudaWarsPage from "@/pages/grudawars";
 import PlayPage from "@/pages/play";
 import TutorialPage from "@/pages/tutorial";
+import IslandRevealPage from "@/pages/island-reveal";
 import HomeIslandPage from "@/pages/home-island";
 import WeaponModelAdminPage from "@/pages/weapon-model-admin";
 import WeaponSkillsPage from "@/pages/weapon-skills";
@@ -131,6 +133,7 @@ function Router() {
       <Route path="/grudawars" component={GrudaWarsPage} />
       <Route path="/play" component={PlayPage} />
       <Route path="/tutorial" component={TutorialPage} />
+      <Route path="/island-reveal" component={IslandRevealPage} />
       <Route path="/home-island" component={HomeIslandPage} />
       <Route path="/weapon-admin" component={WeaponModelAdminPage} />
       <Route path="/weapon-skills" component={WeaponSkillsPage} />
@@ -173,6 +176,7 @@ function AppContent() {
         <Toaster />
         <Router />
         <GrudgeAI />
+        <GrudgeTruthBadge />
         <PuterFooter />
       </TooltipProvider>
     </>
