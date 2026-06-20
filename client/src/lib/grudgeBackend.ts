@@ -53,9 +53,47 @@ export interface GrudgeUser {
 
 // ── SSO token pickup (from cross-app redirects) ────────────────────
 
+/** Bridge id.grudge-studio.com launch token → GrudgeBuilder Bearer JWT */
+export async function bridgeGrudgeLaunchToken(launchToken: string): Promise<boolean> {
+  try {
+    const exchange = await fetch("https://api.grudge-studio.com/api/auth/session/exchange", {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token: launchToken, audience: window.location.origin }),
+    });
+    if (!exchange.ok) return false;
+    const profile = await exchange.json();
+
+    const bridge = await fetch(`${API_BASE}/auth/puter`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        puterId: `grudge_${profile.grudgeId}`,
+        puterUuid: `grudge_${profile.grudgeId}`,
+        displayName: profile.displayName || profile.username,
+      }),
+    });
+    if (!bridge.ok) return false;
+    await handleAuthResponse(bridge, "grudge");
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 (function pickupSsoToken() {
   try {
     const params = new URLSearchParams(window.location.search);
+    const launchToken = params.get("grudge_token");
+    if (launchToken) {
+      params.delete("grudge_token");
+      const clean = params.toString();
+      const newUrl = window.location.pathname + (clean ? `?${clean}` : "") + window.location.hash;
+      window.history.replaceState(null, "", newUrl);
+      bridgeGrudgeLaunchToken(launchToken).catch(() => {});
+      return;
+    }
     const ssoToken = params.get("sso_token");
     if (ssoToken) {
       localStorage.setItem(AUTH_TOKEN_KEY, ssoToken);

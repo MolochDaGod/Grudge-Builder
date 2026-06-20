@@ -318,3 +318,36 @@ function getDefaultWeaponSprite(weaponType: string): string {
 function getDefaultArmorSprite(slot: string, material: string): string {
   return assetUrl(`/icons/armor/${slot.toLowerCase()}/${material.toLowerCase()}/default.png`);
 }
+
+/**
+ * Element tomes use bundled local PNG icons served from client/public/icons/tomes.
+ * These are NOT on the R2 CDN, so reference them directly (do NOT use assetUrl()).
+ */
+export const TOME_ICON_BY_ELEMENT: Record<string, string> = {
+  fire:      "/icons/tomes/fire.png",
+  frost:     "/icons/tomes/frost.png",
+  nature:    "/icons/tomes/nature.png",
+  holy:      "/icons/tomes/holy.png",
+  arcane:    "/icons/tomes/arcane.png",
+  lightning: "/icons/tomes/lightning.png",
+};
+
+/** Resolve a tome's element from a weapon type ("Fire Tome") or item name ("Blazewrath Grimoire"). */
+export function getTomeElement(weaponTypeOrName: string): string | null {
+  const s = (weaponTypeOrName || "").toLowerCase();
+  if (s.includes("fire") || s.includes("inferno") || s.includes("blaze") || s.includes("ember") || s.includes("flame")) return "fire";
+  if (s.includes("frost") || s.includes("ice") || s.includes("glacier") || s.includes("frigid")) return "frost";
+  if (s.includes("nature") || s.includes("verdant") || s.includes("growth") || s.includes("thorn") || s.includes("bloom")) return "nature";
+  if (s.includes("lightning") || s.includes("storm") || s.includes("thunder") || s.includes("bolt") || s.includes("shock")) return "lightning";
+  if (s.includes("arcane") || s.includes("void") || s.includes("ether") || s.includes("aether")) return "arcane";
+  if (s.includes("holy") || s.includes("dawn") || s.includes("grace") || s.includes("sacred") || s.includes("divine") || s.includes("light")) return "holy";
+  return null;
+}
+
+/** Local PNG icon for a tome by weapon type or item name. Returns null when the item is not a tome. */
+export function getTomeIconPath(weaponTypeOrName: string): string | null {
+  const s = (weaponTypeOrName || "").toLowerCase();
+  if (!s.includes("tome") && !s.includes("grimoire")) return null;
+  const el = getTomeElement(s);
+  return el ? TOME_ICON_BY_ELEMENT[el] : null;
+}

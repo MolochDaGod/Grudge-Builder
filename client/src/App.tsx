@@ -69,6 +69,7 @@ import TutorialPage from "@/pages/tutorial";
 import HomeIslandPage from "@/pages/home-island";
 import WeaponModelAdminPage from "@/pages/weapon-model-admin";
 import WeaponSkillsPage from "@/pages/weapon-skills";
+import WeaponMasteryPage from "@/pages/weapon-mastery";
 import TownPage from "@/pages/town";
 import GameCharacterPage from "@/pages/game-character";
 
@@ -133,6 +134,7 @@ function Router() {
       <Route path="/home-island" component={HomeIslandPage} />
       <Route path="/weapon-admin" component={WeaponModelAdminPage} />
       <Route path="/weapon-skills" component={WeaponSkillsPage} />
+      <Route path="/weapon-mastery" component={WeaponMasteryPage} />
       <Route path="/town" component={TownPage} />
       <Route path="/weaponskills" component={WeaponSkillsPage} />
       <Route path="/game/character" component={GameCharacterPage} />

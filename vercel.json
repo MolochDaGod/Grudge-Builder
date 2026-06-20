@@ -16,6 +16,50 @@
       "destination": "https://assets.grudge-studio.com/:path*"
     },
     {
+      "source": "/api/characters",
+      "destination": "https://grudge-builder-production.up.railway.app/api/characters"
+    },
+    {
+      "source": "/api/characters/:path*",
+      "destination": "https://grudge-builder-production.up.railway.app/api/characters/:path*"
+    },
+    {
+      "source": "/api/wallet/:path*",
+      "destination": "https://grudge-builder-production.up.railway.app/api/wallet/:path*"
+    },
+    {
+      "source": "/api/nfts/:path*",
+      "destination": "https://grudge-builder-production.up.railway.app/api/nfts/:path*"
+    },
+    {
+      "source": "/api/island/:path*",
+      "destination": "https://grudge-builder-production.up.railway.app/api/island/:path*"
+    },
+    {
+      "source": "/api/islands/:path*",
+      "destination": "https://grudge-builder-production.up.railway.app/api/islands/:path*"
+    },
+    {
+      "source": "/api/auth/puter",
+      "destination": "https://grudge-builder-production.up.railway.app/api/auth/puter"
+    },
+    {
+      "source": "/api/auth/login",
+      "destination": "https://grudge-builder-production.up.railway.app/api/auth/login"
+    },
+    {
+      "source": "/api/auth/register",
+      "destination": "https://grudge-builder-production.up.railway.app/api/auth/register"
+    },
+    {
+      "source": "/api/auth/me",
+      "destination": "https://grudge-builder-production.up.railway.app/api/auth/me"
+    },
+    {
+      "source": "/api/auth/verify",
+      "destination": "https://grudge-builder-production.up.railway.app/api/auth/verify"
+    },
+    {
       "source": "/api/auth/:path*",
       "destination": "https://id.grudge-studio.com/auth/:path*"
     },

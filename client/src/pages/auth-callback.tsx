@@ -1,18 +1,14 @@
 /**
  * Auth Callback — Single SSO entry point for all auth flows.
  *
- * Every auth method (login, register, Discord, Puter, wallet, phone, guest)
- * redirects here with:
- *   /auth/callback?sso_token=JWT&grudge_id=GRDG-XXXX&grudge_username=Player
- *
- * The `pickupSsoToken()` IIFE in grudgeBackend.ts fires on module load and
- * persists these params to localStorage + cookies before this component mounts.
- * This page then creates a full GrudgeSession and redirects to /home.
+ * Supports:
+ *   /auth/callback?sso_token=JWT&grudge_id=GRDG-XXXX
+ *   /auth/callback?grudge_token=JWT  (id.grudge-studio.com cross-domain SSO)
  */
 import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { Loader2 } from "lucide-react";
-import { isAuthenticated, setSession, getCurrentUser } from "@/lib/grudgeBackend";
+import { isAuthenticated, setSession, bridgeGrudgeLaunchToken } from "@/lib/grudgeBackend";
 import type { GrudgeSession } from "@/lib/grudgeBackend";
 
 export default function AuthCallbackPage() {
@@ -21,34 +17,50 @@ export default function AuthCallbackPage() {
   const [displayName, setDisplayName] = useState("");
 
   useEffect(() => {
-    // pickupSsoToken() already ran and stored sso_token, grudge_id, grudge_username
-    if (!isAuthenticated()) {
-      setStatus("error");
-      const t = setTimeout(() => setLocation("/"), 2000);
-      return () => clearTimeout(t);
-    }
+    let cancelled = false;
+    let redirectTimer: ReturnType<typeof setTimeout> | undefined;
 
-    // Build a full session from what pickupSsoToken stored
-    const grudgeId = localStorage.getItem("grudge_id") || "";
-    const username = localStorage.getItem("grudge_username") || "Player";
-    setDisplayName(username);
+    (async () => {
+      if (!isAuthenticated()) {
+        const params = new URLSearchParams(window.location.search);
+        const launchToken = params.get("grudge_token");
+        if (launchToken) {
+          await bridgeGrudgeLaunchToken(launchToken);
+        }
+      }
 
-    const session: GrudgeSession = {
-      type: "grudge",
-      username,
-      grudgeId: grudgeId || undefined,
-      loginTime: Date.now(),
+      if (cancelled) return;
+
+      if (!isAuthenticated()) {
+        setStatus("error");
+        redirectTimer = setTimeout(() => setLocation("/"), 2000);
+        return;
+      }
+
+      const grudgeId = localStorage.getItem("grudge_id") || "";
+      const username = localStorage.getItem("grudge_username") || "Player";
+      setDisplayName(username);
+
+      const session: GrudgeSession = {
+        type: "grudge",
+        username,
+        grudgeId: grudgeId || undefined,
+        loginTime: Date.now(),
+      };
+      setSession(session);
+
+      try {
+        localStorage.setItem("grudge_user", JSON.stringify({ username, grudgeId }));
+      } catch { /* ignore */ }
+
+      setStatus("success");
+      redirectTimer = setTimeout(() => setLocation("/home"), 600);
+    })();
+
+    return () => {
+      cancelled = true;
+      if (redirectTimer) clearTimeout(redirectTimer);
     };
-    setSession(session);
-
-    // Store cross-app user object for grudge-auth-modal.js compat
-    try {
-      localStorage.setItem("grudge_user", JSON.stringify({ username, grudgeId }));
-    } catch { /* ignore */ }
-
-    setStatus("success");
-    const t = setTimeout(() => setLocation("/home"), 600);
-    return () => clearTimeout(t);
   }, [setLocation]);
 
   return (

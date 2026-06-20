@@ -134,11 +134,20 @@ export const WEAPON_SKILL_TREES: Record<string, WeaponSkillTree> = {
   BOW: { weaponType: "BOW", skills: BOW_SKILLS },
   STAFF: { weaponType: "STAFF", skills: STAFF_SKILLS },
   DAGGER: { weaponType: "DAGGER", skills: DAGGER_SKILLS },
+  // Legacy aliases — these weapon types now have full unique skill trees
+  // in weaponSkillsNew.ts. Kept here for backward compatibility only.
+  // NOTE: TOME is an off-hand modifier, RELIC is an equipment trinket —
+  // neither are weapons. GRIMOIRE is Worge-exclusive shapeshift weapon.
   MACE: { weaponType: "MACE", skills: AXE_SKILLS },
   HAMMER: { weaponType: "HAMMER", skills: AXE_SKILLS },
   SPEAR: { weaponType: "SPEAR", skills: SWORD_SKILLS },
   WAND: { weaponType: "WAND", skills: STAFF_SKILLS },
   SCYTHE: { weaponType: "SCYTHE", skills: AXE_SKILLS },
+  SHIELD: { weaponType: "SHIELD", skills: SWORD_SKILLS },
+  TWO_HAND_SWORD: { weaponType: "TWO_HAND_SWORD", skills: SWORD_SKILLS },
+  GRIMOIRE: { weaponType: "GRIMOIRE", skills: STAFF_SKILLS },
+  // TOME → off-hand modifier (not a weapon, see weaponSkillsNew.ts)
+  // RELIC → equipment trinket slot (not a weapon, see relicDatabase.ts)
 };
 
 export function getSkillsForSlot(weaponType: string, slot: 1 | 2 | 3 | 4): WeaponSkill[] {
