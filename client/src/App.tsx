@@ -56,6 +56,7 @@ import Island3DPage from "@/pages/island-3d";
 import AuthCallbackPage from "@/pages/auth-callback";
 import EditorPage from "@/pages/editor";
 import ForgePage from "@/pages/forge";
+import ScenePage from "@/pages/scene";
 import GrudgeAI from "@/components/GrudgeAI";
 import { GrudgeTruthBadge } from "@/components/GrudgeTruthBadge";
 // Lazy-load the organizer page: it pulls in react-force-graph → aframe-extras
@@ -129,6 +130,7 @@ function Router() {
       <Route path="/island-3d" component={Island3DPage} />
       <Route path="/editor" component={EditorPage} />
       <Route path="/forge" component={ForgePage} />
+      <Route path="/scene" component={ScenePage} />
       <Route path="/organizer">{() => <Suspense fallback={null}><OrganizerPage /></Suspense>}</Route>
       <Route path="/grudawars" component={GrudaWarsPage} />
       <Route path="/play" component={PlayPage} />

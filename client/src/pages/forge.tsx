@@ -15,6 +15,7 @@ import { useAIStatus, aiClient, type AITaskType } from "@/lib/aiClient";
 import { useObjectStoreData } from "@/lib/objectStoreData";
 import { Button } from "@/components/ui/button";
 import { Home } from "lucide-react";
+import OpeningScene from "@/components/forge/OpeningScene";
 
 type ForgeTab = "assets" | "items" | "ledger" | "ai" | "tools";
 
@@ -174,20 +175,22 @@ function AIHubTab() {
 // ── Assets Tab ──────────────────────────────────────────────────────
 
 function AssetsTab() {
-  const { items, totalItems, isLoading } = useObjectStoreData();
+  const { totalItems, isLoading } = useObjectStoreData();
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-bold">ObjectStore Assets</h2>
+        <h2 className="text-lg font-bold">3D Viewer & Asset Inspector</h2>
         <span className="text-sm text-slate-400">
           {isLoading ? "Loading..." : `${totalItems} items in database`}
         </span>
       </div>
-      <div className="rounded-xl border border-slate-700 p-8 bg-slate-800/30 text-center text-slate-500">
-        <p className="text-4xl mb-3">📦</p>
-        <p>Asset browser — browse ObjectStore, upload assets, preview 3D models</p>
-        <p className="text-xs mt-1">Connected to objectstore.grudge-studio.com</p>
-      </div>
+      {/* Opening scene doubles as a universal model viewer: drop or import a
+          GLB/glTF/FBX/OBJ/STL/PLY/DAE/3MF file to inspect it. */}
+      <OpeningScene className="h-[70vh]" />
+      <p className="text-xs text-slate-500">
+        Drag-and-drop or use <span className="text-amber-400">Import</span> to load any supported
+        format. Connected to objectstore.grudge-studio.com.
+      </p>
     </div>
   );
 }
