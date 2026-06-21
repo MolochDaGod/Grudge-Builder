@@ -60,6 +60,18 @@
       "destination": "https://grudge-builder-production.up.railway.app/api/auth/me"
     },
     {
+      "source": "/api/auth/scoped-profile",
+      "destination": "https://grudge-builder-production.up.railway.app/api/auth/scoped-profile"
+    },
+    {
+      "source": "/api/auth/discord/start",
+      "destination": "https://grudge-builder-production.up.railway.app/api/auth/discord/start"
+    },
+    {
+      "source": "/api/discord/interactions",
+      "destination": "https://grudge-builder-production.up.railway.app/api/discord/interactions"
+    },
+    {
       "source": "/api/auth/verify",
       "destination": "https://grudge-builder-production.up.railway.app/api/auth/verify"
     },
