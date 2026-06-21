@@ -244,6 +244,10 @@ export async function registerRoutes(
   // ── Auth routes (Grudge ID — puter, wallet, login, register, verify, discord) ──
   registerAuthRoutes(app);
 
+  const { registerDiscordInteractionRoutes, registerDiscordCommands } = await import("./discordInteractions");
+  registerDiscordInteractionRoutes(app);
+  registerDiscordCommands().catch((e) => console.warn("[Discord] Boot registration skipped:", e?.message));
+
   // Extract userId from JWT token (secure) — replaces old x-admin-mode header trust
   const getUserId = (req: Request): string => extractUserId(req);
   const GUEST_USER_ID = "guest";
@@ -468,8 +472,13 @@ export async function registerRoutes(
       const account = await storage.getOrCreateAccountForUser(userId);
       let island = await storage.getOrCreateHomeIsland(account.id);
 
-      // If island doesn't have generated state, generate it now
-      if (!island.state || Object.keys(island.state).length === 0) {
+      const existingState = (island.state || {}) as Record<string, unknown>;
+      const needsGeneration = !(island as any).validatedAt && (
+        !Array.isArray(existingState.nodes) ||
+        (existingState.nodes as unknown[]).length === 0
+      );
+
+      if (needsGeneration) {
         const generatedState = generateIslandState(characterId, island.seed);
         island = await storage.updateHomeIsland(island.id, {
           state: generatedState,
@@ -481,12 +490,19 @@ export async function registerRoutes(
         await storage.updateCharacter(characterId, { homeIslandId: island.id } as any);
       }
 
-      // Parse and return normalized island state
-      const islandState = island.state as Record<string, unknown>;
-
+      const normalizedState = normalizeIslandState(island);
       res.json({
+        id: island.id,
         homeIslandId: island.id,
-        islandState: islandState,
+        seed: island.seed,
+        name: island.name,
+        mapStyle: island.mapStyle,
+        validatedAt: (island as any).validatedAt ?? null,
+        createdAt: island.createdAt,
+        updatedAt: island.updatedAt,
+        state: island.state,
+        islandState: island.state,
+        ...normalizedState,
       });
     } catch (error) {
       console.error("Error generating island:", error);
@@ -1110,6 +1126,113 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Error checking island status:", error);
       res.status(500).json({ error: "Failed to check island status" });
+    }
+  });
+
+  // Commit home island after player approves 2D overhead preview
+  app.post("/api/island/commit", async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      const { characterId, islandId, islandState, mapImageData } = req.body;
+
+      if (!characterId || !islandId || !islandState) {
+        return res.status(400).json({ error: "characterId, islandId, and islandState are required" });
+      }
+
+      const character = await storage.getCharacter(characterId);
+      if (!character) return res.status(404).json({ error: "Character not found" });
+      if (character.userId !== userId) {
+        return res.status(403).json({ error: "Character does not belong to your account" });
+      }
+
+      const account = await storage.getOrCreateAccountForUser(userId);
+      const island = await storage.getHomeIsland(islandId);
+      if (!island) return res.status(404).json({ error: "Island not found" });
+      if (island.accountId !== account.id) {
+        return res.status(403).json({ error: "Island does not belong to your account" });
+      }
+      if ((island as any).validatedAt) {
+        return res.status(409).json({ error: "Island already committed", validatedAt: (island as any).validatedAt });
+      }
+
+      const validation = validateIslandAssets(islandState as any);
+      if (!validation.valid) {
+        return res.status(400).json({ error: "Invalid island state", details: validation.errors });
+      }
+
+      let mapImageUrl: string | undefined;
+      if (mapImageData && typeof mapImageData === "string" && mapImageData.startsWith("data:image")) {
+        const mapsDir = path.join(process.cwd(), "public", "maps");
+        if (!fs.existsSync(mapsDir)) fs.mkdirSync(mapsDir, { recursive: true });
+        const base64 = mapImageData.replace(/^data:image\/\w+;base64,/, "");
+        const filename = `island_${island.id}_preview.png`;
+        fs.writeFileSync(path.join(mapsDir, filename), Buffer.from(base64, "base64"));
+        mapImageUrl = `/maps/${filename}`;
+      }
+
+      const now = Date.now();
+      const committedState = {
+        ...islandState,
+        id: island.id,
+        characterId,
+        seed: island.seed,
+        mapImageUrl: mapImageUrl ?? islandState.mapImageUrl,
+        lastUpdate: now,
+        isFirstVisit: true,
+      };
+
+      const updatedIsland = await storage.updateHomeIsland(island.id, {
+        state: committedState,
+        mapImageUrl: mapImageUrl ?? island.mapImageUrl,
+        validatedAt: now,
+      } as any);
+
+      await storage.updateCharacter(characterId, { homeIslandId: island.id } as any);
+      await storage.updateAccount(account.id, {
+        homeIsland: true,
+        homeIslandId: island.id,
+      });
+
+      const nodes = Array.isArray(committedState.nodes) ? committedState.nodes : [];
+      for (const node of nodes) {
+        const nodeId = node.id || node.nodeId || `node-${node.x}-${node.y}`;
+        try {
+          await storage.updateResourceNode(userId, String(nodeId), 0);
+        } catch { /* node row created on first gather */ }
+      }
+
+      let mintResult: { actionId?: string; mintAddress?: string } = {};
+      try {
+        const { crossmintWalletService: crossmint } = await import("./services/crossmintWallet");
+        mintResult = await crossmint.mintIslandCNFT(account, updatedIsland);
+        if (mintResult.actionId) {
+          await storage.updateAccount(account.id, { homeIslandMintActionId: mintResult.actionId });
+        }
+        await db.insert(islandNFTs).values({
+          islandId: island.id,
+          accountId: account.id,
+          status: mintResult.mintAddress ? "minted" : "minting",
+          mintAddress: mintResult.mintAddress || null,
+          crossmintActionId: mintResult.actionId || null,
+          ownerWalletAddress: account.walletAddress || null,
+          isCompressed: true,
+        }).onConflictDoNothing();
+      } catch (mintErr) {
+        console.warn("Island cNFT mint skipped:", mintErr);
+      }
+
+      const normalizedState = normalizeIslandState(updatedIsland);
+      res.json({
+        success: true,
+        homeIslandId: island.id,
+        nodeCount: nodes.length,
+        message: "Island committed successfully",
+        island: { ...updatedIsland, state: committedState, islandState: committedState },
+        mint: mintResult,
+      });
+    } catch (error) {
+      console.error("Error committing island:", error);
+      res.status(500).json({ error: "Failed to commit island" });
     }
   });
 

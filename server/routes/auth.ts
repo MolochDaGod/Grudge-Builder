@@ -25,6 +25,7 @@ import { eq } from "drizzle-orm";
 import jwt from "jsonwebtoken";
 import crypto from "node:crypto";
 import { storage } from "../storage";
+import { buildScopedProfile } from "../lib/scopedProfile";
 
 const JWT_SECRET = process.env.SESSION_SECRET || process.env.JWT_SECRET || "grudge-dev-secret";
 const JWT_EXPIRES = "7d";
@@ -421,6 +422,44 @@ export function registerAuthRoutes(app: Express) {
       res.json({ success: true, linked: true });
     } catch {
       res.json({ success: false, error: "Invalid token" });
+    }
+  });
+
+  /**
+   * GET /api/auth/discord/start
+   * Redirect to canonical Grudge ID Discord OAuth (id.grudge-studio.com).
+   * Scopes: identify + email only — no guilds, messages, or dangerous permissions.
+   */
+  app.get("/api/auth/discord/start", (req: Request, res: Response) => {
+    const returnUrl =
+      (req.query.return as string) ||
+      (req.query.returnUrl as string) ||
+      "https://grudgewarlords.com/auth/callback";
+    const gateway = process.env.AUTH_GATEWAY_URL || "https://id.grudge-studio.com";
+    res.redirect(
+      `${gateway}/auth/discord/start?return=${encodeURIComponent(returnUrl)}`,
+    );
+  });
+
+  /**
+   * GET /api/auth/scoped-profile
+   * Safe account snapshot for Discord cards / bots — masked IDs, no secrets.
+   */
+  app.get("/api/auth/scoped-profile", async (req: Request, res: Response) => {
+    try {
+      const authHeader = req.get("Authorization") || "";
+      const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : "";
+      if (!token) return res.status(401).json({ success: false, error: "No token" });
+
+      const payload = jwt.verify(token, JWT_SECRET) as { userId?: string };
+      if (!payload.userId) return res.status(401).json({ success: false, error: "Invalid token" });
+
+      const profile = await buildScopedProfile(payload.userId, { mask: true });
+      if (!profile) return res.status(404).json({ success: false, error: "User not found" });
+
+      res.json({ success: true, profile });
+    } catch {
+      res.status(401).json({ success: false, error: "Invalid or expired token" });
     }
   });
 

@@ -283,7 +283,7 @@
   // but the matching `/auth/<provider>/callback` endpoints on
   // id.grudge-studio.com are alive. We build the provider authorize URL
   // on the client and let the provider redirect straight to the callback.
-  var DISCORD_CLIENT_ID = (window.GRUDGE_DISCORD_CLIENT_ID) || '1471046591220678677';
+  var DISCORD_CLIENT_ID = (window.GRUDGE_DISCORD_CLIENT_ID) || '1342593452793270302';
   var DISCORD_REDIRECT_URI = (window.GRUDGE_DISCORD_REDIRECT_URI) || 'https://id.grudge-studio.com/auth/discord/callback';
   var DISCORD_OAUTH_SCOPES = (window.GRUDGE_DISCORD_OAUTH_SCOPES) || 'identify email';
 
@@ -297,12 +297,11 @@
     return 'https://discord.com/api/oauth2/authorize?' + qs;
   }
 
-  // Discord OAuth — client-built URL (was: /api/auth/discord/start which is 404).
+  // Discord OAuth — canonical gateway (identify + email scopes only).
   function doDiscord() {
     showSuccess('Redirecting to Discord\u2026');
-    // Always redirect back to /auth/callback so SSO params arrive there
-    var returnUrl = window.location.origin + '/auth/callback';
-    window.location.href = buildDiscordOAuthUrl(returnUrl);
+    var returnUrl = encodeURIComponent(window.location.origin + '/auth/callback');
+    window.location.href = AUTH_BASE + '/auth/discord/start?return=' + returnUrl;
   }
 
   // Google OAuth — delegated to Puter SDK (was: /api/auth/google/start which is 404).

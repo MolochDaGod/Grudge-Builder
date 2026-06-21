@@ -380,19 +380,19 @@ export async function loginAsGuest(): Promise<AuthResponse> {
 }
 
 /**
- * Discord OAuth (2026-04-27 — client-built URL).
- *
- * The backend `/auth/discord/start` endpoint returns 404 right now, but
- * `/auth/discord/callback` is alive. We build the discord.com authorize
- * URL on the client and redirect there directly. Discord then redirects
- * back to `id.grudge-studio.com/auth/discord/callback` with the code; the
- * backend exchanges it for a Grudge JWT and redirects to `state` with
- * `?sso_token=...` (picked up by the IIFE at the top of this file).
+ * Discord OAuth — canonical Grudge ID gateway redirect.
+ * Scopes: identify + email only. Returns sentinel for in-place redirect.
  */
 export async function startDiscordLogin(): Promise<string> {
-  const { buildDiscordOAuthUrl } = await import("./grudgeConfig");
-  // Always redirect back to /auth/callback so SSO params arrive there
-  return buildDiscordOAuthUrl(window.location.origin + '/auth/callback');
+  const returnUrl = encodeURIComponent(`${window.location.origin}/auth/callback`);
+  window.location.href = `/api/auth/discord/start?return=${returnUrl}`;
+  return "__discord_redirect__";
+}
+
+/** In-place Discord login (no return value needed). */
+export function redirectDiscordLogin(returnPath = "/auth/callback"): void {
+  const returnUrl = encodeURIComponent(`${window.location.origin}${returnPath}`);
+  window.location.href = `/api/auth/discord/start?return=${returnUrl}`;
 }
 
 /**

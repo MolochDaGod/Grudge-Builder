@@ -137,18 +137,15 @@ export const GRUDGE_SUBDOMAINS = [
 /**
  * Discord OAuth wiring (2026-04-27).
  *
- * `id.grudge-studio.com/auth/discord/start` currently returns 404, but
- * `/auth/discord/callback` is alive. We build the discord.com authorize URL
- * on the client and let Discord redirect straight to the callback. The
- * backend callback exchanges the code, signs a JWT, and redirects back to
- * `state` with `?sso_token=...` — picked up by the IIFE at the top of
- * `grudgeBackend.ts`.
+ * Canonical flow: redirect to `id.grudge-studio.com/auth/discord/start`
+ * (or same-origin `/api/auth/discord/start` via Vercel proxy). Scopes are
+ * `identify email` only — no guild admin, messages, or wallet scopes.
  *
- * Client ID is the GrudgeWarlords Discord app (registered in
- * Developer Portal). Override via VITE_DISCORD_CLIENT_ID.
+ * Client-built OAuth is deprecated; DISCORD_CLIENT_ID must match the VPS app
+ * if you still use buildDiscordOAuthUrl for legacy surfaces.
  */
 export const DISCORD_CLIENT_ID: string =
-  env.VITE_DISCORD_CLIENT_ID || '1471046591220678677';
+  env.VITE_DISCORD_CLIENT_ID || '1342593452793270302';
 
 /**
  * Discord redirect URI.
