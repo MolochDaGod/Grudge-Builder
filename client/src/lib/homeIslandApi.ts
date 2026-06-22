@@ -187,6 +187,60 @@ export interface RtsStatusDto {
   playerCount: number | null;
 }
 
+export interface CommitIslandPayload {
+  characterId: string;
+  islandId: string;
+  islandState?: HomeIslandState;
+  mapImageData?: string;
+  /** Full Studio Editor MapProject JSON — server maps to HomeIslandState */
+  studioProject?: unknown;
+  /** CDN URL of exported GLB scene from Studio Editor */
+  sceneGlbUrl?: string;
+}
+
+export interface CommitIslandResult {
+  success: boolean;
+  homeIslandId: string;
+  island: HomeIslandDto;
+  nodeCount: number;
+  message: string;
+}
+
+export async function commitHomeIsland(payload: CommitIslandPayload): Promise<CommitIslandResult> {
+  const res = await fetch('/api/island/commit', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || 'Failed to commit home island');
+  }
+  const data = await res.json();
+  return {
+    ...data,
+    island: normalizeHomeIslandResponse(data.island ?? data),
+  };
+}
+
+export async function generateCharacterIsland(characterId: string): Promise<HomeIslandDto> {
+  const res = await fetch(`/api/characters/${characterId}/generate-island`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+  });
+  if (!res.ok) throw new Error('Failed to generate island');
+  return normalizeHomeIslandResponse(await res.json());
+}
+
+export async function rerollIsland(islandId: string): Promise<HomeIslandDto> {
+  const res = await fetch(`/api/islands/${islandId}/regenerate`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+  });
+  if (!res.ok) throw new Error('Failed to reroll island');
+  return normalizeHomeIslandResponse(await res.json());
+}
+
 export async function fetchRtsStatus(): Promise<RtsStatusDto> {
   try {
     const res = await fetch('/api/rts/status');

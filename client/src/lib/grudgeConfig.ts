@@ -41,6 +41,14 @@ export const ASSETS_CDN: string =
   env.VITE_ASSETS_URL || env.VITE_ASSET_CDN_URL || 'https://assets.grudge-studio.com';
 
 /**
+ * Grudge Studio Map & Model Editor — canonical home-island creation surface.
+ * Vercel project `grudge-studio-editor` (artifacts/studio in grudge-studio-games).
+ * Planned custom domain: studio.grudge-studio.com
+ */
+export const STUDIO_EDITOR_URL: string =
+  env.VITE_STUDIO_EDITOR_URL || 'https://grudge-studio-editor.vercel.app';
+
+/**
  * VFX effects registry API (api-server stack from vfx-sandbox).
  * Defaults to same-origin `/api/effects` via Vercel rewrite → api.grudge-studio.com.
  * Set VITE_EFFECTS_API_URL=off for fully offline sandbox mode.
@@ -132,6 +140,8 @@ export const GRUDGE_SUBDOMAINS = [
   'launcher.grudge-studio.com',
   'grudge6.grudge-studio.com',
   'characters.grudge-studio.com',
+  'studio.grudge-studio.com',
+  'grudge-studio-editor.vercel.app',
 ] as const;
 
 /**
@@ -251,6 +261,7 @@ export default {
   GAME_API,
   WS_URL,
   ASSETS_CDN,
+  STUDIO_EDITOR_URL,
   EFFECTS_API,
   AI_GATEWAY,
   BADGE_READER,

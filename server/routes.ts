@@ -21,6 +21,7 @@ import { exportFoodsToSheet, generateFoodRows } from "./sheetsExport";
 import { detectSpriteType, SPRITE_TYPES } from "@shared/definitions/spriteTypes";
 import { getClassStartingGear } from "@shared/definitions/tier0Items";
 import { generateIslandState, validateIslandAssets } from "./utilities/islandGeneration";
+import { mapStudioProjectToIslandState } from "./utilities/studioProjectMapper";
 import { CrossmintWalletService } from "./services/crossmintWallet";
 
 const crossmintService = new CrossmintWalletService();
@@ -247,6 +248,9 @@ export async function registerRoutes(
   const { registerDiscordInteractionRoutes, registerDiscordCommands } = await import("./discordInteractions");
   registerDiscordInteractionRoutes(app);
   registerDiscordCommands().catch((e) => console.warn("[Discord] Boot registration skipped:", e?.message));
+
+  const { registerTelegramRoutes } = await import("./telegramRoutes");
+  registerTelegramRoutes(app);
 
   // Extract userId from JWT token (secure) — replaces old x-admin-mode header trust
   const getUserId = (req: Request): string => extractUserId(req);
@@ -1133,10 +1137,13 @@ export async function registerRoutes(
   app.post("/api/island/commit", async (req, res) => {
     try {
       const userId = getUserId(req);
-      const { characterId, islandId, islandState, mapImageData } = req.body;
+      const { characterId, islandId, islandState, mapImageData, studioProject, sceneGlbUrl } = req.body;
 
-      if (!characterId || !islandId || !islandState) {
-        return res.status(400).json({ error: "characterId, islandId, and islandState are required" });
+      if (!characterId || !islandId) {
+        return res.status(400).json({ error: "characterId and islandId are required" });
+      }
+      if (!islandState && !studioProject) {
+        return res.status(400).json({ error: "islandState or studioProject is required" });
       }
 
       const character = await storage.getCharacter(characterId);
@@ -1155,7 +1162,18 @@ export async function registerRoutes(
         return res.status(409).json({ error: "Island already committed", validatedAt: (island as any).validatedAt });
       }
 
-      const validation = validateIslandAssets(islandState as any);
+      let resolvedState = islandState as Record<string, unknown> | undefined;
+      if (studioProject) {
+        const fallback = (island?.state ?? generateIslandState(characterId, island.seed)) as Record<string, unknown>;
+        resolvedState = mapStudioProjectToIslandState(studioProject, {
+          islandId: island.id,
+          characterId,
+          seed: island.seed,
+          fallback: fallback as any,
+        }) as unknown as Record<string, unknown>;
+      }
+
+      const validation = validateIslandAssets(resolvedState as any);
       if (!validation.valid) {
         return res.status(400).json({ error: "Invalid island state", details: validation.errors });
       }
@@ -1172,11 +1190,13 @@ export async function registerRoutes(
 
       const now = Date.now();
       const committedState = {
-        ...islandState,
+        ...resolvedState,
         id: island.id,
         characterId,
         seed: island.seed,
-        mapImageUrl: mapImageUrl ?? islandState.mapImageUrl,
+        mapImageUrl: mapImageUrl ?? (resolvedState as any)?.mapImageUrl,
+        sceneGlbUrl: sceneGlbUrl ?? (resolvedState as any)?.sceneGlbUrl,
+        studioProject: studioProject ?? (resolvedState as any)?.studioProject,
         lastUpdate: now,
         isFirstVisit: true,
       };
@@ -2521,6 +2541,10 @@ export const AI_ANALYZED_SPRITES = ${JSON.stringify(manifestEntries, null, 2)};`
   // Register unified AI Gateway routes (Ollama local + ai.grudge-studio.com cloud)
   const aiGatewayRoutes = await import("./routes/aiGatewayRoutes");
   app.use("/api/ai/gateway", aiGatewayRoutes.default);
+
+  // AnythingLLM local RAG knowledge layer
+  const anythingllmRoutes = await import("./routes/anythingllmRoutes");
+  app.use("/api/ai/rag", anythingllmRoutes.default);
 
   // ============================================
   // SPRITE MANIFEST API

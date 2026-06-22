@@ -9,6 +9,7 @@ export type FleetServiceRole =
   | "assets"
   | "realtime"
   | "ai"
+  | "rag"
   | "objectstore"
   | "supabase"
   | "hub";
@@ -32,10 +33,14 @@ export const FLEET_URLS = {
   assets: "https://assets.grudge-studio.com",
   objectStore: "https://objectstore.grudge-studio.com/api/v1",
   ai: "https://ai.grudge-studio.com",
+  /** Local AnythingLLM desktop — dev RAG over fleet + ObjectStore docs */
+  anythingllm: "http://localhost:3001/api",
   colyseus: "wss://api.grudge-studio.com",
   world: "wss://world.grudge-studio.com",
   charactersHub: "https://characters.grudge-studio.com",
   warlords: "https://grudgewarlords.com",
+  /** Map & Model Editor — home-island creation (artifacts/studio) */
+  studioEditor: "https://grudge-studio-editor.vercel.app",
 } as const;
 
 export const FLEET_SERVICES: FleetService[] = [
@@ -87,6 +92,14 @@ export const FLEET_SERVICES: FleetService[] = [
     proxyPath: "/api/ai",
   },
   {
+    id: "anythingllm",
+    label: "AnythingLLM (local RAG)",
+    role: "rag",
+    url: FLEET_URLS.anythingllm,
+    proxyPath: "/api/ai/rag",
+    notes: "Developer API — fleet docs, ObjectStore canonical JSON, Supabase context",
+  },
+  {
     id: "colyseus",
     label: "Colyseus realtime (Warlords)",
     role: "realtime",
@@ -106,6 +119,13 @@ export const FLEET_SERVICES: FleetService[] = [
     role: "hub",
     url: FLEET_URLS.charactersHub,
     notes: "grudge6 playground + weapons mastery",
+  },
+  {
+    id: "studio-editor",
+    label: "Studio Map & Model Editor",
+    role: "hub",
+    url: FLEET_URLS.studioEditor,
+    notes: "Home-island terrain sculpt, GLB assets, Publish to Warlords",
   },
   {
     id: "supabase",
