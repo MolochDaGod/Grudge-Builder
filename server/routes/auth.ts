@@ -181,14 +181,17 @@ export function registerAuthRoutes(app: Express) {
     res.type("html").sendFile(pagePath);
   });
 
-  app.get("/favicon.png", (_req: Request, res: Response) => {
-    const iconPath = authAssetPath("favicon.png");
+  const serveAuthFavicon = (file: string, type: string) => (_req: Request, res: Response) => {
+    const iconPath = authAssetPath(file);
     if (!fs.existsSync(iconPath)) {
       return res.status(404).end();
     }
     res.setHeader("Cache-Control", "public, max-age=86400");
-    res.type("png").sendFile(iconPath);
-  });
+    res.type(type).sendFile(iconPath);
+  };
+
+  app.get("/favicon.png", serveAuthFavicon("favicon.png", "png"));
+  app.get("/favicon.ico", serveAuthFavicon("favicon.ico", "x-icon"));
 
   // ── Rate-limit middleware for auth routes ────────────────────────────
   const authRateLimit = (req: Request, res: Response, next: Function) => {
