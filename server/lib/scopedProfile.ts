@@ -3,7 +3,7 @@
  * Never includes passwords, raw tokens, or other users' data.
  */
 import { db } from "../db";
-import { users, accounts, characters } from "@shared/schema";
+import { users, accounts, characters, telegramLinks, type Character } from "@shared/schema";
 import { eq } from "drizzle-orm";
 
 export type ScopedProfile = {
@@ -88,7 +88,7 @@ export async function buildScopedProfile(
     account?.displayName ||
     (user.username.includes(":") ? user.username.split(":").slice(1).join(":") : user.username);
 
-  const cnftCount = chars.filter((c) => c.cnftAddress || c.cnftId).length;
+  const cnftCount = chars.filter((c: Character) => c.cnftAddress || c.cnftId).length;
   const mask = opts.mask !== false;
 
   return {
@@ -113,7 +113,7 @@ export async function buildScopedProfile(
     accountXp: account?.accountXp || 0,
     characters: {
       count: chars.length,
-      names: chars.slice(0, 5).map((c) => c.name),
+      names: chars.slice(0, 5).map((c: Character) => c.name),
       cnftCount,
     },
     gameOrigin: "grudge-fleet",
@@ -131,4 +131,25 @@ export async function buildScopedProfileByDiscordId(
     .limit(1);
   if (!user) return null;
   return buildScopedProfile(user.id, opts);
+}
+
+export async function buildScopedProfileByTelegramId(
+  telegramUserId: string,
+  opts?: { mask?: boolean },
+): Promise<ScopedProfile | null> {
+  const [link] = await db
+    .select()
+    .from(telegramLinks)
+    .where(eq(telegramLinks.telegramUserId, telegramUserId))
+    .limit(1);
+  if (!link) return null;
+
+  const [account] = await db
+    .select()
+    .from(accounts)
+    .where(eq(accounts.id, link.accountId))
+    .limit(1);
+  if (!account) return null;
+
+  return buildScopedProfile(account.userId, opts);
 }

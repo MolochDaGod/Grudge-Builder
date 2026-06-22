@@ -16,7 +16,9 @@
     "test:client": "vitest run --config client/vitest.config.ts",
     "test:client:watch": "vitest --config client/vitest.config.ts",
     "db:push": "drizzle-kit push",
-    "gen:fleet": "tsx scripts/gen-fleet-manifest.mjs"
+    "db:migrate:telegram": "node scripts/run-telegram-migration.mjs",
+    "gen:fleet": "tsx scripts/gen-fleet-manifest.mjs",
+    "seed:rag": "node scripts/seed-anythingllm.mjs"
   },
   "dependencies": {
     "@colyseus/auth": "^0.17.9",
@@ -89,6 +91,7 @@
     "@rpgjs/physic": "^5.0.0-alpha.29",
     "@sentry/node": "^10.57.0",
     "@sentry/react": "^10.57.0",
+    "@solana/spl-token": "^0.4.14",
     "@supabase/server": "^1.1.0",
     "@tanstack/react-query": "^5.60.5",
     "@types/babylon": "^6.16.9",

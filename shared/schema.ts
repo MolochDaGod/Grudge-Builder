@@ -1121,6 +1121,7 @@ export const GBUX_EVENT_TYPES = [
   'swap_deposit',       // SOL -> GBUX (1% fee)
   'swap_withdrawal',    // GBUX -> SOL (5% fee)
   'admin_grant',        // Admin grants (audit trail)
+  'telegram_purchase',  // Telegram Stars → GBUX (on-chain + ledger)
   'admin_debit',        // Admin debits (audit trail)
   'fee_collected',      // Fees collected by system
   'migration_credit',   // One-time gold migration
@@ -1166,6 +1167,25 @@ export const insertGbuxTransactionSchema = createInsertSchema(gbuxTransactions).
 
 export type InsertGbuxTransaction = z.infer<typeof insertGbuxTransactionSchema>;
 export type GbuxTransaction = typeof gbuxTransactions.$inferSelect;
+
+// ============================================
+// TELEGRAM ↔ GRUDGE ACCOUNT LINKS
+// ============================================
+
+export const telegramLinks = pgTable("telegram_links", {
+  telegramUserId: text("telegram_user_id").primaryKey(),
+  accountId: varchar("account_id").notNull(),
+  walletAddress: text("wallet_address").notNull(),
+  telegramUsername: text("telegram_username"),
+  linkedAt: bigint("linked_at", { mode: "number" }).notNull().default(sql`extract(epoch from now()) * 1000`),
+});
+
+export const insertTelegramLinkSchema = createInsertSchema(telegramLinks).omit({
+  linkedAt: true,
+});
+
+export type InsertTelegramLink = z.infer<typeof insertTelegramLinkSchema>;
+export type TelegramLink = typeof telegramLinks.$inferSelect;
 
 // ============================================
 // UUID LEDGER SYSTEM
