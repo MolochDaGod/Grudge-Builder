@@ -41,6 +41,9 @@ import { CreatureManager, type CreatureLootEvent } from '../creatures/CreatureMa
 
 export type Island3DMode = 'procedural' | 'lobby' | 'zone';
 
+/** Canonical water surface for procedural home islands */
+export const PROCEDURAL_WATER_LEVEL = -2;
+
 export interface Island3DEngineConfig {
   seed: string;
   canvas: HTMLCanvasElement;
@@ -278,9 +281,10 @@ export class Island3DEngine {
 
     this.terrain = generateIslandTerrain(terrainConfig);
     this.terrain.terrainMesh.material = terrainMaterial;
+    this.flattenTerrainBelowWater(this.terrain.terrainMesh, PROCEDURAL_WATER_LEVEL);
     this.scene.add(this.terrain.terrainScene);
 
-    // 2. Water plane
+    // 2. Single ocean plane (terrain underwater is flattened — no double-water)
     this.createWaterPlane();
 
     // 3. Place resource nodes
@@ -435,8 +439,19 @@ export class Island3DEngine {
     );
   }
 
+  /** Collapse submerged terrain so only the ocean shader shows water (not seafloor + ocean). */
+  private flattenTerrainBelowWater(mesh: THREE.Mesh, waterLevel: number, seafloorDepth = -14): void {
+    const pos = mesh.geometry.attributes.position;
+    if (!pos) return;
+    for (let i = 0; i < pos.count; i++) {
+      if (pos.getZ(i) < waterLevel) pos.setZ(i, seafloorDepth);
+    }
+    pos.needsUpdate = true;
+    mesh.geometry.computeVertexNormals();
+  }
+
   private createWaterPlane(): void {
-    this.waterPlane = createOceanMesh({ waterLevel: -2, size: 1200, segments: 4 });
+    this.waterPlane = createOceanMesh({ waterLevel: PROCEDURAL_WATER_LEVEL, size: 1200, segments: 4 });
     this.waterPlane.name = 'ocean';
     this.waterPlane.renderOrder = 1; // draw above submerged seafloor terrain
     this.scene.add(this.waterPlane);
@@ -536,7 +551,7 @@ export class Island3DEngine {
       camera: this.camera,
       terrainMesh: this.terrain.terrainMesh,
       startPosition: startPos,
-      physics: { waterLevel: -2 },
+      physics: { waterLevel: PROCEDURAL_WATER_LEVEL },
       callbacks: this.config.physicsCallbacks,
     });
 
