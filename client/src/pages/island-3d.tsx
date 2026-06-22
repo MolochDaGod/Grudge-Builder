@@ -18,8 +18,8 @@ import type { PlayerInfo } from '@/hooks/use-colyseus';
 import { CLASS_WEAPON_MAP } from '@/lib/modelManifest';
 import {
   ensureAuthForStudio,
-  openStudioEditorExplore,
-  openStudioEditorForHomeIsland,
+  buildStudioEditorExploreUrl,
+  buildStudioEditorHomeIslandUrl,
 } from '@/lib/studioEditorBridge';
 import { STUDIO_EDITOR_URL } from '@/lib/grudgeConfig';
 
@@ -32,10 +32,11 @@ function useLegacyEngine(): boolean {
   );
 }
 
-/** Redirect to grudge-studio-editor — Grudge ID / guest auth, no Puter popup. */
-function Island3DStudioLauncher() {
+/** Fullscreen Studio Editor embed — stays on client.grudge-studio.com/island-3d */
+function Island3DStudioEmbed() {
+  const [editorUrl, setEditorUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [launching, setLaunching] = useState(true);
+  const [, navigate] = useLocation();
 
   useEffect(() => {
     let cancelled = false;
@@ -59,19 +60,21 @@ function Island3DStudioLauncher() {
       const islandId = params.get('islandId') || '';
 
       try {
-        if (isHomeIsland && characterId) {
-          openStudioEditorForHomeIsland({
-            characterId,
-            islandId: islandId || `home-${characterId}`,
-            seed,
-          });
-        } else {
-          openStudioEditorExplore({ seed, characterId: characterId || undefined, play });
-        }
+        const url = isHomeIsland && characterId
+          ? buildStudioEditorHomeIslandUrl({
+              characterId,
+              islandId: islandId || `home-${characterId}`,
+              seed,
+            })
+          : buildStudioEditorExploreUrl({
+              seed,
+              characterId: characterId || undefined,
+              play,
+            });
+        if (!cancelled) setEditorUrl(url);
       } catch (e) {
         if (!cancelled) {
           setError(e instanceof Error ? e.message : 'Failed to open Studio Editor');
-          setLaunching(false);
         }
       }
     })();
@@ -89,29 +92,66 @@ function Island3DStudioLauncher() {
         >
           Open Studio Editor directly <ExternalLink className="w-3.5 h-3.5" />
         </a>
-        <a href="/island-3d?engine=legacy" className="text-slate-500 text-xs underline">
+        <button
+          type="button"
+          onClick={() => navigate('/island-3d?engine=legacy')}
+          className="text-slate-500 text-xs underline"
+        >
           Use legacy 3D engine instead
-        </a>
+        </button>
+      </div>
+    );
+  }
+
+  if (!editorUrl) {
+    return (
+      <div className="flex h-screen bg-gray-950 items-center justify-center flex-col gap-4 text-slate-400">
+        <Loader2 className="w-8 h-8 animate-spin text-emerald-400" />
+        <span className="text-sm">Loading Studio Island Editor…</span>
       </div>
     );
   }
 
   return (
-    <div className="flex h-screen bg-gray-950 items-center justify-center flex-col gap-4 text-slate-400">
-      <Loader2 className="w-8 h-8 animate-spin text-emerald-400" />
-      <span className="text-sm">
-        {launching ? 'Opening Studio Island Editor…' : 'Redirecting…'}
-      </span>
-      <span className="text-xs text-slate-600 max-w-sm text-center">
-        High-quality terrain, creatures, and third-person play — powered by Grudge Studio Editor
-      </span>
+    <div className="flex flex-col h-screen bg-gray-950">
+      <div className="flex items-center gap-3 px-3 py-1.5 bg-gray-900 border-b border-gray-800 text-xs shrink-0">
+        <button
+          type="button"
+          onClick={() => navigate('/island')}
+          className="text-gray-400 hover:text-white"
+        >
+          ← 2D Island
+        </button>
+        <span className="text-emerald-400 font-semibold">Studio Island Editor</span>
+        <a
+          href={editorUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="ml-auto text-gray-500 hover:text-emerald-400 inline-flex items-center gap-1"
+        >
+          Open in tab <ExternalLink className="w-3 h-3" />
+        </a>
+        <button
+          type="button"
+          onClick={() => navigate('/island-3d?engine=legacy')}
+          className="text-gray-500 hover:text-gray-300"
+        >
+          Legacy engine
+        </button>
+      </div>
+      <iframe
+        title="Grudge Studio Island Editor"
+        src={editorUrl}
+        className="flex-1 w-full border-0"
+        allow="fullscreen"
+      />
     </div>
   );
 }
 
 export default function Island3DPage() {
   if (!useLegacyEngine()) {
-    return <Island3DStudioLauncher />;
+    return <Island3DStudioEmbed />;
   }
 
   return <Island3DLegacyPage />;
