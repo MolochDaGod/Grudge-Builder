@@ -9,7 +9,7 @@
 import { Island3DEngine } from '../engine/Island3DEngine';
 
 const CACHE_PREFIX = 'grudge_island_topdown_';
-const CACHE_VERSION = 1;
+const CACHE_VERSION = 2; // v2: single ocean plane (terrain seafloor, not duplicate water texture)
 
 function cacheKey(seed: string): string {
   return `${CACHE_PREFIX}v${CACHE_VERSION}_${seed}`;

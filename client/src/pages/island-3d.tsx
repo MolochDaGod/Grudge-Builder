@@ -12,6 +12,7 @@ import { normalizeHomeIslandResponse } from '@/lib/homeIslandApi';
 import { characterAPI } from '@/lib/api';
 import { WORLD_SECTORS } from '@shared/definitions/worldMapSectors';
 import { Loader2 } from 'lucide-react';
+import { clearTopDownCache } from '@/island3d/render/IslandTopDownCapture';
 
 export default function Island3DPage() {
   const params = new URLSearchParams(window.location.search);
@@ -42,6 +43,11 @@ export default function Island3DPage() {
   const [heroRace, setHeroRace] = useState('human');
   const [heroClass, setHeroClass] = useState('warrior');
   const [heroCharacterId, setHeroCharacterId] = useState(characterIdParam);
+
+  // Purge stale island top-down previews (old double-water renders)
+  useEffect(() => {
+    clearTopDownCache();
+  }, []);
 
   useEffect(() => {
     if (!isHomeIslandMode) return;

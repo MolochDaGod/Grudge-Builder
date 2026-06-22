@@ -437,6 +437,8 @@ export class Island3DEngine {
 
   private createWaterPlane(): void {
     this.waterPlane = createOceanMesh({ waterLevel: -2, size: 1200, segments: 4 });
+    this.waterPlane.name = 'ocean';
+    this.waterPlane.renderOrder = 1; // draw above submerged seafloor terrain
     this.scene.add(this.waterPlane);
   }
 
