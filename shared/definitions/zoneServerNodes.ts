@@ -13,6 +13,8 @@
  *   - On-island: harvesting nodes, NPC camps, AI patrols, POIs
  */
 
+import { generateSettlement } from './settlementGenerator';
+
 // ── Base Node ────────────────────────────────────────────────────────────────
 
 export type NodeCategory =
@@ -29,6 +31,7 @@ export type NodeCategory =
   | 'spawn_point'
   | 'sea_creature'
   | 'current'
+  | 'settlement'
   // Instanced zones — portals to separate scenes
   | 'home_island'
   | 'dungeon_entrance'
@@ -346,6 +349,28 @@ export interface PlayerHomeNode extends ZoneNode {
 
 // ── Union Type ─────────────────────────────────────────────────────────
 
+// ── Settlement Node ──────────────────────────────────────────────────────────
+
+export interface SettlementNode extends ZoneNode {
+  category: 'settlement';
+  /** Settlement tier — determines building count and layout complexity */
+  settlementTier: import('./settlementGenerator').SettlementTier;
+  /** Faction controlling this settlement */
+  faction: NPCFaction;
+  /** All placed buildings (structures, roads, decorations) */
+  buildings: import('./settlementGenerator').SettlementBuilding[];
+  /** ID of the safe house building within this settlement (null for hamlets) */
+  safeHouseId: string | null;
+  /** World-space position of the safe house (precomputed for mission system) */
+  safeHousePosition: [number, number, number] | null;
+  /** Center of the settlement relative to island center */
+  centerOffset: [number, number, number];
+  /** Approximate radius of the settlement in meters */
+  radiusM: number;
+  /** Parent island ID */
+  parentIslandId: string;
+}
+
 export type AnyZoneNode =
   | IslandNode
   | HarvestNode
@@ -360,6 +385,7 @@ export type AnyZoneNode =
   | POINode
   | BossArenaNode
   | SpawnPointNode
+  | SettlementNode
   | HomeIslandNode
   | DungeonEntranceNode
   | BuildingInteriorNode
@@ -534,6 +560,46 @@ export function generateZonePopulation(
       };
       nodes.set(hId, hNode);
       island.childNodeIds.push(hId);
+    }
+
+    // ── Settlement (procedural town layout) ──
+    if (island.hasSettlement) {
+      const factions: NPCFaction[] = ['crusade', 'fabled', 'legion', 'worge', 'neutral'];
+      const stlFaction = factions[Math.floor(rng() * factions.length)];
+      const layout = generateSettlement(island.islandSeed, island.size, island.difficulty, stlFaction);
+      const stlId = nextId('settlement');
+
+      // Compute world-space safe house position
+      let safeHouseWorldPos: [number, number, number] | null = null;
+      if (layout.safeHouseId) {
+        const shBuilding = layout.buildings.find(b => b.id === layout.safeHouseId);
+        if (shBuilding) {
+          safeHouseWorldPos = [
+            pos[0] + shBuilding.position[0],
+            shBuilding.position[1],
+            pos[2] + shBuilding.position[2],
+          ];
+        }
+      }
+
+      const settlement: SettlementNode = {
+        id: stlId,
+        category: 'settlement',
+        position: [pos[0] + layout.centerPosition[0], 0, pos[2] + layout.centerPosition[2]],
+        state: 'active',
+        respawnSec: 0,
+        difficulty: island.difficulty,
+        settlementTier: layout.tier,
+        faction: stlFaction,
+        buildings: layout.buildings,
+        safeHouseId: layout.safeHouseId,
+        safeHousePosition: safeHouseWorldPos,
+        centerOffset: layout.centerPosition,
+        radiusM: layout.radiusM,
+        parentIslandId: id,
+      };
+      nodes.set(stlId, settlement);
+      island.childNodeIds.push(stlId);
     }
 
     // ── NPC Camp (on islands with settlements) ──

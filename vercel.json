@@ -108,6 +108,18 @@
       "destination": "https://id.grudge-studio.com/auth/:path*"
     },
     {
+      "source": "/api/ai/gateway/:path*",
+      "destination": "https://grudge-builder-production.up.railway.app/api/ai/gateway/:path*"
+    },
+    {
+      "source": "/api/ai/rag/:path*",
+      "destination": "https://grudge-builder-production.up.railway.app/api/ai/rag/:path*"
+    },
+    {
+      "source": "/api/ai/ollama/:path*",
+      "destination": "https://grudge-builder-production.up.railway.app/api/ai/ollama/:path*"
+    },
+    {
       "source": "/api/ai/:path*",
       "destination": "https://ai.grudge-studio.com/:path*"
     },
