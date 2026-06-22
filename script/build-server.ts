@@ -41,6 +41,9 @@ const allowlist = [
   "xlsx",
   "zod",
   "zod-validation-error",
+  "@solana/web3.js",
+  "@solana/spl-token",
+  "bs58",
 ];
 
 async function buildServer() {
