@@ -19,6 +19,8 @@
  */
 
 import type { Express, Request, Response } from "express";
+import fs from "node:fs";
+import path from "node:path";
 import { db } from "../db";
 import { users, accounts } from "@shared/schema";
 import { eq } from "drizzle-orm";
@@ -158,7 +160,35 @@ async function ensureAccount(userId: string) {
 
 // ── Register routes ──────────────────────────────────────────────────
 
+function authAssetPath(file: string): string {
+  const candidates = [
+    path.join(process.cwd(), "server", "templates", file),
+    path.join(process.cwd(), "dist", "templates", file),
+    path.join(process.cwd(), "client", "public", file),
+  ];
+  return candidates.find((p) => fs.existsSync(p)) ?? candidates[0];
+}
+
 export function registerAuthRoutes(app: Express) {
+
+  // ── GET /api/auth/page — Grudge ID sign-in UI (id.grudge-studio.com) ──
+  app.get("/api/auth/page", (_req: Request, res: Response) => {
+    const pagePath = authAssetPath("auth-page.html");
+    if (!fs.existsSync(pagePath)) {
+      return res.status(503).send("Auth page unavailable");
+    }
+    res.setHeader("Cache-Control", "public, max-age=300");
+    res.type("html").sendFile(pagePath);
+  });
+
+  app.get("/favicon.png", (_req: Request, res: Response) => {
+    const iconPath = authAssetPath("favicon.png");
+    if (!fs.existsSync(iconPath)) {
+      return res.status(404).end();
+    }
+    res.setHeader("Cache-Control", "public, max-age=86400");
+    res.type("png").sendFile(iconPath);
+  });
 
   // ── Rate-limit middleware for auth routes ────────────────────────────
   const authRateLimit = (req: Request, res: Response, next: Function) => {
@@ -717,5 +747,5 @@ export function registerAuthRoutes(app: Express) {
     }
   });
 
-  console.log("[Auth] Routes registered: /api/auth/{puter,wallet,login,register,verify,me,puter-link,discord/callback,google/start,phone/send,phone/verify}");
+  console.log("[Auth] Routes registered: /api/auth/{page,puter,wallet,login,register,verify,me,puter-link,discord/callback,google/start,phone/send,phone/verify}");
 }
