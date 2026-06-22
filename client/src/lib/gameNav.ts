@@ -18,7 +18,7 @@ const FLEET_ORIGINS: Record<string, string> = {
   "rts-grudge":  "https://rts-grudge.vercel.app",
   "dcq":         "https://dcq.grudge-studio.com",
   "survival":    "https://survival.grudge-studio.com",
-  "arena":       "https://grudge-arena.vercel.app",
+  "arena":       "https://grudge-arena.grudge-studio.com",
   "drive":       "https://grudge-drive.vercel.app",
 };
 
