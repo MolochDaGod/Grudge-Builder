@@ -43,6 +43,8 @@ import path from "path";
 import cors from "cors";
 import { setupColyseus } from "./colyseus/index";
 import { registerBackendProxy } from "./proxy";
+import { registerSupabaseRoutes } from "./supabase/routes";
+import { registerFleetRoutes } from "./fleet/routes";
 import { GRUDGE_CORS_OPTIONS } from "./cors";
 
 console.log('[boot] All imports loaded successfully');
@@ -155,10 +157,19 @@ app.get("/api/health", async (_req, res) => {
     console.error(e);
   }
 
-  // ── 3. Dev-only proxy for external backends ─────────────────────────────
+  // ── 3. Fleet registry + Supabase SDK routes ─────────────────────────────
+  try {
+    registerFleetRoutes(app);
+    registerSupabaseRoutes(app);
+    log("Fleet + Supabase routes registered (/api/fleet/*, /api/supabase/*)");
+  } catch (e) {
+    log(`Fleet/Supabase route registration failed: ${(e as Error).message}`, "error");
+  }
+
+  // ── 4. Dev-only proxy for external backends ─────────────────────────────
   registerBackendProxy(app);
 
-  // ── 4. Error handler for API routes ─────────────────────────────────────
+  // ── 5. Error handler for API routes ─────────────────────────────────────
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";
@@ -166,7 +177,7 @@ app.get("/api/health", async (_req, res) => {
     res.status(status).json({ message });
   });
 
-  // ── 5. API 404 guard — MUST come before static serving ──────────────────
+  // ── 6. API 404 guard — MUST come before static serving ──────────────────
   //    Any /api/* request that wasn't handled by a route gets a JSON 404.
   //    This prevents static/SPA middleware from ever serving HTML for /api/*.
   app.use("/api", (_req: Request, res: Response) => {

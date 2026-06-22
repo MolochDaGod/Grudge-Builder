@@ -21,22 +21,22 @@ import {
   ASSETS_CDN,
   AI_GATEWAY,
   OBJECTSTORE,
+  WS_URL,
   buildSsoLoginUrl,
 } from "./grudgeConfig";
+import {
+  FLEET_URLS,
+  FLEET_VERCEL_REWRITES,
+  CROSSMINT_COLLECTIONS,
+} from "@shared/fleet";
 import { bridgeGrudgeLaunchToken, isAuthenticated, getToken } from "./grudgeBackend";
 import { GrudgeAccountSDK } from "./GrudgeAccountSDK";
 
 /** Production Railway — authoritative game-state API */
-export const GAME_DATA_RAILWAY =
-  "https://grudge-builder-production.up.railway.app";
+export const GAME_DATA_RAILWAY = FLEET_URLS.gameData;
 
-/** Crossmint character cNFT collection (Grudge Platform) */
-export const CROSSMINT_CHARACTER_COLLECTION =
-  "5061318d-ff65-4893-ac4b-9b28efb18ace";
-
-/** Crossmint island cNFT collection */
-export const CROSSMINT_ISLAND_COLLECTION =
-  "a8f3e2d1-4b5c-6d7e-8f9a-0b1c2d3e4f5a";
+export const CROSSMINT_CHARACTER_COLLECTION = CROSSMINT_COLLECTIONS.character;
+export const CROSSMINT_ISLAND_COLLECTION = CROSSMINT_COLLECTIONS.island;
 
 /**
  * Canonical fleet map — import this in any Grudge app instead of hardcoding URLs.
@@ -48,10 +48,15 @@ export const GRUDGE_FLEET = {
   assets: ASSETS_CDN,
   ai: AI_GATEWAY,
   objectStore: OBJECTSTORE,
+  colyseus: WS_URL,
+  world: FLEET_URLS.world,
+  charactersHub: FLEET_URLS.charactersHub,
+  fleetManifest: "/api/fleet/manifest",
   account: `${GAME_DATA_RAILWAY}/api/account`,
   characters: `${GAME_DATA_RAILWAY}/api/characters`,
   wallet: `${GAME_DATA_RAILWAY}/api/wallet`,
   nfts: `${GAME_DATA_RAILWAY}/api/nfts`,
+  supabase: "/api/supabase",
   crossmint: {
     characterCollection: CROSSMINT_CHARACTER_COLLECTION,
     islandCollection: CROSSMINT_ISLAND_COLLECTION,
@@ -78,28 +83,8 @@ export function fleetApi(path: string): string {
  * Standard Vercel rewrites — copy into any game's vercel.json BEFORE the catch-all.
  * Order matters: specific routes first, `/api/auth/:path*` last among auth rules.
  */
-export const VERCEL_FLEET_REWRITES = [
-  { source: "/api/assets/:path*", destination: `${ASSETS_CDN}/:path*` },
-  { source: "/api/characters", destination: `${GAME_DATA_RAILWAY}/api/characters` },
-  { source: "/api/characters/:path*", destination: `${GAME_DATA_RAILWAY}/api/characters/:path*` },
-  { source: "/api/wallet/:path*", destination: `${GAME_DATA_RAILWAY}/api/wallet/:path*` },
-  { source: "/api/nfts/:path*", destination: `${GAME_DATA_RAILWAY}/api/nfts/:path*` },
-  { source: "/api/island/:path*", destination: `${GAME_DATA_RAILWAY}/api/island/:path*` },
-  { source: "/api/islands/:path*", destination: `${GAME_DATA_RAILWAY}/api/islands/:path*` },
-  { source: "/api/account", destination: `${GAME_DATA_RAILWAY}/api/account` },
-  { source: "/api/account/:path*", destination: `${GAME_DATA_RAILWAY}/api/account/:path*` },
-  { source: "/api/inventory/:path*", destination: `${GAME_DATA_RAILWAY}/api/inventory/:path*` },
-  { source: "/api/party/:path*", destination: `${GAME_DATA_RAILWAY}/api/party/:path*` },
-  { source: "/api/auth/puter", destination: `${GAME_DATA_RAILWAY}/api/auth/puter` },
-  { source: "/api/auth/login", destination: `${GAME_DATA_RAILWAY}/api/auth/login` },
-  { source: "/api/auth/register", destination: `${GAME_DATA_RAILWAY}/api/auth/register` },
-  { source: "/api/auth/me", destination: `${GAME_DATA_RAILWAY}/api/auth/me` },
-  { source: "/api/auth/verify", destination: `${GAME_DATA_RAILWAY}/api/auth/verify` },
-  { source: "/api/auth/session/exchange", destination: `${GAME_API}/api/auth/session/exchange` },
-  { source: "/api/auth/:path*", destination: `${AUTH_GATEWAY}/auth/:path*` },
-  { source: "/api/ai/:path*", destination: `${AI_GATEWAY}/:path*` },
-  { source: "/api/:path*", destination: `${GAME_API}/api/:path*` },
-] as const;
+/** @deprecated Import FLEET_VERCEL_REWRITES from @shared/fleet — kept for backwards compat */
+export const VERCEL_FLEET_REWRITES = FLEET_VERCEL_REWRITES;
 
 export interface WireGrudgeFleetOptions {
   /** 'standalone' | 'embedded' iframe */

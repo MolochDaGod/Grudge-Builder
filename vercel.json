@@ -20,6 +20,14 @@
       "destination": "https://objectstore.grudge-studio.com/api/:path*"
     },
     {
+      "source": "/api/fleet/:path*",
+      "destination": "https://grudge-builder-production.up.railway.app/api/fleet/:path*"
+    },
+    {
+      "source": "/api/supabase/:path*",
+      "destination": "https://grudge-builder-production.up.railway.app/api/supabase/:path*"
+    },
+    {
       "source": "/api/characters",
       "destination": "https://grudge-builder-production.up.railway.app/api/characters"
     },

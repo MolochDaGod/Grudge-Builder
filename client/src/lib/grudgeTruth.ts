@@ -29,6 +29,9 @@ export function buildTruthProbes(): TruthProbe[] {
   const iconPack = `${ASSETS_CDN}/icons/pack/weapons/Sword_01.png`;
   const namedIcon = `${ASSETS_CDN}/icons/weapons/bloodfeud-blade.png`;
   return [
+    { id: 'fleet-manifest', label: 'Fleet manifest', url: fleetApi('/api/fleet/manifest'), role: 'game-data' },
+    { id: 'supabase-health', label: 'Supabase health', url: fleetApi('/api/supabase/health'), role: 'game-data' },
+    { id: 'auth-page', label: 'Grudge ID auth page', url: `${AUTH_GATEWAY}/api/auth/page`, role: 'identity' },
     { id: 'game-characters', label: 'Characters API', url: fleetApi('/api/characters'), role: 'game-data' },
     { id: 'game-account', label: 'Account API', url: fleetApi('/api/account'), role: 'game-data' },
     { id: 'os-items', label: 'master-items.json', url: apiUrl('/master-items.json'), role: 'objectstore' },
