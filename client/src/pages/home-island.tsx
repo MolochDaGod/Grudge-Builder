@@ -269,7 +269,18 @@ export default function HomeIslandPage() {
       const cfg = loadConfigRef.current;
       if (engine.character && cfg) {
         await engine.character.loadCharacterFromManifest(
-          cfg.raceId, cfg.classId, cfg.characterId, 'unarmed',
+          cfg.raceId,
+          cfg.classId,
+          cfg.characterId,
+          'unarmed',
+          {
+            equippedMeshes: cfg.equippedMeshes,
+            weaponSlots: cfg.weaponSlots,
+            scale: cfg.scale,
+            skinColor: cfg.skinColor,
+            armorColor: cfg.armorColor,
+          },
+          characterRef.current?.equipment,
         );
         engine.character.mode = 'harvest';
       }

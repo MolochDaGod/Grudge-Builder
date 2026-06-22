@@ -20,8 +20,9 @@ import { ITEMS, resolveItemImage, RESOURCE_NODES } from "@/lib/grudaDB";
 import SpriteAnimator, { SpriteAction } from "@/components/SpriteAnimator";
 import { getAttackAnimations, getAvailableAnimations, AnimationState, getCharacterPalette, type ColorPalette } from "@/lib/spriteManifest";
 import ThreeScene, { type ThreeSceneHandle } from "@/components/ThreeScene";
-import CharacterModel3D from "@/components/CharacterModel3D";
-import { getAvailableStates, CLASS_WEAPON_MAP, type AnimState3D } from "@/lib/modelManifest";
+import Grudge6Character3D from "@/components/Grudge6Character3D";
+import { getAvailableStates, type AnimState3D } from "@/lib/modelManifest";
+import { panelEquipmentToModel3d, weaponTypeFromModel3d } from "@shared/fleet";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { CombatUnitStatus } from "@/components/CombatUnitStatus";
 import { InventorySlot } from "@/components/SpriteIcon";
@@ -263,10 +264,12 @@ export default function CharacterBuilder() {
   // Expanded Profession State
   const [expandedProfession, setExpandedProfession] = useState<string | null>(null);
   
-  // 3D Preview State
-  const [preview3D, setPreview3D] = useState(false);
+  // 3D Preview State — Grudge6 mesh is the default
+  const [preview3D, setPreview3D] = useState(true);
   const threeSceneRef = useRef<ThreeSceneHandle | null>(null);
+  const equipSceneRef = useRef<ThreeSceneHandle | null>(null);
   const [anim3D, setAnim3D] = useState<AnimState3D>("idle");
+  const model3dSyncRef = useRef<string>("");
 
   // Creation State
   const [step, setStep] = useState<"race" | "class" | "attributes" | "summary">("race");
@@ -340,6 +343,28 @@ export default function CharacterBuilder() {
     loadCharacters();
   }, []);
 
+  // Keep model3d DB field in sync with main-panel equipment slots
+  useEffect(() => {
+    if (!activeCharacter?.id || !activeCharacter.raceId || !activeCharacter.classId) return;
+
+    const computed = panelEquipmentToModel3d(
+      activeCharacter.raceId,
+      activeCharacter.classId,
+      activeCharacter.equipment ?? {},
+      (activeCharacter as Character & { model3d?: Record<string, unknown> }).model3d,
+    );
+    const syncKey = JSON.stringify(computed);
+    if (syncKey === model3dSyncRef.current) return;
+    model3dSyncRef.current = syncKey;
+
+    characterAPI.update(activeCharacter.id, { model3d: computed } as any)
+      .then((updated) => {
+        setActiveCharacter(updated);
+        setCharacters((prev) => prev.map((c) => (c.id === updated.id ? updated : c)));
+      })
+      .catch((err) => console.warn("model3d sync failed:", err));
+  }, [activeCharacter?.id, activeCharacter?.raceId, activeCharacter?.classId, activeCharacter?.equipment]);
+
   const handleDeleteCharacter = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     if (confirm("Are you sure you want to delete this character?")) {
@@ -398,7 +423,15 @@ export default function CharacterBuilder() {
 
     try {
       setCreationStatus("Saving to database...");
-      const createdChar = await CharacterManager.addCharacter(newChar);
+      const starterModel3d = panelEquipmentToModel3d(
+        selectedRace.id,
+        selectedClass.id,
+        newChar.equipment,
+      );
+      const createdChar = await CharacterManager.addCharacter({
+        ...newChar,
+        model3d: starterModel3d,
+      } as any);
 
       // Generate AI card avatar with character name baked in
       setCreationStatus("Generating card avatar...");
@@ -1070,16 +1103,28 @@ export default function CharacterBuilder() {
                                   orbitSpeed={15}
                                   bgColor="#0f172a"
                                 />
-                                <CharacterModel3D
+                                <Grudge6Character3D
                                   sceneRef={threeSceneRef}
                                   raceId={activeCharacter.raceId}
                                   classId={activeCharacter.classId}
+                                  equipment={activeCharacter.equipment}
+                                  model3d={(activeCharacter as any).model3d}
                                   animation={anim3D}
                                   onAnimationComplete={() => setAnim3D("idle")}
                                 />
                                 {/* 3D Animation selector */}
                                 <div className="flex gap-1 flex-wrap mt-2 justify-center">
-                                  {(getAvailableStates(CLASS_WEAPON_MAP[activeCharacter.classId] ?? "sword-shield")).slice(0, 8).map(state => (
+                                  {(getAvailableStates(
+                                    weaponTypeFromModel3d(
+                                      panelEquipmentToModel3d(
+                                        activeCharacter.raceId,
+                                        activeCharacter.classId,
+                                        activeCharacter.equipment ?? {},
+                                        (activeCharacter as any).model3d,
+                                      ),
+                                      activeCharacter.classId,
+                                    ) as any,
+                                  )).slice(0, 8).map(state => (
                                     <button
                                       key={state}
                                       onClick={() => setAnim3D(state)}
@@ -1275,8 +1320,31 @@ export default function CharacterBuilder() {
                   {/* Equipment Tab */}
                   <TabsContent value="equipment" className="mt-0">
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                      {/* Left: Equipment Panel */}
-                      <div>
+                      {/* Left: Grudge6 3D mesh + equipment panel */}
+                      <div className="space-y-4">
+                        <div className="bg-slate-900/50 rounded-xl p-4 border border-slate-800">
+                          <h3 className="text-sm font-cinzel text-cyan-400 mb-2">Grudge6 Mesh Preview</h3>
+                          <div className="relative mx-auto" style={{ height: 360 }}>
+                            <ThreeScene
+                              ref={equipSceneRef}
+                              className="w-full h-full rounded-lg"
+                              cameraMode="orbit"
+                              cameraDistance={4}
+                              cameraHeight={2.2}
+                              orbitSpeed={15}
+                              bgColor="#0f172a"
+                            />
+                            <Grudge6Character3D
+                              sceneRef={equipSceneRef}
+                              raceId={activeCharacter.raceId}
+                              classId={activeCharacter.classId}
+                              equipment={activeCharacter.equipment}
+                              model3d={(activeCharacter as any).model3d}
+                              animation={anim3D}
+                              onAnimationComplete={() => setAnim3D("idle")}
+                            />
+                          </div>
+                        </div>
                         <div className="relative mx-auto max-w-[420px] shadow-2xl">
                           <img 
                             src={assetUrl(`/sprites/ui/PNG/equipment/${activeCharacter.raceId}.png`)}
@@ -1295,23 +1363,6 @@ export default function CharacterBuilder() {
                           {renderEquipSlotOverlay("Legs")}
                           {renderEquipSlotOverlay("Feet")}
                           {renderEquipSlotOverlay("Accessory2")}
-                          
-                          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                            <AdminContextMenu
-                              isAdminMode={adminMode}
-                              targetId={`sprite-${activeCharacter.id}`}
-                              targetType="sprite"
-                              onReplaceSprite={() => console.log('Replace character sprite')}
-                              onMove={() => console.log('Move sprite')}
-                              onResize={() => console.log('Resize sprite')}
-                            >
-                              <div className="pointer-events-auto">
-                                <div className="scale-[3] transform drop-shadow-[0_0_10px_rgba(0,0,0,0.8)]">
-                                  <SpriteAnimator spriteSet={activeSpriteSet} action={currentAction} isUndead={activeCharacter?.raceId === 'undead'} palette={getCharPalette(activeCharacter?.id)} />
-                                </div>
-                              </div>
-                            </AdminContextMenu>
-                          </div>
                         </div>
                       </div>
 

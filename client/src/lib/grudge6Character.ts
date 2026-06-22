@@ -7,6 +7,7 @@ import type { ControlMode } from '@/island3d/player/CharacterController3D';
 import {
   RACE_GRUDGE6,
   defaultModel3d,
+  panelEquipmentToModel3d,
   characterToJoinOptions,
   type Model3DField,
 } from '@shared/fleet';
@@ -31,7 +32,15 @@ export interface Grudge6LoadConfig {
 }
 
 export function parseModel3d(char: Character & { model3d?: Partial<Model3DField> }): Model3DField {
-  return { ...defaultModel3d(char.raceId || 'human'), ...char.model3d };
+  const raceId = char.raceId || 'human';
+  const classId = char.classId || 'warrior';
+  const stored = char.model3d;
+  const hasMeshes = stored?.equippedMeshes && Object.keys(stored.equippedMeshes).length > 0;
+  const hasWeapons = stored?.weaponSlots && Object.keys(stored.weaponSlots).length > 0;
+  if (hasMeshes || hasWeapons) {
+    return { ...defaultModel3d(raceId), ...stored };
+  }
+  return panelEquipmentToModel3d(raceId, classId, char.equipment ?? {}, stored);
 }
 
 export function buildGrudge6LoadConfig(char: Character): Grudge6LoadConfig {
