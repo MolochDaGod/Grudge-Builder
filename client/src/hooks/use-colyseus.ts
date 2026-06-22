@@ -7,20 +7,8 @@
  */
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Client, Room } from 'colyseus.js';
-
-// ── Colyseus endpoint ────────────────────────────────────────────
-
-function getColyseusEndpoint(): string {
-  // In prod, use the configured API URL
-  const envUrl = (import.meta as any).env?.VITE_API_URL;
-  if (envUrl) {
-    // Convert https:// to wss:// for WebSocket
-    return envUrl.replace(/^http/, 'ws');
-  }
-  // Dev: same host, port 5000
-  const proto = window.location.protocol === 'https:' ? 'wss' : 'ws';
-  return `${proto}://${window.location.hostname}:5000`;
-}
+import { getColyseusEndpoint } from '@/lib/colyseusEndpoint';
+import { resolveZoneSectorId } from '@shared/definitions/sectorBridge';
 
 // ── Types ────────────────────────────────────────────────────────
 
@@ -126,10 +114,12 @@ export function useColyseus(playerInfo: PlayerInfo | null) {
     }
   }, [playerInfo]);
 
-  // Join a sector
-  const joinSector = useCallback(async (sectorId: string) => {
+  // Join a sector (accepts legacy NW/CENTER ids or worldMapSectors snake_case ids)
+  const joinSector = useCallback(async (sectorId: string, worldSeed = 'grudge-world-1') => {
     const client = clientRef.current;
     if (!client || !playerInfo) return;
+
+    const zoneId = resolveZoneSectorId(sectorId);
 
     // Leave current sector if any
     if (sectorRoomRef.current) {
@@ -138,9 +128,10 @@ export function useColyseus(playerInfo: PlayerInfo | null) {
     }
 
     try {
-      console.log('[Colyseus] Joining sector:', sectorId);
+      console.log('[Colyseus] Joining sector:', zoneId);
       const sectorRoom = await client.joinOrCreate('sector', {
-        sectorId,
+        sectorId: zoneId,
+        worldSeed,
         characterName: playerInfo.characterName,
         heroClass: playerInfo.heroClass,
         heroRace: playerInfo.heroRace,
@@ -206,7 +197,7 @@ export function useColyseus(playerInfo: PlayerInfo | null) {
         }));
       });
 
-      setState(s => ({ ...s, sectorRoom, sectorId }));
+      setState(s => ({ ...s, sectorRoom, sectorId: zoneId }));
     } catch (err: any) {
       console.error('[Colyseus] Sector join failed:', err);
       setState(s => ({ ...s, error: `Sector join failed: ${err.message}` }));

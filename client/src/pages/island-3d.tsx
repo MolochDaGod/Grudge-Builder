@@ -2,17 +2,20 @@
  * Island 3D Page — full 3D island exploration with terrain, harvestables, and decorations.
  * Supports procedural seed-based islands, pre-built lobby maps, and persisted home islands.
  */
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useLocation } from 'wouter';
 import { Island3DRenderer } from '@/island3d/render/Island3DRenderer';
-import type { Island3DMode } from '@/island3d/engine/Island3DEngine';
+import type { Island3DMode, Island3DEngine } from '@/island3d/engine/Island3DEngine';
 import { LOBBY_MAPS } from '@/island3d/engine/LobbyIslandLoader';
 import { authHeaders } from '@/lib/grudgeBackend';
 import { normalizeHomeIslandResponse } from '@/lib/homeIslandApi';
 import { characterAPI } from '@/lib/api';
-import { WORLD_SECTORS } from '@shared/definitions/worldMapSectors';
-import { Loader2 } from 'lucide-react';
+import { WORLD_SECTORS, getSectorById } from '@shared/definitions/worldMapSectors';
+import { Loader2, Users } from 'lucide-react';
 import { clearTopDownCache } from '@/island3d/render/IslandTopDownCapture';
+import { useZoneColyseus } from '@/hooks/use-zone-colyseus';
+import type { PlayerInfo } from '@/hooks/use-colyseus';
+import { CLASS_WEAPON_MAP } from '@/lib/modelManifest';
 
 export default function Island3DPage() {
   const params = new URLSearchParams(window.location.search);
@@ -33,7 +36,13 @@ export default function Island3DPage() {
   const [sectorId, setSectorId] = useState(
     params.get('sector') || 'ethereal_falls',
   );
+  const [worldSeed, setWorldSeed] = useState(
+    params.get('worldSeed') || 'grudge-world-1',
+  );
+  const zoneMultiplayer = params.get('solo') !== '1';
   const [_, navigate] = useLocation();
+  const engineRef = useRef<Island3DEngine | null>(null);
+  const [engine, setEngine] = useState<Island3DEngine | null>(null);
 
   // Home-island state
   const [homeIsland, setHomeIsland] = useState<any>(null);
@@ -43,6 +52,15 @@ export default function Island3DPage() {
   const [heroRace, setHeroRace] = useState('human');
   const [heroClass, setHeroClass] = useState('warrior');
   const [heroCharacterId, setHeroCharacterId] = useState(characterIdParam);
+  const [playerInfo, setPlayerInfo] = useState<PlayerInfo | null>(null);
+
+  const zoneColyseus = useZoneColyseus({
+    engine,
+    sectorId: mode === 'zone' ? sectorId : '',
+    worldSeed,
+    playerInfo,
+    enabled: mode === 'zone' && zoneMultiplayer,
+  });
 
   // Purge stale island top-down previews (old double-water renders)
   useEffect(() => {
@@ -76,16 +94,50 @@ export default function Island3DPage() {
   }, []);
 
   useEffect(() => {
-    if (!characterIdParam) return;
-    characterAPI.get(characterIdParam)
-      .then((char) => {
+    async function loadCharacter() {
+      const grudgeId = localStorage.getItem('grudge_account_id') || 'guest';
+      const activeId = characterIdParam ||
+        localStorage.getItem(`gruda_active_character_${grudgeId}`) ||
+        localStorage.getItem('grudge_active_character') ||
+        localStorage.getItem('gruda_active_character_guest');
+
+      if (!activeId) return;
+
+      try {
+        const char = await characterAPI.get(activeId);
+        const model3d = (char as any).model3d || {};
         setHeroRace(char.raceId || 'human');
         setHeroClass(char.classId || 'warrior');
         setHeroCharacterId(char.id);
-      })
-      .catch(() => {
-        setHeroCharacterId(characterIdParam);
-      });
+        setPlayerInfo({
+          characterName: char.name,
+          heroClass: char.classId,
+          heroRace: char.raceId,
+          faction: (char as any).faction || 'crusade',
+          level: char.level,
+          characterId: char.id,
+          accountId: (char as any).accountId || grudgeId,
+          baseModelId: model3d.baseModelId || char.raceId || 'human',
+          equippedMeshes: model3d.equippedMeshes || {},
+          weaponSlots: model3d.weaponSlots || {},
+          skinColor: model3d.skinColor || '#ffffff',
+          armorColor: model3d.armorColor || '#ffffff',
+          equippedWeaponType: CLASS_WEAPON_MAP[char.classId] || 'sword-shield',
+        });
+      } catch {
+        setHeroCharacterId(activeId);
+        setPlayerInfo({
+          characterName: 'Adventurer',
+          heroClass: 'warrior',
+          heroRace: 'human',
+          faction: 'crusade',
+          level: 1,
+          characterId: activeId,
+          accountId: grudgeId,
+        });
+      }
+    }
+    loadCharacter();
   }, [characterIdParam]);
 
   const handleNewSeed = () => {
@@ -111,8 +163,15 @@ export default function Island3DPage() {
   const handleZoneMode = (id: string) => {
     setSectorId(id);
     setMode('zone' as Island3DMode);
-    setSeed(`zone-${id}-${Date.now()}`);
+    setSeed(`zone-${id}-${worldSeed}`);
+    const next = new URLSearchParams(window.location.search);
+    next.set('mode', 'zone');
+    next.set('sector', id);
+    next.set('worldSeed', worldSeed);
+    window.history.replaceState(null, '', `?${next.toString()}`);
   };
+
+  const activeSector = mode === 'zone' ? getSectorById(sectorId) : null;
 
   if (isHomeIslandMode && homeIslandLoading) {
     return (
@@ -139,6 +198,14 @@ export default function Island3DPage() {
             ? `🏝 Home Island${homeIsland?.name ? ': ' + homeIsland.name : ''}`
             : '3D Island Explorer'}
         </h1>
+        {mode === 'zone' && zoneMultiplayer && (
+          <div className="flex items-center gap-1.5 text-xs text-slate-400">
+            <Users className="w-3.5 h-3.5" />
+            {zoneColyseus.connecting ? 'Connecting…' :
+             zoneColyseus.connected ? `${zoneColyseus.players.size} online` :
+             'Offline'}
+          </div>
+        )}
         <div className="flex-1" />
 
         {/* Mode toggle */}
@@ -232,14 +299,25 @@ export default function Island3DPage() {
           mode={mode}
           lobbyMapId={lobbyMapId}
           sectorId={mode === 'zone' ? sectorId : undefined}
-          worldSeed="grudge-world-1"
+          worldSeed={worldSeed}
           quality="medium"
           dayNight={{ dayDurationSeconds: 600, startTime: 0.35 }}
           enableCharacter={mode === 'procedural' || mode === 'zone' || isHomeIslandMode}
           characterId={heroCharacterId}
           raceId={heroRace}
           classId={heroClass}
+          onEngineReady={(eng) => { engineRef.current = eng; setEngine(eng); }}
         />
+        {mode === 'zone' && activeSector && (
+          <div className="absolute top-4 left-4 bg-black/70 backdrop-blur border border-purple-800/50 rounded-xl px-4 py-3 text-xs text-slate-300 space-y-1 pointer-events-none max-w-xs">
+            <div className="text-purple-300 font-bold uppercase tracking-widest">{activeSector.name}</div>
+            <div className="text-slate-400">{activeSector.description}</div>
+            <div>Lv {activeSector.difficultyMin}–{activeSector.difficultyMax} · {activeSector.biome}</div>
+            {zoneColyseus.error && (
+              <div className="text-red-400 mt-1">{zoneColyseus.error}</div>
+            )}
+          </div>
+        )}
         {/* Home-island stats overlay */}
         {isHomeIslandMode && homeIsland && (
           <div className="absolute bottom-4 left-4 bg-black/70 backdrop-blur border border-emerald-800/50 rounded-xl px-4 py-3 text-xs text-slate-300 space-y-1 pointer-events-none">

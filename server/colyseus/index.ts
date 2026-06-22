@@ -34,7 +34,7 @@ export async function setupColyseus(httpServer: HttpServer, app: Express) {
 
   gameServer.define("lobby", LobbyRoom);
   gameServer.define("dungeon", DungeonRoom);
-  gameServer.define("sector", SectorRoom);
+  gameServer.define("sector", SectorRoom).filterBy(["sectorId", "worldSeed"]);
   gameServer.define("world", WorldRoom);
   gameServer.define("town", TownRoom);
   gameServer.define("shipwreck", ShipwreckRoom);
