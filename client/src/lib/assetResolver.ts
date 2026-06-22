@@ -127,9 +127,9 @@ export async function preloadAsset(path: string): Promise<string> {
     }
   } catch { /* CDN failed, try ObjectStore GitHub Pages */ }
 
-  // Try ObjectStore (objectstore.grudge-studio.com — unified asset + data host)
+  // Try ObjectStore (info.grudge-studio.com — unified asset + data host)
   try {
-    const osUrl = `https://objectstore.grudge-studio.com${path.startsWith('/') ? path : '/' + path}`;
+    const osUrl = `https://info.grudge-studio.com${path.startsWith('/') ? path : '/' + path}`;
     const res = await fetch(osUrl, { method: "HEAD" });
     if (res.ok) {
       resolvedCache.set(path, osUrl);

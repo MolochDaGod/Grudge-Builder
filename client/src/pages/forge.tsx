@@ -186,7 +186,7 @@ function AssetsTab() {
       <div className="rounded-xl border border-slate-700 p-8 bg-slate-800/30 text-center text-slate-500">
         <p className="text-4xl mb-3">📦</p>
         <p>Asset browser — browse ObjectStore, upload assets, preview 3D models</p>
-        <p className="text-xs mt-1">Connected to objectstore.grudge-studio.com</p>
+        <p className="text-xs mt-1">Connected to info.grudge-studio.com</p>
       </div>
     </div>
   );

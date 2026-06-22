@@ -14,10 +14,11 @@ import { getCurrentUser } from "@/lib/grudgeBackend";
 import { useAuth } from "@/contexts/AuthContext";
 import { navigateToGame } from "@/lib/gameNav";
 import {
-  GAME_CARD_BACKGROUNDS, FACTION_EMBLEMS, RACE_PORTRAITS,
+  GAME_CARD_BACKGROUNDS, RACE_PORTRAITS,
   QUICK_ACCESS_ICONS, CLASS_HERO_IMAGES, BACKGROUNDS,
   CLASS_STAGE_BACKGROUNDS, CLASS_ACCENT_COLORS, CLASS_CYCLE,
 } from "@/lib/artAssets";
+import { CrusadeEmblem, FabledEmblem, LegionEmblem } from "@/components/FactionEmblems";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -161,8 +162,14 @@ export default function HomePage() {
           </div>
           <div className="flex items-center gap-3">
             <div className="hidden md:flex items-center gap-1.5">
-              {Object.entries(FACTION_EMBLEMS).map(([name, src]) => (
-                <img key={name} src={src} alt={name} className="w-5 h-5 rounded opacity-50 hover:opacity-100 transition-opacity" title={name} />
+              {[
+                { C: CrusadeEmblem, name: 'Crusade' },
+                { C: FabledEmblem, name: 'Fabled' },
+                { C: LegionEmblem, name: 'Legion' },
+              ].map(({ C, name }) => (
+                <span key={name} className="opacity-60 hover:opacity-100 transition-opacity" title={name}>
+                  <C size={20} />
+                </span>
               ))}
             </div>
             {account && account.gbuxBalance > 0 && (

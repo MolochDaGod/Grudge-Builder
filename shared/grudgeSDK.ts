@@ -17,7 +17,7 @@ export interface GrudgeSDKConfig {
   authBase?: string;
   /** Base URL for assets CDN. Default: "https://assets.grudge-studio.com" */
   assetsBase?: string;
-  /** Base URL for ObjectStore. Default: "https://objectstore.grudge-studio.com" */
+  /** Base URL for ObjectStore. Default: "https://info.grudge-studio.com" */
   objectStoreBase?: string;
   /** Pre-set JWT token (skip login). */
   token?: string;
@@ -27,7 +27,7 @@ const DEFAULT_CONFIG: Required<GrudgeSDKConfig> = {
   apiBase: "https://api.grudge-studio.com",
   authBase: "https://id.grudge-studio.com",
   assetsBase: "https://assets.grudge-studio.com",
-  objectStoreBase: "https://objectstore.grudge-studio.com",
+  objectStoreBase: "https://info.grudge-studio.com",
   token: "",
 };
 
