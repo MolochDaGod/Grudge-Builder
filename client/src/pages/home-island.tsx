@@ -30,8 +30,10 @@ import {
 } from '@/lib/professionSystem';
 import type { Character } from '@/lib/characterManager';
 import { fetchCurrentHomeIsland, type HomeIslandDto } from '@/lib/homeIslandApi';
+import { buildHomeDungeonUrl } from '@/lib/homeIslandDungeon';
 import { clearTopDownCache } from '@/island3d/render/IslandTopDownCapture';
-import { Home } from 'lucide-react';
+import type { MountainHintState } from '@/island3d/objects/EvilMountainTriad';
+import { Home, Mountain } from 'lucide-react';
 
 export default function HomeIslandPage() {
   const [, setLocation] = useLocation();
@@ -58,6 +60,8 @@ export default function HomeIslandPage() {
   const [hasWeapon, setHasWeapon] = useState(false);
   const [playerCount, setPlayerCount] = useState(0);
   const [buildingCount, setBuildingCount] = useState(0);
+  const [mountainHint, setMountainHint] = useState<MountainHintState>('none');
+  const [mountainDungeonName, setMountainDungeonName] = useState<string | null>(null);
 
   const [characterName, setCharacterName] = useState('Islander');
   const [heroRace, setHeroRace] = useState('human');
@@ -250,6 +254,10 @@ export default function HomeIslandPage() {
       quality: 'medium',
       enableCharacter: true,
       dayNight: { cycleDurationMs: 10 * 60 * 1000 },
+      onDungeonEnter: (dungeonId, dungeonName) => {
+        showNotification(`Entering ${dungeonName}...`);
+        setLocation(buildHomeDungeonUrl(dungeonId, dungeonName));
+      },
     };
 
     const engine = new Island3DEngine(config);
@@ -265,7 +273,8 @@ export default function HomeIslandPage() {
         );
         engine.character.mode = 'harvest';
       }
-      setAllyMessage('Welcome home. Harvest mode gathers resources — heroes auto-harvest while you\'re away.');
+      setMountainDungeonName(engine.mountainDungeonName);
+      setAllyMessage('Welcome home. Head north to the evil mountains — a dungeon hides behind one of three peaks.');
     }).catch(() => {
       engine.start();
       setLoaded(true);
@@ -279,7 +288,49 @@ export default function HomeIslandPage() {
       engine.dispose();
       engineRef.current = null;
     };
-  }, [islandSeed, heroRace, heroClass]);
+  }, [islandSeed, heroRace, heroClass, showNotification, setLocation]);
+
+  // ── E key — cave portal behind secret evil peak ───────────────
+
+  useEffect(() => {
+    if (!loaded) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.repeat) return;
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+      if (e.key.toLowerCase() !== 'e') return;
+      const engine = engineRef.current;
+      if (!engine?.handleInteractKey()) return;
+      e.preventDefault();
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [loaded]);
+
+  // ── Mountain triad HUD hints ──────────────────────────────────
+
+  const lastMountainHintRef = useRef<MountainHintState>('none');
+
+  useEffect(() => {
+    if (!loaded) return;
+    const engine = engineRef.current;
+    if (!engine) return;
+    const unregister = engine.onUpdate(() => {
+      const hint = engine.mountainHintState;
+      if (hint === lastMountainHintRef.current) return;
+      lastMountainHintRef.current = hint;
+      setMountainHint(hint);
+      const name = engine.mountainDungeonName;
+      if (hint === 'approach') {
+        setAllyMessage('Three evil peaks ahead. Circle behind them — one hides a dungeon entrance.');
+      } else if (hint === 'discovered' && name) {
+        setAllyMessage(`You found ${name}. Walk into the cave mouth.`);
+      } else if (hint === 'interact' && name) {
+        setAllyMessage(`Press E to enter ${name}.`);
+      }
+    });
+    return unregister;
+  }, [loaded]);
 
   // ── Visitor sync ──────────────────────────────────────────────
 
@@ -467,6 +518,23 @@ export default function HomeIslandPage() {
             onBuildRaft={handleBuildRaft}
             onUseSkill={handleUseSkill}
           />
+
+          {mountainHint !== 'none' && (
+            <div className="absolute bottom-28 left-1/2 -translate-x-1/2 z-50 pointer-events-none">
+              <div className="bg-black/75 backdrop-blur-sm rounded-xl border border-purple-500/40 px-4 py-2 text-sm text-purple-200 flex items-center gap-2 shadow-lg">
+                <Mountain className="w-4 h-4 text-purple-400 shrink-0" />
+                {mountainHint === 'approach' && (
+                  <span>Evil mountains — search behind the peaks for a hidden cave</span>
+                )}
+                {mountainHint === 'discovered' && mountainDungeonName && (
+                  <span>{mountainDungeonName} revealed — enter the cave mouth</span>
+                )}
+                {mountainHint === 'interact' && mountainDungeonName && (
+                  <span className="text-amber-200 font-semibold">Press E — enter {mountainDungeonName}</span>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Home island meta + sail */}
           <div className="absolute top-4 right-4 z-50 pointer-events-auto">
