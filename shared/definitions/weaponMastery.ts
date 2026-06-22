@@ -403,6 +403,36 @@ export function calculateMasteryBonuses(
   return bonuses;
 }
 
+/** Diablo-style mastery charms — socket on a node for bonus ranks (no pool cost). */
+export type MasteryCharmRarity = 'common' | 'magic' | 'rare' | 'unique';
+
+export interface MasteryCharm {
+  id: string;
+  name: string;
+  rarity: MasteryCharmRarity;
+  treeId: string;
+  nodeId: string;
+  /** Extra ranks granted by the item (beyond the 100-point pool). */
+  bonusRanks: number;
+  /** Multiplier on per-rank bonus value (1 = normal). */
+  effectMultiplier?: number;
+  flavor: string;
+}
+
+/** Demo charm catalog — in-game these drop from crafting / bosses. */
+export const MASTERY_CHARMS: MasteryCharm[] = [
+  { id: 'charm_sw_honed', name: 'Whetstone of Edge', rarity: 'magic', treeId: 'swords', nodeId: 'sw_honed', bonusRanks: 1, effectMultiplier: 1.1, flavor: '+1 Honed Edge rank, +10% crit value' },
+  { id: 'charm_sw_master', name: 'Duelist Medallion', rarity: 'unique', treeId: 'swords', nodeId: 'sw_master', bonusRanks: 1, flavor: '+1 Master Swordsman rank' },
+  { id: 'charm_ax_berserker', name: 'Berserker Totem', rarity: 'rare', treeId: 'axes', nodeId: 'ax_berserker', bonusRanks: 1, flavor: '+1 Berserker\'s Edge rank' },
+  { id: 'charm_hm_earth', name: 'Seismic Core', rarity: 'rare', treeId: 'hammers', nodeId: 'hm_earth', bonusRanks: 1, effectMultiplier: 1.15, flavor: '+1 Earthshatter, +15% crit dmg' },
+  { id: 'charm_gn_deadeye', name: 'Deadeye Scope', rarity: 'magic', treeId: 'guns', nodeId: 'gn_deadeye', bonusRanks: 1, flavor: '+1 Deadeye rank' },
+  { id: 'charm_bw_master', name: 'Quiver of Storms', rarity: 'rare', treeId: 'bows', nodeId: 'bw_master', bonusRanks: 1, flavor: '+1 Master Archer rank' },
+  { id: 'charm_cb_siege', name: 'Siege Bolt Kit', rarity: 'magic', treeId: 'crossbows', nodeId: 'cb_siege', bonusRanks: 1, flavor: '+1 Siege Sniper rank' },
+  { id: 'charm_st_grand', name: 'Grandmaster Sash', rarity: 'unique', treeId: 'staves', nodeId: 'st_grand', bonusRanks: 1, flavor: '+1 Staff Grandmaster rank' },
+  { id: 'charm_sp_dragoon', name: 'Dragoon Lance Tip', rarity: 'rare', treeId: 'spears', nodeId: 'sp_dragoon', bonusRanks: 1, flavor: '+1 Dragoon\'s Reach rank' },
+  { id: 'charm_sf_fury', name: 'Archmage Focus', rarity: 'unique', treeId: 'staffs', nodeId: 'sf_fury', bonusRanks: 1, effectMultiplier: 1.2, flavor: '+1 Archmage\'s Fury, +20% value' },
+];
+
 /** Validate that allocations respect requirements and rank limits */
 export function validateAllocations(
   allocations: Record<string, Record<string, number>>,
