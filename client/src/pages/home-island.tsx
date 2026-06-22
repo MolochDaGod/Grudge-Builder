@@ -253,7 +253,7 @@ export default function HomeIslandPage() {
       mode: 'procedural',
       quality: 'medium',
       enableCharacter: true,
-      dayNight: { cycleDurationMs: 10 * 60 * 1000 },
+      dayNight: { dayDurationSeconds: 10 * 60 },
       onDungeonEnter: (dungeonId, dungeonName) => {
         showNotification(`Entering ${dungeonName}...`);
         setLocation(buildHomeDungeonUrl(dungeonId, dungeonName));
