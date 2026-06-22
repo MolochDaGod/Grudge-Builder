@@ -4,7 +4,7 @@
  * A production-quality "opening scene" that doubles as a universal model
  * inspector. Out of the box it shows a lit hero on an infinite grid; drop (or
  * pick) a GLB/glTF/FBX/OBJ/STL/PLY/DAE/3MF file and it loads through the
- * `modelKit` pipeline, auto-frames it, and reports live mesh stats.
+ * `modelLoader` pipeline, auto-frames it, and reports live mesh stats.
  *
  * Dev-tool integrations:
  *   - ACES tone mapping + soft shadows + key/fill/rim/hemisphere lighting rig
@@ -42,7 +42,7 @@ import {
   SUPPORTED_EXTENSIONS,
   type LoadedAsset,
   type ModelStats,
-} from "@/lib/modelKit";
+} from "@/lib/modelLoader";
 
 // ── Renderer best-practice setup (tone mapping + KTX2 support) ────────────────
 
