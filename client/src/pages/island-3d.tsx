@@ -1,6 +1,6 @@
 /**
- * Island 3D Page — full 3D island exploration with terrain, harvestables, and decorations.
- * Supports procedural seed-based islands, pre-built lobby maps, and persisted home islands.
+ * Island 3D Page — defaults to the Studio Map Editor (HDR terrain, creatures, play mode).
+ * Legacy Island3DEngine remains available via ?engine=legacy, ?mode=zone, or ?mode=lobby.
  */
 import { useState, useEffect, useRef } from 'react';
 import { useLocation } from 'wouter';
@@ -11,13 +11,113 @@ import { authHeaders } from '@/lib/grudgeBackend';
 import { normalizeHomeIslandResponse } from '@/lib/homeIslandApi';
 import { characterAPI } from '@/lib/api';
 import { WORLD_SECTORS, getSectorById } from '@shared/definitions/worldMapSectors';
-import { Loader2, Users } from 'lucide-react';
+import { Loader2, Users, ExternalLink } from 'lucide-react';
 import { clearTopDownCache } from '@/island3d/render/IslandTopDownCapture';
 import { useZoneColyseus } from '@/hooks/use-zone-colyseus';
 import type { PlayerInfo } from '@/hooks/use-colyseus';
 import { CLASS_WEAPON_MAP } from '@/lib/modelManifest';
+import {
+  ensureAuthForStudio,
+  openStudioEditorExplore,
+  openStudioEditorForHomeIsland,
+} from '@/lib/studioEditorBridge';
+import { STUDIO_EDITOR_URL } from '@/lib/grudgeConfig';
+
+function useLegacyEngine(): boolean {
+  const params = new URLSearchParams(window.location.search);
+  return (
+    params.get('engine') === 'legacy'
+    || params.get('mode') === 'zone'
+    || params.get('mode') === 'lobby'
+  );
+}
+
+/** Redirect to grudge-studio-editor — Grudge ID / guest auth, no Puter popup. */
+function Island3DStudioLauncher() {
+  const [error, setError] = useState<string | null>(null);
+  const [launching, setLaunching] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    (async () => {
+      const params = new URLSearchParams(window.location.search);
+      const returnPath = `${window.location.pathname}${window.location.search}`;
+      const authed = await ensureAuthForStudio(returnPath);
+      if (!authed || cancelled) return;
+
+      const grudgeId = localStorage.getItem('grudge_account_id') || 'guest';
+      const characterId = params.get('characterId')
+        || localStorage.getItem(`gruda_active_character_${grudgeId}`)
+        || localStorage.getItem('grudge_active_character')
+        || localStorage.getItem('gruda_active_character_guest')
+        || '';
+
+      const seed = params.get('seed') || `island-${Date.now().toString(36)}`;
+      const play = params.get('play') !== '0';
+      const isHomeIsland = params.get('mode') === 'home-island';
+      const islandId = params.get('islandId') || '';
+
+      try {
+        if (isHomeIsland && characterId) {
+          openStudioEditorForHomeIsland({
+            characterId,
+            islandId: islandId || `home-${characterId}`,
+            seed,
+          });
+        } else {
+          openStudioEditorExplore({ seed, characterId: characterId || undefined, play });
+        }
+      } catch (e) {
+        if (!cancelled) {
+          setError(e instanceof Error ? e.message : 'Failed to open Studio Editor');
+          setLaunching(false);
+        }
+      }
+    })();
+
+    return () => { cancelled = true; };
+  }, []);
+
+  if (error) {
+    return (
+      <div className="flex h-screen bg-gray-950 items-center justify-center flex-col gap-4 text-slate-400 px-6 text-center">
+        <p className="text-red-400 text-sm">{error}</p>
+        <a
+          href={STUDIO_EDITOR_URL}
+          className="text-emerald-400 text-sm underline inline-flex items-center gap-1"
+        >
+          Open Studio Editor directly <ExternalLink className="w-3.5 h-3.5" />
+        </a>
+        <a href="/island-3d?engine=legacy" className="text-slate-500 text-xs underline">
+          Use legacy 3D engine instead
+        </a>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex h-screen bg-gray-950 items-center justify-center flex-col gap-4 text-slate-400">
+      <Loader2 className="w-8 h-8 animate-spin text-emerald-400" />
+      <span className="text-sm">
+        {launching ? 'Opening Studio Island Editor…' : 'Redirecting…'}
+      </span>
+      <span className="text-xs text-slate-600 max-w-sm text-center">
+        High-quality terrain, creatures, and third-person play — powered by Grudge Studio Editor
+      </span>
+    </div>
+  );
+}
 
 export default function Island3DPage() {
+  if (!useLegacyEngine()) {
+    return <Island3DStudioLauncher />;
+  }
+
+  return <Island3DLegacyPage />;
+}
+
+function Island3DLegacyPage() {
   const params = new URLSearchParams(window.location.search);
   const isHomeIslandMode = params.get('mode') === 'home-island';
   const islandIdParam = params.get('islandId') || '';
@@ -196,8 +296,15 @@ export default function Island3DPage() {
         <h1 className="text-emerald-400 font-bold text-sm">
           {isHomeIslandMode
             ? `🏝 Home Island${homeIsland?.name ? ': ' + homeIsland.name : ''}`
-            : '3D Island Explorer'}
+            : '3D Island Explorer (Legacy)'}
         </h1>
+        <a
+          href="/island-3d"
+          className="text-xs text-emerald-500/80 hover:text-emerald-400 underline"
+          title="Switch to Studio Editor"
+        >
+          Studio Editor
+        </a>
         {mode === 'zone' && zoneMultiplayer && (
           <div className="flex items-center gap-1.5 text-xs text-slate-400">
             <Users className="w-3.5 h-3.5" />

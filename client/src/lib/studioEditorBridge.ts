@@ -1,8 +1,11 @@
 /**
- * Bridge between GrudgeBuilder home-island flow and the Studio Map Editor
+ * Bridge between GrudgeBuilder and the Studio Map Editor
  * (grudge-studio-editor.vercel.app / studio.grudge-studio.com).
  */
 import { STUDIO_EDITOR_URL } from '@/lib/grudgeConfig';
+import { isAuthenticated } from '@/lib/grudgeBackend';
+import { loginAsGuest } from '@/lib/grudgeBackend';
+import { redirectToGrudgeAuth } from '@/lib/authRedirect';
 import type { HomeIslandState } from '@/lib/homeIslandApi';
 
 export interface StudioEditorLaunchParams {
@@ -51,6 +54,7 @@ export function buildStudioEditorHomeIslandUrl(
     seed: params.seed,
     returnUrl,
     apiOrigin: origin,
+    embed: '1',
   });
   if (token) qs.set('token', token);
 
@@ -68,6 +72,84 @@ export function openStudioEditorForHomeIsland(
   } else {
     window.location.href = url;
   }
+}
+
+export interface StudioEditorExploreParams {
+  seed?: string;
+  characterId?: string;
+  play?: boolean;
+  weather?: string;
+  returnUrl?: string;
+  apiOrigin?: string;
+  token?: string;
+}
+
+function studioOrigin(): string {
+  return typeof window !== 'undefined'
+    ? window.location.origin
+    : 'https://client.grudge-studio.com';
+}
+
+function studioAuthToken(override?: string): string {
+  if (override) return override;
+  if (typeof localStorage === 'undefined') return '';
+  return localStorage.getItem('grudge_auth_token') || '';
+}
+
+/** Build the Studio Editor URL for general island exploration (island-3d default). */
+export function buildStudioEditorExploreUrl(
+  params: StudioEditorExploreParams = {},
+): string {
+  const base = STUDIO_EDITOR_URL.replace(/\/$/, '');
+  const origin = params.apiOrigin ?? studioOrigin();
+  const returnUrl = params.returnUrl ?? `${origin}/island-3d`;
+  const seed = params.seed ?? `island-${Date.now().toString(36)}`;
+
+  const qs = new URLSearchParams({
+    mode: 'explore',
+    seed,
+    returnUrl,
+    apiOrigin: origin,
+    embed: '1',
+  });
+  if (params.characterId) qs.set('characterId', params.characterId);
+  if (params.play) qs.set('play', '1');
+  if (params.weather) qs.set('weather', params.weather);
+  const token = studioAuthToken(params.token);
+  if (token) qs.set('token', token);
+
+  return `${base}/editor?${qs.toString()}`;
+}
+
+/** Open the Studio Editor for procedural island exploration. */
+export function openStudioEditorExplore(
+  params: StudioEditorExploreParams = {},
+  opts: { newTab?: boolean } = {},
+): void {
+  const url = buildStudioEditorExploreUrl(params);
+  if (opts.newTab) {
+    window.open(url, '_blank', 'noopener,noreferrer');
+  } else {
+    window.location.href = url;
+  }
+}
+
+/**
+ * Ensure the user has a session before opening the Studio Editor.
+ * Uses silent guest login first — never opens the Puter popup.
+ * Falls back to Grudge ID redirect (id.grudge-studio.com) on failure.
+ */
+export async function ensureAuthForStudio(returnPath?: string): Promise<boolean> {
+  if (isAuthenticated()) return true;
+  const path = returnPath ?? `${window.location.pathname}${window.location.search}`;
+  try {
+    await loginAsGuest();
+    if (isAuthenticated()) return true;
+  } catch {
+    /* guest failed — use centralized SSO */
+  }
+  redirectToGrudgeAuth(path);
+  return false;
 }
 
 const BIOME_NAMES = ['grass', 'sand', 'rock', 'snow'] as const;
