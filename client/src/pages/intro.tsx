@@ -3,9 +3,10 @@ import { useLocation } from "wouter";
 import { motion } from "framer-motion";
 import { LogIn } from "lucide-react";
 import {
-  RACE_PORTRAITS, FACTION_EMBLEMS, VIDEOS,
+  RACE_PORTRAITS, VIDEOS,
   CLASS_STAGE_BACKGROUNDS, CLASS_ACCENT_COLORS, CLASS_CYCLE,
 } from "@/lib/artAssets";
+import { FactionEmblemRow } from "@/components/FactionEmblems";
 import { useAuth } from "@/contexts/AuthContext";
 
 const PARTICLE_COUNT = 50;
@@ -153,11 +154,7 @@ export default function IntroPage() {
           transition={{ duration: 0.8, delay: 0.2 }}
           className="flex gap-4 mb-6"
         >
-          {Object.entries(FACTION_EMBLEMS).map(([name, src]) => (
-            <div key={name} className="w-12 h-12 rounded-xl overflow-hidden border border-white/[.08] bg-[#0b0f1e] hover:border-amber-500/40 hover:scale-110 transition-all" title={name}>
-              <img src={src} alt={name} className="w-full h-full object-cover" />
-            </div>
-          ))}
+          <FactionEmblemRow size={30} />
         </motion.div>
 
         {/* Race portrait strip — animated card style from RTS-Grudge */}

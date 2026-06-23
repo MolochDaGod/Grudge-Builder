@@ -3,7 +3,7 @@
  *
  * Canonical binary icons: assets.grudge-studio.com/icons/pack/* (grudge-guide.html)
  * Named weapon icons:      assets.grudge-studio.com/icons/weapons/{kebab-name}.png
- * JSON data:               objectstore.grudge-studio.com/api/v1/*
+ * JSON data:               info.grudge-studio.com/api/v1/*
  *
  * Rewrites deprecated molochdagod.github.io/ObjectStore URLs at runtime.
  */
@@ -110,7 +110,7 @@ function rewriteDeprecatedHost(url: string): string {
       .replace(`https://${host}`, ASSET_CDN_BASE)
       .replace(`http://${host}`, ASSET_CDN_BASE);
   }
-  if (out.includes('objectstore.grudge-studio.com') && /\.(png|jpe?g|webp|gif|svg)(\?|$)/i.test(out)) {
+  if (out.includes('info.grudge-studio.com') && /\.(png|jpe?g|webp|gif|svg)(\?|$)/i.test(out)) {
     try {
       const u = new URL(out);
       const path = u.pathname.replace(/^\/api\/v1/, '');

@@ -75,9 +75,9 @@ export const AI_GATEWAY: string =
 export const BADGE_READER: string =
   env.VITE_BADGE_READER_URL || 'https://api.grudge-studio.com';
 
-/** Canonical ObjectStore API (objectstore.grudge-studio.com). */
+/** Canonical ObjectStore API (info.grudge-studio.com). */
 export const OBJECTSTORE: string =
-  env.VITE_OBJECTSTORE_URL || 'https://objectstore.grudge-studio.com/api/v1';
+  env.VITE_OBJECTSTORE_URL || 'https://info.grudge-studio.com/api/v1';
 
 /**
  * GrudgeDot launcher canonical URL.
@@ -129,7 +129,7 @@ export const GRUDGE_SUBDOMAINS = [
   'assets.grudge-studio.com',
   'ai.grudge-studio.com',
   'dash.grudge-studio.com',
-  'objectstore.grudge-studio.com',
+  'info.grudge-studio.com',
   'ws.grudge-studio.com',
   'pvp.grudge-studio.com',
   'client.grudge-studio.com',

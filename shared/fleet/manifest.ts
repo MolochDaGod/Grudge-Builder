@@ -31,7 +31,7 @@ export const FLEET_URLS = {
   identityApi: "https://api.grudge-studio.com",
   gameData: "https://grudge-builder-production.up.railway.app",
   assets: "https://assets.grudge-studio.com",
-  objectStore: "https://objectstore.grudge-studio.com/api/v1",
+  objectStore: "https://info.grudge-studio.com/api/v1",
   ai: "https://ai.grudge-studio.com",
   /** Local AnythingLLM desktop — dev RAG over fleet + ObjectStore docs */
   anythingllm: "http://localhost:3001/api",
@@ -140,7 +140,7 @@ export const FLEET_SERVICES: FleetService[] = [
 /** Vercel rewrite templates — copy into any Grudge game vercel.json */
 export const FLEET_VERCEL_REWRITES = [
   { source: "/api/assets/:path*", destination: `${FLEET_URLS.assets}/:path*` },
-  { source: "/api/objectstore/:path*", destination: "https://objectstore.grudge-studio.com/api/:path*" },
+  { source: "/api/objectstore/:path*", destination: "https://info.grudge-studio.com/api/:path*" },
   { source: "/api/characters", destination: `${FLEET_URLS.gameData}/api/characters` },
   { source: "/api/characters/:path*", destination: `${FLEET_URLS.gameData}/api/characters/:path*` },
   { source: "/api/wallet/:path*", destination: `${FLEET_URLS.gameData}/api/wallet/:path*` },

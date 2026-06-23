@@ -6,7 +6,7 @@
     "identityApi": "https://api.grudge-studio.com",
     "gameData": "https://grudge-builder-production.up.railway.app",
     "assets": "https://assets.grudge-studio.com",
-    "objectStore": "https://objectstore.grudge-studio.com/api/v1",
+    "objectStore": "https://info.grudge-studio.com/api/v1",
     "ai": "https://ai.grudge-studio.com",
     "colyseus": "wss://api.grudge-studio.com",
     "world": "wss://world.grudge-studio.com",
@@ -50,7 +50,7 @@
       "id": "objectstore",
       "label": "ObjectStore JSON catalog",
       "role": "objectstore",
-      "url": "https://objectstore.grudge-studio.com/api/v1",
+      "url": "https://info.grudge-studio.com/api/v1",
       "proxyPath": "/api/objectstore",
       "notes": "master-items.json, recipes, weapons defs"
     },
@@ -102,7 +102,7 @@
     },
     {
       "source": "/api/objectstore/:path*",
-      "destination": "https://objectstore.grudge-studio.com/api/:path*"
+      "destination": "https://info.grudge-studio.com/api/:path*"
     },
     {
       "source": "/api/characters",
