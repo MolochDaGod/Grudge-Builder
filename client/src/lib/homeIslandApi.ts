@@ -246,13 +246,33 @@ export async function rerollIsland(islandId: string): Promise<HomeIslandDto> {
 export async function fetchRtsStatus(): Promise<RtsStatusDto> {
   try {
     const res = await fetch('/api/rts/status');
-    if (!res.ok) return { online: false, playerCount: null };
-    const data = await res.json();
-    return {
-      online: !!data.online,
-      playerCount: typeof data.totalPlayers === 'number' ? data.totalPlayers : null,
-    };
-  } catch {
-    return { online: false, playerCount: null };
-  }
+    if (res.ok) {
+      const data = await res.json();
+      return {
+        online: !!data.online,
+        playerCount: typeof data.playerCount === 'number'
+          ? data.playerCount
+          : typeof data.totalPlayers === 'number'
+            ? data.totalPlayers
+            : null,
+      };
+    }
+  } catch { /* try direct world server */ }
+
+  try {
+    const envPvp = (import.meta as { env?: { VITE_PVP_SERVER_URL?: string } }).env?.VITE_PVP_SERVER_URL;
+    const worldHttp = (envPvp || 'wss://world.grudge-studio.com')
+      .replace(/^wss:\/\//, 'https://')
+      .replace(/^ws:\/\//, 'http://');
+    const res = await fetch(`${worldHttp.replace(/\/$/, '')}/status`);
+    if (res.ok) {
+      const data = await res.json();
+      return {
+        online: true,
+        playerCount: typeof data.totalPlayers === 'number' ? data.totalPlayers : null,
+      };
+    }
+  } catch { /* offline */ }
+
+  return { online: false, playerCount: null };
 }

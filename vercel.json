@@ -53,7 +53,7 @@
     },
     {
       "source": "/api/rts/status",
-      "destination": "https://world.grudge-studio.com/status"
+      "destination": "https://grudge-builder-production.up.railway.app/api/rts/status"
     },
     {
       "source": "/api/islands/:path*",
