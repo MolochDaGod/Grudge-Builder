@@ -23,7 +23,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { db } from "../db";
 import { users, accounts } from "@shared/schema";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import jwt from "jsonwebtoken";
 import crypto from "node:crypto";
 import { storage } from "../storage";
@@ -158,6 +158,144 @@ async function ensureAccount(userId: string) {
   return storage.getOrCreateAccountForUser(userId);
 }
 
+const PROFILE_COMPLETE_KEY = "grudge_profile_complete:";
+
+function puterUsernameKey(puterId: string): string {
+  return `puter:${puterId}`;
+}
+
+function isAutoUsername(username: string): boolean {
+  return (
+    username.startsWith("puter:") ||
+    username.startsWith("Puter_") ||
+    username.startsWith("guest_") ||
+    /^puter_[a-f0-9]+$/i.test(username)
+  );
+}
+
+function setSessionCookie(res: Response, token: string) {
+  const maxAge = 7 * 24 * 60 * 60;
+  const secure = process.env.NODE_ENV === "production" ? "; Secure" : "";
+  res.setHeader(
+    "Set-Cookie",
+    `grudge_auth_token=${encodeURIComponent(token)}; Path=/; Max-Age=${maxAge}; HttpOnly; SameSite=Lax${secure}`,
+  );
+}
+
+function readSessionToken(req: Request): string | null {
+  const authHeader = req.get("Authorization") || req.get("X-Session-Token") || "";
+  if (authHeader.startsWith("Bearer ")) return authHeader.slice(7);
+  if (authHeader) return authHeader;
+  const cookie = req.get("Cookie") || "";
+  const match = cookie.match(/(?:^|;\s*)grudge_auth_token=([^;]+)/);
+  return match ? decodeURIComponent(match[1]) : null;
+}
+
+function buildSsoUserPayload(
+  user: { id: string; username: string; grudgeId: string | null; email?: string | null },
+  account: { grudgeId?: string | null; displayName?: string | null; gbuxBalance?: number | null; avatarUrl?: string | null } | null,
+  opts: { isNew: boolean },
+) {
+  const grudgeId = user.grudgeId || account?.grudgeId || "";
+  const displayName =
+    account?.displayName ||
+    (user.username.includes(":") ? user.username.split(":").slice(1).join(":") : user.username);
+  const profileComplete = rateLimitMap.has(`${PROFILE_COMPLETE_KEY}${user.id}`);
+  const needsProfile = !profileComplete && (opts.isNew || isAutoUsername(user.username));
+
+  return {
+    id: user.id,
+    username: displayName,
+    grudgeId,
+    displayName,
+    avatarUrl: account?.avatarUrl || null,
+    gbuxBalance: account?.gbuxBalance ?? 0,
+    role: "player",
+    needsProfile,
+    isNew: opts.isNew,
+    email: user.email || null,
+  };
+}
+
+/**
+ * Scoped Puter → Grudge ID resolution:
+ * 1) match by Puter UUID (puter:<uuid>)
+ * 2) else match by email when provided
+ * 3) else create linked Puter + Grudge ID (email stored when available)
+ */
+async function resolvePuterGrudgeAccount(
+  puterId: string,
+  puterUsername?: string,
+  email?: string,
+): Promise<{ user: typeof users.$inferSelect; account: Awaited<ReturnType<typeof ensureAccount>>; isNew: boolean }> {
+  const puterKey = puterUsernameKey(puterId);
+  let isNew = false;
+
+  let [user] = await db.select().from(users).where(eq(users.username, puterKey)).limit(1);
+
+  if (!user && email) {
+    const normalized = email.trim().toLowerCase();
+    [user] = await db
+      .select()
+      .from(users)
+      .where(sql`lower(${users.email}) = ${normalized}`)
+      .limit(1);
+  }
+
+  if (!user) {
+    isNew = true;
+    const grudgeId = generateGrudgeId();
+    const dummyPw = await hashPassword(crypto.randomBytes(32).toString("hex"));
+
+    [user] = await db
+      .insert(users)
+      .values({
+        username: puterKey,
+        password: dummyPw,
+        grudgeId,
+        email: email?.trim().toLowerCase() || null,
+      })
+      .onConflictDoNothing()
+      .returning();
+
+    if (!user) {
+      [user] = await db.select().from(users).where(eq(users.username, puterKey)).limit(1);
+    }
+
+  } else if (email && !user.email) {
+    await db
+      .update(users)
+      .set({ email: email.trim().toLowerCase() })
+      .where(eq(users.id, user.id));
+    user = { ...user, email: email.trim().toLowerCase() };
+  }
+
+  if (!user) {
+    throw new Error("Failed to create Puter-linked Grudge account");
+  }
+
+  const account = await ensureAccount(user.id);
+  const display = puterUsername?.trim() || (isNew ? `Puter_${puterId.slice(-8)}` : undefined);
+  if (display && (!account.displayName || isAutoUsername(account.displayName))) {
+    await storage.updateAccount(account.id, { displayName: display });
+  }
+
+  if (!user.grudgeId && account.grudgeId) {
+    await db.update(users).set({ grudgeId: account.grudgeId }).where(eq(users.id, user.id));
+    user = { ...user, grudgeId: account.grudgeId };
+  }
+
+  return { user, account, isNew };
+}
+
+function mintLaunchToken(userId: string, grudgeId: string, audience: string): string {
+  return jwt.sign(
+    { type: "launch", userId, grudgeId, aud: audience },
+    JWT_SECRET,
+    { expiresIn: "10m" },
+  );
+}
+
 // ── Register routes ──────────────────────────────────────────────────
 
 function authAssetPath(file: string): string {
@@ -227,6 +365,7 @@ export function registerAuthRoutes(app: Express) {
     try {
       const puterUuid = req.body.puterUuid || req.body.puterId;
       const puterUsername = req.body.puterUsername || req.body.displayName;
+      const email = req.body.email as string | undefined;
       if (!puterUuid) {
         return res.status(400).json({ success: false, error: "puterUuid or puterId required" });
       }
@@ -234,53 +373,181 @@ export function registerAuthRoutes(app: Express) {
       const isGuest = puterUuid.startsWith("guest_");
       const username = puterUsername || (isGuest ? `Guest_${puterUuid.slice(-8)}` : `Puter_${puterUuid.slice(-8)}`);
 
-      // Find existing user by grudgeId pattern (puter UUID stored as grudge ID lookup)
-      // We use the users table — look for matching username or create new
-      let [user] = await db
-        .select()
-        .from(users)
-        .where(eq(users.username, `puter:${puterUuid}`))
-        .limit(1);
+      const { user, account, isNew } = isGuest
+        ? await resolvePuterGrudgeAccount(puterUuid, username, email)
+        : await resolvePuterGrudgeAccount(puterUuid, puterUsername, email);
 
-      if (!user) {
-        // Create new user + account
-        const grudgeId = generateGrudgeId();
-        const dummyPw = await hashPassword(crypto.randomBytes(32).toString("hex"));
-
-        [user] = await db
-          .insert(users)
-          .values({
-            username: `puter:${puterUuid}`,
-            password: dummyPw,
-            grudgeId,
-          })
-          .onConflictDoNothing()
-          .returning();
-
-        if (!user) {
-          // Race condition — re-fetch
-          [user] = await db
-            .select()
-            .from(users)
-            .where(eq(users.username, `puter:${puterUuid}`))
-            .limit(1);
-        }
-      }
-
-      if (!user) {
-        return res.status(500).json({ success: false, error: "Failed to create account" });
-      }
-
-      const account = await ensureAccount(user.id);
-      const response = buildAuthResponse(
-        { ...user, username: username },
-        account,
-      );
-
-      res.json(response);
+      const response = buildAuthResponse({ ...user, username }, account);
+      if (!isGuest) setSessionCookie(res, response.token);
+      res.json({ ...response, isNew });
     } catch (e: any) {
       console.error("[Auth/Puter]", e);
       res.status(500).json({ success: false, error: e.message });
+    }
+  });
+
+  /**
+   * POST /api/auth/puter-sso
+   * Auth-page flow: simple Puter identity → scoped Grudge ID (email links existing accounts).
+   */
+  app.post("/api/auth/puter-sso", authRateLimit, async (req: Request, res: Response) => {
+    try {
+      const puterId = req.body.puterId || req.body.puterUuid;
+      const puterUsername = req.body.puterUsername || req.body.displayName;
+      const email = req.body.email as string | undefined;
+      if (!puterId) {
+        return res.status(400).json({ success: false, error: "puterId required" });
+      }
+
+      const { user, account, isNew } = await resolvePuterGrudgeAccount(puterId, puterUsername, email);
+      const displayName =
+        account.displayName ||
+        puterUsername ||
+        (user.username.includes(":") ? user.username.split(":").slice(1).join(":") : user.username);
+      const token = signToken({
+        userId: user.id,
+        grudgeId: user.grudgeId || account.grudgeId || "",
+        username: displayName,
+      });
+      setSessionCookie(res, token);
+      res.json(buildSsoUserPayload(user, account, { isNew }));
+    } catch (e: any) {
+      console.error("[Auth/Puter-SSO]", e);
+      res.status(500).json({ success: false, error: e.message || "SSO failed" });
+    }
+  });
+
+  /** POST /api/auth/guest — quick guest Grudge ID (Puter cloud slot reserved). */
+  app.post("/api/auth/guest", authRateLimit, async (_req: Request, res: Response) => {
+    try {
+      const guestId = `guest_${crypto.randomBytes(8).toString("hex")}`;
+      const { user, account, isNew } = await resolvePuterGrudgeAccount(guestId, "Guest");
+      const token = signToken({
+        userId: user.id,
+        grudgeId: user.grudgeId || account.grudgeId || "",
+        username: "Guest",
+      });
+      setSessionCookie(res, token);
+      res.json(buildSsoUserPayload(user, account, { isNew: isNew || true }));
+    } catch (e: any) {
+      console.error("[Auth/Guest]", e);
+      res.status(500).json({ success: false, error: e.message });
+    }
+  });
+
+  /** POST /api/auth/complete-profile — claim username after Puter SSO. */
+  app.post("/api/auth/complete-profile", authRateLimit, async (req: Request, res: Response) => {
+    try {
+      const token = readSessionToken(req);
+      if (!token) return res.status(401).json({ success: false, error: "Not authenticated" });
+
+      const payload = jwt.verify(token, JWT_SECRET) as { userId: string };
+      const { username, email } = req.body as { username?: string; email?: string };
+
+      const [user] = await db.select().from(users).where(eq(users.id, payload.userId)).limit(1);
+      if (!user) return res.status(404).json({ success: false, error: "User not found" });
+
+      if (username) {
+        if (!/^[a-zA-Z0-9_-]{3,30}$/.test(username)) {
+          return res.status(400).json({ success: false, error: "Invalid username" });
+        }
+        const [taken] = await db.select().from(users).where(eq(users.username, username)).limit(1);
+        if (taken && taken.id !== user.id) {
+          return res.status(409).json({ success: false, error: "Username taken" });
+        }
+      }
+
+      const [account] = await db.select().from(accounts).where(eq(accounts.userId, user.id)).limit(1);
+      const displayName = username || account?.displayName || user.username;
+      if (account && username) {
+        await storage.updateAccount(account.id, { displayName: username });
+      }
+      if (email) {
+        await db.update(users).set({ email: email.trim().toLowerCase() }).where(eq(users.id, user.id));
+      }
+
+      rateLimitMap.set(`${PROFILE_COMPLETE_KEY}${user.id}`, { count: 1, resetAt: Date.now() + 365 * 24 * 60 * 60 * 1000 });
+
+      const freshAccount = account ? await storage.getAccount(account.id) : await ensureAccount(user.id);
+      res.json(buildSsoUserPayload(
+        { ...user, email: email?.trim().toLowerCase() || user.email },
+        freshAccount,
+        { isNew: false },
+      ));
+    } catch (e: any) {
+      console.error("[Auth/CompleteProfile]", e);
+      res.status(500).json({ success: false, error: e.message });
+    }
+  });
+
+  /** POST /api/auth/popup-token — mint short-lived launch token for cross-app handoff. */
+  app.post("/api/auth/popup-token", authRateLimit, async (req: Request, res: Response) => {
+    try {
+      const token = readSessionToken(req);
+      if (!token) return res.status(401).json({ error: "Authentication required" });
+
+      const payload = jwt.verify(token, JWT_SECRET) as { userId: string; grudgeId?: string };
+      const audience = (req.body?.audience as string) || "";
+      if (!audience || !/^https?:\/\//i.test(audience)) {
+        return res.status(400).json({ error: "Valid audience URL required" });
+      }
+
+      const [user] = await db.select().from(users).where(eq(users.id, payload.userId)).limit(1);
+      if (!user) return res.status(404).json({ error: "User not found" });
+
+      const launch = mintLaunchToken(user.id, user.grudgeId || payload.grudgeId || "", audience);
+      res.json({ token: launch });
+    } catch {
+      res.status(401).json({ error: "Authentication required" });
+    }
+  });
+
+  /** POST /api/auth/session/exchange — bridge launch token → session profile + JWT. */
+  app.post("/api/auth/session/exchange", authRateLimit, async (req: Request, res: Response) => {
+    try {
+      const launchToken = req.body?.token as string;
+      if (!launchToken) return res.status(400).json({ error: "token required" });
+
+      const decoded = jwt.verify(launchToken, JWT_SECRET) as {
+        type?: string;
+        userId: string;
+        grudgeId?: string;
+        aud?: string;
+      };
+      if (decoded.type !== "launch") {
+        return res.status(400).json({ error: "Invalid launch token" });
+      }
+
+      const audience = (req.body?.audience as string) || decoded.aud || "";
+      if (audience && decoded.aud && audience !== decoded.aud) {
+        return res.status(403).json({ error: "Audience mismatch" });
+      }
+
+      const [user] = await db.select().from(users).where(eq(users.id, decoded.userId)).limit(1);
+      if (!user) return res.status(404).json({ error: "User not found" });
+
+      const [account] = await db.select().from(accounts).where(eq(accounts.userId, user.id)).limit(1);
+      const displayName =
+        account?.displayName ||
+        (user.username.includes(":") ? user.username.split(":").slice(1).join(":") : user.username);
+      const sessionToken = signToken({
+        userId: user.id,
+        grudgeId: user.grudgeId || account?.grudgeId || decoded.grudgeId || "",
+        username: displayName,
+      });
+      setSessionCookie(res, sessionToken);
+
+      res.json({
+        grudgeId: user.grudgeId || account?.grudgeId || "",
+        username: displayName,
+        displayName,
+        email: user.email || null,
+        token: sessionToken,
+        sessionToken,
+      });
+    } catch (e: any) {
+      console.error("[Auth/SessionExchange]", e);
+      res.status(400).json({ error: "Invalid or expired token" });
     }
   });
 
@@ -603,8 +870,7 @@ export function registerAuthRoutes(app: Express) {
 
   app.get("/api/auth/me", async (req: Request, res: Response) => {
     try {
-      const authHeader = req.get("Authorization") || req.get("X-Session-Token") || "";
-      const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : authHeader;
+      const token = readSessionToken(req);
       if (!token) {
         return res.status(401).json({ success: false, error: "No token provided" });
       }
@@ -766,5 +1032,5 @@ export function registerAuthRoutes(app: Express) {
     }
   });
 
-  console.log("[Auth] Routes registered: /api/auth/{page,puter,wallet,login,register,verify,me,puter-link,discord/callback,google/start,phone/send,phone/verify}");
+  console.log("[Auth] Routes registered: /api/auth/{page,puter,puter-sso,guest,complete-profile,popup-token,session/exchange,wallet,login,register,verify,me,puter-link,discord/callback,google/start,phone/send,phone/verify}");
 }

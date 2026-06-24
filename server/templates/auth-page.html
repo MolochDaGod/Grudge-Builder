@@ -299,15 +299,30 @@ function afterAuth(user, puterEmail){
   handoff(user);
 }
 
-/* ══════════ PUTER (primary) ══════════ */
+/* ══════════ PUTER (primary) — simple scope → Grudge ID scope ══════════ */
+async function puterIdentitySignIn(){
+  // Puter v2 signIn() requests identity only (no kv/fs/ai until the app uses them).
+  if (!puter.auth.isSignedIn()) await puter.auth.signIn();
+  return puter.auth.getUser();
+}
+async function scopeGrudgeIdFromPuter(pu){
+  return api("/api/auth/puter-sso", {
+    method:"POST",
+    body: JSON.stringify({
+      puterId: pu.uuid,
+      puterUsername: pu.username,
+      email: pu.email || undefined,
+    }),
+  });
+}
 $("btn-puter").addEventListener("click", async () => {
   const btn = $("btn-puter");
   if (typeof window.puter === "undefined"){ toast("Grudge sign-in is still loading — try again in a second.", "error"); return; }
   busy(btn, true, "Opening Grudge…");
   try {
-    if (!puter.auth.isSignedIn()) await puter.auth.signIn();
-    const pu = await puter.auth.getUser();
-    const user = await api("/api/auth/puter-sso", { method:"POST", body: JSON.stringify({ puterId: pu.uuid, puterUsername: pu.username, email: pu.email || undefined }) });
+    const pu = await puterIdentitySignIn();
+    if (!pu?.uuid) throw new Error("Puter sign-in did not return a user id.");
+    const user = await scopeGrudgeIdFromPuter(pu);
     afterAuth(user, pu.email || "");
   } catch (e){ toast(e.message || "Grudge sign-in was cancelled.", "error"); }
   finally { busy(btn, false); }
