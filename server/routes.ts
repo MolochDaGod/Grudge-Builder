@@ -5311,6 +5311,35 @@ Also suggest metadata values in this exact JSON format:
     }
   });
 
+  // GET /api/nfts/:nftId - Client shortcut (characterId or NFT record id)
+  app.get("/api/nfts/:nftId", async (req, res) => {
+    try {
+      const { nftId } = req.params;
+      if (["escrowed", "mint", "poll-pending"].includes(nftId)) {
+        return res.status(404).json({ error: "Not found" });
+      }
+
+      const { nftMintingService } = await import("./services/nftMinting");
+      let nft = await nftMintingService.getCharacterNFT(nftId);
+      if (!nft) {
+        nft = await nftMintingService.getNFTById(nftId);
+      }
+      if (!nft) {
+        return res.status(404).json({ error: "NFT not found" });
+      }
+
+      res.json({
+        status: nft.status,
+        mintAddress: nft.mintAddress,
+        assetId: nft.assetId,
+        nft,
+      });
+    } catch (error) {
+      console.error("Error fetching NFT:", error);
+      res.status(500).json({ error: "Failed to fetch NFT" });
+    }
+  });
+
   // POST /api/nfts/mint - Mint a character as a compressed NFT
   app.post("/api/nfts/mint", async (req, res) => {
     try {

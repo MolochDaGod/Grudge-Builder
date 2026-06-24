@@ -36,8 +36,8 @@ export function buildTruthProbes(): TruthProbe[] {
     { id: 'game-account', label: 'Account API', url: fleetApi('/api/account'), role: 'game-data' },
     { id: 'os-items', label: 'master-items.json', url: apiUrl('/master-items.json'), role: 'objectstore' },
     { id: 'os-recipes', label: 'master-recipes.json', url: apiUrl('/master-recipes.json'), role: 'objectstore' },
-    { id: 'icon-pack', label: 'Pack icon (guide)', url: iconPack, role: 'icons' },
-    { id: 'icon-named', label: 'Named weapon icon', url: namedIcon, role: 'icons' },
+    { id: 'icon-pack', label: 'Pack icon (guide)', url: iconPack, role: 'assets' },
+    { id: 'icon-named', label: 'Named weapon icon', url: namedIcon, role: 'assets' },
     { id: 'assets-cdn', label: 'Assets CDN root', url: `${ASSETS_CDN}/`, role: 'assets' },
   ];
 }
