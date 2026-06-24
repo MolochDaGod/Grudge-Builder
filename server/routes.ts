@@ -1096,6 +1096,32 @@ export async function registerRoutes(
     };
   }
 
+  // World server telemetry for RTS / islands hub (proxies island-server /status)
+  app.get("/api/rts/status", async (_req, res) => {
+    const worldHttp =
+      process.env.WORLD_SERVER_HTTP_URL ||
+      process.env.VITE_PVP_SERVER_URL?.replace(/^wss?:\/\//, "https://") ||
+      "https://world.grudge-studio.com";
+    try {
+      const upstream = await fetch(`${worldHttp.replace(/\/$/, "")}/status`, {
+        signal: AbortSignal.timeout(8000),
+      });
+      if (!upstream.ok) {
+        return res.json({ online: false, playerCount: null });
+      }
+      const data = await upstream.json();
+      res.json({
+        online: true,
+        playerCount: typeof data.totalPlayers === "number" ? data.totalPlayers : null,
+        activeIslands: data.activeIslands ?? null,
+        totalEnemies: data.totalEnemies ?? null,
+        uptime: data.uptime ?? null,
+      });
+    } catch {
+      res.json({ online: false, playerCount: null });
+    }
+  });
+
   // Get the player's home island (creates one if doesn't exist)
   app.get("/api/island", async (req, res) => {
     try {

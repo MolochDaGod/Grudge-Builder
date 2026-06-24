@@ -1,3 +1,5 @@
+import { authHeaders } from '@/lib/grudgeBackend';
+
 export type HomeIslandMapStyle = 'iron' | 'fantasy' | 'tactical' | 'night';
 
 export interface HomeIslandTerrainZone {
@@ -177,8 +179,8 @@ export function normalizeHomeIslandResponse(raw: any): HomeIslandDto {
 }
 
 export async function fetchCurrentHomeIsland(): Promise<HomeIslandDto> {
-  const res = await fetch('/api/island');
-  if (!res.ok) throw new Error('Failed to load home island');
+  const res = await fetch('/api/island', { headers: { ...authHeaders() } });
+  if (!res.ok) throw new Error(`Failed to load home island (${res.status})`);
   return normalizeHomeIslandResponse(await res.json());
 }
 
@@ -209,7 +211,7 @@ export interface CommitIslandResult {
 export async function commitHomeIsland(payload: CommitIslandPayload): Promise<CommitIslandResult> {
   const res = await fetch('/api/island/commit', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
     body: JSON.stringify(payload),
   });
   if (!res.ok) {
@@ -226,7 +228,7 @@ export async function commitHomeIsland(payload: CommitIslandPayload): Promise<Co
 export async function generateCharacterIsland(characterId: string): Promise<HomeIslandDto> {
   const res = await fetch(`/api/characters/${characterId}/generate-island`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
   });
   if (!res.ok) throw new Error('Failed to generate island');
   return normalizeHomeIslandResponse(await res.json());
@@ -235,7 +237,7 @@ export async function generateCharacterIsland(characterId: string): Promise<Home
 export async function rerollIsland(islandId: string): Promise<HomeIslandDto> {
   const res = await fetch(`/api/islands/${islandId}/regenerate`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
   });
   if (!res.ok) throw new Error('Failed to reroll island');
   return normalizeHomeIslandResponse(await res.json());

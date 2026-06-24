@@ -1,5 +1,5 @@
 {
-  "alias": ["client.grudge-studio.com", "warlord3d.grudge-studio.com", "grudgewarlords.com", "www.grudgewarlords.com"],
+  "alias": ["client.grudge-studio.com", "warlord3d.grudge-studio.com", "grudgewarlords.com", "www.grudgewarlords.com", "rts-grudge.vercel.app"],
   "buildCommand": "npm run build:client",
   "outputDirectory": "client/dist",
   "devCommand": "npm run dev:client",
@@ -44,8 +44,16 @@
       "destination": "https://grudge-builder-production.up.railway.app/api/nfts/:path*"
     },
     {
+      "source": "/api/island",
+      "destination": "https://grudge-builder-production.up.railway.app/api/island"
+    },
+    {
       "source": "/api/island/:path*",
       "destination": "https://grudge-builder-production.up.railway.app/api/island/:path*"
+    },
+    {
+      "source": "/api/rts/status",
+      "destination": "https://world.grudge-studio.com/status"
     },
     {
       "source": "/api/islands/:path*",

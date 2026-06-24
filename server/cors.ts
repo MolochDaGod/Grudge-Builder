@@ -25,6 +25,9 @@ export const GRUDGE_EXACT_ORIGINS: string[] = [
   "https://puter.com",
   "https://www.puter.com",
   "https://app.puter.com",
+
+  // RTS Grudge 3D client (Vercel)
+  "https://rts-grudge.vercel.app",
 ];
 
 // ── Regex-match origins (subdomains, preview deploys, Puter) ──────────────────

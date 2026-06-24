@@ -70,6 +70,8 @@ import PlayPage from "@/pages/play";
 import TutorialPage from "@/pages/tutorial";
 import IslandRevealPage from "@/pages/island-reveal";
 import HomeIslandPage from "@/pages/home-island";
+import IslandsPage from "@/pages/islands";
+import { RtsDomainBootstrap } from "@/components/RtsDomainBootstrap";
 import WeaponModelAdminPage from "@/pages/weapon-model-admin";
 import WeaponSkillsPage from "@/pages/weapon-skills";
 import WeaponMasteryPage from "@/pages/weapon-mastery";
@@ -137,6 +139,7 @@ function Router() {
       <Route path="/game/world" component={PlayPage} />
       <Route path="/tutorial" component={TutorialPage} />
       <Route path="/island-reveal" component={IslandRevealPage} />
+      <Route path="/islands" component={IslandsPage} />
       <Route path="/home-island" component={HomeIslandPage} />
       <Route path="/weapon-admin" component={WeaponModelAdminPage} />
       <Route path="/weapon-skills" component={WeaponSkillsPage} />
@@ -175,6 +178,7 @@ function AppContent() {
   return (
     <>
       <AdminTransitionScreen isVisible={isTransitioning} isAdmin={isAdmin} />
+      <RtsDomainBootstrap />
       <TooltipProvider>
         <Toaster />
         <Router />
