@@ -1057,7 +1057,17 @@ export async function registerRoutes(
     assignedHeroes: z.record(z.string(), z.string()),
     createdAt: z.number(),
     lastUpdate: z.number(),
-  });
+    // RTS-Grudge → Warlords export bridge (grid seed, biome, source app)
+    rtsExport: z.object({
+      source: z.literal('rts-grudge'),
+      gridX: z.number(),
+      gridZ: z.number(),
+      seed: z.number(),
+      biome: z.string(),
+      exportedAt: z.number(),
+      appUrl: z.string(),
+    }).optional(),
+  }).passthrough();
 
   const islandMetadataSchema = z.object({
     name: z.string().min(1).max(100).optional(),
