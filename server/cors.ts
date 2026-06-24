@@ -20,6 +20,11 @@ export const GRUDGE_EXACT_ORIGINS: string[] = [
   "https://www.grudge-studio.com",
   "https://grudgestudio.org",
   "https://grudgeplatform.io",
+
+  // Puter hosted apps (canonical /gs hub + app launcher)
+  "https://puter.com",
+  "https://www.puter.com",
+  "https://app.puter.com",
 ];
 
 // ── Regex-match origins (subdomains, preview deploys, Puter) ──────────────────
