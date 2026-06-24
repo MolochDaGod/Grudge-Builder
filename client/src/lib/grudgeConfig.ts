@@ -119,6 +119,9 @@ export const GRUDGE_DOMAINS = [
   'grudgestudio.org',
   'grudgeplatform.io',
   'grudgewarlords.com',
+  // Grudox (Voxel Forge Engine) landing app. A grudge-studio.com subdomain, registered here
+  // as a first-class app domain so SSO redirect validation, cookie purge, and CORS cover it.
+  'grudox.grudge-studio.com',
 ] as const;
 
 /** Subdomains that host Grudge services (for CORS regex matching). */
