@@ -207,7 +207,7 @@ const CONFIG = { apiBase: resolveApiBase() };
 /* ══════════ POP-UP / REDIRECT CONTEXT ══════════ */
 const qs = new URLSearchParams(location.search);
 const isPopup = (() => { try { return !!window.opener && window.opener !== window; } catch { return false; } })();
-const returnTo = qs.get("redirect") || qs.get("return_to") || null;
+const returnTo = qs.get("redirect") || qs.get("return_to") || qs.get("return") || null;
 let openerOrigin = qs.get("origin") || null;
 if (!openerOrigin && document.referrer) { try { openerOrigin = new URL(document.referrer).origin; } catch {} }
 const isHandoffReturn = qs.get("handoff") === "1";
@@ -254,6 +254,11 @@ async function mintLaunchToken(audience){
   try { const r = await api("/api/auth/popup-token", { method:"POST", body: JSON.stringify({ audience }) }); return r.token || null; }
   catch { return null; }
 }
+function appendSsoParams(baseUrl, parts){
+  if (!parts.length) return baseUrl;
+  const sep = baseUrl.includes("?") ? "&" : "?";
+  return baseUrl + sep + parts.join("&");
+}
 async function handoff(user){
   if (isPopup && openerOrigin){
     const token = await mintLaunchToken(openerOrigin);
@@ -265,7 +270,15 @@ async function handoff(user){
     try {
       if (/^https?:///i.test(returnTo)){
         const origin = new URL(returnTo).origin;
-        if (origin !== location.origin){ const token = await mintLaunchToken(origin); if (token) dest += (returnTo.includes("?") ? "&" : "?") + "grudge_token=" + encodeURIComponent(token); }
+        if (origin !== location.origin){
+          const parts = [];
+          const launchToken = await mintLaunchToken(origin);
+          if (launchToken) parts.push("grudge_token=" + encodeURIComponent(launchToken));
+          if (user && user.grudgeId) parts.push("grudge_id=" + encodeURIComponent(user.grudgeId));
+          const name = user && (user.displayName || user.username);
+          if (name) parts.push("username=" + encodeURIComponent(name));
+          dest = appendSsoParams(dest, parts);
+        }
       }
     } catch {}
     (window.top || window).location.href = dest; return;

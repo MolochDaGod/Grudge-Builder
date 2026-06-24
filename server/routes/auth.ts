@@ -171,6 +171,22 @@ function authAssetPath(file: string): string {
 
 export function registerAuthRoutes(app: Express) {
 
+  // ── GET /auth — legacy entry → Grudge ID sign-in page ──
+  app.get("/auth", (req: Request, res: Response) => {
+    const q = new URLSearchParams();
+    const redirect =
+      (req.query.redirect as string) ||
+      (req.query.return_to as string) ||
+      (req.query.return as string);
+    if (redirect) q.set("redirect", redirect);
+    if (req.query.app) q.set("app", String(req.query.app));
+    if (req.query.api) q.set("api", String(req.query.api));
+    if (req.query.origin) q.set("origin", String(req.query.origin));
+    if (req.query.handoff) q.set("handoff", String(req.query.handoff));
+    const dest = "/api/auth/page" + (q.toString() ? `?${q.toString()}` : "");
+    res.redirect(302, dest);
+  });
+
   // ── GET /api/auth/page — Grudge ID sign-in UI (id.grudge-studio.com) ──
   app.get("/api/auth/page", (_req: Request, res: Response) => {
     const pagePath = authAssetPath("auth-page.html");
