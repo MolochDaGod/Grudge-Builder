@@ -6,6 +6,11 @@ import { cn } from "@/lib/utils";
 import SpriteAnimator from "@/components/SpriteAnimator";
 import AnimalSprite from "@/components/AnimalSprite";
 import { IslandCutscene } from "@/components/IslandCutscene";
+import { useCharacters } from "@/hooks/use-characters";
+import { fetchCurrentHomeIsland } from "@/lib/homeIslandApi";
+import { getIslandMapFallback, TERRAIN_ZONE_COLORS } from "@/lib/islandMapAssets";
+import { islandStateToHomeState } from "@/lib/islandStateBridge";
+import { renderIslandMapToDataUrl } from "@/lib/islandMapRenderer";
 import { RACES, CLASSES, getSpriteSetForCharacter } from "@/lib/gameData";
 import { getCharacterPalette } from "@/lib/spriteManifest";
 import { motion, AnimatePresence } from "framer-motion";
@@ -248,6 +253,11 @@ function hashSeed(str: string): number {
 export default function IslandPage() {
   const { toast } = useToast();
   const { batchAddResources, resources, refetch: refetchResources } = useAccountResources();
+  const {
+    characters: hookCharacters,
+    activeCharacter,
+    refetch: refetchCharacters,
+  } = useCharacters();
   const [allCharacters, setAllCharacters] = useState<Character[]>([]);
   const [islandState, setIslandState] = useState<IslandState | null>(null);
   const [heroPositions, setHeroPositions] = useState<Record<string, HeroPosition>>({});
@@ -350,7 +360,7 @@ export default function IslandPage() {
       if (updatedState.mapImageUrl) {
         setMapImageUrl(updatedState.mapImageUrl);
       } else {
-        generateIslandMapImage(updatedState.mapStyle, userId);
+        generateIslandMapImage(updatedState.mapStyle, userId, updatedState);
       }
       
       addLog(`Welcome to ${islandName}! Your heroes have established camp.`);
@@ -523,9 +533,18 @@ export default function IslandPage() {
   };
 
   useEffect(() => {
+    if (hookCharacters.length > 0) {
+      setAllCharacters(hookCharacters);
+    }
+  }, [hookCharacters]);
+
+  useEffect(() => {
     const loadData = async () => {
-      const chars = await CharacterManager.getAll();
+      const chars = hookCharacters.length > 0
+        ? hookCharacters
+        : await CharacterManager.getAll();
       setAllCharacters(chars);
+      await refetchCharacters().catch(() => {});
 
       // First check if account has homeIsland = true (cutscene already completed)
       try {
@@ -631,7 +650,7 @@ export default function IslandPage() {
       if (state.mapImageUrl) {
         setMapImageUrl(state.mapImageUrl);
       } else {
-        generateIslandMapImage(state.mapStyle, state.id || userId);
+        generateIslandMapImage(state.mapStyle, state.id || userId, state);
       }
     };
     
@@ -762,24 +781,63 @@ export default function IslandPage() {
     }
   }, [accountHomeIsland, islandState, showCutscene, allCharacters]);
 
-  const generateIslandMapImage = async (_style: IslandState['mapStyle'], seed: string) => {
+  const generateIslandMapImage = async (
+    style: IslandState['mapStyle'],
+    seed: string,
+    stateSnapshot?: IslandState | null,
+  ) => {
     setIsGeneratingMap(true);
+    const fallback = getIslandMapFallback(style);
+    setMapImageUrl((prev) => prev || fallback);
+
     try {
-      // Render a top-down orthographic capture from the 3D island engine
-      const url = await captureIslandTopDown(seed, 1024);
-      setMapImageUrl(url);
-      setIslandState(prev => {
-        if (prev) {
+      // 1. Authoritative home island from Railway (R2 map URL if committed)
+      const homeDto = await fetchCurrentHomeIsland().catch(() => null);
+      if (homeDto?.mapImageUrl || homeDto?.state?.mapImageUrl) {
+        const url = homeDto.mapImageUrl || homeDto.state.mapImageUrl!;
+        setMapImageUrl(url);
+        setIslandState((prev) => {
+          if (!prev) return prev;
           const updated = { ...prev, mapImageUrl: url };
           saveIslandState(prev.id, updated);
           return updated;
-        }
-        return prev;
+        });
+        addLog('Loaded committed island map from account.');
+        setIsGeneratingMap(false);
+        return;
+      }
+    } catch { /* continue to procedural fallbacks */ }
+
+    try {
+      // 2. SVG overhead from nodes, zones, clearings, camp
+      const stateForSvg = stateSnapshot ?? islandState ?? createNewIsland(seed);
+      const svgUrl = renderIslandMapToDataUrl(islandStateToHomeState(stateForSvg), 1024);
+      setMapImageUrl(svgUrl);
+      setIslandState((prev) => {
+        if (!prev) return prev;
+        const updated = { ...prev, mapImageUrl: svgUrl };
+        saveIslandState(prev.id, updated);
+        return updated;
       });
-      addLog('Island terrain rendered.');
+      addLog('Island overhead map generated.');
+    } catch (e) {
+      console.warn('SVG map render failed:', e);
+    }
+
+    try {
+      // 3. Three.js terrain capture (Grudge Studio engine) — upgrades imagery when ready
+      const url = await captureIslandTopDown(seed, 1024);
+      setMapImageUrl(url);
+      setIslandState((prev) => {
+        if (!prev) return prev;
+        const updated = { ...prev, mapImageUrl: url };
+        saveIslandState(prev.id, updated);
+        return updated;
+      });
+      addLog('3D terrain captured for island map.');
     } catch (e) {
       console.warn('Top-down capture failed:', e);
-      addLog('Terrain render unavailable — using fallback view.');
+      addLog('Using CDN island backdrop — cultivate and build on your home island.');
     }
     setIsGeneratingMap(false);
   };
@@ -1239,7 +1297,7 @@ export default function IslandPage() {
       saveIslandState(prev.id, updated);
       return updated;
     });
-    await generateIslandMapImage(islandState.mapStyle, islandState.id);
+    await generateIslandMapImage(islandState.mapStyle, islandState.id, islandState);
   };
 
   const [, setTick] = useState(0);
@@ -1680,8 +1738,22 @@ export default function IslandPage() {
 
   // Show cutscene for first visit (account.homeIsland = false)
   if (showCutscene) {
-    return <IslandCutscene onComplete={handleCutsceneComplete} />;
+    const cutsceneHero = activeCharacter ?? allCharacters[0] ?? null;
+    return (
+      <IslandCutscene
+        onComplete={handleCutsceneComplete}
+        defaultName={cutsceneHero ? `${cutsceneHero.name}'s Haven` : 'Haven Isle'}
+        hero={cutsceneHero ? {
+          id: cutsceneHero.id,
+          raceId: cutsceneHero.raceId,
+          classId: cutsceneHero.classId,
+          name: cutsceneHero.name,
+        } : null}
+      />
+    );
   }
+
+  const playCharacter = activeCharacter ?? allCharacters[0] ?? null;
 
   const assignedNodesMap: Record<string, { name: string; icon: string } | undefined> = {};
   availableHeroes.forEach(hero => {
@@ -1739,9 +1811,10 @@ export default function IslandPage() {
         <div className="relative w-full h-full">
           <Island3DRenderer
             seed={island3dSeed}
-            characterId={allCharacters[0]?.id}
-            raceId={allCharacters[0]?.raceId ?? 'human'}
-            classId={allCharacters[0]?.classId ?? 'warrior'}
+            characterId={playCharacter?.id}
+            raceId={playCharacter?.raceId ?? 'human'}
+            classId={playCharacter?.classId ?? 'warrior'}
+            quality="high"
           />
         </div>
       ) : (
@@ -1782,12 +1855,59 @@ export default function IslandPage() {
                 imageRendering: 'pixelated',
               }} />
             ) : (
-              /* Fallback: simple dark terrain gradient when no AI map */
-              <div className="absolute inset-0" style={{
-                background: `
-                  radial-gradient(ellipse 80% 80% at 50% 50%, #1a3a1a 0%, #0f2f0f 40%, #0a1628 70%)
-                `,
-              }} />
+              <div
+                className="absolute inset-0"
+                style={{
+                  backgroundImage: `url(${getIslandMapFallback(islandState?.mapStyle ?? 'fantasy')})`,
+                  backgroundSize: 'cover',
+                  backgroundPosition: 'center',
+                }}
+              />
+            )}
+
+            {/* Terrain zones — harvest biomes + event clearings */}
+            {islandState?.terrainZones?.map((zone, i) => (
+              <div
+                key={`zone-${zone.zone}-${i}`}
+                className="absolute pointer-events-none border border-white/5"
+                style={{
+                  left: `${zone.x}%`,
+                  top: `${zone.y}%`,
+                  width: `${zone.width}%`,
+                  height: `${zone.height}%`,
+                  background: TERRAIN_ZONE_COLORS[zone.zone] ?? 'rgba(71, 85, 105, 0.2)',
+                  borderRadius: zone.zone === 'clearing' ? '12%' : '4%',
+                }}
+                title={zone.zone}
+              />
+            ))}
+
+            {islandState?.clearings?.map((c, i) => (
+              <div
+                key={`clearing-${i}`}
+                className="absolute pointer-events-none border-2 border-dashed border-amber-500/30 rounded-lg"
+                style={{
+                  left: `${c.x}%`,
+                  top: `${c.y}%`,
+                  width: `${c.width}%`,
+                  height: `${c.height}%`,
+                  background: 'rgba(245, 158, 11, 0.08)',
+                }}
+                title="Building clearing"
+              />
+            ))}
+
+            {islandState?.campPosition && (
+              <div
+                className="absolute pointer-events-none z-[5] -translate-x-1/2 -translate-y-1/2"
+                style={{
+                  left: `${islandState.campPosition.x}%`,
+                  top: `${islandState.campPosition.y}%`,
+                }}
+              >
+                <div className="w-8 h-8 rounded-full bg-amber-500/30 border-2 border-amber-400 animate-pulse" />
+                <span className="absolute -bottom-4 left-1/2 -translate-x-1/2 text-[9px] text-amber-300 font-cinzel whitespace-nowrap">Camp</span>
+              </div>
             )}
           </div>
           
