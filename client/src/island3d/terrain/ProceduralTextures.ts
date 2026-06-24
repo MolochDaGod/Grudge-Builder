@@ -113,21 +113,26 @@ export function createRockTexture(): THREE.Texture {
   return canvasToTexture(canvas);
 }
 
-export function createWaterTexture(): THREE.Texture {
+/** Submerged terrain floor — NOT a water surface (ocean mesh handles that). */
+export function createSeafloorTexture(): THREE.Texture {
   const { canvas, ctx } = createCanvas(256, 256);
-  fillNoise(ctx, 256, 256, 20, 60, 120, 20, 5.0);
-  // Caustic light patches
-  ctx.globalAlpha = 0.15;
-  ctx.fillStyle = '#6090c0';
-  for (let i = 0; i < 60; i++) {
+  fillNoise(ctx, 256, 256, 28, 42, 55, 18, 6.0);
+  ctx.globalAlpha = 0.12;
+  ctx.fillStyle = '#1a2830';
+  for (let i = 0; i < 40; i++) {
     const x = Math.random() * 256;
     const y = Math.random() * 256;
     ctx.beginPath();
-    ctx.ellipse(x, y, 4 + Math.random() * 10, 3 + Math.random() * 8, Math.random() * Math.PI, 0, Math.PI * 2);
+    ctx.arc(x, y, 2 + Math.random() * 6, 0, Math.PI * 2);
     ctx.fill();
   }
   ctx.globalAlpha = 1;
   return canvasToTexture(canvas);
+}
+
+/** Legacy water texture — avoid on terrain; use createSeafloorTexture + ocean mesh instead. */
+export function createWaterTexture(): THREE.Texture {
+  return createSeafloorTexture();
 }
 
 export interface TerrainTextures {
@@ -135,7 +140,8 @@ export interface TerrainTextures {
   grassShort: THREE.Texture;
   grassTall: THREE.Texture;
   rock: THREE.Texture;
-  water: THREE.Texture;
+  /** Submerged floor beneath the ocean plane — never a second water surface */
+  seafloor: THREE.Texture;
 }
 
 /** Load real textures if available, fall back to procedural */
@@ -148,6 +154,6 @@ export function loadTerrainTextures(): TerrainTextures {
     grassShort: createGrassShortTexture(),
     grassTall: createGrassTallTexture(),
     rock: createRockTexture(),
-    water: createWaterTexture(),
+    seafloor: createSeafloorTexture(),
   };
 }

@@ -38,8 +38,16 @@ import {
 } from '@shared/definitions/zoneServerNodes';
 import { buildZoneScene, type ZoneSceneResult } from './ZoneSceneBuilder';
 import { CreatureManager, type CreatureLootEvent } from '../creatures/CreatureManager';
+import {
+  createEvilMountainTriad,
+  EvilMountainTriadSystem,
+} from '../objects/EvilMountainTriad';
+import { InstancedProceduralForest } from '../objects/InstancedProceduralForest';
 
 export type Island3DMode = 'procedural' | 'lobby' | 'zone';
+
+/** Canonical water surface for procedural home islands */
+export const PROCEDURAL_WATER_LEVEL = -2;
 
 export interface Island3DEngineConfig {
   seed: string;
@@ -66,6 +74,8 @@ export interface Island3DEngineConfig {
   enableCharacter?: boolean;
   /** Physics callbacks from the character controller */
   physicsCallbacks?: PhysicsCallbacks;
+  /** Fired when player enters a home-island mountain dungeon portal */
+  onDungeonEnter?: (dungeonId: string, dungeonName: string) => void;
 }
 
 export class Island3DEngine {
@@ -129,6 +139,10 @@ export class Island3DEngine {
 
   // Wildlife
   public creatures: CreatureManager | null = null;
+
+  // Mountain dungeon triad + instanced forest (procedural home island)
+  public mountainTriad: EvilMountainTriadSystem | null = null;
+  public proceduralForest: InstancedProceduralForest | null = null;
 
   // Raycaster for mouse picking
   private raycaster = new THREE.Raycaster();
@@ -278,9 +292,10 @@ export class Island3DEngine {
 
     this.terrain = generateIslandTerrain(terrainConfig);
     this.terrain.terrainMesh.material = terrainMaterial;
+    this.flattenTerrainBelowWater(this.terrain.terrainMesh, PROCEDURAL_WATER_LEVEL);
     this.scene.add(this.terrain.terrainScene);
 
-    // 2. Water plane
+    // 2. Single ocean plane (terrain underwater is flattened — no double-water)
     this.createWaterPlane();
 
     // 3. Place resource nodes
@@ -293,16 +308,19 @@ export class Island3DEngine {
       this.config.seed,
     );
 
-    // 4. Create harvestable objects from placed nodes
+    // 4. Instanced procedural forest (must run before harvestables hide tree meshes)
+    await this.createProceduralForest();
+
+    // 5. Create harvestable objects from placed nodes (trees = invisible hitboxes when forest active)
     this.createHarvestables();
 
-    // 5. Scatter decorations
+    // 6. Scatter decorations
     this.createDecorations();
 
-    // 6. Detail layers — animated grass + sand overlays
+    // 7. Detail layers — animated grass + sand overlays
     this.createDetailLayers();
 
-    // 7. Navigation mesh (needed by AI allies)
+    // 8. Navigation mesh (needed by AI allies)
     this.navMesh = new TerrainNavMesh(
       this.terrain.terrainMesh,
       this.terrain.biomeMap,
@@ -312,21 +330,24 @@ export class Island3DEngine {
       16, // cell size (doubled for 2x terrain)
     );
 
-    // 8. Ally manager (Gouldstone system)
+    // 9. Ally manager (Gouldstone system)
     this.allyManager = new AllyManager(this.scene, this.navMesh, this.terrain.terrainMesh);
 
-    // 9. Building system
+    // 10. Building system
     this.building = new BuildingSystem(this.scene, this.camera);
 
-    // 10. Character controller (over-the-shoulder, replaces orbit)
+    // 11. Character controller (over-the-shoulder, replaces orbit)
     if (this.config.enableCharacter !== false) {
       this.spawnCharacter();
     }
 
-    // 11. Wildlife — land animals + fish
+    // 12. Wildlife — land animals + fish
     this.creatures = new CreatureManager(this.scene, -2, this.config.seed.length);
     this.creatures.spawnLandCreatures(this.terrain.terrainMesh, 15, 400);
     this.creatures.spawnFish(10, 450);
+
+    // 13. Evil mountain triad — dungeon behind one of three peaks
+    await this.createMountainDungeon();
   }
 
   /** Build a full 4 km ocean sector with islands, NPCs, hazards, docks */
@@ -435,8 +456,21 @@ export class Island3DEngine {
     );
   }
 
+  /** Collapse submerged terrain so only the ocean shader shows water (not seafloor + ocean). */
+  private flattenTerrainBelowWater(mesh: THREE.Mesh, waterLevel: number, seafloorDepth = -14): void {
+    const pos = mesh.geometry.attributes.position;
+    if (!pos) return;
+    for (let i = 0; i < pos.count; i++) {
+      if (pos.getZ(i) < waterLevel) pos.setZ(i, seafloorDepth);
+    }
+    pos.needsUpdate = true;
+    mesh.geometry.computeVertexNormals();
+  }
+
   private createWaterPlane(): void {
-    this.waterPlane = createOceanMesh({ waterLevel: -2, size: 1200, segments: 4 });
+    this.waterPlane = createOceanMesh({ waterLevel: PROCEDURAL_WATER_LEVEL, size: 1200, segments: 4 });
+    this.waterPlane.name = 'ocean';
+    this.waterPlane.renderOrder = 1; // draw above submerged seafloor terrain
     this.scene.add(this.waterPlane);
   }
 
@@ -446,9 +480,17 @@ export class Island3DEngine {
     for (const node of this.placedNodes) {
       switch (node.type) {
         case 'tree': {
-          const tree = createHarvestableTree(node.position, node.scale);
-          this.trees.push(tree);
-          this.scene.add(tree.group);
+          // Visual trees come from InstancedProceduralForest; keep harvest hitbox only
+          if (this.proceduralForest) {
+            const tree = createHarvestableTree(node.position, node.scale * 0.01);
+            tree.group.visible = false;
+            this.trees.push(tree);
+            this.scene.add(tree.group);
+          } else {
+            const tree = createHarvestableTree(node.position, node.scale);
+            this.trees.push(tree);
+            this.scene.add(tree.group);
+          }
           break;
         }
         case 'rock': {
@@ -483,6 +525,47 @@ export class Island3DEngine {
         // bush, herb, fish — handled by scatter decorations / creatures
       }
     }
+  }
+
+  private async createProceduralForest(): Promise<void> {
+    if (!this.terrain) return;
+    this.proceduralForest = new InstancedProceduralForest();
+    const stats = this.proceduralForest.generate(
+      this.config.seed,
+      this.terrain.terrainMesh,
+      this.terrain.biomeMap,
+      this.terrain.gridW,
+      this.terrain.gridH,
+      1024,
+      { treeCount: 200, forestRadius: 380, clearRadius: 50 },
+    );
+    if (stats.trees > 0) {
+      this.scene.add(this.proceduralForest.group);
+      console.log(`[Island3D] Procedural forest: ${stats.trees} trees, ${stats.branches} branches, ${stats.leaves} leaves`);
+    }
+  }
+
+  private async createMountainDungeon(): Promise<void> {
+    if (!this.terrain) return;
+    const triadResult = await createEvilMountainTriad(this.scene, {
+      seed: this.config.seed,
+      terrainMesh: this.terrain.terrainMesh,
+      biomeMap: this.terrain.biomeMap,
+      gridW: this.terrain.gridW,
+      gridH: this.terrain.gridH,
+      terrainSize: 1024,
+      onEnterDungeon: (_portalId, dungeonId) => {
+        const name = this.mountainTriad?.triad.dungeon.name ?? 'Dungeon';
+        this.config.onDungeonEnter?.(dungeonId, name);
+      },
+    });
+    if (!triadResult) return;
+
+    const facingYaw = Math.atan2(-triadResult.anchor.x, -triadResult.anchor.z);
+    this.mountainTriad = new EvilMountainTriadSystem(triadResult, facingYaw);
+    console.log(
+      `[Island3D] Evil mountain triad — secret peak #${triadResult.secretIndex + 1}, dungeon: ${triadResult.dungeon.name}`,
+    );
   }
 
   private createDecorations(): void {
@@ -534,7 +617,7 @@ export class Island3DEngine {
       camera: this.camera,
       terrainMesh: this.terrain.terrainMesh,
       startPosition: startPos,
-      physics: { waterLevel: -2 },
+      physics: { waterLevel: PROCEDURAL_WATER_LEVEL },
       callbacks: this.config.physicsCallbacks,
     });
 
@@ -649,6 +732,15 @@ export class Island3DEngine {
       this.creatures.update(dt, this.camera.position);
     }
 
+    // Mountain dungeon portal (revealed when player walks behind secret peak)
+    if (this.mountainTriad && this.character) {
+      this.mountainTriad.update(dt, this.character.getPosition());
+    }
+
+    if (this.proceduralForest) {
+      this.proceduralForest.update(dt, this.camera.position);
+    }
+
     // External update hooks (RemotePlayerManager, TownNPCController, etc.)
     for (const fn of this.externalUpdates) fn(dt);
 
@@ -666,6 +758,26 @@ export class Island3DEngine {
     this.camera.updateProjectionMatrix();
     this.renderer.setSize(width, height);
     this.postProcessing?.resize(width, height);
+  }
+
+  /** Press E near the hidden cave portal (behind the secret evil peak). */
+  handleInteractKey(): boolean {
+    return this.mountainTriad?.tryInteract() ?? false;
+  }
+
+  /** Is the dungeon portal prompting interaction? */
+  get dungeonPortalActive(): boolean {
+    return this.mountainTriad?.canInteract ?? false;
+  }
+
+  /** HUD hint for the evil mountain triad (approach / discovered / interact). */
+  get mountainHintState() {
+    return this.mountainTriad?.hintState ?? 'none';
+  }
+
+  /** Name of the home-island dungeon behind the secret peak. */
+  get mountainDungeonName(): string | null {
+    return this.mountainTriad?.triad.dungeon.name ?? null;
   }
 
   /** Handle mouse click — building placement or harvesting */

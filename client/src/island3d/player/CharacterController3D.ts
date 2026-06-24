@@ -14,6 +14,9 @@ import {
   getModelForCharacter,
   type WeaponType,
 } from '@/lib/modelManifest';
+import { getWeaponTypeForMode, parseModel3d, type Model3DField } from '@/lib/grudge6Character';
+import { RACE_GRUDGE6, weaponTypeFromModel3d } from '@shared/fleet';
+import { setupGrudge6Equipment } from '@/lib/grudge6Equipment';
 import { buildAnimLoadMap } from '@/lib/animation/animationCatalog';
 import { CharacterAnimOrchestrator } from '@/lib/animation/characterAnimOrchestrator';
 import {
@@ -23,7 +26,7 @@ import {
   type StateContext,
 } from '@/lib/characterStateMachine';
 
-export type ControlMode = 'harvest' | 'combat';
+export type ControlMode = 'harvest' | 'combat' | 'build';
 
 export type MovementState =
   | 'ground'
@@ -188,27 +191,76 @@ export class CharacterController3D {
     raceId: string,
     classId: string,
     characterId?: string,
+    weaponTypeOverride?: WeaponType,
+    model3d?: Partial<Model3DField>,
+    equipment?: Record<string, string | null>,
   ): Promise<void> {
     try {
       const modelUnit = getModelForCharacter(raceId, classId);
-      this.weaponType = modelUnit.weaponType;
+      const resolvedModel3d = (model3d || equipment)
+        ? parseModel3d({ raceId, classId, equipment: equipment ?? {}, model3d } as any)
+        : null;
+
+      const equippedWeaponType = resolvedModel3d
+        ? (weaponTypeFromModel3d(resolvedModel3d, classId) as WeaponType)
+        : modelUnit.weaponType;
+
+      const weaponType = weaponTypeOverride ?? (
+        this.mode === 'harvest' || this.mode === 'build' ? 'unarmed' : equippedWeaponType
+      );
+      this.weaponType = weaponType;
       const loaded = await loadCharacterModel(modelUnit.modelPath);
 
-      this.applyLoadedModel(loaded, modelUnit.scale);
-
-      const animPaths = buildAnimLoadMap(modelUnit.weaponType) as Partial<Record<AnimState, string>>;
-      if (Object.keys(animPaths).length > 0 && this.animations) {
-        await this.animations.loadAnimations(animPaths);
-        console.log(
-          `[CharacterController3D] Loaded ${this.animations.loadedClips.length} clips for ${modelUnit.weaponType}:`,
-          this.animations.loadedClips.join(', '),
-        );
+      if (resolvedModel3d) {
+        const race = RACE_GRUDGE6[raceId] ?? RACE_GRUDGE6.human;
+        setupGrudge6Equipment(race.prefix, loaded.scene, resolvedModel3d);
       }
 
-      this.initStateMachine(characterId ?? 'local-player', raceId, classId, modelUnit.weaponType);
+      const scale = resolvedModel3d?.scale ?? modelUnit.scale;
+      this.applyLoadedModel(loaded, scale);
+      await this.reloadWeaponAnimations(weaponType);
+
+      this.initStateMachine(characterId ?? 'local-player', raceId, classId, weaponType);
     } catch (err) {
       console.warn(`Failed to load character model for ${raceId}/${classId}:`, err);
     }
+  }
+
+  /** Swap animation set when play mode or equipment changes */
+  async reloadWeaponAnimations(weaponType: WeaponType): Promise<void> {
+    this.weaponType = weaponType;
+    if (!this.animations) return;
+    const animPaths = buildAnimLoadMap(weaponType) as Partial<Record<AnimState, string>>;
+    if (Object.keys(animPaths).length > 0) {
+      await this.animations.loadAnimations(animPaths);
+    }
+    if (this.orchestrator) {
+      this.orchestrator.dispose();
+      this.orchestrator = new CharacterAnimOrchestrator(
+        this.animations,
+        this.stateMachine!,
+        weaponType,
+      );
+    }
+  }
+
+  /** Set harvest / combat / build mode from UI */
+  async setControlMode(mode: ControlMode, classId?: string, hasWeapon = false): Promise<void> {
+    this.mode = mode;
+    this.stateMachine?.updateContext({ inCombat: mode === 'combat' });
+
+    if (mode === 'combat') {
+      this.stateMachine?.transition('combat');
+    } else if (this.stateMachine?.getState() === 'combat') {
+      this.stateMachine.transition(mode === 'build' ? 'building' : 'idle');
+    } else if (mode === 'build') {
+      this.stateMachine?.transition('building');
+    } else {
+      this.stateMachine?.transition('idle');
+    }
+
+    const wt = getWeaponTypeForMode(mode, classId ?? 'warrior', hasWeapon);
+    await this.reloadWeaponAnimations(wt);
   }
 
   private initStateMachine(
@@ -287,10 +339,14 @@ export class CharacterController3D {
       this.keys.add(e.key.toLowerCase());
       if (e.key === 'Tab') {
         e.preventDefault();
-        this.mode = this.mode === 'harvest' ? 'combat' : 'harvest';
+        const cycle: ControlMode[] = ['harvest', 'combat', 'build'];
+        const idx = cycle.indexOf(this.mode);
+        this.mode = cycle[(idx + 1) % cycle.length];
         this.stateMachine?.updateContext({ inCombat: this.mode === 'combat' });
         if (this.mode === 'combat') {
           this.stateMachine?.transition('combat');
+        } else if (this.mode === 'build') {
+          this.stateMachine?.transition('building');
         } else if (this.stateMachine?.getState() === 'combat') {
           this.stateMachine.transition('idle');
         }
@@ -315,6 +371,8 @@ export class CharacterController3D {
           this.orchestrator.playComboHit();
         } else if (this.mode === 'harvest' && this.stateMachine?.canTransitionTo('harvesting')) {
           this.stateMachine.transition('harvesting');
+        } else if (this.mode === 'build' && this.stateMachine?.canTransitionTo('building')) {
+          this.stateMachine.transition('building');
         }
       }
     });

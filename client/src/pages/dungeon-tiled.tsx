@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useLocation } from 'wouter';
 import Layout from '../components/Layout';
 import { TiledDungeonGame } from '../components/TiledDungeonGame';
@@ -15,14 +15,40 @@ export default function DungeonTiledPage() {
   if (!authReady) return null;
 
   const [, setLocation] = useLocation();
+  const urlParams = new URLSearchParams(window.location.search);
+  const returnPath = urlParams.get('return') || '/';
+  const autostart = urlParams.get('autostart') === '1';
+  const floorParam = urlParams.get('floor');
+  const dungeonNameParam = urlParams.get('name');
+
   const [characters, setCharacters] = useState<LocalCharacter[]>([]);
   const [selectedCharacter, setSelectedCharacter] = useState<LocalCharacter | null>(null);
-  const [selectedFloor, setSelectedFloor] = useState<string | null>(null);
+  const [selectedFloor, setSelectedFloor] = useState<string | null>(floorParam);
   const [gameStarted, setGameStarted] = useState(false);
+  const autostartAttempted = useRef(false);
 
   useEffect(() => {
-    CharacterManager.getAll().then(setCharacters);
-  }, []);
+    CharacterManager.getAll().then((chars) => {
+      setCharacters(chars);
+      if (!selectedCharacter && chars.length > 0) {
+        const grudgeId = localStorage.getItem('grudge_account_id') || 'guest';
+        const activeId =
+          localStorage.getItem(`gruda_active_character_${grudgeId}`) ||
+          localStorage.getItem('grudge_active_character') ||
+          localStorage.getItem('gruda_active_character_guest');
+        const active = activeId ? chars.find((c) => c.id === activeId) : chars[0];
+        if (active) setSelectedCharacter(active);
+      }
+    });
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (!autostart || autostartAttempted.current) return;
+    if (!selectedCharacter || !selectedFloor) return;
+    if (!DUNGEON_FLOORS[selectedFloor]) return;
+    autostartAttempted.current = true;
+    setGameStarted(true);
+  }, [autostart, selectedCharacter, selectedFloor]);
 
   const handleStartDungeon = () => {
     if (selectedCharacter && selectedFloor) {
@@ -31,8 +57,12 @@ export default function DungeonTiledPage() {
   };
 
   const handleExit = () => {
+    if (returnPath && returnPath !== '/') {
+      setLocation(returnPath);
+      return;
+    }
     setGameStarted(false);
-    setSelectedFloor(null);
+    setSelectedFloor(floorParam);
   };
 
   if (gameStarted && selectedCharacter && selectedFloor) {
@@ -59,7 +89,7 @@ export default function DungeonTiledPage() {
               Exit Dungeon
             </Button>
             <h1 className="text-2xl font-bold text-purple-400">
-              {selectedCharacter.name} - {DUNGEON_FLOORS[selectedFloor]?.name}
+              {selectedCharacter.name} — {dungeonNameParam || DUNGEON_FLOORS[selectedFloor]?.name}
             </h1>
           </div>
           
@@ -100,7 +130,7 @@ export default function DungeonTiledPage() {
           </Button>
           <h1 className="text-3xl font-bold text-purple-400 flex items-center gap-2">
             <Sparkles className="w-8 h-8" />
-            Tiled Dungeon Crawler
+            {dungeonNameParam ? `${dungeonNameParam}` : 'Tiled Dungeon Crawler'}
           </h1>
         </div>
 

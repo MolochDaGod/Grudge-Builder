@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Link } from 'wouter';
+import { Link, useLocation } from 'wouter';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -19,8 +19,10 @@ import {
   ChevronLeft,
   ChevronRight,
   ChevronUp,
-  ChevronDown
+  ChevronDown,
+  Globe
 } from 'lucide-react';
+import { getSectorAt } from '@shared/definitions/worldMapSectors';
 import { useAuthGuard } from '@/hooks/use-auth-guard';
 import {
   WorldMapState,
@@ -38,6 +40,7 @@ import { SectorImageryRenderer } from '@/lib/sectorImageryRenderer';
 
 export default function WorldMapPage() {
   const authReady = useAuthGuard();
+  const [, navigate] = useLocation();
 
   const { toast } = useToast();
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -57,6 +60,21 @@ export default function WorldMapPage() {
   const selectedIsland = selectedIslandId
     ? worldState?.islands.find(i => i.id === selectedIslandId) || null
     : null;
+
+  const worldSeed = worldState?.config.seed || WORLD_MAP_DEFAULTS.seed;
+
+  const currentSector = worldState
+    ? getSectorAt(worldState.playerShip.position.x, worldState.playerShip.position.y)
+    : null;
+
+  const enterZone = (sectorId: string) => {
+    const params = new URLSearchParams({
+      mode: 'zone',
+      sector: sectorId,
+      worldSeed,
+    });
+    navigate(`/island-3d?${params.toString()}`);
+  };
 
   // Handle window resize for canvas
   useEffect(() => {
@@ -544,6 +562,31 @@ export default function WorldMapPage() {
         )}
       </div>
 
+      {currentSector && (
+        <div className="absolute top-20 left-1/2 -translate-x-1/2 z-20">
+          <Card className="bg-slate-900/95 border-purple-600/50 backdrop-blur-sm">
+            <CardContent className="p-3 flex items-center gap-4">
+              <div>
+                <div className="text-xs text-purple-400 uppercase tracking-widest">Current Sector</div>
+                <div className="font-cinzel text-purple-200 font-semibold">{currentSector.name}</div>
+                <div className="text-xs text-slate-400">
+                  Lv {currentSector.difficultyMin}–{currentSector.difficultyMax} · {currentSector.biome}
+                </div>
+              </div>
+              <Button
+                size="sm"
+                className="bg-purple-700 hover:bg-purple-600"
+                onClick={() => enterZone(currentSector.id)}
+                data-testid="enter-3d-zone"
+              >
+                <Globe className="w-4 h-4 mr-2" />
+                Enter 3D Zone
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
       <div className="absolute top-20 right-4 z-20 w-72">
         <Card className="bg-slate-900/90 border-slate-700 backdrop-blur-sm">
           <CardHeader className="p-3 pb-2">
@@ -711,14 +754,15 @@ export default function WorldMapPage() {
                   )}
                 </div>
 
-                {selectedIsland.explored && (
+                {selectedIsland.explored && currentSector && (
                   <Button
                     size="sm"
-                    className="w-full bg-green-700 hover:bg-green-600"
-                    data-testid="explore-island"
+                    className="w-full bg-purple-700 hover:bg-purple-600"
+                    onClick={() => enterZone(currentSector.id)}
+                    data-testid="explore-island-3d"
                   >
-                    <MapPin className="w-3 h-3 mr-1" />
-                    Explore Island
+                    <Globe className="w-3 h-3 mr-1" />
+                    Enter 3D Zone
                   </Button>
                 )}
               </CardContent>

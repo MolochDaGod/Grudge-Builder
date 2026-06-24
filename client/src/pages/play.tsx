@@ -21,7 +21,7 @@ const SECTOR_BIOME_NAMES: Record<string, string> = {
   SW: 'Drowned Quarter', S: 'The Pit', SE: 'Grinding March',
 };
 
-const DEFAULT_SECTOR = 'CENTER';
+const DEFAULT_SECTOR = 'convergence_nexus';
 
 // ── Component ────────────────────────────────────────────────────
 
@@ -116,7 +116,7 @@ export default function PlayPage() {
       height: window.innerHeight,
       mode: 'zone',
       sectorId: DEFAULT_SECTOR,
-      worldSeed: 'aethermoor-v1',
+      worldSeed: 'grudge-world-1',
       quality: 'medium',
       enableCharacter: true,
       onLoadProgress: (pct) => setLoadProgress(pct),

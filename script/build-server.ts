@@ -1,5 +1,5 @@
 import { build as esbuild } from "esbuild";
-import { rm, readFile } from "fs/promises";
+import { rm, readFile, cp, mkdir } from "fs/promises";
 import path from "path";
 
 // Native / binary modules that must never be bundled
@@ -41,6 +41,9 @@ const allowlist = [
   "xlsx",
   "zod",
   "zod-validation-error",
+  "@solana/web3.js",
+  "@solana/spl-token",
+  "bs58",
 ];
 
 async function buildServer() {
@@ -74,7 +77,11 @@ async function buildServer() {
     logLevel: "info",
   });
 
-  console.log("server build complete → dist/index.cjs");
+  const templatesSrc = path.resolve("server/templates");
+  const templatesDest = path.resolve("dist/templates");
+  await mkdir(templatesDest, { recursive: true });
+  await cp(templatesSrc, templatesDest, { recursive: true, force: true });
+  console.log("server build complete → dist/index.cjs (+ dist/templates)");
 }
 
 buildServer().catch((err) => {

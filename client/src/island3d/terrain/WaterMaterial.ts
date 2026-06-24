@@ -88,7 +88,7 @@ const fragmentShader = /* glsl */ `
     vec3 color = mix(waterColor, vec3(0.7, 0.85, 1.0), fresnel * 0.3);
     color += spec * 0.3;
 
-    gl_FragColor = vec4(color, 0.75);
+    gl_FragColor = vec4(color, 1.0);
   }
 `;
 
@@ -106,9 +106,9 @@ export function createOceanMaterial(config: Partial<OceanConfig> = {}): THREE.Sh
     },
     vertexShader,
     fragmentShader,
-    transparent: true,
-    side: THREE.DoubleSide,
-    depthWrite: false,
+    transparent: false,
+    side: THREE.FrontSide,
+    depthWrite: true,
   });
 }
 

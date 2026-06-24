@@ -114,11 +114,12 @@ export function LoginModal() {
     try {
       console.debug("[LoginModal] Discord login clicked");
       const url = await startDiscordLogin();
-      if (url && url !== "__puter_sdk__") {
+      if (url && url !== "__puter_sdk__" && url !== "__discord_redirect__") {
         console.debug("[LoginModal] Discord redirect →", url.slice(0, 60));
         window.location.href = url;
         return;
       }
+      if (url === "__discord_redirect__") return;
       await onSuccess();
     } catch (e) {
       console.error("[LoginModal] Discord login error:", e);

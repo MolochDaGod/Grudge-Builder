@@ -24,8 +24,16 @@ export default function AuthCallbackPage() {
       if (!isAuthenticated()) {
         const params = new URLSearchParams(window.location.search);
         const launchToken = params.get("grudge_token");
+        const ssoToken = params.get("sso_token");
         if (launchToken) {
           await bridgeGrudgeLaunchToken(launchToken);
+        } else if (ssoToken) {
+          localStorage.setItem("grudge_auth_token", ssoToken);
+          localStorage.setItem("grudge_session_token", ssoToken);
+          const grudgeId = params.get("grudge_id") || "";
+          const username = params.get("username") || params.get("grudge_username") || "";
+          if (grudgeId) localStorage.setItem("grudge_id", grudgeId);
+          if (username) localStorage.setItem("grudge_username", username);
         }
       }
 

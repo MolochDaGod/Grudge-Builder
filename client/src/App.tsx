@@ -134,6 +134,7 @@ function Router() {
       <Route path="/organizer">{() => <Suspense fallback={null}><OrganizerPage /></Suspense>}</Route>
       <Route path="/grudawars" component={GrudaWarsPage} />
       <Route path="/play" component={PlayPage} />
+      <Route path="/game/world" component={PlayPage} />
       <Route path="/tutorial" component={TutorialPage} />
       <Route path="/island-reveal" component={IslandRevealPage} />
       <Route path="/home-island" component={HomeIslandPage} />

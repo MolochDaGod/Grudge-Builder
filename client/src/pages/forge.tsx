@@ -191,6 +191,11 @@ function AssetsTab() {
         Drag-and-drop or use <span className="text-amber-400">Import</span> to load any supported
         format. Connected to objectstore.grudge-studio.com.
       </p>
+      <div className="rounded-xl border border-slate-700 p-8 bg-slate-800/30 text-center text-slate-500">
+        <p className="text-4xl mb-3">📦</p>
+        <p>Asset browser — browse ObjectStore, upload assets, preview 3D models</p>
+        <p className="text-xs mt-1">Connected to info.grudge-studio.com</p>
+      </div>
     </div>
   );
 }

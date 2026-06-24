@@ -2,7 +2,7 @@
  * ObjectStore 3D Model API
  *
  * Fetches 3D model metadata from ObjectStore (single source of truth).
- * Models are served from R2 via objectstore.grudge-studio.com.
+ * Models are served from R2 via info.grudge-studio.com.
  *
  * Endpoints:
  *   GET /v1/models              List 3D models (glb, gltf, fbx, obj)
@@ -10,9 +10,9 @@
  *   GET /v1/models/:id/thumbnail  Model thumbnail
  */
 
-const OBJECTSTORE_URL = 'https://objectstore.grudge-studio.com';
+const OBJECTSTORE_URL = 'https://info.grudge-studio.com';
 // Fallback — same domain, custom domain is stable now
-const OBJECTSTORE_FALLBACK = 'https://objectstore.grudge-studio.com';
+const OBJECTSTORE_FALLBACK = 'https://info.grudge-studio.com';
 
 export interface Model3D {
   id: string;

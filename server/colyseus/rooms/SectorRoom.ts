@@ -36,6 +36,13 @@ import {
   type FactionId,
   type DungeonDefinition,
 } from "@shared/definitions/lore";
+import { resolveZoneSectorId, resolveLegacySectorId } from "@shared/definitions/sectorBridge";
+import { getSectorById } from "@shared/definitions/worldMapSectors";
+import {
+  generateZonePopulation,
+  getNodesByCategory,
+  type HarvestNode as ZoneHarvestNode,
+} from "@shared/definitions/zoneServerNodes";
 
 // ── Constants (from island-server.ts) ───────────────────────────
 
@@ -49,8 +56,8 @@ const FACTION_ENEMIES: Record<string, string[]> = {
 };
 
 /** Get enemy types for a sector based on its controlling faction */
-function getEnemyTypesForSector(sectorId: SectorId): string[] {
-  const lore = SECTOR_LORE[sectorId as SectorPosition];
+function getEnemyTypesForSector(legacySectorId: SectorId): string[] {
+  const lore = SECTOR_LORE[legacySectorId as SectorPosition];
   if (!lore) return FACTION_ENEMIES.neutral;
   const factionEnemies = lore.controllingFaction
     ? FACTION_ENEMIES[lore.controllingFaction] || FACTION_ENEMIES.neutral
@@ -79,7 +86,8 @@ function enemyStatsForDifficulty(difficulty: number, level: number) {
 // ── Join Options ────────────────────────────────────────────────
 
 interface SectorJoinOptions {
-  sectorId: SectorId;
+  sectorId: string;
+  worldSeed?: string;
   accountId?: string;
   characterId?: string;
   characterName?: string;
@@ -114,29 +122,41 @@ interface DungeonPortal {
 export class SectorRoom extends Room<SectorState> {
   maxClients = 50;
   private spawnerInterval: ReturnType<typeof setInterval> | null = null;
-  private sectorId: SectorId = "CENTER";
+  private sectorId: string = "convergence_nexus";
+  private legacySectorId: SectorId = "CENTER";
+  private worldSeed = "grudge-world-1";
   private dungeonPortals: DungeonPortal[] = [];
 
   // ── Lifecycle ───────────────────────────────────────────────
 
   onCreate(options: SectorJoinOptions) {
-    this.sectorId = options.sectorId || "CENTER";
+    this.sectorId = resolveZoneSectorId(options.sectorId || "convergence_nexus");
+    this.legacySectorId = resolveLegacySectorId(this.sectorId) || "CENTER";
+    this.worldSeed = options.worldSeed || "grudge-world-1";
 
+    const worldSector = getSectorById(this.sectorId);
     const state = new SectorState();
     state.sectorId = this.sectorId;
-    state.biome = SECTOR_BIOMES[this.sectorId] || "neutral";
-    state.zoneType = options.zoneType || "wild";
-    state.difficulty = options.difficulty || 1;
+    state.biome = worldSector?.biome || SECTOR_BIOMES[this.legacySectorId] || "neutral";
+    state.zoneType = options.zoneType || (worldSector ? "wild" : "home");
+    state.difficulty = options.difficulty || worldSector?.difficultyMin || 1;
     state.maxEnemies = MAX_ENEMIES_DEFAULT;
+    state.maxPlayers = worldSector?.terrain3d?.maxPlayers || 50;
     this.setState(state);
 
     // Room metadata for matchmaking
     this.setMetadata({
       sectorId: this.sectorId,
+      worldSeed: this.worldSeed,
       biome: state.biome,
       zoneType: state.zoneType,
       difficulty: state.difficulty,
     });
+
+    // Pre-seed harvest nodes from deterministic zone population
+    if (worldSector) {
+      this.seedZoneHarvestNodes(worldSector);
+    }
 
     // ── Simulation loop (20 tick/sec) ─────────────────────────
     this.setSimulationInterval((delta) => {
@@ -283,7 +303,7 @@ export class SectorRoom extends Room<SectorState> {
     });
 
     // ── Spawn hero NPCs for this sector (from lore.ts) ────────
-    const sectorHeroes = getHeroesForSector(this.sectorId as SectorPosition);
+    const sectorHeroes = getHeroesForSector(this.legacySectorId as SectorPosition);
     for (const hero of sectorHeroes) {
       const npc = new SectorEnemy();
       npc.id = `hero_${hero.id}`;
@@ -300,12 +320,51 @@ export class SectorRoom extends Room<SectorState> {
     // ── Spawn dungeon cave portals (random on islands) ────────
     this.spawnDungeonPortals();
 
-    const lore = SECTOR_LORE[this.sectorId as SectorPosition];
+    const lore = SECTOR_LORE[this.legacySectorId as SectorPosition];
     console.log(
-      `[SectorRoom] Created: ${lore?.name || this.sectorId} (${state.biome}, ` +
-      `difficulty ${state.difficulty}, heroes: ${sectorHeroes.map(h => h.name).join(", ") || "none"}, ` +
+      `[SectorRoom] Created: ${worldSector?.name || lore?.name || this.sectorId} (${state.biome}, ` +
+      `difficulty ${state.difficulty}, harvest: ${this.state.harvestNodes.size}, ` +
+      `heroes: ${sectorHeroes.map(h => h.name).join(", ") || "none"}, ` +
       `portals: ${this.dungeonPortals.length})`
     );
+  }
+
+  /** Seed Colyseus harvest nodes from shared zone population (deterministic). */
+  private seedZoneHarvestNodes(worldSector: NonNullable<ReturnType<typeof getSectorById>>) {
+    const cfg = worldSector.terrain3d;
+    const pop = generateZonePopulation(
+      this.sectorId,
+      this.worldSeed,
+      cfg.sizeMeters,
+      worldSector.difficultyMin,
+      worldSector.difficultyMax,
+      worldSector.resources,
+      worldSector.biome,
+    );
+    const harvestNodes = getNodesByCategory<ZoneHarvestNode>(pop, "harvest");
+    for (const node of harvestNodes) {
+      const h = new HarvestNode();
+      h.id = node.id;
+      h.resourceType = node.profession;
+      h.x = node.position[0];
+      h.z = node.position[2];
+      this.state.harvestNodes.set(h.id, h);
+    }
+  }
+
+  /** Pick a spawn point from zone terrain config or fall back to center. */
+  private pickSpawnPosition(): { x: number; y: number; z: number } {
+    const worldSector = getSectorById(this.sectorId);
+    const points = worldSector?.terrain3d?.spawnPoints;
+    if (points && points.length > 0) {
+      const [x, y, z] = points[Math.floor(Math.random() * points.length)];
+      return { x, y, z };
+    }
+    return {
+      x: (Math.random() - 0.5) * SECTOR_SIZE * 0.3,
+      y: 0,
+      z: (Math.random() - 0.5) * SECTOR_SIZE * 0.3,
+    };
   }
 
   // ── Player Join ─────────────────────────────────────────────
@@ -330,10 +389,10 @@ export class SectorRoom extends Room<SectorState> {
     player.armorColor = options.armorColor || "#ffffff";
     player.equippedWeaponType = options.equippedWeaponType || "sword-shield";
 
-    // Spawn position — random within sector center area
-    player.x = (Math.random() - 0.5) * SECTOR_SIZE * 0.3;
-    player.y = 0;
-    player.z = (Math.random() - 0.5) * SECTOR_SIZE * 0.3;
+    const spawn = this.pickSpawnPosition();
+    player.x = spawn.x;
+    player.y = spawn.y;
+    player.z = spawn.z;
 
     this.state.players.set(client.sessionId, player);
 
@@ -379,7 +438,7 @@ export class SectorRoom extends Room<SectorState> {
     for (let attempt = 0; attempt < 10 && spawned < maxPerSector; attempt++) {
       if (Math.random() > spawnChancePerIsland) continue;
 
-      const dungeonDef = pickDungeonForSector(this.sectorId as SectorPosition, difficulty);
+      const dungeonDef = pickDungeonForSector(this.legacySectorId as SectorPosition, difficulty);
       if (!dungeonDef) continue;
 
       const portal: DungeonPortal = {
@@ -423,7 +482,7 @@ export class SectorRoom extends Room<SectorState> {
   private spawnEnemy() {
     if (this.state.enemies.size >= this.state.maxEnemies) return;
 
-    const enemyTypes = getEnemyTypesForSector(this.sectorId);
+    const enemyTypes = getEnemyTypesForSector(this.legacySectorId);
     const typeIdx = Math.floor(Math.random() * enemyTypes.length);
     const level = Math.ceil(Math.random() * 5) + Math.floor(this.state.difficulty / 2);
     const stats = enemyStatsForDifficulty(this.state.difficulty, level);

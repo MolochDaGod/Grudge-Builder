@@ -41,6 +41,14 @@ export const ASSETS_CDN: string =
   env.VITE_ASSETS_URL || env.VITE_ASSET_CDN_URL || 'https://assets.grudge-studio.com';
 
 /**
+ * Grudge Studio Map & Model Editor — canonical home-island creation surface.
+ * Vercel project `grudge-studio-editor` (artifacts/studio in grudge-studio-games).
+ * Planned custom domain: studio.grudge-studio.com
+ */
+export const STUDIO_EDITOR_URL: string =
+  env.VITE_STUDIO_EDITOR_URL || 'https://grudge-studio-editor.vercel.app';
+
+/**
  * VFX effects registry API (api-server stack from vfx-sandbox).
  * Defaults to same-origin `/api/effects` via Vercel rewrite → api.grudge-studio.com.
  * Set VITE_EFFECTS_API_URL=off for fully offline sandbox mode.
@@ -67,9 +75,9 @@ export const AI_GATEWAY: string =
 export const BADGE_READER: string =
   env.VITE_BADGE_READER_URL || 'https://api.grudge-studio.com';
 
-/** Canonical ObjectStore API (objectstore.grudge-studio.com). */
+/** Canonical ObjectStore API (info.grudge-studio.com). */
 export const OBJECTSTORE: string =
-  env.VITE_OBJECTSTORE_URL || 'https://objectstore.grudge-studio.com/api/v1';
+  env.VITE_OBJECTSTORE_URL || 'https://info.grudge-studio.com/api/v1';
 
 /**
  * GrudgeDot launcher canonical URL.
@@ -121,7 +129,7 @@ export const GRUDGE_SUBDOMAINS = [
   'assets.grudge-studio.com',
   'ai.grudge-studio.com',
   'dash.grudge-studio.com',
-  'objectstore.grudge-studio.com',
+  'info.grudge-studio.com',
   'ws.grudge-studio.com',
   'pvp.grudge-studio.com',
   'client.grudge-studio.com',
@@ -132,23 +140,22 @@ export const GRUDGE_SUBDOMAINS = [
   'launcher.grudge-studio.com',
   'grudge6.grudge-studio.com',
   'characters.grudge-studio.com',
+  'studio.grudge-studio.com',
+  'grudge-studio-editor.vercel.app',
 ] as const;
 
 /**
  * Discord OAuth wiring (2026-04-27).
  *
- * `id.grudge-studio.com/auth/discord/start` currently returns 404, but
- * `/auth/discord/callback` is alive. We build the discord.com authorize URL
- * on the client and let Discord redirect straight to the callback. The
- * backend callback exchanges the code, signs a JWT, and redirects back to
- * `state` with `?sso_token=...` — picked up by the IIFE at the top of
- * `grudgeBackend.ts`.
+ * Canonical flow: redirect to `id.grudge-studio.com/auth/discord/start`
+ * (or same-origin `/api/auth/discord/start` via Vercel proxy). Scopes are
+ * `identify email` only — no guild admin, messages, or wallet scopes.
  *
- * Client ID is the GrudgeWarlords Discord app (registered in
- * Developer Portal). Override via VITE_DISCORD_CLIENT_ID.
+ * Client-built OAuth is deprecated; DISCORD_CLIENT_ID must match the VPS app
+ * if you still use buildDiscordOAuthUrl for legacy surfaces.
  */
 export const DISCORD_CLIENT_ID: string =
-  env.VITE_DISCORD_CLIENT_ID || '1471046591220678677';
+  env.VITE_DISCORD_CLIENT_ID || '1342593452793270302';
 
 /**
  * Discord redirect URI.
@@ -254,6 +261,7 @@ export default {
   GAME_API,
   WS_URL,
   ASSETS_CDN,
+  STUDIO_EDITOR_URL,
   EFFECTS_API,
   AI_GATEWAY,
   BADGE_READER,

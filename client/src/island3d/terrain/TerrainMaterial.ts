@@ -29,8 +29,8 @@ export function createTerrainMaterial(config: TerrainMaterialConfig = {}): THREE
   // The blended material uses vPosition.z for height (in terrain local space)
   // and `slope` (angle from vertical in radians) for cliff detection.
   const material = Terrain.generateBlendedMaterial([
-    // Layer 0 (base): water/deep floor
-    { texture: textures.water },
+    // Layer 0 (base): seafloor under the ocean plane — NOT a water surface
+    { texture: textures.seafloor },
     // Layer 1: sand/beach — appears between -10 and +8 height
     { texture: textures.sand, levels: [-10, -2, 5, 12] },
     // Layer 2: short grass — main island surface

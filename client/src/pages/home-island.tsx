@@ -1,37 +1,39 @@
 /**
- * HomeIslandPage — per-player persistent island instance.
+ * HomeIslandPage — persistent home island with RTS Grudge 3-state gameplay UI.
  *
- * Connects to HomeIslandRoom via Colyseus. Features:
- *   - Procedural terrain from player's island seed (same every time)
- *   - Harvest nodes: click to gather, auto-respawn at 2 min
- *   - Auto-harvest notifications (heroes gather while you're away)
- *   - Building system: place/remove structures
- *   - Visitor indicator: shows who else is on your island
- *   - Resource counter HUD
- *   - Leave button → back to world
+ * Harvest | Combat | Build modes (TutorialGameplayHUD), Grudge6 character,
+ * Colyseus HomeIslandRoom sync, persisted island seed from Railway.
  */
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useLocation } from 'wouter';
 import { Client, Room } from 'colyseus.js';
 import { Island3DEngine, type Island3DEngineConfig } from '@/island3d/engine/Island3DEngine';
 import { RemotePlayerManager } from '@/island3d/sync/RemotePlayerManager';
+import { TutorialGameplayHUD, type ControlMode } from '@/components/TutorialGameplayHUD';
 import { characterAPI } from '@/lib/api';
 import { getColyseusEndpoint } from '@/lib/colyseusEndpoint';
 import {
-  TreePine, Pickaxe, Fish, Leaf, Users, Package,
-  Hammer, LogOut, Home,
-} from 'lucide-react';
-
-// ── Resource icons ───────────────────────────────────────────────
-
-const RESOURCE_ICONS: Record<string, React.ReactNode> = {
-  forest: <TreePine className="w-3.5 h-3.5 text-green-400" />,
-  mining: <Pickaxe className="w-3.5 h-3.5 text-amber-400" />,
-  fishing: <Fish className="w-3.5 h-3.5 text-blue-400" />,
-  herbalism: <Leaf className="w-3.5 h-3.5 text-emerald-400" />,
-};
-
-// ── Component ────────────────────────────────────────────────────
+  buildGrudge6LoadConfig,
+  getWeaponTypeForMode,
+  type Grudge6LoadConfig,
+} from '@/lib/grudge6Character';
+import {
+  buildClassHotbar,
+  buildWeaponHotbar,
+  getActiveGatheringProfessions,
+  type HotbarSlot,
+} from '@/lib/tutorialSkills';
+import {
+  addProfessionXp,
+  RESOURCE_TO_PROFESSION,
+  getGatherXp,
+} from '@/lib/professionSystem';
+import type { Character } from '@/lib/characterManager';
+import { fetchCurrentHomeIsland, type HomeIslandDto } from '@/lib/homeIslandApi';
+import { buildHomeDungeonUrl } from '@/lib/homeIslandDungeon';
+import { clearTopDownCache } from '@/island3d/render/IslandTopDownCapture';
+import type { MountainHintState } from '@/island3d/objects/EvilMountainTriad';
+import { Home, Mountain } from 'lucide-react';
 
 export default function HomeIslandPage() {
   const [, setLocation] = useLocation();
@@ -39,21 +41,45 @@ export default function HomeIslandPage() {
   const engineRef = useRef<Island3DEngine | null>(null);
   const roomRef = useRef<Room | null>(null);
   const rpmRef = useRef<RemotePlayerManager | null>(null);
+  const characterRef = useRef<Character | null>(null);
+  const loadConfigRef = useRef<Grudge6LoadConfig | null>(null);
+  const nodesRef = useRef<Map<string, { id: string; type: string; x: number; z: number; depleted: boolean }>>(new Map());
 
   const [loaded, setLoaded] = useState(false);
+  const [islandDto, setIslandDto] = useState<HomeIslandDto | null>(null);
+  const [islandSeed, setIslandSeed] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+
+  const [hp, setHp] = useState(200);
+  const [maxHp] = useState(200);
+  const [playMode, setPlayMode] = useState<ControlMode>('harvest');
   const [resources, setResources] = useState<Record<string, number>>({});
-  const [buildingCount, setBuildingCount] = useState(0);
-  const [playerCount, setPlayerCount] = useState(0);
+  const [professions, setProfessions] = useState(getActiveGatheringProfessions({}));
   const [notification, setNotification] = useState<string | null>(null);
-  const [islandName, setIslandName] = useState('Home Island');
+  const [allyMessage, setAllyMessage] = useState<string | null>(null);
+  const [hasWeapon, setHasWeapon] = useState(false);
+  const [playerCount, setPlayerCount] = useState(0);
+  const [buildingCount, setBuildingCount] = useState(0);
+  const [mountainHint, setMountainHint] = useState<MountainHintState>('none');
+  const [mountainDungeonName, setMountainDungeonName] = useState<string | null>(null);
+
   const [characterName, setCharacterName] = useState('Islander');
   const [heroRace, setHeroRace] = useState('human');
   const [heroClass, setHeroClass] = useState('warrior');
-  const [islandSeed, setIslandSeed] = useState('home-island');
+  const [level, setLevel] = useState(1);
+  const [classHotbar, setClassHotbar] = useState<HotbarSlot[]>([]);
+  const [weaponHotbar, setWeaponHotbar] = useState<HotbarSlot[]>([]);
 
-  // ── Load character data ────────────────────────────────────────
+  const showNotification = useCallback((text: string) => {
+    setNotification(text);
+    setTimeout(() => setNotification(null), 3000);
+  }, []);
+
+  // ── Load character + persisted home island ─────────────────────
 
   useEffect(() => {
+    clearTopDownCache();
+
     async function load() {
       try {
         const grudgeId = localStorage.getItem('grudge_account_id') || 'guest';
@@ -61,23 +87,76 @@ export default function HomeIslandPage() {
           localStorage.getItem('grudge_active_character') ||
           localStorage.getItem('gruda_active_character_guest');
 
-        if (activeId) {
-          const char = await characterAPI.get(activeId);
-          setCharacterName(char.name);
-          setHeroRace(char.raceId);
-          setHeroClass(char.classId);
-          setIslandSeed(`island-${grudgeId}`);
+        if (!activeId) {
+          setLocation('/create-character');
+          return;
         }
-      } catch {}
+
+        const char = await characterAPI.get(activeId);
+        characterRef.current = char;
+        const cfg = buildGrudge6LoadConfig(char);
+        loadConfigRef.current = cfg;
+
+        setCharacterName(char.name);
+        setHeroRace(char.raceId);
+        setHeroClass(char.classId);
+        setLevel(char.level ?? 1);
+        setHasWeapon(cfg.hasWeapon);
+        setProfessions(getActiveGatheringProfessions(char.professionLevels ?? {}));
+        setClassHotbar(buildClassHotbar(char));
+        setWeaponHotbar(buildWeaponHotbar(char, cfg.hasWeapon));
+
+        const island = await fetchCurrentHomeIsland();
+        setIslandDto(island);
+        setIslandSeed(island.seed || island.id);
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : 'Failed to load home island';
+        if (msg.includes('404') || msg.includes('Failed to load')) {
+          setLocation('/island-reveal');
+          return;
+        }
+        setLoadError(msg);
+      }
     }
     load();
-  }, []);
+  }, [setLocation]);
 
-  // ── Connect to HomeIslandRoom ──────────────────────────────────
+  // ── Sync play mode → character animations ─────────────────────
 
   useEffect(() => {
+    const engine = engineRef.current;
+    if (!engine?.character || !loaded) return;
+    engine.character.setControlMode(playMode, heroClass, hasWeapon).catch(() => {});
+  }, [playMode, heroClass, hasWeapon, loaded]);
+
+  const persistProfessionXp = useCallback(async (resourceKey: string) => {
+    const char = characterRef.current;
+    if (!char) return;
+    const profession = RESOURCE_TO_PROFESSION[resourceKey] ?? 'Logging';
+    const xpGain = getGatherXp(resourceKey, 1);
+    const { updatedLevels, result } = addProfessionXp(
+      char.professionLevels ?? {},
+      profession,
+      xpGain,
+    );
+    char.professionLevels = updatedLevels;
+    setProfessions(getActiveGatheringProfessions(updatedLevels));
+    try {
+      await characterAPI.update(char.id, { professionLevels: updatedLevels });
+    } catch { /* offline-tolerant */ }
+    if (result.leveledUp) {
+      showNotification(`${profession} Level ${result.newLevel}!`);
+    }
+  }, [showNotification]);
+
+  // ── Colyseus HomeIslandRoom ───────────────────────────────────
+
+  useEffect(() => {
+    if (!islandSeed || !loadConfigRef.current) return;
+
     let client: Client | null = null;
     let room: Room | null = null;
+    const cfg = loadConfigRef.current;
 
     async function connect() {
       try {
@@ -87,65 +166,67 @@ export default function HomeIslandPage() {
 
         room = await client.joinOrCreate('home_island', {
           accountId,
-          characterName,
-          heroRace,
-          heroClass,
-          islandUUID: accountId,
+          characterName: cfg.name,
+          heroRace: cfg.raceId,
+          heroClass: cfg.classId,
+          islandUUID: islandDto?.id || accountId,
+          islandSeed: islandSeed,
+          level: cfg.level,
+          baseModelId: cfg.baseModelId,
+          equippedWeaponType: getWeaponTypeForMode(playMode, cfg.classId, cfg.hasWeapon),
         });
         roomRef.current = room;
 
-        // Track player count
-        room.state.players.onAdd(() => {
-          setPlayerCount(room!.state.players.size);
-        });
-        room.state.players.onRemove(() => {
-          setPlayerCount(room!.state.players.size);
+        room.state.players.onAdd(() => setPlayerCount(room!.state.players.size));
+        room.state.players.onRemove(() => setPlayerCount(room!.state.players.size));
+        setPlayerCount(room.state.players.size);
+
+        room.state.listen('buildingCount', (v: number) => setBuildingCount(v));
+
+        room.onMessage('harvest_complete', async (data: { resource: string; quantity: number }) => {
+          const key = data.resource;
+          setResources(prev => ({ ...prev, [key]: (prev[key] || 0) + data.quantity }));
+          showNotification(`Gathered ${key} ×${data.quantity}`);
+          await persistProfessionXp(key);
         });
 
-        // Sync building count
-        room.state.listen('buildingCount', (value: number) => {
-          setBuildingCount(value);
-        });
-
-        // Listen for harvest events
-        room.onMessage('harvest_complete', (data: { resource: string; quantity: number }) => {
-          setResources(prev => ({
-            ...prev,
-            [data.resource]: (prev[data.resource] || 0) + data.quantity,
-          }));
-          showNotification(`Gathered ${data.resource} ×${data.quantity}`);
-        });
-
-        // Auto-harvest notifications
         room.onMessage('auto_harvest', (data: { resource: string; quantity: number; total: number }) => {
           setResources(prev => ({ ...prev, [data.resource]: data.total }));
-          showNotification(`🤖 Hero gathered ${data.resource} (total: ${data.total})`);
+          showNotification(`Hero gathered ${data.resource} (total: ${data.total})`);
         });
 
-        // Building events
-        room.onMessage('building_placed', (data: { buildingId: string; totalBuildings: number }) => {
+        room.onMessage('building_placed', (data: { totalBuildings: number }) => {
           setBuildingCount(data.totalBuildings);
-          showNotification(`🏗️ Building placed!`);
+          showNotification('Building placed!');
         });
 
-        room.onMessage('building_removed', () => {
-          showNotification(`🗑️ Building removed`);
-        });
+        room.onMessage('building_removed', () => showNotification('Building removed'));
 
-        // Island exit
-        room.onMessage('island_exit', () => {
-          setLocation('/play');
-        });
+        room.onMessage('island_exit', () => setLocation('/play'));
 
-        // Request current resources
         room.send('get_resources');
-        room.onMessage('resources', (data: Record<string, number>) => {
-          setResources(data);
+        room.onMessage('resources', (data: Record<string, number>) => setResources(data));
+
+        room.state.harvestNodes?.onAdd?.((node: any, id: string) => {
+          nodesRef.current.set(id, {
+            id, type: node.resourceType,
+            x: node.x, z: node.z, depleted: node.depleted,
+          });
+          node.onChange?.(() => {
+            nodesRef.current.set(id, {
+              id, type: node.resourceType,
+              x: node.x, z: node.z, depleted: node.depleted,
+            });
+          });
         });
 
-        console.log('[HomeIsland] Connected to HomeIslandRoom');
+        room.state.players.onAdd((player: any, sessionId: string) => {
+          if (sessionId === room!.sessionId) return;
+          showNotification(`${player.characterName} is visiting your island!`);
+        });
       } catch (err) {
         console.error('[HomeIsland] Connection failed:', err);
+        showNotification('Offline mode — island loaded locally');
       }
     }
 
@@ -155,11 +236,12 @@ export default function HomeIslandPage() {
       room?.leave();
       roomRef.current = null;
     };
-  }, [characterName]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [islandSeed, islandDto?.id, showNotification, persistProfessionXp, setLocation]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ── Initialize 3D engine ───────────────────────────────────────
+  // ── 3D engine ─────────────────────────────────────────────────
 
   useEffect(() => {
+    if (!islandSeed) return;
     const canvas = canvasRef.current;
     if (!canvas || engineRef.current) return;
 
@@ -171,19 +253,39 @@ export default function HomeIslandPage() {
       mode: 'procedural',
       quality: 'medium',
       enableCharacter: true,
-      dayNight: { cycleDurationMs: 10 * 60 * 1000 },
+      dayNight: { dayDurationSeconds: 10 * 60 },
+      onDungeonEnter: (dungeonId, dungeonName) => {
+        showNotification(`Entering ${dungeonName}...`);
+        setLocation(buildHomeDungeonUrl(dungeonId, dungeonName));
+      },
     };
 
     const engine = new Island3DEngine(config);
     engineRef.current = engine;
 
-    engine.init().then(() => {
+    engine.init().then(async () => {
       setLoaded(true);
       engine.start();
-
-      if (engine.character) {
-        engine.character.loadCharacterFromManifest(heroRace, heroClass).catch(() => {});
+      const cfg = loadConfigRef.current;
+      if (engine.character && cfg) {
+        await engine.character.loadCharacterFromManifest(
+          cfg.raceId,
+          cfg.classId,
+          cfg.characterId,
+          'unarmed',
+          {
+            equippedMeshes: cfg.equippedMeshes,
+            weaponSlots: cfg.weaponSlots,
+            scale: cfg.scale,
+            skinColor: cfg.skinColor,
+            armorColor: cfg.armorColor,
+          },
+          characterRef.current?.equipment,
+        );
+        engine.character.mode = 'harvest';
       }
+      setMountainDungeonName(engine.mountainDungeonName);
+      setAllyMessage('Welcome home. Head north to the evil mountains — a dungeon hides behind one of three peaks.');
     }).catch(() => {
       engine.start();
       setLoaded(true);
@@ -197,19 +299,60 @@ export default function HomeIslandPage() {
       engine.dispose();
       engineRef.current = null;
     };
-  }, [islandSeed, heroRace, heroClass]);
+  }, [islandSeed, heroRace, heroClass, showNotification, setLocation]);
 
-  // ── Sync visitors via RemotePlayerManager ──────────────────────
+  // ── E key — cave portal behind secret evil peak ───────────────
 
   useEffect(() => {
-    if (!roomRef.current || !engineRef.current) return;
+    if (!loaded) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.repeat) return;
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+      if (e.key.toLowerCase() !== 'e') return;
+      const engine = engineRef.current;
+      if (!engine?.handleInteractKey()) return;
+      e.preventDefault();
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [loaded]);
+
+  // ── Mountain triad HUD hints ──────────────────────────────────
+
+  const lastMountainHintRef = useRef<MountainHintState>('none');
+
+  useEffect(() => {
+    if (!loaded) return;
+    const engine = engineRef.current;
+    if (!engine) return;
+    const unregister = engine.onUpdate(() => {
+      const hint = engine.mountainHintState;
+      if (hint === lastMountainHintRef.current) return;
+      lastMountainHintRef.current = hint;
+      setMountainHint(hint);
+      const name = engine.mountainDungeonName;
+      if (hint === 'approach') {
+        setAllyMessage('Three evil peaks ahead. Circle behind them — one hides a dungeon entrance.');
+      } else if (hint === 'discovered' && name) {
+        setAllyMessage(`You found ${name}. Walk into the cave mouth.`);
+      } else if (hint === 'interact' && name) {
+        setAllyMessage(`Press E to enter ${name}.`);
+      }
+    });
+    return unregister;
+  }, [loaded]);
+
+  // ── Visitor sync ──────────────────────────────────────────────
+
+  useEffect(() => {
+    if (!roomRef.current || !engineRef.current || !loaded) return;
     const engine = engineRef.current;
     const room = roomRef.current;
     const localId = room.sessionId;
 
     const rpm = new RemotePlayerManager(engine.getScene(), localId);
     rpmRef.current = rpm;
-
     const unregister = engine.onUpdate((dt) => rpm.update(dt));
 
     room.state.players.onAdd((player: any, sessionId: string) => {
@@ -232,160 +375,206 @@ export default function HomeIslandPage() {
         armorColor: player.armorColor || '#ffffff',
         equippedWeaponType: player.equippedWeaponType || 'sword-shield',
       });
-
       player.onChange(() => {
         rpm.updatePlayer(sessionId, {
           x: player.x, y: player.y, z: player.z,
-          facing: player.facing,
-          state: player.state,
+          facing: player.facing, state: player.state,
         });
       });
-
-      showNotification(`${player.characterName} is visiting your island!`);
     });
 
-    room.state.players.onRemove((player: any, sessionId: string) => {
-      rpm.removePlayer(sessionId);
-    });
+    room.state.players.onRemove((_p: any, sessionId: string) => rpm.removePlayer(sessionId));
 
     return () => {
       unregister();
       rpm.dispose();
       rpmRef.current = null;
     };
-  }, [loaded]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [loaded]);
 
-  // ── Send position updates at 10Hz ──────────────────────────────
+  // ── Position sync ─────────────────────────────────────────────
 
   useEffect(() => {
-    if (!roomRef.current || !engineRef.current) return;
-
+    if (!roomRef.current || !engineRef.current || !loaded) return;
     const interval = setInterval(() => {
       const engine = engineRef.current;
       if (!engine?.character) return;
-
       const pos = engine.character.getPosition();
       const facing = engine.character.getFacing();
       const state = engine.character.isMoving() ? 'moving' : 'idle';
-
       roomRef.current?.send('move', { x: pos.x, y: pos.y, z: pos.z, facing, state });
     }, 100);
-
     return () => clearInterval(interval);
   }, [loaded]);
 
-  // ── Notifications ──────────────────────────────────────────────
+  const getPlayerPos = () => {
+    const pos = engineRef.current?.character?.getPosition();
+    return pos ? { x: pos.x, z: pos.z } : { x: 0, z: 0 };
+  };
 
-  const showNotification = useCallback((text: string) => {
-    setNotification(text);
-    setTimeout(() => setNotification(null), 3000);
-  }, []);
+  const findNearestNode = (radius = 25) => {
+    const { x, z } = getPlayerPos();
+    let nearest: string | null = null;
+    let nearestDist = Infinity;
+    nodesRef.current.forEach((node, id) => {
+      if (node.depleted) return;
+      const dx = node.x - x, dz = node.z - z;
+      const dist = Math.sqrt(dx * dx + dz * dz);
+      if (dist < nearestDist && dist < radius) { nearestDist = dist; nearest = id; }
+    });
+    return nearest;
+  };
 
-  // ── Actions ────────────────────────────────────────────────────
+  const handleHarvest = () => {
+    if (playMode !== 'harvest') { setPlayMode('harvest'); return; }
+    const nearest = findNearestNode();
+    if (nearest) {
+      const node = nodesRef.current.get(nearest);
+      roomRef.current?.send('harvest', { nodeId: nearest, professionId: node?.type || 'forest' });
+    } else {
+      showNotification('Click a tree or rock nearby, or walk closer to a node');
+    }
+  };
+
+  const handleAttack = () => {
+    if (playMode !== 'combat') { setPlayMode('combat'); return; }
+    showNotification(hasWeapon ? 'Combat mode — attack wildlife with LMB' : 'Equip a weapon from Arsenal first');
+  };
+
+  const handleCraft = () => {
+    setPlayMode('build');
+    setLocation('/crafting');
+  };
+
+  const handleBuildRaft = () => {
+    if (playMode !== 'build') setPlayMode('build');
+    const engine = engineRef.current;
+    if (!engine) return;
+    engine.startBuilding('foundation');
+    showNotification('Build mode — click to place foundation');
+  };
+
+  const handleUseSkill = (slot: HotbarSlot) => {
+    if (slot.locked) {
+      showNotification(slot.lockReason ?? 'Skill locked');
+      return;
+    }
+    if (slot.kind === 'weapon' && playMode !== 'combat') setPlayMode('combat');
+    showNotification(`${slot.label}`);
+    roomRef.current?.send('use_skill', { skillId: slot.skillId, kind: slot.kind });
+  };
+
+  const handleModeChange = (mode: ControlMode) => {
+    setPlayMode(mode);
+    const hints: Record<ControlMode, string> = {
+      harvest: 'Gather wood, ore, and herbs. Heroes auto-harvest while you\'re offline.',
+      combat: hasWeapon ? 'Combat mode — defend your island from wildlife.' : 'Visit Arsenal to equip a weapon.',
+      build: 'Place buildings and expand your camp.',
+    };
+    setAllyMessage(hints[mode]);
+  };
 
   const handleLeave = () => {
     roomRef.current?.send('leave_island');
     setLocation('/play');
   };
 
-  const handleBuild = () => {
-    const engine = engineRef.current;
-    if (!engine) return;
-    engine.startBuilding('foundation');
-    showNotification('Building mode: click to place');
-  };
+  const homeSteps = [
+    { id: 'explore', title: 'Explore your island', completed: loaded },
+    { id: 'harvest', title: 'Gather resources', completed: Object.keys(resources).length > 0 },
+    { id: 'build', title: 'Place a building', completed: buildingCount > 0 },
+  ];
 
-  // ── Render ─────────────────────────────────────────────────────
-
-  const totalResources = Object.values(resources).reduce((a, b) => a + b, 0);
+  if (loadError) {
+    return (
+      <div className="fixed inset-0 bg-[#05060c] flex flex-col items-center justify-center text-white gap-4">
+        <p className="text-red-400">{loadError}</p>
+        <button onClick={() => setLocation('/island-reveal')} className="text-amber-400 underline">
+          Generate your island
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="fixed inset-0 bg-black">
-      <canvas ref={canvasRef} className="w-full h-full" />
+      <canvas
+        ref={canvasRef}
+        className="w-full h-full"
+        onClick={(e) => engineRef.current?.handleClick(e.clientX, e.clientY)}
+      />
 
       {loaded && (
         <>
-          {/* Top-left: Island info */}
-          <div className="absolute top-4 left-4 z-40">
-            <div className="bg-black/70 backdrop-blur-sm rounded-xl border border-white/10 p-3 w-64">
-              <div className="flex items-center gap-2 mb-2">
-                <Home className="w-4 h-4 text-amber-400" />
-                <span className="text-white text-sm font-bold">{islandName}</span>
-              </div>
-              <div className="flex items-center gap-4 text-[11px] text-white/50">
-                <span className="flex items-center gap-1">
-                  <Users className="w-3 h-3" /> {playerCount}
-                </span>
-                <span className="flex items-center gap-1">
-                  <Hammer className="w-3 h-3" /> {buildingCount} buildings
-                </span>
-                <span className="flex items-center gap-1">
-                  <Package className="w-3 h-3" /> {totalResources} items
-                </span>
-              </div>
-            </div>
-          </div>
+          <TutorialGameplayHUD
+            characterName={characterName}
+            heroClass={heroClass}
+            level={level}
+            hp={hp}
+            maxHp={maxHp}
+            playMode={playMode}
+            onModeChange={handleModeChange}
+            steps={homeSteps}
+            classHotbar={classHotbar}
+            weaponHotbar={weaponHotbar}
+            professions={professions}
+            resources={resources}
+            hasWeapon={hasWeapon}
+            allyName="Camp Steward"
+            allyMessage={allyMessage}
+            notification={notification}
+            onHarvest={handleHarvest}
+            onAttack={handleAttack}
+            onCraft={handleCraft}
+            onBuildRaft={handleBuildRaft}
+            onUseSkill={handleUseSkill}
+          />
 
-          {/* Top-right: Resources */}
-          <div className="absolute top-4 right-4 z-40">
-            <div className="bg-black/70 backdrop-blur-sm rounded-xl border border-white/10 p-3 w-52">
-              <div className="text-amber-400 text-xs font-cinzel tracking-wider mb-2">RESOURCES</div>
-              <div className="space-y-1.5">
-                {Object.entries(resources).length === 0 ? (
-                  <div className="text-white/30 text-xs">No resources yet</div>
-                ) : (
-                  Object.entries(resources).map(([type, count]) => (
-                    <div key={type} className="flex items-center justify-between text-xs">
-                      <div className="flex items-center gap-2">
-                        {RESOURCE_ICONS[type] || <Package className="w-3.5 h-3.5 text-white/30" />}
-                        <span className="text-white/70 capitalize">{type}</span>
-                      </div>
-                      <span className="text-white font-bold">{count}</span>
-                    </div>
-                  ))
+          {mountainHint !== 'none' && (
+            <div className="absolute bottom-28 left-1/2 -translate-x-1/2 z-50 pointer-events-none">
+              <div className="bg-black/75 backdrop-blur-sm rounded-xl border border-purple-500/40 px-4 py-2 text-sm text-purple-200 flex items-center gap-2 shadow-lg">
+                <Mountain className="w-4 h-4 text-purple-400 shrink-0" />
+                {mountainHint === 'approach' && (
+                  <span>Evil mountains — search behind the peaks for a hidden cave</span>
+                )}
+                {mountainHint === 'discovered' && mountainDungeonName && (
+                  <span>{mountainDungeonName} revealed — enter the cave mouth</span>
+                )}
+                {mountainHint === 'interact' && mountainDungeonName && (
+                  <span className="text-amber-200 font-semibold">Press E — enter {mountainDungeonName}</span>
                 )}
               </div>
             </div>
-          </div>
+          )}
 
-          {/* Bottom: Action bar */}
-          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-40">
-            <div className="flex gap-2 bg-black/60 backdrop-blur-sm rounded-2xl border border-white/10 p-2">
-              <button
-                onClick={handleBuild}
-                className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-amber-800/30 bg-amber-950/30 text-amber-400 hover:bg-amber-900/40 transition-colors text-xs font-bold"
-              >
-                <Hammer className="w-4 h-4" /> BUILD
-              </button>
+          {/* Home island meta + sail */}
+          <div className="absolute top-4 right-4 z-50 pointer-events-auto">
+            <div className="bg-black/70 backdrop-blur-sm rounded-xl border border-amber-600/30 p-3 text-xs text-slate-300 space-y-1 min-w-[160px]">
+              <div className="flex items-center gap-2 text-amber-400 font-bold">
+                <Home className="w-4 h-4" />
+                {islandDto?.name || 'Home Island'}
+              </div>
+              <div>Visitors: {playerCount}</div>
+              <div>Buildings: {buildingCount}</div>
               <button
                 onClick={handleLeave}
-                className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-white/10 bg-white/5 text-white/60 hover:bg-white/10 transition-colors text-xs"
+                className="mt-2 w-full py-1.5 rounded-lg bg-amber-800/40 border border-amber-700/40 text-amber-300 hover:bg-amber-700/40 transition-colors"
               >
-                <LogOut className="w-4 h-4" /> SAIL TO WORLD
+                Sail to World
               </button>
             </div>
           </div>
-
-          {/* Notification toast */}
-          {notification && (
-            <div className="absolute top-20 left-1/2 -translate-x-1/2 z-50">
-              <div className="bg-black/80 backdrop-blur-sm rounded-xl border border-amber-600/30 px-5 py-2.5 text-amber-300 text-sm font-bold tracking-wider">
-                {notification}
-              </div>
-            </div>
-          )}
         </>
       )}
 
-      {/* Loading */}
       {!loaded && (
         <div className="absolute inset-0 z-[100] bg-[#05060c] flex flex-col items-center justify-center">
           <Home className="w-12 h-12 text-amber-400 mb-4" />
           <h1 className="text-2xl font-cinzel font-black tracking-[4px] mb-3 text-amber-400">HOME ISLAND</h1>
           <div className="w-48 h-1.5 bg-white/10 rounded-full overflow-hidden">
-            <div className="h-full rounded-full bg-amber-500 animate-pulse" style={{ width: '50%' }} />
+            <div className="h-full rounded-full bg-amber-500 animate-pulse" style={{ width: '60%' }} />
           </div>
-          <p className="text-white/30 text-xs mt-3">Generating your island...</p>
+          <p className="text-white/30 text-xs mt-3">Loading your island...</p>
         </div>
       )}
     </div>

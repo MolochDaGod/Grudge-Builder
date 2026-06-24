@@ -47,6 +47,14 @@ export interface Character {
   weaponSkillSelections?: Record<string, WeaponSkillSelection> | null;
   equippedWeaponId?: string | null;
   selectedSkills?: Record<number, string>; // Class skill tree selections by tier level
+  model3d?: {
+    baseModelId?: string;
+    equippedMeshes?: Record<string, string>;
+    weaponSlots?: Record<string, string>;
+    skinColor?: string;
+    armorColor?: string;
+    scale?: number;
+  };
 }
 
 export interface InventoryItem {
