@@ -2,7 +2,10 @@ import { useState, useEffect, useMemo } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import Layout from "@/components/Layout";
 import { useAuthGuard } from "@/hooks/use-auth-guard";
-import { CharacterManager, Character } from "@/lib/characterManager";
+import { useCharacters } from "@/hooks/use-characters";
+import { useAccountInventory, useAccountResources } from "@/hooks/use-account";
+import CharacterProfessionHub from "@/components/profession/CharacterProfessionHub";
+import type { Character } from "@/lib/characterManager";
 import { authHeaders } from "@/lib/grudgeBackend";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
@@ -82,7 +85,14 @@ export default function CraftingPage() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  const [character, setCharacter] = useState<Character | null>(null);
+  const {
+    characters,
+    activeCharacter: character,
+    loading: charsLoading,
+    refetch: refetchCharacters,
+  } = useCharacters();
+  const { refetch: refetchInventory } = useAccountInventory();
+  const { refetch: refetchResources } = useAccountResources();
   const [activeTab, setActiveTab] = useState("weapons");
   const [activeTier, setActiveTier] = useState<number | 0>(0); // 0 = All
   const [activeProfession, setActiveProfession] = useState("All");
@@ -98,10 +108,9 @@ export default function CraftingPage() {
     return () => clearInterval(iv);
   }, []);
 
-  useEffect(() => {
-    if (!authReady) return;
-    CharacterManager.getActiveCharacter().then(setCharacter);
-  }, [authReady]);
+  const handleRefreshAccount = async () => {
+    await Promise.all([refetchCharacters(), refetchInventory(), refetchResources()]);
+  };
 
   // ── Crafting jobs (backend) ──────────────────────────────────────
   const craftingJobs: CraftingJob[] = []; // TODO: wire to backend when crafting-jobs API is live
@@ -199,25 +208,29 @@ export default function CraftingPage() {
 
   if (!authReady) return null;
 
-  if (!character) {
+  if (charsLoading) {
     return (
       <Layout>
-        <div className="flex items-center justify-center h-[60vh]">
-          <Card className="bg-stone-900 border-stone-700 max-w-md">
-            <CardContent className="pt-6 text-center space-y-4">
-              <AlertCircle className="w-12 h-12 text-amber-500 mx-auto" />
-              <h2 className="text-xl font-bold text-stone-200">No Character Selected</h2>
-              <p className="text-stone-400">
-                Create or select a character to start crafting.
-              </p>
-              <Button
-                onClick={() => (window.location.href = "/character")}
-                className="bg-amber-600 hover:bg-amber-500"
-              >
-                Go to Characters
-              </Button>
-            </CardContent>
-          </Card>
+        <div className="flex items-center justify-center h-[50vh] text-stone-400">Loading your account characters...</div>
+      </Layout>
+    );
+  }
+
+  if (!character) {
+    const needsCreate = characters.length === 0;
+    return (
+      <Layout>
+        <div className="flex flex-col gap-6 py-6 max-w-4xl mx-auto">
+          <div className="text-center space-y-3">
+            <AlertCircle className="w-12 h-12 text-amber-500 mx-auto" />
+            <h2 className="text-xl font-bold text-stone-200">
+              {needsCreate ? "Create a Character" : "Select a Character"}
+            </h2>
+            <p className="text-stone-400 text-sm max-w-md mx-auto">
+              ObjectStore crafting uses your account inventory and binds results to the active character.
+            </p>
+          </div>
+          <CharacterProfessionHub activeCharacter={null} onCharacterSelected={handleRefreshAccount} />
         </div>
       </Layout>
     );
@@ -230,6 +243,11 @@ export default function CraftingPage() {
   return (
     <Layout>
       <div className="space-y-4">
+        <CharacterProfessionHub
+          activeCharacter={character}
+          onCharacterSelected={handleRefreshAccount}
+        />
+
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
