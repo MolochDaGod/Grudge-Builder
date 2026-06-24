@@ -2,7 +2,7 @@
  * ObjectStore Live Data Layer
  *
  * Fetches canonical item, recipe, and material data from ObjectStore.
- * Source of truth: https://objectstore.grudge-studio.com/api/v1/
+ * Source of truth: https://info.grudge-studio.com/api/v1/
  *
  * Data shape matches master-items.json, master-recipes.json, master-materials.json.
  * React Query hooks cache with 5-min stale time; falls back to local data on error.

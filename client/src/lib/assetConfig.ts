@@ -3,16 +3,16 @@ import { normalizeAssetPath } from './legacyAssetPaths';
 /**
  * ObjectStore Asset & API URL Configuration
  *
- * UNIFIED system — objectstore.grudge-studio.com serves everything:
+ * UNIFIED system — info.grudge-studio.com serves everything:
  *   - BINARY ASSETS (images, sprites, audio, models)
  *   - JSON DATA (weapons, armor, classes, races)
  *
  * GitHub Pages is deprecated (upload-banned). All data now lives on
- * objectstore.grudge-studio.com (Vercel) with Cloudflare CDN.
+ * info.grudge-studio.com (Vercel) with Cloudflare CDN.
  *
  * assetUrl() → R2 CDN (binary assets)
- * apiUrl() → objectstore.grudge-studio.com (JSON data)
- * workerUrl() → objectstore.grudge-studio.com (Worker API with caching)
+ * apiUrl() → info.grudge-studio.com (JSON data)
+ * workerUrl() → info.grudge-studio.com (Worker API with caching)
  */
 
 /** R2 CDN — primary for ALL binary assets (images, sprites, audio, models) */
@@ -22,12 +22,12 @@ const ASSET_CDN_BASE =
   'https://assets.grudge-studio.com';
 
 /** ObjectStore — canonical source for all game data and assets.
- *  Hosted on Vercel at objectstore.grudge-studio.com.
+ *  Hosted on Vercel at info.grudge-studio.com.
  *  GitHub Pages (molochdagod.github.io/ObjectStore) is deprecated. */
 const OBJECT_STORE_PAGES =
   (typeof import.meta !== 'undefined' &&
     (import.meta.env?.VITE_OBJECTSTORE_URL || import.meta.env?.VITE_OBJECT_STORE_URL)) ||
-  'https://objectstore.grudge-studio.com';
+  'https://info.grudge-studio.com';
 
 /** ObjectStore JSON API base — same-origin /api/objectstore in browser (Vercel rewrite). */
 function objectStoreApiBase(): string {
@@ -45,7 +45,7 @@ const OBJECT_STORE_API = objectStoreApiBase();
  */
 const OBJECTSTORE_WORKER_URL =
   (typeof import.meta !== 'undefined' && import.meta.env?.VITE_OBJECTSTORE_WORKER_URL) ||
-  'https://objectstore.grudge-studio.com';
+  'https://info.grudge-studio.com';
 
 /** Legacy alias — kept for backward compatibility but points to CDN now */
 const OBJECT_STORE_BASE = ASSET_CDN_BASE;
@@ -75,7 +75,7 @@ export function cdnAssetUrl(path: string): string {
 
 /**
  * Build a full ObjectStore API URL for a given JSON data endpoint.
- * Points to objectstore.grudge-studio.com.
+ * Points to info.grudge-studio.com.
  *
  * @example
  *   apiUrl('/weapons.json')  // => '.../api/v1/weapons.json'
@@ -91,7 +91,7 @@ export function apiUrl(endpoint: string): string {
  *
  * @example
  *   workerUrl('/v1/weapon-skills/SWORD')
- *   // => 'https://objectstore.grudge-studio.com/v1/weapon-skills/SWORD'
+ *   // => 'https://info.grudge-studio.com/v1/weapon-skills/SWORD'
  */
 export function workerUrl(path: string): string {
   const cleanPath = path.startsWith('/') ? path : `/${path}`;
