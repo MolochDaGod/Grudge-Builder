@@ -1,10 +1,10 @@
 
 import { useState, useMemo, useEffect, useCallback, useRef } from "react";
-import { useLocation } from "wouter";
+import { Link, useLocation } from "wouter";
 import { RACES, CLASSES, ATTRIBUTES, FACTION_COLORS, AttributeKey, RaceDef, ClassDef, getSpriteSetForCharacter } from "@/lib/gameData";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
-import { ChevronRight, ChevronLeft, ChevronDown, Sword, Check, Sparkles, Trash2, User, Shield, Play, Pause, Zap, Settings, ImagePlus, Loader2, Backpack, BookOpen, Hammer, Sliders, TrendingUp, Package, Gem, Clock, Target, Award, X } from "lucide-react";
+import { ChevronRight, ChevronLeft, ChevronDown, Sword, Check, Sparkles, Trash2, User, Shield, Play, Pause, Zap, Settings, ImagePlus, Loader2, Backpack, BookOpen, Hammer, Sliders, TrendingUp, Package, Gem, Clock, Target, Award, X, ExternalLink, MapPin, RefreshCw } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { characterAPI } from "@/lib/api";
 import { puterAI } from "@/lib/puterIntegration";
@@ -17,6 +17,13 @@ import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Responsi
 import Layout from "@/components/Layout";
 import { CharacterManager, Character, EquipmentSlots } from "@/lib/characterManager";
 import { ITEMS, resolveItemImage, RESOURCE_NODES } from "@/lib/grudaDB";
+import { resolveIconUrl, iconOnError } from "@/lib/iconResolver";
+import { itemToEquipSlot } from "@/lib/equipmentSlotMap";
+import { useCharacters } from "@/hooks/use-characters";
+import { useAccountInventory } from "@/hooks/use-account";
+import CharacterProfessionHub from "@/components/profession/CharacterProfessionHub";
+import HomeIslandPreview from "@/components/HomeIslandPreview";
+import { fetchCurrentHomeIsland, generateCharacterIsland, type HomeIslandDto } from "@/lib/homeIslandApi";
 import SpriteAnimator, { SpriteAction } from "@/components/SpriteAnimator";
 import { getAttackAnimations, getAvailableAnimations, AnimationState, getCharacterPalette, type ColorPalette } from "@/lib/spriteManifest";
 import ThreeScene, { type ThreeSceneHandle } from "@/components/ThreeScene";
@@ -55,6 +62,10 @@ const FACTION_GRADIENTS: Record<string, string> = {
   Fabled:  'linear-gradient(135deg, #0a1a0a 0%, #1a4a1a 40%, #051a05 100%)',
 };
 const DEFAULT_BG_GRADIENT = 'linear-gradient(135deg, #0f0f1a 0%, #1a1a2e 30%, #16213e 60%, #0f0f1a 100%)';
+
+const WCS_ORIGIN =
+  (import.meta as { env?: { VITE_WCS_URL?: string } }).env?.VITE_WCS_URL ||
+  'https://warlord-crafting-suite.vercel.app';
 
 /** Get the palette for a character (deterministic from ID, or default for creation) */
 function getCharPalette(charId?: string): ColorPalette | undefined {
@@ -244,8 +255,22 @@ export default function CharacterBuilder() {
   const { toast } = useToast();
   // If we have characters, default to "roster" view unless creating new
   const [viewMode, setViewMode] = useState<"create" | "roster">("roster");
-  const [characters, setCharacters] = useState<Character[]>([]);
+  const {
+    characters,
+    loading: charsLoading,
+    activeId,
+    setActive: setActiveCharacterId,
+    refetch: refetchCharacters,
+  } = useCharacters();
+  const {
+    inventory: accountInventory,
+    transferToCharacter,
+    refetch: refetchInventory,
+  } = useAccountInventory();
   const [activeCharacter, setActiveCharacter] = useState<Character | null>(null);
+  const [homeIsland, setHomeIsland] = useState<HomeIslandDto | null>(null);
+  const [islandLoading, setIslandLoading] = useState(false);
+  const [equipSlotTarget, setEquipSlotTarget] = useState<keyof EquipmentSlots | null>(null);
   
   // Animation State
   const [currentAction, setCurrentAction] = useState<SpriteAction>("Idle");
@@ -322,26 +347,38 @@ export default function CharacterBuilder() {
     return () => { document.removeEventListener('mousemove', handleMouseMove); document.removeEventListener('mouseup', handleMouseUp); };
   }, [draggingRace, updatePortraitPos]);
 
-  // Load characters on mount + start BGM
   useEffect(() => {
     playBGM("camp");
-    const loadCharacters = async () => {
-      const chars = await CharacterManager.getAll();
-      setCharacters(chars);
-      
-      const active = await CharacterManager.getActiveCharacter();
-      if (active) {
-        setActiveCharacter(active);
-      } else if (chars.length > 0) {
-        setActiveCharacter(chars[0]);
-        CharacterManager.setActive(chars[0].id);
-      } else {
-        setViewMode("create");
-      }
-    };
-    
-    loadCharacters();
   }, []);
+
+  useEffect(() => {
+    const fromHook = characters.find((c) => c.id === activeId) ?? characters[0] ?? null;
+    setActiveCharacter(fromHook);
+    if (!charsLoading && characters.length === 0) {
+      setViewMode("create");
+    }
+  }, [characters, activeId, charsLoading]);
+
+  useEffect(() => {
+    if (!activeCharacter?.id) {
+      setHomeIsland(null);
+      return;
+    }
+    setIslandLoading(true);
+    fetchCurrentHomeIsland()
+      .then(setHomeIsland)
+      .catch(() => setHomeIsland(null))
+      .finally(() => setIslandLoading(false));
+  }, [activeCharacter?.id]);
+
+  const handleRefreshAccount = async () => {
+    await Promise.all([refetchCharacters(), refetchInventory()]);
+  };
+
+  const patchActiveCharacter = useCallback((updated: Character) => {
+    setActiveCharacter(updated);
+    refetchCharacters();
+  }, [refetchCharacters]);
 
   // Keep model3d DB field in sync with main-panel equipment slots
   useEffect(() => {
@@ -358,39 +395,36 @@ export default function CharacterBuilder() {
     model3dSyncRef.current = syncKey;
 
     characterAPI.update(activeCharacter.id, { model3d: computed } as any)
-      .then((updated) => {
-        setActiveCharacter(updated);
-        setCharacters((prev) => prev.map((c) => (c.id === updated.id ? updated : c)));
-      })
+      .then(patchActiveCharacter)
       .catch((err) => console.warn("model3d sync failed:", err));
-  }, [activeCharacter?.id, activeCharacter?.raceId, activeCharacter?.classId, activeCharacter?.equipment]);
+  }, [activeCharacter?.id, activeCharacter?.raceId, activeCharacter?.classId, activeCharacter?.equipment, patchActiveCharacter]);
 
   const handleDeleteCharacter = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     if (confirm("Are you sure you want to delete this character?")) {
       await CharacterManager.deleteCharacter(id);
-      const chars = await CharacterManager.getAll();
-      setCharacters(chars);
+      await refetchCharacters();
       if (activeCharacter?.id === id) {
-        setActiveCharacter(chars.length > 0 ? chars[0] : null);
-        if (chars.length === 0) setViewMode("create");
+        if (characters.length <= 1) setViewMode("create");
       }
     }
   };
 
   const handleSelectCharacter = (char: Character) => {
     setActiveCharacter(char);
-    CharacterManager.setActive(char.id);
-    setCurrentAction("Idle"); // Reset animation
+    setActiveCharacterId(char.id);
+    setCurrentAction("Idle");
+    setEquipSlotTarget(null);
   };
 
   const handleRegenerateAvatar = async (charId: string) => {
     setRegeneratingAvatar(charId);
     try {
       const updatedChar = await characterAPI.regenerateAvatar(charId);
-      setCharacters(prev => prev.map(c => c.id === charId ? updatedChar : c));
       if (activeCharacter?.id === charId) {
-        setActiveCharacter(updatedChar);
+        patchActiveCharacter(updatedChar);
+      } else {
+        await refetchCharacters();
       }
     } catch (e) {
       console.error("Failed to regenerate avatar:", e);
@@ -403,6 +437,7 @@ export default function CharacterBuilder() {
 
     setIsCreatingCharacter(true);
     setCreationStatus("Creating character...");
+    const isFirstCharacter = characters.length === 0;
 
     const heroName = charName || "Unnamed Hero";
     const newChar = {
@@ -488,8 +523,8 @@ export default function CharacterBuilder() {
       }
 
       setCreationStatus("Finalizing hero...");
-      const chars = await CharacterManager.getAll();
-      setCharacters(chars);
+      await refetchCharacters();
+      setActiveCharacterId(charWithAvatar.id);
       setActiveCharacter(charWithAvatar);
 
       // Reset form
@@ -503,7 +538,7 @@ export default function CharacterBuilder() {
       });
 
       // First character? Go through tutorial first
-      if (chars.length === 1) {
+      if (isFirstCharacter) {
         toast({ title: "Hero Created!", description: `${heroName} is ready. Beginning your journey...` });
         setLocation("/tutorial");
         return;
@@ -556,29 +591,107 @@ export default function CharacterBuilder() {
     Accessory2: { left: '83.5%', top: '66%',   width: '12%', height: '10.5%' },
   };
 
+  const handleUnequipSlot = async (slotName: keyof EquipmentSlots) => {
+    if (!activeCharacter?.equipment?.[slotName]) return;
+    const newEquipment = { ...(activeCharacter.equipment ?? {}), [slotName]: null };
+    const computed = panelEquipmentToModel3d(
+      activeCharacter.raceId,
+      activeCharacter.classId,
+      newEquipment,
+      (activeCharacter as Character & { model3d?: Record<string, unknown> }).model3d,
+    );
+    try {
+      const updated = await characterAPI.update(activeCharacter.id, {
+        equipment: newEquipment,
+        model3d: computed,
+      } as any);
+      patchActiveCharacter(updated);
+      toast({ title: "Unequipped", description: `${slotName} slot cleared` });
+    } catch {
+      toast({ title: "Unequip failed", variant: "destructive" });
+    }
+  };
+
+  const handleEquipFromStash = async (accountRowId: string, itemId: string) => {
+    if (!activeCharacter) return;
+    const itemDef = ITEMS.find((i) => i.id === itemId);
+    const slot = equipSlotTarget ?? itemToEquipSlot(itemId, itemDef);
+    if (!slot) {
+      toast({
+        title: "Cannot equip",
+        description: "This item does not map to an equipment slot.",
+        variant: "destructive",
+      });
+      return;
+    }
+    const newEquipment = { ...(activeCharacter.equipment ?? {}), [slot]: itemId };
+    const computed = panelEquipmentToModel3d(
+      activeCharacter.raceId,
+      activeCharacter.classId,
+      newEquipment,
+      (activeCharacter as Character & { model3d?: Record<string, unknown> }).model3d,
+    );
+    try {
+      const updated = await characterAPI.update(activeCharacter.id, {
+        equipment: newEquipment,
+        model3d: computed,
+      } as any);
+      await transferToCharacter(accountRowId, activeCharacter.id);
+      patchActiveCharacter(updated);
+      await refetchInventory();
+      setEquipSlotTarget(null);
+      toast({
+        title: "Equipped",
+        description: `${itemDef?.name || itemId} → ${slot}`,
+      });
+    } catch {
+      toast({ title: "Equip failed", variant: "destructive" });
+    }
+  };
+
+  const stashEquipables = useMemo(() => {
+    if (!activeCharacter) return [];
+    const rows = accountInventory.filter(
+      (row) => row.boundToCharacterId === null || row.boundToCharacterId === activeCharacter.id,
+    );
+    return rows.filter((row) => itemToEquipSlot(row.itemId, ITEMS.find((i) => i.id === row.itemId)));
+  }, [activeCharacter, accountInventory]);
+
   // Equipment Slot Helper - renders item icon at pre-defined position
   const renderEquipSlotOverlay = (slotName: keyof EquipmentSlots) => {
     const itemId = activeCharacter?.equipment?.[slotName];
     const item = itemId ? ITEMS.find(i => i.id === itemId) : null;
     const pos = EQUIP_SLOT_POSITIONS[slotName];
     if (!pos) return null;
-    
+    const iconSrc = item ? resolveItemImage(item) : null;
+    const isTarget = equipSlotTarget === slotName;
+
     return (
-      <div 
+      <div
         key={slotName}
-        className="absolute group cursor-pointer"
+        className={cn(
+          "absolute group cursor-pointer rounded transition-all",
+          isTarget && "ring-2 ring-cyan-400 ring-offset-1 ring-offset-black/80",
+        )}
         style={{ left: pos.left, top: pos.top, width: pos.width, height: pos.height }}
+        onClick={() => {
+          if (itemId) {
+            handleUnequipSlot(slotName);
+          } else {
+            setEquipSlotTarget(equipSlotTarget === slotName ? null : slotName);
+          }
+        }}
       >
-        {item && (
-          <img 
-            src={item.image} 
-            alt={item.name} 
-            className="w-full h-full object-contain p-0.5 drop-shadow-[0_0_4px_rgba(0,0,0,0.8)]" 
+        {item && iconSrc && (
+          <img
+            src={iconSrc}
+            alt={item.name}
+            className="w-full h-full object-contain p-0.5 drop-shadow-[0_0_4px_rgba(0,0,0,0.8)]"
+            onError={iconOnError}
           />
         )}
-        {/* Tooltip on hover */}
         <div className="absolute left-1/2 -translate-x-1/2 -bottom-5 text-[10px] text-amber-300 whitespace-nowrap bg-black/90 px-2 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity z-30 pointer-events-none border border-amber-900/50">
-          {item ? item.name : slotName}
+          {item ? `${item.name} (click to unequip)` : `${slotName} (click to equip)`}
         </div>
       </div>
     );
@@ -635,11 +748,56 @@ export default function CharacterBuilder() {
                 <div className="w-8 h-8 rounded-full bg-gradient-to-br from-amber-500 to-amber-700 flex items-center justify-center text-black font-bold text-sm">G</div>
                 <span className="font-cinzel text-amber-400 text-sm tracking-widest uppercase">Grudge Warlords</span>
               </div>
-              <span className="text-xs text-slate-500 font-mono">Character Roster</span>
+              <div className="flex items-center gap-2">
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-7 text-xs text-slate-400"
+                  onClick={handleRefreshAccount}
+                >
+                  <RefreshCw className="w-3 h-3 mr-1" /> Sync
+                </Button>
+                <span className="text-xs text-slate-500 font-mono">Character Hub</span>
+              </div>
+            </div>
+
+            <div className="absolute top-12 inset-x-0 z-20 px-4 md:px-6 space-y-2">
+              <CharacterProfessionHub
+                activeCharacter={activeCharacter}
+                onCharacterSelected={handleRefreshAccount}
+              />
+              <div className="flex flex-wrap items-center gap-2 rounded-lg border border-slate-800 bg-slate-950/80 px-3 py-2">
+                <span className="text-[10px] uppercase tracking-wider text-slate-500 mr-1">Codex</span>
+                <a href={`${WCS_ORIGIN}/recipes`} target="_blank" rel="noopener noreferrer">
+                  <Button size="sm" variant="outline" className="h-7 text-xs border-slate-700">
+                    <BookOpen className="w-3 h-3 mr-1" /> Recipes <ExternalLink className="w-3 h-3 ml-1 opacity-50" />
+                  </Button>
+                </a>
+                <a href={`${WCS_ORIGIN}/arsenal`} target="_blank" rel="noopener noreferrer">
+                  <Button size="sm" variant="outline" className="h-7 text-xs border-slate-700">
+                    <Sword className="w-3 h-3 mr-1" /> Arsenal <ExternalLink className="w-3 h-3 ml-1 opacity-50" />
+                  </Button>
+                </a>
+                <Link href="/professions">
+                  <Button size="sm" variant="outline" className="h-7 text-xs border-slate-700">
+                    <Hammer className="w-3 h-3 mr-1" /> Professions
+                  </Button>
+                </Link>
+                <Link href="/crafting">
+                  <Button size="sm" variant="outline" className="h-7 text-xs border-slate-700">
+                    <Package className="w-3 h-3 mr-1" /> Crafting
+                  </Button>
+                </Link>
+                <Link href="/island">
+                  <Button size="sm" variant="outline" className="h-7 text-xs border-slate-700">
+                    <MapPin className="w-3 h-3 mr-1" /> Home Island
+                  </Button>
+                </Link>
+              </div>
             </div>
             
             {/* Sidebar: Character List */}
-            <div className="w-full md:w-80 bg-black/40 border-r border-white/10 p-6 pt-14 overflow-y-auto">
+            <div className="w-full md:w-80 bg-black/40 border-r border-white/10 p-6 pt-52 overflow-y-auto">
               <div className="flex justify-between items-center mb-6">
                 <h2 className="text-xl font-cinzel font-bold text-amber-400">Roster</h2>
                 <div className="flex gap-2">
@@ -784,7 +942,7 @@ export default function CharacterBuilder() {
 
             {/* Main Content: Character Sheet */}
             {activeCharacter ? (
-              <div className="flex-1 p-8 pt-14 overflow-y-auto relative">
+              <div className="flex-1 p-8 pt-52 overflow-y-auto relative">
                  <div 
                   className="absolute inset-0 pointer-events-none z-0 opacity-10"
                   style={{ backgroundImage: `url(${assetUrl("/sprites/ui/PNG/character-panel.png")})`, backgroundSize: 'cover', backgroundPosition: 'center' }}
@@ -1292,6 +1450,53 @@ export default function CharacterBuilder() {
                             </div>
                           </div>
                         </div>
+
+                        <div className="mt-6 bg-slate-900/50 rounded-xl p-4 border border-slate-800">
+                          <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
+                            <div>
+                              <h3 className="text-sm font-cinzel text-emerald-400">Home Island</h3>
+                              <p className="text-xs text-slate-500">
+                                {homeIsland?.state.name || 'Procedural island tied to this account'}
+                              </p>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Link href="/island">
+                                <Button size="sm" variant="outline" className="h-7 text-xs border-slate-700">
+                                  <MapPin className="w-3 h-3 mr-1" /> Play Island
+                                </Button>
+                              </Link>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-7 text-xs border-slate-700"
+                                disabled={islandLoading}
+                                onClick={async () => {
+                                  if (!activeCharacter?.id) return;
+                                  setIslandLoading(true);
+                                  try {
+                                    const island = await generateCharacterIsland(activeCharacter.id);
+                                    setHomeIsland(island);
+                                    toast({ title: 'Island ready', description: island.state.name });
+                                  } catch {
+                                    toast({ title: 'Island generation failed', variant: 'destructive' });
+                                  } finally {
+                                    setIslandLoading(false);
+                                  }
+                                }}
+                              >
+                                {islandLoading ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <Sparkles className="w-3 h-3 mr-1" />}
+                                Generate
+                              </Button>
+                            </div>
+                          </div>
+                          {homeIsland ? (
+                            <HomeIslandPreview island={homeIsland} className="h-48" />
+                          ) : (
+                            <div className="h-48 rounded-lg border border-dashed border-slate-700 flex items-center justify-center text-slate-500 text-sm">
+                              {islandLoading ? 'Loading island...' : 'No island preview yet — generate or visit Home Island'}
+                            </div>
+                          )}
+                        </div>
                         </>
                       );
                     })()}
@@ -1306,8 +1511,7 @@ export default function CharacterBuilder() {
                         onSave={async (newAttributes) => {
                           try {
                             const updated = await characterAPI.update(activeCharacter.id, { attributes: newAttributes });
-                            setActiveCharacter(updated);
-                            setCharacters(prev => prev.map(c => c.id === updated.id ? updated : c));
+                            patchActiveCharacter(updated);
                           } catch (error) {
                             console.error("Failed to save attributes:", error);
                           }
@@ -1345,6 +1549,12 @@ export default function CharacterBuilder() {
                             />
                           </div>
                         </div>
+                        {equipSlotTarget && (
+                          <p className="text-center text-xs text-cyan-400">
+                            Select an item from Account Stash to equip <span className="font-bold">{equipSlotTarget}</span>
+                            <button className="ml-2 text-slate-500 hover:text-white" onClick={() => setEquipSlotTarget(null)}>Cancel</button>
+                          </p>
+                        )}
                         <div className="relative mx-auto max-w-[420px] shadow-2xl">
                           <img 
                             src={assetUrl(`/sprites/ui/PNG/equipment/${activeCharacter.raceId}.png`)}
@@ -1366,36 +1576,84 @@ export default function CharacterBuilder() {
                         </div>
                       </div>
 
-                      {/* Right: Inventory */}
-                      <div className="relative bg-slate-900/50 rounded-xl p-6 border border-slate-800 flex flex-col overflow-hidden">
-                        <div 
-                          className="absolute inset-0 pointer-events-none z-0 opacity-10"
-                          style={{ backgroundImage: `url(${assetUrl("/sprites/ui/PNG/inventory.png")})`, backgroundSize: 'cover', backgroundPosition: 'center' }}
-                        ></div>
-                        <div className="relative z-10 flex flex-col">
-                          <h3 className="text-lg font-cinzel text-amber-400 mb-1">Hero Inventory</h3>
-                          <p className="text-slate-500 text-xs mb-4">Items carried by {activeCharacter.name}</p>
-                          <div className="grid grid-cols-6 gap-2">
-                            {Array.from({ length: 24 }).map((_, i) => {
-                              const inventoryItem = activeCharacter.inventory?.[i];
-                              const item = inventoryItem ? ITEMS.find(it => it.id === inventoryItem.itemId) : null;
-                              return (
-                                <InventorySlot
-                                  key={i}
-                                  itemName={item?.name}
-                                  itemType={item?.type}
-                                  quantity={inventoryItem?.quantity}
-                                  imageUrl={item?.image}
-                                  tier={inventoryItem?.tier}
-                                  data-testid={`inventory-slot-${i}`}
-                                />
-                              );
-                            })}
-                          </div>
-                          {(!activeCharacter.inventory || activeCharacter.inventory.length === 0) && (
-                            <div className="text-center py-4 text-slate-500 text-sm">
-                              No items in inventory
+                      {/* Right: Inventory + Account Stash */}
+                      <div className="space-y-4">
+                        <div className="relative bg-slate-900/50 rounded-xl p-6 border border-slate-800 flex flex-col overflow-hidden">
+                          <div
+                            className="absolute inset-0 pointer-events-none z-0 opacity-10"
+                            style={{ backgroundImage: `url(${assetUrl("/sprites/ui/PNG/inventory.png")})`, backgroundSize: 'cover', backgroundPosition: 'center' }}
+                          />
+                          <div className="relative z-10 flex flex-col">
+                            <h3 className="text-lg font-cinzel text-amber-400 mb-1">Hero Inventory</h3>
+                            <p className="text-slate-500 text-xs mb-4">Items carried by {activeCharacter.name}</p>
+                            <div className="grid grid-cols-6 gap-2">
+                              {Array.from({ length: 24 }).map((_, i) => {
+                                const inventoryItem = activeCharacter.inventory?.[i];
+                                const item = inventoryItem ? ITEMS.find(it => it.id === inventoryItem.itemId) : null;
+                                return (
+                                  <InventorySlot
+                                    key={i}
+                                    itemName={item?.name}
+                                    itemType={item?.type}
+                                    quantity={inventoryItem?.quantity}
+                                    imageUrl={item ? resolveItemImage(item) : undefined}
+                                    tier={inventoryItem?.tier}
+                                    data-testid={`inventory-slot-${i}`}
+                                  />
+                                );
+                              })}
                             </div>
+                            {(!activeCharacter.inventory || activeCharacter.inventory.length === 0) && (
+                              <div className="text-center py-4 text-slate-500 text-sm">
+                                No items in inventory — craft gear on <Link href="/crafting" className="text-amber-400 hover:underline">Crafting</Link>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="bg-slate-900/50 rounded-xl p-6 border border-slate-800">
+                          <div className="flex items-center justify-between mb-3">
+                            <div>
+                              <h3 className="text-lg font-cinzel text-cyan-400">Account Stash</h3>
+                              <p className="text-slate-500 text-xs">
+                                Shared + character-bound items from crafting — click to equip
+                              </p>
+                            </div>
+                            <Badge variant="outline" className="border-slate-700 text-slate-300 text-[10px]">
+                              {stashEquipables.length} equipable
+                            </Badge>
+                          </div>
+                          {stashEquipables.length > 0 ? (
+                            <div className="grid grid-cols-4 sm:grid-cols-6 gap-2 max-h-64 overflow-y-auto">
+                              {stashEquipables.map((row) => {
+                                const item = ITEMS.find((i) => i.id === row.itemId);
+                                const slot = itemToEquipSlot(row.itemId, item);
+                                return (
+                                  <button
+                                    key={row.id}
+                                    type="button"
+                                    onClick={() => handleEquipFromStash(row.id, row.itemId)}
+                                    className="rounded-lg border border-slate-700 bg-black/30 p-1 hover:border-cyan-500/60 transition-colors"
+                                    title={item?.name || row.itemId}
+                                  >
+                                    <img
+                                      src={resolveIconUrl(item?.image, { category: item?.type, type: item?.type, name: item?.name }) || resolveItemImage(item || { id: row.itemId })}
+                                      alt={item?.name || row.itemId}
+                                      className="w-full aspect-square object-contain"
+                                      onError={iconOnError}
+                                    />
+                                    <div className="text-[9px] text-slate-400 truncate mt-0.5">{slot}</div>
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          ) : (
+                            <p className="text-sm text-slate-500 text-center py-6">
+                              No equipable items in stash. Craft weapons and armor via{' '}
+                              <Link href="/crafting" className="text-amber-400 hover:underline">ObjectStore Crafting</Link>
+                              {' '}or browse the{' '}
+                              <a href={`${WCS_ORIGIN}/recipes`} target="_blank" rel="noopener noreferrer" className="text-cyan-400 hover:underline">WCS Recipe Codex</a>.
+                            </p>
                           )}
                         </div>
                       </div>
@@ -1734,10 +1992,7 @@ export default function CharacterBuilder() {
                                               if (canSelect) {
                                                 const newSelectedSkills = { ...selectedSkills, [tier.level]: skill.id };
                                                 characterAPI.update(activeCharacter.id, { selectedSkills: newSelectedSkills })
-                                                  .then(updated => {
-                                                    setActiveCharacter(updated);
-                                                    setCharacters(prev => prev.map(c => c.id === updated.id ? updated : c));
-                                                  })
+                                                  .then(patchActiveCharacter)
                                                   .catch(err => console.error("Failed to save skill selection:", err));
                                               }
                                             }}
