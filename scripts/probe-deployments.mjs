@@ -11,10 +11,18 @@
  * that touches systemMap.ts or puter-registry.json.
  *
  *   node scripts/probe-deployments.mjs
+ *   node scripts/probe-deployments.mjs --truth   # also run ONE TRUTH fleet probes
  *
- * Exits 0 always; this is an informational probe, not a CI gate.
+ * Exits 0 always (informational); use `npm run probe:truth` as the CI gate.
  */
+import { execSync } from "node:child_process";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const ROOT = join(__dirname, "..");
 const TIMEOUT_MS = 8000;
+const runTruth = process.argv.includes("--truth");
 
 /** Hosts grouped by category. Edit this list when registering new deployments. */
 const TARGETS = [
@@ -107,6 +115,18 @@ async function main() {
   const ok = results.filter(r => r.status >= 200 && r.status < 400).length;
   const broken = results.filter(r => r.status === 0 || r.status >= 400).length;
   process.stdout.write(`\n${ok}/${results.length} OK, ${broken} broken/errored\n`);
+
+  if (runTruth) {
+    process.stdout.write("\n--- ONE TRUTH fleet probes (shared/fleet/truthProbes.ts) ---\n");
+    try {
+      execSync("npx tsx scripts/probe-truth-fleet.ts", {
+        cwd: ROOT,
+        stdio: "inherit",
+      });
+    } catch {
+      process.stdout.write("ONE TRUTH probes failed (see above). Run: npm run probe:truth\n");
+    }
+  }
 }
 
 main().catch(err => { console.error(err); process.exit(0); });

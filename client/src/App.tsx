@@ -77,6 +77,7 @@ import WeaponSkillsPage from "@/pages/weapon-skills";
 import WeaponMasteryPage from "@/pages/weapon-mastery";
 import TownPage from "@/pages/town";
 import GameCharacterPage from "@/pages/game-character";
+import SystemsPage from "@/pages/systems";
 
 function Router() {
   return (
@@ -147,6 +148,7 @@ function Router() {
       <Route path="/town" component={TownPage} />
       <Route path="/weaponskills" component={WeaponSkillsPage} />
       <Route path="/game/character" component={GameCharacterPage} />
+      <Route path="/systems" component={SystemsPage} />
       {/* Fallback to 404 */}
       <Route component={NotFound} />
     </Switch>
