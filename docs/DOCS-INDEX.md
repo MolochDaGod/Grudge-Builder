@@ -21,7 +21,7 @@ Organized entry point for APIs, UUID systems, and fleet integration.
 
 | System | Format | Doc |
 |--------|--------|-----|
-| **ICON-*** (UI images, 9,724 on CDN) | `ICON-XXXX-XXXX-XXXX` | [ObjectStore API & UUID Guide](../../ObjectStore/docs/API-AND-UUID-GUIDE.md) |
+| **ICON-*** (UI images, 9,724 on CDN) | `ICON-XXXX-XXXX-XXXX` | [Icon Library](https://info.grudge-studio.com/ICON_BROWSER.html) · [UUID Guide](../../ObjectStore/docs/API-AND-UUID-GUIDE.md) |
 | **Slot-tier item instances** | `helm-t1-0001-…` | [UUID_SYSTEM.md](./UUID_SYSTEM.md) |
 | **Player characters** | `char_*` | [API.md § Characters](./API.md) |
 | **HERO/EQIP/ITEM catalog** | `HERO-*`, `EQIP-*` | ObjectStore `master-registry.json` |
@@ -48,6 +48,7 @@ Organized entry point for APIs, UUID systems, and fleet integration.
 | Browse all JSON datasets | https://info.grudge-studio.com/docs |
 | API + UUID master guide | [ObjectStore/docs/API-AND-UUID-GUIDE.md](../../ObjectStore/docs/API-AND-UUID-GUIDE.md) |
 | Icon pipeline | [ObjectStore/docs/ICON-ASSET-LIBRARY.md](../../ObjectStore/docs/ICON-ASSET-LIBRARY.md) |
+| **Icon browser (search & copy)** | https://info.grudge-studio.com/ICON_BROWSER.html |
 | `assets-api.json` manifest | https://objectstore.grudge-studio.com/api/v1/assets-api.json |
 
 ---
