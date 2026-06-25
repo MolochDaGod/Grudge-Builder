@@ -28,10 +28,17 @@ export const SKETCHFAB_EVIL_MOUNTAIN_TRIAD = {
   author: "Jungle Jim",
   license: "CC-BY-4.0",
   peakCount: 3,
-  /** CDN + local fallback path */
+  /** CDN + local fallback path (combined triad) */
   modelPath: "/models/evil_rock_mountains_triad.glb",
   legacyModelPath: "/models/evil_rock_mountains_cave.glb",
 } as const;
+
+/** Per-peak GLBs split from triad (Mountain2, Mountain1, Mountain3+ladder). */
+export const MOUNTAIN_TRIAD_PEAK_MODEL_PATHS = [
+  "/models/evil_rock_mountain_peak_0.glb",
+  "/models/evil_rock_mountain_peak_1.glb",
+  "/models/evil_rock_mountain_peak_2.glb",
+] as const;
 
 export const HOME_ISLAND_ZONE_TYPES = [
   "mountain",
@@ -67,6 +74,8 @@ export interface MountainTriadSeed {
   dungeonId: string;
   modelUid: string;
   modelPath: string;
+  /** Per-peak CDN paths (preferred over combined triad GLB). */
+  peakModelPaths: string[];
   peakOffsetsM: Array<{ x: number; z: number }>;
 }
 
@@ -135,6 +144,7 @@ export function generateMountainTriadSeed(
     dungeonId: dungeon.id,
     modelUid: SKETCHFAB_EVIL_MOUNTAIN_TRIAD.uid,
     modelPath: SKETCHFAB_EVIL_MOUNTAIN_TRIAD.modelPath,
+    peakModelPaths: [...MOUNTAIN_TRIAD_PEAK_MODEL_PATHS],
     peakOffsetsM,
   };
 }

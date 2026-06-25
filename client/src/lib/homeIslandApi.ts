@@ -52,7 +52,15 @@ export interface HomeIslandState {
     dungeonId: string;
     modelUid: string;
     modelPath: string;
+    peakModelPaths?: string[];
     peakOffsetsM: Array<{ x: number; z: number }>;
+  };
+  rtsHeightmap?: {
+    resolution: number;
+    worldSizeM: number;
+    maxHeightM: number;
+    biome: string;
+    heightsBase64: string;
   };
   rtsExport?: {
     source: 'rts-grudge';

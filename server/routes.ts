@@ -1084,7 +1084,15 @@ export async function registerRoutes(
       dungeonId: z.string(),
       modelUid: z.string(),
       modelPath: z.string(),
+      peakModelPaths: z.array(z.string()).optional(),
       peakOffsetsM: z.array(z.object({ x: z.number(), z: z.number() })),
+    }).optional(),
+    rtsHeightmap: z.object({
+      resolution: z.number(),
+      worldSizeM: z.number(),
+      maxHeightM: z.number(),
+      biome: z.string(),
+      heightsBase64: z.string(),
     }).optional(),
   }).passthrough();
 
@@ -1131,6 +1139,7 @@ export async function registerRoutes(
       clearings: Array.isArray(state.clearings) ? state.clearings : [],
       animals: Array.isArray(state.animals) ? state.animals : sheep,
       mountainTriad: state.mountainTriad as Record<string, unknown> | undefined,
+      rtsHeightmap: state.rtsHeightmap as Record<string, unknown> | undefined,
       rtsExport: state.rtsExport as Record<string, unknown> | undefined,
       createdAt: (state.createdAt as number) || island.createdAt || Date.now(),
       lastUpdate: (state.lastUpdate as number) || island.updatedAt || Date.now(),
@@ -1430,7 +1439,7 @@ export async function registerRoutes(
   // RTS-Grudge → Warlords: server-authoritative full island state from procedural export
   app.post("/api/island/export-from-rts", async (req, res) => {
     try {
-      const { gridX, gridZ, seed, biome, appUrl } = req.body ?? {};
+      const { gridX, gridZ, seed, biome, appUrl, heightmap } = req.body ?? {};
       if (gridX === undefined || gridZ === undefined || seed === undefined) {
         return res.status(400).json({ error: "gridX, gridZ, and seed are required" });
       }
@@ -1440,11 +1449,26 @@ export async function registerRoutes(
       const island = await storage.getOrCreateHomeIsland(account.id);
 
       const base = generateIslandState(account.id, island.seed) as Record<string, unknown>;
+      const parsedHeightmap =
+        heightmap &&
+        typeof heightmap === "object" &&
+        typeof heightmap.heightsBase64 === "string" &&
+        typeof heightmap.resolution === "number"
+          ? {
+              resolution: Number(heightmap.resolution),
+              worldSizeM: Number(heightmap.worldSizeM ?? 200),
+              maxHeightM: Number(heightmap.maxHeightM ?? 12),
+              biome: String(heightmap.biome ?? biome ?? "temperate"),
+              heightsBase64: String(heightmap.heightsBase64),
+            }
+          : undefined;
+
       const merged = mergeRtsExportIntoIslandState(base as any, {
         gridX: Number(gridX),
         gridZ: Number(gridZ),
         seed: Number(seed),
         biome: String(biome ?? "temperate"),
+        heightmap: parsedHeightmap,
       });
 
       const exportState = {
@@ -1462,6 +1486,7 @@ export async function registerRoutes(
           exportedAt: Date.now(),
           appUrl: String(appUrl ?? "https://rts-grudge.vercel.app"),
         },
+        rtsHeightmap: parsedHeightmap ?? (merged as any).rtsHeightmap,
         lastUpdate: Date.now(),
       };
 

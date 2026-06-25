@@ -12,6 +12,11 @@ import {
   HOME_ISLAND_ZONE_TYPES,
   type MountainTriadSeed,
 } from '@shared/definitions/homeIslandSeed';
+import {
+  deriveCampPositionFromZones,
+  deriveTerrainZonesFromRtsHeightmap,
+  type RtsHeightmapPayload,
+} from '@shared/definitions/rtsTerrainBridge';
 
 /**
  * Seeded Random Number Generator
@@ -108,6 +113,7 @@ export interface IslandState {
   campPosition: { x: number; y: number };
   clearings: Array<{ x: number; y: number; radius: number }>;
   mountainTriad?: MountainTriadSeed;
+  rtsHeightmap?: RtsHeightmapPayload;
   stats: {
     nodeCount: number;
     animalCount: number;
@@ -498,15 +504,51 @@ export function generateIslandState(
   return islandState;
 }
 
-/** Merge RTS grid export metadata into a full canonical island state. */
+export interface RtsExportInput {
+  gridX: number;
+  gridZ: number;
+  seed: number;
+  biome: string;
+  heightmap?: RtsHeightmapPayload;
+}
+
+/** Merge RTS grid export + optional heightmap into canonical island state. */
 export function mergeRtsExportIntoIslandState(
   base: IslandState,
-  rts: { gridX: number; gridZ: number; seed: number; biome: string },
+  rts: RtsExportInput,
 ): IslandState {
   const mergedSeed = `${base.seed}_rts_${rts.gridX}_${rts.gridZ}_${rts.seed}`;
+  const mountainTriad = generateMountainTriadSeed(mergedSeed);
+
+  if (!rts.heightmap) {
+    return {
+      ...base,
+      mountainTriad,
+      lastUpdate: Date.now(),
+    };
+  }
+
+  const terrainZones = deriveTerrainZonesFromRtsHeightmap(rts.heightmap);
+  const campPosition = deriveCampPositionFromZones(terrainZones);
+  const clearings = terrainZones
+    .filter((z) => z.type === 'clearing')
+    .map((z) => ({
+      x: z.bounds.x + z.bounds.width / 2,
+      y: z.bounds.y + z.bounds.height / 2,
+      radius: Math.min(z.bounds.width, z.bounds.height) / 2,
+    }));
+
   return {
     ...base,
-    mountainTriad: generateMountainTriadSeed(mergedSeed),
+    terrainZones: assertAllHomeIslandZones(terrainZones),
+    campPosition,
+    clearings: clearings.length > 0 ? clearings : base.clearings,
+    mountainTriad,
+    rtsHeightmap: rts.heightmap,
+    stats: {
+      ...base.stats,
+      terrainZoneCount: terrainZones.length,
+    },
     lastUpdate: Date.now(),
   };
 }
