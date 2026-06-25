@@ -76,3 +76,8 @@ D:/*.ts
 scripts/pull-railway-db.mjs
 
 *.log
+
+# Playwright
+test-results/
+playwright-report/
+blob-report/
