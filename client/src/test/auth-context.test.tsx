@@ -21,6 +21,13 @@ vi.mock("@/lib/grudgeBackend", () => ({
   verifyToken: vi.fn(async () => ({ valid: false })),
 }));
 
+vi.mock("@/lib/grudgeFleet", () => ({
+  loginWithGrudgeId: vi.fn(),
+}));
+
+import { loginWithGrudgeId } from "@/lib/grudgeFleet";
+const mockLoginWithGrudgeId = vi.mocked(loginWithGrudgeId);
+
 // Re-import the mocked module for direct manipulation
 import * as backend from "@/lib/grudgeBackend";
 const mockBackend = vi.mocked(backend);
@@ -101,18 +108,13 @@ describe("AuthProvider", () => {
     expect(screen.getByTestId("user").textContent).toBe("TestHero");
   });
 
-  it("openLogin / closeLogin toggles the loginOpen flag", async () => {
+  it("openLogin redirects to Grudge ID SSO", async () => {
     const user = userEvent.setup();
     renderWithAuth();
     await act(async () => {});
 
-    expect(screen.getByTestId("login-open").textContent).toBe("false");
-
     await user.click(screen.getByTestId("open"));
-    expect(screen.getByTestId("login-open").textContent).toBe("true");
-
-    await user.click(screen.getByTestId("close"));
-    expect(screen.getByTestId("login-open").textContent).toBe("false");
+    expect(mockLoginWithGrudgeId).toHaveBeenCalledWith("/auth/callback");
   });
 
   it("handleLogout clears auth state and calls backend logout", async () => {

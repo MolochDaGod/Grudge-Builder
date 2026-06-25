@@ -26,7 +26,7 @@ export function registerFleetRoutes(app: Express) {
     const probes = [
       { id: "game-data", url: `${FLEET_URLS.gameData}/health` },
       { id: "assets", url: `${FLEET_URLS.assets}/` },
-      { id: "auth", url: `${FLEET_URLS.auth}/api/auth/page` },
+      { id: "auth", url: `${FLEET_URLS.gameData}/api/auth/verify` },
       { id: "objectstore", url: `${FLEET_URLS.objectStore}/master-items.json` },
     ];
 

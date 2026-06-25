@@ -11,7 +11,7 @@
     auth: 'https://id.grudge-studio.com',
     identityApi: 'https://api.grudge-studio.com',
     gameData: 'https://grudge-builder-production.up.railway.app',
-    objectStore: 'https://info.grudge-studio.com/api/v1',
+    objectStore: 'https://objectstore.grudge-studio.com/api/v1',
     assets: 'https://assets.grudge-studio.com',
   };
 

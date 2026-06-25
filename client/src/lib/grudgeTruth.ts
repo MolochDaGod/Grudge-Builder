@@ -6,6 +6,7 @@
 import { fleetApi } from './grudgeFleet';
 import { apiUrl } from './assetConfig';
 import { ASSETS_CDN, GAME_DATA_API, AUTH_GATEWAY, OBJECTSTORE } from './grudgeConfig';
+import { CANONICAL_OBJECT_STORE_API, DEPRECATED_OBJECT_STORE_HOSTS } from './objectStoreUrl';
 
 export interface TruthProbe {
   id: string;
@@ -21,8 +22,8 @@ export const GRUDGE_TRUTH_LAYERS = {
   identity: { label: 'Grudge ID', url: AUTH_GATEWAY },
   gameData: { label: 'Game state (Railway)', url: GAME_DATA_API },
   assets: { label: 'Binary CDN', url: ASSETS_CDN },
-  objectStore: { label: 'JSON data', url: OBJECTSTORE.replace('/api/v1', '') },
-  guide: { label: 'Warlords guide', url: 'https://molochdagod.github.io/ObjectStore/grudge-guide.html' },
+  objectStore: { label: 'JSON data', url: CANONICAL_OBJECT_STORE_API.replace('/api/v1', '') },
+  guide: { label: 'Warlords guide', url: 'https://info.grudge-studio.com/grudge-guide.html' },
 } as const;
 
 export function buildTruthProbes(): TruthProbe[] {
@@ -31,7 +32,7 @@ export function buildTruthProbes(): TruthProbe[] {
   return [
     { id: 'fleet-manifest', label: 'Fleet manifest', url: fleetApi('/api/fleet/manifest'), role: 'game-data' },
     { id: 'supabase-health', label: 'Supabase health', url: fleetApi('/api/supabase/health'), role: 'game-data' },
-    { id: 'auth-page', label: 'Grudge ID auth page', url: `${AUTH_GATEWAY}/api/auth/page`, role: 'identity' },
+    { id: 'auth-verify', label: 'Grudge ID auth API', url: fleetApi('/api/auth/verify'), role: 'identity' },
     { id: 'game-characters', label: 'Characters API', url: fleetApi('/api/characters'), role: 'game-data' },
     { id: 'game-account', label: 'Account API', url: fleetApi('/api/account'), role: 'game-data' },
     { id: 'os-items', label: 'master-items.json', url: apiUrl('/master-items.json'), role: 'objectstore' },
@@ -42,20 +43,34 @@ export function buildTruthProbes(): TruthProbe[] {
   ];
 }
 
+function isDeprecatedDataUrl(url: string): boolean {
+  return DEPRECATED_OBJECT_STORE_HOSTS.some((h) => url.includes(h));
+}
+
 export async function probeTruthEndpoint(probe: TruthProbe): Promise<TruthProbe> {
   try {
-    const method = probe.role === 'game-data' ? 'GET' : 'HEAD';
+    const method = probe.role === 'game-data' || probe.role === 'identity' ? 'GET' : 'HEAD';
     const res = await fetch(probe.url, {
       method,
-      headers: probe.role === 'game-data' ? { Accept: 'application/json' } : undefined,
+      headers:
+        probe.role === 'game-data' || probe.role === 'identity'
+          ? { Accept: 'application/json' }
+          : undefined,
     });
     const contentType = res.headers.get('content-type') || '';
-    const htmlLeak = contentType.includes('text/html') && probe.role !== 'assets';
+    const htmlLeak =
+      contentType.includes('text/html') &&
+      (probe.role === 'objectstore' || probe.role === 'identity');
+    const deprecated = isDeprecatedDataUrl(probe.url);
     return {
       ...probe,
-      ok: res.ok && !htmlLeak,
+      ok: res.ok && !htmlLeak && !deprecated,
       status: res.status,
-      detail: htmlLeak ? 'HTML leak (split-brain proxy)' : contentType.split(';')[0],
+      detail: deprecated
+        ? 'deprecated GitHub Pages host'
+        : htmlLeak
+          ? 'HTML leak (split-brain proxy)'
+          : contentType.split(';')[0],
     };
   } catch (e: any) {
     return { ...probe, ok: false, detail: e?.message || 'unreachable' };
@@ -70,10 +85,20 @@ export async function runTruthAudit(): Promise<{
   const probes = await Promise.all(buildTruthProbes().map(probeTruthEndpoint));
   const splitBrain: string[] = [];
   for (const p of probes) {
-    if (!p.ok) continue;
-    if (p.detail?.includes('html')) splitBrain.push(`${p.label}: routing to frontend, not API`);
-    if (p.url.includes('molochdagod.github.io') && p.role !== 'guide') {
+    if (p.detail?.includes('deprecated')) {
       splitBrain.push(`${p.label}: still on deprecated GitHub Pages`);
+    }
+    if (p.detail?.includes('html')) {
+      splitBrain.push(`${p.label}: routing to frontend, not API`);
+    }
+    if (
+      p.role === 'objectstore' &&
+      p.ok &&
+      !p.url.includes('/api/objectstore/') &&
+      !p.url.startsWith(CANONICAL_OBJECT_STORE_API) &&
+      !p.url.startsWith(OBJECTSTORE)
+    ) {
+      splitBrain.push(`${p.label}: not using canonical objectstore host`);
     }
   }
   const ok = probes.filter((p) => p.ok).length;

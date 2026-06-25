@@ -19,6 +19,7 @@ import {
   type GrudgeUser,
   type GrudgeSession,
 } from "@/lib/grudgeBackend";
+import { loginWithGrudgeId } from "@/lib/grudgeFleet";
 
 interface AuthState {
   isAuthenticated: boolean;
@@ -51,7 +52,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     refreshAuth();
   }, [refreshAuth]);
 
-  const openLogin = useCallback(() => setLoginOpen(true), []);
+  /** ONE TRUTH: redirect to id.grudge-studio.com SSO (not in-page LoginModal). */
+  const openLogin = useCallback(() => {
+    loginWithGrudgeId("/auth/callback");
+  }, []);
   const closeLogin = useCallback(() => setLoginOpen(false), []);
 
   const handleLogout = useCallback(() => {
