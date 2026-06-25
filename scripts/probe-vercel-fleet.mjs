@@ -16,6 +16,8 @@ const TARGETS = [
   { project: "hero-commander-rts", url: "https://play.grudge-studio.com" },
   { project: "hero-rts", url: "https://hero-rts-grudgenexus.vercel.app" },
   { project: "rts-grudge", url: "https://rts-grudge.vercel.app" },
+  { project: "rts-grudge-forge", url: "https://rts-grudge.vercel.app/forge/" },
+  { project: "studio-forge", url: "https://forge.grudge-studio.com" },
   { project: "grudge-arena", url: "https://grudge-arena.vercel.app" },
   { project: "grim-armada-web", url: "https://grim-armada-web.vercel.app" },
   { project: "dungeon-crawler-quest", url: "https://dcq.grudge-studio.com" },
