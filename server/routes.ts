@@ -21,7 +21,11 @@ import { getSheetsClient, isConfigured, SHEET_IDS, readSheet, getCachedData, set
 import { exportFoodsToSheet, generateFoodRows } from "./sheetsExport";
 import { detectSpriteType, SPRITE_TYPES } from "@shared/definitions/spriteTypes";
 import { getClassStartingGear } from "@shared/definitions/tier0Items";
-import { generateIslandState, validateIslandAssets } from "./utilities/islandGeneration";
+import {
+  generateIslandState,
+  mergeRtsExportIntoIslandState,
+  validateIslandAssets,
+} from "./utilities/islandGeneration";
 import { mapStudioProjectToIslandState } from "./utilities/studioProjectMapper";
 import { CrossmintWalletService } from "./services/crossmintWallet";
 
@@ -1067,6 +1071,21 @@ export async function registerRoutes(
       exportedAt: z.number(),
       appUrl: z.string(),
     }).optional(),
+    terrainZones: z.array(z.unknown()).optional(),
+    campPosition: z.object({ x: z.number(), y: z.number() }).optional(),
+    clearings: z.array(z.unknown()).optional(),
+    animals: z.array(z.unknown()).optional(),
+    mountainTriad: z.object({
+      secretPeakIndex: z.union([z.literal(0), z.literal(1), z.literal(2)]),
+      anchorPercent: z.object({ x: z.number(), y: z.number() }),
+      mountainScaleM: z.number(),
+      entranceHeightM: z.number(),
+      islandWorldSizeM: z.number(),
+      dungeonId: z.string(),
+      modelUid: z.string(),
+      modelPath: z.string(),
+      peakOffsetsM: z.array(z.object({ x: z.number(), z: z.number() })),
+    }).optional(),
   }).passthrough();
 
   const islandMetadataSchema = z.object({
@@ -1093,14 +1112,26 @@ export async function registerRoutes(
       ? rawMapStyle as typeof validStyles[number] 
       : 'iron';
     
+    const sheep = Array.isArray(state.sheep)
+      ? state.sheep
+      : Array.isArray(state.animals)
+        ? state.animals
+        : [];
+
     return {
       id: (state.id as string) || island.seed || island.id,
       mapStyle,
       mapImageUrl: (state.mapImageUrl as string) || island.mapImageUrl || undefined,
       nodes: Array.isArray(state.nodes) ? state.nodes : [],
-      sheep: Array.isArray(state.sheep) ? state.sheep : [],
+      sheep,
       skinningNodes: Array.isArray(state.skinningNodes) ? state.skinningNodes : [],
       assignedHeroes: (state.assignedHeroes as Record<string, string>) || {},
+      terrainZones: Array.isArray(state.terrainZones) ? state.terrainZones : [],
+      campPosition: (state.campPosition as { x: number; y: number }) || undefined,
+      clearings: Array.isArray(state.clearings) ? state.clearings : [],
+      animals: Array.isArray(state.animals) ? state.animals : sheep,
+      mountainTriad: state.mountainTriad as Record<string, unknown> | undefined,
+      rtsExport: state.rtsExport as Record<string, unknown> | undefined,
       createdAt: (state.createdAt as number) || island.createdAt || Date.now(),
       lastUpdate: (state.lastUpdate as number) || island.updatedAt || Date.now(),
     };
@@ -1393,6 +1424,65 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Error updating island state:", error);
       res.status(500).json({ error: "Failed to update island state" });
+    }
+  });
+
+  // RTS-Grudge → Warlords: server-authoritative full island state from procedural export
+  app.post("/api/island/export-from-rts", async (req, res) => {
+    try {
+      const { gridX, gridZ, seed, biome, appUrl } = req.body ?? {};
+      if (gridX === undefined || gridZ === undefined || seed === undefined) {
+        return res.status(400).json({ error: "gridX, gridZ, and seed are required" });
+      }
+
+      const userId = getUserId(req);
+      const account = await storage.getOrCreateAccountForUser(userId);
+      const island = await storage.getOrCreateHomeIsland(account.id);
+
+      const base = generateIslandState(account.id, island.seed) as Record<string, unknown>;
+      const merged = mergeRtsExportIntoIslandState(base as any, {
+        gridX: Number(gridX),
+        gridZ: Number(gridZ),
+        seed: Number(seed),
+        biome: String(biome ?? "temperate"),
+      });
+
+      const exportState = {
+        ...merged,
+        id: island.seed || island.id,
+        sheep: merged.animals,
+        assignedHeroes: (island.state as any)?.assignedHeroes ?? {},
+        skinningNodes: (island.state as any)?.skinningNodes ?? [],
+        rtsExport: {
+          source: "rts-grudge" as const,
+          gridX: Number(gridX),
+          gridZ: Number(gridZ),
+          seed: Number(seed),
+          biome: String(biome ?? "temperate"),
+          exportedAt: Date.now(),
+          appUrl: String(appUrl ?? "https://rts-grudge.vercel.app"),
+        },
+        lastUpdate: Date.now(),
+      };
+
+      const parseResult = islandStateSchema.safeParse(exportState);
+      if (!parseResult.success) {
+        return res.status(400).json({
+          error: "Invalid merged island state",
+          details: parseResult.error.flatten(),
+        });
+      }
+
+      const updated = await storage.updateIslandState(account.id, parseResult.data);
+      res.json({
+        success: true,
+        homeIslandId: island.id,
+        island: updated,
+        state: normalizeIslandState(updated),
+      });
+    } catch (error) {
+      console.error("Error exporting island from RTS:", error);
+      res.status(500).json({ error: "Failed to export island from RTS" });
     }
   });
 

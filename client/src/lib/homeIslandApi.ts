@@ -43,6 +43,26 @@ export interface HomeIslandState {
     terrainZoneCount?: number;
     resourceBreakdown?: Record<string, number>;
   };
+  mountainTriad?: {
+    secretPeakIndex: 0 | 1 | 2;
+    anchorPercent: { x: number; y: number };
+    mountainScaleM: number;
+    entranceHeightM: number;
+    islandWorldSizeM: number;
+    dungeonId: string;
+    modelUid: string;
+    modelPath: string;
+    peakOffsetsM: Array<{ x: number; z: number }>;
+  };
+  rtsExport?: {
+    source: 'rts-grudge';
+    gridX: number;
+    gridZ: number;
+    seed: number;
+    biome: string;
+    exportedAt: number;
+    appUrl: string;
+  };
   createdAt: number;
   lastUpdate: number;
 }
@@ -160,6 +180,8 @@ export function normalizeHomeIslandResponse(raw: any): HomeIslandDto {
       : undefined,
     clearings,
     stats: sourceState?.stats,
+    mountainTriad: sourceState?.mountainTriad,
+    rtsExport: sourceState?.rtsExport,
     createdAt: Number(sourceState?.createdAt ?? dto?.createdAt ?? Date.now()),
     lastUpdate: Number(sourceState?.lastUpdate ?? dto?.updatedAt ?? dto?.createdAt ?? Date.now()),
   };

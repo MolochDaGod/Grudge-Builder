@@ -738,7 +738,7 @@ export const DUNGEON_DEFINITIONS: DungeonDefinition[] = [
     minLevel: 1, maxPlayers: 4, floors: 1, bossId: "broodmother_crab", bossName: "Broodmother Chelura", bossHp: 300,
     enemyTypes: ["shore_crab", "sand_lurker", "tide_crawler"],
     lootTheme: "mixed", allowedSectors: ["NW", "W", "CENTER", "SW"], factionAffinity: null,
-    entranceModel: "/models/evil_rock_mountains_cave.glb",
+    entranceModel: "/models/evil_rock_mountains_triad.glb",
   },
   {
     id: "cave_bandits", type: "cave", name: "Smuggler's Grotto",
@@ -746,7 +746,7 @@ export const DUNGEON_DEFINITIONS: DungeonDefinition[] = [
     minLevel: 3, maxPlayers: 4, floors: 2, bossId: "smuggler_captain", bossName: "Captain Blacktide", bossHp: 500,
     enemyTypes: ["pirate_thug", "cutlass_raider", "powder_monkey"],
     lootTheme: "gold", allowedSectors: ["CENTER", "E", "W"], factionAffinity: null,
-    entranceModel: "/models/evil_rock_mountains_cave.glb",
+    entranceModel: "/models/evil_rock_mountains_triad.glb",
   },
   // ── Ruins tier (mid, levels 5-10) ─────────────────────────────
   {
@@ -755,7 +755,7 @@ export const DUNGEON_DEFINITIONS: DungeonDefinition[] = [
     minLevel: 5, maxPlayers: 4, floors: 3, bossId: "undead_general", bossName: "General Aldric the Fallen", bossHp: 800,
     enemyTypes: ["undead_soldier", "corrupted_knight", "ghost_archer"],
     lootTheme: "armor", allowedSectors: ["N", "NW", "W"], factionAffinity: "crusade",
-    entranceModel: "/models/evil_rock_mountains_cave.glb",
+    entranceModel: "/models/evil_rock_mountains_triad.glb",
   },
   {
     id: "ruins_legion", type: "ruins", name: "Ash Forge",
@@ -763,7 +763,7 @@ export const DUNGEON_DEFINITIONS: DungeonDefinition[] = [
     minLevel: 7, maxPlayers: 4, floors: 3, bossId: "forgemaster", bossName: "Forgemaster Molkoth", bossHp: 1200,
     enemyTypes: ["ash_sorcerer", "lava_golem", "ember_hound", "slag_warrior"],
     lootTheme: "weapons", allowedSectors: ["S", "SW", "SE"], factionAffinity: "legion",
-    entranceModel: "/models/evil_rock_mountains_cave.glb",
+    entranceModel: "/models/evil_rock_mountains_triad.glb",
   },
   // ── Vault tier (hard, levels 10-15) ────────────────────────────
   {
@@ -772,7 +772,7 @@ export const DUNGEON_DEFINITIONS: DungeonDefinition[] = [
     minLevel: 10, maxPlayers: 4, floors: 4, bossId: "memory_warden", bossName: "Warden of Lost Thoughts", bossHp: 2000,
     enemyTypes: ["crystal_spider", "echo_wraith", "memory_golem", "thought_parasite"],
     lootTheme: "relics", allowedSectors: ["N", "NE"], factionAffinity: "fabled",
-    entranceModel: "/models/evil_rock_mountains_cave.glb",
+    entranceModel: "/models/evil_rock_mountains_triad.glb",
   },
   {
     id: "vault_madra", type: "vault", name: "Madra's Womb",
@@ -780,7 +780,7 @@ export const DUNGEON_DEFINITIONS: DungeonDefinition[] = [
     minLevel: 12, maxPlayers: 4, floors: 5, bossId: "chaos_spawn", bossName: "The Unborn", bossHp: 3000,
     enemyTypes: ["void_wraith", "chaos_imp", "entropy_beast", "flesh_horror"],
     lootTheme: "relics", allowedSectors: ["S", "SE"], factionAffinity: "legion",
-    entranceModel: "/models/evil_rock_mountains_cave.glb",
+    entranceModel: "/models/evil_rock_mountains_triad.glb",
   },
   // ── Abyss tier (endgame, levels 15-20) ─────────────────────────
   {
@@ -789,7 +789,7 @@ export const DUNGEON_DEFINITIONS: DungeonDefinition[] = [
     minLevel: 15, maxPlayers: 4, floors: 7, bossId: "void_king", bossName: "Xul'tharak, Void King", bossHp: 5000,
     enemyTypes: ["void_wraith", "reality_shard", "time_echo", "entropy_titan"],
     lootTheme: "relics", allowedSectors: ["SE"], factionAffinity: null,
-    entranceModel: "/models/evil_rock_mountains_cave.glb",
+    entranceModel: "/models/evil_rock_mountains_triad.glb",
   },
 ];
 

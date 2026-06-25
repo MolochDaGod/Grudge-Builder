@@ -1,8 +1,8 @@
 /**
- * EvilMountainTriad — three evil peaks; the dungeon mouth hides behind one (seed-picked).
+ * EvilMountainTriad — three Sketchfab evil peaks; dungeon mouth hides behind one (seed-picked).
  *
- * Players approach the mountain ring from the island interior. Only the rear face
- * of the secret peak reveals the cave portal — the other two are decoys.
+ * Model: Jungle Jim — "3 Evil Rock Mountains with Cave (Stylized)" (skfb.ly/pK9V9)
+ * Scale: triad spans 10% of home island world size; cave mouth ≈ 3m tall.
  */
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
@@ -10,15 +10,23 @@ import { getTerrainHeightAt, type BiomeType } from '../terrain/IslandTerrainGene
 import { assetUrl } from '@/lib/assetConfig';
 import { CavePortal3D, type PortalData } from './CavePortal3D';
 import { DUNGEON_DEFINITIONS, type DungeonDefinition } from '@shared/definitions/lore';
+import {
+  SKETCHFAB_EVIL_MOUNTAIN_TRIAD,
+  HOME_ISLAND_WORLD_SIZE_M,
+  anchorPercentToWorld,
+  computeGlbTriadScale,
+  generateMountainTriadSeed,
+  pickHomeIslandDungeonFromSeed,
+  type MountainTriadSeed,
+} from '@shared/definitions/homeIslandSeed';
 
-const EVIL_MOUNTAIN_MODEL = assetUrl('/models/evil_rock_mountains_cave.glb');
-const MOUNTAIN_SPACING = 55;
-const MOUNTAIN_BACK_OFFSET = 22;
 const CAVE_DISCOVER_RADIUS = 32;
 const TRIAD_APPROACH_RADIUS = 120;
 
 export interface EvilMountainTriadConfig {
   seed: string;
+  /** Persisted triad from Railway; regenerated from seed when absent */
+  mountainTriad?: MountainTriadSeed;
   terrainMesh: THREE.Mesh;
   biomeMap: BiomeType[][];
   gridW: number;
@@ -32,7 +40,6 @@ export interface EvilMountainTriadResult {
   group: THREE.Group;
   secretIndex: number;
   anchor: THREE.Vector3;
-  /** World-space cave mouth where the portal sits (behind the secret peak). */
   caveMouthPos: THREE.Vector3;
   portal: CavePortal3D;
   dungeon: DungeonDefinition;
@@ -56,7 +63,7 @@ function makePrng(seed: string): () => number {
   };
 }
 
-/** Find the rock-biome centroid in the northern mountain belt. */
+/** Find the rock-biome centroid in the northern mountain belt (fallback anchor). */
 function findMountainAnchor(
   biomeMap: BiomeType[][],
   gridW: number,
@@ -71,7 +78,6 @@ function findMountainAnchor(
   for (let gy = 0; gy < gridH; gy++) {
     for (let gx = 0; gx < gridW; gx++) {
       if (biomeMap[gy]?.[gx] !== 'rock') continue;
-      // Prefer northern highlands (negative Z = north on our terrain)
       if (gy > gridH * 0.55) continue;
       const wx = (gx / (gridW - 1) - 0.5) * terrainSize;
       const wz = (gy / (gridH - 1) - 0.5) * terrainSize;
@@ -82,7 +88,6 @@ function findMountainAnchor(
   }
 
   if (count < 8) {
-    // Fallback: north ridge
     return new THREE.Vector3(
       (rng() - 0.5) * terrainSize * 0.15,
       0,
@@ -93,51 +98,22 @@ function findMountainAnchor(
   return new THREE.Vector3(sumX / count, 0, sumZ / count);
 }
 
-function createEvilRockMesh(scale: number, rng: () => number): THREE.Group {
-  const group = new THREE.Group();
-  const mat = new THREE.MeshStandardMaterial({
-    color: 0x2a2430,
-    roughness: 0.92,
-    metalness: 0.05,
-    emissive: new THREE.Color(0x1a0818),
-    emissiveIntensity: 0.15,
-  });
-
-  const layers = 4 + Math.floor(rng() * 3);
-  for (let i = 0; i < layers; i++) {
-    const r = (1.2 - i * 0.18) * scale * (0.85 + rng() * 0.3);
-    const h = (2.5 + rng() * 2) * scale;
-    const geo = new THREE.ConeGeometry(r, h, 5 + Math.floor(rng() * 4));
-    const mesh = new THREE.Mesh(geo, mat);
-    mesh.position.set(
-      (rng() - 0.5) * scale * 1.2,
-      h * 0.5 + i * scale * 0.4,
-      (rng() - 0.5) * scale * 1.2,
-    );
-    mesh.rotation.y = rng() * Math.PI * 2;
-    mesh.castShadow = true;
-    mesh.receiveShadow = true;
-    group.add(mesh);
-  }
-
-  // Evil glow cracks
-  const crackMat = new THREE.MeshBasicMaterial({
-    color: 0x6622aa,
-    transparent: true,
-    opacity: 0.35,
-  });
-  const crack = new THREE.Mesh(new THREE.PlaneGeometry(scale * 1.5, scale * 3), crackMat);
-  crack.position.set(0, scale * 2, scale * 0.8);
-  crack.rotation.x = -0.3;
-  group.add(crack);
-
-  return group;
+function resolveTriadSeed(config: EvilMountainTriadConfig, terrainSize: number): MountainTriadSeed {
+  return config.mountainTriad ?? generateMountainTriadSeed(config.seed, terrainSize);
 }
 
-function pickHomeIslandDungeon(seed: string): DungeonDefinition {
-  const eligible = DUNGEON_DEFINITIONS.filter((d) => d.type === 'cave' || d.type === 'ruins');
-  const idx = hashSeed(`${seed}_home_dungeon`) % eligible.length;
-  return eligible[idx] ?? DUNGEON_DEFINITIONS[0];
+function scaleTriadModel(
+  root: THREE.Object3D,
+  mountainScaleM: number,
+  entranceHeightM: number,
+): void {
+  const box = new THREE.Box3().setFromObject(root);
+  const size = box.getSize(new THREE.Vector3());
+  const scale = computeGlbTriadScale(size.y, size.x, mountainScaleM, entranceHeightM);
+  root.scale.setScalar(scale);
+  box.setFromObject(root);
+  const center = box.getCenter(new THREE.Vector3());
+  root.position.sub(center);
 }
 
 /**
@@ -147,82 +123,71 @@ export async function createEvilMountainTriad(
   scene: THREE.Scene,
   config: EvilMountainTriadConfig,
 ): Promise<EvilMountainTriadResult | null> {
-  const terrainSize = config.terrainSize ?? 1024;
+  const terrainSize = config.terrainSize ?? HOME_ISLAND_WORLD_SIZE_M;
+  const triadSeed = resolveTriadSeed(config, terrainSize);
   const rng = makePrng(`${config.seed}_evil_triad`);
-  const anchor2d = findMountainAnchor(
-    config.biomeMap,
-    config.gridW,
-    config.gridH,
-    terrainSize,
-    rng,
-  );
+
+  const anchor2d = config.mountainTriad
+    ? anchorPercentToWorld(triadSeed.anchorPercent, terrainSize)
+    : (() => {
+        const a = findMountainAnchor(config.biomeMap, config.gridW, config.gridH, terrainSize, rng);
+        return { x: a.x, z: a.z };
+      })();
 
   const groundY = getTerrainHeightAt(config.terrainMesh, anchor2d.x, anchor2d.z);
   if (groundY === null || groundY < -1) return null;
 
   const anchor = new THREE.Vector3(anchor2d.x, groundY, anchor2d.z);
-  const secretIndex = hashSeed(`${config.seed}_secret_peak`) % 3;
-  const dungeon = config.dungeon ?? pickHomeIslandDungeon(config.seed);
+  const secretIndex = triadSeed.secretPeakIndex;
+  const dungeon =
+    config.dungeon ??
+    DUNGEON_DEFINITIONS.find((d) => d.id === triadSeed.dungeonId) ??
+    pickHomeIslandDungeonFromSeed(config.seed);
 
   const group = new THREE.Group();
   group.name = 'evil_mountain_triad';
 
-  // Triad faces south (toward island center / spawn)
   const facingYaw = Math.atan2(-anchor.x, -anchor.z);
-  const positions: THREE.Vector3[] = [
-    new THREE.Vector3(-MOUNTAIN_SPACING, 0, 0),
-    new THREE.Vector3(0, 0, 0),
-    new THREE.Vector3(MOUNTAIN_SPACING, 0, 0),
-  ];
+  const modelUrl = assetUrl(triadSeed.modelPath || SKETCHFAB_EVIL_MOUNTAIN_TRIAD.modelPath);
 
   const loader = new GLTFLoader();
-  let caveGlb: THREE.Object3D | null = null;
+  let triadGlb: THREE.Object3D | null = null;
   try {
-    const gltf = await loader.loadAsync(EVIL_MOUNTAIN_MODEL);
-    caveGlb = gltf.scene;
+    const gltf = await loader.loadAsync(modelUrl);
+    triadGlb = gltf.scene;
+    scaleTriadModel(triadGlb, triadSeed.mountainScaleM, triadSeed.entranceHeightM);
+    triadGlb.position.copy(anchor);
+    triadGlb.rotation.y = facingYaw;
+    triadGlb.traverse((c) => {
+      if ((c as THREE.Mesh).isMesh) {
+        (c as THREE.Mesh).castShadow = true;
+        (c as THREE.Mesh).receiveShadow = true;
+      }
+    });
+    group.add(triadGlb);
   } catch {
-    console.warn('[EvilMountainTriad] GLB not found, using procedural peaks only');
-  }
-
-  for (let i = 0; i < 3; i++) {
-    const local = positions[i].clone();
-    const rot = new THREE.Euler(0, facingYaw, 0);
-    local.applyEuler(rot);
-    local.add(anchor);
-
-    const peakY = getTerrainHeightAt(config.terrainMesh, local.x, local.z) ?? groundY;
-    const peak = createEvilRockMesh(5 + rng() * 2, rng);
-    peak.position.set(local.x, peakY, local.z);
-    peak.rotation.y = facingYaw + (rng() - 0.5) * 0.4;
-    peak.userData = { peakIndex: i, isSecret: i === secretIndex };
-    group.add(peak);
-
-    // Secret peak: place the GLB cave entrance on its BACK face (away from spawn)
-    if (i === secretIndex && caveGlb) {
-      const cave = caveGlb.clone(true);
-      cave.scale.setScalar(0.09);
-      const back = new THREE.Vector3(0, 0, -MOUNTAIN_BACK_OFFSET);
-      back.applyEuler(rot);
-      back.add(local);
-      const caveY = getTerrainHeightAt(config.terrainMesh, back.x, back.z) ?? peakY;
-      cave.position.set(back.x, caveY, back.z);
-      cave.rotation.y = facingYaw + Math.PI;
-      cave.traverse((c) => {
-        if ((c as THREE.Mesh).isMesh) {
-          (c as THREE.Mesh).castShadow = true;
-          (c as THREE.Mesh).receiveShadow = true;
-        }
-      });
-      group.add(cave);
+    console.warn('[EvilMountainTriad] Sketchfab triad GLB not found — procedural fallback');
+    for (let i = 0; i < 3; i++) {
+      const offset = triadSeed.peakOffsetsM[i] ?? { x: (i - 1) * 55, z: 0 };
+      const local = new THREE.Vector3(offset.x, 0, offset.z);
+      local.applyEuler(new THREE.Euler(0, facingYaw, 0));
+      local.add(anchor);
+      const peakY = getTerrainHeightAt(config.terrainMesh, local.x, local.z) ?? groundY;
+      const peak = new THREE.Mesh(
+        new THREE.ConeGeometry(triadSeed.mountainScaleM * 0.08, triadSeed.mountainScaleM * 0.35, 6),
+        new THREE.MeshStandardMaterial({ color: 0x2a2430, roughness: 0.9 }),
+      );
+      peak.position.set(local.x, peakY + triadSeed.mountainScaleM * 0.17, local.z);
+      peak.userData = { peakIndex: i, isSecret: i === secretIndex };
+      group.add(peak);
     }
   }
 
-  // Portal swirl sits in the cave mouth (behind secret peak)
-  const secretLocal = positions[secretIndex].clone();
-  secretLocal.z -= MOUNTAIN_BACK_OFFSET;
-  secretLocal.applyEuler(new THREE.Euler(0, facingYaw, 0));
-  secretLocal.add(anchor);
-  const portalY = getTerrainHeightAt(config.terrainMesh, secretLocal.x, secretLocal.z) ?? groundY;
+  const secretOffset = triadSeed.peakOffsetsM[secretIndex] ?? { x: 0, z: 0 };
+  const mouthLocal = new THREE.Vector3(secretOffset.x, 0, secretOffset.z - triadSeed.mountainScaleM * 0.12);
+  mouthLocal.applyEuler(new THREE.Euler(0, facingYaw, 0));
+  mouthLocal.add(anchor);
+  const portalY = getTerrainHeightAt(config.terrainMesh, mouthLocal.x, mouthLocal.z) ?? groundY;
 
   const portalId = `home_dungeon_${hashSeed(config.seed).toString(36)}`;
   const portalData: PortalData = {
@@ -230,23 +195,19 @@ export async function createEvilMountainTriad(
     dungeonName: dungeon.name,
     dungeonType: dungeon.type,
     minLevel: dungeon.minLevel,
-    x: secretLocal.x,
-    z: secretLocal.z,
+    x: mouthLocal.x,
+    z: mouthLocal.z,
     active: true,
-    entranceModel: dungeon.entranceModel,
+    entranceModel: triadSeed.modelPath,
   };
 
-  const caveMouthPos = new THREE.Vector3(secretLocal.x, portalY, secretLocal.z);
-
+  const caveMouthPos = new THREE.Vector3(mouthLocal.x, portalY, mouthLocal.z);
   const portal = new CavePortal3D(portalData);
   portal.group.position.y = portalY;
   portal.onEnter = (id) => config.onEnterDungeon?.(id, dungeon.id);
-
-  // Portal hidden until player discovers the rear approach
   portal.group.visible = false;
   group.add(portal.group);
 
-  // Approach marker — faint rune circle visible from distance
   const ringGeo = new THREE.RingGeometry(TRIAD_APPROACH_RADIUS * 0.85, TRIAD_APPROACH_RADIUS, 48);
   const ringMat = new THREE.MeshBasicMaterial({
     color: 0x5533aa,
@@ -312,34 +273,25 @@ export class EvilMountainTriadSystem {
       this.facingYaw,
     );
 
-    if (atMouth && !this.discovered) {
+    if (atMouth) {
       this.discovered = true;
       this.triad.portal.group.visible = true;
-    }
-
-    if (this.discovered) {
-      this.triad.portal.update(dt, playerPos);
-      this.hintState = this.triad.portal.canInteract ? 'interact' : 'discovered';
+      this.hintState = this.triad.portal.canInteract() ? 'interact' : 'discovered';
     } else if (approachDist < TRIAD_APPROACH_RADIUS) {
       this.hintState = 'approach';
     } else {
       this.hintState = 'none';
     }
 
-    return this.discovered;
+    this.triad.portal.update(dt, playerPos);
+    return atMouth;
   }
 
   tryInteract(): boolean {
-    if (!this.discovered) return false;
-    return this.triad.portal.interact();
+    return this.triad.portal.tryInteract();
   }
 
   get canInteract(): boolean {
-    return this.discovered && this.triad.portal.canInteract;
-  }
-
-  dispose(): void {
-    this.triad.portal.dispose();
-    this.triad.group.parent?.remove(this.triad.group);
+    return this.discovered && this.triad.portal.canInteract();
   }
 }
