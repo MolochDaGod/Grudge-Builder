@@ -12,6 +12,43 @@ const CDN_BASE = import.meta.env.DEV
   ? 'https://dl.polyhaven.org'
   : '/api/polyhaven-dl';
 
+/** R2 mirror — run scripts/upload-polyhaven-lobby-textures.mjs */
+export const POLYHAVEN_R2_LOBBY_BASE =
+  (typeof import.meta !== 'undefined' && import.meta.env?.VITE_ASSETS_URL)
+    ? `${import.meta.env.VITE_ASSETS_URL}/textures/polyhaven/lobby`
+    : 'https://assets.grudge-studio.com/textures/polyhaven/lobby';
+
+export type LobbyPolyHavenLayer =
+  | 'beach' | 'grass' | 'forest' | 'rock' | 'ore' | 'path' | 'building' | 'seafloor';
+
+const R2_MAP_FILES: Record<string, string> = {
+  map: 'diff',
+  normalMap: 'nor_gl',
+  roughnessMap: 'rough',
+  aoMap: 'ao',
+};
+
+let r2LobbyManifestLoaded = false;
+let r2LobbyLayers = new Set<LobbyPolyHavenLayer>();
+
+async function probeR2LobbyManifest(): Promise<void> {
+  if (r2LobbyManifestLoaded) return;
+  r2LobbyManifestLoaded = true;
+  try {
+    const res = await fetch(`${POLYHAVEN_R2_LOBBY_BASE}/manifest.json`, { method: 'HEAD' });
+    if (!res.ok) return;
+    const json = await (await fetch(`${POLYHAVEN_R2_LOBBY_BASE}/manifest.json`)).json();
+    r2LobbyLayers = new Set(Object.keys(json.layers ?? {}) as LobbyPolyHavenLayer[]);
+  } catch {
+    /* live Poly Haven API fallback */
+  }
+}
+
+function r2LobbyMapUrl(layer: LobbyPolyHavenLayer, mapKey: keyof typeof R2_MAP_FILES): string {
+  const file = R2_MAP_FILES[mapKey];
+  return `${POLYHAVEN_R2_LOBBY_BASE}/${layer}/${file}.jpg`;
+}
+
 export type PolyHavenResolution = '1k' | '2k' | '4k';
 
 export type PolyHavenMapKind = 'Diffuse' | 'nor_gl' | 'Rough' | 'AO' | 'Displacement';
@@ -69,7 +106,20 @@ export interface PolyHavenPBRMaps {
 export async function resolvePolyHavenPBR(
   assetId: string,
   resolution: PolyHavenResolution = '2k',
+  r2Layer?: LobbyPolyHavenLayer,
 ): Promise<PolyHavenPBRMaps> {
+  if (r2Layer) {
+    await probeR2LobbyManifest();
+    if (r2LobbyLayers.has(r2Layer)) {
+      return {
+        map: r2LobbyMapUrl(r2Layer, 'map'),
+        normalMap: r2LobbyMapUrl(r2Layer, 'normalMap'),
+        roughnessMap: r2LobbyMapUrl(r2Layer, 'roughnessMap'),
+        aoMap: r2LobbyMapUrl(r2Layer, 'aoMap'),
+      };
+    }
+  }
+
   const files = await fetchPolyHavenFiles(assetId);
   return {
     map: resolveMapUrl(files, 'Diffuse', resolution) ?? undefined,

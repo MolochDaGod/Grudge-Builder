@@ -157,7 +157,7 @@ export async function loadLobbyPolyHavenMaterials(
     layers.map(async (layer) => {
       const assetId = LOBBY_POLYHAVEN_ASSETS[layer];
       try {
-        const maps = await resolvePolyHavenPBR(assetId, resolution);
+        const maps = await resolvePolyHavenPBR(assetId, resolution, layer);
         const mat = await buildMaterialFromMaps(
           maps,
           repeatByLayer[layer],
