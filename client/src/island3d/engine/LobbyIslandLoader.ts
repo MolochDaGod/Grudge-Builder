@@ -7,7 +7,7 @@
  */
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import { assetUrl } from '@/lib/assetConfig';
+import { normalizeAssetPath } from '@/lib/legacyAssetPaths';
 
 // ─── Known lobby maps ────────────────────────────────────────────────────────
 
@@ -30,12 +30,12 @@ export const LOBBY_MAPS: LobbyMapDef[] = [
   {
     id: 'pirate-islands',
     name: 'Pirate Islands',
-    // Full PolygonPirates GLTF needs scene.bin (~132MB) on the CDN; until that ships,
-    // the baked pirate-world GLB is the live Chicken Gun–style lobby map.
-    gltfPath: assetUrl('/maps/pirate-world.glb'),
-    cameraPosition: new THREE.Vector3(80, 90, 140),
-    cameraTarget: new THREE.Vector3(0, 12, 0),
-    scale: 3,
+    // Chicken Gun PolygonPirates pack — same-origin so scene.bin resolves beside scene.gltf
+    // (132MB bin is bundled in public/; CDN copy may lag behind).
+    gltfPath: normalizeAssetPath('/models/lobby/pirate-islands/scene.gltf'),
+    cameraPosition: new THREE.Vector3(100, 120, 200),
+    cameraTarget: new THREE.Vector3(0, 20, 0),
+    scale: 1,
     yOffset: 0,
   },
 ];
