@@ -1,7 +1,7 @@
 /**
  * XState session for Island3D — REST bootstrap, staged loading, tick/time settings.
  */
-import { setup, assign } from 'xstate';
+import { setup, assign, fromPromise } from 'xstate';
 import { characterAPI } from '@/lib/api';
 import type { Character } from '@shared/schema';
 
@@ -47,14 +47,16 @@ export const islandSessionMachine = setup({
     events: {} as IslandSessionEvent,
   },
   actors: {
-    bootstrapCharacter: async ({ input }: { input: { characterId?: string } }) => {
-      if (!input.characterId) return null;
-      try {
-        return await characterAPI.get(input.characterId);
-      } catch {
-        return null;
-      }
-    },
+    bootstrapCharacter: fromPromise(
+      async ({ input }: { input: { characterId?: string } }) => {
+        if (!input.characterId) return null;
+        try {
+          return await characterAPI.get(input.characterId);
+        } catch {
+          return null;
+        }
+      },
+    ),
   },
 }).createMachine({
   id: 'islandSession',
