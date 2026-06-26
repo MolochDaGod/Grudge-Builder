@@ -6,6 +6,17 @@
 <title>Grudge Warlords — Crafting &amp; Professions</title>
 <link rel="icon" href="https://i.imgur.com/bGd5QJ0.png"/>
 <script src="https://js.puter.com/v2/"></script>
+<script>
+  window.GRUDGE_CONFIG = {
+    AUTH_GATEWAY: 'https://id.grudge-studio.com',
+    IDENTITY_API: 'https://api.grudge-studio.com',
+    GAME_DATA: 'https://grudge-builder-production.up.railway.app',
+    OBJECTSTORE_URL: 'https://objectstore.grudge-studio.com/api/v1',
+    ASSETS: 'https://assets.grudge-studio.com',
+    VERSION: '4.0.0'
+  };
+</script>
+<script src="grudge-fleet.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;900&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
 <style>
 /* ======================== VARIABLES ======================== */
@@ -825,6 +836,25 @@ body {
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--gold-dim); border-radius: 2px; }
 
+/* Item database */
+.db-toolbar { display:flex; flex-direction:column; gap:10px; margin-bottom:16px; }
+.db-search {
+  width:100%; max-width:400px; padding:10px 14px;
+  background:rgba(0,0,0,0.3); border:1px solid var(--border);
+  border-radius:6px; color:var(--text); font-family:inherit; font-size:12px;
+}
+.db-summary { font-size:11px; color:var(--text-dim); }
+.db-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:10px; }
+.db-card {
+  display:flex; gap:10px; padding:10px;
+  background:var(--panel); border:1px solid var(--border); border-radius:8px;
+}
+.db-card img { width:48px; height:48px; object-fit:contain; border-radius:4px; background:rgba(0,0,0,0.3); }
+.db-card-name { font-size:12px; font-weight:600; color:var(--gold); }
+.db-card-cat { font-size:9px; color:var(--text-dim); text-transform:uppercase; }
+.db-card-stats { font-size:9px; color:var(--text-dim); margin-top:4px; }
+.db-card-stats span { color:var(--gold); }
+
 @media (max-width: 700px) {
   .sidebar { width: 60px; }
   .sidebar .nav-btn span:not(.icon), .sidebar-logo small, .sidebar-section-title, .sidebar-account .account-name, .sidebar-account .auth-btn, .nav-btn .badge { display: none; }
@@ -849,6 +879,7 @@ body {
       <button class="nav-btn active" data-page="dashboard"><span class="icon">📊</span><span>Dashboard</span></button>
       <button class="nav-btn" data-page="crafting"><span class="icon">🔨</span><span>Crafting Bench</span></button>
       <button class="nav-btn" data-page="inventory"><span class="icon">🎒</span><span>Inventory</span><span class="badge" id="inv-count">0</span></button>
+      <button class="nav-btn" data-page="item-database"><span class="icon">📦</span><span>Item Database</span><span class="badge" id="db-count">…</span></button>
       <button class="nav-btn" data-page="account"><span class="icon">👤</span><span>Account</span></button>
     </div>
 
@@ -938,6 +969,19 @@ body {
           </div>
         </div>
       </div>
+    </div>
+
+    <!-- ITEM DATABASE -->
+    <div class="page" id="page-item-database">
+      <div class="page-header">
+        <h2 class="page-title">📦 Item Database</h2>
+        <div class="db-summary" id="db-summary">Loading items…</div>
+      </div>
+      <div class="db-toolbar">
+        <input type="text" class="db-search" id="db-search" placeholder="Search items by name…" oninput="renderItemDatabase()">
+        <div class="recipe-filters" id="db-cat-filters" style="margin-bottom:0"></div>
+      </div>
+      <div class="db-grid" id="db-grid"></div>
     </div>
 
     <!-- INVENTORY -->
@@ -1069,8 +1113,8 @@ body {
 // ============================================================
 // STATE
 // ============================================================
-const GRUDGE_API = 'https://api.grudge-studio.com';
-const GRUDGE_AUTH = 'https://id.grudge-studio.com';
+const GRUDGE_API = window.GRUDGE_CONFIG.GAME_DATA;
+const GRUDGE_AUTH = window.GRUDGE_CONFIG.AUTH_GATEWAY;
 
 const STATE = {
   user: null,
@@ -1221,41 +1265,77 @@ const MAT_ICONS = {
 // ============================================================
 async function doAuth() {
   try {
-    STATE.user = await puter.auth.signIn();
+    await GrudgeFleet.signIn();
+    STATE.user = await puter.auth.getUser();
+    STATE.grudgeToken = GrudgeFleet.getToken();
+    STATE.grudgeCharacters = GrudgeFleet.getCharacters();
+    if (!STATE.activeCharacterId && GrudgeFleet.getActiveId()) {
+      STATE.activeCharacterId = GrudgeFleet.getActiveId();
+    }
+    applyCharacterToState(GrudgeFleet.getActiveCharacter());
     updateAuthUI();
     await loadSaveData();
-    await loginToGrudge();
-    showToast('Signed in as ' + STATE.user.username, 'success');
-  } catch(e) { console.error(e); }
+    renderCharactersList();
+    updateCharacterUI();
+    showToast('Signed in as ' + (STATE.user?.username || GrudgeFleet.getUser()?.username), 'success');
+  } catch(e) { console.error(e); showToast('Sign in failed', 'error'); }
 }
 
 async function checkAuth() {
   try {
-    STATE.user = await puter.auth.getUser();
+    const embedded = window.parent !== window;
+    await GrudgeFleet.init({ mode: embedded ? 'embedded' : 'standalone' });
+    if (!GrudgeFleet.isLoggedIn()) await GrudgeFleet.tryAutoAuth();
+    STATE.grudgeToken = GrudgeFleet.getToken();
+    STATE.grudgeCharacters = GrudgeFleet.getCharacters();
+    STATE.activeCharacterId = GrudgeFleet.getActiveId();
+    applyCharacterToState(GrudgeFleet.getActiveCharacter());
+    try { STATE.user = await puter.auth.getUser(); } catch {}
     updateAuthUI();
     await loadSaveData();
-    // Also try to load Grudge characters
-    await loginToGrudge();
-  } catch(e) {}
+    renderCharactersList();
+    updateCharacterUI();
+  } catch(e) { console.warn('Auth check:', e); }
 }
 
 function updateAuthUI() {
   const dot = document.getElementById('acctDot');
   const name = document.getElementById('acctName');
   const btn = document.getElementById('authBtn');
-  if (STATE.user) {
+  const displayName = STATE.user?.username || GrudgeFleet.getUser()?.username;
+  if (GrudgeFleet.isLoggedIn() || STATE.user) {
     dot.classList.add('on');
-    name.textContent = STATE.user.username;
+    name.textContent = displayName || 'Warlord';
     btn.textContent = '✓';
     btn.disabled = true;
   }
+}
+
+function applyCharacterToState(char) {
+  if (!char) return;
+  STATE.professions = GrudgeFleet.mergeProfessionsFromCharacter(char, STATE.professions);
+  if (char.equipment && Object.keys(char.equipment).length) {
+    const slotMap = { Helm:'head', Chest:'chest', Hands:'hands', Feet:'feet', Weapon:'weapon', MainHand:'weapon', Offhand:'shield' };
+    for (const [k, v] of Object.entries(char.equipment)) {
+      const slot = slotMap[k] || k.toLowerCase();
+      if (STATE.equipment[slot] !== undefined && v) STATE.equipment[slot] = v;
+    }
+  }
+}
+
+async function syncCharacterToBackend() {
+  const id = STATE.activeCharacterId || GrudgeFleet.getActiveId();
+  if (!id || !GrudgeFleet.isLoggedIn()) return;
+  await GrudgeFleet.saveCharacter(id, {
+    professionLevels: GrudgeFleet.professionsToPayload(STATE.professions),
+    equipment: STATE.equipment,
+  });
 }
 
 // ============================================================
 // PERSISTENCE (Puter KV)
 // ============================================================
 async function saveData() {
-  if (!STATE.user) return;
   try {
     const data = {
       professions: STATE.professions,
@@ -1266,7 +1346,8 @@ async function saveData() {
       activeCharacterId: STATE.activeCharacterId,
       characterCrafting: STATE.characterCrafting,
     };
-    await puter.kv.set('grudge-crafting-save', JSON.stringify(data));
+    if (STATE.user) await puter.kv.set('grudge-crafting-save', JSON.stringify(data));
+    await syncCharacterToBackend();
   } catch(e) { console.error('Save failed:', e); }
 }
 
@@ -1321,6 +1402,7 @@ function renderCurrentPage() {
   else if (p === 'crafting') renderCraftingPage();
   else if (p === 'inventory') renderInventoryPage();
   else if (p === 'account') renderAccountPage();
+  else if (p === 'item-database') renderItemDatabase();
   else if (p.startsWith('prof-')) renderProfessionPage(p.replace('prof-',''));
 }
 
@@ -1599,8 +1681,7 @@ function finishCraft(recipe) {
       STATE.professions[prof].level++;
       STATE.professions[prof].xpNext = Math.floor(STATE.professions[prof].xpNext * 1.5);
       addLog(`🎉 ${prof} leveled up to ${STATE.professions[prof].level}!`, 'level');
-      // Push updated profession levels cross-game on every level-up
-      if (STATE.activeCharacterId) GrudgeSyncService.push(STATE.activeCharacterId);
+      if (STATE.activeCharacterId) syncCharacterToBackend();
       // Full-screen level-up banner + floating XP pop
       showLevelUpBanner(
         prof,
@@ -1952,219 +2033,42 @@ function gatherMaterials() {
   }
 }
 
-// ============================================================
-// GRUDGE SYNC SERVICE — cross-game character data sync
-// ============================================================
-const GrudgeSyncService = (() => {
-  const API_BASE          = 'https://api.grudge-studio.com';
-  const TOKEN_LS_KEY      = 'grudge.token';          // shared with GrudgeSession.ts
-  const ACTIVE_CHAR_LS_KEY = 'grudge.activeCharId';  // shared with RTS + survival
-  const CACHE_PREFIX      = 'grudge.xgame.cache.';
-  const QUEUE_KEY         = 'grudge.xgame.queue';
-  const MAX_QUEUE         = 20;
-  const DEBOUNCE_MS       = 5_000;
-
-  const _timers = {};
-  let _flushBusy = false;
-
-  function ls(k)     { try { return localStorage.getItem(k); } catch { return null; } }
-  function lsSet(k,v){ try { localStorage.setItem(k, v); }    catch {} }
-  function lsDel(k)  { try { localStorage.removeItem(k); }    catch {} }
-
-  function getToken() { return ls(TOKEN_LS_KEY); }
-
-  function headers() {
-    const h = { 'Content-Type': 'application/json' };
-    const t = getToken() || STATE.grudgeToken;
-    if (t) h['Authorization'] = 'Bearer ' + t;
-    return h;
-  }
-
-  // Active character — persisted so all Grudge apps agree
-  function getActiveCharId() {
-    return ls(ACTIVE_CHAR_LS_KEY) || (STATE.activeCharacterId ? String(STATE.activeCharacterId) : null);
-  }
-  function setActiveCharId(id) {
-    if (id) lsSet(ACTIVE_CHAR_LS_KEY, String(id)); else lsDel(ACTIVE_CHAR_LS_KEY);
-  }
-
-  // Cache
-  function readCache(cid)      { try { const r = ls(CACHE_PREFIX+cid); return r ? JSON.parse(r) : null; } catch { return null; } }
-  function writeCache(cid, d)  { try { lsSet(CACHE_PREFIX+cid, JSON.stringify(d)); } catch {} }
-
-  // Offline queue
-  function readQueue()          { try { const r = ls(QUEUE_KEY); return r ? JSON.parse(r) : []; } catch { return []; } }
-  function writeQueue(q)        { try { lsSet(QUEUE_KEY, JSON.stringify(q.slice(-MAX_QUEUE))); } catch {} }
-  function enqueue(cid, patch)  { const q = readQueue(); q.push({ cid, patch, ts: Date.now() }); writeQueue(q); }
-
-  // Debounce
-  function debounce(key, fn, ms) {
-    clearTimeout(_timers[key]);
-    _timers[key] = setTimeout(() => { delete _timers[key]; fn(); }, ms);
-  }
-
-  // Remote PATCH
-  async function patchRemote(cid, patch) {
-    try {
-      const res = await fetch(`${API_BASE}/characters/${encodeURIComponent(cid)}/cross-game`, {
-        method: 'PATCH', headers: headers(),
-        body: JSON.stringify({ ...patch, syncedAt: Date.now() }),
-        signal: AbortSignal.timeout(8000),
-      });
-      if (res.ok) { const c = readCache(cid) || {}; writeCache(cid, { ...c, ...patch, syncedAt: Date.now() }); }
-      return res.ok;
-    } catch { return false; }
-  }
-
-  // Remote GET
-  async function getRemote(cid) {
-    try {
-      const res = await fetch(`${API_BASE}/characters/${encodeURIComponent(cid)}/cross-game`, {
-        headers: headers(), signal: AbortSignal.timeout(6000),
-      });
-      if (res.ok) { const d = await res.json(); writeCache(cid, d); return d; }
-    } catch {}
-    return readCache(cid);
-  }
-
-  // Flush offline queue
-  async function flushQueue() {
-    if (_flushBusy) return;
-    _flushBusy = true;
-    try {
-      const q = readQueue();
-      if (!q.length) return;
-      const rem = [];
-      for (const e of q) { const ok = await patchRemote(e.cid, e.patch); if (!ok) rem.push(e); }
-      writeQueue(rem);
-    } finally { _flushBusy = false; }
-  }
-
-  window.addEventListener('online', () => flushQueue());
-  setTimeout(flushQueue, 3000);
-
-  // Public interface
-  return {
-    setActiveCharId,
-    getActiveCharId,
-
-    /** Pull cross-game data for a character and merge into STATE. */
-    async pull(charId) {
-      const cid = String(charId);
-      const data = await getRemote(cid);
-      if (!data) return;
-      // Merge profession levels if they're higher than local (never regress)
-      if (data.professions) {
-        const profMap = { miner:'Miner', forester:'Forester', chef:'Chef', engineer:'Engineer', mystic:'Mystic' };
-        for (const [key, label] of Object.entries(profMap)) {
-          const remote = data.professions[key];
-          if (!remote) continue;
-          const local = STATE.professions[label];
-          if (local && remote.level > local.level) {
-            STATE.professions[label].level = remote.level;
-            STATE.professions[label].xp    = remote.xp || 0;
-            STATE.professions[label].xpNext = remote.xpNext || local.xpNext;
-          }
-        }
-        renderAll();
-      }
-      // Merge crafting inventory (add missing items without reducing existing)
-      if (data.craftingInventory) {
-        for (const [item, qty] of Object.entries(data.craftingInventory)) {
-          if (!STATE.inventory[item] || STATE.inventory[item] < qty) {
-            STATE.inventory[item] = qty;
-          }
-        }
-      }
-    },
-
-    /** Push current professions + inventory to cross-game API. */
-    push(charId) {
-      const cid = String(charId);
-      // Build professions payload (lowercase canonical keys)
-      const profMap = { Miner:'miner', Forester:'forester', Chef:'chef', Engineer:'engineer', Mystic:'mystic' };
-      const professions = {};
-      for (const [label, key] of Object.entries(profMap)) {
-        const p = STATE.professions[label];
-        if (p) professions[key] = { level: p.level, xp: p.xp, xpNext: p.xpNext, totalCrafts: p.totalCrafts || 0 };
-      }
-      const craftingInventory = { ...STATE.inventory };
-      const patch = { professions, craftingInventory, syncSource: 'crafting' };
-      // Write to cache immediately
-      const c = readCache(cid) || {};
-      writeCache(cid, { ...c, ...patch, syncedAt: Date.now() });
-      // Debounced remote push
-      debounce(cid + ':crafting', async () => {
-        const ok = await patchRemote(cid, patch);
-        if (!ok) enqueue(cid, patch);
-      }, DEBOUNCE_MS);
-    },
-  };
-})();
-
-// === GRUDGE WARLORDS API ===
+// === GRUDGE WARLORDS API (via GrudgeFleet → Railway) ===
 async function fetchGrudgeCharacters() {
-  if (!STATE.grudgeToken) return;
-  try {
-    const res = await fetch(GRUDGE_API + '/characters', {
-      headers: { 'Authorization': 'Bearer ' + STATE.grudgeToken, 'Content-Type': 'application/json' }
-    });
-    if (!res.ok) throw new Error('API ' + res.status);
-    STATE.grudgeCharacters = await res.json();
-    // Auto-select first character if none selected
-    if (!STATE.activeCharacterId && STATE.grudgeCharacters.length > 0) {
-      STATE.activeCharacterId = STATE.grudgeCharacters[0].id;
-    }
-    renderCharactersList();
-    updateCharacterUI();   // show active character in sidebar immediately
-    renderAll();           // refresh dashboard banner if on dashboard
-    // Pull cross-game data for the active character
-    const activeId = STATE.activeCharacterId;
-    if (activeId) GrudgeSyncService.pull(activeId).catch(() => {});
-    showToast('Loaded ' + STATE.grudgeCharacters.length + ' characters', 'success');
-  } catch(e) {
-    console.warn('Failed to fetch Grudge characters:', e);
-    document.getElementById('acct-characters-list').innerHTML =
-      '<div style="color:var(--red);font-size:11px">Could not load characters. <a href="https://grudgewarlords.com" target="_blank" style="color:var(--blue)">Go to grudgewarlords.com</a> to create characters.</div>';
+  await GrudgeFleet.syncFromBackend();
+  STATE.grudgeToken = GrudgeFleet.getToken();
+  STATE.grudgeCharacters = GrudgeFleet.getCharacters();
+  if (!STATE.activeCharacterId && GrudgeFleet.getActiveId()) {
+    STATE.activeCharacterId = GrudgeFleet.getActiveId();
   }
+  applyCharacterToState(GrudgeFleet.getActiveCharacter());
+  renderCharactersList();
+  updateCharacterUI();
+  renderAll();
+  if (STATE.grudgeCharacters.length) showToast('Loaded ' + STATE.grudgeCharacters.length + ' characters', 'success');
 }
 
 async function loginToGrudge() {
-  // Try Puter bridge auth first
+  if (GrudgeFleet.isLoggedIn()) {
+    await fetchGrudgeCharacters();
+    return;
+  }
   if (STATE.user) {
     try {
-      const res = await fetch(GRUDGE_AUTH + '/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ provider: 'puter', session: STATE.user.username })
-      });
-      if (res.ok) {
-        const data = await res.json();
-        STATE.grudgeToken = data.token;
-        localStorage.setItem('grudge_auth_token', data.token);
-        await fetchGrudgeCharacters();
-        return;
-      }
-    } catch(e) { console.warn('Puter bridge auth failed:', e); }
-  }
-  // Try stored token
-  const stored = localStorage.getItem('grudge_auth_token');
-  if (stored) {
-    STATE.grudgeToken = stored;
-    await fetchGrudgeCharacters();
+      await GrudgeFleet.signIn();
+      await fetchGrudgeCharacters();
+    } catch(e) { console.warn('Fleet auth failed:', e); }
   }
 }
 
 function selectCharacter(charId) {
   STATE.activeCharacterId = charId;
-  GrudgeSyncService.setActiveCharId(charId ? String(charId) : null);
+  GrudgeFleet.selectCharacter(charId);
+  applyCharacterToState(GrudgeFleet.getActiveCharacter());
   renderCharactersList();
   renderActiveCharacter();
-  updateCharacterUI();         // update sidebar panel
-  if (STATE.currentPage === 'dashboard') renderDashboard(); // refresh banner
-  // Pull cross-game data for the newly selected character:
-  // profession levels gained in RTS-Grudge, Hero Forge loadout, etc.
-  if (charId) GrudgeSyncService.pull(charId).catch(() => {});
+  updateCharacterUI();
+  if (STATE.currentPage === 'dashboard') renderDashboard();
   saveData();
   showToast('Character selected!', 'success');
 }
@@ -2184,7 +2088,7 @@ function renderCharactersList() {
       const active = STATE.activeCharacterId === c.id;
       const raceColor = raceColors[c.race?.toLowerCase()] || '#888';
       const classIcon = classIcons[c.class?.toLowerCase()] || '⚔️';
-      return `<div onclick="selectCharacter(${c.id})" style="
+      return `<div onclick="selectCharacter('${c.id}')" style="
         padding:12px;border-radius:8px;cursor:pointer;transition:all 0.15s;
         background:${active ? 'rgba(212,168,67,0.15)' : 'rgba(255,255,255,0.02)'};
         border:1px solid ${active ? 'var(--gold)' : 'var(--border)'};
@@ -2248,7 +2152,7 @@ function renderActiveCharacter() {
 // ============================================================
 function renderAccountPage() {
   // Fetch characters if not loaded yet
-  if (STATE.grudgeCharacters.length === 0 && STATE.user) loginToGrudge();
+  if (STATE.grudgeCharacters.length === 0 && (STATE.user || GrudgeFleet.isLoggedIn())) loginToGrudge();
 
   // Route to active sub-tab
   const t = STATE.acctTab;
@@ -2440,7 +2344,7 @@ function renderAcctIsland() {
 async function fetchIslandData(charId) {
   try {
     if (STATE.grudgeToken) {
-      const res = await fetch(`${GRUDGE_API}/characters/${charId}/island`, {
+      const res = await fetch(`${GRUDGE_API}/api/characters/${charId}/island`, {
         headers: { 'Authorization': 'Bearer ' + STATE.grudgeToken }
       });
       if (res.ok) {
@@ -2567,11 +2471,90 @@ function showToast(msg, type='') {
 }
 
 // ============================================================
+// OBJECTSTORE ITEM DATABASE
+// ============================================================
+let ITEM_DB = [];
+let ITEM_DB_CATEGORIES = [];
+let ITEM_ICON_MAP = {};
+let dbFilterCat = 'all';
+
+async function loadItemDatabase() {
+  try {
+    const base = window.GRUDGE_CONFIG.OBJECTSTORE_URL;
+    const url = base.replace(/\/$/, '') + '/items-database.json';
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    ITEM_DB = data.items || [];
+    ITEM_DB_CATEGORIES = data.categories || [];
+    ITEM_DB.forEach(item => {
+      if (item.icon) ITEM_ICON_MAP[item.name.toLowerCase()] = item.icon;
+    });
+    const el = document.getElementById('db-count');
+    if (el) el.textContent = ITEM_DB.length;
+    console.log('[ObjectStore] Loaded ' + ITEM_DB.length + ' items');
+    renderAll();
+  } catch(e) {
+    console.error('[ObjectStore] Failed:', e);
+    const el = document.getElementById('db-count');
+    if (el) el.textContent = '!';
+    const sum = document.getElementById('db-summary');
+    if (sum) sum.textContent = 'Failed to load — check console';
+  }
+}
+
+function itemIcon(name, emoji, cssClass) {
+  const cls = cssClass || 'item-img';
+  const url = ITEM_ICON_MAP[name.toLowerCase()];
+  if (url) return `<img class="${cls}" src="${url}" alt="${name}" loading="lazy">`;
+  return emoji || '📦';
+}
+
+function renderItemDatabase() {
+  const query = (document.getElementById('db-search')?.value || '').toLowerCase().trim();
+  document.getElementById('db-cat-filters').innerHTML =
+    `<button class="filter-btn ${dbFilterCat==='all'?'active':''}" onclick="dbFilterCat='all';renderItemDatabase()">All</button>` +
+    ITEM_DB_CATEGORIES.map(c =>
+      `<button class="filter-btn ${dbFilterCat===c?'active':''}" onclick="dbFilterCat='${c}';renderItemDatabase()">${c[0].toUpperCase()+c.slice(1)}</button>`
+    ).join('');
+
+  let items = ITEM_DB;
+  if (dbFilterCat !== 'all') items = items.filter(i => i.category === dbFilterCat);
+  if (query) items = items.filter(i => i.name.toLowerCase().includes(query));
+
+  document.getElementById('db-summary').textContent = `${items.length} of ${ITEM_DB.length} items`;
+  const showing = items.slice(0, 200);
+  document.getElementById('db-grid').innerHTML = showing.map(item => {
+    const statsArr = [];
+    if (item.stats?.damage) statsArr.push(`DMG <span>${item.stats.damage}</span>`);
+    if (item.stats?.defense) statsArr.push(`DEF <span>${item.stats.defense}</span>`);
+    if (item.stats?.requiredLevel) statsArr.push(`Lv <span>${item.stats.requiredLevel}</span>`);
+    return `<div class="db-card">
+      ${item.icon ? `<img src="${item.icon}" alt="${item.name}" loading="lazy">` : '<div style="width:48px;height:48px;display:flex;align-items:center;justify-content:center;font-size:28px">📦</div>'}
+      <div>
+        <div class="db-card-name">${item.name}</div>
+        <div class="db-card-cat">${item.category || ''}</div>
+        ${statsArr.length ? `<div class="db-card-stats">${statsArr.join(' · ')}</div>` : ''}
+      </div>
+    </div>`;
+  }).join('') || '<div style="padding:20px;text-align:center;color:var(--text-dim)">No items found</div>';
+}
+
+GrudgeFleet.onCharacterChange((char) => {
+  STATE.activeCharacterId = char?.id || null;
+  STATE.grudgeCharacters = GrudgeFleet.getCharacters();
+  applyCharacterToState(char);
+  updateCharacterUI();
+  renderAll();
+});
+
+// ============================================================
 // INIT
 // ============================================================
-addLog('⚔ Grudge Crafting Suite initialized');
+addLog('⚔ Grudge Crafting Suite initialized (fleet v' + (window.GRUDGE_CONFIG?.VERSION || '?') + ')');
 initAcctTabs();
 renderAll();
+loadItemDatabase();
 if (typeof puter !== 'undefined') checkAuth();
 </script>
 </body>

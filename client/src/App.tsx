@@ -70,11 +70,14 @@ import PlayPage from "@/pages/play";
 import TutorialPage from "@/pages/tutorial";
 import IslandRevealPage from "@/pages/island-reveal";
 import HomeIslandPage from "@/pages/home-island";
+import IslandsPage from "@/pages/islands";
+import { RtsDomainBootstrap } from "@/components/RtsDomainBootstrap";
 import WeaponModelAdminPage from "@/pages/weapon-model-admin";
 import WeaponSkillsPage from "@/pages/weapon-skills";
 import WeaponMasteryPage from "@/pages/weapon-mastery";
 import TownPage from "@/pages/town";
 import GameCharacterPage from "@/pages/game-character";
+import SystemsPage from "@/pages/systems";
 
 function Router() {
   return (
@@ -137,6 +140,7 @@ function Router() {
       <Route path="/game/world" component={PlayPage} />
       <Route path="/tutorial" component={TutorialPage} />
       <Route path="/island-reveal" component={IslandRevealPage} />
+      <Route path="/islands" component={IslandsPage} />
       <Route path="/home-island" component={HomeIslandPage} />
       <Route path="/weapon-admin" component={WeaponModelAdminPage} />
       <Route path="/weapon-skills" component={WeaponSkillsPage} />
@@ -144,6 +148,7 @@ function Router() {
       <Route path="/town" component={TownPage} />
       <Route path="/weaponskills" component={WeaponSkillsPage} />
       <Route path="/game/character" component={GameCharacterPage} />
+      <Route path="/systems" component={SystemsPage} />
       {/* Fallback to 404 */}
       <Route component={NotFound} />
     </Switch>
@@ -175,6 +180,7 @@ function AppContent() {
   return (
     <>
       <AdminTransitionScreen isVisible={isTransitioning} isAdmin={isAdmin} />
+      <RtsDomainBootstrap />
       <TooltipProvider>
         <Toaster />
         <Router />

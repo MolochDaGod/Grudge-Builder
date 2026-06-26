@@ -96,8 +96,7 @@ export async function bridgeGrudgeLaunchToken(launchToken: string): Promise<bool
     }
     const ssoToken = params.get("sso_token");
     if (ssoToken) {
-      localStorage.setItem(AUTH_TOKEN_KEY, ssoToken);
-      localStorage.setItem(LEGACY_SESSION_TOKEN_KEY, ssoToken);
+      setToken(ssoToken);
       const returnedGrudgeId = params.get("grudge_id") || params.get("grudgeId") || "";
       const returnedUsername = params.get("grudge_username") || params.get("username") || "";
       if (returnedGrudgeId) localStorage.setItem("grudge_id", returnedGrudgeId);
@@ -144,6 +143,9 @@ function clearCookie(name: string): void {
 export function setToken(token: string): void {
   localStorage.setItem(AUTH_TOKEN_KEY, token);
   localStorage.setItem(LEGACY_SESSION_TOKEN_KEY, token);
+  // RTS / GrudgeSession cross-app keys
+  localStorage.setItem("grudge.token", token);
+  localStorage.setItem("grudge.token.exp", String(Date.now() + 7 * 24 * 60 * 60 * 1000));
   // Mirror to cookie so Vercel Edge Middleware can read it
   setCookie("grudge_auth_token", token);
 }
@@ -151,6 +153,8 @@ export function setToken(token: string): void {
 export function clearToken(): void {
   localStorage.removeItem(AUTH_TOKEN_KEY);
   localStorage.removeItem(LEGACY_SESSION_TOKEN_KEY);
+  localStorage.removeItem("grudge.token");
+  localStorage.removeItem("grudge.token.exp");
   clearCookie("grudge_auth_token");
 }
 

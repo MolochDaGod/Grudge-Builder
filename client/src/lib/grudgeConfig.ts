@@ -8,6 +8,8 @@
  * but production defaults point at the canonical Cloudflare-backed domains.
  */
 
+import { resolveObjectStoreApiBase } from './objectStoreUrl';
+
 const env = (import.meta as any).env ?? {};
 
 /** Identity provider / SSO. All auth flows go here. */
@@ -75,9 +77,10 @@ export const AI_GATEWAY: string =
 export const BADGE_READER: string =
   env.VITE_BADGE_READER_URL || 'https://api.grudge-studio.com';
 
-/** Canonical ObjectStore API (info.grudge-studio.com). */
-export const OBJECTSTORE: string =
-  env.VITE_OBJECTSTORE_URL || 'https://info.grudge-studio.com/api/v1';
+/** Canonical ObjectStore JSON API (objectstore.grudge-studio.com/api/v1). */
+export const OBJECTSTORE: string = resolveObjectStoreApiBase(
+  env.VITE_OBJECTSTORE_URL || env.VITE_OBJECT_STORE_URL,
+);
 
 /**
  * GrudgeDot launcher canonical URL.
@@ -133,9 +136,13 @@ export const GRUDGE_SUBDOMAINS = [
   'ai.grudge-studio.com',
   'dash.grudge-studio.com',
   'info.grudge-studio.com',
+  'objectstore.grudge-studio.com',
   'ws.grudge-studio.com',
   'pvp.grudge-studio.com',
   'client.grudge-studio.com',
+  'metaverse.grudge-studio.com',
+  'forge.grudge-studio.com',
+  'play.grudge-studio.com',
   'warlord3d.grudge-studio.com',
   'wcs.grudge-studio.com',
   'wow.grudge-studio.com',
@@ -211,6 +218,9 @@ export function buildSsoLoginUrl(returnOrigin?: string): string {
 /** LocalStorage keys — kept centralized so logout/purge logic cannot miss any. */
 export const STORAGE_KEYS = [
   'grudge_auth_token',
+  'grudge.token',
+  'grudge.token.exp',
+  'grudge.playerId',
   'grudge_user_id',
   'grudge_id',
   'grudge_username',

@@ -21,7 +21,11 @@ import { getSheetsClient, isConfigured, SHEET_IDS, readSheet, getCachedData, set
 import { exportFoodsToSheet, generateFoodRows } from "./sheetsExport";
 import { detectSpriteType, SPRITE_TYPES } from "@shared/definitions/spriteTypes";
 import { getClassStartingGear } from "@shared/definitions/tier0Items";
-import { generateIslandState, validateIslandAssets } from "./utilities/islandGeneration";
+import {
+  generateIslandState,
+  mergeRtsExportIntoIslandState,
+  validateIslandAssets,
+} from "./utilities/islandGeneration";
 import { mapStudioProjectToIslandState } from "./utilities/studioProjectMapper";
 import { CrossmintWalletService } from "./services/crossmintWallet";
 
@@ -1057,7 +1061,40 @@ export async function registerRoutes(
     assignedHeroes: z.record(z.string(), z.string()),
     createdAt: z.number(),
     lastUpdate: z.number(),
-  });
+    // RTS-Grudge → Warlords export bridge (grid seed, biome, source app)
+    rtsExport: z.object({
+      source: z.literal('rts-grudge'),
+      gridX: z.number(),
+      gridZ: z.number(),
+      seed: z.number(),
+      biome: z.string(),
+      exportedAt: z.number(),
+      appUrl: z.string(),
+    }).optional(),
+    terrainZones: z.array(z.unknown()).optional(),
+    campPosition: z.object({ x: z.number(), y: z.number() }).optional(),
+    clearings: z.array(z.unknown()).optional(),
+    animals: z.array(z.unknown()).optional(),
+    mountainTriad: z.object({
+      secretPeakIndex: z.union([z.literal(0), z.literal(1), z.literal(2)]),
+      anchorPercent: z.object({ x: z.number(), y: z.number() }),
+      mountainScaleM: z.number(),
+      entranceHeightM: z.number(),
+      islandWorldSizeM: z.number(),
+      dungeonId: z.string(),
+      modelUid: z.string(),
+      modelPath: z.string(),
+      peakModelPaths: z.array(z.string()).optional(),
+      peakOffsetsM: z.array(z.object({ x: z.number(), z: z.number() })),
+    }).optional(),
+    rtsHeightmap: z.object({
+      resolution: z.number(),
+      worldSizeM: z.number(),
+      maxHeightM: z.number(),
+      biome: z.string(),
+      heightsBase64: z.string(),
+    }).optional(),
+  }).passthrough();
 
   const islandMetadataSchema = z.object({
     name: z.string().min(1).max(100).optional(),
@@ -1083,18 +1120,57 @@ export async function registerRoutes(
       ? rawMapStyle as typeof validStyles[number] 
       : 'iron';
     
+    const sheep = Array.isArray(state.sheep)
+      ? state.sheep
+      : Array.isArray(state.animals)
+        ? state.animals
+        : [];
+
     return {
       id: (state.id as string) || island.seed || island.id,
       mapStyle,
       mapImageUrl: (state.mapImageUrl as string) || island.mapImageUrl || undefined,
       nodes: Array.isArray(state.nodes) ? state.nodes : [],
-      sheep: Array.isArray(state.sheep) ? state.sheep : [],
+      sheep,
       skinningNodes: Array.isArray(state.skinningNodes) ? state.skinningNodes : [],
       assignedHeroes: (state.assignedHeroes as Record<string, string>) || {},
+      terrainZones: Array.isArray(state.terrainZones) ? state.terrainZones : [],
+      campPosition: (state.campPosition as { x: number; y: number }) || undefined,
+      clearings: Array.isArray(state.clearings) ? state.clearings : [],
+      animals: Array.isArray(state.animals) ? state.animals : sheep,
+      mountainTriad: state.mountainTriad as Record<string, unknown> | undefined,
+      rtsHeightmap: state.rtsHeightmap as Record<string, unknown> | undefined,
+      rtsExport: state.rtsExport as Record<string, unknown> | undefined,
       createdAt: (state.createdAt as number) || island.createdAt || Date.now(),
       lastUpdate: (state.lastUpdate as number) || island.updatedAt || Date.now(),
     };
   }
+
+  // World server telemetry for RTS / islands hub (proxies island-server /status)
+  app.get("/api/rts/status", async (_req, res) => {
+    const worldHttp =
+      process.env.WORLD_SERVER_HTTP_URL ||
+      process.env.VITE_PVP_SERVER_URL?.replace(/^wss?:\/\//, "https://") ||
+      "https://world.grudge-studio.com";
+    try {
+      const upstream = await fetch(`${worldHttp.replace(/\/$/, "")}/status`, {
+        signal: AbortSignal.timeout(8000),
+      });
+      if (!upstream.ok) {
+        return res.json({ online: false, playerCount: null });
+      }
+      const data = await upstream.json();
+      res.json({
+        online: true,
+        playerCount: typeof data.totalPlayers === "number" ? data.totalPlayers : null,
+        activeIslands: data.activeIslands ?? null,
+        totalEnemies: data.totalEnemies ?? null,
+        uptime: data.uptime ?? null,
+      });
+    } catch {
+      res.json({ online: false, playerCount: null });
+    }
+  });
 
   // Get the player's home island (creates one if doesn't exist)
   app.get("/api/island", async (req, res) => {
@@ -1357,6 +1433,81 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Error updating island state:", error);
       res.status(500).json({ error: "Failed to update island state" });
+    }
+  });
+
+  // RTS-Grudge → Warlords: server-authoritative full island state from procedural export
+  app.post("/api/island/export-from-rts", async (req, res) => {
+    try {
+      const { gridX, gridZ, seed, biome, appUrl, heightmap } = req.body ?? {};
+      if (gridX === undefined || gridZ === undefined || seed === undefined) {
+        return res.status(400).json({ error: "gridX, gridZ, and seed are required" });
+      }
+
+      const userId = getUserId(req);
+      const account = await storage.getOrCreateAccountForUser(userId);
+      const island = await storage.getOrCreateHomeIsland(account.id);
+
+      const base = generateIslandState(account.id, island.seed) as Record<string, unknown>;
+      const parsedHeightmap =
+        heightmap &&
+        typeof heightmap === "object" &&
+        typeof heightmap.heightsBase64 === "string" &&
+        typeof heightmap.resolution === "number"
+          ? {
+              resolution: Number(heightmap.resolution),
+              worldSizeM: Number(heightmap.worldSizeM ?? 200),
+              maxHeightM: Number(heightmap.maxHeightM ?? 12),
+              biome: String(heightmap.biome ?? biome ?? "temperate"),
+              heightsBase64: String(heightmap.heightsBase64),
+            }
+          : undefined;
+
+      const merged = mergeRtsExportIntoIslandState(base as any, {
+        gridX: Number(gridX),
+        gridZ: Number(gridZ),
+        seed: Number(seed),
+        biome: String(biome ?? "temperate"),
+        heightmap: parsedHeightmap,
+      });
+
+      const exportState = {
+        ...merged,
+        id: island.seed || island.id,
+        sheep: merged.animals,
+        assignedHeroes: (island.state as any)?.assignedHeroes ?? {},
+        skinningNodes: (island.state as any)?.skinningNodes ?? [],
+        rtsExport: {
+          source: "rts-grudge" as const,
+          gridX: Number(gridX),
+          gridZ: Number(gridZ),
+          seed: Number(seed),
+          biome: String(biome ?? "temperate"),
+          exportedAt: Date.now(),
+          appUrl: String(appUrl ?? "https://rts-grudge.vercel.app"),
+        },
+        rtsHeightmap: parsedHeightmap ?? (merged as any).rtsHeightmap,
+        lastUpdate: Date.now(),
+      };
+
+      const parseResult = islandStateSchema.safeParse(exportState);
+      if (!parseResult.success) {
+        return res.status(400).json({
+          error: "Invalid merged island state",
+          details: parseResult.error.flatten(),
+        });
+      }
+
+      const updated = await storage.updateIslandState(account.id, parseResult.data);
+      res.json({
+        success: true,
+        homeIslandId: island.id,
+        island: updated,
+        state: normalizeIslandState(updated),
+      });
+    } catch (error) {
+      console.error("Error exporting island from RTS:", error);
+      res.status(500).json({ error: "Failed to export island from RTS" });
     }
   });
 
@@ -5308,6 +5459,35 @@ Also suggest metadata values in this exact JSON format:
     } catch (error) {
       console.error("Error fetching character NFT:", error);
       res.status(500).json({ error: "Failed to fetch character NFT" });
+    }
+  });
+
+  // GET /api/nfts/:nftId - Client shortcut (characterId or NFT record id)
+  app.get("/api/nfts/:nftId", async (req, res) => {
+    try {
+      const { nftId } = req.params;
+      if (["escrowed", "mint", "poll-pending"].includes(nftId)) {
+        return res.status(404).json({ error: "Not found" });
+      }
+
+      const { nftMintingService } = await import("./services/nftMinting");
+      let nft = await nftMintingService.getCharacterNFT(nftId);
+      if (!nft) {
+        nft = await nftMintingService.getNFTById(nftId);
+      }
+      if (!nft) {
+        return res.status(404).json({ error: "NFT not found" });
+      }
+
+      res.json({
+        status: nft.status,
+        mintAddress: nft.mintAddress,
+        assetId: nft.assetId,
+        nft,
+      });
+    } catch (error) {
+      console.error("Error fetching NFT:", error);
+      res.status(500).json({ error: "Failed to fetch NFT" });
     }
   });
 

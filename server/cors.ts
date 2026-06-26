@@ -20,6 +20,22 @@ export const GRUDGE_EXACT_ORIGINS: string[] = [
   "https://www.grudge-studio.com",
   "https://grudgestudio.org",
   "https://grudgeplatform.io",
+
+  // Puter hosted apps (canonical /gs hub + app launcher)
+  "https://puter.com",
+  "https://www.puter.com",
+  "https://app.puter.com",
+
+  // RTS Grudge 3D client (Vercel)
+  "https://rts-grudge.vercel.app",
+
+  // Fleet game clients (explicit until Railway redeploys regex allowlist)
+  "https://metaverse.grudge-studio.com",
+  "https://forge.grudge-studio.com",
+  "https://play.grudge-studio.com",
+  "https://studio.grudge-studio.com",
+  "https://client.grudge-studio.com",
+  "https://dash.grudge-studio.com",
 ];
 
 // ── Regex-match origins (subdomains, preview deploys, Puter) ──────────────────
@@ -68,8 +84,8 @@ export function isAllowedOrigin(origin: string | undefined): boolean {
  * Pre-built cors options object — drop into `app.use(cors(GRUDGE_CORS_OPTIONS))`.
  */
 export const GRUDGE_CORS_OPTIONS = {
-  origin: (origin: string | undefined, cb: (err: Error | null, allow?: boolean) => void) => {
-    if (isAllowedOrigin(origin)) return cb(null, true);
+  origin: (origin: string | undefined, cb: (err: Error | null, allow?: boolean | string) => void) => {
+    if (isAllowedOrigin(origin)) return cb(null, origin || true);
     cb(new Error("Not allowed by CORS"));
   },
   credentials: true,
@@ -86,8 +102,8 @@ export const GRUDGE_CORS_OPTIONS = {
  * Socket.IO compatible CORS config — use in `new Server(httpServer, { cors: GRUDGE_SOCKETIO_CORS })`.
  */
 export const GRUDGE_SOCKETIO_CORS = {
-  origin: (origin: string | undefined, cb: (err: Error | null, allow?: boolean) => void) => {
-    if (isAllowedOrigin(origin)) return cb(null, true);
+  origin: (origin: string | undefined, cb: (err: Error | null, allow?: boolean | string) => void) => {
+    if (isAllowedOrigin(origin)) return cb(null, origin || true);
     cb(new Error("Not allowed by CORS"));
   },
   methods: ["GET", "POST"],

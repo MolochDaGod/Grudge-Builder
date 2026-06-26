@@ -43,6 +43,22 @@ export class NFTMintingService {
 
     if (!nft) return null;
 
+    return this.toNFTStatus(nft);
+  }
+
+  async getNFTById(nftId: string): Promise<NFTStatus | null> {
+    const [nft] = await db
+      .select()
+      .from(characterNFTs)
+      .where(eq(characterNFTs.id, nftId))
+      .limit(1);
+
+    if (!nft) return null;
+
+    return this.toNFTStatus(nft);
+  }
+
+  private toNFTStatus(nft: typeof characterNFTs.$inferSelect): NFTStatus {
     return {
       id: nft.id,
       characterId: nft.characterId,

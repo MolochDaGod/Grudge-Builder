@@ -1,5 +1,7 @@
 # Grudge Warlords API Documentation
 
+> **Docs index:** [DOCS-INDEX.md](./DOCS-INDEX.md) · **UUID systems:** [UUID_SYSTEM.md](./UUID_SYSTEM.md) · **ICON assets (9,724):** [ObjectStore API & UUID Guide](../../ObjectStore/docs/API-AND-UUID-GUIDE.md)
+
 ## Base URL
 
 All API endpoints are prefixed with `/api/`. In production, Vercel rewrites proxy these to the Grudge backend:
@@ -318,6 +320,53 @@ Parse an Aseprite file for animation data.
 - `filename` (path): Aseprite filename
 
 **Response:** Parsed animation data with frames, tags, and palette
+
+---
+
+## Icons & ObjectStore (ICON UUIDs)
+
+Grudge Warlords resolves all UI icons through the **ObjectStore `ICON-*` registry** on R2 CDN.
+
+| Resource | URL |
+|----------|-----|
+| Icon registry | `https://objectstore.grudge-studio.com/api/v1/icon-registry.json` |
+| Path index | `https://objectstore.grudge-studio.com/api/v1/icon-path-index.json` |
+| Integration manifest | `https://objectstore.grudge-studio.com/api/v1/assets-api.json` |
+| CDN base | `https://assets.grudge-studio.com/game-assets/icons/...` |
+
+### Client usage (GrudgeBuilder)
+
+```typescript
+import { resolveIconUrl, iconOnError } from '@/lib/iconResolver';
+
+<img src={resolveIconUrl(item.iconUrl, { category: item.type, name: item.name })} onError={iconOnError} />
+```
+
+### ObjectStore REST (no auth required)
+
+| Method | Endpoint |
+|--------|----------|
+| GET | `/api/v1/icons?category=skill&limit=50` |
+| GET | `/api/v1/icons/search?q=fire` |
+| GET | `/api/v1/icons/:grudgeUuid` |
+| GET | `/api/v1/icons/by-path?path=/icons/sigils/strength.png` |
+
+Full UUID matrix (ICON vs char_ vs slot-tier vs HERO/EQIP): see [ObjectStore API & UUID Guide](../../ObjectStore/docs/API-AND-UUID-GUIDE.md).
+
+---
+
+## Grudge UUID (slot-tier items)
+
+Runtime item instances use the structured format `SLOT-TIER-ITEMID-TIMESTAMP-COUNTER`.
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/uuid/generate` | Generate one UUID from slot + tier + itemId |
+| POST | `/api/uuid/apply-to-items` | Preview batch assignment |
+| POST | `/api/uuid/commit` | Persist to database |
+| POST | `/api/island/resolve-drops` | Stamp island loot with UUIDs |
+
+See [UUID_SYSTEM.md](./UUID_SYSTEM.md) for slot codes, tier codes, and parsing.
 
 ---
 

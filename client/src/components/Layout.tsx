@@ -86,9 +86,9 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   // Global image error handler — catches any broken <img> and swaps to fallback
   useEffect(() => {
     const handler = (e: Event) => {
-      const target = e.target as HTMLElement;
-      if (target.tagName === 'IMG') {
-        onImageError(e as unknown as React.SyntheticEvent<HTMLImageElement>);
+      const target = e.target;
+      if (target instanceof HTMLImageElement) {
+        onImageError(target);
       }
     };
     document.addEventListener('error', handler, true);

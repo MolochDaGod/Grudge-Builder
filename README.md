@@ -206,7 +206,8 @@ Grudge-Builder is the **hub** for the Grudge Warlords fleet. All games share the
 |---|---|---|---|
 | **Grudge Warlords** (this repo) | Grudge-Builder | grudgewarlords.com | React + Three.js + Phaser |
 | **RTS Grudge** | RTS-Grudge | rts-grudge.vercel.app | React-Three-Fiber + Rapier |
-| **Dungeon Crawler Quest** | Dungeon-Crawler-Quest | dcq.grudge-studio.com | BabylonJS + Havok |
+| **Dungeon Crawler Quest** | Dungeon-Crawler-Quest | dcq.grudge-studio.com | Three.js + Voxel + Rapier |
+| **Grudge Studio Forge** | RTS-Grudge (studio/) | forge.grudge-studio.com | R3F + Rapier + ObjectStore |
 
 All games connect to:
 - `api.grudge-studio.com` — Game API (characters, saves, inventory)

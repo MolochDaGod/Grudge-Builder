@@ -16,6 +16,7 @@ import { useObjectStoreData } from "@/lib/objectStoreData";
 import { Button } from "@/components/ui/button";
 import { Home } from "lucide-react";
 import OpeningScene from "@/components/forge/OpeningScene";
+import { FORGE_MAP_EDITOR_URL } from "@/lib/forgeUrls";
 
 type ForgeTab = "assets" | "items" | "ledger" | "ai" | "tools";
 
@@ -60,6 +61,24 @@ export default function ForgePage() {
             ))}
           </div>
         </div>
+      </div>
+
+      {/* Map editor — canonical fleet 3D editor lives on RTS-Grudge / forge subdomain */}
+      <div className="max-w-7xl mx-auto px-4 pt-4">
+        <a
+          href={FORGE_MAP_EDITOR_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center justify-between gap-4 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 hover:bg-amber-500/15 transition-colors"
+        >
+          <div>
+            <div className="font-semibold text-amber-300">Open Map & Model Editor</div>
+            <div className="text-sm text-slate-400">
+              Grudge Studio Forge — terrain, ObjectStore assets, play mode (R3F + Rapier). Warlords · RTS · DCQ.
+            </div>
+          </div>
+          <span className="text-amber-400 text-sm shrink-0">forge.grudge-studio.com ↗</span>
+        </a>
       </div>
 
       {/* Content */}

@@ -57,6 +57,16 @@ function detectCategory(path: string): string {
 const resolvedCache = new Map<string, string>();
 const failedPaths = new Set<string>();
 
+/** Probe image availability without cross-origin fetch (avoids CORS on CDN HEAD). */
+function probeImageUrl(url: string): Promise<boolean> {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => resolve(true);
+    img.onerror = () => resolve(false);
+    img.src = url;
+  });
+}
+
 // ── Core resolver ────────────────────────────────────────────────────────────
 
 /**
@@ -84,8 +94,11 @@ export function getFallback(path: string): string {
  * @example
  *   <img src={resolveAsset("/icons/weapons/missing.png")} onError={onImageError} />
  */
-export function onImageError(e: React.SyntheticEvent<HTMLImageElement>): void {
-  const img = e.currentTarget;
+export function onImageError(
+  e: React.SyntheticEvent<HTMLImageElement> | HTMLImageElement,
+): void {
+  const img = e instanceof HTMLImageElement ? e : e.currentTarget;
+  if (!(img instanceof HTMLImageElement)) return;
   const originalSrc = img.getAttribute("data-original-src") || img.src;
 
   // Don't infinite-loop on placeholder failures
@@ -117,25 +130,17 @@ export function onImageError(e: React.SyntheticEvent<HTMLImageElement>): void {
 export async function preloadAsset(path: string): Promise<string> {
   if (resolvedCache.has(path)) return resolvedCache.get(path)!;
 
-  // Try R2 CDN first
-  try {
-    const cdnUrl = cdnAssetUrl(path);
-    const res = await fetch(cdnUrl, { method: "HEAD" });
-    if (res.ok) {
-      resolvedCache.set(path, cdnUrl);
-      return cdnUrl;
-    }
-  } catch { /* CDN failed, try ObjectStore GitHub Pages */ }
+  const cdnUrl = cdnAssetUrl(path);
+  if (await probeImageUrl(cdnUrl)) {
+    resolvedCache.set(path, cdnUrl);
+    return cdnUrl;
+  }
 
-  // Try ObjectStore (info.grudge-studio.com — unified asset + data host)
-  try {
-    const osUrl = `https://info.grudge-studio.com${path.startsWith('/') ? path : '/' + path}`;
-    const res = await fetch(osUrl, { method: "HEAD" });
-    if (res.ok) {
-      resolvedCache.set(path, osUrl);
-      return osUrl;
-    }
-  } catch { /* ObjectStore failed */ }
+  const osUrl = `https://info.grudge-studio.com${path.startsWith('/') ? path : '/' + path}`;
+  if (await probeImageUrl(osUrl)) {
+    resolvedCache.set(path, osUrl);
+    return osUrl;
+  }
 
   // Fallback
   const fallback = getFallback(path);

@@ -18,7 +18,13 @@
     "db:push": "drizzle-kit push",
     "db:migrate:telegram": "node scripts/run-telegram-migration.mjs",
     "gen:fleet": "tsx scripts/gen-fleet-manifest.mjs",
-    "seed:rag": "node scripts/seed-anythingllm.mjs"
+    "seed:rag": "node scripts/seed-anythingllm.mjs",
+    "probe:truth": "tsx scripts/probe-truth-fleet.ts --base https://client.grudge-studio.com",
+    "probe:truth:direct": "tsx scripts/probe-truth-fleet.ts",
+    "probe:deployments": "node scripts/probe-deployments.mjs",
+    "probe:all": "node scripts/probe-deployments.mjs --truth",
+    "test:e2e": "playwright test",
+    "test:e2e:truth": "playwright test e2e/truth.spec.ts"
   },
   "dependencies": {
     "@colyseus/auth": "^0.17.9",
@@ -229,6 +235,7 @@
     }
   },
   "devDependencies": {
+    "@playwright/test": "^1.61.1",
     "@tailwindcss/vite": "^4.3.0",
     "@testing-library/dom": "^10.4.1",
     "@testing-library/jest-dom": "^6.9.1",

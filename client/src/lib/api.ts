@@ -170,24 +170,50 @@ export interface CraftResult {
   profession: { id: string; level: number; xp: number; xpGained: number; leveledUp: boolean };
 }
 
+export interface CraftPayload {
+  professionId: string;
+  recipeId: string;
+  outputItemId: string;
+  outputItemName: string;
+  outputItemTier?: number;
+  outputItemRarity?: string;
+  ingredients: Array<{ itemId: string; quantity: number }>;
+}
+
+export interface GatherPayload {
+  professionId: string;
+  resourceId: string;
+  resourceTier: number;
+  quantity: number;
+}
+
 export const professionAPI = {
-  /** Get profession levels from the character object (no server call) */
+  /** Authoritative profession levels from Railway (characterProfessions table). */
   getLevels: async (characterId: string): Promise<ProfessionLevels> => {
     try {
-      const char = await characterAPI.get(characterId);
-      return (char as any).professionLevels || {};
+      const data = await apiFetch<{ professions: ProfessionLevels }>(`/api/professions/${characterId}`);
+      return data.professions || {};
     } catch {
-      return {};
+      try {
+        const char = await characterAPI.get(characterId);
+        return (char.professionLevels || {}) as ProfessionLevels;
+      } catch {
+        return {};
+      }
     }
   },
 
-  /** Gather/craft are handled client-side in island.tsx — these are stubs */
-  gather: async (): Promise<GatherResult> => {
-    throw new Error("Gathering is handled client-side via island auto-harvest");
-  },
-  craft: async (): Promise<CraftResult> => {
-    throw new Error("Crafting is handled client-side via crafting page");
-  },
+  gather: async (characterId: string, payload: GatherPayload): Promise<GatherResult> =>
+    apiFetch<GatherResult>(`/api/professions/${characterId}/gather`, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+
+  craft: async (characterId: string, payload: CraftPayload): Promise<CraftResult> =>
+    apiFetch<CraftResult>(`/api/professions/${characterId}/craft`, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
 };
 
 // ── Account inventory API ───────────────────────────────────────
@@ -202,10 +228,25 @@ export interface InventoryItem {
   metadata?: Record<string, unknown> | null;
 }
 
+export interface CharacterInventoryBundle {
+  characterId: string;
+  accountId: string;
+  items: InventoryItem[];
+  resources: Record<string, number>;
+}
+
 export const inventoryAPI = {
   getAll: async (): Promise<InventoryItem[]> => {
     try { return await apiFetch<InventoryItem[]>("/api/account/inventory"); }
     catch { return []; }
+  },
+
+  getForCharacter: async (characterId: string): Promise<CharacterInventoryBundle | null> => {
+    try {
+      return await apiFetch<CharacterInventoryBundle>(`/api/inventory/${characterId}`);
+    } catch {
+      return null;
+    }
   },
 
   add: async (item: { itemId: string; quantity?: number; tier?: number; quality?: string; boundToCharacterId?: string | null; metadata?: object }): Promise<InventoryItem> =>

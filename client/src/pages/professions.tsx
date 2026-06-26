@@ -3,15 +3,21 @@ import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import Layout from "@/components/Layout";
 import { GATHERING_PROFESSIONS, CRAFTING_PROFESSIONS, ITEMS, RECIPES, RESOURCE_NODES, GrudaRecipe, GrudaProfession } from "@/lib/grudaDB";
-import { professionAPI } from "@/lib/api";
 import { cn } from "@/lib/utils";
+import { AlertCircle } from "lucide-react";
 import { Hammer, Pickaxe, Search, Leaf, Fish, Bone, Magnet, TreePine, Wrench, ChefHat, Sparkles, ChevronRight, ChevronDown, TrendingUp, Clock, Gem, Award, Zap, Target, Package, GitBranch } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { CharacterManager, Character } from "@/lib/characterManager";
+import type { Character } from "@/lib/characterManager";
+import { useCharacters } from "@/hooks/use-characters";
+import { useAccountInventory, useAccountResources } from "@/hooks/use-account";
 import { useToast } from "@/hooks/use-toast";
+import CharacterProfessionHub from "@/components/profession/CharacterProfessionHub";
+import { buildMaterialMap, canAffordRecipe } from "@/lib/materialAvailability";
+import { resolveProfessionLevel } from "@/lib/professionLevels";
+import { professionAPI } from "@/lib/api";
 import { Progress } from "@/components/ui/progress";
 import { 
   getGatheringBonuses, 
@@ -60,16 +66,41 @@ export default function ProfessionsPage() {
   if (!authReady) return null;
 
   const { toast } = useToast();
+  const {
+    characters,
+    activeCharacter,
+    loading: charsLoading,
+    refetch: refetchCharacters,
+  } = useCharacters();
+  const { inventory, refetch: refetchInventory } = useAccountInventory();
+  const { resources, refetch: refetchResources } = useAccountResources();
   const [activeTab, setActiveTab] = useState<ProfessionTab>("gathering");
   const [selectedProf, setSelectedProf] = useState<string>("Mining");
   const [selectedSkillTreeProf, setSelectedSkillTreeProf] = useState<string>("Miner");
-  const [characters, setCharacters] = useState<Character[]>([]);
-  const [activeCharacter, setActiveCharacter] = useState<Character | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
-  
+  const [syncedProfLevels, setSyncedProfLevels] = useState<Character['professionLevels']>({});
+  const materialMap = buildMaterialMap(inventory, resources);
+
+  const characterForProfessions: Character | null = activeCharacter
+    ? {
+        ...activeCharacter,
+        professionLevels: { ...activeCharacter.professionLevels, ...syncedProfLevels },
+      }
+    : null;
+
+  useEffect(() => {
+    if (!activeCharacter?.id) {
+      setSyncedProfLevels({});
+      return;
+    }
+    professionAPI.getLevels(activeCharacter.id).then(setSyncedProfLevels).catch(() => {});
+  }, [activeCharacter?.id]);
+
   const handleRefreshCharacter = async () => {
-    const active = await CharacterManager.getActiveCharacter();
-    setActiveCharacter(active);
+    await Promise.all([refetchCharacters(), refetchInventory(), refetchResources()]);
+    if (activeCharacter?.id) {
+      professionAPI.getLevels(activeCharacter.id).then(setSyncedProfLevels).catch(() => {});
+    }
   };
   
   const professions = activeTab === "gathering" ? GATHERING_PROFESSIONS : CRAFTING_PROFESSIONS;
@@ -86,17 +117,7 @@ export default function ProfessionsPage() {
     return r.profession === profName;
   });
   
-  const resources = RESOURCE_NODES.filter(n => n.profession === currentProf?.name);
-
-  useEffect(() => {
-    const loadCharacters = async () => {
-      const allChars = await CharacterManager.getAll();
-      setCharacters(allChars);
-      const active = await CharacterManager.getActiveCharacter();
-      setActiveCharacter(active);
-    };
-    loadCharacters();
-  }, []);
+  const harvestNodes = RESOURCE_NODES.filter(n => n.profession === currentProf?.name);
 
   useEffect(() => {
     const newProfs = activeTab === "gathering" ? GATHERING_PROFESSIONS : CRAFTING_PROFESSIONS;
@@ -104,7 +125,7 @@ export default function ProfessionsPage() {
   }, [activeTab]);
 
   const handleCraft = async (recipe: GrudaRecipe) => {
-    if (!activeCharacter) {
+    if (!characterForProfessions) {
       toast({ title: "No Active Character", description: "You must create or select a character first.", variant: "destructive" });
       return;
     }
@@ -116,7 +137,7 @@ export default function ProfessionsPage() {
     const craftProfession = currentProf?.name || recipe.profession || "Miner";
 
     try {
-      const result = await professionAPI.craft(activeCharacter.id, {
+      const result = await professionAPI.craft(characterForProfessions.id, {
         professionId: craftProfession,
         recipeId: recipe.id,
         outputItemId: outputItem.id,
@@ -140,7 +161,6 @@ export default function ProfessionsPage() {
         className: "bg-green-900 border-green-800 text-green-100",
       });
 
-      // Refresh character to pick up any updated profession levels
       await handleRefreshCharacter();
     } catch (err: any) {
       const msg = err?.message || "Crafting failed";
@@ -158,23 +178,56 @@ export default function ProfessionsPage() {
     return item?.name.toLowerCase().includes(searchTerm.toLowerCase());
   });
 
-  const filteredResources = resources.filter(n => {
+  const filteredResources = harvestNodes.filter(n => {
     if (!searchTerm) return true;
     return n.name.toLowerCase().includes(searchTerm.toLowerCase());
   });
 
+  if (charsLoading) {
+    return (
+      <Layout>
+        <div className="flex items-center justify-center h-[50vh] text-slate-400">Loading your account characters...</div>
+      </Layout>
+    );
+  }
+
+  if (!activeCharacter) {
+    const needsCreate = characters.length === 0;
+    return (
+      <Layout>
+        <div className="flex flex-col gap-6 py-6 max-w-4xl mx-auto">
+          <div className="text-center space-y-3">
+            <AlertCircle className="w-12 h-12 text-amber-500 mx-auto" />
+            <h2 className="text-xl font-bold text-slate-200">
+              {needsCreate ? 'Create a Character' : 'Select a Character'}
+            </h2>
+            <p className="text-slate-400 text-sm max-w-md mx-auto">
+              Professions, crafting, inventory, and equipment are tracked per character on your Grudge account.
+            </p>
+          </div>
+          <CharacterProfessionHub activeCharacter={null} />
+        </div>
+      </Layout>
+    );
+  }
+
   return (
     <Layout>
       <div className="flex flex-col h-[calc(100vh-80px)] animate-in fade-in duration-500">
+        <CharacterProfessionHub
+          activeCharacter={characterForProfessions}
+          onCharacterSelected={handleRefreshCharacter}
+        />
+
         {/* ── Compact header ── */}
-        <div className="flex items-center justify-between gap-4 pb-3 shrink-0">
+        <div className="flex items-center justify-between gap-4 pb-3 pt-3 shrink-0">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-amber-600 to-amber-800 flex items-center justify-center shadow-lg">
               <Hammer className="w-5 h-5 text-amber-200" />
             </div>
             <div>
               <h1 className="text-2xl font-cinzel font-bold text-amber-400" data-testid="page-title">Artisan Guild</h1>
-              {activeCharacter && <span className="text-xs text-blue-400">Artisan: {activeCharacter.name}</span>}
+              {characterForProfessions && <span className="text-xs text-blue-400">Artisan: {characterForProfessions.name}</span>}
             </div>
           </div>
           <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as ProfessionTab)} className="shrink-0">
@@ -216,14 +269,14 @@ export default function ProfessionsPage() {
                   selectedProf={selectedProf}
                   setSelectedProf={setSelectedProf}
                   characters={characters}
-                  activeCharacter={activeCharacter}
+                  activeCharacter={characterForProfessions}
                 />
               </div>
               {selectedProf && (
                 <div className="flex-1 min-h-0 overflow-y-auto pr-1 custom-scrollbar">
                   <GatheringProfessionDetails 
                     professionName={selectedProf}
-                    activeCharacter={activeCharacter}
+                    activeCharacter={characterForProfessions}
                     searchTerm={searchTerm}
                     setSearchTerm={setSearchTerm}
                     filteredResources={filteredResources}
@@ -245,6 +298,7 @@ export default function ProfessionsPage() {
                     if (prof) setSelectedProf(prof.name);
                   }}
                   category="crafting"
+                  activeCharacter={characterForProfessions}
                 />
               </div>
 
@@ -253,7 +307,7 @@ export default function ProfessionsPage() {
                 <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-12 gap-4">
                   {/* Left: Profession info (scrollable) */}
                   <div className="lg:col-span-4 xl:col-span-3 overflow-y-auto pr-1 custom-scrollbar space-y-3">
-                    <ProfessionInfoCard profession={currentProf} />
+                    <ProfessionInfoCard profession={currentProf} activeCharacter={characterForProfessions} />
                     <SynergiesCard profession={currentProf} />
                     {currentProf.name === "Chef" && <FoodCategoriesPanel />}
                   </div>
@@ -272,7 +326,12 @@ export default function ProfessionsPage() {
                     </div>
                     <div className="flex-1 min-h-0 overflow-y-auto pr-1 custom-scrollbar">
                       {filteredRecipes.length > 0 ? (
-                        <RecipesPanel recipes={filteredRecipes} onCraft={handleCraft} />
+                        <RecipesPanel
+                          recipes={filteredRecipes}
+                          materialMap={materialMap}
+                          craftLevel={resolveProfessionLevel(characterForProfessions?.professionLevels, currentProf.name, 'crafting').level}
+                          onCraft={handleCraft}
+                        />
                       ) : (
                         <div className="flex items-center justify-center h-40 text-slate-500 text-sm">
                           No recipes found.
@@ -290,7 +349,7 @@ export default function ProfessionsPage() {
               <SkillTreesTab
                 selectedProf={selectedSkillTreeProf}
                 setSelectedProf={setSelectedSkillTreeProf}
-                activeCharacter={activeCharacter}
+                activeCharacter={characterForProfessions}
                 onRefreshCharacter={handleRefreshCharacter}
               />
             </div>
@@ -309,12 +368,8 @@ function GatheringProfessionGrid({ selectedProf, setSelectedProf, characters, ac
 }) {
   const professionNames = Object.keys(GATHERING_PROFESSIONS_CONFIG) as (keyof typeof GATHERING_PROFESSIONS_CONFIG)[];
   
-  const getCharacterLevel = (profName: string): number => {
-    if (!activeCharacter?.professionLevels) return 1;
-    const prof = activeCharacter.professionLevels[profName];
-    if (!prof) return 1;
-    return prof.level || 1;
-  };
+  const getCharacterLevel = (profName: string): number =>
+    resolveProfessionLevel(activeCharacter?.professionLevels, profName, 'gathering').level;
   
   return (
     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
@@ -382,8 +437,9 @@ function GatheringProfessionDetails({ professionName, activeCharacter, searchTer
   const config = GATHERING_PROFESSIONS_CONFIG[professionName as keyof typeof GATHERING_PROFESSIONS_CONFIG];
   if (!config) return null;
   
-  const level = activeCharacter?.professionLevels?.[professionName]?.level || 1;
-  const totalXp = activeCharacter?.professionLevels?.[professionName]?.xp || 0;
+  const profData = resolveProfessionLevel(activeCharacter?.professionLevels, professionName, 'gathering');
+  const level = profData.level;
+  const totalXp = profData.xp;
   const { xpInLevel, xpForNextLevel } = calculateLevelFromXp(totalXp);
   const bonuses = getGatheringBonuses(level);
   const currentMilestones = GATHERING_LEVEL_MILESTONES.filter(m => m.level <= level);
@@ -690,16 +746,20 @@ const PROFESSION_GRID_STYLES = {
   },
 };
 
-function ProfessionGrid({ professions, selectedProf, setSelectedProf, category }: {
+function ProfessionGrid({ professions, selectedProf, setSelectedProf, category, activeCharacter }: {
   professions: GrudaProfession[];
   selectedProf: string;
   setSelectedProf: (id: string) => void;
   category: "gathering" | "crafting";
+  activeCharacter?: Character | null;
 }) {
   return (
     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
       {professions.map((prof) => {
         const iconSrc = professionIcon(prof.name);
+        const level = category === 'crafting'
+          ? resolveProfessionLevel(activeCharacter?.professionLevels, prof.name, 'crafting').level
+          : 1;
         return (
           <button
             key={prof.id}
@@ -718,6 +778,25 @@ function ProfessionGrid({ professions, selectedProf, setSelectedProf, category }
               <span className="text-2xl">{prof.icon}</span>
             )}
             <span className="text-xs font-bold uppercase tracking-wider">{prof.name}</span>
+            {category === 'crafting' && activeCharacter && (
+              <>
+                <div className="flex items-center gap-1 text-[10px]">
+                  <span className={cn(
+                    "font-bold",
+                    level >= 50 ? "text-amber-400" : level >= 25 ? "text-blue-400" : "text-amber-300/80",
+                  )}>
+                    Lv.{level}
+                  </span>
+                  <span className="text-slate-600">/100</span>
+                </div>
+                <div className="w-full h-1 bg-slate-800 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-gradient-to-r from-amber-500 to-amber-300 transition-all"
+                    style={{ width: `${level}%` }}
+                  />
+                </div>
+              </>
+            )}
           </button>
         );
       })}
@@ -725,11 +804,19 @@ function ProfessionGrid({ professions, selectedProf, setSelectedProf, category }
   );
 }
 
-function ProfessionInfoCard({ profession }: { profession: GrudaProfession }) {
+function ProfessionInfoCard({
+  profession,
+  activeCharacter,
+}: {
+  profession: GrudaProfession;
+  activeCharacter: Character | null;
+}) {
   const [, setLocation] = useLocation();
   const professionRoute = `/profession/${profession.name.toLowerCase()}`;
   const bgSrc = professionBackground(profession.name);
   const iconSrc = professionIcon(profession.name);
+  const profData = resolveProfessionLevel(activeCharacter?.professionLevels, profession.name, 'crafting');
+  const masteryPct = Math.min(100, (profData.level / 100) * 100);
   
   return (
     <div className="bg-slate-900 rounded-xl border border-slate-800 shadow-xl overflow-hidden">
@@ -780,9 +867,9 @@ function ProfessionInfoCard({ profession }: { profession: GrudaProfession }) {
         <div>
           <div className="flex justify-between text-[10px] mb-1">
             <span className="text-slate-500">Mastery</span>
-            <span className="text-amber-400 font-bold">Lv.1 / 100</span>
+            <span className="text-amber-400 font-bold">Lv.{profData.level} / 100</span>
           </div>
-          <Progress value={1} className="h-1.5" />
+          <Progress value={masteryPct} className="h-1.5" />
         </div>
         
         <div className="flex flex-wrap gap-1">
@@ -914,7 +1001,17 @@ function ResourceNodesPanel({ nodes, currentLevel, isOpen, onToggle }: {
   );
 }
 
-function RecipesPanel({ recipes, onCraft }: { recipes: GrudaRecipe[]; onCraft: (recipe: GrudaRecipe) => void }) {
+function RecipesPanel({
+  recipes,
+  materialMap,
+  craftLevel,
+  onCraft,
+}: {
+  recipes: GrudaRecipe[];
+  materialMap: Record<string, number>;
+  craftLevel: number;
+  onCraft: (recipe: GrudaRecipe) => void;
+}) {
   return (
     <div className="bg-slate-900 rounded-xl border border-slate-800 overflow-hidden">
       <div className="p-3 border-b border-slate-800 bg-slate-950/50 flex justify-between items-center sticky top-0 z-10">
@@ -924,6 +1021,10 @@ function RecipesPanel({ recipes, onCraft }: { recipes: GrudaRecipe[]; onCraft: (
       <div className="divide-y divide-slate-800">
         {recipes.map(recipe => {
           const outputItem = ITEMS.find(i => i.id === recipe.outputItemId);
+          const tier = outputItem?.tier || 1;
+          const tierLocked = craftLevel < Math.max(1, tier * 12);
+          const afford = canAffordRecipe(materialMap, recipe.ingredients);
+          const canCraft = afford.ok && !tierLocked;
           return (
             <div key={recipe.id} className="p-3 hover:bg-slate-800/50 transition-colors flex items-center gap-3">
               <div className="w-10 h-10 bg-slate-950 rounded border border-slate-700 flex items-center justify-center shrink-0">
@@ -949,22 +1050,34 @@ function RecipesPanel({ recipes, onCraft }: { recipes: GrudaRecipe[]; onCraft: (
                 <div className="text-[10px] text-slate-500 mt-0.5 flex flex-wrap gap-1">
                   {recipe.ingredients.map(ing => {
                     const ingItem = ITEMS.find(i => i.id === ing.itemId) || RESOURCE_NODES.find(n => n.drops.includes(ing.itemId));
+                    const have = materialMap[ing.itemId] || 0;
+                    const enough = have >= ing.quantity;
                     return (
-                      <span key={ing.itemId} className="bg-slate-800 px-1 py-0.5 rounded text-slate-400">
-                        {ing.quantity}x {ingItem?.name || ing.itemId}
+                      <span
+                        key={ing.itemId}
+                        className={cn(
+                          "px-1 py-0.5 rounded",
+                          enough ? "bg-green-950/50 text-green-300" : "bg-red-950/40 text-red-300",
+                        )}
+                      >
+                        {have}/{ing.quantity}x {ingItem?.name || ing.itemId}
                       </span>
-                    )
+                    );
                   })}
                 </div>
+                {tierLocked && (
+                  <p className="text-[10px] text-amber-500 mt-1">Requires higher {recipe.profession || 'profession'} mastery for T{tier}</p>
+                )}
               </div>
               <Button 
                 size="sm" 
-                className="bg-amber-700 hover:bg-amber-600 text-white text-xs px-3 py-1 h-8 whitespace-nowrap shrink-0 shadow-md"
+                className="bg-amber-700 hover:bg-amber-600 text-white text-xs px-3 py-1 h-8 whitespace-nowrap shrink-0 shadow-md disabled:opacity-40"
                 onClick={() => onCraft(recipe)}
+                disabled={!canCraft}
                 data-testid={`craft-${recipe.id}`}
               >
                 <Hammer className="w-3 h-3 mr-1" />
-                Craft
+                {afford.ok ? 'Craft' : 'Need mats'}
               </Button>
             </div>
           )

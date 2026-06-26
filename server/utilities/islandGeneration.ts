@@ -7,6 +7,16 @@
  */
 
 import { v4 as uuidv4 } from 'uuid';
+import {
+  generateMountainTriadSeed,
+  HOME_ISLAND_ZONE_TYPES,
+  type MountainTriadSeed,
+} from '@shared/definitions/homeIslandSeed';
+import {
+  deriveCampPositionFromZones,
+  deriveTerrainZonesFromRtsHeightmap,
+  type RtsHeightmapPayload,
+} from '@shared/definitions/rtsTerrainBridge';
 
 /**
  * Seeded Random Number Generator
@@ -102,6 +112,8 @@ export interface IslandState {
   terrainZones: TerrainZone[];
   campPosition: { x: number; y: number };
   clearings: Array<{ x: number; y: number; radius: number }>;
+  mountainTriad?: MountainTriadSeed;
+  rtsHeightmap?: RtsHeightmapPayload;
   stats: {
     nodeCount: number;
     animalCount: number;
@@ -110,6 +122,7 @@ export interface IslandState {
   };
   createdAt?: number;
   updatedAt?: number;
+  lastUpdate?: number;
 }
 
 /**
@@ -200,6 +213,20 @@ export function generateTerrainZones(
     },
   });
 
+  return zones;
+}
+
+/** Ensure every canonical home-island zone type exists (seed design requirement). */
+export function assertAllHomeIslandZones(zones: TerrainZone[]): TerrainZone[] {
+  const present = new Set(zones.map((z) => z.type));
+  for (const type of HOME_ISLAND_ZONE_TYPES) {
+    if (!present.has(type)) {
+      zones.push({
+        type,
+        bounds: { x: 40, y: 40, width: 12, height: 12 },
+      });
+    }
+  }
   return zones;
 }
 
@@ -421,10 +448,11 @@ export function generateIslandState(
   // Initialize seeded RNG
   const rng = seededRandom(seed);
 
-  // Generate all components
-  const terrainZones = generateTerrainZones(rng, mapWidth, mapHeight);
+  // Generate all components (all 6 zone types + Sketchfab mountain triad from seed)
+  const terrainZones = assertAllHomeIslandZones(generateTerrainZones(rng, mapWidth, mapHeight));
   const nodes = generateResourceNodes(terrainZones, rng, 20, mapWidth, mapHeight);
   const animals = generateAnimals(terrainZones, rng, 8, mapWidth, mapHeight);
+  const mountainTriad = generateMountainTriadSeed(seed);
 
   // Camp position: center of clearing zone (if available)
   const clearingZone = terrainZones.find((z) => z.type === 'clearing');
@@ -462,6 +490,7 @@ export function generateIslandState(
         y: z.bounds.y + z.bounds.height / 2,
         radius: Math.min(z.bounds.width, z.bounds.height) / 2,
       })),
+    mountainTriad,
     stats: {
       nodeCount: nodes.length,
       animalCount: animals.length,
@@ -469,9 +498,59 @@ export function generateIslandState(
       resourceBreakdown,
     },
     createdAt: Date.now(),
+    lastUpdate: Date.now(),
   };
 
   return islandState;
+}
+
+export interface RtsExportInput {
+  gridX: number;
+  gridZ: number;
+  seed: number;
+  biome: string;
+  heightmap?: RtsHeightmapPayload;
+}
+
+/** Merge RTS grid export + optional heightmap into canonical island state. */
+export function mergeRtsExportIntoIslandState(
+  base: IslandState,
+  rts: RtsExportInput,
+): IslandState {
+  const mergedSeed = `${base.seed}_rts_${rts.gridX}_${rts.gridZ}_${rts.seed}`;
+  const mountainTriad = generateMountainTriadSeed(mergedSeed);
+
+  if (!rts.heightmap) {
+    return {
+      ...base,
+      mountainTriad,
+      lastUpdate: Date.now(),
+    };
+  }
+
+  const terrainZones = deriveTerrainZonesFromRtsHeightmap(rts.heightmap);
+  const campPosition = deriveCampPositionFromZones(terrainZones);
+  const clearings = terrainZones
+    .filter((z) => z.type === 'clearing')
+    .map((z) => ({
+      x: z.bounds.x + z.bounds.width / 2,
+      y: z.bounds.y + z.bounds.height / 2,
+      radius: Math.min(z.bounds.width, z.bounds.height) / 2,
+    }));
+
+  return {
+    ...base,
+    terrainZones: assertAllHomeIslandZones(terrainZones),
+    campPosition,
+    clearings: clearings.length > 0 ? clearings : base.clearings,
+    mountainTriad,
+    rtsHeightmap: rts.heightmap,
+    stats: {
+      ...base.stats,
+      terrainZoneCount: terrainZones.length,
+    },
+    lastUpdate: Date.now(),
+  };
 }
 
 // Note: seededRandom, generateTerrainZones, generateResourceNodes, generateAnimals

@@ -30,10 +30,11 @@ import {
 } from '@/lib/professionSystem';
 import type { Character } from '@/lib/characterManager';
 import { fetchCurrentHomeIsland, type HomeIslandDto } from '@/lib/homeIslandApi';
+import type { MountainTriadSeed } from '@shared/definitions/homeIslandSeed';
 import { buildHomeDungeonUrl } from '@/lib/homeIslandDungeon';
 import { clearTopDownCache } from '@/island3d/render/IslandTopDownCapture';
 import type { MountainHintState } from '@/island3d/objects/EvilMountainTriad';
-import { Home, Mountain } from 'lucide-react';
+import { Home, Mountain, ArrowLeft, Map } from 'lucide-react';
 
 export default function HomeIslandPage() {
   const [, setLocation] = useLocation();
@@ -245,8 +246,11 @@ export default function HomeIslandPage() {
     const canvas = canvasRef.current;
     if (!canvas || engineRef.current) return;
 
+    const mountainTriad = islandDto?.state?.mountainTriad as MountainTriadSeed | undefined;
+
     const config: Island3DEngineConfig = {
       seed: islandSeed,
+      mountainTriad,
       canvas,
       width: window.innerWidth,
       height: window.innerHeight,
@@ -299,7 +303,7 @@ export default function HomeIslandPage() {
       engine.dispose();
       engineRef.current = null;
     };
-  }, [islandSeed, heroRace, heroClass, showNotification, setLocation]);
+  }, [islandSeed, islandDto?.state?.mountainTriad, heroRace, heroClass, showNotification, setLocation]);
 
   // ── E key — cave portal behind secret evil peak ───────────────
 
@@ -487,11 +491,22 @@ export default function HomeIslandPage() {
 
   if (loadError) {
     return (
-      <div className="fixed inset-0 bg-[#05060c] flex flex-col items-center justify-center text-white gap-4">
+      <div className="fixed inset-0 bg-[#05060c] flex flex-col items-center justify-center text-white gap-4 px-6 text-center">
         <p className="text-red-400">{loadError}</p>
-        <button onClick={() => setLocation('/island-reveal')} className="text-amber-400 underline">
-          Generate your island
-        </button>
+        <p className="text-white/40 text-sm max-w-md">
+          Island data loads from the game server. Sign in on grudgewarlords.com first, or open the Islands hub.
+        </p>
+        <div className="flex gap-3 flex-wrap justify-center">
+          <button
+            onClick={() => setLocation('/islands')}
+            className="px-4 py-2 rounded-lg bg-amber-800/40 border border-amber-600/40 text-amber-300"
+          >
+            Islands Hub
+          </button>
+          <button onClick={() => setLocation('/island-reveal')} className="text-amber-400 underline">
+            Generate your island
+          </button>
+        </div>
       </div>
     );
   }
@@ -547,6 +562,14 @@ export default function HomeIslandPage() {
             </div>
           )}
 
+          <button
+            onClick={() => setLocation('/islands')}
+            className="absolute top-4 left-4 z-50 pointer-events-auto flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-black/60 border border-white/10 text-white/70 hover:text-white text-xs"
+          >
+            <ArrowLeft className="w-3.5 h-3.5" />
+            Islands
+          </button>
+
           {/* Home island meta + sail */}
           <div className="absolute top-4 right-4 z-50 pointer-events-auto">
             <div className="bg-black/70 backdrop-blur-sm rounded-xl border border-amber-600/30 p-3 text-xs text-slate-300 space-y-1 min-w-[160px]">
@@ -558,8 +581,9 @@ export default function HomeIslandPage() {
               <div>Buildings: {buildingCount}</div>
               <button
                 onClick={handleLeave}
-                className="mt-2 w-full py-1.5 rounded-lg bg-amber-800/40 border border-amber-700/40 text-amber-300 hover:bg-amber-700/40 transition-colors"
+                className="mt-2 w-full py-1.5 rounded-lg bg-emerald-900/40 border border-emerald-700/40 text-emerald-300 hover:bg-emerald-800/40 transition-colors flex items-center justify-center gap-1"
               >
+                <Map className="w-3 h-3" />
                 Sail to World
               </button>
             </div>

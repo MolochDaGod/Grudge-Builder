@@ -8,6 +8,22 @@ export {
 } from "./manifest";
 
 export {
+  GRUDGE_TRUTH_LAYERS,
+  TRUTH_PROBE_SPECS,
+  TRUTH_DEPRECATED_HOSTS,
+  buildTruthProbes,
+  probeTruthEndpoint,
+  runTruthAudit,
+  detectSplitBrain,
+  scoreTruthProbes,
+  resolveProbeUrl,
+  type TruthProbe,
+  type TruthProbeRole,
+  type TruthProbeSpec,
+  type TruthProbeMode,
+} from "./truthProbes";
+
+export {
   RACE_GRUDGE6,
   RACE_FBX_PATHS,
   defaultModel3d,

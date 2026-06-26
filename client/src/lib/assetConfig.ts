@@ -1,18 +1,15 @@
 import { normalizeAssetPath } from './legacyAssetPaths';
+import { objectStoreApiBase, CANONICAL_OBJECT_STORE_API } from './objectStoreUrl';
 
 /**
- * ObjectStore Asset & API URL Configuration
+ * ObjectStore Asset & API URL Configuration — ONE TRUTH
  *
- * UNIFIED system — info.grudge-studio.com serves everything:
- *   - BINARY ASSETS (images, sprites, audio, models)
- *   - JSON DATA (weapons, armor, classes, races)
+ *   BINARY ASSETS → assets.grudge-studio.com (R2 CDN)
+ *   JSON DATA     → objectstore.grudge-studio.com/api/v1 (browser: /api/objectstore/v1 proxy)
  *
- * GitHub Pages is deprecated (upload-banned). All data now lives on
- * info.grudge-studio.com (Vercel) with Cloudflare CDN.
- *
- * assetUrl() → R2 CDN (binary assets)
- * apiUrl() → info.grudge-studio.com (JSON data)
- * workerUrl() → info.grudge-studio.com (Worker API with caching)
+ * assetUrl()  → R2 CDN
+ * apiUrl()    → ObjectStore JSON (same-origin proxy in browser)
+ * workerUrl() → objectstore.grudge-studio.com
  */
 
 /** R2 CDN — primary for ALL binary assets (images, sprites, audio, models) */
@@ -21,31 +18,17 @@ const ASSET_CDN_BASE =
     (import.meta.env?.VITE_ASSETS_URL || import.meta.env?.VITE_ASSET_CDN_URL)) ||
   'https://assets.grudge-studio.com';
 
-/** ObjectStore — canonical source for all game data and assets.
- *  Hosted on Vercel at info.grudge-studio.com.
- *  GitHub Pages (molochdagod.github.io/ObjectStore) is deprecated. */
-const OBJECT_STORE_PAGES =
+const OBJECT_STORE_ENV =
   (typeof import.meta !== 'undefined' &&
     (import.meta.env?.VITE_OBJECTSTORE_URL || import.meta.env?.VITE_OBJECT_STORE_URL)) ||
-  'https://info.grudge-studio.com';
+  undefined;
 
-/** ObjectStore JSON API base — same-origin /api/objectstore in browser (Vercel rewrite). */
-function objectStoreApiBase(): string {
-  if (typeof window !== 'undefined' && !(import.meta as any).env?.VITE_OBJECTSTORE_URL) {
-    return '/api/objectstore/v1';
-  }
-  return `${OBJECT_STORE_PAGES}/api/v1`;
-}
+const OBJECT_STORE_API = objectStoreApiBase(OBJECT_STORE_ENV);
 
-const OBJECT_STORE_API = objectStoreApiBase();
-
-/**
- * ObjectStore Worker — production API with caching, search, filtering.
- * Same domain as OBJECT_STORE_PAGES since everything is unified now.
- */
+/** ObjectStore Worker — search, filtering, icon registry REST */
 const OBJECTSTORE_WORKER_URL =
   (typeof import.meta !== 'undefined' && import.meta.env?.VITE_OBJECTSTORE_WORKER_URL) ||
-  'https://info.grudge-studio.com';
+  'https://objectstore.grudge-studio.com';
 
 /** Legacy alias — kept for backward compatibility but points to CDN now */
 const OBJECT_STORE_BASE = ASSET_CDN_BASE;
@@ -75,7 +58,7 @@ export function cdnAssetUrl(path: string): string {
 
 /**
  * Build a full ObjectStore API URL for a given JSON data endpoint.
- * Points to info.grudge-studio.com.
+ * Browser: same-origin /api/objectstore/v1 (Vercel → objectstore.grudge-studio.com).
  *
  * @example
  *   apiUrl('/weapons.json')  // => '.../api/v1/weapons.json'
@@ -98,5 +81,13 @@ export function workerUrl(path: string): string {
   return `${OBJECTSTORE_WORKER_URL}${cleanPath}`;
 }
 
-export { OBJECT_STORE_BASE, OBJECT_STORE_API, ASSET_CDN_BASE, OBJECTSTORE_WORKER_URL, OBJECT_STORE_VERSION, objectStoreApiBase };
+export {
+  OBJECT_STORE_BASE,
+  OBJECT_STORE_API,
+  ASSET_CDN_BASE,
+  OBJECTSTORE_WORKER_URL,
+  OBJECT_STORE_VERSION,
+  objectStoreApiBase,
+  CANONICAL_OBJECT_STORE_API,
+};
 export { resolveIconUrl, getPackIconForCategory, iconOnError } from './iconResolver';

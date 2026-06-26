@@ -1,3 +1,5 @@
+import { authHeaders } from '@/lib/grudgeBackend';
+
 export type HomeIslandMapStyle = 'iron' | 'fantasy' | 'tactical' | 'night';
 
 export interface HomeIslandTerrainZone {
@@ -40,6 +42,34 @@ export interface HomeIslandState {
     animalCount?: number;
     terrainZoneCount?: number;
     resourceBreakdown?: Record<string, number>;
+  };
+  mountainTriad?: {
+    secretPeakIndex: 0 | 1 | 2;
+    anchorPercent: { x: number; y: number };
+    mountainScaleM: number;
+    entranceHeightM: number;
+    islandWorldSizeM: number;
+    dungeonId: string;
+    modelUid: string;
+    modelPath: string;
+    peakModelPaths?: string[];
+    peakOffsetsM: Array<{ x: number; z: number }>;
+  };
+  rtsHeightmap?: {
+    resolution: number;
+    worldSizeM: number;
+    maxHeightM: number;
+    biome: string;
+    heightsBase64: string;
+  };
+  rtsExport?: {
+    source: 'rts-grudge';
+    gridX: number;
+    gridZ: number;
+    seed: number;
+    biome: string;
+    exportedAt: number;
+    appUrl: string;
   };
   createdAt: number;
   lastUpdate: number;
@@ -158,6 +188,8 @@ export function normalizeHomeIslandResponse(raw: any): HomeIslandDto {
       : undefined,
     clearings,
     stats: sourceState?.stats,
+    mountainTriad: sourceState?.mountainTriad,
+    rtsExport: sourceState?.rtsExport,
     createdAt: Number(sourceState?.createdAt ?? dto?.createdAt ?? Date.now()),
     lastUpdate: Number(sourceState?.lastUpdate ?? dto?.updatedAt ?? dto?.createdAt ?? Date.now()),
   };
@@ -177,8 +209,8 @@ export function normalizeHomeIslandResponse(raw: any): HomeIslandDto {
 }
 
 export async function fetchCurrentHomeIsland(): Promise<HomeIslandDto> {
-  const res = await fetch('/api/island');
-  if (!res.ok) throw new Error('Failed to load home island');
+  const res = await fetch('/api/island', { headers: { ...authHeaders() } });
+  if (!res.ok) throw new Error(`Failed to load home island (${res.status})`);
   return normalizeHomeIslandResponse(await res.json());
 }
 
@@ -209,7 +241,7 @@ export interface CommitIslandResult {
 export async function commitHomeIsland(payload: CommitIslandPayload): Promise<CommitIslandResult> {
   const res = await fetch('/api/island/commit', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
     body: JSON.stringify(payload),
   });
   if (!res.ok) {
@@ -226,7 +258,7 @@ export async function commitHomeIsland(payload: CommitIslandPayload): Promise<Co
 export async function generateCharacterIsland(characterId: string): Promise<HomeIslandDto> {
   const res = await fetch(`/api/characters/${characterId}/generate-island`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
   });
   if (!res.ok) throw new Error('Failed to generate island');
   return normalizeHomeIslandResponse(await res.json());
@@ -235,7 +267,7 @@ export async function generateCharacterIsland(characterId: string): Promise<Home
 export async function rerollIsland(islandId: string): Promise<HomeIslandDto> {
   const res = await fetch(`/api/islands/${islandId}/regenerate`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
   });
   if (!res.ok) throw new Error('Failed to reroll island');
   return normalizeHomeIslandResponse(await res.json());
@@ -244,13 +276,33 @@ export async function rerollIsland(islandId: string): Promise<HomeIslandDto> {
 export async function fetchRtsStatus(): Promise<RtsStatusDto> {
   try {
     const res = await fetch('/api/rts/status');
-    if (!res.ok) return { online: false, playerCount: null };
-    const data = await res.json();
-    return {
-      online: !!data.online,
-      playerCount: typeof data.totalPlayers === 'number' ? data.totalPlayers : null,
-    };
-  } catch {
-    return { online: false, playerCount: null };
-  }
+    if (res.ok) {
+      const data = await res.json();
+      return {
+        online: !!data.online,
+        playerCount: typeof data.playerCount === 'number'
+          ? data.playerCount
+          : typeof data.totalPlayers === 'number'
+            ? data.totalPlayers
+            : null,
+      };
+    }
+  } catch { /* try direct world server */ }
+
+  try {
+    const envPvp = (import.meta as { env?: { VITE_PVP_SERVER_URL?: string } }).env?.VITE_PVP_SERVER_URL;
+    const worldHttp = (envPvp || 'wss://world.grudge-studio.com')
+      .replace(/^wss:\/\//, 'https://')
+      .replace(/^ws:\/\//, 'http://');
+    const res = await fetch(`${worldHttp.replace(/\/$/, '')}/status`);
+    if (res.ok) {
+      const data = await res.json();
+      return {
+        online: true,
+        playerCount: typeof data.totalPlayers === 'number' ? data.totalPlayers : null,
+      };
+    }
+  } catch { /* offline */ }
+
+  return { online: false, playerCount: null };
 }

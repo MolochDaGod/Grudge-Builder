@@ -76,6 +76,8 @@ export interface Island3DEngineConfig {
   physicsCallbacks?: PhysicsCallbacks;
   /** Fired when player enters a home-island mountain dungeon portal */
   onDungeonEnter?: (dungeonId: string, dungeonName: string) => void;
+  /** Persisted mountain triad seed from Railway (Sketchfab 3-peak dungeon layout) */
+  mountainTriad?: import('@shared/definitions/homeIslandSeed').MountainTriadSeed;
 }
 
 export class Island3DEngine {
@@ -549,6 +551,7 @@ export class Island3DEngine {
     if (!this.terrain) return;
     const triadResult = await createEvilMountainTriad(this.scene, {
       seed: this.config.seed,
+      mountainTriad: this.config.mountainTriad,
       terrainMesh: this.terrain.terrainMesh,
       biomeMap: this.terrain.biomeMap,
       gridW: this.terrain.gridW,
