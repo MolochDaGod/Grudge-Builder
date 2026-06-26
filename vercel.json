@@ -32,6 +32,10 @@
       "destination": "https://grudge-builder-production.up.railway.app/api/supabase/:path*"
     },
     {
+      "source": "/api/sprites/:path*",
+      "destination": "https://grudge-builder-production.up.railway.app/api/sprites/:path*"
+    },
+    {
       "source": "/api/characters",
       "destination": "https://grudge-builder-production.up.railway.app/api/characters"
     },

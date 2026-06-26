@@ -7,7 +7,10 @@
  */
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import { assetUrl } from '@/lib/assetConfig';
+/** Same-origin proxy → assets.grudge-studio.com (see vercel.json /api/assets). */
+const PIRATE_GLTF_BASE = import.meta.env.DEV
+  ? '/models/lobby/pirate-islands/'
+  : '/api/assets/models/lobby/pirate-islands/';
 
 // ─── Known lobby maps ────────────────────────────────────────────────────────
 
@@ -31,10 +34,8 @@ export const LOBBY_MAPS: LobbyMapDef[] = [
     id: 'pirate-islands',
     name: 'Pirate Islands',
     // Chicken Gun PolygonPirates — separated GLTF (scene.gltf + scene.bin + textures/).
-    // NOT a single .glb; GLTFLoader resolves bin/textures from the gltf directory on CDN.
-    gltfPath: import.meta.env.DEV
-      ? '/models/lobby/pirate-islands/scene.gltf'
-      : assetUrl('/models/lobby/pirate-islands/scene.gltf'),
+    // NOT a single .glb; GLTFLoader resolves bin/textures relative to gltfPath directory.
+    gltfPath: `${PIRATE_GLTF_BASE}scene.gltf`,
     cameraPosition: new THREE.Vector3(100, 120, 200),
     cameraTarget: new THREE.Vector3(0, 20, 0),
     scale: 1,
@@ -60,9 +61,7 @@ export async function loadLobbyMap(
   onProgress?: (pct: number) => void,
 ): Promise<LobbyLoadResult> {
   const loader = new GLTFLoader();
-  const slash = mapDef.gltfPath.lastIndexOf('/');
-  const resourcePath = slash >= 0 ? mapDef.gltfPath.slice(0, slash + 1) : '/';
-  loader.setResourcePath(resourcePath);
+  loader.setPath(mapDef.gltfPath.replace(/[^/]+$/, ''));
 
   const gltf = await new Promise<any>((resolve, reject) => {
     loader.load(
