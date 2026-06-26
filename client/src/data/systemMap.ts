@@ -113,6 +113,7 @@ const domains: SystemNode[] = [
   { id: "dom:grim-armada",        label: "grim-armada-web.vercel.app",           kind: "domain", status: "live", group: "games", url: "https://grim-armada-web.vercel.app",           notes: "Grim Armada — R3F+Rapier naval combat.", lastVerified: "2026-06-04" },
   { id: "dom:grudge-space",       label: "grudge-space-rts.vercel.app",          kind: "domain", status: "live", group: "games", url: "https://grudge-space-rts.vercel.app",          notes: "GrudgeSpace RTS — R3F space strategy.", lastVerified: "2026-06-04" },
   { id: "dom:dungeon-crawler",    label: "dungeon-crawler-quest.vercel.app",     kind: "domain", status: "live", group: "games", url: "https://dungeon-crawler-quest.vercel.app",     notes: "Dungeon Crawler Quest — voxel dungeon crawler.", lastVerified: "2026-06-04" },
+  { id: "dom:grudox",             label: "grudox.grudge-studio.com",             kind: "domain", status: "live", group: "games", url: "https://grudox.grudge-studio.com",             notes: "Grudox (Voxel Forge Engine) — static title/landing page. Vercel host, Cloudflare DNS (grudge-studio.com zone). Fleet-wired per grudox/docs/FLEET.md.", lastVerified: "2026-06-24" },
   { id: "dom:info.g-s.com",       label: "info.grudge-studio.com",               kind: "domain", status: "live", group: "assets", url: "https://info.grudge-studio.com",              notes: "Game Info Hub — unified item database, guides, tools. Consolidated from ObjectStore + grudge-game-data-hub.", lastVerified: "2026-06-04" },
 ];
 
@@ -155,6 +156,8 @@ const services: SystemNode[] = [
   { id: "svc:grudge-arena-game",  label: "Grudge Arena",           kind: "service", status: "live", group: "games", owner: "frontend", repo: "grudge-arena",             notes: "Three.js PvP arena with Socket.IO multiplayer." },
   { id: "svc:grim-armada",        label: "Grim Armada",            kind: "service", status: "live", group: "games", owner: "frontend", repo: "grim-armada-web",          notes: "R3F+Rapier naval combat." },
   { id: "svc:grudge-space",       label: "GrudgeSpace RTS",        kind: "service", status: "live", group: "games", owner: "frontend", repo: "GrudgeSpaceRTS",           notes: "R3F space strategy." },
+  { id: "svc:dungeon-crawler",    label: "Dungeon Crawler Quest",  kind: "service", status: "live", group: "games", owner: "frontend", repo: "Dungeon-Crawler-Quest",    notes: "Voxel dungeon crawler. Migration from Babylon to Three.js planned." },
+  { id: "svc:grudox",             label: "Grudox (Voxel Forge Engine)", kind: "service", status: "live", group: "games", owner: "frontend", repo: "grudox",                notes: "Static landing/title page (single index.html, Tailwind CDN, no build). Fleet-wired per fleet-config.json + docs/FLEET.md: auth\u2192id, API\u2192api, assets\u2192assets, AI\u2192ai.grudge-studio.com; studio context from assets.grudge-studio.com/context/studio-context.json." },
   { id: "svc:dungeon-crawler",    label: "Dungeon Crawler Quest",  kind: "service", status: "live", group: "games", owner: "frontend", repo: "Dungeon-Crawler-Quest",    notes: "Three.js voxel dungeon crawler (Babylon retired). Forge deploy target." },
   { id: "svc:info-hub",           label: "Game Info Hub",          kind: "service", status: "live", group: "assets", owner: "platform", repo: "ObjectStore",              notes: "Consolidated item database, guides, professions, VFX, 3D models. info.grudge-studio.com." },
 ];
@@ -318,6 +321,7 @@ const repos: SystemNode[] = [
   { id: "repo:grim-armada",           label: "grim-armada-web",        kind: "repo", status: "live", group: "games", url: "https://github.com/MolochDaGod/grim-armada-web" },
   { id: "repo:grudge-space-rts",      label: "GrudgeSpaceRTS",         kind: "repo", status: "live", group: "games", url: "https://github.com/MolochDaGod/GrudgeSpaceRTS" },
   { id: "repo:dungeon-crawler",       label: "Dungeon-Crawler-Quest",  kind: "repo", status: "live", group: "games", url: "https://github.com/MolochDaGod/Dungeon-Crawler-Quest" },
+  { id: "repo:grudox",                label: "grudox",                 kind: "repo", status: "planned", group: "games", notes: "Local-only as of 2026-06-24 (no git remote yet). Static landing page for grudox.grudge-studio.com; intended push target github.com/MolochDaGod/grudox." },
 ];
 
 // ---------------------------------------------------------------------------
@@ -385,6 +389,13 @@ edges.push(
   { source: "svc:character-creator",  target: "svc:os-static",   kind: "reads" },
   { source: "svc:survival",           target: "svc:os-static",   kind: "reads" },
   { source: "svc:rts-grudge",         target: "svc:os-static",   kind: "reads" },
+  // Grudox (Voxel Forge Engine) — fleet wiring per the standard pattern (auth/API/assets/AI).
+  { source: "dom:grudox",             target: "svc:grudox",      kind: "routes-to" },
+  { source: "repo:grudox",            target: "svc:grudox",      kind: "deploys-from", notes: "Vercel static deploy from local repo; no git remote yet (2026-06-24)." },
+  { source: "svc:grudox",             target: "svc:grudge-id",   kind: "authenticates-via", notes: "SSO via id.grudge-studio.com per fleet pattern." },
+  { source: "svc:grudox",             target: "svc:game-api",    kind: "calls",             notes: "api.grudge-studio.com (incl. /ai/studio-context) per fleet pattern." },
+  { source: "svc:grudox",             target: "svc:r2-cdn",      kind: "reads",             notes: "Assets from assets.grudge-studio.com (+ context/studio-context.json mirror)." },
+  { source: "svc:grudox",             target: "svc:ai-worker",   kind: "calls",             notes: "Studio assistant via ai.grudge-studio.com /ai/chat per fleet pattern." },
   // Shadow deployments: route-to nothing yet; surfaced to /organizer Issues tab for owner decision.
   { source: "dom:grudgewarlords.puter.site",  target: "svc:puter-crafting", kind: "routes-to", notes: "Placeholder — live deployment with no registered Grudge service. Needs owner." },
   { source: "dom:grudgestudio.puter.site",    target: "svc:grudge-engine-three", kind: "routes-to",            notes: "Puter-native build of the Three.js Grudge Game Engine." },
