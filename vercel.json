@@ -16,6 +16,10 @@
       "destination": "https://assets.grudge-studio.com/:path*"
     },
     {
+      "source": "/models/lobby/pirate-islands/:path*",
+      "destination": "https://assets.grudge-studio.com/models/lobby/pirate-islands/:path*"
+    },
+    {
       "source": "/api/objectstore/:path*",
       "destination": "https://objectstore.grudge-studio.com/api/:path*"
     },
@@ -136,7 +140,7 @@
       "destination": "https://api.grudge-studio.com/api/:path*"
     },
     { "source": "/skill-tree.html", "destination": "/skill-tree.html" },
-    { "source": "/((?!.*\\.html$).*)", "destination": "/index.html" }
+    { "source": "/((?!.*\\.(html|gltf|glb|bin|png|jpe?g|webp|svg|ico|json|woff2?|ttf|mp3|wav|css|js|map)$).*)", "destination": "/index.html" }
   ],
   "env": {
     "VITE_API_URL": "https://api.grudge-studio.com",
