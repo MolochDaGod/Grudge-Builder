@@ -61,11 +61,12 @@ export async function loadLobbyMap(
   onProgress?: (pct: number) => void,
 ): Promise<LobbyLoadResult> {
   const loader = new GLTFLoader();
-  loader.setPath(mapDef.gltfPath.replace(/[^/]+$/, ''));
+  const base = mapDef.gltfPath.replace(/[^/]+$/, '');
+  loader.setPath(base);
 
   const gltf = await new Promise<any>((resolve, reject) => {
     loader.load(
-      mapDef.gltfPath,
+      'scene.gltf',
       resolve,
       (event) => {
         if (event.total > 0 && onProgress) {
