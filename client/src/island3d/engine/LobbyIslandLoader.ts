@@ -29,10 +29,12 @@ export const LOBBY_MAPS: LobbyMapDef[] = [
   {
     id: 'pirate-islands',
     name: 'Pirate Islands',
-    gltfPath: '/models/lobby/pirate-islands/scene.gltf',
-    cameraPosition: new THREE.Vector3(100, 120, 200),
-    cameraTarget: new THREE.Vector3(0, 20, 0),
-    scale: 1,
+    // Full PolygonPirates GLTF needs scene.bin (~132MB) on the CDN; until that ships,
+    // the baked pirate-world GLB is the live Chicken Gun–style lobby map.
+    gltfPath: '/maps/pirate-world.glb',
+    cameraPosition: new THREE.Vector3(80, 90, 140),
+    cameraTarget: new THREE.Vector3(0, 12, 0),
+    scale: 3,
     yOffset: 0,
   },
 ];
