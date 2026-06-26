@@ -580,7 +580,7 @@ export class CharacterController3D {
       } else if (!moving && smState === 'moving' && !this.orchestrator?.hasActivityOverride()) {
         this.stateMachine.transition('idle');
       }
-      if (smState === 'harvesting' && !moving) {
+      if (smState === 'harvesting' && !moving && this.stateMachine.canTransitionTo('idle')) {
         this.stateMachine.transition('idle');
       }
 

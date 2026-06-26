@@ -108,6 +108,7 @@
     "@uppy/dashboard": "^5.1.0",
     "@uppy/react": "^5.1.1",
     "@webcontainer/api": "^1.6.4",
+    "@xstate/react": "^6.1.0",
     "account": "^1.0.0",
     "ai": "^6.0.3",
     "animejs": "^4.2.2",
@@ -222,6 +223,7 @@
     "vaul": "^1.1.2",
     "wouter": "^3.3.5",
     "ws": "^8.18.0",
+    "xstate": "^5.32.2",
     "zod": "^3.25.76",
     "zod-validation-error": "^3.5.4"
   },

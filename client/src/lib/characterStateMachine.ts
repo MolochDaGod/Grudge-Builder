@@ -158,6 +158,8 @@ export class CharacterStateMachine {
   private context: StateContext;
   private listeners: Set<(state: CharacterState, context: StateContext) => void> = new Set();
   private transitionHistory: Array<{ from: CharacterState; to: CharacterState; timestamp: number }> = [];
+  private lastBlockedKey = '';
+  private lastBlockedAt = 0;
   
   constructor(initialContext: StateContext, initialState: CharacterState = 'idle') {
     this.context = { ...initialContext };
@@ -201,7 +203,13 @@ export class CharacterStateMachine {
   
   transition(newState: CharacterState, updatedContext?: Partial<StateContext>): boolean {
     if (!this.canTransitionTo(newState)) {
-      console.warn(`[StateMachine] Cannot transition from ${this.currentState} to ${newState}`);
+      const key = `${this.currentState}->${newState}`;
+      const now = Date.now();
+      if (key !== this.lastBlockedKey || now - this.lastBlockedAt > 2000) {
+        this.lastBlockedKey = key;
+        this.lastBlockedAt = now;
+        console.warn(`[StateMachine] Cannot transition from ${this.currentState} to ${newState}`);
+      }
       return false;
     }
     

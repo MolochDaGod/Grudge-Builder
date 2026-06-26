@@ -10,6 +10,8 @@ import { exportSceneToFile, getSceneStats } from '@/lib/sceneExporter';
 import type { MultiplayerConfig } from '../sync/MultiplayerSync';
 import type { Model3DField } from '@shared/fleet';
 import { LobbyGameHUD } from './LobbyGameHUD';
+import { IslandPlayOverlay } from './IslandPlayOverlay';
+import { useIslandSession } from '../session/useIslandSession';
 import type { QualityPreset } from '../render/PostProcessing';
 import type { DayNightConfig } from '../environment/DayNightCycle';
 import type { PhysicsCallbacks, MovementState } from '../player/CharacterController3D';
@@ -63,6 +65,7 @@ export function Island3DRenderer({
   const [movementState, setMovementState] = useState<MovementState>('ground');
   const [oxygen, setOxygen] = useState(1); // 0-1 ratio
   const [dayPhase, setDayPhase] = useState('day');
+  const { context: sessionCtx, send: sessionSend } = useIslandSession(characterId);
 
   // Physics callbacks (bridge engine events → React state)
   const physicsCallbacks: PhysicsCallbacks = {
@@ -93,13 +96,17 @@ export function Island3DRenderer({
       dayNight,
       enableCharacter,
       physicsCallbacks,
-      onLoadProgress: (pct) => setLoadProgress(pct),
+      onLoadProgress: (pct) => {
+        setLoadProgress(pct);
+        sessionSend({ type: 'PROGRESS', progress: pct });
+      },
     });
     engineRef.current = engine;
 
     engine.init()
       .then(async () => {
         setLoading(false);
+        sessionSend({ type: 'READY' });
         engine.start();
         if (engine.character && raceId && classId) {
           await engine.character.loadCharacterFromManifest(
@@ -115,7 +122,9 @@ export function Island3DRenderer({
       })
       .catch((err) => {
         console.error('Island3D init failed:', err);
-        setError(err.message || 'Failed to initialize 3D island');
+        const msg = err.message || 'Failed to initialize 3D island';
+        sessionSend({ type: 'FAIL', error: msg });
+        setError(msg);
         setLoading(false);
       });
 
@@ -155,6 +164,14 @@ export function Island3DRenderer({
     }, 1000);
     return () => clearInterval(interval);
   }, [loading]);
+
+  // Session tick/time → engine day/night
+  useEffect(() => {
+    const eng = engineRef.current;
+    if (!eng) return;
+    eng.simTickRate = sessionCtx.time.tickRate;
+    eng.dayNight?.setDayDuration(sessionCtx.time.dayDurationSeconds);
+  }, [sessionCtx.time.tickRate, sessionCtx.time.dayDurationSeconds, engineReady]);
 
   // Resize handler
   useEffect(() => {
@@ -297,12 +314,25 @@ export function Island3DRenderer({
 
           {/* Oxygen bar (only when swimming) */}
           {mode === 'lobby' && (
-            <LobbyGameHUD
-              engine={engineReady}
-              characterName={characterName}
-              islandId={lobbyIslandId}
-              multiplayerConnected={!!multiplayer}
-            />
+            <>
+              <IslandPlayOverlay
+                engine={engineReady}
+                session={sessionCtx}
+                loadProgress={loadProgress}
+                loading={loading}
+                characterName={characterName}
+                movementState={stateLabel[movementState]}
+                onTickRate={(v) => sessionSend({ type: 'SET_TICK_RATE', tickRate: v })}
+                onDayDuration={(v) => sessionSend({ type: 'SET_DAY_DURATION', dayDurationSeconds: v })}
+                onCombatToggle={() => sessionSend({ type: 'TOGGLE_COMBAT' })}
+              />
+              <LobbyGameHUD
+                engine={engineReady}
+                characterName={characterName}
+                islandId={lobbyIslandId}
+                multiplayerConnected={!!multiplayer}
+              />
+            </>
           )}
 
           {isSwimming && (

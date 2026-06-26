@@ -794,10 +794,14 @@ export class Island3DEngine {
     }
   }
 
+  /** Sim time multiplier — day/night and session tick rate (1 = realtime) */
+  public simTickRate = 1;
+
   private loop = (): void => {
     if (!this.isRunning) return;
 
     const dt = Math.min(this.clock.getDelta(), 0.05);
+    const simDt = dt * this.simTickRate;
 
     // Camera: character on foot, sailing ship, or orbit
     if (this.characterActive && this.character) {
@@ -834,7 +838,7 @@ export class Island3DEngine {
     this.multiplayer?.update(dt);
 
     // Day/night cycle
-    this.dayNight?.update(dt);
+    this.dayNight?.update(simDt);
 
     // Ally AI — feed player position + current enemies from multiplayer
     if (this.allyManager && this.character) {
