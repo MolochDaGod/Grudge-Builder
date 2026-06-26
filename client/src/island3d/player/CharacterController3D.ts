@@ -7,7 +7,7 @@
  * climbing, fall damage, and vertical physics.
  */
 import * as THREE from 'three';
-import { getTerrainHeightAt } from '../terrain/IslandTerrainGenerator';
+import { getTerrainHeightAt, getSceneHeightAt } from '../terrain/IslandTerrainGenerator';
 import { AnimationManager, type AnimState } from './AnimationManager';
 import { loadCharacterModel, type LoadedModel } from '@/lib/modelLoader';
 import {
@@ -89,6 +89,8 @@ export interface CharacterController3DConfig {
   scene: THREE.Scene;
   camera: THREE.PerspectiveCamera;
   terrainMesh: THREE.Mesh;
+  /** Lobby / zone GLTF root for recursive ground raycasts */
+  groundObject?: THREE.Object3D;
   modelPath?: string;
   startPosition?: THREE.Vector3;
   physics?: Partial<PhysicsConfig>;
@@ -125,6 +127,7 @@ export class CharacterController3D {
 
   private camera: THREE.PerspectiveCamera;
   private terrainMesh: THREE.Mesh;
+  private groundObject: THREE.Object3D | null;
   private baseMoveSpeed = 30;
   private turnSpeed = 3;
   private velocity = new THREE.Vector3();
@@ -158,6 +161,7 @@ export class CharacterController3D {
     this.oxygen = this.physics.maxOxygen;
     this.camera = config.camera;
     this.terrainMesh = config.terrainMesh;
+    this.groundObject = config.groundObject ?? null;
 
     // Placeholder model (capsule) — will be replaced by GLTF
     this.model = new THREE.Group();
@@ -431,7 +435,7 @@ export class CharacterController3D {
     this.model.position.z += this.velocity.z * dt;
 
     // ── Vertical physics ─────────────────────────────────────────────────────
-    const groundHeight = getTerrainHeightAt(this.terrainMesh, this.model.position.x, this.model.position.z);
+    const groundHeight = this.sampleGroundHeight(this.model.position.x, this.model.position.z);
     const feetY = this.model.position.y;
     const headY = feetY + this.physics.characterHeight;
     const { waterLevel } = this.physics;
@@ -672,10 +676,39 @@ export class CharacterController3D {
     return worldNormal.y < this.physics.climbableMaxNormalY;
   }
 
+  private sampleGroundHeight(x: number, z: number): number | null {
+    if (this.groundObject) {
+      return getSceneHeightAt(this.groundObject, x, z);
+    }
+    return getTerrainHeightAt(this.terrainMesh, x, z);
+  }
+
   // ─── Public API ────────────────────────────────────────────────────────────
 
   getPosition(): THREE.Vector3 {
     return this.model.position.clone();
+  }
+
+  getKeys(): Set<string> {
+    return this.keys;
+  }
+
+  getCameraYaw(): number {
+    return this.cameraYaw;
+  }
+
+  getCameraPitch(): number {
+    return this.cameraPitch;
+  }
+
+  setModelVisible(visible: boolean): void {
+    this.model.visible = visible;
+  }
+
+  teleportTo(pos: THREE.Vector3): void {
+    this.model.position.copy(pos);
+    this.velocity.set(0, 0, 0);
+    this.verticalVelocity = 0;
   }
 
   getFacing(): number {

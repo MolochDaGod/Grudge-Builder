@@ -23,7 +23,15 @@ import {
 } from '../objects/HomeIslandNodes';
 import { DetailLayer, createGrassBlades } from '../terrain/DetailLayers';
 import { MultiplayerSync, type MultiplayerConfig } from '../sync/MultiplayerSync';
-import { loadLobbyMap, getLobbyMap, type LobbyMapDef, type LobbyLoadResult } from './LobbyIslandLoader';
+import { loadLobbyMap, getLobbyMap, type LobbyLoadResult } from './LobbyIslandLoader';
+import {
+  LOBBY_WATER_LEVEL,
+  createLobbyCapturePoints,
+  createLobbyShipSystem,
+  getLobbySpawnPosition,
+  type LobbyCaptureSystem,
+  type LobbyShipSystem,
+} from './LobbyGameplay';
 import { createOceanMesh, updateOceanMaterial } from '../terrain/WaterMaterial';
 import { PostProcessing, type QualityPreset } from '../render/PostProcessing';
 import { DayNightCycle, type DayNightConfig } from '../environment/DayNightCycle';
@@ -122,6 +130,9 @@ export class Island3DEngine {
   // Lobby map
   private lobbyResult: LobbyLoadResult | null = null;
   private lobbyAnimMixer: THREE.AnimationMixer | null = null;
+  public lobbyCapture: LobbyCaptureSystem | null = null;
+  public lobbyShip: LobbyShipSystem | null = null;
+  private lobbyCapturing = false;
 
   // Zone mode
   public zoneScene: ZoneSceneResult | null = null;
@@ -246,20 +257,28 @@ export class Island3DEngine {
     }
   }
 
-  /** Load a pre-built GLTF lobby map */
+  /** Load a pre-built GLTF lobby map + open-world gameplay layer */
   private async initLobby(): Promise<void> {
     const mapDef = getLobbyMap(this.config.lobbyMapId);
 
     this.lobbyResult = await loadLobbyMap(mapDef, this.config.onLoadProgress);
     this.scene.add(this.lobbyResult.scene);
 
-    // Position camera to frame the map
-    this.camera.position.copy(mapDef.cameraPosition);
-    this.controls.target.copy(mapDef.cameraTarget);
-    this.controls.maxDistance = Math.max(mapDef.cameraPosition.length() * 3, 1000);
-    this.controls.minDistance = 5;
-    this.controls.maxPolarAngle = Math.PI * 0.85; // allow more vertical freedom on lobby
-    this.controls.update();
+    const maxDim = Math.max(
+      this.lobbyResult.size.x,
+      this.lobbyResult.size.y,
+      this.lobbyResult.size.z,
+    );
+
+    // Gerstner ocean surrounding the archipelago
+    this.waterPlane = createOceanMesh({
+      waterLevel: LOBBY_WATER_LEVEL,
+      size: Math.max(maxDim * 6, 800),
+      segments: 8,
+    });
+    this.waterPlane.name = 'lobby-ocean';
+    this.waterPlane.renderOrder = 1;
+    this.scene.add(this.waterPlane);
 
     // Play any embedded animations
     if (this.lobbyResult.animations.length > 0) {
@@ -269,13 +288,69 @@ export class Island3DEngine {
       }
     }
 
-    // Adjust fog for the larger map
-    const maxDim = Math.max(
-      this.lobbyResult.size.x,
-      this.lobbyResult.size.y,
-      this.lobbyResult.size.z,
-    );
     this.scene.fog = new THREE.FogExp2(0x87ceeb, 0.5 / maxDim);
+
+    // RTS capture flags + dock ship (tactical open-water sailing)
+    this.lobbyCapture = createLobbyCapturePoints(this.scene, this.lobbyResult);
+    this.lobbyShip = await createLobbyShipSystem(this.scene, this.lobbyResult);
+
+    // Building + fish life
+    this.building = new BuildingSystem(this.scene, this.camera);
+    this.creatures = new CreatureManager(this.scene, LOBBY_WATER_LEVEL, this.config.seed.length + 7);
+    this.creatures.spawnFish(14, maxDim * 0.9);
+
+    // Playable Grudge6 character on lobby terrain
+    if (this.config.enableCharacter !== false) {
+      await this.spawnLobbyCharacter();
+    } else {
+      this.camera.position.copy(mapDef.cameraPosition);
+      this.controls.target.copy(mapDef.cameraTarget);
+      this.controls.maxDistance = Math.max(mapDef.cameraPosition.length() * 3, 1000);
+      this.controls.minDistance = 5;
+      this.controls.maxPolarAngle = Math.PI * 0.85;
+      this.controls.update();
+    }
+  }
+
+  private async spawnLobbyCharacter(): Promise<void> {
+    if (!this.lobbyResult) return;
+
+    const lobbyGround = new THREE.Mesh(
+      new THREE.PlaneGeometry(1, 1),
+      new THREE.MeshBasicMaterial({ visible: false }),
+    );
+    lobbyGround.name = 'lobby-ground-proxy';
+    this.terrain = {
+      terrainScene: this.lobbyResult.scene,
+      terrainMesh: lobbyGround,
+      biomeMap: [],
+      elevationMap: new Float32Array(0),
+      moistureMap: new Float32Array(0),
+      gridW: 0,
+      gridH: 0,
+    };
+
+    const startPos = getLobbySpawnPosition(this.lobbyResult);
+    this.character = new CharacterController3D({
+      scene: this.scene,
+      camera: this.camera,
+      terrainMesh: lobbyGround,
+      groundObject: this.lobbyResult.scene,
+      startPosition: startPos,
+      physics: { waterLevel: LOBBY_WATER_LEVEL, doubleJump: true },
+      callbacks: this.config.physicsCallbacks,
+    });
+
+    this.controls.enabled = false;
+    this.characterActive = true;
+
+    this.camera.position.set(
+      startPos.x - 12,
+      startPos.y + 18,
+      startPos.z + 22,
+    );
+    this.controls.target.copy(startPos);
+    this.controls.update();
   }
 
   /** Generate procedural seed-based terrain with nodes & decorations */
@@ -695,11 +770,26 @@ export class Island3DEngine {
 
     const dt = Math.min(this.clock.getDelta(), 0.05);
 
-    // Camera: either character controller or orbit controls
+    // Camera: character on foot, sailing ship, or orbit
     if (this.characterActive && this.character) {
-      this.character.update(dt);
+      if (this.lobbyShip?.isBoarded) {
+        this.character.setModelVisible(false);
+        this.lobbyShip.update(dt, this.character.getKeys(), this.character.getCameraYaw());
+        this.lobbyShip.syncCamera(
+          this.camera,
+          this.character.getCameraYaw(),
+          this.character.getCameraPitch(),
+        );
+      } else {
+        this.character.setModelVisible(true);
+        this.character.update(dt);
+      }
     } else {
       this.controls.update();
+    }
+
+    if (this.lobbyCapture && this.character) {
+      this.lobbyCapture.update(dt, this.character.getPosition(), this.lobbyCapturing);
     }
 
     this.updateWater(dt);
@@ -763,9 +853,40 @@ export class Island3DEngine {
     this.postProcessing?.resize(width, height);
   }
 
-  /** Press E near the hidden cave portal (behind the secret evil peak). */
+  /** Press E/F near interactables — dungeon portal, capture point, or ship dock. */
   handleInteractKey(): boolean {
-    return this.mountainTriad?.tryInteract() ?? false;
+    if (this.mountainTriad?.tryInteract()) return true;
+
+    if (this.character && this.lobbyShip) {
+      if (this.lobbyShip.isBoarded) {
+        const off = this.lobbyShip.tryDisembark(this.lobbyResult!.scene);
+        if (off) {
+          this.character.teleportTo(off);
+          this.character.stateMachine?.transition('idle');
+          return true;
+        }
+      } else if (this.lobbyShip.tryBoard(this.character.getPosition())) {
+        this.character.stateMachine?.transition('sailing');
+        return true;
+      }
+    }
+
+    if (this.lobbyCapture && this.character) {
+      const near = this.lobbyCapture.getNearest(this.character.getPosition());
+      if (near) {
+        this.lobbyCapturing = true;
+        return true;
+      }
+    }
+    return false;
+  }
+
+  stopCapturing(): void {
+    this.lobbyCapturing = false;
+  }
+
+  get capturedPointCount(): number {
+    return this.lobbyCapture?.points.filter((p) => p.owner === 'player').length ?? 0;
   }
 
   /** Is the dungeon portal prompting interaction? */
@@ -957,6 +1078,8 @@ export class Island3DEngine {
     this.building?.destroy();
     this.multiplayer?.destroy();
     this.lobbyAnimMixer?.stopAllAction();
+    this.lobbyCapture?.destroy();
+    this.lobbyShip?.destroy();
     this.zoneScene?.dispose();
     this.grassLayer?.dispose();
     this.sandLayer?.dispose();

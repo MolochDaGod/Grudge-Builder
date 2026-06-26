@@ -187,16 +187,31 @@ export function generateIslandTerrain(config: IslandTerrainConfig): IslandTerrai
  * Get the world-space height at a given (x, z) position on the terrain
  * using raycasting from above.
  */
+const _heightRay = new THREE.Raycaster();
+const _heightOrigin = new THREE.Vector3();
+const _heightDir = new THREE.Vector3(0, -1, 0);
+
 export function getTerrainHeightAt(
   terrainMesh: THREE.Mesh,
   x: number,
   z: number,
 ): number | null {
-  const raycaster = new THREE.Raycaster(
-    new THREE.Vector3(x, 200, z),
-    new THREE.Vector3(0, -1, 0),
-  );
-  const hits = raycaster.intersectObject(terrainMesh);
+  _heightOrigin.set(x, 200, z);
+  _heightRay.set(_heightOrigin, _heightDir);
+  const hits = _heightRay.intersectObject(terrainMesh, true);
+  return hits.length > 0 ? hits[0].point.y : null;
+}
+
+/** Raycast height against any Object3D subtree (lobby GLTF maps, zone islands). */
+export function getSceneHeightAt(
+  root: THREE.Object3D,
+  x: number,
+  z: number,
+  maxY = 400,
+): number | null {
+  _heightOrigin.set(x, maxY, z);
+  _heightRay.set(_heightOrigin, _heightDir);
+  const hits = _heightRay.intersectObject(root, true);
   return hits.length > 0 ? hits[0].point.y : null;
 }
 
@@ -208,10 +223,8 @@ export function getTerrainNormalAt(
   x: number,
   z: number,
 ): THREE.Vector3 | null {
-  const raycaster = new THREE.Raycaster(
-    new THREE.Vector3(x, 200, z),
-    new THREE.Vector3(0, -1, 0),
-  );
-  const hits = raycaster.intersectObject(terrainMesh);
+  _heightOrigin.set(x, 200, z);
+  _heightRay.set(_heightOrigin, _heightDir);
+  const hits = _heightRay.intersectObject(terrainMesh, true);
   return hits.length > 0 ? hits[0].face?.normal?.clone() || null : null;
 }

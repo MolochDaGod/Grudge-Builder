@@ -16,6 +16,8 @@ import { clearTopDownCache } from '@/island3d/render/IslandTopDownCapture';
 import { useZoneColyseus } from '@/hooks/use-zone-colyseus';
 import type { PlayerInfo } from '@/hooks/use-colyseus';
 import { CLASS_WEAPON_MAP } from '@/lib/modelManifest';
+import { parseModel3d, type Model3DField } from '@/lib/grudge6Character';
+import type { MultiplayerConfig } from '@/island3d/sync/MultiplayerSync';
 import {
   ensureAuthForStudio,
   buildStudioEditorExploreUrl,
@@ -192,7 +194,11 @@ function Island3DLegacyPage() {
   const [heroRace, setHeroRace] = useState('human');
   const [heroClass, setHeroClass] = useState('warrior');
   const [heroCharacterId, setHeroCharacterId] = useState(characterIdParam);
+  const [heroName, setHeroName] = useState('Captain');
+  const [heroModel3d, setHeroModel3d] = useState<Partial<Model3DField> | undefined>();
   const [playerInfo, setPlayerInfo] = useState<PlayerInfo | null>(null);
+  const lobbyIslandId = params.get('island') || 'grudge-open-world';
+  const pvpServerUrl = params.get('pvp') || undefined;
 
   const zoneColyseus = useZoneColyseus({
     engine,
@@ -245,10 +251,12 @@ function Island3DLegacyPage() {
 
       try {
         const char = await characterAPI.get(activeId);
-        const model3d = (char as any).model3d || {};
+        const resolvedModel3d = parseModel3d(char as any);
         setHeroRace(char.raceId || 'human');
         setHeroClass(char.classId || 'warrior');
         setHeroCharacterId(char.id);
+        setHeroName(char.name || 'Captain');
+        setHeroModel3d(resolvedModel3d);
         setPlayerInfo({
           characterName: char.name,
           heroClass: char.classId,
@@ -257,11 +265,11 @@ function Island3DLegacyPage() {
           level: char.level,
           characterId: char.id,
           accountId: (char as any).accountId || grudgeId,
-          baseModelId: model3d.baseModelId || char.raceId || 'human',
-          equippedMeshes: model3d.equippedMeshes || {},
-          weaponSlots: model3d.weaponSlots || {},
-          skinColor: model3d.skinColor || '#ffffff',
-          armorColor: model3d.armorColor || '#ffffff',
+          baseModelId: resolvedModel3d.baseModelId || char.raceId || 'human',
+          equippedMeshes: resolvedModel3d.equippedMeshes || {},
+          weaponSlots: resolvedModel3d.weaponSlots || {},
+          skinColor: resolvedModel3d.skinColor || '#ffffff',
+          armorColor: resolvedModel3d.armorColor || '#ffffff',
           equippedWeaponType: CLASS_WEAPON_MAP[char.classId] || 'sword-shield',
         });
       } catch {
@@ -312,6 +320,19 @@ function Island3DLegacyPage() {
   };
 
   const activeSector = mode === 'zone' ? getSectorById(sectorId) : null;
+
+  const lobbyMultiplayer: MultiplayerConfig | undefined =
+    mode === 'lobby' && pvpServerUrl && heroCharacterId
+      ? {
+          serverUrl: pvpServerUrl,
+          islandId: lobbyIslandId,
+          playerName: heroName,
+          heroClass,
+          heroRace,
+          heroId: heroCharacterId,
+          accountId: localStorage.getItem('grudge_account_id') || undefined,
+        }
+      : undefined;
 
   if (isHomeIslandMode && homeIslandLoading) {
     return (
@@ -445,14 +466,18 @@ function Island3DLegacyPage() {
           seed={seed}
           mode={mode}
           lobbyMapId={lobbyMapId}
+          lobbyIslandId={mode === 'lobby' ? lobbyIslandId : undefined}
           sectorId={mode === 'zone' ? sectorId : undefined}
           worldSeed={worldSeed}
           quality="medium"
           dayNight={{ dayDurationSeconds: 600, startTime: 0.35 }}
-          enableCharacter={mode === 'procedural' || mode === 'zone' || isHomeIslandMode}
+          enableCharacter={mode === 'procedural' || mode === 'zone' || isHomeIslandMode || mode === 'lobby'}
+          multiplayer={lobbyMultiplayer}
           characterId={heroCharacterId}
+          characterName={heroName}
           raceId={heroRace}
           classId={heroClass}
+          model3d={heroModel3d}
           onEngineReady={(eng) => { engineRef.current = eng; setEngine(eng); }}
         />
         {mode === 'zone' && activeSector && (

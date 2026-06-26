@@ -8,6 +8,8 @@ import { useRef, useEffect, useState, useCallback } from 'react';
 import { Island3DEngine, type Island3DMode } from '../engine/Island3DEngine';
 import { exportSceneToFile, getSceneStats } from '@/lib/sceneExporter';
 import type { MultiplayerConfig } from '../sync/MultiplayerSync';
+import type { Model3DField } from '@shared/fleet';
+import { LobbyGameHUD } from './LobbyGameHUD';
 import type { QualityPreset } from '../render/PostProcessing';
 import type { DayNightConfig } from '../environment/DayNightCycle';
 import type { PhysicsCallbacks, MovementState } from '../player/CharacterController3D';
@@ -35,6 +37,10 @@ interface Island3DRendererProps {
   characterId?: string;
   raceId?: string;
   classId?: string;
+  characterName?: string;
+  model3d?: Partial<Model3DField>;
+  /** Open-world island room id (grudge-open-world, etc.) */
+  lobbyIslandId?: string;
   /** Expose the engine ref for external control (building, allies, etc.) */
   onEngineReady?: (engine: Island3DEngine) => void;
 }
@@ -43,11 +49,12 @@ export function Island3DRenderer({
   seed, className = '', multiplayer, mode = 'procedural', lobbyMapId,
   sectorId, worldSeed,
   quality = 'medium', dayNight, enableCharacter, onEngineReady,
-  characterId, raceId, classId,
+  characterId, raceId, classId, characterName, model3d, lobbyIslandId,
 }: Island3DRendererProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const engineRef = useRef<Island3DEngine | null>(null);
+  const [engineReady, setEngineReady] = useState<Island3DEngine | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadProgress, setLoadProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
@@ -95,8 +102,15 @@ export function Island3DRenderer({
         setLoading(false);
         engine.start();
         if (engine.character && raceId && classId) {
-          await engine.character.loadCharacterFromManifest(raceId, classId, characterId);
+          await engine.character.loadCharacterFromManifest(
+            raceId,
+            classId,
+            characterId,
+            undefined,
+            model3d,
+          );
         }
+        setEngineReady(engine);
         onEngineReady?.(engine);
       })
       .catch((err) => {
@@ -109,7 +123,28 @@ export function Island3DRenderer({
       engine.destroy();
       engineRef.current = null;
     };
-  }, [seed, multiplayer, mode, lobbyMapId, sectorId, worldSeed, characterId, raceId, classId]);
+  }, [seed, multiplayer, mode, lobbyMapId, sectorId, worldSeed, characterId, raceId, classId, model3d]);
+
+  // Lobby interact: E capture / board ship
+  useEffect(() => {
+    if (mode !== 'lobby') return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'e' || e.key === 'E') {
+        engineRef.current?.handleInteractKey();
+      }
+    };
+    const onKeyUp = (e: KeyboardEvent) => {
+      if (e.key === 'e' || e.key === 'E') {
+        engineRef.current?.stopCapturing();
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    window.addEventListener('keyup', onKeyUp);
+    return () => {
+      window.removeEventListener('keydown', onKeyDown);
+      window.removeEventListener('keyup', onKeyUp);
+    };
+  }, [mode]);
 
   // Day phase polling (lightweight — once per second)
   useEffect(() => {
@@ -227,6 +262,14 @@ export function Island3DRenderer({
                 <p className="text-gray-400">LMB+drag camera · Click to harvest</p>
               </>
             )}
+            {mode === 'lobby' && (
+              <>
+                <p className="text-gray-300">{stateLabel[movementState] || movementState}</p>
+                <p className="text-gray-400">WASD move · Space jump · Tab build mode</p>
+                <p className="text-gray-400">E hold = capture flag · E at dock = sail</p>
+                <p className="text-gray-400">LMB+drag camera · Click place build</p>
+              </>
+            )}
             {multiplayer && (
               <p className="text-sky-400">⚡ Multiplayer connected</p>
             )}
@@ -253,6 +296,15 @@ export function Island3DRenderer({
           </div>
 
           {/* Oxygen bar (only when swimming) */}
+          {mode === 'lobby' && (
+            <LobbyGameHUD
+              engine={engineReady}
+              characterName={characterName}
+              islandId={lobbyIslandId}
+              multiplayerConnected={!!multiplayer}
+            />
+          )}
+
           {isSwimming && (
             <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 w-48">
               <div className="bg-black/60 rounded px-2 py-1">
