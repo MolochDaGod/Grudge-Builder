@@ -280,9 +280,12 @@ export async function createLobbyShipSystem(
   };
 }
 
-export function getLobbySpawnPosition(lobby: LobbyLoadResult): THREE.Vector3 {
+export function getLobbySpawnPosition(
+  lobby: LobbyLoadResult,
+  sampleHeight?: (x: number, z: number) => number | null,
+): THREE.Vector3 {
   const x = lobby.center.x;
-  const z = lobby.center.z + lobby.size.z * 0.1;
-  const y = getSceneHeightAt(lobby.scene, x, z, 200) ?? 8;
+  const z = lobby.center.z + lobby.size.z * 0.08;
+  const y = (sampleHeight?.(x, z) ?? getSceneHeightAt(lobby.scene, x, z, 200)) ?? 8;
   return new THREE.Vector3(x, y + 2.5, z);
 }

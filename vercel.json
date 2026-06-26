@@ -12,6 +12,14 @@
   },
   "rewrites": [
     {
+      "source": "/api/polyhaven/:path*",
+      "destination": "https://api.polyhaven.com/:path*"
+    },
+    {
+      "source": "/api/polyhaven-dl/:path*",
+      "destination": "https://dl.polyhaven.org/:path*"
+    },
+    {
       "source": "/api/assets/:path*",
       "destination": "https://assets.grudge-studio.com/:path*"
     },

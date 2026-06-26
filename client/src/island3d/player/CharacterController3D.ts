@@ -91,6 +91,8 @@ export interface CharacterController3DConfig {
   terrainMesh: THREE.Mesh;
   /** Lobby / zone GLTF root for recursive ground raycasts */
   groundObject?: THREE.Object3D;
+  /** BVH collider height sampler (preferred over groundObject when set) */
+  groundSampler?: (x: number, z: number) => number | null;
   modelPath?: string;
   startPosition?: THREE.Vector3;
   physics?: Partial<PhysicsConfig>;
@@ -128,6 +130,7 @@ export class CharacterController3D {
   private camera: THREE.PerspectiveCamera;
   private terrainMesh: THREE.Mesh;
   private groundObject: THREE.Object3D | null;
+  private groundSampler: ((x: number, z: number) => number | null) | null;
   private baseMoveSpeed = 30;
   private turnSpeed = 3;
   private velocity = new THREE.Vector3();
@@ -162,6 +165,7 @@ export class CharacterController3D {
     this.camera = config.camera;
     this.terrainMesh = config.terrainMesh;
     this.groundObject = config.groundObject ?? null;
+    this.groundSampler = config.groundSampler ?? null;
 
     // Placeholder model (capsule) — will be replaced by GLTF
     this.model = new THREE.Group();
@@ -677,6 +681,10 @@ export class CharacterController3D {
   }
 
   private sampleGroundHeight(x: number, z: number): number | null {
+    if (this.groundSampler) {
+      const h = this.groundSampler(x, z);
+      if (h !== null) return h;
+    }
     if (this.groundObject) {
       return getSceneHeightAt(this.groundObject, x, z);
     }

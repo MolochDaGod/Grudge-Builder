@@ -46,8 +46,9 @@ export function LobbyGameHUD({
           {multiplayerConnected && <span className="text-emerald-400 ml-2">· Live</span>}
         </p>
         <p className="text-slate-500">
-          {sailing ? '⛵ Sailing — E disembark · WASD helm' : 'E capture / board ship · Tab build'}
+          {sailing ? '⛵ Sailing — E disembark · WASD helm' : 'E vendors / capture / board · Tab build'}
         </p>
+        <p className="text-slate-600 text-[10px]">Hub vendors · harvest ring · PvE outside market</p>
       </div>
 
       <div className="bg-black/75 backdrop-blur border border-slate-700/50 rounded-xl p-2">

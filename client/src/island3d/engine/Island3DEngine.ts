@@ -32,6 +32,9 @@ import {
   type LobbyCaptureSystem,
   type LobbyShipSystem,
 } from './LobbyGameplay';
+import { applyLobbySurfaceLayers } from '../terrain/LobbySurfaceLayers';
+import { buildLobbyCollider, type LobbyColliderResult } from '../physics/LobbyColliderSystem';
+import { createLobbyPlayZone, type LobbyPlayZoneResult } from './LobbyPlayZone';
 import { createOceanMesh, updateOceanMaterial } from '../terrain/WaterMaterial';
 import { PostProcessing, type QualityPreset } from '../render/PostProcessing';
 import { DayNightCycle, type DayNightConfig } from '../environment/DayNightCycle';
@@ -132,6 +135,8 @@ export class Island3DEngine {
   private lobbyAnimMixer: THREE.AnimationMixer | null = null;
   public lobbyCapture: LobbyCaptureSystem | null = null;
   public lobbyShip: LobbyShipSystem | null = null;
+  public lobbyPlayZone: LobbyPlayZoneResult | null = null;
+  private lobbyCollider: LobbyColliderResult | null = null;
   private lobbyCapturing = false;
 
   // Zone mode
@@ -261,8 +266,17 @@ export class Island3DEngine {
   private async initLobby(): Promise<void> {
     const mapDef = getLobbyMap(this.config.lobbyMapId);
 
-    this.lobbyResult = await loadLobbyMap(mapDef, this.config.onLoadProgress);
+    this.lobbyResult = await loadLobbyMap(mapDef, (pct) => {
+      this.config.onLoadProgress?.(Math.round(pct * 0.35));
+    });
     this.scene.add(this.lobbyResult.scene);
+
+    const surface = await applyLobbySurfaceLayers(this.lobbyResult, (pct) => {
+      this.config.onLoadProgress?.(35 + Math.round(pct * 0.35));
+    });
+    this.lobbyCollider = buildLobbyCollider(this.lobbyResult, surface.walkableMeshes);
+    this.scene.add(this.lobbyCollider.colliderMesh);
+    const sampleGround = this.lobbyCollider.sampleHeight;
 
     const maxDim = Math.max(
       this.lobbyResult.size.x,
@@ -299,6 +313,19 @@ export class Island3DEngine {
     this.creatures = new CreatureManager(this.scene, LOBBY_WATER_LEVEL, this.config.seed.length + 7);
     this.creatures.spawnFish(14, maxDim * 0.9);
 
+    // Center hub — vendors, harvest ring, PvE
+    this.lobbyPlayZone = await createLobbyPlayZone(
+      this.scene,
+      this.lobbyResult,
+      sampleGround,
+      this.creatures,
+    );
+    this.trees.push(...this.lobbyPlayZone.trees);
+    this.rocks.push(...this.lobbyPlayZone.rocks);
+    this.crystals.push(...this.lobbyPlayZone.crystals);
+    this.hemps.push(...this.lobbyPlayZone.hemps);
+    this.config.onLoadProgress?.(92);
+
     // Playable Grudge6 character on lobby terrain
     if (this.config.enableCharacter !== false) {
       await this.spawnLobbyCharacter();
@@ -330,12 +357,14 @@ export class Island3DEngine {
       gridH: 0,
     };
 
-    const startPos = getLobbySpawnPosition(this.lobbyResult);
+    const sampleGround = this.lobbyCollider?.sampleHeight;
+    const startPos = getLobbySpawnPosition(this.lobbyResult, sampleGround);
     this.character = new CharacterController3D({
       scene: this.scene,
       camera: this.camera,
       terrainMesh: lobbyGround,
       groundObject: this.lobbyResult.scene,
+      groundSampler: sampleGround,
       startPosition: startPos,
       physics: { waterLevel: LOBBY_WATER_LEVEL, doubleJump: true },
       callbacks: this.config.physicsCallbacks,
@@ -792,6 +821,11 @@ export class Island3DEngine {
       this.lobbyCapture.update(dt, this.character.getPosition(), this.lobbyCapturing);
     }
 
+    if (this.lobbyPlayZone && this.character) {
+      this.lobbyPlayZone.npcController.setPlayerPosition(this.character.getPosition());
+      this.lobbyPlayZone.update(dt);
+    }
+
     this.updateWater(dt);
     this.updateHarvestables(dt);
     this.updateDetailLayers(dt);
@@ -1080,6 +1114,11 @@ export class Island3DEngine {
     this.lobbyAnimMixer?.stopAllAction();
     this.lobbyCapture?.destroy();
     this.lobbyShip?.destroy();
+    this.lobbyPlayZone?.dispose();
+    this.lobbyCollider?.dispose();
+    if (this.lobbyCollider?.colliderMesh.parent) {
+      this.scene.remove(this.lobbyCollider.colliderMesh);
+    }
     this.zoneScene?.dispose();
     this.grassLayer?.dispose();
     this.sandLayer?.dispose();

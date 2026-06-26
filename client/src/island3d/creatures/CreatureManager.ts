@@ -110,6 +110,32 @@ export class CreatureManager {
 
   // ── Spawning ────────────────────────────────────────────────────────────
 
+  /** Spawn land creatures in a ring (lobby / GLTF maps with custom height sampler) */
+  spawnLandCreaturesInArea(
+    sampleHeight: (x: number, z: number) => number | null,
+    center: THREE.Vector3,
+    innerRadius: number,
+    outerRadius: number,
+    count: number,
+  ): void {
+    const pool = getLandCreatures();
+    if (pool.length === 0) return;
+
+    for (let i = 0; i < count; i++) {
+      const def = pickWeightedCreature(pool, this.rand);
+      const angle = this.rand() * Math.PI * 2;
+      const dist = innerRadius + this.rand() * (outerRadius - innerRadius);
+      const x = center.x + Math.cos(angle) * dist;
+      const z = center.z + Math.sin(angle) * dist;
+
+      let y = sampleHeight(x, z);
+      if (y === null || y < this.waterLevel + 1) continue;
+      if (def.category === 'bird') y = BIRD_ALTITUDE;
+
+      this.spawnCreature(def, new THREE.Vector3(x, y, z));
+    }
+  }
+
   /** Spawn land creatures scattered on terrain */
   spawnLandCreatures(terrainMesh: THREE.Mesh, count: number, radius: number = 200): void {
     const pool = getLandCreatures();
