@@ -13,6 +13,7 @@ import {
 export type GrudgeSurfaceLayer =
   | LobbyTextureLayer
   | 'water'
+  | 'seafloor'
   | 'prop'
   | 'walkable'
   | 'ignore';
@@ -41,7 +42,8 @@ function meshLabel(mesh: THREE.Mesh): string {
 
 export function classifyLobbyMesh(mesh: THREE.Mesh): GrudgeSurfaceLayer {
   const label = meshLabel(mesh);
-  if (/water|ocean|sea|foam|wave/.test(label)) return 'water';
+  if (/water|ocean|sea|foam|wave|coral|reef|seabed/.test(label)) return 'water';
+  if (/seafloor|underwater|submerged/.test(label)) return 'seafloor';
   if (/sand|beach|shore|coast|dune/.test(label)) return 'beach';
   if (/ore|mine|metal|iron|copper|gold|gem|crystal|vein/.test(label)) return 'ore';
   if (/rock|stone|cliff|mountain|granite|boulder|pebble/.test(label)) return 'rock';
@@ -60,6 +62,7 @@ export function classifyLobbyMesh(mesh: THREE.Mesh): GrudgeSurfaceLayer {
   const tall = _size.y > Math.max(_size.x, _size.z) * 0.65;
 
   if (flat) {
+    if (_worldPos.y < LOBBY_WATER_LEVEL - 0.5) return 'seafloor';
     if (_worldPos.y < LOBBY_WATER_LEVEL + 1.5) return 'beach';
     if (_worldPos.y > 25) return 'rock';
     return 'grass';
@@ -70,6 +73,7 @@ export function classifyLobbyMesh(mesh: THREE.Mesh): GrudgeSurfaceLayer {
 
 function layerMaterial(layer: GrudgeSurfaceLayer, mats: LobbyMaterialSet): THREE.Material | null {
   if (layer === 'water' || layer === 'prop' || layer === 'ignore') return null;
+  if (layer === 'seafloor') return mats.seafloor;
   if (layer === 'walkable') return mats.grass;
   if (layer in mats) return mats[layer as LobbyTextureLayer];
   return mats.grass;

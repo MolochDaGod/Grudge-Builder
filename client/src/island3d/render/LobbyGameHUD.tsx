@@ -48,7 +48,18 @@ export function LobbyGameHUD({
         <p className="text-slate-500">
           {sailing ? '⛵ Sailing — E disembark · WASD helm' : 'E vendors / capture / board · Tab build'}
         </p>
-        <p className="text-slate-600 text-[10px]">Hub vendors · harvest ring · PvE outside market</p>
+        <p className="text-slate-600 text-[10px]">
+          PBR:{' '}
+          <a
+            href="https://polyhaven.com/textures"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-cyan-500/80 hover:text-cyan-400 underline"
+          >
+            Poly Haven
+          </a>
+          {' '}· Smugglers Cove coastal set
+        </p>
       </div>
 
       <div className="bg-black/75 backdrop-blur border border-slate-700/50 rounded-xl p-2">

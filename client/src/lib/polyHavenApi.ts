@@ -1,5 +1,7 @@
 /**
- * Poly Haven API — free CC0 PBR textures (https://polyhaven.com/our-api).
+ * Poly Haven API — free CC0 PBR textures.
+ * Catalog: https://polyhaven.com/textures
+ * API docs: https://polyhaven.com/our-api
  * Requires a unique User-Agent per their ToS.
  */
 const POLY_HAVEN_USER_AGENT = 'GrudgeWarlords/1.0 (grudgewarlords.com)';
@@ -76,4 +78,33 @@ export async function resolvePolyHavenPBR(
     aoMap: resolveMapUrl(files, 'AO', resolution) ?? undefined,
     displacementMap: resolveMapUrl(files, 'Displacement', resolution, 'jpg') ?? undefined,
   };
+}
+
+export interface PolyHavenAssetInfo {
+  name: string;
+  categories: string[];
+  tags: string[];
+  description?: string;
+  thumbnail_url?: string;
+}
+
+/** Browse page for a texture asset */
+export function polyHavenTextureUrl(assetId: string): string {
+  return `https://polyhaven.com/a/${assetId}`;
+}
+
+/** Search the public texture catalog (same data as polyhaven.com/textures filters) */
+export async function searchPolyHavenTextures(opts: {
+  categories?: string;
+  tags?: string;
+}): Promise<Record<string, PolyHavenAssetInfo>> {
+  const params = new URLSearchParams({ t: 'textures' });
+  if (opts.categories) params.set('categories', opts.categories);
+  if (opts.tags) params.set('tags', opts.tags);
+
+  const res = await fetch(`${API_BASE}/assets?${params}`, {
+    headers: { 'User-Agent': POLY_HAVEN_USER_AGENT },
+  });
+  if (!res.ok) throw new Error(`Poly Haven assets search: ${res.status}`);
+  return res.json();
 }
