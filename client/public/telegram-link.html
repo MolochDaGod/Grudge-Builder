@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Grudge — Telegram Link (Puter)</title>
+  <script src="https://js.puter.com/v2/"></script>
+  <style>
+    :root { --gold: #d4af37; --bg: #0a0a0f; --panel: #12121a; --text: #e8e8e8; --muted: #888; }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; min-height: 100vh; font-family: system-ui, sans-serif;
+      background: var(--bg); color: var(--text);
+      display: grid; place-items: center; padding: 24px;
+    }
+    .card {
+      width: min(440px, 100%); background: var(--panel);
+      border: 1px solid #2a2a3a; border-radius: 12px; padding: 28px;
+    }
+    h1 { margin: 0 0 8px; font-size: 1.25rem; color: var(--gold); }
+    p { color: var(--muted); line-height: 1.5; font-size: 0.9rem; }
+    button {
+      margin-top: 16px; width: 100%; padding: 14px; border: 0; border-radius: 8px;
+      background: var(--gold); color: #0a0a0f; font-weight: 700; font-size: 1rem; cursor: pointer;
+    }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    .status { margin-top: 16px; padding: 12px; border-radius: 8px; font-size: 0.9rem; }
+    .ok { background: #14321f; color: #6ee7b7; }
+    .err { background: #3b1212; color: #fca5a5; }
+    code { font-size: 0.8rem; word-break: break-all; }
+    .hint { font-size: 0.8rem; margin-top: 12px; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Link Telegram to Grudge</h1>
+    <p id="subtitle">Sign in with <strong>Puter</strong> to link your Grudge account to @grudachainbot.</p>
+    <button id="puterBtn" type="button">Sign in with Puter</button>
+    <p class="hint">Uses the real Puter popup (js.puter.com) — not ALE.</p>
+    <div id="status" class="status" style="display:none"></div>
+  </div>
+  <script>
+    const ALE_API = 'https://ale.grudge-studio.com';
+    const params = new URLSearchParams(location.search);
+    const user_id = params.get('user_id');
+    const code = params.get('code');
+    const id = params.get('id');
+
+    const puterBtn = document.getElementById('puterBtn');
+    const statusEl = document.getElementById('status');
+
+    function showStatus(text, ok) {
+      statusEl.style.display = 'block';
+      statusEl.className = 'status ' + (ok ? 'ok' : 'err');
+      statusEl.innerHTML = text;
+    }
+
+    if (!user_id || !code || !id) {
+      puterBtn.disabled = true;
+      showStatus('Invalid link. Send <code>/login</code> in @grudachainbot again.', false);
+    }
+
+    fetch(`${ALE_API}/api/tglogin/status?user_id=${encodeURIComponent(user_id)}&code=${encodeURIComponent(code)}&id=${encodeURIComponent(id)}`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.expired || !data.valid) {
+          puterBtn.disabled = true;
+          showStatus('Link expired. Send <code>/login</code> in Telegram again.', false);
+        }
+      })
+      .catch(() => {});
+
+    puterBtn.addEventListener('click', async () => {
+      puterBtn.disabled = true;
+      try {
+        if (typeof puter === 'undefined') throw new Error('Puter SDK failed to load');
+
+        await puter.auth.signIn();
+        const user = await puter.auth.getUser();
+        if (!user?.uuid) throw new Error('Puter sign-in was cancelled');
+
+        const authRes = await fetch('/api/auth/puter', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            puterId: user.uuid,
+            puterUsername: user.username,
+          }),
+        });
+        const auth = await authRes.json();
+        if (!authRes.ok || !auth.success) {
+          throw new Error(auth.error || 'Grudge account setup failed');
+        }
+
+        const identifier = auth.grudgeId || auth.user?.walletAddress;
+        if (!identifier) throw new Error('No Grudge ID or wallet on account');
+
+        const linkRes = await fetch(`${ALE_API}/api/tglogin/complete`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ user_id, code, id, identifier }),
+        });
+        const link = await linkRes.json();
+        if (!linkRes.ok) throw new Error(link.error || 'Telegram link failed');
+
+        puterBtn.style.display = 'none';
+        showStatus(
+          `Linked to Telegram.<br>` +
+          `Wallet: <code>${link.walletAddress}</code><br>` +
+          `Grudge ID: <code>${link.grudgeId || auth.grudgeId || '—'}</code><br><br>` +
+          `Return to Telegram → <code>/shop</code>`,
+          true
+        );
+      } catch (e) {
+        const msg = e?.message || String(e);
+        if (msg.includes('closed') || msg.includes('cancel') || msg.includes('auth_window')) {
+          showStatus('Puter sign-in was closed. Tap the button and complete the popup.', false);
+        } else {
+          showStatus(msg, false);
+        }
+        puterBtn.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>

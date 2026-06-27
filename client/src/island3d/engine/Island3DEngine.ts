@@ -54,6 +54,14 @@ import {
   EvilMountainTriadSystem,
 } from '../objects/EvilMountainTriad';
 import { InstancedProceduralForest } from '../objects/InstancedProceduralForest';
+import { preloadIslandResources } from '../objects/IslandResourceLoader';
+import { scatterGlbTreesFromNodes } from '../objects/GlbForestScatter';
+import { placeProceduralHarvestZones } from '../harvest/HarvestZonePlacer';
+import { buildHarvestZones, type HarvestZonesResult } from '../harvest/HarvestZoneBuilder';
+import {
+  generateMountainTriadSeed,
+  type MountainTriadSeed,
+} from '@shared/definitions/homeIslandSeed';
 
 export type Island3DMode = 'procedural' | 'lobby' | 'zone';
 
@@ -161,6 +169,7 @@ export class Island3DEngine {
   // Mountain dungeon triad + instanced forest (procedural home island)
   public mountainTriad: EvilMountainTriadSystem | null = null;
   public proceduralForest: InstancedProceduralForest | null = null;
+  public harvestZones: HarvestZonesResult | null = null;
 
   // Raycaster for mouse picking
   private raycaster = new THREE.Raycaster();
@@ -264,6 +273,7 @@ export class Island3DEngine {
 
   /** Load a pre-built GLTF lobby map + open-world gameplay layer */
   private async initLobby(): Promise<void> {
+    await preloadIslandResources().catch(() => undefined);
     const mapDef = getLobbyMap(this.config.lobbyMapId);
 
     this.lobbyResult = await loadLobbyMap(mapDef, (pct) => {
@@ -311,6 +321,7 @@ export class Island3DEngine {
     // Building + fish life
     this.building = new BuildingSystem(this.scene, this.camera);
     this.creatures = new CreatureManager(this.scene, LOBBY_WATER_LEVEL, this.config.seed.length + 7);
+    this.creatures.setGroundSampler(sampleGround);
     this.creatures.spawnFish(14, maxDim * 0.9);
 
     // Center hub — vendors, harvest ring, PvE
@@ -319,11 +330,16 @@ export class Island3DEngine {
       this.lobbyResult,
       sampleGround,
       this.creatures,
+      this.config.seed,
     );
+    this.harvestZones = this.lobbyPlayZone.harvestZones;
     this.trees.push(...this.lobbyPlayZone.trees);
     this.rocks.push(...this.lobbyPlayZone.rocks);
     this.crystals.push(...this.lobbyPlayZone.crystals);
     this.hemps.push(...this.lobbyPlayZone.hemps);
+
+    // Evil mountain triad — seeded dungeon event on a northern island
+    await this.createLobbyMountainDungeon();
     this.config.onLoadProgress?.(92);
 
     // Playable Grudge6 character on lobby terrain
@@ -370,6 +386,15 @@ export class Island3DEngine {
       callbacks: this.config.physicsCallbacks,
     });
 
+    // Load action bar from character for game flow testing (1-5 slots from spellbook like uMMORPG)
+    // Uses the assigned from /skill-tree for the class special (grimoire forms etc)
+    const activeChar = await import('@/lib/characterManager').then(m => m.CharacterManager.getActiveCharacter?.());
+    if (activeChar?.actionBar) {
+      this.character.loadActionBar(activeChar.actionBar);
+    } else {
+      // Demo for grimoire 3 forms
+      this.character.loadActionBar({1: 'grimoire_basic', 2: 'grim_dest_blast', 3: 'grim_prot_ward', 4: 'grim_conj_minion', 5: 'grim_conj_lord'});
+    }
     this.controls.enabled = false;
     this.characterActive = true;
 
@@ -384,6 +409,7 @@ export class Island3DEngine {
 
   /** Generate procedural seed-based terrain with nodes & decorations */
   private async initProcedural(): Promise<void> {
+    await preloadIslandResources().catch(() => undefined);
     // 1. Generate terrain
     const terrainMaterial = createTerrainMaterial();
     const terrainConfig: IslandTerrainConfig = {
@@ -404,7 +430,27 @@ export class Island3DEngine {
     // 2. Single ocean plane (terrain underwater is flattened — no double-water)
     this.createWaterPlane();
 
-    // 3. Place resource nodes
+    // 3. Small harvest zones (forestoutline-style clusters + interactive nodes)
+    const zoneDefs = placeProceduralHarvestZones(
+      this.config.seed,
+      this.terrain.terrainMesh,
+      this.terrain.biomeMap,
+      this.terrain.gridW,
+      this.terrain.gridH,
+    );
+    this.harvestZones = await buildHarvestZones(this.scene, zoneDefs);
+    this.trees.push(...this.harvestZones.trees);
+    this.rocks.push(...this.harvestZones.rocks);
+    this.crystals.push(...this.harvestZones.crystals);
+    this.hemps.push(...this.harvestZones.hemps);
+    this.flowers.push(...this.harvestZones.flowers);
+    console.log(
+      `[Island3D] Harvest zones: ${zoneDefs.length} patches,`,
+      `${this.harvestZones.trees.length} trees,`,
+      `${this.harvestZones.forests.length} instanced forests`,
+    );
+
+    // 4. Beach/dock nodes only — land harvest lives in zones
     this.placedNodes = placeResourceNodes(
       this.terrain.biomeMap,
       this.terrain.terrainMesh,
@@ -412,12 +458,10 @@ export class Island3DEngine {
       this.terrain.gridH,
       1024, 1024,
       this.config.seed,
+      ['tree', 'rock', 'crystal', 'hemp', 'flower', 'bush', 'herb'],
     );
 
-    // 4. Instanced procedural forest (must run before harvestables hide tree meshes)
-    await this.createProceduralForest();
-
-    // 5. Create harvestable objects from placed nodes (trees = invisible hitboxes when forest active)
+    // 5. Dock + fish harvestables from sparse beach placement
     this.createHarvestables();
 
     // 6. Scatter decorations
@@ -449,11 +493,13 @@ export class Island3DEngine {
 
     // 12. Wildlife — land animals + fish
     this.creatures = new CreatureManager(this.scene, -2, this.config.seed.length);
-    this.creatures.spawnLandCreatures(this.terrain.terrainMesh, 15, 400);
+    this.creatures.spawnLandCreatures(this.terrain.terrainMesh, 22, 400);
     this.creatures.spawnFish(10, 450);
 
     // 13. Evil mountain triad — dungeon behind one of three peaks
     await this.createMountainDungeon();
+
+    if (this.navMesh) this.creatures.setNavMesh(this.navMesh);
   }
 
   /** Build a full 4 km ocean sector with islands, NPCs, hazards, docks */
@@ -635,6 +681,14 @@ export class Island3DEngine {
 
   private async createProceduralForest(): Promise<void> {
     if (!this.terrain) return;
+
+    const glbForest = await scatterGlbTreesFromNodes(this.placedNodes, 90);
+    if (glbForest.children.length > 0) {
+      this.scene.add(glbForest);
+      console.log(`[Island3D] GLB forest: ${glbForest.children.length} trees`);
+      return;
+    }
+
     this.proceduralForest = new InstancedProceduralForest();
     const stats = this.proceduralForest.generate(
       this.config.seed,
@@ -649,6 +703,41 @@ export class Island3DEngine {
       this.scene.add(this.proceduralForest.group);
       console.log(`[Island3D] Procedural forest: ${stats.trees} trees, ${stats.branches} branches, ${stats.leaves} leaves`);
     }
+  }
+
+  private async createLobbyMountainDungeon(): Promise<void> {
+    if (!this.lobbyResult || !this.lobbyCollider) return;
+
+    const terrainSize = Math.max(this.lobbyResult.size.x, this.lobbyResult.size.z);
+    const triadSeed: MountainTriadSeed =
+      this.config.mountainTriad ?? generateMountainTriadSeed(this.config.seed, terrainSize);
+
+    const anchorWorld = {
+      x: this.lobbyResult.center.x + terrainSize * 0.22,
+      z: this.lobbyResult.center.z - terrainSize * 0.28,
+    };
+
+    const triadResult = await createEvilMountainTriad(this.scene, {
+      seed: this.config.seed,
+      mountainTriad: triadSeed,
+      terrainMesh: this.lobbyCollider.colliderMesh,
+      biomeMap: [],
+      gridW: 0,
+      gridH: 0,
+      terrainSize,
+      anchorWorld,
+      onEnterDungeon: (_portalId, dungeonId) => {
+        const name = this.mountainTriad?.triad.dungeon.name ?? 'Dungeon';
+        this.config.onDungeonEnter?.(dungeonId, name);
+      },
+    });
+    if (!triadResult) return;
+
+    const facingYaw = Math.atan2(-triadResult.anchor.x, -triadResult.anchor.z);
+    this.mountainTriad = new EvilMountainTriadSystem(triadResult, facingYaw);
+    console.log(
+      `[Island3D] Lobby evil mountain triad — secret peak #${triadResult.secretIndex + 1}, dungeon: ${triadResult.dungeon.name}`,
+    );
   }
 
   private async createMountainDungeon(): Promise<void> {
@@ -827,7 +916,7 @@ export class Island3DEngine {
 
     if (this.lobbyPlayZone && this.character) {
       this.lobbyPlayZone.npcController.setPlayerPosition(this.character.getPosition());
-      this.lobbyPlayZone.update(dt);
+      this.lobbyPlayZone.update(dt, this.camera.position);
     }
 
     this.updateWater(dt);
@@ -868,7 +957,9 @@ export class Island3DEngine {
       this.mountainTriad.update(dt, this.character.getPosition());
     }
 
-    if (this.proceduralForest) {
+    if (this.harvestZones && !this.lobbyPlayZone) {
+      this.harvestZones.update(dt, this.camera.position);
+    } else if (this.proceduralForest) {
       this.proceduralForest.update(dt, this.camera.position);
     }
 
@@ -1118,7 +1209,11 @@ export class Island3DEngine {
     this.lobbyAnimMixer?.stopAllAction();
     this.lobbyCapture?.destroy();
     this.lobbyShip?.destroy();
-    this.lobbyPlayZone?.dispose();
+    if (this.lobbyPlayZone) {
+      this.lobbyPlayZone.dispose();
+    } else {
+      this.harvestZones?.dispose();
+    }
     this.lobbyCollider?.dispose();
     if (this.lobbyCollider?.colliderMesh.parent) {
       this.scene.remove(this.lobbyCollider.colliderMesh);

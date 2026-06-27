@@ -83,6 +83,11 @@ export class AnimationManager {
     return this.controller.hasClip(state);
   }
 
+  /** Raw mixer action for explorer LocomotionBlend. */
+  getAction(state: AnimState): THREE.AnimationAction | undefined {
+    return this.controller.actions.get(state);
+  }
+
   get loadedClips(): string[] {
     return this.controller.loadedStates;
   }

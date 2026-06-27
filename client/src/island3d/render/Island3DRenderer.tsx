@@ -15,6 +15,9 @@ import { useIslandSession } from '../session/useIslandSession';
 import type { QualityPreset } from '../render/PostProcessing';
 import type { DayNightConfig } from '../environment/DayNightCycle';
 import type { PhysicsCallbacks, MovementState } from '../player/CharacterController3D';
+import { EMPTY_COMBAT_HUD, type CombatHudSnapshot } from '../player/combatHudState';
+import { DangerRoomHud } from './DangerRoomHud';
+import './dangerRoomHud.css';
 
 interface Island3DRendererProps {
   seed: string;
@@ -65,6 +68,7 @@ export function Island3DRenderer({
   const [movementState, setMovementState] = useState<MovementState>('ground');
   const [oxygen, setOxygen] = useState(1); // 0-1 ratio
   const [dayPhase, setDayPhase] = useState('day');
+  const [combatHud, setCombatHud] = useState<CombatHudSnapshot>(EMPTY_COMBAT_HUD);
   const { context: sessionCtx, send: sessionSend } = useIslandSession(characterId);
 
   // Physics callbacks (bridge engine events → React state)
@@ -165,6 +169,26 @@ export function Island3DRenderer({
     return () => clearInterval(interval);
   }, [loading]);
 
+  // Danger Room HUD — combat crosshair + MM readout
+  useEffect(() => {
+    if (loading) return;
+    let raf = 0;
+    const tick = () => {
+      const snap = engineRef.current?.character?.getCombatHudSnapshot();
+      if (snap) setCombatHud(snap);
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [loading, engineReady]);
+
+  // Session combat toggle → character mode
+  useEffect(() => {
+    const eng = engineRef.current?.character;
+    if (!eng) return;
+    void eng.setControlMode(sessionCtx.combatMode ? 'combat' : 'harvest', classId, true);
+  }, [sessionCtx.combatMode, engineReady, classId]);
+
   // Session tick/time → engine day/night
   useEffect(() => {
     const eng = engineRef.current;
@@ -230,7 +254,7 @@ export function Island3DRenderer({
     >
       <canvas
         ref={canvasRef}
-        className="w-full h-full block"
+        className={`w-full h-full block${combatHud.combatMode ? ' dr-combat-cursor' : ''}`}
         onClick={handleClick}
         onMouseMove={handleMouseMove}
       />
@@ -275,16 +299,16 @@ export function Island3DRenderer({
               <>
                 <p className="text-gray-300">{stateLabel[movementState] || movementState}</p>
                 <p className="text-gray-400">WASD move · Space jump · Tab combat/harvest</p>
-                <p className="text-gray-400">Combat: LMB combo · F dodge · R block</p>
+                <p className="text-gray-400">Combat: LMB combo (+/− MM) · Z lunge · X retreat · F dodge · R block</p>
                 <p className="text-gray-400">LMB+drag camera · Click to harvest</p>
               </>
             )}
             {mode === 'lobby' && (
               <>
                 <p className="text-gray-300">{stateLabel[movementState] || movementState}</p>
-                <p className="text-gray-400">WASD move · Space jump · Tab build mode</p>
-                <p className="text-gray-400">E hold = capture flag · E at dock = sail</p>
-                <p className="text-gray-400">LMB+drag camera · Click place build</p>
+                <p className="text-gray-400">WASD move · Space jump · Tab combat/harvest</p>
+                <p className="text-gray-400">Combat: LMB MM combo · Z +100/−50 · X −50 · RMB tap focus</p>
+                <p className="text-gray-400">E hold = capture · E at dock = sail</p>
               </>
             )}
             {multiplayer && (
@@ -313,6 +337,8 @@ export function Island3DRenderer({
           </div>
 
           {/* Oxygen bar (only when swimming) */}
+          <DangerRoomHud hud={combatHud} />
+
           {mode === 'lobby' && (
             <>
               <IslandPlayOverlay

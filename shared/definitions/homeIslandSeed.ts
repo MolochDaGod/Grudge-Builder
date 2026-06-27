@@ -16,7 +16,7 @@ export const HOME_ISLAND_RTS_SIZE_M = 200;
 export const MOUNTAIN_TRIAD_ISLAND_FRACTION = 0.1;
 
 /** Walkable dungeon mouth target height in meters. */
-export const DUNGEON_ENTRANCE_HEIGHT_M = 3;
+export const DUNGEON_ENTRANCE_HEIGHT_M = 4;
 
 /** Sketchfab: 3 Evil Rock Mountains with Cave (Stylized) — CC-BY Jungle Jim */
 export const SKETCHFAB_EVIL_MOUNTAIN_TRIAD = {

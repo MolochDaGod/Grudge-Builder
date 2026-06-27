@@ -78,6 +78,7 @@ export function placeResourceNodes(
   xSize: number,
   ySize: number,
   seed: string,
+  excludeTypes: NodePlacementType[] = [],
 ): PlacedNode3D[] {
   const rng = makePrng(seed + '_nodes');
   const nodes: PlacedNode3D[] = [];
@@ -101,6 +102,7 @@ export function placeResourceNodes(
 
   // Place nodes per rule
   for (const rule of NODE_RULES) {
+    if (excludeTypes.includes(rule.type)) continue;
     let placed = 0;
     // Combine candidate pools from all valid biomes
     const pool: Array<[number, number]> = [];

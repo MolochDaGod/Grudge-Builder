@@ -45,6 +45,14 @@ export interface BossWorldInput {
 
 // ── AI Output (consumed by controller) ───────────────────────────────────────
 
+export interface BossTelegraphOutput {
+  attack: AttackPattern;
+  totalSec: number;
+  remainingSec: number;
+  /** 0 = just started, 1 = impact imminent */
+  progress: number;
+}
+
 export interface BossAIOutput {
   state: OrcBossState;
   anim: OrcBossAnimKey;
@@ -56,6 +64,8 @@ export interface BossAIOutput {
   faceTarget: { x: number; z: number } | null;
   /** Active attack pattern (for hitbox checking) */
   activeAttack: AttackPattern | null;
+  /** Wind-up telegraph while state === 'telegraphing' */
+  telegraph: BossTelegraphOutput | null;
   /** Current boss phase */
   phase: BossPhase;
   /** Whether the boss just transitioned phases this tick */
@@ -76,6 +86,7 @@ export class OrcBossAI {
   private decisionTimer = 0;      // time since last decision
   private idleTimer = 0;          // time spent idle (triggers patrol)
   private telegraphTimer = 0;     // wind-up countdown
+  private telegraphTotal = 0;     // full wind-up duration for progress
   private attackDuration = 0;     // how long current attack anim plays
   private comboCount = 0;         // current combo chain length
 
@@ -173,6 +184,7 @@ export class OrcBossAI {
       moveSpeed: 0,
       faceTarget: null,
       activeAttack: null,
+      telegraph: null,
       phase: this.phase,
       phaseChanged: false,
       stats: this.stats,
@@ -206,7 +218,7 @@ export class OrcBossAI {
       case 'patrol': {
         out.anim = 'walk';
         if (this.patrolTarget) {
-          const dir = dirTo(input.bossPos, { x: this.patrolTarget.x, y: 0, z: this.patrolTarget.z });
+          const dir = dirTo(input.bossPos, { x: this.patrolTarget.x, z: this.patrolTarget.z });
           out.moveDir = dir;
           out.moveSpeed = baseSpeed * 0.6;
           out.faceTarget = this.patrolTarget;
@@ -311,6 +323,7 @@ export class OrcBossAI {
             if (atk.telegraphSec > 0) {
               this.state = 'telegraphing';
               this.telegraphTimer = atk.telegraphSec;
+              this.telegraphTotal = atk.telegraphSec;
             } else {
               this.state = 'attacking';
               this.attackDuration = 0;
@@ -342,6 +355,17 @@ export class OrcBossAI {
       case 'telegraphing': {
         out.anim = this.currentAttack?.anim ?? 'combat_stance';
         out.faceTarget = input.targetPos ? { x: input.targetPos.x, z: input.targetPos.z } : null;
+
+        if (this.currentAttack) {
+          const total = Math.max(0.001, this.telegraphTotal);
+          const remaining = Math.max(0, this.telegraphTimer);
+          out.telegraph = {
+            attack: this.currentAttack,
+            totalSec: total,
+            remainingSec: remaining,
+            progress: 1 - remaining / total,
+          };
+        }
 
         this.telegraphTimer -= input.dt;
         if (this.telegraphTimer <= 0) {

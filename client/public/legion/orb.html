@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Legion Orb</title>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body {
+        width: 100%;
+        height: 100%;
+        background: transparent;
+        overflow: hidden;
+      }
+      #webgl-ball {
+        display: block;
+        width: 100%;
+        height: 100%;
+        background: transparent;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="webgl-ball" width="220" height="220"></canvas>
+    <!-- Stubs required by ALELegionApp -->
+    <div hidden aria-hidden="true">
+      <div id="voiceDot"></div>
+      <div id="voiceText"></div>
+      <div id="connectionStatus"></div>
+      <div id="stats"></div>
+      <div id="connectionDot"></div>
+      <div id="rightClickMenu" style="display:none"></div>
+    </div>
+    <script src="/legion/app.js"></script>
+    <script>
+      (function () {
+        const EMBED = true;
+        document.addEventListener("DOMContentLoaded", function () {
+          const app = window.__aleLegion;
+          if (!app) return;
+          window.addEventListener("message", (e) => {
+            if (!e.data || e.data.type !== "legion-control") return;
+            if (e.data.intensity != null) app.intensity = e.data.intensity;
+            if (e.data.voiceActive != null) {
+              app.isVoiceActive = e.data.voiceActive;
+              app.updateVoiceIndicator?.();
+            }
+            if (e.data.connected != null) {
+              app.isConnected = e.data.connected;
+              app.updateStatus?.();
+            }
+          });
+          setInterval(() => {
+            if (window.parent !== window) {
+              window.parent.postMessage({
+                type: "legion-state",
+                intensity: app.intensity,
+                voiceActive: app.isVoiceActive,
+                connected: app.isConnected,
+              }, "*");
+            }
+          }, 500);
+        });
+      })();
+    </script>
+  </body>
+</html>

@@ -1,10 +1,11 @@
 /**
  * HomeIslandNodes — visual meshes for all home island resource types.
  *
- * Creates procedural geometry for: crystals, hemp plants, flowers, dock.
+ * Crystals load gem_cluster.glb from CDN; hemp/flowers/dock stay procedural.
  * Trees and rocks are handled by HarvestableTree/HarvestableRock.
  */
 import * as THREE from 'three';
+import { cloneIslandResource, fitModelToHeight } from './IslandResourceLoader';
 
 // ── Crystal Cluster ──────────────────────────────────────────────
 
@@ -16,8 +17,7 @@ export interface HarvestableCrystal {
   chipTime: number;
 }
 
-export function createCrystalCluster(position: THREE.Vector3, scale: number = 1): HarvestableCrystal {
-  const group = new THREE.Group();
+function addProceduralCrystalMesh(group: THREE.Group): number {
   const colors = [0x88ddff, 0xaa66ff, 0x66ffaa, 0xff88cc];
   const crystalColor = colors[Math.floor(Math.random() * colors.length)];
 
@@ -31,15 +31,12 @@ export function createCrystalCluster(position: THREE.Vector3, scale: number = 1)
     opacity: 0.85,
   });
 
-  // Main crystal shard
-  const mainGeo = new THREE.ConeGeometry(0.6, 3.5, 5);
-  const main = new THREE.Mesh(mainGeo, crystalMat);
+  const main = new THREE.Mesh(new THREE.ConeGeometry(0.6, 3.5, 5), crystalMat);
   main.position.y = 1.75;
   main.rotation.z = (Math.random() - 0.5) * 0.3;
   main.castShadow = true;
   group.add(main);
 
-  // Secondary shards
   for (let i = 0; i < 3; i++) {
     const h = 1.5 + Math.random() * 1.5;
     const r = 0.25 + Math.random() * 0.3;
@@ -52,25 +49,59 @@ export function createCrystalCluster(position: THREE.Vector3, scale: number = 1)
     group.add(shard);
   }
 
-  // Base rock
-  const baseGeo = new THREE.DodecahedronGeometry(1, 0);
-  const baseMat = new THREE.MeshStandardMaterial({ color: 0x555555, roughness: 0.9 });
-  const base = new THREE.Mesh(baseGeo, baseMat);
+  const base = new THREE.Mesh(
+    new THREE.DodecahedronGeometry(1, 0),
+    new THREE.MeshStandardMaterial({ color: 0x555555, roughness: 0.9 }),
+  );
   base.position.y = 0.3;
   base.scale.set(1, 0.4, 1);
   base.receiveShadow = true;
   group.add(base);
 
-  // Glow point light
   const glow = new THREE.PointLight(crystalColor, 0.6, 8);
   glow.position.y = 2;
   group.add(glow);
+  return crystalColor;
+}
+
+export function createCrystalCluster(position: THREE.Vector3, scale: number = 1): HarvestableCrystal {
+  const group = new THREE.Group();
+  addProceduralCrystalMesh(group);
 
   group.position.copy(position);
   group.scale.setScalar(scale);
   group.rotation.y = Math.random() * Math.PI * 2;
 
-  return { group, health: 3, maxHealth: 3, chipping: false, chipTime: 0 };
+  const crystal: HarvestableCrystal = {
+    group,
+    health: 3,
+    maxHealth: 3,
+    chipping: false,
+    chipTime: 0,
+  };
+
+  void mountCrystalClusterModel(crystal, scale);
+  return crystal;
+}
+
+export async function mountCrystalClusterModel(
+  crystal: HarvestableCrystal,
+  scale: number = 1,
+): Promise<void> {
+  try {
+    const model = await cloneIslandResource('gem');
+    const glowColors = [0x88ddff, 0xaa66ff, 0x66ffaa, 0xff88cc];
+    const glowColor = glowColors[Math.floor(Math.random() * glowColors.length)];
+    crystal.group.clear();
+    fitModelToHeight(model, 2.2 * scale);
+    crystal.group.add(model);
+
+    const glow = new THREE.PointLight(glowColor, 0.8, 10);
+    glow.position.y = 1.5 * scale;
+    crystal.group.add(glow);
+  } catch (err) {
+    console.warn('[CrystalCluster] GLB unavailable, keeping procedural mesh', err);
+  }
 }
 
 // ── Hemp Plant ───────────────────────────────────────────────────

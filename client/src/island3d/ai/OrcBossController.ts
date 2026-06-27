@@ -13,6 +13,7 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { OrcBossAI, type BossWorldInput, type BossAIOutput } from './OrcBossAI';
+import { AttackWarningSystem, pickWarningVariant } from '../combat/AttackWarningSystem';
 import {
   ORC_BOSS_MODEL_BASE,
   ORC_BOSS_ANIMS,
@@ -77,9 +78,14 @@ export class OrcBossController {
   private onDeath?: (loot: LootDrop[]) => void;
   private onPhaseChange?: (phase: string, name: string) => void;
 
+  // Attack telegraphs
+  private readonly warnings: AttackWarningSystem;
+  private readonly warningId = 'orc_boss_main';
+
   // State
   private isDead = false;
   private lastOutput: BossAIOutput | null = null;
+  private wasTelegraphing = false;
 
   constructor(config: OrcBossSpawnConfig) {
     this.ai = new OrcBossAI(config.statsOverride);
@@ -95,6 +101,7 @@ export class OrcBossController {
     this.group.scale.setScalar(this.ai.stats.scale);
     this.scene.add(this.group);
 
+    this.warnings = new AttackWarningSystem(this.scene);
     this.createHPBar();
     this.createAura();
   }
@@ -143,6 +150,7 @@ export class OrcBossController {
     });
 
     await Promise.all(loadPromises);
+    await this.warnings.preload();
 
     // Play idle
     this.playAnim('idle');
@@ -197,6 +205,8 @@ export class OrcBossController {
     // Play animation
     this.playAnim(output.anim);
 
+    this.updateAttackWarning(output);
+
     // Move
     if (output.moveDir && output.moveSpeed > 0) {
       this.position.x += output.moveDir.x * output.moveSpeed * dt;
@@ -242,6 +252,40 @@ export class OrcBossController {
 
     // Update mixer
     this.mixer?.update(dt);
+  }
+
+  private updateAttackWarning(output: BossAIOutput): void {
+    if (output.telegraph) {
+      const atk = output.telegraph.attack;
+      const variant = pickWarningVariant(atk);
+      const forward = new THREE.Vector3(Math.sin(this.facing), 0, Math.cos(this.facing));
+      const origin = this.position.clone();
+
+      if (variant === 'incoming' && output.faceTarget) {
+        origin.set(output.faceTarget.x, this.position.y, output.faceTarget.z);
+      } else if (variant === 'cone') {
+        origin.addScaledVector(forward, atk.range * 0.45);
+      }
+
+      this.warnings.showTelegraph({
+        id: this.warningId,
+        variant,
+        position: origin,
+        facing: this.facing,
+        range: atk.range,
+        arc: atk.arc,
+        totalSec: output.telegraph.totalSec,
+        remainingSec: output.telegraph.remainingSec,
+        progress: output.telegraph.progress,
+      });
+      this.wasTelegraphing = true;
+      return;
+    }
+
+    if (this.wasTelegraphing) {
+      this.warnings.hide(this.warningId);
+      this.wasTelegraphing = false;
+    }
   }
 
   // ── Damage ─────────────────────────────────────────────────────────────────
@@ -383,6 +427,7 @@ export class OrcBossController {
   // ── Cleanup ────────────────────────────────────────────────────────────────
 
   destroy(): void {
+    this.warnings.hideAll();
     this.mixer?.stopAllAction();
     this.scene.remove(this.group);
     this.group.traverse(child => {

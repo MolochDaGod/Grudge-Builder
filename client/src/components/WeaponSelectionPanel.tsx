@@ -5,8 +5,11 @@ import { WEAPON_TYPES, WeaponType, Weapon, calculateWeaponStats, getWeaponSkillB
 import { ChevronLeft, ChevronRight, Star, Zap, Shield, Heart, Sparkles, Check, Plus, Minus } from 'lucide-react';
 
 export interface WeaponSkillSelection {
-  hotkey2: string | null;
-  hotkey3: string | null;
+  hotkey1?: string | null; // slot 1 basic
+  hotkey2?: string | null;
+  hotkey3?: string | null;
+  hotkey4?: string | null;
+  hotkey5?: string | null;
 }
 
 interface WeaponSelectionPanelProps {

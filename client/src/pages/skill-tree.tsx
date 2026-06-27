@@ -80,6 +80,36 @@ export default function SkillTreePage() {
   const [specialItemKey, setSpecialItemKey] = useState<string | null>(null);
   const [selectedSpecialForm, setSelectedSpecialForm] = useState<string | null>(null);
 
+  // Hotbar loadout for 5 slots - production game flow like uMMORPG
+  const [actionBar, setActionBar] = useState<Record<number, string>>({1: null, 2: null, 3: null, 4: null, 5: null});
+  const [selectedSkillForAssign, setSelectedSkillForAssign] = useState<Skill | null>(null);
+
+  // Keyboard support for switching Grimoire forms with Shift+F1/F2/F3 (as specified)
+  useEffect(() => {
+    if (!showSpecialItem || specialItemKey !== 'grimoire') return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (!e.shiftKey) return;
+      const subtrees = SPECIAL_ITEM_SKILL_TREES[activeClass]?.grimoire?.subtrees || {};
+      const formKeys = Object.keys(subtrees);
+      if (formKeys.length === 0) return;
+      const key = e.key.toLowerCase();
+      let newForm: string | null = null;
+      if (key === 'f1' || e.key === 'F1') {
+        newForm = formKeys[0];
+      } else if (key === 'f2' || e.key === 'F2') {
+        newForm = formKeys[1] || formKeys[0];
+      } else if (key === 'f3' || e.key === 'F3') {
+        newForm = formKeys[2] || formKeys[formKeys.length - 1];
+      }
+      if (newForm) {
+        setSelectedSpecialForm(newForm);
+        e.preventDefault();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [showSpecialItem, specialItemKey, activeClass]);
+
   useEffect(() => {
     const loadCharacter = async () => {
       const active = await CharacterManager.getActiveCharacter();
@@ -94,6 +124,9 @@ export default function SkillTreePage() {
         }
         if (active.weaponSkillLevel) {
           setWeaponSkillLevel(active.weaponSkillLevel);
+        }
+        if (active.actionBar) {
+          setActionBar(active.actionBar);
         }
         if (active.equippedWeaponId) {
           setSelectedWeaponId(active.equippedWeaponId);
@@ -328,10 +361,11 @@ export default function SkillTreePage() {
         </div>
 
         <div className="max-w-5xl mx-auto p-4">
-          {/* Grimoire Three Forms selector (and future special form UIs) */}
+          {/* Grimoire Three Forms selector (and future special form UIs) - forms switched in-game with Shift+F1/F2/F3 */}
           {showSpecialItem && specialItemKey === 'grimoire' && SPECIAL_ITEM_SKILL_TREES[activeClass]?.grimoire?.hasSubtrees && (
             <div className="mb-4 flex gap-2 justify-center">
-              {Object.keys(SPECIAL_ITEM_SKILL_TREES[activeClass].grimoire.subtrees).map(formKey => {
+              <div className="text-xs text-slate-400 self-center mr-2">Forms (Shift+F1/F2/F3 in game):</div>
+              {Object.keys(SPECIAL_ITEM_SKILL_TREES[activeClass].grimoire.subtrees).map((formKey, idx) => {
                 const form = SPECIAL_ITEM_SKILL_TREES[activeClass].grimoire.subtrees[formKey];
                 return (
                   <button
@@ -341,9 +375,10 @@ export default function SkillTreePage() {
                       "px-3 py-1 text-xs rounded border flex items-center gap-1",
                       selectedSpecialForm === formKey ? "border-amber-500 bg-amber-500/10 text-amber-400" : "border-slate-600 text-slate-400 hover:border-slate-500"
                     )}
+                    title={`Shift+F${idx + 1} to activate in-game`}
                   >
                     <span>{form.icon}</span>
-                    <span>{form.name}</span>
+                    <span>{form.name} (Shift+F{idx + 1})</span>
                   </button>
                 );
               })}
@@ -471,6 +506,56 @@ export default function SkillTreePage() {
                   })}
                 </div>
                 <div className="text-[10px] text-slate-500 mt-2">Selecting a type loads its dedicated skill sheet. Weapon hotkeys & upgrades apply per type.</div>
+              </div>
+
+              {/* Production Hotbar Assignment - 5 slots like uMMORPG Grudge Warlords */}
+              <div className="mb-6 p-4 bg-slate-800 rounded border border-amber-900/50">
+                <h3 className="text-amber-400 font-bold mb-2">Action Bar (Slots 1-5 - Press 1-5 in game)</h3>
+                <div className="flex gap-2 mb-4">
+                  {[1,2,3,4,5].map(slot => (
+                    <div 
+                      key={slot} 
+                      className="w-20 h-16 border-2 border-amber-600 bg-black/50 rounded flex flex-col items-center justify-center text-xs cursor-pointer hover:bg-amber-900/30"
+                      onClick={() => {
+                        if (selectedSkillForAssign) {
+                          const newBar = {...actionBar, [slot]: selectedSkillForAssign.id};
+                          setActionBar(newBar);
+                          setSelectedSkillForAssign(null);
+                          // Persist to character
+                          if (character) {
+                            const updated = {...character, actionBar: newBar} as any;
+                            setCharacter(updated);
+                            CharacterManager.updateCharacter(updated);
+                          }
+                        }
+                      }}
+                    >
+                      <div>Slot {slot}</div>
+                      <div className="text-amber-400 truncate w-full text-center">{actionBar[slot] || 'Empty'}</div>
+                    </div>
+                  ))}
+                </div>
+                <div className="text-xs text-slate-400 mb-2">Select a skill below then click a slot to assign. For Grimoire, switch forms with Shift+F1/F2/F3 to assign form-specific skills.</div>
+                
+                {/* Available skills for current special/class */}
+                <div className="max-h-32 overflow-auto border border-slate-700 p-2 text-xs">
+                  { (showSpecialItem && specialItemKey ? 
+                    (SPECIAL_ITEM_SKILL_TREES[activeClass]?.[specialItemKey] ? 
+                      (selectedSpecialForm && SPECIAL_ITEM_SKILL_TREES[activeClass][specialItemKey].subtrees?.[selectedSpecialForm] ? 
+                        SPECIAL_ITEM_SKILL_TREES[activeClass][specialItemKey].subtrees[selectedSpecialForm].tiers.flatMap(t => t.skills) : 
+                        SPECIAL_ITEM_SKILL_TREES[activeClass][specialItemKey].tiers.flatMap(t => t.skills)
+                      ) : []) : 
+                    (CLASS_SKILL_TREES[activeClass]?.tiers.flatMap(t => t.skills) || [])
+                  ).map(skill => (
+                    <button 
+                      key={skill.id} 
+                      className={`mr-1 mb-1 px-2 py-1 rounded border ${selectedSkillForAssign?.id === skill.id ? 'bg-amber-500 text-black border-amber-500' : 'border-slate-600 hover:bg-slate-700'}`}
+                      onClick={() => setSelectedSkillForAssign(skill)}
+                    >
+                      {skill.icon} {skill.name}
+                    </button>
+                  ))}
+                </div>
               </div>
 
               <WeaponSelectionPanel

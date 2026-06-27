@@ -58,6 +58,7 @@ interface ExtendedCharacterData {
   weaponSkillSelections: Record<string, unknown> | null;
   equippedWeaponId: string | null;
   selectedSkills: Record<number, string>;
+  actionBar?: Record<number, string>;
   personality: unknown | null;
   chatTemperature: number;
   chatHistory: Array<unknown>;
@@ -115,6 +116,7 @@ export function fromBackendCharacter(src: BackendCharacter): Character {
     weaponSkillSelections: (v.weaponSkillSelections ?? ext?.weaponSkillSelections ?? {}) as any,
     equippedWeaponId: v.equippedWeaponId ?? ext?.equippedWeaponId ?? null,
     selectedSkills: v.selectedSkills ?? ext?.selectedSkills ?? {},
+    actionBar: v.actionBar ?? ext?.actionBar ?? {},
     createdAt: src.created_at ? new Date(src.created_at).getTime() : Date.now(),
   };
 }

@@ -18,15 +18,18 @@
 import * as THREE from 'three';
 import { loadCharacterModel, type LoadedModel } from '@/lib/modelLoader';
 import {
-  CREATURE_MANIFEST,
   getLandCreatures,
+  getCotwCreatures,
   getFishCreatures,
   getWaterPredators,
   pickWeightedCreature,
   rollLoot,
   type CreatureDef,
 } from './CreatureManifest';
+import { resolveCotwAnimations } from './cotwAnimResolver';
+import { CreatureBrain } from './CreatureBrain';
 import { getTerrainHeightAt } from '../terrain/IslandTerrainGenerator';
+import type { TerrainNavMesh } from '../navigation/TerrainNavMesh';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -44,18 +47,17 @@ interface CreatureInstance {
   // State
   state: CreatureState;
   hp: number;
-  stateTimer: number;       // time remaining in current state
-  respawnTimer: number;      // countdown after death
+  stateTimer: number;
+  respawnTimer: number;
+  provoked: boolean;
+  alerted: boolean;
 
-  // Movement
-  spawnPos: THREE.Vector3;   // original spawn position
-  targetPos: THREE.Vector3;  // current movement target
+  // Movement / brain
+  brain: CreatureBrain;
+  spawnPos: THREE.Vector3;
+  targetPos: THREE.Vector3;
   speed: number;
-
-  // Fish-specific
-  swimY: number;             // Y position for fish (below water)
-
-  // Loading
+  swimY: number;
   loading: boolean;
 }
 
@@ -96,16 +98,37 @@ export class CreatureManager {
   private waterLevel: number;
   private rand: () => number;
   private nextId = 0;
+  private navMesh: TerrainNavMesh | null = null;
+  private sampleHeight: ((x: number, z: number) => number | null) | null = null;
 
   /** Called when a creature dies — provides loot data for the HUD */
   public onLootDrop?: (event: CreatureLootEvent) => void;
   /** Called when a creature attacks the player */
   public onPlayerDamage?: (damage: number, attackerId: string) => void;
+  /** Called when huntable wildlife is spotted (alert state) */
+  public onHuntAlert?: (creatureId: string, name: string, huntValue: number) => void;
 
   constructor(scene: THREE.Scene, waterLevel: number = -2, seed: number = 42) {
     this.scene = scene;
     this.waterLevel = waterLevel;
     this.rand = mulberry32(seed);
+  }
+
+  setNavMesh(navMesh: TerrainNavMesh | null): void {
+    this.navMesh = navMesh;
+  }
+
+  setGroundSampler(sampleHeight: ((x: number, z: number) => number | null) | null): void {
+    this.sampleHeight = sampleHeight;
+  }
+
+  private brainCtx() {
+    return { navMesh: this.navMesh, sampleHeight: this.sampleHeight ?? undefined, rand: this.rand };
+  }
+
+  private landSpawnPool(): CreatureDef[] {
+    const cotw = getCotwCreatures().filter((c) => c.category === 'land' || c.category === 'bird');
+    return cotw.length > 0 ? cotw : getLandCreatures();
   }
 
   // ── Spawning ────────────────────────────────────────────────────────────
@@ -118,7 +141,7 @@ export class CreatureManager {
     outerRadius: number,
     count: number,
   ): void {
-    const pool = getLandCreatures();
+    const pool = this.landSpawnPool();
     if (pool.length === 0) return;
 
     for (let i = 0; i < count; i++) {
@@ -215,6 +238,9 @@ export class CreatureManager {
       hp: def.hp,
       stateTimer: IDLE_DURATION_MIN + this.rand() * (IDLE_DURATION_MAX - IDLE_DURATION_MIN),
       respawnTimer: 0,
+      provoked: false,
+      alerted: false,
+      brain: new CreatureBrain(),
       spawnPos: pos.clone(),
       targetPos: pos.clone(),
       speed: def.moveSpeed,
@@ -250,17 +276,26 @@ export class CreatureManager {
 
       instance.group.add(loaded.scene);
 
-      // Setup animations — map clip names from manifest
       instance.mixer = new THREE.AnimationMixer(loaded.scene);
-      const animDef = instance.def.anims;
+      const clipNames = loaded.clips.map((c) => c.name);
+      const animDef = instance.def.cotwAnim
+        ? { ...resolveCotwAnimations(clipNames), ...instance.def.anims }
+        : instance.def.anims;
 
       for (const clip of loaded.clips) {
-        // Check if this clip name matches any entry in the anim map
         for (const [stateKey, clipName] of Object.entries(animDef)) {
           if (clipName && clip.name === clipName) {
             const action = instance.mixer.clipAction(clip, loaded.scene);
             instance.actions.set(stateKey, action);
           }
+        }
+      }
+
+      if (instance.def.cotwAnim) {
+        for (const [stateKey, clipName] of Object.entries(animDef)) {
+          if (!clipName || instance.actions.has(stateKey)) continue;
+          const clip = loaded.clips.find((c) => c.name === clipName);
+          if (clip) instance.actions.set(stateKey, instance.mixer.clipAction(clip, loaded.scene));
         }
       }
 
@@ -337,21 +372,22 @@ export class CreatureManager {
   private updateIdle(c: CreatureInstance, dt: number, playerPos: THREE.Vector3): void {
     c.stateTimer -= dt;
 
-    // Check player proximity
     const dist = c.group.position.distanceTo(playerPos);
-    if (dist < c.def.alertRadius) {
-      if (c.def.ai === 'passive' || c.def.ai === 'fish') {
-        this.setState(c, 'flee', FLEE_DURATION);
-        return;
-      }
-      if (c.def.ai === 'aggressive') {
-        this.setState(c, 'chase');
-        return;
-      }
+    const aggro = c.brain.decideAggro(c.def, dist, c.provoked, this.brainCtx());
+    if (aggro === 'flee') {
+      this.beginFlee(c, playerPos);
+      return;
+    }
+    if (aggro === 'chase') {
+      this.setState(c, 'chase');
+      return;
+    }
+    if (aggro === 'alert' && !c.alerted) {
+      c.alerted = true;
+      this.onHuntAlert?.(c.id, c.def.name, c.def.huntValue ?? 0);
     }
 
     if (c.stateTimer <= 0) {
-      // Transition to wander
       this.pickWanderTarget(c);
       const wanderTime = WANDER_DURATION_MIN + this.rand() * (WANDER_DURATION_MAX - WANDER_DURATION_MIN);
       this.setState(c, 'wander', wanderTime);
@@ -363,26 +399,21 @@ export class CreatureManager {
   private updateWander(c: CreatureInstance, dt: number, playerPos: THREE.Vector3): void {
     c.stateTimer -= dt;
 
-    // Check player proximity
     const playerDist = c.group.position.distanceTo(playerPos);
-    if (playerDist < c.def.alertRadius) {
-      if (c.def.ai === 'passive' || c.def.ai === 'fish') {
-        this.setState(c, 'flee', FLEE_DURATION);
-        return;
-      }
-      if (c.def.ai === 'aggressive') {
-        this.setState(c, 'chase');
-        return;
-      }
+    const aggro = c.brain.decideAggro(c.def, playerDist, c.provoked, this.brainCtx());
+    if (aggro === 'flee') {
+      this.beginFlee(c, playerPos);
+      return;
+    }
+    if (aggro === 'chase') {
+      this.setState(c, 'chase');
+      return;
     }
 
-    // Move toward target
-    this.moveToward(c, c.targetPos, c.def.moveSpeed * 0.4, dt);
+    const arrived = this.moveAlongPath(c, c.def.moveSpeed * 0.4, dt);
     this.playAnim(c, c.def.category === 'fish' ? 'swim' : 'walk');
 
-    // Reached target or timer expired → idle
-    const dist = c.group.position.distanceTo(c.targetPos);
-    if (dist < 2 || c.stateTimer <= 0) {
+    if (arrived || c.stateTimer <= 0) {
       const idleTime = IDLE_DURATION_MIN + this.rand() * (IDLE_DURATION_MAX - IDLE_DURATION_MIN);
       this.setState(c, this.rand() < 0.3 ? 'eat' : 'idle', idleTime);
     }
@@ -390,10 +421,11 @@ export class CreatureManager {
 
   private updateFlee(c: CreatureInstance, dt: number): void {
     c.stateTimer -= dt;
-    this.moveToward(c, c.targetPos, c.def.moveSpeed, dt);
+    this.moveAlongPath(c, c.def.moveSpeed, dt);
     this.playAnim(c, c.def.category === 'fish' ? 'swimFast' : (c.def.anims.run ? 'run' : 'walk'));
 
     if (c.stateTimer <= 0) {
+      c.alerted = false;
       this.setState(c, 'idle', IDLE_DURATION_MIN);
     }
   }
@@ -413,8 +445,10 @@ export class CreatureManager {
       return;
     }
 
-    c.targetPos.copy(playerPos);
-    this.moveToward(c, playerPos, c.def.moveSpeed, dt);
+    if (c.brain.path.length === 0) {
+      c.brain.planPath(this.brainCtx(), c.group.position, playerPos);
+    }
+    this.moveAlongPath(c, c.def.moveSpeed, dt);
     this.playAnim(c, c.def.anims.run ? 'run' : 'walk');
   }
 
@@ -458,6 +492,8 @@ export class CreatureManager {
     if (c.respawnTimer <= 0) {
       // Respawn at original position
       c.hp = c.def.hp;
+      c.provoked = false;
+      c.alerted = false;
       c.group.position.copy(c.spawnPos);
       c.group.visible = true;
       c.group.rotation.y = this.rand() * Math.PI * 2;
@@ -481,8 +517,8 @@ export class CreatureManager {
         this.playAnim(c, 'hitReact', false);
         c.currentAnim = ''; // allow re-triggering
       }
-      // Neutral creatures become aggressive when attacked
-      if (c.def.ai === 'neutral') {
+      c.provoked = true;
+      if (c.def.ai === 'neutral' || c.def.ai === 'passive') {
         this.setState(c, 'chase');
       }
       return null;
@@ -503,16 +539,22 @@ export class CreatureManager {
   }
 
   /** Find nearest alive creature within range of a position */
-  findNearest(pos: THREE.Vector3, maxRange: number, category?: string): { id: string; dist: number; name: string } | null {
-    let nearest: { id: string; dist: number; name: string } | null = null;
+  findNearest(
+    pos: THREE.Vector3,
+    maxRange: number,
+    category?: string,
+    huntableOnly = true,
+  ): { id: string; dist: number; name: string; huntValue: number } | null {
+    let nearest: { id: string; dist: number; name: string; huntValue: number } | null = null;
 
     for (const [id, c] of this.creatures) {
       if (c.state === 'dead' || c.state === 'despawned') continue;
       if (category && c.def.category !== category) continue;
+      if (huntableOnly && !c.def.huntable) continue;
 
       const dist = c.group.position.distanceTo(pos);
       if (dist < maxRange && (!nearest || dist < nearest.dist)) {
-        nearest = { id, dist, name: c.def.name };
+        nearest = { id, dist, name: c.def.name, huntValue: c.def.huntValue ?? 0 };
       }
     }
 
@@ -524,48 +566,44 @@ export class CreatureManager {
   private setState(c: CreatureInstance, state: CreatureState, timer?: number): void {
     c.state = state;
     c.stateTimer = timer ?? 0;
+    if (state !== 'chase') c.brain.clearPath();
+  }
 
-    // When fleeing, set target away from current position
-    if (state === 'flee') {
-      const angle = this.rand() * Math.PI * 2;
-      const fleeDist = 30 + this.rand() * 20;
-      c.targetPos.set(
-        c.group.position.x + Math.cos(angle) * fleeDist,
-        c.swimY,
-        c.group.position.z + Math.sin(angle) * fleeDist,
-      );
-    }
+  private beginFlee(c: CreatureInstance, threatPos: THREE.Vector3): void {
+    const away = c.group.position.clone().sub(threatPos).normalize();
+    const fleeDist = 30 + this.rand() * 20;
+    c.targetPos.copy(c.group.position).addScaledVector(away, fleeDist);
+    c.brain.planPath(this.brainCtx(), c.group.position, c.targetPos);
+    this.setState(c, 'flee', FLEE_DURATION);
   }
 
   private pickWanderTarget(c: CreatureInstance): void {
-    const angle = this.rand() * Math.PI * 2;
-    const dist = 5 + this.rand() * WANDER_RADIUS;
-    c.targetPos.set(
-      c.spawnPos.x + Math.cos(angle) * dist,
-      c.swimY,
-      c.spawnPos.z + Math.sin(angle) * dist,
-    );
+    const roam = c.def.roamRadius ?? WANDER_RADIUS;
+    c.targetPos.copy(c.brain.pickRoamTarget(c.spawnPos, roam, this.brainCtx()));
+    c.brain.planPath(this.brainCtx(), c.group.position, c.targetPos);
   }
 
-  private moveToward(c: CreatureInstance, target: THREE.Vector3, speed: number, dt: number): void {
-    const dx = target.x - c.group.position.x;
-    const dz = target.z - c.group.position.z;
-    const dist = Math.sqrt(dx * dx + dz * dz);
-    if (dist < 0.5) return;
+  private moveAlongPath(c: CreatureInstance, speed: number, dt: number): boolean {
+    const swimY = (c.def.category === 'fish' || c.def.category === 'predator') ? c.swimY : undefined;
+    const arrived = c.brain.followPath(c.group.position, speed, dt, this.brainCtx(), swimY);
 
-    const step = Math.min(speed * dt, dist);
-    c.group.position.x += (dx / dist) * step;
-    c.group.position.z += (dz / dist) * step;
+    const next = c.brain.path[c.brain.pathIndex];
+    if (next) {
+      const dx = next.x - c.group.position.x;
+      const dz = next.z - c.group.position.z;
+      if (dx * dx + dz * dz > 0.01) c.group.rotation.y = Math.atan2(dx, dz);
+    }
 
-    // Face movement direction
-    c.group.rotation.y = Math.atan2(dx, dz);
-
-    // Fish/predator: maintain swim depth. Birds: maintain altitude
     if (c.def.category === 'fish' || c.def.category === 'predator') {
       c.group.position.y = c.swimY + Math.sin(performance.now() * 0.001 + c.swimY) * 0.3;
     } else if (c.def.category === 'bird') {
       c.group.position.y = BIRD_ALTITUDE + Math.sin(performance.now() * 0.0008) * 3;
+    } else if (this.sampleHeight) {
+      const y = this.sampleHeight(c.group.position.x, c.group.position.z);
+      if (y !== null) c.group.position.y = y;
     }
+
+    return arrived;
   }
 
   private createNameplate(name: string, hp: number): THREE.Sprite {

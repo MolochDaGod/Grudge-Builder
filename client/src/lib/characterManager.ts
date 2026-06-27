@@ -20,8 +20,11 @@ export interface SkillLoadout {
 }
 
 export interface WeaponSkillSelection {
-  hotkey2: string | null;
-  hotkey3: string | null;
+  hotkey1?: string | null; // basic / slot 1
+  hotkey2?: string | null;
+  hotkey3?: string | null;
+  hotkey4?: string | null;
+  hotkey5?: string | null;
 }
 
 export interface Character {
@@ -47,6 +50,7 @@ export interface Character {
   weaponSkillSelections?: Record<string, WeaponSkillSelection> | null;
   equippedWeaponId?: string | null;
   selectedSkills?: Record<number, string>; // Class skill tree selections by tier level
+  actionBar?: Record<number, string>; // Slots 1-5 assigned skill ids (uMMORPG style hotbar)
   model3d?: {
     baseModelId?: string;
     equippedMeshes?: Record<string, string>;

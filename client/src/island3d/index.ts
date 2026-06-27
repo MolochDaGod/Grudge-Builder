@@ -95,3 +95,11 @@ export type { ZoneTerrainResult } from './terrain/ZoneTerrainGenerator';
 // Zone scene builder (assembles full 3D sector)
 export { buildZoneScene } from './engine/ZoneSceneBuilder';
 export type { ZoneSceneResult } from './engine/ZoneSceneBuilder';
+
+// Attack telegraphs (warning GLB decals)
+export { AttackWarningSystem, pickWarningVariant, WARNING_MODEL_PATHS } from './combat/AttackWarningSystem';
+export type { WarningVariant, AttackTelegraphState } from './combat/AttackWarningSystem';
+
+// Orc boss
+export { OrcBossController } from './ai/OrcBossController';
+export { OrcBossAI } from './ai/OrcBossAI';

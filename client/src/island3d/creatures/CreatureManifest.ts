@@ -52,6 +52,8 @@ export interface CreatureDef {
   scale: number;
   /** Clip name → animation state mapping */
   anims: CreatureAnimMap;
+  /** Auto-resolve COTW clip names when explicit anims miss */
+  cotwAnim?: boolean;
   /** AI behavior type */
   ai: CreatureAI;
   /** Stats */
@@ -60,8 +62,16 @@ export interface CreatureDef {
   moveSpeed: number;
   /** How close a player can get before the creature reacts */
   alertRadius: number;
-  /** For aggressive: attack range */
+  /** For aggressive/neutral: attack range */
   attackRange: number;
+  /** 0-1 chance neutral wildlife attacks on sight (else alert/roam) */
+  aggroChance?: number;
+  /** Player can hunt / harvest this species */
+  huntable?: boolean;
+  /** Trophy value for hunt UI */
+  huntValue?: number;
+  /** Roam radius from spawn anchor (meters) */
+  roamRadius?: number;
   /** Respawn time in seconds after death */
   respawnTime: number;
   /** Loot dropped on death */
@@ -71,6 +81,8 @@ export interface CreatureDef {
   /** For fish: depth range [min, max] below water surface */
   swimDepth?: [number, number];
 }
+
+const COTW = `${CDN}/models/creatures/land/cotw`;
 
 // ── Land Animals ─────────────────────────────────────────────────────────────
 
@@ -137,28 +149,338 @@ export const CREATURE_MANIFEST: Record<string, CreatureDef> = {
 
   deer: {
     id: 'deer',
-    name: 'Forest Deer',
+    name: 'Whitetail Deer',
     category: 'land',
-    modelPath: `${CDN}/models/creatures/land/deer.glb`,
-    scale: 1.0,
+    modelPath: `${COTW}/deer.glb`,
+    scale: 0.9,
+    cotwAnim: true,
     anims: {
-      idle: 'Take 001',
-      walk: 'Take 001', // only has 1 anim — idle doubles as walk
-      death: 'Take 001', // will just collapse
+      idle: 'deer_idle_pose',
+      walk: 'deer_walk_fwd_01',
+      run: 'deer_run_fwd_01',
+      eat: 'deer_idle_eat_grazing_01',
+      death: 'deer_dead_trot_01',
+      hitReact: 'deer_hit_reaction_front_01',
     },
-    ai: 'passive', // flees from player
-    hp: 40,
+    ai: 'passive',
+    hp: 45,
     damage: 0,
-    moveSpeed: 22,
-    alertRadius: 25,
+    moveSpeed: 20,
+    alertRadius: 28,
     attackRange: 0,
+    aggroChance: 0,
+    huntable: true,
+    huntValue: 12,
+    roamRadius: 40,
     respawnTime: 90,
     loot: [
       { itemId: 'raw_meat', name: 'Venison', quantity: [2, 4], chance: 1.0 },
       { itemId: 'deer_hide', name: 'Deer Hide', quantity: [1, 1], chance: 0.9 },
       { itemId: 'antler', name: 'Antler', quantity: [0, 2], chance: 0.3 },
     ],
+    spawnWeight: 8,
+  },
+
+  cotw_lynx: {
+    id: 'cotw_lynx',
+    name: 'Lynx',
+    category: 'land',
+    modelPath: `${COTW}/lynx.glb`,
+    scale: 0.85,
+    cotwAnim: true,
+    anims: { idle: 'lynx male|lynx_idle_alerted_pose_01', death: 'lynx male|lynx_dead_trot_01' },
+    ai: 'neutral',
+    hp: 70,
+    damage: 14,
+    moveSpeed: 18,
+    alertRadius: 22,
+    attackRange: 2.5,
+    aggroChance: 0.55,
+    huntable: true,
+    huntValue: 35,
+    roamRadius: 35,
+    respawnTime: 150,
+    loot: [
+      { itemId: 'raw_meat', name: 'Lynx Meat', quantity: [1, 2], chance: 1.0 },
+      { itemId: 'lynx_pelt', name: 'Lynx Pelt', quantity: [1, 1], chance: 0.75 },
+    ],
+    spawnWeight: 4,
+  },
+
+  cotw_lioness: {
+    id: 'cotw_lioness',
+    name: 'Lioness',
+    category: 'land',
+    modelPath: `${COTW}/lioness.glb`,
+    scale: 1.0,
+    cotwAnim: true,
+    anims: {
+      idle: 'lioness|lion_idle_aggressive_static_pose_01',
+      attack: 'lioness|lion_attack_fwd_01',
+      death: 'lioness|lion_dead_trot_01',
+    },
+    ai: 'aggressive',
+    hp: 140,
+    damage: 28,
+    moveSpeed: 22,
+    alertRadius: 30,
+    attackRange: 3.5,
+    aggroChance: 0.95,
+    huntable: true,
+    huntValue: 80,
+    roamRadius: 50,
+    respawnTime: 300,
+    loot: [
+      { itemId: 'raw_meat', name: 'Big Cat Meat', quantity: [3, 5], chance: 1.0 },
+      { itemId: 'lion_pelt', name: 'Lion Pelt', quantity: [1, 1], chance: 0.7 },
+      { itemId: 'fang', name: 'Predator Fang', quantity: [1, 2], chance: 0.5 },
+    ],
+    spawnWeight: 2,
+  },
+
+  cotw_buffalo: {
+    id: 'cotw_buffalo',
+    name: 'Cape Buffalo',
+    category: 'land',
+    modelPath: `${COTW}/buffalo.glb`,
+    scale: 1.1,
+    cotwAnim: true,
+    anims: {
+      idle: 'cape_buffalo_idle_pose_01|cape_buffalo_idle_pose_01',
+      walk: 'cape_buffalo_idle_pose_01|cape_buffalo_walk_fwd_01',
+      run: 'cape_buffalo_idle_pose_01|cape_buffalo_run_fwd_01',
+      attack: 'cape_buffalo_idle_pose_01|cape_buffalo_attack_01',
+      eat: 'cape_buffalo_idle_pose_01|cape_buffalo_idle_eat_01',
+      death: 'cape_buffalo_idle_pose_01|cape_buffalo_hit_chest_lft_01',
+    },
+    ai: 'neutral',
+    hp: 180,
+    damage: 32,
+    moveSpeed: 14,
+    alertRadius: 16,
+    attackRange: 4,
+    aggroChance: 0.7,
+    huntable: true,
+    huntValue: 65,
+    roamRadius: 30,
+    respawnTime: 240,
+    loot: [
+      { itemId: 'raw_meat', name: 'Buffalo Meat', quantity: [4, 7], chance: 1.0 },
+      { itemId: 'thick_hide', name: 'Thick Hide', quantity: [1, 2], chance: 0.95 },
+      { itemId: 'horn', name: 'Buffalo Horn', quantity: [1, 2], chance: 0.6 },
+    ],
+    spawnWeight: 3,
+  },
+
+  cotw_boar: {
+    id: 'cotw_boar',
+    name: 'Wild Boar',
+    category: 'land',
+    modelPath: `${COTW}/boar.glb`,
+    scale: 0.95,
+    cotwAnim: true,
+    anims: { idle: 'wild_boar_walk_fwd_bank_rgt.001|wild_boar_idle_eat_pose_01 static', death: 'wild_boar_walk_fwd_bank_rgt.001|wild_boar_dead_reaction_lft_01' },
+    ai: 'neutral',
+    hp: 85,
+    damage: 16,
+    moveSpeed: 16,
+    alertRadius: 18,
+    attackRange: 2.5,
+    aggroChance: 0.6,
+    huntable: true,
+    huntValue: 28,
+    roamRadius: 32,
+    respawnTime: 120,
+    loot: [
+      { itemId: 'raw_meat', name: 'Boar Meat', quantity: [2, 4], chance: 1.0 },
+      { itemId: 'boar_tusk', name: 'Boar Tusk', quantity: [0, 2], chance: 0.55 },
+    ],
+    spawnWeight: 6,
+  },
+
+  cotw_bear: {
+    id: 'cotw_bear',
+    name: 'Black Bear',
+    category: 'land',
+    modelPath: `${COTW}/bear.glb`,
+    scale: 1.0,
+    cotwAnim: true,
+    anims: {
+      idle: 'bear_idle_static_pose_01',
+      walk: 'bear_idle_eat_pose_01_to_walk_fwd',
+      run: 'bear_canter_fwd_01',
+      attack: 'bear_attack_01',
+      eat: 'bear_idle_eat_01',
+      death: 'bear_dead_reaction_lft_01',
+      hitReact: 'bear_hit_chest_lft_01',
+    },
+    ai: 'aggressive',
+    hp: 160,
+    damage: 26,
+    moveSpeed: 17,
+    alertRadius: 24,
+    attackRange: 3,
+    aggroChance: 0.85,
+    huntable: true,
+    huntValue: 70,
+    roamRadius: 38,
+    respawnTime: 240,
+    loot: [
+      { itemId: 'raw_meat', name: 'Bear Meat', quantity: [3, 5], chance: 1.0 },
+      { itemId: 'bear_pelt', name: 'Bear Pelt', quantity: [1, 1], chance: 0.8 },
+      { itemId: 'claw', name: 'Bear Claw', quantity: [1, 3], chance: 0.45 },
+    ],
+    spawnWeight: 3,
+  },
+
+  cotw_beaver: {
+    id: 'cotw_beaver',
+    name: 'Beaver',
+    category: 'land',
+    modelPath: `${COTW}/beaver.glb`,
+    scale: 0.7,
+    cotwAnim: true,
+    anims: { idle: 'idle|idle', death: 'idle|dead sprint' },
+    ai: 'passive',
+    hp: 25,
+    damage: 0,
+    moveSpeed: 10,
+    alertRadius: 14,
+    attackRange: 0,
+    aggroChance: 0,
+    huntable: true,
+    huntValue: 8,
+    roamRadius: 20,
+    respawnTime: 75,
+    loot: [
+      { itemId: 'raw_meat', name: 'Beaver Meat', quantity: [1, 2], chance: 1.0 },
+      { itemId: 'beaver_pelt', name: 'Beaver Pelt', quantity: [1, 1], chance: 0.7 },
+    ],
+    spawnWeight: 4,
+  },
+
+  cotw_raccoon: {
+    id: 'cotw_raccoon',
+    name: 'Raccoon',
+    category: 'land',
+    modelPath: `${COTW}/raccoon.glb`,
+    scale: 0.65,
+    cotwAnim: true,
+    anims: { idle: 'racoon|idle pose', death: 'racoon|dead pose lft' },
+    ai: 'passive',
+    hp: 20,
+    damage: 0,
+    moveSpeed: 12,
+    alertRadius: 12,
+    attackRange: 0,
+    aggroChance: 0.1,
+    huntable: true,
+    huntValue: 6,
+    roamRadius: 18,
+    respawnTime: 60,
+    loot: [
+      { itemId: 'raw_meat', name: 'Raccoon Meat', quantity: [1, 1], chance: 0.8 },
+      { itemId: 'fur_patch', name: 'Fur Patch', quantity: [1, 1], chance: 0.6 },
+    ],
     spawnWeight: 5,
+  },
+
+  cotw_mink: {
+    id: 'cotw_mink',
+    name: 'American Mink',
+    category: 'land',
+    modelPath: `${COTW}/mink.glb`,
+    scale: 0.55,
+    cotwAnim: true,
+    anims: { idle: 'idle', death: 'dead' },
+    ai: 'passive',
+    hp: 15,
+    damage: 0,
+    moveSpeed: 14,
+    alertRadius: 10,
+    attackRange: 0,
+    huntable: true,
+    huntValue: 5,
+    roamRadius: 16,
+    respawnTime: 50,
+    loot: [{ itemId: 'fur_patch', name: 'Mink Fur', quantity: [1, 1], chance: 0.85 }],
+    spawnWeight: 3,
+  },
+
+  cotw_ibex: {
+    id: 'cotw_ibex',
+    name: 'Beceite Ibex',
+    category: 'land',
+    modelPath: `${COTW}/ibex.glb`,
+    scale: 0.9,
+    cotwAnim: true,
+    anims: { idle: 'idle', death: 'dead' },
+    ai: 'passive',
+    hp: 55,
+    damage: 0,
+    moveSpeed: 18,
+    alertRadius: 26,
+    attackRange: 0,
+    huntable: true,
+    huntValue: 22,
+    roamRadius: 45,
+    respawnTime: 120,
+    loot: [
+      { itemId: 'raw_meat', name: 'Ibex Meat', quantity: [2, 3], chance: 1.0 },
+      { itemId: 'ibex_horn', name: 'Ibex Horn', quantity: [0, 2], chance: 0.4 },
+    ],
+    spawnWeight: 4,
+  },
+
+  cotw_alligator: {
+    id: 'cotw_alligator',
+    name: 'American Alligator',
+    category: 'land',
+    modelPath: `${COTW}/alligator.glb`,
+    scale: 1.0,
+    cotwAnim: true,
+    anims: { idle: 'idle', attack: 'attack', death: 'dead' },
+    ai: 'aggressive',
+    hp: 120,
+    damage: 22,
+    moveSpeed: 12,
+    alertRadius: 18,
+    attackRange: 3,
+    aggroChance: 0.8,
+    huntable: true,
+    huntValue: 55,
+    roamRadius: 25,
+    respawnTime: 200,
+    loot: [
+      { itemId: 'raw_meat', name: 'Gator Meat', quantity: [2, 4], chance: 1.0 },
+      { itemId: 'gator_scale', name: 'Gator Scale', quantity: [1, 2], chance: 0.65 },
+    ],
+    spawnWeight: 2,
+  },
+
+  cotw_mallard: {
+    id: 'cotw_mallard',
+    name: 'Mallard Drake',
+    category: 'bird',
+    modelPath: `${COTW}/mallard.glb`,
+    scale: 0.6,
+    cotwAnim: true,
+    anims: { idle: 'idle', walk: 'walk', death: 'dead' },
+    ai: 'passive',
+    hp: 12,
+    damage: 0,
+    moveSpeed: 16,
+    alertRadius: 20,
+    attackRange: 0,
+    huntable: true,
+    huntValue: 4,
+    roamRadius: 30,
+    respawnTime: 45,
+    loot: [
+      { itemId: 'raw_meat', name: 'Duck Meat', quantity: [1, 1], chance: 1.0 },
+      { itemId: 'feather', name: 'Waterfowl Feather', quantity: [1, 3], chance: 0.9 },
+    ],
+    spawnWeight: 3,
   },
 
   crab: {
@@ -447,6 +769,15 @@ export const CREATURE_MANIFEST: Record<string, CreatureDef> = {
 
 export function getLandCreatures(): CreatureDef[] {
   return Object.values(CREATURE_MANIFEST).filter(c => c.category === 'land' || c.category === 'bird');
+}
+
+/** COTW-sourced wildlife — preferred for island/lobby spawns */
+export function getCotwCreatures(): CreatureDef[] {
+  return Object.values(CREATURE_MANIFEST).filter((c) => c.cotwAnim);
+}
+
+export function getHuntableCreatures(): CreatureDef[] {
+  return Object.values(CREATURE_MANIFEST).filter((c) => c.huntable);
 }
 
 export function getFishCreatures(): CreatureDef[] {

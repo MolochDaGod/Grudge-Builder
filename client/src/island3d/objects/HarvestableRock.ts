@@ -1,9 +1,8 @@
 /**
- * HarvestableRock — 3D rock node with chip-away harvesting.
- *
- * Scales down on each hit to simulate chipping. Procedural dodecahedron geometry.
+ * HarvestableRock — CDN rock pack with procedural fallback.
  */
 import * as THREE from 'three';
+import { cloneIslandResource, fitModelToHeight } from './IslandResourceLoader';
 
 export interface HarvestableRock {
   group: THREE.Group;
@@ -21,18 +20,12 @@ const ROCK_MATS = [
   new THREE.MeshLambertMaterial({ color: 0x606055 }),
 ];
 
-export function createHarvestableRock(
-  position: THREE.Vector3,
-  scale: number = 1,
-): HarvestableRock {
-  const group = new THREE.Group();
-
+function addProceduralRockMesh(group: THREE.Group): void {
   const mat = ROCK_MATS[Math.floor(Math.random() * ROCK_MATS.length)];
   const rock = new THREE.Mesh(ROCK_GEO, mat);
   rock.position.y = 1.2;
   rock.castShadow = true;
   rock.receiveShadow = true;
-  // Slightly randomize shape
   rock.scale.set(
     0.8 + Math.random() * 0.4,
     0.6 + Math.random() * 0.4,
@@ -44,20 +37,19 @@ export function createHarvestableRock(
     Math.random() * 0.3,
   );
   group.add(rock);
+}
 
-  // Optional: small accent rocks nearby
-  if (Math.random() > 0.5) {
-    const smallRock = new THREE.Mesh(ROCK_GEO, mat);
-    smallRock.position.set(2 + Math.random(), 0.5, 1 + Math.random());
-    smallRock.scale.setScalar(0.3 + Math.random() * 0.2);
-    smallRock.castShadow = true;
-    group.add(smallRock);
-  }
+export function createHarvestableRock(
+  position: THREE.Vector3,
+  scale: number = 1,
+): HarvestableRock {
+  const group = new THREE.Group();
+  addProceduralRockMesh(group);
 
   group.position.copy(position);
   group.scale.setScalar(scale);
 
-  return {
+  const rock: HarvestableRock = {
     group,
     health: 4,
     maxHealth: 4,
@@ -65,4 +57,22 @@ export function createHarvestableRock(
     chipping: false,
     chipTime: 0,
   };
+
+  void mountHarvestableRockModel(rock, scale);
+  return rock;
+}
+
+export async function mountHarvestableRockModel(
+  rock: HarvestableRock,
+  scale: number = 1,
+): Promise<void> {
+  try {
+    const model = await cloneIslandResource('rock');
+    rock.group.clear();
+    fitModelToHeight(model, 2.8 * scale);
+    model.rotation.y = Math.random() * Math.PI * 2;
+    rock.group.add(model);
+  } catch (err) {
+    console.warn('[HarvestableRock] GLB unavailable, keeping procedural mesh', err);
+  }
 }

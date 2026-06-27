@@ -6,20 +6,23 @@ import * as THREE from 'three';
 import type { FactionTown } from '@shared/definitions/factionTowns';
 import type { LobbyLoadResult } from './LobbyIslandLoader';
 import { TownNPCController } from '../ai/TownNPCController';
-import { createHarvestableTree, type HarvestableTree } from '../objects/HarvestableTree';
-import { createHarvestableRock, type HarvestableRock } from '../objects/HarvestableRock';
-import { createCrystalCluster, createHempPlant, type HarvestableCrystal, type HarvestableHemp } from '../objects/HomeIslandNodes';
+import type { HarvestableTree } from '../objects/HarvestableTree';
+import type { HarvestableRock } from '../objects/HarvestableRock';
+import type { HarvestableCrystal, HarvestableHemp } from '../objects/HomeIslandNodes';
 import type { CreatureManager } from '../creatures/CreatureManager';
+import { placeLobbyHarvestZones } from '../harvest/HarvestZonePlacer';
+import { buildHarvestZones, type HarvestZonesResult } from '../harvest/HarvestZoneBuilder';
 
 export interface LobbyPlayZoneResult {
   town: FactionTown;
   npcController: TownNPCController;
   hubMarker: THREE.Group;
+  harvestZones: HarvestZonesResult;
   trees: HarvestableTree[];
   rocks: HarvestableRock[];
   crystals: HarvestableCrystal[];
   hemps: HarvestableHemp[];
-  update: (dt: number) => void;
+  update: (dt: number, cameraPos?: THREE.Vector3) => void;
   dispose: () => void;
 }
 
@@ -151,6 +154,7 @@ export async function createLobbyPlayZone(
   lobby: LobbyLoadResult,
   sampleHeight: (x: number, z: number) => number | null,
   creatures: CreatureManager | null,
+  worldSeed: string = 'lobby',
 ): Promise<LobbyPlayZoneResult> {
   const town = buildLobbyOpenWorldTown(lobby, sampleHeight);
   const hubR = Math.min(lobby.size.x, lobby.size.z) * 0.14;
@@ -162,36 +166,12 @@ export async function createLobbyPlayZone(
   const npcController = new TownNPCController(scene, town);
   await npcController.init();
 
-  const trees: HarvestableTree[] = [];
-  const rocks: HarvestableRock[] = [];
-  const crystals: HarvestableCrystal[] = [];
-  const hemps: HarvestableHemp[] = [];
-
-  const harvestRing = hubR * 1.8;
-  const angles = [0, Math.PI * 0.35, Math.PI * 0.7, Math.PI, Math.PI * 1.35, Math.PI * 1.7];
-  for (const a of angles) {
-    const x = lobby.center.x + Math.cos(a) * harvestRing;
-    const z = lobby.center.z + Math.sin(a) * harvestRing;
-    const y = sampleY(sampleHeight, x, z);
-
-    if (a < Math.PI * 0.5) {
-      const tree = createHarvestableTree(new THREE.Vector3(x, y, z), 1.2 + Math.random() * 0.4);
-      scene.add(tree.group);
-      trees.push(tree);
-    } else if (a < Math.PI) {
-      const rock = createHarvestableRock(new THREE.Vector3(x, y, z), 1.5);
-      scene.add(rock.group);
-      rocks.push(rock);
-    } else if (a < Math.PI * 1.5) {
-      const crystal = createCrystalCluster(new THREE.Vector3(x, y, z));
-      scene.add(crystal.group);
-      crystals.push(crystal);
-    } else {
-      const hemp = createHempPlant(new THREE.Vector3(x, y, z));
-      scene.add(hemp.group);
-      hemps.push(hemp);
-    }
-  }
+  const zoneDefs = placeLobbyHarvestZones(worldSeed, lobby.center, sampleHeight, {
+    zoneCount: 7,
+    innerRadius: hubR * 1.8,
+    outerRadius: Math.min(lobby.size.x, lobby.size.z) * 0.38,
+  });
+  const harvestZones = await buildHarvestZones(scene, zoneDefs, sampleHeight);
 
   // PvE ring — aggressive land creatures outside the safe hub
   if (creatures) {
@@ -199,8 +179,8 @@ export async function createLobbyPlayZone(
       sampleHeight,
       lobby.center,
       hubR * 2.2,
-      hubR * 4.5,
-      10,
+      hubR * 5.5,
+      18,
     );
   }
 
@@ -208,20 +188,19 @@ export async function createLobbyPlayZone(
     town,
     npcController,
     hubMarker,
-    trees,
-    rocks,
-    crystals,
-    hemps,
-    update(dt) {
+    harvestZones,
+    trees: harvestZones.trees,
+    rocks: harvestZones.rocks,
+    crystals: harvestZones.crystals,
+    hemps: harvestZones.hemps,
+    update(dt, cameraPos) {
       npcController.update(dt);
+      if (cameraPos) harvestZones.update(dt, cameraPos);
     },
     dispose() {
       scene.remove(hubMarker);
       npcController.dispose();
-      for (const t of trees) scene.remove(t.group);
-      for (const r of rocks) scene.remove(r.group);
-      for (const c of crystals) scene.remove(c.group);
-      for (const h of hemps) scene.remove(h.group);
+      harvestZones.dispose();
     },
   };
 }

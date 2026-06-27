@@ -1,0 +1,209 @@
+/* Danger Room combat HUD — ported from grudgecontroller/artifacts/animator */
+
+.dr-hud-root {
+  --dr-accent: #6fe0ff;
+  --dr-panel: rgba(6, 14, 28, 0.82);
+  --dr-border: rgba(79, 195, 255, 0.35);
+  font-family: ui-monospace, 'Cascadia Code', Consolas, monospace;
+}
+
+canvas.dr-combat-cursor {
+  cursor: crosshair;
+}
+
+.dr-crosshair {
+  --ch-gap: 0px;
+  --ch-color: var(--dr-accent);
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 26px;
+  height: 26px;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  z-index: 35;
+}
+
+.dr-ch-dot {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: var(--ch-color);
+  transform: translate(-50%, -50%);
+  box-shadow: 0 0 6px var(--ch-color);
+}
+
+.dr-ch-line {
+  position: absolute;
+  background: var(--ch-color);
+  box-shadow: 0 0 4px var(--ch-color);
+  transition: transform 0.06s linear;
+}
+
+.dr-ch-top,
+.dr-ch-bottom {
+  width: 2px;
+  height: 7px;
+  left: 50%;
+}
+
+.dr-ch-left,
+.dr-ch-right {
+  height: 2px;
+  width: 7px;
+  top: 50%;
+}
+
+.dr-ch-top {
+  bottom: 50%;
+  transform: translateX(-50%) translateY(calc(-5px - var(--ch-gap)));
+}
+
+.dr-ch-bottom {
+  top: 50%;
+  transform: translateX(-50%) translateY(calc(5px + var(--ch-gap)));
+}
+
+.dr-ch-left {
+  right: 50%;
+  transform: translateY(-50%) translateX(calc(-5px - var(--ch-gap)));
+}
+
+.dr-ch-right {
+  left: 50%;
+  transform: translateY(-50%) translateX(calc(5px + var(--ch-gap)));
+}
+
+.dr-ch-range {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  border: 1.5px solid var(--ch-range-color, transparent);
+  box-shadow: 0 0 6px var(--ch-range-color, transparent), inset 0 0 4px var(--ch-range-color, transparent);
+  opacity: 0.85;
+}
+
+.dr-ch-range-optimal { --ch-range-color: #57e08a; }
+.dr-ch-range-far { --ch-range-color: #f0c64b; }
+.dr-ch-range-close { --ch-range-color: #ff5d5d; }
+
+.dr-ch-hit {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  animation: dr-ch-hit-pop 0.32s ease-out forwards;
+}
+
+.dr-ch-hit-line {
+  position: absolute;
+  width: 8px;
+  height: 2px;
+  background: #ffd34d;
+  box-shadow: 0 0 5px #ffae3b;
+  transform-origin: left center;
+}
+
+.dr-ch-hit-tl { transform: translate(-14px, -14px) rotate(45deg); }
+.dr-ch-hit-tr { transform: translate(14px, -14px) rotate(135deg); }
+.dr-ch-hit-bl { transform: translate(-14px, 14px) rotate(-45deg); }
+.dr-ch-hit-br { transform: translate(14px, 14px) rotate(-135deg); }
+
+@keyframes dr-ch-hit-pop {
+  0% { opacity: 0; transform: scale(0.6); }
+  30% { opacity: 1; transform: scale(1.1); }
+  100% { opacity: 0; transform: scale(1.25); }
+}
+
+.dr-mm-panel {
+  position: absolute;
+  bottom: 5.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 34;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0.75rem;
+  background: var(--dr-panel);
+  border: 1px solid var(--dr-border);
+  border-radius: 0.5rem;
+  backdrop-filter: blur(8px);
+  pointer-events: none;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #a8d8f0;
+}
+
+.dr-mm-panel .dr-mm-value {
+  color: var(--dr-accent);
+  font-weight: 700;
+  font-size: 11px;
+}
+
+.dr-mm-panel .dr-mm-dash {
+  color: #57e08a;
+  animation: dr-mm-pulse 0.4s ease-in-out infinite;
+}
+
+@keyframes dr-mm-pulse {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+
+.dr-action-bar {
+  position: absolute;
+  bottom: 1.25rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 34;
+  display: flex;
+  gap: 0.35rem;
+  pointer-events: none;
+}
+
+.dr-action-slot {
+  width: 2.5rem;
+  height: 2.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--dr-panel);
+  border: 1px solid var(--dr-border);
+  border-radius: 0.4rem;
+  color: #8ecae6;
+  font-size: 9px;
+  font-weight: 700;
+}
+
+.dr-action-slot.is-active {
+  border-color: var(--dr-accent);
+  box-shadow: 0 0 10px rgba(111, 224, 255, 0.35);
+  color: #fff;
+}
+
+.dr-focus-badge {
+  position: absolute;
+  top: 4.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 34;
+  padding: 0.2rem 0.6rem;
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #ffd27f;
+  background: rgba(40, 24, 8, 0.75);
+  border: 1px solid rgba(255, 210, 127, 0.4);
+  border-radius: 999px;
+  pointer-events: none;
+}

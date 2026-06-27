@@ -2,7 +2,7 @@
  * EvilMountainTriad — three Sketchfab evil peaks; dungeon mouth hides behind one (seed-picked).
  *
  * Model: Jungle Jim — "3 Evil Rock Mountains with Cave (Stylized)" (skfb.ly/pK9V9)
- * Scale: triad spans 10% of home island world size; cave mouth ≈ 3m tall.
+ * Scale: triad spans 10% of home island world size; cave mouth ≈ 4m tall.
  */
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
@@ -12,6 +12,7 @@ import { CavePortal3D, type PortalData } from './CavePortal3D';
 import { DUNGEON_DEFINITIONS, type DungeonDefinition } from '@shared/definitions/lore';
 import {
   MOUNTAIN_TRIAD_PEAK_MODEL_PATHS,
+  SKETCHFAB_EVIL_MOUNTAIN_TRIAD,
   HOME_ISLAND_WORLD_SIZE_M,
   anchorPercentToWorld,
   computeGlbTriadScale,
@@ -19,6 +20,15 @@ import {
   pickHomeIslandDungeonFromSeed,
   type MountainTriadSeed,
 } from '@shared/definitions/homeIslandSeed';
+
+/** RootNode child order in combined triad GLB: Mountain2, Mountain1, Mountain3+ladder */
+const TRIAD_COMBINED_PEAK_NAMES = [
+  'Cave Rock Mountain2',
+  'Cave Rock Mountain1',
+  'Cave Rock Mountain3',
+] as const;
+
+let combinedTriadTemplate: THREE.Group | null = null;
 
 const CAVE_DISCOVER_RADIUS = 32;
 const TRIAD_APPROACH_RADIUS = 120;
@@ -32,6 +42,8 @@ export interface EvilMountainTriadConfig {
   gridW: number;
   gridH: number;
   terrainSize?: number;
+  /** Optional world-space anchor override (lobby maps) */
+  anchorWorld?: { x: number; z: number };
   dungeon?: DungeonDefinition;
   onEnterDungeon?: (portalId: string, dungeonId: string) => void;
 }
@@ -122,6 +134,52 @@ function scalePeakModel(
   }
 }
 
+async function loadCombinedTriadTemplate(loader: GLTFLoader, modelPath: string): Promise<THREE.Group> {
+  if (combinedTriadTemplate) return combinedTriadTemplate;
+  const gltf = await loader.loadAsync(assetUrl(modelPath));
+  combinedTriadTemplate = gltf.scene as THREE.Group;
+  return combinedTriadTemplate;
+}
+
+function cloneCombinedPeak(template: THREE.Group, peakIndex: number): THREE.Object3D | null {
+  const root = template.getObjectByName('RootNode');
+  if (!root) return null;
+  const peakName = TRIAD_COMBINED_PEAK_NAMES[peakIndex];
+  const peak = root.getObjectByName(peakName);
+  if (peak) return peak.clone(true);
+  return root.children[peakIndex]?.clone(true) ?? null;
+}
+
+function placePeak(
+  peak: THREE.Object3D,
+  i: number,
+  triadSeed: MountainTriadSeed,
+  anchor: THREE.Vector3,
+  groundY: number,
+  facingYaw: number,
+  secretIndex: number,
+  group: THREE.Group,
+  terrainMesh: THREE.Mesh,
+): void {
+  const offset = triadSeed.peakOffsetsM[i] ?? { x: (i - 1) * 55, z: 0 };
+  const local = new THREE.Vector3(offset.x, 0, offset.z);
+  local.applyEuler(new THREE.Euler(0, facingYaw, 0));
+  local.add(anchor);
+  const peakY = getTerrainHeightAt(terrainMesh, local.x, local.z) ?? groundY;
+
+  scalePeakModel(peak, triadSeed.mountainScaleM, triadSeed.entranceHeightM, i === secretIndex);
+  peak.position.set(local.x, peakY, local.z);
+  peak.rotation.y = facingYaw + (i - 1) * 0.08;
+  peak.traverse((c) => {
+    if ((c as THREE.Mesh).isMesh) {
+      (c as THREE.Mesh).castShadow = true;
+      (c as THREE.Mesh).receiveShadow = true;
+    }
+  });
+  peak.userData = { peakIndex: i, isSecret: i === secretIndex };
+  group.add(peak);
+}
+
 async function loadPeakModels(
   loader: GLTFLoader,
   triadSeed: MountainTriadSeed,
@@ -136,35 +194,37 @@ async function loadPeakModels(
     ? triadSeed.peakModelPaths
     : [...MOUNTAIN_TRIAD_PEAK_MODEL_PATHS];
 
-  let loaded = 0;
+  const loadedIndices = new Set<number>();
   for (let i = 0; i < 3; i++) {
     const modelPath = peakPaths[i] ?? MOUNTAIN_TRIAD_PEAK_MODEL_PATHS[i];
-    const offset = triadSeed.peakOffsetsM[i] ?? { x: (i - 1) * 55, z: 0 };
-    const local = new THREE.Vector3(offset.x, 0, offset.z);
-    local.applyEuler(new THREE.Euler(0, facingYaw, 0));
-    local.add(anchor);
-    const peakY = getTerrainHeightAt(terrainMesh, local.x, local.z) ?? groundY;
-
     try {
       const gltf = await loader.loadAsync(assetUrl(modelPath));
       const peak = gltf.scene.clone(true);
-      scalePeakModel(peak, triadSeed.mountainScaleM, triadSeed.entranceHeightM, i === secretIndex);
-      peak.position.set(local.x, peakY, local.z);
-      peak.rotation.y = facingYaw + (i - 1) * 0.08;
-      peak.traverse((c) => {
-        if ((c as THREE.Mesh).isMesh) {
-          (c as THREE.Mesh).castShadow = true;
-          (c as THREE.Mesh).receiveShadow = true;
-        }
-      });
-      peak.userData = { peakIndex: i, isSecret: i === secretIndex };
-      group.add(peak);
-      loaded++;
+      placePeak(peak, i, triadSeed, anchor, groundY, facingYaw, secretIndex, group, terrainMesh);
+      loadedIndices.add(i);
     } catch {
       console.warn(`[EvilMountainTriad] Peak GLB missing: ${modelPath}`);
     }
   }
-  return loaded > 0;
+
+  const missing = [0, 1, 2].filter((i) => !loadedIndices.has(i));
+  if (missing.length > 0) {
+    try {
+      const combinedPath = triadSeed.modelPath || SKETCHFAB_EVIL_MOUNTAIN_TRIAD.modelPath;
+      const template = await loadCombinedTriadTemplate(loader, combinedPath);
+      for (const i of missing) {
+        const peak = cloneCombinedPeak(template, i);
+        if (!peak) continue;
+        placePeak(peak, i, triadSeed, anchor, groundY, facingYaw, secretIndex, group, terrainMesh);
+        loadedIndices.add(i);
+        console.log(`[EvilMountainTriad] Peak #${i + 1} from combined triad GLB`);
+      }
+    } catch (err) {
+      console.warn('[EvilMountainTriad] Combined triad fallback failed', err);
+    }
+  }
+
+  return loadedIndices.size > 0;
 }
 
 /**
@@ -178,12 +238,14 @@ export async function createEvilMountainTriad(
   const triadSeed = resolveTriadSeed(config, terrainSize);
   const rng = makePrng(`${config.seed}_evil_triad`);
 
-  const anchor2d = config.mountainTriad
-    ? anchorPercentToWorld(triadSeed.anchorPercent, terrainSize)
-    : (() => {
-        const a = findMountainAnchor(config.biomeMap, config.gridW, config.gridH, terrainSize, rng);
-        return { x: a.x, z: a.z };
-      })();
+  const anchor2d = config.anchorWorld
+    ? config.anchorWorld
+    : config.mountainTriad
+      ? anchorPercentToWorld(triadSeed.anchorPercent, terrainSize)
+      : (() => {
+          const a = findMountainAnchor(config.biomeMap, config.gridW, config.gridH, terrainSize, rng);
+          return { x: a.x, z: a.z };
+        })();
 
   const groundY = getTerrainHeightAt(config.terrainMesh, anchor2d.x, anchor2d.z);
   if (groundY === null || groundY < -1) return null;
@@ -200,7 +262,7 @@ export async function createEvilMountainTriad(
 
   const facingYaw = Math.atan2(-anchor.x, -anchor.z);
   const loader = new GLTFLoader();
-  const peaksLoaded = await loadPeakModels(
+  await loadPeakModels(
     loader,
     triadSeed,
     anchor,
@@ -211,9 +273,10 @@ export async function createEvilMountainTriad(
     config.terrainMesh,
   );
 
-  if (!peaksLoaded) {
-    console.warn('[EvilMountainTriad] Per-peak GLBs unavailable — procedural fallback');
+  if (group.children.filter((c) => c.userData?.peakIndex !== undefined).length < 3) {
+    console.warn('[EvilMountainTriad] Incomplete peak set — procedural fallback for missing peaks');
     for (let i = 0; i < 3; i++) {
+      if (group.children.some((c) => c.userData?.peakIndex === i)) continue;
       const offset = triadSeed.peakOffsetsM[i] ?? { x: (i - 1) * 55, z: 0 };
       const local = new THREE.Vector3(offset.x, 0, offset.z);
       local.applyEuler(new THREE.Euler(0, facingYaw, 0));

@@ -19,6 +19,12 @@ import { RACE_GRUDGE6, weaponTypeFromModel3d } from '@shared/fleet';
 import { setupGrudge6Equipment } from '@/lib/grudge6Equipment';
 import { buildAnimLoadMap } from '@/lib/animation/animationCatalog';
 import { CharacterAnimOrchestrator } from '@/lib/animation/characterAnimOrchestrator';
+import { ExplorerAnimDriver } from '@/lib/animation/explorer/ExplorerAnimDriver';
+import { MotionDash } from '@/lib/animation/explorer/MotionDash';
+import type { MotionProfile } from '@/lib/animation/explorer/motionMath';
+import { formatMotionLabel } from './combatHudState';
+import type { CombatHudSnapshot } from './combatHudState';
+import type { PlaybackSlot } from '@/lib/animation/animationCatalog';
 import {
   CharacterStateMachine,
   globalStateManager,
@@ -108,9 +114,38 @@ export class CharacterController3D {
   public animations: AnimationManager | null = null;
   public stateMachine: CharacterStateMachine | null = null;
   public orchestrator: CharacterAnimOrchestrator | null = null;
+  /** Dangerroom explorer LocomotionBlend driver. */
+  public explorerAnim: ExplorerAnimDriver | null = null;
+  /** MM body lunge paired with attack clips. */
+  private readonly motionDash = new MotionDash();
   public weaponType: WeaponType = 'sword';
   public mode: ControlMode = 'harvest';
   public movementState: MovementState = 'falling';
+
+  /** Current form index for special weapons (grimoire 3 forms, wand, nimble, dual wield etc.)
+   *  Switched with Shift + F1 / F2 / F3 as per game design.
+   */
+  public currentForm: number = 0; // 0 = form1, 1 = form2, 2 = form3
+
+  /** Assigned action bar slots 1-5 from spellbook (uMMORPG Grudge Warlords style) */
+  public actionBar: Record<number, string> = {1: null, 2: null, 3: null, 4: null, 5: null};
+
+  public loadActionBar(bar: Record<number, string>) {
+    this.actionBar = { ...bar };
+  }
+
+  /** For testing game flow - default grimoire form skills when no loadout */
+  private initDemoActionBarForForm() {
+    if (!this.actionBar[1]) {
+      this.actionBar = {
+        1: 'grimoire_basic',
+        2: this.currentForm === 0 ? 'grimoire_dest_blast' : this.currentForm === 1 ? 'grimoire_prot_ward' : 'grimoire_conj_minion',
+        3: 'grimoire_ritual',
+        4: 'grimoire_banish',
+        5: 'grimoire_lord'
+      };
+    }
+  }
   /** Track whether we were moving last frame (for run→stop transition) */
   private wasMoving = false;
   /** Timer for one-shot anims (hard landing, climb-to-top) */
@@ -144,9 +179,16 @@ export class CharacterController3D {
   // Input state
   private keys: Set<string> = new Set();
   private mouseDown = false;
+  private rmbHeld = false;
+  /** RMB toggle — dangerroom hard focus / strafe lock. */
+  public focusEnabled = false;
   private mouseDelta = { x: 0, y: 0 };
   private cameraYaw = 0;
   private cameraPitch = 0.3;
+  private comboStage = 0;
+  private lastMotionProfile: MotionProfile | null = null;
+  private hitMarker = 0;
+  private rmbDownAt = 0;
 
   // Speed multipliers per state
   private static readonly SPEED_MULT: Record<MovementState, number> = {
@@ -244,11 +286,53 @@ export class CharacterController3D {
     }
     if (this.orchestrator) {
       this.orchestrator.dispose();
-      this.orchestrator = new CharacterAnimOrchestrator(
-        this.animations,
-        this.stateMachine!,
-        weaponType,
-      );
+      this.orchestrator = this.createOrchestrator(weaponType);
+    }
+  }
+
+  private createOrchestrator(weaponType: WeaponType): CharacterAnimOrchestrator {
+    return new CharacterAnimOrchestrator(
+      this.animations!,
+      this.stateMachine!,
+      weaponType,
+      {
+        onMotionAttack: (profile, slot, clipDur, stage) => {
+          this.applyMotionAttack(profile, slot, clipDur, stage);
+        },
+      },
+    );
+  }
+
+  getCombatHudSnapshot(): CombatHudSnapshot {
+    return {
+      combatMode: this.mode === 'combat',
+      focusEnabled: this.focusEnabled,
+      crosshairVisible: this.mode === 'combat',
+      comboStage: this.comboStage,
+      motionProfile: this.lastMotionProfile,
+      motionLabel: formatMotionLabel(this.lastMotionProfile),
+      isDashing: this.motionDash.isActive,
+      hitMarker: this.hitMarker,
+      spread: this.motionDash.isActive ? 4 : this.focusEnabled ? 2 : 0,
+      rangeState: this.focusEnabled ? 'optimal' : 'none',
+      currentForm: this.currentForm,
+      actionBar: this.actionBar,
+    };
+  }
+
+  /** Camera-forward attack lunge using dangerroom +/- MM profiles. */
+  private applyMotionAttack(profile: MotionProfile, slot: PlaybackSlot, clipDur: number, stage: number): void {
+    this.comboStage = stage;
+    this.lastMotionProfile = profile;
+    const dir = new THREE.Vector3(0, 0, -1).applyAxisAngle(new THREE.Vector3(0, 1, 0), this.cameraYaw);
+    this.motionDash.startFromProfile(this.model.position, dir, profile, clipDur);
+    const dur = clipDur || 0.5;
+    if (this.explorerAnim) {
+      this.explorerAnim.playOneShot(slot as AnimState, dur);
+    } else if (this.animations?.hasClip(slot as AnimState)) {
+      this.animations.play(slot as AnimState, { loop: false });
+    } else if (this.animations?.hasClip('attack')) {
+      this.animations.play('attack', { loop: false });
     }
   }
 
@@ -293,11 +377,9 @@ export class CharacterController3D {
 
     if (this.animations) {
       this.orchestrator?.dispose();
-      this.orchestrator = new CharacterAnimOrchestrator(
-        this.animations,
-        this.stateMachine,
-        weaponType,
-      );
+      this.orchestrator = this.createOrchestrator(weaponType);
+      this.explorerAnim?.dispose();
+      this.explorerAnim = new ExplorerAnimDriver(this.animations);
     }
   }
 
@@ -337,6 +419,8 @@ export class CharacterController3D {
         this.animations!.addClipFromGLTF(state, clip);
       });
       this.animations.play('idle');
+      this.explorerAnim?.dispose();
+      this.explorerAnim = new ExplorerAnimDriver(this.animations);
     }
   }
 
@@ -367,12 +451,47 @@ export class CharacterController3D {
         if (e.key === 'r' || e.key === 'R') {
           this.orchestrator.playBlock();
         }
+        if (e.key === 'z' || e.key === 'Z') {
+          this.orchestrator.playMotionAttack('attack2');
+        }
+        if (e.key === 'x' || e.key === 'X') {
+          this.orchestrator.playMotionAttack('attack3');
+        }
+
+        // Slots 1-5 for weapon/special skills like uMMORPG - production game flow
+        const slotKey = parseInt(e.key);
+        if (slotKey >= 1 && slotKey <= 5) {
+          this.useSkillSlot(slotKey);
+          e.preventDefault();
+        }
+      }
+
+      // Form switching for special item weapons (grimoire 3 forms, mage wand, ranger nimble, warrior dual wielder)
+      // Forms activated on Shift + F1 / F2 / F3
+      if (e.shiftKey) {
+        const k = e.key;
+        if (k === 'F1' || k === 'f1' || k === 'F1') {
+          this.setForm(0);
+          e.preventDefault();
+        } else if (k === 'F2' || k === 'f2') {
+          this.setForm(1);
+          e.preventDefault();
+        } else if (k === 'F3' || k === 'f3') {
+          this.setForm(2);
+          e.preventDefault();
+        }
       }
     });
     window.addEventListener('keyup', (e) => {
       this.keys.delete(e.key.toLowerCase());
     });
     window.addEventListener('mousedown', (e) => {
+      if (e.button === 2) {
+        this.rmbHeld = true;
+        this.rmbDownAt = performance.now();
+        e.preventDefault();
+        return;
+      }
       if (e.button === 0) {
         this.mouseDown = true;
         if (this.mode === 'combat' && this.orchestrator) {
@@ -384,11 +503,21 @@ export class CharacterController3D {
         }
       }
     });
-    window.addEventListener('mouseup', () => {
-      this.mouseDown = false;
+    window.addEventListener('mouseup', (e) => {
+      if (e.button === 0) this.mouseDown = false;
+      if (e.button === 2) {
+        if (performance.now() - this.rmbDownAt < 220) {
+          this.focusEnabled = !this.focusEnabled;
+        }
+        this.rmbHeld = false;
+      }
+    });
+    window.addEventListener('contextmenu', (e) => e.preventDefault());
+    window.addEventListener('blur', () => {
+      this.rmbHeld = false;
     });
     window.addEventListener('mousemove', (e) => {
-      if (this.mouseDown) {
+      if (this.mouseDown || this.rmbHeld) {
         this.mouseDelta.x += e.movementX;
         this.mouseDelta.y += e.movementY;
       }
@@ -404,11 +533,45 @@ export class CharacterController3D {
     this.callbacks.onMovementStateChange?.(prev, next);
   }
 
+  /** Switch to a form (0,1,2) for special weapons. Updates state and can notify HUD/orchestrator. */
+  private setForm(formIndex: number): void {
+    if (formIndex < 0 || formIndex > 2) return;
+    const prev = this.currentForm;
+    this.currentForm = formIndex;
+    this.initDemoActionBarForForm();
+    console.log(`[CharacterController3D] Switched to form ${formIndex} (Shift+F${formIndex + 1}) for special weapon (grimoire/wand/nimble/dual etc.)`);
+    // TODO: if equipped weapon supports forms (from weaponSkill data), override hotbar slots 1-5 with formSkills[formIndex]
+    // e.g. notify orchestrator or update combatHudSnapshot with currentForm
+    // For now, state is exposed via getCombatHudSnapshot if extended.
+  }
+
+  /** Use skill from slot 1-5 (production uMMORPG style flow) */
+  private useSkillSlot(slot: number): void {
+    this.initDemoActionBarForForm();
+    const skillId = this.actionBar[slot] || `slot${slot}_form${this.currentForm}`;
+    console.log(`[Game Flow] Using slot ${slot} (skill: ${skillId}) in form ${this.currentForm} (like Grudge Warlords hotbar)`);
+    // Map to real skill based on current class special + form
+    // For demo, use form specific anim from grudge6 packs (part3/5/7 etc)
+    const formSkillAnims: Record<number, string> = {
+      0: 'grimoire_destruction_attack',
+      1: 'grimoire_protection_ward',
+      2: 'grimoire_conjuration_summon'
+    };
+    const anim = formSkillAnims[this.currentForm] || `skill_slot${slot}`;
+    if (this.orchestrator) {
+      // Play skill anim (use grudge6 loaded anims from extracted)
+      this.orchestrator.playMotionAttack(anim as any);
+    }
+    // TODO: full: lookup from loaded character actionBar + special loadout
+    // Apply effect: damage, buff etc. For testing, at least anim plays + log.
+    // In real, integrate with abilitySystem.activate or custom skill exec.
+  }
+
   // ─── Main update ───────────────────────────────────────────────────────────
 
   update(dt: number): void {
-    // Camera rotation from mouse drag
-    if (this.mouseDown) {
+    // Camera rotation from LMB or RMB drag (dangerroom: RMB orbit)
+    if (this.mouseDown || this.rmbHeld) {
       this.cameraYaw -= this.mouseDelta.x * 0.003;
       this.cameraPitch = Math.max(0.1, Math.min(0.8, this.cameraPitch + this.mouseDelta.y * 0.003));
       this.mouseDelta.x = 0;
@@ -434,9 +597,18 @@ export class CharacterController3D {
     const speedMult = CharacterController3D.SPEED_MULT[this.movementState];
     const effectiveSpeed = this.baseMoveSpeed * speedMult;
 
-    this.velocity.lerp(moveDir.multiplyScalar(effectiveSpeed), dt * 5);
-    this.model.position.x += this.velocity.x * dt;
-    this.model.position.z += this.velocity.z * dt;
+    const dashing = this.motionDash.apply(this.model.position, dt);
+    if (this.motionDash.consumeImpact()) {
+      this.hitMarker += 1;
+    }
+    if (!dashing) {
+      this.velocity.lerp(moveDir.multiplyScalar(effectiveSpeed), dt * 5);
+      this.model.position.x += this.velocity.x * dt;
+      this.model.position.z += this.velocity.z * dt;
+    } else {
+      this.velocity.set(0, 0, 0);
+      moving = false;
+    }
 
     // ── Vertical physics ─────────────────────────────────────────────────────
     const groundHeight = this.sampleGroundHeight(this.model.position.x, this.model.position.z);
@@ -553,7 +725,13 @@ export class CharacterController3D {
       const targetAngle = Math.atan2(this.velocity.x, this.velocity.z);
       this.model.rotation.y = THREE.MathUtils.lerp(this.model.rotation.y, targetAngle, dt * 8);
     } else if (this.mode === 'combat') {
-      this.model.rotation.y = this.cameraYaw + Math.PI;
+      const strafeLock = this.focusEnabled || this.rmbHeld;
+      if (strafeLock || !moving) {
+        this.model.rotation.y = this.cameraYaw + Math.PI;
+      } else {
+        const targetAngle = Math.atan2(this.velocity.x, this.velocity.z);
+        this.model.rotation.y = THREE.MathUtils.lerp(this.model.rotation.y, targetAngle, dt * 8);
+      }
     }
 
     // ── Camera follow ────────────────────────────────────────────────────────
@@ -588,16 +766,19 @@ export class CharacterController3D {
       this.orchestrator?.update(dt);
     }
 
-    // ── Animations ───────────────────────────────────────────────────────────
+    // ── Animations (dangerroom explorer LocomotionBlend + MM one-shots) ─────
     if (this.animations) {
-      // Activity/combat override from orchestrator
-      if (this.orchestrator?.hasActivityOverride()) {
+      const explorerBusy =
+        this.explorerAnim?.isOneShotActive() ||
+        this.orchestrator?.hasActivityOverride() ||
+        this.motionDash.isActive;
+
+      if (explorerBusy) {
         this.animations.update(dt);
         this.wasMoving = moving;
         return;
       }
 
-      // One-shot timer (hard landing, climb-to-top) — don't interrupt until done
       if (this.oneShotTimer > 0) {
         this.oneShotTimer -= dt;
         this.animations.update(dt);
@@ -605,13 +786,11 @@ export class CharacterController3D {
         return;
       }
 
-      // Run → stop deceleration transition
       if (this.wasMoving && !moving && this.movementState === 'ground') {
         this.animations.play('run_stop', { loop: false });
-        this.oneShotTimer = 0.4; // brief stop anim
+        this.oneShotTimer = 0.4;
       }
 
-      // State-driven animation selection
       switch (this.movementState) {
         case 'climbing':
           this.animations.play('climb_top');
@@ -635,11 +814,15 @@ export class CharacterController3D {
 
         case 'ground':
         default:
-          if (moving) {
+          if (this.explorerAnim && this.movementState === 'ground') {
+            this.explorerAnim.updateLocomotion({
+              moving,
+              sprinting: this.keys.has('shift'),
+              dt,
+            });
+          } else if (moving) {
             this.animations.play(this.keys.has('shift') ? 'run' : 'walk');
-            this.idleVariantTimer = 0;
           } else {
-            // Alternate idle variants for ambient life
             this.idleVariantTimer += dt;
             if (this.idleVariantTimer > 8 + Math.random() * 4) {
               this.idleVariantTimer = 0;

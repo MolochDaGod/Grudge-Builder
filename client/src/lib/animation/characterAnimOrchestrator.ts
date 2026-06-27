@@ -13,6 +13,12 @@ import {
   type PlaybackSlot,
 } from "@/lib/animation/animationCatalog";
 import {
+  ATTACK2_MOTION,
+  ATTACK3_MOTION,
+  comboMotionProfile,
+  type MotionProfile,
+} from "@/lib/animation/explorer/motionMath";
+import {
   isActivityState,
   resolveStateAnim,
   type CharacterState,
@@ -26,6 +32,8 @@ import {
 export interface OrchestratorCallbacks {
   onMoveBeat?: (emit: string, primary?: boolean) => void;
   onStateAnimChange?: (state: CharacterState, slot: PlaybackSlot) => void;
+  /** Dangerroom MM body lunge paired with the attack clip. */
+  onMotionAttack?: (profile: MotionProfile, slot: PlaybackSlot, clipDur: number, stage: number) => void;
 }
 
 export class CharacterAnimOrchestrator {
@@ -75,13 +83,34 @@ export class CharacterAnimOrchestrator {
     return true;
   }
 
-  /** Combat combo step — cycles attack2/attack3/slash clips */
+  /** Combat combo step — cycles attack2/attack3/slash clips with +/- MM motion */
   playComboHit(): PlaybackSlot {
-    const slot = this.comboChain[this.comboIndex % this.comboChain.length];
+    const stage = this.comboIndex % this.comboChain.length;
+    const slot = this.comboChain[stage];
     this.comboIndex++;
     this.activityOverride = true;
     this.activityTimer = 0.6;
-    this.playSlot(slot, false);
+    const profile = comboMotionProfile(stage);
+    if (this.callbacks.onMotionAttack) {
+      this.callbacks.onMotionAttack(profile, slot, 0.35, stage);
+    } else {
+      this.playSlot(slot, false);
+    }
+    return slot;
+  }
+
+  /** Explicit motion-math attack (Z = +100/-50 lunge, X = -50 retreat poke). */
+  playMotionAttack(kind: 'attack2' | 'attack3'): PlaybackSlot {
+    const profile = kind === 'attack2' ? ATTACK2_MOTION : ATTACK3_MOTION;
+    const slot: PlaybackSlot = kind === 'attack2' ? 'attack2' : 'attack3';
+    const stage = kind === 'attack2' ? 1 : 2;
+    this.activityOverride = true;
+    this.activityTimer = 0.55;
+    if (this.callbacks.onMotionAttack) {
+      this.callbacks.onMotionAttack(profile, slot, 0.35, stage);
+    } else {
+      this.playSlot(slot, false, 'attack');
+    }
     return slot;
   }
 

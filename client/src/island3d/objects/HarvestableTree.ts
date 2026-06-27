@@ -1,11 +1,8 @@
 /**
- * HarvestableTree — procedural 3D tree with harvest interactions.
- *
- * Creates a trunk (cylinder) + canopy (icosahedron/cone) tree.
- * Shakes when hit, falls when health depletes.
- * Will be replaced with GLTF models when available.
+ * HarvestableTree — GLB village tree with procedural fallback.
  */
 import * as THREE from 'three';
+import { cloneIslandResource, fitModelToHeight } from './IslandResourceLoader';
 
 export interface HarvestableTree {
   group: THREE.Group;
@@ -25,20 +22,13 @@ const CANOPY_MATS = [
   new THREE.MeshLambertMaterial({ color: 0x3a8c3a }),
 ];
 
-export function createHarvestableTree(
-  position: THREE.Vector3,
-  scale: number = 1,
-): HarvestableTree {
-  const group = new THREE.Group();
-
-  // Trunk
+function addProceduralTreeMesh(group: THREE.Group): void {
   const trunk = new THREE.Mesh(TRUNK_GEO, TRUNK_MAT);
   trunk.position.y = 3;
   trunk.castShadow = true;
   trunk.receiveShadow = true;
   group.add(trunk);
 
-  // Canopy — slightly randomized shape
   const canopyMat = CANOPY_MATS[Math.floor(Math.random() * CANOPY_MATS.length)];
   const canopy = new THREE.Mesh(CANOPY_GEO, canopyMat);
   canopy.position.y = 7.5;
@@ -46,14 +36,20 @@ export function createHarvestableTree(
   canopy.castShadow = true;
   canopy.receiveShadow = true;
   group.add(canopy);
+}
+
+export function createHarvestableTree(
+  position: THREE.Vector3,
+  scale: number = 1,
+): HarvestableTree {
+  const group = new THREE.Group();
+  addProceduralTreeMesh(group);
 
   group.position.copy(position);
   group.scale.setScalar(scale);
-
-  // Random Y rotation for variety
   group.rotation.y = Math.random() * Math.PI * 2;
 
-  return {
+  const tree: HarvestableTree = {
     group,
     health: 5,
     maxHealth: 5,
@@ -61,4 +57,22 @@ export function createHarvestableTree(
     shakeTime: 0,
     fallen: false,
   };
+
+  void mountHarvestableTreeModel(tree, scale);
+  return tree;
+}
+
+/** Replace procedural placeholder with CDN tree GLB when available. */
+export async function mountHarvestableTreeModel(
+  tree: HarvestableTree,
+  scale: number = 1,
+): Promise<void> {
+  try {
+    const model = await cloneIslandResource('tree');
+    tree.group.clear();
+    fitModelToHeight(model, 7 * scale);
+    tree.group.add(model);
+  } catch (err) {
+    console.warn('[HarvestableTree] GLB unavailable, keeping procedural mesh', err);
+  }
 }
