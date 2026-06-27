@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { ChevronLeft, RotateCcw, Swords } from 'lucide-react';
 import Layout from '@/components/Layout';
-import { CLASS_SKILL_TREES, WEAPON_SKILL_TREES, Skill, SkillTier, CLASS_TO_ID } from '@/lib/skillTreeData';
+import { CLASS_SKILL_TREES, WEAPON_SKILL_TREES, SPECIAL_ITEM_SKILL_TREES, Skill, SkillTier, CLASS_TO_ID } from '@/lib/skillTreeData';
 import { CharacterManager, Character } from '@/lib/characterManager';
 import { WeaponSelectionPanel } from '@/components/WeaponSelectionPanel';
 import { WEAPON_TYPES } from '@shared/definitions/weaponDatabase';
@@ -37,8 +37,25 @@ const WEAPON_ICONS: Record<string, string> = {
   axe: '🪓',
   hammer: '🔨',
   lance: '🔱',
-  mace: '⚫'
+  mace: '⚫',
+  // 6 special skill sheet types
+  tome: '📖',
+  shield: '🛡️',
+  wand: '🪄',
+  grimoire: '📜',
+  nimble_fingers: '🖐️',
+  dual_wield: '⚔️'
 };
+
+// The 6 special weapon/skill sheet types for spellbook selection
+const SPELLBOOK_WEAPON_TYPES = [
+  { id: 'tome', name: 'Tomes', icon: '📖', desc: 'Arcane knowledge & spell storage' },
+  { id: 'shield', name: 'Shields', icon: '🛡️', desc: 'Defense, blocks & counters' },
+  { id: 'wand', name: 'Wands', icon: '🪄', desc: 'Quick elemental casting' },
+  { id: 'grimoire', name: 'Grimoires', icon: '📜', desc: 'Forbidden rituals & summons' },
+  { id: 'nimble_fingers', name: 'Nimble Fingers', icon: '🖐️', desc: 'Rogue tricks & evasion' },
+  { id: 'dual_wield', name: 'Dual Wield', icon: '⚔️', desc: 'Two-weapon flurry mastery' },
+];
 
 export default function SkillTreePage() {
   const authReady = useAuthGuard();
@@ -58,6 +75,10 @@ export default function SkillTreePage() {
   const [selectedWeaponTier, setSelectedWeaponTier] = useState<number>(1);
   const [weaponSkillLevel, setWeaponSkillLevel] = useState<number>(1);
   const [skillSelections, setSkillSelections] = useState<Record<string, WeaponSkillSelection>>({});
+  // Special item skill tree (tomes/shields/wands etc for the class)
+  const [showSpecialItem, setShowSpecialItem] = useState(false);
+  const [specialItemKey, setSpecialItemKey] = useState<string | null>(null);
+  const [selectedSpecialForm, setSelectedSpecialForm] = useState<string | null>(null);
 
   useEffect(() => {
     const loadCharacter = async () => {
@@ -119,6 +140,8 @@ export default function SkillTreePage() {
 
   const unlockedSkills = mode === 'class' ? classSkills : weaponSkills;
   const setUnlockedSkills = mode === 'class' ? setClassSkills : setWeaponSkills;
+
+  // When showing special item, we can still use classSkills for point tracking (ids are unique)
   
   const classPointsSpent = Object.values(classSkills).reduce((a, b) => a + b, 0);
   const weaponPointsSpent = Object.values(weaponSkills).reduce((a, b) => a + b, 0);
@@ -129,9 +152,24 @@ export default function SkillTreePage() {
   
   const skillPoints = remainingPoints;
 
-  const currentTree = mode === 'class' 
-    ? CLASS_SKILL_TREES[activeClass] 
+  let currentTree = mode === 'class' 
+    ? (showSpecialItem && specialItemKey && SPECIAL_ITEM_SKILL_TREES[activeClass] && SPECIAL_ITEM_SKILL_TREES[activeClass][specialItemKey] 
+        ? SPECIAL_ITEM_SKILL_TREES[activeClass][specialItemKey] 
+        : CLASS_SKILL_TREES[activeClass]) 
     : WEAPON_SKILL_TREES[activeWeapon];
+
+  // Support grimoire three forms (and other subtrees) - switch to selected form subtree
+  if (showSpecialItem && specialItemKey === 'grimoire' && currentTree && currentTree.hasSubtrees && currentTree.subtrees) {
+    const formKey = selectedSpecialForm || 'destruction';
+    if (currentTree.subtrees[formKey]) {
+      currentTree = {
+        ...currentTree,
+        className: `${currentTree.subtrees[formKey].name} (Grimoire Form)`,
+        color: currentTree.subtrees[formKey].color || currentTree.color,
+        tiers: currentTree.subtrees[formKey].tiers
+      };
+    }
+  }
 
   const isSkillUnlocked = (skillId: string) => (unlockedSkills[skillId] || 0) > 0;
   
@@ -142,6 +180,8 @@ export default function SkillTreePage() {
     if (skill.requires && !isSkillUnlocked(skill.requires)) return false;
     return true;
   };
+
+  // Special item trees share point pool but have unique ids so no conflict with class skills.
 
   const handleSkillClick = (skill: Skill) => {
     if (!canUnlockSkill(skill)) return;
@@ -210,7 +250,7 @@ export default function SkillTreePage() {
             <div className="text-center">
               <h1 className="text-xl font-bold text-emerald-400 font-serif">Skill Tree</h1>
               <p className="text-xs text-slate-500">
-                {character?.name || 'Hero'} - {currentTree?.className}
+                {character?.name || 'Hero'} - {currentTree?.className} {showSpecialItem ? '(Special Item Tree)' : ''}
               </p>
             </div>
             
@@ -221,32 +261,56 @@ export default function SkillTreePage() {
         <div className="sticky top-14 z-40 bg-slate-900/95 backdrop-blur-sm border-b border-slate-800 px-2 py-1">
           <div className="flex items-center justify-center gap-1 max-w-7xl mx-auto flex-wrap">
             {mode === 'class' ? (
-              Object.keys(CLASS_SKILL_TREES).map(classId => {
-                const isOwnClass = character && CLASS_TO_ID[character.classId] === classId;
-                return (
-                  <button
-                    key={classId}
-                    onClick={() => setActiveClass(classId)}
-                    className={cn(
-                      "px-2 py-1 rounded border font-semibold text-xs transition-all flex items-center gap-1",
-                      activeClass === classId
-                        ? "border-current bg-current/15"
-                        : "border-slate-700 text-slate-400 hover:border-slate-500"
-                    )}
-                    style={activeClass === classId ? { color: CLASS_COLORS[classId], borderColor: CLASS_COLORS[classId] } : {}}
-                    data-testid={`tab-class-${classId}`}
-                  >
-                    <span>{CLASS_ICONS[classId]}</span>
-                    <span className="capitalize">{classId === 'worg' ? 'Worg' : classId === 'mage' ? 'Mage' : classId}</span>
-                    {isOwnClass && <span className="text-[10px] opacity-60">(You)</span>}
-                  </button>
-                );
-              })
+              <>
+                {Object.keys(CLASS_SKILL_TREES).map(classId => {
+                  const isOwnClass = character && CLASS_TO_ID[character.classId] === classId;
+                  return (
+                    <button
+                      key={classId}
+                      onClick={() => { setActiveClass(classId); setShowSpecialItem(false); setSpecialItemKey(null); setSelectedSpecialForm(null); }}
+                      className={cn(
+                        "px-2 py-1 rounded border font-semibold text-xs transition-all flex items-center gap-1",
+                        activeClass === classId && !showSpecialItem
+                          ? "border-current bg-current/15"
+                          : "border-slate-700 text-slate-400 hover:border-slate-500"
+                      )}
+                      style={activeClass === classId && !showSpecialItem ? { color: CLASS_COLORS[classId], borderColor: CLASS_COLORS[classId] } : {}}
+                      data-testid={`tab-class-${classId}`}
+                    >
+                      <span>{CLASS_ICONS[classId]}</span>
+                      <span className="capitalize">{classId === 'worg' ? 'Worg' : classId === 'mage' ? 'Mage' : classId}</span>
+                      {isOwnClass && <span className="text-[10px] opacity-60">(You)</span>}
+                    </button>
+                  );
+                })}
+                {/* Special Item Skill Tree selectors for Warrior / Mage Priest / Ranger */}
+                {activeClass === 'warrior' && (
+                  <>
+                    <button onClick={() => { setShowSpecialItem(true); setSpecialItemKey('shield'); setActiveClass('warrior'); setSelectedSpecialForm(null); }} className={cn("px-2 py-1 rounded border text-xs", showSpecialItem && specialItemKey==='shield' ? "border-amber-500 bg-amber-500/15 text-amber-400" : "border-slate-700 text-slate-400")}>🛡️ Shield (Special Item)</button>
+                    <button onClick={() => { setShowSpecialItem(true); setSpecialItemKey('dual_wield'); setActiveClass('warrior'); setSelectedSpecialForm(null); }} className={cn("px-2 py-1 rounded border text-xs", showSpecialItem && specialItemKey==='dual_wield' ? "border-amber-500 bg-amber-500/15 text-amber-400" : "border-slate-700 text-slate-400")}>⚔️ Dual Wield (Special Item)</button>
+                  </>
+                )}
+                {activeClass === 'mage' && (
+                  <>
+                    <button onClick={() => { setShowSpecialItem(true); setSpecialItemKey('tome'); setActiveClass('mage'); setSelectedSpecialForm(null); }} className={cn("px-2 py-1 rounded border text-xs", showSpecialItem && specialItemKey==='tome' ? "border-amber-500 bg-amber-500/15 text-amber-400" : "border-slate-700 text-slate-400")}>📖 Tome (Special Item)</button>
+                    <button onClick={() => { setShowSpecialItem(true); setSpecialItemKey('wand'); setActiveClass('mage'); setSelectedSpecialForm(null); }} className={cn("px-2 py-1 rounded border text-xs", showSpecialItem && specialItemKey==='wand' ? "border-amber-500 bg-amber-500/15 text-amber-400" : "border-slate-700 text-slate-400")}>🪄 Wand (Special Item)</button>
+                    <button onClick={() => { 
+                      setShowSpecialItem(true); 
+                      setSpecialItemKey('grimoire'); 
+                      setActiveClass('mage'); 
+                      setSelectedSpecialForm('destruction'); // default to first of three forms
+                    }} className={cn("px-2 py-1 rounded border text-xs", showSpecialItem && specialItemKey==='grimoire' ? "border-amber-500 bg-amber-500/15 text-amber-400" : "border-slate-700 text-slate-400")}>📜 Grimoire (3 Forms)</button>
+                  </>
+                )}
+                {activeClass === 'ranger' && (
+                  <button onClick={() => { setShowSpecialItem(true); setSpecialItemKey('nimble_fingers'); setActiveClass('ranger'); setSelectedSpecialForm(null); }} className={cn("px-2 py-1 rounded border text-xs", showSpecialItem && specialItemKey==='nimble_fingers' ? "border-amber-500 bg-amber-500/15 text-amber-400" : "border-slate-700 text-slate-400")}>🖐️ Nimble Fingers (Special Item)</button>
+                )}
+              </>
             ) : (
               Object.keys(WEAPON_SKILL_TREES).map(weaponId => (
                 <button
                   key={weaponId}
-                  onClick={() => setActiveWeapon(weaponId)}
+                  onClick={() => { setActiveWeapon(weaponId); setShowSpecialItem(false); }}
                   className={cn(
                     "px-2 py-1 rounded border font-semibold text-xs transition-all flex items-center gap-1",
                     activeWeapon === weaponId
@@ -264,6 +328,28 @@ export default function SkillTreePage() {
         </div>
 
         <div className="max-w-5xl mx-auto p-4">
+          {/* Grimoire Three Forms selector (and future special form UIs) */}
+          {showSpecialItem && specialItemKey === 'grimoire' && SPECIAL_ITEM_SKILL_TREES[activeClass]?.grimoire?.hasSubtrees && (
+            <div className="mb-4 flex gap-2 justify-center">
+              {Object.keys(SPECIAL_ITEM_SKILL_TREES[activeClass].grimoire.subtrees).map(formKey => {
+                const form = SPECIAL_ITEM_SKILL_TREES[activeClass].grimoire.subtrees[formKey];
+                return (
+                  <button
+                    key={formKey}
+                    onClick={() => setSelectedSpecialForm(formKey)}
+                    className={cn(
+                      "px-3 py-1 text-xs rounded border flex items-center gap-1",
+                      selectedSpecialForm === formKey ? "border-amber-500 bg-amber-500/10 text-amber-400" : "border-slate-600 text-slate-400 hover:border-slate-500"
+                    )}
+                  >
+                    <span>{form.icon}</span>
+                    <span>{form.name}</span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
           <div className="bg-slate-900/80 border border-slate-700 rounded-xl p-4 mb-6 flex flex-wrap items-center justify-between gap-4">
             <h2 className="text-emerald-400 font-bold font-serif">Skill Bonuses</h2>
             
@@ -356,6 +442,37 @@ export default function SkillTreePage() {
 
           {mode === 'hotkeys' ? (
             <div className="py-4">
+              {/* Explicit 6-way weapon/skill sheet type selector (the missing step) */}
+              <div className="mb-6">
+                <div className="text-sm text-amber-400 mb-2 tracking-wider">SELECT WEAPON / SKILL SHEET TYPE (6 options)</div>
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+                  {SPELLBOOK_WEAPON_TYPES.map((style) => {
+                    const isActive = (selectedWeaponType || '').toLowerCase() === style.id || selectedWeaponType === style.id.toUpperCase();
+                    return (
+                      <button
+                        key={style.id}
+                        onClick={() => {
+                          const upper = style.id.toUpperCase();
+                          setSelectedWeaponType(upper);
+                          setSelectedWeaponId(null);
+                          // Also set for weapon skill trees lookup
+                        }}
+                        className={cn(
+                          "p-4 rounded-xl border text-left transition-all hover:border-amber-400/60",
+                          isActive ? "border-amber-500 bg-amber-500/10" : "border-slate-700 bg-slate-900/60 hover:bg-slate-800"
+                        )}
+                        data-testid={`spellbook-style-${style.id}`}
+                      >
+                        <div className="text-3xl mb-1">{style.icon}</div>
+                        <div className="font-semibold text-white">{style.name}</div>
+                        <div className="text-xs text-slate-400 mt-1">{style.desc}</div>
+                      </button>
+                    );
+                  })}
+                </div>
+                <div className="text-[10px] text-slate-500 mt-2">Selecting a type loads its dedicated skill sheet. Weapon hotkeys & upgrades apply per type.</div>
+              </div>
+
               <WeaponSelectionPanel
                 selectedWeaponType={selectedWeaponType}
                 selectedWeaponId={selectedWeaponId}

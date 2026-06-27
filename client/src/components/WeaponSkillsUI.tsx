@@ -21,7 +21,10 @@ interface SkillSlot {
 
 interface SkillLoadout {
   slots: {
+    // Slot 1 = Basic Attack (focused LMB / button 1). This slot contains the 3 attacks:
+    // simple (ground), combo (per-click chain), air/drop (from air). No confusion.
     1: SkillSlot;
+    // Slots 2-4 = The weapon skills chosen for this specific weapon class/style.
     2: SkillSlot;
     3: SkillSlot;
     4: SkillSlot;
@@ -49,7 +52,9 @@ export function WeaponSkillsUI({
   
   const defaultLoadout: SkillLoadout = {
     slots: {
+      // Slot 1 = the single basic attack info for the weapon (simple + combo + air variants)
       1: { skillId: null, upgradeLevel: 0 },
+      // 2-4 = chosen weapon skills
       2: { skillId: null, upgradeLevel: 0 },
       3: { skillId: null, upgradeLevel: 0 },
       4: { skillId: null, upgradeLevel: 0 }
