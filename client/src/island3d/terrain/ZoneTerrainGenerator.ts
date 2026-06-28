@@ -16,6 +16,7 @@ import * as THREE from 'three';
 // @ts-ignore — local .mjs module
 import Terrain from '@/lib/three-terrain/ThreeTerrain.mjs';
 import type { WorldSector, ZoneTerrain3DConfig } from '@shared/definitions/worldMapSectors';
+import { createSectorTerrainMaterial } from './TerrainMaterial';
 
 // ── Seeded PRNG (Mulberry32 via FNV-1a) ──────────────────────────────────────
 
@@ -538,6 +539,7 @@ export function generateZoneTerrain(
   const terrainMesh = terrainScene.children[0] as THREE.Mesh;
   terrainMesh.castShadow = true;
   terrainMesh.receiveShadow = true;
+  terrainMesh.material = createSectorTerrainMaterial(sector);
 
   return {
     terrainScene,

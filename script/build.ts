@@ -50,8 +50,10 @@ async function buildAll() {
 
   // Client build: skip gracefully if client/ directory is absent (Railway deploys server-only)
   try {
-    const { existsSync } = await import("fs");
+    const { existsSync, rmSync } = await import("fs");
     if (existsSync("client")) {
+      console.log("cleaning client/dist for build...");
+      try { rmSync("client/dist", { recursive: true, force: true }); } catch (e: any) { console.warn("client dist clean:", e.message); }
       console.log("building client...");
       await viteBuild();
     } else {
@@ -76,8 +78,8 @@ async function buildAll() {
     entryPoints: ["server/index.ts"],
     platform: "node",
     bundle: true,
-    format: "cjs",
-    outfile: "dist/index.cjs",
+    format: "esm",
+    outfile: "dist/index.js",
     alias: {
       "@shared": path.resolve("shared"),
     },

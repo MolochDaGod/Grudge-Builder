@@ -17,6 +17,7 @@
  */
 
 import type { FactionId, SectorPosition, HeroDefinition } from './lore';
+import type { DialogueVoiceId } from './dialogueVoices';
 import { FACTIONS, HERO_ROSTER, SECTOR_LORE } from './lore';
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -63,6 +64,8 @@ export interface TownNPC {
   heroId?: string;
   /** Dialogue set ID for quest/merchant interactions */
   dialogueSetId?: string;
+  /** Super Dialogue Pack voice actor override */
+  voiceProfile?: DialogueVoiceId;
 }
 
 export interface TownAmbience {

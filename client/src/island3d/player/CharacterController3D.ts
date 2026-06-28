@@ -31,6 +31,7 @@ import {
   type CharacterState,
   type StateContext,
 } from '@/lib/characterStateMachine';
+import { getSkillById } from '@/lib/skillTreeData';
 
 export type ControlMode = 'harvest' | 'combat' | 'build';
 
@@ -121,6 +122,9 @@ export class CharacterController3D {
   public weaponType: WeaponType = 'sword';
   public mode: ControlMode = 'harvest';
   public movementState: MovementState = 'falling';
+  /** Panel equipment slots (MainHand rod → fishing, etc.) */
+  public equipment: Record<string, string | null> = {};
+  private deckCastLineHandler: (() => boolean) | null = null;
 
   /** Current form index for special weapons (grimoire 3 forms, wand, nimble, dual wield etc.)
    *  Switched with Shift + F1 / F2 / F3 as per game design.
@@ -129,22 +133,28 @@ export class CharacterController3D {
 
   /** Assigned action bar slots 1-5 from spellbook (uMMORPG Grudge Warlords style) */
   public actionBar: Record<number, string> = {1: null, 2: null, 3: null, 4: null, 5: null};
+  public lastUsedSlot: number | undefined = undefined;
+  private lastUsedTime = 0;
+  private skillCooldowns: Record<number, number> = {};
 
   public loadActionBar(bar: Record<number, string>) {
-    this.actionBar = { ...bar };
+    if (bar && Object.keys(bar).length) {
+      this.actionBar = { ...this.actionBar, ...bar };
+    }
   }
 
-  /** For testing game flow - default grimoire form skills when no loadout */
+  /** For testing game flow - default real skill ids (only if completely empty) */
   private initDemoActionBarForForm() {
-    if (!this.actionBar[1]) {
-      this.actionBar = {
-        1: 'grimoire_basic',
-        2: this.currentForm === 0 ? 'grimoire_dest_blast' : this.currentForm === 1 ? 'grimoire_prot_ward' : 'grimoire_conj_minion',
-        3: 'grimoire_ritual',
-        4: 'grimoire_banish',
-        5: 'grimoire_lord'
-      };
-    }
+    const hasAny = this.actionBar[1] || this.actionBar[2] || this.actionBar[3] || this.actionBar[4] || this.actionBar[5];
+    if (hasAny) return;
+    const form = this.currentForm;
+    this.actionBar = {
+      1: 'warrior_0_strike', // basic slot always usable
+      2: form === 0 ? 'grim_dest_blast' : form === 1 ? 'grim_prot_ward' : 'grim_conj_minion',
+      3: form === 0 ? 'grim_dest_exp' : form === 1 ? 'grim_prot_shield' : 'grim_conj_ritual',
+      4: form === 0 ? 'grim_dest_chain' : form === 1 ? 'grim_prot_reflect' : 'grim_conj_swarm',
+      5: form === 0 ? 'grim_dest_meteor' : form === 1 ? 'grim_prot_fortify' : 'grim_conj_lord'
+    };
   }
   /** Track whether we were moving last frame (for run→stop transition) */
   private wasMoving = false;
@@ -175,6 +185,10 @@ export class CharacterController3D {
   // Climb raycast helpers
   private climbRaycaster = new THREE.Raycaster();
   private climbCheckDir = new THREE.Vector3();
+  private climbMeshes: THREE.Object3D[] = [];
+  /** When true, deck rig drives position — skip terrain physics */
+  public shipDeckLocked = false;
+  private shipDeckSampler: ((x: number, z: number) => number | null) | null = null;
 
   // Input state
   private keys: Set<string> = new Set();
@@ -317,6 +331,16 @@ export class CharacterController3D {
       rangeState: this.focusEnabled ? 'optimal' : 'none',
       currentForm: this.currentForm,
       actionBar: this.actionBar,
+      lastUsedSlot: this.lastUsedSlot,
+      cooldowns: (() => {
+        const out: Record<number, number> = {};
+        const now = performance.now();
+        Object.keys(this.skillCooldowns || {}).forEach((k) => {
+          const end = this.skillCooldowns[Number(k)];
+          out[Number(k)] = Math.max(0, Math.min(1, (end - now) / 650));
+        });
+        return out;
+      })(),
     };
   }
 
@@ -496,8 +520,13 @@ export class CharacterController3D {
         this.mouseDown = true;
         if (this.mode === 'combat' && this.orchestrator) {
           this.orchestrator.playComboHit();
-        } else if (this.mode === 'harvest' && this.stateMachine?.canTransitionTo('harvesting')) {
-          this.stateMachine.transition('harvesting');
+        } else if (this.mode === 'harvest') {
+          if (this.shipDeckLocked && this.deckCastLineHandler?.()) {
+            return;
+          }
+          if (this.stateMachine?.canTransitionTo('harvesting')) {
+            this.stateMachine.transition('harvesting');
+          }
         } else if (this.mode === 'build' && this.stateMachine?.canTransitionTo('building')) {
           this.stateMachine.transition('building');
         }
@@ -526,7 +555,7 @@ export class CharacterController3D {
 
   // ─── State transitions ─────────────────────────────────────────────────────
 
-  private setMovementState(next: MovementState): void {
+  setMovementState(next: MovementState): void {
     if (next === this.movementState) return;
     const prev = this.movementState;
     this.movementState = next;
@@ -536,46 +565,80 @@ export class CharacterController3D {
   /** Switch to a form (0,1,2) for special weapons. Updates state and can notify HUD/orchestrator. */
   private setForm(formIndex: number): void {
     if (formIndex < 0 || formIndex > 2) return;
-    const prev = this.currentForm;
     this.currentForm = formIndex;
     this.initDemoActionBarForForm();
     console.log(`[CharacterController3D] Switched to form ${formIndex} (Shift+F${formIndex + 1}) for special weapon (grimoire/wand/nimble/dual etc.)`);
-    // TODO: if equipped weapon supports forms (from weaponSkill data), override hotbar slots 1-5 with formSkills[formIndex]
-    // e.g. notify orchestrator or update combatHudSnapshot with currentForm
-    // For now, state is exposed via getCombatHudSnapshot if extended.
+    // Keep user's assigned actionBar; demo only fills blanks. Snapshot picks up live.
   }
 
-  /** Use skill from slot 1-5 (production uMMORPG style flow) */
+  /** Use skill from slot 1-5 (production uMMORPG style flow). Real skill ids from spellbook assignment. */
   private useSkillSlot(slot: number): void {
-    this.initDemoActionBarForForm();
-    const skillId = this.actionBar[slot] || `slot${slot}_form${this.currentForm}`;
-    console.log(`[Game Flow] Using slot ${slot} (skill: ${skillId}) in form ${this.currentForm} (like Grudge Warlords hotbar)`);
-    // Map to real skill based on current class special + form
-    // For demo, use form specific anim from grudge6 packs (part3/5/7 etc)
-    const formSkillAnims: Record<number, string> = {
-      0: 'grimoire_destruction_attack',
-      1: 'grimoire_protection_ward',
-      2: 'grimoire_conjuration_summon'
-    };
-    const anim = formSkillAnims[this.currentForm] || `skill_slot${slot}`;
-    if (this.orchestrator) {
-      // Play skill anim (use grudge6 loaded anims from extracted)
-      this.orchestrator.playMotionAttack(anim as any);
+    // Only fill demo if the entire bar is still empty (respect full user assignment from spellbook)
+    const hasUserBar = this.actionBar[1] || this.actionBar[2] || this.actionBar[3] || this.actionBar[4] || this.actionBar[5];
+    if (!hasUserBar) this.initDemoActionBarForForm();
+
+    const skillId = this.actionBar[slot];
+    if (!skillId) {
+      console.log(`[Game Flow] Slot ${slot} is empty. Assign in /skill-tree (Hotkeys tab)`);
+      return;
     }
-    // TODO: full: lookup from loaded character actionBar + special loadout
-    // Apply effect: damage, buff etc. For testing, at least anim plays + log.
-    // In real, integrate with abilitySystem.activate or custom skill exec.
+
+    // Cooldown to feel like real game (no spam during test)
+    const now = performance.now();
+    if (this.skillCooldowns[slot] && now < this.skillCooldowns[slot]) return;
+    this.skillCooldowns[slot] = now + 650; // ~0.65s test cooldown
+
+    const skill = getSkillById(skillId);
+    const display = skill ? skill.name : skillId;
+    console.log(`[Game Flow] Slot ${slot} → ${display} (id:${skillId}) form:${this.currentForm}`);
+
+    this.lastUsedSlot = slot;
+    this.lastUsedTime = now;
+
+    if (this.orchestrator) {
+      // For slot 1 basic or strike-like, the orchestrator will prefer combo for authentic warlords feel.
+      // Other skills get specialized playback.
+      this.orchestrator.playSkill(skillId, this.currentForm);
+    }
+
+    // Feedback + hit marker like DangerRoom
+    this.hitMarker = (this.hitMarker || 0) + 1;
+
+    // Simple effect categorization for testing (extend here for real damage/vfx/projectiles later)
+    if (skillId.includes('blast') || skillId.includes('meteor') || skillId.includes('exp') || skillId.includes('chain')) {
+      console.log(`[Skill] ${display}: casting projectile / AoE blast`);
+    } else if (skillId.includes('ward') || skillId.includes('shield') || skillId.includes('block') || skillId.includes('reflect') || skillId.includes('fortify')) {
+      console.log(`[Skill] ${display}: activating defense buff`);
+    } else if (skillId.includes('minion') || skillId.includes('conj') || skillId.includes('summon') || skillId.includes('lord')) {
+      console.log(`[Skill] ${display}: summoning entity`);
+    } else {
+      console.log(`[Skill] ${display}: executing attack/motion`);
+    }
   }
 
   // ─── Main update ───────────────────────────────────────────────────────────
 
   update(dt: number): void {
-    // Camera rotation from LMB or RMB drag (dangerroom: RMB orbit)
     if (this.mouseDown || this.rmbHeld) {
       this.cameraYaw -= this.mouseDelta.x * 0.003;
       this.cameraPitch = Math.max(0.1, Math.min(0.8, this.cameraPitch + this.mouseDelta.y * 0.003));
       this.mouseDelta.x = 0;
       this.mouseDelta.y = 0;
+    }
+
+    if (this.shipDeckLocked) {
+      this.syncCameraFollow(dt);
+      if (this.stateMachine) {
+        this.stateMachine.update(dt);
+        this.orchestrator?.update(dt);
+      }
+      this.animations?.update(dt);
+      return;
+    }
+
+    // Clear last hotbar use highlight after short flash (for dr-hotbar testing feedback)
+    if (this.lastUsedSlot && performance.now() - this.lastUsedTime > 700) {
+      this.lastUsedSlot = undefined;
     }
 
     // ── Horizontal movement ──────────────────────────────────────────────────
@@ -619,8 +682,16 @@ export class CharacterController3D {
     const submerged = headY < waterLevel;
 
     if (inWater) {
+      const climbFromWater =
+        this.checkClimbing(dt) || this.movementState === 'climbing';
+      if (climbFromWater && this.keys.has('w')) {
+        this.setMovementState('climbing');
+        this.verticalVelocity = 6;
+        this.callbacks.onStaminaDrain?.(this.physics.climbStaminaDrain * dt);
+      } else {
+      const forceDive = this.keys.has('control');
       // ── Swimming / Underwater ────────────────────────────────────────────
-      if (submerged) {
+      if (submerged || forceDive) {
         this.setMovementState('swimming_underwater');
         // Oxygen drain
         this.oxygen = Math.max(0, this.oxygen - dt);
@@ -632,9 +703,9 @@ export class CharacterController3D {
         if (!this.keys.has('s')) {
           this.verticalVelocity += 4 * dt;
         }
-        // W/S = ascend/descend while underwater
+        // Space = ascend, S / Ctrl = descend while underwater
         if (this.keys.has(' ')) this.verticalVelocity += 8 * dt;
-        if (this.keys.has('s')) this.verticalVelocity -= 3 * dt;
+        if (this.keys.has('s') || forceDive) this.verticalVelocity -= 4 * dt;
       } else {
         this.setMovementState('swimming_surface');
         // Restore oxygen when head is above water
@@ -652,6 +723,7 @@ export class CharacterController3D {
       this.callbacks.onStaminaDrain?.(this.physics.swimStaminaDrain * dt);
       // Dampen horizontal velocity in water
       this.verticalVelocity *= (1 - 2 * dt);
+      }
     } else {
       // ── Restore oxygen on land ──────────────────────────────────────────
       this.oxygen = Math.min(this.physics.maxOxygen, this.oxygen + dt * 5);
@@ -734,15 +806,7 @@ export class CharacterController3D {
       }
     }
 
-    // ── Camera follow ────────────────────────────────────────────────────────
-    const cameraTarget = this.model.position.clone();
-    const offsetRotated = this.cameraOffset.clone();
-    offsetRotated.applyAxisAngle(new THREE.Vector3(0, 1, 0), this.cameraYaw);
-    offsetRotated.y *= (1 + this.cameraPitch);
-
-    const desiredCamPos = cameraTarget.clone().add(offsetRotated);
-    this.camera.position.lerp(desiredCamPos, dt * 5);
-    this.camera.lookAt(cameraTarget.x, cameraTarget.y + 3, cameraTarget.z);
+    this.syncCameraFollow(dt);
 
     // ── State machine sync ─────────────────────────────────────────────────────
     if (this.stateMachine) {
@@ -841,29 +905,52 @@ export class CharacterController3D {
 
   // ─── Climbing detection ────────────────────────────────────────────────────
 
+  private syncCameraFollow(dt: number): void {
+    const cameraTarget = this.model.position.clone();
+    const offsetRotated = this.cameraOffset.clone();
+    offsetRotated.applyAxisAngle(new THREE.Vector3(0, 1, 0), this.cameraYaw);
+    offsetRotated.y *= (1 + this.cameraPitch);
+    const desiredCamPos = cameraTarget.clone().add(offsetRotated);
+    this.camera.position.lerp(desiredCamPos, dt * 5);
+    this.camera.lookAt(cameraTarget.x, cameraTarget.y + 3, cameraTarget.z);
+  }
+
   private checkClimbing(_dt: number): boolean {
-    // Raycast forward from chest height to detect steep surfaces
     const chestY = this.model.position.y + this.physics.characterHeight * 0.5;
     const origin = new THREE.Vector3(this.model.position.x, chestY, this.model.position.z);
-
-    // Forward direction based on model facing
-    this.climbCheckDir.set(0, 0, -1).applyQuaternion(this.model.quaternion);
+    const inWater = this.model.position.y < this.physics.waterLevel;
+    this.climbCheckDir.set(0, 0, -1);
+    if (inWater && this.climbMeshes.length > 0) {
+      this.climbCheckDir.applyAxisAngle(new THREE.Vector3(0, 1, 0), this.cameraYaw);
+    } else {
+      this.climbCheckDir.applyQuaternion(this.model.quaternion);
+    }
     this.climbRaycaster.set(origin, this.climbCheckDir);
-    this.climbRaycaster.far = 1.5;
+    this.climbRaycaster.far = inWater ? 3.5 : 2.0;
 
-    const hits = this.climbRaycaster.intersectObject(this.terrainMesh);
-    if (hits.length === 0) return false;
-
-    const normal = hits[0].face?.normal;
-    if (!normal) return false;
-
-    // Transform normal to world space
-    const worldNormal = normal.clone().applyQuaternion(this.terrainMesh.quaternion).normalize();
-    // Steep surface = low Y component of normal
-    return worldNormal.y < this.physics.climbableMaxNormalY;
+    const targets = [this.terrainMesh, ...this.climbMeshes];
+    for (const target of targets) {
+      const hits = this.climbRaycaster.intersectObject(target, true);
+      if (hits.length === 0) continue;
+      const hit = hits[0];
+      if (hit.object.userData?.climbable || hit.object.userData?.shipHull) return true;
+      const normal = hit.face?.normal;
+      if (!normal) continue;
+      const worldNormal = normal.clone();
+      if (hit.object.parent) {
+        hit.object.getWorldQuaternion(new THREE.Quaternion());
+      }
+      worldNormal.transformDirection(hit.object.matrixWorld).normalize();
+      if (worldNormal.y < this.physics.climbableMaxNormalY) return true;
+    }
+    return false;
   }
 
   private sampleGroundHeight(x: number, z: number): number | null {
+    if (this.shipDeckSampler) {
+      const dh = this.shipDeckSampler(x, z);
+      if (dh !== null) return dh;
+    }
     if (this.groundSampler) {
       const h = this.groundSampler(x, z);
       if (h !== null) return h;
@@ -896,10 +983,53 @@ export class CharacterController3D {
     this.model.visible = visible;
   }
 
+  setEquipment(slots: Record<string, string | null>): void {
+    this.equipment = { ...slots };
+  }
+
+  setDeckCastLineHandler(handler: (() => boolean) | null): void {
+    this.deckCastLineHandler = handler;
+  }
+
   teleportTo(pos: THREE.Vector3): void {
     this.model.position.copy(pos);
     this.velocity.set(0, 0, 0);
     this.verticalVelocity = 0;
+  }
+
+  registerClimbMeshes(meshes: THREE.Object3D[]): void {
+    this.climbMeshes.push(...meshes);
+  }
+
+  clearClimbMeshes(meshes: THREE.Object3D[]): void {
+    this.climbMeshes = this.climbMeshes.filter((m) => !meshes.includes(m));
+  }
+
+  enterShipDeckMode(
+    shipRoot: THREE.Object3D,
+    bounds: { halfWidth: number; halfLength: number; deckY: number },
+  ): void {
+    this.shipDeckLocked = true;
+    this.shipDeckSampler = (x, z) => {
+      const local = new THREE.Vector3(x, 0, z);
+      shipRoot.worldToLocal(local);
+      if (Math.abs(local.x) > bounds.halfWidth || Math.abs(local.z) > bounds.halfLength) {
+        return null;
+      }
+      const deck = new THREE.Vector3(0, bounds.deckY, 0);
+      shipRoot.localToWorld(deck);
+      return deck.y;
+    };
+    this.velocity.set(0, 0, 0);
+    this.verticalVelocity = 0;
+  }
+
+  exitShipDeckMode(groundRoot?: THREE.Object3D): void {
+    this.shipDeckLocked = false;
+    this.shipDeckSampler = null;
+    if (groundRoot) {
+      this.groundObject = groundRoot;
+    }
   }
 
   getFacing(): number {

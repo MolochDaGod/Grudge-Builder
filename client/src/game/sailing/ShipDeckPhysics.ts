@@ -136,6 +136,12 @@ export class ShipDeckRig {
     this.riders.delete(id);
   }
 
+  updateRiderLocalAnchor(id: string, localAnchor: THREE.Vector3): void {
+    const r = this.riders.get(id);
+    if (!r) return;
+    r.init.localAnchor.copy(localAnchor);
+  }
+
   setGrip(id: string, grip: number): void {
     const r = this.riders.get(id); if (!r) return;
     r.init.grip = grip;

@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { ChevronLeft, RotateCcw, Swords } from 'lucide-react';
 import Layout from '@/components/Layout';
-import { CLASS_SKILL_TREES, WEAPON_SKILL_TREES, SPECIAL_ITEM_SKILL_TREES, Skill, SkillTier, CLASS_TO_ID } from '@/lib/skillTreeData';
+import { CLASS_SKILL_TREES, WEAPON_SKILL_TREES, SPECIAL_ITEM_SKILL_TREES, Skill, SkillTier, CLASS_TO_ID, getSkillDisplay } from '@/lib/skillTreeData';
 import { CharacterManager, Character } from '@/lib/characterManager';
 import { WeaponSelectionPanel } from '@/components/WeaponSelectionPanel';
 import { WEAPON_TYPES } from '@shared/definitions/weaponDatabase';
@@ -361,6 +361,95 @@ export default function SkillTreePage() {
         </div>
 
         <div className="max-w-5xl mx-auto p-4">
+          {/* Hotbar Assignment for 1-5 slots - production uMMORPG style. Use when special selected */}
+          {showSpecialItem && specialItemKey && (
+            <div className="mb-6 p-4 bg-slate-800 rounded border border-amber-900/50">
+              <h3 className="text-amber-400 font-bold mb-2">Action Bar Slots 1-5 (assign then use keys 1-5 in game)</h3>
+              <div className="flex gap-2 mb-4">
+                {[1,2,3,4,5].map(slot => (
+                  <div 
+                    key={slot} 
+                    className="w-20 h-16 border-2 border-amber-600 bg-black/50 rounded flex flex-col items-center justify-center text-xs cursor-pointer hover:bg-amber-900/30"
+                    onClick={(e) => {
+                      if (e.shiftKey || (actionBar[slot] && !selectedSkillForAssign)) {
+                        // clear on shift or re-click empty assign
+                        const newBar = {...actionBar, [slot]: null};
+                        setActionBar(newBar);
+                        if (character) {
+                          const updated = {...character, actionBar: newBar} as any;
+                          setCharacter(updated);
+                          CharacterManager.updateCharacter(updated);
+                        }
+                        return;
+                      }
+                      if (selectedSkillForAssign) {
+                        const newBar = {...actionBar, [slot]: selectedSkillForAssign.id};
+                        setActionBar(newBar);
+                        setSelectedSkillForAssign(null);
+                        if (character) {
+                          const updated = {...character, actionBar: newBar} as any;
+                          setCharacter(updated);
+                          CharacterManager.updateCharacter(updated);
+                        }
+                      }
+                    }}
+                    onDoubleClick={() => {
+                      const newBar = {...actionBar, [slot]: null};
+                      setActionBar(newBar);
+                      if (character) {
+                        const updated = {...character, actionBar: newBar} as any;
+                        setCharacter(updated);
+                        CharacterManager.updateCharacter(updated);
+                      }
+                    }}
+                  >
+                    <div>Slot {slot}</div>
+                    <div className="text-amber-400 truncate w-full text-center text-[10px]">{getSkillDisplay(actionBar[slot]).icon} {getSkillDisplay(actionBar[slot]).name}</div>
+                  </div>
+                ))}
+              </div>
+              <div className="text-xs text-slate-400 mb-2">Click a skill below, then a slot. Shift+click slot or double-click to clear. For Grimoire switch form first (Shift+F or buttons) to pick form skills.</div>
+              <div className="flex gap-2 mb-1">
+                <button className="text-[10px] px-2 py-0.5 border border-slate-600 rounded" onClick={() => {
+                  const formKey = selectedSpecialForm || 'destruction';
+                  const sub = SPECIAL_ITEM_SKILL_TREES[activeClass]?.[specialItemKey!]?.subtrees?.[formKey];
+                  const all = (sub ? sub.tiers.flatMap((t:any)=>t.skills) : SPECIAL_ITEM_SKILL_TREES[activeClass]?.[specialItemKey!]?.tiers.flatMap((t:any)=>t.skills) || []);
+                  const demo: Record<number,string> = {1:'warrior_0_strike',2:all[0]?.id||'grim_dest_blast',3:all[1]?.id||'grim_dest_exp',4:all[2]?.id,5:all[3]?.id};
+                  setActionBar(demo);
+                  if (character) { const u={...character, actionBar:demo} as any; setCharacter(u); CharacterManager.updateCharacter(u); }
+                }}>Load defaults for form</button>
+                <button className="text-[10px] px-2 py-0.5 border border-slate-600 rounded" onClick={() => {
+                  const cleared = {1:null,2:null,3:null,4:null,5:null}; setActionBar(cleared);
+                  if (character) { const u={...character, actionBar:cleared} as any; setCharacter(u); CharacterManager.updateCharacter(u); }
+                }}>Clear all</button>
+              </div>
+              <div className="max-h-32 overflow-auto border border-slate-700 p-2 text-xs">
+                {(() => {
+                  const pool: any[] = [];
+                  const cls = CLASS_SKILL_TREES[activeClass];
+                  if (cls) pool.push(...cls.tiers.flatMap((t: any) => t.skills || []));
+                  const spec = specialItemKey ? SPECIAL_ITEM_SKILL_TREES[activeClass]?.[specialItemKey] : null;
+                  if (spec) {
+                    if (spec.hasSubtrees && selectedSpecialForm && spec.subtrees?.[selectedSpecialForm]) {
+                      pool.push(...spec.subtrees[selectedSpecialForm].tiers.flatMap((t: any) => t.skills || []));
+                    } else if (spec.tiers) {
+                      pool.push(...spec.tiers.flatMap((t: any) => t.skills || []));
+                    }
+                  }
+                  const seen = new Set(); return pool.filter(s => !seen.has(s.id) && seen.add(s.id));
+                })().map((skill: any) => (
+                  <button 
+                    key={skill.id} 
+                    className={`mr-1 mb-1 px-2 py-1 rounded border ${selectedSkillForAssign?.id === skill.id ? 'bg-amber-500 text-black border-amber-500' : 'border-slate-600 hover:bg-slate-700'}`}
+                    onClick={() => setSelectedSkillForAssign(skill)}
+                  >
+                    {skill.icon} {skill.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Grimoire Three Forms selector (and future special form UIs) - forms switched in-game with Shift+F1/F2/F3 */}
           {showSpecialItem && specialItemKey === 'grimoire' && SPECIAL_ITEM_SKILL_TREES[activeClass]?.grimoire?.hasSubtrees && (
             <div className="mb-4 flex gap-2 justify-center">
@@ -516,7 +605,17 @@ export default function SkillTreePage() {
                     <div 
                       key={slot} 
                       className="w-20 h-16 border-2 border-amber-600 bg-black/50 rounded flex flex-col items-center justify-center text-xs cursor-pointer hover:bg-amber-900/30"
-                      onClick={() => {
+                      onClick={(e) => {
+                        if (e.shiftKey || (actionBar[slot] && !selectedSkillForAssign)) {
+                          const newBar = {...actionBar, [slot]: null};
+                          setActionBar(newBar);
+                          if (character) {
+                            const updated = {...character, actionBar: newBar} as any;
+                            setCharacter(updated);
+                            CharacterManager.updateCharacter(updated);
+                          }
+                          return;
+                        }
                         if (selectedSkillForAssign) {
                           const newBar = {...actionBar, [slot]: selectedSkillForAssign.id};
                           setActionBar(newBar);
@@ -529,24 +628,78 @@ export default function SkillTreePage() {
                           }
                         }
                       }}
+                      onDoubleClick={() => {
+                        const newBar = {...actionBar, [slot]: null};
+                        setActionBar(newBar);
+                        if (character) {
+                          const updated = {...character, actionBar: newBar} as any;
+                          setCharacter(updated);
+                          CharacterManager.updateCharacter(updated);
+                        }
+                      }}
                     >
                       <div>Slot {slot}</div>
-                      <div className="text-amber-400 truncate w-full text-center">{actionBar[slot] || 'Empty'}</div>
+                      <div className="text-amber-400 truncate w-full text-center text-[10px]">{getSkillDisplay(actionBar[slot]).icon} {getSkillDisplay(actionBar[slot]).name}</div>
                     </div>
                   ))}
                 </div>
-                <div className="text-xs text-slate-400 mb-2">Select a skill below then click a slot to assign. For Grimoire, switch forms with Shift+F1/F2/F3 to assign form-specific skills.</div>
+                <div className="text-xs text-slate-400 mb-2">Select a skill below then click a slot to assign. Shift-click or double-click slot to clear. Grimoire: switch forms with Shift+F1/F2/F3.</div>
+                <div className="flex gap-2 mb-1">
+                  <button className="text-[10px] px-2 py-0.5 border border-slate-600 rounded" onClick={() => {
+                    const curTreeSkills = (currentTree?.tiers || []).flatMap((t: any) => t.skills || []);
+                    const demo: Record<number,string> = {1: curTreeSkills[0]?.id || 'warrior_0_strike', 2:curTreeSkills[1]?.id, 3:curTreeSkills[2]?.id,4:curTreeSkills[3]?.id,5:curTreeSkills[4]?.id};
+                    setActionBar(demo);
+                    if (character) { const u={...character, actionBar:demo} as any; setCharacter(u); CharacterManager.updateCharacter(u); }
+                  }}>Load defaults</button>
+                  <button className="text-[10px] px-2 py-0.5 border border-slate-600 rounded" onClick={() => {
+                    const cleared = {1:null,2:null,3:null,4:null,5:null}; setActionBar(cleared);
+                    if (character) { const u={...character, actionBar:cleared} as any; setCharacter(u); CharacterManager.updateCharacter(u); }
+                  }}>Clear all</button>
+                </div>
+                <div className="text-[10px] text-emerald-400 mt-1">Production flow: assign here → load character in island-3d (or 3D combat view) → Tab to combat → press 1-5 keys. Use Shift+F1/F2/F3 for grimoire/wand/etc forms. Real names + feedback in the on-screen hotbar.</div>
+                <button
+                  onClick={() => {
+                    if (character) {
+                      const updated = { ...character, actionBar } as any;
+                      CharacterManager.updateCharacter(updated);
+                    }
+                    setLocation('/island-3d');
+                  }}
+                  className="mt-2 px-3 py-1 text-xs bg-emerald-600 hover:bg-emerald-500 rounded border border-emerald-400"
+                >
+                  Save Assignments &amp; Test in 3D Island (Tab then 1-5)
+                </button>
                 
-                {/* Available skills for current special/class */}
+                {/* Available skills for hotbar assignment (class + special item trees for the active class; production ready pool) */}
                 <div className="max-h-32 overflow-auto border border-slate-700 p-2 text-xs">
-                  { (showSpecialItem && specialItemKey ? 
-                    (SPECIAL_ITEM_SKILL_TREES[activeClass]?.[specialItemKey] ? 
-                      (selectedSpecialForm && SPECIAL_ITEM_SKILL_TREES[activeClass][specialItemKey].subtrees?.[selectedSpecialForm] ? 
-                        SPECIAL_ITEM_SKILL_TREES[activeClass][specialItemKey].subtrees[selectedSpecialForm].tiers.flatMap(t => t.skills) : 
-                        SPECIAL_ITEM_SKILL_TREES[activeClass][specialItemKey].tiers.flatMap(t => t.skills)
-                      ) : []) : 
-                    (CLASS_SKILL_TREES[activeClass]?.tiers.flatMap(t => t.skills) || [])
-                  ).map(skill => (
+                  {(() => {
+                    const pool: any[] = [];
+                    // Always include class skills for the active class
+                    const cls = CLASS_SKILL_TREES[activeClass];
+                    if (cls) pool.push(...cls.tiers.flatMap((t: any) => t.skills || []));
+                    // Include special item if selected, or default specials for the class
+                    if (showSpecialItem && specialItemKey && SPECIAL_ITEM_SKILL_TREES[activeClass]?.[specialItemKey]) {
+                      const spec = SPECIAL_ITEM_SKILL_TREES[activeClass][specialItemKey];
+                      if (spec.hasSubtrees && selectedSpecialForm && spec.subtrees?.[selectedSpecialForm]) {
+                        pool.push(...spec.subtrees[selectedSpecialForm].tiers.flatMap((t: any) => t.skills || []));
+                      } else {
+                        pool.push(...(spec.tiers || []).flatMap((t: any) => t.skills || []));
+                      }
+                    } else if (SPECIAL_ITEM_SKILL_TREES[activeClass]) {
+                      // Fallback: offer the first available special tree skills for this class
+                      Object.values(SPECIAL_ITEM_SKILL_TREES[activeClass]).forEach((spec: any) => {
+                        if (spec.hasSubtrees && spec.subtrees) {
+                          Object.values(spec.subtrees).forEach((sub: any) => pool.push(...(sub.tiers || []).flatMap((t: any) => t.skills || [])));
+                        } else if (spec.tiers) {
+                          pool.push(...spec.tiers.flatMap((t: any) => t.skills || []));
+                        }
+                      });
+                    }
+                    // Dedup by id
+                    const seen = new Set<string>();
+                    const unique = pool.filter(s => { if (seen.has(s.id)) return false; seen.add(s.id); return true; });
+                    return unique.length ? unique : (cls?.tiers.flatMap((t:any)=>t.skills)||[]).slice(0,12);
+                  })().map((skill: any) => (
                     <button 
                       key={skill.id} 
                       className={`mr-1 mb-1 px-2 py-1 rounded border ${selectedSkillForAssign?.id === skill.id ? 'bg-amber-500 text-black border-amber-500' : 'border-slate-600 hover:bg-slate-700'}`}
@@ -556,6 +709,18 @@ export default function SkillTreePage() {
                     </button>
                   ))}
                 </div>
+                <button
+                  onClick={() => {
+                    if (character) {
+                      const updated = { ...character, actionBar } as any;
+                      CharacterManager.updateCharacter(updated);
+                    }
+                    setLocation('/island-3d');
+                  }}
+                  className="mt-1 px-2 py-0.5 text-[10px] bg-emerald-600 hover:bg-emerald-500 rounded border border-emerald-400"
+                >
+                  Save &amp; Test in 3D (Tab → keys 1-5)
+                </button>
               </div>
 
               <WeaponSelectionPanel

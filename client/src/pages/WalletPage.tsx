@@ -8,7 +8,14 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Wallet, Coins, ExternalLink, CheckCircle, Loader2, AlertCircle, Copy, Gift, ArrowRight } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { authHeaders } from "@/lib/grudgeBackend";
+import {
+  authHeaders,
+  fetchWalletOverview,
+  linkThirdPartyWallet,
+  quoteWalletPurchase,
+  createWalletPurchaseIntent,
+  type WalletOverview,
+} from "@/lib/grudgeBackend";
 
 interface WalletStatus {
   hasWallet: boolean;
@@ -16,13 +23,14 @@ interface WalletStatus {
   walletAddress: string | null;
   crossmintEmail: string | null;
   walletId?: string | null;
+  gbuxBalance?: number;
 }
 
-// Hardcoded — backend doesn't serve a config endpoint yet
-const WALLET_CONFIG = {
-  network: 'devnet' as const,
-  crossmintEnabled: true,
-};
+interface WalletConfig {
+  network: string;
+  crossmintEnabled: boolean;
+  rpcEndpoint?: string;
+}
 
 interface CharacterData {
   name: string;
@@ -48,8 +56,25 @@ interface NFTStatus {
 
 export default function WalletPage() {
   const [email, setEmail] = useState("");
+  const [linking, setLinking] = useState(false);
+  const [purchaseCurrency, setPurchaseCurrency] = useState<"SOL" | "USDT">("SOL");
+  const [purchaseAmount, setPurchaseAmount] = useState("0.1");
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  const { data: walletConfig } = useQuery<WalletConfig>({
+    queryKey: ["wallet-config"],
+    queryFn: async () => {
+      const res = await fetch("/api/wallet/config");
+      if (!res.ok) return { network: "devnet", crossmintEnabled: false };
+      return res.json();
+    },
+  });
+
+  const { data: overview } = useQuery<WalletOverview>({
+    queryKey: ["wallet-overview"],
+    queryFn: fetchWalletOverview,
+  });
 
   // GET /api/wallet/status — returns { hasWallet, walletAddress, walletType, crossmintEmail }
   const { data: walletStatus, isLoading: isLoadingStatus } = useQuery<WalletStatus>({
@@ -64,11 +89,10 @@ export default function WalletPage() {
         walletAddress: data.walletAddress || null,
         crossmintEmail: data.crossmintEmail || null,
         walletId: data.walletId || null,
+        gbuxBalance: data.gbuxBalance ?? 0,
       };
     },
   });
-
-  const walletConfig = WALLET_CONFIG;
 
   // Fetch character cNFTs from backend (GET /api/nfts → all account NFTs)
   const { data: nftsData, isLoading: isLoadingNfts } = useQuery<{ nfts: NFTStatus[] }>({
@@ -136,6 +160,42 @@ export default function WalletPage() {
     return `${address.slice(0, 4)}...${address.slice(-4)}`;
   };
 
+  const handleLinkWallet = async (provider: "phantom" | "solflare") => {
+    setLinking(true);
+    try {
+      const addr = await linkThirdPartyWallet(provider);
+      toast({ title: "Wallet linked", description: shortenAddress(addr) });
+      queryClient.invalidateQueries({ queryKey: ["wallet-status"] });
+      queryClient.invalidateQueries({ queryKey: ["wallet-overview"] });
+    } catch (e: unknown) {
+      toast({
+        title: "Link failed",
+        description: e instanceof Error ? e.message : "Could not link wallet",
+        variant: "destructive",
+      });
+    } finally {
+      setLinking(false);
+    }
+  };
+
+  const handlePurchaseQuote = async () => {
+    const amount = parseFloat(purchaseAmount);
+    if (!amount || amount <= 0) return;
+    try {
+      const quote = await quoteWalletPurchase(purchaseCurrency, amount);
+      toast({
+        title: "Purchase quote",
+        description: `${amount} ${purchaseCurrency} → ${quote.gbuxOut} GBUX (fee ${quote.feeAmount})`,
+      });
+    } catch (e: unknown) {
+      toast({
+        title: "Quote failed",
+        description: e instanceof Error ? e.message : "Invalid amount",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <div className="container mx-auto p-6 max-w-4xl">
       <div className="mb-8">
@@ -155,10 +215,15 @@ export default function WalletPage() {
         </CardHeader>
         <CardContent>
           <div className="flex items-center gap-4">
-            <Badge variant={walletConfig.network === 'mainnet-beta' ? 'default' : 'secondary'}>
-              {walletConfig.network === 'mainnet-beta' ? 'Mainnet' : 'Devnet'}
+            <Badge variant={walletConfig?.network === 'mainnet-beta' ? 'default' : 'secondary'}>
+              {walletConfig?.network === 'mainnet-beta' ? 'Mainnet' : 'Devnet'}
             </Badge>
-            {walletConfig.crossmintEnabled && (
+            {overview && (
+              <Badge variant="secondary">
+                {overview.gbuxBalance.toLocaleString()} GBUX in-game
+              </Badge>
+            )}
+            {walletConfig?.crossmintEnabled && (
               <Badge variant="outline" className="text-green-600">
                 <CheckCircle className="h-3 w-3 mr-1" />
                 Crossmint Enabled
@@ -281,12 +346,134 @@ export default function WalletPage() {
                   Already have a Solana wallet? Connect it using Phantom, Solflare, or other wallets.
                   You'll pay your own gas fees for transactions.
                 </p>
-                <Button variant="outline" disabled>
-                  <Wallet className="h-4 w-4 mr-2" />
-                  Connect Wallet (Coming Soon)
-                </Button>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    variant="outline"
+                    disabled={linking}
+                    onClick={() => handleLinkWallet("phantom")}
+                  >
+                    {linking ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Wallet className="h-4 w-4 mr-2" />}
+                    Link Phantom
+                  </Button>
+                  <Button
+                    variant="outline"
+                    disabled={linking}
+                    onClick={() => handleLinkWallet("solflare")}
+                  >
+                    Link Solflare
+                  </Button>
+                </div>
               </div>
             </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Linked wallets + on-chain balances */}
+      {overview && overview.linkedWallets.length > 0 && (
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle>Linked Wallets</CardTitle>
+            <CardDescription>Third-party wallets verified for SOL / USDT / GBUX purchases</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {overview.linkedWallets.map((w) => {
+              const bal = overview.onChain.find((b) => b.walletAddress === w.walletAddress);
+              return (
+                <div key={w.id} className="flex flex-wrap items-center justify-between gap-2 p-3 rounded-lg bg-muted/40">
+                  <div>
+                    <p className="font-mono text-sm">{shortenAddress(w.walletAddress)}</p>
+                    <p className="text-xs text-muted-foreground capitalize">{w.provider}{w.isPrimary ? " • primary" : ""}</p>
+                  </div>
+                  {bal?.rpcConfigured && (
+                    <div className="text-xs text-muted-foreground flex gap-3">
+                      <span>SOL {bal.sol?.toFixed(4) ?? "—"}</span>
+                      <span>GBUX {bal.gbux?.toFixed(2) ?? "—"}</span>
+                      <span>USDT {bal.usdt?.toFixed(2) ?? "—"}</span>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Buy GBUX with SOL / USDT */}
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Coins className="h-5 w-5" />
+            Buy GBUX
+          </CardTitle>
+          <CardDescription>
+            Pay from a linked third-party wallet with SOL or USDT (1 GBUX ≈ ${overview?.rates.gbuxUsd ?? 0.001} USDT)
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex gap-2">
+            {(["SOL", "USDT"] as const).map((c) => (
+              <Button
+                key={c}
+                size="sm"
+                variant={purchaseCurrency === c ? "default" : "outline"}
+                onClick={() => setPurchaseCurrency(c)}
+              >
+                {c}
+              </Button>
+            ))}
+          </div>
+          <div>
+            <Label htmlFor="purchase-amount">Amount ({purchaseCurrency})</Label>
+            <Input
+              id="purchase-amount"
+              type="number"
+              min="0"
+              step="any"
+              value={purchaseAmount}
+              onChange={(e) => setPurchaseAmount(e.target.value)}
+              className="mt-1 max-w-xs"
+            />
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Button variant="secondary" onClick={handlePurchaseQuote}>
+              Get quote
+            </Button>
+            <Button
+              variant="default"
+              disabled={!overview?.treasuryAddress}
+              onClick={async () => {
+                const amount = parseFloat(purchaseAmount);
+                if (!amount) return;
+                try {
+                  const intent = await createWalletPurchaseIntent(
+                    purchaseCurrency,
+                    amount,
+                    overview?.primaryWallet || undefined,
+                  );
+                  toast({
+                    title: "Send payment",
+                    description: `Send ${intent.amountIn} ${intent.currency} to treasury, then confirm with tx signature. GBUX: ${intent.gbuxOut}`,
+                  });
+                  if (intent.treasuryAddress) {
+                    await navigator.clipboard.writeText(intent.treasuryAddress);
+                  }
+                } catch (e: unknown) {
+                  toast({
+                    title: "Intent failed",
+                    description: e instanceof Error ? e.message : "Could not create purchase",
+                    variant: "destructive",
+                  });
+                }
+              }}
+            >
+              Create purchase intent
+            </Button>
+          </div>
+          {overview?.treasuryAddress && (
+            <p className="text-xs text-muted-foreground font-mono">
+              Treasury: {shortenAddress(overview.treasuryAddress)}
+            </p>
           )}
         </CardContent>
       </Card>

@@ -51,18 +51,22 @@ export default {
     }
 
     // Strip leading slash to get R2 object key
-    const key = url.pathname.replace(/^\/+/, '');
+    let key = url.pathname.replace(/^\/+/, '');
 
     if (!key) {
       return new Response('Not Found', { status: 404, headers: CORS_HEADERS });
     }
 
+    // R2 has no real folders — /textures/pbr/ground/ → index.json catalog
+    if (key.endsWith('/')) {
+      key = `${key}index.json`;
+    }
+
     try {
       // Support conditional requests via If-None-Match
       const ifNoneMatch = request.headers.get('If-None-Match');
-      const object = await env.ASSETS.get(key, {
-        onlyIf: ifNoneMatch ? { etagDoesNotMatch: ifNoneMatch } : undefined,
-      });
+      const getOpts = ifNoneMatch ? { onlyIf: { etagDoesNotMatch: ifNoneMatch } } : undefined;
+      const object = await env.ASSETS.get(key, getOpts);
 
       if (!object) {
         // R2 returns null when key doesn't exist, or 304 when etag matches

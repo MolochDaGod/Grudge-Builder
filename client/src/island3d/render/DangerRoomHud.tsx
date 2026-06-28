@@ -3,6 +3,7 @@
  * Matches grudgecontroller/artifacts/animator HUD chrome.
  */
 import type { CombatHudSnapshot } from '../player/combatHudState';
+import { getSkillDisplay } from '@/lib/skillTreeData';
 import './dangerRoomHud.css';
 
 interface DangerRoomHudProps {
@@ -81,13 +82,34 @@ export function DangerRoomHud({ hud }: DangerRoomHudProps) {
         </div>
       </div>
 
-      {/* Production Hotbar Slots 1-5 - like uMMORPG Grudge Warlords. Assign in /skill-tree, use keys 1-5 in combat. Form changes for grimoire etc. */}
+      {/* Production Hotbar Slots 1-5 — modeled after legacy Grudge Warlords hotbar (Cell + icon + num + CD) */}
       <div className="dr-hotbar">
-        {[1,2,3,4,5].map(s => (
-          <div key={s} className="dr-hotbar-slot" title={`Slot ${s} (key ${s}) - ${hud.actionBar?.[s] || 'empty'} (form ${hud.currentForm ?? 0})`}>
-            {s}: { (hud.actionBar?.[s] || '').slice(0,8) || '---' }
-          </div>
-        ))}
+        {[1,2,3,4,5].map(s => {
+          const disp = getSkillDisplay(hud.actionBar?.[s]);
+          const isActive = hud.lastUsedSlot === s;
+          const cd = (hud.cooldowns && hud.cooldowns[s]) || 0;
+          return (
+            <div
+              key={s}
+              className={`dr-hotbar-slot ${isActive ? 'dr-hotbar-slot-active' : ''} ${cd > 0 ? 'on-cooldown' : ''}`}
+              title={`Slot ${s} (key ${s}) — ${disp.name} (form ${hud.currentForm ?? 0})`}
+              onClick={() => {
+                // Allow mouse testing of the hotbar like legacy (simulates key for the controller listener)
+                if (hud.combatMode) {
+                  window.dispatchEvent(new KeyboardEvent('keydown', { key: String(s), bubbles: true }));
+                }
+              }}
+              style={{ cursor: hud.combatMode ? 'pointer' : 'default' }}
+            >
+              <div className="slot-num">{s}</div>
+              <div className="slot-icon">{disp.icon}</div>
+              <div className="slot-name">{disp.name.length > 9 ? disp.name.slice(0,8) + '…' : disp.name}</div>
+              {cd > 0 && (
+                <div className="slot-cd" style={{ height: `${Math.round(cd * 100)}%` }} />
+              )}
+            </div>
+          );
+        })}
       </div>
     </div>
   );

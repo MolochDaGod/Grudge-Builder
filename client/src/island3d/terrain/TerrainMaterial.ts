@@ -7,7 +7,9 @@
 import * as THREE from 'three';
 // @ts-ignore
 import Terrain from '@/lib/three-terrain/ThreeTerrain.mjs';
-import { loadTerrainTextures, type TerrainTextures } from './ProceduralTextures';
+import { loadTerrainTextures, loadTerrainTexturesAsync, type TerrainTextures } from './ProceduralTextures';
+import { createPBRGroundMaterial, getSectorGroundMaterialId } from './GroundPBRTextures';
+import type { WorldSector } from '@shared/definitions/worldMapSectors';
 
 export interface TerrainMaterialConfig {
   minHeight?: number;
@@ -45,4 +47,18 @@ export function createTerrainMaterial(config: TerrainMaterialConfig = {}): THREE
   ]);
 
   return material;
+}
+
+/** Sector zone terrain — single PBR ground material per world sector */
+export function createSectorTerrainMaterial(sector: WorldSector): THREE.Material {
+  const materialId = getSectorGroundMaterialId(sector);
+  return createPBRGroundMaterial(materialId);
+}
+
+/** Home island — async PBR blended layers when textures are deployed */
+export async function createTerrainMaterialAsync(
+  config: TerrainMaterialConfig = {},
+): Promise<THREE.Material> {
+  const textures = config.textures ?? await loadTerrainTexturesAsync();
+  return createTerrainMaterial({ ...config, textures });
 }

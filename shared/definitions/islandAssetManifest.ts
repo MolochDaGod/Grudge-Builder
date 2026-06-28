@@ -248,6 +248,18 @@ export const SHIP_PARTS = {
   wheel:       { col: 4,  row: 40, w: 1, h: 1 } as TileRegion,
 } as const;
 
+/** Get sail tile region for a specific color (0-5 index) and ship size */
+export function getShipSailRegion(size: ShipSize, colorIndex: number): TileRegion {
+  const sailHeights: Record<ShipSize, number> = { rowboat: 2, sloop: 3, galleon: 4 };
+  const stride = 3;
+  return {
+    col: SHIP_PARTS.sailRow.col + colorIndex * stride,
+    row: SHIP_PARTS.sailRow.row,
+    w: SHIP_PARTS.sailRow.w,
+    h: sailHeights[size],
+  };
+}
+
 /** Get hull tile region for a specific color (0-6 index) and ship size */
 export function getShipHullRegion(size: ShipSize, colorIndex: number): TileRegion {
   const base = size === 'rowboat' ? SHIP_PARTS.hullSmall

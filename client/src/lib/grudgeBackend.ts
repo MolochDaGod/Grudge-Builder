@@ -534,6 +534,143 @@ export async function connectBrowserWallet(
   return loginWithWallet(address);
 }
 
+// ── Third-party wallet link (Phantom / Solflare) ─────────────────────
+
+export interface WalletOverview {
+  gbuxBalance: number;
+  primaryWallet: string | null;
+  walletType: string | null;
+  linkedWallets: Array<{
+    id: string;
+    walletAddress: string;
+    provider: string;
+    label: string | null;
+    isPrimary: boolean;
+  }>;
+  onChain: Array<{
+    walletAddress: string;
+    sol: number | null;
+    gbux: number | null;
+    usdt: number | null;
+    rpcConfigured?: boolean;
+  }>;
+  treasuryAddress: string | null;
+  rates: { gbuxUsd: number; purchaseFeePercent: number };
+}
+
+export async function fetchWalletOverview(): Promise<WalletOverview> {
+  const res = await fetch(`${API_BASE}/wallet/overview`, { headers: authHeaders() });
+  if (!res.ok) throw new Error("Failed to load wallet overview");
+  return res.json();
+}
+
+async function connectSolanaForLink(provider: "phantom" | "solflare"): Promise<string> {
+  if (provider === "phantom") {
+    const phantom = (window as any).phantom?.solana;
+    if (phantom?.connect) {
+      const { publicKey } = await phantom.connect();
+      return publicKey.toBase58();
+    }
+    const sdk = getPhantomSDK();
+    const { addresses } = await sdk.connect();
+    const sol = addresses?.find((a: { type?: string }) => a.type === "solana");
+    const addr =
+      typeof sol === "string"
+        ? sol
+        : (sol as { address?: string; publicKey?: string })?.address ||
+          (sol as { publicKey?: string })?.publicKey;
+    if (!addr) throw new Error("No Solana address from Phantom");
+    return addr;
+  }
+  const solflare = (window as any).solflare;
+  if (!solflare) throw new Error("Solflare not installed");
+  const resp = await solflare.connect();
+  return resp.publicKey.toBase58();
+}
+
+async function signSolanaLinkMessage(
+  message: string,
+  provider: "phantom" | "solflare",
+): Promise<string> {
+  const encoded = new TextEncoder().encode(message);
+  const bs58 = (await import("bs58")).default;
+
+  if (provider === "phantom") {
+    const phantom = (window as any).phantom?.solana;
+    if (!phantom?.signMessage) {
+      throw new Error("Phantom signMessage unavailable — install the Phantom extension");
+    }
+    const { signature } = await phantom.signMessage(encoded, "utf8");
+    return bs58.encode(signature);
+  }
+
+  const solflare = (window as any).solflare;
+  if (!solflare) throw new Error("Solflare not installed");
+  const signed = await solflare.signMessage(encoded, "utf8");
+  const sigBytes = signed.signature || signed;
+  return bs58.encode(sigBytes);
+}
+
+/** Sign a link challenge and attach wallet to the logged-in Grudge account. */
+export async function linkThirdPartyWallet(
+  provider: "phantom" | "solflare" = "phantom",
+): Promise<string> {
+  const walletAddress = await connectSolanaForLink(provider);
+
+  const challengeRes = await fetch(`${API_BASE}/wallet/link/challenge`, {
+    method: "POST",
+    headers: { ...authHeaders(), "Content-Type": "application/json" },
+    body: JSON.stringify({ walletAddress }),
+  });
+  if (!challengeRes.ok) {
+    const err = await challengeRes.json().catch(() => ({}));
+    throw new Error(err.error || "Failed to start wallet link");
+  }
+  const { message } = await challengeRes.json();
+  const signature = await signSolanaLinkMessage(message, provider);
+
+  const confirmRes = await fetch(`${API_BASE}/wallet/link/confirm`, {
+    method: "POST",
+    headers: { ...authHeaders(), "Content-Type": "application/json" },
+    body: JSON.stringify({ walletAddress, message, signature, provider }),
+  });
+  if (!confirmRes.ok) {
+    const err = await confirmRes.json().catch(() => ({}));
+    throw new Error(err.error || "Failed to confirm wallet link");
+  }
+  return walletAddress;
+}
+
+export async function quoteWalletPurchase(currency: "SOL" | "USDT", amount: number) {
+  const res = await fetch(`${API_BASE}/wallet/purchase/quote`, {
+    method: "POST",
+    headers: { ...authHeaders(), "Content-Type": "application/json" },
+    body: JSON.stringify({ currency, amount }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || "Quote failed");
+  }
+  return res.json();
+}
+
+export async function createWalletPurchaseIntent(
+  currency: "SOL" | "USDT",
+  amount: number,
+  linkedWalletAddress?: string,
+) {
+  const res = await fetch(`${API_BASE}/wallet/purchase/intent`, {
+    method: "POST",
+    headers: { ...authHeaders(), "Content-Type": "application/json" },
+    body: JSON.stringify({ currency, amount, linkedWalletAddress }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || "Could not create purchase");
+  }
+  return res.json();
+}
+
 // ── Puter SDK readiness ──────────────────────────────────────────────
 
 /** True when the Puter SDK script has loaded and the global is available. */

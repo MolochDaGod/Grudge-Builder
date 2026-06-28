@@ -4,7 +4,13 @@
 export { generateIslandTerrain, getTerrainHeightAt, getTerrainNormalAt } from './terrain/IslandTerrainGenerator';
 export type { IslandTerrainConfig, IslandTerrainResult, BiomeType } from './terrain/IslandTerrainGenerator';
 export { createTerrainMaterial } from './terrain/TerrainMaterial';
-export { loadTerrainTextures } from './terrain/ProceduralTextures';
+export { loadTerrainTextures, loadTerrainTexturesAsync } from './terrain/ProceduralTextures';
+export {
+  GROUND_PBR_MATERIALS,
+  SECTOR_GROUND_MATERIALS,
+  createPBRGroundMaterial,
+  getSectorGroundMaterialId,
+} from './terrain/GroundPBRTextures';
 export type { TerrainTextures } from './terrain/ProceduralTextures';
 export { placeResourceNodes } from './terrain/NodePlacer';
 export type { PlacedNode3D, NodePlacementType } from './terrain/NodePlacer';

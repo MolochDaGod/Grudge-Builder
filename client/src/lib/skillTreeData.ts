@@ -833,3 +833,50 @@ export const CLASS_TO_ID: Record<string, string> = {
   'Ranger Scout': 'ranger',
   'ranger': 'ranger'
 };
+
+/** Resolve any skill id (class, weapon, special item or form subtree) to its Skill definition for HUD names, icons, execution hints. */
+export function getSkillById(id: string): Skill | null {
+  if (!id) return null;
+  const searchTrees: SkillTree[] = [
+    ...Object.values(CLASS_SKILL_TREES),
+    ...Object.values(WEAPON_SKILL_TREES)
+  ];
+  for (const tree of searchTrees) {
+    for (const tier of tree.tiers) {
+      const found = tier.skills.find(s => s.id === id);
+      if (found) return found;
+    }
+  }
+  // Special item trees (incl. grimoire subtrees)
+  for (const classId of Object.keys(SPECIAL_ITEM_SKILL_TREES)) {
+    const specials = SPECIAL_ITEM_SKILL_TREES[classId];
+    for (const key of Object.keys(specials)) {
+      const spec = specials[key];
+      if (spec.hasSubtrees && spec.subtrees) {
+        for (const subKey of Object.keys(spec.subtrees)) {
+          const sub = spec.subtrees[subKey];
+          for (const tier of sub.tiers) {
+            const found = tier.skills.find(s => s.id === id);
+            if (found) return found;
+          }
+        }
+      }
+      for (const tier of spec.tiers || []) {
+        const found = tier.skills.find(s => s.id === id);
+        if (found) return found;
+      }
+    }
+  }
+  return null;
+}
+
+/** Get nice display for a skill id (used in hotbar HUD and assignment) */
+export function getSkillDisplay(id: string | null | undefined): { name: string; icon: string } {
+  if (!id) return { name: 'Empty', icon: '⬜' };
+  const s = getSkillById(id);
+  if (s) return { name: s.name, icon: s.icon || '✨' };
+  // Fallbacks for demo ids
+  if (id.includes('basic')) return { name: 'Basic Attack', icon: '⚔️' };
+  if (id.includes('slot')) return { name: `Slot ${id}`, icon: '🔹' };
+  return { name: id.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()), icon: '✨' };
+}

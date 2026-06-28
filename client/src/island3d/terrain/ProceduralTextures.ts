@@ -144,11 +144,24 @@ export interface TerrainTextures {
   seafloor: THREE.Texture;
 }
 
-/** Load real textures if available, fall back to procedural */
+/** Procedural fallback — use loadTerrainTexturesAsync() for PBR when available. */
 export function loadTerrainTextures(): TerrainTextures {
-  // For now always use procedural — swap in real textures via TextureLoader when you have them:
-  // const loader = new THREE.TextureLoader();
-  // const sand = loader.load('/textures/terrain/sand_diffuse.jpg');
+  return {
+    sand: createSandTexture(),
+    grassShort: createGrassShortTexture(),
+    grassTall: createGrassTallTexture(),
+    rock: createRockTexture(),
+    seafloor: createSeafloorTexture(),
+  };
+}
+
+/** Async loader — R2 CDN PBR with procedural fallback if manifest unavailable */
+export async function loadTerrainTexturesAsync(): Promise<TerrainTextures> {
+  const { checkPBRTexturesAvailable, getHomeIslandLayerMaterials } = await import('./GroundPBRTextures');
+  if (await checkPBRTexturesAvailable()) {
+    return getHomeIslandLayerMaterials();
+  }
+  console.warn('[Terrain] PBR manifest not on CDN — using procedural fallback. Run: npm run upload:pbr-ground');
   return {
     sand: createSandTexture(),
     grassShort: createGrassShortTexture(),

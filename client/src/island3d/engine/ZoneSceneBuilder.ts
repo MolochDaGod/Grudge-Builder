@@ -24,7 +24,7 @@ import {
   generateIslandTerrain,
   type IslandTerrainConfig,
 } from '../terrain/IslandTerrainGenerator';
-import { createTerrainMaterial } from '../terrain/TerrainMaterial';
+import { createSectorTerrainMaterial, createTerrainMaterial } from '../terrain/TerrainMaterial';
 import { createOceanMesh, updateOceanMaterial } from '../terrain/WaterMaterial';
 
 // ── Result ───────────────────────────────────────────────────────────────────
@@ -165,11 +165,13 @@ export function buildZoneScene(
       minHeight: cfg.minHeight * 0.3,
     } as IslandTerrainConfig);
 
-    // Apply sector-specific terrain material
-    const material = createTerrainMaterial({
-      minHeight: cfg.minHeight * 0.3,
-      maxHeight: sizeConfig.maxHeight,
-    });
+    // Home islands: blended layers; other islands: sector PBR ground
+    const material = island.size === 'home'
+      ? createTerrainMaterial({
+          minHeight: cfg.minHeight * 0.3,
+          maxHeight: sizeConfig.maxHeight,
+        })
+      : createSectorTerrainMaterial(sector);
     terrainResult.terrainMesh.material = material;
 
     // Position island in the zone

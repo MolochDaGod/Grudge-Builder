@@ -126,6 +126,49 @@ export class CharacterAnimOrchestrator {
     this.playSlot("block_idle", true, "block");
   }
 
+  /** Production hotbar skill execution (1-5 slots). Maps skill id to appropriate catalog playback + timing for testing game flow.
+   * Slot 1 "basic" or strike-like uses the full combo + MM motion for authentic feel.
+   */
+  playSkill(skillId: string, _form: number = 0): PlaybackSlot | null {
+    const sid = (skillId || '').toLowerCase();
+
+    // Slot 1 basic / strike / warrior default -> use the rich combo system (like LMB)
+    if (sid.includes('strike') || sid.includes('basic') || sid.includes('warrior_0') || sid === 'slot1' || sid.includes('power_strike')) {
+      return this.playComboHit();
+    }
+
+    let slot: PlaybackSlot = 'special';
+    let dur = 0.75;
+
+    if (sid.includes('blast') || sid.includes('exp') || sid.includes('meteor') || sid.includes('cast') || sid.includes('bolt') || sid.includes('rune')) {
+      slot = 'cast';
+      dur = 0.9;
+    } else if (sid.includes('ward') || sid.includes('shield') || sid.includes('block') || sid.includes('reflect') || sid.includes('fortify') || sid.includes('bulwark')) {
+      slot = 'block_idle';
+      dur = 1.0;
+    } else if (sid.includes('minion') || sid.includes('summon') || sid.includes('conj') || sid.includes('lord') || sid.includes('ritual')) {
+      slot = 'special';
+      dur = 1.1;
+    } else if (sid.includes('flurry') || sid.includes('cleave') || sid.includes('strike') || sid.includes('dual') || sid.includes('offhand') || sid.includes('whirl')) {
+      slot = 'attack2';
+      dur = 0.55;
+    } else if (sid.includes('slash') || sid.includes('execute') || sid.includes('counter')) {
+      slot = 'slash1';
+      dur = 0.6;
+    } else if (sid.includes('dodge') || sid.includes('shadow') || sid.includes('step') || sid.includes('vanish')) {
+      slot = 'dodge';
+      dur = 0.45;
+    } else if (sid.includes('taunt') || sid.includes('aura') || sid.includes('surge')) {
+      slot = 'special';
+      dur = 0.8;
+    }
+
+    this.activityOverride = true;
+    this.activityTimer = dur;
+    this.playSlot(slot, false, 'attack');
+    return slot;
+  }
+
   update(dt: number): void {
     if (this.activeMove) {
       this.moveElapsed += dt;

@@ -425,6 +425,9 @@ export class Island3DEngine {
     // Load action bar from character for game flow testing (1-5 slots from spellbook like uMMORPG)
     // Uses the assigned from /skill-tree for the class special (grimoire forms etc)
     const activeChar = await import('@/lib/characterManager').then(m => m.CharacterManager.getActiveCharacter?.());
+    if (activeChar?.equipment) {
+      this.character.setEquipment(activeChar.equipment);
+    }
     if (activeChar?.actionBar) {
       this.character.loadActionBar(activeChar.actionBar);
     } else {
@@ -433,6 +436,7 @@ export class Island3DEngine {
     }
     this.controls.enabled = false;
     this.characterActive = true;
+    this.lobbyShip?.attachBoarding(this.character);
 
     this.camera.position.set(
       startPos.x - 12,
@@ -1048,20 +1052,12 @@ export class Island3DEngine {
     const dt = Math.min(this.clock.getDelta(), 0.05);
     const simDt = dt * this.simTickRate;
 
-    // Camera: character on foot, sailing ship, or orbit
+    // Camera: Grudge6 on foot/deck/swim, or orbit when no character
     if (this.characterActive && this.character) {
-      if (this.lobbyShip?.isBoarded) {
-        this.character.setModelVisible(false);
+      if (this.lobbyShip) {
         this.lobbyShip.update(dt, this.character.getKeys(), this.character.getCameraYaw());
-        this.lobbyShip.syncCamera(
-          this.camera,
-          this.character.getCameraYaw(),
-          this.character.getCameraPitch(),
-        );
-      } else {
-        this.character.setModelVisible(true);
-        this.character.update(dt);
       }
+      this.character.update(dt);
     } else {
       this.controls.update();
     }

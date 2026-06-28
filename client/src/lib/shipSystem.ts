@@ -10,7 +10,8 @@
 
 import { v4 as uuidv4 } from 'uuid';
 import {
-  HULL_COLORS, SAIL_COLORS, SHIP_SIZES, SHIP_PARTS, SHIPS_SHEET,
+  HULL_COLORS, SAIL_COLORS, SHIP_SIZES, SHIPS_SHEET,
+  getShipHullRegion, getShipSailRegion,
   type HullColor, type SailColor, type ShipSize,
 } from '@shared/definitions/islandAssetManifest';
 import { SHIP_CATALOG_BY_SIZE } from '@shared/definitions/shipCatalog';
@@ -232,33 +233,12 @@ export function setCaptain(ship: Ship, characterId: string): Ship {
 
 /** Get the hull tile region offset for a specific color and size */
 export function getHullRegion(size: ShipSize, color: HullColor) {
-  const colorIndex = HULL_COLORS.indexOf(color);
-  const baseRegion = size === 'rowboat'
-    ? SHIP_PARTS.hullRowboat
-    : size === 'sloop'
-      ? SHIP_PARTS.hullSloop
-      : SHIP_PARTS.hullGalleon;
-
-  // Each color is offset by (baseRegion.w + 1) columns in the sheet
-  const stride = baseRegion.w + 1;
-  return {
-    ...baseRegion,
-    col: baseRegion.col + colorIndex * stride,
-  };
+  const colorIndex = Math.max(0, HULL_COLORS.indexOf(color));
+  return getShipHullRegion(size, colorIndex);
 }
 
 /** Get the sail tile region offset for a specific color and ship size */
 export function getSailRegion(size: ShipSize, color: SailColor) {
-  const colorIndex = SAIL_COLORS.indexOf(color);
-  const baseRegion = size === 'rowboat'
-    ? SHIP_PARTS.sailSmall
-    : size === 'sloop'
-      ? SHIP_PARTS.sailMedium
-      : SHIP_PARTS.sailLarge;
-
-  const stride = baseRegion.w + 1;
-  return {
-    ...baseRegion,
-    col: baseRegion.col + colorIndex * stride,
-  };
+  const colorIndex = Math.max(0, SAIL_COLORS.indexOf(color));
+  return getShipSailRegion(size, colorIndex);
 }

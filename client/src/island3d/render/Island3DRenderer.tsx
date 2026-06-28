@@ -127,13 +127,20 @@ export function Island3DRenderer({
         sessionSend({ type: 'READY' });
         engine.start();
         if (engine.character && raceId && classId) {
+          const activeChar = await import('@/lib/characterManager').then((m) =>
+            m.CharacterManager.getActiveCharacter?.(),
+          );
           await engine.character.loadCharacterFromManifest(
             raceId,
             classId,
             characterId,
             undefined,
-            model3d,
+            model3d ?? activeChar?.model3d,
+            activeChar?.equipment,
           );
+          if (activeChar?.equipment) {
+            engine.character.setEquipment(activeChar.equipment);
+          }
         }
         setEngineReady(engine);
         onEngineReady?.(engine);

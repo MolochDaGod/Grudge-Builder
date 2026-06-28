@@ -4,6 +4,11 @@
  */
 import * as THREE from 'three';
 import { loadGltf } from '@/lib/GltfAssetLoader';
+import {
+  ShipBoardingController,
+  shipSizeFromAccount,
+} from '@/game/dock/ShipBoardingController';
+import type { CharacterController3D } from '@/island3d/player/CharacterController3D';
 
 import {
   DOCK_GLB,
@@ -35,9 +40,11 @@ export interface LobbyCaptureSystem {
 export interface LobbyShipSystem {
   dockGroup: THREE.Group;
   shipGroup: THREE.Group;
+  boarding: ShipBoardingController | null;
   isBoarded: boolean;
   dockPosition: THREE.Vector3;
   dockId: string;
+  attachBoarding: (character: CharacterController3D) => void;
   isNearDock: (playerPos: THREE.Vector3) => boolean;
   tryBoard: (playerPos: THREE.Vector3) => boolean;
   tryDisembark: (groundRoot: THREE.Object3D) => THREE.Vector3 | null;
@@ -212,7 +219,8 @@ export async function createLobbyShipSystem(
 
   ensureStarterShip(accountId, captainId);
   const active = getActiveShip(accountId);
-  const entry = getShipCatalogEntry(active?.size ?? 'rowboat');
+  const shipSize = active?.size ?? shipSizeFromAccount(accountId);
+  const entry = getShipCatalogEntry(shipSize);
   const shipLoaded = await loadDockGlb(shipGroup, entry.glbModel, 0.85);
 
   if (!shipLoaded) {
@@ -225,72 +233,80 @@ export async function createLobbyShipSystem(
   }
 
   const velocity = new THREE.Vector3();
-  let isBoarded = false;
+  let boarding: ShipBoardingController | null = null;
   const boardRadius = RTS_SOUTH_DOCK.boardRadius;
 
   return {
     dockGroup,
     shipGroup,
-    get isBoarded() { return isBoarded; },
+    get boarding() { return boarding; },
+    get isBoarded() { return boarding?.isOnDeck ?? false; },
     dockPosition,
     dockId: RTS_SOUTH_DOCK.id,
+    attachBoarding(character) {
+      if (boarding) boarding.dispose();
+      boarding = new ShipBoardingController({
+        shipRoot: shipGroup,
+        shipSize,
+        waterLevel: LOBBY_WATER_LEVEL,
+        character,
+      });
+    },
     isNearDock(playerPos) {
       return playerPos.distanceTo(dockPosition) <= boardRadius;
     },
     tryBoard(playerPos) {
-      if (isBoarded) return false;
+      if (!boarding) return false;
+      if (boarding.isOnDeck) return false;
       if (playerPos.distanceTo(dockPosition) > boardRadius) return false;
-      isBoarded = true;
-      return true;
+      return boarding.board();
     },
     tryDisembark(groundRoot) {
-      if (!isBoarded) return null;
-      const off = dockPosition.clone();
-      off.x += 8;
+      if (!boarding?.isOnDeck) return null;
+      const off = boarding.disembark(groundRoot, dockPosition);
+      if (!off) return null;
       const groundY = getSceneHeightAt(groundRoot, off.x, off.z, 200);
       off.y = (groundY ?? LOBBY_WATER_LEVEL + 1) + 2;
-      isBoarded = false;
       shipGroup.position.set(6, LOBBY_WATER_LEVEL + 0.2, 0);
       dockGroup.position.copy(dockPosition);
       velocity.set(0, 0, 0);
       return off;
     },
     update(dt, keys, cameraYaw) {
-      if (!isBoarded) {
-        shipGroup.position.y = LOBBY_WATER_LEVEL + 0.2 + Math.sin(performance.now() * 0.001) * 0.12;
+      boarding?.update(dt, keys, cameraYaw);
+
+      const bob = LOBBY_WATER_LEVEL + 0.2 + Math.sin(performance.now() * 0.001) * 0.12;
+      if (!boarding?.isOnDeck) {
+        shipGroup.position.y = bob;
         return;
       }
-      const dir = new THREE.Vector3();
-      if (keys.has('w')) dir.z -= 1;
-      if (keys.has('s')) dir.z += 1;
-      if (keys.has('q') || keys.has('a')) dir.x -= 1;
-      if (keys.has('e') || keys.has('d')) dir.x += 1;
-      if (dir.lengthSq() > 0) {
-        dir.normalize().applyAxisAngle(new THREE.Vector3(0, 1, 0), cameraYaw);
+
+      if (boarding.wantsHelm()) {
+        const dir = new THREE.Vector3(0, 0, -1);
+        dir.applyAxisAngle(new THREE.Vector3(0, 1, 0), cameraYaw);
         velocity.lerp(dir.multiplyScalar(18), dt * 2);
+      } else if (keys.has('s')) {
+        const dir = new THREE.Vector3(0, 0, 1);
+        dir.applyAxisAngle(new THREE.Vector3(0, 1, 0), cameraYaw);
+        velocity.lerp(dir.multiplyScalar(12), dt * 2);
       } else {
         velocity.multiplyScalar(0.92);
       }
-      dockGroup.position.x += velocity.x * dt;
-      dockGroup.position.z += velocity.z * dt;
-      dockGroup.position.y = LOBBY_WATER_LEVEL + 0.6 + Math.sin(performance.now() * 0.001) * 0.15;
+
       if (velocity.lengthSq() > 0.5) {
+        dockGroup.position.x += velocity.x * dt;
+        dockGroup.position.z += velocity.z * dt;
         dockGroup.rotation.y = Math.atan2(velocity.x, velocity.z);
       }
+      dockGroup.position.y = LOBBY_WATER_LEVEL + 0.6 + Math.sin(performance.now() * 0.001) * 0.15;
+      shipGroup.position.y = bob;
     },
-    syncCamera(camera, yaw) {
-      if (!isBoarded) return;
-      const dist = 28;
-      const h = 14;
-      const pos = dockGroup.position;
-      camera.position.set(
-        pos.x - Math.sin(yaw) * dist,
-        pos.y + h,
-        pos.z - Math.cos(yaw) * dist,
-      );
-      camera.lookAt(pos.x, pos.y + 4, pos.z);
+    syncCamera(_camera, _yaw) {
+      // Character camera follows Grudge6 on deck — no ship-orbit override.
     },
     destroy() {
+      boarding?.dispose();
+      boarding = null;
       scene.remove(dockGroup);
       dockGroup.traverse((c) => {
         if ((c as THREE.Mesh).isMesh) {

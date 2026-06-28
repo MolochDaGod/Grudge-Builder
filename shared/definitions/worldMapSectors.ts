@@ -100,6 +100,8 @@ export interface WorldSector {
   lore: string;
   /** Biome tag for procedural generation */
   biome: 'frozen' | 'storm' | 'forest' | 'desert' | 'ethereal' | 'volcanic' | 'abyssal' | 'nexus' | 'tropical';
+  /** PBR ground material id (Ground_1–10 set) — see island3d/terrain/GroundPBRTextures.ts */
+  groundPBR?: string;
   /** PvE difficulty floor (1-10) */
   difficultyMin: number;
   /** PvE difficulty ceiling */
@@ -176,6 +178,7 @@ export const WORLD_SECTORS: WorldSector[] = [
     description: 'A frozen wasteland of endless ice sheets and howling blizzards.',
     lore: 'When the Sundering cracked the northern shelf, the sea froze in an instant, trapping ancient ships and their crews in eternal ice. Frost spirits patrol the glaciers, and the wind itself carries memories of the dead.',
     biome: 'frozen',
+    groundPBR: 'ground_7',
     difficultyMin: 4,
     difficultyMax: 7,
     bounds: sectorBounds(1, 0),  // top-center
@@ -212,6 +215,7 @@ export const WORLD_SECTORS: WorldSector[] = [
     description: 'Perpetual thunderstorms rage above a maze of razor-sharp coral reefs.',
     lore: 'The gods clashed above these waters during the First Grudge, and the storm never stopped. Ships that wander in are torn apart by lightning-charged waves. Only the desperate sail here — and the brave.',
     biome: 'storm',
+    groundPBR: 'ground_4',
     difficultyMin: 3,
     difficultyMax: 6,
     bounds: sectorBounds(0, 1),  // mid-left
@@ -249,6 +253,7 @@ export const WORLD_SECTORS: WorldSector[] = [
     description: 'An ancient forest so dense that sunlight never reaches the floor.',
     lore: 'The Thornwood predates the factions. Its roots drink from the Worldboard itself, and its canopy hides creatures that have never seen sky. Worge clans claim dominion here, but the forest answers to no one.',
     biome: 'forest',
+    groundPBR: 'ground_6',
     difficultyMin: 3,
     difficultyMax: 7,
     bounds: sectorBounds(2, 0),
@@ -287,6 +292,7 @@ export const WORLD_SECTORS: WorldSector[] = [
     description: 'A scorched desert of glass and bone, ruled by ancient ruins.',
     lore: 'Before the Sundering, this was the seat of a great civilization. Now their towers rise from dunes of ash like broken teeth. Sandworms patrol the wastes, and cursed relics whisper from beneath the glass.',
     biome: 'desert',
+    groundPBR: 'ground_3',
     difficultyMin: 5,
     difficultyMax: 8,
     bounds: sectorBounds(2, 1),  // mid-right
@@ -322,6 +328,7 @@ export const WORLD_SECTORS: WorldSector[] = [
     description: 'The exact center of the world — where all factions converge.',
     lore: 'Every ley line, every current, every wind pattern spirals toward this point. The Gould Flame itself pulses beneath these waters. Control the Nexus, and you control the world.',
     biome: 'nexus',
+    groundPBR: 'ground_10',
     difficultyMin: 7,
     difficultyMax: 10,
     bounds: sectorBounds(1, 1),
@@ -364,6 +371,7 @@ export const WORLD_SECTORS: WorldSector[] = [
     description: 'A zone of impossible beauty and lethal danger — luminescent waterfalls cascade from floating islands into a churning abyss of spectral mist.',
     lore: 'When the First God wept during the Sundering, their tears became rivers of liquid light that flow upward, defying gravity. The falls shimmer between purple and cyan, illuminating islands of crystallized magic suspended in mid-air. The mist below is alive — phantoms of drowned sailors reach up from the luminous depths, and the water itself dissolves mortal flesh. Only the worthy may harvest the Ethereal Crystals that grow where light meets shadow.',
     biome: 'ethereal',
+    groundPBR: 'ground_8',
     difficultyMin: 6,
     difficultyMax: 9,
     bounds: sectorBounds(0, 0),  // top-left — remote magical corner
@@ -439,6 +447,7 @@ export const WORLD_SECTORS: WorldSector[] = [
     description: 'The deepest waters in the world — home to leviathans and sunken empires.',
     lore: 'The trench plunges so deep that light becomes a memory. Bioluminescent horrors patrol its depths, and the pressure alone can crush a hull. Ancient ruins of a drowned civilization line the trench walls.',
     biome: 'abyssal',
+    groundPBR: 'ground_9',
     difficultyMin: 7,
     difficultyMax: 10,
     bounds: sectorBounds(0, 2),
@@ -475,6 +484,7 @@ export const WORLD_SECTORS: WorldSector[] = [
     description: 'Volcanic islands erupting with molten fury and Gould Flame energy.',
     lore: 'The Sundering ripped open the seabed here, exposing rivers of magma that flow into the ocean. The resulting islands are young, brutal, and rich with Gould Flame shards. The Legion was born in places like this.',
     biome: 'volcanic',
+    groundPBR: 'ground_5',
     difficultyMin: 5,
     difficultyMax: 9,
     bounds: sectorBounds(2, 2),  // bottom-right — where the Legion was born
@@ -511,6 +521,7 @@ export const WORLD_SECTORS: WorldSector[] = [
     description: 'Calm tropical waters and gentle islands — the safest region in the world.',
     lore: 'Haven Shore is where every pirate begins their journey. Protected by the Grudge Pact, violence is forbidden in these waters. Palm-fringed islands offer shelter, training, and the first taste of adventure.',
     biome: 'tropical',
+    groundPBR: 'ground_1',
     difficultyMin: 1,
     difficultyMax: 3,
     bounds: sectorBounds(1, 2),  // bottom-center — safe starting zone, accessible

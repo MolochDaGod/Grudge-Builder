@@ -18,6 +18,7 @@ import { SPELLS } from "@shared/definitions/spells";
 import { deriveCharacterStats } from "@shared/rulesEngine";
 import { assetUrl } from "@/lib/assetConfig";
 import { playBGM, playRandomHit, playSFX } from "@/lib/audioManager";
+import { playCombatDamage, playCombatDeath } from "@/lib/dialogueAudioManager";
 import { useAuthGuard } from '@/hooks/use-auth-guard';
 
 interface Enemy {
@@ -903,6 +904,14 @@ export default function CombatPage() {
       setHeroStates(prev => prev.map((h, i) => 
         i === targetIdx ? { ...h, hp: newTargetHp, currentAction: damage > 0 ? "Hurt" : "Idle" } : h
       ));
+
+      if (damage > 0) {
+        if (newTargetHp <= 0) {
+          playCombatDeath(target.name, target.raceId);
+        } else {
+          playCombatDamage(target.name, target.raceId);
+        }
+      }
 
       setTimeout(() => {
         setEnemyActions(prev => ({ ...prev, [enemy.id]: "Idle" }));

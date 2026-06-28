@@ -1,6 +1,6 @@
 # Unified R2 asset uploader — delegates to category-specific scripts.
 # Usage:
-#   .\scripts\upload-assets-to-r2.ps1 [-DryRun] [-Category all|images|glb|animations|backgrounds|professions|skill-icons|sigils]
+#   .\scripts\upload-assets-to-r2.ps1 [-DryRun] [-Category all|images|glb|animations|pbr-ground|dialogue-audio|backgrounds|professions|skill-icons|sigils]
 
 param(
     [switch]$DryRun,
@@ -43,13 +43,23 @@ switch ($Category) {
     "animations" {
         Invoke-UploadScript "upload-animations-to-r2.ps1" @()
     }
+    "pbr-ground" {
+        node (Join-Path $scriptDir "upload-pbr-ground-textures.mjs")
+        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+    }
+    "dialogue-audio" {
+        node (Join-Path $scriptDir "upload-super-dialogue-audio.mjs")
+        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+    }
     "all" {
         Invoke-UploadScript "upload-images-to-r2.ps1" @("-Category", "all")
         Invoke-UploadScript "upload-animations-to-r2.ps1" @()
         Invoke-UploadScript "upload-glb-to-r2.ps1" @()
+        node (Join-Path $scriptDir "upload-pbr-ground-textures.mjs")
+        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
     }
     default {
-        Write-Error "Unknown category: $Category. Use all|images|glb|animations|backgrounds|professions|skill-icons|sigils"
+        Write-Error "Unknown category: $Category. Use all|images|glb|animations|pbr-ground|backgrounds|professions|skill-icons|sigils"
         exit 1
     }
 }
