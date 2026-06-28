@@ -37,7 +37,8 @@ export const FLEET_URLS = {
   anythingllm: "http://localhost:3001/api",
   colyseus: "wss://api.grudge-studio.com",
   world: "wss://world.grudge-studio.com",
-  charactersHub: "https://characters.grudge-studio.com",
+  charactersHub: "https://character.grudge-studio.com",
+  gcs: "https://character.grudge-studio.com",
   warlords: "https://grudgewarlords.com",
   /** Map & Model Editor — home-island creation (artifacts/studio) */
   studioEditor: "https://grudge-studio-editor.vercel.app",
@@ -114,11 +115,18 @@ export const FLEET_SERVICES: FleetService[] = [
     notes: "Island PvE/PvP — DNS pending",
   },
   {
+    id: "gcs",
+    label: "Grudge Character Studio (GCS)",
+    role: "hub",
+    url: FLEET_URLS.gcs,
+    notes: "HYDRA VRM + grudge6 forge — multi-era rosters (warlords, nexus, armada). Protected; not merged into Warlords /character.",
+  },
+  {
     id: "characters-hub",
-    label: "Character creator hub",
+    label: "Character creator hub (alias)",
     role: "hub",
     url: FLEET_URLS.charactersHub,
-    notes: "grudge6 playground + weapons mastery",
+    notes: "Canonical GCS URL — character.grudge-studio.com",
   },
   {
     id: "studio-editor",

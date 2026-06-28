@@ -8,10 +8,13 @@
     "assets": "https://assets.grudge-studio.com",
     "objectStore": "https://objectstore.grudge-studio.com/api/v1",
     "ai": "https://ai.grudge-studio.com",
+    "anythingllm": "http://localhost:3001/api",
     "colyseus": "wss://api.grudge-studio.com",
     "world": "wss://world.grudge-studio.com",
-    "charactersHub": "https://characters.grudge-studio.com",
-    "warlords": "https://grudgewarlords.com"
+    "charactersHub": "https://character.grudge-studio.com",
+    "gcs": "https://character.grudge-studio.com",
+    "warlords": "https://grudgewarlords.com",
+    "studioEditor": "https://grudge-studio-editor.vercel.app"
   },
   "services": [
     {
@@ -62,6 +65,14 @@
       "proxyPath": "/api/ai"
     },
     {
+      "id": "anythingllm",
+      "label": "AnythingLLM (local RAG)",
+      "role": "rag",
+      "url": "http://localhost:3001/api",
+      "proxyPath": "/api/ai/rag",
+      "notes": "Developer API — fleet docs, ObjectStore canonical JSON, Supabase context"
+    },
+    {
       "id": "colyseus",
       "label": "Colyseus realtime (Warlords)",
       "role": "realtime",
@@ -76,11 +87,25 @@
       "notes": "Island PvE/PvP — DNS pending"
     },
     {
-      "id": "characters-hub",
-      "label": "Character creator hub",
+      "id": "gcs",
+      "label": "Grudge Character Studio (GCS)",
       "role": "hub",
-      "url": "https://characters.grudge-studio.com",
-      "notes": "grudge6 playground + weapons mastery"
+      "url": "https://character.grudge-studio.com",
+      "notes": "HYDRA VRM + grudge6 forge — multi-era rosters (warlords, nexus, armada). Protected; not merged into Warlords /character."
+    },
+    {
+      "id": "characters-hub",
+      "label": "Character creator hub (alias)",
+      "role": "hub",
+      "url": "https://character.grudge-studio.com",
+      "notes": "Canonical GCS URL — character.grudge-studio.com"
+    },
+    {
+      "id": "studio-editor",
+      "label": "Studio Map & Model Editor",
+      "role": "hub",
+      "url": "https://grudge-studio-editor.vercel.app",
+      "notes": "Home-island terrain sculpt, GLB assets, Publish to Warlords"
     },
     {
       "id": "supabase",

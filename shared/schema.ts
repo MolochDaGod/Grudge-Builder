@@ -25,6 +25,10 @@ export const characters = pgTable("characters", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").notNull(), // Links to users if we add auth later
   accountId: varchar("account_id"), // UUID linking to accounts.id for sync
+  /** Universe line: warlords | nexus | armada (GCS multi-era roster) */
+  gameEra: text("game_era").notNull().default("warlords"),
+  /** One active character per era per account */
+  activeForEra: boolean("active_for_era").notNull().default(false),
   homeIslandId: varchar("home_island_id"), // UUID linking to home_islands.id for hero island association
   name: text("name").notNull(),
   raceId: text("race_id").notNull(),
@@ -49,6 +53,13 @@ export const characters = pgTable("characters", {
     armorColor: string;            // Hex color override for armor tint
     capeEnabled: boolean;          // Whether cape is shown
     scale: number;                 // Character scale (default 1.0)
+    grudge6?: boolean;
+    sourceUrl?: string;
+    gameEra?: 'warlords' | 'nexus' | 'armada';
+    voiceProfile?: string;
+    shipId?: string;
+    nexusMintId?: string;
+    renderPipeline?: 'grudge6' | 'vrm' | 'armada_ship' | 'sprite2d';
   }>().default(sql`'{"baseModelId":"default","equippedMeshes":{},"weaponSlots":{},"faceVariant":"A","skinColor":"#ffffff","armorColor":"#ffffff","capeEnabled":false,"scale":1.0}'::jsonb`),
   guildId: varchar("guild_id"),    // UUID linking to a guild/crew
   unspentAttributePoints: integer("unspent_attribute_points").notNull().default(0), // 7 points per level up
@@ -567,7 +578,13 @@ export const accounts = pgTable("accounts", {
   gold: integer("gold").notNull().default(0),
   premiumCurrency: integer("premium_currency").notNull().default(0),
   gbuxBalance: integer("gbux_balance").notNull().default(0), // GbuX token balance
-  characterTokens: integer("character_tokens").notNull().default(1), // Tokens for creating new characters (1 free on account creation, +1 per boss clear)
+  characterTokens: integer("character_tokens").notNull().default(1), // Tokens for creating new Warlords-era characters (1 free on account creation, +1 per boss clear)
+  /** Per-era roster caps and active character IDs (GCS) */
+  eraSlots: jsonb("era_slots").$type<{
+    warlords: { max: number; activeCharacterId: string | null };
+    nexus: { max: number; activeCharacterId: string | null };
+    armada: { max: number; activeCharacterId: string | null };
+  }>().default(sql`'{"warlords":{"max":5,"activeCharacterId":null},"nexus":{"max":2,"activeCharacterId":null},"armada":{"max":2,"activeCharacterId":null}}'::jsonb`),
   accountXp: integer("account_xp").notNull().default(0), // Total aggregated XP from all characters
   avatarUrl: text("avatar_url"), // Custom avatar image URL
   // Solana wallet fields

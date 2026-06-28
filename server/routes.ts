@@ -2,6 +2,7 @@ import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertCharacterSchema, insertPartySchema, insertUnlockedSkillSchema, insertAccountInventorySchema, islandNFTs } from "@shared/schema";
+import { normalizeGameEra, mergeEraSlots, ERA_META, type GameEra } from "@shared/definitions/gameEras";
 import { db } from "./db";
 import { eq, sql } from "drizzle-orm";
 import { z } from "zod";
@@ -264,8 +265,20 @@ export async function registerRoutes(
   app.get("/api/characters", async (req, res) => {
     try {
       const userId = getUserId(req);
-      const characters = await storage.getCharacters(userId);
-      res.json(characters);
+      const eraQuery = typeof req.query.era === "string" ? req.query.era : undefined;
+      const eraParam = eraQuery ? normalizeGameEra(eraQuery) : undefined;
+      const envelope = req.query.envelope === "1" || !!eraQuery;
+      const characters = await storage.getCharacters(userId, eraParam);
+      if (!envelope) {
+        return res.json(characters);
+      }
+      const account = await storage.getOrCreateAccountForUser(userId);
+      res.json({
+        characters,
+        era: eraParam ?? null,
+        eraSlots: mergeEraSlots(account.eraSlots as import("@shared/definitions/gameEras").AccountEraSlots | null),
+        eraMeta: ERA_META,
+      });
     } catch (error) {
       console.error("Error fetching characters:", error);
       res.status(500).json({ error: "Failed to fetch characters" });
@@ -292,21 +305,34 @@ export async function registerRoutes(
   app.post("/api/characters", async (req, res) => {
     try {
       const userId = getUserId(req);
+      const gameEra = normalizeGameEra(req.body.gameEra);
 
-      // Gate: check character creation tokens
       const account = await storage.getOrCreateAccountForUser(userId);
-      const tokens = (account as any).characterTokens ?? 1;
-      if (tokens <= 0) {
+      const eraSlots = mergeEraSlots(account.eraSlots as import("@shared/definitions/gameEras").AccountEraSlots | null);
+      const eraCount = await storage.countCharactersForEra(userId, gameEra);
+      if (eraCount >= eraSlots[gameEra].max) {
         return res.status(403).json({
-          error: "No character tokens available. Defeat a boss to earn one!",
-          characterTokens: 0,
+          error: `No ${ERA_META[gameEra].shortLabel} roster slots available.`,
+          gameEra,
+          max: eraSlots[gameEra].max,
+          used: eraCount,
         });
       }
 
-      // Consume one token
-      await storage.updateAccount(account.id, {
-        characterTokens: tokens - 1,
-      } as any);
+      // Warlords-era creation still consumes boss-earned character tokens
+      if (gameEra === "warlords") {
+        const tokens = (account as any).characterTokens ?? 1;
+        if (tokens <= 0) {
+          return res.status(403).json({
+            error: "No character tokens available. Defeat a boss to earn one!",
+            characterTokens: 0,
+            gameEra,
+          });
+        }
+        await storage.updateAccount(account.id, {
+          characterTokens: tokens - 1,
+        } as any);
+      }
       
       // Get starting gear for the class
       const classId = req.body.classId || 'warrior';
@@ -324,11 +350,19 @@ export async function registerRoutes(
         ...(req.body.inventory || [])
       ];
       
+      const pipeline = ERA_META[gameEra].defaultPipeline;
       const validated = insertCharacterSchema.parse({
         ...req.body,
         userId,
+        gameEra,
+        activeForEra: eraCount === 0,
         equipment,
         inventory,
+        model3d: {
+          ...(req.body.model3d || {}),
+          gameEra,
+          renderPipeline: req.body.model3d?.renderPipeline || pipeline,
+        },
         spriteConfig: req.body.spriteConfig || {
           skinTone: 0,
           hairColor: 0,
@@ -338,6 +372,12 @@ export async function registerRoutes(
       });
       
       const character = await storage.createCharacter(validated);
+
+      if (eraCount === 0) {
+        const slots = mergeEraSlots(account.eraSlots as import("@shared/definitions/gameEras").AccountEraSlots | null);
+        slots[gameEra].activeCharacterId = character.id;
+        await storage.updateAccount(account.id, { eraSlots: slots });
+      }
       
       // Assign starting abilities based on class
       try {
@@ -440,6 +480,29 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Error updating character:", error);
       res.status(500).json({ error: "Failed to update character" });
+    }
+  });
+
+  app.put("/api/characters/:id/activate", async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      const character = await storage.getCharacter(req.params.id);
+      if (!character) {
+        return res.status(404).json({ error: "Character not found" });
+      }
+      if (character.userId !== userId) {
+        return res.status(403).json({ error: "Character does not belong to your account" });
+      }
+      const era = normalizeGameEra(req.body?.gameEra ?? character.gameEra);
+      const result = await storage.activateCharacterForEra(userId, req.params.id, era);
+      res.json(result);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to activate character";
+      if (message === "Character not found" || message === "Character does not belong to this era") {
+        return res.status(400).json({ error: message });
+      }
+      console.error("Error activating character:", error);
+      res.status(500).json({ error: "Failed to activate character" });
     }
   });
 

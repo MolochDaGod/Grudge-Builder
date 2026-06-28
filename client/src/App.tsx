@@ -14,7 +14,7 @@ import { prefetchCoreData } from "@/lib/objectStoreApi";
 import { syncGameDataFromObjectStore } from "@/lib/gameData";
 import { syncItemsFromObjectStore } from "@/lib/grudaDB";
 import NotFound from "@/pages/not-found";
-import CharacterBuilder from "@/pages/character-builder";
+import CharacterRedirect from "@/pages/character-redirect";
 import ProfessionsPage from "@/pages/professions";
 import DatabasePage from "@/pages/database";
 import IntroPage from "@/pages/intro";
@@ -86,8 +86,8 @@ function Router() {
       <Route path="/auth/callback" component={AuthCallbackPage} />
       <Route path="/intro" component={IntroPage} />
       <Route path="/home" component={HomePage} />
-      <Route path="/character" component={CharacterBuilder} />
-      <Route path="/characters" component={CharacterBuilder} />
+      <Route path="/character" component={CharacterRedirect} />
+      <Route path="/characters" component={CharacterRedirect} />
       <Route path="/create-character" component={CreateCharacterPage} />
       <Route path="/character-creator" component={CharacterCreatorPage} />
       <Route path="/professions" component={ProfessionsPage} />

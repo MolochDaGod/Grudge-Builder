@@ -145,9 +145,15 @@ export interface IStorage {
   createUser(user: InsertUser): Promise<User>;
 
   // Character methods
-  getCharacters(userId: string): Promise<Character[]>;
+  getCharacters(userId: string, era?: import("@shared/definitions/gameEras").GameEra): Promise<Character[]>;
+  countCharactersForEra(userId: string, era: import("@shared/definitions/gameEras").GameEra): Promise<number>;
   getCharacter(id: string): Promise<Character | undefined>;
   createCharacter(character: InsertCharacter): Promise<Character>;
+  activateCharacterForEra(
+    userId: string,
+    characterId: string,
+    era: import("@shared/definitions/gameEras").GameEra,
+  ): Promise<{ character: Character; eraSlots: import("@shared/definitions/gameEras").AccountEraSlots }>;
   updateCharacter(id: string, updates: Partial<InsertCharacter>): Promise<Character>;
   deleteCharacter(id: string): Promise<void>;
 
@@ -430,8 +436,53 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Character methods
-  async getCharacters(userId: string): Promise<Character[]> {
-    return await db.select().from(characters).where(eq(characters.userId, userId));
+  async getCharacters(userId: string, era?: import("@shared/definitions/gameEras").GameEra): Promise<Character[]> {
+    if (era) {
+      return db.select().from(characters).where(and(eq(characters.userId, userId), eq(characters.gameEra, era)));
+    }
+    return db.select().from(characters).where(eq(characters.userId, userId));
+  }
+
+  async countCharactersForEra(userId: string, era: import("@shared/definitions/gameEras").GameEra): Promise<number> {
+    const [row] = await db
+      .select({ total: count() })
+      .from(characters)
+      .where(and(eq(characters.userId, userId), eq(characters.gameEra, era)));
+    return Number(row?.total ?? 0);
+  }
+
+  async activateCharacterForEra(
+    userId: string,
+    characterId: string,
+    era: import("@shared/definitions/gameEras").GameEra,
+  ): Promise<{ character: Character; eraSlots: import("@shared/definitions/gameEras").AccountEraSlots }> {
+    const { mergeEraSlots } = await import("@shared/definitions/gameEras");
+    const character = await this.getCharacter(characterId);
+    if (!character || character.userId !== userId) {
+      throw new Error("Character not found");
+    }
+    if (character.gameEra !== era) {
+      throw new Error("Character does not belong to this era");
+    }
+
+    const account = await this.getOrCreateAccountForUser(userId);
+    const eraSlots = mergeEraSlots(account.eraSlots as import("@shared/definitions/gameEras").AccountEraSlots | null);
+
+    await db
+      .update(characters)
+      .set({ activeForEra: false })
+      .where(and(eq(characters.userId, userId), eq(characters.gameEra, era)));
+
+    const [updated] = await db
+      .update(characters)
+      .set({ activeForEra: true })
+      .where(eq(characters.id, characterId))
+      .returning();
+
+    eraSlots[era].activeCharacterId = characterId;
+    await this.updateAccount(account.id, { eraSlots });
+
+    return { character: updated, eraSlots };
   }
 
   async getCharacter(id: string): Promise<Character | undefined> {
