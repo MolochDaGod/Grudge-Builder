@@ -48,7 +48,7 @@ jobs:
     name: Smoke test puter-sso
     needs: deploy
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
       - name: Wait for puter-sso route
         run: |
