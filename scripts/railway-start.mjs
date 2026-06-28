@@ -6,11 +6,12 @@
 import { spawn } from "node:child_process";
 
 const node = process.execPath;
+const npmCmd = process.platform === "win32" ? "npm.cmd" : "npm";
 
-function run(command, args, label) {
+function run(command, args, label, { shell = false } = {}) {
   return new Promise((resolve, reject) => {
     console.log(`[railway-start] ${label}`);
-    const child = spawn(command, args, { stdio: "inherit", shell: false, env: process.env });
+    const child = spawn(command, args, { stdio: "inherit", shell, env: process.env, windowsHide: true });
     child.on("error", reject);
     child.on("exit", (code, signal) => {
       if (code === 0) resolve();
@@ -20,7 +21,7 @@ function run(command, args, label) {
 }
 
 try {
-  await run("npm", ["run", "db:push"], "npm run db:push");
+  await run(npmCmd, ["run", "db:push"], "npm run db:push", { shell: process.platform === "win32" });
 } catch (err) {
   console.error("[railway-start] Schema push failed:", err.message);
   process.exit(1);

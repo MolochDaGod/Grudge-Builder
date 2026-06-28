@@ -16,7 +16,7 @@
     "check": "tsc",
     "test:client": "vitest run --config client/vitest.config.ts",
     "test:client:watch": "vitest --config client/vitest.config.ts",
-    "db:push": "drizzle-kit push",
+    "db:push": "drizzle-kit push --force",
     "db:migrate:telegram": "node scripts/run-telegram-migration.mjs",
     "db:migrate:eras": "node scripts/run-migration-005.mjs",
     "smoke:gcs-eras": "node scripts/smoke-gcs-eras.mjs",
