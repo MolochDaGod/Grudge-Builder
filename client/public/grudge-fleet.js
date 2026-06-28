@@ -124,6 +124,18 @@
     return list.map(normalizeCharacter);
   }
 
+  /** On *.puter.site, puter.net.fetch bypasses CORS for Grudge API calls. */
+  async function fleetFetch(url, init) {
+    if (typeof puter !== 'undefined' && puter.net && puter.net.fetch) {
+      try {
+        return await puter.net.fetch(url, init);
+      } catch {
+        /* fall through to browser fetch */
+      }
+    }
+    return fetch(url, init);
+  }
+
   /** grudge_token → Railway JWT for the real Warlords account (not a synthetic puter user). */
   async function bridgeGrudgeLaunchToken(launchToken) {
     const audience = typeof window !== 'undefined' ? window.location.origin : '';
@@ -136,7 +148,7 @@
     ];
     for (const url of endpoints) {
       try {
-        const bridge = await fetch(url, {
+        const bridge = await fleetFetch(url, {
           method: 'POST',
           credentials: 'include',
           headers: { 'Content-Type': 'application/json' },
@@ -179,7 +191,7 @@
     if (typeof puter === 'undefined' || !puter.auth) throw new Error('Puter SDK not loaded');
     await puter.auth.signIn();
     const pu = await puter.auth.getUser();
-    const res = await fetch(FLEET.gameData + '/api/auth/puter', {
+    const res = await fleetFetch(FLEET.gameData + '/api/auth/puter', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -204,7 +216,7 @@
     if (!token) return;
 
     try {
-      const userRes = await fetch(FLEET.gameData + '/api/account', { headers: authHeaders() });
+      const userRes = await fleetFetch(FLEET.gameData + '/api/account', { headers: authHeaders() });
       if (userRes.ok) {
         const userData = await userRes.json();
         _user = {
@@ -217,7 +229,7 @@
         if (_user.grudgeId) lsSet(ACCOUNT_ID_KEY, _user.grudgeId);
       }
 
-      const charRes = await fetch(FLEET.gameData + '/api/characters?era=warlords', { headers: authHeaders() });
+      const charRes = await fleetFetch(FLEET.gameData + '/api/characters?era=warlords', { headers: authHeaders() });
       if (charRes.ok) {
         _characters = parseCharactersPayload(await charRes.json());
 
@@ -298,7 +310,7 @@
     },
 
     async login(identifier, password) {
-      const res = await fetch(FLEET.gameData + '/api/auth/login', {
+      const res = await fleetFetch(FLEET.gameData + '/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username: identifier, password }),
@@ -312,7 +324,7 @@
 
     async register(username, password, opts) {
       opts = opts || {};
-      const res = await fetch(FLEET.gameData + '/api/auth/register', {
+      const res = await fleetFetch(FLEET.gameData + '/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -330,7 +342,7 @@
     },
 
     async guest() {
-      const res = await fetch(FLEET.gameData + '/api/auth/guest', {
+      const res = await fleetFetch(FLEET.gameData + '/api/auth/guest', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: '{}',
@@ -395,7 +407,7 @@
       const token = readToken();
       if (!token) return null;
       try {
-        const res = await fetch(FLEET.gameData + '/api/characters/' + encodeURIComponent(id), {
+        const res = await fleetFetch(FLEET.gameData + '/api/characters/' + encodeURIComponent(id), {
           method: 'PATCH',
           headers: authHeaders(),
           body: JSON.stringify(updates),

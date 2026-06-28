@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Deploy grudge-crafting → Puter</title>
+<script src="https://js.puter.com/v2/"></script>
+<style>
+  body { font-family: system-ui, sans-serif; background: #0a0a10; color: #d0d0d0; padding: 2rem; max-width: 720px; margin: 0 auto; }
+  h1 { color: #d4a843; font-size: 1.25rem; }
+  button { background: #d4a843; color: #0a0a10; border: 0; padding: 0.6rem 1.2rem; border-radius: 6px; cursor: pointer; font-weight: 600; margin: 0.5rem 0.5rem 0.5rem 0; }
+  button:disabled { opacity: 0.5; cursor: wait; }
+  pre { background: #14141f; padding: 1rem; border-radius: 8px; overflow: auto; font-size: 12px; white-space: pre-wrap; }
+  .ok { color: #22c55e; } .err { color: #ef4444; } .dim { color: #888; }
+</style>
+</head>
+<body>
+<h1>Grudge Crafting — Puter Browser Deploy</h1>
+<p class="dim">Sign in as <strong>MolochDaDev</strong> (subdomain owner). Uses Puter SDK in-browser — no expired CLI tokens.</p>
+<button id="btnProbe">1. Probe hosting</button>
+<button id="btnDeploy">2. Deploy fleet-enabled crafting</button>
+<pre id="log">Ready.\n</pre>
+<script>
+const CDN_HTML = 'https://assets.grudge-studio.com/crafting/grudge-crafting.html';
+const CDN_FLEET = 'https://assets.grudge-studio.com/js/grudge-fleet.js';
+const CANONICAL = '/GRUDACHAIN/crafting';
+const SUBDOMAIN = 'grudge-crafting';
+
+const logEl = document.getElementById('log');
+function log(msg, cls) {
+  const line = document.createElement('span');
+  if (cls) line.className = cls;
+  line.textContent = msg + '\n';
+  logEl.appendChild(line);
+  logEl.scrollTop = logEl.scrollHeight;
+}
+
+async function ensureAuth() {
+  if (!puter.auth.isSignedIn()) {
+    log('Signing in to Puter…');
+    await puter.auth.signIn();
+  }
+  const u = await puter.auth.getUser();
+  log('✓ ' + u.username, 'ok');
+  return u;
+}
+
+async function fetchText(url) {
+  const res = typeof puter !== 'undefined' && puter.net
+    ? await puter.net.fetch(url)
+    : await fetch(url);
+  if (!res.ok) throw new Error(url + ' → ' + res.status);
+  return res.text();
+}
+
+document.getElementById('btnProbe').onclick = async () => {
+  document.getElementById('btnProbe').disabled = true;
+  try {
+    await ensureAuth();
+    const site = await puter.hosting.get(SUBDOMAIN);
+    log('Hosting root_dir: ' + (site.root_dir || site.rootDir || JSON.stringify(site)));
+    try {
+      const list = await puter.fs.readdir(site.root_dir || site.rootDir || CANONICAL);
+      log('Files: ' + (list.map ? list.map(i => i.name).join(', ') : JSON.stringify(list).slice(0, 200)));
+    } catch (e) { log('readdir: ' + e.message, 'err'); }
+  } catch (e) {
+    log('Probe failed: ' + e.message, 'err');
+  }
+  document.getElementById('btnProbe').disabled = false;
+};
+
+document.getElementById('btnDeploy').onclick = async () => {
+  const btn = document.getElementById('btnDeploy');
+  btn.disabled = true;
+  try {
+    await ensureAuth();
+    log('Fetching latest HTML from CDN…');
+    let html, fleet;
+    try {
+      html = await fetchText(CDN_HTML);
+      fleet = await fetchText(CDN_FLEET);
+    } catch {
+      log('CDN miss — paste fails; upload to R2 first.', 'err');
+      throw new Error('CDN assets not found');
+    }
+    log('HTML ' + html.length + ' bytes, fleet ' + fleet.length + ' bytes');
+
+    let rootDir = CANONICAL;
+    try {
+      const site = await puter.hosting.get(SUBDOMAIN);
+      rootDir = site.root_dir || site.rootDir || CANONICAL;
+      log('Current hosting root: ' + rootDir);
+    } catch (e) {
+      log('hosting.get: ' + e.message + ' — using ' + CANONICAL, 'dim');
+    }
+
+    const indexPath = rootDir.replace(/\/$/, '') + '/index.html';
+    const fleetPath = rootDir.replace(/\/$/, '') + '/grudge-fleet.js';
+
+    log('Writing ' + indexPath + '…');
+    await puter.fs.write(indexPath, html, { overwrite: true, createMissingParents: true });
+    log('✓ index.html', 'ok');
+
+    log('Writing ' + fleetPath + '…');
+    await puter.fs.write(fleetPath, fleet, { overwrite: true, createMissingParents: true });
+    log('✓ grudge-fleet.js', 'ok');
+
+    if (!rootDir.includes('crafting')) {
+      log('Updating hosting → ' + CANONICAL);
+      await puter.hosting.update(SUBDOMAIN, CANONICAL);
+      log('✓ hosting updated', 'ok');
+    }
+
+    log('\n✅ https://' + SUBDOMAIN + '.puter.site', 'ok');
+    log('Hard-refresh the site (Ctrl+Shift+R) to verify GRUDGE_CONFIG + grudge-fleet.js');
+  } catch (e) {
+    log('Deploy failed: ' + e.message, 'err');
+  }
+  btn.disabled = false;
+};
+</script>
+</body>
+</html>
