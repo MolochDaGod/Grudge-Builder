@@ -126,22 +126,30 @@
 
   /** grudge_token → Railway JWT for the real Warlords account (not a synthetic puter user). */
   async function bridgeGrudgeLaunchToken(launchToken) {
-    try {
-      const bridge = await fetch(FLEET.gameData + '/api/auth/grudge-bridge', {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          token: launchToken,
-          audience: typeof window !== 'undefined' ? window.location.origin : '',
-        }),
-      });
-      if (!bridge.ok) return false;
-      applyAuthResponse(await bridge.json());
-      return true;
-    } catch {
-      return false;
+    const audience = typeof window !== 'undefined' ? window.location.origin : '';
+    const body = JSON.stringify({ token: launchToken, audience });
+    const endpoints = [
+      FLEET.gameData + '/api/auth/grudge-bridge',
+      FLEET.identityApi + '/api/auth/grudge-bridge',
+      FLEET.gameData + '/api/auth/session/exchange',
+      FLEET.identityApi + '/api/auth/session/exchange',
+    ];
+    for (const url of endpoints) {
+      try {
+        const bridge = await fetch(url, {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body,
+        });
+        if (!bridge.ok) continue;
+        applyAuthResponse(await bridge.json());
+        return true;
+      } catch {
+        /* try next endpoint */
+      }
     }
+    return false;
   }
 
   function pickupUrlTokens(skipLaunchToken) {

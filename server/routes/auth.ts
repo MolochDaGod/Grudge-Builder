@@ -502,37 +502,94 @@ export function registerAuthRoutes(app: Express) {
     }
   });
 
+  /** Resolve id.grudge-studio.com launch JWT → DB user (supports userId, sub, or grudgeId). */
+  async function resolveLaunchTokenUser(launchToken: string, audience = "") {
+    let grudgeId = "";
+    let identityUserId = "";
+    let decodedAud = "";
+
+    try {
+      const decoded = jwt.verify(launchToken, JWT_SECRET) as {
+        type?: string;
+        userId?: string;
+        grudgeId?: string;
+        sub?: string | number;
+        aud?: string;
+      };
+      decodedAud = decoded.aud || "";
+      if (decoded.type === "launch" && decoded.userId) {
+        identityUserId = decoded.userId;
+        grudgeId = decoded.grudgeId || "";
+      } else {
+        grudgeId = decoded.grudgeId || "";
+        if (decoded.sub != null) identityUserId = String(decoded.sub);
+        if (decoded.userId) identityUserId = decoded.userId;
+      }
+    } catch {
+      /* fall through to identity API */
+    }
+
+    const aud = audience || decodedAud;
+    if (aud && decodedAud && aud !== decodedAud) {
+      return { error: "Audience mismatch" as const };
+    }
+
+    if (!grudgeId) {
+      const identityApi = process.env.IDENTITY_API_URL || "https://api.grudge-studio.com";
+      const ex = await fetch(`${identityApi}/api/auth/session/exchange`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token: launchToken, audience: aud }),
+      });
+      if (!ex.ok) return { error: "Invalid or expired token" as const };
+      const profile = (await ex.json()) as {
+        id?: string | number;
+        grudgeId?: string;
+        userId?: string;
+      };
+      grudgeId = profile.grudgeId || "";
+      if (profile.userId) identityUserId = profile.userId;
+      if (profile.id != null) identityUserId = String(profile.id);
+    }
+
+    if (!grudgeId && !identityUserId) {
+      return { error: "Token missing grudgeId" as const };
+    }
+
+    let user: typeof users.$inferSelect | undefined;
+    if (grudgeId) {
+      [user] = await db.select().from(users).where(eq(users.grudgeId, grudgeId)).limit(1);
+    }
+    if (!user && identityUserId) {
+      [user] = await db.select().from(users).where(eq(users.id, identityUserId)).limit(1);
+    }
+    if (!user) return { error: "User not found" as const };
+    return { user };
+  }
+
   /** POST /api/auth/session/exchange — bridge launch token → session profile + JWT. */
   app.post("/api/auth/session/exchange", authRateLimit, async (req: Request, res: Response) => {
     try {
       const launchToken = req.body?.token as string;
       if (!launchToken) return res.status(400).json({ error: "token required" });
 
-      const decoded = jwt.verify(launchToken, JWT_SECRET) as {
-        type?: string;
-        userId: string;
-        grudgeId?: string;
-        aud?: string;
-      };
-      if (decoded.type !== "launch") {
-        return res.status(400).json({ error: "Invalid launch token" });
+      const audience = (req.body?.audience as string) || "";
+      const resolved = await resolveLaunchTokenUser(launchToken, audience);
+      if ("error" in resolved) {
+        const status =
+          resolved.error === "User not found" ? 404 :
+          resolved.error === "Audience mismatch" ? 403 : 401;
+        return res.status(status).json({ error: resolved.error });
       }
 
-      const audience = (req.body?.audience as string) || decoded.aud || "";
-      if (audience && decoded.aud && audience !== decoded.aud) {
-        return res.status(403).json({ error: "Audience mismatch" });
-      }
-
-      const [user] = await db.select().from(users).where(eq(users.id, decoded.userId)).limit(1);
-      if (!user) return res.status(404).json({ error: "User not found" });
-
+      const { user } = resolved;
       const [account] = await db.select().from(accounts).where(eq(accounts.userId, user.id)).limit(1);
       const displayName =
         account?.displayName ||
         (user.username.includes(":") ? user.username.split(":").slice(1).join(":") : user.username);
       const sessionToken = signToken({
         userId: user.id,
-        grudgeId: user.grudgeId || account?.grudgeId || decoded.grudgeId || "",
+        grudgeId: user.grudgeId || account?.grudgeId || "",
         username: displayName,
       });
       setSessionCookie(res, sessionToken);
@@ -563,64 +620,15 @@ export function registerAuthRoutes(app: Express) {
       if (!launchToken) return res.status(400).json({ success: false, error: "token required" });
 
       const audience = (req.body?.audience as string) || "";
-      let grudgeId = "";
-      let identityUserId = "";
-
-      try {
-        const decoded = jwt.verify(launchToken, JWT_SECRET) as {
-          type?: string;
-          userId?: string;
-          grudgeId?: string;
-          sub?: string | number;
-        };
-        if (decoded.type === "launch" && decoded.userId) {
-          identityUserId = decoded.userId;
-          grudgeId = decoded.grudgeId || "";
-        } else {
-          grudgeId = decoded.grudgeId || "";
-          if (decoded.sub != null) identityUserId = String(decoded.sub);
-          if (decoded.userId) identityUserId = decoded.userId;
-        }
-      } catch {
-        /* fall through to identity API */
+      const resolved = await resolveLaunchTokenUser(launchToken, audience);
+      if ("error" in resolved) {
+        const status =
+          resolved.error === "User not found" ? 404 :
+          resolved.error === "Audience mismatch" ? 403 : 401;
+        return res.status(status).json({ success: false, error: resolved.error });
       }
 
-      if (!grudgeId) {
-        const identityApi =
-          process.env.IDENTITY_API_URL || "https://api.grudge-studio.com";
-        const ex = await fetch(`${identityApi}/api/auth/session/exchange`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ token: launchToken, audience }),
-        });
-        if (!ex.ok) {
-          return res.status(401).json({ success: false, error: "Invalid or expired token" });
-        }
-        const profile = (await ex.json()) as {
-          id?: string | number;
-          grudgeId?: string;
-          username?: string;
-          displayName?: string;
-        };
-        grudgeId = profile.grudgeId || "";
-        if (profile.id != null) identityUserId = String(profile.id);
-      }
-
-      if (!grudgeId && !identityUserId) {
-        return res.status(401).json({ success: false, error: "Token missing grudgeId" });
-      }
-
-      let user: typeof users.$inferSelect | undefined;
-      if (grudgeId) {
-        [user] = await db.select().from(users).where(eq(users.grudgeId, grudgeId)).limit(1);
-      }
-      if (!user && identityUserId) {
-        [user] = await db.select().from(users).where(eq(users.id, identityUserId)).limit(1);
-      }
-      if (!user) {
-        return res.status(404).json({ success: false, error: "Grudge account not found" });
-      }
-
+      const { user } = resolved;
       const account = await ensureAccount(user.id);
       const response = buildAuthResponse(
         { id: user.id, username: user.username, grudgeId: user.grudgeId },
@@ -1115,5 +1123,5 @@ export function registerAuthRoutes(app: Express) {
     }
   });
 
-  console.log("[Auth] Routes registered: /api/auth/{page,puter,puter-sso,guest,complete-profile,popup-token,session/exchange,wallet,login,register,verify,me,puter-link,discord/callback,google/start,phone/send,phone/verify}");
+  console.log("[Auth] Routes registered: /api/auth/{page,puter,puter-sso,guest,complete-profile,popup-token,session/exchange,grudge-bridge,wallet,login,register,verify,me,puter-link,discord/callback,google/start,phone/send,phone/verify}");
 }

@@ -99,18 +99,17 @@ const subdomain  = 'grudge-crafting';
 // 1. Get token
 const token = readCliToken();
 
-// 2. Verify auth
+// 2. Verify auth (fail fast on expired session)
 try {
   const user = await puterFetch('/whoami', {}, token);
   console.log(`✓ Authenticated as: ${user?.username ?? JSON.stringify(user).slice(0, 60)}`);
 } catch (e) {
-  // /whoami might not exist — try /auth/check
-  try {
-    await puterFetch('/auth/check', {}, token);
-    console.log('✓ Auth token valid');
-  } catch {
-    console.warn(`⚠ Auth check failed: ${e.message} — proceeding anyway`);
+  if (String(e.message).includes('reauth_required') || String(e.message).includes('401')) {
+    console.error('\n❌ Puter session expired. Run: puter login');
+    console.error('   Then: node scripts/deploy-puter-cli-auth.mjs\n');
+    process.exit(1);
   }
+  console.warn(`⚠ Auth check skipped: ${e.message}`);
 }
 
 // 3. Read local file
