@@ -66,6 +66,10 @@ async function buildServer() {
     bundle: true,
     format: "esm",
     outfile: "dist/index.js",
+    banner: {
+      js: `import { createRequire as __grudgeCreateRequire } from "module";
+const require = __grudgeCreateRequire(import.meta.url);`,
+    },
     alias: {
       "@shared": path.resolve("shared"),
     },
