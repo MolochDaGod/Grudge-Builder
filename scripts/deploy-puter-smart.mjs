@@ -3,7 +3,7 @@
  * Smart Puter deploy for grudge-crafting.puter.site
  *
  * Strategy (per Puter registry + fix-puter-404s.mjs):
- *  1. Auth as subdomain owner (MolochDaDev via puter-cli token)
+ *  1. Auth as GRUDACHAIN (PUTER_AUTH_TOKEN in .env — production deploy account)
  *  2. Probe hosting root_dir via drivers/call (puter-subdomains)
  *  3. Upload to canonical /GRUDACHAIN/crafting/ via /batch (no SDK — Node 24 safe)
  *  4. Point hosting at that dir (or leave if already correct)
@@ -22,7 +22,7 @@ import { randomUUID } from 'crypto';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PUTER_API = 'https://api.puter.com';
 const SUBDOMAIN = 'grudge-crafting';
-const CANONICAL_DIR = '/GRUDACHAIN/crafting';
+const CANONICAL_DIR = '/GRUDACHAIN/grudge-crafting';
 const CDN_APP = 'https://assets.grudge-studio.com/crafting/grudge-crafting.html';
 const useBootstrap = process.argv.includes('--bootstrap');
 

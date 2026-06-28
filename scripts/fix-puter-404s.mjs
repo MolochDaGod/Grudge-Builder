@@ -56,7 +56,7 @@ const CANONICAL_SITES = [
   // GRUDGE STUDIO GAMES
   { dir: 'dist',                 sub: 'grudge-attack-system',   cat: 'game',  desc: 'Attack Motion System' },
   { dir: 'Warlords',             sub: 'grudge-warlords-7dp9c',  cat: 'game',  desc: 'Warlords 2D RPG' },
-  { dir: 'crafting',             sub: 'grudge-crafting',         cat: 'game',  desc: 'Crafting Suite' },
+  { dir: 'grudge-crafting',      sub: 'grudge-crafting',         cat: 'game',  desc: 'Crafting Suite' },
   { dir: 'gruda',                sub: 'active-meerkat-8204',     cat: 'game',  desc: 'GRUDGE Warlords Login' },
   { dir: 'grudge-arena-*',       sub: 'grudgechain-fixed-v2-wx18h', cat: 'game', desc: 'Grudge Arena 3D' },
 

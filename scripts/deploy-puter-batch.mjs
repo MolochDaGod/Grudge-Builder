@@ -9,7 +9,7 @@ import { randomUUID } from 'crypto';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PUTER_API = 'https://api.puter.com';
-const REMOTE_DIR = '/GRUDACHAIN/crafting';
+const REMOTE_DIR = '/GRUDACHAIN/grudge-crafting';
 const SUBDOMAIN = 'grudge-crafting';
 
 function loadToken() {
