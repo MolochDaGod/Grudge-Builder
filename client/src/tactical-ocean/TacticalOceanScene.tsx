@@ -4,6 +4,7 @@ import { ThreeWorldMapManager, CameraMode, Island3D, WindState } from '@/tactica
 import { LEGACY_SECTOR_IDS, LEGACY_TO_ZONE_ID } from '@shared/definitions/sectorBridge';
 import { getSectorById } from '@shared/definitions/worldMapSectors';
 import { OCEAN_SECTOR_POSITIONS } from '@/lib/oceanNavigation';
+import { ensureStarterShip, getActiveShip } from '@/lib/shipDockService';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -143,7 +144,15 @@ export function TacticalOceanScene({ onBackToMenu, onLandOnIsland }: TacticalOce
     
     const spawn = OCEAN_SECTOR_POSITIONS.S;
     const playerPos = new THREE.Vector3(spawn.x, 0, spawn.z);
-    manager.createPlayerShip('player', playerPos, 'Captain');
+    const oceanAccount = sessionStorage.getItem('grudge-ocean-account') ?? 'guest';
+    ensureStarterShip(oceanAccount, null);
+    const activeShip = getActiveShip(oceanAccount);
+    manager.createPlayerShipFromCatalog(
+      'player',
+      playerPos,
+      activeShip?.name ?? 'Captain',
+      activeShip?.size ?? 'rowboat',
+    );
 
     for (let i = 0; i < 12; i++) {
       const angle = Math.random() * Math.PI * 2;

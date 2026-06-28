@@ -3,8 +3,14 @@
  * Water ocean, Grudge6 character ground sampling, RTS capture points, ship sailing.
  */
 import * as THREE from 'three';
-import { loadCharacterModel } from '@/lib/modelLoader';
-import { assetUrl } from '@/lib/assetConfig';
+import { loadGltf } from '@/lib/GltfAssetLoader';
+
+import {
+  DOCK_GLB,
+  getShipCatalogEntry,
+  RTS_SOUTH_DOCK,
+} from '@shared/definitions/shipCatalog';
+import { getActiveShip, ensureStarterShip } from '@/lib/shipDockService';
 import { getSceneHeightAt } from '../terrain/IslandTerrainGenerator';
 import type { LobbyLoadResult } from './LobbyIslandLoader';
 
@@ -27,9 +33,12 @@ export interface LobbyCaptureSystem {
 }
 
 export interface LobbyShipSystem {
-  group: THREE.Group;
+  dockGroup: THREE.Group;
+  shipGroup: THREE.Group;
   isBoarded: boolean;
   dockPosition: THREE.Vector3;
+  dockId: string;
+  isNearDock: (playerPos: THREE.Vector3) => boolean;
   tryBoard: (playerPos: THREE.Vector3) => boolean;
   tryDisembark: (groundRoot: THREE.Object3D) => THREE.Vector3 | null;
   update: (dt: number, keys: Set<string>, cameraYaw: number) => void;
@@ -151,73 +160,83 @@ export function createLobbyCapturePoints(
   };
 }
 
-const SHIP_MODELS = [
-  assetUrl('/models/ships/galleon.glb'),
-  assetUrl('/models/ships/sloop.glb'),
-  assetUrl('/models/buildings/village/dock.glb'),
-];
+async function loadDockGlb(scene: THREE.Group, path: string, scale: number): Promise<boolean> {
+  try {
+    const gltf = await loadGltf(path, 'high');
+    const model = gltf.scene.clone(true);
+    model.scale.setScalar(scale);
+    model.traverse((c) => {
+      if ((c as THREE.Mesh).isMesh) {
+        c.castShadow = true;
+        c.receiveShadow = true;
+      }
+    });
+    const box = new THREE.Box3().setFromObject(model);
+    model.position.y = -box.min.y;
+    scene.add(model);
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 export async function createLobbyShipSystem(
   scene: THREE.Scene,
   lobby: LobbyLoadResult,
+  accountId = 'guest',
+  captainId: string | null = null,
 ): Promise<LobbyShipSystem> {
-  const dockX = lobby.center.x + lobby.size.x * 0.2;
-  const dockZ = lobby.center.z + lobby.size.z * 0.25;
-  const dockY = LOBBY_WATER_LEVEL + 0.5;
-  const dockPosition = new THREE.Vector3(dockX, dockY, dockZ);
+  const south = lobby.center.clone();
+  south.z += lobby.size.z * 0.35;
+  const gy = getSceneHeightAt(lobby.scene, south.x, south.z, 200) ?? LOBBY_WATER_LEVEL;
+  const dockPosition = new THREE.Vector3(south.x, gy + 0.5, south.z);
 
-  const group = new THREE.Group();
-  group.position.copy(dockPosition);
-  group.rotation.y = Math.PI * 0.15;
-  scene.add(group);
+  const dockGroup = new THREE.Group();
+  dockGroup.position.copy(dockPosition);
+  dockGroup.rotation.y = -Math.PI / 2;
+  scene.add(dockGroup);
 
-  let loaded = false;
-  for (const url of SHIP_MODELS) {
-    try {
-      const model = await loadCharacterModel(url);
-      model.scene.scale.setScalar(url.includes('dock') ? 2 : 0.8);
-      model.scene.traverse((c) => {
-        if ((c as THREE.Mesh).isMesh) {
-          c.castShadow = true;
-          c.receiveShadow = true;
-        }
-      });
-      group.add(model.scene);
-      loaded = true;
-      break;
-    } catch {
-      /* try next */
-    }
+  const shipGroup = new THREE.Group();
+  shipGroup.position.set(6, LOBBY_WATER_LEVEL + 0.2, 0);
+  dockGroup.add(shipGroup);
+
+  const dockLoaded = await loadDockGlb(dockGroup, DOCK_GLB, 2);
+  if (!dockLoaded) {
+    const pier = new THREE.Mesh(
+      new THREE.BoxGeometry(14, 1, 28),
+      new THREE.MeshStandardMaterial({ color: 0x5c4033 }),
+    );
+    pier.position.y = 0.5;
+    dockGroup.add(pier);
   }
 
-  if (!loaded) {
+  ensureStarterShip(accountId, captainId);
+  const active = getActiveShip(accountId);
+  const entry = getShipCatalogEntry(active?.size ?? 'rowboat');
+  const shipLoaded = await loadDockGlb(shipGroup, entry.glbModel, 0.85);
+
+  if (!shipLoaded) {
     const hull = new THREE.Mesh(
-      new THREE.BoxGeometry(12, 4, 28),
+      new THREE.BoxGeometry(8, 3, 18),
       new THREE.MeshStandardMaterial({ color: 0x5c3d2e }),
     );
-    hull.position.y = 2;
-    const mast = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.3, 0.4, 14, 8),
-      new THREE.MeshStandardMaterial({ color: 0x3d2817 }),
-    );
-    mast.position.set(0, 9, -2);
-    const sail = new THREE.Mesh(
-      new THREE.PlaneGeometry(10, 12),
-      new THREE.MeshStandardMaterial({ color: 0xf8fafc, side: THREE.DoubleSide }),
-    );
-    sail.position.set(0, 10, -2);
-    sail.rotation.y = Math.PI / 2;
-    group.add(hull, mast, sail);
+    hull.position.y = 1.5;
+    shipGroup.add(hull);
   }
 
   const velocity = new THREE.Vector3();
   let isBoarded = false;
-  const boardRadius = 10;
+  const boardRadius = RTS_SOUTH_DOCK.boardRadius;
 
   return {
-    group,
+    dockGroup,
+    shipGroup,
     get isBoarded() { return isBoarded; },
     dockPosition,
+    dockId: RTS_SOUTH_DOCK.id,
+    isNearDock(playerPos) {
+      return playerPos.distanceTo(dockPosition) <= boardRadius;
+    },
     tryBoard(playerPos) {
       if (isBoarded) return false;
       if (playerPos.distanceTo(dockPosition) > boardRadius) return false;
@@ -227,16 +246,20 @@ export async function createLobbyShipSystem(
     tryDisembark(groundRoot) {
       if (!isBoarded) return null;
       const off = dockPosition.clone();
-      off.x += 6;
-      const gy = getSceneHeightAt(groundRoot, off.x, off.z, 200);
-      off.y = (gy ?? LOBBY_WATER_LEVEL + 1) + 2;
+      off.x += 8;
+      const groundY = getSceneHeightAt(groundRoot, off.x, off.z, 200);
+      off.y = (groundY ?? LOBBY_WATER_LEVEL + 1) + 2;
       isBoarded = false;
-      group.position.copy(dockPosition);
+      shipGroup.position.set(6, LOBBY_WATER_LEVEL + 0.2, 0);
+      dockGroup.position.copy(dockPosition);
       velocity.set(0, 0, 0);
       return off;
     },
     update(dt, keys, cameraYaw) {
-      if (!isBoarded) return;
+      if (!isBoarded) {
+        shipGroup.position.y = LOBBY_WATER_LEVEL + 0.2 + Math.sin(performance.now() * 0.001) * 0.12;
+        return;
+      }
       const dir = new THREE.Vector3();
       if (keys.has('w')) dir.z -= 1;
       if (keys.has('s')) dir.z += 1;
@@ -248,27 +271,28 @@ export async function createLobbyShipSystem(
       } else {
         velocity.multiplyScalar(0.92);
       }
-      group.position.x += velocity.x * dt;
-      group.position.z += velocity.z * dt;
-      group.position.y = LOBBY_WATER_LEVEL + 0.6 + Math.sin(performance.now() * 0.001) * 0.15;
+      dockGroup.position.x += velocity.x * dt;
+      dockGroup.position.z += velocity.z * dt;
+      dockGroup.position.y = LOBBY_WATER_LEVEL + 0.6 + Math.sin(performance.now() * 0.001) * 0.15;
       if (velocity.lengthSq() > 0.5) {
-        group.rotation.y = Math.atan2(velocity.x, velocity.z);
+        dockGroup.rotation.y = Math.atan2(velocity.x, velocity.z);
       }
     },
-    syncCamera(camera, yaw, pitch) {
+    syncCamera(camera, yaw) {
       if (!isBoarded) return;
       const dist = 28;
       const h = 14;
+      const pos = dockGroup.position;
       camera.position.set(
-        group.position.x - Math.sin(yaw) * dist,
-        group.position.y + h,
-        group.position.z - Math.cos(yaw) * dist,
+        pos.x - Math.sin(yaw) * dist,
+        pos.y + h,
+        pos.z - Math.cos(yaw) * dist,
       );
-      camera.lookAt(group.position.x, group.position.y + 4, group.position.z);
+      camera.lookAt(pos.x, pos.y + 4, pos.z);
     },
     destroy() {
-      scene.remove(group);
-      group.traverse((c) => {
+      scene.remove(dockGroup);
+      dockGroup.traverse((c) => {
         if ((c as THREE.Mesh).isMesh) {
           const m = c as THREE.Mesh;
           m.geometry?.dispose();

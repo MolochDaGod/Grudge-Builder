@@ -13,6 +13,7 @@ import {
   HULL_COLORS, SAIL_COLORS, SHIP_SIZES, SHIP_PARTS, SHIPS_SHEET,
   type HullColor, type SailColor, type ShipSize,
 } from '@shared/definitions/islandAssetManifest';
+import { SHIP_CATALOG_BY_SIZE } from '@shared/definitions/shipCatalog';
 
 // ── Ship Configuration ────────────────────────────────────────────────────────
 
@@ -71,9 +72,21 @@ export interface ShipCost {
 }
 
 export const SHIP_CRAFT_COSTS: Record<ShipSize, ShipCost> = {
-  rowboat:  { gold: 0 },  // Free starter at dock
-  sloop:    { gold: 500, wood: 200, iron: 50, cloth: 30 },
-  galleon:  { gold: 2000, wood: 800, iron: 200, cloth: 100 },
+  rowboat: {
+    gold: SHIP_CATALOG_BY_SIZE.rowboat.craftGold,
+  },
+  sloop: {
+    gold: SHIP_CATALOG_BY_SIZE.sloop.craftGold,
+    wood: SHIP_CATALOG_BY_SIZE.sloop.craftWood,
+    iron: SHIP_CATALOG_BY_SIZE.sloop.craftIron,
+    cloth: SHIP_CATALOG_BY_SIZE.sloop.craftCloth,
+  },
+  galleon: {
+    gold: SHIP_CATALOG_BY_SIZE.galleon.craftGold,
+    wood: SHIP_CATALOG_BY_SIZE.galleon.craftWood,
+    iron: SHIP_CATALOG_BY_SIZE.galleon.craftIron,
+    cloth: SHIP_CATALOG_BY_SIZE.galleon.craftCloth,
+  },
 };
 
 // ── Ship Factory ──────────────────────────────────────────────────────────────

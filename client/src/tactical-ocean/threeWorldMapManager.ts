@@ -1,6 +1,10 @@
 import * as THREE from 'three';
 import { Sky } from 'three/examples/jsm/objects/Sky.js';
 import { IslandGenerator } from './islandGenerator';
+import { OceanEnvironment } from '@/game/ocean/OceanEnvironment';
+import { ShipPrefabFactory } from '@/game/sailing/ShipPrefabs';
+import { getPrefabKeyForSize } from '@shared/definitions/shipCatalog';
+import type { ShipSize } from '@shared/definitions/islandAssetManifest';
 
 export type CameraMode = 'third-person' | 'birds-eye';
 
@@ -67,9 +71,10 @@ export class ThreeWorldMapManager {
   private activeCamera: THREE.Camera;
   private cameraMode: CameraMode = 'third-person';
   
-  private water: THREE.Mesh | null = null;
+  private oceanEnv: OceanEnvironment | null = null;
   private sky: Sky | null = null;
   private sun: THREE.Vector3;
+  private shipPrefabFactory: ShipPrefabFactory | null = null;
   
   private playerShip: Ship3D | null = null;
   private npcShips: Map<string, Ship3D> = new Map();
@@ -90,10 +95,6 @@ export class ThreeWorldMapManager {
   private daySpeed = 0.01;  // Speed of day/night cycle
   private weatherState: 'clear' | 'cloudy' | 'stormy' | 'foggy' = 'clear';
   private weatherTimer = 300;  // Seconds until next weather change
-  
-  // Sea life entities
-  private seaLife: THREE.Group[] = [];
-  private waveTime = 0;
   
   private wind: WindState = {
     direction: Math.PI / 4,
@@ -198,174 +199,22 @@ export class ThreeWorldMapManager {
   }
   
   private setupOcean() {
-    // Deep water layer (visible through transparent surface)
-    const deepWaterGeometry = new THREE.PlaneGeometry(this.worldSize, this.worldSize, 64, 64);
-    const deepWaterMaterial = new THREE.MeshStandardMaterial({
-      color: 0x001830,
-      metalness: 0.0,
-      roughness: 1.0,
-    });
-    const deepWater = new THREE.Mesh(deepWaterGeometry, deepWaterMaterial);
-    deepWater.rotation.x = -Math.PI / 2;
-    deepWater.position.y = -15;
-    this.scene.add(deepWater);
-    
-    // Main surface water with wave vertices
-    const waterGeometry = new THREE.PlaneGeometry(this.worldSize, this.worldSize, 256, 256);
-    
-    const waterMaterial = new THREE.MeshStandardMaterial({
-      color: 0x0077aa,
-      metalness: 0.2,
-      roughness: 0.2,
-      transparent: true,
-      opacity: 0.85,
-    });
-    
-    this.water = new THREE.Mesh(waterGeometry, waterMaterial);
-    this.water.rotation.x = -Math.PI / 2;
-    this.water.position.y = 0;
-    this.scene.add(this.water);
-    
-    // Grid helper adjusted for larger world
+    this.oceanEnv = new OceanEnvironment(this.scene, this.worldSize, 256);
+    this.shipPrefabFactory = new ShipPrefabFactory(this.scene);
+
     const gridHelper = new THREE.GridHelper(this.worldSize, 180, 0x003366, 0x004488);
     gridHelper.position.y = 0.1;
     (gridHelper.material as THREE.Material).opacity = 0.12;
     (gridHelper.material as THREE.Material).transparent = true;
     this.scene.add(gridHelper);
-    
-    // Create sea life under the water
-    this.createSeaLife();
   }
-  
-  private createSeaLife() {
-    const fishColors = [0xff6600, 0x00ff66, 0x6600ff, 0xffff00, 0x00ffff];
-    
-    // Create schools of fish
-    for (let i = 0; i < 40; i++) {
-      const fishGroup = new THREE.Group();
-      
-      // Fish body
-      const bodyGeometry = new THREE.ConeGeometry(0.5, 2, 8);
-      const bodyMaterial = new THREE.MeshStandardMaterial({
-        color: fishColors[Math.floor(Math.random() * fishColors.length)],
-        metalness: 0.3,
-        roughness: 0.5,
-      });
-      const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
-      body.rotation.z = Math.PI / 2;
-      fishGroup.add(body);
-      
-      // Tail fin
-      const tailGeometry = new THREE.ConeGeometry(0.3, 0.8, 4);
-      const tail = new THREE.Mesh(tailGeometry, bodyMaterial);
-      tail.rotation.z = Math.PI / 2;
-      tail.position.x = -1.2;
-      fishGroup.add(tail);
-      
-      // Position under water
-      fishGroup.position.set(
-        (Math.random() - 0.5) * this.worldSize * 0.8,
-        -3 - Math.random() * 8,
-        (Math.random() - 0.5) * this.worldSize * 0.8
-      );
-      fishGroup.rotation.y = Math.random() * Math.PI * 2;
-      (fishGroup as any).swimSpeed = 5 + Math.random() * 10;
-      (fishGroup as any).swimOffset = Math.random() * Math.PI * 2;
-      
-      this.scene.add(fishGroup);
-      this.seaLife.push(fishGroup);
-    }
-    
-    // Create jellyfish
-    for (let i = 0; i < 15; i++) {
-      const jellyGroup = new THREE.Group();
-      
-      // Bell
-      const bellGeometry = new THREE.SphereGeometry(1.5, 16, 8, 0, Math.PI * 2, 0, Math.PI / 2);
-      const bellMaterial = new THREE.MeshStandardMaterial({
-        color: 0xff88ff,
-        transparent: true,
-        opacity: 0.6,
-        metalness: 0.1,
-        roughness: 0.3,
-      });
-      const bell = new THREE.Mesh(bellGeometry, bellMaterial);
-      jellyGroup.add(bell);
-      
-      // Tentacles
-      for (let t = 0; t < 8; t++) {
-        const tentacleGeometry = new THREE.CylinderGeometry(0.05, 0.02, 3, 4);
-        const tentacle = new THREE.Mesh(tentacleGeometry, bellMaterial);
-        const angle = (t / 8) * Math.PI * 2;
-        tentacle.position.set(
-          Math.cos(angle) * 0.8,
-          -1.5,
-          Math.sin(angle) * 0.8
-        );
-        jellyGroup.add(tentacle);
-      }
-      
-      jellyGroup.position.set(
-        (Math.random() - 0.5) * this.worldSize * 0.6,
-        -5 - Math.random() * 6,
-        (Math.random() - 0.5) * this.worldSize * 0.6
-      );
-      (jellyGroup as any).floatOffset = Math.random() * Math.PI * 2;
-      (jellyGroup as any).floatSpeed = 0.5 + Math.random() * 0.5;
-      
-      this.scene.add(jellyGroup);
-      this.seaLife.push(jellyGroup);
-    }
-  }
-  
-  updateOceanWaves(delta: number) {
-    this.waveTime += delta;
-    
-    if (!this.water) return;
-    
-    const geometry = this.water.geometry as THREE.PlaneGeometry;
-    const positions = geometry.attributes.position.array as Float32Array;
-    const vertexCount = positions.length / 3;
-    
-    // Only update a subset of vertices for performance
-    for (let i = 0; i < vertexCount; i += 4) {
-      const x = positions[i * 3];
-      const y = positions[i * 3 + 1];
-      
-      // Multi-frequency waves
-      const wave1 = Math.sin(x * 0.01 + this.waveTime * 0.5) * 0.8;
-      const wave2 = Math.sin(y * 0.015 + this.waveTime * 0.7) * 0.5;
-      const wave3 = Math.sin((x + y) * 0.008 + this.waveTime * 0.3) * 1.0;
-      
-      positions[i * 3 + 2] = wave1 + wave2 + wave3;
-    }
-    
-    geometry.attributes.position.needsUpdate = true;
-    geometry.computeVertexNormals();
-    
-    // Animate sea life
-    this.seaLife.forEach((entity, idx) => {
-      if (idx < 40) {
-        // Fish swimming
-        const speed = (entity as any).swimSpeed || 5;
-        const offset = (entity as any).swimOffset || 0;
-        entity.position.x += Math.sin(entity.rotation.y) * speed * delta;
-        entity.position.z += Math.cos(entity.rotation.y) * speed * delta;
-        entity.position.y = -3 - Math.sin(this.waveTime * 2 + offset) * 2;
-        
-        // Turn at world edges
-        if (Math.abs(entity.position.x) > this.worldSize * 0.4 ||
-            Math.abs(entity.position.z) > this.worldSize * 0.4) {
-          entity.rotation.y += Math.PI;
-        }
-      } else {
-        // Jellyfish floating
-        const floatOffset = (entity as any).floatOffset || 0;
-        const floatSpeed = (entity as any).floatSpeed || 0.5;
-        entity.position.y = -5 + Math.sin(this.waveTime * floatSpeed + floatOffset) * 2;
-        entity.rotation.y += delta * 0.2;
-      }
-    });
+
+  private updateOceanEnvironment(delta: number) {
+    if (!this.oceanEnv) return;
+    const storm =
+      this.weatherState === 'stormy' ? 0.65 :
+      this.weatherState === 'foggy' ? 0.15 : 0;
+    this.oceanEnv.update(delta, this.wind, this.sun, storm);
   }
   
   updateDayNightCycle(delta: number) {
@@ -504,6 +353,46 @@ export class ThreeWorldMapManager {
     return this.cameraMode;
   }
   
+  /** Spawn player ship from canonical ship catalog (3D prefab + GLB). */
+  createPlayerShipFromCatalog(
+    id: string,
+    position: THREE.Vector3,
+    name: string,
+    shipSize: ShipSize = 'rowboat',
+  ): Ship3D {
+    if (!this.shipPrefabFactory) {
+      return this.createPlayerShip(id, position, name);
+    }
+    const prefabKey = getPrefabKeyForSize(shipSize);
+    const prefab = this.shipPrefabFactory.createShipPrefab(prefabKey, position.clone());
+    void this.shipPrefabFactory.loadCustomShipModel(prefab);
+
+    const shipGroup = prefab.group;
+    shipGroup.position.copy(position);
+    this.scene.add(shipGroup);
+
+    const sailMesh = prefab.sailMesh;
+    const ship: Ship3D = {
+      id,
+      mesh: shipGroup,
+      position: position.clone(),
+      rotation: 0,
+      velocity: new THREE.Vector3(),
+      health: 100,
+      maxHealth: 100,
+      isPlayer: true,
+      name,
+      level: 1,
+      sailAngle: 0,
+      sailPosition: 0,
+      sailMesh,
+      windMagicActive: false,
+      windMagicTimer: 0,
+    };
+    this.playerShip = ship;
+    return ship;
+  }
+
   createPlayerShip(id: string, position: THREE.Vector3, name: string = 'Captain'): Ship3D {
     const shipGroup = new THREE.Group();
     const innerGroup = new THREE.Group();
@@ -679,6 +568,11 @@ export class ThreeWorldMapManager {
     };
     
     this.islands.set(id, island);
+    if (this.oceanEnv) {
+      this.oceanEnv.setIslandPositions(
+        [...this.islands.values()].map((i) => i.position),
+      );
+    }
     return island;
   }
   
@@ -878,7 +772,7 @@ export class ThreeWorldMapManager {
     this.updateCannonballs(delta);
     this.updateTreasures(delta);
     this.updateCamera();
-    this.updateOceanWaves(delta);
+    this.updateOceanEnvironment(delta);
     this.updateDayNightCycle(delta);
     this.updateWeather(delta);
     
@@ -946,7 +840,9 @@ export class ThreeWorldMapManager {
   
   dispose() {
     this.unmount();
-    
+    this.oceanEnv?.dispose();
+    this.oceanEnv = null;
+
     this.npcShips.forEach(ship => this.scene.remove(ship.mesh));
     this.islands.forEach(island => this.scene.remove(island.mesh));
     this.cannonballs.forEach(ball => this.scene.remove(ball.mesh));

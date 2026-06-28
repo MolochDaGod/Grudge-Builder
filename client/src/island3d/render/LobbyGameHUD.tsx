@@ -46,7 +46,7 @@ export function LobbyGameHUD({
           {multiplayerConnected && <span className="text-emerald-400 ml-2">· Live</span>}
         </p>
         <p className="text-slate-500">
-          {sailing ? '⛵ Sailing — E disembark · WASD helm' : 'E vendors / capture / board · Tab build'}
+          {sailing ? '⛵ Sailing — E disembark · WASD helm' : 'E south dock (build ship) · capture · Tab build'}
         </p>
         <p className="text-slate-600 text-[10px]">
           PBR:{' '}

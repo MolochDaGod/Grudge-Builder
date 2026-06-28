@@ -118,6 +118,9 @@ export interface Island3DEngineConfig {
     resourceType: string;
     position: THREE.Vector3;
   }) => void;
+  /** Account + captain for dock ship roster */
+  accountId?: string;
+  captainId?: string | null;
 }
 
 export class Island3DEngine {
@@ -165,6 +168,8 @@ export class Island3DEngine {
   private lobbyAnimMixer: THREE.AnimationMixer | null = null;
   public lobbyCapture: LobbyCaptureSystem | null = null;
   public lobbyShip: LobbyShipSystem | null = null;
+  /** Set when player presses E at south dock — UI shows ShipDockPanel */
+  public dockInteractPending = false;
   public lobbyPlayZone: LobbyPlayZoneResult | null = null;
   private lobbyCollider: LobbyColliderResult | null = null;
   private lobbyCapturing = false;
@@ -342,7 +347,12 @@ export class Island3DEngine {
 
     // RTS capture flags + dock ship (tactical open-water sailing)
     this.lobbyCapture = createLobbyCapturePoints(this.scene, this.lobbyResult);
-    this.lobbyShip = await createLobbyShipSystem(this.scene, this.lobbyResult);
+    this.lobbyShip = await createLobbyShipSystem(
+      this.scene,
+      this.lobbyResult,
+      this.config.accountId ?? 'guest',
+      this.config.captainId ?? null,
+    );
 
     // Building + fish life
     this.building = new BuildingSystem(this.scene, this.camera);
@@ -1140,8 +1150,8 @@ export class Island3DEngine {
           this.character.stateMachine?.transition('idle');
           return true;
         }
-      } else if (this.lobbyShip.tryBoard(this.character.getPosition())) {
-        this.character.stateMachine?.transition('sailing');
+      } else if (this.lobbyShip.isNearDock(this.character.getPosition())) {
+        this.dockInteractPending = true;
         return true;
       }
     }

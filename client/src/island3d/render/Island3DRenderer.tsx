@@ -10,6 +10,7 @@ import { exportSceneToFile, getSceneStats } from '@/lib/sceneExporter';
 import type { MultiplayerConfig } from '../sync/MultiplayerSync';
 import type { Model3DField } from '@shared/fleet';
 import { LobbyGameHUD } from './LobbyGameHUD';
+import { ShipDockPanel } from '@/components/ShipDockPanel';
 import { IslandPlayOverlay } from './IslandPlayOverlay';
 import { useIslandSession } from '../session/useIslandSession';
 import type { QualityPreset } from '../render/PostProcessing';
@@ -73,7 +74,9 @@ export function Island3DRenderer({
   const [oxygen, setOxygen] = useState(1); // 0-1 ratio
   const [dayPhase, setDayPhase] = useState('day');
   const [combatHud, setCombatHud] = useState<CombatHudSnapshot>(EMPTY_COMBAT_HUD);
+  const [showDockPanel, setShowDockPanel] = useState(false);
   const { context: sessionCtx, send: sessionSend } = useIslandSession(characterId);
+  const accountId = characterId ?? 'guest';
 
   useEffect(() => {
     onHarvestRef.current = onHarvest;
@@ -113,6 +116,8 @@ export function Island3DRenderer({
         sessionSend({ type: 'PROGRESS', progress: pct });
       },
       onHarvest: (evt) => onHarvestRef.current?.(evt),
+      accountId,
+      captainId: characterId ?? null,
     });
     engineRef.current = engine;
 
@@ -152,7 +157,14 @@ export function Island3DRenderer({
     if (mode !== 'lobby') return;
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'e' || e.key === 'E') {
-        engineRef.current?.handleInteractKey();
+        const eng = engineRef.current;
+        if (!eng) return;
+        eng.dockInteractPending = false;
+        eng.handleInteractKey();
+        if (eng.dockInteractPending) {
+          setShowDockPanel(true);
+          eng.dockInteractPending = false;
+        }
       }
     };
     const onKeyUp = (e: KeyboardEvent) => {
@@ -374,6 +386,22 @@ export function Island3DRenderer({
                 islandId={lobbyIslandId}
                 multiplayerConnected={!!multiplayer}
               />
+              {showDockPanel && (
+                <ShipDockPanel
+                  accountId={accountId}
+                  captainId={characterId ?? null}
+                  captainName={characterName}
+                  isBoarded={engineReady?.lobbyShip?.isBoarded}
+                  onBoard={() => {
+                    const eng = engineRef.current;
+                    const pos = eng?.character?.getPosition();
+                    if (eng?.lobbyShip && pos && eng.lobbyShip.tryBoard(pos)) {
+                      eng.character?.stateMachine?.transition('sailing');
+                    }
+                  }}
+                  onClose={() => setShowDockPanel(false)}
+                />
+              )}
             </>
           )}
 

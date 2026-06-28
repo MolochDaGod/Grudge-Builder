@@ -3,6 +3,21 @@
   "canonicalProduction": "GrudgeBuilder",
   "liveUrl": "https://grudgewarlords.com",
   "multiplayer": "Colyseus on Railway (api.grudge-studio.com)",
+  "oceanCanonical": {
+    "renderer": "client/src/game/ocean/OceanEnvironment.ts",
+    "shader": "client/src/game/sailing/OceanShader.ts",
+    "fish": "client/src/game/sailing/FishManager.ts",
+    "tacticalScene": "client/src/tactical-ocean/threeWorldMapManager.ts",
+    "deprecated": ["tactical-ocean procedural sea-life cones", "MeshStandardMaterial water plane"]
+  },
+  "shipCanonical": {
+    "catalog": "shared/definitions/shipCatalog.ts",
+    "dockService": "client/src/lib/shipDockService.ts",
+    "dockUI": "client/src/components/ShipDockPanel.tsx",
+    "rtsDock": "client/src/island3d/engine/LobbyGameplay.ts south-dock",
+    "3dPrefabs": "client/src/game/sailing/ShipPrefabs.ts",
+    "2dWorldMap": "client/src/lib/shipSystem.ts"
+  },
   "migrated": [
     {
       "source": "RTS-Grudge/client/src/game/sailing/*",
