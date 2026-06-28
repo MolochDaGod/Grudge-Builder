@@ -285,7 +285,7 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/characters/:id", async (req, res) => {
+  app.get("/api/characters/:id", requireAuth, async (req, res) => {
     try {
       const userId = getUserId(req);
       const character = await storage.getCharacter(req.params.id);
