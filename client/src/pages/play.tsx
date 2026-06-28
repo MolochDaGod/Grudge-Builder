@@ -16,6 +16,7 @@ import { characterAPI } from '@/lib/api';
 import { CLASS_WEAPON_MAP } from '@/lib/modelManifest';
 import type { CreatureLootEvent } from '@/island3d/creatures/CreatureManager';
 import { WarlordsPvpLoadscreen } from '@/components/WarlordsPvpLoadscreen';
+import { resolveZoneSectorId } from '@shared/definitions/sectorBridge';
 
 const SECTOR_BIOME_NAMES: Record<string, string> = {
   NW: 'Arid Wasteland', N: 'Highland Plateau', NE: 'Crown Peaks',
@@ -25,10 +26,22 @@ const SECTOR_BIOME_NAMES: Record<string, string> = {
 
 const DEFAULT_SECTOR = 'convergence_nexus';
 
+function getPlaySectorFromUrl(): string {
+  const params = new URLSearchParams(window.location.search);
+  const sector = params.get('sector');
+  return sector ? resolveZoneSectorId(sector) : DEFAULT_SECTOR;
+}
+
+function getWorldSeedFromUrl(): string {
+  return new URLSearchParams(window.location.search).get('worldSeed') || 'grudge-world-1';
+}
+
 // ── Component ────────────────────────────────────────────────────
 
 export default function PlayPage() {
   const [, setLocation] = useLocation();
+  const activeSector = getPlaySectorFromUrl();
+  const worldSeed = getWorldSeedFromUrl();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const engineRef = useRef<Island3DEngine | null>(null);
   const remotePlayersRef = useRef<RemotePlayerManager | null>(null);
@@ -103,7 +116,7 @@ export default function PlayPage() {
 
   useEffect(() => {
     if (colyseus.connected && !colyseus.sectorId) {
-      colyseus.joinSector(DEFAULT_SECTOR);
+      colyseus.joinSector(activeSector, worldSeed);
     }
   }, [colyseus.connected, colyseus.sectorId]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -114,13 +127,13 @@ export default function PlayPage() {
     if (!canvas || engineRef.current) return;
 
     const config: Island3DEngineConfig = {
-      seed: `sector-${DEFAULT_SECTOR}`,
+      seed: `sector-${activeSector}`,
       canvas,
       width: window.innerWidth,
       height: window.innerHeight,
       mode: 'zone',
-      sectorId: DEFAULT_SECTOR,
-      worldSeed: 'grudge-world-1',
+      sectorId: activeSector,
+      worldSeed,
       quality: 'medium',
       enableCharacter: true,
       onLoadProgress: (pct) => setLoadProgress(pct),
@@ -320,7 +333,7 @@ export default function PlayPage() {
           progress={loadProgress}
           label={
             colyseus.connecting ? 'Connecting to server...' :
-            colyseus.connected ? `Joined world · Loading sector ${DEFAULT_SECTOR}...` :
+            colyseus.connected ? `Joined world · Loading sector ${activeSector}...` :
             'Initializing...'
           }
         >

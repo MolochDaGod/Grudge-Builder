@@ -22,6 +22,7 @@ import {
   ChevronRight, Star, Map,
 } from "lucide-react";
 import WorldMap3D from "@/components/WorldMap3D";
+import { buildOceanDeployUrl } from "@/lib/oceanNavigation";
 
 // ── Game mode definitions ────────────────────────────────────────────────────
 const GAME_MODES = [
@@ -191,7 +192,7 @@ export default function RtsGrudgePage() {
             onSectorSelect={(sectorId) => {
               setShowWorldMap(false);
               setSelectedMode("open-world");
-              toast({ title: `Navigating to ${sectorId}`, description: "Entering sector..." });
+              setLocation(buildOceanDeployUrl(sectorId, 'play'));
             }}
           />
         </div>
@@ -228,7 +229,14 @@ export default function RtsGrudgePage() {
         className="absolute top-4 left-20 z-30 flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-black/50 border border-amber-600/30 text-amber-400/70 hover:text-amber-300 hover:bg-black/70 transition-all text-sm"
       >
         <Map className="w-4 h-4" />
-        World Map
+        Strategic Map
+      </button>
+      <button
+        onClick={() => setLocation('/ocean')}
+        className="absolute top-4 left-44 z-30 flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-black/50 border border-cyan-600/30 text-cyan-400/70 hover:text-cyan-300 hover:bg-black/70 transition-all text-sm"
+      >
+        <Globe className="w-4 h-4" />
+        Ocean Sail
       </button>
 
       {/* ── Forge Admin toggle (admin only) ──────────────────────── */}

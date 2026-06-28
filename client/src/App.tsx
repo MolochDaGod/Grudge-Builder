@@ -59,6 +59,7 @@ import ForgePage from "@/pages/forge";
 import ScenePage from "@/pages/scene";
 import GrudgeAI from "@/components/GrudgeAI";
 import { GrudgeTruthBadge } from "@/components/GrudgeTruthBadge";
+import { GrudgeTokenWidget } from "@/components/grudge-token/GrudgeTokenWidget";
 // Lazy-load the organizer page: it pulls in react-force-graph → aframe-extras
 // (A-Frame VR lib that uses THREE as a global). Code-splitting it keeps
 // aframe out of the main bundle and loads it only when /organizer is visited.
@@ -67,6 +68,7 @@ import CreateCharacterPage from "@/pages/create-character";
 import CharacterCreatorPage from "@/pages/character-creator";
 import GrudaWarsPage from "@/pages/grudawars";
 import PlayPage from "@/pages/play";
+import OceanPage from "@/pages/ocean";
 import TutorialPage from "@/pages/tutorial";
 import IslandRevealPage from "@/pages/island-reveal";
 import HomeIslandPage from "@/pages/home-island";
@@ -125,7 +127,8 @@ function Router() {
       <Route path="/lobby" component={HomePage} />
       <Route path="/launcher" component={LauncherPage} />
       <Route path="/rts-grudge" component={RtsGrudgePage} />
-      <Route path="/sailing" component={RtsGrudgePage} />
+      <Route path="/sailing" component={OceanPage} />
+      <Route path="/ocean" component={OceanPage} />
       <Route path="/tower-wars">{() => <Suspense fallback={null}><TowerWarsPage /></Suspense>}</Route>
       <Route path="/harvest" component={HarvestPage} />
       <Route path="/hero-codex" component={HeroCodexPage} />
@@ -189,6 +192,7 @@ function AppContent() {
         <Router />
         <GrudgeAI />
         <GrudgeTruthBadge />
+        <GrudgeTokenWidget />
         <PuterFooter />
       </TooltipProvider>
     </>

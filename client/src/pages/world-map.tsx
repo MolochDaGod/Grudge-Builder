@@ -23,6 +23,7 @@ import {
   Globe
 } from 'lucide-react';
 import { getSectorAt } from '@shared/definitions/worldMapSectors';
+import { buildOceanDeployUrl } from '@/lib/oceanNavigation';
 import { useAuthGuard } from '@/hooks/use-auth-guard';
 import {
   WorldMapState,
@@ -67,13 +68,8 @@ export default function WorldMapPage() {
     ? getSectorAt(worldState.playerShip.position.x, worldState.playerShip.position.y)
     : null;
 
-  const enterZone = (sectorId: string) => {
-    const params = new URLSearchParams({
-      mode: 'zone',
-      sector: sectorId,
-      worldSeed,
-    });
-    navigate(`/island-3d?${params.toString()}`);
+  const enterZone = (sectorId: string, target: 'play' | 'zone' = 'play') => {
+    navigate(buildOceanDeployUrl(sectorId, target, worldSeed));
   };
 
   // Handle window resize for canvas
@@ -435,6 +431,18 @@ export default function WorldMapPage() {
             Your Island
           </Button>
         </Link>
+        <Link href="/ocean">
+          <Button variant="outline" size="sm" className="border-cyan-700/50 hover:bg-cyan-950/40 text-cyan-300" data-testid="go-ocean">
+            <Ship className="w-4 h-4 mr-2" />
+            3D Ocean Sail
+          </Button>
+        </Link>
+        <Link href="/sailing">
+          <Button variant="outline" size="sm" className="border-amber-700/50 hover:bg-amber-950/40 text-amber-300" data-testid="go-rts-lobby">
+            <Globe className="w-4 h-4 mr-2" />
+            RTS Lobby
+          </Button>
+        </Link>
       </div>
 
       <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-20">
@@ -576,11 +584,20 @@ export default function WorldMapPage() {
               <Button
                 size="sm"
                 className="bg-purple-700 hover:bg-purple-600"
-                onClick={() => enterZone(currentSector.id)}
-                data-testid="enter-3d-zone"
+                onClick={() => enterZone(currentSector.id, 'play')}
+                data-testid="enter-pvp-sector"
               >
                 <Globe className="w-4 h-4 mr-2" />
-                Enter 3D Zone
+                Enter PvP Sector
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="border-emerald-700/50 text-emerald-300"
+                onClick={() => enterZone(currentSector.id, 'zone')}
+                data-testid="enter-3d-zone"
+              >
+                Explore Solo
               </Button>
             </CardContent>
           </Card>
