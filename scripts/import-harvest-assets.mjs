@@ -20,10 +20,10 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const OUT_DIR = path.join(__dirname, '..', 'client', 'public', 'models', 'environment');
 
 const DEFAULTS = {
-  logs: 'D:/Games/Models/Survival-Combat-Engine/Survival-Combat-Engine-main/client/public/models/rts/Logs.glb',
-  debris: 'D:/Games/Models/Survival-Combat-Engine/Survival-Combat-Engine-main/client/public/models/rts/Rocks.glb',
-  gold: 'D:/Games/Models/Survival-Combat-Engine/Survival-Combat-Engine-main/client/public/models/rts/Gold rocks.glb',
-  stump: 'D:/Games/Models/Ultimate Stylized Nature/glTF/DeadTree_3.gltf',
+  logs: 'D:/Games/Models/Survival-Combat-Engine/Survival-Combat-Engine/client/public/models/rts/Logs.glb',
+  debris: 'D:/Games/Models/Survival-Combat-Engine/Survival-Combat-Engine/client/public/models/rts/Rocks.glb',
+  gold: 'D:/Games/Models/Survival-Combat-Engine/Survival-Combat-Engine/client/public/models/rts/Gold rocks.glb',
+  stump: 'D:/Games/Models/Ultimate Stylized Nature - May 2022-20260428T125154Z-3-001/Ultimate Stylized Nature - May 2022/glTF/DeadTree_1.gltf',
 };
 
 const OPTIMIZE = process.argv.includes('--optimize');
@@ -36,7 +36,8 @@ const JOBS = [
 ];
 
 function run(cmd, args) {
-  const result = spawnSync(cmd, args, { stdio: 'inherit', shell: true });
+  const line = [cmd, ...args.map((a) => (/\s/.test(a) ? `"${a}"` : a))].join(' ');
+  const result = spawnSync(line, { stdio: 'inherit', shell: true });
   return result.status === 0;
 }
 
