@@ -11,6 +11,7 @@
     "build:client": "node -e \"const f=require('fs');try{f.rmSync('client/dist',{recursive:true,force:true})}catch(e){console.warn('clean dist:',e.message)}\" && cd client && npx vite build",
     "build:world": "npx esbuild server/island-server.ts --bundle --platform=node --format=cjs --outfile=dist/world-server.cjs --packages=external --minify",
     "start": "node dist/index.js",
+    "start:production": "node scripts/railway-start.mjs",
     "start:world": "node dist/world-server.cjs",
     "check": "tsc",
     "test:client": "vitest run --config client/vitest.config.ts",

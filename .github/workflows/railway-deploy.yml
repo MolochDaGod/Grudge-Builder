@@ -7,6 +7,8 @@ on:
       - "server/**"
       - "shared/**"
       - "script/build-server.ts"
+      - "scripts/railway-start.mjs"
+      - "migrations/**"
       - "railway.json"
       - "nixpacks.toml"
       - "package.json"
@@ -50,12 +52,32 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
+      - name: Wait for API health
+        run: |
+          set -euo pipefail
+          HEALTH="${{ env.RAILWAY_URL }}/api/health"
+          for i in $(seq 1 36); do
+            CODE=$(curl -sS -o /tmp/health.json -w "%{http_code}" "$HEALTH" || true)
+            if [ "$CODE" = "200" ] && grep -q '"status"' /tmp/health.json; then
+              echo "✅ API health OK (attempt $i)"
+              cat /tmp/health.json
+              break
+            fi
+            if [ "$i" -eq 36 ]; then
+              echo "❌ API health never became ready"
+              cat /tmp/health.json 2>/dev/null || true
+              exit 1
+            fi
+            echo "health attempt $i/36 — HTTP $CODE"
+            sleep 15
+          done
+
       - name: Wait for puter-sso route
         run: |
           set -euo pipefail
           URL="${{ env.RAILWAY_URL }}/api/auth/puter-sso"
           BODY='{"puterId":"gha-smoke","puterUsername":"gha-smoke"}'
-          for i in $(seq 1 30); do
+          for i in $(seq 1 12); do
             CODE=$(curl -sS -o /tmp/sso.json -w "%{http_code}" \
               -X POST "$URL" -H "Content-Type: application/json" -d "$BODY" || true)
             if [ "$CODE" = "200" ] && grep -q '"token"' /tmp/sso.json; then
@@ -63,10 +85,10 @@ jobs:
               cat /tmp/sso.json
               exit 0
             fi
-            echo "attempt $i/30 — HTTP $CODE (waiting for deploy...)"
-            sleep 20
+            echo "puter-sso attempt $i/12 — HTTP $CODE"
+            sleep 10
           done
-          echo "❌ puter-sso smoke failed after 10 minutes"
+          echo "❌ puter-sso smoke failed"
           cat /tmp/sso.json 2>/dev/null || true
           exit 1
 
