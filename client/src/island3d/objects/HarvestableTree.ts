@@ -4,13 +4,22 @@
 import * as THREE from 'three';
 import { cloneIslandResource, fitModelToHeight } from './IslandResourceLoader';
 
+export type TreeFallPhase = 'live' | 'falling' | 'stump' | 'hidden';
+
 export interface HarvestableTree {
   group: THREE.Group;
   health: number;
   maxHealth: number;
   shaking: boolean;
   shakeTime: number;
+  /** @deprecated use fallPhase */
   fallen: boolean;
+  fallPhase: TreeFallPhase;
+  fallProgress: number;
+  fallAxis: number;
+  baseScale: number;
+  respawnAt: number;
+  nodeId?: string;
 }
 
 const TRUNK_GEO = new THREE.CylinderGeometry(0.4, 0.6, 6, 6);
@@ -56,6 +65,11 @@ export function createHarvestableTree(
     shaking: false,
     shakeTime: 0,
     fallen: false,
+    fallPhase: 'live',
+    fallProgress: 0,
+    fallAxis: 1,
+    baseScale: scale,
+    respawnAt: 0,
   };
 
   void mountHarvestableTreeModel(tree, scale);

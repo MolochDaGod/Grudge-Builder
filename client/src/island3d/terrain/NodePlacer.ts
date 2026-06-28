@@ -7,7 +7,7 @@
 import * as THREE from 'three';
 import { getTerrainHeightAt, type BiomeType } from './IslandTerrainGenerator';
 
-export type NodePlacementType = 'tree' | 'rock' | 'bush' | 'herb' | 'fish' | 'crystal' | 'hemp' | 'flower' | 'dock';
+export type NodePlacementType = 'tree' | 'rock' | 'bush' | 'herb' | 'fish' | 'crystal' | 'hemp' | 'flower' | 'scrap' | 'dock';
 
 export interface PlacedNode3D {
   id: string;

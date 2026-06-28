@@ -12,14 +12,14 @@ import {
   type IslandTerrainConfig,
   type IslandTerrainResult,
 } from '../terrain/IslandTerrainGenerator';
-import { createTerrainMaterial } from '../terrain/TerrainMaterial';
+import { createTerrainMaterialAsync } from '../terrain/TerrainMaterial';
 import { placeResourceNodes, type PlacedNode3D } from '../terrain/NodePlacer';
 import { createScatterDecorations } from '../objects/ScatterDecorations';
 import { createHarvestableTree, type HarvestableTree } from '../objects/HarvestableTree';
 import { createHarvestableRock, type HarvestableRock } from '../objects/HarvestableRock';
 import {
-  createCrystalCluster, createHempPlant, createFlowerPatch, createDock,
-  type HarvestableCrystal, type HarvestableHemp, type HarvestableFlower,
+  createCrystalCluster, createHempPlant, createFlowerPatch, createScrapPile, createDock,
+  type HarvestableCrystal, type HarvestableHemp, type HarvestableFlower, type HarvestableScrap,
 } from '../objects/HomeIslandNodes';
 import { DetailLayer, createGrassBlades } from '../terrain/DetailLayers';
 import { MultiplayerSync, type MultiplayerConfig } from '../sync/MultiplayerSync';
@@ -59,6 +59,17 @@ import { scatterGlbTreesFromNodes } from '../objects/GlbForestScatter';
 import { placeProceduralHarvestZones } from '../harvest/HarvestZonePlacer';
 import { buildHarvestZones, type HarvestZonesResult } from '../harvest/HarvestZoneBuilder';
 import {
+  HARVEST_RESPAWN_MS,
+  beginTreeFall,
+  updateTreeFall,
+  swapTreeToStump,
+  spawnResourceDrops,
+  updateHarvestDrops,
+  resetHarvestableTree,
+  resetHarvestableRock,
+  type HarvestDrop,
+} from '../harvest/HarvestFeedback';
+import {
   generateMountainTriadSeed,
   type MountainTriadSeed,
 } from '@shared/definitions/homeIslandSeed';
@@ -97,6 +108,12 @@ export interface Island3DEngineConfig {
   onDungeonEnter?: (dungeonId: string, dungeonName: string) => void;
   /** Persisted mountain triad seed from Railway (Sketchfab 3-peak dungeon layout) */
   mountainTriad?: import('@shared/definitions/homeIslandSeed').MountainTriadSeed;
+  /** Fired when a harvestable node is depleted (tree felled, rock mined) */
+  onHarvest?: (event: {
+    nodeId?: string;
+    resourceType: string;
+    position: THREE.Vector3;
+  }) => void;
 }
 
 export class Island3DEngine {
@@ -120,6 +137,7 @@ export class Island3DEngine {
   public crystals: HarvestableCrystal[] = [];
   public hemps: HarvestableHemp[] = [];
   public flowers: HarvestableFlower[] = [];
+  public scraps: HarvestableScrap[] = [];
   public placedNodes: PlacedNode3D[] = [];
 
   // Detail layers (grass/sand overlay)
@@ -174,6 +192,10 @@ export class Island3DEngine {
   // Raycaster for mouse picking
   private raycaster = new THREE.Raycaster();
   private mouse = new THREE.Vector2();
+
+  // Harvest FX — log/debris drops + tree fall animations
+  private harvestDrops: HarvestDrop[] = [];
+  private treeFallCompleting = new Set<HarvestableTree>();
 
   constructor(private config: Island3DEngineConfig) {
     // Renderer
@@ -392,8 +414,8 @@ export class Island3DEngine {
     if (activeChar?.actionBar) {
       this.character.loadActionBar(activeChar.actionBar);
     } else {
-      // Demo for grimoire 3 forms
-      this.character.loadActionBar({1: 'grimoire_basic', 2: 'grim_dest_blast', 3: 'grim_prot_ward', 4: 'grim_conj_minion', 5: 'grim_conj_lord'});
+      // Demo canonical skills matching SPECIAL_ITEM_SKILL_TREES + basic slot1
+      this.character.loadActionBar({1: 'warrior_0_strike', 2: 'grim_dest_blast', 3: 'grim_prot_ward', 4: 'grim_conj_minion', 5: 'grim_conj_lord'});
     }
     this.controls.enabled = false;
     this.characterActive = true;
@@ -411,7 +433,7 @@ export class Island3DEngine {
   private async initProcedural(): Promise<void> {
     await preloadIslandResources().catch(() => undefined);
     // 1. Generate terrain
-    const terrainMaterial = createTerrainMaterial();
+    const terrainMaterial = await createTerrainMaterialAsync();
     const terrainConfig: IslandTerrainConfig = {
       seed: this.config.seed,
       xSegments: 63,
@@ -444,6 +466,7 @@ export class Island3DEngine {
     this.crystals.push(...this.harvestZones.crystals);
     this.hemps.push(...this.harvestZones.hemps);
     this.flowers.push(...this.harvestZones.flowers);
+    this.scraps.push(...this.harvestZones.scraps);
     console.log(
       `[Island3D] Harvest zones: ${zoneDefs.length} patches,`,
       `${this.harvestZones.trees.length} trees,`,
@@ -635,11 +658,13 @@ export class Island3DEngine {
           // Visual trees come from InstancedProceduralForest; keep harvest hitbox only
           if (this.proceduralForest) {
             const tree = createHarvestableTree(node.position, node.scale * 0.01);
+            tree.nodeId = node.id;
             tree.group.visible = false;
             this.trees.push(tree);
             this.scene.add(tree.group);
           } else {
             const tree = createHarvestableTree(node.position, node.scale);
+            tree.nodeId = node.id;
             this.trees.push(tree);
             this.scene.add(tree.group);
           }
@@ -647,6 +672,7 @@ export class Island3DEngine {
         }
         case 'rock': {
           const rock = createHarvestableRock(node.position, node.scale);
+          rock.nodeId = node.id;
           this.rocks.push(rock);
           this.scene.add(rock.group);
           break;
@@ -667,6 +693,12 @@ export class Island3DEngine {
           const flower = createFlowerPatch(node.position, node.scale);
           this.flowers.push(flower);
           this.scene.add(flower.group);
+          break;
+        }
+        case 'scrap': {
+          const scrap = createScrapPile(node.position, node.scale);
+          this.scraps.push(scrap);
+          this.scene.add(scrap.group);
           break;
         }
         case 'dock': {
@@ -842,10 +874,12 @@ export class Island3DEngine {
     }
   }
 
-  /** Update harvestable animations */
+  /** Update harvestable animations, tree fall, debris drops, and respawns */
   private updateHarvestables(dt: number): void {
+    const now = Date.now();
+
     for (const tree of this.trees) {
-      if (tree.shaking) {
+      if (tree.shaking && tree.fallPhase === 'live') {
         tree.shakeTime += dt;
         const shake = Math.sin(tree.shakeTime * 15) * Math.max(0, 0.1 - tree.shakeTime * 0.05);
         tree.group.rotation.z = shake;
@@ -854,6 +888,20 @@ export class Island3DEngine {
           tree.shakeTime = 0;
           tree.group.rotation.z = 0;
         }
+      }
+
+      if (tree.fallPhase === 'falling') {
+        const finished = updateTreeFall(tree, dt);
+        if (finished && !this.treeFallCompleting.has(tree)) {
+          this.treeFallCompleting.add(tree);
+          void this.completeTreeFall(tree);
+        }
+      }
+
+      if (tree.respawnAt > 0 && now >= tree.respawnAt && tree.fallPhase === 'stump') {
+        tree.respawnAt = 0;
+        this.treeFallCompleting.delete(tree);
+        resetHarvestableTree(tree, tree.baseScale);
       }
     }
 
@@ -865,7 +913,36 @@ export class Island3DEngine {
           rock.chipTime = 0;
         }
       }
+
+      if (rock.respawnAt > 0 && now >= rock.respawnAt && !rock.group.visible) {
+        rock.respawnAt = 0;
+        resetHarvestableRock(rock);
+      }
     }
+
+    this.harvestDrops = updateHarvestDrops(this.harvestDrops, dt, this.scene);
+  }
+
+  private async completeTreeFall(tree: HarvestableTree): Promise<void> {
+    const pos = tree.group.position.clone();
+    const scale = tree.baseScale;
+    await swapTreeToStump(tree, scale);
+    const drops = await spawnResourceDrops(this.scene, pos, 'log', 3);
+    this.harvestDrops.push(...drops);
+    this.config.onHarvest?.({
+      nodeId: tree.nodeId,
+      resourceType: 'forest',
+      position: pos,
+    });
+  }
+
+  private async spawnRockDebris(
+    rock: HarvestableRock,
+    count: number,
+  ): Promise<void> {
+    const dropType = rock.oreVariant ? 'gold' : 'debris';
+    const drops = await spawnResourceDrops(this.scene, rock.group.position, dropType, count);
+    this.harvestDrops.push(...drops);
   }
 
   start(): void {
@@ -1059,13 +1136,15 @@ export class Island3DEngine {
 
     // Check tree hits
     for (const tree of this.trees) {
+      if (tree.fallPhase !== 'live') continue;
       const hits = this.raycaster.intersectObject(tree.group, true);
       if (hits.length > 0) {
         tree.health--;
         tree.shaking = true;
         tree.shakeTime = 0;
         if (tree.health <= 0) {
-          tree.group.visible = false;
+          beginTreeFall(tree);
+          tree.respawnAt = Date.now() + HARVEST_RESPAWN_MS;
         }
         return;
       }
@@ -1073,6 +1152,7 @@ export class Island3DEngine {
 
     // Check rock hits
     for (const rock of this.rocks) {
+      if (!rock.group.visible || rock.respawnAt > 0) continue;
       const hits = this.raycaster.intersectObject(rock.group, true);
       if (hits.length > 0) {
         rock.health--;
@@ -1080,8 +1160,16 @@ export class Island3DEngine {
         rock.chipTime = 0;
         const scale = Math.max(0.3, rock.health / rock.maxHealth);
         rock.group.scale.setScalar(rock.baseScale * scale);
+        void this.spawnRockDebris(rock, 1);
         if (rock.health <= 0) {
           rock.group.visible = false;
+          rock.respawnAt = Date.now() + HARVEST_RESPAWN_MS;
+          void this.spawnRockDebris(rock, rock.oreVariant ? 4 : 3);
+          this.config.onHarvest?.({
+            nodeId: rock.nodeId,
+            resourceType: rock.oreVariant ? 'mining' : 'mining',
+            position: rock.group.position.clone(),
+          });
         }
         return;
       }

@@ -7,7 +7,8 @@
  * empty, consumables live in 6-8 (handled elsewhere). Here we surface the
  * class skill slots (1-4) and a separate weapon-skill row.
  */
-import type { Character } from '@/lib/characterManager';
+import type { Character, ProfessionLevel } from '@/lib/characterManager';
+import { resolveProfessionLevel } from '@/lib/professionLevels';
 
 export interface HotbarSlot {
   /** 1-based slot position. */
@@ -104,12 +105,18 @@ export function buildWeaponHotbar(
 
 /** Map stored profession levels to the five gathering professions. */
 export function getActiveGatheringProfessions(
-  levels: Record<string, number> | null | undefined,
+  levels: Record<string, ProfessionLevel | number> | null | undefined,
 ): GatheringProfession[] {
   const lv = levels ?? {};
-  return GATHERING_PROFESSIONS.map((name) => ({
-    id: name.toLowerCase(),
-    name,
-    level: Math.max(1, Number(lv[name] ?? lv[name.toLowerCase()] ?? 1)),
-  }));
+  return GATHERING_PROFESSIONS.map((name) => {
+    const raw = lv[name] ?? lv[name.toLowerCase()];
+    const level = typeof raw === 'number'
+      ? raw
+      : resolveProfessionLevel(lv as Record<string, ProfessionLevel>, name, 'gathering').level;
+    return {
+      id: name.toLowerCase(),
+      name,
+      level: Math.max(1, Number(level ?? 1)),
+    };
+  });
 }

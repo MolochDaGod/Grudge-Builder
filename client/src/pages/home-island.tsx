@@ -34,7 +34,7 @@ import type { MountainTriadSeed } from '@shared/definitions/homeIslandSeed';
 import { buildHomeDungeonUrl } from '@/lib/homeIslandDungeon';
 import { clearTopDownCache } from '@/island3d/render/IslandTopDownCapture';
 import type { MountainHintState } from '@/island3d/objects/EvilMountainTriad';
-import { Home, Mountain, ArrowLeft, Map } from 'lucide-react';
+import { Home, Mountain, ArrowLeft, Map as MapIcon } from 'lucide-react';
 
 export default function HomeIslandPage() {
   const [, setLocation] = useLocation();
@@ -45,6 +45,7 @@ export default function HomeIslandPage() {
   const characterRef = useRef<Character | null>(null);
   const loadConfigRef = useRef<Grudge6LoadConfig | null>(null);
   const nodesRef = useRef<Map<string, { id: string; type: string; x: number; z: number; depleted: boolean }>>(new Map());
+  const onHarvestRef = useRef<(event: { nodeId?: string; resourceType: string }) => void>(() => {});
 
   const [loaded, setLoaded] = useState(false);
   const [islandDto, setIslandDto] = useState<HomeIslandDto | null>(null);
@@ -262,6 +263,7 @@ export default function HomeIslandPage() {
         showNotification(`Entering ${dungeonName}...`);
         setLocation(buildHomeDungeonUrl(dungeonId, dungeonName));
       },
+      onHarvest: (evt) => onHarvestRef.current(evt),
     };
 
     const engine = new Island3DEngine(config);
@@ -429,6 +431,23 @@ export default function HomeIslandPage() {
     return nearest;
   };
 
+  useEffect(() => {
+    onHarvestRef.current = ({ nodeId, resourceType }) => {
+      const key = resourceType;
+      setResources(prev => ({ ...prev, [key]: (prev[key] || 0) + 1 }));
+      showNotification(`Gathered ${key}`);
+      void persistProfessionXp(key);
+      const room = roomRef.current;
+      if (!room) return;
+      const serverNode = findNearestNode(35);
+      if (serverNode) {
+        room.send('harvest', { nodeId: serverNode, professionId: key });
+      } else if (nodeId) {
+        room.send('harvest', { nodeId, professionId: key });
+      }
+    };
+  });
+
   const handleHarvest = () => {
     if (playMode !== 'harvest') { setPlayMode('harvest'); return; }
     const nearest = findNearestNode();
@@ -583,7 +602,7 @@ export default function HomeIslandPage() {
                 onClick={handleLeave}
                 className="mt-2 w-full py-1.5 rounded-lg bg-emerald-900/40 border border-emerald-700/40 text-emerald-300 hover:bg-emerald-800/40 transition-colors flex items-center justify-center gap-1"
               >
-                <Map className="w-3 h-3" />
+                <MapIcon className="w-3 h-3" />
                 Sail to World
               </button>
             </div>

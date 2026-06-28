@@ -31,6 +31,7 @@ export default function PlayPage() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const engineRef = useRef<Island3DEngine | null>(null);
   const remotePlayersRef = useRef<RemotePlayerManager | null>(null);
+  const sendHarvestRef = useRef<(nodeId: string, professionId: string) => void>(() => {});
   const moveIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [loadProgress, setLoadProgress] = useState(0);
@@ -87,6 +88,7 @@ export default function PlayPage() {
 
   // Colyseus connection
   const colyseus = useColyseus(playerInfo);
+  sendHarvestRef.current = colyseus.sendHarvest;
 
   // ── Connect after character is loaded ───────────────────────────────
 
@@ -121,7 +123,13 @@ export default function PlayPage() {
       quality: 'medium',
       enableCharacter: true,
       onLoadProgress: (pct) => setLoadProgress(pct),
-      dayNight: { cycleDurationMs: 10 * 60 * 1000 }, // 10 min day/night
+      dayNight: { dayDurationSeconds: 10 * 60 },
+      onHarvest: ({ nodeId, resourceType }) => {
+        if (!nodeId) return;
+        sendHarvestRef.current(nodeId, resourceType);
+        setLootNotification(`Harvested ${resourceType}`);
+        setTimeout(() => setLootNotification(null), 3000);
+      },
     };
 
     const engine = new Island3DEngine(config);

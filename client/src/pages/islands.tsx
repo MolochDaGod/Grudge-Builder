@@ -4,7 +4,7 @@
  * Connects to Railway (island data) + world.grudge-studio.com (Colyseus),
  * then routes players into home-island, open world, or RTS lobby.
  */
-import { useState, useEffect } from "react";
+import { useState, useEffect, type ReactNode } from "react";
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
 import { Island3DRenderer } from "@/island3d/render/Island3DRenderer";
@@ -24,7 +24,22 @@ import {
   Users, ArrowLeft, Play, RefreshCw, ChevronRight, LogIn,
 } from "lucide-react";
 
-const ISLAND_MODES = [
+interface IslandModeEntry {
+  id: string;
+  label: string;
+  subtitle: string;
+  description: string;
+  path: string;
+  icon: ReactNode;
+  color: string;
+  border: string;
+  badge: string;
+  badgeColor: string;
+  primary?: boolean;
+  requiresServer?: boolean;
+}
+
+const ISLAND_MODES: IslandModeEntry[] = [
   {
     id: "home-island",
     label: "Home Island",
@@ -99,7 +114,7 @@ const ISLAND_MODES = [
     badge: "MAP",
     badgeColor: "bg-teal-700 text-white",
   },
-] as const;
+];
 
 const RACE_EMOJI: Record<string, string> = {
   human: "🧝", orc: "👹", elf: "🌿", dwarf: "⚒️",

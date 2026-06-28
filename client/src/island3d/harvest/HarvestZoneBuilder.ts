@@ -9,14 +9,20 @@ import {
 } from './HarvestZonePlacer';
 import { InstancedForestZone } from './InstancedForestZone';
 import { createHarvestableTree, type HarvestableTree } from '../objects/HarvestableTree';
-import { createHarvestableRock, type HarvestableRock } from '../objects/HarvestableRock';
+import {
+  createHarvestableRock,
+  mountHarvestableRockModel,
+  type HarvestableRock,
+} from '../objects/HarvestableRock';
 import {
   createCrystalCluster,
   createHempPlant,
   createFlowerPatch,
+  createScrapPile,
   type HarvestableCrystal,
   type HarvestableHemp,
   type HarvestableFlower,
+  type HarvestableScrap,
 } from '../objects/HomeIslandNodes';
 
 export interface HarvestZoneVisual {
@@ -33,6 +39,7 @@ export interface HarvestZonesResult {
   crystals: HarvestableCrystal[];
   hemps: HarvestableHemp[];
   flowers: HarvestableFlower[];
+  scraps: HarvestableScrap[];
   update: (dt: number, cameraPos: THREE.Vector3) => void;
   dispose: () => void;
 }
@@ -99,6 +106,7 @@ function makeZoneLabel(type: HarvestZoneDef['type']): THREE.Sprite {
     gem_vein: 'Gems',
     hemp_patch: 'Hemp',
     flower_meadow: 'Herbs',
+    scrap_yard: 'Scrap',
     mixed: 'Resources',
   };
 
@@ -139,6 +147,7 @@ function resolveGroundY(
 function spawnHarvestNode(
   zone: HarvestZoneDef,
   slot: HarvestZoneNodeSlot,
+  slotIndex: number,
   sampleHeight: ((x: number, z: number) => number | null) | undefined,
   hideTreeMesh: boolean,
 ): {
@@ -147,26 +156,39 @@ function spawnHarvestNode(
   crystal?: HarvestableCrystal;
   hemp?: HarvestableHemp;
   flower?: HarvestableFlower;
+  scrap?: HarvestableScrap;
 } {
   const wx = zone.center.x + slot.offsetX;
   const wz = zone.center.z + slot.offsetZ;
   const y = resolveGroundY(zone, slot, sampleHeight);
   const pos = new THREE.Vector3(wx, y, wz);
 
+  const nodeId = `${zone.id}_${slot.type}_${slotIndex}`;
+
   switch (slot.type) {
     case 'tree': {
       const tree = createHarvestableTree(pos, slot.scale);
+      tree.nodeId = nodeId;
       if (hideTreeMesh) tree.group.visible = false;
       return { tree };
     }
-    case 'rock':
-      return { rock: createHarvestableRock(pos, slot.scale) };
+    case 'rock': {
+      const rock = createHarvestableRock(pos, slot.scale);
+      rock.nodeId = nodeId;
+      if (zone.type === 'rock_field' || zone.type === 'gem_vein') {
+        rock.oreVariant = slotIndex % 3 === 0;
+        if (rock.oreVariant) void mountHarvestableRockModel(rock, slot.scale);
+      }
+      return { rock };
+    }
     case 'crystal':
       return { crystal: createCrystalCluster(pos, slot.scale) };
     case 'hemp':
       return { hemp: createHempPlant(pos, slot.scale) };
     case 'flower':
       return { flower: createFlowerPatch(pos, slot.scale) };
+    case 'scrap':
+      return { scrap: createScrapPile(pos, slot.scale) };
     default:
       return {};
   }
@@ -187,6 +209,7 @@ export async function buildHarvestZones(
   const crystals: HarvestableCrystal[] = [];
   const hemps: HarvestableHemp[] = [];
   const flowers: HarvestableFlower[] = [];
+  const scraps: HarvestableScrap[] = [];
 
   for (const zone of zoneDefs) {
     const outline = createZoneOutline(zone);
@@ -221,8 +244,9 @@ export async function buildHarvestZones(
 
     const hideTreeMesh = forest !== null;
 
-    for (const slot of zone.nodes) {
-      const spawned = spawnHarvestNode(zone, slot, sampleHeight, hideTreeMesh);
+    for (let slotIndex = 0; slotIndex < zone.nodes.length; slotIndex++) {
+      const slot = zone.nodes[slotIndex];
+      const spawned = spawnHarvestNode(zone, slot, slotIndex, sampleHeight, hideTreeMesh);
       if (spawned.tree) {
         scene.add(spawned.tree.group);
         trees.push(spawned.tree);
@@ -243,6 +267,10 @@ export async function buildHarvestZones(
         scene.add(spawned.flower.group);
         flowers.push(spawned.flower);
       }
+      if (spawned.scrap) {
+        scene.add(spawned.scrap.group);
+        scraps.push(spawned.scrap);
+      }
     }
 
     zoneVisuals.push({ id: zone.id, outline, forest });
@@ -256,6 +284,7 @@ export async function buildHarvestZones(
     crystals,
     hemps,
     flowers,
+    scraps,
     update(dt, cameraPos) {
       for (const f of forests) f.update(dt, cameraPos);
     },
@@ -277,6 +306,7 @@ export async function buildHarvestZones(
       for (const c of crystals) scene.remove(c.group);
       for (const h of hemps) scene.remove(h.group);
       for (const f of flowers) scene.remove(f.group);
+      for (const s of scraps) scene.remove(s.group);
     },
   };
 }

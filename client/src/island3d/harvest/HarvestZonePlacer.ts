@@ -12,10 +12,11 @@ export type HarvestZoneType =
   | 'gem_vein'
   | 'hemp_patch'
   | 'flower_meadow'
+  | 'scrap_yard'
   | 'mixed';
 
 export interface HarvestZoneNodeSlot {
-  type: 'tree' | 'rock' | 'crystal' | 'hemp' | 'flower';
+  type: 'tree' | 'rock' | 'crystal' | 'hemp' | 'flower' | 'scrap';
   offsetX: number;
   offsetZ: number;
   scale: number;
@@ -38,6 +39,7 @@ const ZONE_COLORS: Record<HarvestZoneType, number> = {
   gem_vein: 0x22d3ee,
   hemp_patch: 0x84cc16,
   flower_meadow: 0xf472b6,
+  scrap_yard: 0x94a3b8,
   mixed: 0xfbbf24,
 };
 
@@ -109,6 +111,7 @@ function nodeCountForType(type: HarvestZoneType, rng: () => number): number {
     case 'gem_vein': return 2 + Math.floor(rng() * 3);
     case 'hemp_patch': return 5 + Math.floor(rng() * 4);
     case 'flower_meadow': return 6 + Math.floor(rng() * 5);
+    case 'scrap_yard': return 5 + Math.floor(rng() * 4);
     case 'mixed': return 6 + Math.floor(rng() * 4);
   }
 }
@@ -135,16 +138,21 @@ function nodeTypesForZone(type: HarvestZoneType, count: number, rng: () => numbe
     case 'flower_meadow':
       push('flower', count);
       break;
+    case 'scrap_yard':
+      push('scrap', count);
+      break;
     case 'mixed': {
       const trees = Math.max(1, Math.floor(count * 0.35));
       const rocks = Math.max(1, Math.floor(count * 0.25));
       const crystals = rng() > 0.5 ? 1 : 0;
       const hemp = Math.max(1, Math.floor(count * 0.2));
-      const flowers = Math.max(0, count - trees - rocks - crystals - hemp);
+      const scrap = rng() > 0.6 ? 1 : 0;
+      const flowers = Math.max(0, count - trees - rocks - crystals - hemp - scrap);
       push('tree', trees);
       push('rock', rocks);
       if (crystals) push('crystal', crystals);
       push('hemp', hemp);
+      if (scrap) push('scrap', scrap);
       push('flower', flowers);
       break;
     }

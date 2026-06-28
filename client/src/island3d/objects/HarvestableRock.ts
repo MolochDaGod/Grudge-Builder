@@ -11,6 +11,9 @@ export interface HarvestableRock {
   baseScale: number;
   chipping: boolean;
   chipTime: number;
+  respawnAt: number;
+  nodeId?: string;
+  oreVariant?: boolean;
 }
 
 const ROCK_GEO = new THREE.DodecahedronGeometry(2, 0);
@@ -56,6 +59,8 @@ export function createHarvestableRock(
     baseScale: scale,
     chipping: false,
     chipTime: 0,
+    respawnAt: 0,
+    oreVariant: false,
   };
 
   void mountHarvestableRockModel(rock, scale);
@@ -67,7 +72,7 @@ export async function mountHarvestableRockModel(
   scale: number = 1,
 ): Promise<void> {
   try {
-    const model = await cloneIslandResource('rock');
+    const model = await cloneIslandResource(rock.oreVariant ? 'goldRock' : 'rock');
     rock.group.clear();
     fitModelToHeight(model, 2.8 * scale);
     model.rotation.y = Math.random() * Math.PI * 2;

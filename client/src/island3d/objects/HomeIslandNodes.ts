@@ -148,6 +148,40 @@ export function createHempPlant(position: THREE.Vector3, scale: number = 1): Har
   return { group, health: 2, maxHealth: 2 };
 }
 
+// ── Scrap Pile ───────────────────────────────────────────────────
+
+export interface HarvestableScrap {
+  group: THREE.Group;
+  health: number;
+  maxHealth: number;
+}
+
+export function createScrapPile(position: THREE.Vector3, scale: number = 1): HarvestableScrap {
+  const group = new THREE.Group();
+  const metalMat = new THREE.MeshStandardMaterial({ color: 0x7a7a82, roughness: 0.7, metalness: 0.6 });
+  const woodMat = new THREE.MeshStandardMaterial({ color: 0x5c4033, roughness: 0.9 });
+
+  for (let i = 0; i < 5 + Math.floor(Math.random() * 4); i++) {
+    const useMetal = Math.random() > 0.35;
+    const mesh = new THREE.Mesh(
+      useMetal ? new THREE.BoxGeometry(0.4, 0.15, 0.3) : new THREE.BoxGeometry(0.5, 0.12, 0.2),
+      useMetal ? metalMat : woodMat,
+    );
+    mesh.position.set(
+      (Math.random() - 0.5) * 1.2,
+      0.1 + Math.random() * 0.4,
+      (Math.random() - 0.5) * 1.2,
+    );
+    mesh.rotation.set(Math.random() * 0.5, Math.random() * Math.PI, Math.random() * 0.5);
+    mesh.castShadow = true;
+    group.add(mesh);
+  }
+
+  group.position.copy(position);
+  group.scale.setScalar(scale);
+  return { group, health: 2, maxHealth: 2 };
+}
+
 // ── Flower Patch ─────────────────────────────────────────────────
 
 export interface HarvestableFlower {

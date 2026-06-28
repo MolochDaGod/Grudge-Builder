@@ -1,5 +1,5 @@
 /**
- * IslandResourceLoader — cached CDN GLBs for harvestable trees, rocks, and gem clusters.
+ * IslandResourceLoader — cached CDN GLBs for harvestable trees, rocks, gems, and harvest FX.
  */
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
@@ -9,6 +9,10 @@ export const ISLAND_RESOURCE_MODELS = {
   tree: '/models/environment/island_tree.glb',
   rock: '/models/environment/island_rock.glb',
   gem: '/models/environment/gem_cluster.glb',
+  log: '/models/environment/harvest_logs.glb',
+  debris: '/models/environment/harvest_rock_debris.glb',
+  goldRock: '/models/environment/harvest_gold_rocks.glb',
+  stump: '/models/environment/harvest_stump.glb',
 } as const;
 
 export type IslandResourceType = keyof typeof ISLAND_RESOURCE_MODELS;
@@ -50,15 +54,19 @@ const ROCK_VARIANT_NAMES = [
   'rock_1', 'rock_2', 'rock_3', 'rock_4', 'rock_5', 'rock_6', 'rock_7', 'rock_8',
 ];
 const GEM_VARIANT_NAMES = ['Sphere', 'Sphere.001', 'Sphere.002'];
+const LOG_VARIANT_NAMES = ['Log', 'log', 'Logs', 'Cube', 'Mesh'];
+const DEBRIS_VARIANT_NAMES = ['Rock', 'rock', 'Rocks', 'Cube', 'Mesh'];
+const GOLD_VARIANT_NAMES = ['Rock', 'rock', 'Gold', 'Cube', 'Mesh'];
 
 function pickVariant(names: string[]): string {
   return names[Math.floor(Math.random() * names.length)];
 }
 
 function cloneNamedChild(template: THREE.Group, names: string[]): THREE.Object3D {
-  const choice = pickVariant(names);
-  const node = template.getObjectByName(choice);
-  if (node) return node.clone(true);
+  for (const name of names) {
+    const node = template.getObjectByName(name);
+    if (node) return node.clone(true);
+  }
 
   const meshes: THREE.Object3D[] = [];
   template.traverse((child) => {
@@ -76,10 +84,24 @@ export async function cloneIslandResource(type: IslandResourceType): Promise<THR
   const path = ISLAND_RESOURCE_MODELS[type];
   const template = await loadIslandResourceTemplate(path);
 
-  if (type === 'tree') return cloneNamedChild(template, TREE_VARIANT_NAMES);
-  if (type === 'rock') return cloneNamedChild(template, ROCK_VARIANT_NAMES);
-  if (type === 'gem') return cloneNamedChild(template, GEM_VARIANT_NAMES);
-  return template.clone(true);
+  switch (type) {
+    case 'tree':
+      return cloneNamedChild(template, TREE_VARIANT_NAMES);
+    case 'rock':
+      return cloneNamedChild(template, ROCK_VARIANT_NAMES);
+    case 'gem':
+      return cloneNamedChild(template, GEM_VARIANT_NAMES);
+    case 'log':
+      return cloneNamedChild(template, LOG_VARIANT_NAMES);
+    case 'debris':
+      return cloneNamedChild(template, DEBRIS_VARIANT_NAMES);
+    case 'goldRock':
+      return cloneNamedChild(template, GOLD_VARIANT_NAMES);
+    case 'stump':
+      return template.clone(true);
+    default:
+      return template.clone(true);
+  }
 }
 
 /** Scale model so its bounding height matches targetHeightM; bottom sits at local y=0. */
