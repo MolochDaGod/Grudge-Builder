@@ -18,6 +18,7 @@
     "db:push": "drizzle-kit push",
     "db:migrate:telegram": "node scripts/run-telegram-migration.mjs",
     "db:migrate:eras": "node scripts/run-migration-005.mjs",
+    "smoke:gcs-eras": "node scripts/smoke-gcs-eras.mjs",
     "gen:fleet": "tsx scripts/gen-fleet-manifest.mjs",
     "seed:rag": "node scripts/seed-anythingllm.mjs",
     "probe:truth": "tsx scripts/probe-truth-fleet.ts --base https://client.grudge-studio.com",
