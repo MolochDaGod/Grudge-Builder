@@ -40,9 +40,14 @@ export async function loadIslandResourceTemplate(path: string): Promise<THREE.Gr
   return template;
 }
 
+/** Stump GLB is ~6MB — loaded on-demand in HarvestFeedback; everything else preloads. */
+const PRELOAD_RESOURCE_TYPES: IslandResourceType[] = [
+  'tree', 'rock', 'gem', 'log', 'debris', 'goldRock',
+];
+
 export async function preloadIslandResources(): Promise<void> {
   await Promise.all(
-    Object.values(ISLAND_RESOURCE_MODELS).map((path) => loadIslandResourceTemplate(path)),
+    PRELOAD_RESOURCE_TYPES.map((type) => loadIslandResourceTemplate(ISLAND_RESOURCE_MODELS[type])),
   );
 }
 

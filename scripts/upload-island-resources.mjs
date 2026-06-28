@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 /**
  * Upload island harvest + evil mountain assets to R2 (grudge-assets bucket).
+ * Wrangler path: grudge-assets/models/… → CDN URL: /models/…
  *
  * Usage:
  *   node scripts/upload-island-resources.mjs [--remote]
@@ -39,6 +40,7 @@ function uploadOne(keySuffix, filePath) {
     console.error(`Missing: ${filePath}`);
     return false;
   }
+  // wrangler syntax: <bucket>/<object-key> — CDN serves object-key (models/…)
   const key = `grudge-assets/models/${keySuffix}`;
   const args = [
     'wrangler', 'r2', 'object', 'put', key,

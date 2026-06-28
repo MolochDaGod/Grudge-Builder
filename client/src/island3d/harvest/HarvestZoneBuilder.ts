@@ -181,14 +181,26 @@ function spawnHarvestNode(
       }
       return { rock };
     }
-    case 'crystal':
-      return { crystal: createCrystalCluster(pos, slot.scale) };
-    case 'hemp':
-      return { hemp: createHempPlant(pos, slot.scale) };
-    case 'flower':
-      return { flower: createFlowerPatch(pos, slot.scale) };
-    case 'scrap':
-      return { scrap: createScrapPile(pos, slot.scale) };
+    case 'crystal': {
+      const crystal = createCrystalCluster(pos, slot.scale);
+      crystal.nodeId = nodeId;
+      return { crystal };
+    }
+    case 'hemp': {
+      const hemp = createHempPlant(pos, slot.scale);
+      hemp.nodeId = nodeId;
+      return { hemp };
+    }
+    case 'flower': {
+      const flower = createFlowerPatch(pos, slot.scale);
+      flower.nodeId = nodeId;
+      return { flower };
+    }
+    case 'scrap': {
+      const scrap = createScrapPile(pos, slot.scale);
+      scrap.nodeId = nodeId;
+      return { scrap };
+    }
     default:
       return {};
   }

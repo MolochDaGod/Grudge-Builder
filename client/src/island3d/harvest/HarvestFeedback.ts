@@ -12,6 +12,13 @@ import {
   mountHarvestableRockModel,
   type HarvestableRock,
 } from '../objects/HarvestableRock';
+import {
+  mountCrystalClusterModel,
+  type HarvestableCrystal,
+  type HarvestableHemp,
+  type HarvestableFlower,
+  type HarvestableScrap,
+} from '../objects/HomeIslandNodes';
 
 export const HARVEST_RESPAWN_MS = 120_000;
 
@@ -22,14 +29,20 @@ export interface HarvestDrop {
   velocity: THREE.Vector3;
 }
 
+export type HarvestDropKind = 'log' | 'debris' | 'gold' | 'gem';
+
 export async function spawnResourceDrops(
   scene: THREE.Scene,
   position: THREE.Vector3,
-  type: 'log' | 'debris' | 'gold',
+  type: HarvestDropKind,
   count = 3,
 ): Promise<HarvestDrop[]> {
-  const resourceType = type === 'log' ? 'log' : type === 'gold' ? 'goldRock' : 'debris';
-  const height = type === 'log' ? 0.8 : 0.45;
+  const resourceType =
+    type === 'log' ? 'log'
+      : type === 'gold' ? 'goldRock'
+        : type === 'gem' ? 'gem'
+          : 'debris';
+  const height = type === 'log' ? 0.8 : type === 'gem' ? 0.35 : 0.45;
   const drops: HarvestDrop[] = [];
 
   for (let i = 0; i < count; i++) {
@@ -96,16 +109,36 @@ export function updateHarvestDrops(drops: HarvestDrop[], dt: number, scene: THRE
   return alive;
 }
 
+const STUMP_TRUNK_GEO = new THREE.CylinderGeometry(0.45, 0.65, 1.4, 8);
+const STUMP_ROOT_GEO = new THREE.CylinderGeometry(0.85, 1.05, 0.22, 8);
+const STUMP_TRUNK_MAT = new THREE.MeshLambertMaterial({ color: 0x5c3d1e });
+const STUMP_ROOT_MAT = new THREE.MeshLambertMaterial({ color: 0x3d2810 });
+
+function addProceduralStump(group: THREE.Group, scale: number): void {
+  const trunk = new THREE.Mesh(STUMP_TRUNK_GEO, STUMP_TRUNK_MAT);
+  trunk.position.y = 0.7 * scale;
+  trunk.scale.setScalar(scale);
+  trunk.castShadow = true;
+  trunk.receiveShadow = true;
+  group.add(trunk);
+
+  const roots = new THREE.Mesh(STUMP_ROOT_GEO, STUMP_ROOT_MAT);
+  roots.position.y = 0.11 * scale;
+  roots.scale.setScalar(scale);
+  roots.castShadow = true;
+  group.add(roots);
+}
+
 export async function swapTreeToStump(tree: HarvestableTree, scale: number): Promise<void> {
+  tree.group.clear();
   try {
     const stump = await cloneIslandResource('stump');
-    tree.group.clear();
     fitModelToHeight(stump, 2.2 * scale);
     tree.group.add(stump);
-    tree.fallPhase = 'stump';
   } catch {
-    tree.fallPhase = 'stump';
+    addProceduralStump(tree.group, scale);
   }
+  tree.fallPhase = 'stump';
 }
 
 export function beginTreeFall(tree: HarvestableTree): void {
@@ -139,4 +172,19 @@ export function resetHarvestableRock(rock: HarvestableRock): void {
   rock.group.visible = true;
   rock.group.scale.setScalar(rock.baseScale);
   void mountHarvestableRockModel(rock, rock.baseScale);
+}
+
+export function resetHarvestableCrystal(crystal: HarvestableCrystal): void {
+  crystal.health = crystal.maxHealth;
+  crystal.group.visible = true;
+  crystal.group.scale.setScalar(crystal.baseScale);
+  void mountCrystalClusterModel(crystal, crystal.baseScale);
+}
+
+export function resetSimpleHarvestNode(
+  node: HarvestableHemp | HarvestableFlower | HarvestableScrap,
+): void {
+  node.health = node.maxHealth;
+  node.group.visible = true;
+  node.group.scale.setScalar(node.baseScale);
 }

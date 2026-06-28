@@ -13,8 +13,11 @@ export interface HarvestableCrystal {
   group: THREE.Group;
   health: number;
   maxHealth: number;
+  baseScale: number;
   chipping: boolean;
   chipTime: number;
+  respawnAt: number;
+  nodeId?: string;
 }
 
 function addProceduralCrystalMesh(group: THREE.Group): number {
@@ -76,8 +79,10 @@ export function createCrystalCluster(position: THREE.Vector3, scale: number = 1)
     group,
     health: 3,
     maxHealth: 3,
+    baseScale: scale,
     chipping: false,
     chipTime: 0,
+    respawnAt: 0,
   };
 
   void mountCrystalClusterModel(crystal, scale);
@@ -110,6 +115,9 @@ export interface HarvestableHemp {
   group: THREE.Group;
   health: number;
   maxHealth: number;
+  baseScale: number;
+  respawnAt: number;
+  nodeId?: string;
 }
 
 export function createHempPlant(position: THREE.Vector3, scale: number = 1): HarvestableHemp {
@@ -145,7 +153,7 @@ export function createHempPlant(position: THREE.Vector3, scale: number = 1): Har
   group.position.copy(position);
   group.scale.setScalar(scale);
 
-  return { group, health: 2, maxHealth: 2 };
+  return { group, health: 2, maxHealth: 2, baseScale: scale, respawnAt: 0 };
 }
 
 // ── Scrap Pile ───────────────────────────────────────────────────
@@ -154,6 +162,9 @@ export interface HarvestableScrap {
   group: THREE.Group;
   health: number;
   maxHealth: number;
+  baseScale: number;
+  respawnAt: number;
+  nodeId?: string;
 }
 
 export function createScrapPile(position: THREE.Vector3, scale: number = 1): HarvestableScrap {
@@ -179,7 +190,7 @@ export function createScrapPile(position: THREE.Vector3, scale: number = 1): Har
 
   group.position.copy(position);
   group.scale.setScalar(scale);
-  return { group, health: 2, maxHealth: 2 };
+  return { group, health: 2, maxHealth: 2, baseScale: scale, respawnAt: 0 };
 }
 
 // ── Flower Patch ─────────────────────────────────────────────────
@@ -188,6 +199,9 @@ export interface HarvestableFlower {
   group: THREE.Group;
   health: number;
   maxHealth: number;
+  baseScale: number;
+  respawnAt: number;
+  nodeId?: string;
 }
 
 const FLOWER_COLORS = [0xff6b8a, 0xffaa33, 0xff55ff, 0x55aaff, 0xffee44, 0xff4466];
@@ -230,7 +244,7 @@ export function createFlowerPatch(position: THREE.Vector3, scale: number = 1): H
   group.position.copy(position);
   group.scale.setScalar(scale);
 
-  return { group, health: 1, maxHealth: 1 };
+  return { group, health: 1, maxHealth: 1, baseScale: scale, respawnAt: 0 };
 }
 
 // ── Dock Structure ───────────────────────────────────────────────

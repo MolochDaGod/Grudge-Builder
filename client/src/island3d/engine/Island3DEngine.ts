@@ -67,7 +67,10 @@ import {
   updateHarvestDrops,
   resetHarvestableTree,
   resetHarvestableRock,
+  resetHarvestableCrystal,
+  resetSimpleHarvestNode,
   type HarvestDrop,
+  type HarvestDropKind,
 } from '../harvest/HarvestFeedback';
 import {
   generateMountainTriadSeed,
@@ -679,24 +682,28 @@ export class Island3DEngine {
         }
         case 'crystal': {
           const crystal = createCrystalCluster(node.position, node.scale);
+          crystal.nodeId = node.id;
           this.crystals.push(crystal);
           this.scene.add(crystal.group);
           break;
         }
         case 'hemp': {
           const hemp = createHempPlant(node.position, node.scale);
+          hemp.nodeId = node.id;
           this.hemps.push(hemp);
           this.scene.add(hemp.group);
           break;
         }
         case 'flower': {
           const flower = createFlowerPatch(node.position, node.scale);
+          flower.nodeId = node.id;
           this.flowers.push(flower);
           this.scene.add(flower.group);
           break;
         }
         case 'scrap': {
           const scrap = createScrapPile(node.position, node.scale);
+          scrap.nodeId = node.id;
           this.scraps.push(scrap);
           this.scene.add(scrap.group);
           break;
@@ -920,6 +927,39 @@ export class Island3DEngine {
       }
     }
 
+    for (const crystal of this.crystals) {
+      if (crystal.chipping) {
+        crystal.chipTime += dt;
+        if (crystal.chipTime > 0.3) {
+          crystal.chipping = false;
+          crystal.chipTime = 0;
+        }
+      }
+      if (crystal.respawnAt > 0 && now >= crystal.respawnAt && !crystal.group.visible) {
+        crystal.respawnAt = 0;
+        resetHarvestableCrystal(crystal);
+      }
+    }
+
+    for (const hemp of this.hemps) {
+      if (hemp.respawnAt > 0 && now >= hemp.respawnAt && !hemp.group.visible) {
+        hemp.respawnAt = 0;
+        resetSimpleHarvestNode(hemp);
+      }
+    }
+    for (const flower of this.flowers) {
+      if (flower.respawnAt > 0 && now >= flower.respawnAt && !flower.group.visible) {
+        flower.respawnAt = 0;
+        resetSimpleHarvestNode(flower);
+      }
+    }
+    for (const scrap of this.scraps) {
+      if (scrap.respawnAt > 0 && now >= scrap.respawnAt && !scrap.group.visible) {
+        scrap.respawnAt = 0;
+        resetSimpleHarvestNode(scrap);
+      }
+    }
+
     this.harvestDrops = updateHarvestDrops(this.harvestDrops, dt, this.scene);
   }
 
@@ -936,10 +976,19 @@ export class Island3DEngine {
     });
   }
 
-  private async spawnRockDebris(
-    rock: HarvestableRock,
+  private async emitHarvestDrops(
+    position: THREE.Vector3,
+    kind: HarvestDropKind,
     count: number,
+    nodeId: string | undefined,
+    resourceType: string,
   ): Promise<void> {
+    const drops = await spawnResourceDrops(this.scene, position, kind, count);
+    this.harvestDrops.push(...drops);
+    this.config.onHarvest?.({ nodeId, resourceType, position: position.clone() });
+  }
+
+  private async spawnRockDebris(rock: HarvestableRock, count: number): Promise<void> {
     const dropType = rock.oreVariant ? 'gold' : 'debris';
     const drops = await spawnResourceDrops(this.scene, rock.group.position, dropType, count);
     this.harvestDrops.push(...drops);
@@ -1164,12 +1213,91 @@ export class Island3DEngine {
         if (rock.health <= 0) {
           rock.group.visible = false;
           rock.respawnAt = Date.now() + HARVEST_RESPAWN_MS;
-          void this.spawnRockDebris(rock, rock.oreVariant ? 4 : 3);
-          this.config.onHarvest?.({
-            nodeId: rock.nodeId,
-            resourceType: rock.oreVariant ? 'mining' : 'mining',
-            position: rock.group.position.clone(),
-          });
+          void this.emitHarvestDrops(
+            rock.group.position.clone(),
+            rock.oreVariant ? 'gold' : 'debris',
+            rock.oreVariant ? 4 : 3,
+            rock.nodeId,
+            'mining',
+          );
+        }
+        return;
+      }
+    }
+
+    for (const crystal of this.crystals) {
+      if (!crystal.group.visible || crystal.respawnAt > 0) continue;
+      const hits = this.raycaster.intersectObject(crystal.group, true);
+      if (hits.length > 0) {
+        crystal.health--;
+        crystal.chipping = true;
+        crystal.chipTime = 0;
+        const scale = Math.max(0.35, crystal.health / crystal.maxHealth);
+        crystal.group.scale.setScalar(crystal.baseScale * scale);
+        void spawnResourceDrops(this.scene, crystal.group.position, 'gem', 1).then((d) => {
+          this.harvestDrops.push(...d);
+        });
+        if (crystal.health <= 0) {
+          crystal.group.visible = false;
+          crystal.respawnAt = Date.now() + HARVEST_RESPAWN_MS;
+          void this.emitHarvestDrops(
+            crystal.group.position.clone(),
+            'gem',
+            4,
+            crystal.nodeId,
+            'mining',
+          );
+        }
+        return;
+      }
+    }
+
+    for (const hemp of this.hemps) {
+      if (!hemp.group.visible || hemp.respawnAt > 0) continue;
+      const hits = this.raycaster.intersectObject(hemp.group, true);
+      if (hits.length > 0) {
+        hemp.health--;
+        const scale = Math.max(0.4, hemp.health / hemp.maxHealth);
+        hemp.group.scale.setScalar(hemp.baseScale * scale);
+        if (hemp.health <= 0) {
+          hemp.group.visible = false;
+          hemp.respawnAt = Date.now() + HARVEST_RESPAWN_MS;
+          void this.emitHarvestDrops(hemp.group.position.clone(), 'debris', 2, hemp.nodeId, 'herbalism');
+        }
+        return;
+      }
+    }
+
+    for (const flower of this.flowers) {
+      if (!flower.group.visible || flower.respawnAt > 0) continue;
+      const hits = this.raycaster.intersectObject(flower.group, true);
+      if (hits.length > 0) {
+        flower.health--;
+        const scale = Math.max(0.4, flower.health / flower.maxHealth);
+        flower.group.scale.setScalar(flower.baseScale * scale);
+        if (flower.health <= 0) {
+          flower.group.visible = false;
+          flower.respawnAt = Date.now() + HARVEST_RESPAWN_MS;
+          void this.emitHarvestDrops(flower.group.position.clone(), 'debris', 2, flower.nodeId, 'herbalism');
+        }
+        return;
+      }
+    }
+
+    for (const scrap of this.scraps) {
+      if (!scrap.group.visible || scrap.respawnAt > 0) continue;
+      const hits = this.raycaster.intersectObject(scrap.group, true);
+      if (hits.length > 0) {
+        scrap.health--;
+        const scale = Math.max(0.4, scrap.health / scrap.maxHealth);
+        scrap.group.scale.setScalar(scrap.baseScale * scale);
+        void spawnResourceDrops(this.scene, scrap.group.position, 'debris', 1).then((d) => {
+          this.harvestDrops.push(...d);
+        });
+        if (scrap.health <= 0) {
+          scrap.group.visible = false;
+          scrap.respawnAt = Date.now() + HARVEST_RESPAWN_MS;
+          void this.emitHarvestDrops(scrap.group.position.clone(), 'debris', 3, scrap.nodeId, 'mining');
         }
         return;
       }
