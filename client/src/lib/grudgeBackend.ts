@@ -53,25 +53,16 @@ export interface GrudgeUser {
 
 // ── SSO token pickup (from cross-app redirects) ────────────────────
 
-/** Bridge id.grudge-studio.com launch token → GrudgeBuilder Bearer JWT */
+/** Bridge id.grudge-studio.com launch token → Railway JWT for the real Warlords account. */
 export async function bridgeGrudgeLaunchToken(launchToken: string): Promise<boolean> {
   try {
-    const exchange = await fetch("https://api.grudge-studio.com/api/auth/session/exchange", {
+    const bridge = await fetch(`${API_BASE}/auth/grudge-bridge`, {
       method: "POST",
       credentials: "include",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ token: launchToken, audience: window.location.origin }),
-    });
-    if (!exchange.ok) return false;
-    const profile = await exchange.json();
-
-    const bridge = await fetch(`${API_BASE}/auth/puter`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        puterId: `grudge_${profile.grudgeId}`,
-        puterUuid: `grudge_${profile.grudgeId}`,
-        displayName: profile.displayName || profile.username,
+        token: launchToken,
+        audience: window.location.origin,
       }),
     });
     if (!bridge.ok) return false;

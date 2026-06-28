@@ -41,11 +41,16 @@ export const CROSSMINT_ISLAND_COLLECTION = CROSSMINT_COLLECTIONS.island;
 /**
  * Canonical fleet map — import this in any Grudge app instead of hardcoding URLs.
  */
+/** PBR ground terrain — R2 CDN (home-islands + 9 sectors) */
+export const GROUND_PBR_CDN = `${ASSETS_CDN}/textures/pbr/ground`;
+export const GROUND_PBR_MANIFEST = `${GROUND_PBR_CDN}/manifest.json`;
+
 export const GRUDGE_FLEET = {
   auth: AUTH_GATEWAY,
   identityApi: GAME_API,
   gameData: GAME_DATA_RAILWAY,
   assets: ASSETS_CDN,
+  groundPBR: GROUND_PBR_CDN,
   ai: AI_GATEWAY,
   objectStore: OBJECTSTORE,
   colyseus: WS_URL,

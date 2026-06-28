@@ -90,38 +90,54 @@
       ...c,
       race: c.race || c.raceId || '',
       class: c.class || c.classId || '',
+      raceId: c.raceId || c.race || '',
+      classId: c.classId || c.class || '',
       stats: c.stats || c.attributes || {},
+      attributes: c.attributes || c.stats || {},
     };
   }
 
+  function applyAuthResponse(data) {
+    const token = data.sessionToken || data.token;
+    if (token) saveToken(token);
+    const u = data.user || data;
+    const gid = u.grudgeId || data.grudgeId;
+    const un = u.username || data.username;
+    if (gid) {
+      lsSet(GRUDGE_ID_KEY, gid);
+      lsSet(ACCOUNT_ID_KEY, gid);
+    }
+    if (un) lsSet(USERNAME_KEY, un);
+    _user = {
+      grudgeId: gid || lsGet(GRUDGE_ID_KEY) || '',
+      username: un || lsGet(USERNAME_KEY) || '',
+      displayName: u.displayName || data.displayName,
+      gbuxBalance: Number(u.gbuxBalance ?? data.gbuxBalance ?? 0),
+      walletAddress: u.walletAddress || data.walletAddress,
+      isPremium: u.isPremium,
+    };
+    return data;
+  }
+
+  function parseCharactersPayload(raw) {
+    const list = Array.isArray(raw) ? raw : (raw && raw.characters) || [];
+    return list.map(normalizeCharacter);
+  }
+
+  /** grudge_token → Railway JWT for the real Warlords account (not a synthetic puter user). */
   async function bridgeGrudgeLaunchToken(launchToken) {
     try {
-      const exchange = await fetch(FLEET.identityApi + '/api/auth/session/exchange', {
+      const bridge = await fetch(FLEET.gameData + '/api/auth/grudge-bridge', {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token: launchToken, audience: window.location.origin }),
-      });
-      if (!exchange.ok) return false;
-      const profile = await exchange.json();
-
-      const bridge = await fetch(FLEET.gameData + '/api/auth/puter', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          puterId: 'grudge_' + profile.grudgeId,
-          puterUuid: 'grudge_' + profile.grudgeId,
-          displayName: profile.displayName || profile.username,
+          token: launchToken,
+          audience: typeof window !== 'undefined' ? window.location.origin : '',
         }),
       });
       if (!bridge.ok) return false;
-      const data = await bridge.json();
-      const token = data.sessionToken || data.token;
-      if (token) saveToken(token);
-      if (data.grudgeId || profile.grudgeId) lsSet(GRUDGE_ID_KEY, data.grudgeId || profile.grudgeId);
-      if (data.username || profile.username) lsSet(USERNAME_KEY, data.username || profile.username);
-      if (data.grudgeId) lsSet(ACCOUNT_ID_KEY, data.grudgeId);
-      _user = data.user || profile;
+      applyAuthResponse(await bridge.json());
       return true;
     } catch {
       return false;
@@ -193,10 +209,9 @@
         if (_user.grudgeId) lsSet(ACCOUNT_ID_KEY, _user.grudgeId);
       }
 
-      const charRes = await fetch(FLEET.gameData + '/api/characters', { headers: authHeaders() });
+      const charRes = await fetch(FLEET.gameData + '/api/characters?era=warlords', { headers: authHeaders() });
       if (charRes.ok) {
-        const chars = await charRes.json();
-        _characters = (Array.isArray(chars) ? chars : []).map(normalizeCharacter);
+        _characters = parseCharactersPayload(await charRes.json());
 
         const stored = readActiveId();
         if (stored && _characters.some((c) => c.id === stored)) {
@@ -272,26 +287,6 @@
 
       window.parent?.postMessage({ type: 'GRUDGE_READY' }, '*');
       if (readToken()) syncFromBackend();
-    },
-
-    function applyAuthResponse(data) {
-      const token = data.sessionToken || data.token;
-      if (token) saveToken(token);
-      const u = data.user || data;
-      if (u.grudgeId || data.grudgeId) {
-        lsSet(GRUDGE_ID_KEY, u.grudgeId || data.grudgeId);
-        lsSet(ACCOUNT_ID_KEY, u.grudgeId || data.grudgeId);
-      }
-      if (u.username || data.username) lsSet(USERNAME_KEY, u.username || data.username);
-      _user = {
-        grudgeId: u.grudgeId || data.grudgeId || lsGet(GRUDGE_ID_KEY) || '',
-        username: u.username || data.username || lsGet(USERNAME_KEY) || '',
-        displayName: u.displayName || data.displayName,
-        gbuxBalance: Number(u.gbuxBalance ?? data.gbuxBalance ?? 0),
-        walletAddress: u.walletAddress || data.walletAddress,
-        isPremium: u.isPremium,
-      };
-      return data;
     },
 
     async login(identifier, password) {

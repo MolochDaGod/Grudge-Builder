@@ -250,9 +250,10 @@ class _GrudgeAccountSDK {
       }
 
       // Fetch characters
-      const charRes = await fetch(`${this._apiBase}/api/characters`, { headers });
+      const charRes = await fetch(`${this._apiBase}/api/characters?era=warlords`, { headers });
       if (charRes.ok) {
-        const chars: GrudgeCharacter[] = await charRes.json();
+        const raw = await charRes.json();
+        const chars: GrudgeCharacter[] = Array.isArray(raw) ? raw : (raw.characters ?? []);
         this._characters = chars;
 
         // Restore or auto-select active character

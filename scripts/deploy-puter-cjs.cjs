@@ -12,7 +12,11 @@ const os      = require('os');
 
 const SDK_PATH   = 'C:/Users/nugye/npm-global/node_modules/puter-cli/node_modules/@heyputer/puter.js/src/init.cjs';
 const CONFIG_PATH = path.join(process.env.APPDATA || os.homedir(), 'puter-cli-nodejs', 'Config', 'config.json');
-const LOCAL_FILE  = path.resolve(__dirname, '..', 'client', 'public', 'grudge-crafting.html');
+const PUBLIC_DIR  = path.resolve(__dirname, '..', 'client', 'public');
+const LOCAL_FILES = [
+  { local: 'grudge-crafting.html', remote: 'index.html', type: 'text/html' },
+  { local: 'grudge-fleet.js', remote: 'grudge-fleet.js', type: 'application/javascript' },
+];
 const REMOTE_DIR  = '/GRUDACHAIN/sites/grudge-crafting/deployment';
 const SUBDOMAIN   = 'grudge-crafting';
 
@@ -39,9 +43,12 @@ function readToken() {
   puter.setAuthToken(token);
   console.log('✓ Auth set');
 
-  // 2. Read file
-  const content = fs.readFileSync(LOCAL_FILE);
-  console.log(`✓ File: ${LOCAL_FILE} (${(content.length / 1024).toFixed(1)} KB)`);
+  // 2. Validate local files
+  for (const f of LOCAL_FILES) {
+    const p = path.join(PUBLIC_DIR, f.local);
+    if (!fs.existsSync(p)) throw new Error(`Missing ${p}`);
+    console.log(`✓ File: ${f.local} (${(fs.statSync(p).size / 1024).toFixed(1)} KB)`);
+  }
 
   // 3. Create remote dir (idempotent)
   console.log(`→ Ensuring remote dir: ${REMOTE_DIR}`);
@@ -63,15 +70,17 @@ function readToken() {
   const dirPath = (remoteDir.path || REMOTE_DIR).replace(/\\/g, '/');
   console.log(`  Remote path: ${dirPath}`);
 
-  // 4. Upload
-  console.log(`→ Uploading index.html…`);
-  const file = new (globalThis.File ?? require('buffer').File)(
-    [content], 'index.html', { type: 'text/html' }
-  );
-
-  const result = await puter.fs.upload(file, dirPath, { overwrite: true });
-  const uploadedPath = Array.isArray(result) ? result[0]?.path : result?.path;
-  console.log(`✓ Uploaded → ${uploadedPath ?? dirPath + '/index.html'}`);
+  // 4. Upload fleet assets
+  for (const f of LOCAL_FILES) {
+    console.log(`→ Uploading ${f.remote}…`);
+    const content = fs.readFileSync(path.join(PUBLIC_DIR, f.local));
+    const file = new (globalThis.File ?? require('buffer').File)(
+      [content], f.remote, { type: f.type }
+    );
+    const result = await puter.fs.upload(file, dirPath, { overwrite: true });
+    const uploadedPath = Array.isArray(result) ? result[0]?.path : result?.path;
+    console.log(`✓ Uploaded → ${uploadedPath ?? dirPath + '/' + f.remote}`);
+  }
 
   // 5. Point hosting to the dir
   console.log(`→ Hosting: ${SUBDOMAIN}.puter.site → ${dirPath}`);

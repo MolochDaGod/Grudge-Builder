@@ -53,10 +53,11 @@ function getOpenAI(): OpenAI | null {
 const JWT_SECRET = process.env.SESSION_SECRET || process.env.JWT_SECRET || "";
 
 interface AuthPayload {
-  userId: string;
+  userId?: string;
   grudgeId?: string;
   username?: string;
   isAdmin?: boolean;
+  sub?: string | number;
 }
 
 /**
@@ -77,7 +78,9 @@ function extractUserId(req: Request): string {
 
   try {
     const payload = jwt.verify(token, JWT_SECRET) as AuthPayload;
-    return payload.userId || payload.grudgeId || "guest";
+    if (payload.userId) return payload.userId;
+    if (payload.sub != null && payload.sub !== "") return String(payload.sub);
+    return "guest";
   } catch {
     return "guest";
   }

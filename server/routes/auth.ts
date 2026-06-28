@@ -552,6 +552,89 @@ export function registerAuthRoutes(app: Express) {
   });
 
   /**
+   * POST /api/auth/grudge-bridge
+   * Fleet SSO for Puter sites (grudge-crafting.puter.site, etc.):
+   * exchange id.grudge-studio.com launch JWT → Railway session for the REAL account.
+   * Never mint a synthetic puter:grudge_* user (that yields an empty roster).
+   */
+  app.post("/api/auth/grudge-bridge", authRateLimit, async (req: Request, res: Response) => {
+    try {
+      const launchToken = req.body?.token as string;
+      if (!launchToken) return res.status(400).json({ success: false, error: "token required" });
+
+      const audience = (req.body?.audience as string) || "";
+      let grudgeId = "";
+      let identityUserId = "";
+
+      try {
+        const decoded = jwt.verify(launchToken, JWT_SECRET) as {
+          type?: string;
+          userId?: string;
+          grudgeId?: string;
+          sub?: string | number;
+        };
+        if (decoded.type === "launch" && decoded.userId) {
+          identityUserId = decoded.userId;
+          grudgeId = decoded.grudgeId || "";
+        } else {
+          grudgeId = decoded.grudgeId || "";
+          if (decoded.sub != null) identityUserId = String(decoded.sub);
+          if (decoded.userId) identityUserId = decoded.userId;
+        }
+      } catch {
+        /* fall through to identity API */
+      }
+
+      if (!grudgeId) {
+        const identityApi =
+          process.env.IDENTITY_API_URL || "https://api.grudge-studio.com";
+        const ex = await fetch(`${identityApi}/api/auth/session/exchange`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ token: launchToken, audience }),
+        });
+        if (!ex.ok) {
+          return res.status(401).json({ success: false, error: "Invalid or expired token" });
+        }
+        const profile = (await ex.json()) as {
+          id?: string | number;
+          grudgeId?: string;
+          username?: string;
+          displayName?: string;
+        };
+        grudgeId = profile.grudgeId || "";
+        if (profile.id != null) identityUserId = String(profile.id);
+      }
+
+      if (!grudgeId && !identityUserId) {
+        return res.status(401).json({ success: false, error: "Token missing grudgeId" });
+      }
+
+      let user: typeof users.$inferSelect | undefined;
+      if (grudgeId) {
+        [user] = await db.select().from(users).where(eq(users.grudgeId, grudgeId)).limit(1);
+      }
+      if (!user && identityUserId) {
+        [user] = await db.select().from(users).where(eq(users.id, identityUserId)).limit(1);
+      }
+      if (!user) {
+        return res.status(404).json({ success: false, error: "Grudge account not found" });
+      }
+
+      const account = await ensureAccount(user.id);
+      const response = buildAuthResponse(
+        { id: user.id, username: user.username, grudgeId: user.grudgeId },
+        account,
+      );
+      setSessionCookie(res, response.token);
+      res.json({ ...response, success: true });
+    } catch (e: any) {
+      console.error("[Auth/GrudgeBridge]", e);
+      res.status(500).json({ success: false, error: e.message || "Bridge failed" });
+    }
+  });
+
+  /**
    * POST /api/auth/wallet
    * Solana wallet login — creates account if new.
    */
