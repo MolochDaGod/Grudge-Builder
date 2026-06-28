@@ -261,8 +261,8 @@ export async function registerRoutes(
   const getUserId = (req: Request): string => extractUserId(req);
   const GUEST_USER_ID = "guest";
 
-  // Character routes
-  app.get("/api/characters", async (req, res) => {
+  // Character routes — roster is per-account; never expose the shared guest pool
+  app.get("/api/characters", requireAuth, async (req, res) => {
     try {
       const userId = getUserId(req);
       const eraQuery = typeof req.query.era === "string" ? req.query.era : undefined;

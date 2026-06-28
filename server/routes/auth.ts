@@ -361,6 +361,7 @@ export function registerAuthRoutes(app: Express) {
    * Puter UUID login — creates account if new. Also handles guest logins
    * (puterUuid starts with "guest_").
    */
+  /** SPA clients (e.g. ui.grudge-studio.com) use this for silent re-auth: returns JWT in JSON body. */
   app.post("/api/auth/puter", authRateLimit, async (req: Request, res: Response) => {
     try {
       const puterUuid = req.body.puterUuid || req.body.puterId;
@@ -404,13 +405,12 @@ export function registerAuthRoutes(app: Express) {
         account.displayName ||
         puterUsername ||
         (user.username.includes(":") ? user.username.split(":").slice(1).join(":") : user.username);
-      const token = signToken({
-        userId: user.id,
-        grudgeId: user.grudgeId || account.grudgeId || "",
-        username: displayName,
-      });
-      setSessionCookie(res, token);
-      res.json(buildSsoUserPayload(user, account, { isNew }));
+      const response = buildAuthResponse(
+        { id: user.id, username: user.username, grudgeId: user.grudgeId },
+        account,
+      );
+      setSessionCookie(res, response.token);
+      res.json({ ...response, ...buildSsoUserPayload(user, account, { isNew }), isNew });
     } catch (e: any) {
       console.error("[Auth/Puter-SSO]", e);
       res.status(500).json({ success: false, error: e.message || "SSO failed" });
