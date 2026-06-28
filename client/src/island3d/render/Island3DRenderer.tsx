@@ -49,17 +49,20 @@ interface Island3DRendererProps {
   lobbyIslandId?: string;
   /** Expose the engine ref for external control (building, allies, etc.) */
   onEngineReady?: (engine: Island3DEngine) => void;
+  /** Fired when a harvestable node is depleted (tree felled, rock mined, etc.) */
+  onHarvest?: (event: { nodeId?: string; resourceType: string; position: import('three').Vector3 }) => void;
 }
 
 export function Island3DRenderer({
   seed, className = '', multiplayer, mode = 'procedural', lobbyMapId,
   sectorId, worldSeed,
   quality = 'medium', dayNight, enableCharacter, onEngineReady,
-  characterId, raceId, classId, characterName, model3d, lobbyIslandId,
+  characterId, raceId, classId, characterName, model3d, lobbyIslandId, onHarvest,
 }: Island3DRendererProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const engineRef = useRef<Island3DEngine | null>(null);
+  const onHarvestRef = useRef<Island3DRendererProps['onHarvest']>(() => {});
   const [engineReady, setEngineReady] = useState<Island3DEngine | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadProgress, setLoadProgress] = useState(0);
@@ -71,6 +74,10 @@ export function Island3DRenderer({
   const [dayPhase, setDayPhase] = useState('day');
   const [combatHud, setCombatHud] = useState<CombatHudSnapshot>(EMPTY_COMBAT_HUD);
   const { context: sessionCtx, send: sessionSend } = useIslandSession(characterId);
+
+  useEffect(() => {
+    onHarvestRef.current = onHarvest;
+  }, [onHarvest]);
 
   // Physics callbacks (bridge engine events → React state)
   const physicsCallbacks: PhysicsCallbacks = {
@@ -105,6 +112,7 @@ export function Island3DRenderer({
         setLoadProgress(pct);
         sessionSend({ type: 'PROGRESS', progress: pct });
       },
+      onHarvest: (evt) => onHarvestRef.current?.(evt),
     });
     engineRef.current = engine;
 

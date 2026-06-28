@@ -8,6 +8,7 @@ import { useEffect, useRef, useCallback } from 'react';
 import type { Island3DEngine } from '@/island3d/engine/Island3DEngine';
 import { RemotePlayerManager } from '@/island3d/sync/RemotePlayerManager';
 import { useColyseus, type PlayerInfo } from '@/hooks/use-colyseus';
+import { syncHarvestNodeDepleted } from '@/island3d/harvest/ZoneHarvestSpawner';
 
 export interface ZoneColyseusOptions {
   engine: Island3DEngine | null;
@@ -115,6 +116,25 @@ export function useZoneColyseus({
       remotePlayersRef.current = null;
     };
   }, [enabled, colyseus.sectorRoom, colyseus.localSessionId, engine]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Sync zone harvest node depleted / respawn from SectorRoom
+  useEffect(() => {
+    if (!enabled || !colyseus.sectorRoom || !engine) return;
+    const room = colyseus.sectorRoom;
+
+    const applyNode = (node: any, id: string) => {
+      syncHarvestNodeDepleted(engine, id, node.depleted);
+    };
+
+    room.state.harvestNodes?.onAdd?.((node: any, id: string) => {
+      applyNode(node, id);
+      node.onChange(() => applyNode(node, id));
+    });
+
+    room.state.harvestNodes?.forEach?.((node: any, id: string) => {
+      applyNode(node, id);
+    });
+  }, [enabled, colyseus.sectorRoom, engine]);
 
   return colyseus;
 }

@@ -58,6 +58,7 @@ import { preloadIslandResources } from '../objects/IslandResourceLoader';
 import { scatterGlbTreesFromNodes } from '../objects/GlbForestScatter';
 import { placeProceduralHarvestZones } from '../harvest/HarvestZonePlacer';
 import { buildHarvestZones, type HarvestZonesResult } from '../harvest/HarvestZoneBuilder';
+import { spawnZoneHarvestNodes } from '../harvest/ZoneHarvestSpawner';
 import {
   HARVEST_RESPAWN_MS,
   beginTreeFall,
@@ -557,6 +558,25 @@ export class Island3DEngine {
     // 2. Build the Three.js scene (ocean, islands, markers, lighting)
     this.zoneScene = buildZoneScene(sector, this.zonePopulation);
     this.scene.add(this.zoneScene.root);
+
+    // 2b. Interactive harvest meshes on zone nodes (Warlords era open world)
+    await preloadIslandResources().catch(() => undefined);
+    const zoneHarvest = spawnZoneHarvestNodes(
+      this.scene,
+      this.zonePopulation,
+      this.zoneScene.islandMeshes,
+      this.zoneScene.markers,
+    );
+    this.trees.push(...zoneHarvest.trees);
+    this.rocks.push(...zoneHarvest.rocks);
+    this.crystals.push(...zoneHarvest.crystals);
+    this.hemps.push(...zoneHarvest.hemps);
+    this.flowers.push(...zoneHarvest.flowers);
+    this.scraps.push(...zoneHarvest.scraps);
+    console.log(
+      `[Island3D] Zone harvest nodes: ${zoneHarvest.trees.length} trees,`,
+      `${zoneHarvest.rocks.length} rocks, ${zoneHarvest.crystals.length} gems`,
+    );
 
     // 3. Apply sector sky + fog
     this.scene.background = new THREE.Color(cfg.skyColor);

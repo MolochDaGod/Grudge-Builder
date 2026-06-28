@@ -42,6 +42,7 @@ export default function TutorialPage() {
   const [, setLocation] = useLocation();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const engineRef = useRef<Island3DEngine | null>(null);
+  const onHarvestRef = useRef<(event: { nodeId?: string; resourceType: string }) => void>(() => {});
   const roomRef = useRef<Room | null>(null);
   const characterRef = useRef<Character | null>(null);
   const loadConfigRef = useRef<Grudge6LoadConfig | null>(null);
@@ -321,6 +322,7 @@ export default function TutorialPage() {
       quality: 'low',
       enableCharacter: true,
       dayNight: { dayDurationSeconds: 20 * 60 },
+      onHarvest: (evt) => onHarvestRef.current(evt),
     };
 
     const engine = new Island3DEngine(config);
@@ -393,11 +395,25 @@ export default function TutorialPage() {
     return nearest;
   };
 
+  useEffect(() => {
+    onHarvestRef.current = ({ nodeId, resourceType }) => {
+      const key = resourceType === 'driftwood' ? 'wood' : resourceType;
+      setResources(prev => ({ ...prev, [key]: (prev[key] || 0) + 1 }));
+      showNotification(`Gathered ${resourceType}`);
+      void persistProfessionXp(key);
+      if (nodeId) roomRef.current?.send('harvest', { nodeId });
+      else {
+        const nearest = findNearest(nodesRef.current);
+        if (nearest) roomRef.current?.send('harvest', { nodeId: nearest });
+      }
+    };
+  });
+
   const handleHarvest = () => {
     if (playMode !== 'harvest') { setPlayMode('harvest'); return; }
     const nearest = findNearest(nodesRef.current);
     if (nearest) roomRef.current?.send('harvest', { nodeId: nearest });
-    else showNotification('No resource node nearby — switch to Harvest mode');
+    else showNotification('Click a tree or rock nearby, or walk closer to a node');
   };
 
   const handleAttack = () => {
@@ -447,7 +463,11 @@ export default function TutorialPage() {
 
   return (
     <div className="fixed inset-0 bg-black">
-      <canvas ref={canvasRef} className="w-full h-full" />
+      <canvas
+        ref={canvasRef}
+        className="w-full h-full"
+        onClick={(e) => engineRef.current?.handleClick(e.clientX, e.clientY)}
+      />
 
       {introPlaying && loaded && (
         <div className="absolute inset-0 z-50 bg-black/80 flex items-center justify-center pointer-events-auto">

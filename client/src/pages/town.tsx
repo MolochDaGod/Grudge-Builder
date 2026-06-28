@@ -18,8 +18,17 @@ import { RemotePlayerManager } from '@/island3d/sync/RemotePlayerManager';
 import { useTownRoom } from '@/hooks/use-town-room';
 import { characterAPI } from '@/lib/api';
 import { getTownForSector, type FactionTown } from '@shared/definitions/factionTowns';
+import { playNPCFarewell, playNPCGreeting } from '@/lib/dialogueAudioManager';
 import type { SectorPosition } from '@shared/definitions/lore';
-import { MapPin, MessageSquare, LogOut, ShoppingBag, Scroll } from 'lucide-react';
+import { MapPin, LogOut } from 'lucide-react';
+import { preloadIslandResources } from '@/island3d/objects/IslandResourceLoader';
+import {
+  spawnTownHarvestNodes,
+  appendHarvestSpawn,
+  syncHarvestNodeDepleted,
+  TOWN_HARVEST_DEFAULTS,
+  type TownHarvestNodeSync,
+} from '@/island3d/harvest/ZoneHarvestSpawner';
 
 // ── Component ────────────────────────────────────────────────────
 
@@ -30,6 +39,8 @@ export default function TownPage() {
   const npcControllerRef = useRef<TownNPCController | null>(null);
   const rpmRef = useRef<RemotePlayerManager | null>(null);
   const blenderRef = useRef<TownTerrainBlender | null>(null);
+  const onHarvestRef = useRef<(event: { nodeId?: string; resourceType: string }) => void>(() => {});
+  const spawnedHarvestIdsRef = useRef<Set<string>>(new Set());
 
   const [loaded, setLoaded] = useState(false);
   const [notification, setNotification] = useState<string | null>(null);
@@ -78,12 +89,15 @@ export default function TownPage() {
       mode: 'procedural',
       quality: 'medium',
       enableCharacter: true,
+      onHarvest: (evt) => onHarvestRef.current(evt),
     };
 
     const engine = new Island3DEngine(config);
     engineRef.current = engine;
 
     engine.init().then(async () => {
+      await preloadIslandResources().catch(() => undefined);
+
       // Load town GLB scene
       const townScene = await loadTownScene(townDef);
       engine.getScene().add(townScene.root);
@@ -206,21 +220,70 @@ export default function TownPage() {
     return () => clearInterval(interval);
   }, [town.connected]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ── Helpers ────────────────────────────────────────────────────
-
   const showNotification = useCallback((text: string) => {
     setNotification(text);
     setTimeout(() => setNotification(null), 3000);
   }, []);
+
+  // ── Town harvest nodes (meshes + FX) ───────────────────────────
+
+  const spawnTownNodes = useCallback((nodes: Iterable<TownHarvestNodeSync>) => {
+    const engine = engineRef.current;
+    if (!engine || !townDef) return;
+
+    const pending = [...nodes].filter((n) => !spawnedHarvestIdsRef.current.has(n.id));
+    if (pending.length === 0) return;
+
+    const result = spawnTownHarvestNodes(
+      engine.getScene(),
+      townDef.modelOffset,
+      pending,
+      engine.terrain?.terrainMesh ?? null,
+    );
+    appendHarvestSpawn(engine, result);
+    for (const n of pending) spawnedHarvestIdsRef.current.add(n.id);
+  }, [townDef]);
+
+  useEffect(() => {
+    if (!loaded || !townDef) return;
+
+    const nodes = town.harvestNodes.size > 0
+      ? town.harvestNodes.values()
+      : TOWN_HARVEST_DEFAULTS;
+    spawnTownNodes(nodes);
+  }, [loaded, townDef, town.harvestNodes, spawnTownNodes]);
+
+  useEffect(() => {
+    const engine = engineRef.current;
+    if (!engine) return;
+
+    for (const node of town.harvestNodes.values()) {
+      syncHarvestNodeDepleted(engine, node.id, node.depleted);
+    }
+  }, [town.harvestNodes]);
+
+  useEffect(() => {
+    onHarvestRef.current = ({ nodeId, resourceType }) => {
+      if (!nodeId) return;
+      town.harvest(nodeId);
+      showNotification(`Harvested ${resourceType}`);
+    };
+  });
 
   const handleInteract = (npcId: string) => {
     town.interact(npcId);
     setInteractingNpc(npcId);
     const npc = town.npcs.get(npcId);
     if (npc) showNotification(`Speaking with ${npc.name}...`);
+    const npcDef = townDef?.npcs.find((n) => n.id === npcId);
+    if (npcDef) playNPCGreeting(npcDef);
   };
 
   const handleEndInteract = () => {
+    if (interactingNpc && townDef) {
+      const npcDef = townDef.npcs.find((n) => n.id === interactingNpc);
+      if (npcDef) playNPCFarewell(npcDef);
+    }
     town.endInteract();
     setInteractingNpc(null);
   };
@@ -235,7 +298,11 @@ export default function TownPage() {
 
   return (
     <div className="fixed inset-0 bg-black">
-      <canvas ref={canvasRef} className="w-full h-full" />
+      <canvas
+        ref={canvasRef}
+        className="w-full h-full"
+        onClick={(e) => engineRef.current?.handleClick(e.clientX, e.clientY)}
+      />
 
       {loaded && (
         <>

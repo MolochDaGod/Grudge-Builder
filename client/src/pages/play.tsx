@@ -7,6 +7,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useLocation } from 'wouter';
 import { useColyseus, type PlayerInfo } from '@/hooks/use-colyseus';
+import { syncHarvestNodeDepleted } from '@/island3d/harvest/ZoneHarvestSpawner';
 import { GameHUD } from '@/components/GameHUD';
 import { Island3DEngine, type Island3DEngineConfig } from '@/island3d/engine/Island3DEngine';
 import { RemotePlayerManager, type RemotePlayerData } from '@/island3d/sync/RemotePlayerManager';
@@ -279,6 +280,27 @@ export default function PlayPage() {
       remotePlayersRef.current = null;
     };
   }, [colyseus.sectorRoom, colyseus.localSessionId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Sync zone harvest node depleted state from SectorRoom ─────
+
+  useEffect(() => {
+    const engine = engineRef.current;
+    const room = colyseus.sectorRoom;
+    if (!engine || !room) return;
+
+    const applyNode = (node: any, id: string) => {
+      syncHarvestNodeDepleted(engine, id, node.depleted);
+    };
+
+    room.state.harvestNodes?.onAdd?.((node: any, id: string) => {
+      applyNode(node, id);
+      node.onChange(() => applyNode(node, id));
+    });
+
+    room.state.harvestNodes?.forEach?.((node: any, id: string) => {
+      applyNode(node, id);
+    });
+  }, [colyseus.sectorRoom]);
 
   // ── Get local player state ────────────────────────────────────
 

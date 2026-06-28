@@ -2,7 +2,7 @@
  * Island 3D Page — defaults to the Studio Map Editor (HDR terrain, creatures, play mode).
  * Legacy Island3DEngine remains available via ?engine=legacy, ?mode=zone, or ?mode=lobby.
  */
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useLocation } from 'wouter';
 import { Island3DRenderer } from '@/island3d/render/Island3DRenderer';
 import type { Island3DMode, Island3DEngine } from '@/island3d/engine/Island3DEngine';
@@ -207,6 +207,11 @@ function Island3DLegacyPage() {
     playerInfo,
     enabled: mode === 'zone' && zoneMultiplayer,
   });
+
+  const handleZoneHarvest = useCallback((evt: { nodeId?: string; resourceType: string }) => {
+    if (!evt.nodeId) return;
+    zoneColyseus.sendHarvest(evt.nodeId, evt.resourceType);
+  }, [zoneColyseus]);
 
   // Purge stale island top-down previews (old double-water renders)
   useEffect(() => {
@@ -479,6 +484,7 @@ function Island3DLegacyPage() {
           classId={heroClass}
           model3d={heroModel3d}
           onEngineReady={(eng) => { engineRef.current = eng; setEngine(eng); }}
+          onHarvest={mode === 'zone' && zoneMultiplayer ? handleZoneHarvest : undefined}
         />
         {mode === 'zone' && activeSector && (
           <div className="absolute top-4 left-4 bg-black/70 backdrop-blur border border-purple-800/50 rounded-xl px-4 py-3 text-xs text-slate-300 space-y-1 pointer-events-none max-w-xs">
