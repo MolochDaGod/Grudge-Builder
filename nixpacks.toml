@@ -11,4 +11,4 @@ cmds = ["npm install --legacy-peer-deps --include=dev"]
 cmds = ["npm run build:server"]
 
 [start]
-cmd = "NODE_ENV=production node dist/index.cjs"
+cmd = "NODE_ENV=production node dist/index.js"
