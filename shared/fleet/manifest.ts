@@ -29,7 +29,7 @@ export interface FleetService {
 export const FLEET_URLS = {
   auth: "https://id.grudge-studio.com",
   identityApi: "https://api.grudge-studio.com",
-  gameData: "https://grudge-builder-production.up.railway.app",
+  gameData: "https://grudge-api-production-0d46.up.railway.app",
   assets: "https://assets.grudge-studio.com",
   objectStore: "https://objectstore.grudge-studio.com/api/v1",
   ai: "https://ai.grudge-studio.com",

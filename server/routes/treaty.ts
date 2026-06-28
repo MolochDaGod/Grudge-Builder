@@ -1,0 +1,164 @@
+/**
+ * Treaty Chat routes — friends list + 1:1 DMs between Grudge accounts.
+ */
+import type { Express, Request, Response, NextFunction } from "express";
+import jwt from "jsonwebtoken";
+import { storage } from "../storage";
+import {
+  listTreatySocial,
+  sendFriendRequest,
+  respondFriendRequest,
+  getOrCreateDmThread,
+  listDmThreads,
+  getThreadMessages,
+  sendDmMessage,
+  countUnreadTreatyMessages,
+} from "../services/treatyChat";
+
+const JWT_SECRET = process.env.SESSION_SECRET || process.env.JWT_SECRET || "grudge-dev-secret";
+
+function requireAuth(req: Request, res: Response, next: NextFunction): void {
+  const authHeader = req.get("Authorization") || req.get("X-Session-Token");
+  const token = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : authHeader || null;
+  if (!token) {
+    res.status(401).json({ error: "Authentication required" });
+    return;
+  }
+  try {
+    const payload = jwt.verify(token, JWT_SECRET) as { userId?: string; sub?: string };
+    const userId = payload.userId || (payload.sub != null ? String(payload.sub) : null);
+    if (!userId) {
+      res.status(401).json({ error: "Authentication required" });
+      return;
+    }
+    (req as any).userId = userId;
+    next();
+  } catch {
+    res.status(401).json({ error: "Invalid session" });
+  }
+}
+
+async function requireAccount(req: Request, res: Response) {
+  const userId = (req as any).userId as string;
+  const account = await storage.getAccountByUserId(userId);
+  if (!account) {
+    res.status(404).json({ error: "Account not found" });
+    return null;
+  }
+  return account;
+}
+
+export function registerTreatyRoutes(app: Express): void {
+  app.get("/api/treaty/social", requireAuth, async (req, res) => {
+    try {
+      const account = await requireAccount(req, res);
+      if (!account) return;
+      const social = await listTreatySocial(account.id);
+      res.json(social);
+    } catch (e: any) {
+      console.error("[Treaty/Social]", e);
+      res.status(500).json({ error: e.message || "Failed to load social" });
+    }
+  });
+
+  app.post("/api/treaty/friends/request", requireAuth, async (req, res) => {
+    try {
+      const account = await requireAccount(req, res);
+      if (!account) return;
+      const { query } = req.body as { query?: string };
+      if (!query?.trim()) {
+        res.status(400).json({ error: "query required (Grudge ID or display name)" });
+        return;
+      }
+      const result = await sendFriendRequest(account.id, query);
+      res.json(result);
+    } catch (e: any) {
+      res.status(400).json({ error: e.message || "Failed to send request" });
+    }
+  });
+
+  app.post("/api/treaty/friends/:id/respond", requireAuth, async (req, res) => {
+    try {
+      const account = await requireAccount(req, res);
+      if (!account) return;
+      const { accept } = req.body as { accept?: boolean };
+      if (typeof accept !== "boolean") {
+        res.status(400).json({ error: "accept (boolean) required" });
+        return;
+      }
+      const updated = await respondFriendRequest(account.id, req.params.id, accept);
+      res.json({ request: updated });
+    } catch (e: any) {
+      res.status(400).json({ error: e.message || "Failed to respond" });
+    }
+  });
+
+  app.get("/api/treaty/dm/threads", requireAuth, async (req, res) => {
+    try {
+      const account = await requireAccount(req, res);
+      if (!account) return;
+      const threads = await listDmThreads(account.id);
+      res.json({ threads });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message || "Failed to list threads" });
+    }
+  });
+
+  app.post("/api/treaty/dm/threads", requireAuth, async (req, res) => {
+    try {
+      const account = await requireAccount(req, res);
+      if (!account) return;
+      const { friendAccountId } = req.body as { friendAccountId?: string };
+      if (!friendAccountId) {
+        res.status(400).json({ error: "friendAccountId required" });
+        return;
+      }
+      const thread = await getOrCreateDmThread(account.id, friendAccountId);
+      res.json({ thread });
+    } catch (e: any) {
+      res.status(400).json({ error: e.message || "Failed to create thread" });
+    }
+  });
+
+  app.get("/api/treaty/dm/threads/:id/messages", requireAuth, async (req, res) => {
+    try {
+      const account = await requireAccount(req, res);
+      if (!account) return;
+      const messages = await getThreadMessages(account.id, req.params.id);
+      res.json({ messages });
+    } catch (e: any) {
+      res.status(400).json({ error: e.message || "Failed to load messages" });
+    }
+  });
+
+  app.post("/api/treaty/dm/threads/:id/messages", requireAuth, async (req, res) => {
+    try {
+      const account = await requireAccount(req, res);
+      if (!account) return;
+      const { content } = req.body as { content?: string };
+      if (!content?.trim()) {
+        res.status(400).json({ error: "content required" });
+        return;
+      }
+      const message = await sendDmMessage(account.id, req.params.id, content);
+      res.json({ message });
+    } catch (e: any) {
+      res.status(400).json({ error: e.message || "Failed to send message" });
+    }
+  });
+
+  app.get("/api/treaty/unread", requireAuth, async (req, res) => {
+    try {
+      const account = await requireAccount(req, res);
+      if (!account) return;
+      const unread = await countUnreadTreatyMessages(account.id);
+      res.json({ unread });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message || "Failed to count unread" });
+    }
+  });
+
+  console.log(
+    "[Treaty] Routes: GET /api/treaty/{social,unread,dm/threads}; POST /friends/{request,:id/respond}, /dm/threads{,:id/messages}",
+  );
+}

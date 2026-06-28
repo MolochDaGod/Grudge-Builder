@@ -2,7 +2,7 @@
  * Production smoke test — GCS multi-era character API + fleet URLs
  * Usage: node scripts/smoke-gcs-eras.mjs
  */
-const RAILWAY = process.env.SMOKE_RAILWAY || 'https://grudge-builder-production.up.railway.app';
+const RAILWAY = process.env.SMOKE_RAILWAY || 'https://grudge-api-production-0d46.up.railway.app';
 const GCS = process.env.SMOKE_GCS || 'https://character.grudge-studio.com';
 const WARLORDS = process.env.SMOKE_WARLORDS || 'https://grudgewarlords.com';
 

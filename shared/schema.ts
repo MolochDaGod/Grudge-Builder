@@ -1139,6 +1139,7 @@ export const GBUX_EVENT_TYPES = [
   'swap_withdrawal',    // GBUX -> SOL (5% fee)
   'admin_grant',        // Admin grants (audit trail)
   'telegram_purchase',  // Telegram Stars → GBUX (on-chain + ledger)
+  'wallet_purchase',    // SOL/USDT → GBUX via linked third-party wallet
   'admin_debit',        // Admin debits (audit trail)
   'fee_collected',      // Fees collected by system
   'migration_credit',   // One-time gold migration
@@ -1203,6 +1204,116 @@ export const insertTelegramLinkSchema = createInsertSchema(telegramLinks).omit({
 
 export type InsertTelegramLink = z.infer<typeof insertTelegramLinkSchema>;
 export type TelegramLink = typeof telegramLinks.$inferSelect;
+
+// ============================================
+// LINKED THIRD-PARTY WALLETS (Phantom, Solflare, etc.)
+// ============================================
+
+export const LINKED_WALLET_PROVIDERS = [
+  "phantom",
+  "solflare",
+  "backpack",
+  "crossmint",
+  "other",
+] as const;
+
+export type LinkedWalletProvider = (typeof LINKED_WALLET_PROVIDERS)[number];
+
+export const linkedWallets = pgTable("linked_wallets", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  accountId: varchar("account_id").notNull(),
+  walletAddress: text("wallet_address").notNull(),
+  provider: text("provider").notNull().$type<LinkedWalletProvider>().default("other"),
+  label: text("label"),
+  isPrimary: boolean("is_primary").notNull().default(false),
+  verifiedAt: bigint("verified_at", { mode: "number" }),
+  createdAt: bigint("created_at", { mode: "number" }).notNull().default(sql`extract(epoch from now()) * 1000`),
+});
+
+export const insertLinkedWalletSchema = createInsertSchema(linkedWallets).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertLinkedWallet = z.infer<typeof insertLinkedWalletSchema>;
+export type LinkedWallet = typeof linkedWallets.$inferSelect;
+
+// ============================================
+// WALLET PURCHASES (SOL / USDT → in-game GBUX)
+// ============================================
+
+export const WALLET_PURCHASE_CURRENCIES = ["SOL", "USDT"] as const;
+export type WalletPurchaseCurrency = (typeof WALLET_PURCHASE_CURRENCIES)[number];
+
+export const WALLET_PURCHASE_STATUSES = ["pending", "confirmed", "failed", "expired"] as const;
+export type WalletPurchaseStatus = (typeof WALLET_PURCHASE_STATUSES)[number];
+
+export const walletPurchases = pgTable("wallet_purchases", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  accountId: varchar("account_id").notNull(),
+  linkedWalletAddress: text("linked_wallet_address"),
+  currency: text("currency").notNull().$type<WalletPurchaseCurrency>(),
+  amountIn: real("amount_in").notNull(),
+  gbuxOut: integer("gbux_out").notNull(),
+  status: text("status").notNull().$type<WalletPurchaseStatus>().default("pending"),
+  txSignature: text("tx_signature"),
+  treasuryAddress: text("treasury_address").notNull(),
+  expiresAt: bigint("expires_at", { mode: "number" }).notNull(),
+  metadata: jsonb("metadata").$type<{
+    exchangeRate?: number;
+    feePercent?: number;
+    feeAmount?: number;
+    solPriceUsd?: number;
+    explorerUrl?: string;
+  }>(),
+  createdAt: bigint("created_at", { mode: "number" }).notNull().default(sql`extract(epoch from now()) * 1000`),
+  confirmedAt: bigint("confirmed_at", { mode: "number" }),
+});
+
+export const insertWalletPurchaseSchema = createInsertSchema(walletPurchases).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertWalletPurchase = z.infer<typeof insertWalletPurchaseSchema>;
+export type WalletPurchase = typeof walletPurchases.$inferSelect;
+
+// ============================================
+// TREATY CHAT — friends + direct messages
+// ============================================
+
+export const TREATY_FRIEND_STATUSES = ["pending", "accepted", "declined", "blocked"] as const;
+export type TreatyFriendStatus = (typeof TREATY_FRIEND_STATUSES)[number];
+
+export const treatyFriends = pgTable("treaty_friends", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  accountId: varchar("account_id").notNull(),
+  friendAccountId: varchar("friend_account_id").notNull(),
+  status: text("status").notNull().$type<TreatyFriendStatus>().default("pending"),
+  initiatedBy: varchar("initiated_by").notNull(),
+  createdAt: bigint("created_at", { mode: "number" }).notNull().default(sql`extract(epoch from now()) * 1000`),
+  respondedAt: bigint("responded_at", { mode: "number" }),
+});
+
+export const treatyDmThreads = pgTable("treaty_dm_threads", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  accountLow: varchar("account_low").notNull(),
+  accountHigh: varchar("account_high").notNull(),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull().default(sql`extract(epoch from now()) * 1000`),
+});
+
+export const treatyMessages = pgTable("treaty_messages", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  threadId: varchar("thread_id").notNull(),
+  senderAccountId: varchar("sender_account_id").notNull(),
+  content: text("content").notNull(),
+  readAt: bigint("read_at", { mode: "number" }),
+  createdAt: bigint("created_at", { mode: "number" }).notNull().default(sql`extract(epoch from now()) * 1000`),
+});
+
+export type TreatyFriend = typeof treatyFriends.$inferSelect;
+export type TreatyDmThread = typeof treatyDmThreads.$inferSelect;
+export type TreatyMessage = typeof treatyMessages.$inferSelect;
 
 // ============================================
 // UUID LEDGER SYSTEM

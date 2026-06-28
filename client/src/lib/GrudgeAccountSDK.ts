@@ -77,7 +77,7 @@ type CharacterCallback = (character: GrudgeCharacter | null) => void;
 function defaultApiBase(): string {
   // Browser: same-origin /api → Vercel fleet rewrites → Railway game data
   if (typeof window !== 'undefined') return '';
-  return 'https://grudge-builder-production.up.railway.app';
+  return 'https://grudge-api-production-0d46.up.railway.app';
 }
 
 class _GrudgeAccountSDK {

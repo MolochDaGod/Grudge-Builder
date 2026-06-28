@@ -16,6 +16,8 @@ import {
   registerDevToolObjectStorageRoutes,
 } from "./integrations/object_storage";
 import { registerAuthRoutes } from "./routes/auth";
+import { registerWalletRoutes } from "./routes/wallet";
+import { registerTreatyRoutes } from "./routes/treaty";
 import { registerTelegramRoutes } from "./telegramRoutes";
 import { scanAsepriteDirectory, readAsepriteFile, getAsepriteStats } from "./aseprite-reader";
 import { getSheetsClient, isConfigured, SHEET_IDS, readSheet, getCachedData, setCachedData } from "./googleSheets";
@@ -253,6 +255,8 @@ export async function registerRoutes(
 ): Promise<Server> {
   // ── Auth routes (Grudge ID — puter, wallet, login, register, verify, discord) ──
   registerAuthRoutes(app);
+  registerWalletRoutes(app);
+  registerTreatyRoutes(app);
 
   const { registerDiscordInteractionRoutes, registerDiscordCommands } = await import("./discordInteractions");
   registerDiscordInteractionRoutes(app);
@@ -5409,6 +5413,7 @@ Also suggest metadata values in this exact JSON format:
         walletType: account.walletType || null,
         walletAddress: account.walletAddress || null,
         crossmintEmail: account.crossmintEmail || null,
+        gbuxBalance: account.gbuxBalance ?? 0,
       });
     } catch (error) {
       console.error("Error fetching wallet status:", error);
@@ -5459,12 +5464,15 @@ Also suggest metadata values in this exact JSON format:
     }
   });
 
-  // POST /api/wallet/link-external - Link an external wallet (WalletConnect)
+  // POST /api/wallet/link-external - Link external wallet (signature-verified)
   app.post("/api/wallet/link-external", async (req, res) => {
     try {
       const userId = getUserId(req);
-      const { walletAddress, signature, message } = req.body;
-      
+      if (userId === "guest") {
+        return res.status(401).json({ error: "Authentication required" });
+      }
+      const { walletAddress, signature, message, provider } = req.body;
+
       if (!walletAddress) {
         return res.status(400).json({ error: "Wallet address is required" });
       }
@@ -5474,9 +5482,26 @@ Also suggest metadata values in this exact JSON format:
         return res.status(404).json({ error: "Account not found" });
       }
 
+      if (signature && message) {
+        const { confirmLinkedWallet } = await import("./services/walletAccess");
+        const result = await confirmLinkedWallet(
+          account.id,
+          walletAddress,
+          message,
+          signature,
+          provider || "other",
+        );
+        return res.json({
+          success: true,
+          walletAddress,
+          walletType: "external",
+          linkedWallet: result.linked,
+          message: "External wallet linked successfully",
+        });
+      }
+
       const { nftMintingService } = await import("./services/nftMinting");
       const success = await nftMintingService.linkExternalWallet(account.id, walletAddress);
-
       if (!success) {
         return res.status(500).json({ error: "Failed to link wallet" });
       }
@@ -5484,12 +5509,12 @@ Also suggest metadata values in this exact JSON format:
       res.json({
         success: true,
         walletAddress,
-        walletType: 'external',
-        message: "External wallet linked successfully",
+        walletType: "external",
+        message: "External wallet linked (unsigned legacy path)",
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error linking external wallet:", error);
-      res.status(500).json({ error: "Failed to link external wallet" });
+      res.status(400).json({ error: error.message || "Failed to link external wallet" });
     }
   });
 
@@ -5806,7 +5831,11 @@ Also suggest metadata values in this exact JSON format:
         rpcEndpoint: process.env.NODE_ENV === 'production'
           ? 'https://api.mainnet-beta.solana.com'
           : 'https://api.devnet.solana.com',
-        crossmintEnabled: !!process.env.CROSSMINT_API_KEY,
+        crossmintEnabled: !!(process.env.CROSSMINT_API_KEY || process.env.CROSSMINT_SERVER_API_KEY),
+        gbuxMint: process.env.GBUX_MINT_ADDRESS || "55TpSoMNxbfsNJ9U1dQoo9H3dRtDmjBZVMcKqvU2nray",
+        usdtMint: process.env.USDT_MINT_ADDRESS || "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB",
+        gbuxRateUsd: Number(process.env.GBUX_RATE_USD || 0.001),
+        purchaseFeePercent: Number(process.env.WALLET_PURCHASE_FEE_PERCENT || 0.01),
         aiAgentWallet: process.env.AI_AGENT_SOL_ADDRESS || null,
       });
     } catch (error) {

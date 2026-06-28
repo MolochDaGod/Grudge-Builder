@@ -4,7 +4,7 @@
   "urls": {
     "auth": "https://id.grudge-studio.com",
     "identityApi": "https://api.grudge-studio.com",
-    "gameData": "https://grudge-builder-production.up.railway.app",
+    "gameData": "https://grudge-api-production-0d46.up.railway.app",
     "assets": "https://assets.grudge-studio.com",
     "objectStore": "https://objectstore.grudge-studio.com/api/v1",
     "ai": "https://ai.grudge-studio.com",
@@ -37,7 +37,7 @@
       "id": "game-data",
       "label": "Game state (GrudgeBuilder Railway)",
       "role": "game-data",
-      "url": "https://grudge-builder-production.up.railway.app",
+      "url": "https://grudge-api-production-0d46.up.railway.app",
       "proxyPath": "/api/characters",
       "notes": "Postgres SSOT — characters, wallet, islands, inventory"
     },
@@ -131,71 +131,71 @@
     },
     {
       "source": "/api/characters",
-      "destination": "https://grudge-builder-production.up.railway.app/api/characters"
+      "destination": "https://grudge-api-production-0d46.up.railway.app/api/characters"
     },
     {
       "source": "/api/characters/:path*",
-      "destination": "https://grudge-builder-production.up.railway.app/api/characters/:path*"
+      "destination": "https://grudge-api-production-0d46.up.railway.app/api/characters/:path*"
     },
     {
       "source": "/api/wallet/:path*",
-      "destination": "https://grudge-builder-production.up.railway.app/api/wallet/:path*"
+      "destination": "https://grudge-api-production-0d46.up.railway.app/api/wallet/:path*"
     },
     {
       "source": "/api/nfts/:path*",
-      "destination": "https://grudge-builder-production.up.railway.app/api/nfts/:path*"
+      "destination": "https://grudge-api-production-0d46.up.railway.app/api/nfts/:path*"
     },
     {
       "source": "/api/island/:path*",
-      "destination": "https://grudge-builder-production.up.railway.app/api/island/:path*"
+      "destination": "https://grudge-api-production-0d46.up.railway.app/api/island/:path*"
     },
     {
       "source": "/api/islands/:path*",
-      "destination": "https://grudge-builder-production.up.railway.app/api/islands/:path*"
+      "destination": "https://grudge-api-production-0d46.up.railway.app/api/islands/:path*"
     },
     {
       "source": "/api/account",
-      "destination": "https://grudge-builder-production.up.railway.app/api/account"
+      "destination": "https://grudge-api-production-0d46.up.railway.app/api/account"
     },
     {
       "source": "/api/account/:path*",
-      "destination": "https://grudge-builder-production.up.railway.app/api/account/:path*"
+      "destination": "https://grudge-api-production-0d46.up.railway.app/api/account/:path*"
     },
     {
       "source": "/api/inventory/:path*",
-      "destination": "https://grudge-builder-production.up.railway.app/api/inventory/:path*"
+      "destination": "https://grudge-api-production-0d46.up.railway.app/api/inventory/:path*"
     },
     {
       "source": "/api/party/:path*",
-      "destination": "https://grudge-builder-production.up.railway.app/api/party/:path*"
+      "destination": "https://grudge-api-production-0d46.up.railway.app/api/party/:path*"
     },
     {
       "source": "/api/fleet/:path*",
-      "destination": "https://grudge-builder-production.up.railway.app/api/fleet/:path*"
+      "destination": "https://grudge-api-production-0d46.up.railway.app/api/fleet/:path*"
     },
     {
       "source": "/api/supabase/:path*",
-      "destination": "https://grudge-builder-production.up.railway.app/api/supabase/:path*"
+      "destination": "https://grudge-api-production-0d46.up.railway.app/api/supabase/:path*"
     },
     {
       "source": "/api/auth/puter",
-      "destination": "https://grudge-builder-production.up.railway.app/api/auth/puter"
+      "destination": "https://grudge-api-production-0d46.up.railway.app/api/auth/puter"
     },
     {
       "source": "/api/auth/login",
-      "destination": "https://grudge-builder-production.up.railway.app/api/auth/login"
+      "destination": "https://grudge-api-production-0d46.up.railway.app/api/auth/login"
     },
     {
       "source": "/api/auth/register",
-      "destination": "https://grudge-builder-production.up.railway.app/api/auth/register"
+      "destination": "https://grudge-api-production-0d46.up.railway.app/api/auth/register"
     },
     {
       "source": "/api/auth/me",
-      "destination": "https://grudge-builder-production.up.railway.app/api/auth/me"
+      "destination": "https://grudge-api-production-0d46.up.railway.app/api/auth/me"
     },
     {
       "source": "/api/auth/verify",
-      "destination": "https://grudge-builder-production.up.railway.app/api/auth/verify"
+      "destination": "https://grudge-api-production-0d46.up.railway.app/api/auth/verify"
     },
     {
       "source": "/api/auth/session/exchange",

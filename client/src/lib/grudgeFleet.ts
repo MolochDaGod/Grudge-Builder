@@ -4,7 +4,7 @@
  * Two backend layers (both required):
  *   1. IDENTITY  — The-ENGINE @ id.grudge-studio.com + api.grudge-studio.com
  *                  Accounts, OAuth, grudge_token SSO, GBUX profile shell
- *   2. GAME DATA — GrudgeBuilder @ grudge-builder-production (Railway)
+ *   2. GAME DATA — GrudgeBuilder @ grudge-api-production-0d46 (Railway)
  *                  Characters, wallets, cNFT mint, islands, inventory (Postgres SSOT)
  *
  * Browser apps MUST use same-origin `/api/*` so Vercel rewrites route:

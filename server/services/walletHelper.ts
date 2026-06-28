@@ -19,14 +19,28 @@ export function generateGrudgeId(userId: string): string {
   return `GRUDGE_${cleanId}`;
 }
 
+/** Strip Puter keys and invalid chars so Crossmint accepts the email local-part. */
+export function sanitizeWalletEmailLocalPart(input: string): string {
+  const cleaned = input
+    .replace(/^puter:/i, "")
+    .replace(/[^a-zA-Z0-9._-]/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 48);
+  return cleaned || "user";
+}
+
 /**
- * Generate email for wallet creation if user doesn't have one
+ * Generate email for wallet creation if user doesn't have one.
+ * Real emails pass through; Puter usernames are sanitized.
  */
 export function generateWalletEmail(userId: string, username?: string): string {
-  if (username) {
-    return `${username}@grudgewarlords.com`;
+  if (username && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(username) && !username.includes(":")) {
+    return username.trim().toLowerCase();
   }
-  return `user-${userId.substring(0, 8)}@grudgewarlords.com`;
+  const local = username
+    ? sanitizeWalletEmailLocalPart(username)
+    : `user-${userId.substring(0, 8)}`;
+  return `${local}@grudgewarlords.com`;
 }
 
 /**

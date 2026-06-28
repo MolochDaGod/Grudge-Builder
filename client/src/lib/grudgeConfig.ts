@@ -28,7 +28,7 @@ export const GAME_API: string =
  * Vercel apps proxy /api/characters|wallet|account here via vercel.json.
  */
 export const GAME_DATA_API: string =
-  env.VITE_GAME_DATA_API || 'https://grudge-builder-production.up.railway.app';
+  env.VITE_GAME_DATA_API || 'https://grudge-api-production-0d46.up.railway.app';
 
 /** Crossmint character cNFT collection UUID */
 export const CROSSMINT_CHARACTER_COLLECTION: string =

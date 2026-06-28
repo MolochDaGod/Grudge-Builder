@@ -105,7 +105,7 @@ function buildBootstrapHtml() {
   window.GRUDGE_CONFIG = {
     AUTH_GATEWAY: 'https://id.grudge-studio.com',
     IDENTITY_API: 'https://api.grudge-studio.com',
-    GAME_DATA: 'https://grudge-builder-production.up.railway.app',
+    GAME_DATA: 'https://grudge-api-production-0d46.up.railway.app',
     OBJECTSTORE_URL: 'https://objectstore.grudge-studio.com/api/v1',
     ASSETS: 'https://assets.grudge-studio.com',
     VERSION: '4.0.0'

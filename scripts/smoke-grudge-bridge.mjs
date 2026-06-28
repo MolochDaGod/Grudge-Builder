@@ -3,7 +3,7 @@
  * Smoke-test grudge_token → grudge-bridge → /api/characters for fleet Puter apps.
  * Usage: node scripts/smoke-grudge-bridge.mjs [launchToken]
  */
-const GAME = process.env.GAME_API ?? "https://grudge-builder-production.up.railway.app";
+const GAME = process.env.GAME_API ?? "https://grudge-api-production-0d46.up.railway.app";
 const token = process.argv[2] || process.env.GRUDGE_LAUNCH_TOKEN;
 
 if (!token) {
