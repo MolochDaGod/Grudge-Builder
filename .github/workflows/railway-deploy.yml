@@ -1,0 +1,82 @@
+name: Deploy grudge-api to Railway
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "server/**"
+      - "shared/**"
+      - "script/build-server.ts"
+      - "railway.json"
+      - "nixpacks.toml"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/railway-deploy.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: railway-grudge-api-production
+  cancel-in-progress: false
+
+env:
+  RAILWAY_PROJECT_ID: 92f039ec-2cce-4e1e-b06a-dd0ac6256d70
+  RAILWAY_ENVIRONMENT: production
+  RAILWAY_SERVICE: grudge-api
+  RAILWAY_URL: https://grudge-api-production-0d46.up.railway.app
+
+jobs:
+  deploy:
+    name: Railway deploy
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    container: ghcr.io/railwayapp/cli:latest
+    env:
+      RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Deploy to Railway
+        run: |
+          railway up --ci --detach \
+            --project "${{ env.RAILWAY_PROJECT_ID }}" \
+            --environment "${{ env.RAILWAY_ENVIRONMENT }}" \
+            --service "${{ env.RAILWAY_SERVICE }}" \
+            --message "gha ${{ github.sha }}"
+
+  smoke:
+    name: Smoke test puter-sso
+    needs: deploy
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Wait for puter-sso route
+        run: |
+          set -euo pipefail
+          URL="${{ env.RAILWAY_URL }}/api/auth/puter-sso"
+          BODY='{"puterId":"gha-smoke","puterUsername":"gha-smoke"}'
+          for i in $(seq 1 24); do
+            CODE=$(curl -sS -o /tmp/sso.json -w "%{http_code}" \
+              -X POST "$URL" -H "Content-Type: application/json" -d "$BODY" || true)
+            if [ "$CODE" = "200" ] && grep -q '"token"' /tmp/sso.json; then
+              echo "✅ puter-sso returned JWT (attempt $i)"
+              cat /tmp/sso.json
+              exit 0
+            fi
+            echo "attempt $i/24 — HTTP $CODE (waiting for deploy...)"
+            sleep 15
+          done
+          echo "❌ puter-sso smoke failed after 6 minutes"
+          cat /tmp/sso.json 2>/dev/null || true
+          exit 1
+
+      - name: Verify characters require auth
+        run: |
+          CODE=$(curl -sS -o /tmp/chars.json -w "%{http_code}" \
+            "${{ env.RAILWAY_URL }}/api/characters" || true)
+          if [ "$CODE" = "401" ]; then
+            echo "✅ GET /api/characters requires auth (401)"
+          else
+            echo "⚠ GET /api/characters returned HTTP $CODE (expected 401)"
+            cat /tmp/chars.json || true
+          fi
