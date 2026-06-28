@@ -55,7 +55,7 @@ jobs:
           set -euo pipefail
           URL="${{ env.RAILWAY_URL }}/api/auth/puter-sso"
           BODY='{"puterId":"gha-smoke","puterUsername":"gha-smoke"}'
-          for i in $(seq 1 24); do
+          for i in $(seq 1 30); do
             CODE=$(curl -sS -o /tmp/sso.json -w "%{http_code}" \
               -X POST "$URL" -H "Content-Type: application/json" -d "$BODY" || true)
             if [ "$CODE" = "200" ] && grep -q '"token"' /tmp/sso.json; then
@@ -63,10 +63,10 @@ jobs:
               cat /tmp/sso.json
               exit 0
             fi
-            echo "attempt $i/24 — HTTP $CODE (waiting for deploy...)"
-            sleep 15
+            echo "attempt $i/30 — HTTP $CODE (waiting for deploy...)"
+            sleep 20
           done
-          echo "❌ puter-sso smoke failed after 6 minutes"
+          echo "❌ puter-sso smoke failed after 10 minutes"
           cat /tmp/sso.json 2>/dev/null || true
           exit 1
 

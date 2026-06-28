@@ -68,7 +68,10 @@ async function buildServer() {
     outfile: "dist/index.js",
     banner: {
       js: `import { createRequire as __grudgeCreateRequire } from "module";
-const require = __grudgeCreateRequire(import.meta.url);`,
+import { fileURLToPath as __grudgeFileURLToPath } from "url";
+const require = __grudgeCreateRequire(import.meta.url);
+const __filename = __grudgeFileURLToPath(import.meta.url);
+const __dirname = __grudgeFileURLToPath(new URL(".", import.meta.url));`,
     },
     alias: {
       "@shared": path.resolve("shared"),
