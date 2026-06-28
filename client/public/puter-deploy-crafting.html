@@ -16,15 +16,20 @@
 </head>
 <body>
 <h1>Grudge Crafting — Puter Browser Deploy</h1>
-<p class="dim">Sign in as <strong>GRUDACHAIN</strong> (production deploy account). Uses Puter SDK in-browser.</p>
-<button id="btnProbe">1. Probe hosting</button>
+<p class="dim">Sign in as <strong>GRUDACHAIN</strong>. Browser SDK uses <code>~/</code> paths (not <code>/GRUDACHAIN/</code>).</p>
+<button id="btnProbe">1. Probe FS + hosting</button>
 <button id="btnDeploy">2. Deploy fleet-enabled crafting</button>
+<button id="btnBind">3. Bind subdomain (if released)</button>
 <pre id="log">Ready.\n</pre>
 <script>
 const CDN_HTML = 'https://assets.grudge-studio.com/crafting/grudge-crafting.html';
 const CDN_FLEET = 'https://assets.grudge-studio.com/js/grudge-fleet.js';
-const CANONICAL = '/GRUDACHAIN/grudge-crafting';
 const SUBDOMAIN = 'grudge-crafting';
+/** Browser SDK paths — ~ resolves to GRUDACHAIN home (/GRUDACHAIN/) */
+const DEPLOY_DIRS = [
+  '~/grudge-crafting',
+  '~/sites/grudge-crafting/deployment',
+];
 
 const logEl = document.getElementById('log');
 function log(msg, cls) {
@@ -35,36 +40,92 @@ function log(msg, cls) {
   logEl.scrollTop = logEl.scrollHeight;
 }
 
+function errMsg(e) {
+  return e?.message || e?.error?.message || (typeof e === 'string' ? e : JSON.stringify(e));
+}
+
 async function ensureAuth() {
   if (!puter.auth.isSignedIn()) {
     log('Signing in to Puter…');
     await puter.auth.signIn();
   }
   const u = await puter.auth.getUser();
-  log('✓ ' + u.username, 'ok');
+  if (u.username !== 'GRUDACHAIN') {
+    log('⚠ Signed in as ' + u.username + ' — switch to GRUDACHAIN', 'err');
+  } else {
+    log('✓ ' + u.username, 'ok');
+  }
   return u;
 }
 
 async function fetchText(url) {
-  const res = typeof puter !== 'undefined' && puter.net
-    ? await puter.net.fetch(url)
-    : await fetch(url);
+  const res = puter?.net?.fetch ? await puter.net.fetch(url) : await fetch(url);
   if (!res.ok) throw new Error(url + ' → ' + res.status);
   return res.text();
+}
+
+async function ensureDir(dir) {
+  try {
+    await puter.fs.mkdir(dir, { createMissingParents: true });
+  } catch (e) {
+    log('  mkdir ' + dir + ': ' + errMsg(e), 'dim');
+  }
+}
+
+async function writeFile(dir, name, content) {
+  const path = dir.replace(/\/$/, '') + '/' + name;
+  await ensureDir(dir);
+  await puter.fs.write(path, content, { overwrite: true, createMissingParents: true });
+  return path;
+}
+
+async function probeFs() {
+  for (const dir of DEPLOY_DIRS) {
+    try {
+      const list = await puter.fs.readdir(dir);
+      const names = Array.isArray(list) ? list.map((i) => i.name || i).join(', ') : JSON.stringify(list).slice(0, 120);
+      log('FS ' + dir + ' → ' + names, 'ok');
+    } catch (e) {
+      log('FS ' + dir + ' → ' + errMsg(e), 'dim');
+    }
+  }
+}
+
+async function probeHosting() {
+  try {
+    const sites = await puter.hosting.list();
+    const rows = Array.isArray(sites) ? sites : (sites?.subdomains || []);
+    log('Your sites (' + rows.length + '):', 'ok');
+    for (const s of rows) {
+      const sub = s.subdomain || s.name || '?';
+      const root = (typeof s.root_dir === 'object' ? s.root_dir?.path : s.root_dir) || s.rootDir || '';
+      const mark = sub === SUBDOMAIN ? ' ← crafting' : '';
+      log('  ' + sub + '.puter.site → ' + root + mark);
+    }
+    try {
+      const site = await puter.hosting.get(SUBDOMAIN);
+      const root = (typeof site.root_dir === 'object' ? site.root_dir?.path : site.root_dir) || site.rootDir;
+      log('grudge-crafting root: ' + root, 'ok');
+      return root;
+    } catch (e) {
+      log('grudge-crafting: not owned by this account (' + errMsg(e) + ')', 'err');
+      log('Release subdomain from tester account, then click "Bind subdomain"', 'dim');
+      return null;
+    }
+  } catch (e) {
+    log('hosting.list: ' + errMsg(e), 'err');
+    return null;
+  }
 }
 
 document.getElementById('btnProbe').onclick = async () => {
   document.getElementById('btnProbe').disabled = true;
   try {
     await ensureAuth();
-    const site = await puter.hosting.get(SUBDOMAIN);
-    log('Hosting root_dir: ' + (site.root_dir || site.rootDir || JSON.stringify(site)));
-    try {
-      const list = await puter.fs.readdir(site.root_dir || site.rootDir || CANONICAL);
-      log('Files: ' + (list.map ? list.map(i => i.name).join(', ') : JSON.stringify(list).slice(0, 200)));
-    } catch (e) { log('readdir: ' + e.message, 'err'); }
+    await probeFs();
+    await probeHosting();
   } catch (e) {
-    log('Probe failed: ' + e.message, 'err');
+    log('Probe failed: ' + errMsg(e), 'err');
   }
   document.getElementById('btnProbe').disabled = false;
 };
@@ -74,47 +135,68 @@ document.getElementById('btnDeploy').onclick = async () => {
   btn.disabled = true;
   try {
     await ensureAuth();
-    log('Fetching latest HTML from CDN…');
-    let html, fleet;
-    try {
-      html = await fetchText(CDN_HTML);
-      fleet = await fetchText(CDN_FLEET);
-    } catch {
-      log('CDN miss — paste fails; upload to R2 first.', 'err');
-      throw new Error('CDN assets not found');
-    }
-    log('HTML ' + html.length + ' bytes, fleet ' + fleet.length + ' bytes');
+    log('Fetching from CDN…');
+    const html = await fetchText(CDN_HTML);
+    const fleet = await fetchText(CDN_FLEET);
+    log('HTML ' + html.length + ' B, fleet ' + fleet.length + ' B');
 
-    let rootDir = CANONICAL;
+    let hostingRoot = null;
     try {
       const site = await puter.hosting.get(SUBDOMAIN);
-      rootDir = site.root_dir || site.rootDir || CANONICAL;
-      log('Current hosting root: ' + rootDir);
-    } catch (e) {
-      log('hosting.get: ' + e.message + ' — using ' + CANONICAL, 'dim');
+      hostingRoot = (typeof site.root_dir === 'object' ? site.root_dir?.path : site.root_dir) || site.rootDir;
+      if (hostingRoot) log('Hosting points at: ' + hostingRoot, 'ok');
+    } catch {
+      log('No hosting binding — writing to canonical FS dirs', 'dim');
     }
 
-    const indexPath = rootDir.replace(/\/$/, '') + '/index.html';
-    const fleetPath = rootDir.replace(/\/$/, '') + '/grudge-fleet.js';
-
-    log('Writing ' + indexPath + '…');
-    await puter.fs.write(indexPath, html, { overwrite: true, createMissingParents: true });
-    log('✓ index.html', 'ok');
-
-    log('Writing ' + fleetPath + '…');
-    await puter.fs.write(fleetPath, fleet, { overwrite: true, createMissingParents: true });
-    log('✓ grudge-fleet.js', 'ok');
-
-    if (!rootDir.includes('crafting')) {
-      log('Updating hosting → ' + CANONICAL);
-      await puter.hosting.update(SUBDOMAIN, CANONICAL);
-      log('✓ hosting updated', 'ok');
+    const dirs = hostingRoot ? [hostingRoot, ...DEPLOY_DIRS] : DEPLOY_DIRS;
+    const seen = new Set();
+    for (const dir of dirs) {
+      if (!dir || seen.has(dir)) continue;
+      seen.add(dir);
+      try {
+        const ip = await writeFile(dir, 'index.html', html);
+        log('✓ ' + ip, 'ok');
+        const fp = await writeFile(dir, 'grudge-fleet.js', fleet);
+        log('✓ ' + fp, 'ok');
+      } catch (e) {
+        log('✗ ' + dir + ': ' + errMsg(e), 'err');
+      }
     }
 
-    log('\n✅ https://' + SUBDOMAIN + '.puter.site', 'ok');
-    log('Hard-refresh the site (Ctrl+Shift+R) to verify GRUDGE_CONFIG + grudge-fleet.js');
+    log('\nFiles written. If grudge-crafting.puter.site is still stale:', 'dim');
+    log('  → subdomain not owned by GRUDACHAIN — click "Bind subdomain"', 'dim');
+    log('  → or run: node scripts/deploy-puter-grudachain.mjs', 'dim');
   } catch (e) {
-    log('Deploy failed: ' + e.message, 'err');
+    log('Deploy failed: ' + errMsg(e), 'err');
+  }
+  btn.disabled = false;
+};
+
+document.getElementById('btnBind').onclick = async () => {
+  const btn = document.getElementById('btnBind');
+  btn.disabled = true;
+  try {
+    await ensureAuth();
+    const target = '~/grudge-crafting';
+    log('Creating/updating hosting: ' + SUBDOMAIN + ' → ' + target);
+    try {
+      await puter.hosting.update(SUBDOMAIN, target);
+      log('✓ hosting.update', 'ok');
+    } catch (e1) {
+      log('update failed: ' + errMsg(e1) + ' — trying create…', 'dim');
+      try {
+        await puter.hosting.create(SUBDOMAIN, target);
+        log('✓ hosting.create', 'ok');
+      } catch (e2) {
+        log('create failed: ' + errMsg(e2), 'err');
+        log('Subdomain still owned by another Puter account.', 'err');
+        log('Sign in as tester → delete grudge-crafting site → retry as GRUDACHAIN.', 'dim');
+      }
+    }
+    log('\n✅ https://' + SUBDOMAIN + '.puter.site (hard refresh)', 'ok');
+  } catch (e) {
+    log('Bind failed: ' + errMsg(e), 'err');
   }
   btn.disabled = false;
 };

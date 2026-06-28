@@ -47,6 +47,7 @@
       "status": "live",
       "puterAccount": "GRUDACHAIN",
       "puterFsPath": "/GRUDACHAIN/grudge-crafting",
+      "puterBrowserPath": "~/grudge-crafting",
       "deployScript": "node scripts/deploy-puter-grudachain.mjs",
       "purpose": "Puter-hosted crafting companion site",
       "title": "Grudge Warlords — Crafting & Professions",
