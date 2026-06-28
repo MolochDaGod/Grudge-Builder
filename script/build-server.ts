@@ -64,8 +64,8 @@ async function buildServer() {
     entryPoints: ["server/index.ts"],
     platform: "node",
     bundle: true,
-    format: "cjs",
-    outfile: "dist/index.cjs",
+    format: "esm",
+    outfile: "dist/index.js",
     alias: {
       "@shared": path.resolve("shared"),
     },
@@ -81,7 +81,7 @@ async function buildServer() {
   const templatesDest = path.resolve("dist/templates");
   await mkdir(templatesDest, { recursive: true });
   await cp(templatesSrc, templatesDest, { recursive: true, force: true });
-  console.log("server build complete → dist/index.cjs (+ dist/templates)");
+  console.log("server build complete → dist/index.js (+ dist/templates)");
 }
 
 buildServer().catch((err) => {
