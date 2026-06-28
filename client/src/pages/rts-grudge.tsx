@@ -12,6 +12,7 @@ import { Island3DRenderer } from "@/island3d/render/Island3DRenderer";
 import { WORLD_SERVER_URL } from "@/island3d/sync/MultiplayerSync";
 import { CharacterManager, type Character } from "@/lib/characterManager";
 import { useAccount } from "@/hooks/use-account";
+import { useAdmin } from "@/contexts/AdminContext";
 import { getCurrentUser, authHeaders } from "@/lib/grudgeBackend";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -86,6 +87,7 @@ export default function RtsGrudgePage() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const { account } = useAccount();
+  const { isAdmin } = useAdmin();
 
   const [character, setCharacter] = useState<Character | null>(null);
   const [characters, setCharacters] = useState<Character[]>([]);
@@ -96,7 +98,7 @@ export default function RtsGrudgePage() {
   const [entering, setEntering] = useState(false);
   const [showWorldMap, setShowWorldMap] = useState(false);
   const [showForgeMap, setShowForgeMap] = useState(false);
-  const isAdmin = account?.role === "admin" || account?.role === "master_admin";
+
 
   // Load characters from backend
   useEffect(() => {
