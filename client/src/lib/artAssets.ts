@@ -36,13 +36,26 @@ export const BACKGROUNDS = {
 } as const;
 
 // ── Videos ───────────────────────────────────────────────────────────────────
+// Warlords era cinematic — grudge loadin.mp4 on fleet R2 (see fleetVideo.ts for catalog API).
+
+const WARLORDS_ERA_VIDEO =
+  'https://assets.grudge-studio.com/gruda-armada/grudge-warlords/videos/intro.mp4';
+
+const WARLORDS_PVP_LOADSCREEN =
+  'https://assets.grudge-studio.com/gruda-armada/grudge-warlords/videos/pvp-loadscreen.mp4';
 
 export const VIDEOS = {
-  /** Intro/loading screen cinematic */
-  loading: assetUrl('/videos/loading-cinematic.mp4'),
+  /** Warlords intro — full-screen opening cinematic */
+  intro: WARLORDS_ERA_VIDEO,
 
-  /** Pirate King banner — loading transitions between game modes */
-  pirateKingBanner: assetUrl('/videos/piratekingbanner.mp4'),
+  /** PvP lobby / world-entry loadscreen */
+  pvpLoadscreen: WARLORDS_PVP_LOADSCREEN,
+
+  /** Loading overlay between game modes */
+  loading: WARLORDS_PVP_LOADSCREEN,
+
+  /** @deprecated use VIDEOS.intro — kept for existing imports */
+  pirateKingBanner: WARLORDS_ERA_VIDEO,
 
   /** Legacy intro video (fallback) */
   introLegacy: assetUrl('/videos/intro-legacy.mp4'),

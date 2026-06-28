@@ -17,6 +17,7 @@ import type { DayNightConfig } from '../environment/DayNightCycle';
 import type { PhysicsCallbacks, MovementState } from '../player/CharacterController3D';
 import { EMPTY_COMBAT_HUD, type CombatHudSnapshot } from '../player/combatHudState';
 import { DangerRoomHud } from './DangerRoomHud';
+import { WarlordsPvpLoadscreen } from '@/components/WarlordsPvpLoadscreen';
 import './dangerRoomHud.css';
 
 interface Island3DRendererProps {
@@ -259,27 +260,34 @@ export function Island3DRenderer({
         onMouseMove={handleMouseMove}
       />
 
-      {loading && (
+      {loading && (mode === 'lobby' || multiplayer) ? (
+        <WarlordsPvpLoadscreen
+          className="z-10"
+          videoOpacity={0.65}
+          progress={mode === 'lobby' ? loadProgress : undefined}
+          label={
+            mode === 'lobby'
+              ? `Loading lobby · ${lobbyMapId || 'pirate-islands'}`
+              : mode === 'zone'
+                ? `Loading PvP zone · ${sectorId || 'unknown'}`
+                : 'Connecting to world...'
+          }
+        >
+          <p className="text-emerald-300 font-cinzel font-bold text-lg tracking-[4px] uppercase">
+            {mode === 'lobby' ? 'PvP Lobby' : 'Entering Battle'}
+          </p>
+        </WarlordsPvpLoadscreen>
+      ) : loading ? (
         <div className="absolute inset-0 flex items-center justify-center bg-gray-900/80 z-10">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-400 mx-auto mb-4" />
             <p className="text-emerald-400 font-medium">
-              {mode === 'lobby' ? 'Loading lobby map...' : mode === 'zone' ? 'Loading zone...' : 'Generating island terrain...'}
+              {mode === 'zone' ? 'Loading zone...' : 'Generating island terrain...'}
             </p>
-            {mode === 'lobby' && loadProgress > 0 && (
-              <div className="w-48 h-2 bg-gray-700 rounded-full mt-3 mx-auto overflow-hidden">
-                <div
-                  className="h-full bg-emerald-500 rounded-full transition-all"
-                  style={{ width: `${loadProgress}%` }}
-                />
-              </div>
-            )}
-            <p className="text-gray-400 text-sm mt-1">
-              {mode === 'lobby' ? `Map: ${lobbyMapId || 'pirate-islands'}` : `Seed: ${seed}`}
-            </p>
+            <p className="text-gray-400 text-sm mt-1">Seed: {seed}</p>
           </div>
         </div>
-      )}
+      ) : null}
 
       {error && (
         <div className="absolute inset-0 flex items-center justify-center bg-red-900/50 z-10">

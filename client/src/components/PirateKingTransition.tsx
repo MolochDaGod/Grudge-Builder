@@ -8,7 +8,7 @@
  */
 
 import { useEffect, useRef } from "react";
-import { VIDEOS } from "@/lib/artAssets";
+import { useFleetVideo } from "@/hooks/use-fleet-video";
 
 interface Props {
   /** Show/hide the overlay */
@@ -28,13 +28,14 @@ export default function PirateKingTransition({
   onLoopComplete,
 }: Props) {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const loadscreenSrc = useFleetVideo('warlordsPvpLoadscreen');
 
   useEffect(() => {
     if (visible && videoRef.current) {
       videoRef.current.currentTime = 0;
       videoRef.current.play().catch(() => {});
     }
-  }, [visible]);
+  }, [visible, loadscreenSrc]);
 
   if (!visible) return null;
 
@@ -52,10 +53,11 @@ export default function PirateKingTransition({
         fontFamily: "'Cinzel', serif",
       }}
     >
-      {/* Video */}
+      {/* Warlords era loadscreen */}
+      {loadscreenSrc && (
       <video
         ref={videoRef}
-        src={VIDEOS.pirateKingBanner}
+        src={loadscreenSrc}
         autoPlay
         muted
         playsInline
@@ -69,6 +71,7 @@ export default function PirateKingTransition({
           border: "1px solid rgba(246,201,69,.15)",
         }}
       />
+      )}
 
       {/* Label */}
       <div

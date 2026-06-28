@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Anchor } from "lucide-react";
 import { assetUrl } from "@/lib/assetConfig";
-import { VIDEOS, GAME_CARD_BACKGROUNDS } from "@/lib/artAssets";
+import { GAME_CARD_BACKGROUNDS } from "@/lib/artAssets";
+import { useFleetVideo } from "@/hooks/use-fleet-video";
 import SpriteAnimator from "@/components/SpriteAnimator";
 import { getSpriteSetForCharacter } from "@/lib/gameData";
 import { getCharacterPalette } from "@/lib/spriteManifest";
@@ -32,13 +33,14 @@ export function IslandCutscene({
   const [sailPosition, setSailPosition] = useState(-100);
   const [approachPosition, setApproachPosition] = useState(40);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const cutsceneVideoSrc = useFleetVideo('warlordsIntro');
 
   useEffect(() => {
     const v = videoRef.current;
     if (!v) return;
     v.muted = true;
     v.play().catch(() => {});
-  }, [phase]);
+  }, [phase, cutsceneVideoSrc]);
 
   useEffect(() => {
     if (phase === 'sailing') {
@@ -90,17 +92,19 @@ export function IslandCutscene({
 
   return (
     <div className="fixed inset-0 z-50 overflow-hidden bg-slate-950">
-      {/* Cinematic ocean video — R2 CDN */}
-      <video
-        ref={videoRef}
-        className="absolute inset-0 w-full h-full object-cover opacity-70"
-        src={VIDEOS.pirateKingBanner}
-        poster={assetUrl('/backgrounds/ocean_battle.png')}
-        muted
-        loop
-        playsInline
-        autoPlay
-      />
+      {/* Warlords era cinematic — R2 CDN */}
+      {cutsceneVideoSrc && (
+        <video
+          ref={videoRef}
+          className="absolute inset-0 w-full h-full object-cover opacity-70"
+          src={cutsceneVideoSrc}
+          poster={assetUrl('/backgrounds/ocean_battle.png')}
+          muted
+          loop
+          playsInline
+          autoPlay
+        />
+      )}
 
       <div className="absolute inset-0 bg-gradient-to-b from-sky-950/40 via-transparent to-blue-950/80" />
 

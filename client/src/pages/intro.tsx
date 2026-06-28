@@ -3,9 +3,10 @@ import { useLocation } from "wouter";
 import { motion } from "framer-motion";
 import { LogIn } from "lucide-react";
 import {
-  RACE_PORTRAITS, VIDEOS,
+  RACE_PORTRAITS,
   CLASS_STAGE_BACKGROUNDS, CLASS_ACCENT_COLORS, CLASS_CYCLE,
 } from "@/lib/artAssets";
+import { useFleetVideo } from "@/hooks/use-fleet-video";
 import { FactionEmblemRow } from "@/components/FactionEmblems";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -14,6 +15,7 @@ const PARTICLE_COUNT = 50;
 export default function IntroPage() {
   const [, setLocation] = useLocation();
   const videoRef = useRef<HTMLVideoElement>(null);
+  const introVideoSrc = useFleetVideo('warlordsIntro');
   const [showEnter, setShowEnter] = useState(false);
   const [activeClass, setActiveClass] = useState<string>("warrior");
   const { isAuthenticated, user, openLogin } = useAuth();
@@ -95,14 +97,15 @@ export default function IntroPage() {
           />
         ))}
 
-        {/* Video background (layered beneath class art, low opacity) */}
-        <video
-          ref={videoRef}
-          autoPlay muted playsInline loop
-          className="absolute inset-0 w-full h-full object-cover opacity-20"
-        >
-          <source src={VIDEOS.pirateKingBanner} type="video/mp4" />
-        </video>
+        {/* Warlords era intro video (grudge loadin.mp4) */}
+        {introVideoSrc && (
+          <video
+            ref={videoRef}
+            src={introVideoSrc}
+            autoPlay muted playsInline loop
+            className="absolute inset-0 w-full h-full object-cover opacity-20"
+          />
+        )}
 
         {/* Dark vignette overlay */}
         <div className="absolute inset-0" style={{ background: 'radial-gradient(1200px 700px at 50% 110%, rgba(0,0,0,.78), transparent 55%), radial-gradient(900px 500px at 10% -10%, rgba(5,6,18,.65), transparent 60%), linear-gradient(180deg, rgba(5,6,12,.5), rgba(5,6,12,.88))' }} />

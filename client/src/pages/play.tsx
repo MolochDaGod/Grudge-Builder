@@ -14,6 +14,7 @@ import { BuildModePanel } from '@/components/BuildModePanel';
 import { characterAPI } from '@/lib/api';
 import { CLASS_WEAPON_MAP } from '@/lib/modelManifest';
 import type { CreatureLootEvent } from '@/island3d/creatures/CreatureManager';
+import { WarlordsPvpLoadscreen } from '@/components/WarlordsPvpLoadscreen';
 
 const SECTOR_BIOME_NAMES: Record<string, string> = {
   NW: 'Arid Wasteland', N: 'Highland Plateau', NE: 'Crown Peaks',
@@ -283,11 +284,18 @@ export default function PlayPage() {
 
   return (
     <div className="fixed inset-0 bg-black">
-      {/* Loading screen */}
+      {/* PvP world-entry loadscreen */}
       {!loaded && (
-        <div className="absolute inset-0 z-[100] bg-[#05060c] flex flex-col items-center justify-center">
+        <WarlordsPvpLoadscreen
+          progress={loadProgress}
+          label={
+            colyseus.connecting ? 'Connecting to server...' :
+            colyseus.connected ? `Joined world · Loading sector ${DEFAULT_SECTOR}...` :
+            'Initializing...'
+          }
+        >
           <h1
-            className="text-4xl font-cinzel font-black tracking-[6px] mb-4"
+            className="text-4xl font-cinzel font-black tracking-[6px]"
             style={{
               background: 'linear-gradient(180deg, #f6c945, #fff3c2 50%, #f6c945)',
               WebkitBackgroundClip: 'text',
@@ -296,24 +304,10 @@ export default function PlayPage() {
           >
             ENTERING WORLD
           </h1>
-          <div className="w-64 h-2 bg-white/10 rounded-full overflow-hidden">
-            <div
-              className="h-full rounded-full transition-all duration-300"
-              style={{
-                width: `${loadProgress}%`,
-                background: 'linear-gradient(90deg, #f6c945, #fff3c2)',
-              }}
-            />
-          </div>
-          <p className="text-white/40 text-sm mt-3 tracking-wider">
-            {colyseus.connecting ? 'Connecting to server...' :
-             colyseus.connected ? `Joined world · Loading sector ${DEFAULT_SECTOR}...` :
-             'Initializing...'}
-          </p>
           {colyseus.error && (
             <p className="text-red-400 text-sm mt-2">{colyseus.error}</p>
           )}
-        </div>
+        </WarlordsPvpLoadscreen>
       )}
 
       {/* 3D Canvas */}

@@ -72,6 +72,7 @@ import IslandRevealPage from "@/pages/island-reveal";
 import HomeIslandPage from "@/pages/home-island";
 import IslandsPage from "@/pages/islands";
 import { RtsDomainBootstrap } from "@/components/RtsDomainBootstrap";
+import { hydrateVideoCatalog } from "@/lib/fleetVideo";
 import WeaponModelAdminPage from "@/pages/weapon-model-admin";
 import WeaponSkillsPage from "@/pages/weapon-skills";
 import WeaponMasteryPage from "@/pages/weapon-mastery";
@@ -159,6 +160,8 @@ function AppContent() {
   const { isTransitioning, isAdmin } = useAdmin();
 
   useEffect(() => {
+    void hydrateVideoCatalog();
+
     // Warm ObjectStore data cache on app init, then sync all game data
     prefetchCoreData().then(async () => {
       console.debug('[ObjectStore] Core data prefetched');
