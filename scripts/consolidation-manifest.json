@@ -1,0 +1,78 @@
+{
+  "version": "2026-06-28",
+  "canonicalProduction": "GrudgeBuilder",
+  "liveUrl": "https://grudgewarlords.com",
+  "multiplayer": "Colyseus on Railway (api.grudge-studio.com)",
+  "migrated": [
+    {
+      "source": "RTS-Grudge/client/src/game/sailing/*",
+      "target": "client/src/game/sailing/",
+      "status": "ported",
+      "notes": "Ocean shader, ship physics, fish, boarding — CDN paths via gameAssetPath"
+    },
+    {
+      "source": "RTS-Grudge/shared/zoneProtocol.ts",
+      "target": "shared/definitions/zoneProtocol.ts",
+      "status": "adapted",
+      "notes": "Uses worldMapSectors + sectorBridge; Colyseus canonical"
+    },
+    {
+      "source": "RTS-Grudge/client/src/game/systems/AssetLoader.ts",
+      "target": "client/src/lib/GltfAssetLoader.ts",
+      "status": "simplified",
+      "notes": "Draco + meshopt + priority queue; uses assetUrl CDN"
+    },
+    {
+      "source": "Tactical-Infinity/threeWorldMapManager",
+      "target": "client/src/tactical-ocean/",
+      "status": "canonical",
+      "notes": "GB copy is production source; TI repo archive candidate"
+    },
+    {
+      "source": "RTS-Grudge/scripts/optimize-glb.ts",
+      "target": "scripts/optimize-glb.ts",
+      "status": "ported",
+      "notes": "npm run production:optimize-glb"
+    },
+    {
+      "source": "GrudgeBuilder harvest FX + zone harvest",
+      "target": "client/src/island3d/harvest/",
+      "status": "live",
+      "notes": "Zone + town harvest nodes on Colyseus"
+    }
+  ],
+  "deprecated": [
+    {
+      "system": "RTS-Grudge Socket.IO zoneManager",
+      "replacement": "GrudgeBuilder Colyseus SectorRoom/TownRoom",
+      "retireWhen": "All /play and /town flows use Colyseus only"
+    },
+    {
+      "system": "MultiplayerSync.ts + island-server.ts",
+      "replacement": "Colyseus rooms",
+      "retireWhen": "rts-grudge lobby uses Colyseus; island-3d migrated"
+    },
+    {
+      "system": "External rts-grudge.vercel.app gameplay links",
+      "replacement": "In-fleet routes (/play, /island-v2, /ocean, /rts-grudge)",
+      "retireWhen": "home.tsx and islands.tsx use local paths only"
+    }
+  ],
+  "productionScripts": {
+    "production:optimize-glb": "tsx scripts/optimize-glb.ts",
+    "production:verify-assets": "node scripts/verify-production-assets.mjs",
+    "production:verify-cdn": "node scripts/verify-production-assets.mjs --cdn",
+    "production:upload-island": "node scripts/upload-island-resources.mjs --remote",
+    "production:probe": "node scripts/probe-deployments.mjs --truth",
+    "gen:fleet": "tsx scripts/gen-fleet-manifest.mjs"
+  },
+  "playerRoutes": {
+    "/ocean": "TI wind sailing → land → deploy to zone",
+    "/sailing": "alias of /ocean",
+    "/world-map": "2D strategic map",
+    "/play?sector=haven_shore": "Colyseus PvP zone",
+    "/town?sector=NW": "Faction town",
+    "/island-v2": "3D adventure island (in-fleet)",
+    "/rts-grudge": "RTS lobby + WorldMap3D"
+  }
+}
