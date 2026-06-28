@@ -23,7 +23,7 @@ export const GBUX_MINT_ADDRESS =
 
 const GBUX_DECIMALS = Number(process.env.GBUX_DECIMALS || 6);
 
-function getTreasuryKeypair(): Keypair | null {
+export function getTreasuryKeypair(): Keypair | null {
   const raw = process.env.GBUX_TREASURY_SECRET_KEY?.trim();
   if (!raw) return null;
   try {
@@ -110,6 +110,10 @@ export async function transferGbuxSpl(
     mint: GBUX_MINT_ADDRESS,
     rawAmount: rawAmount.toString(),
   };
+}
+
+export function getTreasuryPublicKey(): string | null {
+  return getTreasuryKeypair()?.publicKey.toBase58() ?? null;
 }
 
 export async function getTreasuryGbuxBalance(): Promise<number | null> {
