@@ -20,13 +20,29 @@ const LOCAL_FILES = [
 const REMOTE_DIR  = '/GRUDACHAIN/sites/grudge-crafting/deployment';
 const SUBDOMAIN   = 'grudge-crafting';
 
-// ── Read CLI token ────────────────────────────────────────────────────────────
+// ── Read token: GRUDACHAIN deployer env → PUTER_API_KEY → puter-cli config ───
 function readToken() {
-  const data     = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf-8'));
+  const envPath = path.resolve(__dirname, '..', '.env');
+  if (fs.existsSync(envPath)) {
+    const envText = fs.readFileSync(envPath, 'utf-8');
+    for (const key of ['PUTER_AUTH_TOKEN', 'PUTER_API_KEY']) {
+      const m = envText.match(new RegExp(`^${key}=(.+)$`, 'm'));
+      if (m) {
+        const val = m[1].replace(/^["']|["']$/g, '').trim();
+        if (val) {
+          console.log(`✓ Token from .env (${key})`);
+          return val;
+        }
+      }
+    }
+  }
+  if (!fs.existsSync(CONFIG_PATH)) throw new Error('No token. Set PUTER_AUTH_TOKEN in .env or run: puter login');
+  const data = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf-8'));
   const profiles = data.profiles ?? [];
-  const uuid     = data.selected_profile;
-  const profile  = profiles.find(p => p.uuid === uuid) ?? profiles[0];
+  const uuid = data.selected_profile;
+  const profile = profiles.find(p => p.uuid === uuid) ?? profiles[0];
   if (!profile?.token) throw new Error('No token. Run: puter login');
+  console.log('✓ Token from puter-cli config');
   return profile.token;
 }
 
@@ -77,9 +93,14 @@ function readToken() {
     const file = new (globalThis.File ?? require('buffer').File)(
       [content], f.remote, { type: f.type }
     );
-    const result = await puter.fs.upload(file, dirPath, { overwrite: true });
-    const uploadedPath = Array.isArray(result) ? result[0]?.path : result?.path;
-    console.log(`✓ Uploaded → ${uploadedPath ?? dirPath + '/' + f.remote}`);
+    try {
+      const result = await puter.fs.upload(file, dirPath, { overwrite: true });
+      const uploadedPath = Array.isArray(result) ? result[0]?.path : result?.path;
+      console.log(`✓ Uploaded → ${uploadedPath ?? dirPath + '/' + f.remote}`);
+    } catch (uploadErr) {
+      const msg = uploadErr?.message ?? JSON.stringify(uploadErr);
+      throw new Error(`Upload ${f.remote} failed: ${msg.slice(0, 200)}`);
+    }
   }
 
   // 5. Point hosting to the dir
