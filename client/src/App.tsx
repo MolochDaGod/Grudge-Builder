@@ -46,6 +46,7 @@ import AdminCombatPage from "@/pages/admin-combat";
 import IslandPage from "@/pages/island";
 import IslandV2Page from "@/pages/island-v2";
 import AdminIslandV2Page from "@/pages/admin-island-v2";
+import AdminIsland3DPage from "@/pages/admin-island-3d";
 import LauncherPage from "@/pages/launcher";
 import RtsGrudgePage from "@/pages/rts-grudge";
 const TowerWarsPage = lazy(() => import("@/pages/tower-wars")); // legacy, keep route
@@ -70,6 +71,7 @@ import GrudaWarsPage from "@/pages/grudawars";
 import PlayPage from "@/pages/play";
 import OceanPage from "@/pages/ocean";
 import TutorialPage from "@/pages/tutorial";
+const WorldNativePage = lazy(() => import("@/pages/world-native"));
 import IslandRevealPage from "@/pages/island-reveal";
 import HomeIslandPage from "@/pages/home-island";
 import IslandsPage from "@/pages/islands";
@@ -124,6 +126,7 @@ function Router() {
       <Route path="/island" component={IslandPage} />
       <Route path="/island-v2" component={IslandV2Page} />
       <Route path="/admin-island-v2" component={AdminIslandV2Page} />
+      <Route path="/admin-island-3d" component={AdminIsland3DPage} />
       <Route path="/lobby" component={HomePage} />
       <Route path="/launcher" component={LauncherPage} />
       <Route path="/rts-grudge" component={RtsGrudgePage} />
@@ -142,6 +145,9 @@ function Router() {
       <Route path="/grudawars" component={GrudaWarsPage} />
       <Route path="/play" component={PlayPage} />
       <Route path="/game/world" component={PlayPage} />
+      <Route path="/world">{() => <Suspense fallback={null}><WorldNativePage /></Suspense>}</Route>
+      <Route path="/cloudfix">{() => <Suspense fallback={null}><WorldNativePage /></Suspense>}</Route>
+      <Route path="/warlords">{() => <Suspense fallback={null}><WorldNativePage /></Suspense>}</Route>
       <Route path="/tutorial" component={TutorialPage} />
       <Route path="/island-reveal" component={IslandRevealPage} />
       <Route path="/islands" component={IslandsPage} />
