@@ -48,6 +48,7 @@ const ADMIN_LINKS = [
   { name: "Sprite Library", route: "/sprite-library", icon: BookOpen },
   { name: "Sprite Editor", route: "/sprite-editor", icon: Sparkles },
   { name: "Map Editor", route: "/admin-map", icon: Map },
+  { name: "Island 3D Admin", route: "/admin-island-3d", icon: Compass },
   { name: "Database", route: "/database", icon: Shield },
   { name: "Wallet & NFTs", route: "/wallet", icon: Wallet },
   { name: "Account", route: "/account", icon: User },

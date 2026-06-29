@@ -50,6 +50,8 @@ export interface PveEnemy {
 export interface MultiplayerConfig {
   serverUrl: string;        // e.g. "wss://api.grudge-studio.com"
   islandId: string;
+  /** Lobby map bake id (e.g. pirate-islands) — seeds server harvest nodes */
+  mapId?: string;
   playerName: string;
   heroId?: string;
   heroClass?: string;
@@ -73,11 +75,16 @@ export type MultiplayerEventMap = {
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
-/** Resolved world server URL — falls back to localhost:4321 in dev */
+const PROD_WORLD_SERVER = 'wss://world.grudge-studio.com';
+const DEV_WORLD_SERVER = 'http://localhost:4321';
+
+/** Resolved world server URL — production never falls back to localhost */
 export const WORLD_SERVER_URL: string =
   (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_PVP_SERVER_URL) ||
   (typeof window !== 'undefined' && (window as any).__GRUDGE_WORLD_URL__) ||
-  'http://localhost:4321';
+  ((typeof import.meta !== 'undefined' && (import.meta as any).env?.PROD)
+    ? PROD_WORLD_SERVER
+    : DEV_WORLD_SERVER);
 
 /** @deprecated Use WORLD_SERVER_URL instead */
 export const PVP_SERVER_URL = WORLD_SERVER_URL;
@@ -140,6 +147,7 @@ export class MultiplayerSync {
 
     this.socket.emit('island:join', {
       islandId: this.config.islandId,
+      mapId: this.config.mapId,
       playerName: this.config.playerName,
       heroId: this.config.heroId,
       heroClass: this.config.heroClass,

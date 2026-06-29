@@ -21,6 +21,7 @@ import { GLTFLoader, type GLTF } from "three/examples/jsm/loaders/GLTFLoader.js"
 import { DRACOLoader } from "three/examples/jsm/loaders/DRACOLoader.js";
 import * as SkeletonUtils from "three/examples/jsm/utils/SkeletonUtils.js";
 import { resolveModelUrl } from "@/lib/modelManifest";
+import { ASSET_CDN_BASE } from "@/lib/assetConfig";
 
 // ── Skeleton bone-name remapping ─────────────────────────────────────────────
 //
@@ -96,6 +97,7 @@ function collectBoneNames(root: THREE.Object3D): Set<string> {
 
 const gltfCache = new Map<string, GLTF>();
 const clipCache = new Map<string, THREE.AnimationClip>();
+const bakedClipCache = new Map<string, THREE.AnimationClip>();
 const loader = new GLTFLoader();
 
 // Wire DRACOLoader for Draco-compressed GLBs (from gltf-transform pipeline)
@@ -172,6 +174,10 @@ export async function loadCharacterModel(path: string): Promise<LoadedModel> {
 // ── Load a standalone animation GLB (extract clip only) ─────────────────────
 
 export async function loadAnimationClip(path: string): Promise<THREE.AnimationClip | null> {
+  if (path.includes('/anims/baked/') || path.endsWith('.json')) {
+    return loadBakedAnimationClip(path);
+  }
+
   const url = resolveModelUrl(path);
 
   const cached = clipCache.get(url);
@@ -192,6 +198,37 @@ export async function loadAnimationClip(path: string): Promise<THREE.AnimationCl
     return clip;
   } catch (err) {
     console.warn(`Failed to load animation: ${path}`, err);
+    return null;
+  }
+}
+
+/**
+ * Load a quaternion-only baked clip from grudge-game CDN layout.
+ * Matches grudge-game WorldPage: /anims/baked/{category}/{name}.json
+ */
+export async function loadBakedAnimationClip(path: string): Promise<THREE.AnimationClip | null> {
+  const url = path.startsWith('http')
+    ? path
+    : `${ASSET_CDN_BASE}${path.startsWith('/') ? path : `/${path}`}`;
+
+  const cached = bakedClipCache.get(url);
+  if (cached) return cached;
+
+  try {
+    const res = await fetch(url);
+    if (!res.ok) {
+      console.warn(`Baked animation not found: ${url} (${res.status})`);
+      return null;
+    }
+    const json = await res.json();
+    const parsed = THREE.AnimationClip.parse(json);
+    const quatTracks = parsed.tracks.filter((t) => t.name.endsWith('.quaternion'));
+    const clip = new THREE.AnimationClip(parsed.name, parsed.duration, quatTracks);
+    remapClipBoneNames(clip);
+    bakedClipCache.set(url, clip);
+    return clip;
+  } catch (err) {
+    console.warn(`Failed to load baked animation: ${url}`, err);
     return null;
   }
 }

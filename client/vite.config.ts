@@ -3,9 +3,17 @@ import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import path from "path";
 import type { Plugin } from "vite";
+import {
+  resolveGrudgeMonorepoRoot,
+  grudgeGameAliases,
+  grudgeAtAliasEntry,
+  grudgeGameManualChunk,
+} from "./vite/grudgeGameIntegration";
 
 // Resolve __dirname for ESM compatibility (Node 22+ on Vercel)
 const __dir = import.meta.dirname ?? path.dirname(new URL(import.meta.url).pathname);
+const repoRoot = path.resolve(__dir, "..");
+const monorepoRoot = resolveGrudgeMonorepoRoot(repoRoot);
 
 /**
  * Client-only Vite config — used by `npm run build:client` (Vercel deploy).
@@ -26,20 +34,28 @@ const threeWebgpuShim: Plugin = {
 
 export default defineConfig({
   // Use repo-root public/ so skill-tree.html, icons-src/, etc. are included in builds
-  publicDir: path.resolve(__dir, '..', 'public'),
+  publicDir: path.resolve(__dir, "..", "public"),
   plugins: [
     threeWebgpuShim,
     react(),
     tailwindcss(),
   ],
   resolve: {
-    alias: {
-      "@": path.resolve(__dir, "src"),
-      "@shared": path.resolve(__dir, "..", "shared"),
-      "@assets": path.resolve(__dir, "..", "attached_assets"),
-      "three/webgpu": "three",
-    },
-    extensions: ['.mjs', '.js', '.mts', '.ts', '.jsx', '.tsx', '.json'],
+    alias: [
+      grudgeAtAliasEntry(__dir, monorepoRoot),
+      { find: "@shared", replacement: path.resolve(__dir, "..", "shared") },
+      { find: "@assets", replacement: path.resolve(__dir, "..", "attached_assets") },
+      { find: "three/webgpu", replacement: "three" },
+      ...Object.entries(grudgeGameAliases(monorepoRoot)).map(([find, replacement]) => ({
+        find,
+        replacement,
+      })),
+    ],
+    extensions: [".mjs", ".js", ".mts", ".ts", ".jsx", ".tsx", ".json"],
+    dedupe: ["react", "react-dom"],
+  },
+  define: {
+    __GRUDGE_ASSET_BASE_DEFAULT__: JSON.stringify("https://assets.grudge-studio.com"),
   },
   css: {
     postcss: {
@@ -49,6 +65,7 @@ export default defineConfig({
   build: {
     outDir: "dist",
     emptyOutDir: true,
+    chunkSizeWarningLimit: 2500,
     commonjsOptions: {
       transformMixedEsModules: true,
     },
@@ -63,6 +80,15 @@ export default defineConfig({
         if (warning.code === "SHIMMED_EXPORT") return;
         warn(warning);
       },
+      output: {
+        manualChunks(id) {
+          const norm = id.replace(/\\/g, "/");
+          const worldChunk = grudgeGameManualChunk(norm);
+          if (worldChunk) return worldChunk;
+          if (norm.includes("/artifacts/grudge-game/")) return "grudge-world";
+          return undefined;
+        },
+      },
       plugins: [
         {
           name: "rollup-three-webgpu-shim",
@@ -74,6 +100,11 @@ export default defineConfig({
           },
         },
       ],
+    },
+  },
+  server: {
+    fs: {
+      allow: [repoRoot, monorepoRoot],
     },
   },
 });

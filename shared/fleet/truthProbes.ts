@@ -124,8 +124,8 @@ export const TRUTH_PROBE_SPECS: TruthProbeSpec[] = [
     label: "Pack icon (guide)",
     role: "assets",
     productionUrl: ICON_PACK,
-    browserPath: `/api/assets/icons/pack/weapons/Sword_01.png`,
-    method: "HEAD",
+    browserPath: ICON_PACK,
+    method: "GET",
     rejectHtml: false,
   },
   {
@@ -133,8 +133,8 @@ export const TRUTH_PROBE_SPECS: TruthProbeSpec[] = [
     label: "Named weapon icon",
     role: "assets",
     productionUrl: ICON_NAMED,
-    browserPath: `/api/assets/icons/weapons/bloodfeud-blade.png`,
-    method: "HEAD",
+    browserPath: ICON_NAMED,
+    method: "GET",
     rejectHtml: false,
   },
   {
@@ -142,8 +142,8 @@ export const TRUTH_PROBE_SPECS: TruthProbeSpec[] = [
     label: "Assets CDN root",
     role: "assets",
     productionUrl: `${FLEET_URLS.assets}/`,
-    browserPath: "/api/assets/",
-    method: "HEAD",
+    browserPath: `${FLEET_URLS.assets}/`,
+    method: "GET",
     rejectHtml: false,
   },
 ];

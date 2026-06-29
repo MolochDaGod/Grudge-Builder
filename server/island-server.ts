@@ -14,11 +14,78 @@
  *   - Graceful shutdown with SIGTERM/SIGINT handlers
  */
 import { createServer } from "http";
+import { readFileSync, existsSync } from "fs";
+import { join } from "path";
 import { Server, type Socket } from "socket.io";
 import cors from "cors";
 import express from "express";
 import jwt from "jsonwebtoken";
 import { GRUDGE_SOCKETIO_CORS } from "./cors";
+
+const NAVMESH_DIR = join(process.cwd(), "server", "data", "navmesh");
+const LOBBY_MAP_DIR = join(process.cwd(), "public", "maps", "lobby");
+const LOBBY_MODELS_DIR = join(process.cwd(), "public", "models", "lobby");
+
+interface BakedHarvestNode {
+  id: string;
+  type: string;
+  professionId: string;
+  x: number;
+  y: number;
+  z: number;
+}
+
+interface BakedLobbyMap {
+  version: number;
+  mapId: string;
+  waterLevel: number;
+  harvestNodes: BakedHarvestNode[];
+  spawnPoint: { x: number; y: number; z: number };
+}
+
+const bakedMapCache = new Map<string, BakedLobbyMap>();
+
+function loadBakedLobbyMap(mapId: string): BakedLobbyMap | null {
+  const safe = mapId.replace(/[^a-z0-9-]/gi, "");
+  if (bakedMapCache.has(safe)) return bakedMapCache.get(safe)!;
+
+  const candidates = [
+    join(NAVMESH_DIR, `${safe}.json`),
+    join(LOBBY_MAP_DIR, `${safe}.json`),
+  ];
+
+  for (const file of candidates) {
+    if (!existsSync(file)) continue;
+    try {
+      const data = JSON.parse(readFileSync(file, "utf8")) as BakedLobbyMap;
+      if (data.version === 1 && Array.isArray(data.harvestNodes)) {
+        bakedMapCache.set(safe, data);
+        return data;
+      }
+    } catch {
+      // try next path
+    }
+  }
+  return null;
+}
+
+function seedIslandHarvestNodes(islandId: string, mapId: string): void {
+  const baked = loadBakedLobbyMap(mapId);
+  if (!baked) return;
+
+  const nodes = getOrCreateIsland(islandNodes, islandId);
+  if (nodes.size > 0) return;
+
+  for (const h of baked.harvestNodes) {
+    nodes.set(h.id, {
+      id: h.id,
+      islandId,
+      depleted: false,
+      respawnAt: 0,
+    });
+  }
+  console.log(`[island] Seeded ${baked.harvestNodes.length} harvest nodes for "${islandId}" (${mapId})`);
+}
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -241,6 +308,62 @@ app.get("/", (_req, res) => {
 app.get("/health", (_req, res) => res.json({ status: "ok", ...buildServerStatus() }));
 app.get("/status", (_req, res) => res.json(buildServerStatus()));
 
+function readBakedMapFile(mapId: string): string | null {
+  const safe = mapId.replace(/[^a-z0-9-]/gi, "");
+  for (const dir of [NAVMESH_DIR, LOBBY_MAP_DIR]) {
+    const file = join(dir, `${safe}.json`);
+    if (existsSync(file)) return readFileSync(file, "utf8");
+  }
+  return null;
+}
+
+/** Large lobby GLB assets (CDN fallback — warlords-lobby is ~564 MiB) */
+app.get("/models/lobby/:mapId/scene.glb", (req, res) => {
+  const mapId = String(req.params.mapId || "").replace(/[^a-z0-9-]/gi, "");
+  const file = join(LOBBY_MODELS_DIR, mapId, "scene.glb");
+  if (!existsSync(file)) {
+    return res.status(404).json({
+      error: "lobby_model_not_found",
+      mapId,
+      hint: "Upload to R2 CDN or place under public/models/lobby/{mapId}/scene.glb",
+    });
+  }
+  res.setHeader("Cache-Control", "public, max-age=86400, immutable");
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.type("model/gltf-binary");
+  res.sendFile(file);
+});
+
+/** Full baked lobby game map (zones, POIs, harvest nodes, nav grid) */
+app.get("/map/:mapId", (req, res) => {
+  const mapId = String(req.params.mapId || "").replace(/[^a-z0-9-]/gi, "");
+  const raw = readBakedMapFile(mapId);
+  if (!raw) {
+    return res.status(404).json({
+      error: "map_not_found",
+      mapId,
+      hint: "Run npm run bake:lobby or export from /admin-island-3d",
+    });
+  }
+  res.setHeader("Cache-Control", "public, max-age=300");
+  res.type("json").send(raw);
+});
+
+/** @deprecated Use GET /map/:mapId — kept for backward compatibility */
+app.get("/navmesh/:mapId", (req, res) => {
+  const mapId = String(req.params.mapId || "").replace(/[^a-z0-9-]/gi, "");
+  const raw = readBakedMapFile(mapId);
+  if (!raw) {
+    return res.status(404).json({
+      error: "navmesh_not_found",
+      mapId,
+      hint: "Run npm run bake:lobby or export from /admin-island-3d",
+    });
+  }
+  res.setHeader("Cache-Control", "public, max-age=300");
+  res.type("json").send(raw);
+});
+
 const httpServer = createServer(app);
 
 const io = new Server(httpServer, {
@@ -286,6 +409,7 @@ io.on("connection", (socket: Socket) => {
     (
       data: {
         islandId: string;
+        mapId?: string;
         playerName: string;
         heroId?: string;
         heroClass?: string;
@@ -294,10 +418,14 @@ io.on("connection", (socket: Socket) => {
       },
       callback: (response: any) => void,
     ) => {
-      const { islandId, playerName, heroId, heroClass, heroRace, accountId } = data;
+      const { islandId, mapId, playerName, heroId, heroClass, heroRace, accountId } = data;
       if (!islandId || !playerName) {
         callback({ error: "islandId and playerName are required" });
         return;
+      }
+
+      if (mapId) {
+        seedIslandHarvestNodes(islandId, mapId);
       }
 
       // Leave previous island if needed
@@ -311,6 +439,7 @@ io.on("connection", (socket: Socket) => {
       const players = getOrCreateIsland(islandPlayers, islandId);
       const enemies = getOrCreateIsland(islandEnemies, islandId);
 
+      const bakedSpawn = mapId ? loadBakedLobbyMap(mapId)?.spawnPoint : null;
       const player: IslandPlayer = {
         id: socket.id,
         name: playerName,
@@ -319,9 +448,9 @@ io.on("connection", (socket: Socket) => {
         heroRace,
         accountId,
         islandId,
-        x: (Math.random() - 0.5) * 20,
-        y: 0,
-        z: (Math.random() - 0.5) * 20,
+        x: bakedSpawn?.x ?? (Math.random() - 0.5) * 20,
+        y: bakedSpawn?.y ?? 2,
+        z: bakedSpawn?.z ?? (Math.random() - 0.5) * 20,
         facing: 0,
         state: "idle",
         hp: 200,

@@ -14,7 +14,8 @@ diabloweb
 puter-vanilla
 docs
 migrations
-/public
+/public/models/lobby/warlords-lobby/scene.glb
+/public/models/**/*.glb
 dist
 client/dist
 *.log

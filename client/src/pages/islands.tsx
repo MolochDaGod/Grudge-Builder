@@ -8,6 +8,7 @@ import { useState, useEffect, type ReactNode } from "react";
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
 import { Island3DRenderer } from "@/island3d/render/Island3DRenderer";
+import { DEFAULT_PUBLIC_LOBBY_MAP_ID } from "@/island3d/engine/lobbyMapRuntime";
 import { CharacterManager, type Character } from "@/lib/characterManager";
 import { useAccount } from "@/hooks/use-account";
 import { useAuth } from "@/contexts/AuthContext";
@@ -188,7 +189,7 @@ export default function IslandsPage() {
         <Island3DRenderer
           seed={homeIsland?.seed || "grudge-islands-hub-2026"}
           mode="lobby"
-          lobbyMapId="pirate-islands"
+          lobbyMapId={DEFAULT_PUBLIC_LOBBY_MAP_ID}
           className="w-full h-full"
         />
       </div>

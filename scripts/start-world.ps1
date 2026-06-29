@@ -66,11 +66,16 @@ if ($Dedicated) {
   Write-Host "Using main tunnel config: $configPath"
 }
 
-Write-Host "`n  https://world.grudge-studio.com -> http://localhost:$Port" -ForegroundColor Cyan
+Write-Host "`n  https://world.grudge-studio.com -> http://127.0.0.1:$Port" -ForegroundColor Cyan
 Write-Host "  Press Ctrl+C to stop both services`n" -ForegroundColor DarkGray
 
 try {
-  cloudflared tunnel --config $configPath run
+  if ($Dedicated) {
+    $token = (Get-Content "$env:USERPROFILE\.cloudflared\grudge-world.token" -Raw).Trim()
+    cloudflared tunnel --config $configPath run --token $token
+  } else {
+    cloudflared tunnel --config $configPath run
+  }
 } finally {
   # Clean up: kill the world server when tunnel stops
   if (-not $worldProcess.HasExited) {

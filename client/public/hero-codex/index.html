@@ -81,6 +81,11 @@
 
     .card-footer { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 6px; }
     .card-meta { font-size: 9px; color: #888; }
+    .card-loadout {
+      font-size: 9px; font-weight: 600; letter-spacing: 0.04em;
+      text-align: center; margin-bottom: 6px; color: #c4b5fd;
+      text-transform: uppercase;
+    }
     .card-abilities { display: flex; gap: 4px; }
     .ability-icon-box {
       width: 24px; height: 24px; border-radius: 4px;
@@ -328,6 +333,42 @@ const HEROES = [
   { id:'pirate_king', name:'Racalvin the Pirate King', title:'The Scourge of the Grudge Ocean Line', race:'Barbarian', className:'Ranger', faction:'Crusade', factionColor:'#c9a030', rarity:'Legendary', portrait:'sprites/entities/units/barbarian/barbarian_archer.png', lore:'Legend speaks of a pirate so ruthless that even the sea feared him. Racalvin conquered the Grudge Ocean Line with nothing but a stolen ship and a crew of outcasts, building an empire of plunder and freedom.', backstory:"Born as the bastard son of a barbarian chieftain and a merchant's daughter, Racalvin was cast out at birth. He stowed away on a merchant vessel at age eight, mutinied at twelve, and by twenty commanded a fleet of thirty ships. His true name became synonymous with freedom and terror across every port.", quote:'"The sea does not bow. Neither do I."', primaryAttribute:'DEX', stats:(function(){var s=ds('Barbarian','Ranger');return{health:s.health+30,attack:s.attack+5,defense:s.defense,speed:s.speed+5,range:s.range,mana:s.mana}})(), abilities:[{name:'Precision',icon:'crosshair',description:'Sea-born accuracy',manaCost:0},{name:'Power Shot',icon:'target',description:'Cannon-force shot',manaCost:20},{name:'Multi Shot',icon:'split',description:'Broadside volley',manaCost:25},{name:'Storm of Arrows',icon:'crown',description:'Ultimate sea storm devastation',manaCost:50}], racialTraits:[{name:'Rage',effect:'+20% damage below 50% HP'},{name:'Frost Resistance',effect:'+15% cold defense'},{name:'Pirate King',effect:'+10% HP, +25% ATK, +15% SPD'}], strengths:['Highest base stats of any hero','Pirate King bonus on top of racial traits','Fastest hero in the game'], weaknesses:['Secret unlock required','Glass cannon build','No healing abilities'], combatStyle:'Ranged Physical & Stealth', weapons:'Flintlock Pistols, Cutlass, Captain\'s Coat', alignment:'Chaotic Neutral', difficulty:'Expert', flavorText:'Crowns are taken. Thrones are stolen. The sea is earned.' },
 ];
 
+/** Canonical roster loadouts — synced with @workspace/game-content prefabLoadouts.ts */
+const CANONICAL_LOADOUTS = {
+  human_warrior:      { weapons:'Sword + Kite Shield', combatStyle:'Melee Sword & Shield', loadoutShort:'Sword + Shield' },
+  human_worg:         { weapons:'Dagger + Holy Tome (off-hand)', combatStyle:'Melee Hybrid · Holy Tome', loadoutShort:'Dagger · Holy Tome' },
+  human_mage:         { weapons:'Holy Staff (two-handed)', combatStyle:'Holy Staff Caster', loadoutShort:'Holy Staff' },
+  human_ranger:       { weapons:'Longbow + Quiver', combatStyle:'Ranged Bow', loadoutShort:'Bow' },
+  barbarian_warrior:  { weapons:'War Hammer (two-handed)', combatStyle:'Melee Two-Handed Hammer', loadoutShort:'2H Hammer' },
+  barbarian_worg:     { weapons:'Hand Axe + Lightning Tome', combatStyle:'Melee Hybrid · Lightning Tome', loadoutShort:'Axe · Lightning Tome' },
+  barbarian_mage:     { weapons:'Frost Staff (two-handed)', combatStyle:'Frost Staff Caster', loadoutShort:'Frost Staff' },
+  barbarian_ranger:   { weapons:'Flintlock Gun', combatStyle:'Ranged Firearm', loadoutShort:'Gun' },
+  dwarf_warrior:      { weapons:'Mace + Tower Shield', combatStyle:'Melee Mace & Shield', loadoutShort:'Mace + Shield' },
+  dwarf_worg:         { weapons:'War Hammer + Arcane Tome', combatStyle:'Melee Hybrid · Arcane Tome', loadoutShort:'Hammer · Arcane Tome' },
+  dwarf_mage:         { weapons:'Fire Staff (two-handed)', combatStyle:'Fire Staff Caster', loadoutShort:'Fire Staff' },
+  dwarf_ranger:       { weapons:'Heavy Crossbow', combatStyle:'Ranged Crossbow', loadoutShort:'Crossbow' },
+  elf_warrior:        { weapons:'Greatsword (two-handed)', combatStyle:'Melee Two-Handed Greatsword', loadoutShort:'2H Greatsword' },
+  elf_worg:           { weapons:'Scythe + Nature Tome (off-hand)', combatStyle:'Melee Hybrid · Nature Tome', loadoutShort:'Scythe · Nature Tome' },
+  elf_mage:           { weapons:'Storm Staff (lightning school)', combatStyle:'Lightning Staff Caster', loadoutShort:'Storm Staff' },
+  elf_ranger:         { weapons:'Elven Longbow + Quiver', combatStyle:'Ranged Bow', loadoutShort:'Bow' },
+  orc_warrior:        { weapons:'Greataxe (two-handed)', combatStyle:'Melee Two-Handed Greataxe', loadoutShort:'2H Greataxe' },
+  orc_worg:           { weapons:'Mace + Fire Tome', combatStyle:'Melee Hybrid · Fire Tome', loadoutShort:'Mace · Fire Tome' },
+  orc_mage:           { weapons:'Nature Staff (totem)', combatStyle:'Nature Staff Caster', loadoutShort:'Nature Staff' },
+  orc_ranger:         { weapons:'Flintlock Gun', combatStyle:'Ranged Firearm', loadoutShort:'Gun' },
+  undead_warrior:     { weapons:'Great Mace (two-handed)', combatStyle:'Melee Two-Handed Mace', loadoutShort:'2H Mace' },
+  undead_worg:        { weapons:'Cursed Sword + Frost Tome', combatStyle:'Melee Hybrid · Frost Tome', loadoutShort:'Sword · Frost Tome' },
+  undead_mage:        { weapons:'Shadow Wand', combatStyle:'Wand Caster', loadoutShort:'Wand' },
+  undead_ranger:      { weapons:'Phantom Crossbow', combatStyle:'Ranged Crossbow', loadoutShort:'Crossbow' },
+};
+
+for (const h of HEROES) {
+  const c = CANONICAL_LOADOUTS[h.id];
+  if (!c) continue;
+  h.weapons = c.weapons;
+  h.combatStyle = c.combatStyle;
+  h.loadoutShort = c.loadoutShort;
+}
+
 function starsHTML(rarity, size) {
   size = size || 12;
   const cfg = RARITY_CONFIG[rarity] || RARITY_CONFIG.Common;
@@ -395,6 +436,7 @@ function renderGrid() {
       </div>
       <div class="card-body">
         <div class="stars">${starsHTML(hero.rarity)}</div>
+        ${hero.loadoutShort ? `<div class="card-loadout" style="color:${borderColor}">${hero.loadoutShort}</div>` : ''}
         <div class="stat-bar">
           <div class="stat">${statSVG('health','#22c55e')}<span style="color:#22c55e">${hero.stats.health}</span></div>
           <div class="stat">${statSVG('attack','#ef4444')}<span style="color:#ef4444">${hero.stats.attack}</span></div>
@@ -402,7 +444,7 @@ function renderGrid() {
           <div class="stat">${statSVG('speed','#f59e0b')}<span style="color:#f59e0b">${hero.stats.speed}</span></div>
         </div>
         <div class="card-footer">
-          <span class="card-meta">${hero.race} ${hero.className}</span>
+          <span class="card-meta">${hero.race} ${hero.className}${hero.loadoutShort ? ' · ' + hero.loadoutShort : ''}</span>
           <div class="card-abilities">
             ${hero.abilities.slice(0,4).map(a => {
               const c = a.manaCost > 0 ? '#a78bfa' : '#4ade80';

@@ -41,6 +41,8 @@ COPY package.json package-lock.json ./
 RUN npm install --legacy-peer-deps --ignore-scripts --omit=dev
 
 COPY --from=builder /app/dist/world-server.cjs ./dist/
+COPY server/data/navmesh ./server/data/navmesh
+COPY public/models/lobby/warlords-lobby ./public/models/lobby/warlords-lobby
 
 EXPOSE 4321
 

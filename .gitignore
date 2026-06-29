@@ -1,3 +1,6 @@
+# Vendored monorepo (CI clone for native /world)
+vendor/grudge-character-animator/
+
 # Dependencies
 node_modules/
 .venv/

@@ -10,6 +10,7 @@ import { useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import { Island3DRenderer } from "@/island3d/render/Island3DRenderer";
 import { WORLD_SERVER_URL } from "@/island3d/sync/MultiplayerSync";
+import { getDefaultPublicLobbyMapId } from "@/island3d/engine/lobbyMapRuntime";
 import { CharacterManager, type Character } from "@/lib/characterManager";
 import { useAccount } from "@/hooks/use-account";
 import { useAdmin } from "@/contexts/AdminContext";
@@ -151,7 +152,7 @@ export default function RtsGrudgePage() {
     // Navigate to island-3d lobby with multiplayer config
     const params = new URLSearchParams({
       mode: 'lobby',
-      map: 'pirate-islands',
+      map: publicLobbyMap,
       island: mode.islandId,
       pvp: WORLD_SERVER_URL,
     });
@@ -162,6 +163,7 @@ export default function RtsGrudgePage() {
 
   const mode = GAME_MODES.find((m) => m.id === selectedMode)!;
   const user = getCurrentUser();
+  const publicLobbyMap = getDefaultPublicLobbyMapId();
 
   return (
     <div className="fixed inset-0 overflow-hidden bg-black">
@@ -170,7 +172,7 @@ export default function RtsGrudgePage() {
         <Island3DRenderer
           seed="grudge-rts-lobby-2026"
           mode="lobby"
-          lobbyMapId="pirate-islands"
+          lobbyMapId={publicLobbyMap}
           className="w-full h-full"
         />
       </div>

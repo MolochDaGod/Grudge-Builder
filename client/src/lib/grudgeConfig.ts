@@ -209,9 +209,13 @@ export function buildDiscordOAuthUrl(returnUrl: string): string {
  *
  * Any Grudge Studio app can use this to initiate the centralized SSO flow.
  */
-export function buildSsoLoginUrl(returnOrigin?: string): string {
-  const origin = returnOrigin || (typeof window !== 'undefined' ? window.location.origin : 'https://grudgewarlords.com');
-  const redirectUri = `${origin}/auth/callback`;
+export function buildSsoLoginUrl(returnOrigin?: string, returnPath = '/auth/callback'): string {
+  const origin = (returnOrigin || (typeof window !== 'undefined' ? window.location.origin : 'https://grudgewarlords.com'))
+    .replace(/\/$/, '');
+  // Caller may pass a full callback URL (legacy) — do not append the path twice.
+  const redirectUri = returnOrigin?.includes('/auth/callback')
+    ? returnOrigin
+    : `${origin}${returnPath.startsWith('/') ? returnPath : `/${returnPath}`}`;
   return `${AUTH_GATEWAY}/login?redirect_uri=${encodeURIComponent(redirectUri)}`;
 }
 

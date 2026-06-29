@@ -28,9 +28,21 @@ const PUTER_API = 'https://api.puter.com';
 
 // ── Parse args ──────────────────────────────────────────────────────────────
 const args = process.argv.slice(2);
-let token = process.env.PUTER_API_KEY || null;
+let token = process.env.PUTER_API_KEY || process.env.PUTER_AUTH_TOKEN || null;
+let siteFilter = null;
 for (let i = 0; i < args.length; i++) {
   if (args[i] === '--token' && args[i + 1]) token = args[++i];
+  if (args[i] === '--site' && args[i + 1]) siteFilter = args[++i];
+}
+
+if (!token) {
+  const envPath = resolve(__dirname, '..', '.env');
+  if (existsSync(envPath)) {
+    for (const line of readFileSync(envPath, 'utf8').split('\n')) {
+      const m = line.trim().match(/^(?:PUTER_API_KEY|PUTER_AUTH_TOKEN)=(.+)$/);
+      if (m) { token = m[1].trim(); break; }
+    }
+  }
 }
 
 if (!token) {
@@ -115,6 +127,13 @@ const SITES = [
     localFile: resolve(__dirname, '..', 'client', 'public', 'grudge-crafting.html'),
     cloudDir: '/grudge-crafting',
     description: 'Grudge Warlords Crafting & Professions Suite',
+  },
+  {
+    name: 'grudge-heros',
+    subdomain: 'grudge-heros',
+    localFile: resolve(__dirname, '..', 'client', 'public', 'hero-codex', 'index.html'),
+    cloudDir: '/grudge-heros',
+    description: 'Hero Codex — 24 canonical warlords + loadout cards',
   },
 ];
 
@@ -209,14 +228,20 @@ try {
 }
 
 // Deploy each site
+const toDeploy = siteFilter ? SITES.filter((s) => s.name === siteFilter) : SITES;
+if (siteFilter && toDeploy.length === 0) {
+  console.error(`❌ Unknown site "${siteFilter}". Known: ${SITES.map((s) => s.name).join(', ')}`);
+  process.exit(1);
+}
+
 let success = 0;
-for (const site of SITES) {
+for (const site of toDeploy) {
   if (await deploySite(site)) success++;
 }
 
 console.log(`\n════════════════════════════════════════`);
-console.log(`Deployed ${success}/${SITES.length} sites.`);
+console.log(`Deployed ${success}/${toDeploy.length} sites.`);
 if (success > 0) {
   console.log(`\nLive sites:`);
-  SITES.forEach(s => console.log(`  → https://${s.subdomain}.puter.site`));
+  toDeploy.forEach(s => console.log(`  → https://${s.subdomain}.puter.site`));
 }

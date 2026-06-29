@@ -29,6 +29,51 @@ export type { Island3DEngineConfig, Island3DMode } from './engine/Island3DEngine
 // Lobby maps
 export { loadLobbyMap, getLobbyMap, LOBBY_MAPS } from './engine/LobbyIslandLoader';
 export type { LobbyMapDef, LobbyLoadResult } from './engine/LobbyIslandLoader';
+export {
+  loadLobbyMapRuntime,
+  saveLobbyMapRuntime,
+  getDefaultPublicLobbyMapId,
+  DEFAULT_PUBLIC_LOBBY_MAP_ID,
+} from './engine/lobbyMapRuntime';
+export {
+  resolveLobbyGltfUrl,
+  resolveLobbyGltfUrls,
+  lobbyGltfCdnUrl,
+  lobbyGltfWorldUrl,
+  worldServerHttpBase,
+} from './engine/lobbyMapRuntime';
+export type { LobbyMapRuntimeConfig } from './engine/lobbyMapRuntime';
+export { LobbyNavMesh, collectLobbyTerrainMeshes, detectCoastWaterLevel, isLobbyFlatDecorMesh } from './navigation/LobbyNavMesh';
+export { parseLobbyMeshName, classifyLobbyMesh, collectLobbyGroundMeshes } from './navigation/LobbyMeshClassifier';
+export {
+  buildLobbyMapGraph,
+  createMapGraphDebugMesh,
+  LobbyZoneCode,
+} from './navigation/LobbyMapGraph';
+export type { LobbyMapGraphData, LobbyMapPoi, LobbyMapGraphStats } from './navigation/LobbyMapGraph';
+export { LobbySkyClouds } from './environment/LobbySkyClouds';
+export { LobbyDistanceCuller } from './environment/LobbyDistanceCuller';
+export { applyLobbyAtmosphere } from './environment/applyLobbyAtmosphere';
+export {
+  WARLORDS_LOBBY_SPEC,
+  LOBBY_CHARACTER_HEIGHT_M,
+  LOBBY_RENDER_NEAR_M,
+  LOBBY_RENDER_FAR_M,
+  getLobbyWorldSpec,
+} from './engine/lobbyWorldSpec';
+export { loadBakedLobbyMap } from './navigation/loadBakedLobbyMap';
+export { buildLobbyBakedMap, harvestNodesFromGraph, graphFromBaked } from './navigation/LobbyBakedMap';
+export { LobbyHarvestables } from './lobby/LobbyHarvestables';
+export { createLobbyZoneMesh } from './lobby/LobbyZoneMesh';
+export type { LobbyBakedMapData, LobbyHarvestNode } from '@shared/definitions/lobbyBakedMap';
+export {
+  captureOrthographicPng,
+  renderHeightMapPng,
+  renderClassifiedMapPng,
+  downloadDataUrl,
+} from './render/LobbyMapCapture';
+export { LobbyHeightMap } from './navigation/LobbyHeightMap';
+export type { LobbyHeightMapData } from './navigation/LobbyHeightMap';
 
 // Renderer
 export { Island3DRenderer } from './render/Island3DRenderer';

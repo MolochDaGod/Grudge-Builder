@@ -129,7 +129,7 @@ export async function wireGrudgeFleet(opts: WireGrudgeFleetOptions = {}) {
 /** Redirect user to Grudge ID login; returns to /auth/callback on this origin */
 export function loginWithGrudgeId(returnPath = "/auth/callback"): void {
   if (typeof window === "undefined") return;
-  const url = buildSsoLoginUrl(`${window.location.origin}${returnPath}`);
+  const url = buildSsoLoginUrl(window.location.origin, returnPath);
   window.location.href = url;
 }
 

@@ -22,7 +22,8 @@ export type AnimState =
   // Parkour / falling
   | 'falling' | 'fall_roll' | 'hard_landing' | 'jump'
   // Climbing
-  | 'climb_top'
+  | 'climb_attach' | 'climb_detach' | 'climb_idle' | 'climb_up'
+  | 'climb_shimmy_l' | 'climb_shimmy_r' | 'climb_mantle' | 'climb_top'
   // Cover system
   | 'enter_cover' | 'exit_cover' | 'cover_sneak_l' | 'cover_sneak_r'
   // Stealth
@@ -62,12 +63,23 @@ export class AnimationManager {
   }
 
   /** Crossfade to a new animation state */
-  play(state: AnimState, opts?: { speed?: number; loop?: boolean }): void {
+  play(
+    state: AnimState,
+    opts?: { speed?: number; loop?: boolean; fadeDuration?: number; onFinish?: () => void },
+  ): void {
     this.controller.play(state, {
-      fadeDuration: 0.25,
+      fadeDuration: opts?.fadeDuration ?? this.defaultFade(state),
       speed: opts?.speed,
       loop: opts?.loop,
+      onFinish: opts?.onFinish,
     });
+  }
+
+  private defaultFade(state: AnimState): number {
+    if (state.startsWith('climb_')) return 0.4;
+    if (state.startsWith('swim')) return 0.35;
+    if (state === 'walk' || state === 'run' || state === 'run_stop') return 0.3;
+    return 0.25;
   }
 
   /** Update the mixer each frame */

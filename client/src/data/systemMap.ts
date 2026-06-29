@@ -226,6 +226,7 @@ const routeSeeds: RouteSeed[] = [
   { path: "/admin-map",         label: "Admin Map",          group: "admin" },
   { path: "/admin-combat",      label: "Admin Combat",       group: "admin" },
   { path: "/admin-island-v2",   label: "Admin Island v2",    group: "admin" },
+  { path: "/admin-island-3d",   label: "Admin Island 3D",    group: "admin" },
   { path: "/sprite-admin",      label: "Sprite Admin",       group: "admin" },
   { path: "/ai-helper",         label: "AI Helper",          group: "admin" },
   { path: "/organizer",         label: "System Organizer",   group: "admin", notes: "This page." },
