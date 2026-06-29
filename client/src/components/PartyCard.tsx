@@ -4,6 +4,7 @@ import { Heart, Zap, Shield, User } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { cn } from '@/lib/utils';
 import type { Character } from '@shared/schema';
+import { RACE_PORTRAITS } from '@/lib/artAssets';
 
 interface PartyCardProps {
   character: Character;
@@ -17,15 +18,6 @@ interface PartyCardProps {
   onClick?: () => void;
   compact?: boolean;
 }
-
-const RACE_PORTRAITS: Record<string, string> = {
-  human: '/attached_assets/human_1766698756832.png',
-  orc: '/attached_assets/orc_1766698756832.png',
-  elf: '/attached_assets/elf_1766698756831.png',
-  dwarf: '/attached_assets/dwarf_1766698756831.png',
-  barbarian: '/attached_assets/barbarian_1766698756830.png',
-  undead: '/attached_assets/undead_1766698756830.png',
-};
 
 export default function PartyCard({
   character,

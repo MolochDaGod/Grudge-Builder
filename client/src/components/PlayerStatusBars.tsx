@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { RACE_PORTRAITS } from '@/lib/artAssets';
 
 interface PlayerStatusBarsProps {
   race: string;
@@ -13,15 +14,6 @@ interface PlayerStatusBarsProps {
   level?: number;
   avatarUrl?: string | null;
 }
-
-const RACE_PORTRAITS: Record<string, string> = {
-  human: '/attached_assets/human_1766698756832.png',
-  orc: '/attached_assets/orc_1766698756832.png',
-  elf: '/attached_assets/elf_1766698756831.png',
-  dwarf: '/attached_assets/dwarf_1766698756831.png',
-  barbarian: '/attached_assets/barbarian_1766698756830.png',
-  undead: '/attached_assets/undead_1766698756830.png',
-};
 
 export default function PlayerStatusBars({
   race,

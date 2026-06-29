@@ -179,7 +179,9 @@ const routeSeeds: RouteSeed[] = [
   { path: "/wallet",            label: "Wallet",             group: "account" },
   { path: "/launcher",          label: "Launcher",           group: "account", notes: "Depends on planned launcher.g-s.com." },
 
-  { path: "/character",         label: "Character Builder",  group: "character" },
+  { path: "/character",         label: "Character Builder",  group: "character", notes: "Redirects to GCS (era=warlords). ?legacy=1 keeps inline builder." },
+  { path: "/create-character",  label: "Create Character",   group: "character", notes: "Redirects to GCS mode=create, returnTo /game/character." },
+  { path: "/character-creator", label: "Character Creator",  group: "character", notes: "Redirects to GCS mode=create, returnTo /account." },
   { path: "/characters",        label: "Characters (alias)", group: "character", notes: "Alias of /character — candidate for dedup." },
   { path: "/character-gallery", label: "Character Gallery",  group: "character" },
   { path: "/hero-codex",        label: "Hero Codex",         group: "character" },

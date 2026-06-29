@@ -70,6 +70,25 @@ Token stored in localStorage as `grudge_auth_token`. JWT_SECRET shared across Cl
 
 **Auth → Account Sync:** On login, `handleAuthResponse()` sets `grudge_account_id` in localStorage so `CharacterManager` scopes active character selection to the correct account (not `guest`).
 
+### Canonical Character Creation (GCS)
+**Account/save truth:** [character.grudge-studio.com](https://character.grudge-studio.com) (GCS) — HYDRA VRM + grudge6 forge. Saves to Railway `/api/characters` with per-era rosters (`warlords`, `nexus`, `armada`).
+
+**2D picker art truth:** `class-selector.html` imgur URLs → `client/src/lib/artAssets.ts` (`RACE_PORTRAITS`, `CLASS_HERO_IMAGES`, etc.).
+
+Warlords-era inline builders are **redirected** to GCS. Use `?legacy=1` to keep the old inline flow for dev only.
+
+| Warlords route | GCS params | Return after save |
+|----------------|------------|-------------------|
+| `/character` | `era=warlords` | `/home` |
+| `/create-character` | `era=warlords`, `mode=create` | `/game/character` |
+| `/character-creator` | `era=warlords`, `mode=create` | `/account` |
+
+Implementation: `client/src/lib/gcsRedirect.ts` (`buildGcsUrl`, `navigateToGcs`, `consumeGcsReturnHandoff`). Redirect pages: `gcs-redirect.tsx`, `create-character-redirect.tsx`, `character-creator-redirect.tsx`. Boot handoff in `App.tsx` calls `CharacterManager.setActive()` after `?from=gcs&characterId=…`.
+
+**Era-aware storage:** `characterManager.ts` passes `gameEra: warlords` on create; `api.ts` uses `getEnvelope(?era=warlords)` and `activate()` for active character.
+
+**RTS-Grudge** `/character` is Hero Forge (edit presets), not new-character creation — RTS links to GCS via its own `gcsRedirect.ts`.
+
 ### Wallet & NFT Service Chain
 `server/services/crossmintWallet.ts` is the **single canonical** Crossmint service. All other files re-export it:
 - `server/spriteGeneration/services/crossmintWallet.ts` → re-export

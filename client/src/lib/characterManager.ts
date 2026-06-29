@@ -1,4 +1,5 @@
-import { characterAPI, partyAPI } from "./api";
+import { characterAPI, partyAPI, WARLORDS_ERA } from "./api";
+import type { AccountEraSlots } from "@shared/definitions/gameEras";
 
 export interface ProfessionLevel {
   level: number;
@@ -50,7 +51,14 @@ export interface Character {
   weaponSkillSelections?: Record<string, WeaponSkillSelection> | null;
   equippedWeaponId?: string | null;
   selectedSkills?: Record<number, string>; // Class skill tree selections by tier level
-  actionBar?: Record<number, string>; // Slots 1-5 assigned skill ids (uMMORPG style hotbar)
+  /** @deprecated use weaponBar — kept for save compat */
+  actionBar?: Record<number, string>;
+  /** Keys 1–5: weapon mastery / weapon skills */
+  weaponBar?: Record<number, string | null>;
+  /** Keys 6–8: consumable item ids from inventory */
+  consumableBar?: Record<number, string | null>;
+  /** Shift+1–5: class tree abilities */
+  classAbilityBar?: Record<number, string | null>;
   model3d?: {
     baseModelId?: string;
     equippedMeshes?: Record<string, string>;
@@ -58,8 +66,12 @@ export interface Character {
     skinColor?: string;
     armorColor?: string;
     scale?: number;
+    gameEra?: string;
   };
+  gameEra?: string;
 }
+
+let cachedEraSlots: AccountEraSlots | null = null;
 
 export interface InventoryItem {
   itemId: string;
@@ -84,9 +96,17 @@ export const CharacterManager = {
     localStorage.setItem('grudge_account_id', accountId);
   },
 
-  getAll: async (): Promise<Character[]> => {
+  getEraSlots: (): AccountEraSlots | null => cachedEraSlots,
+
+  getAll: async (era = WARLORDS_ERA): Promise<Character[]> => {
     try {
-      return await characterAPI.getAll();
+      const envelope = await characterAPI.getEnvelope(era);
+      cachedEraSlots = envelope.eraSlots;
+      const activeId = envelope.eraSlots[era]?.activeCharacterId;
+      if (activeId) {
+        localStorage.setItem(getActiveCharKey(), activeId);
+      }
+      return envelope.characters;
     } catch (e) {
       console.error("Failed to load characters from API", e);
       return [];
@@ -100,6 +120,7 @@ export const CharacterManager = {
       
       const newChar = await characterAPI.create({
         ...character,
+        gameEra: character.gameEra ?? WARLORDS_ERA,
         xp: 0,
         energy: 50,
         hp: 100,
@@ -167,8 +188,11 @@ export const CharacterManager = {
     return localStorage.getItem(getActiveCharKey());
   },
 
-  setActive: (id: string) => {
+  setActive: (id: string, era = WARLORDS_ERA) => {
     localStorage.setItem(getActiveCharKey(), id);
+    characterAPI.activate(id, era).then((result) => {
+      if (result?.eraSlots) cachedEraSlots = result.eraSlots;
+    }).catch(() => {});
   },
 
   getActiveCharacter: async (): Promise<Character | null> => {

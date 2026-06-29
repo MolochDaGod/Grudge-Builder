@@ -1,5 +1,19 @@
 import type { Character } from "./characterManager";
 import { authHeaders } from "./grudgeBackend";
+import {
+  ERA_META,
+  mergeEraSlots,
+  normalizeGameEra,
+  type AccountEraSlots,
+  type GameEra,
+} from "@shared/definitions/gameEras";
+
+export interface CharacterEnvelope {
+  characters: Character[];
+  era: GameEra | null;
+  eraSlots: AccountEraSlots;
+  eraMeta: typeof ERA_META;
+}
 
 /**
  * Grudge Builder — Backend API Client
@@ -27,11 +41,57 @@ async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> 
   return res.json() as Promise<T>;
 }
 
+export const WARLORDS_ERA: GameEra = "warlords";
+
 export const characterAPI = {
-  getAll: async (): Promise<Character[]> => {
-    try { return await apiFetch<Character[]>("/api/characters"); }
-    catch (e) { console.warn("[api] getAll failed:", e); return []; }
+  getAll: async (era: GameEra = WARLORDS_ERA): Promise<Character[]> => {
+    try {
+      const envelope = await characterAPI.getEnvelope(era);
+      return envelope.characters;
+    } catch (e) {
+      console.warn("[api] getAll failed:", e);
+      return [];
+    }
   },
+
+  getEnvelope: async (era: GameEra = WARLORDS_ERA): Promise<CharacterEnvelope> => {
+    try {
+      const data = await apiFetch<CharacterEnvelope | Character[]>(
+        `/api/characters?era=${encodeURIComponent(era)}`,
+      );
+      if (Array.isArray(data)) {
+        return {
+          characters: data,
+          era,
+          eraSlots: mergeEraSlots(),
+          eraMeta: ERA_META,
+        };
+      }
+      return {
+        characters: data.characters ?? [],
+        era: data.era ? normalizeGameEra(data.era) : era,
+        eraSlots: mergeEraSlots(data.eraSlots),
+        eraMeta: data.eraMeta ?? ERA_META,
+      };
+    } catch (e) {
+      console.warn("[api] getEnvelope failed:", e);
+      return {
+        characters: [],
+        era,
+        eraSlots: mergeEraSlots(),
+        eraMeta: ERA_META,
+      };
+    }
+  },
+
+  activate: async (
+    id: string,
+    gameEra: GameEra = WARLORDS_ERA,
+  ): Promise<{ character: Character; eraSlots: AccountEraSlots }> =>
+    apiFetch(`/api/characters/${id}/activate`, {
+      method: "PUT",
+      body: JSON.stringify({ gameEra }),
+    }),
 
   get: async (id: string): Promise<Character> =>
     apiFetch<Character>(`/api/characters/${id}`),

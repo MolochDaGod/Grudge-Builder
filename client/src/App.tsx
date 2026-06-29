@@ -65,8 +65,8 @@ import { GrudgeTokenWidget } from "@/components/grudge-token/GrudgeTokenWidget";
 // (A-Frame VR lib that uses THREE as a global). Code-splitting it keeps
 // aframe out of the main bundle and loads it only when /organizer is visited.
 const OrganizerPage = lazy(() => import("@/pages/organizer"));
-import CreateCharacterPage from "@/pages/create-character";
-import CharacterCreatorPage from "@/pages/character-creator";
+import CreateCharacterRedirect from "@/pages/create-character-redirect";
+import CharacterCreatorRedirect from "@/pages/character-creator-redirect";
 import GrudaWarsPage from "@/pages/grudawars";
 import PlayPage from "@/pages/play";
 import OceanPage from "@/pages/ocean";
@@ -83,6 +83,8 @@ import WeaponMasteryPage from "@/pages/weapon-mastery";
 import TownPage from "@/pages/town";
 import GameCharacterPage from "@/pages/game-character";
 import SystemsPage from "@/pages/systems";
+import { consumeGcsReturnHandoff } from "@/lib/gcsRedirect";
+import { CharacterManager } from "@/lib/characterManager";
 
 function Router() {
   return (
@@ -93,8 +95,8 @@ function Router() {
       <Route path="/home" component={HomePage} />
       <Route path="/character" component={CharacterRedirect} />
       <Route path="/characters" component={CharacterRedirect} />
-      <Route path="/create-character" component={CreateCharacterPage} />
-      <Route path="/character-creator" component={CharacterCreatorPage} />
+      <Route path="/create-character" component={CreateCharacterRedirect} />
+      <Route path="/character-creator" component={CharacterCreatorRedirect} />
       <Route path="/professions" component={ProfessionsPage} />
       <Route path="/database" component={DatabasePage} />
       <Route path="/combat" component={CombatPage} />
@@ -187,6 +189,8 @@ function AppContent() {
         console.debug(`Preloaded ${count} migrated sprite URLs from Object Storage`);
       }
     });
+
+    consumeGcsReturnHandoff((id) => CharacterManager.setActive(id));
   }, []);
 
   return (
