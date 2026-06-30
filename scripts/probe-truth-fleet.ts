@@ -47,6 +47,9 @@ async function fetchWithTimeout(url: string, init: RequestInit): Promise<Respons
 
 function toBrowserUrl(probe: TruthProbe): TruthProbe {
   if (!base || !probe.browserPath) return probe;
+  if (/^https?:\/\//i.test(probe.browserPath)) {
+    return { ...probe, url: probe.browserPath };
+  }
   return { ...probe, url: `${base}${probe.browserPath}` };
 }
 

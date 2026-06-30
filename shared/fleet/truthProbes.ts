@@ -23,6 +23,8 @@ export interface TruthProbeSpec {
   method?: "GET" | "HEAD";
   /** Fail probe when Content-Type is text/html (split-brain proxy leak). */
   rejectHtml?: boolean;
+  /** Auth-gated route: 401 + application/json still counts as reachable API. */
+  authGated?: boolean;
 }
 
 export interface TruthProbe extends TruthProbeSpec {
@@ -91,6 +93,7 @@ export const TRUTH_PROBE_SPECS: TruthProbeSpec[] = [
     browserPath: "/api/characters",
     method: "GET",
     rejectHtml: true,
+    authGated: true,
   },
   {
     id: "game-account",
@@ -180,15 +183,21 @@ export async function probeTruthEndpoint(
     const contentType = res.headers.get("content-type") || "";
     const htmlLeak = rejectHtml && contentType.includes("text/html");
     const deprecated = TRUTH_DEPRECATED_HOSTS.some((h) => probe.url.includes(h));
+    const jsonApi =
+      contentType.includes("application/json") || contentType.includes("+json");
+    const authReachable =
+      !!probe.authGated && res.status === 401 && jsonApi && !htmlLeak;
     return {
       ...probe,
-      ok: res.ok && !htmlLeak && !deprecated,
+      ok: (res.ok || authReachable) && !htmlLeak && !deprecated,
       status: res.status,
       detail: deprecated
         ? "deprecated GitHub Pages host"
         : htmlLeak
           ? "HTML leak (split-brain proxy)"
-          : contentType.split(";")[0] || method,
+          : authReachable
+            ? "application/json (auth required)"
+            : contentType.split(";")[0] || method,
     };
   } catch (e: unknown) {
     const message = e instanceof Error ? e.message : "unreachable";

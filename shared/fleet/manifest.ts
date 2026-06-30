@@ -166,7 +166,7 @@ export const FLEET_VERCEL_REWRITES = [
   { source: "/api/auth/register", destination: `${FLEET_URLS.gameData}/api/auth/register` },
   { source: "/api/auth/me", destination: `${FLEET_URLS.gameData}/api/auth/me` },
   { source: "/api/auth/verify", destination: `${FLEET_URLS.gameData}/api/auth/verify` },
-  { source: "/api/auth/session/exchange", destination: `${FLEET_URLS.identityApi}/api/auth/session/exchange` },
+  { source: "/api/auth/session/exchange", destination: `${FLEET_URLS.gameData}/api/auth/session/exchange` },
   { source: "/api/auth/:path*", destination: `${FLEET_URLS.auth}/auth/:path*` },
   { source: "/api/ai/:path*", destination: `${FLEET_URLS.ai}/:path*` },
   { source: "/api/:path*", destination: `${FLEET_URLS.identityApi}/api/:path*` },

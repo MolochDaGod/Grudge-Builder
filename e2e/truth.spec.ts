@@ -55,9 +55,13 @@ test.describe("ONE TRUTH fleet", () => {
 
   test("shared truth probes meet minimum score via client rewrites", async () => {
     const base = process.env.PLAYWRIGHT_BASE_URL ?? "https://client.grudge-studio.com";
-    const probes = buildTruthProbes("browser").map((p) =>
-      p.browserPath ? { ...p, url: `${base.replace(/\/$/, "")}${p.browserPath}` } : p,
-    );
+    const probes = buildTruthProbes("browser").map((p) => {
+      if (!p.browserPath) return p;
+      const url = /^https?:\/\//i.test(p.browserPath)
+        ? p.browserPath
+        : `${base.replace(/\/$/, "")}${p.browserPath}`;
+      return { ...p, url };
+    });
 
     const results = await Promise.all(probes.map((p) => probeTruthEndpoint(p, fetch)));
 
