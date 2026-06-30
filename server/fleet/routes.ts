@@ -3,6 +3,9 @@ import {
   FLEET_SERVICES,
   FLEET_URLS,
   FLEET_VERCEL_REWRITES,
+  FLEET_GAME_DATA_API_PREFIXES,
+  FLEET_STORAGE,
+  FLEET_CLIENT_ENV,
   CROSSMINT_COLLECTIONS,
 } from "@shared/fleet";
 
@@ -17,6 +20,9 @@ export function registerFleetRoutes(app: Express) {
       generated: "shared/fleet/manifest.ts",
       urls: FLEET_URLS,
       services: FLEET_SERVICES,
+      storage: FLEET_STORAGE,
+      clientEnv: FLEET_CLIENT_ENV,
+      gameDataApiPrefixes: FLEET_GAME_DATA_API_PREFIXES,
       crossmint: CROSSMINT_COLLECTIONS,
       rewrites: FLEET_VERCEL_REWRITES,
     });
@@ -24,7 +30,7 @@ export function registerFleetRoutes(app: Express) {
 
   app.get("/api/fleet/health", async (_req: Request, res: Response) => {
     const probes = [
-      { id: "game-data", url: `${FLEET_URLS.gameData}/health` },
+      { id: "game-data", url: `${FLEET_URLS.gameData}/api/health` },
       { id: "assets", url: `${FLEET_URLS.assets}/` },
       { id: "auth", url: `${FLEET_URLS.gameData}/api/auth/verify` },
       { id: "objectstore", url: `${FLEET_URLS.objectStore}/master-items.json` },

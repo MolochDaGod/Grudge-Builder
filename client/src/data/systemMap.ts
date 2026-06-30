@@ -1,3 +1,8 @@
+import { FLEET_URLS } from "@shared/fleet";
+
+/** Canonical Postgres game-state API (characters, wallet, islands, inventory). */
+const GAME_DATA_API = FLEET_URLS.gameData;
+
 /**
  * Grudge Studio System Map
  * ------------------------
@@ -79,7 +84,8 @@ const domains: SystemNode[] = [
   { id: "dom:engine.g-s.com",     label: "engine.grudge-studio.com",  kind: "domain", status: "planned", group: "engine",   url: "https://engine.grudge-studio.com", notes: "RECLAIMED 2026-04-22: previously Babylon (retired). Will host the Three.js-based Grudge Game Engine (fork of github.com/mrdoob/three.js/tree/master/editor, improved). Same build as grudgestudio.puter.site; shared scene + account layer." },
   { id: "dom:grudge-engine.vercel.app", label: "grudge-engine-web.vercel.app", kind: "domain", status: "deprecated", group: "engine", url: "https://grudge-engine-web.vercel.app", notes: "DEPRECATED 2026-04-22: Babylon Vercel preview. Retire." },
   { id: "dom:id.g-s.com",         label: "id.grudge-studio.com",     kind: "domain", status: "live", group: "auth",    url: "https://id.grudge-studio.com" },
-  { id: "dom:api.g-s.com",        label: "api.grudge-studio.com",    kind: "domain", status: "live", group: "backend", url: "https://api.grudge-studio.com/api/health" },
+  { id: "dom:api.g-s.com",        label: "api.grudge-studio.com",    kind: "domain", status: "live", group: "backend", url: "https://api.grudge-studio.com/api/health", notes: "Identity API (The-ENGINE). Game data (characters, wallet, islands) lives on Railway — see dom:game-data.railway." },
+  { id: "dom:game-data.railway",  label: "grudge-api-production (Railway)", kind: "domain", status: "live", group: "backend", url: `${GAME_DATA_API}/api/health`, notes: "Postgres SSOT for characters, wallet, islands, inventory. Proxied same-origin as /api/characters|wallet|account|…" },
   { id: "dom:account.g-s.com",    label: "account.grudge-studio.com",kind: "domain", status: "live", group: "backend", url: "https://account.grudge-studio.com/health" },
   { id: "dom:assets.g-s.com",     label: "assets.grudge-studio.com", kind: "domain", status: "live", group: "assets",  url: "https://assets.grudge-studio.com" },
   { id: "dom:objectstore.g-s.com",label: "info.grudge-studio.com", kind: "domain", status: "live", group: "assets", url: "https://info.grudge-studio.com/health" },
@@ -123,7 +129,7 @@ const domains: SystemNode[] = [
 // ---------------------------------------------------------------------------
 const services: SystemNode[] = [
   { id: "svc:grudge-id",      label: "Grudge ID (auth)",    kind: "service", status: "live", group: "auth",    owner: "backend", repo: "grudge-backend", notes: "JWT + OAuth (Discord, Google, GitHub, Puter, wallet, guest)." },
-  { id: "svc:game-api",       label: "Game API",            kind: "service", status: "live", group: "backend", owner: "backend", repo: "grudge-backend" },
+  { id: "svc:game-api",       label: "Game Data API (Railway)", kind: "service", status: "live", group: "backend", owner: "backend", repo: "Grudge-Builder", url: `${GAME_DATA_API}/api/health`, notes: "Postgres SSOT — characters, wallet, islands, inventory. Proxied same-origin via /api/characters|wallet|account|island|…" },
   { id: "svc:account-api",    label: "Account API",         kind: "service", status: "live", group: "backend", owner: "backend", repo: "grudge-backend" },
   { id: "svc:wallet-svc",     label: "Wallet service",      kind: "service", status: "live", group: "backend", owner: "backend", repo: "grudge-backend", notes: "Server-side Solana wallets." },
   { id: "svc:r2-cdn",         label: "R2 CDN",              kind: "service", status: "live", group: "assets",  owner: "platform" },
@@ -256,26 +262,31 @@ const frontendRoutes: SystemNode[] = routeSeeds.map(r => {
 // ---------------------------------------------------------------------------
 type RewriteSeed = { source: string; dest: string; target: string; group: string };
 const rewriteSeeds: RewriteSeed[] = [
-  { source: "/api/account/:path*",     dest: "https://api.grudge-studio.com/api/account/:path*",     target: "svc:account-api", group: "account" },
+  { source: "/api/account",            dest: `${GAME_DATA_API}/api/account`,                         target: "svc:game-api",    group: "account" },
+  { source: "/api/account/:path*",     dest: `${GAME_DATA_API}/api/account/:path*`,                  target: "svc:game-api",    group: "account" },
   { source: "/api/auth/:path*",        dest: "https://id.grudge-studio.com/auth/:path*",             target: "svc:grudge-id",   group: "auth" },
-  { source: "/api/wallet",             dest: "https://api.grudge-studio.com/api/wallet",             target: "svc:wallet-svc",  group: "wallet" },
-  { source: "/api/wallet/:path*",      dest: "https://api.grudge-studio.com/api/wallet/:path*",      target: "svc:wallet-svc",  group: "wallet" },
-  { source: "/api/island/:path*",      dest: "https://api.grudge-studio.com/api/island/:path*",      target: "svc:game-api",    group: "world" },
-  { source: "/api/nfts",               dest: "https://api.grudge-studio.com/api/nfts",               target: "svc:game-api",    group: "wallet" },
-  { source: "/api/nfts/:path*",        dest: "https://api.grudge-studio.com/api/nfts/:path*",        target: "svc:game-api",    group: "wallet" },
-  { source: "/api/island-nfts",        dest: "https://api.grudge-studio.com/api/island-nfts",        target: "svc:game-api",    group: "world" },
-  { source: "/api/island-nfts/:path*", dest: "https://api.grudge-studio.com/api/island-nfts/:path*", target: "svc:game-api",    group: "world" },
-  { source: "/api/professions/:path*", dest: "https://api.grudge-studio.com/api/professions/:path*", target: "svc:game-api",    group: "professions" },
-  { source: "/api/inventory/:path*",   dest: "https://api.grudge-studio.com/api/inventory/:path*",   target: "svc:game-api",    group: "character" },
-  { source: "/api/health",             dest: "https://api.grudge-studio.com/api/health",             target: "svc:game-api",    group: "ops" },
-  { source: "/api/characters",         dest: "https://api.grudge-studio.com/api/characters",         target: "svc:game-api",    group: "character" },
-  { source: "/api/characters/:path*",  dest: "https://api.grudge-studio.com/api/characters/:path*",  target: "svc:game-api",    group: "character" },
-  { source: "/api/party",              dest: "https://api.grudge-studio.com/api/party",              target: "svc:game-api",    group: "combat" },
-  { source: "/api/party/:path*",       dest: "https://api.grudge-studio.com/api/party/:path*",       target: "svc:game-api",    group: "combat" },
-  { source: "/api/tools/:path*",       dest: "https://api.grudge-studio.com/api/tools/:path*",       target: "svc:game-api",    group: "tools" },
+  { source: "/api/wallet",             dest: `${GAME_DATA_API}/api/wallet`,                          target: "svc:game-api",    group: "wallet" },
+  { source: "/api/wallet/:path*",      dest: `${GAME_DATA_API}/api/wallet/:path*`,                   target: "svc:game-api",    group: "wallet" },
+  { source: "/api/island",             dest: `${GAME_DATA_API}/api/island`,                          target: "svc:game-api",    group: "world" },
+  { source: "/api/island/:path*",      dest: `${GAME_DATA_API}/api/island/:path*`,                   target: "svc:game-api",    group: "world" },
+  { source: "/api/islands/:path*",     dest: `${GAME_DATA_API}/api/islands/:path*`,                  target: "svc:game-api",    group: "world" },
+  { source: "/api/nfts",               dest: `${GAME_DATA_API}/api/nfts`,                            target: "svc:game-api",    group: "wallet" },
+  { source: "/api/nfts/:path*",        dest: `${GAME_DATA_API}/api/nfts/:path*`,                     target: "svc:game-api",    group: "wallet" },
+  { source: "/api/island-nfts",        dest: `${GAME_DATA_API}/api/island-nfts`,                     target: "svc:game-api",    group: "world" },
+  { source: "/api/island-nfts/:path*", dest: `${GAME_DATA_API}/api/island-nfts/:path*`,              target: "svc:game-api",    group: "world" },
+  { source: "/api/professions/:path*", dest: `${GAME_DATA_API}/api/professions/:path*`,              target: "svc:game-api",    group: "professions" },
+  { source: "/api/inventory/:path*",   dest: `${GAME_DATA_API}/api/inventory/:path*`,                target: "svc:game-api",    group: "character" },
+  { source: "/api/health",             dest: `${GAME_DATA_API}/api/health`,                          target: "svc:game-api",    group: "ops" },
+  { source: "/api/characters",         dest: `${GAME_DATA_API}/api/characters`,                      target: "svc:game-api",    group: "character" },
+  { source: "/api/characters/:path*",  dest: `${GAME_DATA_API}/api/characters/:path*`,               target: "svc:game-api",    group: "character" },
+  { source: "/api/party",              dest: `${GAME_DATA_API}/api/party`,                           target: "svc:game-api",    group: "combat" },
+  { source: "/api/party/:path*",       dest: `${GAME_DATA_API}/api/party/:path*`,                    target: "svc:game-api",    group: "combat" },
+  { source: "/api/fleet/:path*",       dest: `${GAME_DATA_API}/api/fleet/:path*`,                    target: "svc:game-api",    group: "ops" },
+  { source: "/api/supabase/:path*",    dest: `${GAME_DATA_API}/api/supabase/:path*`,                 target: "svc:game-api",    group: "backend" },
+  { source: "/api/tools/:path*",       dest: `${FLEET_URLS.identityApi}/api/tools/:path*`,           target: "svc:game-api",    group: "tools" },
   { source: "/api/assets/:path*",      dest: "https://assets.grudge-studio.com/:path*",              target: "svc:r2-cdn",      group: "assets" },
-  { source: "/api/game/:path*",        dest: "https://api.grudge-studio.com/api/:path*",             target: "svc:game-api",    group: "backend" },
-  { source: "/api/public/:path*",      dest: "https://api.grudge-studio.com/public/:path*",          target: "svc:game-api",    group: "backend" },
+  { source: "/api/public/:path*",      dest: `${FLEET_URLS.identityApi}/public/:path*`,              target: "svc:game-api",    group: "backend" },
+  { source: "/api/:path*",             dest: `${FLEET_URLS.identityApi}/api/:path*`,                 target: "svc:account-api", group: "backend" },
 ];
 
 const apiRewrites: SystemNode[] = rewriteSeeds.map(r => ({
@@ -344,8 +355,8 @@ edges.push(
   { source: "repo:the-engine",        target: "svc:gaming-portal", kind: "deploys-from" },
   { source: "repo:grudge-engine-web", target: "svc:engine-web", kind: "deploys-from" },
   { source: "dom:id.g-s.com",         target: "svc:grudge-id",  kind: "routes-to" },
-  { source: "dom:api.g-s.com",        target: "svc:game-api",   kind: "routes-to" },
-  { source: "dom:api.g-s.com",        target: "svc:wallet-svc", kind: "routes-to" },
+  { source: "dom:api.g-s.com",        target: "svc:account-api", kind: "routes-to", notes: "Identity API — session exchange, scoped profile; not game-data." },
+  { source: "dom:game-data.railway",  target: "svc:game-api",   kind: "routes-to" },
   { source: "dom:account.g-s.com",    target: "svc:account-api",kind: "routes-to" },
   { source: "dom:assets.g-s.com",     target: "svc:r2-cdn",     kind: "routes-to" },
   { source: "dom:objectstore.g-s.com",target: "svc:os-worker",  kind: "routes-to" },

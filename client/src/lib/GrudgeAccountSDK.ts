@@ -7,7 +7,7 @@
  * ─── Two operating modes ─────────────────────────────────────────────────────
  *
  *  STANDALONE (The-ENGINE, grudgeDot launcher, nexus-nemesis, etc.)
- *    → Makes direct fetch() calls to api.grudge-studio.com using stored JWT.
+ *    → Makes same-origin fetch() calls to /api/* (Vercel → Railway game data) using stored JWT.
  *
  *  EMBEDDED (grudge-crafting.puter.site inside grudgewarlords.com iframe)
  *    → Listens for GRUDGE_AUTH postMessage from parent, exposes GRUDGE_READY.
@@ -17,7 +17,7 @@
  *
  *  // In any Grudge app (standalone):
  *  import { GrudgeAccountSDK } from '@grudge-studio/account-sdk';
- *  await GrudgeAccountSDK.init('https://api.grudge-studio.com');
+ *  await GrudgeAccountSDK.init(); // same-origin /api → Railway
  *  const characters = await GrudgeAccountSDK.getCharacters();
  *
  *  // In an embedded iframe (e.g. grudge-crafting.puter.site):
@@ -219,7 +219,7 @@ class _GrudgeAccountSDK {
   // ── Backend sync ────────────────────────────────────────────────────────────
 
   /**
-   * Fetch user + characters from api.grudge-studio.com.
+   * Fetch user + characters from Railway via same-origin /api/characters.
    * Safe to call at any time — no-ops if token is missing.
    */
   async syncFromBackend(): Promise<void> {

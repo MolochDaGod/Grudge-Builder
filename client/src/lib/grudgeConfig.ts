@@ -8,27 +8,28 @@
  * but production defaults point at the canonical Cloudflare-backed domains.
  */
 
+import { FLEET_URLS } from '@shared/fleet';
 import { resolveObjectStoreApiBase } from './objectStoreUrl';
 
 const env = (import.meta as any).env ?? {};
 
 /** Identity provider / SSO. All auth flows go here. */
 export const AUTH_GATEWAY: string =
-  env.VITE_AUTH_GATEWAY_URL || 'https://id.grudge-studio.com';
+  env.VITE_AUTH_GATEWAY_URL || FLEET_URLS.auth;
 
 /**
  * Identity API (The-ENGINE on Railway) — OAuth, session exchange, GBUX shell.
  * NOT the source of truth for characters/wallets; use fleetApi() for game data.
  */
 export const GAME_API: string =
-  env.VITE_API_URL || 'https://api.grudge-studio.com';
+  env.VITE_API_URL || FLEET_URLS.identityApi;
 
 /**
  * Authoritative game-state API (GrudgeBuilder Postgres on Railway).
  * Vercel apps proxy /api/characters|wallet|account here via vercel.json.
  */
 export const GAME_DATA_API: string =
-  env.VITE_GAME_DATA_API || 'https://grudge-api-production-0d46.up.railway.app';
+  env.VITE_GAME_DATA_API || FLEET_URLS.gameData;
 
 /** Crossmint character cNFT collection UUID */
 export const CROSSMINT_CHARACTER_COLLECTION: string =
@@ -40,7 +41,7 @@ export const WS_URL: string =
 
 /** Public R2-backed asset CDN. */
 export const ASSETS_CDN: string =
-  env.VITE_ASSETS_URL || env.VITE_ASSET_CDN_URL || 'https://assets.grudge-studio.com';
+  env.VITE_ASSETS_URL || env.VITE_ASSET_CDN_URL || FLEET_URLS.assets;
 
 /**
  * Grudge Studio Map & Model Editor — canonical home-island creation surface.
@@ -65,7 +66,7 @@ export const EFFECTS_API: string =
  * through Cloudflare AI Gateway to 137+ models.
  */
 export const AI_GATEWAY: string =
-  env.VITE_AI_URL || 'https://ai.grudge-studio.com';
+  env.VITE_AI_URL || FLEET_URLS.ai;
 
 /**
  * Edge badge-reader Worker — JWT pre-check before protected origins.

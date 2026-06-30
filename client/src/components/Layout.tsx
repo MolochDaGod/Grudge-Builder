@@ -38,6 +38,7 @@ interface CharacterInfo {
   id: string;
   name: string;
   level: number;
+  avatarUrl?: string | null;
 }
 
 // XP thresholds for Grudge Account leveling (4x scaling each level)
@@ -309,9 +310,9 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                           alt="Avatar" 
                           className="w-11 h-11 rounded-lg ring-2 ring-amber-600/50 object-cover shadow-lg"
                         />
-                      ) : characters[0]?.id ? (
-                        <img 
-                src={`/api/game/characters/${characters[0].id}/avatar`}
+            ) : characters[0]?.avatarUrl ? (
+              <img 
+                src={characters[0].avatarUrl}
                           alt="Avatar" 
                           className="w-11 h-11 rounded-lg ring-2 ring-amber-600/50 object-cover shadow-lg"
                           onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.nextElementSibling?.classList.remove('hidden'); }}

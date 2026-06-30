@@ -2,10 +2,15 @@ export {
   FLEET_URLS,
   FLEET_SERVICES,
   FLEET_VERCEL_REWRITES,
+  FLEET_GAME_DATA_API_PREFIXES,
+  buildFleetGameDataRewrites,
   CROSSMINT_COLLECTIONS,
   type FleetService,
   type FleetServiceRole,
+  type FleetRewrite,
 } from "./manifest";
+
+export { FLEET_STORAGE, FLEET_CLIENT_ENV } from "./storage";
 
 export {
   GRUDGE_TRUTH_LAYERS,

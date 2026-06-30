@@ -145,32 +145,95 @@ export const FLEET_SERVICES: FleetService[] = [
   },
 ];
 
-/** Vercel rewrite templates — copy into any Grudge game vercel.json */
-export const FLEET_VERCEL_REWRITES = [
+export type FleetRewrite = { source: string; destination: string };
+
+/**
+ * Railway Postgres API roots — each becomes two Vercel rewrites (exact + :path*).
+ * Must appear BEFORE the identity catch-all `/api/:path*`.
+ */
+export const FLEET_GAME_DATA_API_PREFIXES = [
+  "health",
+  "characters",
+  "party",
+  "account",
+  "island",
+  "islands",
+  "inventory",
+  "wallet",
+  "nfts",
+  "island-nfts",
+  "professions",
+  "missions",
+  "player",
+  "resource-nodes",
+  "resources",
+  "sprites",
+  "generate-dungeon",
+  "fleet",
+  "supabase",
+  "lore",
+  "combat-challenges",
+  "story-arcs",
+  "skills",
+  "sheets",
+  "aseprite",
+  "sprite-specs",
+  "sprite-generation-jobs",
+  "admin",
+  "activity",
+  "analytics",
+  "crafting",
+  "harvest",
+  "combat",
+  "rts",
+  "discord",
+  "videos",
+  "races",
+  "classes",
+  "items",
+  "spells",
+  "monsters",
+  "maps",
+  "launcher",
+  "ai-units",
+] as const;
+
+/** Build Railway game-data rewrites (defaults to FLEET_URLS.gameData). */
+export function buildFleetGameDataRewrites(
+  gameData: string = FLEET_URLS.gameData,
+): FleetRewrite[] {
+  const rules: FleetRewrite[] = [];
+  for (const prefix of FLEET_GAME_DATA_API_PREFIXES) {
+    rules.push(
+      { source: `/api/${prefix}`, destination: `${gameData}/api/${prefix}` },
+      { source: `/api/${prefix}/:path*`, destination: `${gameData}/api/${prefix}/:path*` },
+    );
+  }
+  /** Legacy: /api/game/missions → Railway /api/missions */
+  rules.push({ source: "/api/game/:path*", destination: `${gameData}/api/:path*` });
+  return rules;
+}
+
+/** Vercel rewrite templates — copy into any Grudge game vercel.json (order matters). */
+export const FLEET_VERCEL_REWRITES: readonly FleetRewrite[] = [
   { source: "/api/assets/:path*", destination: `${FLEET_URLS.assets}/:path*` },
   { source: "/api/objectstore/:path*", destination: "https://objectstore.grudge-studio.com/api/:path*" },
-  { source: "/api/characters", destination: `${FLEET_URLS.gameData}/api/characters` },
-  { source: "/api/characters/:path*", destination: `${FLEET_URLS.gameData}/api/characters/:path*` },
-  { source: "/api/wallet/:path*", destination: `${FLEET_URLS.gameData}/api/wallet/:path*` },
-  { source: "/api/nfts/:path*", destination: `${FLEET_URLS.gameData}/api/nfts/:path*` },
-  { source: "/api/island/:path*", destination: `${FLEET_URLS.gameData}/api/island/:path*` },
-  { source: "/api/islands/:path*", destination: `${FLEET_URLS.gameData}/api/islands/:path*` },
-  { source: "/api/account", destination: `${FLEET_URLS.gameData}/api/account` },
-  { source: "/api/account/:path*", destination: `${FLEET_URLS.gameData}/api/account/:path*` },
-  { source: "/api/inventory/:path*", destination: `${FLEET_URLS.gameData}/api/inventory/:path*` },
-  { source: "/api/party/:path*", destination: `${FLEET_URLS.gameData}/api/party/:path*` },
-  { source: "/api/fleet/:path*", destination: `${FLEET_URLS.gameData}/api/fleet/:path*` },
-  { source: "/api/supabase/:path*", destination: `${FLEET_URLS.gameData}/api/supabase/:path*` },
+  ...buildFleetGameDataRewrites(),
   { source: "/api/auth/puter", destination: `${FLEET_URLS.gameData}/api/auth/puter` },
   { source: "/api/auth/login", destination: `${FLEET_URLS.gameData}/api/auth/login` },
   { source: "/api/auth/register", destination: `${FLEET_URLS.gameData}/api/auth/register` },
   { source: "/api/auth/me", destination: `${FLEET_URLS.gameData}/api/auth/me` },
+  { source: "/api/auth/scoped-profile", destination: `${FLEET_URLS.gameData}/api/auth/scoped-profile` },
+  { source: "/api/auth/discord/start", destination: `${FLEET_URLS.gameData}/api/auth/discord/start` },
   { source: "/api/auth/verify", destination: `${FLEET_URLS.gameData}/api/auth/verify` },
   { source: "/api/auth/session/exchange", destination: `${FLEET_URLS.gameData}/api/auth/session/exchange` },
   { source: "/api/auth/:path*", destination: `${FLEET_URLS.auth}/auth/:path*` },
+  { source: "/api/ai/gateway/:path*", destination: `${FLEET_URLS.gameData}/api/ai/gateway/:path*` },
+  { source: "/api/ai/rag/:path*", destination: `${FLEET_URLS.gameData}/api/ai/rag/:path*` },
+  { source: "/api/ai/ollama/:path*", destination: `${FLEET_URLS.gameData}/api/ai/ollama/:path*` },
   { source: "/api/ai/:path*", destination: `${FLEET_URLS.ai}/:path*` },
   { source: "/api/:path*", destination: `${FLEET_URLS.identityApi}/api/:path*` },
-] as const;
+];
 
 export const CROSSMINT_COLLECTIONS = {
   character: "5061318d-ff65-4893-ac4b-9b28efb18ace",

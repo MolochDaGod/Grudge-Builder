@@ -1,9 +1,10 @@
 /**
  * Backend Proxy — mirrors Vercel rewrites for local development.
  *
- * In production, vercel.json rewrites handle routing:
- *   /api/game/:path*   → api.grudge-studio.com/:path*
- *   /api/auth/:path*   → id.grudge-studio.com/auth/:path*
+ * In production, vercel.json rewrites handle routing (see @shared/fleet FLEET_VERCEL_REWRITES):
+ *   /api/<game-data> → Railway Postgres API (characters, missions, health, …)
+ *   /api/game/:path* → Railway /api/:path* (legacy shim)
+ *   /api/auth/:path* → id.grudge-studio.com/auth/:path* (after Railway auth exceptions)
  *   /api/assets/:path* → assets.grudge-studio.com/:path*
  *
  * Locally, Express handles /api/island/*, /api/account/*, etc. directly.

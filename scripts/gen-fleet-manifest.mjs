@@ -9,8 +9,9 @@ import { fileURLToPath } from 'url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(__dirname, '..');
 
-const { FLEET_URLS, FLEET_SERVICES, FLEET_VERCEL_REWRITES, CROSSMINT_COLLECTIONS } =
+const { FLEET_URLS, FLEET_SERVICES, FLEET_VERCEL_REWRITES, FLEET_GAME_DATA_API_PREFIXES, CROSSMINT_COLLECTIONS } =
   await import('../shared/fleet/manifest.ts');
+const { FLEET_STORAGE, FLEET_CLIENT_ENV } = await import('../shared/fleet/storage.ts');
 
 const outArg = process.argv[2];
 const outPath = outArg
@@ -22,6 +23,9 @@ const payload = {
   version: 1,
   urls: FLEET_URLS,
   services: FLEET_SERVICES,
+  storage: FLEET_STORAGE,
+  clientEnv: FLEET_CLIENT_ENV,
+  gameDataApiPrefixes: FLEET_GAME_DATA_API_PREFIXES,
   crossmint: CROSSMINT_COLLECTIONS,
   rewrites: FLEET_VERCEL_REWRITES,
 };

@@ -1,5 +1,6 @@
 import type { Character } from "./characterManager";
 import { authHeaders } from "./grudgeBackend";
+import { fleetApi } from "./grudgeFleet";
 import {
   ERA_META,
   mergeEraSlots,
@@ -18,15 +19,13 @@ export interface CharacterEnvelope {
 /**
  * Grudge Builder — Backend API Client
  * =====================================
- * All game data lives in the Express backend (Railway / Render / local dev).
+ * All game data lives on Railway (grudge-api-production) — Postgres SSOT.
  * Auth: Bearer JWT via grudgeBackend.ts authHeaders()
- * Base: relative /api/* — Vite dev proxy → localhost:5000
- *                        — Vercel prod  → GRUDGE_API_URL/api/*
- *                        — Cloudflare   → api.grudge-studio.com
+ * Base: same-origin /api/* — Vercel rewrites → Railway game-data API (see @shared/fleet).
  */
 
 async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
-  const res = await fetch(path, {
+  const res = await fetch(fleetApi(path), {
     ...options,
     headers: {
       "Content-Type": "application/json",

@@ -2,7 +2,7 @@
  * useCharacters — Grudge Backend Character Hook
  *
  * Fetches ALL characters owned by the authenticated user from
- * api.grudge-studio.com, mirrors active-character selection in localStorage,
+ * Railway /api/characters (same-origin via Vercel rewrite), mirrors active-character selection in localStorage,
  * and polls the backend every 60 s so the list stays fresh when crafted
  * items / level-ups come in from other Grudge apps.
  *

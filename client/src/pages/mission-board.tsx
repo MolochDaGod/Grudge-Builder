@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { assetUrl } from "@/lib/assetConfig";
 import { useAuthGuard } from '@/hooks/use-auth-guard';
+import { authHeaders } from '@/lib/grudgeBackend';
 
 interface Mission {
   id: string;
@@ -292,42 +293,43 @@ export default function MissionBoardPage() {
   const [activeTab, setActiveTab] = useState("available");
   const [filterFaction, setFilterFaction] = useState<string | null>(null);
   
-  const headers: Record<string, string> = isAdmin ? { "x-admin-mode": "true" } : {};
+  const headers: Record<string, string> = {
+    ...authHeaders(),
+    ...(isAdmin ? { "x-admin-mode": "true" } : {}),
+  };
 
   const handleStartChallenge = (missionId: string) => {
     setLocation(`/combat?mission=${missionId}`);
   };
 
   const { data: missions = [], isLoading: loadingMissions } = useQuery<Mission[]>({
-    queryKey: ["/api/game/missions", filterFaction],
+    queryKey: ["/api/missions", filterFaction],
     queryFn: async () => {
       const params = new URLSearchParams();
       params.append("status", "active");
       if (filterFaction) params.append("factionId", filterFaction);
-      const res = await fetch(`/api/game/missions?${params}`, { headers });
+      const res = await fetch(`/api/missions?${params}`, { headers });
       return res.json();
     },
   });
 
   const { data: factions = [] } = useQuery<LoreEntity[]>({
-    queryKey: ["/api/game/factions/list"],
+    queryKey: ["/api/lore", "faction"],
     queryFn: async () => {
       try {
-        const res = await fetch("/api/game/factions/list", { headers });
+        const res = await fetch("/api/lore?type=faction", { headers });
         if (!res.ok) return [];
         const data = await res.json();
-        // Backend returns { factions: ['pirate','undead','elven','orcish'] }
-        return (data.factions || []).map((f: string) => ({ id: f, name: f, type: 'faction' }));
+        return Array.isArray(data) ? data : [];
       } catch { return []; }
     },
   });
 
-  // Backend missions route: GET /missions returns user's missions (JWT-scoped)
   const { data: playerProgress = [] } = useQuery<MissionProgress[]>({
-    queryKey: ["/api/game/missions", "player"],
+    queryKey: ["/api/player/missions"],
     queryFn: async () => {
       try {
-        const res = await fetch("/api/game/missions", { headers });
+        const res = await fetch("/api/player/missions", { headers });
         if (!res.ok) return [];
         return res.json();
       } catch { return []; }
@@ -336,17 +338,16 @@ export default function MissionBoardPage() {
 
   const acceptMutation = useMutation({
     mutationFn: async (missionId: string) => {
-      // Backend: POST /missions creates a new mission for the user
-      const res = await fetch(`/api/game/missions`, {
+      const res = await fetch(`/api/player/missions/${missionId}/accept`, {
         method: "POST",
-        headers: { ...headers, "Content-Type": "application/json" },
-        body: JSON.stringify({ title: `Mission ${missionId}`, type: 'fighting' }),
+        headers,
       });
       if (!res.ok) throw new Error("Failed to accept mission");
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/game/missions"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/missions"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/player/missions"] });
       toast({
         title: "Quest Accepted!",
         description: "Your journey awaits. Check the tracker for objectives.",

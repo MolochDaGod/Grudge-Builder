@@ -290,6 +290,7 @@ interface CharacterInfo {
   id: string;
   name: string;
   level: number;
+  avatarUrl?: string | null;
 }
 
 function WarlordCard() {
@@ -338,9 +339,9 @@ function WarlordCard() {
                 alt="Avatar" 
                 className="w-11 h-11 rounded-lg ring-2 ring-amber-600/50 object-cover shadow-lg"
               />
-            ) : characters[0]?.id ? (
+            ) : characters[0]?.avatarUrl ? (
               <img 
-                src={`/api/game/characters/${characters[0].id}/avatar`}
+                src={characters[0].avatarUrl}
                 alt="Avatar" 
                 className="w-11 h-11 rounded-lg ring-2 ring-amber-600/50 object-cover shadow-lg"
                 onError={(e) => { e.currentTarget.style.display = 'none'; }}

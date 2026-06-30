@@ -20,7 +20,7 @@ interface Props {
   children: React.ReactNode;
 }
 
-export default function BackendRequired({ probe = "/api/game/health", title = "Development Tool", children }: Props) {
+export default function BackendRequired({ probe = "/api/health", title = "Development Tool", children }: Props) {
   const [status, setStatus] = useState<"checking" | "ok" | "down">("checking");
 
   const check = async () => {

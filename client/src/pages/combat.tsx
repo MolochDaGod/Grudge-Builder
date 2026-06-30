@@ -20,6 +20,7 @@ import { assetUrl } from "@/lib/assetConfig";
 import { playBGM, playRandomHit, playSFX } from "@/lib/audioManager";
 import { playCombatDamage, playCombatDeath } from "@/lib/dialogueAudioManager";
 import { useAuthGuard } from '@/hooks/use-auth-guard';
+import { authHeaders } from '@/lib/grudgeBackend';
 
 interface Enemy {
   id: string;
@@ -299,7 +300,7 @@ export default function CombatPage() {
     
     if (missionId) {
       Promise.all([
-        fetch(`/api/game/missions`).then(r => r.ok ? r.json() : []),
+        fetch(`/api/missions`, { headers: authHeaders() }).then(r => r.ok ? r.json() : []),
         Promise.resolve([]) // Player mission progress is embedded in missions list
       ]).then(([missionsList, _progressList]) => {
         const mission = Array.isArray(missionsList) ? missionsList.find((m: any) => String(m.id) === missionId) : null;
@@ -315,9 +316,9 @@ export default function CombatPage() {
     
     try {
       // Mission completion is handled via PATCH /missions/:id/complete on the backend
-      await fetch(`/api/game/missions/${activeMission.id}/complete`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+      await fetch(`/api/player/missions/${activeMission.id}/complete`, {
+        method: "POST",
+        headers: authHeaders(),
       });
       setObjectivesCompleted(prev => {
         const newSet = new Set(Array.from(prev));

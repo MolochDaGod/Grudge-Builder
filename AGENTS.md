@@ -20,33 +20,28 @@ All API calls go through Vercel rewrites in `vercel.json`:
 - `/api/login`, `/api/register`, `/api/guest` → auth endpoints
 - `/api/discord-login`, `/api/oauth-google`, `/api/oauth-github` → OAuth
 
-**Game API (api.grudge-studio.com)**:
-- `/api/characters/*` → character CRUD (direct route)
+**Game Data API (Railway — Postgres SSOT)**:
+- `/api/characters/*` → character CRUD (canonical — use this, not `/api/game/characters`)
 - `/api/professions/*` → profession XP, crafting, gathering
 - `/api/island/*` → home island state, generate-map, boss-clear
-- `/api/island-nfts/*` → island NFT minting
 - `/api/nfts/*` → character NFT minting
 - `/api/inventory/*` → account inventory
 - `/api/wallet/*` → Solana wallet
 - `/api/party/*` → crew/party
-- `/api/health` → health check
-- `/api/game/*` → catch-all (strips /api/game prefix, for legacy `api.ts` client)
+- `/api/account/*` → account profile, resources, GBUX
+- `/api/fleet/*` → fleet manifest
+
+All proxied to `grudge-api-production-0d46.up.railway.app` via `vercel.json` and `@shared/fleet/manifest.ts` (`FLEET_URLS.gameData`). Regenerate rewrites: `npx tsx scripts/sync-vercel-fleet.mjs`. Storage/env bindings: `shared/fleet/storage.ts` (`FLEET_STORAGE`, `FLEET_CLIENT_ENV`).
+
+**Identity API (api.grudge-studio.com)** — catch-all `/api/:path*` only; NOT characters.
 
 **Assets & Data**:
 - `/api/assets/*` → `assets.grudge-studio.com` (R2 CDN)
-- `/api/tools/*` → backend tools
-- `/api/public/*` → public data
+- `/api/objectstore/*` → ObjectStore worker
 
-**Two API client patterns exist** (both work):
-1. `api.ts` uses `/api/game/characters` (legacy, via catch-all rewrite)
-2. Direct routes like `/api/island/status` (newer, explicit rewrites)
-
-Both resolve to `api.grudge-studio.com`. New code should prefer direct routes.
-
-### Grudge Backend (api.grudge-studio.com)
-Mounted routes: `/api/characters`, `/api/professions`, `/api/island`, `/api/inventory`, `/api/nfts`, `/api/island-nfts`, `/api/wallet`, `/api/party`, `/api/health`
-Legacy routes (via /api/game/ rewrite): `/characters`, `/factions`, `/missions`, `/crews`, `/economy`, `/crafting`, `/combat`, `/arena`, `/player-islands`, `/pvp`, `/admin`
-All require JWT auth. Health at `/api/health` is public.
+### Grudge Backend (Railway game-data)
+Mounted routes: `/api/characters`, `/api/professions`, `/api/island`, `/api/inventory`, `/api/nfts`, `/api/wallet`, `/api/party`, `/api/account`
+All require JWT auth except public health checks.
 
 ### Object Storage (3 tiers)
 1. **R2 CDN** (`assets.grudge-studio.com`) — ALL binary assets (sprites, icons, audio, models, backgrounds). Use `assetUrl()` from `assetConfig.ts`.

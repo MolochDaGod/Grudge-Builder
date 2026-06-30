@@ -10,6 +10,7 @@
 import { useRef, useCallback, useEffect } from 'react';
 import { saveIslandState } from '@/lib/islandSystem';
 import type { IslandState } from '@/lib/islandSystem';
+import { authHeaders } from '@/lib/grudgeBackend';
 
 const FLUSH_INTERVAL_MS = 5000; // 5 seconds
 
@@ -71,7 +72,12 @@ export function useDebouncedIslandSave(userId: string) {
       if (state) {
         // Use sendBeacon for reliable save on tab close
         const body = JSON.stringify({ state: { ...state, lastUpdate: Date.now() } });
-        navigator.sendBeacon?.('/api/game/player-islands/state', new Blob([body], { type: 'application/json' }));
+        fetch('/api/island/state', {
+          method: 'PATCH',
+          headers: authHeaders(),
+          body,
+          keepalive: true,
+        }).catch(() => {});
       }
     };
     window.addEventListener('beforeunload', handleUnload);

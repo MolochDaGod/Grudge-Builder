@@ -1,9 +1,9 @@
 {
-  "generatedAt": "2026-04-20T14:23:07.245Z",
+  "generatedAt": "2026-06-30T03:36:04.453Z",
   "counts": {
-    "nodes": 124,
-    "edges": 142,
-    "readiness": 13
+    "nodes": 186,
+    "edges": 217,
+    "readiness": 18
   },
   "nodes": [
     {
@@ -37,19 +37,19 @@
       "id": "dom:engine.g-s.com",
       "label": "engine.grudge-studio.com",
       "kind": "domain",
-      "status": "live",
+      "status": "planned",
       "group": "engine",
       "url": "https://engine.grudge-studio.com",
-      "notes": "Grudge-Engine-Web (Babylon-based 3D editor). VPS Docker/Coolify — separate repo."
+      "notes": "RECLAIMED 2026-04-22: previously Babylon (retired). Will host the Three.js-based Grudge Game Engine (fork of github.com/mrdoob/three.js/tree/master/editor, improved). Same build as grudgestudio.puter.site; shared scene + account layer."
     },
     {
       "id": "dom:grudge-engine.vercel.app",
       "label": "grudge-engine-web.vercel.app",
       "kind": "domain",
-      "status": "live",
+      "status": "deprecated",
       "group": "engine",
       "url": "https://grudge-engine-web.vercel.app",
-      "notes": "Vercel preview of Grudge-Engine-Web."
+      "notes": "DEPRECATED 2026-04-22: Babylon Vercel preview. Retire."
     },
     {
       "id": "dom:id.g-s.com",
@@ -65,7 +65,17 @@
       "kind": "domain",
       "status": "live",
       "group": "backend",
-      "url": "https://api.grudge-studio.com/api/health"
+      "url": "https://api.grudge-studio.com/api/health",
+      "notes": "Identity API (The-ENGINE). Game data (characters, wallet, islands) lives on Railway — see dom:game-data.railway."
+    },
+    {
+      "id": "dom:game-data.railway",
+      "label": "grudge-api-production (Railway)",
+      "kind": "domain",
+      "status": "live",
+      "group": "backend",
+      "url": "https://grudge-api-production-0d46.up.railway.app/api/health",
+      "notes": "Postgres SSOT for characters, wallet, islands, inventory. Proxied same-origin as /api/characters|wallet|account|…"
     },
     {
       "id": "dom:account.g-s.com",
@@ -85,11 +95,11 @@
     },
     {
       "id": "dom:objectstore.g-s.com",
-      "label": "objectstore.grudge-studio.com",
+      "label": "info.grudge-studio.com",
       "kind": "domain",
       "status": "live",
       "group": "assets",
-      "url": "https://objectstore.grudge-studio.com/health"
+      "url": "https://info.grudge-studio.com/health"
     },
     {
       "id": "dom:dash.g-s.com",
@@ -109,11 +119,12 @@
     },
     {
       "id": "dom:objectstore.gh",
-      "label": "molochdagod.github.io/ObjectStore",
+      "label": "grudge-objectstore.pages.dev",
       "kind": "domain",
-      "status": "live",
+      "status": "deprecated",
       "group": "assets",
-      "url": "https://molochdagod.github.io/ObjectStore"
+      "url": "https://grudge-objectstore.pages.dev",
+      "notes": "DEPRECATED: Use info.grudge-studio.com for all ObjectStore data. pages.dev kept as read-only fallback."
     },
     {
       "id": "dom:ws.g-s.com",
@@ -148,6 +159,209 @@
       "notes": "Home for this repo's Express + Colyseus server (server/index.ts). Configured via railway.json, domain attached on flip-on."
     },
     {
+      "id": "dom:grudgeplatform.io",
+      "label": "grudgeplatform.io",
+      "kind": "domain",
+      "status": "live",
+      "group": "web3",
+      "url": "https://grudgeplatform.io",
+      "notes": "Web3 / cNFT / wallet / games hub. Connects Puter accounts → Grudge ID → Crossmint custodial wallet → Solana cNFT. Hosts /play. Currently missing art/gameplay parity with grudgewarlords.com; production work tracked in grudge-platform repo.",
+      "lastVerified": "2026-04-26"
+    },
+    {
+      "id": "dom:grudgedot-launcher",
+      "label": "grudgedot-launcher.vercel.app",
+      "kind": "domain",
+      "status": "broken",
+      "group": "launcher",
+      "url": "https://grudgedot-launcher.vercel.app",
+      "notes": "PROBE 404 (2026-04-26). Stale Vercel host left behind by the GDevelop→GrudgeDot rename. Canonical destination is launcher.grudge-studio.com (planned). home.legacy.tsx no longer hard-codes this URL — see GRUDGEDOT_LAUNCHER_URL in grudgeConfig.ts.",
+      "lastVerified": "2026-04-26"
+    },
+    {
+      "id": "dom:grudge-server.puter.work",
+      "label": "grudge-server.puter.work",
+      "kind": "domain",
+      "status": "live",
+      "group": "puter",
+      "url": "https://grudge-server.puter.work/api/health",
+      "notes": "External Puter worker (AI chat, vision, sprite gen, NPC chat, game data sync). See GrudgeBuilder/puter.md."
+    },
+    {
+      "id": "dom:grudge-crafting.puter.site",
+      "label": "grudge-crafting.puter.site",
+      "kind": "domain",
+      "status": "live",
+      "group": "puter",
+      "url": "https://grudge-crafting.puter.site",
+      "notes": "Puter-hosted crafting frontend. Should pull item icons/tiers from info.grudge-studio.com per user rule."
+    },
+    {
+      "id": "dom:js.puter.com",
+      "label": "js.puter.com (SDK CDN)",
+      "kind": "domain",
+      "status": "live",
+      "group": "puter",
+      "url": "https://js.puter.com/v2/",
+      "notes": "Puter SDK script loaded by all Grudge frontends for AI/KV/FS/auth. Third-party, not owned."
+    },
+    {
+      "id": "dom:grudgewarlords.puter.site",
+      "label": "grudgewarlords.puter.site",
+      "kind": "domain",
+      "status": "broken",
+      "group": "puter",
+      "url": "https://grudgewarlords.puter.site",
+      "notes": "UNTRACKED live Grudge deployment (title=Grudge Warlords). Not referenced by any current code path. Owner TBD; decide keep vs retire."
+    },
+    {
+      "id": "dom:grudgestudio.puter.site",
+      "label": "grudgestudio.puter.site",
+      "kind": "domain",
+      "status": "planned",
+      "group": "engine",
+      "url": "https://grudgestudio.puter.site",
+      "notes": "REASSIGNED 2026-04-22: wipe existing GRUDACHAIN content. Will host the Three.js Grudge Game Engine (same build as engine.grudge-studio.com) plus GrudgeDot launcher login entry. Puter-native storage path: uses puter.fs/puter.kv under grudge:scene:<id>:* as a cache over the canonical Railway backend store."
+    },
+    {
+      "id": "dom:grudge-studio.puter.site",
+      "label": "grudge-studio.puter.site",
+      "kind": "domain",
+      "status": "broken",
+      "group": "puter",
+      "url": "https://grudge-studio.puter.site",
+      "notes": "Puter Cloud Dashboard. Referenced only in grudge-platform/public/legacy-auth.html (archived). Deployment is still live."
+    },
+    {
+      "id": "dom:grudge.puter.site",
+      "label": "grudge.puter.site",
+      "kind": "domain",
+      "status": "planned",
+      "group": "puter",
+      "url": "https://grudge.puter.site",
+      "notes": "Reserved slug only; shows default Puter landing page. No Grudge app deployed."
+    },
+    {
+      "id": "dom:mech-playground",
+      "label": "mech-playground.vercel.app",
+      "kind": "domain",
+      "status": "live",
+      "group": "games",
+      "url": "https://mech-playground.vercel.app",
+      "notes": "Grudge Mech Forge — R3F+Rapier mech combat game.",
+      "lastVerified": "2026-06-04"
+    },
+    {
+      "id": "dom:character-creator",
+      "label": "grudge-character-creator.vercel.app",
+      "kind": "domain",
+      "status": "live",
+      "group": "games",
+      "url": "https://grudge-character-creator.vercel.app",
+      "notes": "Character Creator — Three.js character builder.",
+      "lastVerified": "2026-06-04"
+    },
+    {
+      "id": "dom:grudges.g-s.com",
+      "label": "grudges.grudge-studio.com",
+      "kind": "domain",
+      "status": "live",
+      "group": "games",
+      "url": "https://grudges.grudge-studio.com",
+      "notes": "Survival (Grudges) — R3F+Rapier survival game with ARPG mode.",
+      "lastVerified": "2026-06-04"
+    },
+    {
+      "id": "dom:forge.g-s.com",
+      "label": "forge.grudge-studio.com",
+      "kind": "domain",
+      "status": "live",
+      "group": "engine",
+      "url": "https://forge.grudge-studio.com",
+      "notes": "Grudge Studio Forge — fleet map/model editor (R3F+Rapier+drei+ObjectStore). Vercel alias on RTS-Grudge → /forge/ bundle. Replaces WCS GameForge + retired Babylon engine-web.",
+      "lastVerified": "2026-06-24"
+    },
+    {
+      "id": "dom:rts-grudge",
+      "label": "rts-grudge.vercel.app",
+      "kind": "domain",
+      "status": "live",
+      "group": "games",
+      "url": "https://rts-grudge.vercel.app",
+      "notes": "RTS-Grudge — R3F+Rapier real-time strategy. Hosts Forge editor at /forge/.",
+      "lastVerified": "2026-06-24"
+    },
+    {
+      "id": "dom:grudge-arena",
+      "label": "grudge-arena.vercel.app",
+      "kind": "domain",
+      "status": "live",
+      "group": "games",
+      "url": "https://grudge-arena.vercel.app",
+      "notes": "Grudge Arena — Three.js PvP arena.",
+      "lastVerified": "2026-06-04"
+    },
+    {
+      "id": "dom:grim-armada",
+      "label": "grim-armada-web.vercel.app",
+      "kind": "domain",
+      "status": "live",
+      "group": "games",
+      "url": "https://grim-armada-web.vercel.app",
+      "notes": "Grim Armada — R3F+Rapier naval combat.",
+      "lastVerified": "2026-06-04"
+    },
+    {
+      "id": "dom:grudge-space",
+      "label": "grudge-space-rts.vercel.app",
+      "kind": "domain",
+      "status": "live",
+      "group": "games",
+      "url": "https://grudge-space-rts.vercel.app",
+      "notes": "GrudgeSpace RTS — R3F space strategy.",
+      "lastVerified": "2026-06-04"
+    },
+    {
+      "id": "dom:dungeon-crawler",
+      "label": "dungeon-crawler-quest.vercel.app",
+      "kind": "domain",
+      "status": "live",
+      "group": "games",
+      "url": "https://dungeon-crawler-quest.vercel.app",
+      "notes": "Dungeon Crawler Quest — voxel dungeon crawler.",
+      "lastVerified": "2026-06-04"
+    },
+    {
+      "id": "dom:grudox",
+      "label": "grudox.grudge-studio.com",
+      "kind": "domain",
+      "status": "live",
+      "group": "games",
+      "url": "https://grudox.grudge-studio.com",
+      "notes": "Grudox (Voxel Forge Engine) — static title/landing page. Vercel host, Cloudflare DNS (grudge-studio.com zone). Fleet-wired per grudox/docs/FLEET.md.",
+      "lastVerified": "2026-06-24"
+    },
+    {
+      "id": "dom:info.g-s.com",
+      "label": "info.grudge-studio.com",
+      "kind": "domain",
+      "status": "live",
+      "group": "assets",
+      "url": "https://info.grudge-studio.com",
+      "notes": "Game Info Hub — unified item database, guides, tools. Consolidated from ObjectStore + grudge-game-data-hub.",
+      "lastVerified": "2026-06-04"
+    },
+    {
+      "id": "dom:character.g-s.com",
+      "label": "character.grudge-studio.com",
+      "kind": "domain",
+      "status": "live",
+      "group": "character",
+      "url": "https://character.grudge-studio.com",
+      "notes": "GCS — Grudge Character Studio. HYDRA VRM + grudge6 forge. Multi-era account rosters (warlords, nexus, armada). Protected SSOT for character creation — not merged into Warlords /character.",
+      "lastVerified": "2026-06-27"
+    },
+    {
       "id": "svc:grudge-id",
       "label": "Grudge ID (auth)",
       "kind": "service",
@@ -159,12 +373,14 @@
     },
     {
       "id": "svc:game-api",
-      "label": "Game API",
+      "label": "Game Data API (Railway)",
       "kind": "service",
       "status": "live",
       "group": "backend",
       "owner": "backend",
-      "repo": "grudge-backend"
+      "repo": "Grudge-Builder",
+      "url": "https://grudge-api-production-0d46.up.railway.app/api/health",
+      "notes": "Postgres SSOT — characters, wallet, islands, inventory. Proxied same-origin via /api/characters|wallet|account|island|…"
     },
     {
       "id": "svc:account-api",
@@ -245,11 +461,41 @@
       "id": "svc:engine-web",
       "label": "Grudge-Engine-Web (Babylon editor)",
       "kind": "service",
-      "status": "live",
+      "status": "deprecated",
       "group": "engine",
       "owner": "platform",
       "repo": "Grudge-Engine-Web",
-      "notes": "Separate app. VPS Docker/Coolify + Vercel preview. Not used by Warlords runtime."
+      "notes": "RETIRED: Babylon removed fleet-wide. Use svc:studio-forge instead."
+    },
+    {
+      "id": "svc:studio-forge",
+      "label": "Grudge Studio Forge (map editor)",
+      "kind": "service",
+      "status": "live",
+      "group": "engine",
+      "owner": "frontend",
+      "repo": "RTS-Grudge",
+      "notes": "studio/ → dist/public/forge. R3F + Rapier + drei + mesh-bvh + ObjectStore. Deploy targets: Warlords, RTS, DCQ. forge.grudge-studio.com + rts-grudge.vercel.app/forge/."
+    },
+    {
+      "id": "svc:grudge-engine-three",
+      "label": "Grudge Game Engine (Three.js)",
+      "kind": "service",
+      "status": "planned",
+      "group": "engine",
+      "owner": "platform",
+      "repo": "grudge-game-engine",
+      "notes": "Future mrdoob editor fork. Canonical editor today is svc:studio-forge at forge.grudge-studio.com."
+    },
+    {
+      "id": "svc:scene-store",
+      "label": "Scene persistence (api /api/scenes)",
+      "kind": "service",
+      "status": "planned",
+      "group": "engine",
+      "owner": "backend",
+      "repo": "grudge-backend",
+      "notes": "New /api/scenes CRUD on api.grudge-studio.com. Scene files stored in R2 under grudge-scenes/{grudgeId}/{sceneId}.json (serialized three editor JSON). Canonical source of truth for both engine deployments; Puter side caches in puter.fs/puter.kv with dirty-write queue (same pattern as puterIslandKV.saveState)."
     },
     {
       "id": "svc:gaming-portal",
@@ -269,7 +515,7 @@
       "group": "realtime",
       "owner": "backend",
       "repo": "Grudge-Builder",
-      "notes": "server/index.ts in this repo. Deploy target: Railway (railway.json). Hosts local /api/island/*, /api/account/* + Colyseus rooms + proxy to api.g-s.com. Complementary to VPS api.g-s.com."
+      "notes": "server/index.ts in this repo. Deploy target: Railway (railway.json). Hosts local /api/island/*, /api/account/* + Colyseus rooms + proxy to api.g-s.com. Complementary to Railway-hosted api.g-s.com."
     },
     {
       "id": "svc:colyseus-lobby",
@@ -305,6 +551,174 @@
       "status": "planned",
       "group": "ops",
       "owner": "platform"
+    },
+    {
+      "id": "svc:puter-worker",
+      "label": "GRUDGE Puter Worker",
+      "kind": "service",
+      "status": "live",
+      "group": "puter",
+      "owner": "platform",
+      "notes": "grudge-server.puter.work — AI chat/vision, sprite gen jobs, NPC dialogue, game data sync. Endpoints documented in GrudgeBuilder/puter.md."
+    },
+    {
+      "id": "svc:puter-crafting",
+      "label": "Puter Crafting Site",
+      "kind": "service",
+      "status": "live",
+      "group": "puter",
+      "owner": "frontend",
+      "notes": "grudge-crafting.puter.site. Must consume ObjectStore icons/items (rule n4qBEKIS...)."
+    },
+    {
+      "id": "svc:puter-sdk",
+      "label": "Puter SDK (ai/kv/fs/auth)",
+      "kind": "service",
+      "status": "live",
+      "group": "puter",
+      "owner": "platform",
+      "notes": "Loaded client-side from js.puter.com/v2. Consumed by GrudgeBuilder (puterIntegration.ts), grudge-sdk.js, and Puter-hosted frontends."
+    },
+    {
+      "id": "svc:puter-auth-bridge",
+      "label": "Puter ↔ Grudge ID bridge",
+      "kind": "service",
+      "status": "live",
+      "group": "puter",
+      "owner": "backend",
+      "repo": "grudge-backend",
+      "notes": "id.grudge-studio.com /auth/puter (+ /auth/puter-link). Mints/links Grudge ID from Puter UUID; every auth path guarantees one Puter cloud storage per account. Proxied via grudge-platform api/puter.js + puter-link.js."
+    },
+    {
+      "id": "svc:grudge-platform",
+      "label": "Grudge Platform (web3 hub)",
+      "kind": "service",
+      "status": "live",
+      "group": "web3",
+      "owner": "frontend",
+      "repo": "grudge-platform",
+      "notes": "Vercel app for grudgeplatform.io + /play. Owns Crossmint embed, cNFT mint flows, wallet UI, and Web3 onboarding. Auth: Puter SDK → id.grudge-studio.com /auth/puter via api/puter.js proxy. Pulls items/icons from ObjectStore; pulls binaries from R2 CDN. Per owner directive (2026-04-26) this is a separate brand from launcher.grudge-studio.com."
+    },
+    {
+      "id": "svc:mech-forge",
+      "label": "Grudge Mech Forge",
+      "kind": "service",
+      "status": "live",
+      "group": "games",
+      "owner": "frontend",
+      "repo": "grudge-mech-forge",
+      "notes": "R3F+Rapier mech combat. Vite build, Vercel deploy."
+    },
+    {
+      "id": "svc:gcs",
+      "label": "Grudge Character Studio (GCS)",
+      "kind": "service",
+      "status": "live",
+      "group": "character",
+      "owner": "frontend",
+      "repo": "GCS",
+      "url": "https://character.grudge-studio.com",
+      "notes": "HYDRA-powered VRM + grudge6 character forge. Saves to Railway /api/characters with per-era rosters. Canonical creator — Warlords /character redirects here."
+    },
+    {
+      "id": "svc:character-creator",
+      "label": "Character Creator (playground)",
+      "kind": "service",
+      "status": "live",
+      "group": "games",
+      "owner": "frontend",
+      "repo": "grudge-character-creator",
+      "notes": "Three.js grudge6 playground — weapons mastery testing. Distinct from GCS account saves."
+    },
+    {
+      "id": "svc:survival",
+      "label": "Survival (Grudges)",
+      "kind": "service",
+      "status": "live",
+      "group": "games",
+      "owner": "frontend",
+      "repo": "survival",
+      "notes": "R3F+Rapier survival game with ARPG sub-mode. Pnpm monorepo, Railway API."
+    },
+    {
+      "id": "svc:rts-grudge",
+      "label": "RTS-Grudge",
+      "kind": "service",
+      "status": "live",
+      "group": "games",
+      "owner": "frontend",
+      "repo": "RTS-Grudge",
+      "notes": "R3F+Rapier real-time strategy."
+    },
+    {
+      "id": "svc:grudge-arena-game",
+      "label": "Grudge Arena",
+      "kind": "service",
+      "status": "live",
+      "group": "games",
+      "owner": "frontend",
+      "repo": "grudge-arena",
+      "notes": "Three.js PvP arena with Socket.IO multiplayer."
+    },
+    {
+      "id": "svc:grim-armada",
+      "label": "Grim Armada",
+      "kind": "service",
+      "status": "live",
+      "group": "games",
+      "owner": "frontend",
+      "repo": "grim-armada-web",
+      "notes": "R3F+Rapier naval combat."
+    },
+    {
+      "id": "svc:grudge-space",
+      "label": "GrudgeSpace RTS",
+      "kind": "service",
+      "status": "live",
+      "group": "games",
+      "owner": "frontend",
+      "repo": "GrudgeSpaceRTS",
+      "notes": "R3F space strategy."
+    },
+    {
+      "id": "svc:dungeon-crawler",
+      "label": "Dungeon Crawler Quest",
+      "kind": "service",
+      "status": "live",
+      "group": "games",
+      "owner": "frontend",
+      "repo": "Dungeon-Crawler-Quest",
+      "notes": "Voxel dungeon crawler. Migration from Babylon to Three.js planned."
+    },
+    {
+      "id": "svc:grudox",
+      "label": "Grudox (Voxel Forge Engine)",
+      "kind": "service",
+      "status": "live",
+      "group": "games",
+      "owner": "frontend",
+      "repo": "grudox",
+      "notes": "Static landing/title page (single index.html, Tailwind CDN, no build). Fleet-wired per fleet-config.json + docs/FLEET.md: auth→id, API→api, assets→assets, AI→ai.grudge-studio.com; studio context from assets.grudge-studio.com/context/studio-context.json."
+    },
+    {
+      "id": "svc:dungeon-crawler",
+      "label": "Dungeon Crawler Quest",
+      "kind": "service",
+      "status": "live",
+      "group": "games",
+      "owner": "frontend",
+      "repo": "Dungeon-Crawler-Quest",
+      "notes": "Three.js voxel dungeon crawler (Babylon retired). Forge deploy target."
+    },
+    {
+      "id": "svc:info-hub",
+      "label": "Game Info Hub",
+      "kind": "service",
+      "status": "live",
+      "group": "assets",
+      "owner": "platform",
+      "repo": "ObjectStore",
+      "notes": "Consolidated item database, guides, professions, VFX, 3D models. info.grudge-studio.com."
     },
     {
       "id": "route:/",
@@ -369,7 +783,26 @@
       "kind": "frontendRoute",
       "status": "live",
       "group": "character",
-      "url": "https://grudgewarlords.com/character"
+      "url": "https://grudgewarlords.com/character",
+      "notes": "Redirects to GCS (era=warlords). ?legacy=1 keeps inline builder."
+    },
+    {
+      "id": "route:/create-character",
+      "label": "/create-character",
+      "kind": "frontendRoute",
+      "status": "live",
+      "group": "character",
+      "url": "https://grudgewarlords.com/create-character",
+      "notes": "Redirects to GCS mode=create, returnTo /game/character."
+    },
+    {
+      "id": "route:/character-creator",
+      "label": "/character-creator",
+      "kind": "frontendRoute",
+      "status": "live",
+      "group": "character",
+      "url": "https://grudgewarlords.com/character-creator",
+      "notes": "Redirects to GCS mode=create, returnTo /account."
     },
     {
       "id": "route:/characters",
@@ -696,6 +1129,14 @@
       "url": "https://grudgewarlords.com/admin-island-v2"
     },
     {
+      "id": "route:/admin-island-3d",
+      "label": "/admin-island-3d",
+      "kind": "frontendRoute",
+      "status": "live",
+      "group": "admin",
+      "url": "https://grudgewarlords.com/admin-island-3d"
+    },
+    {
       "id": "route:/sprite-admin",
       "label": "/sprite-admin",
       "kind": "frontendRoute",
@@ -721,12 +1162,38 @@
       "notes": "This page."
     },
     {
+      "id": "route:/gs",
+      "label": "grudge-studio.com/gs",
+      "kind": "frontendRoute",
+      "status": "live",
+      "group": "portal",
+      "url": "https://grudge-studio.com/gs",
+      "notes": "Reference visual + auth surface (do not refactor). Served by The-ENGINE (svc:gaming-portal). Loads js.puter.com/v2/. Mirror its login + account UI patterns into other Grudge surfaces."
+    },
+    {
+      "id": "route:/play",
+      "label": "grudgeplatform.io/play",
+      "kind": "frontendRoute",
+      "status": "live",
+      "group": "web3",
+      "url": "https://grudgeplatform.io/play",
+      "notes": "Web3 play surface on the platform brand. Currently missing art/gameplay parity — see Phase 5 cross-repo checklist in docs/audit-report.md."
+    },
+    {
+      "id": "rw:/api/account",
+      "label": "/api/account",
+      "kind": "apiRewrite",
+      "status": "live",
+      "group": "account",
+      "url": "https://grudge-api-production-0d46.up.railway.app/api/account"
+    },
+    {
       "id": "rw:/api/account/:path*",
       "label": "/api/account/:path*",
       "kind": "apiRewrite",
       "status": "live",
       "group": "account",
-      "url": "https://api.grudge-studio.com/api/account/:path*"
+      "url": "https://grudge-api-production-0d46.up.railway.app/api/account/:path*"
     },
     {
       "id": "rw:/api/auth/:path*",
@@ -742,7 +1209,7 @@
       "kind": "apiRewrite",
       "status": "live",
       "group": "wallet",
-      "url": "https://api.grudge-studio.com/api/wallet"
+      "url": "https://grudge-api-production-0d46.up.railway.app/api/wallet"
     },
     {
       "id": "rw:/api/wallet/:path*",
@@ -750,7 +1217,15 @@
       "kind": "apiRewrite",
       "status": "live",
       "group": "wallet",
-      "url": "https://api.grudge-studio.com/api/wallet/:path*"
+      "url": "https://grudge-api-production-0d46.up.railway.app/api/wallet/:path*"
+    },
+    {
+      "id": "rw:/api/island",
+      "label": "/api/island",
+      "kind": "apiRewrite",
+      "status": "live",
+      "group": "world",
+      "url": "https://grudge-api-production-0d46.up.railway.app/api/island"
     },
     {
       "id": "rw:/api/island/:path*",
@@ -758,7 +1233,15 @@
       "kind": "apiRewrite",
       "status": "live",
       "group": "world",
-      "url": "https://api.grudge-studio.com/api/island/:path*"
+      "url": "https://grudge-api-production-0d46.up.railway.app/api/island/:path*"
+    },
+    {
+      "id": "rw:/api/islands/:path*",
+      "label": "/api/islands/:path*",
+      "kind": "apiRewrite",
+      "status": "live",
+      "group": "world",
+      "url": "https://grudge-api-production-0d46.up.railway.app/api/islands/:path*"
     },
     {
       "id": "rw:/api/nfts",
@@ -766,7 +1249,7 @@
       "kind": "apiRewrite",
       "status": "live",
       "group": "wallet",
-      "url": "https://api.grudge-studio.com/api/nfts"
+      "url": "https://grudge-api-production-0d46.up.railway.app/api/nfts"
     },
     {
       "id": "rw:/api/nfts/:path*",
@@ -774,7 +1257,7 @@
       "kind": "apiRewrite",
       "status": "live",
       "group": "wallet",
-      "url": "https://api.grudge-studio.com/api/nfts/:path*"
+      "url": "https://grudge-api-production-0d46.up.railway.app/api/nfts/:path*"
     },
     {
       "id": "rw:/api/island-nfts",
@@ -782,7 +1265,7 @@
       "kind": "apiRewrite",
       "status": "live",
       "group": "world",
-      "url": "https://api.grudge-studio.com/api/island-nfts"
+      "url": "https://grudge-api-production-0d46.up.railway.app/api/island-nfts"
     },
     {
       "id": "rw:/api/island-nfts/:path*",
@@ -790,7 +1273,7 @@
       "kind": "apiRewrite",
       "status": "live",
       "group": "world",
-      "url": "https://api.grudge-studio.com/api/island-nfts/:path*"
+      "url": "https://grudge-api-production-0d46.up.railway.app/api/island-nfts/:path*"
     },
     {
       "id": "rw:/api/professions/:path*",
@@ -798,7 +1281,7 @@
       "kind": "apiRewrite",
       "status": "live",
       "group": "professions",
-      "url": "https://api.grudge-studio.com/api/professions/:path*"
+      "url": "https://grudge-api-production-0d46.up.railway.app/api/professions/:path*"
     },
     {
       "id": "rw:/api/inventory/:path*",
@@ -806,7 +1289,7 @@
       "kind": "apiRewrite",
       "status": "live",
       "group": "character",
-      "url": "https://api.grudge-studio.com/api/inventory/:path*"
+      "url": "https://grudge-api-production-0d46.up.railway.app/api/inventory/:path*"
     },
     {
       "id": "rw:/api/health",
@@ -814,7 +1297,7 @@
       "kind": "apiRewrite",
       "status": "live",
       "group": "ops",
-      "url": "https://api.grudge-studio.com/api/health"
+      "url": "https://grudge-api-production-0d46.up.railway.app/api/health"
     },
     {
       "id": "rw:/api/characters",
@@ -822,7 +1305,7 @@
       "kind": "apiRewrite",
       "status": "live",
       "group": "character",
-      "url": "https://api.grudge-studio.com/api/characters"
+      "url": "https://grudge-api-production-0d46.up.railway.app/api/characters"
     },
     {
       "id": "rw:/api/characters/:path*",
@@ -830,7 +1313,7 @@
       "kind": "apiRewrite",
       "status": "live",
       "group": "character",
-      "url": "https://api.grudge-studio.com/api/characters/:path*"
+      "url": "https://grudge-api-production-0d46.up.railway.app/api/characters/:path*"
     },
     {
       "id": "rw:/api/party",
@@ -838,7 +1321,7 @@
       "kind": "apiRewrite",
       "status": "live",
       "group": "combat",
-      "url": "https://api.grudge-studio.com/api/party"
+      "url": "https://grudge-api-production-0d46.up.railway.app/api/party"
     },
     {
       "id": "rw:/api/party/:path*",
@@ -846,7 +1329,23 @@
       "kind": "apiRewrite",
       "status": "live",
       "group": "combat",
-      "url": "https://api.grudge-studio.com/api/party/:path*"
+      "url": "https://grudge-api-production-0d46.up.railway.app/api/party/:path*"
+    },
+    {
+      "id": "rw:/api/fleet/:path*",
+      "label": "/api/fleet/:path*",
+      "kind": "apiRewrite",
+      "status": "live",
+      "group": "ops",
+      "url": "https://grudge-api-production-0d46.up.railway.app/api/fleet/:path*"
+    },
+    {
+      "id": "rw:/api/supabase/:path*",
+      "label": "/api/supabase/:path*",
+      "kind": "apiRewrite",
+      "status": "live",
+      "group": "backend",
+      "url": "https://grudge-api-production-0d46.up.railway.app/api/supabase/:path*"
     },
     {
       "id": "rw:/api/tools/:path*",
@@ -865,14 +1364,6 @@
       "url": "https://assets.grudge-studio.com/:path*"
     },
     {
-      "id": "rw:/api/game/:path*",
-      "label": "/api/game/:path*",
-      "kind": "apiRewrite",
-      "status": "live",
-      "group": "backend",
-      "url": "https://api.grudge-studio.com/api/:path*"
-    },
-    {
       "id": "rw:/api/public/:path*",
       "label": "/api/public/:path*",
       "kind": "apiRewrite",
@@ -881,12 +1372,20 @@
       "url": "https://api.grudge-studio.com/public/:path*"
     },
     {
+      "id": "rw:/api/:path*",
+      "label": "/api/:path*",
+      "kind": "apiRewrite",
+      "status": "live",
+      "group": "backend",
+      "url": "https://api.grudge-studio.com/api/:path*"
+    },
+    {
       "id": "data:master-items",
       "label": "master-items.json (818)",
       "kind": "dataSource",
       "status": "live",
       "group": "assets",
-      "url": "https://molochdagod.github.io/ObjectStore/api/v1/master-items.json"
+      "url": "https://info.grudge-studio.com/api/v1/master-items.json"
     },
     {
       "id": "data:master-recipes",
@@ -894,7 +1393,7 @@
       "kind": "dataSource",
       "status": "live",
       "group": "assets",
-      "url": "https://molochdagod.github.io/ObjectStore/api/v1/master-recipes.json"
+      "url": "https://info.grudge-studio.com/api/v1/master-recipes.json"
     },
     {
       "id": "data:master-materials",
@@ -902,7 +1401,7 @@
       "kind": "dataSource",
       "status": "live",
       "group": "assets",
-      "url": "https://molochdagod.github.io/ObjectStore/api/v1/master-materials.json"
+      "url": "https://info.grudge-studio.com/api/v1/master-materials.json"
     },
     {
       "id": "data:r2-icons",
@@ -1009,10 +1508,18 @@
       "id": "repo:grudge-engine-web",
       "label": "Grudge-Engine-Web",
       "kind": "repo",
-      "status": "live",
+      "status": "deprecated",
       "group": "engine",
       "url": "https://github.com/MolochDaGod/Grudge-Engine-Web",
-      "notes": "Babylon + editor. Deploy via deploy.ps1 -> VPS (engine.g-s.com) or Vercel (grudge-engine-web.vercel.app)."
+      "notes": "DEPRECATED 2026-04-22: Babylon-based editor. Babylon is no longer used anywhere in the Grudge stack. Archive the repo; do NOT port changes from it. The Three.js runtime in GrudgeBuilder (island3d/**, ThreeScene.tsx, CharacterModel3D.tsx) is the canonical engine surface."
+    },
+    {
+      "id": "repo:grudge-game-engine",
+      "label": "grudge-game-engine (planned)",
+      "kind": "repo",
+      "status": "planned",
+      "group": "engine",
+      "notes": "Planned repo: fork of github.com/mrdoob/three.js/tree/master/editor, improved + branded as Grudge Game Engine. Ships one build to engine.grudge-studio.com and grudgestudio.puter.site. Adds: Grudge ID auth (SSO + Puter bridge), /api/scenes persistence, ObjectStore asset picker, Rapier/Cannon physics, three retargeting for character rigs, GrudgeDot launcher entry."
     },
     {
       "id": "repo:gruda-legion-sdk",
@@ -1030,6 +1537,79 @@
       "group": "ops",
       "url": "https://github.com/Grudge-Warlords/Grudge-Studio-Mission",
       "notes": "North-star mission, architecture, roadmap."
+    },
+    {
+      "id": "repo:grudge-platform",
+      "label": "grudge-platform",
+      "kind": "repo",
+      "status": "live",
+      "group": "web3",
+      "url": "https://github.com/MolochDaGod/grudge-platform",
+      "notes": "Source for grudgeplatform.io + /play. Hosts api/_grudge-proxy.js (CORS allowlist) and api/puter.js + api/puter-link.js (proxy to id.grudge-studio.com /auth/puter)."
+    },
+    {
+      "id": "repo:grudge-mech-forge",
+      "label": "grudge-mech-forge",
+      "kind": "repo",
+      "status": "live",
+      "group": "games",
+      "url": "https://github.com/MolochDaGod/grudge-mech-forge"
+    },
+    {
+      "id": "repo:grudge-character-creator",
+      "label": "grudge-character-creator",
+      "kind": "repo",
+      "status": "live",
+      "group": "games",
+      "url": "https://github.com/MolochDaGod/grudge-character-creator"
+    },
+    {
+      "id": "repo:survival",
+      "label": "survival",
+      "kind": "repo",
+      "status": "live",
+      "group": "games",
+      "url": "https://github.com/MolochDaGod/survival"
+    },
+    {
+      "id": "repo:rts-grudge",
+      "label": "RTS-Grudge",
+      "kind": "repo",
+      "status": "live",
+      "group": "games",
+      "url": "https://github.com/MolochDaGod/RTS-Grudge"
+    },
+    {
+      "id": "repo:grim-armada",
+      "label": "grim-armada-web",
+      "kind": "repo",
+      "status": "live",
+      "group": "games",
+      "url": "https://github.com/MolochDaGod/grim-armada-web"
+    },
+    {
+      "id": "repo:grudge-space-rts",
+      "label": "GrudgeSpaceRTS",
+      "kind": "repo",
+      "status": "live",
+      "group": "games",
+      "url": "https://github.com/MolochDaGod/GrudgeSpaceRTS"
+    },
+    {
+      "id": "repo:dungeon-crawler",
+      "label": "Dungeon-Crawler-Quest",
+      "kind": "repo",
+      "status": "live",
+      "group": "games",
+      "url": "https://github.com/MolochDaGod/Dungeon-Crawler-Quest"
+    },
+    {
+      "id": "repo:grudox",
+      "label": "grudox",
+      "kind": "repo",
+      "status": "planned",
+      "group": "games",
+      "notes": "Local-only as of 2026-06-24 (no git remote yet). Static landing page for grudox.grudge-studio.com; intended push target github.com/MolochDaGod/grudox."
     }
   ],
   "edges": [
@@ -1076,12 +1656,13 @@
     },
     {
       "source": "dom:api.g-s.com",
-      "target": "svc:game-api",
-      "kind": "routes-to"
+      "target": "svc:account-api",
+      "kind": "routes-to",
+      "notes": "Identity API — session exchange, scoped profile; not game-data."
     },
     {
-      "source": "dom:api.g-s.com",
-      "target": "svc:wallet-svc",
+      "source": "dom:game-data.railway",
+      "target": "svc:game-api",
       "kind": "routes-to"
     },
     {
@@ -1150,13 +1731,358 @@
       "kind": "routes-to"
     },
     {
+      "source": "dom:grudge-server.puter.work",
+      "target": "svc:puter-worker",
+      "kind": "routes-to"
+    },
+    {
+      "source": "dom:grudge-crafting.puter.site",
+      "target": "svc:puter-crafting",
+      "kind": "routes-to"
+    },
+    {
+      "source": "dom:js.puter.com",
+      "target": "svc:puter-sdk",
+      "kind": "routes-to"
+    },
+    {
+      "source": "dom:mech-playground",
+      "target": "svc:mech-forge",
+      "kind": "routes-to"
+    },
+    {
+      "source": "dom:character-creator",
+      "target": "svc:character-creator",
+      "kind": "routes-to"
+    },
+    {
+      "source": "dom:grudges.g-s.com",
+      "target": "svc:survival",
+      "kind": "routes-to"
+    },
+    {
+      "source": "dom:rts-grudge",
+      "target": "svc:rts-grudge",
+      "kind": "routes-to"
+    },
+    {
+      "source": "dom:grudge-arena",
+      "target": "svc:grudge-arena-game",
+      "kind": "routes-to"
+    },
+    {
+      "source": "dom:grim-armada",
+      "target": "svc:grim-armada",
+      "kind": "routes-to"
+    },
+    {
+      "source": "dom:grudge-space",
+      "target": "svc:grudge-space",
+      "kind": "routes-to"
+    },
+    {
+      "source": "dom:dungeon-crawler",
+      "target": "svc:dungeon-crawler",
+      "kind": "routes-to"
+    },
+    {
+      "source": "dom:info.g-s.com",
+      "target": "svc:info-hub",
+      "kind": "routes-to"
+    },
+    {
+      "source": "repo:grudge-mech-forge",
+      "target": "svc:mech-forge",
+      "kind": "deploys-from"
+    },
+    {
+      "source": "repo:grudge-character-creator",
+      "target": "svc:character-creator",
+      "kind": "deploys-from"
+    },
+    {
+      "source": "repo:survival",
+      "target": "svc:survival",
+      "kind": "deploys-from"
+    },
+    {
+      "source": "repo:rts-grudge",
+      "target": "svc:rts-grudge",
+      "kind": "deploys-from"
+    },
+    {
+      "source": "repo:grim-armada",
+      "target": "svc:grim-armada",
+      "kind": "deploys-from"
+    },
+    {
+      "source": "repo:grudge-space-rts",
+      "target": "svc:grudge-space",
+      "kind": "deploys-from"
+    },
+    {
+      "source": "repo:dungeon-crawler",
+      "target": "svc:dungeon-crawler",
+      "kind": "deploys-from"
+    },
+    {
+      "source": "svc:mech-forge",
+      "target": "svc:grudge-id",
+      "kind": "authenticates-via"
+    },
+    {
+      "source": "svc:character-creator",
+      "target": "svc:grudge-id",
+      "kind": "authenticates-via"
+    },
+    {
+      "source": "svc:survival",
+      "target": "svc:grudge-id",
+      "kind": "authenticates-via"
+    },
+    {
+      "source": "svc:rts-grudge",
+      "target": "svc:grudge-id",
+      "kind": "authenticates-via"
+    },
+    {
+      "source": "svc:grudge-arena-game",
+      "target": "svc:grudge-id",
+      "kind": "authenticates-via"
+    },
+    {
+      "source": "svc:grim-armada",
+      "target": "svc:grudge-id",
+      "kind": "authenticates-via"
+    },
+    {
+      "source": "svc:grudge-space",
+      "target": "svc:grudge-id",
+      "kind": "authenticates-via"
+    },
+    {
+      "source": "svc:dungeon-crawler",
+      "target": "svc:grudge-id",
+      "kind": "authenticates-via"
+    },
+    {
+      "source": "svc:mech-forge",
+      "target": "svc:os-static",
+      "kind": "reads"
+    },
+    {
+      "source": "svc:character-creator",
+      "target": "svc:os-static",
+      "kind": "reads"
+    },
+    {
+      "source": "svc:survival",
+      "target": "svc:os-static",
+      "kind": "reads"
+    },
+    {
+      "source": "svc:rts-grudge",
+      "target": "svc:os-static",
+      "kind": "reads"
+    },
+    {
+      "source": "dom:grudox",
+      "target": "svc:grudox",
+      "kind": "routes-to"
+    },
+    {
+      "source": "repo:grudox",
+      "target": "svc:grudox",
+      "kind": "deploys-from",
+      "notes": "Vercel static deploy from local repo; no git remote yet (2026-06-24)."
+    },
+    {
+      "source": "svc:grudox",
+      "target": "svc:grudge-id",
+      "kind": "authenticates-via",
+      "notes": "SSO via id.grudge-studio.com per fleet pattern."
+    },
+    {
+      "source": "svc:grudox",
+      "target": "svc:game-api",
+      "kind": "calls",
+      "notes": "api.grudge-studio.com (incl. /ai/studio-context) per fleet pattern."
+    },
+    {
+      "source": "svc:grudox",
+      "target": "svc:r2-cdn",
+      "kind": "reads",
+      "notes": "Assets from assets.grudge-studio.com (+ context/studio-context.json mirror)."
+    },
+    {
+      "source": "svc:grudox",
+      "target": "svc:ai-worker",
+      "kind": "calls",
+      "notes": "Studio assistant via ai.grudge-studio.com /ai/chat per fleet pattern."
+    },
+    {
+      "source": "dom:grudgewarlords.puter.site",
+      "target": "svc:puter-crafting",
+      "kind": "routes-to",
+      "notes": "Placeholder — live deployment with no registered Grudge service. Needs owner."
+    },
+    {
+      "source": "dom:grudgestudio.puter.site",
+      "target": "svc:grudge-engine-three",
+      "kind": "routes-to",
+      "notes": "Puter-native build of the Three.js Grudge Game Engine."
+    },
+    {
+      "source": "dom:engine.g-s.com",
+      "target": "svc:grudge-engine-three",
+      "kind": "routes-to",
+      "notes": "Canonical (Vercel) build of the same engine."
+    },
+    {
+      "source": "svc:grudge-engine-three",
+      "target": "svc:scene-store",
+      "kind": "reads",
+      "notes": "Load scenes by grudge_id + scene_id."
+    },
+    {
+      "source": "svc:grudge-engine-three",
+      "target": "svc:scene-store",
+      "kind": "writes",
+      "notes": "Save scenes; Puter side writes through with puter.fs/puter.kv cache."
+    },
+    {
+      "source": "svc:grudge-engine-three",
+      "target": "svc:grudge-id",
+      "kind": "authenticates-via",
+      "notes": "Both surfaces share Grudge ID + account tier for scene ownership/share/publish permissions."
+    },
+    {
+      "source": "svc:grudge-engine-three",
+      "target": "svc:puter-auth-bridge",
+      "kind": "authenticates-via",
+      "notes": "On Puter surface, first-touch mints Grudge ID from puter_uuid so scenes created there attach to a real account."
+    },
+    {
+      "source": "svc:grudge-engine-three",
+      "target": "svc:os-static",
+      "kind": "reads",
+      "notes": "Asset picker pulls icons/models/materials from ObjectStore."
+    },
+    {
+      "source": "svc:scene-store",
+      "target": "data:r2-models",
+      "kind": "writes",
+      "notes": "Scene JSON blobs stored in R2 under grudge-scenes/{grudgeId}/."
+    },
+    {
+      "source": "repo:grudge-game-engine",
+      "target": "svc:grudge-engine-three",
+      "kind": "deploys-from"
+    },
+    {
+      "source": "dom:grudge-studio.puter.site",
+      "target": "svc:puter-crafting",
+      "kind": "routes-to",
+      "notes": "Placeholder — live Cloud Dashboard referenced only from archived legacy-auth.html."
+    },
+    {
+      "source": "svc:frontend",
+      "target": "svc:puter-sdk",
+      "kind": "calls",
+      "notes": "GrudgeBuilder loads Puter SDK for AI/KV/FS via puterIntegration.ts."
+    },
+    {
+      "source": "svc:frontend",
+      "target": "svc:puter-worker",
+      "kind": "calls",
+      "notes": "puterServer client in assetConfig.ts targets grudge-server.puter.work."
+    },
+    {
+      "source": "svc:puter-crafting",
+      "target": "svc:os-static",
+      "kind": "reads",
+      "notes": "Pulls items/icons from ObjectStore JSON API."
+    },
+    {
+      "source": "svc:puter-auth-bridge",
+      "target": "svc:grudge-id",
+      "kind": "authenticates-via",
+      "notes": "/auth/puter upserts (puter_uuid ↔ grudge_id) on id.grudge-studio.com."
+    },
+    {
+      "source": "svc:frontend",
+      "target": "svc:puter-auth-bridge",
+      "kind": "authenticates-via",
+      "notes": "loginWithPuter() in grudgeBackend.ts posts to /api/auth/puter (Vercel rewrite to id.g-s.com)."
+    },
+    {
+      "source": "dom:grudgeplatform.io",
+      "target": "svc:grudge-platform",
+      "kind": "routes-to"
+    },
+    {
+      "source": "repo:grudge-platform",
+      "target": "svc:grudge-platform",
+      "kind": "deploys-from"
+    },
+    {
+      "source": "svc:grudge-platform",
+      "target": "svc:puter-sdk",
+      "kind": "calls",
+      "notes": "Loads js.puter.com/v2/ for browser auth + AI + KV/FS."
+    },
+    {
+      "source": "svc:grudge-platform",
+      "target": "svc:puter-auth-bridge",
+      "kind": "authenticates-via",
+      "notes": "Posts { puterUuid, puterUsername } via api/puter.js → id.grudge-studio.com/auth/puter."
+    },
+    {
+      "source": "svc:grudge-platform",
+      "target": "svc:os-worker",
+      "kind": "reads",
+      "notes": "Items/icons/recipes from info.grudge-studio.com (single source of truth, no hardcoded copies)."
+    },
+    {
+      "source": "svc:grudge-platform",
+      "target": "svc:r2-cdn",
+      "kind": "reads",
+      "notes": "Binary assets from assets.grudge-studio.com."
+    },
+    {
+      "source": "svc:grudge-platform",
+      "target": "svc:wallet-svc",
+      "kind": "calls",
+      "notes": "Crossmint custodial wallet provisioning + cNFT mint via api.grudge-studio.com /api/wallet + /api/nfts."
+    },
+    {
+      "source": "dom:grudge-studio.com",
+      "target": "route:/gs",
+      "kind": "routes-to"
+    },
+    {
+      "source": "route:/gs",
+      "target": "svc:gaming-portal",
+      "kind": "routes-to"
+    },
+    {
+      "source": "svc:frontend",
+      "target": "rw:/api/account",
+      "kind": "calls"
+    },
+    {
+      "source": "rw:/api/account",
+      "target": "svc:game-api",
+      "kind": "rewrites-to"
+    },
+    {
       "source": "svc:frontend",
       "target": "rw:/api/account/:path*",
       "kind": "calls"
     },
     {
       "source": "rw:/api/account/:path*",
-      "target": "svc:account-api",
+      "target": "svc:game-api",
       "kind": "rewrites-to"
     },
     {
@@ -1176,7 +2102,7 @@
     },
     {
       "source": "rw:/api/wallet",
-      "target": "svc:wallet-svc",
+      "target": "svc:game-api",
       "kind": "rewrites-to"
     },
     {
@@ -1186,7 +2112,17 @@
     },
     {
       "source": "rw:/api/wallet/:path*",
-      "target": "svc:wallet-svc",
+      "target": "svc:game-api",
+      "kind": "rewrites-to"
+    },
+    {
+      "source": "svc:frontend",
+      "target": "rw:/api/island",
+      "kind": "calls"
+    },
+    {
+      "source": "rw:/api/island",
+      "target": "svc:game-api",
       "kind": "rewrites-to"
     },
     {
@@ -1196,6 +2132,16 @@
     },
     {
       "source": "rw:/api/island/:path*",
+      "target": "svc:game-api",
+      "kind": "rewrites-to"
+    },
+    {
+      "source": "svc:frontend",
+      "target": "rw:/api/islands/:path*",
+      "kind": "calls"
+    },
+    {
+      "source": "rw:/api/islands/:path*",
       "target": "svc:game-api",
       "kind": "rewrites-to"
     },
@@ -1311,6 +2257,26 @@
     },
     {
       "source": "svc:frontend",
+      "target": "rw:/api/fleet/:path*",
+      "kind": "calls"
+    },
+    {
+      "source": "rw:/api/fleet/:path*",
+      "target": "svc:game-api",
+      "kind": "rewrites-to"
+    },
+    {
+      "source": "svc:frontend",
+      "target": "rw:/api/supabase/:path*",
+      "kind": "calls"
+    },
+    {
+      "source": "rw:/api/supabase/:path*",
+      "target": "svc:game-api",
+      "kind": "rewrites-to"
+    },
+    {
+      "source": "svc:frontend",
       "target": "rw:/api/tools/:path*",
       "kind": "calls"
     },
@@ -1331,22 +2297,22 @@
     },
     {
       "source": "svc:frontend",
-      "target": "rw:/api/game/:path*",
-      "kind": "calls"
-    },
-    {
-      "source": "rw:/api/game/:path*",
-      "target": "svc:game-api",
-      "kind": "rewrites-to"
-    },
-    {
-      "source": "svc:frontend",
       "target": "rw:/api/public/:path*",
       "kind": "calls"
     },
     {
       "source": "rw:/api/public/:path*",
       "target": "svc:game-api",
+      "kind": "rewrites-to"
+    },
+    {
+      "source": "svc:frontend",
+      "target": "rw:/api/:path*",
+      "kind": "calls"
+    },
+    {
+      "source": "rw:/api/:path*",
+      "target": "svc:account-api",
       "kind": "rewrites-to"
     },
     {
@@ -1386,6 +2352,16 @@
     },
     {
       "source": "route:/character",
+      "target": "svc:frontend",
+      "kind": "routes-to"
+    },
+    {
+      "source": "route:/create-character",
+      "target": "svc:frontend",
+      "kind": "routes-to"
+    },
+    {
+      "source": "route:/character-creator",
       "target": "svc:frontend",
       "kind": "routes-to"
     },
@@ -1586,6 +2562,11 @@
     },
     {
       "source": "route:/admin-island-v2",
+      "target": "svc:frontend",
+      "kind": "routes-to"
+    },
+    {
+      "source": "route:/admin-island-3d",
       "target": "svc:frontend",
       "kind": "routes-to"
     },
@@ -1884,6 +2865,61 @@
       "observability": "missing",
       "backup": "n/a",
       "owner": "platform"
+    },
+    {
+      "serviceId": "svc:puter-worker",
+      "https": "ok",
+      "healthEndpoint": "/api/health",
+      "cors": "unknown",
+      "authRequired": "ok",
+      "rateLimit": "unknown",
+      "observability": "missing",
+      "backup": "n/a",
+      "owner": "platform",
+      "runbook": "puter.md"
+    },
+    {
+      "serviceId": "svc:puter-crafting",
+      "https": "ok",
+      "cors": "n/a",
+      "authRequired": "n/a",
+      "rateLimit": "n/a",
+      "observability": "missing",
+      "backup": "n/a",
+      "owner": "frontend"
+    },
+    {
+      "serviceId": "svc:puter-auth-bridge",
+      "https": "ok",
+      "healthEndpoint": "/auth/puter",
+      "cors": "ok",
+      "authRequired": "n/a",
+      "rateLimit": "missing",
+      "observability": "missing",
+      "backup": "ok",
+      "owner": "backend"
+    },
+    {
+      "serviceId": "svc:grudge-platform",
+      "https": "ok",
+      "cors": "ok",
+      "authRequired": "n/a",
+      "rateLimit": "unknown",
+      "observability": "missing",
+      "backup": "n/a",
+      "owner": "frontend",
+      "runbook": "docs/audit-report.md#5-cross-repo-checklist"
+    },
+    {
+      "serviceId": "svc:gaming-portal",
+      "https": "ok",
+      "cors": "ok",
+      "authRequired": "n/a",
+      "rateLimit": "unknown",
+      "observability": "unknown",
+      "backup": "n/a",
+      "owner": "platform",
+      "runbook": "docs/references/gs-portal.md"
     }
   ]
 }

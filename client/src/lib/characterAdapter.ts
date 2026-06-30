@@ -15,7 +15,7 @@ import type { Character } from "./characterManager";
 
 const EXT_PREFIX = "grudge_char_ext_";
 
-// ── backend character shape (what api.grudge-studio.com returns) ──
+// ── backend character shape (Railway /api/characters SSOT) ──
 export interface BackendCharacter {
   id: number;
   grudge_id: string;
@@ -150,7 +150,7 @@ export async function saveExtendedData(
   // Backend write — send ALL extended fields (characters table has JSONB columns for all of these)
   try {
     const { authHeaders } = await import('@/lib/grudgeBackend');
-    const res = await fetch(`/api/game/characters/${charId}`, {
+    const res = await fetch(`/api/characters/${charId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json", ...authHeaders() },
       body: JSON.stringify({

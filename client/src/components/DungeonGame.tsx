@@ -1,6 +1,7 @@
 import { useRef, useEffect, useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { assetUrl } from "@/lib/assetConfig";
+import { CharacterManager } from '@/lib/characterManager';
 
 interface CombatEffect {
   id: number;
@@ -251,12 +252,13 @@ export default function DungeonGame({ onExit }: Props) {
   const decorImg = loadImage(assetUrl("/sprites/dampdungeons/DungeonDecorations.png"));
   
   useEffect(() => {
-    fetch('/api/game/characters')
-      .then(res => res.ok ? res.json() : { characters: [] })
-      .then(data => {
-        const list = data.characters || data;
-        setCharacters(Array.isArray(list) ? list : []);
-      })
+    CharacterManager.getAll()
+      .then(chars => setCharacters(chars.map(c => ({
+        id: Number(c.id) || 0,
+        name: c.name,
+        class: c.classId,
+        level: c.level,
+      }))))
       .catch(() => setCharacters([]));
   }, []);
   
@@ -289,7 +291,7 @@ export default function DungeonGame({ onExit }: Props) {
     
     let map: DungeonMap;
     try {
-      const response = await fetch('/api/game/generate-dungeon', {
+      const response = await fetch('/api/generate-dungeon', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ floor: 1, theme: 'crypt' })

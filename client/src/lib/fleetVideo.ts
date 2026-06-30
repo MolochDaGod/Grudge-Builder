@@ -2,8 +2,9 @@
  * Fleet cinematics — Warlords intro + loadscreen from Cloudflare R2 / D1.
  * Source: grudge loadin.mp4 → gruda-armada/grudge-warlords/videos/intro.mp4
  */
+/** Same-origin → Railway /api/videos/catalog via fleet rewrites */
 const CATALOG_API =
-  import.meta.env.VITE_VIDEO_CATALOG_API ?? 'https://api.grudge-studio.com/api/videos/catalog';
+  import.meta.env.VITE_VIDEO_CATALOG_API ?? '/api/videos/catalog';
 
 const WARLORDS_INTRO_CDN =
   'https://assets.grudge-studio.com/gruda-armada/grudge-warlords/videos/intro.mp4';

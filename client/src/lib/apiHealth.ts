@@ -1,7 +1,7 @@
 /**
  * API Health Check — detects backend unavailability and provides status.
  *
- * Checks api.grudge-studio.com (via Vercel proxy) on app load and periodically.
+ * Checks Railway game-data /api/health (via Vercel proxy) on app load and periodically.
  * Exports a reactive status that UI components can subscribe to.
  *
  * Usage:
