@@ -1,5 +1,12 @@
 /** Routes where the floating Grudge token wallet FAB is hidden (auth / fullscreen). */
-const HIDDEN_EXACT = new Set(["/", "/intro", "/auth/callback"]);
+const HIDDEN_EXACT = new Set([
+  "/",
+  "/intro",
+  "/auth/callback",
+  "/world",
+  "/cloudfix",
+  "/warlords",
+]);
 
 const HIDDEN_PREFIXES = [
   "/play",
