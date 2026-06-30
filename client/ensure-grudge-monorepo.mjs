@@ -30,9 +30,20 @@ if (!monorepoRoot) {
     ? `https://x-access-token:${token}@github.com/MolochDaGod/grudge-character-animator.git`
     : "https://github.com/MolochDaGod/grudge-character-animator.git";
   console.log("[ensure-grudge-monorepo] Cloning into", vendorPath);
-  execSync(`git clone --depth 1 "${repoUrl}" "${vendorPath}"`, {
-    stdio: "inherit",
-  });
+  // Disable git-lfs filters — Vercel/build images often lack git-lfs binary.
+  const gitNoLfs = [
+    "-c", "filter.lfs.process=",
+    "-c", "filter.lfs.smudge=",
+    "-c", "filter.lfs.clean=",
+    "-c", "filter.lfs.required=false",
+  ];
+  execSync(
+    ["git", ...gitNoLfs, "clone", "--depth", "1", repoUrl, vendorPath].join(" "),
+    {
+      stdio: "inherit",
+      env: { ...process.env, GIT_LFS_SKIP_SMUDGE: "1" },
+    },
+  );
   monorepoRoot = existsSync(marker(vendorPath)) ? vendorPath : null;
 }
 
