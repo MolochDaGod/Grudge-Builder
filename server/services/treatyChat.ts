@@ -284,6 +284,15 @@ export async function sendDmMessage(accountId: string, threadId: string, content
     .returning();
 
   await db.update(treatyDmThreads).set({ updatedAt: now }).where(eq(treatyDmThreads.id, threadId));
+
+  const { notifyTreatyDm } = await import("./treatyCrossNotify");
+  void notifyTreatyDm({
+    recipientAccountId: otherId,
+    senderAccountId: accountId,
+    threadId,
+    content: text,
+  });
+
   return msg;
 }
 

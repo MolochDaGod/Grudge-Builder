@@ -34,7 +34,7 @@
 <body>
   <div class="card">
     <h1>Link Telegram to Grudge</h1>
-    <p id="subtitle">Sign in with <strong>Puter</strong> to link your Grudge account to @grudachainbot.</p>
+    <p id="subtitle">Sign in with <strong>Puter</strong> to link your Grudge account to <a href="https://t.me/grudachainbot" target="_blank" rel="noreferrer">@grudachainbot</a>.</p>
     <button id="puterBtn" type="button">Sign in with Puter</button>
     <p class="hint">Uses the real Puter popup (js.puter.com) — not ALE.</p>
     <div id="status" class="status" style="display:none"></div>
@@ -57,7 +57,7 @@
 
     if (!user_id || !code || !id) {
       puterBtn.disabled = true;
-      showStatus('Invalid link. Send <code>/login</code> in @grudachainbot again.', false);
+      showStatus('Invalid link. Send <code>/login</code> in <a href="https://t.me/grudachainbot">@grudachainbot</a> again.', false);
     }
 
     fetch(`${ALE_API}/api/tglogin/status?user_id=${encodeURIComponent(user_id)}&code=${encodeURIComponent(code)}&id=${encodeURIComponent(id)}`)

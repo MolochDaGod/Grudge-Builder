@@ -127,7 +127,18 @@ export function registerTelegramRoutes(app: Express): void {
     if (!profile) {
       return res.status(404).json({ success: false, linked: false });
     }
-    return res.json({ success: true, linked: true, profile, gbuxMint: GBUX_MINT_ADDRESS });
+    const [link] = await db
+      .select()
+      .from(telegramLinks)
+      .where(eq(telegramLinks.telegramUserId, telegramUserId))
+      .limit(1);
+    return res.json({
+      success: true,
+      linked: true,
+      accountId: link?.accountId ?? null,
+      profile,
+      gbuxMint: GBUX_MINT_ADDRESS,
+    });
   });
 
   app.post("/api/admin/telegram-gbux-credit", async (req: Request, res: Response) => {

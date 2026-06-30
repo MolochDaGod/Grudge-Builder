@@ -263,6 +263,12 @@ export async function registerRoutes(
   registerDiscordCommands().catch((e) => console.warn("[Discord] Boot registration skipped:", e?.message));
 
   registerTelegramRoutes(app);
+  const { registerTreatyTelegramRoutes } = await import("./treatyTelegramRoutes");
+  registerTreatyTelegramRoutes(app);
+  const { registerTreatyDiscordRoutes } = await import("./treatyDiscordRoutes");
+  registerTreatyDiscordRoutes(app);
+  const { registerDiscordAccountRoutes } = await import("./discordAccountRoutes");
+  registerDiscordAccountRoutes(app);
 
   // Extract userId from JWT token (secure) — replaces old x-admin-mode header trust
   const getUserId = (req: Request): string => extractUserId(req);
