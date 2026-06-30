@@ -1,0 +1,1 @@
+export function setAiBase(_base: string): void {}

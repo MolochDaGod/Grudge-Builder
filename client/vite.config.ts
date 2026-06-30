@@ -4,16 +4,16 @@ import tailwindcss from "@tailwindcss/vite";
 import path from "path";
 import type { Plugin } from "vite";
 import {
-  resolveGrudgeMonorepoRoot,
-  grudgeGameAliases,
-  grudgeAtAliasEntry,
+  tryResolveGrudgeMonorepoRoot,
+  grudgeGameAliasEntries,
   grudgeGameManualChunk,
 } from "./vite/grudgeGameIntegration";
 
 // Resolve __dirname for ESM compatibility (Node 22+ on Vercel)
 const __dir = import.meta.dirname ?? path.dirname(new URL(import.meta.url).pathname);
 const repoRoot = path.resolve(__dir, "..");
-const monorepoRoot = resolveGrudgeMonorepoRoot(repoRoot);
+const monorepoRoot = tryResolveGrudgeMonorepoRoot(repoRoot);
+const grudgeAliases = grudgeGameAliasEntries(repoRoot, __dir);
 
 /**
  * Client-only Vite config — used by `npm run build:client` (Vercel deploy).
@@ -42,14 +42,14 @@ export default defineConfig({
   ],
   resolve: {
     alias: [
-      grudgeAtAliasEntry(__dir, monorepoRoot),
+      ...grudgeAliases,
       { find: "@shared", replacement: path.resolve(__dir, "..", "shared") },
       { find: "@assets", replacement: path.resolve(__dir, "..", "attached_assets") },
       { find: "three/webgpu", replacement: "three" },
-      ...Object.entries(grudgeGameAliases(monorepoRoot)).map(([find, replacement]) => ({
-        find,
-        replacement,
-      })),
+      {
+        find: "@tailwindcss/typography",
+        replacement: path.resolve(repoRoot, "node_modules/@tailwindcss/typography"),
+      },
     ],
     extensions: [".mjs", ".js", ".mts", ".ts", ".jsx", ".tsx", ".json"],
     dedupe: ["react", "react-dom"],
@@ -104,7 +104,7 @@ export default defineConfig({
   },
   server: {
     fs: {
-      allow: [repoRoot, monorepoRoot],
+      allow: monorepoRoot ? [repoRoot, monorepoRoot] : [repoRoot],
     },
   },
 });

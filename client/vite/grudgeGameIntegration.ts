@@ -11,8 +11,8 @@ const MARKER = path.join(
   "WorldPage.tsx",
 );
 
-/** Resolve grudge-character-animator root (must exist before Vite starts). */
-export function resolveGrudgeMonorepoRoot(repoRoot: string): string {
+/** Resolve grudge-character-animator root when present (optional on Vercel git deploys). */
+export function tryResolveGrudgeMonorepoRoot(repoRoot: string): string | null {
   const candidates = [
     process.env.GRUDGE_MONOREPO_ROOT,
     path.resolve(repoRoot, "vendor/grudge-character-animator"),
@@ -23,9 +23,63 @@ export function resolveGrudgeMonorepoRoot(repoRoot: string): string {
     if (fs.existsSync(path.join(root, MARKER))) return root;
   }
 
-  throw new Error(
-    "grudge-character-animator not found. Run: node client/ensure-grudge-monorepo.mjs",
+  return null;
+}
+
+/** Resolve grudge-character-animator root (throws when native /world build is required). */
+export function resolveGrudgeMonorepoRoot(repoRoot: string): string {
+  const root = tryResolveGrudgeMonorepoRoot(repoRoot);
+  if (!root) {
+    throw new Error(
+      "grudge-character-animator not found. Run: node client/ensure-grudge-monorepo.mjs",
+    );
+  }
+  return root;
+}
+
+function stubRoot(clientDir: string): string {
+  return path.join(clientDir, "src/stubs");
+}
+
+/** Vite aliases: real monorepo when vendored, otherwise in-repo stubs for /world. */
+export function grudgeGameAliasEntries(
+  repoRoot: string,
+  clientDir: string,
+): Array<{ find: string | RegExp; replacement: string; customResolver?: (source: string, importer?: string) => string }> {
+  const monorepoRoot = tryResolveGrudgeMonorepoRoot(repoRoot);
+  if (monorepoRoot) {
+    return [
+      grudgeAtAliasEntry(clientDir, monorepoRoot),
+      ...Object.entries(grudgeGameAliases(monorepoRoot)).map(([find, replacement]) => ({
+        find,
+        replacement,
+      })),
+    ];
+  }
+
+  const stubs = stubRoot(clientDir);
+  console.warn(
+    "[grudgeGameIntegration] Monorepo missing — /world uses stubs (GCS + Warlords routes still build).",
   );
+  const builderSrc = path.join(clientDir, "src");
+  return [
+    {
+      find: /^@\/(.+)$/,
+      replacement: "$1",
+      customResolver(source: string) {
+        return resolveAtImport(source, builderSrc, builderSrc);
+      },
+    },
+    { find: "@grudge-game", replacement: path.join(stubs, "grudge-game") },
+    {
+      find: "@workspace/character-kit",
+      replacement: path.join(stubs, "workspace/character-kit/index.ts"),
+    },
+    {
+      find: "@workspace/api-client-react",
+      replacement: path.join(stubs, "workspace/api-client-react/index.ts"),
+    },
+  ];
 }
 
 export function grudgeGameAliases(monorepoRoot: string): Record<string, string> {
