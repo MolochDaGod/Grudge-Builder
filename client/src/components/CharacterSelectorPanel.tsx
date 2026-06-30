@@ -15,7 +15,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Sword, Star, Hammer, RefreshCw, PlusCircle } from 'lucide-react';
 import { useCharacters } from '@/hooks/use-characters';
 import { RACES, CLASSES, FACTION_COLORS } from '@/lib/gameData';
-import { assetUrl } from '@/lib/assetConfig';
+import { getRacePortrait, getClassHeroImage } from '@/lib/artAssets';
 import type { Character } from '@/lib/characterManager';
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
@@ -29,21 +29,15 @@ function getClassName(id: string) {
 }
 
 function getCharacterPortrait(char: Character): string {
-  // 1. AI-generated avatar (best)
   if (char.avatarUrl) return char.avatarUrl;
-  // 2. Race-specific class portrait from RACES data
-  const race = RACES.find(r => r.id === char.raceId);
-  if (race?.portraits?.[char.classId]) return race.portraits[char.classId];
-  // 3. Race image (portrait without class)
-  if (race?.image) return race.image;
-  // 4. CDN path by convention
-  return assetUrl(`/heroes/portraits/${char.raceId}_${char.classId}.png`);
+  const classHero = getClassHeroImage(char.classId);
+  if (classHero) return classHero;
+  return getRacePortrait(char.raceId);
 }
 
 /** Portrait specifically for onError fallback — never recurse */
 function getPortraitFallback(char: Character): string {
-  const race = RACES.find(r => r.id === char.raceId);
-  return race?.image || assetUrl('/images/portraits/human.png');
+  return getRacePortrait(char.raceId);
 }
 
 function getFactionColor(raceId: string) {

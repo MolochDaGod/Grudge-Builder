@@ -14,6 +14,7 @@
  */
 
 import { apiUrl, OBJECT_STORE_VERSION } from "@/lib/assetConfig";
+import { setUiArtRegistry, type UiArtRegistry, UI_ART_FALLBACK } from "@shared/fleet/uiArt";
 
 // ── Cache ────────────────────────────────────────────────────────────────────
 
@@ -168,6 +169,16 @@ export function fetchClasses() {
 /** Fetch all races (Human, Orc, Elf, Undead, Barbarian, Dwarf) */
 export function fetchRaces() {
   return fetchObjectStoreData<Record<string, unknown>>("/races.json", {});
+}
+
+/** Fetch fleet UI art registry (race portraits, class heroes, viewer tokens) */
+export async function fetchUiArt(): Promise<UiArtRegistry> {
+  const data = await fetchObjectStoreData<UiArtRegistry>(
+    "/ui-art.json",
+    UI_ART_FALLBACK,
+  );
+  setUiArtRegistry(data);
+  return data;
 }
 
 /** Fetch all factions (Crusade, Legion, Fabled) */
@@ -347,5 +358,6 @@ export async function prefetchCoreData(): Promise<void> {
     fetchAttributes(),
     fetchSpriteMaps(),
     fetchWeaponSkills(),
+    fetchUiArt(),
   ]);
 }

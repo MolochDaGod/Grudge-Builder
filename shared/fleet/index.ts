@@ -24,6 +24,24 @@ export {
 } from "./truthProbes";
 
 export {
+  UI_ART_FALLBACK,
+  CHARACTER_VIEWER_TOKENS,
+  getUiArt,
+  getUiArtRegistry,
+  setUiArtRegistry,
+  getRacePortraitUrl,
+  getClassHeroUrl,
+  getClassAccentColor,
+  getPanelParchmentUrl,
+  getCombatClassBackgroundUrl,
+  getCombatClassBackgroundKey,
+  type UiArtRegistry,
+  type UiRaceId,
+  type UiClassId,
+  type UiArtViewerTokens,
+} from "./uiArt";
+
+export {
   RACE_GRUDGE6,
   RACE_FBX_PATHS,
   defaultModel3d,
