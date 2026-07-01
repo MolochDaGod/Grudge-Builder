@@ -110,3 +110,21 @@ jobs:
           grep -q '"worldSizeM":1024' /tmp/island-status.json && echo "✅ island status worldSizeM=1024"
           grep -q '"rtsWorldSizeM":200' /tmp/island-status.json && echo "✅ island status rtsWorldSizeM=200"
           cat /tmp/island-status.json
+
+      - name: Verify island spec catalog
+        run: |
+          set -euo pipefail
+          URL="${{ env.RAILWAY_URL }}/api/island/spec"
+          for i in $(seq 1 24); do
+            CODE=$(curl -sS -o /tmp/island-spec.json -w "%{http_code}" "$URL" || true)
+            if [ "$CODE" = "200" ] && grep -q '"version":"2.0.0"' /tmp/island-spec.json; then
+              echo "✅ GET /api/island/spec returned catalog v2.0.0 (attempt $i)"
+              head -c 400 /tmp/island-spec.json
+              exit 0
+            fi
+            echo "island/spec attempt $i/24 — HTTP $CODE"
+            sleep 15
+          done
+          echo "❌ GET /api/island/spec never returned v2.0.0"
+          cat /tmp/island-spec.json 2>/dev/null || true
+          exit 1
