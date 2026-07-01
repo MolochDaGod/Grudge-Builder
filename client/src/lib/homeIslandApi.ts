@@ -189,6 +189,7 @@ export function normalizeHomeIslandResponse(raw: any): HomeIslandDto {
     clearings,
     stats: sourceState?.stats,
     mountainTriad: sourceState?.mountainTriad,
+    rtsHeightmap: sourceState?.rtsHeightmap,
     rtsExport: sourceState?.rtsExport,
     createdAt: Number(sourceState?.createdAt ?? dto?.createdAt ?? Date.now()),
     lastUpdate: Number(sourceState?.lastUpdate ?? dto?.updatedAt ?? dto?.createdAt ?? Date.now()),
@@ -211,6 +212,19 @@ export function normalizeHomeIslandResponse(raw: any): HomeIslandDto {
 export async function fetchCurrentHomeIsland(): Promise<HomeIslandDto> {
   const res = await fetch('/api/island', { headers: { ...authHeaders() } });
   if (!res.ok) throw new Error(`Failed to load home island (${res.status})`);
+  return normalizeHomeIslandResponse(await res.json());
+}
+
+export async function patchHomeIslandState(state: HomeIslandState): Promise<HomeIslandDto> {
+  const res = await fetch('/api/island/state', {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
+    body: JSON.stringify({ state: { ...state, lastUpdate: Date.now() } }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || `Failed to save island state (${res.status})`);
+  }
   return normalizeHomeIslandResponse(await res.json());
 }
 

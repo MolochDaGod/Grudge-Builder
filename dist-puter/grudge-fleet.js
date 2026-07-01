@@ -7,12 +7,15 @@
 (function (global) {
   'use strict';
 
+  const CFG = (typeof window !== 'undefined' && window.GRUDGE_CONFIG) || {};
   const FLEET = {
-    auth: 'https://id.grudge-studio.com',
-    identityApi: 'https://api.grudge-studio.com',
-    gameData: 'https://grudge-builder-production.up.railway.app',
-    objectStore: 'https://objectstore.grudge-studio.com/api/v1',
-    assets: 'https://assets.grudge-studio.com',
+    auth: CFG.AUTH_GATEWAY || 'https://id.grudge-studio.com',
+    identityApi: CFG.IDENTITY_API || 'https://api.grudge-studio.com',
+    gameData: CFG.GAME_DATA || 'https://grudge-api-production-0d46.up.railway.app',
+    objectStore: CFG.OBJECTSTORE_URL || 'https://objectstore.grudge-studio.com/api/v1',
+    assets: CFG.ASSETS || 'https://assets.grudge-studio.com',
+    wcs: CFG.WCS_URL || 'https://wcs.grudge-studio.com',
+    gamesLibrary: (CFG.OBJECTSTORE_URL || 'https://objectstore.grudge-studio.com/api/v1') + '/games-library.json',
   };
 
   const TOKEN_KEY = 'grudge_auth_token';
@@ -401,6 +404,46 @@
     },
 
     syncFromBackend,
+
+    /** GET home island (Railway SSOT — seed, mountainTriad, rtsHeightmap). */
+    async getHomeIsland() {
+      const token = readToken();
+      if (!token) return null;
+      try {
+        const res = await fleetFetch(FLEET.gameData + '/api/island', { headers: authHeaders() });
+        if (!res.ok) return null;
+        return await res.json();
+      } catch {
+        return null;
+      }
+    },
+
+    /** PATCH home island state JSONB (nodes, terrainZones, mountainTriad, etc.). */
+    async saveHomeIslandState(state) {
+      const token = readToken();
+      if (!token) return null;
+      try {
+        const body = JSON.stringify({
+          state: { ...state, lastUpdate: Date.now() },
+        });
+        const res = await fleetFetch(FLEET.gameData + '/api/island/state', {
+          method: 'PATCH',
+          headers: authHeaders(),
+          body,
+        });
+        if (!res.ok) return null;
+        return await res.json();
+      } catch {
+        return null;
+      }
+    },
+
+    /** Load canonical games-library.json from ObjectStore. */
+    async getGamesLibrary() {
+      const res = await fleetFetch(FLEET.gamesLibrary);
+      if (!res.ok) throw new Error('games-library unavailable');
+      return res.json();
+    },
 
     /** PATCH character on Railway (professionLevels, equipment, inventory, etc.) */
     async saveCharacter(id, updates) {

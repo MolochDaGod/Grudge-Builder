@@ -237,6 +237,26 @@ export function fetchQuests() {
   return fetchObjectStoreData<Record<string, unknown>>("/quests.json", {});
 }
 
+/** Runtime index — canonical URLs for weapons, economy, integration contracts */
+export function fetchGamesLibrary() {
+  return fetchObjectStoreData<Record<string, unknown>>("/games-library.json", {});
+}
+
+/** Home island seed + physical scale contract (1024m 3D, 200m RTS) */
+export function fetchHomeIslandContract() {
+  return fetchObjectStoreData<Record<string, unknown>>("/home-island-contract.json", {});
+}
+
+/** Canonical item authority map (category → runtime JSON) */
+export function fetchCanonicalItemsManifest() {
+  return fetchObjectStoreData<Record<string, unknown>>("/canonical-items-manifest.json", {});
+}
+
+/** Warlords integration map — WCS, accounts, Puter GS app, save/load order */
+export function fetchWarlordsIntegrationWiring() {
+  return fetchObjectStoreData<Record<string, unknown>>("/_meta/warlords-integration-wiring.json", {});
+}
+
 /** Fetch master items (with GRUDGE UUIDs, tier expansion, recipe links) */
 export function fetchMasterItems() {
   return fetchObjectStoreData<Record<string, unknown>>("/master-items.json", {});
@@ -349,6 +369,9 @@ export function getCacheStats(): {
  */
 export async function prefetchCoreData(): Promise<void> {
   await Promise.allSettled([
+    fetchGamesLibrary(),
+    fetchCanonicalItemsManifest(),
+    fetchHomeIslandContract(),
     fetchWeapons(),
     fetchArmor(),
     fetchMaterials(),

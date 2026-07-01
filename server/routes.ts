@@ -1,7 +1,7 @@
 import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertCharacterSchema, insertPartySchema, insertUnlockedSkillSchema, insertAccountInventorySchema, islandNFTs } from "@shared/schema";
+import { insertCharacterSchema, insertPartySchema, insertUnlockedSkillSchema, insertAccountInventorySchema, islandNFTs, accounts } from "@shared/schema";
 import { normalizeGameEra, mergeEraSlots, ERA_META, type GameEra } from "@shared/definitions/gameEras";
 import { db } from "./db";
 import { eq, sql } from "drizzle-orm";
@@ -347,21 +347,36 @@ export async function registerRoutes(
         } as any);
       }
       
-      // Get starting gear for the class
       const classId = req.body.classId || 'warrior';
-      const startingGear = getClassStartingGear(classId);
-      
-      // Merge starting equipment with any provided equipment
-      const equipment = {
-        ...startingGear.equipment,
-        ...(req.body.equipment || {})
-      };
-      
-      // Merge starting inventory with any provided inventory
-      const inventory = [
-        ...startingGear.inventory,
-        ...(req.body.inventory || [])
-      ];
+      const skipStartingGear = req.body.skipStartingGear === true;
+
+      // GCS unarmed race start: empty equipment unless the client sends explicit slots.
+      const startingGear = skipStartingGear
+        ? { equipment: {}, inventory: [] as { itemId: string; quantity: number; tier?: number }[] }
+        : getClassStartingGear(classId);
+
+      const equipment = skipStartingGear
+        ? (req.body.equipment ?? {
+            Head: null,
+            Chest: null,
+            Hands: null,
+            Legs: null,
+            Feet: null,
+            Shoulder: null,
+            Back: null,
+            MainHand: null,
+            OffHand: null,
+            Accessory1: null,
+            Accessory2: null,
+          })
+        : {
+            ...startingGear.equipment,
+            ...(req.body.equipment || {}),
+          };
+
+      const inventory = skipStartingGear
+        ? (req.body.inventory ?? [])
+        : [...startingGear.inventory, ...(req.body.inventory || [])];
       
       const pipeline = ERA_META[gameEra].defaultPipeline;
       const validated = insertCharacterSchema.parse({
@@ -1273,11 +1288,15 @@ export async function registerRoutes(
     try {
       const userId = getUserId(req);
       const account = await storage.getOrCreateAccountForUser(userId);
-      
+      const island = account.homeIsland ? await storage.getHomeIsland(account.id) : undefined;
+
       res.json({
         homeIsland: account.homeIsland || false,
         homeIslandId: account.homeIslandId || null,
         homeIslandMintActionId: account.homeIslandMintActionId || null,
+        seed: island?.seed ?? null,
+        worldSizeM: 1024,
+        rtsWorldSizeM: 200,
       });
     } catch (error) {
       console.error("Error checking island status:", error);
@@ -7335,6 +7354,130 @@ Your response must be valid JSON array only, no markdown or explanation.`;
     } catch (error) {
       console.error("Error verifying NFTs:", error);
       res.status(500).json({ error: "NFT verification failed" });
+    }
+  });
+
+  // POST /api/admin/grant-gbux — Admin agent grants GBUX to a Grudge ID (rewards pipeline)
+  app.post("/api/admin/grant-gbux", requireAdmin, async (req, res) => {
+    try {
+      const { grudgeId, accountId, amount, reason, sourceRef } = req.body as {
+        grudgeId?: string;
+        accountId?: string;
+        amount?: number;
+        reason?: string;
+        sourceRef?: string;
+      };
+
+      const creditAmount = Number(amount);
+      if (!creditAmount || creditAmount <= 0 || !Number.isInteger(creditAmount)) {
+        return res.status(400).json({ error: "amount required (positive integer)" });
+      }
+
+      let account;
+      if (accountId) {
+        account = await storage.getAccount(accountId);
+      } else if (grudgeId) {
+        const normalized = grudgeId.trim().toUpperCase();
+        const [row] = await db.select().from(accounts).where(eq(accounts.grudgeId, normalized)).limit(1);
+        account = row;
+      } else {
+        return res.status(400).json({ error: "grudgeId or accountId required" });
+      }
+
+      if (!account) {
+        return res.status(404).json({ error: "Account not found" });
+      }
+
+      const tx = await storage.creditGbux(account.id, creditAmount, "admin_grant", {
+        sourceRef: sourceRef || reason || "admin_agent",
+        metadata: { reason, grantedBy: "admin_agent" },
+      });
+
+      res.json({
+        success: true,
+        grudgeId: account.grudgeId,
+        accountId: account.id,
+        walletAddress: account.walletAddress,
+        amount: creditAmount,
+        gbuxBalance: tx.balanceAfter,
+        transactionId: tx.id,
+      });
+    } catch (error: any) {
+      console.error("Error granting GBUX:", error);
+      res.status(500).json({ error: error.message || "Failed to grant GBUX" });
+    }
+  });
+
+  // POST /api/admin/mint-cnft — Admin agent mints a character cNFT to the player's linked wallet
+  app.post("/api/admin/mint-cnft", requireAdmin, async (req, res) => {
+    try {
+      const { characterId, grudgeId, accountId, email } = req.body as {
+        characterId?: string;
+        grudgeId?: string;
+        accountId?: string;
+        email?: string;
+      };
+
+      if (!characterId) {
+        return res.status(400).json({ error: "characterId required" });
+      }
+
+      let account;
+      if (accountId) {
+        account = await storage.getAccount(accountId);
+      } else if (grudgeId) {
+        const normalized = grudgeId.trim().toUpperCase();
+        const [row] = await db.select().from(accounts).where(eq(accounts.grudgeId, normalized)).limit(1);
+        account = row;
+      } else {
+        return res.status(400).json({ error: "grudgeId or accountId required" });
+      }
+
+      if (!account) {
+        return res.status(404).json({ error: "Account not found" });
+      }
+
+      const character = await storage.getCharacter(characterId);
+      if (!character || character.userId !== account.userId) {
+        return res.status(403).json({ error: "Character not found or does not belong to account" });
+      }
+
+      const mintEmail = email || account.crossmintEmail || `${account.grudgeId?.toLowerCase() || "player"}@grudgewarlords.com`;
+
+      if (!account.walletAddress) {
+        const { nftMintingService } = await import("./services/nftMinting");
+        const walletAddress = await nftMintingService.getWalletForAccount(account.id, mintEmail);
+        if (!walletAddress) {
+          return res.status(500).json({ error: "Failed to provision wallet before mint" });
+        }
+        account = (await storage.getAccount(account.id))!;
+      }
+
+      const { nftMintingService } = await import("./services/nftMinting");
+      const result = await nftMintingService.mintCharacterAsCNFT(
+        characterId,
+        account.id,
+        mintEmail,
+        account.walletAddress,
+      );
+
+      if (!result.success) {
+        return res.status(400).json({ error: result.error || "cNFT mint failed" });
+      }
+
+      res.json({
+        success: true,
+        grudgeId: account.grudgeId,
+        accountId: account.id,
+        characterId,
+        walletAddress: account.walletAddress,
+        nftId: result.nftId,
+        actionId: result.actionId,
+        message: "cNFT mint initiated",
+      });
+    } catch (error: any) {
+      console.error("Error admin-minting cNFT:", error);
+      res.status(500).json({ error: error.message || "Failed to mint cNFT" });
     }
   });
 

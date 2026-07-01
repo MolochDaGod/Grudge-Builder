@@ -17,6 +17,8 @@ import CharacterSelectorPanel from "@/components/CharacterSelectorPanel";
 interface IslandStatus {
   homeIsland: boolean;
   homeIslandId: string | null;
+  seed?: string | null;
+  worldSizeM?: number;
 }
 
 export default function AccountPage() {
@@ -213,13 +215,24 @@ export default function AccountPage() {
             {islandStatus === null ? (
               <div className="text-slate-400 text-sm">Checking island status...</div>
             ) : islandStatus.homeIsland ? (
-              <div className="flex items-center justify-between">
-                <div>
-                  <Badge className="bg-emerald-700/30 text-emerald-300 border-emerald-600/50 mb-1">Island Active</Badge>
-                  <p className="text-xs text-slate-400">Your island is initialized and generating resources.</p>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Badge className="bg-emerald-700/30 text-emerald-300 border-emerald-600/50 mb-1">Island Active</Badge>
+                    <p className="text-xs text-slate-400">1024m 3D world · seeded terrain, trees, mountain triad dungeon.</p>
+                    {islandStatus.seed && (
+                      <p className="text-[10px] font-mono text-slate-500 mt-1 truncate max-w-xs" title={islandStatus.seed}>
+                        Seed: {islandStatus.seed}
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <Button size="sm" variant="outline" className="border-emerald-700/50 text-emerald-400 hover:bg-emerald-900/20"
+                      onClick={() => setLocation('/home-island')}>3D Home Island</Button>
+                    <Button size="sm" variant="ghost" className="text-slate-400 hover:text-emerald-300 text-xs"
+                      onClick={() => setLocation('/island-v2')}>2D Island</Button>
+                  </div>
                 </div>
-                <Button size="sm" variant="outline" className="border-emerald-700/50 text-emerald-400 hover:bg-emerald-900/20"
-                  onClick={() => setLocation('/island-v2')}>Enter Island</Button>
               </div>
             ) : (
               <div className="flex items-center justify-between">
@@ -270,6 +283,42 @@ export default function AccountPage() {
           </CardContent>
         </Card>
 
+        {/* Fleet Apps — WCS + Puter GS */}
+        <Card className="mb-6 bg-slate-900/60 border-slate-700">
+          <CardHeader>
+            <CardTitle className="text-amber-400 font-cinzel text-lg">Grudge Studio Apps</CardTitle>
+            <CardDescription>Same account across Warlords, WCS, and Puter crafting</CardDescription>
+          </CardHeader>
+          <CardContent className="grid sm:grid-cols-2 gap-3">
+            <a
+              href="https://wcs.grudge-studio.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-3 p-3 rounded-lg border border-amber-800/40 bg-black/20 hover:bg-amber-950/20 transition-colors"
+            >
+              <Hammer className="w-5 h-5 text-amber-400 shrink-0" />
+              <div>
+                <div className="text-sm font-medium text-white">Warlord Crafting Suite</div>
+                <div className="text-[10px] text-slate-500">Character creation · arsenal · professions</div>
+              </div>
+              <ChevronRight className="w-4 h-4 text-slate-600 ml-auto" />
+            </a>
+            <a
+              href="https://grudge-crafting.puter.site"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-3 p-3 rounded-lg border border-cyan-800/40 bg-black/20 hover:bg-cyan-950/20 transition-colors"
+            >
+              <Sparkles className="w-5 h-5 text-cyan-400 shrink-0" />
+              <div>
+                <div className="text-sm font-medium text-white">Grudge Crafting (Puter)</div>
+                <div className="text-[10px] text-slate-500">User-pays cloud · games-library items</div>
+              </div>
+              <ChevronRight className="w-4 h-4 text-slate-600 ml-auto" />
+            </a>
+          </CardContent>
+        </Card>
+
         {/* Game Links */}
         <Card className="mb-6 bg-slate-900/60 border-slate-700">
           <CardHeader>
@@ -279,7 +328,8 @@ export default function AccountPage() {
           <CardContent>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
               {[
-                { href: '/island-v2',    icon: <Leaf className="w-4 h-4" />,     label: 'Home Island',     color: 'text-emerald-400', sub: 'Auto-Harvest' },
+                { href: '/home-island',  icon: <Leaf className="w-4 h-4" />,     label: 'Home Island 3D',  color: 'text-emerald-400', sub: '1024m seed world' },
+                { href: '/island-v2',    icon: <Map className="w-4 h-4" />,      label: 'Island 2D',       color: 'text-lime-400',    sub: 'Auto-Harvest' },
                 { href: '/crafting',     icon: <Hammer className="w-4 h-4" />,   label: 'Crafting',        color: 'text-orange-400',  sub: 'Forge gear' },
                 { href: '/rts-grudge',   icon: <Shield className="w-4 h-4" />,   label: 'RTS GRUDGE',      color: 'text-red-400',     sub: '3D Battle' },
                 { href: '/combat',       icon: <Swords className="w-4 h-4" />,   label: 'Combat',          color: 'text-slate-300',   sub: 'RPG Battle' },
