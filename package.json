@@ -23,6 +23,9 @@
     "db:migrate:eras": "node scripts/run-migration-005.mjs",
     "smoke:gcs-eras": "node scripts/smoke-gcs-eras.mjs",
     "gen:fleet": "tsx scripts/gen-fleet-manifest.mjs",
+    "gen:db-connections": "tsx scripts/gen-db-connections.mjs",
+    "db:connections": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/show-db-connections.ps1",
+    "deploy:workers": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/deploy-workers.ps1",
     "seed:rag": "node scripts/seed-anythingllm.mjs",
     "probe:truth": "tsx scripts/probe-truth-fleet.ts --base https://client.grudge-studio.com",
     "probe:truth:direct": "tsx scripts/probe-truth-fleet.ts",
@@ -290,7 +293,7 @@
     "vitest": "^4.1.7"
   },
   "engines": {
-    "node": ">=22"
+    "node": "22.x"
   },
   "optionalDependencies": {
     "bufferutil": "^4.0.8"
