@@ -43,6 +43,17 @@ export interface HomeIslandState {
     terrainZoneCount?: number;
     resourceBreakdown?: Record<string, number>;
   };
+  regrowRegions?: Array<{
+    id: string;
+    label: string;
+    centerPercent: { x: number; y: number };
+    radiusM: number;
+    regrow: boolean;
+    respawnMs: number;
+    harvestZoneType: string;
+    nodeSlots: Array<{ type: string; count: number }>;
+    dbNodeTypes: string[];
+  }>;
   mountainTriad?: {
     secretPeakIndex: 0 | 1 | 2;
     anchorPercent: { x: number; y: number };
@@ -205,6 +216,7 @@ export function normalizeHomeIslandResponse(raw: any): HomeIslandDto {
     clearings,
     stats: sourceState?.stats,
     mountainTriad: sourceState?.mountainTriad,
+    regrowRegions: sourceState?.regrowRegions,
     rtsHeightmap: sourceState?.rtsHeightmap,
     rtsNatureScatter: sourceState?.rtsNatureScatter,
     rtsExport: sourceState?.rtsExport,

@@ -29,7 +29,11 @@ import {
   HOME_ISLAND_NODE_TARGET,
   HOME_ISLAND_SYNC_SIZE_M,
 } from "@shared/definitions/homeIslandQuality";
-import { hashIslandSeedForColyseus } from "@shared/definitions/homeIslandSeed";
+import {
+  anchorPercentToWorld,
+  hashIslandSeedForColyseus,
+} from "@shared/definitions/homeIslandSeed";
+import { generateRegrowRegions, ISLAND_HARVEST_NODES } from "@shared/definitions/homeIslandSpec";
 
 // ── Join Options ─────────────────────────────────────────────────
 
@@ -52,7 +56,7 @@ interface HomeIslandJoinOptions {
 const TICK_RATE = 5;
 const ISLAND_SIZE = HOME_ISLAND_SYNC_SIZE_M;
 const AUTO_HARVEST_INTERVAL_MS = 30_000; // 30s per harvest cycle
-const NODE_RESPAWN_MS = 120_000;         // 2 min respawn
+const NODE_RESPAWN_MS = ISLAND_HARVEST_NODES.rock.respawnMs;
 const SAVE_INTERVAL_MS = 60_000;         // save to DB every 60s
 const MAX_HARVEST_NODES = HOME_ISLAND_NODE_TARGET;
 const MAX_VISITORS = 5;
@@ -275,21 +279,46 @@ export class HomeIslandRoom extends Room<HomeIslandState> {
   // ── Procedural node seeding ────────────────────────────────────
 
   private seedHarvestNodes(seed: number): void {
-    // Deterministic RNG from seed
     let rng = seed;
     const next = () => { rng = (rng * 16807 + 0) % 2147483647; return rng / 2147483647; };
 
-    for (let i = 0; i < MAX_HARVEST_NODES; i++) {
+    const seedStr = String(seed);
+    const regions = generateRegrowRegions(seedStr);
+    let nodeIndex = 0;
+
+    for (const region of regions) {
+      const center = anchorPercentToWorld(region.centerPercent, ISLAND_SIZE);
+      const typeMap: Record<string, string> = {
+        wood: 'forest', stone: 'mining', ore: 'mining', gem: 'mining',
+        shell: 'fishing', fish: 'fishing', herb: 'herbalism',
+      };
+      for (const slot of region.nodeSlots) {
+        for (let s = 0; s < slot.count; s++) {
+          const node = new HarvestNode();
+          node.id = `regrow_${region.id}_${nodeIndex++}`;
+          const dbType = region.dbNodeTypes[s % region.dbNodeTypes.length] ?? 'stone';
+          node.resourceType = typeMap[dbType] ?? RESOURCE_TYPES[Math.floor(next() * RESOURCE_TYPES.length)];
+          const angle = (s / slot.count) * Math.PI * 2 + next() * 0.5;
+          const dist = 12 + next() * (region.radiusM * 0.85);
+          node.x = center.x + Math.cos(angle) * dist;
+          node.z = center.z + Math.sin(angle) * dist;
+          node.depleted = false;
+          this.state.harvestNodes.set(node.id, node);
+        }
+      }
+    }
+
+    while (nodeIndex < MAX_HARVEST_NODES) {
       const node = new HarvestNode();
-      node.id = `node_${i}`;
+      node.id = `node_${nodeIndex}`;
       node.resourceType = RESOURCE_TYPES[Math.floor(next() * RESOURCE_TYPES.length)];
-      // Place within island bounds, avoiding center (buildings area)
       const angle = next() * Math.PI * 2;
       const dist = 30 + next() * (ISLAND_SIZE * 0.35);
       node.x = Math.cos(angle) * dist;
       node.z = Math.sin(angle) * dist;
       node.depleted = false;
       this.state.harvestNodes.set(node.id, node);
+      nodeIndex++;
     }
   }
 

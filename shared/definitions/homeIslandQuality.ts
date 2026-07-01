@@ -10,8 +10,8 @@ export const HOME_ISLAND_NODE_TARGET = 32;
 /** Passive wildlife (skinning / ambience) */
 export const HOME_ISLAND_ANIMAL_TARGET = 12;
 
-/** 3D harvest zone clusters (forest patches, gem veins, etc.) */
-export const HOME_ISLAND_HARVEST_ZONE_COUNT = 16;
+/** 3D harvest zones: 3 regrow anchors (forest/quarry/beach) + 16 procedural */
+export const HOME_ISLAND_HARVEST_ZONE_COUNT = 19;
 
 /** Min spacing between 3D harvest zones (meters) */
 export const HOME_ISLAND_HARVEST_ZONE_SPACING_M = 78;

@@ -2,6 +2,7 @@
  * HarvestableRock — CDN rock pack with procedural fallback.
  */
 import * as THREE from 'three';
+import { harvestFitHeightM } from '@shared/definitions/homeIslandSpec';
 import { cloneIslandResource, fitModelToHeight } from './IslandResourceLoader';
 
 export interface HarvestableRock {
@@ -74,7 +75,7 @@ export async function mountHarvestableRockModel(
   try {
     const model = await cloneIslandResource(rock.oreVariant ? 'goldRock' : 'rock');
     rock.group.clear();
-    fitModelToHeight(model, 2.8 * scale);
+    fitModelToHeight(model, harvestFitHeightM(rock.oreVariant ? 'ore' : 'rock', scale));
     model.rotation.y = Math.random() * Math.PI * 2;
     rock.group.add(model);
   } catch (err) {

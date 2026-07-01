@@ -19,6 +19,11 @@ import {
   HOME_ISLAND_NODE_TARGET,
 } from '@shared/definitions/homeIslandQuality';
 import {
+  generateRegrowRegions,
+  ISLAND_ANIMALS,
+  type HomeIslandRegrowRegion,
+} from '@shared/definitions/homeIslandSpec';
+import {
   deriveCampPositionFromZones,
   deriveTerrainZonesFromRtsHeightmap,
   type RtsHeightmapPayload,
@@ -124,6 +129,7 @@ export interface IslandState {
   campPosition: { x: number; y: number };
   clearings: Array<{ x: number; y: number; radius: number }>;
   mountainTriad?: MountainTriadSeed;
+  regrowRegions?: HomeIslandRegrowRegion[];
   rtsHeightmap?: RtsHeightmapPayload;
   rtsNatureScatter?: RtsNatureScatterPayload;
   stats: {
@@ -402,9 +408,7 @@ export function generateAnimals(
 
     if (!zone || !zoneCompat[type]?.includes(zone.type)) continue;
 
-    // Base HP varies by type
-    const baseHp: Record<string, number> = { hare: 5, fox: 15, deer: 20, boar: 30 };
-    const hp = baseHp[type] || 10;
+    const hp = ISLAND_ANIMALS[type as keyof typeof ISLAND_ANIMALS]?.hp ?? 10;
 
     animals.push({
       id: uuidv4(),
@@ -473,6 +477,7 @@ export function generateIslandState(
   const nodes = generateResourceNodes(terrainZones, rng, HOME_ISLAND_NODE_TARGET, mapWidth, mapHeight);
   const animals = generateAnimals(terrainZones, rng, HOME_ISLAND_ANIMAL_TARGET, mapWidth, mapHeight);
   const mountainTriad = generateMountainTriadSeed(seed);
+  const regrowRegions = generateRegrowRegions(seed);
 
   // Camp position: center of clearing zone (if available)
   const clearingZone = terrainZones.find((z) => z.type === 'clearing');
@@ -511,6 +516,7 @@ export function generateIslandState(
         radius: Math.min(z.bounds.width, z.bounds.height) / 2,
       })),
     mountainTriad,
+    regrowRegions,
     stats: {
       nodeCount: nodes.length,
       animalCount: animals.length,

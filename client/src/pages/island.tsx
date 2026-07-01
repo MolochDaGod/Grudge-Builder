@@ -1831,6 +1831,7 @@ export default function IslandPage() {
               window.location.href = buildHomeDungeonUrl(dungeonId, dungeonName);
             }}
             campPositionPercent={islandState?.campPosition ?? homeIslandDto?.state?.campPosition}
+            regrowRegions={homeIslandDto?.state?.regrowRegions}
           />
         </div>
       ) : (

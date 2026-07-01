@@ -2,6 +2,7 @@
  * HarvestableTree — GLB village tree with procedural fallback.
  */
 import * as THREE from 'three';
+import { harvestFitHeightM } from '@shared/definitions/homeIslandSpec';
 import { cloneIslandResource, fitModelToHeight } from './IslandResourceLoader';
 
 export type TreeFallPhase = 'live' | 'falling' | 'stump' | 'hidden';
@@ -84,7 +85,7 @@ export async function mountHarvestableTreeModel(
   try {
     const model = await cloneIslandResource('tree');
     tree.group.clear();
-    fitModelToHeight(model, 7 * scale);
+    fitModelToHeight(model, harvestFitHeightM('tree', scale));
     tree.group.add(model);
   } catch (err) {
     console.warn('[HarvestableTree] GLB unavailable, keeping procedural mesh', err);

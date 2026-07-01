@@ -135,6 +135,8 @@ export interface Island3DEngineConfig {
   rtsNatureScatter?: RtsNatureScatterPayload;
   /** Camp hub on 2D percent coords (north = low y) — flattens build plateau in 3D */
   campPositionPercent?: { x: number; y: number };
+  /** Regrowing forest grove + quarry + beach anchors from island state */
+  regrowRegions?: import('@shared/definitions/homeIslandSpec').HomeIslandRegrowRegion[];
   /** Fired when a harvestable node is depleted (tree felled, rock mined) */
   onHarvest?: (event: {
     nodeId?: string;
@@ -526,6 +528,7 @@ export class Island3DEngine {
         minSpacing: HOME_ISLAND_HARVEST_ZONE_SPACING_M,
         spawnClearRadius: HOME_ISLAND_CAMP_CLEAR_RADIUS_M,
         terrainSize: HOME_ISLAND_WORLD_SIZE_M,
+        regrowRegions: this.config.regrowRegions,
       },
     );
     this.harvestZones = await buildHarvestZones(this.scene, zoneDefs);

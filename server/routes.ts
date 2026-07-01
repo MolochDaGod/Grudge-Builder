@@ -26,6 +26,7 @@ import { detectSpriteType, SPRITE_TYPES } from "@shared/definitions/spriteTypes"
 import { getClassStartingGear } from "@shared/definitions/tier0Items";
 import {
   generateIslandState,
+  islandStateNeedsGeneration,
   mergeRtsExportIntoIslandState,
   validateIslandAssets,
 } from "./utilities/islandGeneration";
@@ -1285,8 +1286,18 @@ export async function registerRoutes(
     try {
       const userId = getUserId(req);
       const account = await storage.getOrCreateAccountForUser(userId);
-      const island = await storage.getOrCreateHomeIsland(account.id);
-      
+      let island = await storage.getOrCreateHomeIsland(account.id);
+
+      const existingState = (island.state || {}) as Record<string, unknown>;
+      if (islandStateNeedsGeneration(existingState)) {
+        const chars = await storage.getCharacters(userId);
+        const ownerId = chars[0]?.id ?? account.id;
+        const generatedState = generateIslandState(ownerId, island.seed);
+        island = await storage.updateHomeIsland(island.id, {
+          state: { ...generatedState, sheep: generatedState.animals },
+        } as any);
+      }
+
       // Normalize state to canonical DTO format for consistent API response
       const normalizedState = normalizeIslandState(island);
       
@@ -1301,6 +1312,16 @@ export async function registerRoutes(
   });
 
   // Check if player has completed island cutscene (homeIsland = true)
+  app.get("/api/island/spec", async (_req, res) => {
+    try {
+      const { getHomeIslandSpecSummary } = await import("@shared/definitions/homeIslandSpec");
+      res.json(getHomeIslandSpecSummary());
+    } catch (error) {
+      console.error("Error serving island spec:", error);
+      res.status(500).json({ error: "Failed to load island spec" });
+    }
+  });
+
   app.get("/api/island/status", async (req, res) => {
     try {
       const userId = getUserId(req);

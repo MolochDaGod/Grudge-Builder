@@ -65,6 +65,8 @@ interface Island3DRendererProps {
   onDungeonEnter?: (dungeonId: string, dungeonName: string) => void;
   /** Camp hub percent coords from Railway home island state */
   campPositionPercent?: { x: number; y: number };
+  /** Regrowing forest / quarry / beach anchor regions */
+  regrowRegions?: import('@shared/definitions/homeIslandSpec').HomeIslandRegrowRegion[];
 }
 
 export function Island3DRenderer({
@@ -72,7 +74,7 @@ export function Island3DRenderer({
   sectorId, worldSeed,
   quality = 'medium', dayNight, enableCharacter, onEngineReady,
   characterId, raceId, classId, characterName, model3d, lobbyIslandId, onHarvest,
-  mountainTriad, rtsHeightmap, rtsNatureScatter, onDungeonEnter, campPositionPercent,
+  mountainTriad, rtsHeightmap, rtsNatureScatter, onDungeonEnter, campPositionPercent, regrowRegions,
 }: Island3DRendererProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -137,6 +139,7 @@ export function Island3DRenderer({
       rtsNatureScatter,
       onDungeonEnter,
       campPositionPercent,
+      regrowRegions,
     });
     engineRef.current = engine;
 
@@ -179,7 +182,7 @@ export function Island3DRenderer({
   }, [
     seed, multiplayer, mode, lobbyMapId, sectorId, worldSeed,
     characterId, raceId, classId, model3d,
-    mountainTriad, rtsHeightmap, rtsNatureScatter, onDungeonEnter, campPositionPercent,
+    mountainTriad, rtsHeightmap, rtsNatureScatter, onDungeonEnter, campPositionPercent, regrowRegions,
   ]);
 
   // Lobby interact: E capture / board ship

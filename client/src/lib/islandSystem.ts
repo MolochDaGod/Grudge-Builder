@@ -6,6 +6,7 @@ import {
   HOME_ISLAND_NODE_BUDGET,
   HOME_ISLAND_NODE_TARGET,
 } from '@shared/definitions/homeIslandQuality';
+import { ISLAND_ANIMALS } from '@shared/definitions/homeIslandSpec';
 
 export interface LootDrop {
   itemId: string;
@@ -216,6 +217,12 @@ export interface AnimalConfig {
   name: string;
   rarity: AnimalRarity;
   spawnWeight: number;
+  /** World-space body height (top to bottom), meters on 1024m island */
+  heightM: number;
+  /** World-space body width (side to side), meters */
+  widthM: number;
+  /** Nose-to-tail length, meters */
+  depthM: number;
   walkSprite: string;
   deathSprite: string;
   frameWidth: number;
@@ -225,59 +232,31 @@ export interface AnimalConfig {
   scale: number;
 }
 
+function animalConfigFromSpec(id: AnimalType, rarity: AnimalRarity): AnimalConfig {
+  const spec = ISLAND_ANIMALS[id];
+  return {
+    type: id,
+    name: spec.name,
+    rarity,
+    spawnWeight: spec.spawnWeight,
+    heightM: spec.heightM,
+    widthM: spec.widthM,
+    depthM: spec.depthM,
+    walkSprite: assetUrl(spec.sprite2d.walk),
+    deathSprite: assetUrl(spec.sprite2d.death),
+    frameWidth: spec.sprite2d.framePx,
+    frameHeight: spec.sprite2d.framePx,
+    walkFrames: id === 'hare' ? 5 : id === 'boar' ? 5 : 6,
+    deathFrames: id === 'deer' ? 7 : 6,
+    scale: spec.sprite2d.displayScale,
+  };
+}
+
 export const ANIMAL_CONFIGS: Record<AnimalType, AnimalConfig> = {
-  hare: {
-    type: 'hare',
-    name: 'Hare',
-    rarity: 'common',
-    spawnWeight: 50,
-    walkSprite: assetUrl("/sprites/topdown/animals/Tiled/Hare_Walk_with_shadow.png"),
-    deathSprite: assetUrl("/sprites/topdown/animals/Tiled/Hare_Death_with_shadow.png"),
-    frameWidth: 32,
-    frameHeight: 32,
-    walkFrames: 5,
-    deathFrames: 6,
-    scale: 1.5,
-  },
-  fox: {
-    type: 'fox',
-    name: 'Fox',
-    rarity: 'rare',
-    spawnWeight: 30,
-    walkSprite: assetUrl("/sprites/topdown/animals/Tiled/Fox_walk_with_shadow.png"),
-    deathSprite: assetUrl("/sprites/topdown/animals/Tiled/Fox_Death_with_shadow.png"),
-    frameWidth: 32,
-    frameHeight: 32,
-    walkFrames: 6,
-    deathFrames: 6,
-    scale: 1.5,
-  },
-  deer: {
-    type: 'deer',
-    name: 'Deer',
-    rarity: 'epic',
-    spawnWeight: 15,
-    walkSprite: assetUrl("/sprites/topdown/animals/Tiled/Deer_Walk_with_shadow.png"),
-    deathSprite: assetUrl("/sprites/topdown/animals/Tiled/Deer_Death_with_shadow.png"),
-    frameWidth: 32,
-    frameHeight: 32,
-    walkFrames: 6,
-    deathFrames: 7,
-    scale: 1.5,
-  },
-  boar: {
-    type: 'boar',
-    name: 'Boar',
-    rarity: 'legendary',
-    spawnWeight: 5,
-    walkSprite: assetUrl("/sprites/topdown/animals/Tiled/Boar_Run_with_shadow.png"),
-    deathSprite: assetUrl("/sprites/topdown/animals/Tiled/Boar_Death_with_shadow.png"),
-    frameWidth: 32,
-    frameHeight: 32,
-    walkFrames: 5,
-    deathFrames: 6,
-    scale: 1.5,
-  },
+  hare: animalConfigFromSpec('hare', 'common'),
+  fox: animalConfigFromSpec('fox', 'rare'),
+  deer: animalConfigFromSpec('deer', 'epic'),
+  boar: animalConfigFromSpec('boar', 'legendary'),
 };
 
 export const ANIMAL_RARITY_COLORS: Record<AnimalRarity, { text: string; border: string; bg: string }> = {

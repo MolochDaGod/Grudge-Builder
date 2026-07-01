@@ -5,6 +5,7 @@
  * Trees and rocks are handled by HarvestableTree/HarvestableRock.
  */
 import * as THREE from 'three';
+import { harvestFitHeightM } from '@shared/definitions/homeIslandSpec';
 import { cloneIslandResource, fitModelToHeight } from './IslandResourceLoader';
 
 // ── Crystal Cluster ──────────────────────────────────────────────
@@ -98,7 +99,7 @@ export async function mountCrystalClusterModel(
     const glowColors = [0x88ddff, 0xaa66ff, 0x66ffaa, 0xff88cc];
     const glowColor = glowColors[Math.floor(Math.random() * glowColors.length)];
     crystal.group.clear();
-    fitModelToHeight(model, 2.2 * scale);
+    fitModelToHeight(model, harvestFitHeightM('gem', scale));
     crystal.group.add(model);
 
     const glow = new THREE.PointLight(glowColor, 0.8, 10);

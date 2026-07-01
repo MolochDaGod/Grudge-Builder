@@ -10,7 +10,11 @@ import {
   HOME_ISLAND_HARVEST_ZONE_COUNT,
   HOME_ISLAND_HARVEST_ZONE_SPACING_M,
 } from '@shared/definitions/homeIslandQuality';
-import { HOME_ISLAND_WORLD_SIZE_M } from '@shared/definitions/homeIslandSeed';
+import { HOME_ISLAND_WORLD_SIZE_M, anchorPercentToWorld } from '@shared/definitions/homeIslandSeed';
+import {
+  generateRegrowRegions,
+  type HomeIslandRegrowRegion,
+} from '@shared/definitions/homeIslandSpec';
 
 export type HarvestZoneType =
   | 'forest'
@@ -210,6 +214,57 @@ export interface ProceduralZoneOptions {
   minSpacing?: number;
   spawnClearRadius?: number;
   terrainSize?: number;
+  /** Persisted from Railway island state; regenerated from seed when absent */
+  regrowRegions?: HomeIslandRegrowRegion[];
+}
+
+function regrowRegionToZoneDef(
+  region: HomeIslandRegrowRegion,
+  terrainMesh: THREE.Mesh,
+  terrainSize: number,
+): HarvestZoneDef {
+  const world = anchorPercentToWorld(region.centerPercent, terrainSize);
+  const wy = getTerrainHeightAt(terrainMesh, world.x, world.z) ?? 0;
+  const zoneSeed = `regrow_${region.id}`;
+  const radius = region.radiusM;
+  const clearRadius = Math.min(12, radius * 0.12);
+  const nodes: HarvestZoneNodeSlot[] = [];
+
+  for (const slot of region.nodeSlots) {
+    const rng = makePrng(`${zoneSeed}_${slot.type}`);
+    for (let i = 0; i < slot.count; i++) {
+      const angle = (i / slot.count) * Math.PI * 2 + rng() * 0.6;
+      const dist = clearRadius + 4 + rng() * (radius - clearRadius - 6);
+      nodes.push({
+        type: slot.type,
+        offsetX: Math.cos(angle) * dist,
+        offsetZ: Math.sin(angle) * dist,
+        scale: 0.9 + rng() * 0.45,
+      });
+    }
+  }
+
+  return {
+    id: `regrow_${region.id}`,
+    type: region.harvestZoneType,
+    center: new THREE.Vector3(world.x, wy, world.z),
+    radius,
+    clearRadius,
+    forestTreeCount: region.harvestZoneType === 'forest' ? 36 : 0,
+    nodes,
+    seed: zoneSeed,
+  };
+}
+
+/** Always-on regrowing forest grove, quarry, and beach band */
+export function placeRegrowAnchorZones(
+  seed: string,
+  terrainMesh: THREE.Mesh,
+  terrainSize: number,
+  persisted?: HomeIslandRegrowRegion[],
+): HarvestZoneDef[] {
+  const regions = persisted?.length ? persisted : generateRegrowRegions(seed);
+  return regions.map((r) => regrowRegionToZoneDef(r, terrainMesh, terrainSize));
 }
 
 /**
@@ -228,10 +283,17 @@ export function placeProceduralHarvestZones(
     minSpacing = HOME_ISLAND_HARVEST_ZONE_SPACING_M,
     spawnClearRadius = HOME_ISLAND_CAMP_CLEAR_RADIUS_M,
     terrainSize = HOME_ISLAND_WORLD_SIZE_M,
+    regrowRegions,
   } = options;
 
+  const zones: HarvestZoneDef[] = placeRegrowAnchorZones(
+    seed,
+    terrainMesh,
+    terrainSize,
+    regrowRegions,
+  );
+
   const rng = makePrng(seed + '_harvest_zones');
-  const zones: HarvestZoneDef[] = [];
   let attempts = 0;
   const maxAttempts = zoneCount * 40;
 

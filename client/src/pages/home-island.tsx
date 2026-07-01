@@ -253,12 +253,14 @@ export default function HomeIslandPage() {
     const rtsNatureScatter = islandDto?.state?.rtsNatureScatter;
 
     const campPositionPercent = islandDto?.state?.campPosition ?? islandDto?.campPosition;
+    const regrowRegions = islandDto?.state?.regrowRegions;
 
     const config: Island3DEngineConfig = {
       seed: islandSeed,
       mountainTriad,
       rtsHeightmap,
       rtsNatureScatter,
+      regrowRegions,
       campPositionPercent: campPositionPercent
         ? { x: Number(campPositionPercent.x), y: Number(campPositionPercent.y) }
         : undefined,
