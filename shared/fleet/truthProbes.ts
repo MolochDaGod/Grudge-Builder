@@ -4,6 +4,7 @@
  */
 
 import { FLEET_URLS } from "./manifest";
+import { LIVE_GAME_SERVER_ORIGIN } from "./liveGamePattern";
 
 export type TruthProbeRole =
   | "game-data"
@@ -105,6 +106,15 @@ export const TRUTH_PROBE_SPECS: TruthProbeSpec[] = [
     rejectHtml: true,
   },
   {
+    id: "game-island-spec",
+    label: "Island spec catalog",
+    role: "game-data",
+    productionUrl: `${FLEET_URLS.gameData}/api/island/spec`,
+    browserPath: "/api/island/spec",
+    method: "GET",
+    rejectHtml: true,
+  },
+  {
     id: "os-items",
     label: "master-items.json",
     role: "objectstore",
@@ -119,6 +129,24 @@ export const TRUTH_PROBE_SPECS: TruthProbeSpec[] = [
     role: "objectstore",
     productionUrl: `${FLEET_URLS.objectStore}/master-recipes.json`,
     browserPath: "/api/objectstore/v1/master-recipes.json",
+    method: "GET",
+    rejectHtml: true,
+  },
+  {
+    id: "os-games-library",
+    label: "games-library.json",
+    role: "objectstore",
+    productionUrl: `${FLEET_URLS.objectStore}/games-library.json`,
+    browserPath: "/api/objectstore/v1/games-library.json",
+    method: "GET",
+    rejectHtml: true,
+  },
+  {
+    id: "os-fleet-truth",
+    label: "fleet-truth.json",
+    role: "objectstore",
+    productionUrl: `${FLEET_URLS.objectStore}/_meta/fleet-truth.json`,
+    browserPath: "/api/objectstore/v1/_meta/fleet-truth.json",
     method: "GET",
     rejectHtml: true,
   },
@@ -147,6 +175,39 @@ export const TRUTH_PROBE_SPECS: TruthProbeSpec[] = [
     productionUrl: `${FLEET_URLS.assets}/`,
     browserPath: `${FLEET_URLS.assets}/`,
     method: "GET",
+    rejectHtml: false,
+  },
+  {
+    id: "grudox-live-health",
+    label: "GRUDOX live server health",
+    role: "game-data",
+    productionUrl: `${FLEET_URLS.grudox}/api/health`,
+    browserPath: "/api/health",
+    method: "GET",
+    rejectHtml: true,
+  },
+  {
+    id: "grudox-game-server-direct",
+    label: "GRUDOX game server (Railway)",
+    role: "game-data",
+    productionUrl: `${LIVE_GAME_SERVER_ORIGIN}/health`,
+    method: "GET",
+    rejectHtml: true,
+  },
+  {
+    id: "grudox-hub",
+    label: "GRUDOX hub shell",
+    role: "game-data",
+    productionUrl: `${FLEET_URLS.grudox}/`,
+    method: "HEAD",
+    rejectHtml: false,
+  },
+  {
+    id: "carrier-hub",
+    label: "Carrier game shell",
+    role: "game-data",
+    productionUrl: `${FLEET_URLS.carrier}/`,
+    method: "HEAD",
     rejectHtml: false,
   },
 ];

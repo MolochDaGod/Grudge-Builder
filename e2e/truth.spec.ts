@@ -9,9 +9,19 @@ import {
 const MIN_TRUTH_SCORE = Number(process.env.TRUTH_MIN_SCORE ?? "85");
 
 test.describe("ONE TRUTH fleet", () => {
+  test("production island spec catalog v2.0.0", async ({ request }) => {
+    const res = await request.get(
+      "https://grudge-api-production-0d46.up.railway.app/api/island/spec",
+    );
+    expect(res.ok()).toBeTruthy();
+    const body = await res.json();
+    expect(body.version).toBe("2.0.0");
+    expect(body.scale?.worldSizeM).toBe(1024);
+  });
+
   test("production objectstore returns JSON master-items", async ({ request }) => {
     const res = await request.get(
-      "https://info.grudge-studio.com/api/v1/master-items.json",
+      "https://objectstore.grudge-studio.com/api/v1/master-items.json",
     );
     expect(res.ok()).toBeTruthy();
     const ct = res.headers()["content-type"] ?? "";
