@@ -8,7 +8,9 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import {
   generateIslandTerrainWithBridge,
+  flattenCampPlateau,
   getTerrainHeightAt,
+  getTerrainNormalAt,
   type IslandTerrainConfig,
   type IslandTerrainResult,
 } from '../terrain/IslandTerrainGenerator';
@@ -79,8 +81,19 @@ import {
 } from '../harvest/HarvestFeedback';
 import {
   generateMountainTriadSeed,
+  HOME_ISLAND_WORLD_SIZE_M,
   type MountainTriadSeed,
 } from '@shared/definitions/homeIslandSeed';
+import {
+  campPercentToWorld,
+  HOME_ISLAND_BUILDABLE_MAX_HEIGHT_M,
+  HOME_ISLAND_BUILDABLE_MAX_SLOPE_RAD,
+  HOME_ISLAND_BUILDABLE_MIN_HEIGHT_M,
+  HOME_ISLAND_CAMP_CLEAR_RADIUS_M,
+  HOME_ISLAND_DEFAULT_CAMP_PERCENT,
+  HOME_ISLAND_HARVEST_ZONE_COUNT,
+  HOME_ISLAND_HARVEST_ZONE_SPACING_M,
+} from '@shared/definitions/homeIslandQuality';
 
 export type Island3DMode = 'procedural' | 'lobby' | 'zone';
 
@@ -120,6 +133,8 @@ export interface Island3DEngineConfig {
   rtsHeightmap?: RtsHeightmapPayload;
   /** RTS NatureScatter foliage placements (200m, CDN GLBs) */
   rtsNatureScatter?: RtsNatureScatterPayload;
+  /** Camp hub on 2D percent coords (north = low y) — flattens build plateau in 3D */
+  campPositionPercent?: { x: number; y: number };
   /** Fired when a harvestable node is depleted (tree felled, rock mined) */
   onHarvest?: (event: {
     nodeId?: string;
@@ -487,6 +502,11 @@ export class Island3DEngine {
     if (this.config.rtsHeightmap) {
       console.log('[Island3D] Terrain from RTS heightmap export (200m → 1024m upsample)');
     }
+
+    const campPct = this.config.campPositionPercent ?? HOME_ISLAND_DEFAULT_CAMP_PERCENT;
+    const campWorld = campPercentToWorld(campPct, HOME_ISLAND_WORLD_SIZE_M);
+    flattenCampPlateau(this.terrain.terrainMesh, campWorld.x, campWorld.z);
+
     this.terrain.terrainMesh.material = terrainMaterial;
     this.flattenTerrainBelowWater(this.terrain.terrainMesh, PROCEDURAL_WATER_LEVEL);
     this.scene.add(this.terrain.terrainScene);
@@ -501,6 +521,12 @@ export class Island3DEngine {
       this.terrain.biomeMap,
       this.terrain.gridW,
       this.terrain.gridH,
+      {
+        zoneCount: HOME_ISLAND_HARVEST_ZONE_COUNT,
+        minSpacing: HOME_ISLAND_HARVEST_ZONE_SPACING_M,
+        spawnClearRadius: HOME_ISLAND_CAMP_CLEAR_RADIUS_M,
+        terrainSize: HOME_ISLAND_WORLD_SIZE_M,
+      },
     );
     this.harvestZones = await buildHarvestZones(this.scene, zoneDefs);
     this.trees.push(...this.harvestZones.trees);
@@ -559,8 +585,18 @@ export class Island3DEngine {
     // 9. Ally manager (Gouldstone system)
     this.allyManager = new AllyManager(this.scene, this.navMesh, this.terrain.terrainMesh);
 
-    // 10. Building system
+    // 10. Building system — slope/height constraints on camp plateau
     this.building = new BuildingSystem(this.scene, this.camera);
+    this.building.setBuildConstraints({
+      terrainMesh: this.terrain.terrainMesh,
+      minHeightM: HOME_ISLAND_BUILDABLE_MIN_HEIGHT_M,
+      maxHeightM: HOME_ISLAND_BUILDABLE_MAX_HEIGHT_M,
+      maxSlopeRad: HOME_ISLAND_BUILDABLE_MAX_SLOPE_RAD,
+      campCenter: campWorld,
+      campRadiusM: HOME_ISLAND_CAMP_CLEAR_RADIUS_M,
+      sampleNormal: (x, z) => getTerrainNormalAt(this.terrain!.terrainMesh, x, z),
+      sampleHeight: (x, z) => getTerrainHeightAt(this.terrain!.terrainMesh, x, z),
+    });
 
     // 11. Character controller (over-the-shoulder, replaces orbit)
     if (this.config.enableCharacter !== false) {
@@ -912,9 +948,10 @@ export class Island3DEngine {
   private spawnCharacter(): void {
     if (!this.terrain) return;
 
-    // Find a walkable spawn point near island center
-    const spawnY = getTerrainHeightAt(this.terrain.terrainMesh, 0, 0) ?? 20;
-    const startPos = new THREE.Vector3(0, spawnY + 2, 0);
+    const campPct = this.config.campPositionPercent ?? HOME_ISLAND_DEFAULT_CAMP_PERCENT;
+    const campWorld = campPercentToWorld(campPct, HOME_ISLAND_WORLD_SIZE_M);
+    const spawnY = getTerrainHeightAt(this.terrain.terrainMesh, campWorld.x, campWorld.z) ?? 20;
+    const startPos = new THREE.Vector3(campWorld.x, spawnY + 2, campWorld.z);
 
     this.character = new CharacterController3D({
       scene: this.scene,

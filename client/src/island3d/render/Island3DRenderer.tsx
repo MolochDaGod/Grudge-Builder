@@ -6,6 +6,9 @@
  */
 import { useRef, useEffect, useState, useCallback } from 'react';
 import { Island3DEngine, type Island3DMode } from '../engine/Island3DEngine';
+import type { MountainTriadSeed } from '@shared/definitions/homeIslandSeed';
+import type { RtsHeightmapPayload } from '@shared/definitions/rtsTerrainBridge';
+import type { RtsNatureScatterPayload } from '@shared/definitions/rtsNatureScatter';
 import { exportSceneToFile, getSceneStats } from '@/lib/sceneExporter';
 import type { MultiplayerConfig } from '../sync/MultiplayerSync';
 import type { Model3DField } from '@shared/fleet';
@@ -52,6 +55,16 @@ interface Island3DRendererProps {
   onEngineReady?: (engine: Island3DEngine) => void;
   /** Fired when a harvestable node is depleted (tree felled, rock mined, etc.) */
   onHarvest?: (event: { nodeId?: string; resourceType: string; position: import('three').Vector3 }) => void;
+  /** Persisted mountain triad from Railway home island state */
+  mountainTriad?: MountainTriadSeed;
+  /** RTS-Grudge heightmap export — shapes center of 1024m terrain */
+  rtsHeightmap?: RtsHeightmapPayload;
+  /** RTS NatureScatter foliage placements */
+  rtsNatureScatter?: RtsNatureScatterPayload;
+  /** Fired when player enters a mountain dungeon portal */
+  onDungeonEnter?: (dungeonId: string, dungeonName: string) => void;
+  /** Camp hub percent coords from Railway home island state */
+  campPositionPercent?: { x: number; y: number };
 }
 
 export function Island3DRenderer({
@@ -59,6 +72,7 @@ export function Island3DRenderer({
   sectorId, worldSeed,
   quality = 'medium', dayNight, enableCharacter, onEngineReady,
   characterId, raceId, classId, characterName, model3d, lobbyIslandId, onHarvest,
+  mountainTriad, rtsHeightmap, rtsNatureScatter, onDungeonEnter, campPositionPercent,
 }: Island3DRendererProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -118,6 +132,11 @@ export function Island3DRenderer({
       onHarvest: (evt) => onHarvestRef.current?.(evt),
       accountId,
       captainId: characterId ?? null,
+      mountainTriad,
+      rtsHeightmap,
+      rtsNatureScatter,
+      onDungeonEnter,
+      campPositionPercent,
     });
     engineRef.current = engine;
 
@@ -157,7 +176,11 @@ export function Island3DRenderer({
       engine.destroy();
       engineRef.current = null;
     };
-  }, [seed, multiplayer, mode, lobbyMapId, sectorId, worldSeed, characterId, raceId, classId, model3d]);
+  }, [
+    seed, multiplayer, mode, lobbyMapId, sectorId, worldSeed,
+    characterId, raceId, classId, model3d,
+    mountainTriad, rtsHeightmap, rtsNatureScatter, onDungeonEnter, campPositionPercent,
+  ]);
 
   // Lobby interact: E capture / board ship
   useEffect(() => {

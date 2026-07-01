@@ -5,6 +5,12 @@
  */
 import * as THREE from 'three';
 import { getTerrainHeightAt, type BiomeType } from '../terrain/IslandTerrainGenerator';
+import {
+  HOME_ISLAND_CAMP_CLEAR_RADIUS_M,
+  HOME_ISLAND_HARVEST_ZONE_COUNT,
+  HOME_ISLAND_HARVEST_ZONE_SPACING_M,
+} from '@shared/definitions/homeIslandQuality';
+import { HOME_ISLAND_WORLD_SIZE_M } from '@shared/definitions/homeIslandSeed';
 
 export type HarvestZoneType =
   | 'forest'
@@ -218,10 +224,10 @@ export function placeProceduralHarvestZones(
   options: ProceduralZoneOptions = {},
 ): HarvestZoneDef[] {
   const {
-    zoneCount = 10,
-    minSpacing = 95,
-    spawnClearRadius = 70,
-    terrainSize = 1024,
+    zoneCount = HOME_ISLAND_HARVEST_ZONE_COUNT,
+    minSpacing = HOME_ISLAND_HARVEST_ZONE_SPACING_M,
+    spawnClearRadius = HOME_ISLAND_CAMP_CLEAR_RADIUS_M,
+    terrainSize = HOME_ISLAND_WORLD_SIZE_M,
   } = options;
 
   const rng = makePrng(seed + '_harvest_zones');

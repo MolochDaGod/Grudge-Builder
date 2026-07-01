@@ -42,17 +42,20 @@ function mapsFor(n: number): GroundPBRDef['maps'] {
   };
 }
 
+/** Scale repeats for 1024m home islands — keeps 4K PBR sharp (~8m/tile). */
+const HOME_ISLAND_REPEAT_SCALE = 2.4;
+
 export const GROUND_PBR_MATERIALS: Record<GroundMaterialId, GroundPBRDef> = {
-  ground_1: { id: 'ground_1', name: 'Tropical Shore', repeat: 12, roughness: 0.88, metalness: 0, maps: mapsFor(1) },
-  ground_2: { id: 'ground_2', name: 'Verdant Meadow', repeat: 10, roughness: 0.9, metalness: 0, maps: mapsFor(2) },
-  ground_3: { id: 'ground_3', name: 'Sun-Baked Dunes', repeat: 8, roughness: 0.85, metalness: 0.05, maps: mapsFor(3) },
-  ground_4: { id: 'ground_4', name: 'Storm Reef Gravel', repeat: 6, roughness: 0.82, metalness: 0.1, maps: mapsFor(4) },
-  ground_5: { id: 'ground_5', name: 'Volcanic Ash', repeat: 7, roughness: 0.78, metalness: 0.15, maps: mapsFor(5) },
-  ground_6: { id: 'ground_6', name: 'Thornwood Floor', repeat: 9, roughness: 0.92, metalness: 0, maps: mapsFor(6) },
-  ground_7: { id: 'ground_7', name: 'Frostbite Tundra', repeat: 10, roughness: 0.75, metalness: 0.05, maps: mapsFor(7) },
-  ground_8: { id: 'ground_8', name: 'Ethereal Moss', repeat: 8, roughness: 0.88, metalness: 0.08, maps: mapsFor(8) },
-  ground_9: { id: 'ground_9', name: 'Abyssal Silt', repeat: 11, roughness: 0.7, metalness: 0.12, maps: mapsFor(9) },
-  ground_10: { id: 'ground_10', name: 'Nexus Fracture', repeat: 5, roughness: 0.65, metalness: 0.25, maps: mapsFor(10) },
+  ground_1: { id: 'ground_1', name: 'Tropical Shore', repeat: Math.round(12 * HOME_ISLAND_REPEAT_SCALE), roughness: 0.88, metalness: 0, maps: mapsFor(1) },
+  ground_2: { id: 'ground_2', name: 'Verdant Meadow', repeat: Math.round(10 * HOME_ISLAND_REPEAT_SCALE), roughness: 0.9, metalness: 0, maps: mapsFor(2) },
+  ground_3: { id: 'ground_3', name: 'Sun-Baked Dunes', repeat: Math.round(8 * HOME_ISLAND_REPEAT_SCALE), roughness: 0.85, metalness: 0.05, maps: mapsFor(3) },
+  ground_4: { id: 'ground_4', name: 'Storm Reef Gravel', repeat: Math.round(6 * HOME_ISLAND_REPEAT_SCALE), roughness: 0.82, metalness: 0.1, maps: mapsFor(4) },
+  ground_5: { id: 'ground_5', name: 'Volcanic Ash', repeat: Math.round(7 * HOME_ISLAND_REPEAT_SCALE), roughness: 0.78, metalness: 0.15, maps: mapsFor(5) },
+  ground_6: { id: 'ground_6', name: 'Thornwood Floor', repeat: Math.round(9 * HOME_ISLAND_REPEAT_SCALE), roughness: 0.92, metalness: 0, maps: mapsFor(6) },
+  ground_7: { id: 'ground_7', name: 'Frostbite Tundra', repeat: Math.round(10 * HOME_ISLAND_REPEAT_SCALE), roughness: 0.75, metalness: 0.05, maps: mapsFor(7) },
+  ground_8: { id: 'ground_8', name: 'Ethereal Moss', repeat: Math.round(8 * HOME_ISLAND_REPEAT_SCALE), roughness: 0.88, metalness: 0.08, maps: mapsFor(8) },
+  ground_9: { id: 'ground_9', name: 'Abyssal Silt', repeat: Math.round(11 * HOME_ISLAND_REPEAT_SCALE), roughness: 0.7, metalness: 0.12, maps: mapsFor(9) },
+  ground_10: { id: 'ground_10', name: 'Nexus Fracture', repeat: Math.round(5 * HOME_ISLAND_REPEAT_SCALE), roughness: 0.65, metalness: 0.25, maps: mapsFor(10) },
 };
 
 /** Primary ground per 9-sector world map */
@@ -115,11 +118,11 @@ export function getHomeIslandLayerMaterials(): {
   grassTall: THREE.Texture;
   rock: THREE.Texture;
 } {
-  const seafloor = loadTex(GROUND_PBR_MATERIALS.ground_9.maps.baseColor, 11, true);
-  const sand = loadTex(GROUND_PBR_MATERIALS.ground_1.maps.baseColor, 12, true);
-  const grassShort = loadTex(GROUND_PBR_MATERIALS.ground_2.maps.baseColor, 10, true);
-  const grassTall = loadTex(GROUND_PBR_MATERIALS.ground_6.maps.baseColor, 9, true);
-  const rock = loadTex(GROUND_PBR_MATERIALS.ground_4.maps.baseColor, 6, true);
+  const seafloor = loadTex(GROUND_PBR_MATERIALS.ground_9.maps.baseColor, GROUND_PBR_MATERIALS.ground_9.repeat, true);
+  const sand = loadTex(GROUND_PBR_MATERIALS.ground_1.maps.baseColor, GROUND_PBR_MATERIALS.ground_1.repeat, true);
+  const grassShort = loadTex(GROUND_PBR_MATERIALS.ground_2.maps.baseColor, GROUND_PBR_MATERIALS.ground_2.repeat, true);
+  const grassTall = loadTex(GROUND_PBR_MATERIALS.ground_6.maps.baseColor, GROUND_PBR_MATERIALS.ground_6.repeat, true);
+  const rock = loadTex(GROUND_PBR_MATERIALS.ground_4.maps.baseColor, GROUND_PBR_MATERIALS.ground_4.repeat, true);
   return { seafloor, sand, grassShort, grassTall, rock };
 }
 

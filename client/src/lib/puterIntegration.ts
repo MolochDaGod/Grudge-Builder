@@ -1,3 +1,5 @@
+import { GAME_DATA_API } from '@/lib/grudgeConfig';
+
 declare global {
   interface Window {
     puter: {
@@ -306,50 +308,124 @@ export const puterAuth = {
   }
 };
 
-// ── Island-specific Puter KV helpers ──────────────────────────────────────────
-// These use the user's own Puter KV as the primary data store.
-// Keys follow the namespace pattern: grudge:island:{id}:{field}
+// ── Island save helpers (Railway SSOT → Puter KV cache → localStorage) ───────
+
+function readGrudgeAuthToken(): string | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    return localStorage.getItem('grudge_auth_token') || localStorage.getItem('grudge_session_token');
+  } catch {
+    return null;
+  }
+}
+
+function gameDataApiBase(): string {
+  if (typeof window === 'undefined') return '';
+  const cfg = (window as { GRUDGE_CONFIG?: { GAME_DATA?: string } }).GRUDGE_CONFIG?.GAME_DATA;
+  if (cfg) return cfg.replace(/\/$/, '');
+  if (GAME_DATA_API && !GAME_DATA_API.startsWith('/')) {
+    return GAME_DATA_API.replace(/\/$/, '');
+  }
+  return '';
+}
+
+async function fleetAwareFetch(path: string, init: RequestInit = {}): Promise<Response> {
+  const base = gameDataApiBase();
+  const url = base ? `${base}${path}` : path;
+  if (typeof window !== 'undefined' && window.puter?.net?.fetch) {
+    try {
+      return await window.puter.net.fetch(url, init);
+    } catch { /* fall through */ }
+  }
+  return fetch(url, init);
+}
+
+async function fetchRailwayIslandState<T>(): Promise<T | null> {
+  const token = readGrudgeAuthToken();
+  if (!token) return null;
+  try {
+    const res = await fleetAwareFetch('/api/island', {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'X-Session-Token': token,
+      },
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    const state = data?.state ?? data?.island?.state ?? data?.islandState;
+    return (state as T) ?? null;
+  } catch {
+    return null;
+  }
+}
+
+async function patchRailwayIslandState(state: unknown): Promise<boolean> {
+  const token = readGrudgeAuthToken();
+  if (!token) return false;
+  try {
+    const res = await fleetAwareFetch('/api/island/state', {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+        'X-Session-Token': token,
+      },
+      body: JSON.stringify({ state }),
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
+// Keys: grudge:island:{id}:state | grudge:island:{id}:grid
 
 export const puterIslandKV = {
   /**
-   * Save island state: Puter KV is authoritative, localStorage is offline fallback.
-   * No backend — all player data lives in Puter user-pays cloud storage.
+   * Save island state: Railway Postgres first, then Puter KV cache, then localStorage.
    */
   async saveState(islandId: string, state: unknown): Promise<boolean> {
-    // 1. Write to Puter KV (source of truth)
-    const saved = await puterKV.set(`grudge:island:${islandId}:state`, state);
+    const stamped = typeof state === 'object' && state
+      ? { ...(state as object), lastUpdate: Date.now() }
+      : state;
 
-    // 2. Cache in localStorage (offline fallback)
-    try { localStorage.setItem(`grudge_island_${islandId}`, JSON.stringify(state)); } catch {}
+    const railwayOk = await patchRailwayIslandState(stamped);
+    const kvOk = await puterKV.set(`grudge:island:${islandId}:state`, stamped);
+    try { localStorage.setItem(`grudge_island_${islandId}`, JSON.stringify(stamped)); } catch {}
 
-    if (!saved) {
-      // Puter unavailable — localStorage is the only copy
-      console.warn('Puter KV save failed, using localStorage only');
+    if (!railwayOk && !kvOk) {
+      console.warn('[puterIslandKV] Railway + Puter KV save failed; localStorage only');
       return false;
     }
-    return true;
+    return railwayOk || kvOk;
   },
 
   /**
-   * Load island state: Puter KV (authoritative) → localStorage (offline fallback).
+   * Load island state: Railway (newest) → Puter KV → localStorage.
    */
   async loadState<T extends { lastUpdate?: number } = any>(islandId: string, userId: string): Promise<T | null> {
-    // 1. Read Puter KV (source of truth)
+    const railway = await fetchRailwayIslandState<T>();
     const kvState = await puterKV.get<T>(`grudge:island:${islandId}:state`);
-    if (kvState) return kvState;
 
-    // 2. localStorage fallback
+    let cached: T | null = null;
     try {
-      const cached = localStorage.getItem(`grudge_island_${islandId}`) || localStorage.getItem(`grudge_island_${userId}`);
-      if (cached) {
-        const parsed = JSON.parse(cached) as T;
-        // Push to Puter KV so it's available next time
-        await puterKV.set(`grudge:island:${islandId}:state`, parsed).catch(() => {});
-        return parsed;
-      }
-    } catch { /* corrupt localStorage */ }
+      const raw = localStorage.getItem(`grudge_island_${islandId}`) || localStorage.getItem(`grudge_island_${userId}`);
+      if (raw) cached = JSON.parse(raw) as T;
+    } catch { /* corrupt */ }
 
-    return null;
+    const candidates = [railway, kvState, cached].filter(Boolean) as T[];
+    if (!candidates.length) return null;
+
+    const freshest = candidates.reduce((best, cur) =>
+      (cur.lastUpdate ?? 0) > (best.lastUpdate ?? 0) ? cur : best,
+    );
+
+    if (freshest !== kvState) {
+      await puterKV.set(`grudge:island:${islandId}:state`, freshest).catch(() => {});
+    }
+    try { localStorage.setItem(`grudge_island_${islandId}`, JSON.stringify(freshest)); } catch {}
+
+    return freshest;
   },
 
   /** Save serialized tile grid (seed + cleared tiles only, ~2KB) */

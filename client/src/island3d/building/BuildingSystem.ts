@@ -139,6 +139,17 @@ export interface PlacedPiece {
   mesh: THREE.Mesh;
 }
 
+export interface BuildConstraints {
+  terrainMesh?: THREE.Mesh;
+  minHeightM: number;
+  maxHeightM: number;
+  maxSlopeRad: number;
+  campCenter?: { x: number; z: number };
+  campRadiusM?: number;
+  sampleHeight?: (x: number, z: number) => number | null;
+  sampleNormal?: (x: number, z: number) => THREE.Vector3 | null;
+}
+
 // ─── Building System ──────────────────────────────────────────────────────────
 
 export class BuildingSystem {
@@ -147,6 +158,7 @@ export class BuildingSystem {
   private pieces = new Map<string, PlacedPiece>();
   private raycaster = new THREE.Raycaster();
   private mouse = new THREE.Vector2();
+  private buildConstraints: BuildConstraints | null = null;
 
   // Ghost (build preview)
   private ghost: THREE.Mesh | null = null;
@@ -164,6 +176,32 @@ export class BuildingSystem {
   // Materials
   private validGhostMat: THREE.MeshBasicMaterial;
   private invalidGhostMat: THREE.MeshBasicMaterial;
+
+  /** Configure terrain slope/height rules for foundations and terrain props */
+  setBuildConstraints(constraints: BuildConstraints): void {
+    this.buildConstraints = constraints;
+  }
+
+  private isBuildableAt(x: number, z: number, y: number, requireCamp = false): boolean {
+    const c = this.buildConstraints;
+    if (!c) return true;
+
+    if (y < c.minHeightM || y > c.maxHeightM) return false;
+
+    if (requireCamp && c.campCenter && c.campRadiusM) {
+      const dx = x - c.campCenter.x;
+      const dz = z - c.campCenter.z;
+      if (Math.hypot(dx, dz) > c.campRadiusM) return false;
+    }
+
+    const normal = c.sampleNormal?.(x, z);
+    if (normal) {
+      const slope = Math.acos(Math.min(1, Math.max(-1, normal.y)));
+      if (slope > c.maxSlopeRad) return false;
+    }
+
+    return true;
+  }
 
   constructor(scene: THREE.Scene, camera: THREE.PerspectiveCamera) {
     this.scene = scene;
@@ -228,13 +266,11 @@ export class BuildingSystem {
       const hits = this.raycaster.intersectObjects(allMeshes);
       if (hits.length > 0) {
         const pt = hits[0].point;
-        // Snap to grid
-        this.ghost.position.set(
-          Math.round(pt.x / S) * S,
-          pt.y + 0.25,
-          Math.round(pt.z / S) * S,
-        );
-        this.ghostValid = true;
+        const gx = Math.round(pt.x / S) * S;
+        const gz = Math.round(pt.z / S) * S;
+        const gy = pt.y + 0.25;
+        this.ghost.position.set(gx, gy, gz);
+        this.ghostValid = this.isBuildableAt(gx, gz, gy, true);
       } else {
         this.ghostValid = false;
       }
@@ -508,13 +544,15 @@ export class BuildingSystem {
       const pt = hits[0].point;
       const normal = hits[0].face?.normal;
 
-      // Terrain surface: check if the surface is roughly horizontal
-      const isFlat = normal ? normal.y > 0.7 : true;
+      const slopeOk = normal
+        ? Math.acos(Math.min(1, Math.max(-1, normal.y))) <= (this.buildConstraints?.maxSlopeRad ?? 0.55)
+        : true;
 
       if (this.propAsset.terrainPlaceable || this.isOnFoundation(pt)) {
         this.propGhost.position.set(pt.x, pt.y, pt.z);
         this.propGhost.rotation.y = this.propRotation;
-        this.propValid = isFlat;
+        const onFoundation = this.isOnFoundation(pt);
+        this.propValid = slopeOk && this.isBuildableAt(pt.x, pt.z, pt.y, !onFoundation);
       } else {
         this.propValid = false;
       }

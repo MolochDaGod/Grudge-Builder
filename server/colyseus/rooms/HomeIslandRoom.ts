@@ -25,6 +25,11 @@ import {
   getTideHeight,
 } from "../schemas/SectorState";
 import { db, SANDBOX_MODE } from "../../db";
+import {
+  HOME_ISLAND_NODE_TARGET,
+  HOME_ISLAND_SYNC_SIZE_M,
+} from "@shared/definitions/homeIslandQuality";
+import { hashIslandSeedForColyseus } from "@shared/definitions/homeIslandSeed";
 
 // ── Join Options ─────────────────────────────────────────────────
 
@@ -45,11 +50,11 @@ interface HomeIslandJoinOptions {
 // ── Constants ────────────────────────────────────────────────────
 
 const TICK_RATE = 5;
-const ISLAND_SIZE = 400;
+const ISLAND_SIZE = HOME_ISLAND_SYNC_SIZE_M;
 const AUTO_HARVEST_INTERVAL_MS = 30_000; // 30s per harvest cycle
 const NODE_RESPAWN_MS = 120_000;         // 2 min respawn
 const SAVE_INTERVAL_MS = 60_000;         // save to DB every 60s
-const MAX_HARVEST_NODES = 20;
+const MAX_HARVEST_NODES = HOME_ISLAND_NODE_TARGET;
 const MAX_VISITORS = 5;
 
 // Resource types per node
@@ -70,7 +75,7 @@ export class HomeIslandRoom extends Room<HomeIslandState> {
     const state = new HomeIslandState();
     state.accountId = options.accountId;
     state.islandUUID = options.islandUUID || options.accountId;
-    state.islandSeed = options.islandSeed || this.hashSeed(options.islandUUID || options.accountId);
+    state.islandSeed = this.resolveNumericSeed(options);
     state.dockBuilt = true;
     this.setState(state);
 
@@ -255,14 +260,16 @@ export class HomeIslandRoom extends Room<HomeIslandState> {
     return player?.accountId === this.ownerId;
   }
 
-  private hashSeed(str: string): number {
-    let hash = 0;
-    for (let i = 0; i < str.length; i++) {
-      const ch = str.charCodeAt(i);
-      hash = ((hash << 5) - hash) + ch;
-      hash |= 0;
+  /** Colyseus schema uses a numeric seed; clients may send UUID text — coerce safely. */
+  private resolveNumericSeed(options: HomeIslandJoinOptions): number {
+    const raw = options.islandSeed as unknown;
+    if (typeof raw === 'number' && Number.isFinite(raw) && raw > 0) {
+      return raw | 0;
     }
-    return Math.abs(hash);
+    if (typeof raw === 'string' && raw.length > 0) {
+      return hashIslandSeedForColyseus(raw);
+    }
+    return hashIslandSeedForColyseus(options.islandUUID || options.accountId);
   }
 
   // ── Procedural node seeding ────────────────────────────────────
@@ -364,30 +371,32 @@ export class HomeIslandRoom extends Room<HomeIslandState> {
     try {
       const { homeIslands } = await import("@shared/schema");
       const { eq } = await import("drizzle-orm");
-      const stateData = {
+      const sessionOverlay = {
         harvestedResources: this.harvestedResources,
         buildingCount: this.state.buildingCount,
-        savedAt: Date.now(),
+        colyseusSavedAt: Date.now(),
       };
 
-      // Upsert
-      const existing = await db.select({ id: homeIslands.id })
+      const rows = await db.select()
         .from(homeIslands)
         .where(eq(homeIslands.accountId, this.ownerId))
         .limit(1);
 
-      if (existing.length > 0) {
-        await db.update(homeIslands)
-          .set({ state: stateData, updatedAt: Date.now() })
-          .where(eq(homeIslands.accountId, this.ownerId));
-      } else {
-        await db.insert(homeIslands).values({
-          accountId: this.ownerId,
-          seed: this.state.islandUUID || this.ownerId,
-          name: "Home Island",
-          state: stateData,
-        });
+      if (rows.length === 0) {
+        console.warn(`[HomeIslandRoom] Skip save — no home_islands row for account ${this.ownerId}`);
+        return;
       }
+
+      const priorState = (rows[0].state && typeof rows[0].state === 'object')
+        ? (rows[0].state as Record<string, unknown>)
+        : {};
+
+      await db.update(homeIslands)
+        .set({
+          state: { ...priorState, ...sessionOverlay },
+          updatedAt: Date.now(),
+        })
+        .where(eq(homeIslands.accountId, this.ownerId));
     } catch (err) {
       console.warn(`[HomeIslandRoom] DB save failed:`, err);
     }

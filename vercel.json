@@ -379,12 +379,28 @@
       "destination": "https://grudge-api-production-0d46.up.railway.app/api/ai-units/:path*"
     },
     {
+      "source": "/api/rewards",
+      "destination": "https://grudge-api-production-0d46.up.railway.app/api/rewards"
+    },
+    {
+      "source": "/api/rewards/:path*",
+      "destination": "https://grudge-api-production-0d46.up.railway.app/api/rewards/:path*"
+    },
+    {
       "source": "/api/game/:path*",
       "destination": "https://grudge-api-production-0d46.up.railway.app/api/:path*"
     },
     {
       "source": "/api/auth/puter",
       "destination": "https://grudge-api-production-0d46.up.railway.app/api/auth/puter"
+    },
+    {
+      "source": "/api/auth/puter-sso",
+      "destination": "https://grudge-api-production-0d46.up.railway.app/api/auth/puter-sso"
+    },
+    {
+      "source": "/api/auth/guest",
+      "destination": "https://grudge-api-production-0d46.up.railway.app/api/auth/guest"
     },
     {
       "source": "/api/auth/login",
@@ -413,6 +429,34 @@
     {
       "source": "/api/auth/session/exchange",
       "destination": "https://grudge-api-production-0d46.up.railway.app/api/auth/session/exchange"
+    },
+    {
+      "source": "/api/auth/popup-token",
+      "destination": "https://grudge-api-production-0d46.up.railway.app/api/auth/popup-token"
+    },
+    {
+      "source": "/api/auth/grudge-bridge",
+      "destination": "https://grudge-api-production-0d46.up.railway.app/api/auth/grudge-bridge"
+    },
+    {
+      "source": "/api/auth/wallet",
+      "destination": "https://grudge-api-production-0d46.up.railway.app/api/auth/wallet"
+    },
+    {
+      "source": "/api/auth/puter-link",
+      "destination": "https://grudge-api-production-0d46.up.railway.app/api/auth/puter-link"
+    },
+    {
+      "source": "/api/auth/complete-profile",
+      "destination": "https://grudge-api-production-0d46.up.railway.app/api/auth/complete-profile"
+    },
+    {
+      "source": "/api/auth/phone/send",
+      "destination": "https://grudge-api-production-0d46.up.railway.app/api/auth/phone/send"
+    },
+    {
+      "source": "/api/auth/phone/verify",
+      "destination": "https://grudge-api-production-0d46.up.railway.app/api/auth/phone/verify"
     },
     {
       "source": "/api/auth/:path*",
@@ -477,6 +521,7 @@
     "VITE_ASSETS_URL": "https://assets.grudge-studio.com",
     "VITE_OBJECTSTORE_URL": "https://objectstore.grudge-studio.com/api/v1",
     "VITE_GAME_DATA_API": "https://grudge-api-production-0d46.up.railway.app",
+    "VITE_COLYSEUS_URL": "wss://grudge-api-production-0d46.up.railway.app",
     "VITE_AI_URL": "https://ai.grudge-studio.com",
     "VITE_AUTH_GATEWAY_URL": "https://id.grudge-studio.com"
   },

@@ -102,3 +102,11 @@ jobs:
             echo "⚠ GET /api/characters returned HTTP $CODE (expected 401)"
             cat /tmp/chars.json || true
           fi
+
+      - name: Verify island status scale hints
+        run: |
+          set -euo pipefail
+          curl -sS "${{ env.RAILWAY_URL }}/api/island/status" -o /tmp/island-status.json || true
+          grep -q '"worldSizeM":1024' /tmp/island-status.json && echo "✅ island status worldSizeM=1024"
+          grep -q '"rtsWorldSizeM":200' /tmp/island-status.json && echo "✅ island status rtsWorldSizeM=200"
+          cat /tmp/island-status.json

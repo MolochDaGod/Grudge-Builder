@@ -56,15 +56,15 @@ interface NodeRule {
 }
 
 const NODE_RULES: NodeRule[] = [
-  { type: 'tree',    biomes: ['forest', 'grass'], count: 25, minSpacing: 20, scaleMin: 0.8, scaleMax: 1.5 },
-  { type: 'rock',    biomes: ['rock', 'grass'],   count: 12, minSpacing: 25, scaleMin: 0.6, scaleMax: 1.2 },
-  { type: 'crystal', biomes: ['rock'],            count: 5,  minSpacing: 35, scaleMin: 0.5, scaleMax: 1.0 },
-  { type: 'bush',    biomes: ['grass', 'forest'],  count: 15, minSpacing: 15, scaleMin: 0.5, scaleMax: 0.9 },
-  { type: 'hemp',    biomes: ['grass'],            count: 8,  minSpacing: 22, scaleMin: 0.6, scaleMax: 1.0 },
-  { type: 'flower',  biomes: ['grass', 'forest'],  count: 10, minSpacing: 18, scaleMin: 0.4, scaleMax: 0.7 },
-  { type: 'herb',    biomes: ['forest'],           count: 8,  minSpacing: 18, scaleMin: 0.4, scaleMax: 0.7 },
-  { type: 'fish',    biomes: ['beach'],            count: 6,  minSpacing: 30, scaleMin: 1.0, scaleMax: 1.0 },
-  { type: 'dock',    biomes: ['beach'],            count: 1,  minSpacing: 100, scaleMin: 1.0, scaleMax: 1.0 },
+  { type: 'tree',    biomes: ['forest', 'grass'], count: 38, minSpacing: 18, scaleMin: 0.8, scaleMax: 1.5 },
+  { type: 'rock',    biomes: ['rock', 'grass'],   count: 18, minSpacing: 22, scaleMin: 0.6, scaleMax: 1.2 },
+  { type: 'crystal', biomes: ['rock'],            count: 8,  minSpacing: 30, scaleMin: 0.5, scaleMax: 1.0 },
+  { type: 'bush',    biomes: ['grass', 'forest'],  count: 22, minSpacing: 14, scaleMin: 0.5, scaleMax: 0.9 },
+  { type: 'hemp',    biomes: ['grass'],            count: 14, minSpacing: 20, scaleMin: 0.6, scaleMax: 1.0 },
+  { type: 'flower',  biomes: ['grass', 'forest'],  count: 16, minSpacing: 16, scaleMin: 0.4, scaleMax: 0.7 },
+  { type: 'herb',    biomes: ['forest'],           count: 12, minSpacing: 16, scaleMin: 0.4, scaleMax: 0.7 },
+  { type: 'fish',    biomes: ['beach'],            count: 8,  minSpacing: 28, scaleMin: 1.0, scaleMax: 1.0 },
+  { type: 'dock',    biomes: ['beach'],            count: 2,  minSpacing: 80, scaleMin: 1.0, scaleMax: 1.0 },
 ];
 
 /**

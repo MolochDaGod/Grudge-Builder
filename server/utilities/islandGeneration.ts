@@ -13,6 +13,12 @@ import {
   type MountainTriadSeed,
 } from '@shared/definitions/homeIslandSeed';
 import {
+  HOME_ISLAND_ANIMAL_TARGET,
+  HOME_ISLAND_CLEARING_HALF_PCT,
+  HOME_ISLAND_NODE_BUDGET,
+  HOME_ISLAND_NODE_TARGET,
+} from '@shared/definitions/homeIslandQuality';
+import {
   deriveCampPositionFromZones,
   deriveTerrainZonesFromRtsHeightmap,
   type RtsHeightmapPayload,
@@ -55,7 +61,7 @@ export const NODE_TYPES_BY_ZONE: Record<string, string[]> = {
   forest: ['wood', 'hemp', 'herb'],
   field: ['hemp', 'herb'],
   shore: ['stone', 'shell'],
-  water: [],
+  water: ['fish'],
   clearing: ['herb'],
 };
 
@@ -75,6 +81,7 @@ export const RESOURCE_DROPS: Record<string, Record<string, number>> = {
   hemp: { hemp_fiber: 2 },
   herb: { herb_bundle: 1 },
   shell: { shell_fragment: 2 },
+  fish: { raw_fish: 2, fish_scale: 1 },
 };
 
 export interface ResourceNode {
@@ -207,14 +214,15 @@ export function generateTerrainZones(
     },
   });
 
-  // Clearing zone (center, 10-14% size)
+  // Clearing zone (center) — large buildable hub for camps + structures
+  const clearHalf = HOME_ISLAND_CLEARING_HALF_PCT + rng() * 2;
   zones.push({
     type: 'clearing',
     bounds: {
-      x: mapWidth * (0.45 + rng() * 0.1),
-      y: mapHeight * (0.45 + rng() * 0.1),
-      width: mapWidth * (0.1 + rng() * 0.04),
-      height: mapHeight * (0.1 + rng() * 0.04),
+      x: mapWidth * 0.5 - clearHalf,
+      y: mapHeight * 0.5 - clearHalf,
+      width: clearHalf * 2,
+      height: clearHalf * 2,
     },
   });
 
@@ -245,80 +253,87 @@ function circlesOverlap(x1: number, y1: number, r1: number, x2: number, y2: numb
   return distance < r1 + r2;
 }
 
-/**
- * Generate resource nodes
- * Spawns nodes respecting terrain zones and collision
- */
-export function generateResourceNodes(
+function spawnResourceNodeInZone(
   terrainZones: TerrainZone[],
+  zoneType: string,
   rng: () => number,
-  targetCount: number = 20,
-  mapWidth: number = 100,
-  mapHeight: number = 100
-): ResourceNode[] {
-  const nodes: ResourceNode[] = [];
-  const maxAttempts = targetCount * 5; // Attempts before giving up
-  const nodeRadius = 3.0; // Min distance between nodes
-  let attempts = 0;
+  nodes: ResourceNode[],
+  mapWidth: number,
+  mapHeight: number,
+  nodeRadius = 3.0,
+): ResourceNode | null {
+  const zones = terrainZones.filter((z) => z.type === zoneType);
+  if (zones.length === 0) return null;
 
-  while (nodes.length < targetCount && attempts < maxAttempts) {
-    attempts++;
+  const validTypes = NODE_TYPES_BY_ZONE[zoneType] || [];
+  if (validTypes.length === 0) return null;
 
-    // Random position on map
-    const x = rng() * mapWidth;
-    const y = rng() * mapHeight;
+  for (let attempt = 0; attempt < 24; attempt++) {
+    const zone = zones[Math.floor(rng() * zones.length)];
+    const x = zone.bounds.x + rng() * zone.bounds.width;
+    const y = zone.bounds.y + rng() * zone.bounds.height;
 
-    // Check collision with existing nodes
+    if (x < 0 || x > mapWidth || y < 0 || y > mapHeight) continue;
+
     const tooClose = nodes.some((node) =>
-      circlesOverlap(x, y, nodeRadius, node.x, node.y, nodeRadius)
+      circlesOverlap(x, y, nodeRadius, node.x, node.y, nodeRadius),
     );
     if (tooClose) continue;
 
-    // Determine which zone this node is in
-    const zone = terrainZones.find((z) => {
-      return (
-        x >= z.bounds.x &&
-        x <= z.bounds.x + z.bounds.width &&
-        y >= z.bounds.y &&
-        y <= z.bounds.y + z.bounds.height
-      );
-    });
-    if (!zone) continue;
-
-    // Get valid resource types for this zone
-    const validTypes = NODE_TYPES_BY_ZONE[zone.type] || [];
-    if (validTypes.length === 0) continue;
-
-    // Pick a random resource type
     const type = validTypes[Math.floor(rng() * validTypes.length)];
-
-    // Roll rarity
-    const tier = rollNodeRarity(rng());
-
-    // Create drops based on type and tier
+    const tier = rollNodeRarity(rng);
     const baseDrops = RESOURCE_DROPS[type] || { [type]: 1 };
     const drops = { ...baseDrops };
-
-    // Multiply drops by rarity
     const rarityMultiplier = tier === 'common' ? 1 : tier === 'rare' ? 1.5 : tier === 'epic' ? 2.5 : 4;
     Object.keys(drops).forEach((key) => {
       drops[key] = Math.ceil(drops[key] * rarityMultiplier);
     });
 
-    // Determine profession
-    let profession = 'mining';
-    if (type.includes('wood')) profession = 'woodcutting';
-    if (type.includes('herb') || type.includes('hemp')) profession = 'herbalism';
+    let profession: ResourceNode['profession'] = 'mining';
+    if (type === 'wood') profession = 'woodcutting';
+    if (type === 'herb' || type === 'hemp') profession = 'herbalism';
+    if (type === 'fish') profession = 'fishing';
 
-    nodes.push({
+    return {
       id: uuidv4(),
       type,
       x,
       y,
       drops,
       tier: tier as 'common' | 'rare' | 'epic' | 'legendary',
-      profession: profession as 'mining' | 'woodcutting' | 'herbalism',
-    });
+      profession,
+    };
+  }
+  return null;
+}
+
+/**
+ * Generate resource nodes — per-zone budget sums to HOME_ISLAND_NODE_TARGET.
+ */
+export function generateResourceNodes(
+  terrainZones: TerrainZone[],
+  rng: () => number,
+  targetCount: number = HOME_ISLAND_NODE_TARGET,
+  mapWidth: number = 100,
+  mapHeight: number = 100
+): ResourceNode[] {
+  const nodes: ResourceNode[] = [];
+
+  for (const [zoneType, budget] of Object.entries(HOME_ISLAND_NODE_BUDGET)) {
+    if (budget <= 0) continue;
+    for (let i = 0; i < budget; i++) {
+      const node = spawnResourceNodeInZone(terrainZones, zoneType, rng, nodes, mapWidth, mapHeight);
+      if (node) nodes.push(node);
+    }
+  }
+
+  let safety = 0;
+  while (nodes.length < targetCount && safety < targetCount * 4) {
+    safety++;
+    const fillZones = ['field', 'forest', 'mountain', 'shore'];
+    const zoneType = fillZones[Math.floor(rng() * fillZones.length)];
+    const node = spawnResourceNodeInZone(terrainZones, zoneType, rng, nodes, mapWidth, mapHeight, 2.5);
+    if (node) nodes.push(node);
   }
 
   return nodes;
@@ -455,8 +470,8 @@ export function generateIslandState(
 
   // Generate all components (all 6 zone types + Sketchfab mountain triad from seed)
   const terrainZones = assertAllHomeIslandZones(generateTerrainZones(rng, mapWidth, mapHeight));
-  const nodes = generateResourceNodes(terrainZones, rng, 20, mapWidth, mapHeight);
-  const animals = generateAnimals(terrainZones, rng, 8, mapWidth, mapHeight);
+  const nodes = generateResourceNodes(terrainZones, rng, HOME_ISLAND_NODE_TARGET, mapWidth, mapHeight);
+  const animals = generateAnimals(terrainZones, rng, HOME_ISLAND_ANIMAL_TARGET, mapWidth, mapHeight);
   const mountainTriad = generateMountainTriadSeed(seed);
 
   // Camp position: center of clearing zone (if available)
@@ -507,6 +522,22 @@ export function generateIslandState(
   };
 
   return islandState;
+}
+
+/** Persistable island state (client + DB canonical shape with sheep alias). */
+export function islandStateForStorage(
+  characterId: string,
+  seed: string,
+): IslandState & { sheep: Animal[] } {
+  const generated = generateIslandState(characterId, seed);
+  return { ...generated, sheep: generated.animals };
+}
+
+/** True when the stored island has no playable content yet. */
+export function islandStateNeedsGeneration(state: Record<string, unknown> | null | undefined): boolean {
+  if (!state) return true;
+  const nodes = state.nodes;
+  return !Array.isArray(nodes) || nodes.length === 0;
 }
 
 export interface RtsExportInput {

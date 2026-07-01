@@ -16,6 +16,10 @@ import {
   type RtsHeightmapPayload,
 } from '@shared/definitions/rtsTerrainBridge';
 import { HOME_ISLAND_WORLD_SIZE_M } from '@shared/definitions/homeIslandSeed';
+import {
+  HOME_ISLAND_CAMP_CLEAR_RADIUS_M,
+  HOME_ISLAND_CAMP_PLATEAU_HEIGHT_M,
+} from '@shared/definitions/homeIslandQuality';
 
 // ── Seeded PRNG (same Mulberry32 / FNV hash as 2D generator) ──────────
 function hashStr(s: string): number {
@@ -392,4 +396,40 @@ export function getTerrainNormalAt(
   _heightRay.set(_heightOrigin, _heightDir);
   const hits = _heightRay.intersectObject(terrainMesh, true);
   return hits.length > 0 ? hits[0].face?.normal?.clone() || null : null;
+}
+
+/**
+ * Flatten a circular camp hub on the terrain mesh for buildable foundations.
+ * Geometry uses XY as ground plane and Z as height (ThreeTerrain convention).
+ */
+export function flattenCampPlateau(
+  terrainMesh: THREE.Mesh,
+  centerX: number,
+  centerZ: number,
+  radiusM = HOME_ISLAND_CAMP_CLEAR_RADIUS_M,
+  plateauHeightM = HOME_ISLAND_CAMP_PLATEAU_HEIGHT_M,
+): void {
+  const pos = terrainMesh.geometry.attributes.position;
+  if (!pos) return;
+
+  const radiusSq = radiusM * radiusM;
+  const feather = radiusM * 0.22;
+
+  for (let i = 0; i < pos.count; i++) {
+    const vx = pos.getX(i);
+    const vy = pos.getY(i);
+    const distSq = (vx - centerX) ** 2 + (vy - centerZ) ** 2;
+    if (distSq > radiusSq) continue;
+
+    const dist = Math.sqrt(distSq);
+    const t = dist > radiusM - feather
+      ? Math.max(0, 1 - (dist - (radiusM - feather)) / feather)
+      : 1;
+    const target = plateauHeightM;
+    const current = pos.getZ(i);
+    pos.setZ(i, current * (1 - t) + target * t);
+  }
+
+  pos.needsUpdate = true;
+  terrainMesh.geometry.computeVertexNormals();
 }

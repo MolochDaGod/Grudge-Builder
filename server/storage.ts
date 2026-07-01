@@ -120,6 +120,7 @@ import {
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, like, sql, desc, count } from "drizzle-orm";
+import { islandStateForStorage } from "./utilities/islandGeneration";
 
 export interface IStorage {
   // Item methods
@@ -254,7 +255,10 @@ export interface IStorage {
   updatePromptBlueprint(id: string, updates: Partial<InsertPromptBlueprint>): Promise<PromptBlueprint>;
 
   // Home island methods
-  getHomeIsland(accountId: string): Promise<HomeIsland | undefined>;
+  getHomeIslandById(id: string): Promise<HomeIsland | undefined>;
+  getHomeIslandByAccountId(accountId: string): Promise<HomeIsland | undefined>;
+  /** Resolve by island row id, then by account id */
+  getHomeIsland(idOrAccountId: string): Promise<HomeIsland | undefined>;
   createHomeIsland(island: InsertHomeIsland): Promise<HomeIsland>;
   updateHomeIsland(id: string, updates: Partial<InsertHomeIsland>): Promise<HomeIsland>;
   updateIslandState(accountId: string, state: IslandState): Promise<HomeIsland>;
@@ -1229,9 +1233,20 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Home island methods
-  async getHomeIsland(accountId: string): Promise<HomeIsland | undefined> {
+  async getHomeIslandById(id: string): Promise<HomeIsland | undefined> {
+    const [island] = await db.select().from(homeIslands).where(eq(homeIslands.id, id));
+    return island || undefined;
+  }
+
+  async getHomeIslandByAccountId(accountId: string): Promise<HomeIsland | undefined> {
     const [island] = await db.select().from(homeIslands).where(eq(homeIslands.accountId, accountId));
     return island || undefined;
+  }
+
+  async getHomeIsland(idOrAccountId: string): Promise<HomeIsland | undefined> {
+    const byId = await this.getHomeIslandById(idOrAccountId);
+    if (byId) return byId;
+    return this.getHomeIslandByAccountId(idOrAccountId);
   }
 
   async createHomeIsland(island: InsertHomeIsland): Promise<HomeIsland> {
@@ -1258,34 +1273,21 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getOrCreateHomeIsland(accountId: string, seed?: string): Promise<HomeIsland> {
-    const existing = await this.getHomeIsland(accountId);
+    const existing = await this.getHomeIslandByAccountId(accountId);
     if (existing) {
       return existing;
     }
     
     const islandSeed = seed || crypto.randomUUID();
-    const now = Date.now();
-    const mapStyles = ['iron', 'fantasy', 'tactical', 'night'] as const;
-    const randomStyle = mapStyles[Math.floor(Math.random() * mapStyles.length)];
-    
-    // Create state with all fields the client expects
-    const defaultState: Record<string, unknown> = {
-      id: islandSeed,
-      mapStyle: randomStyle,
-      nodes: [],
-      sheep: [],
-      skinningNodes: [],
-      assignedHeroes: {},
-      createdAt: now,
-      lastUpdate: now
-    };
-    
+    const generated = islandStateForStorage(accountId, islandSeed);
+    const mapStyle = (generated.mapStyle || 'fantasy') as typeof generated.mapStyle;
+
     const island = await this.createHomeIsland({
       accountId,
       seed: islandSeed,
-      name: "Home Island",
-      mapStyle: randomStyle,
-      state: defaultState
+      name: generated.name || "Home Island",
+      mapStyle,
+      state: generated as unknown as Record<string, unknown>,
     });
     
     // Link the island UUID back to the account

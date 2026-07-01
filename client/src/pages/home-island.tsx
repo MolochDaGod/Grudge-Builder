@@ -23,6 +23,7 @@ import {
   getActiveGatheringProfessions,
   type HotbarSlot,
 } from '@/lib/tutorialSkills';
+import { hashIslandSeedForColyseus } from '@shared/definitions/homeIslandSeed';
 import {
   addProfessionXp,
   RESOURCE_TO_PROFESSION,
@@ -172,7 +173,7 @@ export default function HomeIslandPage() {
           heroRace: cfg.raceId,
           heroClass: cfg.classId,
           islandUUID: islandDto?.id || accountId,
-          islandSeed: islandSeed,
+          islandSeed: hashIslandSeedForColyseus(islandSeed),
           level: cfg.level,
           baseModelId: cfg.baseModelId,
           equippedWeaponType: getWeaponTypeForMode(playMode, cfg.classId, cfg.hasWeapon),
@@ -251,11 +252,16 @@ export default function HomeIslandPage() {
     const rtsHeightmap = islandDto?.state?.rtsHeightmap;
     const rtsNatureScatter = islandDto?.state?.rtsNatureScatter;
 
+    const campPositionPercent = islandDto?.state?.campPosition ?? islandDto?.campPosition;
+
     const config: Island3DEngineConfig = {
       seed: islandSeed,
       mountainTriad,
       rtsHeightmap,
       rtsNatureScatter,
+      campPositionPercent: campPositionPercent
+        ? { x: Number(campPositionPercent.x), y: Number(campPositionPercent.y) }
+        : undefined,
       canvas,
       width: window.innerWidth,
       height: window.innerHeight,

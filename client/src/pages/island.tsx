@@ -7,9 +7,10 @@ import SpriteAnimator from "@/components/SpriteAnimator";
 import AnimalSprite from "@/components/AnimalSprite";
 import { IslandCutscene } from "@/components/IslandCutscene";
 import { useCharacters } from "@/hooks/use-characters";
-import { fetchCurrentHomeIsland } from "@/lib/homeIslandApi";
+import { fetchCurrentHomeIsland, type HomeIslandDto } from "@/lib/homeIslandApi";
+import { buildHomeDungeonUrl } from "@/lib/homeIslandDungeon";
 import { getIslandMapFallback, TERRAIN_ZONE_COLORS } from "@/lib/islandMapAssets";
-import { islandStateToHomeState } from "@/lib/islandStateBridge";
+import { islandStateToHomeState, resolveAuthoritativeIsland } from "@/lib/islandStateBridge";
 import { renderIslandMapToDataUrl } from "@/lib/islandMapRenderer";
 import { RACES, CLASSES, getSpriteSetForCharacter } from "@/lib/gameData";
 import { getCharacterPalette } from "@/lib/spriteManifest";
@@ -65,6 +66,9 @@ import {
 import { puterAI, isPuterAvailable, puterKV } from "@/lib/puterIntegration";
 import { Loader2, MapPin, Timer, Package, Users, Sparkles, RefreshCw, Home, Settings, Play, Pause, Eye, Hammer, Box, Grid2X2 } from "lucide-react";
 import { Island3DRenderer } from '@/island3d/render/Island3DRenderer';
+import type { MountainTriadSeed } from '@shared/definitions/homeIslandSeed';
+import type { RtsHeightmapPayload } from '@shared/definitions/rtsTerrainBridge';
+import type { RtsNatureScatterPayload } from '@shared/definitions/rtsNatureScatter';
 import { to2DNodeStates, type SharedIslandState } from '@/island3d/sync/IslandStateSync';
 import { captureIslandTopDown, clearTopDownCache } from '@/island3d/render/IslandTopDownCapture';
 import { 
@@ -278,6 +282,7 @@ export default function IslandPage() {
   const [showCutscene, setShowCutscene] = useState(false);
   const [isCheckingStatus, setIsCheckingStatus] = useState(true);
   const [accountHomeIsland, setAccountHomeIsland] = useState<boolean | null>(null);
+  const [homeIslandDto, setHomeIslandDto] = useState<HomeIslandDto | null>(null);
   const [viewMode, setViewMode] = useState<'2d' | '3d'>('2d');
   const [activityLog, setActivityLog] = useState<ActivityLogEntry[]>([]);
   const [harvestPopups, setHarvestPopups] = useState<Array<{
@@ -571,13 +576,15 @@ export default function IslandPage() {
       const { getCurrentUser } = await import('@/lib/grudgeBackend');
       const currentUser = getCurrentUser();
       const userId = currentUser?.grudgeId || currentUser?.username || 'guest';
-      
-      let state = await loadIslandState(userId);
-      if (!state) {
-        state = createNewIsland(userId);
-        await saveIslandState(userId, state);
+      const activeId = activeCharacter?.id ?? chars[0]?.id ?? null;
+
+      const { state: resolved, dto } = await resolveAuthoritativeIsland(userId, activeId);
+      setHomeIslandDto(dto);
+      let state = resolved;
+      const hadLocalOnly = !(dto && dto.state.nodes.length > 0);
+      if (hadLocalOnly && state.nodes.length > 0) {
         addLog(`Created your new Island! ${chars.length} heroes available.`);
-      } else {
+      } else if (!hadLocalOnly) {
         // Respawn expired nodes individually without regenerating entire island
         const reconciled = reconcileExpiredNodes(state, Date.now());
         if (reconciled) {
@@ -753,11 +760,9 @@ export default function IslandPage() {
         const { getCurrentUser } = await import('@/lib/grudgeBackend');
         const currentUser = getCurrentUser();
         const userId = currentUser?.grudgeId || currentUser?.username || 'guest';
-        let state = await loadIslandState(userId);
-        if (!state) {
-          state = createNewIsland(userId);
-          await saveIslandState(userId, state);
-        }
+        const activeId = activeCharacter?.id ?? allCharacters[0]?.id ?? null;
+        const { state, dto } = await resolveAuthoritativeIsland(userId, activeId);
+        setHomeIslandDto(dto);
         setIslandState(state);
         
         const pos: Record<string, HeroPosition> = {};
@@ -1763,8 +1768,10 @@ export default function IslandPage() {
     }
   });
 
-  // Derive island seed from state for 3D view
-  const island3dSeed = islandState?.id || islandState?.name || 'grudge-island-default';
+  const island3dSeed = homeIslandDto?.seed ?? islandState?.id ?? islandState?.name ?? 'grudge-island-default';
+  const island3dMountainTriad = homeIslandDto?.state?.mountainTriad;
+  const island3dRtsHeightmap = homeIslandDto?.state?.rtsHeightmap;
+  const island3dRtsNatureScatter = homeIslandDto?.state?.rtsNatureScatter;
 
   return (
     <GameViewportLayout title="Island">
@@ -1815,6 +1822,15 @@ export default function IslandPage() {
             raceId={playCharacter?.raceId ?? 'human'}
             classId={playCharacter?.classId ?? 'warrior'}
             quality="high"
+            mountainTriad={island3dMountainTriad as MountainTriadSeed | undefined}
+            rtsHeightmap={island3dRtsHeightmap as RtsHeightmapPayload | undefined}
+            rtsNatureScatter={island3dRtsNatureScatter as RtsNatureScatterPayload | undefined}
+            dayNight={{ dayDurationSeconds: 10 * 60 }}
+            onDungeonEnter={(dungeonId, dungeonName) => {
+              addLog(`Entering ${dungeonName}...`);
+              window.location.href = buildHomeDungeonUrl(dungeonId, dungeonName);
+            }}
+            campPositionPercent={islandState?.campPosition ?? homeIslandDto?.state?.campPosition}
           />
         </div>
       ) : (

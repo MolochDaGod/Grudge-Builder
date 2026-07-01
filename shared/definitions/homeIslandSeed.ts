@@ -87,6 +87,17 @@ export function hashSeedString(s: string): number {
   return h;
 }
 
+/** Numeric seed for Colyseus HomeIslandRoom — must match server hashSeed(). */
+export function hashIslandSeedForColyseus(str: string): number {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    const ch = str.charCodeAt(i);
+    hash = ((hash << 5) - hash) + ch;
+    hash |= 0;
+  }
+  return Math.abs(hash);
+}
+
 export function seededRandomFromString(seed: string): () => number {
   let state = 0;
   for (let i = 0; i < seed.length; i++) {

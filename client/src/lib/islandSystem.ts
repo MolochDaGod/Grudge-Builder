@@ -1,6 +1,11 @@
 import { puterKV, puterIslandKV, isPuterAvailable } from "./puterIntegration";
 import { v4 as uuidv4 } from 'uuid';
 import { assetUrl } from "@/lib/assetConfig";
+import {
+  HOME_ISLAND_CLEARING_HALF_PCT,
+  HOME_ISLAND_NODE_BUDGET,
+  HOME_ISLAND_NODE_TARGET,
+} from '@shared/definitions/homeIslandQuality';
 
 export interface LootDrop {
   itemId: string;
@@ -677,119 +682,88 @@ const WATER_POSITIONS = [
   { x: 85, y: 75 }, { x: 50, y: 88 }, { x: 10, y: 55 },
 ];
 
+function pickTemplatesForZone(
+  zone: TerrainZone,
+  landTemplates: typeof NODE_TEMPLATES,
+  waterTemplates: typeof NODE_TEMPLATES,
+): typeof NODE_TEMPLATES {
+  const types = getNodeTypesForZone(zone);
+  const pool = types.includes('fish')
+    ? waterTemplates.filter((t) => types.includes(t.type))
+    : landTemplates.filter((t) => types.includes(t.type));
+  return pool.length > 0 ? pool : landTemplates;
+}
+
+function spawnNodeInZone(
+  rng: () => number,
+  zones: TerrainArea[],
+  zoneType: TerrainZone,
+  templates: typeof NODE_TEMPLATES,
+  existing: ResourceNode[],
+  minDist = 3.5,
+): ResourceNode | null {
+  const areas = zones.filter((z) => z.zone === zoneType);
+  if (areas.length === 0 || templates.length === 0) return null;
+
+  for (let attempt = 0; attempt < 24; attempt++) {
+    const area = areas[Math.floor(rng() * areas.length)];
+    const x = area.x + rng() * area.width;
+    const y = area.y + rng() * area.height;
+    const tooClose = existing.some((n) => {
+      const dx = n.x - x;
+      const dy = n.y - y;
+      return Math.hypot(dx, dy) < minDist;
+    });
+    if (tooClose) continue;
+
+    const template = templates[Math.floor(rng() * templates.length)];
+    const now = Date.now();
+    const rarity = rollNodeRarity(rng);
+    const nodeLevel = Math.floor(rng() * 5) + 1
+      + (rarity === 'legendary' ? 3 : rarity === 'epic' ? 2 : rarity === 'rare' ? 1 : 0);
+
+    return {
+      ...template,
+      id: uuidv4(),
+      x,
+      y,
+      spawnedAt: now,
+      expiresAt: now + template.uptime * 60 * 60 * 1000,
+      rarity,
+      nodeLevel,
+    };
+  }
+  return null;
+}
+
+/** Budget-driven harvest node placement — targets HOME_ISLAND_NODE_TARGET (32). */
 export function generateIslandNodes(seed: string, terrainZones?: TerrainArea[]): ResourceNode[] {
   const rng = seededRandom(seed);
   const nodes: ResourceNode[] = [];
   const zones = terrainZones || generateDefaultTerrainZones();
-  
-  const landTemplates = NODE_TEMPLATES.filter(t => !t.isWaterNode);
-  const waterTemplates = NODE_TEMPLATES.filter(t => t.isWaterNode);
-  
-  // Generate terrain-aware positions for larger island
-  const generateZonePositions = (zoneType: TerrainZone): { x: number; y: number }[] => {
-    const positions: { x: number; y: number }[] = [];
-    const zoneAreas = zones.filter(z => z.zone === zoneType);
-    for (const area of zoneAreas) {
-      // Generate multiple positions within each zone area
-      const count = Math.floor(rng() * 3) + 2;
-      for (let i = 0; i < count; i++) {
-        positions.push({
-          x: area.x + rng() * area.width,
-          y: area.y + rng() * area.height,
-        });
-      }
+
+  const landTemplates = NODE_TEMPLATES.filter((t) => !t.isWaterNode);
+  const waterTemplates = NODE_TEMPLATES.filter((t) => t.isWaterNode);
+
+  for (const [zoneType, budget] of Object.entries(HOME_ISLAND_NODE_BUDGET)) {
+    if (budget <= 0) continue;
+    const templates = pickTemplatesForZone(zoneType as TerrainZone, landTemplates, waterTemplates);
+    for (let i = 0; i < budget; i++) {
+      const node = spawnNodeInZone(rng, zones, zoneType as TerrainZone, templates, nodes);
+      if (node) nodes.push(node);
     }
-    return positions.sort(() => rng() - 0.5);
-  };
-
-  // Generate ore nodes in mountain zones
-  const mountainPositions = generateZonePositions('mountain');
-  const oreTemplates = landTemplates.filter(t => t.type === 'ore' || t.type === 'stone' || t.type === 'gem');
-  for (let i = 0; i < Math.min(3, mountainPositions.length); i++) {
-    const template = oreTemplates[Math.floor(rng() * oreTemplates.length)] || landTemplates[0];
-    const pos = mountainPositions[i];
-    const now = Date.now();
-    const rarity = rollNodeRarity(rng);
-    const nodeLevel = Math.floor(rng() * 5) + 1 + (rarity === 'legendary' ? 3 : rarity === 'epic' ? 2 : rarity === 'rare' ? 1 : 0);
-    
-    nodes.push({
-      ...template,
-      id: uuidv4(),
-      x: pos.x,
-      y: pos.y,
-      spawnedAt: now,
-      expiresAt: now + template.uptime * 60 * 60 * 1000,
-      rarity,
-      nodeLevel,
-    });
   }
 
-  // Generate wood nodes in forest zones
-  const forestPositions = generateZonePositions('forest');
-  const woodTemplates = landTemplates.filter(t => t.type === 'wood' || t.type === 'herb');
-  for (let i = 0; i < Math.min(4, forestPositions.length); i++) {
-    const template = woodTemplates[Math.floor(rng() * woodTemplates.length)] || landTemplates[0];
-    const pos = forestPositions[i];
-    const now = Date.now();
-    const rarity = rollNodeRarity(rng);
-    const nodeLevel = Math.floor(rng() * 5) + 1 + (rarity === 'legendary' ? 3 : rarity === 'epic' ? 2 : rarity === 'rare' ? 1 : 0);
-    
-    nodes.push({
-      ...template,
-      id: uuidv4(),
-      x: pos.x,
-      y: pos.y,
-      spawnedAt: now,
-      expiresAt: now + template.uptime * 60 * 60 * 1000,
-      rarity,
-      nodeLevel,
-    });
+  // Top up if collision thinned the budget (shore/water edges are tight)
+  let safety = 0;
+  while (nodes.length < HOME_ISLAND_NODE_TARGET && safety < HOME_ISLAND_NODE_TARGET * 4) {
+    safety++;
+    const zoneType = (['field', 'forest', 'mountain', 'shore'] as TerrainZone[])[Math.floor(rng() * 4)];
+    const templates = pickTemplatesForZone(zoneType, landTemplates, waterTemplates);
+    const node = spawnNodeInZone(rng, zones, zoneType, templates, nodes, 2.5);
+    if (node) nodes.push(node);
   }
 
-  // Generate herb/hemp nodes in field zones
-  const fieldPositions = generateZonePositions('field');
-  const fieldTemplates = landTemplates.filter(t => t.type === 'hemp' || t.type === 'herb');
-  for (let i = 0; i < Math.min(3, fieldPositions.length); i++) {
-    const template = fieldTemplates[Math.floor(rng() * fieldTemplates.length)] || landTemplates[0];
-    const pos = fieldPositions[i];
-    const now = Date.now();
-    const rarity = rollNodeRarity(rng);
-    const nodeLevel = Math.floor(rng() * 5) + 1 + (rarity === 'legendary' ? 3 : rarity === 'epic' ? 2 : rarity === 'rare' ? 1 : 0);
-    
-    nodes.push({
-      ...template,
-      id: uuidv4(),
-      x: pos.x,
-      y: pos.y,
-      spawnedAt: now,
-      expiresAt: now + template.uptime * 60 * 60 * 1000,
-      rarity,
-      nodeLevel,
-    });
-  }
-
-  // Generate fish nodes in shore zones
-  const shorePositions = generateZonePositions('shore');
-  for (let i = 0; i < Math.min(3, shorePositions.length, waterTemplates.length > 0 ? 3 : 0); i++) {
-    const template = waterTemplates[Math.floor(rng() * waterTemplates.length)];
-    if (!template) continue;
-    const pos = shorePositions[i];
-    const now = Date.now();
-    const rarity = rollNodeRarity(rng);
-    const nodeLevel = Math.floor(rng() * 5) + 1 + (rarity === 'legendary' ? 3 : rarity === 'epic' ? 2 : rarity === 'rare' ? 1 : 0);
-    
-    nodes.push({
-      ...template,
-      id: uuidv4(),
-      x: pos.x,
-      y: pos.y,
-      spawnedAt: now,
-      expiresAt: now + template.uptime * 60 * 60 * 1000,
-      rarity,
-      nodeLevel,
-    });
-  }
-  
   return nodes;
 }
 
@@ -941,27 +915,25 @@ function validateMapStyle(style: string | undefined): IslandState['mapStyle'] {
   return 'iron'; // Default fallback
 }
 
-// Generate default terrain zones for a larger island (4x size with more land)
+// Generate default terrain zones — large central clearing for buildable camp hub
 export function generateDefaultTerrainZones(): TerrainArea[] {
+  const half = HOME_ISLAND_CLEARING_HALF_PCT;
+  const center = 50 - half;
+  const clearingSize = half * 2;
   return [
-    // Central clearing (24x24 building area) - larger for camp and buildings
-    { zone: 'clearing', x: 38, y: 38, width: 24, height: 24 },
-    
-    // Mountain range (north) - ore nodes spawn here
-    { zone: 'mountain', x: 20, y: 5, width: 60, height: 20 },
-    
-    // Forest areas (east and west) - wood nodes spawn here
-    { zone: 'forest', x: 5, y: 25, width: 25, height: 40 },
-    { zone: 'forest', x: 70, y: 25, width: 25, height: 40 },
-    
-    // Fields (south-central) - sheep, herbs spawn here
-    { zone: 'field', x: 25, y: 65, width: 50, height: 25 },
-    
-    // Shore areas (borders) - fish nodes spawn here
-    { zone: 'shore', x: 0, y: 0, width: 100, height: 8 },
-    { zone: 'shore', x: 0, y: 92, width: 100, height: 8 },
-    { zone: 'shore', x: 0, y: 8, width: 8, height: 84 },
-    { zone: 'shore', x: 92, y: 8, width: 8, height: 84 },
+    { zone: 'clearing', x: center, y: center, width: clearingSize, height: clearingSize },
+
+    { zone: 'mountain', x: 18, y: 4, width: 64, height: 22 },
+    { zone: 'forest', x: 4, y: 22, width: 28, height: 44 },
+    { zone: 'forest', x: 68, y: 22, width: 28, height: 44 },
+    { zone: 'field', x: 22, y: 62, width: 56, height: 28 },
+
+    { zone: 'shore', x: 0, y: 0, width: 100, height: 7 },
+    { zone: 'shore', x: 0, y: 93, width: 100, height: 7 },
+    { zone: 'shore', x: 0, y: 7, width: 7, height: 86 },
+    { zone: 'shore', x: 93, y: 7, width: 7, height: 86 },
+
+    { zone: 'water', x: 78, y: 4, width: 18, height: 18 },
   ];
 }
 
@@ -984,7 +956,7 @@ export function getNodeTypesForZone(zone: TerrainZone): ResourceNode['type'][] {
     case 'forest': return ['wood', 'herb'];
     case 'field': return ['hemp', 'herb'];
     case 'shore': return ['fish'];
-    case 'water': return ['fish'];
+    case 'water': return ['fish', 'oil'];
     case 'clearing': return []; // No nodes in building areas
     default: return ['wood', 'ore', 'herb'];
   }
@@ -1012,7 +984,7 @@ export function createNewIsland(userId: string, islandName: string = "Home Islan
     assignedHeroes: {},
     terrainZones,
     campPosition: undefined, // Set when user completes cutscene
-    clearings: [{ x: 38, y: 38, width: 24, height: 24 }], // Initial central clearing
+    clearings: [{ x: 50 - HOME_ISLAND_CLEARING_HALF_PCT, y: 50 - HOME_ISLAND_CLEARING_HALF_PCT, width: HOME_ISLAND_CLEARING_HALF_PCT * 2, height: HOME_ISLAND_CLEARING_HALF_PCT * 2 }],
     isFirstVisit: true, // Show cutscene on first visit
     createdAt: Date.now(),
     lastUpdate: Date.now(),

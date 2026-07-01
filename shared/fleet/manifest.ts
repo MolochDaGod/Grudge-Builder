@@ -35,7 +35,8 @@ export const FLEET_URLS = {
   ai: "https://ai.grudge-studio.com",
   /** Local AnythingLLM desktop — dev RAG over fleet + ObjectStore docs */
   anythingllm: "http://localhost:3001/api",
-  colyseus: "wss://api.grudge-studio.com",
+  /** Colyseus shares the GrudgeBuilder Railway HTTP server (home_island, sector, town, …). */
+  colyseus: "wss://grudge-api-production-0d46.up.railway.app",
   world: "wss://world.grudge-studio.com",
   charactersHub: "https://character.grudge-studio.com",
   gcs: "https://character.grudge-studio.com",
@@ -196,7 +197,42 @@ export const FLEET_GAME_DATA_API_PREFIXES = [
   "maps",
   "launcher",
   "ai-units",
+  "rewards",
 ] as const;
+
+/**
+ * Railway Postgres auth routes — must appear BEFORE `/api/auth/:path*` → Grudge ID.
+ * Anything missing here falls through to id.grudge-studio.com and breaks WCS/Puter handoff.
+ */
+export const FLEET_RAILWAY_AUTH_PATHS = [
+  "puter",
+  "puter-sso",
+  "guest",
+  "login",
+  "register",
+  "me",
+  "scoped-profile",
+  "discord/start",
+  "verify",
+  "session/exchange",
+  "popup-token",
+  "grudge-bridge",
+  "wallet",
+  "puter-link",
+  "complete-profile",
+  "phone/send",
+  "phone/verify",
+] as const;
+
+/** Build explicit Railway auth rewrites (exact paths only). */
+export function buildFleetRailwayAuthRewrites(
+  gameData: string = FLEET_URLS.gameData,
+): FleetRewrite[] {
+  return FLEET_RAILWAY_AUTH_PATHS.map((segment) => ({
+    source: `/api/auth/${segment}`,
+    destination: `${gameData}/api/auth/${segment}`,
+  }));
+}
 
 /** Build Railway game-data rewrites (defaults to FLEET_URLS.gameData). */
 export function buildFleetGameDataRewrites(
@@ -219,14 +255,7 @@ export const FLEET_VERCEL_REWRITES: readonly FleetRewrite[] = [
   { source: "/api/assets/:path*", destination: `${FLEET_URLS.assets}/:path*` },
   { source: "/api/objectstore/:path*", destination: "https://objectstore.grudge-studio.com/api/:path*" },
   ...buildFleetGameDataRewrites(),
-  { source: "/api/auth/puter", destination: `${FLEET_URLS.gameData}/api/auth/puter` },
-  { source: "/api/auth/login", destination: `${FLEET_URLS.gameData}/api/auth/login` },
-  { source: "/api/auth/register", destination: `${FLEET_URLS.gameData}/api/auth/register` },
-  { source: "/api/auth/me", destination: `${FLEET_URLS.gameData}/api/auth/me` },
-  { source: "/api/auth/scoped-profile", destination: `${FLEET_URLS.gameData}/api/auth/scoped-profile` },
-  { source: "/api/auth/discord/start", destination: `${FLEET_URLS.gameData}/api/auth/discord/start` },
-  { source: "/api/auth/verify", destination: `${FLEET_URLS.gameData}/api/auth/verify` },
-  { source: "/api/auth/session/exchange", destination: `${FLEET_URLS.gameData}/api/auth/session/exchange` },
+  ...buildFleetRailwayAuthRewrites(),
   { source: "/api/auth/:path*", destination: `${FLEET_URLS.auth}/auth/:path*` },
   { source: "/api/ai/gateway/:path*", destination: `${FLEET_URLS.gameData}/api/ai/gateway/:path*` },
   { source: "/api/ai/rag/:path*", destination: `${FLEET_URLS.gameData}/api/ai/rag/:path*` },
