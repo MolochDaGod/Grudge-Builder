@@ -71,6 +71,22 @@ export interface HomeIslandState {
     exportedAt: number;
     appUrl: string;
   };
+  rtsNatureScatter?: {
+    version: string;
+    worldSizeM: number;
+    biome: string;
+    seed: number;
+    generatedAt: number;
+    instances: Array<{
+      category: string;
+      modelPath: string;
+      x: number;
+      y: number;
+      z: number;
+      rotation: number;
+      scale: number;
+    }>;
+  };
   createdAt: number;
   lastUpdate: number;
 }
@@ -190,6 +206,7 @@ export function normalizeHomeIslandResponse(raw: any): HomeIslandDto {
     stats: sourceState?.stats,
     mountainTriad: sourceState?.mountainTriad,
     rtsHeightmap: sourceState?.rtsHeightmap,
+    rtsNatureScatter: sourceState?.rtsNatureScatter,
     rtsExport: sourceState?.rtsExport,
     createdAt: Number(sourceState?.createdAt ?? dto?.createdAt ?? Date.now()),
     lastUpdate: Number(sourceState?.lastUpdate ?? dto?.updatedAt ?? dto?.createdAt ?? Date.now()),

@@ -17,6 +17,10 @@ import {
   deriveTerrainZonesFromRtsHeightmap,
   type RtsHeightmapPayload,
 } from '@shared/definitions/rtsTerrainBridge';
+import {
+  generateRtsNatureScatter,
+  type RtsNatureScatterPayload,
+} from '@shared/definitions/rtsNatureScatter';
 
 /**
  * Seeded Random Number Generator
@@ -114,6 +118,7 @@ export interface IslandState {
   clearings: Array<{ x: number; y: number; radius: number }>;
   mountainTriad?: MountainTriadSeed;
   rtsHeightmap?: RtsHeightmapPayload;
+  rtsNatureScatter?: RtsNatureScatterPayload;
   stats: {
     nodeCount: number;
     animalCount: number;
@@ -538,6 +543,8 @@ export function mergeRtsExportIntoIslandState(
       radius: Math.min(z.bounds.width, z.bounds.height) / 2,
     }));
 
+  const rtsNatureScatter = generateRtsNatureScatter(rts.seed, rts.biome, rts.heightmap);
+
   return {
     ...base,
     terrainZones: assertAllHomeIslandZones(terrainZones),
@@ -545,6 +552,7 @@ export function mergeRtsExportIntoIslandState(
     clearings: clearings.length > 0 ? clearings : base.clearings,
     mountainTriad,
     rtsHeightmap: rts.heightmap,
+    rtsNatureScatter,
     stats: {
       ...base.stats,
       terrainZoneCount: terrainZones.length,

@@ -55,7 +55,7 @@ Contract: [home-island-contract.json](https://molochdagod.github.io/ObjectStore/
 
 **Seed:** `home_islands.seed` + `generateMountainTriadSeed()` — deterministic dungeon peak, triad placement, zone types.
 
-**RTS → Warlords:** `POST /api/island/export-from-rts` stores `rtsHeightmap` on Railway. Warlords 3D upsamples the 200m export into the center of the 1024m terrain (`generateIslandTerrainFromRts`). NatureScatter tree placements remain RTS-only until GLB export exists.
+**RTS → Warlords:** `POST /api/island/export-from-rts` stores `rtsHeightmap` + `rtsNatureScatter` on Railway. Warlords 3D upsamples terrain (`MISSION-01`) and renders foliage GLBs (`MISSION-02`). Mission index: [ObjectStore missions](https://molochdagod.github.io/ObjectStore/api/v1/_meta/missions/).
 
 ---
 
@@ -74,10 +74,10 @@ Weapons/tools runtime = `master-weapon-prefabs.json`. Materials/recipes/nodes = 
 
 ## Remaining gaps
 
-1. **NatureScatter → 3D** — export foliage placements with RTS heightmap
+1. **Economy spider chart** — materials/recipes/nodes/chest achievability viz (`MISSION-03` pending)
 2. **Scale alignment** — Colyseus 400m room vs 1024m 3D (document offsets in contract)
-3. **Economy spider chart** — materials/recipes/nodes/chest achievability viz (not built)
-4. **Armor prefabs** — catalog only; runtime prefab pipeline planned
+3. **Armor prefabs** — catalog only; runtime prefab pipeline planned
+4. **NatureScatter perf** — InstancedMesh batching + wind sway (post `MISSION-02`)
 
 ---
 

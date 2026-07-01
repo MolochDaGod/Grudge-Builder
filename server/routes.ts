@@ -1185,6 +1185,22 @@ export async function registerRoutes(
       biome: z.string(),
       heightsBase64: z.string(),
     }).optional(),
+    rtsNatureScatter: z.object({
+      version: z.string(),
+      worldSizeM: z.number(),
+      biome: z.string(),
+      seed: z.number(),
+      generatedAt: z.number(),
+      instances: z.array(z.object({
+        category: z.string(),
+        modelPath: z.string(),
+        x: z.number(),
+        y: z.number(),
+        z: z.number(),
+        rotation: z.number(),
+        scale: z.number(),
+      })),
+    }).optional(),
   }).passthrough();
 
   const islandMetadataSchema = z.object({
@@ -1231,6 +1247,7 @@ export async function registerRoutes(
       animals: Array.isArray(state.animals) ? state.animals : sheep,
       mountainTriad: state.mountainTriad as Record<string, unknown> | undefined,
       rtsHeightmap: state.rtsHeightmap as Record<string, unknown> | undefined,
+      rtsNatureScatter: state.rtsNatureScatter as Record<string, unknown> | undefined,
       rtsExport: state.rtsExport as Record<string, unknown> | undefined,
       createdAt: (state.createdAt as number) || island.createdAt || Date.now(),
       lastUpdate: (state.lastUpdate as number) || island.updatedAt || Date.now(),
@@ -1582,6 +1599,7 @@ export async function registerRoutes(
           appUrl: String(appUrl ?? "https://rts-grudge.vercel.app"),
         },
         rtsHeightmap: parsedHeightmap ?? (merged as any).rtsHeightmap,
+        rtsNatureScatter: (merged as any).rtsNatureScatter,
         lastUpdate: Date.now(),
       };
 

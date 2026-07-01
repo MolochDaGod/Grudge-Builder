@@ -58,6 +58,8 @@ import {
 import { InstancedProceduralForest } from '../objects/InstancedProceduralForest';
 import { preloadIslandResources } from '../objects/IslandResourceLoader';
 import { scatterGlbTreesFromNodes } from '../objects/GlbForestScatter';
+import { scatterRtsNatureInScene } from '../objects/RtsNatureScatter';
+import type { RtsNatureScatterPayload } from '@shared/definitions/rtsNatureScatter';
 import { placeProceduralHarvestZones } from '../harvest/HarvestZonePlacer';
 import { buildHarvestZones, type HarvestZonesResult } from '../harvest/HarvestZoneBuilder';
 import { spawnZoneHarvestNodes } from '../harvest/ZoneHarvestSpawner';
@@ -116,6 +118,8 @@ export interface Island3DEngineConfig {
   mountainTriad?: import('@shared/definitions/homeIslandSeed').MountainTriadSeed;
   /** RTS-Grudge export heightmap — shapes center of 1024m terrain when present */
   rtsHeightmap?: RtsHeightmapPayload;
+  /** RTS NatureScatter foliage placements (200m, CDN GLBs) */
+  rtsNatureScatter?: RtsNatureScatterPayload;
   /** Fired when a harvestable node is depleted (tree felled, rock mined) */
   onHarvest?: (event: {
     nodeId?: string;
@@ -527,6 +531,17 @@ export class Island3DEngine {
 
     // 6. Scatter decorations
     this.createDecorations();
+
+    // 6b. RTS NatureScatter foliage (when exported from forge)
+    if (this.config.rtsNatureScatter?.instances?.length) {
+      const foliage = await scatterRtsNatureInScene(
+        this.config.rtsNatureScatter,
+        this.terrain.terrainMesh,
+      );
+      if (foliage.children.length > 0) this.scene.add(foliage);
+    } else {
+      await this.createProceduralForest();
+    }
 
     // 7. Detail layers — animated grass + sand overlays
     this.createDetailLayers();
