@@ -39,7 +39,8 @@ interface GameMode {
 const GAME_MODES: GameMode[] = [
   // ── Core (local pages on grudgewarlords.com) ──
   { id: "character", title: "Hero Forge",        subtitle: "Create & Manage Heroes",    description: "Build heroes, allocate attributes, equip gear, and manage your roster.",                url: "/character",    icon: "user",     tier: "core",    badge: "Core",    badgeColor: "amber" },
-  { id: "island",    title: "Home Island",       subtitle: "Auto-Harvest & Build",      description: "Your island. Heroes auto-harvest, build structures, craft gear.",                       url: "/island",       icon: "leaf",     tier: "core",    badge: "Core",    badgeColor: "emerald" },
+  { id: "homeisland", title: "Home Island 3D",   subtitle: "1024m Seed World",          description: "Your persistent island — harvest, combat, build, mountain dungeon.",                      url: "/home-island",  icon: "leaf",     tier: "core",    badge: "Play",    badgeColor: "emerald" },
+  { id: "island",    title: "Island 2D",         subtitle: "Auto-Harvest & Build",      description: "Classic 2D island view with auto-harvest and structure bonuses.",                         url: "/island-v2",    icon: "leaf",     tier: "core",    badge: "2D",      badgeColor: "lime" },
   { id: "crafting",  title: "Warlord Crafting",  subtitle: "Forge Weapons & Armor",     description: "Craft weapons, armor, consumables using your profession skills.",                       url: "/crafting",     icon: "hammer",   tier: "craft",   badge: "Craft",   badgeColor: "orange" },
   // ── Combat (3D worlds on rts-grudge.vercel.app, 2D local) ──
   { id: "rtsgrudge", title: "RTS GRUDGE",        subtitle: "3D Open World Battle",      description: "Enter the 3D Grudge world. Faction Wars, Siege Mode, and PvP.",                        url: "/rts-grudge",   icon: "shield",   tier: "combat",  badge: "3D",      badgeColor: "red" },

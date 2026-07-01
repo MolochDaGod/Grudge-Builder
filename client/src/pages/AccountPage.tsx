@@ -13,6 +13,12 @@ import { useAccount } from "@/hooks/use-account";
 import { getCurrentUser, getSession, logout, authHeaders } from "@/lib/grudgeBackend";
 import Layout from "@/components/Layout";
 import CharacterSelectorPanel from "@/components/CharacterSelectorPanel";
+import {
+  fetchPlayReadiness,
+  resolvePlayDestination,
+  playDestinationLabel,
+  type PlayReadiness,
+} from "@/lib/playHub";
 
 interface IslandStatus {
   homeIsland: boolean;
@@ -28,13 +34,32 @@ export default function AccountPage() {
   const user = getCurrentUser();
   const session = getSession();
   const [islandStatus, setIslandStatus] = useState<IslandStatus | null>(null);
+  const [playReady, setPlayReady] = useState<PlayReadiness | null>(null);
+  const [playLabel, setPlayLabel] = useState('Play Warlords');
+  const [playLoading, setPlayLoading] = useState(false);
 
   useEffect(() => {
     fetch('/api/island/status', { headers: authHeaders() })
       .then(r => r.ok ? r.json() : null)
       .then(data => { if (data) setIslandStatus(data); })
       .catch(() => {});
+
+    fetchPlayReadiness().then(async (r) => {
+      setPlayReady(r);
+      const dest = await resolvePlayDestination();
+      setPlayLabel(playDestinationLabel(dest));
+    });
   }, []);
+
+  const handlePlayWarlords = async () => {
+    setPlayLoading(true);
+    try {
+      const dest = await resolvePlayDestination();
+      setLocation(dest.path);
+    } finally {
+      setPlayLoading(false);
+    }
+  };
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
@@ -49,15 +74,40 @@ export default function AccountPage() {
   return (
     <Layout>
       <div className="max-w-3xl mx-auto">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold font-cinzel text-amber-400 flex items-center gap-3" data-testid="text-account-title">
-            <User className="h-8 w-8" />
-            Account
-          </h1>
-          <p className="text-slate-400 mt-1 text-sm">
-            Your Grudge Studio profile and settings
-          </p>
+        <div className="mb-8 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold font-cinzel text-amber-400 flex items-center gap-3" data-testid="text-account-title">
+              <User className="h-8 w-8" />
+              Account
+            </h1>
+            <p className="text-slate-400 mt-1 text-sm">
+              Grudge Studio identity — same login across Warlords, WCS, and Puter crafting
+            </p>
+          </div>
+          <Button
+            size="lg"
+            disabled={playLoading}
+            onClick={handlePlayWarlords}
+            className="bg-gradient-to-r from-emerald-600 to-emerald-500 text-white font-bold font-cinzel shrink-0"
+          >
+            <Swords className="w-4 h-4 mr-2" />
+            {playLoading ? 'Loading…' : playLabel}
+          </Button>
         </div>
+
+        {playReady && (
+          <div className="mb-6 flex flex-wrap gap-2 text-xs">
+            <Badge variant="outline" className={playReady.signedIn ? 'border-emerald-700 text-emerald-400' : 'border-slate-600 text-slate-500'}>
+              {playReady.signedIn ? 'Signed in' : 'Guest'}
+            </Badge>
+            <Badge variant="outline" className={playReady.hasCharacter ? 'border-amber-700 text-amber-400' : 'border-slate-600 text-slate-500'}>
+              {playReady.hasCharacter ? 'Hero ready' : 'No hero'}
+            </Badge>
+            <Badge variant="outline" className={playReady.hasHomeIsland ? 'border-cyan-700 text-cyan-400' : 'border-slate-600 text-slate-500'}>
+              {playReady.hasHomeIsland ? 'Home island' : 'No island'}
+            </Badge>
+          </div>
+        )}
 
         {/* Profile Card */}
         <Card className="mb-6 bg-slate-900/60 border-slate-700">
