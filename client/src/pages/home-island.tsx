@@ -248,10 +248,12 @@ export default function HomeIslandPage() {
     if (!canvas || engineRef.current) return;
 
     const mountainTriad = islandDto?.state?.mountainTriad as MountainTriadSeed | undefined;
+    const rtsHeightmap = islandDto?.state?.rtsHeightmap;
 
     const config: Island3DEngineConfig = {
       seed: islandSeed,
       mountainTriad,
+      rtsHeightmap,
       canvas,
       width: window.innerWidth,
       height: window.innerHeight,
@@ -305,7 +307,7 @@ export default function HomeIslandPage() {
       engine.dispose();
       engineRef.current = null;
     };
-  }, [islandSeed, islandDto?.state?.mountainTriad, heroRace, heroClass, showNotification, setLocation]);
+  }, [islandSeed, islandDto?.state?.mountainTriad, islandDto?.state?.rtsHeightmap, heroRace, heroClass, showNotification, setLocation]);
 
   // ── E key — cave portal behind secret evil peak ───────────────
 

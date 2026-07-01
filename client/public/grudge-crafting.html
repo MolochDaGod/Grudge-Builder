@@ -2480,19 +2480,31 @@ let dbFilterCat = 'all';
 
 async function loadItemDatabase() {
   try {
-    const base = window.GRUDGE_CONFIG.OBJECTSTORE_URL;
-    const url = base.replace(/\/$/, '') + '/items-database.json';
-    const res = await fetch(url);
-    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const base = (window.GRUDGE_CONFIG.OBJECTSTORE_URL || 'https://objectstore.grudge-studio.com/api/v1').replace(/\/$/, '');
+    const lib = (typeof GrudgeFleet !== 'undefined' && GrudgeFleet.getGamesLibrary)
+      ? await GrudgeFleet.getGamesLibrary()
+      : await fetch(base + '/games-library.json').then(r => { if (!r.ok) throw new Error('games-library HTTP ' + r.status); return r.json(); });
+    const itemsUrl = (lib.runtime && lib.runtime.masterItems) ? lib.runtime.masterItems : (base + '/master-items.json');
+    const res = await fetch(itemsUrl);
+    if (!res.ok) throw new Error('master-items HTTP ' + res.status);
     const data = await res.json();
-    ITEM_DB = data.items || [];
-    ITEM_DB_CATEGORIES = data.categories || [];
+    const raw = data.items || [];
+    ITEM_DB = raw.map(item => ({
+      name: item.name,
+      category: item.category || item.type || 'weapon',
+      icon: item.iconUrl || item.icon,
+      stats: item.stats || {},
+      tier: item.tier,
+      uuid: item.uuid,
+    }));
+    const cats = new Set(ITEM_DB.map(i => i.category).filter(Boolean));
+    ITEM_DB_CATEGORIES = Array.from(cats).sort();
     ITEM_DB.forEach(item => {
       if (item.icon) ITEM_ICON_MAP[item.name.toLowerCase()] = item.icon;
     });
     const el = document.getElementById('db-count');
     if (el) el.textContent = ITEM_DB.length;
-    console.log('[ObjectStore] Loaded ' + ITEM_DB.length + ' items');
+    console.log('[ObjectStore] Loaded ' + ITEM_DB.length + ' items via games-library → master-items');
     renderAll();
   } catch(e) {
     console.error('[ObjectStore] Failed:', e);

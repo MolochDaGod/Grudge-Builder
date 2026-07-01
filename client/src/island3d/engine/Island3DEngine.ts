@@ -7,11 +7,12 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import {
-  generateIslandTerrain,
+  generateIslandTerrainWithBridge,
   getTerrainHeightAt,
   type IslandTerrainConfig,
   type IslandTerrainResult,
 } from '../terrain/IslandTerrainGenerator';
+import type { RtsHeightmapPayload } from '@shared/definitions/rtsTerrainBridge';
 import { createTerrainMaterialAsync } from '../terrain/TerrainMaterial';
 import { placeResourceNodes, type PlacedNode3D } from '../terrain/NodePlacer';
 import { createScatterDecorations } from '../objects/ScatterDecorations';
@@ -39,6 +40,7 @@ import { createOceanMesh, updateOceanMaterial } from '../terrain/WaterMaterial';
 import { PostProcessing, type QualityPreset } from '../render/PostProcessing';
 import { DayNightCycle, type DayNightConfig } from '../environment/DayNightCycle';
 import { CharacterController3D, type CharacterController3DConfig, type PhysicsCallbacks } from '../player/CharacterController3D';
+import { WEAPON_SKILL_SLOTS } from '@/lib/hotbarLayout';
 import { TerrainNavMesh } from '../navigation/TerrainNavMesh';
 import { AllyManager, type CombatTarget } from '../ai/AllyController';
 import { BuildingSystem, type PieceType } from '../building/BuildingSystem';
@@ -112,6 +114,8 @@ export interface Island3DEngineConfig {
   onDungeonEnter?: (dungeonId: string, dungeonName: string) => void;
   /** Persisted mountain triad seed from Railway (Sketchfab 3-peak dungeon layout) */
   mountainTriad?: import('@shared/definitions/homeIslandSeed').MountainTriadSeed;
+  /** RTS-Grudge export heightmap — shapes center of 1024m terrain when present */
+  rtsHeightmap?: RtsHeightmapPayload;
   /** Fired when a harvestable node is depleted (tree felled, rock mined) */
   onHarvest?: (event: {
     nodeId?: string;
@@ -217,6 +221,7 @@ export class Island3DEngine {
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    this.renderer.localClippingEnabled = true;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
     this.renderer.toneMappingExposure = 1.2;
 
@@ -422,17 +427,28 @@ export class Island3DEngine {
       callbacks: this.config.physicsCallbacks,
     });
 
-    // Load action bar from character for game flow testing (1-5 slots from spellbook like uMMORPG)
-    // Uses the assigned from /skill-tree for the class special (grimoire forms etc)
-    const activeChar = await import('@/lib/characterManager').then(m => m.CharacterManager.getActiveCharacter?.());
+    const { CharacterManager } = await import('@/lib/characterManager');
+    const { hotbarFromCharacter } = await import('@/lib/hotbarLayout');
+    const activeChar = await CharacterManager.getActiveCharacter?.();
     if (activeChar?.equipment) {
       this.character.setEquipment(activeChar.equipment);
     }
-    if (activeChar?.actionBar) {
-      this.character.loadActionBar(activeChar.actionBar);
+    const hotbar = hotbarFromCharacter(activeChar);
+    const hasWeaponSkills = WEAPON_SKILL_SLOTS.some((s) => hotbar.weaponSkills[s]);
+    if (hasWeaponSkills) {
+      this.character.loadHotbar(hotbar);
     } else {
-      // Demo canonical skills matching SPECIAL_ITEM_SKILL_TREES + basic slot1
-      this.character.loadActionBar({1: 'warrior_0_strike', 2: 'grim_dest_blast', 3: 'grim_prot_ward', 4: 'grim_conj_minion', 5: 'grim_conj_lord'});
+      this.character.loadHotbar({
+        weaponSkills: {
+          1: 'warrior_0_strike',
+          2: 'grim_dest_blast',
+          3: 'grim_prot_ward',
+          4: 'grim_conj_minion',
+          5: 'grim_conj_lord',
+        },
+        consumables: hotbar.consumables,
+        classAbilities: hotbar.classAbilities,
+      });
     }
     this.controls.enabled = false;
     this.characterActive = true;
@@ -460,9 +476,13 @@ export class Island3DEngine {
       ySize: 1024,
       minHeight: -30,
       maxHeight: 80,
+      rtsHeightmap: this.config.rtsHeightmap,
     };
 
-    this.terrain = generateIslandTerrain(terrainConfig);
+    this.terrain = generateIslandTerrainWithBridge(terrainConfig);
+    if (this.config.rtsHeightmap) {
+      console.log('[Island3D] Terrain from RTS heightmap export (200m → 1024m upsample)');
+    }
     this.terrain.terrainMesh.material = terrainMaterial;
     this.flattenTerrainBelowWater(this.terrain.terrainMesh, PROCEDURAL_WATER_LEVEL);
     this.scene.add(this.terrain.terrainScene);

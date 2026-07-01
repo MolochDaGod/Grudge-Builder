@@ -55,7 +55,7 @@ Contract: [home-island-contract.json](https://molochdagod.github.io/ObjectStore/
 
 **Seed:** `home_islands.seed` + `generateMountainTriadSeed()` — deterministic dungeon peak, triad placement, zone types.
 
-**RTS → Warlords:** `POST /api/island/export-from-rts` merges heightmap; trees from NatureScatter stay in RTS until GLB export pipeline exists.
+**RTS → Warlords:** `POST /api/island/export-from-rts` stores `rtsHeightmap` on Railway. Warlords 3D upsamples the 200m export into the center of the 1024m terrain (`generateIslandTerrainFromRts`). NatureScatter tree placements remain RTS-only until GLB export exists.
 
 ---
 
