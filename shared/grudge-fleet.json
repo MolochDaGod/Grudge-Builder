@@ -3,7 +3,7 @@
   "version": 1,
   "urls": {
     "auth": "https://id.grudge-studio.com",
-    "identityApi": "https://the-engine.up.railway.app",
+    "identityApi": "https://grudge-studio.com",
     "gameData": "https://grudge-api-production-0d46.up.railway.app",
     "assets": "https://assets.grudge-studio.com",
     "objectStore": "https://objectstore.grudge-studio.com/api/v1",
@@ -14,7 +14,11 @@
     "charactersHub": "https://character.grudge-studio.com",
     "gcs": "https://character.grudge-studio.com",
     "warlords": "https://grudgewarlords.com",
-    "studioEditor": "https://grudge-studio-editor.vercel.app"
+    "threePort": "https://grudge-three-port.vercel.app",
+    "studioEditor": "https://grudge-studio-editor.vercel.app",
+    "grudox": "https://grudox.grudge-studio.com",
+    "carrier": "https://carrier.grudge-studio.com",
+    "grudoxGameServer": "https://voxgrudge-grudox-room-production.up.railway.app"
   },
   "services": [
     {
@@ -29,7 +33,7 @@
       "id": "identity-api",
       "label": "Identity API (The-ENGINE)",
       "role": "identity",
-      "url": "https://the-engine.up.railway.app",
+      "url": "https://grudge-studio.com",
       "proxyPath": "/api",
       "notes": "Session exchange, scoped profile"
     },
@@ -108,6 +112,28 @@
       "notes": "Home-island terrain sculpt, GLB assets, Publish to Warlords"
     },
     {
+      "id": "grudox-hub",
+      "label": "GRUDOX fleet hub",
+      "role": "hub",
+      "url": "https://grudox.grudge-studio.com",
+      "notes": "Arcade cabinets, editors, deploy kit — Vercel shell + CF Worker edge"
+    },
+    {
+      "id": "carrier-game",
+      "label": "Carrier (live PvP)",
+      "role": "hub",
+      "url": "https://carrier.grudge-studio.com",
+      "notes": "Fleet command dogfight — wss same-origin /api/carrier via grudox worker"
+    },
+    {
+      "id": "grudox-game-server",
+      "label": "GRUDOX live game server (Railway)",
+      "role": "realtime",
+      "url": "https://voxgrudge-grudox-room-production.up.railway.app",
+      "proxyPath": "/api/carrier",
+      "notes": "Single instance — /api/carrier, /api/space, /api/brawl; CF Worker required for WS"
+    },
+    {
       "id": "supabase",
       "label": "Supabase (edge data layer)",
       "role": "supabase",
@@ -170,8 +196,9 @@
     }
   },
   "clientEnv": {
-    "VITE_API_URL": "https://the-engine.up.railway.app",
+    "VITE_API_URL": "https://grudge-studio.com",
     "VITE_GAME_DATA_API": "https://grudge-api-production-0d46.up.railway.app",
+    "VITE_COLYSEUS_URL": "wss://grudge-api-production-0d46.up.railway.app",
     "VITE_ASSETS_URL": "https://assets.grudge-studio.com",
     "VITE_OBJECTSTORE_URL": "https://objectstore.grudge-studio.com/api/v1",
     "VITE_AUTH_GATEWAY_URL": "https://id.grudge-studio.com",
@@ -222,7 +249,8 @@
     "monsters",
     "maps",
     "launcher",
-    "ai-units"
+    "ai-units",
+    "rewards"
   ],
   "crossmint": {
     "character": "5061318d-ff65-4893-ac4b-9b28efb18ace",
@@ -590,12 +618,28 @@
       "destination": "https://grudge-api-production-0d46.up.railway.app/api/ai-units/:path*"
     },
     {
+      "source": "/api/rewards",
+      "destination": "https://grudge-api-production-0d46.up.railway.app/api/rewards"
+    },
+    {
+      "source": "/api/rewards/:path*",
+      "destination": "https://grudge-api-production-0d46.up.railway.app/api/rewards/:path*"
+    },
+    {
       "source": "/api/game/:path*",
       "destination": "https://grudge-api-production-0d46.up.railway.app/api/:path*"
     },
     {
       "source": "/api/auth/puter",
       "destination": "https://grudge-api-production-0d46.up.railway.app/api/auth/puter"
+    },
+    {
+      "source": "/api/auth/puter-sso",
+      "destination": "https://grudge-api-production-0d46.up.railway.app/api/auth/puter-sso"
+    },
+    {
+      "source": "/api/auth/guest",
+      "destination": "https://grudge-api-production-0d46.up.railway.app/api/auth/guest"
     },
     {
       "source": "/api/auth/login",
@@ -626,6 +670,34 @@
       "destination": "https://grudge-api-production-0d46.up.railway.app/api/auth/session/exchange"
     },
     {
+      "source": "/api/auth/popup-token",
+      "destination": "https://grudge-api-production-0d46.up.railway.app/api/auth/popup-token"
+    },
+    {
+      "source": "/api/auth/grudge-bridge",
+      "destination": "https://grudge-api-production-0d46.up.railway.app/api/auth/grudge-bridge"
+    },
+    {
+      "source": "/api/auth/wallet",
+      "destination": "https://grudge-api-production-0d46.up.railway.app/api/auth/wallet"
+    },
+    {
+      "source": "/api/auth/puter-link",
+      "destination": "https://grudge-api-production-0d46.up.railway.app/api/auth/puter-link"
+    },
+    {
+      "source": "/api/auth/complete-profile",
+      "destination": "https://grudge-api-production-0d46.up.railway.app/api/auth/complete-profile"
+    },
+    {
+      "source": "/api/auth/phone/send",
+      "destination": "https://grudge-api-production-0d46.up.railway.app/api/auth/phone/send"
+    },
+    {
+      "source": "/api/auth/phone/verify",
+      "destination": "https://grudge-api-production-0d46.up.railway.app/api/auth/phone/verify"
+    },
+    {
       "source": "/api/auth/:path*",
       "destination": "https://id.grudge-studio.com/auth/:path*"
     },
@@ -647,7 +719,7 @@
     },
     {
       "source": "/api/:path*",
-      "destination": "https://the-engine.up.railway.app/api/:path*"
+      "destination": "https://grudge-studio.com/api/:path*"
     }
   ]
 }

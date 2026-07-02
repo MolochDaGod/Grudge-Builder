@@ -24,7 +24,7 @@ export interface GrudgeSDKConfig {
 }
 
 const DEFAULT_CONFIG: Required<GrudgeSDKConfig> = {
-  apiBase: "https://the-engine.up.railway.app",
+  apiBase: "https://grudge-studio.com",
   authBase: "https://id.grudge-studio.com",
   assetsBase: "https://assets.grudge-studio.com",
   objectStoreBase: "https://info.grudge-studio.com",

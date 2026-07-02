@@ -101,7 +101,7 @@ export const SYSTEM_DB_MAPS: SystemDbMap[] = [
       },
       {
         engine: "json-api",
-        url: "https://the-engine.up.railway.app",
+        url: "https://grudge-studio.com",
         role: "Identity API (The-ENGINE)",
         notes: "IDENTITY_API_URL - not a direct DB connection",
       },

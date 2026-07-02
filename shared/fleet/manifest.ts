@@ -25,13 +25,16 @@ export interface FleetService {
   notes?: string;
 }
 
-/** The-ENGINE on Railway — live identity API (api.grudge-studio.com tunnel is offline). */
+/** The-ENGINE Express origin on Railway — Vercel/grudge-studio.com rewrites target this. */
 export const THE_ENGINE_RAILWAY = "https://the-engine.up.railway.app" as const;
+
+/** Public identity API — portal shell; /api/* rewrites to THE_ENGINE_RAILWAY. */
+export const IDENTITY_PORTAL = "https://grudge-studio.com" as const;
 
 /** Canonical production endpoints — override via env in runtime adapters. */
 export const FLEET_URLS = {
   auth: "https://id.grudge-studio.com",
-  identityApi: THE_ENGINE_RAILWAY,
+  identityApi: IDENTITY_PORTAL,
   gameData: "https://grudge-api-production-0d46.up.railway.app",
   assets: "https://assets.grudge-studio.com",
   objectStore: "https://objectstore.grudge-studio.com/api/v1",
@@ -44,8 +47,6 @@ export const FLEET_URLS = {
   charactersHub: "https://character.grudge-studio.com",
   gcs: "https://character.grudge-studio.com",
   warlords: "https://grudgewarlords.com",
-  grudox: "https://grudox.grudge-studio.com",
-  carrier: "https://grudge.grudge-studio.com",
   /** Lightweight Three.js MMO client — 9 sectors + Colyseus multiplayer */
   threePort: "https://grudge-three-port.vercel.app",
   /** Map & Model Editor — home-island creation (artifacts/studio) */

@@ -81,7 +81,7 @@
         },
         {
           "engine": "json-api",
-          "url": "https://the-engine.up.railway.app",
+          "url": "https://grudge-studio.com",
           "role": "Game API (characters, wallet, GBUX)",
           "notes": "GAME_API_URL — not a direct DB connection"
         },

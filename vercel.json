@@ -479,7 +479,7 @@
     },
     {
       "source": "/api/:path*",
-      "destination": "https://the-engine.up.railway.app/api/:path*"
+      "destination": "https://grudge-studio.com/api/:path*"
     },
     {
       "source": "/api/polyhaven/:path*",
@@ -515,7 +515,7 @@
     }
   ],
   "env": {
-    "VITE_API_URL": "https://the-engine.up.railway.app",
+    "VITE_API_URL": "https://grudge-studio.com",
     "VITE_PVP_SERVER_URL": "wss://world.grudge-studio.com",
     "VITE_ASSETS_URL": "https://assets.grudge-studio.com",
     "VITE_OBJECTSTORE_URL": "https://objectstore.grudge-studio.com/api/v1",

@@ -10,7 +10,7 @@
   const CFG = (typeof window !== 'undefined' && window.GRUDGE_CONFIG) || {};
   const FLEET = {
     auth: CFG.AUTH_GATEWAY || 'https://id.grudge-studio.com',
-    identityApi: CFG.IDENTITY_API || 'https://the-engine.up.railway.app',
+    identityApi: CFG.IDENTITY_API || 'https://grudge-studio.com',
     gameData: CFG.GAME_DATA || 'https://grudge-api-production-0d46.up.railway.app',
     objectStore: CFG.OBJECTSTORE_URL || 'https://objectstore.grudge-studio.com/api/v1',
     assets: CFG.ASSETS || 'https://assets.grudge-studio.com',
