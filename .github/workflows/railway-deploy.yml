@@ -128,3 +128,22 @@ jobs:
           echo "❌ GET /api/island/spec never returned v2.0.0"
           cat /tmp/island-spec.json 2>/dev/null || true
           exit 1
+
+      - name: Verify fleet manifest identityApi
+        run: |
+          set -euo pipefail
+          URL="${{ env.RAILWAY_URL }}/api/fleet/manifest"
+          for i in $(seq 1 24); do
+            CODE=$(curl -sS -o /tmp/fleet.json -w "%{http_code}" "$URL" || true)
+            if [ "$CODE" = "200" ] && grep -q '"identityApi":"https://grudge-studio.com"' /tmp/fleet.json; then
+              echo "✅ fleet manifest identityApi=grudge-studio.com (attempt $i)"
+              grep -o '"identityApi":"[^"]*"' /tmp/fleet.json || true
+              exit 0
+            fi
+            echo "fleet/manifest attempt $i/24 — HTTP $CODE"
+            grep -o '"identityApi":"[^"]*"' /tmp/fleet.json 2>/dev/null || true
+            sleep 15
+          done
+          echo "❌ fleet manifest never reported identityApi=grudge-studio.com"
+          cat /tmp/fleet.json 2>/dev/null || true
+          exit 1
