@@ -25,10 +25,13 @@ export interface FleetService {
   notes?: string;
 }
 
+/** The-ENGINE on Railway — live identity API (api.grudge-studio.com tunnel is offline). */
+export const THE_ENGINE_RAILWAY = "https://the-engine.up.railway.app" as const;
+
 /** Canonical production endpoints — override via env in runtime adapters. */
 export const FLEET_URLS = {
   auth: "https://id.grudge-studio.com",
-  identityApi: "https://api.grudge-studio.com",
+  identityApi: THE_ENGINE_RAILWAY,
   gameData: "https://grudge-api-production-0d46.up.railway.app",
   assets: "https://assets.grudge-studio.com",
   objectStore: "https://objectstore.grudge-studio.com/api/v1",
@@ -47,6 +50,12 @@ export const FLEET_URLS = {
   threePort: "https://grudge-three-port.vercel.app",
   /** Map & Model Editor — home-island creation (artifacts/studio) */
   studioEditor: "https://grudge-studio-editor.vercel.app",
+  /** GRUDOX fleet hub — arcade, studio, editors */
+  grudox: "https://grudox.grudge-studio.com",
+  /** Carrier PvP client — dedicated subdomain, same game server */
+  carrier: "https://carrier.grudge-studio.com",
+  /** Single-instance authoritative rooms (Carrier / Waters / Brawler) */
+  grudoxGameServer: "https://voxgrudge-grudox-room-production.up.railway.app",
 } as const;
 
 export const FLEET_SERVICES: FleetService[] = [
@@ -139,6 +148,28 @@ export const FLEET_SERVICES: FleetService[] = [
     role: "hub",
     url: FLEET_URLS.studioEditor,
     notes: "Home-island terrain sculpt, GLB assets, Publish to Warlords",
+  },
+  {
+    id: "grudox-hub",
+    label: "GRUDOX fleet hub",
+    role: "hub",
+    url: FLEET_URLS.grudox,
+    notes: "Arcade cabinets, editors, deploy kit — Vercel shell + CF Worker edge",
+  },
+  {
+    id: "carrier-game",
+    label: "Carrier (live PvP)",
+    role: "hub",
+    url: FLEET_URLS.carrier,
+    notes: "Fleet command dogfight — wss same-origin /api/carrier via grudox worker",
+  },
+  {
+    id: "grudox-game-server",
+    label: "GRUDOX live game server (Railway)",
+    role: "realtime",
+    url: FLEET_URLS.grudoxGameServer,
+    proxyPath: "/api/carrier",
+    notes: "Single instance — /api/carrier, /api/space, /api/brawl; CF Worker required for WS",
   },
   {
     id: "supabase",

@@ -11,7 +11,7 @@
 // ── Config ──────────────────────────────────────────────────────────
 
 export interface GrudgeSDKConfig {
-  /** Base URL for the Grudge API. Default: "https://api.grudge-studio.com" */
+  /** Base URL for the Grudge API. Default: The-ENGINE Railway */
   apiBase?: string;
   /** Base URL for auth. Default: "https://id.grudge-studio.com" */
   authBase?: string;
@@ -24,7 +24,7 @@ export interface GrudgeSDKConfig {
 }
 
 const DEFAULT_CONFIG: Required<GrudgeSDKConfig> = {
-  apiBase: "https://api.grudge-studio.com",
+  apiBase: "https://the-engine.up.railway.app",
   authBase: "https://id.grudge-studio.com",
   assetsBase: "https://assets.grudge-studio.com",
   objectStoreBase: "https://info.grudge-studio.com",

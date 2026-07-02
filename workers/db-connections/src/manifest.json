@@ -1,0 +1,199 @@
+{
+  "version": 1,
+  "generated_at": "2026-06-30T05:44:12.308Z",
+  "warning": "Metadata only — never contains passwords or API keys",
+  "workers": {
+    "dbConnections": "https://db.grudge-studio.com/v1/connections",
+    "aiGateway": "https://ai-gateway.grudge-studio.com",
+    "aiHub": "https://ai.grudge-studio.com"
+  },
+  "supabase": {
+    "name": "GrudgeWarlords",
+    "ref": "rdbkhvrpavhptxrmmwrc",
+    "url": "https://rdbkhvrpavhptxrmmwrc.supabase.co"
+  },
+  "neon": {
+    "host": "ep-lingering-bread-ahed03o6-pooler.c-3.us-east-1.aws.neon.tech",
+    "database": "neondb"
+  },
+  "railway_projects": {
+    "grudachainAle": {
+      "id": "8baba990-48ca-4a5b-9a8a-8f35a7e0b9b6",
+      "name": "grudachain-ale",
+      "env": "production",
+      "envId": "3c48b074-9b26-4299-a335-5efb557a78db"
+    },
+    "grudgeStudioApi": {
+      "id": "0d86a4c6-4990-45b0-ad81-56ac4f994a86",
+      "name": "grudge-studio-api",
+      "services": {
+        "grudgeApi": "grudge-api"
+      }
+    },
+    "grudgeWarlordsDb": {
+      "id": "727c599a-836a-4d8b-a893-9da7974c606f",
+      "name": "grudge-warlords-db",
+      "services": {
+        "grudgeBuilder": "Grudge-Builder"
+      }
+    }
+  },
+  "d1": {
+    "grudgeAiHub": {
+      "name": "grudge-ai-hub",
+      "id": "42ada55e-2095-46da-840b-6bb301a57253"
+    },
+    "grudgeObjectstore": {
+      "name": "grudge-objectstore",
+      "id": "8fc367a8-9120-490e-a503-b0fcb755c044"
+    },
+    "grudgeAssetsDb": {
+      "name": "grudge-assets-db",
+      "id": "3eeadd9e-832d-4d2e-bb14-8ddf75b3ac59"
+    },
+    "grudgeGameState": {
+      "name": "grudge-game-state",
+      "id": "9b66919f-c94a-4ddd-8733-07896261df6a"
+    }
+  },
+  "systems": [
+    {
+      "id": "ale",
+      "label": "ALE (grudachain-ale)",
+      "liveUrl": "https://ale.grudge-studio.com",
+      "connections": [
+        {
+          "engine": "none",
+          "railwayProjectId": "8baba990-48ca-4a5b-9a8a-8f35a7e0b9b6",
+          "railwayService": "ale",
+          "role": "Public proxy — no SQL database",
+          "notes": "Telegram/Discord webhooks, AnythingLLM proxy, Game API client"
+        },
+        {
+          "envVar": "PGVECTOR_CONNECTION_STRING",
+          "engine": "neon",
+          "host": "ep-lingering-bread-ahed03o6-pooler.c-3.us-east-1.aws.neon.tech",
+          "database": "neondb",
+          "railwayProjectId": "8baba990-48ca-4a5b-9a8a-8f35a7e0b9b6",
+          "railwayService": "anythingllm",
+          "role": "AnythingLLM vector embeddings (pgvector)",
+          "notes": "VECTOR_DB=pgvector on anythingllm Railway service"
+        },
+        {
+          "engine": "json-api",
+          "url": "https://the-engine.up.railway.app",
+          "role": "Game API (characters, wallet, GBUX)",
+          "notes": "GAME_API_URL — not a direct DB connection"
+        },
+        {
+          "engine": "puter",
+          "url": "https://grudge-studio.puter.site",
+          "role": "Puter cloud FS / KV"
+        },
+        {
+          "engine": "supabase",
+          "url": "https://rdbkhvrpavhptxrmmwrc.supabase.co",
+          "projectId": "rdbkhvrpavhptxrmmwrc",
+          "envVar": "SUPABASE_SECRET_KEY",
+          "role": "Supabase (Grudge Dev Admin skill queries)"
+        }
+      ]
+    },
+    {
+      "id": "grudge-builder",
+      "label": "GrudgeBuilder backend",
+      "liveUrl": "https://grudge-api-production-0d46.up.railway.app",
+      "connections": [
+        {
+          "envVar": "DATABASE_URL",
+          "engine": "neon",
+          "host": "ep-lingering-bread-ahed03o6-pooler.c-3.us-east-1.aws.neon.tech",
+          "database": "neondb",
+          "railwayProjectId": "0d86a4c6-4990-45b0-ad81-56ac4f994a86",
+          "railwayService": "grudge-api",
+          "role": "Postgres SSOT — Drizzle schema (characters, islands, wallet, inventory)",
+          "notes": "Authoritative game state; also GRUDGE_ACCOUNT_DB / _UNPOOLED for migrations"
+        },
+        {
+          "engine": "supabase",
+          "url": "https://rdbkhvrpavhptxrmmwrc.supabase.co",
+          "projectId": "rdbkhvrpavhptxrmmwrc",
+          "envVar": "SUPABASE_URL",
+          "role": "Supabase auth spine (Phase 1)",
+          "notes": "Publishable + secret keys in .env — never expose secret to browser"
+        },
+        {
+          "envVar": "MYSQL_DATABASE",
+          "engine": "mysql",
+          "host": "74.208.155.229",
+          "database": "grudge_game",
+          "role": "Legacy VPS MySQL game tables",
+          "notes": "Parallel to Postgres — audit which tables live where"
+        },
+        {
+          "engine": "d1",
+          "d1Name": "grudge-objectstore",
+          "d1Id": "8fc367a8-9120-490e-a503-b0fcb755c044",
+          "role": "ObjectStore search index (Cloudflare D1)"
+        },
+        {
+          "engine": "r2",
+          "url": "https://assets.grudge-studio.com",
+          "role": "Binary assets bucket grudge-assets"
+        },
+        {
+          "engine": "json-api",
+          "url": "https://objectstore.grudge-studio.com/api/v1",
+          "role": "JSON game defs (races, weapons, recipes)"
+        },
+        {
+          "engine": "puter",
+          "url": "https://grudge-studio.puter.site",
+          "role": "Puter KV cache (not SSOT)",
+          "notes": "Write Railway first, then cache"
+        }
+      ]
+    },
+    {
+      "id": "grudge-warlords",
+      "label": "Grudge Warlords (game client)",
+      "liveUrl": "https://grudgewarlords.com",
+      "connections": [
+        {
+          "engine": "none",
+          "role": "No direct database — frontend only",
+          "notes": "All persistence via API rewrites in vercel.json"
+        },
+        {
+          "engine": "json-api",
+          "url": "https://grudge-api-production-0d46.up.railway.app",
+          "role": "Game state API (proxied /api/characters, /api/island, /api/wallet, …)"
+        },
+        {
+          "engine": "json-api",
+          "url": "https://id.grudge-studio.com",
+          "role": "Grudge ID auth"
+        },
+        {
+          "engine": "json-api",
+          "url": "https://objectstore.grudge-studio.com/api/v1",
+          "role": "Static game definitions JSON"
+        },
+        {
+          "engine": "r2",
+          "url": "https://assets.grudge-studio.com",
+          "role": "Sprites, models, audio CDN"
+        },
+        {
+          "engine": "puter",
+          "role": "Puter KV + localStorage offline cache"
+        },
+        {
+          "engine": "json-api",
+          "url": "wss://grudge-api-production-0d46.up.railway.app",
+          "role": "Colyseus realtime rooms"
+        }
+      ]
+    }
+  ]
+}

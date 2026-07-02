@@ -535,7 +535,7 @@ export function registerAuthRoutes(app: Express) {
     }
 
     if (!grudgeId) {
-      const identityApi = process.env.IDENTITY_API_URL || "https://api.grudge-studio.com";
+      const identityApi = process.env.IDENTITY_API_URL || "https://the-engine.up.railway.app";
       const ex = await fetch(`${identityApi}/api/auth/session/exchange`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
