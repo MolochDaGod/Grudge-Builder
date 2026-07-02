@@ -16,7 +16,7 @@ import {
 } from '@/lib/modelManifest';
 import { getWeaponTypeForMode, parseModel3d, type Model3DField } from '@/lib/grudge6Character';
 import { RACE_GRUDGE6, weaponTypeFromModel3d } from '@shared/fleet';
-import { setupGrudge6Equipment } from '@/lib/grudge6Equipment';
+import { setupGrudge6Equipment, type Grudge6EquipmentManager } from '@/lib/grudge6Equipment';
 import { buildAnimLoadMap } from '@/lib/animation/animationCatalog';
 import { CharacterAnimOrchestrator } from '@/lib/animation/characterAnimOrchestrator';
 import { ExplorerAnimDriver } from '@/lib/animation/explorer/ExplorerAnimDriver';
@@ -125,6 +125,11 @@ export class CharacterController3D {
   /** Panel equipment slots (MainHand rod → fishing, etc.) */
   public equipment: Record<string, string | null> = {};
   private deckCastLineHandler: (() => boolean) | null = null;
+  private loadedModelScene: THREE.Object3D | null = null;
+  private raceIdStored = 'human';
+  private classIdStored = 'warrior';
+  private model3dStored: Model3DField | null = null;
+  private equipmentManager: Grudge6EquipmentManager | null = null;
 
   /** Current form index for special weapons (grimoire 3 forms, wand, nimble, dual wield etc.)
    *  Switched with Shift + F1 / F2 / F3 as per game design.
@@ -260,10 +265,15 @@ export class CharacterController3D {
     equipment?: Record<string, string | null>,
   ): Promise<void> {
     try {
+      this.raceIdStored = raceId;
+      this.classIdStored = classId;
+      if (equipment) this.equipment = { ...equipment };
+
       const modelUnit = getModelForCharacter(raceId, classId);
       const resolvedModel3d = (model3d || equipment)
-        ? parseModel3d({ raceId, classId, equipment: equipment ?? {}, model3d } as any)
+        ? parseModel3d({ raceId, classId, equipment: this.equipment, model3d } as any)
         : null;
+      if (resolvedModel3d) this.model3dStored = resolvedModel3d;
 
       const equippedWeaponType = resolvedModel3d
         ? (weaponTypeFromModel3d(resolvedModel3d, classId) as WeaponType)
@@ -277,7 +287,7 @@ export class CharacterController3D {
 
       if (resolvedModel3d) {
         const race = RACE_GRUDGE6[raceId] ?? RACE_GRUDGE6.human;
-        setupGrudge6Equipment(race.prefix, loaded.scene, resolvedModel3d);
+        this.equipmentManager = setupGrudge6Equipment(race.prefix, loaded.scene, resolvedModel3d);
       }
 
       const scale = resolvedModel3d?.scale ?? modelUnit.scale;
@@ -288,6 +298,32 @@ export class CharacterController3D {
     } catch (err) {
       console.warn(`Failed to load character model for ${raceId}/${classId}:`, err);
     }
+  }
+
+  /** Re-apply equipment meshes on the loaded GLB without a full model reload. */
+  async refreshAppearance(
+    equipment?: Record<string, string | null>,
+    model3d?: Partial<Model3DField>,
+  ): Promise<void> {
+    if (equipment) this.equipment = { ...equipment };
+    const resolvedModel3d = parseModel3d({
+      raceId: this.raceIdStored,
+      classId: this.classIdStored,
+      equipment: this.equipment,
+      model3d: { ...this.model3dStored, ...model3d },
+    } as any);
+    this.model3dStored = resolvedModel3d;
+
+    if (!this.loadedModelScene) return;
+
+    const race = RACE_GRUDGE6[this.raceIdStored] ?? RACE_GRUDGE6.human;
+    this.equipmentManager = setupGrudge6Equipment(race.prefix, this.loadedModelScene, resolvedModel3d);
+
+    const equippedWeaponType = weaponTypeFromModel3d(resolvedModel3d, this.classIdStored) as WeaponType;
+    const weaponType = (this.mode === 'harvest' || this.mode === 'build')
+      ? 'unarmed'
+      : equippedWeaponType;
+    await this.reloadWeaponAnimations(weaponType);
   }
 
   /** Swap animation set when play mode or equipment changes */
@@ -429,6 +465,7 @@ export class CharacterController3D {
       this.model.remove(this.model.children[0]);
     }
     this.model.add(loaded.scene);
+    this.loadedModelScene = loaded.scene;
 
     if (loaded.clips.length > 0) {
       this.animations = new AnimationManager(loaded.scene);
@@ -985,6 +1022,7 @@ export class CharacterController3D {
 
   setEquipment(slots: Record<string, string | null>): void {
     this.equipment = { ...slots };
+    void this.refreshAppearance();
   }
 
   setDeckCastLineHandler(handler: (() => boolean) | null): void {

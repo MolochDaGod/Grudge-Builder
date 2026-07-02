@@ -17,6 +17,8 @@ import { CLASS_WEAPON_MAP } from '@/lib/modelManifest';
 import type { CreatureLootEvent } from '@/island3d/creatures/CreatureManager';
 import { WarlordsPvpLoadscreen } from '@/components/WarlordsPvpLoadscreen';
 import { resolveZoneSectorId } from '@shared/definitions/sectorBridge';
+import { weaponTypeFromModel3d } from '@shared/fleet';
+import type { Character } from '@/lib/characterManager';
 
 const SECTOR_BIOME_NAMES: Record<string, string> = {
   NW: 'Arid Wasteland', N: 'Highland Plateau', NE: 'Crown Peaks',
@@ -47,6 +49,7 @@ export default function PlayPage() {
   const remotePlayersRef = useRef<RemotePlayerManager | null>(null);
   const sendHarvestRef = useRef<(nodeId: string, professionId: string) => void>(() => {});
   const moveIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const characterRef = useRef<Character | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [loadProgress, setLoadProgress] = useState(0);
   const [lootNotification, setLootNotification] = useState<string | null>(null);
@@ -73,7 +76,11 @@ export default function PlayPage() {
         }
 
         const char = await characterAPI.get(activeId);
+        characterRef.current = char;
         const model3d = (char as any).model3d || {};
+        const equippedWeaponType = model3d.weaponSlots
+          ? weaponTypeFromModel3d(model3d, char.classId)
+          : (CLASS_WEAPON_MAP[char.classId] || 'sword-shield');
         setPlayerInfo({
           characterName: char.name,
           heroClass: char.classId,
@@ -87,7 +94,7 @@ export default function PlayPage() {
           weaponSlots: model3d.weaponSlots || {},
           skinColor: model3d.skinColor || '#ffffff',
           armorColor: model3d.armorColor || '#ffffff',
-          equippedWeaponType: CLASS_WEAPON_MAP[char.classId] || 'sword-shield',
+          equippedWeaponType,
         });
         console.log(`[Play] Loaded character: ${char.name} (${char.raceId} ${char.classId})`);
       } catch (err) {
@@ -99,6 +106,38 @@ export default function PlayPage() {
     }
     loadCharacter();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Load 3D model into engine once world + character are ready
+  useEffect(() => {
+    if (!loaded || !playerInfo || !engineRef.current?.character) return;
+    const char = characterRef.current;
+    engineRef.current.character.loadCharacterFromManifest(
+      playerInfo.heroRace,
+      playerInfo.heroClass,
+      playerInfo.characterId,
+      undefined,
+      {
+        equippedMeshes: playerInfo.equippedMeshes,
+        weaponSlots: playerInfo.weaponSlots,
+        skinColor: playerInfo.skinColor,
+        armorColor: playerInfo.armorColor,
+        baseModelId: playerInfo.baseModelId,
+      },
+      char?.equipment,
+    ).catch(() => {});
+  }, [loaded, playerInfo]);
+
+  // Live mesh refresh when character-builder updates equipment/model3d
+  useEffect(() => {
+    const onUpdated = (ev: Event) => {
+      const char = (ev as CustomEvent).detail?.character as Character | undefined;
+      if (!char || !engineRef.current?.character) return;
+      characterRef.current = char;
+      void engineRef.current.character.refreshAppearance(char.equipment, char.model3d);
+    };
+    window.addEventListener('grudge:character:updated', onUpdated);
+    return () => window.removeEventListener('grudge:character:updated', onUpdated);
+  }, []);
 
   // Colyseus connection
   const colyseus = useColyseus(playerInfo);

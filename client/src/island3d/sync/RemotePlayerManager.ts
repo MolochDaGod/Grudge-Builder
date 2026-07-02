@@ -21,6 +21,8 @@ import {
   type ModelUnit,
 } from '@/lib/modelManifest';
 import { AnimationManager, type AnimState } from '../player/AnimationManager';
+import { RACE_GRUDGE6, defaultModel3d } from '@shared/fleet';
+import { setupGrudge6Equipment } from '@/lib/grudge6Equipment';
 
 // ── Types ────────────────────────────────────────────────────────
 
@@ -259,6 +261,9 @@ export class RemotePlayerManager {
       // Apply skin/armor color tints
       this.applyColorTints(loaded.scene, instance.data.skinColor, instance.data.armorColor);
 
+      // Apply equipped mesh variants from Colyseus sync
+      this.applyEquippedMeshes(loaded.scene, instance.data);
+
       // Enable shadows
       loaded.scene.traverse((child) => {
         if ((child as THREE.Mesh).isMesh) {
@@ -335,6 +340,31 @@ export class RemotePlayerManager {
         instance.animations.play('idle');
         break;
     }
+  }
+
+  // ── Apply grudge6 child-mesh equipment from synced JSON ─────────
+
+  private applyEquippedMeshes(root: THREE.Object3D, data: RemotePlayerData): void {
+    let equippedMeshes: Record<string, string> = {};
+    let weaponSlots: Record<string, string> = {};
+    try {
+      equippedMeshes = JSON.parse(data.equippedMeshJson || '{}');
+      weaponSlots = JSON.parse(data.weaponSlotsJson || '{}');
+    } catch {
+      return;
+    }
+    if (!Object.keys(equippedMeshes).length && !Object.keys(weaponSlots).length) return;
+
+    const raceId = data.heroRace || data.baseModelId || 'human';
+    const race = RACE_GRUDGE6[raceId] ?? RACE_GRUDGE6.human;
+    const model3d = {
+      ...defaultModel3d(raceId),
+      equippedMeshes,
+      weaponSlots,
+      skinColor: data.skinColor,
+      armorColor: data.armorColor,
+    };
+    setupGrudge6Equipment(race.prefix, root, model3d);
   }
 
   // ── Apply color tints to materials ─────────────────────────────

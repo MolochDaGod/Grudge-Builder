@@ -124,6 +124,23 @@ export default function HomeIslandPage() {
     load();
   }, [setLocation]);
 
+  // Live mesh refresh when account character equipment/model3d changes
+  useEffect(() => {
+    const onUpdated = (ev: Event) => {
+      const char = (ev as CustomEvent).detail?.character;
+      if (!char?.id || char.id !== characterRef.current?.id) return;
+      characterRef.current = char;
+      const cfg = buildGrudge6LoadConfig(char);
+      loadConfigRef.current = cfg;
+      setHasWeapon(cfg.hasWeapon);
+      if (engineRef.current?.character) {
+        void engineRef.current.character.refreshAppearance(char.equipment, char.model3d);
+      }
+    };
+    window.addEventListener('grudge:character:updated', onUpdated);
+    return () => window.removeEventListener('grudge:character:updated', onUpdated);
+  }, []);
+
   // ── Sync play mode → character animations ─────────────────────
 
   useEffect(() => {
@@ -176,6 +193,10 @@ export default function HomeIslandPage() {
           islandSeed: hashIslandSeedForColyseus(islandSeed),
           level: cfg.level,
           baseModelId: cfg.baseModelId,
+          equippedMeshes: cfg.equippedMeshes,
+          weaponSlots: cfg.weaponSlots,
+          skinColor: cfg.skinColor,
+          armorColor: cfg.armorColor,
           equippedWeaponType: getWeaponTypeForMode(playMode, cfg.classId, cfg.hasWeapon),
         });
         roomRef.current = room;
