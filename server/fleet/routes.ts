@@ -8,6 +8,9 @@ import {
   FLEET_CLIENT_ENV,
   CROSSMINT_COLLECTIONS,
   FLEET_VIDEO_CATALOG,
+  FLEET_FONTS,
+  FLEET_FONT_DEFAULTS,
+  KAPH_FONT_CSS_URL,
 } from "@shared/fleet";
 
 /**
@@ -26,6 +29,16 @@ export function registerFleetRoutes(app: Express) {
       gameDataApiPrefixes: FLEET_GAME_DATA_API_PREFIXES,
       crossmint: CROSSMINT_COLLECTIONS,
       rewrites: FLEET_VERCEL_REWRITES,
+    });
+  });
+
+  app.get("/api/fleet/fonts", (_req: Request, res: Response) => {
+    res.json({
+      version: 1,
+      cdn: FLEET_URLS.assets,
+      defaults: FLEET_FONT_DEFAULTS,
+      kaphCss: KAPH_FONT_CSS_URL,
+      fonts: FLEET_FONTS,
     });
   });
 

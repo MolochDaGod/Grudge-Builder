@@ -19,6 +19,19 @@ export { FLEET_VIDEO_CATALOG, type FleetVideoEntry } from "./videoCatalog";
 export { GBUX_TOKEN_ICON, TOME_ICON_PATHS, tomeIconCdnUrl } from "./uiIcons";
 
 export {
+  FLEET_FONTS,
+  FLEET_FONT_DEFAULTS,
+  KAPH_FONT_CSS_URL,
+  buildKaphFontFaceCss,
+  getFleetFontById,
+  getFleetFontStack,
+  kaphFontFileUrl,
+  type FleetFontOption,
+  type FleetFontFace,
+  type FleetFontSource,
+} from "./fonts";
+
+export {
   GRUDGE_TRUTH_LAYERS,
   TRUTH_PROBE_SPECS,
   TRUTH_DEPRECATED_HOSTS,

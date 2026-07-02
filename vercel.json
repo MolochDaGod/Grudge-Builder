@@ -34,6 +34,10 @@
       "destination": "https://assets.grudge-studio.com/videos/:path*"
     },
     {
+      "source": "/fonts/:path*",
+      "destination": "https://assets.grudge-studio.com/fonts/:path*"
+    },
+    {
       "source": "/api/objectstore/:path*",
       "destination": "https://objectstore.grudge-studio.com/api/:path*"
     },

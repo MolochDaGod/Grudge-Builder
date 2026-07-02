@@ -77,6 +77,7 @@ import HomeIslandPage from "@/pages/home-island";
 import IslandsPage from "@/pages/islands";
 import { RtsDomainBootstrap } from "@/components/RtsDomainBootstrap";
 import { hydrateVideoCatalog } from "@/lib/fleetVideo";
+import { loadFleetCdnFonts } from "@/lib/fleetFonts";
 import WeaponModelAdminPage from "@/pages/weapon-model-admin";
 import WeaponSkillsPage from "@/pages/weapon-skills";
 import WeaponMasteryPage from "@/pages/weapon-mastery";
@@ -172,6 +173,7 @@ function AppContent() {
 
   useEffect(() => {
     void hydrateVideoCatalog();
+    loadFleetCdnFonts();
 
     // Warm ObjectStore data cache on app init, then sync all game data
     prefetchCoreData().then(async () => {

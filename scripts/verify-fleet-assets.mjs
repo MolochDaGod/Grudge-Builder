@@ -14,6 +14,8 @@ const REQUIRED = [
   '/sprites/GrudgeRPGAssets2d/Characters(100x100)/Swordsman/Swordsman/Swordsman-Idle.png',
   '/models/grudge6/races/WK_Characters.fbx',
   '/gruda-armada/grudge-warlords/videos/intro.mp4',
+  '/fonts/kaph/Kaph-Regular.woff2',
+  '/fonts/kaph/kaph.css',
 ];
 
 const failures = [];

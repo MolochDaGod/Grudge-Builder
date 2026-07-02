@@ -13,6 +13,22 @@ Vercel game shells must **not** bundle heavy `client/public/models` or bulk spri
 | Postgres `sprite_manifest` | Railway `/api/sprites/*` | Migration map localPath → CDN URL |
 | Video catalog | Railway `/api/videos/catalog` | SSOT: `shared/fleet/videoCatalog.ts` |
 
+## Fonts (Kaph + fleet catalog)
+
+| Asset | R2 key | URL |
+|-------|--------|-----|
+| Kaph Regular woff2 | `fonts/kaph/Kaph-Regular.woff2` | CDN |
+| Kaph CSS | `fonts/kaph/kaph.css` | CDN |
+| Fleet font API | — | `GET /api/fleet/fonts` |
+
+Upload: `node scripts/upload-kaph-font-to-r2.mjs` (source: `Documents/Kaph_Font_1_20`, OFL license).
+
+```ts
+import { loadKaphFont, getFontOptions, resolveDisplayFont } from '@/lib/fleetFonts';
+loadKaphFont();
+document.body.style.fontFamily = resolveDisplayFont(); // 'Kaph', sans-serif
+```
+
 ## Client usage
 
 ```ts

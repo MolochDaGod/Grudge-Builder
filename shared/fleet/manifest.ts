@@ -292,6 +292,7 @@ export const FLEET_VERCEL_REWRITES: readonly FleetRewrite[] = [
   { source: "/sprites/:path*", destination: `${FLEET_URLS.assets}/sprites/:path*` },
   { source: "/icons/:path*", destination: `${FLEET_URLS.assets}/icons/:path*` },
   { source: "/videos/:path*", destination: `${FLEET_URLS.assets}/videos/:path*` },
+  { source: "/fonts/:path*", destination: `${FLEET_URLS.assets}/fonts/:path*` },
   { source: "/models/:path*", destination: `${FLEET_URLS.assets}/models/:path*` },
   { source: "/api/objectstore/:path*", destination: "https://objectstore.grudge-studio.com/api/:path*" },
   ...buildFleetGameDataRewrites(),

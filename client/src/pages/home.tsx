@@ -84,6 +84,8 @@ const BADGE_COLORS: Record<string, string> = {
 const FONTS = {
   title: "'Cinzel', serif",
   ui: "'Inter', sans-serif",
+  /** Kaph — fleet CDN display font (see @/lib/fleetFonts, GET /api/fleet/fonts) */
+  display: "'Kaph', sans-serif",
 };
 
 // ── Component ────────────────────────────────────────────────────────────────

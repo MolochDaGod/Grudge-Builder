@@ -34,6 +34,10 @@ function guessContentType(key) {
     json: 'application/json',
     js: 'application/javascript',
     css: 'text/css',
+    woff: 'font/woff',
+    woff2: 'font/woff2',
+    ttf: 'font/ttf',
+    otf: 'font/otf',
     html: 'text/html',
     txt: 'text/plain',
   };
