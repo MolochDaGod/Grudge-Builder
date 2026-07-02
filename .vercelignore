@@ -16,6 +16,11 @@ docs
 migrations
 /public/models/lobby/warlords-lobby/scene.glb
 /public/models/**/*.glb
+/public/sprites/**
+client/public/models/**
+client/public/sprites/**
+client/public/icons/tomes/**
+# Binary art lives on R2 (assets.grudge-studio.com) — see docs/ASSETS.md
 dist
 client/dist
 *.log

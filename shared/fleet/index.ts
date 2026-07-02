@@ -14,6 +14,10 @@ export {
 
 export { FLEET_STORAGE, FLEET_CLIENT_ENV } from "./storage";
 
+export { FLEET_VIDEO_CATALOG, type FleetVideoEntry } from "./videoCatalog";
+
+export { GBUX_TOKEN_ICON, TOME_ICON_PATHS, tomeIconCdnUrl } from "./uiIcons";
+
 export {
   GRUDGE_TRUTH_LAYERS,
   TRUTH_PROBE_SPECS,

@@ -26,7 +26,11 @@ function guessContentType(key) {
     wav: 'audio/wav',
     glb: 'model/gltf-binary',
     gltf: 'model/gltf+json',
+    fbx: 'application/octet-stream',
     vox: 'model/vnd.vox',
+    mp4: 'video/mp4',
+    webm: 'video/webm',
+    mov: 'video/quicktime',
     json: 'application/json',
     js: 'application/javascript',
     css: 'text/css',
@@ -54,7 +58,10 @@ export default {
     let key = url.pathname.replace(/^\/+/, '');
 
     if (!key) {
-      return new Response('Not Found', { status: 404, headers: CORS_HEADERS });
+      return Response.json(
+        { service: 'grudge-r2-cdn', status: 'ok', bucket: 'grudge-assets' },
+        { headers: { ...CORS_HEADERS, 'Cache-Control': 'no-store' } },
+      );
     }
 
     // R2 has no real folders — /textures/pbr/ground/ → index.json catalog
@@ -83,14 +90,12 @@ export default {
       const headers = new Headers(CORS_HEADERS);
       object.writeHttpMetadata(headers);
 
-      // Ensure content-type is set
-      if (!headers.get('Content-Type')) {
-        headers.set('Content-Type', guessContentType(key));
-      }
-
+      // Always derive from key — R2 uploads often lack httpMetadata (octet-stream / 24h cache).
+      headers.set('Content-Type', guessContentType(key));
       headers.set('ETag', object.httpEtag);
       headers.set('Cache-Control', 'public, max-age=31536000, immutable');
       headers.set('X-Content-Source', 'grudge-r2');
+      headers.set('Accept-Ranges', 'bytes');
 
       return new Response(request.method === 'HEAD' ? null : object.body, {
         status: 200,

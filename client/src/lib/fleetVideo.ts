@@ -6,18 +6,12 @@
 const CATALOG_API =
   import.meta.env.VITE_VIDEO_CATALOG_API ?? '/api/videos/catalog';
 
-const WARLORDS_INTRO_CDN =
-  'https://assets.grudge-studio.com/gruda-armada/grudge-warlords/videos/intro.mp4';
-
-const WARLORDS_PVP_LOADSCREEN_CDN =
-  'https://assets.grudge-studio.com/gruda-armada/grudge-warlords/videos/pvp-loadscreen.mp4';
+import { FLEET_VIDEO_CATALOG } from '@shared/fleet/videoCatalog';
 
 export const FLEET_VIDEO_FALLBACK = {
-  warlordsIntro: WARLORDS_INTRO_CDN,
-  /** General Warlords mode transitions (non-PvP) */
-  warlordsLoadscreen: WARLORDS_INTRO_CDN,
-  /** PvP lobby, Colyseus world entry, island lobby maps */
-  warlordsPvpLoadscreen: WARLORDS_PVP_LOADSCREEN_CDN,
+  warlordsIntro: FLEET_VIDEO_CATALOG.warlordsIntro.r2_url,
+  warlordsLoadscreen: FLEET_VIDEO_CATALOG.warlordsLoadscreen.r2_url,
+  warlordsPvpLoadscreen: FLEET_VIDEO_CATALOG.warlordsPvpLoadscreen.r2_url,
 } as const;
 
 export type FleetVideoKey = keyof typeof FLEET_VIDEO_FALLBACK;

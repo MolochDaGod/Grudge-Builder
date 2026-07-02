@@ -262,6 +262,22 @@
       "destination": "https://assets.grudge-studio.com/:path*"
     },
     {
+      "source": "/sprites/:path*",
+      "destination": "https://assets.grudge-studio.com/sprites/:path*"
+    },
+    {
+      "source": "/icons/:path*",
+      "destination": "https://assets.grudge-studio.com/icons/:path*"
+    },
+    {
+      "source": "/videos/:path*",
+      "destination": "https://assets.grudge-studio.com/videos/:path*"
+    },
+    {
+      "source": "/models/:path*",
+      "destination": "https://assets.grudge-studio.com/models/:path*"
+    },
+    {
       "source": "/api/objectstore/:path*",
       "destination": "https://objectstore.grudge-studio.com/api/:path*"
     },

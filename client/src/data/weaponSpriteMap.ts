@@ -1,4 +1,5 @@
 import { assetUrl, resolveIconUrl, getPackIconForCategory } from "@/lib/assetConfig";
+import { tomeIconCdnUrl } from "@shared/fleet/uiIcons";
 
 export const WEAPON_SPRITE_MAP: Record<string, string> = {
   "sword-bloodfeud": "bloodfeud_blade",
@@ -317,17 +318,14 @@ function getDefaultArmorSprite(slot: string, material: string): string {
   return assetUrl(`/icons/armor/${slot.toLowerCase()}/${material.toLowerCase()}/default.png`);
 }
 
-/**
- * Element tomes use bundled local PNG icons served from client/public/icons/tomes.
- * These are NOT on the R2 CDN, so reference them directly (do NOT use assetUrl()).
- */
+/** Element tome icons — R2 CDN (icons/tomes/*). Upload via scripts/upload-ui-icons-to-r2.mjs */
 export const TOME_ICON_BY_ELEMENT: Record<string, string> = {
-  fire:      "/icons/tomes/fire.png",
-  frost:     "/icons/tomes/frost.png",
-  nature:    "/icons/tomes/nature.png",
-  holy:      "/icons/tomes/holy.png",
-  arcane:    "/icons/tomes/arcane.png",
-  lightning: "/icons/tomes/lightning.png",
+  fire: tomeIconCdnUrl("fire"),
+  frost: tomeIconCdnUrl("frost"),
+  nature: tomeIconCdnUrl("nature"),
+  holy: tomeIconCdnUrl("holy"),
+  arcane: tomeIconCdnUrl("arcane"),
+  lightning: tomeIconCdnUrl("lightning"),
 };
 
 /** Resolve a tome's element from a weapon type ("Fire Tome") or item name ("Blazewrath Grimoire"). */

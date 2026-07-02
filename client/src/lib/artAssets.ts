@@ -6,6 +6,7 @@
  */
 
 import { assetUrl } from './assetConfig';
+import { FLEET_VIDEO_CATALOG } from '@shared/fleet/videoCatalog';
 import {
   getRacePortraitUrl,
   getClassHeroUrl,
@@ -46,24 +47,11 @@ export const BACKGROUNDS = {
 // ── Videos ───────────────────────────────────────────────────────────────────
 // Warlords era cinematic — grudge loadin.mp4 on fleet R2 (see fleetVideo.ts for catalog API).
 
-const WARLORDS_ERA_VIDEO =
-  'https://assets.grudge-studio.com/gruda-armada/grudge-warlords/videos/intro.mp4';
-
-const WARLORDS_PVP_LOADSCREEN =
-  'https://assets.grudge-studio.com/gruda-armada/grudge-warlords/videos/pvp-loadscreen.mp4';
-
 export const VIDEOS = {
-  /** Warlords intro — full-screen opening cinematic */
-  intro: WARLORDS_ERA_VIDEO,
-
-  /** PvP lobby / world-entry loadscreen */
-  pvpLoadscreen: WARLORDS_PVP_LOADSCREEN,
-
-  /** Loading overlay between game modes */
-  loading: WARLORDS_PVP_LOADSCREEN,
-
-  /** @deprecated use VIDEOS.intro — kept for existing imports */
-  pirateKingBanner: WARLORDS_ERA_VIDEO,
+  intro: FLEET_VIDEO_CATALOG.warlordsIntro.r2_url,
+  pvpLoadscreen: FLEET_VIDEO_CATALOG.warlordsPvpLoadscreen.r2_url,
+  loading: FLEET_VIDEO_CATALOG.warlordsPvpLoadscreen.r2_url,
+  pirateKingBanner: FLEET_VIDEO_CATALOG.warlordsIntro.r2_url,
 
   /** Legacy intro video (fallback) */
   introLegacy: assetUrl('/videos/intro-legacy.mp4'),

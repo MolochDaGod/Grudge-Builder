@@ -7,6 +7,7 @@ import {
   FLEET_STORAGE,
   FLEET_CLIENT_ENV,
   CROSSMINT_COLLECTIONS,
+  FLEET_VIDEO_CATALOG,
 } from "@shared/fleet";
 
 /**
@@ -25,6 +26,14 @@ export function registerFleetRoutes(app: Express) {
       gameDataApiPrefixes: FLEET_GAME_DATA_API_PREFIXES,
       crossmint: CROSSMINT_COLLECTIONS,
       rewrites: FLEET_VERCEL_REWRITES,
+    });
+  });
+
+  app.get("/api/videos/catalog", (_req: Request, res: Response) => {
+    res.json({
+      version: 1,
+      cdn: FLEET_URLS.assets,
+      catalog: FLEET_VIDEO_CATALOG,
     });
   });
 

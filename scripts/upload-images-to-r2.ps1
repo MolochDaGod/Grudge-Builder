@@ -15,7 +15,7 @@ $env:WRANGLER_HOME = Join-Path $env:USERPROFILE ".wrangler"
 $GrudgeBuilderPublic = if ($env:GRUDGE_BUILDER_ROOT) {
     Join-Path $env:GRUDGE_BUILDER_ROOT "client\public"
 } else {
-    "E:\Grudge-Builder\client\public"
+    Join-Path $PSScriptRoot "..\client\public"
 }
 
 $mappings = @(
@@ -26,6 +26,7 @@ $mappings = @(
     @{ Source = Join-Path $ObjectStoreRoot "icons\sigils"; Prefix = "icons/sigils" }
     @{ Source = Join-Path $ObjectStoreRoot "videos"; Prefix = "videos" }
     @{ Source = Join-Path $GrudgeBuilderPublic "assets\skill-icons"; Prefix = "images/skill-icons" }
+    @{ Source = Join-Path $GrudgeBuilderPublic "icons\tomes"; Prefix = "icons/tomes" }
 )
 
 $extContentType = @{

@@ -1,5 +1,5 @@
 # Grudge CDN Worker — serves assets from R2 at assets.grudge-studio.com
-name = "grudge-cdn"
+name = "grudge-asset-cdn"
 main = "src/index.js"
 compatibility_date = "2024-09-23"
 
@@ -16,7 +16,7 @@ zone_name = "grudge-studio.com"
 
 # ── Environment overrides ─────────────────────────────────────────────────────
 [env.production]
-name = "grudge-cdn"
+name = "grudge-asset-cdn"
 
 [env.staging]
 name = "grudge-cdn-staging"

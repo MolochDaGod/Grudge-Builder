@@ -372,7 +372,7 @@ function WarlordCard() {
                }}>
             <div className="flex items-center gap-1">
               <img 
-                src="/sprites/gbux-token.png" 
+                src={assetUrl("/sprites/gbux-token.png")} 
                 alt="GBUX" 
                 className="w-5 h-5 rounded-full shadow-lg shadow-cyan-500/30"
               />

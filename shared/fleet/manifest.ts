@@ -289,6 +289,10 @@ export function buildFleetGameDataRewrites(
 /** Vercel rewrite templates — copy into any Grudge game vercel.json (order matters). */
 export const FLEET_VERCEL_REWRITES: readonly FleetRewrite[] = [
   { source: "/api/assets/:path*", destination: `${FLEET_URLS.assets}/:path*` },
+  { source: "/sprites/:path*", destination: `${FLEET_URLS.assets}/sprites/:path*` },
+  { source: "/icons/:path*", destination: `${FLEET_URLS.assets}/icons/:path*` },
+  { source: "/videos/:path*", destination: `${FLEET_URLS.assets}/videos/:path*` },
+  { source: "/models/:path*", destination: `${FLEET_URLS.assets}/models/:path*` },
   { source: "/api/objectstore/:path*", destination: "https://objectstore.grudge-studio.com/api/:path*" },
   ...buildFleetGameDataRewrites(),
   ...buildFleetRailwayAuthRewrites(),

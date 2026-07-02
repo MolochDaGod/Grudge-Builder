@@ -3,8 +3,9 @@ import { Canvas, useFrame } from "@react-three/fiber";
 import { useGLTF, Center } from "@react-three/drei";
 import type { Group } from "three";
 import { ASSETS_CDN } from "@/lib/grudgeConfig";
+import { assetUrl } from "@/lib/assetConfig";
 
-const HELMET_FALLBACK_IMG = "/sprites/gbux-token.png";
+const HELMET_FALLBACK_IMG = assetUrl("/sprites/gbux-token.png");
 const MODEL_URL = `${ASSETS_CDN}/models/grudge-token-helmet.glb`;
 
 function HelmetFallback({ className = "w-full h-full" }: { className?: string }) {

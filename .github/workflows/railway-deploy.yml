@@ -129,6 +129,9 @@ jobs:
           cat /tmp/island-spec.json 2>/dev/null || true
           exit 1
 
+      - name: Verify fleet CDN assets
+        run: node scripts/verify-fleet-assets.mjs
+
       - name: Verify fleet manifest identityApi
         run: |
           set -euo pipefail

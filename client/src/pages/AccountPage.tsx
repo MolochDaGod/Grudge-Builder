@@ -11,6 +11,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { useAccount } from "@/hooks/use-account";
 import { getCurrentUser, getSession, logout, authHeaders } from "@/lib/grudgeBackend";
+import { assetUrl } from "@/lib/assetConfig";
 import Layout from "@/components/Layout";
 import CharacterSelectorPanel from "@/components/CharacterSelectorPanel";
 import {
@@ -208,7 +209,7 @@ export default function AccountPage() {
                     <div className="text-xs text-slate-500 uppercase tracking-wider mb-1">GBUX Balance</div>
                     <div className="flex items-center justify-center gap-1">
                       <img
-                        src="/sprites/gbux-token.png"
+                        src={assetUrl("/sprites/gbux-token.png")}
                         alt="GBUX"
                         className="w-5 h-5 rounded-full"
                       />
