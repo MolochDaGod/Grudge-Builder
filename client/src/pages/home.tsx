@@ -40,6 +40,7 @@ const GAME_MODES: GameMode[] = [
   // ── Core (local pages on grudgewarlords.com) ──
   { id: "character", title: "Hero Forge",        subtitle: "Create & Manage Heroes",    description: "Build heroes, allocate attributes, equip gear, and manage your roster.",                url: "/character",    icon: "user",     tier: "core",    badge: "Core",    badgeColor: "amber" },
   { id: "homeisland", title: "Home Island 3D",   subtitle: "1024m Seed World",          description: "Your persistent island — harvest, combat, build, mountain dungeon.",                      url: "/home-island",  icon: "leaf",     tier: "core",    badge: "Play",    badgeColor: "emerald" },
+  { id: "warlords3d", title: "Grudge Warlords 3D", subtitle: "9 Sectors & Colyseus",    description: "Lightweight Three.js open world — pick a sector, home island, or Classic uMMORPG zone.", url: "https://grudge-three-port.vercel.app?mode=play", icon: "globe", tier: "core", badge: "3D MMO", badgeColor: "violet" },
   { id: "island",    title: "Island 2D",         subtitle: "Auto-Harvest & Build",      description: "Classic 2D island view with auto-harvest and structure bonuses.",                         url: "/island-v2",    icon: "leaf",     tier: "core",    badge: "2D",      badgeColor: "lime" },
   { id: "crafting",  title: "Warlord Crafting",  subtitle: "Forge Weapons & Armor",     description: "Craft weapons, armor, consumables using your profession skills.",                       url: "/crafting",     icon: "hammer",   tier: "craft",   badge: "Craft",   badgeColor: "orange" },
   // ── Combat (3D worlds on rts-grudge.vercel.app, 2D local) ──
@@ -67,7 +68,7 @@ const ICON_MAP: Record<string, React.ReactNode> = {
   user: <User className="w-5 h-5" />, leaf: <Leaf className="w-5 h-5" />, hammer: <Hammer className="w-5 h-5" />,
   shield: <Shield className="w-5 h-5" />, swords: <Swords className="w-5 h-5" />, skull: <Skull className="w-5 h-5" />,
   compass: <Compass className="w-5 h-5" />, anchor: <Anchor className="w-5 h-5" />, flame: <Flame className="w-5 h-5" />,
-  pickaxe: <Pickaxe className="w-5 h-5" />, zap: <Zap className="w-5 h-5" />,
+  pickaxe: <Pickaxe className="w-5 h-5" />, zap: <Zap className="w-5 h-5" />, globe: <Globe className="w-5 h-5" />,
 };
 
 const BADGE_COLORS: Record<string, string> = {
@@ -77,6 +78,7 @@ const BADGE_COLORS: Record<string, string> = {
   teal: "bg-teal-700/80 text-teal-200", cyan: "bg-cyan-700/80 text-cyan-200",
   rose: "bg-rose-700/80 text-rose-200", green: "bg-green-700/80 text-green-200",
   blue: "bg-blue-700/80 text-blue-200", lime: "bg-lime-700/80 text-lime-200",
+  violet: "bg-violet-700/80 text-violet-200",
 };
 
 const FONTS = {

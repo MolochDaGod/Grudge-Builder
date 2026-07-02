@@ -20,6 +20,7 @@ const FLEET_ORIGINS: Record<string, string> = {
   "survival":    "https://survival.grudge-studio.com",
   "arena":       "https://grudge-arena.grudge-studio.com",
   "drive":       "https://grudge-drive.vercel.app",
+  "three-port":  "https://grudge-three-port.vercel.app",
 };
 
 /**
