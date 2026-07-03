@@ -17,7 +17,7 @@
   'use strict';
 
   // ── Configuration ──────────────────────────────────────────────────
-  var AUTH_BASE = window.GRUDGE_AUTH_BASE || '';
+  var AUTH_BASE = window.GRUDGE_AUTH_BASE !== undefined ? window.GRUDGE_AUTH_BASE : 'https://id.grudge-studio.com';
   var AUTH_RETURN = window.GRUDGE_AUTH_RETURN || null;
   var INJECTED = false;
 

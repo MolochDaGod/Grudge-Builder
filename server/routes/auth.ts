@@ -12,6 +12,7 @@
  *   GET  /api/auth/verify            — Verify JWT token
  *   GET  /api/auth/me                — Get full user profile from JWT
  *   POST /api/auth/puter-link        — Link Puter UUID to existing account
+ *   GET  /api/auth/sso-check         — Cross-app SSO bootstrap (session → return URL)
  *   GET  /api/auth/discord/callback  — Discord OAuth callback
  *   GET  /api/auth/google/start      — Google OAuth (delegates to Puter SDK)
  *   POST /api/auth/phone/send        — Send SMS verification code
@@ -28,6 +29,7 @@ import jwt from "jsonwebtoken";
 import crypto from "node:crypto";
 import { storage } from "../storage";
 import { buildScopedProfile } from "../lib/scopedProfile";
+import { isFleetAllowedReturnUrl, resolveFleetReturnUrl } from "@shared/fleet/authReturn";
 
 const JWT_SECRET = process.env.SESSION_SECRET || process.env.JWT_SECRET || "grudge-dev-secret";
 const JWT_EXPIRES = "7d";
@@ -191,6 +193,31 @@ function readSessionToken(req: Request): string | null {
   return match ? decodeURIComponent(match[1]) : null;
 }
 
+function resolveReturnUrl(req: Request): string {
+  const fromQuery = resolveFleetReturnUrl(req.query as Record<string, string | string[] | undefined>, "");
+  if (fromQuery) return fromQuery;
+  const referer = req.get("referer") || req.get("origin") || "";
+  if (referer && isFleetAllowedReturnUrl(referer)) {
+    try {
+      const u = new URL(referer);
+      return `${u.origin}/`;
+    } catch {
+      /* fall through */
+    }
+  }
+  return "https://grudgewarlords.com/";
+}
+
+function appendSsoParams(
+  returnUrl: string,
+  ssoToken: string,
+  grudgeId: string,
+  username: string,
+): string {
+  const sep = returnUrl.includes("?") ? "&" : "?";
+  return `${returnUrl}${sep}sso_token=${encodeURIComponent(ssoToken)}&grudge_id=${encodeURIComponent(grudgeId)}&username=${encodeURIComponent(username)}`;
+}
+
 function buildSsoUserPayload(
   user: { id: string; username: string; grudgeId: string | null; email?: string | null },
   account: { grudgeId?: string | null; displayName?: string | null; gbuxBalance?: number | null; avatarUrl?: string | null } | null,
@@ -309,6 +336,18 @@ function authAssetPath(file: string): string {
 
 export function registerAuthRoutes(app: Express) {
 
+  // ── GET /login — canonical Grudge ID entry (id.grudge-studio.com) ──
+  app.get("/login", (req: Request, res: Response) => {
+    const q = new URLSearchParams();
+    const redirect = resolveFleetReturnUrl(
+      req.query as Record<string, string | string[] | undefined>,
+      "",
+    ) || (req.query.redirect as string) || (req.query.return as string);
+    if (redirect) q.set("redirect", redirect);
+    const dest = "/api/auth/page" + (q.toString() ? `?${q.toString()}` : "");
+    res.redirect(302, dest);
+  });
+
   // ── GET /auth — legacy entry → Grudge ID sign-in page ──
   app.get("/auth", (req: Request, res: Response) => {
     const q = new URLSearchParams();
@@ -323,6 +362,85 @@ export function registerAuthRoutes(app: Express) {
     if (req.query.handoff) q.set("handoff", String(req.query.handoff));
     const dest = "/api/auth/page" + (q.toString() ? `?${q.toString()}` : "");
     res.redirect(302, dest);
+  });
+
+  // ── GET /auth/sso-check — legacy alias (id.grudge-studio.com /auth/*) ──
+  app.get("/auth/sso-check", (req: Request, res: Response) => {
+    const q = new URLSearchParams();
+    for (const [key, value] of Object.entries(req.query)) {
+      if (typeof value === "string") q.set(key, value);
+    }
+    const dest = "/api/auth/sso-check" + (q.toString() ? `?${q.toString()}` : "");
+    res.redirect(302, dest);
+  });
+
+  /**
+   * GET /api/auth/sso-check
+   * Cross-app SSO bootstrap: if the browser already has a Grudge session,
+   * mint a fresh JWT and redirect back to `return` with ?sso_token=…
+   * Otherwise send the user to the Grudge ID sign-in page.
+   */
+  app.get("/api/auth/sso-check", async (req: Request, res: Response) => {
+    const returnUrl = resolveReturnUrl(req);
+    const token = readSessionToken(req);
+
+    if (!token) {
+      return res.redirect(
+        302,
+        `/login?redirect_uri=${encodeURIComponent(returnUrl)}`,
+      );
+    }
+
+    try {
+      const payload = jwt.verify(token, JWT_SECRET) as {
+        userId?: string;
+        grudgeId?: string;
+        username?: string;
+      };
+      if (!payload.userId) {
+        return res.redirect(
+          302,
+          `/login?redirect_uri=${encodeURIComponent(returnUrl)}`,
+        );
+      }
+
+      const [user] = await db
+        .select()
+        .from(users)
+        .where(eq(users.id, payload.userId))
+        .limit(1);
+      if (!user) {
+        return res.redirect(
+          302,
+          `/login?redirect_uri=${encodeURIComponent(returnUrl)}`,
+        );
+      }
+
+      const [account] = await db
+        .select()
+        .from(accounts)
+        .where(eq(accounts.userId, user.id))
+        .limit(1);
+      const displayName =
+        account?.displayName ||
+        payload.username ||
+        (user.username.includes(":")
+          ? user.username.split(":").slice(1).join(":")
+          : user.username);
+      const grudgeId = user.grudgeId || account?.grudgeId || payload.grudgeId || "";
+      const ssoToken = signToken({
+        userId: user.id,
+        grudgeId,
+        username: displayName,
+      });
+
+      res.redirect(302, appendSsoParams(returnUrl, ssoToken, grudgeId, displayName));
+    } catch {
+      res.redirect(
+        302,
+        `/login?redirect_uri=${encodeURIComponent(returnUrl)}`,
+      );
+    }
   });
 
   // ── GET /api/auth/page — Grudge ID sign-in UI (id.grudge-studio.com) ──
@@ -834,18 +952,29 @@ export function registerAuthRoutes(app: Express) {
 
   /**
    * GET /api/auth/discord/start
-   * Redirect to canonical Grudge ID Discord OAuth (id.grudge-studio.com).
-   * Scopes: identify + email only — no guilds, messages, or dangerous permissions.
+   * Discord OAuth entry on id.grudge-studio.com (identify + email only).
    */
   app.get("/api/auth/discord/start", (req: Request, res: Response) => {
     const returnUrl =
       (req.query.return as string) ||
       (req.query.returnUrl as string) ||
       "https://grudgewarlords.com/auth/callback";
-    const gateway = process.env.AUTH_GATEWAY_URL || "https://id.grudge-studio.com";
-    res.redirect(
-      `${gateway}/auth/discord/start?return=${encodeURIComponent(returnUrl)}`,
-    );
+    const clientId = process.env.DISCORD_CLIENT_ID;
+    if (!clientId) {
+      return res.status(503).json({ success: false, error: "Discord OAuth not configured" });
+    }
+    const redirectUri =
+      process.env.DISCORD_REDIRECT_URI ||
+      "https://id.grudge-studio.com/auth/discord/callback";
+    const params = new URLSearchParams({
+      client_id: clientId,
+      redirect_uri: redirectUri,
+      response_type: "code",
+      scope: "identify email",
+      state: returnUrl,
+      prompt: "consent",
+    });
+    res.redirect(`https://discord.com/api/oauth2/authorize?${params.toString()}`);
   });
 
   /**

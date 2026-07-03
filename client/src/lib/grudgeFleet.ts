@@ -2,13 +2,13 @@
  * grudgeFleet.ts — ONE TRUTH wiring for the entire Grudge Studio fleet.
  *
  * Two backend layers (both required):
- *   1. IDENTITY  — The-ENGINE @ id.grudge-studio.com + api.grudge-studio.com
- *                  Accounts, OAuth, grudge_token SSO, GBUX profile shell
+ *   1. IDENTITY  — id.grudge-studio.com (canonical Grudge ID — ONLY auth system)
+ *                  Accounts, OAuth, grudge_token SSO, login, sso-check
  *   2. GAME DATA — GrudgeBuilder @ grudge-api-production-0d46 (Railway)
  *                  Characters, wallets, cNFT mint, islands, inventory (Postgres SSOT)
  *
  * Browser apps MUST use same-origin `/api/*` so Vercel rewrites route:
- *   /api/auth/*     → id.grudge-studio.com (except /api/auth/puter → Railway)
+ *   /api/auth/*     → id.grudge-studio.com (satellite apps) or Railway (hub alias)
  *   /api/characters → Railway
  *   /api/wallet     → Railway
  *   /api/nfts       → Railway
@@ -129,8 +129,11 @@ export async function wireGrudgeFleet(opts: WireGrudgeFleetOptions = {}) {
 /** Redirect user to Grudge ID login; returns to /auth/callback on this origin */
 export function loginWithGrudgeId(returnPath = "/auth/callback"): void {
   if (typeof window === "undefined") return;
-  const url = buildSsoLoginUrl(window.location.origin, returnPath);
-  window.location.href = url;
+  const origin = window.location.origin;
+  const dest = returnPath.startsWith("http")
+    ? returnPath
+    : `${origin}${returnPath.startsWith("/") ? returnPath : `/${returnPath}`}`;
+  window.location.href = `${AUTH_GATEWAY}/auth/sso-check?return=${encodeURIComponent(dest)}`;
 }
 
 export { GrudgeAccountSDK, getToken, isAuthenticated, buildSsoLoginUrl };

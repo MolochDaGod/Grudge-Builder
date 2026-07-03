@@ -35,6 +35,13 @@ vercel.env = {
   ...clientEnv,
 };
 
+/** id.grudge-studio.com is the canonical Grudge ID host — always on this deployment. */
+const ID_ALIAS = 'id.grudge-studio.com';
+if (!vercel.alias) vercel.alias = [];
+if (!vercel.alias.includes(ID_ALIAS)) {
+  vercel.alias.push(ID_ALIAS);
+}
+
 fs.writeFileSync(vercelPath, JSON.stringify(vercel, null, 2) + '\n', 'utf8');
 console.log(`[sync-vercel-fleet] ${FLEET_VERCEL_REWRITES.length} fleet rewrites + ${LOCAL_REWRITES.length} local → vercel.json`);
 console.log(`[sync-vercel-fleet] client env keys: ${Object.keys(clientEnv).join(', ')}`);
