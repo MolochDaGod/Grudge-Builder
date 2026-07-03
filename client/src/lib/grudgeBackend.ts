@@ -6,6 +6,8 @@
  * Puter KV is used for persistent player data (characters, island, inventory).
  */
 
+import { AUTH_GATEWAY } from "./grudgeConfig";
+
 // ── API base (legacy, kept for any remaining fetch calls) ─────────
 export const API_BASE = "/api";
 
@@ -380,14 +382,14 @@ export async function loginAsGuest(): Promise<AuthResponse> {
  */
 export async function startDiscordLogin(): Promise<string> {
   const returnUrl = encodeURIComponent(`${window.location.origin}/auth/callback`);
-  window.location.href = `/api/auth/discord/start?return=${returnUrl}`;
+  window.location.href = `${AUTH_GATEWAY}/auth/discord/start?return=${returnUrl}`;
   return "__discord_redirect__";
 }
 
 /** In-place Discord login (no return value needed). */
 export function redirectDiscordLogin(returnPath = "/auth/callback"): void {
   const returnUrl = encodeURIComponent(`${window.location.origin}${returnPath}`);
-  window.location.href = `/api/auth/discord/start?return=${returnUrl}`;
+  window.location.href = `${AUTH_GATEWAY}/auth/discord/start?return=${returnUrl}`;
 }
 
 /**

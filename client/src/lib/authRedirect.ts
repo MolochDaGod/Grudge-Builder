@@ -15,5 +15,5 @@ export function redirectToGrudgeAuth(returnPath?: string): void {
   const returnTo = returnPath || "/home";
   const origin = window.location.origin;
   const redirectUrl = `${origin}${returnTo}`;
-  window.location.href = `${GRUDGE_AUTH_URL}?redirect=${encodeURIComponent(redirectUrl)}`;
+  window.location.href = `${GRUDGE_AUTH_URL}/auth/sso-check?return=${encodeURIComponent(redirectUrl)}`;
 }

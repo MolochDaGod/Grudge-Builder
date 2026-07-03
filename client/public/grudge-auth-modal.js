@@ -301,7 +301,7 @@
   function doDiscord() {
     showSuccess('Redirecting to Discord\u2026');
     var returnUrl = encodeURIComponent(window.location.origin + '/auth/callback');
-    window.location.href = AUTH_BASE + '/api/auth/discord/start?return=' + returnUrl;
+    window.location.href = 'https://id.grudge-studio.com/auth/discord/start?return=' + returnUrl;
   }
 
   // Google OAuth — delegated to Puter SDK (was: /api/auth/google/start which is 404).

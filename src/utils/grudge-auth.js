@@ -29,8 +29,7 @@ export function isGrudgeAuthenticated() {
 /** Redirect to Grudge ID SSO. Returns to returnUrl after auth. */
 export function redirectToGrudgeGateway(returnUrl) {
   const ret = returnUrl || window.location.href;
-  const base = window.GRUDGE_AUTH_BASE ?? '/api';
-  window.location.href = `${base}/auth/sso-check?return=${encodeURIComponent(ret)}`;
+  window.location.href = `${GRUDGE_GATEWAY_URL}/auth/sso-check?return=${encodeURIComponent(ret)}`;
 }
 
 export function requireGrudgeAuth(returnUrl) {

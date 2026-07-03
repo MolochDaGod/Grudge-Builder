@@ -355,6 +355,19 @@ function authAssetPath(file: string): string {
 
 export function registerAuthRoutes(app: Express) {
 
+  // ── GET /login — canonical Grudge ID entry (id.grudge-studio.com) ──
+  app.get("/login", (req: Request, res: Response) => {
+    const q = new URLSearchParams();
+    const redirect =
+      (req.query.redirect_uri as string) ||
+      (req.query.redirect as string) ||
+      (req.query.return_to as string) ||
+      (req.query.return as string);
+    if (redirect) q.set("redirect", redirect);
+    const dest = "/api/auth/page" + (q.toString() ? `?${q.toString()}` : "");
+    res.redirect(302, dest);
+  });
+
   // ── GET /auth — legacy entry → Grudge ID sign-in page ──
   app.get("/auth", (req: Request, res: Response) => {
     const q = new URLSearchParams();
@@ -959,18 +972,29 @@ export function registerAuthRoutes(app: Express) {
 
   /**
    * GET /api/auth/discord/start
-   * Redirect to canonical Grudge ID Discord OAuth (id.grudge-studio.com).
-   * Scopes: identify + email only — no guilds, messages, or dangerous permissions.
+   * Discord OAuth entry on id.grudge-studio.com (identify + email only).
    */
   app.get("/api/auth/discord/start", (req: Request, res: Response) => {
     const returnUrl =
       (req.query.return as string) ||
       (req.query.returnUrl as string) ||
       "https://grudgewarlords.com/auth/callback";
-    const gateway = process.env.AUTH_GATEWAY_URL || "https://id.grudge-studio.com";
-    res.redirect(
-      `${gateway}/auth/discord/start?return=${encodeURIComponent(returnUrl)}`,
-    );
+    const clientId = process.env.DISCORD_CLIENT_ID;
+    if (!clientId) {
+      return res.status(503).json({ success: false, error: "Discord OAuth not configured" });
+    }
+    const redirectUri =
+      process.env.DISCORD_REDIRECT_URI ||
+      "https://id.grudge-studio.com/auth/discord/callback";
+    const params = new URLSearchParams({
+      client_id: clientId,
+      redirect_uri: redirectUri,
+      response_type: "code",
+      scope: "identify email",
+      state: returnUrl,
+      prompt: "consent",
+    });
+    res.redirect(`https://discord.com/api/oauth2/authorize?${params.toString()}`);
   });
 
   /**
