@@ -55,8 +55,10 @@ export const TRUTH_DEPRECATED_HOSTS = [
   "grudge-objectstore.pages.dev",
 ] as const;
 
-const ICON_PACK = `${FLEET_URLS.assets}/icons/pack/weapons/Sword_01.png`;
-const ICON_NAMED = `${FLEET_URLS.assets}/icons/weapons/bloodfeud-blade.png`;
+const ICON_PACK_PATH = "/icons/pack/weapons/Sword_01.png";
+const ICON_NAMED_PATH = "/icons/weapons/bloodfeud-blade.png";
+const ICON_PACK = `${FLEET_URLS.assets}${ICON_PACK_PATH}`;
+const ICON_NAMED = `${FLEET_URLS.assets}${ICON_NAMED_PATH}`;
 
 export const TRUTH_PROBE_SPECS: TruthProbeSpec[] = [
   {
@@ -155,7 +157,7 @@ export const TRUTH_PROBE_SPECS: TruthProbeSpec[] = [
     label: "Pack icon (guide)",
     role: "assets",
     productionUrl: ICON_PACK,
-    browserPath: ICON_PACK,
+    browserPath: `/api/assets${ICON_PACK_PATH}`,
     method: "GET",
     rejectHtml: false,
   },
@@ -164,7 +166,7 @@ export const TRUTH_PROBE_SPECS: TruthProbeSpec[] = [
     label: "Named weapon icon",
     role: "assets",
     productionUrl: ICON_NAMED,
-    browserPath: ICON_NAMED,
+    browserPath: `/api/assets${ICON_NAMED_PATH}`,
     method: "GET",
     rejectHtml: false,
   },
@@ -173,7 +175,7 @@ export const TRUTH_PROBE_SPECS: TruthProbeSpec[] = [
     label: "Assets CDN root",
     role: "assets",
     productionUrl: `${FLEET_URLS.assets}/`,
-    browserPath: `${FLEET_URLS.assets}/`,
+    browserPath: "/api/assets/",
     method: "GET",
     rejectHtml: false,
   },
@@ -190,7 +192,7 @@ export const TRUTH_PROBE_SPECS: TruthProbeSpec[] = [
     id: "grudox-game-server-direct",
     label: "GRUDOX game server (Railway)",
     role: "game-data",
-    productionUrl: `${LIVE_GAME_SERVER_ORIGIN}/health`,
+    productionUrl: `${LIVE_GAME_SERVER_ORIGIN}/api/health`,
     method: "GET",
     rejectHtml: true,
   },
@@ -233,13 +235,16 @@ export async function probeTruthEndpoint(
   const method = probe.method ?? (probe.role === "game-data" || probe.role === "objectstore" || probe.role === "identity" ? "GET" : "HEAD");
   const rejectHtml = probe.rejectHtml ?? probe.role !== "assets";
 
+  const wantsJson =
+    method === "GET" &&
+    (probe.role === "game-data" ||
+      probe.role === "identity" ||
+      probe.role === "objectstore");
+
   try {
     const res = await fetchFn(probe.url, {
       method,
-      headers:
-        method === "GET"
-          ? { Accept: "application/json" }
-          : undefined,
+      headers: wantsJson ? { Accept: "application/json" } : undefined,
     });
     const contentType = res.headers.get("content-type") || "";
     const htmlLeak = rejectHtml && contentType.includes("text/html");
