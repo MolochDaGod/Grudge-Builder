@@ -12,6 +12,7 @@
  *   GET  /api/auth/verify            — Verify JWT token
  *   GET  /api/auth/me                — Get full user profile from JWT
  *   POST /api/auth/puter-link        — Link Puter UUID to existing account
+ *   GET  /api/auth/sso-check         — Cross-app SSO bootstrap (session → return URL)
  *   GET  /api/auth/discord/callback  — Discord OAuth callback
  *   GET  /api/auth/google/start      — Google OAuth (delegates to Puter SDK)
  *   POST /api/auth/phone/send        — Send SMS verification code
@@ -191,6 +192,51 @@ function readSessionToken(req: Request): string | null {
   return match ? decodeURIComponent(match[1]) : null;
 }
 
+function isAllowedReturnUrl(url: string): boolean {
+  try {
+    const host = new URL(url).hostname.toLowerCase();
+    return (
+      host === "localhost" ||
+      host.endsWith(".grudge-studio.com") ||
+      host === "grudge-studio.com" ||
+      host.endsWith(".vercel.app") ||
+      host === "grudgewarlords.com" ||
+      host === "www.grudgewarlords.com"
+    );
+  } catch {
+    return false;
+  }
+}
+
+function resolveReturnUrl(req: Request): string {
+  const raw =
+    (req.query.return as string) ||
+    (req.query.return_to as string) ||
+    (req.query.redirect as string) ||
+    "";
+  if (raw && isAllowedReturnUrl(raw)) return raw;
+  const referer = req.get("referer") || req.get("origin") || "";
+  if (referer && isAllowedReturnUrl(referer)) {
+    try {
+      const u = new URL(referer);
+      return `${u.origin}/`;
+    } catch {
+      /* fall through */
+    }
+  }
+  return "https://grudgewarlords.com/";
+}
+
+function appendSsoParams(
+  returnUrl: string,
+  ssoToken: string,
+  grudgeId: string,
+  username: string,
+): string {
+  const sep = returnUrl.includes("?") ? "&" : "?";
+  return `${returnUrl}${sep}sso_token=${encodeURIComponent(ssoToken)}&grudge_id=${encodeURIComponent(grudgeId)}&username=${encodeURIComponent(username)}`;
+}
+
 function buildSsoUserPayload(
   user: { id: string; username: string; grudgeId: string | null; email?: string | null },
   account: { grudgeId?: string | null; displayName?: string | null; gbuxBalance?: number | null; avatarUrl?: string | null } | null,
@@ -323,6 +369,85 @@ export function registerAuthRoutes(app: Express) {
     if (req.query.handoff) q.set("handoff", String(req.query.handoff));
     const dest = "/api/auth/page" + (q.toString() ? `?${q.toString()}` : "");
     res.redirect(302, dest);
+  });
+
+  // ── GET /auth/sso-check — legacy alias (id.grudge-studio.com /auth/*) ──
+  app.get("/auth/sso-check", (req: Request, res: Response) => {
+    const q = new URLSearchParams();
+    for (const [key, value] of Object.entries(req.query)) {
+      if (typeof value === "string") q.set(key, value);
+    }
+    const dest = "/api/auth/sso-check" + (q.toString() ? `?${q.toString()}` : "");
+    res.redirect(302, dest);
+  });
+
+  /**
+   * GET /api/auth/sso-check
+   * Cross-app SSO bootstrap: if the browser already has a Grudge session,
+   * mint a fresh JWT and redirect back to `return` with ?sso_token=…
+   * Otherwise send the user to the Grudge ID sign-in page.
+   */
+  app.get("/api/auth/sso-check", async (req: Request, res: Response) => {
+    const returnUrl = resolveReturnUrl(req);
+    const token = readSessionToken(req);
+
+    if (!token) {
+      return res.redirect(
+        302,
+        `/api/auth/page?redirect=${encodeURIComponent(returnUrl)}`,
+      );
+    }
+
+    try {
+      const payload = jwt.verify(token, JWT_SECRET) as {
+        userId?: string;
+        grudgeId?: string;
+        username?: string;
+      };
+      if (!payload.userId) {
+        return res.redirect(
+          302,
+          `/api/auth/page?redirect=${encodeURIComponent(returnUrl)}`,
+        );
+      }
+
+      const [user] = await db
+        .select()
+        .from(users)
+        .where(eq(users.id, payload.userId))
+        .limit(1);
+      if (!user) {
+        return res.redirect(
+          302,
+          `/api/auth/page?redirect=${encodeURIComponent(returnUrl)}`,
+        );
+      }
+
+      const [account] = await db
+        .select()
+        .from(accounts)
+        .where(eq(accounts.userId, user.id))
+        .limit(1);
+      const displayName =
+        account?.displayName ||
+        payload.username ||
+        (user.username.includes(":")
+          ? user.username.split(":").slice(1).join(":")
+          : user.username);
+      const grudgeId = user.grudgeId || account?.grudgeId || payload.grudgeId || "";
+      const ssoToken = signToken({
+        userId: user.id,
+        grudgeId,
+        username: displayName,
+      });
+
+      res.redirect(302, appendSsoParams(returnUrl, ssoToken, grudgeId, displayName));
+    } catch {
+      res.redirect(
+        302,
+        `/api/auth/page?redirect=${encodeURIComponent(returnUrl)}`,
+      );
+    }
   });
 
   // ── GET /api/auth/page — Grudge ID sign-in UI (id.grudge-studio.com) ──
