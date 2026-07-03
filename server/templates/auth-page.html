@@ -76,6 +76,7 @@ body {
   background: linear-gradient(145deg, rgba(201, 162, 39, 0.15), rgba(201, 162, 39, 0.04));
   border: 1px solid rgba(201, 162, 39, 0.25);
 }
+.logo img { width: 40px; height: 40px; }
 .logo svg { width: 26px; height: 26px; }
 .brand h1 {
   font-family: var(--font-display);
@@ -427,7 +428,8 @@ body {
 <main class="card" role="main" aria-label="Grudge Studio sign in">
   <header class="brand">
     <div class="logo" aria-hidden="true">
-      <svg viewBox="0 0 32 32" fill="none"><path d="M16 2l11 5v8c0 7-4.7 12.4-11 15-6.3-2.6-11-8-11-15V7l11-5z" stroke="url(#g)" stroke-width="1.6" stroke-linejoin="round"/><path d="M16 9.5l2.2 4.6 5 .6-3.7 3.4 1 5-4.5-2.5L11.5 23l1-5L8.8 14.7l5-.6L16 9.5z" fill="url(#g)"/><defs><linearGradient id="g" x1="5" y1="2" x2="27" y2="30"><stop stop-color="#e8c547"/><stop offset="1" stop-color="#8c7420"/></linearGradient></defs></svg>
+      <img src="https://grudge-studio.com/grudge-logo.png" alt="" width="40" height="40" style="border-radius:8px;object-fit:contain" onerror="this.style.display='none';this.nextElementSibling.style.display='block'" />
+      <svg viewBox="0 0 32 32" fill="none" style="display:none"><path d="M16 2l11 5v8c0 7-4.7 12.4-11 15-6.3-2.6-11-8-11-15V7l11-5z" stroke="url(#g)" stroke-width="1.6" stroke-linejoin="round"/><path d="M16 9.5l2.2 4.6 5 .6-3.7 3.4 1 5-4.5-2.5L11.5 23l1-5L8.8 14.7l5-.6L16 9.5z" fill="url(#g)"/><defs><linearGradient id="g" x1="5" y1="2" x2="27" y2="30"><stop stop-color="#e8c547"/><stop offset="1" stop-color="#8c7420"/></linearGradient></defs></svg>
     </div>
     <h1>Grudge Studio</h1>
     <p id="brand-sub">One account for every game</p>
