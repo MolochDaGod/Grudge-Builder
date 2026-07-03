@@ -46,7 +46,7 @@
       '<div class="grudge-auth-overlay" id="grudgeAuthOverlay" onclick="if(event.target===this)closeGrudgeAuthModal()">' +
         '<div class="grudge-auth-modal">' +
           '<div class="grudge-auth-modal-header">' +
-            '<h2><img src="/grudge-logo.png" alt="G" style="width:28px;height:28px;margin-right:8px;vertical-align:middle;border-radius:4px"> GRUDGE ID</h2>' +
+            '<h2><img src="https://grudge-studio.com/grudge-logo.png" alt="Grudge Studio" style="width:28px;height:28px;margin-right:8px;vertical-align:middle;border-radius:4px;object-fit:contain" onerror="this.style.display=\'none\'"> GRUDGE ID</h2>' +
             '<button class="grudge-auth-close" onclick="closeGrudgeAuthModal()">' + ICONS.close + '</button>' +
           '</div>' +
           '<div id="grudgeAuthError" class="grudge-auth-error"></div>' +
