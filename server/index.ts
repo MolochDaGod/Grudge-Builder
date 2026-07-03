@@ -191,6 +191,7 @@ app.get("/api/health", async (_req, res) => {
   });
 
   // ── 6. Static assets (AFTER API routes so /api/* never gets HTML) ───────
+  app.use(express.static(path.resolve(__dirname, "public")));
   app.use(express.static(path.resolve(__dirname, "..", "public")));
   app.use(express.static(path.resolve(__dirname, "..", "client", "public")));
 

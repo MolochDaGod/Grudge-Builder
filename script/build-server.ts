@@ -88,7 +88,26 @@ const __dirname = __grudgeFileURLToPath(new URL(".", import.meta.url));`,
   const templatesDest = path.resolve("dist/templates");
   await mkdir(templatesDest, { recursive: true });
   await cp(templatesSrc, templatesDest, { recursive: true, force: true });
-  console.log("server build complete → dist/index.js (+ dist/templates)");
+
+  const publicDest = path.resolve("dist/public");
+  await mkdir(publicDest, { recursive: true });
+  for (const file of [
+    "grudge-auth-modal.js",
+    "grudge-auth-modal.css",
+    "grudge-game-bootstrap.js",
+    "embed/auth.js",
+  ]) {
+    const src = path.resolve("client/public", file);
+    const dest = path.resolve(publicDest, file);
+    await mkdir(path.dirname(dest), { recursive: true });
+    try {
+      await cp(src, dest, { force: true });
+    } catch {
+      /* optional asset */
+    }
+  }
+
+  console.log("server build complete → dist/index.js (+ dist/templates, dist/public)");
 }
 
 buildServer().catch((err) => {
