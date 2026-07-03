@@ -4,13 +4,19 @@ export {
   IDENTITY_PORTAL,
   FLEET_SERVICES,
   FLEET_VERCEL_REWRITES,
+  FLEET_SATELLITE_VERCEL_REWRITES,
   FLEET_GAME_DATA_API_PREFIXES,
   buildFleetGameDataRewrites,
+  buildFleetAuthProxyRewrites,
+  buildFleetHubAuthRewrites,
+  buildFleetSatelliteRewrites,
   CROSSMINT_COLLECTIONS,
   type FleetService,
   type FleetServiceRole,
   type FleetRewrite,
 } from "./manifest";
+
+export { isFleetAllowedReturnUrl, resolveFleetReturnUrl } from "./authReturn";
 
 export { FLEET_STORAGE, FLEET_CLIENT_ENV } from "./storage";
 

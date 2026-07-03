@@ -29,6 +29,7 @@ import jwt from "jsonwebtoken";
 import crypto from "node:crypto";
 import { storage } from "../storage";
 import { buildScopedProfile } from "../lib/scopedProfile";
+import { isFleetAllowedReturnUrl, resolveFleetReturnUrl } from "@shared/fleet/authReturn";
 
 const JWT_SECRET = process.env.SESSION_SECRET || process.env.JWT_SECRET || "grudge-dev-secret";
 const JWT_EXPIRES = "7d";
@@ -192,31 +193,11 @@ function readSessionToken(req: Request): string | null {
   return match ? decodeURIComponent(match[1]) : null;
 }
 
-function isAllowedReturnUrl(url: string): boolean {
-  try {
-    const host = new URL(url).hostname.toLowerCase();
-    return (
-      host === "localhost" ||
-      host.endsWith(".grudge-studio.com") ||
-      host === "grudge-studio.com" ||
-      host.endsWith(".vercel.app") ||
-      host === "grudgewarlords.com" ||
-      host === "www.grudgewarlords.com"
-    );
-  } catch {
-    return false;
-  }
-}
-
 function resolveReturnUrl(req: Request): string {
-  const raw =
-    (req.query.return as string) ||
-    (req.query.return_to as string) ||
-    (req.query.redirect as string) ||
-    "";
-  if (raw && isAllowedReturnUrl(raw)) return raw;
+  const fromQuery = resolveFleetReturnUrl(req.query as Record<string, string | string[] | undefined>, "");
+  if (fromQuery) return fromQuery;
   const referer = req.get("referer") || req.get("origin") || "";
-  if (referer && isAllowedReturnUrl(referer)) {
+  if (referer && isFleetAllowedReturnUrl(referer)) {
     try {
       const u = new URL(referer);
       return `${u.origin}/`;
@@ -358,11 +339,10 @@ export function registerAuthRoutes(app: Express) {
   // ── GET /login — canonical Grudge ID entry (id.grudge-studio.com) ──
   app.get("/login", (req: Request, res: Response) => {
     const q = new URLSearchParams();
-    const redirect =
-      (req.query.redirect_uri as string) ||
-      (req.query.redirect as string) ||
-      (req.query.return_to as string) ||
-      (req.query.return as string);
+    const redirect = resolveFleetReturnUrl(
+      req.query as Record<string, string | string[] | undefined>,
+      "",
+    ) || (req.query.redirect as string) || (req.query.return as string);
     if (redirect) q.set("redirect", redirect);
     const dest = "/api/auth/page" + (q.toString() ? `?${q.toString()}` : "");
     res.redirect(302, dest);
@@ -407,7 +387,7 @@ export function registerAuthRoutes(app: Express) {
     if (!token) {
       return res.redirect(
         302,
-        `/api/auth/page?redirect=${encodeURIComponent(returnUrl)}`,
+        `/login?redirect_uri=${encodeURIComponent(returnUrl)}`,
       );
     }
 
@@ -420,7 +400,7 @@ export function registerAuthRoutes(app: Express) {
       if (!payload.userId) {
         return res.redirect(
           302,
-          `/api/auth/page?redirect=${encodeURIComponent(returnUrl)}`,
+          `/login?redirect_uri=${encodeURIComponent(returnUrl)}`,
         );
       }
 
@@ -432,7 +412,7 @@ export function registerAuthRoutes(app: Express) {
       if (!user) {
         return res.redirect(
           302,
-          `/api/auth/page?redirect=${encodeURIComponent(returnUrl)}`,
+          `/login?redirect_uri=${encodeURIComponent(returnUrl)}`,
         );
       }
 
@@ -458,7 +438,7 @@ export function registerAuthRoutes(app: Express) {
     } catch {
       res.redirect(
         302,
-        `/api/auth/page?redirect=${encodeURIComponent(returnUrl)}`,
+        `/login?redirect_uri=${encodeURIComponent(returnUrl)}`,
       );
     }
   });

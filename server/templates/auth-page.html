@@ -196,12 +196,10 @@ function resolveApiBase(){
   if (meta && meta.content.trim()) return meta.content.trim().replace(/\/+$/, "");
   const h = location.hostname;
   if (h === "localhost" || h === "127.0.0.1") return location.protocol + "//" + h + ":5000";
-  // FIX: id.grudge-studio.com uses same-origin (CF Tunnel → Railway) — no CORS
   if (h === "id.grudge-studio.com") return location.origin;
-  if (h === "grudge-studio.com" || h.endsWith(".grudge-studio.com")) return "https://grudge-studio.com";
-  if (location.origin && location.origin.startsWith("http")) return location.origin;
-  return "https://grudge-studio.com";
+  return "https://id.grudge-studio.com";
 }
+const GRUDGE_ID = "https://id.grudge-studio.com";
 const CONFIG = { apiBase: resolveApiBase() };
 
 /* ══════════ POP-UP / REDIRECT CONTEXT ══════════ */
@@ -259,7 +257,19 @@ function appendSsoParams(baseUrl, parts){
   const sep = baseUrl.includes("?") ? "&" : "?";
   return baseUrl + sep + parts.join("&");
 }
-async function handoff(user){
+function normalizeHandoffUser(payload){
+  const base = payload.user || payload;
+  return {
+    ...base,
+    token: payload.token || payload.sessionToken || base.token,
+    sessionToken: payload.sessionToken || payload.token || base.sessionToken,
+    grudgeId: payload.grudgeId || base.grudgeId,
+    username: payload.username || base.username,
+    displayName: payload.displayName || base.displayName || base.username,
+  };
+}
+async function handoff(payload){
+  const user = normalizeHandoffUser(payload);
   if (isPopup && openerOrigin){
     const token = await mintLaunchToken(openerOrigin);
     try { window.opener.postMessage({ type:"grudge-auth:success", source:"grudge-id", token, user }, openerOrigin); } catch {}
@@ -274,6 +284,8 @@ async function handoff(user){
           const parts = [];
           const launchToken = await mintLaunchToken(origin);
           if (launchToken) parts.push("grudge_token=" + encodeURIComponent(launchToken));
+          const sessionTok = user && (user.token || user.sessionToken);
+          if (sessionTok) parts.push("sso_token=" + encodeURIComponent(sessionTok));
           if (user && user.grudgeId) parts.push("grudge_id=" + encodeURIComponent(user.grudgeId));
           const name = user && (user.displayName || user.username);
           if (name) parts.push("username=" + encodeURIComponent(name));
@@ -334,11 +346,11 @@ function startOAuth(provider){
   if (isPopup) redirect = selfUrl({ handoff:"1", origin: openerOrigin || "" });
   else if (returnTo) redirect = returnTo;
   else redirect = selfUrl({ signedin:"1" });
-  location.href = CONFIG.apiBase + "/api/auth/" + provider + "/start?redirect=" + encodeURIComponent(redirect);
+  location.href = GRUDGE_ID + "/api/auth/" + provider + "/start?return=" + encodeURIComponent(redirect);
 }
-$("btn-google").addEventListener("click", () => startOAuth("google"));
+$("btn-google").addEventListener("click", () => $("btn-puter").click());
 $("btn-discord").addEventListener("click", () => startOAuth("discord"));
-$("btn-github").addEventListener("click", () => startOAuth("github"));
+$("btn-github").addEventListener("click", () => toast("GitHub sign-in is coming soon. Use Grudge ID, Discord, or Wallet.", "error"));
 
 /* ══════════ Phantom wallet ══════════ */
 const B58 = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
@@ -351,12 +363,7 @@ $("btn-phantom").addEventListener("click", async () => {
   try {
     const resp = await provider.connect();
     const address = (resp.publicKey || provider.publicKey).toString();
-    const { nonce, message } = await api("/api/auth/phantom/nonce", { method:"POST", body: JSON.stringify({ address }) });
-    const encoded = new TextEncoder().encode(message);
-    const signed = await provider.signMessage(encoded, "utf8");
-    const sigRaw = signed.signature || signed;
-    const signature = typeof sigRaw === "string" ? sigRaw : base58(sigRaw);
-    const user = await api("/api/auth/phantom/verify", { method:"POST", body: JSON.stringify({ address, nonce, signature }) });
+    const user = await api("/api/auth/wallet", { method:"POST", body: JSON.stringify({ wallet_address: address }) });
     afterAuth(user);
   } catch (e){ toast(e.message || "Wallet sign-in failed.", "error"); }
   finally { busy(btn, false); }
@@ -409,14 +416,14 @@ async function submitPhone(){
   if (phoneStage === "number"){
     if (!/^+d{8,15}$/.test(phone)){ toast("Use E.164 format, e.g. +15551234567", "error"); return; }
     busy(btn, true);
-    try { const r = await api("/api/auth/twilio/start", { method:"POST", body: JSON.stringify({ phone }) }); setPhoneStage("code"); toast(r.status === "dev" ? "Dev mode: check the server logs for your code." : "Code sent.", "success"); }
+    try { const r = await api("/api/auth/phone/send", { method:"POST", body: JSON.stringify({ phone }) }); setPhoneStage("code"); toast(r.message || "Code sent.", "success"); }
     catch (e){ toast(e.message || "Couldn't send the code.", "error"); }
     finally { busy(btn, false); }
   } else {
     const code = $("ph-code").value.trim();
     if (!code){ toast("Enter the code you received.", "error"); return; }
     busy(btn, true);
-    try { const user = await api("/api/auth/twilio/verify", { method:"POST", body: JSON.stringify({ phone, code }) }); afterAuth(user); }
+    try { const user = await api("/api/auth/phone/verify", { method:"POST", body: JSON.stringify({ phone, code }) }); afterAuth(user); }
     catch (e){ toast(e.message || "Invalid or expired code.", "error"); }
     finally { busy(btn, false); }
   }

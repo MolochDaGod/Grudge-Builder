@@ -17,7 +17,7 @@
   'use strict';
 
   // ── Configuration ──────────────────────────────────────────────────
-  var AUTH_BASE = window.GRUDGE_AUTH_BASE || '';
+  var AUTH_BASE = window.GRUDGE_AUTH_BASE !== undefined ? window.GRUDGE_AUTH_BASE : 'https://id.grudge-studio.com';
   var AUTH_RETURN = window.GRUDGE_AUTH_RETURN || null;
   var INJECTED = false;
 
@@ -301,7 +301,7 @@
   function doDiscord() {
     showSuccess('Redirecting to Discord\u2026');
     var returnUrl = encodeURIComponent(window.location.origin + '/auth/callback');
-    window.location.href = 'https://id.grudge-studio.com/auth/discord/start?return=' + returnUrl;
+    window.location.href = AUTH_BASE + '/auth/discord/start?return=' + returnUrl;
   }
 
   // Google OAuth — delegated to Puter SDK (was: /api/auth/google/start which is 404).

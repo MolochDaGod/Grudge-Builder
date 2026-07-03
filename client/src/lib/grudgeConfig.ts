@@ -153,6 +153,14 @@ export const GRUDGE_SUBDOMAINS = [
   'characters.grudge-studio.com',
   'studio.grudge-studio.com',
   'grudge-studio-editor.vercel.app',
+  'grudge-three-port.vercel.app',
+  'rts-grudge.vercel.app',
+  'grudge-drive.vercel.app',
+  'grudge-arena.grudge-studio.com',
+  'dcq.grudge-studio.com',
+  'survival.grudge-studio.com',
+  'carrier.grudge-studio.com',
+  'grudox.grudge-studio.com',
 ] as const;
 
 /**
@@ -213,11 +221,10 @@ export function buildDiscordOAuthUrl(returnUrl: string): string {
 export function buildSsoLoginUrl(returnOrigin?: string, returnPath = '/auth/callback'): string {
   const origin = (returnOrigin || (typeof window !== 'undefined' ? window.location.origin : 'https://grudgewarlords.com'))
     .replace(/\/$/, '');
-  // Caller may pass a full callback URL (legacy) — do not append the path twice.
-  const redirectUri = returnOrigin?.includes('/auth/callback')
-    ? returnOrigin
+  const redirectUri = returnOrigin?.includes('/auth/callback') || returnOrigin?.startsWith('http')
+    ? (returnOrigin || `${origin}${returnPath.startsWith('/') ? returnPath : `/${returnPath}`}`)
     : `${origin}${returnPath.startsWith('/') ? returnPath : `/${returnPath}`}`;
-  return `${AUTH_GATEWAY}/login?redirect_uri=${encodeURIComponent(redirectUri)}`;
+  return `${AUTH_GATEWAY}/auth/sso-check?return=${encodeURIComponent(redirectUri)}`;
 }
 
 /** LocalStorage keys — kept centralized so logout/purge logic cannot miss any. */

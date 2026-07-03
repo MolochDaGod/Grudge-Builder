@@ -21,8 +21,8 @@ export default function AuthCallbackPage() {
     let redirectTimer: ReturnType<typeof setTimeout> | undefined;
 
     (async () => {
+      const params = new URLSearchParams(window.location.search);
       if (!isAuthenticated()) {
-        const params = new URLSearchParams(window.location.search);
         const launchToken = params.get("grudge_token");
         const ssoToken = params.get("sso_token");
         if (launchToken) {
@@ -62,7 +62,15 @@ export default function AuthCallbackPage() {
       } catch { /* ignore */ }
 
       setStatus("success");
-      redirectTimer = setTimeout(() => setLocation("/home"), 600);
+      const returnDest =
+        params.get("return") ||
+        params.get("redirect") ||
+        params.get("redirect_uri") ||
+        "/home";
+      const safeReturn = returnDest.startsWith("/") && !returnDest.startsWith("//")
+        ? returnDest
+        : "/home";
+      redirectTimer = setTimeout(() => setLocation(safeReturn), 600);
     })();
 
     return () => {

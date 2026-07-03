@@ -264,6 +264,26 @@ export function buildFleetAuthProxyRewrites(
   ];
 }
 
+/**
+ * Satellite game deployments (three-port, rts-grudge, arena, …).
+ * Auth always proxies to id.grudge-studio.com; game-data for character/account sync.
+ */
+export function buildFleetSatelliteRewrites(
+  auth: string = FLEET_URLS.auth,
+  gameData: string = FLEET_URLS.gameData,
+): FleetRewrite[] {
+  return [
+    ...buildFleetAuthProxyRewrites(auth),
+    { source: "/api/characters", destination: `${gameData}/api/characters` },
+    { source: "/api/characters/:path*", destination: `${gameData}/api/characters/:path*` },
+    { source: "/api/account", destination: `${gameData}/api/account` },
+    { source: "/api/account/:path*", destination: `${gameData}/api/account/:path*` },
+    { source: "/api/health", destination: `${gameData}/api/health` },
+  ];
+}
+
+export const FLEET_SATELLITE_VERCEL_REWRITES: readonly FleetRewrite[] = buildFleetSatelliteRewrites();
+
 /** Build Railway game-data rewrites (defaults to FLEET_URLS.gameData). */
 export function buildFleetGameDataRewrites(
   gameData: string = FLEET_URLS.gameData,

@@ -129,8 +129,11 @@ export async function wireGrudgeFleet(opts: WireGrudgeFleetOptions = {}) {
 /** Redirect user to Grudge ID login; returns to /auth/callback on this origin */
 export function loginWithGrudgeId(returnPath = "/auth/callback"): void {
   if (typeof window === "undefined") return;
-  const url = buildSsoLoginUrl(window.location.origin, returnPath);
-  window.location.href = url;
+  const origin = window.location.origin;
+  const dest = returnPath.startsWith("http")
+    ? returnPath
+    : `${origin}${returnPath.startsWith("/") ? returnPath : `/${returnPath}`}`;
+  window.location.href = `${AUTH_GATEWAY}/auth/sso-check?return=${encodeURIComponent(dest)}`;
 }
 
 export { GrudgeAccountSDK, getToken, isAuthenticated, buildSsoLoginUrl };
