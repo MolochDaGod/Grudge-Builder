@@ -843,7 +843,8 @@ function startOAuth(provider){
   else redirect = selfUrl({ signedin:"1" });
   location.href = CONFIG.apiBase + "/api/auth/" + provider + "/start?redirect=" + encodeURIComponent(redirect);
 }
-$("btn-google").addEventListener("click", () => startOAuth("google"));
+// Google sign-in routes through Puter SDK (grudge-api returns puter_sdk for /google/start)
+$("btn-google").addEventListener("click", () => $("btn-puter").click());
 $("btn-discord").addEventListener("click", () => startOAuth("discord"));
 $("btn-github").addEventListener("click", () => startOAuth("github"));
 

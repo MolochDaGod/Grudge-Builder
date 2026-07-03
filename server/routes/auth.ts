@@ -465,6 +465,18 @@ export function registerAuthRoutes(app: Express) {
   app.get("/favicon.png", serveAuthFavicon("favicon.png", "png"));
   app.get("/favicon.ico", serveAuthFavicon("favicon.ico", "x-icon"));
 
+  // Fleet embed modal (id.grudge-studio.com / grudge-auth-modal.js)
+  const serveEmbedAsset = (file: string, type: string) => (_req: Request, res: Response) => {
+    const assetPath = authAssetPath(file);
+    if (!fs.existsSync(assetPath)) {
+      return res.status(404).end();
+    }
+    res.setHeader("Cache-Control", "public, max-age=3600");
+    res.type(type).sendFile(assetPath);
+  };
+  app.get("/grudge-auth-modal.js", serveEmbedAsset("grudge-auth-modal.js", "javascript"));
+  app.get("/grudge-auth-modal.css", serveEmbedAsset("grudge-auth-modal.css", "css"));
+
   // ── Rate-limit middleware for auth routes ────────────────────────────
   const authRateLimit = (req: Request, res: Response, next: Function) => {
     const ip = getClientIp(req);
