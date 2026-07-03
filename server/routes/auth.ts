@@ -449,7 +449,7 @@ export function registerAuthRoutes(app: Express) {
     if (!fs.existsSync(pagePath)) {
       return res.status(503).send("Auth page unavailable");
     }
-    res.setHeader("Cache-Control", "public, max-age=300");
+    res.setHeader("Cache-Control", "no-store, must-revalidate");
     res.type("html").sendFile(pagePath);
   });
 
