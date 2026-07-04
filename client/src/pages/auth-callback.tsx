@@ -8,7 +8,13 @@
 import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { Loader2 } from "lucide-react";
-import { isAuthenticated, setSession, setToken, bridgeGrudgeLaunchToken } from "@/lib/grudgeBackend";
+import {
+  isAuthenticated,
+  setSession,
+  setToken,
+  bridgeGrudgeLaunchToken,
+  waitForAuthReady,
+} from "@/lib/grudgeBackend";
 import type { GrudgeSession } from "@/lib/grudgeBackend";
 
 export default function AuthCallbackPage() {
@@ -36,6 +42,36 @@ export default function AuthCallbackPage() {
             localStorage.setItem("grudge_account_id", grudgeId);
           }
           if (username) localStorage.setItem("grudge_username", username);
+        } else {
+          await waitForAuthReady(12000);
+        }
+      }
+
+      if (!isAuthenticated()) {
+        await waitForAuthReady(8000);
+      }
+
+      // Clean SSO params from URL once session is established
+      if (isAuthenticated()) {
+        const p = new URLSearchParams(window.location.search);
+        const keys = [
+          "grudge_token", "sso_token", "token", "grudge_id", "grudgeId",
+          "username", "grudge_username", "provider",
+        ];
+        let dirty = false;
+        for (const k of keys) {
+          if (p.has(k)) {
+            p.delete(k);
+            dirty = true;
+          }
+        }
+        if (dirty) {
+          const clean = p.toString();
+          window.history.replaceState(
+            null,
+            "",
+            window.location.pathname + (clean ? `?${clean}` : "") + window.location.hash,
+          );
         }
       }
 

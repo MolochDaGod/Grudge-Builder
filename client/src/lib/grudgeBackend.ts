@@ -56,6 +56,36 @@ export interface GrudgeUser {
 // ── SSO token pickup (from cross-app redirects) ────────────────────
 
 /** Bridge id.grudge-studio.com launch token → Railway JWT for the real Warlords account. */
+/** Wait for bootstrap / pickup / bridge to finish (auth callback race guard). */
+export function waitForAuthReady(timeoutMs = 10000): Promise<boolean> {
+  if (isAuthenticated()) return Promise.resolve(true);
+  return new Promise((resolve) => {
+    const deadline = Date.now() + timeoutMs;
+    const tryResolve = () => {
+      if (isAuthenticated()) {
+        cleanup();
+        resolve(true);
+      }
+    };
+    const cleanup = () => {
+      window.removeEventListener("grudge:auth:ready", tryResolve);
+      window.removeEventListener("grudge:auth:success", tryResolve);
+      clearInterval(poll);
+    };
+    window.addEventListener("grudge:auth:ready", tryResolve);
+    window.addEventListener("grudge:auth:success", tryResolve);
+    const poll = setInterval(() => {
+      if (isAuthenticated()) {
+        cleanup();
+        resolve(true);
+      } else if (Date.now() > deadline) {
+        cleanup();
+        resolve(false);
+      }
+    }, 200);
+  });
+}
+
 export async function bridgeGrudgeLaunchToken(launchToken: string): Promise<boolean> {
   const body = JSON.stringify({
     token: launchToken,
@@ -91,16 +121,27 @@ export async function bridgeGrudgeLaunchToken(launchToken: string): Promise<bool
 (function pickupSsoToken() {
   try {
     const params = new URLSearchParams(window.location.search);
+    const onAuthCallback =
+      window.location.pathname.replace(/\/$/, "") === "/auth/callback";
+
     const launchToken = params.get("grudge_token");
     if (launchToken) {
-      params.delete("grudge_token");
-      const clean = params.toString();
-      const newUrl = window.location.pathname + (clean ? `?${clean}` : "") + window.location.hash;
-      window.history.replaceState(null, "", newUrl);
-      bridgeGrudgeLaunchToken(launchToken).catch(() => {});
+      // AuthCallbackPage awaits bridge; stripping the param here causes a race.
+      if (onAuthCallback) return;
+
+      void bridgeGrudgeLaunchToken(launchToken).then((ok) => {
+        if (!ok) return;
+        const p = new URLSearchParams(window.location.search);
+        p.delete("grudge_token");
+        const clean = p.toString();
+        const newUrl =
+          window.location.pathname + (clean ? `?${clean}` : "") + window.location.hash;
+        window.history.replaceState(null, "", newUrl);
+      });
       return;
     }
     const ssoToken = params.get("sso_token") || params.get("token");
+    if (ssoToken && onAuthCallback) return;
     if (ssoToken) {
       setToken(ssoToken);
       const returnedGrudgeId = params.get("grudge_id") || params.get("grudgeId") || "";
