@@ -236,6 +236,11 @@ export const FLEET_GAME_DATA_API_PREFIXES = [
   "rewards",
 ] as const;
 
+/** Client SPA routes under /auth/* — must not proxy to Railway (no /api/auth/callback). */
+export const FLEET_SPA_AUTH_REWRITES: readonly FleetRewrite[] = [
+  { source: "/auth/callback", destination: "/index.html" },
+];
+
 /**
  * Auth rewrites for the id.grudge-studio.com hub deployment.
  * Canonical auth URL is always id.grudge-studio.com — Railway is implementation only.
@@ -244,6 +249,7 @@ export function buildFleetHubAuthRewrites(
   gameData: string = FLEET_URLS.gameData,
 ): FleetRewrite[] {
   return [
+    ...FLEET_SPA_AUTH_REWRITES,
     { source: "/api/auth/:path*", destination: `${gameData}/api/auth/:path*` },
     { source: "/auth/:path*", destination: `${gameData}/api/auth/:path*` },
     { source: "/login", destination: `${gameData}/api/auth/page` },
@@ -258,6 +264,7 @@ export function buildFleetAuthProxyRewrites(
   auth: string = FLEET_URLS.auth,
 ): FleetRewrite[] {
   return [
+    ...FLEET_SPA_AUTH_REWRITES,
     { source: "/api/auth/:path*", destination: `${auth}/api/auth/:path*` },
     { source: "/auth/:path*", destination: `${auth}/auth/:path*` },
     { source: "/login", destination: `${auth}/login` },
