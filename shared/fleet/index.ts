@@ -78,7 +78,6 @@ export {
   defaultModel3d,
   model3dFromEquipped,
   panelEquipmentToModel3d,
-  model3dToVisibleMeshes,
   grudaItemToMesh,
   tierToVariant,
   weaponTypeFromModel3d,
