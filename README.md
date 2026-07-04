@@ -77,6 +77,8 @@ grudge-builder/
 │   │   │   ├── profession/          # Profession advancement UI
 │   │   │   ├── island.tsx           # Home island (2D harvest)
     │   │   ├── island-3d.tsx        # Home island (3D terrain view, home-island mode via ?mode=home-island&islandId=)
+    │   │   ├── play.tsx             # Live test-play — grudge6 hero on procedural island (default) or ?mode=zone
+    │   │   ├── create-character-redirect.tsx  # Handoff to Character Studio with returnTo=/test-play
     │   │   ├── grudawars.tsx        # GrudaWars launcher — loads live char+island, deep-links to grudgewarlords.com
     │   │   ├── island-v2.tsx        # Island v2 renderer
 │   │   │   ├── combat.tsx           # Turn-based combat
@@ -100,6 +102,9 @@ grudge-builder/
 │   │   │   ├── assetConfig.ts       # ObjectStore URL config + assetUrl/apiUrl/cdnAssetUrl
 │   │   │   ├── objectStoreApi.ts    # ObjectStore API client (23 endpoints, caching)
 │   │   │   ├── grudgeBackend.ts     # Grudge ID auth, SSO, session management
+    │   │   ├── gcsRedirect.ts       # Character Studio handoff + GCS return consumption
+    │   │   ├── playHub.ts           # Active character resolution for /test-play
+    │   │   ├── grudge6Equipment.ts  # grudge6 mesh/slot loader for Island3DEngine
     │   │   ├── grudaDB.ts           # Item database & icon resolver
     │   │   ├── homeIslandApi.ts     # Island DTO normalizer (normalizeHomeIslandResponse) + fetchRtsStatus
     │   │   └── gameData.ts          # Races, classes, attributes definitions
@@ -198,6 +203,46 @@ const { data: weapons, isLoading, error, refetch } = useWeapons();
 - `VITE_OBJECT_STORE_URL` — Override ObjectStore base URL (default: `objectstore.grudge-studio.com`)
 - `VITE_ASSET_CDN_URL` — Override CDN/asset service URL (default: `assets.grudge-studio.com`)
 
+## Grudge6 Character Platform & Save & Play
+
+**grudge6** is the canonical 6-race character system (Bip001 skeleton): modular meshes, baked animations, controllers, and the `renderPipeline: "grudge6"` save format. Warlords consumes saved heroes via `setupGrudge6Equipment` / `parseModel3d`.
+
+| Surface | Repo | Domain | Deploy |
+|---|---|---|---|
+| **Character Studio** (Foundry + Viewer) | [grudge-character-animator](https://github.com/MolochDaGod/grudge-character-animator) | [character.grudge-studio.com](https://character.grudge-studio.com) | Cloudflare Pages (`toon-rts-character-viewer`) |
+| **grudge6 game lab** (`/game/world`) | same monorepo | [grudge6.grudge-studio.com](https://grudge6.grudge-studio.com) | Vercel |
+| **Warlords playtest** (this repo) | Grudge-Builder | [grudgewarlords.com/test-play](https://grudgewarlords.com/test-play) | Vercel |
+
+### Save & Play → test-play flow
+
+```
+grudgewarlords.com (logged in)
+  └─ /create-character
+       └─ character.grudge-studio.com?era=warlords&returnTo=https://grudgewarlords.com/test-play&grudge_token=…
+            └─ Foundry (/) → build race/class/loadout
+            └─ Viewer (/viewer) → Save & Play
+                 └─ POST /api/characters  (grudge6 model3d, proxied to Railway)
+                 └─ redirect → grudgewarlords.com/test-play?characterId=…&from=gcs
+                      └─ App.tsx consumeGcsReturnHandoff activates hero
+                      └─ play.tsx loads grudge6 meshes on procedural island
+```
+
+**Key client files (Warlords):**
+
+- `client/src/lib/gcsRedirect.ts` — builds GCS URL with `grudge_token`, `returnTo` (blocks character-studio hosts as return targets)
+- `client/src/pages/create-character-redirect.tsx` — `returnPath="/test-play"`
+- `client/src/App.tsx` — `consumeGcsReturnHandoff` before `/test-play` mounts
+- `client/src/pages/play.tsx` — 3D test world; default **procedural** island (harvest, rocks, crystals, mountains). Use `?mode=zone&sector=convergence_nexus` for 4 km ocean sector instead.
+- `client/src/lib/playHub.ts` — roster fallback when localStorage is empty after GCS handoff
+
+**Key client files (Character Studio):**
+
+- `artifacts/character-viewer/src/lib/returnTo.ts` — post-save redirect; never returns to `character.grudge-studio.com`
+- `artifacts/character-viewer/src/hooks/useSaveCharacter.ts` — Save & Play
+- `artifacts/character-viewer/public/_worker.js` — `/api/*` proxy to Railway + auth gateway on Cloudflare Pages
+
+**Auth:** Cross-origin SSO passes `grudge_token` on the GCS URL. Character Studio stores the token in `localStorage` and bridges via `/api/auth/grudge-bridge`. `/auth/callback` on Warlords is an SPA route (`vercel.json`), not a JSON API path.
+
 ## Grudge Fleet
 
 Grudge-Builder is the **hub** for the Grudge Warlords fleet. All games share the same Grudge ID, characters, and backend.
@@ -205,6 +250,7 @@ Grudge-Builder is the **hub** for the Grudge Warlords fleet. All games share the
 | Game | Repo | Domain | Engine |
 |---|---|---|---|
 | **Grudge Warlords** (this repo) | Grudge-Builder | grudgewarlords.com | React + Three.js + Phaser |
+| **grudge6 / Character Studio** | grudge-character-animator | character.grudge-studio.com, grudge6.grudge-studio.com | Three.js + R3F (viewer + world) |
 | **RTS Grudge** | RTS-Grudge | rts-grudge.vercel.app | React-Three-Fiber + Rapier |
 | **Dungeon Crawler Quest** | Dungeon-Crawler-Quest | dcq.grudge-studio.com | Three.js + Voxel + Rapier |
 | **Grudge Studio Forge** | RTS-Grudge (studio/) | forge.grudge-studio.com | R3F + Rapier + ObjectStore |
