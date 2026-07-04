@@ -25,6 +25,7 @@ const SECTOR_BIOME_NAMES: Record<string, string> = {
 };
 
 const DEFAULT_SECTOR = 'convergence_nexus';
+const TEST_PLAY_TERRAIN_SEED = 'grudge-test-play-v1';
 
 function getPlaySectorFromUrl(): string {
   const params = new URLSearchParams(window.location.search);
@@ -36,12 +37,24 @@ function getWorldSeedFromUrl(): string {
   return new URLSearchParams(window.location.search).get('worldSeed') || 'grudge-world-1';
 }
 
+/** Test-play defaults to full procedural island (harvest, mountains, heightmap). */
+function getTestPlayEngineMode(): 'procedural' | 'zone' {
+  const mode = new URLSearchParams(window.location.search).get('mode');
+  return mode === 'zone' ? 'zone' : 'procedural';
+}
+
+function getTestPlayTerrainSeed(characterId?: string | null): string {
+  const params = new URLSearchParams(window.location.search);
+  return params.get('seed') || (characterId ? `test-play-${characterId}` : TEST_PLAY_TERRAIN_SEED);
+}
+
 // ── Component ────────────────────────────────────────────────────
 
 export default function PlayPage() {
   const [, setLocation] = useLocation();
   const activeSector = getPlaySectorFromUrl();
   const worldSeed = getWorldSeedFromUrl();
+  const engineMode = getTestPlayEngineMode();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const engineRef = useRef<Island3DEngine | null>(null);
   const remotePlayersRef = useRef<RemotePlayerManager | null>(null);
@@ -142,14 +155,15 @@ export default function PlayPage() {
     const canvas = canvasRef.current;
     if (!canvas || engineRef.current) return;
 
+    const terrainSeed = getTestPlayTerrainSeed(characterRef.current?.id);
     const config: Island3DEngineConfig = {
-      seed: `sector-${activeSector}`,
+      seed: engineMode === 'zone' ? `sector-${activeSector}` : terrainSeed,
       canvas,
       width: window.innerWidth,
       height: window.innerHeight,
-      mode: 'zone',
-      sectorId: activeSector,
-      worldSeed,
+      mode: engineMode,
+      sectorId: engineMode === 'zone' ? activeSector : undefined,
+      worldSeed: engineMode === 'zone' ? worldSeed : undefined,
       quality: 'medium',
       enableCharacter: true,
       onLoadProgress: (pct) => setLoadProgress(pct),

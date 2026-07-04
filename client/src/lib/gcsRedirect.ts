@@ -32,9 +32,13 @@ const GCS_ORIGIN = FLEET_URLS.gcs;
 const RETURN_HOST_RE =
   /(^|\.)grudge-studio\.com$|(^|\.)grudgewarlords\.com$|\.vercel\.app$/i;
 
+const BLOCKED_RETURN_HOSTS =
+  /(^|\.)character\.grudge-studio\.com$|(^|\.)grudge6\.grudge-studio\.com$/i;
+
 export function isAllowedReturnUrl(url: string): boolean {
   try {
     const u = new URL(url);
+    if (BLOCKED_RETURN_HOSTS.test(u.hostname)) return false;
     return RETURN_HOST_RE.test(u.hostname);
   } catch {
     return false;
