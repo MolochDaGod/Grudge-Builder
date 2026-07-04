@@ -1,0 +1,308 @@
+/* ══════════════════════════════════════════════════════════════════════
+   Grudge Auth Modal — Standalone CSS
+   Drop-in auth modal for any Grudge Studio project.
+   ══════════════════════════════════════════════════════════════════════ */
+
+/* ── CSS Variables (scoped to modal so they don't leak) ── */
+.grudge-auth-overlay {
+  --gam-bg0: hsl(225 30% 6%);
+  --gam-bg1: hsl(225 25% 10%);
+  --gam-border: hsl(43 35% 25%);
+  --gam-stone: hsl(225 15% 25%);
+  --gam-gold: hsl(43 85% 55%);
+  --gam-gold-light: hsl(43 60% 70%);
+  --gam-text: hsl(40 30% 88%);
+  --gam-muted: hsl(40 10% 50%);
+  --gam-crimson: hsl(0 65% 55%);
+  --gam-ok: hsl(143 60% 45%);
+  --gam-font-heading: 'Cinzel', serif;
+  --gam-font-body: 'Jost', 'Inter', system-ui, sans-serif;
+  --gam-font-fell: 'IM Fell English SC', serif;
+}
+
+/* ── Overlay ── */
+.grudge-auth-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  background: rgba(0,0,0,0.75);
+  backdrop-filter: blur(4px);
+  display: none;
+  place-items: center;
+  font-family: var(--gam-font-body);
+  color: var(--gam-text);
+  line-height: 1.5;
+}
+.grudge-auth-overlay.open {
+  display: grid;
+}
+
+/* ── Modal Box ── */
+.grudge-auth-modal {
+  background: var(--gam-bg1);
+  border: 2px solid var(--gam-border);
+  border-radius: 8px;
+  padding: 24px;
+  width: 420px;
+  max-width: 94vw;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.85);
+  max-height: 90vh;
+  overflow-y: auto;
+  box-sizing: border-box;
+}
+
+/* ── Header ── */
+.grudge-auth-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 18px;
+}
+.grudge-auth-modal-header h2 {
+  font-family: var(--gam-font-heading);
+  font-size: 15px;
+  color: var(--gam-gold);
+  margin: 0;
+  letter-spacing: 0.04em;
+}
+.grudge-auth-close {
+  background: none;
+  border: none;
+  color: var(--gam-muted);
+  cursor: pointer;
+  font-size: 18px;
+  padding: 0 4px;
+  line-height: 1;
+  transition: color 0.15s;
+}
+.grudge-auth-close:hover {
+  color: var(--gam-text);
+}
+
+/* ── Social Button Grid ── */
+.grudge-social-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 7px;
+  margin-bottom: 14px;
+}
+.grudge-social-grid.grudge-social-grid-2x2 {
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+.grudge-social-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 9px 6px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 11px;
+  font-family: var(--gam-font-heading);
+  font-weight: 600;
+  transition: all 0.15s;
+  border: 1px solid;
+  letter-spacing: 0.02em;
+  line-height: 1;
+  box-sizing: border-box;
+}
+.grudge-social-btn svg,
+.grudge-social-btn i {
+  flex-shrink: 0;
+}
+.grudge-social-btn.discord  { background: #5865F2; border-color: #4752c4; color: #fff; }
+.grudge-social-btn.discord:hover  { background: #4752c4; }
+.grudge-social-btn.google   { background: #fff; border-color: #ddd; color: #333; }
+.grudge-social-btn.google:hover   { background: #f5f5f5; }
+.grudge-social-btn.github   { background: #24292e; border-color: #555; color: #fff; }
+.grudge-social-btn.github:hover   { background: #1a1e22; }
+.grudge-social-btn.phantom  { background: linear-gradient(135deg, #ab9ff2, #534bb1); border-color: #7c6fd4; color: #fff; }
+.grudge-social-btn.phantom:hover  { opacity: 0.9; }
+.grudge-social-btn.puter    { background: #1e3a5f; border-color: #2d5a8e; color: #7ec8e3; }
+.grudge-social-btn.puter:hover    { background: #234674; }
+.grudge-social-btn.guest-primary { background: hsl(225 25% 14%); border-color: hsl(225 20% 25%); color: hsl(40 20% 70%); }
+.grudge-social-btn.guest-primary:hover { background: hsl(225 25% 18%); color: hsl(40 30% 80%); }
+
+/* ── Phone Panel ── */
+.grudge-phone-panel {
+  background: hsl(225 28% 8%);
+  border: 1px solid var(--gam-stone);
+  border-radius: 5px;
+  padding: 12px;
+  margin-bottom: 12px;
+}
+
+/* ── Divider ── */
+.grudge-auth-divider {
+  text-align: center;
+  position: relative;
+  margin: 14px 0;
+  font-family: var(--gam-font-fell);
+  color: var(--gam-stone);
+  font-size: 11px;
+}
+.grudge-auth-divider::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: var(--gam-stone);
+}
+.grudge-auth-divider span {
+  background: var(--gam-bg1);
+  position: relative;
+  padding: 0 10px;
+}
+
+/* ── Form Toggle (Sign In / Create Account) ── */
+.grudge-form-toggle {
+  display: flex;
+  gap: 3px;
+  margin-bottom: 12px;
+  background: hsl(225 28% 8%);
+  border-radius: 5px;
+  padding: 3px;
+}
+.grudge-form-toggle-btn {
+  flex: 1;
+  padding: 7px;
+  border-radius: 4px;
+  cursor: pointer;
+  background: none;
+  border: none;
+  color: var(--gam-muted);
+  font-family: var(--gam-font-heading);
+  font-size: 11px;
+  transition: all 0.15s;
+}
+.grudge-form-toggle-btn.active {
+  background: hsl(43 40% 18%);
+  color: var(--gam-gold);
+  box-shadow: 0 0 8px rgba(212,175,55,0.15);
+}
+
+/* ── Fields ── */
+.grudge-auth-field {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 4px;
+  border: 2px solid var(--gam-stone);
+  background: hsl(225 28% 8%);
+  color: var(--gam-text);
+  font-family: var(--gam-font-body);
+  font-size: 13px;
+  outline: none;
+  margin-bottom: 8px;
+  transition: border-color 0.15s;
+  box-sizing: border-box;
+}
+.grudge-auth-field:focus {
+  border-color: var(--gam-gold);
+}
+.grudge-auth-field::placeholder {
+  color: var(--gam-muted);
+}
+
+/* ── Error / Success Messages ── */
+.grudge-auth-error {
+  color: var(--gam-crimson);
+  font-size: 11px;
+  margin-bottom: 8px;
+  font-family: var(--gam-font-fell);
+  display: none;
+}
+.grudge-auth-success {
+  color: var(--gam-ok);
+  font-size: 11px;
+  margin-bottom: 8px;
+  font-family: var(--gam-font-fell);
+  display: none;
+}
+
+/* ── Submit Button ── */
+.grudge-btn-gold {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: 4px;
+  cursor: pointer;
+  background: linear-gradient(180deg, hsl(43 70% 45%) 0%, hsl(38 65% 35%) 100%);
+  border: 2px solid hsl(43 50% 50%);
+  color: hsl(225 30% 10%);
+  font-family: var(--gam-font-heading);
+  font-weight: 600;
+  font-size: 11px;
+  letter-spacing: 0.05em;
+  transition: all 0.15s;
+  box-sizing: border-box;
+}
+.grudge-btn-gold:hover {
+  background: linear-gradient(180deg, hsl(43 80% 55%) 0%, hsl(43 70% 45%) 100%);
+  box-shadow: 0 0 12px rgba(212,175,55,0.3);
+}
+
+/* ── Footer ── */
+.grudge-auth-footer {
+  margin-top: 14px;
+  text-align: center;
+  border-top: 1px solid var(--gam-stone);
+  padding-top: 12px;
+}
+.grudge-guest-btn {
+  background: none;
+  border: 1px solid var(--gam-stone);
+  border-radius: 4px;
+  color: var(--gam-muted);
+  font-family: var(--gam-font-heading);
+  font-size: 11px;
+  padding: 7px 22px;
+  cursor: pointer;
+  transition: all 0.15s;
+  margin-bottom: 7px;
+}
+.grudge-guest-btn:hover {
+  border-color: var(--gam-border);
+  color: var(--gam-text);
+}
+.grudge-puter-note {
+  font-family: var(--gam-font-fell);
+  font-size: 10px;
+  color: var(--gam-stone);
+  margin: 0;
+}
+
+/* ── Toast ── */
+.grudge-auth-toast {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 10px 20px;
+  background: hsl(225 25% 15%);
+  border: 2px solid hsl(43 60% 30%);
+  border-radius: 4px;
+  color: hsl(43 85% 65%);
+  font-family: var(--gam-font-heading);
+  font-size: 12px;
+  z-index: 10001;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+  animation: grudge-toast-in 0.2s ease-out;
+}
+@keyframes grudge-toast-in {
+  from { opacity: 0; transform: translateX(-50%) translateY(10px); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+/* ── Scrollbar inside modal ── */
+.grudge-auth-modal::-webkit-scrollbar { width: 8px; }
+.grudge-auth-modal::-webkit-scrollbar-track { background: var(--gam-bg0); }
+.grudge-auth-modal::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, hsl(43 50% 35%) 0%, hsl(35 45% 25%) 100%);
+  border-radius: 2px;
+}
