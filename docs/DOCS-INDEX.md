@@ -13,6 +13,7 @@ Organized entry point for APIs, UUID systems, and fleet integration.
 | **Home island gameplay** | [ISLANDS.md](./ISLANDS.md) |
 | **Professions & crafting** | [PROFESSIONS.md](./PROFESSIONS.md) |
 | **Characters, races, classes** | [RACES_CLASSES.md](./RACES_CLASSES.md) |
+| **Playtesting, tokens, local dev** | [PLAYTEST.md](./PLAYTEST.md) |
 | **Sprites & 2D animation** | [SPRITES.md](./SPRITES.md) · [ANIMATIONS.md](./ANIMATIONS.md) |
 
 ---

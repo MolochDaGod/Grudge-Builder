@@ -1428,6 +1428,7 @@ export class DatabaseStorage implements IStorage {
         gold: 0, 
         premiumCurrency: 0, 
         homeIslandId: null,
+        characterTokens: 1,
         updatedAt: Date.now() 
       })
       .where(eq(accounts.id, account.id));

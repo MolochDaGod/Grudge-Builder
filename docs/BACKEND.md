@@ -207,7 +207,26 @@ CROSSMINT_ISLAND_CNFT     # Island cNFT template ID (optional)
 # Frontend overrides (Vercel env)
 VITE_OBJECT_STORE_URL   # Override ObjectStore base URL
 VITE_ASSET_CDN_URL      # Override R2 CDN URL
+VITE_COLYSEUS_URL       # Direct Colyseus WS (e.g. ws://74.208.174.62:2567)
+
+# Playtest / dev
+DEV_UNLIMITED_CHARACTER_TOKENS  # Skip Warlords character token gate on Railway
+ADMIN_API_KEY                   # X-Admin-Key for /api/admin/* in production
 ```
+
+---
+
+## Character tokens & playtesting
+
+Warlords character creation checks `accounts.character_tokens` (see `shared/schema.ts`). Boss clears and admin grants increment the counter; `POST /api/admin/reset-account` restores one token.
+
+| Endpoint | Purpose |
+|----------|---------|
+| `POST /api/island/boss-clear` | +1 token (JWT) |
+| `POST /api/admin/grant-character-tokens` | Admin bulk grant |
+| `npm run dev` | Token check skipped in development |
+
+Details: [PLAYTEST.md](./PLAYTEST.md)
 
 ---
 

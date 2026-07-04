@@ -66,6 +66,12 @@ Grudge ID supports SSO via URL params: `?sso_token=<jwt>&grudge_id=<id>&grudge_u
 - `x-admin-mode: true` header for local development testing
 - Admin heroes: RacaLVIN (Dwarf Worg), Groown (Barbarian Ranger), Moloch (Undead Mage)
 
+### Admin playtest
+- `POST /api/admin/grant-character-tokens` — body `{ userId, amount? }`, header `X-Admin-Key` (or dev mode)
+- `POST /api/island/boss-clear` — body `{ zoneX, zoneY }`, grants +1 character token
+
+Full guide: [PLAYTEST.md](./PLAYTEST.md)
+
 ---
 
 ## Characters
@@ -85,6 +91,8 @@ Get a specific character by ID.
 
 ### POST /api/characters
 Create a new character. Automatically generates an AI avatar.
+
+**Warlords tokens:** Creating a `gameEra: "warlords"` character consumes one `character_tokens` from the account (default 1 on signup). Returns `403` when tokens are `0`. See [PLAYTEST.md](./PLAYTEST.md) for unblock steps. Local dev (`NODE_ENV=development`) and `DEV_UNLIMITED_CHARACTER_TOKENS=true` skip the check.
 
 **Request Body:**
 ```json

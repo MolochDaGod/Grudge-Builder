@@ -333,14 +333,19 @@ export async function registerRoutes(
         });
       }
 
-      // Warlords-era creation still consumes boss-earned character tokens
-      if (gameEra === "warlords") {
+      // Warlords-era creation consumes boss-earned character tokens (bypass in dev/playtest)
+      const devUnlimitedTokens =
+        process.env.NODE_ENV === "development" ||
+        process.env.DEV_UNLIMITED_CHARACTER_TOKENS === "true";
+      if (gameEra === "warlords" && !devUnlimitedTokens) {
         const tokens = (account as any).characterTokens ?? 1;
         if (tokens <= 0) {
           return res.status(403).json({
             error: "No character tokens available. Defeat a boss to earn one!",
             characterTokens: 0,
             gameEra,
+            hint:
+              "Playtest: POST /api/island/boss-clear (auth) or admin grant-character-tokens. Local dev skips tokens automatically.",
           });
         }
         await storage.updateAccount(account.id, {
@@ -4824,6 +4829,35 @@ Also suggest metadata values in this exact JSON format:
     } catch (error) {
       console.error("Error deleting AI unit:", error);
       res.status(500).json({ error: "Failed to delete AI unit" });
+    }
+  });
+
+  // POST /api/admin/grant-character-tokens — playtest / studio unblock
+  app.post("/api/admin/grant-character-tokens", async (req, res) => {
+    if (!isAdminRequest(req)) {
+      return res.status(403).json({ error: "Admin access required" });
+    }
+    try {
+      const userId = (req.body?.userId || req.query.userId) as string | undefined;
+      const amount = Math.min(Math.max(Number(req.body?.amount ?? 1), 1), 20);
+      if (!userId) {
+        return res.status(400).json({ error: "userId is required" });
+      }
+      const account = await storage.getOrCreateAccountForUser(userId);
+      const current = (account as any).characterTokens ?? 0;
+      const next = current + amount;
+      await storage.updateAccount(account.id, { characterTokens: next } as any);
+      res.json({
+        success: true,
+        userId,
+        accountId: account.id,
+        characterTokens: next,
+        granted: amount,
+        message: `Granted ${amount} character token(s) for playtesting.`,
+      });
+    } catch (error) {
+      console.error("Error granting character tokens:", error);
+      res.status(500).json({ error: "Failed to grant character tokens" });
     }
   });
 

@@ -7,6 +7,10 @@
 import { GAME_DATA_API } from '@/lib/grudgeConfig';
 
 export function getColyseusEndpoint(): string {
+  const dedicated = (import.meta as any).env?.VITE_COLYSEUS_URL as string | undefined;
+  if (dedicated) {
+    return dedicated.replace(/^http/, 'ws');
+  }
   const gameData = (import.meta as any).env?.VITE_GAME_DATA_API || GAME_DATA_API;
   if (gameData) {
     return gameData.replace(/^http/, 'ws');
