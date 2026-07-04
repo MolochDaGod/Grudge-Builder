@@ -26,6 +26,8 @@ export interface TruthProbeSpec {
   rejectHtml?: boolean;
   /** Auth-gated route: 401 + application/json still counts as reachable API. */
   authGated?: boolean;
+  /** Binary icon probe: fail unless Content-Type is image/*. */
+  requireImage?: boolean;
 }
 
 export interface TruthProbe extends TruthProbeSpec {
@@ -155,20 +157,22 @@ export const TRUTH_PROBE_SPECS: TruthProbeSpec[] = [
   {
     id: "icon-pack",
     label: "Pack icon (guide)",
-    role: "assets",
+    role: "icons",
     productionUrl: ICON_PACK,
-    browserPath: `/api/assets${ICON_PACK_PATH}`,
+    browserPath: ICON_PACK_PATH,
     method: "GET",
-    rejectHtml: false,
+    rejectHtml: true,
+    requireImage: true,
   },
   {
     id: "icon-named",
     label: "Named weapon icon",
-    role: "assets",
+    role: "icons",
     productionUrl: ICON_NAMED,
-    browserPath: `/api/assets${ICON_NAMED_PATH}`,
+    browserPath: ICON_NAMED_PATH,
     method: "GET",
-    rejectHtml: false,
+    rejectHtml: true,
+    requireImage: true,
   },
   {
     id: "assets-cdn",
@@ -253,17 +257,23 @@ export async function probeTruthEndpoint(
       contentType.includes("application/json") || contentType.includes("+json");
     const authReachable =
       !!probe.authGated && res.status === 401 && jsonApi && !htmlLeak;
+    const imageOk =
+      !probe.requireImage || contentType.toLowerCase().startsWith("image/");
+    const imageFail = probe.requireImage && res.ok && !imageOk;
     return {
       ...probe,
-      ok: (res.ok || authReachable) && !htmlLeak && !deprecated,
+      ok:
+        (res.ok || authReachable) && !htmlLeak && !deprecated && !imageFail,
       status: res.status,
       detail: deprecated
         ? "deprecated GitHub Pages host"
         : htmlLeak
           ? "HTML leak (split-brain proxy)"
-          : authReachable
-            ? "application/json (auth required)"
-            : contentType.split(";")[0] || method,
+          : imageFail
+            ? `expected image/*, got ${contentType.split(";")[0] || "unknown"}`
+            : authReachable
+              ? "application/json (auth required)"
+              : contentType.split(";")[0] || method,
     };
   } catch (e: unknown) {
     const message = e instanceof Error ? e.message : "unreachable";
