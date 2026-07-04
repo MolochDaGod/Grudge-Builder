@@ -64,7 +64,7 @@ export function buildGcsUrl(options: BuildGcsUrlOptions = {}): string {
     params.set("mode", "create");
   }
 
-  const returnTo = options.returnTo ?? defaultWarlordsReturnTo("/home");
+  const returnTo = options.returnTo ?? defaultWarlordsReturnTo("/test-play");
   if (isAllowedReturnUrl(returnTo)) {
     params.set("returnTo", returnTo);
   }
