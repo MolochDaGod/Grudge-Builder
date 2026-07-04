@@ -1,4 +1,4 @@
-import { useEffect, lazy, Suspense } from "react";
+import { useEffect, useLayoutEffect, lazy, Suspense } from "react";
 import { Switch, Route } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -193,6 +193,10 @@ function AppContent() {
       }
     });
 
+  }, []);
+
+  // Activate grudge6 hero from GCS before /test-play child effects run.
+  useLayoutEffect(() => {
     consumeGcsReturnHandoff((id) => CharacterManager.setActive(id));
   }, []);
 

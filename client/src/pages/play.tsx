@@ -64,10 +64,11 @@ export default function PlayPage() {
       const params = new URLSearchParams(window.location.search);
       const gcsHandoff = params.get('from') === 'gcs' && params.get('characterId');
 
-      let char = await resolveActiveCharacterForPlay();
+      const handoffId = params.get('characterId');
+      let char = await resolveActiveCharacterForPlay(handoffId);
       if (!char && gcsHandoff) {
-        await new Promise((r) => setTimeout(r, 600));
-        char = await resolveActiveCharacterForPlay();
+        await new Promise((r) => setTimeout(r, 800));
+        char = await resolveActiveCharacterForPlay(handoffId);
       }
       if (!char) {
         console.warn('[Play] No roster character — redirecting to create flow');
