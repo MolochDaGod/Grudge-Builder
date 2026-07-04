@@ -8,7 +8,7 @@ export default function CreateCharacterRedirect() {
       legacyComponent={CreateCharacterPage}
       era="warlords"
       mode="create"
-      returnPath="/game/character"
+      returnPath="/test-play"
     />
   );
 }

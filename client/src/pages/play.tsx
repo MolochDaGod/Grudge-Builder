@@ -61,10 +61,17 @@ export default function PlayPage() {
   // Load real DB character — API roster fallback when localStorage is empty/stale
   useEffect(() => {
     async function loadCharacter() {
-      const char = await resolveActiveCharacterForPlay();
+      const params = new URLSearchParams(window.location.search);
+      const gcsHandoff = params.get('from') === 'gcs' && params.get('characterId');
+
+      let char = await resolveActiveCharacterForPlay();
+      if (!char && gcsHandoff) {
+        await new Promise((r) => setTimeout(r, 600));
+        char = await resolveActiveCharacterForPlay();
+      }
       if (!char) {
-        console.warn('[Play] No roster character — redirecting to account');
-        setLocation('/account');
+        console.warn('[Play] No roster character — redirecting to create flow');
+        setLocation('/create-character');
         return;
       }
 

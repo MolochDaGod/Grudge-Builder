@@ -49,6 +49,8 @@ export async function fetchPlayReadiness(): Promise<PlayReadiness> {
 
   let hasHomeIsland = false;
   let islandSeed: string | null = null;
+  let hasCharacter = !!activeCharacterId;
+  let resolvedActiveId = activeCharacterId;
 
   try {
     const res = await fetch('/api/island/status', { headers: authHeaders() });
@@ -59,11 +61,25 @@ export async function fetchPlayReadiness(): Promise<PlayReadiness> {
     }
   } catch { /* offline */ }
 
+  if (!hasCharacter) {
+    try {
+      const envelope = await characterAPI.getEnvelope(WARLORDS_ERA);
+      if (envelope.characters.length > 0) {
+        hasCharacter = true;
+        const eraActive = envelope.eraSlots?.warlords?.activeCharacterId;
+        resolvedActiveId =
+          eraActive && envelope.characters.some((c) => c.id === eraActive)
+            ? eraActive
+            : envelope.characters[0].id;
+      }
+    } catch { /* offline */ }
+  }
+
   return {
     signedIn: true,
-    hasCharacter: !!activeCharacterId,
+    hasCharacter,
     hasHomeIsland,
-    activeCharacterId,
+    activeCharacterId: resolvedActiveId,
     islandSeed,
   };
 }
@@ -74,8 +90,7 @@ export async function resolvePlayDestination(): Promise<PlayDestination> {
 
   if (!readiness.signedIn) return { path: '/', reason: 'sign_in' };
   if (!readiness.hasCharacter) return { path: '/create-character', reason: 'no_character' };
-  if (!readiness.hasHomeIsland) return { path: '/island-reveal', reason: 'no_island' };
-  return { path: '/home-island', reason: 'play_home_island' };
+  return { path: '/test-play', reason: 'play_home_island' };
 }
 
 export function playDestinationLabel(dest: PlayDestination): string {
