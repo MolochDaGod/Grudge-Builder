@@ -469,7 +469,11 @@ export async function registerRoutes(
       res.json(finalCharacter);
     } catch (error) {
       if (error instanceof z.ZodError) {
-        return res.status(400).json({ error: error.errors });
+        return res.status(400).json({
+          error: error.errors
+            .map((e) => `${e.path.join(".") || "field"}: ${e.message}`)
+            .join("; "),
+        });
       }
       console.error("Error creating character:", error);
       res.status(500).json({ error: "Failed to create character" });
