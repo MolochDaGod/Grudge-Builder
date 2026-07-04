@@ -1,7 +1,13 @@
 /**
  * Play Hub — product entry: Grudge account → active character → home island gameplay.
  */
+import type { PlayerInfo } from '@/hooks/use-colyseus';
+import { characterAPI, WARLORDS_ERA } from '@/lib/api';
+import type { Character } from '@/lib/characterManager';
+import { CharacterManager } from '@/lib/characterManager';
 import { getToken, authHeaders } from '@/lib/grudgeBackend';
+import { CLASS_WEAPON_MAP } from '@/lib/modelManifest';
+import { weaponTypeFromModel3d } from '@shared/fleet';
 
 export type PlayDestination =
   | { path: '/'; reason: 'sign_in' }
@@ -80,4 +86,78 @@ export function playDestinationLabel(dest: PlayDestination): string {
     case 'play_home_island': return 'Play Home Island';
     default: return 'Enter Grudge Warlords';
   }
+}
+
+/** Map a Railway character row → Colyseus / 3D engine player payload. */
+export function characterToPlayerInfo(char: Character): PlayerInfo {
+  const model3d = (char as Character & { model3d?: Record<string, unknown> }).model3d || {};
+  const weaponSlots = (model3d.weaponSlots as Record<string, string> | undefined) || {};
+  const equippedWeaponType = Object.keys(weaponSlots).length
+    ? weaponTypeFromModel3d(
+        { weaponSlots, equippedMeshes: model3d.equippedMeshes as Record<string, string> | undefined },
+        char.classId,
+      )
+    : (CLASS_WEAPON_MAP[char.classId] || 'sword-shield');
+
+  return {
+    characterName: char.name,
+    heroClass: char.classId,
+    heroRace: char.raceId,
+    faction: ((char as Character & { faction?: string }).faction) || 'crusade',
+    level: char.level,
+    characterId: char.id,
+    accountId: (char as Character & { accountId?: string }).accountId,
+    baseModelId: (model3d.baseModelId as string | undefined) || char.raceId || 'human',
+    equippedMeshes: (model3d.equippedMeshes as Record<string, string> | undefined) || {},
+    weaponSlots,
+    skinColor: (model3d.skinColor as string | undefined) || '#ffffff',
+    armorColor: (model3d.armorColor as string | undefined) || '#ffffff',
+    equippedWeaponType,
+  };
+}
+
+/**
+ * Resolve the hero to use for live play — prefers explicit ?characterId=, then
+ * localStorage, then Railway era roster (active slot → first character).
+ */
+export async function resolveActiveCharacterForPlay(
+  explicitCharacterId?: string | null,
+): Promise<Character | null> {
+  const fromUrl =
+    explicitCharacterId ??
+    (typeof window !== 'undefined'
+      ? new URLSearchParams(window.location.search).get('characterId')
+      : null);
+
+  if (fromUrl) {
+    try {
+      const char = await characterAPI.get(fromUrl);
+      CharacterManager.setActive(char.id);
+      return char;
+    } catch {
+      /* stale or foreign id — fall through */
+    }
+  }
+
+  const localId = getActiveCharacterId();
+  if (localId) {
+    try {
+      return await characterAPI.get(localId);
+    } catch {
+      /* stale localStorage — fall through */
+    }
+  }
+
+  if (!getToken()) return null;
+
+  const envelope = await characterAPI.getEnvelope(WARLORDS_ERA);
+  const roster = envelope.characters;
+  if (!roster.length) return null;
+
+  const eraActive = envelope.eraSlots?.warlords?.activeCharacterId;
+  const pickId =
+    eraActive && roster.some((c) => c.id === eraActive) ? eraActive : roster[0].id;
+
+  CharacterManager.setActive(pickId);
+  return roster.find((c) => c.id === pickId) ?? (await characterAPI.get(pickId));
 }

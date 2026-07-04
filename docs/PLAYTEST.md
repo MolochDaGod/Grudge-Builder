@@ -92,10 +92,29 @@ Warlords SPA redirects here by default (`gcsRedirect.ts`). Append `?legacy=1` on
 
 ---
 
+## Test play with a real character (production)
+
+Use these after signing in at [id.grudge-studio.com](https://id.grudge-studio.com). The client loads your hero from **Railway Postgres** (`/api/characters`), not guest mocks.
+
+| Step | URL |
+|------|-----|
+| Pick / activate hero | https://grudgewarlords.com/account |
+| Character hub (post-create) | https://grudgewarlords.com/game/character |
+| **Test play (open world)** | https://grudgewarlords.com/test-play |
+| Same engine, canonical path | https://grudgewarlords.com/play |
+| Force a specific hero | https://grudgewarlords.com/test-play?characterId=YOUR_CHAR_UUID |
+
+`/test-play` and `/play` share the same 3D world. If `localStorage` has no active character, the app falls back to your Warlords era roster (`era_slots.warlords.activeCharacterId`, then first hero).
+
+Legacy in-app create (skips GCS redirect): https://grudgewarlords.com/create-character?legacy=1
+
+---
+
 ## Play & edit routes
 
 | Route | Mode |
 |-------|------|
+| `/test-play` | Same as `/play` — explicit playtest entry with DB roster fallback |
 | `/play` | Open world — Colyseus `WorldRoom` / sectors |
 | `/home-island` | Persistent island + `HomeIslandRoom` |
 | `/tutorial` | Combat tutorial |

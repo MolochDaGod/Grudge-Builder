@@ -147,6 +147,7 @@ function Router() {
       <Route path="/organizer">{() => <Suspense fallback={null}><OrganizerPage /></Suspense>}</Route>
       <Route path="/grudawars" component={GrudaWarsPage} />
       <Route path="/play" component={PlayPage} />
+      <Route path="/test-play" component={PlayPage} />
       <Route path="/game/world" component={PlayPage} />
       <Route path="/world">{() => <Suspense fallback={null}><WorldNativePage /></Suspense>}</Route>
       <Route path="/cloudfix">{() => <Suspense fallback={null}><WorldNativePage /></Suspense>}</Route>

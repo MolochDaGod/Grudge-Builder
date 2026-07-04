@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import {
   User, Wallet, Shield, Copy, Sparkles, LogOut, ChevronRight, Swords,
-  Crown, Hammer, Pickaxe, Leaf, Map, Zap,
+  Crown, Hammer, Pickaxe, Leaf, Map, Zap, Play,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAccount } from "@/hooks/use-account";
@@ -379,6 +379,8 @@ export default function AccountPage() {
           <CardContent>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
               {[
+                { href: '/test-play',    icon: <Play className="w-4 h-4" />,    label: 'Test Play (3D)',  color: 'text-amber-400',   sub: 'Real DB character' },
+                { href: '/play',         icon: <Play className="w-4 h-4" />,    label: 'Open World',      color: 'text-amber-300',   sub: 'Colyseus sectors' },
                 { href: '/home-island',  icon: <Leaf className="w-4 h-4" />,     label: 'Home Island 3D',  color: 'text-emerald-400', sub: '1024m seed world' },
                 { href: '/island-v2',    icon: <Map className="w-4 h-4" />,      label: 'Island 2D',       color: 'text-lime-400',    sub: 'Auto-Harvest' },
                 { href: '/crafting',     icon: <Hammer className="w-4 h-4" />,   label: 'Crafting',        color: 'text-orange-400',  sub: 'Forge gear' },

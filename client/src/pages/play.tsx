@@ -12,12 +12,10 @@ import { GameHUD } from '@/components/GameHUD';
 import { Island3DEngine, type Island3DEngineConfig } from '@/island3d/engine/Island3DEngine';
 import { RemotePlayerManager, type RemotePlayerData } from '@/island3d/sync/RemotePlayerManager';
 import { BuildModePanel } from '@/components/BuildModePanel';
-import { characterAPI } from '@/lib/api';
-import { CLASS_WEAPON_MAP } from '@/lib/modelManifest';
+import { characterToPlayerInfo, resolveActiveCharacterForPlay } from '@/lib/playHub';
 import type { CreatureLootEvent } from '@/island3d/creatures/CreatureManager';
 import { WarlordsPvpLoadscreen } from '@/components/WarlordsPvpLoadscreen';
 import { resolveZoneSectorId } from '@shared/definitions/sectorBridge';
-import { weaponTypeFromModel3d } from '@shared/fleet';
 import type { Character } from '@/lib/characterManager';
 
 const SECTOR_BIOME_NAMES: Record<string, string> = {
@@ -60,48 +58,19 @@ export default function PlayPage() {
   const [playerInfo, setPlayerInfo] = useState<PlayerInfo | null>(null);
   const [characterLoaded, setCharacterLoaded] = useState(false);
 
-  // Load the active character — redirect to creation if none exists
+  // Load real DB character — API roster fallback when localStorage is empty/stale
   useEffect(() => {
     async function loadCharacter() {
-      try {
-        const grudgeId = localStorage.getItem('grudge_account_id') || 'guest';
-        const activeId = localStorage.getItem(`gruda_active_character_${grudgeId}`) ||
-          localStorage.getItem('grudge_active_character') ||
-          localStorage.getItem('gruda_active_character_guest');
-
-        if (!activeId) {
-          console.warn('[Play] No active character — redirecting to creation');
-          setLocation('/create-character');
-          return;
-        }
-
-        const char = await characterAPI.get(activeId);
-        characterRef.current = char;
-        const model3d = (char as any).model3d || {};
-        const equippedWeaponType = model3d.weaponSlots
-          ? weaponTypeFromModel3d(model3d, char.classId)
-          : (CLASS_WEAPON_MAP[char.classId] || 'sword-shield');
-        setPlayerInfo({
-          characterName: char.name,
-          heroClass: char.classId,
-          heroRace: char.raceId,
-          faction: (char as any).faction || 'crusade',
-          level: char.level,
-          characterId: char.id,
-          accountId: (char as any).accountId,
-          baseModelId: model3d.baseModelId || char.raceId || 'human',
-          equippedMeshes: model3d.equippedMeshes || {},
-          weaponSlots: model3d.weaponSlots || {},
-          skinColor: model3d.skinColor || '#ffffff',
-          armorColor: model3d.armorColor || '#ffffff',
-          equippedWeaponType,
-        });
-        console.log(`[Play] Loaded character: ${char.name} (${char.raceId} ${char.classId})`);
-      } catch (err) {
-        console.warn('[Play] Could not load character — redirecting:', err);
-        setLocation('/create-character');
+      const char = await resolveActiveCharacterForPlay();
+      if (!char) {
+        console.warn('[Play] No roster character — redirecting to account');
+        setLocation('/account');
         return;
       }
+
+      characterRef.current = char;
+      setPlayerInfo(characterToPlayerInfo(char));
+      console.log(`[Play] Loaded character: ${char.name} (${char.raceId} ${char.classId})`);
       setCharacterLoaded(true);
     }
     loadCharacter();
