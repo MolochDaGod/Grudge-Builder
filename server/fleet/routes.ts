@@ -11,6 +11,8 @@ import {
   FLEET_FONTS,
   FLEET_FONT_DEFAULTS,
   KAPH_FONT_CSS_URL,
+  runTruthAudit,
+  type TruthProbeMode,
 } from "@shared/fleet";
 
 /**
@@ -80,5 +82,33 @@ export function registerFleetRoutes(app: Express) {
       probes: results,
       layers: FLEET_SERVICES.map((s) => ({ id: s.id, role: s.role, url: s.url })),
     });
+  });
+
+  app.get("/api/fleet/truth-audit", async (req: Request, res: Response) => {
+    const raw = String(req.query.mode ?? "cli");
+    const mode: TruthProbeMode = raw === "browser" ? "browser" : "cli";
+    try {
+      const audit = await runTruthAudit(mode);
+      res.json({
+        mode,
+        score: audit.score,
+        splitBrain: audit.splitBrain,
+        probes: audit.probes.map((p) => ({
+          id: p.id,
+          label: p.label,
+          role: p.role,
+          ok: p.ok,
+          status: p.status,
+          detail: p.detail,
+          url: p.url,
+        })),
+        generatedAt: new Date().toISOString(),
+      });
+    } catch (e: unknown) {
+      res.status(500).json({
+        error: "Truth audit failed",
+        detail: e instanceof Error ? e.message : String(e),
+      });
+    }
   });
 }

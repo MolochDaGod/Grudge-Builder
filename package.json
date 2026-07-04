@@ -23,6 +23,8 @@
     "db:migrate:eras": "node scripts/run-migration-005.mjs",
     "smoke:gcs-eras": "node scripts/smoke-gcs-eras.mjs",
     "gen:fleet": "tsx scripts/gen-fleet-manifest.mjs",
+    "gen:fleet-truth": "tsx scripts/generate-fleet-truth.mjs",
+    "verify:fleet-truth": "node scripts/verify-fleet-truth.mjs --mode cli",
     "gen:db-connections": "tsx scripts/gen-db-connections.mjs",
     "db:connections": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/show-db-connections.ps1",
     "deploy:workers": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/deploy-workers.ps1",

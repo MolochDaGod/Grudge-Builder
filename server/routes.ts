@@ -24,6 +24,8 @@ import { getSheetsClient, isConfigured, SHEET_IDS, readSheet, getCachedData, set
 import { exportFoodsToSheet, generateFoodRows } from "./sheetsExport";
 import { detectSpriteType, SPRITE_TYPES } from "@shared/definitions/spriteTypes";
 import { getClassStartingGear } from "@shared/definitions/tier0Items";
+import { equipToPanelSlot } from "@shared/inventory/equipment";
+import { panelEquipmentToModel3d, type PanelEquipmentSlot } from "@shared/fleet";
 import {
   generateIslandState,
   islandStateNeedsGeneration,
@@ -514,6 +516,80 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Error updating character:", error);
       res.status(500).json({ error: "Failed to update character" });
+    }
+  });
+
+  // POST /api/characters/:id/equip — panel equip/unequip + model3d sync (Warlord handoff)
+  app.post("/api/characters/:id/equip", async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      const character = await storage.getCharacter(req.params.id);
+      if (!character) {
+        return res.status(404).json({ error: "Character not found" });
+      }
+      if (character.userId !== userId) {
+        return res.status(403).json({ error: "Character does not belong to your account" });
+      }
+
+      const slot = req.body?.slot as PanelEquipmentSlot | undefined;
+      if (!slot) {
+        return res.status(400).json({ error: "slot is required" });
+      }
+
+      let itemId: string | null = req.body?.itemId ?? null;
+      const accountInventoryId = req.body?.accountInventoryId as string | undefined;
+
+      if (accountInventoryId) {
+        const account = await storage.getOrCreateAccountForUser(userId);
+        const row = await storage.getAccountInventoryItem(accountInventoryId);
+        if (!row || row.accountId !== account.id) {
+          return res.status(403).json({ error: "Account inventory item not found" });
+        }
+        itemId = row.itemId;
+      }
+
+      let equipment = character.equipment ?? {};
+      let inventory = character.inventory ?? [];
+
+      if (accountInventoryId && itemId) {
+        equipment = { ...equipment, [slot]: itemId };
+      } else {
+        const swap = equipToPanelSlot(equipment, inventory, slot, itemId);
+        equipment = swap.equipment;
+        inventory = swap.inventory;
+      }
+
+      const model3d = panelEquipmentToModel3d(
+        character.raceId,
+        character.classId,
+        equipment,
+        character.model3d ?? undefined,
+      );
+
+      const updated = await storage.updateCharacter(req.params.id, {
+        equipment,
+        inventory,
+        model3d,
+      });
+
+      if (accountInventoryId) {
+        const account = await storage.getOrCreateAccountForUser(userId);
+        await storage.transferItemToCharacter(
+          accountInventoryId,
+          itemId ? req.params.id : null,
+          account.id,
+          userId,
+        );
+      }
+
+      res.json(updated);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to equip item";
+      if (message.includes("cannot be equipped") || message.includes("not in inventory")) {
+        return res.status(400).json({ error: message });
+      }
+      console.error("Error equipping character:", error);
+      res.status(500).json({ error: "Failed to equip item" });
     }
   });
 

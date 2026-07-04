@@ -264,7 +264,6 @@ export default function CharacterBuilder() {
   } = useCharacters();
   const {
     inventory: accountInventory,
-    transferToCharacter,
     refetch: refetchInventory,
   } = useAccountInventory();
   const [activeCharacter, setActiveCharacter] = useState<Character | null>(null);
@@ -593,18 +592,8 @@ export default function CharacterBuilder() {
 
   const handleUnequipSlot = async (slotName: keyof EquipmentSlots) => {
     if (!activeCharacter?.equipment?.[slotName]) return;
-    const newEquipment = { ...(activeCharacter.equipment ?? {}), [slotName]: null };
-    const computed = panelEquipmentToModel3d(
-      activeCharacter.raceId,
-      activeCharacter.classId,
-      newEquipment,
-      (activeCharacter as Character & { model3d?: Record<string, unknown> }).model3d,
-    );
     try {
-      const updated = await characterAPI.update(activeCharacter.id, {
-        equipment: newEquipment,
-        model3d: computed,
-      } as any);
+      const updated = await characterAPI.equip(activeCharacter.id, slotName, null);
       patchActiveCharacter(updated);
       toast({ title: "Unequipped", description: `${slotName} slot cleared` });
     } catch {
@@ -624,19 +613,13 @@ export default function CharacterBuilder() {
       });
       return;
     }
-    const newEquipment = { ...(activeCharacter.equipment ?? {}), [slot]: itemId };
-    const computed = panelEquipmentToModel3d(
-      activeCharacter.raceId,
-      activeCharacter.classId,
-      newEquipment,
-      (activeCharacter as Character & { model3d?: Record<string, unknown> }).model3d,
-    );
     try {
-      const updated = await characterAPI.update(activeCharacter.id, {
-        equipment: newEquipment,
-        model3d: computed,
-      } as any);
-      await transferToCharacter(accountRowId, activeCharacter.id);
+      const updated = await characterAPI.equip(
+        activeCharacter.id,
+        slot,
+        itemId,
+        accountRowId,
+      );
       patchActiveCharacter(updated);
       await refetchInventory();
       setEquipSlotTarget(null);

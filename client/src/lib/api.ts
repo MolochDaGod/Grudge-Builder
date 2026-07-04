@@ -112,6 +112,17 @@ export const characterAPI = {
       body: JSON.stringify(updates),
     }),
 
+  equip: async (
+    id: string,
+    slot: string,
+    itemId: string | null,
+    accountInventoryId?: string,
+  ): Promise<Character> =>
+    apiFetch<Character>(`/api/characters/${id}/equip`, {
+      method: "POST",
+      body: JSON.stringify({ slot, itemId, accountInventoryId }),
+    }),
+
   delete: async (id: string): Promise<void> => {
     await apiFetch<{ success: boolean }>(`/api/characters/${id}`, { method: "DELETE" });
   },
