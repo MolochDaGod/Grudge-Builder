@@ -47,9 +47,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setSession(result.valid ? getSession() : null);
   }, []);
 
-  // Re-check on mount (covers SSO token pickup from URL)
+  // Re-check on mount and after fleet bootstrap / SSO bridge completes
   useEffect(() => {
     refreshAuth();
+    const onAuthReady = () => {
+      refreshAuth();
+    };
+    window.addEventListener("grudge:auth:ready", onAuthReady);
+    window.addEventListener("grudge:auth:success", onAuthReady);
+    return () => {
+      window.removeEventListener("grudge:auth:ready", onAuthReady);
+      window.removeEventListener("grudge:auth:success", onAuthReady);
+    };
   }, [refreshAuth]);
 
   /** ONE TRUTH: redirect to id.grudge-studio.com SSO (not in-page LoginModal). */

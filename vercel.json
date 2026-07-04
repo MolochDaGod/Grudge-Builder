@@ -475,7 +475,7 @@
       "destination": "https://assets.grudge-studio.com/models/:path*"
     },
     {
-      "source": "/((?!.*\\.html$).*)",
+      "source": "/((?!api/|assets/|sprites/|icons/|fonts/|videos/|models/|textures/|.*\\.[a-zA-Z0-9]+$).*)",
       "destination": "/index.html"
     }
   ],

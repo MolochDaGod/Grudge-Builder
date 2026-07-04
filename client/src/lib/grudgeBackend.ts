@@ -57,22 +57,35 @@ export interface GrudgeUser {
 
 /** Bridge id.grudge-studio.com launch token → Railway JWT for the real Warlords account. */
 export async function bridgeGrudgeLaunchToken(launchToken: string): Promise<boolean> {
-  try {
-    const bridge = await fetch(`${API_BASE}/auth/grudge-bridge`, {
-      method: "POST",
-      credentials: "include",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        token: launchToken,
-        audience: window.location.origin,
-      }),
-    });
-    if (!bridge.ok) return false;
-    await handleAuthResponse(bridge, "grudge");
-    return true;
-  } catch {
-    return false;
+  const body = JSON.stringify({
+    token: launchToken,
+    audience: window.location.origin,
+  });
+  const paths = [
+    `${API_BASE}/auth/grudge-bridge`,
+    `${API_BASE}/auth/session/exchange`,
+  ];
+  for (const path of paths) {
+    try {
+      const bridge = await fetch(path, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body,
+      });
+      if (!bridge.ok) continue;
+      await handleAuthResponse(bridge, "grudge");
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(
+          new CustomEvent("grudge:auth:ready", { detail: { source: path } }),
+        );
+      }
+      return true;
+    } catch {
+      /* try next bridge endpoint */
+    }
   }
+  return false;
 }
 
 (function pickupSsoToken() {
@@ -87,7 +100,7 @@ export async function bridgeGrudgeLaunchToken(launchToken: string): Promise<bool
       bridgeGrudgeLaunchToken(launchToken).catch(() => {});
       return;
     }
-    const ssoToken = params.get("sso_token");
+    const ssoToken = params.get("sso_token") || params.get("token");
     if (ssoToken) {
       setToken(ssoToken);
       const returnedGrudgeId = params.get("grudge_id") || params.get("grudgeId") || "";
@@ -101,13 +114,20 @@ export async function bridgeGrudgeLaunchToken(launchToken: string): Promise<bool
       if (returnedGrudgeId) document.cookie = `grudge_id=${encodeURIComponent(returnedGrudgeId)}; path=/; max-age=${maxAge}; SameSite=Lax`;
       // Clean URL without reload
       params.delete("sso_token");
+      params.delete("token");
       params.delete("grudge_id");
       params.delete("grudgeId");
       params.delete("grudge_username");
       params.delete("username");
+      params.delete("provider");
       const clean = params.toString();
       const newUrl = window.location.pathname + (clean ? `?${clean}` : "") + window.location.hash;
       window.history.replaceState(null, "", newUrl);
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(
+          new CustomEvent("grudge:auth:ready", { detail: { source: "sso_token" } }),
+        );
+      }
     }
   } catch { /* ignore in SSR/test */ }
 })();

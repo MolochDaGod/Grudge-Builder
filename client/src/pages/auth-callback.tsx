@@ -8,7 +8,7 @@
 import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { Loader2 } from "lucide-react";
-import { isAuthenticated, setSession, bridgeGrudgeLaunchToken } from "@/lib/grudgeBackend";
+import { isAuthenticated, setSession, setToken, bridgeGrudgeLaunchToken } from "@/lib/grudgeBackend";
 import type { GrudgeSession } from "@/lib/grudgeBackend";
 
 export default function AuthCallbackPage() {
@@ -24,15 +24,17 @@ export default function AuthCallbackPage() {
       const params = new URLSearchParams(window.location.search);
       if (!isAuthenticated()) {
         const launchToken = params.get("grudge_token");
-        const ssoToken = params.get("sso_token");
+        const ssoToken = params.get("sso_token") || params.get("token");
         if (launchToken) {
           await bridgeGrudgeLaunchToken(launchToken);
         } else if (ssoToken) {
-          localStorage.setItem("grudge_auth_token", ssoToken);
-          localStorage.setItem("grudge_session_token", ssoToken);
-          const grudgeId = params.get("grudge_id") || "";
+          setToken(ssoToken);
+          const grudgeId = params.get("grudge_id") || params.get("grudgeId") || "";
           const username = params.get("username") || params.get("grudge_username") || "";
-          if (grudgeId) localStorage.setItem("grudge_id", grudgeId);
+          if (grudgeId) {
+            localStorage.setItem("grudge_id", grudgeId);
+            localStorage.setItem("grudge_account_id", grudgeId);
+          }
           if (username) localStorage.setItem("grudge_username", username);
         }
       }
