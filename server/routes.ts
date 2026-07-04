@@ -339,7 +339,11 @@ export async function registerRoutes(
       const devUnlimitedTokens =
         process.env.NODE_ENV === "development" ||
         process.env.DEV_UNLIMITED_CHARACTER_TOKENS === "true";
-      if (gameEra === "warlords" && !devUnlimitedTokens) {
+      const model3d = req.body.model3d as { grudge6?: boolean; sourceUrl?: string } | undefined;
+      const fromCharacterStudio =
+        model3d?.grudge6 === true ||
+        String(model3d?.sourceUrl || "").includes("character.grudge-studio.com");
+      if (gameEra === "warlords" && !devUnlimitedTokens && !fromCharacterStudio) {
         const tokens = (account as any).characterTokens ?? 1;
         if (tokens <= 0) {
           return res.status(403).json({
