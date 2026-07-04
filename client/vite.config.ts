@@ -1,6 +1,7 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
+import fs from "node:fs";
 import path from "path";
 import type { Plugin } from "vite";
 import {
@@ -32,11 +33,49 @@ const threeWebgpuShim: Plugin = {
   },
 };
 
+/** Auth/fleet scripts live in client/public; Vercel build uses repo-root publicDir. */
+const CLIENT_AUTH_PUBLIC_FILES = [
+  "grudge-game-bootstrap.js",
+  "grudge-fleet.js",
+  "grudge-auth-modal.js",
+  "grudge-auth-modal.css",
+] as const;
+
+const clientPublicDir = path.resolve(__dir, "public");
+
+const copyClientAuthPublic: Plugin = {
+  name: "copy-client-auth-public",
+  closeBundle() {
+    const outDir = path.resolve(__dir, "dist");
+    for (const file of CLIENT_AUTH_PUBLIC_FILES) {
+      const src = path.join(clientPublicDir, file);
+      if (!fs.existsSync(src)) continue;
+      const dest = path.join(outDir, file);
+      fs.mkdirSync(path.dirname(dest), { recursive: true });
+      fs.copyFileSync(src, dest);
+    }
+  },
+  configureServer(server) {
+    server.middlewares.use((req, res, next) => {
+      const pathname = (req.url ?? "").split("?")[0];
+      const rel = pathname.startsWith("/") ? pathname.slice(1) : pathname;
+      if (!CLIENT_AUTH_PUBLIC_FILES.includes(rel as (typeof CLIENT_AUTH_PUBLIC_FILES)[number])) {
+        return next();
+      }
+      const src = path.join(clientPublicDir, rel);
+      if (!fs.existsSync(src)) return next();
+      res.setHeader("Content-Type", rel.endsWith(".css") ? "text/css" : "application/javascript");
+      res.end(fs.readFileSync(src));
+    });
+  },
+};
+
 export default defineConfig({
   // Use repo-root public/ so skill-tree.html, icons-src/, etc. are included in builds
   publicDir: path.resolve(__dir, "..", "public"),
   plugins: [
     threeWebgpuShim,
+    copyClientAuthPublic,
     react(),
     tailwindcss(),
   ],
