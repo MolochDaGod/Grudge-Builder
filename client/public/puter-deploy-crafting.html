@@ -16,7 +16,7 @@
 </head>
 <body>
 <h1>Grudge Crafting — Puter Browser Deploy</h1>
-<p class="dim">Sign in as <strong>GRUDACHAIN</strong>. Browser SDK uses <code>~/</code> paths (not <code>/GRUDACHAIN/</code>).</p>
+<p class="dim">Sign in as <strong>MolochDaDev</strong> (owns <code>grudge-crafting.puter.site</code>). Browser SDK uses <code>~/</code> paths.</p>
 <button id="btnProbe">1. Probe FS + hosting</button>
 <button id="btnDeploy">2. Deploy fleet-enabled crafting</button>
 <button id="btnBind">3. Bind subdomain (if released)</button>
@@ -27,6 +27,7 @@ const CDN_FLEET = 'https://assets.grudge-studio.com/js/grudge-fleet.js';
 const SUBDOMAIN = 'grudge-crafting';
 /** Browser SDK paths — ~ resolves to GRUDACHAIN home (/GRUDACHAIN/) */
 const DEPLOY_DIRS = [
+  '~/crafting',
   '~/grudge-crafting',
   '~/sites/grudge-crafting/deployment',
 ];
@@ -50,8 +51,8 @@ async function ensureAuth() {
     await puter.auth.signIn();
   }
   const u = await puter.auth.getUser();
-  if (u.username !== 'GRUDACHAIN') {
-    log('⚠ Signed in as ' + u.username + ' — switch to GRUDACHAIN', 'err');
+  if (u.username !== 'MolochDaDev') {
+    log('⚠ Signed in as ' + u.username + ' — switch to MolochDaDev', 'err');
   } else {
     log('✓ ' + u.username, 'ok');
   }

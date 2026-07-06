@@ -59,11 +59,13 @@ async function driverCall(token, method, args) {
 
 const { token, username } = loadToken();
 const who = await fetch(`${PUTER_API}/whoami`, { headers: { Authorization: `Bearer ${token}` } }).then((r) => r.json());
-if (who?.reauth_required) {
-  console.error('❌ Puter session expired. Run: puter login');
+if (who?.reauth_required || who?.error || !who?.username) {
+  console.error('❌ Puter CLI token expired (config not updated).');
+  console.error('   Open https://assets.grudge-studio.com/tools/puter-deploy-crafting.html');
+  console.error('   Sign in as MolochDaDev → click "2. Deploy fleet-enabled crafting"');
   process.exit(1);
 }
-console.log(`✓ Auth: ${who?.username || username}`);
+console.log(`✓ Auth: ${who.username}`);
 
 const publicDir = resolve(__dirname, '..', 'client', 'public');
 const html = readFileSync(resolve(publicDir, 'grudge-crafting.html'));
