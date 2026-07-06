@@ -552,13 +552,18 @@ export function registerAuthRoutes(app: Express) {
     try {
       const guestId = `guest_${crypto.randomBytes(8).toString("hex")}`;
       const { user, account, isNew } = await resolvePuterGrudgeAccount(guestId, "Guest");
-      const token = signToken({
-        userId: user.id,
-        grudgeId: user.grudgeId || account.grudgeId || "",
-        username: "Guest",
+      const response = buildAuthResponse(
+        { id: user.id, username: user.username, grudgeId: user.grudgeId },
+        account,
+      );
+      setSessionCookie(res, response.token);
+      res.json({
+        ...buildSsoUserPayload(user, account, { isNew: isNew || true }),
+        success: true,
+        token: response.token,
+        sessionToken: response.sessionToken,
+        user: response.user,
       });
-      setSessionCookie(res, token);
-      res.json(buildSsoUserPayload(user, account, { isNew: isNew || true }));
     } catch (e: any) {
       console.error("[Auth/Guest]", e);
       res.status(500).json({ success: false, error: e.message });

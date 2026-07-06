@@ -10,13 +10,13 @@
   window.GRUDGE_CONFIG = {
     AUTH_GATEWAY: 'https://id.grudge-studio.com',
     IDENTITY_API: 'https://grudge-studio.com',
-    GAME_DATA: 'https://grudge-builder-production.up.railway.app',
+    GAME_DATA: 'https://grudge-api-production-0d46.up.railway.app',
     OBJECTSTORE_URL: 'https://objectstore.grudge-studio.com/api/v1',
     ASSETS: 'https://assets.grudge-studio.com',
-    VERSION: '4.0.0'
+    VERSION: '4.1.0'
   };
 </script>
-<script src="https://assets.grudge-studio.com/js/grudge-fleet.js"></script>
+<script src="./grudge-fleet.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;900&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
 <style>
 /* ======================== VARIABLES ======================== */
@@ -1281,20 +1281,24 @@ async function doAuth() {
   } catch(e) { console.error(e); showToast('Sign in failed', 'error'); }
 }
 
+async function refreshFleetState() {
+  STATE.grudgeToken = GrudgeFleet.getToken();
+  STATE.grudgeCharacters = GrudgeFleet.getCharacters();
+  STATE.activeCharacterId = GrudgeFleet.getActiveId();
+  applyCharacterToState(GrudgeFleet.getActiveCharacter());
+  try { STATE.user = await puter.auth.getUser(); } catch {}
+  updateAuthUI();
+  await loadSaveData();
+  renderCharactersList();
+  updateCharacterUI();
+}
+
 async function checkAuth() {
   try {
     const embedded = window.parent !== window;
     await GrudgeFleet.init({ mode: embedded ? 'embedded' : 'standalone' });
-    if (!GrudgeFleet.isLoggedIn()) await GrudgeFleet.tryAutoAuth();
-    STATE.grudgeToken = GrudgeFleet.getToken();
-    STATE.grudgeCharacters = GrudgeFleet.getCharacters();
-    STATE.activeCharacterId = GrudgeFleet.getActiveId();
-    applyCharacterToState(GrudgeFleet.getActiveCharacter());
-    try { STATE.user = await puter.auth.getUser(); } catch {}
-    updateAuthUI();
-    await loadSaveData();
-    renderCharactersList();
-    updateCharacterUI();
+    if (!GrudgeFleet.isLoggedIn()) await GrudgeFleet.ensureSession();
+    await refreshFleetState();
   } catch(e) { console.warn('Auth check:', e); }
 }
 
@@ -2559,6 +2563,9 @@ GrudgeFleet.onCharacterChange((char) => {
   updateCharacterUI();
   renderAll();
 });
+
+window.addEventListener('grudge:auth:ready', () => { void refreshFleetState(); });
+window.addEventListener('grudge:sync:complete', () => { renderCharactersList(); updateCharacterUI(); });
 
 // ============================================================
 // INIT

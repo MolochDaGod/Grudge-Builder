@@ -190,10 +190,23 @@
     if (charId) saveActiveId(charId);
   }
 
-  async function authPuter() {
-    if (typeof puter === 'undefined' || !puter.auth) throw new Error('Puter SDK not loaded');
-    await puter.auth.signIn();
-    const pu = await puter.auth.getUser();
+  /** Restore Puter session or quietly provision a guest (no popup). */
+  async function ensurePuterSession(opts) {
+    opts = opts || {};
+    if (typeof puter === 'undefined' || !puter.auth) return null;
+    const asGuest = opts.asGuest !== false;
+    if (!puter.auth.isSignedIn()) {
+      const result = await puter.auth.signIn(
+        asGuest ? { attempt_temp_user_creation: true } : undefined,
+      );
+      if (result && result.success === false) {
+        throw new Error(result.error || 'Puter sign-in failed');
+      }
+    }
+    return puter.auth.getUser();
+  }
+
+  async function bridgePuterUser(pu) {
     const res = await fleetFetch(FLEET.gameData + '/api/auth/puter', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -212,6 +225,15 @@
     applyAuthResponse(data);
     if (!_user?.username) _user = { ...(_user || {}), username: pu.username };
     return data;
+  }
+
+  async function authPuter(forcePopup) {
+    if (typeof puter === 'undefined' || !puter.auth) throw new Error('Puter SDK not loaded');
+    if (forcePopup || !puter.auth.isSignedIn()) {
+      await puter.auth.signIn();
+    }
+    const pu = await puter.auth.getUser();
+    return bridgePuterUser(pu);
   }
 
   async function syncFromBackend() {
@@ -358,12 +380,19 @@
     },
 
     async signIn() {
-      const data = await authPuter();
+      const data = await authPuter(true);
       await syncFromBackend();
+      dispatch('grudge:auth:ready');
       return data;
     },
 
     bridgeGrudgeLaunchToken,
+    ensurePuterSession,
+
+    /** Guest-first bootstrap: restore JWT, Puter session, or silent guest → Railway bridge. */
+    async ensureSession(opts) {
+      return fleet.tryAutoAuth(opts);
+    },
 
     async tryAutoAuth() {
       if (readToken()) {
@@ -371,12 +400,16 @@
         return true;
       }
       try {
-        if (typeof puter !== 'undefined' && puter.auth && puter.auth.isSignedIn()) {
-          await authPuter();
+        const pu = await ensurePuterSession({ asGuest: true });
+        if (pu) {
+          await bridgePuterUser(pu);
           await syncFromBackend();
+          dispatch('grudge:auth:ready');
           return true;
         }
-      } catch {}
+      } catch (err) {
+        console.warn('[GrudgeFleet] tryAutoAuth:', err);
+      }
       return false;
     },
 
