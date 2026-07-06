@@ -12,86 +12,21 @@
  *   node scripts/deploy-puter-smart.mjs
  *   node scripts/deploy-puter-smart.mjs --bootstrap   # tiny shell + CDN app
  */
-import { readFileSync, existsSync } from 'fs';
+import { readFileSync } from 'fs';
 import { resolve, dirname } from 'path';
 import { fileURLToPath } from 'url';
-import { join } from 'path';
-import { homedir } from 'os';
-import { randomUUID } from 'crypto';
+import { ensureAuth } from './lib/puter-auth.mjs';
+import {
+  batchWrite,
+  deployCraftingSite,
+  readHosting,
+  hostingRootDir,
+  CRAFTING_SUBDOMAIN,
+} from './lib/puter-deploy.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const PUTER_API = 'https://api.puter.com';
-const SUBDOMAIN = 'grudge-crafting';
-const CANONICAL_DIR = '/GRUDACHAIN/grudge-crafting';
 const CDN_APP = 'https://assets.grudge-studio.com/crafting/grudge-crafting.html';
 const useBootstrap = process.argv.includes('--bootstrap');
-
-function loadCliToken() {
-  const candidates = [
-    join(process.env.APPDATA ?? '', 'puter-cli-nodejs', 'Config', 'config.json'),
-    join(homedir(), '.config', 'puter-cli-nodejs', 'config.json'),
-  ];
-  for (const p of candidates) {
-    if (!existsSync(p)) continue;
-    const cfg = JSON.parse(readFileSync(p, 'utf-8'));
-    const profile =
-      cfg.profiles?.find((pr) => pr.uuid === cfg.selected_profile) || cfg.profiles?.[0];
-    if (profile?.token) return { token: profile.token, username: profile.username };
-  }
-  const envPath = resolve(__dirname, '..', '.env');
-  if (existsSync(envPath)) {
-    const env = readFileSync(envPath, 'utf-8');
-    for (const key of ['PUTER_AUTH_TOKEN', 'PUTER_API_KEY']) {
-      const m = env.match(new RegExp(`^${key}=(.+)$`, 'm'));
-      if (m) return { token: m[1].replace(/^["']|["']$/g, '').trim(), username: 'env' };
-    }
-  }
-  throw new Error('No token. Run: puter login');
-}
-
-async function driverCall(token, method, args) {
-  const res = await fetch(`${PUTER_API}/drivers/call`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'text/plain;actually=json' },
-    body: JSON.stringify({
-      interface: 'puter-subdomains',
-      method,
-      args,
-      auth_token: token,
-    }),
-  });
-  const text = await res.text();
-  if (!res.ok) throw new Error(`${res.status} drivers/${method}: ${text.slice(0, 300)}`);
-  const data = JSON.parse(text);
-  if (data.success === false) throw new Error(data.error?.message || JSON.stringify(data.error));
-  return data.result ?? data;
-}
-
-async function batchWrite(token, dirPath, name, content, mime) {
-  const form = new FormData();
-  form.append(
-    'operation',
-    JSON.stringify({
-      op: 'write',
-      dedupe_name: false,
-      overwrite: true,
-      create_missing_ancestors: true,
-      operation_id: randomUUID(),
-      path: dirPath,
-      name,
-      item_upload_id: 0,
-    }),
-  );
-  form.append('file', new Blob([content], { type: mime }), name);
-  const res = await fetch(`${PUTER_API}/batch`, {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${token}` },
-    body: form,
-  });
-  const text = await res.text();
-  if (!res.ok) throw new Error(`${res.status} batch: ${text.slice(0, 300)}`);
-  return JSON.parse(text);
-}
 
 function buildBootstrapHtml() {
   return `<!DOCTYPE html>
@@ -104,7 +39,7 @@ function buildBootstrapHtml() {
 <script>
   window.GRUDGE_CONFIG = {
     AUTH_GATEWAY: 'https://id.grudge-studio.com',
-    IDENTITY_API: 'https://the-engine.up.railway.app',
+    IDENTITY_API: 'https://grudge-studio.com',
     GAME_DATA: 'https://grudge-api-production-0d46.up.railway.app',
     OBJECTSTORE_URL: 'https://objectstore.grudge-studio.com/api/v1',
     ASSETS: 'https://assets.grudge-studio.com',
@@ -152,59 +87,24 @@ console.log('╔═════════════════════�
 console.log('║  Smart Puter Deploy — grudge-crafting.puter.site ║');
 console.log('╚══════════════════════════════════════════════════╝\n');
 
-const { token, username } = loadCliToken();
+const auth = await ensureAuth();
+console.log(`✓ Auth: ${auth.username} (${auth.source})`);
 
-const who = await fetch(`${PUTER_API}/whoami`, {
-  headers: { Authorization: `Bearer ${token}` },
-}).then((r) => r.json());
-if (who?.reauth_required) {
-  console.error('❌ Puter session expired. Run: puter login');
-  process.exit(1);
-}
-console.log(`✓ Auth: ${who?.username || username}`);
-
-let hosting = null;
-try {
-  hosting = await driverCall(token, 'read', { id: { subdomain: SUBDOMAIN } });
-  console.log(`✓ Hosting root: ${hosting?.root_dir || hosting?.rootDir || '(unknown)'}`);
-} catch (e) {
-  console.log(`  hosting read: ${e.message.slice(0, 120)}`);
-}
-
-const targetDir = hosting?.root_dir || hosting?.rootDir || CANONICAL_DIR;
-console.log(`→ Target dir: ${targetDir}`);
-
-const publicDir = resolve(__dirname, '..', 'client', 'public');
-const fullHtml = readFileSync(resolve(publicDir, 'grudge-crafting.html'));
-const indexContent = useBootstrap ? buildBootstrapHtml() : fullHtml;
-
-const uploads = [
-  [indexContent, 'index.html', 'text/html'],
-];
-if (!useBootstrap) {
-  uploads.push([readFileSync(resolve(publicDir, 'grudge-fleet.js')), 'grudge-fleet.js', 'application/javascript']);
-}
-
-for (const [content, name, mime] of uploads) {
-  const buf = Buffer.isBuffer(content) ? content : Buffer.from(content, 'utf-8');
-  console.log(`→ ${targetDir}/${name} (${(buf.length / 1024).toFixed(1)} KB)`);
-  const result = await batchWrite(token, targetDir, name, buf, mime);
-  const item = Array.isArray(result?.results) ? result.results[0] : result;
-  console.log(`✓ ${item?.path || name}`);
-}
-
-if (targetDir !== CANONICAL_DIR && !hosting?.root_dir?.includes('crafting')) {
-  try {
-    await driverCall(token, 'update', {
-      id: { subdomain: SUBDOMAIN },
-      object: { root_dir: CANONICAL_DIR },
-    });
-    console.log(`✓ Hosting repointed → ${CANONICAL_DIR}`);
-  } catch (e) {
-    console.warn(`⚠ hosting update: ${e.message.slice(0, 150)}`);
+if (useBootstrap) {
+  const hosting = await readHosting(auth.token);
+  const targetDir = hostingRootDir(hosting) || `/${auth.username}/crafting`;
+  const indexContent = buildBootstrapHtml();
+  console.log(`→ Target dir: ${targetDir}`);
+  await batchWrite(auth.token, targetDir, 'index.html', Buffer.from(indexContent, 'utf-8'), 'text/html');
+  console.log('✓ index.html (CDN bootstrap)');
+} else {
+  const result = await deployCraftingSite(auth.token, auth.username);
+  for (const u of result.uploads) {
+    console.log(u.ok ? `✓ ${u.dir}` : `✗ ${u.dir}`);
   }
+  if (result.bound) console.log(`✓ hosting → ${result.bound}`);
 }
 
-console.log(`\n✅ https://${SUBDOMAIN}.puter.site`);
+console.log(`\n✅ https://${CRAFTING_SUBDOMAIN}.puter.site`);
 console.log(`   Mode: ${useBootstrap ? 'CDN bootstrap' : 'full inline'}`);
 console.log(`   Verify: page should contain GRUDGE_CONFIG and grudge-fleet.js\n`);

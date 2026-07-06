@@ -41,7 +41,14 @@
     "upload:pbr-ground": "node scripts/upload-pbr-ground-textures.mjs",
     "upload:dialogue-audio": "node scripts/upload-super-dialogue-audio.mjs",
     "test:e2e": "playwright test",
-    "test:e2e:truth": "playwright test e2e/truth.spec.ts"
+    "test:e2e:truth": "playwright test e2e/truth.spec.ts",
+    "puter": "node scripts/grudge-puter.mjs",
+    "puter:login": "node scripts/grudge-puter.mjs login",
+    "puter:whoami": "node scripts/grudge-puter.mjs whoami",
+    "deploy:puter:crafting": "node scripts/grudge-puter.mjs deploy crafting",
+    "deploy:puter:cdn": "node scripts/grudge-puter.mjs cdn --remote",
+    "deploy:puter:all": "node scripts/deploy-puter-all-paths.mjs",
+    "deploy:puter:smart": "node scripts/deploy-puter-smart.mjs"
   },
   "dependencies": {
     "@colyseus/auth": "^0.17.9",

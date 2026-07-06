@@ -6,6 +6,8 @@ on:
     paths:
       - 'client/public/grudge-crafting.html'
       - 'client/public/grudge-fleet.js'
+      - 'scripts/grudge-puter.mjs'
+      - 'scripts/lib/puter-*.mjs'
       - '.github/workflows/deploy-puter-crafting.yml'
   workflow_dispatch:
 
@@ -28,6 +30,8 @@ jobs:
             --file=../../client/public/grudge-crafting.html --content-type=text/html --remote
           npx wrangler r2 object put grudge-assets/js/grudge-fleet.js \
             --file=../../client/public/grudge-fleet.js --content-type=application/javascript --remote
+          npx wrangler r2 object put grudge-assets/tools/puter-deploy-crafting.html \
+            --file=../../client/public/puter-deploy-crafting.html --content-type=text/html --remote
 
   puter:
     runs-on: ubuntu-latest
@@ -35,15 +39,12 @@ jobs:
     if: ${{ always() && (needs.cdn.result == 'success' || needs.cdn.result == 'failure') }}
     steps:
       - uses: actions/checkout@v4
-      - name: Prepare deploy directory
-        run: |
-          mkdir -p dist-puter
-          cp client/public/grudge-crafting.html dist-puter/index.html
-          cp client/public/grudge-fleet.js dist-puter/grudge-fleet.js
-      - name: Deploy to grudge-crafting.puter.site
-        uses: HeyPuter/puter-subdomain-deploy-action@v1.0.6
+      - uses: actions/setup-node@v4
         with:
-          subdomain: grudge-crafting
-          puter_path: /GRUDACHAIN/crafting
-          source_path: dist-puter
-          puter_token: ${{ secrets.PUTER_TOKEN }}
+          node-version: '20'
+      - name: Deploy to grudge-crafting.puter.site
+        env:
+          PUTER_TOKEN: ${{ secrets.PUTER_TOKEN }}
+          PUTER_USER: ${{ secrets.PUTER_USER }}
+          PUTER_PASS: ${{ secrets.PUTER_PASS }}
+        run: node scripts/grudge-puter.mjs deploy crafting
