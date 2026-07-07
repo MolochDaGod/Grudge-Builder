@@ -132,9 +132,9 @@ export default defineConfig({
   publicDir: path.resolve(import.meta.dirname, "client", "public"),
   build: {
     outDir: path.resolve(import.meta.dirname, "client/dist"),
-    // Pre-cleaned in script/build.ts; emptyOutDir races on Windows (ENOTEMPTY).
+    // Pre-cleaned in script/build.ts; public copied via script/copy-public-to-dist.mjs.
     emptyOutDir: false,
-    copyPublicDir: true,
+    copyPublicDir: false,
     commonjsOptions: {
       // Allow packages that use THREE as a global to resolve it
       transformMixedEsModules: true,

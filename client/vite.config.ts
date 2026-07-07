@@ -101,9 +101,11 @@ export default defineConfig({
       plugins: [],
     },
   },
+  root: __dir,
   build: {
-    outDir: "dist",
+    outDir: path.resolve(__dir, "dist"),
     emptyOutDir: true,
+    copyPublicDir: false,
     chunkSizeWarningLimit: 2500,
     commonjsOptions: {
       transformMixedEsModules: true,

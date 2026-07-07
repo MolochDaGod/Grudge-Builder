@@ -39,21 +39,20 @@ async function copyDirSafe(src: string, dest: string, retries = 5): Promise<void
   }
 }
 
-/** Retry Vite when Windows locks public assets during prepare-out-dir. */
-async function viteBuildSafe(retries = 4): Promise<void> {
-  for (let attempt = 0; attempt < retries; attempt++) {
-    try {
-      await viteBuild();
-      return;
-    } catch (e: any) {
-      const msg = String(e?.message ?? e);
-      const transient = isTransientIoError(e) || /EBUSY|ENOTEMPTY|prepare-out-dir/i.test(msg);
-      if (!transient || attempt === retries - 1) throw e;
-      console.warn(`vite build retry ${attempt + 1}/${retries - 1}: ${msg}`);
-      await removeDirSafe("client/dist");
-      await new Promise((r) => setTimeout(r, 800 * (attempt + 1)));
-    }
-  }
+/** Copy static public trees after Vite (avoids prepare-out-dir EBUSY on Windows). */
+async function copyPublicToDist(): Promise<void> {
+  const { spawn } = await import("node:child_process");
+  await new Promise<void>((resolve, reject) => {
+    const child = spawn(process.execPath, ["script/copy-public-to-dist.mjs"], {
+      cwd: process.cwd(),
+      stdio: "inherit",
+    });
+    child.on("error", reject);
+    child.on("exit", (code) => {
+      if (code === 0) resolve();
+      else reject(new Error(`copy-public-to-dist exited with ${code}`));
+    });
+  });
 }
 
 // Native / binary modules that must never be bundled
@@ -110,7 +109,8 @@ async function buildAll() {
     await new Promise((r) => setTimeout(r, 400));
     console.log("building client...");
     try {
-      await viteBuildSafe();
+      await viteBuild();
+      await copyPublicToDist();
       clientBuilt = existsSync("client/dist/index.html");
       if (!clientBuilt) {
         throw new Error("Vite finished but client/dist/index.html is missing");
