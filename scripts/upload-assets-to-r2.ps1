@@ -51,6 +51,14 @@ switch ($Category) {
         node (Join-Path $scriptDir "upload-super-dialogue-audio.mjs")
         if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
     }
+    "boss-battle-music" {
+        node (Join-Path $scriptDir "upload-boss-battle-music-v2.mjs")
+        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+    }
+    "music-packs" {
+        node (Join-Path $scriptDir "upload-music-packs.mjs")
+        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+    }
     "all" {
         Invoke-UploadScript "upload-images-to-r2.ps1" @("-Category", "all")
         Invoke-UploadScript "upload-animations-to-r2.ps1" @()

@@ -10,7 +10,11 @@ import { useCharacters } from "@/hooks/use-characters";
 import { fetchCurrentHomeIsland, type HomeIslandDto } from "@/lib/homeIslandApi";
 import { buildHomeDungeonUrl } from "@/lib/homeIslandDungeon";
 import { getIslandMapFallback, TERRAIN_ZONE_COLORS } from "@/lib/islandMapAssets";
-import { islandStateToHomeState, resolveAuthoritativeIsland } from "@/lib/islandStateBridge";
+import {
+  islandStateToHomeState,
+  resolveAuthoritativeIsland,
+  IslandAuthoritativeError,
+} from "@/lib/islandStateBridge";
 import { renderIslandMapToDataUrl } from "@/lib/islandMapRenderer";
 import { RACES, CLASSES, getSpriteSetForCharacter } from "@/lib/gameData";
 import { getCharacterPalette } from "@/lib/spriteManifest";
@@ -45,9 +49,7 @@ import {
   canHarvest,
   getNodeTimeRemaining,
   formatTimeRemaining,
-  createNewIsland,
   saveIslandState,
-  loadIslandState,
   getEffectiveHarvestInterval,
   getGatherSuccessChance,
   spawnAnimal,
@@ -283,6 +285,7 @@ export default function IslandPage() {
   const [isCheckingStatus, setIsCheckingStatus] = useState(true);
   const [accountHomeIsland, setAccountHomeIsland] = useState<boolean | null>(null);
   const [homeIslandDto, setHomeIslandDto] = useState<HomeIslandDto | null>(null);
+  const [islandLoadError, setIslandLoadError] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'2d' | '3d'>('2d');
   const [activityLog, setActivityLog] = useState<ActivityLogEntry[]>([]);
   const [harvestPopups, setHarvestPopups] = useState<Array<{
@@ -334,23 +337,17 @@ export default function IslandPage() {
       const campX = 50; // Center of island
       const campY = 50;
       
-      // Load existing state or create new one
-      let state = await loadIslandState(userId);
-      if (!state) {
-        state = createNewIsland(userId);
-      }
-      
-      // Update with cutscene data (name, camp position, first visit complete)
-      const updatedState: IslandState = {
-        ...state,
+      const activeId = allCharacters[0]?.id ?? null;
+      const { state: updatedState, dto } = await resolveAuthoritativeIsland(userId, activeId);
+      setHomeIslandDto(dto);
+      const withCamp: IslandState = {
+        ...updatedState,
         name: islandName,
         isFirstVisit: false,
         campPosition: { x: campX, y: campY },
       };
-      
-      // Save the updated state
-      await saveIslandState(userId, updatedState);
-      setIslandState(updatedState);
+      await saveIslandState(userId, withCamp);
+      setIslandState(withCamp);
       
       // Position heroes at camp
       const pos: Record<string, HeroPosition> = {};
@@ -362,10 +359,10 @@ export default function IslandPage() {
       setHeroPositions(pos);
       
       // Generate map if needed
-      if (updatedState.mapImageUrl) {
-        setMapImageUrl(updatedState.mapImageUrl);
+      if (withCamp.mapImageUrl) {
+        setMapImageUrl(withCamp.mapImageUrl);
       } else {
-        generateIslandMapImage(updatedState.mapStyle, userId, updatedState);
+        generateIslandMapImage(withCamp.mapStyle, userId, withCamp);
       }
       
       addLog(`Welcome to ${islandName}! Your heroes have established camp.`);
@@ -578,27 +575,36 @@ export default function IslandPage() {
       const userId = currentUser?.grudgeId || currentUser?.username || 'guest';
       const activeId = activeCharacter?.id ?? chars[0]?.id ?? null;
 
-      const { state: resolved, dto } = await resolveAuthoritativeIsland(userId, activeId);
-      setHomeIslandDto(dto);
-      let state = resolved;
-      const hadLocalOnly = !(dto && dto.state.nodes.length > 0);
-      if (hadLocalOnly && state.nodes.length > 0) {
-        addLog(`Created your new Island! ${chars.length} heroes available.`);
-      } else if (!hadLocalOnly) {
-        // Respawn expired nodes individually without regenerating entire island
-        const reconciled = reconcileExpiredNodes(state, Date.now());
-        if (reconciled) {
-          state = { 
-            ...state, 
-            nodes: reconciled.updatedNodes, 
-            assignedHeroes: reconciled.updatedAssignedHeroes, 
-            lastUpdate: Date.now() 
-          };
-          await saveIslandState(userId, state);
-          addLog(`${reconciled.respawnCount} resource nodes respawned. Welcome back!`);
-        } else {
-          addLog(`Welcome back! ${chars.length} heroes available.`);
+      let state: IslandState;
+      try {
+        const resolved = await resolveAuthoritativeIsland(userId, activeId);
+        setHomeIslandDto(resolved.dto);
+        state = resolved.state;
+      } catch (e) {
+        if (e instanceof IslandAuthoritativeError) {
+          if (e.message.includes('No home island')) {
+            window.location.href = '/island-reveal';
+            return;
+          }
+          setIslandLoadError(e.message);
+          addLog(e.message);
+          return;
         }
+        throw e;
+      }
+
+      const reconciled = reconcileExpiredNodes(state, Date.now());
+      if (reconciled) {
+        state = {
+          ...state,
+          nodes: reconciled.updatedNodes,
+          assignedHeroes: reconciled.updatedAssignedHeroes,
+          lastUpdate: Date.now(),
+        };
+        await saveIslandState(userId, state);
+        addLog(`${reconciled.respawnCount} resource nodes respawned. Welcome back!`);
+      } else {
+        addLog(`Welcome back! ${chars.length} heroes available.`);
       }
       
       setIslandState(state);
@@ -761,9 +767,23 @@ export default function IslandPage() {
         const currentUser = getCurrentUser();
         const userId = currentUser?.grudgeId || currentUser?.username || 'guest';
         const activeId = activeCharacter?.id ?? allCharacters[0]?.id ?? null;
-        const { state, dto } = await resolveAuthoritativeIsland(userId, activeId);
-        setHomeIslandDto(dto);
-        setIslandState(state);
+        let state: IslandState;
+        try {
+          const resolved = await resolveAuthoritativeIsland(userId, activeId);
+          setHomeIslandDto(resolved.dto);
+          state = resolved.state;
+          setIslandState(state);
+        } catch (e) {
+          if (e instanceof IslandAuthoritativeError) {
+            if (e.message.includes('No home island')) {
+              window.location.href = '/island-reveal';
+              return;
+            }
+            setIslandLoadError(e.message);
+            return;
+          }
+          throw e;
+        }
         
         const pos: Record<string, HeroPosition> = {};
         const campX = state.campPosition?.x || 50;
@@ -815,7 +835,11 @@ export default function IslandPage() {
 
     try {
       // 2. SVG overhead from nodes, zones, clearings, camp
-      const stateForSvg = stateSnapshot ?? islandState ?? createNewIsland(seed);
+      const stateForSvg = stateSnapshot ?? islandState;
+      if (!stateForSvg) {
+        setIsGeneratingMap(false);
+        return;
+      }
       const svgUrl = renderIslandMapToDataUrl(islandStateToHomeState(stateForSvg), 1024);
       setMapImageUrl(svgUrl);
       setIslandState((prev) => {
@@ -1741,6 +1765,26 @@ export default function IslandPage() {
     );
   }
 
+  if (islandLoadError) {
+    return (
+      <GameViewportLayout title="Island">
+        <div className="flex items-center justify-center w-full h-full p-6">
+          <div className="max-w-md text-center space-y-4 border border-red-700/30 rounded-xl bg-red-950/20 p-8">
+            <p className="text-red-300 font-cinzel font-bold text-lg">Island Unavailable</p>
+            <p className="text-slate-400 text-sm">{islandLoadError}</p>
+            <Button
+              onClick={() => window.location.reload()}
+              variant="outline"
+              className="border-red-700/40 text-red-300 hover:bg-red-900/20"
+            >
+              Retry
+            </Button>
+          </div>
+        </div>
+      </GameViewportLayout>
+    );
+  }
+
   // Show cutscene for first visit (account.homeIsland = false)
   if (showCutscene) {
     const cutsceneHero = activeCharacter ?? allCharacters[0] ?? null;
@@ -1768,7 +1812,8 @@ export default function IslandPage() {
     }
   });
 
-  const island3dSeed = homeIslandDto?.seed ?? islandState?.id ?? islandState?.name ?? 'grudge-island-default';
+  const island3dSeed = homeIslandDto?.seed ?? null;
+  const canRender3dIsland = Boolean(island3dSeed);
   const island3dMountainTriad = homeIslandDto?.state?.mountainTriad;
   const island3dRtsHeightmap = homeIslandDto?.state?.rtsHeightmap;
   const island3dRtsNatureScatter = homeIslandDto?.state?.rtsNatureScatter;
@@ -1796,24 +1841,35 @@ export default function IslandPage() {
         </button>
         <button
           onClick={() => {
-            // Switching from 2D → 3D: island state carries over via seed
+            if (!canRender3dIsland) {
+              addLog('3D world requires a committed home island from Railway.');
+              toast({
+                title: 'Home island required',
+                description: 'Complete island reveal before opening 3D world.',
+                variant: 'destructive',
+              });
+              return;
+            }
             if (viewMode === '2d') {
               addLog('[View] Switched to 3D World view');
             }
             setViewMode('3d');
           }}
+          disabled={!canRender3dIsland}
           className={cn(
             "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all",
             viewMode === '3d'
               ? "bg-emerald-600 text-white shadow-md"
-              : "text-gray-400 hover:text-white hover:bg-white/10"
+              : canRender3dIsland
+                ? "text-gray-400 hover:text-white hover:bg-white/10"
+                : "text-gray-600 cursor-not-allowed opacity-50"
           )}
         >
           <Box className="w-3.5 h-3.5" /> 3D World
         </button>
       </div>
 
-      {viewMode === '3d' ? (
+      {viewMode === '3d' && canRender3dIsland && island3dSeed ? (
         /* ── 3D View ── uses active character race/class for model loading */
         <div className="relative w-full h-full">
           <Island3DRenderer

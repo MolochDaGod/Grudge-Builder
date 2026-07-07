@@ -33,7 +33,7 @@ All API calls go through Vercel rewrites in `vercel.json`:
 
 All proxied to `grudge-api-production-0d46.up.railway.app` via `vercel.json` and `@shared/fleet/manifest.ts` (`FLEET_URLS.gameData`). Regenerate rewrites: `npx tsx scripts/sync-vercel-fleet.mjs`. Storage/env bindings: `shared/fleet/storage.ts` (`FLEET_STORAGE`, `FLEET_CLIENT_ENV`).
 
-**Identity API (api.grudge-studio.com)** — catch-all `/api/:path*` only; NOT characters.
+**Identity API (grudge-studio.com)** — catch-all `/api/:path*` → The-ENGINE Railway; NOT characters.
 
 **Assets & Data**:
 - `/api/assets/*` → `assets.grudge-studio.com` (R2 CDN)
@@ -112,7 +112,7 @@ Frontend pages using these MUST use `BackendRequired` component for graceful deg
 |---------|-----|------|
 | Game Client | grudgewarlords.com | Vercel |
 | Dashboard | dash.grudge-studio.com | Vercel |
-| Game API | api.grudge-studio.com | Cloudflare Workers |
+| Game API | grudge-api-production (Railway Postgres) | Railway |
 | Auth / Identity | id.grudge-studio.com | Cloudflare Workers |
 | Account API | account.grudge-studio.com | Cloudflare Workers |
 | Asset CDN | assets.grudge-studio.com | Cloudflare R2 CDN |

@@ -61,7 +61,11 @@ import { InstancedProceduralForest } from '../objects/InstancedProceduralForest'
 import { preloadIslandResources } from '../objects/IslandResourceLoader';
 import { scatterGlbTreesFromNodes } from '../objects/GlbForestScatter';
 import { scatterRtsNatureInScene } from '../objects/RtsNatureScatter';
-import type { RtsNatureScatterPayload } from '@shared/definitions/rtsNatureScatter';
+import {
+  generateRtsNatureScatter,
+  islandSeedToNumber,
+  type RtsNatureScatterPayload,
+} from '@shared/definitions/rtsNatureScatter';
 import { placeProceduralHarvestZones } from '../harvest/HarvestZonePlacer';
 import { buildHarvestZones, type HarvestZonesResult } from '../harvest/HarvestZoneBuilder';
 import { spawnZoneHarvestNodes } from '../harvest/ZoneHarvestSpawner';
@@ -561,13 +565,19 @@ export class Island3DEngine {
     // 6. Scatter decorations
     this.createDecorations();
 
-    // 6b. RTS NatureScatter foliage (when exported from forge)
-    if (this.config.rtsNatureScatter?.instances?.length) {
-      const foliage = await scatterRtsNatureInScene(
-        this.config.rtsNatureScatter,
-        this.terrain.terrainMesh,
-      );
-      if (foliage.children.length > 0) this.scene.add(foliage);
+    // 6b. Nature Megakit foliage — persisted RTS export or deterministic from seed
+    const naturePayload =
+      this.config.rtsNatureScatter?.instances?.length
+        ? this.config.rtsNatureScatter
+        : generateRtsNatureScatter(
+            islandSeedToNumber(this.config.seed),
+            'temperate',
+            this.config.rtsHeightmap,
+            HOME_ISLAND_WORLD_SIZE_M,
+          );
+    const foliage = await scatterRtsNatureInScene(naturePayload, this.terrain.terrainMesh);
+    if (foliage.children.length > 0) {
+      this.scene.add(foliage);
     } else {
       await this.createProceduralForest();
     }
@@ -623,14 +633,12 @@ export class Island3DEngine {
     const worldSeed = this.config.worldSeed || 'grudge-world-1';
 
     if (!sectorId) {
-      console.error('[Island3DEngine] mode="zone" requires config.sectorId');
-      return this.initProcedural(); // fallback
+      throw new Error('[Island3DEngine] mode="zone" requires config.sectorId');
     }
 
     const sector = getSectorById(sectorId);
     if (!sector) {
-      console.error(`[Island3DEngine] Unknown sector: ${sectorId}`);
-      return this.initProcedural();
+      throw new Error(`[Island3DEngine] Unknown sector: ${sectorId}`);
     }
 
     this.zoneSector = sector;

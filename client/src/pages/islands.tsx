@@ -7,8 +7,6 @@
 import { useState, useEffect, type ReactNode } from "react";
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
-import { Island3DRenderer } from "@/island3d/render/Island3DRenderer";
-import { DEFAULT_PUBLIC_LOBBY_MAP_ID } from "@/island3d/engine/lobbyMapRuntime";
 import { CharacterManager, type Character } from "@/lib/characterManager";
 import { useAccount } from "@/hooks/use-account";
 import { useAuth } from "@/contexts/AuthContext";
@@ -185,12 +183,19 @@ export default function IslandsPage() {
 
   return (
     <div className="fixed inset-0 overflow-hidden bg-black">
-      <div className="absolute inset-0">
-        <Island3DRenderer
-          seed={homeIsland?.seed || "grudge-islands-hub-2026"}
-          mode="lobby"
-          lobbyMapId={DEFAULT_PUBLIC_LOBBY_MAP_ID}
-          className="w-full h-full"
+      <div className="absolute inset-0 bg-gradient-to-b from-slate-950 via-emerald-950/50 to-black">
+        <div
+          className="absolute inset-0 opacity-40"
+          style={{
+            backgroundImage:
+              "radial-gradient(ellipse 90% 60% at 50% -10%, rgba(16, 185, 129, 0.35), transparent 70%)",
+          }}
+        />
+        <div
+          className="absolute bottom-0 left-0 right-0 h-2/5 opacity-25"
+          style={{
+            background: "linear-gradient(to top, rgba(4, 120, 87, 0.55), transparent)",
+          }}
         />
       </div>
 

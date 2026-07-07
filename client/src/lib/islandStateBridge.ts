@@ -2,7 +2,6 @@ import type { HomeIslandDto, HomeIslandNode, HomeIslandState } from '@/lib/homeI
 import { fetchCurrentHomeIsland, generateCharacterIsland } from '@/lib/homeIslandApi';
 import {
   CRAFTING_RESOURCES,
-  createNewIsland,
   loadIslandState,
   saveIslandState,
   type AnimalType,
@@ -128,36 +127,44 @@ export function homeDtoToIslandState(
   };
 }
 
+export class IslandAuthoritativeError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'IslandAuthoritativeError';
+  }
+}
+
 /**
  * Load island from Railway (authoritative), auto-generate if empty, bridge to IslandState.
- * Falls back to local/Puter cache when the backend is unreachable.
+ * Throws when the backend is unreachable or no persisted home island exists.
  */
 export async function resolveAuthoritativeIsland(
   userId: string,
   activeCharacterId?: string | null,
-): Promise<{ state: IslandState; dto: HomeIslandDto | null }> {
+): Promise<{ state: IslandState; dto: HomeIslandDto }> {
   const local = await loadIslandState(userId);
-  let dto: HomeIslandDto | null = null;
 
+  let dto: HomeIslandDto;
   try {
     dto = await fetchCurrentHomeIsland();
-    if (dto.state.nodes.length === 0 && activeCharacterId) {
-      dto = await generateCharacterIsland(activeCharacterId);
-    }
-    if (dto.state.nodes.length > 0) {
-      const state = homeDtoToIslandState(dto, local);
-      await saveIslandState(userId, state);
-      return { state, dto };
-    }
   } catch {
-    /* backend unreachable — use local fallback */
+    throw new IslandAuthoritativeError(
+      'Home island API unreachable — cannot load island without Railway data.',
+    );
   }
 
-  let state = local;
-  if (!state) {
-    state = createNewIsland(userId);
-    await saveIslandState(userId, state);
+  if (dto.state.nodes.length === 0 && activeCharacterId) {
+    dto = await generateCharacterIsland(activeCharacterId);
   }
+
+  if (dto.state.nodes.length === 0) {
+    throw new IslandAuthoritativeError(
+      'No home island exists — complete island reveal first.',
+    );
+  }
+
+  const state = homeDtoToIslandState(dto, local);
+  await saveIslandState(userId, state);
   return { state, dto };
 }
 

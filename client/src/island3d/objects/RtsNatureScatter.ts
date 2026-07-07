@@ -10,7 +10,7 @@ import type { RtsNatureScatterPayload } from '@shared/definitions/rtsNatureScatt
 
 const templateCache = new Map<string, THREE.Group>();
 const loader = new GLTFLoader();
-const MAX_INSTANCES = 180;
+const MAX_INSTANCES = 320;
 
 async function loadNatureTemplate(modelPath: string): Promise<THREE.Group> {
   const cached = templateCache.get(modelPath);

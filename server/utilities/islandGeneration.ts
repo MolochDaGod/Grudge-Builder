@@ -30,8 +30,10 @@ import {
 } from '@shared/definitions/rtsTerrainBridge';
 import {
   generateRtsNatureScatter,
+  islandSeedToNumber,
   type RtsNatureScatterPayload,
 } from '@shared/definitions/rtsNatureScatter';
+import { HOME_ISLAND_WORLD_SIZE_M } from '@shared/definitions/homeIslandSeed';
 
 /**
  * Seeded Random Number Generator
@@ -517,6 +519,12 @@ export function generateIslandState(
       })),
     mountainTriad,
     regrowRegions,
+    rtsNatureScatter: generateRtsNatureScatter(
+      islandSeedToNumber(seed),
+      'temperate',
+      undefined,
+      HOME_ISLAND_WORLD_SIZE_M,
+    ),
     stats: {
       nodeCount: nodes.length,
       animalCount: animals.length,

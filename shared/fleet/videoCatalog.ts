@@ -37,4 +37,11 @@ export const FLEET_VIDEO_CATALOG: Record<string, FleetVideoEntry> = {
     r2_url: `${CDN}/gruda-armada/grudge-warlords/videos/pvp-loadscreen.mp4`,
     contentType: "video/mp4",
   },
+  armadaIntro: {
+    key: "armadaIntro",
+    label: "Gruda Armada RTS Star — opening cinematic",
+    r2_key: "gruda-armada/space/videos/intro.mp4",
+    r2_url: `${CDN}/gruda-armada/space/videos/intro.mp4`,
+    contentType: "video/mp4",
+  },
 };

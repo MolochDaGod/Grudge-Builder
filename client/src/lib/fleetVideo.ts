@@ -12,6 +12,7 @@ export const FLEET_VIDEO_FALLBACK = {
   warlordsIntro: FLEET_VIDEO_CATALOG.warlordsIntro.r2_url,
   warlordsLoadscreen: FLEET_VIDEO_CATALOG.warlordsLoadscreen.r2_url,
   warlordsPvpLoadscreen: FLEET_VIDEO_CATALOG.warlordsPvpLoadscreen.r2_url,
+  armadaIntro: FLEET_VIDEO_CATALOG.armadaIntro.r2_url,
 } as const;
 
 export type FleetVideoKey = keyof typeof FLEET_VIDEO_FALLBACK;

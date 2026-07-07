@@ -73,10 +73,10 @@ export const AI_GATEWAY: string =
  *
  * NOTE (2026-05-06): edge.grudge-studio.com has NO DNS record — the Worker
  * source exists in grudge-backend/workers/badge-reader/ but was never deployed.
- * Fallback to api.grudge-studio.com until deployment happens.
+ * Fallback to Railway game-data until edge Worker is deployed.
  */
 export const BADGE_READER: string =
-  env.VITE_BADGE_READER_URL || 'https://api.grudge-studio.com';
+  env.VITE_BADGE_READER_URL || FLEET_URLS.gameData;
 
 /** Canonical ObjectStore JSON API (objectstore.grudge-studio.com/api/v1). */
 export const OBJECTSTORE: string = resolveObjectStoreApiBase(
