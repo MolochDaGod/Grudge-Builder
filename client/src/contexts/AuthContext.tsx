@@ -26,7 +26,10 @@ interface AuthState {
   user: GrudgeUser | null;
   session: GrudgeSession | null;
   loginOpen: boolean;
+  /** Opens the in-page LoginModal (credentials, wallet, guest). */
   openLogin: () => void;
+  /** Redirects to id.grudge-studio.com SSO. */
+  redirectToGrudgeIdLogin: (returnPath?: string) => void;
   closeLogin: () => void;
   handleLogout: () => void;
   refreshAuth: () => Promise<void>;
@@ -61,10 +64,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, [refreshAuth]);
 
-  /** ONE TRUTH: redirect to id.grudge-studio.com SSO (not in-page LoginModal). */
-  const openLogin = useCallback(() => {
-    loginWithGrudgeId("/auth/callback");
-  }, []);
+  const openLogin = useCallback(() => setLoginOpen(true), []);
+  const redirectToGrudgeIdLogin = useCallback(
+    (returnPath = "/auth/callback") => loginWithGrudgeId(returnPath),
+    [],
+  );
   const closeLogin = useCallback(() => setLoginOpen(false), []);
 
   const handleLogout = useCallback(() => {
@@ -82,6 +86,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         session,
         loginOpen,
         openLogin,
+        redirectToGrudgeIdLogin,
         closeLogin,
         handleLogout,
         refreshAuth,

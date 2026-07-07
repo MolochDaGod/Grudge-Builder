@@ -27,6 +27,10 @@ const mockGetAvailableWallets = vi.fn(() => ['phantom'] as string[]);
 const mockStartDiscordLogin = vi.fn();
 const mockLoginAsGuest = vi.fn();
 
+vi.mock("@/lib/grudgeFleet", () => ({
+  loginWithGrudgeId: vi.fn(),
+}));
+
 vi.mock("@/lib/grudgeBackend", () => ({
   isAuthenticated: vi.fn(() => false),
   getCurrentUser: vi.fn(() => null),

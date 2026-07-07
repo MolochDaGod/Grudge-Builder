@@ -18,11 +18,6 @@ async function loadModule() {
   return import("@/lib/grudgeBackend");
 }
 
-// grudgeBackend auto-starts a setInterval on import; use fake timers so
-// repeated loadModule() calls don't accumulate live handles.
-beforeEach(() => {
-  vi.useFakeTimers();
-});
 afterEach(() => {
   vi.useRealTimers();
 });

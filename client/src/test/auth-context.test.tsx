@@ -43,6 +43,9 @@ function AuthConsumer() {
       <button data-testid="open" onClick={auth.openLogin}>
         Open
       </button>
+      <button data-testid="sso" onClick={() => auth.redirectToGrudgeIdLogin("/auth/callback")}>
+        SSO
+      </button>
       <button data-testid="close" onClick={auth.closeLogin}>
         Close
       </button>
@@ -108,12 +111,22 @@ describe("AuthProvider", () => {
     expect(screen.getByTestId("user").textContent).toBe("TestHero");
   });
 
-  it("openLogin redirects to Grudge ID SSO", async () => {
+  it("openLogin opens the login modal", async () => {
     const user = userEvent.setup();
     renderWithAuth();
     await act(async () => {});
 
     await user.click(screen.getByTestId("open"));
+    expect(screen.getByTestId("login-open").textContent).toBe("true");
+    expect(mockLoginWithGrudgeId).not.toHaveBeenCalled();
+  });
+
+  it("redirectToGrudgeIdLogin sends user to Grudge ID SSO", async () => {
+    const user = userEvent.setup();
+    renderWithAuth();
+    await act(async () => {});
+
+    await user.click(screen.getByTestId("sso"));
     expect(mockLoginWithGrudgeId).toHaveBeenCalledWith("/auth/callback");
   });
 

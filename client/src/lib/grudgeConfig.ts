@@ -222,12 +222,13 @@ export function buildSsoLoginUrl(
   returnPath = '/auth/callback',
   preferSsoCheck = false,
 ): string {
-  const origin = (
-    returnOrigin?.startsWith('http')
-      ? new URL(returnOrigin).origin
-      : returnOrigin ||
-        (typeof window !== 'undefined' ? window.location.origin : 'https://grudgewarlords.com')
-  ).replace(/\/$/, '');
+  const fallbackOrigin =
+    (typeof window !== 'undefined' && window.location?.origin) ||
+    'https://grudgewarlords.com';
+  const rawOrigin = returnOrigin?.startsWith('http')
+    ? new URL(returnOrigin).origin
+    : (returnOrigin || fallbackOrigin);
+  const origin = String(rawOrigin || fallbackOrigin).replace(/\/$/, '');
   const path =
     returnOrigin?.startsWith('http') && returnOrigin.includes('/')
       ? new URL(returnOrigin).pathname + new URL(returnOrigin).search

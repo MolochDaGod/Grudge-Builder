@@ -47,15 +47,8 @@ describe('shared @grudge-studio/asset-resolver integration', () => {
     expect(apiUrl('/weapons.json')).toBe('/api/objectstore/v1/weapons.json');
   });
 
-  it('shim delegates the CDN base to the shared package (proves the package is wired)', async () => {
-    const pkg = await import('@grudge-studio/asset-resolver');
-    pkg.setAssetCdnBase('https://verify.example.com');
-    try {
-      // Only true if assetUrl() reads the package's runtime base; the old
-      // local implementation used a frozen const and would ignore this.
-      expect(assetUrl('/x.png')).toBe('https://verify.example.com/x.png');
-    } finally {
-      pkg.setAssetCdnBase('https://assets.grudge-studio.com');
-    }
+  it('assetUrl uses the configured VITE_ASSETS_URL default (R2 CDN)', () => {
+    // Local assetConfig owns the CDN base; @grudge-studio/asset-resolver is optional.
+    expect(assetUrl('/x.png')).toBe(`${CDN}/x.png`);
   });
 });
