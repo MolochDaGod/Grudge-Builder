@@ -8,6 +8,7 @@ import {
 } from '@shared/definitions/sectorBridge';
 import { getSectorById } from '@shared/definitions/worldMapSectors';
 import { getTownForSector } from '@shared/definitions/factionTowns';
+import { TACTICAL_OCEAN_SIZE_METERS } from '@shared/definitions/zoneLayout';
 
 export type OceanDeployTarget = 'play' | 'zone' | 'town' | 'lobby';
 
@@ -70,8 +71,8 @@ export function buildOceanDeployUrl(
   }
 }
 
-/** Tactical Infinity ocean diameter (meters) — matches ZONE_SIZE in worldMapSectors. */
-export const TACTICAL_OCEAN_SIZE = 10_000;
+/** Tactical Infinity ocean diameter (meters) — matches ZONE_DEFAULT_SIZE_METERS. */
+export const TACTICAL_OCEAN_SIZE = TACTICAL_OCEAN_SIZE_METERS;
 
 /** 9-sector anchor positions on the tactical ocean (10 km × 10 km world). */
 export const OCEAN_SECTOR_POSITIONS: Record<LegacySectorId, { x: number; z: number; radius: number }> = {

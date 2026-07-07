@@ -7,6 +7,8 @@ on:
       - "client/**"
       - "shared/**"
       - "vercel.json"
+      - "vite.config.ts"
+      - "script/build.ts"
       - "package.json"
       - "package-lock.json"
       - ".github/workflows/vercel-deploy.yml"

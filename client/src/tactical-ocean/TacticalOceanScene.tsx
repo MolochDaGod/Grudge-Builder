@@ -3,7 +3,7 @@ import * as THREE from 'three';
 import { ThreeWorldMapManager, CameraMode, Island3D, WindState } from '@/tactical-ocean/threeWorldMapManager';
 import { LEGACY_SECTOR_IDS, LEGACY_TO_ZONE_ID } from '@shared/definitions/sectorBridge';
 import { getSectorById } from '@shared/definitions/worldMapSectors';
-import { OCEAN_SECTOR_POSITIONS } from '@/lib/oceanNavigation';
+import { OCEAN_SECTOR_POSITIONS, TACTICAL_OCEAN_SIZE } from '@/lib/oceanNavigation';
 import { ensureStarterShip, getActiveShip } from '@/lib/shipDockService';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -238,7 +238,7 @@ export function TacticalOceanScene({ onBackToMenu, onLandOnIsland }: TacticalOce
     state.playerPosition.z += windMovement.z;
     
     // Clamp to world bounds
-    const worldHalf = 4900;  // Slightly less than half of 10 km tactical ocean
+    const worldHalf = TACTICAL_OCEAN_SIZE / 2 - 100;
     state.playerPosition.x = Math.max(-worldHalf, Math.min(worldHalf, state.playerPosition.x));
     state.playerPosition.z = Math.max(-worldHalf, Math.min(worldHalf, state.playerPosition.z));
     

@@ -5,6 +5,7 @@ import { OceanEnvironment } from '@/game/ocean/OceanEnvironment';
 import { ShipPrefabFactory } from '@/game/sailing/ShipPrefabs';
 import { getPrefabKeyForSize } from '@shared/definitions/shipCatalog';
 import type { ShipSize } from '@shared/definitions/islandAssetManifest';
+import { TACTICAL_OCEAN_SIZE_METERS } from '@shared/definitions/zoneLayout';
 
 export type CameraMode = 'third-person' | 'birds-eye';
 
@@ -88,7 +89,7 @@ export class ThreeWorldMapManager {
   private cameraOffset = new THREE.Vector3(0, 15, -30);
   private cameraLookOffset = new THREE.Vector3(0, 0, 20);
   
-  private worldSize = 10000;  // matches ZONE_SIZE / Tactical Infinity deploy sectors
+  private worldSize = TACTICAL_OCEAN_SIZE_METERS;
   
   // Day/night and weather systems
   private timeOfDay = 0.3;  // 0-1, 0.3 = morning
@@ -127,13 +128,14 @@ export class ThreeWorldMapManager {
     this.renderer.toneMappingExposure = 0.5;
     
     this.scene = new THREE.Scene();
-    this.scene.fog = new THREE.Fog(0x87ceeb, 200, 5000);
+    const viewFar = this.worldSize * 1.5;
+    this.scene.fog = new THREE.Fog(0x87ceeb, 200, this.worldSize * 1.2);
     
     this.mainCamera = new THREE.PerspectiveCamera(
       60,
       window.innerWidth / window.innerHeight,
       0.1,
-      5000
+      viewFar
     );
     this.mainCamera.position.set(0, 15, 30);
     
@@ -145,7 +147,7 @@ export class ThreeWorldMapManager {
       frustumSize / 2,
       -frustumSize / 2,
       1,
-      2000
+      viewFar
     );
     this.birdsEyeCamera.position.set(0, 500, 0);
     this.birdsEyeCamera.lookAt(0, 0, 0);

@@ -74,6 +74,7 @@ public/models/*.obj
 public/models/towns/**/*.glb
 public/models/instances/**/*.glb
 # Temp files
+build-exit*.txt
 D:/*.ts
 .env.local
 scripts/pull-railway-db.mjs

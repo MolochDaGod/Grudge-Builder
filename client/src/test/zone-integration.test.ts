@@ -12,11 +12,13 @@ import { describe, it, expect } from 'vitest';
 
 import {
   WORLD_SECTORS,
+  ZONE_DEFAULT_SIZE_METERS,
   getSectorAt,
   getSectorById,
   getSectorTileColor,
   type WorldSector,
 } from '@shared/definitions/worldMapSectors';
+import { layoutProfileForBiome } from '@shared/definitions/zoneLayout';
 
 import {
   generateZonePopulation,
@@ -108,12 +110,19 @@ describe('Sector Grid Layout', () => {
 
   it('all sectors have valid terrain3d configs', () => {
     for (const sector of WORLD_SECTORS) {
-      expect(sector.terrain3d.sizeMeters).toBe(4000);
+      expect(sector.terrain3d.sizeMeters).toBeGreaterThanOrEqual(ZONE_DEFAULT_SIZE_METERS);
       expect(sector.terrain3d.segments).toBe(255);
       expect(sector.terrain3d.maxHeight).toBeGreaterThan(sector.terrain3d.minHeight);
       expect(sector.terrain3d.spawnPoints.length).toBeGreaterThan(0);
       expect(sector.terrain3d.maxPlayers).toBeGreaterThanOrEqual(64);
     }
+  });
+
+  it('Ashen Wastes is an expanded open-sea desert zone', () => {
+    const ashen = getSectorById('ashen_wastes')!;
+    expect(ashen.biome).toBe('desert');
+    expect(ashen.terrain3d.sizeMeters).toBe(14_000);
+    expect(layoutProfileForBiome(ashen.biome)).toBe('open_sea');
   });
 
   it('each sector has unique ID and name', () => {
@@ -160,7 +169,7 @@ describe('Zone Population', () => {
       sector.resources, sector.biome,
     );
     const islands = getNodesByCategory<IslandNode>(pop, 'island');
-    expect(islands.length).toBeGreaterThan(3);
+    expect(islands.length).toBeGreaterThan(2);
 
     for (const island of islands) {
       expect(island.radiusM).toBeGreaterThan(0);
@@ -223,6 +232,25 @@ describe('Zone Population', () => {
     const hasLuminous = hazards.some(h => h.hazardType === 'luminous_vortex');
     // Not guaranteed every run but the hazard type pool includes it
     expect(hazards.length).toBeGreaterThan(0);
+  });
+
+  it('open-sea biomes spawn fewer islands than archipelago zones', () => {
+    const ashen = getSectorById('ashen_wastes')!;
+    const haven = getSectorById('haven_shore')!;
+    const ashenPop = generateZonePopulation(
+      ashen.id, worldSeed, ashen.terrain3d.sizeMeters,
+      ashen.difficultyMin, ashen.difficultyMax,
+      ashen.resources, ashen.biome,
+    );
+    const havenPop = generateZonePopulation(
+      haven.id, worldSeed, haven.terrain3d.sizeMeters,
+      haven.difficultyMin, haven.difficultyMax,
+      haven.resources, haven.biome,
+    );
+    const ashenIslands = getNodesByCategory<IslandNode>(ashenPop, 'island').length;
+    const havenIslands = getNodesByCategory<IslandNode>(havenPop, 'island').length;
+    expect(ashenIslands).toBeLessThan(havenIslands);
+    expect(ashenIslands).toBeGreaterThanOrEqual(2);
   });
 
   it('island children are accessible via getIslandChildren', () => {
