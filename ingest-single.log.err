@@ -1,0 +1,38 @@
+FAIL D:\grudge-assets\models\environment\nature-megakit\glTF\DeadTree_4.gltf: BC2D0000:error:0A0003FC:SSL routines:ssl3_read_bytes:ssl/tls alert bad record mac:c:\ws\deps\openssl\openssl\ssl\record\rec_layer_s3.c:918:SSL alert number 20
+
+FAIL D:\grudge-assets\models\environment\nature-megakit\glTF\DeadTree_5.gltf: BC2D0000:error:0A0003FC:SSL routines:ssl3_read_bytes:ssl/tls alert bad record mac:c:\ws\deps\openssl\openssl\ssl\record\rec_layer_s3.c:918:SSL alert number 20
+
+FAIL D:\grudge-assets\models\environment\nature-megakit\glTF\Fern_1.gltf: BC2D0000:error:0A0003FC:SSL routines:ssl3_read_bytes:ssl/tls alert bad record mac:c:\ws\deps\openssl\openssl\ssl\record\rec_layer_s3.c:918:SSL alert number 20
+
+FAIL D:\grudge-assets\models\environment\nature-megakit\glTF\Pine_3.gltf: BC2D0000:error:0A0003FC:SSL routines:ssl3_read_bytes:ssl/tls alert bad record mac:c:\ws\deps\openssl\openssl\ssl\record\rec_layer_s3.c:918:SSL alert number 20
+
+FAIL D:\grudge-assets\models\environment\nature-megakit\glTF\Pine_4.gltf: BC2D0000:error:0A0003FC:SSL routines:ssl3_read_bytes:ssl/tls alert bad record mac:c:\ws\deps\openssl\openssl\ssl\record\rec_layer_s3.c:918:SSL alert number 20
+
+FAIL D:\grudge-assets\models\environment\nature-megakit\glTF\Pine_5.gltf: BC2D0000:error:0A0003FC:SSL routines:ssl3_read_bytes:ssl/tls alert bad record mac:c:\ws\deps\openssl\openssl\ssl\record\rec_layer_s3.c:918:SSL alert number 20
+
+FAIL D:\grudge-assets\models\environment\nature-megakit\glTF\Plant_1.gltf: BC2D0000:error:0A0003FC:SSL routines:ssl3_read_bytes:ssl/tls alert bad record mac:c:\ws\deps\openssl\openssl\ssl\record\rec_layer_s3.c:918:SSL alert number 20
+
+FAIL D:\grudge-assets\models\environment\nature-megakit\glTF\Plant_1_Big.gltf: BC2D0000:error:0A0003FC:SSL routines:ssl3_read_bytes:ssl/tls alert bad record mac:c:\ws\deps\openssl\openssl\ssl\record\rec_layer_s3.c:918:SSL alert number 20
+
+FAIL D:\grudge-assets\models\environment\nature-megakit\glTF\Plant_7.gltf: BC2D0000:error:0A0003FC:SSL routines:ssl3_read_bytes:ssl/tls alert bad record mac:c:\ws\deps\openssl\openssl\ssl\record\rec_layer_s3.c:918:SSL alert number 20
+
+FAIL D:\grudge-assets\models\environment\nature-megakit\glTF\Plant_7_Big.gltf: BC2D0000:error:0A0003FC:SSL routines:ssl3_read_bytes:ssl/tls alert bad record mac:c:\ws\deps\openssl\openssl\ssl\record\rec_layer_s3.c:918:SSL alert number 20
+
+FAIL D:\grudge-assets\models\environment\nature-megakit\glTF\RockPath_Round_Small_1.gltf: BC2D0000:error:0A0003FC:SSL routines:ssl3_read_bytes:ssl/tls alert bad record mac:c:\ws\deps\openssl\openssl\ssl\record\rec_layer_s3.c:918:SSL alert number 20
+
+FAIL D:\grudge-assets\models\environment\nature-megakit\glTF\TwistedTree_3.gltf: BC2D0000:error:0A0003FC:SSL routines:ssl3_read_bytes:ssl/tls alert bad record mac:c:\ws\deps\openssl\openssl\ssl\record\rec_layer_s3.c:918:SSL alert number 20
+
+FAIL D:\grudge-assets\models\environment\nature-megakit\glTF\TwistedTree_5.gltf: BC2D0000:error:0A0003FC:SSL routines:ssl3_read_bytes:ssl/tls alert bad record mac:c:\ws\deps\openssl\openssl\ssl\record\rec_layer_s3.c:918:SSL alert number 20
+
+FAIL D:\grudge-assets\models\environment\nature-megakit\glTF\glTF\Clover_2.gltf: BC2D0000:error:0A0003FC:SSL routines:ssl3_read_bytes:ssl/tls alert bad record mac:c:\ws\deps\openssl\openssl\ssl\record\rec_layer_s3.c:918:SSL alert number 20
+
+FAIL D:\grudge-assets\models\environment\nature-megakit\glTF\glTF\CommonTree_2.gltf: BC2D0000:error:0A0003FC:SSL routines:ssl3_read_bytes:ssl/tls alert bad record mac:c:\ws\deps\openssl\openssl\ssl\record\rec_layer_s3.c:918:SSL alert number 20
+
+FAIL D:\grudge-assets\models\environment\nature-megakit\glTF\glTF\CommonTree_3.gltf: BC2D0000:error:0A0003FC:SSL routines:ssl3_read_bytes:ssl/tls alert bad record mac:c:\ws\deps\openssl\openssl\ssl\record\rec_layer_s3.c:918:SSL alert number 20
+
+FAIL D:\grudge-assets\models\environment\nature-megakit\glTF\glTF\CommonTree_4.gltf: BC2D0000:error:0A0003FC:SSL routines:ssl3_read_bytes:ssl/tls alert bad record mac:c:\ws\deps\openssl\openssl\ssl\record\rec_layer_s3.c:918:SSL alert number 20
+
+FAIL D:\grudge-assets\models\environment\nature-megakit\glTF\glTF\DeadTree_1.gltf: BC2D0000:error:0A0003FC:SSL routines:ssl3_read_bytes:ssl/tls alert bad record mac:c:\ws\deps\openssl\openssl\ssl\record\rec_layer_s3.c:918:SSL alert number 20
+
+FAIL D:\grudge-assets\models\environment\nature-megakit\glTF\glTF\DeadTree_2.gltf: BC2D0000:error:0A0003FC:SSL routines:ssl3_read_bytes:ssl/tls alert bad record mac:c:\ws\deps\openssl\openssl\ssl\record\rec_layer_s3.c:918:SSL alert number 20
+

@@ -1,0 +1,8 @@
+Model Information:
+* title:	Medieval town
+* source:	https://sketchfab.com/3d-models/medieval-town-7912c8f32c734c508e972b90a4f6563e
+* author:	katydid (https://sketchfab.com/Katydid.)
+
+Model License:
+* license type:	SKETCHFAB Standard (https://sketchfab.com/licenses)
+* requirements:	Under basic restrictions, use worldwide, on all types of media, commercially or not, and in all types of derivative works

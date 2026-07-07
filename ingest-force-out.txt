@@ -1,0 +1,12 @@
+Found 136 glTF files in D:\grudge-assets\models\environment\nature-megakit\glTF
+convert Bush_Common.glb (163676 bytes)
+convert Bush_Common_Flowers.glb (734884 bytes)
+convert Clover_1.glb (2600900 bytes)
+convert Clover_2.glb (2608960 bytes)
+convert CommonTree_1.glb (8932408 bytes)
+convert CommonTree_2.glb (8863856 bytes)
+convert CommonTree_3.glb (8737812 bytes)
+FAIL D:\grudge-assets\models\environment\nature-megakit\glTF\CommonTree_3.gltf: F45A0000:error:0A0003FC:SSL routines:ssl3_read_bytes:ssl/tls alert bad record mac:c:\ws\deps\openssl\openssl\ssl\record\rec_layer_s3.c:918:SSL alert number 20
+
+convert CommonTree_4.glb (8748428 bytes)
+convert CommonTree_5.glb (8693828 bytes)
