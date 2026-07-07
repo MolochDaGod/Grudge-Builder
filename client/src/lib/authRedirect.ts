@@ -1,19 +1,18 @@
 /**
- * Auth Redirect — sends unauthenticated users to id.grudge-studio.com
+ * Auth Redirect — canonical Grudge ID login via id.grudge-studio.com/login
  *
- * After login, id.grudge-studio.com redirects back with ?sso_token=...&grudge_id=...
- * which grudgeBackend.ts pickupSsoToken() handles automatically.
+ * After login, id returns ?grudge_token= or ?sso_token= on the callback URL.
+ * grudgeBackend.ts / grudge-game-bootstrap.js pickup handles tokens automatically.
  */
 
-const GRUDGE_AUTH_URL = "https://id.grudge-studio.com";
+import { AUTH_GATEWAY, buildSsoLoginUrl } from "./grudgeConfig";
 
 /**
- * Redirect to the Grudge SSO login page.
- * @param returnPath — path to come back to after login (defaults to /home)
+ * Redirect to the Grudge ID sign-in page.
+ * @param returnPath — path after login (defaults to /auth/callback)
  */
-export function redirectToGrudgeAuth(returnPath?: string): void {
-  const returnTo = returnPath || "/home";
-  const origin = window.location.origin;
-  const redirectUrl = `${origin}${returnTo}`;
-  window.location.href = `${GRUDGE_AUTH_URL}/auth/sso-check?return=${encodeURIComponent(redirectUrl)}`;
+export function redirectToGrudgeAuth(returnPath = "/auth/callback"): void {
+  window.location.href = buildSsoLoginUrl(window.location.origin, returnPath);
 }
+
+export { AUTH_GATEWAY };

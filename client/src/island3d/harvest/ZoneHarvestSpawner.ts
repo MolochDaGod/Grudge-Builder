@@ -25,6 +25,7 @@ import {
   resetHarvestableCrystal,
   resetSimpleHarvestNode,
 } from './HarvestFeedback';
+import { calibrateHarvestScale } from '../zoneWorldScale';
 
 export interface ZoneHarvestSpawnResult {
   trees: HarvestableTree[];
@@ -94,7 +95,7 @@ export function spawnZoneHarvestNodes(
     const [wx, , wz] = node.position;
     const y = sampleTerrainY(islandMesh, wx, wz, node.position[1]);
     const pos = new THREE.Vector3(wx, y, wz);
-    const scale = 0.75 + node.tier * 0.08;
+    const scale = calibrateHarvestScale(node.profession, node.tier);
 
     if (node.profession === 'woodcutting') {
       const tree = createHarvestableTree(pos, scale);

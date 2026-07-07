@@ -26,10 +26,14 @@ export function isGrudgeAuthenticated() {
   return !!getGrudgeToken();
 }
 
-/** Redirect to Grudge ID SSO. Returns to returnUrl after auth. */
+/** Redirect to canonical Grudge ID login (/login?redirect_uri=). */
 export function redirectToGrudgeGateway(returnUrl) {
-  const ret = returnUrl || window.location.href;
-  window.location.href = `${GRUDGE_GATEWAY_URL}/auth/sso-check?return=${encodeURIComponent(ret)}`;
+  const origin = window.location.origin;
+  const dest =
+    returnUrl && returnUrl.startsWith('http')
+      ? returnUrl
+      : `${origin}${(returnUrl || '/auth/callback').startsWith('/') ? (returnUrl || '/auth/callback') : '/' + (returnUrl || 'auth/callback')}`;
+  window.location.href = `${GRUDGE_GATEWAY_URL}/login?redirect_uri=${encodeURIComponent(dest)}`;
 }
 
 export function requireGrudgeAuth(returnUrl) {

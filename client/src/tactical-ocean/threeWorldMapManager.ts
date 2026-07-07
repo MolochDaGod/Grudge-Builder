@@ -88,7 +88,7 @@ export class ThreeWorldMapManager {
   private cameraOffset = new THREE.Vector3(0, 15, -30);
   private cameraLookOffset = new THREE.Vector3(0, 0, 20);
   
-  private worldSize = 9000;  // 3x larger world
+  private worldSize = 10000;  // matches ZONE_SIZE / Tactical Infinity deploy sectors
   
   // Day/night and weather systems
   private timeOfDay = 0.3;  // 0-1, 0.3 = morning
@@ -127,7 +127,7 @@ export class ThreeWorldMapManager {
     this.renderer.toneMappingExposure = 0.5;
     
     this.scene = new THREE.Scene();
-    this.scene.fog = new THREE.Fog(0x87ceeb, 200, 4500);  // Extended for 3x larger world
+    this.scene.fog = new THREE.Fog(0x87ceeb, 200, 5000);
     
     this.mainCamera = new THREE.PerspectiveCamera(
       60,

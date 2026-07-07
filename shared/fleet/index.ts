@@ -19,6 +19,29 @@ export {
 
 export { isFleetAllowedReturnUrl, resolveFleetReturnUrl } from "./authReturn";
 
+export {
+  FLEET_AUTH_GATEWAY,
+  FLEET_AUTH_IMPLEMENTATION,
+  FLEET_AUTH_DEPRECATED_API,
+  FLEET_AUTH_TOKEN_KEYS,
+  FLEET_AUTH_RETURN_PARAMS,
+  FLEET_AUTH_WIRING_GUIDE,
+  FLEET_AUTH_PROXY_PATHS,
+  FLEET_AUTH_RAILWAY_ROUTES,
+  buildFleetLoginUrl,
+  buildFleetSsoCheckUrl,
+  buildFleetAuthCallback,
+  buildFleetAuthLoginUrl,
+  buildAuthConnectProbes,
+  probeAuthConnectEndpoint,
+  runAuthConnectAudit,
+  FLEET_AUTH_SYMPTOM_FIXES,
+  matchAuthSymptoms,
+  type AuthConnectProbeSpec,
+  type AuthConnectProbeResult,
+  type AuthSymptomFix,
+} from "./authConnect";
+
 export { FLEET_STORAGE, FLEET_CLIENT_ENV } from "./storage";
 
 export { FLEET_VIDEO_CATALOG, type FleetVideoEntry } from "./videoCatalog";

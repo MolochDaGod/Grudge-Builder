@@ -627,7 +627,7 @@ export class Island3DEngine {
     if (this.navMesh) this.creatures.setNavMesh(this.navMesh);
   }
 
-  /** Build a full 4 km ocean sector with islands, NPCs, hazards, docks */
+  /** Build a full ocean sector (10–14 km) with islands, NPCs, hazards, docks */
   private async initZone(): Promise<void> {
     const sectorId = this.config.sectorId;
     const worldSeed = this.config.worldSeed || 'grudge-world-1';
@@ -691,15 +691,17 @@ export class Island3DEngine {
       );
     }
 
-    // 6. Camera — zoom out for the 4 km zone, center on first dock or spawn
+    // 6. Camera — zoom out for large open-sea zones
     const spawns = getNodesByCategory<SpawnPointNode>(this.zonePopulation, 'spawn_point')
       .filter(s => s.spawnType === 'player');
     const docks = getNodesByCategory<DockNode>(this.zonePopulation, 'dock');
     const entryPoint = spawns[0]?.position ?? docks[0]?.position ?? cfg.spawnPoints[0] ?? [0, 20, 0];
+    const camLift = Math.max(180, cfg.sizeMeters * 0.018);
+    const camBack = Math.max(280, cfg.sizeMeters * 0.028);
 
-    this.camera.position.set(entryPoint[0], entryPoint[1] + 150, entryPoint[2] + 250);
+    this.camera.position.set(entryPoint[0], entryPoint[1] + camLift, entryPoint[2] + camBack);
     this.controls.target.set(entryPoint[0], entryPoint[1], entryPoint[2]);
-    this.controls.maxDistance = 2000;
+    this.controls.maxDistance = Math.max(2500, cfg.sizeMeters * 0.35);
     this.controls.minDistance = 10;
     this.controls.maxPolarAngle = Math.PI * 0.85;
     this.controls.update();
@@ -735,12 +737,15 @@ export class Island3DEngine {
     // 9. Building system works in zone mode too
     this.building = new BuildingSystem(this.scene, this.camera);
 
-    // 10. Wildlife — scale to zone size
+    // 10. Wildlife — scale to zone size and biome (open sea = more ocean life)
+    const openSea = sector.biome === 'desert' || sector.biome === 'abyssal';
     this.creatures = new CreatureManager(this.scene, cfg.waterLevel, sectorId.length + 99);
     if (firstIslandMesh) {
-      this.creatures.spawnLandCreatures(firstIslandMesh, 12, cfg.sizeMeters * 0.3);
+      const landCount = openSea ? 8 : 14;
+      this.creatures.spawnLandCreatures(firstIslandMesh, landCount, cfg.sizeMeters * 0.28);
     }
-    this.creatures.spawnFish(8, cfg.sizeMeters * 0.4);
+    const fishCount = openSea ? 18 : 10;
+    this.creatures.spawnFish(fishCount, cfg.sizeMeters * 0.45);
 
     console.log(
       `[Island3DEngine] Zone "${sector.name}" loaded:`,

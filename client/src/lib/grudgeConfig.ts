@@ -8,7 +8,7 @@
  * but production defaults point at the canonical Cloudflare-backed domains.
  */
 
-import { FLEET_URLS } from '@shared/fleet';
+import { FLEET_URLS, buildFleetAuthLoginUrl } from '@shared/fleet';
 import { resolveObjectStoreApiBase } from './objectStoreUrl';
 
 const env = (import.meta as any).env ?? {};
@@ -212,19 +212,31 @@ export function buildDiscordOAuthUrl(returnUrl: string): string {
 }
 
 /**
- * Build a full SSO login URL that sends the user to `id.grudge-studio.com`
- * for authentication and redirects back to this app's `/auth/callback` with:
- *   ?sso_token=JWT&grudge_id=GRDG-XXXX&grudge_username=Player
+ * Canonical Grudge ID login URL — id.grudge-studio.com/login?redirect_uri=…
+ * After sign-in, auth-page returns ?grudge_token= on the callback URL.
  *
- * Any Grudge Studio app can use this to initiate the centralized SSO flow.
+ * Set preferSsoCheck=true only after `npx tsx scripts/probe-fleet-auth.ts` passes id-sso-check.
  */
-export function buildSsoLoginUrl(returnOrigin?: string, returnPath = '/auth/callback'): string {
-  const origin = (returnOrigin || (typeof window !== 'undefined' ? window.location.origin : 'https://grudgewarlords.com'))
-    .replace(/\/$/, '');
-  const redirectUri = returnOrigin?.includes('/auth/callback') || returnOrigin?.startsWith('http')
-    ? (returnOrigin || `${origin}${returnPath.startsWith('/') ? returnPath : `/${returnPath}`}`)
-    : `${origin}${returnPath.startsWith('/') ? returnPath : `/${returnPath}`}`;
-  return `${AUTH_GATEWAY}/auth/sso-check?return=${encodeURIComponent(redirectUri)}`;
+export function buildSsoLoginUrl(
+  returnOrigin?: string,
+  returnPath = '/auth/callback',
+  preferSsoCheck = false,
+): string {
+  const origin = (
+    returnOrigin?.startsWith('http')
+      ? new URL(returnOrigin).origin
+      : returnOrigin ||
+        (typeof window !== 'undefined' ? window.location.origin : 'https://grudgewarlords.com')
+  ).replace(/\/$/, '');
+  const path =
+    returnOrigin?.startsWith('http') && returnOrigin.includes('/')
+      ? new URL(returnOrigin).pathname + new URL(returnOrigin).search
+      : returnPath;
+  return buildFleetAuthLoginUrl(origin, {
+    path,
+    gateway: AUTH_GATEWAY,
+    preferSsoCheck,
+  });
 }
 
 /** LocalStorage keys — kept centralized so logout/purge logic cannot miss any. */

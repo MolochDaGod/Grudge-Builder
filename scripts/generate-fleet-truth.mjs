@@ -22,6 +22,13 @@ const {
 const { TRUTH_PROBE_SPECS, TRUTH_DEPRECATED_HOSTS } = await import(
   "../shared/fleet/truthProbes.ts"
 );
+const {
+  FLEET_AUTH_WIRING_GUIDE,
+  FLEET_AUTH_RAILWAY_ROUTES,
+  FLEET_AUTH_PROXY_PATHS,
+  FLEET_AUTH_SYMPTOM_FIXES,
+  buildAuthConnectProbes,
+} = await import("../shared/fleet/authConnect.ts");
 
 const args = process.argv.slice(2);
 const outIdx = args.indexOf("--out");
@@ -152,12 +159,23 @@ const payload = {
   identity: {
     portal: IDENTITY_PORTAL,
     authGateway: FLEET_URLS.auth,
+    authImplementation: FLEET_URLS.gameData,
     engineRailway: THE_ENGINE_RAILWAY,
+    canonicalLogin: `${FLEET_URLS.auth}/login?redirect_uri=<callback-url>`,
+    canonicalCallback: "<app-origin>/auth/callback?grudge_token=<jwt>",
+    bootstrapScript: `${FLEET_URLS.auth}/grudge-game-bootstrap.js`,
+    routes: FLEET_AUTH_RAILWAY_ROUTES,
+    proxyPaths: FLEET_AUTH_PROXY_PATHS,
+    wiring: FLEET_AUTH_WIRING_GUIDE,
+    authProbes: buildAuthConnectProbes().map((p) => p.id),
+    probeAuth: "npx tsx scripts/probe-fleet-auth.ts",
+    symptomFixes: FLEET_AUTH_SYMPTOM_FIXES,
   },
   verify: {
     cli: "npx tsx scripts/verify-fleet-truth.mjs --mode cli",
     browser: "npx tsx scripts/verify-fleet-truth.mjs --mode browser",
     direct: "npx tsx scripts/probe-truth-fleet.ts",
+    auth: "npx tsx scripts/probe-fleet-auth.ts",
     grudge6FleetUrls: "node scripts/validate-fleet-urls.mjs",
     minScore: 85,
   },

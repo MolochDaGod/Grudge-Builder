@@ -3,6 +3,15 @@ import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import path from "path";
 import type { Plugin } from "vite";
+import {
+  tryResolveGrudgeMonorepoRoot,
+  grudgeGameAliasEntries,
+} from "./client/vite/grudgeGameIntegration";
+
+const repoRoot = import.meta.dirname;
+const clientDir = path.resolve(repoRoot, "client");
+const monorepoRoot = tryResolveGrudgeMonorepoRoot(repoRoot);
+const grudgeAliases = grudgeGameAliasEntries(repoRoot, clientDir);
 
 /**
  * Packages that compile THREE as a bare global variable (not via require/import).
@@ -97,16 +106,22 @@ export default defineConfig({
     tailwindcss(),
   ],
   resolve: {
-    alias: {
-      "@": path.resolve(import.meta.dirname, "client", "src"),
-      "@shared": path.resolve(import.meta.dirname, "shared"),
-      "@assets": path.resolve(import.meta.dirname, "attached_assets"),
+    alias: [
+      ...grudgeAliases,
+      { find: "@shared", replacement: path.resolve(repoRoot, "shared") },
+      { find: "@assets", replacement: path.resolve(repoRoot, "attached_assets") },
       // three/webgpu was added in r167+; our pinned v0.160 doesn't have it.
-      // Alias to stub module that exports dummy WebGPURenderer + re-exports three.
-      "three/webgpu": path.resolve(import.meta.dirname, "client/src/lib/three-webgpu-stub.js"),
-      "three/tsl": path.resolve(import.meta.dirname, "client/src/lib/three-webgpu-stub.js"),
-    },
-    extensions: ['.mjs', '.js', '.mts', '.ts', '.jsx', '.tsx', '.json']
+      {
+        find: "three/webgpu",
+        replacement: path.resolve(repoRoot, "client/src/lib/three-webgpu-stub.js"),
+      },
+      {
+        find: "three/tsl",
+        replacement: path.resolve(repoRoot, "client/src/lib/three-webgpu-stub.js"),
+      },
+    ],
+    extensions: ['.mjs', '.js', '.mts', '.ts', '.jsx', '.tsx', '.json'],
+    dedupe: ["react", "react-dom"],
   },
   css: {
     postcss: {
@@ -117,7 +132,8 @@ export default defineConfig({
   publicDir: path.resolve(import.meta.dirname, "client", "public"),
   build: {
     outDir: path.resolve(import.meta.dirname, "client/dist"),
-    emptyOutDir: true,
+    // Pre-cleaned in script/build.ts; emptyOutDir races on Windows (ENOTEMPTY).
+    emptyOutDir: false,
     copyPublicDir: true,
     commonjsOptions: {
       // Allow packages that use THREE as a global to resolve it
@@ -161,6 +177,7 @@ export default defineConfig({
     fs: {
       strict: true,
       deny: ["**/.*"],
+      allow: monorepoRoot ? [repoRoot, monorepoRoot] : [repoRoot],
     },
     proxy: {
       // R2 asset CDN — forward directly to Cloudflare R2 (must come before /api catch-all)

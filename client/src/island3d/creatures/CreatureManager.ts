@@ -30,6 +30,7 @@ import { resolveCotwAnimations } from './cotwAnimResolver';
 import { CreatureBrain } from './CreatureBrain';
 import { getTerrainHeightAt } from '../terrain/IslandTerrainGenerator';
 import type { TerrainNavMesh } from '../navigation/TerrainNavMesh';
+import { WILDLIFE_SIZE_FACTOR } from '../zoneWorldScale';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -262,7 +263,7 @@ export class CreatureManager {
       const loaded = await loadCharacterModel(instance.def.modelPath);
       instance.model = loaded;
 
-      loaded.scene.scale.setScalar(instance.def.scale);
+      loaded.scene.scale.setScalar(instance.def.scale * WILDLIFE_SIZE_FACTOR);
       loaded.scene.traverse((child) => {
         if ((child as THREE.Mesh).isMesh) {
           child.castShadow = true;

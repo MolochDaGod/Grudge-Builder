@@ -1,5 +1,5 @@
 /**
- * ZoneSceneBuilder — assembles a full Three.js scene for a 4 km × 4 km ocean sector.
+ * ZoneSceneBuilder — assembles a full Three.js scene for a 10–14 km ocean sector.
  *
  * Takes a WorldSector definition + ZonePopulation and builds:
  *   1. Ocean water plane (sector-tinted)
@@ -111,12 +111,13 @@ export function buildZoneScene(
   );
   sunLight.castShadow = true;
   sunLight.shadow.mapSize.set(2048, 2048);
-  sunLight.shadow.camera.left = -600;
-  sunLight.shadow.camera.right = 600;
-  sunLight.shadow.camera.top = 600;
-  sunLight.shadow.camera.bottom = -600;
+  const shadowExtent = Math.max(800, half * 0.85);
+  sunLight.shadow.camera.left = -shadowExtent;
+  sunLight.shadow.camera.right = shadowExtent;
+  sunLight.shadow.camera.top = shadowExtent;
+  sunLight.shadow.camera.bottom = -shadowExtent;
   sunLight.shadow.camera.near = 1;
-  sunLight.shadow.camera.far = 1500;
+  sunLight.shadow.camera.far = Math.max(2000, cfg.sizeMeters * 0.25);
   sunLight.shadow.bias = -0.0005;
   root.add(sunLight);
 

@@ -11,7 +11,7 @@ import { authHeaders } from '@/lib/grudgeBackend';
 import { normalizeHomeIslandResponse } from '@/lib/homeIslandApi';
 import { characterAPI } from '@/lib/api';
 import { WORLD_SECTORS, getSectorById } from '@shared/definitions/worldMapSectors';
-import { Loader2, Users, ExternalLink } from 'lucide-react';
+import { Loader2, Users, ExternalLink, Ship, Anchor } from 'lucide-react';
 import { clearTopDownCache } from '@/island3d/render/IslandTopDownCapture';
 import { useZoneColyseus } from '@/hooks/use-zone-colyseus';
 import type { PlayerInfo } from '@/hooks/use-colyseus';
@@ -182,6 +182,7 @@ function Island3DLegacyPage() {
     params.get('worldSeed') || 'grudge-world-1',
   );
   const zoneMultiplayer = params.get('solo') !== '1';
+  const fromOcean = params.get('from') === 'ocean';
   const [_, navigate] = useLocation();
   const engineRef = useRef<Island3DEngine | null>(null);
   const [engine, setEngine] = useState<Island3DEngine | null>(null);
@@ -371,6 +372,16 @@ function Island3DLegacyPage() {
         >
           Studio Editor
         </a>
+        {mode === 'zone' && (
+          <a
+            href={`/ocean?worldSeed=${encodeURIComponent(worldSeed)}`}
+            className="text-xs text-amber-500/80 hover:text-amber-400 underline inline-flex items-center gap-1"
+            title="Tactical Infinity open ocean"
+          >
+            <Ship className="w-3 h-3" />
+            Tactical Sea
+          </a>
+        )}
         {mode === 'zone' && zoneMultiplayer && (
           <div className="flex items-center gap-1.5 text-xs text-slate-400">
             <Users className="w-3.5 h-3.5" />
@@ -487,12 +498,25 @@ function Island3DLegacyPage() {
           onHarvest={mode === 'zone' && zoneMultiplayer ? handleZoneHarvest : undefined}
         />
         {mode === 'zone' && activeSector && (
-          <div className="absolute top-4 left-4 bg-black/70 backdrop-blur border border-purple-800/50 rounded-xl px-4 py-3 text-xs text-slate-300 space-y-1 pointer-events-none max-w-xs">
+          <div className="absolute top-4 left-4 bg-black/70 backdrop-blur border border-purple-800/50 rounded-xl px-4 py-3 text-xs text-slate-300 space-y-1 max-w-xs">
             <div className="text-purple-300 font-bold uppercase tracking-widest">{activeSector.name}</div>
-            <div className="text-slate-400">{activeSector.description}</div>
-            <div>Lv {activeSector.difficultyMin}–{activeSector.difficultyMax} · {activeSector.biome}</div>
+            <div className="text-slate-400 pointer-events-none">{activeSector.description}</div>
+            <div className="pointer-events-none">
+              Lv {activeSector.difficultyMin}–{activeSector.difficultyMax} · {activeSector.biome}
+              {' · '}{(activeSector.terrain3d.sizeMeters / 1000).toFixed(0)} km zone
+            </div>
+            <div className="text-slate-500 pointer-events-none">World: {worldSeed}</div>
+            {fromOcean && (
+              <a
+                href={`/ocean?worldSeed=${encodeURIComponent(worldSeed)}`}
+                className="inline-flex items-center gap-1.5 mt-2 text-amber-400 hover:text-amber-300 pointer-events-auto"
+              >
+                <Anchor className="w-3.5 h-3.5" />
+                Return to Tactical Infinity
+              </a>
+            )}
             {zoneColyseus.error && (
-              <div className="text-red-400 mt-1">{zoneColyseus.error}</div>
+              <div className="text-red-400 mt-1 pointer-events-none">{zoneColyseus.error}</div>
             )}
           </div>
         )}

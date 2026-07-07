@@ -85,9 +85,9 @@
     return chain;
   }
 
+  /** Canonical login — /login?redirect_uri= (always works when id rewrites are correct). */
   function login(returnUrl) {
-    var ret = returnUrl || global.location.href;
-    global.location.href = GATEWAY + '/auth/sso-check?return=' + encodeURIComponent(ret);
+    loginPage(returnUrl);
   }
 
   function loginPage(returnPath) {

@@ -238,7 +238,7 @@ export function TacticalOceanScene({ onBackToMenu, onLandOnIsland }: TacticalOce
     state.playerPosition.z += windMovement.z;
     
     // Clamp to world bounds
-    const worldHalf = 4400;  // Slightly less than half of 9000
+    const worldHalf = 4900;  // Slightly less than half of 10 km tactical ocean
     state.playerPosition.x = Math.max(-worldHalf, Math.min(worldHalf, state.playerPosition.x));
     state.playerPosition.z = Math.max(-worldHalf, Math.min(worldHalf, state.playerPosition.z));
     

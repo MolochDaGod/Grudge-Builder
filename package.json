@@ -31,6 +31,7 @@
     "seed:rag": "node scripts/seed-anythingllm.mjs",
     "probe:truth": "tsx scripts/probe-truth-fleet.ts --base https://client.grudge-studio.com",
     "probe:truth:direct": "tsx scripts/probe-truth-fleet.ts",
+    "probe:auth": "tsx scripts/probe-fleet-auth.ts",
     "probe:deployments": "node scripts/probe-deployments.mjs",
     "probe:all": "node scripts/probe-deployments.mjs --truth",
     "production:optimize-glb": "tsx scripts/optimize-glb.ts",

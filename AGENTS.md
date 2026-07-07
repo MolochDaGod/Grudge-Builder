@@ -15,10 +15,14 @@ Created by **Racalvin The Pirate King**. 2D/Canvas game client with React + Vite
 ### API Routing (Vercel → Grudge Backend)
 All API calls go through Vercel rewrites in `vercel.json`:
 
-**Auth (id.grudge-studio.com)**:
-- `/api/auth/*` → auth service
-- `/api/login`, `/api/register`, `/api/guest` → auth endpoints
-- `/api/discord-login`, `/api/oauth-google`, `/api/oauth-github` → OAuth
+**Auth (id.grudge-studio.com)** — canonical map in `shared/fleet/authConnect.ts`:
+- **Browser login**: `id.grudge-studio.com/login?redirect_uri=<app>/auth/callback` (NOT `/auth/sso-check` until probe passes)
+- **Drop-in script**: `id.grudge-studio.com/grudge-game-bootstrap.js` → `GrudgeAuth.loginPage('/auth/callback')`
+- **Implementation**: Railway `grudge-api-production` (`server/routes/auth.ts`) — id Vercel rewrites proxy here
+- **Satellite apps**: `buildFleetSatelliteRewrites()` — `/api/auth/*` → id, `/api/characters` → Railway
+- **id hub**: `buildFleetHubAuthRewrites()` — `/auth/:path*` → Railway `/api/auth/:path*`
+- **Deprecated**: `api.grudge-studio.com` — do not use for auth (split-brain 404s)
+- **Audit**: `npm run probe:auth` — shows per-endpoint fixes when routing is wrong
 
 **Game Data API (Railway — Postgres SSOT)**:
 - `/api/characters/*` → character CRUD (canonical — use this, not `/api/game/characters`)
@@ -113,7 +117,7 @@ Frontend pages using these MUST use `BackendRequired` component for graceful deg
 | Game Client | grudgewarlords.com | Vercel |
 | Dashboard | dash.grudge-studio.com | Vercel |
 | Game API | grudge-api-production (Railway Postgres) | Railway |
-| Auth / Identity | id.grudge-studio.com | Cloudflare Workers |
+| Auth / Identity | id.grudge-studio.com | Vercel (GrudgeBuilder alias) → Railway auth |
 | Account API | account.grudge-studio.com | Cloudflare Workers |
 | Asset CDN | assets.grudge-studio.com | Cloudflare R2 CDN |
 | ObjectStore API | objectstore.grudge-studio.com | Cloudflare Worker (R2 + D1) |

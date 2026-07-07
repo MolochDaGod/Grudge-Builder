@@ -3,6 +3,59 @@ import { build as viteBuild } from "vite";
 import { rm, readFile, cp } from "fs/promises";
 import path from "path";
 
+const TRANSIENT_IO_CODES = new Set(["EBUSY", "ENOENT", "EPERM", "EACCES", "ENOTEMPTY"]);
+
+function isTransientIoError(err: unknown): boolean {
+  const code = (err as NodeJS.ErrnoException | undefined)?.code;
+  return typeof code === "string" && TRANSIENT_IO_CODES.has(code);
+}
+
+/** Windows-safe recursive delete (retries on EPERM/ENOTEMPTY). */
+async function removeDirSafe(target: string, retries = 5): Promise<void> {
+  const { existsSync } = await import("fs");
+  if (!existsSync(target)) return;
+
+  for (let attempt = 0; attempt < retries; attempt++) {
+    try {
+      await rm(target, { recursive: true, force: true, maxRetries: 3, retryDelay: 200 });
+      return;
+    } catch (e: any) {
+      if (attempt === retries - 1) throw e;
+      await new Promise((r) => setTimeout(r, 300 * (attempt + 1)));
+    }
+  }
+}
+
+/** Copy tree with retries for transient Windows file-lock races. */
+async function copyDirSafe(src: string, dest: string, retries = 5): Promise<void> {
+  for (let attempt = 0; attempt < retries; attempt++) {
+    try {
+      await cp(src, dest, { recursive: true, dereference: true });
+      return;
+    } catch (e: any) {
+      if (!isTransientIoError(e) || attempt === retries - 1) throw e;
+      await new Promise((r) => setTimeout(r, 500 * (attempt + 1)));
+    }
+  }
+}
+
+/** Retry Vite when Windows locks public assets during prepare-out-dir. */
+async function viteBuildSafe(retries = 4): Promise<void> {
+  for (let attempt = 0; attempt < retries; attempt++) {
+    try {
+      await viteBuild();
+      return;
+    } catch (e: any) {
+      const msg = String(e?.message ?? e);
+      const transient = isTransientIoError(e) || /EBUSY|ENOTEMPTY|prepare-out-dir/i.test(msg);
+      if (!transient || attempt === retries - 1) throw e;
+      console.warn(`vite build retry ${attempt + 1}/${retries - 1}: ${msg}`);
+      await removeDirSafe("client/dist");
+      await new Promise((r) => setTimeout(r, 800 * (attempt + 1)));
+    }
+  }
+}
+
 // Native / binary modules that must never be bundled
 const nativeModules = [
   "node-sass",
@@ -46,21 +99,28 @@ const allowlist = [
 ];
 
 async function buildAll() {
-  await rm("dist", { recursive: true, force: true });
+  await removeDirSafe("dist");
 
   // Client build: skip gracefully if client/ directory is absent (Railway deploys server-only)
-  try {
-    const { existsSync, rmSync } = await import("fs");
-    if (existsSync("client")) {
-      console.log("cleaning client/dist for build...");
-      try { rmSync("client/dist", { recursive: true, force: true }); } catch (e: any) { console.warn("client dist clean:", e.message); }
-      console.log("building client...");
-      await viteBuild();
-    } else {
-      console.log("client/ not found — skipping Vite build (server-only deploy)");
+  const { existsSync } = await import("fs");
+  let clientBuilt = false;
+  if (existsSync("client")) {
+    console.log("cleaning client/dist for build...");
+    await removeDirSafe("client/dist");
+    await new Promise((r) => setTimeout(r, 400));
+    console.log("building client...");
+    try {
+      await viteBuildSafe();
+      clientBuilt = existsSync("client/dist/index.html");
+      if (!clientBuilt) {
+        throw new Error("Vite finished but client/dist/index.html is missing");
+      }
+    } catch (e: any) {
+      console.error("client build failed:", e.message);
+      process.exit(1);
     }
-  } catch (e: any) {
-    console.warn("client build skipped:", e.message);
+  } else {
+    console.log("client/ not found — skipping Vite build (server-only deploy)");
   }
 
   console.log("building server...");
@@ -93,16 +153,17 @@ async function buildAll() {
 
   // Copy client build output into dist/public so server/static.ts can find it.
   // static.ts resolves path.resolve(__dirname, "public") → dist/public in prod.
-  try {
-    const { existsSync } = await import("fs");
-    if (existsSync("client/dist")) {
-      console.log("copying client dist → dist/public...");
-      await cp("client/dist", "dist/public", { recursive: true });
-    } else {
-      console.log("no client/dist — server-only deploy (no static files)");
+  if (clientBuilt) {
+    console.log("copying client dist → dist/public...");
+    await removeDirSafe("dist/public");
+    try {
+      await copyDirSafe("client/dist", "dist/public");
+    } catch (e: any) {
+      console.error("client copy failed:", e.message);
+      process.exit(1);
     }
-  } catch (e: any) {
-    console.warn("client copy skipped:", e.message);
+  } else if (!existsSync("client")) {
+    console.log("no client/dist — server-only deploy (no static files)");
   }
 }
 

@@ -6,7 +6,7 @@
  * identical node layouts from the same seed so the server never needs to
  * send the full list — only deltas (harvested, killed, captured, etc.).
  *
- * A "zone" is one 4 km × 4 km ocean sector containing:
+ * A "zone" is one 10 km × 10 km ocean sector (up to 14 km for open-sea biomes) containing:
  *   - Multiple islands (procedural terrain patches above water level)
  *   - Open ocean with sailing hazards and sea creatures
  *   - Docking points, shipwrecks, reefs, whirlpools
@@ -431,6 +431,21 @@ function prng(seed: number): () => number {
   };
 }
 
+type ZoneLayoutProfile = 'open_sea' | 'archipelago' | 'balanced';
+
+function layoutProfileForBiome(biome: string): ZoneLayoutProfile {
+  switch (biome) {
+    case 'desert':
+    case 'abyssal':
+      return 'open_sea';
+    case 'tropical':
+    case 'forest':
+      return 'archipelago';
+    default:
+      return 'balanced';
+  }
+}
+
 /**
  * Generate the initial zone population from a sector definition + world seed.
  * Deterministic — server and client produce identical results.
@@ -476,7 +491,12 @@ export function generateZonePopulation(
 
   // ── Islands ──────────────────────────────────────────────
   const avgDiff = (difficultyMin + difficultyMax) / 2;
-  const islandCount = Math.floor(4 + avgDiff * 1.2 + rng() * 3);
+  const layout = layoutProfileForBiome(biome);
+  const islandCount = layout === 'open_sea'
+    ? Math.floor(2 + avgDiff * 0.45 + rng() * 2)
+    : layout === 'archipelago'
+      ? Math.floor(6 + avgDiff * 1.4 + rng() * 4)
+      : Math.floor(4 + avgDiff * 1.2 + rng() * 3);
   const sizes: IslandSize[] = ['atoll', 'small', 'medium', 'large', 'fortress'];
   const sizeRadii: Record<IslandSize, number> = {
     atoll: 60, small: 120, medium: 220, large: 380, fortress: 500,
@@ -691,7 +711,11 @@ export function generateZonePopulation(
   // ── Ocean Features ─────────────────────────────────────────
 
   // Fishing spots scattered in open water
-  const fishSpotCount = 4 + Math.floor(rng() * 6);
+  const fishSpotCount = layout === 'open_sea'
+    ? 10 + Math.floor(rng() * 12)
+    : layout === 'archipelago'
+      ? 3 + Math.floor(rng() * 4)
+      : 4 + Math.floor(rng() * 6);
   for (let f = 0; f < fishSpotCount; f++) {
     const fId = nextId('fish');
     const fNode: HarvestNode = {
@@ -713,7 +737,9 @@ export function generateZonePopulation(
   }
 
   // Shipwrecks
-  const wreckCount = 1 + Math.floor(rng() * 3);
+  const wreckCount = layout === 'open_sea'
+    ? 2 + Math.floor(rng() * 4)
+    : 1 + Math.floor(rng() * 3);
   for (let s = 0; s < wreckCount; s++) {
     const sId = nextId('wreck');
     const wreck: ShipwreckNode = {
@@ -732,12 +758,15 @@ export function generateZonePopulation(
   }
 
   // Ocean hazards
-  const hazardCount = Math.floor(avgDiff * 0.8 + rng() * 3);
+  const hazardCount = layout === 'open_sea'
+    ? Math.floor(avgDiff * 1.2 + rng() * 5)
+    : Math.floor(avgDiff * 0.8 + rng() * 3);
   const hazardTypes: OceanHazardNode['hazardType'][] = [
     'whirlpool', 'reef', 'storm_cell', 'mist_zone', 'current_rip',
   ];
   if (biome === 'ethereal') hazardTypes.push('luminous_vortex');
   if (biome === 'abyssal') hazardTypes.push('sea_monster_lair');
+  if (biome === 'desert') hazardTypes.push('storm_cell', 'mist_zone');
 
   for (let h = 0; h < hazardCount; h++) {
     const hId = nextId('hazard');
@@ -757,7 +786,9 @@ export function generateZonePopulation(
   }
 
   // Sea creatures
-  const creatureCount = 2 + Math.floor(rng() * avgDiff);
+  const creatureCount = layout === 'open_sea'
+    ? 4 + Math.floor(rng() * avgDiff * 2.2)
+    : 2 + Math.floor(rng() * avgDiff);
   for (let c = 0; c < creatureCount; c++) {
     const cId = nextId('creature');
     const creature: SeaCreatureNode = {
@@ -769,7 +800,7 @@ export function generateZonePopulation(
       difficulty: difficultyMin + Math.floor(rng() * (difficultyMax - difficultyMin)),
       templateId: `sea_${biome}_${Math.floor(rng() * 4)}`,
       level: difficultyMin + Math.floor(rng() * (difficultyMax - difficultyMin)),
-      swimRadius: 200 + rng() * 400,
+      swimRadius: layout === 'open_sea' ? 400 + rng() * 800 : 200 + rng() * 400,
       surfaces: rng() > 0.4,
       hostileToShips: rng() > 0.5 && avgDiff > 4,
     };
@@ -777,7 +808,9 @@ export function generateZonePopulation(
   }
 
   // Ship patrols (AI faction ships sailing the zone)
-  const patrolCount = Math.floor(1 + avgDiff * 0.4);
+  const patrolCount = layout === 'open_sea'
+    ? Math.floor(2 + avgDiff * 0.7)
+    : Math.floor(1 + avgDiff * 0.4);
   for (let p = 0; p < patrolCount; p++) {
     const pId = nextId('patrol');
     const wp1 = randInZone();

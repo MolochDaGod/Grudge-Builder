@@ -20,7 +20,11 @@ export function buildPlayUrl(sectorId: string, worldSeed = 'grudge-world-1'): st
   return `/play?sector=${encodeURIComponent(zone)}&worldSeed=${encodeURIComponent(worldSeed)}`;
 }
 
-export function buildZoneUrl(sectorId: string, worldSeed = 'grudge-world-1'): string {
+export function buildZoneUrl(
+  sectorId: string,
+  worldSeed = 'grudge-world-1',
+  options?: { fromOcean?: boolean },
+): string {
   const zone = resolveDeploySectorId(sectorId);
   const params = new URLSearchParams({
     engine: 'legacy',
@@ -28,6 +32,7 @@ export function buildZoneUrl(sectorId: string, worldSeed = 'grudge-world-1'): st
     sector: zone,
     worldSeed,
   });
+  if (options?.fromOcean) params.set('from', 'ocean');
   return `/island-3d?${params.toString()}`;
 }
 
@@ -53,7 +58,7 @@ export function buildOceanDeployUrl(
 ): string {
   switch (target) {
     case 'zone':
-      return buildZoneUrl(sectorId, worldSeed);
+      return buildZoneUrl(sectorId, worldSeed, { fromOcean: true });
     case 'town': {
       const town = buildTownUrl(sectorId);
       return town ?? buildPlayUrl(sectorId, worldSeed);
@@ -65,17 +70,20 @@ export function buildOceanDeployUrl(
   }
 }
 
-/** 9-sector anchor positions on the tactical ocean (9000×9000 world). */
+/** Tactical Infinity ocean diameter (meters) — matches ZONE_SIZE in worldMapSectors. */
+export const TACTICAL_OCEAN_SIZE = 10_000;
+
+/** 9-sector anchor positions on the tactical ocean (10 km × 10 km world). */
 export const OCEAN_SECTOR_POSITIONS: Record<LegacySectorId, { x: number; z: number; radius: number }> = {
-  NW: { x: -2800, z: -2800, radius: 120 },
-  N: { x: 0, z: -3000, radius: 130 },
-  NE: { x: 2800, z: -2800, radius: 120 },
-  W: { x: -3000, z: 0, radius: 125 },
-  CENTER: { x: 0, z: 0, radius: 150 },
-  E: { x: 3000, z: 0, radius: 125 },
-  SW: { x: -2800, z: 2800, radius: 120 },
-  S: { x: 0, z: 3000, radius: 130 },
-  SE: { x: 2800, z: 2800, radius: 120 },
+  NW: { x: -3100, z: -3100, radius: 140 },
+  N: { x: 0, z: -3300, radius: 150 },
+  NE: { x: 3100, z: -3100, radius: 140 },
+  W: { x: -3300, z: 0, radius: 145 },
+  CENTER: { x: 0, z: 0, radius: 170 },
+  E: { x: 3300, z: 0, radius: 145 },
+  SW: { x: -3100, z: 3100, radius: 140 },
+  S: { x: 0, z: 3300, radius: 150 },
+  SE: { x: 3100, z: 3100, radius: 140 },
 };
 
 export function sectorLabel(sectorId: string): string {

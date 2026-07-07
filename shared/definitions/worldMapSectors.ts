@@ -29,7 +29,7 @@
 // ── 3D Terrain Configuration ─────────────────────────────────────────────────
 
 export interface ZoneTerrain3DConfig {
-  /** World-space size in meters (each axis). Default 4000 = 4km × 4km */
+  /** World-space size in meters (each axis). Default 10000 = 10 km × 10 km */
   sizeMeters: number;
   /** Heightmap grid resolution per axis (vertices = segments + 1) */
   segments: number;
@@ -129,7 +129,7 @@ export interface WorldSector {
 // ── Sector Grid Layout ───────────────────────────────────────────────────────
 
 const SECTOR_SIZE = 34; // ~33 tiles per sector, last sector absorbs remainder
-const ZONE_SIZE = 10_000; // canonical: matches worldSectors.ts SECTOR_SIZE // 4km × 4km per zone in world-space meters
+const ZONE_SIZE = 10_000; // canonical: matches Tactical Infinity ocean + worldSectors SECTOR_SIZE
 const ZONE_SEGMENTS = 255; // 256×256 vertex grid (good LOD balance)
 const ZONE_MAX_PLAYERS = 64; // default concurrent players
 
@@ -301,6 +301,7 @@ export const WORLD_SECTORS: WorldSector[] = [
     ambientFx: ['dust_swirl', 'heat_shimmer', 'sand_particles'],
     resources: ['gold_ore', 'ancient_relics', 'scorpion_venom', 'glass_shards', 'cactus'],
     terrain3d: defaultTerrain3d({
+      sizeMeters: 14_000,
       minHeight: -15,
       maxHeight: 100,
       waterLevel: -10,
@@ -308,11 +309,17 @@ export const WORLD_SECTORS: WorldSector[] = [
       noiseBaseFreq: 0.0005,
       heightmapModifier: 'desert_dunes',
       skyColor: 0xd4a574,
-      fog: { color: 0xc4956a, density: 0.0003 },
+      fog: { color: 0xc4956a, density: 0.00022 },
       ambientIntensity: 0.8,
       sunIntensity: 1.6,
       sunDirection: [0.5, 0.9, 0.2],
-      spawnPoints: [[0, 5, 0], [-800, 8, -800], [900, 12, 500]],
+      spawnPoints: [
+        [0, 5, 0],
+        [-2200, 8, -1800],
+        [2400, 12, 1200],
+        [-900, 6, 3200],
+        [1800, 10, -2800],
+      ],
     }),
     imagery: {
       backgroundUrl: '/backgrounds/dark-fantasy-5.png',

@@ -24,6 +24,7 @@ interface LandedSector {
 export default function OceanPage() {
   const [, setLocation] = useLocation();
   const [landed, setLanded] = useState<LandedSector | null>(null);
+  const worldSeed = new URLSearchParams(window.location.search).get('worldSeed') || 'grudge-world-1';
 
   const zone = landed ? getSectorById(resolveDeploySectorId(landed.id)) : null;
   const townUrl = landed ? buildTownUrl(landed.id) : null;
@@ -65,7 +66,7 @@ export default function OceanPage() {
             <div className="grid gap-2">
               <Button
                 className="w-full bg-purple-700 hover:bg-purple-600 font-cinzel"
-                onClick={() => setLocation(buildOceanDeployUrl(landed.id, 'play'))}
+                onClick={() => setLocation(buildOceanDeployUrl(landed.id, 'play', worldSeed))}
               >
                 <Swords className="w-4 h-4 mr-2" />
                 Enter Open World (PvP Sector)
@@ -73,7 +74,7 @@ export default function OceanPage() {
               <Button
                 variant="outline"
                 className="w-full border-emerald-700/50 text-emerald-300 hover:bg-emerald-950/40"
-                onClick={() => setLocation(buildOceanDeployUrl(landed.id, 'zone'))}
+                onClick={() => setLocation(buildOceanDeployUrl(landed.id, 'zone', worldSeed))}
               >
                 <Globe className="w-4 h-4 mr-2" />
                 Explore 3D Zone (Solo)
@@ -91,7 +92,8 @@ export default function OceanPage() {
             </div>
 
             <p className="text-[11px] text-slate-500 text-center">
-              Tactical Infinity sailing · deploys to grudgewarlords.com live servers
+              Tactical Infinity · world <span className="text-slate-400">{worldSeed}</span>
+              {' · '}deploys to client.grudge-studio.com 3D zones
             </p>
           </div>
         </div>
