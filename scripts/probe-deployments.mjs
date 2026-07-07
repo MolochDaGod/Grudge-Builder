@@ -37,7 +37,7 @@ const TARGETS = [
   { group: "auth",     url: "https://id.grudge-studio.com" },
   { group: "backend",  url: "https://api.grudge-studio.com/api/health" },
   { group: "backend",  url: "https://api.grudge-studio.com/health" },
-  { group: "backend",  url: "https://account.grudge-studio.com/health" },
+  { group: "backend",  url: "https://grudge-api-production-0d46.up.railway.app/api/health" },
   { group: "assets",   url: "https://assets.grudge-studio.com" },
   { group: "assets",   url: "https://objectstore.grudge-studio.com/health" },
   { group: "assets",   url: "https://grudge-objectstore.pages.dev/api/v1/master-items.json" },
