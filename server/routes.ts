@@ -261,6 +261,9 @@ export async function registerRoutes(
   registerWalletRoutes(app);
   registerTreatyRoutes(app);
 
+  const { registerMeRoutes } = await import("./routes/me");
+  registerMeRoutes(app);
+
   const { registerDiscordInteractionRoutes, registerDiscordCommands } = await import("./discordInteractions");
   registerDiscordInteractionRoutes(app);
   registerDiscordCommands().catch((e) => console.warn("[Discord] Boot registration skipped:", e?.message));
