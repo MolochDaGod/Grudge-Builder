@@ -6,7 +6,9 @@ node_modules
 .venv
 target
 server
-script
+# Keep build helpers used by npm run build:client (rest of script/ is server-only)
+script/**
+!script/copy-public-to-dist.mjs
 scripts
 db
 attached_assets
