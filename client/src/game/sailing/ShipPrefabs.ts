@@ -31,8 +31,22 @@ export const SHIP_MODEL_PATHS = {
   pirateMedium: '/models/ships/ship-pirate-medium.glb',
   pirateLarge: '/models/ships/ship-pirate-large.glb',
   ghost: '/models/ships/ship-ghost.glb',
-  wreck: '/models/ships/ship-wreck.glb'
+  wreck: '/models/ships/ship-wreck.glb',
+  /** Enemy combat ships — damage states from dangerroom ship/state_{0,1,2}.glb */
+  enemyHealthy: '/models/ships/enemy/healthy.glb',
+  enemyDamaged: '/models/ships/enemy/damaged.glb',
+  enemySunk: '/models/ships/enemy/sunk.glb',
 };
+
+/** Enemy ship damage-state set (healthy=0, damaged=1, sunk=2). */
+export const ENEMY_SHIP_DAMAGE_PATHS = {
+  healthy: '/models/ships/enemy/healthy.glb',
+  damaged: '/models/ships/enemy/damaged.glb',
+  sunk: '/models/ships/enemy/sunk.glb',
+  state_0: '/models/ships/enemy/state_0.glb',
+  state_1: '/models/ships/enemy/state_1.glb',
+  state_2: '/models/ships/enemy/state_2.glb',
+} as const;
 
 // Ship texture paths for realistic materials
 export const SHIP_TEXTURE_PATHS = {
@@ -814,6 +828,24 @@ export const SHIP_PREFAB_CONFIGS: Record<string, ShipPrefabConfig> = {
     hasFlag: true,
     hasCrowsNest: true,
     customModelPath: SHIP_MODEL_PATHS.pirateLarge
+  },
+  /** Enemy warship — uses dangerroom healthy mesh (damage swaps handled by EnemyShipModels) */
+  enemy: {
+    shipType: 'enemy',
+    hullScale: new THREE.Vector3(4, 2, 12),
+    mastHeight: 14,
+    mastRadius: 0.25,
+    sailWidth: 7,
+    sailHeight: 9,
+    sailSegmentsX: 12,
+    sailSegmentsY: 14,
+    hullColor: 0x2d1810,
+    sailColor: 0x1a1a1a,
+    deckColor: 0x4a3728,
+    numCannons: 8,
+    hasFlag: true,
+    hasCrowsNest: true,
+    customModelPath: SHIP_MODEL_PATHS.enemyHealthy,
   },
   // Special ship types
   ghost: {

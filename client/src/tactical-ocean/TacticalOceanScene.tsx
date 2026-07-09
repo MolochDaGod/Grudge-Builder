@@ -314,6 +314,7 @@ export function TacticalOceanScene({ onBackToMenu, onLandOnIsland }: TacticalOce
           if (ship.health <= 0) {
             state.gold += 20 + ship.level * 10;
             state.combatXP += ship.level * 25;
+            // removeNPCShip swaps to sunk mesh (state_2) briefly then despawns
             manager.removeNPCShip(hit.targetId);
           }
         }

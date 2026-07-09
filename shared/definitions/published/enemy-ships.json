@@ -1,0 +1,47 @@
+{
+  "version": "1.0.0",
+  "updated": "2026-07-09",
+  "id": "enemy_ship_dangerroom",
+  "name": "Enemy Ship (Dangerroom States)",
+  "source": "Island-Crusade-Realm-2/artifacts/dangerroom/dist/public/ship/state_{0,1,2}.glb",
+  "cdnBase": "https://assets.grudge-studio.com/models/ships/enemy",
+  "states": [
+    {
+      "index": 0,
+      "id": "healthy",
+      "label": "Healthy",
+      "file": "healthy.glb",
+      "alias": "state_0.glb",
+      "url": "https://assets.grudge-studio.com/models/ships/enemy/healthy.glb",
+      "healthRatioMin": 0.45
+    },
+    {
+      "index": 1,
+      "id": "damaged",
+      "label": "Damaged",
+      "file": "damaged.glb",
+      "alias": "state_1.glb",
+      "url": "https://assets.grudge-studio.com/models/ships/enemy/damaged.glb",
+      "healthRatioMin": 0.0,
+      "healthRatioMax": 0.45
+    },
+    {
+      "index": 2,
+      "id": "sunk",
+      "label": "Sunk",
+      "file": "sunk.glb",
+      "alias": "state_2.glb",
+      "url": "https://assets.grudge-studio.com/models/ships/enemy/sunk.glb",
+      "healthRatioMax": 0.0
+    }
+  ],
+  "runtime": {
+    "module": "client/src/game/sailing/EnemyShipModels.ts",
+    "oceanNpc": "client/src/tactical-ocean/threeWorldMapManager.ts createNPCShip",
+    "paths": {
+      "healthy": "/models/ships/enemy/healthy.glb",
+      "damaged": "/models/ships/enemy/damaged.glb",
+      "sunk": "/models/ships/enemy/sunk.glb"
+    }
+  }
+}

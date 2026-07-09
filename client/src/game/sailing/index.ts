@@ -30,7 +30,18 @@ export type { DeckRiderInit, DeckStaggerEvent, ShipDeckRigOpts } from "./ShipDec
 export { BoatBoardingSystem, DECK_Y_DEFAULT } from "./BoatBoardingSystem";
 export type { BoardingMode, BoardingCallbacks } from "./BoatBoardingSystem";
 export { FishManager } from "./FishManager";
-export { SHIP_MODEL_PATHS, SHIP_TEXTURE_PATHS } from "./ShipPrefabs";
+export { SHIP_MODEL_PATHS, SHIP_TEXTURE_PATHS, ENEMY_SHIP_DAMAGE_PATHS } from "./ShipPrefabs";
+export {
+  ENEMY_SHIP_MODEL_PATHS,
+  ENEMY_SHIP_STATE_INDEX_PATHS,
+  enemyShipStateFromHealth,
+  enemyShipStateFromHealthRatio,
+  loadEnemyShipMesh,
+  createEnemyShipVisual,
+  setEnemyShipDamageState,
+  syncEnemyShipVisualToHealth,
+} from "./EnemyShipModels";
+export type { EnemyShipDamageState, EnemyShipStateIndex, EnemyShipVisual } from "./EnemyShipModels";
 
 // Types
 export type {

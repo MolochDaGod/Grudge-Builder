@@ -3,6 +3,11 @@ import { Sky } from 'three/examples/jsm/objects/Sky.js';
 import { IslandGenerator } from './islandGenerator';
 import { OceanEnvironment } from '@/game/ocean/OceanEnvironment';
 import { ShipPrefabFactory } from '@/game/sailing/ShipPrefabs';
+import {
+  createEnemyShipVisual,
+  syncEnemyShipVisualToHealth,
+  type EnemyShipDamageState,
+} from '@/game/sailing/EnemyShipModels';
 import { getPrefabKeyForSize } from '@shared/definitions/shipCatalog';
 import type { ShipSize } from '@shared/definitions/islandAssetManifest';
 import { TACTICAL_OCEAN_SIZE_METERS } from '@shared/definitions/zoneLayout';
@@ -34,6 +39,12 @@ export interface Ship3D {
   sailGroup?: THREE.Group;
   windMagicActive?: boolean;
   windMagicTimer?: number;
+  /** Enemy ships: healthy | damaged | sunk mesh state */
+  damageState?: EnemyShipDamageState;
+  /** Hull length used to scale dangerroom enemy GLBs */
+  enemyHullLength?: number;
+  /** True when mesh came from models/ships/enemy/* */
+  usesEnemyDamageMeshes?: boolean;
 }
 
 export interface Island3D {
@@ -474,69 +485,64 @@ export class ThreeWorldMapManager {
   
   createNPCShip(id: string, position: THREE.Vector3, name: string, level: number): Ship3D {
     const shipGroup = new THREE.Group();
-    const innerGroup = new THREE.Group();
-    
+    // Temporary placeholder while dangerroom enemy GLB loads
+    const placeholder = new THREE.Group();
     const hullGeometry = new THREE.BoxGeometry(3.5, 1.8, 9);
-    const hullMaterial = new THREE.MeshStandardMaterial({ 
+    const hullMaterial = new THREE.MeshStandardMaterial({
       color: 0x2d1810,
-      roughness: 0.8
+      roughness: 0.8,
     });
     const hull = new THREE.Mesh(hullGeometry, hullMaterial);
     hull.position.y = 0.9;
-    innerGroup.add(hull);
-    
-    const deckGeometry = new THREE.BoxGeometry(3, 0.25, 8);
-    const deckMaterial = new THREE.MeshStandardMaterial({ color: 0x8b7355 });
-    const deck = new THREE.Mesh(deckGeometry, deckMaterial);
-    deck.position.y = 1.9;
-    innerGroup.add(deck);
-    
-    const mastGeometry = new THREE.CylinderGeometry(0.15, 0.25, 10, 8);
-    const mastMaterial = new THREE.MeshStandardMaterial({ color: 0x2d1810 });
-    const mast = new THREE.Mesh(mastGeometry, mastMaterial);
-    mast.position.set(0, 6.5, 0);
-    innerGroup.add(mast);
-    
-    const sailGeometry = new THREE.PlaneGeometry(5, 6);
-    const sailMaterial = new THREE.MeshStandardMaterial({ 
-      color: 0x1a1a1a,
-      side: THREE.DoubleSide,
-      roughness: 0.9
-    });
-    const sail = new THREE.Mesh(sailGeometry, sailMaterial);
-    sail.position.set(0, 7, 0.4);
-    sail.rotation.y = Math.PI / 2;
-    innerGroup.add(sail);
-    
-    const skullGeometry = new THREE.SphereGeometry(0.8, 8, 6);
-    const skullMaterial = new THREE.MeshStandardMaterial({ color: 0xffffff });
-    const skull = new THREE.Mesh(skullGeometry, skullMaterial);
-    skull.position.set(0, 7, 0.6);
-    innerGroup.add(skull);
-    
-    innerGroup.rotation.y = Math.PI;
-    shipGroup.add(innerGroup);
-    
+    placeholder.add(hull);
+    placeholder.name = '__enemy_placeholder';
+    shipGroup.add(placeholder);
+
     shipGroup.position.copy(position);
     this.scene.add(shipGroup);
-    
+
+    const maxHealth = 100 + level * 25;
+    const hullLength = 10 + Math.min(level, 8) * 0.6;
+
     const ship: Ship3D = {
       id,
       mesh: shipGroup,
       position: position.clone(),
       rotation: 0,
       velocity: new THREE.Vector3(),
-      health: 100,
-      maxHealth: 100,
+      health: maxHealth,
+      maxHealth,
       isPlayer: false,
       name,
       level,
       sailAngle: 0,
       sailPosition: 2,
-      sailMesh: sail
+      damageState: 'healthy',
+      enemyHullLength: hullLength,
+      usesEnemyDamageMeshes: true,
     };
-    
+
     this.npcShips.set(id, ship);
+
+    // Async: swap placeholder for healthy enemy ship mesh (state_0 / healthy.glb)
+    void createEnemyShipVisual(hullLength, 'healthy')
+      .then((visual) => {
+        if (!this.npcShips.has(id)) return;
+        const live = this.npcShips.get(id)!;
+        // Replace entire mesh contents with damage-state root (userData lives on root)
+        while (live.mesh.children.length) live.mesh.remove(live.mesh.children[0]);
+        for (const child of [...visual.root.children]) {
+          live.mesh.add(child);
+        }
+        live.mesh.userData.enemyShipState = 'healthy';
+        live.mesh.userData.enemyShipScale = visual.scale;
+        live.mesh.name = 'enemy_ship_healthy';
+        live.damageState = 'healthy';
+      })
+      .catch((err) => {
+        console.warn(`[ThreeWorldMap] Enemy ship GLB load failed for ${id}:`, err);
+      });
+
     return ship;
   }
   
@@ -676,22 +682,53 @@ export class ThreeWorldMapManager {
   updateNPCShip(id: string, position: THREE.Vector3, rotation: number, health: number) {
     const ship = this.npcShips.get(id);
     if (!ship) return;
-    
+
     ship.position.copy(position);
     ship.rotation = rotation;
     ship.health = health;
-    
+
     ship.mesh.position.set(position.x, 0, position.z);
     ship.mesh.rotation.y = rotation;
-    
+
     const timeOffset = parseInt(id, 36) % 100;
-    const bobAmount = Math.sin((this.clock.getElapsedTime() + timeOffset * 0.1) * 2) * 0.15;
-    ship.mesh.position.y = bobAmount;
+    // Sunk ships sit lower in the water
+    const baseY = ship.damageState === 'sunk' ? -1.2 : 0;
+    const bobAmount =
+      ship.damageState === 'sunk'
+        ? 0
+        : Math.sin((this.clock.getElapsedTime() + timeOffset * 0.1) * 2) * 0.15;
+    ship.mesh.position.y = baseY + bobAmount;
+
+    // Swap healthy → damaged → sunk meshes from dangerroom GLBs
+    if (ship.usesEnemyDamageMeshes) {
+      const hullLen = ship.enemyHullLength ?? 12;
+      void syncEnemyShipVisualToHealth(ship.mesh, health, ship.maxHealth, hullLen)
+        .then(({ state, changed }) => {
+          if (changed) ship.damageState = state;
+        })
+        .catch(() => {});
+    }
   }
-  
+
   removeNPCShip(id: string) {
     const ship = this.npcShips.get(id);
     if (ship) {
+      // Brief sunk pose before removal when killed
+      if (ship.usesEnemyDamageMeshes && ship.health <= 0) {
+        void syncEnemyShipVisualToHealth(ship.mesh, 0, ship.maxHealth, ship.enemyHullLength ?? 12)
+          .then(() => {
+            // allow one frame of wreck then drop
+            setTimeout(() => {
+              this.scene.remove(ship.mesh);
+              this.npcShips.delete(id);
+            }, 1200);
+          })
+          .catch(() => {
+            this.scene.remove(ship.mesh);
+            this.npcShips.delete(id);
+          });
+        return;
+      }
       this.scene.remove(ship.mesh);
       this.npcShips.delete(id);
     }
