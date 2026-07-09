@@ -260,7 +260,7 @@ export const ISLAND_HARVEST_NODES: Record<string, HarvestNodeScale> = {
       'pine2_14', 'pine9_15', 'birch2_4', 'birch6_5', 'ancient_tree_2_0',
       'garden_tree_pink_11', 'creepy_tree1_10', 'palm2_13',
     ],
-    respawnMs: 90_000,
+    respawnMs: 4 * 60 * 60 * 1000, // 4h generative seed regen
     health: 5,
   },
   rock: {
@@ -269,7 +269,7 @@ export const ISLAND_HARVEST_NODES: Record<string, HarvestNodeScale> = {
     widthM: { min: 2.0, max: 4.5 },
     modelPath: '/models/environment/island_rock.glb',
     variants: ['rock_1', 'rock_2', 'rock_3', 'rock_4', 'rock_5', 'rock_6', 'rock_7', 'rock_8'],
-    respawnMs: 120_000,
+    respawnMs: 4 * 60 * 60 * 1000,
     health: 4,
   },
   ore: {
@@ -278,7 +278,7 @@ export const ISLAND_HARVEST_NODES: Record<string, HarvestNodeScale> = {
     widthM: { min: 2.2, max: 5.0 },
     modelPath: '/models/environment/harvest_gold_rocks.glb',
     variants: ['Rock', 'rock', 'Gold', 'Cube', 'Mesh'],
-    respawnMs: 150_000,
+    respawnMs: 4 * 60 * 60 * 1000,
     health: 5,
   },
   gem: {
@@ -287,7 +287,7 @@ export const ISLAND_HARVEST_NODES: Record<string, HarvestNodeScale> = {
     widthM: { min: 1.2, max: 2.4 },
     modelPath: '/models/environment/gem_cluster.glb',
     variants: ['Sphere', 'Sphere.001', 'Sphere.002'],
-    respawnMs: 180_000,
+    respawnMs: 4 * 60 * 60 * 1000,
     health: 3,
   },
   hemp: {
@@ -295,7 +295,7 @@ export const ISLAND_HARVEST_NODES: Record<string, HarvestNodeScale> = {
     heightM: { min: 1.8, max: 2.8 },
     widthM: { min: 0.8, max: 1.4 },
     modelPath: 'procedural',
-    respawnMs: 60_000,
+    respawnMs: 4 * 60 * 60 * 1000,
     health: 2,
   },
   flower: {
@@ -303,7 +303,7 @@ export const ISLAND_HARVEST_NODES: Record<string, HarvestNodeScale> = {
     heightM: { min: 0.4, max: 1.1 },
     widthM: { min: 0.9, max: 1.8 },
     modelPath: 'procedural',
-    respawnMs: 45_000,
+    respawnMs: 4 * 60 * 60 * 1000,
     health: 2,
   },
   scrap: {
@@ -311,7 +311,7 @@ export const ISLAND_HARVEST_NODES: Record<string, HarvestNodeScale> = {
     heightM: { min: 0.5, max: 1.2 },
     widthM: { min: 1.2, max: 2.0 },
     modelPath: 'procedural',
-    respawnMs: 90_000,
+    respawnMs: 4 * 60 * 60 * 1000,
     health: 2,
   },
   stump: {
@@ -423,7 +423,7 @@ export function generateRegrowRegions(seed: string): HomeIslandRegrowRegion[] {
       centerPercent: { x: 50 + jitter(5) * 6, y: 88 + jitter(6) * 2 },
       radiusM: ISLAND_HEIGHTMAP.beachBandDepthM * 4,
       regrow: true,
-      respawnMs: 75_000,
+      respawnMs: 4 * 60 * 60 * 1000,
       harvestZoneType: 'mixed',
       nodeSlots: [
         { type: 'flower', count: 4 },

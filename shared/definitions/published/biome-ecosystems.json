@@ -1,0 +1,266 @@
+{
+  "version": "1.0.0",
+  "updated": "2026-07-09",
+  "characterReferenceHeightM": 2,
+  "mountainPeakHeightM": 20,
+  "harvestRegenHours": 4,
+  "animalsPerBiome": 5,
+  "fishPoolSize": 10,
+  "storage": {
+    "seeds": "Railway Postgres home_islands (NOT D1)",
+    "gltf": "R2 grudge-assets → assets.grudge-studio.com",
+    "nature": "/models/nature/Pine_*.glb, CommonTree_*.glb, TwistedTree_*.glb",
+    "environment": "/models/environment/island_tree.glb, island_rock.glb, gem_cluster.glb",
+    "mountains": "/models/evil_rock_mountain_peak_0|1|2.glb",
+    "textures": "/textures/pbr/ground/ground_1..10",
+    "reviewGlbs": "/models/biomes/review/{biome}.glb",
+    "catalogs": [
+      "home-island-contract.json",
+      "biome-ecosystems.json",
+      "map-registry.json"
+    ]
+  },
+  "biomes": [
+    {
+      "id": "beach",
+      "label": "Beach",
+      "animals": [
+        "deer",
+        "rabbit",
+        "crab",
+        "boar",
+        "buffalo"
+      ],
+      "treePolicy": "palm",
+      "snowCanopy": false,
+      "mountainPeakHeightM": 20,
+      "harvestRegenHours": 4,
+      "fishCount": 10,
+      "reviewGlb": "/models/biomes/review/beach.glb",
+      "reviewCdn": "https://assets.grudge-studio.com/models/biomes/review/beach.glb"
+    },
+    {
+      "id": "tropical",
+      "label": "Tropical",
+      "animals": [
+        "deer",
+        "boar",
+        "rabbit",
+        "buffalo",
+        "crab"
+      ],
+      "treePolicy": "palm",
+      "snowCanopy": false,
+      "mountainPeakHeightM": 20,
+      "harvestRegenHours": 4,
+      "fishCount": 10,
+      "reviewGlb": "/models/biomes/review/tropical.glb",
+      "reviewCdn": "https://assets.grudge-studio.com/models/biomes/review/tropical.glb"
+    },
+    {
+      "id": "forest",
+      "label": "Forest",
+      "animals": [
+        "deer",
+        "boar",
+        "wolf",
+        "bear",
+        "rabbit"
+      ],
+      "treePolicy": "pine_stylized",
+      "snowCanopy": false,
+      "mountainPeakHeightM": 20,
+      "harvestRegenHours": 4,
+      "fishCount": 10,
+      "reviewGlb": "/models/biomes/review/forest.glb",
+      "reviewCdn": "https://assets.grudge-studio.com/models/biomes/review/forest.glb"
+    },
+    {
+      "id": "plains",
+      "label": "Plains",
+      "animals": [
+        "buffalo",
+        "deer",
+        "rabbit",
+        "boar",
+        "wolf"
+      ],
+      "treePolicy": "pine_stylized",
+      "snowCanopy": false,
+      "mountainPeakHeightM": 20,
+      "harvestRegenHours": 4,
+      "fishCount": 10,
+      "reviewGlb": "/models/biomes/review/plains.glb",
+      "reviewCdn": "https://assets.grudge-studio.com/models/biomes/review/plains.glb"
+    },
+    {
+      "id": "winter",
+      "label": "Winter Snow",
+      "animals": [
+        "wolf",
+        "deer",
+        "rabbit",
+        "bear",
+        "buffalo"
+      ],
+      "treePolicy": "snow_pine",
+      "snowCanopy": true,
+      "mountainPeakHeightM": 20,
+      "harvestRegenHours": 4,
+      "fishCount": 10,
+      "reviewGlb": "/models/biomes/review/winter.glb",
+      "reviewCdn": "https://assets.grudge-studio.com/models/biomes/review/winter.glb"
+    },
+    {
+      "id": "frozen",
+      "label": "Frozen",
+      "animals": [
+        "wolf",
+        "bear",
+        "deer",
+        "rabbit",
+        "buffalo"
+      ],
+      "treePolicy": "snow_pine",
+      "snowCanopy": true,
+      "mountainPeakHeightM": 20,
+      "harvestRegenHours": 4,
+      "fishCount": 10,
+      "reviewGlb": "/models/biomes/review/frozen.glb",
+      "reviewCdn": "https://assets.grudge-studio.com/models/biomes/review/frozen.glb"
+    },
+    {
+      "id": "desert",
+      "label": "Desert",
+      "animals": [
+        "rabbit",
+        "boar",
+        "buffalo",
+        "wolf",
+        "deer"
+      ],
+      "treePolicy": "palm_stylized",
+      "snowCanopy": false,
+      "mountainPeakHeightM": 20,
+      "harvestRegenHours": 4,
+      "fishCount": 10,
+      "reviewGlb": "/models/biomes/review/desert.glb",
+      "reviewCdn": "https://assets.grudge-studio.com/models/biomes/review/desert.glb"
+    },
+    {
+      "id": "volcanic",
+      "label": "Volcanic",
+      "animals": [
+        "boar",
+        "wolf",
+        "bear",
+        "buffalo",
+        "deer"
+      ],
+      "treePolicy": "stylized_pine",
+      "snowCanopy": false,
+      "mountainPeakHeightM": 20,
+      "harvestRegenHours": 4,
+      "fishCount": 10,
+      "reviewGlb": "/models/biomes/review/volcanic.glb",
+      "reviewCdn": "https://assets.grudge-studio.com/models/biomes/review/volcanic.glb"
+    },
+    {
+      "id": "storm",
+      "label": "Storm Reef",
+      "animals": [
+        "boar",
+        "wolf",
+        "deer",
+        "crab",
+        "rabbit"
+      ],
+      "treePolicy": "pine_stylized",
+      "snowCanopy": false,
+      "mountainPeakHeightM": 20,
+      "harvestRegenHours": 4,
+      "fishCount": 10,
+      "reviewGlb": "/models/biomes/review/storm.glb",
+      "reviewCdn": "https://assets.grudge-studio.com/models/biomes/review/storm.glb"
+    },
+    {
+      "id": "ethereal",
+      "label": "Ethereal",
+      "animals": [
+        "deer",
+        "rabbit",
+        "wolf",
+        "buffalo",
+        "boar"
+      ],
+      "treePolicy": "stylized_pine",
+      "snowCanopy": false,
+      "mountainPeakHeightM": 20,
+      "harvestRegenHours": 4,
+      "fishCount": 10,
+      "reviewGlb": "/models/biomes/review/ethereal.glb",
+      "reviewCdn": "https://assets.grudge-studio.com/models/biomes/review/ethereal.glb"
+    },
+    {
+      "id": "abyssal",
+      "label": "Abyssal",
+      "animals": [
+        "wolf",
+        "bear",
+        "boar",
+        "crab",
+        "deer"
+      ],
+      "treePolicy": "stylized_pine",
+      "snowCanopy": false,
+      "mountainPeakHeightM": 20,
+      "harvestRegenHours": 4,
+      "fishCount": 10,
+      "reviewGlb": "/models/biomes/review/abyssal.glb",
+      "reviewCdn": "https://assets.grudge-studio.com/models/biomes/review/abyssal.glb"
+    },
+    {
+      "id": "nexus",
+      "label": "Nexus",
+      "animals": [
+        "deer",
+        "boar",
+        "wolf",
+        "buffalo",
+        "bear"
+      ],
+      "treePolicy": "pine_stylized",
+      "snowCanopy": false,
+      "mountainPeakHeightM": 20,
+      "harvestRegenHours": 4,
+      "fishCount": 10,
+      "reviewGlb": "/models/biomes/review/nexus.glb",
+      "reviewCdn": "https://assets.grudge-studio.com/models/biomes/review/nexus.glb"
+    }
+  ],
+  "rules": {
+    "mountainPeakHeightM": 20,
+    "mountainSource": "one of three evil_rock_mountain_peak_{0,1,2}.glb selected by seed",
+    "animalsPerBiome": 5,
+    "fishFromWaterNodes": 10,
+    "harvestRegenHours": 4,
+    "trees": {
+      "snow": [
+        "snow_pine"
+      ],
+      "beach": [
+        "palm",
+        "stylized"
+      ],
+      "tropical": [
+        "palm",
+        "stylized"
+      ],
+      "default": [
+        "pine",
+        "stylized"
+      ]
+    },
+    "characterHeightM": 2
+  }
+}

@@ -8,6 +8,8 @@ export * from "./dungeons";
 export * from "./tier0Items";
 export * from "./weaponArsenal";
 export * from "./mapRegistry";
+export * from "./biomeEcosystemCatalog";
+export * from "./biomeHarvestAssets";
 
 import { SPELLS, getSpell, getSpellByReferenceName, getSpellsBySchool, getSpellsByLevel } from "./spells";
 import { SKILLS, getSkill, getSkillByReferenceName, getSkillsByWeapon, getSkillsByLevel } from "./skills";

@@ -15,15 +15,20 @@ import * as THREE from 'three';
 
 // ── Timing (ms) ──────────────────────────────────────────────────────────────
 
-/** Full cycle after deplete until mature again — 1.5–4 min by type. */
+/**
+ * Full cycle after deplete until mature again.
+ * Seed designs: 4 hour generative regen (canonical ecosystem catalog).
+ */
+export const HARVEST_REGEN_4H_MS = 4 * 60 * 60 * 1000;
+
 export const HARVEST_RESPAWN_MS = {
-  tree: 180_000,
-  rock: 150_000,
-  crystal: 210_000,
-  flower: 90_000,
-  hemp: 100_000,
-  scrap: 120_000,
-  fish: 75_000,
+  tree: HARVEST_REGEN_4H_MS,
+  rock: HARVEST_REGEN_4H_MS,
+  crystal: HARVEST_REGEN_4H_MS,
+  flower: HARVEST_REGEN_4H_MS,
+  hemp: HARVEST_REGEN_4H_MS,
+  scrap: HARVEST_REGEN_4H_MS,
+  fish: HARVEST_REGEN_4H_MS,
 } as const;
 
 export type HarvestKind = keyof typeof HARVEST_RESPAWN_MS;

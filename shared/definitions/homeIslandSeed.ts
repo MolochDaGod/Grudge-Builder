@@ -12,8 +12,14 @@ export const HOME_ISLAND_WORLD_SIZE_M = 1024;
 /** RTS procedural island diameter (useIslandWorld / IslandGenerator). */
 export const HOME_ISLAND_RTS_SIZE_M = 200;
 
-/** Evil mountain triad occupies 10% of island world size. */
+/** Evil mountain triad occupies 10% of island world size (layout footprint). */
 export const MOUNTAIN_TRIAD_ISLAND_FRACTION = 0.1;
+
+/**
+ * Single selected peak height in meters (one of three evil-mountain peaks).
+ * Seed picks peak 0|1|2; runtime scales that GLB to this height.
+ */
+export const MOUNTAIN_PEAK_HEIGHT_M = 20;
 
 /** Walkable dungeon mouth target height in meters. */
 export const DUNGEON_ENTRANCE_HEIGHT_M = 4;
@@ -118,12 +124,14 @@ export function pickHomeIslandDungeonFromSeed(seed: string): DungeonDefinition {
 }
 
 export function computeMountainTriadScaleM(islandWorldSizeM: number): number {
-  return islandWorldSizeM * MOUNTAIN_TRIAD_ISLAND_FRACTION;
+  // Footprint for layout still uses fraction; vertical target is MOUNTAIN_PEAK_HEIGHT_M
+  return Math.max(islandWorldSizeM * MOUNTAIN_TRIAD_ISLAND_FRACTION, MOUNTAIN_PEAK_HEIGHT_M * 2.5);
 }
 
 /**
- * Deterministic mountain triad placement for a home island seed.
- * One of three Sketchfab peaks hides the active dungeon portal.
+ * Deterministic mountain placement for a home island seed.
+ * Uses ONE of three Sketchfab peaks (secretPeakIndex), scaled to 20 m tall.
+ * That peak hides the active dungeon portal for events / PvE.
  */
 export function generateMountainTriadSeed(
   seed: string,
@@ -132,7 +140,8 @@ export function generateMountainTriadSeed(
   const rng = seededRandomFromString(`${seed}_mountain_triad`);
   const secretPeakIndex = (hashSeedString(`${seed}_secret_peak`) % 3) as 0 | 1 | 2;
   const dungeon = pickHomeIslandDungeonFromSeed(seed);
-  const mountainScaleM = computeMountainTriadScaleM(islandWorldSizeM);
+  // mountainScaleM = target peak height (20 m) — consumers fit peak GLB vertically
+  const mountainScaleM = MOUNTAIN_PEAK_HEIGHT_M;
 
   // Northern mountain belt on 100×100 logical map
   const anchorPercent = {
@@ -140,7 +149,9 @@ export function generateMountainTriadSeed(
     y: 8 + rng() * 10,
   };
 
-  const peakScale = mountainScaleM / computeMountainTriadScaleM(HOME_ISLAND_WORLD_SIZE_M);
+  // Offsets keep sibling peaks for visual triad layout; secret peak is the portal
+  const layoutSpan = computeMountainTriadScaleM(islandWorldSizeM);
+  const peakScale = layoutSpan / computeMountainTriadScaleM(HOME_ISLAND_WORLD_SIZE_M);
   const peakOffsetsM = MOUNTAIN_TRIAD_PEAK_OFFSETS_M.map((o) => ({
     x: o.x * peakScale,
     z: o.z * peakScale,
@@ -154,7 +165,8 @@ export function generateMountainTriadSeed(
     islandWorldSizeM,
     dungeonId: dungeon.id,
     modelUid: SKETCHFAB_EVIL_MOUNTAIN_TRIAD.uid,
-    modelPath: SKETCHFAB_EVIL_MOUNTAIN_TRIAD.modelPath,
+    /** Prefer the single selected peak GLB for the 20 m mountain */
+    modelPath: MOUNTAIN_TRIAD_PEAK_MODEL_PATHS[secretPeakIndex],
     peakModelPaths: [...MOUNTAIN_TRIAD_PEAK_MODEL_PATHS],
     peakOffsetsM,
   };
