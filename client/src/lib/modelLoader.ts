@@ -132,6 +132,7 @@ export async function loadCharacterModel(path: string): Promise<LoadedModel> {
 
   // Clone materials per-instance so tinting/metalness edits on one character
   // don't corrupt all other instances that share the cached GLTF.
+  // Also force sRGB on albedo maps so race/equip textures render true color.
   scene.traverse((child) => {
     if ((child as THREE.Mesh).isMesh) {
       child.castShadow = true;
@@ -145,11 +146,18 @@ export async function loadCharacterModel(path: string): Promise<LoadedModel> {
         }
         const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
         mats.forEach((mat) => {
-          if ((mat as THREE.MeshStandardMaterial).metalness !== undefined) {
-            (mat as THREE.MeshStandardMaterial).metalness = Math.min(
-              (mat as THREE.MeshStandardMaterial).metalness, 0.6,
-            );
+          const std = mat as THREE.MeshStandardMaterial;
+          if (std.metalness !== undefined) {
+            std.metalness = Math.min(std.metalness, 0.6);
           }
+          for (const key of ['map', 'emissiveMap'] as const) {
+            const tex = std[key] as THREE.Texture | null | undefined;
+            if (tex && tex.colorSpace !== THREE.SRGBColorSpace) {
+              tex.colorSpace = THREE.SRGBColorSpace;
+              tex.needsUpdate = true;
+            }
+          }
+          mat.needsUpdate = true;
         });
       }
     }

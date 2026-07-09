@@ -343,31 +343,38 @@ export function getKaykitAnimMap(weaponType: WeaponType): Record<string, string>
   return inverted;
 }
 
-// ── Race × Class → Model + Weapon mapping ───────────────────────────────────
+// ── Race model lookup (freeform ARPG — weapons come from equipment, not class) ─
 
-/** Class → default weapon type */
+/**
+ * @deprecated Soft starter hint only. Do NOT use to gate equip / combat / anims.
+ * Prefer weaponTypeFromModel3d(equipment) for live play.
+ */
 export const CLASS_WEAPON_MAP: Record<string, WeaponType> = {
   warrior: "sword",
   ranger:  "bow",
   mage:    "arcane-staff",
   worg:    "greatsword",
+  worge:   "greatsword",
 };
 
-/** Race × Class → model ID (mirrors SPRITE_MATRIX from gameData.ts) */
-const RACE_MODEL_MATRIX: Record<string, Record<string, string>> = {
-  human:     { warrior: "human",     mage: "human",     ranger: "human",     worg: "human" },
-  barbarian: { warrior: "barbarian", mage: "barbarian", ranger: "barbarian", worg: "barbarian" },
-  undead:    { warrior: "undead",    mage: "undead",    ranger: "undead",    worg: "undead" },
-  orc:       { warrior: "orc",       mage: "orc",       ranger: "orc",       worg: "orc" },
-  elf:       { warrior: "elf",       mage: "elf",       ranger: "elf",       worg: "elf" },
-  dwarf:     { warrior: "dwarf",     mage: "dwarf",     ranger: "dwarf",     worg: "dwarf" },
+/** Race → base body model (class no longer swaps body meshes). */
+const RACE_MODEL_ID: Record<string, string> = {
+  human: "human",
+  barbarian: "barbarian",
+  undead: "undead",
+  orc: "orc",
+  elf: "elf",
+  dwarf: "dwarf",
 };
 
 // ── Public API ──────────────────────────────────────────────────────────────
 
-/** Get the 3D model unit for a race×class combo */
-export function getModelForCharacter(raceId: string, classId: string): ModelUnit {
-  const modelId = RACE_MODEL_MATRIX[raceId]?.[classId] ?? raceId;
+/**
+ * Race body model for play. Weapon type is NOT forced by class —
+ * callers must resolve weapons from equipment / model3d.
+ */
+export function getModelForCharacter(raceId: string, _classId?: string): ModelUnit {
+  const modelId = RACE_MODEL_ID[raceId] ?? raceId;
   let unit = MODEL_MANIFEST[modelId];
 
   // Fall back to human for incompatible skeletons.
@@ -377,9 +384,8 @@ export function getModelForCharacter(raceId: string, classId: string): ModelUnit
     unit = MODEL_MANIFEST.human;
   }
 
-  // Override weapon type based on class
-  const weaponType = CLASS_WEAPON_MAP[classId] ?? unit.weaponType;
-  return { ...unit, weaponType };
+  // Keep unit.weaponType as a soft idle default only (usually "sword")
+  return { ...unit };
 }
 
 /** Check if a model can be animated (uses the shared Mixamo animation library) */

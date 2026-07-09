@@ -800,52 +800,35 @@ export interface ClassStartingGear {
   inventory: { itemId: string; quantity: number; tier?: number }[];
 }
 
-export const CLASS_STARTING_GEAR: Record<string, ClassStartingGear> = {
-  ranger: {
-    equipment: {
-      Chest: 't0_leather_chest',
-      Hands: 't0_leather_hands',
-      Feet: 't0_leather_feet',
-      Weapon: 't0_bow',
-      Offhand: 't0_dagger',
-    },
-    inventory: []
+/**
+ * Freeform ARPG starter kit — same for everyone.
+ * Soft "class" labels may still exist on the character sheet as flavor only.
+ */
+export const FREEFORM_STARTING_GEAR: ClassStartingGear = {
+  equipment: {
+    Chest: 't0_leather_chest',
+    Hands: 't0_leather_hands',
+    Feet: 't0_leather_feet',
+    Weapon: 't0_sword',
   },
-  worg: {
-    equipment: {
-      Chest: 't0_leather_chest',
-      Hands: 't0_leather_hands',
-      Feet: 't0_leather_feet',
-      Weapon: 't0_staff',
-    },
-    inventory: []
-  },
-  mage: {
-    equipment: {
-      Helm: 't0_cloth_helm',
-      Chest: 't0_cloth_chest',
-      Hands: 't0_cloth_hands',
-      Feet: 't0_cloth_feet',
-      Weapon: 't0_staff',
-      Offhand: 't0_spellbook',
-    },
-    inventory: [
-      { itemId: 't0_torch', quantity: 1 }
-    ]
-  },
-  warrior: {
-    equipment: {
-      Helm: 't0_metal_helm',
-      Chest: 't0_metal_chest',
-      Hands: 't0_metal_hands',
-      Feet: 't0_metal_feet',
-      Weapon: 't0_sword',
-      Offhand: 't0_shield',
-    },
-    inventory: []
-  }
+  inventory: [
+    { itemId: 't0_torch', quantity: 1 },
+    { itemId: 't0_bow', quantity: 1 },
+    { itemId: 't0_staff', quantity: 1 },
+  ],
 };
 
-export function getClassStartingGear(classId: string): ClassStartingGear {
-  return CLASS_STARTING_GEAR[classId] || CLASS_STARTING_GEAR.warrior;
+/** @deprecated Use FREEFORM_STARTING_GEAR — kept so old call sites still resolve. */
+export const CLASS_STARTING_GEAR: Record<string, ClassStartingGear> = {
+  warrior: FREEFORM_STARTING_GEAR,
+  mage: FREEFORM_STARTING_GEAR,
+  ranger: FREEFORM_STARTING_GEAR,
+  worg: FREEFORM_STARTING_GEAR,
+  worge: FREEFORM_STARTING_GEAR,
+  adventurer: FREEFORM_STARTING_GEAR,
+};
+
+/** Freeform: class id does not change starter loot. */
+export function getClassStartingGear(_classId?: string): ClassStartingGear {
+  return FREEFORM_STARTING_GEAR;
 }

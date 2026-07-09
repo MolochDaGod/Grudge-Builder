@@ -20,9 +20,11 @@ const LOD = {
 };
 
 const FOREST_DEFAULTS: Required<ForestZoneConfig> = {
-  treeCount: 42,
+  // Ambient canopy only — harvestable trees are separate interactive meshes
+  // (forestoutline.html look + harvest hitboxes). Keep density moderate.
+  treeCount: 28,
   forestRadius: 48,
-  clearRadius: 7,
+  clearRadius: 9,
 };
 
 function mulberry32(seed: number): () => number {

@@ -20,11 +20,16 @@ import {
 import {
   HARVEST_RESPAWN_MS,
   beginTreeFall,
+  markDepleted,
   resetHarvestableTree,
   resetHarvestableRock,
   resetHarvestableCrystal,
   resetSimpleHarvestNode,
 } from './HarvestFeedback';
+import {
+  findValidPlacement,
+  type HarvestKind,
+} from './RegenerativeHarvest';
 import { calibrateHarvestScale } from '../zoneWorldScale';
 
 export interface ZoneHarvestSpawnResult {
@@ -71,6 +76,7 @@ export function spawnZoneHarvestNodes(
   population: ZonePopulation,
   islandMeshes: Map<string, THREE.Mesh>,
   markers?: Map<string, THREE.Object3D>,
+  waterLevel = 0,
 ): ZoneHarvestSpawnResult {
   const result: ZoneHarvestSpawnResult = {
     trees: [],
@@ -85,6 +91,7 @@ export function spawnZoneHarvestNodes(
 
   for (const node of harvestNodes) {
     if (node.state === 'depleted' || node.state === 'dead') continue;
+    // Fishing nodes stay as water markers — never place land meshes for them
     if (node.profession === 'fishing' || node.parentIslandId === null) continue;
 
     const islandMesh = node.parentIslandId
@@ -93,8 +100,20 @@ export function spawnZoneHarvestNodes(
     if (!islandMesh) continue;
 
     const [wx, , wz] = node.position;
-    const y = sampleTerrainY(islandMesh, wx, wz, node.position[1]);
-    const pos = new THREE.Vector3(wx, y, wz);
+    const sample = (x: number, z: number) => sampleTerrainY(islandMesh, x, z, node.position[1]);
+
+    // Map profession → land harvest kind (never fish on dry land mesh path)
+    let kind: HarvestKind = 'rock';
+    if (node.profession === 'woodcutting') kind = 'tree';
+    else if (node.profession === 'herbalism') kind = 'flower';
+    else if (node.profession === 'skinning') kind = 'scrap';
+    else if (node.profession === 'mining' && isGemResource(node)) kind = 'crystal';
+    else if (node.profession === 'mining') kind = 'rock';
+
+    const placement = findValidPlacement(kind, wx, wz, waterLevel, sample);
+    if (!placement) continue; // refuse water / invalid land
+
+    const pos = new THREE.Vector3(placement.x, placement.y, placement.z);
     const scale = calibrateHarvestScale(node.profession, node.tier);
 
     if (node.profession === 'woodcutting') {
@@ -191,7 +210,7 @@ export function syncHarvestNodeDepleted(
   if (tree) {
     if (depleted && tree.fallPhase === 'live') {
       beginTreeFall(tree);
-      tree.respawnAt = Date.now() + HARVEST_RESPAWN_MS;
+      markDepleted(tree as any, 'tree', false);
     } else if (!depleted && tree.fallPhase !== 'live') {
       tree.respawnAt = 0;
       resetHarvestableTree(tree, tree.baseScale);
@@ -202,8 +221,7 @@ export function syncHarvestNodeDepleted(
   const rock = collections.rocks.find((r) => r.nodeId === nodeId);
   if (rock) {
     if (depleted && rock.group.visible) {
-      rock.group.visible = false;
-      rock.respawnAt = Date.now() + HARVEST_RESPAWN_MS;
+      markDepleted(rock as any, 'rock', true);
     } else if (!depleted) {
       rock.respawnAt = 0;
       resetHarvestableRock(rock);
@@ -214,8 +232,7 @@ export function syncHarvestNodeDepleted(
   const crystal = collections.crystals.find((c) => c.nodeId === nodeId);
   if (crystal) {
     if (depleted && crystal.group.visible) {
-      crystal.group.visible = false;
-      crystal.respawnAt = Date.now() + HARVEST_RESPAWN_MS;
+      markDepleted(crystal as any, 'crystal', true);
     } else if (!depleted) {
       crystal.respawnAt = 0;
       resetHarvestableCrystal(crystal);
@@ -226,11 +243,10 @@ export function syncHarvestNodeDepleted(
   for (const hemp of collections.hemps) {
     if (hemp.nodeId !== nodeId) continue;
     if (depleted && hemp.group.visible) {
-      hemp.group.visible = false;
-      hemp.respawnAt = Date.now() + HARVEST_RESPAWN_MS;
+      markDepleted(hemp as any, 'hemp', true);
     } else if (!depleted) {
       hemp.respawnAt = 0;
-      resetSimpleHarvestNode(hemp);
+      resetSimpleHarvestNode(hemp, 'hemp');
     }
     return;
   }
@@ -238,11 +254,10 @@ export function syncHarvestNodeDepleted(
   for (const flower of collections.flowers) {
     if (flower.nodeId !== nodeId) continue;
     if (depleted && flower.group.visible) {
-      flower.group.visible = false;
-      flower.respawnAt = Date.now() + HARVEST_RESPAWN_MS;
+      markDepleted(flower as any, 'flower', true);
     } else if (!depleted) {
       flower.respawnAt = 0;
-      resetSimpleHarvestNode(flower);
+      resetSimpleHarvestNode(flower, 'flower');
     }
     return;
   }
@@ -250,11 +265,10 @@ export function syncHarvestNodeDepleted(
   for (const scrap of collections.scraps) {
     if (scrap.nodeId !== nodeId) continue;
     if (depleted && scrap.group.visible) {
-      scrap.group.visible = false;
-      scrap.respawnAt = Date.now() + HARVEST_RESPAWN_MS;
+      markDepleted(scrap as any, 'scrap', true);
     } else if (!depleted) {
       scrap.respawnAt = 0;
-      resetSimpleHarvestNode(scrap);
+      resetSimpleHarvestNode(scrap, 'scrap');
     }
   }
 }

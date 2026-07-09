@@ -176,7 +176,7 @@ export default function TutorialPage() {
           accountId: localStorage.getItem('grudge_account_id') || '',
           level: cfg.level,
           baseModelId: cfg.baseModelId,
-          equippedWeaponType: getWeaponTypeForMode('harvest', cfg.classId, cfg.hasWeapon),
+          equippedWeaponType: getWeaponTypeForMode('harvest', cfg.classId, cfg.hasWeapon, cfg.equippedWeaponType),
         });
         roomRef.current = room;
 

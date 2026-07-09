@@ -17,6 +17,7 @@ import {
 import { getWeaponTypeForMode, parseModel3d, type Model3DField } from '@/lib/grudge6Character';
 import { RACE_GRUDGE6, weaponTypeFromModel3d } from '@shared/fleet';
 import { setupGrudge6Equipment, type Grudge6EquipmentManager } from '@/lib/grudge6Equipment';
+import { applyCharacterColorTints, ensureCharacterTextureColorSpace } from '@/lib/characterAppearance';
 import { buildAnimLoadMap } from '@/lib/animation/animationCatalog';
 import { CharacterAnimOrchestrator } from '@/lib/animation/characterAnimOrchestrator';
 import { ExplorerAnimDriver } from '@/lib/animation/explorer/ExplorerAnimDriver';
@@ -288,6 +289,14 @@ export class CharacterController3D {
       if (resolvedModel3d) {
         const race = RACE_GRUDGE6[raceId] ?? RACE_GRUDGE6.human;
         this.equipmentManager = setupGrudge6Equipment(race.prefix, loaded.scene, resolvedModel3d);
+        ensureCharacterTextureColorSpace(loaded.scene);
+        applyCharacterColorTints(
+          loaded.scene,
+          resolvedModel3d.skinColor,
+          resolvedModel3d.armorColor,
+        );
+      } else {
+        ensureCharacterTextureColorSpace(loaded.scene);
       }
 
       const scale = resolvedModel3d?.scale ?? modelUnit.scale;
@@ -318,6 +327,12 @@ export class CharacterController3D {
 
     const race = RACE_GRUDGE6[this.raceIdStored] ?? RACE_GRUDGE6.human;
     this.equipmentManager = setupGrudge6Equipment(race.prefix, this.loadedModelScene, resolvedModel3d);
+    ensureCharacterTextureColorSpace(this.loadedModelScene);
+    applyCharacterColorTints(
+      this.loadedModelScene,
+      resolvedModel3d.skinColor,
+      resolvedModel3d.armorColor,
+    );
 
     const equippedWeaponType = weaponTypeFromModel3d(resolvedModel3d, this.classIdStored) as WeaponType;
     const weaponType = (this.mode === 'harvest' || this.mode === 'build')
@@ -411,7 +426,11 @@ export class CharacterController3D {
       this.stateMachine?.transition('idle');
     }
 
-    const wt = getWeaponTypeForMode(mode, classId ?? 'warrior', hasWeapon);
+    // Freeform ARPG: anim set follows current equipment, not class
+    const equippedWt = this.model3dStored
+      ? (weaponTypeFromModel3d(this.model3dStored, classId) as WeaponType)
+      : this.weaponType;
+    const wt = getWeaponTypeForMode(mode, classId ?? 'adventurer', hasWeapon, equippedWt);
     await this.reloadWeaponAnimations(wt);
   }
 

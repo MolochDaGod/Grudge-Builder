@@ -20,6 +20,16 @@ export {
 export { isFleetAllowedReturnUrl, resolveFleetReturnUrl } from "./authReturn";
 
 export {
+  FLEET_GAME_ORIGINS,
+  PRODUCTION_DEPLOYMENT_PATH,
+  HOME_GAME_MODES,
+  deploymentUrl,
+  type FleetGameId,
+  type DeploymentStage,
+  type GameDeployment,
+} from "./gameDeployments";
+
+export {
   FLEET_AUTH_GATEWAY,
   FLEET_AUTH_IMPLEMENTATION,
   FLEET_AUTH_DEPRECATED_API,

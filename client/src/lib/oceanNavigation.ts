@@ -18,7 +18,8 @@ export function resolveDeploySectorId(sectorId: string): string {
 
 export function buildPlayUrl(sectorId: string, worldSeed = 'grudge-world-1'): string {
   const zone = resolveDeploySectorId(sectorId);
-  return `/play?sector=${encodeURIComponent(zone)}&worldSeed=${encodeURIComponent(worldSeed)}`;
+  // mode=zone is required — bare /play loads procedural test terrain
+  return `/play?sector=${encodeURIComponent(zone)}&mode=zone&worldSeed=${encodeURIComponent(worldSeed)}`;
 }
 
 export function buildZoneUrl(
@@ -74,17 +75,20 @@ export function buildOceanDeployUrl(
 /** Tactical Infinity ocean diameter (meters) — matches ZONE_DEFAULT_SIZE_METERS. */
 export const TACTICAL_OCEAN_SIZE = TACTICAL_OCEAN_SIZE_METERS;
 
-/** 9-sector anchor positions on the tactical ocean (10 km × 10 km world). */
+/**
+ * 9-sector anchor positions on the tactical ocean (10 km × 10 km world).
+ * Canonical with ObjectStore warlords-zones.json oceanAnchor + legacyBridge.
+ */
 export const OCEAN_SECTOR_POSITIONS: Record<LegacySectorId, { x: number; z: number; radius: number }> = {
-  NW: { x: -3100, z: -3100, radius: 140 },
-  N: { x: 0, z: -3300, radius: 150 },
-  NE: { x: 3100, z: -3100, radius: 140 },
-  W: { x: -3300, z: 0, radius: 145 },
-  CENTER: { x: 0, z: 0, radius: 170 },
-  E: { x: 3300, z: 0, radius: 145 },
-  SW: { x: -3100, z: 3100, radius: 140 },
-  S: { x: 0, z: 3300, radius: 150 },
-  SE: { x: 3100, z: 3100, radius: 140 },
+  NW: { x: -3100, z: -3100, radius: 140 }, // ethereal_falls
+  N: { x: 0, z: -3300, radius: 150 },      // frostbite_expanse
+  NE: { x: 3100, z: -3100, radius: 140 },  // thornwood_wilds
+  W: { x: -3300, z: 0, radius: 145 },      // stormbreak_reef
+  CENTER: { x: 0, z: 0, radius: 170 },     // convergence_nexus
+  E: { x: 3300, z: 0, radius: 145 },       // ashen_wastes
+  SW: { x: -3100, z: 3100, radius: 140 },  // abyssal_trench
+  S: { x: 0, z: 3300, radius: 150 },       // haven_shore
+  SE: { x: 3100, z: 3100, radius: 140 },   // ember_depths
 };
 
 export function sectorLabel(sectorId: string): string {

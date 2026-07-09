@@ -28,6 +28,7 @@ import {
   type PanelEquipment,
 } from "@shared/fleet";
 import { setupGrudge6Equipment } from "@/lib/grudge6Equipment";
+import { applyCharacterColorTints, ensureCharacterTextureColorSpace } from "@/lib/characterAppearance";
 
 interface Grudge6Character3DProps {
   sceneRef: React.RefObject<ThreeSceneHandle | null>;
@@ -97,6 +98,12 @@ export default function Grudge6Character3D({
       loadedKeyRef.current = model3dKey;
 
       setupGrudge6Equipment(race.prefix, loaded.scene, resolvedModel3d);
+      ensureCharacterTextureColorSpace(loaded.scene);
+      applyCharacterColorTints(
+        loaded.scene,
+        resolvedModel3d.skinColor,
+        resolvedModel3d.armorColor,
+      );
 
       const s = scaleOverride ?? resolvedModel3d.scale ?? race.scale;
       loaded.scene.scale.set(s, s, s);
@@ -165,6 +172,12 @@ export default function Grudge6Character3D({
     if (!modelRef.current) return;
     const race = RACE_GRUDGE6[raceId] ?? RACE_GRUDGE6.human;
     setupGrudge6Equipment(race.prefix, modelRef.current.scene, resolvedModel3d);
+    ensureCharacterTextureColorSpace(modelRef.current.scene);
+    applyCharacterColorTints(
+      modelRef.current.scene,
+      resolvedModel3d.skinColor,
+      resolvedModel3d.armorColor,
+    );
   }, [resolvedModel3d, raceId]);
 
   useEffect(() => {

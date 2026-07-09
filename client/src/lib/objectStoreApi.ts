@@ -257,6 +257,16 @@ export function fetchWarlordsIntegrationWiring() {
   return fetchObjectStoreData<Record<string, unknown>>("/_meta/warlords-integration-wiring.json", {});
 }
 
+/** 9 open-world sectors (canonical) — prefer warlordsWorldApi for multi-host + local fallback */
+export function fetchWarlordsZonesJson() {
+  return fetchObjectStoreData<Record<string, unknown>>("/warlords-zones.json", {});
+}
+
+/** Wildlife, camps, bosses, build summary for open world */
+export function fetchWarlordsCatalogJson() {
+  return fetchObjectStoreData<Record<string, unknown>>("/warlords-catalog.json", {});
+}
+
 /** Fetch master items (with GRUDGE UUIDs, tier expansion, recipe links) */
 export function fetchMasterItems() {
   return fetchObjectStoreData<Record<string, unknown>>("/master-items.json", {});
@@ -368,6 +378,8 @@ export function getCacheStats(): {
  * Call this on app init to warm the cache.
  */
 export async function prefetchCoreData(): Promise<void> {
+  // Warm ObjectStore design data + Warlords open-world catalog in parallel
+  const { fetchWarlordsZones, fetchWarlordsCatalog } = await import('@/lib/warlordsWorldApi');
   await Promise.allSettled([
     fetchGamesLibrary(),
     fetchCanonicalItemsManifest(),
@@ -382,5 +394,9 @@ export async function prefetchCoreData(): Promise<void> {
     fetchSpriteMaps(),
     fetchWeaponSkills(),
     fetchUiArt(),
+    fetchWarlordsZonesJson(),
+    fetchWarlordsCatalogJson(),
+    fetchWarlordsZones(),
+    fetchWarlordsCatalog(),
   ]);
 }

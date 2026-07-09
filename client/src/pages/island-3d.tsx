@@ -15,8 +15,8 @@ import { Loader2, Users, ExternalLink, Ship, Anchor } from 'lucide-react';
 import { clearTopDownCache } from '@/island3d/render/IslandTopDownCapture';
 import { useZoneColyseus } from '@/hooks/use-zone-colyseus';
 import type { PlayerInfo } from '@/hooks/use-colyseus';
-import { CLASS_WEAPON_MAP } from '@/lib/modelManifest';
 import { parseModel3d, type Model3DField } from '@/lib/grudge6Character';
+import { weaponTypeFromModel3d } from '@shared/fleet';
 import type { MultiplayerConfig } from '@/island3d/sync/MultiplayerSync';
 import {
   ensureAuthForStudio,
@@ -276,7 +276,7 @@ function Island3DLegacyPage() {
           weaponSlots: resolvedModel3d.weaponSlots || {},
           skinColor: resolvedModel3d.skinColor || '#ffffff',
           armorColor: resolvedModel3d.armorColor || '#ffffff',
-          equippedWeaponType: CLASS_WEAPON_MAP[char.classId] || 'sword-shield',
+          equippedWeaponType: weaponTypeFromModel3d(resolvedModel3d) || 'sword',
         });
       } catch {
         setHeroCharacterId(activeId);

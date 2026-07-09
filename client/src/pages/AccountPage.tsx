@@ -379,9 +379,10 @@ export default function AccountPage() {
           <CardContent>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
               {[
-                { href: '/test-play',    icon: <Play className="w-4 h-4" />,    label: 'Test Play (3D)',  color: 'text-amber-400',   sub: 'Real DB character' },
-                { href: '/play',         icon: <Play className="w-4 h-4" />,    label: 'Open World',      color: 'text-amber-300',   sub: 'Colyseus sectors' },
-                { href: '/home-island',  icon: <Leaf className="w-4 h-4" />,     label: 'Home Island 3D',  color: 'text-emerald-400', sub: '1024m seed world' },
+                { href: '/home-island',  icon: <Leaf className="w-4 h-4" />,     label: 'Home Island 3D',  color: 'text-emerald-400', sub: 'Create → generate → play' },
+                { href: '/play?sector=haven_shore&mode=zone&worldSeed=grudge-world-1', icon: <Play className="w-4 h-4" />, label: 'Open World', color: 'text-amber-300', sub: 'Haven Shore · 9 zones' },
+                { href: '/ocean?worldSeed=grudge-world-1', icon: <Play className="w-4 h-4" />, label: 'Ocean Hub', color: 'text-cyan-300', sub: 'Sail → land → deploy' },
+                { href: '/test-play',    icon: <Play className="w-4 h-4" />,    label: 'Test Terrain',  color: 'text-amber-400',   sub: 'Procedural sandbox' },
                 { href: '/island-v2',    icon: <Map className="w-4 h-4" />,      label: 'Island 2D',       color: 'text-lime-400',    sub: 'Auto-Harvest' },
                 { href: '/crafting',     icon: <Hammer className="w-4 h-4" />,   label: 'Crafting',        color: 'text-orange-400',  sub: 'Forge gear' },
                 { href: '/rts-grudge',   icon: <Shield className="w-4 h-4" />,   label: 'RTS GRUDGE',      color: 'text-red-400',     sub: '3D Battle' },

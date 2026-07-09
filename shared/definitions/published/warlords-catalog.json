@@ -1,0 +1,292 @@
+{
+  "version": "1.1.0",
+  "updated": "2026-07-09",
+  "canonicalSources": {
+    "zones": "GrudgeBuilder/shared/definitions/worldMapSectors.ts",
+    "population": "GrudgeBuilder/shared/definitions/zoneServerNodes.ts",
+    "wildlife": "GrudgeBuilder/client/src/island3d/creatures/CreatureManifest.ts",
+    "camps": "GrudgeBuilder/shared/definitions/npcCamps.ts",
+    "bossRuntime": "GrudgeBuilder/shared/definitions/orcWarriorBoss.ts",
+    "towns": "GrudgeBuilder/shared/definitions/factionTowns.ts",
+    "buildAssets": "GrudgeBuilder/client/src/island3d/building/BuildAssetManifest.ts",
+    "characterMeshes": "GrudgeBuilder/client/src/lib/grudge6Equipment.ts + shared/fleet/character.ts",
+    "characterAppearance": "GrudgeBuilder/client/src/lib/characterAppearance.ts",
+    "playWiring": "GrudgeBuilder/client/src/lib/warlordsWorldApi.ts + playHub.ts",
+    "infoHubLegacy": {
+      "enemies": "api/v1/enemies.json (38)",
+      "bosses": "api/v1/bosses.json (12)",
+      "factions": "api/v1/factions.json",
+      "worlds_swg": "api/v1/worlds.json (SWG snapshots — NOT open-world sectors)"
+    }
+  },
+  "world": {
+    "id": "grudge-world-1",
+    "name": "Grudge Freeform ARPG Open World",
+    "seed": "grudge-world-1",
+    "sectorCount": 9,
+    "playClient": "https://client.grudge-studio.com",
+    "zonesEndpoint": "/api/v1/warlords-zones.json",
+    "defaultPlayUrl": "https://client.grudge-studio.com/play?sector=haven_shore&mode=zone&worldSeed=grudge-world-1"
+  },
+  "characterTruth": {
+    "genre": "freeform-arpg",
+    "rules": {
+      "race": "body mesh only (human/elf/orc/dwarf/barbarian/undead)",
+      "equipment": "any weapon + any armor on any race — mesh swaps + anim set from gear",
+      "class": "optional flavor / tiny starter stat lean — NOT equip or skill gate",
+      "colors": "skinColor + armorColor multiply tints; albedo maps sRGB",
+      "animations": "weaponTypeFromModel3d(equipment) — not CLASS_WEAPON_MAP",
+      "starterGear": "shared freeform kit (sword + bow + staff in bag)"
+    },
+    "cdn": {
+      "raceModels": "https://assets.grudge-studio.com/models/characters/races/{race}.glb",
+      "weaponAnims": "https://assets.grudge-studio.com/models/animations/{category}/*.glb"
+    },
+    "pipeline": [
+      "loadCharacterModel(race.glb)",
+      "setupGrudge6Equipment(prefix, scene, model3d)",
+      "applyCharacterColorTints + ensureCharacterTextureColorSpace",
+      "reloadWeaponAnimations(weaponTypeFromModel3d)"
+    ]
+  },
+  "factions": {
+    "playable": ["crusade", "legion", "fabled", "worge"],
+    "npc": ["pirate", "neutral", "monster"],
+    "relationRules": {
+      "same_faction": "ally",
+      "other_playable_or_pirate": "enemy",
+      "neutral_camp": "neutral_attackable",
+      "animals_monsters": "enemy or neutral_attackable (never ally)"
+    }
+  },
+  "wildlife": {
+    "total": 24,
+    "land": [
+      { "id": "wolf", "name": "Grey Wolf", "ai": "aggressive", "relation": "enemy" },
+      { "id": "buffalo", "name": "Plains Buffalo", "ai": "neutral", "relation": "neutral_attackable" },
+      { "id": "deer", "name": "Whitetail Deer", "ai": "passive", "relation": "neutral_attackable", "huntable": true },
+      { "id": "cotw_lynx", "name": "Lynx", "ai": "neutral", "relation": "neutral_attackable", "huntable": true },
+      { "id": "cotw_lioness", "name": "Lioness", "ai": "aggressive", "relation": "enemy", "huntable": true },
+      { "id": "cotw_buffalo", "name": "Cape Buffalo", "ai": "neutral", "relation": "neutral_attackable", "huntable": true },
+      { "id": "cotw_boar", "name": "Wild Boar", "ai": "neutral", "relation": "neutral_attackable", "huntable": true },
+      { "id": "cotw_bear", "name": "Black Bear", "ai": "aggressive", "relation": "enemy", "huntable": true },
+      { "id": "cotw_beaver", "name": "Beaver", "ai": "passive", "relation": "neutral_attackable", "huntable": true },
+      { "id": "cotw_raccoon", "name": "Raccoon", "ai": "passive", "relation": "neutral_attackable", "huntable": true },
+      { "id": "cotw_mink", "name": "American Mink", "ai": "passive", "relation": "neutral_attackable", "huntable": true },
+      { "id": "cotw_ibex", "name": "Beceite Ibex", "ai": "passive", "relation": "neutral_attackable", "huntable": true },
+      { "id": "cotw_alligator", "name": "American Alligator", "ai": "aggressive", "relation": "enemy", "huntable": true },
+      { "id": "crab", "name": "Shore Crab", "ai": "neutral", "relation": "neutral_attackable" }
+    ],
+    "birds": [
+      { "id": "cotw_mallard", "name": "Mallard Drake", "ai": "passive", "relation": "neutral_attackable", "huntable": true },
+      { "id": "hawk", "name": "Island Hawk", "ai": "passive", "relation": "neutral_attackable" }
+    ],
+    "fish": [
+      { "id": "anglerfish", "name": "Anglerfish" },
+      { "id": "lionfish", "name": "Black Lion Fish" },
+      { "id": "goldfish", "name": "Blue Goldfish" },
+      { "id": "blobfish", "name": "Blobfish" },
+      { "id": "catfish", "name": "Armored Catfish" },
+      { "id": "butterflyfish", "name": "Butterfly Fish" },
+      { "id": "flatfish", "name": "Flatfish" }
+    ],
+    "predators": [
+      { "id": "shark", "name": "Reef Shark", "ai": "aggressive", "relation": "enemy" }
+    ],
+    "respawnSec": { "min": 60, "max": 300 },
+    "placement": "land animals dry land only; fish under water only"
+  },
+  "npcCamps": {
+    "baseModel": "/models/camps/stylized_enemy_camp_scene.glb",
+    "defs": [
+      "stylized_enemy_camp",
+      "crusade_camp",
+      "legion_camp",
+      "fabled_camp",
+      "pirate_camp"
+    ],
+    "upgrades": [
+      { "id": "camp_bench", "kind": "bench", "buildAsset": "bench_1" },
+      { "id": "camp_storage", "kind": "storage", "buildAsset": "chest" },
+      { "id": "camp_tower", "kind": "tower", "buildAsset": "watchtower" },
+      { "id": "camp_flag", "kind": "flag", "buildAsset": "flag_totem" },
+      { "id": "camp_fire", "kind": "fire", "buildAsset": "fireplace" }
+    ],
+    "buildCatalogIds": [
+      "npc_camp_base",
+      "camp_bench_upgrade",
+      "camp_storage_upgrade",
+      "camp_tower_upgrade"
+    ],
+    "spawn": "1 camp per island in zone mode (seeded)"
+  },
+  "bosses": {
+    "runtimeImplemented": [
+      {
+        "id": "gharthok_the_unbroken",
+        "name": "Ghar'Thok the Unbroken",
+        "type": "orc_warrior",
+        "source": "orcWarriorBoss.ts",
+        "maxHP": 25000,
+        "level": 8,
+        "phases": 3,
+        "status": "ai_ready",
+        "zones": ["ember_depths", "convergence_nexus", "ashen_wastes"]
+      }
+    ],
+    "infoHubCatalog": {
+      "endpoint": "/api/v1/bosses.json",
+      "total": 12,
+      "ids": [
+        "boss-hunter",
+        "tortoise-boss",
+        "dragon-terror-bringer",
+        "minotaur-king",
+        "necromancer-lord",
+        "phoenix-infernal",
+        "titan-colossus",
+        "mimic-king",
+        "rhino-warlord",
+        "four-evil-dragons",
+        "spider-queen",
+        "egypt-pharaoh"
+      ],
+      "notes": "Design catalog with sprite paths — wire into zones as phase work continues."
+    },
+    "enemiesCatalog": {
+      "endpoint": "/api/v1/enemies.json",
+      "total": 38,
+      "categories": [
+        "beasts",
+        "spiders",
+        "trolls",
+        "orcs",
+        "undead",
+        "golems",
+        "minotaurs",
+        "dragons",
+        "egyptians",
+        "titans",
+        "reptiles",
+        "elementals"
+      ]
+    }
+  },
+  "islands": {
+    "homeIsland": {
+      "entry": "https://client.grudge-studio.com/home-island",
+      "seedSource": "Railway player_characters + home island API",
+      "features": [
+        "procedural terrain",
+        "regenerative harvest",
+        "wildlife",
+        "build mode",
+        "mountain dungeon triad"
+      ]
+    },
+    "zoneIslands": {
+      "generator": "generateZonePopulation(sectorId, worldSeed, sizeMeters, ...)",
+      "sizes": ["atoll", "small", "medium", "large", "fortress"],
+      "perSector": "biome-driven (open_sea fewer, archipelago more)",
+      "children": ["dock", "harvest", "spawn_point", "poi", "boss_arena optional"]
+    },
+    "lobbyMaps": ["pirate-islands"]
+  },
+  "npcs": {
+    "factionTowns": {
+      "source": "factionTowns.ts",
+      "factions": ["crusade", "legion", "fabled"],
+      "roles": [
+        "guard",
+        "merchant",
+        "factionVendor",
+        "questGiver",
+        "hero",
+        "shrineKeeper",
+        "civilian"
+      ],
+      "heroesNamed": [
+        "Aurion the Radiant",
+        "Theron Wildkin"
+      ],
+      "entry": "via /town?sector=<legacy> from ocean land"
+    },
+    "campGarrison": "planned — same-faction ally AI, other-faction enemy"
+  },
+  "buildAssets": {
+    "categories": [
+      "structure",
+      "furniture",
+      "storage",
+      "crafting",
+      "farming",
+      "defense",
+      "transport",
+      "decoration",
+      "nature",
+      "terrain",
+      "camp"
+    ],
+    "structuralPieces": [
+      "foundation",
+      "wall",
+      "ceiling",
+      "stairs",
+      "pillar",
+      "doorframe",
+      "window"
+    ],
+    "ghost": {
+      "color": "#64b5f6",
+      "opacity": 0.72,
+      "place": "LMB",
+      "rotate": "R"
+    }
+  },
+  "harvest": {
+    "types": ["tree", "rock", "crystal", "hemp", "flower", "scrap", "fish"],
+    "regenerative": true,
+    "respawnMsApprox": {
+      "tree": 180000,
+      "rock": 150000,
+      "crystal": 210000,
+      "flower": 90000,
+      "hemp": 100000,
+      "scrap": 120000,
+      "fish": 75000
+    },
+    "placement": "all land harvest dry land; fish water only"
+  },
+  "ships": {
+    "catalog": ["rowboat", "sloop", "galleon"],
+    "plannedLadder": ["raft", "skiff", "sloop", "brigantine", "galleon", "man_o_war"],
+    "dockModel": "/models/camps/../buildings or fish/Dock*.glb from TI"
+  },
+  "uiModes": ["combat", "harvest", "build"],
+  "deploymentTruth": {
+    "staticGameData": "info.grudge-studio.com/api/v1/*.json + objectstore.grudge-studio.com",
+    "binaryAssets": "assets.grudge-studio.com (R2)",
+    "playerState": "api.grudge-studio.com (Railway Postgres)",
+    "realtime": "Colyseus sector rooms",
+    "client": "client.grudge-studio.com (GrudgeBuilder → Vercel grudge-builder)",
+    "aliases": [
+      "client.grudge-studio.com",
+      "grudgewarlords.com",
+      "warlord3d.grudge-studio.com"
+    ],
+    "objectstoreProxy": "client.grudge-studio.com/api/objectstore/v1/* → objectstore.grudge-studio.com/api/*",
+    "doNotUseWorldsJsonForSectors": true,
+    "useWarlordsZonesJson": true,
+    "terrainGenerationSsot": "GrudgeBuilder WORLD_SECTORS (bundled)",
+    "entryCatalogSsot": "ObjectStore warlords-zones.json (must match WORLD_SECTORS)",
+    "verifyAtRuntime": "client warlordsWorldApi.verifyMapDeploymentTruth()"
+  },
+  "playEntryMatrix": {
+    "openWorldDefault": "/play → zone + haven_shore + grudge-world-1",
+    "openWorldSector": "/play?sector=<id>&mode=zone&worldSeed=grudge-world-1",
+    "oceanHub": "/ocean?worldSeed=grudge-world-1",
+    "homeIsland": "/home-island",
+    "proceduralTest": "/test-play or mode=procedural",
+    "lobby": "/island-3d?mode=lobby&map=pirate-islands"
+  }
+}

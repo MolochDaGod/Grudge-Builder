@@ -6,7 +6,6 @@ import { characterAPI, WARLORDS_ERA } from '@/lib/api';
 import type { Character } from '@/lib/characterManager';
 import { CharacterManager } from '@/lib/characterManager';
 import { getToken, authHeaders } from '@/lib/grudgeBackend';
-import { CLASS_WEAPON_MAP } from '@/lib/modelManifest';
 import { weaponTypeFromModel3d } from '@shared/fleet';
 
 export type PlayDestination =
@@ -14,6 +13,8 @@ export type PlayDestination =
   | { path: '/create-character'; reason: 'no_character' }
   | { path: '/island-reveal'; reason: 'no_island' }
   | { path: '/home-island'; reason: 'play_home_island' }
+  | { path: string; reason: 'play_open_world' }
+  | { path: '/ocean'; reason: 'play_ocean' }
   | { path: '/home'; reason: 'hub' };
 
 export interface PlayReadiness {
@@ -84,13 +85,32 @@ export async function fetchPlayReadiness(): Promise<PlayReadiness> {
   };
 }
 
-/** Resolve where "Play Warlords" should land for this account. */
+/**
+ * Resolve where "Play Warlords" should land for this account.
+ *
+ * Pipeline: auth → character → home island (create if missing) → home-island 3D.
+ * Open world is a separate explicit action (ocean / sector play).
+ */
 export async function resolvePlayDestination(): Promise<PlayDestination> {
   const readiness = await fetchPlayReadiness();
 
   if (!readiness.signedIn) return { path: '/', reason: 'sign_in' };
   if (!readiness.hasCharacter) return { path: '/create-character', reason: 'no_character' };
-  return { path: '/test-play', reason: 'play_home_island' };
+  if (!readiness.hasHomeIsland) return { path: '/island-reveal', reason: 'no_island' };
+
+  const charQ = readiness.activeCharacterId
+    ? `?characterId=${encodeURIComponent(readiness.activeCharacterId)}`
+    : '';
+  return { path: `/home-island${charQ}`, reason: 'play_home_island' };
+}
+
+/** Direct open-world entry (Haven Shore starter sector). */
+export function resolveOpenWorldDestination(sectorId = 'haven_shore'): PlayDestination {
+  const zone = sectorId;
+  return {
+    path: `/play?sector=${encodeURIComponent(zone)}&mode=zone&worldSeed=grudge-world-1`,
+    reason: 'play_open_world',
+  };
 }
 
 export function playDestinationLabel(dest: PlayDestination): string {
@@ -99,6 +119,8 @@ export function playDestinationLabel(dest: PlayDestination): string {
     case 'no_character': return 'Create Your Hero';
     case 'no_island': return 'Claim Home Island';
     case 'play_home_island': return 'Play Home Island';
+    case 'play_open_world': return 'Enter Open World';
+    case 'play_ocean': return 'Sail the Ocean';
     default: return 'Enter Grudge Warlords';
   }
 }
@@ -107,12 +129,18 @@ export function playDestinationLabel(dest: PlayDestination): string {
 export function characterToPlayerInfo(char: Character): PlayerInfo {
   const model3d = (char as Character & { model3d?: Record<string, unknown> }).model3d || {};
   const weaponSlots = (model3d.weaponSlots as Record<string, string> | undefined) || {};
-  const equippedWeaponType = Object.keys(weaponSlots).length
-    ? weaponTypeFromModel3d(
-        { weaponSlots, equippedMeshes: model3d.equippedMeshes as Record<string, string> | undefined },
-        char.classId,
-      )
-    : (CLASS_WEAPON_MAP[char.classId] || 'sword-shield');
+  const equippedMeshes = (model3d.equippedMeshes as Record<string, string> | undefined) || {};
+  // Freeform ARPG: anim/combat style follows what is equipped, not class role
+  const equippedWeaponType = weaponTypeFromModel3d({
+    weaponSlots,
+    equippedMeshes,
+    baseModelId: (model3d.baseModelId as string) || char.raceId || 'human',
+    faceVariant: 'A',
+    skinColor: '#ffffff',
+    armorColor: '#ffffff',
+    capeEnabled: false,
+    scale: 1,
+  });
 
   return {
     characterName: char.name,
@@ -123,7 +151,7 @@ export function characterToPlayerInfo(char: Character): PlayerInfo {
     characterId: char.id,
     accountId: (char as Character & { accountId?: string }).accountId,
     baseModelId: (model3d.baseModelId as string | undefined) || char.raceId || 'human',
-    equippedMeshes: (model3d.equippedMeshes as Record<string, string> | undefined) || {},
+    equippedMeshes,
     weaponSlots,
     skinColor: (model3d.skinColor as string | undefined) || '#ffffff',
     armorColor: (model3d.armorColor as string | undefined) || '#ffffff',

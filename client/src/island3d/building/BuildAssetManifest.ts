@@ -33,7 +33,8 @@ export type BuildCategory =
   | 'transport'    // cart, wagon, boat dock
   | 'decoration'   // flags, banners, signs, lanterns
   | 'nature'       // placed trees, rocks, stumps (landscaping)
-  | 'terrain';     // terrain tiles, boulders (base blend)
+  | 'terrain'      // terrain tiles, boulders (base blend)
+  | 'camp';        // NPC / faction camps + camp upgrades
 
 export interface BuildAssetDef {
   id: string;
@@ -73,6 +74,86 @@ export interface BuildAssetDef {
 const B = (prefix: string) => `${CDN}/models/buildings/${prefix}`;
 
 export const BUILD_ASSETS: Record<string, BuildAssetDef> = {
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // NPC / FACTION CAMPS (stylized_enemy_camp_scene.glb)
+  // Same faction = ally · other faction = enemy · expand with bench/storage/tower
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  npc_camp_base: {
+    id: 'npc_camp_base',
+    name: 'Outpost Camp',
+    category: 'camp',
+    placement: 'prop',
+    modelPath: '/models/camps/stylized_enemy_camp_scene.glb',
+    color: 0x6b4423,
+    size: [20, 6, 20],
+    scale: 1.0,
+    rotatable: true,
+    requiresFloor: false,
+    terrainPlaceable: true,
+    cost: [
+      { itemId: 'wood', quantity: 40 },
+      { itemId: 'stone', quantity: 20 },
+      { itemId: 'cloth', quantity: 8 },
+    ],
+    effect: {
+      type: 'defense',
+      value: 25,
+      description: 'Found a faction camp. Same faction = ally; others are enemies. Add benches, storage, towers.',
+    },
+  },
+  camp_bench_upgrade: {
+    id: 'camp_bench_upgrade',
+    name: 'Camp Bench',
+    category: 'camp',
+    placement: 'prop',
+    modelPath: B('medieval/bench_1.glb'),
+    color: 0x8b6914,
+    size: [2, 1, 0.6],
+    scale: 1.0,
+    rotatable: true,
+    requiresFloor: false,
+    terrainPlaceable: true,
+    cost: [{ itemId: 'wood', quantity: 4 }],
+    effect: { type: 'comfort', value: 5, description: 'Place near camp for ally rest' },
+  },
+  camp_storage_upgrade: {
+    id: 'camp_storage_upgrade',
+    name: 'Camp Storage',
+    category: 'camp',
+    placement: 'prop',
+    modelPath: B('medieval/chest.glb'),
+    color: 0x654321,
+    size: [1.2, 0.8, 0.8],
+    scale: 1.0,
+    rotatable: true,
+    requiresFloor: false,
+    terrainPlaceable: true,
+    cost: [
+      { itemId: 'wood', quantity: 6 },
+      { itemId: 'iron', quantity: 2 },
+    ],
+    effect: { type: 'storage', value: 20, description: 'Camp shared storage (20 slots)' },
+  },
+  camp_tower_upgrade: {
+    id: 'camp_tower_upgrade',
+    name: 'Camp Watchtower',
+    category: 'camp',
+    placement: 'prop',
+    modelPath: B('village/SM_PROP_watchtower_wood_01.glb'),
+    color: 0x7a5c3a,
+    size: [3, 8, 3],
+    scale: 1.0,
+    rotatable: true,
+    requiresFloor: false,
+    terrainPlaceable: true,
+    cost: [
+      { itemId: 'wood', quantity: 20 },
+      { itemId: 'stone', quantity: 10 },
+    ],
+    effect: { type: 'defense', value: 50, description: 'Camp defense / spot enemies' },
+  },
 
   // ═══════════════════════════════════════════════════════════════════════════
   // FURNITURE

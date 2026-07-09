@@ -14,7 +14,8 @@ import {
   sectorLabel,
 } from '@/lib/oceanNavigation';
 import { getSectorById } from '@shared/definitions/worldMapSectors';
-import { Anchor, Globe, MapPin, Ship, Swords } from 'lucide-react';
+import { Anchor, ExternalLink, Globe, MapPin, Ship, Swords } from 'lucide-react';
+import { getTacticalInfinityUrl } from '@/lib/gameNav';
 
 interface LandedSector {
   id: string;
@@ -91,10 +92,20 @@ export default function OceanPage() {
               )}
             </div>
 
-            <p className="text-[11px] text-slate-500 text-center">
-              Tactical Infinity · world <span className="text-slate-400">{worldSeed}</span>
-              {' · '}deploys to client.grudge-studio.com 3D zones
-            </p>
+            <div className="flex flex-col gap-2 pt-1">
+              <Button
+                variant="outline"
+                className="w-full border-cyan-700/50 text-cyan-200 hover:bg-cyan-950/40"
+                onClick={() => { window.location.href = getTacticalInfinityUrl('/'); }}
+              >
+                <ExternalLink className="w-4 h-4 mr-2" />
+                Open Full Tactical Infinity (water.grudge-studio.com)
+              </Button>
+              <p className="text-[11px] text-slate-500 text-center">
+                Warlords ocean · world <span className="text-slate-400">{worldSeed}</span>
+                {' · '}deploy into live Colyseus sectors
+              </p>
+            </div>
           </div>
         </div>
       </div>

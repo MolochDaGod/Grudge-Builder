@@ -144,11 +144,12 @@ const GRUDA_WPN_MESH_MAP: Record<string, string> = {
   PICK: "pick",
 };
 
-const CLASS_DEFAULT_WEAPONS: Record<string, Record<string, string>> = {
-  warrior: { sword: "A", shield: "A" },
-  ranger:  { bow: "_default", quiver: "_default" },
-  mage:    { staff: "A" },
-  worg:    { axe: "A" },
+/**
+ * Freeform ARPG: no class-locked starter kit.
+ * Empty hands → simple sword mesh; any race can equip any weapon later.
+ */
+const FREEFORM_STARTER_WEAPONS: Record<string, string> = {
+  sword: "A",
 };
 
 const DEFAULT_ARMOR_VARIANTS: Record<string, string> = {
@@ -214,11 +215,12 @@ export function grudaItemToMesh(
 
 /**
  * Convert main-panel equipment slots → model3d equippedMeshes + weaponSlots.
- * Fills class-default weapons and base armor when slots are empty.
+ * Freeform ARPG: what you equip is what you render — no class weapon locks.
+ * `classId` kept for call-site compatibility only (ignored for mesh defaults).
  */
 export function panelEquipmentToModel3d(
   raceId: string,
-  classId: string,
+  _classId: string,
   equipment: PanelEquipment,
   opts?: Partial<Pick<Model3DField, "skinColor" | "armorColor" | "scale" | "faceVariant" | "capeEnabled">>,
 ): Model3DField {
@@ -250,47 +252,39 @@ export function panelEquipmentToModel3d(
     if (!equippedMeshes[slot]) equippedMeshes[slot] = variant;
   }
 
-  // Class-default weapons when MainHand is empty
+  // Freeform starter: only fill a sword if nothing is equipped in hands
   const hasMainWeapon = Object.keys(weaponSlots).some((s) => s !== "shield");
   if (!hasMainWeapon) {
-    const defaults = CLASS_DEFAULT_WEAPONS[classId] ?? CLASS_DEFAULT_WEAPONS.warrior;
-    for (const [slot, variant] of Object.entries(defaults)) {
-      if (slot === "shield") {
-        if (!weaponSlots.shield && !equipment.OffHand) weaponSlots.shield = variant;
-      } else if (!weaponSlots[slot]) {
-        if (WEAPON_SLOTS.has(slot)) weaponSlots[slot] = variant;
-        else equippedMeshes[slot] = variant;
-      }
+    for (const [slot, variant] of Object.entries(FREEFORM_STARTER_WEAPONS)) {
+      if (WEAPON_SLOTS.has(slot)) weaponSlots[slot] = variant;
+      else equippedMeshes[slot] = variant;
     }
   }
 
-  // Warrior sword+shield: add shield when sword equipped and no offhand
-  if (weaponSlots.sword && !weaponSlots.shield && !equipment.OffHand && classId === "warrior") {
-    weaponSlots.shield = "A";
-  }
-
+  // Off-hand shield only if the player actually equipped one (no class auto-shield)
   return defaultModel3d(raceId, { equippedMeshes, weaponSlots, ...opts });
 }
 
-/** Infer animation weapon type from model3d weapon slots */
+/**
+ * Infer animation weapon type from equipped meshes only.
+ * Freeform ARPG: class does not gate animations or combat style.
+ * `classId` optional/legacy — unused.
+ */
 export function weaponTypeFromModel3d(
   model3d: Model3DField,
-  classId: string,
+  _classId?: string,
 ): string {
   const ws = model3d.weaponSlots ?? {};
   if (ws.bow) return "bow";
   if (ws.staff) return "arcane-staff";
-  if (ws.spear || ws.axe || ws.hammer) return classId === "worg" ? "greatsword" : "axe";
-  if (ws.sword && ws.shield) return "sword";
+  if (ws.spear) return "spear";
+  if (ws.axe) return "axe";
+  if (ws.hammer) return "hammer1h";
+  if (ws.sword && ws.shield) return "sword-shield";
   if (ws.sword) return "sword";
   if (ws.shield) return "sword-shield";
-  const classDefaults: Record<string, string> = {
-    warrior: "sword",
-    ranger: "bow",
-    mage: "arcane-staff",
-    worg: "greatsword",
-  };
-  return classDefaults[classId] ?? "sword";
+  if (ws.pick) return "unarmed";
+  return "sword";
 }
 
 /** Colyseus / multiplayer join payload derived from a character row. */

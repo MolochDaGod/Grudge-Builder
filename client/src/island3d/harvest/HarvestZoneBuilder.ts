@@ -254,7 +254,15 @@ export async function buildHarvestZones(
       }
     }
 
-    const hideTreeMesh = forest !== null;
+    // Keep harvest trees VISIBLE even when forestoutline instancing is present.
+    // Instanced forest = ambient density; interactive nodes = harvestable + regenerating.
+    // (Previously hideTreeMesh hid all harvest trees under forests — unharvestable visuals.)
+    const hideTreeMesh = false;
+
+    // Slightly reduce ambient forest when harvest trees also render (avoid double density)
+    if (forest && zone.type === 'forest') {
+      // forest already generated; harvest trees sit on same slots for chopping
+    }
 
     for (let slotIndex = 0; slotIndex < zone.nodes.length; slotIndex++) {
       const slot = zone.nodes[slotIndex];

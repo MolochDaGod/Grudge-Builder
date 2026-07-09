@@ -11,36 +11,36 @@ import { syncHarvestNodeDepleted } from '@/island3d/harvest/ZoneHarvestSpawner';
 import { GameHUD } from '@/components/GameHUD';
 import { Island3DEngine, type Island3DEngineConfig } from '@/island3d/engine/Island3DEngine';
 import { RemotePlayerManager, type RemotePlayerData } from '@/island3d/sync/RemotePlayerManager';
-import { BuildModePanel } from '@/components/BuildModePanel';
+import { ModePlayHUD } from '@/island3d/render/ModePlayHUD';
 import { characterToPlayerInfo, resolveActiveCharacterForPlay } from '@/lib/playHub';
 import type { CreatureLootEvent } from '@/island3d/creatures/CreatureManager';
 import { WarlordsPvpLoadscreen } from '@/components/WarlordsPvpLoadscreen';
-import { resolveZoneSectorId } from '@shared/definitions/sectorBridge';
 import type { Character } from '@/lib/characterManager';
+import {
+  resolvePlaySectorFromUrl,
+  resolvePlayEngineMode,
+  resolveWorldSeedFromUrl,
+  applyCharacterFactionToEngine,
+  getStarterSectorId,
+  fetchWarlordsZones,
+  verifyMapDeploymentTruth,
+  resolveDeployableSectorId,
+} from '@/lib/warlordsWorldApi';
+import { getSectorById } from '@shared/definitions/worldMapSectors';
 
-const SECTOR_BIOME_NAMES: Record<string, string> = {
-  NW: 'Arid Wasteland', N: 'Highland Plateau', NE: 'Crown Peaks',
-  W: 'Industrial Yard', CENTER: 'The Crucible', E: 'Urban Ruins',
-  SW: 'Drowned Quarter', S: 'The Pit', SE: 'Grinding March',
-};
-
-const DEFAULT_SECTOR = 'convergence_nexus';
 const TEST_PLAY_TERRAIN_SEED = 'grudge-test-play-v1';
 
 function getPlaySectorFromUrl(): string {
-  const params = new URLSearchParams(window.location.search);
-  const sector = params.get('sector');
-  return sector ? resolveZoneSectorId(sector) : DEFAULT_SECTOR;
+  return resolvePlaySectorFromUrl();
 }
 
 function getWorldSeedFromUrl(): string {
-  return new URLSearchParams(window.location.search).get('worldSeed') || 'grudge-world-1';
+  return resolveWorldSeedFromUrl();
 }
 
-/** Test-play defaults to full procedural island (harvest, mountains, heightmap). */
-function getTestPlayEngineMode(): 'procedural' | 'zone' {
-  const mode = new URLSearchParams(window.location.search).get('mode');
-  return mode === 'zone' ? 'zone' : 'procedural';
+/** /play → zone open world; /test-play or mode=procedural → test terrain */
+function getPlayEngineMode(): 'procedural' | 'zone' {
+  return resolvePlayEngineMode(window.location.pathname, window.location.search);
 }
 
 function getTestPlayTerrainSeed(characterId?: string | null): string {
@@ -54,7 +54,7 @@ export default function PlayPage() {
   const [, setLocation] = useLocation();
   const activeSector = getPlaySectorFromUrl();
   const worldSeed = getWorldSeedFromUrl();
-  const engineMode = getTestPlayEngineMode();
+  const engineMode = getPlayEngineMode();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const engineRef = useRef<Island3DEngine | null>(null);
   const remotePlayersRef = useRef<RemotePlayerManager | null>(null);
@@ -71,9 +71,24 @@ export default function PlayPage() {
   const [playerInfo, setPlayerInfo] = useState<PlayerInfo | null>(null);
   const [characterLoaded, setCharacterLoaded] = useState(false);
 
-  // Load real DB character — API roster fallback when localStorage is empty/stale
+  // Load real DB character + warm zone catalog
   useEffect(() => {
     async function loadCharacter() {
+      // Warm open-world catalog + assert ObjectStore ↔ WORLD_SECTORS truth
+      void verifyMapDeploymentTruth().then((report) => {
+        if (!report.aligned) {
+          console.warn(
+            `[Play] Map truth drift (${report.mismatches.length}) — terrain still uses WORLD_SECTORS`,
+            report.mismatches,
+          );
+        }
+      });
+      void fetchWarlordsZones().then((doc) => {
+        console.log(
+          `[Play] Warlords zones ready: ${doc.zones?.length ?? 0} sectors · seed ${doc.worldSeedDefault ?? worldSeed} · sector=${resolveDeployableSectorId(activeSector)}`,
+        );
+      });
+
       const params = new URLSearchParams(window.location.search);
       const gcsHandoff = params.get('from') === 'gcs' && params.get('characterId');
 
@@ -91,15 +106,19 @@ export default function PlayPage() {
 
       characterRef.current = char;
       setPlayerInfo(characterToPlayerInfo(char));
-      console.log(`[Play] Loaded character: ${char.name} (${char.raceId} ${char.classId})`);
+      console.log(
+        `[Play] Loaded character: ${char.name} (${char.raceId} ${char.classId}) · mode=${engineMode} sector=${activeSector}`,
+      );
       setCharacterLoaded(true);
     }
     loadCharacter();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Load 3D model into engine once world + character are ready
+  // Load 3D model + apply faction camps once world + character are ready
   useEffect(() => {
-    if (!loaded || !playerInfo || !engineRef.current?.character) return;
+    if (!loaded || !playerInfo || !engineRef.current) return;
+    applyCharacterFactionToEngine(engineRef.current, playerInfo.faction);
+    if (!engineRef.current.character) return;
     const char = characterRef.current;
     engineRef.current.character.loadCharacterFromManifest(
       playerInfo.heroRace,
@@ -156,16 +175,25 @@ export default function PlayPage() {
     if (!canvas || engineRef.current) return;
 
     const terrainSeed = getTestPlayTerrainSeed(characterRef.current?.id);
+    const sector = engineMode === 'zone' ? resolveDeployableSectorId(activeSector) : undefined;
+    // Prefer bundled WORLD_SECTORS (generation SSOT); reject unknown ids early
+    if (engineMode === 'zone' && sector && !getSectorById(sector)) {
+      console.error(`[Play] Sector not in WORLD_SECTORS: ${sector}`);
+    }
     const config: Island3DEngineConfig = {
-      seed: engineMode === 'zone' ? `sector-${activeSector}` : terrainSeed,
+      seed: engineMode === 'zone' ? `sector-${sector}` : terrainSeed,
       canvas,
       width: window.innerWidth,
       height: window.innerHeight,
       mode: engineMode,
-      sectorId: engineMode === 'zone' ? activeSector : undefined,
+      sectorId: sector,
       worldSeed: engineMode === 'zone' ? worldSeed : undefined,
       quality: 'medium',
       enableCharacter: true,
+      accountId: characterRef.current
+        ? (characterRef.current as Character & { accountId?: string }).accountId
+        : undefined,
+      captainId: characterRef.current?.id ?? null,
       onLoadProgress: (pct) => setLoadProgress(pct),
       dayNight: { dayDurationSeconds: 10 * 60 },
       onHarvest: ({ nodeId, resourceType }) => {
@@ -180,6 +208,13 @@ export default function PlayPage() {
     engineRef.current = engine;
 
     engine.init().then(() => {
+      // Faction camps: same faction ally, others enemy
+      const faction =
+        playerInfo?.faction ||
+        (characterRef.current as Character & { faction?: string } | null)?.faction ||
+        'crusade';
+      applyCharacterFactionToEngine(engine, faction);
+
       setLoaded(true);
       engine.start();
 
@@ -351,9 +386,10 @@ export default function PlayPage() {
     ? colyseus.players.get(colyseus.localSessionId)
     : null;
 
-  const sectorBiome = colyseus.sectorId
-    ? SECTOR_BIOME_NAMES[colyseus.sectorId] || ''
-    : '';
+  const sectorDef = getSectorById(activeSector);
+  const sectorBiome = sectorDef
+    ? `${sectorDef.name} · ${sectorDef.biome}`
+    : colyseus.sectorId || getStarterSectorId();
 
   return (
     <div className="fixed inset-0 bg-black">
@@ -391,36 +427,31 @@ export default function PlayPage() {
         onClick={(e) => {
           const engine = engineRef.current;
           if (!engine) return;
-          if (buildPlacing && engine.building) {
-            const result = engine.building.confirmPropPlacement();
-            if (result) {
-              // Send to Colyseus for sync
-              const pos = engine.building.getAllProps().find(p => p.id === result.id);
-              if (pos && colyseus.sectorRoom) {
+          const wasProp = engine.building?.isPropPlacing;
+          const propCountBefore = engine.building?.propCount ?? 0;
+          engine.handleClick(e.clientX, e.clientY);
+          // Sync placed prop to Colyseus if a prop was just placed
+          if (wasProp && engine.building) {
+            const props = engine.building.getAllProps();
+            if (props.length > propCountBefore) {
+              const last = props[props.length - 1];
+              if (colyseus.sectorRoom) {
                 colyseus.sectorRoom.send('place_building', {
-                  id: result.id,
-                  assetId: result.assetId,
-                  x: pos.position.x,
-                  y: pos.position.y,
-                  z: pos.position.z,
-                  rotation: pos.rotation,
+                  id: last.id,
+                  assetId: last.assetId,
+                  x: last.position.x,
+                  y: last.position.y,
+                  z: last.position.z,
+                  rotation: last.rotation,
                 });
               }
-              setBuildPlacing(false);
-              setBuildSelectedAsset(null);
+              setBuildSelectedAsset(last.assetId);
+              setBuildPlacing(true); // continuous place keeps ghost
             }
-          } else {
-            engine.handleClick(e.clientX, e.clientY);
           }
         }}
         onMouseMove={(e) => {
-          const engine = engineRef.current;
-          if (!engine) return;
-          if (buildPlacing && engine.building) {
-            engine.building.updatePropGhostPosition(e.clientX, e.clientY, e.currentTarget);
-          } else {
-            engine.handleMouseMove(e.clientX, e.clientY);
-          }
+          engineRef.current?.handleMouseMove(e.clientX, e.clientY);
         }}
       />
 
@@ -433,21 +464,30 @@ export default function PlayPage() {
         </div>
       )}
 
-      {/* Build Mode Panel */}
+      {/* RTS triple-mode UI + build palette */}
       {loaded && (
-        <BuildModePanel
-          isPlacing={buildPlacing}
-          selectedAssetId={buildSelectedAsset}
-          onSelectItem={(assetId) => {
-            const engine = engineRef.current;
-            if (!engine?.building) return;
-            engine.building.startPropPlacement(assetId);
-            setBuildPlacing(true);
-            setBuildSelectedAsset(assetId);
+        <ModePlayHUD
+          engine={engineRef.current}
+          mode={buildPlacing ? 'build' : 'combat'}
+          onModeChange={(m) => {
+            void engineRef.current?.character?.setControlMode(m);
+            if (m !== 'build') {
+              engineRef.current?.cancelBuilding();
+              setBuildPlacing(false);
+              setBuildSelectedAsset(null);
+            }
           }}
-          onCancel={() => {
-            const engine = engineRef.current;
-            engine?.building?.cancelPropPlacement();
+          characterName={playerInfo?.characterName}
+          hp={localPlayer?.hp ?? 200}
+          maxHp={localPlayer?.maxHp ?? 200}
+          level={playerInfo?.level ?? 1}
+          selectedBuildId={buildSelectedAsset}
+          isPlacing={buildPlacing}
+          onBuildSelect={(id) => {
+            setBuildPlacing(true);
+            setBuildSelectedAsset(id);
+          }}
+          onBuildCancel={() => {
             setBuildPlacing(false);
             setBuildSelectedAsset(null);
           }}

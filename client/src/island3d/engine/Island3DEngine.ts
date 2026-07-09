@@ -53,6 +53,8 @@ import {
 } from '@shared/definitions/zoneServerNodes';
 import { buildZoneScene, type ZoneSceneResult } from './ZoneSceneBuilder';
 import { CreatureManager, type CreatureLootEvent } from '../creatures/CreatureManager';
+import { NpcCampSystem, spawnZoneCamps } from '../camps/NpcCampSystem';
+import type { CampFaction } from '@shared/definitions/npcCamps';
 import {
   createEvilMountainTriad,
   EvilMountainTriadSystem,
@@ -80,9 +82,11 @@ import {
   resetHarvestableRock,
   resetHarvestableCrystal,
   resetSimpleHarvestNode,
+  markDepleted,
   type HarvestDrop,
   type HarvestDropKind,
 } from '../harvest/HarvestFeedback';
+import { tickGrowth, isHarvestable } from '../harvest/RegenerativeHarvest';
 import {
   generateMountainTriadSeed,
   HOME_ISLAND_WORLD_SIZE_M,
@@ -221,6 +225,11 @@ export class Island3DEngine {
 
   // Wildlife
   public creatures: CreatureManager | null = null;
+
+  // Faction NPC camps (stylized camp GLB + upgrades)
+  public npcCamps: NpcCampSystem | null = null;
+  /** Player faction for camp ally/enemy resolution */
+  public playerFaction: CampFaction | string = 'crusade';
 
   // Mountain dungeon triad + instanced forest (procedural home island)
   public mountainTriad: EvilMountainTriadSystem | null = null;
@@ -618,8 +627,8 @@ export class Island3DEngine {
 
     // 12. Wildlife — land animals + fish
     this.creatures = new CreatureManager(this.scene, -2, this.config.seed.length);
-    this.creatures.spawnLandCreatures(this.terrain.terrainMesh, 22, 400);
-    this.creatures.spawnFish(10, 450);
+    // Home island — forest/plains mix, regenerative wildlife 1–5 min respawn
+    this.creatures.spawnForBiome(this.terrain.terrainMesh, 'forest', 400);
 
     // 13. Evil mountain triad — dungeon behind one of three peaks
     await this.createMountainDungeon();
@@ -737,15 +746,45 @@ export class Island3DEngine {
     // 9. Building system works in zone mode too
     this.building = new BuildingSystem(this.scene, this.camera);
 
-    // 10. Wildlife — scale to zone size and biome (open sea = more ocean life)
-    const openSea = sector.biome === 'desert' || sector.biome === 'abyssal';
+    // 10. Wildlife — biome palette counts (land on dry ground, fish only in water)
+    // Animals/monsters are enemy or neutral-attackable (never ally)
     this.creatures = new CreatureManager(this.scene, cfg.waterLevel, sectorId.length + 99);
-    if (firstIslandMesh) {
-      const landCount = openSea ? 8 : 14;
-      this.creatures.spawnLandCreatures(firstIslandMesh, landCount, cfg.sizeMeters * 0.28);
-    }
-    const fishCount = openSea ? 18 : 10;
-    this.creatures.spawnFish(fishCount, cfg.sizeMeters * 0.45);
+    this.creatures.spawnForBiome(
+      firstIslandMesh,
+      sector.biome,
+      cfg.sizeMeters * 0.28,
+    );
+
+    // 11. Faction NPC camps — stylized camp GLB; same faction ally, others enemy
+    const islands = getNodesByCategory<IslandNode>(this.zonePopulation, 'island');
+    const islandCenters = islands.map((isl) => ({
+      x: isl.position[0],
+      z: isl.position[2],
+      radius: isl.radiusM,
+    }));
+    const sampleY = firstIslandMesh
+      ? (x: number, z: number) => {
+          const ray = new THREE.Raycaster(
+            new THREE.Vector3(x, 800, z),
+            new THREE.Vector3(0, -1, 0),
+          );
+          const hits = ray.intersectObject(firstIslandMesh, true);
+          return hits.length > 0 ? hits[0].point.y : null;
+        }
+      : undefined;
+    this.npcCamps = new NpcCampSystem({
+      scene: this.scene,
+      playerFaction: this.playerFaction,
+      waterLevel: cfg.waterLevel,
+      sampleHeight: sampleY,
+    });
+    void spawnZoneCamps(this.npcCamps, islandCenters, {
+      playerFaction: this.playerFaction,
+      seed: sectorId.length * 9973,
+      campsPerIsland: 1,
+    }).then((n) => {
+      console.log(`[Island3DEngine] Spawned ${n} faction camps in zone`);
+    });
 
     console.log(
       `[Island3DEngine] Zone "${sector.name}" loaded:`,
@@ -753,6 +792,47 @@ export class Island3DEngine {
       `${this.zonePopulation.nodes.size} total nodes,`,
       `${this.creatures.count} creatures`,
     );
+  }
+
+  /** Set player faction so camp banners / AI treat ally vs enemy correctly. */
+  setPlayerFaction(faction: CampFaction | string): void {
+    this.playerFaction = faction;
+    this.npcCamps?.setPlayerFaction(faction);
+  }
+
+  /** Place player-owned camp (build mode) at world XZ. */
+  async placePlayerCamp(x: number, z: number, faction?: CampFaction): Promise<string | null> {
+    if (!this.npcCamps) {
+      this.npcCamps = new NpcCampSystem({
+        scene: this.scene,
+        playerFaction: this.playerFaction,
+        waterLevel: PROCEDURAL_WATER_LEVEL,
+        sampleHeight: this.terrain
+          ? (wx, wz) => getTerrainHeightAt(this.terrain!.terrainMesh, wx, wz)
+          : undefined,
+      });
+    }
+    const camp = await this.npcCamps.spawnCamp({
+      defId: 'stylized_enemy_camp',
+      faction: (faction ?? this.playerFaction) as CampFaction,
+      x,
+      z,
+      ownerAccountId: this.config.accountId ?? 'guest',
+    });
+    return camp?.data.id ?? null;
+  }
+
+  /** Attach bench / storage / tower to nearest camp within radius. */
+  async upgradeNearestCamp(
+    x: number,
+    z: number,
+    upgradeId: 'camp_bench' | 'camp_storage' | 'camp_tower' | 'camp_flag' | 'camp_fire',
+  ): Promise<boolean> {
+    const camp = this.npcCamps?.findNearestCamp(x, z, 24);
+    if (!camp) return false;
+    // Only upgrade ally camps (or own camps)
+    if (camp.relation === 'enemy') return false;
+    return this.npcCamps!.addUpgrade(camp.data.id, upgradeId);
   }
 
   /** Collapse submerged terrain so only the ocean shader shows water (not seafloor + ocean). */
@@ -1003,11 +1083,17 @@ export class Island3DEngine {
     }
   }
 
-  /** Update harvestable animations, tree fall, debris drops, and respawns */
+  /** Update harvestable animations, tree fall, growth regrow, debris drops */
   private updateHarvestables(dt: number): void {
     const now = Date.now();
 
     for (const tree of this.trees) {
+      // Growing sapling animation (after stump / deplete)
+      if ((tree as any).growthPhase === 'growing') {
+        tickGrowth(tree as any, now);
+        continue;
+      }
+
       if (tree.shaking && tree.fallPhase === 'live') {
         tree.shakeTime += dt;
         const shake = Math.sin(tree.shakeTime * 15) * Math.max(0, 0.1 - tree.shakeTime * 0.05);
@@ -1027,14 +1113,18 @@ export class Island3DEngine {
         }
       }
 
+      // Stump → begin visible growth when respawn timer elapses
       if (tree.respawnAt > 0 && now >= tree.respawnAt && tree.fallPhase === 'stump') {
-        tree.respawnAt = 0;
         this.treeFallCompleting.delete(tree);
         resetHarvestableTree(tree, tree.baseScale);
       }
     }
 
     for (const rock of this.rocks) {
+      if ((rock as any).growthPhase === 'growing') {
+        tickGrowth(rock as any, now);
+        continue;
+      }
       if (rock.chipping) {
         rock.chipTime += dt;
         if (rock.chipTime > 0.3) {
@@ -1042,14 +1132,16 @@ export class Island3DEngine {
           rock.chipTime = 0;
         }
       }
-
       if (rock.respawnAt > 0 && now >= rock.respawnAt && !rock.group.visible) {
-        rock.respawnAt = 0;
         resetHarvestableRock(rock);
       }
     }
 
     for (const crystal of this.crystals) {
+      if ((crystal as any).growthPhase === 'growing') {
+        tickGrowth(crystal as any, now);
+        continue;
+      }
       if (crystal.chipping) {
         crystal.chipTime += dt;
         if (crystal.chipTime > 0.3) {
@@ -1058,27 +1150,35 @@ export class Island3DEngine {
         }
       }
       if (crystal.respawnAt > 0 && now >= crystal.respawnAt && !crystal.group.visible) {
-        crystal.respawnAt = 0;
         resetHarvestableCrystal(crystal);
       }
     }
 
     for (const hemp of this.hemps) {
+      if ((hemp as any).growthPhase === 'growing') {
+        tickGrowth(hemp as any, now);
+        continue;
+      }
       if (hemp.respawnAt > 0 && now >= hemp.respawnAt && !hemp.group.visible) {
-        hemp.respawnAt = 0;
-        resetSimpleHarvestNode(hemp);
+        resetSimpleHarvestNode(hemp, 'hemp');
       }
     }
     for (const flower of this.flowers) {
+      if ((flower as any).growthPhase === 'growing') {
+        tickGrowth(flower as any, now);
+        continue;
+      }
       if (flower.respawnAt > 0 && now >= flower.respawnAt && !flower.group.visible) {
-        flower.respawnAt = 0;
-        resetSimpleHarvestNode(flower);
+        resetSimpleHarvestNode(flower, 'flower');
       }
     }
     for (const scrap of this.scraps) {
+      if ((scrap as any).growthPhase === 'growing') {
+        tickGrowth(scrap as any, now);
+        continue;
+      }
       if (scrap.respawnAt > 0 && now >= scrap.respawnAt && !scrap.group.visible) {
-        scrap.respawnAt = 0;
-        resetSimpleHarvestNode(scrap);
+        resetSimpleHarvestNode(scrap, 'scrap');
       }
     }
 
@@ -1273,10 +1373,43 @@ export class Island3DEngine {
     return this.mountainTriad?.triad.dungeon.name ?? null;
   }
 
-  /** Handle mouse click — building placement or harvesting */
+  /** Handle mouse click — building placement (LMB) or harvesting / combat */
   handleClick(clientX: number, clientY: number): void {
-    // If building mode is active, confirm placement
+    // Build mode: LMB places light-blue ghost at cursor
     if (this.building?.isBuilding) {
+      if (this.building.isPropPlacing) {
+        const selectedId = this.building.selectedPropId;
+        const result = this.building.confirmPropPlacement();
+        // Outpost camp base → faction camp system owns the GLB (avoid double mesh)
+        if (result && selectedId === 'npc_camp_base') {
+          const props = this.building.getAllProps();
+          const last = props.find((p) => p.id === result.id);
+          if (last) {
+            const { x, z } = last.position;
+            this.building.removeProp(result.id);
+            void this.placePlayerCamp(x, z);
+          }
+        }
+        // Camp upgrades snap to nearest ally camp when possible
+        if (
+          result &&
+          (selectedId === 'camp_bench_upgrade' ||
+            selectedId === 'camp_storage_upgrade' ||
+            selectedId === 'camp_tower_upgrade')
+        ) {
+          const props = this.building.getAllProps();
+          const last = props.find((p) => p.id === result.id);
+          const map: Record<string, 'camp_bench' | 'camp_storage' | 'camp_tower'> = {
+            camp_bench_upgrade: 'camp_bench',
+            camp_storage_upgrade: 'camp_storage',
+            camp_tower_upgrade: 'camp_tower',
+          };
+          if (last && selectedId && map[selectedId]) {
+            void this.upgradeNearestCamp(last.position.x, last.position.z, map[selectedId]);
+          }
+        }
+        return;
+      }
       this.building.confirmPlacement();
       return;
     }
@@ -1297,9 +1430,9 @@ export class Island3DEngine {
       }
     }
 
-    // Check tree hits
+    // Check tree hits (only mature / harvestable)
     for (const tree of this.trees) {
-      if (tree.fallPhase !== 'live') continue;
+      if (tree.fallPhase !== 'live' || !isHarvestable(tree as any)) continue;
       const hits = this.raycaster.intersectObject(tree.group, true);
       if (hits.length > 0) {
         tree.health--;
@@ -1307,7 +1440,7 @@ export class Island3DEngine {
         tree.shakeTime = 0;
         if (tree.health <= 0) {
           beginTreeFall(tree);
-          tree.respawnAt = Date.now() + HARVEST_RESPAWN_MS;
+          markDepleted(tree as any, 'tree', false);
         }
         return;
       }
@@ -1315,7 +1448,7 @@ export class Island3DEngine {
 
     // Check rock hits
     for (const rock of this.rocks) {
-      if (!rock.group.visible || rock.respawnAt > 0) continue;
+      if (!isHarvestable(rock as any)) continue;
       const hits = this.raycaster.intersectObject(rock.group, true);
       if (hits.length > 0) {
         rock.health--;
@@ -1325,8 +1458,7 @@ export class Island3DEngine {
         rock.group.scale.setScalar(rock.baseScale * scale);
         void this.spawnRockDebris(rock, 1);
         if (rock.health <= 0) {
-          rock.group.visible = false;
-          rock.respawnAt = Date.now() + HARVEST_RESPAWN_MS;
+          markDepleted(rock as any, 'rock', true);
           void this.emitHarvestDrops(
             rock.group.position.clone(),
             rock.oreVariant ? 'gold' : 'debris',
@@ -1340,7 +1472,7 @@ export class Island3DEngine {
     }
 
     for (const crystal of this.crystals) {
-      if (!crystal.group.visible || crystal.respawnAt > 0) continue;
+      if (!isHarvestable(crystal as any)) continue;
       const hits = this.raycaster.intersectObject(crystal.group, true);
       if (hits.length > 0) {
         crystal.health--;
@@ -1352,8 +1484,7 @@ export class Island3DEngine {
           this.harvestDrops.push(...d);
         });
         if (crystal.health <= 0) {
-          crystal.group.visible = false;
-          crystal.respawnAt = Date.now() + HARVEST_RESPAWN_MS;
+          markDepleted(crystal as any, 'crystal', true);
           void this.emitHarvestDrops(
             crystal.group.position.clone(),
             'gem',
@@ -1367,15 +1498,14 @@ export class Island3DEngine {
     }
 
     for (const hemp of this.hemps) {
-      if (!hemp.group.visible || hemp.respawnAt > 0) continue;
+      if (!isHarvestable(hemp as any)) continue;
       const hits = this.raycaster.intersectObject(hemp.group, true);
       if (hits.length > 0) {
         hemp.health--;
         const scale = Math.max(0.4, hemp.health / hemp.maxHealth);
         hemp.group.scale.setScalar(hemp.baseScale * scale);
         if (hemp.health <= 0) {
-          hemp.group.visible = false;
-          hemp.respawnAt = Date.now() + HARVEST_RESPAWN_MS;
+          markDepleted(hemp as any, 'hemp', true);
           void this.emitHarvestDrops(hemp.group.position.clone(), 'debris', 2, hemp.nodeId, 'herbalism');
         }
         return;
@@ -1383,15 +1513,14 @@ export class Island3DEngine {
     }
 
     for (const flower of this.flowers) {
-      if (!flower.group.visible || flower.respawnAt > 0) continue;
+      if (!isHarvestable(flower as any)) continue;
       const hits = this.raycaster.intersectObject(flower.group, true);
       if (hits.length > 0) {
         flower.health--;
         const scale = Math.max(0.4, flower.health / flower.maxHealth);
         flower.group.scale.setScalar(flower.baseScale * scale);
         if (flower.health <= 0) {
-          flower.group.visible = false;
-          flower.respawnAt = Date.now() + HARVEST_RESPAWN_MS;
+          markDepleted(flower as any, 'flower', true);
           void this.emitHarvestDrops(flower.group.position.clone(), 'debris', 2, flower.nodeId, 'herbalism');
         }
         return;
@@ -1399,7 +1528,7 @@ export class Island3DEngine {
     }
 
     for (const scrap of this.scraps) {
-      if (!scrap.group.visible || scrap.respawnAt > 0) continue;
+      if (!isHarvestable(scrap as any)) continue;
       const hits = this.raycaster.intersectObject(scrap.group, true);
       if (hits.length > 0) {
         scrap.health--;
@@ -1409,8 +1538,7 @@ export class Island3DEngine {
           this.harvestDrops.push(...d);
         });
         if (scrap.health <= 0) {
-          scrap.group.visible = false;
-          scrap.respawnAt = Date.now() + HARVEST_RESPAWN_MS;
+          markDepleted(scrap as any, 'scrap', true);
           void this.emitHarvestDrops(scrap.group.position.clone(), 'debris', 3, scrap.nodeId, 'mining');
         }
         return;
@@ -1418,9 +1546,12 @@ export class Island3DEngine {
     }
   }
 
-  /** Handle mouse move — building ghost snap preview */
+  /** Handle mouse move — light-blue build ghost follows cursor */
   handleMouseMove(clientX: number, clientY: number): void {
-    if (this.building?.isBuilding) {
+    if (!this.building?.isBuilding) return;
+    if (this.building.isPropPlacing) {
+      this.building.updatePropGhostPosition(clientX, clientY, this.config.canvas);
+    } else {
       this.building.updateGhostPosition(clientX, clientY, this.config.canvas);
     }
   }
@@ -1428,11 +1559,23 @@ export class Island3DEngine {
   /** Enter building mode for a piece type */
   startBuilding(type: PieceType): void {
     this.building?.startPlacement(type);
+    void this.character?.setControlMode('build');
+  }
+
+  /** Enter prop build mode — light-blue ghost follows mouse until LMB */
+  startPropBuilding(assetId: string): void {
+    this.building?.startPropPlacement(assetId);
+    void this.character?.setControlMode('build');
   }
 
   /** Cancel building mode */
   cancelBuilding(): void {
     this.building?.cancelPlacement();
+    this.building?.cancelPropPlacement();
+  }
+
+  get isBuildPlacing(): boolean {
+    return this.building?.isBuilding ?? false;
   }
 
   /** Get the Three.js scene (for adding remote player meshes, etc.) */
@@ -1532,6 +1675,8 @@ export class Island3DEngine {
   destroy(): void {
     this.stop();
     this.creatures?.dispose();
+    this.npcCamps?.dispose();
+    this.npcCamps = null;
     this.character?.destroy();
     this.allyManager?.destroy();
     this.building?.destroy();

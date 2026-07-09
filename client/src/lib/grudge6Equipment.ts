@@ -95,7 +95,11 @@ export class Grudge6EquipmentManager {
       const m = mesh as THREE.Mesh;
       if (v === variant) {
         m.visible = true;
-        if (armorColor && m.material) this.tintMesh(m, armorColor);
+        // Only multiply-tint when a non-white armor color is set — never
+        // overwrite base color (that flattens textures to a solid wash).
+        if (armorColor && armorColor !== '#ffffff' && armorColor !== '#fff') {
+          this.tintMesh(m, armorColor);
+        }
       } else {
         m.visible = false;
       }
@@ -132,11 +136,18 @@ export class Grudge6EquipmentManager {
     return summary;
   }
 
+  /** Multiply from stored base color so re-equip never stacks darkening. */
   private tintMesh(mesh: THREE.Mesh, color: string): void {
-    const mat = Array.isArray(mesh.material) ? mesh.material[0] : mesh.material;
-    if (mat && (mat as THREE.MeshStandardMaterial).color) {
-      (mat as THREE.MeshStandardMaterial).color.set(color);
-      (mat as THREE.MeshStandardMaterial).needsUpdate = true;
+    const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+    const tint = new THREE.Color(color);
+    for (const mat of mats) {
+      if (!mat || !(mat as THREE.MeshStandardMaterial).color) continue;
+      const std = mat as THREE.MeshStandardMaterial;
+      if (!std.userData._grudgeBaseColor) {
+        std.userData._grudgeBaseColor = std.color.clone();
+      }
+      std.color.copy(std.userData._grudgeBaseColor as THREE.Color).multiply(tint);
+      std.needsUpdate = true;
     }
   }
 

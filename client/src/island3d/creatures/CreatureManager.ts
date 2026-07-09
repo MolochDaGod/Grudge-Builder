@@ -24,6 +24,7 @@ import {
   getWaterPredators,
   pickWeightedCreature,
   rollLoot,
+  CREATURE_MANIFEST,
   type CreatureDef,
 } from './CreatureManifest';
 import { resolveCotwAnimations } from './cotwAnimResolver';
@@ -31,6 +32,11 @@ import { CreatureBrain } from './CreatureBrain';
 import { getTerrainHeightAt } from '../terrain/IslandTerrainGenerator';
 import type { TerrainNavMesh } from '../navigation/TerrainNavMesh';
 import { WILDLIFE_SIZE_FACTOR } from '../zoneWorldScale';
+import {
+  resolveBiomePalette,
+  wildlifeCountForBiome,
+  fishCountForBiome,
+} from '@shared/definitions/biomeHarvestAssets';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -160,12 +166,45 @@ export class CreatureManager {
     }
   }
 
-  /** Spawn land creatures scattered on terrain */
-  spawnLandCreatures(terrainMesh: THREE.Mesh, count: number, radius: number = 200): void {
-    const pool = getLandCreatures();
+  /**
+   * Build a land wildlife pool for a biome (9-sector / home / pirate map).
+   * Prefers CreatureManifest keys listed in biomeHarvestAssets.wildlife.
+   */
+  private poolForBiome(biome?: string): CreatureDef[] {
+    if (!biome) return this.landSpawnPool();
+    const palette = resolveBiomePalette(biome);
+    const preferred: CreatureDef[] = [];
+    for (const id of palette.wildlife) {
+      const def = CREATURE_MANIFEST[id];
+      if (def && def.category !== 'fish' && def.category !== 'predator') preferred.push(def);
+    }
+    if (preferred.length > 0) return preferred;
+    return this.landSpawnPool();
+  }
+
+  /** Clamp creature respawn to 1–5 minutes (user spec). */
+  private clampRespawnSec(sec: number): number {
+    return Math.min(300, Math.max(60, sec));
+  }
+
+  /** Spawn land creatures scattered on terrain (dry land only). */
+  spawnLandCreatures(
+    terrainMesh: THREE.Mesh,
+    count: number,
+    radius: number = 200,
+    biome?: string,
+  ): void {
+    const pool = this.poolForBiome(biome);
     if (pool.length === 0) return;
 
-    for (let i = 0; i < count; i++) {
+    const target = biome ? wildlifeCountForBiome(biome, this.rand) : count;
+    const n = Math.max(count, 0) || target;
+    let placed = 0;
+    let attempts = 0;
+    const maxAttempts = n * 8;
+
+    while (placed < n && attempts < maxAttempts) {
+      attempts++;
       const def = pickWeightedCreature(pool, this.rand);
       const angle = this.rand() * Math.PI * 2;
       const dist = 20 + this.rand() * (radius - 20);
@@ -173,15 +212,33 @@ export class CreatureManager {
       const z = Math.sin(angle) * dist;
 
       let y = getTerrainHeightAt(terrainMesh, x, z);
-      if (y === null || y < this.waterLevel + 1) continue; // skip water areas
+      // Dry land only — animals never spawn in water
+      if (y === null || y < this.waterLevel + 1.25) continue;
 
       if (def.category === 'bird') y = BIRD_ALTITUDE;
 
       this.spawnCreature(def, new THREE.Vector3(x, y, z));
+      placed++;
     }
   }
 
-  /** Spawn fish in water areas */
+  /**
+   * Biome-aware zone spawn: land animals on dry land + fish only in water.
+   * Counts come from biomeHarvestAssets when not overridden.
+   */
+  spawnForBiome(
+    terrainMesh: THREE.Mesh | null,
+    biome: string,
+    radius: number = 200,
+    overrides?: { land?: number; fish?: number },
+  ): void {
+    const landN = overrides?.land ?? wildlifeCountForBiome(biome, this.rand);
+    const fishN = overrides?.fish ?? fishCountForBiome(biome, this.rand);
+    if (terrainMesh) this.spawnLandCreatures(terrainMesh, landN, radius, biome);
+    this.spawnFish(fishN, radius);
+  }
+
+  /** Spawn fish in water areas only (never on dry land). */
   spawnFish(count: number, radius: number = 200): void {
     const pool = [...getFishCreatures(), ...getWaterPredators()];
     if (pool.length === 0) return;
@@ -195,6 +252,7 @@ export class CreatureManager {
 
       const depthRange = def.swimDepth || [2, 8];
       const depth = depthRange[0] + this.rand() * (depthRange[1] - depthRange[0]);
+      // Fish always under water surface
       const swimY = this.waterLevel - depth;
 
       this.spawnCreature(def, new THREE.Vector3(x, swimY, z), swimY);
@@ -481,10 +539,10 @@ export class CreatureManager {
     this.playAnim(c, 'death', false);
 
     if (c.stateTimer <= 0) {
-      // Hide and start respawn timer
+      // Hide and start respawn timer (1–5 minutes)
       c.group.visible = false;
       c.state = 'despawned';
-      c.respawnTimer = c.def.respawnTime;
+      c.respawnTimer = this.clampRespawnSec(c.def.respawnTime);
     }
   }
 

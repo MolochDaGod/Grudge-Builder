@@ -10,6 +10,7 @@ import { Client, Room } from 'colyseus.js';
 import { Island3DEngine, type Island3DEngineConfig } from '@/island3d/engine/Island3DEngine';
 import { RemotePlayerManager } from '@/island3d/sync/RemotePlayerManager';
 import { TutorialGameplayHUD, type ControlMode } from '@/components/TutorialGameplayHUD';
+import { ModePlayHUD } from '@/island3d/render/ModePlayHUD';
 import { characterAPI } from '@/lib/api';
 import { getColyseusEndpoint } from '@/lib/colyseusEndpoint';
 import {
@@ -197,7 +198,7 @@ export default function HomeIslandPage() {
           weaponSlots: cfg.weaponSlots,
           skinColor: cfg.skinColor,
           armorColor: cfg.armorColor,
-          equippedWeaponType: getWeaponTypeForMode(playMode, cfg.classId, cfg.hasWeapon),
+          equippedWeaponType: getWeaponTypeForMode(playMode, cfg.classId, cfg.hasWeapon, cfg.equippedWeaponType),
         });
         roomRef.current = room;
 
@@ -532,7 +533,8 @@ export default function HomeIslandPage() {
 
   const handleLeave = () => {
     roomRef.current?.send('leave_island');
-    setLocation('/play');
+    // Open world starter sector (not bare /play procedural)
+    setLocation('/play?sector=haven_shore&mode=zone&worldSeed=grudge-world-1');
   };
 
   const homeSteps = [
@@ -569,10 +571,31 @@ export default function HomeIslandPage() {
         ref={canvasRef}
         className="w-full h-full"
         onClick={(e) => engineRef.current?.handleClick(e.clientX, e.clientY)}
+        onMouseMove={(e) => engineRef.current?.handleMouseMove(e.clientX, e.clientY)}
       />
 
       {loaded && (
         <>
+          {/* RTS triple-mode UI: Combat · Harvest · Build (+ light-blue ghost) */}
+          <ModePlayHUD
+            engine={engineRef.current}
+            mode={playMode}
+            onModeChange={handleModeChange}
+            characterName={characterName}
+            hp={hp}
+            maxHp={maxHp}
+            level={level}
+            resources={resources}
+            classHotbar={classHotbar.map((s) => ({
+              key: String(s.index),
+              label: s.label,
+            }))}
+            weaponHotbar={weaponHotbar.map((s) => ({
+              key: String(s.index),
+              label: s.label,
+            }))}
+            onBuildSelect={() => setBuildingCount((c) => c + 0)}
+          />
           <TutorialGameplayHUD
             characterName={characterName}
             heroClass={heroClass}

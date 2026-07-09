@@ -159,51 +159,59 @@ export interface ClassDef {
   coreAbilities: string[];
 }
 
-// Canonical class data from grudge-guide.html
+/** Freeform ARPG — any kit can use any weapon / armor; "class" is starter vibe only. */
+const FREEFORM_WEAPONS = [
+  "Swords", "Greatswords", "1H Axes", "Greataxes", "1H Hammers", "2H Hammers",
+  "Bows", "Crossbows", "Guns", "Daggers", "Spears", "Shields",
+  "Fire Staves", "Frost Staves", "Holy Staves", "Lightning Staves", "Arcane Staves", "Nature Staves",
+];
+const FREEFORM_ARMOR = ["Cloth", "Leather", "Mail", "Plate"];
+
+// Soft archetypes (flavor + tiny starting stat lean) — NOT equip / skill gates
 const FALLBACK_CLASSES: ClassDef[] = [
   {
     id: "warrior", name: "Warrior",
-    description: "Fearless tanks who wade into melee. Use shields, swords, greatswords, axes, and hammers. Wear plate or mail. Generate threat and anchor the frontline.",
-    role: "Tank / DPS / Support",
+    description: "Brawler starter vibe — wade in and hit hard. Equip anything you loot; nothing is class-locked.",
+    role: "Freeform",
     baseStats: { Strength: 2, Intellect: 0, Vitality: 1, Dexterity: 0, Endurance: 1, Wisdom: 0, Agility: 0, Tactics: 1 },
     startingWeapon: "sword",
-    weapons: ["Shields", "Swords", "Greatswords", "1H Axes", "Greataxes", "1H Hammers", "2H Hammers"],
-    armorTypes: ["Plate", "Mail"],
+    weapons: FREEFORM_WEAPONS,
+    armorTypes: FREEFORM_ARMOR,
     signature: { name: "Invincible", desc: "Become invulnerable for 2 turns, absorbing all damage.", cd: "8s", cost: "35 stamina" },
-    coreAbilities: ["Slash — resource-restoring basic strike", "Power Strike — 2x damage", "War Cry — +30% damage buff 3 turns", "Shield Bash — 1-turn stun", "Cleave — AoE bleed", "Demon Blade — transform for +40% dmg and +15 def"],
+    coreAbilities: ["Slash", "Power Strike", "War Cry", "Shield Bash", "Cleave"],
   },
   {
     id: "mage", name: "Mage Priest",
-    description: "Masters of six staff schools: fire, frost, holy, lightning, arcane, and nature. Wear cloth only. Tremendously powerful offensively but fragile.",
-    role: "Healer / DPS / Utility",
+    description: "Caster starter vibe — spark and spell. Still free to dual-wield axes or snipe with a bow.",
+    role: "Freeform",
     baseStats: { Strength: 0, Intellect: 3, Vitality: 0, Dexterity: 0, Endurance: 0, Wisdom: 2, Agility: 0, Tactics: 0 },
     spriteSetOverride: "Wizard", startingWeapon: "staff",
-    weapons: ["Fire Staves", "Frost Staves", "Holy Staves", "Lightning Staves", "Arcane Staves", "Nature Staves"],
-    armorTypes: ["Cloth"],
+    weapons: FREEFORM_WEAPONS,
+    armorTypes: FREEFORM_ARMOR,
     signature: { name: "Mana Shield", desc: "Convert mana into a protective barrier (+25 def, 3 turns).", cd: "5s", cost: "50 mana" },
-    coreAbilities: ["Arcane Bolt — resource-restoring basic cast", "Fireball — 2.5x damage + burn", "Divine Heal — restore 30% HP", "Ice Storm — AoE freeze reducing damage"],
+    coreAbilities: ["Arcane Bolt", "Fireball", "Divine Heal", "Ice Storm"],
   },
   {
     id: "ranger", name: "Ranger Scout",
-    description: "Silent, patient, lethal. Rangers can use bows, crossbows, guns, daggers, greatswords, and spears. Parry with RMB+LMB for counter windows.",
-    role: "DPS / Utility / Off-Tank",
+    description: "Scout starter vibe — range and mobility. Loot freely; wear plate if you want.",
+    role: "Freeform",
     baseStats: { Strength: 0, Intellect: 0, Vitality: 0, Dexterity: 2, Endurance: 0, Wisdom: 0, Agility: 2, Tactics: 1 },
     startingWeapon: "bow",
-    weapons: ["Bows", "Crossbows", "Guns", "Daggers", "Greatswords", "Spears"],
-    armorTypes: ["Leather", "Mail"],
+    weapons: FREEFORM_WEAPONS,
+    armorTypes: FREEFORM_ARMOR,
     signature: { name: "Shadowflight Volley", desc: "Rain of shadow arrows from above over an area.", cd: "50s", cost: "55 mana" },
-    coreAbilities: ["Quick Shot — swift basic arrow", "Aimed Shot — +50% damage single target", "Multi Shot — 3 arrows in spread", "Piercing Arrow — line-clear", "Rain of Arrows — AoE barrage"],
+    coreAbilities: ["Quick Shot", "Aimed Shot", "Multi Shot", "Piercing Arrow"],
   },
   {
     id: "worge", name: "Worge Shapeshifter",
-    description: "Walk between worlds. Human form uses staves, spears, daggers, bows, and 1H hammers to summon totems and beast companions. Transform into Bear, Raptor, or Large Bird.",
-    role: "Tank / DPS / Utility",
+    description: "Wild starter vibe — forms and totems. No gear restrictions; build however is fun.",
+    role: "Freeform",
     baseStats: { Strength: 1, Intellect: 0, Vitality: 2, Dexterity: 0, Endurance: 1, Wisdom: 0, Agility: 1, Tactics: 0 },
     spriteSetOverride: "Werewolf", startingWeapon: "axe",
-    weapons: ["Fire Staves", "Nature Staves", "Spears", "Daggers", "Bows", "1H Hammers"],
-    armorTypes: ["Leather"],
+    weapons: FREEFORM_WEAPONS,
+    armorTypes: FREEFORM_ARMOR,
     signature: { name: "Worge Transform", desc: "Transform into a beast form (+25% dmg, +10 def).", cd: "0s", cost: "20 stamina" },
-    coreAbilities: ["Mace Strike — storm-charged basic", "Lightning Lash — 1.8x + burn", "Nature's Grasp — HoT (+8%, 3 turns)", "Dagger Toss — poison DoT", "Summon Totems — heal / fire / fear", "Call Companions — Leaf Sprite, War Imp, Twig Guardian"],
+    coreAbilities: ["Mace Strike", "Lightning Lash", "Nature's Grasp", "Dagger Toss"],
   },
 ];
 

@@ -19,43 +19,9 @@ import {
   CLASS_STAGE_BACKGROUNDS, CLASS_ACCENT_COLORS, CLASS_CYCLE,
 } from "@/lib/artAssets";
 import { CrusadeEmblem, FabledEmblem, LegionEmblem } from "@/components/FactionEmblems";
+import { HOME_GAME_MODES, PRODUCTION_DEPLOYMENT_PATH } from "@shared/fleet";
 
-// ── Types ────────────────────────────────────────────────────────────────────
-
-interface GameMode {
-  id: string;
-  title: string;
-  subtitle: string;
-  description: string;
-  url: string;
-  icon: string;
-  tier: "core" | "combat" | "explore" | "craft";
-  badge: string;
-  badgeColor: string;
-}
-
-// ── Game Modes ───────────────────────────────────────────────────────────────
-
-const GAME_MODES: GameMode[] = [
-  // ── Core (local pages on grudgewarlords.com) ──
-  { id: "character", title: "Hero Forge",        subtitle: "Create & Manage Heroes",    description: "Build heroes, allocate attributes, equip gear, and manage your roster.",                url: "/character",    icon: "user",     tier: "core",    badge: "Core",    badgeColor: "amber" },
-  { id: "homeisland", title: "Home Island 3D",   subtitle: "1024m Seed World",          description: "Your persistent island — harvest, combat, build, mountain dungeon.",                      url: "/home-island",  icon: "leaf",     tier: "core",    badge: "Play",    badgeColor: "emerald" },
-  { id: "warlords3d", title: "Grudge Warlords 3D", subtitle: "9 Sectors & Colyseus",    description: "Lightweight Three.js open world — pick a sector, home island, or Classic uMMORPG zone.", url: "https://grudge-three-port.vercel.app?mode=play", icon: "globe", tier: "core", badge: "3D MMO", badgeColor: "violet" },
-  { id: "island",    title: "Island 2D",         subtitle: "Auto-Harvest & Build",      description: "Classic 2D island view with auto-harvest and structure bonuses.",                         url: "/island-v2",    icon: "leaf",     tier: "core",    badge: "2D",      badgeColor: "lime" },
-  { id: "crafting",  title: "Warlord Crafting",  subtitle: "Forge Weapons & Armor",     description: "Craft weapons, armor, consumables using your profession skills.",                       url: "/crafting",     icon: "hammer",   tier: "craft",   badge: "Craft",   badgeColor: "orange" },
-  // ── Combat (3D worlds on rts-grudge.vercel.app, 2D local) ──
-  { id: "rtsgrudge", title: "RTS GRUDGE",        subtitle: "3D Open World Battle",      description: "Enter the 3D Grudge world. Faction Wars, Siege Mode, and PvP.",                        url: "/rts-grudge",   icon: "shield",   tier: "combat",  badge: "3D",      badgeColor: "red" },
-  { id: "combat",    title: "Combat Arena",      subtitle: "RPG Battle",                description: "Turn-based combat with class skills, abilities, and party tactics.",                     url: "/combat",       icon: "swords",   tier: "combat",  badge: "Battle",  badgeColor: "slate" },
-  { id: "dungeon",   title: "Dungeon Crawler",   subtitle: "Voxel Roguelike",           description: "Procedural dungeons with enemies, loot, and boss fights.",                               url: "https://dcq.grudge-studio.com",        icon: "skull",    tier: "combat",  badge: "DCQ",     badgeColor: "zinc" },
-  // ── Explore (3D ocean/islands on rts-grudge, 2D map local) ──
-  { id: "worldmap",  title: "World Map",         subtitle: "Explore & Capture",         description: "100\u00d7100 zone grid with capturable territory and weekly rotation.",                  url: "/world-map",    icon: "compass",  tier: "explore", badge: "Explore", badgeColor: "teal" },
-  { id: "sailing",   title: "Open Water",        subtitle: "Tactical Infinity Sail",    description: "Valheim-style wind sailing. Land on sectors and deploy into live 3D zones.",             url: "/ocean",        icon: "anchor",   tier: "explore", badge: "3D Sail", badgeColor: "cyan" },
-  { id: "adventure", title: "Adventure Island",  subtitle: "3D Island Survival",        description: "Shipwreck Island. Fight waves, harvest rare resources, survive.",                       url: "/island-v2", icon: "flame",  tier: "explore", badge: "3D",      badgeColor: "rose" },
-  // ── Progress (all local) ──
-  { id: "professions", title: "Professions",     subtitle: "Gathering & Crafting",      description: "Level 1\u2013100 gathering and crafting professions with tier unlocks.",                url: "/professions",  icon: "pickaxe",  tier: "craft",   badge: "Craft",   badgeColor: "green" },
-  { id: "skills",    title: "Skill Trees",       subtitle: "Class Abilities",           description: "Class-specific skill trees. Choose 1 skill per tier as you level.",                     url: "/skills",       icon: "zap",      tier: "craft",   badge: "Skills",  badgeColor: "blue" },
-  { id: "harvest",   title: "Harvest Mode",      subtitle: "Live Gathering",            description: "Send heroes to gather resources in real-time on your island.",                          url: "/harvest",      icon: "leaf",     tier: "craft",   badge: "Gather",  badgeColor: "lime" },
-];
+const GAME_MODES = HOME_GAME_MODES;
 
 const TIER_CONFIG: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
   core:    { label: "Core",    color: "#f6c945", icon: <Crown className="w-3.5 h-3.5" /> },
@@ -69,6 +35,7 @@ const ICON_MAP: Record<string, React.ReactNode> = {
   shield: <Shield className="w-5 h-5" />, swords: <Swords className="w-5 h-5" />, skull: <Skull className="w-5 h-5" />,
   compass: <Compass className="w-5 h-5" />, anchor: <Anchor className="w-5 h-5" />, flame: <Flame className="w-5 h-5" />,
   pickaxe: <Pickaxe className="w-5 h-5" />, zap: <Zap className="w-5 h-5" />, globe: <Globe className="w-5 h-5" />,
+  map: <Map className="w-5 h-5" />, code: <Code2 className="w-5 h-5" />,
 };
 
 const BADGE_COLORS: Record<string, string> = {
@@ -132,12 +99,11 @@ export default function HomePage() {
   const filtered = activeTier === "all" ? GAME_MODES : GAME_MODES.filter(g => g.tier === activeTier);
 
   const handleEnterWorld = () => {
-    // If no characters, go to character creation first
     if (characters.length === 0) {
-      setLocation("/character");
-    } else {
-      setLocation("/play");
+      setLocation("/tutorial");
+      return;
     }
+    setLocation("/islands");
   };
 
   return (
@@ -217,8 +183,8 @@ export default function HomePage() {
             </h2>
             <p className="text-white/40 text-xs">
               {characters.length > 0
-                ? `Playing as ${activeCharacter?.name || 'your hero'} — 9 sectors, faction warfare, open world PvP`
-                : 'Choose your race, class, and skills to begin your journey in Aethermoor'}
+                ? `Playing as ${activeCharacter?.name || 'your hero'} — tutorial → home island → Tactical Infinity → 9 sectors`
+                : 'Start on Tutorial Island, then deploy home island, ocean sail, and live sectors'}
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -297,7 +263,7 @@ export default function HomePage() {
           {/* Featured — top 3 modes */}
           <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 h-full">
-              {GAME_MODES.filter(g => ["rtsgrudge", "character", "island"].includes(g.id)).map((game) => (
+              {GAME_MODES.filter(g => g.featured).map((game) => (
                 <div
                   key={game.id}
                   onClick={() => navigateToGame(game.url, setLocation)}
@@ -331,6 +297,28 @@ export default function HomePage() {
             </div>
           </motion.div>
         </div>
+
+        {/* ── Production deployment path ── */}
+        <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.08 }} className="mb-5">
+          <h2 style={{ fontFamily: FONTS.title }} className="text-[11px] font-bold mb-2.5 flex items-center gap-1.5 tracking-wider text-white/60">
+            <Crosshair className="w-3 h-3 text-cyan-400" /> Production Deployment Path
+          </h2>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
+            {PRODUCTION_DEPLOYMENT_PATH.map((step, i) => (
+              <button
+                key={step.id}
+                type="button"
+                onClick={() => navigateToGame(step.url, setLocation)}
+                className="text-left rounded-xl border border-white/[.06] hover:border-cyan-500/35 p-3 transition-all hover:-translate-y-0.5 group"
+                style={{ background: "linear-gradient(180deg,rgba(14,18,32,.75),rgba(8,10,20,.85))" }}
+              >
+                <div className="text-[9px] text-cyan-400/70 font-mono mb-1">{String(i + 1).padStart(2, "0")}</div>
+                <div style={{ fontFamily: FONTS.title }} className="text-[10px] font-bold text-white group-hover:text-cyan-200">{step.title}</div>
+                <div className="text-[8px] text-white/35 mt-0.5 line-clamp-2">{step.subtitle}</div>
+              </button>
+            ))}
+          </div>
+        </motion.div>
 
         {/* ── Race portraits ── */}
         <div className="flex gap-2 mb-5 overflow-x-auto pb-1">

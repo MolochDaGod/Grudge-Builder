@@ -113,16 +113,26 @@ export const ATTRIBUTE_SIGILS: Record<string, string> = {
 // ── Game card background images ──────────────────────────────────────────────
 
 export const GAME_CARD_BACKGROUNDS: Record<string, string> = {
-  island:      assetUrl('/backgrounds/island-map.png'),
-  crafting:    assetUrl('/images/professions/steampunk_blueprint_background_with_gears.png'),
-  character:   BACKGROUNDS.darkFantasy1,
-  rtsgrudge:   assetUrl('/images/events/faction-war.png'),
-  combat:      assetUrl('/backgrounds/main-menu.png'),
-  dungeon:     assetUrl('/images/events/dungeon-raid-1.png'),
-  professions: assetUrl('/images/professions/dark_underground_mine_with_glowing_crystals.png'),
-  worldmap:    assetUrl('/backgrounds/general.png'),
-  skills:      assetUrl('/images/professions/cosmic_arcane_void_magic_background.png'),
-  harvest:     assetUrl('/images/professions/ancient_mystical_forest_with_glowing_particles.png'),
+  island:       assetUrl('/backgrounds/island-map.png'),
+  island2d:     assetUrl('/backgrounds/island-map.png'),
+  crafting:     assetUrl('/images/professions/steampunk_blueprint_background_with_gears.png'),
+  character:    BACKGROUNDS.darkFantasy1,
+  tutorial:     assetUrl('/images/events/dungeon-raid-1.png'),
+  homeisland:   assetUrl('/backgrounds/island-map.png'),
+  tactical:     assetUrl('/backgrounds/general.png'),
+  ocean:        assetUrl('/backgrounds/general.png'),
+  play:         assetUrl('/images/events/faction-war.png'),
+  islands-hub:  assetUrl('/backgrounds/island-map.png'),
+  rtsgrudge:    assetUrl('/images/events/faction-war.png'),
+  warlords3d:   BACKGROUNDS.darkFantasy3,
+  forge:        assetUrl('/images/professions/steampunk_blueprint_background_with_gears.png'),
+  combat:       assetUrl('/backgrounds/main-menu.png'),
+  dungeon:      assetUrl('/images/events/dungeon-raid-1.png'),
+  professions:  assetUrl('/images/professions/dark_underground_mine_with_glowing_crystals.png'),
+  worldmap:     assetUrl('/backgrounds/general.png'),
+  skills:       assetUrl('/images/professions/cosmic_arcane_void_magic_background.png'),
+  harvest:      assetUrl('/images/professions/ancient_mystical_forest_with_glowing_particles.png'),
+  sailing:      assetUrl('/backgrounds/general.png'),
 } as const;
 
 // ── Profession icons & backgrounds (CDN — migrated from /assets/professions/) ──

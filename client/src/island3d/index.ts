@@ -22,9 +22,30 @@ export { createHarvestableRock } from './objects/HarvestableRock';
 export type { HarvestableRock } from './objects/HarvestableRock';
 export { createScatterDecorations } from './objects/ScatterDecorations';
 
+// Regenerative harvest (forestoutline trees + rocks/crystals/flowers/scrap)
+export {
+  markDepleted,
+  beginGrowth,
+  tickGrowth,
+  isHarvestable,
+  isDryLand,
+  isWaterPlacement,
+  findValidPlacement,
+  validateHarvestPlacement,
+} from './harvest/RegenerativeHarvest';
+export type { HarvestKind, GrowthPhase } from './harvest/RegenerativeHarvest';
+
 // Engine
 export { Island3DEngine } from './engine/Island3DEngine';
 export type { Island3DEngineConfig, Island3DMode } from './engine/Island3DEngine';
+
+// RTS triple-mode UI (combat / harvest / build)
+export { ModePlayHUD } from './render/ModePlayHUD';
+export type { ModePlayHUDProps } from './render/ModePlayHUD';
+
+// Faction NPC camps
+export { NpcCampSystem, spawnZoneCamps } from './camps/NpcCampSystem';
+export type { RuntimeCamp, NpcCampSystemOpts } from './camps/NpcCampSystem';
 
 // Lobby maps
 export { loadLobbyMap, getLobbyMap, LOBBY_MAPS } from './engine/LobbyIslandLoader';

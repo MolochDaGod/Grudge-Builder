@@ -173,9 +173,13 @@ export class BuildingSystem {
   private propValid = false;
   private placedProps: Array<{ id: string; assetId: string; group: THREE.Group; position: THREE.Vector3; rotation: number }> = [];
 
-  // Materials
+  // Materials — RTS-style light-blue placement ghost (opaque-ish)
   private validGhostMat: THREE.MeshBasicMaterial;
   private invalidGhostMat: THREE.MeshBasicMaterial;
+  /** Light blue tint for valid placement (user request) */
+  static readonly GHOST_BLUE = 0x64b5f6;
+  static readonly GHOST_BLUE_INVALID = 0x4a6a8a;
+  static readonly GHOST_OPACITY = 0.72;
 
   /** Configure terrain slope/height rules for foundations and terrain props */
   setBuildConstraints(constraints: BuildConstraints): void {
@@ -206,8 +210,18 @@ export class BuildingSystem {
   constructor(scene: THREE.Scene, camera: THREE.PerspectiveCamera) {
     this.scene = scene;
     this.camera = camera;
-    this.validGhostMat = new THREE.MeshBasicMaterial({ color: 0x44ff44, transparent: true, opacity: 0.5 });
-    this.invalidGhostMat = new THREE.MeshBasicMaterial({ color: 0xff4444, transparent: true, opacity: 0.5 });
+    this.validGhostMat = new THREE.MeshBasicMaterial({
+      color: BuildingSystem.GHOST_BLUE,
+      transparent: true,
+      opacity: BuildingSystem.GHOST_OPACITY,
+      depthWrite: false,
+    });
+    this.invalidGhostMat = new THREE.MeshBasicMaterial({
+      color: BuildingSystem.GHOST_BLUE_INVALID,
+      transparent: true,
+      opacity: 0.45,
+      depthWrite: false,
+    });
 
     // R key rotates prop 90°
     window.addEventListener('keydown', (e) => {
@@ -220,13 +234,37 @@ export class BuildingSystem {
     });
   }
 
+  /** Apply light-blue ghost look to any mesh materials in a root. */
+  private applyGhostMaterials(root: THREE.Object3D, valid: boolean): void {
+    const color = valid ? BuildingSystem.GHOST_BLUE : BuildingSystem.GHOST_BLUE_INVALID;
+    const opacity = valid ? BuildingSystem.GHOST_OPACITY : 0.45;
+    root.traverse((child) => {
+      if (!(child as THREE.Mesh).isMesh) return;
+      const m = child as THREE.Mesh;
+      const mats = Array.isArray(m.material) ? m.material : [m.material];
+      for (const mat of mats) {
+        if (!mat) continue;
+        const any = mat as THREE.MeshBasicMaterial & THREE.MeshStandardMaterial;
+        if ('color' in any && any.color) any.color.setHex(color);
+        any.transparent = true;
+        any.opacity = opacity;
+        any.depthWrite = false;
+        if ('emissive' in any && any.emissive) {
+          any.emissive.setHex(color);
+          any.emissiveIntensity = valid ? 0.35 : 0.1;
+        }
+      }
+    });
+  }
+
   /** Enter build mode for a piece type */
   startPlacement(type: PieceType): void {
     this.cancelPlacement();
+    this.cancelPropPlacement();
     this.ghostType = type;
     const def = PIECE_DEFS[type];
     const geo = new THREE.BoxGeometry(def.size.x, def.size.y, def.size.z);
-    this.ghost = new THREE.Mesh(geo, this.validGhostMat);
+    this.ghost = new THREE.Mesh(geo, this.validGhostMat.clone());
     this.ghost.castShadow = false;
     this.ghost.receiveShadow = false;
     this.scene.add(this.ghost);
@@ -279,13 +317,15 @@ export class BuildingSystem {
     }
 
     this.ghost.material = this.ghostValid ? this.validGhostMat : this.invalidGhostMat;
+    this.applyGhostMaterials(this.ghost, this.ghostValid);
   }
 
-  /** Confirm placement */
+  /** Confirm placement — LMB. Keeps same piece type selected for continuous build. */
   confirmPlacement(): PlacedPiece | null {
     if (!this.ghost || !this.ghostType || !this.ghostValid) return null;
 
     const def = PIECE_DEFS[this.ghostType];
+    const placedType = this.ghostType;
     const id = `piece_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
 
     // Create permanent mesh
@@ -300,7 +340,7 @@ export class BuildingSystem {
 
     const piece: PlacedPiece = {
       id,
-      type: this.ghostType,
+      type: placedType,
       position: this.ghost.position.clone(),
       rotation: this.ghost.rotation.clone(),
       stability: def.stability,
@@ -319,7 +359,9 @@ export class BuildingSystem {
 
     this.pieces.set(id, piece);
     this.recalculateStability();
+    // Re-arm ghost so next LMB places again (RTS continuous build)
     this.cancelPlacement();
+    this.startPlacement(placedType);
 
     return piece;
   }
@@ -475,33 +517,40 @@ export class BuildingSystem {
     this.propAsset = asset;
     this.propRotation = 0;
 
-    // Create ghost group with placeholder geometry
+    // Create ghost group with light-blue opaque placeholder
     this.propGhost = new THREE.Group();
+    this.propGhost.name = 'build_prop_ghost';
     const [w, h, d] = asset.size;
     const geo = new THREE.BoxGeometry(w, h, d);
     const mesh = new THREE.Mesh(geo, this.validGhostMat.clone());
     mesh.position.y = h / 2;
+    mesh.castShadow = false;
+    mesh.receiveShadow = false;
     this.propGhost.add(mesh);
     this.scene.add(this.propGhost);
+    this.applyGhostMaterials(this.propGhost, true);
 
-    // Try to load the actual GLB model in background
+    // Try to load the actual GLB model in background — still light-blue ghost
     if (asset.modelPath) {
       loadCharacterModel(asset.modelPath).then((loaded) => {
         if (!this.propGhost || this.propAsset?.id !== assetId) return;
-        // Replace placeholder with loaded model
         while (this.propGhost.children.length) this.propGhost.remove(this.propGhost.children[0]);
-        loaded.scene.scale.setScalar(asset.scale);
-        loaded.scene.traverse((child) => {
+        const clone = loaded.scene.clone(true);
+        clone.scale.setScalar(asset.scale);
+        clone.traverse((child) => {
           if ((child as THREE.Mesh).isMesh) {
             const m = child as THREE.Mesh;
             if (Array.isArray(m.material)) {
-              m.material = m.material.map(mt => { const c = mt.clone(); (c as any).transparent = true; (c as any).opacity = 0.6; return c; });
-            } else {
-              m.material = m.material.clone(); (m.material as any).transparent = true; (m.material as any).opacity = 0.6;
+              m.material = m.material.map((mt) => mt.clone());
+            } else if (m.material) {
+              m.material = m.material.clone();
             }
+            m.castShadow = false;
+            m.receiveShadow = false;
           }
         });
-        this.propGhost!.add(loaded.scene);
+        this.propGhost!.add(clone);
+        this.applyGhostMaterials(this.propGhost!, this.propValid);
       }).catch(() => {});
     }
   }
@@ -560,29 +609,17 @@ export class BuildingSystem {
       this.propValid = false;
     }
 
-    // Update ghost material color
-    this.propGhost.traverse((child) => {
-      if ((child as THREE.Mesh).isMesh) {
-        const m = child as THREE.Mesh;
-        const mats = Array.isArray(m.material) ? m.material : [m.material];
-        for (const mat of mats) {
-          if ((mat as THREE.MeshBasicMaterial).color) {
-            // Only tint placeholder geometry (not loaded models)
-            if (mat.type === 'MeshBasicMaterial') {
-              (mat as THREE.MeshBasicMaterial).color.setHex(this.propValid ? 0x44ff44 : 0xff4444);
-            }
-          }
-        }
-      }
-    });
+    // Light-blue ghost tint (valid / invalid)
+    this.applyGhostMaterials(this.propGhost, this.propValid);
   }
 
-  /** Confirm prop placement */
+  /** Confirm prop placement — LMB. Keeps same asset for continuous place. */
   confirmPropPlacement(): { id: string; assetId: string } | null {
     if (!this.propGhost || !this.propAsset || !this.propValid) return null;
 
     const id = `prop_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
     const asset = this.propAsset;
+    const assetId = asset.id;
     const pos = this.propGhost.position.clone();
     const rot = this.propRotation;
 
@@ -619,10 +656,12 @@ export class BuildingSystem {
       }).catch(() => {});
     }
 
-    this.placedProps.push({ id, assetId: asset.id, group, position: pos, rotation: rot });
+    this.placedProps.push({ id, assetId, group, position: pos, rotation: rot });
     this.cancelPropPlacement();
+    // Continuous build — ghost stays armed with same asset
+    this.startPropPlacement(assetId);
 
-    return { id, assetId: asset.id };
+    return { id, assetId };
   }
 
   /** Remove a placed prop */
@@ -659,6 +698,10 @@ export class BuildingSystem {
   // ─── Queries ────────────────────────────────────────────────────────────────
 
   get isBuilding(): boolean { return this.ghost !== null || this.propGhost !== null; }
+  get isPropPlacing(): boolean { return this.propGhost !== null && this.propAsset !== null; }
+  get isPiecePlacing(): boolean { return this.ghost !== null && this.ghostType !== null; }
+  get selectedPropId(): string | null { return this.propAsset?.id ?? null; }
+  get selectedPieceType(): PieceType | null { return this.ghostType; }
   get pieceCount(): number { return this.pieces.size; }
   get propCount(): number { return this.placedProps.length; }
 

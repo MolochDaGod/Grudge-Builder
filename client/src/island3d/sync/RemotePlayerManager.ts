@@ -23,6 +23,7 @@ import {
 import { AnimationManager, type AnimState } from '../player/AnimationManager';
 import { RACE_GRUDGE6, defaultModel3d } from '@shared/fleet';
 import { setupGrudge6Equipment } from '@/lib/grudge6Equipment';
+import { applyCharacterColorTints, ensureCharacterTextureColorSpace } from '@/lib/characterAppearance';
 
 // ── Types ────────────────────────────────────────────────────────
 
@@ -73,15 +74,8 @@ const NAMEPLATE_HEIGHT = 4.5;
 const HEALTH_BAR_HEIGHT = 4.0;
 const HEALTH_BAR_WIDTH = 1.5;
 
-// Map class to default weapon type (uses CLASS_WEAPON_MAP from modelManifest
-// for consistency, but keep a local copy for remote player fallback)
-const CLASS_WEAPON_MAP: Record<string, WeaponType> = {
-  warrior: 'sword',
-  mage: 'arcane-staff',
-  ranger: 'bow',
-  worg: 'greatsword',
-  worge: 'greatsword',
-};
+/** Soft fallback only — prefer instance.data.equippedWeaponType (from gear). */
+const FREEFORM_DEFAULT_WEAPON: WeaponType = 'sword';
 
 // Faction colors for nameplates
 const FACTION_COLORS: Record<string, number> = {
@@ -258,11 +252,12 @@ export class RemotePlayerManager {
       // Scale
       loaded.scene.scale.setScalar(manifest.scale);
 
-      // Apply skin/armor color tints
-      this.applyColorTints(loaded.scene, instance.data.skinColor, instance.data.armorColor);
-
-      // Apply equipped mesh variants from Colyseus sync
+      // Equipment mesh variants first (catalog hides all then shows equipped)
       this.applyEquippedMeshes(loaded.scene, instance.data);
+
+      // Texture color space + skin/armor multiply tints (shared with local player)
+      ensureCharacterTextureColorSpace(loaded.scene);
+      applyCharacterColorTints(loaded.scene, instance.data.skinColor, instance.data.armorColor);
 
       // Enable shadows
       loaded.scene.traverse((child) => {
@@ -280,8 +275,8 @@ export class RemotePlayerManager {
       instance.group.add(loaded.scene);
 
       // Setup animations
-      const weaponType = (instance.data.equippedWeaponType as WeaponType) ||
-        CLASS_WEAPON_MAP[instance.data.heroClass] || 'sword-shield';
+      // Freeform: anim set follows their equipped weapon, not class role
+      const weaponType = (instance.data.equippedWeaponType as WeaponType) || FREEFORM_DEFAULT_WEAPON;
 
       instance.animations = new AnimationManager(loaded.scene);
 
@@ -365,34 +360,6 @@ export class RemotePlayerManager {
       armorColor: data.armorColor,
     };
     setupGrudge6Equipment(race.prefix, root, model3d);
-  }
-
-  // ── Apply color tints to materials ─────────────────────────────
-
-  private applyColorTints(root: THREE.Object3D, skinColor: string, armorColor: string): void {
-    if (skinColor === '#ffffff' && armorColor === '#ffffff') return;
-
-    const skinC = new THREE.Color(skinColor);
-    const armorC = new THREE.Color(armorColor);
-
-    root.traverse((child) => {
-      if (!(child as THREE.Mesh).isMesh) return;
-      const mesh = child as THREE.Mesh;
-      const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
-
-      for (const mat of mats) {
-        if (!(mat as THREE.MeshStandardMaterial).color) continue;
-        const stdMat = mat as THREE.MeshStandardMaterial;
-
-        // Simple heuristic: lighter materials = skin, darker = armor
-        const lum = stdMat.color.r * 0.3 + stdMat.color.g * 0.59 + stdMat.color.b * 0.11;
-        if (lum > 0.6 && skinColor !== '#ffffff') {
-          stdMat.color.multiply(skinC);
-        } else if (lum <= 0.6 && armorColor !== '#ffffff') {
-          stdMat.color.multiply(armorC);
-        }
-      }
-    });
   }
 
   // ── Create nameplate sprite ────────────────────────────────────

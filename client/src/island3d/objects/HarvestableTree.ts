@@ -21,6 +21,11 @@ export interface HarvestableTree {
   baseScale: number;
   respawnAt: number;
   nodeId?: string;
+  /** Regenerative growth: mature | depleted | growing */
+  growthPhase?: 'mature' | 'depleted' | 'growing';
+  growthStartedAt?: number;
+  growthDurationMs?: number;
+  harvestKind?: 'tree';
 }
 
 const TRUNK_GEO = new THREE.CylinderGeometry(0.4, 0.6, 6, 6);

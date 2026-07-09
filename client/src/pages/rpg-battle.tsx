@@ -247,19 +247,9 @@ function generateEnemy(level: number, arena: BattleArena, forceBoss = false): Ba
 
 function characterToBattleChar(char: Character): BattleCharacter {
   const stats = calculateDerivedStats(char.attributes, char.classId);
-  const weaponId = char.equippedWeaponId || getDefaultWeaponForClass(char.classId);
+  // Freeform ARPG: combat kit follows equipped weapon, not class role
+  const weaponId = char.equippedWeaponId || getFreeformStarterWeapon();
   const baseResists: ElementalResistances = { ...DEFAULT_RESISTANCES };
-  if (char.classId === 'mage') {
-    baseResists.arcane = 15;
-    baseResists.fire = 10;
-  } else if (char.classId === 'warrior') {
-    baseResists.physical = 10;
-  } else if (char.classId === 'ranger') {
-    baseResists.nature = 15;
-  } else if (char.classId === 'shapeshifter') {
-    baseResists.nature = 20;
-    baseResists.physical = 5;
-  }
   
   const rawTier = 1 + Math.floor(char.level / 5);
   const clampedTier = Math.min(8, Math.max(1, rawTier));
@@ -292,7 +282,8 @@ function characterToBattleChar(char: Character): BattleCharacter {
   };
 }
 
-function getClassSkills(classId: string, equippedWeaponId?: string): CombatAbility[] {
+/** Skills follow weapon arsenal first; class is ignored for freeform play. */
+function getClassSkills(_classId: string, equippedWeaponId?: string): CombatAbility[] {
   if (equippedWeaponId && WEAPON_ARSENAL[equippedWeaponId]) {
     const weapon = WEAPON_ARSENAL[equippedWeaponId];
     const abilities: CombatAbility[] = [weapon.basicAttack, weapon.signature];
@@ -302,27 +293,20 @@ function getClassSkills(classId: string, equippedWeaponId?: string): CombatAbili
     }
     return abilities.slice(0, 6);
   }
-  
-  const classSkillMap: Record<string, string[]> = {
-    shapeshifter: ["skill_feral_strike", "skill_savage_pounce", "skill_slash"],
-    warrior: ["skill_slash", "skill_power_strike", "skill_whirlwind"],
-    mage: ["spell_fireball", "spell_frostbolt", "spell_lightning_bolt"],
-    ranger: ["skill_aimed_shot", "skill_multi_shot", "skill_explosive_arrow"],
-  };
-  
-  const skillIds = classSkillMap[classId] || classSkillMap.warrior;
+
+  // Generic freeform starter kit (no class lock)
+  const skillIds = [
+    "skill_slash",
+    "skill_power_strike",
+    "skill_aimed_shot",
+    "spell_fireball",
+  ];
   const allAbilities: Record<string, CombatAbility> = { ...SKILLS, ...SPELLS };
   return skillIds.map(id => allAbilities[id]).filter(Boolean);
 }
 
-function getDefaultWeaponForClass(classId: string): string | undefined {
-  const classWeaponMap: Record<string, string> = {
-    warrior: 'bloodfeud_blade',
-    shapeshifter: 'bloodfeud_blade',
-    ranger: 'bloodfeud_blade',
-    mage: 'bloodfeud_blade',
-  };
-  return classWeaponMap[classId];
+function getFreeformStarterWeapon(): string {
+  return 'bloodfeud_blade';
 }
 
 export default function RPGBattle() {
@@ -482,7 +466,7 @@ export default function RPGBattle() {
     const activeChar = partySlots[activeCharIndex];
     if (!activeChar || !enemy || activeChar.hp <= 0) return;
     
-    const weaponId = activeChar.equippedWeaponId || getDefaultWeaponForClass(activeChar.classId);
+    const weaponId = activeChar.equippedWeaponId || getFreeformStarterWeapon();
     const skills = getClassSkills(activeChar.classId, weaponId);
     const skill = skills[skillIndex];
     if (!skill) return;
@@ -611,7 +595,7 @@ export default function RPGBattle() {
   };
 
   const activeChar = partySlots[activeCharIndex];
-  const equippedWeapon = activeChar ? (activeChar.equippedWeaponId || getDefaultWeaponForClass(activeChar.classId)) : undefined;
+  const equippedWeapon = activeChar ? (activeChar.equippedWeaponId || getFreeformStarterWeapon()) : undefined;
   const activeSkills = activeChar ? getClassSkills(activeChar.classId, equippedWeapon) : [];
 
   const getArenaBackground = () => {

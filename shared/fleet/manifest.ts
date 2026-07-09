@@ -51,6 +51,11 @@ export const FLEET_URLS = {
   threePort: "https://grudge-three-port.vercel.app",
   /** Map & Model Editor — home-island creation (artifacts/studio) */
   studioEditor: "https://grudge-studio-editor.vercel.app",
+  /** Tactical Infinity — captain, home island raft, world-map sailing */
+  tacticalInfinity: "https://water.grudge-studio.com",
+  /** RTS-Grudge 3D open world + /forge editor */
+  rtsGrudge: "https://rts-grudge.vercel.app",
+  forge: "https://forge.grudge-studio.com",
   /** GRUDOX fleet hub — arcade, studio, editors */
   grudox: "https://grudox.grudge-studio.com",
   /** Carrier PvP client — dedicated subdomain, same game server */

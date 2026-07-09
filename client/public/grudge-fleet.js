@@ -2,7 +2,8 @@
  * Grudge Fleet Bridge — vanilla JS auth + character sync for Puter/external apps.
  * Mirrors GrudgeAccountSDK + wireGrudgeFleet from grudge-builder.
  *
- * @version 2.0.0
+ * @version 2.1.1
+ * Character-scoped session + multi-app SSO (crafting, vfx-studio, warlords).
  */
 (function (global) {
   'use strict';
@@ -15,15 +16,23 @@
     objectStore: CFG.OBJECTSTORE_URL || 'https://objectstore.grudge-studio.com/api/v1',
     assets: CFG.ASSETS || 'https://assets.grudge-studio.com',
     wcs: CFG.WCS_URL || 'https://wcs.grudge-studio.com',
+    crafting: CFG.CRAFTING_URL || 'https://grudge-crafting.puter.site',
+    vfxStudio: CFG.VFX_STUDIO_URL || 'https://vfx-studio-sigma.vercel.app',
     gamesLibrary: (CFG.OBJECTSTORE_URL || 'https://objectstore.grudge-studio.com/api/v1') + '/games-library.json',
   };
 
+  // Canonical keys + SDK aliases so we never multi-login across fleet apps
   const TOKEN_KEY = 'grudge_auth_token';
   const LEGACY_TOKEN_KEY = 'grudge_session_token';
+  const STUDIO_TOKEN_KEY = 'grudge_studio_session';
+  const SDK_TOKEN_KEY = 'grudge_auth_token'; // ObjectStore SDK
   const GRUDGE_ID_KEY = 'grudge_id';
+  const SDK_USER_ID_KEY = 'grudge_user_id';
   const USERNAME_KEY = 'grudge_username';
   const ACCOUNT_ID_KEY = 'grudge_account_id';
+  const SESSION_BLOB_KEY = 'grudge-session';
   const CHAR_ACTIVE_PREFIX = 'gruda_active_character';
+  const CHAR_ACTIVE_ALT = 'grudge.activeCharId';
   const POLL_MS = 60_000;
 
   let _token = null;
@@ -38,8 +47,24 @@
   function lsSet(k, v) { try { localStorage.setItem(k, v); } catch {} }
   function lsDel(k) { try { localStorage.removeItem(k); } catch {} }
 
+  function ssGet(k) { try { return sessionStorage.getItem(k); } catch { return null; } }
+  function ssSet(k, v) { try { sessionStorage.setItem(k, v); } catch {} }
+
   function readToken() {
-    return _token || lsGet(TOKEN_KEY) || lsGet(LEGACY_TOKEN_KEY);
+    if (_token) return _token;
+    return (
+      lsGet(TOKEN_KEY) ||
+      lsGet(LEGACY_TOKEN_KEY) ||
+      lsGet(STUDIO_TOKEN_KEY) ||
+      lsGet(SDK_TOKEN_KEY) ||
+      ssGet(TOKEN_KEY) ||
+      (() => {
+        try {
+          const blob = JSON.parse(lsGet(SESSION_BLOB_KEY) || '{}');
+          return blob.token || blob.sessionToken || null;
+        } catch { return null; }
+      })()
+    );
   }
 
   function saveToken(t) {
@@ -47,23 +72,41 @@
     if (t) {
       lsSet(TOKEN_KEY, t);
       lsSet(LEGACY_TOKEN_KEY, t);
+      lsSet(STUDIO_TOKEN_KEY, t);
+      ssSet(TOKEN_KEY, t);
+      try {
+        const blob = JSON.parse(lsGet(SESSION_BLOB_KEY) || '{}');
+        blob.token = t;
+        blob.updatedAt = Date.now();
+        lsSet(SESSION_BLOB_KEY, JSON.stringify(blob));
+      } catch {
+        lsSet(SESSION_BLOB_KEY, JSON.stringify({ token: t, updatedAt: Date.now() }));
+      }
     } else {
-      lsDel(TOKEN_KEY);
-      lsDel(LEGACY_TOKEN_KEY);
+      [TOKEN_KEY, LEGACY_TOKEN_KEY, STUDIO_TOKEN_KEY].forEach(lsDel);
+      try { sessionStorage.removeItem(TOKEN_KEY); } catch {}
     }
   }
 
   function readActiveId() {
-    const gid = lsGet(ACCOUNT_ID_KEY) || lsGet(GRUDGE_ID_KEY) || 'guest';
-    return lsGet(`${CHAR_ACTIVE_PREFIX}_${gid}`) || lsGet('grudge.activeCharId') || _activeId;
+    const gid = lsGet(ACCOUNT_ID_KEY) || lsGet(GRUDGE_ID_KEY) || lsGet(SDK_USER_ID_KEY) || 'guest';
+    return (
+      lsGet(`${CHAR_ACTIVE_PREFIX}_${gid}`) ||
+      lsGet(CHAR_ACTIVE_ALT) ||
+      lsGet('grudge_active_character') ||
+      ssGet('grudge_active_character') ||
+      _activeId
+    );
   }
 
   function saveActiveId(id) {
     _activeId = id;
-    const gid = lsGet(ACCOUNT_ID_KEY) || lsGet(GRUDGE_ID_KEY) || 'guest';
+    const gid = lsGet(ACCOUNT_ID_KEY) || lsGet(GRUDGE_ID_KEY) || lsGet(SDK_USER_ID_KEY) || 'guest';
     if (id) {
       lsSet(`${CHAR_ACTIVE_PREFIX}_${gid}`, id);
-      lsSet('grudge.activeCharId', id);
+      lsSet(CHAR_ACTIVE_ALT, id);
+      lsSet('grudge_active_character', id);
+      ssSet('grudge_active_character', id);
     }
   }
 
@@ -83,8 +126,14 @@
     }
   }
 
+  function getActiveCharacterLocal() {
+    const id = readActiveId();
+    return id ? (_characters.find((c) => String(c.id) === String(id)) ?? null) : null;
+  }
+
   function notifyCallbacks(char) {
-    _callbacks.forEach((cb) => { try { cb(char); } catch {} });
+    const c = char !== undefined ? char : getActiveCharacterLocal();
+    _callbacks.forEach((cb) => { try { cb(c); } catch {} });
   }
 
   function normalizeCharacter(c) {
@@ -109,6 +158,7 @@
     if (gid) {
       lsSet(GRUDGE_ID_KEY, gid);
       lsSet(ACCOUNT_ID_KEY, gid);
+      lsSet(SDK_USER_ID_KEY, gid);
     }
     if (un) lsSet(USERNAME_KEY, un);
     _user = {
@@ -170,23 +220,47 @@
   function pickupUrlTokens(skipLaunchToken) {
     if (typeof window === 'undefined') return null;
     const params = new URLSearchParams(window.location.search);
-
-    const launchToken = !skipLaunchToken && params.get('grudge_token');
-    if (launchToken) return launchToken;
-
-    const sso = params.get('token') || params.get('sso_token');
-    if (sso) {
-      saveToken(sso);
-      const gid = params.get('grudge_id') || params.get('grudgeId') || '';
-      const un = params.get('grudge_username') || params.get('username') || '';
-      if (gid) { lsSet(GRUDGE_ID_KEY, gid); lsSet(ACCOUNT_ID_KEY, gid); }
-      if (un) lsSet(USERNAME_KEY, un);
-      ['token', 'sso_token', 'grudge_id', 'grudgeId', 'grudge_username', 'username'].forEach((k) => params.delete(k));
-      const clean = params.toString();
-      window.history.replaceState(null, '', window.location.pathname + (clean ? '?' + clean : '') + window.location.hash);
+    // Also accept hash: #token=...&characterId=...
+    let hashParams = null;
+    if (window.location.hash && window.location.hash.length > 1) {
+      hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
     }
 
-    const charId = params.get('characterId');
+    function pget(k) {
+      return params.get(k) || (hashParams && hashParams.get(k)) || null;
+    }
+
+    const launchToken = !skipLaunchToken && (pget('grudge_token') || pget('launch_token'));
+    if (launchToken) return launchToken;
+
+    const sso = pget('token') || pget('sso_token') || pget('jwt') || pget('access_token');
+    if (sso) {
+      saveToken(sso);
+      const gid = pget('grudge_id') || pget('grudgeId') || pget('user_id') || '';
+      const un = pget('grudge_username') || pget('username') || '';
+      if (gid) {
+        lsSet(GRUDGE_ID_KEY, gid);
+        lsSet(ACCOUNT_ID_KEY, gid);
+        lsSet(SDK_USER_ID_KEY, gid);
+      }
+      if (un) lsSet(USERNAME_KEY, un);
+      [
+        'token', 'sso_token', 'jwt', 'access_token', 'grudge_token', 'launch_token',
+        'grudge_id', 'grudgeId', 'user_id', 'grudge_username', 'username',
+      ].forEach((k) => params.delete(k));
+      const clean = params.toString();
+      window.history.replaceState(
+        null,
+        '',
+        window.location.pathname + (clean ? '?' + clean : '') +
+          // strip token from hash too
+          (window.location.hash && !/token|jwt|grudge_token/i.test(window.location.hash)
+            ? window.location.hash
+            : '')
+      );
+    }
+
+    const charId = pget('characterId') || pget('char_id') || pget('charId') || pget('activeCharacter');
     if (charId) saveActiveId(charId);
   }
 
@@ -250,23 +324,35 @@
           displayName: userData.displayName,
           gbuxBalance: Number(userData.gbuxBalance ?? 0),
         };
-        if (_user.grudgeId) lsSet(GRUDGE_ID_KEY, _user.grudgeId);
-        if (_user.grudgeId) lsSet(ACCOUNT_ID_KEY, _user.grudgeId);
+        if (_user.grudgeId) {
+          lsSet(GRUDGE_ID_KEY, _user.grudgeId);
+          lsSet(ACCOUNT_ID_KEY, _user.grudgeId);
+          lsSet(SDK_USER_ID_KEY, _user.grudgeId);
+        }
       }
 
-      const charRes = await fleetFetch(FLEET.gameData + '/api/characters?era=warlords', { headers: authHeaders() });
-      if (charRes.ok) {
+      // Characters — try era filter then bare list
+      let charRes = await fleetFetch(FLEET.gameData + '/api/characters?era=warlords', { headers: authHeaders() });
+      if (!charRes.ok) {
+        charRes = await fleetFetch(FLEET.gameData + '/api/characters', { headers: authHeaders() });
+      }
+      if (!charRes.ok) {
+        // api.grudge-studio.com fallback shape
+        charRes = await fleetFetch('https://api.grudge-studio.com/characters', { headers: authHeaders() });
+      }
+      if (charRes && charRes.ok) {
         _characters = parseCharactersPayload(await charRes.json());
 
         const stored = readActiveId();
-        if (stored && _characters.some((c) => c.id === stored)) {
+        if (stored && _characters.some((c) => String(c.id) === String(stored))) {
           _activeId = stored;
         } else if (_characters.length > 0) {
           saveActiveId(_characters[0].id);
         }
 
-        notifyCallbacks(getActiveCharacter());
-        dispatch('grudge:character:updated', { character: getActiveCharacter() });
+        notifyCallbacks(getActiveCharacterLocal());
+        dispatch('grudge:character:updated', { character: getActiveCharacterLocal() });
+        dispatch('grudge:characters:loaded', { characters: _characters, activeId: readActiveId() });
       }
 
       dispatch('grudge:sync:complete');
@@ -311,6 +397,23 @@
         await syncFromBackend();
       }
 
+      // Multi-tab / same-origin sync
+      if (typeof window !== 'undefined') {
+        window.addEventListener('storage', (e) => {
+          if (!e.key) return;
+          if (e.key === TOKEN_KEY || e.key === LEGACY_TOKEN_KEY || e.key === STUDIO_TOKEN_KEY) {
+            _token = e.newValue;
+            if (e.newValue) syncFromBackend();
+          }
+          if (e.key === CHAR_ACTIVE_ALT || e.key === 'grudge_active_character' ||
+              (e.key && e.key.startsWith(CHAR_ACTIVE_PREFIX))) {
+            _activeId = e.newValue;
+            notifyCallbacks(getActiveCharacterLocal());
+            dispatch('grudge:character:selected', { characterId: e.newValue });
+          }
+        });
+      }
+
       startPoll();
       return fleet;
     },
@@ -320,11 +423,16 @@
       if (typeof window === 'undefined') return;
 
       window.addEventListener('message', (e) => {
-        if (e.data?.type !== 'GRUDGE_AUTH') return;
-        const { token, characterId, grudgeId, username } = e.data;
-        if (token) saveToken(token);
+        const t = e.data?.type;
+        if (t !== 'GRUDGE_AUTH' && t !== 'grudge:auth' && t !== 'GRUDGE_SESSION') return;
+        const { token, characterId, grudgeId, username, sessionToken } = e.data;
+        if (token || sessionToken) saveToken(token || sessionToken);
         if (characterId) saveActiveId(characterId);
-        if (grudgeId) { lsSet(GRUDGE_ID_KEY, grudgeId); lsSet(ACCOUNT_ID_KEY, grudgeId); }
+        if (grudgeId) {
+          lsSet(GRUDGE_ID_KEY, grudgeId);
+          lsSet(ACCOUNT_ID_KEY, grudgeId);
+          lsSet(SDK_USER_ID_KEY, grudgeId);
+        }
         if (username) lsSet(USERNAME_KEY, username);
         if (readToken()) syncFromBackend();
         dispatch('grudge:auth:ready');
@@ -418,25 +526,151 @@
     isLoggedIn: () => !!readToken(),
     getCharacters: () => _characters,
     getActiveId: readActiveId,
-    getActiveCharacter() {
-      const id = readActiveId();
-      return id ? (_characters.find((c) => c.id === id) ?? null) : null;
+    getActiveCharacter: getActiveCharacterLocal,
+
+    /** Select first character matching race id/name (for VFX Character Lab sync) */
+    selectCharacterByRace(race) {
+      if (!race || !_characters.length) return null;
+      const r = String(race).toLowerCase();
+      const match = _characters.find((c) => {
+        const cr = String(c.race || c.raceId || '').toLowerCase();
+        return cr === r || cr.includes(r) || r.includes(cr);
+      });
+      if (match) {
+        fleet.selectCharacter(match.id);
+        return match;
+      }
+      return null;
     },
 
     selectCharacter(id) {
       saveActiveId(id);
-      const char = _characters.find((c) => c.id === id) ?? null;
+      const char = _characters.find((c) => String(c.id) === String(id)) ?? null;
       notifyCallbacks(char);
-      dispatch('grudge:character:selected', { characterId: id });
-      if (_embedded) window.parent?.postMessage({ type: 'GRUDGE_CHARACTER_CHANGE', characterId: id }, '*');
+      dispatch('grudge:character:selected', { characterId: id, character: char });
+      if (_embedded) {
+        window.parent?.postMessage({ type: 'GRUDGE_CHARACTER_CHANGE', characterId: id, character: char }, '*');
+      }
+      try {
+        if (typeof BroadcastChannel !== 'undefined') {
+          const bc = new BroadcastChannel('grudge-fleet');
+          bc.postMessage({ type: 'character', characterId: id });
+          bc.close();
+        }
+      } catch { /* ignore */ }
     },
 
     onCharacterChange(cb) {
       _callbacks.push(cb);
+      try { cb(getActiveCharacterLocal()); } catch { /* ignore */ }
       return () => { _callbacks = _callbacks.filter((f) => f !== cb); };
     },
 
     syncFromBackend,
+
+    /**
+     * Build SSO deep-link for another fleet app (crafting, vfx, warlords).
+     * Passes token + active character so the target doesn't re-login.
+     */
+    buildSSOUrl(baseUrl, opts) {
+      opts = opts || {};
+      const u = new URL(baseUrl, typeof window !== 'undefined' ? window.location.origin : 'https://grudge-studio.com');
+      const token = readToken();
+      const charId = opts.characterId || readActiveId();
+      const gid = lsGet(GRUDGE_ID_KEY) || lsGet(SDK_USER_ID_KEY) || '';
+      const un = lsGet(USERNAME_KEY) || '';
+      if (token) {
+        u.searchParams.set('token', token);
+        u.searchParams.set('grudge_token', token);
+      }
+      if (charId) u.searchParams.set('characterId', charId);
+      if (gid) u.searchParams.set('grudge_id', gid);
+      if (un) u.searchParams.set('username', un);
+      if (opts.path) u.pathname = opts.path;
+      if (opts.params) {
+        Object.entries(opts.params).forEach(([k, v]) => {
+          if (v != null) u.searchParams.set(k, String(v));
+        });
+      }
+      return u.toString();
+    },
+
+    openCrafting(opts) {
+      const url = fleet.buildSSOUrl(FLEET.crafting, opts);
+      window.open(url, opts?.target || '_blank', 'noopener');
+      return url;
+    },
+
+    openVfxStudio(opts) {
+      const url = fleet.buildSSOUrl(FLEET.vfxStudio, opts);
+      window.open(url, opts?.target || '_blank', 'noopener');
+      return url;
+    },
+
+    /** Fetch inventory scoped to active (or given) character.
+     * Prefers dedicated inventory routes; falls back to GET /api/characters/:id.inventory
+     * (Railway SSOT stores bag on the character row). */
+    async getInventory(charId) {
+      const id = charId || readActiveId();
+      if (!id || !readToken()) return [];
+      const asRows = (inv) => {
+        if (!inv) return [];
+        if (Array.isArray(inv)) return inv;
+        if (typeof inv === 'object') {
+          return Object.entries(inv).map(([name, qty]) => ({ name, qty: Number(qty) || 0 }));
+        }
+        return [];
+      };
+      try {
+        let res = await fleetFetch(
+          FLEET.gameData + '/api/inventory?char_id=' + encodeURIComponent(id),
+          { headers: authHeaders() }
+        );
+        if (res.ok) {
+          const data = await res.json();
+          const rows = Array.isArray(data) ? data : (data.items || data.inventory || []);
+          if (rows && (Array.isArray(rows) ? rows.length : Object.keys(rows).length)) {
+            return asRows(rows);
+          }
+        }
+        // Character detail — inventory lives on the character document
+        res = await fleetFetch(
+          FLEET.gameData + '/api/characters/' + encodeURIComponent(id),
+          { headers: authHeaders() }
+        );
+        if (res.ok) {
+          const char = normalizeCharacter(await res.json());
+          // Keep local cache fresh
+          const idx = _characters.findIndex((c) => String(c.id) === String(id));
+          if (idx >= 0) _characters[idx] = char;
+          else _characters.push(char);
+          return asRows(char.inventory);
+        }
+        // Last resort: in-memory character list
+        const cached = _characters.find((c) => String(c.id) === String(id));
+        return asRows(cached?.inventory);
+      } catch {
+        const cached = _characters.find((c) => String(c.id) === String(id));
+        return asRows(cached?.inventory);
+      }
+    },
+
+    /** Merge crafting bag map into character.inventory and PATCH */
+    async saveInventory(charId, inventoryMap) {
+      const id = charId || readActiveId();
+      if (!id || !readToken()) return null;
+      // Normalize { name: qty } map → array form used by characters API when needed
+      let inventory = inventoryMap;
+      if (inventory && !Array.isArray(inventory) && typeof inventory === 'object') {
+        inventory = Object.entries(inventory).map(([name, qty]) => ({
+          name,
+          itemId: name,
+          quantity: Number(qty) || 0,
+          qty: Number(qty) || 0,
+        }));
+      }
+      return fleet.saveCharacter(id, { inventory });
+    },
 
     /** GET home island (Railway SSOT — seed, mountainTriad, rtsHeightmap). */
     async getHomeIsland() {

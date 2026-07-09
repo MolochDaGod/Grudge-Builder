@@ -20,7 +20,19 @@ import {
   type HarvestableScrap,
 } from '../objects/HomeIslandNodes';
 
-export const HARVEST_RESPAWN_MS = 120_000;
+import {
+  beginGrowth,
+  ensureGrowthFields,
+  markDepleted,
+  respawnMsFor,
+  type HarvestKind,
+} from './RegenerativeHarvest';
+
+/** @deprecated Prefer respawnMsFor(kind) — kept for callers expecting a single number. */
+export const HARVEST_RESPAWN_MS = 150_000;
+
+export { beginGrowth, ensureGrowthFields, markDepleted, respawnMsFor };
+export type { HarvestKind };
 
 export interface HarvestDrop {
   group: THREE.Group;
@@ -157,34 +169,29 @@ export function updateTreeFall(tree: HarvestableTree, dt: number): boolean {
   return tree.fallProgress >= 1;
 }
 
+/** Start regrow after stump — visible growth scale animation, then mature. */
 export function resetHarvestableTree(tree: HarvestableTree, scale: number): void {
-  tree.health = tree.maxHealth;
   tree.fallPhase = 'live';
   tree.fallProgress = 0;
   tree.group.rotation.set(0, tree.group.rotation.y, 0);
-  tree.group.visible = true;
-  tree.group.scale.setScalar(scale);
+  tree.baseScale = scale;
   void mountHarvestableTreeModel(tree, scale);
+  beginGrowth(tree as any, 'tree');
 }
 
 export function resetHarvestableRock(rock: HarvestableRock): void {
-  rock.health = rock.maxHealth;
-  rock.group.visible = true;
-  rock.group.scale.setScalar(rock.baseScale);
   void mountHarvestableRockModel(rock, rock.baseScale);
+  beginGrowth(rock as any, 'rock');
 }
 
 export function resetHarvestableCrystal(crystal: HarvestableCrystal): void {
-  crystal.health = crystal.maxHealth;
-  crystal.group.visible = true;
-  crystal.group.scale.setScalar(crystal.baseScale);
   void mountCrystalClusterModel(crystal, crystal.baseScale);
+  beginGrowth(crystal as any, 'crystal');
 }
 
 export function resetSimpleHarvestNode(
   node: HarvestableHemp | HarvestableFlower | HarvestableScrap,
+  kind: HarvestKind = 'flower',
 ): void {
-  node.health = node.maxHealth;
-  node.group.visible = true;
-  node.group.scale.setScalar(node.baseScale);
+  beginGrowth(node as any, kind);
 }

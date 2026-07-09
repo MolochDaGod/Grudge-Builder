@@ -1275,10 +1275,43 @@ async function doAuth() {
     applyCharacterToState(GrudgeFleet.getActiveCharacter());
     updateAuthUI();
     await loadSaveData();
+    // Character inventory SSOT from API after local KV merge
+    await loadCharacterInventory(STATE.activeCharacterId);
     renderCharactersList();
     updateCharacterUI();
     showToast('Signed in as ' + (STATE.user?.username || GrudgeFleet.getUser()?.username), 'success');
   } catch(e) { console.error(e); showToast('Sign in failed', 'error'); }
+}
+
+/** Load inventory scoped to a character (API + char.inventory blob). */
+async function loadCharacterInventory(charId) {
+  const id = charId || STATE.activeCharacterId || GrudgeFleet.getActiveId();
+  if (!id || !GrudgeFleet.isLoggedIn()) return;
+  try {
+    // Prefer dedicated inventory endpoint when available
+    if (typeof GrudgeFleet.getInventory === 'function') {
+      const rows = await GrudgeFleet.getInventory(id);
+      if (Array.isArray(rows) && rows.length) {
+        const map = {};
+        for (const row of rows) {
+          const name = row.name || row.itemName || row.item_id || row.id;
+          const qty = Number(row.qty ?? row.quantity ?? row.stack ?? 1);
+          if (name) map[name] = (map[name] || 0) + qty;
+        }
+        if (Object.keys(map).length) {
+          STATE.inventory = map;
+          updateSidebarBadges();
+          return;
+        }
+      }
+    }
+    // Fallback: character.inventory field from list/detail
+    const char = GrudgeFleet.getActiveCharacter?.() ||
+      (GrudgeFleet.getCharacters?.() || []).find((c) => String(c.id) === String(id));
+    if (char) applyCharacterToState(char);
+  } catch (e) {
+    console.warn('loadCharacterInventory:', e);
+  }
 }
 
 async function refreshFleetState() {
@@ -1289,6 +1322,7 @@ async function refreshFleetState() {
   try { STATE.user = await puter.auth.getUser(); } catch {}
   updateAuthUI();
   await loadSaveData();
+  await loadCharacterInventory(STATE.activeCharacterId);
   renderCharactersList();
   updateCharacterUI();
 }
@@ -1297,8 +1331,23 @@ async function checkAuth() {
   try {
     const embedded = window.parent !== window;
     await GrudgeFleet.init({ mode: embedded ? 'embedded' : 'standalone' });
+    // Catch SSO token from URL / localStorage / Puter guest bridge
     if (!GrudgeFleet.isLoggedIn()) await GrudgeFleet.ensureSession();
+    if (GrudgeFleet.isLoggedIn()) await GrudgeFleet.syncFromBackend();
     await refreshFleetState();
+    // Keep UI in sync when character changes (other tabs / VFX studio SSO)
+    if (typeof GrudgeFleet.onCharacterChange === 'function') {
+      GrudgeFleet.onCharacterChange(async (char) => {
+        if (!char) return;
+        STATE.activeCharacterId = char.id;
+        applyCharacterToState(char);
+        await loadCharacterInventory(char.id);
+        renderCharactersList();
+        updateCharacterUI();
+        if (typeof renderInventoryPage === 'function') renderInventoryPage();
+        if (typeof renderDashboard === 'function' && STATE.currentPage === 'dashboard') renderDashboard();
+      });
+    }
   } catch(e) { console.warn('Auth check:', e); }
 }
 
@@ -1317,6 +1366,7 @@ function updateAuthUI() {
 
 function applyCharacterToState(char) {
   if (!char) return;
+  STATE.activeCharacterId = char.id || STATE.activeCharacterId;
   STATE.professions = GrudgeFleet.mergeProfessionsFromCharacter(char, STATE.professions);
   if (char.equipment && Object.keys(char.equipment).length) {
     const slotMap = { Helm:'head', Chest:'chest', Hands:'hands', Feet:'feet', Weapon:'weapon', MainHand:'weapon', Offhand:'shield' };
@@ -1325,14 +1375,33 @@ function applyCharacterToState(char) {
       if (STATE.equipment[slot] !== undefined && v) STATE.equipment[slot] = v;
     }
   }
+  // Inventory: array of {name,qty} or map {name:qty}
+  if (char.inventory) {
+    if (Array.isArray(char.inventory)) {
+      const map = {};
+      for (const row of char.inventory) {
+        const name = row.name || row.itemName || row.id;
+        const qty = Number(row.qty ?? row.quantity ?? row.stack ?? 1);
+        if (name) map[name] = (map[name] || 0) + qty;
+      }
+      if (Object.keys(map).length) STATE.inventory = { ...STATE.inventory, ...map };
+    } else if (typeof char.inventory === 'object') {
+      STATE.inventory = { ...STATE.inventory, ...char.inventory };
+    }
+  }
 }
 
 async function syncCharacterToBackend() {
   const id = STATE.activeCharacterId || GrudgeFleet.getActiveId();
   if (!id || !GrudgeFleet.isLoggedIn()) return;
+  // Prefer inventory helper (merges into character) then full character PATCH
+  if (typeof GrudgeFleet.saveInventory === 'function') {
+    try { await GrudgeFleet.saveInventory(id, STATE.inventory); } catch (e) { console.warn('saveInventory:', e); }
+  }
   await GrudgeFleet.saveCharacter(id, {
     professionLevels: GrudgeFleet.professionsToPayload(STATE.professions),
     equipment: STATE.equipment,
+    inventory: STATE.inventory,
   });
 }
 
@@ -2065,14 +2134,16 @@ async function loginToGrudge() {
   }
 }
 
-function selectCharacter(charId) {
+async function selectCharacter(charId) {
   STATE.activeCharacterId = charId;
   GrudgeFleet.selectCharacter(charId);
   applyCharacterToState(GrudgeFleet.getActiveCharacter());
+  await loadCharacterInventory(charId);
   renderCharactersList();
   renderActiveCharacter();
   updateCharacterUI();
   if (STATE.currentPage === 'dashboard') renderDashboard();
+  if (STATE.currentPage === 'inventory') renderInventoryPage();
   saveData();
   showToast('Character selected!', 'success');
 }
