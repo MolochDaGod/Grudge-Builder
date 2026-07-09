@@ -24,9 +24,23 @@
     "name": "Grudge Freeform ARPG Open World",
     "seed": "grudge-world-1",
     "sectorCount": 9,
+    "mapFamily": "warlords_era_open_world",
     "playClient": "https://client.grudge-studio.com",
     "zonesEndpoint": "/api/v1/warlords-zones.json",
-    "defaultPlayUrl": "https://client.grudge-studio.com/play?sector=haven_shore&mode=zone&worldSeed=grudge-world-1"
+    "mapRegistryEndpoint": "/api/v1/map-registry.json",
+    "defaultPlayUrl": "https://client.grudge-studio.com/play?sector=haven_shore&mode=zone&worldSeed=grudge-world-1",
+    "warning": "This 9-sector set is Warlords ERA open world only. Separate 9-cell system: player home-block 3x3 (worldMap.ts). See map-registry.json."
+  },
+  "mapFamilies": {
+    "registry": "/api/v1/map-registry.json",
+    "warlordsEraOpenWorld": "9 macro sectors (this catalog)",
+    "playerHomeBlock": "personal 3x3 — NOT these sector ids",
+    "tacticalOcean": "sail view over warlords era (same ids)",
+    "chickenGunPirateLobby": "pirate-islands GLTF lobby",
+    "homeIsland": "personal 1024m seed",
+    "eventIslands": "rotating home-block / seasonal",
+    "battleArenas": "rpg-battle + arena.grudge-studio.com",
+    "pvpBattlegroundGenesis": "warlord-genesis.vercel.app from PvP UI"
   },
   "characterTruth": {
     "genre": "freeform-arpg",

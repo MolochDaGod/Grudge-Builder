@@ -1,0 +1,90 @@
+﻿{
+  "version": "1.0.0",
+  "updated": "2026-07-09",
+  "warning": "TWO different 9-cell systems exist. Never mix Warlords era sector ids with player home-block slots.",
+  "twoNineSectorMaps": {
+    "warlords_era_open_world": {
+      "name": "Grudge Warlords Era — Open World",
+      "count": 9,
+      "ids": [
+        "ethereal_falls",
+        "frostbite_expanse",
+        "thornwood_wilds",
+        "stormbreak_reef",
+        "convergence_nexus",
+        "ashen_wastes",
+        "abyssal_trench",
+        "haven_shore",
+        "ember_depths"
+      ],
+      "legacyGrid": ["NW", "N", "NE", "W", "CENTER", "E", "SW", "S", "SE"],
+      "source": "GrudgeBuilder/shared/definitions/worldMapSectors.ts",
+      "catalog": "/api/v1/warlords-zones.json",
+      "entry": "https://client.grudge-studio.com/play?sector=haven_shore&mode=zone&worldSeed=grudge-world-1",
+      "not": ["player home-block cells", "pirate lobby", "genesis battlegrounds"]
+    },
+    "player_home_block": {
+      "name": "Player Home Block — Personal 3x3",
+      "count": 9,
+      "slots": ["TL", "TC", "TR", "ML", "MC_HOME", "MR", "BL", "BC", "BR"],
+      "homeSlot": "MC_HOME",
+      "source": "GrudgeBuilder/shared/definitions/worldMap.ts",
+      "entry": "https://client.grudge-studio.com/home-island",
+      "not": ["haven_shore-style macro sector ids", "shared MMO ocean"]
+    }
+  },
+  "families": [
+    {
+      "id": "warlords_era_open_world",
+      "shortName": "Warlords 9 Sectors",
+      "entry": "/play?sector=haven_shore&mode=zone&worldSeed=grudge-world-1"
+    },
+    {
+      "id": "player_home_block",
+      "shortName": "Home Block 3x3",
+      "entry": "/home-island"
+    },
+    {
+      "id": "tactical_ocean_view",
+      "shortName": "Tactical Ocean",
+      "description": "Sail view over Warlords era 9 sectors (same IDs). Also TI at water.grudge-studio.com",
+      "entry": "/ocean?worldSeed=grudge-world-1",
+      "external": "https://water.grudge-studio.com"
+    },
+    {
+      "id": "chicken_gun_pirate_lobby",
+      "shortName": "Pirate Lobby",
+      "description": "Chicken Gun PolygonPirates GLTF lobby map",
+      "entry": "/island-3d?mode=lobby&map=pirate-islands",
+      "asset": "assets.grudge-studio.com/models/lobby/pirate-islands/"
+    },
+    {
+      "id": "home_island",
+      "shortName": "Home Island",
+      "description": "Personal 1024m procedural island",
+      "entry": "/home-island"
+    },
+    {
+      "id": "event_island",
+      "shortName": "Event Islands",
+      "description": "Rotating home-block surround cells (type=event) + seasonal events",
+      "entry": "/home-island"
+    },
+    {
+      "id": "battle_arena",
+      "shortName": "Arenas",
+      "description": "Instanced RPG arenas + grudge-arena shell",
+      "entry": "/rpg-battle",
+      "external": ["https://arena.grudge-studio.com"]
+    },
+    {
+      "id": "pvp_battleground_genesis",
+      "shortName": "Genesis PvP",
+      "description": "Warlord Genesis battlegrounds from in-game PvP UI / RTS modes",
+      "entry": "https://warlord-genesis.vercel.app",
+      "rtsModes": ["quick-match", "faction-war", "siege"],
+      "authCallback": "https://warlord-genesis.vercel.app/auth/callback"
+    }
+  ],
+  "sourceRepo": "GrudgeBuilder/shared/definitions/mapRegistry.ts"
+}

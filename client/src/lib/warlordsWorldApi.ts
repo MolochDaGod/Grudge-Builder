@@ -14,6 +14,10 @@
 import { apiUrl } from '@/lib/assetConfig';
 import { resolveZoneSectorId } from '@shared/definitions/sectorBridge';
 import { getSectorById, WORLD_SECTORS } from '@shared/definitions/worldMapSectors';
+import {
+  assertMapIdForFamily,
+  isWarlordsEraSectorId,
+} from '@shared/definitions/mapRegistry';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -274,8 +278,14 @@ export function isKnownSector(sectorId: string): boolean {
 export function resolveDeployableSectorId(sectorId: string | null | undefined): string {
   if (!sectorId) return STARTER_SECTOR;
   const id = resolveZoneSectorId(sectorId);
-  if (getSectorById(id)) return id;
-  console.warn(`[WarlordsWorld] Unknown sector "${sectorId}" → ${STARTER_SECTOR}`);
+  // Guard: never treat home-block slots (TL/MC_HOME/…) as Warlords era sectors
+  const guard = assertMapIdForFamily('warlords_era_open_world', id);
+  if (!guard.ok) {
+    console.warn(`[WarlordsWorld] ${guard.reason} → ${STARTER_SECTOR}`);
+    return STARTER_SECTOR;
+  }
+  if (getSectorById(id) || isWarlordsEraSectorId(id)) return id;
+  console.warn(`[WarlordsWorld] Unknown era sector "${sectorId}" → ${STARTER_SECTOR}`);
   return STARTER_SECTOR;
 }
 
