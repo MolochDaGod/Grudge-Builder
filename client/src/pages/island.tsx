@@ -1817,6 +1817,11 @@ export default function IslandPage() {
   const island3dMountainTriad = homeIslandDto?.state?.mountainTriad;
   const island3dRtsHeightmap = homeIslandDto?.state?.rtsHeightmap;
   const island3dRtsNatureScatter = homeIslandDto?.state?.rtsNatureScatter;
+  const island3dBiome =
+    (homeIslandDto?.state as { biome?: string } | undefined)?.biome
+    ?? homeIslandDto?.state?.rtsExport?.biome
+    ?? (island3dRtsNatureScatter as { biome?: string } | undefined)?.biome
+    ?? undefined;
 
   return (
     <GameViewportLayout title="Island">
@@ -1881,6 +1886,7 @@ export default function IslandPage() {
             mountainTriad={island3dMountainTriad as MountainTriadSeed | undefined}
             rtsHeightmap={island3dRtsHeightmap as RtsHeightmapPayload | undefined}
             rtsNatureScatter={island3dRtsNatureScatter as RtsNatureScatterPayload | undefined}
+            biome={island3dBiome}
             dayNight={{ dayDurationSeconds: 10 * 60 }}
             onDungeonEnter={(dungeonId, dungeonName) => {
               addLog(`Entering ${dungeonName}...`);

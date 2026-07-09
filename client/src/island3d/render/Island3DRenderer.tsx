@@ -61,6 +61,8 @@ interface Island3DRendererProps {
   rtsHeightmap?: RtsHeightmapPayload;
   /** RTS NatureScatter foliage placements */
   rtsNatureScatter?: RtsNatureScatterPayload;
+  /** Island biome — Driftwood Bay vs Ironfang Spire foundation */
+  biome?: string;
   /** Fired when player enters a mountain dungeon portal */
   onDungeonEnter?: (dungeonId: string, dungeonName: string) => void;
   /** Camp hub percent coords from Railway home island state */
@@ -74,7 +76,7 @@ export function Island3DRenderer({
   sectorId, worldSeed,
   quality = 'medium', dayNight, enableCharacter, onEngineReady,
   characterId, raceId, classId, characterName, model3d, lobbyIslandId, onHarvest,
-  mountainTriad, rtsHeightmap, rtsNatureScatter, onDungeonEnter, campPositionPercent, regrowRegions,
+  mountainTriad, rtsHeightmap, rtsNatureScatter, biome, onDungeonEnter, campPositionPercent, regrowRegions,
 }: Island3DRendererProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -137,6 +139,7 @@ export function Island3DRenderer({
       mountainTriad,
       rtsHeightmap,
       rtsNatureScatter,
+      biome,
       onDungeonEnter,
       campPositionPercent,
       regrowRegions,
@@ -182,7 +185,7 @@ export function Island3DRenderer({
   }, [
     seed, multiplayer, mode, lobbyMapId, sectorId, worldSeed,
     characterId, raceId, classId, model3d,
-    mountainTriad, rtsHeightmap, rtsNatureScatter, onDungeonEnter, campPositionPercent, regrowRegions,
+    mountainTriad, rtsHeightmap, rtsNatureScatter, biome, onDungeonEnter, campPositionPercent, regrowRegions,
   ]);
 
   // Lobby interact: E capture / board ship

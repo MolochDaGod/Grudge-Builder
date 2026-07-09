@@ -66,8 +66,10 @@ import { scatterRtsNatureInScene } from '../objects/RtsNatureScatter';
 import {
   generateRtsNatureScatter,
   islandSeedToNumber,
+  resolveNatureScatterPayload,
   type RtsNatureScatterPayload,
 } from '@shared/definitions/rtsNatureScatter';
+import { resolveHomeIslandFoundation } from '@shared/definitions/homeIslandFoundations';
 import { placeProceduralHarvestZones } from '../harvest/HarvestZonePlacer';
 import { buildHarvestZones, type HarvestZonesResult } from '../harvest/HarvestZoneBuilder';
 import { spawnZoneHarvestNodes } from '../harvest/ZoneHarvestSpawner';
@@ -141,6 +143,8 @@ export interface Island3DEngineConfig {
   rtsHeightmap?: RtsHeightmapPayload;
   /** RTS NatureScatter foliage placements (200m, CDN GLBs) */
   rtsNatureScatter?: RtsNatureScatterPayload;
+  /** Island biome label — resolves Driftwood Bay vs Ironfang Spire */
+  biome?: string;
   /** Camp hub on 2D percent coords (north = low y) — flattens build plateau in 3D */
   campPositionPercent?: { x: number; y: number };
   /** Regrowing forest grove + quarry + beach anchors from island state */
@@ -499,21 +503,30 @@ export class Island3DEngine {
 
   /** Generate procedural seed-based terrain with nodes & decorations */
   private async initProcedural(): Promise<void> {
-    await preloadIslandResources().catch(() => undefined);
-    // 1. Generate terrain
+    await preloadIslandResources().catch((err) => {
+      console.warn('[Island3D] Resource preload failed — harvest will retry per-node', err);
+    });
+    // 1. Generate terrain — elevation budget from size foundation
+    const foundation = resolveHomeIslandFoundation(
+      this.config.seed,
+      this.config.biome ?? 'forest',
+    );
     const terrainMaterial = await createTerrainMaterialAsync();
     const terrainConfig: IslandTerrainConfig = {
       seed: this.config.seed,
       xSegments: 63,
       ySegments: 63,
-      xSize: 1024,
-      ySize: 1024,
-      minHeight: -30,
-      maxHeight: 80,
+      xSize: HOME_ISLAND_WORLD_SIZE_M,
+      ySize: HOME_ISLAND_WORLD_SIZE_M,
+      minHeight: foundation.minElevationM,
+      maxHeight: foundation.maxElevationM,
       rtsHeightmap: this.config.rtsHeightmap,
     };
 
     this.terrain = generateIslandTerrainWithBridge(terrainConfig);
+    console.log(
+      `[Island3D] Foundation ${foundation.label} — world ${foundation.worldSizeM}m, elev ${foundation.minElevationM}..${foundation.maxElevationM}m`,
+    );
     if (this.config.rtsHeightmap) {
       console.log('[Island3D] Terrain from RTS heightmap export (200m → 1024m upsample)');
     }
@@ -574,20 +587,20 @@ export class Island3DEngine {
     // 6. Scatter decorations
     this.createDecorations();
 
-    // 6b. Nature Megakit foliage — persisted RTS export or deterministic from seed
-    const naturePayload =
-      this.config.rtsNatureScatter?.instances?.length
-        ? this.config.rtsNatureScatter
-        : generateRtsNatureScatter(
-            islandSeedToNumber(this.config.seed),
-            'temperate',
-            this.config.rtsHeightmap,
-            HOME_ISLAND_WORLD_SIZE_M,
-          );
+    // 6b. Organized nature foliage — sanitize legacy megakit payloads, never poly fallback first
+    const naturePayload = resolveNatureScatterPayload({
+      stored: this.config.rtsNatureScatter,
+      islandSeed: islandSeedToNumber(this.config.seed),
+      biome: this.config.biome ?? foundation.preferredBiomes[0] ?? 'forest',
+      heightmap: this.config.rtsHeightmap,
+      worldSizeM: HOME_ISLAND_WORLD_SIZE_M,
+      seedString: this.config.seed,
+    });
     const foliage = await scatterRtsNatureInScene(naturePayload, this.terrain.terrainMesh);
     if (foliage.children.length > 0) {
       this.scene.add(foliage);
     } else {
+      // Prefer CDN pack trees at node positions over InstancedProceduralForest (poly look)
       await this.createProceduralForest();
     }
 
@@ -859,19 +872,11 @@ export class Island3DEngine {
     for (const node of this.placedNodes) {
       switch (node.type) {
         case 'tree': {
-          // Visual trees come from InstancedProceduralForest; keep harvest hitbox only
-          if (this.proceduralForest) {
-            const tree = createHarvestableTree(node.position, node.scale * 0.01);
-            tree.nodeId = node.id;
-            tree.group.visible = false;
-            this.trees.push(tree);
-            this.scene.add(tree.group);
-          } else {
-            const tree = createHarvestableTree(node.position, node.scale);
-            tree.nodeId = node.id;
-            this.trees.push(tree);
-            this.scene.add(tree.group);
-          }
+          // Always full CDN pack tree (hidden until mounted). No 0.01 hitbox-only poly path.
+          const tree = createHarvestableTree(node.position, node.scale);
+          tree.nodeId = node.id;
+          this.trees.push(tree);
+          this.scene.add(tree.group);
           break;
         }
         case 'rock': {
@@ -922,13 +927,31 @@ export class Island3DEngine {
   private async createProceduralForest(): Promise<void> {
     if (!this.terrain) return;
 
+    // 1) CDN pack variants from harvest nodes (no megakit, no poly cylinders)
     const glbForest = await scatterGlbTreesFromNodes(this.placedNodes, 90);
     if (glbForest.children.length > 0) {
       this.scene.add(glbForest);
-      console.log(`[Island3D] GLB forest: ${glbForest.children.length} trees`);
+      console.log(`[Island3D] GLB forest fallback: ${glbForest.children.length} trees`);
       return;
     }
 
+    // 2) Regenerated pack scatter at seed positions (still no megakit)
+    const regen = generateRtsNatureScatter(
+      islandSeedToNumber(this.config.seed),
+      this.config.biome ?? 'forest',
+      this.config.rtsHeightmap,
+      HOME_ISLAND_WORLD_SIZE_M,
+      this.config.seed,
+    );
+    const packFoliage = await scatterRtsNatureInScene(regen, this.terrain.terrainMesh);
+    if (packFoliage.children.length > 0) {
+      this.scene.add(packFoliage);
+      console.log(`[Island3D] Regenerated pack scatter: ${packFoliage.children.length}`);
+      return;
+    }
+
+    // 3) Last resort only — instanced procedural (soft canopy, not megakit GLBs)
+    console.warn('[Island3D] All GLB foliage paths failed — procedural canopy last resort');
     this.proceduralForest = new InstancedProceduralForest();
     const stats = this.proceduralForest.generate(
       this.config.seed,
@@ -936,12 +959,12 @@ export class Island3DEngine {
       this.terrain.biomeMap,
       this.terrain.gridW,
       this.terrain.gridH,
-      1024,
-      { treeCount: 200, forestRadius: 380, clearRadius: 50 },
+      HOME_ISLAND_WORLD_SIZE_M,
+      { treeCount: 120, forestRadius: 320, clearRadius: 50 },
     );
     if (stats.trees > 0) {
       this.scene.add(this.proceduralForest.group);
-      console.log(`[Island3D] Procedural forest: ${stats.trees} trees, ${stats.branches} branches, ${stats.leaves} leaves`);
+      console.log(`[Island3D] Procedural forest last-resort: ${stats.trees} trees`);
     }
   }
 

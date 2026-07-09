@@ -17,8 +17,21 @@ import {
   HOME_ISLAND_HARVEST_ZONE_COUNT,
   HOME_ISLAND_NODE_TARGET,
 } from './homeIslandQuality';
+import {
+  DRIFTWOOD_BAY,
+  IRONFANG_SPIRE,
+  exportHomeIslandFoundationsDoc,
+  resolveHomeIslandFoundation,
+  type HomeIslandFoundationId,
+} from './homeIslandFoundations';
+import {
+  harvestRockPack,
+  harvestTreePack,
+  ORGANIZED_NATURE_SCATTER_PATHS,
+  exportNatureAssetCatalogDoc,
+} from './natureAssetCatalog';
 
-export const HOME_ISLAND_SPEC_VERSION = '2.1.0';
+export const HOME_ISLAND_SPEC_VERSION = '2.2.0';
 
 // ── Character reference (ALL world props scale relative to this) ─────────────
 
@@ -250,25 +263,27 @@ export interface HarvestNodeScale {
   health: number;
 }
 
+const _harvestTree = harvestTreePack();
+const _harvestRock = harvestRockPack();
+
 export const ISLAND_HARVEST_NODES: Record<string, HarvestNodeScale> = {
   tree: {
     type: 'tree',
-    heightM: { min: 5.5, max: 9.5 },
+    heightM: { min: _harvestTree.heightM[0], max: _harvestTree.heightM[1] },
     widthM: { min: 3.5, max: 6.0 },
-    modelPath: '/models/environment/island_tree.glb',
-    variants: [
-      'pine2_14', 'pine9_15', 'birch2_4', 'birch6_5', 'ancient_tree_2_0',
-      'garden_tree_pink_11', 'creepy_tree1_10', 'palm2_13',
-    ],
+    /** Interim pack — low-poly megakit banned; HQ under /models/nature/realistic/trees/ */
+    modelPath: _harvestTree.path,
+    variants: [..._harvestTree.variants],
     respawnMs: 4 * 60 * 60 * 1000, // 4h generative seed regen
     health: 5,
   },
   rock: {
     type: 'rock',
-    heightM: { min: 1.8, max: 3.8 },
+    heightM: { min: _harvestRock.heightM[0], max: _harvestRock.heightM[1] },
     widthM: { min: 2.0, max: 4.5 },
-    modelPath: '/models/environment/island_rock.glb',
-    variants: ['rock_1', 'rock_2', 'rock_3', 'rock_4', 'rock_5', 'rock_6', 'rock_7', 'rock_8'],
+    /** Interim pack — Rock_Medium megakit banned; HQ under /models/nature/realistic/rocks/ */
+    modelPath: _harvestRock.path,
+    variants: [..._harvestRock.variants],
     respawnMs: 4 * 60 * 60 * 1000,
     health: 4,
   },
@@ -348,22 +363,37 @@ export function harvestFitHeightM(type: keyof typeof ISLAND_HARVEST_NODES, scale
   return mid * scale;
 }
 
-// ── RTS nature scatter (200m core → 1024m terrain) ──────────────────────────
+// ── Nature scatter — organized assets only (no low-poly megakit) ────────────
 
+const _scatterTree = ORGANIZED_NATURE_SCATTER_PATHS.tree;
+const _scatterPine = ORGANIZED_NATURE_SCATTER_PATHS.pine;
+const _scatterRock = ORGANIZED_NATURE_SCATTER_PATHS.rock;
+
+/**
+ * Home-island foliage catalog. CommonTree / Twisted / DeadTree / Rock_Medium
+ * and other Quaternius megakit paths are removed. Empty model lists mean
+ * "skip category until realistic GLB is on R2".
+ */
 export const ISLAND_NATURE_SCATTER = {
-  totalInstances: 107,
+  policy: 'realistic_or_interim_pack_only' as const,
+  banned: 'CommonTree, TwistedTree, DeadTree, Rock_Medium, Pine_* megakit, lowpoly/*',
+  foundations: {
+    driftwood_bay: DRIFTWOOD_BAY.id,
+    ironfang_spire: IRONFANG_SPIRE.id,
+  },
+  totalInstances: 48,
   categories: {
-    tree: { count: 12, models: ['/models/nature/CommonTree_1.glb', '/models/nature/CommonTree_2.glb', '/models/nature/CommonTree_3.glb', '/models/nature/CommonTree_4.glb', '/models/nature/CommonTree_5.glb'], scaleM: [4.5, 9.0] },
-    pine: { count: 16, models: ['/models/nature/Pine_1.glb', '/models/nature/Pine_2.glb', '/models/nature/Pine_3.glb', '/models/nature/Pine_4.glb', '/models/nature/Pine_5.glb'], scaleM: [3.6, 7.5] },
-    deadTree: { count: 8, models: ['/models/nature/DeadTree_1.glb', '/models/nature/DeadTree_2.glb', '/models/nature/DeadTree_3.glb'], scaleM: [3.0, 6.0] },
-    twisted: { count: 7, models: ['/models/nature/TwistedTree_1.glb', '/models/nature/TwistedTree_2.glb', '/models/nature/TwistedTree_3.glb'], scaleM: [4.5, 7.5] },
-    rock: { count: 8, models: ['/models/nature/Rock_Medium_1.glb', '/models/nature/Rock_Medium_2.glb', '/models/nature/Rock_Medium_3.glb'], scaleM: [1.6, 4.0] },
-    bush: { count: 10, models: ['/models/nature/Bush_Common.glb', '/models/nature/Bush_Common_Flowers.glb'], scaleM: [0.8, 1.5] },
-    grass: { count: 12, models: ['/models/nature/Grass_Common_Short.glb', '/models/nature/Grass_Common_Tall.glb', '/models/nature/Grass_Wispy_Short.glb', '/models/nature/Grass_Wispy_Tall.glb'], scaleM: [0.6, 1.2] },
-    mushroom: { count: 8, models: ['/models/nature/Mushroom_Common.glb', '/models/nature/Mushroom_Laetiporus.glb'], scaleM: [0.25, 0.5] },
-    flower: { count: 10, models: ['/models/nature/Flower_3_Group.glb', '/models/nature/Flower_4_Group.glb'], scaleM: [0.4, 0.8] },
-    fern: { count: 8, models: ['/models/nature/Fern_1.glb'], scaleM: [0.5, 1.0] },
-    plant: { count: 8, models: ['/models/nature/Plant_1.glb', '/models/nature/Plant_7.glb'], scaleM: [0.5, 1.2] },
+    tree: { count: 14, models: _scatterTree, scaleM: [4.5, 9.0] as [number, number] },
+    pine: { count: 12, models: _scatterPine, scaleM: [3.6, 7.5] as [number, number] },
+    // deadTree / twisted deliberately omitted (low-poly ban)
+    rock: { count: 10, models: _scatterRock, scaleM: [1.6, 4.0] as [number, number] },
+    // Groundcover megakit banned until realistic groundcover GLBs exist
+    bush: { count: 0, models: [] as string[], scaleM: [0.8, 1.5] as [number, number] },
+    grass: { count: 0, models: [] as string[], scaleM: [0.6, 1.2] as [number, number] },
+    mushroom: { count: 0, models: [] as string[], scaleM: [0.25, 0.5] as [number, number] },
+    flower: { count: 0, models: [] as string[], scaleM: [0.4, 0.8] as [number, number] },
+    fern: { count: 0, models: [] as string[], scaleM: [0.5, 1.0] as [number, number] },
+    plant: { count: 0, models: [] as string[], scaleM: [0.5, 1.2] as [number, number] },
   },
 } as const;
 
@@ -446,6 +476,9 @@ export function getHomeIslandSpecSummary() {
     animals: ISLAND_ANIMALS,
     harvestNodes: ISLAND_HARVEST_NODES,
     natureScatter: ISLAND_NATURE_SCATTER,
+    /** Driftwood Bay + Ironfang Spire size foundations */
+    foundations: exportHomeIslandFoundationsDoc(),
+    natureAssets: exportNatureAssetCatalogDoc(),
     targets: {
       dbNodes: HOME_ISLAND_NODE_TARGET,
       animals: HOME_ISLAND_ANIMAL_TARGET,
@@ -457,3 +490,10 @@ export function getHomeIslandSpecSummary() {
     regrowRegionTemplate: generateRegrowRegions('example-seed'),
   };
 }
+
+/** Resolve foundation layout for a seed/biome (used by generators + API). */
+export function foundationForIsland(seed: string, biome?: string | null) {
+  return resolveHomeIslandFoundation(seed, biome);
+}
+
+export type { HomeIslandFoundationId };

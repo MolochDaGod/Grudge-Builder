@@ -38,7 +38,8 @@ if (typeof globalThis.FileReader === 'undefined') {
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..');
-const OUT_DIR = path.join(ROOT, 'public', 'models', 'biomes', 'review');
+// Prefer client/public (Vite source) so upload-home-island-assets finds them
+const OUT_DIR = path.join(ROOT, 'client', 'public', 'models', 'biomes', 'review');
 const PUBLISHED = path.join(ROOT, 'shared', 'definitions', 'published', 'biome-ecosystems.json');
 
 const BIOMES = [
@@ -251,9 +252,54 @@ async function main() {
     });
   }
 
+  // Preserve foundations / ban policy if a richer catalog already exists
+  let prior = {};
+  if (fs.existsSync(PUBLISHED)) {
+    try {
+      prior = JSON.parse(fs.readFileSync(PUBLISHED, 'utf8'));
+    } catch {
+      /* ignore */
+    }
+  }
+  const merged = {
+    ...catalog,
+    version: prior.version || catalog.version || '1.1.0',
+    sizeFoundations: prior.sizeFoundations || {
+      driftwood_bay: { worldSizeM: 1024, preferredBiomes: ['beach', 'tropical', 'plains', 'storm'] },
+      ironfang_spire: {
+        worldSizeM: 1024,
+        preferredBiomes: ['forest', 'winter', 'frozen', 'volcanic', 'abyssal', 'nexus'],
+      },
+    },
+    treePolicy:
+      prior.treePolicy ||
+      'No low-poly megakit. Organized under /models/nature/realistic/* and /models/nature/organized/*.',
+    bannedNature: prior.bannedNature || [
+      'CommonTree_*',
+      'TwistedTree_*',
+      'DeadTree_*',
+      'Rock_Medium_*',
+      'Pine_1..5 megakit',
+      'nature-megakit',
+    ],
+    storage: prior.storage || catalog.storage,
+    biomes: catalog.biomes.map((b) => {
+      const prev = (prior.biomes || []).find((x) => x.id === b.id) || {};
+      return {
+        ...prev,
+        ...b,
+        foundationId:
+          prev.foundationId ||
+          (['beach', 'tropical', 'plains', 'storm', 'desert'].includes(b.id)
+            ? 'driftwood_bay'
+            : 'ironfang_spire'),
+      };
+    }),
+  };
+
   fs.mkdirSync(path.dirname(PUBLISHED), { recursive: true });
-  fs.writeFileSync(PUBLISHED, JSON.stringify(catalog, null, 2) + '\n');
-  console.log('catalog biomes', catalog.biomes.length);
+  fs.writeFileSync(PUBLISHED, JSON.stringify(merged, null, 2) + '\n');
+  console.log('catalog biomes', merged.biomes.length);
 }
 
 main().catch((e) => {

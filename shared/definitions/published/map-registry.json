@@ -1,4 +1,4 @@
-﻿{
+{
   "version": "1.0.0",
   "updated": "2026-07-09",
   "warning": "TWO different 9-cell systems exist. Never mix Warlords era sector ids with player home-block slots.",
@@ -17,20 +17,47 @@
         "haven_shore",
         "ember_depths"
       ],
-      "legacyGrid": ["NW", "N", "NE", "W", "CENTER", "E", "SW", "S", "SE"],
+      "legacyGrid": [
+        "NW",
+        "N",
+        "NE",
+        "W",
+        "CENTER",
+        "E",
+        "SW",
+        "S",
+        "SE"
+      ],
       "source": "GrudgeBuilder/shared/definitions/worldMapSectors.ts",
       "catalog": "/api/v1/warlords-zones.json",
       "entry": "https://client.grudge-studio.com/play?sector=haven_shore&mode=zone&worldSeed=grudge-world-1",
-      "not": ["player home-block cells", "pirate lobby", "genesis battlegrounds"]
+      "not": [
+        "player home-block cells",
+        "pirate lobby",
+        "genesis battlegrounds"
+      ]
     },
     "player_home_block": {
       "name": "Player Home Block — Personal 3x3",
       "count": 9,
-      "slots": ["TL", "TC", "TR", "ML", "MC_HOME", "MR", "BL", "BC", "BR"],
+      "slots": [
+        "TL",
+        "TC",
+        "TR",
+        "ML",
+        "MC_HOME",
+        "MR",
+        "BL",
+        "BC",
+        "BR"
+      ],
       "homeSlot": "MC_HOME",
       "source": "GrudgeBuilder/shared/definitions/worldMap.ts",
       "entry": "https://client.grudge-studio.com/home-island",
-      "not": ["haven_shore-style macro sector ids", "shared MMO ocean"]
+      "not": [
+        "haven_shore-style macro sector ids",
+        "shared MMO ocean"
+      ]
     }
   },
   "families": [
@@ -75,14 +102,20 @@
       "shortName": "Arenas",
       "description": "Instanced RPG arenas + grudge-arena shell",
       "entry": "/rpg-battle",
-      "external": ["https://arena.grudge-studio.com"]
+      "external": [
+        "https://arena.grudge-studio.com"
+      ]
     },
     {
       "id": "pvp_battleground_genesis",
       "shortName": "Genesis PvP",
       "description": "Warlord Genesis battlegrounds from in-game PvP UI / RTS modes",
       "entry": "https://warlord-genesis.vercel.app",
-      "rtsModes": ["quick-match", "faction-war", "siege"],
+      "rtsModes": [
+        "quick-match",
+        "faction-war",
+        "siege"
+      ],
       "authCallback": "https://warlord-genesis.vercel.app/auth/callback"
     }
   ],

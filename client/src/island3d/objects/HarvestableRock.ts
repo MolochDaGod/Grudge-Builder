@@ -1,5 +1,6 @@
 /**
- * HarvestableRock — CDN rock pack with procedural fallback.
+ * HarvestableRock — CDN island_rock pack variants.
+ * No dodecahedron flash: hidden until GLB mounts. Poly mesh is last resort only.
  */
 import * as THREE from 'three';
 import { harvestFitHeightM } from '@shared/definitions/homeIslandSpec';
@@ -15,16 +16,17 @@ export interface HarvestableRock {
   respawnAt: number;
   nodeId?: string;
   oreVariant?: boolean;
+  meshReady?: boolean;
 }
 
-const ROCK_GEO = new THREE.DodecahedronGeometry(2, 0);
+const ROCK_GEO = new THREE.SphereGeometry(2, 10, 8);
 const ROCK_MATS = [
-  new THREE.MeshLambertMaterial({ color: 0x808080 }),
-  new THREE.MeshLambertMaterial({ color: 0x707060 }),
-  new THREE.MeshLambertMaterial({ color: 0x606055 }),
+  new THREE.MeshStandardMaterial({ color: 0x808080, roughness: 0.95, metalness: 0.05 }),
+  new THREE.MeshStandardMaterial({ color: 0x707060, roughness: 0.95, metalness: 0.05 }),
+  new THREE.MeshStandardMaterial({ color: 0x606055, roughness: 0.95, metalness: 0.05 }),
 ];
 
-function addProceduralRockMesh(group: THREE.Group): void {
+function addLastResortRockMesh(group: THREE.Group): void {
   const mat = ROCK_MATS[Math.floor(Math.random() * ROCK_MATS.length)];
   const rock = new THREE.Mesh(ROCK_GEO, mat);
   rock.position.y = 1.2;
@@ -48,10 +50,9 @@ export function createHarvestableRock(
   scale: number = 1,
 ): HarvestableRock {
   const group = new THREE.Group();
-  addProceduralRockMesh(group);
-
+  group.visible = false;
   group.position.copy(position);
-  group.scale.setScalar(scale);
+  group.scale.setScalar(1);
 
   const rock: HarvestableRock = {
     group,
@@ -62,6 +63,7 @@ export function createHarvestableRock(
     chipTime: 0,
     respawnAt: 0,
     oreVariant: false,
+    meshReady: false,
   };
 
   void mountHarvestableRockModel(rock, scale);
@@ -78,7 +80,14 @@ export async function mountHarvestableRockModel(
     fitModelToHeight(model, harvestFitHeightM(rock.oreVariant ? 'ore' : 'rock', scale));
     model.rotation.y = Math.random() * Math.PI * 2;
     rock.group.add(model);
+    rock.meshReady = true;
+    rock.group.visible = true;
   } catch (err) {
-    console.warn('[HarvestableRock] GLB unavailable, keeping procedural mesh', err);
+    console.warn('[HarvestableRock] GLB unavailable — last-resort mesh only', err);
+    rock.group.clear();
+    addLastResortRockMesh(rock.group);
+    rock.group.scale.setScalar(scale);
+    rock.meshReady = true;
+    rock.group.visible = true;
   }
 }

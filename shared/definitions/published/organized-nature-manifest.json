@@ -1,0 +1,269 @@
+{
+  "version": "1.0.0",
+  "generated": "2026-07-09T07:44:15.584Z",
+  "policy": "Extracted from environment multi-mesh packs — not Quaternius megakit. Megakit remains banned.",
+  "sourcePacks": {
+    "trees": "/models/environment/island_tree.glb",
+    "rocks": "/models/environment/island_rock.glb"
+  },
+  "organized": {
+    "trees": [
+      {
+        "name": "ancient_tree_2_0",
+        "sourceName": "ancient_tree_2_0",
+        "path": "/models/nature/organized/trees/ancient_tree_2_0.glb",
+        "bytes": 2426160
+      },
+      {
+        "name": "banana2_3",
+        "sourceName": "banana2_3",
+        "path": "/models/nature/organized/trees/banana2_3.glb",
+        "bytes": 2434280
+      },
+      {
+        "name": "birch2_4",
+        "sourceName": "birch2_4",
+        "path": "/models/nature/organized/trees/birch2_4.glb",
+        "bytes": 2434016
+      },
+      {
+        "name": "birch6_5",
+        "sourceName": "birch6_5",
+        "path": "/models/nature/organized/trees/birch6_5.glb",
+        "bytes": 2434036
+      },
+      {
+        "name": "coconut2_9",
+        "sourceName": "coconut2_9",
+        "path": "/models/nature/organized/trees/coconut2_9.glb",
+        "bytes": 2434064
+      },
+      {
+        "name": "creepy_tree1_10",
+        "sourceName": "creepy_tree1_10",
+        "path": "/models/nature/organized/trees/creepy_tree1_10.glb",
+        "bytes": 2434052
+      },
+      {
+        "name": "garden_tree_pink_11",
+        "sourceName": "garden_tree_pink_11",
+        "path": "/models/nature/organized/trees/garden_tree_pink_11.glb",
+        "bytes": 2426172
+      },
+      {
+        "name": "palm2_13",
+        "sourceName": "palm2_13",
+        "path": "/models/nature/organized/trees/palm2_13.glb",
+        "bytes": 2434044
+      },
+      {
+        "name": "pine2_14",
+        "sourceName": "pine2_14",
+        "path": "/models/nature/organized/trees/pine2_14.glb",
+        "bytes": 2434032
+      },
+      {
+        "name": "pine9_15",
+        "sourceName": "pine9_15",
+        "path": "/models/nature/organized/trees/pine9_15.glb",
+        "bytes": 2434052
+      }
+    ],
+    "rocks": [
+      {
+        "name": "rock_5",
+        "sourceName": "rock_5",
+        "path": "/models/nature/organized/rocks/rock_5.glb",
+        "bytes": 3919956
+      },
+      {
+        "name": "rock_1",
+        "sourceName": "rock_1",
+        "path": "/models/nature/organized/rocks/rock_1.glb",
+        "bytes": 4106480
+      },
+      {
+        "name": "rock_2",
+        "sourceName": "rock_2",
+        "path": "/models/nature/organized/rocks/rock_2.glb",
+        "bytes": 3597444
+      },
+      {
+        "name": "rock_3",
+        "sourceName": "rock_3",
+        "path": "/models/nature/organized/rocks/rock_3.glb",
+        "bytes": 3975140
+      },
+      {
+        "name": "rock_4",
+        "sourceName": "rock_4",
+        "path": "/models/nature/organized/rocks/rock_4.glb",
+        "bytes": 3966036
+      },
+      {
+        "name": "rock_6",
+        "sourceName": "rock_6",
+        "path": "/models/nature/organized/rocks/rock_6.glb",
+        "bytes": 3917352
+      },
+      {
+        "name": "rock_7",
+        "sourceName": "rock_7",
+        "path": "/models/nature/organized/rocks/rock_7.glb",
+        "bytes": 3817672
+      },
+      {
+        "name": "rock_8",
+        "sourceName": "rock_8",
+        "path": "/models/nature/organized/rocks/rock_8.glb",
+        "bytes": 3890064
+      }
+    ]
+  },
+  "realistic": [
+    {
+      "id": "oak_b",
+      "category": "tree_deciduous",
+      "path": "/models/nature/realistic/trees/deciduous/oak_b.glb",
+      "bytes": 2426160,
+      "source": "ancient_tree_2_0",
+      "runtimeReady": true
+    },
+    {
+      "id": "birch_a",
+      "category": "tree_deciduous",
+      "path": "/models/nature/realistic/trees/deciduous/birch_a.glb",
+      "bytes": 2434016,
+      "source": "birch2_4",
+      "runtimeReady": true
+    },
+    {
+      "id": "oak_a",
+      "category": "tree_deciduous",
+      "path": "/models/nature/realistic/trees/deciduous/oak_a.glb",
+      "bytes": 2434036,
+      "source": "birch6_5",
+      "runtimeReady": true
+    },
+    {
+      "id": "palm_b",
+      "category": "tree_palm",
+      "path": "/models/nature/realistic/trees/palm/palm_b.glb",
+      "bytes": 2434064,
+      "source": "coconut2_9",
+      "runtimeReady": true
+    },
+    {
+      "id": "gnarled_a",
+      "category": "tree_deciduous",
+      "path": "/models/nature/realistic/trees/deciduous/gnarled_a.glb",
+      "bytes": 2434052,
+      "source": "creepy_tree1_10",
+      "runtimeReady": true
+    },
+    {
+      "id": "flowering_a",
+      "category": "tree_deciduous",
+      "path": "/models/nature/realistic/trees/deciduous/flowering_a.glb",
+      "bytes": 2426172,
+      "source": "garden_tree_pink_11",
+      "runtimeReady": true
+    },
+    {
+      "id": "palm_a",
+      "category": "tree_palm",
+      "path": "/models/nature/realistic/trees/palm/palm_a.glb",
+      "bytes": 2434044,
+      "source": "palm2_13",
+      "runtimeReady": true
+    },
+    {
+      "id": "pine_a",
+      "category": "tree_pine",
+      "path": "/models/nature/realistic/trees/pine/pine_a.glb",
+      "bytes": 2434032,
+      "source": "pine2_14",
+      "runtimeReady": true
+    },
+    {
+      "id": "pine_b",
+      "category": "tree_pine",
+      "path": "/models/nature/realistic/trees/pine/pine_b.glb",
+      "bytes": 2434052,
+      "source": "pine9_15",
+      "runtimeReady": true
+    },
+    {
+      "id": "snow_pine_a",
+      "category": "tree_snow",
+      "path": "/models/nature/realistic/trees/snow/snow_pine_a.glb",
+      "bytes": 2434032,
+      "source": "pine2_14",
+      "runtimeReady": true
+    },
+    {
+      "id": "boulder_d",
+      "category": "rock",
+      "path": "/models/nature/realistic/rocks/boulder_d.glb",
+      "bytes": 3919956,
+      "source": "rock_5",
+      "runtimeReady": true
+    },
+    {
+      "id": "boulder_a",
+      "category": "rock",
+      "path": "/models/nature/realistic/rocks/boulder_a.glb",
+      "bytes": 4106480,
+      "source": "rock_1",
+      "runtimeReady": true
+    },
+    {
+      "id": "boulder_b",
+      "category": "rock",
+      "path": "/models/nature/realistic/rocks/boulder_b.glb",
+      "bytes": 3597444,
+      "source": "rock_2",
+      "runtimeReady": true
+    },
+    {
+      "id": "cliff_chunk_a",
+      "category": "rock",
+      "path": "/models/nature/realistic/rocks/cliff_chunk_a.glb",
+      "bytes": 3975140,
+      "source": "rock_3",
+      "runtimeReady": true
+    },
+    {
+      "id": "boulder_c",
+      "category": "rock",
+      "path": "/models/nature/realistic/rocks/boulder_c.glb",
+      "bytes": 3966036,
+      "source": "rock_4",
+      "runtimeReady": true
+    },
+    {
+      "id": "boulder_e",
+      "category": "rock",
+      "path": "/models/nature/realistic/rocks/boulder_e.glb",
+      "bytes": 3917352,
+      "source": "rock_6",
+      "runtimeReady": true
+    },
+    {
+      "id": "cliff_chunk_b",
+      "category": "rock",
+      "path": "/models/nature/realistic/rocks/cliff_chunk_b.glb",
+      "bytes": 3817672,
+      "source": "rock_7",
+      "runtimeReady": true
+    },
+    {
+      "id": "boulder_f",
+      "category": "rock",
+      "path": "/models/nature/realistic/rocks/boulder_f.glb",
+      "bytes": 3890064,
+      "source": "rock_8",
+      "runtimeReady": true
+    }
+  ]
+}

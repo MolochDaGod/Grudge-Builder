@@ -1,29 +1,102 @@
 {
-  "version": "1.1.0",
-  "generated": "2026-07-01T23:30:00.000Z",
-  "description": "Home island seed + physical scale contract (Warlords 3D ↔ RTS export ↔ Railway SSOT)",
+  "version": "1.3.0",
+  "generated": "2026-07-09T06:00:00.000Z",
+  "description": "Home island seed + scale contract — Driftwood Bay & Ironfang Spire size foundations, organized realistic nature, Railway SSOT, R2 glTF, 2m character",
   "authority": {
     "seedContract": "GrudgeBuilder/shared/definitions/homeIslandSeed.ts",
     "specCatalog": "GrudgeBuilder/shared/definitions/homeIslandSpec.ts",
+    "foundations": "GrudgeBuilder/shared/definitions/homeIslandFoundations.ts",
+    "natureAssets": "GrudgeBuilder/shared/definitions/natureAssetCatalog.ts",
     "liveSpecApi": "GET /api/island/spec",
     "rtsBridge": "GrudgeBuilder/shared/definitions/rtsTerrainBridge.ts",
-    "database": "home_islands (Postgres on Railway)",
+    "database": "home_islands (Postgres on Railway) — NOT Cloudflare D1",
     "stateApi": "PATCH /api/island/state",
-    "exportApi": "POST /api/island/export-from-rts"
+    "exportApi": "POST /api/island/export-from-rts",
+    "studioEditor": "https://grudge-studio-editor.vercel.app/editor?mode=home-island",
+    "studioEditorAlias": "https://studio.grudge-studio.com/editor",
+    "clientBridge": "GrudgeBuilder/client/src/lib/studioEditorBridge.ts",
+    "binaryAssets": "assets.grudge-studio.com R2 (grudge-assets)",
+    "objectStoreCatalog": "info.grudge-studio.com/api/v1/home-island-contract.json"
   },
   "scale": {
     "warlords3dWorldSizeM": 1024,
     "rtsWorldSizeM": 200,
     "rtsHeightmapResolution": 128,
     "mountainTriadIslandFraction": 0.1,
+    "mountainPeakHeightM": 20,
     "dungeonEntranceHeightM": 4,
     "colyseusRoomSizeM": 1024,
     "logicalMapPercent": 100,
     "harvestZoneCount": 19,
-    "campPlateauRadiusM": 88
+    "campPlateauRadiusM": 88,
+    "characterReferenceHeightM": 2
   },
-  "zoneTypes": ["mountain", "forest", "field", "shore", "water", "clearing"],
-  "regrowAnchors": ["forest_grove", "quarry", "beach_shells"],
+  "sizeFoundations": {
+    "rule": "Driftwood Bay + Ironfang Spire are the only size foundations for player home islands. Both use worldSizeM=1024 and characterHeightM=2.",
+    "driftwood_bay": {
+      "id": "driftwood_bay",
+      "label": "Driftwood Bay",
+      "summary": "Coastal foundation: broad shore, bay indent, moderate elevation",
+      "worldSizeM": 1024,
+      "rtsCoreSizeM": 200,
+      "characterHeightM": 2,
+      "landmassFill": 0.58,
+      "maxElevationM": 48,
+      "minElevationM": -28,
+      "beachBandDepthM": 28,
+      "mountainFootprintFraction": 0.08,
+      "mountainPeakHeightM": 20,
+      "preferredBiomes": ["beach", "tropical", "plains", "storm"]
+    },
+    "ironfang_spire": {
+      "id": "ironfang_spire",
+      "label": "Ironfang Spire",
+      "summary": "Highland foundation: steeper relief, tighter beach, dominant spire",
+      "worldSizeM": 1024,
+      "rtsCoreSizeM": 200,
+      "characterHeightM": 2,
+      "landmassFill": 0.72,
+      "maxElevationM": 80,
+      "minElevationM": -30,
+      "beachBandDepthM": 14,
+      "mountainFootprintFraction": 0.12,
+      "mountainPeakHeightM": 20,
+      "preferredBiomes": ["forest", "winter", "frozen", "volcanic", "abyssal", "nexus"]
+    }
+  },
+  "natureAssets": {
+    "policy": "No low-poly / polygon megakit (CommonTree, TwistedTree, DeadTree, Rock_Medium, Pine_*, nature-megakit). Organized R2 under /models/nature/realistic/*.",
+    "banned": [
+      "CommonTree",
+      "TwistedTree",
+      "DeadTree",
+      "Rock_Medium",
+      "Pine_1..5 megakit",
+      "Bush_Common",
+      "nature-megakit",
+      "/models/lowpoly/"
+    ],
+    "storage": {
+      "realisticTrees": "/models/nature/realistic/trees/{pine,deciduous,palm,snow}/",
+      "realisticRocks": "/models/nature/realistic/rocks/",
+      "realisticGroundcover": "/models/nature/realistic/groundcover/",
+      "interimHarvestPacks": "/models/environment/island_tree.glb, island_rock.glb, gem_cluster.glb"
+    },
+    "interimNote": "Until realistic GLBs are uploaded, harvest + scatter use environment multi-mesh packs only — never Quaternius megakit scatter props."
+  },
+  "zoneTypes": [
+    "mountain",
+    "forest",
+    "field",
+    "shore",
+    "water",
+    "clearing"
+  ],
+  "regrowAnchors": [
+    "forest_grove",
+    "quarry",
+    "beach_shells"
+  ],
   "mountainTriad": {
     "modelUid": "c41cba36d5dd48b1a07241c353689709",
     "cdnModelPath": "/models/evil_rock_mountains_triad.glb",
@@ -53,9 +126,25 @@
     "stats"
   ],
   "notes": {
-    "natureScatter": "rtsNatureScatter generated on export-from-rts; Warlords 3D renders CDN /models/nature/*.glb",
+    "natureScatter": "rtsNatureScatter v2 — organized assets only; isBannedNaturePath gate in client scatter",
     "puterKv": "grudge:island:{id}:state is cache; Railway home_islands.state is SSOT",
     "textures": "PBR ground textures on CDN assets.grudge-studio.com/textures/pbr/ground/",
-    "specVersion": "2.0.0 — see GET /api/island/spec on Railway game-data API"
-  }
+    "specVersion": "2.2.0 — see GET /api/island/spec on Railway game-data API",
+    "d1": "Cloudflare D1 is ObjectStore meta/assets registry — island seeds live in Railway home_islands",
+    "studioEditor": "Primary design surface for high-quality biome placement; seed remains deterministic for runtime",
+    "ai": "CreatureBrain wildlife, AllyController navmesh, OrcBossAI for PvE bosses",
+    "foundations": "Coastal biomes resolve to Driftwood Bay; highland/cold/dark to Ironfang Spire"
+  },
+  "characterScale": {
+    "referenceHeightM": 2,
+    "rule": "All props/animals/GLBs fit relative to CHARACTER_REFERENCE_HEIGHT_M",
+    "source": "shared/definitions/homeIslandSpec.ts"
+  },
+  "pipeline": [
+    "studio-editor mode=home-island",
+    "mapStudioProjectToHomeIslandState",
+    "PATCH /api/island/state Railway",
+    "Island3DEngine home play + mountain triad portal",
+    "CreatureBrain + TerrainNavMesh AI"
+  ]
 }

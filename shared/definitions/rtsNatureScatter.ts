@@ -1,7 +1,9 @@
 /**
  * RTS NatureScatter ↔ Warlords 3D foliage bridge.
- * Deterministic scatter from RTS island seed + heightmap (200m world).
- * Mirrors RTS-Grudge NatureScatter.tsx placement rules.
+ * Deterministic scatter from RTS island seed + heightmap.
+ *
+ * Low-poly megakit (CommonTree, TwistedTree, DeadTree, Rock_Medium, Pine_*,
+ * Bush_Common, etc.) is BANNED. Paths come from natureAssetCatalog only.
  */
 
 import {
@@ -9,8 +11,19 @@ import {
   type RtsHeightmapPayload,
 } from "./rtsTerrainBridge";
 import { HOME_ISLAND_RTS_SIZE_M } from "./homeIslandSeed";
+import {
+  ORGANIZED_NATURE_SCATTER_PATHS,
+  isBannedNaturePath,
+  filterApprovedNaturePaths,
+  natureScatterNeedsRegenerate,
+  filterNatureScatterInstances,
+} from "./natureAssetCatalog";
+import {
+  resolveHomeIslandFoundation,
+  type HomeIslandFoundation,
+} from "./homeIslandFoundations";
 
-export const RTS_NATURE_SCATTER_VERSION = "1.1.0";
+export const RTS_NATURE_SCATTER_VERSION = "2.0.0";
 
 /** Hash island seed string → deterministic numeric seed for scatter RNG */
 export function islandSeedToNumber(seed: string): number {
@@ -25,8 +38,6 @@ export function islandSeedToNumber(seed: string): number {
 export type RtsScatterCategory =
   | "tree"
   | "pine"
-  | "deadTree"
-  | "twisted"
   | "rock"
   | "bush"
   | "grass"
@@ -50,83 +61,32 @@ export interface RtsNatureScatterPayload {
   worldSizeM: number;
   biome: string;
   seed: number;
+  foundationId?: string;
   generatedAt: number;
   instances: RtsScatterInstance[];
+  policy: "no_lowpoly_megakit";
 }
 
-/** CDN-relative paths — same set as RTS-Grudge NatureScatter NATURE_ASSETS */
+/**
+ * CDN-relative paths — organized realistic/interim only.
+ * deadTree / twisted categories removed (banned low-poly look).
+ */
 export const NATURE_MODEL_PATHS: Record<RtsScatterCategory, string[]> = {
-  tree: [
-    "/models/nature/CommonTree_1.glb",
-    "/models/nature/CommonTree_2.glb",
-    "/models/nature/CommonTree_3.glb",
-    "/models/nature/CommonTree_4.glb",
-    "/models/nature/CommonTree_5.glb",
-  ],
-  pine: [
-    "/models/nature/Pine_1.glb",
-    "/models/nature/Pine_2.glb",
-    "/models/nature/Pine_3.glb",
-    "/models/nature/Pine_4.glb",
-    "/models/nature/Pine_5.glb",
-  ],
-  deadTree: [
-    "/models/nature/DeadTree_1.glb",
-    "/models/nature/DeadTree_2.glb",
-    "/models/nature/DeadTree_3.glb",
-    "/models/nature/DeadTree_4.glb",
-    "/models/nature/DeadTree_5.glb",
-  ],
-  twisted: [
-    "/models/nature/TwistedTree_1.glb",
-    "/models/nature/TwistedTree_2.glb",
-    "/models/nature/TwistedTree_3.glb",
-    "/models/nature/TwistedTree_4.glb",
-    "/models/nature/TwistedTree_5.glb",
-  ],
-  rock: [
-    "/models/nature/Rock_Medium_1.glb",
-    "/models/nature/Rock_Medium_2.glb",
-    "/models/nature/Rock_Medium_3.glb",
-  ],
-  bush: [
-    "/models/nature/Bush_Common.glb",
-    "/models/nature/Bush_Common_Flowers.glb",
-  ],
-  grass: [
-    "/models/nature/Grass_Common_Short.glb",
-    "/models/nature/Grass_Common_Tall.glb",
-    "/models/nature/Grass_Wispy_Short.glb",
-    "/models/nature/Grass_Wispy_Tall.glb",
-  ],
-  mushroom: [
-    "/models/nature/Mushroom_Common.glb",
-    "/models/nature/Mushroom_Laetiporus.glb",
-  ],
-  flower: [
-    "/models/nature/Flower_3_Group.glb",
-    "/models/nature/Flower_4_Group.glb",
-  ],
-  fern: ["/models/nature/Fern_1.glb"],
-  plant: [
-    "/models/nature/Plant_1.glb",
-    "/models/nature/Plant_7.glb",
-    "/models/nature/Plant_1_Big.glb",
-    "/models/nature/Plant_7_Big.glb",
-  ],
+  tree: filterApprovedNaturePaths(ORGANIZED_NATURE_SCATTER_PATHS.tree ?? []),
+  pine: filterApprovedNaturePaths(ORGANIZED_NATURE_SCATTER_PATHS.pine ?? []),
+  rock: filterApprovedNaturePaths(ORGANIZED_NATURE_SCATTER_PATHS.rock ?? []),
+  bush: filterApprovedNaturePaths(ORGANIZED_NATURE_SCATTER_PATHS.bush ?? []),
+  grass: filterApprovedNaturePaths(ORGANIZED_NATURE_SCATTER_PATHS.grass ?? []),
+  mushroom: filterApprovedNaturePaths(ORGANIZED_NATURE_SCATTER_PATHS.mushroom ?? []),
+  flower: filterApprovedNaturePaths(ORGANIZED_NATURE_SCATTER_PATHS.flower ?? []),
+  fern: filterApprovedNaturePaths(ORGANIZED_NATURE_SCATTER_PATHS.fern ?? []),
+  plant: filterApprovedNaturePaths(ORGANIZED_NATURE_SCATTER_PATHS.plant ?? []),
 };
 
-/** Extra megakit props (paths, pebbles, clover) — scattered lightly */
-export const NATURE_MEGAKIT_EXTRA_PATHS = [
-  "/models/nature/Clover_1.glb",
-  "/models/nature/Clover_2.glb",
-  "/models/nature/Pebble_Round_1.glb",
-  "/models/nature/Pebble_Round_2.glb",
-  "/models/nature/RockPath_Round_Small_1.glb",
-  "/models/nature/RockPath_Square_Small_1.glb",
-] as const;
+/** No megakit extras (Clover/Pebble/RockPath were low-poly). */
+export const NATURE_MEGAKIT_EXTRA_PATHS: readonly string[] = [];
 
-const SCATTER_RULES: Array<{
+const BASE_SCATTER_RULES: Array<{
   category: RtsScatterCategory;
   count: number;
   seedOffset: number;
@@ -136,18 +96,30 @@ const SCATTER_RULES: Array<{
   maxScale: number;
   avoidCenter?: number;
 }> = [
-  { category: "tree", count: 18, seedOffset: 100, minRadius: 20, maxRadius: 90, minScale: 1.5, maxScale: 3.0 },
-  { category: "pine", count: 22, seedOffset: 200, minRadius: 25, maxRadius: 90, minScale: 1.2, maxScale: 2.5 },
-  { category: "deadTree", count: 10, seedOffset: 300, minRadius: 30, maxRadius: 85, minScale: 1.0, maxScale: 2.0 },
-  { category: "twisted", count: 10, seedOffset: 350, minRadius: 35, maxRadius: 80, minScale: 1.5, maxScale: 2.5 },
-  { category: "rock", count: 14, seedOffset: 400, minRadius: 15, maxRadius: 85, minScale: 0.8, maxScale: 2.0 },
-  { category: "bush", count: 16, seedOffset: 500, minRadius: 12, maxRadius: 80, minScale: 0.8, maxScale: 1.5 },
-  { category: "grass", count: 20, seedOffset: 600, minRadius: 8, maxRadius: 70, minScale: 0.6, maxScale: 1.2, avoidCenter: 8 },
-  { category: "mushroom", count: 12, seedOffset: 700, minRadius: 15, maxRadius: 60, minScale: 0.5, maxScale: 1.0 },
-  { category: "flower", count: 14, seedOffset: 800, minRadius: 10, maxRadius: 70, minScale: 0.6, maxScale: 1.0, avoidCenter: 8 },
-  { category: "fern", count: 12, seedOffset: 900, minRadius: 12, maxRadius: 65, minScale: 0.7, maxScale: 1.3 },
-  { category: "plant", count: 12, seedOffset: 1000, minRadius: 10, maxRadius: 75, minScale: 0.5, maxScale: 1.2 },
+  { category: "tree", count: 16, seedOffset: 100, minRadius: 20, maxRadius: 90, minScale: 1.5, maxScale: 3.0 },
+  { category: "pine", count: 14, seedOffset: 200, minRadius: 25, maxRadius: 90, minScale: 1.2, maxScale: 2.5 },
+  { category: "rock", count: 12, seedOffset: 400, minRadius: 15, maxRadius: 85, minScale: 0.8, maxScale: 2.0 },
+  // Groundcover counts stay 0 until realistic GLBs exist (empty paths also skip)
+  { category: "bush", count: 0, seedOffset: 500, minRadius: 12, maxRadius: 80, minScale: 0.8, maxScale: 1.5 },
+  { category: "grass", count: 0, seedOffset: 600, minRadius: 8, maxRadius: 70, minScale: 0.6, maxScale: 1.2, avoidCenter: 8 },
+  { category: "mushroom", count: 0, seedOffset: 700, minRadius: 15, maxRadius: 60, minScale: 0.5, maxScale: 1.0 },
+  { category: "flower", count: 0, seedOffset: 800, minRadius: 10, maxRadius: 70, minScale: 0.6, maxScale: 1.0, avoidCenter: 8 },
+  { category: "fern", count: 0, seedOffset: 900, minRadius: 12, maxRadius: 65, minScale: 0.7, maxScale: 1.3 },
+  { category: "plant", count: 0, seedOffset: 1000, minRadius: 10, maxRadius: 75, minScale: 0.5, maxScale: 1.2 },
 ];
+
+function rulesForFoundation(foundation: HomeIslandFoundation) {
+  return BASE_SCATTER_RULES.map((rule) => {
+    let mult = 1;
+    if (rule.category === "tree" || rule.category === "pine") mult = foundation.natureDensity.trees;
+    else if (rule.category === "rock") mult = foundation.natureDensity.rocks;
+    else mult = foundation.natureDensity.groundcover;
+    return {
+      ...rule,
+      count: Math.round(rule.count * mult),
+    };
+  });
+}
 
 function seededRandom(seed: number): () => number {
   let s = seed;
@@ -184,13 +156,15 @@ function sampleHeightBilinear(
 }
 
 function generateCategoryInstances(
-  rule: (typeof SCATTER_RULES)[number],
+  rule: (typeof BASE_SCATTER_RULES)[number],
   islandSeed: number,
   sampleHeight: (wx: number, wz: number) => number,
   radiusScale = 1,
 ): RtsScatterInstance[] {
+  const paths = NATURE_MODEL_PATHS[rule.category].filter((p) => !isBannedNaturePath(p));
+  if (paths.length === 0 || rule.count <= 0) return [];
+
   const rng = seededRandom(islandSeed + rule.seedOffset);
-  const paths = NATURE_MODEL_PATHS[rule.category];
   const avoid = (rule.avoidCenter ?? 15) * radiusScale;
   const out: RtsScatterInstance[] = [];
   let attempts = 0;
@@ -209,6 +183,7 @@ function generateCategoryInstances(
     const scale = rule.minScale + rng() * (rule.maxScale - rule.minScale);
     const rotation = rng() * Math.PI * 2;
     const modelPath = paths[out.length % paths.length];
+    if (isBannedNaturePath(modelPath)) continue;
 
     out.push({ category: rule.category, modelPath, x, y, z, rotation, scale });
   }
@@ -219,59 +194,93 @@ function generateCategoryInstances(
 /**
  * Build compact foliage payload for Railway + Warlords 3D.
  * Requires RTS heightmap for Y placement; falls back to flat y=0 filter.
+ * Never emits low-poly megakit paths.
  */
-function generateMegakitExtras(
-  islandSeed: number,
-  sampleHeight: (wx: number, wz: number) => number,
-  radiusScale: number,
-): RtsScatterInstance[] {
-  const rng = seededRandom(islandSeed + 1100);
-  const out: RtsScatterInstance[] = [];
-  for (let i = 0; i < 16; i++) {
-    const angle = rng() * Math.PI * 2;
-    const radius = (18 + rng() * 72) * radiusScale;
-    const x = Math.cos(angle) * radius;
-    const z = Math.sin(angle) * radius;
-    const y = sampleHeight(x, z);
-    if (y < -1 || y > 12) continue;
-    out.push({
-      category: "plant",
-      modelPath: NATURE_MEGAKIT_EXTRA_PATHS[i % NATURE_MEGAKIT_EXTRA_PATHS.length],
-      x, y, z,
-      rotation: rng() * Math.PI * 2,
-      scale: 0.4 + rng() * 0.8,
-    });
-  }
-  return out;
-}
-
 export function generateRtsNatureScatter(
   islandSeed: number,
   biome: string,
   heightmap?: RtsHeightmapPayload,
   targetWorldSizeM?: number,
+  seedString?: string,
 ): RtsNatureScatterPayload {
   const worldSizeM = targetWorldSizeM ?? heightmap?.worldSizeM ?? HOME_ISLAND_RTS_SIZE_M;
   const heights = heightmap ? decodeRtsHeightmap(heightmap) : null;
   const radiusScale = worldSizeM / HOME_ISLAND_RTS_SIZE_M;
+  const resolvedBiome = normalizeScatterBiome(biome);
+  const foundation = resolveHomeIslandFoundation(
+    seedString ?? String(islandSeed),
+    resolvedBiome,
+  );
+  const rules = rulesForFoundation(foundation);
 
   const sampleHeight = (wx: number, wz: number): number => {
     if (!heights || !heightmap) return 2;
-    return sampleHeightBilinear(heights, heightmap.resolution, heightmap.worldSizeM ?? HOME_ISLAND_RTS_SIZE_M, wx, wz);
+    return sampleHeightBilinear(
+      heights,
+      heightmap.resolution,
+      heightmap.worldSizeM ?? HOME_ISLAND_RTS_SIZE_M,
+      wx,
+      wz,
+    );
   };
 
   const instances: RtsScatterInstance[] = [];
-  for (const rule of SCATTER_RULES) {
+  for (const rule of rules) {
     instances.push(...generateCategoryInstances(rule, islandSeed, sampleHeight, radiusScale));
   }
-  instances.push(...generateMegakitExtras(islandSeed, sampleHeight, radiusScale));
 
   return {
     version: RTS_NATURE_SCATTER_VERSION,
     worldSizeM,
-    biome,
+    biome: resolvedBiome,
     seed: islandSeed,
+    foundationId: foundation.id,
     generatedAt: Date.now(),
     instances,
+    policy: "no_lowpoly_megakit",
   };
+}
+
+/** Map loose biome labels (incl. legacy "temperate") to foundation-aware keys. */
+export function normalizeScatterBiome(biome: string | undefined | null): string {
+  const b = (biome ?? "").toLowerCase().trim();
+  if (!b || b === "temperate" || b === "default" || b === "none") return "forest";
+  return b;
+}
+
+/**
+ * Prefer stored scatter only when free of banned megakit paths.
+ * Otherwise regenerate so Island3D never drops into poly procedural forest.
+ */
+export function resolveNatureScatterPayload(opts: {
+  stored?: RtsNatureScatterPayload | null;
+  islandSeed: number;
+  biome?: string | null;
+  heightmap?: RtsHeightmapPayload;
+  worldSizeM?: number;
+  seedString?: string;
+}): RtsNatureScatterPayload {
+  const biome = normalizeScatterBiome(opts.biome);
+  const stored = opts.stored;
+  if (stored?.instances?.length) {
+    if (!natureScatterNeedsRegenerate(stored.instances)) {
+      const clean = filterNatureScatterInstances(stored.instances);
+      if (clean.length > 0) {
+        return {
+          ...stored,
+          version: RTS_NATURE_SCATTER_VERSION,
+          instances: clean,
+          policy: "no_lowpoly_megakit",
+          biome: stored.biome || biome,
+        };
+      }
+    }
+  }
+  return generateRtsNatureScatter(
+    opts.islandSeed,
+    biome,
+    opts.heightmap,
+    opts.worldSizeM,
+    opts.seedString,
+  );
 }

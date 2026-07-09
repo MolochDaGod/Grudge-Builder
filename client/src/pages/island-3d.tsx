@@ -1,6 +1,8 @@
 /**
- * Island 3D Page — defaults to the Studio Map Editor (HDR terrain, creatures, play mode).
- * Legacy Island3DEngine remains available via ?engine=legacy, ?mode=zone, or ?mode=lobby.
+ * Island 3D Page — defaults to Warlords Island3DEngine (1024m home island, 2m character,
+ * organized CDN nature). Studio Map Editor is opt-in via ?engine=studio.
+ *
+ * Modes: procedural (default) | home-island | zone | lobby | studio embed
  */
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useLocation } from 'wouter';
@@ -24,14 +26,14 @@ import {
   buildStudioEditorHomeIslandUrl,
 } from '@/lib/studioEditorBridge';
 import { STUDIO_EDITOR_URL } from '@/lib/grudgeConfig';
+import type { MountainTriadSeed } from '@shared/definitions/homeIslandSeed';
+import type { RtsHeightmapPayload } from '@shared/definitions/rtsTerrainBridge';
+import type { RtsNatureScatterPayload } from '@shared/definitions/rtsNatureScatter';
 
-function useLegacyEngine(): boolean {
+/** Studio embed only when explicitly requested (design surface, not play default). */
+function useStudioEmbed(): boolean {
   const params = new URLSearchParams(window.location.search);
-  return (
-    params.get('engine') === 'legacy'
-    || params.get('mode') === 'zone'
-    || params.get('mode') === 'lobby'
-  );
+  return params.get('engine') === 'studio' || params.get('editor') === '1';
 }
 
 /** Fullscreen Studio Editor embed — stays on client.grudge-studio.com/island-3d */
@@ -96,10 +98,10 @@ function Island3DStudioEmbed() {
         </a>
         <button
           type="button"
-          onClick={() => navigate('/island-3d?engine=legacy')}
+          onClick={() => navigate('/island-3d')}
           className="text-slate-500 text-xs underline"
         >
-          Use legacy 3D engine instead
+          Open play island engine instead
         </button>
       </div>
     );
@@ -135,7 +137,7 @@ function Island3DStudioEmbed() {
         </a>
         <button
           type="button"
-          onClick={() => navigate('/island-3d?engine=legacy')}
+          onClick={() => navigate('/island-3d')}
           className="text-gray-500 hover:text-gray-300"
         >
           Legacy engine
@@ -152,16 +154,16 @@ function Island3DStudioEmbed() {
 }
 
 export default function Island3DPage() {
-  if (!useLegacyEngine()) {
+  if (useStudioEmbed()) {
     return <Island3DStudioEmbed />;
   }
 
-  return <Island3DLegacyPage />;
+  return <Island3DPlayPage />;
 }
 
-function Island3DLegacyPage() {
+function Island3DPlayPage() {
   const params = new URLSearchParams(window.location.search);
-  const isHomeIslandMode = params.get('mode') === 'home-island';
+  const isHomeIslandMode = params.get('mode') === 'home-island' || params.get('home') === '1';
   const islandIdParam = params.get('islandId') || '';
   const characterIdParam = params.get('characterId') || '';
 
@@ -169,9 +171,11 @@ function Island3DLegacyPage() {
     return params.get('seed') || 'grudge-island-' + Date.now().toString(36);
   });
   const [inputSeed, setInputSeed] = useState(seed);
-  const [mode, setMode] = useState<Island3DMode>(
-    isHomeIslandMode ? 'procedural' : (params.get('mode') as Island3DMode) || 'procedural',
-  );
+  const [mode, setMode] = useState<Island3DMode>(() => {
+    const m = params.get('mode');
+    if (m === 'zone' || m === 'lobby') return m;
+    return 'procedural'; // home-island + default play = 1024m Island3DEngine
+  });
   const [lobbyMapId, setLobbyMapId] = useState(
     params.get('map') || 'pirate-islands',
   );
@@ -219,8 +223,8 @@ function Island3DLegacyPage() {
     clearTopDownCache();
   }, []);
 
+  // Always try to load committed home island so seed/nature/mountain match Railway SSOT
   useEffect(() => {
-    if (!isHomeIslandMode) return;
     const load = async () => {
       setHomeIslandLoading(true);
       try {
@@ -232,8 +236,10 @@ function Island3DLegacyPage() {
           const data = await res.json();
           const normalized = normalizeHomeIslandResponse(data);
           setHomeIsland(normalized);
-          // Use island seed as the procedural seed so terrain matches
-          setSeed(normalized.seed || data.seed || 'home-' + (islandIdParam || Date.now().toString(36)));
+          const nextSeed =
+            normalized.seed || data.seed || params.get('seed') || 'home-' + (islandIdParam || Date.now().toString(36));
+          setSeed(nextSeed);
+          setInputSeed(nextSeed);
         }
       } catch (e) {
         console.error('[Island3D] Failed to load home island:', e);
@@ -363,12 +369,12 @@ function Island3DLegacyPage() {
         <h1 className="text-emerald-400 font-bold text-sm">
           {isHomeIslandMode
             ? `🏝 Home Island${homeIsland?.name ? ': ' + homeIsland.name : ''}`
-            : '3D Island Explorer (Legacy)'}
+            : '3D Home Island (1024 m · 2 m character)'}
         </h1>
         <a
-          href="/island-3d"
+          href="/island-3d?engine=studio"
           className="text-xs text-emerald-500/80 hover:text-emerald-400 underline"
-          title="Switch to Studio Editor"
+          title="Open Studio Map Editor (design surface)"
         >
           Studio Editor
         </a>
@@ -485,7 +491,7 @@ function Island3DLegacyPage() {
           lobbyIslandId={mode === 'lobby' ? lobbyIslandId : undefined}
           sectorId={mode === 'zone' ? sectorId : undefined}
           worldSeed={worldSeed}
-          quality="medium"
+          quality="high"
           dayNight={{ dayDurationSeconds: 600, startTime: 0.35 }}
           enableCharacter={mode === 'procedural' || mode === 'zone' || isHomeIslandMode || mode === 'lobby'}
           multiplayer={lobbyMultiplayer}
@@ -494,6 +500,16 @@ function Island3DLegacyPage() {
           raceId={heroRace}
           classId={heroClass}
           model3d={heroModel3d}
+          mountainTriad={homeIsland?.state?.mountainTriad as MountainTriadSeed | undefined}
+          rtsHeightmap={homeIsland?.state?.rtsHeightmap as RtsHeightmapPayload | undefined}
+          rtsNatureScatter={homeIsland?.state?.rtsNatureScatter as RtsNatureScatterPayload | undefined}
+          biome={
+            (homeIsland?.state as { biome?: string } | undefined)?.biome
+            ?? homeIsland?.state?.rtsExport?.biome
+            ?? (homeIsland?.state?.rtsNatureScatter as { biome?: string } | undefined)?.biome
+          }
+          campPositionPercent={homeIsland?.state?.campPosition}
+          regrowRegions={homeIsland?.state?.regrowRegions}
           onEngineReady={(eng) => { engineRef.current = eng; setEngine(eng); }}
           onHarvest={mode === 'zone' && zoneMultiplayer ? handleZoneHarvest : undefined}
         />

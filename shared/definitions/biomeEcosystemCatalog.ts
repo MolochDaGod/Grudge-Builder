@@ -5,7 +5,9 @@
  *  - Mountains: 20 m tall, ONE of the three evil-mountain peaks (seed picks 0|1|2)
  *  - Animals: exactly 5 land types per biome
  *  - Fish: 10 species available from water harvest nodes
- *  - Trees: snow pines (snow), palms/beach (beach/tropical), pines + stylized only otherwise
+ *  - Trees: snow pines (snow), palms/beach (beach/tropical), pines + deciduous otherwise
+ *  - NO low-poly megakit (CommonTree/Twisted/Rock_Medium/Pine_* banned)
+ *  - Size foundations: Driftwood Bay (coast) + Ironfang Spire (highland)
  *  - Harvest regen: 4 hours (generative seed deployment)
  *  - Character reference: 2.0 m
  */
@@ -14,8 +16,20 @@ import {
   MOUNTAIN_TRIAD_PEAK_MODEL_PATHS,
   SKETCHFAB_EVIL_MOUNTAIN_TRIAD,
 } from './homeIslandSeed';
+import {
+  harvestRockPack,
+  harvestTreePack,
+  NATURE_STORAGE,
+  treePathsForClass,
+  rockPaths,
+} from './natureAssetCatalog';
+import {
+  DRIFTWOOD_BAY,
+  IRONFANG_SPIRE,
+  resolveHomeIslandFoundation,
+} from './homeIslandFoundations';
 
-export const ECOSYSTEM_CATALOG_VERSION = '1.0.0';
+export const ECOSYSTEM_CATALOG_VERSION = '1.1.0';
 
 /** Full harvest cycle until mature again (seed designs). */
 export const HARVEST_REGEN_MS = 4 * 60 * 60 * 1000; // 4 hours
@@ -56,8 +70,8 @@ export interface EcosystemStorage {
 
 export const ECOSYSTEM_STORAGE: EcosystemStorage = {
   cdnBase: 'https://assets.grudge-studio.com',
-  nature: '/models/nature',
-  environment: '/models/environment',
+  nature: NATURE_STORAGE.realisticRoot,
+  environment: NATURE_STORAGE.environmentPacks,
   mountains: '/models',
   texturesPbr: '/textures/pbr/ground',
   seedDatabase: 'Railway Postgres home_islands.state',
@@ -65,42 +79,19 @@ export const ECOSYSTEM_STORAGE: EcosystemStorage = {
   biomesCatalog: 'https://info.grudge-studio.com/api/v1/biome-ecosystems.json',
 };
 
-/** CDN GLB paths for tree classes (pines + stylized only; snow = snow-tinted pines). */
+/**
+ * CDN GLB paths for tree classes.
+ * Low-poly megakit (CommonTree / Twisted / Pine_*) removed.
+ * Paths come from natureAssetCatalog (realistic first, interim pack fallback).
+ */
 export const TREE_STORAGE: Record<TreeClass, string[]> = {
-  pine: [
-    '/models/nature/Pine_1.glb',
-    '/models/nature/Pine_2.glb',
-    '/models/nature/Pine_3.glb',
-    '/models/nature/Pine_4.glb',
-    '/models/nature/Pine_5.glb',
-  ],
-  stylized: [
-    '/models/nature/CommonTree_1.glb',
-    '/models/nature/CommonTree_2.glb',
-    '/models/nature/CommonTree_3.glb',
-    '/models/nature/CommonTree_4.glb',
-    '/models/nature/CommonTree_5.glb',
-    '/models/nature/TwistedTree_1.glb',
-    '/models/nature/TwistedTree_2.glb',
-    '/models/nature/TwistedTree_3.glb',
-    '/models/environment/island_tree.glb',
-  ],
-  /** Beach / tropical — palm variants from island_tree pack + stylized palms */
-  palm: [
-    '/models/environment/island_tree.glb', // variant palm2_13
-    '/models/nature/CommonTree_1.glb',
-  ],
-  /** Snow biomes — pine set rendered with snow canopy tint (no separate snow GLB on CDN yet) */
-  snow_pine: [
-    '/models/nature/Pine_1.glb',
-    '/models/nature/Pine_2.glb',
-    '/models/nature/Pine_3.glb',
-    '/models/nature/Pine_4.glb',
-    '/models/nature/Pine_5.glb',
-  ],
+  pine: treePathsForClass('pine', { allowInterim: true }),
+  stylized: treePathsForClass('stylized', { allowInterim: true }),
+  palm: treePathsForClass('palm', { allowInterim: true }),
+  snow_pine: treePathsForClass('snow_pine', { allowInterim: true }),
 };
 
-/** Island_tree mesh variant names for IslandResourceLoader */
+/** Island_tree mesh variant names for IslandResourceLoader (interim pack) */
 export const TREE_VARIANTS_BY_CLASS: Record<TreeClass, string[]> = {
   pine: ['pine2_14', 'pine9_15'],
   stylized: ['birch2_4', 'birch6_5', 'ancient_tree_2_0', 'garden_tree_pink_11', 'creepy_tree1_10'],
@@ -108,16 +99,17 @@ export const TREE_VARIANTS_BY_CLASS: Record<TreeClass, string[]> = {
   snow_pine: ['pine2_14', 'pine9_15'],
 };
 
+const _rockPack = harvestRockPack();
+const _treePack = harvestTreePack();
+
 export const ROCK_STORAGE = {
-  pack: '/models/environment/island_rock.glb',
-  variants: ['rock_1', 'rock_2', 'rock_3', 'rock_4', 'rock_5', 'rock_6', 'rock_7', 'rock_8'],
-  natureMedium: [
-    '/models/nature/Rock_Medium_1.glb',
-    '/models/nature/Rock_Medium_2.glb',
-    '/models/nature/Rock_Medium_3.glb',
-  ],
+  pack: _rockPack.path,
+  variants: [..._rockPack.variants],
+  /** Megakit Rock_Medium_* banned — use pack or realistic/rocks only */
+  natureMedium: rockPaths({ allowInterim: true }),
   ore: '/models/environment/harvest_gold_rocks.glb',
   crystal: '/models/environment/gem_cluster.glb',
+  realisticRoot: NATURE_STORAGE.rocks,
 } as const;
 
 /** 10 fish species available from water nodes (seed generative pool). */
@@ -477,15 +469,36 @@ export function exportBiomeEcosystemDoc() {
     animalsPerBiome: 5,
     fishPoolSize: FISH_NODE_SPECIES.length,
     fishNodeSpecies: [...FISH_NODE_SPECIES],
-    treePolicy: 'snow_pine on snow; palm+stylized on beach/tropical; pines+stylized only elsewhere',
+    treePolicy:
+      'No low-poly megakit. snow_pine on snow; palm+deciduous on beach/tropical; ' +
+      'pine+deciduous elsewhere. Organized under /models/nature/realistic/*.',
+    sizeFoundations: {
+      driftwood_bay: {
+        id: DRIFTWOOD_BAY.id,
+        label: DRIFTWOOD_BAY.label,
+        worldSizeM: DRIFTWOOD_BAY.worldSizeM,
+        preferredBiomes: DRIFTWOOD_BAY.preferredBiomes,
+      },
+      ironfang_spire: {
+        id: IRONFANG_SPIRE.id,
+        label: IRONFANG_SPIRE.label,
+        worldSizeM: IRONFANG_SPIRE.worldSizeM,
+        preferredBiomes: IRONFANG_SPIRE.preferredBiomes,
+      },
+      resolve: 'Coastal biomes → Driftwood Bay; highland/cold/dark → Ironfang Spire',
+    },
     storage: ECOSYSTEM_STORAGE,
     rocks: ROCK_STORAGE,
     trees: TREE_STORAGE,
+    harvestTreePack: _treePack,
     mountains: {
       heightM: MOUNTAIN_PEAK_HEIGHT_M,
       peaks: [...MOUNTAIN_TRIAD_PEAK_MODEL_PATHS],
       rule: 'Seed selects exactly one peak of three; scale to 20m height',
     },
-    biomes: Object.values(BIOME_ECOSYSTEMS),
+    biomes: Object.values(BIOME_ECOSYSTEMS).map((b) => ({
+      ...b,
+      foundationId: resolveHomeIslandFoundation(b.id, b.id).id,
+    })),
   };
 }

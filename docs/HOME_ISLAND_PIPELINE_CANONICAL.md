@@ -76,6 +76,8 @@ Editor modes:
 | Rocks | 1.8–3.8 m |
 | Hare / fox / deer / boar | 0.38 / 0.55 / 1.35 / 0.95 m height |
 | Island world | **1024 m** diameter |
+| Size foundations | **Driftwood Bay** (coast) + **Ironfang Spire** (highland) — both 1024 m |
+| Nature assets | Organized `/models/nature/realistic/*` only — **no low-poly megakit** |
 | RTS core | 200 m (upsampled into 1024 m) |
 | Mountain triad footprint | 10% of island ≈ **102.4 m** |
 | Dungeon mouth | **4 m** high |

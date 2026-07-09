@@ -351,44 +351,48 @@ export const BUILD_ASSETS: Record<string, BuildAssetDef> = {
   // NATURE / LANDSCAPING
   // ═══════════════════════════════════════════════════════════════════════════
 
+  // Nature props — low-poly megakit banned; interim environment packs only
   placed_tree: {
-    id: 'placed_tree', name: 'Oak Tree', category: 'nature',
-    placement: 'prop', modelPath: `${CDN}/models/nature/CommonTree_1.glb`,
+    id: 'placed_tree', name: 'Island Tree', category: 'nature',
+    placement: 'prop', modelPath: `${CDN}/models/environment/island_tree.glb`,
     color: 0x2D7A2D, size: [3, 8, 3], scale: 1.0,
     rotatable: false, requiresFloor: false, terrainPlaceable: true,
     cost: [{ itemId: 'sapling', quantity: 1 }],
   },
   placed_pine: {
-    id: 'placed_pine', name: 'Pine Tree', category: 'nature',
-    placement: 'prop', modelPath: `${CDN}/models/nature/Pine_1.glb`,
+    id: 'placed_pine', name: 'Forest Tree', category: 'nature',
+    placement: 'prop', modelPath: `${CDN}/models/environment/island_tree.glb`,
     color: 0x1B5E20, size: [2.5, 10, 2.5], scale: 1.0,
     rotatable: false, requiresFloor: false, terrainPlaceable: true,
     cost: [{ itemId: 'sapling', quantity: 1 }],
   },
   placed_bush: {
     id: 'placed_bush', name: 'Wild Bush', category: 'nature',
-    placement: 'prop', modelPath: `${CDN}/models/nature/Bush_Common.glb`,
-    color: 0x3D8B37, size: [2, 1.5, 2], scale: 1.0,
+    // No approved bush GLB yet — use gem pack as decorative placeholder removed;
+    // reuses rock pack scale for landscaping until realistic groundcover lands
+    placement: 'prop', modelPath: `${CDN}/models/environment/island_rock.glb`,
+    color: 0x3D8B37, size: [1.2, 0.8, 1.2], scale: 0.45,
     rotatable: true, requiresFloor: false, terrainPlaceable: true,
     cost: [{ itemId: 'herb', quantity: 2 }],
   },
   placed_rock: {
     id: 'placed_rock', name: 'Boulder', category: 'nature',
-    placement: 'prop', modelPath: `${CDN}/models/nature/Rock_Medium_1.glb`,
+    placement: 'prop', modelPath: `${CDN}/models/environment/island_rock.glb`,
     color: 0x666666, size: [2.5, 2, 2.5], scale: 1.0,
     rotatable: true, requiresFloor: false, terrainPlaceable: true,
     cost: [{ itemId: 'stone', quantity: 3 }],
   },
   placed_fern: {
     id: 'placed_fern', name: 'Fern', category: 'nature',
-    placement: 'prop', modelPath: `${CDN}/models/nature/Fern_1.glb`,
-    color: 0x4CAF50, size: [1, 1, 1], scale: 1.0,
+    // Megakit Fern_1 banned — interim harvest stump until realistic groundcover
+    placement: 'prop', modelPath: `${CDN}/models/environment/harvest_stump.glb`,
+    color: 0x4CAF50, size: [1, 1, 1], scale: 0.7,
     rotatable: true, requiresFloor: false, terrainPlaceable: true,
     cost: [{ itemId: 'herb', quantity: 1 }],
   },
   log_stump: {
     id: 'log_stump', name: 'Log Stump', category: 'nature',
-    placement: 'prop', modelPath: `${CDN}/models/nature/DeadTree_1.glb`,
+    placement: 'prop', modelPath: `${CDN}/models/environment/harvest_stump.glb`,
     color: 0x5A3E1B, size: [1, 0.5, 1], scale: 0.6,
     rotatable: false, requiresFloor: false, terrainPlaceable: true,
     cost: [{ itemId: 'wood', quantity: 1 }],

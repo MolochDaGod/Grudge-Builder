@@ -1,5 +1,7 @@
 /**
- * HarvestableTree — GLB village tree with procedural fallback.
+ * HarvestableTree — CDN island_tree pack variants.
+ * No icosahedron/cylinder flash: group stays invisible until GLB mounts.
+ * Procedural poly mesh is last-resort only if pack load fails after preload.
  */
 import * as THREE from 'three';
 import { harvestFitHeightM } from '@shared/definitions/homeIslandSpec';
@@ -26,18 +28,20 @@ export interface HarvestableTree {
   growthStartedAt?: number;
   growthDurationMs?: number;
   harvestKind?: 'tree';
+  /** True once CDN (or last-resort) mesh is present */
+  meshReady?: boolean;
 }
 
-const TRUNK_GEO = new THREE.CylinderGeometry(0.4, 0.6, 6, 6);
-const CANOPY_GEO = new THREE.IcosahedronGeometry(3, 1);
-const TRUNK_MAT = new THREE.MeshLambertMaterial({ color: 0x8B5A2B });
+const TRUNK_GEO = new THREE.CylinderGeometry(0.4, 0.6, 6, 8);
+const CANOPY_GEO = new THREE.SphereGeometry(3, 10, 8);
+const TRUNK_MAT = new THREE.MeshStandardMaterial({ color: 0x6b4423, roughness: 0.9, metalness: 0 });
 const CANOPY_MATS = [
-  new THREE.MeshLambertMaterial({ color: 0x2d7a2d }),
-  new THREE.MeshLambertMaterial({ color: 0x1e6b1e }),
-  new THREE.MeshLambertMaterial({ color: 0x3a8c3a }),
+  new THREE.MeshStandardMaterial({ color: 0x2d7a2d, roughness: 0.85, metalness: 0 }),
+  new THREE.MeshStandardMaterial({ color: 0x1e6b1e, roughness: 0.85, metalness: 0 }),
+  new THREE.MeshStandardMaterial({ color: 0x3a8c3a, roughness: 0.85, metalness: 0 }),
 ];
 
-function addProceduralTreeMesh(group: THREE.Group): void {
+function addLastResortTreeMesh(group: THREE.Group): void {
   const trunk = new THREE.Mesh(TRUNK_GEO, TRUNK_MAT);
   trunk.position.y = 3;
   trunk.castShadow = true;
@@ -58,10 +62,10 @@ export function createHarvestableTree(
   scale: number = 1,
 ): HarvestableTree {
   const group = new THREE.Group();
-  addProceduralTreeMesh(group);
-
+  // Hide until GLB mounts — avoids low-poly icosahedron flash
+  group.visible = false;
   group.position.copy(position);
-  group.scale.setScalar(scale);
+  group.scale.setScalar(1);
   group.rotation.y = Math.random() * Math.PI * 2;
 
   const tree: HarvestableTree = {
@@ -76,13 +80,14 @@ export function createHarvestableTree(
     fallAxis: 1,
     baseScale: scale,
     respawnAt: 0,
+    meshReady: false,
   };
 
   void mountHarvestableTreeModel(tree, scale);
   return tree;
 }
 
-/** Replace procedural placeholder with CDN tree GLB when available. */
+/** Mount CDN tree pack variant; last-resort soft mesh only if pack fails. */
 export async function mountHarvestableTreeModel(
   tree: HarvestableTree,
   scale: number = 1,
@@ -92,7 +97,14 @@ export async function mountHarvestableTreeModel(
     tree.group.clear();
     fitModelToHeight(model, harvestFitHeightM('tree', scale));
     tree.group.add(model);
+    tree.meshReady = true;
+    tree.group.visible = true;
   } catch (err) {
-    console.warn('[HarvestableTree] GLB unavailable, keeping procedural mesh', err);
+    console.warn('[HarvestableTree] GLB unavailable — last-resort mesh only', err);
+    tree.group.clear();
+    addLastResortTreeMesh(tree.group);
+    tree.group.scale.setScalar(scale);
+    tree.meshReady = true;
+    tree.group.visible = true;
   }
 }

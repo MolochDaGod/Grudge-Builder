@@ -1,5 +1,5 @@
 {
-  "version": "1.0.0",
+  "version": "1.1.0",
   "updated": "2026-07-09",
   "characterReferenceHeightM": 2,
   "mountainPeakHeightM": 20,
@@ -9,8 +9,8 @@
   "storage": {
     "seeds": "Railway Postgres home_islands (NOT D1)",
     "gltf": "R2 grudge-assets → assets.grudge-studio.com",
-    "nature": "/models/nature/Pine_*.glb, CommonTree_*.glb, TwistedTree_*.glb",
-    "environment": "/models/environment/island_tree.glb, island_rock.glb, gem_cluster.glb",
+    "nature": "/models/nature/realistic/trees|rocks|groundcover (CommonTree/Twisted/Pine_* BANNED)",
+    "environment": "/models/environment/island_tree.glb, island_rock.glb, gem_cluster.glb (interim only)",
     "mountains": "/models/evil_rock_mountain_peak_0|1|2.glb",
     "textures": "/textures/pbr/ground/ground_1..10",
     "reviewGlbs": "/models/biomes/review/{biome}.glb",
@@ -24,6 +24,7 @@
     {
       "id": "beach",
       "label": "Beach",
+      "foundationId": "driftwood_bay",
       "animals": [
         "deer",
         "rabbit",
@@ -42,6 +43,7 @@
     {
       "id": "tropical",
       "label": "Tropical",
+      "foundationId": "driftwood_bay",
       "animals": [
         "deer",
         "boar",
@@ -60,6 +62,7 @@
     {
       "id": "forest",
       "label": "Forest",
+      "foundationId": "ironfang_spire",
       "animals": [
         "deer",
         "boar",
@@ -78,6 +81,7 @@
     {
       "id": "plains",
       "label": "Plains",
+      "foundationId": "driftwood_bay",
       "animals": [
         "buffalo",
         "deer",
@@ -96,6 +100,7 @@
     {
       "id": "winter",
       "label": "Winter Snow",
+      "foundationId": "ironfang_spire",
       "animals": [
         "wolf",
         "deer",
@@ -114,6 +119,7 @@
     {
       "id": "frozen",
       "label": "Frozen",
+      "foundationId": "ironfang_spire",
       "animals": [
         "wolf",
         "bear",
@@ -132,6 +138,7 @@
     {
       "id": "desert",
       "label": "Desert",
+      "foundationId": "driftwood_bay",
       "animals": [
         "rabbit",
         "boar",
@@ -150,6 +157,7 @@
     {
       "id": "volcanic",
       "label": "Volcanic",
+      "foundationId": "ironfang_spire",
       "animals": [
         "boar",
         "wolf",
@@ -168,6 +176,7 @@
     {
       "id": "storm",
       "label": "Storm Reef",
+      "foundationId": "driftwood_bay",
       "animals": [
         "boar",
         "wolf",
@@ -186,6 +195,7 @@
     {
       "id": "ethereal",
       "label": "Ethereal",
+      "foundationId": "ironfang_spire",
       "animals": [
         "deer",
         "rabbit",
@@ -204,6 +214,7 @@
     {
       "id": "abyssal",
       "label": "Abyssal",
+      "foundationId": "ironfang_spire",
       "animals": [
         "wolf",
         "bear",
@@ -222,6 +233,7 @@
     {
       "id": "nexus",
       "label": "Nexus",
+      "foundationId": "ironfang_spire",
       "animals": [
         "deer",
         "boar",
@@ -238,29 +250,37 @@
       "reviewCdn": "https://assets.grudge-studio.com/models/biomes/review/nexus.glb"
     }
   ],
-  "rules": {
-    "mountainPeakHeightM": 20,
-    "mountainSource": "one of three evil_rock_mountain_peak_{0,1,2}.glb selected by seed",
-    "animalsPerBiome": 5,
-    "fishFromWaterNodes": 10,
-    "harvestRegenHours": 4,
-    "trees": {
-      "snow": [
-        "snow_pine"
-      ],
-      "beach": [
-        "palm",
-        "stylized"
-      ],
-      "tropical": [
-        "palm",
-        "stylized"
-      ],
-      "default": [
-        "pine",
-        "stylized"
+  "sizeFoundations": {
+    "driftwood_bay": {
+      "worldSizeM": 1024,
+      "preferredBiomes": [
+        "beach",
+        "tropical",
+        "plains",
+        "storm"
       ]
     },
-    "characterHeightM": 2
-  }
+    "ironfang_spire": {
+      "worldSizeM": 1024,
+      "preferredBiomes": [
+        "forest",
+        "winter",
+        "frozen",
+        "volcanic",
+        "abyssal",
+        "nexus"
+      ]
+    }
+  },
+  "treePolicy": "No low-poly megakit. Organized under /models/nature/realistic/*; interim island_tree pack until HQ lands.",
+  "bannedNature": [
+    "CommonTree_*",
+    "TwistedTree_*",
+    "DeadTree_*",
+    "Rock_Medium_*",
+    "Pine_1..5 megakit",
+    "Bush_Common",
+    "nature-megakit",
+    "/models/lowpoly/"
+  ]
 }

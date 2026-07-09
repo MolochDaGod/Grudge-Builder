@@ -227,42 +227,10 @@ export async function buildHarvestZones(
     const outline = createZoneOutline(zone);
     scene.add(outline);
 
-    let forest: InstancedForestZone | null = null;
-    const wantsForest = zone.type === 'forest' || zone.type === 'mixed';
-
-    if (wantsForest && zone.forestTreeCount > 0) {
-      forest = new InstancedForestZone();
-      const groundY = sampleHeight
-        ? (sampleHeight(zone.center.x, zone.center.z) ?? zone.center.y)
-        : zone.center.y;
-
-      const result = forest.generate(zone.seed, zone.center.x, zone.center.z, groundY, {
-        treeCount: zone.forestTreeCount,
-        forestRadius: zone.radius * 0.88,
-        clearRadius: zone.clearRadius,
-      });
-
-      scene.add(forest.group);
-      forests.push(forest);
-
-      // Ensure harvest trees align with forest scatter when zone is pure forest
-      if (zone.type === 'forest' && zone.nodes.every((n) => n.type === 'tree')) {
-        for (let i = 0; i < Math.min(zone.nodes.length, result.treePositions.length); i++) {
-          zone.nodes[i].offsetX = result.treePositions[i].x - zone.center.x;
-          zone.nodes[i].offsetZ = result.treePositions[i].z - zone.center.z;
-        }
-      }
-    }
-
-    // Keep harvest trees VISIBLE even when forestoutline instancing is present.
-    // Instanced forest = ambient density; interactive nodes = harvestable + regenerating.
-    // (Previously hideTreeMesh hid all harvest trees under forests — unharvestable visuals.)
+    // Ambient InstancedForestZone (cylinder/leaf billboard poly canopy) disabled —
+    // user ban on low-poly nature. Density comes from CDN harvest trees + RTS scatter.
+    const forest: InstancedForestZone | null = null;
     const hideTreeMesh = false;
-
-    // Slightly reduce ambient forest when harvest trees also render (avoid double density)
-    if (forest && zone.type === 'forest') {
-      // forest already generated; harvest trees sit on same slots for chopping
-    }
 
     for (let slotIndex = 0; slotIndex < zone.nodes.length; slotIndex++) {
       const slot = zone.nodes[slotIndex];

@@ -521,9 +521,10 @@ export function generateIslandState(
     regrowRegions,
     rtsNatureScatter: generateRtsNatureScatter(
       islandSeedToNumber(seed),
-      'temperate',
+      'forest', // default highland foundation; biome override when known
       undefined,
       HOME_ISLAND_WORLD_SIZE_M,
+      seed,
     ),
     stats: {
       nodeCount: nodes.length,
@@ -588,7 +589,13 @@ export function mergeRtsExportIntoIslandState(
       radius: Math.min(z.bounds.width, z.bounds.height) / 2,
     }));
 
-  const rtsNatureScatter = generateRtsNatureScatter(rts.seed, rts.biome, rts.heightmap);
+  const rtsNatureScatter = generateRtsNatureScatter(
+    rts.seed,
+    rts.biome,
+    rts.heightmap,
+    undefined,
+    mergedSeed,
+  );
 
   return {
     ...base,

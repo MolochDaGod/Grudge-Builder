@@ -1,13 +1,19 @@
 /**
  * IslandResourceLoader — cached CDN GLBs for harvestable trees, rocks, gems, and harvest FX.
+ * Low-poly megakit (CommonTree / Rock_Medium / Pine_*) is banned — environment packs only
+ * until realistic assets land under /models/nature/realistic/.
  */
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { assetUrl } from '@/lib/assetConfig';
+import { harvestRockPack, harvestTreePack } from '@shared/definitions/natureAssetCatalog';
+
+const treePack = harvestTreePack();
+const rockPack = harvestRockPack();
 
 export const ISLAND_RESOURCE_MODELS = {
-  tree: '/models/environment/island_tree.glb',
-  rock: '/models/environment/island_rock.glb',
+  tree: treePack.path,
+  rock: rockPack.path,
   gem: '/models/environment/gem_cluster.glb',
   log: '/models/environment/harvest_logs.glb',
   debris: '/models/environment/harvest_rock_debris.glb',
@@ -51,13 +57,15 @@ export async function preloadIslandResources(): Promise<void> {
   );
 }
 
-const TREE_VARIANT_NAMES = [
-  'pine2_14', 'pine9_15', 'birch2_4', 'birch6_5', 'ancient_tree_2_0',
-  'garden_tree_pink_11', 'creepy_tree1_10', 'palm2_13',
-];
-const ROCK_VARIANT_NAMES = [
-  'rock_1', 'rock_2', 'rock_3', 'rock_4', 'rock_5', 'rock_6', 'rock_7', 'rock_8',
-];
+const TREE_VARIANT_NAMES = treePack.variants.length
+  ? treePack.variants
+  : [
+      'pine2_14', 'pine9_15', 'birch2_4', 'birch6_5', 'ancient_tree_2_0',
+      'garden_tree_pink_11', 'creepy_tree1_10', 'palm2_13',
+    ];
+const ROCK_VARIANT_NAMES = rockPack.variants.length
+  ? rockPack.variants
+  : ['rock_1', 'rock_2', 'rock_3', 'rock_4', 'rock_5', 'rock_6', 'rock_7', 'rock_8'];
 const GEM_VARIANT_NAMES = ['Sphere', 'Sphere.001', 'Sphere.002'];
 const LOG_VARIANT_NAMES = ['Log', 'log', 'Logs', 'Cube', 'Mesh'];
 const DEBRIS_VARIANT_NAMES = ['Rock', 'rock', 'Rocks', 'Cube', 'Mesh'];
