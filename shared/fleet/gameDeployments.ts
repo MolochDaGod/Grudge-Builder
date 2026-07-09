@@ -13,7 +13,7 @@ export const FLEET_GAME_ORIGINS = {
   dcq: "https://dcq.grudge-studio.com",
   survival: "https://survival.grudge-studio.com",
   arena: "https://grudge-arena.grudge-studio.com",
-  drive: "https://grudge-drive.vercel.app",
+  drive: "https://drive.grudge-studio.com",
 } as const;
 
 export type FleetGameId = keyof typeof FLEET_GAME_ORIGINS;
