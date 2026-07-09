@@ -18,7 +18,26 @@ import {
   HOME_ISLAND_NODE_TARGET,
 } from './homeIslandQuality';
 
-export const HOME_ISLAND_SPEC_VERSION = '2.0.0';
+export const HOME_ISLAND_SPEC_VERSION = '2.1.0';
+
+// ── Character reference (ALL world props scale relative to this) ─────────────
+
+/**
+ * Canonical player height in world meters. Race GLB scale=1.0 ≈ this height.
+ * Trees ~5.5–9.5m, rocks ~1.8–3.8m, animals use ISLAND_ANIMALS heightM.
+ * Studio editor + Island3DEngine + nature scatter must honor this.
+ */
+export const CHARACTER_REFERENCE_HEIGHT_M = 2.0;
+
+/** Race model `scale` multipliers stay relative to CHARACTER_REFERENCE_HEIGHT_M. */
+export const RACE_HEIGHT_MULT = {
+  human: 1.0,
+  elf: 1.0,
+  undead: 1.0,
+  dwarf: 0.85,
+  barbarian: 1.1,
+  orc: 1.15,
+} as const;
 
 // ── World scale ─────────────────────────────────────────────────────────────
 
@@ -29,12 +48,36 @@ export const ISLAND_SCALE = {
   worldSizeM: HOME_ISLAND_WORLD_SIZE_M,
   /** RTS procedural core upsampled into terrain center */
   rtsCoreSizeM: HOME_ISLAND_RTS_SIZE_M,
+  /** Player / NPC character height reference */
+  characterHeightM: CHARACTER_REFERENCE_HEIGHT_M,
   /** meters per 1% on 2D map */
   metersPerPercent: HOME_ISLAND_WORLD_SIZE_M / 100,
   /** 2D map pixels are NOT 1:1 meters — use this for world↔percent */
   percentToMeters: (pct: number) => (pct / 100) * HOME_ISLAND_WORLD_SIZE_M,
   metersToPercent: (m: number) => (m / HOME_ISLAND_WORLD_SIZE_M) * 100,
 } as const;
+
+/**
+ * Convert a desired real-world height (meters) into a GLB root scale factor
+ * given the mesh's current axis-aligned height in model units.
+ */
+export function scaleFactorForTargetHeightM(
+  meshHeightModelUnits: number,
+  targetHeightM: number,
+): number {
+  if (meshHeightModelUnits <= 1e-6) return 1;
+  return targetHeightM / meshHeightModelUnits;
+}
+
+/** Wildlife GLB scale helper — target animal height relative to 2m character. */
+export function wildlifeScaleForHeightM(
+  defScale: number,
+  targetHeightM: number,
+  meshHeightModelUnits = CHARACTER_REFERENCE_HEIGHT_M,
+): number {
+  const fit = scaleFactorForTargetHeightM(meshHeightModelUnits, targetHeightM);
+  return defScale * fit;
+}
 
 // ── Heightmap / terrain system ──────────────────────────────────────────────
 

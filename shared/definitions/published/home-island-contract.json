@@ -1,0 +1,61 @@
+{
+  "version": "1.1.0",
+  "generated": "2026-07-01T23:30:00.000Z",
+  "description": "Home island seed + physical scale contract (Warlords 3D ↔ RTS export ↔ Railway SSOT)",
+  "authority": {
+    "seedContract": "GrudgeBuilder/shared/definitions/homeIslandSeed.ts",
+    "specCatalog": "GrudgeBuilder/shared/definitions/homeIslandSpec.ts",
+    "liveSpecApi": "GET /api/island/spec",
+    "rtsBridge": "GrudgeBuilder/shared/definitions/rtsTerrainBridge.ts",
+    "database": "home_islands (Postgres on Railway)",
+    "stateApi": "PATCH /api/island/state",
+    "exportApi": "POST /api/island/export-from-rts"
+  },
+  "scale": {
+    "warlords3dWorldSizeM": 1024,
+    "rtsWorldSizeM": 200,
+    "rtsHeightmapResolution": 128,
+    "mountainTriadIslandFraction": 0.1,
+    "dungeonEntranceHeightM": 4,
+    "colyseusRoomSizeM": 1024,
+    "logicalMapPercent": 100,
+    "harvestZoneCount": 19,
+    "campPlateauRadiusM": 88
+  },
+  "zoneTypes": ["mountain", "forest", "field", "shore", "water", "clearing"],
+  "regrowAnchors": ["forest_grove", "quarry", "beach_shells"],
+  "mountainTriad": {
+    "modelUid": "c41cba36d5dd48b1a07241c353689709",
+    "cdnModelPath": "/models/evil_rock_mountains_triad.glb",
+    "peakModelPaths": [
+      "/models/evil_rock_mountain_peak_0.glb",
+      "/models/evil_rock_mountain_peak_1.glb",
+      "/models/evil_rock_mountain_peak_2.glb"
+    ],
+    "peakOffsetsM": [
+      { "x": -55, "z": 0 },
+      { "x": 0, "z": 0 },
+      { "x": 55, "z": 0 }
+    ]
+  },
+  "stateFields": [
+    "seed",
+    "nodes",
+    "animals",
+    "terrainZones",
+    "campPosition",
+    "clearings",
+    "mountainTriad",
+    "rtsHeightmap",
+    "rtsNatureScatter",
+    "rtsExport",
+    "regrowRegions",
+    "stats"
+  ],
+  "notes": {
+    "natureScatter": "rtsNatureScatter generated on export-from-rts; Warlords 3D renders CDN /models/nature/*.glb",
+    "puterKv": "grudge:island:{id}:state is cache; Railway home_islands.state is SSOT",
+    "textures": "PBR ground textures on CDN assets.grudge-studio.com/textures/pbr/ground/",
+    "specVersion": "2.0.0 — see GET /api/island/spec on Railway game-data API"
+  }
+}
