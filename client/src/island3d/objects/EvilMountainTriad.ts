@@ -114,6 +114,10 @@ function resolveTriadSeed(config: EvilMountainTriadConfig, terrainSize: number):
   return config.mountainTriad ?? generateMountainTriadSeed(config.seed, terrainSize);
 }
 
+/**
+ * Fit a single evil-mountain peak so its vertical extent ≈ mountainScaleM (canonical 20 m).
+ * mountainScaleM is peak HEIGHT in meters (not triad footprint).
+ */
 function scalePeakModel(
   root: THREE.Object3D,
   mountainScaleM: number,
@@ -122,15 +126,24 @@ function scalePeakModel(
 ): void {
   const box = new THREE.Box3().setFromObject(root);
   const size = box.getSize(new THREE.Vector3());
-  const triadScale = computeGlbTriadScale(size.y, size.x, mountainScaleM, entranceHeightM);
-  const peakScale = triadScale * 0.38;
+  const meshH = Math.max(size.y, 0.001);
+  // Target peak height (default 20 m from seed contract)
+  const targetH = mountainScaleM > 0 && mountainScaleM < 80
+    ? mountainScaleM
+    : 20;
+  let peakScale = targetH / meshH;
   root.scale.setScalar(peakScale);
   box.setFromObject(root);
   const center = box.getCenter(new THREE.Vector3());
   root.position.sub(center);
+  // Keep cave mouth ~entranceHeightM on secret peak without destroying 20 m height
   if (isSecret) {
-    const mouthBoost = entranceHeightM / Math.max(size.y * peakScale * 0.22, 0.5);
-    root.scale.multiplyScalar(Math.min(Math.max(mouthBoost, 0.9), 1.12));
+    const scaledH = meshH * peakScale;
+    const mouthH = scaledH * 0.22;
+    if (mouthH > 0.1 && mouthH < entranceHeightM * 0.5) {
+      const mouthBoost = Math.min(entranceHeightM / mouthH, 1.08);
+      root.scale.multiplyScalar(mouthBoost);
+    }
   }
 }
 
