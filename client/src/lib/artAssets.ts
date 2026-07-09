@@ -122,7 +122,7 @@ export const GAME_CARD_BACKGROUNDS: Record<string, string> = {
   tactical:     assetUrl('/backgrounds/general.png'),
   ocean:        assetUrl('/backgrounds/general.png'),
   play:         assetUrl('/images/events/faction-war.png'),
-  islands-hub:  assetUrl('/backgrounds/island-map.png'),
+  'islands-hub': assetUrl('/backgrounds/island-map.png'),
   rtsgrudge:    assetUrl('/images/events/faction-war.png'),
   warlords3d:   BACKGROUNDS.darkFantasy3,
   forge:        assetUrl('/images/professions/steampunk_blueprint_background_with_gears.png'),
