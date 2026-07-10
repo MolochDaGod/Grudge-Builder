@@ -807,6 +807,9 @@ function showReturning(label){
  * - grudge_token: short launch JWT (bridge via grudge-bridge / session/exchange)
  * - sso_token: full session JWT when available (direct Bearer store)
  * Session also mirrored in the URL hash (less referrer leakage).
+ *
+ * CRITICAL: /api/auth/me does NOT return a JWT body — always mint via refresh
+ * when handoffing to puter.site / external origins, or satellites get no Bearer.
  */
 function buildHandoffUrl(returnUrl, launchToken, sessionToken, user){
   try {
@@ -834,25 +837,44 @@ function buildHandoffUrl(returnUrl, launchToken, sessionToken, user){
     return returnUrl + sep + q;
   }
 }
+/** Mint a full session JWT from the HttpOnly cookie (me endpoint strips token). */
+async function resolveSessionToken(user){
+  let t = (user && (user.token || user.sessionToken)) || "";
+  if (t && t.length > 20) return t;
+  try {
+    const r = await api("/api/auth/refresh", { method: "POST", body: "{}" });
+    t = r.token || r.sessionToken || "";
+    if (t) return t;
+  } catch (e) {
+    console.warn("[auth] refresh for handoff failed:", e);
+  }
+  return "";
+}
 async function handoff(user){
   const destLabel = resolveAppLabel();
-  const sessionToken = (user && (user.token || user.sessionToken)) || "";
+  const sessionToken = await resolveSessionToken(user);
   if (isPopup && window.opener){
     const audience = openerOrigin || qs.get("audience") || qs.get("origin") || null;
-    const token = await mintLaunchToken(audience || undefined);
-    // Popup gets launch + session so host can choose bridge or direct store
-    postAuthToOpener(audience, token, Object.assign({}, user || {}, { launchToken: token, sessionToken: sessionToken || undefined }));
-    if (sessionToken) {
-      try {
-        window.opener.postMessage({
-          type: "grudge-auth:success",
-          source: "grudge-id",
-          token: token,
-          sessionToken: sessionToken,
-          user: user,
-        }, audience && audience !== "*" ? audience : "*");
-      } catch {}
+    let token = "";
+    try { token = await mintLaunchToken(audience || undefined); } catch (e) {
+      if (!sessionToken) throw e;
     }
+    // Prefer session JWT for opener; launch is secondary
+    postAuthToOpener(audience, sessionToken || token, Object.assign({}, user || {}, {
+      launchToken: token || undefined,
+      sessionToken: sessionToken || undefined,
+      token: sessionToken || token,
+    }));
+    try {
+      window.opener.postMessage({
+        type: "grudge-auth:success",
+        source: "grudge-id",
+        token: sessionToken || token,
+        sessionToken: sessionToken || undefined,
+        launchToken: token || undefined,
+        user: user,
+      }, audience && audience !== "*" ? audience : "*");
+    } catch {}
     renderDone(user, true, destLabel); return;
   }
   if (returnTo){
@@ -865,6 +887,9 @@ async function handoff(user){
         try { launchToken = await mintLaunchToken(origin); } catch (e) {
           // If popup-token fails (session cookie race), fall back to session-only handoff
           if (!sessionToken) throw e;
+        }
+        if (!sessionToken && !launchToken) {
+          throw new Error("Could not create sign-in handoff for " + (destLabel || "app") + ". Try signing in again.");
         }
         dest = buildHandoffUrl(returnTo, launchToken, sessionToken, user);
         await new Promise((r) => setTimeout(r, destLabel ? 650 : 0));
@@ -1157,14 +1182,34 @@ $("pf-skip").addEventListener("click", async () => {
 });
 $("pf-username").addEventListener("keydown", (e) => { if (e.key === "Enter") $("pf-save").click(); });
 
-$("done-continue").addEventListener("click", async () => { try { const me = await api("/api/auth/me"); handoff(normalizeMe(me)); } catch {} });
+$("done-continue").addEventListener("click", async () => {
+  try {
+    const me = await api("/api/auth/me");
+    await handoff(normalizeMe(me));
+  } catch (e) {
+    toast((e && e.message) || "Could not return to app.", "error");
+  }
+});
 $("done-switch").addEventListener("click", async () => {
   await signOutAll();
   show("choose");
   applyContextBanner();
 });
 
-function normalizeMe(me){ return { id: me.id, username: me.username, displayName: me.displayName, grudgeId: me.grudgeId, needsProfile: !!me.needsProfile, isNew: false, role: me.role }; }
+/** Keep JWT fields from login responses; /me has none — handoff uses resolveSessionToken. */
+function normalizeMe(me){
+  return {
+    id: me.id,
+    username: me.username,
+    displayName: me.displayName,
+    grudgeId: me.grudgeId,
+    needsProfile: !!me.needsProfile,
+    isNew: false,
+    role: me.role,
+    token: me.token || me.sessionToken || undefined,
+    sessionToken: me.sessionToken || me.token || undefined,
+  };
+}
 
 async function signOutAll(){
   try { await api("/api/auth/logout", { method:"POST", body:"{}" }); } catch {}
