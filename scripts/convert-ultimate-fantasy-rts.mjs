@@ -109,16 +109,20 @@ function tryConvert(stem, fbxPath) {
     return true;
   }
 
-  const convertPkg = path.join(OBJECT_STORE, "tools", "grudge-convert");
   const height = heightFor(stem);
-  // Try npm run convert from ObjectStore
-  if (fs.existsSync(path.join(OBJECT_STORE, "package.json"))) {
+  // Call grudge-convert binary directly (no shell) so paths with spaces stay intact
+  const convertBin = path.join(
+    OBJECT_STORE,
+    "tools",
+    "grudge-convert",
+    "bin",
+    "grudge-convert.mjs",
+  );
+  if (fs.existsSync(convertBin)) {
     const r = spawnSync(
-      "npm",
+      process.execPath,
       [
-        "run",
-        "convert",
-        "--",
+        convertBin,
         "fbx2gltf",
         fbxPath,
         "-o",
@@ -129,7 +133,18 @@ function tryConvert(stem, fbxPath) {
         "--texture-size",
         "1024",
       ],
-      { cwd: OBJECT_STORE, shell: true, stdio: "inherit", timeout: 180000 },
+      {
+        cwd: OBJECT_STORE,
+        shell: false,
+        stdio: "inherit",
+        env: {
+          ...process.env,
+          BLENDER_PATH:
+            process.env.BLENDER_PATH ||
+            "C:\\Users\\nugye\\tools\\Blender\\blender.exe",
+        },
+        timeout: 180000,
+      },
     );
     if (r.status === 0 && fs.existsSync(outGlb)) {
       console.log(`✓ GLB ${stem}`);
@@ -137,15 +152,41 @@ function tryConvert(stem, fbxPath) {
     }
   }
 
-  // FBX2glTF direct
-  const fbx2 = spawnSync(
+  // FBX2glTF binary (bundled with grudge-convert)
+  const fbx2exe = path.join(
+    OBJECT_STORE,
+    "tools",
+    "grudge-convert",
+    "node_modules",
     "fbx2gltf",
-    ["-i", fbxPath, "-o", outGlb.replace(/\.glb$/, ""), "-b"],
-    { shell: true, encoding: "utf8" },
+    "bin",
+    "Windows_NT",
+    "FBX2glTF.exe",
   );
-  if (fbx2.status === 0 && fs.existsSync(outGlb)) {
-    console.log(`✓ fbx2gltf ${stem}`);
-    return true;
+  if (fs.existsSync(fbx2exe)) {
+    const outBase = outGlb.replace(/\.glb$/i, "");
+    const fbx2 = spawnSync(
+      fbx2exe,
+      ["-i", fbxPath, "-o", outBase, "-b"],
+      { shell: false, encoding: "utf8", timeout: 120000 },
+    );
+    // FBX2glTF may write .glb next to -o base
+    const produced =
+      fs.existsSync(outGlb) ||
+      fs.existsSync(`${outBase}.glb`) ||
+      fs.existsSync(`${outBase}_out.glb`);
+    if (fbx2.status === 0 && produced) {
+      if (!fs.existsSync(outGlb)) {
+        const alt = fs.existsSync(`${outBase}.glb`)
+          ? `${outBase}.glb`
+          : `${outBase}_out.glb`;
+        if (fs.existsSync(alt)) fs.renameSync(alt, outGlb);
+      }
+      if (fs.existsSync(outGlb)) {
+        console.log(`✓ FBX2glTF ${stem}`);
+        return true;
+      }
+    }
   }
 
   console.warn(`⚠ FBX staged only (no convert): ${stem}`);

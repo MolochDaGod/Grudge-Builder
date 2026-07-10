@@ -138,7 +138,7 @@ export function generateHomeIslandMines(
       id: `quarry_${seed.slice(0, 8)}_0`,
       kind: 'stone_quarry',
       variantIndex: 0,
-      modelPath: ufrtsModelPath(UFRTS_STONE_MINE, false), // FBX until GLB convert
+      modelPath: ufrtsModelPath(UFRTS_STONE_MINE, true), // prefer GLB after convert
       x,
       z,
       rotationY: rng() * Math.PI * 2,

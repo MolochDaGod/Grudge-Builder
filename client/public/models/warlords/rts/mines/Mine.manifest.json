@@ -1,0 +1,45 @@
+{
+  "version": 1,
+  "generator": "@grudge-studio/asset-convert@1.0.0",
+  "source": "C:\\Users\\nugye\\Documents\\Ultimate Fantasy RTS - Aug 2022-20260503T235302Z-3-001\\Ultimate Fantasy RTS - Aug 2022\\FBX\\Mine.fbx",
+  "output": "C:\\Users\\nugye\\Documents\\1111111\\GrudgeBuilder\\client\\public\\models\\warlords\\rts\\mines\\Mine.glb",
+  "intermediateBackend": "fbx2gltf",
+  "warnings": [],
+  "stats": {
+    "meshes": 1,
+    "materials": 5,
+    "textures": 0,
+    "animations": 0,
+    "nodes": 1,
+    "skins": 0
+  },
+  "aabb": {
+    "min": [
+      -2.138101816177368,
+      -2.8738207817077637,
+      -0.06236664578318596
+    ],
+    "max": [
+      3.0510365962982178,
+      2.6261792182922363,
+      4.661938190460205
+    ],
+    "size": [
+      5.189138412475586,
+      5.5,
+      4.724304836243391
+    ]
+  },
+  "collider": "C:\\Users\\nugye\\Documents\\1111111\\GrudgeBuilder\\client\\public\\models\\warlords\\rts\\mines\\Mine.collider.json",
+  "producedAt": "2026-07-10T15:47:20.614Z",
+  "production": {
+    "format": "glb",
+    "yHipGround": true,
+    "textures": "webp",
+    "maxTexture": 1024,
+    "meshCompression": "quantize",
+    "bakeMeshes": true,
+    "bakeAnims": true,
+    "bakeColliders": true
+  }
+}

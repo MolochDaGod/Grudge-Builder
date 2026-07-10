@@ -157,9 +157,9 @@ export function ufrtsToBuildPiece(a: UfrtsAssetDef): BuildPieceDef {
     layer: layerFor(a),
     tier: (a.level || 0) as 0 | 1 | 2 | 3,
     category: categoryFor(a),
-    // Prefer FBX path until convert pipeline ships GLB (runtime FBXLoader)
+    // Prefer GLB (after npm run convert:ufrts); PackModelLoader falls back via FBX if needed
     // Full scene mesh — no multipack node extract
-    sourceGlb: a.pathFbx,
+    sourceGlb: a.pathGlb,
     nodeName: 'root', // BuildPieceDef requires string; PackModelLoader treats missing as full clone fallback via BuildingSystem
     scale: 1,
     size: sizeFromHeight(h, a.category === 'rts_wall' ? 0.35 : 0.55),

@@ -1,0 +1,45 @@
+{
+  "version": 1,
+  "generator": "@grudge-studio/asset-convert@1.0.0",
+  "source": "C:\\Users\\nugye\\Documents\\Ultimate Fantasy RTS - Aug 2022-20260503T235302Z-3-001\\Ultimate Fantasy RTS - Aug 2022\\FBX\\Houses_FirstAge_1_Level1.fbx",
+  "output": "C:\\Users\\nugye\\Documents\\1111111\\GrudgeBuilder\\client\\public\\models\\warlords\\rts\\buildings\\Houses_FirstAge_1_Level1.glb",
+  "intermediateBackend": "fbx2gltf",
+  "warnings": [],
+  "stats": {
+    "meshes": 1,
+    "materials": 2,
+    "textures": 0,
+    "animations": 0,
+    "nodes": 1,
+    "skins": 0
+  },
+  "aabb": {
+    "min": [
+      -0.0000434654502896592,
+      -0.00004244834781275131,
+      1.5310126855183626e-7
+    ],
+    "max": [
+      0.0000434654502896592,
+      0.00003368748366483487,
+      0.00007660770643269643
+    ],
+    "size": [
+      0.0000869309005793184,
+      0.00007613583147758618,
+      0.0000764546051641446
+    ]
+  },
+  "collider": "C:\\Users\\nugye\\Documents\\1111111\\GrudgeBuilder\\client\\public\\models\\warlords\\rts\\buildings\\Houses_FirstAge_1_Level1.collider.json",
+  "producedAt": "2026-07-10T15:47:17.192Z",
+  "production": {
+    "format": "glb",
+    "yHipGround": true,
+    "textures": "webp",
+    "maxTexture": 1024,
+    "meshCompression": "quantize",
+    "bakeMeshes": true,
+    "bakeAnims": true,
+    "bakeColliders": true
+  }
+}

@@ -1,0 +1,45 @@
+{
+  "version": 1,
+  "generator": "@grudge-studio/asset-convert@1.0.0",
+  "source": "C:\\Users\\nugye\\Documents\\Ultimate Fantasy RTS - Aug 2022-20260503T235302Z-3-001\\Ultimate Fantasy RTS - Aug 2022\\FBX\\Resource_Rock_1.fbx",
+  "output": "C:\\Users\\nugye\\Documents\\1111111\\GrudgeBuilder\\client\\public\\models\\warlords\\rts\\resources\\Resource_Rock_1.glb",
+  "intermediateBackend": "fbx2gltf",
+  "warnings": [],
+  "stats": {
+    "meshes": 1,
+    "materials": 1,
+    "textures": 0,
+    "animations": 0,
+    "nodes": 1,
+    "skins": 0
+  },
+  "aabb": {
+    "min": [
+      -0.00002616571873659268,
+      -0.00003703683614730835,
+      -0.0000017772988485376118
+    ],
+    "max": [
+      0.00003572129207896069,
+      0.000032738309528212994,
+      0.00005485636938828975
+    ],
+    "size": [
+      0.00006188701081555337,
+      0.00006977514567552134,
+      0.00005663366823682736
+    ]
+  },
+  "collider": "C:\\Users\\nugye\\Documents\\1111111\\GrudgeBuilder\\client\\public\\models\\warlords\\rts\\resources\\Resource_Rock_1.collider.json",
+  "producedAt": "2026-07-10T15:47:33.592Z",
+  "production": {
+    "format": "glb",
+    "yHipGround": true,
+    "textures": "webp",
+    "maxTexture": 1024,
+    "meshCompression": "quantize",
+    "bakeMeshes": true,
+    "bakeAnims": true,
+    "bakeColliders": true
+  }
+}

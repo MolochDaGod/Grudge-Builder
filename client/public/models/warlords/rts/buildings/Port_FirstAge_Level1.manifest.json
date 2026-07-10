@@ -1,0 +1,45 @@
+{
+  "version": 1,
+  "generator": "@grudge-studio/asset-convert@1.0.0",
+  "source": "C:\\Users\\nugye\\Documents\\Ultimate Fantasy RTS - Aug 2022-20260503T235302Z-3-001\\Ultimate Fantasy RTS - Aug 2022\\FBX\\Port_FirstAge_Level1.fbx",
+  "output": "C:\\Users\\nugye\\Documents\\1111111\\GrudgeBuilder\\client\\public\\models\\warlords\\rts\\buildings\\Port_FirstAge_Level1.glb",
+  "intermediateBackend": "fbx2gltf",
+  "warnings": [],
+  "stats": {
+    "meshes": 1,
+    "materials": 4,
+    "textures": 0,
+    "animations": 0,
+    "nodes": 1,
+    "skins": 0
+  },
+  "aabb": {
+    "min": [
+      -0.000013904154002375435,
+      0.0000326646986650303,
+      -0.00004190332765574567
+    ],
+    "max": [
+      0.0001168866001535207,
+      0.00010508722334634513,
+      0.00005521527418750338
+    ],
+    "size": [
+      0.00013079075415589614,
+      0.00007242252468131483,
+      0.00009711860184324905
+    ]
+  },
+  "collider": "C:\\Users\\nugye\\Documents\\1111111\\GrudgeBuilder\\client\\public\\models\\warlords\\rts\\buildings\\Port_FirstAge_Level1.collider.json",
+  "producedAt": "2026-07-10T15:47:29.517Z",
+  "production": {
+    "format": "glb",
+    "yHipGround": true,
+    "textures": "webp",
+    "maxTexture": 1024,
+    "meshCompression": "quantize",
+    "bakeMeshes": true,
+    "bakeAnims": true,
+    "bakeColliders": true
+  }
+}

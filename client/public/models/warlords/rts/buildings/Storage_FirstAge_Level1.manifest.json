@@ -1,0 +1,45 @@
+{
+  "version": 1,
+  "generator": "@grudge-studio/asset-convert@1.0.0",
+  "source": "C:\\Users\\nugye\\Documents\\Ultimate Fantasy RTS - Aug 2022-20260503T235302Z-3-001\\Ultimate Fantasy RTS - Aug 2022\\FBX\\Storage_FirstAge_Level1.fbx",
+  "output": "C:\\Users\\nugye\\Documents\\1111111\\GrudgeBuilder\\client\\public\\models\\warlords\\rts\\buildings\\Storage_FirstAge_Level1.glb",
+  "intermediateBackend": "fbx2gltf",
+  "warnings": [],
+  "stats": {
+    "meshes": 1,
+    "materials": 2,
+    "textures": 0,
+    "animations": 0,
+    "nodes": 1,
+    "skins": 0
+  },
+  "aabb": {
+    "min": [
+      -2.886345386505127,
+      -3.426400899887085,
+      -0.016471361741423607
+    ],
+    "max": [
+      2.886345386505127,
+      2.573599100112915,
+      3.0991415977478027
+    ],
+    "size": [
+      5.772690773010254,
+      6,
+      3.1156129594892263
+    ]
+  },
+  "collider": "C:\\Users\\nugye\\Documents\\1111111\\GrudgeBuilder\\client\\public\\models\\warlords\\rts\\buildings\\Storage_FirstAge_Level1.collider.json",
+  "producedAt": "2026-07-10T15:47:37.707Z",
+  "production": {
+    "format": "glb",
+    "yHipGround": true,
+    "textures": "webp",
+    "maxTexture": 1024,
+    "meshCompression": "quantize",
+    "bakeMeshes": true,
+    "bakeAnims": true,
+    "bakeColliders": true
+  }
+}

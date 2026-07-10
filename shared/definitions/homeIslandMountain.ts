@@ -76,7 +76,7 @@ export function generateHomeIslandMountain(
     id: `mtn_${seed.slice(0, 8)}`,
     assetId: asset.id,
     label: asset.label,
-    modelPath: ufrtsModelPath(asset, false),
+    modelPath: ufrtsModelPath(asset, true),
     targetHeightM: asset.targetHeightM,
     x,
     z,

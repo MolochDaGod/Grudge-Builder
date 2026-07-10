@@ -1,0 +1,63 @@
+{
+  "version": 1,
+  "generator": "@grudge-studio/asset-convert",
+  "colliders": [
+    {
+      "mesh": "Windmill_FirstAge",
+      "type": "capsule",
+      "center": [
+        0.0000013843127817381173,
+        -0.000005693739694834221,
+        0.00009586498341153314
+      ],
+      "size": [
+        0.00013495468738256022,
+        0.00006604343616345432,
+        0.00019172996697755653
+      ],
+      "min": [
+        -0.000066093030909542,
+        -0.00003871545777656138,
+        -7.724513574353803e-14
+      ],
+      "max": [
+        0.00006886165647301823,
+        0.000027327978386892937,
+        0.0001917299669003114
+      ],
+      "capsule": {
+        "align": "Y",
+        "radius": 0.0201,
+        "height": 0.01,
+        "offsetY": 0
+      },
+      "box": {
+        "halfExtents": [
+          0.0201,
+          0.02,
+          0.0201
+        ]
+      }
+    }
+  ],
+  "rootCollider": {
+    "type": "capsule",
+    "role": "character_root",
+    "center": [
+      0,
+      6,
+      0
+    ],
+    "size": [
+      0.7,
+      12,
+      0.7
+    ],
+    "capsule": {
+      "align": "Y",
+      "radius": 0.35,
+      "height": 11.3
+    },
+    "practice": "Attach Cannon/Rapier body to hips/Y root; do not per-mesh armor RB on grudge6."
+  }
+}
