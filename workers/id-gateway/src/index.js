@@ -347,6 +347,51 @@ export default {
       }
     }
 
+    /**
+     * Auth page is proxied: browser URL stays /login?redirect_uri=… while upstream
+     * historically only set ?redirect=. Client JS reads location.search — without
+     * reading redirect_uri, handoff never returns to grudge-crafting.puter.site.
+     * Patch the HTML at the edge so returnTo always sees fleet redirect_uri.
+     */
+    const ctype = (outHeaders.get("Content-Type") || "").toLowerCase();
+    const isAuthHtml =
+      ctype.includes("text/html") &&
+      (mapped.startsWith("/api/auth/page") ||
+        url.pathname === "/login" ||
+        url.pathname === "/" ||
+        url.pathname.startsWith("/api/auth/page"));
+    if (isAuthHtml && request.method === "GET") {
+      let html = await upstream.text();
+      const patched = html
+        .replace(
+          /const returnTo = qs\.get\("redirect"\) \|\| qs\.get\("return_to"\) \|\| null;/,
+          'const returnTo = qs.get("redirect_uri") || qs.get("redirect") || qs.get("return_to") || qs.get("return") || qs.get("returnUrl") || null;',
+        )
+        .replace(
+          /const returnTo = qs\.get\("redirect_uri"\) \|\| qs\.get\("redirect"\) \|\| qs\.get\("return_to"\) \|\| qs\.get\("return"\) \|\| qs\.get\("returnUrl"\) \|\| null;/,
+          'const returnTo = qs.get("redirect_uri") || qs.get("redirect") || qs.get("return_to") || qs.get("return") || qs.get("returnUrl") || null;',
+        );
+      // Inject HOST_LABELS entry for crafting if missing (cosmetic)
+      if (
+        !patched.includes("grudge-crafting.puter.site") &&
+        patched.includes("HOST_LABELS")
+      ) {
+        html = patched.replace(
+          '"wcs.grudge-studio.com": "Warlord Crafting Suite",',
+          '"wcs.grudge-studio.com": "Warlord Crafting Suite",\n  "grudge-crafting.puter.site": "Warlord Crafting Suite",',
+        );
+      } else {
+        html = patched;
+      }
+      outHeaders.delete("content-length");
+      outHeaders.set("X-Grudge-Auth-ReturnTo-Patch", "1");
+      return new Response(html, {
+        status: upstream.status,
+        statusText: upstream.statusText,
+        headers: outHeaders,
+      });
+    }
+
     return new Response(upstream.body, {
       status: upstream.status,
       statusText: upstream.statusText,
