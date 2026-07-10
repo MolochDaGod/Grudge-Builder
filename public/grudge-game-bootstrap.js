@@ -5,7 +5,7 @@
  *   <script src="https://id.grudge-studio.com/grudge-game-bootstrap.js"></script>
  *   <script>window.GRUDGE_AUTH_GATEWAY = 'https://id.grudge-studio.com';</script>
  *
- * Session policy (must stay aligned with server JWT_SESSION_TTL, default 90d):
+ * Session policy (must stay aligned with server JWT_SESSION_TTL, default 365d):
  * - Stores JWT under all fleet token keys for max satellite compatibility
  * - Picks up query + hash handoff (grudge_token, sso_token, token)
  * - Bridges launch tokens via grudge-bridge / session/exchange
@@ -16,10 +16,10 @@
   'use strict';
 
   var GATEWAY = global.GRUDGE_AUTH_GATEWAY || 'https://id.grudge-studio.com';
-  /** Default session window — 90 days (matches Railway JWT_SESSION_TTL). */
+  /** Default session window — 365 days (max allowed / matches Railway JWT_SESSION_TTL). */
   var SESSION_MS = (typeof global.GRUDGE_SESSION_MS === 'number' && global.GRUDGE_SESSION_MS > 0)
     ? global.GRUDGE_SESSION_MS
-    : 90 * 24 * 60 * 60 * 1000;
+    : 365 * 24 * 60 * 60 * 1000;
   var TOKEN_KEYS = [
     'grudge_auth_token',
     'grudge_session_token',

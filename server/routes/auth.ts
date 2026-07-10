@@ -33,20 +33,28 @@ import { isFleetAllowedReturnUrl, resolveFleetReturnUrl } from "@shared/fleet/au
 
 const JWT_SECRET = process.env.SESSION_SECRET || process.env.JWT_SECRET || "grudge-dev-secret";
 /**
- * Session JWT lifetime — longest practical “stay signed in” for fleet SSO.
- * Default 90d. Override JWT_SESSION_TTL=30d|90d|180d|365d (capped at 365d).
- * One login on id.grudge-studio.com should cover all *.grudge-studio.com apps.
+ * Session JWT lifetime — max allowed “stay signed in” for fleet SSO.
+ * Default **365d**. Override JWT_SESSION_TTL (capped at 365d).
+ * One login on id.grudge-studio.com covers all *.grudge-studio.com apps.
  */
-const JWT_EXPIRES = normalizeSessionTtl(process.env.JWT_SESSION_TTL || process.env.SESSION_TTL || "90d");
-/** Cookie Max-Age seconds matching JWT_EXPIRES (default 90 days). */
+const JWT_EXPIRES = normalizeSessionTtl(process.env.JWT_SESSION_TTL || process.env.SESSION_TTL || "365d");
+/** Cookie Max-Age seconds matching JWT_EXPIRES (default 365 days). */
 const SESSION_MAX_AGE_SEC = ttlToSeconds(JWT_EXPIRES);
 /** Cross-app handoff launch token (short-lived; bridges to full session). */
 const LAUNCH_TTL = process.env.JWT_LAUNCH_TTL || "60m";
 const LAUNCH_MAX_AGE_SEC = ttlToSeconds(LAUNCH_TTL);
 
+/** Canonical Discord OAuth redirect — must match Discord Developer Portal + token exchange. */
+function discordRedirectUri(): string {
+  return (
+    process.env.DISCORD_REDIRECT_URI ||
+    "https://id.grudge-studio.com/auth/discord/callback"
+  );
+}
+
 function normalizeSessionTtl(raw: string): string {
-  const m = String(raw || "90d").trim().match(/^(\d+)\s*([smhd])$/i);
-  if (!m) return "90d";
+  const m = String(raw || "365d").trim().match(/^(\d+)\s*([smhd])$/i);
+  if (!m) return "365d";
   const n = Math.max(1, parseInt(m[1], 10));
   const unit = m[2].toLowerCase();
   // Cap at 365 days (max product-allowed “remember me”)
@@ -59,7 +67,7 @@ function normalizeSessionTtl(raw: string): string {
 
 function ttlToSeconds(ttl: string): number {
   const m = String(ttl).trim().match(/^(\d+)\s*([smhd])$/i);
-  if (!m) return 90 * 24 * 60 * 60;
+  if (!m) return 365 * 24 * 60 * 60;
   const n = parseInt(m[1], 10);
   switch (m[2].toLowerCase()) {
     case "s":
@@ -1175,31 +1183,39 @@ export function registerAuthRoutes(app: Express) {
   });
 
   /**
-   * GET /api/auth/discord/start
-   * Discord OAuth entry on id.grudge-studio.com (identify + email only).
+   * GET /api/auth/discord/start (+ /auth/discord/start alias)
+   * Discord OAuth on id.grudge-studio.com — identify + email only.
+   * Accepts return|returnUrl|redirect|redirect_uri (auth-page uses redirect).
+   * Omits prompt=consent so returning users get one-tap approve (easiest re-entry).
    */
-  app.get("/api/auth/discord/start", (req: Request, res: Response) => {
-    const returnUrl =
+  const discordStart = (req: Request, res: Response) => {
+    const rawReturn =
       (req.query.return as string) ||
       (req.query.returnUrl as string) ||
+      (req.query.redirect as string) ||
+      (req.query.redirect_uri as string) ||
       "https://grudgewarlords.com/auth/callback";
+    const returnUrl = isFleetAllowedReturnUrl(rawReturn)
+      ? rawReturn
+      : "https://grudgewarlords.com/auth/callback";
     const clientId = process.env.DISCORD_CLIENT_ID;
     if (!clientId) {
       return res.status(503).json({ success: false, error: "Discord OAuth not configured" });
     }
-    const redirectUri =
-      process.env.DISCORD_REDIRECT_URI ||
-      "https://id.grudge-studio.com/auth/discord/callback";
+    const redirectUri = discordRedirectUri();
     const params = new URLSearchParams({
       client_id: clientId,
       redirect_uri: redirectUri,
       response_type: "code",
+      // Minimal scopes — easiest approval
       scope: "identify email",
       state: returnUrl,
-      prompt: "consent",
     });
+    // Do NOT set prompt=consent (forces re-auth every time). Discord only prompts when needed.
     res.redirect(`https://discord.com/api/oauth2/authorize?${params.toString()}`);
-  });
+  };
+  app.get("/api/auth/discord/start", discordStart);
+  app.get("/auth/discord/start", discordStart);
 
   /**
    * GET /api/auth/scoped-profile
@@ -1224,15 +1240,25 @@ export function registerAuthRoutes(app: Express) {
   });
 
   /**
-   * GET /api/auth/discord/callback
-   * Discord OAuth callback — exchanges code for token, creates/links account.
+   * GET /api/auth/discord/callback (+ /auth/discord/callback alias)
+   * Exchanges code → Discord user → long-lived Grudge session + dual handoff.
+   * redirect_uri MUST match discordStart (discordRedirectUri()).
    */
-  app.get("/api/auth/discord/callback", async (req: Request, res: Response) => {
-    const { code, state } = req.query as { code?: string; state?: string };
-    const returnUrl = state || "https://grudgewarlords.com/";
+  const discordCallback = async (req: Request, res: Response) => {
+    const { code, state, error: oauthError } = req.query as {
+      code?: string;
+      state?: string;
+      error?: string;
+    };
+    const rawReturn = state || "https://grudgewarlords.com/";
+    const returnUrl = isFleetAllowedReturnUrl(rawReturn)
+      ? rawReturn
+      : "https://grudgewarlords.com/";
 
-    if (!code) {
-      return res.redirect(`${returnUrl}?error=Discord+auth+cancelled`);
+    if (oauthError || !code) {
+      return res.redirect(
+        `${returnUrl}${returnUrl.includes("?") ? "&" : "?"}error=${encodeURIComponent(oauthError || "Discord auth cancelled")}`,
+      );
     }
 
     try {
@@ -1243,7 +1269,7 @@ export function registerAuthRoutes(app: Express) {
         return res.redirect(`${returnUrl}?error=Discord+not+configured`);
       }
 
-      // Exchange code for Discord access token
+      const redirectUri = discordRedirectUri();
       const tokenRes = await fetch("https://discord.com/api/oauth2/token", {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -1252,63 +1278,96 @@ export function registerAuthRoutes(app: Express) {
           client_secret: clientSecret,
           grant_type: "authorization_code",
           code,
-          redirect_uri: `https://id.grudge-studio.com/auth/discord/callback`,
+          redirect_uri: redirectUri,
         }),
       });
 
-      const tokenData = await tokenRes.json() as any;
+      const tokenData = (await tokenRes.json()) as { access_token?: string; error?: string };
       if (!tokenData.access_token) {
+        console.error("[Auth/Discord] token exchange failed", tokenData);
         return res.redirect(`${returnUrl}?error=Discord+token+exchange+failed`);
       }
 
-      // Fetch Discord user
       const userRes = await fetch("https://discord.com/api/users/@me", {
         headers: { Authorization: `Bearer ${tokenData.access_token}` },
       });
-      const discordUser = await userRes.json() as any;
+      const discordUser = (await userRes.json()) as {
+        id?: string;
+        username?: string;
+        global_name?: string;
+        email?: string;
+      };
 
       if (!discordUser.id) {
         return res.redirect(`${returnUrl}?error=Discord+user+fetch+failed`);
       }
 
-      // Find or create user
       const discordKey = `discord:${discordUser.id}`;
       let [user] = await db.select().from(users).where(eq(users.username, discordKey)).limit(1);
 
       if (!user) {
         const grudgeId = generateGrudgeId();
         const dummyPw = await hashPassword(crypto.randomBytes(32).toString("hex"));
+        const insertValues: Record<string, unknown> = {
+          username: discordKey,
+          password: dummyPw,
+          grudgeId,
+        };
+        if (discordUser.email) insertValues.email = String(discordUser.email).toLowerCase();
         [user] = await db
           .insert(users)
-          .values({ username: discordKey, password: dummyPw, grudgeId })
+          .values(insertValues as typeof users.$inferInsert)
           .onConflictDoNothing()
           .returning();
 
         if (!user) {
           [user] = await db.select().from(users).where(eq(users.username, discordKey)).limit(1);
         }
+      } else if (discordUser.email && !user.email) {
+        await db
+          .update(users)
+          .set({ email: String(discordUser.email).toLowerCase() })
+          .where(eq(users.id, user.id));
       }
 
       if (!user) {
         return res.redirect(`${returnUrl}?error=Account+creation+failed`);
       }
 
-      await ensureAccount(user.id);
+      const account = await ensureAccount(user.id);
+      const displayName =
+        discordUser.global_name ||
+        discordUser.username ||
+        account?.displayName ||
+        "Discord Player";
+      if (account && (!account.displayName || account.displayName.startsWith("discord:"))) {
+        await storage.updateAccount(account.id, { displayName });
+      }
 
-      const displayName = discordUser.global_name || discordUser.username;
+      const grudgeId = user.grudgeId || account?.grudgeId || "";
       const ssoToken = signToken({
         userId: user.id,
-        grudgeId: user.grudgeId || "",
+        grudgeId,
         username: displayName,
       });
+      setSessionCookie(res, ssoToken);
 
-      const sep = returnUrl.includes("?") ? "&" : "?";
-      res.redirect(`${returnUrl}${sep}sso_token=${encodeURIComponent(ssoToken)}&grudge_id=${encodeURIComponent(user.grudgeId || "")}&username=${encodeURIComponent(displayName)}`);
+      let launchToken = "";
+      try {
+        const aud = new URL(returnUrl).origin;
+        launchToken = mintLaunchToken(user.id, grudgeId, aud);
+      } catch {
+        /* ignore */
+      }
+
+      res.redirect(302, appendSsoParams(returnUrl, ssoToken, grudgeId, displayName, launchToken));
     } catch (e: any) {
       console.error("[Auth/Discord]", e);
       res.redirect(`${returnUrl}?error=Discord+auth+error`);
     }
-  });
+  };
+  app.get("/api/auth/discord/callback", discordCallback);
+  app.get("/auth/discord/callback", discordCallback);
 
   // ── GET /api/auth/me — Full user profile from JWT ─────────────────
 

@@ -934,11 +934,14 @@ function refreshPuterButton(){
 }
 
 function startOAuth(provider){
+  // Fleet return: prefer app redirect_uri, then popup self handoff, then current origin
   let redirect;
-  if (isPopup) redirect = selfUrl({ handoff:"1", origin: openerOrigin || "" });
-  else if (returnTo) redirect = returnTo;
+  if (returnTo) redirect = returnTo;
+  else if (isPopup) redirect = selfUrl({ handoff:"1", origin: openerOrigin || "" });
   else redirect = selfUrl({ signedin:"1" });
-  location.href = CONFIG.apiBase + "/api/auth/" + provider + "/start?redirect=" + encodeURIComponent(redirect);
+  // Discord start accepts return|redirect|redirect_uri — send both for compatibility
+  const q = "return=" + encodeURIComponent(redirect) + "&redirect=" + encodeURIComponent(redirect);
+  location.href = CONFIG.apiBase + "/api/auth/" + provider + "/start?" + q;
 }
 /**
  * Grudge / Puter best-practice login (user gesture only):

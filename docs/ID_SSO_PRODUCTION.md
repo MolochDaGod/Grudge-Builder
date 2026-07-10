@@ -18,9 +18,10 @@
 
 | Token | Default TTL | Purpose |
 |-------|-------------|---------|
-| Session JWT (`sso_token` / Bearer) | **90d** (`JWT_SESSION_TTL`, max 365d) | App API calls; localStorage + HttpOnly cookie |
+| Session JWT (`sso_token` / Bearer) | **365d** (`JWT_SESSION_TTL`, max 365d) | App API calls; localStorage + HttpOnly cookie |
 | Launch JWT (`grudge_token`) | **60m** (`JWT_LAUNCH_TTL`) | One-shot bridge → session via grudge-bridge |
 | Cookie `grudge_auth_token` | Same as session | Silent SSO; Domain `.grudge-studio.com` via gateway |
+| Discord OAuth | identify + email | No `prompt=consent`; dual handoff + long cookie |
 
 **One login on id → all Grudge Studio deployments** (no re-form):
 
@@ -32,11 +33,13 @@
 Env (Railway):
 
 ```bash
-JWT_SESSION_TTL=90d          # max 365d
+JWT_SESSION_TTL=365d         # max allowed (default)
 JWT_LAUNCH_TTL=60m
+DISCORD_REDIRECT_URI=https://id.grudge-studio.com/auth/discord/callback
 AUTH_EXTRA_RETURN_HOSTS=partner.example.com,app.signed-site.io
 FORCE_SECURE_COOKIES=1       # optional when NODE_ENV != production
 ```
+
 
 Refresh / claim (stay signed in without re-login):
 
