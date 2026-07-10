@@ -14,7 +14,7 @@
     GAME_DATA: 'https://grudge-api-production-0d46.up.railway.app',
     OBJECTSTORE_URL: 'https://objectstore.grudge-studio.com/api/v1',
     ASSETS: 'https://assets.grudge-studio.com',
-    VERSION: '5.3.2',
+    VERSION: '5.4.0',
     WCS_URL: 'https://wcs.grudge-studio.com',
     SKILL_TREE_URL: './skill-tree.html',
     WEAPON_MASTERY_URL: './weaponmastery.html',
@@ -288,7 +288,19 @@ body {
 .recipe-item:hover { border-color: var(--gold-dim); background: rgba(212,168,67,0.04); }
 .recipe-item.selected { border-color: var(--gold); background: rgba(212,168,67,0.08); }
 .recipe-item.cant-craft { opacity: 0.5; }
-.recipe-icon { font-size: 20px; width: 28px; text-align: center; }
+.recipe-icon { font-size: 20px; width: 28px; text-align: center; flex-shrink: 0; }
+.recipe-icon img, .item-img, .inv-item .icon img, .result-icon img, .ch-icon img, .slot img {
+  width: 28px; height: 28px; object-fit: contain; image-rendering: auto;
+  vertical-align: middle; border-radius: 4px;
+  background: rgba(0,0,0,0.25);
+}
+.result-icon img { width: 36px; height: 36px; }
+.db-card img {
+  width: 48px; height: 48px; object-fit: contain; flex-shrink: 0;
+  border-radius: 6px; background: rgba(0,0,0,0.3);
+  border: 1px solid var(--border);
+}
+.db-card { display: flex; gap: 12px; align-items: center; }
 .recipe-info { flex: 1; min-width: 0; }
 .recipe-name { font-size: 12px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .recipe-meta { font-size: 9px; color: var(--text-dim); }
@@ -2313,7 +2325,7 @@ function renderCraftingPage() {
       const sel = STATE.selectedRecipe && STATE.selectedRecipe.id === r.id;
       const tierColors = ['#666','#22c55e','#60a5fa','#a78bfa','#f59e0b','#ef4444','#ec4899','#f97316','#dc2626'];
       return `<div class="recipe-item ${sel?'selected':''} ${canCraft?'':'cant-craft'}" onclick="selectRecipe('${r.id}')">
-        <span class="recipe-icon">${r.icon||'📦'}</span>
+        <span class="recipe-icon">${itemIcon(r.n, r.icon || '📦', 'item-img', 28)}</span>
         <div class="recipe-info">
           <div class="recipe-name">${r.n}</div>
           <div class="recipe-meta">${r.prof} · ${r.type} · ${st.name}</div>
@@ -2343,7 +2355,7 @@ function renderBenchDetail() {
     const have = STATE.inventory[name] || 0;
     const enough = have >= qty;
     return `<div class="slot ${enough?'filled':'missing'}">
-      <span>${MAT_ICONS[name]||'📦'}</span>
+      <span>${itemIcon(name, MAT_ICONS[name]||'📦', 'item-img', 22)}</span>
       <span class="slot-qty ${enough?'enough':'short'}">${have}/${qty}</span>
       <span class="slot-name">${name}</span>
     </div>`;
@@ -2353,13 +2365,13 @@ function renderBenchDetail() {
   const emptySlotsHtml = Array(emptySlots).fill('<div class="slot"></div>').join('');
 
   el.innerHTML = `
-    <div class="card-title">${r.icon} ${r.n}</div>
+    <div class="card-title" style="display:flex;align-items:center;gap:8px">${itemIcon(r.n, r.icon||'📦', 'item-img', 28)} ${r.n}</div>
     <p style="font-size:11px;color:var(--text-dim);margin-bottom:12px">${r.desc || ''}</p>
     <div style="font-size:9px;color:var(--text-dim);margin-bottom:6px;letter-spacing:0.1em">MATERIALS REQUIRED</div>
     <div class="bench-slots">${slotsHtml}${emptySlotsHtml}</div>
     <div class="craft-result">
       <span class="craft-arrow">→</span>
-      <span class="result-icon">${r.icon||'📦'}</span>
+      <span class="result-icon">${itemIcon(r.n, r.icon||'📦', 'item-img', 36)}</span>
       <div>
         <div class="result-name">${r.n}</div>
         <div style="font-size:9px;color:var(--text-dim)">${r.prof} · T${r.tier} · ${r.type}</div>
@@ -2507,7 +2519,7 @@ function renderInventoryPage() {
           </div>
           ${ready.slice(0,6).map(r => `
             <div class="craft-hint" onclick="navigate('crafting');selectRecipe('${r.id}');renderCraftingPage()">
-              <span class="ch-icon">${r.icon||'\ud83d\udce6'}</span>
+              <span class="ch-icon">${itemIcon(r.n, r.icon||'📦', 'item-img', 28)}</span>
               <div class="ch-info">
                 <div class="ch-name">${r.n}</div>
                 <div class="ch-sub">${r.prof} · T${r.tier} · ${r.desc}</div>
@@ -2534,8 +2546,9 @@ function renderInvFiltered(type, btn) {
 
 function renderInvItems(items) {
   document.getElementById('inv-grid').innerHTML = items.map(([name, qty]) => {
+    const emoji = MAT_ICONS[name] || (RECIPES.find(r=>r.n===name)?.icon) || '📦';
     return `<div class="inv-item">
-      <span class="icon">${MAT_ICONS[name] || (RECIPES.find(r=>r.n===name)?.icon) || '📦'}</span>
+      <span class="icon">${itemIcon(name, emoji, 'item-img', 24)}</span>
       <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${name}</span>
       <span class="qty">×${qty}</span>
     </div>`;
@@ -3482,40 +3495,174 @@ function showToast(msg, type='') {
 }
 
 // ============================================================
-// OBJECTSTORE ITEM DATABASE
+// OBJECTSTORE ITEM DATABASE + CANONICAL ICONS
 // ============================================================
+// Binary icons: assets.grudge-studio.com (R2)
+// JSON catalog: objectstore.grudge-studio.com/api/v1/master-items.json
+// Category folders on CDN (/icons/swords/…) are HTML shells — map to pack/.
 let ITEM_DB = [];
 let ITEM_DB_CATEGORIES = [];
 let ITEM_ICON_MAP = {};
 let dbFilterCat = 'all';
 
+const ASSET_CDN = (window.GRUDGE_CONFIG && window.GRUDGE_CONFIG.ASSETS) || 'https://assets.grudge-studio.com';
+
+/** master-items category → pack/weapons stem (PascalCase file prefix) */
+const ICON_CAT_TO_PACK = {
+  swords: 'Sword', sword: 'Sword',
+  axes1h: 'Axe', axe: 'Axe', greataxes: 'Axe', greataxe: 'Axe',
+  daggers: 'Dagger', dagger: 'Dagger',
+  hammers1h: 'Hammer', hammers2h: 'Hammer', hammer: 'Hammer',
+  greatswords: 'Sword', greatsword: 'Sword',
+  spears: 'Spear', spear: 'Spear',
+  bows: 'Bow', bow: 'Bow',
+  crossbows: 'Crossbow', crossbow: 'Crossbow',
+  guns: 'Crossbow', gun: 'Crossbow',
+  shields: 'Shield', shield: 'Shield',
+  fireStaves: 'Staff', frostStaves: 'Staff', holyStaves: 'Staff',
+  lightningStaves: 'Staff', natureStaves: 'Staff', wands: 'Staff',
+  staff: 'Staff', staves: 'Staff', tools: 'Hammer',
+};
+
+const ICON_PACK_FALLBACK = {
+  armor: '/icons/pack/armor/Chest_01.png',
+  greenFoods: '/icons/pack/misc/Effect.png',
+  blueFoods: '/icons/pack/misc/Effect.png',
+  redFoods: '/icons/pack/misc/Effect.png',
+  mysticPotions: '/icons/pack/misc/Effect.png',
+  engineerConsumables: '/icons/pack/misc/Effect.png',
+  tools: '/icons/pack/weapons/Hammer_01.png',
+  default: '/icons/pack/misc/Effect.png',
+};
+
+function rewriteIconHost(url) {
+  if (!url || typeof url !== 'string') return '';
+  return url
+    .replace(/https?:\/\/molochdagod\.github\.io\/ObjectStore/gi, ASSET_CDN)
+    .replace(/https?:\/\/grudge-objectstore\.pages\.dev/gi, ASSET_CDN)
+    .replace(/https?:\/\/info\.grudge-studio\.com(\/api\/v1)?/gi, ASSET_CDN)
+    .replace(/https?:\/\/objectstore\.grudge-studio\.com(?!\/api)/gi, ASSET_CDN);
+}
+
+/**
+ * Resolve any icon field to a working assets.grudge-studio.com PNG.
+ * Category folders (swords/, axes1h/, …) on CDN are broken HTML → pack weapons.
+ */
+function resolveCanonicalIcon(urlOrPath, category, name) {
+  const cat = (category || '').toString();
+  let raw = rewriteIconHost((urlOrPath || '').trim());
+  let path = raw;
+
+  if (raw.startsWith('http')) {
+    try { path = new URL(raw).pathname; } catch { /* keep */ }
+  }
+  if (path && !path.startsWith('/') && !path.startsWith('http')) path = '/' + path;
+
+  // Already a pack path
+  if (/\/icons\/pack\//i.test(path)) {
+    return ASSET_CDN + path.replace(/^\/api\/v1/, '');
+  }
+  // Armor atlas (works on CDN under /icons/armor_full/ and /icons/pack/armor/)
+  if (/\/icons\/armor_full\//i.test(path)) {
+    return ASSET_CDN + path.replace(/^\/api\/v1/, '');
+  }
+  if (/\/icons\/food\//i.test(path) || /\/icons\/consumables\//i.test(path)) {
+    return ASSET_CDN + path.replace(/^\/api\/v1/, '');
+  }
+
+  // /icons/{category}/{stem}_{num}.png → /icons/pack/weapons/{Pack}_{num}.png
+  const m = path.match(/\/icons\/([^/]+)\/([A-Za-z_]*?)(\d+)\.(png|webp|jpe?g)$/i);
+  if (m) {
+    const folder = m[1];
+    const num = m[3].padStart(2, '0');
+    const stem = ICON_CAT_TO_PACK[folder] || ICON_CAT_TO_PACK[folder.toLowerCase()];
+    if (stem) {
+      return `${ASSET_CDN}/icons/pack/weapons/${stem}_${num}.png`;
+    }
+    if (folder === 'armor' || folder === 'armor_full') {
+      const file = path.split('/').pop();
+      return `${ASSET_CDN}/icons/pack/armor/${file}`;
+    }
+  }
+
+  // Category-only fallback
+  if (ICON_CAT_TO_PACK[cat] || ICON_CAT_TO_PACK[cat.toLowerCase()]) {
+    const stem = ICON_CAT_TO_PACK[cat] || ICON_CAT_TO_PACK[cat.toLowerCase()];
+    return `${ASSET_CDN}/icons/pack/weapons/${stem}_01.png`;
+  }
+  if (cat === 'armor' || /armor|helm|chest|boot|bracer|shoulder|ring|necklace/i.test(name || '')) {
+    return ASSET_CDN + ICON_PACK_FALLBACK.armor;
+  }
+  if (ICON_PACK_FALLBACK[cat]) return ASSET_CDN + ICON_PACK_FALLBACK[cat];
+
+  if (path && path.startsWith('/icons/')) return ASSET_CDN + path;
+  if (raw.startsWith(ASSET_CDN)) return raw;
+  return ASSET_CDN + ICON_PACK_FALLBACK.default;
+}
+
+function iconImgTag(url, name, cssClass, size) {
+  const cls = cssClass || 'item-img';
+  const fallback = ASSET_CDN + ICON_PACK_FALLBACK.default;
+  const safe = (url || fallback).replace(/"/g, '');
+  const alt = (name || 'item').replace(/"/g, '');
+  const dim = size ? ` style="width:${size}px;height:${size}px"` : '';
+  return `<img class="${cls}" src="${safe}" alt="${alt}" loading="lazy"${dim} onerror="if(!this.dataset.fb){this.dataset.fb=1;this.src='${fallback}'}">`;
+}
+
 async function loadItemDatabase() {
   try {
     const base = (window.GRUDGE_CONFIG.OBJECTSTORE_URL || 'https://objectstore.grudge-studio.com/api/v1').replace(/\/$/, '');
-    const lib = (typeof GrudgeFleet !== 'undefined' && GrudgeFleet.getGamesLibrary)
-      ? await GrudgeFleet.getGamesLibrary()
-      : await fetch(base + '/games-library.json').then(r => { if (!r.ok) throw new Error('games-library HTTP ' + r.status); return r.json(); });
-    const itemsUrl = (lib.runtime && lib.runtime.masterItems) ? lib.runtime.masterItems : (base + '/master-items.json');
+    let itemsUrl = base + '/master-items.json';
+    try {
+      const lib = (typeof GrudgeFleet !== 'undefined' && GrudgeFleet.getGamesLibrary)
+        ? await GrudgeFleet.getGamesLibrary()
+        : await fetch(base + '/games-library.json').then(r => { if (!r.ok) throw new Error('games-library HTTP ' + r.status); return r.json(); });
+      // Prefer worker API master-items (canonical, full catalog) over github.io static links
+      if (lib.runtime && lib.runtime.masterItems) {
+        const mid = lib.runtime.masterItems;
+        // github.io static is fine if it returns JSON; prefer objectstore worker always for icons rewrite
+        itemsUrl = base + '/master-items.json';
+        if (typeof mid === 'string' && mid.includes('objectstore.grudge-studio.com')) itemsUrl = mid;
+      }
+      if (lib.assetCdn) {
+        // keep ASSET_CDN from GRUDGE_CONFIG
+      }
+    } catch (libErr) {
+      console.warn('[ObjectStore] games-library fallback to master-items.json', libErr);
+    }
+
     const res = await fetch(itemsUrl);
     if (!res.ok) throw new Error('master-items HTTP ' + res.status);
     const data = await res.json();
     const raw = data.items || [];
-    ITEM_DB = raw.map(item => ({
-      name: item.name,
-      category: item.category || item.type || 'weapon',
-      icon: item.iconUrl || item.icon,
-      stats: item.stats || {},
-      tier: item.tier,
-      uuid: item.uuid,
-    }));
+    ITEM_DB = raw.map(item => {
+      const category = item.category || item.type || 'weapon';
+      const icon = resolveCanonicalIcon(item.iconUrl || item.icon || item.iconPath, category, item.name);
+      return {
+        name: item.name,
+        category,
+        icon,
+        stats: item.stats || {},
+        tier: item.tier,
+        uuid: item.uuid,
+      };
+    });
     const cats = new Set(ITEM_DB.map(i => i.category).filter(Boolean));
     ITEM_DB_CATEGORIES = Array.from(cats).sort();
+    ITEM_ICON_MAP = {};
     ITEM_DB.forEach(item => {
-      if (item.icon) ITEM_ICON_MAP[item.name.toLowerCase()] = item.icon;
+      if (item.icon && item.name) ITEM_ICON_MAP[item.name.toLowerCase()] = item.icon;
     });
+    // Enrich local recipes with canonical icons when names match
+    if (typeof RECIPES !== 'undefined') {
+      RECIPES.forEach(r => {
+        const u = ITEM_ICON_MAP[(r.n || '').toLowerCase()];
+        if (u) r.iconUrl = u;
+      });
+    }
     const el = document.getElementById('db-count');
     if (el) el.textContent = ITEM_DB.length;
-    console.log('[ObjectStore] Loaded ' + ITEM_DB.length + ' items via games-library → master-items');
+    console.log('[ObjectStore] Loaded ' + ITEM_DB.length + ' items with canonical CDN icons');
     renderAll();
   } catch(e) {
     console.error('[ObjectStore] Failed:', e);
@@ -3526,10 +3673,16 @@ async function loadItemDatabase() {
   }
 }
 
-function itemIcon(name, emoji, cssClass) {
+function itemIcon(name, emoji, cssClass, size) {
   const cls = cssClass || 'item-img';
-  const url = ITEM_ICON_MAP[name.toLowerCase()];
-  if (url) return `<img class="${cls}" src="${url}" alt="${name}" loading="lazy">`;
+  const key = (name || '').toLowerCase();
+  const url = ITEM_ICON_MAP[key] || resolveCanonicalIcon(null, null, name);
+  // Prefer real icon; keep emoji only if no map and no sensible URL
+  if (ITEM_ICON_MAP[key] || (url && !url.endsWith('/Effect.png'))) {
+    return iconImgTag(url, name, cls, size);
+  }
+  // Still try default pack icon over emoji when we have a name
+  if (name) return iconImgTag(url, name, cls, size);
   return emoji || '📦';
 }
 
@@ -3545,18 +3698,21 @@ function renderItemDatabase() {
   if (dbFilterCat !== 'all') items = items.filter(i => i.category === dbFilterCat);
   if (query) items = items.filter(i => i.name.toLowerCase().includes(query));
 
-  document.getElementById('db-summary').textContent = `${items.length} of ${ITEM_DB.length} items`;
+  document.getElementById('db-summary').textContent = `${items.length} of ${ITEM_DB.length} items · icons: assets.grudge-studio.com`;
   const showing = items.slice(0, 200);
   document.getElementById('db-grid').innerHTML = showing.map(item => {
     const statsArr = [];
     if (item.stats?.damage) statsArr.push(`DMG <span>${item.stats.damage}</span>`);
     if (item.stats?.defense) statsArr.push(`DEF <span>${item.stats.defense}</span>`);
     if (item.stats?.requiredLevel) statsArr.push(`Lv <span>${item.stats.requiredLevel}</span>`);
+    const iconHtml = item.icon
+      ? iconImgTag(item.icon, item.name, '', 48)
+      : '<div style="width:48px;height:48px;display:flex;align-items:center;justify-content:center;font-size:28px">📦</div>';
     return `<div class="db-card">
-      ${item.icon ? `<img src="${item.icon}" alt="${item.name}" loading="lazy">` : '<div style="width:48px;height:48px;display:flex;align-items:center;justify-content:center;font-size:28px">📦</div>'}
+      ${iconHtml}
       <div>
         <div class="db-card-name">${item.name}</div>
-        <div class="db-card-cat">${item.category || ''}</div>
+        <div class="db-card-cat">${item.category || ''}${item.tier != null ? ' · T' + item.tier : ''}</div>
         ${statsArr.length ? `<div class="db-card-stats">${statsArr.join(' · ')}</div>` : ''}
       </div>
     </div>`;
