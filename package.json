@@ -64,6 +64,7 @@
     "deploy:puter:all": "node scripts/deploy-puter-all-paths.mjs",
     "deploy:puter:smart": "node scripts/deploy-puter-smart.mjs",
     "upload:build-packs": "node scripts/upload-build-packs-to-r2.mjs --remote",
+    "upload:war-scene": "node scripts/upload-war-scene-to-r2.mjs --remote",
     "upload:warlords-assets": "node scripts/upload-warlords-assets.mjs",
     "convert:ufrts": "node scripts/convert-ultimate-fantasy-rts.mjs",
     "convert:ufrts:priority": "node scripts/convert-ultimate-fantasy-rts.mjs --priority",

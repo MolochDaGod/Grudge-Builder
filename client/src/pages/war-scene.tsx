@@ -191,14 +191,27 @@ export default function WarScenePage() {
 
       {error && (
         <div className="absolute inset-0 z-40 flex items-center justify-center bg-black/90 px-6">
-          <div className="max-w-lg text-center space-y-3">
+          <div className="max-w-xl text-center space-y-3">
             <p className="text-red-400 font-semibold">Failed to load war scene</p>
-            <p className="text-slate-400 text-xs break-words">{error}</p>
-            <p className="text-slate-500 text-[11px]">
-              Place GLB at{' '}
-              <code className="text-amber-600">D:/Games/grudge-game-engine/huge_medieval_battle_scene.glb</code>
-              {' '}and open with <code className="text-amber-600">?local=1</code>, or upload to R2.
+            <p className="text-slate-400 text-xs break-words whitespace-pre-wrap text-left font-mono bg-black/40 rounded-lg p-3 max-h-48 overflow-auto">
+              {error}
             </p>
+            <div className="text-slate-500 text-[11px] space-y-1 text-left">
+              <p>
+                <strong className="text-slate-300">Production:</strong> fortress must be on R2 CDN
+                (<code className="text-amber-600">models/war/huge_medieval_battle_scene.glb</code>
+                ~517MB). Not the local API path.
+              </p>
+              <p>
+                <strong className="text-slate-300">Local dev:</strong>{' '}
+                <code className="text-amber-600">npm run dev</code> +{' '}
+                <code className="text-amber-600">/war-scene?local=1</code> (streams D: drive GLB).
+              </p>
+              <p>
+                Upload:{' '}
+                <code className="text-amber-600">npm run upload:war-scene</code>
+              </p>
+            </div>
             <button
               type="button"
               onClick={() => window.location.reload()}

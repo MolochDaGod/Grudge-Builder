@@ -61,15 +61,27 @@ npm run dev:client
 
 Env: `WAR_SCENE_GLB=D:/path/to/scene.glb`
 
-## Production
+## Production (required for grudgewarlords.com)
+
+The SPA never uses `/api/local-war-scene` on production (that route is Railway/dev only and 404s on Vercel).
+
+Upload the real ~517 MB fortress once:
 
 ```bash
-wrangler r2 object put grudge-assets/models/war/huge_medieval_battle_scene.glb \
-  --file="D:/Games/grudge-game-engine/huge_medieval_battle_scene.glb" \
-  --content-type=model/gltf-binary --remote
+npm run upload:war-scene
+# or:
+node scripts/upload-war-scene-to-r2.mjs --remote
 ```
 
-Live: `https://grudgewarlords.com/war-scene`
+Verify:
+
+```bash
+curl -sI https://assets.grudge-studio.com/models/war/huge_medieval_battle_scene.glb
+# Expect: Content-Type model/gltf-binary, Content-Length ~517113212
+# NOT text/html or ~44KB SPA stub
+```
+
+Live: `https://grudgewarlords.com/war-scene` (CDN path only; no `?local=1` on prod)
 
 ## Code map
 

@@ -201,13 +201,64 @@ export class WarSceneEngine {
     this.scene.add(new THREE.AmbientLight(0x404050, 0.22));
   }
 
-  private resolveSceneUrl(): string {
-    if (this.cfg.sceneUrl) return resolveModelUrl(this.cfg.sceneUrl);
-    const params = new URLSearchParams(window.location.search);
-    if (params.get('local') === '1') {
-      return '/api/local-war-scene';
+  /**
+   * Production → R2 CDN only.
+   * Dev can use ?local=1 → Railway/API `/api/local-war-scene` (D: drive stream).
+   * Never fall back to local API on grudgewarlords.com / Vercel — that 404s.
+   */
+  private resolveSceneUrl(): { url: string; mode: 'cdn' | 'local' | 'custom' } {
+    if (this.cfg.sceneUrl) {
+      return { url: resolveModelUrl(this.cfg.sceneUrl), mode: 'custom' };
     }
-    return resolveModelUrl(MEDIEVAL_BATTLE_CDN_PATH);
+    const params = new URLSearchParams(window.location.search);
+    const wantLocal = params.get('local') === '1';
+    const host = typeof window !== 'undefined' ? window.location.hostname : '';
+    const isProdHost =
+      /grudgewarlords\.com$|grudge-studio\.com$|vercel\.app$/i.test(host) &&
+      host !== 'localhost' &&
+      host !== '127.0.0.1';
+
+    // local=1 only on localhost / explicit non-prod (or force=1 for API debugging)
+    if (wantLocal && (!isProdHost || params.get('forceLocal') === '1')) {
+      return { url: '/api/local-war-scene', mode: 'local' };
+    }
+    return { url: resolveModelUrl(MEDIEVAL_BATTLE_CDN_PATH), mode: 'cdn' };
+  }
+
+  /** Reject HTML SPA stubs / tiny placeholders served as "GLB". */
+  private async assertGlbAsset(url: string): Promise<void> {
+    // Relative local stream — skip HEAD (may not support it)
+    if (url.startsWith('/api/')) return;
+
+    let res: Response;
+    try {
+      res = await fetch(url, { method: 'HEAD', mode: 'cors' });
+    } catch {
+      // Some CDNs block HEAD; try ranged GET
+      res = await fetch(url, {
+        method: 'GET',
+        headers: { Range: 'bytes=0-15' },
+        mode: 'cors',
+      });
+    }
+    if (!res.ok) {
+      throw new Error(
+        `War scene asset HTTP ${res.status} at ${url}. Upload the fortress GLB to R2 key models/war/huge_medieval_battle_scene.glb`,
+      );
+    }
+    const len = Number(res.headers.get('content-length') || 0);
+    const ct = (res.headers.get('content-type') || '').toLowerCase();
+    if (ct.includes('text/html')) {
+      throw new Error(
+        `CDN returned HTML instead of GLB (missing R2 object). Upload: models/war/huge_medieval_battle_scene.glb`,
+      );
+    }
+    // Real fortress is ~500MB; stub/HTML was ~44KB
+    if (len > 0 && len < 500_000) {
+      throw new Error(
+        `War scene asset too small (${len} bytes) — not the fortress GLB. Re-upload ~517MB file to R2.`,
+      );
+    }
   }
 
   async init(): Promise<void> {
@@ -219,20 +270,47 @@ export class WarSceneEngine {
     draco.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.7/');
     loader.setDRACOLoader(draco);
 
-    const url = this.resolveSceneUrl();
-    progress(5, `Loading island fortress (${url.includes('local') ? 'local 517MB' : 'CDN'})…`);
+    const { url, mode } = this.resolveSceneUrl();
+    progress(
+      5,
+      mode === 'local'
+        ? 'Loading local fortress stream…'
+        : 'Loading island fortress from CDN…',
+    );
+
+    if (mode === 'cdn' || mode === 'custom') {
+      progress(6, 'Verifying fortress asset…');
+      await this.assertGlbAsset(url);
+    }
 
     let gltf;
     try {
       gltf = await loader.loadAsync(url, (e) => {
         if (e.total > 0) {
           progress(
-            5 + (e.loaded / e.total) * 45,
-            `Downloading scene… ${Math.round((e.loaded / e.total) * 100)}%`,
+            8 + (e.loaded / e.total) * 42,
+            `Downloading fortress… ${Math.round((e.loaded / e.total) * 100)}%`,
           );
         }
       });
     } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      // Dev-only fallback: local API stream (never on production hosts)
+      const host = window.location.hostname;
+      const canLocal =
+        host === 'localhost' ||
+        host === '127.0.0.1' ||
+        new URLSearchParams(window.location.search).get('forceLocal') === '1';
+      if (!canLocal || mode === 'local') {
+        throw new Error(
+          `Failed to load war fortress from ${url}. ${msg}\n\n` +
+            `Production needs the real GLB on CDN:\n` +
+            `  wrangler r2 object put grudge-assets/models/war/huge_medieval_battle_scene.glb \\\n` +
+            `    --file="D:/Games/grudge-game-engine/huge_medieval_battle_scene.glb" \\\n` +
+            `    --content-type=model/gltf-binary --remote\n\n` +
+            `Local dev: npm run dev + /war-scene?local=1`,
+        );
+      }
       console.warn('[WarScene] CDN load failed, trying local middleware', err);
       progress(10, 'CDN miss — loading local D: scene…');
       gltf = await loader.loadAsync('/api/local-war-scene', (e) => {
