@@ -97,8 +97,20 @@ Live: `https://grudgewarlords.com/war-scene` (CDN path only; no `?local=1` on pr
 | `client/src/warscene/WarUnit.ts` | Skinned unit + anims |
 | `client/src/warscene/WarAIBrain.ts` | GOAP-lite goals (incl. siege) |
 | `client/src/warscene/WarWallSegment.ts` | Intact/broken HP walls |
+| `client/src/warscene/WarProjectileSystem.ts` | Harvest Fire_* → pooled archer arrows |
 | `client/src/pages/war-scene.tsx` | `/war-scene` UI |
 | `GET /api/local-war-scene` | Streams local GLB |
+
+## Flaming arrows (map cleanup → gameplay)
+
+Maya left `Fire_01_*` / `Fire_02_*` meshes floating mid-air. On load we:
+
+1. **Hide** all static `Fire_*` + `Smoke0*` baked VFX  
+2. **Clone** a Fire mesh into an **object pool** (≤48)  
+3. Archers fire **ballistic flaming arrows** with additive trail points  
+4. **Damage on impact** (not at bow release)
+
+Rapier (`@dimforge/rapier3d-compat`) is already a fleet dep via `PhysicsWorld` for characters/terrain; arrows stay kinematic for high-volume volleys.
 
 ## Island / texture best practices
 
