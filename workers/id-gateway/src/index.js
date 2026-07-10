@@ -217,7 +217,8 @@ function securityHeaders() {
  * and can be shared across *.grudge-studio.com (Domain=.grudge-studio.com).
  * Default Max-Age = 30 days when upstream omits or uses a short value.
  */
-const SESSION_COOKIE_MAX_AGE = 30 * 24 * 60 * 60;
+/** Match Railway JWT_SESSION_TTL default (90d) — longest practical fleet cookie */
+const SESSION_COOKIE_MAX_AGE = 90 * 24 * 60 * 60;
 
 function rewriteSetCookie(setCookieHeader) {
   if (!setCookieHeader) return setCookieHeader;

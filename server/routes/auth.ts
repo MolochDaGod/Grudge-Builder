@@ -33,33 +33,33 @@ import { isFleetAllowedReturnUrl, resolveFleetReturnUrl } from "@shared/fleet/au
 
 const JWT_SECRET = process.env.SESSION_SECRET || process.env.JWT_SECRET || "grudge-dev-secret";
 /**
- * Session JWT lifetime — as long as product allows for a signed site.
- * Default 30d (browser-cookie practical max for “stay signed in”).
- * Override with JWT_SESSION_TTL=7d|14d|30d (capped at 30d).
+ * Session JWT lifetime — longest practical “stay signed in” for fleet SSO.
+ * Default 90d. Override JWT_SESSION_TTL=30d|90d|180d|365d (capped at 365d).
+ * One login on id.grudge-studio.com should cover all *.grudge-studio.com apps.
  */
-const JWT_EXPIRES = normalizeSessionTtl(process.env.JWT_SESSION_TTL || process.env.SESSION_TTL || "30d");
-/** Cookie Max-Age seconds matching JWT_EXPIRES (default 30 days). */
+const JWT_EXPIRES = normalizeSessionTtl(process.env.JWT_SESSION_TTL || process.env.SESSION_TTL || "90d");
+/** Cookie Max-Age seconds matching JWT_EXPIRES (default 90 days). */
 const SESSION_MAX_AGE_SEC = ttlToSeconds(JWT_EXPIRES);
 /** Cross-app handoff launch token (short-lived; bridges to full session). */
-const LAUNCH_TTL = process.env.JWT_LAUNCH_TTL || "30m";
+const LAUNCH_TTL = process.env.JWT_LAUNCH_TTL || "60m";
 const LAUNCH_MAX_AGE_SEC = ttlToSeconds(LAUNCH_TTL);
 
 function normalizeSessionTtl(raw: string): string {
-  const m = String(raw || "30d").trim().match(/^(\d+)\s*([smhd])$/i);
-  if (!m) return "30d";
+  const m = String(raw || "90d").trim().match(/^(\d+)\s*([smhd])$/i);
+  if (!m) return "90d";
   const n = Math.max(1, parseInt(m[1], 10));
   const unit = m[2].toLowerCase();
-  // Cap at 30 days for production signed sessions
-  if (unit === "d" && n > 30) return "30d";
-  if (unit === "h" && n > 30 * 24) return "30d";
-  if (unit === "m" && n > 30 * 24 * 60) return "30d";
-  if (unit === "s" && n > 30 * 24 * 60 * 60) return "30d";
+  // Cap at 365 days (max product-allowed “remember me”)
+  if (unit === "d" && n > 365) return "365d";
+  if (unit === "h" && n > 365 * 24) return "365d";
+  if (unit === "m" && n > 365 * 24 * 60) return "365d";
+  if (unit === "s" && n > 365 * 24 * 60 * 60) return "365d";
   return `${n}${unit}`;
 }
 
 function ttlToSeconds(ttl: string): number {
   const m = String(ttl).trim().match(/^(\d+)\s*([smhd])$/i);
-  if (!m) return 30 * 24 * 60 * 60;
+  if (!m) return 90 * 24 * 60 * 60;
   const n = parseInt(m[1], 10);
   switch (m[2].toLowerCase()) {
     case "s":
@@ -786,6 +786,63 @@ export function registerAuthRoutes(app: Express) {
       res.status(401).json({ success: false, error: "Invalid or expired token" });
     }
   });
+
+  /**
+   * GET|POST /api/auth/session/claim
+   * Silent fleet re-entry: if browser already has a valid Grudge session cookie
+   * (Domain=.grudge-studio.com from id login), mint a fresh long-lived JWT for
+   * the calling satellite without showing the login UI.
+   * Call with credentials: 'include' from any *.grudge-studio.com origin.
+   */
+  const claimSession = async (req: Request, res: Response) => {
+    try {
+      const token = readSessionToken(req) || (req.body?.token as string) || "";
+      if (!token) {
+        return res.status(401).json({
+          success: false,
+          error: "No session",
+          hint: "Sign in once at id.grudge-studio.com — then claim works on all fleet hosts.",
+        });
+      }
+
+      const payload = jwt.verify(token, JWT_SECRET) as {
+        userId?: string;
+        grudgeId?: string;
+        username?: string;
+        type?: string;
+      };
+      if (payload.type === "launch") {
+        return res.status(400).json({
+          success: false,
+          error: "Launch tokens must use /api/auth/session/exchange",
+        });
+      }
+      if (!payload.userId) {
+        return res.status(401).json({ success: false, error: "Invalid session" });
+      }
+
+      const [user] = await db.select().from(users).where(eq(users.id, payload.userId)).limit(1);
+      if (!user) return res.status(404).json({ success: false, error: "User not found" });
+
+      const account = await ensureAccount(user.id);
+      const response = buildAuthResponse(
+        { id: user.id, username: user.username, grudgeId: user.grudgeId },
+        account,
+      );
+      setSessionCookie(res, response.token);
+      res.json({
+        ...response,
+        expiresIn: JWT_EXPIRES,
+        maxAgeSec: SESSION_MAX_AGE_SEC,
+        claimed: true,
+        fleetWide: true,
+      });
+    } catch {
+      res.status(401).json({ success: false, error: "Session expired — sign in again" });
+    }
+  };
+  app.get("/api/auth/session/claim", authRateLimit, claimSession);
+  app.post("/api/auth/session/claim", authRateLimit, claimSession);
 
   /** Resolve id.grudge-studio.com launch JWT → DB user (supports userId, sub, or grudgeId). */
   async function resolveLaunchTokenUser(launchToken: string, audience = "") {

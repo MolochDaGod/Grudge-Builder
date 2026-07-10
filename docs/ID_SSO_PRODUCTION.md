@@ -14,31 +14,41 @@
 
 ---
 
-## Session policy
+## Session policy (easiest + longest fleet entry)
 
 | Token | Default TTL | Purpose |
 |-------|-------------|---------|
-| Session JWT (`sso_token` / Bearer) | **30d** (`JWT_SESSION_TTL`) | App API calls; localStorage + HttpOnly cookie |
-| Launch JWT (`grudge_token`) | **30m** (`JWT_LAUNCH_TTL`) | One-shot bridge → session via grudge-bridge |
-| Cookie `grudge_auth_token` | Same as session | Silent `/auth/sso-check`; Domain `.grudge-studio.com` via gateway |
+| Session JWT (`sso_token` / Bearer) | **90d** (`JWT_SESSION_TTL`, max 365d) | App API calls; localStorage + HttpOnly cookie |
+| Launch JWT (`grudge_token`) | **60m** (`JWT_LAUNCH_TTL`) | One-shot bridge → session via grudge-bridge |
+| Cookie `grudge_auth_token` | Same as session | Silent SSO; Domain `.grudge-studio.com` via gateway |
+
+**One login on id → all Grudge Studio deployments** (no re-form):
+
+1. Login once at `id.grudge-studio.com` (Puter / email / Grudge button).
+2. Gateway sets `Domain=.grudge-studio.com` cookie (90d).
+3. Other apps call `POST /api/auth/session/claim` with `credentials: 'include'` **or** navigate to `/auth/sso-check?return=…`.
+4. Bootstrap + dash do claim silently on boot when no local token.
 
 Env (Railway):
 
 ```bash
-JWT_SESSION_TTL=30d          # max 30d
-JWT_LAUNCH_TTL=30m
+JWT_SESSION_TTL=90d          # max 365d
+JWT_LAUNCH_TTL=60m
 AUTH_EXTRA_RETURN_HOSTS=partner.example.com,app.signed-site.io
 FORCE_SECURE_COOKIES=1       # optional when NODE_ENV != production
 ```
 
-Refresh (stay signed in without re-login):
+Refresh / claim (stay signed in without re-login):
 
 ```http
 POST /api/auth/refresh
 Authorization: Bearer <session-jwt>
+
+POST /api/auth/session/claim
+Cookie: grudge_auth_token=…   # credentials: include from *.grudge-studio.com
 ```
 
-Bootstrap (`grudge-game-bootstrap.js`) auto-refreshes when &lt;2 days remain, and on tab focus.
+Bootstrap (`grudge-game-bootstrap.js`) auto-claims, auto-refreshes when &lt;2 days remain, and on tab focus.
 
 ---
 

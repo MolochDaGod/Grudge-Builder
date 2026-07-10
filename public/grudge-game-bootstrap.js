@@ -5,20 +5,21 @@
  *   <script src="https://id.grudge-studio.com/grudge-game-bootstrap.js"></script>
  *   <script>window.GRUDGE_AUTH_GATEWAY = 'https://id.grudge-studio.com';</script>
  *
- * Session policy (must stay aligned with server JWT_SESSION_TTL, default 30d):
+ * Session policy (must stay aligned with server JWT_SESSION_TTL, default 90d):
  * - Stores JWT under all fleet token keys for max satellite compatibility
  * - Picks up query + hash handoff (grudge_token, sso_token, token)
  * - Bridges launch tokens via grudge-bridge / session/exchange
+ * - Silent claim via cookie (*.grudge-studio.com) so one login covers the fleet
  * - Silent refresh via POST /api/auth/refresh while JWT still valid
  */
 (function (global) {
   'use strict';
 
   var GATEWAY = global.GRUDGE_AUTH_GATEWAY || 'https://id.grudge-studio.com';
-  /** Default session window — 30 days (matches Railway JWT_SESSION_TTL). */
+  /** Default session window — 90 days (matches Railway JWT_SESSION_TTL). */
   var SESSION_MS = (typeof global.GRUDGE_SESSION_MS === 'number' && global.GRUDGE_SESSION_MS > 0)
     ? global.GRUDGE_SESSION_MS
-    : 30 * 24 * 60 * 60 * 1000;
+    : 90 * 24 * 60 * 60 * 1000;
   var TOKEN_KEYS = [
     'grudge_auth_token',
     'grudge_session_token',
@@ -59,7 +60,25 @@
 
   function cookieOpts(maxAgeSec) {
     var secure = (global.location && global.location.protocol === 'https:') ? '; Secure' : '';
-    return '; path=/; max-age=' + maxAgeSec + '; SameSite=Lax' + secure;
+    // Mirror on parent domain when on *.grudge-studio.com so other subdomains pick up JS cookie
+    var domain = '';
+    try {
+      var h = global.location.hostname || '';
+      if (h === 'grudge-studio.com' || h.endsWith('.grudge-studio.com')) {
+        domain = '; Domain=.grudge-studio.com';
+      }
+    } catch (_) {}
+    return '; path=/; max-age=' + maxAgeSec + '; SameSite=Lax' + secure + domain;
+  }
+
+  function isStudioHost() {
+    try {
+      var h = global.location.hostname || '';
+      return h === 'grudge-studio.com' || h.endsWith('.grudge-studio.com') ||
+        h === 'grudgewarlords.com' || h === 'www.grudgewarlords.com';
+    } catch (_) {
+      return false;
+    }
   }
 
   function storeToken(token, grudgeId, username, maxAgeMs, opts) {
@@ -187,7 +206,51 @@
       scheduleRefresh();
       return Promise.resolve(true);
     }
-    return Promise.resolve(false);
+    // Silent fleet re-entry: studio cookie → JWT without login UI
+    return silentClaim();
+  }
+
+  /**
+   * Claim a long-lived session from the id hub cookie (one login → all deployments).
+   * Works for *.grudge-studio.com / grudgewarlords.com with credentials.
+   */
+  function silentClaim() {
+    var urls = [
+      GATEWAY + '/api/auth/session/claim',
+      '/api/auth/session/claim',
+    ];
+    var chain = Promise.resolve(false);
+    urls.forEach(function (url) {
+      chain = chain.then(function (done) {
+        if (done) return true;
+        return fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+          credentials: 'include',
+          body: '{}',
+        })
+          .then(function (r) { return r.ok ? r.json() : null; })
+          .then(function (data) {
+            if (!data) return false;
+            var t = data.sessionToken || data.token;
+            if (!t) return false;
+            var ttl = (typeof data.maxAgeSec === 'number' && data.maxAgeSec > 0)
+              ? data.maxAgeSec * 1000
+              : SESSION_MS;
+            storeToken(
+              t,
+              data.grudgeId || (data.user && data.user.grudgeId) || '',
+              data.username || (data.user && data.user.username) || '',
+              ttl,
+            );
+            global.dispatchEvent(new CustomEvent('grudge:auth:ready', { detail: { token: t, claimed: true } }));
+            scheduleRefresh();
+            return true;
+          })
+          .catch(function () { return false; });
+      });
+    });
+    return chain;
   }
 
   function bridgeLaunchToken(launchToken) {
@@ -299,12 +362,24 @@
     }
   }
 
-  /** Canonical login — /login?redirect_uri= (always works when id rewrites are correct). */
+  /**
+   * Prefer silent SSO (skips form when studio cookie exists), else full login.
+   * Longest entry: sso-check reuses id session; handoff returns 90d JWT.
+   */
   function login(returnUrl) {
     loginPage(returnUrl);
   }
 
   function loginPage(returnPath) {
+    var origin = global.location.origin;
+    var path = returnPath || '/auth/callback';
+    var dest = path.indexOf('http') === 0 ? path : origin + (path.charAt(0) === '/' ? path : '/' + path);
+    // sso-check: if already signed in on id, redirect back with tokens (no form)
+    global.location.href = GATEWAY + '/auth/sso-check?return=' + encodeURIComponent(dest);
+  }
+
+  /** Force full login UI even if a session cookie exists. */
+  function loginForce(returnPath) {
     var origin = global.location.origin;
     var path = returnPath || '/auth/callback';
     var dest = path.indexOf('http') === 0 ? path : origin + (path.charAt(0) === '/' ? path : '/' + path);
@@ -369,13 +444,21 @@
     pickup: pickupTokens,
     login: login,
     loginPage: loginPage,
+    loginForce: loginForce,
+    claim: silentClaim,
     isAuthenticated: isAuthenticated,
     getToken: readStoredToken,
     authHeaders: authHeaders,
     storeToken: storeToken,
     refresh: refreshSession,
     logout: logout,
-    require: function (returnUrl) { if (!isAuthenticated()) login(returnUrl); },
+    require: function (returnUrl) {
+      if (isAuthenticated()) return;
+      // Try silent claim first (no navigation), then SSO redirect
+      silentClaim().then(function (ok) {
+        if (!ok) login(returnUrl);
+      });
+    },
   };
 
   pickupTokens();
