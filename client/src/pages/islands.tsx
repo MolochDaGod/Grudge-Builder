@@ -78,6 +78,19 @@ const ISLAND_MODES: IslandModeEntry[] = [
     badgeColor: "bg-red-600 text-white",
   },
   {
+    id: "war-scene",
+    label: "Warlord Isle Siege",
+    subtitle: "CB-style · walls · zones · hero",
+    description:
+      "Canonical medieval siege at grudgewarlords.com/war-scene — deploy, catapults, capture zones, grudge6 hero.",
+    path: "/war-scene",
+    icon: <Swords className="w-5 h-5" />,
+    color: "from-amber-950/90 to-orange-900/70",
+    border: "border-amber-600/60 hover:border-amber-400",
+    badge: "SIEGE",
+    badgeColor: "bg-amber-700 text-white",
+  },
+  {
     id: "island",
     label: "2D Island",
     subtitle: "Auto-harvest · sprite map",

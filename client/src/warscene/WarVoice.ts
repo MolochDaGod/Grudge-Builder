@@ -1,13 +1,12 @@
 /**
- * WarVoice — AI declaration / herald speech for war cinematics.
+ * WarVoice — cinematic TTS for war declarations.
  *
- * Best practice stack (browser-first, progressive enhancement):
- *  1. Web Speech API (instant, free, works offline after voices load)
- *  2. Optional remote TTS via /api/ai speech if wired later
+ * Priority:
+ *  1. ElevenLabs via POST /api/war/tts (WoW-style deep fantasy voices)
+ *  2. Web Speech API fallback
  *
- * Voices prefer deep male for warlords, brighter for heralds.
+ * Never put API keys in the client — server proxy only.
  */
-
 export type WarVoiceRole = 'herald' | 'crimson_lord' | 'azure_lord' | 'narrator';
 
 export interface SpeakOpts {
@@ -25,30 +24,51 @@ const ROLE_HINT: Record<
   WarVoiceRole,
   { rate: number; pitch: number; prefer: RegExp }
 > = {
-  herald: { rate: 0.92, pitch: 1.05, prefer: /google uk english female|samantha|zira|female|aria/i },
-  crimson_lord: { rate: 0.88, pitch: 0.82, prefer: /google uk english male|daniel|david|male|mark/i },
-  azure_lord: { rate: 0.9, pitch: 0.9, prefer: /google us english|alex|fred|male/i },
-  narrator: { rate: 0.95, pitch: 1.0, prefer: /google|microsoft|natural|neural/i },
+  herald: {
+    rate: 0.92,
+    pitch: 1.02,
+    prefer: /google uk english male|daniel|george|male/i,
+  },
+  crimson_lord: {
+    rate: 0.85,
+    pitch: 0.78,
+    prefer: /google uk english male|daniel|david|male|mark/i,
+  },
+  azure_lord: {
+    rate: 0.88,
+    pitch: 0.88,
+    prefer: /google us english|alex|fred|male/i,
+  },
+  narrator: {
+    rate: 0.92,
+    pitch: 0.95,
+    prefer: /google|microsoft|natural|neural|male/i,
+  },
 };
 
 export class WarVoice {
-  private supported: boolean;
+  private speechSupported: boolean;
   private queue: Array<{ text: string; opts: SpeakOpts; resolve: LineDone }> = [];
   private speaking = false;
   private muted = false;
   private voices: SpeechSynthesisVoice[] = [];
+  private audio: HTMLAudioElement | null = null;
+  private preferEleven = true;
+  private elevenAvailable: boolean | null = null;
 
   constructor() {
-    this.supported =
+    this.speechSupported =
       typeof window !== 'undefined' && typeof window.speechSynthesis !== 'undefined';
-    if (this.supported) {
+    if (this.speechSupported) {
       this.refreshVoices();
       window.speechSynthesis.onvoiceschanged = () => this.refreshVoices();
     }
+    // Probe ElevenLabs proxy once
+    void this.probeEleven();
   }
 
   get isSupported(): boolean {
-    return this.supported;
+    return this.speechSupported || this.preferEleven;
   }
 
   setMuted(m: boolean): void {
@@ -56,8 +76,22 @@ export class WarVoice {
     if (m) this.cancel();
   }
 
+  private async probeEleven(): Promise<void> {
+    try {
+      const r = await fetch('/api/war/tts/status', { method: 'GET' });
+      if (!r.ok) {
+        this.elevenAvailable = false;
+        return;
+      }
+      const j = (await r.json()) as { configured?: boolean };
+      this.elevenAvailable = !!j.configured;
+    } catch {
+      this.elevenAvailable = false;
+    }
+  }
+
   private refreshVoices(): void {
-    if (!this.supported) return;
+    if (!this.speechSupported) return;
     this.voices = window.speechSynthesis.getVoices();
   }
 
@@ -70,24 +104,20 @@ export class WarVoice {
     return pool.find((v) => prefer.test(v.name)) ?? pool[0] ?? null;
   }
 
-  /** Speak one line; resolves when utterance ends (or immediately if muted/unsupported). */
   speak(text: string, opts: SpeakOpts = {}): Promise<void> {
     return new Promise((resolve) => {
-      if (!this.supported || this.muted || !text.trim()) {
+      if (this.muted || !text.trim()) {
         resolve();
         return;
       }
       if (opts.queue === false && this.speaking) {
-        window.speechSynthesis.cancel();
-        this.queue = [];
-        this.speaking = false;
+        this.cancel();
       }
       this.queue.push({ text: text.trim(), opts, resolve });
-      this.pump();
+      void this.pump();
     });
   }
 
-  /** Speak several lines in sequence. */
   async speakScript(
     lines: Array<{ text: string; role?: WarVoiceRole; pauseMs?: number }>,
   ): Promise<void> {
@@ -98,40 +128,105 @@ export class WarVoice {
   }
 
   cancel(): void {
-    if (this.supported) window.speechSynthesis.cancel();
+    if (this.speechSupported) window.speechSynthesis.cancel();
+    if (this.audio) {
+      this.audio.pause();
+      this.audio.src = '';
+      this.audio = null;
+    }
     for (const q of this.queue) q.resolve();
     this.queue = [];
     this.speaking = false;
   }
 
-  private pump(): void {
-    if (this.speaking || !this.queue.length || !this.supported) return;
+  private async pump(): Promise<void> {
+    if (this.speaking || !this.queue.length) return;
     const next = this.queue.shift()!;
     this.speaking = true;
     const role = next.opts.role ?? 'narrator';
-    const hint = ROLE_HINT[role];
-    const u = new SpeechSynthesisUtterance(next.text);
-    u.rate = next.opts.rate ?? hint.rate;
-    u.pitch = next.opts.pitch ?? hint.pitch;
-    u.volume = next.opts.volume ?? 1;
-    const voice = this.pickVoice(role);
-    if (voice) u.voice = voice;
-    u.onend = () => {
-      this.speaking = false;
-      next.resolve();
-      this.pump();
-    };
-    u.onerror = () => {
-      this.speaking = false;
-      next.resolve();
-      this.pump();
-    };
-    window.speechSynthesis.speak(u);
+
+    try {
+      const usedEleven = await this.speakEleven(next.text, role, next.opts.volume ?? 1);
+      if (!usedEleven) {
+        await this.speakWeb(next.text, role, next.opts);
+      }
+    } catch {
+      await this.speakWeb(next.text, role, next.opts);
+    }
+
+    this.speaking = false;
+    next.resolve();
+    void this.pump();
+  }
+
+  private async speakEleven(
+    text: string,
+    role: WarVoiceRole,
+    volume: number,
+  ): Promise<boolean> {
+    if (!this.preferEleven) return false;
+    if (this.elevenAvailable === false) return false;
+
+    try {
+      const r = await fetch('/api/war/tts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text, role }),
+      });
+      if (!r.ok) {
+        this.elevenAvailable = false;
+        return false;
+      }
+      this.elevenAvailable = true;
+      const blob = await r.blob();
+      if (!blob.size || !blob.type.includes('audio')) return false;
+
+      const url = URL.createObjectURL(blob);
+      await new Promise<void>((resolve, reject) => {
+        const audio = new Audio(url);
+        this.audio = audio;
+        audio.volume = Math.min(1, Math.max(0, volume));
+        audio.onended = () => {
+          URL.revokeObjectURL(url);
+          this.audio = null;
+          resolve();
+        };
+        audio.onerror = () => {
+          URL.revokeObjectURL(url);
+          this.audio = null;
+          reject(new Error('audio_play_failed'));
+        };
+        void audio.play().catch(reject);
+      });
+      return true;
+    } catch {
+      this.elevenAvailable = false;
+      return false;
+    }
+  }
+
+  private speakWeb(text: string, role: WarVoiceRole, opts: SpeakOpts): Promise<void> {
+    return new Promise((resolve) => {
+      if (!this.speechSupported) {
+        resolve();
+        return;
+      }
+      const hint = ROLE_HINT[role];
+      const u = new SpeechSynthesisUtterance(text);
+      u.rate = opts.rate ?? hint.rate;
+      u.pitch = opts.pitch ?? hint.pitch;
+      u.volume = opts.volume ?? 1;
+      const voice = this.pickVoice(role);
+      if (voice) u.voice = voice;
+      u.onend = () => resolve();
+      u.onerror = () => resolve();
+      window.speechSynthesis.speak(u);
+    });
   }
 
   dispose(): void {
     this.cancel();
-    if (this.supported) window.speechSynthesis.onvoiceschanged = null;
+    if (this.speechSupported) window.speechSynthesis.onvoiceschanged = null;
   }
 }
 

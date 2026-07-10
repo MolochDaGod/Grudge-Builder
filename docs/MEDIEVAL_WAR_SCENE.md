@@ -126,15 +126,31 @@ Rapier (`@dimforge/rapier3d-compat`) is already a fleet dep via `PhysicsWorld` f
 
 Full PBR re-bake of the Maya dump is a separate asset pipeline step (`grudge-convert` / Blender). Runtime pass improves presentation without re-export.
 
-## AI voices
+## AI voices (ElevenLabs · WoW-style)
 
-`WarVoice` uses the **Web Speech API** (instant, no key):
+Canonical surface: **https://grudgewarlords.com/war-scene**
 
-- `herald` — declaration lines  
-- `crimson_lord` / `azure_lord` — war threats  
-- `narrator` — island atmosphere  
+`WarVoice` priority:
 
-Future: swap utterance backend to Puter/Inworld `tts-2` when fleet speech route is live.
+1. **ElevenLabs** via `POST /api/war/tts` `{ text, role }` → `audio/mpeg`  
+2. Web Speech API fallback  
+
+| Role | Character |
+|------|-----------|
+| `herald` | Royal announcer (Daniel) |
+| `crimson_lord` | Deep aggressive warlord (Clyde) |
+| `azure_lord` | Noble defender (Arnold) |
+| `narrator` | Cinematic trailer (Adam) |
+
+Server env (Railway / local `.env` — **never commit keys**):
+
+```
+ELEVENLABS_API_KEY=sk_…
+# or ELEVEN_LABS_API=
+# optional overrides: ELEVEN_VOICE_HERALD, ELEVEN_VOICE_CRIMSON, …
+```
+
+Status: `GET /api/war/tts/status`
 
 ## Deployment model (vs “all units on map”)
 

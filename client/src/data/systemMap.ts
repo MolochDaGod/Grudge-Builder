@@ -200,6 +200,19 @@ const routeSeeds: RouteSeed[] = [
   { path: "/dungeon",           label: "Dungeon",            group: "combat" },
   { path: "/dungeon-tiled",     label: "Dungeon (tiled)",    group: "combat", notes: "Alias of /dungeon." },
   { path: "/tower-wars",        label: "Tower Wars",         group: "combat" },
+  {
+    path: "/war-scene",
+    label: "Warlord Isle Siege",
+    group: "combat",
+    notes:
+      "Canonical CB-style siege at https://grudgewarlords.com/war-scene (also client.grudge-studio.com). ElevenLabs TTS + wallet FAB + grudge6 heroes.",
+  },
+  {
+    path: "/medieval-battle",
+    label: "Medieval Battle (alias)",
+    group: "combat",
+    notes: "Alias of /war-scene.",
+  },
 
   { path: "/island",            label: "Island",             group: "world" },
   { path: "/island-v2",         label: "Island v2",          group: "world" },

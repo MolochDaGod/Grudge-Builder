@@ -273,6 +273,10 @@ export async function registerRoutes(
   const { registerMeRoutes } = await import("./routes/me");
   registerMeRoutes(app);
 
+  // War scene ElevenLabs TTS (WoW-style herald / warlords)
+  const { registerWarTtsRoutes } = await import("./routes/warTts");
+  registerWarTtsRoutes(app);
+
   // Local huge medieval battle GLB (dev) — 517MB on D: drive
   app.get("/api/local-war-scene", (req, res) => {
     const candidates = [
