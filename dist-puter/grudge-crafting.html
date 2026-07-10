@@ -1665,8 +1665,7 @@ async function checkAuth() {
     // After SSO return: open Account panel so characters/inventory are visible
     if (GrudgeFleet.isLoggedIn()) {
       try {
-        if (typeof showPage === 'function') showPage('account');
-        else if (typeof navigateTo === 'function') navigateTo('account');
+        if (typeof navigate === 'function') navigate('account');
       } catch { /* panel optional */ }
       if (typeof renderAll === 'function') renderAll();
       const n = (GrudgeFleet.getCharacters() || []).length;
