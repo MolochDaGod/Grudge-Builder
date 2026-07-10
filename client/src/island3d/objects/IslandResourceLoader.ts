@@ -1,11 +1,13 @@
 /**
- * IslandResourceLoader — stylized multi-mesh packs for harvest + scatter.
- * Square-leaf island_tree / megakit banned. Palms + stylized vegetation only.
+ * IslandResourceLoader — harvest + scatter meshes.
+ * Trees/rocks: battle NatureDecor pack (CommonTree / Pebble) from game.grudge-studio.com.
+ * Square-leaf island_tree / billboard forests banned.
  */
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { assetUrl } from '@/lib/assetConfig';
 import {
+  BATTLE_NATURE_PACK,
   harvestCrystalPack,
   harvestPalmPack,
   harvestRockPack,
@@ -21,6 +23,7 @@ const palmPack = harvestPalmPack();
 const crystalPack = harvestCrystalPack();
 
 export const ISLAND_RESOURCE_MODELS = {
+  /** Default tree path — cloneIslandResource picks random battle CommonTree */
   tree: treePack.path,
   palm: palmPack.path,
   rock: rockPack.path,
@@ -29,8 +32,8 @@ export const ISLAND_RESOURCE_MODELS = {
   debris: '/models/environment/harvest_rock_debris.glb',
   goldRock: STYLIZED_PACK_PATHS.oreNodes,
   stump: '/models/environment/harvest_stump.glb',
-  flower: STYLIZED_PACK_PATHS.flowers,
-  plant: STYLIZED_PACK_PATHS.foliage,
+  flower: BATTLE_NATURE_PACK.flowers[0],
+  plant: BATTLE_NATURE_PACK.bushes[0],
 } as const;
 
 export type IslandResourceType = keyof typeof ISLAND_RESOURCE_MODELS;
@@ -66,13 +69,25 @@ const PRELOAD_RESOURCE_TYPES: IslandResourceType[] = [
 ];
 
 export async function preloadIslandResources(): Promise<void> {
-  await Promise.all(
-    PRELOAD_RESOURCE_TYPES.map((type) =>
+  // Preload full battle tree + rock sets (same as tactics NatureDecor)
+  const battlePaths = [
+    ...BATTLE_NATURE_PACK.trees,
+    ...BATTLE_NATURE_PACK.rocks,
+    ...BATTLE_NATURE_PACK.bushes,
+    ...BATTLE_NATURE_PACK.mushrooms,
+  ];
+  await Promise.all([
+    ...battlePaths.map((p) =>
+      loadIslandResourceTemplate(p).catch((err) => {
+        console.warn(`[IslandResource] battle preload failed ${p}`, err);
+      }),
+    ),
+    ...PRELOAD_RESOURCE_TYPES.map((type) =>
       loadIslandResourceTemplate(ISLAND_RESOURCE_MODELS[type]).catch((err) => {
         console.warn(`[IslandResource] preload ${type} failed`, err);
       }),
     ),
-  );
+  ]);
 }
 
 const VARIANT_TABLE: Record<IslandResourceType, string[]> = {
@@ -119,6 +134,30 @@ export function cloneNamedChild(template: THREE.Group, names: string[]): THREE.O
 }
 
 export async function cloneIslandResource(type: IslandResourceType): Promise<THREE.Object3D> {
+  // Battle pack: single-mesh GLTFs — pick random CommonTree / Pebble / Bush
+  if (type === 'tree') {
+    const paths = treePack.paths ?? BATTLE_NATURE_PACK.trees;
+    const path = paths[Math.floor(Math.random() * paths.length)]!;
+    const template = await loadIslandResourceTemplate(path);
+    return template.clone(true);
+  }
+  if (type === 'rock') {
+    const paths = rockPack.paths ?? BATTLE_NATURE_PACK.rocks;
+    const path = paths[Math.floor(Math.random() * paths.length)]!;
+    const template = await loadIslandResourceTemplate(path);
+    return template.clone(true);
+  }
+  if (type === 'flower') {
+    const path = BATTLE_NATURE_PACK.flowers[Math.floor(Math.random() * BATTLE_NATURE_PACK.flowers.length)]!;
+    const template = await loadIslandResourceTemplate(path);
+    return template.clone(true);
+  }
+  if (type === 'plant') {
+    const path = BATTLE_NATURE_PACK.bushes[Math.floor(Math.random() * BATTLE_NATURE_PACK.bushes.length)]!;
+    const template = await loadIslandResourceTemplate(path);
+    return template.clone(true);
+  }
+
   const path = ISLAND_RESOURCE_MODELS[type];
   const template = await loadIslandResourceTemplate(path);
   const names = VARIANT_TABLE[type] ?? [];
@@ -137,6 +176,10 @@ export async function cloneFromPackPath(
     throw new Error(`Banned: ${modelPath}`);
   }
   const template = await loadIslandResourceTemplate(modelPath);
+  // Single-mesh battle GLTFs (CommonTree etc.) — full clone
+  if (!variantNames.length || template.children.length <= 1) {
+    return template.clone(true);
+  }
   return cloneNamedChild(template, variantNames);
 }
 

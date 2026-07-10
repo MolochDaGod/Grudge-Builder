@@ -118,11 +118,20 @@ import {
   HOME_ISLAND_OCEAN_SIZE_M,
   HOME_ISLAND_SEAFLOOR_DEPTH_M,
   HOME_ISLAND_TERRAIN_SEGMENTS,
+  HOME_ISLAND_BOARD_CELL_M,
+  HOME_ISLAND_DISABLE_OCEAN,
 } from '@shared/definitions/homeIslandQuality';
+import {
+  createBoardGrid3D,
+  boardSpawnPosition,
+  BOARD_CELL_M,
+  type BoardCell,
+} from '../terrain/BoardGrid3D';
+import { scatterBattleNatureOnTerrain } from '../objects/BattleNatureScatter';
 
 export type Island3DMode = 'procedural' | 'lobby' | 'zone';
 
-/** Canonical water surface for procedural home islands */
+/** Canonical water surface for procedural home islands (used if ocean enabled) */
 export const PROCEDURAL_WATER_LEVEL = -2;
 
 export interface Island3DEngineConfig {
@@ -173,6 +182,13 @@ export interface Island3DEngineConfig {
   /** Account + captain for dock ship roster */
   accountId?: string;
   captainId?: string | null;
+  /**
+   * Home island: omit Gerstner ocean plane (default true — board play surface).
+   * Lobby / zone still use water where appropriate.
+   */
+  disableOcean?: boolean;
+  /** Draw board XY grid + cell labels (default true for procedural home island) */
+  showBoardGrid?: boolean;
 }
 
 export class Island3DEngine {
@@ -258,6 +274,12 @@ export class Island3DEngine {
   public mountainTriad: EvilMountainTriadSystem | null = null;
   public proceduralForest: InstancedProceduralForest | null = null;
   public harvestZones: HarvestZonesResult | null = null;
+  /** Board XY labels / lines for hero placement */
+  public boardGrid: THREE.Group | null = null;
+  /** 4 canopy layers around forest zones (not a second full scatter) */
+  public treeCanopyLayers: THREE.Group | null = null;
+  /** Last board cell the hero snapped to */
+  public spawnBoardCell: BoardCell | null = null;
 
   // Raycaster for mouse picking
   private raycaster = new THREE.Raycaster();
@@ -632,19 +654,33 @@ export class Island3DEngine {
     );
 
     this.terrain.terrainMesh.material = terrainMaterial;
-    this.flattenTerrainBelowWater(
-      this.terrain.terrainMesh,
-      PROCEDURAL_WATER_LEVEL,
-      HOME_ISLAND_SEAFLOOR_DEPTH_M,
-    );
+    // Enable terrain as primary collider mesh for raycasts / feet
+    this.terrain.terrainMesh.userData.collider = true;
+    this.terrain.terrainMesh.receiveShadow = true;
+
+    const noOcean =
+      this.config.disableOcean !== false && HOME_ISLAND_DISABLE_OCEAN !== false;
+    if (!noOcean) {
+      this.flattenTerrainBelowWater(
+        this.terrain.terrainMesh,
+        PROCEDURAL_WATER_LEVEL,
+        HOME_ISLAND_SEAFLOOR_DEPTH_M,
+      );
+    }
     this.scene.add(this.terrain.terrainScene);
     progress(28);
 
-    // 2. Deep ocean beyond island rim
-    this.createWaterPlane();
+    // 2. Ocean optional — home island defaults to dry board (no conflicting water plane)
+    if (!noOcean) {
+      this.createWaterPlane();
+    } else {
+      removeDuplicateWaterMeshes(this.scene);
+      this.waterPlane = null;
+      console.log('[Island3D] Ocean disabled — board landmass only (no Gerstner plane)');
+    }
     progress(32);
 
-    // 3. Harvest zones (forest / rock / gem / hemp / flower / scrap) across full landmass
+    // 3. Harvest zones (forest / rock / gem / hemp / flower / scrap) — single harvest SSOT
     const zoneDefs = placeProceduralHarvestZones(
       this.config.seed,
       this.terrain.terrainMesh,
@@ -674,7 +710,7 @@ export class Island3DEngine {
     );
     progress(48);
 
-    // 4. Shore/dock + scrap (land trees/rocks/etc. live in harvest zones)
+    // 4. Shore/dock only — land harvest lives in zones (no tree/rock double deploy)
     this.placedNodes = placeResourceNodes(
       this.terrain.biomeMap,
       this.terrain.terrainMesh,
@@ -687,35 +723,51 @@ export class Island3DEngine {
       ['tree', 'rock', 'crystal', 'hemp', 'flower', 'bush', 'herb'],
     );
 
-    // 5. Interactive harvestables + dock
+    // 5. Dock / scrap harvestables only
     this.createHarvestables();
     progress(55);
 
-    // 6. Scatter decorations
+    // 6. Scatter decorations (rocks/props) — not a second tree forest
     this.createDecorations();
 
-    // 6b. Organized nature foliage across full 1024m (density-scaled)
-    const naturePayload = resolveNatureScatterPayload({
-      stored: this.config.rtsNatureScatter,
-      islandSeed: islandSeedToNumber(this.config.seed),
-      biome: this.config.biome ?? foundation.preferredBiomes[0] ?? 'beach',
-      heightmap: this.config.rtsHeightmap,
-      worldSizeM: HOME_ISLAND_WORLD_SIZE_M,
-      seedString: this.config.seed,
-    });
-    const foliage = await scatterRtsNatureInScene(naturePayload, this.terrain.terrainMesh);
-    if (foliage.children.length > 0) {
-      this.scene.add(foliage);
-    } else {
-      await this.createProceduralForest();
-    }
+    // 6b. BATTLE nature pack (game.grudge-studio.com/game/battle NatureDecor)
+    // CommonTree / DeadTree / Pine / Pebble / Bush — NOT stylized multi-pack dumps
+    this.treeCanopyLayers = await scatterBattleNatureOnTerrain(
+      this.scene,
+      this.terrain.terrainMesh,
+      {
+        worldSizeM: HOME_ISLAND_WORLD_SIZE_M,
+        seed: this.config.seed,
+        campClearRadiusM: foundation.campClearRadiusM ?? HOME_ISLAND_CAMP_CLEAR_RADIUS_M,
+        campX: campWorld.x,
+        campZ: campWorld.z,
+        layers: 4,
+        treeCount: 200,
+        rockCount: 100,
+        bushCount: 80,
+      },
+    );
+    // BattleNatureScatter already places 4 density layers (CommonTree pack).
+    // Do NOT stack stylized / realistic_trees — that was the conflicting deploy.
     progress(68);
 
-    // 7. Detail layers — grass + sand overlays
+    // 7. Detail layers — grass + sand overlays (textures for land board)
     this.createDetailLayers();
     progress(72);
 
-    // 8. NavMesh for allies / wildlife
+    // 7b. Board XY grid + cell labels (A1 / D12 style) for hero placement
+    if (this.config.showBoardGrid !== false) {
+      this.boardGrid = createBoardGrid3D(this.terrain.terrainMesh, {
+        worldSizeM: HOME_ISLAND_WORLD_SIZE_M,
+        cellM: HOME_ISLAND_BOARD_CELL_M || BOARD_CELL_M,
+        labelEvery: 10,
+        showLabels: true,
+        showLines: true,
+      });
+      this.scene.add(this.boardGrid);
+    }
+
+    // 8. NavMesh for allies / wildlife — align cell size with board when possible
     this.navMesh = new TerrainNavMesh(
       this.terrain.terrainMesh,
       this.terrain.biomeMap,
@@ -723,14 +775,14 @@ export class Island3DEngine {
       this.terrain.gridH,
       HOME_ISLAND_WORLD_SIZE_M,
       HOME_ISLAND_WORLD_SIZE_M,
-      HOME_ISLAND_NAVMESH_CELL_M,
+      Math.max(HOME_ISLAND_NAVMESH_CELL_M, HOME_ISLAND_BOARD_CELL_M),
     );
     progress(78);
 
     // 9. Ally manager
     this.allyManager = new AllyManager(this.scene, this.navMesh, this.terrain.terrainMesh);
 
-    // 10. Building system — camp plateau constraints
+    // 10. Building system — camp plateau constraints + board snap
     this.building = new BuildingSystem(this.scene, this.camera);
     this.building.setBuildConstraints({
       terrainMesh: this.terrain.terrainMesh,
@@ -744,18 +796,22 @@ export class Island3DEngine {
     });
     progress(84);
 
-    // 11. Character (harvest / combat / build modes)
+    // 11. Character — snapped to board XY cell, feet on terrain
     if (this.config.enableCharacter !== false) {
       this.spawnCharacter();
     }
 
-    // 12. Wildlife — biome-aware land + ocean fish (regenerative)
-    this.creatures = new CreatureManager(this.scene, PROCEDURAL_WATER_LEVEL, this.config.seed.length);
+    // 12. Wildlife — land only when ocean disabled (no fish over dry board)
+    this.creatures = new CreatureManager(
+      this.scene,
+      noOcean ? -999 : PROCEDURAL_WATER_LEVEL,
+      this.config.seed.length,
+    );
     const wildlifeBiome = this.wildlifeBiomeFor(this.config.biome ?? foundation.preferredBiomes[0]);
     const wildlifeRadius = Math.round(HOME_ISLAND_WORLD_SIZE_M * 0.42);
     this.creatures.spawnForBiome(this.terrain.terrainMesh, wildlifeBiome, wildlifeRadius, {
       land: HOME_ISLAND_ANIMAL_TARGET,
-      fish: Math.max(8, Math.floor(HOME_ISLAND_ANIMAL_TARGET * 0.6)),
+      fish: noOcean ? 0 : Math.max(8, Math.floor(HOME_ISLAND_ANIMAL_TARGET * 0.6)),
     });
     progress(90);
 
@@ -765,8 +821,9 @@ export class Island3DEngine {
     if (this.navMesh) this.creatures.setNavMesh(this.navMesh);
     progress(100);
     console.log(
-      `[Island3D] Home island systems ready — harvest zones, nature, navmesh ${HOME_ISLAND_NAVMESH_CELL_M}m, ` +
-        `build camp, wildlife=${wildlifeBiome}, mountain dungeon`,
+      `[Island3D] Home island ready — board ${HOME_ISLAND_BOARD_CELL_M}m cells, harvest+4 canopy layers, ` +
+        `nav ${HOME_ISLAND_NAVMESH_CELL_M}m, ocean=${!noOcean}, wildlife=${wildlifeBiome}`,
+      this.spawnBoardCell ? `spawn@${this.spawnBoardCell.label}` : '',
     );
   }
 
@@ -1261,24 +1318,41 @@ export class Island3DEngine {
     // this.scene.add(this.grassBlades.mesh);
   }
 
-  /** Spawn or respawn the playable character */
+  /** Spawn or respawn the playable character on a labeled board cell */
   private spawnCharacter(): void {
     if (!this.terrain) return;
 
     const campPct = this.config.campPositionPercent ?? HOME_ISLAND_DEFAULT_CAMP_PERCENT;
     const campWorld = campPercentToWorld(campPct, HOME_ISLAND_WORLD_SIZE_M);
-    const spawnY = getTerrainHeightAt(this.terrain.terrainMesh, campWorld.x, campWorld.z) ?? 2;
-    // Feet on terrain — model fit plants local feet at 0; no +2m hover
-    const startPos = new THREE.Vector3(campWorld.x, spawnY, campWorld.z);
+    const cellM = HOME_ISLAND_BOARD_CELL_M || BOARD_CELL_M;
+    const { position: startPos, cell } = boardSpawnPosition(
+      this.terrain.terrainMesh,
+      campWorld.x,
+      campWorld.z,
+      HOME_ISLAND_WORLD_SIZE_M,
+      cellM,
+    );
+    this.spawnBoardCell = cell;
+
+    const noOcean =
+      this.config.disableOcean !== false && HOME_ISLAND_DISABLE_OCEAN !== false;
 
     this.character = new CharacterController3D({
       scene: this.scene,
       camera: this.camera,
       terrainMesh: this.terrain.terrainMesh,
       startPosition: startPos,
-      physics: { waterLevel: PROCEDURAL_WATER_LEVEL, characterHeight: 2.0 },
+      physics: {
+        // Far below map when dry board so walk never enters swim state
+        waterLevel: noOcean ? -999 : PROCEDURAL_WATER_LEVEL,
+        characterHeight: 2.0,
+      },
       callbacks: this.config.physicsCallbacks,
     });
+
+    console.log(
+      `[Island3D] Hero on board cell ${cell.label} @ (${startPos.x.toFixed(1)}, ${startPos.y.toFixed(1)}, ${startPos.z.toFixed(1)})`,
+    );
 
     // Disable orbit controls — character owns the camera now
     this.controls.enabled = false;

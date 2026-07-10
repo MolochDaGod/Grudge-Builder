@@ -1,5 +1,6 @@
 /**
- * HarvestableTree — stylized CDN packs only (vegetation / palms / example island).
+ * HarvestableTree — battle NatureDecor trees (CommonTree_*.gltf).
+ * Same pack as https://game.grudge-studio.com/game/battle
  * No square-leaf island_tree. No procedural poly canopy fallback.
  */
 import * as THREE from 'three';
@@ -61,7 +62,7 @@ export function createHarvestableTree(
   return tree;
 }
 
-/** Mount stylized tree (vegetation → palm fallback). Never poly billboard canopy. */
+/** Mount battle CommonTree (then palm fallback). Never poly billboard canopy. */
 export async function mountHarvestableTreeModel(
   tree: HarvestableTree,
   scale: number = 1,
@@ -71,7 +72,8 @@ export async function mountHarvestableTreeModel(
     try {
       const model = await cloneIslandResource(type);
       tree.group.clear();
-      fitModelToHeight(model, harvestFitHeightM('tree', scale));
+      // Battle CommonTree authoring height — fit to ~6–10m like NatureDecor scales
+      fitModelToHeight(model, harvestFitHeightM('tree', scale) * (type === 'tree' ? 0.85 : 1));
       tree.group.add(model);
       tree.meshReady = true;
       tree.group.visible = true;
@@ -80,7 +82,7 @@ export async function mountHarvestableTreeModel(
       /* try next pack */
     }
   }
-  console.error('[HarvestableTree] All stylized packs failed — tree stays hidden (no poly leaves)');
+  console.error('[HarvestableTree] Battle CommonTree pack failed — tree stays hidden');
   tree.meshReady = false;
   tree.group.visible = false;
 }

@@ -14,11 +14,24 @@ export const HOME_ISLAND_ANIMAL_TARGET = 18;
 /**
  * 3D harvest zones across 1024m: regrow anchors (forest/quarry/beach) + procedural
  * patches covering forest / rock / gem / hemp / flower / scrap biomes.
+ * (+4 forest emphasis vs historical 28 — denser board without second full scatter)
  */
-export const HOME_ISLAND_HARVEST_ZONE_COUNT = 28;
+export const HOME_ISLAND_HARVEST_ZONE_COUNT = 32;
 
 /** Min spacing between 3D harvest zones (meters) — denser than RTS core */
-export const HOME_ISLAND_HARVEST_ZONE_SPACING_M = 52;
+export const HOME_ISLAND_HARVEST_ZONE_SPACING_M = 48;
+
+/**
+ * Extra canopy layers (understory → emergent) around forest zones.
+ * These are NOT a second island-wide nature deploy.
+ */
+export const HOME_ISLAND_TREE_CANOPY_LAYERS = 4;
+
+/** Home island board cell size (meters) — hero feet snap to cell centers */
+export const HOME_ISLAND_BOARD_CELL_M = 4;
+
+/** Procedural home island: no Gerstner ocean plane (board play surface) */
+export const HOME_ISLAND_DISABLE_OCEAN = true;
 
 /** Flat build hub radius in world meters (1024m island) */
 export const HOME_ISLAND_CAMP_CLEAR_RADIUS_M = 88;

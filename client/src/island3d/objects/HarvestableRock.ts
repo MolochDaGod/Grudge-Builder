@@ -1,6 +1,6 @@
 /**
- * HarvestableRock — CDN island_rock pack variants.
- * No dodecahedron flash: hidden until GLB mounts. Poly mesh is last resort only.
+ * HarvestableRock — battle NatureDecor pebbles/rocks (Pebble_Round / Rock_Medium).
+ * Same pack as https://game.grudge-studio.com/game/battle
  */
 import * as THREE from 'three';
 import { harvestFitHeightM } from '@shared/definitions/homeIslandSpec';

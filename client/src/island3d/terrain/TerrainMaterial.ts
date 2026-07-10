@@ -28,20 +28,19 @@ export function createTerrainMaterial(config: TerrainMaterialConfig = {}): THREE
     textures = loadTerrainTextures(),
   } = config;
 
-  // Heights relative to waterline ≈ 0 (flattenTerrainBelowWater removes submerged verts).
-  // The blended material uses vPosition.z for height (terrain local space)
-  // and `slope` for cliff detection.
-  const wl = 0; // canonical water level for layer bands
+  // Heights relative to board land (ocean optional). Blended layers use terrain local Z.
+  // Dry board: grass base first — avoid seafloor “fake water” look when ocean is disabled.
+  const wl = 0;
   const material = Terrain.generateBlendedMaterial([
-    // Layer 0 (base): deep seafloor only — never a second water surface
-    { texture: textures.seafloor },
-    // Layer 1: sand/beach tight to the single waterline
-    { texture: textures.sand, levels: [wl - 4, wl - 0.5, wl + 4, wl + 10] },
-    // Layer 2: short grass — main island surface
-    { texture: textures.grassShort, levels: [wl + 6, wl + 12, 38, 52] },
-    // Layer 3: tall grass/forest — higher inland areas
-    { texture: textures.grassTall, levels: [28, 42, 58, 70] },
-    // Layer 4: rock — steep slopes regardless of height
+    // Layer 0 (base): dirt / lowland grass (board play surface)
+    { texture: textures.grassShort },
+    // Layer 1: sand / trail — low elevations
+    { texture: textures.sand, levels: [wl - 2, wl + 1, wl + 6, wl + 14] },
+    // Layer 2: short grass — main board
+    { texture: textures.grassShort, levels: [wl + 4, wl + 10, 36, 50] },
+    // Layer 3: tall grass / forest floor
+    { texture: textures.grassTall, levels: [26, 40, 56, 72] },
+    // Layer 4: rock cliffs / mountain triad
     {
       texture: textures.rock,
       glsl: 'slope > 0.7853981633974483 ? 0.2 : 1.0 - smoothstep(0.47123889803846897, 0.7853981633974483, slope) + 0.2',

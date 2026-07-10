@@ -1,22 +1,81 @@
 /**
- * Nature asset catalog — stylized multi-mesh packs (user SSOT).
+ * Nature asset catalog — home island + harvest SSOT.
  *
- * BANNED: Quaternius megakit, square-leaf island_tree extracts, procedural
- * billboard forests, low-poly CommonTree / Rock_Medium.
+ * PRIMARY (battle-proven): Kenney / tactics pack used on
+ *   https://game.grudge-studio.com/game/battle  → NatureDecor.tsx
+ *   assets.grudge-studio.com/models/nature/CommonTree_*.gltf (+ rocks, bushes)
  *
- * KEPT: palm trees + highest stylized packs from D:\Games\Models:
- *   snow → snowbiomes.glb
- *   volcanic → volcanicnature.glb
- *   beach/tropical → tropical_plants.glb (palms, banana, fern, monstera)
- *   mountain/plains → realistic_trees.glb + nature_vegetation.glb
- *   rocks/cliffs all biomes → stylised_rocks + cliff_face + vegetation stones
- *   flowers/plants harvest → flowers_pack + foliage_pack
- *   crystals/gems → minerals_pack
+ * SECONDARY: stylized multi-mesh packs under /models/nature/stylized/*
  *
- * R2: assets.grudge-studio.com/models/nature/stylized/*
+ * BANNED: square-leaf island_tree extracts, InstancedProceduralForest billboards,
+ *   megakit organized/realistic folder dumps.
+ *
+ * R2: assets.grudge-studio.com/models/nature/*
  */
 
-export const NATURE_ASSET_CATALOG_VERSION = '2.0.0';
+export const NATURE_ASSET_CATALOG_VERSION = '3.0.0-battle';
+
+// ── Battle nature pack (game.grudge-studio.com/game/battle NatureDecor) ─────
+
+/** Same files as Grudge-Studio-Game NatureDecor — already on R2 */
+export const BATTLE_NATURE_PACK = {
+  trees: [
+    '/models/nature/CommonTree_1.gltf',
+    '/models/nature/CommonTree_2.gltf',
+    '/models/nature/CommonTree_3.gltf',
+    '/models/nature/CommonTree_4.gltf',
+    '/models/nature/CommonTree_5.gltf',
+  ],
+  deadTrees: [
+    '/models/nature/DeadTree_1.gltf',
+    '/models/nature/DeadTree_2.gltf',
+    '/models/nature/DeadTree_3.gltf',
+  ],
+  pines: [
+    '/models/nature/Pine_1.gltf',
+    '/models/nature/Pine_2.gltf',
+    '/models/nature/Pine_3.gltf',
+    '/models/nature/Pine_4.gltf',
+    '/models/nature/Pine_5.gltf',
+  ],
+  rocks: [
+    '/models/nature/Pebble_Round_1.gltf',
+    '/models/nature/Pebble_Round_2.gltf',
+    '/models/nature/Pebble_Round_3.gltf',
+    '/models/nature/Rock_Medium_1.gltf',
+    '/models/nature/Rock_Medium_2.gltf',
+    '/models/nature/Rock_Medium_3.gltf',
+  ],
+  bushes: [
+    '/models/nature/Bush_Common.gltf',
+    '/models/nature/Bush_Common_Flowers.gltf',
+  ],
+  mushrooms: ['/models/nature/Mushroom_Common.gltf'],
+  flowers: [
+    '/models/nature/Flower_3_Group.gltf',
+    '/models/nature/Flower_4_Group.gltf',
+  ],
+} as const;
+
+export function pickBattleNaturePath(
+  kind: keyof typeof BATTLE_NATURE_PACK,
+  rng: () => number = Math.random,
+): string {
+  const list = BATTLE_NATURE_PACK[kind];
+  return list[Math.floor(rng() * list.length)]!;
+}
+
+/** True for battle NatureDecor assets (allowlisted even if name looks “low poly”). */
+export function isBattleNaturePath(path: string): boolean {
+  if (!path) return false;
+  const p = path.replace(/\\/g, '/');
+  if (!p.includes('/models/nature/')) return false;
+  return (
+    /CommonTree_|DeadTree_|TwistedTree_|Pine_[0-9]|Pebble_Round_|Pebble_Square_|Bush_Common|Mushroom_Common|Rock_Medium_|Flower_[34]_/i.test(
+      p,
+    ) && !p.includes('/stylized/') && !p.includes('/organized/') && !p.includes('/realistic/')
+  );
+}
 
 export type NatureQuality = 'stylized' | 'interim_pack' | 'banned_lowpoly';
 
@@ -188,26 +247,10 @@ export const STYLIZED_VARIANTS = {
 // ── Hard ban: square-leaf / megakit / procedural poly ───────────────────────
 
 /**
- * Path fragments never used for home-island nature (except stylized allowlist root).
+ * Path fragments never used for home-island nature.
+ * Battle pack (CommonTree etc.) is allowlisted via isBattleNaturePath — not banned.
  */
 export const BANNED_NATURE_PATH_FRAGMENTS = [
-  'CommonTree',
-  'TwistedTree',
-  'DeadTree',
-  'Rock_Medium',
-  'RockPath_',
-  'Pebble_Round',
-  'Bush_Common',
-  'Grass_Common',
-  'Grass_Wispy',
-  'Flower_3_Group',
-  'Flower_4_Group',
-  'Mushroom_Common',
-  'Mushroom_Laetiporus',
-  'Fern_1',
-  'Plant_1',
-  'Plant_7',
-  'Clover_',
   'nature-megakit',
   '/models/lowpoly/',
   // Square-leaf interim extracts from island_tree megakit-style pack
@@ -244,8 +287,11 @@ export function isStylizedNaturePath(path: string): boolean {
 export function isBannedNaturePath(path: string): boolean {
   if (!path) return true;
   const p = path.replace(/\\/g, '/');
-  // Allowlisted stylized packs win
+  // Battle pack (tactics NatureDecor) — preferred home-island trees/rocks
+  if (isBattleNaturePath(p)) return false;
+  // Allowlisted stylized packs
   if (isStylizedNaturePath(p)) return false;
+  // Only ban .glb pine megakit dumps — .gltf battle pines are OK
   if (BANNED_MEGAKIT_PINE.some((x) => p.endsWith(x) || p.includes(x))) return true;
   // Ban legacy palm extract only if NOT stylized tropical pack
   if (p.includes('palm2_13') && !p.includes('tropical')) return true;
@@ -526,18 +572,21 @@ export function rockPaths(opts?: { allowInterim?: boolean; runtimeOnly?: boolean
 }
 
 /** Harvest tree pack — example island + HQ vegetation, never island_tree. */
+/** Harvest trees = battle CommonTree pack (same as game.grudge-studio.com/game/battle) */
 export function harvestTreePack(): {
   path: string;
   variants: string[];
   heightM: [number, number];
+  /** When true, path is one of many single-mesh GLTFs (pick random) */
+  battlePack: true;
+  paths: readonly string[];
 } {
   return {
-    path: STYLIZED_PACK_PATHS.exampleIsland,
-    variants: [
-      ...STYLIZED_VARIANTS.exampleTrees,
-      ...STYLIZED_VARIANTS.vegetationTrees,
-    ],
-    heightM: [5.5, 14],
+    path: BATTLE_NATURE_PACK.trees[0],
+    paths: BATTLE_NATURE_PACK.trees,
+    battlePack: true,
+    variants: [],
+    heightM: [4.5, 11],
   };
 }
 
@@ -545,11 +594,15 @@ export function harvestRockPack(): {
   path: string;
   variants: string[];
   heightM: [number, number];
+  battlePack: true;
+  paths: readonly string[];
 } {
   return {
-    path: STYLIZED_PACK_PATHS.rocks,
-    variants: [...STYLIZED_VARIANTS.stylizedRocks],
-    heightM: [1.6, 3.8],
+    path: BATTLE_NATURE_PACK.rocks[0],
+    paths: BATTLE_NATURE_PACK.rocks,
+    battlePack: true,
+    variants: [],
+    heightM: [0.6, 2.2],
   };
 }
 
