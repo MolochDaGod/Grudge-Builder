@@ -38,6 +38,7 @@ export function islandSeedToNumber(seed: string): number {
 export type RtsScatterCategory =
   | "tree"
   | "pine"
+  | "palm"
   | "rock"
   | "bush"
   | "grass"
@@ -74,6 +75,7 @@ export interface RtsNatureScatterPayload {
 export const NATURE_MODEL_PATHS: Record<RtsScatterCategory, string[]> = {
   tree: filterApprovedNaturePaths(ORGANIZED_NATURE_SCATTER_PATHS.tree ?? []),
   pine: filterApprovedNaturePaths(ORGANIZED_NATURE_SCATTER_PATHS.pine ?? []),
+  palm: filterApprovedNaturePaths(ORGANIZED_NATURE_SCATTER_PATHS.palm ?? []),
   rock: filterApprovedNaturePaths(ORGANIZED_NATURE_SCATTER_PATHS.rock ?? []),
   bush: filterApprovedNaturePaths(ORGANIZED_NATURE_SCATTER_PATHS.bush ?? []),
   grass: filterApprovedNaturePaths(ORGANIZED_NATURE_SCATTER_PATHS.grass ?? []),
@@ -96,9 +98,10 @@ const BASE_SCATTER_RULES: Array<{
   maxScale: number;
   avoidCenter?: number;
 }> = [
-  { category: "tree", count: 16, seedOffset: 100, minRadius: 20, maxRadius: 90, minScale: 1.5, maxScale: 3.0 },
-  { category: "pine", count: 14, seedOffset: 200, minRadius: 25, maxRadius: 90, minScale: 1.2, maxScale: 2.5 },
-  { category: "rock", count: 12, seedOffset: 400, minRadius: 15, maxRadius: 85, minScale: 0.8, maxScale: 2.0 },
+  { category: "tree", count: 20, seedOffset: 100, minRadius: 20, maxRadius: 95, minScale: 1.4, maxScale: 2.8 },
+  { category: "pine", count: 14, seedOffset: 200, minRadius: 25, maxRadius: 95, minScale: 1.2, maxScale: 2.5 },
+  { category: "palm", count: 0, seedOffset: 300, minRadius: 18, maxRadius: 88, minScale: 1.3, maxScale: 2.6 },
+  { category: "rock", count: 14, seedOffset: 400, minRadius: 15, maxRadius: 90, minScale: 0.8, maxScale: 2.0 },
   // Groundcover counts stay 0 until realistic GLBs exist (empty paths also skip)
   { category: "bush", count: 0, seedOffset: 500, minRadius: 12, maxRadius: 80, minScale: 0.8, maxScale: 1.5 },
   { category: "grass", count: 0, seedOffset: 600, minRadius: 8, maxRadius: 70, minScale: 0.6, maxScale: 1.2, avoidCenter: 8 },
@@ -108,16 +111,50 @@ const BASE_SCATTER_RULES: Array<{
   { category: "plant", count: 0, seedOffset: 1000, minRadius: 10, maxRadius: 75, minScale: 0.5, maxScale: 1.2 },
 ];
 
-function rulesForFoundation(foundation: HomeIslandFoundation) {
+/** Coastal Driftwood Bay — palms + deciduous, fewer pines. */
+const COASTAL_BIOME_HINTS = ['beach', 'tropic', 'shore', 'haven', 'storm', 'plain'];
+/** Highland Ironfang — pines dominate. */
+const HIGHLAND_BIOME_HINTS = ['forest', 'winter', 'frost', 'snow', 'volcan', 'ember', 'abyss', 'nexus', 'mountain'];
+
+function isCoastalBiome(biome: string): boolean {
+  const b = biome.toLowerCase();
+  return COASTAL_BIOME_HINTS.some((h) => b.includes(h));
+}
+
+function isHighlandBiome(biome: string): boolean {
+  const b = biome.toLowerCase();
+  return HIGHLAND_BIOME_HINTS.some((h) => b.includes(h));
+}
+
+function rulesForFoundation(foundation: HomeIslandFoundation, biome: string) {
+  const coastal = isCoastalBiome(biome) || foundation.id === 'driftwood_bay';
+  const highland = isHighlandBiome(biome) || foundation.id === 'ironfang_spire';
+
   return BASE_SCATTER_RULES.map((rule) => {
     let mult = 1;
-    if (rule.category === "tree" || rule.category === "pine") mult = foundation.natureDensity.trees;
-    else if (rule.category === "rock") mult = foundation.natureDensity.rocks;
-    else mult = foundation.natureDensity.groundcover;
-    return {
-      ...rule,
-      count: Math.round(rule.count * mult),
-    };
+    if (rule.category === 'tree' || rule.category === 'pine' || rule.category === 'palm') {
+      mult = foundation.natureDensity.trees;
+    } else if (rule.category === 'rock') {
+      mult = foundation.natureDensity.rocks;
+    } else {
+      mult = foundation.natureDensity.groundcover;
+    }
+
+    let count = Math.round(rule.count * mult);
+
+    // Biome palette: coastal prefers palms; highland prefers pines
+    if (coastal && !highland) {
+      if (rule.category === 'palm') count = Math.max(count, Math.round(18 * mult));
+      if (rule.category === 'pine') count = Math.round(count * 0.35);
+      if (rule.category === 'tree') count = Math.round(count * 1.1);
+      if (rule.category === 'rock') count = Math.round(count * 0.85);
+    } else if (highland) {
+      if (rule.category === 'palm') count = 0;
+      if (rule.category === 'pine') count = Math.round(count * 1.25);
+      if (rule.category === 'rock') count = Math.round(count * 1.15);
+    }
+
+    return { ...rule, count };
   });
 }
 
@@ -211,7 +248,7 @@ export function generateRtsNatureScatter(
     seedString ?? String(islandSeed),
     resolvedBiome,
   );
-  const rules = rulesForFoundation(foundation);
+  const rules = rulesForFoundation(foundation, resolvedBiome);
 
   const sampleHeight = (wx: number, wz: number): number => {
     if (!heights || !heightmap) return 2;
@@ -244,7 +281,8 @@ export function generateRtsNatureScatter(
 /** Map loose biome labels (incl. legacy "temperate") to foundation-aware keys. */
 export function normalizeScatterBiome(biome: string | undefined | null): string {
   const b = (biome ?? "").toLowerCase().trim();
-  if (!b || b === "temperate" || b === "default" || b === "none") return "forest";
+  // Default coastal Warlords home (Driftwood Bay) — never force highland forest
+  if (!b || b === "temperate" || b === "default" || b === "none") return "beach";
   return b;
 }
 

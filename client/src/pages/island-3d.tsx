@@ -1,10 +1,16 @@
 /**
- * Island 3D Page — defaults to Warlords Island3DEngine (1024m home island, 2m character,
- * organized CDN nature). Studio Map Editor is opt-in via ?engine=studio.
+ * Island 3D Page — Warlords Era home-island showcase (public demo).
  *
- * Modes: procedural (default) | home-island | zone | lobby | studio embed
+ * Default: Driftwood Bay 1024 m home island, beach biome, organized CDN nature
+ * (palms + deciduous + rocks), 2 m character scale. No low-poly megakit.
+ *
+ * Modes:
+ *   (default) procedural showcase — Driftwood Bay / optional Ironfang
+ *   ?mode=zone — Warlords open-world sector
+ *   ?mode=lobby — pirate lobby map
+ *   ?engine=studio — Studio Map Editor embed
  */
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useLocation } from 'wouter';
 import { Island3DRenderer } from '@/island3d/render/Island3DRenderer';
 import type { Island3DMode, Island3DEngine } from '@/island3d/engine/Island3DEngine';
@@ -13,7 +19,7 @@ import { authHeaders } from '@/lib/grudgeBackend';
 import { normalizeHomeIslandResponse } from '@/lib/homeIslandApi';
 import { characterAPI } from '@/lib/api';
 import { WORLD_SECTORS, getSectorById } from '@shared/definitions/worldMapSectors';
-import { Loader2, Users, ExternalLink, Ship, Anchor } from 'lucide-react';
+import { Loader2, Users, ExternalLink, Ship, Anchor, Home, Mountain } from 'lucide-react';
 import { clearTopDownCache } from '@/island3d/render/IslandTopDownCapture';
 import { useZoneColyseus } from '@/hooks/use-zone-colyseus';
 import type { PlayerInfo } from '@/hooks/use-colyseus';
@@ -29,6 +35,13 @@ import { STUDIO_EDITOR_URL } from '@/lib/grudgeConfig';
 import type { MountainTriadSeed } from '@shared/definitions/homeIslandSeed';
 import type { RtsHeightmapPayload } from '@shared/definitions/rtsTerrainBridge';
 import type { RtsNatureScatterPayload } from '@shared/definitions/rtsNatureScatter';
+import {
+  resolveHomeIslandShowcase,
+  SHOWCASE_DRIFTWOOD_BAY,
+  SHOWCASE_IRONFANG,
+  type HomeIslandShowcasePreset,
+} from '@shared/definitions/homeIslandShowcase';
+import { natureScatterNeedsRegenerate } from '@shared/definitions/natureAssetCatalog';
 
 /** Studio embed only when explicitly requested (design surface, not play default). */
 function useStudioEmbed(): boolean {
@@ -58,7 +71,7 @@ function Island3DStudioEmbed() {
         || localStorage.getItem('gruda_active_character_guest')
         || '';
 
-      const seed = params.get('seed') || `island-${Date.now().toString(36)}`;
+      const seed = params.get('seed') || SHOWCASE_DRIFTWOOD_BAY.seed;
       const play = params.get('play') !== '0';
       const isHomeIsland = params.get('mode') === 'home-island';
       const islandId = params.get('islandId') || '';
@@ -101,7 +114,7 @@ function Island3DStudioEmbed() {
           onClick={() => navigate('/island-3d')}
           className="text-slate-500 text-xs underline"
         >
-          Open play island engine instead
+          Open Driftwood Bay showcase
         </button>
       </div>
     );
@@ -121,10 +134,10 @@ function Island3DStudioEmbed() {
       <div className="flex items-center gap-3 px-3 py-1.5 bg-gray-900 border-b border-gray-800 text-xs shrink-0">
         <button
           type="button"
-          onClick={() => navigate('/island')}
+          onClick={() => navigate('/island-3d')}
           className="text-gray-400 hover:text-white"
         >
-          ← 2D Island
+          ← Showcase
         </button>
         <span className="text-emerald-400 font-semibold">Studio Island Editor</span>
         <a
@@ -135,13 +148,6 @@ function Island3DStudioEmbed() {
         >
           Open in tab <ExternalLink className="w-3 h-3" />
         </a>
-        <button
-          type="button"
-          onClick={() => navigate('/island-3d')}
-          className="text-gray-500 hover:text-gray-300"
-        >
-          Legacy engine
-        </button>
       </div>
       <iframe
         title="Grudge Studio Island Editor"
@@ -162,40 +168,39 @@ export default function Island3DPage() {
 }
 
 function Island3DPlayPage() {
-  const params = new URLSearchParams(window.location.search);
+  const params = useMemo(() => new URLSearchParams(window.location.search), []);
+  const showcase = useMemo(() => resolveHomeIslandShowcase(params), [params]);
+
   const isHomeIslandMode = params.get('mode') === 'home-island' || params.get('home') === '1';
   const islandIdParam = params.get('islandId') || '';
   const characterIdParam = params.get('characterId') || '';
+  const useAccountIsland = isHomeIslandMode || params.get('account') === '1';
 
   const [seed, setSeed] = useState(() => {
-    return params.get('seed') || 'grudge-island-' + Date.now().toString(36);
+    // Stable showcase seed by default — never random Date.now()
+    return params.get('seed') || showcase.seed;
   });
   const [inputSeed, setInputSeed] = useState(seed);
+  const [biome, setBiome] = useState(() => params.get('biome') || showcase.biome);
+  const [preset, setPreset] = useState<HomeIslandShowcasePreset>(() => showcase);
+
   const [mode, setMode] = useState<Island3DMode>(() => {
     const m = params.get('mode');
     if (m === 'zone' || m === 'lobby') return m;
-    return 'procedural'; // home-island + default play = 1024m Island3DEngine
+    return 'procedural';
   });
-  const [lobbyMapId, setLobbyMapId] = useState(
-    params.get('map') || 'pirate-islands',
-  );
-  const [sectorId, setSectorId] = useState(
-    params.get('sector') || 'ethereal_falls',
-  );
-  const [worldSeed, setWorldSeed] = useState(
-    params.get('worldSeed') || 'grudge-world-1',
-  );
+  const [lobbyMapId, setLobbyMapId] = useState(params.get('map') || 'pirate-islands');
+  const [sectorId, setSectorId] = useState(params.get('sector') || 'haven_shore');
+  const [worldSeed, setWorldSeed] = useState(params.get('worldSeed') || 'grudge-world-1');
   const zoneMultiplayer = params.get('solo') !== '1';
   const fromOcean = params.get('from') === 'ocean';
-  const [_, navigate] = useLocation();
+  const [, navigate] = useLocation();
   const engineRef = useRef<Island3DEngine | null>(null);
   const [engine, setEngine] = useState<Island3DEngine | null>(null);
 
-  // Home-island state
   const [homeIsland, setHomeIsland] = useState<any>(null);
-  const [homeIslandLoading, setHomeIslandLoading] = useState(isHomeIslandMode);
+  const [homeIslandLoading, setHomeIslandLoading] = useState(useAccountIsland);
 
-  // Character for 3D manifest loading
   const [heroRace, setHeroRace] = useState('human');
   const [heroClass, setHeroClass] = useState('warrior');
   const [heroCharacterId, setHeroCharacterId] = useState(characterIdParam);
@@ -218,46 +223,51 @@ function Island3DPlayPage() {
     zoneColyseus.sendHarvest(evt.nodeId, evt.resourceType);
   }, [zoneColyseus]);
 
-  // Purge stale island top-down previews (old double-water renders)
   useEffect(() => {
     clearTopDownCache();
   }, []);
 
-  // Always try to load committed home island so seed/nature/mountain match Railway SSOT
+  // Optional: load player's committed island when ?home=1 or ?mode=home-island
   useEffect(() => {
+    if (!useAccountIsland) {
+      setHomeIslandLoading(false);
+      return;
+    }
     const load = async () => {
       setHomeIslandLoading(true);
       try {
-        const url = islandIdParam
-          ? `/api/islands/${islandIdParam}`
-          : '/api/island';
+        const url = islandIdParam ? `/api/islands/${islandIdParam}` : '/api/island';
         const res = await fetch(url, { headers: authHeaders() });
         if (res.ok) {
           const data = await res.json();
           const normalized = normalizeHomeIslandResponse(data);
           setHomeIsland(normalized);
           const nextSeed =
-            normalized.seed || data.seed || params.get('seed') || 'home-' + (islandIdParam || Date.now().toString(36));
+            normalized.seed || data.seed || params.get('seed') || showcase.seed;
           setSeed(nextSeed);
           setInputSeed(nextSeed);
+          const stateBiome =
+            (normalized.state as { biome?: string } | undefined)?.biome
+            || (normalized.state?.rtsNatureScatter as { biome?: string } | undefined)?.biome;
+          if (stateBiome) setBiome(stateBiome);
         }
       } catch (e) {
-        console.error('[Island3D] Failed to load home island:', e);
+        console.warn('[Island3D] Account island unavailable — using showcase:', e);
       } finally {
         setHomeIslandLoading(false);
       }
     };
     load();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [useAccountIsland, islandIdParam]);
 
   useEffect(() => {
     async function loadCharacter() {
       const grudgeId = localStorage.getItem('grudge_account_id') || 'guest';
-      const activeId = characterIdParam ||
-        localStorage.getItem(`gruda_active_character_${grudgeId}`) ||
-        localStorage.getItem('grudge_active_character') ||
-        localStorage.getItem('gruda_active_character_guest');
+      const activeId = characterIdParam
+        || localStorage.getItem(`gruda_active_character_${grudgeId}`)
+        || localStorage.getItem('grudge_active_character')
+        || localStorage.getItem('gruda_active_character_guest');
 
       if (!activeId) return;
 
@@ -300,6 +310,19 @@ function Island3DPlayPage() {
     loadCharacter();
   }, [characterIdParam]);
 
+  const applyPreset = (next: HomeIslandShowcasePreset) => {
+    setPreset(next);
+    setSeed(next.seed);
+    setInputSeed(next.seed);
+    setBiome(next.biome);
+    setMode('procedural');
+    const q = new URLSearchParams();
+    q.set('seed', next.seed);
+    q.set('biome', next.biome);
+    q.set('foundation', next.foundationId);
+    window.history.replaceState(null, '', `?${q.toString()}`);
+  };
+
   const handleNewSeed = () => {
     if (inputSeed.trim()) {
       setSeed(inputSeed.trim());
@@ -307,22 +330,15 @@ function Island3DPlayPage() {
     }
   };
 
-  const handleRandomSeed = () => {
-    const newSeed = 'island-' + Math.random().toString(36).slice(2, 10);
-    setInputSeed(newSeed);
-    setSeed(newSeed);
-    setMode('procedural');
-  };
-
   const handleLobbyMap = (mapId: string) => {
     setLobbyMapId(mapId);
     setMode('lobby');
-    setSeed(`lobby-${mapId}-${Date.now()}`);
+    setSeed(`lobby-${mapId}`);
   };
 
   const handleZoneMode = (id: string) => {
     setSectorId(id);
-    setMode('zone' as Island3DMode);
+    setMode('zone');
     setSeed(`zone-${id}-${worldSeed}`);
     const next = new URLSearchParams(window.location.search);
     next.set('mode', 'zone');
@@ -332,6 +348,14 @@ function Island3DPlayPage() {
   };
 
   const activeSector = mode === 'zone' ? getSectorById(sectorId) : null;
+
+  // Never feed banned megakit scatter from saved state into the showcase
+  const safeNatureScatter = useMemo((): RtsNatureScatterPayload | undefined => {
+    if (!useAccountIsland || !homeIsland?.state?.rtsNatureScatter) return undefined;
+    const stored = homeIsland.state.rtsNatureScatter as RtsNatureScatterPayload;
+    if (natureScatterNeedsRegenerate(stored.instances || [])) return undefined;
+    return stored;
+  }, [useAccountIsland, homeIsland]);
 
   const lobbyMultiplayer: MultiplayerConfig | undefined =
     mode === 'lobby' && pvpServerUrl && heroCharacterId
@@ -346,132 +370,148 @@ function Island3DPlayPage() {
         }
       : undefined;
 
-  if (isHomeIslandMode && homeIslandLoading) {
+  if (useAccountIsland && homeIslandLoading) {
     return (
       <div className="flex h-screen bg-gray-950 items-center justify-center flex-col gap-4 text-slate-400">
         <Loader2 className="w-8 h-8 animate-spin text-emerald-400" />
-        <span className="text-sm">Loading your home island...</span>
+        <span className="text-sm">Loading your home island…</span>
       </div>
     );
   }
 
+  const titleLabel =
+    mode === 'zone'
+      ? `Zone — ${activeSector?.name || sectorId}`
+      : mode === 'lobby'
+        ? `Lobby — ${lobbyMapId}`
+        : useAccountIsland && homeIsland?.name
+          ? `Home Island: ${homeIsland.name}`
+          : `${preset.label} · Warlords Home`;
+
   return (
     <div className="flex flex-col h-screen bg-gray-950">
-      {/* Top bar */}
-      <div className="flex items-center gap-3 px-4 py-2 bg-gray-900 border-b border-gray-800">
+      <div className="flex items-center gap-2 px-3 py-2 bg-gray-900 border-b border-gray-800 flex-wrap">
         <button
-          onClick={() => navigate(isHomeIslandMode ? '/home' : '/island')}
-          className="text-gray-400 hover:text-white text-sm"
+          onClick={() => navigate(useAccountIsland ? '/home' : '/play')}
+          className="text-gray-400 hover:text-white text-sm shrink-0"
         >
-          {isHomeIslandMode ? '← Hub' : '← 2D Island'}
+          ← Back
         </button>
-        <span className="text-gray-600">|</span>
-        <h1 className="text-emerald-400 font-bold text-sm">
-          {isHomeIslandMode
-            ? `🏝 Home Island${homeIsland?.name ? ': ' + homeIsland.name : ''}`
-            : '3D Home Island (1024 m · 2 m character)'}
+        <span className="text-gray-600 hidden sm:inline">|</span>
+        <h1 className="text-emerald-400 font-bold text-sm truncate max-w-[14rem] sm:max-w-none">
+          {titleLabel}
         </h1>
-        <a
-          href="/island-3d?engine=studio"
-          className="text-xs text-emerald-500/80 hover:text-emerald-400 underline"
-          title="Open Studio Map Editor (design surface)"
-        >
-          Studio Editor
-        </a>
-        {mode === 'zone' && (
-          <a
-            href={`/ocean?worldSeed=${encodeURIComponent(worldSeed)}`}
-            className="text-xs text-amber-500/80 hover:text-amber-400 underline inline-flex items-center gap-1"
-            title="Tactical Infinity open ocean"
-          >
-            <Ship className="w-3 h-3" />
-            Tactical Sea
-          </a>
+        {mode === 'procedural' && (
+          <span className="text-[10px] text-slate-500 hidden md:inline">
+            1024 m · 2 m character · organized nature
+          </span>
         )}
-        {mode === 'zone' && zoneMultiplayer && (
-          <div className="flex items-center gap-1.5 text-xs text-slate-400">
-            <Users className="w-3.5 h-3.5" />
-            {zoneColyseus.connecting ? 'Connecting…' :
-             zoneColyseus.connected ? `${zoneColyseus.players.size} online` :
-             'Offline'}
-          </div>
-        )}
+
         <div className="flex-1" />
 
-        {/* Mode toggle */}
+        {/* Foundation presets — best Warlords examples */}
+        {mode === 'procedural' && (
+          <div className="flex items-center gap-1 bg-gray-800 rounded p-0.5">
+            <button
+              type="button"
+              onClick={() => applyPreset(SHOWCASE_DRIFTWOOD_BAY)}
+              className={`text-[11px] px-2 py-1 rounded inline-flex items-center gap-1 transition-colors ${
+                preset.foundationId === 'driftwood_bay' && seed === SHOWCASE_DRIFTWOOD_BAY.seed
+                  ? 'bg-emerald-600 text-white'
+                  : 'text-gray-400 hover:text-white'
+              }`}
+              title={SHOWCASE_DRIFTWOOD_BAY.summary}
+            >
+              <Home className="w-3 h-3" />
+              Driftwood Bay
+            </button>
+            <button
+              type="button"
+              onClick={() => applyPreset(SHOWCASE_IRONFANG)}
+              className={`text-[11px] px-2 py-1 rounded inline-flex items-center gap-1 transition-colors ${
+                preset.foundationId === 'ironfang_spire' && seed === SHOWCASE_IRONFANG.seed
+                  ? 'bg-sky-700 text-white'
+                  : 'text-gray-400 hover:text-white'
+              }`}
+              title={SHOWCASE_IRONFANG.summary}
+            >
+              <Mountain className="w-3 h-3" />
+              Ironfang
+            </button>
+          </div>
+        )}
+
         <div className="flex items-center gap-1 bg-gray-800 rounded p-0.5">
           <button
-            onClick={() => { setMode('procedural'); setSeed(inputSeed); }}
-            className={`text-xs px-2.5 py-1 rounded transition-colors ${
-              mode === 'procedural'
-                ? 'bg-emerald-600 text-white'
-                : 'text-gray-400 hover:text-white'
+            type="button"
+            onClick={() => {
+              applyPreset(SHOWCASE_DRIFTWOOD_BAY);
+            }}
+            className={`text-xs px-2 py-1 rounded transition-colors ${
+              mode === 'procedural' ? 'bg-emerald-600 text-white' : 'text-gray-400 hover:text-white'
             }`}
           >
-            Procedural
+            Home
           </button>
           <button
-            onClick={() => handleLobbyMap(lobbyMapId)}
-            className={`text-xs px-2.5 py-1 rounded transition-colors ${
-              mode === 'lobby'
-                ? 'bg-amber-600 text-white'
-                : 'text-gray-400 hover:text-white'
-            }`}
-          >
-            Lobby Map
-          </button>
-          <button
+            type="button"
             onClick={() => handleZoneMode(sectorId)}
-            className={`text-xs px-2.5 py-1 rounded transition-colors ${
-              mode === 'zone'
-                ? 'bg-purple-600 text-white'
-                : 'text-gray-400 hover:text-white'
+            className={`text-xs px-2 py-1 rounded transition-colors ${
+              mode === 'zone' ? 'bg-purple-600 text-white' : 'text-gray-400 hover:text-white'
             }`}
           >
             Zone
           </button>
+          <button
+            type="button"
+            onClick={() => handleLobbyMap(lobbyMapId)}
+            className={`text-xs px-2 py-1 rounded transition-colors ${
+              mode === 'lobby' ? 'bg-amber-600 text-white' : 'text-gray-400 hover:text-white'
+            }`}
+          >
+            Lobby
+          </button>
         </div>
 
-        {mode === 'procedural' ? (
+        {mode === 'procedural' && (
           <>
             <input
               type="text"
               value={inputSeed}
               onChange={(e) => setInputSeed(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleNewSeed()}
-              placeholder="Island seed..."
-              className="bg-gray-800 border border-gray-700 text-white text-xs px-3 py-1.5 rounded w-48 focus:outline-none focus:border-emerald-500"
+              placeholder="Seed…"
+              className="bg-gray-800 border border-gray-700 text-white text-xs px-2 py-1 rounded w-36 sm:w-44 focus:outline-none focus:border-emerald-500"
             />
             <button
+              type="button"
               onClick={handleNewSeed}
-              className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs px-3 py-1.5 rounded"
+              className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs px-2.5 py-1 rounded"
             >
               Generate
             </button>
-            <button
-              onClick={handleRandomSeed}
-              className="bg-gray-700 hover:bg-gray-600 text-white text-xs px-3 py-1.5 rounded"
-            >
-              Random
-            </button>
           </>
-        ) : mode === 'zone' ? (
+        )}
+
+        {mode === 'zone' && (
           <select
             value={sectorId}
             onChange={(e) => handleZoneMode(e.target.value)}
-            className="bg-gray-800 border border-gray-700 text-white text-xs px-3 py-1.5 rounded focus:outline-none focus:border-purple-500"
+            className="bg-gray-800 border border-gray-700 text-white text-xs px-2 py-1 rounded focus:outline-none focus:border-purple-500"
           >
             {WORLD_SECTORS.map((s) => (
               <option key={s.id} value={s.id}>
-                {s.name} (Lv{s.difficultyMin}-{s.difficultyMax})
+                {s.name}
               </option>
             ))}
           </select>
-        ) : (
+        )}
+
+        {mode === 'lobby' && (
           <select
             value={lobbyMapId}
             onChange={(e) => handleLobbyMap(e.target.value)}
-            className="bg-gray-800 border border-gray-700 text-white text-xs px-3 py-1.5 rounded focus:outline-none focus:border-amber-500"
+            className="bg-gray-800 border border-gray-700 text-white text-xs px-2 py-1 rounded focus:outline-none focus:border-amber-500"
           >
             {LOBBY_MAPS.map((m) => (
               <option key={m.id} value={m.id}>
@@ -480,9 +520,42 @@ function Island3DPlayPage() {
             ))}
           </select>
         )}
+
+        {mode === 'zone' && (
+          <a
+            href={`/ocean?worldSeed=${encodeURIComponent(worldSeed)}`}
+            className="text-xs text-amber-500/80 hover:text-amber-400 underline inline-flex items-center gap-1"
+          >
+            <Ship className="w-3 h-3" />
+            Sea
+          </a>
+        )}
+        {mode === 'zone' && zoneMultiplayer && (
+          <div className="flex items-center gap-1 text-xs text-slate-400">
+            <Users className="w-3.5 h-3.5" />
+            {zoneColyseus.connecting
+              ? '…'
+              : zoneColyseus.connected
+                ? `${zoneColyseus.players.size}`
+                : 'off'}
+          </div>
+        )}
+
+        <a
+          href="/home-island"
+          className="text-xs text-slate-500 hover:text-emerald-400 underline hidden sm:inline"
+          title="Your signed-in home island"
+        >
+          My island
+        </a>
+        <a
+          href="/island-3d?engine=studio"
+          className="text-xs text-slate-600 hover:text-slate-400 underline hidden lg:inline"
+        >
+          Studio
+        </a>
       </div>
 
-      {/* 3D Canvas */}
       <div className="flex-1 relative">
         <Island3DRenderer
           seed={seed}
@@ -491,59 +564,85 @@ function Island3DPlayPage() {
           lobbyIslandId={mode === 'lobby' ? lobbyIslandId : undefined}
           sectorId={mode === 'zone' ? sectorId : undefined}
           worldSeed={worldSeed}
-          quality="high"
+          quality={mode === 'procedural' ? 'high' : 'medium'}
           dayNight={{ dayDurationSeconds: 600, startTime: 0.35 }}
-          enableCharacter={mode === 'procedural' || mode === 'zone' || isHomeIslandMode || mode === 'lobby'}
+          enableCharacter={mode === 'procedural' || mode === 'zone' || mode === 'lobby'}
           multiplayer={lobbyMultiplayer}
-          characterId={heroCharacterId}
+          characterId={heroCharacterId || undefined}
           characterName={heroName}
           raceId={heroRace}
           classId={heroClass}
           model3d={heroModel3d}
-          mountainTriad={homeIsland?.state?.mountainTriad as MountainTriadSeed | undefined}
-          rtsHeightmap={homeIsland?.state?.rtsHeightmap as RtsHeightmapPayload | undefined}
-          rtsNatureScatter={homeIsland?.state?.rtsNatureScatter as RtsNatureScatterPayload | undefined}
-          biome={
-            (homeIsland?.state as { biome?: string } | undefined)?.biome
-            ?? homeIsland?.state?.rtsExport?.biome
-            ?? (homeIsland?.state?.rtsNatureScatter as { biome?: string } | undefined)?.biome
+          mountainTriad={
+            useAccountIsland
+              ? (homeIsland?.state?.mountainTriad as MountainTriadSeed | undefined)
+              : undefined
           }
-          campPositionPercent={homeIsland?.state?.campPosition}
-          regrowRegions={homeIsland?.state?.regrowRegions}
-          onEngineReady={(eng) => { engineRef.current = eng; setEngine(eng); }}
+          rtsHeightmap={
+            useAccountIsland
+              ? (homeIsland?.state?.rtsHeightmap as RtsHeightmapPayload | undefined)
+              : undefined
+          }
+          rtsNatureScatter={safeNatureScatter}
+          biome={
+            mode === 'procedural'
+              ? biome
+              : undefined
+          }
+          campPositionPercent={
+            useAccountIsland && homeIsland?.state?.campPosition
+              ? homeIsland.state.campPosition
+              : mode === 'procedural'
+                ? preset.campPositionPercent
+                : undefined
+          }
+          regrowRegions={
+            useAccountIsland ? homeIsland?.state?.regrowRegions : undefined
+          }
+          onEngineReady={(eng) => {
+            engineRef.current = eng;
+            setEngine(eng);
+          }}
           onHarvest={mode === 'zone' && zoneMultiplayer ? handleZoneHarvest : undefined}
         />
+
+        {mode === 'procedural' && (
+          <div className="absolute bottom-4 left-4 bg-black/70 backdrop-blur border border-emerald-800/40 rounded-xl px-4 py-3 text-xs text-slate-300 space-y-1 pointer-events-none max-w-xs">
+            <div className="text-emerald-400 font-bold uppercase tracking-widest text-[10px]">
+              Warlords Home Island
+            </div>
+            <div className="font-semibold text-white">{preset.label}</div>
+            <div className="text-slate-400">{preset.summary}</div>
+            <div className="text-slate-500 pt-1">
+              Seed <span className="text-slate-300 font-mono">{seed}</span>
+              {' · '}
+              {biome}
+              {' · '}
+              {preset.worldSizeM} m
+            </div>
+            <div className="text-slate-500">WASD move · Space jump · Tab combat · Click harvest</div>
+          </div>
+        )}
+
         {mode === 'zone' && activeSector && (
           <div className="absolute top-4 left-4 bg-black/70 backdrop-blur border border-purple-800/50 rounded-xl px-4 py-3 text-xs text-slate-300 space-y-1 max-w-xs">
             <div className="text-purple-300 font-bold uppercase tracking-widest">{activeSector.name}</div>
-            <div className="text-slate-400 pointer-events-none">{activeSector.description}</div>
-            <div className="pointer-events-none">
+            <div className="text-slate-400">{activeSector.description}</div>
+            <div>
               Lv {activeSector.difficultyMin}–{activeSector.difficultyMax} · {activeSector.biome}
-              {' · '}{(activeSector.terrain3d.sizeMeters / 1000).toFixed(0)} km zone
             </div>
-            <div className="text-slate-500 pointer-events-none">World: {worldSeed}</div>
             {fromOcean && (
               <a
                 href={`/ocean?worldSeed=${encodeURIComponent(worldSeed)}`}
                 className="inline-flex items-center gap-1.5 mt-2 text-amber-400 hover:text-amber-300 pointer-events-auto"
               >
                 <Anchor className="w-3.5 h-3.5" />
-                Return to Tactical Infinity
+                Return to ocean
               </a>
             )}
             {zoneColyseus.error && (
-              <div className="text-red-400 mt-1 pointer-events-none">{zoneColyseus.error}</div>
+              <div className="text-red-400 mt-1">{zoneColyseus.error}</div>
             )}
-          </div>
-        )}
-        {/* Home-island stats overlay */}
-        {isHomeIslandMode && homeIsland && (
-          <div className="absolute bottom-4 left-4 bg-black/70 backdrop-blur border border-emerald-800/50 rounded-xl px-4 py-3 text-xs text-slate-300 space-y-1 pointer-events-none">
-            <div className="text-emerald-400 font-bold uppercase tracking-widest mb-1">Home Island</div>
-            <div>🗺 {homeIsland.name || 'Unnamed Island'}</div>
-            <div>⛏ {(homeIsland.state?.nodes || []).length} resource nodes</div>
-            <div>🐾 {(homeIsland.state?.animals || []).length} animals</div>
-            <div>🏕 Camp @ ({(homeIsland.state?.campPosition?.x ?? 0).toFixed(0)}, {(homeIsland.state?.campPosition?.y ?? 0).toFixed(0)})</div>
           </div>
         )}
       </div>

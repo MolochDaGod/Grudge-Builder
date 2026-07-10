@@ -277,11 +277,17 @@ export default function HomeIslandPage() {
     const campPositionPercent = islandDto?.state?.campPosition ?? islandDto?.campPosition;
     const regrowRegions = islandDto?.state?.regrowRegions;
 
+    const islandBiome =
+      (islandDto?.state as { biome?: string } | undefined)?.biome
+      || (islandDto?.state?.rtsNatureScatter as { biome?: string } | undefined)?.biome
+      || 'beach';
+
     const config: Island3DEngineConfig = {
       seed: islandSeed,
       mountainTriad,
       rtsHeightmap,
       rtsNatureScatter,
+      biome: islandBiome,
       regrowRegions,
       campPositionPercent: campPositionPercent
         ? { x: Number(campPositionPercent.x), y: Number(campPositionPercent.y) }
@@ -290,7 +296,7 @@ export default function HomeIslandPage() {
       width: window.innerWidth,
       height: window.innerHeight,
       mode: 'procedural',
-      quality: 'medium',
+      quality: 'high',
       enableCharacter: true,
       dayNight: { dayDurationSeconds: 10 * 60 },
       onDungeonEnter: (dungeonId, dungeonName) => {

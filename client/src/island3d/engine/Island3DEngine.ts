@@ -507,9 +507,10 @@ export class Island3DEngine {
       console.warn('[Island3D] Resource preload failed — harvest will retry per-node', err);
     });
     // 1. Generate terrain — elevation budget from size foundation
+    // Default biome = beach → Driftwood Bay (Warlords coastal showcase), not highland forest
     const foundation = resolveHomeIslandFoundation(
       this.config.seed,
-      this.config.biome ?? 'forest',
+      this.config.biome ?? 'beach',
     );
     const terrainMaterial = await createTerrainMaterialAsync();
     const terrainConfig: IslandTerrainConfig = {
@@ -591,7 +592,7 @@ export class Island3DEngine {
     const naturePayload = resolveNatureScatterPayload({
       stored: this.config.rtsNatureScatter,
       islandSeed: islandSeedToNumber(this.config.seed),
-      biome: this.config.biome ?? foundation.preferredBiomes[0] ?? 'forest',
+      biome: this.config.biome ?? foundation.preferredBiomes[0] ?? 'beach',
       heightmap: this.config.rtsHeightmap,
       worldSizeM: HOME_ISLAND_WORLD_SIZE_M,
       seedString: this.config.seed,
@@ -938,7 +939,7 @@ export class Island3DEngine {
     // 2) Regenerated pack scatter at seed positions (still no megakit)
     const regen = generateRtsNatureScatter(
       islandSeedToNumber(this.config.seed),
-      this.config.biome ?? 'forest',
+      this.config.biome ?? 'beach',
       this.config.rtsHeightmap,
       HOME_ISLAND_WORLD_SIZE_M,
       this.config.seed,

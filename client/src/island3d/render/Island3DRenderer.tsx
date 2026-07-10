@@ -149,22 +149,28 @@ export function Island3DRenderer({
     engine.init()
       .then(async () => {
         setLoading(false);
+        setError(null);
         sessionSend({ type: 'READY' });
         engine.start();
+        // Character load is optional — never fail the whole island for missing hero assets
         if (engine.character && raceId && classId) {
-          const activeChar = await import('@/lib/characterManager').then((m) =>
-            m.CharacterManager.getActiveCharacter?.(),
-          );
-          await engine.character.loadCharacterFromManifest(
-            raceId,
-            classId,
-            characterId,
-            undefined,
-            model3d ?? activeChar?.model3d,
-            activeChar?.equipment,
-          );
-          if (activeChar?.equipment) {
-            engine.character.setEquipment(activeChar.equipment);
+          try {
+            const activeChar = await import('@/lib/characterManager').then((m) =>
+              m.CharacterManager.getActiveCharacter?.(),
+            );
+            await engine.character.loadCharacterFromManifest(
+              raceId,
+              classId,
+              characterId,
+              undefined,
+              model3d ?? activeChar?.model3d,
+              activeChar?.equipment,
+            );
+            if (activeChar?.equipment) {
+              engine.character.setEquipment(activeChar.equipment);
+            }
+          } catch (charErr) {
+            console.warn('[Island3D] Character load skipped — capsule fallback:', charErr);
           }
         }
         setEngineReady(engine);
@@ -172,8 +178,16 @@ export function Island3DRenderer({
       })
       .catch((err) => {
         console.error('Island3D init failed:', err);
-        const msg = err.message || 'Failed to initialize 3D island';
+        const msg = err instanceof Error ? err.message : 'Failed to initialize 3D island';
         sessionSend({ type: 'FAIL', error: msg });
+        // Still try to start a partial scene if the engine constructed
+        try {
+          engine.start();
+          setEngineReady(engine);
+          onEngineReady?.(engine);
+        } catch {
+          /* ignore */
+        }
         setError(msg);
         setLoading(false);
       });
@@ -345,9 +359,26 @@ export function Island3DRenderer({
         </div>
       ) : null}
 
-      {error && (
-        <div className="absolute inset-0 flex items-center justify-center bg-red-900/50 z-10">
-          <p className="text-red-300">{error}</p>
+      {error && !engineReady && (
+        <div className="absolute inset-0 flex items-center justify-center bg-slate-950/90 z-10 px-6">
+          <div className="max-w-md text-center space-y-3">
+            <p className="text-amber-300 font-semibold text-sm">Island load had issues</p>
+            <p className="text-slate-400 text-xs break-words">{error}</p>
+            <p className="text-slate-500 text-[11px]">
+              Try Driftwood Bay showcase: reload with no query params, or open /home-island when signed in.
+            </p>
+            <a
+              href="/island-3d"
+              className="inline-block text-emerald-400 text-xs underline"
+            >
+              Reload showcase home island
+            </a>
+          </div>
+        </div>
+      )}
+      {error && engineReady && (
+        <div className="absolute top-16 left-1/2 -translate-x-1/2 z-20 max-w-sm bg-amber-950/80 border border-amber-700/50 text-amber-100 text-[11px] px-3 py-2 rounded-lg">
+          Partial load: {error}
         </div>
       )}
 
@@ -355,16 +386,14 @@ export function Island3DRenderer({
       {!loading && !error && (
         <>
           {/* Top-left info panel */}
-          <div className="absolute top-4 left-4 z-10 bg-black/60 text-white text-xs px-3 py-2 rounded space-y-1">
-            <p className="font-bold text-emerald-400">
-              {mode === 'zone' ? `🌊 Zone — ${sectorId || 'unknown'}` : mode === 'lobby' ? `🏕️ Lobby — ${lobbyMapId || 'pirate-islands'}` : `3D Island — ${seed}`}
+          <div className="absolute top-4 right-4 z-10 bg-black/55 text-white text-[11px] px-2.5 py-1.5 rounded-lg space-y-0.5 max-w-[11rem] text-right">
+            <p className="font-semibold text-emerald-400/90 truncate">
+              {mode === 'zone' ? `Zone · ${sectorId || '?'}` : mode === 'lobby' ? `Lobby · ${lobbyMapId || 'map'}` : (biome ? biome : 'home')}
             </p>
             {(mode === 'procedural' || mode === 'zone') && (
               <>
-                <p className="text-gray-300">{stateLabel[movementState] || movementState}</p>
-                <p className="text-gray-400">WASD move · Space jump · Tab combat/harvest</p>
-                <p className="text-gray-400">Combat: LMB combo (+/− MM) · Z lunge · X retreat · F dodge · R block</p>
-                <p className="text-gray-400">LMB+drag camera · Click to harvest</p>
+                <p className="text-gray-400">{stateLabel[movementState] || movementState}</p>
+                <p className="text-gray-500 text-[10px]">WASD · Space · Tab · Click harvest</p>
               </>
             )}
             {mode === 'lobby' && (

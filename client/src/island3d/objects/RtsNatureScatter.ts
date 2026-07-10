@@ -28,6 +28,7 @@ const MAX_INSTANCES = 320;
 function scatterHeightM(category: string, scale: number): number {
   const base =
     category === 'rock' ? 2.4 :
+    category === 'palm' ? 8.0 :
     category === 'pine' || category === 'tree' ? 7.0 :
     1.2;
   return Math.max(0.4, base * Math.min(Math.max(scale, 0.5), 2.5) / 1.5);
