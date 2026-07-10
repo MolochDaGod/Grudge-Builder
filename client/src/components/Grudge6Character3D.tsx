@@ -29,12 +29,16 @@ import {
   type PanelEquipment,
 } from "@shared/fleet";
 import { setupGrudge6Equipment } from "@/lib/grudge6Equipment";
+import { applyGrudge6RaceTextures } from "@/lib/grudge6Textures";
+import { applyHeroPortraitStyle } from "@/lib/grudge6PortraitStyle";
 import { applyCharacterColorTints, ensureCharacterTextureColorSpace } from "@/lib/characterAppearance";
 
 interface Grudge6Character3DProps {
   sceneRef: React.RefObject<ThreeSceneHandle | null>;
   raceId: string;
   classId: string;
+  /** Hero codex id (e.g. human_warrior) — enables portrait-guided texture tinting */
+  heroId?: string;
   /** Pre-computed model3d — takes priority over equipment */
   model3d?: Partial<Model3DField>;
   /** Main-panel equipment slots — used when model3d is absent */
@@ -46,10 +50,23 @@ interface Grudge6Character3DProps {
   position?: { x: number; y: number; z: number };
 }
 
+async function applyCharacterAppearance(
+  root: THREE.Object3D,
+  model3d: Model3DField,
+  heroId?: string,
+): Promise<void> {
+  ensureCharacterTextureColorSpace(root);
+  applyCharacterColorTints(root, model3d.skinColor, model3d.armorColor);
+  if (heroId) {
+    await applyHeroPortraitStyle(root, heroId, model3d);
+  }
+}
+
 export default function Grudge6Character3D({
   sceneRef,
   raceId,
   classId,
+  heroId,
   model3d: model3dProp,
   equipment,
   animation = "idle",
@@ -76,8 +93,8 @@ export default function Grudge6Character3D({
   );
 
   const model3dKey = useMemo(
-    () => JSON.stringify({ raceId: raceKey, classId, m: resolvedModel3d }),
-    [raceKey, classId, resolvedModel3d],
+    () => JSON.stringify({ raceId: raceKey, classId, heroId, m: resolvedModel3d }),
+    [raceKey, classId, heroId, resolvedModel3d],
   );
 
   const loadModel = useCallback(async () => {
@@ -100,16 +117,13 @@ export default function Grudge6Character3D({
       modelRef.current = loaded;
       loadedKeyRef.current = model3dKey;
 
+      await applyGrudge6RaceTextures(loaded.scene, raceKey);
       setupGrudge6Equipment(race.prefix, loaded.scene, resolvedModel3d);
-      ensureCharacterTextureColorSpace(loaded.scene);
-      applyCharacterColorTints(
-        loaded.scene,
-        resolvedModel3d.skinColor,
-        resolvedModel3d.armorColor,
-      );
+      await applyGrudge6RaceTextures(loaded.scene, raceKey);
+      await applyCharacterAppearance(loaded.scene, resolvedModel3d, heroId);
 
       const { fitCharacterRootToHeightM, PLAYER_HEIGHT_M } = await import(
-        '@/island3d/zoneWorldScale'
+        "@/island3d/zoneWorldScale"
       );
       const raceMult = scaleOverride ?? resolvedModel3d.scale ?? race.scale ?? 1;
       fitCharacterRootToHeightM(loaded.scene, raceMult, PLAYER_HEIGHT_M);
@@ -148,6 +162,7 @@ export default function Grudge6Character3D({
     }
   }, [
     raceKey,
+    heroId,
     model3dKey,
     resolvedModel3d,
     weaponType,
@@ -176,17 +191,15 @@ export default function Grudge6Character3D({
   // Re-apply equipment when model3d changes without full reload (same race only)
   useEffect(() => {
     if (!modelRef.current) return;
-    // Race change forces loadModel via model3dKey; skip double-work mid-swap
     if (!loadedKeyRef.current.includes(`"raceId":"${raceKey}"`)) return;
+
     const race = RACE_GRUDGE6[raceKey] ?? RACE_GRUDGE6.human;
-    setupGrudge6Equipment(race.prefix, modelRef.current.scene, resolvedModel3d);
-    ensureCharacterTextureColorSpace(modelRef.current.scene);
-    applyCharacterColorTints(
-      modelRef.current.scene,
-      resolvedModel3d.skinColor,
-      resolvedModel3d.armorColor,
-    );
-  }, [resolvedModel3d, raceKey]);
+    void applyGrudge6RaceTextures(modelRef.current.scene, raceKey).then(async () => {
+      setupGrudge6Equipment(race.prefix, modelRef.current!.scene, resolvedModel3d);
+      await applyGrudge6RaceTextures(modelRef.current!.scene, raceKey);
+      await applyCharacterAppearance(modelRef.current!.scene, resolvedModel3d, heroId);
+    });
+  }, [resolvedModel3d, raceKey, heroId]);
 
   useEffect(() => {
     const controller = controllerRef.current;

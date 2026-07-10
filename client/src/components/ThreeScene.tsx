@@ -188,13 +188,45 @@ const ThreeScene = forwardRef<ThreeSceneHandle, ThreeSceneProps>(function ThreeS
     rafRef.current = requestAnimationFrame(animate);
   }, [cameraMode, orbitSpeed, cameraDistance, cameraHeight]);
 
-  // ── Mount / unmount ───────────────────────────────────────────────────
+  // ── Mount / unmount + deferred init when layout size is ready ───────
 
   useEffect(() => {
-    init();
-    rafRef.current = requestAnimationFrame(animate);
+    const container = containerRef.current;
+    if (!container) return;
+
+    let mounted = true;
+
+    const ensureScene = () => {
+      if (!mounted) return;
+      const w = width ?? container.clientWidth;
+      const h = height ?? container.clientHeight;
+      if (w <= 0 || h <= 0) return;
+
+      if (!sceneRef.current) {
+        init();
+        if (sceneRef.current) {
+          cancelAnimationFrame(rafRef.current);
+          rafRef.current = requestAnimationFrame(animate);
+        }
+        return;
+      }
+
+      const camera = cameraRef.current;
+      const renderer = rendererRef.current;
+      if (camera && renderer) {
+        camera.aspect = w / h;
+        camera.updateProjectionMatrix();
+        renderer.setSize(w, h);
+      }
+    };
+
+    ensureScene();
+    const observer = new ResizeObserver(() => ensureScene());
+    observer.observe(container);
 
     return () => {
+      mounted = false;
+      observer.disconnect();
       cancelAnimationFrame(rafRef.current);
       const renderer = rendererRef.current;
       if (renderer) {
@@ -205,28 +237,7 @@ const ThreeScene = forwardRef<ThreeSceneHandle, ThreeSceneProps>(function ThreeS
       sceneRef.current = null;
       cameraRef.current = null;
     };
-  }, [init, animate]);
-
-  // ── Resize handling ───────────────────────────────────────────────────
-
-  useEffect(() => {
-    const container = containerRef.current;
-    if (!container || width || height) return;
-
-    const observer = new ResizeObserver((entries) => {
-      for (const entry of entries) {
-        const { width: w, height: h } = entry.contentRect;
-        if (w > 0 && h > 0 && cameraRef.current && rendererRef.current) {
-          cameraRef.current.aspect = w / h;
-          cameraRef.current.updateProjectionMatrix();
-          rendererRef.current.setSize(w, h);
-        }
-      }
-    });
-
-    observer.observe(container);
-    return () => observer.disconnect();
-  }, [width, height]);
+  }, [init, animate, width, height]);
 
   // ── Imperative handle ─────────────────────────────────────────────────
 

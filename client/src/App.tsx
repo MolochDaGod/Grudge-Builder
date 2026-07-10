@@ -14,6 +14,7 @@ import { prefetchCoreData } from "@/lib/objectStoreApi";
 import { syncGameDataFromObjectStore } from "@/lib/gameData";
 import { syncItemsFromObjectStore } from "@/lib/grudaDB";
 import NotFound from "@/pages/not-found";
+import { Grudge6Redirect } from "@/components/Grudge6Redirect";
 import CharacterRedirect from "@/pages/character-redirect";
 import ProfessionsPage from "@/pages/professions";
 import DatabasePage from "@/pages/database";
@@ -59,6 +60,7 @@ import AuthCallbackPage from "@/pages/auth-callback";
 import EditorPage from "@/pages/editor";
 import ForgePage from "@/pages/forge";
 import ScenePage from "@/pages/scene";
+import Grudge6ViewerPage from "@/pages/grudge6-viewer";
 import GrudgeAI from "@/components/GrudgeAI";
 import { GrudgeTruthBadge } from "@/components/GrudgeTruthBadge";
 import { GrudgeTokenWidget } from "@/components/grudge-token/GrudgeTokenWidget";
@@ -147,6 +149,7 @@ function Router() {
       <Route path="/editor" component={EditorPage} />
       <Route path="/forge" component={ForgePage} />
       <Route path="/scene" component={ScenePage} />
+      <Route path="/viewer" component={Grudge6ViewerPage} />
       <Route path="/organizer">{() => <Suspense fallback={null}><OrganizerPage /></Suspense>}</Route>
       <Route path="/grudawars" component={GrudaWarsPage} />
       <Route path="/play" component={PlayPage} />
@@ -165,6 +168,12 @@ function Router() {
       <Route path="/town" component={TownPage} />
       <Route path="/weaponskills" component={WeaponSkillsPage} />
       <Route path="/game/character" component={GameCharacterPage} />
+      <Route path="/game">{() => <Grudge6Redirect route="home" />}</Route>
+      <Route path="/game/panel">{() => <Grudge6Redirect route="panel" />}</Route>
+      <Route path="/game/spellbook">{() => <Grudge6Redirect route="spellbook" />}</Route>
+      <Route path="/game/hud">{() => <Grudge6Redirect route="hud" />}</Route>
+      <Route path="/game/inventory">{() => <Grudge6Redirect route="inventory" />}</Route>
+      <Route path="/game/foundry">{() => <Grudge6Redirect route="foundry" />}</Route>
       <Route path="/systems" component={SystemsPage} />
       {/* Fallback to 404 */}
       <Route component={NotFound} />
