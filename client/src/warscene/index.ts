@@ -24,3 +24,4 @@ export { ROUND_DURATION_SEC, formatClock } from './WarMatchRules';
 export type { MatchHud } from './WarMatchRules';
 export { buildFactionRoster } from './WarRoster';
 export type { RosterEntry } from './WarRoster';
+export { WarProjectileSystem, isRangedWarSkill } from './WarProjectileSystem';

@@ -1,23 +1,23 @@
 # Medieval War Scene — Island Siege
 
-Turn `huge_medieval_battle_scene.glb` (~517 MB static fortress) into a **Conqueror's Blade–style island siege**: cinematic declaration, deploy from reserve, timed waves, destructible walls.
+Turn `huge_medieval_battle_scene.glb` into a **Conqueror's Blade–style island siege**: hero select, ordered deploy, catapult, 3 capture zones, 10:00 timer, destructible walls.
 
 ## Match flow
 
 ```
-load island fortress
+load island fortress (291 meshes, textures, walls, PG proxies)
     → cinematic (AI voice declaration of war)
-    → deploy (companies stay in reserve; pads visible)
-    → siege (opening field + reinforcement waves + wall AI)
-    → ended
+    → deploy UX: grudge6 hero → ordered companies/siege → Begin Siege
+    → siege: catapult from t=0 · 3 banners · 10:00 · click-move hero
+    → ended: all zones / timer / wipe
 ```
 
 | Phase | What happens |
 |-------|----------------|
-| **Cinematic** | Camera flyover + herald / lords VO (Web Speech TTS). Skip available. |
-| **Deploy** | No free army on the map. Reserve pool = all `PG_*` proxies. |
-| **Siege** | ~10 companies/faction fielded; waves every ~28s; AI fights + sieges walls. |
-| **Ended** | One banner wiped (field + reserve empty). |
+| **Cinematic** | Camera flyover + herald / lords VO. Skip available. |
+| **Deploy** | 1) Pick hero (account char or race) 2) Toggle ordered roster 3) Launch. |
+| **Siege** | Catapult hits walls; capture Beach / Gate / Keep; waves; click ground to move hero. |
+| **Ended** | Hold all 3 zones, best zones at 10:00, or army wiped. |
 
 Query flags:
 

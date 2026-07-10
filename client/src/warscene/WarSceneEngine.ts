@@ -59,6 +59,10 @@ import {
 import type { RosterEntry } from './WarRoster';
 import { hasSelectedSiege } from './WarRoster';
 import type { WarUnitArchetype } from '@shared/definitions/medievalBattleScene';
+import {
+  WarProjectileSystem,
+  isRangedWarSkill,
+} from './WarProjectileSystem';
 
 export interface PlayerHeroOpts {
   raceId: string;
@@ -161,6 +165,7 @@ export class WarSceneEngine {
   private pointer = new THREE.Vector2();
   private followPlayer = true;
   private onCanvasClick: ((e: MouseEvent) => void) | null = null;
+  private projectiles: WarProjectileSystem | null = null;
 
   constructor(cfg: WarSceneConfig) {
     this.cfg = cfg;
@@ -401,9 +406,12 @@ export class WarSceneEngine {
             std.map.colorSpace = THREE.SRGBColorSpace;
             std.map.needsUpdate = true;
           }
-          if (layer === 'vfx_fire' && std.emissive) {
-            std.emissive = new THREE.Color(0xff6600);
-            std.emissiveIntensity = 1.2;
+          // Fire arrows get emissive for template clone; then we hide them
+          if (layer === 'vfx_fire_arrow') {
+            if (std.emissive) {
+              std.emissive = new THREE.Color(0xff5500);
+              std.emissiveIntensity = 1.4;
+            }
             std.transparent = true;
           }
         }
@@ -438,6 +446,17 @@ export class WarSceneEngine {
     }
 
     this.envRoot.add(root);
+
+    // Harvest stuck Fire_* flaming arrows → archer projectile pool; hide from map
+    progress(54, 'Clearing baked aerial arrows…');
+    this.projectiles = new WarProjectileSystem(this.scene);
+    this.projectiles.setImpactHandler((hit) => this.applyProjectileImpact(hit));
+    const harvested = this.projectiles.harvestFromScene(root);
+    this.log(
+      harvested > 0
+        ? `Removed ${harvested} stuck Fire_* arrows from map → archer projectile pool`
+        : 'No Fire_* meshes found — using procedural flaming arrows for archers',
+    );
 
     // Island water + material best practices
     progress(56, 'Shaping island shoreline…');
@@ -820,12 +839,64 @@ export class WarSceneEngine {
     damage: number,
     skill: string,
   ): void => {
+    // Archers / ranged skills: spawn flaming arrow projectile (map Fire_* asset)
+    if (isRangedWarSkill(attacker.archetype.role, skill) && this.projectiles) {
+      const from = attacker.root.position.clone();
+      from.y += 1.4;
+      let to = new THREE.Vector3();
+      const unit = this.unitMap.get(targetId);
+      const wall = this.wallMap.get(targetId);
+      if (unit && !unit.dead) {
+        to.copy(unit.root.position);
+        to.y += 1.1;
+      } else if (wall && !wall.dead) {
+        to.copy(wall.position);
+        to.y += 2;
+      } else {
+        // fallback forward
+        to.copy(from).add(new THREE.Vector3(Math.sin(attacker.root.rotation.y), 0, Math.cos(attacker.root.rotation.y)).multiplyScalar(12));
+      }
+      this.projectiles.fire({
+        from,
+        to,
+        damage,
+        skill,
+        attackerId: attacker.id,
+        targetId,
+        flaming: true,
+      });
+      return;
+    }
+
+    // Melee / instant
+    this.applyDirectDamage(attacker.id, targetId, damage, skill, attacker.archetype.label);
+  };
+
+  private applyProjectileImpact = (hit: {
+    targetId: string;
+    attackerId: string;
+    damage: number;
+    skill: string;
+    point: THREE.Vector3;
+  }): void => {
+    const attacker = this.unitMap.get(hit.attackerId);
+    const label = attacker?.archetype.label ?? 'Archer';
+    this.applyDirectDamage(hit.attackerId, hit.targetId, hit.damage, hit.skill, label);
+  };
+
+  private applyDirectDamage(
+    attackerId: string,
+    targetId: string,
+    damage: number,
+    skill: string,
+    attackerLabel: string,
+  ): void {
     const unit = this.unitMap.get(targetId);
     if (unit && !unit.dead) {
-      unit.takeDamage(damage, attacker.id);
-      if (Math.random() < 0.15) {
+      unit.takeDamage(damage, attackerId);
+      if (Math.random() < 0.2 || /arrow|shot|bolt/i.test(skill)) {
         this.log(
-          `${attacker.archetype.label} → ${unit.archetype.label}: ${skill} (${damage} dmg)` +
+          `${attackerLabel} → ${unit.archetype.label}: ${skill} (${damage} dmg)` +
             (unit.dead ? ' ☠' : ''),
         );
       }
@@ -834,9 +905,9 @@ export class WarSceneEngine {
     const wall = this.wallMap.get(targetId);
     if (wall && !wall.dead) {
       const destroyed = wall.takeDamage(damage);
-      if (destroyed || Math.random() < 0.2) {
+      if (destroyed || Math.random() < 0.25 || /arrow|shot/i.test(skill)) {
         this.log(
-          `${attacker.archetype.label} siege ${wall.label}: ${skill} (−${damage} HP)` +
+          `${attackerLabel} siege ${wall.label}: ${skill} (−${damage} HP)` +
             (destroyed ? ' — WALL BREACHED' : ` [${wall.hp}/${wall.maxHp}]`),
         );
       }
@@ -880,6 +951,9 @@ export class WarSceneEngine {
 
     // Round clock (10 minutes)
     this.roundTimeLeft = Math.max(0, this.roundTimeLeft - dt);
+
+    // Flaming arrows in flight
+    this.projectiles?.update(dt);
 
     // Catapults fire from round start
     for (const c of this.catapults) c.update(dt, this.walls);
@@ -1025,6 +1099,8 @@ export class WarSceneEngine {
     this.captureZones = [];
     for (const c of this.catapults) c.dispose();
     this.catapults = [];
+    this.projectiles?.dispose();
+    this.projectiles = null;
     for (const u of this.units) u.dispose();
     this.units = [];
     this.renderer.dispose();

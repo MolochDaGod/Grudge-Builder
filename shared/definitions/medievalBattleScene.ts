@@ -40,7 +40,8 @@ export type BattleSceneLayer =
   | 'terrain'
   | 'prop'
   | 'banner'
-  | 'vfx_fire'
+  /** Baked flaming arrows stuck mid-air — harvest as archer projectiles */
+  | 'vfx_fire_arrow'
   | 'vfx_smoke'
   | 'other';
 
@@ -221,11 +222,12 @@ export function classifyBattleNodeName(name: string): BattleSceneLayer {
   const n = name || '';
   if (/PG_Mat/i.test(n)) return 'unit_proxy';
   if (/Mura|TileMura|Passerella|Tegola/i.test(n)) return 'wall';
-  if (/Erba|Zolla|Bordo|Roccia/i.test(n)) return 'terrain';
+  if (/Erba|Zolla|Bordo|Roccia|Terreno|Water/i.test(n)) return 'terrain';
   if (/Stendardi/i.test(n)) return 'banner';
-  if (/Fire/i.test(n)) return 'vfx_fire';
+  // Maya bake: Fire_01/02 = flaming arrows frozen in the sky — not world props
+  if (/Fire_0|Fire_01|Fire_02|Fire_/i.test(n)) return 'vfx_fire_arrow';
   if (/Smoke/i.test(n)) return 'vfx_smoke';
-  if (/Legno|Ferro|Gold|Corda|lambert/i.test(n)) return 'prop';
+  if (/Legno|Ferro|Gold|Corda|lambert|Tetto|albero/i.test(n)) return 'prop';
   return 'other';
 }
 

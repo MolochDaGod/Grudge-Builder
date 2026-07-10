@@ -46,7 +46,7 @@ export function enhanceIslandBattlefield(
           ? 'wall'
           : /Stendardi/i.test(n)
             ? 'banner'
-            : /Fire/i.test(n)
+            : /Fire_/i.test(n)
               ? 'fire'
               : 'other';
     const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
