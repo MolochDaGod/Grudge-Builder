@@ -285,6 +285,7 @@
   },
   "devDependencies": {
     "@aws-sdk/client-s3": "^3.1075.0",
+    "@aws-sdk/lib-storage": "^3.1084.0",
     "@gltf-transform/core": "^4.4.0",
     "@gltf-transform/extensions": "^4.4.0",
     "@gltf-transform/functions": "^4.4.0",
