@@ -37,6 +37,7 @@ import { buildHomeDungeonUrl } from '@/lib/homeIslandDungeon';
 import { clearTopDownCache } from '@/island3d/render/IslandTopDownCapture';
 import type { MountainHintState } from '@/island3d/objects/EvilMountainTriad';
 import { Home, Mountain, ArrowLeft, Map as MapIcon } from 'lucide-react';
+import { Grudge6PlayShell } from '@/components/Grudge6PlayShell';
 
 export default function HomeIslandPage() {
   const [, setLocation] = useLocation();
@@ -624,6 +625,12 @@ export default function HomeIslandPage() {
             onCraft={handleCraft}
             onBuildRaft={handleBuildRaft}
             onUseSkill={handleUseSkill}
+          />
+
+          <Grudge6PlayShell
+            characterId={characterRef.current?.id}
+            characterName={characterName}
+            compact
           />
 
           {mountainHint !== 'none' && (

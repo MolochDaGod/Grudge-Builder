@@ -69,6 +69,13 @@ export const AI_GATEWAY: string =
   env.VITE_AI_URL || FLEET_URLS.ai;
 
 /**
+ * Grudge6 game lab — HUD, Main Panel, Spellbook, Character, Inventory.
+ * Served at grudge6.grudge-studio.com/game/* (BASE_PATH=/game/).
+ */
+export const GRUDGE6_GAME_URL: string =
+  env.VITE_GRUDGE6_URL || FLEET_URLS.grudge6 || 'https://grudge6.grudge-studio.com/game';
+
+/**
  * Edge badge-reader Worker — JWT pre-check before protected origins.
  *
  * NOTE (2026-05-06): edge.grudge-studio.com has NO DNS record — the Worker

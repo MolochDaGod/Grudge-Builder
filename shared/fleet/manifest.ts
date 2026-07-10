@@ -62,6 +62,11 @@ export const FLEET_URLS = {
   carrier: "https://carrier.grudge-studio.com",
   /** Single-instance authoritative rooms (Carrier / Waters / Brawler) */
   grudoxGameServer: "https://voxgrudge-grudox-room-production.up.railway.app",
+  /**
+   * Grudge6 game lab (character-animator grudge-game artifact).
+   * Base path `/game/` — HUD, main panel, spellbook, character, inventory, world.
+   */
+  grudge6: "https://grudge6.grudge-studio.com/game",
 } as const;
 
 export const FLEET_SERVICES: FleetService[] = [

@@ -15,6 +15,7 @@ import type { Model3DField } from '@shared/fleet';
 import { LobbyGameHUD } from './LobbyGameHUD';
 import { ShipDockPanel } from '@/components/ShipDockPanel';
 import { IslandPlayOverlay } from './IslandPlayOverlay';
+import { Grudge6PlayShell } from '@/components/Grudge6PlayShell';
 import { useIslandSession } from '../session/useIslandSession';
 import type { QualityPreset } from '../render/PostProcessing';
 import type { DayNightConfig } from '../environment/DayNightCycle';
@@ -444,6 +445,15 @@ export function Island3DRenderer({
               onTickRate={(v) => sessionSend({ type: 'SET_TICK_RATE', tickRate: v })}
               onDayDuration={(v) => sessionSend({ type: 'SET_DAY_DURATION', dayDurationSeconds: v })}
               onCombatToggle={() => sessionSend({ type: 'TOGGLE_COMBAT' })}
+            />
+          )}
+
+          {/* Grudge6 lab: HUD · Main Panel · Spellbook · Character · Inventory */}
+          {(mode === 'procedural' || mode === 'zone') && (
+            <Grudge6PlayShell
+              characterId={characterId}
+              characterName={characterName}
+              compact
             />
           )}
 
