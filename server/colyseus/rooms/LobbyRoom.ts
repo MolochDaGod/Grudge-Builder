@@ -6,16 +6,21 @@ interface JoinOptions {
   characterName?: string;
   className?: string;
   level?: number;
+  accountId?: string;
+  sourceGame?: string;
 }
 
 export class LobbyRoom extends Room<RoomState> {
   maxClients = 50;
+  /** Keep lobby alive so joinOrCreate reuses one room */
+  autoDispose = false;
 
   onCreate(options: any) {
     this.setState(new RoomState());
     this.state.roomName = "Lobby";
+    this.setMetadata({ kind: "lobby", source: "grudge-api" });
 
-    this.setSimulationInterval((deltaTime) => {
+    this.setSimulationInterval((_deltaTime) => {
       this.state.tick++;
     }, 1000 / 10);
 
