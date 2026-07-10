@@ -21,7 +21,13 @@ import { LOBBY_MAPS } from '@/island3d/engine/LobbyIslandLoader';
 import { authHeaders } from '@/lib/grudgeBackend';
 import { normalizeHomeIslandResponse } from '@/lib/homeIslandApi';
 import { characterAPI } from '@/lib/api';
-import { WORLD_SECTORS, getSectorById } from '@shared/definitions/worldMapSectors';
+import { getSectorById } from '@shared/definitions/worldMapSectors';
+import {
+  resolveIsland3DPlayMode,
+  getPlayableSectorList,
+  OPEN_WORLD_LOBBY_MAP_ID,
+  isOpenWorldLobbySector,
+} from '@/island3d/engine/openWorldLobby';
 import { Loader2, Users, ExternalLink, Ship, Anchor, Home, Mountain } from 'lucide-react';
 import { clearTopDownCache } from '@/island3d/render/IslandTopDownCapture';
 import { useZoneColyseus } from '@/hooks/use-zone-colyseus';
@@ -187,19 +193,21 @@ function Island3DPlayPage() {
   const [biome, setBiome] = useState(() => params.get('biome') || showcase.biome);
   const [preset, setPreset] = useState<HomeIslandShowcasePreset>(() => showcase);
 
-  const [mode, setMode] = useState<Island3DMode>(() => {
-    const m = params.get('mode');
-    if (m === 'zone' || m === 'lobby') return m;
-    return 'procedural';
-  });
-  const [lobbyMapId, setLobbyMapId] = useState(params.get('map') || 'pirate-islands');
-  const [sectorId, setSectorId] = useState(params.get('sector') || 'haven_shore');
+  // Production URL: ?mode=zone&sector=lobby → pirate open-world (full systems)
+  const resolvedPlay = useMemo(() => resolveIsland3DPlayMode(params), [params]);
+
+  const [mode, setMode] = useState<Island3DMode>(() => resolvedPlay.mode);
+  const [lobbyMapId, setLobbyMapId] = useState(resolvedPlay.lobbyMapId || OPEN_WORLD_LOBBY_MAP_ID);
+  const [sectorId, setSectorId] = useState(
+    resolvedPlay.isOpenWorldLobby ? 'lobby' : (params.get('sector') || 'haven_shore'),
+  );
   const [worldSeed, setWorldSeed] = useState(params.get('worldSeed') || 'grudge-world-1');
   const zoneMultiplayer = params.get('solo') !== '1';
   const fromOcean = params.get('from') === 'ocean';
   const [, navigate] = useLocation();
   const engineRef = useRef<Island3DEngine | null>(null);
   const [engine, setEngine] = useState<Island3DEngine | null>(null);
+  const playableSectors = useMemo(() => getPlayableSectorList(), []);
 
   const [homeIsland, setHomeIsland] = useState<any>(null);
   const [homeIslandLoading, setHomeIslandLoading] = useState(useAccountIsland);
@@ -334,12 +342,25 @@ function Island3DPlayPage() {
   };
 
   const handleLobbyMap = (mapId: string) => {
-    setLobbyMapId(mapId);
+    setLobbyMapId(mapId || OPEN_WORLD_LOBBY_MAP_ID);
     setMode('lobby');
-    setSeed(`lobby-${mapId}`);
+    setSectorId('lobby');
+    setSeed(`lobby-${mapId || OPEN_WORLD_LOBBY_MAP_ID}`);
+    const next = new URLSearchParams(window.location.search);
+    next.set('mode', 'zone');
+    next.set('sector', 'lobby');
+    next.set('map', mapId || OPEN_WORLD_LOBBY_MAP_ID);
+    next.set('island', lobbyIslandId);
+    next.delete('engine');
+    window.history.replaceState(null, '', `?${next.toString()}`);
   };
 
   const handleZoneMode = (id: string) => {
+    // sector=lobby is the production open-world pirate hub (not a 10km zone mesh)
+    if (isOpenWorldLobbySector(id)) {
+      handleLobbyMap(OPEN_WORLD_LOBBY_MAP_ID);
+      return;
+    }
     setSectorId(id);
     setMode('zone');
     setSeed(`zone-${id}-${worldSeed}`);
@@ -347,10 +368,12 @@ function Island3DPlayPage() {
     next.set('mode', 'zone');
     next.set('sector', id);
     next.set('worldSeed', worldSeed);
+    next.delete('map');
     window.history.replaceState(null, '', `?${next.toString()}`);
   };
 
   const activeSector = mode === 'zone' ? getSectorById(sectorId) : null;
+  const isOpenWorldLobby = mode === 'lobby' || isOpenWorldLobbySector(sectorId);
 
   // Never feed banned megakit scatter from saved state into the showcase
   const safeNatureScatter = useMemo((): RtsNatureScatterPayload | undefined => {
@@ -383,13 +406,15 @@ function Island3DPlayPage() {
   }
 
   const titleLabel =
-    mode === 'zone'
-      ? `Zone — ${activeSector?.name || sectorId}`
-      : mode === 'lobby'
-        ? `Lobby — ${lobbyMapId}`
-        : useAccountIsland && homeIsland?.name
-          ? `Home Island: ${homeIsland.name}`
-          : `Home Island · Generative · ${preset.label}`;
+    isOpenWorldLobby
+      ? 'Pirate Open World · Boats · Build · Harvest · Combat · Grudge6'
+      : mode === 'zone'
+        ? `Zone — ${activeSector?.name || sectorId}`
+        : mode === 'lobby'
+          ? `Lobby — ${lobbyMapId}`
+          : useAccountIsland && homeIsland?.name
+            ? `Home Island: ${homeIsland.name}`
+            : `Home Island · Generative · ${preset.label}`;
 
   return (
     <div className="flex flex-col h-screen bg-gray-950">
@@ -458,21 +483,23 @@ function Island3DPlayPage() {
           </button>
           <button
             type="button"
-            onClick={() => handleZoneMode(sectorId)}
+            onClick={() => handleZoneMode(isOpenWorldLobby ? 'haven_shore' : sectorId)}
             className={`text-xs px-2 py-1 rounded transition-colors ${
-              mode === 'zone' ? 'bg-purple-600 text-white' : 'text-gray-400 hover:text-white'
+              mode === 'zone' && !isOpenWorldLobby ? 'bg-purple-600 text-white' : 'text-gray-400 hover:text-white'
             }`}
+            title="Warlords 9-sector tactical open world"
           >
-            Zone
+            Zones
           </button>
           <button
             type="button"
-            onClick={() => handleLobbyMap(lobbyMapId)}
+            onClick={() => handleLobbyMap(lobbyMapId || OPEN_WORLD_LOBBY_MAP_ID)}
             className={`text-xs px-2 py-1 rounded transition-colors ${
-              mode === 'lobby' ? 'bg-amber-600 text-white' : 'text-gray-400 hover:text-white'
+              isOpenWorldLobby ? 'bg-amber-600 text-white' : 'text-gray-400 hover:text-white'
             }`}
+            title="Production pirate open world (sector=lobby)"
           >
-            Lobby
+            Open World
           </button>
         </div>
 
@@ -508,21 +535,23 @@ function Island3DPlayPage() {
           </>
         )}
 
-        {mode === 'zone' && (
+        {/* Full tactical map picker: lobby hub + all 9 Warlords sectors */}
+        {(mode === 'zone' || isOpenWorldLobby) && (
           <select
-            value={sectorId}
+            value={isOpenWorldLobby ? 'lobby' : sectorId}
             onChange={(e) => handleZoneMode(e.target.value)}
-            className="bg-gray-800 border border-gray-700 text-white text-xs px-2 py-1 rounded focus:outline-none focus:border-purple-500"
+            className="bg-gray-800 border border-gray-700 text-white text-xs px-2 py-1 rounded focus:outline-none focus:border-purple-500 max-w-[14rem]"
+            title="Pirate open world + all tactical zones"
           >
-            {WORLD_SECTORS.map((s) => (
+            {playableSectors.map((s) => (
               <option key={s.id} value={s.id}>
-                {s.name}
+                {s.isLobby ? `★ ${s.name}` : s.name}
               </option>
             ))}
           </select>
         )}
 
-        {mode === 'lobby' && (
+        {mode === 'lobby' && !isOpenWorldLobby && (
           <select
             value={lobbyMapId}
             onChange={(e) => handleLobbyMap(e.target.value)}
@@ -536,16 +565,16 @@ function Island3DPlayPage() {
           </select>
         )}
 
-        {mode === 'zone' && (
+        {(mode === 'zone' || isOpenWorldLobby) && (
           <a
             href={`/ocean?worldSeed=${encodeURIComponent(worldSeed)}`}
             className="text-xs text-amber-500/80 hover:text-amber-400 underline inline-flex items-center gap-1"
           >
             <Ship className="w-3 h-3" />
-            Sea
+            Sea Map
           </a>
         )}
-        {mode === 'zone' && zoneMultiplayer && (
+        {mode === 'zone' && !isOpenWorldLobby && zoneMultiplayer && (
           <div className="flex items-center gap-1 text-xs text-slate-400">
             <Users className="w-3.5 h-3.5" />
             {zoneColyseus.connecting
@@ -575,13 +604,13 @@ function Island3DPlayPage() {
         <Island3DRenderer
           seed={seed}
           mode={mode}
-          lobbyMapId={lobbyMapId}
+          lobbyMapId={lobbyMapId || OPEN_WORLD_LOBBY_MAP_ID}
           lobbyIslandId={mode === 'lobby' ? lobbyIslandId : undefined}
-          sectorId={mode === 'zone' ? sectorId : undefined}
+          sectorId={mode === 'zone' && !isOpenWorldLobby ? sectorId : undefined}
           worldSeed={worldSeed}
-          quality={mode === 'procedural' ? 'high' : 'medium'}
+          quality={mode === 'procedural' || isOpenWorldLobby ? 'high' : 'medium'}
           dayNight={{ dayDurationSeconds: 600, startTime: 0.35 }}
-          enableCharacter={mode === 'procedural' || mode === 'zone' || mode === 'lobby'}
+          enableCharacter
           multiplayer={lobbyMultiplayer}
           characterId={heroCharacterId || undefined}
           characterName={heroName}
@@ -640,7 +669,26 @@ function Island3DPlayPage() {
           </div>
         )}
 
-        {mode === 'zone' && activeSector && (
+        {isOpenWorldLobby && (
+          <div className="absolute top-4 left-4 bg-black/75 backdrop-blur border border-amber-700/50 rounded-xl px-4 py-3 text-xs text-slate-300 space-y-1.5 max-w-sm pointer-events-none z-20">
+            <div className="text-amber-400 font-bold uppercase tracking-widest text-[10px]">
+              Production Open World
+            </div>
+            <div className="text-white font-semibold">Pirate Islands Hub</div>
+            <div className="text-slate-400 leading-relaxed">
+              Boats (E at dock) · Build (ModePlayHUD) · Harvest · PvE camps · Open combat
+              · Grudge6 Main Panel (P) · Spellbook (B) · Inventory (I)
+            </div>
+            <div className="text-slate-500 pt-0.5">
+              Map picker → all 9 Warlords zones · Sea Map for tactical sailing
+            </div>
+            <div className="text-amber-600/90 font-mono text-[10px]">
+              ?mode=zone&amp;sector=lobby · grudge6 equipment meshes
+            </div>
+          </div>
+        )}
+
+        {mode === 'zone' && !isOpenWorldLobby && activeSector && (
           <div className="absolute top-4 left-4 bg-black/70 backdrop-blur border border-purple-800/50 rounded-xl px-4 py-3 text-xs text-slate-300 space-y-1 max-w-xs">
             <div className="text-purple-300 font-bold uppercase tracking-widest">{activeSector.name}</div>
             <div className="text-slate-400">{activeSector.description}</div>

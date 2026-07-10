@@ -185,14 +185,20 @@ export const MAP_FAMILIES: Record<MapFamilyId, MapFamilyDef> = {
       'Island3DEngine mode=lobby',
     ],
     entry: {
-      primary: '/island-3d?mode=lobby&map=pirate-islands&island=grudge-open-world',
-      alternates: ['/rts-grudge (lobby host)'],
+      // Production open-world hub (boats, build, harvest, PvE, combat, Grudge6 main panel)
+      primary: '/island-3d?mode=zone&sector=lobby',
+      alternates: [
+        '/island-3d?mode=lobby&map=pirate-islands&island=grudge-open-world',
+        '/rts-grudge (lobby host)',
+      ],
     },
     doNotConfuseWith: ['warlords_era_open_world', 'home_island', 'player_home_block'],
-    engines: ['LobbyIslandLoader', 'LobbyGameplay', 'LobbyPlayZone'],
+    engines: ['LobbyIslandLoader', 'LobbyGameplay', 'LobbyPlayZone', 'BuildingSystem', 'Grudge6PlayShell'],
     notes: [
       'Asset: scene.gltf + scene.bin + textures/ (not a single glb)',
       'DEFAULT_PUBLIC_LOBBY_MAP_ID = pirate-islands',
+      'URL aliases: sector=lobby | sector=pirate-islands | mode=lobby → same open-world hub',
+      'Full systems: ModePlayHUD (combat/harvest/build), boats E-dock, Grudge6 panel/spellbook/inv',
     ],
   },
 

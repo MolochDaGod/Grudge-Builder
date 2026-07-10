@@ -153,22 +153,31 @@ export function Island3DRenderer({
         setError(null);
         sessionSend({ type: 'READY' });
         engine.start();
-        // Character load is optional — never fail the whole island for missing hero assets
-        if (engine.character && raceId && classId) {
+        // Grudge6 / uMMORPG-style character: always try production load when we have a controller
+        // (race/class default to human/warrior; equipment meshes from CharacterManager + model3d)
+        if (engine.character) {
           try {
             const activeChar = await import('@/lib/characterManager').then((m) =>
               m.CharacterManager.getActiveCharacter?.(),
             );
+            const race = raceId || activeChar?.raceId || 'human';
+            const cls = classId || activeChar?.classId || 'warrior';
+            const equip = activeChar?.equipment as Record<string, string | null> | undefined;
             await engine.character.loadCharacterFromManifest(
-              raceId,
-              classId,
-              characterId,
+              race,
+              cls,
+              characterId || activeChar?.id,
               undefined,
               model3d ?? activeChar?.model3d,
-              activeChar?.equipment,
+              equip,
             );
-            if (activeChar?.equipment) {
-              engine.character.setEquipment(activeChar.equipment);
+            if (equip) {
+              engine.character.setEquipment(equip);
+            }
+            // Sync spellbook / action bar slots when present on character
+            const skills = (activeChar as { skillBar?: string[] } | undefined)?.skillBar;
+            if (skills?.length && typeof (engine.character as any).setActionBarSlots === 'function') {
+              (engine.character as any).setActionBarSlots(skills);
             }
           } catch (charErr) {
             console.warn('[Island3D] Character load skipped — capsule fallback:', charErr);
@@ -203,7 +212,7 @@ export function Island3DRenderer({
     mountainTriad, rtsHeightmap, rtsNatureScatter, biome, onDungeonEnter, campPositionPercent, regrowRegions,
   ]);
 
-  // Lobby interact: E capture / board ship
+  // Lobby / open-world interact: E capture / board ship
   useEffect(() => {
     if (mode !== 'lobby') return;
     const onKeyDown = (e: KeyboardEvent) => {
@@ -448,8 +457,8 @@ export function Island3DRenderer({
             />
           )}
 
-          {/* Grudge6 lab: HUD · Main Panel · Spellbook · Character · Inventory */}
-          {(mode === 'procedural' || mode === 'zone') && (
+          {/* Grudge6 lab: HUD · Main Panel · Spellbook · Character · Inventory (all play modes) */}
+          {(mode === 'procedural' || mode === 'zone' || mode === 'lobby') && (
             <Grudge6PlayShell
               characterId={characterId}
               characterName={characterName}
@@ -457,6 +466,7 @@ export function Island3DRenderer({
             />
           )}
 
+          {/* Boats / dock / capture — open-world pirate lobby */}
           {mode === 'lobby' && (
             <>
               <LobbyGameHUD

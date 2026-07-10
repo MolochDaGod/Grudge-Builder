@@ -347,7 +347,22 @@ export class Island3DEngine {
 
   /** Generate terrain, water, nodes, decorations — or load a lobby/zone map */
   async init(): Promise<void> {
-    const mode = this.config.mode || 'procedural';
+    let mode = this.config.mode || 'procedural';
+
+    // Production open-world: mode=zone&sector=lobby → pirate lobby systems
+    // (sector "lobby" is not a WorldSector mesh — it is the open-world hub)
+    const sector = (this.config.sectorId || '').toLowerCase();
+    if (
+      mode === 'zone' &&
+      (sector === 'lobby' ||
+        sector === 'pirate' ||
+        sector === 'pirate-islands' ||
+        sector === 'open-world' ||
+        sector === 'grudge-open-world')
+    ) {
+      mode = 'lobby';
+      if (!this.config.lobbyMapId) this.config.lobbyMapId = 'pirate-islands';
+    }
 
     if (mode === 'lobby') {
       await this.initLobby();
@@ -456,6 +471,39 @@ export class Island3DEngine {
       this.controls.maxPolarAngle = Math.PI * 0.85;
       this.controls.update();
     }
+
+    // Day/night on open-world lobby (same production clock as zones)
+    if (this.config.dayNight !== undefined && this.sunLight && this.hemiLight && !this.dayNight) {
+      this.dayNight = new DayNightCycle(
+        this.scene, this.sunLight, this.hemiLight, this.config.dayNight,
+      );
+    }
+
+    // Faction NPC camps on lobby land for PvE / open combat
+    if (!this.npcCamps) {
+      this.npcCamps = new NpcCampSystem({
+        scene: this.scene,
+        playerFaction: this.playerFaction,
+        waterLevel: LOBBY_WATER_LEVEL,
+        sampleHeight: sampleGround,
+      });
+      const half = maxDim * 0.35;
+      void spawnZoneCamps(
+        this.npcCamps,
+        [
+          { x: half * 0.4, z: half * 0.2, radius: half * 0.25 },
+          { x: -half * 0.35, z: half * 0.3, radius: half * 0.22 },
+          { x: half * 0.15, z: -half * 0.4, radius: half * 0.2 },
+        ],
+        {
+          playerFaction: this.playerFaction,
+          seed: (this.config.seed?.length || 1) * 1337,
+          campsPerIsland: 1,
+        },
+      ).then((n) => console.log(`[Island3D] Lobby PvE camps: ${n}`));
+    }
+
+    this.config.onLoadProgress?.(100);
   }
 
   private async spawnLobbyCharacter(): Promise<void> {
