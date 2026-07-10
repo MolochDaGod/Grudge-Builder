@@ -15,6 +15,7 @@ import {
   type HomeIslandMineSeed,
   type MineLootItem,
 } from '@shared/definitions/homeIslandMines';
+import { generateHomeIslandMountain } from '@shared/definitions/homeIslandMountain';
 import { WARLORDS_MOUNTAIN_ASSET } from '@shared/definitions/warlordsEraAssets';
 import { fitModelToHeight } from './IslandResourceLoader';
 
@@ -30,8 +31,9 @@ export interface MineEntranceSystemConfig {
   campZ?: number;
   campClearRadiusM?: number;
   worldSizeM?: number;
-  /** When true, also place realistic mountain cave entrance (event mountain) */
+  /** When true, place Ultimate Fantasy RTS mountain (one per island) + optional JJ cave */
   placeEventMountain?: boolean;
+  mountainPercent?: { x: number; y: number };
   onLoot?: (items: MineLootItem[], mineId: string) => void;
   onMineStart?: (mineId: string) => void;
   onMineEnd?: (mineId: string) => void;
@@ -111,29 +113,37 @@ export class MineEntranceSystem {
     });
 
     for (const seed of seeds) {
+      const isQuarry = seed.kind === 'stone_quarry';
+      const promptText = isQuarry
+        ? 'Press E — Stone Quarry (miner)'
+        : 'Press E — Mine (4s)';
       try {
         const model = await loadModel(seed.modelPath);
-        fitModelToHeight(model, 5.5 + seed.tier * 0.4);
+        fitModelToHeight(model, seed.targetHeightM ?? 5.5 + seed.tier * 0.4);
         const y = getTerrainHeightAt(this.cfg.terrainMesh, seed.x, seed.z) ?? 4;
         const group = new THREE.Group();
         group.name = seed.id;
+        group.userData.mineKind = seed.kind;
         group.position.set(seed.x, y, seed.z);
         group.rotation.y = seed.rotationY;
         group.add(model);
-        const prompt = makePrompt('Press E — Mine (4s)');
+        const prompt = makePrompt(promptText);
         prompt.position.set(0, 7, 0);
         group.add(prompt);
         this.root.add(group);
         this.mines.push({ seed, group, prompt });
       } catch (err) {
         console.warn('[MineEntrance] load failed', seed.modelPath, err);
-        // Placeholder mine mouth
         const y = getTerrainHeightAt(this.cfg.terrainMesh, seed.x, seed.z) ?? 4;
         const group = new THREE.Group();
         group.position.set(seed.x, y, seed.z);
+        group.userData.mineKind = seed.kind;
         const rock = new THREE.Mesh(
-          new THREE.DodecahedronGeometry(3.5, 0),
-          new THREE.MeshStandardMaterial({ color: 0x4a4a4a, roughness: 0.95 }),
+          new THREE.DodecahedronGeometry(isQuarry ? 4 : 3.5, 0),
+          new THREE.MeshStandardMaterial({
+            color: isQuarry ? 0x6b6b62 : 0x4a4a4a,
+            roughness: 0.95,
+          }),
         );
         rock.position.y = 2;
         group.add(rock);
@@ -144,7 +154,7 @@ export class MineEntranceSystem {
         hole.position.set(0, 1.2, 2.2);
         hole.rotation.x = Math.PI / 2;
         group.add(hole);
-        const prompt = makePrompt('Press E — Mine (4s)');
+        const prompt = makePrompt(promptText);
         prompt.position.set(0, 6, 0);
         group.add(prompt);
         this.root.add(group);
@@ -153,19 +163,49 @@ export class MineEntranceSystem {
     }
 
     if (this.cfg.placeEventMountain !== false) {
-      await this.placeEventMountain();
+      await this.placeUfrtsMountain();
+      await this.placeEventMountainCave();
     }
 
-    console.log(`[MineEntrance] ${this.mines.length} mines on home island (seed=${this.cfg.seed.slice(0, 12)})`);
+    const quarries = this.mines.filter((m) => m.seed.kind === 'stone_quarry').length;
+    console.log(
+      `[MineEntrance] ${this.mines.length} mines (${quarries} stone quarry) seed=${this.cfg.seed.slice(0, 12)}`,
+    );
   }
 
-  private async placeEventMountain(): Promise<void> {
+  /** One Ultimate Fantasy RTS mountain mesh per island */
+  private async placeUfrtsMountain(): Promise<void> {
+    const mtn = generateHomeIslandMountain(this.cfg.seed, {
+      worldSizeM: this.cfg.worldSizeM,
+      campX: this.cfg.campX,
+      campZ: this.cfg.campZ,
+      campClearRadiusM: this.cfg.campClearRadiusM,
+      mountainPercent: this.cfg.mountainPercent,
+    });
+    try {
+      const model = await loadModel(mtn.modelPath);
+      fitModelToHeight(model, mtn.targetHeightM);
+      const y = getTerrainHeightAt(this.cfg.terrainMesh, mtn.x, mtn.z) ?? 10;
+      const g = new THREE.Group();
+      g.name = mtn.id;
+      g.userData.ufrtsMountain = mtn.assetId;
+      g.position.set(mtn.x, y, mtn.z);
+      g.rotation.y = mtn.rotationY;
+      g.add(model);
+      this.root.add(g);
+      console.log(`[MineEntrance] UFRTS mountain: ${mtn.label} @ (${mtn.x.toFixed(0)}, ${mtn.z.toFixed(0)})`);
+    } catch (err) {
+      console.warn('[MineEntrance] UFRTS mountain load failed', mtn.modelPath, err);
+    }
+  }
+
+  /** Optional realistic cave mouth (JJ) near mountain */
+  private async placeEventMountainCave(): Promise<void> {
     try {
       const model = await loadModel(WARLORDS_MOUNTAIN_ASSET.path);
-      fitModelToHeight(model, WARLORDS_MOUNTAIN_ASSET.targetHeightM);
-      // North belt — event mountain
-      const x = 0;
-      const z = -this.cfg.worldSizeM! * 0.28 || -280;
+      fitModelToHeight(model, Math.min(18, WARLORDS_MOUNTAIN_ASSET.targetHeightM * 0.55));
+      const x = 35;
+      const z = -(this.cfg.worldSizeM ?? 1024) * 0.26;
       const y = getTerrainHeightAt(this.cfg.terrainMesh, x, z) ?? 8;
       const g = new THREE.Group();
       g.name = 'event_mountain_cave';
@@ -174,7 +214,7 @@ export class MineEntranceSystem {
       this.root.add(g);
       console.log('[MineEntrance] Event mountain cave placed (JJ realistic)');
     } catch (err) {
-      console.warn('[MineEntrance] mountain load failed — keep triad system', err);
+      console.warn('[MineEntrance] JJ mountain cave load failed', err);
     }
   }
 

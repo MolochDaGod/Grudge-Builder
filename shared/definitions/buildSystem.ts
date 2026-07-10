@@ -103,12 +103,16 @@ export const BUILD_PACK_PATHS = {
   medievalTowers: '/models/buildings/towers/3_medieval_towers.glb',
   spellTable: '/models/buildings/benches/spell_table.glb',
   lumbermill: '/models/buildings/benches/lumbermill.glb',
+  /** Ultimate Fantasy RTS pack (CDN after convert/upload) */
+  ultimateFantasyRts: '/models/warlords/rts',
   /** Local authoring sources (dev only) */
   local: {
     survivalKit: 'D:/Games/Models/free_survival_asset_kit.glb',
     medievalTowers: 'D:/Games/Models/3_medieval_towers (1).glb',
     spellTable: 'D:/Games/Models/spell_table.glb',
     lumbermill: 'D:/Games/Models/lumbermill.glb',
+    ultimateFantasyRts:
+      'C:/Users/nugye/Documents/Ultimate Fantasy RTS - Aug 2022-20260503T235302Z-3-001/Ultimate Fantasy RTS - Aug 2022/FBX',
   },
 } as const;
 

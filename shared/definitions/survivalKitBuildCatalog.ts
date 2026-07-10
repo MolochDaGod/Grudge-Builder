@@ -543,9 +543,15 @@ export const RTS_BUILDING_PIECES: BuildPieceDef[] = [
       description:
         'Train AI units (T0 gear). Units level profession 1–100; promote to hero (Railway character).',
     },
-    notes: 'Placeholder mesh until dedicated barracks GLB',
+    notes: 'Legacy placeholder — prefer UFRTS Barracks_FirstAge_Level1',
   }),
 ];
+
+// Ultimate Fantasy RTS pack (barracks, archery, farm, temple, TC, mine, walls…)
+import {
+  UFRTS_STARTER_BUILD_PIECES,
+  UFRTS_STONE_MINE_PIECE,
+} from './ultimateFantasyRtsBuildPieces';
 
 /** Flat list for BuildingSystem / UI */
 export const ALL_SURVIVAL_BUILD_PIECES: BuildPieceDef[] = [
@@ -556,6 +562,9 @@ export const ALL_SURVIVAL_BUILD_PIECES: BuildPieceDef[] = [
   ...TOWER_PIECES,
   ...RACE_HOME_PIECES,
   ...RTS_BUILDING_PIECES,
+  // Stone quarry mine + Age I L1 RTS buildings (Ultimate Fantasy RTS)
+  UFRTS_STONE_MINE_PIECE,
+  ...UFRTS_STARTER_BUILD_PIECES.filter((p) => p.id !== UFRTS_STONE_MINE_PIECE.id),
 ];
 
 export function getBuildPiece(id: string): BuildPieceDef | undefined {

@@ -31,6 +31,10 @@ server/public/
 !public/models/**/*.gltf
 !public/models/**/*.png
 !public/models/**/*.jpg
+# Ultimate Fantasy RTS pack (home-island mine/mountains + RTS buildings) — staged for Vite
+!client/public/models/warlords/rts/**/*.fbx
+!client/public/models/warlords/rts/**/*.glb
+!client/public/models/warlords/mines/**/*.fbx
 # scene.bin files are loaded at runtime but stored outside git (object storage / local)
 public/models/**/*.bin
 

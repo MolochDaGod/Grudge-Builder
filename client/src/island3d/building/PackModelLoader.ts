@@ -1,21 +1,29 @@
 /**
- * PackModelLoader — load multipack GLB and clone named nodes
- * (free_survival_asset_kit, medieval towers, etc.)
+ * PackModelLoader — load multipack GLB (or single-mesh FBX) and clone named nodes.
+ * free_survival_asset_kit, medieval towers, Ultimate Fantasy RTS buildings.
  */
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader.js';
 import { assetUrl } from '@/lib/assetConfig';
 import type { BuildAssetDef } from './BuildAssetManifest';
 
-const loader = new GLTFLoader();
+const gltfLoader = new GLTFLoader();
+const fbxLoader = new FBXLoader();
 const packCache = new Map<string, THREE.Group>();
 
 async function loadPack(path: string): Promise<THREE.Group> {
   const url = assetUrl(path);
   const hit = packCache.get(url);
   if (hit) return hit;
-  const gltf = await loader.loadAsync(url);
-  const root = gltf.scene as THREE.Group;
+
+  let root: THREE.Group;
+  if (path.toLowerCase().endsWith('.fbx')) {
+    root = (await fbxLoader.loadAsync(url)) as THREE.Group;
+  } else {
+    const gltf = await gltfLoader.loadAsync(url);
+    root = gltf.scene as THREE.Group;
+  }
   root.traverse((c) => {
     if ((c as THREE.Mesh).isMesh) {
       c.castShadow = true;

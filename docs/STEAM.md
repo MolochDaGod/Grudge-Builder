@@ -65,13 +65,15 @@ steamcmd +login <user> +run_app_build <app_build.vdf> +quit
 
 ## Large main island (deploy path)
 
-1. **Web (already live):**  
-   - Home: `/home-island` (1024 m)  
-   - Open world: `/play?sector=haven_shore&mode=zone&worldSeed=grudge-world-1`
-2. **Steam depot:** package the same client (or Electron shell loading production web + offline assets) under depot 2707991.
-3. **Default launch:** prefer home island or Haven Shore — match web “Play” entry.
+Canonical **Three.js path** (web + Steam content): see **`docs/THREE_DEPLOY.md`**.
 
-Character scale/idle fixes land on web first; Steam build should pull the same `main` client.
+1. **Web (primary):**  
+   - Home: `/home-island` (1024 m) — **Play Now** default  
+   - Open world: `/play?sector=haven_shore&mode=zone&worldSeed=grudge-world-1`
+2. **Steam depot:** package the same client (or Electron shell loading production web) under depot **2707991**.
+3. **Default launch:** match web — home island first, then open world.
+
+Character scale/idle: Three client on `main`; Steam build must use that client.
 
 ---
 

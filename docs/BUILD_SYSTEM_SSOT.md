@@ -12,7 +12,27 @@
 | Nature trees/rocks | battle NatureDecor (`BattleNatureScatter` / CommonTree) | stylized multi-pack tree dumps / `createProceduralForest` |
 | Node placement | `homeIslandNodeRules` — dry land only; **fishing** may be in water | land nodes in water biome / below water + clearance |
 | Pathfinding | Baked `TerrainNavMesh` + `three-pathfinding` zone `home_island` | walking through water cells |
+| Ultimate Fantasy RTS | `ultimateFantasyRtsCatalog` (128 FBX) · CDN `models/warlords/rts/*` | raw multipack without catalog |
+| Stone quarry | `Mine.fbx` → miner-only loot; buildable `ufrts_mine` | mixed craftpix loot on quarry |
+| Island mountain | one of 4 UFRTS mountains per seed | stacking all mountain FBX |
 | SQL additive | `npm run db:migrate:sql` (004–007) | assuming `apply-sql-migrations` no-ops forever |
+
+### Ultimate Fantasy RTS (canonical)
+
+```bash
+npm run convert:ufrts:priority   # Mine + mountains + Age I L1 buildings → public/
+npm run convert:ufrts            # full 128 FBX
+npm run convert:ufrts:upload     # + R2 warlords upload
+```
+
+| Role | Assets |
+|------|--------|
+| Stone mine (world + buildable) | `Mine.fbx` |
+| Mountain (1/island) | `Mountain_Group_1/2`, `Mountain_Single`, `MountainLarge_Single` |
+| Train units | Barracks → infantry, Archery → archer, Farm/TC → worker, Temple → priest |
+| Defense | WatchTower L1–3, Wall, WallTowers, gates |
+| Commerce / dock | Market, Storage, Port, Dock |
+| Resources | Resource_Tree*, Resource_Rock*, Resource_node*, Logs |
 
 Live reference for nature (trees/rocks): battle NatureDecor — separate from buildables.
 
