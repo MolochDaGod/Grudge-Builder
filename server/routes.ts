@@ -273,6 +273,26 @@ export async function registerRoutes(
   const { registerMeRoutes } = await import("./routes/me");
   registerMeRoutes(app);
 
+  // Local huge medieval battle GLB (dev) — 517MB on D: drive
+  app.get("/api/local-war-scene", (req, res) => {
+    const candidates = [
+      process.env.WAR_SCENE_GLB,
+      "D:/Games/grudge-game-engine/huge_medieval_battle_scene.glb",
+      path.join(process.cwd(), "client/public/models/war/huge_medieval_battle_scene.glb"),
+    ].filter(Boolean) as string[];
+    const file = candidates.find((p) => fs.existsSync(p));
+    if (!file) {
+      res.status(404).json({
+        error: "war_scene_not_found",
+        hint: "Set WAR_SCENE_GLB or place huge_medieval_battle_scene.glb under D:/Games/grudge-game-engine/",
+      });
+      return;
+    }
+    res.setHeader("Content-Type", "model/gltf-binary");
+    res.setHeader("Cache-Control", "public, max-age=3600");
+    fs.createReadStream(file).pipe(res);
+  });
+
   const { registerDiscordInteractionRoutes, registerDiscordCommands } = await import("./discordInteractions");
   registerDiscordInteractionRoutes(app);
   registerDiscordCommands().catch((e) => console.warn("[Discord] Boot registration skipped:", e?.message));

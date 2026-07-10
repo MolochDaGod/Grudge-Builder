@@ -54,6 +54,7 @@ import HarvestPage from "@/pages/Harvest";
 import HeroCodexPage from "@/pages/hero-codex";
 import CraftingPage from "@/pages/crafting";
 import Island3DPage from "@/pages/island-3d";
+import WarScenePage from "@/pages/war-scene";
 import AuthCallbackPage from "@/pages/auth-callback";
 import EditorPage from "@/pages/editor";
 import ForgePage from "@/pages/forge";
@@ -141,6 +142,8 @@ function Router() {
       <Route path="/crafting" component={CraftingPage} />
       <Route path="/crafting-suite" component={CraftingPage} />
       <Route path="/island-3d" component={Island3DPage} />
+      <Route path="/war-scene" component={WarScenePage} />
+      <Route path="/medieval-battle" component={WarScenePage} />
       <Route path="/editor" component={EditorPage} />
       <Route path="/forge" component={ForgePage} />
       <Route path="/scene" component={ScenePage} />

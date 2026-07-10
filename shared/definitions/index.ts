@@ -15,6 +15,7 @@ export * from "./homeIslandMountain";
 export * from "./homeIslandNodeRules";
 export * from "./ultimateFantasyRtsCatalog";
 export * from "./ultimateFantasyRtsBuildPieces";
+export * from "./medievalBattleScene";
 export * from "./mapRegistry";
 export * from "./biomeEcosystemCatalog";
 export * from "./biomeHarvestAssets";
