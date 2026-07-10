@@ -108,8 +108,86 @@ export class WarDeployment {
         status: 'reserve',
       });
     }
+    // Always ensure both main armies exist (proxy packs can be faction-skewed)
+    this.ensureBalancedFactions(Math.max(12, this.cfg.initialDeployPerFaction));
     this.buildZonesFromSlots();
+    this.ensureDefaultZones();
     this.assignSlotsToZones();
+  }
+
+  /**
+   * If a side has zero/few PG proxies, synthesize reserve companies so the
+   * match is never "one hero vs empty field" (instant wipe).
+   */
+  private ensureBalancedFactions(minPerSide: number): void {
+    const camps: Record<'crimson' | 'azure', THREE.Vector3> = {
+      crimson: new THREE.Vector3(-28, 0, 22),
+      azure: new THREE.Vector3(18, 0, -12),
+    };
+    const matFor: Record<'crimson' | 'azure', number[]> = {
+      crimson: [1, 2, 3, 11],
+      azure: [4, 7, 8],
+    };
+    for (const fac of ['crimson', 'azure'] as const) {
+      let n = this.slots.filter((s) => s.faction === fac).length;
+      let i = 0;
+      while (n < minPerSide) {
+        const matId = matFor[fac][i % matFor[fac].length]!;
+        const arch = archetypeForPgMat(matId);
+        const dummy = new THREE.Object3D();
+        dummy.name = `synth_${fac}_${n}`;
+        dummy.visible = false;
+        const jitter = new THREE.Vector3(
+          (Math.random() - 0.5) * 12,
+          0,
+          (Math.random() - 0.5) * 12,
+        );
+        this.slots.push({
+          id: `synth_${fac}_${n}`,
+          object: dummy,
+          matId,
+          archetype: arch,
+          faction: fac,
+          homePosition: camps[fac].clone().add(jitter),
+          homeRotationY: fac === 'crimson' ? 0.4 : -2.4,
+          zoneId: `zone_${fac}`,
+          status: 'reserve',
+        });
+        n++;
+        i++;
+      }
+    }
+  }
+
+  /** Guarantee deploy pads even if no proxies for a faction. */
+  private ensureDefaultZones(): void {
+    const need: Array<{ faction: WarFactionId; center: THREE.Vector3; label: string; color: number }> = [
+      {
+        faction: 'crimson',
+        center: new THREE.Vector3(-28, 0, 22),
+        label: 'Crimson Beach Camp',
+        color: 0xb91c1c,
+      },
+      {
+        faction: 'azure',
+        center: new THREE.Vector3(18, 0, -12),
+        label: 'Azure Keep Yard',
+        color: 0x0284c7,
+      },
+    ];
+    for (const n of need) {
+      if (this.zones.some((z) => z.faction === n.faction)) continue;
+      const box = new THREE.Box3().setFromCenterAndSize(n.center, new THREE.Vector3(16, 6, 16));
+      this.zones.push({
+        id: `zone_${n.faction}`,
+        label: n.label,
+        faction: n.faction,
+        box,
+        center: n.center.clone(),
+        deployCap: this.cfg.initialDeployPerFaction,
+        color: n.color,
+      });
+    }
   }
 
   private buildZonesFromSlots(): void {
@@ -247,30 +325,35 @@ export class WarDeployment {
 
   /**
    * Auto-deploy opening companies (CB quick-match style).
-   * Returns slots that should spawn as animated units now.
+   * Always fields both crimson and azure (never empty side).
    */
   commitOpeningDeploy(playerFaction?: WarFactionId): UnitProxySlot[] {
     const out: UnitProxySlot[] = [];
-    const per = this.cfg.initialDeployPerFaction;
-    const factions = [...new Set(this.slots.map((s) => s.faction))].filter(
-      (f) => f !== 'neutral',
-    ) as WarFactionId[];
+    const per = Math.max(6, this.cfg.initialDeployPerFaction || 10);
+    // Force both main sides every match
+    const factions: WarFactionId[] = ['crimson', 'azure'];
+    for (const fac of factions) {
+      if (!this.slots.some((s) => s.faction === fac)) {
+        // Late synth if ingest missed
+        this.ensureBalancedFactions(per);
+        this.ensureDefaultZones();
+        this.assignSlotsToZones();
+      }
+    }
 
     for (const fac of factions) {
-      // Prefer captains + infantry first, then archers
       const pool = this.slots
         .filter((s) => s.faction === fac && s.status === 'reserve')
         .sort((a, b) => rolePriority(a.archetype.role) - rolePriority(b.archetype.role));
-      const n = Math.min(per, pool.length);
+      const n = Math.min(per, Math.max(pool.length, 0));
       for (let i = 0; i < n; i++) {
         const s = pool[i]!;
-        // Snap into zone if far (staging)
-        const zone = this.zones.find((z) => z.id === s.zoneId);
+        const zone = this.zones.find((z) => z.faction === fac);
         if (zone) {
           const jitter = new THREE.Vector3(
-            (Math.random() - 0.5) * 8,
+            (Math.random() - 0.5) * 10,
             0,
-            (Math.random() - 0.5) * 8,
+            (Math.random() - 0.5) * 10,
           );
           s.homePosition.copy(zone.center).add(jitter);
         }
@@ -279,7 +362,15 @@ export class WarDeployment {
       }
     }
 
-    // Optional: slightly favor player side first wave if set
+    // Optional gold if present in reserves
+    const goldPool = this.slots
+      .filter((s) => s.faction === 'gold' && s.status === 'reserve')
+      .slice(0, Math.min(4, per));
+    for (const s of goldPool) {
+      s.status = 'deployed';
+      out.push(s);
+    }
+
     void playerFaction;
     return out;
   }

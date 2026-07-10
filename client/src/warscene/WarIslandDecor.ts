@@ -30,9 +30,9 @@ export function enhanceIslandBattlefield(
   const waterR = opts?.waterRadius ?? 140;
   const waterY = opts?.waterY ?? -0.6;
 
-  // Atmosphere — coastal siege day
-  scene.background = new THREE.Color(0x6a8eab);
-  scene.fog = new THREE.FogExp2(0x7a9bb8, 0.0065);
+  // Base atmosphere (WarAtmosphere overwrites with weather preset)
+  scene.background = new THREE.Color(0x5a6a7c);
+  scene.fog = new THREE.FogExp2(0x5a6a7c, 0.004);
 
   // Material pass: restore color/texture after Draco+WebP bake
   envRoot.traverse((obj) => {

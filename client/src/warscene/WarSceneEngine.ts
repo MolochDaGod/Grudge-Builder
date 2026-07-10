@@ -178,6 +178,10 @@ export class WarSceneEngine {
   private fillLight: THREE.DirectionalLight | null = null;
   private baseBloom = 0.42;
   private weather: WeatherPreset = 'storm';
+  private siegeAge = 0;
+  private crimsonPeak = 0;
+  private azurePeak = 0;
+  private matchEnded = false;
 
   constructor(cfg: WarSceneConfig) {
     this.cfg = cfg;
@@ -200,7 +204,7 @@ export class WarSceneEngine {
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    this.renderer.toneMappingExposure = 0.95;
+    this.renderer.toneMappingExposure = 1.15;
 
     this.camera = new THREE.PerspectiveCamera(48, cfg.width / cfg.height, 0.4, 1200);
     this.camera.position.set(52, 38, 68);
@@ -248,14 +252,15 @@ export class WarSceneEngine {
 
     // Post: bloom + SMAA + warm/cool vignette (high for siege drama)
     this.post = new PostProcessing(this.renderer, this.scene, this.camera, {
-      quality: 'high',
-      bloomStrength: this.baseBloom,
-      bloomRadius: 0.55,
-      bloomThreshold: 0.72,
-      colorTint: this.weather === 'golden_hour' ? 0.45 : this.weather === 'storm' ? -0.25 : 0.1,
-      vignetteIntensity: 0.42,
-      contrast: 1.12,
+      quality: 'medium',
+      bloomStrength: 0.28,
+      bloomRadius: 0.4,
+      bloomThreshold: 0.85,
+      colorTint: this.weather === 'golden_hour' ? 0.35 : this.weather === 'storm' ? -0.12 : 0.05,
+      vignetteIntensity: 0.28,
+      contrast: 1.06,
     });
+    this.baseBloom = 0.28;
   }
 
   get matchPhase(): WarMatchPhase {
@@ -642,13 +647,22 @@ export class WarSceneEngine {
     }
 
     this.roundTimeLeft = ROUND_DURATION_SEC;
+    this.siegeAge = 0;
+    this.matchEnded = false;
+    this.crimsonPeak = this.units.filter((u) => !u.dead && u.faction === 'crimson').length;
+    this.azurePeak = this.units.filter((u) => !u.dead && u.faction === 'azure').length;
     this.deployment.beginSiegeWaves();
     this.setPhase('siege');
     this.camRig?.setMode(this.playerUnit ? 'follow' : 'tactical');
     this.camRig?.setFollowEnabled(!!this.playerUnit);
+    const c = this.units.filter((u) => u.faction === 'crimson').length;
+    const a = this.units.filter((u) => u.faction === 'azure').length;
     this.log(
-      `⚔ SIEGE BEGINS — 10:00 · ${this.weather} weather · capture 3 zones · click ground to move hero`,
+      `⚔ SIEGE BEGINS — 10:00 · field C${c}/A${a} · grace 60s · ${this.weather} · 3 zones`,
     );
+    if (a < 3 || c < 3) {
+      this.log(`⚠ Thin armies (C${c}/A${a}) — check reserve / CDN fortress mesh count`);
+    }
     void this.voice.speak('The siege begins! Capture the banners!', { role: 'herald' });
     this.emitDeployStats();
     this.emitMatchHud();
@@ -768,12 +782,21 @@ export class WarSceneEngine {
     const created: WarUnit[] = [];
     for (const s of slots) {
       if (this.units.length >= this.deployment.maxFielded) break;
+      const pos = s.homePosition.clone();
+      const gy = this.sampleGround(pos.x, pos.z);
+      // Avoid burying units under island / infinite void
+      if (gy != null && Number.isFinite(gy)) pos.y = gy;
+      else if (!Number.isFinite(pos.y) || Math.abs(pos.y) > 200) pos.y = 0;
+
       const unit = new WarUnit({
         id: `u_${this.unitSeq++}_${s.matId}`,
         archetype: s.archetype,
-        position: s.homePosition.clone(),
+        position: pos,
         rotationY: s.homeRotationY,
-        proxy: WAR_SCENE_DEFAULTS.hideUnitProxies ? s.object : undefined,
+        proxy:
+          WAR_SCENE_DEFAULTS.hideUnitProxies && s.object?.name && !s.object.name.startsWith('synth_')
+            ? s.object
+            : undefined,
       });
       this.unitsRoot.add(unit.root);
       this.units.push(unit);
@@ -786,6 +809,14 @@ export class WarSceneEngine {
       const slice = created.slice(b, b + batch);
       await Promise.all(slice.map((u) => u.load()));
     }
+    this.crimsonPeak = Math.max(
+      this.crimsonPeak,
+      this.units.filter((u) => !u.dead && u.faction === 'crimson').length,
+    );
+    this.azurePeak = Math.max(
+      this.azurePeak,
+      this.units.filter((u) => !u.dead && u.faction === 'azure').length,
+    );
     this.spawning = false;
   }
 
@@ -1022,9 +1053,10 @@ export class WarSceneEngine {
       return;
     }
 
-    if (this.phase !== 'siege') return;
+    if (this.phase !== 'siege' || this.matchEnded) return;
 
     // Round clock (10 minutes)
+    this.siegeAge += dt;
     this.roundTimeLeft = Math.max(0, this.roundTimeLeft - dt);
 
     // Flaming arrows in flight
@@ -1065,9 +1097,11 @@ export class WarSceneEngine {
       u.update(dt, hostiles, this.sampleGround, this.onAttack);
     }
 
-    // Match end: zones / timer / wipe
+    // Match end: zones / timer / wipe (grace prevents instant empty-side wins)
     const crimsonAlive = this.units.filter((u) => !u.dead && u.faction === 'crimson').length;
     const azureAlive = this.units.filter((u) => !u.dead && u.faction === 'azure').length;
+    this.crimsonPeak = Math.max(this.crimsonPeak, crimsonAlive);
+    this.azurePeak = Math.max(this.azurePeak, azureAlive);
     let wallsDestroyed = 0;
     for (const w of this.walls) if (w.dead) wallsDestroyed++;
 
@@ -1077,8 +1111,12 @@ export class WarSceneEngine {
       crimsonAlive,
       azureAlive,
       wallsDestroyed,
+      siegeAge: this.siegeAge,
+      crimsonPeak: this.crimsonPeak,
+      azurePeak: this.azurePeak,
     });
     if (outcome.kind === 'victory') {
+      this.matchEnded = true;
       this.setPhase('ended');
       this.log(`—— ${outcome.winner.toUpperCase()} — ${outcome.reason} ——`);
       this.cfg.onMatchEnd?.(outcome.winner, outcome.reason);

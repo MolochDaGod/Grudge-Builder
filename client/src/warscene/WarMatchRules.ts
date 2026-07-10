@@ -30,33 +30,50 @@ export interface MatchHud {
   wallsDestroyed: number;
 }
 
+/** Seconds after siege start before wipe / zone-sweep can end the match */
+export const MATCH_GRACE_SEC = 60;
+
 export function evaluateMatchEnd(opts: {
   timeLeft: number;
   zones: WarCaptureZone[];
   crimsonAlive: number;
   azureAlive: number;
   wallsDestroyed: number;
+  /** Elapsed seconds in siege phase */
+  siegeAge?: number;
+  /** Peak living counts (prevents "never spawned" false wipe) */
+  crimsonPeak?: number;
+  azurePeak?: number;
 }): MatchOutcome {
+  const age = opts.siegeAge ?? 999;
+  const inGrace = age < MATCH_GRACE_SEC;
   const counts = countZoneOwners(opts.zones);
   const total = opts.zones.length;
 
-  // Sweep victory
-  for (const side of ['crimson', 'azure', 'gold'] as const) {
-    if ((counts[side] ?? 0) >= total && total > 0) {
-      return {
-        kind: 'victory',
-        winner: side,
-        reason: `${side} captured all ${total} zones`,
-      };
+  // Sweep victory — only after grace (zones start owned by azure)
+  if (!inGrace) {
+    for (const side of ['crimson', 'azure', 'gold'] as const) {
+      if ((counts[side] ?? 0) >= total && total > 0) {
+        return {
+          kind: 'victory',
+          winner: side,
+          reason: `${side} captured all ${total} zones`,
+        };
+      }
     }
   }
 
-  // Wipe
-  if (opts.crimsonAlive <= 0 && opts.azureAlive > 0) {
-    return { kind: 'victory', winner: 'azure', reason: 'Crimson army destroyed' };
-  }
-  if (opts.azureAlive <= 0 && opts.crimsonAlive > 0) {
-    return { kind: 'victory', winner: 'crimson', reason: 'Azure army destroyed' };
+  // Wipe — only if both sides actually fielded units and grace elapsed
+  const crimsonPeak = opts.crimsonPeak ?? opts.crimsonAlive;
+  const azurePeak = opts.azurePeak ?? opts.azureAlive;
+  const bothFielded = crimsonPeak > 0 && azurePeak > 0;
+  if (!inGrace && bothFielded) {
+    if (opts.crimsonAlive <= 0 && opts.azureAlive > 0) {
+      return { kind: 'victory', winner: 'azure', reason: 'Crimson army destroyed' };
+    }
+    if (opts.azureAlive <= 0 && opts.crimsonAlive > 0) {
+      return { kind: 'victory', winner: 'crimson', reason: 'Azure army destroyed' };
+    }
   }
 
   // Timer

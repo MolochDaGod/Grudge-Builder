@@ -53,18 +53,19 @@ export class WarAtmosphere {
 
     switch (preset) {
       case 'storm':
-        this.fogColor.setHex(0x3d4a5c);
-        this.scene.background = new THREE.Color(0x2a3544);
-        this.scene.fog = new THREE.FogExp2(this.fogColor.getHex(), 0.011);
-        sun.color.setHex(0xc8d4e8);
-        sun.intensity = 0.55;
-        sun.position.set(40, 55, -30);
-        hemi.color.setHex(0x6a7a90);
-        hemi.groundColor.setHex(0x1a1510);
-        hemi.intensity = 0.45;
-        ambient.intensity = 0.18;
-        fill.color.setHex(0x4060a0);
-        fill.intensity = 0.35;
+        // Readable battlefield: cool storm without white-out fog
+        this.fogColor.setHex(0x5a6a7c);
+        this.scene.background = new THREE.Color(0x4a5a6c);
+        this.scene.fog = new THREE.FogExp2(this.fogColor.getHex(), 0.0045);
+        sun.color.setHex(0xd8e4f0);
+        sun.intensity = 0.95;
+        sun.position.set(40, 70, -30);
+        hemi.color.setHex(0x8a9ab0);
+        hemi.groundColor.setHex(0x2a2218);
+        hemi.intensity = 0.65;
+        ambient.intensity = 0.32;
+        fill.color.setHex(0x5080c0);
+        fill.intensity = 0.4;
         fill.position.set(-50, 20, 40);
         this.wind.set(4.2, 1.4);
         break;
@@ -100,19 +101,19 @@ export class WarAtmosphere {
         break;
       case 'dusk_battle':
       default:
-        this.fogColor.setHex(0x4a3048);
-        this.scene.background = new THREE.Color(0x1a1020);
-        this.scene.fog = new THREE.FogExp2(this.fogColor.getHex(), 0.01);
-        sun.color.setHex(0xff7040);
-        sun.intensity = 0.9;
-        sun.position.set(-60, 22, 50);
-        hemi.color.setHex(0x8060a0);
+        this.fogColor.setHex(0x5a4060);
+        this.scene.background = new THREE.Color(0x2a1830);
+        this.scene.fog = new THREE.FogExp2(this.fogColor.getHex(), 0.005);
+        sun.color.setHex(0xff8050);
+        sun.intensity = 1.15;
+        sun.position.set(-60, 28, 50);
+        hemi.color.setHex(0x9070a8);
         hemi.groundColor.setHex(0x1a1008);
-        hemi.intensity = 0.4;
-        ambient.color.setHex(0x201828);
-        ambient.intensity = 0.25;
-        fill.color.setHex(0x2040a0);
-        fill.intensity = 0.4;
+        hemi.intensity = 0.55;
+        ambient.color.setHex(0x302030);
+        ambient.intensity = 0.35;
+        fill.color.setHex(0x3060c0);
+        fill.intensity = 0.45;
         fill.position.set(50, 25, -30);
         this.wind.set(3.0, 1.0);
         break;
