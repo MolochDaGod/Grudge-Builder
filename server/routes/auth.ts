@@ -489,11 +489,20 @@ export function registerAuthRoutes(app: Express) {
   // ── GET /login — canonical Grudge ID entry (id.grudge-studio.com) ──
   app.get("/login", (req: Request, res: Response) => {
     const q = new URLSearchParams();
-    const redirect = resolveFleetReturnUrl(
-      req.query as Record<string, string | string[] | undefined>,
-      "",
-    ) || (req.query.redirect as string) || (req.query.return as string);
-    if (redirect) q.set("redirect", redirect);
+    const redirect =
+      resolveFleetReturnUrl(
+        req.query as Record<string, string | string[] | undefined>,
+        "",
+      ) ||
+      (req.query.redirect_uri as string) ||
+      (req.query.redirect as string) ||
+      (req.query.return as string);
+    // Dual-write: fleet apps use redirect_uri; auth-page historically used redirect
+    if (redirect) {
+      q.set("redirect_uri", redirect);
+      q.set("redirect", redirect);
+    }
+    if (req.query.app) q.set("app", String(req.query.app));
     const dest = "/api/auth/page" + (q.toString() ? `?${q.toString()}` : "");
     res.redirect(302, dest);
   });
@@ -502,10 +511,18 @@ export function registerAuthRoutes(app: Express) {
   app.get("/auth", (req: Request, res: Response) => {
     const q = new URLSearchParams();
     const redirect =
+      resolveFleetReturnUrl(
+        req.query as Record<string, string | string[] | undefined>,
+        "",
+      ) ||
+      (req.query.redirect_uri as string) ||
       (req.query.redirect as string) ||
       (req.query.return_to as string) ||
       (req.query.return as string);
-    if (redirect) q.set("redirect", redirect);
+    if (redirect) {
+      q.set("redirect_uri", redirect);
+      q.set("redirect", redirect);
+    }
     if (req.query.app) q.set("app", String(req.query.app));
     if (req.query.api) q.set("api", String(req.query.api));
     if (req.query.origin) q.set("origin", String(req.query.origin));

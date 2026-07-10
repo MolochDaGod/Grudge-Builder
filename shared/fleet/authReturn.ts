@@ -18,6 +18,12 @@ const EXACT_HOSTS = new Set([
   "puter.com",
   "www.puter.com",
   "app.puter.com",
+  // Explicit Puter fleet satellites (also covered by .puter.site suffix)
+  "grudge-crafting.puter.site",
+  "grudgewarlords.puter.site",
+  "grudgestudio.puter.site",
+  "grudge-studio.puter.site",
+  "grudge-heros.puter.site",
 ]);
 
 const SUFFIX_HOSTS = [

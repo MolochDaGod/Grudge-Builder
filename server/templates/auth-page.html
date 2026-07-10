@@ -632,7 +632,18 @@ const CONFIG = { apiBase: resolveApiBase() };
 
 const qs = new URLSearchParams(location.search);
 const isPopup = (() => { try { return !!window.opener && window.opener !== window; } catch { return false; } })();
-const returnTo = qs.get("redirect") || qs.get("return_to") || null;
+/**
+ * Fleet return URL after login.
+ * Browser bar keeps the public path query (e.g. /login?redirect_uri=https://grudge-crafting.puter.site/)
+ * while the gateway may map upstream to ?redirect= — accept every fleet alias.
+ */
+const returnTo =
+  qs.get("redirect_uri") ||
+  qs.get("redirect") ||
+  qs.get("return_to") ||
+  qs.get("return") ||
+  qs.get("returnUrl") ||
+  null;
 const appKey = (qs.get("app") || "").toLowerCase();
 const isAccountMode = location.pathname === "/account" || qs.get("view") === "account";
 let openerOrigin = qs.get("origin") || qs.get("audience") || null;
@@ -651,6 +662,7 @@ const APP_LABELS = {
   nexus: "Nexus Hub",
   warlords: "Grudge Warlords",
   wcs: "Warlord Crafting Suite",
+  crafting: "Warlord Crafting Suite",
   dash: "Dashboard",
   fleet: "Fleet",
   game: "Grudge Tactics",
@@ -672,12 +684,14 @@ const HOST_LABELS = {
   "www.grudgewarlords.com": "Grudge Warlords",
   "client.grudge-studio.com": "Grudge Portal",
   "wcs.grudge-studio.com": "Warlord Crafting Suite",
+  "grudge-crafting.puter.site": "Warlord Crafting Suite",
   "dash.grudge-studio.com": "Dashboard",
   "game.grudge-studio.com": "Grudge Tactics",
   "coder.grudge-studio.com": "grudgeDot",
   "apps.grudge-studio.com": "Grudge Platform",
   "ai.grudge-studio.com": "Legion AI",
   "character.grudge-studio.com": "Character Studio",
+  "water.grudge-studio.com": "Tethical",
 };
 
 function resolveAppLabel(){
@@ -688,6 +702,12 @@ function resolveAppLabel(){
       if (HOST_LABELS[host]) return HOST_LABELS[host];
       if (host.endsWith(".grudge-studio.com")) {
         const slug = host.replace(".grudge-studio.com", "");
+        if (APP_LABELS[slug]) return APP_LABELS[slug];
+        return slug.split("-").map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+      }
+      if (host.endsWith(".puter.site") || host.endsWith(".puter.work")) {
+        const slug = host.split(".")[0];
+        if (slug === "grudge-crafting" || slug.includes("craft")) return "Warlord Crafting Suite";
         if (APP_LABELS[slug]) return APP_LABELS[slug];
         return slug.split("-").map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
       }

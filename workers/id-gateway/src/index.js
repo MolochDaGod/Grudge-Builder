@@ -101,14 +101,20 @@ function mapUpstreamPath(url) {
 
   // Pretty login entry — canonical for all apps
   if (path === "/login" || path === "/login/") {
-    // Auth page expects ?redirect= ; fleet uses redirect_uri
+    // Auth page now accepts redirect_uri|redirect|return|return_to (browser bar keeps public query).
+    // Still pass every alias so client-side qs parsing cannot miss the crafting handoff.
     const redirect =
-      params.get("redirect") ||
       params.get("redirect_uri") ||
+      params.get("redirect") ||
       params.get("return") ||
-      params.get("return_to");
+      params.get("return_to") ||
+      params.get("returnUrl");
     const q = new URLSearchParams();
-    if (redirect) q.set("redirect", redirect);
+    if (redirect) {
+      // Dual-write: public fleet param + legacy auth-page param
+      q.set("redirect_uri", redirect);
+      q.set("redirect", redirect);
+    }
     if (params.get("app")) q.set("app", params.get("app"));
     if (params.get("origin")) q.set("origin", params.get("origin"));
     if (params.get("handoff")) q.set("handoff", params.get("handoff"));
@@ -126,11 +132,15 @@ function mapUpstreamPath(url) {
   // Root → auth page
   if (path === "/" || path === "") {
     const redirect =
-      params.get("redirect") ||
       params.get("redirect_uri") ||
-      params.get("return");
+      params.get("redirect") ||
+      params.get("return") ||
+      params.get("return_to");
     const q = new URLSearchParams();
-    if (redirect) q.set("redirect", redirect);
+    if (redirect) {
+      q.set("redirect_uri", redirect);
+      q.set("redirect", redirect);
+    }
     return "/api/auth/page" + (q.toString() ? `?${q}` : "");
   }
 
