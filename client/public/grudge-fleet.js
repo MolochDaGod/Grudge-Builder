@@ -2,10 +2,12 @@
  * Grudge Fleet Bridge — vanilla JS auth + character sync for Puter/external apps.
  * Mirrors GrudgeAccountSDK + wireGrudgeFleet from grudge-builder.
  *
- * @version 2.5.1
+ * @version 2.5.2
  * Character progress SSOT + account inventory/resources on Railway only (same DB as Warlords).
  * Sign-in defaults to Grudge ID (id.grudge-studio.com) so Puter sites load the REAL
  * Warlords roster — never a synthetic empty puter:* account as the primary login path.
+ * SSO handoff: prefer sso_token (full JWT) over grudge_token bridge so puter.site
+ * never loses the session when launch-bridge fails.
  * @see docs/CHARACTER_PROGRESS_SSOT.md
  */
 (function (global) {
@@ -236,51 +238,70 @@
     return false;
   }
 
-  function pickupUrlTokens(skipLaunchToken) {
-    if (typeof window === 'undefined') return null;
+  /**
+   * Read dual handoff params from query + hash.
+   * Returns { sso, launch, grudgeId, username, characterId } without mutating URL.
+   */
+  function readUrlAuthTokens() {
+    if (typeof window === 'undefined') {
+      return { sso: null, launch: null, grudgeId: '', username: '', characterId: null };
+    }
     const params = new URLSearchParams(window.location.search);
-    // Also accept hash: #token=...&characterId=...
     let hashParams = null;
     if (window.location.hash && window.location.hash.length > 1) {
       hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
     }
-
     function pget(k) {
       return params.get(k) || (hashParams && hashParams.get(k)) || null;
     }
+    // Prefer full session JWT (sso_token/token) — no bridge needed on puter.site
+    const sso = pget('sso_token') || pget('token') || pget('jwt') || pget('access_token');
+    const launch = pget('grudge_token') || pget('launch_token');
+    return {
+      sso: sso || null,
+      launch: launch || null,
+      grudgeId: pget('grudge_id') || pget('grudgeId') || pget('user_id') || '',
+      username: pget('grudge_username') || pget('username') || '',
+      characterId: pget('characterId') || pget('char_id') || pget('charId') || pget('activeCharacter'),
+    };
+  }
 
-    const launchToken = !skipLaunchToken && (pget('grudge_token') || pget('launch_token'));
-    if (launchToken) return launchToken;
+  function scrubAuthFromUrl() {
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    [
+      'token', 'sso_token', 'jwt', 'access_token', 'grudge_token', 'launch_token',
+      'grudge_id', 'grudgeId', 'user_id', 'grudge_username', 'username',
+    ].forEach((k) => params.delete(k));
+    const clean = params.toString();
+    const hashSafe =
+      window.location.hash && !/token|jwt|grudge_token|sso_token/i.test(window.location.hash)
+        ? window.location.hash
+        : '';
+    window.history.replaceState(
+      null,
+      '',
+      window.location.pathname + (clean ? '?' + clean : '') + hashSafe,
+    );
+  }
 
-    const sso = pget('token') || pget('sso_token') || pget('jwt') || pget('access_token');
-    if (sso) {
-      saveToken(sso);
-      const gid = pget('grudge_id') || pget('grudgeId') || pget('user_id') || '';
-      const un = pget('grudge_username') || pget('username') || '';
-      if (gid) {
-        lsSet(GRUDGE_ID_KEY, gid);
-        lsSet(ACCOUNT_ID_KEY, gid);
-        lsSet(SDK_USER_ID_KEY, gid);
-      }
-      if (un) lsSet(USERNAME_KEY, un);
-      [
-        'token', 'sso_token', 'jwt', 'access_token', 'grudge_token', 'launch_token',
-        'grudge_id', 'grudgeId', 'user_id', 'grudge_username', 'username',
-      ].forEach((k) => params.delete(k));
-      const clean = params.toString();
-      window.history.replaceState(
-        null,
-        '',
-        window.location.pathname + (clean ? '?' + clean : '') +
-          // strip token from hash too
-          (window.location.hash && !/token|jwt|grudge_token/i.test(window.location.hash)
-            ? window.location.hash
-            : '')
-      );
+  /** @deprecated use readUrlAuthTokens + apply in init — kept for callers */
+  function pickupUrlTokens(skipLaunchToken) {
+    const t = readUrlAuthTokens();
+    if (t.grudgeId) {
+      lsSet(GRUDGE_ID_KEY, t.grudgeId);
+      lsSet(ACCOUNT_ID_KEY, t.grudgeId);
+      lsSet(SDK_USER_ID_KEY, t.grudgeId);
     }
-
-    const charId = pget('characterId') || pget('char_id') || pget('charId') || pget('activeCharacter');
-    if (charId) saveActiveId(charId);
+    if (t.username) lsSet(USERNAME_KEY, t.username);
+    if (t.characterId) saveActiveId(t.characterId);
+    if (t.sso) {
+      saveToken(t.sso);
+      scrubAuthFromUrl();
+      return null;
+    }
+    if (!skipLaunchToken && t.launch) return t.launch;
+    return null;
   }
 
   /** Restore Puter session or quietly provision a guest (no popup). */
@@ -434,16 +455,36 @@
       opts = opts || {};
 
       if (!opts.skipAuthPickup && typeof window !== 'undefined') {
-        const launch = pickupUrlTokens(false);
-        if (launch) {
-          const params = new URLSearchParams(window.location.search);
-          params.delete('grudge_token');
-          const clean = params.toString();
-          window.history.replaceState(null, '', window.location.pathname + (clean ? '?' + clean : '') + window.location.hash);
-          await bridgeGrudgeLaunchToken(launch);
-        } else {
-          pickupUrlTokens(true);
+        const handoff = readUrlAuthTokens();
+        if (handoff.grudgeId) {
+          lsSet(GRUDGE_ID_KEY, handoff.grudgeId);
+          lsSet(ACCOUNT_ID_KEY, handoff.grudgeId);
+          lsSet(SDK_USER_ID_KEY, handoff.grudgeId);
         }
+        if (handoff.username) lsSet(USERNAME_KEY, handoff.username);
+        if (handoff.characterId) saveActiveId(handoff.characterId);
+
+        // 1) Full session JWT first (no network) — puter.site reliable path
+        if (handoff.sso) {
+          saveToken(handoff.sso);
+        }
+
+        // 2) Launch token bridge only if we still need a session (or to refresh)
+        if (handoff.launch && !readToken()) {
+          const bridged = await bridgeGrudgeLaunchToken(handoff.launch);
+          if (!bridged) {
+            console.warn('[GrudgeFleet] grudge-bridge failed; no sso_token either');
+          }
+        } else if (handoff.launch && handoff.sso) {
+          // Optional: upgrade via bridge in background; keep sso if bridge fails
+          try {
+            await bridgeGrudgeLaunchToken(handoff.launch);
+          } catch {
+            /* keep sso */
+          }
+        }
+
+        if (handoff.sso || handoff.launch) scrubAuthFromUrl();
       }
 
       _token = readToken();
@@ -453,6 +494,7 @@
         fleet.initEmbedded();
       } else if (readToken()) {
         await syncFromBackend();
+        if (readToken()) dispatch('grudge:auth:ready');
       }
 
       // Multi-tab / same-origin sync

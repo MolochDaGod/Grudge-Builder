@@ -1,0 +1,1322 @@
+<!DOCTYPE html>
+<html lang="en" translate="no">
+<head>
+<meta charset="UTF-8" />
+<meta name="google" content="notranslate" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Sign in · Grudge Studio</title>
+<meta name="description" content="Sign in with your Grudge Studio account — one identity for every game and tool." />
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M16 2l11 5v8c0 7-4.7 12.4-11 15C9.7 27.4 5 22 5 15V7z' fill='%231a1405' stroke='%23d4af37' stroke-width='1.6'/%3E%3C/svg%3E" />
+<meta name="grudge-api" content="" />
+<script src="https://js.puter.com/v2/"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&display=swap" rel="stylesheet" />
+<style>
+:root {
+  --bg: #08080c;
+  --surface: #111118;
+  --surface-raised: #18181f;
+  --border: rgba(255, 255, 255, 0.08);
+  --border-focus: rgba(212, 175, 55, 0.45);
+  --gold: #c9a227;
+  --gold-bright: #e8c547;
+  --gold-text: #1a1405;
+  --text: #f4f4f5;
+  --text-secondary: #a1a1aa;
+  --text-muted: #71717a;
+  --success: #22c55e;
+  --error: #ef4444;
+  --radius: 12px;
+  --radius-lg: 16px;
+  --font-display: 'Cinzel', Georgia, serif;
+  --font-body: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+  --shadow: 0 24px 48px rgba(0, 0, 0, 0.45);
+}
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: var(--font-body);
+  color: var(--text);
+  background: #05050a;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+/* Racalvin The Pirate King — full-page brand backdrop (also used by fleet modal) */
+.bg {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background-color: #05050a;
+  background-image:
+    linear-gradient(180deg, rgba(5, 5, 10, 0.55) 0%, rgba(5, 5, 10, 0.72) 45%, rgba(5, 5, 10, 0.88) 100%),
+    radial-gradient(ellipse 70% 55% at 18% 40%, rgba(0, 0, 0, 0.15), transparent 60%),
+    url("/auth-bg-racalvin.jpg");
+  background-size: cover, cover, cover;
+  background-position: center, center, left center;
+  background-repeat: no-repeat;
+}
+.bg::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 90% 70% at 50% 50%, transparent 30%, rgba(0, 0, 0, 0.55) 100%),
+    linear-gradient(90deg, rgba(5, 5, 10, 0.35) 0%, transparent 40%, rgba(5, 5, 10, 0.5) 100%);
+  pointer-events: none;
+}
+.shell { position: relative; z-index: 1; width: 100%; max-width: 400px; }
+.card {
+  background: rgba(17, 17, 24, 0.82);
+  backdrop-filter: blur(16px) saturate(1.15);
+  -webkit-backdrop-filter: blur(16px) saturate(1.15);
+  border: 1px solid rgba(201, 162, 39, 0.18);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow), 0 0 0 1px rgba(0, 0, 0, 0.35) inset;
+  padding: 36px 32px 28px;
+  animation: enter 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@keyframes enter {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: none; }
+}
+.brand { text-align: center; margin-bottom: 28px; }
+.logo {
+  width: 48px; height: 48px;
+  margin: 0 auto 16px;
+  display: grid; place-items: center;
+  border-radius: 14px;
+  background: linear-gradient(145deg, rgba(201, 162, 39, 0.15), rgba(201, 162, 39, 0.04));
+  border: 1px solid rgba(201, 162, 39, 0.25);
+}
+.logo img { width: 40px; height: 40px; }
+.logo svg { width: 26px; height: 26px; }
+.brand h1 {
+  font-family: var(--font-display);
+  font-size: 1.35rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--text);
+}
+.brand p {
+  margin-top: 6px;
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+}
+.choose-lead {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  text-align: center;
+  margin-bottom: 22px;
+  line-height: 1.55;
+}
+.view-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  text-align: center;
+  margin-bottom: 6px;
+  letter-spacing: -0.01em;
+}
+.view-sub {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  text-align: center;
+  margin-bottom: 22px;
+}
+.btn {
+  width: 100%;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  border-radius: var(--radius);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 13px 16px;
+  transition: background 0.15s, border-color 0.15s, transform 0.12s, box-shadow 0.15s;
+}
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn-primary {
+  color: var(--gold-text);
+  background: linear-gradient(180deg, var(--gold-bright), var(--gold));
+  box-shadow: 0 1px 0 rgba(255,255,255,0.15) inset, 0 4px 14px rgba(201, 162, 39, 0.25);
+}
+.btn-primary:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 1px 0 rgba(255,255,255,0.15) inset, 0 8px 20px rgba(201, 162, 39, 0.32); }
+.btn-primary:active:not(:disabled) { transform: translateY(0); }
+.btn-primary .sub { display: block; font-size: 0.75rem; font-weight: 400; opacity: 0.75; margin-top: 2px; }
+.btn-secondary {
+  margin-top: 10px;
+  color: var(--text);
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+}
+.btn-secondary:hover:not(:disabled) { border-color: var(--border-focus); background: #1e1e26; }
+.btn-ghost {
+  color: var(--text);
+  background: transparent;
+  border: 1px solid var(--border);
+}
+.btn-ghost:hover:not(:disabled) { border-color: var(--border-focus); background: var(--surface-raised); }
+.btn-link {
+  background: none; border: none;
+  color: var(--text-secondary);
+  font-size: 0.8125rem;
+  cursor: pointer;
+  padding: 6px 4px;
+}
+.btn-link:hover { color: var(--gold); text-decoration: underline; }
+.btn-more {
+  width: 100%;
+  margin-top: 16px;
+  padding: 10px;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 0.8125rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+.btn-more:hover { color: var(--text-secondary); }
+.btn-more svg { width: 14px; height: 14px; transition: transform 0.2s; }
+.btn-more[aria-expanded="true"] svg { transform: rotate(180deg); }
+.divider {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 20px 0 16px;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+}
+.divider::before, .divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+.oauth-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+.oauth, .prov {
+  aspect-ratio: 1;
+  padding: 0;
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  transition: border-color 0.15s, background 0.15s;
+}
+.oauth:hover:not(:disabled), .prov:hover:not(:disabled) {
+  border-color: var(--border-focus);
+  background: #1e1e26;
+}
+.oauth svg, .prov svg { width: 20px; height: 20px; }
+/* 4th option: Grudge ID via Puter (branded, labeled) */
+.oauth.oauth-grudge {
+  aspect-ratio: auto;
+  min-height: 72px;
+  padding: 8px 4px 6px;
+  gap: 4px;
+  grid-template-rows: 1fr auto;
+  border-color: rgba(201, 162, 39, 0.35);
+  background: linear-gradient(180deg, rgba(201, 162, 39, 0.08), var(--surface-raised));
+}
+.oauth.oauth-grudge:hover:not(:disabled) {
+  border-color: var(--gold);
+  background: linear-gradient(180deg, rgba(201, 162, 39, 0.16), #1e1e26);
+}
+.oauth.oauth-grudge img {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  object-fit: cover;
+  display: block;
+}
+.oauth.oauth-grudge .oauth-label {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--gold);
+  line-height: 1.1;
+}
+.more-panel {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+  display: grid;
+  gap: 8px;
+}
+.more-panel[hidden] { display: none; }
+.more-panel .btn-ghost { padding: 11px 14px; font-size: 0.875rem; }
+.more-panel .guest-row { text-align: center; margin-top: 4px; }
+.field { margin-bottom: 14px; }
+.field label {
+  display: block;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  margin-bottom: 6px;
+}
+.input {
+  width: 100%;
+  padding: 11px 13px;
+  font-family: inherit;
+  font-size: 0.9375rem;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.input:focus {
+  outline: none;
+  border-color: var(--border-focus);
+  box-shadow: 0 0 0 3px rgba(201, 162, 39, 0.12);
+}
+.input::placeholder { color: var(--text-muted); }
+.hint { font-size: 0.75rem; color: var(--text-muted); margin-top: 5px; }
+.hint.ok { color: var(--success); }
+.hint.bad { color: var(--error); }
+.view { display: none; }
+.view.active { display: block; animation: fade 0.25s ease both; }
+@keyframes fade { from { opacity: 0; } to { opacity: 1; } }
+.row { display: flex; gap: 8px; }
+.row > * { flex: 1; }
+.toast {
+  position: fixed;
+  z-index: 10;
+  left: 50%;
+  bottom: 24px;
+  transform: translateX(-50%) translateY(12px);
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 12px 16px;
+  border-radius: 10px;
+  font-size: 0.875rem;
+  max-width: 90vw;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s, transform 0.2s;
+  box-shadow: var(--shadow);
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+.toast.error { border-color: rgba(239, 68, 68, 0.4); }
+.toast.success { border-color: rgba(34, 197, 94, 0.4); }
+.spin {
+  width: 18px; height: 18px;
+  border: 2px solid rgba(255,255,255,0.15);
+  border-top-color: var(--gold);
+  border-radius: 50%;
+  animation: rot 0.7s linear infinite;
+}
+@keyframes rot { to { transform: rotate(360deg); } }
+.success-mark {
+  width: 56px; height: 56px;
+  margin: 0 auto 18px;
+  display: grid; place-items: center;
+  border-radius: 50%;
+  background: rgba(34, 197, 94, 0.1);
+  border: 1px solid rgba(34, 197, 94, 0.3);
+}
+.success-mark svg { width: 28px; height: 28px; color: var(--success); }
+.identity {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  margin: 18px 0;
+}
+.identity .name { font-weight: 600; font-size: 1rem; }
+.identity .gid { font-size: 0.75rem; color: var(--text-muted); margin-top: 4px; word-break: break-all; font-variant-numeric: tabular-nums; }
+.identity .new-pill {
+  display: inline-block;
+  font-size: 0.65rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--gold-text);
+  background: var(--gold);
+  padding: 2px 7px;
+  border-radius: 999px;
+  margin-left: 8px;
+  vertical-align: middle;
+}
+.foot {
+  margin-top: 24px;
+  text-align: center;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  line-height: 1.65;
+}
+.foot a { color: var(--text-secondary); text-decoration: none; }
+.foot a:hover { color: var(--gold); text-decoration: underline; }
+.foot .trust {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 10px;
+  color: var(--text-muted);
+}
+.foot .trust svg { width: 12px; height: 12px; opacity: 0.7; }
+.back-link { display: block; text-align: center; margin-top: 14px; }
+.context-banner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 18px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: rgba(201, 162, 39, 0.08);
+  border: 1px solid rgba(201, 162, 39, 0.2);
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+}
+.context-banner strong { color: var(--text); font-weight: 600; }
+.context-banner[hidden] { display: none !important; }
+.returning-icon {
+  width: 52px; height: 52px;
+  margin: 0 auto 16px;
+  border-radius: 14px;
+  background: rgba(201, 162, 39, 0.12);
+  border: 1px solid rgba(201, 162, 39, 0.25);
+  display: grid; place-items: center;
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  color: var(--gold-bright);
+}
+.account-avatar {
+  width: 56px; height: 56px;
+  margin: 0 auto 14px;
+  border-radius: 50%;
+  background: linear-gradient(145deg, rgba(201,162,39,0.2), rgba(201,162,39,0.05));
+  border: 1px solid var(--border);
+  display: grid; place-items: center;
+  font-weight: 600;
+  font-size: 1.125rem;
+  color: var(--gold-bright);
+  text-transform: uppercase;
+}
+.account-meta { text-align: center; margin-bottom: 18px; }
+.account-meta .name { font-size: 1.05rem; font-weight: 600; }
+.account-meta .handle { font-size: 0.8125rem; color: var(--text-muted); margin-top: 2px; }
+.stat-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 11px 14px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  margin-bottom: 8px;
+  font-size: 0.875rem;
+}
+.stat-row span:last-child { color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+.conn-list { margin: 14px 0 18px; }
+.conn-list h3 {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+.conn-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 9px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  margin-bottom: 6px;
+  font-size: 0.8125rem;
+}
+.conn-item .on { color: var(--success); font-size: 0.75rem; }
+.conn-item .off { color: var(--text-muted); font-size: 0.75rem; }
+.btn-copy {
+  background: none; border: none;
+  color: var(--gold);
+  font-size: 0.75rem;
+  cursor: pointer;
+  margin-left: 8px;
+}
+.btn-copy:hover { text-decoration: underline; }
+.foot-links { margin-top: 8px; }
+.foot-links a { margin: 0 6px; }
+@media (max-width: 440px) {
+  body { padding: 0; align-items: stretch; }
+  .bg { background-position: center, center, 15% center; }
+  .card {
+    min-height: 100vh; border-radius: 0; border: none; border-top: 1px solid rgba(201,162,39,0.12);
+    padding: 40px 24px 28px; display: flex; flex-direction: column; justify-content: center;
+    background: rgba(8, 8, 12, 0.88);
+  }
+}
+@media (min-width: 900px) {
+  .shell { max-width: 420px; margin-right: min(8vw, 72px); margin-left: auto; }
+  .bg { background-position: center, center, left center; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+</style>
+</head>
+<body>
+<div class="bg" aria-hidden="true"></div>
+
+<div class="shell">
+<main class="card" role="main" aria-label="Grudge Studio sign in">
+  <header class="brand">
+    <div class="logo" aria-hidden="true">
+      <img src="/grudge-id-logo.png" alt="" width="40" height="40" style="border-radius:50%;object-fit:cover" onerror="this.onerror=null;this.src='/brand/logo.png';if(!this.complete){this.style.display='none';this.nextElementSibling.style.display='block'}" />
+      <svg viewBox="0 0 32 32" fill="none" style="display:none"><path d="M16 2l11 5v8c0 7-4.7 12.4-11 15-6.3-2.6-11-8-11-15V7l11-5z" stroke="url(#g)" stroke-width="1.6" stroke-linejoin="round"/><path d="M16 9.5l2.2 4.6 5 .6-3.7 3.4 1 5-4.5-2.5L11.5 23l1-5L8.8 14.7l5-.6L16 9.5z" fill="url(#g)"/><defs><linearGradient id="g" x1="5" y1="2" x2="27" y2="30"><stop stop-color="#e8c547"/><stop offset="1" stop-color="#8c7420"/></linearGradient></defs></svg>
+    </div>
+    <h1>Grudge Studio</h1>
+    <p id="brand-sub">One account for every game</p>
+  </header>
+
+  <section class="view active" id="view-choose">
+    <div class="context-banner" id="context-banner" hidden>
+      Continuing to <strong id="context-app">your app</strong>
+    </div>
+    <p class="choose-lead" id="choose-lead">Sign in to sync progress, characters, and purchases across the fleet.</p>
+    <button class="btn btn-primary" id="btn-puter" type="button">
+      <span style="text-align:left;flex:1">
+        <span class="lead" id="puter-lead">Continue with Grudge ID</span>
+        <span class="sub" id="puter-sub">Recommended · secure one-tap sign-in</span>
+      </span>
+    </button>
+    <button class="btn btn-secondary" id="btn-email" type="button">Continue with email</button>
+    <div class="divider"><span>or</span></div>
+    <div class="oauth-row" role="group" aria-label="Sign-in providers">
+      <button class="oauth" id="btn-google" type="button" title="Google" aria-label="Sign in with Google"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.27-4.74 3.27-8.1z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84A11 11 0 0 0 12 23z"/><path fill="#FBBC05" d="M5.84 14.1a6.6 6.6 0 0 1 0-4.2V7.06H2.18a11 11 0 0 0 0 9.88l3.66-2.84z"/><path fill="#EA4335" d="M12 4.75c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 1.48 14.97.5 12 .5A11 11 0 0 0 2.18 7.06l3.66 2.84C6.71 7.3 9.14 4.75 12 4.75z"/></svg></button>
+      <button class="oauth" id="btn-discord" type="button" title="Discord" aria-label="Sign in with Discord"><svg viewBox="0 0 24 24" fill="#5865F2" aria-hidden="true"><path d="M20.32 4.37A19.8 19.8 0 0 0 15.4 2.9a13.6 13.6 0 0 0-.62 1.27 18.3 18.3 0 0 0-5.55 0A13 13 0 0 0 8.6 2.9a19.7 19.7 0 0 0-4.93 1.47C.55 9.04-.3 13.58.13 18.06a19.9 19.9 0 0 0 6.04 3.06c.49-.66.92-1.36 1.29-2.1-.71-.27-1.39-.6-2.03-.99.17-.12.34-.25.5-.38a14.2 14.2 0 0 0 12.14 0c.16.14.33.26.5.38-.64.39-1.32.72-2.03.99.37.74.8 1.44 1.29 2.1a19.8 19.8 0 0 0 6.04-3.06c.5-5.18-.85-9.68-3.55-13.69zM8.02 15.33c-1.18 0-2.15-1.08-2.15-2.4 0-1.32.95-2.4 2.15-2.4s2.17 1.09 2.15 2.4c0 1.32-.95 2.4-2.15 2.4zm7.96 0c-1.18 0-2.15-1.08-2.15-2.4 0-1.32.95-2.4 2.15-2.4s2.17 1.09 2.15 2.4c0 1.32-.94 2.4-2.15 2.4z"/></svg></button>
+      <button class="oauth" id="btn-github" type="button" title="GitHub" aria-label="Sign in with GitHub"><svg viewBox="0 0 24 24" fill="#e4e4e7" aria-hidden="true"><path d="M12 2C6.48 2 2 6.48 2 12c0 4.42 2.87 8.17 6.84 9.5.5.08.66-.23.66-.5v-1.69c-2.77.6-3.36-1.34-3.36-1.34-.46-1.16-1.11-1.47-1.11-1.47-.91-.62.07-.6.07-.6 1 .07 1.53 1.03 1.53 1.03.87 1.52 2.34 1.07 2.91.83.09-.65.35-1.09.63-1.34-2.22-.25-4.55-1.11-4.55-4.92 0-1.11.38-2 1.03-2.71-.1-.25-.45-1.29.1-2.64 0 0 .84-.27 2.75 1.02.79-.22 1.65-.33 2.5-.33.85 0 1.71.11 2.5.33 1.91-1.29 2.75-1.02 2.75-1.02.55 1.35.2 2.39.1 2.64.65.71 1.03 1.6 1.03 2.71 0 3.82-2.34 4.66-4.57 4.91.36.31.69.92.69 1.85V21c0 .27.16.59.67.5C19.14 20.16 22 16.42 22 12A10 10 0 0 0 12 2z"/></svg></button>
+      <!-- Grudge (4th): Puter SDK sign-in → /api/auth/puter-sso (fleet best practice + connections) -->
+      <button class="oauth oauth-grudge" id="btn-grudge" type="button" title="Grudge ID" aria-label="Sign in with Grudge">
+        <img src="/grudge-id-logo.png" width="28" height="28" alt="" decoding="async" />
+        <span class="oauth-label">Grudge</span>
+      </button>
+    </div>
+    <button class="btn-more" id="btn-more-toggle" type="button" aria-expanded="false" aria-controls="more-panel">
+      More options
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+    </button>
+    <div class="more-panel" id="more-panel" hidden>
+      <button class="btn btn-ghost" id="btn-phantom" type="button">Solana wallet</button>
+      <button class="btn btn-ghost" id="btn-phone" type="button">Phone number</button>
+      <div class="guest-row"><button class="btn-link" id="btn-guest" type="button">Continue as guest</button></div>
+    </div>
+  </section>
+
+  <section class="view" id="view-profile">
+    <div class="view-title">Choose your username</div>
+    <div class="view-sub">This is how you'll sign in and appear across games.</div>
+    <div class="field"><label for="pf-username">Username</label><input class="input" id="pf-username" autocomplete="username" placeholder="e.g. ironjaw" maxlength="30" /><div class="hint" id="pf-username-hint">3–30 letters, numbers, _ or -</div></div>
+    <div class="field" id="pf-email-wrap"><label for="pf-email">Email <span style="font-weight:400;color:var(--text-muted)">(optional)</span></label><input class="input" id="pf-email" type="email" autocomplete="email" placeholder="you@example.com" /></div>
+    <button class="btn btn-primary" id="pf-save" type="button"><span class="lead">Save and continue</span></button>
+    <div style="text-align:center;margin-top:14px"><button class="btn-link" id="pf-skip" type="button">Skip for now</button></div>
+  </section>
+
+  <section class="view" id="view-email">
+    <div class="view-title" id="em-title">Sign in with email</div>
+    <div class="view-sub" id="em-sub">Username, email, or Grudge ID.</div>
+    <div class="field" id="em-username-wrap"><label for="em-username">Username or email</label><input class="input" id="em-username" autocomplete="username" placeholder="username or email" /></div>
+    <div class="field" id="em-displayname-wrap" style="display:none"><label for="em-displayname">Display name <span style="font-weight:400;color:var(--text-muted)">(optional)</span></label><input class="input" id="em-displayname" placeholder="Shown in games" /></div>
+    <div class="field"><label for="em-password">Password</label><input class="input" id="em-password" type="password" autocomplete="current-password" placeholder="••••••••" /></div>
+    <button class="btn btn-primary" id="em-submit" type="button"><span class="lead">Sign in</span></button>
+    <div style="text-align:center;margin-top:14px">
+      <button class="btn-link" id="em-toggle" type="button">Create an account</button>
+      <button class="btn-link back-link" id="em-back" type="button">← Back</button>
+    </div>
+  </section>
+
+  <section class="view" id="view-phone">
+    <div class="view-title">Sign in with phone</div>
+    <div class="view-sub" id="ph-sub">We'll send a one-time verification code.</div>
+    <div class="field" id="ph-num-wrap"><label for="ph-number">Phone number</label><input class="input" id="ph-number" type="tel" placeholder="+1 555 123 4567" /><div class="hint">Include country code (E.164), e.g. +15551234567</div></div>
+    <div class="field" id="ph-code-wrap" style="display:none"><label for="ph-code">Verification code</label><input class="input" id="ph-code" inputmode="numeric" placeholder="123456" maxlength="8" /></div>
+    <button class="btn btn-primary" id="ph-submit" type="button"><span class="lead">Send code</span></button>
+    <button class="btn-link back-link" id="ph-back" type="button">← Back</button>
+  </section>
+
+  <section class="view" id="view-returning">
+    <div class="returning-icon" id="returning-icon" aria-hidden="true">→</div>
+    <div class="view-title">Returning you now</div>
+    <div class="view-sub">Signed in successfully. Taking you back to <strong id="returning-app-name">your app</strong>…</div>
+    <div style="text-align:center;padding:12px 0"><span class="spin"></span></div>
+  </section>
+
+  <section class="view" id="view-done">
+    <div class="success-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+    <div class="view-title" id="done-title">Signed in</div>
+    <div class="view-sub" id="done-sub" style="display:none"></div>
+    <div class="identity"><div class="name" id="done-name">—</div><div class="gid" id="done-gid">—</div></div>
+    <button class="btn btn-primary" id="done-continue" type="button"><span class="lead" id="done-continue-label">Continue</span></button>
+    <div style="text-align:center;margin-top:14px"><button class="btn-link" id="done-switch" type="button">Use a different account</button></div>
+  </section>
+
+  <section class="view" id="view-account">
+    <div class="account-avatar" id="acct-avatar" aria-hidden="true">?</div>
+    <div class="account-meta">
+      <div class="name" id="acct-name">—</div>
+      <div class="handle" id="acct-handle">@—</div>
+    </div>
+    <div class="stat-row"><span>Grudge ID</span><span id="acct-gid-wrap"><span id="acct-gid">—</span><button type="button" class="btn-copy" id="acct-copy">Copy</button></span></div>
+    <div class="stat-row" id="acct-gbux-row" style="display:none"><span>GBux balance</span><span id="acct-gbux">0</span></div>
+    <div class="stat-row"><span>Account type</span><span id="acct-role">Player</span></div>
+    <div class="conn-list">
+      <h3>Connected sign-in methods</h3>
+      <div id="acct-connections"></div>
+    </div>
+    <a class="btn btn-secondary" id="acct-nexus" href="https://nexus.grudge-studio.com" style="text-decoration:none;margin-bottom:8px">Open Nexus Hub</a>
+    <button class="btn btn-ghost" id="acct-signout" type="button">Sign out everywhere</button>
+    <button class="btn-link back-link" id="acct-back" type="button">← Sign in page</button>
+  </section>
+
+  <section class="view" id="view-loading">
+    <div style="text-align:center;padding:32px 0;color:var(--text-secondary)">
+      <div class="spin" style="margin:0 auto 14px"></div>
+      <div style="font-size:0.875rem">Checking your session…</div>
+    </div>
+  </section>
+
+  <footer class="foot">
+    By continuing you agree to our <a href="https://grudgewarlords.com/tos" target="_blank" rel="noopener">Terms</a> and <a href="https://grudgewarlords.com/privacy" target="_blank" rel="noopener">Privacy Policy</a>.
+    <div class="trust"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg> Encrypted sign-in</div>
+    <div class="foot-links"><a href="/account">Manage account</a></div>
+  </footer>
+</main>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(() => {
+"use strict";
+
+function trimTrailingSlashes(value){
+  var s = value;
+  while (s.length > 0 && s.charAt(s.length - 1) === "/") s = s.slice(0, -1);
+  return s;
+}
+function resolveApiBase(){
+  const qs = new URLSearchParams(location.search);
+  const fromQuery = qs.get("api");
+  if (fromQuery) return trimTrailingSlashes(fromQuery);
+  const meta = document.querySelector('meta[name="grudge-api"]');
+  if (meta && meta.content.trim()) return trimTrailingSlashes(meta.content.trim());
+  const h = location.hostname;
+  if (h === "localhost" || h === "127.0.0.1") return location.protocol + "//" + h + ":5000";
+  if (h === "id.grudge-studio.com") return location.origin;
+  if (h === "grudge-studio.com" || h.endsWith(".grudge-studio.com")) return "https://grudge-studio.com";
+  if (location.origin && location.origin.startsWith("http")) return location.origin;
+  return "https://grudge-studio.com";
+}
+const CONFIG = { apiBase: resolveApiBase() };
+
+const qs = new URLSearchParams(location.search);
+const isPopup = (() => { try { return !!window.opener && window.opener !== window; } catch { return false; } })();
+/**
+ * Fleet return URL after login.
+ * Browser bar keeps the public path query (e.g. /login?redirect_uri=https://grudge-crafting.puter.site/)
+ * while the gateway may map upstream to ?redirect= — accept every fleet alias.
+ */
+const returnTo =
+  qs.get("redirect_uri") ||
+  qs.get("redirect") ||
+  qs.get("return_to") ||
+  qs.get("return") ||
+  qs.get("returnUrl") ||
+  null;
+const appKey = (qs.get("app") || "").toLowerCase();
+const isAccountMode = location.pathname === "/account" || qs.get("view") === "account";
+let openerOrigin = qs.get("origin") || qs.get("audience") || null;
+if (!openerOrigin && document.referrer) { try { openerOrigin = new URL(document.referrer).origin; } catch {} }
+const isHandoffReturn = qs.get("handoff") === "1";
+const urlLaunchToken = qs.get("grudge_token");
+window.addEventListener("message", (e) => { if (e?.data?.type === "grudge-auth:init" && typeof e.data.origin === "string") openerOrigin = e.data.origin; });
+if (isPopup) { try { window.opener.postMessage({ type: "grudge-auth:ready" }, "*"); } catch {} }
+
+/* DOM helpers — must exist before applyContextBanner / isAccountMode title setup */
+const $ = (id) => document.getElementById(id);
+const views = ["choose","profile","email","phone","returning","done","account","loading"];
+function show(name){ views.forEach(v => $("view-"+v).classList.toggle("active", v === name)); }
+
+const APP_LABELS = {
+  nexus: "Nexus Hub",
+  warlords: "Grudge Warlords",
+  wcs: "Warlord Crafting Suite",
+  crafting: "Warlord Crafting Suite",
+  dash: "Dashboard",
+  fleet: "Fleet",
+  game: "Grudge Tactics",
+  client: "Grudge Portal",
+  grudgedot: "grudgeDot",
+  coder: "grudgeDot",
+  platform: "Grudge Platform",
+  apps: "Grudge Platform",
+  ai: "Legion AI",
+  legion: "Legion AI",
+  character: "Character Hub",
+  wallet: "Wallet",
+  puter: "Puter Cloud",
+};
+const HOST_LABELS = {
+  "nexus.grudge-studio.com": "Nexus Hub",
+  "grudachain.grudge-studio.com": "Nexus Hub",
+  "grudgewarlords.com": "Grudge Warlords",
+  "www.grudgewarlords.com": "Grudge Warlords",
+  "client.grudge-studio.com": "Grudge Portal",
+  "wcs.grudge-studio.com": "Warlord Crafting Suite",
+  "grudge-crafting.puter.site": "Warlord Crafting Suite",
+  "dash.grudge-studio.com": "Dashboard",
+  "game.grudge-studio.com": "Grudge Tactics",
+  "coder.grudge-studio.com": "grudgeDot",
+  "apps.grudge-studio.com": "Grudge Platform",
+  "ai.grudge-studio.com": "Legion AI",
+  "character.grudge-studio.com": "Character Studio",
+  "water.grudge-studio.com": "Tethical",
+};
+
+function resolveAppLabel(){
+  if (appKey && APP_LABELS[appKey]) return APP_LABELS[appKey];
+  if (returnTo) {
+    try {
+      const host = new URL(returnTo).hostname.toLowerCase();
+      if (HOST_LABELS[host]) return HOST_LABELS[host];
+      if (host.endsWith(".grudge-studio.com")) {
+        const slug = host.replace(".grudge-studio.com", "");
+        if (APP_LABELS[slug]) return APP_LABELS[slug];
+        return slug.split("-").map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+      }
+      if (host.endsWith(".puter.site") || host.endsWith(".puter.work")) {
+        const slug = host.split(".")[0];
+        if (slug === "grudge-crafting" || slug.includes("craft")) return "Warlord Crafting Suite";
+        if (APP_LABELS[slug]) return APP_LABELS[slug];
+        return slug.split("-").map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+      }
+      if (host.endsWith(".vercel.app")) return "Grudge App";
+    } catch {}
+  }
+  if (isPopup && openerOrigin) {
+    try {
+      const host = new URL(openerOrigin).hostname.toLowerCase();
+      if (HOST_LABELS[host]) return HOST_LABELS[host];
+    } catch {}
+  }
+  return null;
+}
+
+function applyContextBanner(){
+  const label = resolveAppLabel();
+  if (!label) return;
+  const banner = $("context-banner");
+  const lead = $("choose-lead");
+  if (banner) {
+    $("context-app").textContent = label;
+    banner.hidden = false;
+  }
+  if (lead && (returnTo || isPopup)) {
+    lead.textContent = "Sign in to continue to " + label + ".";
+  }
+  if (label && (returnTo || isPopup)) {
+    document.title = "Sign in to " + label + " · Grudge Studio";
+  }
+}
+if (isAccountMode) {
+  document.title = "Your account · Grudge Studio";
+  const sub = $("brand-sub");
+  if (sub) sub.textContent = "Account settings";
+} else {
+  applyContextBanner();
+}
+
+let toastTimer;
+function toast(msg, kind){
+  const t = $("toast"); t.textContent = msg;
+  t.className = "toast show" + (kind ? " " + kind : "");
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove("show"), 4200);
+}
+function busy(btn, on, labelHtml){
+  if (!btn) return;
+  if (on){ btn.dataset._html = btn.innerHTML; btn.disabled = true; btn.innerHTML = '<span class="spin"></span>' + (labelHtml ? " " + labelHtml : ""); }
+  else if (btn.dataset._html != null){ btn.disabled = false; btn.innerHTML = btn.dataset._html; delete btn.dataset._html; }
+}
+async function api(path, opts){
+  opts = opts || {};
+  const res = await fetch(CONFIG.apiBase + path, {
+    method: opts.method || "GET", credentials: "include",
+    headers: Object.assign({ "Content-Type": "application/json", "Accept": "application/json" }, opts.headers || {}),
+    body: opts.body,
+  });
+  let data = {}; try { data = await res.json(); } catch {}
+  if (!res.ok) throw new Error((data && data.error) || ("Request failed (" + res.status + ")"));
+  return data;
+}
+
+$("btn-more-toggle").addEventListener("click", () => {
+  const panel = $("more-panel");
+  const btn = $("btn-more-toggle");
+  const open = panel.hidden;
+  panel.hidden = !open;
+  btn.setAttribute("aria-expanded", open ? "true" : "false");
+});
+
+function selfUrl(extra){
+  const u = new URL(location.origin + location.pathname);
+  if (qs.get("api")) u.searchParams.set("api", qs.get("api"));
+  Object.keys(extra || {}).forEach(k => { if (extra[k]) u.searchParams.set(k, extra[k]); });
+  return u.toString();
+}
+async function mintLaunchToken(audience){
+  const r = await api("/api/auth/popup-token", { method:"POST", body: JSON.stringify({ audience }) });
+  if (!r.token) throw new Error("Could not create sign-in handoff token.");
+  return r.token;
+}
+function postAuthToOpener(targetOrigin, token, user){
+  const origin = targetOrigin && targetOrigin !== "*" ? targetOrigin : "*";
+  const modern = { type:"grudge-auth:success", source:"grudge-id", token, user };
+  const legacy = { type:"grudge:auth:success", token, player: user, audience: origin !== "*" ? origin : null };
+  try { window.opener.postMessage(modern, origin); } catch {}
+  try { window.opener.postMessage(legacy, origin); } catch {}
+}
+function showReturning(label){
+  $("returning-app-name").textContent = label || "your app";
+  const icon = $("returning-icon");
+  if (icon && label) icon.textContent = label.charAt(0).toUpperCase();
+  show("returning");
+}
+/**
+ * Dual handoff for satellite pass-through:
+ * - grudge_token: short launch JWT (bridge via grudge-bridge / session/exchange)
+ * - sso_token: full session JWT when available (direct Bearer store)
+ * Session also mirrored in the URL hash (less referrer leakage).
+ *
+ * CRITICAL: /api/auth/me does NOT return a JWT body — always mint via refresh
+ * when handoffing to puter.site / external origins, or satellites get no Bearer.
+ */
+function buildHandoffUrl(returnUrl, launchToken, sessionToken, user){
+  try {
+    const u = new URL(returnUrl);
+    if (launchToken) u.searchParams.set("grudge_token", launchToken);
+    if (sessionToken) {
+      u.searchParams.set("sso_token", sessionToken);
+      u.searchParams.set("token", sessionToken);
+    }
+    const gid = user && (user.grudgeId || user.grudge_id);
+    const uname = user && (user.displayName || user.username);
+    if (gid) { u.searchParams.set("grudge_id", gid); u.searchParams.set("grudgeId", gid); }
+    if (uname) { u.searchParams.set("username", uname); u.searchParams.set("grudge_username", uname); }
+    const hp = new URLSearchParams(u.hash.startsWith("#") ? u.hash.slice(1) : (u.hash || ""));
+    if (sessionToken) hp.set("sso_token", sessionToken);
+    if (launchToken) hp.set("grudge_token", launchToken);
+    if (gid) hp.set("grudge_id", gid);
+    u.hash = hp.toString();
+    return u.toString();
+  } catch {
+    const sep = returnUrl.includes("?") ? "&" : "?";
+    let q = "";
+    if (launchToken) q += "grudge_token=" + encodeURIComponent(launchToken);
+    if (sessionToken) q += (q ? "&" : "") + "sso_token=" + encodeURIComponent(sessionToken) + "&token=" + encodeURIComponent(sessionToken);
+    return returnUrl + sep + q;
+  }
+}
+/** Mint a full session JWT from the HttpOnly cookie (me endpoint strips token). */
+async function resolveSessionToken(user){
+  let t = (user && (user.token || user.sessionToken)) || "";
+  if (t && t.length > 20) return t;
+  try {
+    const r = await api("/api/auth/refresh", { method: "POST", body: "{}" });
+    t = r.token || r.sessionToken || "";
+    if (t) return t;
+  } catch (e) {
+    console.warn("[auth] refresh for handoff failed:", e);
+  }
+  return "";
+}
+async function handoff(user){
+  const destLabel = resolveAppLabel();
+  const sessionToken = await resolveSessionToken(user);
+  if (isPopup && window.opener){
+    const audience = openerOrigin || qs.get("audience") || qs.get("origin") || null;
+    let token = "";
+    try { token = await mintLaunchToken(audience || undefined); } catch (e) {
+      if (!sessionToken) throw e;
+    }
+    // Prefer session JWT for opener; launch is secondary
+    postAuthToOpener(audience, sessionToken || token, Object.assign({}, user || {}, {
+      launchToken: token || undefined,
+      sessionToken: sessionToken || undefined,
+      token: sessionToken || token,
+    }));
+    try {
+      window.opener.postMessage({
+        type: "grudge-auth:success",
+        source: "grudge-id",
+        token: sessionToken || token,
+        sessionToken: sessionToken || undefined,
+        launchToken: token || undefined,
+        user: user,
+      }, audience && audience !== "*" ? audience : "*");
+    } catch {}
+    renderDone(user, true, destLabel); return;
+  }
+  if (returnTo){
+    let dest = returnTo;
+    if (/^https?:\/\//i.test(returnTo)){
+      const origin = new URL(returnTo).origin;
+      if (origin !== location.origin){
+        if (destLabel) showReturning(destLabel);
+        let launchToken = "";
+        try { launchToken = await mintLaunchToken(origin); } catch (e) {
+          // If popup-token fails (session cookie race), fall back to session-only handoff
+          if (!sessionToken) throw e;
+        }
+        if (!sessionToken && !launchToken) {
+          throw new Error("Could not create sign-in handoff for " + (destLabel || "app") + ". Try signing in again.");
+        }
+        dest = buildHandoffUrl(returnTo, launchToken, sessionToken, user);
+        await new Promise((r) => setTimeout(r, destLabel ? 650 : 0));
+      } else if (sessionToken) {
+        dest = buildHandoffUrl(returnTo, "", sessionToken, user);
+      }
+    }
+    (window.top || window).location.replace(dest); return;
+  }
+  renderDone(user, false, destLabel);
+}
+function renderDone(user, autoClose, destLabel){
+  $("done-name").textContent = user.displayName || user.username || "Player";
+  $("done-gid").textContent = user.grudgeId || "";
+  if (user.isNew){ const pill = document.createElement("span"); pill.className = "new-pill"; pill.textContent = "New"; $("done-name").appendChild(pill); }
+  const sub = $("done-sub");
+  const continueLabel = $("done-continue-label");
+  if (autoClose) {
+    $("done-title").textContent = "Signed in";
+    if (sub && destLabel) { sub.textContent = "Returning to " + destLabel + "…"; sub.style.display = "block"; }
+  } else if (destLabel) {
+    $("done-title").textContent = "Signed in";
+    if (sub) { sub.textContent = "You can return to " + destLabel + " or manage your account."; sub.style.display = "block"; }
+    if (continueLabel) continueLabel.textContent = "Back to " + destLabel;
+  } else {
+    $("done-title").textContent = "Signed in";
+    if (sub) sub.style.display = "none";
+    if (continueLabel) continueLabel.textContent = "Continue";
+  }
+  $("done-continue").style.display = (isPopup || returnTo) ? "flex" : "none";
+  show("done");
+  if (autoClose) setTimeout(() => { try { window.close(); } catch {} }, 900);
+}
+function hasAccountUsername(user){
+  if (!user) return false;
+  const n = String(user.displayName || user.username || "").trim();
+  if (!n || n.length < 2) return false;
+  // Provider-prefixed / auto usernames still need a real claim
+  if (/^(puter:|Puter_|guest_|Guest_|wallet:|discord:|phone:|google:|github:)/i.test(n)) return false;
+  if (/^puter_[a-f0-9]+$/i.test(n) || /^guest_[a-f0-9]+$/i.test(n)) return false;
+  return true;
+}
+async function afterAuth(user, puterEmail){
+  // Fleet practice: if account DB / SSO already has username, never force name form.
+  if (user && user.needsProfile && hasAccountUsername(user)) {
+    try {
+      const body = {};
+      if (puterEmail) body.email = puterEmail;
+      // empty username = keep existing account displayName
+      user = await api("/api/auth/complete-profile", { method:"POST", body: JSON.stringify(body) });
+      user.needsProfile = false;
+    } catch { user.needsProfile = false; }
+  }
+  if (user && user.needsProfile && !hasAccountUsername(user)){ openProfileStep(user, puterEmail); return; }
+  try { await handoff(user); }
+  catch (e) { toast(e.message || "Could not complete sign-in.", "error"); show("choose"); refreshPuterButton(); }
+}
+
+function puterReady(){
+  return typeof window.puter !== "undefined" && puter.auth
+    && typeof puter.auth.signIn === "function"
+    && typeof puter.auth.getUser === "function";
+}
+function puterAuthMessage(err){
+  if (!err) return "Sign-in was cancelled.";
+  if (typeof err === "string") return err;
+  const code = err.error || err.code;
+  const msg = err.msg || err.message;
+  if (code === "popup_blocked") return "Allow popups for this site and try again.";
+  if (code === "auth_window_closed") return "Sign-in was cancelled.";
+  return msg || "Sign-in failed.";
+}
+async function resolvePuterUser(fromClick){
+  if (!puterReady()) throw { msg: "Sign-in is still loading — try again in a moment." };
+  if (puter.auth.isSignedIn()){
+    const existing = await puter.auth.getUser();
+    if (existing?.uuid && existing?.username) return existing;
+  }
+  if (!fromClick) return null;
+  const result = await puter.auth.signIn();
+  if (result && result.success === false) throw result;
+  const pu = await puter.auth.getUser();
+  if (!pu?.uuid || !pu?.username) throw { msg: "Could not read your account." };
+  return pu;
+}
+async function linkPuterToGrudge(pu){
+  const user = await api("/api/auth/puter-sso", {
+    method:"POST",
+    body: JSON.stringify({ puterId: pu.uuid, puterUsername: pu.username, email: pu.email || undefined }),
+  });
+  afterAuth(user, pu.email || "");
+}
+function refreshPuterButton(){
+  const lead = $("puter-lead"), small = $("puter-sub");
+  if (!lead || !small || !puterReady()) return;
+  if (!puter.auth.isSignedIn()){
+    lead.textContent = "Continue with Grudge ID";
+    small.textContent = "Recommended · secure one-tap sign-in";
+    return;
+  }
+  puter.auth.getUser().then((pu) => {
+    if (!pu?.username) return;
+    lead.textContent = "Continue as @" + pu.username;
+    small.textContent = "Tap to link your Grudge Studio account";
+  }).catch(() => {});
+}
+
+function startOAuth(provider){
+  // Fleet return: prefer app redirect_uri, then popup self handoff, then current origin
+  let redirect;
+  if (returnTo) redirect = returnTo;
+  else if (isPopup) redirect = selfUrl({ handoff:"1", origin: openerOrigin || "" });
+  else redirect = selfUrl({ signedin:"1" });
+  // Discord start accepts return|redirect|redirect_uri — send both for compatibility
+  const q = "return=" + encodeURIComponent(redirect) + "&redirect=" + encodeURIComponent(redirect);
+  location.href = CONFIG.apiBase + "/api/auth/" + provider + "/start?" + q;
+}
+/**
+ * Grudge / Puter best-practice login (user gesture only):
+ * 1. puter.auth.signIn() popup from click
+ * 2. puter.auth.getUser() → uuid / username / email
+ * 3. POST /api/auth/puter-sso → Grudge ID + JWT + linked connections
+ * 4. handoff → redirect_uri with grudge_token / sso_token
+ * Google also routes here (Puter hosts Google as a connection).
+ */
+async function runPuterGrudgeLogin(btn){
+  if (!puterReady()){ toast("Sign-in is still loading — try again in a moment.", "error"); return; }
+  const already = puter.auth.isSignedIn();
+  busy(btn, true, already ? "Linking…" : "Opening…");
+  try {
+    const pu = await resolvePuterUser(true);
+    await linkPuterToGrudge(pu);
+  } catch (e){
+    const code = e?.error || e?.code;
+    if (code !== "auth_window_closed") toast(puterAuthMessage(e), "error");
+  } finally {
+    busy(btn, false);
+    refreshPuterButton();
+  }
+}
+$("btn-puter").addEventListener("click", () => runPuterGrudgeLogin($("btn-puter")));
+$("btn-grudge").addEventListener("click", () => runPuterGrudgeLogin($("btn-grudge")));
+// Google sign-in routes through Puter SDK (connections / Google via Puter)
+$("btn-google").addEventListener("click", () => runPuterGrudgeLogin($("btn-google")));
+$("btn-discord").addEventListener("click", () => startOAuth("discord"));
+$("btn-github").addEventListener("click", () => startOAuth("github"));
+
+const B58 = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
+function base58(bytes){ if (!bytes || !bytes.length) return ""; const digits = [0]; for (let i=0;i<bytes.length;i++){ let carry = bytes[i]; for (let j=0;j<digits.length;j++){ carry += digits[j] << 8; digits[j] = carry % 58; carry = (carry / 58) | 0; } while (carry){ digits.push(carry % 58); carry = (carry / 58) | 0; } } let str = ""; for (let k=0; bytes[k] === 0 && k < bytes.length - 1; k++) str += "1"; for (let q=digits.length-1; q>=0; q--) str += B58[digits[q]]; return str; }
+$("btn-phantom").addEventListener("click", async () => {
+  const btn = $("btn-phantom");
+  const provider = window.solana || (window.phantom && window.phantom.solana);
+  if (!provider || !provider.isPhantom){ toast("Install Phantom wallet to continue.", "error"); window.open("https://phantom.app/", "_blank"); return; }
+  busy(btn, true);
+  try {
+    const resp = await provider.connect();
+    const address = (resp.publicKey || provider.publicKey).toString();
+    const { nonce, message } = await api("/api/auth/phantom/nonce", { method:"POST", body: JSON.stringify({ address }) });
+    const encoded = new TextEncoder().encode(message);
+    const signed = await provider.signMessage(encoded, "utf8");
+    const sigRaw = signed.signature || signed;
+    const signature = typeof sigRaw === "string" ? sigRaw : base58(sigRaw);
+    const user = await api("/api/auth/phantom/verify", { method:"POST", body: JSON.stringify({ address, nonce, signature }) });
+    afterAuth(user);
+  } catch (e){ toast(e.message || "Wallet sign-in failed.", "error"); }
+  finally { busy(btn, false); }
+});
+
+let emailMode = "login";
+$("btn-email").addEventListener("click", () => { setEmailMode("login"); show("email"); });
+$("em-back").addEventListener("click", () => show("choose"));
+$("em-toggle").addEventListener("click", () => setEmailMode(emailMode === "login" ? "register" : "login"));
+function setEmailMode(mode){
+  emailMode = mode; const reg = mode === "register";
+  $("em-title").textContent = reg ? "Create account" : "Sign in with email";
+  $("em-sub").textContent = reg ? "Pick a username for your Grudge Studio account." : "Username, email, or Grudge ID.";
+  $("em-displayname-wrap").style.display = reg ? "block" : "none";
+  $("em-username").placeholder = reg ? "username" : "username or email";
+  $("em-password").setAttribute("autocomplete", reg ? "new-password" : "current-password");
+  $("em-submit").querySelector(".lead").textContent = reg ? "Create account" : "Sign in";
+  $("em-toggle").textContent = reg ? "Already have an account? Sign in" : "Create an account";
+}
+async function submitEmail(){
+  const btn = $("em-submit");
+  const username = $("em-username").value.trim(), password = $("em-password").value;
+  if (!username || !password){ toast("Enter your username and password.", "error"); return; }
+  busy(btn, true);
+  try {
+    const body = emailMode === "register" ? { username, password, displayName: $("em-displayname").value.trim() || undefined } : { username, password };
+    const user = await api("/api/auth/" + (emailMode === "register" ? "register" : "login"), { method:"POST", body: JSON.stringify(body) });
+    afterAuth(user);
+  } catch (e){ toast(e.message || "Could not sign you in.", "error"); }
+  finally { busy(btn, false); }
+}
+$("em-submit").addEventListener("click", submitEmail);
+$("em-password").addEventListener("keydown", (e) => { if (e.key === "Enter") submitEmail(); });
+$("em-username").addEventListener("keydown", (e) => { if (e.key === "Enter") $("em-password").focus(); });
+
+let phoneStage = "number";
+$("btn-phone").addEventListener("click", () => { setPhoneStage("number"); show("phone"); });
+$("ph-back").addEventListener("click", () => show("choose"));
+function setPhoneStage(stage){
+  phoneStage = stage; const code = stage === "code";
+  $("ph-num-wrap").style.display = code ? "none" : "block";
+  $("ph-code-wrap").style.display = code ? "block" : "none";
+  $("ph-sub").textContent = code ? ("Enter the code sent to " + $("ph-number").value.trim()) : "We'll send a one-time verification code.";
+  $("ph-submit").querySelector(".lead").textContent = code ? "Verify" : "Send code";
+}
+async function submitPhone(){
+  const btn = $("ph-submit"), phone = $("ph-number").value.trim();
+  if (phoneStage === "number"){
+    if (!/^\+\d{8,15}$/.test(phone)){ toast("Use E.164 format, e.g. +15551234567", "error"); return; }
+    busy(btn, true);
+    try { const r = await api("/api/auth/twilio/start", { method:"POST", body: JSON.stringify({ phone }) }); setPhoneStage("code"); toast(r.status === "dev" ? "Dev mode: check server logs for your code." : "Code sent.", "success"); }
+    catch (e){ toast(e.message || "Couldn't send the code.", "error"); }
+    finally { busy(btn, false); }
+  } else {
+    const code = $("ph-code").value.trim();
+    if (!code){ toast("Enter the verification code.", "error"); return; }
+    busy(btn, true);
+    try { const user = await api("/api/auth/twilio/verify", { method:"POST", body: JSON.stringify({ phone, code }) }); afterAuth(user); }
+    catch (e){ toast(e.message || "Invalid or expired code.", "error"); }
+    finally { busy(btn, false); }
+  }
+}
+$("ph-submit").addEventListener("click", submitPhone);
+$("ph-number").addEventListener("keydown", (e) => { if (e.key === "Enter") submitPhone(); });
+$("ph-code").addEventListener("keydown", (e) => { if (e.key === "Enter") submitPhone(); });
+
+$("btn-guest").addEventListener("click", async () => {
+  const btn = $("btn-guest"); busy(btn, true);
+  try { const user = await api("/api/auth/guest", { method:"POST", body: "{}" }); afterAuth(user); }
+  catch (e){ toast(e.message || "Could not start a guest session.", "error"); }
+  finally { busy(btn, false); }
+});
+
+let pendingUser = null;
+function openProfileStep(user, puterEmail){
+  // If we already have a username on the account, skip straight to handoff
+  if (hasAccountUsername(user)) {
+    pendingUser = user;
+    $("pf-skip").click();
+    return;
+  }
+  pendingUser = user;
+  $("pf-username").value = user.username || user.displayName || "";
+  if (puterEmail) $("pf-email").value = puterEmail;
+  $("pf-username-hint").className = "hint";
+  $("pf-username-hint").textContent = "Optional if you already signed in with Grudge ID — 3–30 letters, numbers, _ or -";
+  // Label: optional
+  const lab = document.querySelector('label[for="pf-username"]');
+  if (lab) lab.innerHTML = 'Username <span style="font-weight:400;color:var(--text-muted)">(optional if already set)</span>';
+  show("profile"); setTimeout(() => $("pf-username").focus(), 60);
+}
+let lookupTimer;
+$("pf-username").addEventListener("input", () => {
+  const hint = $("pf-username-hint"), v = $("pf-username").value.trim();
+  clearTimeout(lookupTimer);
+  if (!/^[a-zA-Z0-9_\-]{3,30}$/.test(v)){ hint.className = "hint"; hint.textContent = "3–30 letters, numbers, _ or -"; return; }
+  if (pendingUser && v === pendingUser.username){ hint.className = "hint"; hint.textContent = "Your current name."; return; }
+  hint.className = "hint"; hint.textContent = "Checking…";
+  lookupTimer = setTimeout(async () => {
+    try {
+      const r = await fetch(CONFIG.apiBase + "/api/auth/lookup?username=" + encodeURIComponent(v), { credentials: "include" });
+      if (r.ok) { hint.className = "hint bad"; hint.textContent = "\u201c" + v + "\u201d is taken."; }
+      else if (r.status === 404) { hint.className = "hint ok"; hint.textContent = "\u201c" + v + "\u201d is available."; }
+      else { hint.className = "hint"; hint.textContent = "Could not check."; }
+    } catch { hint.className = "hint"; hint.textContent = "Could not check availability."; }
+  }, 350);
+});
+$("pf-save").addEventListener("click", async () => {
+  const btn = $("pf-save"), username = $("pf-username").value.trim(), email = $("pf-email").value.trim();
+  // Empty username is OK when account already has one (complete-profile keeps it)
+  if (username && !/^[a-zA-Z0-9_\-]{3,30}$/.test(username)){ toast("Usernames are 3–30 letters, numbers, _ or -.", "error"); return; }
+  busy(btn, true);
+  try {
+    const body = {}; if (username) body.username = username; if (email) body.email = email;
+    const user = await api("/api/auth/complete-profile", { method:"POST", body: JSON.stringify(body) }); handoff(user);
+  } catch (e){ toast(e.message || "Could not save your profile.", "error"); }
+  finally { busy(btn, false); }
+});
+$("pf-skip").addEventListener("click", async () => {
+  // Persist profile-complete flag even on skip so we don't re-prompt next time
+  try {
+    if (pendingUser) {
+      await api("/api/auth/complete-profile", { method:"POST", body: "{}" });
+    }
+  } catch { /* offline / already complete */ }
+  if (pendingUser) handoff(pendingUser);
+});
+$("pf-username").addEventListener("keydown", (e) => { if (e.key === "Enter") $("pf-save").click(); });
+
+$("done-continue").addEventListener("click", async () => {
+  try {
+    const me = await api("/api/auth/me");
+    await handoff(normalizeMe(me));
+  } catch (e) {
+    toast((e && e.message) || "Could not return to app.", "error");
+  }
+});
+$("done-switch").addEventListener("click", async () => {
+  await signOutAll();
+  show("choose");
+  applyContextBanner();
+});
+
+/** Keep JWT fields from login responses; /me has none — handoff uses resolveSessionToken. */
+function normalizeMe(me){
+  return {
+    id: me.id,
+    username: me.username,
+    displayName: me.displayName,
+    grudgeId: me.grudgeId,
+    needsProfile: !!me.needsProfile,
+    isNew: false,
+    role: me.role,
+    token: me.token || me.sessionToken || undefined,
+    sessionToken: me.sessionToken || me.token || undefined,
+  };
+}
+
+async function signOutAll(){
+  try { await api("/api/auth/logout", { method:"POST", body:"{}" }); } catch {}
+  if (typeof window.puter !== "undefined"){ try { await puter.auth.signOut(); } catch {} }
+}
+
+function initialsFor(name){
+  const parts = String(name || "?").trim().split(/\s+/).filter(Boolean);
+  if (!parts.length) return "?";
+  if (parts.length === 1) return parts[0].slice(0, 2);
+  return (parts[0][0] || "") + (parts[1][0] || "");
+}
+
+function renderConnectionList(conn){
+  const el = $("acct-connections");
+  if (!el) return;
+  const rows = [
+    ["Email", conn.email],
+    ["Google", conn.google],
+    ["Discord", conn.discord],
+    ["GitHub", conn.github],
+    ["Grudge ID (Puter)", conn.puter],
+    ["Phone", conn.phone],
+    ["Solana wallet", conn.solana],
+  ];
+  el.innerHTML = rows.map(([label, on]) =>
+    '<div class="conn-item"><span>' + label + '</span><span class="' + (on ? "on" : "off") + '">' + (on ? "Connected" : "Not linked") + '</span></div>'
+  ).join("");
+}
+
+async function renderAccount(me){
+  const name = me.displayName || me.username || "Player";
+  $("acct-avatar").textContent = initialsFor(name);
+  $("acct-name").textContent = name;
+  $("acct-handle").textContent = "@" + (me.username || "player");
+  $("acct-gid").textContent = me.grudgeId || "—";
+  $("acct-role").textContent = (me.role || "player").charAt(0).toUpperCase() + (me.role || "player").slice(1);
+  if (me.gbuxBalance != null) {
+    $("acct-gbux-row").style.display = "flex";
+    $("acct-gbux").textContent = String(me.gbuxBalance);
+  }
+  try {
+    const conn = await api("/api/me/connections");
+    renderConnectionList(conn);
+  } catch {
+    renderConnectionList({
+      email: me.email,
+      google: me.googleId,
+      discord: me.discordId,
+      github: me.githubId,
+      puter: me.puterId,
+      phone: me.phone,
+      solana: me.solanaAddress,
+    });
+  }
+  show("account");
+}
+
+$("acct-copy").addEventListener("click", async () => {
+  const gid = $("acct-gid").textContent;
+  if (!gid || gid === "—") return;
+  try {
+    await navigator.clipboard.writeText(gid);
+    toast("Grudge ID copied.", "success");
+  } catch {
+    toast("Could not copy.", "error");
+  }
+});
+$("acct-signout").addEventListener("click", async () => {
+  await signOutAll();
+  toast("Signed out.", "success");
+  if (isAccountMode) { show("choose"); applyContextBanner(); }
+  else location.href = "/api/auth/page";
+});
+$("acct-back").addEventListener("click", () => { location.href = "/api/auth/page"; });
+
+async function boot(){
+  show("loading");
+  try {
+    const me = await api("/api/auth/me"); const user = normalizeMe(me);
+    if (isAccountMode) return renderAccount(me);
+    if (isHandoffReturn) return handoff(user);
+    if (user.needsProfile) return openProfileStep(user, me.email || "");
+    if (returnTo || isPopup) return handoff(user);
+    return renderDone(user, false, resolveAppLabel());
+  } catch {
+    if (urlLaunchToken){
+      try {
+        await api("/api/auth/session/exchange", { method:"POST", body: JSON.stringify({ token: urlLaunchToken }) });
+        const me = await api("/api/auth/me"); const user = normalizeMe(me);
+        if (isAccountMode) return renderAccount(me);
+        if (isHandoffReturn) return handoff(user);
+        if (returnTo || isPopup) return handoff(user);
+        return renderDone(user, false, resolveAppLabel());
+      } catch {}
+    }
+    if (isAccountMode) {
+      const sub = $("brand-sub");
+      if (sub) sub.textContent = "Sign in to view your account";
+      $("choose-lead").textContent = "Sign in to manage your Grudge Studio profile and connections.";
+    }
+    show("choose");
+    refreshPuterButton();
+  }
+}
+boot();
+})();
+</script>
+</body>
+</html>

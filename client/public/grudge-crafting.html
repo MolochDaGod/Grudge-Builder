@@ -14,7 +14,7 @@
     GAME_DATA: 'https://grudge-api-production-0d46.up.railway.app',
     OBJECTSTORE_URL: 'https://objectstore.grudge-studio.com/api/v1',
     ASSETS: 'https://assets.grudge-studio.com',
-    VERSION: '5.3.1',
+    VERSION: '5.3.2',
     WCS_URL: 'https://wcs.grudge-studio.com',
     SKILL_TREE_URL: './skill-tree.html',
     WEAPON_MASTERY_URL: './weaponmastery.html',
@@ -1654,7 +1654,7 @@ async function refreshFleetState() {
 async function checkAuth() {
   try {
     const embedded = window.parent !== window;
-    // init picks up ?grudge_token= / ?sso_token= and bridges to Railway JWT
+    // init picks up ?sso_token= (preferred) / ?grudge_token= and loads Railway JWT
     await GrudgeFleet.init({ mode: embedded ? 'embedded' : 'standalone' });
     // Restore existing JWT only — do NOT silent-mint puter guests (empty roster trap)
     if (!GrudgeFleet.isLoggedIn()) {
@@ -1662,6 +1662,20 @@ async function checkAuth() {
     }
     if (GrudgeFleet.isLoggedIn()) await GrudgeFleet.syncFromBackend();
     await refreshFleetState();
+    // After SSO return: open Account panel so characters/inventory are visible
+    if (GrudgeFleet.isLoggedIn()) {
+      try {
+        if (typeof showPage === 'function') showPage('account');
+        else if (typeof navigateTo === 'function') navigateTo('account');
+      } catch { /* panel optional */ }
+      if (typeof renderAll === 'function') renderAll();
+      const n = (GrudgeFleet.getCharacters() || []).length;
+      if (n > 0) {
+        showToast('Signed in — ' + n + ' character' + (n === 1 ? '' : 's') + ' loaded', 'success');
+      } else {
+        showToast('Signed in — no Warlords characters on this account yet', 'error');
+      }
+    }
     // Keep UI in sync when character changes (other tabs / VFX studio SSO)
     if (typeof GrudgeFleet.onCharacterChange === 'function') {
       GrudgeFleet.onCharacterChange(async (char) => {
@@ -1676,6 +1690,14 @@ async function checkAuth() {
         if (STATE.currentPage === 'crafting') renderCraftingPage();
       });
     }
+    window.addEventListener('grudge:auth:ready', () => {
+      refreshFleetState().then(() => {
+        if (typeof renderAll === 'function') renderAll();
+      }).catch(() => {});
+    });
+    window.addEventListener('grudge:characters:loaded', () => {
+      refreshFleetState().catch(() => {});
+    });
   } catch(e) { console.warn('Auth check:', e); }
 }
 
