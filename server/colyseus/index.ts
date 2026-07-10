@@ -5,15 +5,17 @@
  * CRITICAL (0.17): when NOT calling gameServer.listen() (because Express already
  * owns httpServer.listen), we must:
  *   1. await matchMaker.accept()  — marks process READY for room creation
- *   2. app.use(createNodeMatchmakingMiddleware()) — HTTP POST /matchmake/*
- *      used by colyseus.js Client.joinOrCreate()
+ *   2. Mount HTTP POST /matchmake/* used by colyseus.js Client.joinOrCreate()
  *
- * Without both steps, clients get 404 on matchmake and lobbies appear "failed".
+ * DO NOT use createNodeMatchmakingMiddleware() after express.json():
+ * that helper re-reads the raw body stream (readBody), which Express already
+ * consumed — the handler hangs forever and lobbies appear "failed".
+ * Use the Express-aware routes below that read req.body instead.
  */
 import {
   Server,
   matchMaker,
-  createNodeMatchmakingMiddleware,
+  getBearerToken,
 } from "colyseus";
 import { WebSocketTransport } from "@colyseus/ws-transport";
 import { playground } from "@colyseus/playground";
@@ -27,7 +29,7 @@ import { ShipwreckRoom } from "./rooms/ShipwreckRoom";
 import { HomeIslandRoom } from "./rooms/HomeIslandRoom";
 import { setupMapRoutes } from "./routes/mapAdmin";
 import type { Server as HttpServer } from "http";
-import type { Express, Request, Response } from "express";
+import type { Express, Request, Response, NextFunction } from "express";
 
 let gameServer: Server | null = null;
 
@@ -40,6 +42,97 @@ const ROOM_NAMES = [
   "shipwreck",
   "home_island",
 ] as const;
+
+/**
+ * Express-compatible matchmake handler.
+ * Mirrors @colyseus/core default_routes.postMatchmakeMethod but uses
+ * already-parsed req.body (express.json) instead of hanging on raw stream read.
+ */
+function mountExpressMatchmake(app: Express) {
+  // Preflight (global cors middleware usually covers this; keep explicit for safety)
+  app.options("/matchmake/:method/:roomName", (_req: Request, res: Response) => {
+    res.set(matchMaker.controller.DEFAULT_CORS_HEADERS);
+    const origin = _req.headers.origin;
+    if (origin) res.setHeader("Access-Control-Allow-Origin", origin);
+    res.sendStatus(204);
+  });
+
+  app.post(
+    "/matchmake/:method/:roomName",
+    async (req: Request, res: Response, next: NextFunction) => {
+      // Refuse matchmaking while shutting down
+      if (matchMaker.state === matchMaker.MatchMakerState.SHUTTING_DOWN) {
+        res.status(503).json({ code: 503, error: "server is shutting down" });
+        return;
+      }
+
+      const method = String(req.params.method || "");
+      const roomName = decodeURIComponent(String(req.params.roomName || ""));
+
+      // Prefer parsed JSON body; fall back to rawBody if present and unparsed
+      let clientOptions: Record<string, unknown> = {};
+      if (req.body && typeof req.body === "object" && !Buffer.isBuffer(req.body)) {
+        clientOptions = req.body as Record<string, unknown>;
+      } else if (typeof (req as any).rawBody === "string" && (req as any).rawBody) {
+        try {
+          clientOptions = JSON.parse((req as any).rawBody);
+        } catch {
+          res.status(400).json({ code: 400, error: "invalid JSON body" });
+          return;
+        }
+      } else if (Buffer.isBuffer((req as any).rawBody) && (req as any).rawBody.length) {
+        try {
+          clientOptions = JSON.parse((req as any).rawBody.toString("utf8"));
+        } catch {
+          res.status(400).json({ code: 400, error: "invalid JSON body" });
+          return;
+        }
+      }
+
+      try {
+        const headers = new Headers();
+        for (const [key, value] of Object.entries(req.headers)) {
+          if (value == null) continue;
+          headers.set(key, Array.isArray(value) ? value.join(", ") : value);
+        }
+
+        const forwarded =
+          (req.headers["x-forwarded-for"] as string | undefined) ??
+          (req.headers["x-client-ip"] as string | undefined) ??
+          (req.headers["x-real-ip"] as string | undefined) ??
+          req.ip;
+
+        const response = await matchMaker.controller.invokeMethod(
+          method,
+          roomName,
+          clientOptions,
+          {
+            token: getBearerToken(req.headers.authorization || ""),
+            headers,
+            ip: forwarded,
+            req: req as any,
+          },
+        );
+
+        res.setHeader("Content-Type", "application/json");
+        res.status(200).json(response);
+      } catch (e: any) {
+        const code = typeof e?.code === "number" ? e.code : 500;
+        // Colyseus uses HTTP-like codes in 4xx/5xx range; clamp status for Express
+        const httpStatus =
+          code >= 400 && code < 600 ? code : code > 0 ? 400 : 500;
+        console.error(
+          `[colyseus] matchmake ${method}/${roomName} failed:`,
+          e?.message || e,
+        );
+        res.status(httpStatus).json({
+          code,
+          error: e?.message || "matchmake failed",
+        });
+      }
+    },
+  );
+}
 
 export async function setupColyseus(httpServer: HttpServer, app: Express) {
   gameServer = new Server({
@@ -77,8 +170,9 @@ export async function setupColyseus(httpServer: HttpServer, app: Express) {
   await matchMaker.accept();
 
   // ── HTTP matchmake routes (colyseus.js posts to /matchmake/:method/:room) ─
-  // Must be registered before SPA/static catch-alls (caller order is fine).
-  app.use(createNodeMatchmakingMiddleware());
+  // Express-aware: uses req.body (express.json already ran). Do NOT call
+  // createNodeMatchmakingMiddleware() here — it hangs after body is consumed.
+  mountExpressMatchmake(app);
 
   // Health / diagnostics for ops
   app.get("/api/colyseus/health", async (_req: Request, res: Response) => {
@@ -87,6 +181,7 @@ export async function setupColyseus(httpServer: HttpServer, app: Express) {
       res.json({
         ok: true,
         matchMakerReady: true,
+        matchmake: "express-body",
         definedRooms: [...ROOM_NAMES],
         activeRooms: rooms.map((r) => ({
           roomId: r.roomId,
@@ -113,7 +208,7 @@ export async function setupColyseus(httpServer: HttpServer, app: Express) {
 
   console.log("[colyseus] Game server initialized (matchMaker READY)");
   console.log("[colyseus] Rooms:", ROOM_NAMES.join(", "));
-  console.log("[colyseus] Matchmake: POST /matchmake/joinOrCreate/:roomName");
+  console.log("[colyseus] Matchmake: POST /matchmake/joinOrCreate/:roomName (express body)");
   console.log("[colyseus] Health: GET /api/colyseus/health");
   console.log("[colyseus] Monitor: /colyseus");
 
