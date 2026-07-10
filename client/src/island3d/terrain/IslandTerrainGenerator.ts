@@ -84,6 +84,20 @@ function classifyBiome(elev: number, moist: number): BiomeType {
 }
 
 // ── Config ─────────────────────────────────────────────────────────────
+export interface IslandTerrainFoundationShape {
+  /** Target land fraction of disk (0–1) */
+  landmassFill?: number;
+  /** Bay cut strength 0–1 (Driftwood) */
+  bayIndent?: number;
+  /** Spire / ridge bias 0–1 (Ironfang) */
+  spireBias?: number;
+  /** Beach band depth in meters (shallow slope near water) */
+  beachBandDepthM?: number;
+  /** Prefer camp on lower-relief plateau */
+  campPercent?: { x: number; y: number };
+  mountainPercent?: { x: number; y: number };
+}
+
 export interface IslandTerrainConfig {
   seed: string;
   xSegments?: number;
@@ -94,6 +108,8 @@ export interface IslandTerrainConfig {
   maxHeight?: number;
   /** RTS-Grudge export — upsampled into center of 1024m terrain */
   rtsHeightmap?: RtsHeightmapPayload;
+  /** Driftwood Bay / Ironfang Spire layout shaping */
+  foundationShape?: IslandTerrainFoundationShape;
 }
 
 function sampleRtsHeightBilinear(
@@ -312,6 +328,7 @@ export function generateIslandTerrain(config: IslandTerrainConfig): IslandTerrai
     ySize = 1024,
     minHeight = -30,
     maxHeight = 80,
+    foundationShape,
   } = config;
 
   const gridW = xSegments + 1;
@@ -320,21 +337,91 @@ export function generateIslandTerrain(config: IslandTerrainConfig): IslandTerrai
   // Generate noise maps with the SAME seeded PRNG as 2D
   const rng = makePrng(seed);
   const rng2 = makePrng(seed + '_m');
-  const elevationMap = octaveNoise(rng, gridW, gridH, 3);
-  const moistureMap = octaveNoise(rng2, gridW, gridH, 2);
+  const elevationMap = octaveNoise(rng, gridW, gridH, 4);
+  const moistureMap = octaveNoise(rng2, gridW, gridH, 3);
 
-  const biomeMap = buildBiomeMap(elevationMap, moistureMap, gridW, gridH);
+  const landFill = foundationShape?.landmassFill ?? 0.62;
+  const bayIndent = foundationShape?.bayIndent ?? 0;
+  const spireBias = foundationShape?.spireBias ?? 0;
+  const beachDepthM = foundationShape?.beachBandDepthM ?? 18;
+  const mtPct = foundationShape?.mountainPercent ?? { x: 48, y: 30 };
+
+  // Land radius from fill: fill≈0.58 coastal, 0.72 highland
+  const maxR = Math.min(gridW, gridH) * 0.5;
+  const islandRadius = maxR * Math.sqrt(Math.min(0.95, Math.max(0.35, landFill)));
   const centerX = gridW / 2;
   const centerY = gridH / 2;
-  const islandRadius = Math.min(gridW, gridH) * 0.48;
+  // Mountain anchor in grid coords
+  const mtGx = (mtPct.x / 100) * gridW;
+  const mtGy = (mtPct.y / 100) * gridH;
+  const metersPerCell = xSize / Math.max(1, xSegments);
+  const beachCells = beachDepthM / metersPerCell;
+
+  // Rebuild biome with foundation-aware radius
+  const biomeMap: BiomeType[][] = [];
+  for (let y = 0; y < gridH; y++) {
+    biomeMap[y] = [];
+    for (let x = 0; x < gridW; x++) {
+      const dist = Math.hypot(x - centerX, y - centerY);
+      // South bay indent (Driftwood) — push shoreline inward on +Y screen south
+      let bay = 0;
+      if (bayIndent > 0.05) {
+        const ang = Math.atan2(y - centerY, x - centerX); // 0 = east
+        // Bay opens south (+Y in grid ≈ south of camp)
+        const south = Math.max(0, Math.sin(ang));
+        bay = south * bayIndent * islandRadius * 0.35;
+      }
+      const effectiveR = islandRadius - bay;
+      const fall = dist / Math.max(1, effectiveR);
+      const elev = elevationMap[y * gridW + x] - fall * 0.75;
+      biomeMap[y][x] = classifyBiome(elev, moistureMap[y * gridW + x]);
+    }
+  }
+
   const heightSpan = maxHeight - minHeight;
 
   return buildTerrainFromHeightFn(
     config,
-    (_xl, _yl, i, j, elev) => {
+    (_xl, _yl, i, j, elev, moist) => {
       const dist = Math.hypot(i - centerX, j - centerY);
-      const falloff = Math.max(0, 1 - (dist / islandRadius));
-      return (elev * falloff * falloff) * heightSpan + minHeight;
+      let bay = 0;
+      if (bayIndent > 0.05) {
+        const ang = Math.atan2(j - centerY, i - centerX);
+        const south = Math.max(0, Math.sin(ang));
+        bay = south * bayIndent * islandRadius * 0.35;
+      }
+      const effectiveR = Math.max(8, islandRadius - bay);
+      const falloff = Math.max(0, 1 - dist / effectiveR);
+      const fall2 = falloff * falloff;
+
+      // Base island height
+      let h = elev * fall2 * heightSpan + minHeight;
+
+      // Spire / ridge (Ironfang) — raise northern mountain belt
+      if (spireBias > 0.05) {
+        const dMt = Math.hypot(i - mtGx, j - mtGy) / (islandRadius * 0.35);
+        const ridge = Math.exp(-dMt * dMt) * spireBias;
+        h += ridge * heightSpan * 0.45;
+        // Gentle island-wide relief
+        h += elev * spireBias * fall2 * heightSpan * 0.12;
+      }
+
+      // Beach band — soft shallow slope near shoreline for game feel
+      if (falloff > 0.02 && falloff < 1 && beachCells > 0) {
+        const shoreDist = (1 - falloff) * effectiveR; // cells from edge inward
+        if (shoreDist < beachCells * 1.4) {
+          const t = shoreDist / (beachCells * 1.4);
+          const beachH = minHeight + (0 - minHeight) * 0.15 + t * 6;
+          h = h * t + beachH * (1 - t) * 0.55 + h * 0.45;
+        }
+      }
+
+      // Moisture lifts forest plateaus slightly
+      if (moist > 0.55 && falloff > 0.25) {
+        h += (moist - 0.55) * 4 * fall2;
+      }
+
+      return h;
     },
     elevationMap,
     moistureMap,

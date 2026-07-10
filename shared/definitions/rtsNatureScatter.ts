@@ -88,6 +88,10 @@ export const NATURE_MODEL_PATHS: Record<RtsScatterCategory, string[]> = {
 /** No megakit extras (Clover/Pebble/RockPath were low-poly). */
 export const NATURE_MEGAKIT_EXTRA_PATHS: readonly string[] = [];
 
+/**
+ * Scatter rules in **RTS-core meters** (200 m). Scaled to target world size.
+ * On 1024 m home islands densityScale ≈ 6× for game-feel coverage (not sparse RTS demo).
+ */
 const BASE_SCATTER_RULES: Array<{
   category: RtsScatterCategory;
   count: number;
@@ -98,10 +102,10 @@ const BASE_SCATTER_RULES: Array<{
   maxScale: number;
   avoidCenter?: number;
 }> = [
-  { category: "tree", count: 20, seedOffset: 100, minRadius: 20, maxRadius: 95, minScale: 1.4, maxScale: 2.8 },
-  { category: "pine", count: 14, seedOffset: 200, minRadius: 25, maxRadius: 95, minScale: 1.2, maxScale: 2.5 },
-  { category: "palm", count: 0, seedOffset: 300, minRadius: 18, maxRadius: 88, minScale: 1.3, maxScale: 2.6 },
-  { category: "rock", count: 14, seedOffset: 400, minRadius: 15, maxRadius: 90, minScale: 0.8, maxScale: 2.0 },
+  { category: "tree", count: 28, seedOffset: 100, minRadius: 18, maxRadius: 92, minScale: 1.3, maxScale: 2.7 },
+  { category: "pine", count: 20, seedOffset: 200, minRadius: 22, maxRadius: 92, minScale: 1.2, maxScale: 2.5 },
+  { category: "palm", count: 0, seedOffset: 300, minRadius: 16, maxRadius: 88, minScale: 1.3, maxScale: 2.6 },
+  { category: "rock", count: 22, seedOffset: 400, minRadius: 12, maxRadius: 90, minScale: 0.8, maxScale: 2.1 },
   // Groundcover counts stay 0 until realistic GLBs exist (empty paths also skip)
   { category: "bush", count: 0, seedOffset: 500, minRadius: 12, maxRadius: 80, minScale: 0.8, maxScale: 1.5 },
   { category: "grass", count: 0, seedOffset: 600, minRadius: 8, maxRadius: 70, minScale: 0.6, maxScale: 1.2, avoidCenter: 8 },
@@ -126,9 +130,24 @@ function isHighlandBiome(biome: string): boolean {
   return HIGHLAND_BIOME_HINTS.some((h) => b.includes(h));
 }
 
-function rulesForFoundation(foundation: HomeIslandFoundation, biome: string) {
+/**
+ * Scale RTS-core counts up for full home-island diameter so foliage fills land,
+ * not just the old 200 m RTS core ring.
+ */
+function densityScaleForWorld(worldSizeM: number): number {
+  const r = worldSizeM / HOME_ISLAND_RTS_SIZE_M;
+  // Sub-linear so 1024m (~5.1× diameter) ≈ 5.5–6.5× instances, not 26×
+  return Math.max(1, Math.pow(r, 1.12));
+}
+
+function rulesForFoundation(
+  foundation: HomeIslandFoundation,
+  biome: string,
+  worldSizeM: number,
+) {
   const coastal = isCoastalBiome(biome) || foundation.id === 'driftwood_bay';
   const highland = isHighlandBiome(biome) || foundation.id === 'ironfang_spire';
+  const density = densityScaleForWorld(worldSizeM);
 
   return BASE_SCATTER_RULES.map((rule) => {
     let mult = 1;
@@ -140,18 +159,18 @@ function rulesForFoundation(foundation: HomeIslandFoundation, biome: string) {
       mult = foundation.natureDensity.groundcover;
     }
 
-    let count = Math.round(rule.count * mult);
+    let count = Math.round(rule.count * mult * density);
 
     // Biome palette: coastal prefers palms; highland prefers pines
     if (coastal && !highland) {
-      if (rule.category === 'palm') count = Math.max(count, Math.round(18 * mult));
+      if (rule.category === 'palm') count = Math.max(count, Math.round(22 * mult * density));
       if (rule.category === 'pine') count = Math.round(count * 0.35);
-      if (rule.category === 'tree') count = Math.round(count * 1.1);
-      if (rule.category === 'rock') count = Math.round(count * 0.85);
+      if (rule.category === 'tree') count = Math.round(count * 1.15);
+      if (rule.category === 'rock') count = Math.round(count * 0.9);
     } else if (highland) {
       if (rule.category === 'palm') count = 0;
-      if (rule.category === 'pine') count = Math.round(count * 1.25);
-      if (rule.category === 'rock') count = Math.round(count * 1.15);
+      if (rule.category === 'pine') count = Math.round(count * 1.3);
+      if (rule.category === 'rock') count = Math.round(count * 1.2);
     }
 
     return { ...rule, count };
@@ -215,7 +234,8 @@ function generateCategoryInstances(
     if (Math.abs(x) < avoid && Math.abs(z) < avoid) continue;
 
     const y = sampleHeight(x, z);
-    if (y < -1 || y > 10) continue;
+    // Allow full home-island elevation budget (was y>10 which deleted most inland foliage)
+    if (y < -2 || y > 78) continue;
 
     const scale = rule.minScale + rng() * (rule.maxScale - rule.minScale);
     const rotation = rng() * Math.PI * 2;
@@ -248,7 +268,7 @@ export function generateRtsNatureScatter(
     seedString ?? String(islandSeed),
     resolvedBiome,
   );
-  const rules = rulesForFoundation(foundation, resolvedBiome);
+  const rules = rulesForFoundation(foundation, resolvedBiome, worldSizeM);
 
   const sampleHeight = (wx: number, wz: number): number => {
     if (!heights || !heightmap) return 2;

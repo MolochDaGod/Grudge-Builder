@@ -96,13 +96,20 @@ import {
 } from '@shared/definitions/homeIslandSeed';
 import {
   campPercentToWorld,
+  HOME_ISLAND_ANIMAL_TARGET,
   HOME_ISLAND_BUILDABLE_MAX_HEIGHT_M,
   HOME_ISLAND_BUILDABLE_MAX_SLOPE_RAD,
   HOME_ISLAND_BUILDABLE_MIN_HEIGHT_M,
   HOME_ISLAND_CAMP_CLEAR_RADIUS_M,
+  HOME_ISLAND_CAMP_PLATEAU_HEIGHT_M,
   HOME_ISLAND_DEFAULT_CAMP_PERCENT,
   HOME_ISLAND_HARVEST_ZONE_COUNT,
   HOME_ISLAND_HARVEST_ZONE_SPACING_M,
+  HOME_ISLAND_NAVMESH_CELL_M,
+  HOME_ISLAND_OCEAN_SEGMENTS,
+  HOME_ISLAND_OCEAN_SIZE_M,
+  HOME_ISLAND_SEAFLOOR_DEPTH_M,
+  HOME_ISLAND_TERRAIN_SEGMENTS,
 } from '@shared/definitions/homeIslandQuality';
 
 export type Island3DMode = 'procedural' | 'lobby' | 'zone';
@@ -268,8 +275,8 @@ export class Island3DEngine {
     this.scene.background = new THREE.Color(0x87ceeb); // sky blue
     this.scene.fog = new THREE.FogExp2(0x87ceeb, 0.0015);
 
-    // Camera — over-the-shoulder perspective
-    this.camera = new THREE.PerspectiveCamera(60, config.width / config.height, 0.5, 2000);
+    // Camera — over-the-shoulder; far plane covers 1024m island + deep ocean horizon
+    this.camera = new THREE.PerspectiveCamera(60, config.width / config.height, 0.4, 4000);
     this.camera.position.set(0, 120, 200);
 
     // Controls (orbit for now — will switch to character controller later)
@@ -278,8 +285,8 @@ export class Island3DEngine {
     this.controls.enableDamping = true;
     this.controls.dampingFactor = 0.08;
     this.controls.maxPolarAngle = Math.PI * 0.45;
-    this.controls.minDistance = 30;
-    this.controls.maxDistance = 500;
+    this.controls.minDistance = 8;
+    this.controls.maxDistance = 900;
     this.controls.update();
 
     this.clock = new THREE.Clock();
@@ -501,49 +508,78 @@ export class Island3DEngine {
     this.controls.update();
   }
 
-  /** Generate procedural seed-based terrain with nodes & decorations */
+  /** Full generative home-island pipeline: terrain → ocean → zones → harvest → nature → nav → systems */
   private async initProcedural(): Promise<void> {
+    const progress = (pct: number) => this.config.onLoadProgress?.(pct);
+
+    progress(4);
     await preloadIslandResources().catch((err) => {
       console.warn('[Island3D] Resource preload failed — harvest will retry per-node', err);
     });
-    // 1. Generate terrain — elevation budget from size foundation
-    // Default biome = beach → Driftwood Bay (Warlords coastal showcase), not highland forest
+
+    // 1. Foundation + terrain (1024m, high-res mesh, bay/spire shape)
     const foundation = resolveHomeIslandFoundation(
       this.config.seed,
       this.config.biome ?? 'beach',
     );
+    progress(12);
     const terrainMaterial = await createTerrainMaterialAsync();
+    const segs = HOME_ISLAND_TERRAIN_SEGMENTS;
     const terrainConfig: IslandTerrainConfig = {
       seed: this.config.seed,
-      xSegments: 63,
-      ySegments: 63,
+      xSegments: segs,
+      ySegments: segs,
       xSize: HOME_ISLAND_WORLD_SIZE_M,
       ySize: HOME_ISLAND_WORLD_SIZE_M,
       minHeight: foundation.minElevationM,
       maxHeight: foundation.maxElevationM,
       rtsHeightmap: this.config.rtsHeightmap,
+      foundationShape: {
+        landmassFill: foundation.landmassFill,
+        bayIndent: foundation.layout.bayIndent,
+        spireBias: foundation.layout.spireBias,
+        beachBandDepthM: foundation.beachBandDepthM,
+        campPercent: this.config.campPositionPercent ?? foundation.layout.defaultCampPercent,
+        mountainPercent: foundation.layout.defaultMountainPercent,
+      },
     };
 
     this.terrain = generateIslandTerrainWithBridge(terrainConfig);
     console.log(
-      `[Island3D] Foundation ${foundation.label} — world ${foundation.worldSizeM}m, elev ${foundation.minElevationM}..${foundation.maxElevationM}m`,
+      `[Island3D] Generative home island — ${foundation.label}, world ${foundation.worldSizeM}m, ` +
+        `mesh ${segs}², elev ${foundation.minElevationM}..${foundation.maxElevationM}m, biome=${this.config.biome ?? 'beach'}`,
     );
     if (this.config.rtsHeightmap) {
       console.log('[Island3D] Terrain from RTS heightmap export (200m → 1024m upsample)');
     }
 
-    const campPct = this.config.campPositionPercent ?? HOME_ISLAND_DEFAULT_CAMP_PERCENT;
+    const campPct =
+      this.config.campPositionPercent
+      ?? foundation.layout.defaultCampPercent
+      ?? HOME_ISLAND_DEFAULT_CAMP_PERCENT;
     const campWorld = campPercentToWorld(campPct, HOME_ISLAND_WORLD_SIZE_M);
-    flattenCampPlateau(this.terrain.terrainMesh, campWorld.x, campWorld.z);
+    flattenCampPlateau(
+      this.terrain.terrainMesh,
+      campWorld.x,
+      campWorld.z,
+      foundation.campClearRadiusM ?? HOME_ISLAND_CAMP_CLEAR_RADIUS_M,
+      foundation.campPlateauHeightM ?? HOME_ISLAND_CAMP_PLATEAU_HEIGHT_M,
+    );
 
     this.terrain.terrainMesh.material = terrainMaterial;
-    this.flattenTerrainBelowWater(this.terrain.terrainMesh, PROCEDURAL_WATER_LEVEL);
+    this.flattenTerrainBelowWater(
+      this.terrain.terrainMesh,
+      PROCEDURAL_WATER_LEVEL,
+      HOME_ISLAND_SEAFLOOR_DEPTH_M,
+    );
     this.scene.add(this.terrain.terrainScene);
+    progress(28);
 
-    // 2. Single ocean plane (terrain underwater is flattened — no double-water)
+    // 2. Deep ocean beyond island rim
     this.createWaterPlane();
+    progress(32);
 
-    // 3. Small harvest zones (forestoutline-style clusters + interactive nodes)
+    // 3. Harvest zones (forest / rock / gem / hemp / flower / scrap) across full landmass
     const zoneDefs = placeProceduralHarvestZones(
       this.config.seed,
       this.terrain.terrainMesh,
@@ -553,7 +589,7 @@ export class Island3DEngine {
       {
         zoneCount: HOME_ISLAND_HARVEST_ZONE_COUNT,
         minSpacing: HOME_ISLAND_HARVEST_ZONE_SPACING_M,
-        spawnClearRadius: HOME_ISLAND_CAMP_CLEAR_RADIUS_M,
+        spawnClearRadius: foundation.campClearRadiusM ?? HOME_ISLAND_CAMP_CLEAR_RADIUS_M,
         terrainSize: HOME_ISLAND_WORLD_SIZE_M,
         regrowRegions: this.config.regrowRegions,
       },
@@ -568,27 +604,32 @@ export class Island3DEngine {
     console.log(
       `[Island3D] Harvest zones: ${zoneDefs.length} patches,`,
       `${this.harvestZones.trees.length} trees,`,
+      `${this.harvestZones.rocks.length} rocks,`,
       `${this.harvestZones.forests.length} instanced forests`,
     );
+    progress(48);
 
-    // 4. Beach/dock nodes only — land harvest lives in zones
+    // 4. Shore/dock + scrap (land trees/rocks/etc. live in harvest zones)
     this.placedNodes = placeResourceNodes(
       this.terrain.biomeMap,
       this.terrain.terrainMesh,
       this.terrain.gridW,
       this.terrain.gridH,
-      1024, 1024,
+      HOME_ISLAND_WORLD_SIZE_M,
+      HOME_ISLAND_WORLD_SIZE_M,
       this.config.seed,
+      // excludeTypes — zone system owns primary land harvest
       ['tree', 'rock', 'crystal', 'hemp', 'flower', 'bush', 'herb'],
     );
 
-    // 5. Dock + fish harvestables from sparse beach placement
+    // 5. Interactive harvestables + dock
     this.createHarvestables();
+    progress(55);
 
     // 6. Scatter decorations
     this.createDecorations();
 
-    // 6b. Organized nature foliage — sanitize legacy megakit payloads, never poly fallback first
+    // 6b. Organized nature foliage across full 1024m (density-scaled)
     const naturePayload = resolveNatureScatterPayload({
       stored: this.config.rtsNatureScatter,
       islandSeed: islandSeedToNumber(this.config.seed),
@@ -601,53 +642,82 @@ export class Island3DEngine {
     if (foliage.children.length > 0) {
       this.scene.add(foliage);
     } else {
-      // Prefer CDN pack trees at node positions over InstancedProceduralForest (poly look)
       await this.createProceduralForest();
     }
+    progress(68);
 
-    // 7. Detail layers — animated grass + sand overlays
+    // 7. Detail layers — grass + sand overlays
     this.createDetailLayers();
+    progress(72);
 
-    // 8. Navigation mesh (needed by AI allies)
+    // 8. NavMesh for allies / wildlife
     this.navMesh = new TerrainNavMesh(
       this.terrain.terrainMesh,
       this.terrain.biomeMap,
       this.terrain.gridW,
       this.terrain.gridH,
-      1024, 1024,
-      16, // cell size (doubled for 2x terrain)
+      HOME_ISLAND_WORLD_SIZE_M,
+      HOME_ISLAND_WORLD_SIZE_M,
+      HOME_ISLAND_NAVMESH_CELL_M,
     );
+    progress(78);
 
-    // 9. Ally manager (Gouldstone system)
+    // 9. Ally manager
     this.allyManager = new AllyManager(this.scene, this.navMesh, this.terrain.terrainMesh);
 
-    // 10. Building system — slope/height constraints on camp plateau
+    // 10. Building system — camp plateau constraints
     this.building = new BuildingSystem(this.scene, this.camera);
     this.building.setBuildConstraints({
       terrainMesh: this.terrain.terrainMesh,
       minHeightM: HOME_ISLAND_BUILDABLE_MIN_HEIGHT_M,
-      maxHeightM: HOME_ISLAND_BUILDABLE_MAX_HEIGHT_M,
+      maxHeightM: Math.min(HOME_ISLAND_BUILDABLE_MAX_HEIGHT_M, foundation.maxElevationM * 0.75),
       maxSlopeRad: HOME_ISLAND_BUILDABLE_MAX_SLOPE_RAD,
       campCenter: campWorld,
-      campRadiusM: HOME_ISLAND_CAMP_CLEAR_RADIUS_M,
+      campRadiusM: foundation.campClearRadiusM ?? HOME_ISLAND_CAMP_CLEAR_RADIUS_M,
       sampleNormal: (x, z) => getTerrainNormalAt(this.terrain!.terrainMesh, x, z),
       sampleHeight: (x, z) => getTerrainHeightAt(this.terrain!.terrainMesh, x, z),
     });
+    progress(84);
 
-    // 11. Character controller (over-the-shoulder, replaces orbit)
+    // 11. Character (harvest / combat / build modes)
     if (this.config.enableCharacter !== false) {
       this.spawnCharacter();
     }
 
-    // 12. Wildlife — land animals + fish
-    this.creatures = new CreatureManager(this.scene, -2, this.config.seed.length);
-    // Home island — forest/plains mix, regenerative wildlife 1–5 min respawn
-    this.creatures.spawnForBiome(this.terrain.terrainMesh, 'forest', 400);
+    // 12. Wildlife — biome-aware land + ocean fish (regenerative)
+    this.creatures = new CreatureManager(this.scene, PROCEDURAL_WATER_LEVEL, this.config.seed.length);
+    const wildlifeBiome = this.wildlifeBiomeFor(this.config.biome ?? foundation.preferredBiomes[0]);
+    const wildlifeRadius = Math.round(HOME_ISLAND_WORLD_SIZE_M * 0.42);
+    this.creatures.spawnForBiome(this.terrain.terrainMesh, wildlifeBiome, wildlifeRadius, {
+      land: HOME_ISLAND_ANIMAL_TARGET,
+      fish: Math.max(8, Math.floor(HOME_ISLAND_ANIMAL_TARGET * 0.6)),
+    });
+    progress(90);
 
-    // 13. Evil mountain triad — dungeon behind one of three peaks
+    // 13. Evil mountain triad + dungeon portal
     await this.createMountainDungeon();
 
     if (this.navMesh) this.creatures.setNavMesh(this.navMesh);
+    progress(100);
+    console.log(
+      `[Island3D] Home island systems ready — harvest zones, nature, navmesh ${HOME_ISLAND_NAVMESH_CELL_M}m, ` +
+        `build camp, wildlife=${wildlifeBiome}, mountain dungeon`,
+    );
+  }
+
+  /** Map home biome → creature spawn palette */
+  private wildlifeBiomeFor(biome?: string | null): string {
+    const b = (biome ?? 'beach').toLowerCase();
+    if (b.includes('beach') || b.includes('tropic') || b.includes('shore') || b.includes('haven')) {
+      return 'tropical';
+    }
+    if (b.includes('winter') || b.includes('frost') || b.includes('snow') || b.includes('frozen')) {
+      return 'frozen';
+    }
+    if (b.includes('volcan') || b.includes('ember')) return 'volcanic';
+    if (b.includes('desert') || b.includes('ashen')) return 'desert';
+    if (b.includes('abyss')) return 'abyssal';
+    return 'forest';
   }
 
   /** Build a full ocean sector (10–14 km) with islands, NPCs, hazards, docks */
@@ -861,7 +931,11 @@ export class Island3DEngine {
   }
 
   private createWaterPlane(): void {
-    this.waterPlane = createOceanMesh({ waterLevel: PROCEDURAL_WATER_LEVEL, size: 1200, segments: 4 });
+    this.waterPlane = createOceanMesh({
+      waterLevel: PROCEDURAL_WATER_LEVEL,
+      size: HOME_ISLAND_OCEAN_SIZE_M,
+      segments: HOME_ISLAND_OCEAN_SEGMENTS,
+    });
     this.waterPlane.name = 'ocean';
     this.waterPlane.renderOrder = 1; // draw above submerged seafloor terrain
     this.scene.add(this.waterPlane);

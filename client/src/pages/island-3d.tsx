@@ -1,14 +1,17 @@
 /**
- * Island 3D Page — Warlords Era home-island showcase (public demo).
+ * Island 3D Page — full generative Home Island system (Warlords Era).
  *
- * Default: Driftwood Bay 1024 m home island, beach biome, organized CDN nature
- * (palms + deciduous + rocks), 2 m character scale. No low-poly megakit.
+ * Default mode runs Island3DEngine procedural pipeline for a complete playable
+ * home island: terrain + ocean depth + harvest zones + nature assets + navmesh +
+ * mountain dungeon + wildlife + build/combat/harvest HUD. Seeded + foundation-
+ * shaped (Driftwood Bay coastal / Ironfang Spire highland). 1024 m world, 2 m character.
  *
  * Modes:
- *   (default) procedural showcase — Driftwood Bay / optional Ironfang
+ *   (default) generative home island
  *   ?mode=zone — Warlords open-world sector
  *   ?mode=lobby — pirate lobby map
  *   ?engine=studio — Studio Map Editor embed
+ *   ?home=1 — load account Railway island when signed in
  */
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useLocation } from 'wouter';
@@ -386,7 +389,7 @@ function Island3DPlayPage() {
         ? `Lobby — ${lobbyMapId}`
         : useAccountIsland && homeIsland?.name
           ? `Home Island: ${homeIsland.name}`
-          : `${preset.label} · Warlords Home`;
+          : `Home Island · Generative · ${preset.label}`;
 
   return (
     <div className="flex flex-col h-screen bg-gray-950">
@@ -403,40 +406,40 @@ function Island3DPlayPage() {
         </h1>
         {mode === 'procedural' && (
           <span className="text-[10px] text-slate-500 hidden md:inline">
-            1024 m · 2 m character · organized nature
+            1024 m · zones · harvest · nav · ocean · build
           </span>
         )}
 
         <div className="flex-1" />
 
-        {/* Foundation presets — best Warlords examples */}
+        {/* Foundation shapes the generator (not a single static map) */}
         {mode === 'procedural' && (
           <div className="flex items-center gap-1 bg-gray-800 rounded p-0.5">
             <button
               type="button"
               onClick={() => applyPreset(SHOWCASE_DRIFTWOOD_BAY)}
               className={`text-[11px] px-2 py-1 rounded inline-flex items-center gap-1 transition-colors ${
-                preset.foundationId === 'driftwood_bay' && seed === SHOWCASE_DRIFTWOOD_BAY.seed
+                biome.includes('beach') || biome.includes('tropic') || preset.foundationId === 'driftwood_bay'
                   ? 'bg-emerald-600 text-white'
                   : 'text-gray-400 hover:text-white'
               }`}
-              title={SHOWCASE_DRIFTWOOD_BAY.summary}
+              title="Coastal foundation: bay indent, palms, moderate elevation"
             >
               <Home className="w-3 h-3" />
-              Driftwood Bay
+              Coastal
             </button>
             <button
               type="button"
               onClick={() => applyPreset(SHOWCASE_IRONFANG)}
               className={`text-[11px] px-2 py-1 rounded inline-flex items-center gap-1 transition-colors ${
-                preset.foundationId === 'ironfang_spire' && seed === SHOWCASE_IRONFANG.seed
+                biome.includes('forest') || biome.includes('winter') || preset.foundationId === 'ironfang_spire'
                   ? 'bg-sky-700 text-white'
                   : 'text-gray-400 hover:text-white'
               }`}
-              title={SHOWCASE_IRONFANG.summary}
+              title="Highland foundation: spire bias, pines, denser rock"
             >
               <Mountain className="w-3 h-3" />
-              Ironfang
+              Highland
             </button>
           </div>
         )}
@@ -480,15 +483,27 @@ function Island3DPlayPage() {
               value={inputSeed}
               onChange={(e) => setInputSeed(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleNewSeed()}
-              placeholder="Seed…"
-              className="bg-gray-800 border border-gray-700 text-white text-xs px-2 py-1 rounded w-36 sm:w-44 focus:outline-none focus:border-emerald-500"
+              placeholder="Island seed…"
+              className="bg-gray-800 border border-gray-700 text-white text-xs px-2 py-1 rounded w-36 sm:w-48 focus:outline-none focus:border-emerald-500 font-mono"
             />
             <button
               type="button"
               onClick={handleNewSeed}
-              className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs px-2.5 py-1 rounded"
+              className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs px-2.5 py-1 rounded font-semibold"
             >
               Generate
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                const s = `island-${Math.random().toString(36).slice(2, 10)}`;
+                setInputSeed(s);
+                setSeed(s);
+                setMode('procedural');
+              }}
+              className="bg-gray-700 hover:bg-gray-600 text-white text-xs px-2 py-1 rounded"
+            >
+              Random
             </button>
           </>
         )}
@@ -607,20 +622,21 @@ function Island3DPlayPage() {
         />
 
         {mode === 'procedural' && (
-          <div className="absolute bottom-4 left-4 bg-black/70 backdrop-blur border border-emerald-800/40 rounded-xl px-4 py-3 text-xs text-slate-300 space-y-1 pointer-events-none max-w-xs">
+          <div className="absolute bottom-4 left-4 bg-black/70 backdrop-blur border border-emerald-800/40 rounded-xl px-4 py-3 text-xs text-slate-300 space-y-1 pointer-events-none max-w-sm">
             <div className="text-emerald-400 font-bold uppercase tracking-widest text-[10px]">
-              Warlords Home Island
+              Generative Home Island
             </div>
-            <div className="font-semibold text-white">{preset.label}</div>
-            <div className="text-slate-400">{preset.summary}</div>
-            <div className="text-slate-500 pt-1">
-              Seed <span className="text-slate-300 font-mono">{seed}</span>
-              {' · '}
-              {biome}
-              {' · '}
-              {preset.worldSizeM} m
+            <div className="font-semibold text-white">{preset.label} foundation</div>
+            <div className="text-slate-400 leading-relaxed">
+              Full pipeline: terrain · ocean depth · harvest zones · organized nature ·
+              navmesh · wildlife · mountain dungeon · build camp
             </div>
-            <div className="text-slate-500">WASD move · Space jump · Tab combat · Click harvest</div>
+            <div className="text-slate-500 pt-1 font-mono text-[10px]">
+              seed={seed} · biome={biome} · {preset.worldSizeM}m · char 2m
+            </div>
+            <div className="text-slate-500">
+              HUD: Combat · Harvest · Build · WASD · Space · Click nodes
+            </div>
           </div>
         )}
 

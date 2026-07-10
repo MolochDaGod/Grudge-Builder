@@ -19,10 +19,11 @@ import {
   fitModelToHeight,
   type IslandResourceType,
 } from './IslandResourceLoader';
+import { HOME_ISLAND_NATURE_INSTANCE_BUDGET } from '@shared/definitions/homeIslandQuality';
 
 const templateCache = new Map<string, THREE.Group>();
 const loader = new GLTFLoader();
-const MAX_INSTANCES = 320;
+const MAX_INSTANCES = HOME_ISLAND_NATURE_INSTANCE_BUDGET;
 
 /** Target height (m) for scatter foliage relative to 2m character. */
 function scatterHeightM(category: string, scale: number): number {

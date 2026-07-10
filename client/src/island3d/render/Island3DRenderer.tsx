@@ -365,13 +365,13 @@ export function Island3DRenderer({
             <p className="text-amber-300 font-semibold text-sm">Island load had issues</p>
             <p className="text-slate-400 text-xs break-words">{error}</p>
             <p className="text-slate-500 text-[11px]">
-              Try Driftwood Bay showcase: reload with no query params, or open /home-island when signed in.
+              Reload the generative home island, or open /home-island when signed in.
             </p>
             <a
               href="/island-3d"
               className="inline-block text-emerald-400 text-xs underline"
             >
-              Reload showcase home island
+              Regenerate home island
             </a>
           </div>
         </div>
@@ -432,19 +432,23 @@ export function Island3DRenderer({
           {/* Oxygen bar (only when swimming) */}
           <DangerRoomHud hud={combatHud} />
 
+          {/* Full game systems HUD: harvest / combat / build — home island + zone + lobby */}
+          {(mode === 'procedural' || mode === 'zone' || mode === 'lobby') && (
+            <IslandPlayOverlay
+              engine={engineReady}
+              session={sessionCtx}
+              loadProgress={loadProgress}
+              loading={loading}
+              characterName={characterName}
+              movementState={stateLabel[movementState]}
+              onTickRate={(v) => sessionSend({ type: 'SET_TICK_RATE', tickRate: v })}
+              onDayDuration={(v) => sessionSend({ type: 'SET_DAY_DURATION', dayDurationSeconds: v })}
+              onCombatToggle={() => sessionSend({ type: 'TOGGLE_COMBAT' })}
+            />
+          )}
+
           {mode === 'lobby' && (
             <>
-              <IslandPlayOverlay
-                engine={engineReady}
-                session={sessionCtx}
-                loadProgress={loadProgress}
-                loading={loading}
-                characterName={characterName}
-                movementState={stateLabel[movementState]}
-                onTickRate={(v) => sessionSend({ type: 'SET_TICK_RATE', tickRate: v })}
-                onDayDuration={(v) => sessionSend({ type: 'SET_DAY_DURATION', dayDurationSeconds: v })}
-                onCombatToggle={() => sessionSend({ type: 'TOGGLE_COMBAT' })}
-              />
               <LobbyGameHUD
                 engine={engineReady}
                 characterName={characterName}
