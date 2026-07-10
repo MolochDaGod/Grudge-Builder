@@ -37,7 +37,7 @@
 body {
   font-family: var(--font-body);
   color: var(--text);
-  background: var(--bg);
+  background: #05050a;
   min-height: 100vh;
   display: flex;
   align-items: center;
@@ -46,20 +46,38 @@ body {
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
 }
+/* Racalvin The Pirate King — full-page brand backdrop (also used by fleet modal) */
 .bg {
   position: fixed;
   inset: 0;
   pointer-events: none;
+  z-index: 0;
+  background-color: #05050a;
+  background-image:
+    linear-gradient(180deg, rgba(5, 5, 10, 0.55) 0%, rgba(5, 5, 10, 0.72) 45%, rgba(5, 5, 10, 0.88) 100%),
+    radial-gradient(ellipse 70% 55% at 18% 40%, rgba(0, 0, 0, 0.15), transparent 60%),
+    url("/auth-bg-racalvin.jpg");
+  background-size: cover, cover, cover;
+  background-position: center, center, left center;
+  background-repeat: no-repeat;
+}
+.bg::after {
+  content: "";
+  position: absolute;
+  inset: 0;
   background:
-    radial-gradient(ellipse 80% 50% at 50% -10%, rgba(201, 162, 39, 0.12), transparent 55%),
-    radial-gradient(ellipse 60% 40% at 100% 100%, rgba(201, 162, 39, 0.04), transparent 50%);
+    radial-gradient(ellipse 90% 70% at 50% 50%, transparent 30%, rgba(0, 0, 0, 0.55) 100%),
+    linear-gradient(90deg, rgba(5, 5, 10, 0.35) 0%, transparent 40%, rgba(5, 5, 10, 0.5) 100%);
+  pointer-events: none;
 }
 .shell { position: relative; z-index: 1; width: 100%; max-width: 400px; }
 .card {
-  background: var(--surface);
-  border: 1px solid var(--border);
+  background: rgba(17, 17, 24, 0.82);
+  backdrop-filter: blur(16px) saturate(1.15);
+  -webkit-backdrop-filter: blur(16px) saturate(1.15);
+  border: 1px solid rgba(201, 162, 39, 0.18);
   border-radius: var(--radius-lg);
-  box-shadow: var(--shadow);
+  box-shadow: var(--shadow), 0 0 0 1px rgba(0, 0, 0, 0.35) inset;
   padding: 36px 32px 28px;
   animation: enter 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
@@ -442,7 +460,16 @@ body {
 .foot-links a { margin: 0 6px; }
 @media (max-width: 440px) {
   body { padding: 0; align-items: stretch; }
-  .card { min-height: 100vh; border-radius: 0; border: none; padding: 40px 24px 28px; display: flex; flex-direction: column; justify-content: center; }
+  .bg { background-position: center, center, 15% center; }
+  .card {
+    min-height: 100vh; border-radius: 0; border: none; border-top: 1px solid rgba(201,162,39,0.12);
+    padding: 40px 24px 28px; display: flex; flex-direction: column; justify-content: center;
+    background: rgba(8, 8, 12, 0.88);
+  }
+}
+@media (min-width: 900px) {
+  .shell { max-width: 420px; margin-right: min(8vw, 72px); margin-left: auto; }
+  .bg { background-position: center, center, left center; }
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }

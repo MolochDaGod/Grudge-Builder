@@ -95,6 +95,8 @@ const __dirname = __grudgeFileURLToPath(new URL(".", import.meta.url));`,
     "grudge-auth-modal.js",
     "grudge-auth-modal.css",
     "grudge-game-bootstrap.js",
+    "auth-bg-racalvin.jpg",
+    "grudge-id-logo.png",
     "embed/auth.js",
   ]) {
     const src = path.resolve("client/public", file);

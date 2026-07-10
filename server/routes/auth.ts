@@ -551,8 +551,11 @@ export function registerAuthRoutes(app: Express) {
   // Brand mark (helmet medallion) for id.grudge-studio.com login UI + oauth row
   app.get("/grudge-id-logo.png", serveAuthFavicon("grudge-id-logo.png", "png"));
   app.get("/brand/logo.png", serveAuthFavicon("grudge-id-logo.png", "png"));
+  // Full-page / modal backdrop — Racalvin The Pirate King
+  app.get("/auth-bg-racalvin.jpg", serveAuthFavicon("auth-bg-racalvin.jpg", "jpeg"));
+  app.get("/brand/auth-bg.jpg", serveAuthFavicon("auth-bg-racalvin.jpg", "jpeg"));
 
-  // Fleet embed modal (id.grudge-studio.com / grudge-auth-modal.js)
+  // Fleet embed modal (id.grudge-studio.com / grudge-auth-modal.js) — login tool for all satellites
   const serveEmbedAsset = (file: string, type: string) => (_req: Request, res: Response) => {
     const assetPath = authAssetPath(file);
     if (!fs.existsSync(assetPath)) {
