@@ -14,7 +14,15 @@ import * as THREE from 'three';
 import type { WarFactionId, WarRole } from '@shared/definitions/medievalBattleScene';
 import { areFactionsHostile } from '@shared/definitions/medievalBattleScene';
 
-export type WarGoal = 'hold' | 'chase' | 'attack' | 'flank' | 'flee' | 'dead';
+function isHostileTo(
+  self: WarFactionId,
+  other: WarFactionId | 'structure',
+): boolean {
+  if (other === 'structure') return true; // siege walls/gates
+  return areFactionsHostile(self, other);
+}
+
+export type WarGoal = 'hold' | 'chase' | 'attack' | 'flank' | 'flee' | 'siege' | 'dead';
 
 export interface WarBrainConfig {
   faction: WarFactionId;
@@ -27,10 +35,12 @@ export interface WarBrainConfig {
 
 export interface WarSenseTarget {
   id: string;
-  faction: WarFactionId;
+  faction: WarFactionId | 'structure';
   position: THREE.Vector3;
   hp: number;
   dead: boolean;
+  /** wall fortification — siege target */
+  kind?: 'unit' | 'wall';
 }
 
 export class WarAIBrain {
@@ -64,7 +74,9 @@ export class WarAIBrain {
       return this.goal;
     }
 
-    const nearest = this.pickNearestHostile(selfPos, hostiles);
+    const nearestUnit = this.pickNearestHostile(selfPos, hostiles, 'unit');
+    const nearestWall = this.pickNearestHostile(selfPos, hostiles, 'wall');
+    const nearest = nearestUnit ?? nearestWall;
     const hpRatio = hp / Math.max(1, this.cfg.maxHp);
 
     // Desirability scores
@@ -73,28 +85,47 @@ export class WarAIBrain {
     let attack = 0;
     let flank = 0;
     let flee = 0;
+    let siege = 0;
 
     if (hpRatio < 0.22) flee = 0.95;
     if (!nearest) {
       hold = 0.7;
+      // Idle infantry slowly pressure nearest wall
+      if (nearestWall && (this.cfg.role === 'infantry' || this.cfg.role === 'captain')) {
+        siege = 0.4;
+      }
     } else {
       const dist = selfPos.distanceTo(nearest.position);
-      if (dist <= this.cfg.attackRange * 1.15) {
-        attack = 0.9;
-        if (this.cfg.role === 'infantry' || this.cfg.role === 'captain') flank = 0.35;
-      } else if (dist <= this.cfg.aggroRadius) {
-        chase = 0.75 + (1 - dist / this.cfg.aggroRadius) * 0.2;
-        if (this.cfg.role === 'archer' && dist < this.cfg.attackRange * 0.45) flee = 0.55;
+      const isWall = nearest.kind === 'wall';
+      if (dist <= this.cfg.attackRange * (isWall ? 1.4 : 1.15)) {
+        attack = isWall ? 0.88 : 0.9;
+        if (!isWall && (this.cfg.role === 'infantry' || this.cfg.role === 'captain')) {
+          flank = 0.35;
+        }
+      } else if (dist <= this.cfg.aggroRadius * (isWall ? 1.5 : 1)) {
+        if (isWall) {
+          siege = 0.72 + (1 - dist / (this.cfg.aggroRadius * 1.5)) * 0.2;
+        } else {
+          chase = 0.75 + (1 - dist / this.cfg.aggroRadius) * 0.2;
+          if (this.cfg.role === 'archer' && dist < this.cfg.attackRange * 0.45) flee = 0.55;
+        }
       } else {
         hold = 0.55;
+        if (nearestWall && !nearestUnit) siege = 0.35;
       }
-      // Captains push harder
-      if (this.cfg.role === 'captain') chase += 0.1;
-      // Archers prefer attack at range
-      if (this.cfg.role === 'archer' && dist > 6 && dist < this.cfg.attackRange) {
+      if (this.cfg.role === 'captain') {
+        chase += 0.1;
+        siege += 0.08;
+      }
+      if (this.cfg.role === 'archer' && dist > 6 && dist < this.cfg.attackRange && !isWall) {
         attack = Math.max(attack, 0.85);
         chase *= 0.5;
       }
+    }
+
+    // Prefer fighting units over walls when both available
+    if (nearestUnit && nearestWall) {
+      siege *= 0.55;
     }
 
     const scores: Array<[WarGoal, number]> = [
@@ -103,6 +134,7 @@ export class WarAIBrain {
       ['attack', attack],
       ['flank', flank],
       ['flee', flee],
+      ['siege', siege],
     ];
     scores.sort((a, b) => b[1] - a[1]);
     const next = scores[0]![0];
@@ -110,8 +142,13 @@ export class WarAIBrain {
     if (this.goalTimer <= 0 || next !== this.goal) {
       this.goal = next;
       this.goalTimer = 0.25 + Math.random() * 0.15;
-      this.targetId = nearest && next !== 'hold' && next !== 'flee' ? nearest.id : null;
-      if (next === 'flee') this.targetId = null;
+      if (next === 'flee' || next === 'hold') {
+        this.targetId = null;
+      } else if (next === 'siege') {
+        this.targetId = nearestWall?.id ?? null;
+      } else {
+        this.targetId = nearestUnit?.id ?? nearest?.id ?? null;
+      }
       if (next === 'flank') this.flankSign *= -1;
     }
 
@@ -121,12 +158,15 @@ export class WarAIBrain {
   pickNearestHostile(
     selfPos: THREE.Vector3,
     hostiles: WarSenseTarget[],
+    kind?: 'unit' | 'wall',
   ): WarSenseTarget | null {
     let best: WarSenseTarget | null = null;
     let bestD = Infinity;
     for (const h of hostiles) {
       if (h.dead || h.hp <= 0) continue;
-      if (!areFactionsHostile(this.cfg.faction, h.faction)) continue;
+      if (kind === 'wall' && h.kind !== 'wall') continue;
+      if (kind === 'unit' && h.kind === 'wall') continue;
+      if (!isHostileTo(this.cfg.faction, h.faction)) continue;
       const d = selfPos.distanceToSquared(h.position);
       if (d < bestD) {
         bestD = d;
@@ -149,6 +189,7 @@ export class WarAIBrain {
       case 'flee':
         return this.spawn.clone();
       case 'chase':
+      case 'siege':
         return target ? target.position.clone() : null;
       case 'flank': {
         if (!target) return null;
@@ -160,13 +201,18 @@ export class WarAIBrain {
         return target.position.clone().add(side);
       }
       case 'attack':
-        // Kite slightly for archers
-        if (this.cfg.role === 'archer' && target) {
+        // Kite slightly for archers (not vs walls)
+        if (this.cfg.role === 'archer' && target && target.kind !== 'wall') {
           const dist = selfPos.distanceTo(target.position);
           if (dist < this.cfg.attackRange * 0.4) {
             const away = new THREE.Vector3().subVectors(selfPos, target.position).normalize();
             return selfPos.clone().add(away.multiplyScalar(3));
           }
+        }
+        // Approach wall until in melee/siege range
+        if (target?.kind === 'wall') {
+          const dist = selfPos.distanceTo(target.position);
+          if (dist > this.cfg.attackRange * 1.1) return target.position.clone();
         }
         return null; // face and strike
       default:
@@ -175,9 +221,17 @@ export class WarAIBrain {
   }
 
   shouldAttack(selfPos: THREE.Vector3, target: WarSenseTarget | null): boolean {
-    if (this.goal !== 'attack' && this.goal !== 'chase' && this.goal !== 'flank') return false;
+    if (
+      this.goal !== 'attack' &&
+      this.goal !== 'chase' &&
+      this.goal !== 'flank' &&
+      this.goal !== 'siege'
+    ) {
+      return false;
+    }
     if (!target || target.dead) return false;
+    const rangeMul = target.kind === 'wall' ? 1.45 : 1.2;
     const dist = selfPos.distanceTo(target.position);
-    return dist <= this.cfg.attackRange * 1.2;
+    return dist <= this.cfg.attackRange * rangeMul;
   }
 }

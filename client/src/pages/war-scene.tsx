@@ -106,6 +106,12 @@ export default function WarScenePage() {
             <span className="text-sky-400">Azure {stats.azure}</span>
             <span className="text-amber-400">Gold {stats.gold}</span>
             <span className="text-emerald-400">Alive {stats.alive}</span>
+            <span className="text-stone-300">
+              Walls {stats.wallsIntact}
+              {stats.wallsDestroyed > 0 ? (
+                <span className="text-orange-400"> · −{stats.wallsDestroyed}</span>
+              ) : null}
+            </span>
           </div>
         )}
       </div>

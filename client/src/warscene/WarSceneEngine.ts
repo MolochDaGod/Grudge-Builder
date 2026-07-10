@@ -26,6 +26,10 @@ import {
 import { resolveModelUrl } from '@/lib/modelManifest';
 import { WarUnit } from './WarUnit';
 import type { WarSenseTarget } from './WarAIBrain';
+import {
+  WarWallSegment,
+  buildWallSegmentsFromMeshes,
+} from './WarWallSegment';
 
 export interface WarSceneConfig {
   canvas: HTMLCanvasElement;
@@ -47,6 +51,8 @@ export interface WarSceneStats {
   crimson: number;
   azure: number;
   gold: number;
+  wallsIntact: number;
+  wallsDestroyed: number;
 }
 
 export class WarSceneEngine {
@@ -62,6 +68,9 @@ export class WarSceneEngine {
   private unitsRoot = new THREE.Group();
   private units: WarUnit[] = [];
   private unitMap = new Map<string, WarUnit>();
+  private walls: WarWallSegment[] = [];
+  private wallMap = new Map<string, WarWallSegment>();
+  private wallMeshes: THREE.Object3D[] = [];
   private groundMeshes: THREE.Object3D[] = [];
   private raycaster = new THREE.Raycaster();
   private down = new THREE.Vector3(0, -1, 0);
@@ -201,6 +210,9 @@ export class WarSceneEngine {
       if (layer === 'terrain' || layer === 'wall' || layer === 'prop') {
         this.groundMeshes.push(obj);
       }
+      if (layer === 'wall' || /Mura|RocciaMura|Passerella.*Mura/i.test(obj.name)) {
+        this.wallMeshes.push(obj);
+      }
 
       if (layer === 'unit_proxy') {
         const matId = parsePgMatId(obj.name) ?? 1;
@@ -224,6 +236,21 @@ export class WarSceneEngine {
     }
 
     this.envRoot.add(root);
+
+    // ── Fort walls: pair intact vs rubble, HP + collider ──────────────
+    progress(58, 'Fortifying walls…');
+    this.walls = buildWallSegmentsFromMeshes(this.wallMeshes);
+    for (const w of this.walls) {
+      this.wallMap.set(w.id, w);
+      // Refresh collider after world centering
+      w.collider = new THREE.Box3().setFromObject(w.intact);
+      w.position.copy(
+        new THREE.Vector3().addVectors(w.collider.min, w.collider.max).multiplyScalar(0.5),
+      );
+    }
+    this.log(
+      `Walls: ${this.walls.length} combat segments (intact shown, rubble hidden until breached)`,
+    );
     this.controls.target.copy(new THREE.Vector3(0, 2, 0));
     this.camera.position.set(45, 40, 60);
     this.controls.update();
@@ -297,6 +324,12 @@ export class WarSceneEngine {
         else if (u.faction === 'gold') gold++;
       }
     }
+    let wallsIntact = 0;
+    let wallsDestroyed = 0;
+    for (const w of this.walls) {
+      if (w.dead) wallsDestroyed++;
+      else wallsIntact++;
+    }
     return {
       staticMeshes: this.groundMeshes.length,
       unitProxies: this.units.length,
@@ -305,6 +338,8 @@ export class WarSceneEngine {
       crimson,
       azure,
       gold,
+      wallsIntact,
+      wallsDestroyed,
     };
   }
 
@@ -326,14 +361,28 @@ export class WarSceneEngine {
     damage: number,
     skill: string,
   ): void => {
-    const target = this.unitMap.get(targetId);
-    if (!target || target.dead) return;
-    target.takeDamage(damage, attacker.id);
-    if (Math.random() < 0.15) {
-      this.log(
-        `${attacker.archetype.label} → ${target.archetype.label}: ${skill} (${damage} dmg)` +
-          (target.dead ? ' ☠' : ''),
-      );
+    // Unit vs unit
+    const unit = this.unitMap.get(targetId);
+    if (unit && !unit.dead) {
+      unit.takeDamage(damage, attacker.id);
+      if (Math.random() < 0.15) {
+        this.log(
+          `${attacker.archetype.label} → ${unit.archetype.label}: ${skill} (${damage} dmg)` +
+            (unit.dead ? ' ☠' : ''),
+        );
+      }
+      return;
+    }
+    // Siege vs wall
+    const wall = this.wallMap.get(targetId);
+    if (wall && !wall.dead) {
+      const destroyed = wall.takeDamage(damage);
+      if (destroyed || Math.random() < 0.2) {
+        this.log(
+          `${attacker.archetype.label} siege ${wall.label}: ${skill} (−${damage} HP)` +
+            (destroyed ? ' — WALL BREACHED' : ` [${wall.hp}/${wall.maxHp}]`),
+        );
+      }
     }
   };
 
@@ -353,13 +402,46 @@ export class WarSceneEngine {
   }
 
   private tick(dt: number): void {
-    // Separation
+    // Separation (units only; walls are static colliders)
     this.applySeparation(dt);
+    this.resolveWallCollisions();
 
-    const senses: WarSenseTarget[] = this.units.map((u) => u.toSense());
+    // Walls animate destroy transition
+    for (const w of this.walls) w.update(dt);
+
+    const unitSenses: WarSenseTarget[] = this.units.map((u) => u.toSense());
+    const wallSenses: WarSenseTarget[] = this.walls
+      .filter((w) => !w.dead)
+      .map((w) => w.toSense());
+    const allTargets = [...unitSenses, ...wallSenses];
+
     for (const u of this.units) {
-      const hostiles = senses.filter((s) => s.id !== u.id);
+      const hostiles = allTargets.filter((s) => s.id !== u.id);
       u.update(dt, hostiles, this.sampleGround, this.onAttack);
+    }
+  }
+
+  /** Push units out of intact wall AABBs (simple physics collider) */
+  private resolveWallCollisions(): void {
+    for (const u of this.units) {
+      if (u.dead) continue;
+      const p = u.root.position;
+      for (const w of this.walls) {
+        if (w.dead || w.state === 'destroying') continue;
+        if (!w.containsPoint(p, 0.35)) continue;
+        // Push out toward nearest face
+        const c = w.collider;
+        const cx = (c.min.x + c.max.x) * 0.5;
+        const cz = (c.min.z + c.max.z) * 0.5;
+        const dx = p.x - cx;
+        const dz = p.z - cz;
+        const push = 0.35;
+        if (Math.abs(dx) > Math.abs(dz)) {
+          p.x += Math.sign(dx || 1) * push;
+        } else {
+          p.z += Math.sign(dz || 1) * push;
+        }
+      }
     }
   }
 

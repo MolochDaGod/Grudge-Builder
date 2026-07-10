@@ -72,9 +72,26 @@ Then open `/war-scene` (CDN path `/models/war/huge_medieval_battle_scene.glb`).
 | chase | Hostile in aggro radius |
 | attack | In weapon range — fire skill |
 | flank | Melee circle to side |
+| siege | Attack fort wall (intact mesh) when no unit target |
 | flee | HP &lt; 22% or archer too close |
 
 Weapon skills: slash, cleave, aimed_shot, firebolt, warcry, etc. (archetype table).
+
+## Destructible walls (repaired → broken)
+
+Scene wall pieces (`Mura_*`, `RocciaMura_*`) are paired:
+
+1. **Intact (repaired)** — larger mesh, **visible**, AABB collider, HP  
+2. **Broken (rubble)** — nearby smaller sibling, **hidden** until breach  
+
+| Event | Behavior |
+|-------|----------|
+| Combat start | Intact shown, broken hidden |
+| AI siege / attack | Damage intact HP; hit flash |
+| HP → 0 | Shake + fade intact (~0.85s), reveal broken |
+| After destroy | Collider removed (units walk rubble) |
+
+Code: `client/src/warscene/WarWallSegment.ts`
 
 ## Packages / practices
 

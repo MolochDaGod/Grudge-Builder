@@ -255,4 +255,10 @@ export const WAR_SCENE_DEFAULTS = {
   goalHz: 4,
   visionHz: 5,
   attackHz: 8,
+  /**
+   * Walls: pair largest Mura/RocciaMura as repaired (collider+HP),
+   * hide nearby rubble as broken until HP=0.
+   */
+  wallClusterRadiusM: 14,
+  wallDefaultMaxHp: 220,
 } as const;

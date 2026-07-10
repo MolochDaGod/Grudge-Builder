@@ -154,6 +154,7 @@ export class WarUnit {
       position: this.root.position.clone(),
       hp: this.hp,
       dead: this.dead,
+      kind: 'unit',
     };
   }
 
