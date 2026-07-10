@@ -7,6 +7,7 @@ import * as Sentry from "@sentry/react";
 import { createRoot } from "react-dom/client";
 import App from "./App";
 import "./index.css";
+import { hydratePortalUniverse } from "./lib/portalUniverse";
 
 // Sentry — activates only when VITE_SENTRY_DSN is set (Vercel/Pages env).
 if (import.meta.env.VITE_SENTRY_DSN) {
@@ -17,6 +18,11 @@ if (import.meta.env.VITE_SENTRY_DSN) {
     tracesSampleRate: 0.1,
   });
 }
+
+// Hydrate portal universe (characters / islands / play settings) from Engine
+hydratePortalUniverse().catch((err) => {
+  console.warn("[portal-universe] hydrate skipped:", err);
+});
 
 createRoot(document.getElementById("root")!).render(
   <Sentry.ErrorBoundary fallback={<div style={{ padding: 24, fontFamily: "system-ui" }}>Something went wrong — the error was reported.</div>}>
