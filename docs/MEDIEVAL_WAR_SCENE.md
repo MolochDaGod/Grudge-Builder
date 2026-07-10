@@ -1,6 +1,32 @@
-# Medieval War Scene
+# Medieval War Scene — Island Siege
 
-Turn `huge_medieval_battle_scene.glb` (~517 MB static fortress) into a **live war**.
+Turn `huge_medieval_battle_scene.glb` (~517 MB static fortress) into a **Conqueror's Blade–style island siege**: cinematic declaration, deploy from reserve, timed waves, destructible walls.
+
+## Match flow
+
+```
+load island fortress
+    → cinematic (AI voice declaration of war)
+    → deploy (companies stay in reserve; pads visible)
+    → siege (opening field + reinforcement waves + wall AI)
+    → ended
+```
+
+| Phase | What happens |
+|-------|----------------|
+| **Cinematic** | Camera flyover + herald / lords VO (Web Speech TTS). Skip available. |
+| **Deploy** | No free army on the map. Reserve pool = all `PG_*` proxies. |
+| **Siege** | ~10 companies/faction fielded; waves every ~28s; AI fights + sieges walls. |
+| **Ended** | One banner wiped (field + reserve empty). |
+
+Query flags:
+
+| Query | Effect |
+|-------|--------|
+| `?local=1` | Stream local 517MB GLB |
+| `?units=48` | Max concurrent fielded |
+| `?deploy=12` | Opening companies per faction |
+| `?skip=1` | Skip cinematic → deploy |
 
 ## Scene facts (inspected)
 
@@ -15,90 +41,99 @@ Turn `huge_medieval_battle_scene.glb` (~517 MB static fortress) into a **live 
 
 Italian Maya flatten: `PG_` = personaggi (units), `Mura` walls, `Legno` wood, `Ferro` iron, `Stendardi` banners, `Fire`/`Smoke` VFX.
 
-**There are no skeletons in the GLB.** Active combat is achieved by:
+**There are no skeletons in the GLB.** Active combat:
 
-1. Loading the full GLB as **static environment**
-2. Recording world poses of every `PG_*` mesh
-3. Hiding those proxies
-4. Spawning **grudge6 race GLBs** (skinned) with Mixamo weapon packs
-5. Running **goal-oriented AI** (hold / chase / attack / flank / flee)
+1. Load full GLB as **static island environment**
+2. Material pass (sRGB albedo, terrain/wall roughness) + **water ring** so it reads as an island
+3. Record `PG_*` poses → **hide all** → reserve pool
+4. Spawn **grudge6** skinned units only when deployed / waved
+5. GOAP-lite AI + Mixamo skills + wall HP
 
 ## Run (dev)
 
 ```bash
-# Terminal 1 — API (serves D: GLB)
 npm run dev
-
-# Terminal 2 — client
 npm run dev:client
-
-# Browser
-http://localhost:5000/war-scene?local=1
-# or with unit cap:
-http://localhost:5000/war-scene?local=1&units=48
+# http://localhost:5000/war-scene?local=1
+# http://localhost:5000/war-scene?local=1&units=48&deploy=10
+# http://localhost:5000/war-scene?local=1&skip=1   # skip VO
 ```
 
-Env override: `WAR_SCENE_GLB=D:/path/to/scene.glb`
+Env: `WAR_SCENE_GLB=D:/path/to/scene.glb`
 
 ## Production
 
-Upload once:
-
 ```bash
-# ~517MB — use wrangler / upload-warlords pattern
 wrangler r2 object put grudge-assets/models/war/huge_medieval_battle_scene.glb \
   --file="D:/Games/grudge-game-engine/huge_medieval_battle_scene.glb" \
   --content-type=model/gltf-binary --remote
 ```
 
-Then open `/war-scene` (CDN path `/models/war/huge_medieval_battle_scene.glb`).
+Live: `https://grudgewarlords.com/war-scene`
 
 ## Code map
 
 | Path | Role |
 |------|------|
-| `shared/definitions/medievalBattleScene.ts` | Classification + faction archetypes |
-| `client/src/warscene/WarSceneEngine.ts` | Load, classify, spawn, tick |
-| `client/src/warscene/WarUnit.ts` | Skinned unit + anims + skills |
-| `client/src/warscene/WarAIBrain.ts` | GOAP-lite goals |
+| `shared/definitions/medievalBattleScene.ts` | Classification, archetypes, defaults |
+| `client/src/warscene/WarSceneEngine.ts` | Match phases, load, tick |
+| `client/src/warscene/WarCinematic.ts` | Declaration script + camera |
+| `client/src/warscene/WarVoice.ts` | AI herald/lord TTS (Web Speech) |
+| `client/src/warscene/WarDeployment.ts` | Reserve, zones, waves |
+| `client/src/warscene/WarIslandDecor.ts` | Water, materials, atmosphere |
+| `client/src/warscene/WarUnit.ts` | Skinned unit + anims |
+| `client/src/warscene/WarAIBrain.ts` | GOAP-lite goals (incl. siege) |
+| `client/src/warscene/WarWallSegment.ts` | Intact/broken HP walls |
 | `client/src/pages/war-scene.tsx` | `/war-scene` UI |
 | `GET /api/local-war-scene` | Streams local GLB |
+
+## Island / texture best practices
+
+| Practice | Implementation |
+|----------|----------------|
+| sRGB albedo | `map.colorSpace = SRGBColorSpace` on load |
+| Terrain vs wall materials | Roughness/metalness pass by name family |
+| Island read | Water disc + foam ring + fog horizon |
+| Shadows | Soft PCF + shadow-catch ground |
+| Tonemap | ACES Filmic, exposure ~1.08 |
+| Anisotropy | Albedo maps anisotropy 8 when present |
+| Perf | Field cap (default 64); rest stay in reserve |
+
+Full PBR re-bake of the Maya dump is a separate asset pipeline step (`grudge-convert` / Blender). Runtime pass improves presentation without re-export.
+
+## AI voices
+
+`WarVoice` uses the **Web Speech API** (instant, no key):
+
+- `herald` — declaration lines  
+- `crimson_lord` / `azure_lord` — war threats  
+- `narrator` — island atmosphere  
+
+Future: swap utterance backend to Puter/Inworld `tts-2` when fleet speech route is live.
+
+## Deployment model (vs “all units on map”)
+
+```
+113 PG proxies
+  ├── all hidden at start
+  ├── deploy commit → ~10/faction animated (zones)
+  └── siege waves → +6 every ~28s until reserve empty / field cap
+```
 
 ## AI goals
 
 | Goal | When |
 |------|------|
 | hold | No enemy in aggro / defend spawn |
-| chase | Hostile in aggro radius |
-| attack | In weapon range — fire skill |
-| flank | Melee circle to side |
-| siege | Attack fort wall (intact mesh) when no unit target |
-| flee | HP &lt; 22% or archer too close |
+| chase | Hostile in aggro |
+| attack | In weapon range |
+| flank | Melee circle |
+| siege | Attack intact wall when no unit target |
+| flee | HP low / archer too close |
 
-Weapon skills: slash, cleave, aimed_shot, firebolt, warcry, etc. (archetype table).
+## Destructible walls
 
-## Destructible walls (repaired → broken)
+1. **Intact** — larger mesh, visible, AABB collider, HP  
+2. **Broken** — nearby rubble, hidden until breach  
 
-Scene wall pieces (`Mura_*`, `RocciaMura_*`) are paired:
-
-1. **Intact (repaired)** — larger mesh, **visible**, AABB collider, HP  
-2. **Broken (rubble)** — nearby smaller sibling, **hidden** until breach  
-
-| Event | Behavior |
-|-------|----------|
-| Combat start | Intact shown, broken hidden |
-| AI siege / attack | Damage intact HP; hit flash |
-| HP → 0 | Shake + fade intact (~0.85s), reveal broken |
-| After destroy | Collider removed (units walk rubble) |
-
-Code: `client/src/warscene/WarWallSegment.ts`
-
-## Packages / practices
-
-- `three` GLTFLoader + DRACOLoader  
-- `SkeletonUtils` via `loadCharacterModel`  
-- grudge6 mesh equip (`setupGrudge6Equipment`)  
-- Mixamo anim packs (`getAnimationSet` / `AnimationManager`)  
-- Soft shadows, ACES tone map, fog  
-- Unit separation steering, ground raycast snap  
-- AI goal arbitration ~4 Hz (not every frame for scoring)
+HP → 0: shake + fade (~0.85s) → reveal rubble → drop collider.

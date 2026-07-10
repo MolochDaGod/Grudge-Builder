@@ -16,11 +16,12 @@
  *   Erba / Zolla → grass / terrain bands
  *   Fire / Smoke → VFX planes (keep as additive emissive)
  *
- * Strategy for an *active* war:
- *   1. Load full GLB as environment (static scene graph)
- *   2. Detect PG_* meshes → record world poses → hide static proxies
- *   3. Spawn grudge6 skinned race models at those poses
- *   4. Attach GOAP-lite AI + Mixamo weapon skills + simple physics
+ * Strategy for an *active* island siege (Conqueror's Blade–style):
+ *   1. Load full GLB as island environment + water/material pass
+ *   2. Detect PG_* meshes → reserve pool (hidden; not all on map)
+ *   3. Cinematic declaration (AI voice) → deploy opening companies
+ *   4. Siege: grudge6 units + reinforcement waves + wall HP
+ *   5. GOAP-lite AI + Mixamo skills + simple physics
  */
 
 export const MEDIEVAL_BATTLE_SCENE_VERSION = '1.0.0';
@@ -242,8 +243,14 @@ export function areFactionsHostile(a: WarFactionId, b: WarFactionId): boolean {
 }
 
 export const WAR_SCENE_DEFAULTS = {
-  /** Cap animated units for performance (scene has 113 proxies) */
-  maxAnimatedUnits: 80,
+  /** Cap concurrent animated units on field (CB-style, not all proxies) */
+  maxAnimatedUnits: 64,
+  /** Opening companies per faction at siege start */
+  deployPerFaction: 10,
+  /** Reinforcement wave size during siege */
+  waveSize: 6,
+  /** Seconds between reinforcement waves */
+  waveIntervalSec: 28,
   /** Hide static PG proxies after spawn */
   hideUnitProxies: true,
   /** Bake Mixamo idle/walk/run/attack on every unit */
@@ -261,4 +268,6 @@ export const WAR_SCENE_DEFAULTS = {
    */
   wallClusterRadiusM: 14,
   wallDefaultMaxHp: 220,
+  /** Intro cinematic length (script also has own duration) */
+  cinematicDefaultSec: 26,
 } as const;
