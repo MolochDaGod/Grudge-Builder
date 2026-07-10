@@ -37,3 +37,25 @@ export function buildHomeDungeonUrl(dungeonId: string, dungeonName: string, dung
   });
   return `/dungeon?${params.toString()}`;
 }
+
+/** Open-world zone dungeon portal → tiled dungeon, return to same sector */
+export function buildZoneDungeonUrl(
+  dungeonId: string,
+  dungeonName: string,
+  sectorId: string,
+  worldSeed = 'grudge-world-1',
+  cityId?: string | null,
+): string {
+  const floor = loreDungeonToTiledFloor(dungeonId);
+  const returnPath = cityId
+    ? `/play?sector=${encodeURIComponent(sectorId)}&mode=zone&worldSeed=${encodeURIComponent(worldSeed)}&city=${encodeURIComponent(cityId)}`
+    : `/play?sector=${encodeURIComponent(sectorId)}&mode=zone&worldSeed=${encodeURIComponent(worldSeed)}`;
+  const params = new URLSearchParams({
+    floor,
+    dungeonId,
+    name: dungeonName,
+    return: returnPath,
+    autostart: '1',
+  });
+  return `/dungeon?${params.toString()}`;
+}

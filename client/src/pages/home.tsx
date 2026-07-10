@@ -19,7 +19,14 @@ import {
   CLASS_STAGE_BACKGROUNDS, CLASS_ACCENT_COLORS, CLASS_CYCLE,
 } from "@/lib/artAssets";
 import { CrusadeEmblem, FabledEmblem, LegionEmblem } from "@/components/FactionEmblems";
-import { HOME_GAME_MODES, PRODUCTION_DEPLOYMENT_PATH } from "@shared/fleet";
+import {
+  HOME_GAME_MODES,
+  PRODUCTION_DEPLOYMENT_PATH,
+  THREE_HOME_ISLAND_PATH,
+  THREE_WORLD_MAP_PATH,
+  THREE_OPEN_WORLD_PATH,
+  threePlayNowPath,
+} from "@shared/fleet";
 
 const GAME_MODES = HOME_GAME_MODES;
 
@@ -98,12 +105,21 @@ export default function HomePage() {
   const displayName = user?.username || "Warlord";
   const filtered = activeTier === "all" ? GAME_MODES : GAME_MODES.filter(g => g.tier === activeTier);
 
+  /** Canonical Three.js path: no hero → tutorial; else 1024m home island */
   const handleEnterWorld = () => {
     if (characters.length === 0) {
       setLocation("/tutorial");
       return;
     }
-    setLocation("/islands");
+    setLocation(threePlayNowPath());
+  };
+
+  const handleOpenWorld = () => {
+    if (characters.length === 0) {
+      setLocation("/tutorial");
+      return;
+    }
+    setLocation(THREE_OPEN_WORLD_PATH);
   };
 
   return (
@@ -183,26 +199,45 @@ export default function HomePage() {
             </h2>
             <p className="text-white/40 text-xs">
               {characters.length > 0
-                ? `Playing as ${activeCharacter?.name || 'your hero'} — tutorial → home island → Tactical Infinity → 9 sectors`
-                : 'Start on Tutorial Island, then deploy home island, ocean sail, and live sectors'}
+                ? `Playing as ${activeCharacter?.name || 'your hero'} — Three.js: home island → world map (6 race cities) → open world`
+                : 'Tutorial → Home Island → World Map (6 race cities + dungeons) → Open World'}
             </p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap justify-end">
             {characters.length > 0 && (
-              <button
-                onClick={() => setLocation('/character')}
-                className="font-cinzel font-bold text-[11px] px-4 py-2.5 rounded-xl border cursor-pointer transition-all hover:-translate-y-0.5"
-                style={{ background: 'transparent', color: '#f6c945', border: '1px solid rgba(246,201,69,.3)', letterSpacing: '1px' }}
-              >
-                HEROES
-              </button>
+              <>
+                <button
+                  onClick={() => setLocation('/character')}
+                  className="font-cinzel font-bold text-[11px] px-4 py-2.5 rounded-xl border cursor-pointer transition-all hover:-translate-y-0.5"
+                  style={{ background: 'transparent', color: '#f6c945', border: '1px solid rgba(246,201,69,.3)', letterSpacing: '1px' }}
+                >
+                  HEROES
+                </button>
+                <button
+                  onClick={() => setLocation(THREE_WORLD_MAP_PATH)}
+                  className="font-cinzel font-bold text-[11px] px-4 py-2.5 rounded-xl border cursor-pointer transition-all hover:-translate-y-0.5"
+                  style={{ background: 'transparent', color: '#5eead4', border: '1px solid rgba(45,212,191,.4)', letterSpacing: '1px' }}
+                  title={THREE_WORLD_MAP_PATH}
+                >
+                  WORLD MAP
+                </button>
+                <button
+                  onClick={handleOpenWorld}
+                  className="font-cinzel font-bold text-[11px] px-4 py-2.5 rounded-xl border cursor-pointer transition-all hover:-translate-y-0.5"
+                  style={{ background: 'transparent', color: '#c4b5fd', border: '1px solid rgba(167,139,250,.4)', letterSpacing: '1px' }}
+                  title={THREE_OPEN_WORLD_PATH}
+                >
+                  OPEN WORLD
+                </button>
+              </>
             )}
             <button
               onClick={handleEnterWorld}
               className="font-cinzel font-black text-sm px-8 py-3 rounded-xl border-0 cursor-pointer transition-all hover:-translate-y-0.5"
               style={{ background: 'linear-gradient(180deg, #f6c945, #d8a819)', color: '#20180a', boxShadow: '0 10px 30px -10px rgba(246,201,69,.5)', letterSpacing: '2px' }}
+              title={characters.length > 0 ? THREE_HOME_ISLAND_PATH : '/tutorial'}
             >
-              {characters.length > 0 ? 'PLAY NOW' : 'CREATE HERO'}
+              {characters.length > 0 ? 'HOME ISLAND' : 'CREATE HERO'}
             </button>
           </div>
         </motion.div>

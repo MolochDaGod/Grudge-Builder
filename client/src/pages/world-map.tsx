@@ -38,6 +38,8 @@ import {
   WORLD_MAP_DEFAULTS
 } from '@/lib/worldMapSystem';
 import { SectorImageryRenderer } from '@/lib/sectorImageryRenderer';
+import { RACE_CITIES, raceCityPlayUrl, type RaceCity } from '@shared/definitions/raceCities';
+import { THREE_HOME_ISLAND_PATH, THREE_OPEN_WORLD_PATH } from '@shared/fleet';
 
 export default function WorldMapPage() {
   const authReady = useAuthGuard();
@@ -70,6 +72,10 @@ export default function WorldMapPage() {
 
   const enterZone = (sectorId: string, target: 'play' | 'zone' = 'play') => {
     navigate(buildOceanDeployUrl(sectorId, target, worldSeed));
+  };
+
+  const enterRaceCity = (city: RaceCity) => {
+    navigate(raceCityPlayUrl(city, worldSeed));
   };
 
   // Handle window resize for canvas
@@ -603,6 +609,80 @@ export default function WorldMapPage() {
           </Card>
         </div>
       )}
+
+      {/* 6 Race Capitals — Unity world map → Three.js zone */}
+      <div className="absolute top-20 left-4 z-20 w-80 max-h-[70vh]">
+        <Card className="bg-slate-900/95 border-amber-700/40 backdrop-blur-sm">
+          <CardHeader className="p-3 pb-2">
+            <CardTitle className="text-sm font-cinzel text-amber-400 flex items-center gap-2">
+              <Globe className="w-4 h-4" />
+              Race Capitals (6)
+            </CardTitle>
+            <p className="text-[10px] text-slate-400 mt-1">
+              Unity world layout — land into Three.js with harvest + dungeon portals
+            </p>
+          </CardHeader>
+          <CardContent className="p-3 pt-0">
+            <ScrollArea className="h-[min(420px,50vh)]">
+              <div className="space-y-2 pr-2">
+                {RACE_CITIES.map((city) => (
+                  <div
+                    key={city.id}
+                    className="p-2.5 rounded border border-slate-700 hover:border-amber-600/50 hover:bg-amber-950/20 transition-colors"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <div className="font-cinzel text-sm text-amber-200">{city.name}</div>
+                        <div className="text-[10px] text-slate-400 uppercase tracking-wide">{city.subtitle}</div>
+                      </div>
+                      <Badge variant="outline" className="text-[9px] border-violet-600/50 text-violet-300 shrink-0">
+                        {city.raceId}
+                      </Badge>
+                    </div>
+                    <p className="text-[11px] text-slate-500 mt-1 line-clamp-2">{city.description}</p>
+                    <div className="flex flex-wrap gap-1 mt-1.5">
+                      <Badge variant="outline" className="text-[9px] border-red-800/50 text-red-300">
+                        {city.dungeon.name}
+                      </Badge>
+                      {city.harvest.slice(0, 3).map((h) => (
+                        <Badge key={h} variant="outline" className="text-[9px] border-emerald-800/40 text-emerald-400">
+                          {h}
+                        </Badge>
+                      ))}
+                    </div>
+                    <Button
+                      size="sm"
+                      className="w-full mt-2 h-7 text-xs bg-amber-700 hover:bg-amber-600"
+                      onClick={() => enterRaceCity(city)}
+                      data-testid={`enter-race-city-${city.id}`}
+                    >
+                      Enter {city.name}
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </ScrollArea>
+            <div className="flex gap-2 mt-3">
+              <Button
+                size="sm"
+                variant="outline"
+                className="flex-1 h-7 text-[10px] border-slate-600"
+                onClick={() => navigate(THREE_OPEN_WORLD_PATH)}
+              >
+                Haven Shore
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="flex-1 h-7 text-[10px] border-slate-600"
+                onClick={() => navigate(THREE_HOME_ISLAND_PATH)}
+              >
+                Home Island
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
 
       <div className="absolute top-20 right-4 z-20 w-72">
         <Card className="bg-slate-900/90 border-slate-700 backdrop-blur-sm">

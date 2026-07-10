@@ -27,6 +27,7 @@ import {
   resolveDeployableSectorId,
 } from '@/lib/warlordsWorldApi';
 import { getSectorById } from '@shared/definitions/worldMapSectors';
+import { buildZoneDungeonUrl } from '@/lib/homeIslandDungeon';
 
 const TEST_PLAY_TERRAIN_SEED = 'grudge-test-play-v1';
 
@@ -201,6 +202,19 @@ export default function PlayPage() {
         sendHarvestRef.current(nodeId, resourceType);
         setLootNotification(`Harvested ${resourceType}`);
         setTimeout(() => setLootNotification(null), 3000);
+      },
+      onDungeonEnter: (dungeonId, dungeonName) => {
+        const city = new URLSearchParams(window.location.search).get('city');
+        setLootNotification(`Entering ${dungeonName}...`);
+        setLocation(
+          buildZoneDungeonUrl(
+            dungeonId,
+            dungeonName,
+            sector || activeSector,
+            worldSeed,
+            city,
+          ),
+        );
       },
     };
 

@@ -1,6 +1,11 @@
 /**
  * Production game deployment map — grudgewarlords.com/home → fleet satellites.
  * Import from @shared/fleet; do not hardcode game URLs in pages.
+ *
+ * Canonical **Three.js deploy path** (primary play surface):
+ *   tutorial → 1024m home island → world map (6 race cities + 9 sectors) →
+ *   open world zone (harvest + dungeons + capitals) → optional sail / PvP
+ * See docs/THREE_DEPLOY.md
  */
 import { FLEET_URLS } from "./manifest";
 
@@ -15,6 +20,59 @@ export const FLEET_GAME_ORIGINS = {
   arena: "https://grudge-arena.grudge-studio.com",
   drive: "https://drive.grudge-studio.com",
 } as const;
+
+// ── Three.js deploy path (ONE TRUTH entry URLs) ─────────────────────────────
+
+/** Personal 1024m home island — Island3DEngine home-island mode */
+export const THREE_HOME_ISLAND_PATH = "/home-island" as const;
+
+/** Unity-style world map hub — 9 sectors + 6 race capitals + sail */
+export const THREE_WORLD_MAP_PATH = "/world-map" as const;
+
+/** Shared open world — Island3DEngine zone mode, starter sector Haven Shore (human capital) */
+export const THREE_OPEN_WORLD_PATH =
+  "/play?sector=haven_shore&mode=zone&worldSeed=grudge-world-1&city=haven_port" as const;
+
+/** Lightweight satellite Three MMO client (same sectors / Colyseus) */
+export const THREE_PORT_PLAY_URL = `${FLEET_URLS.threePort}?mode=play&sector=haven_shore&worldSeed=grudge-world-1`;
+
+/** Ordered primary path for Play / onboarding (Three.js first) */
+export const THREE_DEPLOY_PATH_IDS = [
+  "tutorial",
+  "homeisland",
+  "worldmap",
+  "play",
+  "ocean",
+  "tactical",
+  "rtsgrudge",
+] as const;
+
+export function threeHomeIslandUrl(opts?: {
+  characterId?: string;
+  islandId?: string;
+}): string {
+  const u = new URL(THREE_HOME_ISLAND_PATH, "https://grudgewarlords.com");
+  if (opts?.characterId) u.searchParams.set("characterId", opts.characterId);
+  if (opts?.islandId) u.searchParams.set("islandId", opts.islandId);
+  return u.pathname + u.search;
+}
+
+export function threeOpenWorldUrl(opts?: {
+  sector?: string;
+  worldSeed?: string;
+  city?: string;
+}): string {
+  const sector = opts?.sector || "haven_shore";
+  const worldSeed = opts?.worldSeed || "grudge-world-1";
+  const params = new URLSearchParams({
+    sector,
+    mode: "zone",
+    worldSeed,
+  });
+  if (opts?.city) params.set("city", opts.city);
+  else if (sector === "haven_shore") params.set("city", "haven_port");
+  return `/play?${params.toString()}`;
+}
 
 export type FleetGameId = keyof typeof FLEET_GAME_ORIGINS;
 
@@ -44,7 +102,10 @@ export interface GameDeployment {
   order: number;
 }
 
-/** Recommended onboarding → home → sail → sector → RTS (shown on /home). */
+/**
+ * Recommended Three.js path (shown on /home):
+ * tutorial → home island → world map (6 race cities) → open world → sail → tactical → RTS
+ */
 export const PRODUCTION_DEPLOYMENT_PATH: GameDeployment[] = [
   {
     id: "tutorial",
@@ -67,7 +128,7 @@ export const PRODUCTION_DEPLOYMENT_PATH: GameDeployment[] = [
     subtitle: "Personal Seed · Home Block Center",
     description:
       "Your persistent 1024m island (home-block MC cell) — gather, build, dungeon. Not a Warlords era macro sector.",
-    url: "/home-island",
+    url: THREE_HOME_ISLAND_PATH,
     icon: "leaf",
     tier: "core",
     badge: "Home",
@@ -75,6 +136,50 @@ export const PRODUCTION_DEPLOYMENT_PATH: GameDeployment[] = [
     stage: "home",
     featured: true,
     order: 20,
+  },
+  {
+    id: "worldmap",
+    title: "World Map",
+    subtitle: "6 Race Cities · 9 Sectors · Sail",
+    description:
+      "Unity-style Warlords map: pick a race capital, sail sectors, then land into Three.js open world with harvest + dungeon portals.",
+    url: THREE_WORLD_MAP_PATH,
+    icon: "map",
+    tier: "explore",
+    badge: "Hub",
+    badgeColor: "teal",
+    stage: "sail",
+    featured: true,
+    order: 30,
+  },
+  {
+    id: "play",
+    title: "Warlords Open World",
+    subtitle: "Race Capitals · Harvest · Dungeons",
+    description:
+      "Shared MMO sectors (WORLD_SECTORS). Race city plazas, harvest nodes, and dungeon entrances. Default Haven Port (human capital).",
+    url: THREE_OPEN_WORLD_PATH,
+    icon: "globe",
+    tier: "combat",
+    badge: "Era 9",
+    badgeColor: "violet",
+    stage: "sector",
+    featured: true,
+    order: 40,
+  },
+  {
+    id: "ocean",
+    title: "Warlords Ocean Sail",
+    subtitle: "Same 9 Macro Sectors · In-Client",
+    description:
+      "In-client tactical ocean over the Warlords era map (haven_shore…ember_depths). Lands into /play zone mode. Not chicken-gun lobby, not home-block cells.",
+    url: "/ocean?worldSeed=grudge-world-1",
+    icon: "compass",
+    tier: "explore",
+    badge: "Era 9",
+    badgeColor: "teal",
+    stage: "sail",
+    order: 50,
   },
   {
     id: "tactical",
@@ -89,36 +194,7 @@ export const PRODUCTION_DEPLOYMENT_PATH: GameDeployment[] = [
     badgeColor: "cyan",
     stage: "sail",
     fleetGameId: "tactical-infinity",
-    featured: true,
-    order: 30,
-  },
-  {
-    id: "ocean",
-    title: "Warlords Ocean Sail",
-    subtitle: "Same 9 Macro Sectors · In-Client",
-    description:
-      "In-client tactical ocean over the Warlords era map (haven_shore…ember_depths). Lands into /play zone mode. Not chicken-gun lobby, not home-block cells.",
-    url: "/ocean?worldSeed=grudge-world-1",
-    icon: "compass",
-    tier: "explore",
-    badge: "Era 9",
-    badgeColor: "teal",
-    stage: "sail",
-    order: 40,
-  },
-  {
-    id: "play",
-    title: "Warlords Open World",
-    subtitle: "9 Macro Sectors · Freeform ARPG",
-    description:
-      "Shared MMO sectors (WORLD_SECTORS). Default Haven Shore. Distinct from each player's personal 3×3 home block.",
-    url: "/play?sector=haven_shore&mode=zone&worldSeed=grudge-world-1",
-    icon: "globe",
-    tier: "combat",
-    badge: "Era 9",
-    badgeColor: "violet",
-    stage: "sector",
-    order: 50,
+    order: 55,
   },
   {
     id: "rtsgrudge",
@@ -169,17 +245,18 @@ export const HOME_GAME_MODES: GameDeployment[] = [
   },
   {
     id: "warlords3d",
-    title: "Grudge Warlords 3D (Three Port)",
-    subtitle: "Era Macro Sectors Client",
-    description: "Lightweight Three.js client for Warlords era sectors + Colyseus. Not home-block 3×3 cells.",
-    url: `${FLEET_URLS.threePort}?mode=play`,
+    title: "Three Port (Satellite)",
+    subtitle: "Lightweight sector client",
+    description:
+      "Satellite Three.js client (grudge-three-port) — same Haven Shore / Colyseus sectors. Primary play remains same-origin /home-island + /play.",
+    url: THREE_PORT_PLAY_URL,
     icon: "globe",
     tier: "core",
-    badge: "3D MMO",
+    badge: "Alt",
     badgeColor: "violet",
     stage: "sector",
     fleetGameId: "three-port",
-    order: 55,
+    order: 58,
   },
   {
     id: "genesis-pvp",
@@ -329,15 +406,21 @@ export function deploymentUrl(
 ): string | undefined {
   const mode = HOME_GAME_MODES.find((m) => m.id === id);
   if (!mode) return undefined;
-  if (id === "play" && options?.sector) {
-    const params = new URLSearchParams({
-      sector: options.sector,
-      worldSeed: options.worldSeed || "grudge-world-1",
+  if (id === "play") {
+    return threeOpenWorldUrl({
+      sector: options?.sector,
+      worldSeed: options?.worldSeed,
     });
-    return `/play?${params.toString()}`;
   }
+  if (id === "homeisland") return THREE_HOME_ISLAND_PATH;
+  if (id === "worldmap") return THREE_WORLD_MAP_PATH;
   if (id === "ocean" && options?.worldSeed) {
     return `/ocean?worldSeed=${encodeURIComponent(options.worldSeed)}`;
   }
   return mode.url;
+}
+
+/** Default destination after “Play Now” when the player already has a hero. */
+export function threePlayNowPath(): string {
+  return THREE_HOME_ISLAND_PATH;
 }

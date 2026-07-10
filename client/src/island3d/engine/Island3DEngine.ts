@@ -73,6 +73,9 @@ import { resolveHomeIslandFoundation } from '@shared/definitions/homeIslandFound
 import { placeProceduralHarvestZones } from '../harvest/HarvestZonePlacer';
 import { buildHarvestZones, type HarvestZonesResult } from '../harvest/HarvestZoneBuilder';
 import { spawnZoneHarvestNodes } from '../harvest/ZoneHarvestSpawner';
+import { spawnRaceCapitalInZone, type ZoneCapitalResult } from '../zone/ZoneCapitalSpawner';
+import { spawnZoneDungeonPortals, type ZoneDungeonPortalsResult } from '../zone/ZoneDungeonPortals';
+import { getRaceCityBySector, getRaceCityById } from '@shared/definitions/raceCities';
 import {
   HARVEST_RESPAWN_MS,
   beginTreeFall,
@@ -222,6 +225,10 @@ export class Island3DEngine {
   public zoneScene: ZoneSceneResult | null = null;
   public zonePopulation: ZonePopulation | null = null;
   public zoneSector: WorldSector | null = null;
+  /** Race capital (Unity world map city) placed in this sector */
+  public zoneCapital: ZoneCapitalResult | null = null;
+  /** Dungeon entrance portals from zone population */
+  public zoneDungeonPortals: ZoneDungeonPortalsResult | null = null;
 
   // Player character
   public character: CharacterController3D | null = null;
@@ -767,6 +774,51 @@ export class Island3DEngine {
       `${zoneHarvest.rocks.length} rocks, ${zoneHarvest.crystals.length} gems`,
     );
 
+    // 2c. Race capital city (Unity world map — 6 race cities)
+    const cityHint =
+      typeof window !== 'undefined'
+        ? new URLSearchParams(window.location.search).get('city')
+        : null;
+    const raceCity =
+      (cityHint ? getRaceCityById(cityHint) : null) ?? getRaceCityBySector(sectorId);
+    if (raceCity) {
+      const settlementIslands = getNodesByCategory<IslandNode>(this.zonePopulation, 'island')
+        .filter((i) => i.hasSettlement || i.size === 'large' || i.size === 'fortress');
+      const capitalIsland =
+        settlementIslands[0] ??
+        getNodesByCategory<IslandNode>(this.zonePopulation, 'island')[0];
+      if (capitalIsland) {
+        const capMesh =
+          this.zoneScene.islandMeshes.get(capitalIsland.id) ??
+          this.zoneScene.islandMeshes.values().next().value ??
+          null;
+        try {
+          this.zoneCapital = await spawnRaceCapitalInZone(
+            this.scene,
+            raceCity,
+            capitalIsland.position[0],
+            capitalIsland.position[2],
+            capMesh,
+          );
+          console.log(
+            `[Island3D] Race capital "${raceCity.name}" (${raceCity.raceId}) in ${sectorId}`,
+          );
+        } catch (err) {
+          console.warn('[Island3D] Race capital spawn failed:', err);
+        }
+      }
+    }
+
+    // 2d. Dungeon entrance portals (zone population dungeon_entrance nodes)
+    this.zoneDungeonPortals = spawnZoneDungeonPortals(
+      this.scene,
+      this.zonePopulation,
+      this.zoneScene.islandMeshes,
+      (dungeonId, dungeonName) => {
+        this.config.onDungeonEnter?.(dungeonId, dungeonName);
+      },
+    );
+
     // 3. Apply sector sky + fog
     this.scene.background = new THREE.Color(cfg.skyColor);
     this.scene.fog = new THREE.FogExp2(cfg.fog.color, cfg.fog.density);
@@ -784,11 +836,14 @@ export class Island3DEngine {
       );
     }
 
-    // 6. Camera — zoom out for large open-sea zones
+    // 6. Camera — prefer race capital spawn, else dock / player spawn
     const spawns = getNodesByCategory<SpawnPointNode>(this.zonePopulation, 'spawn_point')
       .filter(s => s.spawnType === 'player');
     const docks = getNodesByCategory<DockNode>(this.zonePopulation, 'dock');
-    const entryPoint = spawns[0]?.position ?? docks[0]?.position ?? cfg.spawnPoints[0] ?? [0, 20, 0];
+    const dockOrSpawn = spawns[0]?.position ?? docks[0]?.position ?? cfg.spawnPoints[0] ?? [0, 20, 0];
+    const entryPoint: [number, number, number] = this.zoneCapital
+      ? [this.zoneCapital.spawn.x, this.zoneCapital.spawn.y, this.zoneCapital.spawn.z]
+      : dockOrSpawn;
     const camLift = Math.max(180, cfg.sizeMeters * 0.018);
     const camBack = Math.max(280, cfg.sizeMeters * 0.028);
 
@@ -800,10 +855,17 @@ export class Island3DEngine {
     this.controls.update();
 
     // 7. Grab the first island's terrain mesh for character ground detection
+    // Prefer capital island mesh when race city is present
+    const capitalMesh = this.zoneCapital
+      ? (this.zoneScene.islandMeshes.values().next().value as THREE.Mesh | undefined)
+      : undefined;
     const firstIslandId = this.zonePopulation.islandIds[0];
-    const firstIslandMesh = firstIslandId ? this.zoneScene.islandMeshes.get(firstIslandId) : null;
+    const firstIslandMesh =
+      (capitalMesh as THREE.Mesh | undefined) ??
+      (firstIslandId ? this.zoneScene.islandMeshes.get(firstIslandId) : null) ??
+      null;
 
-    // 8. Character controller (spawns at first dock)
+    // 8. Character controller (spawns at capital or first dock)
     if (this.config.enableCharacter !== false && firstIslandMesh) {
       this.terrain = {
         terrainScene: this.zoneScene.root,
@@ -1414,6 +1476,14 @@ export class Island3DEngine {
       this.mountainTriad.update(dt, this.character.getPosition());
     }
 
+    // Zone race capital + dungeon portals
+    if (this.zoneCapital) {
+      this.zoneCapital.update(dt, this.clock.elapsedTime);
+    }
+    if (this.zoneDungeonPortals && this.character) {
+      this.zoneDungeonPortals.update(dt, this.character.getPosition());
+    }
+
     if (this.harvestZones && !this.lobbyPlayZone) {
       this.harvestZones.update(dt, this.camera.position);
     } else if (this.proceduralForest) {
@@ -1442,6 +1512,7 @@ export class Island3DEngine {
   /** Press E/F near interactables — dungeon portal, capture point, or ship dock. */
   handleInteractKey(): boolean {
     if (this.mountainTriad?.tryInteract()) return true;
+    if (this.zoneDungeonPortals?.tryInteract()) return true;
 
     if (this.character && this.lobbyShip) {
       if (this.lobbyShip.isBoarded) {
@@ -1477,7 +1548,7 @@ export class Island3DEngine {
 
   /** Is the dungeon portal prompting interaction? */
   get dungeonPortalActive(): boolean {
-    return this.mountainTriad?.canInteract ?? false;
+    return (this.mountainTriad?.canInteract ?? false) || (this.zoneDungeonPortals?.canInteract ?? false);
   }
 
   /** HUD hint for the evil mountain triad (approach / discovered / interact). */
