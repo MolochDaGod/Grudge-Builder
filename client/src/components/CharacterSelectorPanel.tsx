@@ -97,12 +97,17 @@ function CharacterCard({ character: c, isActive, onSelect, label = 'Select' }: C
         </div>
       </div>
 
-      {/* Name + race/class */}
+      {/* Name + race/class + grudge code */}
       <div className="text-center mb-2">
         <div className="font-cinzel font-bold text-white text-sm truncate">{c.name}</div>
         <div className={`text-xs ${fc.text}`}>
           {getRaceName(c.raceId)} · {getClassName(c.classId)}
         </div>
+        {c.grudgeCode && (
+          <div className="font-mono text-[9px] text-amber-500/70 mt-0.5 truncate" title={c.grudgeCode}>
+            {c.grudgeCode}
+          </div>
+        )}
       </div>
 
       {/* HP bar */}

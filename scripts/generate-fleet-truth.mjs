@@ -48,8 +48,16 @@ const EDGE_WORKERS = [
   { id: "grudge-asset-cdn", domain: "assets.grudge-studio.com", role: "R2 binary CDN" },
   { id: "grudge-objectstore-api", domain: "objectstore.grudge-studio.com", role: "JSON catalog + search" },
   { id: "grudge-identity-api", domain: "id.grudge-studio.com", role: "Identity edge" },
-  { id: "grudge-ai-hub", domain: "ai.grudge-studio.com", role: "AI gateway (D1 grudge-ai-hub)" },
-  { id: "grudge-legion-ai", domain: "legion-ai.grudge-studio.com", role: "Legion agent personas" },
+  {
+    id: "grudge-ai-hub",
+    domain: "ai.grudge-studio.com",
+    role: "Canonical AI hub — public UI + gateway (D1 grudge-ai-hub); UI_ORIGIN=grudaagent.vercel.app",
+  },
+  {
+    id: "grudge-legion-ai",
+    domain: "ai.grudge-studio.com/v1/*",
+    role: "API path worker (same index.js) — /v1/* + /health on ai.grudge-studio.com",
+  },
   { id: "grudge-fleet-harbor", domain: "grudox.grudge-studio.com", role: "Fleet harbor / deploy kit" },
   { id: "grudge-game-servers", domain: "world.grudge-studio.com", role: "Live game server routing" },
   { id: "grudge-asset-api-production", domain: null, role: "Legacy RTS asset registry API" },
@@ -92,7 +100,7 @@ const hubDomains = {
 };
 
 const payload = {
-  version: "1.2.0",
+  version: "1.3.0",
   generated: new Date().toISOString(),
   description:
     "Grudge Studio fleet ONE TRUTH — canonical domains, API roles, contracts, probe manifest, and Legion context",
@@ -108,7 +116,10 @@ const payload = {
   },
   communication: {
     legionHub: FLEET_URLS.ai,
-    legionAgent: "https://legion-ai.grudge-studio.com",
+    /** Same as legionHub — public GRUDA Agent UI is proxied on ai.grudge-studio.com */
+    legionAgent: FLEET_URLS.ai,
+    /** Implementation origin for UI proxy only — do not advertise as fleet domain */
+    legionUiOrigin: "https://grudaagent.vercel.app",
     fleetHarbor: FLEET_URLS.grudox,
     gameDataManifest: `${FLEET_URLS.gameData}/api/fleet/manifest`,
     truthAuditApi: `${FLEET_URLS.gameData}/api/fleet/truth-audit`,

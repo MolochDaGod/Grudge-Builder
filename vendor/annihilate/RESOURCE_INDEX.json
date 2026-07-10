@@ -1,0 +1,14 @@
+{
+  "generated": "2026-07-10T04:06:36.310Z",
+  "referenceRoot": "D:\\annihilate-reference",
+  "vendorSrc": "vendor/annihilate/src",
+  "grudgeTs": "client/src/combat/annihilate",
+  "pipeline": "scripts/annihilate",
+  "skill": "annihilate-3d-combat",
+  "npm": {
+    "sync": "npm run annihilate:sync",
+    "syncAssets": "npm run annihilate:sync:assets",
+    "build": "npm run annihilate:assets:build",
+    "validate": "npm run annihilate:assets:validate"
+  }
+}

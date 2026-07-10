@@ -87,45 +87,88 @@ Get a specific character by ID.
 **Parameters:**
 - `id` (path): Character UUID
 
-**Response:** `Character`
+**Response:** `Character` plus progress meta:
+```json
+{
+  "id": "…",
+  "progressRevision": 14,
+  "progressSchemaVersion": 1
+}
+```
+
+See [CHARACTER_PROGRESS_SSOT.md](./CHARACTER_PROGRESS_SSOT.md).
 
 ### POST /api/characters
-Create a new character. Automatically generates an AI avatar.
+Create a new hero on the **Railway Postgres SSOT**. Canonical creator for the whole fleet (Foundry at character.grudge-studio.com, GCS, Warlords, fleet SDK).
 
-**Warlords tokens:** Creating a `gameEra: "warlords"` character consumes one `character_tokens` from the account (default 1 on signup). Returns `403` when tokens are `0`. See [PLAYTEST.md](./PLAYTEST.md) for unblock steps. Local dev (`NODE_ENV=development`) and `DEV_UNLIMITED_CHARACTER_TOKENS=true` skip the check.
+**Identity (canonical):**
+| Field | Meaning |
+|-------|---------|
+| `id` | Postgres UUID (row PK) — never invent client-side |
+| `grudgeCode` | Human-facing `GRDG-{RACE3}{CLASS3}-{suffix}` (e.g. `GRDG-HUMWAR-W7ZXH4`) |
+| `name` | **Player-chosen display name** (not the code) |
+
+Server always resolves identity via `shared/characterIdentity.ts` (`resolveHeroIdentity`):
+- Generates `grudgeCode` when omitted (or regenerates invalid codes)
+- If `name` looks like a GRDG code and no code was sent, treats it as the code and defaults the display name to `Warlord`
+- Mirrors code into `model3d.grudgeDisplayId` / `model3d.grudgeCode` for 3D clients
+
+**Warlords tokens:** Creating a `gameEra: "warlords"` character consumes one `character_tokens` from the account (default 1 on signup). Returns `403` when tokens are `0`. See [PLAYTEST.md](./PLAYTEST.md) for unblock steps. Local dev (`NODE_ENV=development`) and `DEV_UNLIMITED_CHARACTER_TOKENS=true` skip the check. Character Studio saves (`model3d.grudge6` or `sourceUrl` containing character.grudge-studio.com) also skip the token gate.
 
 **Request Body:**
 ```json
 {
-  "name": "string",
+  "name": "Ragnar",
+  "grudgeCode": "GRDG-HUMWAR-W7ZXH4",
   "raceId": "human | orc | elf | dwarf | barbarian | undead",
-  "classId": "warrior | mage | ranger | shapeshifter",
+  "classId": "warrior | mage | ranger | worg | shapeshifter",
+  "gameEra": "warlords",
   "attributes": {
-    "Strength": 0,
-    "Intellect": 0,
-    "Vitality": 0,
-    "Dexterity": 0,
-    "Endurance": 0,
-    "Wisdom": 0,
-    "Agility": 0,
-    "Tactics": 0
+    "Strength": 10,
+    "Intellect": 10,
+    "Vitality": 10,
+    "Dexterity": 10,
+    "Endurance": 10,
+    "Wisdom": 10,
+    "Agility": 10,
+    "Tactics": 10
   },
   "equipment": {},
-  "inventory": []
+  "inventory": [],
+  "model3d": {
+    "grudge6": true,
+    "sourceUrl": "https://character.grudge-studio.com/viewer",
+    "grudgeDisplayId": "GRDG-HUMWAR-W7ZXH4"
+  }
 }
 ```
 
-**Response:** `Character`
+Aliases accepted: `race`/`class`, `grudgeDisplayId`, `grudgeUuid`, `model3d.grudgeDisplayId`.
+
+**Response:** `Character` (includes `id`, `name`, `grudgeCode`, …)
 
 ### PATCH /api/characters/:id
-Update a character.
+Update a character. Progress-shaped bodies are validated (mastery pool, no inventory, revision).
 
 **Parameters:**
 - `id` (path): Character UUID
 
-**Request Body:** Partial `Character` object
+**Headers (progress writes):**
+- `If-Match` or `X-Progress-Revision` — last known `progressRevision` (optional but recommended)
 
-**Response:** `Character`
+**Request Body (progress):** see [CHARACTER_PROGRESS_SSOT.md](./CHARACTER_PROGRESS_SSOT.md)  
+Includes: `expectedRevision`, `idempotencyKey`, `schemaVersion`, `professionLevels`, `weaponMastery`, `attributes`, `selectedSkills`, `equipment`, …  
+**Do not** send account `inventory` here.
+
+**Response:** `Character` + `progressRevision` + `progressSchemaVersion`  
+**409:** `progress_revision_conflict` when `expectedRevision` mismatches  
+**400:** `invalid_weapon_mastery` when pool/ranks invalid
+
+### POST /api/characters/:id/progress
+Preferred explicit progress write. Same validation and concurrency rules as progress-shaped PATCH.
+
+**Request Body:** progress payload (`schemaVersion`, `expectedRevision`, …)  
+**Response:** same as PATCH progress success
 
 ### DELETE /api/characters/:id
 Delete a character.

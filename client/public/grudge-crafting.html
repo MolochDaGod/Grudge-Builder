@@ -10,10 +10,18 @@
   window.GRUDGE_CONFIG = {
     AUTH_GATEWAY: 'https://id.grudge-studio.com',
     IDENTITY_API: 'https://grudge-studio.com',
+    // Railway Postgres — SAME DB as Warlords / GCS account characters (never Puter KV as SSOT)
     GAME_DATA: 'https://grudge-api-production-0d46.up.railway.app',
     OBJECTSTORE_URL: 'https://objectstore.grudge-studio.com/api/v1',
     ASSETS: 'https://assets.grudge-studio.com',
-    VERSION: '4.1.0'
+    VERSION: '5.3.1',
+    WCS_URL: 'https://wcs.grudge-studio.com',
+    SKILL_TREE_URL: './skill-tree.html',
+    WEAPON_MASTERY_URL: './weaponmastery.html',
+    // Inventory is account-shared on Railway; progress is per character UUID on Railway
+    INVENTORY_SCOPE: 'account',
+    PROGRESS_SCOPE: 'character',
+    PLAYER_STATE_SSOT: 'railway',
   };
 </script>
 <script src="./grudge-fleet.js"></script>
@@ -291,6 +299,46 @@ body {
   border-radius: 3px;
   border: 1px solid;
 }
+
+/* ======================== WCS STATION TABS ======================== */
+.station-tabs {
+  display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px;
+  padding-bottom: 12px; border-bottom: 1px solid var(--border);
+}
+.station-tab {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 12px; border-radius: 8px; cursor: pointer;
+  border: 1px solid var(--border); background: rgba(255,255,255,0.02);
+  color: var(--text-dim); font-size: 11px; font-family: inherit;
+  transition: all 0.15s; position: relative;
+}
+.station-tab:hover:not(.locked) { border-color: var(--gold-dim); color: var(--text); }
+.station-tab.active { border-color: var(--gold); background: rgba(212,168,67,0.12); color: var(--gold); }
+.station-tab.locked { opacity: 0.45; cursor: not-allowed; }
+.station-tab .lock { font-size: 10px; }
+.station-tab .st-icon { font-size: 14px; }
+.station-hint {
+  font-size: 11px; color: var(--text-dim); margin-bottom: 12px;
+  padding: 8px 12px; border-radius: 6px; background: rgba(212,168,67,0.06);
+  border: 1px solid var(--border);
+}
+.station-hint strong { color: var(--gold); }
+.scope-pill {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 9px; padding: 2px 8px; border-radius: 99px;
+  border: 1px solid var(--border); color: var(--text-dim); letter-spacing: 0.04em;
+}
+.scope-pill.account { border-color: rgba(34,197,94,0.35); color: #4ade80; }
+.scope-pill.character { border-color: rgba(167,139,250,0.35); color: #c4b5fd; }
+.codex-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px;
+}
+.codex-card {
+  padding: 12px; border-radius: 8px; border: 1px solid var(--border);
+  background: rgba(255,255,255,0.02);
+}
+.codex-card h4 { font-size: 12px; color: var(--gold); margin-bottom: 4px; }
+.codex-card p { font-size: 10px; color: var(--text-dim); line-height: 1.4; }
 
 /* ======================== CRAFTING BENCH ======================== */
 .bench { display: grid; grid-template-columns: 1fr 300px; gap: 16px; }
@@ -877,14 +925,31 @@ body {
     <div class="sidebar-section">
       <div class="sidebar-section-title">Navigation</div>
       <button class="nav-btn active" data-page="dashboard"><span class="icon">📊</span><span>Dashboard</span></button>
-      <button class="nav-btn" data-page="crafting"><span class="icon">🔨</span><span>Crafting Bench</span></button>
-      <button class="nav-btn" data-page="inventory"><span class="icon">🎒</span><span>Inventory</span><span class="badge" id="inv-count">0</span></button>
-      <button class="nav-btn" data-page="item-database"><span class="icon">📦</span><span>Item Database</span><span class="badge" id="db-count">…</span></button>
+      <button class="nav-btn" data-page="crafting"><span class="icon">🔨</span><span>Crafting</span></button>
+      <button class="nav-btn" data-page="inventory"><span class="icon">🎒</span><span>Inventory</span><span class="badge" id="inv-count">0</span><span class="scope-pill account" style="margin-left:auto;font-size:8px">SHARED</span></button>
+      <button class="nav-btn" data-page="camps"><span class="icon">🏕</span><span>Camps &amp; Benches</span></button>
       <button class="nav-btn" data-page="account"><span class="icon">👤</span><span>Account</span></button>
     </div>
 
     <div class="sidebar-section">
-      <div class="sidebar-section-title">Professions</div>
+      <div class="sidebar-section-title">WCS Stations</div>
+      <button class="nav-btn" data-page="crafting" data-station="camp" onclick="openStation('camp')"><span class="icon">⛺</span><span>Camp Bench</span></button>
+      <button class="nav-btn" data-page="crafting" data-station="smithing" onclick="openStation('smithing')"><span class="icon">⚒️</span><span>Smithing</span><span class="badge" id="lock-smithing">🔒</span></button>
+      <button class="nav-btn" data-page="crafting" data-station="lumber" onclick="openStation('lumber')"><span class="icon">🌲</span><span>Lumber</span><span class="badge" id="lock-lumber">🔒</span></button>
+      <button class="nav-btn" data-page="crafting" data-station="loom" onclick="openStation('loom')"><span class="icon">🧵</span><span>Loom</span><span class="badge" id="lock-loom">🔒</span></button>
+      <button class="nav-btn" data-page="crafting" data-station="cooking" onclick="openStation('cooking')"><span class="icon">🍳</span><span>Cooking</span><span class="badge" id="lock-cooking">🔓</span></button>
+      <button class="nav-btn" data-page="crafting" data-station="tinker" onclick="openStation('tinker')"><span class="icon">🔧</span><span>Tinker</span><span class="badge" id="lock-tinker">🔒</span></button>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-section-title">WCS Codex</div>
+      <button class="nav-btn" data-page="wcs-arsenal"><span class="icon">🗡</span><span>Arsenal</span></button>
+      <button class="nav-btn" data-page="wcs-materials"><span class="icon">🧱</span><span>Materials T0–T8</span></button>
+      <button class="nav-btn" data-page="item-database"><span class="icon">📦</span><span>Item Database</span><span class="badge" id="db-count">…</span></button>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-section-title">Professions <span class="scope-pill character" style="margin-left:4px">PER CHAR</span></div>
       <button class="nav-btn" data-page="prof-miner"><span class="icon">⛏️</span><span>Miner</span><span class="badge prof-lvl" data-prof="Miner">1</span></button>
       <button class="nav-btn" data-page="prof-forester"><span class="icon">🪓</span><span>Forester</span><span class="badge prof-lvl" data-prof="Forester">1</span></button>
       <button class="nav-btn" data-page="prof-mystic"><span class="icon">🔮</span><span>Mystic</span><span class="badge prof-lvl" data-prof="Mystic">1</span></button>
@@ -893,10 +958,17 @@ body {
     </div>
 
     <div class="sidebar-section">
+      <div class="sidebar-section-title">Combat Skills <span class="scope-pill character" style="margin-left:4px">UUID</span></div>
+      <button class="nav-btn" onclick="openCharacterSkillTree()"><span class="icon">🌳</span><span>Class Skill Tree</span></button>
+      <button class="nav-btn" onclick="openCharacterWeaponMastery()"><span class="icon">⚔</span><span>Weapon Mastery</span></button>
+      <button class="nav-btn" data-page="char-progress"><span class="icon">📊</span><span>Attrs &amp; Progress</span></button>
+    </div>
+
+    <div class="sidebar-section">
       <div class="sidebar-section-title">Links</div>
       <a href="https://grudgewarlords.com" target="_blank" class="nav-btn"><span class="icon">🌐</span><span>Grudge Warlords</span></a>
+      <a href="https://wcs.grudge-studio.com" target="_blank" class="nav-btn"><span class="icon">⚔</span><span>WCS (host)</span></a>
       <a href="https://docs.grudge-studio.com/crafting" target="_blank" class="nav-btn"><span class="icon">📄</span><span>Craft Skills Docs</span></a>
-      <a href="https://warlord-crafting-suite.vercel.app" target="_blank" class="nav-btn"><span class="icon">🚀</span><span>Full Suite</span></a>
     </div>
 
     <div class="sidebar-account">
@@ -941,21 +1013,17 @@ body {
       </div>
     </div>
 
-    <!-- CRAFTING BENCH -->
+    <!-- CRAFTING (WCS station tabs) -->
     <div class="page" id="page-crafting">
       <div class="page-header">
-        <h2 class="page-title">🔨 Crafting Bench</h2>
-        <div style="display:flex;gap:8px;align-items:center">
-          <select id="bench-prof" class="filter-btn" style="background:var(--deep);color:var(--text);padding:6px 10px" onchange="renderCraftingPage()">
-            <option value="All">All Professions</option>
-            <option value="Miner">⛏️ Miner</option>
-            <option value="Forester">🪓 Forester</option>
-            <option value="Mystic">🔮 Mystic</option>
-            <option value="Chef">🍳 Chef</option>
-            <option value="Engineer">⚙️ Engineer</option>
-          </select>
+        <h2 class="page-title">🔨 Crafting</h2>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <span class="scope-pill account">🎒 Shared inventory</span>
+          <span class="scope-pill character">📈 XP / levels / gear = character</span>
         </div>
       </div>
+      <div class="station-tabs" id="station-tabs"></div>
+      <div class="station-hint" id="station-hint"></div>
       <div class="bench">
         <div>
           <div class="recipe-filters" id="tier-filters"></div>
@@ -971,6 +1039,37 @@ body {
       </div>
     </div>
 
+    <!-- CAMPS & BENCHES -->
+    <div class="page" id="page-camps">
+      <div class="page-header">
+        <h2 class="page-title">🏕 Camps &amp; Benches</h2>
+        <button class="filter-btn" onclick="refreshCampsAndBenches()">🔄 Refresh</button>
+      </div>
+      <div class="station-hint">
+        Station tabs unlock when you <strong>own</strong> a camp with that crafting bench, or are <strong>friendly</strong> with a camp that has one.
+        Home island starter camp always unlocks Camp Bench + Cooking (campfire).
+      </div>
+      <div id="camps-list"></div>
+      <div class="card" style="margin-top:12px">
+        <div class="card-title">Unlocked stations</div>
+        <div id="unlocked-stations-list" style="font-size:12px;color:var(--text-dim)"></div>
+      </div>
+    </div>
+
+    <!-- WCS ARSENAL CODEX -->
+    <div class="page" id="page-wcs-arsenal">
+      <div class="page-header"><h2 class="page-title">🗡 WCS Arsenal</h2></div>
+      <div class="station-hint">Canonical weapon / armor / utility types from Warlord Crafting Suite taxonomy (T0–T8).</div>
+      <div id="wcs-arsenal-body" class="codex-grid"></div>
+    </div>
+
+    <!-- WCS MATERIALS CODEX -->
+    <div class="page" id="page-wcs-materials">
+      <div class="page-header"><h2 class="page-title">🧱 Materials T0–T8</h2></div>
+      <div class="station-hint">Shared account bag uses these material tiers. Profession XP for refining stays on the active character.</div>
+      <div id="wcs-materials-body"></div>
+    </div>
+
     <!-- ITEM DATABASE -->
     <div class="page" id="page-item-database">
       <div class="page-header">
@@ -984,12 +1083,13 @@ body {
       <div class="db-grid" id="db-grid"></div>
     </div>
 
-    <!-- INVENTORY -->
+    <!-- INVENTORY (account-shared) -->
     <div class="page" id="page-inventory">
       <div class="page-header">
-        <h2 class="page-title">🎒 Inventory</h2>
+        <h2 class="page-title">🎒 Inventory <span class="scope-pill account">SHARED ACCOUNT BAG</span></h2>
         <button class="filter-btn" onclick="gatherMaterials()">🌿 Gather Materials</button>
       </div>
+      <div class="station-hint">One inventory for all characters. Profession XP, levels, and equipment stay unique to the active character.</div>
       <div class="recipe-filters" id="inv-filters"></div>
       <!-- Ready-to-craft suggestions (updated after every gather) -->
       <div id="inv-craft-ready"></div>
@@ -1100,6 +1200,15 @@ body {
       </div>
     </div>
 
+    <!-- CHARACTER PROGRESS (attrs, skills, mastery summary) -->
+    <div class="page" id="page-char-progress">
+      <div class="page-header">
+        <h2 class="page-title">📊 Character Progress</h2>
+        <span class="scope-pill character">bound to Grudge UUID</span>
+      </div>
+      <div id="char-progress-body"></div>
+    </div>
+
     <!-- PROFESSION PAGES (generated dynamically) -->
     <div class="page" id="page-prof-miner"></div>
     <div class="page" id="page-prof-forester"></div>
@@ -1116,29 +1225,139 @@ body {
 const GRUDGE_API = window.GRUDGE_CONFIG.GAME_DATA;
 const GRUDGE_AUTH = window.GRUDGE_CONFIG.AUTH_GATEWAY;
 
+function blankProfessions() {
+  return {
+    Miner:     { level: 1, xp: 0, xpNext: 100, totalCrafts: 0, color: '#ef4444', icon: '⛏️', role: 'Metal · Weapons · Armor' },
+    Forester:  { level: 1, xp: 0, xpNext: 100, totalCrafts: 0, color: '#22c55e', icon: '🪓', role: 'Wood · Bows · Leather' },
+    Mystic:    { level: 1, xp: 0, xpNext: 100, totalCrafts: 0, color: '#a78bfa', icon: '🔮', role: 'Cloth · Staves · Enchants' },
+    Chef:      { level: 1, xp: 0, xpNext: 100, totalCrafts: 0, color: '#f59e0b', icon: '🍳', role: 'Food · Potions · Buffs' },
+    Engineer:  { level: 1, xp: 0, xpNext: 100, totalCrafts: 0, color: '#60a5fa', icon: '⚙️', role: 'Guns · Crossbows · Traps' },
+  };
+}
+function blankEquipment() {
+  return { head: null, chest: null, hands: null, feet: null, weapon: null, shield: null, ring: null, necklace: null };
+}
+function blankAttributes() {
+  return { strength: 0, vitality: 0, endurance: 0, intellect: 0, wisdom: 0, dexterity: 0, agility: 0, tactics: 0 };
+}
+function blankCharSheet() {
+  return {
+    characterId: null,
+    grudgeCode: null,
+    professions: blankProfessions(),
+    // Profession skill-tree node unlocks: { Miner: [1,2,10], ... }
+    professionSkillNodes: { Miner: [], Forester: [], Mystic: [], Chef: [], Engineer: [] },
+    equipment: blankEquipment(),
+    attributes: blankAttributes(),
+    unspentAttributePoints: 0,
+    skillPoints: 1,
+    // Class skill tree selections { tierLevel: skillName }
+    selectedSkills: {},
+    skillLoadouts: {},
+    // Weapon mastery: { allocations: { swords: { sw_honed: 2 } }, sockets: {} }
+    weaponMastery: { allocations: {}, sockets: {} },
+    weaponSkillLevel: 1,
+    weaponSkillSelections: {},
+    equippedWeaponId: null,
+    level: 1,
+    xp: 0,
+    stats: { totalCrafts: 0, itemsCrafted: 0, materialsUsed: 0, failedCrafts: 0 },
+  };
+}
+
+/** Compact profession skill trees (core nodes) — unlocked by profession level */
+const PROF_SKILL_TREES = {
+  Miner: [
+    { id: 1, n: "Miner's Initiation", req: 1, branch: 'Core', desc: '+5% craft success' },
+    { id: 2, n: 'Ore Identification', req: 5, branch: 'Core', desc: '+8% ore quality' },
+    { id: 3, n: 'Metallurgy Basics', req: 10, branch: 'Core', desc: 'Unlock T2 smelting paths' },
+    { id: 10, n: 'Blade Forging', req: 15, branch: 'Weapons', desc: 'Sword / dagger recipes' },
+    { id: 11, n: 'Edge Tempering', req: 25, branch: 'Weapons', desc: '+quality on blades' },
+    { id: 20, n: 'Plate Crafting', req: 15, branch: 'Armor', desc: 'Metal armor recipes' },
+    { id: 30, n: 'Master Smith', req: 40, branch: 'Core', desc: 'T5+ metal unlocks' },
+  ],
+  Forester: [
+    { id: 1, n: 'Woodlore', req: 1, branch: 'Core', desc: 'Basic woodworking' },
+    { id: 2, n: 'Seasoning', req: 5, branch: 'Core', desc: '+plank quality' },
+    { id: 10, n: 'Bowcraft', req: 15, branch: 'Weapons', desc: 'Bow recipes' },
+    { id: 20, n: 'Tanning', req: 15, branch: 'Armor', desc: 'Leather armor' },
+    { id: 30, n: 'Master Forester', req: 40, branch: 'Core', desc: 'T5+ wood unlocks' },
+  ],
+  Mystic: [
+    { id: 1, n: 'Arcane Thread', req: 1, branch: 'Core', desc: 'Cloth basics' },
+    { id: 2, n: 'Essence Binding', req: 5, branch: 'Core', desc: '+essence efficiency' },
+    { id: 10, n: 'Staff Turning', req: 15, branch: 'Weapons', desc: 'Staff recipes' },
+    { id: 20, n: 'Robe Weaving', req: 15, branch: 'Armor', desc: 'Cloth armor' },
+    { id: 30, n: 'Archmystic', req: 40, branch: 'Core', desc: 'T5+ arcane unlocks' },
+  ],
+  Chef: [
+    { id: 1, n: 'Camp Cook', req: 1, branch: 'Core', desc: 'Basic foods' },
+    { id: 2, n: 'Seasoning Arts', req: 5, branch: 'Core', desc: '+food buff duration' },
+    { id: 10, n: 'Brewing', req: 15, branch: 'Potions', desc: 'Potion recipes' },
+    { id: 20, n: 'Banquet', req: 25, branch: 'Food', desc: 'Party buffs' },
+    { id: 30, n: 'Master Chef', req: 40, branch: 'Core', desc: 'T5+ culinary unlocks' },
+  ],
+  Engineer: [
+    { id: 1, n: 'Tinkerer', req: 1, branch: 'Core', desc: 'Basic mechanisms' },
+    { id: 2, n: 'Precision', req: 5, branch: 'Core', desc: '+gear quality' },
+    { id: 10, n: 'Crossbows', req: 15, branch: 'Weapons', desc: 'Crossbow recipes' },
+    { id: 20, n: 'Firearms', req: 25, branch: 'Weapons', desc: 'Gun recipes' },
+    { id: 30, n: 'Master Engineer', req: 40, branch: 'Core', desc: 'T5+ siege unlocks' },
+  ],
+};
+
+/** Canonical WCS stations → profession + unlock keys from camp buildings */
+const WCS_STATIONS = [
+  { id: 'camp',     name: 'Camp Bench',     icon: '⛺', prof: 'All',      color: '#d4a843', always: true,
+    unlockKeys: ['camp', 'campfire', 'tent', 'workbench', 'crafting bench'], desc: 'T0 universal recipes — always available at any camp.' },
+  { id: 'smithing', name: 'Smithing Table', icon: '⚒️', prof: 'Miner',     color: '#ef4444', always: false,
+    unlockKeys: ['smithing', 'forge', 'anvil', 'smithy', 'smithing table', 'smelter'], desc: 'Miner station — metal weapons, armor, refining.' },
+  { id: 'lumber',   name: 'Lumber Table',   icon: '🌲', prof: 'Forester',  color: '#22c55e', always: false,
+    unlockKeys: ['lumber', 'sawmill', 'woodwork', 'lumber table', 'carpentry', 'tanner'], desc: 'Forester station — bows, leather, planks.' },
+  { id: 'loom',     name: 'Loom Table',     icon: '🧵', prof: 'Mystic',    color: '#a78bfa', always: false,
+    unlockKeys: ['loom', 'loom table', 'enchanter', 'arcane table', 'tailor'], desc: 'Mystic station — cloth, staves, essence.' },
+  { id: 'cooking',  name: 'Cooking Table',  icon: '🍳', prof: 'Chef',      color: '#f59e0b', always: false,
+    unlockKeys: ['cooking', 'kitchen', 'campfire', 'cookfire', 'cooking table', 'stove', 'hearth'], desc: 'Chef station — food, potions, buffs. Campfire unlocks basic cooking.' },
+  { id: 'tinker',   name: 'Tinker Table',   icon: '🔧', prof: 'Engineer',  color: '#60a5fa', always: false,
+    unlockKeys: ['tinker', 'tinker table', 'workshop', 'engineer', 'workbench', 'gunsmith'], desc: 'Engineer station — guns, crossbows, traps, gears.' },
+];
+
+const WCS_TIER_NAMES = { 0:'Broken',1:'Copper',2:'Iron',3:'Steel',4:'Mithril',5:'Adamantine',6:'Orichalcum',7:'Starmetal',8:'Divine' };
+const WCS_MAT_TIERS = {
+  0: { ingot:'Scrap Metal', plank:'Rotted Wood', cloth:'Torn Rag', leather:'Leather Scraps', gem:'Pebble' },
+  1: { ingot:'Copper Ingot', plank:'Pine Plank', cloth:'Linen Cloth', leather:'Rawhide', gem:'Rough Gem' },
+  2: { ingot:'Iron Ingot', plank:'Oak Plank', cloth:'Cotton Cloth', leather:'Thick Hide', gem:'Flawed Gem' },
+  3: { ingot:'Steel Ingot', plank:'Maple Plank', cloth:'Wool Cloth', leather:'Rugged Leather', gem:'Standard Gem' },
+  4: { ingot:'Mithril Ingot', plank:'Ash Plank', cloth:'Silk Cloth', leather:'Hardened Leather', gem:'Fine Gem' },
+  5: { ingot:'Adamantine Ingot', plank:'Ironwood Plank', cloth:'Moonweave Cloth', leather:'Wyrm Leather', gem:'Pristine Gem' },
+  6: { ingot:'Orichalcum Ingot', plank:'Ebony Plank', cloth:'Starweave Cloth', leather:'Infernal Leather', gem:'Flawless Gem' },
+  7: { ingot:'Starmetal Ingot', plank:'Wyrmwood Plank', cloth:'Voidweave Cloth', leather:'Titan Leather', gem:'Radiant Gem' },
+  8: { ingot:'Divine Ingot', plank:'Worldtree Plank', cloth:'Divine Cloth', leather:'Divine Leather', gem:'Divine Gem' },
+};
+
 const STATE = {
   user: null,
   grudgeToken: null,
   grudgeCharacters: [],
   activeCharacterId: null,
   currentPage: 'dashboard',
-  // Account sub-tab: 'characters' | 'crafting' | 'island'
   acctTab: 'characters',
-  // Per-character crafting history: { [charId]: CraftRecord[] }
+  // Per-character craft log
   characterCrafting: {},
-  // Home-island data per character fetched from Grudge API
+  // Per-character professions + equipment + craft stats (NOT inventory)
+  characterSheets: {},
   islandData: {},
+  // Camps the player owns or is friendly with (benches unlock stations)
+  camps: [],
+  unlockedStations: { camp: true, cooking: true }, // campfire default
+  activeStation: 'camp',
   selectedRecipe: null,
   filterTier: 'all',
   filterType: 'all',
   isCrafting: false,
-  professions: {
-    Miner:     { level: 1, xp: 0, xpNext: 100, totalCrafts: 0, color: '#ef4444', icon: '⛏️', role: 'Metal · Weapons · Armor' },
-    Forester:  { level: 1, xp: 0, xpNext: 100, totalCrafts: 0, color: '#22c55e', icon: '🪓', role: 'Wood · Bows · Leather' },
-    Mystic:    { level: 1, xp: 0, xpNext: 100, totalCrafts: 0, color: '#a78bfa', icon: '🔮', role: 'Cloth · Staves · Enchants' },
-    Chef:      { level: 1, xp: 0, xpNext: 100, totalCrafts: 0, color: '#f59e0b', icon: '🍳', role: 'Food · Potions · Buffs' },
-    Engineer:  { level: 1, xp: 0, xpNext: 100, totalCrafts: 0, color: '#60a5fa', icon: '⚙️', role: 'Guns · Crossbows · Traps' },
-  },
+  // Active character view of professions/equipment (swapped on select)
+  professions: blankProfessions(),
+  // ACCOUNT-SHARED inventory — one bag across all characters
   inventory: {
     'Wood Scraps': 20, 'Stone Fragments': 15, 'Plant Fiber': 25, 'Animal Hide': 8,
     'Animal Bone': 6, 'Raw Meat': 10, 'Wild Herbs': 12, 'Water': 20,
@@ -1146,13 +1365,9 @@ const STATE = {
     'Charcoal': 6, 'Rotted Wood': 18, 'Copper Ore': 8, 'Iron Ore': 4,
     'Pine Log': 10, 'Oak Log': 5, 'Arcane Dust': 3, 'Herb': 10,
   },
-  equipment: {
-    head: null, chest: null, hands: null, feet: null,
-    weapon: null, shield: null, ring: null, necklace: null,
-  },
+  equipment: blankEquipment(),
   log: [],
   stats: { totalCrafts: 0, itemsCrafted: 0, materialsUsed: 0, failedCrafts: 0 },
-  // Consecutive gather streak (resets if you navigate away and back)
   gatherStreak: 0,
 };
 
@@ -1241,6 +1456,41 @@ const RECIPES = [
   { id:'spike-trap', n:'Spike Trap', prof:'Engineer', type:'Utility', tier:1, icon:'🪤', mats:{'Iron Ingot':2,'Precision Gears':1,'Bear Trap':1}, desc:'25 DMG + Bleed' },
 ];
 
+// Map profession → WCS station (canonical)
+const PROF_TO_STATION = { All: 'camp', Miner: 'smithing', Forester: 'lumber', Mystic: 'loom', Chef: 'cooking', Engineer: 'tinker' };
+// Attach station field to base recipes
+RECIPES.forEach((r) => { if (!r.station) r.station = PROF_TO_STATION[r.prof] || 'camp'; });
+
+// === WCS T2–T8 extended recipes (from Warlord Crafting Suite canon) ===
+const WCS_EXTRA_RECIPES = [
+  // Smithing refining T2–T4
+  { id:'wcs-steel-ingot', n:'Steel Ingot', prof:'Miner', type:'Refining', tier:3, station:'smithing', icon:'⬜', mats:{'Iron Ingot':2,'Charcoal':2}, desc:'WCS T3 refined metal' },
+  { id:'wcs-mithril-ingot', n:'Mithril Ingot', prof:'Miner', type:'Refining', tier:4, station:'smithing', icon:'🔷', mats:{'Steel Ingot':2,'Arcane Dust':1}, desc:'WCS T4 lightweight metal' },
+  { id:'wcs-doomspire', n:'Doomspire', prof:'Miner', type:'Weapon', tier:5, station:'smithing', icon:'⚔️', mats:{'Iron Ingot':8,'Hardened Leather':2}, desc:'WCS T5 greatsword' },
+  { id:'wcs-metal-helm-t2', n:'Bloodfeud Helm (Metal)', prof:'Miner', type:'Armor', tier:2, station:'smithing', icon:'⛑️', mats:{'Iron Ingot':4,'Leather Scraps':2}, desc:'WCS T2 metal helm' },
+  // Lumber
+  { id:'wcs-maple-plank', n:'Maple Plank', prof:'Forester', type:'Refining', tier:3, station:'lumber', icon:'🪵', mats:{'Oak Log':3}, desc:'WCS T3 hardwood' },
+  { id:'wcs-bloodstring-bow', n:'Bloodstring Bow', prof:'Forester', type:'Weapon', tier:3, station:'lumber', icon:'🏹', mats:{'Maple Plank':3,'Simple Thread':3,'Hardened Leather':1}, desc:'WCS T3 bow' },
+  { id:'wcs-leather-helm-t2', n:'Bloodfeud Helm (Leather)', prof:'Forester', type:'Armor', tier:2, station:'lumber', icon:'🪖', mats:{'Hardened Leather':3,'Pine Plank':1}, desc:'WCS T2 leather helm' },
+  // Loom
+  { id:'wcs-wool-cloth', n:'Wool Cloth', prof:'Mystic', type:'Refining', tier:2, station:'loom', icon:'🧶', mats:{'Linen Cloth':2,'Minor Essence':1}, desc:'WCS T2 cloth' },
+  { id:'wcs-silk-cloth', n:'Silk Cloth', prof:'Mystic', type:'Refining', tier:4, station:'loom', icon:'🧵', mats:{'Wool Cloth':2,'Minor Essence':2}, desc:'WCS T4 silk' },
+  { id:'wcs-emberwrath-t3', n:'Emberwrath Staff', prof:'Mystic', type:'Weapon', tier:3, station:'loom', icon:'🔥', mats:{'Wool Cloth':2,'Oak Plank':2,'Minor Essence':3}, desc:'WCS T3 fire staff' },
+  { id:'wcs-cloth-helm-t2', n:'Bloodfeud Helm (Cloth)', prof:'Mystic', type:'Armor', tier:2, station:'loom', icon:'🧢', mats:{'Wool Cloth':3,'Minor Essence':1}, desc:'WCS T2 cloth helm' },
+  // Cooking
+  { id:'wcs-meat-stew', n:'Meat Stew', prof:'Chef', type:'Consumable', tier:2, station:'cooking', icon:'🥣', mats:{'Raw Meat':2,'Wild Herbs':2,'Water':1}, desc:'WCS T2 food' },
+  { id:'wcs-mana-brew', n:'Mana Brew', prof:'Chef', type:'Consumable', tier:3, station:'cooking', icon:'🧪', mats:{'Wild Herbs':3,'Arcane Dust':1,'Water':2}, desc:'WCS T3 mana food' },
+  { id:'wcs-stamina-elixir', n:'Stamina Elixir', prof:'Chef', type:'Consumable', tier:3, station:'cooking', icon:'⚡', mats:{'Herb':4,'Wild Herbs':2,'Water':1}, desc:'WCS T3 utility' },
+  // Tinker
+  { id:'wcs-iron-gear', n:'Iron Gear', prof:'Engineer', type:'Refining', tier:2, station:'tinker', icon:'⚙️', mats:{'Iron Ingot':2,'Crude Mechanism':1}, desc:'WCS T2 mechanism' },
+  { id:'wcs-steel-crossbow', n:'Skullpiercer', prof:'Engineer', type:'Weapon', tier:3, station:'tinker', icon:'🏹', mats:{'Iron Gear':3,'Oak Plank':3,'Simple Thread':2}, desc:'WCS T3 crossbow' },
+  { id:'wcs-blackpowder', n:'Blackpowder Blaster', prof:'Engineer', type:'Weapon', tier:3, station:'tinker', icon:'🔫', mats:{'Iron Gear':4,'Iron Ingot':2,'Charcoal':3}, desc:'WCS T3 gun' },
+  { id:'wcs-auto-turret', n:'Auto-Turret', prof:'Engineer', type:'Utility', tier:4, station:'tinker', icon:'🎯', mats:{'Precision Gears':4,'Iron Ingot':6,'Crude Mechanism':2}, desc:'WCS T4 defense' },
+];
+// Merge (skip id collisions)
+const _existingIds = new Set(RECIPES.map((r) => r.id));
+WCS_EXTRA_RECIPES.forEach((r) => { if (!_existingIds.has(r.id)) RECIPES.push(r); });
+
 // Map recipe output names to inventory items for crafting chains
 const RECIPE_OUTPUT_MAP = {};
 RECIPES.forEach(r => { RECIPE_OUTPUT_MAP[r.n] = r.id; });
@@ -1263,55 +1513,125 @@ const MAT_ICONS = {
 // ============================================================
 // AUTH
 // ============================================================
+/**
+ * Sign in via Grudge ID (canonical).
+ * Redirects to id.grudge-studio.com → returns with ?grudge_token= →
+ * grudge-bridge mints Railway JWT for the REAL Warlords account.
+ * Do NOT use Puter-only bridge as primary login (empty puter:* roster).
+ */
 async function doAuth() {
   try {
-    await GrudgeFleet.signIn();
-    STATE.user = await puter.auth.getUser();
-    STATE.grudgeToken = GrudgeFleet.getToken();
-    STATE.grudgeCharacters = GrudgeFleet.getCharacters();
-    if (!STATE.activeCharacterId && GrudgeFleet.getActiveId()) {
-      STATE.activeCharacterId = GrudgeFleet.getActiveId();
+    if (typeof GrudgeFleet === 'undefined') {
+      showToast('Fleet bridge not loaded', 'error');
+      return;
     }
-    applyCharacterToState(GrudgeFleet.getActiveCharacter());
-    updateAuthUI();
-    await loadSaveData();
-    // Character inventory SSOT from API after local KV merge
-    await loadCharacterInventory(STATE.activeCharacterId);
-    renderCharactersList();
-    updateCharacterUI();
-    showToast('Signed in as ' + (STATE.user?.username || GrudgeFleet.getUser()?.username), 'success');
-  } catch(e) { console.error(e); showToast('Sign in failed', 'error'); }
+    // Already on a session with characters — just refresh
+    if (GrudgeFleet.isLoggedIn() && (GrudgeFleet.getCharacters() || []).length > 0) {
+      await fetchGrudgeCharacters();
+      showToast('Characters refreshed', 'success');
+      return;
+    }
+    // Empty / wrong session — clear synthetic puter guest and send to Grudge ID
+    if (GrudgeFleet.isLoggedIn() && typeof GrudgeFleet.signOut === 'function') {
+      GrudgeFleet.signOut();
+    }
+    showToast('Redirecting to Grudge ID…', 'success');
+    await GrudgeFleet.signIn({ mode: 'grudge-id' });
+    // Browser navigates away; if somehow not, fall through refresh
+  } catch (e) {
+    console.error(e);
+    showToast('Sign in failed: ' + (e.message || e), 'error');
+  }
 }
 
-/** Load inventory scoped to a character (API + char.inventory blob). */
-async function loadCharacterInventory(charId) {
-  const id = charId || STATE.activeCharacterId || GrudgeFleet.getActiveId();
-  if (!id || !GrudgeFleet.isLoggedIn()) return;
+/**
+ * Account-shared inventory from Railway Postgres (same account as characters).
+ * Railway is SSOT — Puter KV is cache only and must not override a successful load.
+ */
+async function loadAccountInventory() {
+  if (!GrudgeFleet.isLoggedIn()) return false;
   try {
-    // Prefer dedicated inventory endpoint when available
-    if (typeof GrudgeFleet.getInventory === 'function') {
-      const rows = await GrudgeFleet.getInventory(id);
-      if (Array.isArray(rows) && rows.length) {
-        const map = {};
-        for (const row of rows) {
-          const name = row.name || row.itemName || row.item_id || row.id;
-          const qty = Number(row.qty ?? row.quantity ?? row.stack ?? 1);
-          if (name) map[name] = (map[name] || 0) + qty;
-        }
-        if (Object.keys(map).length) {
-          STATE.inventory = map;
-          updateSidebarBadges();
-          return;
-        }
-      }
+    const getter = GrudgeFleet.getAccountInventory || GrudgeFleet.getInventory;
+    if (typeof getter !== 'function') return false;
+    const rows = await getter.call(GrudgeFleet, STATE.activeCharacterId);
+    if (!Array.isArray(rows)) return false;
+    const map = {};
+    for (const row of rows) {
+      const name = row.name || row.itemName || row.item_id || row.itemId || row.id;
+      const qty = Number(row.qty ?? row.quantity ?? row.stack ?? 1);
+      if (name && qty > 0) map[name] = (map[name] || 0) + qty;
     }
-    // Fallback: character.inventory field from list/detail
-    const char = GrudgeFleet.getActiveCharacter?.() ||
-      (GrudgeFleet.getCharacters?.() || []).find((c) => String(c.id) === String(id));
-    if (char) applyCharacterToState(char);
+    // Always adopt Railway bag when signed in (empty bag is valid SSOT)
+    STATE.inventory = map;
+    STATE._inventoryFromRailway = true;
+    updateSidebarBadges();
+    // Refresh Puter cache from Railway so offline mirrors stay aligned
+    try {
+      if (STATE.user && typeof puter !== 'undefined' && puter.kv) {
+        await puter.kv.set('grudge-account-inventory', JSON.stringify(STATE.inventory));
+      }
+    } catch { /* cache optional */ }
+    return true;
   } catch (e) {
-    console.warn('loadCharacterInventory:', e);
+    console.warn('loadAccountInventory Railway failed — keeping cache:', e);
+    return false;
   }
+}
+/** @deprecated name — inventory is account-shared */
+async function loadCharacterInventory(_charId) {
+  return loadAccountInventory();
+}
+
+function ensureCharSheet(charId) {
+  if (!charId) return blankCharSheet();
+  if (!STATE.characterSheets[charId]) STATE.characterSheets[charId] = blankCharSheet();
+  return STATE.characterSheets[charId];
+}
+
+/** Stash full per-character progress into sheet keyed by Grudge UUID */
+function stashActiveCharacterSheet() {
+  const id = STATE.activeCharacterId;
+  if (!id) return;
+  const sheet = ensureCharSheet(id);
+  sheet.characterId = id;
+  sheet.professions = JSON.parse(JSON.stringify(STATE.professions));
+  sheet.equipment = { ...STATE.equipment };
+  sheet.stats = { ...STATE.stats };
+  if (STATE._activeAttrs) sheet.attributes = { ...STATE._activeAttrs };
+  if (STATE._activeSelectedSkills) sheet.selectedSkills = { ...STATE._activeSelectedSkills };
+  if (STATE._activeWeaponMastery) sheet.weaponMastery = JSON.parse(JSON.stringify(STATE._activeWeaponMastery));
+  if (STATE._activeProfNodes) sheet.professionSkillNodes = JSON.parse(JSON.stringify(STATE._activeProfNodes));
+  if (STATE._skillPoints != null) sheet.skillPoints = STATE._skillPoints;
+  if (STATE._unspentAttrs != null) sheet.unspentAttributePoints = STATE._unspentAttrs;
+  if (STATE._weaponSkillLevel != null) sheet.weaponSkillLevel = STATE._weaponSkillLevel;
+  if (STATE._charLevel != null) sheet.level = STATE._charLevel;
+  if (STATE._grudgeCode) sheet.grudgeCode = STATE._grudgeCode;
+}
+
+/** Load full per-character progress (inventory stays shared) */
+function loadCharacterSheet(charId) {
+  if (!charId) return;
+  const sheet = ensureCharSheet(charId);
+  STATE.professions = JSON.parse(JSON.stringify(sheet.professions || blankProfessions()));
+  STATE.equipment = { ...(sheet.equipment || blankEquipment()) };
+  if (sheet.stats) STATE.stats = { ...sheet.stats };
+  STATE._activeAttrs = { ...(sheet.attributes || blankAttributes()) };
+  STATE._activeSelectedSkills = { ...(sheet.selectedSkills || {}) };
+  STATE._activeWeaponMastery = JSON.parse(JSON.stringify(sheet.weaponMastery || { allocations: {}, sockets: {} }));
+  STATE._activeProfNodes = JSON.parse(JSON.stringify(sheet.professionSkillNodes || blankCharSheet().professionSkillNodes));
+  STATE._skillPoints = sheet.skillPoints ?? 1;
+  STATE._unspentAttrs = sheet.unspentAttributePoints ?? 0;
+  STATE._weaponSkillLevel = sheet.weaponSkillLevel ?? 1;
+  STATE._charLevel = sheet.level ?? 1;
+  STATE._grudgeCode = sheet.grudgeCode || null;
+  // Auto-unlock profession nodes by level
+  for (const [prof, nodes] of Object.entries(PROF_SKILL_TREES)) {
+    const lvl = STATE.professions[prof]?.level || 1;
+    const unlocked = new Set(STATE._activeProfNodes[prof] || []);
+    nodes.forEach((n) => { if (lvl >= n.req) unlocked.add(n.id); });
+    STATE._activeProfNodes[prof] = [...unlocked];
+  }
+  updateSidebarBadges();
 }
 
 async function refreshFleetState() {
@@ -1321,31 +1641,39 @@ async function refreshFleetState() {
   applyCharacterToState(GrudgeFleet.getActiveCharacter());
   try { STATE.user = await puter.auth.getUser(); } catch {}
   updateAuthUI();
+  // 1) Puter cache for UI chrome (not bag when Railway auth)
   await loadSaveData();
-  await loadCharacterInventory(STATE.activeCharacterId);
+  // 2) Railway account bag + character list already from same Postgres as Warlords
+  await loadAccountInventory();
+  await refreshCampsAndBenches();
   renderCharactersList();
   updateCharacterUI();
+  updateStationLockBadges();
 }
 
 async function checkAuth() {
   try {
     const embedded = window.parent !== window;
+    // init picks up ?grudge_token= / ?sso_token= and bridges to Railway JWT
     await GrudgeFleet.init({ mode: embedded ? 'embedded' : 'standalone' });
-    // Catch SSO token from URL / localStorage / Puter guest bridge
-    if (!GrudgeFleet.isLoggedIn()) await GrudgeFleet.ensureSession();
+    // Restore existing JWT only — do NOT silent-mint puter guests (empty roster trap)
+    if (!GrudgeFleet.isLoggedIn()) {
+      await GrudgeFleet.ensureSession({ allowPuterGuest: false });
+    }
     if (GrudgeFleet.isLoggedIn()) await GrudgeFleet.syncFromBackend();
     await refreshFleetState();
     // Keep UI in sync when character changes (other tabs / VFX studio SSO)
     if (typeof GrudgeFleet.onCharacterChange === 'function') {
       GrudgeFleet.onCharacterChange(async (char) => {
         if (!char) return;
-        STATE.activeCharacterId = char.id;
         applyCharacterToState(char);
-        await loadCharacterInventory(char.id);
+        // Inventory stays account-shared — do not swap bag
         renderCharactersList();
         updateCharacterUI();
+        updateStationLockBadges();
         if (typeof renderInventoryPage === 'function') renderInventoryPage();
         if (typeof renderDashboard === 'function' && STATE.currentPage === 'dashboard') renderDashboard();
+        if (STATE.currentPage === 'crafting') renderCraftingPage();
       });
     }
   } catch(e) { console.warn('Auth check:', e); }
@@ -1355,18 +1683,41 @@ function updateAuthUI() {
   const dot = document.getElementById('acctDot');
   const name = document.getElementById('acctName');
   const btn = document.getElementById('authBtn');
-  const displayName = STATE.user?.username || GrudgeFleet.getUser()?.username;
-  if (GrudgeFleet.isLoggedIn() || STATE.user) {
+  const fleetUser = (typeof GrudgeFleet !== 'undefined' && GrudgeFleet.getUser) ? GrudgeFleet.getUser() : null;
+  const displayName = fleetUser?.username || fleetUser?.displayName || STATE.user?.username;
+  const loggedIn = typeof GrudgeFleet !== 'undefined' && GrudgeFleet.isLoggedIn();
+  const charCount = (typeof GrudgeFleet !== 'undefined' && GrudgeFleet.getCharacters)
+    ? GrudgeFleet.getCharacters().length
+    : STATE.grudgeCharacters.length;
+  if (loggedIn) {
     dot.classList.add('on');
-    name.textContent = displayName || 'Warlord';
-    btn.textContent = '✓';
-    btn.disabled = true;
+    name.textContent = displayName || (charCount ? 'Warlord' : 'Account (no chars)');
+    // Never permanently disable — empty roster needs re-auth to real Warlords account
+    btn.disabled = false;
+    btn.textContent = charCount > 0 ? 'Switch' : 'Sign In';
+    btn.title = charCount > 0
+      ? 'Switch Grudge account'
+      : 'Sign in with Grudge ID to load Warlords characters';
+  } else {
+    dot.classList.remove('on');
+    name.textContent = 'Not signed in';
+    btn.disabled = false;
+    btn.textContent = 'Sign In';
+    btn.title = 'Sign in with Grudge ID';
   }
 }
 
 function applyCharacterToState(char) {
   if (!char) return;
-  STATE.activeCharacterId = char.id || STATE.activeCharacterId;
+  const nextId = char.id || STATE.activeCharacterId;
+  // Stash previous character's full sheet before switching
+  if (STATE.activeCharacterId && String(STATE.activeCharacterId) !== String(nextId)) {
+    stashActiveCharacterSheet();
+  }
+  STATE.activeCharacterId = nextId;
+  loadCharacterSheet(nextId);
+
+  // Merge remote progress into THIS character UUID only (never regress)
   STATE.professions = GrudgeFleet.mergeProfessionsFromCharacter(char, STATE.professions);
   if (char.equipment && Object.keys(char.equipment).length) {
     const slotMap = { Helm:'head', Chest:'chest', Hands:'hands', Feet:'feet', Weapon:'weapon', MainHand:'weapon', Offhand:'shield' };
@@ -1375,51 +1726,119 @@ function applyCharacterToState(char) {
       if (STATE.equipment[slot] !== undefined && v) STATE.equipment[slot] = v;
     }
   }
-  // Inventory: array of {name,qty} or map {name:qty}
-  if (char.inventory) {
-    if (Array.isArray(char.inventory)) {
-      const map = {};
-      for (const row of char.inventory) {
-        const name = row.name || row.itemName || row.id;
-        const qty = Number(row.qty ?? row.quantity ?? row.stack ?? 1);
-        if (name) map[name] = (map[name] || 0) + qty;
+  // Attributes / stats
+  const attrs = char.attributes || char.stats || {};
+  if (attrs && typeof attrs === 'object') {
+    const base = blankAttributes();
+    for (const k of Object.keys(base)) {
+      const v = attrs[k] ?? attrs[k.charAt(0).toUpperCase() + k.slice(1)] ?? attrs[k.toUpperCase()];
+      if (v != null) base[k] = Number(v) || 0;
+    }
+    // also accept Strength-style keys
+    const map = { Strength:'strength', Vitality:'vitality', Endurance:'endurance', Intellect:'intellect', Wisdom:'wisdom', Dexterity:'dexterity', Agility:'agility', Tactics:'tactics' };
+    for (const [K, k] of Object.entries(map)) if (attrs[K] != null) base[k] = Number(attrs[K]) || 0;
+    STATE._activeAttrs = base;
+  }
+  if (char.selectedSkills) STATE._activeSelectedSkills = { ...char.selectedSkills };
+  const mastery = (typeof GrudgeFleet.getWeaponMasteryFromCharacter === 'function'
+    ? GrudgeFleet.getWeaponMasteryFromCharacter(char)
+    : null) || char.weaponSkillSelections?.mastery;
+  if (mastery) STATE._activeWeaponMastery = JSON.parse(JSON.stringify(mastery));
+  if (char.weaponSkillLevel != null) STATE._weaponSkillLevel = char.weaponSkillLevel;
+  if (char.skillPoints != null) STATE._skillPoints = char.skillPoints;
+  if (char.unspentAttributePoints != null) STATE._unspentAttrs = char.unspentAttributePoints;
+  if (char.level != null) STATE._charLevel = char.level;
+  if (char.grudgeCode || char.grudgeDisplayId) STATE._grudgeCode = char.grudgeCode || char.grudgeDisplayId;
+  // Profession tree nodes from professionLevels.*.unlockedNodes
+  if (char.professionLevels) {
+    for (const [key, val] of Object.entries(char.professionLevels)) {
+      const label = { miner:'Miner', forester:'Forester', mystic:'Mystic', chef:'Chef', engineer:'Engineer' }[key] || key;
+      if (val?.unlockedNodes && STATE._activeProfNodes[label]) {
+        STATE._activeProfNodes[label] = [...new Set([...(STATE._activeProfNodes[label] || []), ...val.unlockedNodes])];
       }
-      if (Object.keys(map).length) STATE.inventory = { ...STATE.inventory, ...map };
-    } else if (typeof char.inventory === 'object') {
-      STATE.inventory = { ...STATE.inventory, ...char.inventory };
     }
   }
+  // NOTE: inventory is account-shared — never replace bag from character.inventory
+  stashActiveCharacterSheet();
 }
 
 async function syncCharacterToBackend() {
   const id = STATE.activeCharacterId || GrudgeFleet.getActiveId();
-  if (!id || !GrudgeFleet.isLoggedIn()) return;
-  // Prefer inventory helper (merges into character) then full character PATCH
-  if (typeof GrudgeFleet.saveInventory === 'function') {
-    try { await GrudgeFleet.saveInventory(id, STATE.inventory); } catch (e) { console.warn('saveInventory:', e); }
-  }
-  await GrudgeFleet.saveCharacter(id, {
-    professionLevels: GrudgeFleet.professionsToPayload(STATE.professions),
-    equipment: STATE.equipment,
-    inventory: STATE.inventory,
-  });
+  if (!GrudgeFleet.isLoggedIn()) return;
+  stashActiveCharacterSheet();
+
+  // Account-shared inventory
+  try {
+    if (typeof GrudgeFleet.saveAccountInventory === 'function') {
+      await GrudgeFleet.saveAccountInventory(STATE.inventory);
+    } else if (typeof GrudgeFleet.saveInventory === 'function') {
+      await GrudgeFleet.saveInventory(id, STATE.inventory);
+    }
+  } catch (e) { console.warn('saveAccountInventory:', e); }
+
+  // Full per-character progress bound to UUID
+  if (!id) return;
+  try {
+    const pl = GrudgeFleet.professionsToPayload(STATE.professions);
+    // attach unlockedNodes onto profession payload
+    if (STATE._activeProfNodes) {
+      for (const [label, nodes] of Object.entries(STATE._activeProfNodes)) {
+        const key = label.toLowerCase();
+        pl[key] = { ...(pl[key] || { level: 1, xp: 0 }), unlockedNodes: nodes };
+      }
+    }
+    const payload = {
+      schemaVersion: 1,
+      expectedRevision: typeof GrudgeFleet.getProgressRevision === 'function'
+        ? GrudgeFleet.getProgressRevision(id)
+        : undefined,
+      idempotencyKey: STATE._lastCraftIdempotencyKey || undefined,
+      professionLevels: pl,
+      equipment: STATE.equipment,
+      attributes: STATE._activeAttrs || blankAttributes(),
+      selectedSkills: STATE._activeSelectedSkills || {},
+      classSkillPicks: STATE._activeSelectedSkills || {},
+      weaponMastery: STATE._activeWeaponMastery || { allocations: {}, sockets: {} },
+      weaponSkillLevel: STATE._weaponSkillLevel || 1,
+      skillPoints: STATE._skillPoints ?? 1,
+      unspentAttributePoints: STATE._unspentAttrs ?? 0,
+      professionSkillNodes: STATE._activeProfNodes,
+    };
+    // one-shot craft key
+    STATE._lastCraftIdempotencyKey = null;
+    if (typeof GrudgeFleet.saveCharacterProgress === 'function') {
+      await GrudgeFleet.saveCharacterProgress(id, payload);
+    } else {
+      await GrudgeFleet.saveCharacter(id, payload);
+    }
+  } catch (e) { console.warn('saveCharacterProgress:', e); }
 }
 
 // ============================================================
 // PERSISTENCE (Puter KV)
+// inventory = account; characterSheets = per-char XP/gear
 // ============================================================
 async function saveData() {
   try {
+    stashActiveCharacterSheet();
     const data = {
+      version: 5,
+      inventory: STATE.inventory, // ACCOUNT shared
+      characterSheets: STATE.characterSheets, // per-char professions + equipment
+      characterCrafting: STATE.characterCrafting,
+      unlockedStations: STATE.unlockedStations,
+      camps: STATE.camps,
+      activeCharacterId: STATE.activeCharacterId,
+      activeStation: STATE.activeStation,
+      log: STATE.log.slice(-50),
+      // legacy fields for older loaders
       professions: STATE.professions,
-      inventory: STATE.inventory,
       equipment: STATE.equipment,
       stats: STATE.stats,
-      log: STATE.log.slice(-50),
-      activeCharacterId: STATE.activeCharacterId,
-      characterCrafting: STATE.characterCrafting,
     };
     if (STATE.user) await puter.kv.set('grudge-crafting-save', JSON.stringify(data));
+    // Also store account bag under a dedicated key
+    if (STATE.user) await puter.kv.set('grudge-account-inventory', JSON.stringify(STATE.inventory));
     await syncCharacterToBackend();
   } catch(e) { console.error('Save failed:', e); }
 }
@@ -1427,16 +1846,43 @@ async function saveData() {
 async function loadSaveData() {
   if (!STATE.user) return;
   try {
+    // Puter KV = offline UI cache only. Never treat as inventory SSOT when Railway session exists.
+    const railwayLoggedIn = typeof GrudgeFleet !== 'undefined' && GrudgeFleet.isLoggedIn();
+
+    if (!railwayLoggedIn) {
+      try {
+        const invRaw = await puter.kv.get('grudge-account-inventory');
+        if (invRaw) {
+          const inv = typeof invRaw === 'string' ? JSON.parse(invRaw) : invRaw;
+          if (inv && typeof inv === 'object') STATE.inventory = inv;
+        }
+      } catch { /* ignore */ }
+    }
+
     const raw = await puter.kv.get('grudge-crafting-save');
     if (raw) {
-      const data = JSON.parse(raw);
-      if (data.professions) Object.assign(STATE.professions, data.professions);
-      if (data.inventory) STATE.inventory = data.inventory;
-      if (data.equipment) STATE.equipment = data.equipment;
-      if (data.stats) STATE.stats = data.stats;
-      if (data.log) STATE.log = data.log;
-      if (data.activeCharacterId) STATE.activeCharacterId = data.activeCharacterId;
+      const data = typeof raw === 'string' ? JSON.parse(raw) : raw;
+      // Only use Puter inventory cache when not signed into Railway account
+      if (data.inventory && !railwayLoggedIn) STATE.inventory = data.inventory;
+      if (data.characterSheets) STATE.characterSheets = data.characterSheets;
       if (data.characterCrafting) STATE.characterCrafting = data.characterCrafting;
+      if (data.unlockedStations) STATE.unlockedStations = { ...STATE.unlockedStations, ...data.unlockedStations };
+      if (data.camps) STATE.camps = data.camps;
+      if (data.activeStation) STATE.activeStation = data.activeStation;
+      if (data.activeCharacterId) STATE.activeCharacterId = data.activeCharacterId;
+      if (data.log) STATE.log = data.log;
+
+      // Migrate legacy flat professions/equipment into active character sheet
+      if (!data.characterSheets && data.professions) {
+        const id = STATE.activeCharacterId || 'legacy';
+        ensureCharSheet(id);
+        STATE.characterSheets[id].professions = data.professions;
+        if (data.equipment) STATE.characterSheets[id].equipment = data.equipment;
+        if (data.stats) STATE.characterSheets[id].stats = data.stats;
+      }
+      if (STATE.activeCharacterId) loadCharacterSheet(STATE.activeCharacterId);
+      else if (data.professions) Object.assign(STATE.professions, data.professions);
+
       renderAll();
       showToast('Save data loaded!', 'success');
     }
@@ -1476,7 +1922,146 @@ function renderCurrentPage() {
   else if (p === 'inventory') renderInventoryPage();
   else if (p === 'account') renderAccountPage();
   else if (p === 'item-database') renderItemDatabase();
+  else if (p === 'camps') renderCampsPage();
+  else if (p === 'wcs-arsenal') renderWcsArsenal();
+  else if (p === 'wcs-materials') renderWcsMaterials();
+  else if (p === 'char-progress') renderCharProgressPage();
   else if (p.startsWith('prof-')) renderProfessionPage(p.replace('prof-',''));
+}
+
+/** Open class skill tree with SSO token + character UUID */
+function openCharacterSkillTree() {
+  const base = window.GRUDGE_CONFIG.SKILL_TREE_URL || './skill-tree.html';
+  const url = (typeof GrudgeFleet !== 'undefined' && GrudgeFleet.buildSSOUrl)
+    ? GrudgeFleet.buildSSOUrl(base, { characterId: STATE.activeCharacterId })
+    : base + (STATE.activeCharacterId ? '?characterId=' + encodeURIComponent(STATE.activeCharacterId) : '');
+  window.open(url, '_blank', 'noopener');
+}
+function openCharacterWeaponMastery() {
+  const base = window.GRUDGE_CONFIG.WEAPON_MASTERY_URL || './weaponmastery.html';
+  const url = (typeof GrudgeFleet !== 'undefined' && GrudgeFleet.buildSSOUrl)
+    ? GrudgeFleet.buildSSOUrl(base, { characterId: STATE.activeCharacterId })
+    : base + (STATE.activeCharacterId ? '?characterId=' + encodeURIComponent(STATE.activeCharacterId) : '');
+  window.open(url, '_blank', 'noopener');
+}
+
+function masterySpentTotal(mastery) {
+  if (!mastery?.allocations) return 0;
+  return Object.values(mastery.allocations).reduce((sum, tree) => {
+    if (!tree || typeof tree !== 'object') return sum;
+    return sum + Object.values(tree).reduce((s, n) => s + (Number(n) || 0), 0);
+  }, 0);
+}
+
+function renderCharProgressPage() {
+  const el = document.getElementById('char-progress-body');
+  if (!el) return;
+  const id = STATE.activeCharacterId;
+  const char = STATE.grudgeCharacters.find((c) => String(c.id) === String(id));
+  if (!id) {
+    el.innerHTML = `<div class="card"><p style="font-size:12px;color:var(--text-dim)">Select a character first. All skill trees, mastery, attributes, and equipment bind to that character's Grudge UUID.</p></div>`;
+    return;
+  }
+  const attrs = STATE._activeAttrs || blankAttributes();
+  const attrNames = Object.keys(attrs);
+  const skills = STATE._activeSelectedSkills || {};
+  const masteryPts = masterySpentTotal(STATE._activeWeaponMastery);
+  const skillCount = Object.keys(skills).length;
+
+  el.innerHTML = `
+    <div class="card" style="margin-bottom:12px">
+      <div class="card-title">⚔ ${char?.name || 'Character'}
+        <span style="float:right;font-size:10px;color:var(--text-dim);font-family:Inter;font-weight:400">UUID ${String(id).slice(0, 13)}…</span>
+      </div>
+      <div style="font-size:11px;color:var(--text-dim);margin-bottom:8px">
+        ${char ? `${char.race || char.raceId || ''} ${char.class || char.classId || ''} · Lv ${STATE._charLevel || char.level || 1}` : ''}
+        ${STATE._grudgeCode ? ` · <span style="color:var(--gold)">${STATE._grudgeCode}</span>` : ''}
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
+        <span class="scope-pill character">Skill pts: ${STATE._skillPoints ?? 1}</span>
+        <span class="scope-pill character">Unspent attrs: ${STATE._unspentAttrs ?? 0}</span>
+        <span class="scope-pill character">Weapon skill lv: ${STATE._weaponSkillLevel ?? 1}</span>
+        <span class="scope-pill character">Mastery spent: ${masteryPts}</span>
+        <span class="scope-pill character">Class skills: ${skillCount}</span>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="filter-btn" onclick="openCharacterSkillTree()">🌳 Class Skill Tree</button>
+        <button class="filter-btn" onclick="openCharacterWeaponMastery()">⚔ Weapon Mastery</button>
+        <button class="filter-btn" onclick="hydrateActiveCharacterDetail()">🔄 Refresh from API</button>
+      </div>
+    </div>
+
+    <div class="grid2">
+      <div class="card">
+        <div class="card-title">Attributes</div>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">
+          ${attrNames.map((a) => `
+            <div style="text-align:center;padding:10px 4px;background:rgba(0,0,0,.25);border:1px solid var(--border);border-radius:6px">
+              <div style="font-family:'JetBrains Mono';font-size:18px;color:var(--gold)">${attrs[a] || 0}</div>
+              <div style="font-size:9px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.05em">${a.slice(0, 3)}</div>
+            </div>`).join('')}
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Equipment <span class="scope-pill character">this char</span></div>
+        <div id="progress-equip"></div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:12px">
+      <div class="card-title">Profession Skill Trees</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px">
+        ${Object.entries(STATE.professions).map(([name, p]) => {
+          const nodes = PROF_SKILL_TREES[name] || [];
+          const unlocked = new Set(STATE._activeProfNodes?.[name] || []);
+          const nUnlock = nodes.filter((n) => unlocked.has(n.id)).length;
+          return `<div class="codex-card" style="cursor:pointer" onclick="navigate('prof-${name.toLowerCase()}')">
+            <h4>${p.icon} ${name} · Lv ${p.level}</h4>
+            <p>${nUnlock}/${nodes.length} nodes unlocked</p>
+            <div class="prof-xp-bar" style="margin-top:6px"><div class="prof-xp-fill" style="width:${Math.min(100,(p.xp/p.xpNext)*100)}%;background:${p.color}"></div></div>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:12px">
+      <div class="card-title">Class Skill Picks</div>
+      ${skillCount ? `<div style="display:flex;flex-wrap:wrap;gap:6px">${Object.entries(skills).map(([t,s]) =>
+        `<span class="scope-pill character">T${t}: ${Array.isArray(s) ? s.join(', ') : s}</span>`).join('')}</div>`
+        : `<p style="font-size:11px;color:var(--text-dim)">No class skills selected yet. Open the Class Skill Tree to pick skills for this UUID.</p>`}
+    </div>
+  `;
+  // equipment mini
+  const slots = ['head','chest','hands','feet','weapon','shield','ring','necklace'];
+  const eqEl = document.getElementById('progress-equip');
+  if (eqEl) {
+    eqEl.innerHTML = slots.map((s) => {
+      const item = STATE.equipment[s];
+      return `<div class="equip-slot"><span class="slot-label">${s}</span>${item ? `<span class="slot-item">${item}</span>` : `<span class="slot-empty">Empty</span>`}</div>`;
+    }).join('');
+  }
+}
+
+async function hydrateActiveCharacterDetail() {
+  const id = STATE.activeCharacterId || GrudgeFleet.getActiveId();
+  if (!id || !GrudgeFleet.isLoggedIn()) {
+    showToast('Sign in and select a character', 'error');
+    return;
+  }
+  try {
+    const char = typeof GrudgeFleet.getCharacterDetail === 'function'
+      ? await GrudgeFleet.getCharacterDetail(id)
+      : null;
+    if (char) {
+      applyCharacterToState(char);
+      showToast('Character progress loaded from API', 'success');
+      renderCharProgressPage();
+      updateCharacterUI();
+    } else showToast('Could not load character detail', 'error');
+  } catch (e) {
+    console.warn(e);
+    showToast('Load failed', 'error');
+  }
 }
 
 function updateSidebarBadges() {
@@ -1617,42 +2202,104 @@ function renderDashboard() {
   renderLog('dash-log');
 }
 
-// === CRAFTING BENCH ===
+// === WCS STATION TABS + CRAFTING ===
+function isStationUnlocked(stationId) {
+  const st = WCS_STATIONS.find((s) => s.id === stationId);
+  if (!st) return false;
+  if (st.always) return true;
+  return !!STATE.unlockedStations[stationId];
+}
+
+function openStation(stationId) {
+  if (!isStationUnlocked(stationId)) {
+    showToast('Station locked — need a friendly/owned camp with this bench', 'error');
+    navigate('camps');
+    return;
+  }
+  STATE.activeStation = stationId;
+  STATE.selectedRecipe = null;
+  navigate('crafting');
+}
+
+function updateStationLockBadges() {
+  WCS_STATIONS.forEach((st) => {
+    const el = document.getElementById('lock-' + st.id);
+    if (!el) return;
+    const unlocked = isStationUnlocked(st.id);
+    el.textContent = unlocked ? '✓' : '🔒';
+    el.style.color = unlocked ? 'var(--green)' : 'var(--text-dim)';
+  });
+}
+
+function renderStationTabs() {
+  const el = document.getElementById('station-tabs');
+  if (!el) return;
+  el.innerHTML = WCS_STATIONS.map((st) => {
+    const unlocked = isStationUnlocked(st.id);
+    const active = STATE.activeStation === st.id;
+    return `<button class="station-tab ${active ? 'active' : ''} ${unlocked ? '' : 'locked'}"
+      onclick="${unlocked ? `STATE.activeStation='${st.id}';STATE.selectedRecipe=null;renderCraftingPage()` : `showToast('Locked — unlock at Camps & Benches','error')`}"
+      title="${st.desc}">
+      <span class="st-icon">${st.icon}</span>
+      <span>${st.name}</span>
+      ${unlocked ? '' : '<span class="lock">🔒</span>'}
+    </button>`;
+  }).join('');
+
+  const hint = document.getElementById('station-hint');
+  const st = WCS_STATIONS.find((s) => s.id === STATE.activeStation) || WCS_STATIONS[0];
+  const unlocked = isStationUnlocked(st.id);
+  const char = STATE.grudgeCharacters.find((c) => c.id === STATE.activeCharacterId);
+  if (hint) {
+    hint.innerHTML = unlocked
+      ? `<strong>${st.icon} ${st.name}</strong> · ${st.desc}
+         ${st.prof !== 'All' ? ` · XP goes to <strong>${st.prof}</strong>${char ? ` (${char.name})` : ''}` : ''}
+         · <span class="scope-pill account">shared bag</span>`
+      : `<strong>🔒 ${st.name} locked</strong> — unlock by owning or befriending a camp with this bench. <a href="#" onclick="navigate('camps');return false" style="color:var(--gold)">View camps</a>`;
+  }
+  updateStationLockBadges();
+}
+
 function renderCraftingPage() {
-  const prof = document.getElementById('bench-prof').value;
-  const filtered = RECIPES.filter(r => {
-    if (prof !== 'All' && r.prof !== prof && r.prof !== 'All') return false;
+  // Ensure active station unlocked (fall back to camp)
+  if (!isStationUnlocked(STATE.activeStation)) STATE.activeStation = 'camp';
+  renderStationTabs();
+
+  const st = WCS_STATIONS.find((s) => s.id === STATE.activeStation) || WCS_STATIONS[0];
+  const stationRecipes = RECIPES.filter((r) => (r.station || PROF_TO_STATION[r.prof] || 'camp') === st.id);
+
+  const filtered = stationRecipes.filter((r) => {
     if (STATE.filterTier !== 'all' && r.tier !== parseInt(STATE.filterTier)) return false;
     if (STATE.filterType !== 'all' && r.type.toLowerCase() !== STATE.filterType) return false;
     return true;
   });
 
-  // Tier filters
-  const tiers = [...new Set(RECIPES.map(r => r.tier))].sort();
+  const tiers = [...new Set(stationRecipes.map((r) => r.tier))].sort((a, b) => a - b);
   document.getElementById('tier-filters').innerHTML =
     `<button class="filter-btn ${STATE.filterTier==='all'?'active':''}" onclick="STATE.filterTier='all';renderCraftingPage()">All Tiers</button>` +
-    tiers.map(t => `<button class="filter-btn ${STATE.filterTier==String(t)?'active':''}" onclick="STATE.filterTier='${t}';renderCraftingPage()">T${t}</button>`).join('');
+    tiers.map((t) => `<button class="filter-btn ${STATE.filterTier==String(t)?'active':''}" onclick="STATE.filterTier='${t}';renderCraftingPage()">T${t} ${WCS_TIER_NAMES[t]||''}</button>`).join('');
 
-  // Type filters
-  const types = [...new Set(RECIPES.map(r => r.type.toLowerCase()))];
+  const types = [...new Set(stationRecipes.map((r) => r.type.toLowerCase()))];
   document.getElementById('type-filters').innerHTML =
     `<button class="filter-btn ${STATE.filterType==='all'?'active':''}" onclick="STATE.filterType='all';renderCraftingPage()">All Types</button>` +
-    types.map(t => `<button class="filter-btn ${STATE.filterType===t?'active':''}" onclick="STATE.filterType='${t}';renderCraftingPage()">${t[0].toUpperCase()+t.slice(1)}</button>`).join('');
+    types.map((t) => `<button class="filter-btn ${STATE.filterType===t?'active':''}" onclick="STATE.filterType='${t}';renderCraftingPage()">${t[0].toUpperCase()+t.slice(1)}</button>`).join('');
 
-  // Recipe list
-  document.getElementById('recipe-list').innerHTML = filtered.map(r => {
-    const canCraft = checkCanCraft(r);
-    const sel = STATE.selectedRecipe && STATE.selectedRecipe.id === r.id;
-    const tierColors = ['#666','#22c55e','#60a5fa','#a78bfa','#f59e0b','#ef4444','#ec4899','#f97316','#dc2626'];
-    return `<div class="recipe-item ${sel?'selected':''} ${canCraft?'':'cant-craft'}" onclick="selectRecipe('${r.id}')">
-      <span class="recipe-icon">${r.icon||'📦'}</span>
-      <div class="recipe-info">
-        <div class="recipe-name">${r.n}</div>
-        <div class="recipe-meta">${r.prof} · ${r.type}</div>
-      </div>
-      <span class="recipe-tier" style="color:${tierColors[r.tier]};border-color:${tierColors[r.tier]}30">T${r.tier}</span>
-    </div>`;
-  }).join('') || '<div style="padding:20px;text-align:center;color:var(--text-dim)">No recipes match filters</div>';
+  const locked = !isStationUnlocked(st.id);
+  document.getElementById('recipe-list').innerHTML = locked
+    ? `<div style="padding:24px;text-align:center;color:var(--text-dim)">🔒 Unlock <strong>${st.name}</strong> at a friendly or owned camp.</div>`
+    : filtered.map((r) => {
+      const canCraft = checkCanCraft(r);
+      const sel = STATE.selectedRecipe && STATE.selectedRecipe.id === r.id;
+      const tierColors = ['#666','#22c55e','#60a5fa','#a78bfa','#f59e0b','#ef4444','#ec4899','#f97316','#dc2626'];
+      return `<div class="recipe-item ${sel?'selected':''} ${canCraft?'':'cant-craft'}" onclick="selectRecipe('${r.id}')">
+        <span class="recipe-icon">${r.icon||'📦'}</span>
+        <div class="recipe-info">
+          <div class="recipe-name">${r.n}</div>
+          <div class="recipe-meta">${r.prof} · ${r.type} · ${st.name}</div>
+        </div>
+        <span class="recipe-tier" style="color:${tierColors[r.tier]||'#888'};border-color:${(tierColors[r.tier]||'#888')}30">T${r.tier}</span>
+      </div>`;
+    }).join('') || '<div style="padding:20px;text-align:center;color:var(--text-dim)">No recipes match filters</div>';
 
   renderBenchDetail();
 }
@@ -1712,6 +2359,15 @@ function checkCanCraft(recipe) {
 async function craftItem(id) {
   const recipe = RECIPES.find(r => r.id === id);
   if (!recipe || !checkCanCraft(recipe) || STATE.isCrafting) return;
+  const stId = recipe.station || PROF_TO_STATION[recipe.prof] || 'camp';
+  if (!isStationUnlocked(stId)) {
+    showToast('Station locked — visit a friendly/owned camp bench', 'error');
+    return;
+  }
+  // XP always applies to the active character sheet
+  if (!STATE.activeCharacterId && GrudgeFleet.getActiveId()) {
+    STATE.activeCharacterId = GrudgeFleet.getActiveId();
+  }
 
   STATE.isCrafting = true;
   renderBenchDetail();
@@ -1753,6 +2409,13 @@ function finishCraft(recipe) {
       STATE.professions[prof].xp -= STATE.professions[prof].xpNext;
       STATE.professions[prof].level++;
       STATE.professions[prof].xpNext = Math.floor(STATE.professions[prof].xpNext * 1.5);
+      // Unlock profession skill-tree nodes for this character UUID
+      const tree = PROF_SKILL_TREES[prof] || [];
+      if (!STATE._activeProfNodes) STATE._activeProfNodes = blankCharSheet().professionSkillNodes;
+      if (!STATE._activeProfNodes[prof]) STATE._activeProfNodes[prof] = [];
+      const set = new Set(STATE._activeProfNodes[prof]);
+      tree.forEach((n) => { if (STATE.professions[prof].level >= n.req) set.add(n.id); });
+      STATE._activeProfNodes[prof] = [...set];
       addLog(`🎉 ${prof} leveled up to ${STATE.professions[prof].level}!`, 'level');
       if (STATE.activeCharacterId) syncCharacterToBackend();
       // Full-screen level-up banner + floating XP pop
@@ -1788,10 +2451,13 @@ function finishCraft(recipe) {
   }
 
   addLog(`🔨 Crafted ${recipe.n} (+${xpGain} ${prof} XP)`, 'craft');
+  stashActiveCharacterSheet(); // persist per-char XP/levels
   STATE.isCrafting = false;
   showToast(`Crafted ${recipe.icon} ${recipe.n}!`);
   updateSidebarBadges();
   renderCraftingPage();
+  // Idempotent craft save key (prevents double-apply on retry)
+  STATE._lastCraftIdempotencyKey = 'craft:' + (STATE.activeCharacterId || 'anon') + ':' + recipe.id + ':' + Date.now();
   saveData();
 }
 
@@ -2106,8 +2772,9 @@ function gatherMaterials() {
   }
 }
 
-// === GRUDGE WARLORDS API (via GrudgeFleet → Railway) ===
+// === GRUDGE WARLORDS API (via GrudgeFleet → Railway Postgres) ===
 async function fetchGrudgeCharacters() {
+  if (!GrudgeFleet.isLoggedIn()) return;
   await GrudgeFleet.syncFromBackend();
   STATE.grudgeToken = GrudgeFleet.getToken();
   STATE.grudgeCharacters = GrudgeFleet.getCharacters();
@@ -2115,45 +2782,267 @@ async function fetchGrudgeCharacters() {
     STATE.activeCharacterId = GrudgeFleet.getActiveId();
   }
   applyCharacterToState(GrudgeFleet.getActiveCharacter());
+  try { await loadAccountInventory(); } catch {}
+  updateAuthUI();
   renderCharactersList();
   updateCharacterUI();
   renderAll();
-  if (STATE.grudgeCharacters.length) showToast('Loaded ' + STATE.grudgeCharacters.length + ' characters', 'success');
+  if (STATE.grudgeCharacters.length) {
+    showToast('Loaded ' + STATE.grudgeCharacters.length + ' characters from Railway', 'success');
+  }
 }
 
+/**
+ * Refresh roster from Railway, or send user to Grudge ID if no real session.
+ * "Refresh" with an empty puter:* guest must NOT spin forever — re-auth.
+ */
 async function loginToGrudge() {
-  if (GrudgeFleet.isLoggedIn()) {
-    await fetchGrudgeCharacters();
-    return;
-  }
-  if (STATE.user) {
-    try {
-      await GrudgeFleet.signIn();
+  try {
+    if (GrudgeFleet.isLoggedIn()) {
       await fetchGrudgeCharacters();
-    } catch(e) { console.warn('Fleet auth failed:', e); }
+      if (STATE.grudgeCharacters.length === 0) {
+        showToast('No characters on this account — sign in with your Warlords Grudge ID', 'error');
+        // Offer re-login after a beat so user sees the toast
+        setTimeout(() => {
+          if (confirm('This session has no Warlords characters.\n\nSign in with Grudge ID to load your real roster?')) {
+            if (typeof GrudgeFleet.signOut === 'function') GrudgeFleet.signOut();
+            GrudgeFleet.signIn({ mode: 'grudge-id' });
+          }
+        }, 200);
+      }
+      return;
+    }
+    await GrudgeFleet.signIn({ mode: 'grudge-id' });
+  } catch (e) {
+    console.warn('Fleet auth failed:', e);
+    showToast('Could not load characters', 'error');
   }
 }
 
 async function selectCharacter(charId) {
+  // Stash current char progress, load target UUID — inventory stays shared
+  stashActiveCharacterSheet();
   STATE.activeCharacterId = charId;
   GrudgeFleet.selectCharacter(charId);
-  applyCharacterToState(GrudgeFleet.getActiveCharacter());
-  await loadCharacterInventory(charId);
+  // Prefer full detail (attrs, skills, mastery) from API
+  let char = GrudgeFleet.getActiveCharacter() || { id: charId };
+  try {
+    if (typeof GrudgeFleet.getCharacterDetail === 'function' && GrudgeFleet.isLoggedIn()) {
+      const detail = await GrudgeFleet.getCharacterDetail(charId);
+      if (detail) char = detail;
+    }
+  } catch (e) { console.warn('character detail:', e); }
+  applyCharacterToState(char);
   renderCharactersList();
   renderActiveCharacter();
   updateCharacterUI();
+  updateStationLockBadges();
   if (STATE.currentPage === 'dashboard') renderDashboard();
+  if (STATE.currentPage === 'crafting') renderCraftingPage();
   if (STATE.currentPage === 'inventory') renderInventoryPage();
+  if (STATE.currentPage === 'char-progress') renderCharProgressPage();
+  if (STATE.currentPage.startsWith('prof-')) renderProfessionPage(STATE.currentPage.replace('prof-', ''));
   saveData();
-  showToast('Character selected!', 'success');
+  const c = STATE.grudgeCharacters.find((x) => String(x.id) === String(charId));
+  showToast(c ? `${c.name} — skills/mastery/attrs bound to UUID` : 'Character selected!', 'success');
+}
+
+// ============================================================
+// CAMPS & BENCH UNLOCKS (own or friendly)
+// ============================================================
+function normalizeBuildingName(b) {
+  if (!b) return '';
+  if (typeof b === 'string') return b.toLowerCase();
+  return String(b.type || b.name || b.id || b.buildingType || b.kind || '').toLowerCase();
+}
+
+function unlockStationsFromBuildings(buildings, campMeta) {
+  const names = (buildings || []).map(normalizeBuildingName).filter(Boolean);
+  // Always grant camp + cooking when any camp exists (campfire baseline)
+  if (campMeta) {
+    STATE.unlockedStations.camp = true;
+    // campfire / hearth → cooking
+    if (names.some((n) => /campfire|hearth|stove|cook/.test(n)) || campMeta.relation === 'owned') {
+      STATE.unlockedStations.cooking = true;
+    }
+  }
+  for (const st of WCS_STATIONS) {
+    if (st.always) { STATE.unlockedStations[st.id] = true; continue; }
+    for (const key of st.unlockKeys) {
+      if (names.some((n) => n.includes(key) || key.includes(n))) {
+        STATE.unlockedStations[st.id] = true;
+        break;
+      }
+    }
+  }
+}
+
+async function refreshCampsAndBenches() {
+  const camps = [];
+  // Owned home island
+  try {
+    if (GrudgeFleet.isLoggedIn() && typeof GrudgeFleet.getHomeIsland === 'function') {
+      const island = await GrudgeFleet.getHomeIsland();
+      if (island) {
+        const state = island.state || island;
+        const buildings = state.buildings || state.structures || state.nodes?.filter?.((n) => n.kind === 'building' || n.type === 'building') || [];
+        // Also scan flat keys for placed benches
+        const placed = [];
+        if (Array.isArray(buildings)) placed.push(...buildings);
+        if (state.workshop) placed.push(state.workshop);
+        if (state.camp) placed.push(state.camp);
+        // Common starter set on owned home island
+        const starter = ['campfire', 'tent', 'workbench', 'camp'];
+        if (island.ownerId || island.userId || true) {
+          // Owned home always unlocks camp + cooking; higher benches if present
+          camps.push({
+            id: island.id || 'home',
+            name: island.name || 'Home Island Camp',
+            relation: 'owned',
+            buildings: [...starter, ...placed.map(normalizeBuildingName)],
+          });
+        }
+      }
+    }
+  } catch (e) { console.warn('home island:', e); }
+
+  // Friendly camps from islandData / API (best-effort)
+  try {
+    const id = STATE.activeCharacterId;
+    if (id && STATE.islandData[id]?.friendlyCamps) {
+      for (const fc of STATE.islandData[id].friendlyCamps) {
+        camps.push({
+          id: fc.id || fc.name,
+          name: fc.name || 'Friendly Camp',
+          relation: 'friendly',
+          buildings: (fc.buildings || fc.benches || []).map(normalizeBuildingName),
+        });
+      }
+    }
+  } catch { /* ignore */ }
+
+  // Demo unlock path when no remote camps: owned starter only
+  if (!camps.length) {
+    camps.push({
+      id: 'local-starter',
+      name: 'Starter Camp (local)',
+      relation: 'owned',
+      buildings: ['campfire', 'tent', 'workbench', 'camp'],
+    });
+  }
+
+  STATE.camps = camps;
+  // Reset unlocks then re-apply (keep camp defaults)
+  STATE.unlockedStations = { camp: true, cooking: true };
+  for (const c of camps) {
+    if (c.relation === 'owned' || c.relation === 'friendly') {
+      unlockStationsFromBuildings(c.buildings, c);
+    }
+  }
+  // Owned camps also grant smithing/lumber baseline workbench progression later;
+  // if a workbench is present on owned camp, unlock tinker lightly
+  for (const c of camps) {
+    if (c.relation !== 'owned') continue;
+    const b = (c.buildings || []).join(' ');
+    if (/workbench|workshop/.test(b)) STATE.unlockedStations.tinker = true;
+  }
+
+  updateStationLockBadges();
+  if (STATE.currentPage === 'camps') renderCampsPage();
+  if (STATE.currentPage === 'crafting') renderCraftingPage();
+  return camps;
+}
+
+function renderCampsPage() {
+  const list = document.getElementById('camps-list');
+  const unlockEl = document.getElementById('unlocked-stations-list');
+  if (!list) return;
+  if (!STATE.camps.length) {
+    list.innerHTML = `<div class="card"><p style="font-size:12px;color:var(--text-dim)">No camps loaded. Sign in and refresh to pull your home island.</p>
+      <button class="filter-btn" onclick="refreshCampsAndBenches()">🔄 Refresh</button></div>`;
+  } else {
+    list.innerHTML = STATE.camps.map((c) => {
+      const relColor = c.relation === 'owned' ? 'var(--green)' : c.relation === 'friendly' ? 'var(--blue)' : 'var(--text-dim)';
+      const benches = (c.buildings || []).filter(Boolean);
+      return `<div class="card" style="margin-bottom:10px">
+        <div class="card-title">${c.relation === 'owned' ? '🏠' : '🤝'} ${c.name}
+          <span style="float:right;font-size:10px;color:${relColor};font-family:Inter;font-weight:500">${c.relation}</span>
+        </div>
+        <div style="font-size:11px;color:var(--text-dim);margin-bottom:6px">Benches / buildings</div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px">
+          ${benches.length ? benches.map((b) => `<span class="scope-pill" style="font-size:10px">${b}</span>`).join('') : '<span class="scope-pill">none listed</span>'}
+        </div>
+      </div>`;
+    }).join('');
+  }
+  if (unlockEl) {
+    unlockEl.innerHTML = WCS_STATIONS.map((st) => {
+      const ok = isStationUnlocked(st.id);
+      return `<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border)">
+        <span>${st.icon}</span>
+        <span style="flex:1">${st.name}</span>
+        <span style="color:${ok ? 'var(--green)' : 'var(--text-dim)'};font-size:11px">${ok ? '✓ Unlocked' : '🔒 Locked'}</span>
+        ${ok ? `<button class="filter-btn" onclick="openStation('${st.id}')">Open</button>` : ''}
+      </div>`;
+    }).join('');
+  }
+}
+
+function renderWcsArsenal() {
+  const el = document.getElementById('wcs-arsenal-body');
+  if (!el) return;
+  const weapons = RECIPES.filter((r) => /weapon/i.test(r.type));
+  const armor = RECIPES.filter((r) => /armor/i.test(r.type));
+  const util = RECIPES.filter((r) => /util|consumable|building/i.test(r.type));
+  const section = (title, items) => `
+    <div class="card" style="grid-column:1/-1;margin-bottom:8px"><div class="card-title">${title} (${items.length})</div></div>
+    ${items.map((r) => `<div class="codex-card">
+      <h4>${r.icon || '📦'} ${r.n}</h4>
+      <p>T${r.tier} ${WCS_TIER_NAMES[r.tier] || ''} · ${r.prof} · ${r.station || ''}</p>
+      <p>${r.desc || ''}</p>
+    </div>`).join('')}`;
+  el.innerHTML = section('Weapons', weapons) + section('Armor', armor) + section('Utilities / Consumables', util);
+}
+
+function renderWcsMaterials() {
+  const el = document.getElementById('wcs-materials-body');
+  if (!el) return;
+  el.innerHTML = `<div class="codex-grid">` + Object.entries(WCS_MAT_TIERS).map(([t, mats]) => `
+    <div class="codex-card">
+      <h4>T${t} — ${WCS_TIER_NAMES[t] || ''}</h4>
+      <p>Ingot: ${mats.ingot}</p>
+      <p>Plank: ${mats.plank}</p>
+      <p>Cloth: ${mats.cloth}</p>
+      <p>Leather: ${mats.leather}</p>
+      <p>Gem: ${mats.gem}</p>
+      <p style="margin-top:6px">In bag:
+        ${['ingot','plank','cloth','leather','gem'].map((k) => {
+          const n = mats[k];
+          const q = STATE.inventory[n] || 0;
+          return `<span class="scope-pill ${q ? 'account' : ''}" style="margin:2px">${n}: ${q}</span>`;
+        }).join(' ')}
+      </p>
+    </div>`).join('') + `</div>`;
 }
 
 function renderCharactersList() {
   const el = document.getElementById('acct-characters-list');
+  if (!el) return;
   if (STATE.grudgeCharacters.length === 0) {
-    el.innerHTML = STATE.user
-      ? '<div style="padding:8px;font-size:11px;color:var(--text-dim)">No characters found. <a href="https://grudgewarlords.com/character" target="_blank" style="color:var(--gold)">Create one at grudgewarlords.com</a></div>'
-      : '<div style="padding:8px;font-size:11px;color:var(--text-dim)">Sign in to load your characters from grudgewarlords.com</div>';
+    const loggedIn = typeof GrudgeFleet !== 'undefined' && GrudgeFleet.isLoggedIn();
+    if (loggedIn) {
+      el.innerHTML = `<div style="padding:10px;font-size:11px;color:var(--text-dim);line-height:1.5">
+        No characters on this Grudge account.<br/>
+        <button class="filter-btn" onclick="doAuth()" style="margin:8px 8px 0 0">Sign in with Grudge ID</button>
+        <a href="https://grudgewarlords.com/character" target="_blank" style="color:var(--gold)">Create character</a>
+        <div style="margin-top:8px;font-size:10px;opacity:0.8">Uses the same Railway DB as grudgewarlords.com — sign in with the same account you use there.</div>
+      </div>`;
+    } else {
+      el.innerHTML = `<div style="padding:10px;font-size:11px;color:var(--text-dim);line-height:1.5">
+        Sign in with <strong style="color:var(--gold)">Grudge ID</strong> to load characters from Railway (same DB as Warlords).<br/>
+        <button class="filter-btn" onclick="doAuth()" style="margin-top:8px">Sign In</button>
+      </div>`;
+    }
     return;
   }
   const classIcons = { warrior:'⚔️', mage:'🔮', rogue:'🗡️', cleric:'✨', worg:'🐺', ranger:'🏹' };
@@ -2172,8 +3061,9 @@ function renderCharactersList() {
         <div style="display:flex;align-items:center;gap:10px">
           <div style="width:40px;height:40px;border-radius:50%;background:rgba(${active?'212,168,67':'255,255,255'},0.08);border:2px solid ${active?'var(--gold)':raceColor};display:flex;align-items:center;justify-content:center;font-size:18px">${classIcon}</div>
           <div style="flex:1;min-width:0">
-            <div style="font-size:13px;font-weight:700;color:${active?'var(--gold)':'var(--text)'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c.name}</div>
-            <div style="font-size:10px;color:${raceColor}">${c.race} ${c.class} · Lv ${c.level || 1}</div>
+            <div style="font-size:13px;font-weight:700;color:${active?'var(--gold)':'var(--text)'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c.name || c.grudgeCode || 'Warlord'}</div>
+            <div style="font-size:10px;color:${raceColor}">${c.race || c.raceId || ''} ${c.class || c.classId || ''} · Lv ${c.level || 1}</div>
+            ${c.grudgeCode ? `<div style="font-size:9px;font-family:monospace;color:var(--gold-dim);margin-top:2px;opacity:0.85">${c.grudgeCode}</div>` : ''}
           </div>
         </div>
         ${active ? '<div style="font-size:9px;color:var(--gold);margin-top:6px;text-align:center;letter-spacing:0.1em">✓ ACTIVE</div>' : ''}
@@ -2271,6 +3161,8 @@ function renderAcctCharacters() {
   document.getElementById('acct-save').innerHTML = `
     <p style="font-size:11px;color:var(--text-dim);margin-bottom:10px">
       ${STATE.user ? `Signed in as <strong>${STATE.user.username}</strong>. Data auto-saves to Puter cloud.` : 'Sign in to enable cloud saves.'}
+      <br><span class="scope-pill account">Inventory shared</span>
+      <span class="scope-pill character">XP / levels / equipment = this character</span>
     </p>
     <div style="display:flex;gap:8px;flex-wrap:wrap">
       <button class="filter-btn" onclick="saveData();showToast('Saved!','success')" ${STATE.user?'':'disabled'}>\ud83d\udcbe Save Now</button>
@@ -2464,10 +3356,14 @@ function refreshIslandData() {
 
 function resetData() {
   if (!confirm('Reset all crafting data? This cannot be undone.')) return;
-  Object.values(STATE.professions).forEach(p => { p.level = 1; p.xp = 0; p.xpNext = 100; p.totalCrafts = 0; });
+  STATE.professions = blankProfessions();
+  STATE.equipment = blankEquipment();
+  STATE.characterSheets = {};
+  if (STATE.activeCharacterId) STATE.characterSheets[STATE.activeCharacterId] = blankCharSheet();
   STATE.inventory = { 'Wood Scraps': 20, 'Stone Fragments': 15, 'Plant Fiber': 25, 'Water': 20, 'Rotted Wood': 18, 'Wild Herbs': 12, 'Herb': 10 };
-  STATE.equipment = { head:null,chest:null,hands:null,feet:null,weapon:null,shield:null,ring:null,necklace:null };
   STATE.stats = { totalCrafts:0, itemsCrafted:0, materialsUsed:0, failedCrafts:0 };
+  STATE.unlockedStations = { camp: true, cooking: true };
+  STATE.camps = [];
   STATE.log = [];
   addLog('🗑️ Data reset', 'fail');
   renderAll();
@@ -2475,7 +3371,7 @@ function resetData() {
   showToast('Data reset!', 'error');
 }
 
-// === PROFESSION PAGE ===
+// === PROFESSION PAGE (+ skill tree nodes for this character UUID) ===
 function renderProfessionPage(name) {
   const profName = name.charAt(0).toUpperCase() + name.slice(1);
   const prof = STATE.professions[profName];
@@ -2483,11 +3379,15 @@ function renderProfessionPage(name) {
 
   const recipes = RECIPES.filter(r => r.prof === profName);
   const pct = Math.min(100, (prof.xp / prof.xpNext) * 100);
+  const tree = PROF_SKILL_TREES[profName] || [];
+  const unlocked = new Set(STATE._activeProfNodes?.[profName] || []);
+  const char = STATE.grudgeCharacters.find((c) => String(c.id) === String(STATE.activeCharacterId));
 
   document.getElementById('page-prof-' + name).innerHTML = `
     <div class="page-header">
       <h2 class="page-title">${prof.icon} ${profName}</h2>
       <span style="font-family:'JetBrains Mono';font-size:12px;color:${prof.color}">Level ${prof.level} · ${prof.xp}/${prof.xpNext} XP</span>
+      <span class="scope-pill character">${char ? char.name : 'no character'} · UUID scoped</span>
     </div>
     <div class="card">
       <div class="card-title">Progression</div>
@@ -2502,12 +3402,27 @@ function renderProfessionPage(name) {
       </div>
     </div>
     <div class="card">
+      <div class="card-title">Skill Tree · ${unlocked.size}/${tree.length} nodes
+        <span style="font-size:10px;color:var(--text-dim);font-family:Inter;font-weight:400">unlocks with profession level on this character</span>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px">
+        ${tree.map((n) => {
+          const ok = unlocked.has(n.id) || prof.level >= n.req;
+          return `<div class="codex-card" style="opacity:${ok?1:0.45};border-color:${ok ? prof.color + '55' : 'var(--border)'}">
+            <h4>${ok ? '✓' : '🔒'} ${n.n}</h4>
+            <p>${n.branch} · req Lv ${n.req}</p>
+            <p>${n.desc || ''}</p>
+          </div>`;
+        }).join('') || '<p style="font-size:11px;color:var(--text-dim)">No tree data</p>'}
+      </div>
+    </div>
+    <div class="card">
       <div class="card-title">${profName} Recipes (${recipes.length})</div>
       <div class="recipe-grid">
         ${recipes.map(r => {
           const canCraft = checkCanCraft(r);
           const tierColors = ['#666','#22c55e','#60a5fa','#a78bfa','#f59e0b','#ef4444','#ec4899','#f97316','#dc2626'];
-          return `<div class="recipe-item ${canCraft?'':'cant-craft'}" onclick="navigate('crafting');document.getElementById('bench-prof').value='${profName}';selectRecipe('${r.id}');renderCraftingPage()">
+          return `<div class="recipe-item ${canCraft?'':'cant-craft'}" onclick="openStation('${r.station || PROF_TO_STATION[profName] || 'camp'}');selectRecipe('${r.id}');">
             <span class="recipe-icon">${r.icon||'📦'}</span>
             <div class="recipe-info">
               <div class="recipe-name">${r.n}</div>
@@ -2641,8 +3556,10 @@ window.addEventListener('grudge:sync:complete', () => { renderCharactersList(); 
 // ============================================================
 // INIT
 // ============================================================
-addLog('⚔ Grudge Crafting Suite initialized (fleet v' + (window.GRUDGE_CONFIG?.VERSION || '?') + ')');
+addLog('⚔ Grudge Crafting Suite v' + (window.GRUDGE_CONFIG?.VERSION || '?') + ' — shared inventory · per-char XP · WCS stations');
 initAcctTabs();
+refreshCampsAndBenches();
+updateStationLockBadges();
 renderAll();
 loadItemDatabase();
 if (typeof puter !== 'undefined') checkAuth();

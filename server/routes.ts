@@ -26,6 +26,13 @@ import { detectSpriteType, SPRITE_TYPES } from "@shared/definitions/spriteTypes"
 import { getClassStartingGear } from "@shared/definitions/tier0Items";
 import { equipToPanelSlot } from "@shared/inventory/equipment";
 import { panelEquipmentToModel3d, type PanelEquipmentSlot } from "@shared/fleet";
+import { resolveHeroIdentity } from "@shared/characterIdentity";
+import {
+  applyCharacterProgressUpdate,
+  readProgressMeta,
+  CHARACTER_PROGRESS_SCHEMA_VERSION,
+  type CharacterProgressPayload,
+} from "@shared/characterProgress";
 import {
   generateIslandState,
   islandStateNeedsGeneration,
@@ -314,7 +321,12 @@ export async function registerRoutes(
       if (character.userId !== userId) {
         return res.status(403).json({ error: "Character does not belong to your account" });
       }
-      res.json(character);
+      const meta = readProgressMeta(character as any);
+      res.json({
+        ...character,
+        progressRevision: meta.revision,
+        progressSchemaVersion: meta.schemaVersion || CHARACTER_PROGRESS_SCHEMA_VERSION,
+      });
     } catch (error) {
       console.error("Error fetching character:", error);
       res.status(500).json({ error: "Failed to fetch character" });
@@ -362,8 +374,21 @@ export async function registerRoutes(
         } as any);
       }
       
-      const classId = req.body.classId || 'warrior';
+      // Accept race/class aliases used by older clients (race/class vs raceId/classId)
+      const raceId = String(req.body.raceId || req.body.race || "human").toLowerCase();
+      const classId = String(req.body.classId || req.body.class || "warrior").toLowerCase();
       const skipStartingGear = req.body.skipStartingGear === true;
+
+      // Canonical identity: player name + GRDG-HUMWAR-… code (never name === code)
+      const identity = resolveHeroIdentity({
+        name: req.body.name,
+        grudgeCode: req.body.grudgeCode,
+        grudgeDisplayId: req.body.grudgeDisplayId,
+        grudgeUuid: req.body.grudgeUuid,
+        raceId,
+        classId,
+        model3d: req.body.model3d,
+      });
 
       // GCS unarmed race start: empty equipment unless the client sends explicit slots.
       const startingGear = skipStartingGear
@@ -392,19 +417,45 @@ export async function registerRoutes(
       const inventory = skipStartingGear
         ? (req.body.inventory ?? [])
         : [...startingGear.inventory, ...(req.body.inventory || [])];
+
+      // Default attributes so thin clients (Foundry/GCS) never fail Zod
+      const defaultAttrs: Record<string, number> = {
+        Strength: 10,
+        Vitality: 10,
+        Endurance: 10,
+        Intellect: 10,
+        Wisdom: 10,
+        Dexterity: 10,
+        Agility: 10,
+        Tactics: 10,
+      };
+      const attributes =
+        req.body.attributes && typeof req.body.attributes === "object"
+          ? { ...defaultAttrs, ...req.body.attributes }
+          : defaultAttrs;
       
       const pipeline = ERA_META[gameEra].defaultPipeline;
+      const model3dIn = (req.body.model3d && typeof req.body.model3d === "object")
+        ? req.body.model3d
+        : {};
       const validated = insertCharacterSchema.parse({
         ...req.body,
         userId,
+        name: identity.name,
+        grudgeCode: identity.grudgeCode,
+        raceId,
+        classId,
         gameEra,
         activeForEra: eraCount === 0,
+        attributes,
         equipment,
         inventory,
         model3d: {
-          ...(req.body.model3d || {}),
+          ...model3dIn,
           gameEra,
-          renderPipeline: req.body.model3d?.renderPipeline || pipeline,
+          renderPipeline: model3dIn.renderPipeline || pipeline,
+          grudgeDisplayId: identity.grudgeCode,
+          grudgeCode: identity.grudgeCode,
         },
         spriteConfig: req.body.spriteConfig || {
           skinTone: 0,
@@ -414,7 +465,31 @@ export async function registerRoutes(
         },
       });
       
-      const character = await storage.createCharacter(validated);
+      let character;
+      try {
+        character = await storage.createCharacter(validated);
+      } catch (insertErr: any) {
+        // Unique grudge_code collision — regenerate once
+        const msg = String(insertErr?.message || insertErr || "");
+        if (/grudge_code|unique/i.test(msg)) {
+          const retry = resolveHeroIdentity({
+            name: identity.name,
+            raceId,
+            classId,
+          });
+          character = await storage.createCharacter({
+            ...validated,
+            grudgeCode: retry.grudgeCode,
+            model3d: {
+              ...(validated.model3d as object),
+              grudgeDisplayId: retry.grudgeCode,
+              grudgeCode: retry.grudgeCode,
+            },
+          });
+        } else {
+          throw insertErr;
+        }
+      }
 
       if (eraCount === 0) {
         const slots = mergeEraSlots(account.eraSlots as import("@shared/definitions/gameEras").AccountEraSlots | null);
@@ -512,6 +587,16 @@ export async function registerRoutes(
     }
   });
 
+  /**
+   * PATCH /api/characters/:id
+   *
+   * Character progress SSOT write path (see docs/CHARACTER_PROGRESS_SSOT.md).
+   * - Never accepts account inventory (use /api/account/inventory).
+   * - Validates weapon mastery pool.
+   * - Optimistic concurrency via expectedRevision or If-Match header.
+   * - Idempotent when body.idempotencyKey is set.
+   * Response includes progressRevision + progressSchemaVersion.
+   */
   app.patch("/api/characters/:id", async (req, res) => {
     try {
       const userId = getUserId(req);
@@ -522,11 +607,135 @@ export async function registerRoutes(
       if (character.userId !== userId) {
         return res.status(403).json({ error: "Character does not belong to your account" });
       }
-      const updated = await storage.updateCharacter(req.params.id, req.body);
-      res.json(updated);
+
+      const body = { ...(req.body || {}) } as CharacterProgressPayload & Record<string, unknown>;
+      // Strip account-scoped fields if clients send them by mistake
+      delete (body as any).inventory;
+      delete (body as any).resources;
+
+      const ifMatch = req.get("If-Match") || req.get("X-Progress-Revision");
+      if (body.expectedRevision == null && ifMatch != null) {
+        const n = Number(String(ifMatch).replace(/"/g, ""));
+        if (Number.isFinite(n)) body.expectedRevision = n;
+      }
+
+      // Progress-shaped body → validated apply
+      const isProgressWrite =
+        body.professionLevels != null ||
+        body.equipment != null ||
+        body.attributes != null ||
+        body.selectedSkills != null ||
+        body.skillLoadouts != null ||
+        body.weaponSkillSelections != null ||
+        body.weaponMastery != null ||
+        body.skillPoints != null ||
+        body.weaponSkillLevel != null ||
+        body.unspentAttributePoints != null ||
+        body.expectedRevision != null ||
+        body.idempotencyKey != null;
+
+      if (isProgressWrite) {
+        const result = applyCharacterProgressUpdate(character as any, body);
+        if (!result.ok) {
+          const meta = result.meta || readProgressMeta(character as any);
+          return res.status(result.status).json({
+            error: result.error,
+            errors: result.errors,
+            progressRevision: meta.revision,
+            progressSchemaVersion: meta.schemaVersion || CHARACTER_PROGRESS_SCHEMA_VERSION,
+            characterId: character.id,
+          });
+        }
+        if (result.alreadyApplied) {
+          const meta = readProgressMeta(character as any);
+          return res.json({
+            ...character,
+            progressRevision: meta.revision,
+            progressSchemaVersion: meta.schemaVersion || CHARACTER_PROGRESS_SCHEMA_VERSION,
+            alreadyApplied: true,
+          });
+        }
+        const updated = await storage.updateCharacter(req.params.id, result.updates as any);
+        const meta = result.meta || readProgressMeta(updated as any);
+        return res.json({
+          ...updated,
+          progressRevision: meta.revision,
+          progressSchemaVersion: meta.schemaVersion || CHARACTER_PROGRESS_SCHEMA_VERSION,
+        });
+      }
+
+      // Non-progress administrative fields (avatar, model3d, personality, etc.)
+      const safe = { ...body } as Record<string, unknown>;
+      delete safe.expectedRevision;
+      delete safe.idempotencyKey;
+      delete safe.schemaVersion;
+      delete safe.weaponMastery;
+      const updated = await storage.updateCharacter(req.params.id, safe as any);
+      const meta = readProgressMeta(updated as any);
+      res.json({
+        ...updated,
+        progressRevision: meta.revision,
+        progressSchemaVersion: meta.schemaVersion || CHARACTER_PROGRESS_SCHEMA_VERSION,
+      });
     } catch (error) {
       console.error("Error updating character:", error);
       res.status(500).json({ error: "Failed to update character" });
+    }
+  });
+
+  /**
+   * POST /api/characters/:id/progress — preferred explicit progress write.
+   * Same validation as PATCH; always treated as progress-shaped.
+   */
+  app.post("/api/characters/:id/progress", async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      const character = await storage.getCharacter(req.params.id);
+      if (!character) {
+        return res.status(404).json({ error: "Character not found" });
+      }
+      if (character.userId !== userId) {
+        return res.status(403).json({ error: "Character does not belong to your account" });
+      }
+      const body = { ...(req.body || {}) } as CharacterProgressPayload;
+      delete (body as any).inventory;
+      const ifMatch = req.get("If-Match") || req.get("X-Progress-Revision");
+      if (body.expectedRevision == null && ifMatch != null) {
+        const n = Number(String(ifMatch).replace(/"/g, ""));
+        if (Number.isFinite(n)) body.expectedRevision = n;
+      }
+      if (body.schemaVersion == null) body.schemaVersion = CHARACTER_PROGRESS_SCHEMA_VERSION;
+
+      const result = applyCharacterProgressUpdate(character as any, body);
+      if (!result.ok) {
+        const meta = result.meta || readProgressMeta(character as any);
+        return res.status(result.status).json({
+          error: result.error,
+          errors: result.errors,
+          progressRevision: meta.revision,
+          progressSchemaVersion: meta.schemaVersion || CHARACTER_PROGRESS_SCHEMA_VERSION,
+          characterId: character.id,
+        });
+      }
+      if (result.alreadyApplied) {
+        const meta = readProgressMeta(character as any);
+        return res.json({
+          ...character,
+          progressRevision: meta.revision,
+          progressSchemaVersion: meta.schemaVersion || CHARACTER_PROGRESS_SCHEMA_VERSION,
+          alreadyApplied: true,
+        });
+      }
+      const updated = await storage.updateCharacter(req.params.id, result.updates as any);
+      const meta = result.meta || readProgressMeta(updated as any);
+      res.json({
+        ...updated,
+        progressRevision: meta.revision,
+        progressSchemaVersion: meta.schemaVersion || CHARACTER_PROGRESS_SCHEMA_VERSION,
+      });
+    } catch (error) {
+      console.error("Error updating character progress:", error);
+      res.status(500).json({ error: "Failed to update character progress" });
     }
   });
 

@@ -46,27 +46,70 @@
       "url": "https://grudge-crafting.puter.site",
       "status": "live",
       "puterAccount": "MolochDaDev",
-      "puterFsPath": "/MolochDaDev/crafting",
-      "puterBrowserPath": "~/crafting",
-      "deployScript": "npm run deploy:puter:crafting",
-      "purpose": "Puter-hosted crafting companion site",
+      "puterFsPath": "/MolochDaDev/sites/grudge-crafting/deployment",
+      "puterBrowserPath": "~/sites/grudge-crafting/deployment",
+      "deployScript": "puter site deploy dist-puter grudge-crafting",
+      "purpose": "Puter-hosted crafting + WCS stations + character progress (skills, mastery). Account bag shared; XP/mastery/attrs per UUID.",
       "title": "Grudge Warlords — Crafting & Professions",
       "dataSource": "https://molochdagod.github.io/ObjectStore/GRUDGE_Item_Database.html",
-      "rule": "n4qBEKIS1FgTYKxF1JHUHy — MUST consume icons/items/tiers/weapons/armors from molochdagod.github.io/ObjectStore.",
+      "docs": [
+        "docs/CHARACTER_PROGRESS_SSOT.md",
+        "docs/PROFESSIONS.md",
+        "docs/CHARACTER_IDENTITY.md"
+      ],
+      "ships": [
+        "index.html (grudge-crafting.html)",
+        "grudge-fleet.js (≥2.4)",
+        "skill-tree.html",
+        "weaponmastery.html"
+      ],
+      "rule": "n4qBEKIS1FgTYKxF1JHUHy — MUST consume icons/items/tiers/weapons/armors from molochdagod.github.io/ObjectStore. Progress writes go to Railway via fleet saveCharacterProgress.",
       "consumers": [
         "GrudgeBuilder/client/src/pages/crafting.tsx:6 (CRAFTING_ORIGIN postMessage gate)",
-        "GrudgeBuilder/client/src/lib/GrudgeAccountSDK.ts (embedded-mode docs/flow)"
+        "GrudgeBuilder/client/src/lib/GrudgeAccountSDK.ts (embedded-mode docs/flow)",
+        "vfx-studio openCrafting SSO"
       ]
+    },
+    {
+      "id": "puter-app-warlords",
+      "url": "https://puter.com/app/warlords",
+      "status": "live",
+      "purpose": "Official Puter Desktop / App Center listing for Grudge Warlords. Shell is Puter GUI; game surface is the production client.",
+      "title": "Warlords",
+      "puterApp": {
+        "id": 83596,
+        "uid": "app-c6dbfbb4-d6eb-4ad4-a4bb-8fb5d9bbbd0a",
+        "name": "warlords",
+        "index_url": "https://Grudgewarlords.com",
+        "canonicalGameUrl": "https://grudgewarlords.com",
+        "maximize_on_start": true,
+        "fullpage_on_landing": true,
+        "approved_for_listing": false,
+        "created_at": "2025-09-07T23:50:09.000Z",
+        "icon": "https://puter-app-icons.puter.site/app-c6dbfbb4-d6eb-4ad4-a4bb-8fb5d9bbbd0a.png"
+      },
+      "dataSource": "https://grudgewarlords.com (same-origin /api → Railway) + ObjectStore + R2",
+      "auth": "Grudge ID via id.grudge-studio.com; Puter session optional for cloud cache",
+      "consumers": [
+        "Puter desktop users launching Warlords from puter.com/app/warlords"
+      ],
+      "wiring": {
+        "characters": "Railway /api/characters (via grudgewarlords.com rewrites)",
+        "account": "Railway /api/account + inventory",
+        "definitions": "objectstore/info api/v1",
+        "assets": "assets.grudge-studio.com"
+      },
+      "action": "Keep index_url pointed at production grudgewarlords.com. Prefer lowercase https://grudgewarlords.com. Social image assets-1ria8c74t02.puter.site/warlords.png was 404 as of 2026-07-09 — re-upload or fix OG image. approved_for_listing=false until ready for public Puter store."
     },
     {
       "id": "grudgewarlords-puter",
       "url": "https://grudgewarlords.puter.site",
-      "status": "live",
-      "purpose": "UNTRACKED Grudge Warlords Puter deployment. Found during audit via HTTP probe (200, title=\"Grudge Warlords\"). Not referenced in any Grudge repo; likely a mirror or archived deployment.",
-      "title": "Grudge Warlords",
+      "status": "broken",
+      "purpose": "Legacy Puter static hosting slug for Warlords. PROBE 404 (2026-07-09). Do not use — production path is puter.com/app/warlords → grudgewarlords.com.",
+      "title": "Grudge Warlords (retired host)",
       "dataSource": null,
       "consumers": [],
-      "action": "Identify owner; either document intended use and wire into systemMap/CORS, or retire/redirect to grudgewarlords.com."
+      "action": "Leave 404 or redirect hosting to grudgewarlords.com. Canonical Puter entry is https://puter.com/app/warlords."
     },
     {
       "id": "grudgestudio-puter",

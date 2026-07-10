@@ -36,9 +36,23 @@ server/
 └── vite.ts           # Vite dev server integration
 
 shared/
-├── schema.ts         # Drizzle schema definitions
-└── definitions/      # Static game data
+├── schema.ts              # Drizzle schema definitions
+├── characterProgress.ts   # Progress SSOT (revision, mastery validation)
+├── characterIdentity.ts   # GRDG codes
+└── definitions/           # Static game data (weaponMastery, etc.)
 ```
+
+### Character progress writes (Railway)
+
+Canonical contract: **[CHARACTER_PROGRESS_SSOT.md](./CHARACTER_PROGRESS_SSOT.md)**.
+
+| Endpoint | Role |
+|----------|------|
+| `POST /api/characters/:id/progress` | Preferred progress write (revision + mastery validation) |
+| `PATCH /api/characters/:id` | Same validation when body is progress-shaped; admin fields otherwise |
+| `GET /api/characters/:id` | Includes `progressRevision` / `progressSchemaVersion` |
+
+Progress meta lives in `skill_loadouts.__progress` (`revision`, `schemaVersion`, idempotency ring). Account inventory must use `/api/account/*`, never character PATCH.
 
 ---
 

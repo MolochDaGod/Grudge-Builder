@@ -3,10 +3,18 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>GRUDGE â€” Class Selector (Fancy)</title>
+<title>GRUDGE — Class Skill Tree</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;900&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+<script>
+  window.GRUDGE_CONFIG = window.GRUDGE_CONFIG || {
+    AUTH_GATEWAY: 'https://id.grudge-studio.com',
+    GAME_DATA: 'https://grudge-api-production-0d46.up.railway.app',
+    CRAFTING_URL: 'https://grudge-crafting.puter.site',
+  };
+</script>
+<script src="./grudge-fleet.js"></script>
 <style>
 /* ---------- base ---------- */
 :root{
@@ -608,11 +616,116 @@ const CLASSES = {
   },
 };
 
-/* -------- state -------- */
-const KEY="gw-selector-v3";
-const state = load() || {race:null,cls:null,picks:{}};
-function load(){try{return JSON.parse(localStorage.getItem(KEY))}catch(e){return null}}
-function save(){try{localStorage.setItem(KEY,JSON.stringify(state))}catch(e){}}
+/* -------- state (scoped to active character Grudge UUID) -------- */
+const KEY_PREFIX = "gw-selector-v3";
+function activeCharId(){
+  try {
+    if (window.GrudgeFleet && typeof GrudgeFleet.getActiveId === "function") {
+      const id = GrudgeFleet.getActiveId();
+      if (id) return String(id);
+    }
+  } catch(_){}
+  try {
+    return localStorage.getItem("grudge_active_character")
+      || localStorage.getItem("grudge.activeCharId")
+      || "guest";
+  } catch(_){ return "guest"; }
+}
+function storageKey(){ return KEY_PREFIX + ":" + activeCharId(); }
+const state = load() || {race:null,cls:null,picks:{},characterId:null};
+function load(){
+  try{
+    // Prefer character-scoped key; migrate legacy global once
+    const scoped = localStorage.getItem(storageKey());
+    if (scoped) return JSON.parse(scoped);
+    const legacy = localStorage.getItem(KEY_PREFIX);
+    if (legacy) {
+      const data = JSON.parse(legacy);
+      data.characterId = activeCharId();
+      localStorage.setItem(storageKey(), JSON.stringify(data));
+      return data;
+    }
+  }catch(e){}
+  return null;
+}
+function save(){
+  try{
+    state.characterId = activeCharId();
+    state.updatedAt = Date.now();
+    localStorage.setItem(storageKey(), JSON.stringify(state));
+  }catch(e){}
+  // Push selectedSkills to Railway for this character UUID
+  syncSkillTreeToCharacter();
+}
+async function syncSkillTreeToCharacter(){
+  try{
+    if (!window.GrudgeFleet || !GrudgeFleet.isLoggedIn || !GrudgeFleet.isLoggedIn()) return;
+    const id = activeCharId();
+    if (!id || id === "guest") return;
+    // Flatten picks → selectedSkills map { tierLevel: skillName }
+    const picks = state.picks || {};
+    const selectedSkills = {};
+    Object.entries(picks).forEach(([cls, tiers])=>{
+      if (!tiers || typeof tiers !== "object") return;
+      Object.entries(tiers).forEach(([tier, skill])=>{
+        if (skill != null) selectedSkills[String(tier)] = typeof skill === "string" ? skill : (skill.n || skill.id || skill);
+      });
+      // also store per-class under skillLoadouts
+    });
+    await GrudgeFleet.saveCharacterProgress(id, {
+      selectedSkills,
+      classSkillPicks: selectedSkills,
+      skillLoadouts: {
+        ...(state.cls ? { [state.cls]: { picks: picks[state.cls] || {}, race: state.race } } : {}),
+        _meta: { race: state.race, cls: state.cls, characterId: id },
+      },
+    });
+  }catch(e){ console.warn("[skill-tree] sync:", e); }
+}
+async function hydrateFromCharacter(){
+  try{
+    if (!window.GrudgeFleet) return;
+    await GrudgeFleet.init({ mode: "standalone" });
+    if (!GrudgeFleet.isLoggedIn()) await GrudgeFleet.ensureSession?.();
+    if (GrudgeFleet.isLoggedIn()) await GrudgeFleet.syncFromBackend?.();
+    const id = activeCharId();
+    if (!id || id === "guest") return;
+    const char = await (GrudgeFleet.getCharacterDetail?.(id) || Promise.resolve(GrudgeFleet.getActiveCharacter?.()));
+    if (!char) return;
+    // Apply race/class from character
+    if (char.race || char.raceId) {
+      const r = String(char.race || char.raceId).toLowerCase();
+      if (typeof RACES !== "undefined" && RACES[r]) state.race = r;
+    }
+    if (char.class || char.classId) {
+      const c = String(char.class || char.classId).toLowerCase();
+      // map class ids
+      const map = { warrior:"warrior", mage:"mage", "mage priest":"mage", priest:"mage", rogue:"ranger", ranger:"ranger", cleric:"mage", worg:"worge", worge:"worge" };
+      state.cls = map[c] || (typeof CLASSES !== "undefined" && CLASSES[c] ? c : state.cls);
+    }
+    if (char.selectedSkills && typeof char.selectedSkills === "object") {
+      if (state.cls) {
+        state.picks[state.cls] = state.picks[state.cls] || {};
+        Object.entries(char.selectedSkills).forEach(([tier, skill])=>{
+          state.picks[state.cls][tier] = skill;
+        });
+      }
+    }
+    if (char.skillLoadouts && char.skillLoadouts[state.cls]?.picks) {
+      state.picks[state.cls] = { ...state.picks[state.cls], ...char.skillLoadouts[state.cls].picks };
+    }
+    state.characterId = id;
+    localStorage.setItem(storageKey(), JSON.stringify(state));
+    if (typeof render === "function") render();
+  }catch(e){ console.warn("[skill-tree] hydrate:", e); }
+}
+// Reload sheet when character changes
+window.addEventListener("grudge:character:selected", ()=>{
+  const fresh = load();
+  if (fresh) Object.assign(state, fresh);
+  else { state.picks = {}; state.cls = null; }
+  hydrateFromCharacter();
+});
 
 /* -------- real skill icons -------- */
 const ICON_DIR = {
@@ -949,9 +1062,27 @@ resetBtn.onclick = ()=>{
 };
 
 /* -------- main render -------- */
-function render(){ renderRaces(); renderPicker(); renderTree(); renderSide(); }
+function render(){ renderRaces(); renderPicker(); renderTree(); renderSide(); updateCharBanner(); }
+function updateCharBanner(){
+  let el = document.getElementById("char-banner");
+  if (!el) {
+    el = document.createElement("div");
+    el.id = "char-banner";
+    el.style.cssText = "position:fixed;top:10px;right:12px;z-index:50;font:12px Inter,sans-serif;padding:8px 12px;border-radius:8px;background:rgba(0,0,0,.7);border:1px solid rgba(246,201,69,.35);color:#f6c945";
+    document.body.appendChild(el);
+  }
+  const id = activeCharId();
+  const char = window.GrudgeFleet?.getActiveCharacter?.();
+  el.innerHTML = char
+    ? `⚔ ${char.name || id} · skills bound to <code style="color:#ffd98a">${String(id).slice(0,8)}…</code>`
+    : id && id !== "guest"
+      ? `Character <code style="color:#ffd98a">${String(id).slice(0,8)}…</code>`
+      : `Not signed in — picks save locally only`;
+}
 if(state.cls) setBg(state.cls);
 render();
+// Hydrate from Grudge UUID after fleet loads
+(async () => { await hydrateFromCharacter(); render(); })();
 </script>
 </body>
 </html>

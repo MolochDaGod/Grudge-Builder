@@ -46,6 +46,8 @@ const POLL_MS        = 60_000;
 export interface GrudgeCharacter {
   id:               string;
   name:             string;
+  /** Canonical hero code GRDG-{RACE3}{CLASS3}-{suffix} */
+  grudgeCode?:      string | null;
   raceId:           string;
   classId:          string;
   level:            number;
@@ -279,9 +281,19 @@ class _GrudgeAccountSDK {
   /**
    * Save a character update to the backend (partial update).
    */
-  /** Create a new character (consumes character token on account). */
+  /**
+   * Create a new hero on Railway SSOT (POST /api/characters).
+   * Server always stamps grudgeCode (GRDG-HUMWAR-…); pass name for display.
+   * Optional grudgeCode / grudgeDisplayId is accepted and normalized server-side.
+   */
   async createCharacter(
-    data: Pick<GrudgeCharacter, 'name' | 'raceId' | 'classId'> & Partial<GrudgeCharacter>,
+    data: Pick<GrudgeCharacter, 'name' | 'raceId' | 'classId'> &
+      Partial<GrudgeCharacter> & {
+        grudgeCode?: string;
+        grudgeDisplayId?: string;
+        model3d?: Record<string, unknown>;
+        gameEra?: string;
+      },
   ): Promise<GrudgeCharacter | null> {
     const token = this.getToken();
     if (!token) return null;
@@ -297,7 +309,12 @@ class _GrudgeAccountSDK {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ ...data, attributes: attrs, gameOrigin: 'grudge-fleet' }),
+        body: JSON.stringify({
+          ...data,
+          attributes: attrs,
+          gameOrigin: 'grudge-fleet',
+          grudgeCode: data.grudgeCode ?? data.grudgeDisplayId,
+        }),
       });
       if (!res.ok) return null;
       const created: GrudgeCharacter = await res.json();

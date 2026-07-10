@@ -548,6 +548,9 @@ export function registerAuthRoutes(app: Express) {
 
   app.get("/favicon.png", serveAuthFavicon("favicon.png", "png"));
   app.get("/favicon.ico", serveAuthFavicon("favicon.ico", "x-icon"));
+  // Brand mark (helmet medallion) for id.grudge-studio.com login UI + oauth row
+  app.get("/grudge-id-logo.png", serveAuthFavicon("grudge-id-logo.png", "png"));
+  app.get("/brand/logo.png", serveAuthFavicon("grudge-id-logo.png", "png"));
 
   // Fleet embed modal (id.grudge-studio.com / grudge-auth-modal.js)
   const serveEmbedAsset = (file: string, type: string) => (_req: Request, res: Response) => {

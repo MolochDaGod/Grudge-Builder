@@ -31,6 +31,12 @@ export const characters = pgTable("characters", {
   activeForEra: boolean("active_for_era").notNull().default(false),
   homeIslandId: varchar("home_island_id"), // UUID linking to home_islands.id for hero island association
   name: text("name").notNull(),
+  /**
+   * Human-facing Grudge hero code: GRDG-{RACE3}{CLASS3}-{suffix}
+   * Distinct from `id` (Postgres UUID) and from account `grudgeId` (SSO).
+   * SSOT generator: shared/characterIdentity.ts → makeCharacterGrudgeCode
+   */
+  grudgeCode: text("grudge_code"),
   raceId: text("race_id").notNull(),
   classId: text("class_id").notNull(),
   level: integer("level").notNull().default(0),
@@ -60,6 +66,9 @@ export const characters = pgTable("characters", {
     shipId?: string;
     nexusMintId?: string;
     renderPipeline?: 'grudge6' | 'vrm' | 'armada_ship' | 'sprite2d';
+    /** Mirror of characters.grudge_code for 3D clients that only read model3d */
+    grudgeDisplayId?: string;
+    grudgeCode?: string;
   }>().default(sql`'{"baseModelId":"default","equippedMeshes":{},"weaponSlots":{},"faceVariant":"A","skinColor":"#ffffff","armorColor":"#ffffff","capeEnabled":false,"scale":1.0}'::jsonb`),
   guildId: varchar("guild_id"),    // UUID linking to a guild/crew
   unspentAttributePoints: integer("unspent_attribute_points").notNull().default(0), // 7 points per level up

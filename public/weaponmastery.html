@@ -6,6 +6,14 @@
 <title>GRUDGE — Weapons Mastery</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<script>
+  window.GRUDGE_CONFIG = window.GRUDGE_CONFIG || {
+    AUTH_GATEWAY: 'https://id.grudge-studio.com',
+    GAME_DATA: 'https://grudge-api-production-0d46.up.railway.app',
+    CRAFTING_URL: 'https://grudge-crafting.puter.site',
+  };
+</script>
+<script src="./grudge-fleet.js"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 :root{
@@ -156,8 +164,23 @@ footer{margin-top:28px;color:var(--dim);font-size:11px;text-align:center}
 <script>
 (function(){
   const DATA = JSON.parse(document.getElementById('mastery-data').textContent);
-  const STORAGE_KEY = 'grudge-weapon-mastery-v2';
+  const KEY_PREFIX = 'grudge-weapon-mastery-v2';
   const STAT_LABELS = { damage:'Damage', criticalChance:'Crit Chance', criticalDamage:'Crit Damage', attackSpeed:'Atk Speed', armorPenetration:'Armor Pen', drainHealth:'Lifesteal' };
+
+  function activeCharId(){
+    try {
+      if (window.GrudgeFleet?.getActiveId) {
+        const id = GrudgeFleet.getActiveId();
+        if (id) return String(id);
+      }
+    } catch (_) {}
+    try {
+      return localStorage.getItem('grudge_active_character')
+        || localStorage.getItem('grudge.activeCharId')
+        || 'guest';
+    } catch (_) { return 'guest'; }
+  }
+  function storageKey(){ return KEY_PREFIX + ':' + activeCharId(); }
 
   let activeTree = DATA.trees[0].id;
   let selectedKey = null;
@@ -165,12 +188,81 @@ footer{margin-top:28px;color:var(--dim);font-size:11px;text-align:center}
 
   function loadState(){
     try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) return JSON.parse(raw);
+      const scoped = localStorage.getItem(storageKey());
+      if (scoped) return JSON.parse(scoped);
+      // migrate legacy global key once into this character
+      const legacy = localStorage.getItem(KEY_PREFIX);
+      if (legacy) {
+        const data = JSON.parse(legacy);
+        localStorage.setItem(storageKey(), legacy);
+        return data;
+      }
     } catch (_) {}
-    return { allocations: {}, sockets: {} };
+    return { allocations: {}, sockets: {}, characterId: null };
   }
-  function saveState(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+  function saveState(){
+    try {
+      state.characterId = activeCharId();
+      state.updatedAt = Date.now();
+      localStorage.setItem(storageKey(), JSON.stringify(state));
+    } catch (_) {}
+    syncMasteryToCharacter();
+  }
+  async function syncMasteryToCharacter(){
+    try {
+      if (!window.GrudgeFleet?.isLoggedIn?.()) return;
+      const id = activeCharId();
+      if (!id || id === 'guest') return;
+      const spent = totalSpent();
+      await GrudgeFleet.saveCharacterProgress(id, {
+        weaponMastery: { allocations: state.allocations, sockets: state.sockets },
+        weaponSkillLevel: Math.max(1, Math.min(100, spent || 1)),
+        weaponSkillSelections: {
+          mastery: { allocations: state.allocations, sockets: state.sockets },
+        },
+      });
+    } catch (e) { console.warn('[mastery] sync:', e); }
+  }
+  async function hydrateFromCharacter(){
+    try {
+      if (!window.GrudgeFleet) return;
+      await GrudgeFleet.init({ mode: 'standalone' });
+      if (!GrudgeFleet.isLoggedIn()) await GrudgeFleet.ensureSession?.();
+      if (GrudgeFleet.isLoggedIn()) await GrudgeFleet.syncFromBackend?.();
+      const id = activeCharId();
+      if (!id || id === 'guest') return;
+      const char = await (GrudgeFleet.getCharacterDetail?.(id) || Promise.resolve(GrudgeFleet.getActiveCharacter?.()));
+      if (!char) return;
+      const mastery = GrudgeFleet.getWeaponMasteryFromCharacter?.(char)
+        || char.weaponSkillSelections?.mastery;
+      if (mastery && (mastery.allocations || mastery.sockets)) {
+        state.allocations = mastery.allocations || {};
+        state.sockets = mastery.sockets || {};
+        state.characterId = id;
+        localStorage.setItem(storageKey(), JSON.stringify(state));
+        if (typeof renderAll === 'function') renderAll();
+      }
+      updateCharBanner();
+    } catch (e) { console.warn('[mastery] hydrate:', e); }
+  }
+  function updateCharBanner(){
+    let el = document.getElementById('char-banner');
+    if (!el) {
+      el = document.createElement('div');
+      el.id = 'char-banner';
+      el.style.cssText = 'position:fixed;top:10px;right:12px;z-index:50;font:12px system-ui,sans-serif;padding:8px 12px;border-radius:8px;background:rgba(0,0,0,.75);border:1px solid #3a2a1a;color:#d4a400';
+      document.body.appendChild(el);
+    }
+    const id = activeCharId();
+    const char = window.GrudgeFleet?.getActiveCharacter?.();
+    el.innerHTML = char
+      ? '⚔ ' + (char.name || id) + ' · mastery bound to <code style="color:#e7d8be">' + String(id).slice(0, 8) + '…</code>'
+      : (id && id !== 'guest' ? 'Character <code>' + String(id).slice(0, 8) + '…</code>' : 'Not signed in — local only');
+  }
+  window.addEventListener('grudge:character:selected', () => {
+    state = loadState();
+    hydrateFromCharacter();
+  });
 
   function treeAlloc(treeId){ return state.allocations[treeId] || (state.allocations[treeId] = {}); }
   function getAllocated(treeId, nodeId){ return treeAlloc(treeId)[nodeId] || 0; }
@@ -473,6 +565,8 @@ footer{margin-top:28px;color:var(--dim);font-size:11px;text-align:center}
   renderRules();
   renderBonusTable();
   renderAll();
+  updateCharBanner();
+  hydrateFromCharacter().then(() => { renderAll(); updateCharBanner(); });
 })();
 </script>
 </body>

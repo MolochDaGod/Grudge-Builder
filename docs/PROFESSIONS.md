@@ -2,9 +2,19 @@
 
 ## Overview
 
-The Artisan Guild profession system provides 100 levels of progression in both Gathering and Crafting professions. Professions are account-wide and shared across all characters.
+The Artisan Guild profession system provides 100 levels of progression in both Gathering and Crafting professions.
 
-**Note:** Character heroes have a level cap of 20, but professions progress to level 100.
+### Scope (canonical — 2026-07)
+
+| Data | Scope | SSOT |
+|------|--------|------|
+| Profession XP / levels / skill-tree nodes | **Per character UUID** | `characters.profession_levels` via [CHARACTER_PROGRESS_SSOT.md](./CHARACTER_PROGRESS_SSOT.md) |
+| Crafting materials bag | **Account shared** | `/api/account/inventory` + resources |
+| Equipment | **Per character** | `characters.equipment` |
+
+**Do not** treat profession XP as account-wide in new fleet apps. Older copy that said “account-wide” is superseded by the progress SSOT.
+
+**Note:** Character combat level and profession level are separate tracks (combat often caps earlier; professions can go higher).
 
 ## Profession Categories
 

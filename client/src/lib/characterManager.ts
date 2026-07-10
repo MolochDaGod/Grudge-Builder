@@ -31,6 +31,8 @@ export interface WeaponSkillSelection {
 export interface Character {
   id: string;
   name: string;
+  /** Human-facing GRDG-HUMWAR-… code (not the Postgres id) */
+  grudgeCode?: string | null;
   raceId: string;
   classId: string;
   level: number;
