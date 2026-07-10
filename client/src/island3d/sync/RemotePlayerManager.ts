@@ -13,15 +13,13 @@
 import * as THREE from 'three';
 import { loadCharacterModel, type LoadedModel } from '@/lib/modelLoader';
 import {
-  MODEL_MANIFEST,
-  WEAPON_ANIMATION_SETS,
+  getModelForCharacter,
   getAnimationSet,
   resolveModelUrl,
   type WeaponType,
-  type ModelUnit,
 } from '@/lib/modelManifest';
 import { AnimationManager, type AnimState } from '../player/AnimationManager';
-import { RACE_GRUDGE6, defaultModel3d } from '@shared/fleet';
+import { RACE_GRUDGE6, defaultModel3d, normalizeRaceId } from '@shared/fleet';
 import { setupGrudge6Equipment } from '@/lib/grudge6Equipment';
 import { applyCharacterColorTints, ensureCharacterTextureColorSpace } from '@/lib/characterAppearance';
 import { fitCharacterRootToHeightM, PLAYER_HEIGHT_M } from '../zoneWorldScale';
@@ -239,21 +237,25 @@ export class RemotePlayerManager {
     if (instance.modelLoading) return;
     instance.modelLoading = true;
 
-    const modelId = instance.data.baseModelId || instance.data.heroRace || 'human';
-    const manifest = MODEL_MANIFEST[modelId];
-
-    if (!manifest) {
-      console.warn(`[RemotePlayerManager] No model manifest for: ${modelId}`);
-      instance.modelLoading = false;
-      return;
-    }
+    // baseModelId is often "WK_Characters_customizable" — normalize to race key
+    const raceId = normalizeRaceId(
+      instance.data.heroRace || instance.data.baseModelId || 'human',
+    );
+    const manifest = getModelForCharacter(raceId);
+    const raceCfg = RACE_GRUDGE6[raceId] ?? RACE_GRUDGE6.human;
 
     try {
-      const loaded = await loadCharacterModel(manifest.modelPath);
+      // Prefer canonical race CDN path (same as local player / Grudge6Character3D)
+      const modelPath = raceCfg.cdnPath || manifest.modelPath;
+      const loaded = await loadCharacterModel(modelPath);
       instance.loadedModel = loaded;
 
       // Fit to ~2m × race mult and plant feet on tile (same as local player)
-      fitCharacterRootToHeightM(loaded.scene, manifest.scale || 1, PLAYER_HEIGHT_M);
+      fitCharacterRootToHeightM(
+        loaded.scene,
+        raceCfg.scale || manifest.scale || 1,
+        PLAYER_HEIGHT_M,
+      );
 
       // Equipment mesh variants first (catalog hides all then shows equipped)
       this.applyEquippedMeshes(loaded.scene, instance.data);
@@ -307,9 +309,11 @@ export class RemotePlayerManager {
       // Play initial animation
       this.updateAnimation(instance, instance.currentState);
 
-      console.log(`[RemotePlayerManager] Loaded model for ${instance.data.characterName}: ${modelId}`);
+      console.log(
+        `[RemotePlayerManager] Loaded model for ${instance.data.characterName}: race=${raceId}`,
+      );
     } catch (err) {
-      console.warn(`[RemotePlayerManager] Failed to load model ${modelId}:`, err);
+      console.warn(`[RemotePlayerManager] Failed to load model race=${raceId}:`, err);
     }
 
     instance.modelLoading = false;
@@ -351,13 +355,18 @@ export class RemotePlayerManager {
     } catch {
       return;
     }
-    if (!Object.keys(equippedMeshes).length && !Object.keys(weaponSlots).length) return;
-
-    const raceId = data.heroRace || data.baseModelId || 'human';
+    const raceId = normalizeRaceId(data.heroRace || data.baseModelId || 'human');
     const race = RACE_GRUDGE6[raceId] ?? RACE_GRUDGE6.human;
+    // Always catalog + base armor even if sync JSON empty (prevents mesh soup / T-pose all-on)
     const model3d = {
       ...defaultModel3d(raceId),
-      equippedMeshes,
+      equippedMeshes: {
+        body: 'A',
+        arms: 'A',
+        legs: 'A',
+        head: 'A',
+        ...equippedMeshes,
+      },
       weaponSlots,
       skinColor: data.skinColor,
       armorColor: data.armorColor,

@@ -11,10 +11,11 @@ import {
   panelEquipmentToModel3d,
   characterToJoinOptions,
   weaponTypeFromModel3d,
+  normalizeRaceId,
   type Model3DField,
 } from '@shared/fleet';
 
-export { RACE_GRUDGE6, type Model3DField, characterToJoinOptions };
+export { RACE_GRUDGE6, type Model3DField, characterToJoinOptions, normalizeRaceId };
 
 export interface Grudge6LoadConfig {
   characterId: string;
@@ -34,7 +35,7 @@ export interface Grudge6LoadConfig {
 }
 
 export function parseModel3d(char: Character & { model3d?: Partial<Model3DField> }): Model3DField {
-  const raceId = char.raceId || 'human';
+  const raceId = normalizeRaceId(char.raceId || 'human');
   const classId = char.classId || 'adventurer';
   const stored = char.model3d;
   const hasMeshes = stored?.equippedMeshes && Object.keys(stored.equippedMeshes).length > 0;
@@ -47,7 +48,7 @@ export function parseModel3d(char: Character & { model3d?: Partial<Model3DField>
 
 export function buildGrudge6LoadConfig(char: Character): Grudge6LoadConfig {
   const model3d = parseModel3d(char);
-  const raceId = char.raceId || 'human';
+  const raceId = normalizeRaceId(char.raceId || 'human');
   const grudge6 = RACE_GRUDGE6[raceId] ?? RACE_GRUDGE6.human;
   const modelUnit = getModelForCharacter(raceId);
 
@@ -66,8 +67,8 @@ export function buildGrudge6LoadConfig(char: Character): Grudge6LoadConfig {
     classId: char.classId || 'adventurer',
     level: char.level ?? 1,
     baseModelId: model3d.baseModelId || grudge6.modelId,
-    modelPath: modelUnit.modelPath,
-    scale: model3d.scale ?? modelUnit.scale,
+    modelPath: grudge6.cdnPath || modelUnit.modelPath,
+    scale: model3d.scale ?? grudge6.scale ?? modelUnit.scale,
     skinColor: model3d.skinColor ?? '#ffffff',
     armorColor: model3d.armorColor ?? '#ffffff',
     equippedMeshes: model3d.equippedMeshes ?? {},

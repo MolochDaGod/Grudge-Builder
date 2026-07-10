@@ -374,7 +374,18 @@ const RACE_MODEL_ID: Record<string, string> = {
  * callers must resolve weapons from equipment / model3d.
  */
 export function getModelForCharacter(raceId: string, _classId?: string): ModelUnit {
-  const modelId = RACE_MODEL_ID[raceId] ?? raceId;
+  // Accept WK_Characters_customizable / aliases
+  let key = (raceId || "human").toLowerCase();
+  if (!(key in RACE_MODEL_ID) && !(key in MODEL_MANIFEST)) {
+    // Lazy normalize without circular import — mirror fleet normalizeRaceId tokens
+    if (key.includes("barb") || key.includes("brb")) key = "barbarian";
+    else if (key.includes("elf")) key = "elf";
+    else if (key.includes("dwarf") || key.includes("dwf")) key = "dwarf";
+    else if (key.includes("orc")) key = "orc";
+    else if (key.includes("undead") || key.includes("ud_") || key === "ud") key = "undead";
+    else if (key.includes("wk") || key.includes("human") || key.includes("characters")) key = "human";
+  }
+  const modelId = RACE_MODEL_ID[key] ?? (MODEL_MANIFEST[key] ? key : "human");
   let unit = MODEL_MANIFEST[modelId];
 
   // Fall back to human for incompatible skeletons.

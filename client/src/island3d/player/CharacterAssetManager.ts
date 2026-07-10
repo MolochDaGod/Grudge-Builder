@@ -13,6 +13,10 @@
  */
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js';
+import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
+import { resolveModelUrl } from '@/lib/modelManifest';
+import { ensureCharacterTextureColorSpace } from '@/lib/characterAppearance';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -48,6 +52,10 @@ export class CharacterAssetManager {
   private constructor() {
     THREE.Cache.enabled = true;
     this.gltfLoader = new GLTFLoader();
+    // Draco race/equip packs from the gltf-transform pipeline
+    const draco = new DRACOLoader();
+    draco.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.7/');
+    this.gltfLoader.setDRACOLoader(draco);
     this.textureLoader = new THREE.TextureLoader();
   }
 
@@ -67,6 +75,9 @@ export class CharacterAssetManager {
     url: string,
     onProgress?: (p: LoadProgress) => void,
   ): Promise<CachedModel> {
+    // Always resolve relative paths to R2 CDN (assets.grudge-studio.com)
+    const resolved = resolveModelUrl(url);
+
     // Cache hit — return clone
     if (this.modelCache.has(key)) {
       this.cacheHits++;
@@ -79,7 +90,7 @@ export class CharacterAssetManager {
       return this.cloneModel(result);
     }
 
-    const loadPromise = this.loadModelInternal(key, url, onProgress);
+    const loadPromise = this.loadModelInternal(key, resolved, onProgress);
     this.pendingLoads.set(key, loadPromise);
 
     try {
@@ -101,13 +112,14 @@ export class CharacterAssetManager {
 
     const scene = gltf.scene as THREE.Group;
 
-    // Enable shadows on all meshes
+    // Enable shadows + correct texture color space for grudge6 race/equip kits
     scene.traverse((child: THREE.Object3D) => {
       if (child instanceof THREE.Mesh) {
         child.castShadow = true;
         child.receiveShadow = true;
       }
     });
+    ensureCharacterTextureColorSpace(scene);
 
     const boundingBox = new THREE.Box3().setFromObject(scene);
 
@@ -158,9 +170,25 @@ export class CharacterAssetManager {
   }
 
   private cloneModel(cached: CachedModel): CachedModel {
+    // SkeletonUtils keeps SkinnedMesh → skeleton bone bindings (plain clone breaks T-pose)
+    const scene = (SkeletonUtils as { clone: (o: THREE.Object3D) => THREE.Object3D }).clone(
+      cached.scene,
+    ) as THREE.Group;
+    // Per-instance materials so equip tint doesn't leak across clones
+    scene.traverse((child) => {
+      if ((child as THREE.Mesh).isMesh) {
+        const mesh = child as THREE.Mesh;
+        if (mesh.material) {
+          mesh.material = Array.isArray(mesh.material)
+            ? mesh.material.map((m) => m.clone())
+            : mesh.material.clone();
+        }
+      }
+    });
+    ensureCharacterTextureColorSpace(scene);
     return {
-      scene: cached.scene.clone(),
-      animations: cached.animations, // clips are shared (lightweight)
+      scene,
+      animations: cached.animations,
       boundingBox: cached.boundingBox.clone(),
     };
   }

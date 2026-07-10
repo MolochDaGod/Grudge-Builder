@@ -115,12 +115,21 @@ export interface LoadedModel {
 }
 
 export async function loadCharacterModel(path: string): Promise<LoadedModel> {
+  // Race/equip GLBs always from R2 CDN — never relative 404s on Vercel
   const url = resolveModelUrl(path);
   let gltf = gltfCache.get(url);
 
   if (!gltf) {
     gltf = await new Promise<GLTF>((resolve, reject) => {
-      loader.load(url, resolve, undefined, reject);
+      loader.load(
+        url,
+        resolve,
+        undefined,
+        (err) => {
+          console.error(`[modelLoader] Failed to load character model: ${url}`, err);
+          reject(err instanceof Error ? err : new Error(`Failed to load ${url}`));
+        },
+      );
     });
     gltfCache.set(url, gltf);
   }
@@ -683,12 +692,18 @@ function markColorTexturesSRGB(mesh: THREE.Mesh): void {
   const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
   for (const mat of materials) {
     if (!mat) continue;
-    const std = mat as THREE.MeshStandardMaterial;
-    for (const key of ["map", "emissiveMap"] as const) {
+    const std = mat as THREE.MeshStandardMaterial & Record<string, unknown>;
+    for (const key of ["map", "emissiveMap", "specularMap", "sheenColorMap"] as const) {
       const tex = std[key] as THREE.Texture | null | undefined;
-      if (tex && tex.colorSpace !== THREE.SRGBColorSpace) {
-        tex.colorSpace = THREE.SRGBColorSpace;
-        tex.needsUpdate = true;
+      if (tex && tex.isTexture) {
+        if (tex.colorSpace !== THREE.SRGBColorSpace) {
+          tex.colorSpace = THREE.SRGBColorSpace;
+          tex.needsUpdate = true;
+        }
+        if (tex.flipY !== false) {
+          tex.flipY = false;
+          tex.needsUpdate = true;
+        }
       }
     }
     mat.needsUpdate = true;

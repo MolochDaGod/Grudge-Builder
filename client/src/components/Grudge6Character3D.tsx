@@ -24,6 +24,7 @@ import {
   resolveRaceCdnUrl,
   panelEquipmentToModel3d,
   weaponTypeFromModel3d,
+  normalizeRaceId,
   type Model3DField,
   type PanelEquipment,
 } from "@shared/fleet";
@@ -62,9 +63,11 @@ export default function Grudge6Character3D({
   const unsubUpdateRef = useRef<(() => void) | null>(null);
   const loadedKeyRef = useRef<string>("");
 
+  const raceKey = useMemo(() => normalizeRaceId(raceId), [raceId]);
+
   const resolvedModel3d = useMemo(
-    () => panelEquipmentToModel3d(raceId, classId, equipment ?? {}, model3dProp),
-    [raceId, classId, equipment, model3dProp],
+    () => panelEquipmentToModel3d(raceKey, classId, equipment ?? {}, model3dProp),
+    [raceKey, classId, equipment, model3dProp],
   );
 
   const weaponType = useMemo(
@@ -73,8 +76,8 @@ export default function Grudge6Character3D({
   );
 
   const model3dKey = useMemo(
-    () => JSON.stringify({ raceId, classId, m: resolvedModel3d }),
-    [raceId, classId, resolvedModel3d],
+    () => JSON.stringify({ raceId: raceKey, classId, m: resolvedModel3d }),
+    [raceKey, classId, resolvedModel3d],
   );
 
   const loadModel = useCallback(async () => {
@@ -89,8 +92,8 @@ export default function Grudge6Character3D({
       unsubUpdateRef.current?.();
     }
 
-    const race = RACE_GRUDGE6[raceId] ?? RACE_GRUDGE6.human;
-    const modelPath = resolveRaceCdnUrl(raceId);
+    const race = RACE_GRUDGE6[raceKey] ?? RACE_GRUDGE6.human;
+    const modelPath = resolveRaceCdnUrl(raceKey);
 
     try {
       const loaded = await loadCharacterModel(modelPath);
@@ -141,10 +144,10 @@ export default function Grudge6Character3D({
         onFinish: onAnimationComplete,
       });
     } catch (err) {
-      console.error(`Failed to load Grudge6 model for ${raceId}:`, err);
+      console.error(`Failed to load Grudge6 model for ${raceKey}:`, err);
     }
   }, [
-    raceId,
+    raceKey,
     model3dKey,
     resolvedModel3d,
     weaponType,
@@ -170,10 +173,12 @@ export default function Grudge6Character3D({
     };
   }, [loadModel, sceneRef]);
 
-  // Re-apply equipment when model3d changes without full reload
+  // Re-apply equipment when model3d changes without full reload (same race only)
   useEffect(() => {
     if (!modelRef.current) return;
-    const race = RACE_GRUDGE6[raceId] ?? RACE_GRUDGE6.human;
+    // Race change forces loadModel via model3dKey; skip double-work mid-swap
+    if (!loadedKeyRef.current.includes(`"raceId":"${raceKey}"`)) return;
+    const race = RACE_GRUDGE6[raceKey] ?? RACE_GRUDGE6.human;
     setupGrudge6Equipment(race.prefix, modelRef.current.scene, resolvedModel3d);
     ensureCharacterTextureColorSpace(modelRef.current.scene);
     applyCharacterColorTints(
@@ -181,7 +186,7 @@ export default function Grudge6Character3D({
       resolvedModel3d.skinColor,
       resolvedModel3d.armorColor,
     );
-  }, [resolvedModel3d, raceId]);
+  }, [resolvedModel3d, raceKey]);
 
   useEffect(() => {
     const controller = controllerRef.current;

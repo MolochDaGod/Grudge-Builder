@@ -124,6 +124,8 @@ export {
 export {
   RACE_GRUDGE6,
   RACE_FBX_PATHS,
+  normalizeRaceId,
+  raceMeshPrefix,
   defaultModel3d,
   model3dFromEquipped,
   panelEquipmentToModel3d,

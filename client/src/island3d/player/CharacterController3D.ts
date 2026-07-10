@@ -268,13 +268,20 @@ export class CharacterController3D {
     equipment?: Record<string, string | null>,
   ): Promise<void> {
     try {
-      this.raceIdStored = raceId;
-      this.classIdStored = classId;
+      // Normalize WK_Characters_customizable / aliases → human|elf|…
+      const { normalizeRaceId } = await import('@shared/fleet');
+      const raceKey = normalizeRaceId(raceId);
+      this.raceIdStored = raceKey;
+      this.classIdStored = classId || 'adventurer';
       if (equipment) this.equipment = { ...equipment };
 
-      const modelUnit = getModelForCharacter(raceId, classId);
+      const modelUnit = getModelForCharacter(raceKey, classId);
+      const race = RACE_GRUDGE6[raceKey] ?? RACE_GRUDGE6.human;
+      // Prefer RACE_GRUDGE6.cdnPath (canonical) over manifest when they diverge
+      const modelPath = race.cdnPath || modelUnit.modelPath;
+
       const resolvedModel3d = (model3d || equipment)
-        ? parseModel3d({ raceId, classId, equipment: this.equipment, model3d } as any)
+        ? parseModel3d({ raceId: raceKey, classId, equipment: this.equipment, model3d } as any)
         : null;
       if (resolvedModel3d) this.model3dStored = resolvedModel3d;
 
@@ -286,10 +293,10 @@ export class CharacterController3D {
         this.mode === 'harvest' || this.mode === 'build' ? 'unarmed' : equippedWeaponType
       );
       this.weaponType = weaponType;
-      const loaded = await loadCharacterModel(modelUnit.modelPath);
+      const loaded = await loadCharacterModel(modelPath);
 
+      // Mesh catalog + swap BEFORE fit (equip hides non-selected Units_* meshes)
       if (resolvedModel3d) {
-        const race = RACE_GRUDGE6[raceId] ?? RACE_GRUDGE6.human;
         this.equipmentManager = setupGrudge6Equipment(race.prefix, loaded.scene, resolvedModel3d);
         ensureCharacterTextureColorSpace(loaded.scene);
         applyCharacterColorTints(
@@ -298,11 +305,22 @@ export class CharacterController3D {
           resolvedModel3d.armorColor,
         );
       } else {
+        // Still hide weapon soup — show base armor A
+        this.equipmentManager = setupGrudge6Equipment(race.prefix, loaded.scene, {
+          baseModelId: race.modelId,
+          equippedMeshes: { body: 'A', arms: 'A', legs: 'A', head: 'A' },
+          weaponSlots: { sword: 'A' },
+          faceVariant: 'A',
+          skinColor: '#ffffff',
+          armorColor: '#ffffff',
+          capeEnabled: false,
+          scale: race.scale,
+        });
         ensureCharacterTextureColorSpace(loaded.scene);
       }
 
-      // modelUnit.scale is race height mult (1.0 human, 0.85 dwarf…) — fit to 2m world
-      const raceMult = resolvedModel3d?.scale ?? modelUnit.scale ?? 1;
+      // race height mult (1.0 human, 0.85 dwarf…) — fit to 2m world
+      const raceMult = resolvedModel3d?.scale ?? race.scale ?? modelUnit.scale ?? 1;
       this.applyLoadedModel(loaded, raceMult);
       // Always load Mixamo idle/walk/run — race GLBs are often T-pose with no clips
       await this.reloadWeaponAnimations(weaponType);
@@ -310,10 +328,33 @@ export class CharacterController3D {
         this.animations.play('idle');
       }
 
-      this.initStateMachine(characterId ?? 'local-player', raceId, classId, weaponType);
+      this.initStateMachine(characterId ?? 'local-player', raceKey, classId, weaponType);
     } catch (err) {
       console.warn(`Failed to load character model for ${raceId}/${classId}:`, err);
     }
+  }
+
+  /**
+   * Full race swap — reloads race GLB + re-applies equipment mesh catalog.
+   * Prefer this over refreshAppearance when raceId changes.
+   */
+  async swapRace(
+    raceId: string,
+    opts?: {
+      classId?: string;
+      characterId?: string;
+      equipment?: Record<string, string | null>;
+      model3d?: Partial<Model3DField>;
+    },
+  ): Promise<void> {
+    await this.loadCharacterFromManifest(
+      raceId,
+      opts?.classId ?? this.classIdStored,
+      opts?.characterId,
+      undefined,
+      opts?.model3d ?? this.model3dStored,
+      opts?.equipment ?? this.equipment,
+    );
   }
 
   /** Re-apply equipment meshes on the loaded GLB without a full model reload. */
@@ -329,6 +370,17 @@ export class CharacterController3D {
       model3d: { ...this.model3dStored, ...model3d },
     } as any);
     this.model3dStored = resolvedModel3d;
+
+    // Race change requested via model3d.baseModelId → full swap
+    const nextRaceHint = model3d?.baseModelId;
+    if (nextRaceHint) {
+      const { normalizeRaceId } = await import('@shared/fleet');
+      const nextRace = normalizeRaceId(nextRaceHint);
+      if (nextRace !== this.raceIdStored) {
+        await this.swapRace(nextRace, { model3d: resolvedModel3d, equipment: this.equipment });
+        return;
+      }
+    }
 
     if (!this.loadedModelScene) return;
 
@@ -506,8 +558,10 @@ export class CharacterController3D {
         child.receiveShadow = true;
       }
     });
+    ensureCharacterTextureColorSpace(loaded.scene);
 
     // Fit to world meters + center on tile (prevents giant T-pose off-square)
+    // Uses visible equip meshes only (catalog already ran)
     fitCharacterRootToHeightM(loaded.scene, raceScaleMult, PLAYER_HEIGHT_M);
 
     while (this.model.children.length) {

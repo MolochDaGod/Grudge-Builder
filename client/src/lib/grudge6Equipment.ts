@@ -1,9 +1,13 @@
 /**
- * Grudge6 EquipmentManager — child-mesh toggle system for race GLBs.
+ * Grudge6 EquipmentManager — child-mesh toggle for RTS toon race GLBs.
  * Ported from grudgeracecharacters/playground EquipmentManager.js
+ *
+ * Race packs (WK_/BRB_/ELF_/DWF_/ORC_/UD_) share the same Units_* mesh slots.
+ * Catalog once per load; equip() swaps visible armor/weapon variants.
  */
 import * as THREE from "three";
 import type { Model3DField } from "@shared/fleet";
+import { ensureCharacterTextureColorSpace } from "@/lib/characterAppearance";
 
 interface SlotDef {
   slot: string;
@@ -12,12 +16,16 @@ interface SlotDef {
   noVariant?: boolean;
 }
 
+/**
+ * Match stripped names (prefix already removed) AND raw names that still
+ * contain Units_ / weapon_ / Xtra_ tokens (when race prefix is missing).
+ */
 const SLOT_DEFS: SlotDef[] = [
-  { slot: "body", re: /^Units_Body_([A-Z])$/i, group: "armor" },
-  { slot: "arms", re: /^Units_Arms_([A-Z])$/i, group: "armor" },
-  { slot: "legs", re: /^Units_Legs_([A-Z])$/i, group: "armor" },
-  { slot: "head", re: /^Units_head_([A-Z])$/i, group: "armor" },
-  { slot: "shoulders", re: /^Units_shoulderpads_([A-Z])$/i, group: "armor" },
+  { slot: "body", re: /Units_Body_([A-Z])$/i, group: "armor" },
+  { slot: "arms", re: /Units_Arms_([A-Z])$/i, group: "armor" },
+  { slot: "legs", re: /Units_Legs_([A-Z])$/i, group: "armor" },
+  { slot: "head", re: /Units_head_([A-Z])$/i, group: "armor" },
+  { slot: "shoulders", re: /Units_shoulderpads_([A-Z])$/i, group: "armor" },
   { slot: "axe", re: /(?:Units_|weapon_)axe_([A-Z])$/i, group: "weapon_r" },
   { slot: "hammer", re: /(?:Units_|weapon_)hammer_([A-Z])$/i, group: "weapon_r" },
   { slot: "sword", re: /(?:Units_|weapon_)[Ss]word_([A-Z])$/i, group: "weapon_r" },
@@ -32,6 +40,43 @@ const SLOT_DEFS: SlotDef[] = [
 ];
 
 const WEAPON_SLOTS = new Set(["axe", "hammer", "sword", "pick", "spear", "bow", "staff", "shield"]);
+const ARMOR_DEFAULTS: Record<string, string> = {
+  body: "A",
+  arms: "A",
+  legs: "A",
+  head: "A",
+};
+
+/** Known race prefixes — strip any so catalog works even if wrong prefix was passed */
+const RACE_PREFIXES = ["WK_", "BRB_", "ELF_", "DWF_", "ORC_", "UD_"];
+
+function stripRacePrefix(name: string, preferred: string): string {
+  if (!name) return name;
+  // Prefer declared race prefix first
+  if (preferred && name.startsWith(preferred)) {
+    return name.slice(preferred.length);
+  }
+  const upper = name;
+  for (const p of RACE_PREFIXES) {
+    if (upper.startsWith(p)) return upper.slice(p.length);
+  }
+  // Case-insensitive
+  const lower = name.toLowerCase();
+  for (const p of RACE_PREFIXES) {
+    if (lower.startsWith(p.toLowerCase())) return name.slice(p.length);
+  }
+  return name;
+}
+
+function normalizeVariant(raw: string | undefined, noVariant: boolean): string {
+  if (noVariant) return "_default";
+  if (!raw) return "A";
+  const v = String(raw).trim().toUpperCase();
+  if (v === "_DEFAULT" || v === "DEFAULT" || v === "") return noVariant ? "_default" : "A";
+  // "body_c" / "C" / "c" → "C"
+  const letter = v.replace(/^.*_/, "").replace(/[^A-Z]/g, "");
+  return letter || "A";
+}
 
 export class Grudge6EquipmentManager {
   readonly prefix: string;
@@ -42,7 +87,7 @@ export class Grudge6EquipmentManager {
   root: THREE.Object3D | null = null;
 
   constructor(prefix: string) {
-    this.prefix = prefix;
+    this.prefix = prefix || "WK_";
   }
 
   catalog(root: THREE.Object3D): Record<string, string[]> {
@@ -60,21 +105,25 @@ export class Grudge6EquipmentManager {
     root.traverse((child) => {
       const mesh = child as THREE.Mesh & { isSkinnedMesh?: boolean };
       if (!mesh.isMesh && !mesh.isSkinnedMesh) return;
+      if (!mesh.name) return;
 
-      const stripped = mesh.name.startsWith(this.prefix)
-        ? mesh.name.slice(this.prefix.length)
-        : mesh.name;
+      const stripped = stripRacePrefix(mesh.name, this.prefix);
 
       for (const def of SLOT_DEFS) {
-        const match = stripped.match(def.re);
+        // Try stripped name first, then full name (some exports drop race prefix)
+        let match = stripped.match(def.re);
+        if (!match) match = mesh.name.match(def.re);
         if (!match) continue;
 
         const variant = def.noVariant
           ? "_default"
-          : (match[1] || "_default").toUpperCase();
+          : normalizeVariant(match[1], false);
 
         if (!this.slots[def.slot]) this.slots[def.slot] = {};
-        this.slots[def.slot][variant] = mesh;
+        // Prefer first mesh for a variant (avoid overwriting with LODs)
+        if (!this.slots[def.slot][variant]) {
+          this.slots[def.slot][variant] = mesh;
+        }
         mesh.userData.equipSlot = def.slot;
         mesh.userData.equipVariant = variant;
         mesh.userData.equipGroup = def.group;
@@ -84,6 +133,13 @@ export class Grudge6EquipmentManager {
       }
     });
 
+    if (this._allMeshes.length === 0) {
+      console.warn(
+        `[Grudge6Equip] No equip meshes matched for prefix=${this.prefix}. ` +
+          `Is this a grudge6 race GLB with Units_* children?`,
+      );
+    }
+
     return this.getSlotSummary();
   }
 
@@ -91,20 +147,24 @@ export class Grudge6EquipmentManager {
     const variants = this.slots[slot];
     if (!variants) return false;
 
+    const want = normalizeVariant(variant, false);
+    // Fall back to first available if requested letter missing (mesh swap safe)
+    const keys = Object.keys(variants);
+    const resolved = variants[want] ? want : keys.includes("A") ? "A" : keys[0];
+    if (!resolved) return false;
+
     for (const [v, mesh] of Object.entries(variants)) {
       const m = mesh as THREE.Mesh;
-      if (v === variant) {
+      if (v === resolved) {
         m.visible = true;
-        // Only multiply-tint when a non-white armor color is set — never
-        // overwrite base color (that flattens textures to a solid wash).
-        if (armorColor && armorColor !== '#ffffff' && armorColor !== '#fff') {
+        if (armorColor && armorColor !== "#ffffff" && armorColor !== "#fff") {
           this.tintMesh(m, armorColor);
         }
       } else {
         m.visible = false;
       }
     }
-    this.equipped[slot] = variant;
+    this.equipped[slot] = resolved;
     return true;
   }
 
@@ -118,7 +178,8 @@ export class Grudge6EquipmentManager {
         delete this.equipped[mesh.userData.equipSlot as string];
       }
     }
-    return this.equip(slot, variant);
+    const v = def.noVariant ? "_default" : normalizeVariant(variant, false);
+    return this.equip(slot, v);
   }
 
   unequip(slot: string): void {
@@ -126,6 +187,15 @@ export class Grudge6EquipmentManager {
     if (!variants) return;
     for (const mesh of Object.values(variants)) mesh.visible = false;
     delete this.equipped[slot];
+  }
+
+  /** Show a safe base armor set (body/arms/legs) so character is never invisible */
+  ensureBaseArmorVisible(): void {
+    for (const [slot, defVariant] of Object.entries(ARMOR_DEFAULTS)) {
+      if (!this.slots[slot]) continue;
+      if (this.equipped[slot]) continue;
+      this.equip(slot, defVariant);
+    }
   }
 
   getSlotSummary(): Record<string, string[]> {
@@ -136,7 +206,6 @@ export class Grudge6EquipmentManager {
     return summary;
   }
 
-  /** Multiply from stored base color so re-equip never stacks darkening. */
   private tintMesh(mesh: THREE.Mesh, color: string): void {
     const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
     const tint = new THREE.Color(color);
@@ -169,6 +238,7 @@ export function applyModel3dToEquipment(
       em.equipWeapon(slot, variant);
     }
   }
+  em.ensureBaseArmorVisible();
 }
 
 /** Create manager for race, catalog scene, apply model3d — one-shot helper */
@@ -180,7 +250,6 @@ export function setupGrudge6Equipment(
   const em = new Grudge6EquipmentManager(racePrefix);
   em.catalog(scene);
 
-  // Ensure base armor visible when model3d is sparse
   const merged: Model3DField = {
     ...model3d,
     equippedMeshes: {
@@ -193,5 +262,6 @@ export function setupGrudge6Equipment(
   };
 
   applyModel3dToEquipment(em, merged);
+  ensureCharacterTextureColorSpace(scene);
   return em;
 }

@@ -59,7 +59,12 @@ export function applyCharacterColorTints(
   });
 }
 
-/** Ensure baseColor / emissive maps use sRGB (correct color on WebGL). */
+/**
+ * Ensure albedo / emissive maps use sRGB (correct color on WebGL).
+ * Race GLBs from R2 sometimes ship as MeshStandard/Physical/Toon with maps
+ * still tagged linear — that washes equipment to gray/white.
+ * Data maps (normal, metalnessRoughness, AO) stay linear (no-op here).
+ */
 export function ensureCharacterTextureColorSpace(root: THREE.Object3D): void {
   root.traverse((child) => {
     if (!(child as THREE.Mesh).isMesh) return;
@@ -67,13 +72,32 @@ export function ensureCharacterTextureColorSpace(root: THREE.Object3D): void {
     const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
     for (const mat of mats) {
       if (!mat) continue;
-      const std = mat as THREE.MeshStandardMaterial;
-      for (const key of ['map', 'emissiveMap'] as const) {
-        const tex = std[key] as THREE.Texture | null | undefined;
-        if (tex && tex.colorSpace !== THREE.SRGBColorSpace) {
-          tex.colorSpace = THREE.SRGBColorSpace;
-          tex.needsUpdate = true;
+      // Color maps that must be sRGB across material types
+      const colorKeys = [
+        'map',
+        'emissiveMap',
+        'specularMap',
+        'sheenColorMap',
+        'specularColorMap',
+      ] as const;
+      const anyMat = mat as THREE.MeshStandardMaterial & Record<string, unknown>;
+      for (const key of colorKeys) {
+        const tex = anyMat[key] as THREE.Texture | null | undefined;
+        if (tex && (tex as THREE.Texture).isTexture) {
+          if (tex.colorSpace !== THREE.SRGBColorSpace) {
+            tex.colorSpace = THREE.SRGBColorSpace;
+            tex.needsUpdate = true;
+          }
+          // GLTF packs usually have flipY=false; force consistent sampling
+          if (tex.flipY !== false) {
+            tex.flipY = false;
+            tex.needsUpdate = true;
+          }
         }
+      }
+      // Avoid over-metal that kills albedo readability on race kits
+      if (typeof anyMat.metalness === 'number') {
+        anyMat.metalness = Math.min(anyMat.metalness as number, 0.55);
       }
       mat.needsUpdate = true;
     }

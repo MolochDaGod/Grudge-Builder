@@ -27,16 +27,57 @@ export interface Grudge6RaceConfig {
   cdnPath: string;
   scale: number;
   faction: "crusade" | "fabled" | "legion" | "wild";
+  /** Optional stem used in baseModelId (e.g. WK_Characters) */
+  baseModelStem?: string;
 }
 
 export const RACE_GRUDGE6: Record<string, Grudge6RaceConfig> = {
-  human:     { modelId: "human",     prefix: "WK_",  label: "Human",     cdnPath: "/models/characters/races/human.glb",     scale: 1.0,  faction: "crusade" },
-  barbarian: { modelId: "barbarian", prefix: "BRB_", label: "Barbarian", cdnPath: "/models/characters/races/barbarian.glb", scale: 1.1,  faction: "crusade" },
-  elf:       { modelId: "elf",       prefix: "ELF_", label: "Elf",       cdnPath: "/models/characters/races/elf.glb",       scale: 1.0,  faction: "fabled" },
-  dwarf:     { modelId: "dwarf",     prefix: "DWF_", label: "Dwarf",     cdnPath: "/models/characters/races/dwarf.glb",     scale: 0.85, faction: "crusade" },
-  orc:       { modelId: "orc",       prefix: "ORC_", label: "Orc",       cdnPath: "/models/characters/races/orc.glb",       scale: 1.15, faction: "legion" },
-  undead:    { modelId: "undead",    prefix: "UD_",  label: "Undead",    cdnPath: "/models/characters/races/undead.glb",    scale: 1.0,  faction: "legion" },
+  human:     { modelId: "human",     prefix: "WK_",  label: "Human",     cdnPath: "/models/characters/races/human.glb",     scale: 1.0,  faction: "crusade", baseModelStem: "WK_Characters" },
+  barbarian: { modelId: "barbarian", prefix: "BRB_", label: "Barbarian", cdnPath: "/models/characters/races/barbarian.glb", scale: 1.1,  faction: "crusade", baseModelStem: "BRB_Characters" },
+  elf:       { modelId: "elf",       prefix: "ELF_", label: "Elf",       cdnPath: "/models/characters/races/elf.glb",       scale: 1.0,  faction: "fabled",  baseModelStem: "ELF_Characters" },
+  dwarf:     { modelId: "dwarf",     prefix: "DWF_", label: "Dwarf",     cdnPath: "/models/characters/races/dwarf.glb",     scale: 0.85, faction: "crusade", baseModelStem: "DWF_Characters" },
+  orc:       { modelId: "orc",       prefix: "ORC_", label: "Orc",       cdnPath: "/models/characters/races/orc.glb",       scale: 1.15, faction: "legion",  baseModelStem: "ORC_Characters" },
+  undead:    { modelId: "undead",    prefix: "UD_",  label: "Undead",    cdnPath: "/models/characters/races/undead.glb",    scale: 1.0,  faction: "legion",  baseModelStem: "UD_Characters" },
 };
+
+/**
+ * Normalize race keys from DB / Colyseus / model3d baseModelId.
+ * Accepts: human | WK_ | WK_Characters_customizable | /models/…/human.glb
+ */
+export function normalizeRaceId(raceOrBaseModel: string | null | undefined): string {
+  const raw = (raceOrBaseModel ?? "human").trim();
+  if (!raw) return "human";
+  const s = raw.toLowerCase();
+
+  if (RACE_GRUDGE6[s]) return s;
+
+  // Exact modelId / prefix / baseModelId stem match
+  for (const [id, cfg] of Object.entries(RACE_GRUDGE6)) {
+    if (s === cfg.modelId.toLowerCase()) return id;
+    const pref = cfg.prefix.toLowerCase();
+    if (s === pref || s === pref.replace(/_$/, "")) return id;
+    if (s.includes(pref)) return id;
+    if (s.includes(`/${cfg.modelId}.glb`) || s.endsWith(`${cfg.modelId}.glb`)) return id;
+    const stem = (cfg.baseModelStem ?? `${cfg.prefix}Characters`).toLowerCase();
+    if (s.includes(stem)) return id;
+  }
+
+  // Fuzzy tokens
+  if (s.includes("barb")) return "barbarian";
+  if (s.includes("elf")) return "elf";
+  if (s.includes("dwarf") || s.includes("dwf")) return "dwarf";
+  if (s.includes("orc")) return "orc";
+  if (s.includes("undead") || s.includes("ud_") || s === "ud") return "undead";
+  if (s.includes("human") || s.includes("wk")) return "human";
+
+  return "human";
+}
+
+/** Mesh prefix for a race (WK_, ELF_, …) */
+export function raceMeshPrefix(raceId: string): string {
+  const id = normalizeRaceId(raceId);
+  return (RACE_GRUDGE6[id] ?? RACE_GRUDGE6.human).prefix;
+}
 
 /** Legacy grudge6 FBX path (character creator playground) */
 export const RACE_FBX_PATHS: Record<string, string> = {
