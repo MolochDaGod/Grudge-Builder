@@ -1,9 +1,8 @@
 /**
- * WarCaptureZone — Conqueror's Blade–style capture points.
+ * WarCaptureZone — Conqueror's Blade–style capture points on the island floor.
  *
- * 3 zones on the island. A side captures when it has more living units
- * inside the radius for long enough. Match ends when one side holds all
- * three, or the round timer expires (highest zone count / tie-break HP).
+ * Important: the fortress GLB is centered on its full AABB, so ground sits at
+ * negative Y. Zones must raycast onto terrain (not walls) and keep that Y.
  */
 import * as THREE from 'three';
 import type { WarFactionId } from '@shared/definitions/medievalBattleScene';
@@ -13,10 +12,9 @@ export type CaptureOwner = WarFactionId | 'contested' | 'neutral';
 export interface CaptureZoneDef {
   id: string;
   label: string;
-  /** World center after env centering */
+  /** World-space center ON the ground */
   center: THREE.Vector3;
   radius: number;
-  /** Starting owner (Azure holds gate/keep typically) */
   owner: CaptureOwner;
   color: number;
 }
@@ -25,7 +23,6 @@ export interface CaptureZoneState {
   id: string;
   label: string;
   owner: CaptureOwner;
-  /** 0–1 progress toward new owner */
   progress: number;
   capturer: CaptureOwner | null;
   crimsonIn: number;
@@ -33,7 +30,7 @@ export interface CaptureZoneState {
   goldIn: number;
 }
 
-const CAPTURE_RATE = 0.12; // ~8s to flip with clear majority
+const CAPTURE_RATE = 0.12;
 const DECAY_RATE = 0.06;
 
 export class WarCaptureZone {
@@ -59,60 +56,77 @@ export class WarCaptureZone {
 
     this.mesh = new THREE.Group();
     this.mesh.name = `capture_${def.id}`;
-    this.mesh.position.copy(this.center);
-    this.mesh.position.y = 0.15;
+    // Sit slightly above sampled ground — never force Y=0
+    this.mesh.position.set(this.center.x, this.center.y + 0.08, this.center.z);
 
-    const ringGeo = new THREE.RingGeometry(this.radius * 0.92, this.radius, 64);
+    const ringGeo = new THREE.RingGeometry(
+      Math.max(2, this.radius * 0.88),
+      this.radius,
+      48,
+    );
     this.ring = new THREE.Mesh(
       ringGeo,
       new THREE.MeshBasicMaterial({
         color: def.color,
         transparent: true,
-        opacity: 0.55,
+        opacity: 0.65,
         side: THREE.DoubleSide,
         depthWrite: false,
+        depthTest: true,
       }),
     );
     this.ring.rotation.x = -Math.PI / 2;
+    this.ring.renderOrder = 2;
     this.mesh.add(this.ring);
 
-    const fillGeo = new THREE.CircleGeometry(this.radius * 0.9, 48);
+    const fillGeo = new THREE.CircleGeometry(this.radius * 0.86, 40);
     this.fill = new THREE.Mesh(
       fillGeo,
       new THREE.MeshBasicMaterial({
         color: def.color,
         transparent: true,
-        opacity: 0.12,
+        opacity: 0.14,
         side: THREE.DoubleSide,
         depthWrite: false,
       }),
     );
     this.fill.rotation.x = -Math.PI / 2;
     this.fill.position.y = 0.02;
+    this.fill.renderOrder = 1;
     this.mesh.add(this.fill);
 
-    // Banner pole marker
+    // Short pole so it doesn't look like a sky flag
+    const poleH = Math.min(3.2, Math.max(2.2, this.radius * 0.28));
     const pole = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.12, 0.15, 4.5, 8),
+      new THREE.CylinderGeometry(0.08, 0.11, poleH, 8),
       new THREE.MeshStandardMaterial({ color: 0x4a3728, roughness: 0.85 }),
     );
-    pole.position.y = 2.25;
+    pole.position.y = poleH * 0.5;
     pole.castShadow = true;
     this.mesh.add(pole);
+
     const flag = new THREE.Mesh(
-      new THREE.PlaneGeometry(1.6, 1.0),
+      new THREE.PlaneGeometry(1.2, 0.75),
       new THREE.MeshBasicMaterial({
         color: def.color,
         side: THREE.DoubleSide,
         transparent: true,
-        opacity: 0.9,
+        opacity: 0.92,
+        depthWrite: false,
       }),
     );
-    flag.position.set(0.9, 3.8, 0);
+    flag.position.set(0.7, poleH * 0.85, 0);
     this.mesh.add(flag);
 
     parent.add(this.mesh);
     this.applyOwnerColor();
+  }
+
+  /** Re-snap mesh if ground sample improves after load */
+  setGroundY(y: number): void {
+    if (!Number.isFinite(y)) return;
+    this.center.y = y;
+    this.mesh.position.y = y + 0.08;
   }
 
   contains(p: THREE.Vector3): boolean {
@@ -136,7 +150,6 @@ export class WarCaptureZone {
       else if (u.faction === 'gold') gold++;
     }
 
-    // Leading faction inside ring
     const scores: Array<[WarFactionId, number]> = [
       ['crimson', crimson],
       ['azure', azure],
@@ -148,11 +161,9 @@ export class WarCaptureZone {
     const majority = leadN > 0 && leadN > secondN;
 
     if (!majority) {
-      // Contested or empty — decay progress
       this.progress = Math.max(0, this.progress - DECAY_RATE * dt);
       if (this.progress <= 0) this.capturer = null;
     } else if (leadFac === this.owner) {
-      // Reinforce — decay any flip progress
       this.progress = Math.max(0, this.progress - DECAY_RATE * 1.5 * dt);
       this.capturer = null;
     } else {
@@ -166,9 +177,8 @@ export class WarCaptureZone {
       }
     }
 
-    // Pulse ring when capturing
     const mat = this.ring.material as THREE.MeshBasicMaterial;
-    mat.opacity = 0.45 + (this.capturer ? Math.sin(performance.now() * 0.008) * 0.2 : 0.1);
+    mat.opacity = 0.5 + (this.capturer ? Math.sin(performance.now() * 0.008) * 0.2 : 0.12);
   }
 
   private applyOwnerColor(): void {
@@ -184,16 +194,16 @@ export class WarCaptureZone {
     (this.fill.material as THREE.MeshBasicMaterial).color.setHex(c);
   }
 
-  toState(counts?: { crimson: number; azure: number; gold: number }): CaptureZoneState {
+  toState(): CaptureZoneState {
     return {
       id: this.id,
       label: this.label,
       owner: this.owner,
       progress: this.progress,
       capturer: this.capturer,
-      crimsonIn: counts?.crimson ?? 0,
-      azureIn: counts?.azure ?? 0,
-      goldIn: counts?.gold ?? 0,
+      crimsonIn: 0,
+      azureIn: 0,
+      goldIn: 0,
     };
   }
 
@@ -208,34 +218,115 @@ export class WarCaptureZone {
   }
 }
 
-/** Default 3 CB-style points relative to centered fortress */
-export function defaultCaptureZones(sceneRadius = 40): CaptureZoneDef[] {
+/**
+ * Place 3 zones from real battlefield geometry after centering:
+ *  - Keep: near wall cluster centroid (defenders)
+ *  - Gate: on the approach side of walls toward attackers
+ *  - Beach: further out on attacker approach axis
+ */
+export function buildCaptureZonesFromBattlefield(opts: {
+  wallBoxes: THREE.Box3[];
+  terrainBoxes: THREE.Box3[];
+  sampleGround: (x: number, z: number) => number | null;
+}): CaptureZoneDef[] {
+  const wallUnion = new THREE.Box3();
+  for (const b of opts.wallBoxes) {
+    if (!b.isEmpty()) wallUnion.union(b);
+  }
+  const terrainUnion = new THREE.Box3();
+  for (const b of opts.terrainBoxes) {
+    if (!b.isEmpty()) terrainUnion.union(b);
+  }
+
+  // Prefer wall footprint; fall back to terrain; last resort unit square
+  const foot = !wallUnion.isEmpty()
+    ? wallUnion
+    : !terrainUnion.isEmpty()
+      ? terrainUnion
+      : new THREE.Box3(
+          new THREE.Vector3(-30, -2, -30),
+          new THREE.Vector3(30, 8, 30),
+        );
+
+  const size = foot.getSize(new THREE.Vector3());
+  const mid = foot.getCenter(new THREE.Vector3());
+  // Horizontal extent for spacing
+  const span = Math.max(size.x, size.z, 40);
+  const rKeep = Math.max(8, Math.min(16, span * 0.12));
+  const rGate = Math.max(9, Math.min(18, span * 0.14));
+  const rBeach = Math.max(10, Math.min(20, span * 0.16));
+
+  // Approach axis: from origin toward wall center, push beach outward
+  let axis = new THREE.Vector3(mid.x, 0, mid.z);
+  if (axis.lengthSq() < 1) axis.set(0, 0, 1);
+  axis.normalize();
+
+  // Keep near fort interior (wall center)
+  const keepXZ = new THREE.Vector3(mid.x, 0, mid.z).addScaledVector(axis, -span * 0.05);
+  // Gate on outer wall face toward open field
+  const gateXZ = new THREE.Vector3(mid.x, 0, mid.z).addScaledVector(axis, span * 0.28);
+  // Beach further out (landing)
+  const beachXZ = new THREE.Vector3(mid.x, 0, mid.z).addScaledVector(axis, span * 0.55);
+
+  const snap = (x: number, z: number, fallbackY: number): THREE.Vector3 => {
+    // Prefer lowest solid hit among several samples (true ground, not walkway)
+    let y = opts.sampleGround(x, z);
+    if (y == null || !Number.isFinite(y)) y = fallbackY;
+    // Also try slight offsets and pick lowest (avoid elevated walkways)
+    for (const [dx, dz] of [
+      [2, 0],
+      [-2, 0],
+      [0, 2],
+      [0, -2],
+    ] as const) {
+      const yy = opts.sampleGround(x + dx, z + dz);
+      if (yy != null && Number.isFinite(yy)) y = Math.min(y, yy);
+    }
+    return new THREE.Vector3(x, y, z);
+  };
+
+  const groundY = !Number.isFinite(mid.y) ? 0 : mid.y - size.y * 0.45;
+
   return [
     {
       id: 'zone_beach',
       label: 'Landing Beach',
-      center: new THREE.Vector3(-sceneRadius * 0.55, 0, sceneRadius * 0.35),
-      radius: 14,
+      center: snap(beachXZ.x, beachXZ.z, groundY),
+      radius: rBeach,
       owner: 'neutral',
       color: 0x94a3b8,
     },
     {
       id: 'zone_gate',
       label: 'Outer Gate',
-      center: new THREE.Vector3(0, 0, sceneRadius * 0.15),
-      radius: 12,
+      center: snap(gateXZ.x, gateXZ.z, groundY),
+      radius: rGate,
       owner: 'azure',
       color: 0x0284c7,
     },
     {
       id: 'zone_keep',
       label: 'Inner Keep',
-      center: new THREE.Vector3(sceneRadius * 0.12, 0, -sceneRadius * 0.2),
-      radius: 11,
+      center: snap(keepXZ.x, keepXZ.z, groundY),
+      radius: rKeep,
       owner: 'azure',
       color: 0x0369a1,
     },
   ];
+}
+
+/** @deprecated use buildCaptureZonesFromBattlefield */
+export function defaultCaptureZones(sceneRadius = 40): CaptureZoneDef[] {
+  return buildCaptureZonesFromBattlefield({
+    wallBoxes: [],
+    terrainBoxes: [
+      new THREE.Box3(
+        new THREE.Vector3(-sceneRadius, -2, -sceneRadius),
+        new THREE.Vector3(sceneRadius, 8, sceneRadius),
+      ),
+    ],
+    sampleGround: () => 0,
+  });
 }
 
 export function countZoneOwners(zones: WarCaptureZone[]): Record<string, number> {

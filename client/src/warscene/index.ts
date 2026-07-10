@@ -18,7 +18,11 @@ export type { DeclarationScript, CinematicLine } from './WarCinematic';
 export { WarDeployment } from './WarDeployment';
 export type { UnitProxySlot, DeployZone } from './WarDeployment';
 export { enhanceIslandBattlefield, tickIslandWater } from './WarIslandDecor';
-export { WarCaptureZone, defaultCaptureZones } from './WarCaptureZone';
+export {
+  WarCaptureZone,
+  defaultCaptureZones,
+  buildCaptureZonesFromBattlefield,
+} from './WarCaptureZone';
 export { WarCatapult } from './WarCatapult';
 export { ROUND_DURATION_SEC, formatClock } from './WarMatchRules';
 export type { MatchHud } from './WarMatchRules';

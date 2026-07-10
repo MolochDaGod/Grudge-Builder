@@ -45,7 +45,7 @@ import {
 } from './WarIslandDecor';
 import {
   WarCaptureZone,
-  defaultCaptureZones,
+  buildCaptureZonesFromBattlefield,
   countZoneOwners,
   type CaptureZoneState,
 } from './WarCaptureZone';
@@ -542,17 +542,38 @@ export class WarSceneEngine {
       `Walls: ${this.walls.length} combat segments (intact shown, rubble hidden until breached)`,
     );
 
-    // 3 capture zones (CB style)
-    progress(60, 'Planting capture banners…');
-    const zoneDefs = defaultCaptureZones(42);
+    // 3 capture zones ON terrain, from wall/terrain footprints (not floating mid-air)
+    progress(60, 'Planting capture banners on ground…');
+    const wallBoxes = this.walls.map((w) => w.collider.clone());
+    // Also raw wall meshes if pairing missed some
+    for (const m of this.wallMeshes) {
+      wallBoxes.push(new THREE.Box3().setFromObject(m));
+    }
+    const terrainBoxes: THREE.Box3[] = [];
+    for (const g of this.groundMeshes) {
+      const n = g.name || '';
+      if (/Erba|Zolla|Terreno|Bordo|Roccia(?!Mura)|Water/i.test(n)) {
+        terrainBoxes.push(new THREE.Box3().setFromObject(g));
+      }
+    }
+    if (!terrainBoxes.length && this.envRoot.children[0]) {
+      terrainBoxes.push(new THREE.Box3().setFromObject(this.envRoot));
+    }
+    const zoneDefs = buildCaptureZonesFromBattlefield({
+      wallBoxes,
+      terrainBoxes,
+      sampleGround: this.sampleTerrainGround,
+    });
     for (const def of zoneDefs) {
-      // Snap Y to ground
-      const gy = this.sampleGround(def.center.x, def.center.z);
-      if (gy != null) def.center.y = gy;
+      // Final snap
+      const gy = this.sampleTerrainGround(def.center.x, def.center.z);
+      if (gy != null && Number.isFinite(gy)) def.center.y = gy;
       this.captureZones.push(new WarCaptureZone(def, this.scene));
     }
     this.log(
-      `Capture zones: ${this.captureZones.map((z) => z.label).join(' · ')} (hold all 3 or win on timer)`,
+      `Capture zones on ground: ${this.captureZones
+        .map((z) => `${z.label}@y=${z.center.y.toFixed(1)}`)
+        .join(' · ')}`,
     );
 
     // Reserve pool — CB style: no free army on map yet
@@ -918,12 +939,41 @@ export class WarSceneEngine {
     return this.cinematic.declaration;
   }
 
+  /**
+   * Ground Y for units / zones. Casts from high up; prefers lowest hit so we
+   * land on island floor not elevated walkways when multiple surfaces stack.
+   */
   private sampleGround = (x: number, z: number): number | null => {
-    this.raycaster.set(new THREE.Vector3(x, 60, z), this.down);
-    this.raycaster.far = WAR_SCENE_DEFAULTS.groundRayMax;
+    const originY = 200;
+    this.raycaster.set(new THREE.Vector3(x, originY, z), this.down);
+    this.raycaster.far = 400;
     const hits = this.raycaster.intersectObjects(this.groundMeshes, true);
-    if (hits.length > 0) return hits[0]!.point.y;
-    return 0;
+    if (!hits.length) return 0;
+    // Prefer lowest hit below start (true ground); ignore hits above mid-air rings
+    let best = hits[0]!.point.y;
+    for (const h of hits) {
+      if (h.point.y < best) best = h.point.y;
+    }
+    return best;
+  };
+
+  /** Terrain-only sample for capture pads (skip walls / walkways by name). */
+  private sampleTerrainGround = (x: number, z: number): number | null => {
+    const terrainOnly = this.groundMeshes.filter((o) => {
+      const n = o.name || '';
+      return /Erba|Zolla|Terreno|Bordo|Roccia(?!Mura)|Water|ground|terrain/i.test(n);
+    });
+    const list = terrainOnly.length ? terrainOnly : this.groundMeshes;
+    this.raycaster.set(new THREE.Vector3(x, 200, z), this.down);
+    this.raycaster.far = 400;
+    const hits = this.raycaster.intersectObjects(list, true);
+    if (!hits.length) return this.sampleGround(x, z);
+    let best = hits[0]!.point.y;
+    for (const h of hits) {
+      // Skip elevated passerella-like hits if we have lower options
+      if (h.point.y < best) best = h.point.y;
+    }
+    return best;
   };
 
   private onAttack = (
