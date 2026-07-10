@@ -791,6 +791,8 @@ export class Island3DEngine {
       maxSlopeRad: HOME_ISLAND_BUILDABLE_MAX_SLOPE_RAD,
       campCenter: campWorld,
       campRadiusM: foundation.campClearRadiusM ?? HOME_ISLAND_CAMP_CLEAR_RADIUS_M,
+      // Docks: deck at waterLevel + 0.2 (see DOCK_DECK_Y_OFFSET / BuildAssetDef.placeYOffset)
+      waterLevel: noOcean ? PROCEDURAL_WATER_LEVEL : PROCEDURAL_WATER_LEVEL,
       sampleNormal: (x, z) => getTerrainNormalAt(this.terrain!.terrainMesh, x, z),
       sampleHeight: (x, z) => getTerrainHeightAt(this.terrain!.terrainMesh, x, z),
     });

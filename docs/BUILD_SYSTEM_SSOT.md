@@ -106,17 +106,32 @@ Do **not** store permanent heroes only on the unit AI table.
 
 ---
 
-## Upload / extract (next ops)
+## Upload / extract (studio best practice)
 
 ```bash
-# Copy packs to R2 under models/buildings/…
-# free_survival_asset_kit.glb → models/buildings/survival/
-# 3_medieval_towers (1).glb   → models/buildings/towers/3_medieval_towers.glb
-# spell_table.glb             → models/buildings/benches/
-# lumbermill.glb              → models/buildings/benches/
+# 1) Ensure GLBs under client/public/models/buildings/ (or D:/Games/Models)
+# 2) Push binaries to R2 — never rely on local D: in production
+npm run upload:build-packs
+
+# Runtime: PackModelLoader → GLTFLoader(pack) → getObjectByName(nodeName) → clone
+# Placement: BuildingSystem + buildPlaceY (docks waterLevel + 0.2)
 ```
 
-Runtime loader should `GLTFLoader` pack → `getObjectByName(nodeName)` → clone.
+| CDN path | Source |
+|----------|--------|
+| `models/buildings/survival/free_survival_asset_kit.glb` | free_survival_asset_kit.glb |
+| `models/buildings/towers/3_medieval_towers.glb` | 3_medieval_towers (1).glb |
+| `models/buildings/benches/spell_table.glb` | spell_table.glb |
+| `models/buildings/benches/lumbermill.glb` | lumbermill.glb |
+
+### Layer ownership (fleet)
+
+| Layer | Who places | State SSOT | Binary SSOT |
+|-------|------------|------------|-------------|
+| Quick craft | UI / inventory | Railway bag + character progress | ObjectStore recipes |
+| Camp / bench / modular | Island3D BuildingSystem | Railway island props (or local until save API) | R2 multipack + nodeName |
+| Dock | BuildingSystem + waterLevel | same | same |
+| RTS train | RTS UI / barracks | Unit → promote → Railway characters | R2 towers / kits |
 
 ---
 

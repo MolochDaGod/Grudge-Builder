@@ -59,7 +59,8 @@
     "deploy:puter:crafting": "node scripts/grudge-puter.mjs deploy crafting",
     "deploy:puter:cdn": "node scripts/grudge-puter.mjs cdn --remote",
     "deploy:puter:all": "node scripts/deploy-puter-all-paths.mjs",
-    "deploy:puter:smart": "node scripts/deploy-puter-smart.mjs"
+    "deploy:puter:smart": "node scripts/deploy-puter-smart.mjs",
+    "upload:build-packs": "node scripts/upload-build-packs-to-r2.mjs --remote"
   },
   "dependencies": {
     "@colyseus/auth": "^0.17.9",

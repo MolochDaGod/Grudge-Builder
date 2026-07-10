@@ -6,11 +6,11 @@
  * foundations; pieces at 0 stability cascade-collapse.
  */
 import * as THREE from 'three';
-import { loadCharacterModel } from '@/lib/modelLoader';
 import {
   BUILD_ASSETS, getBuildAsset,
   type BuildAssetDef, type BuildCategory,
 } from './BuildAssetManifest';
+import { loadBuildAssetModel, buildPlaceY } from './PackModelLoader';
 
 // ─── Building Piece Definitions ───────────────────────────────────────────────
 
@@ -146,6 +146,8 @@ export interface BuildConstraints {
   maxSlopeRad: number;
   campCenter?: { x: number; z: number };
   campRadiusM?: number;
+  /** Ocean / water plane Y — docks use placeYOffset above this */
+  waterLevel?: number;
   sampleHeight?: (x: number, z: number) => number | null;
   sampleNormal?: (x: number, z: number) => THREE.Vector3 | null;
 }
@@ -530,14 +532,12 @@ export class BuildingSystem {
     this.scene.add(this.propGhost);
     this.applyGhostMaterials(this.propGhost, true);
 
-    // Try to load the actual GLB model in background — still light-blue ghost
+    // Pack multipack GLB + node extract (survival kit / towers / benches)
     if (asset.modelPath) {
-      loadCharacterModel(asset.modelPath).then((loaded) => {
+      void loadBuildAssetModel(asset).then((model) => {
         if (!this.propGhost || this.propAsset?.id !== assetId) return;
         while (this.propGhost.children.length) this.propGhost.remove(this.propGhost.children[0]);
-        const clone = loaded.scene.clone(true);
-        clone.scale.setScalar(asset.scale);
-        clone.traverse((child) => {
+        model.traverse((child) => {
           if ((child as THREE.Mesh).isMesh) {
             const m = child as THREE.Mesh;
             if (Array.isArray(m.material)) {
@@ -549,7 +549,7 @@ export class BuildingSystem {
             m.receiveShadow = false;
           }
         });
-        this.propGhost!.add(clone);
+        this.propGhost!.add(model);
         this.applyGhostMaterials(this.propGhost!, this.propValid);
       }).catch(() => {});
     }
@@ -597,11 +597,17 @@ export class BuildingSystem {
         ? Math.acos(Math.min(1, Math.max(-1, normal.y))) <= (this.buildConstraints?.maxSlopeRad ?? 0.55)
         : true;
 
-      if (this.propAsset.terrainPlaceable || this.isOnFoundation(pt)) {
-        this.propGhost.position.set(pt.x, pt.y, pt.z);
+      if (this.propAsset.terrainPlaceable || this.isOnFoundation(pt) || this.propAsset.floating) {
+        // Dock / float: deck at max(ground, water) + placeYOffset (default water+0.2)
+        const y = buildPlaceY(pt.y, this.propAsset, this.buildConstraints?.waterLevel);
+        this.propGhost.position.set(pt.x, y, pt.z);
         this.propGhost.rotation.y = this.propRotation;
         const onFoundation = this.isOnFoundation(pt);
-        this.propValid = slopeOk && this.isBuildableAt(pt.x, pt.z, pt.y, !onFoundation);
+        // Floating foundations allowed outside strict slope band near shore
+        const heightOk = this.propAsset.floating
+          ? true
+          : this.isBuildableAt(pt.x, pt.z, pt.y, !onFoundation);
+        this.propValid = (slopeOk || !!this.propAsset.floating) && heightOk;
       } else {
         this.propValid = false;
       }
@@ -640,19 +646,18 @@ export class BuildingSystem {
     group.add(placeholder);
     this.scene.add(group);
 
-    // Load actual model in background
+    // Load multipack/node model (survival kit benches, towers, docks)
     if (asset.modelPath) {
-      loadCharacterModel(asset.modelPath).then((loaded) => {
+      void loadBuildAssetModel(asset).then((model) => {
         const ph = group.getObjectByName('__placeholder');
         if (ph) group.remove(ph);
-        loaded.scene.scale.setScalar(asset.scale);
-        loaded.scene.traverse((child) => {
+        model.traverse((child) => {
           if ((child as THREE.Mesh).isMesh) {
             child.castShadow = true;
             child.receiveShadow = true;
           }
         });
-        group.add(loaded.scene);
+        group.add(model);
       }).catch(() => {});
     }
 

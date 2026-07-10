@@ -7,6 +7,8 @@ export * from "./animations";
 export * from "./dungeons";
 export * from "./tier0Items";
 export * from "./weaponArsenal";
+export * from "./buildSystem";
+export * from "./survivalKitBuildCatalog";
 export * from "./mapRegistry";
 export * from "./biomeEcosystemCatalog";
 export * from "./biomeHarvestAssets";
