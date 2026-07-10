@@ -59,6 +59,8 @@ export default function WarScenePage() {
   const [matchHud, setMatchHud] = useState<MatchHud | null>(null);
   const [starting, setStarting] = useState(false);
   const [endMsg, setEndMsg] = useState<string | null>(null);
+  const [weather, setWeather] = useState('storm');
+  const [camMode, setCamMode] = useState<'follow' | 'tactical' | 'orbit'>('follow');
 
   // Deploy UX state
   const [step, setStep] = useState<'hero' | 'roster' | 'ready'>('hero');
@@ -472,6 +474,59 @@ export default function WarScenePage() {
       {/* Siege HUD */}
       {!loading && !error && phase === 'siege' && matchHud && (
         <>
+          <div className="absolute top-12 right-3 z-20 flex flex-col gap-1.5 pointer-events-auto">
+            <div className="bg-black/65 border border-white/10 rounded-xl px-2 py-1.5 text-[9px] text-slate-300">
+              <div className="text-slate-500 uppercase tracking-wider mb-1">Weather</div>
+              <div className="flex flex-col gap-0.5">
+                {(
+                  [
+                    ['storm', 'Storm'],
+                    ['dusk_battle', 'Dusk'],
+                    ['golden_hour', 'Golden'],
+                    ['overcast', 'Overcast'],
+                  ] as const
+                ).map(([id, label]) => (
+                  <button
+                    key={id}
+                    type="button"
+                    onClick={() => {
+                      setWeather(id);
+                      engineRef.current?.setWeather(id as any);
+                    }}
+                    className={`text-left px-1.5 py-0.5 rounded ${
+                      weather === id ? 'bg-amber-700/50 text-amber-100' : 'hover:bg-white/5'
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+              <div className="text-slate-500 uppercase tracking-wider mt-2 mb-1">Camera</div>
+              <div className="flex flex-col gap-0.5">
+                {(
+                  [
+                    ['follow', 'Follow hero'],
+                    ['tactical', 'Tactical'],
+                    ['orbit', 'Free orbit'],
+                  ] as const
+                ).map(([id, label]) => (
+                  <button
+                    key={id}
+                    type="button"
+                    onClick={() => {
+                      setCamMode(id);
+                      engineRef.current?.setCameraMode(id);
+                    }}
+                    className={`text-left px-1.5 py-0.5 rounded ${
+                      camMode === id ? 'bg-sky-800/50 text-sky-100' : 'hover:bg-white/5'
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
           <div className="absolute top-12 left-1/2 -translate-x-1/2 z-20 pointer-events-none">
             <div className="bg-black/70 border border-orange-900/40 rounded-2xl px-4 py-2 text-[10px] font-mono text-slate-200 flex flex-col items-center gap-1.5 min-w-[280px]">
               <div className="flex items-center gap-3">

@@ -25,3 +25,7 @@ export type { MatchHud } from './WarMatchRules';
 export { buildFactionRoster } from './WarRoster';
 export type { RosterEntry } from './WarRoster';
 export { WarProjectileSystem, isRangedWarSkill } from './WarProjectileSystem';
+export { WarAtmosphere } from './WarAtmosphere';
+export type { WeatherPreset } from './WarAtmosphere';
+export { WarCameraRig } from './WarCameraRig';
+export type { CamMode } from './WarCameraRig';

@@ -63,6 +63,9 @@ import {
   WarProjectileSystem,
   isRangedWarSkill,
 } from './WarProjectileSystem';
+import { WarAtmosphere, type WeatherPreset } from './WarAtmosphere';
+import { WarCameraRig, type CamMode } from './WarCameraRig';
+import { PostProcessing } from '@/island3d/render/PostProcessing';
 
 export interface PlayerHeroOpts {
   raceId: string;
@@ -166,6 +169,15 @@ export class WarSceneEngine {
   private followPlayer = true;
   private onCanvasClick: ((e: MouseEvent) => void) | null = null;
   private projectiles: WarProjectileSystem | null = null;
+  private atmosphere: WarAtmosphere | null = null;
+  private camRig: WarCameraRig | null = null;
+  private post: PostProcessing | null = null;
+  private sunLight: THREE.DirectionalLight | null = null;
+  private hemiLight: THREE.HemisphereLight | null = null;
+  private ambientLight: THREE.AmbientLight | null = null;
+  private fillLight: THREE.DirectionalLight | null = null;
+  private baseBloom = 0.42;
+  private weather: WeatherPreset = 'storm';
 
   constructor(cfg: WarSceneConfig) {
     this.cfg = cfg;
@@ -188,19 +200,22 @@ export class WarSceneEngine {
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    this.renderer.toneMappingExposure = 1.08;
+    this.renderer.toneMappingExposure = 0.95;
 
-    this.camera = new THREE.PerspectiveCamera(50, cfg.width / cfg.height, 0.5, 900);
-    this.camera.position.set(40, 35, 55);
+    this.camera = new THREE.PerspectiveCamera(48, cfg.width / cfg.height, 0.4, 1200);
+    this.camera.position.set(52, 38, 68);
 
     this.controls = new OrbitControls(this.camera, cfg.canvas);
-    this.controls.enableDamping = true;
-    this.controls.dampingFactor = 0.06;
-    this.controls.maxPolarAngle = Math.PI * 0.48;
-    this.controls.target.set(0, 2, 0);
+    this.camRig = new WarCameraRig(this.camera, this.controls);
+    this.camRig.frameBattlefield();
 
-    this.scene.background = new THREE.Color(0x6a8eab);
-    this.scene.fog = new THREE.FogExp2(0x7a9bb8, 0.0065);
+    // Query weather override: ?weather=storm|golden_hour|overcast|dusk_battle
+    const wp = new URLSearchParams(
+      typeof window !== 'undefined' ? window.location.search : '',
+    ).get('weather') as WeatherPreset | null;
+    if (wp && ['storm', 'golden_hour', 'overcast', 'dusk_battle'].includes(wp)) {
+      this.weather = wp;
+    }
 
     this.envRoot.name = 'battle_environment';
     this.unitsRoot.name = 'war_units';
@@ -220,6 +235,27 @@ export class WarSceneEngine {
     );
 
     this.setupLights();
+    this.atmosphere = new WarAtmosphere(
+      this.scene,
+      {
+        sun: this.sunLight!,
+        hemi: this.hemiLight!,
+        ambient: this.ambientLight!,
+        fill: this.fillLight!,
+      },
+      this.weather,
+    );
+
+    // Post: bloom + SMAA + warm/cool vignette (high for siege drama)
+    this.post = new PostProcessing(this.renderer, this.scene, this.camera, {
+      quality: 'high',
+      bloomStrength: this.baseBloom,
+      bloomRadius: 0.55,
+      bloomThreshold: 0.72,
+      colorTint: this.weather === 'golden_hour' ? 0.45 : this.weather === 'storm' ? -0.25 : 0.1,
+      vignetteIntensity: 0.42,
+      contrast: 1.12,
+    });
   }
 
   get matchPhase(): WarMatchPhase {
@@ -233,21 +269,44 @@ export class WarSceneEngine {
   }
 
   private setupLights(): void {
-    const hemi = new THREE.HemisphereLight(0xc8dfff, 0x3a2a18, 0.62);
-    this.scene.add(hemi);
-    const sun = new THREE.DirectionalLight(0xfff0d0, 1.4);
-    sun.position.set(70, 95, 35);
-    sun.castShadow = true;
-    sun.shadow.mapSize.set(2048, 2048);
-    sun.shadow.camera.near = 1;
-    sun.shadow.camera.far = 280;
-    sun.shadow.camera.left = -90;
-    sun.shadow.camera.right = 90;
-    sun.shadow.camera.top = 90;
-    sun.shadow.camera.bottom = -90;
-    sun.shadow.bias = -0.0002;
-    this.scene.add(sun);
-    this.scene.add(new THREE.AmbientLight(0x404050, 0.22));
+    this.hemiLight = new THREE.HemisphereLight(0xc8dfff, 0x3a2a18, 0.55);
+    this.scene.add(this.hemiLight);
+
+    this.sunLight = new THREE.DirectionalLight(0xfff0d0, 1.2);
+    this.sunLight.position.set(70, 95, 35);
+    this.sunLight.castShadow = true;
+    this.sunLight.shadow.mapSize.set(2048, 2048);
+    this.sunLight.shadow.camera.near = 1;
+    this.sunLight.shadow.camera.far = 280;
+    this.sunLight.shadow.camera.left = -90;
+    this.sunLight.shadow.camera.right = 90;
+    this.sunLight.shadow.camera.top = 90;
+    this.sunLight.shadow.camera.bottom = -90;
+    this.sunLight.shadow.bias = -0.00025;
+    this.sunLight.shadow.normalBias = 0.02;
+    this.scene.add(this.sunLight);
+
+    this.fillLight = new THREE.DirectionalLight(0x6080c0, 0.3);
+    this.fillLight.position.set(-40, 30, 20);
+    this.scene.add(this.fillLight);
+
+    this.ambientLight = new THREE.AmbientLight(0x404050, 0.22);
+    this.scene.add(this.ambientLight);
+  }
+
+  /** Public: switch storm / golden hour / etc. */
+  setWeather(preset: WeatherPreset): void {
+    this.weather = preset;
+    this.atmosphere?.applyPreset(preset);
+    this.post?.setColorTint(
+      preset === 'golden_hour' ? 0.45 : preset === 'storm' ? -0.25 : 0.1,
+    );
+  }
+
+  setCameraMode(mode: CamMode): void {
+    this.camRig?.setMode(mode);
+    if (mode === 'orbit') this.camRig?.setFollowEnabled(false);
+    else this.camRig?.setFollowEnabled(true);
   }
 
   /**
@@ -585,8 +644,10 @@ export class WarSceneEngine {
     this.roundTimeLeft = ROUND_DURATION_SEC;
     this.deployment.beginSiegeWaves();
     this.setPhase('siege');
+    this.camRig?.setMode(this.playerUnit ? 'follow' : 'tactical');
+    this.camRig?.setFollowEnabled(!!this.playerUnit);
     this.log(
-      `⚔ SIEGE BEGINS — 10:00 · capture 3 zones · catapults online · click ground to move your hero`,
+      `⚔ SIEGE BEGINS — 10:00 · ${this.weather} weather · capture 3 zones · click ground to move hero`,
     );
     void this.voice.speak('The siege begins! Capture the banners!', { role: 'herald' });
     this.emitDeployStats();
@@ -662,6 +723,7 @@ export class WarSceneEngine {
         const wall = this.wallMap.get(wallId);
         if (!wall || wall.dead) return;
         const destroyed = wall.takeDamage(dmg);
+        this.camRig?.impact(destroyed ? 0.75 : 0.35);
         this.log(
           `Catapult hits ${wall.label} (−${dmg})` +
             (destroyed ? ' — WALL BREACHED' : ` [${wall.hp}/${wall.maxHp}]`),
@@ -911,6 +973,8 @@ export class WarSceneEngine {
             (destroyed ? ' — WALL BREACHED' : ` [${wall.hp}/${wall.maxHp}]`),
         );
       }
+      if (destroyed) this.camRig?.impact(0.7);
+      else if (damage >= 20) this.camRig?.impact(0.25);
     }
   };
 
@@ -924,7 +988,12 @@ export class WarSceneEngine {
       const dt = Math.min(this.clock.getDelta(), 0.05);
       this.tick(dt);
       this.controls.update();
-      this.renderer.render(this.scene, this.camera);
+      // Lightning boosts bloom
+      if (this.post && this.atmosphere) {
+        this.post.setBloomStrength(this.baseBloom + this.atmosphere.getBloomBoost());
+      }
+      if (this.post) this.post.render();
+      else this.renderer.render(this.scene, this.camera);
     };
     loop();
   }
@@ -932,7 +1001,13 @@ export class WarSceneEngine {
   private tick(dt: number): void {
     this.elapsed += dt;
 
+    this.atmosphere?.update(dt);
     if (this.island) tickIslandWater(this.island.water, this.elapsed);
+
+    // Camera rig (follow / tactical / shake)
+    const follow =
+      this.playerUnit && !this.playerUnit.dead ? this.playerUnit.root.position : null;
+    this.camRig?.update(dt, follow, this.phase);
 
     if (this.phase === 'cinematic') {
       this.cinematic.update(dt);
@@ -988,12 +1063,6 @@ export class WarSceneEngine {
     for (const u of this.units) {
       const hostiles = allTargets.filter((s) => s.id !== u.id);
       u.update(dt, hostiles, this.sampleGround, this.onAttack);
-    }
-
-    // Soft camera follow on player hero
-    if (this.followPlayer && this.playerUnit && !this.playerUnit.dead) {
-      const p = this.playerUnit.root.position;
-      this.controls.target.lerp(new THREE.Vector3(p.x, p.y + 1.5, p.z), 0.04);
     }
 
     // Match end: zones / timer / wipe
@@ -1079,6 +1148,7 @@ export class WarSceneEngine {
     this.camera.aspect = w / h;
     this.camera.updateProjectionMatrix();
     this.renderer.setSize(w, h);
+    this.post?.resize(w, h);
   }
 
   stop(): void {
@@ -1101,6 +1171,10 @@ export class WarSceneEngine {
     this.catapults = [];
     this.projectiles?.dispose();
     this.projectiles = null;
+    this.atmosphere?.dispose();
+    this.atmosphere = null;
+    this.post?.dispose();
+    this.post = null;
     for (const u of this.units) u.dispose();
     this.units = [];
     this.renderer.dispose();
