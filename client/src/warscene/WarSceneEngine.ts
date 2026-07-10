@@ -522,10 +522,15 @@ export class WarSceneEngine {
         : 'No Fire_* meshes found — using procedural flaming arrows for archers',
     );
 
-    // Island water + material best practices
+    // Island water aligned to original Water_* / terrain floor (not mid-air y≈0)
     progress(56, 'Shaping island shoreline…');
     this.island = enhanceIslandBattlefield(this.scene, root);
-    // Shadow ground also in ground ray set
+    const lv = this.island.levels;
+    this.log(
+      `Map levels: bottom=${lv.mapBottomY.toFixed(2)} terrainFloor=${lv.terrainFloorY.toFixed(2)} ` +
+        `origWater=${lv.originalWaterSurfaceY.toFixed(2)} ourWater=${lv.ourWaterY.toFixed(2)}`,
+    );
+    // Shadow ground also in ground ray set (at terrain floor, not y=0)
     this.groundMeshes.push(this.island.ground);
 
     // Walls

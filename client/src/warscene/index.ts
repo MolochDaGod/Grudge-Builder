@@ -17,7 +17,12 @@ export {
 export type { DeclarationScript, CinematicLine } from './WarCinematic';
 export { WarDeployment } from './WarDeployment';
 export type { UnitProxySlot, DeployZone } from './WarDeployment';
-export { enhanceIslandBattlefield, tickIslandWater } from './WarIslandDecor';
+export {
+  enhanceIslandBattlefield,
+  tickIslandWater,
+  measureBattlefieldLevels,
+} from './WarIslandDecor';
+export type { BattlefieldLevels } from './WarIslandDecor';
 export {
   WarCaptureZone,
   defaultCaptureZones,
