@@ -1,16 +1,20 @@
 /**
- * /war-scene — Conqueror's Blade–style island siege
- *
- * Flow: load fortress → cinematic declaration (AI voice) → deploy → siege waves
+ * /war-scene — Conqueror's Blade island siege
+ * Hero select → cinematic → ordered deploy → 10min / 3-zone siege
  */
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { useLocation } from 'wouter';
 import {
   WarSceneEngine,
   type WarSceneStats,
   type DeployHudStats,
   type WarMatchPhase,
+  type PlayerHeroOpts,
 } from '@/warscene/WarSceneEngine';
+import type { MatchHud } from '@/warscene/WarMatchRules';
+import { buildFactionRoster, type RosterEntry } from '@/warscene/WarRoster';
+import { useCharacters } from '@/hooks/use-characters';
+import { normalizeRaceId } from '@shared/fleet';
 import {
   Swords,
   Shield,
@@ -19,14 +23,26 @@ import {
   Volume2,
   SkipForward,
   Flag,
-  Users,
+  Timer,
+  Crosshair,
+  User,
 } from 'lucide-react';
+
+const RACE_OPTIONS = [
+  { id: 'human', label: 'Human' },
+  { id: 'elf', label: 'Elf' },
+  { id: 'orc', label: 'Orc' },
+  { id: 'dwarf', label: 'Dwarf' },
+  { id: 'barbarian', label: 'Barbarian' },
+  { id: 'undead', label: 'Undead' },
+];
 
 export default function WarScenePage() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const engineRef = useRef<WarSceneEngine | null>(null);
   const [, navigate] = useLocation();
+  const { characters, loading: charsLoading, activeCharacter } = useCharacters();
 
   const [loading, setLoading] = useState(true);
   const [progress, setProgress] = useState(0);
@@ -38,7 +54,25 @@ export default function WarScenePage() {
   const [subtitle, setSubtitle] = useState('');
   const [speaker, setSpeaker] = useState('');
   const [deploy, setDeploy] = useState<DeployHudStats | null>(null);
+  const [matchHud, setMatchHud] = useState<MatchHud | null>(null);
   const [starting, setStarting] = useState(false);
+  const [endMsg, setEndMsg] = useState<string | null>(null);
+
+  // Deploy UX state
+  const [step, setStep] = useState<'hero' | 'roster' | 'ready'>('hero');
+  const [heroRace, setHeroRace] = useState('human');
+  const [heroName, setHeroName] = useState('Warlord');
+  const [heroCharId, setHeroCharId] = useState<string | undefined>();
+  const [roster, setRoster] = useState<RosterEntry[]>(() => buildFactionRoster('crimson'));
+  const [useHero, setUseHero] = useState(true);
+
+  useEffect(() => {
+    if (activeCharacter) {
+      setHeroName(activeCharacter.name || 'Warlord');
+      setHeroRace(normalizeRaceId(activeCharacter.raceId || 'human'));
+      setHeroCharId(activeCharacter.id);
+    }
+  }, [activeCharacter]);
 
   const refreshStats = useCallback(() => {
     const eng = engineRef.current;
@@ -66,15 +100,17 @@ export default function WarScenePage() {
         setProgress(pct);
         setLoadLabel(label);
       },
-      onCombatLog: (line) => {
-        setLog((prev) => [...prev.slice(-40), line]);
-      },
+      onCombatLog: (line) => setLog((prev) => [...prev.slice(-40), line]),
       onPhaseChange: (p) => setPhase(p),
       onSubtitle: (text, role) => {
         setSubtitle(text);
         setSpeaker(role);
       },
       onDeployStats: (d) => setDeploy(d),
+      onMatchHud: (m) => setMatchHud(m),
+      onMatchEnd: (winner, reason) => {
+        setEndMsg(`${winner.toUpperCase()} — ${reason}`);
+      },
       onReady: () => {
         setLoading(false);
         engine.start();
@@ -83,20 +119,17 @@ export default function WarScenePage() {
     });
     engineRef.current = engine;
 
-    engine
-      .init()
-      .catch((err) => {
-        console.error(err);
-        setError(err instanceof Error ? err.message : String(err));
-        setLoading(false);
-      });
+    engine.init().catch((err) => {
+      console.error(err);
+      setError(err instanceof Error ? err.message : String(err));
+      setLoading(false);
+    });
 
     const onResize = () => {
       if (!container) return;
       engine.resize(container.clientWidth, container.clientHeight);
     };
     window.addEventListener('resize', onResize);
-
     const statsIv = setInterval(refreshStats, 1000);
 
     return () => {
@@ -112,11 +145,24 @@ export default function WarScenePage() {
     if (!eng || starting) return;
     setStarting(true);
     try {
-      await eng.beginSiege({ playerFaction: 'crimson' });
+      const hero: PlayerHeroOpts | null = useHero
+        ? { raceId: heroRace, name: heroName, characterId: heroCharId, faction: 'crimson' }
+        : null;
+      await eng.beginSiege({
+        playerFaction: 'crimson',
+        hero,
+        roster,
+      });
       refreshStats();
     } finally {
       setStarting(false);
     }
+  };
+
+  const toggleRoster = (id: string) => {
+    setRoster((prev) =>
+      prev.map((e) => (e.id === id ? { ...e, selected: !e.selected } : e)),
+    );
   };
 
   const speakerLabel =
@@ -130,12 +176,17 @@ export default function WarScenePage() {
             ? 'Narrator'
             : '';
 
+  const orderedRoster = useMemo(
+    () => [...roster].sort((a, b) => a.order - b.order),
+    [roster],
+  );
+
   return (
     <div className="relative w-full h-screen bg-[#0a0c12] overflow-hidden" ref={containerRef}>
       <canvas ref={canvasRef} className="absolute inset-0 w-full h-full block" />
 
       {/* Top bar */}
-      <div className="absolute top-0 inset-x-0 z-20 flex items-center gap-3 px-4 py-2 bg-gradient-to-b from-black/80 to-transparent pointer-events-none">
+      <div className="absolute top-0 inset-x-0 z-20 flex items-center gap-3 px-4 py-2 bg-gradient-to-b from-black/85 to-transparent pointer-events-none">
         <button
           type="button"
           onClick={() => navigate('/play')}
@@ -144,25 +195,18 @@ export default function WarScenePage() {
           <ArrowLeft className="w-4 h-4" /> Back
         </button>
         <Swords className="w-4 h-4 text-amber-400" />
-        <h1 className="text-amber-300 font-bold text-sm tracking-wide">
-          Warlord Isle · Siege
-        </h1>
-        <span className="text-[10px] text-slate-500 hidden sm:inline">
-          cinematic · deploy · waves · walls
-        </span>
+        <h1 className="text-amber-300 font-bold text-sm tracking-wide">Warlord Isle · Siege</h1>
         <PhaseBadge phase={phase} />
         {stats && (
           <div className="ml-auto flex items-center gap-3 text-[11px] font-mono text-slate-300">
-            <span className="text-red-400">Crimson {stats.crimson}</span>
-            <span className="text-sky-400">Azure {stats.azure}</span>
-            <span className="text-amber-400">Gold {stats.gold}</span>
-            <span className="text-emerald-400">Field {stats.alive}</span>
-            <span className="text-stone-300">
-              Walls {stats.wallsIntact}
-              {stats.wallsDestroyed > 0 ? (
-                <span className="text-orange-400"> · −{stats.wallsDestroyed}</span>
-              ) : null}
-            </span>
+            {(phase === 'siege' || phase === 'ended') && (
+              <span className="text-amber-300 inline-flex items-center gap-1">
+                <Timer className="w-3 h-3" /> {stats.clock}
+              </span>
+            )}
+            <span className="text-red-400">C {stats.crimson}</span>
+            <span className="text-sky-400">A {stats.azure}</span>
+            <span className="text-stone-300">Walls {stats.wallsIntact}</span>
           </div>
         )}
       </div>
@@ -177,15 +221,11 @@ export default function WarScenePage() {
           <p className="text-slate-400 text-xs mb-4 max-w-md text-center">{loadLabel}</p>
           <div className="w-72 h-2 bg-white/10 rounded-full overflow-hidden">
             <div
-              className="h-full bg-gradient-to-r from-amber-700 to-amber-300 transition-all duration-300"
+              className="h-full bg-gradient-to-r from-amber-700 to-amber-300 transition-all"
               style={{ width: `${progress}%` }}
             />
           </div>
           <p className="text-slate-600 text-[10px] mt-3 font-mono">{Math.round(progress)}%</p>
-          <p className="text-slate-600 text-[10px] mt-6 max-w-sm text-center leading-relaxed">
-            Island fortress loads first. Armies stay in reserve until the declaration
-            ends and you deploy — Conqueror&apos;s Blade style siege waves.
-          </p>
         </div>
       )}
 
@@ -193,48 +233,29 @@ export default function WarScenePage() {
         <div className="absolute inset-0 z-40 flex items-center justify-center bg-black/90 px-6">
           <div className="max-w-xl text-center space-y-3">
             <p className="text-red-400 font-semibold">Failed to load war scene</p>
-            <p className="text-slate-400 text-xs break-words whitespace-pre-wrap text-left font-mono bg-black/40 rounded-lg p-3 max-h-48 overflow-auto">
+            <p className="text-slate-400 text-xs break-words whitespace-pre-wrap font-mono bg-black/40 rounded-lg p-3 text-left max-h-48 overflow-auto">
               {error}
             </p>
-            <div className="text-slate-500 text-[11px] space-y-1 text-left">
-              <p>
-                <strong className="text-slate-300">Production:</strong> loads same-origin{' '}
-                <code className="text-amber-600">/models/war/huge_medieval_battle_scene.glb</code>
-                {' '}(~23MB Draco/WebP on R2). Not the local API path.
-              </p>
-              <p>
-                <strong className="text-slate-300">Local dev:</strong>{' '}
-                <code className="text-amber-600">npm run dev</code> +{' '}
-                <code className="text-amber-600">/war-scene?local=1</code> (streams D: drive GLB).
-              </p>
-              <p>
-                Re-upload CDN:{' '}
-                <code className="text-amber-600">npm run upload:war-scene</code>
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={() => window.location.reload()}
-              className="text-amber-400 text-sm underline"
-            >
+            <p className="text-slate-500 text-[11px]">
+              Production: <code className="text-amber-600">npm run upload:war-scene</code> · Local:{' '}
+              <code className="text-amber-600">?local=1</code>
+            </p>
+            <button type="button" onClick={() => window.location.reload()} className="text-amber-400 text-sm underline">
               Retry
             </button>
           </div>
         </div>
       )}
 
-      {/* Cinematic subtitles + skip */}
+      {/* Cinematic */}
       {!loading && !error && phase === 'cinematic' && (
         <div className="absolute inset-x-0 bottom-0 z-30 pb-10 pt-24 bg-gradient-to-t from-black/90 via-black/50 to-transparent pointer-events-none">
           <div className="max-w-3xl mx-auto px-6 text-center">
             <div className="inline-flex items-center gap-2 text-amber-500/90 text-[10px] uppercase tracking-[0.25em] mb-3">
-              <Volume2 className="w-3.5 h-3.5" />
-              Declaration of War
-              {speakerLabel ? (
-                <span className="text-slate-400 normal-case tracking-normal">· {speakerLabel}</span>
-              ) : null}
+              <Volume2 className="w-3.5 h-3.5" /> Declaration of War
+              {speakerLabel ? <span className="text-slate-400 normal-case tracking-normal">· {speakerLabel}</span> : null}
             </div>
-            <p className="text-lg sm:text-xl text-amber-50 font-serif leading-relaxed drop-shadow-lg min-h-[3.5rem]">
+            <p className="text-lg sm:text-xl text-amber-50 font-serif leading-relaxed min-h-[3.5rem]">
               {subtitle || '…'}
             </p>
             <button
@@ -248,96 +269,265 @@ export default function WarScenePage() {
         </div>
       )}
 
-      {/* Deploy panel */}
+      {/* Deploy UX: hero + ordered roster */}
       {!loading && !error && phase === 'deploy' && (
-        <div className="absolute inset-x-0 bottom-0 z-30 p-4 sm:p-6 pointer-events-none">
-          <div className="max-w-xl mx-auto bg-black/75 backdrop-blur-md border border-amber-900/50 rounded-2xl px-5 py-4 pointer-events-auto shadow-2xl">
-            <div className="flex items-start gap-3 mb-3">
-              <Flag className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+        <div className="absolute inset-x-0 bottom-0 z-30 p-3 sm:p-5 pointer-events-none">
+          <div className="max-w-2xl mx-auto bg-black/80 backdrop-blur-md border border-amber-900/50 rounded-2xl px-4 py-4 pointer-events-auto shadow-2xl">
+            <div className="flex items-center gap-2 mb-3">
+              <Flag className="w-5 h-5 text-amber-400" />
               <div>
-                <h2 className="text-amber-200 font-bold text-sm tracking-wide">
-                  Deployment Phase
-                </h2>
-                <p className="text-slate-400 text-[11px] leading-relaxed mt-1">
-                  Companies wait in reserve — nothing floods the island yet. Opening
-                  deploy fields ~{deploy?.zones[0]?.deployCap ?? 10} per banner, then
-                  the siege starts. Reinforcements arrive in timed waves.
+                <h2 className="text-amber-200 font-bold text-sm">Deploy your army</h2>
+                <p className="text-slate-400 text-[11px]">
+                  Conqueror&apos;s Blade style: pick hero → order companies → siege opens with catapult fire. Capture all 3
+                  zones or win on the 10:00 timer.
                 </p>
               </div>
             </div>
-            <div className="grid grid-cols-3 gap-2 mb-4 text-[10px] font-mono">
-              <ReserveChip label="Crimson" n={deploy?.reserve.crimson ?? 0} color="text-red-400" />
-              <ReserveChip label="Azure" n={deploy?.reserve.azure ?? 0} color="text-sky-400" />
-              <ReserveChip label="Gold" n={deploy?.reserve.gold ?? 0} color="text-amber-400" />
+
+            {/* Steps */}
+            <div className="flex gap-2 mb-3 text-[10px] font-bold uppercase tracking-wider">
+              {(['hero', 'roster', 'ready'] as const).map((s) => (
+                <button
+                  key={s}
+                  type="button"
+                  onClick={() => setStep(s)}
+                  className={`px-2.5 py-1 rounded-full ${
+                    step === s ? 'bg-amber-600 text-black' : 'bg-white/5 text-slate-400'
+                  }`}
+                >
+                  {s === 'hero' ? '1. Hero' : s === 'roster' ? '2. Companies' : '3. Launch'}
+                </button>
+              ))}
             </div>
-            <div className="flex flex-wrap gap-2 items-center">
-              <button
-                type="button"
-                disabled={starting}
-                onClick={onBeginSiege}
-                className="flex-1 min-w-[10rem] bg-gradient-to-r from-amber-700 to-amber-500 hover:from-amber-600 hover:to-amber-400 text-black font-bold text-sm py-2.5 rounded-xl disabled:opacity-50"
-              >
-                {starting ? 'Fielding companies…' : 'Begin Siege'}
-              </button>
-              <span className="text-[10px] text-slate-500 flex items-center gap-1">
-                <Users className="w-3 h-3" />
-                Cap {deploy?.maxFielded ?? 64} on field
-              </span>
-            </div>
+
+            {step === 'hero' && (
+              <div className="space-y-3">
+                <label className="flex items-center gap-2 text-xs text-slate-300">
+                  <input type="checkbox" checked={useHero} onChange={(e) => setUseHero(e.target.checked)} />
+                  Play as grudge6 hero in the battle
+                </label>
+                {useHero && (
+                  <>
+                    <div>
+                      <p className="text-[10px] text-slate-500 mb-1 flex items-center gap-1">
+                        <User className="w-3 h-3" /> Your characters
+                      </p>
+                      {charsLoading && <p className="text-[10px] text-slate-600">Loading characters…</p>}
+                      <div className="flex flex-wrap gap-1.5 max-h-24 overflow-auto">
+                        {characters.slice(0, 12).map((c) => (
+                          <button
+                            key={c.id}
+                            type="button"
+                            onClick={() => {
+                              setHeroCharId(c.id);
+                              setHeroName(c.name || 'Warlord');
+                              setHeroRace(normalizeRaceId(c.raceId || 'human'));
+                            }}
+                            className={`text-[10px] px-2 py-1 rounded border ${
+                              heroCharId === c.id
+                                ? 'border-amber-500 bg-amber-900/40 text-amber-100'
+                                : 'border-white/10 text-slate-400 hover:border-white/30'
+                            }`}
+                          >
+                            {c.name}
+                          </button>
+                        ))}
+                        {!charsLoading && characters.length === 0 && (
+                          <span className="text-[10px] text-slate-600">No saved heroes — pick a race below</span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap gap-2 items-center">
+                      <input
+                        value={heroName}
+                        onChange={(e) => setHeroName(e.target.value)}
+                        className="bg-black/50 border border-white/15 rounded-lg px-2 py-1.5 text-xs text-white w-36"
+                        placeholder="Hero name"
+                      />
+                      <div className="flex flex-wrap gap-1">
+                        {RACE_OPTIONS.map((r) => (
+                          <button
+                            key={r.id}
+                            type="button"
+                            onClick={() => setHeroRace(r.id)}
+                            className={`text-[10px] px-2 py-1 rounded ${
+                              heroRace === r.id ? 'bg-amber-600 text-black' : 'bg-white/10 text-slate-300'
+                            }`}
+                          >
+                            {r.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setStep('roster')}
+                  className="w-full bg-amber-700/80 hover:bg-amber-600 text-black font-bold text-sm py-2 rounded-xl"
+                >
+                  Next: order companies
+                </button>
+              </div>
+            )}
+
+            {step === 'roster' && (
+              <div className="space-y-2">
+                <p className="text-[10px] text-slate-500">
+                  Ordered list (siege engines first). Toggle what you field — catapult starts damaging walls at round start.
+                </p>
+                <div className="space-y-1 max-h-48 overflow-auto">
+                  {orderedRoster.map((e, idx) => (
+                    <button
+                      key={e.id}
+                      type="button"
+                      onClick={() => toggleRoster(e.id)}
+                      className={`w-full flex items-start gap-2 text-left px-2 py-1.5 rounded-lg border ${
+                        e.selected
+                          ? 'border-amber-700/60 bg-amber-950/30'
+                          : 'border-white/5 bg-white/[0.02] opacity-50'
+                      }`}
+                    >
+                      <span className="text-[10px] font-mono text-slate-500 w-5">{idx + 1}</span>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-xs text-amber-100 font-semibold">
+                          {e.label}
+                          {e.kind === 'siege' && (
+                            <span className="ml-1 text-[9px] uppercase text-orange-400">siege</span>
+                          )}
+                          <span className="ml-2 text-slate-500 font-normal">×{e.count}</span>
+                        </div>
+                        <div className="text-[10px] text-slate-500 truncate">{e.description}</div>
+                      </div>
+                      <span className="text-[10px] text-slate-400">{e.selected ? 'ON' : 'off'}</span>
+                    </button>
+                  ))}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setStep('ready')}
+                  className="w-full bg-amber-700/80 hover:bg-amber-600 text-black font-bold text-sm py-2 rounded-xl"
+                >
+                  Next: launch siege
+                </button>
+              </div>
+            )}
+
+            {step === 'ready' && (
+              <div className="space-y-3">
+                <div className="grid grid-cols-3 gap-2 text-[10px] font-mono">
+                  <StatChip label="Beach" value={deploy?.captureZones?.find((z) => z.id === 'zone_beach')?.owner ?? '—'} />
+                  <StatChip label="Gate" value={deploy?.captureZones?.find((z) => z.id === 'zone_gate')?.owner ?? '—'} />
+                  <StatChip label="Keep" value={deploy?.captureZones?.find((z) => z.id === 'zone_keep')?.owner ?? '—'} />
+                </div>
+                <ul className="text-[11px] text-slate-400 space-y-1 list-disc list-inside">
+                  <li>Round: <strong className="text-amber-200">10:00</strong> or last zone captured</li>
+                  <li>Catapult damages walls from second 0</li>
+                  <li>
+                    Hero:{' '}
+                    {useHero ? (
+                      <strong className="text-amber-200">
+                        {heroName} ({heroRace})
+                      </strong>
+                    ) : (
+                      'observer'
+                    )}
+                  </li>
+                  <li>Click ground in battle to move your hero</li>
+                </ul>
+                <button
+                  type="button"
+                  disabled={starting}
+                  onClick={onBeginSiege}
+                  className="w-full bg-gradient-to-r from-amber-700 to-amber-500 hover:from-amber-600 hover:to-amber-400 text-black font-bold text-sm py-2.5 rounded-xl disabled:opacity-50"
+                >
+                  {starting ? 'Fielding army…' : 'Begin Siege'}
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}
 
-      {/* Siege reinforcement strip */}
-      {!loading && !error && phase === 'siege' && stats && (
-        <div className="absolute top-12 left-1/2 -translate-x-1/2 z-20 pointer-events-none">
-          <div className="bg-black/60 border border-orange-900/40 rounded-full px-4 py-1.5 text-[10px] font-mono text-slate-300 flex items-center gap-3">
-            <span className="text-orange-400 font-bold uppercase tracking-wider">Siege</span>
-            <span>Wave {stats.waveNumber || '—'}</span>
-            <span className="text-slate-500">
-              Next {Math.ceil(stats.nextWaveIn)}s
-            </span>
-            <span className="text-slate-500">
-              Reserve C{stats.reserve.crimson ?? 0}/A{stats.reserve.azure ?? 0}/G
-              {stats.reserve.gold ?? 0}
-            </span>
+      {/* Siege HUD */}
+      {!loading && !error && phase === 'siege' && matchHud && (
+        <>
+          <div className="absolute top-12 left-1/2 -translate-x-1/2 z-20 pointer-events-none">
+            <div className="bg-black/70 border border-orange-900/40 rounded-2xl px-4 py-2 text-[10px] font-mono text-slate-200 flex flex-col items-center gap-1.5 min-w-[280px]">
+              <div className="flex items-center gap-3">
+                <span className="text-orange-400 font-bold uppercase tracking-wider">Siege</span>
+                <span className="text-amber-300 text-sm font-bold">{stats?.clock ?? '10:00'}</span>
+                <span className="text-slate-500">Wave {stats?.waveNumber || 0}</span>
+              </div>
+              <div className="flex gap-2 w-full justify-center">
+                {matchHud.zones.map((z) => (
+                  <div key={z.id} className="flex flex-col items-center min-w-[72px]">
+                    <span
+                      className={`text-[9px] font-bold uppercase ${
+                        z.owner === 'crimson'
+                          ? 'text-red-400'
+                          : z.owner === 'azure'
+                            ? 'text-sky-400'
+                            : z.owner === 'gold'
+                              ? 'text-amber-400'
+                              : 'text-slate-400'
+                      }`}
+                    >
+                      {z.label}
+                    </span>
+                    <div className="w-16 h-1 bg-white/10 rounded-full overflow-hidden mt-0.5">
+                      <div
+                        className="h-full bg-amber-500 transition-all"
+                        style={{ width: `${Math.round(z.progress * 100)}%` }}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="text-slate-500">
+                Catapults {matchHud.catapults} · Walls {matchHud.wallsIntact}
+                {matchHud.wallsDestroyed > 0 ? ` (−${matchHud.wallsDestroyed})` : ''}
+              </div>
+            </div>
           </div>
-        </div>
+          <div className="absolute bottom-4 right-4 z-20 text-[10px] text-slate-400 bg-black/55 rounded-lg px-3 py-2 pointer-events-none max-w-[200px]">
+            <Crosshair className="w-3 h-3 inline mr-1 text-amber-500" />
+            Click ground to move hero · Orbit: drag · Zoom: scroll · Capture banners
+          </div>
+        </>
       )}
 
       {phase === 'ended' && (
-        <div className="absolute inset-0 z-30 flex items-center justify-center bg-black/50 pointer-events-none">
-          <div className="text-center">
+        <div className="absolute inset-0 z-30 flex items-center justify-center bg-black/55">
+          <div className="text-center bg-black/80 border border-amber-800/50 rounded-2xl px-8 py-6 max-w-md">
             <p className="text-2xl font-serif text-amber-200 mb-2">Siege Resolved</p>
-            <p className="text-slate-400 text-sm">Check battle log for the victor.</p>
+            <p className="text-slate-300 text-sm mb-4">{endMsg ?? 'Check battle log.'}</p>
+            <button
+              type="button"
+              onClick={() => window.location.reload()}
+              className="text-amber-400 text-sm underline"
+            >
+              Fight again
+            </button>
           </div>
         </div>
       )}
 
       {/* Combat log */}
       {!loading && !error && phase !== 'cinematic' && (
-        <div className="absolute bottom-4 left-4 z-20 w-80 max-h-40 overflow-hidden pointer-events-none">
+        <div className="absolute bottom-4 left-4 z-20 w-80 max-h-36 overflow-hidden pointer-events-none">
           <div className="bg-black/65 backdrop-blur border border-amber-900/40 rounded-xl px-3 py-2">
             <div className="text-[10px] text-amber-500 font-bold uppercase tracking-widest mb-1 flex items-center gap-1">
               <Shield className="w-3 h-3" /> Battle log
             </div>
             <div className="space-y-0.5 text-[10px] font-mono text-slate-400">
-              {log.slice(-8).map((l, i) => (
+              {log.slice(-7).map((l, i) => (
                 <div key={i} className="truncate">
                   {l}
                 </div>
               ))}
-              {log.length === 0 && (
-                <div className="text-slate-600">Awaiting orders…</div>
-              )}
             </div>
           </div>
-        </div>
-      )}
-
-      {!loading && !error && phase === 'siege' && (
-        <div className="absolute bottom-4 right-4 z-20 text-[10px] text-slate-500 bg-black/50 rounded-lg px-3 py-2 pointer-events-none">
-          Orbit: drag · Zoom: scroll · AI siege walls · Wave reinforcements
         </div>
       )}
     </div>
@@ -360,19 +550,11 @@ function PhaseBadge({ phase }: { phase: WarMatchPhase }) {
   );
 }
 
-function ReserveChip({
-  label,
-  n,
-  color,
-}: {
-  label: string;
-  n: number;
-  color: string;
-}) {
+function StatChip({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-lg bg-white/5 border border-white/10 px-2 py-1.5 text-center">
-      <div className={`font-bold ${color}`}>{n}</div>
-      <div className="text-slate-500">{label} reserve</div>
+      <div className="text-slate-500 text-[9px] uppercase">{label}</div>
+      <div className="text-slate-200 font-bold capitalize truncate">{value}</div>
     </div>
   );
 }

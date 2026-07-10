@@ -24,6 +24,11 @@ export interface WarUnitSpawn {
   rotationY: number;
   /** Source scene proxy mesh (hidden) */
   proxy?: THREE.Object3D;
+  /** Player-controlled grudge6 hero */
+  isPlayer?: boolean;
+  /** Override race (hero select) */
+  raceId?: string;
+  displayName?: string;
 }
 
 export class WarUnit {
@@ -32,21 +37,29 @@ export class WarUnit {
   readonly faction: WarFactionId;
   readonly root = new THREE.Group();
   readonly brain: WarAIBrain;
+  readonly isPlayer: boolean;
+  readonly displayName: string;
   hp: number;
   maxHp: number;
   dead = false;
+  /** Player click-move destination */
+  playerMoveTo: THREE.Vector3 | null = null;
   private anim: AnimationManager | null = null;
   private attackCd = 0;
   private loaded: LoadedModel | null = null;
   private facing = 0;
   private velocity = new THREE.Vector3();
   private hitFlash = 0;
+  private raceOverride: string | null = null;
 
   constructor(spawn: WarUnitSpawn) {
     this.id = spawn.id;
     this.archetype = spawn.archetype;
     this.faction = spawn.archetype.faction;
-    this.maxHp = spawn.archetype.maxHp;
+    this.isPlayer = !!spawn.isPlayer;
+    this.displayName = spawn.displayName ?? spawn.archetype.label;
+    this.raceOverride = spawn.raceId ?? null;
+    this.maxHp = spawn.isPlayer ? spawn.archetype.maxHp * 1.35 : spawn.archetype.maxHp;
     this.hp = this.maxHp;
     this.root.name = `war_unit_${spawn.id}`;
     this.root.position.copy(spawn.position);
@@ -65,7 +78,7 @@ export class WarUnit {
   }
 
   async load(): Promise<void> {
-    const raceId = normalizeRaceId(this.archetype.raceId);
+    const raceId = normalizeRaceId(this.raceOverride ?? this.archetype.raceId);
     const race = RACE_GRUDGE6[raceId] ?? RACE_GRUDGE6.human;
     const path = race.cdnPath;
     try {
@@ -83,7 +96,7 @@ export class WarUnit {
         weaponSlots.sword = 'B';
       } else {
         weaponSlots.sword = 'A';
-        if (wt.includes('shield')) weaponSlots.shield = 'A';
+        if (wt.includes('shield') || this.isPlayer) weaponSlots.shield = 'A';
       }
 
       setupGrudge6Equipment(race.prefix, loaded.scene, {
@@ -92,29 +105,70 @@ export class WarUnit {
         weaponSlots,
         faceVariant: 'A',
         skinColor: '#ffffff',
-        armorColor: this.factionTint(),
-        capeEnabled: false,
-        scale: race.scale,
+        armorColor: this.isPlayer ? '#d4a574' : this.factionTint(),
+        capeEnabled: this.isPlayer,
+        scale: race.scale * (this.isPlayer ? 1.05 : 1),
       });
       ensureCharacterTextureColorSpace(loaded.scene);
-      fitCharacterRootToHeightM(loaded.scene, race.scale, PLAYER_HEIGHT_M * 0.95);
+      // Force sRGB on all maps (webP from CDN)
+      loaded.scene.traverse((c) => {
+        if (!(c as THREE.Mesh).isMesh) return;
+        const mesh = c as THREE.Mesh;
+        mesh.castShadow = true;
+        mesh.receiveShadow = true;
+        const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+        for (const m of mats) {
+          const std = m as THREE.MeshStandardMaterial;
+          if (std?.map) {
+            std.map.colorSpace = THREE.SRGBColorSpace;
+            std.map.needsUpdate = true;
+          }
+          if (std) {
+            std.roughness = Math.min(0.95, std.roughness ?? 0.7);
+            std.metalness = Math.min(0.25, std.metalness ?? 0);
+            std.needsUpdate = true;
+          }
+        }
+      });
+      fitCharacterRootToHeightM(
+        loaded.scene,
+        race.scale,
+        PLAYER_HEIGHT_M * (this.isPlayer ? 1.0 : 0.95),
+      );
       this.root.add(loaded.scene);
 
       this.anim = new AnimationManager(loaded.scene);
-      const animSet = getAnimationSet(this.archetype.weaponType as WeaponType);
+      const weaponKey = (this.archetype.weaponType || 'sword') as WeaponType;
+      const animSet = getAnimationSet(weaponKey);
+      const unarmed = getAnimationSet('unarmed');
       const paths: Partial<Record<AnimState, string>> = {};
-      if (animSet.idle) paths.idle = resolveModelUrl(animSet.idle.file);
-      if (animSet.run) paths.walk = resolveModelUrl(animSet.run.file);
-      if (animSet.run) paths.run = resolveModelUrl(animSet.run.file);
-      if (animSet.attack1) paths.attack = resolveModelUrl(animSet.attack1.file);
-      if (animSet.death) paths.death = resolveModelUrl(animSet.death.file);
-      // Unarmed fallbacks
-      if (!paths.idle || !paths.walk) {
-        const unarmed = getAnimationSet('unarmed');
-        if (!paths.idle && unarmed.idle) paths.idle = resolveModelUrl(unarmed.idle.file);
-        if (!paths.walk && unarmed.run) paths.walk = resolveModelUrl(unarmed.run.file);
+      const pick = (a?: { file: string }, b?: { file: string }) =>
+        a?.file ? resolveModelUrl(a.file) : b?.file ? resolveModelUrl(b.file) : undefined;
+      const idle = pick(animSet.idle, unarmed.idle);
+      const run = pick(animSet.run, unarmed.run);
+      const atk = pick(animSet.attack1, unarmed.attack1);
+      const death = pick(animSet.death, unarmed.death);
+      if (idle) paths.idle = idle;
+      if (run) {
+        paths.walk = run;
+        paths.run = run;
       }
-      await this.anim.loadAnimations(paths).catch(() => {});
+      if (atk) paths.attack = atk;
+      if (death) paths.death = death;
+      await this.anim.loadAnimations(paths).catch((e) => {
+        console.warn(`[WarUnit] anim load ${this.id}`, e);
+      });
+      // Retry unarmed-only if nothing loaded
+      if (!this.anim.hasClip('idle') && unarmed.idle) {
+        await this.anim
+          .loadAnimations({
+            idle: resolveModelUrl(unarmed.idle.file),
+            walk: unarmed.run ? resolveModelUrl(unarmed.run.file) : undefined,
+            run: unarmed.run ? resolveModelUrl(unarmed.run.file) : undefined,
+            attack: unarmed.attack1 ? resolveModelUrl(unarmed.attack1.file) : undefined,
+          })
+          .catch(() => {});
+      }
       if (this.anim.hasClip('idle')) this.anim.play('idle');
     } catch (err) {
       console.warn(`[WarUnit] load failed ${this.id}`, err);
@@ -188,20 +242,41 @@ export class WarUnit {
     this.hitFlash = Math.max(0, this.hitFlash - dt);
 
     const pos = this.root.position;
-    this.brain.arbitrate(pos, this.hp, hostiles, dt);
-
-    const target =
+    let target =
       hostiles.find((h) => h.id === this.brain.targetId) ??
       this.brain.pickNearestHostile(pos, hostiles);
 
-    const moveTarget = this.brain.computeMoveTarget(pos, target);
+    // Player: click-move takes priority; auto-aggro when close
+    let moveTarget: THREE.Vector3 | null = null;
+    if (this.isPlayer && this.playerMoveTo) {
+      moveTarget = this.playerMoveTo;
+      const d = Math.hypot(this.playerMoveTo.x - pos.x, this.playerMoveTo.z - pos.z);
+      if (d < 0.6) this.playerMoveTo = null;
+    } else if (!this.isPlayer) {
+      this.brain.arbitrate(pos, this.hp, hostiles, dt);
+      target =
+        hostiles.find((h) => h.id === this.brain.targetId) ??
+        this.brain.pickNearestHostile(pos, hostiles);
+      moveTarget = this.brain.computeMoveTarget(pos, target);
+    } else {
+      // Player idle: auto attack nearest in range
+      this.brain.arbitrate(pos, this.hp, hostiles, dt);
+      target =
+        hostiles.find((h) => h.id === this.brain.targetId) ??
+        this.brain.pickNearestHostile(pos, hostiles);
+      if (target && !this.brain.shouldAttack(pos, target)) {
+        moveTarget = target.position;
+      }
+    }
+
     let moving = false;
     if (moveTarget) {
       const dx = moveTarget.x - pos.x;
       const dz = moveTarget.z - pos.z;
       const dist = Math.hypot(dx, dz);
       if (dist > 0.4) {
-        const step = Math.min(dist, this.archetype.moveSpeed * dt);
+        const spd = this.archetype.moveSpeed * (this.isPlayer ? 1.15 : 1);
+        const step = Math.min(dist, spd * dt);
         pos.x += (dx / dist) * step;
         pos.z += (dz / dist) * step;
         this.facing = Math.atan2(dx, dz);

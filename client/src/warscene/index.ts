@@ -4,6 +4,7 @@ export type {
   WarSceneStats,
   DeployHudStats,
   WarMatchPhase,
+  PlayerHeroOpts,
 } from './WarSceneEngine';
 export { WarUnit } from './WarUnit';
 export { WarAIBrain } from './WarAIBrain';
@@ -17,3 +18,9 @@ export type { DeclarationScript, CinematicLine } from './WarCinematic';
 export { WarDeployment } from './WarDeployment';
 export type { UnitProxySlot, DeployZone } from './WarDeployment';
 export { enhanceIslandBattlefield, tickIslandWater } from './WarIslandDecor';
+export { WarCaptureZone, defaultCaptureZones } from './WarCaptureZone';
+export { WarCatapult } from './WarCatapult';
+export { ROUND_DURATION_SEC, formatClock } from './WarMatchRules';
+export type { MatchHud } from './WarMatchRules';
+export { buildFactionRoster } from './WarRoster';
+export type { RosterEntry } from './WarRoster';

@@ -43,6 +43,29 @@ import {
   tickIslandWater,
   type IslandDecorResult,
 } from './WarIslandDecor';
+import {
+  WarCaptureZone,
+  defaultCaptureZones,
+  countZoneOwners,
+  type CaptureZoneState,
+} from './WarCaptureZone';
+import { WarCatapult } from './WarCatapult';
+import {
+  ROUND_DURATION_SEC,
+  evaluateMatchEnd,
+  formatClock,
+  type MatchHud,
+} from './WarMatchRules';
+import type { RosterEntry } from './WarRoster';
+import { hasSelectedSiege } from './WarRoster';
+import type { WarUnitArchetype } from '@shared/definitions/medievalBattleScene';
+
+export interface PlayerHeroOpts {
+  raceId: string;
+  name: string;
+  characterId?: string;
+  faction?: WarFactionId;
+}
 
 export interface WarSceneConfig {
   canvas: HTMLCanvasElement;
@@ -60,6 +83,8 @@ export interface WarSceneConfig {
   onPhaseChange?: (phase: WarMatchPhase) => void;
   onSubtitle?: (text: string, role: string) => void;
   onDeployStats?: (stats: DeployHudStats) => void;
+  onMatchHud?: (hud: MatchHud) => void;
+  onMatchEnd?: (winner: string, reason: string) => void;
 }
 
 export interface DeployHudStats {
@@ -70,6 +95,9 @@ export interface DeployHudStats {
   nextWaveIn: number;
   waveNumber: number;
   zones: Array<{ id: string; label: string; faction: string; deployCap: number }>;
+  captureZones: CaptureZoneState[];
+  timeLeft: number;
+  clock: string;
 }
 
 export interface WarSceneStats {
@@ -86,6 +114,10 @@ export interface WarSceneStats {
   reserve: Record<string, number>;
   nextWaveIn: number;
   waveNumber: number;
+  timeLeft: number;
+  clock: string;
+  captureZones: CaptureZoneState[];
+  playerAlive: boolean;
 }
 
 export class WarSceneEngine {
@@ -119,6 +151,16 @@ export class WarSceneEngine {
   private island: IslandDecorResult | null = null;
   private unitSeq = 0;
   private spawning = false;
+  private captureZones: WarCaptureZone[] = [];
+  private catapults: WarCatapult[] = [];
+  private siegeRoot = new THREE.Group();
+  private roundTimeLeft = ROUND_DURATION_SEC;
+  private playerUnit: WarUnit | null = null;
+  private playerHero: PlayerHeroOpts | null = null;
+  private clickRay = new THREE.Raycaster();
+  private pointer = new THREE.Vector2();
+  private followPlayer = true;
+  private onCanvasClick: ((e: MouseEvent) => void) | null = null;
 
   constructor(cfg: WarSceneConfig) {
     this.cfg = cfg;
@@ -157,8 +199,10 @@ export class WarSceneEngine {
 
     this.envRoot.name = 'battle_environment';
     this.unitsRoot.name = 'war_units';
+    this.siegeRoot.name = 'siege_engines';
     this.scene.add(this.envRoot);
     this.scene.add(this.unitsRoot);
+    this.scene.add(this.siegeRoot);
 
     this.cinematic = new WarCinematic(
       this.camera,
@@ -415,6 +459,19 @@ export class WarSceneEngine {
       `Walls: ${this.walls.length} combat segments (intact shown, rubble hidden until breached)`,
     );
 
+    // 3 capture zones (CB style)
+    progress(60, 'Planting capture banners…');
+    const zoneDefs = defaultCaptureZones(42);
+    for (const def of zoneDefs) {
+      // Snap Y to ground
+      const gy = this.sampleGround(def.center.x, def.center.z);
+      if (gy != null) def.center.y = gy;
+      this.captureZones.push(new WarCaptureZone(def, this.scene));
+    }
+    this.log(
+      `Capture zones: ${this.captureZones.map((z) => z.label).join(' · ')} (hold all 3 or win on timer)`,
+    );
+
     // Reserve pool — CB style: no free army on map yet
     progress(62, 'Mustering reserve companies…');
     this.deployment.ingestProxies(proxies);
@@ -425,9 +482,13 @@ export class WarSceneEngine {
     this.camera.position.set(55, 40, 70);
     this.controls.update();
 
+    // Click-to-move for player hero during siege
+    this.onCanvasClick = (ev: MouseEvent) => this.handleCanvasClick(ev);
+    this.cfg.canvas.addEventListener('click', this.onCanvasClick);
+
     progress(100, 'Battlefield ready — declaration of war');
     this.log(
-      `Island siege ready — ${proxies.length} companies in reserve, ${staticCount} static meshes, ${this.walls.length} walls`,
+      `Island siege ready — ${proxies.length} companies in reserve, ${staticCount} static meshes, ${this.walls.length} walls, 3 zones`,
     );
     this.cfg.onReady?.();
 
@@ -466,27 +527,146 @@ export class WarSceneEngine {
   }
 
   /**
-   * CB quick deploy: field opening companies for all factions, start siege.
+   * CB deploy: ordered roster + optional grudge6 hero + catapult at round start.
    */
-  async beginSiege(opts?: { playerFaction?: WarFactionId }): Promise<void> {
+  async beginSiege(opts?: {
+    playerFaction?: WarFactionId;
+    hero?: PlayerHeroOpts | null;
+    roster?: RosterEntry[];
+  }): Promise<void> {
     if (this.phase !== 'deploy' && this.phase !== 'cinematic') return;
     if (this.phase === 'cinematic') this.cinematic.skip();
 
+    const playerFaction = opts?.playerFaction ?? 'crimson';
+    this.playerHero = opts?.hero ?? null;
     this.deployment.setMarkersVisible(false);
-    const opening = this.deployment.commitOpeningDeploy(opts?.playerFaction);
+
+    // Field opening companies (all factions) — CB auto-balance
+    const opening = this.deployment.commitOpeningDeploy(playerFaction);
     this.log(
-      `Opening deploy: ${opening.length} companies take the field (${Object.entries(
-        this.deployment.reserveCounts(),
-      )
+      `Opening deploy: ${opening.length} companies (${Object.entries(this.deployment.reserveCounts())
         .map(([k, v]) => `${k} reserve ${v}`)
         .join(', ')})`,
     );
-
     await this.spawnSlots(opening);
+
+    // Player grudge6 hero
+    if (this.playerHero) {
+      await this.spawnPlayerHero(this.playerHero, playerFaction);
+    }
+
+    // Catapult fires from round start if selected (default on for crimson attacker)
+    const roster = opts?.roster ?? [];
+    const wantCatapult =
+      roster.length === 0 || hasSelectedSiege(roster, 'catapult') || playerFaction === 'crimson';
+    if (wantCatapult) {
+      this.spawnCatapults(playerFaction);
+    }
+
+    this.roundTimeLeft = ROUND_DURATION_SEC;
     this.deployment.beginSiegeWaves();
     this.setPhase('siege');
-    this.log('⚔ SIEGE BEGINS — reinforcements will arrive by wave.');
+    this.log(
+      `⚔ SIEGE BEGINS — 10:00 · capture 3 zones · catapults online · click ground to move your hero`,
+    );
+    void this.voice.speak('The siege begins! Capture the banners!', { role: 'herald' });
     this.emitDeployStats();
+    this.emitMatchHud();
+  }
+
+  private async spawnPlayerHero(hero: PlayerHeroOpts, faction: WarFactionId): Promise<void> {
+    const zone =
+      this.deployment.zones.find((z) => z.faction === faction) ?? this.deployment.zones[0];
+    const pos = (zone?.center ?? new THREE.Vector3(-20, 0, 15)).clone();
+    pos.x += 2;
+    pos.z += 2;
+    const gy = this.sampleGround(pos.x, pos.z);
+    if (gy != null) pos.y = gy;
+
+    const arch: WarUnitArchetype = {
+      id: 'player_hero',
+      pgMatId: 0,
+      label: hero.name || 'Warlord',
+      faction,
+      role: 'captain',
+      raceId: hero.raceId || 'human',
+      weaponType: 'sword-shield',
+      maxHp: 200,
+      damage: 22,
+      attackRange: 2.6,
+      attackCooldown: 0.95,
+      moveSpeed: 5.2,
+      aggroRadius: 26,
+      skills: ['slash', 'warcry', 'charge'],
+    };
+
+    const unit = new WarUnit({
+      id: `hero_${hero.characterId ?? this.unitSeq++}`,
+      archetype: arch,
+      position: pos,
+      rotationY: 0,
+      isPlayer: true,
+      raceId: hero.raceId,
+      displayName: hero.name,
+    });
+    this.unitsRoot.add(unit.root);
+    this.units.push(unit);
+    this.unitMap.set(unit.id, unit);
+    this.playerUnit = unit;
+    await unit.load();
+    this.log(`Your hero ${hero.name} (${hero.raceId}) enters the field`);
+  }
+
+  private spawnCatapults(attackerFaction: WarFactionId): void {
+    const zone =
+      this.deployment.zones.find((z) => z.faction === attackerFaction) ??
+      this.deployment.zones[0];
+    const base = zone?.center ?? new THREE.Vector3(-25, 0, 20);
+    const positions = [
+      base.clone().add(new THREE.Vector3(-6, 0, 4)),
+      base.clone().add(new THREE.Vector3(4, 0, 8)),
+    ];
+    // One guaranteed catapult at round start (user request)
+    const spots = positions.slice(0, 1);
+    for (let i = 0; i < spots.length; i++) {
+      const p = spots[i]!;
+      const gy = this.sampleGround(p.x, p.z);
+      if (gy != null) p.y = gy;
+      const cat = new WarCatapult({
+        id: `cat_${i}`,
+        faction: attackerFaction === 'neutral' ? 'crimson' : (attackerFaction as any),
+        position: p,
+        damage: 32,
+        fireInterval: 3.8,
+      });
+      cat.setHitHandler((wallId, dmg) => {
+        const wall = this.wallMap.get(wallId);
+        if (!wall || wall.dead) return;
+        const destroyed = wall.takeDamage(dmg);
+        this.log(
+          `Catapult hits ${wall.label} (−${dmg})` +
+            (destroyed ? ' — WALL BREACHED' : ` [${wall.hp}/${wall.maxHp}]`),
+        );
+      });
+      this.siegeRoot.add(cat.root);
+      this.catapults.push(cat);
+    }
+    this.log(`Catapult online — bombarding walls from round start`);
+  }
+
+  private handleCanvasClick(ev: MouseEvent): void {
+    if (this.phase !== 'siege' || !this.playerUnit || this.playerUnit.dead) return;
+    // Ignore UI clicks (buttons use stopPropagation ideally; also skip if shift for orbit)
+    if (ev.button !== 0) return;
+    const rect = this.cfg.canvas.getBoundingClientRect();
+    this.pointer.x = ((ev.clientX - rect.left) / rect.width) * 2 - 1;
+    this.pointer.y = -((ev.clientY - rect.top) / rect.height) * 2 + 1;
+    this.clickRay.setFromCamera(this.pointer, this.camera);
+    const hits = this.clickRay.intersectObjects(this.groundMeshes, true);
+    if (!hits.length) return;
+    const p = hits[0]!.point;
+    this.playerUnit.playerMoveTo = p.clone();
+    this.log(`Orders: ${this.playerUnit.displayName} → ground`);
   }
 
   /** Deploy one reinforcement of faction (manual button) */
@@ -542,6 +722,33 @@ export class WarSceneEngine {
         faction: z.faction,
         deployCap: z.deployCap,
       })),
+      captureZones: this.captureZones.map((z) => z.toState()),
+      timeLeft: this.roundTimeLeft,
+      clock: formatClock(this.roundTimeLeft),
+    });
+  }
+
+  private emitMatchHud(): void {
+    let wallsIntact = 0;
+    let wallsDestroyed = 0;
+    for (const w of this.walls) {
+      if (w.dead) wallsDestroyed++;
+      else wallsIntact++;
+    }
+    this.cfg.onMatchHud?.({
+      timeLeft: this.roundTimeLeft,
+      timeTotal: ROUND_DURATION_SEC,
+      zoneOwners: countZoneOwners(this.captureZones),
+      zones: this.captureZones.map((z) => ({
+        id: z.id,
+        label: z.label,
+        owner: z.owner,
+        progress: z.progress,
+        capturer: z.capturer,
+      })),
+      catapults: this.catapults.length,
+      wallsIntact,
+      wallsDestroyed,
     });
   }
 
@@ -584,6 +791,10 @@ export class WarSceneEngine {
       reserve: this.deployment.reserveCounts(),
       nextWaveIn: this.deployment.nextWaveIn,
       waveNumber: this.deployment.waveNumber,
+      timeLeft: this.roundTimeLeft,
+      clock: formatClock(this.roundTimeLeft),
+      captureZones: this.captureZones.map((z) => z.toState()),
+      playerAlive: !!(this.playerUnit && !this.playerUnit.dead),
     };
   }
 
@@ -667,6 +878,20 @@ export class WarSceneEngine {
 
     if (this.phase !== 'siege') return;
 
+    // Round clock (10 minutes)
+    this.roundTimeLeft = Math.max(0, this.roundTimeLeft - dt);
+
+    // Catapults fire from round start
+    for (const c of this.catapults) c.update(dt, this.walls);
+
+    // Capture zones
+    const unitPos = this.units.map((u) => ({
+      faction: u.faction,
+      position: u.root.position,
+      dead: u.dead,
+    }));
+    for (const z of this.captureZones) z.update(dt, unitPos);
+
     // Reinforcement waves
     if (!this.spawning) {
       const alive = this.units.filter((u) => !u.dead).length;
@@ -691,30 +916,41 @@ export class WarSceneEngine {
       u.update(dt, hostiles, this.sampleGround, this.onAttack);
     }
 
-    // Victory check
-    const crimsonAlive = this.units.some((u) => !u.dead && u.faction === 'crimson');
-    const azureAlive = this.units.some((u) => !u.dead && u.faction === 'azure');
-    const reserve = this.deployment.reserveCounts();
-    if (
-      (!crimsonAlive && !(reserve.crimson ?? 0)) ||
-      (!azureAlive && !(reserve.azure ?? 0))
-    ) {
-      if (this.phase === 'siege') {
-        this.setPhase('ended');
-        const winner =
-          crimsonAlive || (reserve.crimson ?? 0) > 0
-            ? 'Crimson'
-            : azureAlive || (reserve.azure ?? 0) > 0
-              ? 'Azure'
-              : 'None';
-        this.log(`—— Siege ended — ${winner} holds the island ——`);
-        void this.voice.speak(
-          winner === 'None'
-            ? 'The field is silent. No banner remains.'
-            : `${winner} claims victory on Warlord Isle!`,
-          { role: 'herald' },
-        );
-      }
+    // Soft camera follow on player hero
+    if (this.followPlayer && this.playerUnit && !this.playerUnit.dead) {
+      const p = this.playerUnit.root.position;
+      this.controls.target.lerp(new THREE.Vector3(p.x, p.y + 1.5, p.z), 0.04);
+    }
+
+    // Match end: zones / timer / wipe
+    const crimsonAlive = this.units.filter((u) => !u.dead && u.faction === 'crimson').length;
+    const azureAlive = this.units.filter((u) => !u.dead && u.faction === 'azure').length;
+    let wallsDestroyed = 0;
+    for (const w of this.walls) if (w.dead) wallsDestroyed++;
+
+    const outcome = evaluateMatchEnd({
+      timeLeft: this.roundTimeLeft,
+      zones: this.captureZones,
+      crimsonAlive,
+      azureAlive,
+      wallsDestroyed,
+    });
+    if (outcome.kind === 'victory') {
+      this.setPhase('ended');
+      this.log(`—— ${outcome.winner.toUpperCase()} — ${outcome.reason} ——`);
+      this.cfg.onMatchEnd?.(outcome.winner, outcome.reason);
+      void this.voice.speak(
+        outcome.winner === 'draw'
+          ? 'Stalemate on Warlord Isle.'
+          : `${outcome.winner} claims victory!`,
+        { role: 'herald' },
+      );
+    }
+
+    // HUD throttle ~2Hz
+    if (Math.floor(this.elapsed * 2) !== Math.floor((this.elapsed - dt) * 2)) {
+      this.emitMatchHud();
+      this.emitDeployStats();
     }
   }
 
@@ -778,9 +1014,17 @@ export class WarSceneEngine {
 
   dispose(): void {
     this.stop();
+    if (this.onCanvasClick) {
+      this.cfg.canvas.removeEventListener('click', this.onCanvasClick);
+      this.onCanvasClick = null;
+    }
     this.voice.dispose();
     this.deployment.dispose();
     this.island?.dispose();
+    for (const z of this.captureZones) z.dispose();
+    this.captureZones = [];
+    for (const c of this.catapults) c.dispose();
+    this.catapults = [];
     for (const u of this.units) u.dispose();
     this.units = [];
     this.renderer.dispose();

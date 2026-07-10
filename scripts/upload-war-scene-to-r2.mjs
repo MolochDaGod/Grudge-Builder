@@ -54,7 +54,8 @@ const needsOpt =
 
 if (needsOpt) {
   fs.mkdirSync(path.dirname(optimizedOut), { recursive: true });
-  console.log('Optimizing (Draco + WebP, texture ≤2048)…');
+  // Preserve mesh/node structure (walls, PG proxies) — no join/flatten/simplify
+  console.log('Optimizing (Draco + WebP, keep meshes)…');
   const opt = spawnSync(
     'npx',
     [
@@ -69,6 +70,18 @@ if (needsOpt) {
       'webp',
       '--texture-size',
       '2048',
+      '--join',
+      'false',
+      '--flatten',
+      'false',
+      '--simplify',
+      'false',
+      '--weld',
+      'false',
+      '--palette',
+      'false',
+      '--instance',
+      'false',
     ],
     { cwd: root, stdio: 'inherit', shell: true },
   );

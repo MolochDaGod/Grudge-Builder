@@ -34,44 +34,70 @@ export function enhanceIslandBattlefield(
   scene.background = new THREE.Color(0x6a8eab);
   scene.fog = new THREE.FogExp2(0x7a9bb8, 0.0065);
 
-  // Material pass: terrain softer, walls slightly sharper
+  // Material pass: restore color/texture after Draco+WebP bake
   envRoot.traverse((obj) => {
     if (!(obj as THREE.Mesh).isMesh) return;
     const mesh = obj as THREE.Mesh;
+    const n = obj.name || '';
     const layer =
-      /Erba|Zolla|Bordo|Roccia/i.test(obj.name)
+      /Erba|Zolla|Bordo|Roccia/i.test(n)
         ? 'terrain'
-        : /Mura|TileMura|Passerella/i.test(obj.name)
+        : /Mura|TileMura|Passerella|Tegola/i.test(n)
           ? 'wall'
-          : 'other';
+          : /Stendardi/i.test(n)
+            ? 'banner'
+            : /Fire/i.test(n)
+              ? 'fire'
+              : 'other';
     const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
-    for (const m of mats) {
+    for (let i = 0; i < mats.length; i++) {
+      const m = mats[i];
       if (!m) continue;
-      const std = m as THREE.MeshStandardMaterial;
+      // Promote MeshBasic → Standard so lights + sRGB maps work
+      let std = m as THREE.MeshStandardMaterial;
+      if ((m as THREE.MeshBasicMaterial).isMeshBasicMaterial) {
+        const basic = m as THREE.MeshBasicMaterial;
+        std = new THREE.MeshStandardMaterial({
+          map: basic.map,
+          color: basic.color?.clone() ?? new THREE.Color(0xcccccc),
+          transparent: basic.transparent,
+          opacity: basic.opacity,
+          side: basic.side,
+          roughness: 0.85,
+          metalness: 0.05,
+        });
+        if (Array.isArray(mesh.material)) mesh.material[i] = std;
+        else mesh.material = std;
+      }
       if (std.map) {
         std.map.colorSpace = THREE.SRGBColorSpace;
         std.map.anisotropy = 8;
         std.map.needsUpdate = true;
-      }
-      if (std.normalMap) {
-        std.normalScale?.set(0.85, 0.85);
-      }
-      if (layer === 'terrain') {
-        std.roughness = Math.min(1, (std.roughness ?? 0.8) * 1.05 + 0.08);
-        std.metalness = Math.min(0.15, std.metalness ?? 0);
-        // Slight green-brown island lift if no texture
-        if (!std.map && std.color) {
-          std.color.offsetHSL(0.02, 0.05, -0.02);
+        // Ensure base color multiplies map correctly
+        if (!std.color || std.color.getHex() === 0x000000) {
+          std.color = new THREE.Color(0xffffff);
         }
+      } else if (std.color) {
+        // Name-based palette when maps missing
+        if (layer === 'terrain') std.color.setHex(0x5a7a48);
+        else if (layer === 'wall') std.color.setHex(0x9a8f82);
+        else if (layer === 'banner') std.color.setHex(0xb83232);
       }
-      if (layer === 'wall') {
-        std.roughness = Math.max(0.55, std.roughness ?? 0.75);
-        std.metalness = Math.min(0.2, std.metalness ?? 0.05);
+      if (std.normalMap) std.normalScale?.set(0.9, 0.9);
+      if (layer === 'terrain') {
+        std.roughness = 0.92;
+        std.metalness = 0.02;
+      } else if (layer === 'wall') {
+        std.roughness = 0.72;
+        std.metalness = 0.08;
+      } else if (layer === 'fire' && std.emissive) {
+        std.emissive.setHex(0xff5500);
+        std.emissiveIntensity = 1.4;
       }
       std.needsUpdate = true;
     }
     mesh.receiveShadow = true;
-    if (layer === 'wall' || layer === 'other') mesh.castShadow = true;
+    if (layer === 'wall' || layer === 'other' || layer === 'banner') mesh.castShadow = true;
   });
 
   const root = new THREE.Group();
