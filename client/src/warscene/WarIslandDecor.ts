@@ -36,19 +36,23 @@ export interface BattlefieldLevels {
 }
 
 /**
- * Read original map bottom + Water_Mat Y after the fortress is centered.
- * Maya water lives near terrain floor (~-9 after center), NOT near y=0.
+ * Read map bottom, beach/terrain floor, and original Water_* after centering.
+ *
+ * The fortress is a floating plate: AABB center ≠ beach. After center, terrain
+ * floor sits near y≈-9 while plate bottom is ≈-18. Ocean must meet the **beach
+ * rim** (terrain floor), not cut through the fort mid-height.
  */
 export function measureBattlefieldLevels(envRoot: THREE.Object3D): BattlefieldLevels {
   envRoot.updateMatrixWorld(true);
   const full = new THREE.Box3().setFromObject(envRoot);
-  let mapBottomY = full.min.y;
-  let mapTopY = full.max.y;
+  const mapBottomY = full.min.y;
+  const mapTopY = full.max.y;
 
   let waterMin = Infinity;
   let waterMax = -Infinity;
   let waterFound = false;
   const terrainMins: number[] = [];
+  const beachEdgeYs: number[] = []; // Bordo / shore skirts
 
   envRoot.traverse((obj) => {
     if (!(obj as THREE.Mesh).isMesh) return;
@@ -60,35 +64,42 @@ export function measureBattlefieldLevels(envRoot: THREE.Object3D): BattlefieldLe
       waterMin = Math.min(waterMin, b.min.y);
       waterMax = Math.max(waterMax, b.max.y);
     }
-    if (/Terreno|Erba|Zolla|Bordo/i.test(n)) {
+    if (/Terreno|Erba|Zolla/i.test(n)) {
       terrainMins.push(b.min.y);
+    }
+    // Shore / bank skirts — where land meets ocean on the asset
+    if (/Bordo|Water/i.test(n) && !/Mura/i.test(n)) {
+      beachEdgeYs.push(b.min.y);
     }
   });
 
   terrainMins.sort((a, b) => a - b);
+  beachEdgeYs.sort((a, b) => a - b);
+
   const terrainFloorY =
     terrainMins.length > 0
-      ? terrainMins[Math.floor(terrainMins.length * 0.25)]! // lower quartile = floor
-      : mapBottomY + (mapTopY - mapBottomY) * 0.15;
+      ? terrainMins[Math.floor(terrainMins.length * 0.2)]!
+      : mapBottomY + (mapTopY - mapBottomY) * 0.12;
 
-  // Original water: prefer the lower band (ocean plane), not the thick slab top
-  let originalWaterBottomY = waterFound ? waterMin : terrainFloorY - 0.5;
-  let originalWaterSurfaceY = waterFound
-    ? // If water is a thick volume, surface is closer to terrain floor + small rise
-      Math.min(waterMax, terrainFloorY + 0.35)
-    : terrainFloorY - 0.25;
-  // Flat water meshes (min≈max) use that Y as surface
+  // Beach edge = lowest shore band (where map connects to ocean floor)
+  const beachEdgeY =
+    beachEdgeYs.length > 0
+      ? beachEdgeYs[Math.floor(beachEdgeYs.length * 0.15)]!
+      : terrainFloorY;
+
+  let originalWaterBottomY = waterFound ? waterMin : beachEdgeY - 0.5;
+  let originalWaterSurfaceY = waterFound ? waterMin + 0.1 : beachEdgeY - 0.2;
   if (waterFound && waterMax - waterMin < 0.5) {
     originalWaterSurfaceY = (waterMin + waterMax) * 0.5;
     originalWaterBottomY = originalWaterSurfaceY;
   } else if (waterFound) {
-    // Thick water mesh: ocean sits at its bottom (matches Terreno ~ -9.2)
-    originalWaterSurfaceY = waterMin + 0.15;
+    // Thick Water_Mat slab: use bottom band as ocean (aligned with Terreno ~ -9)
+    originalWaterSurfaceY = Math.min(waterMin + 0.2, beachEdgeY + 0.05);
     originalWaterBottomY = waterMin;
   }
 
-  // Our decorative disc: slightly BELOW original water so it never covers land
-  const ourWaterY = Math.min(originalWaterSurfaceY, terrainFloorY) - 0.45;
+  // Ocean disc: just under beach edge (never mid-fort)
+  const ourWaterY = Math.min(originalWaterSurfaceY, beachEdgeY, terrainFloorY) - 0.15;
 
   return {
     mapBottomY,
@@ -101,24 +112,46 @@ export function measureBattlefieldLevels(envRoot: THREE.Object3D): BattlefieldLe
 }
 
 /**
+ * How much to lift the centered fortress so beach/terrain floor sits just
+ * above a world ocean plane at `oceanWorldY` (default 0).
+ */
+export function computeMapLiftToWaterline(
+  levels: BattlefieldLevels,
+  oceanWorldY = 0,
+  beachClearance = 0.35,
+): number {
+  // Bring terrain floor up to ocean + clearance (map rises, water stays)
+  return oceanWorldY + beachClearance - levels.terrainFloorY;
+}
+
+/**
  * Enhance loaded env root materials + add island water / shadow ground.
  * Call after GLB is parented and centered.
  */
 export function enhanceIslandBattlefield(
   scene: THREE.Scene,
   envRoot: THREE.Object3D,
-  opts?: { waterRadius?: number; waterY?: number },
+  opts?: {
+    waterRadius?: number;
+    /** World Y of ocean surface (map should already be lifted to this waterline) */
+    waterY?: number;
+    /** Horizontal span from map bounds */
+    mapSpanXZ?: number;
+  },
 ): IslandDecorResult {
   const levels = measureBattlefieldLevels(envRoot);
-  const waterR = opts?.waterRadius ?? 160;
-  // Explicit override, else measured level below original Water_* / terrain floor
-  const waterY = opts?.waterY ?? levels.ourWaterY;
+  // Prefer footprint of the map plate for ocean disc size
+  const box = new THREE.Box3().setFromObject(envRoot);
+  const size = box.getSize(new THREE.Vector3());
+  const span = opts?.mapSpanXZ ?? Math.max(size.x, size.z, 80);
+  const waterR = opts?.waterRadius ?? Math.max(120, span * 1.35);
+  // Ocean world Y — default 0 after map lift; disc sits at beach edge
+  const waterY = opts?.waterY ?? 0;
 
-  // Soften / hide original Water meshes so they don't flood the fort
+  // Hide baked Water_* (we own the waterline now)
   envRoot.traverse((obj) => {
     if (!(obj as THREE.Mesh).isMesh) return;
     if (!/Water/i.test(obj.name || '')) return;
-    // Keep asset for reference but sink slightly and make subtler if still visible
     obj.visible = false;
     obj.userData.originalMapWater = true;
   });
@@ -230,13 +263,13 @@ export function enhanceIslandBattlefield(
   foam.renderOrder = -1;
   root.add(foam);
 
-  // Shadow catcher on terrain floor (not at y=0 mid-air)
+  // Shadow catcher just above waterline / beach (after map lift terrain ≈ waterY+clearance)
   const ground = new THREE.Mesh(
-    new THREE.CircleGeometry(Math.min(waterR * 0.5, 90), 64),
+    new THREE.CircleGeometry(Math.min(waterR * 0.55, Math.max(60, span * 0.55)), 64),
     new THREE.ShadowMaterial({ opacity: 0.28 }),
   );
   ground.rotation.x = -Math.PI / 2;
-  ground.position.y = levels.terrainFloorY + 0.05;
+  ground.position.y = waterY + 0.08;
   ground.receiveShadow = true;
   ground.name = 'island_shadow_ground';
   root.add(ground);

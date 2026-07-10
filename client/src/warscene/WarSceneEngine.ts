@@ -40,6 +40,8 @@ import {
 import { WarDeployment, type UnitProxySlot } from './WarDeployment';
 import {
   enhanceIslandBattlefield,
+  measureBattlefieldLevels,
+  computeMapLiftToWaterline,
   tickIslandWater,
   type IslandDecorResult,
 } from './WarIslandDecor';
@@ -500,11 +502,22 @@ export class WarSceneEngine {
       }
     });
 
-    // Center environment on origin
+    // Center environment on origin (AABB)
     const box = new THREE.Box3().setFromObject(root);
     const center = box.getCenter(new THREE.Vector3());
     root.position.sub(center);
     root.updateMatrixWorld(true);
+
+    // Lift map so beach / terrain floor sits just above world ocean at Y=0
+    // (screenshot: water cut through mid-island — plate was floating above ocean)
+    progress(53, 'Aligning beach to waterline…');
+    const preLift = measureBattlefieldLevels(root);
+    const OCEAN_Y = 0;
+    const BEACH_CLEARANCE = 0.4;
+    const lift = computeMapLiftToWaterline(preLift, OCEAN_Y, BEACH_CLEARANCE);
+    root.position.y += lift;
+    root.updateMatrixWorld(true);
+
     for (const p of proxies) {
       p.object.getWorldPosition(p.position);
     }
@@ -522,15 +535,25 @@ export class WarSceneEngine {
         : 'No Fire_* meshes found — using procedural flaming arrows for archers',
     );
 
-    // Island water aligned to original Water_* / terrain floor (not mid-air y≈0)
+    // Ocean disc at Y=0; map beach is at ~0.4 after lift
     progress(56, 'Shaping island shoreline…');
-    this.island = enhanceIslandBattlefield(this.scene, root);
+    const footprint = new THREE.Box3().setFromObject(root);
+    const span = Math.max(
+      footprint.max.x - footprint.min.x,
+      footprint.max.z - footprint.min.z,
+      80,
+    );
+    this.island = enhanceIslandBattlefield(this.scene, root, {
+      waterY: OCEAN_Y,
+      mapSpanXZ: span,
+    });
     const lv = this.island.levels;
     this.log(
-      `Map levels: bottom=${lv.mapBottomY.toFixed(2)} terrainFloor=${lv.terrainFloorY.toFixed(2)} ` +
-        `origWater=${lv.originalWaterSurfaceY.toFixed(2)} ourWater=${lv.ourWaterY.toFixed(2)}`,
+      `Waterline: oceanY=${OCEAN_Y} mapLift=${lift.toFixed(2)} ` +
+        `preFloor=${preLift.terrainFloorY.toFixed(2)} postFloor=${lv.terrainFloorY.toFixed(2)} ` +
+        `bottom=${lv.mapBottomY.toFixed(2)} span=${span.toFixed(0)}`,
     );
-    // Shadow ground also in ground ray set (at terrain floor, not y=0)
+    // Shadow ground in ray set (at waterline/beach)
     this.groundMeshes.push(this.island.ground);
 
     // Walls

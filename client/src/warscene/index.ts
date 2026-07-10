@@ -21,6 +21,7 @@ export {
   enhanceIslandBattlefield,
   tickIslandWater,
   measureBattlefieldLevels,
+  computeMapLiftToWaterline,
 } from './WarIslandDecor';
 export type { BattlefieldLevels } from './WarIslandDecor';
 export {
