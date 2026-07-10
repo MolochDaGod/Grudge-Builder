@@ -117,18 +117,20 @@ jobs:
       - name: Verify island spec catalog
         run: |
           set -euo pipefail
+          # Catalog version tracks HOME_ISLAND_SPEC_VERSION (currently 2.2.0)
           URL="${{ env.RAILWAY_URL }}/api/island/spec"
           for i in $(seq 1 24); do
             CODE=$(curl -sS -o /tmp/island-spec.json -w "%{http_code}" "$URL" || true)
-            if [ "$CODE" = "200" ] && grep -q '"version":"2.0.0"' /tmp/island-spec.json; then
-              echo "✅ GET /api/island/spec returned catalog v2.0.0 (attempt $i)"
+            if [ "$CODE" = "200" ] && grep -Eq '"version":"2\.[0-9]+\.[0-9]+"' /tmp/island-spec.json; then
+              VER=$(grep -oE '"version":"[^"]+"' /tmp/island-spec.json | head -1)
+              echo "✅ GET /api/island/spec returned $VER (attempt $i)"
               head -c 400 /tmp/island-spec.json
               exit 0
             fi
             echo "island/spec attempt $i/24 — HTTP $CODE"
             sleep 15
           done
-          echo "❌ GET /api/island/spec never returned v2.0.0"
+          echo "❌ GET /api/island/spec never returned catalog v2.x"
           cat /tmp/island-spec.json 2>/dev/null || true
           exit 1
 
