@@ -43,6 +43,19 @@ export interface BuildAssetDef {
   placement: PlacementMode;
   /** CDN path to GLB model (null = use placeholder geometry) */
   modelPath: string | null;
+  /**
+   * Multipack GLB: clone only this node (survival kit / towers).
+   * See shared/definitions/survivalKitBuildCatalog.ts
+   */
+  nodeName?: string;
+  /** Extra nodes composed into the placeable (e.g. hammer + paper on workbench) */
+  extraNodes?: string[];
+  /** Y offset after ground sample (docks = +0.2 above water) */
+  placeYOffset?: number;
+  /** Floating foundation / dock pad */
+  floating?: boolean;
+  /** Build layer SSOT */
+  buildLayer?: 'quick' | 'camp' | 'bench' | 'modular' | 'rts' | 'dock' | 'race_home';
   /** Placeholder color when no model is loaded */
   color: number;
   /** Bounding box dimensions for placement collision */
@@ -62,7 +75,7 @@ export interface BuildAssetDef {
   // ── Gameplay effects (optional) ────────────────────────────────────────
   /** Passive effect while placed */
   effect?: {
-    type: 'storage' | 'crafting' | 'training' | 'transport' | 'comfort' | 'defense' | 'farming';
+    type: 'storage' | 'crafting' | 'training' | 'transport' | 'comfort' | 'defense' | 'farming' | 'respawn' | 'train_unit' | 'foundation';
     /** Numeric bonus (e.g. storage slots, XP rate, carry capacity) */
     value: number;
     description: string;
@@ -293,11 +306,189 @@ export const BUILD_ASSETS: Record<string, BuildAssetDef> = {
   },
   boat_dock: {
     id: 'boat_dock', name: 'Boat Dock', category: 'transport',
-    placement: 'prop', modelPath: B('medieval/boat.glb'),
+    placement: 'prop',
+    modelPath: `${CDN}/models/buildings/survival/free_survival_asset_kit.glb`,
+    nodeName: 'structureBase',
+    buildLayer: 'dock',
+    placeYOffset: 0.2,
+    floating: true,
     color: 0x5A4A3A, size: [4, 1, 8], scale: 1.0,
     rotatable: true, requiresFloor: false, terrainPlaceable: true,
     cost: [{ itemId: 'wood', quantity: 30 }, { itemId: 'rope', quantity: 6 }],
-    effect: { type: 'transport', value: 0, description: 'Enables sailing to other islands' },
+    effect: {
+      type: 'transport',
+      value: 0,
+      description: 'Dock deck at waterY+0.2 — legs in water, walkable deck dry',
+    },
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // SURVIVAL KIT — camp / benches / modular (free_survival_asset_kit.glb)
+  // Full SSOT: shared/definitions/survivalKitBuildCatalog.ts
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  camp_tent_frame: {
+    id: 'camp_tent_frame', name: 'Tent Frame (Half)', category: 'camp',
+    placement: 'prop',
+    modelPath: `${CDN}/models/buildings/survival/free_survival_asset_kit.glb`,
+    nodeName: 'tentHalf', buildLayer: 'camp',
+    color: 0x8b6914, size: [3, 2, 3], scale: 1.0,
+    rotatable: true, requiresFloor: false, terrainPlaceable: true,
+    cost: [{ itemId: 'wood', quantity: 6 }, { itemId: 'cloth', quantity: 2 }],
+    effect: { type: 'comfort', value: 5, description: 'Stage 0 camp lean-to' },
+  },
+  camp_tent: {
+    id: 'camp_tent', name: 'Open Tent', category: 'camp',
+    placement: 'prop',
+    modelPath: `${CDN}/models/buildings/survival/free_survival_asset_kit.glb`,
+    nodeName: 'tent', buildLayer: 'camp',
+    color: 0xc4a35a, size: [3.5, 2.2, 3.5], scale: 1.0,
+    rotatable: true, requiresFloor: false, terrainPlaceable: true,
+    cost: [{ itemId: 'wood', quantity: 10 }, { itemId: 'cloth', quantity: 6 }],
+    effect: { type: 'comfort', value: 12, description: 'Stage 1 camp shelter' },
+  },
+  camp_tent_closed: {
+    id: 'camp_tent_closed', name: 'Closed Tent', category: 'camp',
+    placement: 'prop',
+    modelPath: `${CDN}/models/buildings/survival/free_survival_asset_kit.glb`,
+    nodeName: 'tentClosed', buildLayer: 'camp',
+    color: 0xa08040, size: [3.5, 2.2, 3.5], scale: 1.0,
+    rotatable: true, requiresFloor: false, terrainPlaceable: true,
+    cost: [{ itemId: 'wood', quantity: 12 }, { itemId: 'cloth', quantity: 8 }],
+    effect: { type: 'comfort', value: 18, description: 'Stage 2 sealed tent' },
+  },
+  camp_fire_soup: {
+    id: 'camp_fire_soup', name: 'Campfire (Cooking)', category: 'crafting',
+    placement: 'prop',
+    modelPath: `${CDN}/models/buildings/survival/free_survival_asset_kit.glb`,
+    nodeName: 'campfire', buildLayer: 'bench',
+    color: 0xcc4400, size: [1.6, 0.8, 1.6], scale: 1.0,
+    rotatable: false, requiresFloor: false, terrainPlaceable: true,
+    cost: [{ itemId: 'stone', quantity: 6 }, { itemId: 'wood', quantity: 4 }],
+    effect: { type: 'crafting', value: 1, description: 'Cooking bench T0 — soup fire' },
+  },
+  camp_bedroll: {
+    id: 'camp_bedroll', name: 'Sleeping Bag', category: 'furniture',
+    placement: 'prop',
+    modelPath: `${CDN}/models/buildings/survival/free_survival_asset_kit.glb`,
+    nodeName: 'bedroll', buildLayer: 'camp',
+    color: 0x6b4423, size: [1.2, 0.3, 2.2], scale: 1.0,
+    rotatable: true, requiresFloor: false, terrainPlaceable: true,
+    cost: [{ itemId: 'cloth', quantity: 4 }, { itemId: 'fiber', quantity: 2 }],
+    effect: { type: 'respawn', value: 1, description: 'Set save / spawn point' },
+  },
+  bench_workbench: {
+    id: 'bench_workbench', name: 'Workbench (Hammer + Note)', category: 'crafting',
+    placement: 'prop',
+    modelPath: `${CDN}/models/buildings/survival/free_survival_asset_kit.glb`,
+    nodeName: 'workbench', extraNodes: ['hammer', 'paper'], buildLayer: 'bench',
+    color: 0x8b6914, size: [1.8, 1.2, 1.0], scale: 1.0,
+    rotatable: true, requiresFloor: false, terrainPlaceable: true,
+    cost: [{ itemId: 'wood', quantity: 12 }, { itemId: 'iron', quantity: 2 }],
+    effect: { type: 'crafting', value: 1, description: 'General workbench T0' },
+  },
+  bench_anvil_engineer: {
+    id: 'bench_anvil_engineer', name: 'Anvil (Engineer)', category: 'crafting',
+    placement: 'prop',
+    modelPath: `${CDN}/models/buildings/survival/free_survival_asset_kit.glb`,
+    nodeName: 'workbenchAnvil', buildLayer: 'bench',
+    color: 0x555555, size: [1.5, 1.0, 1.0], scale: 1.0,
+    rotatable: true, requiresFloor: false, terrainPlaceable: true,
+    cost: [{ itemId: 'iron', quantity: 16 }, { itemId: 'wood', quantity: 4 }],
+    effect: { type: 'crafting', value: 2, description: 'Engineer / smith anvil' },
+  },
+  bench_grind_miner: {
+    id: 'bench_grind_miner', name: 'Sharpening Wheel (Miner)', category: 'crafting',
+    placement: 'prop',
+    modelPath: `${CDN}/models/buildings/survival/free_survival_asset_kit.glb`,
+    nodeName: 'workbenchGrind', buildLayer: 'bench',
+    color: 0x666666, size: [1.4, 1.4, 0.9], scale: 1.0,
+    rotatable: true, requiresFloor: false, terrainPlaceable: true,
+    cost: [{ itemId: 'stone', quantity: 12 }, { itemId: 'wood', quantity: 6 }, { itemId: 'iron', quantity: 4 }],
+    effect: { type: 'crafting', value: 2, description: 'Miner grindstone / sharpening' },
+  },
+  bench_mystic: {
+    id: 'bench_mystic', name: 'Mystic Spell Table', category: 'crafting',
+    placement: 'prop',
+    modelPath: `${CDN}/models/buildings/benches/spell_table.glb`,
+    buildLayer: 'bench',
+    color: 0x6644aa, size: [2.2, 1.5, 2.2], scale: 0.8,
+    rotatable: true, requiresFloor: false, terrainPlaceable: true,
+    cost: [{ itemId: 'wood', quantity: 20 }, { itemId: 'arcane_dust', quantity: 8 }],
+    effect: { type: 'crafting', value: 3, description: 'Mystic bench — enchant / foci' },
+  },
+  bench_forestry: {
+    id: 'bench_forestry', name: 'Forestry Lumbermill', category: 'crafting',
+    placement: 'prop',
+    modelPath: `${CDN}/models/buildings/benches/lumbermill.glb`,
+    nodeName: 'sawmill', buildLayer: 'bench',
+    color: 0x5a3e1b, size: [6, 4, 5], scale: 0.35,
+    rotatable: true, requiresFloor: false, terrainPlaceable: true,
+    cost: [{ itemId: 'wood', quantity: 40 }, { itemId: 'iron', quantity: 12 }],
+    effect: { type: 'crafting', value: 3, description: 'Forestry bench — planks / beams' },
+  },
+  mod_foundation_float: {
+    id: 'mod_foundation_float', name: 'Floating Foundation', category: 'structure',
+    placement: 'structural',
+    modelPath: `${CDN}/models/buildings/survival/free_survival_asset_kit.glb`,
+    nodeName: 'structureBase', buildLayer: 'modular',
+    placeYOffset: 0.2, floating: true,
+    color: 0x6b5428, size: [4, 0.5, 4], scale: 1.0,
+    rotatable: true, requiresFloor: false, terrainPlaceable: true,
+    cost: [{ itemId: 'wood', quantity: 10 }, { itemId: 'rope', quantity: 2 }],
+    effect: { type: 'foundation', value: 1, description: 'Starter floating foundation (water edge)' },
+  },
+  mod_floor: {
+    id: 'mod_floor', name: 'Wood Floor', category: 'structure',
+    placement: 'structural',
+    modelPath: `${CDN}/models/buildings/survival/free_survival_asset_kit.glb`,
+    nodeName: 'floor', buildLayer: 'modular',
+    color: 0x8b6914, size: [4, 0.25, 4], scale: 1.0,
+    rotatable: true, requiresFloor: false, terrainPlaceable: true,
+    cost: [{ itemId: 'wood', quantity: 8 }],
+    effect: { type: 'foundation', value: 1, description: 'T1 modular floor' },
+  },
+  mod_wall: {
+    id: 'mod_wall', name: 'Wood Wall', category: 'structure',
+    placement: 'structural',
+    modelPath: `${CDN}/models/buildings/survival/free_survival_asset_kit.glb`,
+    nodeName: 'structure', buildLayer: 'modular',
+    color: 0x7a5c3a, size: [4, 3, 0.3], scale: 1.0,
+    rotatable: true, requiresFloor: true, terrainPlaceable: false,
+    cost: [{ itemId: 'wood', quantity: 6 }],
+  },
+  mod_roof: {
+    id: 'mod_roof', name: 'Wood Roof', category: 'structure',
+    placement: 'structural',
+    modelPath: `${CDN}/models/buildings/survival/free_survival_asset_kit.glb`,
+    nodeName: 'structureRoof', buildLayer: 'modular',
+    color: 0x5a3e1b, size: [4, 1.5, 4], scale: 1.0,
+    rotatable: true, requiresFloor: true, terrainPlaceable: false,
+    cost: [{ itemId: 'wood', quantity: 8 }],
+  },
+  tower_medieval_a: {
+    id: 'tower_medieval_a', name: 'Medieval Tower A', category: 'defense',
+    placement: 'prop',
+    modelPath: `${CDN}/models/buildings/towers/3_medieval_towers.glb`,
+    nodeName: 'b1_low', buildLayer: 'rts',
+    color: 0x777777, size: [6, 18, 6], scale: 0.012,
+    rotatable: true, requiresFloor: false, terrainPlaceable: true,
+    cost: [{ itemId: 'stone', quantity: 40 }, { itemId: 'wood', quantity: 20 }],
+    effect: { type: 'defense', value: 60, description: 'Medieval tower from towers pack' },
+  },
+  rts_barracks_t0: {
+    id: 'rts_barracks_t0', name: 'Barracks (T0)', category: 'defense',
+    placement: 'prop',
+    modelPath: `${CDN}/models/buildings/survival/free_survival_asset_kit.glb`,
+    nodeName: 'structure', extraNodes: ['signpost'], buildLayer: 'rts',
+    color: 0x6b4423, size: [8, 4, 8], scale: 1.4,
+    rotatable: true, requiresFloor: false, terrainPlaceable: true,
+    cost: [{ itemId: 'wood', quantity: 60 }, { itemId: 'stone', quantity: 30 }],
+    effect: {
+      type: 'train_unit',
+      value: 1,
+      description: 'Train AI units (T0). Level profession → promote to hero.',
+    },
   },
 
   // ═══════════════════════════════════════════════════════════════════════════
