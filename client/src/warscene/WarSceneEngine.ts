@@ -202,9 +202,10 @@ export class WarSceneEngine {
   }
 
   /**
-   * Production → R2 CDN only.
-   * Dev can use ?local=1 → Railway/API `/api/local-war-scene` (D: drive stream).
-   * Never fall back to local API on grudgewarlords.com / Vercel — that 404s.
+   * Production → same-origin `/models/war/…` (Vercel rewrite → R2 CDN).
+   * Avoids cross-origin CORS on assets.grudge-studio.com for GLTFLoader.
+   * Dev can use ?local=1 → `/api/local-war-scene` (D: drive stream).
+   * Never fall back to local API on grudgewarlords.com — that 404s.
    */
   private resolveSceneUrl(): { url: string; mode: 'cdn' | 'local' | 'custom' } {
     if (this.cfg.sceneUrl) {
@@ -213,15 +214,20 @@ export class WarSceneEngine {
     const params = new URLSearchParams(window.location.search);
     const wantLocal = params.get('local') === '1';
     const host = typeof window !== 'undefined' ? window.location.hostname : '';
+    const isLocalHost = host === 'localhost' || host === '127.0.0.1';
     const isProdHost =
-      /grudgewarlords\.com$|grudge-studio\.com$|vercel\.app$/i.test(host) &&
-      host !== 'localhost' &&
-      host !== '127.0.0.1';
+      /grudgewarlords\.com$|grudge-studio\.com$|vercel\.app$/i.test(host) && !isLocalHost;
 
-    // local=1 only on localhost / explicit non-prod (or force=1 for API debugging)
-    if (wantLocal && (!isProdHost || params.get('forceLocal') === '1')) {
+    // local=1 only on localhost (or forceLocal=1 for API debugging)
+    if (wantLocal && (isLocalHost || params.get('forceLocal') === '1')) {
       return { url: '/api/local-war-scene', mode: 'local' };
     }
+
+    // Production / any hosted build: same-origin path → vercel.json rewrites to R2
+    if (isProdHost || !isLocalHost) {
+      return { url: MEDIEVAL_BATTLE_CDN_PATH, mode: 'cdn' };
+    }
+    // Local vite without ?local=1 still prefers absolute CDN
     return { url: resolveModelUrl(MEDIEVAL_BATTLE_CDN_PATH), mode: 'cdn' };
   }
 
@@ -230,12 +236,16 @@ export class WarSceneEngine {
     // Relative local stream — skip HEAD (may not support it)
     if (url.startsWith('/api/')) return;
 
+    const abs =
+      url.startsWith('http') || url.startsWith('//')
+        ? url
+        : `${window.location.origin}${url.startsWith('/') ? url : `/${url}`}`;
+
     let res: Response;
     try {
-      res = await fetch(url, { method: 'HEAD', mode: 'cors' });
+      res = await fetch(abs, { method: 'HEAD', mode: 'cors' });
     } catch {
-      // Some CDNs block HEAD; try ranged GET
-      res = await fetch(url, {
+      res = await fetch(abs, {
         method: 'GET',
         headers: { Range: 'bytes=0-15' },
         mode: 'cors',
@@ -243,20 +253,20 @@ export class WarSceneEngine {
     }
     if (!res.ok) {
       throw new Error(
-        `War scene asset HTTP ${res.status} at ${url}. Upload the fortress GLB to R2 key models/war/huge_medieval_battle_scene.glb`,
+        `War scene asset HTTP ${res.status} at ${abs}. Run: npm run upload:war-scene`,
       );
     }
     const len = Number(res.headers.get('content-length') || 0);
     const ct = (res.headers.get('content-type') || '').toLowerCase();
     if (ct.includes('text/html')) {
       throw new Error(
-        `CDN returned HTML instead of GLB (missing R2 object). Upload: models/war/huge_medieval_battle_scene.glb`,
+        `CDN returned HTML instead of GLB. Re-run: npm run upload:war-scene`,
       );
     }
-    // Real fortress is ~500MB; stub/HTML was ~44KB
+    // Production optimized fortress is ~23MB; old HTML stub was ~44KB
     if (len > 0 && len < 500_000) {
       throw new Error(
-        `War scene asset too small (${len} bytes) — not the fortress GLB. Re-upload ~517MB file to R2.`,
+        `War scene asset too small (${len} bytes). Expected ~23MB optimized GLB on R2. Run: npm run upload:war-scene`,
       );
     }
   }
@@ -304,10 +314,8 @@ export class WarSceneEngine {
       if (!canLocal || mode === 'local') {
         throw new Error(
           `Failed to load war fortress from ${url}. ${msg}\n\n` +
-            `Production needs the real GLB on CDN:\n` +
-            `  wrangler r2 object put grudge-assets/models/war/huge_medieval_battle_scene.glb \\\n` +
-            `    --file="D:/Games/grudge-game-engine/huge_medieval_battle_scene.glb" \\\n` +
-            `    --content-type=model/gltf-binary --remote\n\n` +
+            `Production loads R2 via /models/war/huge_medieval_battle_scene.glb (~23MB optimized).\n` +
+            `Re-upload: npm run upload:war-scene\n` +
             `Local dev: npm run dev + /war-scene?local=1`,
         );
       }

@@ -198,9 +198,9 @@ export default function WarScenePage() {
             </p>
             <div className="text-slate-500 text-[11px] space-y-1 text-left">
               <p>
-                <strong className="text-slate-300">Production:</strong> fortress must be on R2 CDN
-                (<code className="text-amber-600">models/war/huge_medieval_battle_scene.glb</code>
-                ~517MB). Not the local API path.
+                <strong className="text-slate-300">Production:</strong> loads same-origin{' '}
+                <code className="text-amber-600">/models/war/huge_medieval_battle_scene.glb</code>
+                {' '}(~23MB Draco/WebP on R2). Not the local API path.
               </p>
               <p>
                 <strong className="text-slate-300">Local dev:</strong>{' '}
@@ -208,7 +208,7 @@ export default function WarScenePage() {
                 <code className="text-amber-600">/war-scene?local=1</code> (streams D: drive GLB).
               </p>
               <p>
-                Upload:{' '}
+                Re-upload CDN:{' '}
                 <code className="text-amber-600">npm run upload:war-scene</code>
               </p>
             </div>
