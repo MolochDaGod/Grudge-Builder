@@ -135,6 +135,36 @@ await client.query(`
   );
 `);
 
+// Characters — production Neon historically lacked user_id (only account_id).
+// Without user_id, GET /api/characters 500s and crafting.puter.site cannot load Warlords rosters.
+if (await hasTable("characters")) {
+  console.log("[ensure-auth-schema] Patching characters for fleet roster queries...");
+  await addColumn("characters", "user_id", "VARCHAR");
+  await addColumn("characters", "game_era", "TEXT NOT NULL DEFAULT 'warlords'");
+  await addColumn("characters", "active_for_era", "BOOLEAN NOT NULL DEFAULT FALSE");
+  await addColumn("characters", "grudge_code", "TEXT");
+  await addColumn("characters", "home_island_id", "VARCHAR");
+  // Backfill user_id from accounts when possible
+  try {
+    const r = await client.query(`
+      UPDATE characters c
+      SET user_id = a.user_id
+      FROM accounts a
+      WHERE c.account_id IS NOT NULL
+        AND c.account_id = a.id
+        AND a.user_id IS NOT NULL
+        AND (c.user_id IS NULL OR c.user_id = '')
+    `);
+    if (r.rowCount) console.log(`[ensure-auth-schema] backfilled characters.user_id: ${r.rowCount}`);
+  } catch (e) {
+    console.warn("[ensure-auth-schema] user_id backfill skipped:", e.message);
+  }
+  await client.query(`CREATE INDEX IF NOT EXISTS characters_user_id_idx ON characters (user_id)`).catch(() => {});
+  await client.query(`CREATE INDEX IF NOT EXISTS characters_user_id_era_idx ON characters (user_id, game_era)`).catch(() => {});
+} else {
+  console.warn("[ensure-auth-schema] public.characters missing — skipping roster patches");
+}
+
 console.log("[ensure-auth-schema] Bootstrapping treaty chat tables...");
 
 await client.query(`

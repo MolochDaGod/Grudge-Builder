@@ -21,6 +21,8 @@
     "db:smoke:auth": "node scripts/smoke-puter-sso.mjs",
     "db:migrate:telegram": "node scripts/run-telegram-migration.mjs",
     "db:migrate:eras": "node scripts/run-migration-005.mjs",
+    "db:fix:characters-user-id": "node scripts/fix-characters-user-id.mjs",
+    "db:fix:characters-schema": "node scripts/fix-characters-full-schema.mjs",
     "smoke:gcs-eras": "node scripts/smoke-gcs-eras.mjs",
     "gen:fleet": "tsx scripts/gen-fleet-manifest.mjs",
     "gen:fleet-truth": "tsx scripts/generate-fleet-truth.mjs",

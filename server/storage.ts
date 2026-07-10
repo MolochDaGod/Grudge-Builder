@@ -440,11 +440,55 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Character methods
+  /**
+   * Roster for a user. Prefer characters.user_id; fall back to account_id join
+   * when legacy rows only have account_id (pre-user_id Neon).
+   */
   async getCharacters(userId: string, era?: import("@shared/definitions/gameEras").GameEra): Promise<Character[]> {
-    if (era) {
-      return db.select().from(characters).where(and(eq(characters.userId, userId), eq(characters.gameEra, era)));
+    try {
+      if (era) {
+        return await db
+          .select()
+          .from(characters)
+          .where(and(eq(characters.userId, userId), eq(characters.gameEra, era)));
+      }
+      return await db.select().from(characters).where(eq(characters.userId, userId));
+    } catch (err) {
+      // Legacy DBs may lack user_id / game_era — recover via account_id + raw SQL.
+      console.error("[storage.getCharacters] primary query failed, legacy fallback:", (err as Error)?.message);
+      const account = await this.getAccountByUserId(userId);
+      if (!account?.id) return [];
+      try {
+        if (era) {
+          return await db
+            .select()
+            .from(characters)
+            .where(and(eq(characters.accountId, account.id), eq(characters.gameEra, era)));
+        }
+        return await db.select().from(characters).where(eq(characters.accountId, account.id));
+      } catch (err2) {
+        console.error("[storage.getCharacters] account_id fallback failed:", (err2 as Error)?.message);
+        // Last resort: raw select by account_id without era columns
+        try {
+          const { pool } = await import("./db");
+          if (!pool) return [];
+          const r = await pool.query(
+            `SELECT * FROM characters WHERE account_id = $1`,
+            [account.id],
+          );
+          let rows = r.rows || [];
+          if (era) {
+            rows = rows.filter(
+              (row: any) => !row.game_era || row.game_era === era || row.gameEra === era,
+            );
+          }
+          return rows as Character[];
+        } catch (err3) {
+          console.error("[storage.getCharacters] raw fallback failed:", (err3 as Error)?.message);
+          return [];
+        }
+      }
     }
-    return db.select().from(characters).where(eq(characters.userId, userId));
   }
 
   async countCharactersForEra(userId: string, era: import("@shared/definitions/gameEras").GameEra): Promise<number> {

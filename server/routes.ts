@@ -308,8 +308,16 @@ export async function registerRoutes(
         eraMeta: ERA_META,
       });
     } catch (error) {
-      console.error("Error fetching characters:", error);
-      res.status(500).json({ error: "Failed to fetch characters" });
+      // Surface enough detail for fleet satellites (crafting.puter.site) without leaking secrets
+      const msg = error instanceof Error ? error.message : String(error);
+      console.error("Error fetching characters:", msg, error);
+      res.status(500).json({
+        error: "Failed to fetch characters",
+        detail: process.env.NODE_ENV === "production" ? undefined : msg,
+        hint: /user_id|column/i.test(msg)
+          ? "DB schema drift — run npm run db:fix:characters-schema against production Postgres"
+          : undefined,
+      });
     }
   });
 
