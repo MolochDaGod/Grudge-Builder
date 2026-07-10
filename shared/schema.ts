@@ -1961,6 +1961,48 @@ export const insertPlayerBlockSchema = createInsertSchema(playerBlocks).omit({
 export type InsertPlayerBlock = z.infer<typeof insertPlayerBlockSchema>;
 export type PlayerBlock = typeof playerBlocks.$inferSelect;
 
+// ============================================
+// PLAYER SHIPS — Railway SSOT (dock craft + ocean / world-map)
+// Replaces client localStorage `grudge-ships:*` as authority.
+// ============================================
+
+export const playerShips = pgTable("player_ships", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  accountId: varchar("account_id").notNull(),
+  userId: varchar("user_id"),
+  /** Captain character UUID (optional until boarded) */
+  captainId: varchar("captain_id"),
+  name: text("name").notNull(),
+  /** rowboat | sloop | brigantine | galleon | … (shipCatalog sizes) */
+  size: text("size").notNull().default("rowboat"),
+  hullColor: text("hull_color").notNull().default("brown"),
+  sailColor: text("sail_color").notNull().default("white"),
+  cannons: integer("cannons").notNull().default(0),
+  crewIds: jsonb("crew_ids").notNull().$type<string[]>().default(sql`'[]'::jsonb`),
+  hp: integer("hp").notNull().default(30),
+  maxHp: integer("max_hp").notNull().default(30),
+  speed: integer("speed").notNull().default(4),
+  zoneX: integer("zone_x").notNull().default(50),
+  zoneY: integer("zone_y").notNull().default(50),
+  dockId: text("dock_id").notNull().default("south-dock"),
+  isActive: boolean("is_active").notNull().default(false),
+  isDamaged: boolean("is_damaged").notNull().default(false),
+  travelDestination: jsonb("travel_destination").$type<{ zoneX: number; zoneY: number } | null>(),
+  travelStartedAt: bigint("travel_started_at", { mode: "number" }),
+  travelArrivalAt: bigint("travel_arrival_at", { mode: "number" }),
+  createdAt: bigint("created_at", { mode: "number" }).notNull().default(sql`extract(epoch from now()) * 1000`),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull().default(sql`extract(epoch from now()) * 1000`),
+});
+
+export const insertPlayerShipSchema = createInsertSchema(playerShips).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertPlayerShip = z.infer<typeof insertPlayerShipSchema>;
+export type PlayerShip = typeof playerShips.$inferSelect;
+
 export const worldZones = pgTable("world_zones", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   zoneX: integer("zone_x").notNull(),

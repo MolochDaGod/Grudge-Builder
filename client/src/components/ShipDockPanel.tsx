@@ -1,7 +1,7 @@
 /**
  * ShipDockPanel — build, select, board, and deploy to tactical ocean from RTS dock.
  */
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useLocation } from 'wouter';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -13,9 +13,11 @@ import {
 import {
   buildShipAtDock,
   ensureStarterShip,
+  fetchRoster,
   getActiveShip,
   loadRoster,
   setActiveShip,
+  syncRosterToServer,
   type PlayerShipRoster,
 } from '@/lib/shipDockService';
 import { Anchor, Hammer, Ship, Waves } from 'lucide-react';
@@ -43,13 +45,37 @@ export function ShipDockPanel({
     return loadRoster(accountId);
   });
   const [message, setMessage] = useState<string | null>(null);
+  const [ssotSource, setSsotSource] = useState<'railway' | 'local' | 'loading'>('loading');
+
+  // Railway SSOT: pull roster (or migrate localStorage once)
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      ensureStarterShip(accountId, captainId);
+      let r = await fetchRoster(accountId);
+      if (r.ships.length === 0 || r.source === 'local') {
+        r = await syncRosterToServer(accountId);
+      }
+      if (!cancelled) {
+        setRoster(r);
+        setSsotSource(r.source === 'railway' ? 'railway' : 'local');
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [accountId, captainId]);
 
   const active = useMemo(
     () => getActiveShip(accountId),
     [accountId, roster],
   );
 
-  const refresh = () => setRoster(loadRoster(accountId));
+  const refresh = async () => {
+    const r = await fetchRoster(accountId);
+    setRoster(r);
+    setSsotSource(r.source === 'railway' ? 'railway' : 'local');
+  };
 
   const handleBuild = (size: ShipSize) => {
     const entry = SHIP_CATALOG.find((e) => e.size === size)!;
@@ -78,7 +104,15 @@ export function ShipDockPanel({
 
   const handleOcean = () => {
     sessionStorage.setItem('grudge-ocean-account', accountId);
+    if (active) sessionStorage.setItem('grudge-ocean-ship', active.id);
     setLocation('/ocean');
+    onClose();
+  };
+
+  const handleWorldMap = () => {
+    sessionStorage.setItem('grudge-ocean-account', accountId);
+    if (active) sessionStorage.setItem('grudge-ocean-ship', active.id);
+    setLocation('/world-map');
     onClose();
   };
 
@@ -92,7 +126,15 @@ export function ShipDockPanel({
               {RTS_SOUTH_DOCK.label}
             </p>
             <p className="text-[11px] text-slate-400 mt-0.5">
-              Build · board · sail to open ocean
+              Craft boats · board · tactical ocean · world map
+            </p>
+            <p className="text-[9px] text-slate-500 mt-0.5">
+              Fleet SSOT:{' '}
+              {ssotSource === 'loading'
+                ? '…'
+                : ssotSource === 'railway'
+                  ? 'Railway Postgres'
+                  : 'local cache'}
             </p>
           </div>
           <button
@@ -170,6 +212,15 @@ export function ShipDockPanel({
           >
             <Waves className="w-3.5 h-3.5 mr-1.5" />
             Set Sail — Tactical Ocean
+          </Button>
+          <Button
+            variant="outline"
+            className="w-full border-amber-600/50 text-amber-100 hover:bg-amber-950/40 text-xs"
+            onClick={handleWorldMap}
+            disabled={!active}
+          >
+            <Ship className="w-3.5 h-3.5 mr-1.5" />
+            Embark — 9-Sector World Map
           </Button>
         </div>
       </div>

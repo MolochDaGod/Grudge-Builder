@@ -18,6 +18,7 @@ import {
 import { registerAuthRoutes } from "./routes/auth";
 import { registerWalletRoutes } from "./routes/wallet";
 import { registerTreatyRoutes } from "./routes/treaty";
+import { registerShipRoutes } from "./routes/ships";
 import { registerTelegramRoutes } from "./telegramRoutes";
 import { scanAsepriteDirectory, readAsepriteFile, getAsepriteStats } from "./aseprite-reader";
 import { getSheetsClient, isConfigured, SHEET_IDS, readSheet, getCachedData, setCachedData } from "./googleSheets";
@@ -266,6 +267,7 @@ export async function registerRoutes(
   // ── Auth routes (Grudge ID — puter, wallet, login, register, verify, discord) ──
   registerAuthRoutes(app);
   registerWalletRoutes(app);
+  registerShipRoutes(app, requireAuth);
   registerTreatyRoutes(app);
 
   const { registerMeRoutes } = await import("./routes/me");
