@@ -141,7 +141,14 @@ export { MultiplayerSync } from './sync/MultiplayerSync';
 export type { MultiplayerConfig, RemotePlayer, PveEnemy } from './sync/MultiplayerSync';
 
 // Water (Gerstner wave ocean)
-export { createOceanMesh, createOceanMaterial, getWaveHeightAt, updateOceanMaterial } from './terrain/WaterMaterial';
+export {
+  createOceanMesh,
+  createOceanMaterial,
+  getWaveHeightAt,
+  updateOceanMaterial,
+  flattenTerrainBelowWater,
+  removeDuplicateWaterMeshes,
+} from './terrain/WaterMaterial';
 export type { OceanConfig, WaveSet } from './terrain/WaterMaterial';
 
 // Post-processing

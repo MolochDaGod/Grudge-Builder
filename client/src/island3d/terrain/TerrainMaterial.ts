@@ -28,17 +28,19 @@ export function createTerrainMaterial(config: TerrainMaterialConfig = {}): THREE
     textures = loadTerrainTextures(),
   } = config;
 
-  // The blended material uses vPosition.z for height (in terrain local space)
-  // and `slope` (angle from vertical in radians) for cliff detection.
+  // Heights relative to waterline ≈ 0 (flattenTerrainBelowWater removes submerged verts).
+  // The blended material uses vPosition.z for height (terrain local space)
+  // and `slope` for cliff detection.
+  const wl = 0; // canonical water level for layer bands
   const material = Terrain.generateBlendedMaterial([
-    // Layer 0 (base): seafloor under the ocean plane — NOT a water surface
+    // Layer 0 (base): deep seafloor only — never a second water surface
     { texture: textures.seafloor },
-    // Layer 1: sand/beach — appears between -10 and +8 height
-    { texture: textures.sand, levels: [-10, -2, 5, 12] },
+    // Layer 1: sand/beach tight to the single waterline
+    { texture: textures.sand, levels: [wl - 4, wl - 0.5, wl + 4, wl + 10] },
     // Layer 2: short grass — main island surface
-    { texture: textures.grassShort, levels: [8, 15, 40, 55] },
+    { texture: textures.grassShort, levels: [wl + 6, wl + 12, 38, 52] },
     // Layer 3: tall grass/forest — higher inland areas
-    { texture: textures.grassTall, levels: [30, 45, 60, 70] },
+    { texture: textures.grassTall, levels: [28, 42, 58, 70] },
     // Layer 4: rock — steep slopes regardless of height
     {
       texture: textures.rock,

@@ -25,7 +25,12 @@ import {
   type IslandTerrainConfig,
 } from '../terrain/IslandTerrainGenerator';
 import { createSectorTerrainMaterial, createTerrainMaterial } from '../terrain/TerrainMaterial';
-import { createOceanMesh, updateOceanMaterial } from '../terrain/WaterMaterial';
+import {
+  createOceanMesh,
+  updateOceanMaterial,
+  flattenTerrainBelowWater,
+  removeDuplicateWaterMeshes,
+} from '../terrain/WaterMaterial';
 
 // ── Result ───────────────────────────────────────────────────────────────────
 
@@ -130,21 +135,32 @@ export function buildZoneScene(
   accentLight.position.set(0, 200, 0);
   root.add(accentLight);
 
-  // ── 3. Ocean Water Plane (single shader ocean — no fallback) ─
+  // ── 3. Ocean Water Plane (single strengthened shader — ONE water surface) ─
+
+  const oceanStrength =
+    sector.biome === 'tropical' || sector.id === 'haven_shore' ? 1.25 :
+    sector.biome === 'frozen' ? 0.95 :
+    sector.biome === 'volcanic' ? 1.1 : 1.15;
 
   const ocean = createOceanMesh({
-    size: cfg.sizeMeters * 1.2,
+    size: cfg.sizeMeters * 1.25,
     waterLevel: cfg.waterLevel,
+    segments: 72,
+    strength: oceanStrength,
     shallowColor: hexToColor(sector.colors.mid),
     deepColor: hexToColor(sector.colors.deep),
   });
   ocean.receiveShadow = true;
   ocean.name = 'ocean';
+  ocean.userData.grudgeKeepOcean = true;
   root.add(ocean);
 
   // ── 4. Islands (terrain meshes) ────────────────────────────
+  // Terrain below water is collapsed to seafloor so the ocean plane is the
+  // only visible water (no second "layer" of submerged terrain looking wet).
 
   const islands = getNodesByCategory<IslandNode>(population, 'island');
+  const seafloorY = cfg.waterLevel - Math.max(16, Math.abs(cfg.minHeight) * 0.45);
 
   for (const island of islands) {
     // Map island size to terrain config
@@ -160,22 +176,29 @@ export function buildZoneScene(
     };
     const sizeConfig = sizeToConfig[island.size] ?? sizeToConfig.medium;
 
+    // minHeight sits just under waterline so beaches meet the ocean cleanly
+    const landMin = Math.min(cfg.waterLevel - 2, cfg.minHeight * 0.15);
+
     const terrainResult = generateIslandTerrain({
       seed: island.islandSeed,
       ...sizeConfig,
-      minHeight: cfg.minHeight * 0.3,
+      minHeight: landMin,
+      maxHeight: sizeConfig.maxHeight ?? cfg.maxHeight * 0.6,
     } as IslandTerrainConfig);
 
-    // Home islands: blended layers; other islands: sector PBR ground
+    // Home islands: blended layers keyed to this sector's water level
     const material = island.size === 'home'
       ? createTerrainMaterial({
-          minHeight: cfg.minHeight * 0.3,
+          minHeight: seafloorY,
           maxHeight: sizeConfig.maxHeight,
         })
       : createSectorTerrainMaterial(sector);
     terrainResult.terrainMesh.material = material;
 
-    // Position island in the zone
+    // Collapse submerged verts → single water surface (ocean mesh only)
+    flattenTerrainBelowWater(terrainResult.terrainMesh, cfg.waterLevel, seafloorY);
+
+    // Position island in the zone (Y=0 local; water is world Y = cfg.waterLevel)
     terrainResult.terrainScene.position.set(
       island.position[0],
       0,
@@ -186,6 +209,9 @@ export function buildZoneScene(
     root.add(terrainResult.terrainScene);
     islandMeshes.set(island.id, terrainResult.terrainMesh);
   }
+
+  // Strip any accidental water meshes from island packs / materials
+  removeDuplicateWaterMeshes(root, ocean);
 
   // ── 5. Node Markers ────────────────────────────────────────
 

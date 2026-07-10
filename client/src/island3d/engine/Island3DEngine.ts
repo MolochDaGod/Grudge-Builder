@@ -38,7 +38,12 @@ import {
 import { applyLobbySurfaceLayers } from '../terrain/LobbySurfaceLayers';
 import { buildLobbyCollider, type LobbyColliderResult } from '../physics/LobbyColliderSystem';
 import { createLobbyPlayZone, type LobbyPlayZoneResult } from './LobbyPlayZone';
-import { createOceanMesh, updateOceanMaterial } from '../terrain/WaterMaterial';
+import {
+  createOceanMesh,
+  updateOceanMaterial,
+  flattenTerrainBelowWater as flattenTerrainVertsBelowWater,
+  removeDuplicateWaterMeshes,
+} from '../terrain/WaterMaterial';
 import { PostProcessing, type QualityPreset } from '../render/PostProcessing';
 import { DayNightCycle, type DayNightConfig } from '../environment/DayNightCycle';
 import { CharacterController3D, type CharacterController3DConfig, type PhysicsCallbacks } from '../player/CharacterController3D';
@@ -382,14 +387,19 @@ export class Island3DEngine {
       this.lobbyResult.size.z,
     );
 
-    // Gerstner ocean surrounding the archipelago
+    // Single strengthened ocean — GLTF water meshes already hidden in surface layers
+    removeDuplicateWaterMeshes(this.scene);
     this.waterPlane = createOceanMesh({
       waterLevel: LOBBY_WATER_LEVEL,
-      size: Math.max(maxDim * 6, 800),
-      segments: 8,
+      size: Math.max(maxDim * 6, 1200),
+      segments: 64,
+      strength: 1.3,
+      shallowColor: new THREE.Color(0x1ec8d4),
+      deepColor: new THREE.Color(0x0a355f),
     });
     this.waterPlane.name = 'lobby-ocean';
-    this.waterPlane.renderOrder = 1;
+    this.waterPlane.userData.grudgeKeepOcean = true;
+    this.waterPlane.renderOrder = 0;
     this.scene.add(this.waterPlane);
 
     // Play any embedded animations
@@ -984,13 +994,7 @@ export class Island3DEngine {
 
   /** Collapse submerged terrain so only the ocean shader shows water (not seafloor + ocean). */
   private flattenTerrainBelowWater(mesh: THREE.Mesh, waterLevel: number, seafloorDepth = -14): void {
-    const pos = mesh.geometry.attributes.position;
-    if (!pos) return;
-    for (let i = 0; i < pos.count; i++) {
-      if (pos.getZ(i) < waterLevel) pos.setZ(i, seafloorDepth);
-    }
-    pos.needsUpdate = true;
-    mesh.geometry.computeVertexNormals();
+    flattenTerrainVertsBelowWater(mesh, waterLevel, seafloorDepth);
   }
 
   /**
@@ -998,25 +1002,16 @@ export class Island3DEngine {
    * Terrain under water is flattened to seafloor so we never double-draw water.
    */
   private createWaterPlane(): void {
-    // Remove any prior water meshes (prevents double-water confusion)
-    const stale: THREE.Object3D[] = [];
-    this.scene.traverse((o) => {
-      if (o.name === 'ocean' || o.name === 'water' || o.name === 'Water' || o.name === 'r3f-water') {
-        stale.push(o);
-      }
-    });
-    for (const o of stale) {
-      o.parent?.remove(o);
-    }
+    removeDuplicateWaterMeshes(this.scene);
 
     this.waterPlane = createOceanMesh({
       waterLevel: PROCEDURAL_WATER_LEVEL,
       size: HOME_ISLAND_OCEAN_SIZE_M,
-      segments: Math.min(HOME_ISLAND_OCEAN_SEGMENTS, 32),
+      segments: Math.min(Math.max(HOME_ISLAND_OCEAN_SEGMENTS, 48), 96),
+      strength: 1.2,
     });
     this.waterPlane.name = 'ocean';
-    this.waterPlane.renderOrder = 1;
-    // Opaque-ish ocean — avoid stacked transparency looking like two waters
+    this.waterPlane.userData.grudgeKeepOcean = true;
     this.waterPlane.renderOrder = 0;
     this.scene.add(this.waterPlane);
   }

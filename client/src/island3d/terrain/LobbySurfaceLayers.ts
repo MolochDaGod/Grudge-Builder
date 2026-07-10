@@ -90,11 +90,28 @@ export async function applyLobbySurfaceLayers(
   const walkableMeshes: THREE.Mesh[] = [];
   const layerCounts: Record<string, number> = {};
 
+  const waterMeshes: THREE.Mesh[] = [];
+
   lobby.scene.traverse((obj) => {
     if (!(obj instanceof THREE.Mesh)) return;
     const layer = classifyLobbyMesh(obj);
     obj.userData.grudgeLayer = layer;
     layerCounts[layer] = (layerCounts[layer] ?? 0) + 1;
+
+    // Pirate GLTF often embeds its own water planes — hide them so only our
+    // single Gerstner ocean is visible (fixes multi water-level look).
+    if (layer === 'water') {
+      waterMeshes.push(obj);
+      obj.visible = false;
+      obj.userData.grudgeWalkable = false;
+      return;
+    }
+
+    // Seafloor: push deep under the ocean plane so it doesn't read as a second sea
+    if (layer === 'seafloor') {
+      obj.visible = false;
+      return;
+    }
 
     if (WALKABLE_LAYERS.has(layer)) {
       walkableMeshes.push(obj);
@@ -105,7 +122,7 @@ export async function applyLobbySurfaceLayers(
     if (!mat) return;
 
     // Only retexture reasonably flat walk surfaces — keep vertical props readable
-    if (layer === 'prop' || layer === 'water' || layer === 'ignore') return;
+    if (layer === 'prop' || layer === 'ignore') return;
     if (layer === 'rock' || layer === 'building') {
       if (!obj.geometry.boundingBox) obj.geometry.computeBoundingBox();
       _box.copy(obj.geometry.boundingBox!);
@@ -118,6 +135,29 @@ export async function applyLobbySurfaceLayers(
     const m = obj.material as THREE.MeshStandardMaterial;
     m.side = THREE.DoubleSide;
   });
+
+  // Align map so typical beach / low land meets LOBBY_WATER_LEVEL
+  // (avoids land floating above or sinking below our ocean plane)
+  let beachYSum = 0;
+  let beachN = 0;
+  for (const mesh of walkableMeshes) {
+    if (mesh.userData.grudgeLayer !== 'beach' && mesh.userData.grudgeLayer !== 'path') continue;
+    mesh.getWorldPosition(_worldPos);
+    beachYSum += _worldPos.y;
+    beachN++;
+  }
+  if (beachN > 0) {
+    const avgBeachY = beachYSum / beachN;
+    // Beach should sit slightly above water
+    const dy = (LOBBY_WATER_LEVEL + 0.35) - avgBeachY;
+    if (Math.abs(dy) > 0.15 && Math.abs(dy) < 40) {
+      lobby.scene.position.y += dy;
+      lobby.boundingBox.translate(new THREE.Vector3(0, dy, 0));
+      lobby.center.y += dy;
+    }
+  }
+
+  layerCounts.water_hidden = waterMeshes.length;
 
   onProgress?.(85);
   console.log('[LobbySurfaceLayers]', layerCounts);
