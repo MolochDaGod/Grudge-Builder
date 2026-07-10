@@ -32,7 +32,47 @@ import { buildScopedProfile } from "../lib/scopedProfile";
 import { isFleetAllowedReturnUrl, resolveFleetReturnUrl } from "@shared/fleet/authReturn";
 
 const JWT_SECRET = process.env.SESSION_SECRET || process.env.JWT_SECRET || "grudge-dev-secret";
-const JWT_EXPIRES = "7d";
+/**
+ * Session JWT lifetime — as long as product allows for a signed site.
+ * Default 30d (browser-cookie practical max for “stay signed in”).
+ * Override with JWT_SESSION_TTL=7d|14d|30d (capped at 30d).
+ */
+const JWT_EXPIRES = normalizeSessionTtl(process.env.JWT_SESSION_TTL || process.env.SESSION_TTL || "30d");
+/** Cookie Max-Age seconds matching JWT_EXPIRES (default 30 days). */
+const SESSION_MAX_AGE_SEC = ttlToSeconds(JWT_EXPIRES);
+/** Cross-app handoff launch token (short-lived; bridges to full session). */
+const LAUNCH_TTL = process.env.JWT_LAUNCH_TTL || "30m";
+const LAUNCH_MAX_AGE_SEC = ttlToSeconds(LAUNCH_TTL);
+
+function normalizeSessionTtl(raw: string): string {
+  const m = String(raw || "30d").trim().match(/^(\d+)\s*([smhd])$/i);
+  if (!m) return "30d";
+  const n = Math.max(1, parseInt(m[1], 10));
+  const unit = m[2].toLowerCase();
+  // Cap at 30 days for production signed sessions
+  if (unit === "d" && n > 30) return "30d";
+  if (unit === "h" && n > 30 * 24) return "30d";
+  if (unit === "m" && n > 30 * 24 * 60) return "30d";
+  if (unit === "s" && n > 30 * 24 * 60 * 60) return "30d";
+  return `${n}${unit}`;
+}
+
+function ttlToSeconds(ttl: string): number {
+  const m = String(ttl).trim().match(/^(\d+)\s*([smhd])$/i);
+  if (!m) return 30 * 24 * 60 * 60;
+  const n = parseInt(m[1], 10);
+  switch (m[2].toLowerCase()) {
+    case "s":
+      return n;
+    case "m":
+      return n * 60;
+    case "h":
+      return n * 60 * 60;
+    case "d":
+    default:
+      return n * 24 * 60 * 60;
+  }
+}
 
 // ── Simple in-memory rate limiter (per-IP, resets every window) ──────
 
@@ -100,7 +140,9 @@ function signToken(payload: {
   grudgeId: string;
   username: string;
 }): string {
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRES });
+  return jwt.sign(payload, JWT_SECRET, {
+    expiresIn: JWT_EXPIRES as jwt.SignOptions["expiresIn"],
+  });
 }
 
 /**
@@ -176,8 +218,12 @@ function isAutoUsername(username: string): boolean {
 }
 
 function setSessionCookie(res: Response, token: string) {
-  const maxAge = 7 * 24 * 60 * 60;
-  const secure = process.env.NODE_ENV === "production" ? "; Secure" : "";
+  const maxAge = SESSION_MAX_AGE_SEC;
+  const secure =
+    process.env.NODE_ENV === "production" || process.env.FORCE_SECURE_COOKIES === "1"
+      ? "; Secure"
+      : "";
+  // Host-only on Railway; id-gateway rewrites Domain=.grudge-studio.com for studio-wide SSO.
   res.setHeader(
     "Set-Cookie",
     `grudge_auth_token=${encodeURIComponent(token)}; Path=/; Max-Age=${maxAge}; HttpOnly; SameSite=Lax${secure}`,
@@ -208,14 +254,44 @@ function resolveReturnUrl(req: Request): string {
   return "https://grudgewarlords.com/";
 }
 
+/**
+ * Append dual handoff params for maximum satellite compatibility:
+ * - sso_token / token: full session JWT (apps that store Bearer directly)
+ * - grudge_token: short launch JWT (apps that call grudge-bridge / session/exchange)
+ * Long-lived session also goes in the hash fragment to reduce referrer leakage.
+ */
 function appendSsoParams(
   returnUrl: string,
   ssoToken: string,
   grudgeId: string,
   username: string,
+  launchToken?: string,
 ): string {
-  const sep = returnUrl.includes("?") ? "&" : "?";
-  return `${returnUrl}${sep}sso_token=${encodeURIComponent(ssoToken)}&grudge_id=${encodeURIComponent(grudgeId)}&username=${encodeURIComponent(username)}`;
+  try {
+    const u = new URL(returnUrl);
+    u.searchParams.set("sso_token", ssoToken);
+    u.searchParams.set("token", ssoToken);
+    if (launchToken) u.searchParams.set("grudge_token", launchToken);
+    if (grudgeId) {
+      u.searchParams.set("grudge_id", grudgeId);
+      u.searchParams.set("grudgeId", grudgeId);
+    }
+    if (username) {
+      u.searchParams.set("username", username);
+      u.searchParams.set("grudge_username", username);
+    }
+    // Prefer hash for long-lived session (not sent to intermediate servers)
+    const hp = new URLSearchParams(u.hash.startsWith("#") ? u.hash.slice(1) : u.hash);
+    hp.set("sso_token", ssoToken);
+    if (launchToken) hp.set("grudge_token", launchToken);
+    if (grudgeId) hp.set("grudge_id", grudgeId);
+    u.hash = hp.toString();
+    return u.toString();
+  } catch {
+    const sep = returnUrl.includes("?") ? "&" : "?";
+    const launch = launchToken ? `&grudge_token=${encodeURIComponent(launchToken)}` : "";
+    return `${returnUrl}${sep}sso_token=${encodeURIComponent(ssoToken)}&token=${encodeURIComponent(ssoToken)}${launch}&grudge_id=${encodeURIComponent(grudgeId)}&username=${encodeURIComponent(username)}`;
+  }
 }
 
 function buildSsoUserPayload(
@@ -319,7 +395,7 @@ function mintLaunchToken(userId: string, grudgeId: string, audience: string): st
   return jwt.sign(
     { type: "launch", userId, grudgeId, aud: audience },
     JWT_SECRET,
-    { expiresIn: "10m" },
+    { expiresIn: LAUNCH_TTL as jwt.SignOptions["expiresIn"] },
   );
 }
 
@@ -433,8 +509,16 @@ export function registerAuthRoutes(app: Express) {
         grudgeId,
         username: displayName,
       });
-
-      res.redirect(302, appendSsoParams(returnUrl, ssoToken, grudgeId, displayName));
+      // Dual handoff: full session + short launch for bridge-based satellites
+      let launchToken = "";
+      try {
+        const aud = new URL(returnUrl).origin;
+        launchToken = mintLaunchToken(user.id, grudgeId, aud);
+      } catch {
+        /* ignore */
+      }
+      setSessionCookie(res, ssoToken);
+      res.redirect(302, appendSsoParams(returnUrl, ssoToken, grudgeId, displayName, launchToken));
     } catch {
       res.redirect(
         302,
@@ -626,14 +710,74 @@ export function registerAuthRoutes(app: Express) {
       if (!audience || !/^https?:\/\//i.test(audience)) {
         return res.status(400).json({ error: "Valid audience URL required" });
       }
+      // Only fleet / signed production origins may receive launch tokens
+      try {
+        const originOnly = new URL(audience).origin;
+        if (!isFleetAllowedReturnUrl(originOnly) && !isFleetAllowedReturnUrl(originOnly + "/")) {
+          return res.status(403).json({ error: "Audience not on fleet allowlist" });
+        }
+      } catch {
+        return res.status(400).json({ error: "Valid audience URL required" });
+      }
 
       const [user] = await db.select().from(users).where(eq(users.id, payload.userId)).limit(1);
       if (!user) return res.status(404).json({ error: "User not found" });
 
       const launch = mintLaunchToken(user.id, user.grudgeId || payload.grudgeId || "", audience);
-      res.json({ token: launch });
+      res.json({
+        token: launch,
+        expiresIn: LAUNCH_TTL,
+        maxAgeSec: LAUNCH_MAX_AGE_SEC,
+        sessionTtl: JWT_EXPIRES,
+      });
     } catch {
       res.status(401).json({ error: "Authentication required" });
+    }
+  });
+
+  /**
+   * POST /api/auth/refresh — re-mint a full session JWT while the current one is still valid.
+   * Call from satellites before expiry so the device stays signed in for the full policy window.
+   */
+  app.post("/api/auth/refresh", authRateLimit, async (req: Request, res: Response) => {
+    try {
+      const token = readSessionToken(req) || (req.body?.token as string) || "";
+      if (!token) return res.status(401).json({ success: false, error: "Authentication required" });
+
+      const payload = jwt.verify(token, JWT_SECRET) as {
+        userId?: string;
+        grudgeId?: string;
+        username?: string;
+        type?: string;
+      };
+      // Do not refresh launch tokens into sessions here — use session/exchange
+      if (payload.type === "launch") {
+        return res.status(400).json({
+          success: false,
+          error: "Launch tokens must use /api/auth/session/exchange or /api/auth/grudge-bridge",
+        });
+      }
+      if (!payload.userId) {
+        return res.status(401).json({ success: false, error: "Invalid token" });
+      }
+
+      const [user] = await db.select().from(users).where(eq(users.id, payload.userId)).limit(1);
+      if (!user) return res.status(404).json({ success: false, error: "User not found" });
+
+      const account = await ensureAccount(user.id);
+      const response = buildAuthResponse(
+        { id: user.id, username: user.username, grudgeId: user.grudgeId },
+        account,
+      );
+      setSessionCookie(res, response.token);
+      res.json({
+        ...response,
+        expiresIn: JWT_EXPIRES,
+        maxAgeSec: SESSION_MAX_AGE_SEC,
+        refreshed: true,
+      });
+    } catch {
+      res.status(401).json({ success: false, error: "Invalid or expired token" });
     }
   });
 
@@ -1269,5 +1413,7 @@ export function registerAuthRoutes(app: Express) {
     }
   });
 
-  console.log("[Auth] Routes registered: /api/auth/{page,puter,puter-sso,guest,complete-profile,popup-token,session/exchange,grudge-bridge,wallet,login,register,verify,me,puter-link,discord/callback,google/start,phone/send,phone/verify}");
+  console.log(
+    `[Auth] Routes registered (session=${JWT_EXPIRES}, launch=${LAUNCH_TTL}): /api/auth/{page,puter,puter-sso,guest,complete-profile,popup-token,refresh,session/exchange,grudge-bridge,wallet,login,register,verify,me,puter-link,discord/callback,google/start,phone/send,phone/verify}`,
+  );
 }

@@ -50,12 +50,19 @@ export const GRUDGE_REGEX_ORIGINS: RegExp[] = [
   // Railway preview deploys
   /\.up\.railway\.app$/,
 
-  // Cloudflare Pages
+  // Cloudflare Pages / Workers
   /\.pages\.dev$/,
+  /\.workers\.dev$/,
+  /\.cloudflarepages\.com$/,
 
   // Puter hosted apps
   /\.puter\.site$/,
   /\.puter\.work$/,
+
+  // Signed static / docs hosts
+  /\.github\.io$/,
+  /\.netlify\.app$/,
+  /\.netlify\.live$/,
 ];
 
 // ── Combined list for cors() middleware ────────────────────────────────────────

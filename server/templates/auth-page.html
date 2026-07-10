@@ -722,12 +722,57 @@ function showReturning(label){
   if (icon && label) icon.textContent = label.charAt(0).toUpperCase();
   show("returning");
 }
+/**
+ * Dual handoff for satellite pass-through:
+ * - grudge_token: short launch JWT (bridge via grudge-bridge / session/exchange)
+ * - sso_token: full session JWT when available (direct Bearer store)
+ * Session also mirrored in the URL hash (less referrer leakage).
+ */
+function buildHandoffUrl(returnUrl, launchToken, sessionToken, user){
+  try {
+    const u = new URL(returnUrl);
+    if (launchToken) u.searchParams.set("grudge_token", launchToken);
+    if (sessionToken) {
+      u.searchParams.set("sso_token", sessionToken);
+      u.searchParams.set("token", sessionToken);
+    }
+    const gid = user && (user.grudgeId || user.grudge_id);
+    const uname = user && (user.displayName || user.username);
+    if (gid) { u.searchParams.set("grudge_id", gid); u.searchParams.set("grudgeId", gid); }
+    if (uname) { u.searchParams.set("username", uname); u.searchParams.set("grudge_username", uname); }
+    const hp = new URLSearchParams(u.hash.startsWith("#") ? u.hash.slice(1) : (u.hash || ""));
+    if (sessionToken) hp.set("sso_token", sessionToken);
+    if (launchToken) hp.set("grudge_token", launchToken);
+    if (gid) hp.set("grudge_id", gid);
+    u.hash = hp.toString();
+    return u.toString();
+  } catch {
+    const sep = returnUrl.includes("?") ? "&" : "?";
+    let q = "";
+    if (launchToken) q += "grudge_token=" + encodeURIComponent(launchToken);
+    if (sessionToken) q += (q ? "&" : "") + "sso_token=" + encodeURIComponent(sessionToken) + "&token=" + encodeURIComponent(sessionToken);
+    return returnUrl + sep + q;
+  }
+}
 async function handoff(user){
   const destLabel = resolveAppLabel();
+  const sessionToken = (user && (user.token || user.sessionToken)) || "";
   if (isPopup && window.opener){
     const audience = openerOrigin || qs.get("audience") || qs.get("origin") || null;
     const token = await mintLaunchToken(audience || undefined);
-    postAuthToOpener(audience, token, user);
+    // Popup gets launch + session so host can choose bridge or direct store
+    postAuthToOpener(audience, token, Object.assign({}, user || {}, { launchToken: token, sessionToken: sessionToken || undefined }));
+    if (sessionToken) {
+      try {
+        window.opener.postMessage({
+          type: "grudge-auth:success",
+          source: "grudge-id",
+          token: token,
+          sessionToken: sessionToken,
+          user: user,
+        }, audience && audience !== "*" ? audience : "*");
+      } catch {}
+    }
     renderDone(user, true, destLabel); return;
   }
   if (returnTo){
@@ -736,10 +781,15 @@ async function handoff(user){
       const origin = new URL(returnTo).origin;
       if (origin !== location.origin){
         if (destLabel) showReturning(destLabel);
-        const token = await mintLaunchToken(origin);
-        const sep = returnTo.includes("?") ? "&" : "?";
-        dest = returnTo + sep + "grudge_token=" + encodeURIComponent(token);
+        let launchToken = "";
+        try { launchToken = await mintLaunchToken(origin); } catch (e) {
+          // If popup-token fails (session cookie race), fall back to session-only handoff
+          if (!sessionToken) throw e;
+        }
+        dest = buildHandoffUrl(returnTo, launchToken, sessionToken, user);
         await new Promise((r) => setTimeout(r, destLabel ? 650 : 0));
+      } else if (sessionToken) {
+        dest = buildHandoffUrl(returnTo, "", sessionToken, user);
       }
     }
     (window.top || window).location.replace(dest); return;

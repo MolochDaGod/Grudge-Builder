@@ -18,7 +18,10 @@ All API calls go through Vercel rewrites in `vercel.json`:
 **Auth (id.grudge-studio.com)** — canonical map in `shared/fleet/authConnect.ts`:
 - **Browser login**: `id.grudge-studio.com/login?redirect_uri=<app>/auth/callback` (NOT `/auth/sso-check` until probe passes)
 - **Drop-in script**: `id.grudge-studio.com/grudge-game-bootstrap.js` → `GrudgeAuth.loginPage('/auth/callback')`
-- **Implementation**: Railway `grudge-api-production` (`server/routes/auth.ts`) — id Vercel rewrites proxy here
+- **Session**: JWT default **30d** (`JWT_SESSION_TTL`); launch handoff **30m** (`grudge_token`); `POST /api/auth/refresh` extends while valid
+- **Handoff**: dual `grudge_token` (bridge) + `sso_token` (session) on return URL query+hash — see `docs/ID_SSO_PRODUCTION.md`
+- **Signed custom domains**: `AUTH_EXTRA_RETURN_HOSTS` on Railway + `shared/fleet/authReturn.ts` allowlist
+- **Implementation**: Railway `grudge-api-production` (`server/routes/auth.ts`) — id-gateway Worker proxies id host
 - **Satellite apps**: `buildFleetSatelliteRewrites()` — `/api/auth/*` → id, `/api/characters` → Railway
 - **id hub**: `buildFleetHubAuthRewrites()` — `/auth/:path*` → Railway `/api/auth/:path*`
 - **Deprecated**: `api.grudge-studio.com` — do not use for auth (split-brain 404s)
