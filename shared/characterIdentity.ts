@@ -43,6 +43,9 @@ const DEFAULT_HERO_NAME = "Warlord";
 /**
  * Player display name: 2–32 chars, not a grudge code, printable.
  * Empty / code-like inputs fall back to `fallback`.
+ *
+ * Fleet practice: prefer account username from id.grudge-studio.com /
+ * accounts.displayName when clients omit character name.
  */
 export function sanitizeHeroName(
   raw: unknown,

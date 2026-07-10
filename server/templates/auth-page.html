@@ -878,8 +878,27 @@ function renderDone(user, autoClose, destLabel){
   show("done");
   if (autoClose) setTimeout(() => { try { window.close(); } catch {} }, 900);
 }
+function hasAccountUsername(user){
+  if (!user) return false;
+  const n = String(user.displayName || user.username || "").trim();
+  if (!n || n.length < 2) return false;
+  // Provider-prefixed / auto usernames still need a real claim
+  if (/^(puter:|Puter_|guest_|Guest_|wallet:|discord:|phone:|google:|github:)/i.test(n)) return false;
+  if (/^puter_[a-f0-9]+$/i.test(n) || /^guest_[a-f0-9]+$/i.test(n)) return false;
+  return true;
+}
 async function afterAuth(user, puterEmail){
-  if (user && user.needsProfile){ openProfileStep(user, puterEmail); return; }
+  // Fleet practice: if account DB / SSO already has username, never force name form.
+  if (user && user.needsProfile && hasAccountUsername(user)) {
+    try {
+      const body = {};
+      if (puterEmail) body.email = puterEmail;
+      // empty username = keep existing account displayName
+      user = await api("/api/auth/complete-profile", { method:"POST", body: JSON.stringify(body) });
+      user.needsProfile = false;
+    } catch { user.needsProfile = false; }
+  }
+  if (user && user.needsProfile && !hasAccountUsername(user)){ openProfileStep(user, puterEmail); return; }
   try { await handoff(user); }
   catch (e) { toast(e.message || "Could not complete sign-in.", "error"); show("choose"); refreshPuterButton(); }
 }
@@ -1064,9 +1083,20 @@ $("btn-guest").addEventListener("click", async () => {
 
 let pendingUser = null;
 function openProfileStep(user, puterEmail){
-  pendingUser = user; $("pf-username").value = user.username || "";
+  // If we already have a username on the account, skip straight to handoff
+  if (hasAccountUsername(user)) {
+    pendingUser = user;
+    $("pf-skip").click();
+    return;
+  }
+  pendingUser = user;
+  $("pf-username").value = user.username || user.displayName || "";
   if (puterEmail) $("pf-email").value = puterEmail;
-  $("pf-username-hint").className = "hint"; $("pf-username-hint").textContent = "3–30 letters, numbers, _ or -";
+  $("pf-username-hint").className = "hint";
+  $("pf-username-hint").textContent = "Optional if you already signed in with Grudge ID — 3–30 letters, numbers, _ or -";
+  // Label: optional
+  const lab = document.querySelector('label[for="pf-username"]');
+  if (lab) lab.innerHTML = 'Username <span style="font-weight:400;color:var(--text-muted)">(optional if already set)</span>';
   show("profile"); setTimeout(() => $("pf-username").focus(), 60);
 }
 let lookupTimer;
@@ -1087,6 +1117,7 @@ $("pf-username").addEventListener("input", () => {
 });
 $("pf-save").addEventListener("click", async () => {
   const btn = $("pf-save"), username = $("pf-username").value.trim(), email = $("pf-email").value.trim();
+  // Empty username is OK when account already has one (complete-profile keeps it)
   if (username && !/^[a-zA-Z0-9_\-]{3,30}$/.test(username)){ toast("Usernames are 3–30 letters, numbers, _ or -.", "error"); return; }
   busy(btn, true);
   try {
@@ -1095,7 +1126,15 @@ $("pf-save").addEventListener("click", async () => {
   } catch (e){ toast(e.message || "Could not save your profile.", "error"); }
   finally { busy(btn, false); }
 });
-$("pf-skip").addEventListener("click", () => { if (pendingUser) handoff(pendingUser); });
+$("pf-skip").addEventListener("click", async () => {
+  // Persist profile-complete flag even on skip so we don't re-prompt next time
+  try {
+    if (pendingUser) {
+      await api("/api/auth/complete-profile", { method:"POST", body: "{}" });
+    }
+  } catch { /* offline / already complete */ }
+  if (pendingUser) handoff(pendingUser);
+});
 $("pf-username").addEventListener("keydown", (e) => { if (e.key === "Enter") $("pf-save").click(); });
 
 $("done-continue").addEventListener("click", async () => { try { const me = await api("/api/auth/me"); handoff(normalizeMe(me)); } catch {} });

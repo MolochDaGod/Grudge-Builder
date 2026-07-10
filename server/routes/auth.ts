@@ -217,12 +217,66 @@ function puterUsernameKey(puterId: string): string {
 }
 
 function isAutoUsername(username: string): boolean {
+  const u = String(username || "").trim();
+  if (!u) return true;
   return (
-    username.startsWith("puter:") ||
-    username.startsWith("Puter_") ||
-    username.startsWith("guest_") ||
-    /^puter_[a-f0-9]+$/i.test(username)
+    u.startsWith("puter:") ||
+    u.startsWith("Puter_") ||
+    u.startsWith("guest_") ||
+    u.startsWith("Guest_") ||
+    u.startsWith("wallet:") ||
+    u.startsWith("discord:") ||
+    u.startsWith("phone:") ||
+    u.startsWith("google:") ||
+    u.startsWith("github:") ||
+    /^puter_[a-f0-9]+$/i.test(u) ||
+    /^guest_[a-f0-9]+$/i.test(u)
   );
+}
+
+/**
+ * Human-facing account name already present in account DB / SSO provider.
+ * Fleet practice: never force a second "name" form when username/displayName exists.
+ */
+function resolveAccountDisplayName(
+  user: { username: string },
+  account: { displayName?: string | null } | null | undefined,
+  extras: Array<string | null | undefined> = [],
+): string {
+  const candidates = [
+    account?.displayName,
+    ...extras,
+    user.username.includes(":")
+      ? user.username.split(":").slice(1).join(":")
+      : user.username,
+  ];
+  for (const raw of candidates) {
+    const s = typeof raw === "string" ? raw.trim() : "";
+    if (!s || isAutoUsername(s)) continue;
+    // Prefer provider-looking human handles (3+ chars, not a UUID-ish blob)
+    if (s.length >= 2 && !/^[0-9a-f]{8}-[0-9a-f]{4}-/i.test(s)) return s.slice(0, 48);
+  }
+  // Last resort: strip provider prefix even if "auto"
+  const fallback = user.username.includes(":")
+    ? user.username.split(":").slice(1).join(":")
+    : user.username;
+  return (fallback || "Player").slice(0, 48);
+}
+
+function hasClaimedUsername(
+  user: { username: string },
+  account: { displayName?: string | null } | null | undefined,
+  extras: Array<string | null | undefined> = [],
+): boolean {
+  const name = resolveAccountDisplayName(user, account, extras);
+  return !!name && !isAutoUsername(name) && name.length >= 2;
+}
+
+function markProfileComplete(userId: string) {
+  rateLimitMap.set(`${PROFILE_COMPLETE_KEY}${userId}`, {
+    count: 1,
+    resetAt: Date.now() + 365 * 24 * 60 * 60 * 1000,
+  });
 }
 
 function setSessionCookie(res: Response, token: string) {
@@ -305,14 +359,21 @@ function appendSsoParams(
 function buildSsoUserPayload(
   user: { id: string; username: string; grudgeId: string | null; email?: string | null },
   account: { grudgeId?: string | null; displayName?: string | null; gbuxBalance?: number | null; avatarUrl?: string | null } | null,
-  opts: { isNew: boolean },
+  opts: { isNew: boolean; puterUsername?: string | null },
 ) {
   const grudgeId = user.grudgeId || account?.grudgeId || "";
-  const displayName =
-    account?.displayName ||
-    (user.username.includes(":") ? user.username.split(":").slice(1).join(":") : user.username);
+  const displayName = resolveAccountDisplayName(user, account, [opts.puterUsername]);
   const profileComplete = rateLimitMap.has(`${PROFILE_COMPLETE_KEY}${user.id}`);
-  const needsProfile = !profileComplete && (opts.isNew || isAutoUsername(user.username));
+  // Fleet practice: if account DB (or SSO provider) already has a real username,
+  // do NOT force a "choose name" step — games use accounts.displayName / users.username.
+  const claimed = hasClaimedUsername(user, account, [opts.puterUsername]);
+  if (claimed && !profileComplete) {
+    markProfileComplete(user.id);
+  }
+  const needsProfile =
+    !profileComplete &&
+    !claimed &&
+    (opts.isNew || isAutoUsername(user.username));
 
   return {
     id: user.id,
@@ -385,10 +446,15 @@ async function resolvePuterGrudgeAccount(
     throw new Error("Failed to create Puter-linked Grudge account");
   }
 
-  const account = await ensureAccount(user.id);
-  const display = puterUsername?.trim() || (isNew ? `Puter_${puterId.slice(-8)}` : undefined);
-  if (display && (!account.displayName || isAutoUsername(account.displayName))) {
+  let account = await ensureAccount(user.id);
+  // Prefer real Puter/handle username as account displayName (not puter:uuid)
+  const display = puterUsername?.trim() || undefined;
+  if (display && !isAutoUsername(display) && (!account.displayName || isAutoUsername(account.displayName))) {
     await storage.updateAccount(account.id, { displayName: display });
+    account = { ...account, displayName: display };
+    markProfileComplete(user.id);
+  } else if (account.displayName && !isAutoUsername(account.displayName)) {
+    markProfileComplete(user.id);
   }
 
   if (!user.grudgeId && account.grudgeId) {
@@ -629,16 +695,16 @@ export function registerAuthRoutes(app: Express) {
       }
 
       const { user, account, isNew } = await resolvePuterGrudgeAccount(puterId, puterUsername, email);
-      const displayName =
-        account.displayName ||
-        puterUsername ||
-        (user.username.includes(":") ? user.username.split(":").slice(1).join(":") : user.username);
       const response = buildAuthResponse(
         { id: user.id, username: user.username, grudgeId: user.grudgeId },
         account,
       );
       setSessionCookie(res, response.token);
-      res.json({ ...response, ...buildSsoUserPayload(user, account, { isNew }), isNew });
+      res.json({
+        ...response,
+        ...buildSsoUserPayload(user, account, { isNew, puterUsername }),
+        isNew,
+      });
     } catch (e: any) {
       console.error("[Auth/Puter-SSO]", e);
       res.status(500).json({ success: false, error: e.message || "SSO failed" });
@@ -668,45 +734,67 @@ export function registerAuthRoutes(app: Express) {
     }
   });
 
-  /** POST /api/auth/complete-profile — claim username after Puter SSO. */
+  /**
+   * POST /api/auth/complete-profile — optional claim username after SSO.
+   * Name is NOT required when account.displayName / users.username already set
+   * from id.grudge-studio.com / Puter / Discord (fleet account DB SSOT).
+   */
   app.post("/api/auth/complete-profile", authRateLimit, async (req: Request, res: Response) => {
     try {
       const token = readSessionToken(req);
       if (!token) return res.status(401).json({ success: false, error: "Not authenticated" });
 
       const payload = jwt.verify(token, JWT_SECRET) as { userId: string };
-      const { username, email } = req.body as { username?: string; email?: string };
+      const { username, email, displayName: bodyDisplay } = req.body as {
+        username?: string;
+        email?: string;
+        displayName?: string;
+      };
 
       const [user] = await db.select().from(users).where(eq(users.id, payload.userId)).limit(1);
       if (!user) return res.status(404).json({ success: false, error: "User not found" });
 
-      if (username) {
-        if (!/^[a-zA-Z0-9_-]{3,30}$/.test(username)) {
+      const [account] = await db.select().from(accounts).where(eq(accounts.userId, user.id)).limit(1);
+
+      // Already have account username — allow empty body (skip form)
+      const existingName = resolveAccountDisplayName(user, account);
+      const requested = (username || bodyDisplay || "").trim();
+
+      if (requested) {
+        if (!/^[a-zA-Z0-9_-]{3,30}$/.test(requested)) {
           return res.status(400).json({ success: false, error: "Invalid username" });
         }
-        const [taken] = await db.select().from(users).where(eq(users.username, username)).limit(1);
+        // Only enforce uniqueness on users.username when claiming a non-provider key
+        const [taken] = await db.select().from(users).where(eq(users.username, requested)).limit(1);
         if (taken && taken.id !== user.id) {
           return res.status(409).json({ success: false, error: "Username taken" });
         }
+        if (account) {
+          await storage.updateAccount(account.id, { displayName: requested });
+        }
+      } else if (!existingName || isAutoUsername(existingName)) {
+        // No name provided and none on account — still allow skip with synthetic default
+        // rather than 400; games never block on missing optional profile name.
+        if (account && !account.displayName) {
+          const fallback = resolveAccountDisplayName(user, account);
+          await storage.updateAccount(account.id, { displayName: fallback });
+        }
       }
 
-      const [account] = await db.select().from(accounts).where(eq(accounts.userId, user.id)).limit(1);
-      const displayName = username || account?.displayName || user.username;
-      if (account && username) {
-        await storage.updateAccount(account.id, { displayName: username });
-      }
       if (email) {
         await db.update(users).set({ email: email.trim().toLowerCase() }).where(eq(users.id, user.id));
       }
 
-      rateLimitMap.set(`${PROFILE_COMPLETE_KEY}${user.id}`, { count: 1, resetAt: Date.now() + 365 * 24 * 60 * 60 * 1000 });
+      markProfileComplete(user.id);
 
       const freshAccount = account ? await storage.getAccount(account.id) : await ensureAccount(user.id);
-      res.json(buildSsoUserPayload(
-        { ...user, email: email?.trim().toLowerCase() || user.email },
-        freshAccount,
-        { isNew: false },
-      ));
+      res.json(
+        buildSsoUserPayload(
+          { ...user, email: email?.trim().toLowerCase() || user.email },
+          freshAccount,
+          { isNew: false },
+        ),
+      );
     } catch (e: any) {
       console.error("[Auth/CompleteProfile]", e);
       res.status(500).json({ success: false, error: e.message });
@@ -1121,8 +1209,14 @@ export function registerAuthRoutes(app: Express) {
         .returning();
 
       const account = await ensureAccount(user.id);
+      // Register username is the account display name — no second profile step
+      if (account && username) {
+        await storage.updateAccount(account.id, { displayName: username.trim() });
+        markProfileComplete(user.id);
+      }
+      const fresh = await storage.getAccount(account.id);
       res.json({
-        ...buildAuthResponse(user, account),
+        ...buildAuthResponse(user, fresh || account),
         message: "Welcome to Grudge Warlords!",
       });
     } catch (e: any) {
@@ -1389,12 +1483,15 @@ export function registerAuthRoutes(app: Express) {
       let [account] = await db.select().from(accounts).where(eq(accounts.userId, userId)).limit(1);
 
       const providers = detectProviders(user.username);
-      const displayName =
-        account?.displayName ||
-        (user.username.includes(":") ? user.username.split(":").slice(1).join(":") : user.username);
+      const displayName = resolveAccountDisplayName(user, account, [payload.username]);
+      const needsProfile =
+        !hasClaimedUsername(user, account, [payload.username]) &&
+        isAutoUsername(user.username) &&
+        !rateLimitMap.has(`${PROFILE_COMPLETE_KEY}${user.id}`);
 
       res.json({
         success: true,
+        id: user.id,
         grudgeId: user.grudgeId || account?.grudgeId || "",
         username: displayName,
         displayName,
@@ -1405,6 +1502,8 @@ export function registerAuthRoutes(app: Express) {
         isPremium: (account?.premiumCurrency || 0) > 0,
         avatarUrl: account?.avatarUrl || null,
         providers,
+        needsProfile,
+        role: "player",
       });
     } catch {
       res.status(401).json({ success: false, error: "Invalid or expired token" });

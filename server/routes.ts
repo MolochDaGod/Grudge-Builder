@@ -381,9 +381,19 @@ export async function registerRoutes(
       const classId = String(req.body.classId || req.body.class || "warrior").toLowerCase();
       const skipStartingGear = req.body.skipStartingGear === true;
 
-      // Canonical identity: player name + GRDG-HUMWAR-… code (never name === code)
+      // Canonical identity: player name + GRDG-HUMWAR-… code (never name === code).
+      // Name is optional when account already has username/displayName from Grudge ID
+      // (id.grudge-studio.com account DB SSOT).
+      const jwtUser = (req as { user?: { username?: string; displayName?: string } }).user;
+      const accountDisplay =
+        (account as { displayName?: string | null }).displayName ||
+        jwtUser?.displayName ||
+        jwtUser?.username ||
+        req.body.username ||
+        req.body.displayName ||
+        "";
       const identity = resolveHeroIdentity({
-        name: req.body.name,
+        name: req.body.name || accountDisplay || undefined,
         grudgeCode: req.body.grudgeCode,
         grudgeDisplayId: req.body.grudgeDisplayId,
         grudgeUuid: req.body.grudgeUuid,
