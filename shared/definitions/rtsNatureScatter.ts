@@ -17,6 +17,7 @@ import {
   filterApprovedNaturePaths,
   natureScatterNeedsRegenerate,
   filterNatureScatterInstances,
+  scatterPathsForBiome,
 } from "./natureAssetCatalog";
 import {
   resolveHomeIslandFoundation,
@@ -110,15 +111,15 @@ const BASE_SCATTER_RULES: Array<{
   { category: "bush", count: 0, seedOffset: 500, minRadius: 12, maxRadius: 80, minScale: 0.8, maxScale: 1.5 },
   { category: "grass", count: 0, seedOffset: 600, minRadius: 8, maxRadius: 70, minScale: 0.6, maxScale: 1.2, avoidCenter: 8 },
   { category: "mushroom", count: 0, seedOffset: 700, minRadius: 15, maxRadius: 60, minScale: 0.5, maxScale: 1.0 },
-  { category: "flower", count: 0, seedOffset: 800, minRadius: 10, maxRadius: 70, minScale: 0.6, maxScale: 1.0, avoidCenter: 8 },
-  { category: "fern", count: 0, seedOffset: 900, minRadius: 12, maxRadius: 65, minScale: 0.7, maxScale: 1.3 },
-  { category: "plant", count: 0, seedOffset: 1000, minRadius: 10, maxRadius: 75, minScale: 0.5, maxScale: 1.2 },
+  { category: "flower", count: 10, seedOffset: 800, minRadius: 10, maxRadius: 70, minScale: 0.6, maxScale: 1.2, avoidCenter: 8 },
+  { category: "fern", count: 6, seedOffset: 900, minRadius: 12, maxRadius: 65, minScale: 0.7, maxScale: 1.3 },
+  { category: "plant", count: 10, seedOffset: 1000, minRadius: 10, maxRadius: 75, minScale: 0.5, maxScale: 1.2 },
 ];
 
-/** Coastal Driftwood Bay — palms + deciduous, fewer pines. */
-const COASTAL_BIOME_HINTS = ['beach', 'tropic', 'shore', 'haven', 'storm', 'plain'];
-/** Highland Ironfang — pines dominate. */
-const HIGHLAND_BIOME_HINTS = ['forest', 'winter', 'frost', 'snow', 'volcan', 'ember', 'abyss', 'nexus', 'mountain'];
+/** Coastal Driftwood Bay — palms only (no plains/mountain). */
+const COASTAL_BIOME_HINTS = ['beach', 'tropic', 'shore', 'haven', 'storm'];
+/** Highland / snow / volcanic. */
+const HIGHLAND_BIOME_HINTS = ['forest', 'winter', 'frost', 'snow', 'volcan', 'ember', 'abyss', 'nexus', 'mountain', 'plain'];
 
 function isCoastalBiome(biome: string): boolean {
   const b = biome.toLowerCase();
@@ -216,8 +217,13 @@ function generateCategoryInstances(
   islandSeed: number,
   sampleHeight: (wx: number, wz: number) => number,
   radiusScale = 1,
+  biomePaths?: Partial<Record<RtsScatterCategory, string[]>>,
 ): RtsScatterInstance[] {
-  const paths = NATURE_MODEL_PATHS[rule.category].filter((p) => !isBannedNaturePath(p));
+  const fromBiome = biomePaths?.[rule.category];
+  const paths = (fromBiome?.length
+    ? fromBiome
+    : NATURE_MODEL_PATHS[rule.category]
+  ).filter((p) => !isBannedNaturePath(p));
   if (paths.length === 0 || rule.count <= 0) return [];
 
   const rng = seededRandom(islandSeed + rule.seedOffset);
@@ -269,6 +275,9 @@ export function generateRtsNatureScatter(
     resolvedBiome,
   );
   const rules = rulesForFoundation(foundation, resolvedBiome, worldSizeM);
+  const biomePaths = scatterPathsForBiome(resolvedBiome) as Partial<
+    Record<RtsScatterCategory, string[]>
+  >;
 
   const sampleHeight = (wx: number, wz: number): number => {
     if (!heights || !heightmap) return 2;
@@ -283,7 +292,9 @@ export function generateRtsNatureScatter(
 
   const instances: RtsScatterInstance[] = [];
   for (const rule of rules) {
-    instances.push(...generateCategoryInstances(rule, islandSeed, sampleHeight, radiusScale));
+    instances.push(
+      ...generateCategoryInstances(rule, islandSeed, sampleHeight, radiusScale, biomePaths),
+    );
   }
 
   return {

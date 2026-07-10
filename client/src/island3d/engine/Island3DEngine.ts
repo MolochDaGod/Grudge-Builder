@@ -930,14 +930,31 @@ export class Island3DEngine {
     mesh.geometry.computeVertexNormals();
   }
 
+  /**
+   * Single Three.js ocean plane only — no R3F/drei Water, no second mirror surface.
+   * Terrain under water is flattened to seafloor so we never double-draw water.
+   */
   private createWaterPlane(): void {
+    // Remove any prior water meshes (prevents double-water confusion)
+    const stale: THREE.Object3D[] = [];
+    this.scene.traverse((o) => {
+      if (o.name === 'ocean' || o.name === 'water' || o.name === 'Water' || o.name === 'r3f-water') {
+        stale.push(o);
+      }
+    });
+    for (const o of stale) {
+      o.parent?.remove(o);
+    }
+
     this.waterPlane = createOceanMesh({
       waterLevel: PROCEDURAL_WATER_LEVEL,
       size: HOME_ISLAND_OCEAN_SIZE_M,
-      segments: HOME_ISLAND_OCEAN_SEGMENTS,
+      segments: Math.min(HOME_ISLAND_OCEAN_SEGMENTS, 32),
     });
     this.waterPlane.name = 'ocean';
-    this.waterPlane.renderOrder = 1; // draw above submerged seafloor terrain
+    this.waterPlane.renderOrder = 1;
+    // Opaque-ish ocean — avoid stacked transparency looking like two waters
+    this.waterPlane.renderOrder = 0;
     this.scene.add(this.waterPlane);
   }
 
@@ -1025,21 +1042,21 @@ export class Island3DEngine {
       return;
     }
 
-    // 3) Last resort only — instanced procedural (soft canopy, not megakit GLBs)
-    console.warn('[Island3D] All GLB foliage paths failed — procedural canopy last resort');
-    this.proceduralForest = new InstancedProceduralForest();
-    const stats = this.proceduralForest.generate(
-      this.config.seed,
-      this.terrain.terrainMesh,
-      this.terrain.biomeMap,
-      this.terrain.gridW,
-      this.terrain.gridH,
+    // NEVER use InstancedProceduralForest (square billboard leaves). Retry stylized scatter once.
+    console.warn('[Island3D] Primary foliage empty — regenerating stylized scatter only (no poly leaves)');
+    const forced = generateRtsNatureScatter(
+      islandSeedToNumber(this.config.seed) + 17,
+      this.config.biome ?? 'beach',
+      this.config.rtsHeightmap,
       HOME_ISLAND_WORLD_SIZE_M,
-      { treeCount: 120, forestRadius: 320, clearRadius: 50 },
+      this.config.seed,
     );
-    if (stats.trees > 0) {
-      this.scene.add(this.proceduralForest.group);
-      console.log(`[Island3D] Procedural forest last-resort: ${stats.trees} trees`);
+    const retry = await scatterRtsNatureInScene(forced, this.terrain.terrainMesh);
+    if (retry.children.length > 0) {
+      this.scene.add(retry);
+      console.log(`[Island3D] Stylized retry scatter: ${retry.children.length}`);
+    } else {
+      console.error('[Island3D] No stylized nature packs loaded — check R2 /models/nature/stylized/*');
     }
   }
 

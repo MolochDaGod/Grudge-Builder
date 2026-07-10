@@ -1,24 +1,36 @@
 /**
- * IslandResourceLoader — cached CDN GLBs for harvestable trees, rocks, gems, and harvest FX.
- * Low-poly megakit (CommonTree / Rock_Medium / Pine_*) is banned — environment packs only
- * until realistic assets land under /models/nature/realistic/.
+ * IslandResourceLoader — stylized multi-mesh packs for harvest + scatter.
+ * Square-leaf island_tree / megakit banned. Palms + stylized vegetation only.
  */
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { assetUrl } from '@/lib/assetConfig';
-import { harvestRockPack, harvestTreePack } from '@shared/definitions/natureAssetCatalog';
+import {
+  harvestCrystalPack,
+  harvestPalmPack,
+  harvestRockPack,
+  harvestTreePack,
+  isBannedNaturePath,
+  STYLIZED_PACK_PATHS,
+  STYLIZED_VARIANTS,
+} from '@shared/definitions/natureAssetCatalog';
 
 const treePack = harvestTreePack();
 const rockPack = harvestRockPack();
+const palmPack = harvestPalmPack();
+const crystalPack = harvestCrystalPack();
 
 export const ISLAND_RESOURCE_MODELS = {
   tree: treePack.path,
+  palm: palmPack.path,
   rock: rockPack.path,
-  gem: '/models/environment/gem_cluster.glb',
+  gem: crystalPack.path,
   log: '/models/environment/harvest_logs.glb',
   debris: '/models/environment/harvest_rock_debris.glb',
-  goldRock: '/models/environment/harvest_gold_rocks.glb',
+  goldRock: STYLIZED_PACK_PATHS.minerals,
   stump: '/models/environment/harvest_stump.glb',
+  flower: STYLIZED_PACK_PATHS.flowers,
+  plant: STYLIZED_PACK_PATHS.foliage,
 } as const;
 
 export type IslandResourceType = keyof typeof ISLAND_RESOURCE_MODELS;
@@ -36,6 +48,9 @@ function prepareShadows(root: THREE.Object3D): void {
 }
 
 export async function loadIslandResourceTemplate(path: string): Promise<THREE.Group> {
+  if (isBannedNaturePath(path)) {
+    throw new Error(`Banned nature path: ${path}`);
+  }
   const cached = templateCache.get(path);
   if (cached) return cached;
 
@@ -46,78 +61,79 @@ export async function loadIslandResourceTemplate(path: string): Promise<THREE.Gr
   return template;
 }
 
-/** Stump GLB is ~6MB — loaded on-demand in HarvestFeedback; everything else preloads. */
 const PRELOAD_RESOURCE_TYPES: IslandResourceType[] = [
-  'tree', 'rock', 'gem', 'log', 'debris', 'goldRock',
+  'tree', 'palm', 'rock', 'gem', 'flower', 'plant',
 ];
 
 export async function preloadIslandResources(): Promise<void> {
   await Promise.all(
-    PRELOAD_RESOURCE_TYPES.map((type) => loadIslandResourceTemplate(ISLAND_RESOURCE_MODELS[type])),
+    PRELOAD_RESOURCE_TYPES.map((type) =>
+      loadIslandResourceTemplate(ISLAND_RESOURCE_MODELS[type]).catch((err) => {
+        console.warn(`[IslandResource] preload ${type} failed`, err);
+      }),
+    ),
   );
 }
 
-const TREE_VARIANT_NAMES = treePack.variants.length
-  ? treePack.variants
-  : [
-      'pine2_14', 'pine9_15', 'birch2_4', 'birch6_5', 'ancient_tree_2_0',
-      'garden_tree_pink_11', 'creepy_tree1_10', 'palm2_13',
-    ];
-const ROCK_VARIANT_NAMES = rockPack.variants.length
-  ? rockPack.variants
-  : ['rock_1', 'rock_2', 'rock_3', 'rock_4', 'rock_5', 'rock_6', 'rock_7', 'rock_8'];
-const GEM_VARIANT_NAMES = ['Sphere', 'Sphere.001', 'Sphere.002'];
-const LOG_VARIANT_NAMES = ['Log', 'log', 'Logs', 'Cube', 'Mesh'];
-const DEBRIS_VARIANT_NAMES = ['Rock', 'rock', 'Rocks', 'Cube', 'Mesh'];
-const GOLD_VARIANT_NAMES = ['Rock', 'rock', 'Gold', 'Cube', 'Mesh'];
+const VARIANT_TABLE: Record<IslandResourceType, string[]> = {
+  tree: treePack.variants.length ? treePack.variants : [...STYLIZED_VARIANTS.vegetationTrees],
+  palm: palmPack.variants.length ? palmPack.variants : [...STYLIZED_VARIANTS.tropicalPalms],
+  rock: rockPack.variants.length ? rockPack.variants : [...STYLIZED_VARIANTS.stylizedRocks],
+  gem: crystalPack.variants.length ? crystalPack.variants : [...STYLIZED_VARIANTS.minerals],
+  goldRock: [...STYLIZED_VARIANTS.minerals],
+  flower: [...STYLIZED_VARIANTS.flowers],
+  plant: [...STYLIZED_VARIANTS.foliage],
+  log: ['Log', 'log', 'Logs', 'Cube', 'Mesh'],
+  debris: ['Rock', 'rock', 'Rocks', 'Cube', 'Mesh'],
+  stump: [],
+};
 
-function pickVariant(names: string[]): string {
-  return names[Math.floor(Math.random() * names.length)];
-}
-
-function cloneNamedChild(template: THREE.Group, names: string[]): THREE.Object3D {
-  for (const name of names) {
+/** Clone a named child or random mesh; never returns entire multi-object layout. */
+export function cloneNamedChild(template: THREE.Group, names: string[]): THREE.Object3D {
+  // Prefer exact names first
+  const shuffled = [...names].sort(() => Math.random() - 0.5);
+  for (const name of shuffled) {
     const node = template.getObjectByName(name);
     if (node) return node.clone(true);
   }
 
+  // Semantic parents (exclude Sketchfab / Object_N only if better mesh exists)
   const meshes: THREE.Object3D[] = [];
   template.traverse((child) => {
-    if ((child as THREE.Mesh).isMesh && child.name && !/Object_/i.test(child.name)) {
+    if ((child as THREE.Mesh).isMesh && child.name) {
       meshes.push(child);
     }
   });
   if (meshes.length > 0) {
     return meshes[Math.floor(Math.random() * meshes.length)].clone(true);
   }
+  // Last resort: single child of root
+  if (template.children.length === 1) return template.children[0].clone(true);
   return template.clone(true);
 }
 
 export async function cloneIslandResource(type: IslandResourceType): Promise<THREE.Object3D> {
   const path = ISLAND_RESOURCE_MODELS[type];
   const template = await loadIslandResourceTemplate(path);
-
-  switch (type) {
-    case 'tree':
-      return cloneNamedChild(template, TREE_VARIANT_NAMES);
-    case 'rock':
-      return cloneNamedChild(template, ROCK_VARIANT_NAMES);
-    case 'gem':
-      return cloneNamedChild(template, GEM_VARIANT_NAMES);
-    case 'log':
-      return cloneNamedChild(template, LOG_VARIANT_NAMES);
-    case 'debris':
-      return cloneNamedChild(template, DEBRIS_VARIANT_NAMES);
-    case 'goldRock':
-      return cloneNamedChild(template, GOLD_VARIANT_NAMES);
-    case 'stump':
-      return template.clone(true);
-    default:
-      return template.clone(true);
+  const names = VARIANT_TABLE[type] ?? [];
+  if (type === 'stump' || names.length === 0) {
+    return template.clone(true);
   }
+  return cloneNamedChild(template, names);
 }
 
-/** Scale model so its bounding height matches targetHeightM; bottom sits at local y=0. */
+/** Clone a named variant from an arbitrary multi-mesh pack path. */
+export async function cloneFromPackPath(
+  modelPath: string,
+  variantNames: string[],
+): Promise<THREE.Object3D> {
+  if (isBannedNaturePath(modelPath)) {
+    throw new Error(`Banned: ${modelPath}`);
+  }
+  const template = await loadIslandResourceTemplate(modelPath);
+  return cloneNamedChild(template, variantNames);
+}
+
 export function fitModelToHeight(root: THREE.Object3D, targetHeightM: number): void {
   const box = new THREE.Box3().setFromObject(root);
   const size = box.getSize(new THREE.Vector3());

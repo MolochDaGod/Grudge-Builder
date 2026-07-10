@@ -351,42 +351,46 @@ export const BUILD_ASSETS: Record<string, BuildAssetDef> = {
   // NATURE / LANDSCAPING
   // ═══════════════════════════════════════════════════════════════════════════
 
-  // Nature props — low-poly megakit banned; interim environment packs only
+  // Nature props — stylized packs only (no square-leaf island_tree)
   placed_tree: {
-    id: 'placed_tree', name: 'Island Tree', category: 'nature',
-    placement: 'prop', modelPath: `${CDN}/models/environment/island_tree.glb`,
+    id: 'placed_tree', name: 'Stylized Tree', category: 'nature',
+    placement: 'prop', modelPath: `${CDN}/models/nature/stylized/biome/nature_vegetation.glb`,
     color: 0x2D7A2D, size: [3, 8, 3], scale: 1.0,
     rotatable: false, requiresFloor: false, terrainPlaceable: true,
     cost: [{ itemId: 'sapling', quantity: 1 }],
   },
   placed_pine: {
-    id: 'placed_pine', name: 'Forest Tree', category: 'nature',
-    placement: 'prop', modelPath: `${CDN}/models/environment/island_tree.glb`,
+    id: 'placed_pine', name: 'Plains Tree', category: 'nature',
+    placement: 'prop', modelPath: `${CDN}/models/nature/stylized/biome/realistic_trees.glb`,
     color: 0x1B5E20, size: [2.5, 10, 2.5], scale: 1.0,
     rotatable: false, requiresFloor: false, terrainPlaceable: true,
     cost: [{ itemId: 'sapling', quantity: 1 }],
   },
+  placed_palm: {
+    id: 'placed_palm', name: 'Palm Tree', category: 'nature',
+    placement: 'prop', modelPath: `${CDN}/models/nature/stylized/biome/tropical_plants.glb`,
+    color: 0x2E7D32, size: [3, 10, 3], scale: 1.0,
+    rotatable: false, requiresFloor: false, terrainPlaceable: true,
+    cost: [{ itemId: 'sapling', quantity: 1 }],
+  },
   placed_bush: {
-    id: 'placed_bush', name: 'Wild Bush', category: 'nature',
-    // No approved bush GLB yet — use gem pack as decorative placeholder removed;
-    // reuses rock pack scale for landscaping until realistic groundcover lands
-    placement: 'prop', modelPath: `${CDN}/models/environment/island_rock.glb`,
-    color: 0x3D8B37, size: [1.2, 0.8, 1.2], scale: 0.45,
+    id: 'placed_bush', name: 'Foliage Plant', category: 'nature',
+    placement: 'prop', modelPath: `${CDN}/models/nature/stylized/harvest/foliage_pack.glb`,
+    color: 0x3D8B37, size: [1.2, 0.8, 1.2], scale: 0.8,
     rotatable: true, requiresFloor: false, terrainPlaceable: true,
     cost: [{ itemId: 'herb', quantity: 2 }],
   },
   placed_rock: {
-    id: 'placed_rock', name: 'Boulder', category: 'nature',
-    placement: 'prop', modelPath: `${CDN}/models/environment/island_rock.glb`,
+    id: 'placed_rock', name: 'Stylized Boulder', category: 'nature',
+    placement: 'prop', modelPath: `${CDN}/models/nature/stylized/rocks/stylised_rocks.glb`,
     color: 0x666666, size: [2.5, 2, 2.5], scale: 1.0,
     rotatable: true, requiresFloor: false, terrainPlaceable: true,
     cost: [{ itemId: 'stone', quantity: 3 }],
   },
   placed_fern: {
-    id: 'placed_fern', name: 'Fern', category: 'nature',
-    // Megakit Fern_1 banned — interim harvest stump until realistic groundcover
-    placement: 'prop', modelPath: `${CDN}/models/environment/harvest_stump.glb`,
-    color: 0x4CAF50, size: [1, 1, 1], scale: 0.7,
+    id: 'placed_fern', name: 'Tropical Fern', category: 'nature',
+    placement: 'prop', modelPath: `${CDN}/models/nature/stylized/biome/tropical_plants.glb`,
+    color: 0x4CAF50, size: [1, 1.5, 1], scale: 0.7,
     rotatable: true, requiresFloor: false, terrainPlaceable: true,
     cost: [{ itemId: 'herb', quantity: 1 }],
   },

@@ -210,42 +210,43 @@ const FLOWER_COLORS = [0xff6b8a, 0xffaa33, 0xff55ff, 0x55aaff, 0xffee44, 0xff446
 export function createFlowerPatch(position: THREE.Vector3, scale: number = 1): HarvestableFlower {
   const group = new THREE.Group();
 
-  for (let i = 0; i < 4 + Math.floor(Math.random() * 4); i++) {
+  // Temporary simple stems until stylized flowers_pack mounts
+  for (let i = 0; i < 2; i++) {
     const color = FLOWER_COLORS[Math.floor(Math.random() * FLOWER_COLORS.length)];
-    const dx = (Math.random() - 0.5) * 1.5;
-    const dz = (Math.random() - 0.5) * 1.5;
-    const h = 0.5 + Math.random() * 0.6;
-
-    // Stem
+    const dx = (Math.random() - 0.5) * 0.6;
+    const dz = (Math.random() - 0.5) * 0.6;
+    const h = 0.4 + Math.random() * 0.4;
     const stem = new THREE.Mesh(
       new THREE.CylinderGeometry(0.03, 0.04, h, 3),
       new THREE.MeshLambertMaterial({ color: 0x3a7a2a }),
     );
     stem.position.set(dx, h / 2, dz);
     group.add(stem);
-
-    // Petals (simple sphere)
     const petal = new THREE.Mesh(
-      new THREE.SphereGeometry(0.15, 6, 6),
+      new THREE.SphereGeometry(0.12, 6, 6),
       new THREE.MeshLambertMaterial({ color }),
     );
-    petal.position.set(dx, h + 0.1, dz);
-    petal.scale.set(1, 0.6, 1);
+    petal.position.set(dx, h + 0.08, dz);
     group.add(petal);
-
-    // Center
-    const center = new THREE.Mesh(
-      new THREE.SphereGeometry(0.06, 4, 4),
-      new THREE.MeshLambertMaterial({ color: 0xffee88 }),
-    );
-    center.position.set(dx, h + 0.15, dz);
-    group.add(center);
   }
 
   group.position.copy(position);
   group.scale.setScalar(scale);
 
-  return { group, health: 1, maxHealth: 1, baseScale: scale, respawnAt: 0 };
+  const flower: HarvestableFlower = { group, health: 1, maxHealth: 1, baseScale: scale, respawnAt: 0 };
+  void mountFlowerModel(flower, scale);
+  return flower;
+}
+
+async function mountFlowerModel(flower: HarvestableFlower, scale: number): Promise<void> {
+  try {
+    const model = await cloneIslandResource('flower');
+    flower.group.clear();
+    fitModelToHeight(model, Math.max(0.5, 1.0 * scale));
+    flower.group.add(model);
+  } catch (err) {
+    console.warn('[FlowerPatch] stylized flowers pack unavailable', err);
+  }
 }
 
 // ── Dock Structure ───────────────────────────────────────────────

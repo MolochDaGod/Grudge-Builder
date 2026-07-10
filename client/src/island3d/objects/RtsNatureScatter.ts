@@ -1,60 +1,72 @@
 /**
- * RtsNatureScatter — place approved foliage on Warlords 3D terrain.
- * - Bans low-poly megakit paths
- * - Environment packs (island_tree / island_rock) clone named variants
- * - Never places a whole multi-mesh pack as one giant blob
+ * RtsNatureScatter — place stylized foliage on Warlords 3D terrain.
+ * - Bans square-leaf island_tree / megakit / procedural billboards
+ * - Multi-mesh packs clone named variants only
+ * - Never places a whole pack as one giant blob
  */
 import * as THREE from 'three';
-import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-import { assetUrl } from '@/lib/assetConfig';
 import { getTerrainHeightAt } from '../terrain/IslandTerrainGenerator';
 import type { RtsNatureScatterPayload } from '@shared/definitions/rtsNatureScatter';
 import {
   isBannedNaturePath,
-  isEnvironmentPackPath,
-  packResourceTypeForPath,
+  STYLIZED_PACK_PATHS,
+  STYLIZED_VARIANTS,
 } from '@shared/definitions/natureAssetCatalog';
 import {
+  cloneFromPackPath,
   cloneIslandResource,
   fitModelToHeight,
   type IslandResourceType,
 } from './IslandResourceLoader';
 import { HOME_ISLAND_NATURE_INSTANCE_BUDGET } from '@shared/definitions/homeIslandQuality';
 
-const templateCache = new Map<string, THREE.Group>();
-const loader = new GLTFLoader();
 const MAX_INSTANCES = HOME_ISLAND_NATURE_INSTANCE_BUDGET;
 
-/** Target height (m) for scatter foliage relative to 2m character. */
 function scatterHeightM(category: string, scale: number): number {
   const base =
     category === 'rock' ? 2.4 :
-    category === 'palm' ? 8.0 :
-    category === 'pine' || category === 'tree' ? 7.0 :
+    category === 'cliff' ? 12 :
+    category === 'palm' ? 8.5 :
+    category === 'pine' || category === 'tree' ? 8.0 :
+    category === 'flower' || category === 'plant' || category === 'fern' ? 0.9 :
     1.2;
-  return Math.max(0.4, base * Math.min(Math.max(scale, 0.5), 2.5) / 1.5);
+  return Math.max(0.35, base * Math.min(Math.max(scale, 0.5), 2.5) / 1.5);
 }
 
-async function loadStandaloneTemplate(modelPath: string): Promise<THREE.Group> {
-  if (isBannedNaturePath(modelPath)) {
-    throw new Error(`Banned low-poly nature path: ${modelPath}`);
+function variantsForPath(modelPath: string, category: string): string[] {
+  const p = modelPath.replace(/\\/g, '/');
+  if (p.includes('tropical')) {
+    return category === 'palm' || category === 'tree'
+      ? [...STYLIZED_VARIANTS.tropicalPalms]
+      : [...STYLIZED_VARIANTS.tropicalPlants];
   }
-  const cached = templateCache.get(modelPath);
-  if (cached) return cached;
+  if (p.includes('snowbiomes')) {
+    return category === 'rock'
+      ? [...STYLIZED_VARIANTS.snowRocks]
+      : [...STYLIZED_VARIANTS.snowTrees];
+  }
+  if (p.includes('volcanic')) return [...STYLIZED_VARIANTS.volcanic];
+  if (p.includes('realistic_trees')) return [...STYLIZED_VARIANTS.plainsTrees];
+  if (p.includes('nature_vegetation')) {
+    return category === 'rock'
+      ? [...STYLIZED_VARIANTS.vegetationRocks]
+      : [...STYLIZED_VARIANTS.vegetationTrees];
+  }
+  if (p.includes('stylised_rocks')) return [...STYLIZED_VARIANTS.stylizedRocks];
+  if (p.includes('cliff')) return [...STYLIZED_VARIANTS.cliff];
+  if (p.includes('flowers')) return [...STYLIZED_VARIANTS.flowers];
+  if (p.includes('foliage')) return [...STYLIZED_VARIANTS.foliage];
+  if (p.includes('minerals')) return [...STYLIZED_VARIANTS.minerals];
+  return [];
+}
 
-  const gltf = await loader.loadAsync(assetUrl(modelPath));
-  const template = gltf.scene as THREE.Group;
-
-  // Keep unit scale in cache — height fit applied per instance (avoids double-scale bugs)
-  template.traverse((child) => {
-    if ((child as THREE.Mesh).isMesh) {
-      child.castShadow = true;
-      child.receiveShadow = true;
-    }
-  });
-
-  templateCache.set(modelPath, template);
-  return template;
+function resourceTypeForCategory(category: string): IslandResourceType | null {
+  if (category === 'palm') return 'palm';
+  if (category === 'tree' || category === 'pine') return 'tree';
+  if (category === 'rock' || category === 'cliff') return 'rock';
+  if (category === 'flower') return 'flower';
+  if (category === 'plant' || category === 'fern' || category === 'bush') return 'plant';
+  return null;
 }
 
 async function createInstanceMesh(
@@ -67,21 +79,21 @@ async function createInstanceMesh(
   }
 
   const targetH = scatterHeightM(category, scale);
+  const variants = variantsForPath(modelPath, category);
 
-  // Packs / known resource types → variant clone (not whole GLB scene)
-  const packType = packResourceTypeForPath(modelPath);
-  if (packType || isEnvironmentPackPath(modelPath)) {
-    const type: IslandResourceType = packType ?? (category === 'rock' ? 'rock' : 'tree');
-    const model = await cloneIslandResource(type);
-    fitModelToHeight(model, targetH);
-    return model;
+  let mesh: THREE.Object3D;
+  if (variants.length > 0) {
+    mesh = await cloneFromPackPath(modelPath, variants);
+  } else {
+    const rt = resourceTypeForCategory(category);
+    if (rt) {
+      mesh = await cloneIslandResource(rt);
+    } else {
+      mesh = await cloneFromPackPath(modelPath, []);
+    }
   }
-
-  // Individual organized/realistic GLB — fit to world meters (2m character scale)
-  const template = await loadStandaloneTemplate(modelPath);
-  const clone = template.clone(true);
-  fitModelToHeight(clone, targetH);
-  return clone;
+  fitModelToHeight(mesh, targetH);
+  return mesh;
 }
 
 export async function scatterRtsNatureInScene(
@@ -89,7 +101,7 @@ export async function scatterRtsNatureInScene(
   terrainMesh: THREE.Mesh,
 ): Promise<THREE.Group> {
   const group = new THREE.Group();
-  group.name = 'rts_nature_scatter';
+  group.name = 'rts_nature_scatter_stylized';
 
   const instances = payload.instances
     .filter((i) => i.modelPath && !isBannedNaturePath(i.modelPath))
@@ -102,6 +114,11 @@ export async function scatterRtsNatureInScene(
     try {
       const mesh = await createInstanceMesh(inst.modelPath, inst.category, inst.scale);
       const y = getTerrainHeightAt(terrainMesh, inst.x, inst.z) ?? inst.y;
+      // Skip underwater placements
+      if (y < -1.5) {
+        skipped++;
+        continue;
+      }
       mesh.position.set(inst.x, y, inst.z);
       mesh.rotation.y = inst.rotation;
       group.add(mesh);
@@ -112,9 +129,13 @@ export async function scatterRtsNatureInScene(
   }
 
   console.log(
-    `[Island3D] RTS nature scatter: ${placed}/${instances.length} placed` +
+    `[Island3D] Stylized nature scatter: ${placed}/${instances.length} placed` +
       (skipped ? ` (${skipped} skipped)` : '') +
-      (payload.foundationId ? ` foundation=${payload.foundationId}` : ''),
+      (payload.foundationId ? ` foundation=${payload.foundationId}` : '') +
+      ` biome=${payload.biome}`,
   );
   return group;
 }
+
+/** Expose pack roots for diagnostics */
+export const STYLIZED_NATURE_PACKS = STYLIZED_PACK_PATHS;
