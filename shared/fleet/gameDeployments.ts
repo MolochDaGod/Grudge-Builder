@@ -213,9 +213,8 @@ export const PRODUCTION_DEPLOYMENT_PATH: GameDeployment[] = [
   },
 ];
 
-/** All playable modes on /home (deployment path + extras). */
-export const HOME_GAME_MODES: GameDeployment[] = [
-  ...PRODUCTION_DEPLOYMENT_PATH,
+/** Extra modes on /home beyond the ordered Three deploy path. */
+const HOME_GAME_MODE_EXTRAS: GameDeployment[] = [
   {
     id: "character",
     title: "Hero Forge",
@@ -310,6 +309,7 @@ export const HOME_GAME_MODES: GameDeployment[] = [
     tier: "core",
     badge: "2D",
     badgeColor: "lime",
+    stage: "home",
     order: 70,
   },
   {
@@ -322,6 +322,7 @@ export const HOME_GAME_MODES: GameDeployment[] = [
     tier: "craft",
     badge: "Craft",
     badgeColor: "orange",
+    stage: "craft",
     order: 80,
   },
   {
@@ -334,6 +335,7 @@ export const HOME_GAME_MODES: GameDeployment[] = [
     tier: "combat",
     badge: "Battle",
     badgeColor: "slate",
+    stage: "rts",
     order: 90,
   },
   {
@@ -351,18 +353,6 @@ export const HOME_GAME_MODES: GameDeployment[] = [
     order: 100,
   },
   {
-    id: "worldmap",
-    title: "World Map",
-    subtitle: "Explore & Capture",
-    description: "100×100 zone grid with capturable territory and weekly rotation.",
-    url: "/world-map",
-    icon: "compass",
-    tier: "explore",
-    badge: "Explore",
-    badgeColor: "teal",
-    order: 110,
-  },
-  {
     id: "professions",
     title: "Professions",
     subtitle: "Gathering & Crafting",
@@ -372,6 +362,7 @@ export const HOME_GAME_MODES: GameDeployment[] = [
     tier: "craft",
     badge: "Craft",
     badgeColor: "green",
+    stage: "craft",
     order: 120,
   },
   {
@@ -384,6 +375,7 @@ export const HOME_GAME_MODES: GameDeployment[] = [
     tier: "craft",
     badge: "Skills",
     badgeColor: "blue",
+    stage: "craft",
     order: 130,
   },
   {
@@ -396,8 +388,15 @@ export const HOME_GAME_MODES: GameDeployment[] = [
     tier: "craft",
     badge: "Gather",
     badgeColor: "lime",
+    stage: "craft",
     order: 140,
   },
+];
+
+/** All playable modes on /home (deployment path + extras). World map lives in PRODUCTION path only. */
+export const HOME_GAME_MODES: GameDeployment[] = [
+  ...PRODUCTION_DEPLOYMENT_PATH,
+  ...HOME_GAME_MODE_EXTRAS,
 ].sort((a, b) => a.order - b.order);
 
 export function deploymentUrl(
