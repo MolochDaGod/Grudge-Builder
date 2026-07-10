@@ -35,6 +35,11 @@ function scatterHeightM(category: string, scale: number): number {
 
 function variantsForPath(modelPath: string, category: string): string[] {
   const p = modelPath.replace(/\\/g, '/');
+  if (p.includes('example_home_island')) {
+    return category === 'rock'
+      ? [...STYLIZED_VARIANTS.exampleRocks]
+      : [...STYLIZED_VARIANTS.exampleTrees];
+  }
   if (p.includes('tropical')) {
     return category === 'palm' || category === 'tree'
       ? [...STYLIZED_VARIANTS.tropicalPalms]
@@ -45,7 +50,12 @@ function variantsForPath(modelPath: string, category: string): string[] {
       ? [...STYLIZED_VARIANTS.snowRocks]
       : [...STYLIZED_VARIANTS.snowTrees];
   }
-  if (p.includes('volcanic')) return [...STYLIZED_VARIANTS.volcanic];
+  if (p.includes('volcanic_rocks')) return [...STYLIZED_VARIANTS.volcanicRocks];
+  if (p.includes('volcanicnature') || p.includes('volcanic')) {
+    return category === 'rock'
+      ? [...STYLIZED_VARIANTS.volcanicRocks]
+      : [...STYLIZED_VARIANTS.volcanic];
+  }
   if (p.includes('realistic_trees')) return [...STYLIZED_VARIANTS.plainsTrees];
   if (p.includes('nature_vegetation')) {
     return category === 'rock'
@@ -53,10 +63,14 @@ function variantsForPath(modelPath: string, category: string): string[] {
       : [...STYLIZED_VARIANTS.vegetationTrees];
   }
   if (p.includes('stylised_rocks')) return [...STYLIZED_VARIANTS.stylizedRocks];
-  if (p.includes('cliff')) return [...STYLIZED_VARIANTS.cliff];
+  if (p.includes('cliff_face') || p.includes('/cliffs/')) return [...STYLIZED_VARIANTS.cliff];
+  if (p.includes('temple_ruins')) return [...STYLIZED_VARIANTS.templeRuins];
+  if (p.includes('ancient_ruins')) return [...STYLIZED_VARIANTS.ancientRuins];
   if (p.includes('flowers')) return [...STYLIZED_VARIANTS.flowers];
   if (p.includes('foliage')) return [...STYLIZED_VARIANTS.foliage];
+  if (p.includes('ore_nodes')) return [...STYLIZED_VARIANTS.oreNodes];
   if (p.includes('minerals')) return [...STYLIZED_VARIANTS.minerals];
+  if (p.includes('pond')) return [...STYLIZED_VARIANTS.pond];
   return [];
 }
 

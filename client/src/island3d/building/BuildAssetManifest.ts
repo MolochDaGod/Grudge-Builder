@@ -401,6 +401,27 @@ export const BUILD_ASSETS: Record<string, BuildAssetDef> = {
     rotatable: false, requiresFloor: false, terrainPlaceable: true,
     cost: [{ itemId: 'wood', quantity: 1 }],
   },
+  placed_ruins_pillar: {
+    id: 'placed_ruins_pillar', name: 'Temple Pillar', category: 'decoration',
+    placement: 'prop', modelPath: `${CDN}/models/nature/stylized/ruins/temple_ruins.glb`,
+    color: 0x8B8680, size: [2, 6, 2], scale: 1.0,
+    rotatable: true, requiresFloor: false, terrainPlaceable: true,
+    cost: [{ itemId: 'stone', quantity: 8 }],
+  },
+  placed_ruins_wall: {
+    id: 'placed_ruins_wall', name: 'Temple Wall', category: 'decoration',
+    placement: 'prop', modelPath: `${CDN}/models/nature/stylized/ruins/temple_ruins.glb`,
+    color: 0x7A756F, size: [4, 4, 1], scale: 1.0,
+    rotatable: true, requiresFloor: false, terrainPlaceable: true,
+    cost: [{ itemId: 'stone', quantity: 12 }],
+  },
+  placed_ore_node: {
+    id: 'placed_ore_node', name: 'Ore Node', category: 'nature',
+    placement: 'prop', modelPath: `${CDN}/models/nature/stylized/harvest/ore_nodes.glb`,
+    color: 0x6B5B4B, size: [2, 1.5, 2], scale: 1.0,
+    rotatable: true, requiresFloor: false, terrainPlaceable: true,
+    cost: [{ itemId: 'stone', quantity: 4 }],
+  },
 
   // ═══════════════════════════════════════════════════════════════════════════
   // TERRAIN TILES (Base Blend — GLB ready)

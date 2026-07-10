@@ -78,11 +78,18 @@ export const STYLIZED_PACK_PATHS = {
   tropical: '/models/nature/stylized/biome/tropical_plants.glb',
   plainsTrees: '/models/nature/stylized/biome/realistic_trees.glb',
   vegetation: '/models/nature/stylized/biome/nature_vegetation.glb',
+  /** Good home-island concept — HQ trees/cliffs/haven (exampleisland.glb) */
+  exampleIsland: '/models/nature/stylized/concept/example_home_island.glb',
   rocks: '/models/nature/stylized/rocks/stylised_rocks.glb',
+  volcanicRocks: '/models/nature/stylized/rocks/volcanic_rocks.glb',
   cliff: '/models/nature/stylized/cliffs/stylized_cliff_face.glb',
   flowers: '/models/nature/stylized/harvest/flowers_pack.glb',
   foliage: '/models/nature/stylized/harvest/foliage_pack.glb',
   minerals: '/models/nature/stylized/harvest/minerals_pack.glb',
+  oreNodes: '/models/nature/stylized/harvest/ore_nodes.glb',
+  pond: '/models/nature/stylized/harvest/pond_pack.glb',
+  templeRuins: '/models/nature/stylized/ruins/temple_ruins.glb',
+  ancientRuins: '/models/nature/stylized/ruins/ancient_ruins.glb',
 } as const;
 
 /** Named variants to clone (never place whole multi-mesh scene). */
@@ -136,13 +143,46 @@ export const STYLIZED_VARIANTS = {
     'crystal_basalt_green.017', 'crystal_basalt_green.018',
     'crystal_basalt_green.019', 'crystal_basalt_green.020',
   ],
-  /** Volcanic pack uses Object_N — pick a range of mesh indices as variant names */
+  /** Volcanic nature pack uses Object_N */
   volcanic: [
     'Object_2', 'Object_3', 'Object_4', 'Object_5', 'Object_6',
     'Object_7', 'Object_8', 'Object_9', 'Object_10', 'Object_11',
     'Object_12', 'Object_13', 'Object_14', 'Object_15',
   ],
+  volcanicRocks: [
+    'Cliff_01', 'Cliff_02', 'Cliff_03', 'Cliff_04', 'Cliff_05',
+    'Cliff_Rock_01', 'Cliff_Rock_02', 'Cliff_Rock_03', 'Cliff_Rock_04',
+    'Cliff_Rock_05', 'Rock_01', 'Rock_02', 'Rock_03', 'Rock_04',
+  ],
   cliff: ['mountains'],
+  /** Ore / crystal harvest nodes (minerals pack 2) */
+  oreNodes: [
+    'Tin_Node', 'Slatinum_Node', 'Prytonite_Node', 'Iron_Node',
+    'Gatnumite_Node', 'Copper_Node', 'Coal_Node',
+    'Ore_Tin', 'Ore_Iron', 'Ore_Copper', 'Ore_Coal',
+  ],
+  /** Temple ruins modular pieces — all biomes */
+  templeRuins: [
+    'Stone_Pillar', 'Stone_Pillar_Tall', 'Stone_Pillar_Broken',
+    'Tall_Stone_Wall_Plain', 'Small_Stone_Wall_Plain', 'Stone_Stairs',
+    'Stone_Archway', 'Stone_Statue', 'Stone_Pedestal', 'Tall_RockA',
+    'Stone_DebrisA', 'Stone_DebrisB', 'Stone_Brick',
+  ],
+  /** Ancient ruins plants + stone */
+  ancientRuins: [
+    'AncientRuins_Plants1', 'AncientRuins_Plants2', 'AncientRuins_Plants3',
+    'AncientRuins_Plants4', 'AncientRuins_Plants5', 'AncientRuins_Plants6',
+    'AncientRuins_Plants7', 'AncientRuins_Plants8', 'AncientRuins_Plants9',
+    'AncientRuins_Plants10', 'AncientRuins_Plants11', 'AncientRuins_Plants12',
+  ],
+  /** Concept home island — best stylized tree/cliff reference */
+  exampleTrees: ['Tree1_171', 'Tree2_173', 'Trunk_174'],
+  exampleRocks: ['Rock_9', 'Cliffs_2'],
+  exampleHaven: ['Haven_3'],
+  pond: [
+    'Waterfall_Foam_Icosphere.001', 'Waterfall_Foam_Icosphere.002',
+    'Waterfall_Foam_Icosphere.003', 'Waterfall_Foam_Icosphere.004',
+  ],
 } as const;
 
 // ── Hard ban: square-leaf / megakit / procedural poly ───────────────────────
@@ -485,16 +525,19 @@ export function rockPaths(opts?: { allowInterim?: boolean; runtimeOnly?: boolean
   return pathsForCategory('rock', opts);
 }
 
-/** Harvest tree pack — stylized vegetation / plains, never island_tree. */
+/** Harvest tree pack — example island + HQ vegetation, never island_tree. */
 export function harvestTreePack(): {
   path: string;
   variants: string[];
   heightM: [number, number];
 } {
   return {
-    path: STYLIZED_PACK_PATHS.vegetation,
-    variants: [...STYLIZED_VARIANTS.vegetationTrees],
-    heightM: [5.5, 11],
+    path: STYLIZED_PACK_PATHS.exampleIsland,
+    variants: [
+      ...STYLIZED_VARIANTS.exampleTrees,
+      ...STYLIZED_VARIANTS.vegetationTrees,
+    ],
+    heightM: [5.5, 14],
   };
 }
 
@@ -528,9 +571,44 @@ export function harvestCrystalPack(): {
   heightM: [number, number];
 } {
   return {
-    path: STYLIZED_PACK_PATHS.minerals,
-    variants: [...STYLIZED_VARIANTS.minerals],
+    path: STYLIZED_PACK_PATHS.oreNodes,
+    variants: [...STYLIZED_VARIANTS.oreNodes],
     heightM: [0.8, 2.4],
+  };
+}
+
+export function harvestOrePack(): {
+  path: string;
+  variants: string[];
+  heightM: [number, number];
+} {
+  return harvestCrystalPack();
+}
+
+export function templeRuinsPack(): {
+  path: string;
+  variants: string[];
+  heightM: [number, number];
+} {
+  return {
+    path: STYLIZED_PACK_PATHS.templeRuins,
+    variants: [...STYLIZED_VARIANTS.templeRuins],
+    heightM: [2, 8],
+  };
+}
+
+/** Concept reference for quality bar (exampleisland.glb). */
+export function exampleHomeIslandPack(): {
+  path: string;
+  trees: string[];
+  rocks: string[];
+  heightM: [number, number];
+} {
+  return {
+    path: STYLIZED_PACK_PATHS.exampleIsland,
+    trees: [...STYLIZED_VARIANTS.exampleTrees],
+    rocks: [...STYLIZED_VARIANTS.exampleRocks],
+    heightM: [6, 14],
   };
 }
 
@@ -539,16 +617,22 @@ export function harvestCrystalPack(): {
  */
 export function scatterPathsForBiome(biome: string): Record<string, string[]> {
   const b = (biome ?? '').toLowerCase();
-  const rocks = [STYLIZED_PACK_PATHS.rocks];
+  const rocks = [STYLIZED_PACK_PATHS.rocks, STYLIZED_PACK_PATHS.templeRuins];
   const flowers = [STYLIZED_PACK_PATHS.flowers];
-  const plants = [STYLIZED_PACK_PATHS.foliage];
+  const plants = [STYLIZED_PACK_PATHS.foliage, STYLIZED_PACK_PATHS.ancientRuins];
+  /** Shared ruins + concept rocks for every biome */
+  const sharedRocks = [
+    STYLIZED_PACK_PATHS.rocks,
+    STYLIZED_PACK_PATHS.templeRuins,
+    STYLIZED_PACK_PATHS.cliff,
+  ];
 
   if (b.includes('snow') || b.includes('winter') || b.includes('frost') || b.includes('frozen')) {
     return {
       tree: [STYLIZED_PACK_PATHS.snow],
       pine: [STYLIZED_PACK_PATHS.snow],
       palm: [],
-      rock: [STYLIZED_PACK_PATHS.snow, STYLIZED_PACK_PATHS.rocks],
+      rock: [STYLIZED_PACK_PATHS.snow, ...sharedRocks],
       flower: flowers,
       plant: plants,
     };
@@ -558,7 +642,12 @@ export function scatterPathsForBiome(biome: string): Record<string, string[]> {
       tree: [STYLIZED_PACK_PATHS.volcanic],
       pine: [STYLIZED_PACK_PATHS.volcanic],
       palm: [],
-      rock: [STYLIZED_PACK_PATHS.rocks, STYLIZED_PACK_PATHS.cliff],
+      rock: [
+        STYLIZED_PACK_PATHS.volcanicRocks,
+        STYLIZED_PACK_PATHS.volcanic,
+        STYLIZED_PACK_PATHS.cliff,
+        STYLIZED_PACK_PATHS.rocks,
+      ],
       flower: flowers,
       plant: plants,
     };
@@ -571,20 +660,24 @@ export function scatterPathsForBiome(biome: string): Record<string, string[]> {
     b.includes('storm')
   ) {
     return {
-      tree: [STYLIZED_PACK_PATHS.tropical],
+      tree: [STYLIZED_PACK_PATHS.tropical, STYLIZED_PACK_PATHS.exampleIsland],
       pine: [],
       palm: [STYLIZED_PACK_PATHS.tropical],
-      rock: rocks,
+      rock: sharedRocks,
       flower: flowers,
-      plant: [STYLIZED_PACK_PATHS.tropical, STYLIZED_PACK_PATHS.foliage],
+      plant: [STYLIZED_PACK_PATHS.tropical, STYLIZED_PACK_PATHS.foliage, STYLIZED_PACK_PATHS.ancientRuins],
     };
   }
-  // mountain / plains / forest / default
+  // mountain / plains / forest — HQ realistic trees + example island concept trees
   return {
-    tree: [STYLIZED_PACK_PATHS.plainsTrees, STYLIZED_PACK_PATHS.vegetation],
-    pine: [STYLIZED_PACK_PATHS.vegetation],
+    tree: [
+      STYLIZED_PACK_PATHS.exampleIsland,
+      STYLIZED_PACK_PATHS.plainsTrees,
+      STYLIZED_PACK_PATHS.vegetation,
+    ],
+    pine: [STYLIZED_PACK_PATHS.vegetation, STYLIZED_PACK_PATHS.exampleIsland],
     palm: [],
-    rock: [STYLIZED_PACK_PATHS.rocks, STYLIZED_PACK_PATHS.cliff],
+    rock: [...sharedRocks, STYLIZED_PACK_PATHS.exampleIsland],
     flower: flowers,
     plant: plants,
   };
@@ -597,19 +690,32 @@ function uniqPaths(paths: string[]): string[] {
 /** Scatter table for generators — stylized only, no square-leaf trees. */
 export const ORGANIZED_NATURE_SCATTER_PATHS: Record<string, string[]> = {
   tree: uniqPaths([
+    STYLIZED_PACK_PATHS.exampleIsland,
     STYLIZED_PACK_PATHS.plainsTrees,
     STYLIZED_PACK_PATHS.vegetation,
   ]),
-  pine: uniqPaths([STYLIZED_PACK_PATHS.vegetation, STYLIZED_PACK_PATHS.snow]),
+  pine: uniqPaths([
+    STYLIZED_PACK_PATHS.vegetation,
+    STYLIZED_PACK_PATHS.snow,
+    STYLIZED_PACK_PATHS.exampleIsland,
+  ]),
   palm: uniqPaths([STYLIZED_PACK_PATHS.tropical]),
   snow: uniqPaths([STYLIZED_PACK_PATHS.snow]),
-  rock: uniqPaths([STYLIZED_PACK_PATHS.rocks]),
-  bush: uniqPaths([STYLIZED_PACK_PATHS.foliage]),
+  rock: uniqPaths([
+    STYLIZED_PACK_PATHS.rocks,
+    STYLIZED_PACK_PATHS.templeRuins,
+    STYLIZED_PACK_PATHS.cliff,
+  ]),
+  bush: uniqPaths([STYLIZED_PACK_PATHS.foliage, STYLIZED_PACK_PATHS.ancientRuins]),
   grass: [],
   mushroom: [],
   flower: uniqPaths([STYLIZED_PACK_PATHS.flowers]),
   fern: uniqPaths([STYLIZED_PACK_PATHS.tropical]),
-  plant: uniqPaths([STYLIZED_PACK_PATHS.foliage, STYLIZED_PACK_PATHS.tropical]),
+  plant: uniqPaths([
+    STYLIZED_PACK_PATHS.foliage,
+    STYLIZED_PACK_PATHS.tropical,
+    STYLIZED_PACK_PATHS.ancientRuins,
+  ]),
 };
 
 export function exportNatureAssetCatalogDoc() {

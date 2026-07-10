@@ -27,7 +27,7 @@ export const ISLAND_RESOURCE_MODELS = {
   gem: crystalPack.path,
   log: '/models/environment/harvest_logs.glb',
   debris: '/models/environment/harvest_rock_debris.glb',
-  goldRock: STYLIZED_PACK_PATHS.minerals,
+  goldRock: STYLIZED_PACK_PATHS.oreNodes,
   stump: '/models/environment/harvest_stump.glb',
   flower: STYLIZED_PACK_PATHS.flowers,
   plant: STYLIZED_PACK_PATHS.foliage,
@@ -76,13 +76,19 @@ export async function preloadIslandResources(): Promise<void> {
 }
 
 const VARIANT_TABLE: Record<IslandResourceType, string[]> = {
-  tree: treePack.variants.length ? treePack.variants : [...STYLIZED_VARIANTS.vegetationTrees],
+  tree: [
+    ...STYLIZED_VARIANTS.exampleTrees,
+    ...(treePack.variants.length ? treePack.variants : [...STYLIZED_VARIANTS.vegetationTrees]),
+  ],
   palm: palmPack.variants.length ? palmPack.variants : [...STYLIZED_VARIANTS.tropicalPalms],
-  rock: rockPack.variants.length ? rockPack.variants : [...STYLIZED_VARIANTS.stylizedRocks],
-  gem: crystalPack.variants.length ? crystalPack.variants : [...STYLIZED_VARIANTS.minerals],
-  goldRock: [...STYLIZED_VARIANTS.minerals],
+  rock: [
+    ...STYLIZED_VARIANTS.stylizedRocks,
+    ...STYLIZED_VARIANTS.templeRuins.slice(0, 6),
+  ],
+  gem: crystalPack.variants.length ? crystalPack.variants : [...STYLIZED_VARIANTS.oreNodes],
+  goldRock: [...STYLIZED_VARIANTS.oreNodes],
   flower: [...STYLIZED_VARIANTS.flowers],
-  plant: [...STYLIZED_VARIANTS.foliage],
+  plant: [...STYLIZED_VARIANTS.foliage, ...STYLIZED_VARIANTS.ancientRuins.slice(0, 8)],
   log: ['Log', 'log', 'Logs', 'Cube', 'Mesh'],
   debris: ['Rock', 'rock', 'Rocks', 'Cube', 'Mesh'],
   stump: [],
