@@ -20,6 +20,14 @@ export {
 export { isFleetAllowedReturnUrl, resolveFleetReturnUrl } from "./authReturn";
 
 export {
+  STEAM_APP_ID,
+  STEAM_DEPOT_WINDOWS,
+  STEAM_URLS,
+  STEAM_FLEET_NOTES,
+  resolveSteamAppId,
+} from "./steam";
+
+export {
   FLEET_GAME_ORIGINS,
   PRODUCTION_DEPLOYMENT_PATH,
   HOME_GAME_MODES,

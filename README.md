@@ -9,7 +9,7 @@ This repo ships the **Grudge Warlords** web game at [grudgewarlords.com](https:/
 ## Live Services
 
 - **Web**: [grudgewarlords.com](https://grudgewarlords.com) — Vercel
-- **Steam**: App ID 1318844 (Partner ID 317409)
+- **Steam**: App ID **2707990** ([store](https://store.steampowered.com/app/2707990/Grudge/)) — depot Windows `2707991` · see `docs/STEAM.md`
 - **Backend API**: [api.grudge-studio.com](https://api.grudge-studio.com/api/health) — Cloudflare Workers
 - **Auth (Grudge ID)**: [id.grudge-studio.com](https://id.grudge-studio.com) — Cloudflare
 - **Account API**: [account.grudge-studio.com](https://account.grudge-studio.com/health) — Cloudflare
