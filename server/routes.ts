@@ -629,9 +629,14 @@ export async function registerRoutes(
       }
 
       const body = { ...(req.body || {}) } as CharacterProgressPayload & Record<string, unknown>;
-      // Strip account-scoped fields if clients send them by mistake
-      delete (body as any).inventory;
-      delete (body as any).resources;
+      // Account bag / resources are NOT character-scoped — hard reject (crafting must use account APIs)
+      if ((body as any).inventory != null || (body as any).resources != null) {
+        return res.status(400).json({
+          error: "Account inventory is not character-scoped",
+          hint: "Use GET/POST/PATCH /api/account/inventory and /api/account/resources for crafting materials. Character PATCH only accepts progress (professions, equipment, attributes, skills).",
+          code: "ACCOUNT_BAG_ON_CHARACTER",
+        });
+      }
 
       const ifMatch = req.get("If-Match") || req.get("X-Progress-Revision");
       if (body.expectedRevision == null && ifMatch != null) {
@@ -718,7 +723,13 @@ export async function registerRoutes(
         return res.status(403).json({ error: "Character does not belong to your account" });
       }
       const body = { ...(req.body || {}) } as CharacterProgressPayload;
-      delete (body as any).inventory;
+      if ((body as any).inventory != null || (body as any).resources != null) {
+        return res.status(400).json({
+          error: "Account inventory is not character-scoped",
+          hint: "Use /api/account/inventory and /api/account/resources for crafting materials",
+          code: "ACCOUNT_BAG_ON_CHARACTER",
+        });
+      }
       const ifMatch = req.get("If-Match") || req.get("X-Progress-Revision");
       if (body.expectedRevision == null && ifMatch != null) {
         const n = Number(String(ifMatch).replace(/"/g, ""));

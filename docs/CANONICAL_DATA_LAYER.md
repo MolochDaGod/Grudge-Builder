@@ -91,13 +91,13 @@ Auth: Grudge ID → dual `sso_token` + `grudge_token` → `grudge-fleet.js` ≥ 
 
 ## Gaps checklist
 
-- [ ] Single character UUID path (Railway) for all fleet games in prod
+- [x] `006` grudge_code + `007` player_ships applied on production DATABASE_URL
+- [x] Ban account mats on character PATCH/progress (`ACCOUNT_BAG_ON_CHARACTER` 400)
+- [x] Dash admin/Accounts → Railway (not api.grudge-studio.com)
+- [x] D1 documented as asset registry only (dash Storage + Assets hub)
+- [ ] Single character UUID path (Railway) for all fleet games in prod (ongoing)
 - [ ] Single asset path truth (R2 key + ObjectStore); D1 index secondary
-- [ ] Ban account mats on character PATCH
-- [ ] `grudge_code` backfill on Railway
-- [ ] Kill remaining `api.grudge-studio.com` admin clients
-- [ ] Keep Puter fleet.js and CDN fleet.js version-aligned
-- [ ] Dash Accounts page uses Railway not dead tunnel
+- [ ] Keep Puter fleet.js and CDN fleet.js version-aligned (deploy on each craft release)
 
 ---
 

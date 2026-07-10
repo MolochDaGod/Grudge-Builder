@@ -27,7 +27,7 @@ npm run check:ownership     # wrangler deny-list (sibling repos)
 |----------------|------------|------------------|--------|-----------|
 | `ai.grudge-studio.com` | `grudge-ai-hub` + UI `GrudaNode/grudge-agent` | CF `grudge-ai-hub` (domain) + `grudge-legion-ai` (`/v1/*`,`/health`) · Vercel `grudge-agent` | `cd grudge-ai-hub && npm run deploy` · `cd GrudaNode/grudge-agent && npx vercel --prod` | ObjectStore `workers/ai` custom domain; studio-backend `cloudflare/workers/ai-hub` routes; ALE attaching `ai.*` |
 | `id.grudge-studio.com` | GrudgeBuilder / id-gateway | CF `grudge-identity-api` or Vercel alias → Railway auth | `cd workers/id-gateway && npx wrangler deploy` + Railway `grudge-api-production` | Split `api.grudge-studio.com` auth; see `docs/ID_SSO_PRODUCTION.md` |
-| Game state API | GrudgeBuilder `server/` | Railway `grudge-api-production-0d46` | Railway auto / `npm run start:production` | D1 as character SSOT |
+| Game state API | GrudgeBuilder `server/` | Railway `grudge-api-production-0d46` | Railway auto / `npm run start:production` | Railway Postgres characters SSOT (D1 = asset registry only) |
 | `objectstore.grudge-studio.com` | ObjectStore | CF Pages + worker | ObjectStore wrangler / Pages | Claiming AI domain |
 | `assets.grudge-studio.com` | GrudgeBuilder `workers/cdn` or ObjectStore CDN worker | CF Worker + R2 | wrangler deploy CDN | — |
 | `browse.grudge-studio.com` | ObjectStore | CF Pages `grudge-objectstore` | `npm run deploy:browse` | Minimal deploy that wipes pages |
