@@ -24,6 +24,7 @@ import { AnimationManager, type AnimState } from '../player/AnimationManager';
 import { RACE_GRUDGE6, defaultModel3d } from '@shared/fleet';
 import { setupGrudge6Equipment } from '@/lib/grudge6Equipment';
 import { applyCharacterColorTints, ensureCharacterTextureColorSpace } from '@/lib/characterAppearance';
+import { fitCharacterRootToHeightM, PLAYER_HEIGHT_M } from '../zoneWorldScale';
 
 // ── Types ────────────────────────────────────────────────────────
 
@@ -70,9 +71,10 @@ interface RemotePlayerInstance {
 // ── Constants ────────────────────────────────────────────────────
 
 const LERP_SPEED = 8;
-const NAMEPLATE_HEIGHT = 4.5;
-const HEALTH_BAR_HEIGHT = 4.0;
-const HEALTH_BAR_WIDTH = 1.5;
+/** Above 2m heroes (was 4.5 — floated above giant T-pose models) */
+const NAMEPLATE_HEIGHT = 2.45;
+const HEALTH_BAR_HEIGHT = 2.2;
+const HEALTH_BAR_WIDTH = 1.2;
 
 /** Soft fallback only — prefer instance.data.equippedWeaponType (from gear). */
 const FREEFORM_DEFAULT_WEAPON: WeaponType = 'sword';
@@ -110,12 +112,13 @@ export class RemotePlayerManager {
 
     // Placeholder capsule while model loads
     const capsule = new THREE.Mesh(
-      new THREE.CapsuleGeometry(0.6, 1.8, 8, 12),
+      new THREE.CapsuleGeometry(0.35, 1.2, 8, 12),
       new THREE.MeshLambertMaterial({
         color: FACTION_COLORS[data.faction] || 0xcccccc,
       }),
     );
-    capsule.position.y = 1.5;
+    // 2m hero: capsule center at ~1m
+    capsule.position.y = 1.0;
     capsule.castShadow = true;
     capsule.name = '__placeholder';
     group.add(capsule);
@@ -249,8 +252,8 @@ export class RemotePlayerManager {
       const loaded = await loadCharacterModel(manifest.modelPath);
       instance.loadedModel = loaded;
 
-      // Scale
-      loaded.scene.scale.setScalar(manifest.scale);
+      // Fit to ~2m × race mult and plant feet on tile (same as local player)
+      fitCharacterRootToHeightM(loaded.scene, manifest.scale || 1, PLAYER_HEIGHT_M);
 
       // Equipment mesh variants first (catalog hides all then shows equipped)
       this.applyEquippedMeshes(loaded.scene, instance.data);

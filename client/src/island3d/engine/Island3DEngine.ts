@@ -814,13 +814,14 @@ export class Island3DEngine {
         gridW: 0,
         gridH: 0,
       };
-      const spawnPos = new THREE.Vector3(entryPoint[0], entryPoint[1] + 3, entryPoint[2]);
+      // Plant on spawn tile (no +3m float — feet sit on board square)
+      const spawnPos = new THREE.Vector3(entryPoint[0], entryPoint[1], entryPoint[2]);
       this.character = new CharacterController3D({
         scene: this.scene,
         camera: this.camera,
         terrainMesh: firstIslandMesh,
         startPosition: spawnPos,
-        physics: { waterLevel: cfg.waterLevel },
+        physics: { waterLevel: cfg.waterLevel, characterHeight: 2.0 },
         callbacks: this.config.physicsCallbacks,
       });
       this.controls.enabled = false;
@@ -1161,15 +1162,16 @@ export class Island3DEngine {
 
     const campPct = this.config.campPositionPercent ?? HOME_ISLAND_DEFAULT_CAMP_PERCENT;
     const campWorld = campPercentToWorld(campPct, HOME_ISLAND_WORLD_SIZE_M);
-    const spawnY = getTerrainHeightAt(this.terrain.terrainMesh, campWorld.x, campWorld.z) ?? 20;
-    const startPos = new THREE.Vector3(campWorld.x, spawnY + 2, campWorld.z);
+    const spawnY = getTerrainHeightAt(this.terrain.terrainMesh, campWorld.x, campWorld.z) ?? 2;
+    // Feet on terrain — model fit plants local feet at 0; no +2m hover
+    const startPos = new THREE.Vector3(campWorld.x, spawnY, campWorld.z);
 
     this.character = new CharacterController3D({
       scene: this.scene,
       camera: this.camera,
       terrainMesh: this.terrain.terrainMesh,
       startPosition: startPos,
-      physics: { waterLevel: PROCEDURAL_WATER_LEVEL },
+      physics: { waterLevel: PROCEDURAL_WATER_LEVEL, characterHeight: 2.0 },
       callbacks: this.config.physicsCallbacks,
     });
 

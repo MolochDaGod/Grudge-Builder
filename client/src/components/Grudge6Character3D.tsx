@@ -105,8 +105,11 @@ export default function Grudge6Character3D({
         resolvedModel3d.armorColor,
       );
 
-      const s = scaleOverride ?? resolvedModel3d.scale ?? race.scale;
-      loaded.scene.scale.set(s, s, s);
+      const { fitCharacterRootToHeightM, PLAYER_HEIGHT_M } = await import(
+        '@/island3d/zoneWorldScale'
+      );
+      const raceMult = scaleOverride ?? resolvedModel3d.scale ?? race.scale ?? 1;
+      fitCharacterRootToHeightM(loaded.scene, raceMult, PLAYER_HEIGHT_M);
       loaded.scene.position.set(position.x, position.y, position.z);
       scene.add(loaded.scene);
 

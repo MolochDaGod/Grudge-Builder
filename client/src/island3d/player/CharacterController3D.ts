@@ -26,6 +26,7 @@ import type { MotionProfile } from '@/lib/animation/explorer/motionMath';
 import { formatMotionLabel } from './combatHudState';
 import type { CombatHudSnapshot } from './combatHudState';
 import type { PlaybackSlot } from '@/lib/animation/animationCatalog';
+import { fitCharacterRootToHeightM, PLAYER_HEIGHT_M } from '../zoneWorldScale';
 import {
   CharacterStateMachine,
   globalStateManager,
@@ -74,7 +75,8 @@ const DEFAULT_PHYSICS: PhysicsConfig = {
   jumpForce: 12,
   doubleJump: false,
   waterLevel: -2,
-  characterHeight: 3.2,
+  /** Match CHARACTER_REFERENCE_HEIGHT_M (2m hero) — was 3.2 and looked giant on the board */
+  characterHeight: 2.0,
   fallDamageThreshold: 18,
   fallDamageScale: 2.5,
   swimStaminaDrain: 5,
@@ -186,7 +188,7 @@ export class CharacterController3D {
   private turnSpeed = 3;
   private velocity = new THREE.Vector3();
   private direction = new THREE.Vector3();
-  private cameraOffset = new THREE.Vector3(0, 15, 25); // over-the-shoulder
+  private cameraOffset = new THREE.Vector3(0, 4.5, 8); // OTS for 2m hero (was 15/25 → god-cam on giants)
 
   // Climb raycast helpers
   private climbRaycaster = new THREE.Raycaster();
@@ -299,9 +301,14 @@ export class CharacterController3D {
         ensureCharacterTextureColorSpace(loaded.scene);
       }
 
-      const scale = resolvedModel3d?.scale ?? modelUnit.scale;
-      this.applyLoadedModel(loaded, scale);
+      // modelUnit.scale is race height mult (1.0 human, 0.85 dwarf…) — fit to 2m world
+      const raceMult = resolvedModel3d?.scale ?? modelUnit.scale ?? 1;
+      this.applyLoadedModel(loaded, raceMult);
+      // Always load Mixamo idle/walk/run — race GLBs are often T-pose with no clips
       await this.reloadWeaponAnimations(weaponType);
+      if (this.animations?.hasClip('idle')) {
+        this.animations.play('idle');
+      }
 
       this.initStateMachine(characterId ?? 'local-player', raceId, classId, weaponType);
     } catch (err) {
@@ -346,8 +353,18 @@ export class CharacterController3D {
     this.weaponType = weaponType;
     if (!this.animations) return;
     const animPaths = buildAnimLoadMap(weaponType) as Partial<Record<AnimState, string>>;
+    // Guarantee locomotion even if weapon set is sparse (stops permanent T-pose)
+    if (!animPaths.idle || !animPaths.walk) {
+      const unarmed = buildAnimLoadMap('unarmed') as Partial<Record<AnimState, string>>;
+      if (!animPaths.idle && unarmed.idle) animPaths.idle = unarmed.idle;
+      if (!animPaths.walk && unarmed.walk) animPaths.walk = unarmed.walk;
+      if (!animPaths.run && unarmed.run) animPaths.run = unarmed.run;
+    }
     if (Object.keys(animPaths).length > 0) {
       await this.animations.loadAnimations(animPaths);
+    }
+    if (this.animations.hasClip('idle')) {
+      this.animations.play('idle');
     }
     if (this.orchestrator) {
       this.orchestrator.dispose();
@@ -465,14 +482,24 @@ export class CharacterController3D {
   async loadModel(path: string): Promise<void> {
     try {
       const loaded = await loadCharacterModel(path);
-      this.applyLoadedModel(loaded, 2);
+      this.applyLoadedModel(loaded, 1);
+      // Default locomotion so non-manifest loads still idle
+      if (this.animations) {
+        const animPaths = buildAnimLoadMap('unarmed') as Partial<Record<AnimState, string>>;
+        if (Object.keys(animPaths).length > 0) {
+          await this.animations.loadAnimations(animPaths);
+        }
+      }
     } catch (err) {
       console.warn('Failed to load character model:', err);
     }
   }
 
-  private applyLoadedModel(loaded: LoadedModel, scale: number): void {
-    loaded.scene.scale.setScalar(scale);
+  /**
+   * Attach GLB under controller root, fit to ~2m × raceMult, plant feet on board/terrain origin.
+   * Always builds AnimationManager (external Mixamo idle loaded via reloadWeaponAnimations).
+   */
+  private applyLoadedModel(loaded: LoadedModel, raceScaleMult: number): void {
     loaded.scene.traverse((child) => {
       if (child instanceof THREE.Mesh) {
         child.castShadow = true;
@@ -480,14 +507,18 @@ export class CharacterController3D {
       }
     });
 
+    // Fit to world meters + center on tile (prevents giant T-pose off-square)
+    fitCharacterRootToHeightM(loaded.scene, raceScaleMult, PLAYER_HEIGHT_M);
+
     while (this.model.children.length) {
       this.model.remove(this.model.children[0]);
     }
     this.model.add(loaded.scene);
     this.loadedModelScene = loaded.scene;
 
+    // Always create mixer — embedded clips optional; Mixamo set fills idle/walk
+    this.animations = new AnimationManager(loaded.scene);
     if (loaded.clips.length > 0) {
-      this.animations = new AnimationManager(loaded.scene);
       loaded.clips.forEach((clip) => {
         const name = clip.name.toLowerCase();
         let state: AnimState = 'idle';
@@ -498,10 +529,12 @@ export class CharacterController3D {
         else if (name.includes('idle')) state = 'idle';
         this.animations!.addClipFromGLTF(state, clip);
       });
-      this.animations.play('idle');
-      this.explorerAnim?.dispose();
-      this.explorerAnim = new ExplorerAnimDriver(this.animations);
     }
+    if (this.animations.hasClip('idle')) {
+      this.animations.play('idle');
+    }
+    this.explorerAnim?.dispose();
+    this.explorerAnim = new ExplorerAnimDriver(this.animations);
   }
 
   // ─── Input ─────────────────────────────────────────────────────────────────
