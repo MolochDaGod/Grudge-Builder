@@ -11,7 +11,7 @@ import {
 } from './homeIslandFoundations';
 import { HOME_ISLAND_WORLD_SIZE_M } from './homeIslandSeed';
 
-export const HOME_ISLAND_SHOWCASE_VERSION = '1.0.0';
+export const HOME_ISLAND_SHOWCASE_VERSION = '1.1.0';
 
 /** Stable public demo seed — never use Date.now() for the default experience. */
 export const SHOWCASE_HOME_ISLAND_SEED = 'driftwood-bay-warlords-v1';
@@ -47,8 +47,8 @@ export const SHOWCASE_DRIFTWOOD_BAY: HomeIslandShowcasePreset = {
   campPositionPercent: { ...DRIFTWOOD_BAY.layout.defaultCampPercent },
   mountainPercent: { ...DRIFTWOOD_BAY.layout.defaultMountainPercent },
   summary:
-    'Warlords Era coastal home island — Driftwood Bay foundation, palm/deciduous ' +
-    'organized nature, 1024 m world, 2 m character scale.',
+    'Warlords Era coastal home — Driftwood Bay foundation, battle NatureDecor trees, ' +
+    'dry-land harvest + fishing-only water nodes, baked three-pathfinding, 1024 m · 2 m hero.',
   quality: 'high',
 };
 
@@ -64,7 +64,8 @@ export const SHOWCASE_IRONFANG: HomeIslandShowcasePreset = {
   campPositionPercent: { ...IRONFANG_SPIRE.layout.defaultCampPercent },
   mountainPercent: { ...IRONFANG_SPIRE.layout.defaultMountainPercent },
   summary:
-    'Warlords Era highland home island — Ironfang Spire foundation, pine/rock dense scatter.',
+    'Warlords Era highland home — Ironfang Spire foundation, pine/rock dense battle nature, ' +
+    'dry-land harvest, baked pathfinding.',
   quality: 'high',
 };
 

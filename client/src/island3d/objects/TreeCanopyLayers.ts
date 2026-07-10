@@ -69,7 +69,7 @@ export async function spawnTreeCanopyLayers(
         const y = getTerrainHeightAt(terrainMesh, x, z);
         if (y == null || y < 1) continue;
 
-        const path = pickBattleNaturePath(rng() > 0.85 ? 'deadTrees' : 'tree', rng);
+        const path = pickBattleNaturePath(rng() > 0.85 ? 'deadTrees' : 'trees', rng);
         try {
           const tree = await cloneFromPackPath(path, []);
           fitModelToHeight(tree, layer.heightM * (0.9 + rng() * 0.25));

@@ -24,6 +24,10 @@ import {
   type HarvestableFlower,
   type HarvestableScrap,
 } from '../objects/HomeIslandNodes';
+import {
+  isValidNodePlacement,
+  type HomeIslandNodeType,
+} from '@shared/definitions/homeIslandNodeRules';
 
 export interface HarvestZoneVisual {
   id: string;
@@ -150,6 +154,7 @@ function spawnHarvestNode(
   slotIndex: number,
   sampleHeight: ((x: number, z: number) => number | null) | undefined,
   hideTreeMesh: boolean,
+  waterLevel: number,
 ): {
   tree?: HarvestableTree;
   rock?: HarvestableRock;
@@ -161,8 +166,19 @@ function spawnHarvestNode(
   const wx = zone.center.x + slot.offsetX;
   const wz = zone.center.z + slot.offsetZ;
   const y = resolveGroundY(zone, slot, sampleHeight);
-  const pos = new THREE.Vector3(wx, y, wz);
 
+  // Land harvest nodes never spawn in water (fishing is separate)
+  if (
+    !isValidNodePlacement({
+      type: slot.type as HomeIslandNodeType,
+      worldY: y,
+      waterLevel,
+    })
+  ) {
+    return {};
+  }
+
+  const pos = new THREE.Vector3(wx, y, wz);
   const nodeId = `${zone.id}_${slot.type}_${slotIndex}`;
 
   switch (slot.type) {
@@ -206,14 +222,27 @@ function spawnHarvestNode(
   }
 }
 
+export interface BuildHarvestZonesOpts {
+  sampleHeight?: (x: number, z: number) => number | null;
+  /** Water Y — reject land nodes below dry clearance */
+  waterLevel?: number;
+}
+
 /**
  * Build all harvest zones into the scene.
  */
 export async function buildHarvestZones(
   scene: THREE.Scene,
   zoneDefs: HarvestZoneDef[],
-  sampleHeight?: (x: number, z: number) => number | null,
+  sampleHeightOrOpts?: ((x: number, z: number) => number | null) | BuildHarvestZonesOpts,
 ): Promise<HarvestZonesResult> {
+  const opts: BuildHarvestZonesOpts =
+    typeof sampleHeightOrOpts === 'function'
+      ? { sampleHeight: sampleHeightOrOpts }
+      : sampleHeightOrOpts ?? {};
+  const sampleHeight = opts.sampleHeight;
+  const waterLevel = opts.waterLevel ?? -2;
+
   const zoneVisuals: HarvestZoneVisual[] = [];
   const forests: InstancedForestZone[] = [];
   const trees: HarvestableTree[] = [];
@@ -234,7 +263,14 @@ export async function buildHarvestZones(
 
     for (let slotIndex = 0; slotIndex < zone.nodes.length; slotIndex++) {
       const slot = zone.nodes[slotIndex];
-      const spawned = spawnHarvestNode(zone, slot, slotIndex, sampleHeight, hideTreeMesh);
+      const spawned = spawnHarvestNode(
+        zone,
+        slot,
+        slotIndex,
+        sampleHeight,
+        hideTreeMesh,
+        waterLevel,
+      );
       if (spawned.tree) {
         scene.add(spawned.tree.group);
         trees.push(spawned.tree);

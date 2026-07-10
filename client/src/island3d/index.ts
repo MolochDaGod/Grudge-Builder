@@ -130,7 +130,7 @@ export type { ActiveEffect } from './player/SkillEffects';
 
 // Navigation
 export { TerrainNavMesh } from './navigation/TerrainNavMesh';
-export type { NavCell, NavPath } from './navigation/TerrainNavMesh';
+export type { NavCell, NavPath, BakedNavSummary, TerrainNavMeshOptions } from './navigation/TerrainNavMesh';
 
 // Sync
 export { capture3DState, apply3DState, to2DNodeStates } from './sync/IslandStateSync';

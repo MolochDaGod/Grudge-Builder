@@ -37,6 +37,11 @@ export const SKETCHFAB_EVIL_MOUNTAIN_TRIAD = {
   /** CDN + local fallback path (combined triad) */
   modelPath: "/models/evil_rock_mountains_triad.glb",
   legacyModelPath: "/models/evil_rock_mountains_cave.glb",
+  /**
+   * Realistic single mountain + cave mouth (JJ) — preferred event mountain on home island.
+   * Uploaded: models/warlords/mountains/rock_mountain_cave_entrance.glb
+   */
+  realisticCavePath: "/models/warlords/mountains/rock_mountain_cave_entrance.glb",
 } as const;
 
 /** Per-peak GLBs split from triad (Mountain2, Mountain1, Mountain3+ladder). */

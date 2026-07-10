@@ -105,7 +105,7 @@ export async function scatterBattleNatureOnTerrain(
   );
 
   const tryPlace = async (
-    kind: 'tree' | 'deadTrees' | 'pines' | 'rocks' | 'bushes' | 'mushrooms',
+    kind: 'trees' | 'deadTrees' | 'pines' | 'rocks' | 'bushes' | 'mushrooms',
     heightM: number,
     scaleJitter: number,
   ): Promise<boolean> => {
@@ -115,7 +115,7 @@ export async function scatterBattleNatureOnTerrain(
     const y = getTerrainHeightAt(terrainMesh, x, z);
     if (y == null || y < 0.5) return false;
     // Prefer mid/high land for trees
-    if ((kind === 'tree' || kind === 'pines' || kind === 'deadTrees') && y < 2.5) return false;
+    if ((kind === 'trees' || kind === 'pines' || kind === 'deadTrees') && y < 2.5) return false;
 
     const path = pickBattleNaturePath(kind, rng);
     try {
@@ -145,7 +145,7 @@ export async function scatterBattleNatureOnTerrain(
         const usePine = rng() > 0.75;
         const useDead = !usePine && rng() > 0.88;
         const ok = await tryPlace(
-          useDead ? 'deadTrees' : usePine ? 'pines' : 'tree',
+          useDead ? 'deadTrees' : usePine ? 'pines' : 'trees',
           usePine ? 9 + rng() * 4 : 6 + rng() * 5,
           0.4,
         );

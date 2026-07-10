@@ -116,12 +116,13 @@ export const BUILD_ASSETS: Record<string, BuildAssetDef> = {
       description: 'Found a faction camp. Same faction = ally; others are enemies. Add benches, storage, towers.',
     },
   },
+  // Camp upgrade ghosts — models overwritten after survival kit register (bench_workbench etc.)
   camp_bench_upgrade: {
     id: 'camp_bench_upgrade',
     name: 'Camp Bench',
     category: 'camp',
     placement: 'prop',
-    modelPath: B('medieval/bench_1.glb'),
+    modelPath: null,
     color: 0x8b6914,
     size: [2, 1, 0.6],
     scale: 1.0,
@@ -136,7 +137,7 @@ export const BUILD_ASSETS: Record<string, BuildAssetDef> = {
     name: 'Camp Storage',
     category: 'camp',
     placement: 'prop',
-    modelPath: B('medieval/chest.glb'),
+    modelPath: null,
     color: 0x654321,
     size: [1.2, 0.8, 0.8],
     scale: 1.0,
@@ -154,7 +155,7 @@ export const BUILD_ASSETS: Record<string, BuildAssetDef> = {
     name: 'Camp Watchtower',
     category: 'camp',
     placement: 'prop',
-    modelPath: B('village/SM_PROP_watchtower_wood_01.glb'),
+    modelPath: null,
     color: 0x7a5c3a,
     size: [3, 8, 3],
     scale: 1.0,
@@ -304,192 +305,7 @@ export const BUILD_ASSETS: Record<string, BuildAssetDef> = {
     cost: [{ itemId: 'wood', quantity: 20 }, { itemId: 'iron', quantity: 8 }, { itemId: 'cloth', quantity: 4 }],
     effect: { type: 'transport', value: 50, description: 'Allies carry +50 items, doubles auto-harvest range' },
   },
-  boat_dock: {
-    id: 'boat_dock', name: 'Boat Dock', category: 'transport',
-    placement: 'prop',
-    modelPath: `${CDN}/models/buildings/survival/free_survival_asset_kit.glb`,
-    nodeName: 'structureBase',
-    buildLayer: 'dock',
-    placeYOffset: 0.2,
-    floating: true,
-    color: 0x5A4A3A, size: [4, 1, 8], scale: 1.0,
-    rotatable: true, requiresFloor: false, terrainPlaceable: true,
-    cost: [{ itemId: 'wood', quantity: 30 }, { itemId: 'rope', quantity: 6 }],
-    effect: {
-      type: 'transport',
-      value: 0,
-      description: 'Dock deck at waterY+0.2 — legs in water, walkable deck dry',
-    },
-  },
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // SURVIVAL KIT — camp / benches / modular (free_survival_asset_kit.glb)
-  // Full SSOT: shared/definitions/survivalKitBuildCatalog.ts
-  // ═══════════════════════════════════════════════════════════════════════════
-
-  camp_tent_frame: {
-    id: 'camp_tent_frame', name: 'Tent Frame (Half)', category: 'camp',
-    placement: 'prop',
-    modelPath: `${CDN}/models/buildings/survival/free_survival_asset_kit.glb`,
-    nodeName: 'tentHalf', buildLayer: 'camp',
-    color: 0x8b6914, size: [3, 2, 3], scale: 1.0,
-    rotatable: true, requiresFloor: false, terrainPlaceable: true,
-    cost: [{ itemId: 'wood', quantity: 6 }, { itemId: 'cloth', quantity: 2 }],
-    effect: { type: 'comfort', value: 5, description: 'Stage 0 camp lean-to' },
-  },
-  camp_tent: {
-    id: 'camp_tent', name: 'Open Tent', category: 'camp',
-    placement: 'prop',
-    modelPath: `${CDN}/models/buildings/survival/free_survival_asset_kit.glb`,
-    nodeName: 'tent', buildLayer: 'camp',
-    color: 0xc4a35a, size: [3.5, 2.2, 3.5], scale: 1.0,
-    rotatable: true, requiresFloor: false, terrainPlaceable: true,
-    cost: [{ itemId: 'wood', quantity: 10 }, { itemId: 'cloth', quantity: 6 }],
-    effect: { type: 'comfort', value: 12, description: 'Stage 1 camp shelter' },
-  },
-  camp_tent_closed: {
-    id: 'camp_tent_closed', name: 'Closed Tent', category: 'camp',
-    placement: 'prop',
-    modelPath: `${CDN}/models/buildings/survival/free_survival_asset_kit.glb`,
-    nodeName: 'tentClosed', buildLayer: 'camp',
-    color: 0xa08040, size: [3.5, 2.2, 3.5], scale: 1.0,
-    rotatable: true, requiresFloor: false, terrainPlaceable: true,
-    cost: [{ itemId: 'wood', quantity: 12 }, { itemId: 'cloth', quantity: 8 }],
-    effect: { type: 'comfort', value: 18, description: 'Stage 2 sealed tent' },
-  },
-  camp_fire_soup: {
-    id: 'camp_fire_soup', name: 'Campfire (Cooking)', category: 'crafting',
-    placement: 'prop',
-    modelPath: `${CDN}/models/buildings/survival/free_survival_asset_kit.glb`,
-    nodeName: 'campfire', buildLayer: 'bench',
-    color: 0xcc4400, size: [1.6, 0.8, 1.6], scale: 1.0,
-    rotatable: false, requiresFloor: false, terrainPlaceable: true,
-    cost: [{ itemId: 'stone', quantity: 6 }, { itemId: 'wood', quantity: 4 }],
-    effect: { type: 'crafting', value: 1, description: 'Cooking bench T0 — soup fire' },
-  },
-  camp_bedroll: {
-    id: 'camp_bedroll', name: 'Sleeping Bag', category: 'furniture',
-    placement: 'prop',
-    modelPath: `${CDN}/models/buildings/survival/free_survival_asset_kit.glb`,
-    nodeName: 'bedroll', buildLayer: 'camp',
-    color: 0x6b4423, size: [1.2, 0.3, 2.2], scale: 1.0,
-    rotatable: true, requiresFloor: false, terrainPlaceable: true,
-    cost: [{ itemId: 'cloth', quantity: 4 }, { itemId: 'fiber', quantity: 2 }],
-    effect: { type: 'respawn', value: 1, description: 'Set save / spawn point' },
-  },
-  bench_workbench: {
-    id: 'bench_workbench', name: 'Workbench (Hammer + Note)', category: 'crafting',
-    placement: 'prop',
-    modelPath: `${CDN}/models/buildings/survival/free_survival_asset_kit.glb`,
-    nodeName: 'workbench', extraNodes: ['hammer', 'paper'], buildLayer: 'bench',
-    color: 0x8b6914, size: [1.8, 1.2, 1.0], scale: 1.0,
-    rotatable: true, requiresFloor: false, terrainPlaceable: true,
-    cost: [{ itemId: 'wood', quantity: 12 }, { itemId: 'iron', quantity: 2 }],
-    effect: { type: 'crafting', value: 1, description: 'General workbench T0' },
-  },
-  bench_anvil_engineer: {
-    id: 'bench_anvil_engineer', name: 'Anvil (Engineer)', category: 'crafting',
-    placement: 'prop',
-    modelPath: `${CDN}/models/buildings/survival/free_survival_asset_kit.glb`,
-    nodeName: 'workbenchAnvil', buildLayer: 'bench',
-    color: 0x555555, size: [1.5, 1.0, 1.0], scale: 1.0,
-    rotatable: true, requiresFloor: false, terrainPlaceable: true,
-    cost: [{ itemId: 'iron', quantity: 16 }, { itemId: 'wood', quantity: 4 }],
-    effect: { type: 'crafting', value: 2, description: 'Engineer / smith anvil' },
-  },
-  bench_grind_miner: {
-    id: 'bench_grind_miner', name: 'Sharpening Wheel (Miner)', category: 'crafting',
-    placement: 'prop',
-    modelPath: `${CDN}/models/buildings/survival/free_survival_asset_kit.glb`,
-    nodeName: 'workbenchGrind', buildLayer: 'bench',
-    color: 0x666666, size: [1.4, 1.4, 0.9], scale: 1.0,
-    rotatable: true, requiresFloor: false, terrainPlaceable: true,
-    cost: [{ itemId: 'stone', quantity: 12 }, { itemId: 'wood', quantity: 6 }, { itemId: 'iron', quantity: 4 }],
-    effect: { type: 'crafting', value: 2, description: 'Miner grindstone / sharpening' },
-  },
-  bench_mystic: {
-    id: 'bench_mystic', name: 'Mystic Spell Table', category: 'crafting',
-    placement: 'prop',
-    modelPath: `${CDN}/models/buildings/benches/spell_table.glb`,
-    buildLayer: 'bench',
-    color: 0x6644aa, size: [2.2, 1.5, 2.2], scale: 0.8,
-    rotatable: true, requiresFloor: false, terrainPlaceable: true,
-    cost: [{ itemId: 'wood', quantity: 20 }, { itemId: 'arcane_dust', quantity: 8 }],
-    effect: { type: 'crafting', value: 3, description: 'Mystic bench — enchant / foci' },
-  },
-  bench_forestry: {
-    id: 'bench_forestry', name: 'Forestry Lumbermill', category: 'crafting',
-    placement: 'prop',
-    modelPath: `${CDN}/models/buildings/benches/lumbermill.glb`,
-    nodeName: 'sawmill', buildLayer: 'bench',
-    color: 0x5a3e1b, size: [6, 4, 5], scale: 0.35,
-    rotatable: true, requiresFloor: false, terrainPlaceable: true,
-    cost: [{ itemId: 'wood', quantity: 40 }, { itemId: 'iron', quantity: 12 }],
-    effect: { type: 'crafting', value: 3, description: 'Forestry bench — planks / beams' },
-  },
-  mod_foundation_float: {
-    id: 'mod_foundation_float', name: 'Floating Foundation', category: 'structure',
-    placement: 'structural',
-    modelPath: `${CDN}/models/buildings/survival/free_survival_asset_kit.glb`,
-    nodeName: 'structureBase', buildLayer: 'modular',
-    placeYOffset: 0.2, floating: true,
-    color: 0x6b5428, size: [4, 0.5, 4], scale: 1.0,
-    rotatable: true, requiresFloor: false, terrainPlaceable: true,
-    cost: [{ itemId: 'wood', quantity: 10 }, { itemId: 'rope', quantity: 2 }],
-    effect: { type: 'foundation', value: 1, description: 'Starter floating foundation (water edge)' },
-  },
-  mod_floor: {
-    id: 'mod_floor', name: 'Wood Floor', category: 'structure',
-    placement: 'structural',
-    modelPath: `${CDN}/models/buildings/survival/free_survival_asset_kit.glb`,
-    nodeName: 'floor', buildLayer: 'modular',
-    color: 0x8b6914, size: [4, 0.25, 4], scale: 1.0,
-    rotatable: true, requiresFloor: false, terrainPlaceable: true,
-    cost: [{ itemId: 'wood', quantity: 8 }],
-    effect: { type: 'foundation', value: 1, description: 'T1 modular floor' },
-  },
-  mod_wall: {
-    id: 'mod_wall', name: 'Wood Wall', category: 'structure',
-    placement: 'structural',
-    modelPath: `${CDN}/models/buildings/survival/free_survival_asset_kit.glb`,
-    nodeName: 'structure', buildLayer: 'modular',
-    color: 0x7a5c3a, size: [4, 3, 0.3], scale: 1.0,
-    rotatable: true, requiresFloor: true, terrainPlaceable: false,
-    cost: [{ itemId: 'wood', quantity: 6 }],
-  },
-  mod_roof: {
-    id: 'mod_roof', name: 'Wood Roof', category: 'structure',
-    placement: 'structural',
-    modelPath: `${CDN}/models/buildings/survival/free_survival_asset_kit.glb`,
-    nodeName: 'structureRoof', buildLayer: 'modular',
-    color: 0x5a3e1b, size: [4, 1.5, 4], scale: 1.0,
-    rotatable: true, requiresFloor: true, terrainPlaceable: false,
-    cost: [{ itemId: 'wood', quantity: 8 }],
-  },
-  tower_medieval_a: {
-    id: 'tower_medieval_a', name: 'Medieval Tower A', category: 'defense',
-    placement: 'prop',
-    modelPath: `${CDN}/models/buildings/towers/3_medieval_towers.glb`,
-    nodeName: 'b1_low', buildLayer: 'rts',
-    color: 0x777777, size: [6, 18, 6], scale: 0.012,
-    rotatable: true, requiresFloor: false, terrainPlaceable: true,
-    cost: [{ itemId: 'stone', quantity: 40 }, { itemId: 'wood', quantity: 20 }],
-    effect: { type: 'defense', value: 60, description: 'Medieval tower from towers pack' },
-  },
-  rts_barracks_t0: {
-    id: 'rts_barracks_t0', name: 'Barracks (T0)', category: 'defense',
-    placement: 'prop',
-    modelPath: `${CDN}/models/buildings/survival/free_survival_asset_kit.glb`,
-    nodeName: 'structure', extraNodes: ['signpost'], buildLayer: 'rts',
-    color: 0x6b4423, size: [8, 4, 8], scale: 1.4,
-    rotatable: true, requiresFloor: false, terrainPlaceable: true,
-    cost: [{ itemId: 'wood', quantity: 60 }, { itemId: 'stone', quantity: 30 }],
-    effect: {
-      type: 'train_unit',
-      value: 1,
-      description: 'Train AI units (T0). Level profession → promote to hero.',
-    },
-  },
+  // boat_dock + survival kit pieces registered from survivalKitBuildCatalog (below)
 
   // ═══════════════════════════════════════════════════════════════════════════
   // FARMING
@@ -542,46 +358,47 @@ export const BUILD_ASSETS: Record<string, BuildAssetDef> = {
   // NATURE / LANDSCAPING
   // ═══════════════════════════════════════════════════════════════════════════
 
-  // Nature props — stylized packs only (no square-leaf island_tree)
+  // Nature props — battle NatureDecor pack ONLY (no stylized multi-pack trees)
   placed_tree: {
-    id: 'placed_tree', name: 'Stylized Tree', category: 'nature',
-    placement: 'prop', modelPath: `${CDN}/models/nature/stylized/biome/nature_vegetation.glb`,
+    id: 'placed_tree', name: 'Common Tree', category: 'nature',
+    placement: 'prop', modelPath: `${CDN}/models/nature/CommonTree_1.gltf`,
     color: 0x2D7A2D, size: [3, 8, 3], scale: 1.0,
     rotatable: false, requiresFloor: false, terrainPlaceable: true,
     cost: [{ itemId: 'sapling', quantity: 1 }],
   },
   placed_pine: {
-    id: 'placed_pine', name: 'Plains Tree', category: 'nature',
-    placement: 'prop', modelPath: `${CDN}/models/nature/stylized/biome/realistic_trees.glb`,
+    id: 'placed_pine', name: 'Pine Tree', category: 'nature',
+    placement: 'prop', modelPath: `${CDN}/models/nature/Pine_1.gltf`,
     color: 0x1B5E20, size: [2.5, 10, 2.5], scale: 1.0,
     rotatable: false, requiresFloor: false, terrainPlaceable: true,
     cost: [{ itemId: 'sapling', quantity: 1 }],
   },
+  // Palm uses CommonTree_5 as battle stand-in (no stylized tropical dump in placeables)
   placed_palm: {
     id: 'placed_palm', name: 'Palm Tree', category: 'nature',
-    placement: 'prop', modelPath: `${CDN}/models/nature/stylized/biome/tropical_plants.glb`,
-    color: 0x2E7D32, size: [3, 10, 3], scale: 1.0,
+    placement: 'prop', modelPath: `${CDN}/models/nature/CommonTree_5.gltf`,
+    color: 0x2E7D32, size: [3, 10, 3], scale: 1.1,
     rotatable: false, requiresFloor: false, terrainPlaceable: true,
     cost: [{ itemId: 'sapling', quantity: 1 }],
   },
   placed_bush: {
-    id: 'placed_bush', name: 'Foliage Plant', category: 'nature',
-    placement: 'prop', modelPath: `${CDN}/models/nature/stylized/harvest/foliage_pack.glb`,
-    color: 0x3D8B37, size: [1.2, 0.8, 1.2], scale: 0.8,
+    id: 'placed_bush', name: 'Bush', category: 'nature',
+    placement: 'prop', modelPath: `${CDN}/models/nature/Bush_Common.gltf`,
+    color: 0x3D8B37, size: [1.2, 0.8, 1.2], scale: 1.0,
     rotatable: true, requiresFloor: false, terrainPlaceable: true,
     cost: [{ itemId: 'herb', quantity: 2 }],
   },
   placed_rock: {
-    id: 'placed_rock', name: 'Stylized Boulder', category: 'nature',
-    placement: 'prop', modelPath: `${CDN}/models/nature/stylized/rocks/stylised_rocks.glb`,
-    color: 0x666666, size: [2.5, 2, 2.5], scale: 1.0,
+    id: 'placed_rock', name: 'Pebble Rock', category: 'nature',
+    placement: 'prop', modelPath: `${CDN}/models/nature/Pebble_Round_1.gltf`,
+    color: 0x666666, size: [1.5, 1, 1.5], scale: 1.5,
     rotatable: true, requiresFloor: false, terrainPlaceable: true,
     cost: [{ itemId: 'stone', quantity: 3 }],
   },
   placed_fern: {
-    id: 'placed_fern', name: 'Tropical Fern', category: 'nature',
-    placement: 'prop', modelPath: `${CDN}/models/nature/stylized/biome/tropical_plants.glb`,
-    color: 0x4CAF50, size: [1, 1.5, 1], scale: 0.7,
+    id: 'placed_fern', name: 'Fern Bush', category: 'nature',
+    placement: 'prop', modelPath: `${CDN}/models/nature/Bush_Common_Flowers.gltf`,
+    color: 0x4CAF50, size: [1, 1.5, 1], scale: 0.85,
     rotatable: true, requiresFloor: false, terrainPlaceable: true,
     cost: [{ itemId: 'herb', quantity: 1 }],
   },
@@ -592,9 +409,11 @@ export const BUILD_ASSETS: Record<string, BuildAssetDef> = {
     rotatable: false, requiresFloor: false, terrainPlaceable: true,
     cost: [{ itemId: 'wood', quantity: 1 }],
   },
+  // Ruins / ore still use stylized multipacks (non-tree) via node extract at place time
   placed_ruins_pillar: {
     id: 'placed_ruins_pillar', name: 'Temple Pillar', category: 'decoration',
     placement: 'prop', modelPath: `${CDN}/models/nature/stylized/ruins/temple_ruins.glb`,
+    nodeName: 'Stone_Pillar',
     color: 0x8B8680, size: [2, 6, 2], scale: 1.0,
     rotatable: true, requiresFloor: false, terrainPlaceable: true,
     cost: [{ itemId: 'stone', quantity: 8 }],
@@ -602,6 +421,7 @@ export const BUILD_ASSETS: Record<string, BuildAssetDef> = {
   placed_ruins_wall: {
     id: 'placed_ruins_wall', name: 'Temple Wall', category: 'decoration',
     placement: 'prop', modelPath: `${CDN}/models/nature/stylized/ruins/temple_ruins.glb`,
+    nodeName: 'Tall_Stone_Wall_Plain',
     color: 0x7A756F, size: [4, 4, 1], scale: 1.0,
     rotatable: true, requiresFloor: false, terrainPlaceable: true,
     cost: [{ itemId: 'stone', quantity: 12 }],
@@ -609,6 +429,7 @@ export const BUILD_ASSETS: Record<string, BuildAssetDef> = {
   placed_ore_node: {
     id: 'placed_ore_node', name: 'Ore Node', category: 'nature',
     placement: 'prop', modelPath: `${CDN}/models/nature/stylized/harvest/ore_nodes.glb`,
+    nodeName: 'Iron_Node',
     color: 0x6B5B4B, size: [2, 1.5, 2], scale: 1.0,
     rotatable: true, requiresFloor: false, terrainPlaceable: true,
     cost: [{ itemId: 'stone', quantity: 4 }],
@@ -633,6 +454,127 @@ export const BUILD_ASSETS: Record<string, BuildAssetDef> = {
     cost: [],
   },
 };
+
+// ── Register survival kit SSOT (single write path — no hand-duplicated entries) ─
+import { ALL_SURVIVAL_BUILD_PIECES } from '@shared/definitions/survivalKitBuildCatalog';
+import type { BuildPieceDef } from '@shared/definitions/buildSystem';
+
+function pieceCategory(p: BuildPieceDef): BuildCategory {
+  switch (p.category) {
+    case 'foundation':
+    case 'wall':
+    case 'floor':
+    case 'roof':
+      return 'structure';
+    case 'tent':
+      return 'camp';
+    case 'sleep':
+      return 'furniture';
+    case 'fire':
+    case 'bench':
+    case 'tool':
+      return 'crafting';
+    case 'storage':
+      return 'storage';
+    case 'fence':
+    case 'tower':
+    case 'rts_building':
+      return 'defense';
+    case 'dock':
+      return 'transport';
+    case 'race_home':
+      return 'camp';
+    default:
+      return 'decoration';
+  }
+}
+
+const LAYER_COLORS: Record<string, number> = {
+  camp: 0xc4a35a,
+  bench: 0x8b6914,
+  modular: 0x6b5428,
+  dock: 0x5a4a3a,
+  rts: 0x555555,
+  race_home: 0x886644,
+};
+
+/** Catalog sourceGlb is `/models/...` → full CDN URL for runtime loaders */
+function resolveCatalogModelPath(sourceGlb: string): string {
+  if (sourceGlb.startsWith('http://') || sourceGlb.startsWith('https://')) {
+    return sourceGlb;
+  }
+  const rel = sourceGlb.startsWith('/') ? sourceGlb : `/${sourceGlb}`;
+  return `${CDN}${rel}`;
+}
+
+function survivalPieceToAsset(p: BuildPieceDef): BuildAssetDef {
+  const nodeName = p.nodeName === 'root' ? undefined : p.nodeName;
+  return {
+    id: p.id,
+    name: p.name,
+    category: pieceCategory(p),
+    placement: p.placement,
+    modelPath: resolveCatalogModelPath(p.sourceGlb),
+    nodeName,
+    extraNodes: p.extraNodes,
+    placeYOffset: p.placeYOffset,
+    floating: p.floating,
+    buildLayer: p.layer,
+    color: LAYER_COLORS[p.layer] ?? 0x888888,
+    size: p.size,
+    scale: p.scale,
+    rotatable: true,
+    requiresFloor: p.requiresFloor,
+    terrainPlaceable: p.terrainPlaceable,
+    cost: p.cost,
+    effect: p.effect
+      ? {
+          type: p.effect.type as NonNullable<BuildAssetDef['effect']>['type'],
+          value: p.effect.value,
+          description: p.effect.description,
+        }
+      : undefined,
+  };
+}
+
+for (const piece of ALL_SURVIVAL_BUILD_PIECES) {
+  BUILD_ASSETS[piece.id] = survivalPieceToAsset(piece);
+}
+
+// Mirror survival pieces onto legacy camp-upgrade manifest ids
+function aliasCampUpgrade(legacyId: string, survivalId: string): void {
+  const src = BUILD_ASSETS[survivalId];
+  const dst = BUILD_ASSETS[legacyId];
+  if (!src || !dst) return;
+  dst.modelPath = src.modelPath;
+  dst.nodeName = src.nodeName;
+  dst.extraNodes = src.extraNodes;
+  dst.scale = src.scale;
+  dst.size = src.size;
+  dst.buildLayer = src.buildLayer;
+  dst.placeYOffset = src.placeYOffset;
+}
+
+aliasCampUpgrade('camp_bench_upgrade', 'bench_workbench');
+aliasCampUpgrade('camp_storage_upgrade', 'mod_chest');
+aliasCampUpgrade('camp_tower_upgrade', 'tower_medieval_a');
+
+// Legacy aliases — BuildModePanel / older saves
+if (BUILD_ASSETS.dock_foundation && !BUILD_ASSETS.boat_dock) {
+  BUILD_ASSETS.boat_dock = {
+    ...BUILD_ASSETS.dock_foundation,
+    id: 'boat_dock',
+    name: 'Boat Dock',
+    category: 'transport',
+  };
+}
+// Fireplace → survival kit campfire (node extract)
+if (BUILD_ASSETS.camp_fire_soup && BUILD_ASSETS.fireplace) {
+  const fp = BUILD_ASSETS.fireplace;
+  fp.modelPath = BUILD_ASSETS.camp_fire_soup.modelPath;
+  fp.nodeName = BUILD_ASSETS.camp_fire_soup.nodeName;
+  fp.buildLayer = 'camp';
+}
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 

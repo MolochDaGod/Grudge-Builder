@@ -22,16 +22,18 @@ import {
   type CampUpgradeKind,
 } from '@shared/definitions/npcCamps';
 import { getBuildAsset } from '../building/BuildAssetManifest';
-import { loadCharacterModel } from '@/lib/modelLoader';
+import { loadBuildAssetModel } from '../building/PackModelLoader';
+import { assetUrl } from '@/lib/assetConfig';
 
 const gltfLoader = new GLTFLoader();
 const campTemplateCache = new Map<string, THREE.Group>();
 
 async function loadCampTemplate(modelPath: string): Promise<THREE.Group> {
-  const cached = campTemplateCache.get(modelPath);
+  const url = assetUrl(modelPath);
+  const cached = campTemplateCache.get(url);
   if (cached) return cached.clone(true) as THREE.Group;
 
-  const gltf = await gltfLoader.loadAsync(modelPath);
+  const gltf = await gltfLoader.loadAsync(url);
   const root = gltf.scene as THREE.Group;
   root.traverse((c) => {
     if ((c as THREE.Mesh).isMesh) {
@@ -39,7 +41,7 @@ async function loadCampTemplate(modelPath: string): Promise<THREE.Group> {
       c.receiveShadow = true;
     }
   });
-  campTemplateCache.set(modelPath, root);
+  campTemplateCache.set(url, root);
   return root.clone(true) as THREE.Group;
 }
 
@@ -260,17 +262,11 @@ export class NpcCampSystem {
     group.userData.upgradeId = up.upgradeId;
     group.userData.kind = up.kind;
 
-    if (asset?.modelPath) {
+    if (asset) {
       try {
-        const loaded = await loadCharacterModel(asset.modelPath);
-        loaded.scene.scale.setScalar(asset.scale);
-        loaded.scene.traverse((c) => {
-          if ((c as THREE.Mesh).isMesh) {
-            c.castShadow = true;
-            c.receiveShadow = true;
-          }
-        });
-        group.add(loaded.scene);
+        // PackModelLoader: multipack node extract (survival kit / towers) or full GLB
+        const mesh = await loadBuildAssetModel(asset);
+        group.add(mesh);
       } catch {
         group.add(this.makeUpgradePlaceholder(up.kind));
       }

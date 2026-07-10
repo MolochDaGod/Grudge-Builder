@@ -15,6 +15,10 @@ import {
   generateRegrowRegions,
   type HomeIslandRegrowRegion,
 } from '@shared/definitions/homeIslandSpec';
+import {
+  isValidNodePlacement,
+  type HomeIslandNodeType,
+} from '@shared/definitions/homeIslandNodeRules';
 
 export type HarvestZoneType =
   | 'forest'
@@ -214,6 +218,8 @@ export interface ProceduralZoneOptions {
   minSpacing?: number;
   spawnClearRadius?: number;
   terrainSize?: number;
+  /** Water surface Y — land harvest zones must sit dry */
+  waterLevel?: number;
   /** Persisted from Railway island state; regenerated from seed when absent */
   regrowRegions?: HomeIslandRegrowRegion[];
 }
@@ -222,9 +228,21 @@ function regrowRegionToZoneDef(
   region: HomeIslandRegrowRegion,
   terrainMesh: THREE.Mesh,
   terrainSize: number,
-): HarvestZoneDef {
+  waterLevel: number,
+): HarvestZoneDef | null {
   const world = anchorPercentToWorld(region.centerPercent, terrainSize);
   const wy = getTerrainHeightAt(terrainMesh, world.x, world.z) ?? 0;
+  // Land harvest anchors must be dry (fishing is not a zone type)
+  if (
+    !isValidNodePlacement({
+      type: 'tree',
+      worldY: wy,
+      waterLevel,
+      biome: 'grass',
+    })
+  ) {
+    return null;
+  }
   const zoneSeed = `regrow_${region.id}`;
   const radius = region.radiusM;
   const clearRadius = Math.min(12, radius * 0.12);
@@ -234,11 +252,23 @@ function regrowRegionToZoneDef(
     const rng = makePrng(`${zoneSeed}_${slot.type}`);
     for (let i = 0; i < slot.count; i++) {
       const angle = (i / slot.count) * Math.PI * 2 + rng() * 0.6;
-      const dist = clearRadius + 4 + rng() * (radius - clearRadius - 6);
+      const dist = clearRadius + 4 + rng() * Math.max(2, radius - clearRadius - 6);
+      const ox = Math.cos(angle) * dist;
+      const oz = Math.sin(angle) * dist;
+      const ny = getTerrainHeightAt(terrainMesh, world.x + ox, world.z + oz) ?? wy;
+      if (
+        !isValidNodePlacement({
+          type: slot.type as HomeIslandNodeType,
+          worldY: ny,
+          waterLevel,
+        })
+      ) {
+        continue;
+      }
       nodes.push({
         type: slot.type,
-        offsetX: Math.cos(angle) * dist,
-        offsetZ: Math.sin(angle) * dist,
+        offsetX: ox,
+        offsetZ: oz,
         scale: 0.9 + rng() * 0.45,
       });
     }
@@ -262,9 +292,12 @@ export function placeRegrowAnchorZones(
   terrainMesh: THREE.Mesh,
   terrainSize: number,
   persisted?: HomeIslandRegrowRegion[],
+  waterLevel = -2,
 ): HarvestZoneDef[] {
   const regions = persisted?.length ? persisted : generateRegrowRegions(seed);
-  return regions.map((r) => regrowRegionToZoneDef(r, terrainMesh, terrainSize));
+  return regions
+    .map((r) => regrowRegionToZoneDef(r, terrainMesh, terrainSize, waterLevel))
+    .filter((z): z is HarvestZoneDef => z != null);
 }
 
 /**
@@ -283,6 +316,7 @@ export function placeProceduralHarvestZones(
     minSpacing = HOME_ISLAND_HARVEST_ZONE_SPACING_M,
     spawnClearRadius = HOME_ISLAND_CAMP_CLEAR_RADIUS_M,
     terrainSize = HOME_ISLAND_WORLD_SIZE_M,
+    waterLevel = -2,
     regrowRegions,
   } = options;
 
@@ -291,6 +325,7 @@ export function placeProceduralHarvestZones(
     terrainMesh,
     terrainSize,
     regrowRegions,
+    waterLevel,
   );
 
   const rng = makePrng(seed + '_harvest_zones');
@@ -314,7 +349,13 @@ export function placeProceduralHarvestZones(
     if (!biomeAllowsZone(biome, zoneType)) continue;
 
     const wy = getTerrainHeightAt(terrainMesh, wx, wz);
-    if (wy === null || wy < -1) continue;
+    // Land harvest zones: never in water (fishing is not a harvest zone type)
+    if (
+      wy === null ||
+      !isValidNodePlacement({ type: 'tree', worldY: wy, waterLevel, biome })
+    ) {
+      continue;
+    }
 
     const radius = 32 + rng() * 28;
     const clearRadius = 6 + rng() * 4;

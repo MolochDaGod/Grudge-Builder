@@ -23,6 +23,7 @@ import type { PhysicsCallbacks, MovementState } from '../player/CharacterControl
 import { EMPTY_COMBAT_HUD, type CombatHudSnapshot } from '../player/combatHudState';
 import { DangerRoomHud } from './DangerRoomHud';
 import { WarlordsPvpLoadscreen } from '@/components/WarlordsPvpLoadscreen';
+import { HomeIslandLoadscreen } from '@/components/HomeIslandLoadscreen';
 import './dangerRoomHud.css';
 
 interface Island3DRendererProps {
@@ -357,6 +358,17 @@ export function Island3DRenderer({
             {mode === 'lobby' ? 'PvP Lobby' : 'Entering Battle'}
           </p>
         </WarlordsPvpLoadscreen>
+      ) : loading && mode === 'procedural' ? (
+        <HomeIslandLoadscreen
+          seed={seed}
+          progress={loadProgress}
+          biome={biome}
+          foundationLabel={
+            biome?.includes('forest') || biome?.includes('winter')
+              ? 'Ironfang Spire'
+              : 'Driftwood Bay'
+          }
+        />
       ) : loading ? (
         <div className="absolute inset-0 flex items-center justify-center bg-gray-900/80 z-10">
           <div className="text-center">
@@ -365,6 +377,9 @@ export function Island3DRenderer({
               {mode === 'zone' ? 'Loading zone...' : 'Generating island terrain...'}
             </p>
             <p className="text-gray-400 text-sm mt-1">Seed: {seed}</p>
+            {loadProgress > 0 && (
+              <p className="text-slate-500 text-xs mt-2 font-mono">{Math.round(loadProgress)}%</p>
+            )}
           </div>
         </div>
       ) : null}

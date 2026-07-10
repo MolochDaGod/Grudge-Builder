@@ -64,16 +64,8 @@ import {
   createEvilMountainTriad,
   EvilMountainTriadSystem,
 } from '../objects/EvilMountainTriad';
-import { InstancedProceduralForest } from '../objects/InstancedProceduralForest';
 import { preloadIslandResources } from '../objects/IslandResourceLoader';
-import { scatterGlbTreesFromNodes } from '../objects/GlbForestScatter';
-import { scatterRtsNatureInScene } from '../objects/RtsNatureScatter';
-import {
-  generateRtsNatureScatter,
-  islandSeedToNumber,
-  resolveNatureScatterPayload,
-  type RtsNatureScatterPayload,
-} from '@shared/definitions/rtsNatureScatter';
+import type { RtsNatureScatterPayload } from '@shared/definitions/rtsNatureScatter';
 import { resolveHomeIslandFoundation } from '@shared/definitions/homeIslandFoundations';
 import { placeProceduralHarvestZones } from '../harvest/HarvestZonePlacer';
 import { buildHarvestZones, type HarvestZonesResult } from '../harvest/HarvestZoneBuilder';
@@ -128,6 +120,8 @@ import {
   type BoardCell,
 } from '../terrain/BoardGrid3D';
 import { scatterBattleNatureOnTerrain } from '../objects/BattleNatureScatter';
+import { MineEntranceSystem } from '../objects/MineEntranceSystem';
+import type { MineLootItem } from '@shared/definitions/homeIslandMines';
 
 export type Island3DMode = 'procedural' | 'lobby' | 'zone';
 
@@ -165,7 +159,10 @@ export interface Island3DEngineConfig {
   mountainTriad?: import('@shared/definitions/homeIslandSeed').MountainTriadSeed;
   /** RTS-Grudge export heightmap — shapes center of 1024m terrain when present */
   rtsHeightmap?: RtsHeightmapPayload;
-  /** RTS NatureScatter foliage placements (200m, CDN GLBs) */
+  /**
+   * @deprecated Home island foliage is battle NatureDecor only (scatterBattleNatureOnTerrain).
+   * Kept for save/API compat; ignored during initProcedural.
+   */
   rtsNatureScatter?: RtsNatureScatterPayload;
   /** Island biome label — resolves Driftwood Bay vs Ironfang Spire */
   biome?: string;
@@ -182,6 +179,8 @@ export interface Island3DEngineConfig {
   /** Account + captain for dock ship roster */
   accountId?: string;
   captainId?: string | null;
+  /** Mine run loot bag (miner / engineer / mystic harvest) */
+  onMineLoot?: (items: MineLootItem[], mineId: string) => void;
   /**
    * Home island: omit Gerstner ocean plane (default true — board play surface).
    * Lobby / zone still use water where appropriate.
@@ -270,9 +269,8 @@ export class Island3DEngine {
   /** Player faction for camp ally/enemy resolution */
   public playerFaction: CampFaction | string = 'crusade';
 
-  // Mountain dungeon triad + instanced forest (procedural home island)
+  // Mountain dungeon triad (procedural home island)
   public mountainTriad: EvilMountainTriadSystem | null = null;
-  public proceduralForest: InstancedProceduralForest | null = null;
   public harvestZones: HarvestZonesResult | null = null;
   /** Board XY labels / lines for hero placement */
   public boardGrid: THREE.Group | null = null;
@@ -280,6 +278,8 @@ export class Island3DEngine {
   public treeCanopyLayers: THREE.Group | null = null;
   /** Last board cell the hero snapped to */
   public spawnBoardCell: BoardCell | null = null;
+  /** Craftpix mines (≥2) + optional event mountain */
+  public mineSystem: MineEntranceSystem | null = null;
 
   // Raycaster for mouse picking
   private raycaster = new THREE.Raycaster();
@@ -680,7 +680,8 @@ export class Island3DEngine {
     }
     progress(32);
 
-    // 3. Harvest zones (forest / rock / gem / hemp / flower / scrap) — single harvest SSOT
+    // 3. Harvest zones (forest / rock / gem / hemp / flower / scrap) — dry land only
+    const waterY = PROCEDURAL_WATER_LEVEL;
     const zoneDefs = placeProceduralHarvestZones(
       this.config.seed,
       this.terrain.terrainMesh,
@@ -692,10 +693,14 @@ export class Island3DEngine {
         minSpacing: HOME_ISLAND_HARVEST_ZONE_SPACING_M,
         spawnClearRadius: foundation.campClearRadiusM ?? HOME_ISLAND_CAMP_CLEAR_RADIUS_M,
         terrainSize: HOME_ISLAND_WORLD_SIZE_M,
+        waterLevel: waterY,
         regrowRegions: this.config.regrowRegions,
       },
     );
-    this.harvestZones = await buildHarvestZones(this.scene, zoneDefs);
+    this.harvestZones = await buildHarvestZones(this.scene, zoneDefs, {
+      sampleHeight: (x, z) => getTerrainHeightAt(this.terrain!.terrainMesh, x, z),
+      waterLevel: waterY,
+    });
     this.trees.push(...this.harvestZones.trees);
     this.rocks.push(...this.harvestZones.rocks);
     this.crystals.push(...this.harvestZones.crystals);
@@ -707,10 +712,11 @@ export class Island3DEngine {
       `${this.harvestZones.trees.length} trees,`,
       `${this.harvestZones.rocks.length} rocks,`,
       `${this.harvestZones.forests.length} instanced forests`,
+      `(nodes dry-land only; fishing separate)`,
     );
     progress(48);
 
-    // 4. Shore/dock only — land harvest lives in zones (no tree/rock double deploy)
+    // 4. Shore dock + fishing only — land harvest lives in zones
     this.placedNodes = placeResourceNodes(
       this.terrain.biomeMap,
       this.terrain.terrainMesh,
@@ -719,8 +725,11 @@ export class Island3DEngine {
       HOME_ISLAND_WORLD_SIZE_M,
       HOME_ISLAND_WORLD_SIZE_M,
       this.config.seed,
-      // excludeTypes — zone system owns primary land harvest
-      ['tree', 'rock', 'crystal', 'hemp', 'flower', 'bush', 'herb'],
+      {
+        waterLevel: waterY,
+        // zone system owns primary land harvest
+        excludeTypes: ['tree', 'rock', 'crystal', 'hemp', 'flower', 'bush', 'herb', 'scrap'],
+      },
     );
 
     // 5. Dock / scrap harvestables only
@@ -767,7 +776,7 @@ export class Island3DEngine {
       this.scene.add(this.boardGrid);
     }
 
-    // 8. NavMesh for allies / wildlife — align cell size with board when possible
+    // 8. Baked navmesh + three-pathfinding (dry walkable only — no water cells)
     this.navMesh = new TerrainNavMesh(
       this.terrain.terrainMesh,
       this.terrain.biomeMap,
@@ -775,8 +784,20 @@ export class Island3DEngine {
       this.terrain.gridH,
       HOME_ISLAND_WORLD_SIZE_M,
       HOME_ISLAND_WORLD_SIZE_M,
-      Math.max(HOME_ISLAND_NAVMESH_CELL_M, HOME_ISLAND_BOARD_CELL_M),
+      {
+        cellSize: Math.max(HOME_ISLAND_NAVMESH_CELL_M, HOME_ISLAND_BOARD_CELL_M),
+        waterLevel: waterY,
+        bakePathfinding: true,
+        zoneId: 'home_island',
+      },
     );
+    const bake = this.navMesh.getBakeSummary();
+    if (bake) {
+      console.log(
+        `[Island3D] Nav bake: pathfinding=${bake.pathfindingReady} walkable=${bake.walkableCells} ` +
+          `groups=${bake.groupCount} cell=${bake.cellSize}m`,
+      );
+    }
     progress(78);
 
     // 9. Ally manager
@@ -817,15 +838,30 @@ export class Island3DEngine {
     });
     progress(90);
 
-    // 13. Evil mountain triad + dungeon portal
+    // 13. Event mountain (JJ cave) + dungeon portal triad
     await this.createMountainDungeon();
+
+    // 14. Craftpix mines (≥2) — enter 4s → loot bag miner/engineer/mystic
+    this.mineSystem = new MineEntranceSystem({
+      scene: this.scene,
+      terrainMesh: this.terrain.terrainMesh,
+      seed: this.config.seed,
+      campX: campWorld.x,
+      campZ: campWorld.z,
+      campClearRadiusM: foundation.campClearRadiusM ?? HOME_ISLAND_CAMP_CLEAR_RADIUS_M,
+      worldSizeM: HOME_ISLAND_WORLD_SIZE_M,
+      placeEventMountain: true,
+      onLoot: (items, mineId) => this.config.onMineLoot?.(items, mineId),
+    });
+    await this.mineSystem.init();
 
     if (this.navMesh) this.creatures.setNavMesh(this.navMesh);
     progress(100);
     console.log(
-      `[Island3D] Home island ready — board ${HOME_ISLAND_BOARD_CELL_M}m cells, harvest+4 canopy layers, ` +
-        `nav ${HOME_ISLAND_NAVMESH_CELL_M}m, ocean=${!noOcean}, wildlife=${wildlifeBiome}`,
+      `[Island3D] Home island ready — board ${HOME_ISLAND_BOARD_CELL_M}m cells, battle nature, ` +
+        `${this.mineSystem.mines.length} mines, baked nav, ocean=${!noOcean}, wildlife=${wildlifeBiome}`,
       this.spawnBoardCell ? `spawn@${this.spawnBoardCell.label}` : '',
+      this.navMesh?.getBakeSummary()?.pathfindingReady ? 'pathfinding=ok' : 'pathfinding=grid-only',
     );
   }
 
@@ -1178,50 +1214,6 @@ export class Island3DEngine {
         }
         // bush, herb, fish — handled by scatter decorations / creatures
       }
-    }
-  }
-
-  private async createProceduralForest(): Promise<void> {
-    if (!this.terrain) return;
-
-    // 1) CDN pack variants from harvest nodes (no megakit, no poly cylinders)
-    const glbForest = await scatterGlbTreesFromNodes(this.placedNodes, 90);
-    if (glbForest.children.length > 0) {
-      this.scene.add(glbForest);
-      console.log(`[Island3D] GLB forest fallback: ${glbForest.children.length} trees`);
-      return;
-    }
-
-    // 2) Regenerated pack scatter at seed positions (still no megakit)
-    const regen = generateRtsNatureScatter(
-      islandSeedToNumber(this.config.seed),
-      this.config.biome ?? 'beach',
-      this.config.rtsHeightmap,
-      HOME_ISLAND_WORLD_SIZE_M,
-      this.config.seed,
-    );
-    const packFoliage = await scatterRtsNatureInScene(regen, this.terrain.terrainMesh);
-    if (packFoliage.children.length > 0) {
-      this.scene.add(packFoliage);
-      console.log(`[Island3D] Regenerated pack scatter: ${packFoliage.children.length}`);
-      return;
-    }
-
-    // NEVER use InstancedProceduralForest (square billboard leaves). Retry stylized scatter once.
-    console.warn('[Island3D] Primary foliage empty — regenerating stylized scatter only (no poly leaves)');
-    const forced = generateRtsNatureScatter(
-      islandSeedToNumber(this.config.seed) + 17,
-      this.config.biome ?? 'beach',
-      this.config.rtsHeightmap,
-      HOME_ISLAND_WORLD_SIZE_M,
-      this.config.seed,
-    );
-    const retry = await scatterRtsNatureInScene(forced, this.terrain.terrainMesh);
-    if (retry.children.length > 0) {
-      this.scene.add(retry);
-      console.log(`[Island3D] Stylized retry scatter: ${retry.children.length}`);
-    } else {
-      console.error('[Island3D] No stylized nature packs loaded — check R2 /models/nature/stylized/*');
     }
   }
 
@@ -1595,6 +1587,16 @@ export class Island3DEngine {
       this.mountainTriad.update(dt, this.character.getPosition());
     }
 
+    // Mines — show prompt, 4s run timer
+    if (this.mineSystem) {
+      const charRoot = this.character?.model ?? null;
+      this.mineSystem.update(
+        dt,
+        this.character ? this.character.getPosition() : null,
+        charRoot,
+      );
+    }
+
     // Zone race capital + dungeon portals
     if (this.zoneCapital) {
       this.zoneCapital.update(dt, this.clock.elapsedTime);
@@ -1605,8 +1607,6 @@ export class Island3DEngine {
 
     if (this.harvestZones && !this.lobbyPlayZone) {
       this.harvestZones.update(dt, this.camera.position);
-    } else if (this.proceduralForest) {
-      this.proceduralForest.update(dt, this.camera.position);
     }
 
     // External update hooks (RemotePlayerManager, TownNPCController, etc.)
@@ -1628,8 +1628,9 @@ export class Island3DEngine {
     this.postProcessing?.resize(width, height);
   }
 
-  /** Press E/F near interactables — dungeon portal, capture point, or ship dock. */
+  /** Press E/F near interactables — mine, dungeon portal, capture point, or ship dock. */
   handleInteractKey(): boolean {
+    if (this.mineSystem?.tryInteract()) return true;
     if (this.mountainTriad?.tryInteract()) return true;
     if (this.zoneDungeonPortals?.tryInteract()) return true;
 

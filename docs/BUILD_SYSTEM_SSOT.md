@@ -2,7 +2,17 @@
 
 **Assets (local):** `D:\Games\Models\`  
 **Catalog code:** `shared/definitions/buildSystem.ts` · `survivalKitBuildCatalog.ts`  
-**Runtime placeables:** `client/src/island3d/building/BuildAssetManifest.ts` (sync from catalog)
+**Runtime placeables:** `client/src/island3d/building/BuildAssetManifest.ts` (sync from catalog — single write path)
+
+| Concern | SSOT | Do not use |
+|---------|------|------------|
+| Build pieces | `ALL_SURVIVAL_BUILD_PIECES` → registered into `BUILD_ASSETS` | Hand-duplicated survival entries in manifest |
+| Camp upgrades | `npcCamps.CAMP_UPGRADES.buildAssetId` → survival ids (`bench_workbench`, `mod_chest`, …) | Loading multipacks via `loadCharacterModel` |
+| Multipack load | `PackModelLoader.loadBuildAssetModel` (nodeName clone) | Full multipack scene as one placeable |
+| Nature trees/rocks | battle NatureDecor (`BattleNatureScatter` / CommonTree) | stylized multi-pack tree dumps / `createProceduralForest` |
+| Node placement | `homeIslandNodeRules` — dry land only; **fishing** may be in water | land nodes in water biome / below water + clearance |
+| Pathfinding | Baked `TerrainNavMesh` + `three-pathfinding` zone `home_island` | walking through water cells |
+| SQL additive | `npm run db:migrate:sql` (004–007) | assuming `apply-sql-migrations` no-ops forever |
 
 Live reference for nature (trees/rocks): battle NatureDecor — separate from buildables.
 

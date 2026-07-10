@@ -90,20 +90,19 @@ export async function preloadIslandResources(): Promise<void> {
   ]);
 }
 
+/**
+ * Named children for multipack GLBs only.
+ * Tree/rock/flower/plant use battle single-mesh GLTFs — empty variants (full clone).
+ * Palm / gem / ore still extract named nodes from stylized multipacks.
+ */
 const VARIANT_TABLE: Record<IslandResourceType, string[]> = {
-  tree: [
-    ...STYLIZED_VARIANTS.exampleTrees,
-    ...(treePack.variants.length ? treePack.variants : [...STYLIZED_VARIANTS.vegetationTrees]),
-  ],
+  tree: [],
   palm: palmPack.variants.length ? palmPack.variants : [...STYLIZED_VARIANTS.tropicalPalms],
-  rock: [
-    ...STYLIZED_VARIANTS.stylizedRocks,
-    ...STYLIZED_VARIANTS.templeRuins.slice(0, 6),
-  ],
+  rock: [],
   gem: crystalPack.variants.length ? crystalPack.variants : [...STYLIZED_VARIANTS.oreNodes],
   goldRock: [...STYLIZED_VARIANTS.oreNodes],
-  flower: [...STYLIZED_VARIANTS.flowers],
-  plant: [...STYLIZED_VARIANTS.foliage, ...STYLIZED_VARIANTS.ancientRuins.slice(0, 8)],
+  flower: [],
+  plant: [],
   log: ['Log', 'log', 'Logs', 'Cube', 'Mesh'],
   debris: ['Rock', 'rock', 'Rocks', 'Cube', 'Mesh'],
   stump: [],

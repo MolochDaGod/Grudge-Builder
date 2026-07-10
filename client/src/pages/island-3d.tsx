@@ -431,7 +431,7 @@ function Island3DPlayPage() {
         </h1>
         {mode === 'procedural' && (
           <span className="text-[10px] text-slate-500 hidden md:inline">
-            1024 m · zones · harvest · nav · ocean · build
+            1024 m · dry harvest · baked nav · battle trees · mines
           </span>
         )}
 
@@ -651,20 +651,34 @@ function Island3DPlayPage() {
         />
 
         {mode === 'procedural' && (
-          <div className="absolute bottom-4 left-4 bg-black/70 backdrop-blur border border-emerald-800/40 rounded-xl px-4 py-3 text-xs text-slate-300 space-y-1 pointer-events-none max-w-sm">
-            <div className="text-emerald-400 font-bold uppercase tracking-widest text-[10px]">
-              Generative Home Island
+          <div className="absolute bottom-4 left-4 z-20 bg-black/75 backdrop-blur-md border border-emerald-700/40 rounded-2xl px-4 py-3.5 text-xs text-slate-300 space-y-1.5 pointer-events-none max-w-sm shadow-2xl shadow-emerald-950/40">
+            <div className="flex items-center gap-2">
+              <span className="text-emerald-400 font-bold uppercase tracking-[0.2em] text-[10px]">
+                Generative Home Island
+              </span>
+              <span className="ml-auto text-[9px] px-1.5 py-0.5 rounded bg-emerald-950/80 text-emerald-300/90 border border-emerald-800/50">
+                LIVE PREVIEW
+              </span>
             </div>
-            <div className="font-semibold text-white">{preset.label} foundation</div>
+            <div className="font-semibold text-white text-sm">{preset.label}</div>
             <div className="text-slate-400 leading-relaxed">
-              Full pipeline: terrain · ocean depth · harvest zones · organized nature ·
-              navmesh · wildlife · mountain dungeon · build camp
+              What your Warlords home will feel like: dry-land harvest nodes, fishing only
+              in water, battle NatureDecor trees, baked three.js pathfinding, craftpix mines,
+              mountain dungeon, camp build.
             </div>
-            <div className="text-slate-500 pt-1 font-mono text-[10px]">
-              seed={seed} · biome={biome} · {preset.worldSizeM}m · char 2m
+            <div className="grid grid-cols-2 gap-x-3 gap-y-0.5 text-[10px] text-slate-500 pt-1">
+              <span>Terrain 1024 m board</span>
+              <span>Nodes on land only</span>
+              <span>Navmesh pathfinding</span>
+              <span>4 tree canopy layers</span>
+              <span>Mines 4s harvest bag</span>
+              <span>Character 2 m scale</span>
             </div>
-            <div className="text-slate-500">
-              HUD: Combat · Harvest · Build · WASD · Space · Click nodes
+            <div className="text-slate-500 pt-0.5 font-mono text-[10px] truncate">
+              seed={seed} · {biome}
+            </div>
+            <div className="text-emerald-600/90 text-[10px]">
+              WASD move · Space jump · Click harvest · Build HUD · P panel
             </div>
           </div>
         )}

@@ -99,12 +99,16 @@ export interface CampUpgradeDef {
   };
 }
 
+/**
+ * Upgrade → BuildAssetManifest id.
+ * Prefer survival-kit SSOT pieces (nodeName multipack) over medieval single-mesh aliases.
+ */
 export const CAMP_UPGRADES: Record<string, CampUpgradeDef> = {
   camp_bench: {
     id: 'camp_bench',
     kind: 'bench',
     label: 'Camp Bench',
-    buildAssetId: 'bench_1',
+    buildAssetId: 'bench_workbench',
     slotOffsets: [
       [3, 0, 2],
       [-3, 0, 2],
@@ -118,7 +122,7 @@ export const CAMP_UPGRADES: Record<string, CampUpgradeDef> = {
     id: 'camp_storage',
     kind: 'storage',
     label: 'Camp Storage',
-    buildAssetId: 'chest',
+    buildAssetId: 'mod_chest',
     slotOffsets: [
       [4, 0, -1],
       [-4, 0, -1],
@@ -134,7 +138,7 @@ export const CAMP_UPGRADES: Record<string, CampUpgradeDef> = {
     id: 'camp_tower',
     kind: 'tower',
     label: 'Camp Watchtower',
-    buildAssetId: 'watchtower',
+    buildAssetId: 'tower_medieval_a',
     slotOffsets: [
       [6, 0, 6],
       [-6, 0, 6],
@@ -165,7 +169,7 @@ export const CAMP_UPGRADES: Record<string, CampUpgradeDef> = {
     id: 'camp_fire',
     kind: 'fire',
     label: 'Campfire',
-    buildAssetId: 'fireplace',
+    buildAssetId: 'camp_fire_soup',
     slotOffsets: [[1.5, 0, 0]],
     maxPerCamp: 1,
     cost: [{ itemId: 'wood', quantity: 3 }],
