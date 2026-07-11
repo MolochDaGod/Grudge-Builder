@@ -648,6 +648,18 @@ export function registerAuthRoutes(app: Express) {
   };
   app.get("/grudge-auth-modal.js", serveEmbedAsset("grudge-auth-modal.js", "javascript"));
   app.get("/grudge-auth-modal.css", serveEmbedAsset("grudge-auth-modal.css", "css"));
+  // Fleet modular login (redirect / popup / modal) — same file as client/public bootstrap
+  app.get("/grudge-game-bootstrap.js", (req: Request, res: Response) => {
+    const candidates = [
+      path.join(process.cwd(), "client", "public", "grudge-game-bootstrap.js"),
+      path.join(process.cwd(), "server", "templates", "grudge-game-bootstrap.js"),
+      path.join(process.cwd(), "dist", "templates", "grudge-game-bootstrap.js"),
+    ];
+    const assetPath = candidates.find((p) => fs.existsSync(p));
+    if (!assetPath) return res.status(404).end();
+    res.setHeader("Cache-Control", "public, max-age=300");
+    res.type("javascript").sendFile(assetPath);
+  });
 
   // ── Rate-limit middleware for auth routes ────────────────────────────
   const authRateLimit = (req: Request, res: Response, next: Function) => {

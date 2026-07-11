@@ -191,16 +191,70 @@
   function onAuthSuccess(data, msg) {
     closeGrudgeAuthModal();
     toast(msg || 'Signed in!');
-    // Build the SSO callback redirect URL with all three params
     var token = data.sessionToken || data.token || '';
     var gid = data.grudgeId || '';
     var uname = data.username || '';
-    var callbackUrl = '/auth/callback'
-      + '?sso_token=' + encodeURIComponent(token)
-      + '&grudge_id=' + encodeURIComponent(gid)
-      + '&grudge_username=' + encodeURIComponent(uname);
-    // Redirect through the SSO callback — pickupSsoToken() handles storage
-    setTimeout(function () { window.location.href = callbackUrl; }, 200);
+
+    // Prefer fleet bootstrap store (all token keys + events)
+    if (window.GrudgeAuth && typeof window.GrudgeAuth.storeToken === 'function' && token) {
+      window.GrudgeAuth.storeToken(token, gid, uname);
+    } else if (token) {
+      try {
+        localStorage.setItem(TK, token);
+        localStorage.setItem('grudge_session_token', token);
+        localStorage.setItem('sso_token', token);
+        if (gid) {
+          localStorage.setItem(GID, gid);
+          localStorage.setItem('grudge_account_id', gid);
+        }
+        if (uname) localStorage.setItem(UNAME, uname);
+      } catch (_) {}
+    }
+
+    window.dispatchEvent(new CustomEvent('grudge:auth:success', { detail: data }));
+    window.dispatchEvent(new CustomEvent('grudge:auth:ready', { detail: { token: token } }));
+
+    // Return to originating page (configured by GrudgeAuth.modal / GRUDGE_AUTH_RETURN)
+    var ret =
+      AUTH_RETURN ||
+      window.GRUDGE_AUTH_RETURN ||
+      (window.GrudgeAuth && window.GrudgeAuth.currentReturnUrl
+        ? window.GrudgeAuth.currentReturnUrl()
+        : null) ||
+      (window.location.origin + window.location.pathname + window.location.search);
+
+    // Stay on same page if return is here — just fire events (no full reload required)
+    try {
+      var retUrl = new URL(ret, window.location.origin);
+      if (retUrl.origin === window.location.origin &&
+          retUrl.pathname === window.location.pathname) {
+        // Optional soft reload so apps re-read auth state
+        setTimeout(function () {
+          window.dispatchEvent(new CustomEvent('grudge:auth:ready', { detail: { token: token, modal: true } }));
+        }, 50);
+        return;
+      }
+    } catch (_) {}
+
+    // Cross-path return: append tokens for bootstrap pickup
+    try {
+      var u = new URL(ret, window.location.origin);
+      if (token) {
+        u.searchParams.set('sso_token', token);
+        u.searchParams.set('token', token);
+      }
+      if (gid) {
+        u.searchParams.set('grudge_id', gid);
+        u.searchParams.set('grudgeId', gid);
+      }
+      if (uname) {
+        u.searchParams.set('username', uname);
+        u.searchParams.set('grudge_username', uname);
+      }
+      setTimeout(function () { window.location.href = u.toString(); }, 150);
+    } catch (_) {
+      setTimeout(function () { window.location.href = ret; }, 150);
+    }
   }
 
   // ── Puter ID linker (runs silently after every auth) ───────────────
