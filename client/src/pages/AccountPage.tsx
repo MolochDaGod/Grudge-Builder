@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import {
   User, Wallet, Shield, Copy, Sparkles, LogOut, ChevronRight, Swords,
-  Crown, Hammer, Pickaxe, Leaf, Map, Zap, Play,
+  Crown, Hammer, Pickaxe, Leaf, Map, Zap, Play, MessageCircle,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAccount } from "@/hooks/use-account";
@@ -173,6 +173,26 @@ export default function AccountPage() {
                     </Button>
                   )}
                 </div>
+
+                {/* Treaty — account social SSOT */}
+                <Link href="/treaty">
+                  <div className="flex items-center justify-between bg-black/30 p-3 rounded-lg border border-amber-900/30 hover:border-amber-700/50 transition-colors cursor-pointer group">
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-lg bg-amber-950/50 border border-amber-900/40 flex items-center justify-center">
+                        <MessageCircle className="h-4 w-4 text-amber-400" />
+                      </div>
+                      <div>
+                        <div className="text-sm font-medium text-amber-200 group-hover:text-amber-100">
+                          Treaty
+                        </div>
+                        <div className="text-xs text-slate-500">
+                          Friends, DMs &amp; groups on this Grudge ID
+                        </div>
+                      </div>
+                    </div>
+                    <ChevronRight className="h-4 w-4 text-slate-500 group-hover:text-amber-400" />
+                  </div>
+                </Link>
 
                 {/* Username */}
                 <div className="flex items-center justify-between bg-black/30 p-3 rounded-lg border border-slate-800">

@@ -24,7 +24,7 @@ const HIDDEN_PREFIXES = [
 ];
 
 /** Explicit show-list for game surfaces that need wallet (overrides future hide mistakes). */
-const FORCE_SHOW = new Set(["/war-scene", "/medieval-battle"]);
+const FORCE_SHOW = new Set(["/war-scene", "/medieval-battle", "/treaty"]);
 
 export function shouldShowGrudgeToken(pathname: string): boolean {
   const path = pathname.split("?")[0] || pathname;

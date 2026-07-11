@@ -1,5 +1,6 @@
 /**
- * Treaty Chat routes — friends list + 1:1 DMs between Grudge accounts.
+ * Treaty Chat routes — friends, 1:1 DMs, and groups between Grudge accounts.
+ * Account-scoped (Grudge ID social SSOT on Railway Postgres).
  */
 import type { Express, Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
@@ -13,6 +14,13 @@ import {
   getThreadMessages,
   sendDmMessage,
   countUnreadTreatyMessages,
+  createTreatyGroup,
+  listTreatyGroups,
+  getTreatyGroupDetail,
+  inviteToTreatyGroup,
+  leaveTreatyGroup,
+  getGroupMessages,
+  sendGroupMessage,
 } from "../services/treatyChat";
 
 const JWT_SECRET = process.env.SESSION_SECRET || process.env.JWT_SECRET || "grudge-dev-secret";
@@ -158,7 +166,112 @@ export function registerTreatyRoutes(app: Express): void {
     }
   });
 
+  // ── Groups ────────────────────────────────────────────────────────────
+
+  app.get("/api/treaty/groups", requireAuth, async (req, res) => {
+    try {
+      const account = await requireAccount(req, res);
+      if (!account) return;
+      const groups = await listTreatyGroups(account.id);
+      res.json({ groups });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message || "Failed to list groups" });
+    }
+  });
+
+  app.post("/api/treaty/groups", requireAuth, async (req, res) => {
+    try {
+      const account = await requireAccount(req, res);
+      if (!account) return;
+      const { name, description, members } = req.body as {
+        name?: string;
+        description?: string;
+        members?: string[];
+      };
+      if (!name?.trim()) {
+        res.status(400).json({ error: "name required" });
+        return;
+      }
+      const result = await createTreatyGroup(
+        account.id,
+        name,
+        description,
+        Array.isArray(members) ? members : [],
+      );
+      res.json(result);
+    } catch (e: any) {
+      res.status(400).json({ error: e.message || "Failed to create group" });
+    }
+  });
+
+  app.get("/api/treaty/groups/:id", requireAuth, async (req, res) => {
+    try {
+      const account = await requireAccount(req, res);
+      if (!account) return;
+      const detail = await getTreatyGroupDetail(account.id, req.params.id);
+      res.json(detail);
+    } catch (e: any) {
+      res.status(400).json({ error: e.message || "Failed to load group" });
+    }
+  });
+
+  app.post("/api/treaty/groups/:id/invite", requireAuth, async (req, res) => {
+    try {
+      const account = await requireAccount(req, res);
+      if (!account) return;
+      const { query } = req.body as { query?: string };
+      if (!query?.trim()) {
+        res.status(400).json({ error: "query required (Grudge ID or display name)" });
+        return;
+      }
+      const result = await inviteToTreatyGroup(account.id, req.params.id, query);
+      res.json(result);
+    } catch (e: any) {
+      res.status(400).json({ error: e.message || "Failed to invite" });
+    }
+  });
+
+  app.post("/api/treaty/groups/:id/leave", requireAuth, async (req, res) => {
+    try {
+      const account = await requireAccount(req, res);
+      if (!account) return;
+      const result = await leaveTreatyGroup(account.id, req.params.id);
+      res.json(result);
+    } catch (e: any) {
+      res.status(400).json({ error: e.message || "Failed to leave group" });
+    }
+  });
+
+  app.get("/api/treaty/groups/:id/messages", requireAuth, async (req, res) => {
+    try {
+      const account = await requireAccount(req, res);
+      if (!account) return;
+      const messages = await getGroupMessages(account.id, req.params.id);
+      res.json({ messages });
+    } catch (e: any) {
+      res.status(400).json({ error: e.message || "Failed to load messages" });
+    }
+  });
+
+  app.post("/api/treaty/groups/:id/messages", requireAuth, async (req, res) => {
+    try {
+      const account = await requireAccount(req, res);
+      if (!account) return;
+      const { content } = req.body as { content?: string };
+      if (!content?.trim()) {
+        res.status(400).json({ error: "content required" });
+        return;
+      }
+      const message = await sendGroupMessage(account.id, req.params.id, content);
+      res.json({ message });
+    } catch (e: any) {
+      res.status(400).json({ error: e.message || "Failed to send message" });
+    }
+  });
+
   console.log(
-    "[Treaty] Routes: GET /api/treaty/{social,unread,dm/threads}; POST /friends/{request,:id/respond}, /dm/threads{,:id/messages}",
+    "[Treaty] Routes: GET /api/treaty/{social,unread,dm/threads,groups}; " +
+      "POST /friends/{request,:id/respond}, /dm/threads{,:id/messages}, " +
+      "/groups{,:id/invite,:id/leave,:id/messages}",
   );
 }

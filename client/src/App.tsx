@@ -39,6 +39,7 @@ import WorldMapPage from "@/pages/world-map";
 import MissionBoardPage from "@/pages/mission-board";
 import WalletPage from "@/pages/WalletPage";
 import AccountPage from "@/pages/AccountPage";
+import TreatyPage from "@/pages/TreatyPage";
 import AIHelperGenerator from "@/pages/ai-helper-generator";
 import AdminMapPage from "@/pages/admin-map";
 import RaceSpriteGeneratorPage from "@/pages/race-sprite-generator";
@@ -124,6 +125,7 @@ function Router() {
       <Route path="/missions" component={MissionBoardPage} />
       <Route path="/wallet" component={WalletPage} />
       <Route path="/account" component={AccountPage} />
+      <Route path="/treaty" component={TreatyPage} />
       <Route path="/ai-helper" component={AIHelperGenerator} />
       <Route path="/admin-map" component={AdminMapPage} />
       <Route path="/race-sprites" component={RaceSpriteGeneratorPage} />

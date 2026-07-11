@@ -199,5 +199,45 @@ await client.query(`
   );
 `);
 
+console.log("[ensure-auth-schema] Bootstrapping treaty group tables...");
+
+await client.query(`
+  CREATE TABLE IF NOT EXISTS treaty_groups (
+    id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
+    name TEXT NOT NULL,
+    description TEXT,
+    owner_account_id VARCHAR NOT NULL,
+    avatar_url TEXT,
+    created_at BIGINT NOT NULL DEFAULT (extract(epoch from now()) * 1000)::bigint,
+    updated_at BIGINT NOT NULL DEFAULT (extract(epoch from now()) * 1000)::bigint
+  );
+`);
+
+await client.query(`
+  CREATE TABLE IF NOT EXISTS treaty_group_members (
+    id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
+    group_id VARCHAR NOT NULL,
+    account_id VARCHAR NOT NULL,
+    role TEXT NOT NULL DEFAULT 'member',
+    joined_at BIGINT NOT NULL DEFAULT (extract(epoch from now()) * 1000)::bigint,
+    last_read_at BIGINT
+  );
+`);
+
+await client.query(`
+  CREATE TABLE IF NOT EXISTS treaty_group_messages (
+    id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
+    group_id VARCHAR NOT NULL,
+    sender_account_id VARCHAR NOT NULL,
+    content TEXT NOT NULL,
+    created_at BIGINT NOT NULL DEFAULT (extract(epoch from now()) * 1000)::bigint
+  );
+`);
+
+await client.query(`
+  CREATE UNIQUE INDEX IF NOT EXISTS treaty_group_members_group_account_uidx
+    ON treaty_group_members (group_id, account_id)
+`).catch(() => {});
+
 await client.end();
 console.log("[ensure-auth-schema] Done");

@@ -1320,9 +1320,43 @@ export const treatyMessages = pgTable("treaty_messages", {
   createdAt: bigint("created_at", { mode: "number" }).notNull().default(sql`extract(epoch from now()) * 1000`),
 });
 
+/** Group chats — account-scoped (Grudge ID), not character-scoped. */
+export const TREATY_GROUP_ROLES = ["owner", "admin", "member"] as const;
+export type TreatyGroupRole = (typeof TREATY_GROUP_ROLES)[number];
+
+export const treatyGroups = pgTable("treaty_groups", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  description: text("description"),
+  ownerAccountId: varchar("owner_account_id").notNull(),
+  avatarUrl: text("avatar_url"),
+  createdAt: bigint("created_at", { mode: "number" }).notNull().default(sql`extract(epoch from now()) * 1000`),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull().default(sql`extract(epoch from now()) * 1000`),
+});
+
+export const treatyGroupMembers = pgTable("treaty_group_members", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  groupId: varchar("group_id").notNull(),
+  accountId: varchar("account_id").notNull(),
+  role: text("role").notNull().$type<TreatyGroupRole>().default("member"),
+  joinedAt: bigint("joined_at", { mode: "number" }).notNull().default(sql`extract(epoch from now()) * 1000`),
+  lastReadAt: bigint("last_read_at", { mode: "number" }),
+});
+
+export const treatyGroupMessages = pgTable("treaty_group_messages", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  groupId: varchar("group_id").notNull(),
+  senderAccountId: varchar("sender_account_id").notNull(),
+  content: text("content").notNull(),
+  createdAt: bigint("created_at", { mode: "number" }).notNull().default(sql`extract(epoch from now()) * 1000`),
+});
+
 export type TreatyFriend = typeof treatyFriends.$inferSelect;
 export type TreatyDmThread = typeof treatyDmThreads.$inferSelect;
 export type TreatyMessage = typeof treatyMessages.$inferSelect;
+export type TreatyGroup = typeof treatyGroups.$inferSelect;
+export type TreatyGroupMember = typeof treatyGroupMembers.$inferSelect;
+export type TreatyGroupMessage = typeof treatyGroupMessages.$inferSelect;
 
 // ============================================
 // UUID LEDGER SYSTEM

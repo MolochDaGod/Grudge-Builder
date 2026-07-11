@@ -2,8 +2,9 @@
  * Grudge Fleet Bridge — vanilla JS auth + character sync for Puter/external apps.
  * Mirrors GrudgeAccountSDK + wireGrudgeFleet from grudge-builder.
  *
- * @version 2.5.2
+ * @version 2.6.0
  * Character progress SSOT + account inventory/resources on Railway only (same DB as Warlords).
+ * Treaty chat (friends / DMs / groups) is Grudge ID account social on Railway /api/treaty/*.
  * Sign-in defaults to Grudge ID (id.grudge-studio.com) so Puter sites load the REAL
  * Warlords roster — never a synthetic empty puter:* account as the primary login path.
  * SSO handoff: prefer sso_token (full JWT) over grudge_token bridge so puter.site
@@ -23,6 +24,8 @@
     wcs: CFG.WCS_URL || 'https://wcs.grudge-studio.com',
     crafting: CFG.CRAFTING_URL || 'https://grudge-crafting.puter.site',
     vfxStudio: CFG.VFX_STUDIO_URL || 'https://vfx-studio-sigma.vercel.app',
+    /** Full Treaty app (Warlords / client shell) */
+    treaty: CFG.TREATY_URL || 'https://grudgewarlords.com/treaty',
     gamesLibrary: (CFG.OBJECTSTORE_URL || 'https://objectstore.grudge-studio.com/api/v1') + '/games-library.json',
   };
 
@@ -1136,6 +1139,82 @@
         }
       }
       return professions;
+    },
+
+    /**
+     * Treaty — Grudge ID account social (friends, DMs, groups).
+     * Account-scoped; never character-scoped. Railway Postgres SSOT.
+     */
+    async treatyFetch(path, init) {
+      if (!readToken()) throw new Error('Sign in required for Treaty');
+      const res = await fleetFetch(FLEET.gameData + '/api/treaty' + path, {
+        ...init,
+        headers: { ...authHeaders(), ...(init && init.headers) || {} },
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Treaty request failed (' + res.status + ')');
+      return data;
+    },
+
+    getTreatySocial() {
+      return fleet.treatyFetch('/social');
+    },
+
+    getTreatyDmThreads() {
+      return fleet.treatyFetch('/dm/threads');
+    },
+
+    getTreatyGroups() {
+      return fleet.treatyFetch('/groups');
+    },
+
+    getTreatyUnread() {
+      return fleet.treatyFetch('/unread');
+    },
+
+    sendTreatyFriendRequest(query) {
+      return fleet.treatyFetch('/friends/request', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query: String(query || '').trim() }),
+      });
+    },
+
+    sendTreatyDm(threadId, content) {
+      return fleet.treatyFetch('/dm/threads/' + encodeURIComponent(threadId) + '/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: String(content || '') }),
+      });
+    },
+
+    sendTreatyGroupMessage(groupId, content) {
+      return fleet.treatyFetch('/groups/' + encodeURIComponent(groupId) + '/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: String(content || '') }),
+      });
+    },
+
+    createTreatyGroup(name, members) {
+      return fleet.treatyFetch('/groups', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: String(name || '').trim(),
+          members: Array.isArray(members) ? members : [],
+        }),
+      });
+    },
+
+    /** Open full Treaty app with SSO handoff when possible. */
+    openTreaty(opts) {
+      opts = opts || {};
+      const url = fleet.buildSSOUrl(FLEET.treaty, opts);
+      if (typeof window !== 'undefined') {
+        window.open(url, opts.target || '_blank', 'noopener');
+      }
+      return url;
     },
 
     logout() {

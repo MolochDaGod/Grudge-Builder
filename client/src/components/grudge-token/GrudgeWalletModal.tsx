@@ -132,7 +132,7 @@ export function GrudgeWalletModal({ open, onOpenChange }: GrudgeWalletModalProps
             Grudge Wallet
           </DialogTitle>
           <DialogDescription className="text-slate-400">
-            Balances, cNFTs, swaps, Treaty chat (friends &amp; DMs), and linked wallets.
+            Balances, cNFTs, swaps, Treaty chat (friends, DMs &amp; groups), and linked wallets.
           </DialogDescription>
         </DialogHeader>
 
@@ -381,7 +381,15 @@ export function GrudgeWalletModal({ open, onOpenChange }: GrudgeWalletModalProps
               )}
             </TabsContent>
 
-            <TabsContent value="treaty" className="mt-4">
+            <TabsContent value="treaty" className="mt-4 space-y-2">
+              <div className="flex justify-end">
+                <a
+                  href="/treaty"
+                  className="text-xs text-amber-500/90 hover:text-amber-400 underline-offset-2 hover:underline"
+                >
+                  Open full Treaty app →
+                </a>
+              </div>
               <TreatyChatPanel active={open && activeTab === "treaty"} />
             </TabsContent>
 

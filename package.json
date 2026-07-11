@@ -24,6 +24,7 @@
     "db:migrate:sql": "node scripts/apply-sql-migrations.mjs",
     "db:migrate:006": "node scripts/run-migration-006.mjs",
     "db:migrate:007": "node scripts/run-migration-007.mjs",
+    "db:migrate:008": "node scripts/run-migration-008.mjs",
     "db:fix:characters-user-id": "node scripts/fix-characters-user-id.mjs",
     "db:fix:characters-schema": "node scripts/fix-characters-full-schema.mjs",
     "smoke:gcs-eras": "node scripts/smoke-gcs-eras.mjs",

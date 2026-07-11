@@ -244,6 +244,10 @@ export const FLEET_GAME_DATA_API_PREFIXES = [
   "launcher",
   "ai-units",
   "rewards",
+  /** Treaty — Grudge ID account social (friends, DMs, groups) */
+  "treaty",
+  "war",
+  "telegram",
 ] as const;
 
 /** Client SPA routes under /auth/* — must not proxy to Railway (no /api/auth/callback). */
@@ -295,6 +299,9 @@ export function buildFleetSatelliteRewrites(
     { source: "/api/characters/:path*", destination: `${gameData}/api/characters/:path*` },
     { source: "/api/account", destination: `${gameData}/api/account` },
     { source: "/api/account/:path*", destination: `${gameData}/api/account/:path*` },
+    /** Treaty social SSOT — same account friends/DMs/groups in every fleet game */
+    { source: "/api/treaty", destination: `${gameData}/api/treaty` },
+    { source: "/api/treaty/:path*", destination: `${gameData}/api/treaty/:path*` },
     { source: "/api/health", destination: `${gameData}/api/health` },
   ];
 }

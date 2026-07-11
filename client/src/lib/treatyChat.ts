@@ -1,3 +1,7 @@
+/**
+ * Treaty chat client — Grudge ID account social (friends, DMs, groups).
+ * Same-origin /api/treaty/* → Railway Postgres SSOT.
+ */
 import { API_BASE, authHeaders } from "./grudgeBackend";
 
 export interface TreatyFriendProfile {
@@ -36,15 +40,50 @@ export interface TreatyMessage {
   createdAt: number;
 }
 
+export interface TreatyGroupSummary {
+  groupId: string;
+  name: string;
+  description: string | null;
+  ownerAccountId: string;
+  avatarUrl: string | null;
+  role: string;
+  memberCount: number;
+  lastMessage: string | null;
+  lastMessageAt: number;
+  unread: number;
+  updatedAt: number;
+}
+
+export interface TreatyGroupMessage {
+  id: string;
+  groupId: string;
+  senderAccountId: string;
+  content: string;
+  createdAt: number;
+  senderDisplayName?: string | null;
+  senderGrudgeId?: string | null;
+}
+
+export interface TreatyGroupMember {
+  accountId: string;
+  role: string;
+  joinedAt: number;
+  grudgeId: string | null;
+  displayName: string | null;
+  avatarUrl: string | null;
+}
+
 async function treatyFetch<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${API_BASE}/treaty${path}`, {
     ...init,
     headers: { ...authHeaders(), ...(init?.headers || {}) },
   });
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.error || `Treaty request failed (${res.status})`);
+  if (!res.ok) throw new Error((data as { error?: string }).error || `Treaty request failed (${res.status})`);
   return data as T;
 }
+
+// ── Social / friends ────────────────────────────────────────────────────
 
 export async function fetchTreatySocial(): Promise<TreatySocial> {
   return treatyFetch<TreatySocial>("/social");
@@ -65,6 +104,8 @@ export async function respondTreatyFriendRequest(requestId: string, accept: bool
     body: JSON.stringify({ accept }),
   });
 }
+
+// ── DMs ─────────────────────────────────────────────────────────────────
 
 export async function fetchTreatyDmThreads(): Promise<{ threads: TreatyDmThread[] }> {
   return treatyFetch<{ threads: TreatyDmThread[] }>("/dm/threads");
@@ -89,6 +130,59 @@ export async function sendTreatyMessage(threadId: string, content: string) {
     body: JSON.stringify({ content }),
   });
 }
+
+// ── Groups ──────────────────────────────────────────────────────────────
+
+export async function fetchTreatyGroups(): Promise<{ groups: TreatyGroupSummary[] }> {
+  return treatyFetch<{ groups: TreatyGroupSummary[] }>("/groups");
+}
+
+export async function createTreatyGroup(name: string, description?: string, members?: string[]) {
+  return treatyFetch<{ group: { id: string; name: string }; memberCount: number }>("/groups", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name, description, members }),
+  });
+}
+
+export async function fetchTreatyGroupDetail(groupId: string) {
+  return treatyFetch<{
+    group: { id: string; name: string; description: string | null; ownerAccountId: string };
+    members: TreatyGroupMember[];
+  }>(`/groups/${groupId}`);
+}
+
+export async function inviteToTreatyGroup(groupId: string, query: string) {
+  return treatyFetch<{ member: unknown; target: unknown }>(`/groups/${groupId}/invite`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ query }),
+  });
+}
+
+export async function leaveTreatyGroup(groupId: string) {
+  return treatyFetch<{ left?: boolean; deleted?: boolean }>(`/groups/${groupId}/leave`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({}),
+  });
+}
+
+export async function fetchTreatyGroupMessages(
+  groupId: string,
+): Promise<{ messages: TreatyGroupMessage[] }> {
+  return treatyFetch<{ messages: TreatyGroupMessage[] }>(`/groups/${groupId}/messages`);
+}
+
+export async function sendTreatyGroupMessage(groupId: string, content: string) {
+  return treatyFetch<{ message: TreatyGroupMessage }>(`/groups/${groupId}/messages`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ content }),
+  });
+}
+
+// ── Unread ──────────────────────────────────────────────────────────────
 
 export async function fetchTreatyUnread(): Promise<{ unread: number }> {
   return treatyFetch<{ unread: number }>("/unread");

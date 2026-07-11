@@ -1,9 +1,19 @@
 /**
- * Treaty Chat — friends list + 1:1 DMs between Grudge accounts.
+ * Treaty Chat — friends, 1:1 DMs, and groups between Grudge accounts.
+ * Account-scoped (Grudge ID), never character-scoped.
  */
-import { and, desc, eq, or, sql, isNull, ne, inArray } from "drizzle-orm";
+import { and, desc, eq, or, sql, isNull, ne, inArray, gt } from "drizzle-orm";
 import { db } from "../db";
-import { accounts, treatyDmThreads, treatyFriends, treatyMessages, users } from "@shared/schema";
+import {
+  accounts,
+  treatyDmThreads,
+  treatyFriends,
+  treatyGroupMembers,
+  treatyGroupMessages,
+  treatyGroups,
+  treatyMessages,
+  users,
+} from "@shared/schema";
 
 function pairAccounts(a: string, b: string): [string, string] {
   return a < b ? [a, b] : [b, a];
@@ -302,18 +312,328 @@ export async function countUnreadTreatyMessages(accountId: string): Promise<numb
     .from(treatyDmThreads)
     .where(or(eq(treatyDmThreads.accountLow, accountId), eq(treatyDmThreads.accountHigh, accountId)));
 
-  if (!threads.length) return 0;
+  let dmUnread = 0;
+  if (threads.length) {
+    const threadIds = threads.map((t: { id: string }) => t.id);
+    const [row] = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(treatyMessages)
+      .where(
+        and(
+          inArray(treatyMessages.threadId, threadIds),
+          ne(treatyMessages.senderAccountId, accountId),
+          isNull(treatyMessages.readAt),
+        ),
+      );
+    dmUnread = row?.count ?? 0;
+  }
 
-  const threadIds = threads.map((t: { id: string }) => t.id);
-  const [row] = await db
+  const memberships = await db
+    .select()
+    .from(treatyGroupMembers)
+    .where(eq(treatyGroupMembers.accountId, accountId));
+
+  let groupUnread = 0;
+  for (const m of memberships) {
+    const since = m.lastReadAt ?? 0;
+    const [row] = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(treatyGroupMessages)
+      .where(
+        and(
+          eq(treatyGroupMessages.groupId, m.groupId),
+          ne(treatyGroupMessages.senderAccountId, accountId),
+          gt(treatyGroupMessages.createdAt, since),
+        ),
+      );
+    groupUnread += row?.count ?? 0;
+  }
+
+  return dmUnread + groupUnread;
+}
+
+// ─── Groups ───────────────────────────────────────────────────────────────
+
+const MAX_GROUP_NAME = 64;
+const MAX_GROUP_DESC = 280;
+const MAX_GROUP_MEMBERS = 50;
+
+async function requireGroupMember(accountId: string, groupId: string) {
+  const [member] = await db
+    .select()
+    .from(treatyGroupMembers)
+    .where(and(eq(treatyGroupMembers.groupId, groupId), eq(treatyGroupMembers.accountId, accountId)))
+    .limit(1);
+  if (!member) throw new Error("Not a group member");
+  return member;
+}
+
+export async function createTreatyGroup(
+  ownerAccountId: string,
+  name: string,
+  description?: string,
+  memberQueries: string[] = [],
+) {
+  const trimmed = name.trim();
+  if (!trimmed || trimmed.length > MAX_GROUP_NAME) throw new Error("Invalid group name");
+  const desc = description?.trim() || null;
+  if (desc && desc.length > MAX_GROUP_DESC) throw new Error("Description too long");
+
+  const now = Date.now();
+  const [group] = await db
+    .insert(treatyGroups)
+    .values({
+      name: trimmed,
+      description: desc,
+      ownerAccountId,
+      createdAt: now,
+      updatedAt: now,
+    })
+    .returning();
+
+  await db.insert(treatyGroupMembers).values({
+    groupId: group!.id,
+    accountId: ownerAccountId,
+    role: "owner",
+    joinedAt: now,
+    lastReadAt: now,
+  });
+
+  const added: string[] = [ownerAccountId];
+  for (const q of memberQueries.slice(0, MAX_GROUP_MEMBERS - 1)) {
+    try {
+      const target = await resolveAccountByGrudgeIdOrName(q);
+      if (!target || target.accountId === ownerAccountId || added.includes(target.accountId)) continue;
+      // Prefer friends but allow any resolvable Grudge ID (invite by ID)
+      await db.insert(treatyGroupMembers).values({
+        groupId: group!.id,
+        accountId: target.accountId,
+        role: "member",
+        joinedAt: now,
+      });
+      added.push(target.accountId);
+    } catch {
+      /* skip bad invites */
+    }
+  }
+
+  return { group: group!, memberCount: added.length };
+}
+
+export async function listTreatyGroups(accountId: string) {
+  const memberships = await db
+    .select()
+    .from(treatyGroupMembers)
+    .where(eq(treatyGroupMembers.accountId, accountId));
+
+  if (!memberships.length) return [];
+
+  const groupIds = memberships.map((m) => m.groupId);
+  const groups = await db
+    .select()
+    .from(treatyGroups)
+    .where(inArray(treatyGroups.id, groupIds))
+    .orderBy(desc(treatyGroups.updatedAt));
+
+  const result = [];
+  for (const g of groups) {
+    const membership = memberships.find((m) => m.groupId === g.id)!;
+    const members = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(treatyGroupMembers)
+      .where(eq(treatyGroupMembers.groupId, g.id));
+    const [last] = await db
+      .select()
+      .from(treatyGroupMessages)
+      .where(eq(treatyGroupMessages.groupId, g.id))
+      .orderBy(desc(treatyGroupMessages.createdAt))
+      .limit(1);
+    const since = membership.lastReadAt ?? 0;
+    const [unreadRow] = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(treatyGroupMessages)
+      .where(
+        and(
+          eq(treatyGroupMessages.groupId, g.id),
+          ne(treatyGroupMessages.senderAccountId, accountId),
+          gt(treatyGroupMessages.createdAt, since),
+        ),
+      );
+
+    result.push({
+      groupId: g.id,
+      name: g.name,
+      description: g.description,
+      ownerAccountId: g.ownerAccountId,
+      avatarUrl: g.avatarUrl,
+      role: membership.role,
+      memberCount: members[0]?.count ?? 0,
+      lastMessage: last?.content ?? null,
+      lastMessageAt: last?.createdAt ?? g.updatedAt,
+      unread: unreadRow?.count ?? 0,
+      updatedAt: g.updatedAt,
+    });
+  }
+
+  return result.sort((a, b) => b.lastMessageAt - a.lastMessageAt);
+}
+
+export async function getTreatyGroupDetail(accountId: string, groupId: string) {
+  await requireGroupMember(accountId, groupId);
+  const [group] = await db.select().from(treatyGroups).where(eq(treatyGroups.id, groupId)).limit(1);
+  if (!group) throw new Error("Group not found");
+
+  const memberRows = await db
+    .select()
+    .from(treatyGroupMembers)
+    .where(eq(treatyGroupMembers.groupId, groupId));
+
+  const members = [];
+  for (const m of memberRows) {
+    const profile = await friendProfile(m.accountId);
+    members.push({
+      accountId: m.accountId,
+      role: m.role,
+      joinedAt: m.joinedAt,
+      grudgeId: profile?.grudgeId ?? null,
+      displayName: profile?.displayName ?? null,
+      avatarUrl: profile?.avatarUrl ?? null,
+    });
+  }
+
+  return { group, members };
+}
+
+export async function inviteToTreatyGroup(
+  accountId: string,
+  groupId: string,
+  targetQuery: string,
+) {
+  const member = await requireGroupMember(accountId, groupId);
+  if (member.role !== "owner" && member.role !== "admin") {
+    throw new Error("Only owners/admins can invite");
+  }
+
+  const countRows = await db
     .select({ count: sql<number>`count(*)::int` })
-    .from(treatyMessages)
+    .from(treatyGroupMembers)
+    .where(eq(treatyGroupMembers.groupId, groupId));
+  if ((countRows[0]?.count ?? 0) >= MAX_GROUP_MEMBERS) {
+    throw new Error("Group is full");
+  }
+
+  const target = await resolveAccountByGrudgeIdOrName(targetQuery);
+  if (!target) throw new Error("Player not found");
+
+  const [existing] = await db
+    .select()
+    .from(treatyGroupMembers)
     .where(
-      and(
-        inArray(treatyMessages.threadId, threadIds),
-        ne(treatyMessages.senderAccountId, accountId),
-        isNull(treatyMessages.readAt),
-      ),
-    );
-  return row?.count ?? 0;
+      and(eq(treatyGroupMembers.groupId, groupId), eq(treatyGroupMembers.accountId, target.accountId)),
+    )
+    .limit(1);
+  if (existing) throw new Error("Already a member");
+
+  const [created] = await db
+    .insert(treatyGroupMembers)
+    .values({
+      groupId,
+      accountId: target.accountId,
+      role: "member",
+      joinedAt: Date.now(),
+    })
+    .returning();
+
+  await db.update(treatyGroups).set({ updatedAt: Date.now() }).where(eq(treatyGroups.id, groupId));
+  return { member: created, target };
+}
+
+export async function leaveTreatyGroup(accountId: string, groupId: string) {
+  const member = await requireGroupMember(accountId, groupId);
+  const [group] = await db.select().from(treatyGroups).where(eq(treatyGroups.id, groupId)).limit(1);
+  if (!group) throw new Error("Group not found");
+
+  if (member.role === "owner") {
+    const others = await db
+      .select()
+      .from(treatyGroupMembers)
+      .where(and(eq(treatyGroupMembers.groupId, groupId), ne(treatyGroupMembers.accountId, accountId)));
+    if (others.length > 0) {
+      // Transfer ownership to oldest remaining admin, else oldest member
+      const next =
+        others.find((m) => m.role === "admin") ||
+        others.sort((a, b) => a.joinedAt - b.joinedAt)[0];
+      if (next) {
+        await db
+          .update(treatyGroupMembers)
+          .set({ role: "owner" })
+          .where(eq(treatyGroupMembers.id, next.id));
+        await db
+          .update(treatyGroups)
+          .set({ ownerAccountId: next.accountId, updatedAt: Date.now() })
+          .where(eq(treatyGroups.id, groupId));
+      }
+    } else {
+      // Last member leaves — delete group content
+      await db.delete(treatyGroupMessages).where(eq(treatyGroupMessages.groupId, groupId));
+      await db.delete(treatyGroupMembers).where(eq(treatyGroupMembers.groupId, groupId));
+      await db.delete(treatyGroups).where(eq(treatyGroups.id, groupId));
+      return { deleted: true };
+    }
+  }
+
+  await db
+    .delete(treatyGroupMembers)
+    .where(and(eq(treatyGroupMembers.groupId, groupId), eq(treatyGroupMembers.accountId, accountId)));
+  await db.update(treatyGroups).set({ updatedAt: Date.now() }).where(eq(treatyGroups.id, groupId));
+  return { left: true };
+}
+
+export async function getGroupMessages(accountId: string, groupId: string) {
+  await requireGroupMember(accountId, groupId);
+
+  const messages = await db
+    .select()
+    .from(treatyGroupMessages)
+    .where(eq(treatyGroupMessages.groupId, groupId))
+    .orderBy(treatyGroupMessages.createdAt);
+
+  // Enrich sender labels for UI
+  const enriched = [];
+  for (const m of messages) {
+    const profile = await friendProfile(m.senderAccountId);
+    enriched.push({
+      ...m,
+      senderDisplayName: profile?.displayName ?? null,
+      senderGrudgeId: profile?.grudgeId ?? null,
+    });
+  }
+
+  await db
+    .update(treatyGroupMembers)
+    .set({ lastReadAt: Date.now() })
+    .where(and(eq(treatyGroupMembers.groupId, groupId), eq(treatyGroupMembers.accountId, accountId)));
+
+  return enriched;
+}
+
+export async function sendGroupMessage(accountId: string, groupId: string, content: string) {
+  const text = content.trim();
+  if (!text || text.length > 2000) throw new Error("Invalid message");
+
+  await requireGroupMember(accountId, groupId);
+
+  const now = Date.now();
+  const [msg] = await db
+    .insert(treatyGroupMessages)
+    .values({ groupId, senderAccountId: accountId, content: text, createdAt: now })
+    .returning();
+
+  await db.update(treatyGroups).set({ updatedAt: now }).where(eq(treatyGroups.id, groupId));
+  await db
+    .update(treatyGroupMembers)
+    .set({ lastReadAt: now })
+    .where(and(eq(treatyGroupMembers.groupId, groupId), eq(treatyGroupMembers.accountId, accountId)));
+
+  return msg;
 }
