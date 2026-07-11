@@ -16,16 +16,19 @@ Created by **Racalvin The Pirate King**. 2D/Canvas game client with React + Vite
 All API calls go through Vercel rewrites in `vercel.json`:
 
 **Auth (id.grudge-studio.com)** — canonical map in `shared/fleet/authConnect.ts`:
-- **Browser login**: `id.grudge-studio.com/login?redirect_uri=<app>/auth/callback` (NOT `/auth/sso-check` until probe passes)
-- **Drop-in script**: `id.grudge-studio.com/grudge-game-bootstrap.js` → `GrudgeAuth.loginPage('/auth/callback')`
-- **Session**: JWT default **30d** (`JWT_SESSION_TTL`); launch handoff **30m** (`grudge_token`); `POST /api/auth/refresh` extends while valid
-- **Handoff**: dual `grudge_token` (bridge) + `sso_token` (session) on return URL query+hash — see `docs/ID_SSO_PRODUCTION.md`
+- **Browser login**: `id.grudge-studio.com/login?redirect_uri=<app>` — dual-write `redirect` + `return` + `origin` (see `docs/GRUDGE_AUTH_CONNECT.md`)
+- **SSO re-entry**: `/auth/sso-check?return=<app>` dual-writes `redirect_uri` + `redirect` (live probe OK)
+- **Drop-in script**: `id.grudge-studio.com/grudge-game-bootstrap.js` → `GrudgeAuth.start({ mode, returnUrl })`
+- **Session**: JWT default long TTL (`JWT_SESSION_TTL`); launch handoff short (`grudge_token`); `POST /api/auth/refresh` extends while valid
+- **Handoff**: dual `grudge_token` (bridge) + `sso_token` (session) on return URL **query+hash** — apps **prefer sso_token**
+- **Auth page SSOT**: `server/templates/auth-page.html` (sync `public/` + `client/public/`) — stash JWT for Continue
 - **Signed custom domains**: `AUTH_EXTRA_RETURN_HOSTS` on Railway + `shared/fleet/authReturn.ts` allowlist
 - **Implementation**: Railway `grudge-api-production` (`server/routes/auth.ts`) — id-gateway Worker proxies id host
 - **Satellite apps**: `buildFleetSatelliteRewrites()` — `/api/auth/*` → id, `/api/characters` → Railway
 - **id hub**: `buildFleetHubAuthRewrites()` — `/auth/:path*` → Railway `/api/auth/:path*`
 - **Deprecated**: `api.grudge-studio.com` — do not use for auth (split-brain 404s)
 - **Audit**: `npm run probe:auth` — shows per-endpoint fixes when routing is wrong
+- **Example satellite**: gameopen.vercel.app — `grudgeAuth.ts` + `fleet.ts`
 
 **Game Data API (Railway — Postgres SSOT)**:
 - `/api/characters/*` → character CRUD (canonical — use this, not `/api/game/characters`)
