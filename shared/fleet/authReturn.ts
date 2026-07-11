@@ -13,6 +13,8 @@ const EXACT_HOSTS = new Set([
   "www.grudgewarlords.com",
   "grudge-studio.com",
   "www.grudge-studio.com",
+  "grudge.studio",
+  "www.grudge.studio",
   "grudgestudio.org",
   "grudgeplatform.io",
   "puter.com",
@@ -28,6 +30,7 @@ const EXACT_HOSTS = new Set([
 
 const SUFFIX_HOSTS = [
   ".grudge-studio.com",
+  ".grudge.studio",
   ".vercel.app",
   ".up.railway.app",
   ".pages.dev",
