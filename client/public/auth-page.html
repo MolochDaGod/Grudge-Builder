@@ -637,13 +637,23 @@ const isPopup = (() => { try { return !!window.opener && window.opener !== windo
  * Browser bar keeps the public path query (e.g. /login?redirect_uri=https://grudge-crafting.puter.site/)
  * while the gateway may map upstream to ?redirect= — accept every fleet alias.
  */
-const returnTo =
+let returnTo =
   qs.get("redirect_uri") ||
   qs.get("redirect") ||
   qs.get("return_to") ||
   qs.get("return") ||
   qs.get("returnUrl") ||
   null;
+// Recover return if OAuth hop dropped query (sessionStorage set in startOAuth)
+if (!returnTo) {
+  try {
+    const stashed = sessionStorage.getItem("grudge_auth_return");
+    if (stashed && /^https?:\/\//i.test(stashed)) returnTo = stashed;
+  } catch (_) {}
+}
+if (returnTo) {
+  try { sessionStorage.setItem("grudge_auth_return", returnTo); } catch (_) {}
+}
 const appKey = (qs.get("app") || "").toLowerCase();
 const isAccountMode = location.pathname === "/account" || qs.get("view") === "account";
 let openerOrigin = qs.get("origin") || qs.get("audience") || null;
@@ -676,6 +686,10 @@ const APP_LABELS = {
   character: "Character Hub",
   wallet: "Wallet",
   puter: "Puter Cloud",
+  gameopen: "Grudge Open",
+  open: "Grudge Open",
+  voxgrudge: "VoxGrudge",
+  vox: "VoxGrudge",
 };
 const HOST_LABELS = {
   "nexus.grudge-studio.com": "Nexus Hub",
@@ -692,6 +706,9 @@ const HOST_LABELS = {
   "ai.grudge-studio.com": "Legion AI",
   "character.grudge-studio.com": "Character Studio",
   "water.grudge-studio.com": "Tethical",
+  "gameopen.vercel.app": "Grudge Open",
+  "voxgrudge.vercel.app": "VoxGrudge",
+  "open.grudge-studio.com": "Grudge Open",
 };
 
 function resolveAppLabel(){
@@ -837,21 +854,38 @@ function buildHandoffUrl(returnUrl, launchToken, sessionToken, user){
     return returnUrl + sep + q;
   }
 }
-/** Mint a full session JWT from the HttpOnly cookie (me endpoint strips token). */
+/** Last successful session JWT (login/SSO body) — /me never returns token. */
+let lastSessionToken = "";
+
+/** Mint a full session JWT from body or HttpOnly cookie (me endpoint strips token). */
 async function resolveSessionToken(user){
-  let t = (user && (user.token || user.sessionToken)) || "";
-  if (t && t.length > 20) return t;
+  let t =
+    (user && (user.token || user.sessionToken)) ||
+    (user && user.user && (user.user.token || user.user.sessionToken)) ||
+    lastSessionToken ||
+    "";
+  if (t && t.length > 20) {
+    lastSessionToken = t;
+    return t;
+  }
   try {
     const r = await api("/api/auth/refresh", { method: "POST", body: "{}" });
     t = r.token || r.sessionToken || "";
-    if (t) return t;
+    if (t) {
+      lastSessionToken = t;
+      return t;
+    }
   } catch (e) {
     console.warn("[auth] refresh for handoff failed:", e);
   }
-  return "";
+  return lastSessionToken || "";
 }
 async function handoff(user){
   const destLabel = resolveAppLabel();
+  // Capture tokens from SSO/login JSON before they are lost
+  if (user && (user.token || user.sessionToken)) {
+    lastSessionToken = user.token || user.sessionToken;
+  }
   const sessionToken = await resolveSessionToken(user);
   if (isPopup && window.opener){
     const audience = openerOrigin || qs.get("audience") || qs.get("origin") || null;
@@ -884,20 +918,35 @@ async function handoff(user){
       if (origin !== location.origin){
         if (destLabel) showReturning(destLabel);
         let launchToken = "";
-        try { launchToken = await mintLaunchToken(origin); } catch (e) {
-          // If popup-token fails (session cookie race), fall back to session-only handoff
-          if (!sessionToken) throw e;
+        try {
+          launchToken = await mintLaunchToken(origin);
+        } catch (e) {
+          // Cookie race: proceed with session token only
+          console.warn("[auth] popup-token mint failed, using session only", e);
         }
         if (!sessionToken && !launchToken) {
-          throw new Error("Could not create sign-in handoff for " + (destLabel || "app") + ". Try signing in again.");
+          // Still signed in on id — force user to continue rather than silent stuck
+          toast("Signed in — click Continue to return to " + (destLabel || "app") + ".", "error");
+          renderDone(user, false, destLabel);
+          return;
         }
         dest = buildHandoffUrl(returnTo, launchToken, sessionToken, user);
-        await new Promise((r) => setTimeout(r, destLabel ? 650 : 0));
+        await new Promise((r) => setTimeout(r, destLabel ? 450 : 0));
       } else if (sessionToken) {
         dest = buildHandoffUrl(returnTo, "", sessionToken, user);
       }
     }
-    (window.top || window).location.replace(dest); return;
+    try { sessionStorage.removeItem("grudge_auth_return"); } catch (_) {}
+    try {
+      (window.top || window).location.replace(dest);
+    } catch (e) {
+      window.location.href = dest;
+    }
+    // Fallback if replace is blocked (rare iframe cases)
+    setTimeout(function () {
+      try { window.location.href = dest; } catch (_) {}
+    }, 1200);
+    return;
   }
   renderDone(user, false, destLabel);
 }
@@ -922,6 +971,17 @@ function renderDone(user, autoClose, destLabel){
   $("done-continue").style.display = (isPopup || returnTo) ? "flex" : "none";
   show("done");
   if (autoClose) setTimeout(() => { try { window.close(); } catch {} }, 900);
+  // If we still have a return destination, never leave the user stranded on id —
+  // re-attempt handoff (Continue) after a short delay with stashed JWT.
+  if (returnTo && !autoClose) {
+    setTimeout(function () {
+      try {
+        if (document.getElementById("view-done") && document.getElementById("view-done").classList.contains("active")) {
+          $("done-continue").click();
+        }
+      } catch (_) {}
+    }, 1600);
+  }
 }
 function hasAccountUsername(user){
   if (!user) return false;
@@ -933,6 +993,10 @@ function hasAccountUsername(user){
   return true;
 }
 async function afterAuth(user, puterEmail){
+  // Stash JWT from login/SSO body immediately (never rely only on cookie race)
+  if (user && (user.token || user.sessionToken)) {
+    lastSessionToken = user.token || user.sessionToken;
+  }
   // Fleet practice: if account DB / SSO already has username, never force name form.
   if (user && user.needsProfile && hasAccountUsername(user)) {
     try {
@@ -1003,8 +1067,16 @@ function startOAuth(provider){
   if (returnTo) redirect = returnTo;
   else if (isPopup) redirect = selfUrl({ handoff:"1", origin: openerOrigin || "" });
   else redirect = selfUrl({ signedin:"1" });
-  // Discord start accepts return|redirect|redirect_uri — send both for compatibility
-  const q = "return=" + encodeURIComponent(redirect) + "&redirect=" + encodeURIComponent(redirect);
+  // Persist return across OAuth hops (state can be dropped by some providers)
+  try {
+    if (returnTo) sessionStorage.setItem("grudge_auth_return", returnTo);
+  } catch (_) {}
+  // Discord start accepts return|redirect|redirect_uri — dual-write all aliases
+  const q =
+    "return=" + encodeURIComponent(redirect) +
+    "&redirect=" + encodeURIComponent(redirect) +
+    "&redirect_uri=" + encodeURIComponent(redirect) +
+    "&return_to=" + encodeURIComponent(redirect);
   location.href = CONFIG.apiBase + "/api/auth/" + provider + "/start?" + q;
 }
 /**
@@ -1184,10 +1256,32 @@ $("pf-username").addEventListener("keydown", (e) => { if (e.key === "Enter") $("
 
 $("done-continue").addEventListener("click", async () => {
   try {
-    const me = await api("/api/auth/me");
-    await handoff(normalizeMe(me));
+    // Prefer last JWT from login; /me never returns token
+    let user = { token: lastSessionToken, sessionToken: lastSessionToken };
+    try {
+      const me = await api("/api/auth/me");
+      user = Object.assign(normalizeMe(me), {
+        token: lastSessionToken || me.token || me.sessionToken,
+        sessionToken: lastSessionToken || me.sessionToken || me.token,
+      });
+    } catch (_) {
+      if (!lastSessionToken && !returnTo) throw _;
+    }
+    if (returnTo && (user.token || lastSessionToken)) {
+      await handoff(user);
+      return;
+    }
+    if (returnTo) {
+      // Absolute last resort: return without tokens so app can claim cookie / re-login
+      (window.top || window).location.replace(returnTo);
+      return;
+    }
+    await handoff(user);
   } catch (e) {
     toast((e && e.message) || "Could not return to app.", "error");
+    if (returnTo) {
+      try { (window.top || window).location.href = returnTo; } catch (_) {}
+    }
   }
 });
 $("done-switch").addEventListener("click", async () => {

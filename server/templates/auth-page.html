@@ -637,13 +637,23 @@ const isPopup = (() => { try { return !!window.opener && window.opener !== windo
  * Browser bar keeps the public path query (e.g. /login?redirect_uri=https://grudge-crafting.puter.site/)
  * while the gateway may map upstream to ?redirect= — accept every fleet alias.
  */
-const returnTo =
+let returnTo =
   qs.get("redirect_uri") ||
   qs.get("redirect") ||
   qs.get("return_to") ||
   qs.get("return") ||
   qs.get("returnUrl") ||
   null;
+// Recover return if OAuth hop dropped query (sessionStorage set in startOAuth)
+if (!returnTo) {
+  try {
+    const stashed = sessionStorage.getItem("grudge_auth_return");
+    if (stashed && /^https?:\/\//i.test(stashed)) returnTo = stashed;
+  } catch (_) {}
+}
+if (returnTo) {
+  try { sessionStorage.setItem("grudge_auth_return", returnTo); } catch (_) {}
+}
 const appKey = (qs.get("app") || "").toLowerCase();
 const isAccountMode = location.pathname === "/account" || qs.get("view") === "account";
 let openerOrigin = qs.get("origin") || qs.get("audience") || null;
@@ -676,6 +686,10 @@ const APP_LABELS = {
   character: "Character Hub",
   wallet: "Wallet",
   puter: "Puter Cloud",
+  gameopen: "Grudge Open",
+  open: "Grudge Open",
+  voxgrudge: "VoxGrudge",
+  vox: "VoxGrudge",
 };
 const HOST_LABELS = {
   "nexus.grudge-studio.com": "Nexus Hub",
@@ -692,6 +706,9 @@ const HOST_LABELS = {
   "ai.grudge-studio.com": "Legion AI",
   "character.grudge-studio.com": "Character Studio",
   "water.grudge-studio.com": "Tethical",
+  "gameopen.vercel.app": "Grudge Open",
+  "voxgrudge.vercel.app": "VoxGrudge",
+  "open.grudge-studio.com": "Grudge Open",
 };
 
 function resolveAppLabel(){
@@ -919,6 +936,7 @@ async function handoff(user){
         dest = buildHandoffUrl(returnTo, "", sessionToken, user);
       }
     }
+    try { sessionStorage.removeItem("grudge_auth_return"); } catch (_) {}
     try {
       (window.top || window).location.replace(dest);
     } catch (e) {
@@ -953,6 +971,17 @@ function renderDone(user, autoClose, destLabel){
   $("done-continue").style.display = (isPopup || returnTo) ? "flex" : "none";
   show("done");
   if (autoClose) setTimeout(() => { try { window.close(); } catch {} }, 900);
+  // If we still have a return destination, never leave the user stranded on id —
+  // re-attempt handoff (Continue) after a short delay with stashed JWT.
+  if (returnTo && !autoClose) {
+    setTimeout(function () {
+      try {
+        if (document.getElementById("view-done") && document.getElementById("view-done").classList.contains("active")) {
+          $("done-continue").click();
+        }
+      } catch (_) {}
+    }, 1600);
+  }
 }
 function hasAccountUsername(user){
   if (!user) return false;
@@ -1038,8 +1067,16 @@ function startOAuth(provider){
   if (returnTo) redirect = returnTo;
   else if (isPopup) redirect = selfUrl({ handoff:"1", origin: openerOrigin || "" });
   else redirect = selfUrl({ signedin:"1" });
-  // Discord start accepts return|redirect|redirect_uri — send both for compatibility
-  const q = "return=" + encodeURIComponent(redirect) + "&redirect=" + encodeURIComponent(redirect);
+  // Persist return across OAuth hops (state can be dropped by some providers)
+  try {
+    if (returnTo) sessionStorage.setItem("grudge_auth_return", returnTo);
+  } catch (_) {}
+  // Discord start accepts return|redirect|redirect_uri — dual-write all aliases
+  const q =
+    "return=" + encodeURIComponent(redirect) +
+    "&redirect=" + encodeURIComponent(redirect) +
+    "&redirect_uri=" + encodeURIComponent(redirect) +
+    "&return_to=" + encodeURIComponent(redirect);
   location.href = CONFIG.apiBase + "/api/auth/" + provider + "/start?" + q;
 }
 /**
