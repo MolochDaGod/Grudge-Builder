@@ -20,7 +20,6 @@ import {
 import { WebSocketTransport } from "@colyseus/ws-transport";
 import { playground } from "@colyseus/playground";
 import { monitor } from "@colyseus/monitor";
-import { LobbyRoom } from "./rooms/LobbyRoom";
 import { DungeonRoom } from "./rooms/DungeonRoom";
 import { SectorRoom } from "./rooms/SectorRoom";
 import { WorldRoom } from "./rooms/WorldRoom";
@@ -33,6 +32,11 @@ import type { Express, Request, Response, NextFunction } from "express";
 
 let gameServer: Server | null = null;
 
+/**
+ * Room name SSOT for health + docs.
+ * - lobby = private shipwreck tutorial (filterBy characterId, maxClients 1)
+ * - shipwreck = alias of the same room class (back-compat)
+ */
 const ROOM_NAMES = [
   "lobby",
   "dungeon",
@@ -156,12 +160,19 @@ export async function setupColyseus(httpServer: HttpServer, app: Express) {
   });
 
   // ── Room definitions ────────────────────────────────────────────────────
-  gameServer.define("lobby", LobbyRoom);
+  // lobby = shipwreck tutorial instance (private per characterId)
+  gameServer
+    .define("lobby", ShipwreckRoom)
+    .filterBy(["characterId"]);
+  // Alias for older clients still calling joinOrCreate("shipwreck", …)
+  gameServer
+    .define("shipwreck", ShipwreckRoom)
+    .filterBy(["characterId"]);
+
   gameServer.define("dungeon", DungeonRoom);
   gameServer.define("sector", SectorRoom).filterBy(["sectorId", "worldSeed"]);
   gameServer.define("world", WorldRoom);
   gameServer.define("town", TownRoom);
-  gameServer.define("shipwreck", ShipwreckRoom);
   gameServer.define("home_island", HomeIslandRoom);
 
   // ── Activate matchmaker (replaces gameServer.listen when HTTP is external) ─
@@ -183,11 +194,17 @@ export async function setupColyseus(httpServer: HttpServer, app: Express) {
         matchMakerReady: true,
         matchmake: "express-body",
         definedRooms: [...ROOM_NAMES],
+        roomNotes: {
+          lobby: "shipwreck tutorial — filterBy characterId, maxClients 1",
+          shipwreck: "alias of lobby tutorial",
+          world: "social / overworld hub (multi-client)",
+        },
         activeRooms: rooms.map((r) => ({
           roomId: r.roomId,
           name: r.name,
           clients: r.clients,
           maxClients: r.maxClients,
+          metadata: r.metadata,
         })),
         processId: matchMaker.processId,
       });

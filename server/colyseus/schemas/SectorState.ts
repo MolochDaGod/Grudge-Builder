@@ -204,10 +204,12 @@ export class TutorialStep extends Schema {
 
 export class ShipwreckState extends Schema {
   @type("string")  accountId: string = "";
+  @type("string")  characterId: string = "";
   @type("string")  characterName: string = "";
   @type("number")  tick: number = 0;
   @type({ map: SectorPlayer }) players = new MapSchema<SectorPlayer>();
   @type({ map: SectorEnemy })  enemies = new MapSchema<SectorEnemy>();
+  @type({ map: HarvestNode })  harvestNodes = new MapSchema<HarvestNode>();
   @type({ map: TutorialStep }) steps = new MapSchema<TutorialStep>();
   @type("boolean") introPlayed: boolean = false;
   @type("boolean") raftBuilt: boolean = false;

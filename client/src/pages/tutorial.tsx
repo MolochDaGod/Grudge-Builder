@@ -155,7 +155,7 @@ export default function TutorialPage() {
     } catch { /* offline-tolerant */ }
   }, []);
 
-  // ── Connect to ShipwreckRoom ───────────────────────────────────
+  // ── Connect to lobby = private shipwreck tutorial (filterBy characterId) ──
 
   useEffect(() => {
     let client: Client | null = null;
@@ -165,11 +165,18 @@ export default function TutorialPage() {
       const cfg = loadConfigRef.current;
       if (!cfg) return;
 
+      const characterId = String(cfg.characterId || '').trim();
+      if (!characterId) {
+        console.error('[Tutorial] characterId required for lobby tutorial instance');
+        return;
+      }
+
       try {
         const endpoint = getColyseusEndpoint();
         client = new Client(endpoint);
-        room = await client.joinOrCreate('shipwreck', {
-          characterId: cfg.characterId,
+        // Canonical: "lobby" = private tutorial (maxClients 1, filterBy characterId)
+        room = await client.joinOrCreate('lobby', {
+          characterId,
           characterName: cfg.name,
           heroRace: cfg.raceId,
           heroClass: cfg.classId,

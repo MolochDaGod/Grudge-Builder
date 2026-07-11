@@ -1,18 +1,14 @@
 /**
- * ShipwreckRoom.ts
+ * ShipwreckRoom.ts — private shipwreck *tutorial* instance.
  * ─────────────────────────────────────────────────────────────
- * Tutorial instance for new characters. Players wash ashore on a
- * small island with a wrecked ship. They learn:
- *   1. Movement (explore the wreck)
- *   2. Combat (fight shore crabs)
- *   3. Harvesting (gather driftwood & stone)
- *   4. Crafting (build a stone axe)
- *   5. Building (construct a raft to leave)
+ * Canonical matchmake name: **lobby** (filterBy characterId, maxClients 1).
+ * Alias room name: shipwreck (same class, same filters) for old clients.
  *
- * One ShipwreckRoom per player (private instance). Completes in
- * ~5 minutes, then the player transitions to their Home Island.
+ * joinOrCreate("lobby", { characterId, characterName, ... })
+ *   → one room per characterId (private tutorial)
  *
- * Tick rate: 10/sec (moderate — has combat + harvesting)
+ * Flow: wash ashore → move/combat/harvest/craft/build raft → home_island.
+ * Tick rate: 10/sec
  * ─────────────────────────────────────────────────────────────
  */
 
@@ -62,17 +58,29 @@ const CRAB_XP = 15;
 // ── ShipwreckRoom ────────────────────────────────────────────────
 
 export class ShipwreckRoom extends Room<ShipwreckState> {
-  maxClients = 1; // private instance
+  /** Private tutorial — one seat per characterId-filtered room */
+  maxClients = 1;
+  /** Dispose when the solo player leaves so rooms don't leak */
+  autoDispose = true;
+
   private crabSpawnTimer: ReturnType<typeof setTimeout> | null = null;
   private gatherCounts = { wood: 0, stone: 0 };
 
   onCreate(options: ShipwreckJoinOptions) {
+    const characterId = String(options.characterId || "").trim();
     const state = new ShipwreckState();
     state.accountId = options.accountId || "";
+    state.characterId = characterId;
     state.characterName = options.characterName || "Shipwrecked";
     this.setState(state);
 
-    // Seed tutorial steps
+    this.setMetadata({
+      kind: "shipwreck_tutorial",
+      characterId,
+      source: "grudge-api",
+    });
+
+    // Seed tutorial steps (MapSchema is declared on ShipwreckState)
     for (const step of TUTORIAL_STEPS) {
       const ts = new TutorialStep();
       ts.id = step.id;
@@ -214,14 +222,23 @@ export class ShipwreckRoom extends Room<ShipwreckState> {
       state.introPlayed = true;
     });
 
-    console.log(`[ShipwreckRoom] Created for ${state.characterName}`);
+    console.log(
+      `[ShipwreckRoom/lobby] Created tutorial for characterId=${characterId || "(empty)"} name=${state.characterName}`,
+    );
   }
 
   onJoin(client: Client, options: ShipwreckJoinOptions) {
+    const characterId = String(options.characterId || this.state.characterId || "").trim();
+    if (!characterId) {
+      // filterBy still works with empty string but would share one bad room —
+      // reject so clients must pass a real character id.
+      throw new Error("characterId is required for lobby (shipwreck tutorial)");
+    }
+
     const player = new SectorPlayer();
     player.id = client.sessionId;
     player.accountId = options.accountId || "";
-    player.characterId = options.characterId || "";
+    player.characterId = characterId;
     player.characterName = options.characterName || "Shipwrecked";
     player.heroClass = options.heroClass || "warrior";
     player.heroRace = options.heroRace || "human";
