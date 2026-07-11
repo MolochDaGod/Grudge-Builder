@@ -390,7 +390,7 @@ export default {
         url.pathname.startsWith("/api/auth/page"));
     if (isAuthHtml && request.method === "GET") {
       let html = await upstream.text();
-      const patched = html
+      let patched = html
         .replace(
           /const returnTo = qs\.get\("redirect"\) \|\| qs\.get\("return_to"\) \|\| null;/,
           'const returnTo = qs.get("redirect_uri") || qs.get("redirect") || qs.get("return_to") || qs.get("return") || qs.get("returnUrl") || null;',
@@ -399,21 +399,63 @@ export default {
           /const returnTo = qs\.get\("redirect_uri"\) \|\| qs\.get\("redirect"\) \|\| qs\.get\("return_to"\) \|\| qs\.get\("return"\) \|\| qs\.get\("returnUrl"\) \|\| null;/,
           'const returnTo = qs.get("redirect_uri") || qs.get("redirect") || qs.get("return_to") || qs.get("return") || qs.get("returnUrl") || null;',
         );
-      // Inject HOST_LABELS entry for crafting if missing (cosmetic)
-      if (
-        !patched.includes("grudge-crafting.puter.site") &&
-        patched.includes("HOST_LABELS")
-      ) {
-        html = patched.replace(
-          '"wcs.grudge-studio.com": "Warlord Crafting Suite",',
-          '"wcs.grudge-studio.com": "Warlord Crafting Suite",\n  "grudge-crafting.puter.site": "Warlord Crafting Suite",',
+
+      // Arrow glyphs before Back/Sign-in render as "ack" / "ign in page" in some fonts.
+      patched = patched
+        .replace(/>[^A-Za-z0-9<]{1,6}\s*Back<\/button>/g, ">Back</button>")
+        .replace(/>[^A-Za-z0-9<]{1,6}\s*Sign in page<\/button>/g, ">Sign in page</button>");
+
+      // Absolute brand assets so proxied /login (e.g. warlord-genesis.vercel.app/login) still paints.
+      patched = patched
+        .replace(
+          /url\(["']?\/auth-bg-racalvin\.jpg["']?\)/g,
+          'url("https://id.grudge-studio.com/auth-bg-racalvin.jpg")',
+        )
+        .replace(
+          /src=["']\/grudge-id-logo\.png["']/g,
+          'src="https://id.grudge-studio.com/grudge-id-logo.png"',
+        )
+        .replace(
+          /src=["']\/brand\/logo\.png["']/g,
+          'src="https://id.grudge-studio.com/brand/logo.png"',
         );
-      } else {
-        html = patched;
+
+      // Inject missing fleet HOST_LABELS (Warlord Genesis + crafting)
+      if (patched.includes("HOST_LABELS")) {
+        if (!patched.includes("grudge-crafting.puter.site")) {
+          patched = patched.replace(
+            '"wcs.grudge-studio.com": "Warlord Crafting Suite",',
+            '"wcs.grudge-studio.com": "Warlord Crafting Suite",\n  "grudge-crafting.puter.site": "Warlord Crafting Suite",',
+          );
+        }
+        if (!patched.includes("warlord-genesis.vercel.app")) {
+          patched = patched.replace(
+            '"www.grudgewarlords.com": "Grudge Warlords",',
+            '"www.grudgewarlords.com": "Grudge Warlords",\n  "warlord-genesis.vercel.app": "Warlord Genesis",\n  "warstrat.grudge-studio.com": "Warlord Genesis",',
+          );
+        }
       }
+      if (patched.includes("APP_LABELS") && !patched.includes('genesis: "Warlord Genesis"')) {
+        patched = patched.replace(
+          'warlords: "Grudge Warlords",',
+          'warlords: "Grudge Warlords",\n  genesis: "Warlord Genesis",\n  warlord: "Warlord Genesis",',
+        );
+      }
+      // Preview vercel hosts opened from warlord-genesis-*
+      if (
+        patched.includes('host.endsWith(".vercel.app")') &&
+        !patched.includes('host.startsWith("warlord-genesis")')
+      ) {
+        patched = patched.replace(
+          'if (host.endsWith(".vercel.app")) return "Grudge App";',
+          'if (host.endsWith(".vercel.app")) {\n        if (host.startsWith("warlord-genesis")) return "Warlord Genesis";\n        if (host.startsWith("voxgrudge")) return "VoxGrudge";\n        return "Grudge App";\n      }',
+        );
+      }
+
       outHeaders.delete("content-length");
       outHeaders.set("X-Grudge-Auth-ReturnTo-Patch", "1");
-      return new Response(html, {
+      outHeaders.set("X-Grudge-Auth-Ui-Patch", "warlord-login-v1");
+      return new Response(patched, {
         status: upstream.status,
         statusText: upstream.statusText,
         headers: outHeaders,
