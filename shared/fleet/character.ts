@@ -23,7 +23,11 @@ export interface Grudge6RaceConfig {
   modelId: string;
   prefix: string;
   label: string;
-  /** CDN-relative race model path */
+  /**
+   * CDN-relative race kit path for GLTFLoader (Warlords / island3d).
+   * Canonical modular kit: /models/grudge6/races/{STEM}_Characters.glb
+   * FBX SSOT (browse / Three FBXLoader): see RACE_FBX_PATHS / resolveFbxPath.
+   */
   cdnPath: string;
   scale: number;
   faction: "crusade" | "fabled" | "legion" | "wild";
@@ -31,13 +35,17 @@ export interface Grudge6RaceConfig {
   baseModelStem?: string;
 }
 
+/**
+ * Canonical grudge6 race kits on R2 (not legacy /models/characters/races/*).
+ * Equipment = child-mesh visibility via setupGrudge6Equipment / grudge6-kit EquipmentManager.
+ */
 export const RACE_GRUDGE6: Record<string, Grudge6RaceConfig> = {
-  human:     { modelId: "human",     prefix: "WK_",  label: "Human",     cdnPath: "/models/characters/races/human.glb",     scale: 1.0,  faction: "crusade", baseModelStem: "WK_Characters" },
-  barbarian: { modelId: "barbarian", prefix: "BRB_", label: "Barbarian", cdnPath: "/models/characters/races/barbarian.glb", scale: 1.1,  faction: "crusade", baseModelStem: "BRB_Characters" },
-  elf:       { modelId: "elf",       prefix: "ELF_", label: "Elf",       cdnPath: "/models/characters/races/elf.glb",       scale: 1.0,  faction: "fabled",  baseModelStem: "ELF_Characters" },
-  dwarf:     { modelId: "dwarf",     prefix: "DWF_", label: "Dwarf",     cdnPath: "/models/characters/races/dwarf.glb",     scale: 0.85, faction: "crusade", baseModelStem: "DWF_Characters" },
-  orc:       { modelId: "orc",       prefix: "ORC_", label: "Orc",       cdnPath: "/models/characters/races/orc.glb",       scale: 1.15, faction: "legion",  baseModelStem: "ORC_Characters" },
-  undead:    { modelId: "undead",    prefix: "UD_",  label: "Undead",    cdnPath: "/models/characters/races/undead.glb",    scale: 1.0,  faction: "legion",  baseModelStem: "UD_Characters" },
+  human:     { modelId: "human",     prefix: "WK_",  label: "Human",     cdnPath: "/models/grudge6/races/WK_Characters.glb",  scale: 1.0,  faction: "crusade", baseModelStem: "WK_Characters" },
+  barbarian: { modelId: "barbarian", prefix: "BRB_", label: "Barbarian", cdnPath: "/models/grudge6/races/BRB_Characters.glb", scale: 1.1,  faction: "crusade", baseModelStem: "BRB_Characters" },
+  elf:       { modelId: "elf",       prefix: "ELF_", label: "Elf",       cdnPath: "/models/grudge6/races/ELF_Characters.glb", scale: 1.0,  faction: "fabled",  baseModelStem: "ELF_Characters" },
+  dwarf:     { modelId: "dwarf",     prefix: "DWF_", label: "Dwarf",     cdnPath: "/models/grudge6/races/DWF_Characters.glb", scale: 0.85, faction: "crusade", baseModelStem: "DWF_Characters" },
+  orc:       { modelId: "orc",       prefix: "ORC_", label: "Orc",       cdnPath: "/models/grudge6/races/ORC_Characters.glb", scale: 1.15, faction: "legion",  baseModelStem: "ORC_Characters" },
+  undead:    { modelId: "undead",    prefix: "UD_",  label: "Undead",    cdnPath: "/models/grudge6/races/UD_Characters.glb",  scale: 1.0,  faction: "legion",  baseModelStem: "UD_Characters" },
 };
 
 /**
@@ -79,7 +87,7 @@ export function raceMeshPrefix(raceId: string): string {
   return (RACE_GRUDGE6[id] ?? RACE_GRUDGE6.human).prefix;
 }
 
-/** Legacy grudge6 FBX path (character creator playground) */
+/** Production grudge6 FBX path (materials correct; prefer over stripped GLB) */
 export const RACE_FBX_PATHS: Record<string, string> = {
   human:     "/models/grudge6/races/WK_Characters.fbx",
   barbarian: "/models/grudge6/races/BRB_Characters.fbx",
@@ -88,6 +96,36 @@ export const RACE_FBX_PATHS: Record<string, string> = {
   orc:       "/models/grudge6/races/ORC_Characters.fbx",
   undead:    "/models/grudge6/races/UD_Characters.fbx",
 };
+
+/**
+ * Resolve race model path for loaders.
+ * prefer "fbx" for production materials (CDN verified); "glb" for web-only loaders.
+ */
+export function resolveRaceModelPath(
+  raceId: string,
+  prefer: "fbx" | "glb" = "fbx",
+): string {
+  const id = normalizeRaceId(raceId);
+  if (prefer === "fbx") {
+    return RACE_FBX_PATHS[id] ?? RACE_FBX_PATHS.human;
+  }
+  return (RACE_GRUDGE6[id] ?? RACE_GRUDGE6.human).cdnPath;
+}
+
+/** Atlas webp under textures/grudge6/… (CDN SSOT) */
+export const RACE_TEXTURE_R2_KEYS: Record<string, string> = {
+  human: "textures/grudge6/western-kingdoms/WK_Standard_Units.webp",
+  barbarian: "textures/grudge6/barbarians/BRB_StandardUnits_texture.webp",
+  dwarf: "textures/grudge6/dwarves/DWF_Standard_Units.webp",
+  elf: "textures/grudge6/elves/ELF_HighElves_Texture.webp",
+  orc: "textures/grudge6/orcs/ORC_StandardUnits.webp",
+  undead: "textures/grudge6/undead/UD_Standard_Units.webp",
+};
+
+export function resolveRaceTextureR2Key(raceId: string): string {
+  const id = normalizeRaceId(raceId);
+  return RACE_TEXTURE_R2_KEYS[id] ?? RACE_TEXTURE_R2_KEYS.human;
+}
 
 const ARMOR_SLOTS = new Set(["body", "arms", "legs", "head", "shoulders", "bag", "wood", "quiver"]);
 const WEAPON_SLOTS = new Set(["axe", "hammer", "sword", "pick", "spear", "bow", "staff", "shield"]);
@@ -137,13 +175,53 @@ export function model3dFromEquipped(
 }
 
 export function resolveRaceCdnUrl(raceId: string, assetsBase = "https://assets.grudge-studio.com"): string {
-  const race = RACE_GRUDGE6[raceId] ?? RACE_GRUDGE6.human;
+  const race = RACE_GRUDGE6[normalizeRaceId(raceId)] ?? RACE_GRUDGE6.human;
   return `${assetsBase.replace(/\/$/, "")}${race.cdnPath}`;
 }
 
 export function resolveFbxPath(raceId: string, assetsBase = "https://assets.grudge-studio.com"): string {
-  const rel = RACE_FBX_PATHS[raceId] ?? RACE_FBX_PATHS.human;
+  const id = normalizeRaceId(raceId);
+  const rel = RACE_FBX_PATHS[id] ?? RACE_FBX_PATHS.human;
   return `${assetsBase.replace(/\/$/, "")}${rel}`;
+}
+
+/** Per-piece modular library mesh (D1 meshes.glb_url target). */
+export function resolveLibraryMeshUrl(
+  raceId: string,
+  meshFileName: string,
+  assetsBase = "https://assets.grudge-studio.com",
+): string {
+  const id = normalizeRaceId(raceId);
+  const file = meshFileName.endsWith(".glb") ? meshFileName : `${meshFileName}.glb`;
+  return `${assetsBase.replace(/\/$/, "")}/models/grudge6/races/library/${id}/${file}`;
+}
+
+/**
+ * Rewrite known-bad / legacy race model paths to canonical grudge6 kits.
+ * Mirrors ObjectStore js/grudge6-kit.js resolveCanonicalAssetUrl (GLB branch for games).
+ */
+export function resolveCanonicalRaceModelPath(urlOrKey: string): string {
+  if (!urlOrKey) return urlOrKey;
+  const s = String(urlOrKey);
+  const key = s
+    .replace(/^https?:\/\/assets\.grudge-studio\.com\//i, "")
+    .replace(/^\//, "");
+
+  // /models/characters/races/{race}.glb → kit
+  const legacyRace = key.match(/^models\/characters\/races\/([a-z_]+)\.glb$/i);
+  if (legacyRace) {
+    const id = normalizeRaceId(legacyRace[1]);
+    return (RACE_GRUDGE6[id] ?? RACE_GRUDGE6.human).cdnPath;
+  }
+
+  // models/characters/grudge6/{race}.glb → kit
+  const g6 = key.match(/^models\/characters\/grudge6\/(?:race\/|metaverse\/)?([a-z_]+)\.glb$/i);
+  if (g6) {
+    const id = normalizeRaceId(g6[1]);
+    return (RACE_GRUDGE6[id] ?? RACE_GRUDGE6.human).cdnPath;
+  }
+
+  return s.startsWith("/") || s.startsWith("http") ? s : `/${key}`;
 }
 
 /** Panel equipment slot names from character-builder / main equipment UI */

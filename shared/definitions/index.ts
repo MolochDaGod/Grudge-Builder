@@ -19,6 +19,9 @@ export * from "./medievalBattleScene";
 export * from "./mapRegistry";
 export * from "./biomeEcosystemCatalog";
 export * from "./biomeHarvestAssets";
+export * from "./resolveAsset";
+export * from "./terrainPackage";
+export * from "./tutorialFlow";
 
 import { SPELLS, getSpell, getSpellByReferenceName, getSpellsBySchool, getSpellsByLevel } from "./spells";
 import { SKILLS, getSkill, getSkillByReferenceName, getSkillsByWeapon, getSkillsByLevel } from "./skills";

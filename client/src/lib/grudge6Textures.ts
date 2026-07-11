@@ -1,9 +1,15 @@
 /**
- * Apply baked Grudge6 race atlas textures to GLB child meshes.
+ * Apply baked Grudge6 race atlas textures to race meshes.
+ *
+ * CDN SSOT (verified magic-byte webp):
+ *   https://assets.grudge-studio.com/textures/grudge6/{faction}/{file}.webp
+ *
+ * Fallbacks try legacy ObjectStore-style paths if CDN key moves.
  */
 import * as THREE from "three";
 import { normalizeRaceId, raceMeshPrefix } from "@shared/fleet";
 import { assetUrl } from "@/lib/assetConfig";
+import { resolveAsset } from "@shared/definitions/resolveAsset";
 
 const RACE_TEXTURE_FILES: Record<string, { folder: string; file: string }> = {
   human: { folder: "western-kingdoms", file: "WK_Standard_Units.webp" },
@@ -17,14 +23,21 @@ const RACE_TEXTURE_FILES: Record<string, { folder: string; file: string }> = {
 const _texLoader = new THREE.TextureLoader();
 const _cache = new Map<string, THREE.Texture>();
 
-function raceTextureUrl(raceId: string): string {
+/** Ordered candidate URLs for a race atlas (first success wins). */
+export function raceTextureCandidateUrls(raceId: string): string[] {
   const id = normalizeRaceId(raceId);
   const entry = RACE_TEXTURE_FILES[id] ?? RACE_TEXTURE_FILES.human;
-  return assetUrl(`/assets/${entry.folder}/textures/${entry.file}`);
+  const r2Key = `textures/grudge6/${entry.folder}/${entry.file}`;
+  const primary = resolveAsset(r2Key).url;
+  return [
+    primary,
+    assetUrl(`/textures/grudge6/${entry.folder}/${entry.file}`),
+    // Legacy mistaken path (old grudge6Textures) — keep last
+    assetUrl(`/assets/${entry.folder}/textures/${entry.file}`),
+  ];
 }
 
-function loadRaceTexture(raceId: string): Promise<THREE.Texture | null> {
-  const url = raceTextureUrl(raceId);
+function loadUrl(url: string): Promise<THREE.Texture | null> {
   const cached = _cache.get(url);
   if (cached) return Promise.resolve(cached);
 
@@ -43,6 +56,18 @@ function loadRaceTexture(raceId: string): Promise<THREE.Texture | null> {
   });
 }
 
+function loadRaceTexture(raceId: string): Promise<THREE.Texture | null> {
+  const urls = raceTextureCandidateUrls(raceId);
+  return (async () => {
+    for (const url of urls) {
+      const tex = await loadUrl(url);
+      if (tex) return tex;
+    }
+    console.warn(`[grudge6Textures] no atlas for race=${raceId}`, urls);
+    return null;
+  })();
+}
+
 export async function applyGrudge6RaceTextures(
   root: THREE.Object3D,
   raceId: string,
@@ -57,10 +82,18 @@ export async function applyGrudge6RaceTextures(
     mesh.userData.racePrefix = prefix;
     const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
     for (const mat of mats) {
-      if (mat instanceof THREE.MeshStandardMaterial || mat instanceof THREE.MeshPhongMaterial) {
+      if (
+        mat instanceof THREE.MeshStandardMaterial ||
+        mat instanceof THREE.MeshPhongMaterial
+      ) {
         mat.map = tex;
         mat.needsUpdate = true;
       }
     }
   });
+}
+
+/** For smoke / debug */
+export function raceTexturePrimaryUrl(raceId: string): string {
+  return raceTextureCandidateUrls(raceId)[0];
 }
