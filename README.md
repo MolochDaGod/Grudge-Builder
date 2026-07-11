@@ -68,6 +68,26 @@ Generate master data: `npm run generate:master` in ObjectStore repo.
 
 Every user gets a unique **Grudge ID** on first login. Auth methods (Discord, Google, GitHub, Puter, wallet, guest) all converge to the same Grudge ID. The backend auto-creates a server-side Solana wallet and Puter cloud storage per account.
 
+**Production identity SSOT (2026-07):**
+
+| Piece | Host / path |
+|-------|-------------|
+| Login UI | `https://id.grudge-studio.com/login?redirect_uri=<app>` |
+| Edge | CF Worker `workers/id-gateway` (rewrites → Railway, dual-writes return params) |
+| Auth API + page | Railway `grudge-api-production` · `server/templates/auth-page.html` |
+| Drop-in client | `https://id.grudge-studio.com/grudge-game-bootstrap.js` → `window.GrudgeAuth` |
+| Allowlist | `shared/fleet/authReturn.ts` (`*.vercel.app`, `*.puter.site`, …) |
+| Docs | [`docs/GRUDGE_AUTH_CONNECT.md`](docs/GRUDGE_AUTH_CONNECT.md) · [`docs/ID_SSO_PRODUCTION.md`](docs/ID_SSO_PRODUCTION.md) |
+
+```
+App  →  id…/login?redirect_uri=+redirect=+return=+origin=
+     →  sign-in (Puter / OAuth / guest)
+     →  handoff: location.replace(app + ?sso_token=&grudge_token=#sso_token=)
+     →  App stores fleet keys, prefers sso_token (session) over grudge_token (launch)
+```
+
+**Handoff rules (do not regress):** dual-write every return alias; stash JWT for Continue (`/api/auth/me` has no body token); prefer **session** `sso_token` over short **launch** `grudge_token`; read query **and** hash.
+
 ```
 grudge-builder/
 ├── client/                  # Vite + React frontend
@@ -254,12 +274,13 @@ Grudge-Builder is the **hub** for the Grudge Warlords fleet. All games share the
 | **RTS Grudge** | RTS-Grudge | rts-grudge.vercel.app | React-Three-Fiber + Rapier |
 | **Dungeon Crawler Quest** | Dungeon-Crawler-Quest | dcq.grudge-studio.com | Three.js + Voxel + Rapier |
 | **Grudge Studio Forge** | RTS-Grudge (studio/) | forge.grudge-studio.com | R3F + Rapier + ObjectStore |
+| **Grudge Open** | gameopen | gameopen.vercel.app | Three.js combat sandbox + fleet SSO |
 
 All games connect to:
-- `api.grudge-studio.com` — Game API (characters, saves, inventory)
-- `id.grudge-studio.com` — Auth (SSO, OAuth, JWT)
+- **Railway** `grudge-api-production` — characters, account, island, inventory (first-party: same-origin `/api/*`)
+- `id.grudge-studio.com` — Auth (SSO, OAuth, JWT handoff)
 - `assets.grudge-studio.com` — Asset CDN (R2)
-- `objectstore.grudge-studio.com` — Game data (weapons, armor, classes)
+- `objectstore.grudge-studio.com` / `info.grudge-studio.com` — definitions JSON
 
 ### Cross-Game SSO & Navigation
 
@@ -274,16 +295,28 @@ Player on grudgewarlords.com (has grudge_auth_token)
   │
   └─ RTS-Grudge picks up ?sso_token= on load (grudgeBackend.ts / GrudgeSession.ts)
      └─ Stores token in localStorage, cleans URL
-     └─ Player is authenticated — characters load from api.grudge-studio.com
+     └─ Player is authenticated — characters from Railway via same-origin /api/characters
 ```
+
+**Login-from-satellite (return-to-origin)** — e.g. [gameopen.vercel.app](https://gameopen.vercel.app):
+
+```
+gameopen → id.grudge-studio.com/login?redirect_uri=https://gameopen.vercel.app/
+        → after sign-in, id handoff MUST leave id and land on gameopen with tokens
+        → gameopen prefers sso_token; bridges grudge_token via /api/auth/session/exchange
+```
+
+Probe: `GET id…/auth/sso-check?return=https://gameopen.vercel.app/` → `302` with **both** `redirect_uri` and `redirect`.
 
 **Auth module per game:**
 
-| Game | Auth Module | Token Key | SSO Pickup |
+| Game | Auth Module | Token keys (write all / read any) | SSO Pickup |
 |---|---|---|---|
-| GrudgeBuilder | `lib/grudgeBackend.ts` | `grudge_auth_token` | `?sso_token=` query param |
-| RTS-Grudge | `lib/auth/GrudgeSession.ts` | `grudge.token` | `?grudge_token=` + `?sso_token=` |
+| GrudgeBuilder | `lib/grudgeBackend.ts` + bootstrap | `grudge_auth_token`, `sso_token`, … | query + hash `sso_token` / `grudge_token` |
+| Grudge Open | `gameopen` `lib/grudgeAuth.ts` + `fleet.ts` | same fleet keys + `grudge.open.token` | prefer `sso_token`; bridge launch |
+| RTS-Grudge | `lib/auth/GrudgeSession.ts` | `grudge.token` + fleet | `?grudge_token=` + `?sso_token=` |
 | DCQ | `lib/grudgeBackend.ts` | `grudge_auth_token` | `?sso_token=` + legacy `#token=` |
+| Any drop-in | `GrudgeAuth.start({ mode })` | fleet keys | dual return params + pickup |
 
 **Cross-game navigation** (`client/src/lib/gameNav.ts`):
 

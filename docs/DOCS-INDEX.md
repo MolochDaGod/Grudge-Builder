@@ -9,6 +9,7 @@ Organized entry point for APIs, UUID systems, and fleet integration.
 | Topic | Doc |
 |-------|-----|
 | **Live game** | https://grudgewarlords.com |
+| **Grudge ID SSO / modular login / return-to-origin** | [GRUDGE_AUTH_CONNECT.md](./GRUDGE_AUTH_CONNECT.md) · [ID_SSO_PRODUCTION.md](./ID_SSO_PRODUCTION.md) |
 | **API routes (auth, characters, island, crafting)** | [API.md](./API.md) |
 | **Hero identity (name + GRDG code, create SSOT)** | [CHARACTER_IDENTITY.md](./CHARACTER_IDENTITY.md) |
 | **Character progress SSOT (skills, mastery, attrs, bag scope, revisions)** | [CHARACTER_PROGRESS_SSOT.md](./CHARACTER_PROGRESS_SSOT.md) |
@@ -49,10 +50,25 @@ Organized entry point for APIs, UUID systems, and fleet integration.
 | Resource | URL |
 |----------|-----|
 | Browse all JSON datasets | https://info.grudge-studio.com/docs |
+| **Best practices** (convert/render/NPC/combat/build) | https://info.grudge-studio.com/docs/best-practices.html · [MD](../../ObjectStore/docs/BEST-PRACTICES.md) |
+| **Usage README** | [ObjectStore/docs/USAGE.md](../../ObjectStore/docs/USAGE.md) |
+| **Asset docs** | [ObjectStore/docs/ASSETS.md](../../ObjectStore/docs/ASSETS.md) · [ASSETS.md](./ASSETS.md) |
+| **grudge6 races** | [ObjectStore/docs/GRUDGE6.md](../../ObjectStore/docs/GRUDGE6.md) · browse GRUDGE6_Characters |
 | API + UUID master guide | [ObjectStore/docs/API-AND-UUID-GUIDE.md](../../ObjectStore/docs/API-AND-UUID-GUIDE.md) |
 | Icon pipeline | [ObjectStore/docs/ICON-ASSET-LIBRARY.md](../../ObjectStore/docs/ICON-ASSET-LIBRARY.md) |
 | **Icon browser (search & copy)** | https://info.grudge-studio.com/ICON_BROWSER.html |
-| `assets-api.json` manifest | https://objectstore.grudge-studio.com/api/v1/assets-api.json |
+| `assets-api.json` / `best-practices.json` | https://objectstore.grudge-studio.com/api/v1/assets-api.json · `…/best-practices.json` |
+| Docs catalog | https://objectstore.grudge-studio.com/api/v1/docs-catalog.json |
+
+### CDN fleet modules
+
+| Module | URL |
+|--------|-----|
+| grudge6-kit | https://assets.grudge-studio.com/js/grudge6-kit.js |
+| grudge-id-client | https://assets.grudge-studio.com/js/grudge-id-client.js |
+| grudge-fleet | https://assets.grudge-studio.com/js/grudge-fleet.js |
+
+Race kits: `shared/fleet/character.ts` → `/models/grudge6/races/*_Characters.glb` + `setupGrudge6Equipment` / `applyMeshIds`.
 
 ---
 
@@ -61,8 +77,9 @@ Organized entry point for APIs, UUID systems, and fleet integration.
 | Service | Domain |
 |---------|--------|
 | Grudge ID | `id.grudge-studio.com` |
-| Game API | `api.grudge-studio.com` |
+| Game API (Railway) | `grudge-api-production-0d46.up.railway.app` (first-party: same-origin `/api`) |
 | ObjectStore | `objectstore.grudge-studio.com` |
+| Info docs | `info.grudge-studio.com` |
 | Asset CDN | `assets.grudge-studio.com` |
 | Production UI | `grudgewarlords.com` |
 | WCS / crafting (Puter) | `grudge-crafting.puter.site` — see [CHARACTER_PROGRESS_SSOT.md](./CHARACTER_PROGRESS_SSOT.md) |
