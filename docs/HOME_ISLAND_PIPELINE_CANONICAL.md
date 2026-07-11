@@ -94,10 +94,19 @@ Helpers:
 
 ## Biome assets (high quality path)
 
+**CDN audit (all layers):** `node scripts/audit-biome-assets.mjs`  
+**SSOT:** `natureAssetCatalog.ts` → `WARLORDS_SURFACE_ASSETS` · `biomeEcosystemCatalog.ts` → `BIOME_SURFACE_LAYERS`
+
 | Layer | Source |
 |-------|--------|
 | Biome palette (tints + wildlife pools) | `biomeHarvestAssets.ts` |
-| Harvest GLB pack (tree/rock/gem/ore) | CDN `/models/environment/*` via `IslandResourceLoader` |
+| Land scatter (trees/rocks/grass) | Battle Kenney pack `/models/nature/*` + stylized multipacks |
+| Coast / palms | `tropical_plants.glb` + realistic palms |
+| Water / ponds / fish | `pond_pack.glb` + `/models/creatures/fish/*` |
+| Mountains | `evil_rock_mountain_peak_0|1|2` + triad |
+| Ground PBR (10 mats) | `/textures/pbr/ground/Ground_N_*` |
+| All 12 biome boards | `/models/biomes/review/{id}.glb` |
+| Harvest GLB pack (tree/rock/gem/ore) | CDN `/models/environment/*` + stylized harvest packs via `IslandResourceLoader` |
 | Nature scatter (pine/bush/rock sets) | `ISLAND_NATURE_SCATTER` → `/models/nature/*` |
 | Ground PBR | `ISLAND_TERRAIN_TEXTURES` → `/textures/pbr/ground` |
 | Regenerative harvest | `RegenerativeHarvest` + regrow anchors |

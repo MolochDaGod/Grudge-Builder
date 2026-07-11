@@ -70,7 +70,7 @@ export interface EcosystemStorage {
 
 export const ECOSYSTEM_STORAGE: EcosystemStorage = {
   cdnBase: 'https://assets.grudge-studio.com',
-  nature: NATURE_STORAGE.realisticRoot,
+  nature: '/models/nature',
   environment: NATURE_STORAGE.environmentPacks,
   mountains: '/models',
   texturesPbr: '/textures/pbr/ground',
@@ -427,6 +427,41 @@ export const BIOME_ECOSYSTEMS: Record<EcosystemBiome, BiomeEcosystem> = {
     },
   }),
 };
+
+
+/**
+ * Map each ecosystem → surface asset roles for home-islands + open land/water.
+ * Paths resolve on assets.grudge-studio.com (audit: scripts/audit-biome-assets.mjs).
+ */
+export const BIOME_SURFACE_LAYERS: Record<
+  EcosystemBiome,
+  {
+    groundPbr: string;
+    treePacks: string[];
+    rockPacks: string[];
+    coastPack?: string;
+    waterPack: string;
+    mountain: boolean;
+  }
+> = {
+  beach: { groundPbr: 'ground_1', treePacks: ['/models/nature/stylized/biome/tropical_plants.glb'], rockPacks: ['/models/nature/stylized/rocks/stylised_rocks.glb'], coastPack: '/models/nature/stylized/biome/tropical_plants.glb', waterPack: '/models/nature/stylized/harvest/pond_pack.glb', mountain: true },
+  tropical: { groundPbr: 'ground_1', treePacks: ['/models/nature/stylized/biome/tropical_plants.glb'], rockPacks: ['/models/nature/stylized/rocks/stylised_rocks.glb'], coastPack: '/models/nature/stylized/biome/tropical_plants.glb', waterPack: '/models/nature/stylized/harvest/pond_pack.glb', mountain: true },
+  forest: { groundPbr: 'ground_6', treePacks: ['/models/nature/stylized/biome/nature_vegetation.glb', '/models/nature/stylized/biome/realistic_trees.glb'], rockPacks: ['/models/nature/stylized/rocks/stylised_rocks.glb'], waterPack: '/models/nature/stylized/harvest/pond_pack.glb', mountain: true },
+  plains: { groundPbr: 'ground_2', treePacks: ['/models/nature/stylized/biome/realistic_trees.glb'], rockPacks: ['/models/nature/stylized/rocks/stylised_rocks.glb'], waterPack: '/models/nature/stylized/harvest/pond_pack.glb', mountain: true },
+  winter: { groundPbr: 'ground_7', treePacks: ['/models/nature/stylized/biome/snowbiomes.glb'], rockPacks: ['/models/nature/stylized/biome/snowbiomes.glb'], waterPack: '/models/nature/stylized/harvest/pond_pack.glb', mountain: true },
+  frozen: { groundPbr: 'ground_7', treePacks: ['/models/nature/stylized/biome/snowbiomes.glb'], rockPacks: ['/models/nature/stylized/biome/snowbiomes.glb'], waterPack: '/models/nature/stylized/harvest/pond_pack.glb', mountain: true },
+  desert: { groundPbr: 'ground_3', treePacks: ['/models/nature/stylized/biome/tropical_plants.glb'], rockPacks: ['/models/nature/stylized/rocks/stylised_rocks.glb'], waterPack: '/models/nature/stylized/harvest/pond_pack.glb', mountain: true },
+  volcanic: { groundPbr: 'ground_5', treePacks: ['/models/nature/stylized/biome/volcanicnature.glb'], rockPacks: ['/models/nature/stylized/rocks/volcanic_rocks.glb'], waterPack: '/models/nature/stylized/harvest/pond_pack.glb', mountain: true },
+  storm: { groundPbr: 'ground_4', treePacks: ['/models/nature/stylized/biome/nature_vegetation.glb'], rockPacks: ['/models/nature/stylized/rocks/stylised_rocks.glb'], coastPack: '/models/nature/stylized/biome/tropical_plants.glb', waterPack: '/models/nature/stylized/harvest/pond_pack.glb', mountain: true },
+  ethereal: { groundPbr: 'ground_8', treePacks: ['/models/nature/stylized/biome/realistic_trees.glb'], rockPacks: ['/models/nature/stylized/rocks/stylised_rocks.glb'], waterPack: '/models/nature/stylized/harvest/pond_pack.glb', mountain: true },
+  abyssal: { groundPbr: 'ground_9', treePacks: ['/models/nature/stylized/biome/volcanicnature.glb'], rockPacks: ['/models/nature/stylized/rocks/volcanic_rocks.glb'], waterPack: '/models/nature/stylized/harvest/pond_pack.glb', mountain: true },
+  nexus: { groundPbr: 'ground_10', treePacks: ['/models/nature/stylized/biome/nature_vegetation.glb', '/models/nature/stylized/biome/realistic_trees.glb'], rockPacks: ['/models/nature/stylized/rocks/stylised_rocks.glb'], waterPack: '/models/nature/stylized/harvest/pond_pack.glb', mountain: true },
+};
+
+export function surfaceLayersForBiome(biome: string | undefined | null) {
+  const eco = resolveEcosystem(biome);
+  return BIOME_SURFACE_LAYERS[eco.id];
+}
 
 export function resolveEcosystem(biome: string | undefined | null): BiomeEcosystem {
   const key = (biome ?? 'forest').toLowerCase();

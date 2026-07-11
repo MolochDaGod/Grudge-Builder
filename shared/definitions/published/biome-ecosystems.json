@@ -9,16 +9,21 @@
   "storage": {
     "seeds": "Railway Postgres home_islands (NOT D1)",
     "gltf": "R2 grudge-assets → assets.grudge-studio.com",
-    "nature": "/models/nature/realistic/trees|rocks|groundcover (CommonTree/Twisted/Pine_* BANNED)",
-    "environment": "/models/environment/island_tree.glb, island_rock.glb, gem_cluster.glb (interim only)",
-    "mountains": "/models/evil_rock_mountain_peak_0|1|2.glb",
-    "textures": "/textures/pbr/ground/ground_1..10",
-    "reviewGlbs": "/models/biomes/review/{biome}.glb",
+    "nature": "/models/nature/* battle Kenney pack + stylized multipacks (see natureAssetCatalog WARLORDS_SURFACE_ASSETS)",
+    "land": "/models/nature/CommonTree_* Pine_* Rock_* Grass_* + stylized/biome/*",
+    "coast": "/models/nature/stylized/biome/tropical_plants.glb + realistic palms",
+    "water": "/models/nature/stylized/harvest/pond_pack.glb + /models/creatures/fish/*",
+    "environment": "/models/environment/harvest_*.glb, gem_cluster.glb",
+    "mountains": "/models/evil_rock_mountain_peak_0|1|2.glb + triad",
+    "textures": "/textures/pbr/ground/Ground_1..10_BaseColor.png (+ Normal/Roughness/AO)",
+    "reviewGlbs": "/models/biomes/review/{biome}.glb (12 biomes)",
+    "creatures": "/models/creatures/land/cotw/* + fish/* + predator/shark",
     "catalogs": [
       "home-island-contract.json",
       "biome-ecosystems.json",
       "map-registry.json"
-    ]
+    ],
+    "audit": "node scripts/audit-biome-assets.mjs"
   },
   "biomes": [
     {

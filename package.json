@@ -69,7 +69,8 @@
     "upload:warlords-assets": "node scripts/upload-warlords-assets.mjs",
     "convert:ufrts": "node scripts/convert-ultimate-fantasy-rts.mjs",
     "convert:ufrts:priority": "node scripts/convert-ultimate-fantasy-rts.mjs --priority",
-    "convert:ufrts:upload": "node scripts/convert-ultimate-fantasy-rts.mjs --upload"
+    "convert:ufrts:upload": "node scripts/convert-ultimate-fantasy-rts.mjs --upload",
+    "audit:biome-assets": "node scripts/audit-biome-assets.mjs"
   },
   "dependencies": {
     "@colyseus/auth": "^0.17.9",

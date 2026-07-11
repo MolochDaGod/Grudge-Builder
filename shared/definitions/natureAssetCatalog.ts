@@ -17,43 +17,71 @@ export const NATURE_ASSET_CATALOG_VERSION = '3.0.0-battle';
 
 // ── Battle nature pack (game.grudge-studio.com/game/battle NatureDecor) ─────
 
-/** Same files as Grudge-Studio-Game NatureDecor — already on R2 */
+/**
+ * Same files as Grudge-Studio-Game NatureDecor — on R2 as both .glb and .gltf.
+ * Prefer .glb (single-file, local public/ + CDN); .gltf still allowlisted.
+ */
 export const BATTLE_NATURE_PACK = {
   trees: [
-    '/models/nature/CommonTree_1.gltf',
-    '/models/nature/CommonTree_2.gltf',
-    '/models/nature/CommonTree_3.gltf',
-    '/models/nature/CommonTree_4.gltf',
-    '/models/nature/CommonTree_5.gltf',
+    '/models/nature/CommonTree_1.glb',
+    '/models/nature/CommonTree_2.glb',
+    '/models/nature/CommonTree_3.glb',
+    '/models/nature/CommonTree_4.glb',
+    '/models/nature/CommonTree_5.glb',
   ],
   deadTrees: [
-    '/models/nature/DeadTree_1.gltf',
-    '/models/nature/DeadTree_2.gltf',
-    '/models/nature/DeadTree_3.gltf',
+    '/models/nature/DeadTree_1.glb',
+    '/models/nature/DeadTree_2.glb',
+    '/models/nature/DeadTree_3.glb',
+    '/models/nature/DeadTree_4.glb',
+    '/models/nature/DeadTree_5.glb',
   ],
   pines: [
-    '/models/nature/Pine_1.gltf',
-    '/models/nature/Pine_2.gltf',
-    '/models/nature/Pine_3.gltf',
-    '/models/nature/Pine_4.gltf',
-    '/models/nature/Pine_5.gltf',
+    '/models/nature/Pine_1.glb',
+    '/models/nature/Pine_2.glb',
+    '/models/nature/Pine_3.glb',
+    '/models/nature/Pine_4.glb',
+    '/models/nature/Pine_5.glb',
   ],
   rocks: [
-    '/models/nature/Pebble_Round_1.gltf',
-    '/models/nature/Pebble_Round_2.gltf',
-    '/models/nature/Pebble_Round_3.gltf',
-    '/models/nature/Rock_Medium_1.gltf',
-    '/models/nature/Rock_Medium_2.gltf',
-    '/models/nature/Rock_Medium_3.gltf',
+    '/models/nature/Pebble_Round_1.glb',
+    '/models/nature/Pebble_Round_2.glb',
+    '/models/nature/Pebble_Round_3.glb',
+    '/models/nature/Pebble_Round_4.glb',
+    '/models/nature/Pebble_Round_5.glb',
+    '/models/nature/Rock_Medium_1.glb',
+    '/models/nature/Rock_Medium_2.glb',
+    '/models/nature/Rock_Medium_3.glb',
   ],
   bushes: [
-    '/models/nature/Bush_Common.gltf',
-    '/models/nature/Bush_Common_Flowers.gltf',
+    '/models/nature/Bush_Common.glb',
+    '/models/nature/Bush_Common_Flowers.glb',
   ],
-  mushrooms: ['/models/nature/Mushroom_Common.gltf'],
+  mushrooms: [
+    '/models/nature/Mushroom_Common.glb',
+    '/models/nature/Mushroom_Laetiporus.glb',
+  ],
   flowers: [
-    '/models/nature/Flower_3_Group.gltf',
-    '/models/nature/Flower_4_Group.gltf',
+    '/models/nature/Flower_3_Group.glb',
+    '/models/nature/Flower_3_Single.glb',
+    '/models/nature/Flower_4_Group.glb',
+    '/models/nature/Flower_4_Single.glb',
+  ],
+  /** Dry land ground cover — meadows, forest floor, island interiors */
+  grasses: [
+    '/models/nature/Grass_Common_Short.glb',
+    '/models/nature/Grass_Common_Tall.glb',
+    '/models/nature/Grass_Wispy_Short.glb',
+    '/models/nature/Grass_Wispy_Tall.glb',
+    '/models/nature/Clover_1.glb',
+    '/models/nature/Clover_2.glb',
+    '/models/nature/Fern_1.glb',
+  ],
+  plants: [
+    '/models/nature/Plant_1.glb',
+    '/models/nature/Plant_1_Big.glb',
+    '/models/nature/Plant_7.glb',
+    '/models/nature/Plant_7_Big.glb',
   ],
 } as const;
 
@@ -71,10 +99,18 @@ export function isBattleNaturePath(path: string): boolean {
   const p = path.replace(/\\/g, '/');
   if (!p.includes('/models/nature/')) return false;
   return (
-    /CommonTree_|DeadTree_|TwistedTree_|Pine_[0-9]|Pebble_Round_|Pebble_Square_|Bush_Common|Mushroom_Common|Rock_Medium_|Flower_[34]_/i.test(
+    /CommonTree_|DeadTree_|TwistedTree_|Pine_[0-9]|Pebble_Round_|Pebble_Square_|Bush_Common|Mushroom_Common|Mushroom_Laetiporus|Rock_Medium_|Flower_[34]_|Grass_|Clover_|Fern_|Plant_[17]/i.test(
       p,
     ) && !p.includes('/stylized/') && !p.includes('/organized/') && !p.includes('/realistic/')
   );
+}
+
+/** Prefer .glb; fall back to .gltf for battle pack loaders. */
+export function battleNaturePathCandidates(path: string): string[] {
+  const p = path.replace(/\\/g, '/');
+  if (p.endsWith('.glb')) return [p, p.replace(/\.glb$/i, '.gltf')];
+  if (p.endsWith('.gltf')) return [p, p.replace(/\.gltf$/i, '.glb')];
+  return [p];
 }
 
 export type NatureQuality = 'stylized' | 'interim_pack' | 'banned_lowpoly';
@@ -150,6 +186,97 @@ export const STYLIZED_PACK_PATHS = {
   templeRuins: '/models/nature/stylized/ruins/temple_ruins.glb',
   ancientRuins: '/models/nature/stylized/ruins/ancient_ruins.glb',
 } as const;
+
+/**
+ * Warlords surface layers — land / coast / water / mountain.
+ * Every path is expected on assets.grudge-studio.com (R2 grudge-assets).
+ * Audit: `node scripts/audit-biome-assets.mjs`
+ */
+export const WARLORDS_SURFACE_ASSETS = {
+  /** Battle Kenney pack — default home-island + open land scatter */
+  landScatter: BATTLE_NATURE_PACK,
+  /** Biome multipacks (clone named nodes — never place whole scene) */
+  biomePacks: STYLIZED_PACK_PATHS,
+  /** Coast / shore */
+  coast: {
+    tropicalPack: STYLIZED_PACK_PATHS.tropical,
+    palms: [
+      '/models/nature/realistic/trees/palm/palm_a.glb',
+      '/models/nature/realistic/trees/palm/palm_b.glb',
+    ],
+    sandGround: 'ground_1' as const,
+  },
+  /** Water / pond / waterfall props + fish */
+  water: {
+    pondPack: STYLIZED_PACK_PATHS.pond,
+    fish: [
+      '/models/creatures/fish/anglerfish.glb',
+      '/models/creatures/fish/lionfish.glb',
+      '/models/creatures/fish/goldfish.glb',
+      '/models/creatures/fish/blobfish.glb',
+      '/models/creatures/fish/catfish.glb',
+      '/models/creatures/fish/butterflyfish.glb',
+      '/models/creatures/fish/flatfish.glb',
+      '/models/creatures/fish/shark.glb',
+    ],
+    predator: ['/models/creatures/predator/shark.glb'],
+  },
+  /** Mountains / event peaks */
+  mountains: [
+    '/models/evil_rock_mountain_peak_0.glb',
+    '/models/evil_rock_mountain_peak_1.glb',
+    '/models/evil_rock_mountain_peak_2.glb',
+    '/models/evil_rock_mountains_triad.glb',
+  ],
+  /** Harvest nodes */
+  harvest: {
+    stump: '/models/environment/harvest_stump.glb',
+    logs: '/models/environment/harvest_logs.glb',
+    debris: '/models/environment/harvest_rock_debris.glb',
+    goldRocks: '/models/environment/harvest_gold_rocks.glb',
+    gem: '/models/environment/gem_cluster.glb',
+    mineralsPack: STYLIZED_PACK_PATHS.minerals,
+    oreNodes: STYLIZED_PACK_PATHS.oreNodes,
+  },
+  /** All 12 biome review boards */
+  biomeReview: [
+    'abyssal', 'beach', 'desert', 'ethereal', 'forest', 'frozen',
+    'nexus', 'plains', 'storm', 'tropical', 'volcanic', 'winter',
+  ].map((id) => `/models/biomes/review/${id}.glb`),
+  /** Ground PBR ids → Ground_N_BaseColor.png on CDN */
+  groundPbrIds: [
+    'ground_1', 'ground_2', 'ground_3', 'ground_4', 'ground_5',
+    'ground_6', 'ground_7', 'ground_8', 'ground_9', 'ground_10',
+  ] as const,
+} as const;
+
+/** Flatten all Warlords surface asset paths for CDN audits. */
+export function collectWarlordsSurfacePaths(): string[] {
+  const out = new Set<string>();
+  const add = (p: string | undefined | null) => {
+    if (p && typeof p === 'string' && p.startsWith('/')) out.add(p);
+  };
+  for (const list of Object.values(BATTLE_NATURE_PACK)) {
+    for (const p of list) add(p);
+  }
+  for (const p of Object.values(STYLIZED_PACK_PATHS)) add(p);
+  for (const p of WARLORDS_SURFACE_ASSETS.coast.palms) add(p);
+  add(WARLORDS_SURFACE_ASSETS.coast.tropicalPack);
+  add(WARLORDS_SURFACE_ASSETS.water.pondPack);
+  for (const p of WARLORDS_SURFACE_ASSETS.water.fish) add(p);
+  for (const p of WARLORDS_SURFACE_ASSETS.water.predator) add(p);
+  for (const p of WARLORDS_SURFACE_ASSETS.mountains) add(p);
+  for (const p of Object.values(WARLORDS_SURFACE_ASSETS.harvest)) add(p);
+  for (const p of WARLORDS_SURFACE_ASSETS.biomeReview) add(p);
+  for (const id of WARLORDS_SURFACE_ASSETS.groundPbrIds) {
+    const n = id.replace('ground_', '');
+    add(`/textures/pbr/ground/Ground_${n}_BaseColor.png`);
+    add(`/textures/pbr/ground/Ground_${n}_Normal.png`);
+    add(`/textures/pbr/ground/Ground_${n}_Roughness.png`);
+    add(`/textures/pbr/ground/Ground_${n}_AmbientOcclusion.png`);
+  }
+  return [...out].sort();
+}
 
 /** Named variants to clone (never place whole multi-mesh scene). */
 export const STYLIZED_VARIANTS = {
@@ -291,7 +418,9 @@ export function isBannedNaturePath(path: string): boolean {
   if (isBattleNaturePath(p)) return false;
   // Allowlisted stylized packs
   if (isStylizedNaturePath(p)) return false;
-  // Only ban .glb pine megakit dumps — .gltf battle pines are OK
+  // Battle pack pines (.glb/.gltf at nature root) are allowlisted via isBattleNaturePath
+  if (isBattleNaturePath(p)) return false;
+  // Only ban non-battle pine megakit dumps
   if (BANNED_MEGAKIT_PINE.some((x) => p.endsWith(x) || p.includes(x))) return true;
   // Ban legacy palm extract only if NOT stylized tropical pack
   if (p.includes('palm2_13') && !p.includes('tropical')) return true;
