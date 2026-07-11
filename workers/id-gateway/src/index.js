@@ -149,6 +149,39 @@ function mapUpstreamPath(url) {
 }
 
 /**
+ * Pick fleet return URL from any accepted alias. NEVER drop this on rewrites —
+ * missing return is why users get stuck on id.grudge-studio.com after login.
+ */
+function pickRedirectParam(searchParams) {
+  return (
+    searchParams.get("redirect_uri") ||
+    searchParams.get("redirect") ||
+    searchParams.get("return") ||
+    searchParams.get("return_to") ||
+    searchParams.get("returnUrl") ||
+    ""
+  );
+}
+
+/**
+ * Pretty /login URL that dual-writes redirect_uri + redirect for auth-page JS.
+ */
+function prettyLoginLocation(searchParams) {
+  const redir = pickRedirectParam(searchParams);
+  if (!redir) {
+    const raw = searchParams.toString();
+    return raw ? `/login?${raw}` : "/login";
+  }
+  const q = new URLSearchParams();
+  q.set("redirect_uri", redir);
+  q.set("redirect", redir);
+  for (const key of ["app", "origin", "handoff", "api", "audience"]) {
+    if (searchParams.get(key)) q.set(key, searchParams.get(key));
+  }
+  return `/login?${q.toString()}`;
+}
+
+/**
  * Rewrite Location so browsers never leave id.grudge-studio.com for auth hops.
  */
 function rewriteLocation(loc, publicHost, upstreamHost) {
@@ -163,24 +196,19 @@ function rewriteLocation(loc, publicHost, upstreamHost) {
         u.hostname === "the-engine.up.railway.app"
       ) {
         // Map Railway auth paths back to pretty id paths
-        let p = u.pathname + u.search + u.hash;
-        if (p.startsWith("/api/auth/page")) {
-          const qs = new URLSearchParams(u.search);
-          const redir = qs.get("redirect");
-          p = "/login" + (redir ? `?redirect_uri=${encodeURIComponent(redir)}` : "");
+        if (u.pathname.startsWith("/api/auth/page") || u.pathname === "/login" || u.pathname === "/login/") {
+          return publicHost.replace(/\/$/, "") + prettyLoginLocation(u.searchParams);
         }
+        let p = u.pathname + u.search + u.hash;
         return publicHost.replace(/\/$/, "") + p;
       }
+      // Non-railway absolute (Discord, app return URLs) — leave alone
       return loc;
     }
-    // Relative /api/auth/page → /login for nicer UX
-    if (loc.startsWith("/api/auth/page")) {
+    // Relative /api/auth/page or /login → pretty /login with ALL return aliases
+    if (loc.startsWith("/api/auth/page") || loc.startsWith("/login")) {
       const u = new URL(loc, publicHost);
-      const redir = u.searchParams.get("redirect");
-      return (
-        "/login" +
-        (redir ? `?redirect_uri=${encodeURIComponent(redir)}` : u.search || "")
-      );
+      return prettyLoginLocation(u.searchParams);
     }
     return loc;
   } catch {

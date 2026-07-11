@@ -551,11 +551,11 @@ export function registerAuthRoutes(app: Express) {
     const returnUrl = resolveReturnUrl(req);
     const token = readSessionToken(req);
 
+    // Dual-write redirect_uri + redirect so id-gateway rewrites never drop return
+    const loginFallback = `/login?redirect_uri=${encodeURIComponent(returnUrl)}&redirect=${encodeURIComponent(returnUrl)}`;
+
     if (!token) {
-      return res.redirect(
-        302,
-        `/login?redirect_uri=${encodeURIComponent(returnUrl)}`,
-      );
+      return res.redirect(302, loginFallback);
     }
 
     try {
@@ -565,10 +565,7 @@ export function registerAuthRoutes(app: Express) {
         username?: string;
       };
       if (!payload.userId) {
-        return res.redirect(
-          302,
-          `/login?redirect_uri=${encodeURIComponent(returnUrl)}`,
-        );
+        return res.redirect(302, loginFallback);
       }
 
       const [user] = await db
@@ -577,10 +574,7 @@ export function registerAuthRoutes(app: Express) {
         .where(eq(users.id, payload.userId))
         .limit(1);
       if (!user) {
-        return res.redirect(
-          302,
-          `/login?redirect_uri=${encodeURIComponent(returnUrl)}`,
-        );
+        return res.redirect(302, loginFallback);
       }
 
       const [account] = await db
@@ -611,10 +605,7 @@ export function registerAuthRoutes(app: Express) {
       setSessionCookie(res, ssoToken);
       res.redirect(302, appendSsoParams(returnUrl, ssoToken, grudgeId, displayName, launchToken));
     } catch {
-      res.redirect(
-        302,
-        `/login?redirect_uri=${encodeURIComponent(returnUrl)}`,
-      );
+      res.redirect(302, loginFallback);
     }
   });
 

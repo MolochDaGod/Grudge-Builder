@@ -374,8 +374,19 @@
     var origin = global.location.origin;
     var path = returnPath || '/auth/callback';
     var dest = path.indexOf('http') === 0 ? path : origin + (path.charAt(0) === '/' ? path : '/' + path);
-    // sso-check: if already signed in on id, redirect back with tokens (no form)
-    global.location.href = GATEWAY + '/auth/sso-check?return=' + encodeURIComponent(dest);
+    // Prefer explicit /login?redirect_uri= so return URL is never lost if sso-check
+    // rewrites drop query. Silent re-entry still works when cookie is valid
+    // (login page auto-handoffs via /api/auth/me when session exists).
+    // Also dual-send sso-check for apps that already depend on it:
+    // sso-check → /login?redirect_uri=… when no cookie, or straight back with tokens.
+    global.location.href =
+      GATEWAY +
+      '/auth/sso-check?return=' +
+      encodeURIComponent(dest) +
+      '&redirect_uri=' +
+      encodeURIComponent(dest) +
+      '&redirect=' +
+      encodeURIComponent(dest);
   }
 
   /** Force full login UI even if a session cookie exists. */
@@ -383,7 +394,12 @@
     var origin = global.location.origin;
     var path = returnPath || '/auth/callback';
     var dest = path.indexOf('http') === 0 ? path : origin + (path.charAt(0) === '/' ? path : '/' + path);
-    global.location.href = GATEWAY + '/login?redirect_uri=' + encodeURIComponent(dest);
+    global.location.href =
+      GATEWAY +
+      '/login?redirect_uri=' +
+      encodeURIComponent(dest) +
+      '&redirect=' +
+      encodeURIComponent(dest);
   }
 
   function isAuthenticated() {
