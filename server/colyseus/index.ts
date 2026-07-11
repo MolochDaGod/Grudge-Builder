@@ -20,6 +20,7 @@ import {
 import { WebSocketTransport } from "@colyseus/ws-transport";
 import { playground } from "@colyseus/playground";
 import { monitor } from "@colyseus/monitor";
+import { LobbyRoom } from "./rooms/LobbyRoom";
 import { DungeonRoom } from "./rooms/DungeonRoom";
 import { SectorRoom } from "./rooms/SectorRoom";
 import { WorldRoom } from "./rooms/WorldRoom";
@@ -33,17 +34,19 @@ import type { Express, Request, Response, NextFunction } from "express";
 let gameServer: Server | null = null;
 
 /**
- * Room name SSOT for health + docs.
- * - lobby = private shipwreck tutorial (filterBy characterId, maxClients 1)
- * - shipwreck = alias of the same room class (back-compat)
+ * Room name SSOT.
+ * - tutorial / shipwreck = SOLO starting adventure (private, characterId)
+ * - lobby = multiplayer hub AFTER home-island (not tutorial)
+ * - home_island / sector / town / world / dungeon = real multiplayer game
  */
 const ROOM_NAMES = [
+  "tutorial",
+  "shipwreck",
   "lobby",
   "dungeon",
   "sector",
   "world",
   "town",
-  "shipwreck",
   "home_island",
 ] as const;
 
@@ -160,19 +163,22 @@ export async function setupColyseus(httpServer: HttpServer, app: Express) {
   });
 
   // ── Room definitions ────────────────────────────────────────────────────
-  // lobby = shipwreck tutorial instance (private per characterId)
+  // Solo starting adventure (pirate shipwreck island) — NOT multiplayer lobby
   gameServer
-    .define("lobby", ShipwreckRoom)
+    .define("tutorial", ShipwreckRoom)
     .filterBy(["characterId"]);
-  // Alias for older clients still calling joinOrCreate("shipwreck", …)
   gameServer
     .define("shipwreck", ShipwreckRoom)
     .filterBy(["characterId"]);
+
+  // Multiplayer social hub (post home-island / real game only)
+  gameServer.define("lobby", LobbyRoom);
 
   gameServer.define("dungeon", DungeonRoom);
   gameServer.define("sector", SectorRoom).filterBy(["sectorId", "worldSeed"]);
   gameServer.define("world", WorldRoom);
   gameServer.define("town", TownRoom);
+  // Owned home island — invite others via UI (E → invite create/accept)
   gameServer.define("home_island", HomeIslandRoom);
 
   // ── Activate matchmaker (replaces gameServer.listen when HTTP is external) ─
@@ -195,9 +201,13 @@ export async function setupColyseus(httpServer: HttpServer, app: Express) {
         matchmake: "express-body",
         definedRooms: [...ROOM_NAMES],
         roomNotes: {
-          lobby: "shipwreck tutorial — filterBy characterId, maxClients 1",
-          shipwreck: "alias of lobby tutorial",
-          world: "social / overworld hub (multi-client)",
+          tutorial:
+            "SOLO starting adventure (pirate shipwreck island) — filterBy characterId, maxClients 1",
+          shipwreck: "alias of tutorial",
+          lobby: "multiplayer hub AFTER home-island (not tutorial)",
+          home_island: "owned island + invites; real multiplayer starts here",
+          sector: "9-sector open world zones",
+          world: "overworld router / social",
         },
         activeRooms: rooms.map((r) => ({
           roomId: r.roomId,

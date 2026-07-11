@@ -1,15 +1,18 @@
 /**
- * ShipwreckRoom.ts — private shipwreck *tutorial* instance.
- * ─────────────────────────────────────────────────────────────
- * Canonical matchmake name: **lobby** (filterBy characterId, maxClients 1).
- * Alias room name: shipwreck (same class, same filters) for old clients.
+ * ShipwreckRoom — SOLO starting adventure (private tutorial instance).
  *
- * joinOrCreate("lobby", { characterId, characterName, ... })
- *   → one room per characterId (private tutorial)
+ * Canonical room:  joinOrCreate("tutorial",  { characterId, … })
+ * Alias:           joinOrCreate("shipwreck", { characterId, … })
  *
- * Flow: wash ashore → move/combat/harvest/craft/build raft → home_island.
- * Tick rate: 10/sec
- * ─────────────────────────────────────────────────────────────
+ * filterBy(characterId) · maxClients 1 · autoDispose
+ *
+ * NOT multiplayer lobby. After tutorial_complete → home-island create/cNFT,
+ * then real multiplayer (home_island, lobby, sector, world map 9 sectors).
+ *
+ * Narrative (pirate island with wreck):
+ *   intro video → sticks + stones → quick-craft campfire → boar combat
+ *   → skin + cook meat → UI/UX tour → craft/deploy raft → E board raft
+ *   → end cutscene → home-island video/creation
  */
 
 import { Room, Client } from "colyseus";
@@ -20,21 +23,9 @@ import {
   SectorEnemy,
   HarvestNode,
 } from "../schemas/SectorState";
+import { TUTORIAL_STEPS } from "../../../shared/definitions/tutorialFlow";
 
-// ── Tutorial step definitions ────────────────────────────────────
-
-const TUTORIAL_STEPS = [
-  { id: "explore_wreck",  title: "Explore the Shipwreck" },
-  { id: "fight_crab",     title: "Defeat the Shore Crab" },
-  { id: "gather_wood",    title: "Gather Driftwood (×3)" },
-  { id: "gather_stone",   title: "Gather Stone (×2)" },
-  { id: "craft_axe",      title: "Craft a Stone Axe" },
-  { id: "build_raft",     title: "Build a Raft" },
-];
-
-// ── Join options ─────────────────────────────────────────────────
-
-interface ShipwreckJoinOptions {
+interface TutorialJoinOptions {
   accountId?: string;
   characterId?: string;
   characterName?: string;
@@ -46,27 +37,22 @@ interface ShipwreckJoinOptions {
   equippedWeaponType?: string;
 }
 
-// ── Constants ────────────────────────────────────────────────────
-
 const TICK_RATE = 10;
-const ISLAND_SIZE = 200;  // small tutorial island
-const CRAB_SPAWN_DELAY_MS = 10_000;
-const CRAB_HP = 30;
-const CRAB_DAMAGE = 5;
-const CRAB_XP = 15;
-
-// ── ShipwreckRoom ────────────────────────────────────────────────
+const BOAR_SPAWN_DELAY_MS = 4_000;
+const BOAR_HP = 45;
+const BOAR_DAMAGE = 8;
+const BOAR_XP = 25;
 
 export class ShipwreckRoom extends Room<ShipwreckState> {
-  /** Private tutorial — one seat per characterId-filtered room */
   maxClients = 1;
-  /** Dispose when the solo player leaves so rooms don't leak */
   autoDispose = true;
 
-  private crabSpawnTimer: ReturnType<typeof setTimeout> | null = null;
-  private gatherCounts = { wood: 0, stone: 0 };
+  private boarSpawnTimer: ReturnType<typeof setTimeout> | null = null;
+  private gatherCounts = { sticks: 0, stones: 0, rawMeat: 0, cookedMeat: 0 };
+  private campfirePlaced = false;
+  private raftDeployed = false;
 
-  onCreate(options: ShipwreckJoinOptions) {
+  onCreate(options: TutorialJoinOptions) {
     const characterId = String(options.characterId || "").trim();
     const state = new ShipwreckState();
     state.accountId = options.accountId || "";
@@ -75,12 +61,13 @@ export class ShipwreckRoom extends Room<ShipwreckState> {
     this.setState(state);
 
     this.setMetadata({
-      kind: "shipwreck_tutorial",
+      kind: "solo_tutorial",
+      map: "pirate_shipwreck_island",
       characterId,
       source: "grudge-api",
+      multiplayer: false,
     });
 
-    // Seed tutorial steps (MapSchema is declared on ShipwreckState)
     for (const step of TUTORIAL_STEPS) {
       const ts = new TutorialStep();
       ts.id = step.id;
@@ -89,15 +76,16 @@ export class ShipwreckRoom extends Room<ShipwreckState> {
       state.steps.set(step.id, ts);
     }
 
-    // Seed harvest nodes on the beach
+    // Beach sticks (forest) + stones (mining)
     const nodes = [
-      { id: "drift_1", type: "forest", x: 20, z: 15 },
-      { id: "drift_2", type: "forest", x: -15, z: 25 },
-      { id: "drift_3", type: "forest", x: 30, z: -10 },
-      { id: "drift_4", type: "forest", x: -25, z: -20 },
-      { id: "stone_1", type: "mining", x: 10, z: -30 },
-      { id: "stone_2", type: "mining", x: -20, z: -35 },
-      { id: "stone_3", type: "mining", x: 35, z: 5 },
+      { id: "stick_1", type: "forest", x: 18, z: 22 },
+      { id: "stick_2", type: "forest", x: -12, z: 28 },
+      { id: "stick_3", type: "forest", x: 26, z: -8 },
+      { id: "stick_4", type: "forest", x: -22, z: -14 },
+      { id: "stick_5", type: "forest", x: 8, z: 35 },
+      { id: "stone_1", type: "mining", x: 12, z: -28 },
+      { id: "stone_2", type: "mining", x: -18, z: -32 },
+      { id: "stone_3", type: "mining", x: 32, z: 6 },
     ];
 
     for (const n of nodes) {
@@ -110,129 +98,207 @@ export class ShipwreckRoom extends Room<ShipwreckState> {
       state.harvestNodes.set(n.id, node);
     }
 
-    // Simulation loop
     this.setSimulationInterval((delta) => {
       state.tick++;
       this.updateEnemyAI(delta);
     }, 1000 / TICK_RATE);
 
-    // ── Message handlers ──────────────────────────────────────
+    // ── Messages ─────────────────────────────────────────────────
 
-    // Movement
-    this.onMessage("move", (client, data: { x: number; y: number; z: number; facing: number; state: string }) => {
-      const player = state.players.get(client.sessionId);
-      if (!player) return;
-      player.x = data.x;
-      player.y = data.y;
-      player.z = data.z;
-      player.facing = data.facing;
-      player.state = data.state;
+    this.onMessage(
+      "move",
+      (
+        client,
+        data: { x: number; y: number; z: number; facing: number; state: string },
+      ) => {
+        const player = state.players.get(client.sessionId);
+        if (!player) return;
+        player.x = data.x;
+        player.y = data.y;
+        player.z = data.z;
+        player.facing = data.facing;
+        player.state = data.state;
+      },
+    );
 
-      // Check if player explored the wreck (within 15m of origin)
-      if (!this.isStepComplete("explore_wreck") && Math.abs(data.x) < 15 && Math.abs(data.z) < 15) {
-        this.completeStep("explore_wreck");
-        // Spawn a crab after a delay
-        this.crabSpawnTimer = setTimeout(() => this.spawnCrab(), CRAB_SPAWN_DELAY_MS);
-      }
+    /** Client finished intro cinematic */
+    this.onMessage("intro_complete", (client) => {
+      state.introPlayed = true;
+      this.completeStep("intro_video");
+      client.send("ally_assist", {
+        message:
+          "You wash ashore on the pirate island. Gather sticks and stones near the wreck.",
+      });
     });
 
-    // PvE attack
-    this.onMessage("pve_attack", (client, data: { enemyId: string; damage: number }) => {
-      const enemy = state.enemies.get(data.enemyId);
-      if (!enemy || enemy.state === "dead") return;
-
-      enemy.hp = Math.max(0, enemy.hp - Math.max(1, data.damage));
-
-      if (enemy.hp <= 0) {
-        enemy.state = "dead";
-        this.broadcast("enemy_killed", {
-          enemyId: data.enemyId,
-          killerId: client.sessionId,
-          xp: CRAB_XP,
-          type: enemy.enemyType,
-        });
-
-        // Mark combat step complete
-        if (!this.isStepComplete("fight_crab")) {
-          this.completeStep("fight_crab");
-        }
-
-        // Remove after death animation
-        setTimeout(() => {
-          state.enemies.delete(data.enemyId);
-        }, 3000);
-      }
-    });
-
-    // Harvest
     this.onMessage("harvest", (client, data: { nodeId: string }) => {
       const node = state.harvestNodes.get(data.nodeId);
       if (!node || node.depleted) return;
 
       node.depleted = true;
-      node.respawnAt = Date.now() + 60_000; // respawn in 60s
+      node.respawnAt = Date.now() + 90_000;
 
       if (node.resourceType === "forest") {
-        this.gatherCounts.wood++;
+        this.gatherCounts.sticks++;
         this.broadcast("harvest_complete", {
-          nodeId: data.nodeId, resource: "driftwood", quantity: 1,
+          nodeId: data.nodeId,
+          resource: "stick",
+          quantity: 1,
         });
-        if (this.gatherCounts.wood >= 3 && !this.isStepComplete("gather_wood")) {
-          this.completeStep("gather_wood");
-        }
+        if (this.gatherCounts.sticks >= 3) this.completeStep("gather_sticks");
       } else if (node.resourceType === "mining") {
-        this.gatherCounts.stone++;
+        this.gatherCounts.stones++;
         this.broadcast("harvest_complete", {
-          nodeId: data.nodeId, resource: "stone", quantity: 1,
+          nodeId: data.nodeId,
+          resource: "stone",
+          quantity: 1,
         });
-        if (this.gatherCounts.stone >= 2 && !this.isStepComplete("gather_stone")) {
-          this.completeStep("gather_stone");
-        }
+        if (this.gatherCounts.stones >= 2) this.completeStep("gather_stones");
       }
     });
 
-    // Craft
+    /** Quick-craft from main panel */
     this.onMessage("craft", (client, data: { recipeId: string }) => {
-      if (data.recipeId === "stone_axe" && !this.isStepComplete("craft_axe")) {
-        if (this.gatherCounts.wood >= 1 && this.gatherCounts.stone >= 1) {
-          this.gatherCounts.wood--;
-          this.gatherCounts.stone--;
-          this.completeStep("craft_axe");
-          client.send("craft_complete", { itemId: "stone_axe", name: "Stone Axe" });
+      const recipe = String(data?.recipeId || "");
+
+      if (recipe === "campfire") {
+        if (
+          this.gatherCounts.sticks >= 2 &&
+          this.gatherCounts.stones >= 1 &&
+          !this.isStepComplete("craft_campfire")
+        ) {
+          this.gatherCounts.sticks -= 2;
+          this.gatherCounts.stones -= 1;
+          this.campfirePlaced = true;
+          this.completeStep("craft_campfire");
+          client.send("craft_complete", {
+            itemId: "campfire",
+            name: "Campfire",
+          });
+          client.send("ally_assist", {
+            message: "Campfire lit. A wild boar is nearby — defeat it!",
+          });
+          this.boarSpawnTimer = setTimeout(
+            () => this.spawnBoar(),
+            BOAR_SPAWN_DELAY_MS,
+          );
+        }
+        return;
+      }
+
+      if (recipe === "raft" || recipe === "craft_raft") {
+        if (
+          this.gatherCounts.sticks >= 3 &&
+          this.isStepComplete("ui_ux_tour") &&
+          !this.isStepComplete("craft_raft")
+        ) {
+          this.gatherCounts.sticks -= 3;
+          this.completeStep("craft_raft");
+          client.send("craft_complete", { itemId: "raft", name: "Raft" });
+          client.send("ally_assist", {
+            message:
+              "Deploy the raft in the water, then press E to board and leave the island.",
+          });
+        }
+        return;
+      }
+
+      if (recipe === "cook_meat" || recipe === "cooked_meat") {
+        if (
+          this.campfirePlaced &&
+          this.gatherCounts.rawMeat >= 1 &&
+          !this.isStepComplete("cook_meat")
+        ) {
+          this.gatherCounts.rawMeat -= 1;
+          this.gatherCounts.cookedMeat += 1;
+          this.completeStep("cook_meat");
+          client.send("craft_complete", {
+            itemId: "cooked_meat",
+            name: "Cooked Meat",
+          });
+          client.send("ally_assist", {
+            message:
+              "Well fed. Next: learn the UI panels and basic gameplay controls.",
+          });
         }
       }
     });
 
-    // Build raft
-    this.onMessage("build_raft", (client) => {
-      if (this.isStepComplete("craft_axe") && this.gatherCounts.wood >= 2) {
-        this.gatherCounts.wood -= 2;
-        state.raftBuilt = true;
-        this.completeStep("build_raft");
-        state.completed = true;
-        client.send("tutorial_complete", {
-          message: "Your raft is ready! Set sail to your Home Island.",
-          nextRoom: "home_island",
+    this.onMessage(
+      "pve_attack",
+      (client, data: { enemyId: string; damage: number }) => {
+        const enemy = state.enemies.get(data.enemyId);
+        if (!enemy || enemy.state === "dead") return;
+
+        enemy.hp = Math.max(0, enemy.hp - Math.max(1, data.damage));
+        if (enemy.hp > 0) return;
+
+        enemy.state = "dead";
+        this.gatherCounts.rawMeat += 1;
+        this.broadcast("enemy_killed", {
+          enemyId: data.enemyId,
+          killerId: client.sessionId,
+          xp: BOAR_XP,
+          type: enemy.enemyType,
+          loot: { rawMeat: 1 },
         });
-      }
+        this.completeStep("fight_boar");
+        client.send("ally_assist", {
+          message: "Boar skinned. Cook the meat at your campfire.",
+        });
+        setTimeout(() => state.enemies.delete(data.enemyId), 3000);
+      },
+    );
+
+    /** Client finished UI/UX walkthrough panels */
+    this.onMessage("ui_tour_complete", (client) => {
+      if (!this.isStepComplete("cook_meat")) return;
+      this.completeStep("ui_ux_tour");
+      client.send("ally_assist", {
+        message:
+          "Last mission: quick-craft a raft, place it in the water, press E to board.",
+      });
     });
 
-    // Intro cinematic played
-    this.onMessage("intro_complete", () => {
-      state.introPlayed = true;
+    /** Client placed raft mesh in water */
+    this.onMessage("deploy_raft", (client) => {
+      if (!this.isStepComplete("craft_raft")) return;
+      this.raftDeployed = true;
+      client.send("raft_deployed", { ready: true });
+    });
+
+    /** Client pressed E near raft — boards and ends solo tutorial */
+    this.onMessage("board_raft", (client) => {
+      if (!this.isStepComplete("craft_raft")) return;
+      if (!this.raftDeployed) {
+        // Allow board if they crafted (client may deploy+board in one action)
+        this.raftDeployed = true;
+      }
+      this.completeStep("board_raft");
+      state.raftBuilt = true;
+      state.completed = true;
+      client.send("tutorial_complete", {
+        message:
+          "You set sail. End cutscene → create your Home Island and cNFT.",
+        next: "home_island_create",
+        nextPath: "/island-reveal",
+        nextRoom: "home_island",
+      });
     });
 
     console.log(
-      `[ShipwreckRoom/lobby] Created tutorial for characterId=${characterId || "(empty)"} name=${state.characterName}`,
+      `[Tutorial] Solo adventure created characterId=${characterId || "(empty)"} name=${state.characterName}`,
     );
   }
 
-  onJoin(client: Client, options: ShipwreckJoinOptions) {
-    const characterId = String(options.characterId || this.state.characterId || "").trim();
+  onJoin(client: Client, options: TutorialJoinOptions) {
+    const characterId = String(
+      options.characterId || this.state.characterId || "",
+    ).trim();
     if (!characterId) {
-      // filterBy still works with empty string but would share one bad room —
-      // reject so clients must pass a real character id.
-      throw new Error("characterId is required for lobby (shipwreck tutorial)");
+      throw new Error(
+        "characterId is required for solo tutorial (private instance)",
+      );
     }
 
     const player = new SectorPlayer();
@@ -250,27 +316,24 @@ export class ShipwreckRoom extends Room<ShipwreckState> {
     player.maxMana = 30;
     player.baseModelId = options.baseModelId || options.heroRace || "human";
     player.equippedWeaponType = options.equippedWeaponType || "unarmed";
-
-    // Spawn on the beach near the wreck
+    // Beach near wreck
     player.x = 0;
     player.y = 2;
     player.z = 40;
 
     this.state.players.set(client.sessionId, player);
-    console.log(`[ShipwreckRoom] ${player.characterName} washed ashore`);
+    console.log(`[Tutorial] ${player.characterName} washed ashore (solo)`);
   }
 
   onLeave(client: Client) {
     this.state.players.delete(client.sessionId);
-    console.log(`[ShipwreckRoom] Player left`);
+    console.log("[Tutorial] Player left solo adventure");
   }
 
   onDispose() {
-    if (this.crabSpawnTimer) clearTimeout(this.crabSpawnTimer);
-    console.log(`[ShipwreckRoom] Disposed`);
+    if (this.boarSpawnTimer) clearTimeout(this.boarSpawnTimer);
+    console.log("[Tutorial] Instance disposed");
   }
-
-  // ── Helpers ────────────────────────────────────────────────────
 
   private isStepComplete(stepId: string): boolean {
     return this.state.steps.get(stepId)?.completed ?? false;
@@ -281,26 +344,25 @@ export class ShipwreckRoom extends Room<ShipwreckState> {
     if (step && !step.completed) {
       step.completed = true;
       this.broadcast("step_complete", { stepId, title: step.title });
-      console.log(`[ShipwreckRoom] Step complete: ${step.title}`);
+      console.log(`[Tutorial] Step complete: ${step.title}`);
     }
   }
 
-  private spawnCrab(): void {
-    const crab = new SectorEnemy();
-    crab.id = `crab_${Date.now()}`;
-    crab.enemyType = "shore_crab";
-    crab.x = (Math.random() - 0.5) * 30;
-    crab.z = (Math.random() - 0.5) * 30;
-    crab.hp = CRAB_HP;
-    crab.maxHp = CRAB_HP;
-    crab.level = 1;
-    crab.state = "idle";
-    this.state.enemies.set(crab.id, crab);
-    this.broadcast("enemy_spawned", { enemyId: crab.id, type: "shore_crab" });
+  private spawnBoar(): void {
+    const boar = new SectorEnemy();
+    boar.id = `boar_${Date.now()}`;
+    boar.enemyType = "boar";
+    boar.x = (Math.random() - 0.5) * 40;
+    boar.z = (Math.random() - 0.5) * 40;
+    boar.hp = BOAR_HP;
+    boar.maxHp = BOAR_HP;
+    boar.level = 1;
+    boar.state = "idle";
+    this.state.enemies.set(boar.id, boar);
+    this.broadcast("enemy_spawned", { enemyId: boar.id, type: "boar" });
   }
 
   private updateEnemyAI(_delta: number): void {
-    // Simple crab AI: chase nearest player within 15m
     this.state.enemies.forEach((enemy) => {
       if (enemy.state === "dead") return;
 
@@ -317,33 +379,34 @@ export class ShipwreckRoom extends Room<ShipwreckState> {
         }
       });
 
-      if (nearest && nearestDist < 15) {
-        enemy.state = "chase";
-        enemy.targetId = nearest.id;
-        // Move toward player
-        const dx = nearest.x - enemy.x;
-        const dz = nearest.z - enemy.z;
-        const len = Math.sqrt(dx * dx + dz * dz);
-        if (len > 2) {
-          enemy.x += (dx / len) * 2 * (1 / TICK_RATE);
-          enemy.z += (dz / len) * 2 * (1 / TICK_RATE);
-        } else {
-          enemy.state = "attacking";
-          // Deal damage every second
-          if (this.state.tick % TICK_RATE === 0) {
-            nearest.hp = Math.max(0, nearest.hp - CRAB_DAMAGE);
-            this.broadcast("player_damaged", {
-              targetId: nearest.id,
-              damage: CRAB_DAMAGE,
-              hp: nearest.hp,
-              attackerId: enemy.id,
-            });
-          }
-        }
-      } else {
+      if (!nearest || nearestDist > 20) {
         enemy.state = "idle";
-        enemy.targetId = "";
+        return;
       }
+
+      if (nearestDist < 2.2) {
+        enemy.state = "attacking";
+        const p = nearest as SectorPlayer;
+        // Light tick damage
+        if (this.state.tick % 10 === 0) {
+          p.hp = Math.max(0, p.hp - BOAR_DAMAGE);
+          this.clients.forEach((c) => {
+            if (this.state.players.get(c.sessionId) === p) {
+              c.send("player_damaged", { hp: p.hp, maxHp: p.maxHp });
+            }
+          });
+        }
+        return;
+      }
+
+      enemy.state = "chase";
+      const p = nearest as SectorPlayer;
+      const dx = p.x - enemy.x;
+      const dz = p.z - enemy.z;
+      const len = Math.sqrt(dx * dx + dz * dz) || 1;
+      const speed = 0.08;
+      enemy.x += (dx / len) * speed;
+      enemy.z += (dz / len) * speed;
     });
   }
 }

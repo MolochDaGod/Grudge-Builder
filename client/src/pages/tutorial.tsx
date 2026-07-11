@@ -155,7 +155,9 @@ export default function TutorialPage() {
     } catch { /* offline-tolerant */ }
   }, []);
 
-  // ── Connect to lobby = private shipwreck tutorial (filterBy characterId) ──
+  // ── Solo tutorial instance (NOT multiplayer lobby) ─────────────
+  // Room: "tutorial" · filterBy characterId · maxClients 1
+  // Pirate shipwreck island → raft E → home-island create/cNFT
 
   useEffect(() => {
     let client: Client | null = null;
@@ -167,15 +169,14 @@ export default function TutorialPage() {
 
       const characterId = String(cfg.characterId || '').trim();
       if (!characterId) {
-        console.error('[Tutorial] characterId required for lobby tutorial instance');
+        console.error('[Tutorial] characterId required for private solo adventure');
         return;
       }
 
       try {
         const endpoint = getColyseusEndpoint();
         client = new Client(endpoint);
-        // Canonical: "lobby" = private tutorial (maxClients 1, filterBy characterId)
-        room = await client.joinOrCreate('lobby', {
+        room = await client.joinOrCreate('tutorial', {
           characterId,
           characterName: cfg.name,
           heroRace: cfg.raceId,
@@ -201,33 +202,51 @@ export default function TutorialPage() {
 
         room.onMessage('step_complete', (data: { stepId: string; title: string }) => {
           showNotification(`✓ ${data.title}`);
-          if (data.stepId === 'craft_axe') {
+          if (data.stepId === 'fight_boar') {
             setHasWeapon(true);
             const char = characterRef.current;
             if (char) setWeaponHotbar(buildWeaponHotbar(char, true));
-            setAllyMessage('Stone axe ready — switch to Combat mode and try your weapon skills (5-8).');
+            setAllyMessage('Boar down — skin it and cook the meat at your campfire.');
+          }
+          if (data.stepId === 'craft_campfire') {
+            setAllyMessage('Campfire ready. A boar will appear — switch to Combat when ready.');
+          }
+          if (data.stepId === 'cook_meat') {
+            setAllyMessage('Meat cooked. Next: UI tour, then craft and board a raft (E).');
           }
         });
 
         room.onMessage('player_damaged', (data: { hp: number }) => setHp(data.hp));
         room.onMessage('enemy_killed', (data: { type: string; xp: number }) => {
           showNotification(`Defeated ${data.type}! +${data.xp} XP`);
+          if (data.type === 'boar') {
+            setResources(prev => ({ ...prev, rawMeat: (prev.rawMeat || 0) + 1 }));
+          }
+        });
+        room.onMessage('enemy_spawned', (data: { type: string }) => {
+          if (data.type === 'boar') {
+            showNotification('A wild boar appears!');
+            setPlayMode('combat');
+          }
         });
 
         room.onMessage('harvest_complete', async (data: { resource: string; quantity: number }) => {
-          const key = data.resource === 'driftwood' ? 'wood' : data.resource;
+          const key =
+            data.resource === 'stick' || data.resource === 'driftwood' ? 'sticks'
+            : data.resource === 'stone' ? 'stones'
+            : data.resource;
           setResources(prev => ({ ...prev, [key]: (prev[key] || 0) + data.quantity }));
           showNotification(`Gathered ${data.resource} ×${data.quantity}`);
-          await persistProfessionXp(key);
+          await persistProfessionXp(key === 'sticks' ? 'wood' : key);
           await addInventoryItem(data.resource, data.quantity);
-          room?.send('ally_supply', { resource: data.resource, quantity: Math.ceil(data.quantity / 2) });
         });
 
         room.onMessage('craft_complete', async (data: { name: string; itemId?: string }) => {
           showNotification(`Crafted ${data.name}!`);
-          setHasWeapon(true);
-          await addInventoryItem(data.itemId ?? 'stone_axe', 1);
-          setAllyMessage(`${ally.name} stashes the ${data.name} — you're armed for combat.`);
+          await addInventoryItem(data.itemId ?? 'item', 1);
+          if (data.itemId === 'raft') {
+            setAllyMessage('Raft ready — deploy in the water, then press E to board.');
+          }
         });
 
         room.onMessage('ally_assist', (data: { message: string }) => {
@@ -240,7 +259,8 @@ export default function TutorialPage() {
 
         room.onMessage('tutorial_complete', () => {
           setCompleted(true);
-          showNotification('Tutorial Complete! Setting sail to your island...');
+          showNotification('Sail complete! Home Island creation next…');
+          // End cutscene → home-island video + create + cNFT
           setTimeout(() => setLocation('/island-reveal'), 3000);
         });
 

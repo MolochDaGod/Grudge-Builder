@@ -109,10 +109,12 @@ export interface GameDeployment {
 export const PRODUCTION_DEPLOYMENT_PATH: GameDeployment[] = [
   {
     id: "tutorial",
-    title: "Tutorial Island",
-    subtitle: "Shipwreck · Learn Controls",
+    title: "Shipwreck Adventure",
+    subtitle: "Solo · Pirate Island · Not Multiplayer Lobby",
     description:
-      "3-state gameplay tutorial — harvest, combat, build. Grudge6 character + profession XP persists to your account.",
+      "Solo start: intro video → wash up on pirate island wreck → sticks/stones → quick-craft campfire → " +
+      "boar combat/skin/cook → UI tour → craft+deploy raft → E board → cutscene → home-island create/cNFT. " +
+      "Colyseus room: tutorial (private per characterId). Real multiplayer (lobby/zones) only after home-island.",
     url: "/tutorial",
     icon: "flame",
     tier: "core",
