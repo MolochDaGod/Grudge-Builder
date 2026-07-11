@@ -67,6 +67,12 @@ export const FLEET_URLS = {
    * Base path `/game/` — HUD, main panel, spellbook, character, inventory, world.
    */
   grudge6: "https://grudge6.grudge-studio.com/game",
+  /**
+   * Grudge Open — the fleet's open combat/studio platform.
+   * Danger Room, Voxel Editor, Ruins Brawler, Warlord Genesis, VoxGrudge, Mimic Dungeon.
+   * Same-origin /api rewrites to Railway + GRUDOX zone servers.
+   */
+  gameopen: "https://gameopen.vercel.app",
 } as const;
 
 export const FLEET_SERVICES: FleetService[] = [
@@ -189,6 +195,18 @@ export const FLEET_SERVICES: FleetService[] = [
     url: "${SUPABASE_URL}",
     proxyPath: "/api/supabase",
     notes: "@supabase/server — RLS-scoped queries",
+  },
+  {
+    id: "gameopen",
+    label: "Grudge Open (game hub)",
+    role: "hub",
+    url: FLEET_URLS.gameopen,
+    notes:
+      "Open combat/studio platform — Danger Room, Voxel Editor, Ruins Brawler (3D), " +
+      "Warlord Genesis, VoxGrudge native, Mimic Dungeon. " +
+      "Auth via id.grudge-studio.com SSO; characters via Vercel /api/characters → Railway. " +
+      "GRUDOX zone rooms at wss://voxgrudge-grudox-room-production.up.railway.app. " +
+      "Repo: MolochDaGod/gameopen. Health: https://gameopen-production.up.railway.app/api/health",
   },
 ];
 

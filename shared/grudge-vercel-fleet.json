@@ -18,7 +18,8 @@
     "studioEditor": "https://grudge-studio-editor.vercel.app",
     "grudox": "https://grudox.grudge-studio.com",
     "carrier": "https://carrier.grudge-studio.com",
-    "grudoxGameServer": "https://voxgrudge-grudox-room-production.up.railway.app"
+    "grudoxGameServer": "https://voxgrudge-grudox-room-production.up.railway.app",
+    "gameopen": "https://gameopen.vercel.app"
   },
   "services": [
     {
@@ -139,7 +140,14 @@
       "role": "supabase",
       "url": "${SUPABASE_URL}",
       "proxyPath": "/api/supabase",
-      "notes": "@supabase/server — RLS-scoped queries"
+      "notes": "@supabase/server \u2014 RLS-scoped queries"
+    },
+    {
+      "id": "gameopen",
+      "label": "Grudge Open (combat/studio hub)",
+      "role": "hub",
+      "url": "https://gameopen.vercel.app",
+      "notes": "Open combat/studio platform \u2014 Danger Room, Warlord Genesis (6 races + 4-wave arena), Ruins Brawler 3D, VoxGrudge native, Mimic Dungeon, Voxel Editor, Dressing Room, Lobby, LED Mask. Auth: Grudge ID SSO. Characters: Railway Postgres (same DB as Warlords). GRUDOX zones: voxgrudge-grudox-room-production. Repo: MolochDaGod/gameopen. Health: gameopen-production.up.railway.app/api/health. Verified live 2026-07-11."
     }
   ],
   "storage": {

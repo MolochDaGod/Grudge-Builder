@@ -122,6 +122,24 @@ const domains: SystemNode[] = [
   { id: "dom:grudox",             label: "grudox.grudge-studio.com",             kind: "domain", status: "live", group: "games", url: "https://grudox.grudge-studio.com",             notes: "Grudox (Voxel Forge Engine) — static title/landing page. Vercel host, Cloudflare DNS (grudge-studio.com zone). Fleet-wired per grudox/docs/FLEET.md.", lastVerified: "2026-06-24" },
   { id: "dom:info.g-s.com",       label: "info.grudge-studio.com",               kind: "domain", status: "live", group: "assets", url: "https://info.grudge-studio.com",              notes: "Game Info Hub — unified item database, guides, tools. Consolidated from ObjectStore + grudge-game-data-hub.", lastVerified: "2026-06-04" },
   { id: "dom:character.g-s.com",  label: "character.grudge-studio.com",          kind: "domain", status: "live", group: "character", url: "https://character.grudge-studio.com",         notes: "GCS — Grudge Character Studio. HYDRA VRM + grudge6 forge. Multi-era account rosters (warlords, nexus, armada). Protected SSOT for character creation — not merged into Warlords /character.", lastVerified: "2026-06-27" },
+  // Grudge Open — combat/studio platform hub
+  {
+    id: "dom:gameopen",
+    label: "gameopen.vercel.app",
+    kind: "domain",
+    status: "live",
+    group: "games",
+    url: "https://gameopen.vercel.app",
+    notes:
+      "Grudge Open — fleet combat/studio platform. " +
+      "10 doors: Danger Room, Warlord Genesis (race selection + 4-wave arena), " +
+      "Ruins Brawler 3D (Three.js arena + BrawlClient), Voxel Editor, VoxGrudge native, " +
+      "Test Dungeon (Mimic), Dressing Room, Lobby, GRUDOX Zones, LED Mask. " +
+      "Auth: Grudge ID SSO (/api/auth/* → id.g-s.com). " +
+      "Characters: /api/characters → Railway Postgres (same DB as Warlords). " +
+      "Assets: assets.grudge-studio.com/gameopen/. Zone WS: voxgrudge-grudox-room-production.",
+    lastVerified: "2026-07-11",
+  },
 ];
 
 // ---------------------------------------------------------------------------
@@ -168,6 +186,25 @@ const services: SystemNode[] = [
   { id: "svc:grudox",             label: "Grudox (Voxel Forge Engine)", kind: "service", status: "live", group: "games", owner: "frontend", repo: "grudox",                notes: "Static landing/title page (single index.html, Tailwind CDN, no build). Fleet-wired per fleet-config.json + docs/FLEET.md: auth\u2192id, API\u2192api, assets\u2192assets, AI\u2192ai.grudge-studio.com; studio context from assets.grudge-studio.com/context/studio-context.json." },
   { id: "svc:dungeon-crawler",    label: "Dungeon Crawler Quest",  kind: "service", status: "live", group: "games", owner: "frontend", repo: "Dungeon-Crawler-Quest",    notes: "Three.js voxel dungeon crawler (Babylon retired). Forge deploy target." },
   { id: "svc:info-hub",           label: "Game Info Hub",          kind: "service", status: "live", group: "assets", owner: "platform", repo: "ObjectStore",              notes: "Consolidated item database, guides, professions, VFX, 3D models. info.grudge-studio.com." },
+  {
+    id: "svc:gameopen",
+    label: "Grudge Open (combat/studio hub)",
+    kind: "service",
+    status: "live",
+    group: "games",
+    owner: "frontend",
+    repo: "gameopen",
+    url: "https://gameopen.vercel.app",
+    notes:
+      "React 19 + Vite + Three.js. Modes: Danger Room (Studio engine, all weapons/skills), " +
+      "Warlord Genesis (grudge6 baked roster, 6 races, 4-wave boss arena), " +
+      "Ruins Brawler 3D (BrawlScene + BrawlClient multiplayer), " +
+      "VoxGrudge native (/api/space WS), Mimic Dungeon, Voxel Editor, Dressing Room, Lobby, LED Mask. " +
+      "api-server: gameopen-production.up.railway.app. " +
+      "Vercel rewrites: /api/auth/* → id.g-s.com, /api/characters → Railway, " +
+      "/api/brawl|space|carrier → GRUDOX zone server.",
+    lastVerified: "2026-07-11",
+  },
 ];
 
 // ---------------------------------------------------------------------------
@@ -351,6 +388,18 @@ const repos: SystemNode[] = [
   { id: "repo:grudge-space-rts",      label: "GrudgeSpaceRTS",         kind: "repo", status: "live", group: "games", url: "https://github.com/MolochDaGod/GrudgeSpaceRTS" },
   { id: "repo:dungeon-crawler",       label: "Dungeon-Crawler-Quest",  kind: "repo", status: "live", group: "games", url: "https://github.com/MolochDaGod/Dungeon-Crawler-Quest" },
   { id: "repo:grudox",                label: "grudox",                 kind: "repo", status: "planned", group: "games", notes: "Local-only as of 2026-06-24 (no git remote yet). Static landing page for grudox.grudge-studio.com; intended push target github.com/MolochDaGod/grudox." },
+  {
+    id: "repo:gameopen",
+    label: "gameopen",
+    kind: "repo",
+    status: "live",
+    group: "games",
+    url: "https://github.com/MolochDaGod/gameopen",
+    notes:
+      "Grudge Open monorepo. artifacts/animator = React/Vite/Three.js SPA; " +
+      "artifacts/api-server = Express game server (Railway); lib/brawl-net = brawl protocol. " +
+      "Vercel project: gameopen. GRUDOX zone server: voxgrudge-grudox-room-production.",
+  },
 ];
 
 // ---------------------------------------------------------------------------
@@ -397,6 +446,14 @@ edges.push(
   { source: "dom:grudge-space",       target: "svc:grudge-space",       kind: "routes-to" },
   { source: "dom:dungeon-crawler",    target: "svc:dungeon-crawler",    kind: "routes-to" },
   { source: "dom:info.g-s.com",       target: "svc:info-hub",           kind: "routes-to" },
+  // Grudge Open wiring
+  { source: "dom:gameopen",           target: "svc:gameopen",           kind: "routes-to" },
+  { source: "repo:gameopen",          target: "svc:gameopen",           kind: "deploys-from" },
+  { source: "svc:gameopen",           target: "svc:grudge-id",          kind: "authenticates-via" },
+  { source: "svc:gameopen",           target: "svc:game-api",           kind: "calls",    notes: "Characters, account via Vercel /api proxy" },
+  { source: "svc:gameopen",           target: "svc:r2-cdn",             kind: "reads",    notes: "assets.grudge-studio.com/gameopen/ — models, icons, audio" },
+  { source: "svc:gameopen",           target: "svc:os-worker",          kind: "reads",    notes: "ObjectStore definitions via /api/objectstore proxy" },
+  { source: "svc:gameopen",           target: "svc:grudox-game-server", kind: "calls",    notes: "wss /api/brawl|space|carrier — GRUDOX zone rooms" },
   // Game fleet repo → service deploys
   { source: "repo:grudge-mech-forge",         target: "svc:mech-forge",        kind: "deploys-from" },
   { source: "repo:grudge-character-creator",   target: "svc:character-creator",  kind: "deploys-from" },

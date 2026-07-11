@@ -19,6 +19,8 @@ export const FLEET_GAME_ORIGINS = {
   survival: "https://survival.grudge-studio.com",
   arena: "https://grudge-arena.grudge-studio.com",
   drive: "https://drive.grudge-studio.com",
+  /** Grudge Open — combat/studio platform with full Grudge ID SSO. */
+  gameopen: FLEET_URLS.gameopen,
 } as const;
 
 // ── Three.js deploy path (ONE TRUTH entry URLs) ─────────────────────────────
