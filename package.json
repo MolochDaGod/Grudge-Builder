@@ -40,6 +40,7 @@
     "probe:auth": "tsx scripts/probe-fleet-auth.ts",
     "probe:deployments": "node scripts/probe-deployments.mjs",
     "probe:all": "node scripts/probe-deployments.mjs --truth",
+    "probe:organizer": "node scripts/organizer-production-audit.mjs",
     "production:optimize-glb": "tsx scripts/optimize-glb.ts",
     "production:verify-assets": "node scripts/verify-production-assets.mjs",
     "production:verify-cdn": "node scripts/verify-production-assets.mjs --cdn",

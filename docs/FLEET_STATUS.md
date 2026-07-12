@@ -1,9 +1,16 @@
 # Fleet status — honest probe snapshot
 
 **Date:** 2026-07-12  
-**Method:** HTTP HEAD/GET from a workstation; re-run with `npm run probe:deployments` / `npm run probe:auth`.
+**Method:** HTTP probes + `/organizer` system map. Re-run:
 
-This file is a **snapshot**, not a SLA. Update it when something important changes.
+```bash
+npm run probe:organizer    # writes docs/ORGANIZER_PRODUCTION_AUDIT.md
+npm run probe:deployments
+npm run probe:auth
+```
+
+This file is a **snapshot**, not a SLA. Update it when something important changes.  
+Deep checklist: [ORGANIZER_PRODUCTION_AUDIT.md](./ORGANIZER_PRODUCTION_AUDIT.md).
 
 ---
 
@@ -29,7 +36,7 @@ This file is a **snapshot**, not a SLA. Update it when something important chang
 | https://account.grudge-studio.com/ | **200** HTML | Host responds. |
 | https://account.grudge-studio.com/health | **404** | Old README health path wrong; try `/api/health` (**200** in probe). |
 | https://dash.grudge-studio.com/ | **200** | Admin UI. |
-| https://ai.grudge-studio.com/ | **401** | Known bad-worker / unauthorized root — see `DEPLOY_OWNERSHIP.md` incident notes. |
+| https://ai.grudge-studio.com/ | Redeployed 2026-07-12 | Domain worker redeployed (`wrangler.domain.toml`). Re-probe root HTML. |
 | https://the-engine.up.railway.app/api/health | **200** | Engine / identity-adjacent Railway service; not the Warlords SPA. |
 
 ---
