@@ -14,6 +14,11 @@
 | `upload:warlords-assets` | Craftpix mines + mountain |
 | `home-island:pipeline` | Nature/biome publish pipeline |
 | `deploy:puter:crafting` / `cdn` / `smart` / `all` | Puter deploy via `grudge-puter.mjs` |
+| `probe:truth:direct` / `probe:truth` | ONE TRUTH identity + Railway + defs + craft shell |
+| `probe:auth` | SSO / login rewrite audit |
+
+After craft/fleet ship: deploy Puter **and** upload `client/public/grudge-fleet.js` → R2 `js/grudge-fleet.js` (≥ **2.8.0**).  
+Identity law: [docs/CANONICAL_IDENTITY.md](../docs/CANONICAL_IDENTITY.md).
 
 ## Hanging / legacy (not wired — keep for one-off ops)
 
