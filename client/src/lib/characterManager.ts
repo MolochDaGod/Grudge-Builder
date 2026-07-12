@@ -85,30 +85,63 @@ export type EquipmentSlots = Record<string, string | null>;
 
 const ACTIVE_CHAR_KEY_PREFIX = "gruda_active_character";
 
+/** Canonical account id (grudge_id) — never invent a parallel key space */
+function getAccountId(): string {
+  return (
+    localStorage.getItem("grudge_account_id") ||
+    localStorage.getItem("grudge_id") ||
+    localStorage.getItem("grudge_user_id") ||
+    "guest"
+  );
+}
+
 /** Get the active character storage key scoped to the current account */
 function getActiveCharKey(): string {
-  // Try to get Grudge account ID from localStorage or auth headers
-  const grudgeId = localStorage.getItem('grudge_account_id') || 'guest';
-  return `${ACTIVE_CHAR_KEY_PREFIX}_${grudgeId}`;
+  return `${ACTIVE_CHAR_KEY_PREFIX}_${getAccountId()}`;
 }
+
+const GLOBAL_ACTIVE_KEYS = [
+  "grudge_active_character",
+  "grudge.activeCharId",
+] as const;
 
 export const CharacterManager = {
   /** Set the current account ID for scoped character selection */
   setAccountId: (accountId: string) => {
-    localStorage.setItem('grudge_account_id', accountId);
+    const id = String(accountId || "").trim();
+    if (!id) return;
+    localStorage.setItem("grudge_account_id", id);
+    localStorage.setItem("grudge_id", id);
   },
+
+  getAccountId,
 
   getEraSlots: (): AccountEraSlots | null => cachedEraSlots,
 
+  /**
+   * Warlords-era roster only (Railway SSOT).
+   * Clears stale active UUIDs that are not on this account's warlords list.
+   */
   getAll: async (era = WARLORDS_ERA): Promise<Character[]> => {
     try {
       const envelope = await characterAPI.getEnvelope(era);
       cachedEraSlots = envelope.eraSlots;
-      const activeId = envelope.eraSlots[era]?.activeCharacterId;
-      if (activeId) {
-        localStorage.setItem(getActiveCharKey(), activeId);
+      const list = Array.isArray(envelope.characters) ? envelope.characters : [];
+      const serverActive = envelope.eraSlots?.[era]?.activeCharacterId;
+      const localActive = CharacterManager.getActiveId();
+      const owned = (id: string | null | undefined) =>
+        !!id && list.some((c) => String(c.id) === String(id));
+
+      if (serverActive && owned(serverActive)) {
+        CharacterManager.setActiveLocal(serverActive);
+      } else if (localActive && !owned(localActive)) {
+        console.warn(
+          "[CharacterManager] active character not on warlords roster — clearing",
+          localActive,
+        );
+        CharacterManager.clearActiveLocal();
       }
-      return envelope.characters;
+      return list;
     } catch (e) {
       console.error("Failed to load characters from API", e);
       return [];
@@ -187,22 +220,55 @@ export const CharacterManager = {
   },
 
   getActiveId: (): string | null => {
-    return localStorage.getItem(getActiveCharKey());
+    const scoped = localStorage.getItem(getActiveCharKey());
+    if (scoped) return scoped;
+    for (const k of GLOBAL_ACTIVE_KEYS) {
+      const v = localStorage.getItem(k);
+      if (v) return v;
+    }
+    return null;
   },
 
+  /** Local-only active UUID write (all canonical keys). */
+  setActiveLocal: (id: string) => {
+    const uuid = String(id || "").trim();
+    if (!uuid) return;
+    localStorage.setItem(getActiveCharKey(), uuid);
+    for (const k of GLOBAL_ACTIVE_KEYS) localStorage.setItem(k, uuid);
+  },
+
+  clearActiveLocal: () => {
+    localStorage.removeItem(getActiveCharKey());
+    for (const k of GLOBAL_ACTIVE_KEYS) localStorage.removeItem(k);
+  },
+
+  /**
+   * Set active Warlords character UUID (must be owned — validated on next getAll).
+   * Persists to Railway era slots via activate.
+   */
   setActive: (id: string, era = WARLORDS_ERA) => {
-    localStorage.setItem(getActiveCharKey(), id);
-    characterAPI.activate(id, era).then((result) => {
+    const uuid = String(id || "").trim();
+    if (!uuid) {
+      console.error("[CharacterManager] setActive rejected — empty id");
+      return;
+    }
+    CharacterManager.setActiveLocal(uuid);
+    characterAPI.activate(uuid, era).then((result) => {
       if (result?.eraSlots) cachedEraSlots = result.eraSlots;
     }).catch(() => {});
   },
 
   getActiveCharacter: async (): Promise<Character | null> => {
-    const id = CharacterManager.getActiveId();
-    if (!id) return null;
     try {
-      const characters = await CharacterManager.getAll();
-      return characters.find(c => c.id === id) || null;
+      const characters = await CharacterManager.getAll(WARLORDS_ERA);
+      const id = CharacterManager.getActiveId();
+      if (!id) return null;
+      const found = characters.find((c) => String(c.id) === String(id));
+      if (!found) {
+        CharacterManager.clearActiveLocal();
+        return null;
+      }
+      return found;
     } catch (e) {
       console.error("Failed to get active character", e);
       return null;
