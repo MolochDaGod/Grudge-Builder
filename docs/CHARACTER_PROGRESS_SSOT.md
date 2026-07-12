@@ -1,8 +1,9 @@
 # Character Progress SSOT (fleet-wide)
 
 > **Canonical contract** for per-character progression across Grudge Studio.  
-> Last updated: 2026-07-09 · Schema version: **1**  
-> Code: `shared/characterProgress.ts` · Server: `PATCH/POST /api/characters/:id` · Client: `grudge-fleet.js` v2.4+
+> Last updated: 2026-07-12 · Schema version: **1**  
+> Code: `shared/characterProgress.ts` · Server: `PATCH/POST /api/characters/:id` · Client: `grudge-fleet.js` **≥ 2.8.0**  
+> Identity law: [CANONICAL_IDENTITY.md](./CANONICAL_IDENTITY.md)
 
 ---
 
@@ -175,7 +176,7 @@ Long-term target: httpOnly cookies + `/api/auth/session/exchange` (already regis
 
 When adding a game / editor / Puter site:
 
-1. Load `grudge-fleet.js` ≥ **2.4.0**
+1. Load `grudge-fleet.js` ≥ **2.8.0** (hard-fail account mismatch; `era=warlords` roster)
 2. On boot: `init` → `ensureSession` → `syncFromBackend` → `getCharacterDetail(activeId)`
 3. All progress writes: `saveCharacterProgress` (not raw inventory on character)
 4. Inventory: `getAccountInventory` / `saveAccountInventory` only

@@ -356,6 +356,12 @@ export async function probeTruthEndpoint(
   }
 }
 
+/** Valid definition hosts (ObjectStore worker + info docs mirror). */
+const CANONICAL_DEFS_HOSTS = [
+  "objectstore.grudge-studio.com",
+  "info.grudge-studio.com",
+] as const;
+
 export function detectSplitBrain(probes: TruthProbe[]): string[] {
   const canonicalObjectStore = FLEET_URLS.objectStore;
   const issues: string[] = [];
@@ -372,14 +378,16 @@ export function detectSplitBrain(probes: TruthProbe[]): string[] {
         issues.push(`${p.label}: still on deprecated host (${host})`);
       }
     }
-    if (
-      p.role === "objectstore" &&
-      p.ok &&
-      !p.url.includes("/api/objectstore/") &&
-      !p.url.startsWith(canonicalObjectStore) &&
-      !p.productionUrl.startsWith(canonicalObjectStore)
-    ) {
-      issues.push(`${p.label}: not using canonical objectstore host`);
+    // Defs may live on objectstore OR info — both are fleet-owned, not Pages dual-truth
+    if (p.role === "objectstore" && p.ok) {
+      const onCanonical =
+        p.url.includes("/api/objectstore/") ||
+        p.url.startsWith(canonicalObjectStore) ||
+        p.productionUrl.startsWith(canonicalObjectStore) ||
+        CANONICAL_DEFS_HOSTS.some((h) => p.url.includes(h) || p.productionUrl.includes(h));
+      if (!onCanonical) {
+        issues.push(`${p.label}: not using canonical objectstore/info host`);
+      }
     }
   }
   return issues;

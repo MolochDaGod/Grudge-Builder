@@ -85,7 +85,13 @@ Apply pending: `006_character_grudge_code.sql`, `007_player_ships.sql` if not al
 | Puter Warlords | puter.com/app/warlords | Shell → grudgewarlords.com | Same as Vercel client |
 | Dash Assets | dash…/assets | Health probes, pack list | Admin only via Railway |
 
-Auth: Grudge ID → dual `sso_token` + `grudge_token` → `grudge-fleet.js` ≥ 2.5.2.
+Auth: Grudge ID → dual `sso_token` + `grudge_token` → `grudge-fleet.js` **≥ 2.8.0**.  
+Account law + switch/create UX: [CANONICAL_IDENTITY.md](./CANONICAL_IDENTITY.md).
+
+| Client | Version | Deploy |
+|--------|---------|--------|
+| Crafting suite | ≥ **5.7.0** | `npm run deploy:puter:crafting` |
+| fleet.js (Puter + CDN) | ≥ **2.8.0** | Puter deploy + R2 `js/grudge-fleet.js` |
 
 ---
 
@@ -95,9 +101,12 @@ Auth: Grudge ID → dual `sso_token` + `grudge_token` → `grudge-fleet.js` ≥ 
 - [x] Ban account mats on character PATCH/progress (`ACCOUNT_BAG_ON_CHARACTER` 400)
 - [x] Dash admin/Accounts → Railway (not api.grudge-studio.com)
 - [x] D1 documented as asset registry only (dash Storage + Assets hub)
-- [ ] Single character UUID path (Railway) for all fleet games in prod (ongoing)
+- [x] Fleet 2.8 hard-fail JWT≠account + Warlords `era=warlords` + owned UUID active
+- [x] Crafting 5.7 Sign in / Create account / Switch / Sign out
+- [x] Puter + CDN fleet.js aligned to 2.8.0 (2026-07-12)
+- [ ] Single character UUID path for **all** fleet games in prod (ongoing satellites)
 - [ ] Single asset path truth (R2 key + ObjectStore); D1 index secondary
-- [ ] Keep Puter fleet.js and CDN fleet.js version-aligned (deploy on each craft release)
+- [ ] Automated multi-`grudge_id` merge tooling (ops path documented in CANONICAL_IDENTITY)
 
 ---
 

@@ -1,13 +1,16 @@
 # Fleet status — honest probe snapshot
 
-**Date:** 2026-07-12  
+**Date:** 2026-07-12 (identity SSOT pass)  
 **Method:** HTTP probes + `/organizer` system map. Re-run:
 
 ```bash
+npm run probe:truth:direct # ONE TRUTH: era=warlords chars, ID, craft, defs
 npm run probe:organizer    # writes docs/ORGANIZER_PRODUCTION_AUDIT.md
 npm run probe:deployments
 npm run probe:auth
 ```
+
+Identity law: [CANONICAL_IDENTITY.md](./CANONICAL_IDENTITY.md) · fleet.js **≥ 2.8.0** · crafting suite **≥ 5.7.0**.
 
 This file is a **snapshot**, not a SLA. Update it when something important changes.  
 Deep checklist: [ORGANIZER_PRODUCTION_AUDIT.md](./ORGANIZER_PRODUCTION_AUDIT.md).
@@ -22,8 +25,10 @@ Deep checklist: [ORGANIZER_PRODUCTION_AUDIT.md](./ORGANIZER_PRODUCTION_AUDIT.md)
 | Client alias | https://client.grudge-studio.com/ | **200** HTML | Same product family |
 | Grudge ID health | https://id.grudge-studio.com/api/health | **200** JSON healthy | Worker → Railway grudge-api |
 | Game API | https://grudge-api-production-0d46.up.railway.app/api/health | **200** JSON healthy | Player SSOT |
-| ObjectStore | https://objectstore.grudge-studio.com/health | **200** ok v3.2.0 | Catalog |
-| Assets CDN | https://assets.grudge-studio.com/ | **200** | R2 |
+| Characters (warlords) | …/api/characters?era=warlords | **401** without JWT | Auth-gated roster (expected) |
+| ObjectStore | https://objectstore.grudge-studio.com/health | **200** ok | Catalog defs |
+| Assets CDN | https://assets.grudge-studio.com/ | **200** | R2; `js/grudge-fleet.js` ≥ 2.8 |
+| Crafting | https://grudge-crafting.puter.site/ | **200** suite ≥ 5.7 | Grudge ID required (not Puter guest) |
 | Warlord Genesis | https://warlord-genesis.vercel.app/ | **200** HTML | Separate app + fleet SSO |
 
 ---

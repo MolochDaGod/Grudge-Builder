@@ -15,22 +15,42 @@ This is **not** a single monorepo for every Grudge title. Sibling products (Warl
 
 ---
 
-## Honest status (as of 2026-07)
+## Honest status (as of 2026-07-12)
 
 This section is meant to stay true under pressure. Prefer it over marketing copy in older docs.
+
+### Identity & player data — ONE TRUTH (law)
+
+Full contract: [`docs/CANONICAL_IDENTITY.md`](docs/CANONICAL_IDENTITY.md).
+
+| Key | Authority |
+|-----|-----------|
+| **Account** (`grudge_id`) | Railway + JWT from **id.grudge-studio.com** |
+| **Warlords heroes** | Railway `GET/POST /api/characters?era=warlords` — **UUID** primary key |
+| **Shared bag / GBUX** | Railway **account** APIs (`/api/account/*`, `/api/inventory/*`) |
+| **Professions / equipment / XP** | Railway **character UUID** (`/api/characters/:id`, progress) |
+| **Email / Discord / Puter** | Login **links** only — never a second character DB |
+| **Puter KV / localStorage** | Cache only |
+
+| Client bridge | Version | Notes |
+|---------------|---------|--------|
+| `grudge-fleet.js` | **≥ 2.8.0** | Hard-fail JWT≠account; warlords roster only; owned UUID active |
+| Crafting suite | **≥ 5.7.0** | Sign in / create account / switch / sign out on Puter host |
+| CDN | `https://assets.grudge-studio.com/js/grudge-fleet.js` | Keep aligned with `client/public/grudge-fleet.js` |
 
 ### What is production-real
 
 | Surface | Role | Reality check |
 |---------|------|----------------|
 | **grudgewarlords.com** | Main SPA | Live (Vercel). Same-origin `/api/*` rewrites to Railway + id hub. |
-| **id.grudge-studio.com** | Grudge ID login / SSO | Live. Edge Worker `grudge-identity-api` (`workers/id-gateway`) proxies to Railway auth. |
+| **id.grudge-studio.com** | Grudge ID login / register / SSO | Live. Edge Worker `grudge-identity-api` (`workers/id-gateway`) proxies to Railway auth. |
 | **Railway grudge-api** | Characters, island, inventory, auth API, JWT | Live SSOT for player data: `grudge-api-production-0d46.up.railway.app` |
 | **ObjectStore** | Catalog JSON + models registry | Live: [objectstore.grudge-studio.com](https://objectstore.grudge-studio.com/health) |
+| **info.grudge-studio.com** | Docs + alternate defs host | Recipes also available under `/api/v1/` |
 | **assets.grudge-studio.com** | R2 CDN binaries | Live |
 | **character.grudge-studio.com** | Character Studio (GCS) — create/edit grudge6 heroes | Canonical **create** path; Warlords routes often **redirect** here |
 | **warlord-genesis.vercel.app** | Separate MOBA/RTS satellite | Own repo (`warlord-genesis`); fleet SSO, not built from this SPA’s main bundle |
-| **grudge-crafting.puter.site** | Crafting shell (Puter) | Live puter deploy path; bag/progress via Railway when authed |
+| **grudge-crafting.puter.site** | Crafting shell (Puter) | Live; **must** Grudge ID JWT + Warlords UUID — not Puter-only guest |
 
 ### What is partial, fragile, or mislabeled in old docs
 
@@ -44,26 +64,30 @@ This section is meant to stay true under pressure. Prefer it over marketing copy
 | “Arena PvP / multiplayer fully live” | **Colyseus rooms exist in code**; dedicated public `ws.grudge-studio.com` is **not** a hardened fleet product. Expect local/dev or partial wiring. |
 | “Every /combat /tower-wars /missions route is ship-quality” | Many routes are **playable prototypes or tools**. Treat **home, account, island, test-play, GCS create** as the spine. |
 | “ObjectStore is the only character store” | **False.** ObjectStore = catalog/assets. **Player characters = Railway Postgres.** D1 is asset registry, not hero SSOT. |
+| “Crafting sees characters via Puter login” | **False.** Crafting needs **Grudge ID** `sso_token` → Railway `era=warlords`. Puter guest alone = empty roster. |
+| “Characters live on GitHub Pages ObjectStore” | **Deprecated.** `molochdagod.github.io/ObjectStore` may still host **static UI images**; player rows do **not**. |
 
 ### Quick live probe (re-run anytime)
 
 ```bash
+npm run probe:truth:direct  # ONE TRUTH endpoints (characters?era=warlords, identity, craft shell)
 npm run probe:deployments   # fleet HTTP surfaces
 npm run probe:auth          # SSO / login rewrites
 npm run probe:gate          # hard-fail critical (when CI secrets/env present)
 ```
 
-Manual smoke (2026-07 probe):
+Manual smoke (2026-07-12):
 
 | URL | Observed |
 |-----|----------|
 | grudgewarlords.com | 200 HTML |
-| id…/api/health | 200 JSON healthy (proxied grudge-api) |
+| id…/login | 200 |
 | Railway `/api/health` | 200 JSON healthy |
-| objectstore…/health | 200 ok v3.2.0 |
-| assets.grudge-studio.com | 200 |
+| Railway `/api/characters?era=warlords` | **401** without JWT (auth-gated — good) |
+| objectstore…/health | 200 ok |
+| assets…/js/grudge-fleet.js | **2.8.0+** |
+| grudge-crafting.puter.site | **5.7.0+** shell |
 | ai.grudge-studio.com | **401** (incident-class; fix via AI hub redeploy) |
-| account…/health | **404** (use `/api/health` if needed) |
 
 ---
 
@@ -71,37 +95,41 @@ Manual smoke (2026-07 probe):
 
 **Grudge Warlords** is a browser fantasy MMO-lite / warcamp stack:
 
-1. **Sign in** with Grudge ID (Puter, OAuth, guest, wallet paths on the id hub).
-2. **Create or load a hero** — production create is **Character Studio (GCS)** with `era=warlords`, not only the old in-repo 6-step wizard.
-3. **Home island** — seed-based harvest / camp loop (2D and 3D views).
-4. **Playtest 3D** (`/test-play`) — grudge6 modular hero on procedural (or zone) island.
-5. **Side systems** — professions, crafting (Puter + API), dungeons (Phaser), skill trees, arsenal, missions, treaty chat, sprite tools, organizer map.
+1. **Sign in** with Grudge ID (`id.grudge-studio.com`) — email / Discord / Puter / wallet **link** to one `grudge_id`.
+2. **Create or load a Warlords hero** — production create is **GCS** (`character.grudge-studio.com?era=warlords`) → Railway **UUID**.
+3. **Home island / tutorial / play** — load that UUID; bag is account-scoped, professions/gear character-scoped.
+4. **Crafting** — same JWT + same UUID on `grudge-crafting.puter.site` (or in-app `/crafting`).
+5. **Side systems** — dungeons, skill trees, arsenal, treaty, tools (many are prototypes).
 
-It shares **identity and character rows** with other fleet games so a hero can move between Warlords, RTS, DCQ, Genesis, etc., when those apps correctly implement fleet SSO.
+It shares **one Railway roster** with other fleet games when those apps use fleet SSO + `era=warlords` (or their era), never a parallel hero store.
 
 ---
 
 ## Architecture (one truth)
 
 ```
-Browser (grudgewarlords.com)
+Browser apps (grudgewarlords.com · grudge-crafting.puter.site · GCS · …)
   │
-  ├─ Static SPA ─────────────────── Vercel (this repo client/)
+  ├─ Identity ── id.grudge-studio.com/login|register
+  │                 └─ CF Worker id-gateway → Railway auth + JWT (grudge_id)
   │
-  ├─ /login, /api/auth/* ────────── id.grudge-studio.com
-  │                                    └─ CF Worker id-gateway
-  │                                         └─ Railway grudge-api (auth + JWT)
+  ├─ Player state ── same-origin /api/* (Warlords) OR Railway absolute (Puter)
+  │                 └─ Postgres: users · characters (era=warlords UUID) · bag · island
   │
-  ├─ /api/characters, /island, … ── same-origin rewrite → Railway grudge-api
-  │                                    └─ Postgres (player SSOT)
+  ├─ Catalog JSON ── objectstore / info …/api/v1/*.json  (definitions only)
   │
-  ├─ Catalog JSON ───────────────── objectstore.grudge-studio.com/api/v1/*.json
-  │
-  └─ Binaries (GLB, icons, audio) ─ assets.grudge-studio.com (R2)
+  └─ Binaries ────── assets.grudge-studio.com (R2)
 
 Character create (production)
-  grudgewarlords.com ──redirect──► character.grudge-studio.com (GCS)
-       ◄── Save & Play + handoff ── POST Railway /api/characters
+  grudgewarlords.com ──redirect──► character.grudge-studio.com?era=warlords
+       ◄── Save & Play ── POST Railway /api/characters ── UUID returned
+       → set active UUID → /home · /tutorial · /home-island · crafting
+
+Crafting (production)
+  grudge-crafting.puter.site
+       → Sign in / Create account / Switch (Grudge ID)
+       → GET /api/characters?era=warlords
+       → select owned UUID → bag + profession XP on Railway
 ```
 
 ### Auth (do not regress)
@@ -191,7 +219,9 @@ Copy env from `.env.production.example` / local secrets. Without Railway Postgre
 | `npm run build` / `build:client` | Production client |
 | `npm run start:production` | Railway entry |
 | `npm run gen:fleet` / `gen:fleet-truth` | Fleet manifest / published truth |
+| `npm run probe:truth:direct` | ONE TRUTH (identity, era=warlords chars, craft shell) |
 | `npm run probe:auth` / `probe:deployments` | Live surface probes |
+| `npm run deploy:puter:crafting` | Ship `grudge-crafting.html` + fleet.js to Puter |
 | `npm run deploy:workers` | Wrangler workers (id-gateway, etc.) |
 | `npm run db:push` | Auth/schema ensure scripts |
 
@@ -232,6 +262,8 @@ Legacy in-repo character-creator: `?legacy=1` only for dev — not the productio
 | Start here | |
 |------------|--|
 | **This README** | Product truth, fleet honesty, architecture |
+| [docs/CANONICAL_IDENTITY.md](docs/CANONICAL_IDENTITY.md) | **Account + Warlords UUID law** |
+| [docs/CANONICAL_DATA_LAYER.md](docs/CANONICAL_DATA_LAYER.md) | Railway / ObjectStore / R2 / D1 |
 | [docs/DOCS-INDEX.md](docs/DOCS-INDEX.md) | Full doc index |
 | [docs/DEPLOY_OWNERSHIP.md](docs/DEPLOY_OWNERSHIP.md) | One host → one owner |
 | [docs/GRUDGE_AUTH_CONNECT.md](docs/GRUDGE_AUTH_CONNECT.md) | SSO connect for satellites |
@@ -245,11 +277,13 @@ Legacy in-repo character-creator: `?legacy=1` only for dev — not the productio
 
 ## Contributing / agents
 
-- Prefer **Railway same-origin `/api`** over hardcoding Railway hostnames in browser code.
+- Prefer **Railway same-origin `/api`** on first-party hosts; **absolute Railway URL** on Puter (no `/api` rewrites).
 - Prefer **ObjectStore** for new catalog data; do not invent a second item DB.
-- Auth changes must keep **dual return params** and **sso_token preference**.
+- Auth changes must keep **dual return params** and **`sso_token` preference**.
+- Warlords shells: **`era=warlords`**, active **UUID owned** by JWT `grudge_id`.
 - Do not re-attach another repo’s Cloudflare custom domain (see deploy ownership).
 - When docs and live probes disagree, **fix the docs** and note the date.
+- After craft/fleet changes: `npm run deploy:puter:crafting` and upload `js/grudge-fleet.js` to R2.
 
 ---
 
@@ -259,4 +293,4 @@ Steam app **2707990** — see [docs/STEAM.md](docs/STEAM.md). Web fleet is the d
 
 ---
 
-*Last honesty pass: 2026-07. Re-probe with `npm run probe:deployments` before major releases.*
+*Last honesty pass: 2026-07-12 (identity SSOT + fleet 2.8 / craft 5.7). Re-probe with `npm run probe:truth:direct` before major releases.*

@@ -4,18 +4,22 @@
 This is **Grudge Warlords** ([grudgewarlords.com](https://grudgewarlords.com)), the primary **web game client** for Grudge Studio (React + Vite + TypeScript, Three.js + Phaser).
 Created by **Racalvin The Pirate King**.
 
-**Read first (honest fleet + architecture):** root [README.md](./README.md) · [docs/FLEET_STATUS.md](./docs/FLEET_STATUS.md) · [docs/DEPLOY_OWNERSHIP.md](./docs/DEPLOY_OWNERSHIP.md).
+**Read first (honest fleet + architecture):** root [README.md](./README.md) · [docs/CANONICAL_IDENTITY.md](./docs/CANONICAL_IDENTITY.md) · [docs/CANONICAL_DATA_LAYER.md](./docs/CANONICAL_DATA_LAYER.md) · [docs/FLEET_STATUS.md](./docs/FLEET_STATUS.md) · [docs/DEPLOY_OWNERSHIP.md](./docs/DEPLOY_OWNERSHIP.md).
 
 This repo is **not** Warlord Genesis (separate Vercel app), not ObjectStore, and not Character Studio — those are fleet siblings.
 
 ## Architecture — The One Truth
 
 ### Single Source of Truth (do not conflate layers)
-- **Player data** (users, characters, islands, inventory, sessions): **Railway Postgres** via grudge-api (`/api/characters`, etc.) — same-origin `/api/*` on Vercel.
-- **Game catalog** (races, classes, weapons, armor, attributes, recipes): ObjectStore API at `objectstore.grudge-studio.com/api/v1/*.json`
-- **Frontend data layer**: `gameData.ts` / object-store hooks **prefer** ObjectStore; **hardcoded fallbacks still exist** for resilience — do not grow them; extend ObjectStore instead.
-- **3D models**: R2 via `assets.grudge-studio.com` + ObjectStore model registry (`/api/v1/…`, grudge6 paths)
-- **Assets** (sprites, icons, audio, backgrounds): CDN via `assetUrl()` from `assetConfig.ts`
+- **Account** (`grudge_id`): JWT from **id.grudge-studio.com** — email/Discord/Puter are **links**, not separate player DBs.
+- **Player data** (users, characters, islands, inventory, sessions): **Railway Postgres** via grudge-api — same-origin `/api/*` on Vercel; **absolute Railway URL** on Puter.
+- **Warlords heroes**: `GET/POST /api/characters?era=warlords` — primary key = **Postgres UUID**; display stamp = `grudgeCode`.
+- **Account bag** vs **character progress**: bag on `/api/account/*` + inventory; professions/equipment/XP on character UUID only.
+- **Game catalog** (races, classes, weapons, armor, attributes, recipes): ObjectStore / info `…/api/v1/*.json` — **definitions only**.
+- **3D models / icons**: R2 `assets.grudge-studio.com` via `assetUrl()` — **never** player SSOT.
+- **D1**: asset registry index only — **not** characters/islands/bag.
+- **Fleet bridge**: `client/public/grudge-fleet.js` **≥ 2.8.0** (CDN + Puter crafting). Hard-fails JWT≠stored `grudge_id`; rejects foreign active UUIDs.
+- **Frontend data layer**: prefer ObjectStore for catalog; **do not grow** hardcoded fallbacks.
 
 ### API Routing (Vercel → Grudge Backend)
 All API calls go through Vercel rewrites in `vercel.json`:
@@ -36,7 +40,8 @@ All API calls go through Vercel rewrites in `vercel.json`:
 - **Example satellite**: gameopen.vercel.app — `grudgeAuth.ts` + `fleet.ts`
 
 **Game Data API (Railway — Postgres SSOT)**:
-- `/api/characters/*` → character CRUD (canonical — use this, not `/api/game/characters`)
+- `/api/characters?era=warlords` → Warlords roster (canonical for this game + crafting)
+- `/api/characters/*` → character CRUD / progress / activate (canonical — not `/api/game/characters`)
 - `/api/professions/*` → profession XP, crafting, gathering
 - `/api/island/*` → home island state, generate-map, boss-clear
 - `/api/nfts/*` → character NFT minting
@@ -46,7 +51,7 @@ All API calls go through Vercel rewrites in `vercel.json`:
 - `/api/account/*` → account profile, resources, GBUX
 - `/api/fleet/*` → fleet manifest
 
-All proxied to `grudge-api-production-0d46.up.railway.app` via `vercel.json` and `@shared/fleet/manifest.ts` (`FLEET_URLS.gameData`). Regenerate rewrites: `npx tsx scripts/sync-vercel-fleet.mjs`. Storage/env bindings: `shared/fleet/storage.ts` (`FLEET_STORAGE`, `FLEET_CLIENT_ENV`).
+All proxied to `grudge-api-production-0d46.up.railway.app` via `vercel.json` and `@shared/fleet/manifest.ts` (`FLEET_URLS.gameData`) on first-party hosts. **Puter (`*.puter.site`) has no rewrites** — set `GRUDGE_CONFIG.GAME_DATA` / fleet absolute Railway. Regenerate rewrites: `npx tsx scripts/sync-vercel-fleet.mjs`.
 
 **Identity API (grudge-studio.com)** — catch-all `/api/:path*` → The-ENGINE Railway; NOT characters.
 
@@ -75,13 +80,19 @@ Key ObjectStore JSON endpoints:
 - `/api/v1/master-recipes.json` — crafting recipes with material links
 
 ### Single API Client Path
-`grudgeBackend.ts` (auth/token) → `api.ts` (game API calls via same-origin `/api/*`) → `characterManager.ts` (character CRUD)
-Token stored in localStorage as `grudge_auth_token` (and fleet aliases). Prefer **session** `sso_token` after id handoff over short **launch** `grudge_token`.
+`grudgeBackend.ts` (auth/token) → `api.ts` (game API via same-origin `/api/*`) → `characterManager.ts` (Warlords CRUD + active UUID)
+Token keys: `grudge_auth_token` (+ fleet aliases). Prefer **session** `sso_token` after id handoff over short **launch** `grudge_token`.
 JWT verification must match Railway secrets; id-gateway only proxies — it does not replace Postgres.
 
-**Auth → Account Sync:** On login, `handleAuthResponse()` sets `grudge_account_id` in localStorage so `CharacterManager` scopes active character selection to the correct account (not `guest`).
+**Auth → Account Sync:** On login, set `grudge_account_id` **and** `grudge_id`. Active character keys are scoped per account (`gruda_active_character_${grudgeId}`). Fleet 2.8 **clears session** if JWT account ≠ stored account.
+
+**Active character:** must be a UUID on `GET /api/characters?era=warlords` for that account. Foreign / stale UUIDs are cleared (`CharacterManager` + fleet).
+
+**Crafting (Puter):** `grudge-crafting.html` ≥ 5.7 — Sign in / Create account / Switch / Sign out via Grudge ID. Deploy: `npm run deploy:puter:crafting`. Never use Puter guest as primary Warlords login.
 
 **Satellite guests:** On `*.vercel.app`, silent cookie claim against the id hub **401s** without a prior login. Expected — use redirect/popup SSO, not hub claim.
+
+**Probes:** `npm run probe:truth:direct` · `npm run probe:auth` · `npm run probe:deployments`.
 
 ### Canonical Character Creation (GCS)
 **Account/save truth:** [character.grudge-studio.com](https://character.grudge-studio.com) (GCS) — HYDRA VRM + grudge6 forge. Saves to Railway `/api/characters` with per-era rosters (`warlords`, `nexus`, `armada`).

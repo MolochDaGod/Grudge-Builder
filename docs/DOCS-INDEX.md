@@ -12,6 +12,8 @@ Organized entry point for APIs, UUID systems, and fleet integration.
 |-------|-----|
 | **Live game** | https://grudgewarlords.com |
 | **Honest fleet / domain status** | [FLEET_STATUS.md](./FLEET_STATUS.md) · [ORGANIZER_PRODUCTION_AUDIT.md](./ORGANIZER_PRODUCTION_AUDIT.md) · root [README.md](../README.md) |
+| **Account + Warlords UUID law (ONE TRUTH)** | [CANONICAL_IDENTITY.md](./CANONICAL_IDENTITY.md) |
+| **Data layers (Railway / ObjectStore / R2 / D1)** | [CANONICAL_DATA_LAYER.md](./CANONICAL_DATA_LAYER.md) |
 | **Deploy ownership** | [DEPLOY_OWNERSHIP.md](./DEPLOY_OWNERSHIP.md) |
 | **Grudge ID SSO / modular login / return-to-origin** | [GRUDGE_AUTH_CONNECT.md](./GRUDGE_AUTH_CONNECT.md) · [ID_SSO_PRODUCTION.md](./ID_SSO_PRODUCTION.md) |
 | **API routes (auth, characters, island, crafting)** | [API.md](./API.md) |
@@ -66,11 +68,13 @@ Organized entry point for APIs, UUID systems, and fleet integration.
 
 ### CDN fleet modules
 
-| Module | URL |
-|--------|-----|
-| grudge6-kit | https://assets.grudge-studio.com/js/grudge6-kit.js |
-| grudge-id-client | https://assets.grudge-studio.com/js/grudge-id-client.js |
-| grudge-fleet | https://assets.grudge-studio.com/js/grudge-fleet.js |
+| Module | URL | Min version |
+|--------|-----|-------------|
+| grudge6-kit | https://assets.grudge-studio.com/js/grudge6-kit.js | — |
+| grudge-id-client | https://assets.grudge-studio.com/js/grudge-id-client.js | — |
+| grudge-fleet | https://assets.grudge-studio.com/js/grudge-fleet.js | **≥ 2.8.0** (identity hard-fail + era=warlords) |
+
+Repo SSOT for fleet bridge: `client/public/grudge-fleet.js` (sync to CDN after ship). Crafting: `client/public/grudge-crafting.html` ≥ **5.7.0** → `npm run deploy:puter:crafting`.
 
 Race kits: `shared/fleet/character.ts` → `/models/grudge6/races/*_Characters.glb` + `setupGrudge6Equipment` / `applyMeshIds`.
 

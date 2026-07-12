@@ -21,13 +21,19 @@ npm run build        # Production build (client + server)
 npm run db:push      # Push schema to Railway PostgreSQL
 ```
 
-## Architecture
+## Architecture (ONE TRUTH — do not regress)
 ```
 grudgewarlords.com (Vercel) → SPA client
-  ├── /api/* → api.grudge-studio.com (Railway Express)
+  ├── /api/auth/* → id.grudge-studio.com → Railway JWT (grudge_id)
+  ├── /api/characters|account|island|… → Railway grudge-api (Postgres SSOT)
   ├── WebSocket → Colyseus (same Railway process)
+  ├── Catalog → objectstore / info …/api/v1/*.json
   └── Assets → assets.grudge-studio.com (R2 CDN)
+
+Puter crafting (grudge-crafting.puter.site):
+  absolute Railway GAME_DATA + grudge-fleet.js ≥ 2.8 (no Vercel /api rewrites)
 ```
+Law: [docs/CANONICAL_IDENTITY.md](docs/CANONICAL_IDENTITY.md) · agent map: [AGENTS.md](AGENTS.md) · honest README: [README.md](README.md)
 
 ## Directory Structure
 ```
@@ -65,12 +71,16 @@ workers/
 - Schema: `shared/schema.ts` — use `npm run db:push` to sync
 - ORM: Drizzle (`server/db.ts` exports `db` instance)
 
-## Service URLs (from `client/src/lib/grudgeConfig.ts`)
-- `AUTH_GATEWAY`: https://id.grudge-studio.com
-- `GAME_API`: https://api.grudge-studio.com
-- `ASSETS_CDN`: https://assets.grudge-studio.com
-- `AI_GATEWAY`: https://ai.grudge-studio.com
-- `WS_URL`: wss://ws.grudge-studio.com
+## Service URLs (canonical — `shared/fleet/manifest.ts` / `FLEET_URLS`)
+- **Auth / Grudge ID**: https://id.grudge-studio.com
+- **Game data (Railway)**: https://grudge-api-production-0d46.up.railway.app  
+  First-party apps: same-origin `/api/*` rewrites (not `api.grudge-studio.com` — deprecated split-brain)
+- **Assets CDN**: https://assets.grudge-studio.com
+- **ObjectStore defs**: https://objectstore.grudge-studio.com/api/v1
+- **Character create (GCS)**: https://character.grudge-studio.com?era=warlords
+- **Crafting**: https://grudge-crafting.puter.site (fleet.js ≥ 2.8, suite ≥ 5.7)
+- **AI gateway**: https://ai.grudge-studio.com (fragile — see deploy ownership)
+- **Colyseus**: wss on Railway grudge-api (not a separate public `ws.` product)
 
 ## Critical Files (Do NOT rename or restructure)
 - `client/src/lib/grudgeConfig.ts` — all service URLs
