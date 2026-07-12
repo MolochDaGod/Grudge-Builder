@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ForceGraph2D } from "react-force-graph";
+// Canvas 2D only — do NOT import from "react-force-graph" umbrella (it static-imports
+// 3d-force-graph → ColladaLoader and crashes: "Cannot add property ColladaLoader").
+import ForceGraph2D from "react-force-graph-2d";
 import { Activity, AlertTriangle, ExternalLink, Filter, GitBranch, Network, Search, ShieldCheck, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";

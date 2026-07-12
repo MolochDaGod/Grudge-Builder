@@ -28,6 +28,11 @@ export interface TruthProbeSpec {
   authGated?: boolean;
   /** Binary icon probe: fail unless Content-Type is image/*. */
   requireImage?: boolean;
+  /**
+   * Skip in browser audits (cross-origin shells without CORS — e.g. grudge6 SPA).
+   * Still probed in CLI / CI with productionUrl.
+   */
+  browserSkip?: boolean;
 }
 
 export interface TruthProbe extends TruthProbeSpec {
@@ -158,8 +163,9 @@ export const TRUTH_PROBE_SPECS: TruthProbeSpec[] = [
     id: "icon-pack",
     label: "Pack icon (guide)",
     role: "icons",
+    // Always hit CDN absolute URL — relative /icons/* on SPA can 403/404 if rewrite misses
     productionUrl: ICON_PACK,
-    browserPath: ICON_PACK_PATH,
+    browserPath: ICON_PACK,
     method: "GET",
     rejectHtml: true,
     requireImage: true,
@@ -169,7 +175,7 @@ export const TRUTH_PROBE_SPECS: TruthProbeSpec[] = [
     label: "Named weapon icon",
     role: "icons",
     productionUrl: ICON_NAMED,
-    browserPath: ICON_NAMED_PATH,
+    browserPath: ICON_NAMED,
     method: "GET",
     rejectHtml: true,
     requireImage: true,
@@ -189,8 +195,10 @@ export const TRUTH_PROBE_SPECS: TruthProbeSpec[] = [
     label: "Grudge6 game lab",
     role: "game-data",
     productionUrl: "https://grudge6.grudge-studio.com/game/",
-    method: "GET",
+    method: "HEAD",
     rejectHtml: false,
+    // Cross-origin SPA — browser fetch logs CORS errors; probe only from CLI
+    browserSkip: true,
   },
   {
     id: "home-island-contract",
@@ -253,10 +261,12 @@ export function resolveProbeUrl(spec: TruthProbeSpec, mode: TruthProbeMode): str
 }
 
 export function buildTruthProbes(mode: TruthProbeMode = "browser"): TruthProbe[] {
-  return TRUTH_PROBE_SPECS.map((spec) => ({
-    ...spec,
-    url: resolveProbeUrl(spec, mode),
-  }));
+  return TRUTH_PROBE_SPECS.filter((spec) => !(mode === "browser" && spec.browserSkip)).map(
+    (spec) => ({
+      ...spec,
+      url: resolveProbeUrl(spec, mode),
+    }),
+  );
 }
 
 export async function probeTruthEndpoint(

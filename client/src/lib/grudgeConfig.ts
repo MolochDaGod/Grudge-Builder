@@ -53,8 +53,9 @@ export const STUDIO_EDITOR_URL: string =
 
 /**
  * VFX effects registry API (api-server stack from vfx-sandbox).
- * Defaults to same-origin `/api/effects` via Vercel rewrite → api.grudge-studio.com.
+ * Defaults to same-origin `/api/effects` via Vercel rewrite → Railway game-data.
  * Set VITE_EFFECTS_API_URL=off for fully offline sandbox mode.
+ * Never call api.grudge-studio.com directly from the browser (CORS / split-brain).
  */
 export const EFFECTS_API: string =
   env.VITE_EFFECTS_API_URL ?? '';
