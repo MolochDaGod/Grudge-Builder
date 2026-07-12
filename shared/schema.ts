@@ -1351,12 +1351,38 @@ export const treatyGroupMessages = pgTable("treaty_group_messages", {
   createdAt: bigint("created_at", { mode: "number" }).notNull().default(sql`extract(epoch from now()) * 1000`),
 });
 
+/**
+ * Server / fleet chat channels — public account chat for every Grudge game & studio page.
+ * `gameId` scopes a channel (e.g. warlords, genesis, fleet). `slug` is unique globally.
+ */
+export const treatyServerChannels = pgTable("treaty_server_channels", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  slug: text("slug").notNull().unique(),
+  name: text("name").notNull(),
+  description: text("description"),
+  /** Logical game / surface: fleet | warlords | genesis | grudge6 | forge | ... */
+  gameId: text("game_id").notNull().default("fleet"),
+  isPublic: integer("is_public").notNull().default(1),
+  sortOrder: integer("sort_order").notNull().default(0),
+  createdAt: bigint("created_at", { mode: "number" }).notNull().default(sql`extract(epoch from now()) * 1000`),
+});
+
+export const treatyServerMessages = pgTable("treaty_server_messages", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  channelId: varchar("channel_id").notNull(),
+  senderAccountId: varchar("sender_account_id").notNull(),
+  content: text("content").notNull(),
+  createdAt: bigint("created_at", { mode: "number" }).notNull().default(sql`extract(epoch from now()) * 1000`),
+});
+
 export type TreatyFriend = typeof treatyFriends.$inferSelect;
 export type TreatyDmThread = typeof treatyDmThreads.$inferSelect;
 export type TreatyMessage = typeof treatyMessages.$inferSelect;
 export type TreatyGroup = typeof treatyGroups.$inferSelect;
 export type TreatyGroupMember = typeof treatyGroupMembers.$inferSelect;
 export type TreatyGroupMessage = typeof treatyGroupMessages.$inferSelect;
+export type TreatyServerChannel = typeof treatyServerChannels.$inferSelect;
+export type TreatyServerMessage = typeof treatyServerMessages.$inferSelect;
 
 // ============================================
 // UUID LEDGER SYSTEM

@@ -335,6 +335,8 @@ const rewriteSeeds: RewriteSeed[] = [
   { source: "/api/party",              dest: `${GAME_DATA_API}/api/party`,                           target: "svc:game-api",    group: "combat" },
   { source: "/api/party/:path*",       dest: `${GAME_DATA_API}/api/party/:path*`,                    target: "svc:game-api",    group: "combat" },
   { source: "/api/fleet/:path*",       dest: `${GAME_DATA_API}/api/fleet/:path*`,                    target: "svc:game-api",    group: "ops" },
+  { source: "/api/treaty",             dest: `${GAME_DATA_API}/api/treaty`,                          target: "svc:game-api",    group: "social" },
+  { source: "/api/treaty/:path*",      dest: `${GAME_DATA_API}/api/treaty/:path*`,                   target: "svc:game-api",    group: "social" },
   { source: "/api/supabase/:path*",    dest: `${GAME_DATA_API}/api/supabase/:path*`,                 target: "svc:game-api",    group: "backend" },
   { source: "/api/tools/:path*",       dest: `${FLEET_URLS.identityApi}/api/tools/:path*`,           target: "svc:game-api",    group: "tools" },
   { source: "/api/assets/:path*",      dest: "https://assets.grudge-studio.com/:path*",              target: "svc:r2-cdn",      group: "assets" },

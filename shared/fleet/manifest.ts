@@ -317,9 +317,16 @@ export function buildFleetSatelliteRewrites(
     { source: "/api/characters/:path*", destination: `${gameData}/api/characters/:path*` },
     { source: "/api/account", destination: `${gameData}/api/account` },
     { source: "/api/account/:path*", destination: `${gameData}/api/account/:path*` },
-    /** Treaty social SSOT — same account friends/DMs/groups in every fleet game */
+    /** Wallet + GBUX — same account purse in every game */
+    { source: "/api/wallet", destination: `${gameData}/api/wallet` },
+    { source: "/api/wallet/:path*", destination: `${gameData}/api/wallet/:path*` },
+    { source: "/api/nfts", destination: `${gameData}/api/nfts` },
+    { source: "/api/nfts/:path*", destination: `${gameData}/api/nfts/:path*` },
+    /** Treaty social SSOT — friends, DMs, groups, server chat for every fleet game */
     { source: "/api/treaty", destination: `${gameData}/api/treaty` },
     { source: "/api/treaty/:path*", destination: `${gameData}/api/treaty/:path*` },
+    { source: "/api/fleet", destination: `${gameData}/api/fleet` },
+    { source: "/api/fleet/:path*", destination: `${gameData}/api/fleet/:path*` },
     { source: "/api/health", destination: `${gameData}/api/health` },
   ];
 }

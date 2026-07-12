@@ -187,3 +187,49 @@ export async function sendTreatyGroupMessage(groupId: string, content: string) {
 export async function fetchTreatyUnread(): Promise<{ unread: number }> {
   return treatyFetch<{ unread: number }>("/unread");
 }
+
+// ── Server / fleet chat (all games + studio) ─────────────────────────────
+
+export interface TreatyServerChannel {
+  id: string;
+  slug: string;
+  name: string;
+  description: string | null;
+  gameId: string;
+  sortOrder: number;
+}
+
+export interface TreatyServerMessage {
+  id: string;
+  channelId: string;
+  channelSlug: string;
+  content: string;
+  createdAt: number;
+  senderAccountId: string;
+  senderDisplayName: string | null;
+  senderGrudgeId: string | null;
+  senderAvatarUrl: string | null;
+}
+
+export async function fetchTreatyServers(gameId?: string) {
+  const q = gameId ? `?game=${encodeURIComponent(gameId)}` : "";
+  return treatyFetch<{ channels: TreatyServerChannel[] }>(`/servers${q}`);
+}
+
+export async function fetchTreatyServerMessages(slug: string, limit = 80) {
+  return treatyFetch<{
+    channel: TreatyServerChannel;
+    messages: TreatyServerMessage[];
+  }>(`/servers/${encodeURIComponent(slug)}/messages?limit=${limit}`);
+}
+
+export async function sendTreatyServerMessage(slug: string, content: string) {
+  return treatyFetch<{ message: TreatyServerMessage }>(
+    `/servers/${encodeURIComponent(slug)}/messages`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ content }),
+    },
+  );
+}

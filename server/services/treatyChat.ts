@@ -12,6 +12,8 @@ import {
   treatyGroupMessages,
   treatyGroups,
   treatyMessages,
+  treatyServerChannels,
+  treatyServerMessages,
   users,
 } from "@shared/schema";
 
@@ -636,4 +638,148 @@ export async function sendGroupMessage(accountId: string, groupId: string, conte
     .where(and(eq(treatyGroupMembers.groupId, groupId), eq(treatyGroupMembers.accountId, accountId)));
 
   return msg;
+}
+
+// ─── Server / fleet chat (all games + studio pages) ─────────────────────────
+
+const DEFAULT_SERVER_CHANNELS: Array<{
+  slug: string;
+  name: string;
+  description: string;
+  gameId: string;
+  sortOrder: number;
+}> = [
+  { slug: "fleet-general", name: "Fleet General", description: "All Grudge Studio players", gameId: "fleet", sortOrder: 0 },
+  { slug: "fleet-help", name: "Fleet Help", description: "Questions and onboarding", gameId: "fleet", sortOrder: 1 },
+  { slug: "lfg", name: "Looking for Group", description: "Find party / crew", gameId: "fleet", sortOrder: 2 },
+  { slug: "warlords", name: "Grudge Warlords", description: "Warlords chat", gameId: "warlords", sortOrder: 10 },
+  { slug: "genesis", name: "Warlord Genesis", description: "MOBA / RTS siege chat", gameId: "genesis", sortOrder: 11 },
+  { slug: "grudge6", name: "Grudge6 Lab", description: "Character lab and HUD", gameId: "grudge6", sortOrder: 12 },
+  { slug: "forge", name: "Studio Forge", description: "Map and editor chat", gameId: "forge", sortOrder: 13 },
+  { slug: "crafting", name: "Crafting", description: "WCS / professions", gameId: "crafting", sortOrder: 14 },
+];
+
+/** Ensure seed channels exist (safe to call on each list). */
+export async function ensureTreatyServerChannels(): Promise<void> {
+  for (const ch of DEFAULT_SERVER_CHANNELS) {
+    try {
+      await db
+        .insert(treatyServerChannels)
+        .values({
+          slug: ch.slug,
+          name: ch.name,
+          description: ch.description,
+          gameId: ch.gameId,
+          isPublic: 1,
+          sortOrder: ch.sortOrder,
+        })
+        .onConflictDoNothing({ target: treatyServerChannels.slug });
+    } catch {
+      /* table may not exist until migrate — swallow */
+    }
+  }
+}
+
+export async function listTreatyServerChannels(gameId?: string | null) {
+  await ensureTreatyServerChannels();
+  const rows = await db
+    .select()
+    .from(treatyServerChannels)
+    .where(eq(treatyServerChannels.isPublic, 1))
+    .orderBy(treatyServerChannels.sortOrder);
+
+  if (gameId && gameId !== "all") {
+    // Always include fleet-global channels + matching game
+    return rows.filter((r) => r.gameId === "fleet" || r.gameId === gameId || r.slug === gameId);
+  }
+  return rows;
+}
+
+async function resolveServerChannel(slugOrId: string) {
+  const [bySlug] = await db
+    .select()
+    .from(treatyServerChannels)
+    .where(eq(treatyServerChannels.slug, slugOrId))
+    .limit(1);
+  if (bySlug) return bySlug;
+  const [byId] = await db
+    .select()
+    .from(treatyServerChannels)
+    .where(eq(treatyServerChannels.id, slugOrId))
+    .limit(1);
+  return byId || null;
+}
+
+export async function listServerChannelMessages(
+  accountId: string,
+  slugOrId: string,
+  limit = 80,
+) {
+  void accountId; // reserved for mute/ban later
+  const channel = await resolveServerChannel(slugOrId);
+  if (!channel) throw new Error("Channel not found");
+
+  const messages = await db
+    .select()
+    .from(treatyServerMessages)
+    .where(eq(treatyServerMessages.channelId, channel.id))
+    .orderBy(desc(treatyServerMessages.createdAt))
+    .limit(Math.min(200, Math.max(1, limit)));
+
+  const enriched = [];
+  for (const msg of messages.reverse()) {
+    const profile = await friendProfile(msg.senderAccountId);
+    enriched.push({
+      id: msg.id,
+      channelId: channel.id,
+      channelSlug: channel.slug,
+      content: msg.content,
+      createdAt: msg.createdAt,
+      senderAccountId: msg.senderAccountId,
+      senderDisplayName: profile?.displayName ?? null,
+      senderGrudgeId: profile?.grudgeId ?? null,
+      senderAvatarUrl: profile?.avatarUrl ?? null,
+    });
+  }
+  return { channel, messages: enriched };
+}
+
+export async function sendServerChannelMessage(
+  accountId: string,
+  slugOrId: string,
+  content: string,
+) {
+  const text = content.trim();
+  if (!text || text.length > 2000) throw new Error("Invalid message");
+
+  const channel = await resolveServerChannel(slugOrId);
+  if (!channel) throw new Error("Channel not found");
+  if (!channel.isPublic) throw new Error("Channel is not public");
+
+  const now = Date.now();
+  const [msg] = await db
+    .insert(treatyServerMessages)
+    .values({
+      channelId: channel.id,
+      senderAccountId: accountId,
+      content: text,
+      createdAt: now,
+    })
+    .returning();
+
+  const profile = await friendProfile(accountId);
+  return {
+    message: {
+      id: msg!.id,
+      channelId: channel.id,
+      channelSlug: channel.slug,
+      content: msg!.content,
+      createdAt: msg!.createdAt,
+      senderAccountId: accountId,
+      senderDisplayName: profile?.displayName ?? null,
+      senderGrudgeId: profile?.grudgeId ?? null,
+      senderAvatarUrl: profile?.avatarUrl ?? null,
+    },
+    channel,
+  };
 }

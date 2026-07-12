@@ -2,9 +2,9 @@
  * Grudge Fleet Bridge — vanilla JS auth + character sync for Puter/external apps.
  * Mirrors GrudgeAccountSDK + wireGrudgeFleet from grudge-builder.
  *
- * @version 2.6.0
+ * @version 2.7.0
  * Character progress SSOT + account inventory/resources on Railway only (same DB as Warlords).
- * Treaty chat (friends / DMs / groups) is Grudge ID account social on Railway /api/treaty/*.
+ * Treaty: friends, DMs, groups, + fleet server chat channels — Grudge ID account social on Railway /api/treaty/*.
  * Sign-in defaults to Grudge ID (id.grudge-studio.com) so Puter sites load the REAL
  * Warlords roster — never a synthetic empty puter:* account as the primary login path.
  * SSO handoff: prefer sso_token (full JWT) over grudge_token bridge so puter.site
@@ -15,10 +15,24 @@
   'use strict';
 
   const CFG = (typeof window !== 'undefined' && window.GRUDGE_CONFIG) || {};
+  /** Prefer same-origin /api on fleet frontends (avoids CORS); absolute Railway as fallback. */
+  function resolveGameDataBase() {
+    if (CFG.GAME_DATA) return String(CFG.GAME_DATA).replace(/\/$/, '');
+    try {
+      var h = typeof location !== 'undefined' ? location.hostname || '' : '';
+      if (
+        /(^|\.)grudge-studio\.com$|(^|\.)grudgewarlords\.com$|\.vercel\.app$|\.puter\.site$/i.test(h)
+      ) {
+        return ''; // same-origin rewrites → Railway
+      }
+    } catch (_) {}
+    return 'https://grudge-api-production-0d46.up.railway.app';
+  }
+
   const FLEET = {
     auth: CFG.AUTH_GATEWAY || 'https://id.grudge-studio.com',
     identityApi: CFG.IDENTITY_API || 'https://grudge-studio.com',
-    gameData: CFG.GAME_DATA || 'https://grudge-api-production-0d46.up.railway.app',
+    gameData: resolveGameDataBase(),
     objectStore: CFG.OBJECTSTORE_URL || 'https://objectstore.grudge-studio.com/api/v1',
     assets: CFG.ASSETS || 'https://assets.grudge-studio.com',
     wcs: CFG.WCS_URL || 'https://wcs.grudge-studio.com',
@@ -26,6 +40,8 @@
     vfxStudio: CFG.VFX_STUDIO_URL || 'https://vfx-studio-sigma.vercel.app',
     /** Full Treaty app (Warlords / client shell) */
     treaty: CFG.TREATY_URL || 'https://grudgewarlords.com/treaty',
+    /** Embeddable Treaty UI for any studio page / game */
+    treatyEmbed: CFG.TREATY_EMBED_URL || 'https://grudgewarlords.com/treaty-embed.html',
     gamesLibrary: (CFG.OBJECTSTORE_URL || 'https://objectstore.grudge-studio.com/api/v1') + '/games-library.json',
   };
 
@@ -1142,12 +1158,14 @@
     },
 
     /**
-     * Treaty — Grudge ID account social (friends, DMs, groups).
+     * Treaty — Grudge ID account social (friends, DMs, groups, server chat).
      * Account-scoped; never character-scoped. Railway Postgres SSOT.
+     * Uses same-origin /api when hosted on fleet frontends.
      */
     async treatyFetch(path, init) {
       if (!readToken()) throw new Error('Sign in required for Treaty');
-      const res = await fleetFetch(FLEET.gameData + '/api/treaty' + path, {
+      const base = (FLEET.gameData || '') + '/api/treaty';
+      const res = await fleetFetch(base + path, {
         ...init,
         headers: { ...authHeaders(), ...(init && init.headers) || {} },
       });
@@ -1170,6 +1188,25 @@
 
     getTreatyUnread() {
       return fleet.treatyFetch('/unread');
+    },
+
+    /** Fleet + per-game server channels (public account chat). */
+    getTreatyServers(gameId) {
+      var q = gameId ? ('?game=' + encodeURIComponent(gameId)) : '';
+      return fleet.treatyFetch('/servers' + q);
+    },
+
+    getTreatyServerMessages(slug, limit) {
+      var q = limit ? ('?limit=' + encodeURIComponent(String(limit))) : '';
+      return fleet.treatyFetch('/servers/' + encodeURIComponent(slug) + '/messages' + q);
+    },
+
+    sendTreatyServerMessage(slug, content) {
+      return fleet.treatyFetch('/servers/' + encodeURIComponent(slug) + '/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: String(content || '') }),
+      });
     },
 
     sendTreatyFriendRequest(query) {
@@ -1213,6 +1250,30 @@
       const url = fleet.buildSSOUrl(FLEET.treaty, opts);
       if (typeof window !== 'undefined') {
         window.open(url, opts.target || '_blank', 'noopener');
+      }
+      return url;
+    },
+
+    /**
+     * Open embeddable Treaty panel (server chat + deep link to full app).
+     * opts.game — warlords | genesis | grudge6 | forge | fleet
+     */
+    openTreatyEmbed(opts) {
+      opts = opts || {};
+      var game = opts.game || 'fleet';
+      var base = FLEET.treatyEmbed + (FLEET.treatyEmbed.indexOf('?') >= 0 ? '&' : '?') + 'game=' + encodeURIComponent(game);
+      var url = fleet.buildSSOUrl ? fleet.buildSSOUrl(base, opts) : base;
+      if (typeof window !== 'undefined') {
+        if (opts.iframe && opts.iframe.appendChild) {
+          var frame = document.createElement('iframe');
+          frame.src = url;
+          frame.title = 'Grudge Treaty';
+          frame.style.cssText = opts.iframeStyle || 'width:100%;height:100%;border:0;border-radius:12px;';
+          opts.iframe.innerHTML = '';
+          opts.iframe.appendChild(frame);
+          return frame;
+        }
+        window.open(url, opts.target || 'grudge-treaty', 'noopener,width=420,height=640');
       }
       return url;
     },

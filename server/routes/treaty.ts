@@ -21,6 +21,10 @@ import {
   leaveTreatyGroup,
   getGroupMessages,
   sendGroupMessage,
+  listTreatyServerChannels,
+  listServerChannelMessages,
+  sendServerChannelMessage,
+  ensureTreatyServerChannels,
 } from "../services/treatyChat";
 
 const JWT_SECRET = process.env.SESSION_SECRET || process.env.JWT_SECRET || "grudge-dev-secret";
@@ -269,9 +273,68 @@ export function registerTreatyRoutes(app: Express): void {
     }
   });
 
+  // ── Server / fleet chat (every game + studio page) ──────────────────────
+
+  app.get("/api/treaty/servers", requireAuth, async (req, res) => {
+    try {
+      await requireAccount(req, res);
+      const gameId = typeof req.query.game === "string" ? req.query.game : null;
+      const channels = await listTreatyServerChannels(gameId);
+      res.json({ channels });
+    } catch (e: any) {
+      console.error("[Treaty/Servers]", e);
+      res.status(500).json({ error: e.message || "Failed to list server channels" });
+    }
+  });
+
+  /** Alias used by embeds */
+  app.get("/api/treaty/channels", requireAuth, async (req, res) => {
+    try {
+      await requireAccount(req, res);
+      const gameId = typeof req.query.game === "string" ? req.query.game : null;
+      const channels = await listTreatyServerChannels(gameId);
+      res.json({ channels });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message || "Failed to list channels" });
+    }
+  });
+
+  app.get("/api/treaty/servers/:slug/messages", requireAuth, async (req, res) => {
+    try {
+      const account = await requireAccount(req, res);
+      if (!account) return;
+      const limit = req.query.limit ? Number(req.query.limit) : 80;
+      const data = await listServerChannelMessages(account.id, req.params.slug, limit);
+      res.json(data);
+    } catch (e: any) {
+      res.status(400).json({ error: e.message || "Failed to load channel" });
+    }
+  });
+
+  app.post("/api/treaty/servers/:slug/messages", requireAuth, async (req, res) => {
+    try {
+      const account = await requireAccount(req, res);
+      if (!account) return;
+      const { content } = req.body as { content?: string };
+      if (!content?.trim()) {
+        res.status(400).json({ error: "content required" });
+        return;
+      }
+      const result = await sendServerChannelMessage(account.id, req.params.slug, content);
+      res.json(result);
+    } catch (e: any) {
+      res.status(400).json({ error: e.message || "Failed to send" });
+    }
+  });
+
+  // Bootstrap seed channels once at register (non-blocking)
+  void ensureTreatyServerChannels().catch((e) =>
+    console.warn("[Treaty] ensure server channels:", (e as Error)?.message || e),
+  );
+
   console.log(
-    "[Treaty] Routes: GET /api/treaty/{social,unread,dm/threads,groups}; " +
+    "[Treaty] Routes: GET /api/treaty/{social,unread,dm/threads,groups,servers}; " +
       "POST /friends/{request,:id/respond}, /dm/threads{,:id/messages}, " +
-      "/groups{,:id/invite,:id/leave,:id/messages}",
+      "/groups{,:id/invite,:id/leave,:id/messages}, /servers/:slug/messages",
   );
 }

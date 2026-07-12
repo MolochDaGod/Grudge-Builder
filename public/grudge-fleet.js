@@ -2,25 +2,46 @@
  * Grudge Fleet Bridge — vanilla JS auth + character sync for Puter/external apps.
  * Mirrors GrudgeAccountSDK + wireGrudgeFleet from grudge-builder.
  *
- * @version 2.5.1
+ * @version 2.7.0
  * Character progress SSOT + account inventory/resources on Railway only (same DB as Warlords).
+ * Treaty: friends, DMs, groups, + fleet server chat channels — Grudge ID account social on Railway /api/treaty/*.
  * Sign-in defaults to Grudge ID (id.grudge-studio.com) so Puter sites load the REAL
  * Warlords roster — never a synthetic empty puter:* account as the primary login path.
+ * SSO handoff: prefer sso_token (full JWT) over grudge_token bridge so puter.site
+ * never loses the session when launch-bridge fails.
  * @see docs/CHARACTER_PROGRESS_SSOT.md
  */
 (function (global) {
   'use strict';
 
   const CFG = (typeof window !== 'undefined' && window.GRUDGE_CONFIG) || {};
+  /** Prefer same-origin /api on fleet frontends (avoids CORS); absolute Railway as fallback. */
+  function resolveGameDataBase() {
+    if (CFG.GAME_DATA) return String(CFG.GAME_DATA).replace(/\/$/, '');
+    try {
+      var h = typeof location !== 'undefined' ? location.hostname || '' : '';
+      if (
+        /(^|\.)grudge-studio\.com$|(^|\.)grudgewarlords\.com$|\.vercel\.app$|\.puter\.site$/i.test(h)
+      ) {
+        return ''; // same-origin rewrites → Railway
+      }
+    } catch (_) {}
+    return 'https://grudge-api-production-0d46.up.railway.app';
+  }
+
   const FLEET = {
     auth: CFG.AUTH_GATEWAY || 'https://id.grudge-studio.com',
     identityApi: CFG.IDENTITY_API || 'https://grudge-studio.com',
-    gameData: CFG.GAME_DATA || 'https://grudge-api-production-0d46.up.railway.app',
+    gameData: resolveGameDataBase(),
     objectStore: CFG.OBJECTSTORE_URL || 'https://objectstore.grudge-studio.com/api/v1',
     assets: CFG.ASSETS || 'https://assets.grudge-studio.com',
     wcs: CFG.WCS_URL || 'https://wcs.grudge-studio.com',
     crafting: CFG.CRAFTING_URL || 'https://grudge-crafting.puter.site',
     vfxStudio: CFG.VFX_STUDIO_URL || 'https://vfx-studio-sigma.vercel.app',
+    /** Full Treaty app (Warlords / client shell) */
+    treaty: CFG.TREATY_URL || 'https://grudgewarlords.com/treaty',
+    /** Embeddable Treaty UI for any studio page / game */
+    treatyEmbed: CFG.TREATY_EMBED_URL || 'https://grudgewarlords.com/treaty-embed.html',
     gamesLibrary: (CFG.OBJECTSTORE_URL || 'https://objectstore.grudge-studio.com/api/v1') + '/games-library.json',
   };
 
@@ -236,51 +257,70 @@
     return false;
   }
 
-  function pickupUrlTokens(skipLaunchToken) {
-    if (typeof window === 'undefined') return null;
+  /**
+   * Read dual handoff params from query + hash.
+   * Returns { sso, launch, grudgeId, username, characterId } without mutating URL.
+   */
+  function readUrlAuthTokens() {
+    if (typeof window === 'undefined') {
+      return { sso: null, launch: null, grudgeId: '', username: '', characterId: null };
+    }
     const params = new URLSearchParams(window.location.search);
-    // Also accept hash: #token=...&characterId=...
     let hashParams = null;
     if (window.location.hash && window.location.hash.length > 1) {
       hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
     }
-
     function pget(k) {
       return params.get(k) || (hashParams && hashParams.get(k)) || null;
     }
+    // Prefer full session JWT (sso_token/token) — no bridge needed on puter.site
+    const sso = pget('sso_token') || pget('token') || pget('jwt') || pget('access_token');
+    const launch = pget('grudge_token') || pget('launch_token');
+    return {
+      sso: sso || null,
+      launch: launch || null,
+      grudgeId: pget('grudge_id') || pget('grudgeId') || pget('user_id') || '',
+      username: pget('grudge_username') || pget('username') || '',
+      characterId: pget('characterId') || pget('char_id') || pget('charId') || pget('activeCharacter'),
+    };
+  }
 
-    const launchToken = !skipLaunchToken && (pget('grudge_token') || pget('launch_token'));
-    if (launchToken) return launchToken;
+  function scrubAuthFromUrl() {
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    [
+      'token', 'sso_token', 'jwt', 'access_token', 'grudge_token', 'launch_token',
+      'grudge_id', 'grudgeId', 'user_id', 'grudge_username', 'username',
+    ].forEach((k) => params.delete(k));
+    const clean = params.toString();
+    const hashSafe =
+      window.location.hash && !/token|jwt|grudge_token|sso_token/i.test(window.location.hash)
+        ? window.location.hash
+        : '';
+    window.history.replaceState(
+      null,
+      '',
+      window.location.pathname + (clean ? '?' + clean : '') + hashSafe,
+    );
+  }
 
-    const sso = pget('token') || pget('sso_token') || pget('jwt') || pget('access_token');
-    if (sso) {
-      saveToken(sso);
-      const gid = pget('grudge_id') || pget('grudgeId') || pget('user_id') || '';
-      const un = pget('grudge_username') || pget('username') || '';
-      if (gid) {
-        lsSet(GRUDGE_ID_KEY, gid);
-        lsSet(ACCOUNT_ID_KEY, gid);
-        lsSet(SDK_USER_ID_KEY, gid);
-      }
-      if (un) lsSet(USERNAME_KEY, un);
-      [
-        'token', 'sso_token', 'jwt', 'access_token', 'grudge_token', 'launch_token',
-        'grudge_id', 'grudgeId', 'user_id', 'grudge_username', 'username',
-      ].forEach((k) => params.delete(k));
-      const clean = params.toString();
-      window.history.replaceState(
-        null,
-        '',
-        window.location.pathname + (clean ? '?' + clean : '') +
-          // strip token from hash too
-          (window.location.hash && !/token|jwt|grudge_token/i.test(window.location.hash)
-            ? window.location.hash
-            : '')
-      );
+  /** @deprecated use readUrlAuthTokens + apply in init — kept for callers */
+  function pickupUrlTokens(skipLaunchToken) {
+    const t = readUrlAuthTokens();
+    if (t.grudgeId) {
+      lsSet(GRUDGE_ID_KEY, t.grudgeId);
+      lsSet(ACCOUNT_ID_KEY, t.grudgeId);
+      lsSet(SDK_USER_ID_KEY, t.grudgeId);
     }
-
-    const charId = pget('characterId') || pget('char_id') || pget('charId') || pget('activeCharacter');
-    if (charId) saveActiveId(charId);
+    if (t.username) lsSet(USERNAME_KEY, t.username);
+    if (t.characterId) saveActiveId(t.characterId);
+    if (t.sso) {
+      saveToken(t.sso);
+      scrubAuthFromUrl();
+      return null;
+    }
+    if (!skipLaunchToken && t.launch) return t.launch;
+    return null;
   }
 
   /** Restore Puter session or quietly provision a guest (no popup). */
@@ -434,16 +474,36 @@
       opts = opts || {};
 
       if (!opts.skipAuthPickup && typeof window !== 'undefined') {
-        const launch = pickupUrlTokens(false);
-        if (launch) {
-          const params = new URLSearchParams(window.location.search);
-          params.delete('grudge_token');
-          const clean = params.toString();
-          window.history.replaceState(null, '', window.location.pathname + (clean ? '?' + clean : '') + window.location.hash);
-          await bridgeGrudgeLaunchToken(launch);
-        } else {
-          pickupUrlTokens(true);
+        const handoff = readUrlAuthTokens();
+        if (handoff.grudgeId) {
+          lsSet(GRUDGE_ID_KEY, handoff.grudgeId);
+          lsSet(ACCOUNT_ID_KEY, handoff.grudgeId);
+          lsSet(SDK_USER_ID_KEY, handoff.grudgeId);
         }
+        if (handoff.username) lsSet(USERNAME_KEY, handoff.username);
+        if (handoff.characterId) saveActiveId(handoff.characterId);
+
+        // 1) Full session JWT first (no network) — puter.site reliable path
+        if (handoff.sso) {
+          saveToken(handoff.sso);
+        }
+
+        // 2) Launch token bridge only if we still need a session (or to refresh)
+        if (handoff.launch && !readToken()) {
+          const bridged = await bridgeGrudgeLaunchToken(handoff.launch);
+          if (!bridged) {
+            console.warn('[GrudgeFleet] grudge-bridge failed; no sso_token either');
+          }
+        } else if (handoff.launch && handoff.sso) {
+          // Optional: upgrade via bridge in background; keep sso if bridge fails
+          try {
+            await bridgeGrudgeLaunchToken(handoff.launch);
+          } catch {
+            /* keep sso */
+          }
+        }
+
+        if (handoff.sso || handoff.launch) scrubAuthFromUrl();
       }
 
       _token = readToken();
@@ -453,6 +513,7 @@
         fleet.initEmbedded();
       } else if (readToken()) {
         await syncFromBackend();
+        if (readToken()) dispatch('grudge:auth:ready');
       }
 
       // Multi-tab / same-origin sync
@@ -1094,6 +1155,127 @@
         }
       }
       return professions;
+    },
+
+    /**
+     * Treaty — Grudge ID account social (friends, DMs, groups, server chat).
+     * Account-scoped; never character-scoped. Railway Postgres SSOT.
+     * Uses same-origin /api when hosted on fleet frontends.
+     */
+    async treatyFetch(path, init) {
+      if (!readToken()) throw new Error('Sign in required for Treaty');
+      const base = (FLEET.gameData || '') + '/api/treaty';
+      const res = await fleetFetch(base + path, {
+        ...init,
+        headers: { ...authHeaders(), ...(init && init.headers) || {} },
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Treaty request failed (' + res.status + ')');
+      return data;
+    },
+
+    getTreatySocial() {
+      return fleet.treatyFetch('/social');
+    },
+
+    getTreatyDmThreads() {
+      return fleet.treatyFetch('/dm/threads');
+    },
+
+    getTreatyGroups() {
+      return fleet.treatyFetch('/groups');
+    },
+
+    getTreatyUnread() {
+      return fleet.treatyFetch('/unread');
+    },
+
+    /** Fleet + per-game server channels (public account chat). */
+    getTreatyServers(gameId) {
+      var q = gameId ? ('?game=' + encodeURIComponent(gameId)) : '';
+      return fleet.treatyFetch('/servers' + q);
+    },
+
+    getTreatyServerMessages(slug, limit) {
+      var q = limit ? ('?limit=' + encodeURIComponent(String(limit))) : '';
+      return fleet.treatyFetch('/servers/' + encodeURIComponent(slug) + '/messages' + q);
+    },
+
+    sendTreatyServerMessage(slug, content) {
+      return fleet.treatyFetch('/servers/' + encodeURIComponent(slug) + '/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: String(content || '') }),
+      });
+    },
+
+    sendTreatyFriendRequest(query) {
+      return fleet.treatyFetch('/friends/request', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query: String(query || '').trim() }),
+      });
+    },
+
+    sendTreatyDm(threadId, content) {
+      return fleet.treatyFetch('/dm/threads/' + encodeURIComponent(threadId) + '/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: String(content || '') }),
+      });
+    },
+
+    sendTreatyGroupMessage(groupId, content) {
+      return fleet.treatyFetch('/groups/' + encodeURIComponent(groupId) + '/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: String(content || '') }),
+      });
+    },
+
+    createTreatyGroup(name, members) {
+      return fleet.treatyFetch('/groups', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: String(name || '').trim(),
+          members: Array.isArray(members) ? members : [],
+        }),
+      });
+    },
+
+    /** Open full Treaty app with SSO handoff when possible. */
+    openTreaty(opts) {
+      opts = opts || {};
+      const url = fleet.buildSSOUrl(FLEET.treaty, opts);
+      if (typeof window !== 'undefined') {
+        window.open(url, opts.target || '_blank', 'noopener');
+      }
+      return url;
+    },
+
+    /**
+     * Open embeddable Treaty panel (server chat + deep link to full app).
+     * opts.game — warlords | genesis | grudge6 | forge | fleet
+     */
+    openTreatyEmbed(opts) {
+      opts = opts || {};
+      var game = opts.game || 'fleet';
+      var base = FLEET.treatyEmbed + (FLEET.treatyEmbed.indexOf('?') >= 0 ? '&' : '?') + 'game=' + encodeURIComponent(game);
+      var url = fleet.buildSSOUrl ? fleet.buildSSOUrl(base, opts) : base;
+      if (typeof window !== 'undefined') {
+        if (opts.iframe && opts.iframe.appendChild) {
+          var frame = document.createElement('iframe');
+          frame.src = url;
+          frame.title = 'Grudge Treaty';
+          frame.style.cssText = opts.iframeStyle || 'width:100%;height:100%;border:0;border-radius:12px;';
+          opts.iframe.innerHTML = '';
+          opts.iframe.appendChild(frame);
+          return frame;
+        }
+        window.open(url, opts.target || 'grudge-treaty', 'noopener,width=420,height=640');
+      }
+      return url;
     },
 
     logout() {

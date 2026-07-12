@@ -239,5 +239,55 @@ await client.query(`
     ON treaty_group_members (group_id, account_id)
 `).catch(() => {});
 
+console.log("[ensure-auth-schema] Bootstrapping treaty server chat (fleet channels)...");
+
+await client.query(`
+  CREATE TABLE IF NOT EXISTS treaty_server_channels (
+    id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
+    slug TEXT NOT NULL UNIQUE,
+    name TEXT NOT NULL,
+    description TEXT,
+    game_id TEXT NOT NULL DEFAULT 'fleet',
+    is_public INT NOT NULL DEFAULT 1,
+    sort_order INT NOT NULL DEFAULT 0,
+    created_at BIGINT NOT NULL DEFAULT (extract(epoch from now()) * 1000)::bigint
+  );
+`);
+
+await client.query(`
+  CREATE TABLE IF NOT EXISTS treaty_server_messages (
+    id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
+    channel_id VARCHAR NOT NULL,
+    sender_account_id VARCHAR NOT NULL,
+    content TEXT NOT NULL,
+    created_at BIGINT NOT NULL DEFAULT (extract(epoch from now()) * 1000)::bigint
+  );
+`);
+
+await client.query(`
+  CREATE INDEX IF NOT EXISTS treaty_server_messages_channel_created_idx
+    ON treaty_server_messages (channel_id, created_at DESC)
+`).catch(() => {});
+
+// Seed default fleet + game channels (idempotent)
+const seedChannels = [
+  ["fleet-general", "Fleet General", "All Grudge Studio players", "fleet", 0],
+  ["fleet-help", "Fleet Help", "Questions and onboarding", "fleet", 1],
+  ["warlords", "Grudge Warlords", "Warlords chat", "warlords", 10],
+  ["genesis", "Warlord Genesis", "MOBA / RTS siege chat", "genesis", 11],
+  ["grudge6", "Grudge6 Lab", "Character lab and HUD", "grudge6", 12],
+  ["forge", "Studio Forge", "Map and editor chat", "forge", 13],
+  ["crafting", "Crafting", "WCS / professions", "crafting", 14],
+  ["lfg", "Looking for Group", "Find party / crew", "fleet", 2],
+];
+for (const [slug, name, description, gameId, sortOrder] of seedChannels) {
+  await client.query(
+    `INSERT INTO treaty_server_channels (slug, name, description, game_id, sort_order)
+     VALUES ($1, $2, $3, $4, $5)
+     ON CONFLICT (slug) DO NOTHING`,
+    [slug, name, description, gameId, sortOrder],
+  ).catch(() => {});
+}
+
 await client.end();
 console.log("[ensure-auth-schema] Done");
