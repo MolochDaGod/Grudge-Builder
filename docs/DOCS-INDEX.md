@@ -11,7 +11,7 @@ Organized entry point for APIs, UUID systems, and fleet integration.
 | Topic | Doc |
 |-------|-----|
 | **Live game** | https://grudgewarlords.com |
-| **Honest fleet / domain status** | [FLEET_STATUS.md](./FLEET_STATUS.md) · root [README.md](../README.md) |
+| **Honest fleet / domain status** | [FLEET_STATUS.md](./FLEET_STATUS.md) · [ORGANIZER_PRODUCTION_AUDIT.md](./ORGANIZER_PRODUCTION_AUDIT.md) · root [README.md](../README.md) |
 | **Deploy ownership** | [DEPLOY_OWNERSHIP.md](./DEPLOY_OWNERSHIP.md) |
 | **Grudge ID SSO / modular login / return-to-origin** | [GRUDGE_AUTH_CONNECT.md](./GRUDGE_AUTH_CONNECT.md) · [ID_SSO_PRODUCTION.md](./ID_SSO_PRODUCTION.md) |
 | **API routes (auth, characters, island, crafting)** | [API.md](./API.md) |
