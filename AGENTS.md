@@ -1,16 +1,21 @@
 # Grudge Builder — Web Engine 1
 
 ## Project Identity
-This is **Grudge Warlords** (grudgewarlords.com), the primary game client for Grudge Studio.
-Created by **Racalvin The Pirate King**. 2D/Canvas game client with React + Vite + TypeScript.
+This is **Grudge Warlords** ([grudgewarlords.com](https://grudgewarlords.com)), the primary **web game client** for Grudge Studio (React + Vite + TypeScript, Three.js + Phaser).
+Created by **Racalvin The Pirate King**.
+
+**Read first (honest fleet + architecture):** root [README.md](./README.md) · [docs/FLEET_STATUS.md](./docs/FLEET_STATUS.md) · [docs/DEPLOY_OWNERSHIP.md](./docs/DEPLOY_OWNERSHIP.md).
+
+This repo is **not** Warlord Genesis (separate Vercel app), not ObjectStore, and not Character Studio — those are fleet siblings.
 
 ## Architecture — The One Truth
 
-### Single Source of Truth
-- **Game data** (races, classes, weapons, armor, attributes): ObjectStore API at `objectstore.grudge-studio.com/api/v1/*.json`
-- **Frontend data layer**: `gameData.ts` fetches from ObjectStore on init, falls back to hardcoded. NEVER add new hardcoded data — update ObjectStore instead.
-- **3D models**: ObjectStore `/v1/models` endpoint (100+ glb/fbx/obj models in R2)
-- **Assets** (sprites, icons, audio, backgrounds): ObjectStore via `assetUrl()` from `assetConfig.ts`
+### Single Source of Truth (do not conflate layers)
+- **Player data** (users, characters, islands, inventory, sessions): **Railway Postgres** via grudge-api (`/api/characters`, etc.) — same-origin `/api/*` on Vercel.
+- **Game catalog** (races, classes, weapons, armor, attributes, recipes): ObjectStore API at `objectstore.grudge-studio.com/api/v1/*.json`
+- **Frontend data layer**: `gameData.ts` / object-store hooks **prefer** ObjectStore; **hardcoded fallbacks still exist** for resilience — do not grow them; extend ObjectStore instead.
+- **3D models**: R2 via `assets.grudge-studio.com` + ObjectStore model registry (`/api/v1/…`, grudge6 paths)
+- **Assets** (sprites, icons, audio, backgrounds): CDN via `assetUrl()` from `assetConfig.ts`
 
 ### API Routing (Vercel → Grudge Backend)
 All API calls go through Vercel rewrites in `vercel.json`:
@@ -70,10 +75,13 @@ Key ObjectStore JSON endpoints:
 - `/api/v1/master-recipes.json` — crafting recipes with material links
 
 ### Single API Client Path
-`grudgeBackend.ts` (auth/token) → `api.ts` (game API calls via /api/game/) → `characterManager.ts` (character CRUD)
-Token stored in localStorage as `grudge_auth_token`. JWT_SECRET shared across Cloudflare Workers for cross-compatibility.
+`grudgeBackend.ts` (auth/token) → `api.ts` (game API calls via same-origin `/api/*`) → `characterManager.ts` (character CRUD)
+Token stored in localStorage as `grudge_auth_token` (and fleet aliases). Prefer **session** `sso_token` after id handoff over short **launch** `grudge_token`.
+JWT verification must match Railway secrets; id-gateway only proxies — it does not replace Postgres.
 
 **Auth → Account Sync:** On login, `handleAuthResponse()` sets `grudge_account_id` in localStorage so `CharacterManager` scopes active character selection to the correct account (not `guest`).
+
+**Satellite guests:** On `*.vercel.app`, silent cookie claim against the id hub **401s** without a prior login. Expected — use redirect/popup SSO, not hub claim.
 
 ### Canonical Character Creation (GCS)
 **Account/save truth:** [character.grudge-studio.com](https://character.grudge-studio.com) (GCS) — HYDRA VRM + grudge6 forge. Saves to Railway `/api/characters` with per-era rosters (`warlords`, `nexus`, `armada`).
