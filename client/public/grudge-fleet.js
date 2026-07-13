@@ -2,7 +2,7 @@
  * Grudge Fleet Bridge — vanilla JS auth + character sync for Puter/external apps.
  * Mirrors GrudgeAccountSDK + wireGrudgeFleet from grudge-builder.
  *
- * @version 2.8.0
+ * @version 2.8.1
  * Character progress SSOT + account inventory/resources on Railway only (same DB as Warlords).
  * ONE TRUTH: grudge_id account · Warlords character UUID · Railway Postgres only.
  * Hard-fail when JWT grudge_id ≠ stored account; roster is era=warlords only.
@@ -328,11 +328,19 @@
 
   /** On *.puter.site, puter.net.fetch bypasses CORS for Grudge API calls. */
   async function fleetFetch(url, init) {
+    // Prefer native fetch first for Grudge APIs (Bearer + CORS). puter.net.fetch can
+    // silently fail or strip headers on some Puter builds — Open uses native fetch.
+    try {
+      const r = await fetch(url, init);
+      if (r) return r;
+    } catch {
+      /* try puter net */
+    }
     if (typeof puter !== 'undefined' && puter.net && puter.net.fetch) {
       try {
         return await puter.net.fetch(url, init);
       } catch {
-        /* fall through to browser fetch */
+        /* fall through */
       }
     }
     return fetch(url, init);
@@ -482,10 +490,17 @@
   async function fetchCharacterRoster() {
     const headers = authHeaders();
     // SSOT: era=warlords only for craft/play shells. Bare list is fallback if era query 404s.
+    // On Puter, also try open.grudge-studio.com (Vercel rewrite → Railway) — same path Open uses successfully.
+    const openProxy =
+      typeof location !== 'undefined' && /\.puter\.(site|work)$/i.test(location.hostname)
+        ? 'https://open.grudge-studio.com/api/characters?era=' + encodeURIComponent(WARLORDS_ERA)
+        : null;
     const urls = [
       FLEET.gameData + '/api/characters?era=' + encodeURIComponent(WARLORDS_ERA),
       FLEET.gameData + '/api/characters?gameEra=' + encodeURIComponent(WARLORDS_ERA),
-    ];
+      openProxy,
+      FLEET.gameData + '/api/characters?era=' + encodeURIComponent(WARLORDS_ERA),
+    ].filter(Boolean);
     let best = [];
     let warlordsOk = false;
     for (const url of urls) {
@@ -914,7 +929,7 @@
     },
     getActiveCharacter: getActiveCharacterLocal,
     warlordsEra: WARLORDS_ERA,
-    version: '2.8.0',
+    version: '2.8.1',
 
     /** Select first character matching race id/name (for VFX Character Lab sync) */
     selectCharacterByRace(race) {
