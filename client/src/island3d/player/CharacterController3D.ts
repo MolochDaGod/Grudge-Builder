@@ -836,7 +836,7 @@ export class CharacterController3D {
     this.direction.set(0, 0, 0);
     let moving = false;
 
-    const freeMove = this.freeMoveLocomotion || this.mode === 'build';
+    // freeMove declared above (mouse look + locomotion share one flag)
     if (freeMove) {
       if (this.keys.has('w')) { this.direction.z -= 1; moving = true; }
       if (this.keys.has('s')) { this.direction.z += 1; moving = true; }
