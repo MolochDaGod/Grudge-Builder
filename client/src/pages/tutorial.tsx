@@ -84,23 +84,38 @@ export default function TutorialPage() {
           localStorage.getItem('gruda_active_character_guest');
 
         if (!activeId) {
+          // Prefer fleet GCS with returnTo=/tutorial (unarmed) — not stuck on /viewer
           setLocation('/create-character');
           return;
         }
 
         const char = await characterAPI.get(activeId);
         characterRef.current = char;
-        const cfg = buildGrudge6LoadConfig(char);
+        // Tutorial opening: always unarmed race presentation at start
+        const unarmedChar = {
+          ...char,
+          equipment: {},
+          model3d: {
+            ...(typeof char.model3d === 'object' && char.model3d ? char.model3d : {}),
+            weaponSlots: {},
+          },
+        } as Character;
+        const cfg = buildGrudge6LoadConfig(unarmedChar);
+        // Force unarmed for tutorial island open
+        cfg.hasWeapon = false;
+        cfg.weaponSlots = {};
+        cfg.equippedWeaponType = 'unarmed';
         loadConfigRef.current = cfg;
 
         setCharacterName(char.name);
         setHeroRace(char.raceId);
-        setHeroClass(char.classId);
+        setHeroClass(char.classId || 'warrior');
         setLevel(char.level ?? 1);
-        setHasWeapon(cfg.hasWeapon);
+        setHasWeapon(false);
+        setPlayMode('harvest');
         setProfessions(getActiveGatheringProfessions(char.professionLevels ?? {}));
         setClassHotbar(buildClassHotbar(char));
-        setWeaponHotbar(buildWeaponHotbar(char, cfg.hasWeapon));
+        setWeaponHotbar(buildWeaponHotbar(char, false));
       } catch {
         setLocation('/create-character');
       }

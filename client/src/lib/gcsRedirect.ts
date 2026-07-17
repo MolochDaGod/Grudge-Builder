@@ -45,8 +45,11 @@ export function isAllowedReturnUrl(url: string): boolean {
   }
 }
 
-/** Default return URL for Warlords flows launched from this SPA. */
-export function defaultWarlordsReturnTo(path = "/home"): string {
+/**
+ * Default return after GCS save — shipwreck tutorial with unarmed race entry.
+ * Never return into character.grudge-studio.com/viewer.
+ */
+export function defaultWarlordsReturnTo(path = "/tutorial"): string {
   if (typeof window === "undefined") return `https://grudgewarlords.com${path}`;
   return `${window.location.origin}${path}`;
 }
@@ -68,10 +71,12 @@ export function buildGcsUrl(options: BuildGcsUrlOptions = {}): string {
     params.set("mode", "create");
   }
 
-  const returnTo = options.returnTo ?? defaultWarlordsReturnTo("/test-play");
+  const returnTo = options.returnTo ?? defaultWarlordsReturnTo("/tutorial");
   if (isAllowedReturnUrl(returnTo)) {
     params.set("returnTo", returnTo);
   }
+  // Hint Character Studio: unarmed race → tutorial (not /viewer lab)
+  params.set("entry", "tutorial_unarmed");
 
   const token = getToken() || localStorage.getItem("grudge_auth_token");
   if (token) params.set("grudge_token", token);

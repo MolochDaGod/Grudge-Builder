@@ -1,14 +1,14 @@
 import CreateCharacterPage from "@/pages/create-character";
 import GcsRedirect from "@/pages/gcs-redirect";
 
-/** /create-character → GCS create flow. ?legacy=1 keeps class-selector React port. */
+/** /create-character → GCS create → unarmed race → Warlords /tutorial. Not /viewer. */
 export default function CreateCharacterRedirect() {
   return (
     <GcsRedirect
       legacyComponent={CreateCharacterPage}
       era="warlords"
       mode="create"
-      returnPath="/test-play"
+      returnPath="/tutorial"
     />
   );
 }
