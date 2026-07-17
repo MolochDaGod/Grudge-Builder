@@ -65,8 +65,8 @@ export type WeaponType =
   // Legacy / special
   | "sword-shield" | "longbow" | "magic" | "unarmed";
 
-/** The 4 animation categories on R2 CDN */
-export type AnimCategory = "sword-shield" | "greatsword" | "longbow" | "magic";
+/** Animation categories on R2 CDN (+ gun for toon soldiers / shooters) */
+export type AnimCategory = "sword-shield" | "greatsword" | "longbow" | "magic" | "gun";
 
 /** Map every WeaponType to its animation category (CDN folder) */
 export const WEAPON_ANIM_CATEGORY: Record<WeaponType, AnimCategory> = {
@@ -86,7 +86,8 @@ export const WEAPON_ANIM_CATEGORY: Record<WeaponType, AnimCategory> = {
   "bow":           "longbow",
   "longbow":       "longbow",
   "crossbow":      "longbow",
-  "gun":           "longbow",
+  // Guns → rifle/pistol packs (toon soldiers, shooters, Nexus Era)
+  "gun":           "gun",
   // Caster → magic animations
   "fire-staff":    "magic",
   "frost-staff":   "magic",
@@ -130,7 +131,7 @@ export interface AnimationDef {
  * - "static"     = No skeleton (static mesh, cannot be animated).
  *                  Used by: ogre.glb, elf-knight.glb
  */
-export type SkeletonType = "mixamo-24" | "mixamo-62" | "kaykit-41" | "custom" | "static";
+export type SkeletonType = "mixamo-24" | "mixamo-62" | "kaykit-41" | "toon-bone" | "custom" | "static";
 
 export interface ModelUnit {
   id: string;
@@ -218,6 +219,16 @@ export const WEAPON_ANIMATION_SETS: Record<AnimCategory, Partial<Record<AnimStat
     blockIdle: { file: animPath("magic", "Standing Block Idle.glb"), loop: true },
     crouch:    { file: animPath("magic", "Crouch Idle.glb"), loop: true },
   },
+  // Gun / rifle / pistol — preferred for toon soldiers via ToonSoldierController
+  // (native clips). These Mixamo paths are retarget fallbacks for mixamo-24 only.
+  gun: {
+    idle:      { file: animPath("rifle", "idle.glb"), loop: true },
+    walk:      { file: animPath("rifle", "walk forward.glb"), loop: true },
+    run:       { file: animPath("rifle", "run forward.glb"), loop: true },
+    attack1:   { file: animPath("rifle", "firing.glb"), loop: false },
+    attack2:   { file: animPath("pistol", "gunplay.glb"), loop: false },
+    special:   { file: animPath("pistol", "pistol run.glb"), loop: true },
+  },
 };
 
 // ── Character model registry ────────────────────────────────────────────────
@@ -226,6 +237,8 @@ export const WEAPON_ANIMATION_SETS: Record<AnimCategory, Partial<Record<AnimStat
 const RACE_BASE = `${CDN}/models/characters/races`;
 /** Detailed character models on R2 — /models/characters/ */
 const CHAR_BASE = `${CDN}/models/characters`;
+/** Toon soldiers (chicken_gun) — Nexus / Hero RTS / shooters */
+const TOON_BASE = `${CDN}/models/toon-soldiers`;
 
 export const MODEL_MANIFEST: Record<string, ModelUnit> = {
   // ── THE 6 GRUDGE RACE CHARACTERS (all Mixamo-24, share all weapon animations) ──
@@ -238,6 +251,15 @@ export const MODEL_MANIFEST: Record<string, ModelUnit> = {
   elf:        { id: "elf",        name: "Elf",        modelPath: `${RACE_BASE}/elf.glb`,        scale: 1.0,  weaponType: "bow",         skeleton: "mixamo-24", jointCount: 24 },
   orc:        { id: "orc",        name: "Orc",        modelPath: `${RACE_BASE}/orc.glb`,        scale: 1.15, weaponType: "greatsword",   skeleton: "mixamo-24", jointCount: 24 },
   undead:     { id: "undead",     name: "Undead",     modelPath: `${RACE_BASE}/undead.glb`,     scale: 1.0,  weaponType: "sword",       skeleton: "mixamo-24", jointCount: 24 },
+
+  // ── Toon Soldiers (chicken_gun) — Nexus Era / Hero RTS / shooters / editors ──
+  // Custom Bone skeleton: use ToonSoldierController (native clips + gunplay packs).
+  "toon:scout":     { id: "toon:scout",     name: "Toon Scout",     modelPath: `${TOON_BASE}/scout/scout-a.glb`,         scale: 1.0, weaponType: "gun", skeleton: "toon-bone", jointCount: 16 },
+  "toon:engineer":  { id: "toon:engineer",  name: "Toon Engineer",  modelPath: `${TOON_BASE}/engineer/engineer-a.glb`,   scale: 1.0, weaponType: "gun", skeleton: "toon-bone", jointCount: 16 },
+  "toon:gunner":    { id: "toon:gunner",    name: "Toon Gunner",    modelPath: `${TOON_BASE}/gunner/gunner-a.glb`,       scale: 1.0, weaponType: "gun", skeleton: "toon-bone", jointCount: 16 },
+  "toon:infantry":  { id: "toon:infantry",  name: "Toon Infantry",  modelPath: `${TOON_BASE}/infantry/infantry-a.glb`,   scale: 1.0, weaponType: "gun", skeleton: "toon-bone", jointCount: 16 },
+  "toon:medic":     { id: "toon:medic",     name: "Toon Medic",     modelPath: `${TOON_BASE}/medic/medic-a.glb`,         scale: 1.0, weaponType: "gun", skeleton: "toon-bone", jointCount: 16 },
+  "toon:sniper":    { id: "toon:sniper",    name: "Toon Sniper",    modelPath: `${TOON_BASE}/sniper/sniper-a.glb`,       scale: 1.0, weaponType: "gun", skeleton: "toon-bone", jointCount: 16 },
 
   // ── Faction NPC models ─────────────────────────────────────────────────
   "fabled-worker": { id: "fabled-worker", name: "Fabled Worker", modelPath: `${CHAR_BASE}/fabledworker.glb`, scale: 1.0, weaponType: "unarmed", skeleton: "mixamo-24", jointCount: 24 },

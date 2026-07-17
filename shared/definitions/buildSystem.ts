@@ -103,6 +103,19 @@ export const BUILD_PACK_PATHS = {
   medievalTowers: '/models/buildings/towers/3_medieval_towers.glb',
   spellTable: '/models/buildings/benches/spell_table.glb',
   lumbermill: '/models/buildings/benches/lumbermill.glb',
+  /**
+   * Fantasy village multipack (modular walls/towers/gates/houses/storage/carts).
+   * Local: client/public/models/buildings/fantasy/fantasy_village_kit.glb
+   * Catalog: fantasy_village_kit.catalog.json + fantasyVillageBuildCatalog.ts
+   * Trees/plants excluded — use nature packs separately.
+   */
+  fantasyVillageKit: '/models/buildings/fantasy/fantasy_village_kit.glb',
+  /**
+   * Ice / snow / mountain event multipack (Sandman Lair styled ice biome).
+   * Local: client/public/models/biomes/ice/ice_biome_kit.glb
+   * Harvestables + E-to-learn recipes for frostbite / event snow islands.
+   */
+  iceBiomeKit: '/models/biomes/ice/ice_biome_kit.glb',
   /** Ultimate Fantasy RTS pack (CDN after convert/upload) */
   ultimateFantasyRts: '/models/warlords/rts',
   /** Local authoring sources (dev only) */
@@ -111,6 +124,9 @@ export const BUILD_PACK_PATHS = {
     medievalTowers: 'D:/Games/Models/3_medieval_towers (1).glb',
     spellTable: 'D:/Games/Models/spell_table.glb',
     lumbermill: 'D:/Games/Models/lumbermill.glb',
+    fantasyVillageKit:
+      'C:/Users/david/OneDrive/Desktop/MouseWithoutBorders/fantasy_assets.glb',
+    iceBiomeKit: 'C:/Users/david/OneDrive/Desktop/MouseWithoutBorders/icebiome.glb',
     ultimateFantasyRts:
       'C:/Users/nugye/Documents/Ultimate Fantasy RTS - Aug 2022-20260503T235302Z-3-001/Ultimate Fantasy RTS - Aug 2022/FBX',
   },

@@ -63,6 +63,22 @@ WCS (`grudge-crafting.puter.site`) tabs **Camp / Cooking / Smithing / Lumber / L
 
 ---
 
+## Build Hammer (hand tool)
+
+| Field | Value |
+|-------|--------|
+| **Id / name** | `build_hammer` / **Build Hammer** |
+| **Mesh** | Survival kit node `hammer` (same mesh as workbench tool) |
+| **Scale** | **0.8** of authored hammer mesh |
+| **SSOT** | `shared/definitions/buildHammer.ts` |
+| **Attach** | `client/src/island3d/building/BuildHammerAttachment.ts` → `R_hand_container` / right hand |
+| **When** | `CharacterController3D.setControlMode('build')` equips; other modes unequip |
+| **Anims** | Unarmed locomotion (not combat hammer skills) |
+| **UI** | Dune Awakening–style category tabs (`BUILD_TAB_ORDER`, keys **1–9**) in `ModePlayHUD` / `BuildModePanel` |
+| **Move** | Build mode free locomotion: **WASD** relative to camera, **RMB** look |
+
+---
+
 ## free_survival_asset_kit.glb → pieces
 
 Parent **nodes** (use these for extract, not leaf material meshes):
@@ -76,6 +92,7 @@ Parent **nodes** (use these for extract, not leaf material meshes):
 | `bedroll` | Sleeping bag — **save / spawn** |
 | `bedrollPacked` | Portable bedroll |
 | `workbench` + `hammer` + `paper` | Workbench |
+| **`hammer`** | **Also → Build Hammer in-hand @ 0.8 scale** |
 | `workbenchAnvil` | Engineer / smith anvil |
 | `workbenchGrind` | Miner sharpening wheel |
 | `floor` | Modular floor / dock plank |

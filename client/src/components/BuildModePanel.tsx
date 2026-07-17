@@ -1,9 +1,11 @@
 /**
- * BuildModePanel — build mode overlay for placing props, furniture, and structures.
+ * BuildModePanel — Dune Awakening / Conan–style build wheel for modular pieces + props.
  *
  * Toggle: B key opens/closes the panel.
- * Usage: Select a category tab → click an item → place on terrain with mouse.
+ * Usage: Select a category tab (or keys 1–9) → click an item → place with mouse ghost.
  *        R rotates 90°, ESC cancels, click confirms.
+ *        Build Hammer (0.8× survival kit hammer) equips in-hand via CharacterController.
+ * Catalog: BUILD_ASSETS (survival kit + fantasy village multipack node extract).
  */
 import { useState, useEffect, useCallback } from 'react';
 import {
@@ -17,6 +19,12 @@ import {
   type BuildAssetDef,
   type BuildCategory,
 } from '@/island3d/building/BuildAssetManifest';
+import {
+  BUILD_TAB_ORDER,
+  BUILD_HAMMER_NAME,
+  BUILD_HAMMER_SCALE,
+  buildTabFromDigitKey,
+} from '@shared/definitions/buildHammer';
 
 // ── Category metadata ────────────────────────────────────────────
 
@@ -51,27 +59,51 @@ interface BuildModePanelProps {
 
 export function BuildModePanel({ onSelectItem, onCancel, isPlacing, selectedAssetId }: BuildModePanelProps) {
   const [open, setOpen] = useState(false);
-  const [activeCategory, setActiveCategory] = useState<BuildCategory>('furniture');
+  // Structure first — Conan-style modular walls/foundations default tab
+  const [activeCategory, setActiveCategory] = useState<BuildCategory>('structure');
+  const [filter, setFilter] = useState('');
 
-  // B key toggles build panel
+  // B key toggles build panel; 1–9 switch Dune-style group tabs
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
+      if ((e.target as HTMLElement)?.tagName === 'INPUT' || (e.target as HTMLElement)?.tagName === 'TEXTAREA') return;
       if (e.key === 'b' || e.key === 'B') {
-        // Don't toggle if typing in an input
-        if ((e.target as HTMLElement)?.tagName === 'INPUT' || (e.target as HTMLElement)?.tagName === 'TEXTAREA') return;
         setOpen(prev => !prev);
         if (isPlacing) onCancel();
       }
       if (e.key === 'Escape' && isPlacing) {
         onCancel();
       }
+      if (open || isPlacing) {
+        const tab = buildTabFromDigitKey(e.key);
+        if (tab && getAllBuildCategories().includes(tab as BuildCategory)) {
+          setActiveCategory(tab as BuildCategory);
+          e.preventDefault();
+        }
+      }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [isPlacing, onCancel]);
+  }, [isPlacing, onCancel, open]);
 
   const categories = getAllBuildCategories();
-  const items = getBuildAssetsByCategory(activeCategory);
+  const orderedCats = BUILD_TAB_ORDER.filter((t) =>
+    categories.includes(t as BuildCategory),
+  ) as BuildCategory[];
+  const tabCategories = [
+    ...orderedCats,
+    ...categories.filter((c) => !orderedCats.includes(c)),
+  ];
+  const items = getBuildAssetsByCategory(activeCategory).filter((item) => {
+    if (!filter.trim()) return true;
+    const q = filter.trim().toLowerCase();
+    return (
+      item.id.toLowerCase().includes(q) ||
+      item.name.toLowerCase().includes(q) ||
+      (item.nodeName?.toLowerCase().includes(q) ?? false) ||
+      (item.buildLayer?.toLowerCase().includes(q) ?? false)
+    );
+  });
 
   if (!open && !isPlacing) {
     // Collapsed: just show the build toggle button
@@ -117,7 +149,10 @@ export function BuildModePanel({ onSelectItem, onCancel, isPlacing, selectedAsse
         <div className="flex items-center justify-between px-4 py-2.5 border-b border-white/10">
           <div className="flex items-center gap-2">
             <Hammer className="w-4 h-4 text-amber-400" />
-            <span className="text-amber-400 text-sm font-bold tracking-wider font-cinzel">BUILD MODE</span>
+            <span className="text-amber-400 text-sm font-bold tracking-wider font-cinzel">
+              {BUILD_HAMMER_NAME}
+            </span>
+            <span className="text-[9px] text-amber-500/40 font-mono">×{BUILD_HAMMER_SCALE}</span>
           </div>
           <button onClick={() => { setOpen(false); if (isPlacing) onCancel(); }}
             className="text-white/30 hover:text-white transition-colors">
@@ -125,26 +160,49 @@ export function BuildModePanel({ onSelectItem, onCancel, isPlacing, selectedAsse
           </button>
         </div>
 
-        {/* Category tabs */}
-        <div className="flex flex-wrap gap-1 px-3 py-2 border-b border-white/5">
-          {categories.map(cat => {
+        {/* Dune Awakening–style horizontal group tabs */}
+        <div
+          className="flex gap-0.5 px-2 py-2 border-b border-white/5 overflow-x-auto"
+          style={{
+            background: 'linear-gradient(180deg, rgba(40,30,10,0.5), transparent)',
+          }}
+        >
+          {tabCategories.map((cat, i) => {
             const meta = CATEGORY_META[cat];
             const isActive = activeCategory === cat;
+            const hotkey = i < 9 ? String(i + 1) : null;
             return (
               <button
                 key={cat}
                 onClick={() => setActiveCategory(cat)}
-                className={`flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all ${
+                title={hotkey ? `${meta.label} [${hotkey}]` : meta.label}
+                className={`relative flex flex-col items-center gap-0.5 min-w-[52px] px-2 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all ${
                   isActive
-                    ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                    ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30 shadow-[0_0_10px_rgba(245,158,11,0.2)]'
                     : 'text-white/40 hover:text-white/70 border border-transparent'
                 }`}
               >
                 {meta.icon}
-                {meta.label}
+                <span className="whitespace-nowrap">{meta.label}</span>
+                {hotkey && (
+                  <span className={`absolute top-0.5 right-1 text-[8px] font-mono ${isActive ? 'text-amber-400/70' : 'text-white/20'}`}>
+                    {hotkey}
+                  </span>
+                )}
               </button>
             );
           })}
+        </div>
+
+        {/* Search — filter by id, display name, or GLB nodeName */}
+        <div className="px-3 py-2 border-b border-white/5">
+          <input
+            type="search"
+            value={filter}
+            onChange={(e) => setFilter(e.target.value)}
+            placeholder="Search pieces (wall, tower, cart…)"
+            className="w-full bg-black/40 border border-white/10 rounded-lg px-2.5 py-1.5 text-[11px] text-white/80 placeholder:text-white/25 outline-none focus:border-amber-500/40"
+          />
         </div>
 
         {/* Item grid */}
@@ -167,7 +225,12 @@ export function BuildModePanel({ onSelectItem, onCancel, isPlacing, selectedAsse
 
         {/* Footer hint */}
         <div className="px-4 py-2 border-t border-white/5 text-white/20 text-[10px] text-center">
-          Select an item · Click terrain to place · <span className="text-amber-400/50">R</span> rotate · <span className="text-amber-400/50">ESC</span> cancel · <span className="text-amber-400/50">B</span> close
+          {BUILD_HAMMER_NAME} · WASD free move · RMB look ·{' '}
+          <span className="text-amber-400/50">1–9</span> tabs ·{' '}
+          <span className="text-amber-400/50">R</span> rotate ·{' '}
+          <span className="text-amber-400/50">ESC</span> cancel ·{' '}
+          <span className="text-amber-400/50">B</span> close
+          <span className="block text-white/15 mt-0.5">{items.length} pieces · multipack node extract</span>
         </div>
       </div>
     </div>
@@ -199,8 +262,16 @@ function BuildItemCard({ item, selected, onSelect }: { item: BuildAssetDef; sele
         />
       </div>
 
-      {/* Name */}
-      <div className="text-white text-[11px] font-bold truncate">{item.name}</div>
+      {/* Name + API id */}
+      <div className="text-white text-[11px] font-bold truncate" title={item.id}>{item.name}</div>
+      {item.nodeName && (
+        <div className="text-white/25 text-[9px] font-mono truncate" title={`nodeName: ${item.nodeName}`}>
+          {item.nodeName}
+        </div>
+      )}
+      {item.buildLayer && (
+        <div className="text-amber-500/40 text-[8px] uppercase tracking-wider mt-0.5">{item.buildLayer}</div>
+      )}
 
       {/* Cost */}
       {item.cost.length > 0 && (

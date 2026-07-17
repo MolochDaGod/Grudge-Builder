@@ -80,6 +80,18 @@ export const ECOSYSTEM_STORAGE: EcosystemStorage = {
 };
 
 /**
+ * Cold biome composition (rebuild library).
+ * Ecosystem snow_pine + ground PBR stay primary.
+ * Ice multipack adds props/stations/chests for events — see modularAssetLibrary.ts.
+ */
+export const COLD_BIOME_COMPOSITION = {
+  primaryTrees: 'snow_pine' as const,
+  primaryGround: 'sector.groundPBR / frozen_glacier',
+  additivePropPack: '/models/biomes/ice/ice_biome_kit.glb',
+  rule: 'Do not replace snow_pine canopy with ice kit Tree_* on default frostbite',
+} as const;
+
+/**
  * CDN GLB paths for tree classes.
  * Low-poly megakit (CommonTree / Twisted / Pine_*) removed.
  * Paths come from natureAssetCatalog (realistic first, interim pack fallback).

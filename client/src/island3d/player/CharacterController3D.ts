@@ -15,6 +15,11 @@ import {
   type WeaponType,
 } from '@/lib/modelManifest';
 import { getWeaponTypeForMode, parseModel3d, type Model3DField } from '@/lib/grudge6Character';
+import {
+  equipBuildHammer,
+  unequipBuildHammer,
+  type BuildHammerHandle,
+} from '../building/BuildHammerAttachment';
 import { RACE_GRUDGE6, weaponTypeFromModel3d } from '@shared/fleet';
 import { setupGrudge6Equipment, type Grudge6EquipmentManager } from '@/lib/grudge6Equipment';
 import { applyCharacterColorTints, ensureCharacterTextureColorSpace } from '@/lib/characterAppearance';
@@ -133,6 +138,13 @@ export class CharacterController3D {
   private classIdStored = 'warrior';
   private model3dStored: Model3DField | null = null;
   private equipmentManager: Grudge6EquipmentManager | null = null;
+  /** Survival-kit hammer mesh @ 0.8 scale in right hand while in build mode */
+  private buildHammer: BuildHammerHandle | null = null;
+  /**
+   * Editor-style free locomotion: WASD relative to camera, mouse look (RMB).
+   * Auto-enabled in build mode (Dune / Conan placement feel).
+   */
+  public freeMoveLocomotion = false;
 
   /** Current form index for special weapons (grimoire 3 forms, wand, nimble, dual wield etc.)
    *  Switched with Shift + F1 / F2 / F3 as per game design.
@@ -484,6 +496,8 @@ export class CharacterController3D {
   async setControlMode(mode: ControlMode, classId?: string, hasWeapon = false): Promise<void> {
     this.mode = mode;
     this.stateMachine?.updateContext({ inCombat: mode === 'combat' });
+    // Build mode = free WASD + mouse look (editor placement)
+    this.freeMoveLocomotion = mode === 'build';
 
     if (mode === 'combat') {
       this.stateMachine?.transition('combat');
@@ -496,11 +510,40 @@ export class CharacterController3D {
     }
 
     // Freeform ARPG: anim set follows current equipment, not class
+    // Build uses unarmed locomotion + Build Hammer tool mesh in hand
     const equippedWt = this.model3dStored
       ? (weaponTypeFromModel3d(this.model3dStored, classId) as WeaponType)
       : this.weaponType;
     const wt = getWeaponTypeForMode(mode, classId ?? 'adventurer', hasWeapon, equippedWt);
     await this.reloadWeaponAnimations(wt);
+
+    if (mode === 'build') {
+      await this.equipBuildHammerTool();
+    } else {
+      this.unequipBuildHammerTool();
+    }
+  }
+
+  /** Put Build Hammer (0.8× survival kit hammer mesh) in the character's hand. */
+  async equipBuildHammerTool(): Promise<void> {
+    this.unequipBuildHammerTool();
+    const root = this.loadedModelScene ?? this.model;
+    if (!root) return;
+    try {
+      this.buildHammer = await equipBuildHammer(root, this.equipmentManager);
+    } catch (err) {
+      console.warn('[Character] Build Hammer equip failed:', err);
+    }
+  }
+
+  unequipBuildHammerTool(): void {
+    unequipBuildHammer(this.buildHammer, this.equipmentManager);
+    this.buildHammer = null;
+  }
+
+  /** Whether the build hammer tool is currently in-hand. */
+  get hasBuildHammer(): boolean {
+    return this.buildHammer != null;
   }
 
   private initStateMachine(
@@ -600,15 +643,9 @@ export class CharacterController3D {
         e.preventDefault();
         const cycle: ControlMode[] = ['harvest', 'combat', 'build'];
         const idx = cycle.indexOf(this.mode);
-        this.mode = cycle[(idx + 1) % cycle.length];
-        this.stateMachine?.updateContext({ inCombat: this.mode === 'combat' });
-        if (this.mode === 'combat') {
-          this.stateMachine?.transition('combat');
-        } else if (this.mode === 'build') {
-          this.stateMachine?.transition('building');
-        } else if (this.stateMachine?.getState() === 'combat') {
-          this.stateMachine.transition('idle');
-        }
+        const next = cycle[(idx + 1) % cycle.length];
+        // Full mode swap (hammer equip + free-move) — fire-and-forget
+        void this.setControlMode(next, this.classIdStored, Boolean(this.model3dStored?.hasWeapon));
       }
       // Combat bindings — use easy-win clips from catalog
       if (this.mode === 'combat' && this.orchestrator) {
@@ -633,11 +670,11 @@ export class CharacterController3D {
         }
       }
 
-      // Form switching for special item weapons (grimoire 3 forms, mage wand, ranger nimble, warrior dual wielder)
-      // Forms activated on Shift + F1 / F2 / F3
+      // Form switching: Shift + F1 / F2 / F3
+      // Camp unit orders (owned camp): plain F1–F5 handled by CampCommandBar / engine
       if (e.shiftKey) {
         const k = e.key;
-        if (k === 'F1' || k === 'f1' || k === 'F1') {
+        if (k === 'F1' || k === 'f1') {
           this.setForm(0);
           e.preventDefault();
         } else if (k === 'F2' || k === 'f2') {
@@ -762,9 +799,18 @@ export class CharacterController3D {
   // ─── Main update ───────────────────────────────────────────────────────────
 
   update(dt: number): void {
-    if (this.mouseDown || this.rmbHeld) {
+    // Mouse look: RMB always; in free-move/build also allow when LMB not placing UI focus
+    // (RMB is primary — matches editor free camera)
+    const freeMove = this.freeMoveLocomotion || this.mode === 'build';
+    if (this.rmbHeld || (this.mouseDown && !freeMove)) {
       this.cameraYaw -= this.mouseDelta.x * 0.003;
       this.cameraPitch = Math.max(0.1, Math.min(0.8, this.cameraPitch + this.mouseDelta.y * 0.003));
+      this.mouseDelta.x = 0;
+      this.mouseDelta.y = 0;
+    } else if (freeMove && this.rmbHeld) {
+      // already handled above when rmbHeld
+    } else {
+      // discard unused delta so it doesn't accumulate
       this.mouseDelta.x = 0;
       this.mouseDelta.y = 0;
     }
@@ -785,15 +831,28 @@ export class CharacterController3D {
     }
 
     // ── Horizontal movement ──────────────────────────────────────────────────
+    // Build / freeMove: WASD strafe relative to camera (editor free movement).
+    // Default combat/harvest: W/S walk, Q/E strafe, A/D turn camera.
     this.direction.set(0, 0, 0);
     let moving = false;
 
-    if (this.keys.has('w')) { this.direction.z -= 1; moving = true; }
-    if (this.keys.has('s')) { this.direction.z += 1; moving = true; }
-    if (this.keys.has('q')) { this.direction.x -= 1; moving = true; }
-    if (this.keys.has('e')) { this.direction.x += 1; moving = true; }
-    if (this.keys.has('a')) { this.cameraYaw += this.turnSpeed * dt; }
-    if (this.keys.has('d')) { this.cameraYaw -= this.turnSpeed * dt; }
+    const freeMove = this.freeMoveLocomotion || this.mode === 'build';
+    if (freeMove) {
+      if (this.keys.has('w')) { this.direction.z -= 1; moving = true; }
+      if (this.keys.has('s')) { this.direction.z += 1; moving = true; }
+      if (this.keys.has('a')) { this.direction.x -= 1; moving = true; }
+      if (this.keys.has('d')) { this.direction.x += 1; moving = true; }
+      // Optional Q/E still strafe
+      if (this.keys.has('q')) { this.direction.x -= 1; moving = true; }
+      if (this.keys.has('e')) { this.direction.x += 1; moving = true; }
+    } else {
+      if (this.keys.has('w')) { this.direction.z -= 1; moving = true; }
+      if (this.keys.has('s')) { this.direction.z += 1; moving = true; }
+      if (this.keys.has('q')) { this.direction.x -= 1; moving = true; }
+      if (this.keys.has('e')) { this.direction.x += 1; moving = true; }
+      if (this.keys.has('a')) { this.cameraYaw += this.turnSpeed * dt; }
+      if (this.keys.has('d')) { this.cameraYaw -= this.turnSpeed * dt; }
+    }
 
     if (this.direction.length() > 0) this.direction.normalize();
 
@@ -936,7 +995,19 @@ export class CharacterController3D {
     this.model.position.y += this.verticalVelocity * dt;
 
     // ── Character rotation ───────────────────────────────────────────────────
-    if (this.mode === 'harvest' && moving) {
+    if (this.mode === 'build' || this.freeMoveLocomotion) {
+      // Free-move editor: face move direction, or camera forward when idle (RMB look)
+      if (moving && this.velocity.lengthSq() > 0.01) {
+        const targetAngle = Math.atan2(this.velocity.x, this.velocity.z);
+        this.model.rotation.y = THREE.MathUtils.lerp(this.model.rotation.y, targetAngle, dt * 10);
+      } else if (this.rmbHeld) {
+        this.model.rotation.y = THREE.MathUtils.lerp(
+          this.model.rotation.y,
+          this.cameraYaw + Math.PI,
+          dt * 8,
+        );
+      }
+    } else if (this.mode === 'harvest' && moving) {
       const targetAngle = Math.atan2(this.velocity.x, this.velocity.z);
       this.model.rotation.y = THREE.MathUtils.lerp(this.model.rotation.y, targetAngle, dt * 8);
     } else if (this.mode === 'combat') {
@@ -1212,6 +1283,7 @@ export class CharacterController3D {
   }
 
   destroy(): void {
+    this.unequipBuildHammerTool();
     this.orchestrator?.dispose();
     this.orchestrator = null;
     this.animations?.dispose();

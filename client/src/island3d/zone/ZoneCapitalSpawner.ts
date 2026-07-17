@@ -121,6 +121,19 @@ async function loadCapitalGlb(
   city: RaceCity,
   parent: THREE.Group,
 ): Promise<THREE.Object3D | null> {
+  // Empty path = foundation / composed town owns the 3D (e.g. Haven Fruzer)
+  if (!city.modelPath || !city.modelPath.trim()) {
+    return null;
+  }
+  // Haven Shore Fruzer is multi-island foundation — never scale as a plaza prop here
+  if (
+    city.sectorId === 'haven_shore' ||
+    city.modelPath.includes('fruzer_islands') ||
+    city.modelPath.includes('haven_shore')
+  ) {
+    console.log(`[ZoneCapital] Skipping plaza GLB for ${city.id} — HavenShoreFoundationLoader owns scene`);
+    return null;
+  }
   try {
     const url = resolveModelUrl(city.modelPath);
     const loader = new GLTFLoader();

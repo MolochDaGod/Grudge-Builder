@@ -1,0 +1,1182 @@
+{
+  "version": "1.0.0",
+  "generated": "2026-07-17T03:35:27.395Z",
+  "source": "toon_soliders_chicken_gun.glb",
+  "description": "Toon Soldiers (chicken gun) multipack — split characters for Hero RTS, shooters, editors, and Nexus Era API.",
+  "era": "nexus",
+  "cdnBase": "https://assets.grudge-studio.com",
+  "multipack": {
+    "r2Key": "models/toon-soldiers/multipack.glb",
+    "cdnUrl": "https://assets.grudge-studio.com/models/toon-soldiers/multipack.glb"
+  },
+  "classes": {
+    "scout": {
+      "label": "Scout",
+      "role": "skirmisher",
+      "weapon": "pistol",
+      "animPack": "pistol",
+      "unitTypes": [
+        "hero",
+        "infantry"
+      ],
+      "assetId": "toon:scout",
+      "defaultStats": {
+        "hp": 90,
+        "speed": 1.15,
+        "damage": 18,
+        "range": 12
+      },
+      "defaultId": "toon:scout",
+      "defaultMesh": {
+        "r2Key": "models/toon-soldiers/scout/scout-a.glb",
+        "cdnUrl": "https://assets.grudge-studio.com/models/toon-soldiers/scout/scout-a.glb",
+        "localPath": "/models/toon-soldiers/scout/scout-a.glb"
+      }
+    },
+    "engineer": {
+      "label": "Engineer",
+      "role": "support",
+      "weapon": "rifle",
+      "animPack": "rifle",
+      "unitTypes": [
+        "worker",
+        "hero"
+      ],
+      "assetId": "toon:engineer",
+      "defaultStats": {
+        "hp": 100,
+        "speed": 1,
+        "damage": 14,
+        "range": 10
+      },
+      "defaultId": "toon:engineer",
+      "defaultMesh": {
+        "r2Key": "models/toon-soldiers/engineer/engineer-a.glb",
+        "cdnUrl": "https://assets.grudge-studio.com/models/toon-soldiers/engineer/engineer-a.glb",
+        "localPath": "/models/toon-soldiers/engineer/engineer-a.glb"
+      }
+    },
+    "gunner": {
+      "label": "Gunner",
+      "role": "heavy",
+      "weapon": "rifle",
+      "animPack": "rifle",
+      "unitTypes": [
+        "infantry",
+        "hero"
+      ],
+      "assetId": "toon:gunner",
+      "defaultStats": {
+        "hp": 120,
+        "speed": 0.9,
+        "damage": 28,
+        "range": 16
+      },
+      "defaultId": "toon:gunner",
+      "defaultMesh": {
+        "r2Key": "models/toon-soldiers/gunner/gunner-a.glb",
+        "cdnUrl": "https://assets.grudge-studio.com/models/toon-soldiers/gunner/gunner-a.glb",
+        "localPath": "/models/toon-soldiers/gunner/gunner-a.glb"
+      }
+    },
+    "infantry": {
+      "label": "Infantry",
+      "role": "line",
+      "weapon": "rifle",
+      "animPack": "rifle",
+      "unitTypes": [
+        "infantry"
+      ],
+      "assetId": "toon:infantry",
+      "defaultStats": {
+        "hp": 110,
+        "speed": 1,
+        "damage": 22,
+        "range": 14
+      },
+      "defaultId": "toon:infantry",
+      "defaultMesh": {
+        "r2Key": "models/toon-soldiers/infantry/infantry-a.glb",
+        "cdnUrl": "https://assets.grudge-studio.com/models/toon-soldiers/infantry/infantry-a.glb",
+        "localPath": "/models/toon-soldiers/infantry/infantry-a.glb"
+      }
+    },
+    "medic": {
+      "label": "Medic",
+      "role": "healer",
+      "weapon": "pistol",
+      "animPack": "pistol",
+      "unitTypes": [
+        "support",
+        "hero"
+      ],
+      "assetId": "toon:medic",
+      "defaultStats": {
+        "hp": 95,
+        "speed": 1.05,
+        "damage": 12,
+        "range": 10
+      },
+      "defaultId": "toon:medic",
+      "defaultMesh": {
+        "r2Key": "models/toon-soldiers/medic/medic-a.glb",
+        "cdnUrl": "https://assets.grudge-studio.com/models/toon-soldiers/medic/medic-a.glb",
+        "localPath": "/models/toon-soldiers/medic/medic-a.glb"
+      }
+    },
+    "sniper": {
+      "label": "Sniper",
+      "role": "marksman",
+      "weapon": "rifle",
+      "animPack": "rifle",
+      "unitTypes": [
+        "infantry",
+        "hero"
+      ],
+      "assetId": "toon:sniper",
+      "defaultStats": {
+        "hp": 85,
+        "speed": 0.95,
+        "damage": 40,
+        "range": 28
+      },
+      "defaultId": "toon:sniper",
+      "defaultMesh": {
+        "r2Key": "models/toon-soldiers/sniper/sniper-a.glb",
+        "cdnUrl": "https://assets.grudge-studio.com/models/toon-soldiers/sniper/sniper-a.glb",
+        "localPath": "/models/toon-soldiers/sniper/sniper-a.glb"
+      }
+    }
+  },
+  "characters": [
+    {
+      "id": "toon:scout",
+      "classId": "scout",
+      "variant": "a",
+      "label": "Scout A",
+      "role": "skirmisher",
+      "weapon": "pistol",
+      "animPack": "pistol",
+      "unitTypes": [
+        "hero",
+        "infantry"
+      ],
+      "stats": {
+        "hp": 90,
+        "speed": 1.15,
+        "damage": 18,
+        "range": 12
+      },
+      "mesh": {
+        "r2Key": "models/toon-soldiers/scout/scout-a.glb",
+        "cdnUrl": "https://assets.grudge-studio.com/models/toon-soldiers/scout/scout-a.glb",
+        "localPath": "/models/toon-soldiers/scout/scout-a.glb"
+      },
+      "skeleton": "toon-bone",
+      "bones": "Bone / Bone.001… (non-Mixamo — use native clips or retarget)",
+      "nativeClips": [
+        "TS_Body_03_scoutAction",
+        "TS_Head_02_ScoutAction"
+      ],
+      "clipRoles": {
+        "ability": [
+          "TS_Body_03_scoutAction",
+          "TS_Head_02_ScoutAction"
+        ]
+      },
+      "controller": {
+        "preferredSource": "native",
+        "locomotion": {
+          "walk": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/locomotion/walking.json",
+          "run": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/locomotion/running.json",
+          "sprint": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/uploads_2026_06/locomotion/running.json",
+          "dodge": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/locomotion/dodging.json",
+          "leftStrafe": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/locomotion/left strafe walking.json",
+          "rightStrafe": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/locomotion/right strafe walking.json"
+        },
+        "gunplay": {
+          "idle": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/pistol/pistol idle.json",
+          "walk": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/pistol/pistol walk.json",
+          "run": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/pistol/pistol run.json",
+          "attack": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/pistol/gunplay.json",
+          "walkBack": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/pistol/pistol walk backward.json",
+          "runBack": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/pistol/pistol run backward.json",
+          "strafe": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/pistol/pistol strafe.json"
+        },
+        "states": {
+          "idle": "TS_Body_03_scoutAction",
+          "walk": null,
+          "run": null,
+          "attack": "TS_Body_03_scoutAction",
+          "ability": [
+            "TS_Body_03_scoutAction",
+            "TS_Head_02_ScoutAction"
+          ],
+          "hit": null,
+          "death": null
+        }
+      },
+      "eras": [
+        "armada",
+        "nexus",
+        "warlords"
+      ],
+      "consumers": [
+        "hero-rts",
+        "grudge-builder",
+        "grudge-arena",
+        "fba",
+        "editors",
+        "shooters"
+      ]
+    },
+    {
+      "id": "toon:scout:b",
+      "classId": "scout",
+      "variant": "b",
+      "label": "Scout B",
+      "role": "skirmisher",
+      "weapon": "pistol",
+      "animPack": "pistol",
+      "unitTypes": [
+        "hero",
+        "infantry"
+      ],
+      "stats": {
+        "hp": 90,
+        "speed": 1.15,
+        "damage": 18,
+        "range": 12
+      },
+      "mesh": {
+        "r2Key": "models/toon-soldiers/scout/scout-b.glb",
+        "cdnUrl": "https://assets.grudge-studio.com/models/toon-soldiers/scout/scout-b.glb",
+        "localPath": "/models/toon-soldiers/scout/scout-b.glb"
+      },
+      "skeleton": "toon-bone",
+      "bones": "Bone / Bone.001… (non-Mixamo — use native clips or retarget)",
+      "nativeClips": [
+        "TS_Body_03_scoutAction.001",
+        "TS_Head_02_ScoutAction.002"
+      ],
+      "clipRoles": {
+        "ability": [
+          "TS_Body_03_scoutAction.001",
+          "TS_Head_02_ScoutAction.002"
+        ]
+      },
+      "controller": {
+        "preferredSource": "native",
+        "locomotion": {
+          "walk": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/locomotion/walking.json",
+          "run": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/locomotion/running.json",
+          "sprint": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/uploads_2026_06/locomotion/running.json",
+          "dodge": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/locomotion/dodging.json",
+          "leftStrafe": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/locomotion/left strafe walking.json",
+          "rightStrafe": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/locomotion/right strafe walking.json"
+        },
+        "gunplay": {
+          "idle": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/pistol/pistol idle.json",
+          "walk": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/pistol/pistol walk.json",
+          "run": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/pistol/pistol run.json",
+          "attack": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/pistol/gunplay.json",
+          "walkBack": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/pistol/pistol walk backward.json",
+          "runBack": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/pistol/pistol run backward.json",
+          "strafe": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/pistol/pistol strafe.json"
+        },
+        "states": {
+          "idle": "TS_Body_03_scoutAction.001",
+          "walk": null,
+          "run": null,
+          "attack": "TS_Body_03_scoutAction.001",
+          "ability": [
+            "TS_Body_03_scoutAction.001",
+            "TS_Head_02_ScoutAction.002"
+          ],
+          "hit": null,
+          "death": null
+        }
+      },
+      "eras": [
+        "armada",
+        "nexus",
+        "warlords"
+      ],
+      "consumers": [
+        "hero-rts",
+        "grudge-builder",
+        "grudge-arena",
+        "fba",
+        "editors",
+        "shooters"
+      ]
+    },
+    {
+      "id": "toon:engineer",
+      "classId": "engineer",
+      "variant": "a",
+      "label": "Engineer A",
+      "role": "support",
+      "weapon": "rifle",
+      "animPack": "rifle",
+      "unitTypes": [
+        "worker",
+        "hero"
+      ],
+      "stats": {
+        "hp": 100,
+        "speed": 1,
+        "damage": 14,
+        "range": 10
+      },
+      "mesh": {
+        "r2Key": "models/toon-soldiers/engineer/engineer-a.glb",
+        "cdnUrl": "https://assets.grudge-studio.com/models/toon-soldiers/engineer/engineer-a.glb",
+        "localPath": "/models/toon-soldiers/engineer/engineer-a.glb"
+      },
+      "skeleton": "toon-bone",
+      "bones": "Bone / Bone.001… (non-Mixamo — use native clips or retarget)",
+      "nativeClips": [
+        "TS_Body_05_engineerAction",
+        "TS_Head_05_engineerAction"
+      ],
+      "clipRoles": {
+        "ability": [
+          "TS_Body_05_engineerAction",
+          "TS_Head_05_engineerAction"
+        ]
+      },
+      "controller": {
+        "preferredSource": "native",
+        "locomotion": {
+          "walk": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/locomotion/walking.json",
+          "run": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/locomotion/running.json",
+          "sprint": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/uploads_2026_06/locomotion/running.json",
+          "dodge": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/locomotion/dodging.json",
+          "leftStrafe": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/locomotion/left strafe walking.json",
+          "rightStrafe": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/locomotion/right strafe walking.json"
+        },
+        "gunplay": {
+          "idle": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/rifle/idle.json",
+          "walk": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/rifle/walk forward.json",
+          "run": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/rifle/run forward.json",
+          "attack": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/rifle/firing.json",
+          "walkBack": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/rifle/walk backward.json",
+          "runBack": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/rifle/run backward.json"
+        },
+        "states": {
+          "idle": "TS_Body_05_engineerAction",
+          "walk": null,
+          "run": null,
+          "attack": "TS_Body_05_engineerAction",
+          "ability": [
+            "TS_Body_05_engineerAction",
+            "TS_Head_05_engineerAction"
+          ],
+          "hit": null,
+          "death": null
+        }
+      },
+      "eras": [
+        "armada",
+        "nexus",
+        "warlords"
+      ],
+      "consumers": [
+        "hero-rts",
+        "grudge-builder",
+        "grudge-arena",
+        "fba",
+        "editors",
+        "shooters"
+      ]
+    },
+    {
+      "id": "toon:engineer:b",
+      "classId": "engineer",
+      "variant": "b",
+      "label": "Engineer B",
+      "role": "support",
+      "weapon": "rifle",
+      "animPack": "rifle",
+      "unitTypes": [
+        "worker",
+        "hero"
+      ],
+      "stats": {
+        "hp": 100,
+        "speed": 1,
+        "damage": 14,
+        "range": 10
+      },
+      "mesh": {
+        "r2Key": "models/toon-soldiers/engineer/engineer-b.glb",
+        "cdnUrl": "https://assets.grudge-studio.com/models/toon-soldiers/engineer/engineer-b.glb",
+        "localPath": "/models/toon-soldiers/engineer/engineer-b.glb"
+      },
+      "skeleton": "toon-bone",
+      "bones": "Bone / Bone.001… (non-Mixamo — use native clips or retarget)",
+      "nativeClips": [
+        "Armature.002Action.002",
+        "TS_Body_05_engineerAction.001",
+        "TS_Head_05_engineerAction.001"
+      ],
+      "clipRoles": {
+        "ability": [
+          "Armature.002Action.002",
+          "TS_Body_05_engineerAction.001",
+          "TS_Head_05_engineerAction.001"
+        ]
+      },
+      "controller": {
+        "preferredSource": "native",
+        "locomotion": {
+          "walk": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/locomotion/walking.json",
+          "run": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/locomotion/running.json",
+          "sprint": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/uploads_2026_06/locomotion/running.json",
+          "dodge": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/locomotion/dodging.json",
+          "leftStrafe": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/locomotion/left strafe walking.json",
+          "rightStrafe": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/locomotion/right strafe walking.json"
+        },
+        "gunplay": {
+          "idle": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/rifle/idle.json",
+          "walk": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/rifle/walk forward.json",
+          "run": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/rifle/run forward.json",
+          "attack": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/rifle/firing.json",
+          "walkBack": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/rifle/walk backward.json",
+          "runBack": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/rifle/run backward.json"
+        },
+        "states": {
+          "idle": "Armature.002Action.002",
+          "walk": null,
+          "run": null,
+          "attack": "Armature.002Action.002",
+          "ability": [
+            "Armature.002Action.002",
+            "TS_Body_05_engineerAction.001",
+            "TS_Head_05_engineerAction.001"
+          ],
+          "hit": null,
+          "death": null
+        }
+      },
+      "eras": [
+        "armada",
+        "nexus",
+        "warlords"
+      ],
+      "consumers": [
+        "hero-rts",
+        "grudge-builder",
+        "grudge-arena",
+        "fba",
+        "editors",
+        "shooters"
+      ]
+    },
+    {
+      "id": "toon:gunner",
+      "classId": "gunner",
+      "variant": "a",
+      "label": "Gunner A",
+      "role": "heavy",
+      "weapon": "rifle",
+      "animPack": "rifle",
+      "unitTypes": [
+        "infantry",
+        "hero"
+      ],
+      "stats": {
+        "hp": 120,
+        "speed": 0.9,
+        "damage": 28,
+        "range": 16
+      },
+      "mesh": {
+        "r2Key": "models/toon-soldiers/gunner/gunner-a.glb",
+        "cdnUrl": "https://assets.grudge-studio.com/models/toon-soldiers/gunner/gunner-a.glb",
+        "localPath": "/models/toon-soldiers/gunner/gunner-a.glb"
+      },
+      "skeleton": "toon-bone",
+      "bones": "Bone / Bone.001… (non-Mixamo — use native clips or retarget)",
+      "nativeClips": [
+        "Armature.001Action.005",
+        "Armature.002Action.003",
+        "TS_Body_02_gunnerAction",
+        "TS_Head_15_gunner_onlyAction.002"
+      ],
+      "clipRoles": {
+        "ability": [
+          "Armature.001Action.005",
+          "Armature.002Action.003",
+          "TS_Head_15_gunner_onlyAction.002"
+        ],
+        "attack": [
+          "TS_Body_02_gunnerAction"
+        ]
+      },
+      "controller": {
+        "preferredSource": "native",
+        "locomotion": {
+          "walk": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/locomotion/walking.json",
+          "run": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/locomotion/running.json",
+          "sprint": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/uploads_2026_06/locomotion/running.json",
+          "dodge": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/locomotion/dodging.json",
+          "leftStrafe": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/locomotion/left strafe walking.json",
+          "rightStrafe": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/locomotion/right strafe walking.json"
+        },
+        "gunplay": {
+          "idle": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/rifle/idle.json",
+          "walk": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/rifle/walk forward.json",
+          "run": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/rifle/run forward.json",
+          "attack": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/rifle/firing.json",
+          "walkBack": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/rifle/walk backward.json",
+          "runBack": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/rifle/run backward.json"
+        },
+        "states": {
+          "idle": "Armature.001Action.005",
+          "walk": null,
+          "run": null,
+          "attack": "TS_Body_02_gunnerAction",
+          "ability": [
+            "Armature.001Action.005",
+            "Armature.002Action.003",
+            "TS_Head_15_gunner_onlyAction.002"
+          ],
+          "hit": null,
+          "death": null
+        }
+      },
+      "eras": [
+        "armada",
+        "nexus",
+        "warlords"
+      ],
+      "consumers": [
+        "hero-rts",
+        "grudge-builder",
+        "grudge-arena",
+        "fba",
+        "editors",
+        "shooters"
+      ]
+    },
+    {
+      "id": "toon:gunner:b",
+      "classId": "gunner",
+      "variant": "b",
+      "label": "Gunner B",
+      "role": "heavy",
+      "weapon": "rifle",
+      "animPack": "rifle",
+      "unitTypes": [
+        "infantry",
+        "hero"
+      ],
+      "stats": {
+        "hp": 120,
+        "speed": 0.9,
+        "damage": 28,
+        "range": 16
+      },
+      "mesh": {
+        "r2Key": "models/toon-soldiers/gunner/gunner-b.glb",
+        "cdnUrl": "https://assets.grudge-studio.com/models/toon-soldiers/gunner/gunner-b.glb",
+        "localPath": "/models/toon-soldiers/gunner/gunner-b.glb"
+      },
+      "skeleton": "toon-bone",
+      "bones": "Bone / Bone.001… (non-Mixamo — use native clips or retarget)",
+      "nativeClips": [
+        "Armature.001Action.006",
+        "Armature.002Action.004",
+        "TS_Body_02_gunnerAction.001",
+        "TS_Head_15_gunner_only.001Action"
+      ],
+      "clipRoles": {
+        "ability": [
+          "Armature.001Action.006",
+          "Armature.002Action.004",
+          "TS_Body_02_gunnerAction.001"
+        ],
+        "attack": [
+          "TS_Head_15_gunner_only.001Action"
+        ]
+      },
+      "controller": {
+        "preferredSource": "native",
+        "locomotion": {
+          "walk": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/locomotion/walking.json",
+          "run": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/locomotion/running.json",
+          "sprint": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/uploads_2026_06/locomotion/running.json",
+          "dodge": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/locomotion/dodging.json",
+          "leftStrafe": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/locomotion/left strafe walking.json",
+          "rightStrafe": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/locomotion/right strafe walking.json"
+        },
+        "gunplay": {
+          "idle": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/rifle/idle.json",
+          "walk": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/rifle/walk forward.json",
+          "run": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/rifle/run forward.json",
+          "attack": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/rifle/firing.json",
+          "walkBack": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/rifle/walk backward.json",
+          "runBack": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/rifle/run backward.json"
+        },
+        "states": {
+          "idle": "Armature.001Action.006",
+          "walk": null,
+          "run": null,
+          "attack": "TS_Head_15_gunner_only.001Action",
+          "ability": [
+            "Armature.001Action.006",
+            "Armature.002Action.004",
+            "TS_Body_02_gunnerAction.001"
+          ],
+          "hit": null,
+          "death": null
+        }
+      },
+      "eras": [
+        "armada",
+        "nexus",
+        "warlords"
+      ],
+      "consumers": [
+        "hero-rts",
+        "grudge-builder",
+        "grudge-arena",
+        "fba",
+        "editors",
+        "shooters"
+      ]
+    },
+    {
+      "id": "toon:infantry",
+      "classId": "infantry",
+      "variant": "a",
+      "label": "Infantry A",
+      "role": "line",
+      "weapon": "rifle",
+      "animPack": "rifle",
+      "unitTypes": [
+        "infantry"
+      ],
+      "stats": {
+        "hp": 110,
+        "speed": 1,
+        "damage": 22,
+        "range": 14
+      },
+      "mesh": {
+        "r2Key": "models/toon-soldiers/infantry/infantry-a.glb",
+        "cdnUrl": "https://assets.grudge-studio.com/models/toon-soldiers/infantry/infantry-a.glb",
+        "localPath": "/models/toon-soldiers/infantry/infantry-a.glb"
+      },
+      "skeleton": "toon-bone",
+      "bones": "Bone / Bone.001… (non-Mixamo — use native clips or retarget)",
+      "nativeClips": [
+        "Armature.002Action.005",
+        "TS_Body_01_infantryAction"
+      ],
+      "clipRoles": {
+        "ability": [
+          "Armature.002Action.005",
+          "TS_Body_01_infantryAction"
+        ]
+      },
+      "controller": {
+        "preferredSource": "native",
+        "locomotion": {
+          "walk": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/locomotion/walking.json",
+          "run": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/locomotion/running.json",
+          "sprint": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/uploads_2026_06/locomotion/running.json",
+          "dodge": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/locomotion/dodging.json",
+          "leftStrafe": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/locomotion/left strafe walking.json",
+          "rightStrafe": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/locomotion/right strafe walking.json"
+        },
+        "gunplay": {
+          "idle": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/rifle/idle.json",
+          "walk": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/rifle/walk forward.json",
+          "run": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/rifle/run forward.json",
+          "attack": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/rifle/firing.json",
+          "walkBack": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/rifle/walk backward.json",
+          "runBack": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/rifle/run backward.json"
+        },
+        "states": {
+          "idle": "Armature.002Action.005",
+          "walk": null,
+          "run": null,
+          "attack": "Armature.002Action.005",
+          "ability": [
+            "Armature.002Action.005",
+            "TS_Body_01_infantryAction"
+          ],
+          "hit": null,
+          "death": null
+        }
+      },
+      "eras": [
+        "armada",
+        "nexus",
+        "warlords"
+      ],
+      "consumers": [
+        "hero-rts",
+        "grudge-builder",
+        "grudge-arena",
+        "fba",
+        "editors",
+        "shooters"
+      ]
+    },
+    {
+      "id": "toon:infantry:b",
+      "classId": "infantry",
+      "variant": "b",
+      "label": "Infantry B",
+      "role": "line",
+      "weapon": "rifle",
+      "animPack": "rifle",
+      "unitTypes": [
+        "infantry"
+      ],
+      "stats": {
+        "hp": 110,
+        "speed": 1,
+        "damage": 22,
+        "range": 14
+      },
+      "mesh": {
+        "r2Key": "models/toon-soldiers/infantry/infantry-b.glb",
+        "cdnUrl": "https://assets.grudge-studio.com/models/toon-soldiers/infantry/infantry-b.glb",
+        "localPath": "/models/toon-soldiers/infantry/infantry-b.glb"
+      },
+      "skeleton": "toon-bone",
+      "bones": "Bone / Bone.001… (non-Mixamo — use native clips or retarget)",
+      "nativeClips": [
+        "Armature.002Action.006"
+      ],
+      "clipRoles": {
+        "ability": [
+          "Armature.002Action.006"
+        ]
+      },
+      "controller": {
+        "preferredSource": "native",
+        "locomotion": {
+          "walk": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/locomotion/walking.json",
+          "run": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/locomotion/running.json",
+          "sprint": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/uploads_2026_06/locomotion/running.json",
+          "dodge": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/locomotion/dodging.json",
+          "leftStrafe": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/locomotion/left strafe walking.json",
+          "rightStrafe": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/locomotion/right strafe walking.json"
+        },
+        "gunplay": {
+          "idle": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/rifle/idle.json",
+          "walk": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/rifle/walk forward.json",
+          "run": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/rifle/run forward.json",
+          "attack": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/rifle/firing.json",
+          "walkBack": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/rifle/walk backward.json",
+          "runBack": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/rifle/run backward.json"
+        },
+        "states": {
+          "idle": "Armature.002Action.006",
+          "walk": null,
+          "run": null,
+          "attack": "Armature.002Action.006",
+          "ability": [
+            "Armature.002Action.006"
+          ],
+          "hit": null,
+          "death": null
+        }
+      },
+      "eras": [
+        "armada",
+        "nexus",
+        "warlords"
+      ],
+      "consumers": [
+        "hero-rts",
+        "grudge-builder",
+        "grudge-arena",
+        "fba",
+        "editors",
+        "shooters"
+      ]
+    },
+    {
+      "id": "toon:medic",
+      "classId": "medic",
+      "variant": "a",
+      "label": "Medic A",
+      "role": "healer",
+      "weapon": "pistol",
+      "animPack": "pistol",
+      "unitTypes": [
+        "support",
+        "hero"
+      ],
+      "stats": {
+        "hp": 95,
+        "speed": 1.05,
+        "damage": 12,
+        "range": 10
+      },
+      "mesh": {
+        "r2Key": "models/toon-soldiers/medic/medic-a.glb",
+        "cdnUrl": "https://assets.grudge-studio.com/models/toon-soldiers/medic/medic-a.glb",
+        "localPath": "/models/toon-soldiers/medic/medic-a.glb"
+      },
+      "skeleton": "toon-bone",
+      "bones": "Bone / Bone.001… (non-Mixamo — use native clips or retarget)",
+      "nativeClips": [
+        "Armature.002Action.007",
+        "TS_Body_06_medicAction"
+      ],
+      "clipRoles": {
+        "ability": [
+          "Armature.002Action.007",
+          "TS_Body_06_medicAction"
+        ]
+      },
+      "controller": {
+        "preferredSource": "native",
+        "locomotion": {
+          "walk": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/locomotion/walking.json",
+          "run": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/locomotion/running.json",
+          "sprint": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/uploads_2026_06/locomotion/running.json",
+          "dodge": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/locomotion/dodging.json",
+          "leftStrafe": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/locomotion/left strafe walking.json",
+          "rightStrafe": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/locomotion/right strafe walking.json"
+        },
+        "gunplay": {
+          "idle": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/pistol/pistol idle.json",
+          "walk": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/pistol/pistol walk.json",
+          "run": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/pistol/pistol run.json",
+          "attack": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/pistol/gunplay.json",
+          "walkBack": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/pistol/pistol walk backward.json",
+          "runBack": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/pistol/pistol run backward.json",
+          "strafe": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/pistol/pistol strafe.json"
+        },
+        "states": {
+          "idle": "Armature.002Action.007",
+          "walk": null,
+          "run": null,
+          "attack": "Armature.002Action.007",
+          "ability": [
+            "Armature.002Action.007",
+            "TS_Body_06_medicAction"
+          ],
+          "hit": null,
+          "death": null
+        }
+      },
+      "eras": [
+        "armada",
+        "nexus",
+        "warlords"
+      ],
+      "consumers": [
+        "hero-rts",
+        "grudge-builder",
+        "grudge-arena",
+        "fba",
+        "editors",
+        "shooters"
+      ]
+    },
+    {
+      "id": "toon:medic:b",
+      "classId": "medic",
+      "variant": "b",
+      "label": "Medic B",
+      "role": "healer",
+      "weapon": "pistol",
+      "animPack": "pistol",
+      "unitTypes": [
+        "support",
+        "hero"
+      ],
+      "stats": {
+        "hp": 95,
+        "speed": 1.05,
+        "damage": 12,
+        "range": 10
+      },
+      "mesh": {
+        "r2Key": "models/toon-soldiers/medic/medic-b.glb",
+        "cdnUrl": "https://assets.grudge-studio.com/models/toon-soldiers/medic/medic-b.glb",
+        "localPath": "/models/toon-soldiers/medic/medic-b.glb"
+      },
+      "skeleton": "toon-bone",
+      "bones": "Bone / Bone.001… (non-Mixamo — use native clips or retarget)",
+      "nativeClips": [
+        "Armature.002Action.008",
+        "TS_Body_06_medicAction.001"
+      ],
+      "clipRoles": {
+        "ability": [
+          "Armature.002Action.008",
+          "TS_Body_06_medicAction.001"
+        ]
+      },
+      "controller": {
+        "preferredSource": "native",
+        "locomotion": {
+          "walk": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/locomotion/walking.json",
+          "run": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/locomotion/running.json",
+          "sprint": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/uploads_2026_06/locomotion/running.json",
+          "dodge": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/locomotion/dodging.json",
+          "leftStrafe": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/locomotion/left strafe walking.json",
+          "rightStrafe": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/locomotion/right strafe walking.json"
+        },
+        "gunplay": {
+          "idle": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/pistol/pistol idle.json",
+          "walk": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/pistol/pistol walk.json",
+          "run": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/pistol/pistol run.json",
+          "attack": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/pistol/gunplay.json",
+          "walkBack": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/pistol/pistol walk backward.json",
+          "runBack": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/pistol/pistol run backward.json",
+          "strafe": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/pistol/pistol strafe.json"
+        },
+        "states": {
+          "idle": "Armature.002Action.008",
+          "walk": null,
+          "run": null,
+          "attack": "Armature.002Action.008",
+          "ability": [
+            "Armature.002Action.008",
+            "TS_Body_06_medicAction.001"
+          ],
+          "hit": null,
+          "death": null
+        }
+      },
+      "eras": [
+        "armada",
+        "nexus",
+        "warlords"
+      ],
+      "consumers": [
+        "hero-rts",
+        "grudge-builder",
+        "grudge-arena",
+        "fba",
+        "editors",
+        "shooters"
+      ]
+    },
+    {
+      "id": "toon:sniper",
+      "classId": "sniper",
+      "variant": "a",
+      "label": "Sniper A",
+      "role": "marksman",
+      "weapon": "rifle",
+      "animPack": "rifle",
+      "unitTypes": [
+        "infantry",
+        "hero"
+      ],
+      "stats": {
+        "hp": 85,
+        "speed": 0.95,
+        "damage": 40,
+        "range": 28
+      },
+      "mesh": {
+        "r2Key": "models/toon-soldiers/sniper/sniper-a.glb",
+        "cdnUrl": "https://assets.grudge-studio.com/models/toon-soldiers/sniper/sniper-a.glb",
+        "localPath": "/models/toon-soldiers/sniper/sniper-a.glb"
+      },
+      "skeleton": "toon-bone",
+      "bones": "Bone / Bone.001… (non-Mixamo — use native clips or retarget)",
+      "nativeClips": [
+        "Armature.002Action.009",
+        "TS_Body_04_sniperAction",
+        "TS_Head_04_sniperAction"
+      ],
+      "clipRoles": {
+        "ability": [
+          "Armature.002Action.009",
+          "TS_Body_04_sniperAction",
+          "TS_Head_04_sniperAction"
+        ]
+      },
+      "controller": {
+        "preferredSource": "native",
+        "locomotion": {
+          "walk": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/locomotion/walking.json",
+          "run": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/locomotion/running.json",
+          "sprint": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/uploads_2026_06/locomotion/running.json",
+          "dodge": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/locomotion/dodging.json",
+          "leftStrafe": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/locomotion/left strafe walking.json",
+          "rightStrafe": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/locomotion/right strafe walking.json"
+        },
+        "gunplay": {
+          "idle": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/rifle/idle.json",
+          "walk": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/rifle/walk forward.json",
+          "run": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/rifle/run forward.json",
+          "attack": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/rifle/firing.json",
+          "walkBack": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/rifle/walk backward.json",
+          "runBack": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/rifle/run backward.json"
+        },
+        "states": {
+          "idle": "Armature.002Action.009",
+          "walk": null,
+          "run": null,
+          "attack": "Armature.002Action.009",
+          "ability": [
+            "Armature.002Action.009",
+            "TS_Body_04_sniperAction",
+            "TS_Head_04_sniperAction"
+          ],
+          "hit": null,
+          "death": null
+        }
+      },
+      "eras": [
+        "armada",
+        "nexus",
+        "warlords"
+      ],
+      "consumers": [
+        "hero-rts",
+        "grudge-builder",
+        "grudge-arena",
+        "fba",
+        "editors",
+        "shooters"
+      ]
+    },
+    {
+      "id": "toon:sniper:b",
+      "classId": "sniper",
+      "variant": "b",
+      "label": "Sniper B",
+      "role": "marksman",
+      "weapon": "rifle",
+      "animPack": "rifle",
+      "unitTypes": [
+        "infantry",
+        "hero"
+      ],
+      "stats": {
+        "hp": 85,
+        "speed": 0.95,
+        "damage": 40,
+        "range": 28
+      },
+      "mesh": {
+        "r2Key": "models/toon-soldiers/sniper/sniper-b.glb",
+        "cdnUrl": "https://assets.grudge-studio.com/models/toon-soldiers/sniper/sniper-b.glb",
+        "localPath": "/models/toon-soldiers/sniper/sniper-b.glb"
+      },
+      "skeleton": "toon-bone",
+      "bones": "Bone / Bone.001… (non-Mixamo — use native clips or retarget)",
+      "nativeClips": [
+        "Armature.002Action.010",
+        "TS_Body_04_sniperAction.001",
+        "TS_Head_04_sniperAction.001"
+      ],
+      "clipRoles": {
+        "ability": [
+          "Armature.002Action.010",
+          "TS_Body_04_sniperAction.001",
+          "TS_Head_04_sniperAction.001"
+        ]
+      },
+      "controller": {
+        "preferredSource": "native",
+        "locomotion": {
+          "walk": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/locomotion/walking.json",
+          "run": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/locomotion/running.json",
+          "sprint": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/uploads_2026_06/locomotion/running.json",
+          "dodge": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/locomotion/dodging.json",
+          "leftStrafe": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/locomotion/left strafe walking.json",
+          "rightStrafe": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/locomotion/right strafe walking.json"
+        },
+        "gunplay": {
+          "idle": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/rifle/idle.json",
+          "walk": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/rifle/walk forward.json",
+          "run": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/rifle/run forward.json",
+          "attack": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/rifle/firing.json",
+          "walkBack": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/rifle/walk backward.json",
+          "runBack": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/rifle/run backward.json"
+        },
+        "states": {
+          "idle": "Armature.002Action.010",
+          "walk": null,
+          "run": null,
+          "attack": "Armature.002Action.010",
+          "ability": [
+            "Armature.002Action.010",
+            "TS_Body_04_sniperAction.001",
+            "TS_Head_04_sniperAction.001"
+          ],
+          "hit": null,
+          "death": null
+        }
+      },
+      "eras": [
+        "armada",
+        "nexus",
+        "warlords"
+      ],
+      "consumers": [
+        "hero-rts",
+        "grudge-builder",
+        "grudge-arena",
+        "fba",
+        "editors",
+        "shooters"
+      ]
+    }
+  ],
+  "animationPacks": {
+    "rifle": {
+      "idle": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/rifle/idle.json",
+      "walk": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/rifle/walk forward.json",
+      "run": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/rifle/run forward.json",
+      "attack": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/rifle/firing.json",
+      "walkBack": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/rifle/walk backward.json",
+      "runBack": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/rifle/run backward.json"
+    },
+    "pistol": {
+      "idle": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/pistol/pistol idle.json",
+      "walk": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/pistol/pistol walk.json",
+      "run": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/pistol/pistol run.json",
+      "attack": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/pistol/gunplay.json",
+      "walkBack": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/pistol/pistol walk backward.json",
+      "runBack": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/pistol/pistol run backward.json",
+      "strafe": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/pistol/pistol strafe.json"
+    },
+    "locomotion": {
+      "walk": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/locomotion/walking.json",
+      "run": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/locomotion/running.json",
+      "sprint": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/uploads_2026_06/locomotion/running.json",
+      "dodge": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/locomotion/dodging.json",
+      "leftStrafe": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/locomotion/left strafe walking.json",
+      "rightStrafe": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/locomotion/right strafe walking.json"
+    }
+  },
+  "controllerModule": {
+    "grudgeBuilder": "client/src/game/toon/ToonSoldierController.ts",
+    "fba": "artifacts/grudge-game/src/game/toon/ToonSoldierController.ts",
+    "sharedCatalog": "objectstore/api/v1/toon-soldiers-catalog.json"
+  },
+  "r2Keys": [
+    "models/toon-soldiers/scout/scout-a.glb",
+    "models/toon-soldiers/scout/scout-b.glb",
+    "models/toon-soldiers/engineer/engineer-a.glb",
+    "models/toon-soldiers/engineer/engineer-b.glb",
+    "models/toon-soldiers/gunner/gunner-a.glb",
+    "models/toon-soldiers/gunner/gunner-b.glb",
+    "models/toon-soldiers/infantry/infantry-a.glb",
+    "models/toon-soldiers/infantry/infantry-b.glb",
+    "models/toon-soldiers/medic/medic-a.glb",
+    "models/toon-soldiers/medic/medic-b.glb",
+    "models/toon-soldiers/sniper/sniper-a.glb",
+    "models/toon-soldiers/sniper/sniper-b.glb"
+  ],
+  "d1Table": "assets"
+}

@@ -457,9 +457,23 @@ export const BUILD_ASSETS: Record<string, BuildAssetDef> = {
 
 // ── Register survival kit SSOT (single write path — no hand-duplicated entries) ─
 import { ALL_SURVIVAL_BUILD_PIECES } from '@shared/definitions/survivalKitBuildCatalog';
+import { FANTASY_VILLAGE_PIECES } from '@shared/definitions/fantasyVillageBuildCatalog';
+import { ICE_BIOME_BUILD_PIECES } from '@shared/definitions/iceBiomeCatalog';
 import type { BuildPieceDef } from '@shared/definitions/buildSystem';
 
 function pieceCategory(p: BuildPieceDef): BuildCategory {
+  // Harvestable rocks/stones/trees from multipacks → nature tab
+  if (p.notes?.includes('Harvestable')) return 'nature';
+  // Ice biome terrain backdrops
+  if (p.id.startsWith('ice_mountain_') || p.id.startsWith('ice_iceberg_') || p.id.startsWith('ice_snowy_mountain_')) {
+    return 'terrain';
+  }
+  // Interior furniture ids
+  if (p.id.startsWith('fv_furniture_') || p.id.startsWith('ice_sandman_bed') || p.category === 'sleep') {
+    return 'furniture';
+  }
+  // Food / table props
+  if (p.id.startsWith('fv_food_')) return 'decoration';
   switch (p.category) {
     case 'foundation':
     case 'wall':
@@ -477,6 +491,7 @@ function pieceCategory(p: BuildPieceDef): BuildCategory {
     case 'storage':
       return 'storage';
     case 'fence':
+      return 'defense';
     case 'tower':
     case 'rts_building':
       return 'defense';
@@ -538,6 +553,16 @@ function survivalPieceToAsset(p: BuildPieceDef): BuildAssetDef {
 }
 
 for (const piece of ALL_SURVIVAL_BUILD_PIECES) {
+  BUILD_ASSETS[piece.id] = survivalPieceToAsset(piece);
+}
+
+// Fantasy village multipack — modular walls, towers, gates, houses, storage, carts
+for (const piece of FANTASY_VILLAGE_PIECES) {
+  BUILD_ASSETS[piece.id] = survivalPieceToAsset(piece);
+}
+
+// Ice / snow / mountain event multipack — frostbite + event island props
+for (const piece of ICE_BIOME_BUILD_PIECES) {
   BUILD_ASSETS[piece.id] = survivalPieceToAsset(piece);
 }
 

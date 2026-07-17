@@ -111,7 +111,9 @@ export const MAP_FAMILIES: Record<MapFamilyId, MapFamilyDef> = {
     engines: ['Island3DEngine mode=zone', 'Colyseus sector rooms', 'ZoneTerrainGenerator'],
     notes: [
       'worldSeed default: grudge-world-1',
-      'Starter sector: haven_shore (legacy S)',
+      'Starter sector: haven_shore (legacy S) — PVE trade village foundation (Fruzer GLB)',
+      'Haven foundation SSOT: shared/definitions/havenShoreFoundation.ts',
+      'Haven water: zone ocean only — strip Fruzer Water cubes (no duplicate water)',
       'Freeform ARPG: class is flavor; gear drives combat',
     ],
   },

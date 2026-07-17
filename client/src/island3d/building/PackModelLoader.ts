@@ -40,7 +40,20 @@ function cloneNode(pack: THREE.Group, nodeName: string): THREE.Object3D | null {
     console.warn(`[PackModel] node not found: ${nodeName}`);
     return null;
   }
-  return node.clone(true);
+  const cloned = node.clone(true);
+  // Multipacks often store pieces in authored world space — recenter for placement.
+  const box = new THREE.Box3().setFromObject(cloned);
+  if (!box.isEmpty()) {
+    const center = box.getCenter(new THREE.Vector3());
+    cloned.position.sub(center);
+    // Sit on ground: lift so bottom of bounds is at y=0
+    const box2 = new THREE.Box3().setFromObject(cloned);
+    if (!box2.isEmpty()) {
+      cloned.position.y -= box2.min.y;
+    }
+  }
+  cloned.name = nodeName;
+  return cloned;
 }
 
 /**

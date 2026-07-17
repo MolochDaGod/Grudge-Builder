@@ -51,14 +51,17 @@ export const RACE_CITIES: RaceCity[] = [
     id: 'haven_port',
     raceId: 'human',
     name: 'Haven Port',
-    subtitle: 'Human Capital · Starter Harbor',
+    subtitle: 'Human Capital · PVE Trade Village',
     sectorId: 'haven_shore',
     factionTownKey: undefined,
     dungeon: { id: 'tropical_dungeon_0', name: "Pirate's Crypt", entranceModel: 'cave' },
     harvest: ['fishing', 'woodcutting', 'herbalism'],
-    description: 'Safe tropical capital. Docks, markets, and the first steps into open-world harvest and dungeons.',
-    modelPath: '/models/medieval_town.glb',
-    modelScale: 1.0,
+    description:
+      'Safe tropical PVE trade hub (Fruzer islands foundation). Four vendors, mission givers, ' +
+      'DB harvest UUIDs, enemy vessels offshore. Map ocean only — no embedded water mesh.',
+    // Fruzer chicken_gun islands — loaded via HavenShoreFoundationLoader in zone mode
+    modelPath: '/models/warlords/haven_shore/fruzer_islands.glb',
+    modelScale: 2.4,
   },
   {
     id: 'runeforge_hold',

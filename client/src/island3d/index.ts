@@ -39,6 +39,18 @@ export type { HarvestKind, GrowthPhase } from './harvest/RegenerativeHarvest';
 export { Island3DEngine } from './engine/Island3DEngine';
 export type { Island3DEngineConfig, Island3DMode } from './engine/Island3DEngine';
 
+// Haven Shore PVE trade foundation (Fruzer)
+export { loadHavenShoreFoundation } from './zone/HavenShoreFoundationLoader';
+export type { HavenFoundationResult } from './zone/HavenShoreFoundationLoader';
+
+// Build Hammer (0.8× survival kit hammer in hand)
+export {
+  equipBuildHammer,
+  unequipBuildHammer,
+  createBuildHammerMesh,
+} from './building/BuildHammerAttachment';
+export type { BuildHammerHandle } from './building/BuildHammerAttachment';
+
 // RTS triple-mode UI (combat / harvest / build)
 export { ModePlayHUD } from './render/ModePlayHUD';
 export type { ModePlayHUDProps } from './render/ModePlayHUD';
@@ -46,6 +58,10 @@ export type { ModePlayHUDProps } from './render/ModePlayHUD';
 // Faction NPC camps
 export { NpcCampSystem, spawnZoneCamps } from './camps/NpcCampSystem';
 export type { RuntimeCamp, NpcCampSystemOpts } from './camps/NpcCampSystem';
+export { CampUnitSystem, campOrderHotkeyList } from './camps/CampUnitSystem';
+export type { CampUnitRecord, CampUnitSystemOpts } from './camps/CampUnitSystem';
+export { CampCommandBar } from './render/CampCommandBar';
+export type { CampCommandBarProps } from './render/CampCommandBar';
 
 // Lobby maps
 export { loadLobbyMap, getLobbyMap, LOBBY_MAPS } from './engine/LobbyIslandLoader';

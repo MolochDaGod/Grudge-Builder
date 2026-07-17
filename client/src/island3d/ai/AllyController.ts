@@ -8,7 +8,7 @@ import * as THREE from 'three';
 import { TerrainNavMesh, type NavPath } from '../navigation/TerrainNavMesh';
 import { getTerrainHeightAt } from '../terrain/IslandTerrainGenerator';
 
-export type AllyState = 'idle' | 'follow' | 'combat' | 'guard' | 'return' | 'dead';
+export type AllyState = 'idle' | 'follow' | 'combat' | 'guard' | 'return' | 'dead' | 'group';
 
 export interface AllyStats {
   maxHp: number;
@@ -74,6 +74,12 @@ export class AllyController {
   // Follow
   private followTarget: THREE.Vector3 | null = null;
   private guardPosition: THREE.Vector3 | null = null;
+  private homePosition: THREE.Vector3 | null = null;
+  private groupAnchor: THREE.Vector3 | null = null;
+  /** Aggressive attack mode — chase beyond normal aggro */
+  private aggressive = false;
+  /** In player party (follow / group) */
+  public joinParty = false;
 
   // Callbacks
   public onAttack?: (target: CombatTarget, damage: number) => void;
@@ -133,22 +139,65 @@ export class AllyController {
     this.onStateChange?.(prev, next);
   }
 
-  /** Command: follow the player */
+  /** Command: follow the player (join party) */
   commandFollow(playerPosition: THREE.Vector3): void {
-    this.followTarget = playerPosition;
+    this.followTarget = playerPosition.clone();
+    this.aggressive = false;
+    this.joinParty = true;
     this.setState('follow');
   }
 
   /** Command: guard current position */
   commandGuard(): void {
     this.guardPosition = this.model.position.clone();
+    this.aggressive = false;
+    this.joinParty = false;
     this.setState('guard');
+  }
+
+  /** F1 — Defend camp at home post */
+  commandDefendCamp(homePosition: THREE.Vector3): void {
+    this.homePosition = homePosition.clone();
+    this.guardPosition = homePosition.clone();
+    this.aggressive = false;
+    this.joinParty = false;
+    this.followTarget = null;
+    this.setState('guard');
+  }
+
+  /** F3 — Go home to camp garrison post */
+  commandGoHome(homePosition: THREE.Vector3): void {
+    this.homePosition = homePosition.clone();
+    this.guardPosition = homePosition.clone();
+    this.followTarget = null;
+    this.aggressive = false;
+    this.joinParty = false;
+    this.target = null;
+    this.setState('return');
+  }
+
+  /** F4 — Attack: aggressive pursue hostiles */
+  commandAttackAggressive(): void {
+    this.aggressive = true;
+    this.joinParty = false;
+    this.setState('combat');
+  }
+
+  /** F5 — Group on me: rally tight, then hold near player */
+  commandGroupOnMe(playerPosition: THREE.Vector3): void {
+    this.groupAnchor = playerPosition.clone();
+    this.followTarget = playerPosition.clone();
+    this.aggressive = false;
+    this.joinParty = true;
+    this.setState('group');
   }
 
   /** Command: recall (stop and idle) */
   commandRecall(): void {
     this.target = null;
     this.followTarget = null;
+    this.aggressive = false;
+    this.joinParty = false;
     this.setState('idle');
   }
 
@@ -214,15 +263,32 @@ export class AllyController {
         }
         break;
 
-      case 'return':
-        const returnTarget = this.followTarget || this.guardPosition || playerPosition;
+      case 'return': {
+        const returnTarget =
+          this.homePosition || this.guardPosition || this.followTarget || playerPosition;
         const dist = this.model.position.distanceTo(returnTarget);
-        if (dist < 3) {
-          this.setState(this.followTarget ? 'follow' : this.guardPosition ? 'guard' : 'idle');
+        if (dist < 2.5) {
+          this.guardPosition = returnTarget.clone();
+          this.setState('guard');
         } else {
           this.moveToward(returnTarget, 1, dt);
         }
         break;
+      }
+
+      case 'group': {
+        // Rally to player, then hold formation (tighter than follow)
+        this.groupAnchor = playerPosition.clone();
+        if (nearestEnemy) {
+          this.engageCombat(nearestEnemy);
+          break;
+        }
+        const gDist = this.model.position.distanceTo(playerPosition);
+        if (gDist > 2.2) {
+          this.moveToward(playerPosition, 1.8, dt);
+        }
+        break;
+      }
     }
 
     // Terrain snap
@@ -270,7 +336,14 @@ export class AllyController {
     let nearest: CombatTarget | null = null;
     let nearestDist = this.stats.aggroRadius;
 
-    const aggroRange = this.state === 'guard' ? this.stats.aggroRadius * 0.7 : this.stats.aggroRadius;
+    let aggroRange =
+      this.state === 'guard' ? this.stats.aggroRadius * 0.85 : this.stats.aggroRadius;
+    if (this.aggressive || this.state === 'combat') {
+      aggroRange = this.stats.aggroRadius * 2.2;
+    }
+    if (this.state === 'group' || this.state === 'follow') {
+      aggroRange = this.stats.aggroRadius * 1.2;
+    }
 
     for (const e of enemies) {
       if (e.dead || e.hp <= 0) continue;
@@ -399,6 +472,26 @@ export class AllyManager {
   /** Command all allies to guard their current positions */
   commandAllGuard(): void {
     for (const [, ally] of this.allies) ally.commandGuard();
+  }
+
+  commandAllDefend(home: THREE.Vector3): void {
+    for (const [, ally] of this.allies) ally.commandDefendCamp(home);
+  }
+
+  commandAllGoHome(home: THREE.Vector3): void {
+    for (const [, ally] of this.allies) ally.commandGoHome(home);
+  }
+
+  commandAllAttack(): void {
+    for (const [, ally] of this.allies) ally.commandAttackAggressive();
+  }
+
+  commandAllGroupOnMe(playerPosition: THREE.Vector3): void {
+    for (const [, ally] of this.allies) ally.commandGroupOnMe(playerPosition);
+  }
+
+  getAlly(id: string): AllyController | undefined {
+    return this.allies.get(id);
   }
 
   /** Get all living allies */

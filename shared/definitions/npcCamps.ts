@@ -116,7 +116,12 @@ export const CAMP_UPGRADES: Record<string, CampUpgradeDef> = {
     ],
     maxPerCamp: 4,
     cost: [{ itemId: 'wood', quantity: 4 }],
-    effect: { type: 'comfort', value: 5, description: 'Rest + stamina regen for allies in camp' },
+    effect: {
+      type: 'comfort',
+      value: 5,
+      description:
+        'Craft at camp — raises crafting profession levels (Camp/Engineering/Forestry/Mining).',
+    },
   },
   camp_storage: {
     id: 'camp_storage',
@@ -132,7 +137,11 @@ export const CAMP_UPGRADES: Record<string, CampUpgradeDef> = {
       { itemId: 'wood', quantity: 6 },
       { itemId: 'iron', quantity: 2 },
     ],
-    effect: { type: 'storage', value: 20, description: 'Shared camp inventory (20 slots)' },
+    effect: {
+      type: 'storage',
+      value: 20,
+      description: 'Shared inventory + unit harvest yield/rate buff',
+    },
   },
   camp_tower: {
     id: 'camp_tower',
@@ -150,12 +159,17 @@ export const CAMP_UPGRADES: Record<string, CampUpgradeDef> = {
       { itemId: 'wood', quantity: 20 },
       { itemId: 'stone', quantity: 10 },
     ],
-    effect: { type: 'defense', value: 50, description: 'Spot enemies; ally tower fire support' },
+    effect: {
+      type: 'defense',
+      value: 50,
+      description:
+        'Trains garrison: T0 weapons, armor, weapon skills, improved AI',
+    },
   },
   camp_flag: {
     id: 'camp_flag',
     kind: 'flag',
-    label: 'Faction Flag',
+    label: 'Claim Flag',
     buildAssetId: 'flag_totem',
     slotOffsets: [[0, 0, 0]],
     maxPerCamp: 1,
@@ -163,7 +177,12 @@ export const CAMP_UPGRADES: Record<string, CampUpgradeDef> = {
       { itemId: 'wood', quantity: 2 },
       { itemId: 'cloth', quantity: 3 },
     ],
-    effect: { type: 'morale', value: 10, description: 'Claims camp for your faction' },
+    effect: {
+      type: 'morale',
+      value: 10,
+      description:
+        'Claims camp for you. Spawns unarmed race garrison. F1–F5 unit orders when near owned camp.',
+    },
   },
   camp_fire: {
     id: 'camp_fire',
@@ -173,9 +192,16 @@ export const CAMP_UPGRADES: Record<string, CampUpgradeDef> = {
     slotOffsets: [[1.5, 0, 0]],
     maxPerCamp: 1,
     cost: [{ itemId: 'wood', quantity: 3 }],
-    effect: { type: 'comfort', value: 8, description: 'Warmth + cook station' },
+    effect: {
+      type: 'comfort',
+      value: 8,
+      description: 'Warmth + cook station — Cooking profession XP at owned camp',
+    },
   },
 };
+
+/** Alias for claim-flag product language */
+export const CLAIM_FLAG_UPGRADE = CAMP_UPGRADES.camp_flag;
 
 // ── Camp base definition ─────────────────────────────────────────────────────
 

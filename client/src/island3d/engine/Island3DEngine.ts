@@ -55,11 +55,14 @@ import { getSectorById, type WorldSector } from '@shared/definitions/worldMapSec
 import {
   generateZonePopulation, getNodesByCategory,
   type ZonePopulation, type IslandNode, type SpawnPointNode, type DockNode,
+  type HarvestNode,
 } from '@shared/definitions/zoneServerNodes';
 import { buildZoneScene, type ZoneSceneResult } from './ZoneSceneBuilder';
 import { CreatureManager, type CreatureLootEvent } from '../creatures/CreatureManager';
 import { NpcCampSystem, spawnZoneCamps } from '../camps/NpcCampSystem';
+import { CampUnitSystem } from '../camps/CampUnitSystem';
 import type { CampFaction } from '@shared/definitions/npcCamps';
+import type { CampUnitOrderId } from '@shared/definitions/campUnits';
 import {
   createEvilMountainTriad,
   EvilMountainTriadSystem,
@@ -72,6 +75,15 @@ import { buildHarvestZones, type HarvestZonesResult } from '../harvest/HarvestZo
 import { spawnZoneHarvestNodes } from '../harvest/ZoneHarvestSpawner';
 import { spawnRaceCapitalInZone, type ZoneCapitalResult } from '../zone/ZoneCapitalSpawner';
 import { spawnZoneDungeonPortals, type ZoneDungeonPortalsResult } from '../zone/ZoneDungeonPortals';
+import {
+  loadHavenShoreFoundation,
+  type HavenFoundationResult,
+} from '../zone/HavenShoreFoundationLoader';
+import {
+  isHavenShoreSector,
+  HAVEN_SHORE_FOUNDATION,
+  havenHarvestToZoneNodes,
+} from '@shared/definitions/havenShoreFoundation';
 import { getRaceCityBySector, getRaceCityById } from '@shared/definitions/raceCities';
 import {
   HARVEST_RESPAWN_MS,
@@ -179,6 +191,8 @@ export interface Island3DEngineConfig {
   /** Account + captain for dock ship roster */
   accountId?: string;
   captainId?: string | null;
+  /** Player race for claim-flag unarmed garrison spawns */
+  raceId?: string;
   /** Mine run loot bag (miner / engineer / mystic harvest) */
   onMineLoot?: (items: MineLootItem[], mineId: string) => void;
   /**
@@ -247,6 +261,8 @@ export class Island3DEngine {
   public zoneSector: WorldSector | null = null;
   /** Race capital (Unity world map city) placed in this sector */
   public zoneCapital: ZoneCapitalResult | null = null;
+  /** Haven Shore Fruzer foundation (PVE trade village) — only for haven_shore */
+  public havenFoundation: HavenFoundationResult | null = null;
   /** Dungeon entrance portals from zone population */
   public zoneDungeonPortals: ZoneDungeonPortalsResult | null = null;
 
@@ -266,6 +282,8 @@ export class Island3DEngine {
 
   // Faction NPC camps (stylized camp GLB + upgrades)
   public npcCamps: NpcCampSystem | null = null;
+  /** Claim-flag garrison + F1–F5 orders + bench professions */
+  public campUnits: CampUnitSystem | null = null;
   /** Player faction for camp ally/enemy resolution */
   public playerFaction: CampFaction | string = 'crusade';
 
@@ -503,15 +521,10 @@ export class Island3DEngine {
 
     // Faction NPC camps on lobby land for PvE / open combat
     if (!this.npcCamps) {
-      this.npcCamps = new NpcCampSystem({
-        scene: this.scene,
-        playerFaction: this.playerFaction,
-        waterLevel: LOBBY_WATER_LEVEL,
-        sampleHeight: sampleGround,
-      });
+      this.ensureCampSystems(LOBBY_WATER_LEVEL, sampleGround);
       const half = maxDim * 0.35;
       void spawnZoneCamps(
-        this.npcCamps,
+        this.npcCamps!,
         [
           { x: half * 0.4, z: half * 0.2, radius: half * 0.25 },
           { x: -half * 0.35, z: half * 0.3, radius: half * 0.22 },
@@ -800,8 +813,13 @@ export class Island3DEngine {
     }
     progress(78);
 
-    // 9. Ally manager
+    // 9. Ally manager (+ hand to camp unit system for claim-flag AI)
     this.allyManager = new AllyManager(this.scene, this.navMesh, this.terrain.terrainMesh);
+    this.campUnits?.setAllyManager(this.allyManager);
+    this.ensureCampSystems(
+      PROCEDURAL_WATER_LEVEL,
+      (wx, wz) => getTerrainHeightAt(this.terrain!.terrainMesh, wx, wz),
+    );
 
     // 10. Building system — camp plateau constraints + board snap
     this.building = new BuildingSystem(this.scene, this.camera);
@@ -904,9 +922,25 @@ export class Island3DEngine {
       sector.resources, sector.biome,
     );
 
+    // 1b. Haven Shore PVE trade foundation — inject DB harvest UUIDs into population
+    if (isHavenShoreSector(sectorId)) {
+      const foundationHarvest = havenHarvestToZoneNodes(HAVEN_SHORE_FOUNDATION.origin);
+      for (const node of foundationHarvest) {
+        this.zonePopulation.nodes.set(node.id, node as HarvestNode);
+      }
+      console.log(
+        `[Island3D] Haven Shore: injected ${foundationHarvest.length} harvest UUIDs into zone population`,
+      );
+    }
+
     // 2. Build the Three.js scene (ocean, islands, markers, lighting)
+    // Ocean is the ONLY water surface — Fruzer Water cubes are stripped later.
     this.zoneScene = buildZoneScene(sector, this.zonePopulation);
     this.scene.add(this.zoneScene.root);
+    if (this.zoneScene.ocean) {
+      this.waterPlane = this.zoneScene.ocean;
+      removeDuplicateWaterMeshes(this.scene, this.zoneScene.ocean);
+    }
 
     // 2b. Interactive harvest meshes on zone nodes (Warlords era open world)
     await preloadIslandResources().catch(() => undefined);
@@ -915,6 +949,7 @@ export class Island3DEngine {
       this.zonePopulation,
       this.zoneScene.islandMeshes,
       this.zoneScene.markers,
+      cfg.waterLevel,
     );
     this.trees.push(...zoneHarvest.trees);
     this.rocks.push(...zoneHarvest.rocks);
@@ -928,37 +963,66 @@ export class Island3DEngine {
     );
 
     // 2c. Race capital city (Unity world map — 6 race cities)
+    // For haven_shore: Fruzer foundation IS the village (vendors, missions, boats).
     const cityHint =
       typeof window !== 'undefined'
         ? new URLSearchParams(window.location.search).get('city')
         : null;
     const raceCity =
       (cityHint ? getRaceCityById(cityHint) : null) ?? getRaceCityBySector(sectorId);
-    if (raceCity) {
-      const settlementIslands = getNodesByCategory<IslandNode>(this.zonePopulation, 'island')
-        .filter((i) => i.hasSettlement || i.size === 'large' || i.size === 'fortress');
-      const capitalIsland =
-        settlementIslands[0] ??
-        getNodesByCategory<IslandNode>(this.zonePopulation, 'island')[0];
-      if (capitalIsland) {
-        const capMesh =
-          this.zoneScene.islandMeshes.get(capitalIsland.id) ??
-          this.zoneScene.islandMeshes.values().next().value ??
-          null;
-        try {
+
+    const settlementIslands = getNodesByCategory<IslandNode>(this.zonePopulation, 'island')
+      .filter((i) => i.hasSettlement || i.size === 'large' || i.size === 'fortress');
+    const capitalIsland =
+      settlementIslands[0] ??
+      getNodesByCategory<IslandNode>(this.zonePopulation, 'island')[0];
+
+    if (isHavenShoreSector(sectorId) && capitalIsland) {
+      try {
+        const ox = capitalIsland.position[0];
+        const oz = capitalIsland.position[2];
+        this.havenFoundation = await loadHavenShoreFoundation(this.scene, {
+          origin: [ox, cfg.waterLevel, oz],
+          scale: HAVEN_SHORE_FOUNDATION.scale,
+        });
+        // Ensure no Fruzer water survived parenting
+        removeDuplicateWaterMeshes(this.scene, this.zoneScene.ocean);
+        // Plaza marker for Haven Port without loading medieval_town twice
+        if (raceCity) {
           this.zoneCapital = await spawnRaceCapitalInZone(
             this.scene,
-            raceCity,
-            capitalIsland.position[0],
-            capitalIsland.position[2],
-            capMesh,
+            { ...raceCity, modelPath: '' }, // foundation owns 3D village
+            ox,
+            oz,
+            this.zoneScene.islandMeshes.get(capitalIsland.id) ?? null,
           );
-          console.log(
-            `[Island3D] Race capital "${raceCity.name}" (${raceCity.raceId}) in ${sectorId}`,
-          );
-        } catch (err) {
-          console.warn('[Island3D] Race capital spawn failed:', err);
         }
+        console.log(
+          `[Island3D] Haven Shore Fruzer foundation + PVE trade village at (${ox.toFixed(0)}, ${oz.toFixed(0)})`,
+        );
+      } catch (err) {
+        console.warn('[Island3D] Haven Shore foundation failed, falling back to capital GLB:', err);
+      }
+    }
+
+    if (raceCity && !this.havenFoundation && capitalIsland) {
+      const capMesh =
+        this.zoneScene.islandMeshes.get(capitalIsland.id) ??
+        this.zoneScene.islandMeshes.values().next().value ??
+        null;
+      try {
+        this.zoneCapital = await spawnRaceCapitalInZone(
+          this.scene,
+          raceCity,
+          capitalIsland.position[0],
+          capitalIsland.position[2],
+          capMesh,
+        );
+        console.log(
+          `[Island3D] Race capital "${raceCity.name}" (${raceCity.raceId}) in ${sectorId}`,
+        );
+      } catch (err) {
+        console.warn('[Island3D] Race capital spawn failed:', err);
       }
     }
 
@@ -989,14 +1053,20 @@ export class Island3DEngine {
       );
     }
 
-    // 6. Camera — prefer race capital spawn, else dock / player spawn
+    // 6. Camera — prefer Haven foundation / race capital spawn, else dock / player spawn
     const spawns = getNodesByCategory<SpawnPointNode>(this.zonePopulation, 'spawn_point')
       .filter(s => s.spawnType === 'player');
     const docks = getNodesByCategory<DockNode>(this.zonePopulation, 'dock');
     const dockOrSpawn = spawns[0]?.position ?? docks[0]?.position ?? cfg.spawnPoints[0] ?? [0, 20, 0];
-    const entryPoint: [number, number, number] = this.zoneCapital
-      ? [this.zoneCapital.spawn.x, this.zoneCapital.spawn.y, this.zoneCapital.spawn.z]
-      : dockOrSpawn;
+    const entryPoint: [number, number, number] = this.havenFoundation
+      ? [
+          this.havenFoundation.root.position.x + 18,
+          cfg.waterLevel + 4,
+          this.havenFoundation.root.position.z + 22,
+        ]
+      : this.zoneCapital
+        ? [this.zoneCapital.spawn.x, this.zoneCapital.spawn.y, this.zoneCapital.spawn.z]
+        : dockOrSpawn;
     const camLift = Math.max(180, cfg.sizeMeters * 0.018);
     const camBack = Math.max(280, cfg.sizeMeters * 0.028);
 
@@ -1072,13 +1142,8 @@ export class Island3DEngine {
           return hits.length > 0 ? hits[0].point.y : null;
         }
       : undefined;
-    this.npcCamps = new NpcCampSystem({
-      scene: this.scene,
-      playerFaction: this.playerFaction,
-      waterLevel: cfg.waterLevel,
-      sampleHeight: sampleY,
-    });
-    void spawnZoneCamps(this.npcCamps, islandCenters, {
+    this.ensureCampSystems(cfg.waterLevel, sampleY);
+    void spawnZoneCamps(this.npcCamps!, islandCenters, {
       playerFaction: this.playerFaction,
       seed: sectorId.length * 9973,
       campsPerIsland: 1,
@@ -1100,19 +1165,58 @@ export class Island3DEngine {
     this.npcCamps?.setPlayerFaction(faction);
   }
 
-  /** Place player-owned camp (build mode) at world XZ. */
-  async placePlayerCamp(x: number, z: number, faction?: CampFaction): Promise<string | null> {
+  /** Wire claim-flag garrison + F1–F5 unit orders. */
+  private ensureCampSystems(
+    waterLevel: number,
+    sampleHeight?: (x: number, z: number) => number | null,
+  ): void {
+    // AllyManager is created after nav bake on home island; zone/lobby may attach later.
+    // CampUnitSystem still spawns race meshes without allies (static posts until AI available).
+
     if (!this.npcCamps) {
       this.npcCamps = new NpcCampSystem({
         scene: this.scene,
         playerFaction: this.playerFaction,
-        waterLevel: PROCEDURAL_WATER_LEVEL,
-        sampleHeight: this.terrain
-          ? (wx, wz) => getTerrainHeightAt(this.terrain!.terrainMesh, wx, wz)
-          : undefined,
+        waterLevel,
+        sampleHeight,
       });
     }
-    const camp = await this.npcCamps.spawnCamp({
+    if (!this.campUnits) {
+      this.campUnits = new CampUnitSystem({
+        scene: this.scene,
+        campSystem: this.npcCamps,
+        allyManager: this.allyManager,
+        playerRaceId: this.config.raceId ?? 'human',
+        playerAccountId: this.config.accountId ?? 'guest',
+        getPlayerPosition: () =>
+          this.character?.getPosition() ?? this.camera.position.clone(),
+        sampleHeight,
+        waterLevel,
+      });
+    } else {
+      this.campUnits.setAllyManager(this.allyManager);
+    }
+    this.npcCamps.setClaimFlagHandler(async (camp) => {
+      if (!camp.data.ownerAccountId) {
+        camp.data.ownerAccountId = this.config.accountId ?? 'guest';
+      }
+      await this.campUnits?.onClaimFlagPlaced(camp);
+    });
+    this.npcCamps.setUpgradeHandler(async (camp, upgradeId) => {
+      if (upgradeId === 'camp_flag') return; // claim handler already ran
+      this.campUnits?.refreshCampBuffs(camp.data.id);
+    });
+  }
+
+  /** Place player-owned camp (build mode) at world XZ. */
+  async placePlayerCamp(x: number, z: number, faction?: CampFaction): Promise<string | null> {
+    this.ensureCampSystems(
+      PROCEDURAL_WATER_LEVEL,
+      this.terrain
+        ? (wx, wz) => getTerrainHeightAt(this.terrain!.terrainMesh, wx, wz)
+        : undefined,
+    );
+    const camp = await this.npcCamps!.spawnCamp({
       defId: 'stylized_enemy_camp',
       faction: (faction ?? this.playerFaction) as CampFaction,
       x,
@@ -1122,7 +1226,10 @@ export class Island3DEngine {
     return camp?.data.id ?? null;
   }
 
-  /** Attach bench / storage / tower to nearest camp within radius. */
+  /**
+   * Attach bench / storage / tower / claim flag to nearest camp.
+   * Claim Flag spawns unarmed race garrison for the player.
+   */
   async upgradeNearestCamp(
     x: number,
     z: number,
@@ -1130,9 +1237,36 @@ export class Island3DEngine {
   ): Promise<boolean> {
     const camp = this.npcCamps?.findNearestCamp(x, z, 24);
     if (!camp) return false;
-    // Only upgrade ally camps (or own camps)
-    if (camp.relation === 'enemy') return false;
-    return this.npcCamps!.addUpgrade(camp.data.id, upgradeId);
+    // Only upgrade ally camps or own camps
+    if (camp.relation === 'enemy' && camp.data.ownerAccountId !== (this.config.accountId ?? 'guest')) {
+      return false;
+    }
+    if (upgradeId === 'camp_flag' && !camp.data.ownerAccountId) {
+      camp.data.ownerAccountId = this.config.accountId ?? 'guest';
+    }
+    return this.npcCamps!.addUpgrade(camp.data.id, upgradeId, {
+      ownerAccountId: this.config.accountId ?? 'guest',
+    });
+  }
+
+  /** F1–F5 camp unit orders (owned camp only). */
+  issueCampOrder(orderId: CampUnitOrderId): boolean {
+    return this.campUnits?.issueOrder(orderId) ?? false;
+  }
+
+  /** Craft at nearest owned camp bench → profession XP. */
+  craftAtOwnedCamp(profession?: string): {
+    ok: boolean;
+    xp: number;
+    reason?: string;
+  } {
+    const r = this.campUnits?.craftAtCampBench(profession ?? 'camp');
+    return r ?? { ok: false, xp: 0, reason: 'No camp unit system' };
+  }
+
+  /** True when player is near a camp they own (show order HUD). */
+  isNearOwnedCamp(radius = 40): boolean {
+    return this.campUnits?.isNearOwnedCamp(radius) ?? false;
   }
 
   /** Collapse submerged terrain so only the ocean shader shows water (not seafloor + ocean). */
@@ -1575,6 +1709,10 @@ export class Island3DEngine {
       this.allyManager.update(dt, this.character.getPosition(), enemies);
     }
 
+    // Camp garrison AI orders / follow refresh
+    this.campUnits?.setAllyManager(this.allyManager);
+    this.campUnits?.update(dt);
+
     // Wildlife AI
     if (this.creatures && this.character) {
       this.creatures.update(dt, this.character.getPosition());
@@ -1598,6 +1736,9 @@ export class Island3DEngine {
     }
 
     // Zone race capital + dungeon portals
+    if (this.havenFoundation) {
+      this.havenFoundation.update(dt, this.clock.elapsedTime);
+    }
     if (this.zoneCapital) {
       this.zoneCapital.update(dt, this.clock.elapsedTime);
     }
@@ -1628,11 +1769,25 @@ export class Island3DEngine {
     this.postProcessing?.resize(width, height);
   }
 
-  /** Press E/F near interactables — mine, dungeon portal, capture point, or ship dock. */
+  /**
+   * World prop node / asset id for E-to-learn recipes (ice biome chests, stations, etc.).
+   * Set by play layer when player is in range of a learnable multipack prop.
+   */
+  nearestLearnAssetId: string | null = null;
+
+  /** Press E/F near interactables — mine, dungeon portal, capture point, ship dock, or learn recipe. */
   handleInteractKey(): boolean {
     if (this.mineSystem?.tryInteract()) return true;
     if (this.mountainTriad?.tryInteract()) return true;
     if (this.zoneDungeonPortals?.tryInteract()) return true;
+
+    // Ice/snow event assets: E once per character to learn craft recipe
+    if (this.nearestLearnAssetId) {
+      void import('@/lib/recipeLearn').then(({ tryLearnRecipeFromAsset }) => {
+        void tryLearnRecipeFromAsset(this.nearestLearnAssetId!);
+      });
+      return true;
+    }
 
     if (this.character && this.lobbyShip) {
       if (this.lobbyShip.isBoarded) {
@@ -1983,6 +2138,8 @@ export class Island3DEngine {
   destroy(): void {
     this.stop();
     this.creatures?.dispose();
+    this.campUnits?.dispose();
+    this.campUnits = null;
     this.npcCamps?.dispose();
     this.npcCamps = null;
     this.character?.destroy();
@@ -2001,6 +2158,10 @@ export class Island3DEngine {
     if (this.lobbyCollider?.colliderMesh.parent) {
       this.scene.remove(this.lobbyCollider.colliderMesh);
     }
+    this.havenFoundation?.dispose();
+    this.havenFoundation = null;
+    this.zoneCapital?.dispose();
+    this.zoneCapital = null;
     this.zoneScene?.dispose();
     this.grassLayer?.dispose();
     this.sandLayer?.dispose();

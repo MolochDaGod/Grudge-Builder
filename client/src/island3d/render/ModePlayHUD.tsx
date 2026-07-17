@@ -19,7 +19,15 @@ import {
   type BuildAssetDef,
   type BuildCategory,
 } from '../building/BuildAssetManifest';
+import {
+  BUILD_TAB_ORDER,
+  BUILD_TAB_LABELS,
+  buildTabFromDigitKey,
+  BUILD_HAMMER_NAME,
+  BUILD_HAMMER_SCALE,
+} from '@shared/definitions/buildHammer';
 import { CombatUnitStatus } from '@/components/CombatUnitStatus';
+import { CampCommandBar } from './CampCommandBar';
 
 // ── Mode config ──────────────────────────────────────────────────────────────
 
@@ -49,7 +57,7 @@ const MODES: {
     label: 'Build',
     color: '#64b5f6',
     Icon: Hammer,
-    hint: 'Select item · blue ghost follows mouse · LMB place · R rotate',
+    hint: 'Build Hammer in hand · WASD free move · RMB look · tabs 1–9 · LMB place · R rotate',
   },
 ];
 
@@ -133,18 +141,27 @@ export function ModePlayHUD({
     return () => window.removeEventListener('keydown', onKey);
   }, [mode, onModeChange]);
 
-  // Escape cancels build ghost
+  // Escape cancels build ghost; digits 1–9 switch build group tabs (Dune-style)
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      if ((e.target as HTMLElement)?.tagName === 'INPUT') return;
       if (e.key === 'Escape' && placing) {
         engine?.cancelBuilding();
         setPlacingLocal(false);
         onBuildCancel?.();
+        return;
+      }
+      if (mode === 'build') {
+        const tab = buildTabFromDigitKey(e.key);
+        if (tab && getAllBuildCategories().includes(tab as BuildCategory)) {
+          setBuildCategory(tab as BuildCategory);
+          e.preventDefault();
+        }
       }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [placing, engine, onBuildCancel]);
+  }, [placing, engine, onBuildCancel, mode]);
 
   const selectPiece = useCallback(
     (type: PieceType) => {
@@ -178,6 +195,9 @@ export function ModePlayHUD({
 
   return (
     <div className="absolute inset-0 pointer-events-none z-40">
+      {/* Owned camp: F1–F5 unit orders + bench craft */}
+      <CampCommandBar engine={engine} />
+
       {/* ── Mode dock (bottom center) ─────────────────────────────────── */}
       <div className="absolute bottom-3 left-1/2 -translate-x-1/2 pointer-events-auto flex flex-col items-center gap-2">
         {/* Mode-specific panel */}
@@ -405,7 +425,7 @@ function HarvestModePanel({ resources }: { resources: Record<string, number> }) 
   );
 }
 
-// ── Build panel ──────────────────────────────────────────────────────────────
+// ── Build panel (Dune Awakening–style horizontal group tabs + piece grid) ────
 
 function BuildModeInner({
   categories,
@@ -430,86 +450,149 @@ function BuildModeInner({
   onSelectProp: (id: string) => void;
   onCancel: () => void;
 }) {
+  // Prefer SSOT tab order; only show categories that exist in the catalog
+  const orderedTabs = BUILD_TAB_ORDER.filter((t) =>
+    categories.includes(t as BuildCategory),
+  ) as BuildCategory[];
+  const extraTabs = categories.filter((c) => !orderedTabs.includes(c));
+  const tabs = [...orderedTabs, ...extraTabs];
+
   return (
-    <div className="flex flex-col max-h-[280px]">
+    <div className="flex flex-col max-h-[320px] min-w-[440px]">
+      {/* Header — Build Hammer identity */}
       <div className="flex items-center justify-between px-3 py-2 border-b border-sky-800/30">
-        <span className="text-sky-300 text-xs font-bold tracking-wider font-cinzel flex items-center gap-1.5">
-          <Hammer className="w-3.5 h-3.5" /> RTS Build
-        </span>
-        {placing && (
-          <button type="button" onClick={onCancel} className="text-red-300/80 text-[10px] font-bold">
-            Cancel
-          </button>
-        )}
+        <div className="flex items-center gap-2">
+          <span className="text-sky-300 text-xs font-bold tracking-wider font-cinzel flex items-center gap-1.5">
+            <Hammer className="w-3.5 h-3.5" /> {BUILD_HAMMER_NAME}
+          </span>
+          <span className="text-[9px] text-sky-400/50 font-mono">
+            ×{BUILD_HAMMER_SCALE} kit mesh
+          </span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-[9px] text-white/30 hidden sm:inline">
+            WASD move · RMB look
+          </span>
+          {placing && (
+            <button type="button" onClick={onCancel} className="text-red-300/80 text-[10px] font-bold">
+              Cancel
+            </button>
+          )}
+        </div>
       </div>
 
-      {/* Structure pieces row */}
-      <div className="px-2 py-1.5 border-b border-white/5 flex flex-wrap gap-1">
-        {pieces.map((p) => (
-          <button
-            key={p.type}
-            type="button"
-            onClick={() => onSelectPiece(p.type)}
-            className={`px-2 py-1 rounded text-[10px] border transition-all ${
-              selectedId === p.type
-                ? 'bg-sky-500/25 border-sky-400/50 text-sky-100'
-                : 'bg-slate-900/50 border-slate-700 text-slate-300 hover:border-sky-600/40'
-            }`}
-          >
-            {p.label}
-          </button>
-        ))}
-      </div>
-
-      {/* Prop categories */}
-      <div className="flex flex-wrap gap-1 px-2 py-1.5 border-b border-white/5">
-        {categories.map((cat) => {
-          const meta = CATEGORY_META[cat];
+      {/* Dune-style horizontal category tabs (full-width strip) */}
+      <div
+        className="flex gap-0.5 px-1.5 py-1.5 border-b border-white/10 overflow-x-auto scrollbar-thin"
+        style={{
+          background: 'linear-gradient(180deg, rgba(20,40,60,0.9), rgba(8,12,18,0.95))',
+        }}
+      >
+        {tabs.map((cat, i) => {
+          const meta = CATEGORY_META[cat] ?? {
+            label: BUILD_TAB_LABELS[cat as keyof typeof BUILD_TAB_LABELS] ?? cat,
+            icon: <Hammer className="w-3 h-3" />,
+          };
           const active = activeCategory === cat;
+          const hotkey = i < 9 ? String(i + 1) : null;
           return (
             <button
               key={cat}
               type="button"
               onClick={() => onCategory(cat)}
-              className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] uppercase font-bold tracking-wide ${
+              title={hotkey ? `${meta.label} [${hotkey}]` : meta.label}
+              className={`relative flex flex-col items-center justify-center gap-0.5 min-w-[58px] px-2 py-1.5 rounded-lg transition-all ${
                 active
-                  ? 'bg-sky-500/20 text-sky-300 border border-sky-500/30'
-                  : 'text-white/35 border border-transparent hover:text-white/60'
+                  ? 'bg-sky-500/25 text-sky-100 border border-sky-400/50 shadow-[0_0_12px_rgba(56,189,248,0.25)]'
+                  : 'text-white/40 border border-transparent hover:text-white/70 hover:bg-white/5'
               }`}
             >
               {meta.icon}
-              {meta.label}
+              <span className="text-[9px] font-bold uppercase tracking-wide whitespace-nowrap">
+                {meta.label}
+              </span>
+              {hotkey && (
+                <span
+                  className={`absolute top-0.5 right-1 text-[8px] font-mono ${
+                    active ? 'text-sky-300/80' : 'text-white/20'
+                  }`}
+                >
+                  {hotkey}
+                </span>
+              )}
             </button>
           );
         })}
       </div>
 
-      {/* Prop grid */}
-      <div className="flex-1 overflow-y-auto px-2 py-2 grid grid-cols-3 gap-1.5">
-        {propItems.length === 0 ? (
-          <p className="col-span-3 text-center text-white/20 text-xs py-4">Empty category</p>
+      {/* Structure snap pieces — only on Structure tab */}
+      {activeCategory === 'structure' && (
+        <div className="px-2 py-1.5 border-b border-white/5 flex flex-wrap gap-1">
+          <span className="text-[9px] text-white/25 uppercase tracking-wider self-center mr-1">
+            Snap
+          </span>
+          {pieces.map((p) => (
+            <button
+              key={p.type}
+              type="button"
+              onClick={() => onSelectPiece(p.type)}
+              className={`px-2 py-1 rounded text-[10px] border transition-all ${
+                selectedId === p.type
+                  ? 'bg-sky-500/25 border-sky-400/50 text-sky-100'
+                  : 'bg-slate-900/50 border-slate-700 text-slate-300 hover:border-sky-600/40'
+              }`}
+            >
+              {p.label}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Piece grid for active tab */}
+      <div className="flex-1 overflow-y-auto px-2 py-2 grid grid-cols-4 gap-1.5">
+        {propItems.length === 0 && activeCategory !== 'structure' ? (
+          <p className="col-span-4 text-center text-white/20 text-xs py-4">
+            Empty category — pick another tab
+          </p>
+        ) : propItems.length === 0 && activeCategory === 'structure' ? (
+          <p className="col-span-4 text-center text-white/25 text-[11px] py-2">
+            Use snap pieces above, or place modular props from the catalog when available
+          </p>
         ) : (
           propItems.map((item) => (
             <button
               key={item.id}
               type="button"
               onClick={() => onSelectProp(item.id)}
-              className={`rounded-lg p-2 text-left border transition-all ${
+              className={`rounded-lg p-1.5 text-left border transition-all ${
                 selectedId === item.id
-                  ? 'border-sky-400/50 bg-sky-500/15'
+                  ? 'border-sky-400/50 bg-sky-500/15 ring-1 ring-sky-400/30'
                   : 'border-white/5 bg-white/[0.03] hover:border-sky-600/30'
               }`}
             >
               <div
-                className="h-8 rounded mb-1"
+                className="h-9 rounded mb-1 flex items-center justify-center"
                 style={{
-                  background: `linear-gradient(135deg, #${item.color.toString(16).padStart(6, '0')}88, #64b5f644)`,
+                  background: `linear-gradient(135deg, #${item.color.toString(16).padStart(6, '0')}99, #64b5f633)`,
                 }}
-              />
-              <p className="text-[10px] text-sky-100/90 font-medium truncate">{item.name}</p>
+              >
+                <Hammer className="w-3.5 h-3.5 text-white/40" />
+              </div>
+              <p className="text-[10px] text-sky-100/90 font-medium truncate" title={item.name}>
+                {item.name}
+              </p>
+              {item.buildLayer && (
+                <p className="text-[8px] text-sky-400/40 uppercase truncate">{item.buildLayer}</p>
+              )}
             </button>
           ))
         )}
+      </div>
+
+      <div className="px-3 py-1 border-t border-white/5 text-[9px] text-white/25 text-center">
+        {BUILD_HAMMER_NAME} equipped · keys <span className="text-sky-400/50">1–9</span> switch
+        groups · <span className="text-sky-400/50">R</span> rotate ·{' '}
+        <span className="text-sky-400/50">ESC</span> cancel
       </div>
     </div>
   );

@@ -58,6 +58,10 @@ export interface NpcCampSystemOpts {
   playerFaction: CampFaction | string;
   waterLevel?: number;
   sampleHeight?: (x: number, z: number) => number | null;
+  /** Fired when claim flag is placed or camp claimed — spawn garrison etc. */
+  onClaimFlag?: (camp: RuntimeCamp) => void | Promise<void>;
+  /** Fired when any upgrade is added (benches / towers buff units) */
+  onUpgradeAdded?: (camp: RuntimeCamp, upgradeId: string) => void | Promise<void>;
 }
 
 export class NpcCampSystem {
@@ -67,12 +71,24 @@ export class NpcCampSystem {
   private sampleHeight?: (x: number, z: number) => number | null;
   private camps = new Map<string, RuntimeCamp>();
   private nextId = 0;
+  private onClaimFlag?: (camp: RuntimeCamp) => void | Promise<void>;
+  private onUpgradeAdded?: (camp: RuntimeCamp, upgradeId: string) => void | Promise<void>;
 
   constructor(opts: NpcCampSystemOpts) {
     this.scene = opts.scene;
     this.playerFaction = opts.playerFaction;
     this.waterLevel = opts.waterLevel ?? 0;
     this.sampleHeight = opts.sampleHeight;
+    this.onClaimFlag = opts.onClaimFlag;
+    this.onUpgradeAdded = opts.onUpgradeAdded;
+  }
+
+  setClaimFlagHandler(fn: (camp: RuntimeCamp) => void | Promise<void>): void {
+    this.onClaimFlag = fn;
+  }
+
+  setUpgradeHandler(fn: (camp: RuntimeCamp, upgradeId: string) => void | Promise<void>): void {
+    this.onUpgradeAdded = fn;
   }
 
   setPlayerFaction(faction: CampFaction | string): void {
@@ -166,11 +182,16 @@ export class NpcCampSystem {
     return runtime;
   }
 
-  /** Player/NPC adds bench, storage, or tower to camp footprint. */
+  /** Player/NPC adds bench, storage, tower, or claim flag to camp footprint. */
   async addUpgrade(
     campId: string,
     upgradeId: string,
-    opts?: { localPos?: [number, number, number]; rotationY?: number },
+    opts?: {
+      localPos?: [number, number, number];
+      rotationY?: number;
+      /** When placing claim flag, bind owner account */
+      ownerAccountId?: string | null;
+    },
   ): Promise<boolean> {
     const camp = this.camps.get(campId);
     if (!camp) return false;
@@ -188,19 +209,40 @@ export class NpcCampSystem {
     };
     camp.data.upgrades.push(placed);
     await this.attachUpgradeMesh(camp, placed);
+
+    // Claim Flag → ownership + garrison spawn hook
+    if (upgradeId === 'camp_flag' || def.kind === 'flag') {
+      if (opts?.ownerAccountId) {
+        camp.data.ownerAccountId = opts.ownerAccountId;
+      }
+      camp.data.claimedByFaction = camp.data.faction;
+      camp.root.userData.claimed = true;
+      camp.root.userData.ownerAccountId = camp.data.ownerAccountId;
+      this.tintBanner(camp);
+      await this.onClaimFlag?.(camp);
+    }
+
+    await this.onUpgradeAdded?.(camp, upgradeId);
     return true;
   }
 
   /** Claim camp for a faction (flag upgrade / capture). */
-  claimCamp(campId: string, faction: CampFaction): boolean {
+  claimCamp(
+    campId: string,
+    faction: CampFaction,
+    ownerAccountId?: string | null,
+  ): boolean {
     const camp = this.camps.get(campId);
     if (!camp) return false;
     camp.data.claimedByFaction = faction;
     camp.data.faction = faction;
+    if (ownerAccountId) camp.data.ownerAccountId = ownerAccountId;
     camp.relation = resolveRelation(this.playerFaction, faction);
     camp.root.userData.faction = faction;
     camp.root.userData.relation = camp.relation;
+    camp.root.userData.ownerAccountId = camp.data.ownerAccountId;
     this.tintBanner(camp);
+    void this.onClaimFlag?.(camp);
     return true;
   }
 

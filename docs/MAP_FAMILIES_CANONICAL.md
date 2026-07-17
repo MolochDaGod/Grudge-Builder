@@ -1,8 +1,10 @@
 # Map Families — Canonical Separation
 
-**Updated:** 2026-07-09  
+**Updated:** 2026-07-16  
 **Code SSOT:** `shared/definitions/mapRegistry.ts`  
 **ObjectStore:** https://info.grudge-studio.com/api/v1/map-registry.json  
+**Truth vs lore 9 sectors:** [WORLD_MAP_TRUTH.md](./WORLD_MAP_TRUTH.md)  
+**Haven Shore Fruzer foundation:** [HAVEN_SHORE_FOUNDATION.md](./HAVEN_SHORE_FOUNDATION.md)
 
 ## Two different “9 sector” systems
 

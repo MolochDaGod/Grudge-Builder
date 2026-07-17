@@ -88,6 +88,8 @@ export function getWeaponTypeForMode(
   hasWeapon: boolean,
   equippedWeaponType?: WeaponType | string,
 ): WeaponType {
+  // Harvest / build: unarmed locomotion clips. Build mode attaches Build Hammer mesh
+  // (0.8× survival kit hammer) separately — not a combat weapon anim set.
   if (mode === 'harvest' || mode === 'build') return 'unarmed';
   if (!hasWeapon) return 'unarmed';
   return (equippedWeaponType as WeaponType) || 'sword';

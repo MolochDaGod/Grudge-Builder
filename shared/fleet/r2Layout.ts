@@ -47,6 +47,7 @@ export const R2_LAYOUT = {
         "creatures/fish",
         "creatures/land",
         "grudge6/races",
+        "toon-soldiers",
         "vfx",
       ],
       example: "models/grudge6/races/WK_Characters.fbx",

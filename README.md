@@ -15,9 +15,22 @@ This is **not** a single monorepo for every Grudge title. Sibling products (Warl
 
 ---
 
-## Honest status (as of 2026-07-12)
+## Honest status (as of 2026-07-17)
 
 This section is meant to stay true under pressure. Prefer it over marketing copy in older docs.
+
+### Open-world / camp / build (client code — ship with SPA)
+
+| Feature | Status | SSOT / entry |
+|---------|--------|----------------|
+| **Map families** | Canonical | `shared/definitions/mapRegistry.ts` · [MAP_FAMILIES_CANONICAL.md](docs/MAP_FAMILIES_CANONICAL.md) · [WORLD_MAP_TRUTH.md](docs/WORLD_MAP_TRUTH.md) |
+| **9 Warlords sectors** | Code SSOT | `worldMapSectors.ts` — starter **`haven_shore`** |
+| **Haven Shore foundation** | Client foundation | Fruzer islands GLB (R2; `*.glb` gitignored) · [HAVEN_SHORE_FOUNDATION.md](docs/HAVEN_SHORE_FOUNDATION.md) · play `?sector=haven_shore&mode=zone&city=haven_port` |
+| **Build Hammer** | Client | 0.8× survival-kit hammer in hand · free WASD + RMB look · Dune-style tabs · [BUILD_SYSTEM_SSOT.md](docs/BUILD_SYSTEM_SSOT.md) |
+| **Claim Flag garrison** | Client | Unarmed race recruits · benches → profession XP · buildings → T0/AI/harvest buffs · **F1–F5** orders · [CAMP_CLAIM_UNITS.md](docs/CAMP_CLAIM_UNITS.md) |
+| **Modular / ice / fantasy catalogs** | Code + JSON catalogs | Multipack node extract; binaries on **assets.grudge-studio.com** (not in git) |
+
+**Binaries:** `*.glb` is gitignored. Production loads from R2 (`assets.grudge-studio.com`). Local authoring under `client/public/models/…` is optional; upload via `grudge-assets-sync` / build-pack scripts.
 
 ### Identity & player data — ONE TRUTH (law)
 
@@ -74,11 +87,23 @@ npm run probe:truth:direct  # ONE TRUTH endpoints (characters?era=warlords, iden
 npm run probe:deployments   # fleet HTTP surfaces
 npm run probe:auth          # SSO / login rewrites
 npm run probe:gate          # hard-fail critical (when CI secrets/env present)
+npm run probe:all           # deployments + truth
 ```
 
-Manual smoke (2026-07-12):
+After **this SPA deploy** (Vercel `grudge-builder` / grudgewarlords.com), verify:
 
-| URL | Observed |
+| Check | How |
+|-------|-----|
+| SPA shell | `https://grudgewarlords.com/` → 200 |
+| Client alias | `https://client.grudge-studio.com/` → 200 |
+| Open-world entry | `/play?sector=haven_shore&mode=zone&worldSeed=grudge-world-1&city=haven_port` loads zone |
+| Build mode | Tab → Build · Build Hammer in hand · category tabs 1–9 · WASD free-move |
+| Claim camp | Place camp + Claim Flag · F1–F5 bar when near owned camp |
+| Fleet status doc | Update [docs/FLEET_STATUS.md](docs/FLEET_STATUS.md) snapshot date after probes |
+
+Manual smoke baseline (re-probe on ship):
+
+| URL | Expected |
 |-----|----------|
 | grudgewarlords.com | 200 HTML |
 | id…/login | 200 |
@@ -87,7 +112,7 @@ Manual smoke (2026-07-12):
 | objectstore…/health | 200 ok |
 | assets…/js/grudge-fleet.js | **2.8.0+** |
 | grudge-crafting.puter.site | **5.7.0+** shell |
-| ai.grudge-studio.com | **401** (incident-class; fix via AI hub redeploy) |
+| ai.grudge-studio.com | May be **401** (incident-class; fix via AI hub redeploy — not this SPA) |
 
 ---
 
@@ -98,8 +123,10 @@ Manual smoke (2026-07-12):
 1. **Sign in** with Grudge ID (`id.grudge-studio.com`) — email / Discord / Puter / wallet **link** to one `grudge_id`.
 2. **Create or load a Warlords hero** — production create is **GCS** (`character.grudge-studio.com?era=warlords`) → Railway **UUID**.
 3. **Home island / tutorial / play** — load that UUID; bag is account-scoped, professions/gear character-scoped.
-4. **Crafting** — same JWT + same UUID on `grudge-crafting.puter.site` (or in-app `/crafting`).
-5. **Side systems** — dungeons, skill trees, arsenal, treaty, tools (many are prototypes).
+4. **Open world (Warlords 9 sectors)** — `/play?sector=haven_shore&mode=zone` (PVE trade village foundation, map ocean only).
+5. **Build + camps** — Build Hammer + Dune-style piece tabs; Claim Flag spawns unarmed race garrison; F1–F5 unit orders on owned camps.
+6. **Crafting** — same JWT + same UUID on `grudge-crafting.puter.site` (or in-app `/crafting`); camp benches raise profession level.
+7. **Side systems** — dungeons, skill trees, arsenal, treaty, tools (many are prototypes).
 
 It shares **one Railway roster** with other fleet games when those apps use fleet SSO + `era=warlords` (or their era), never a parallel hero store.
 

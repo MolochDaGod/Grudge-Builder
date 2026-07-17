@@ -155,3 +155,18 @@ export {
   type PanelEquipment,
   type PanelEquipmentSlot,
 } from "./character";
+
+/** Toon Soldiers (chicken_gun) — Nexus Era / Hero RTS / shooters */
+export {
+  TOON_SOLDIERS_CDN,
+  TOON_SOLDIERS_CATALOG_URL,
+  TOON_SOLDIERS,
+  TOON_SOLDIER_BY_ID,
+  TOON_CLASS_DEFAULT,
+  FACTION_TOON_HERO,
+  TOON_GUNPLAY_PACKS,
+  resolveToonMesh,
+  type ToonSoldierClass,
+  type ToonAnimPack,
+  type ToonSoldierDef,
+} from "./toonSoldiers";
