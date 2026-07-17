@@ -4,7 +4,7 @@
 name = "grudge-ai-gateway"
 main = "src/index.ts"
 compatibility_date = "2024-09-23"
-node_compat = true
+compatibility_flags = ["nodejs_compat"]
 
 # ── AI Gateway ────────────────────────────────────────────────────────────────
 # Cloudflare AI Gateway proxies requests to third-party AI providers.

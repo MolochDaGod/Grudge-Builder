@@ -28,14 +28,36 @@ export interface FleetService {
 /** The-ENGINE Express origin on Railway — Vercel/grudge-studio.com rewrites target this. */
 export const THE_ENGINE_RAILWAY = "https://the-engine.up.railway.app" as const;
 
-/** Public identity API — portal shell; /api/* rewrites to THE_ENGINE_RAILWAY. */
+/**
+ * Portal SPA (Rec0deD). Not the login system.
+ * Login is always FLEET_URLS.auth (id.grudge-studio.com).
+ */
 export const IDENTITY_PORTAL = "https://grudge-studio.com" as const;
+
+/**
+ * Accounts / Grudge ID implementation host (Railway grudge-api).
+ * Browsers never call this for login UI — only id.grudge-studio.com gateway.
+ */
+export const IDENTITY_ACCOUNTS_API =
+  "https://grudge-api-production-0d46.up.railway.app" as const;
 
 /** Canonical production endpoints — override via env in runtime adapters. */
 export const FLEET_URLS = {
+  /** Unified SSO for ALL apps — CF Worker → IDENTITY_ACCOUNTS_API */
   auth: "https://id.grudge-studio.com",
+  /**
+   * @deprecated Name is misleading. Prefer auth for login; portal shell is portal.
+   * Kept for older clients that used identityApi as "session exchange on portal".
+   */
   identityApi: IDENTITY_PORTAL,
-  gameData: "https://grudge-api-production-0d46.up.railway.app",
+  /** Portal shell */
+  portal: IDENTITY_PORTAL,
+  /**
+   * Warlords game data API (Postgres). Today also hosts accounts tables
+   * (identity implementation). New games: own Railway + DB, FK grudge_id.
+   * See shared/fleet/gameDataContract.ts + Desktop/IDENTITY_AND_GAME_DATA.md
+   */
+  gameData: IDENTITY_ACCOUNTS_API,
   assets: "https://assets.grudge-studio.com",
   objectStore: "https://objectstore.grudge-studio.com/api/v1",
   ai: "https://ai.grudge-studio.com",
@@ -56,6 +78,8 @@ export const FLEET_URLS = {
   /** RTS-Grudge 3D open world + /forge editor */
   rtsGrudge: "https://rts-grudge.vercel.app",
   forge: "https://forge.grudge-studio.com",
+  /** Voxel / character play hub (Camofire, Ethereal Falls, mode launcher) */
+  play: "https://play.grudge.studio",
   /** GRUDOX fleet hub — arcade, studio, editors */
   grudox: "https://grudox.grudge-studio.com",
   /** Carrier PvP client — dedicated subdomain, same game server */
@@ -73,32 +97,63 @@ export const FLEET_URLS = {
    * Same-origin /api rewrites to Railway + GRUDOX zone servers.
    */
   gameopen: "https://gameopen.vercel.app",
+  /**
+   * Mine-Loader / Voxel Realms — Nexus voxel Codex SSOT (blocks, lobby, seed worlds).
+   * Edge: mine.grudge-studio.com · SPA Vercel · API Railway (1 replica).
+   * Live Codex: GET {mineLoaderApi}/api/ssot · /api/blocks
+   */
+  mineLoader: "https://mine.grudge-studio.com",
+  mineLoaderSpa: "https://mine-loader.vercel.app",
+  mineLoaderApi: "https://mine-loader-api-production.up.railway.app",
+  /** Codex UI (block defs) on the Mine-Loader SPA */
+  mineCodex: "https://mine.grudge-studio.com/#/defs",
+  /**
+   * GRUDGES — Nexus-era survival RTS/MMO (repo: MolochDaGod/survival).
+   * Primary domain grudges.*; survival.* is the same Vercel project.
+   */
+  survival: "https://survival.grudge-studio.com",
+  grudges: "https://grudges.grudge-studio.com",
+  survivalApi: "https://survival-api-production.up.railway.app",
+  /** Open-world voxel (consumes Mine-Loader Codex; do not fork block catalog) */
+  voxgrudge: "https://voxgrudge.vercel.app",
+  /** Games portal index */
+  gamesPortal: "https://grudge-studio.com/games",
 } as const;
 
 export const FLEET_SERVICES: FleetService[] = [
   {
     id: "grudge-id",
-    label: "Grudge ID (auth gateway)",
+    label: "Grudge ID (unified SSO for all apps)",
     role: "identity",
     url: FLEET_URLS.auth,
     proxyPath: "/api/auth",
-    notes: "OAuth, popup auth, grudge_token SSO",
+    notes:
+      "ONLY login surface. CF Worker grudge-identity-api → Railway grudge-api. Accounts DB: users/accounts.grudge_id. JWT grudge_token SSO.",
+  },
+  {
+    id: "accounts-api",
+    label: "Accounts implementation (Railway grudge-api)",
+    role: "identity",
+    url: IDENTITY_ACCOUNTS_API,
+    proxyPath: "/api/auth",
+    notes: "Do not call from browsers for login UI. Postgres accounts + currently Warlords game rows.",
   },
   {
     id: "identity-api",
-    label: "Identity API (The-ENGINE)",
+    label: "Portal shell (The-ENGINE SPA)",
     role: "identity",
-    url: FLEET_URLS.identityApi,
+    url: FLEET_URLS.portal ?? FLEET_URLS.identityApi,
     proxyPath: "/api",
-    notes: "Session exchange, scoped profile",
+    notes: "Portal UI only — NOT the account database. Auth still via id.grudge-studio.com.",
   },
   {
     id: "game-data",
-    label: "Game state (GrudgeBuilder Railway)",
+    label: "Warlords game API (Railway grudge-api)",
     role: "game-data",
     url: FLEET_URLS.gameData,
     proxyPath: "/api/characters",
-    notes: "Postgres SSOT — characters, wallet, islands, inventory",
+    notes:
+      "Warlords characters/wallet/islands. Other games should use own Railway DB + grudge_id FK. See gameDataContract.ts",
   },
   {
     id: "assets-cdn",
@@ -207,6 +262,49 @@ export const FLEET_SERVICES: FleetService[] = [
       "Auth via id.grudge-studio.com SSO; characters via Vercel /api/characters → Railway. " +
       "GRUDOX zone rooms at wss://voxgrudge-grudox-room-production.up.railway.app. " +
       "Repo: MolochDaGod/gameopen. Health: https://gameopen-production.up.railway.app/api/health",
+  },
+  {
+    id: "mine-loader",
+    label: "Mine-Loader / Voxel Realms (Codex SSOT)",
+    role: "game-data",
+    url: FLEET_URLS.mineLoaderApi,
+    proxyPath: "/api/mine",
+    notes:
+      "Nexus voxel source of truth: Codex blocks, asset catalog, seed/chunk protocol, Realms lobby WS. " +
+      "SPA " +
+      FLEET_URLS.mineLoader +
+      " · API " +
+      FLEET_URLS.mineLoaderApi +
+      " · GET /api/ssot · /api/blocks. " +
+      "VoxGrudge/Open consume this catalog — do not fork. Repo: MolochDaGod/mine-loader. " +
+      "Local: C:\\Users\\david\\repos\\mine-loader (junction D:\\repos\\mine-loader).",
+  },
+  {
+    id: "mine-codex",
+    label: "Mine-Loader Codex (block defs UI)",
+    role: "hub",
+    url: FLEET_URLS.mineCodex,
+    notes: "Browser Codex UI — 250 placeable blocks. Icons via assets.grudge-studio.com.",
+  },
+  {
+    id: "grudges-survival",
+    label: "GRUDGES (Nexus survival)",
+    role: "hub",
+    url: FLEET_URLS.grudges,
+    notes:
+      "Sci-fi survival RTS/MMO — grudges.grudge-studio.com + survival.grudge-studio.com (same Vercel). " +
+      "API " +
+      FLEET_URLS.survivalApi +
+      ". Repo: MolochDaGod/survival. Local SSOT: C:\\Users\\david\\repos\\survival.",
+  },
+  {
+    id: "voxgrudge",
+    label: "VoxGrudge open-world voxel",
+    role: "hub",
+    url: FLEET_URLS.voxgrudge,
+    notes:
+      "Open-world voxel client. Block placeables use Mine-Loader Codex (cat:<slug>). " +
+      "Repo: MolochDaGod/voxgrudge.",
   },
 ];
 

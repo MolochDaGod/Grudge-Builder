@@ -16,11 +16,18 @@ export const FLEET_GAME_ORIGINS = {
   forge: "https://forge.grudge-studio.com",
   "three-port": FLEET_URLS.threePort,
   dcq: "https://dcq.grudge-studio.com",
-  survival: "https://survival.grudge-studio.com",
-  arena: "https://grudge-arena.grudge-studio.com",
+  survival: FLEET_URLS.survival,
+  grudges: FLEET_URLS.grudges,
+  /** Prefer short host; grudge-arena.grudge-studio.com remains a valid alias. */
+  arena: "https://arena.grudge-studio.com",
   drive: "https://drive.grudge-studio.com",
   /** Grudge Open — combat/studio platform with full Grudge ID SSO. */
   gameopen: FLEET_URLS.gameopen,
+  /** Voxel / character play hub — Camofire, Ethereal Falls local + mode launcher */
+  play: "https://play.grudge.studio",
+  /** Mine-Loader / Voxel Realms + Codex */
+  "mine-loader": FLEET_URLS.mineLoader,
+  voxgrudge: FLEET_URLS.voxgrudge,
 } as const;
 
 // ── Three.js deploy path (ONE TRUTH entry URLs) ─────────────────────────────
@@ -170,6 +177,22 @@ export const PRODUCTION_DEPLOYMENT_PATH: GameDeployment[] = [
     stage: "sector",
     featured: true,
     order: 40,
+  },
+  {
+    id: "play-hub",
+    title: "Grudge Play Hub",
+    subtitle: "Camofire · Ethereal Falls · Voxel Modes",
+    description:
+      "play.grudge.studio — character loadout, local Camofire/Ethereal Falls scenes, and launcher for all voxel/fleet modes.",
+    url: "https://play.grudge.studio",
+    icon: "swords",
+    tier: "combat",
+    badge: "Hub",
+    badgeColor: "cyan",
+    stage: "sector",
+    fleetGameId: "play",
+    featured: true,
+    order: 35,
   },
   {
     id: "ocean",
@@ -355,6 +378,55 @@ const HOME_GAME_MODE_EXTRAS: GameDeployment[] = [
     stage: "sector",
     fleetGameId: "dcq",
     order: 100,
+  },
+  {
+    id: "mine-loader",
+    title: "Mine-Loader / Voxel Realms",
+    subtitle: "Codex · Lobby · Seed Worlds",
+    description:
+      "Nexus voxel SSOT — 250-block Codex, procedural biomes, grid crafting, persistent multiplayer lobby. " +
+      "All other voxel titles consume GET /api/blocks from Mine-Loader Railway (do not fork the catalog).",
+    url: FLEET_URLS.mineLoader,
+    icon: "cube",
+    tier: "explore",
+    badge: "Codex",
+    badgeColor: "emerald",
+    stage: "sector",
+    fleetGameId: "mine-loader",
+    featured: true,
+    order: 36,
+  },
+  {
+    id: "grudges-survival",
+    title: "GRUDGES",
+    subtitle: "Nexus Survival RTS-MMO",
+    description:
+      "Sci-fi survival a century after The Way sealed the elevators. Five factions, 6.4 km world, build/fight/trade. " +
+      "Primary domain grudges.grudge-studio.com (alias survival.*).",
+    url: FLEET_URLS.grudges,
+    icon: "globe",
+    tier: "explore",
+    badge: "LIVE",
+    badgeColor: "amber",
+    stage: "sector",
+    fleetGameId: "grudges",
+    featured: true,
+    order: 37,
+  },
+  {
+    id: "voxgrudge",
+    title: "VoxGrudge",
+    subtitle: "Open-World Voxel",
+    description:
+      "Open-world voxel client. Placeable blocks use Mine-Loader Codex ids (cat:<slug>) — never a private block fork.",
+    url: FLEET_URLS.voxgrudge,
+    icon: "box",
+    tier: "explore",
+    badge: "Voxel",
+    badgeColor: "cyan",
+    stage: "sector",
+    fleetGameId: "voxgrudge",
+    order: 38,
   },
   {
     id: "professions",

@@ -2,6 +2,7 @@ export {
   FLEET_URLS,
   THE_ENGINE_RAILWAY,
   IDENTITY_PORTAL,
+  IDENTITY_ACCOUNTS_API,
   FLEET_SERVICES,
   FLEET_VERCEL_REWRITES,
   FLEET_SPA_AUTH_REWRITES,
@@ -69,6 +70,19 @@ export {
 } from "./authConnect";
 
 export { FLEET_STORAGE, FLEET_CLIENT_ENV } from "./storage";
+
+export {
+  IDENTITY_GATEWAY,
+  IDENTITY_IMPLEMENTATION,
+  FLEET_GAME_DATA_SERVICES,
+  GAME_API_REQUIRED_ENV,
+  GAME_API_RECOMMENDED_ENV,
+  DEFAULT_IDENTITY_URL,
+  GAME_DB_PLAYER_COLUMNS_SQL,
+  type GameDataProductId,
+  type GameDataServiceSpec,
+  type GrudgeIdTokenClaims,
+} from "./gameDataContract";
 
 export { FLEET_VIDEO_CATALOG, type FleetVideoEntry } from "./videoCatalog";
 

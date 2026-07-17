@@ -1,3 +1,5 @@
+> **Fleet SSOT index:** `C:\Users\david\Desktop\SOURCE_OF_TRUTH.md` · Live: https://client.grudge-studio.com/api/fleet/manifest · Code: `shared/fleet/`
+
 # Grudge Builder — Web Engine 1
 
 ## Project Identity
@@ -180,3 +182,4 @@ Frontend pages using these MUST use `BackendRequired` component for graceful deg
 - 17 weapon types, 6 armor sets (cloth/leather/metal), 6 gathering + 5 crafting professions
 - Combat: hotbar slots 1-4 skills, 6-8 consumables. Tab toggles combat/harvest mode.
 - Souls-like difficulty, MMO progression, crew system (3-5 members), faction wars
+
