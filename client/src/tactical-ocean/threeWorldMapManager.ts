@@ -546,6 +546,10 @@ export class ThreeWorldMapManager {
     return ship;
   }
   
+  /**
+   * Place a sector landmass on the tactical ocean.
+   * Used for all 9 Warlords anchors (complete world map sail view).
+   */
   createIsland(id: string, position: THREE.Vector3, radius: number, name: string, biome: string): Island3D {
     const seed = Math.abs(id.split('').reduce((a, c) => a + c.charCodeAt(0), 0) * 12345);
     
@@ -561,8 +565,32 @@ export class ThreeWorldMapManager {
     generated.terrainMesh.position.set(0, 0, 0);
     islandGroup.add(generated.propMeshes);
     generated.propMeshes.position.set(0, 0, 0);
+
+    // Floating sector name (complete world map readability)
+    const canvas = document.createElement('canvas');
+    canvas.width = 512;
+    canvas.height = 96;
+    const ctx = canvas.getContext('2d');
+    if (ctx) {
+      ctx.clearRect(0, 0, 512, 96);
+      ctx.fillStyle = 'rgba(0,0,0,0.45)';
+      ctx.fillRect(16, 16, 480, 64);
+      ctx.font = 'bold 36px Cinzel, serif';
+      ctx.fillStyle = biome === 'tropical' ? '#67e8f9' : '#f6c945';
+      ctx.textAlign = 'center';
+      ctx.fillText(name, 256, 58);
+      const tex = new THREE.CanvasTexture(canvas);
+      const spr = new THREE.Sprite(
+        new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: true }),
+      );
+      spr.position.set(0, radius * 0.9 + 40, 0);
+      spr.scale.set(radius * 2.2, radius * 0.42, 1);
+      islandGroup.add(spr);
+    }
     
     islandGroup.position.copy(position);
+    islandGroup.userData.sectorLegacyId = id;
+    islandGroup.userData.sectorName = name;
     this.scene.add(islandGroup);
     
     const island: Island3D = {
@@ -572,7 +600,7 @@ export class ThreeWorldMapManager {
       radius,
       name,
       biome,
-      discovered: false
+      discovered: true, // all 9 warlords anchors are known on the complete map
     };
     
     this.islands.set(id, island);

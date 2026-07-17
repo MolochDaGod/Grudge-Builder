@@ -114,7 +114,17 @@ These are **biome labels**, not Warlords zone ids. Zone `haven_shore` maps to bi
 
 ---
 
-## 4. Haven Shore foundation (sector 1 ready path)
+## 4. Complete world map render (2026-07-17)
+
+| Surface | Entry | Engine |
+|---------|-------|--------|
+| **Complete 9-sector strategic** | `/world-map` (default) | `CompleteWorldMap` + `buildCompleteWorldMap()` |
+| **Tactical sail** | `/ocean` | `ThreeWorldMapManager` · all 9 labeled sector islands |
+| **Tile sail (legacy)** | `/world-map` → “Tile Sail Map” | canvas `worldMapSystem` |
+
+Docs: [COMPLETE_WORLD_MAP.md](./COMPLETE_WORLD_MAP.md).
+
+## 5. Haven Shore foundation (sector 1 ready path)
 
 See [HAVEN_SHORE_FOUNDATION.md](./HAVEN_SHORE_FOUNDATION.md).
 

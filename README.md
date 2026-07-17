@@ -25,6 +25,7 @@ This section is meant to stay true under pressure. Prefer it over marketing copy
 |---------|--------|----------------|
 | **Map families** | Canonical | `shared/definitions/mapRegistry.ts` · [MAP_FAMILIES_CANONICAL.md](docs/MAP_FAMILIES_CANONICAL.md) · [WORLD_MAP_TRUTH.md](docs/WORLD_MAP_TRUTH.md) |
 | **9 Warlords sectors** | Code SSOT | `worldMapSectors.ts` — starter **`haven_shore`** |
+| **Complete world map render** | Client ship | `/world-map` · [COMPLETE_WORLD_MAP.md](docs/COMPLETE_WORLD_MAP.md) · 3D strategic + `/ocean` sail |
 | **Haven Shore foundation** | Client foundation | Fruzer islands GLB (R2; `*.glb` gitignored) · [HAVEN_SHORE_FOUNDATION.md](docs/HAVEN_SHORE_FOUNDATION.md) · play `?sector=haven_shore&mode=zone&city=haven_port` |
 | **Build Hammer** | Client | 0.8× survival-kit hammer in hand · free WASD + RMB look · Dune-style tabs · [BUILD_SYSTEM_SSOT.md](docs/BUILD_SYSTEM_SSOT.md) |
 | **Claim Flag garrison** | Client | Unarmed race recruits · benches → profession XP · buildings → T0/AI/harvest buffs · **F1–F5** orders · [CAMP_CLAIM_UNITS.md](docs/CAMP_CLAIM_UNITS.md) |

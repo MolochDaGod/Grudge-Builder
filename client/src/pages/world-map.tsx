@@ -40,6 +40,9 @@ import {
 import { SectorImageryRenderer } from '@/lib/sectorImageryRenderer';
 import { RACE_CITIES, raceCityPlayUrl, type RaceCity } from '@shared/definitions/raceCities';
 import { THREE_HOME_ISLAND_PATH, THREE_OPEN_WORLD_PATH } from '@shared/fleet';
+import CompleteWorldMap from '@/components/CompleteWorldMap';
+
+type MapViewMode = 'complete' | 'tile';
 
 export default function WorldMapPage() {
   const authReady = useAuthGuard();
@@ -52,6 +55,8 @@ export default function WorldMapPage() {
   const animFrameRef = useRef<number>(0);
   const lastTimeRef = useRef<number>(0);
 
+  /** Default: complete 9-sector strategic render (SSOT). Tile = legacy sail canvas. */
+  const [mapView, setMapView] = useState<MapViewMode>('complete');
   const [worldState, setWorldState] = useState<WorldMapState | null>(null);
   const [cameraOffset, setCameraOffset] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1.5);
@@ -414,7 +419,45 @@ export default function WorldMapPage() {
   const exploredCount = worldState?.islands.filter(i => i.explored).length || 0;
 
   // Auth + loading guards — AFTER all hooks
-  if (!authReady || !worldState) {
+  if (!authReady) {
+    return (
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+        <div className="text-amber-400 text-xl font-cinzel">Loading...</div>
+      </div>
+    );
+  }
+
+  // ── Complete 9-sector strategic map (default) ────────────────────────────
+  if (mapView === 'complete') {
+    return (
+      <div className="fixed inset-0 bg-slate-950 text-white">
+        <CompleteWorldMap
+          worldSeed={worldState?.config.seed || WORLD_MAP_DEFAULTS.seed}
+          className="w-full h-full"
+          fetchLive
+        />
+        <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-30 flex gap-2 pointer-events-auto">
+          <Button
+            size="sm"
+            className="bg-amber-700/80 hover:bg-amber-600 font-cinzel"
+            onClick={() => setMapView('tile')}
+            data-testid="map-mode-tile"
+          >
+            <Compass className="w-4 h-4 mr-1" />
+            Tile Sail Map
+          </Button>
+          <Link href="/ocean">
+            <Button size="sm" variant="outline" className="border-cyan-700/50 text-cyan-200 bg-black/60">
+              <Ship className="w-4 h-4 mr-1" />
+              3D Ocean
+            </Button>
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  if (!worldState) {
     return (
       <div className="min-h-screen bg-slate-950 flex items-center justify-center">
         <div className="text-amber-400 text-xl font-cinzel">Generating World Map...</div>
@@ -425,6 +468,16 @@ export default function WorldMapPage() {
   return (
     <div className="min-h-screen bg-slate-950 text-white overflow-hidden" ref={containerRef}>
       <div className="absolute top-4 left-4 z-20 flex flex-col gap-2">
+        <Button
+          variant="outline"
+          size="sm"
+          className="border-amber-600/50 hover:bg-amber-950/40 text-amber-300"
+          onClick={() => setMapView('complete')}
+          data-testid="map-mode-complete"
+        >
+          <Globe className="w-4 h-4 mr-2" />
+          Complete 9-Sector Map
+        </Button>
         <Link href="/">
           <Button variant="outline" size="sm" className="border-slate-600 hover:bg-slate-800" data-testid="back-home">
             <Home className="w-4 h-4 mr-2" />

@@ -25,6 +25,7 @@ export * from "./havenShoreFoundation";
 export * from "./buildHammer";
 export * from "./campUnits";
 export * from "./npcCamps";
+export * from "./completeWorldMap";
 export * from "./biomeEcosystemCatalog";
 export * from "./biomeHarvestAssets";
 export * from "./resolveAsset";
