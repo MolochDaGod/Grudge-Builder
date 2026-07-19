@@ -93,6 +93,11 @@ export class BoatBoardingSystem {
   private localPos   = new THREE.Vector3(0, DECK_Y_DEFAULT, 0);
   private localYaw   = 0;    // degrees, ship-local orientation
   private deckY      = DECK_Y_DEFAULT;
+  private deckHalfW  = 2.5;
+  private deckHalfL  = 4.0;
+  private upperDeckY: number | null = null;
+  private helmLocal  = new THREE.Vector3(0, DECK_Y_DEFAULT + 1.2, -2.8);
+  private deckMeshes: THREE.Object3D[] = [];
 
   // ── Swimming state ────────────────────────────────────────────────────────
   private swimVel    = new THREE.Vector3();
@@ -126,7 +131,10 @@ export class BoatBoardingSystem {
 
   // ── Public API ────────────────────────────────────────────────────────────
 
-  setShip(ship: THREE.Object3D | null): void { this.ship = ship; }
+  setShip(ship: THREE.Object3D | null): void {
+    this.ship = ship;
+    if (ship) this._probeShipLayout(ship);
+  }
   setWeather(w: WeatherConfig): void          { this.weather = w; }
   setDeckY(y: number): void                   { this.deckY = y; this.localPos.y = y; }
 
@@ -260,13 +268,12 @@ export class BoatBoardingSystem {
       this._playAnim('idle', 0.2);
     }
 
-    // Keep character on deck (no falling through)
-    this.localPos.y = this.deckY + CHAR_HALF_H;
+    // Keep character on deck (no falling through) — sample real deck meshes when available
+    this.localPos.y = this._sampleDeckY(this.localPos.x, this.localPos.z) + CHAR_HALF_H;
 
-    // Soft boundary — ship-local units. At scale=3, localX 2.5→worldX 7.5m, localZ 4→worldZ 12m.
-    // Tune these to match the actual ship model deck footprint.
-    const halfW = 2.5;   // local half-width  ≈ 7.5m world
-    const halfL = 4.0;   // local half-length ≈ 12m world
+    // Soft boundary from probed footprint (defaults match scale≈3 sloop deck)
+    const halfW = this.deckHalfW;
+    const halfL = this.deckHalfL;
     this.localPos.x = THREE.MathUtils.clamp(this.localPos.x, -halfW, halfW);
     this.localPos.z = THREE.MathUtils.clamp(this.localPos.z, -halfL, halfL);
 
@@ -452,20 +459,82 @@ export class BoatBoardingSystem {
    * Call this after the ship GLB is loaded and positioned to get an accurate deckY.
    */
   probeDeckHeight(ship: THREE.Object3D): number {
-    const raycaster = new THREE.Raycaster(
-      new THREE.Vector3(ship.position.x, ship.position.y + 20, ship.position.z),
-      new THREE.Vector3(0, -1, 0)
-    );
-    const meshes: THREE.Mesh[] = [];
-    ship.traverse(c => { if ((c as THREE.Mesh).isMesh) meshes.push(c as THREE.Mesh); });
+    this._probeShipLayout(ship);
+    return this.deckY;
+  }
 
-    const hits = raycaster.intersectObjects(meshes, true);
-    if (hits.length > 0) {
-      // Convert hit point to ship-local Y
-      const localHit = ship.worldToLocal(hits[0].point.clone());
-      return localHit.y;
+  private _probeShipLayout(ship: THREE.Object3D): void {
+    ship.updateWorldMatrix(true, true);
+    const deckNamed: THREE.Object3D[] = [];
+    const wheels: THREE.Object3D[] = [];
+    const solids: THREE.Mesh[] = [];
+    ship.traverse((c) => {
+      const n = c.name || '';
+      if (/deck|floor|plank|quarterdeck|forecastle/i.test(n)) deckNamed.push(c);
+      if (/wheel|helm|steering/i.test(n)) wheels.push(c);
+      if ((c as THREE.Mesh).isMesh && !/sail|flag|rope|water/i.test(n)) solids.push(c as THREE.Mesh);
+    });
+    this.deckMeshes = deckNamed.length ? deckNamed : solids;
+
+    if (this.deckMeshes.length) {
+      const box = new THREE.Box3();
+      for (const m of this.deckMeshes) box.expandByObject(m);
+      if (!box.isEmpty()) {
+        const min = ship.worldToLocal(box.min.clone());
+        const max = ship.worldToLocal(box.max.clone());
+        const loX = Math.min(min.x, max.x), hiX = Math.max(min.x, max.x);
+        const loY = Math.min(min.y, max.y), hiY = Math.max(min.y, max.y);
+        const loZ = Math.min(min.z, max.z), hiZ = Math.max(min.z, max.z);
+        this.deckHalfW = Math.max(1.2, (hiX - loX) * 0.46);
+        this.deckHalfL = Math.max(2.0, (hiZ - loZ) * 0.46);
+        if (deckNamed.length) {
+          const ys = deckNamed.map((m) => {
+            const b = new THREE.Box3().setFromObject(m);
+            return ship.worldToLocal(b.getCenter(new THREE.Vector3())).y;
+          }).sort((a, b) => a - b);
+          this.deckY = ys[Math.floor(ys.length * 0.35)] ?? ys[0];
+          this.upperDeckY = ys[ys.length - 1];
+        } else {
+          this.deckY = loY + (hiY - loY) * 0.42;
+          this.upperDeckY = loY + (hiY - loY) * 0.62;
+        }
+      }
     }
-    return DECK_Y_DEFAULT;
+
+    if (wheels.length) {
+      const b = new THREE.Box3().setFromObject(wheels[0]);
+      this.helmLocal.copy(ship.worldToLocal(b.getCenter(new THREE.Vector3())));
+      this.upperDeckY = Math.max(this.upperDeckY ?? this.deckY + 1, this.helmLocal.y - 0.35);
+    } else {
+      this.helmLocal.set(0, this.upperDeckY ?? this.deckY + 1.2, -this.deckHalfL * 0.7);
+    }
+    this.localPos.y = this.deckY + CHAR_HALF_H;
+  }
+
+  /** Multi-level deck Y: main deck, stairs ramp to upper helm deck. */
+  private _sampleDeckY(lx: number, lz: number): number {
+    if (this.upperDeckY != null && this.upperDeckY > this.deckY + 0.3) {
+      // Near helm / aft quarterdeck
+      if (lz < -this.deckHalfL * 0.4 && Math.abs(lx) < this.deckHalfW * 0.7) {
+        return this.upperDeckY;
+      }
+      // Stair corridor
+      if (lz < -this.deckHalfL * 0.15 && lz > -this.deckHalfL * 0.55 && Math.abs(lx) < this.deckHalfW * 0.4) {
+        const t = (-lz - this.deckHalfL * 0.15) / (this.deckHalfL * 0.4);
+        return THREE.MathUtils.lerp(this.deckY, this.upperDeckY, THREE.MathUtils.clamp(t, 0, 1));
+      }
+    }
+    // Raycast deck meshes
+    if (this.ship && this.deckMeshes.length) {
+      this.ship.updateWorldMatrix(true, true);
+      const origin = this.ship.localToWorld(new THREE.Vector3(lx, this.deckY + 8, lz));
+      const ray = new THREE.Raycaster(origin, new THREE.Vector3(0, -1, 0), 0, 20);
+      const hits = ray.intersectObjects(this.deckMeshes as THREE.Object3D[], true);
+      if (hits.length) {
+        return this.ship.worldToLocal(hits[0].point.clone()).y;
+      }
+    }
+    return this.deckY;
   }
 
   // ── Dispose ───────────────────────────────────────────────────────────────

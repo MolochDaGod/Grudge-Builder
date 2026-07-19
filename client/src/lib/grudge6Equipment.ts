@@ -25,6 +25,8 @@ const SLOT_DEFS: SlotDef[] = [
   { slot: "arms", re: /Units_Arms_([A-Z])$/i, group: "armor" },
   { slot: "legs", re: /Units_Legs_([A-Z])$/i, group: "armor" },
   { slot: "head", re: /Units_head_([A-Z])$/i, group: "armor" },
+  // hats / tricorns sometimes use separate mesh names
+  { slot: "hat", re: /(?:Units_)?(?:hat|tricorn|pirate_hat|headwear)_([A-Z])$/i, group: "armor" },
   { slot: "shoulders", re: /Units_shoulderpads_([A-Z])$/i, group: "armor" },
   { slot: "axe", re: /(?:Units_|weapon_)axe_([A-Z])$/i, group: "weapon_r" },
   { slot: "hammer", re: /(?:Units_|weapon_)hammer_([A-Z])$/i, group: "weapon_r" },
@@ -263,5 +265,21 @@ export function setupGrudge6Equipment(
 
   applyModel3dToEquipment(em, merged);
   ensureCharacterTextureColorSpace(scene);
+  // Slightly larger headwear by default so hats clear environment beams (boat deck, etc.)
+  // Full +20% applied again when boarding (ShipInteractable.scaleCharacterHeadwear).
+  scaleHeadMeshes(scene, 1.08);
   return em;
+}
+
+/** Scale head / hat / helm meshes (Calvin tricorn, Units_head_*, etc.). */
+export function scaleHeadMeshes(root: THREE.Object3D, factor = 1.2): void {
+  root.traverse((o) => {
+    const n = o.name || '';
+    if (!/Units_head|hat|tricorn|helm_|helmet|headwear|pirate.?hat/i.test(n)) return;
+    if (o.userData.__headBaseScale == null) {
+      o.userData.__headBaseScale = o.scale.clone();
+    }
+    const base = o.userData.__headBaseScale as THREE.Vector3;
+    o.scale.set(base.x * factor, base.y * factor, base.z * factor);
+  });
 }

@@ -250,6 +250,13 @@ export async function createLobbyShipSystem(
         shipSize,
         waterLevel: LOBBY_WATER_LEVEL,
         character,
+        hatScale: 1.2, // Calvin pirate hat +20% — less deck-beam clipping
+        onCannonFire: (side, local) => {
+          // Broadside impulse kick for juiciness
+          const kick = new THREE.Vector3(side * 2.5, 0, 0);
+          kick.applyAxisAngle(new THREE.Vector3(0, 1, 0), dockGroup.rotation.y);
+          velocity.add(kick);
+        },
       });
     },
     isNearDock(playerPos) {
@@ -281,11 +288,12 @@ export async function createLobbyShipSystem(
         return;
       }
 
+      // Sail only when at real helm (steering wheel / upper deck) + W
       if (boarding.wantsHelm()) {
         const dir = new THREE.Vector3(0, 0, -1);
         dir.applyAxisAngle(new THREE.Vector3(0, 1, 0), cameraYaw);
         velocity.lerp(dir.multiplyScalar(18), dt * 2);
-      } else if (keys.has('s')) {
+      } else if (keys.has('s') && boarding.wantsHelm()) {
         const dir = new THREE.Vector3(0, 0, 1);
         dir.applyAxisAngle(new THREE.Vector3(0, 1, 0), cameraYaw);
         velocity.lerp(dir.multiplyScalar(12), dt * 2);

@@ -2,6 +2,9 @@
  * ShipBoardingController — Grudge6 on-deck walk, hull climb, swim, dive.
  * Fishing: equipped main-hand fishing pole + harvest-mode LMB (Cast Line).
  * Deck physics follow OpenWaterSailing / BoatBoardingSystem + ShipDeckRig.
+ *
+ * Colliders / deck terrain / cannons / helm come from ShipInteractable mesh probe
+ * (steering wheel up the stairs when the GLB names allow).
  */
 import * as THREE from 'three';
 import type { CharacterController3D } from '@/island3d/player/CharacterController3D';
@@ -12,12 +15,17 @@ import {
   defaultBoardLocalAnchor,
   getDeckBounds,
   isNearDeckEdge,
+  isAtHelm,
+  nearestCannon,
+  sampleLocalDeckY,
+  scaleCharacterHeadwear,
+  resetCharacterHeadwearScale,
   type ShipInteractable,
   worldDeckHeight,
 } from './ShipInteractable';
 import type { ShipSize } from '@shared/definitions/shipCatalog';
 
-export type BoardingPhase = 'ashore' | 'deck' | 'fishing';
+export type BoardingPhase = 'ashore' | 'deck' | 'fishing' | 'cannon';
 
 export interface ShipBoardingControllerOpts {
   shipRoot: THREE.Group;
@@ -25,6 +33,10 @@ export interface ShipBoardingControllerOpts {
   waterLevel: number;
   character: CharacterController3D;
   riderId?: string;
+  /** Hat scale on deck (default 1.2 = +20% so tricorn doesn't clip beams). */
+  hatScale?: number;
+  onCannonFire?: (side: number, localPos: THREE.Vector3) => void;
+  onPrompt?: (msg: string | null) => void;
 }
 
 export class ShipBoardingController {
@@ -38,29 +50,53 @@ export class ShipBoardingController {
   private phase: BoardingPhase = 'ashore';
   private fishingTimer = 0;
   private helmKeys = false;
+  private hatScale: number;
+  private onCannonFire?: (side: number, localPos: THREE.Vector3) => void;
+  private onPrompt?: (msg: string | null) => void;
+  private _muzzleFlash: THREE.Mesh | null = null;
+  private _flashTimer = 0;
 
   constructor(opts: ShipBoardingControllerOpts) {
     this.shipRoot = opts.shipRoot;
     this.character = opts.character;
     this.waterLevel = opts.waterLevel;
     this.riderId = opts.riderId ?? 'player';
-    const bounds = getDeckBounds(opts.shipSize);
+    this.hatScale = opts.hatScale ?? 1.2;
+    this.onCannonFire = opts.onCannonFire;
+    this.onPrompt = opts.onPrompt;
+
     this.interactable = buildShipInteractable(opts.shipRoot, opts.shipSize);
-    this.localAnchor = defaultBoardLocalAnchor(bounds);
+    this.localAnchor = defaultBoardLocalAnchor(this.interactable.bounds);
     this.deckRig = new ShipDeckRig({ deck: opts.shipRoot });
 
     this.character.registerClimbMeshes(this.interactable.climbColliders);
     this.character.setWaterLevel(opts.waterLevel);
     this.character.setDeckCastLineHandler(() => this.tryCastLine());
+
+    if (typeof console !== 'undefined') {
+      console.info(
+        '[ShipBoard] layout',
+        this.interactable.probedFromMesh ? 'mesh-probed' : 'catalog-fallback',
+        {
+          deckY: this.interactable.bounds.deckY,
+          upper: this.interactable.bounds.upperDeckY,
+          helm: this.interactable.helmLocal.toArray(),
+          cannons: this.interactable.cannons.length,
+          stairs: this.interactable.stairsLocal.length,
+        },
+      );
+    }
   }
 
   get isOnDeck(): boolean {
-    return this.phase === 'deck' || this.phase === 'fishing';
+    return this.phase === 'deck' || this.phase === 'fishing' || this.phase === 'cannon';
   }
 
   board(): boolean {
     if (this.isOnDeck) return false;
     this.phase = 'deck';
+    // Snap feet to probed main deck
+    this.localAnchor.y = this.interactable.bounds.deckY + 0.05;
     this.deckRig.addRider({
       id: this.riderId,
       rider: this.character.model,
@@ -68,16 +104,24 @@ export class ShipBoardingController {
       grip: 0.92,
       tiltFollow: 0.55,
     });
-    this.character.enterShipDeckMode(this.shipRoot, this.interactable.bounds);
+    this.character.enterShipDeckMode(this.shipRoot, this.interactable.bounds, {
+      sampleLocalY: (lx, lz) => sampleLocalDeckY(this.interactable, lx, lz),
+      deckColliders: this.interactable.deckColliders,
+    });
+    // Calvin / pirate hat: +20% so tricorn clears deck beams
+    scaleCharacterHeadwear(this.character.model, this.hatScale);
     this.character.stateMachine?.transition('sailing');
+    this.onPrompt?.('WASD walk deck · W at helm to sail · F fire cannon · Space jump off');
     return true;
   }
 
   disembark(groundRoot: THREE.Object3D, dockPosition: THREE.Vector3): THREE.Vector3 | null {
     if (!this.isOnDeck) return null;
     this.deckRig.removeRider(this.riderId);
+    resetCharacterHeadwearScale(this.character.model);
     this.character.exitShipDeckMode(groundRoot);
     this.phase = 'ashore';
+    this.onPrompt?.(null);
     const off = dockPosition.clone();
     off.x += 8;
     return off;
@@ -107,13 +151,60 @@ export class ShipBoardingController {
     return true;
   }
 
+  /** Fire nearest broadside cannon (attached to boat mesh or synthetic mount). */
+  tryFireCannon(): boolean {
+    if (!this.isOnDeck) return false;
+    const cannon = nearestCannon(this.interactable, this.localAnchor, 2.4);
+    if (!cannon) return false;
+    const now = performance.now();
+    if (now - cannon.lastFireAt < cannon.cooldownMs) {
+      this.onPrompt?.('Cannon reloading…');
+      return false;
+    }
+    cannon.lastFireAt = now;
+    this.phase = 'cannon';
+    this.character.animations?.play('attack', { loop: false });
+    this.spawnMuzzleFlash(cannon.mesh);
+    this.onCannonFire?.(cannon.side, cannon.local.clone());
+    this.onPrompt?.(`Cannon fire · ${cannon.side < 0 ? 'port' : 'starboard'}`);
+    setTimeout(() => {
+      if (this.phase === 'cannon') this.phase = 'deck';
+    }, 400);
+    return true;
+  }
+
   update(dt: number, keys: Set<string>, cameraYaw: number): void {
-    this.helmKeys = keys.has('w') && Math.abs(this.localAnchor.z) > this.interactable.bounds.halfLength * 0.55;
+    // Helm = standing at steering wheel (up stairs on upper deck) + holding W
+    const atHelm = isAtHelm(this.interactable, this.localAnchor, 2.0);
+    this.helmKeys = atHelm && keys.has('w');
+
+    if (this._flashTimer > 0) {
+      this._flashTimer -= dt;
+      if (this._flashTimer <= 0 && this._muzzleFlash) {
+        this._muzzleFlash.visible = false;
+      }
+    }
 
     if (this.isOnDeck) {
+      // F = fire cannon when near one; also board prompt off-deck
+      if (keys.has('f') || keys.has('F')) {
+        this.tryFireCannon();
+      }
+
       if (this.character.mode === 'harvest' && this.phase !== 'fishing') {
         this.updateDeckMovement(dt, keys, cameraYaw);
+      } else if (this.phase === 'deck' || this.phase === 'cannon') {
+        // Always allow deck walk when boarded (not only harvest mode)
+        this.updateDeckMovement(dt, keys, cameraYaw);
       }
+
+      // Sync foot Y to multi-level deck terrain
+      this.localAnchor.y = sampleLocalDeckY(
+        this.interactable,
+        this.localAnchor.x,
+        this.localAnchor.z,
+      ) + 0.05;
+      this.deckRig.updateRiderLocalAnchor(this.riderId, this.localAnchor);
       this.deckRig.update(dt);
 
       if (this.fishingTimer > 0) {
@@ -126,6 +217,16 @@ export class ShipBoardingController {
             this.character.stateMachine?.transition('fishing_idle');
           }, 1200);
         }
+      }
+
+      // HUD prompt
+      const nearCannon = nearestCannon(this.interactable, this.localAnchor, 2.4);
+      if (atHelm) {
+        this.onPrompt?.(this.helmKeys ? 'Sailing — hold W at helm' : 'Helm · hold W to sail · stairs from main deck');
+      } else if (nearCannon) {
+        this.onPrompt?.('F — fire cannon');
+      } else {
+        this.onPrompt?.('Deck · walk to stairs/helm · Space jump off');
       }
 
       if (keys.has(' ')) {
@@ -144,18 +245,32 @@ export class ShipBoardingController {
     const side = (keys.has('q') || keys.has('a') ? -1 : 0) + (keys.has('e') || keys.has('d') ? 1 : 0);
 
     if (fwd !== 0 || side !== 0) {
-      const angle = Math.atan2(side, fwd) + cameraYaw;
-      this.localAnchor.x += Math.sin(angle) * speed * dt;
-      this.localAnchor.z -= Math.cos(angle) * speed * dt;
-      this.localAnchor.x = THREE.MathUtils.clamp(this.localAnchor.x, -bounds.halfWidth + 0.4, bounds.halfWidth - 0.4);
-      this.localAnchor.z = THREE.MathUtils.clamp(this.localAnchor.z, -bounds.halfLength + 0.5, bounds.halfLength - 0.5);
+      // At helm, W is reserved for sail thrust — still allow slight reposition
+      const moveFwd = this.helmKeys && fwd > 0 ? 0 : fwd;
+      if (moveFwd !== 0 || side !== 0) {
+        const angle = Math.atan2(side, moveFwd || 0.001) + cameraYaw;
+        this.localAnchor.x += Math.sin(angle) * speed * dt;
+        this.localAnchor.z -= Math.cos(angle) * speed * dt;
+      }
+      this.localAnchor.x = THREE.MathUtils.clamp(
+        this.localAnchor.x,
+        -bounds.halfWidth + 0.4,
+        bounds.halfWidth - 0.4,
+      );
+      this.localAnchor.z = THREE.MathUtils.clamp(
+        this.localAnchor.z,
+        -bounds.halfLength + 0.5,
+        bounds.halfLength - 0.5,
+      );
       const anim = keys.has('shift') ? 'run' : 'walk';
       this.character.animations?.play(anim);
       const shipYaw = new THREE.Euler().setFromQuaternion(
         this.shipRoot.getWorldQuaternion(new THREE.Quaternion()),
         'YXZ',
       ).y;
-      this.character.model.rotation.y = shipYaw + angle;
+      this.character.model.rotation.y = shipYaw + (moveFwd !== 0 || side !== 0
+        ? Math.atan2(side, moveFwd || 0.001) + cameraYaw
+        : 0);
     } else if (this.phase === 'deck') {
       this.character.animations?.play('idle');
     }
@@ -169,8 +284,10 @@ export class ShipBoardingController {
 
   private jumpOffDeck(): void {
     this.deckRig.removeRider(this.riderId);
+    resetCharacterHeadwearScale(this.character.model);
     this.character.exitShipDeckMode();
     this.phase = 'ashore';
+    this.onPrompt?.(null);
     const jump = this.character.model.position.clone();
     jump.y = this.waterLevel - 0.3;
     this.character.teleportTo(jump);
@@ -190,6 +307,7 @@ export class ShipBoardingController {
       this.interactable.bounds,
       this.character.model.position.x,
       this.character.model.position.z,
+      this.interactable,
     );
     if (deckH === null) return;
     if (this.character.model.position.y < deckH - 0.5) return;
@@ -197,12 +315,36 @@ export class ShipBoardingController {
     this.board();
   }
 
+  private spawnMuzzleFlash(cannonMesh: THREE.Object3D): void {
+    if (!this._muzzleFlash) {
+      this._muzzleFlash = new THREE.Mesh(
+        new THREE.SphereGeometry(0.35, 8, 8),
+        new THREE.MeshBasicMaterial({ color: 0xffaa44, transparent: true, opacity: 0.9 }),
+      );
+      this._muzzleFlash.name = 'cannon_muzzle_flash';
+      this.shipRoot.add(this._muzzleFlash);
+    }
+    const wp = new THREE.Vector3();
+    cannonMesh.getWorldPosition(wp);
+    this.shipRoot.worldToLocal(wp);
+    this._muzzleFlash.position.copy(wp);
+    this._muzzleFlash.visible = true;
+    this._flashTimer = 0.12;
+  }
+
   dispose(): void {
     this.character.setDeckCastLineHandler(null);
+    resetCharacterHeadwearScale(this.character.model);
     this.deckRig.dispose();
     this.interactable.dispose();
     this.character.clearClimbMeshes(this.interactable.climbColliders);
     this.character.exitShipDeckMode();
+    if (this._muzzleFlash) {
+      this.shipRoot.remove(this._muzzleFlash);
+      this._muzzleFlash.geometry.dispose();
+      (this._muzzleFlash.material as THREE.Material).dispose();
+      this._muzzleFlash = null;
+    }
   }
 }
 

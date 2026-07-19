@@ -1995,9 +1995,18 @@ export class CharacterController3D {
     this.climbMeshes = this.climbMeshes.filter((m) => !meshes.includes(m));
   }
 
+  /**
+   * Lock feet to ship deck terrain.
+   * Optional `opts.sampleLocalY(lx,lz)` samples multi-level deck (stairs → helm).
+   * Optional `opts.deckColliders` used for raycast walkable Y.
+   */
   enterShipDeckMode(
     shipRoot: THREE.Object3D,
-    bounds: { halfWidth: number; halfLength: number; deckY: number },
+    bounds: { halfWidth: number; halfLength: number; deckY: number; upperDeckY?: number },
+    opts?: {
+      sampleLocalY?: (localX: number, localZ: number) => number;
+      deckColliders?: THREE.Object3D[];
+    },
   ): void {
     this.shipDeckLocked = true;
     this.shipDeckSampler = (x, z) => {
@@ -2006,7 +2015,23 @@ export class CharacterController3D {
       if (Math.abs(local.x) > bounds.halfWidth || Math.abs(local.z) > bounds.halfLength) {
         return null;
       }
-      const deck = new THREE.Vector3(0, bounds.deckY, 0);
+      let localY = bounds.deckY;
+      if (opts?.sampleLocalY) {
+        localY = opts.sampleLocalY(local.x, local.z);
+      } else if (opts?.deckColliders?.length) {
+        // Raycast down through deck plates
+        shipRoot.updateWorldMatrix(true, true);
+        const origin = shipRoot.localToWorld(
+          new THREE.Vector3(local.x, (bounds.upperDeckY ?? bounds.deckY) + 5, local.z),
+        );
+        const ray = new THREE.Raycaster(origin, new THREE.Vector3(0, -1, 0), 0, 24);
+        const hits = ray.intersectObjects(opts.deckColliders, true);
+        if (hits.length) {
+          const hitLocal = shipRoot.worldToLocal(hits[0].point.clone());
+          localY = hitLocal.y;
+        }
+      }
+      const deck = new THREE.Vector3(local.x, localY, local.z);
       shipRoot.localToWorld(deck);
       return deck.y;
     };
