@@ -74,13 +74,15 @@ export function createScatterDecorations(
     }
   }
 
-  // Create InstancedMesh for each type
+  // Create InstancedMesh for each type — one draw call per decoration class
   if (grassPositions.length > 0) {
     const grassMesh = new THREE.InstancedMesh(GRASS_GEO, GRASS_MAT, grassPositions.length);
     grassPositions.forEach((mat, i) => grassMesh.setMatrixAt(i, mat));
     grassMesh.instanceMatrix.needsUpdate = true;
-    grassMesh.castShadow = true;
+    grassMesh.castShadow = false; // decor never casts — big CPU win
     grassMesh.receiveShadow = true;
+    grassMesh.frustumCulled = true;
+    grassMesh.name = 'instanced_scatter_grass';
     group.add(grassMesh);
   }
 
@@ -89,6 +91,8 @@ export function createScatterDecorations(
     flowerPositions.forEach((mat, i) => flowerMesh.setMatrixAt(i, mat));
     flowerMesh.instanceMatrix.needsUpdate = true;
     flowerMesh.castShadow = false;
+    flowerMesh.frustumCulled = true;
+    flowerMesh.name = 'instanced_scatter_flower';
     group.add(flowerMesh);
   }
 
@@ -96,7 +100,10 @@ export function createScatterDecorations(
     const pebbleMesh = new THREE.InstancedMesh(PEBBLE_GEO, PEBBLE_MAT, pebblePositions.length);
     pebblePositions.forEach((mat, i) => pebbleMesh.setMatrixAt(i, mat));
     pebbleMesh.instanceMatrix.needsUpdate = true;
+    pebbleMesh.castShadow = false;
     pebbleMesh.receiveShadow = true;
+    pebbleMesh.frustumCulled = true;
+    pebbleMesh.name = 'instanced_scatter_pebble';
     group.add(pebbleMesh);
   }
 

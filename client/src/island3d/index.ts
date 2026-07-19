@@ -62,6 +62,12 @@ export type { HarvestKind, GrowthPhase } from './harvest/RegenerativeHarvest';
 export { Island3DEngine } from './engine/Island3DEngine';
 export type { Island3DEngineConfig, Island3DMode } from './engine/Island3DEngine';
 
+// Performance — distance budget, instancing, shared DRACO/Meshopt loaders
+export { RenderBudgetSystem, horizontalDistance } from './render/RenderBudgetSystem';
+export type { DistanceTier, BudgetDistances, BudgetRegistration } from './render/RenderBudgetSystem';
+export { InstancedPropPool } from './render/InstancedPropPool';
+export type { PropInstanceHandle } from './render/InstancedPropPool';
+
 // Haven Shore PVE trade foundation (Fruzer)
 export { loadHavenShoreFoundation } from './zone/HavenShoreFoundationLoader';
 export type { HavenFoundationResult } from './zone/HavenShoreFoundationLoader';
@@ -187,6 +193,9 @@ export {
 } from './vfx/FireSmokeParticles';
 export type { FxPresetId, ParticleEmitter, ParticleEmitterOpts } from './vfx/FireSmokeParticles';
 export { WorldFxBus, getWorldFxBus, setWorldFxBus } from './vfx/WorldFxBus';
+export { createLavaMaterial, createLavaRibbon, createLavaFlameWall } from './vfx/LavaShader';
+export { SpellFxSystem } from './vfx/SpellFxSystem';
+export type { SpellKnockbackHit } from './vfx/SpellFxSystem';
 
 // Foot IK (dash landing pulse)
 export { CharacterIK, solveTwoBoneIK } from './player/CharacterIK';

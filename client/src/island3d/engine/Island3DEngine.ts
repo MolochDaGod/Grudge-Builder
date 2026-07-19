@@ -86,6 +86,9 @@ import {
 } from '../terrain/PirateLobbyOcean';
 import { registerMeshPrefabs, sculptSandPrefab } from '../map/MeshPrefabRegistry';
 import { PostProcessing, type QualityPreset } from '../render/PostProcessing';
+import { RenderBudgetSystem } from '../render/RenderBudgetSystem';
+import { InstancedPropPool } from '../render/InstancedPropPool';
+import { configureRenderer } from '@/lib/modelLoader';
 import { DayNightCycle, type DayNightConfig } from '../environment/DayNightCycle';
 import { getTideHeight, DAY_NIGHT_DEFAULTS } from '@shared/definitions/gameClock';
 import { CharacterController3D, type CharacterController3DConfig, type PhysicsCallbacks } from '../player/CharacterController3D';
@@ -468,20 +471,31 @@ export class Island3DEngine {
   private harvestDrops: HarvestDrop[] = [];
   private treeFallCompleting = new Set<HarvestableTree>();
 
+  /**
+   * Distance bands + frustum hide for props/units/creatures.
+   * Only objects within farM of the player are fully updated.
+   */
+  public renderBudget: RenderBudgetSystem;
+  /** Shared InstancedMesh pools for static world props */
+  public propPool: InstancedPropPool | null = null;
+
   constructor(private config: Island3DEngineConfig) {
-    // Renderer
+    const quality = config.quality || 'low';
+    this.renderBudget = new RenderBudgetSystem(quality);
+
+    // Renderer — budget caps pixel ratio + shadow map type
     this.renderer = new THREE.WebGLRenderer({
       canvas: config.canvas,
-      antialias: true,
+      antialias: quality !== 'low',
       alpha: false,
+      powerPreference: 'high-performance',
     });
     this.renderer.setSize(config.width, config.height);
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    this.renderer.shadowMap.enabled = true;
-    this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     this.renderer.localClippingEnabled = true;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
     this.renderer.toneMappingExposure = 1.2;
+    // KTX2 / Meshopt path needs live renderer for transcoder target
+    configureRenderer(this.renderer);
 
     // Scene
     this.scene = new THREE.Scene();
@@ -505,19 +519,66 @@ export class Island3DEngine {
     this.clock = new THREE.Clock();
 
     this.setupLighting();
+    // Cap shadow frustum + pixel ratio from quality preset
+    this.renderBudget.applyToRenderer(this.renderer, this.sunLight);
+    this.renderBudget.applyFog(this.scene);
+    this.propPool = new InstancedPropPool(this.scene);
 
     // Fire/smoke particle bus (boats, campfires, attacks, teleports, dash feet)
     void import('../vfx/WorldFxBus').then(({ WorldFxBus, setWorldFxBus }) => {
       this.worldFx = new WorldFxBus(this.scene);
       setWorldFxBus(this.worldFx);
       this.character?.setWorldFxBus?.(this.worldFx);
+      // Flame wall knockback — push creatures away from caster
+      this.worldFx.setKnockbackHandler((hit) => {
+        if (!this.creatures) return;
+        const list = this.creatures.listSoftLockTargets(hit.origin, hit.radius + 0.5);
+        for (const t of list) {
+          const away = t.position.clone().sub(hit.origin);
+          away.y = 0;
+          if (away.lengthSq() < 1e-4) away.set(1, 0, 0);
+          else away.normalize();
+          const strength =
+            hit.force * 0.05 * (1 - Math.min(1, t.dist / Math.max(0.1, hit.radius)));
+          this.creatures.applyKnockback(t.id, away.x * strength, away.z * strength);
+          this.creatures.dealDamage(t.id, 8 + hit.force * 0.35);
+        }
+      });
     });
 
     // Post-processing — default to 'low' for performance
     this.postProcessing = new PostProcessing(
       this.renderer, this.scene, this.camera,
-      { quality: config.quality || 'low' },
+      { quality },
     );
+  }
+
+  /**
+   * Register a static/dynamic object for distance + frustum culling.
+   * Buildings, camp units, landmarks, wildlife groups should register here.
+   */
+  registerBudgetObject(
+    id: string,
+    object: THREE.Object3D,
+    opts?: {
+      getPosition?: () => THREE.Vector3;
+      hideWhenCulled?: boolean;
+      stripFarShadows?: boolean;
+      radius?: number;
+    },
+  ): void {
+    if (opts?.radius != null) object.userData.budgetRadius = opts.radius;
+    this.renderBudget.register({
+      id,
+      object,
+      getPosition: opts?.getPosition,
+      hideWhenCulled: opts?.hideWhenCulled,
+      stripFarShadows: opts?.stripFarShadows,
+    });
+  }
+
+  unregisterBudgetObject(id: string): void {
+    this.renderBudget.unregister(id);
   }
 
   private setupLighting(): void {
@@ -539,6 +600,8 @@ export class Island3DEngine {
     this.sunLight.shadow.camera.far = 800;
     this.sunLight.shadow.bias = -0.001;
     this.scene.add(this.sunLight);
+    // Required so moving light.target.position updates the shadow cascade
+    this.scene.add(this.sunLight.target);
 
     // Subtle fill light from opposite side
     const fill = new THREE.DirectionalLight(0x8ec8e8, 0.3);
@@ -1562,6 +1625,10 @@ export class Island3DEngine {
         sampleHeight,
         waterLevel,
       });
+      this.campUnits.setRenderBudget(
+        (id, obj, opts) => this.registerBudgetObject(id, obj, opts),
+        (id) => this.unregisterBudgetObject(id),
+      );
     } else {
       this.campUnits.setAllyManager(this.allyManager);
     }
@@ -2194,6 +2261,19 @@ export class Island3DEngine {
 
     // External update hooks (RemotePlayerManager, TownNPCController, etc.)
     for (const fn of this.externalUpdates) fn(dt);
+
+    // Distance / frustum budget — only render+update what's near the player
+    const focus = this.character?.getPosition() ?? this.camera.position;
+    this.renderBudget.setOrigin(focus.x, focus.y, focus.z);
+    this.renderBudget.update(this.camera);
+    // Keep sun shadow centered on player (cheap ortho cascade substitute)
+    if (this.sunLight && this.character) {
+      const p = this.character.getPosition();
+      const d = this.renderBudget.distances.shadowExtentM * 0.6;
+      this.sunLight.position.set(p.x + d * 0.5, p.y + d, p.z + d * 0.35);
+      this.sunLight.target.position.copy(p);
+      this.sunLight.target.updateMatrixWorld();
+    }
 
     // Render via post-processing pipeline (or raw fallback)
     if (this.postProcessing) {
