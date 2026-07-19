@@ -297,7 +297,10 @@ export class CharacterController3D {
   private turnSpeed = 3;
   private velocity = new THREE.Vector3();
   private direction = new THREE.Vector3();
-  private cameraOffset = new THREE.Vector3(0, 4.5, 8); // OTS for 2m hero (was 15/25 → god-cam on giants)
+  /** @deprecated use thirdPersonCam — kept for external readers */
+  private cameraOffset = new THREE.Vector3(0, 4.5, 8);
+  /** Editable third-person camera (three-player-controller best practices) */
+  public thirdPersonCam: import('./ThirdPersonCameraSystem').ThirdPersonCameraSystem | null = null;
 
   // Climb raycast helpers
   private climbRaycaster = new THREE.Raycaster();
@@ -352,6 +355,24 @@ export class CharacterController3D {
     this.terrainMesh = config.terrainMesh;
     this.groundObject = config.groundObject ?? null;
     this.groundSampler = config.groundSampler ?? null;
+
+    // Third-person camera (editable — see ThirdPersonCameraSystem)
+    void import('./ThirdPersonCameraSystem').then(({ ThirdPersonCameraSystem }) => {
+      this.thirdPersonCam = new ThirdPersonCameraSystem(this.camera, {
+        distance: 8,
+        lookAtHeightRatio: 0.72,
+        overShoulder: 0.45,
+        minDistance: 2.2,
+        maxDistance: 14,
+      });
+      this.thirdPersonCam.setCharacterHeight(this.physics.characterHeight);
+      const cols: THREE.Object3D[] = [];
+      if (this.terrainMesh) cols.push(this.terrainMesh);
+      if (this.groundObject) cols.push(this.groundObject);
+      this.thirdPersonCam.setColliders(cols);
+      this.thirdPersonCam.setYaw(this.cameraYaw);
+      this.thirdPersonCam.setPitch(this.cameraPitch);
+    });
 
     // Placeholder model (capsule) — will be replaced by GLTF
     this.model = new THREE.Group();
@@ -1149,6 +1170,32 @@ export class CharacterController3D {
         this.mouseDelta.y += e.movementY;
       }
     });
+    // Zoom (three-player-controller style distance clamp)
+    window.addEventListener(
+      'wheel',
+      (e) => {
+        if (this.cinematicLock) return;
+        this.thirdPersonCam?.applyZoom(e.deltaY);
+      },
+      { passive: true },
+    );
+  }
+
+  /** Expose camera + IK knobs for editor / debug GUI. */
+  getCameraEditableParams(): Record<string, number | boolean> | null {
+    return this.thirdPersonCam?.getEditableParams() ?? null;
+  }
+
+  applyCameraEditableParams(p: Partial<Record<string, number | boolean>>): void {
+    this.thirdPersonCam?.applyEditableParams(p);
+  }
+
+  getIkEditableParams(): Record<string, number | boolean> | null {
+    return this.characterIk?.getEditableParams() ?? null;
+  }
+
+  applyIkEditableParams(p: Partial<Record<string, number | boolean>>): void {
+    this.characterIk?.applyEditableParams(p);
   }
 
   // ─── State transitions ─────────────────────────────────────────────────────
@@ -1233,14 +1280,17 @@ export class CharacterController3D {
     // (RMB is primary — matches editor free camera)
     const freeMove = this.freeMoveLocomotion || this.mode === 'build';
     if (this.rmbHeld || (this.mouseDown && !freeMove)) {
-      this.cameraYaw -= this.mouseDelta.x * 0.003;
-      this.cameraPitch = Math.max(0.1, Math.min(0.8, this.cameraPitch + this.mouseDelta.y * 0.003));
+      if (this.thirdPersonCam) {
+        this.thirdPersonCam.applyMouse(this.mouseDelta.x, this.mouseDelta.y);
+        this.cameraYaw = this.thirdPersonCam.getYaw();
+        this.cameraPitch = this.thirdPersonCam.getPitch();
+      } else {
+        this.cameraYaw -= this.mouseDelta.x * 0.003;
+        this.cameraPitch = Math.max(0.1, Math.min(0.8, this.cameraPitch + this.mouseDelta.y * 0.003));
+      }
       this.mouseDelta.x = 0;
       this.mouseDelta.y = 0;
-    } else if (freeMove && this.rmbHeld) {
-      // already handled above when rmbHeld
     } else {
-      // discard unused delta so it doesn't accumulate
       this.mouseDelta.x = 0;
       this.mouseDelta.y = 0;
     }
@@ -1636,13 +1686,37 @@ export class CharacterController3D {
     const terrain: THREE.Object3D[] = [];
     if (this.terrainMesh) terrain.push(this.terrainMesh);
     if (this.groundObject) terrain.push(this.groundObject);
+    // Ship deck plates when boarded
+    if (this.shipDeckLocked && this.climbMeshes.length) {
+      for (const m of this.climbMeshes) {
+        if (m.userData?.shipDeck || m.userData?.shipHull) terrain.push(m);
+      }
+    }
     if (terrain.length === 0) return;
+    this.characterIk.isMoving = this.velocity.lengthSq() > 0.25;
+    this.characterIk.isGrounded = this.isGrounded || this.shipDeckLocked;
+    // restore → already ran mixer in update(); IK adjusts on top of FK
     this.characterIk.updateFootIK(terrain, dt);
   }
 
   // ─── Climbing detection ────────────────────────────────────────────────────
 
   private syncCameraFollow(dt: number): void {
+    if (this.thirdPersonCam) {
+      this.thirdPersonCam.setCharacterHeight(this.physics.characterHeight);
+      // Keep colliders fresh (terrain + climb meshes for ship/island walls)
+      const cols: THREE.Object3D[] = [];
+      if (this.terrainMesh) cols.push(this.terrainMesh);
+      if (this.groundObject) cols.push(this.groundObject);
+      for (const m of this.climbMeshes) cols.push(m);
+      this.thirdPersonCam.setColliders(cols);
+      // Sync yaw from A/D turn when not using free-look delta
+      this.thirdPersonCam.setYaw(this.cameraYaw);
+      this.thirdPersonCam.update(this.model.position, dt);
+      this.cameraPitch = this.thirdPersonCam.getPitch();
+      return;
+    }
+    // Fallback simple OTS if camera system not loaded yet
     const cameraTarget = this.model.position.clone();
     const offsetRotated = this.cameraOffset.clone();
     offsetRotated.applyAxisAngle(new THREE.Vector3(0, 1, 0), this.cameraYaw);

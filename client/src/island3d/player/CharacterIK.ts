@@ -141,6 +141,25 @@ export interface FootIKConfig {
   smoothing: number;
   /** Layer mask for terrain raycasts */
   terrainLayers: THREE.Object3D[];
+  /**
+   * three-player-controller LegIK best practice:
+   * while moving, only LIFT feet that would penetrate ground — never pull
+   * feet down (avoids sticky feet / sliding).
+   */
+  moveLiftOnly: boolean;
+  /** Threshold (m) before lift kicks in while moving */
+  moveLiftThreshold: number;
+  /** Enable full plant IK when idle/standing */
+  plantWhenIdle: boolean;
+  /** Max knee bend (rad) soft clamp via weight scale */
+  maxKneeInfluence: number;
+}
+
+export interface HandIKConfig {
+  weight: number;
+  /** Elbow pole bias strength */
+  poleOut: number;
+  poleDown: number;
 }
 
 export interface LookAtIKConfig {
@@ -154,10 +173,20 @@ export interface LookAtIKConfig {
 
 const DEFAULT_FOOT_CONFIG: FootIKConfig = {
   raycastDistance: 5,
-  maxHipOffset: 1.5,
+  maxHipOffset: 0.45,
   weight: 1.0,
-  smoothing: 8,
+  smoothing: 10,
   terrainLayers: [],
+  moveLiftOnly: true,
+  moveLiftThreshold: 0.008,
+  plantWhenIdle: true,
+  maxKneeInfluence: 1,
+};
+
+const DEFAULT_HAND_CONFIG: HandIKConfig = {
+  weight: 1,
+  poleOut: 0.85,
+  poleDown: 0.55,
 };
 
 /** Boost foot IK briefly on dash impact (plants feet after lunge). */
@@ -185,9 +214,10 @@ export class CharacterIK {
   private currentLookTarget: THREE.Vector3 = new THREE.Vector3();
   private headRestQuat: THREE.Quaternion = new THREE.Quaternion();
 
-  // Config
+  // Config (public for lil-gui editability)
   footConfig: FootIKConfig;
   lookAtConfig: LookAtIKConfig;
+  handConfig: HandIKConfig;
   /** Remaining seconds of dash-landing foot IK boost */
   private dashFootIkTimer = 0;
   private baseFootWeight = 1;
@@ -196,11 +226,24 @@ export class CharacterIK {
   private rightFootPhase = 'stance';
   private leftPhaseTimer = 0;
   private rightPhaseTimer = 0;
+  /** Locomotion flag — set each frame by controller before updateFootIK */
+  isMoving = false;
+  isGrounded = true;
+  /** Pose restore map (LegIK restore pattern) */
+  private adjusted = new Map<THREE.Bone, { position: THREE.Vector3; quaternion: THREE.Quaternion }>();
+  private _tmpV = new THREE.Vector3();
+  private _tmpPole = new THREE.Vector3();
 
-  constructor(model: THREE.Object3D, footConfig?: Partial<FootIKConfig>, lookAtConfig?: Partial<LookAtIKConfig>) {
+  constructor(
+    model: THREE.Object3D,
+    footConfig?: Partial<FootIKConfig>,
+    lookAtConfig?: Partial<LookAtIKConfig>,
+    handConfig?: Partial<HandIKConfig>,
+  ) {
     this.rootModel = model;
     this.footConfig = { ...DEFAULT_FOOT_CONFIG, ...footConfig };
     this.lookAtConfig = { ...DEFAULT_LOOKAT_CONFIG, ...lookAtConfig };
+    this.handConfig = { ...DEFAULT_HAND_CONFIG, ...handConfig };
     this.baseFootWeight = this.footConfig.weight;
 
     // Find skeleton and index all bones by name
@@ -225,14 +268,91 @@ export class CharacterIK {
   // ── Bone finding (handles Mixamo naming) ──────────────────
 
   findBone(name: string): THREE.Bone | null {
-    // Try exact name
     if (this.bones.has(name)) return this.bones.get(name)!;
-    // Try Mixamo prefixed
     if (this.bones.has(`mixamorig:${name}`)) return this.bones.get(`mixamorig:${name}`)!;
     if (this.bones.has(`mixamorig.${name}`)) return this.bones.get(`mixamorig.${name}`)!;
-    // Try Bip001 format
     if (this.bones.has(`Bip001_${name}`)) return this.bones.get(`Bip001_${name}`)!;
+    // Toon RTS / grudge6 Bip001 limbs
+    const bipMap: Record<string, string[]> = {
+      LeftUpLeg: ['Bip001_L_Thigh', 'Bip001 L Thigh', 'mixamorig:LeftUpLeg'],
+      LeftLeg: ['Bip001_L_Calf', 'Bip001 L Calf', 'mixamorig:LeftLeg'],
+      LeftFoot: ['Bip001_L_Foot', 'Bip001 L Foot', 'mixamorig:LeftFoot'],
+      RightUpLeg: ['Bip001_R_Thigh', 'Bip001 R Thigh', 'mixamorig:RightUpLeg'],
+      RightLeg: ['Bip001_R_Calf', 'Bip001 R Calf', 'mixamorig:RightLeg'],
+      RightFoot: ['Bip001_R_Foot', 'Bip001 R Foot', 'mixamorig:RightFoot'],
+      Hips: ['Bip001_Pelvis', 'Bip001 Pelvis', 'mixamorig:Hips'],
+      LeftArm: ['Bip001_L_UpperArm', 'Bip001 L UpperArm', 'mixamorig:LeftArm'],
+      LeftForeArm: ['Bip001_L_Forearm', 'Bip001_L_ForeArm', 'Bip001 L Forearm', 'mixamorig:LeftForeArm'],
+      LeftHand: ['Bip001_L_Hand', 'Bip001 L Hand', 'mixamorig:LeftHand'],
+      RightArm: ['Bip001_R_UpperArm', 'Bip001 R UpperArm', 'mixamorig:RightArm'],
+      RightForeArm: ['Bip001_R_Forearm', 'Bip001_R_ForeArm', 'Bip001 R Forearm', 'mixamorig:RightForeArm'],
+      RightHand: ['Bip001_R_Hand', 'Bip001 R Hand', 'mixamorig:RightHand'],
+      Head: ['Bip001_Head', 'Bip001 Head', 'mixamorig:Head'],
+      Neck: ['Bip001_Neck', 'Bip001 Neck', 'mixamorig:Neck'],
+    };
+    for (const alt of bipMap[name] ?? []) {
+      if (this.bones.has(alt)) return this.bones.get(alt)!;
+    }
+    // Fuzzy: any bone containing name
+    const lower = name.toLowerCase();
+    for (const [k, bone] of this.bones) {
+      if (k.toLowerCase().includes(lower)) return bone;
+    }
     return null;
+  }
+
+  /** Export knobs for editor / lil-gui */
+  getEditableParams(): Record<string, number | boolean> {
+    return {
+      footWeight: this.footConfig.weight,
+      footSmoothing: this.footConfig.smoothing,
+      maxHipOffset: this.footConfig.maxHipOffset,
+      moveLiftOnly: this.footConfig.moveLiftOnly,
+      moveLiftThreshold: this.footConfig.moveLiftThreshold,
+      plantWhenIdle: this.footConfig.plantWhenIdle,
+      handWeight: this.handConfig.weight,
+      handPoleOut: this.handConfig.poleOut,
+      handPoleDown: this.handConfig.poleDown,
+      lookWeight: this.lookAtConfig.weight,
+      lookSmoothing: this.lookAtConfig.smoothing,
+    };
+  }
+
+  applyEditableParams(p: Partial<Record<string, number | boolean>>): void {
+    if (p.footWeight != null) {
+      this.footConfig.weight = Number(p.footWeight);
+      this.baseFootWeight = this.footConfig.weight;
+    }
+    if (p.footSmoothing != null) this.footConfig.smoothing = Number(p.footSmoothing);
+    if (p.maxHipOffset != null) this.footConfig.maxHipOffset = Number(p.maxHipOffset);
+    if (p.moveLiftOnly != null) this.footConfig.moveLiftOnly = Boolean(p.moveLiftOnly);
+    if (p.moveLiftThreshold != null) this.footConfig.moveLiftThreshold = Number(p.moveLiftThreshold);
+    if (p.plantWhenIdle != null) this.footConfig.plantWhenIdle = Boolean(p.plantWhenIdle);
+    if (p.handWeight != null) this.handConfig.weight = Number(p.handWeight);
+    if (p.handPoleOut != null) this.handConfig.poleOut = Number(p.handPoleOut);
+    if (p.handPoleDown != null) this.handConfig.poleDown = Number(p.handPoleDown);
+    if (p.lookWeight != null) this.lookAtConfig.weight = Number(p.lookWeight);
+    if (p.lookSmoothing != null) this.lookAtConfig.smoothing = Number(p.lookSmoothing);
+  }
+
+  /**
+   * Restore bones adjusted last frame BEFORE mixer advances (LegIK restore order).
+   * Call: ik.restore() → animations.update(dt) → ik.updateFootIK()
+   */
+  restore(): void {
+    for (const [bone, pose] of this.adjusted) {
+      bone.position.copy(pose.position);
+      bone.quaternion.copy(pose.quaternion);
+    }
+    this.adjusted.clear();
+  }
+
+  private capture(bone: THREE.Bone): void {
+    if (this.adjusted.has(bone)) return;
+    this.adjusted.set(bone, {
+      position: bone.position.clone(),
+      quaternion: bone.quaternion.clone(),
+    });
   }
 
   // ═══════════════════════════════════════════════════════════
@@ -283,8 +403,8 @@ export class CharacterIK {
         this.footConfig.smoothing = DEFAULT_FOOT_CONFIG.smoothing;
       }
     }
-    this.tickFootPhase(delta, false, false);
-    if (this.footConfig.weight <= 0) return;
+    this.tickFootPhase(delta, this.isMoving, this.isMoving);
+    if (this.footConfig.weight <= 0 || !this.isGrounded) return;
 
     const leftFoot = this.findBone("LeftFoot") || this.findBone("LeftToeBase");
     const rightFoot = this.findBone("RightFoot") || this.findBone("RightToeBase");
@@ -296,61 +416,90 @@ export class CharacterIK {
 
     if (!leftFoot || !rightFoot || !hips) return;
 
-    // Raycast from each foot downward
     const leftGroundY = this.raycastGround(leftFoot, terrainObjects);
     const rightGroundY = this.raycastGround(rightFoot, terrainObjects);
-
     if (leftGroundY === null && rightGroundY === null) return;
 
-    // Calculate required hip offset
-    // The lower foot determines how much the hip needs to drop
-    const modelY = this.rootModel.position.y;
-    const leftDiff = leftGroundY !== null ? leftGroundY - this.getFootWorldY(leftFoot) : 0;
-    const rightDiff = rightGroundY !== null ? rightGroundY - this.getFootWorldY(rightFoot) : 0;
+    // Moving: only anti-penetration lift (LegIK moveLiftOnly) — keep locomotion lively
+    const moving = this.isMoving && this.footConfig.moveLiftOnly;
+    const thr = this.footConfig.moveLiftThreshold;
 
-    // Hip drops by the minimum (most negative) foot difference
-    const targetHipOffset = Math.max(-this.footConfig.maxHipOffset,
-      Math.min(leftDiff, rightDiff));
+    const leftFootY = this.getFootWorldY(leftFoot);
+    const rightFootY = this.getFootWorldY(rightFoot);
+    let leftDiff = leftGroundY !== null ? leftGroundY - leftFootY : 0;
+    let rightDiff = rightGroundY !== null ? rightGroundY - rightFootY : 0;
 
-    // Smooth the hip adjustment
+    if (moving) {
+      // Only lift if foot is below ground (penetration). Ignore "pull down".
+      leftDiff = leftDiff > thr ? leftDiff : 0;
+      rightDiff = rightDiff > thr ? rightDiff : 0;
+      if (leftDiff === 0 && rightDiff === 0) {
+        // Ease hip back
+        this.hipOffset = THREE.MathUtils.lerp(this.hipOffset, 0, Math.min(1, delta * this.footConfig.smoothing));
+        if (Math.abs(this.hipOffset) > 1e-4) {
+          this.capture(hips);
+          hips.position.y += this.hipOffset;
+        }
+        return;
+      }
+    } else if (!this.footConfig.plantWhenIdle) {
+      return;
+    }
+
+    // Hip: drop with the lower foot (most negative after sign flip for lift-only positive)
+    const hipNeed = moving
+      ? Math.max(leftDiff, rightDiff) // lift pelvis if either foot needs up
+      : Math.min(leftDiff, rightDiff); // plant: lower hip to shorter leg
+    const targetHipOffset = THREE.MathUtils.clamp(
+      hipNeed * (moving ? 0.35 : 1),
+      -this.footConfig.maxHipOffset,
+      this.footConfig.maxHipOffset,
+    );
+
     this.hipOffset = THREE.MathUtils.lerp(
       this.hipOffset,
       targetHipOffset,
-      Math.min(1, delta * this.footConfig.smoothing)
+      Math.min(1, delta * this.footConfig.smoothing),
     );
 
-    // Apply hip offset
+    this.capture(hips);
     hips.position.y += this.hipOffset;
+    hips.updateMatrixWorld(true);
 
-    // Apply IK to each leg if we have the full chain
-    if (leftLeg && leftKnee && leftFoot && leftGroundY !== null) {
-      const target = new THREE.Vector3();
-      leftFoot.getWorldPosition(target);
-      target.y = leftGroundY;
+    const w = this.footConfig.weight * this.footConfig.maxKneeInfluence;
+    this.applyLegPlant(leftLeg, leftKnee, leftFoot, leftGroundY, leftDiff, w, true, moving);
+    this.applyLegPlant(rightLeg, rightKnee, rightFoot, rightGroundY, rightDiff, w, false, moving);
+  }
 
-      // Pole target: knee points forward
-      const pole = new THREE.Vector3();
-      leftKnee.getWorldPosition(pole);
-      pole.z -= 2; // bias knee forward
+  private applyLegPlant(
+    thigh: THREE.Bone | null,
+    knee: THREE.Bone | null,
+    foot: THREE.Bone | null,
+    groundY: number | null,
+    footDiff: number,
+    weight: number,
+    isLeft: boolean,
+    moving: boolean,
+  ): void {
+    if (!thigh || !knee || !foot || groundY === null) return;
+    if (moving && footDiff <= this.footConfig.moveLiftThreshold) return;
 
-      solveTwoBoneIK(leftLeg, leftKnee, leftFoot, target, pole, {
-        weight: this.footConfig.weight,
-      });
-    }
+    this.capture(thigh);
+    this.capture(knee);
+    this.capture(foot);
 
-    if (rightLeg && rightKnee && rightFoot && rightGroundY !== null) {
-      const target = new THREE.Vector3();
-      rightFoot.getWorldPosition(target);
-      target.y = rightGroundY;
+    const target = this._tmpV;
+    foot.getWorldPosition(target);
+    target.y = groundY + 0.01;
 
-      const pole = new THREE.Vector3();
-      rightKnee.getWorldPosition(pole);
-      pole.z -= 2;
+    // Pole: rest knee direction projected forward of character
+    const pole = this._tmpPole;
+    knee.getWorldPosition(pole);
+    const fwd = new THREE.Vector3(0, 0, 1).applyQuaternion(this.rootModel.getWorldQuaternion(new THREE.Quaternion()));
+    pole.addScaledVector(fwd, isLeft ? 1.2 : 1.2);
+    pole.y -= 0.2;
 
-      solveTwoBoneIK(rightLeg, rightKnee, rightFoot, target, pole, {
-        weight: this.footConfig.weight,
-      });
-    }
+    solveTwoBoneIK(thigh, knee, foot, target, pole, { weight });
   }
 
   private raycastGround(footBone: THREE.Bone, terrainObjects: THREE.Object3D[]): number | null {
@@ -452,21 +601,54 @@ export class CharacterIK {
    * @param target World-space position for the hand
    * @param weight Blend weight (0 = FK only, 1 = full IK)
    */
-  updateHandIK(hand: "left" | "right", target: THREE.Vector3, weight: number = 1): void {
+  /**
+   * Arm IK — place hand at world target (weapon grip, ladder, cannon wheel).
+   * Pole uses rest elbow direction projected onto chain plane (preserves anim bend).
+   */
+  updateHandIK(
+    hand: "left" | "right",
+    target: THREE.Vector3,
+    weight: number = this.handConfig.weight,
+    opts?: { pole?: THREE.Vector3 },
+  ): void {
     const prefix = hand === "left" ? "Left" : "Right";
-    const shoulder = this.findBone(`${prefix}Arm`) || this.findBone(`${prefix}Shoulder`);
-    const elbow = this.findBone(`${prefix}ForeArm`);
+    const shoulder =
+      this.findBone(`${prefix}Arm`) ||
+      this.findBone(`${prefix}Shoulder`) ||
+      this.findBone(`${prefix}UpperArm`);
+    const elbow = this.findBone(`${prefix}ForeArm`) || this.findBone(`${prefix}Forearm`);
     const wrist = this.findBone(`${prefix}Hand`);
 
-    if (!shoulder || !elbow || !wrist) return;
+    if (!shoulder || !elbow || !wrist || weight <= 0.001) return;
 
-    // Pole target: elbow points down-backward
-    const polePos = new THREE.Vector3();
-    elbow.getWorldPosition(polePos);
-    polePos.y -= 1;
-    polePos.z += (hand === "left" ? -1 : 1); // elbow out to the side
+    this.capture(shoulder);
+    this.capture(elbow);
+    this.capture(wrist);
+
+    // Rest pole from current FK elbow, then bias out/down (editable)
+    const polePos = opts?.pole?.clone() ?? new THREE.Vector3();
+    if (!opts?.pole) {
+      elbow.getWorldPosition(polePos);
+      const side = hand === "left" ? -1 : 1;
+      const right = new THREE.Vector3(1, 0, 0).applyQuaternion(
+        this.rootModel.getWorldQuaternion(new THREE.Quaternion()),
+      );
+      polePos.addScaledVector(right, side * this.handConfig.poleOut);
+      polePos.y -= this.handConfig.poleDown;
+    }
 
     solveTwoBoneIK(shoulder, elbow, wrist, target, polePos, { weight });
+  }
+
+  /** Both hands to grip points (two-handed weapons / ship's wheel). */
+  updateTwoHandIK(
+    leftTarget: THREE.Vector3 | null,
+    rightTarget: THREE.Vector3 | null,
+    weight?: number,
+  ): void {
+    const w = weight ?? this.handConfig.weight;
+    if (leftTarget) this.updateHandIK("left", leftTarget, w);
+    if (rightTarget) this.updateHandIK("right", rightTarget, w);
   }
 
   // ═══════════════════════════════════════════════════════════
