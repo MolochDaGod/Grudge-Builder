@@ -115,6 +115,8 @@ export interface ShipwreckNpcDef {
   /** Attack range for hostile */
   aggroRange?: number;
   speed?: number;
+  /** quest_traveler · mission_giver · etc. */
+  tags?: string[];
 }
 
 export interface ShipwreckPrefabDef {
@@ -339,15 +341,18 @@ export const SHIPWRECK_SCENE: ShipwreckSceneDef = {
   npcs: [
     {
       id: 'npc_ally_guide',
-      name: 'Camp Guide',
+      name: 'Dock Traveler (Wake)',
       role: 'ally',
       behavior: 'stationary',
       transform: { position: { x: -3, y: 1.2, z: 8 }, rotationY: Math.PI * 0.25 },
       zoneId: 'zone_wake',
       faction: 'ally',
-      line: 'Gather sticks and stones, then craft your T0 tools.',
+      // Mirrors TRAVELER_NPC — primary mission giver beside the player spawn
+      line:
+        'Easy there, shipwrecked. I am the Dock Traveler. Gather sticks and stones, craft T0 tools, then we build a raft to your people.',
       modelHint: 'human',
       speed: 0,
+      tags: ['quest_traveler', 'mission_giver'],
     },
     {
       id: 'npc_scavenger_a',
@@ -395,10 +400,11 @@ export const SHIPWRECK_SCENE: ShipwreckSceneDef = {
       transform: { position: { x: 6, y: 1.2, z: 26 }, rotationY: Math.PI },
       zoneId: 'zone_dock',
       faction: 'ally',
-      // Same dialogue set as faction island starter boats (all races)
-      line: 'Same lessons for every race — gather, craft, claim, fight, build a raft, sail home, report to your commander.',
+      // Canonical mission giver until raft → outer-ring race faction island
+      line:
+        'Dock Traveler: Same lessons for every race — gather, craft tools, claim, fight, build a raft, then sail to your faction island on the outer lobby ring and report to the commander.',
       modelHint: 'human',
-      tags: ['quest_traveler', 'starter_quest_boat'],
+      tags: ['quest_traveler', 'starter_quest_boat', 'mission_giver'],
     },
   ],
   prefabs: [

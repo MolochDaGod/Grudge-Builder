@@ -1,0 +1,2801 @@
+{
+  "schema": 2,
+  "version": "1.0.0",
+  "id": "grudge-open-world",
+  "name": "Racalvin's Free Port — Grudge Open World (Production)",
+  "mapFamily": "chicken_gun_pirate_lobby",
+  "lobbyMapId": "pirate-islands",
+  "islandId": "grudge-open-world",
+  "forge": {
+    "editorUrl": "https://forge.grudge-studio.com/",
+    "preferredGeometry": "glb",
+    "studioProjectName": "Grudge_Open_World_Production",
+    "agentEditable": true
+  },
+  "geometry": {
+    "id": "pirate-islands-base",
+    "glbPath": "https://assets.grudge-studio.com/models/lobby/pirate-islands/scene.glb",
+    "gltfPath": "https://assets.grudge-studio.com/models/lobby/pirate-islands/scene.gltf",
+    "binPath": "https://assets.grudge-studio.com/models/lobby/pirate-islands/scene.bin",
+    "texturesDir": "https://assets.grudge-studio.com/models/lobby/pirate-islands/textures/",
+    "cdnBase": "https://assets.grudge-studio.com/models/lobby/pirate-islands/",
+    "colliderGlbPath": "https://assets.grudge-studio.com/models/lobby/pirate-islands/colliders.glb",
+    "navmeshPath": "https://assets.grudge-studio.com/models/lobby/pirate-islands/navmesh.json",
+    "notes": "Chicken Gun / PolygonPirates lobby. Live: scene.gltf+bin (~127MB). Build scene.glb for Forge single-file mesh edit. Colliders/navmesh optional bake outputs."
+  },
+  "water": {
+    "waterLevel": -0.85,
+    "oceanFloorLevel": -24
+  },
+  "gameClock": {
+    "realMsPerGameDay": 21600000,
+    "gameDaysPerWeek": 8,
+    "tidesPerGameDay": 2,
+    "tideBaseHeight": -0.85,
+    "tideAmplitude": 0.22
+  },
+  "layers": [
+    {
+      "id": "ocean_floor",
+      "name": "Ocean Floor",
+      "editable": true,
+      "agentAccessible": true,
+      "description": "Seafloor height / mesh"
+    },
+    {
+      "id": "ocean",
+      "name": "Ocean Surface",
+      "editable": true,
+      "agentAccessible": true,
+      "description": "Water plane, depth bands, foam"
+    },
+    {
+      "id": "island_base",
+      "name": "Island Base",
+      "editable": true,
+      "agentAccessible": true,
+      "description": "Base GLTF/GLB landmass"
+    },
+    {
+      "id": "beach",
+      "name": "Beach / Sand",
+      "editable": true,
+      "agentAccessible": true,
+      "description": "Sculptable shore"
+    },
+    {
+      "id": "structure",
+      "name": "Structures",
+      "editable": true,
+      "agentAccessible": true,
+      "description": "Docks, buildings, towers"
+    },
+    {
+      "id": "prop",
+      "name": "Props",
+      "editable": true,
+      "agentAccessible": true,
+      "description": "Chests, barrels, benches"
+    },
+    {
+      "id": "nature",
+      "name": "Nature",
+      "editable": true,
+      "agentAccessible": true,
+      "description": "Trees, rocks, flowers, grass"
+    },
+    {
+      "id": "camp",
+      "name": "Camp",
+      "editable": true,
+      "agentAccessible": true,
+      "description": "Tents, campfires"
+    },
+    {
+      "id": "living",
+      "name": "Living",
+      "editable": true,
+      "agentAccessible": true,
+      "description": "NPCs, heroes, vendors, enemies"
+    },
+    {
+      "id": "vehicle",
+      "name": "Vehicles",
+      "editable": true,
+      "agentAccessible": true,
+      "description": "Boats, mounts, siege"
+    },
+    {
+      "id": "nav",
+      "name": "Navigation",
+      "editable": true,
+      "agentAccessible": true,
+      "description": "Waypoints, navmesh, spawns"
+    },
+    {
+      "id": "physics",
+      "name": "Physics Bake",
+      "editable": true,
+      "agentAccessible": true,
+      "description": "Colliders, water volume, ground probes"
+    },
+    {
+      "id": "rts",
+      "name": "RTS Capture",
+      "editable": true,
+      "agentAccessible": true,
+      "description": "Claim flags, control rings"
+    },
+    {
+      "id": "ai",
+      "name": "AI Brains",
+      "editable": true,
+      "agentAccessible": true,
+      "description": "Sailing, combat, harvest, ship AI"
+    },
+    {
+      "id": "network",
+      "name": "Network",
+      "editable": true,
+      "agentAccessible": true,
+      "description": "Colyseus/room, interest, sync"
+    },
+    {
+      "id": "missions",
+      "name": "Missions",
+      "editable": true,
+      "agentAccessible": true,
+      "description": "Quest graphs, traveler contracts"
+    },
+    {
+      "id": "items",
+      "name": "Items / Weapons",
+      "editable": true,
+      "agentAccessible": true,
+      "description": "Scriptable item & weapon refs"
+    },
+    {
+      "id": "characters",
+      "name": "Characters / Equipment",
+      "editable": true,
+      "agentAccessible": true,
+      "description": "Account loadouts, race prefabs"
+    },
+    {
+      "id": "systems",
+      "name": "Systems Root",
+      "editable": true,
+      "agentAccessible": true,
+      "description": "Package-level system enable flags"
+    },
+    {
+      "id": "vfx",
+      "name": "VFX / Weather",
+      "editable": true,
+      "agentAccessible": true,
+      "description": "Weather, day/night, particles"
+    }
+  ],
+  "compositionVersion": "1.0.0",
+  "compositionMapId": "grudge-open-world",
+  "islands": [
+    {
+      "id": "free_port",
+      "name": "Racalvin's Free Port",
+      "offset": {
+        "ox": 0,
+        "oz": 0.05
+      },
+      "tags": [
+        "hub",
+        "vendors",
+        "spawn",
+        "free_port"
+      ],
+      "color": "#fbbf24"
+    },
+    {
+      "id": "shipwreck_cove",
+      "name": "Shipwreck Cove",
+      "offset": {
+        "ox": 0.28,
+        "oz": 0.22
+      },
+      "tags": [
+        "shipwreck",
+        "pirate_ship",
+        "wreck",
+        "beach",
+        "scavenge",
+        "tutorial_adjacent",
+        "featured"
+      ],
+      "color": "#c4a574"
+    },
+    {
+      "id": "north_harbor",
+      "name": "North Harbor",
+      "offset": {
+        "ox": 0,
+        "oz": -0.35
+      },
+      "tags": [
+        "capture",
+        "north",
+        "harbor"
+      ],
+      "color": "#38bdf8"
+    },
+    {
+      "id": "south_dock",
+      "name": "South Dock",
+      "offset": {
+        "ox": 0,
+        "oz": 0.35
+      },
+      "tags": [
+        "dock",
+        "sail",
+        "ship",
+        "south",
+        "capture"
+      ],
+      "color": "#34d399"
+    },
+    {
+      "id": "east_battery",
+      "name": "East Battery",
+      "offset": {
+        "ox": 0.35,
+        "oz": 0
+      },
+      "tags": [
+        "capture",
+        "east",
+        "battery"
+      ],
+      "color": "#f97316"
+    },
+    {
+      "id": "west_camp",
+      "name": "West Camp",
+      "offset": {
+        "ox": -0.35,
+        "oz": 0
+      },
+      "tags": [
+        "capture",
+        "west",
+        "camp",
+        "harvest"
+      ],
+      "color": "#a78bfa"
+    },
+    {
+      "id": "faction_island_human",
+      "name": "Haven Reach Outpost",
+      "offset": {
+        "ox": 0,
+        "oz": -0.42
+      },
+      "tags": [
+        "faction",
+        "human",
+        "border",
+        "capital_outpost",
+        "generated"
+      ],
+      "color": "#c9a227"
+    },
+    {
+      "id": "faction_island_barbarian",
+      "name": "Stormfang Isle",
+      "offset": {
+        "ox": 0.36,
+        "oz": -0.22
+      },
+      "tags": [
+        "faction",
+        "barbarian",
+        "border",
+        "capital_outpost",
+        "generated"
+      ],
+      "color": "#b87333"
+    },
+    {
+      "id": "faction_island_elf",
+      "name": "Starleaf Cay",
+      "offset": {
+        "ox": 0.42,
+        "oz": 0.12
+      },
+      "tags": [
+        "faction",
+        "elf",
+        "border",
+        "capital_outpost",
+        "generated"
+      ],
+      "color": "#4a9b6e"
+    },
+    {
+      "id": "faction_island_dwarf",
+      "name": "Anvilspire Key",
+      "offset": {
+        "ox": 0.22,
+        "oz": 0.4
+      },
+      "tags": [
+        "faction",
+        "dwarf",
+        "border",
+        "capital_outpost",
+        "generated"
+      ],
+      "color": "#6b8cae"
+    },
+    {
+      "id": "faction_island_orc",
+      "name": "Bloodwake Atoll",
+      "offset": {
+        "ox": -0.3,
+        "oz": 0.38
+      },
+      "tags": [
+        "faction",
+        "orc",
+        "border",
+        "capital_outpost",
+        "generated"
+      ],
+      "color": "#b84a2a"
+    },
+    {
+      "id": "faction_island_undead",
+      "name": "Gravewake Shoal",
+      "offset": {
+        "ox": -0.42,
+        "oz": -0.08
+      },
+      "tags": [
+        "faction",
+        "undead",
+        "border",
+        "capital_outpost",
+        "generated"
+      ],
+      "color": "#6b5b8c"
+    }
+  ],
+  "entities": [
+    {
+      "id": "geometry_base",
+      "kind": "prefab",
+      "name": "Pirate Islands Base GLTF",
+      "layer": "island_base",
+      "asset": "https://assets.grudge-studio.com/models/lobby/pirate-islands/scene.gltf",
+      "data": {
+        "glbPreferred": "https://assets.grudge-studio.com/models/lobby/pirate-islands/scene.glb",
+        "collider": "https://assets.grudge-studio.com/models/lobby/pirate-islands/colliders.glb",
+        "classifyMeshes": true
+      },
+      "tags": [
+        "geometry",
+        "base"
+      ]
+    },
+    {
+      "id": "dock_glb",
+      "kind": "prefab",
+      "name": "Village Dock Prefab",
+      "layer": "structure",
+      "asset": "https://assets.grudge-studio.com/models/buildings/village/dock.glb",
+      "data": {
+        "boardable": true
+      },
+      "tags": [
+        "dock"
+      ]
+    },
+    {
+      "id": "survival_kit",
+      "kind": "prefab",
+      "name": "Survival Kit Multipack",
+      "layer": "prop",
+      "asset": "/models/buildings/survival/free_survival_asset_kit.glb",
+      "data": {
+        "nodes": {
+          "tent": "tent",
+          "tentClosed": "tentClosed",
+          "tentHalf": "tentHalf",
+          "campfire": "campfire",
+          "bedroll": "bedroll",
+          "bedrollPacked": "bedrollPacked",
+          "bedrollFrame": "bedrollFrame",
+          "workbench": "workbench",
+          "workbenchAnvil": "workbenchAnvil",
+          "workbenchGrind": "workbenchGrind",
+          "hammer": "hammer",
+          "paper": "paper",
+          "floor": "floor",
+          "structure": "structure",
+          "structureBase": "structureBase",
+          "structureRoof": "structureRoof",
+          "structureCloth": "structureCloth",
+          "fence": "fence",
+          "fenceFortified": "fenceFortified",
+          "chest": "chest",
+          "box": "box",
+          "boxOpen": "boxOpen",
+          "barrel": "barrel",
+          "toolAxe": "toolAxe",
+          "toolPickaxe": "toolPickaxe",
+          "toolShovel": "toolShovel",
+          "toolHoe": "toolHoe",
+          "tree": "tree",
+          "resourceWood": "resourceWood",
+          "resourceStone": "resourceStone",
+          "fishingStand": "fishingStand",
+          "signpost": "signpost"
+        }
+      },
+      "tags": [
+        "multipack",
+        "camp",
+        "bench"
+      ]
+    },
+    {
+      "id": "cap_north-harbor",
+      "kind": "capture_flag",
+      "name": "North Harbor",
+      "layer": "rts",
+      "transform": {
+        "position": [
+          0,
+          0,
+          0
+        ],
+        "offsetFrac": {
+          "ox": 0,
+          "oz": -0.35
+        }
+      },
+      "data": {
+        "captureId": "north-harbor",
+        "radiusM": 6,
+        "captureRate": 0.22
+      },
+      "tags": [
+        "rts",
+        "capture"
+      ]
+    },
+    {
+      "id": "cap_south-dock",
+      "kind": "capture_flag",
+      "name": "South Dock",
+      "layer": "rts",
+      "transform": {
+        "position": [
+          0,
+          0,
+          0
+        ],
+        "offsetFrac": {
+          "ox": 0,
+          "oz": 0.35
+        }
+      },
+      "data": {
+        "captureId": "south-dock",
+        "radiusM": 6,
+        "captureRate": 0.22
+      },
+      "tags": [
+        "rts",
+        "capture"
+      ]
+    },
+    {
+      "id": "cap_east-battery",
+      "kind": "capture_flag",
+      "name": "East Battery",
+      "layer": "rts",
+      "transform": {
+        "position": [
+          0,
+          0,
+          0
+        ],
+        "offsetFrac": {
+          "ox": 0.35,
+          "oz": 0
+        }
+      },
+      "data": {
+        "captureId": "east-battery",
+        "radiusM": 6,
+        "captureRate": 0.22
+      },
+      "tags": [
+        "rts",
+        "capture"
+      ]
+    },
+    {
+      "id": "cap_west-camp",
+      "kind": "capture_flag",
+      "name": "West Camp",
+      "layer": "rts",
+      "transform": {
+        "position": [
+          0,
+          0,
+          0
+        ],
+        "offsetFrac": {
+          "ox": -0.35,
+          "oz": 0
+        }
+      },
+      "data": {
+        "captureId": "west-camp",
+        "radiusM": 6,
+        "captureRate": 0.22
+      },
+      "tags": [
+        "rts",
+        "capture"
+      ]
+    },
+    {
+      "id": "faction_island_human",
+      "kind": "prefab",
+      "name": "Haven Reach Outpost",
+      "layer": "island_base",
+      "transform": {
+        "position": [
+          0,
+          0,
+          0
+        ],
+        "offsetFrac": {
+          "ox": 0,
+          "oz": -0.42
+        }
+      },
+      "data": {
+        "raceId": "human",
+        "template": {
+          "docks": 4,
+          "buildings": 5,
+          "tents": 4,
+          "campfires": 2,
+          "waterHoles": 1,
+          "trees": 18,
+          "rocks": 12,
+          "stones": 16,
+          "flowers": 14,
+          "grassClumps": 28,
+          "unarmedCount": 8,
+          "factionHeroCount": 8,
+          "captains": 1,
+          "travelers": 1,
+          "blacksmiths": 1,
+          "catapults": 1,
+          "boltThrowers": 1,
+          "towers": 2,
+          "professionBenches": [
+            "mining",
+            "woodworking",
+            "blacksmithing",
+            "alchemy",
+            "cooking",
+            "engineering",
+            "inscription",
+            "tailoring"
+          ],
+          "islandRadiusM": 42,
+          "dockLengthM": 14,
+          "dockWidthM": 4,
+          "buildingFootprintM": [
+            8,
+            6
+          ],
+          "tentScale": 1,
+          "campfireScale": 0.9,
+          "treeScaleRange": [
+            0.85,
+            1.35
+          ],
+          "rockScaleRange": [
+            0.6,
+            1.4
+          ],
+          "dockDeckY": 0.35,
+          "waterHoleRadiusM": 3.5
+        },
+        "bannerColor": 13214247,
+        "starterDockIndex": 2,
+        "boatShipSize": "sloop",
+        "propCount": 119,
+        "npcCount": 20,
+        "generator": "FactionIslandGenerator"
+      },
+      "tags": [
+        "faction",
+        "human",
+        "border"
+      ]
+    },
+    {
+      "id": "human_captain_mounted",
+      "kind": "npc",
+      "name": "Human Captain",
+      "layer": "living",
+      "asset": "https://assets.grudge-studio.com/models/grudge6/races/WK_Characters.glb",
+      "transform": {
+        "position": [
+          0,
+          0.2,
+          -6.3
+        ],
+        "rotationY": 0,
+        "scale": 1,
+        "offsetFrac": {
+          "ox": 0,
+          "oz": -0.42
+        }
+      },
+      "data": {
+        "role": "captain_mounted",
+        "raceId": "human",
+        "mountPath": "https://assets.grudge-studio.com/models/vehicles/mounts/human/cavalry.glb",
+        "unarmed": false,
+        "dialogueSetId": "faction_captain",
+        "parentIsland": "faction_island_human"
+      },
+      "tags": [
+        "captain_mounted",
+        "human",
+        "faction_npc"
+      ]
+    },
+    {
+      "id": "human_traveler_network",
+      "kind": "npc",
+      "name": "Network Traveler",
+      "layer": "living",
+      "asset": "https://assets.grudge-studio.com/models/grudge6/races/WK_Characters.glb",
+      "transform": {
+        "position": [
+          6,
+          0.15,
+          0
+        ],
+        "rotationY": -1.5707963267948966,
+        "scale": 1,
+        "offsetFrac": {
+          "ox": 0,
+          "oz": -0.42
+        }
+      },
+      "data": {
+        "role": "traveler",
+        "raceId": "human",
+        "unarmed": true,
+        "dialogueSetId": "traveler_network",
+        "networkServices": [
+          "auction",
+          "leaderboards",
+          "teleport",
+          "vendor"
+        ],
+        "parentIsland": "faction_island_human"
+      },
+      "tags": [
+        "traveler",
+        "human",
+        "faction_npc"
+      ]
+    },
+    {
+      "id": "human_blacksmith_npc",
+      "kind": "npc",
+      "name": "Human Blacksmith",
+      "layer": "living",
+      "asset": "https://assets.grudge-studio.com/models/grudge6/races/WK_Characters.glb",
+      "transform": {
+        "position": [
+          17.64,
+          0.15,
+          5.04
+        ],
+        "rotationY": -1.5707963267948966,
+        "scale": 1,
+        "offsetFrac": {
+          "ox": 0,
+          "oz": -0.42
+        }
+      },
+      "data": {
+        "role": "blacksmith",
+        "raceId": "human",
+        "unarmed": false,
+        "dialogueSetId": "blacksmith",
+        "parentIsland": "faction_island_human"
+      },
+      "tags": [
+        "blacksmith",
+        "human",
+        "faction_npc"
+      ]
+    },
+    {
+      "id": "human_quest_traveler_boat",
+      "kind": "npc",
+      "name": "Dock Quest Traveler",
+      "layer": "living",
+      "asset": "https://assets.grudge-studio.com/models/grudge6/races/WK_Characters.glb",
+      "transform": {
+        "position": [
+          1.5,
+          0.55,
+          37.800000000000004
+        ],
+        "rotationY": 3.141592653589793,
+        "scale": 1,
+        "offsetFrac": {
+          "ox": 0,
+          "oz": -0.42
+        }
+      },
+      "data": {
+        "role": "quest_traveler",
+        "raceId": "human",
+        "unarmed": true,
+        "dialogueSetId": "starter_quest_boat",
+        "networkServices": [
+          "vendor"
+        ],
+        "parentIsland": "faction_island_human"
+      },
+      "tags": [
+        "quest_traveler",
+        "human",
+        "faction_npc"
+      ]
+    },
+    {
+      "id": "human_starter_boat",
+      "kind": "boat",
+      "name": "Human Starter Sloop",
+      "layer": "vehicle",
+      "asset": "https://assets.grudge-studio.com/models/ships/ship-medium.glb",
+      "transform": {
+        "position": [
+          0,
+          0.6499999999999999,
+          44.64
+        ],
+        "rotationY": 3.141592653589793,
+        "offsetFrac": {
+          "ox": 0,
+          "oz": -0.42
+        }
+      },
+      "data": {
+        "interact": "board",
+        "shipSize": "sloop",
+        "respawnLinked": true,
+        "parentIsland": "faction_island_human",
+        "physics": {
+          "hull": "ship",
+          "boardable": true
+        }
+      },
+      "tags": [
+        "boat",
+        "faction",
+        "human"
+      ]
+    },
+    {
+      "id": "faction_island_barbarian",
+      "kind": "prefab",
+      "name": "Stormfang Isle",
+      "layer": "island_base",
+      "transform": {
+        "position": [
+          0,
+          0,
+          0
+        ],
+        "offsetFrac": {
+          "ox": 0.36,
+          "oz": -0.22
+        }
+      },
+      "data": {
+        "raceId": "barbarian",
+        "template": {
+          "docks": 4,
+          "buildings": 5,
+          "tents": 4,
+          "campfires": 2,
+          "waterHoles": 1,
+          "trees": 18,
+          "rocks": 12,
+          "stones": 16,
+          "flowers": 14,
+          "grassClumps": 28,
+          "unarmedCount": 8,
+          "factionHeroCount": 8,
+          "captains": 1,
+          "travelers": 1,
+          "blacksmiths": 1,
+          "catapults": 1,
+          "boltThrowers": 1,
+          "towers": 2,
+          "professionBenches": [
+            "mining",
+            "woodworking",
+            "blacksmithing",
+            "alchemy",
+            "cooking",
+            "engineering",
+            "inscription",
+            "tailoring"
+          ],
+          "islandRadiusM": 42,
+          "dockLengthM": 14,
+          "dockWidthM": 4,
+          "buildingFootprintM": [
+            8,
+            6
+          ],
+          "tentScale": 1,
+          "campfireScale": 0.9,
+          "treeScaleRange": [
+            0.85,
+            1.35
+          ],
+          "rockScaleRange": [
+            0.6,
+            1.4
+          ],
+          "dockDeckY": 0.35,
+          "waterHoleRadiusM": 3.5
+        },
+        "bannerColor": 12088115,
+        "starterDockIndex": 2,
+        "boatShipSize": "sloop",
+        "propCount": 119,
+        "npcCount": 20,
+        "generator": "FactionIslandGenerator"
+      },
+      "tags": [
+        "faction",
+        "barbarian",
+        "border"
+      ]
+    },
+    {
+      "id": "barbarian_captain_mounted",
+      "kind": "npc",
+      "name": "Barbarian Captain",
+      "layer": "living",
+      "asset": "https://assets.grudge-studio.com/models/grudge6/races/BRB_Characters.glb",
+      "transform": {
+        "position": [
+          0,
+          0.2,
+          -6.3
+        ],
+        "rotationY": 0,
+        "scale": 1,
+        "offsetFrac": {
+          "ox": 0.36,
+          "oz": -0.22
+        }
+      },
+      "data": {
+        "role": "captain_mounted",
+        "raceId": "barbarian",
+        "mountPath": "https://assets.grudge-studio.com/models/vehicles/mounts/barbarian/cavalry.glb",
+        "unarmed": false,
+        "dialogueSetId": "faction_captain",
+        "parentIsland": "faction_island_barbarian"
+      },
+      "tags": [
+        "captain_mounted",
+        "barbarian",
+        "faction_npc"
+      ]
+    },
+    {
+      "id": "barbarian_traveler_network",
+      "kind": "npc",
+      "name": "Network Traveler",
+      "layer": "living",
+      "asset": "https://assets.grudge-studio.com/models/grudge6/races/WK_Characters.glb",
+      "transform": {
+        "position": [
+          6,
+          0.15,
+          0
+        ],
+        "rotationY": -1.5707963267948966,
+        "scale": 1,
+        "offsetFrac": {
+          "ox": 0.36,
+          "oz": -0.22
+        }
+      },
+      "data": {
+        "role": "traveler",
+        "raceId": "human",
+        "unarmed": true,
+        "dialogueSetId": "traveler_network",
+        "networkServices": [
+          "auction",
+          "leaderboards",
+          "teleport",
+          "vendor"
+        ],
+        "parentIsland": "faction_island_barbarian"
+      },
+      "tags": [
+        "traveler",
+        "human",
+        "faction_npc"
+      ]
+    },
+    {
+      "id": "barbarian_blacksmith_npc",
+      "kind": "npc",
+      "name": "Barbarian Blacksmith",
+      "layer": "living",
+      "asset": "https://assets.grudge-studio.com/models/grudge6/races/BRB_Characters.glb",
+      "transform": {
+        "position": [
+          17.64,
+          0.15,
+          5.04
+        ],
+        "rotationY": -1.5707963267948966,
+        "scale": 1,
+        "offsetFrac": {
+          "ox": 0.36,
+          "oz": -0.22
+        }
+      },
+      "data": {
+        "role": "blacksmith",
+        "raceId": "barbarian",
+        "unarmed": false,
+        "dialogueSetId": "blacksmith",
+        "parentIsland": "faction_island_barbarian"
+      },
+      "tags": [
+        "blacksmith",
+        "barbarian",
+        "faction_npc"
+      ]
+    },
+    {
+      "id": "barbarian_quest_traveler_boat",
+      "kind": "npc",
+      "name": "Dock Quest Traveler",
+      "layer": "living",
+      "asset": "https://assets.grudge-studio.com/models/grudge6/races/WK_Characters.glb",
+      "transform": {
+        "position": [
+          1.5,
+          0.55,
+          37.800000000000004
+        ],
+        "rotationY": 3.141592653589793,
+        "scale": 1,
+        "offsetFrac": {
+          "ox": 0.36,
+          "oz": -0.22
+        }
+      },
+      "data": {
+        "role": "quest_traveler",
+        "raceId": "human",
+        "unarmed": true,
+        "dialogueSetId": "starter_quest_boat",
+        "networkServices": [
+          "vendor"
+        ],
+        "parentIsland": "faction_island_barbarian"
+      },
+      "tags": [
+        "quest_traveler",
+        "human",
+        "faction_npc"
+      ]
+    },
+    {
+      "id": "barbarian_starter_boat",
+      "kind": "boat",
+      "name": "Barbarian Starter Sloop",
+      "layer": "vehicle",
+      "asset": "https://assets.grudge-studio.com/models/ships/ship-medium.glb",
+      "transform": {
+        "position": [
+          0,
+          0.6499999999999999,
+          44.64
+        ],
+        "rotationY": 3.141592653589793,
+        "offsetFrac": {
+          "ox": 0.36,
+          "oz": -0.22
+        }
+      },
+      "data": {
+        "interact": "board",
+        "shipSize": "sloop",
+        "respawnLinked": true,
+        "parentIsland": "faction_island_barbarian",
+        "physics": {
+          "hull": "ship",
+          "boardable": true
+        }
+      },
+      "tags": [
+        "boat",
+        "faction",
+        "barbarian"
+      ]
+    },
+    {
+      "id": "faction_island_elf",
+      "kind": "prefab",
+      "name": "Starleaf Cay",
+      "layer": "island_base",
+      "transform": {
+        "position": [
+          0,
+          0,
+          0
+        ],
+        "offsetFrac": {
+          "ox": 0.42,
+          "oz": 0.12
+        }
+      },
+      "data": {
+        "raceId": "elf",
+        "template": {
+          "docks": 4,
+          "buildings": 5,
+          "tents": 4,
+          "campfires": 2,
+          "waterHoles": 1,
+          "trees": 18,
+          "rocks": 12,
+          "stones": 16,
+          "flowers": 14,
+          "grassClumps": 28,
+          "unarmedCount": 8,
+          "factionHeroCount": 8,
+          "captains": 1,
+          "travelers": 1,
+          "blacksmiths": 1,
+          "catapults": 1,
+          "boltThrowers": 1,
+          "towers": 2,
+          "professionBenches": [
+            "mining",
+            "woodworking",
+            "blacksmithing",
+            "alchemy",
+            "cooking",
+            "engineering",
+            "inscription",
+            "tailoring"
+          ],
+          "islandRadiusM": 42,
+          "dockLengthM": 14,
+          "dockWidthM": 4,
+          "buildingFootprintM": [
+            8,
+            6
+          ],
+          "tentScale": 1,
+          "campfireScale": 0.9,
+          "treeScaleRange": [
+            0.85,
+            1.35
+          ],
+          "rockScaleRange": [
+            0.6,
+            1.4
+          ],
+          "dockDeckY": 0.35,
+          "waterHoleRadiusM": 3.5
+        },
+        "bannerColor": 4889454,
+        "starterDockIndex": 2,
+        "boatShipSize": "sloop",
+        "propCount": 119,
+        "npcCount": 20,
+        "generator": "FactionIslandGenerator"
+      },
+      "tags": [
+        "faction",
+        "elf",
+        "border"
+      ]
+    },
+    {
+      "id": "elf_captain_mounted",
+      "kind": "npc",
+      "name": "Elf Captain",
+      "layer": "living",
+      "asset": "https://assets.grudge-studio.com/models/grudge6/races/ELF_Characters.glb",
+      "transform": {
+        "position": [
+          0,
+          0.2,
+          -6.3
+        ],
+        "rotationY": 0,
+        "scale": 1,
+        "offsetFrac": {
+          "ox": 0.42,
+          "oz": 0.12
+        }
+      },
+      "data": {
+        "role": "captain_mounted",
+        "raceId": "elf",
+        "mountPath": "https://assets.grudge-studio.com/models/vehicles/mounts/elf/cavalry.glb",
+        "unarmed": false,
+        "dialogueSetId": "faction_captain",
+        "parentIsland": "faction_island_elf"
+      },
+      "tags": [
+        "captain_mounted",
+        "elf",
+        "faction_npc"
+      ]
+    },
+    {
+      "id": "elf_traveler_network",
+      "kind": "npc",
+      "name": "Network Traveler",
+      "layer": "living",
+      "asset": "https://assets.grudge-studio.com/models/grudge6/races/WK_Characters.glb",
+      "transform": {
+        "position": [
+          6,
+          0.15,
+          0
+        ],
+        "rotationY": -1.5707963267948966,
+        "scale": 1,
+        "offsetFrac": {
+          "ox": 0.42,
+          "oz": 0.12
+        }
+      },
+      "data": {
+        "role": "traveler",
+        "raceId": "human",
+        "unarmed": true,
+        "dialogueSetId": "traveler_network",
+        "networkServices": [
+          "auction",
+          "leaderboards",
+          "teleport",
+          "vendor"
+        ],
+        "parentIsland": "faction_island_elf"
+      },
+      "tags": [
+        "traveler",
+        "human",
+        "faction_npc"
+      ]
+    },
+    {
+      "id": "elf_blacksmith_npc",
+      "kind": "npc",
+      "name": "Elf Blacksmith",
+      "layer": "living",
+      "asset": "https://assets.grudge-studio.com/models/grudge6/races/ELF_Characters.glb",
+      "transform": {
+        "position": [
+          17.64,
+          0.15,
+          5.04
+        ],
+        "rotationY": -1.5707963267948966,
+        "scale": 1,
+        "offsetFrac": {
+          "ox": 0.42,
+          "oz": 0.12
+        }
+      },
+      "data": {
+        "role": "blacksmith",
+        "raceId": "elf",
+        "unarmed": false,
+        "dialogueSetId": "blacksmith",
+        "parentIsland": "faction_island_elf"
+      },
+      "tags": [
+        "blacksmith",
+        "elf",
+        "faction_npc"
+      ]
+    },
+    {
+      "id": "elf_quest_traveler_boat",
+      "kind": "npc",
+      "name": "Dock Quest Traveler",
+      "layer": "living",
+      "asset": "https://assets.grudge-studio.com/models/grudge6/races/WK_Characters.glb",
+      "transform": {
+        "position": [
+          1.5,
+          0.55,
+          37.800000000000004
+        ],
+        "rotationY": 3.141592653589793,
+        "scale": 1,
+        "offsetFrac": {
+          "ox": 0.42,
+          "oz": 0.12
+        }
+      },
+      "data": {
+        "role": "quest_traveler",
+        "raceId": "human",
+        "unarmed": true,
+        "dialogueSetId": "starter_quest_boat",
+        "networkServices": [
+          "vendor"
+        ],
+        "parentIsland": "faction_island_elf"
+      },
+      "tags": [
+        "quest_traveler",
+        "human",
+        "faction_npc"
+      ]
+    },
+    {
+      "id": "elf_starter_boat",
+      "kind": "boat",
+      "name": "Elf Starter Sloop",
+      "layer": "vehicle",
+      "asset": "https://assets.grudge-studio.com/models/ships/ship-medium.glb",
+      "transform": {
+        "position": [
+          0,
+          0.6499999999999999,
+          44.64
+        ],
+        "rotationY": 3.141592653589793,
+        "offsetFrac": {
+          "ox": 0.42,
+          "oz": 0.12
+        }
+      },
+      "data": {
+        "interact": "board",
+        "shipSize": "sloop",
+        "respawnLinked": true,
+        "parentIsland": "faction_island_elf",
+        "physics": {
+          "hull": "ship",
+          "boardable": true
+        }
+      },
+      "tags": [
+        "boat",
+        "faction",
+        "elf"
+      ]
+    },
+    {
+      "id": "faction_island_dwarf",
+      "kind": "prefab",
+      "name": "Anvilspire Key",
+      "layer": "island_base",
+      "transform": {
+        "position": [
+          0,
+          0,
+          0
+        ],
+        "offsetFrac": {
+          "ox": 0.22,
+          "oz": 0.4
+        }
+      },
+      "data": {
+        "raceId": "dwarf",
+        "template": {
+          "docks": 4,
+          "buildings": 5,
+          "tents": 4,
+          "campfires": 2,
+          "waterHoles": 1,
+          "trees": 18,
+          "rocks": 12,
+          "stones": 16,
+          "flowers": 14,
+          "grassClumps": 28,
+          "unarmedCount": 8,
+          "factionHeroCount": 8,
+          "captains": 1,
+          "travelers": 1,
+          "blacksmiths": 1,
+          "catapults": 1,
+          "boltThrowers": 1,
+          "towers": 2,
+          "professionBenches": [
+            "mining",
+            "woodworking",
+            "blacksmithing",
+            "alchemy",
+            "cooking",
+            "engineering",
+            "inscription",
+            "tailoring"
+          ],
+          "islandRadiusM": 42,
+          "dockLengthM": 14,
+          "dockWidthM": 4,
+          "buildingFootprintM": [
+            8,
+            6
+          ],
+          "tentScale": 1,
+          "campfireScale": 0.9,
+          "treeScaleRange": [
+            0.85,
+            1.35
+          ],
+          "rockScaleRange": [
+            0.6,
+            1.4
+          ],
+          "dockDeckY": 0.35,
+          "waterHoleRadiusM": 3.5
+        },
+        "bannerColor": 7048366,
+        "starterDockIndex": 2,
+        "boatShipSize": "sloop",
+        "propCount": 119,
+        "npcCount": 20,
+        "generator": "FactionIslandGenerator"
+      },
+      "tags": [
+        "faction",
+        "dwarf",
+        "border"
+      ]
+    },
+    {
+      "id": "dwarf_captain_mounted",
+      "kind": "npc",
+      "name": "Dwarf Captain",
+      "layer": "living",
+      "asset": "https://assets.grudge-studio.com/models/grudge6/races/DWF_Characters.glb",
+      "transform": {
+        "position": [
+          0,
+          0.2,
+          -6.3
+        ],
+        "rotationY": 0,
+        "scale": 1,
+        "offsetFrac": {
+          "ox": 0.22,
+          "oz": 0.4
+        }
+      },
+      "data": {
+        "role": "captain_mounted",
+        "raceId": "dwarf",
+        "mountPath": "https://assets.grudge-studio.com/models/vehicles/mounts/dwarf/cavalry.glb",
+        "unarmed": false,
+        "dialogueSetId": "faction_captain",
+        "parentIsland": "faction_island_dwarf"
+      },
+      "tags": [
+        "captain_mounted",
+        "dwarf",
+        "faction_npc"
+      ]
+    },
+    {
+      "id": "dwarf_traveler_network",
+      "kind": "npc",
+      "name": "Network Traveler",
+      "layer": "living",
+      "asset": "https://assets.grudge-studio.com/models/grudge6/races/WK_Characters.glb",
+      "transform": {
+        "position": [
+          6,
+          0.15,
+          0
+        ],
+        "rotationY": -1.5707963267948966,
+        "scale": 1,
+        "offsetFrac": {
+          "ox": 0.22,
+          "oz": 0.4
+        }
+      },
+      "data": {
+        "role": "traveler",
+        "raceId": "human",
+        "unarmed": true,
+        "dialogueSetId": "traveler_network",
+        "networkServices": [
+          "auction",
+          "leaderboards",
+          "teleport",
+          "vendor"
+        ],
+        "parentIsland": "faction_island_dwarf"
+      },
+      "tags": [
+        "traveler",
+        "human",
+        "faction_npc"
+      ]
+    },
+    {
+      "id": "dwarf_blacksmith_npc",
+      "kind": "npc",
+      "name": "Dwarf Blacksmith",
+      "layer": "living",
+      "asset": "https://assets.grudge-studio.com/models/grudge6/races/DWF_Characters.glb",
+      "transform": {
+        "position": [
+          17.64,
+          0.15,
+          5.04
+        ],
+        "rotationY": -1.5707963267948966,
+        "scale": 1,
+        "offsetFrac": {
+          "ox": 0.22,
+          "oz": 0.4
+        }
+      },
+      "data": {
+        "role": "blacksmith",
+        "raceId": "dwarf",
+        "unarmed": false,
+        "dialogueSetId": "blacksmith",
+        "parentIsland": "faction_island_dwarf"
+      },
+      "tags": [
+        "blacksmith",
+        "dwarf",
+        "faction_npc"
+      ]
+    },
+    {
+      "id": "dwarf_quest_traveler_boat",
+      "kind": "npc",
+      "name": "Dock Quest Traveler",
+      "layer": "living",
+      "asset": "https://assets.grudge-studio.com/models/grudge6/races/WK_Characters.glb",
+      "transform": {
+        "position": [
+          1.5,
+          0.55,
+          37.800000000000004
+        ],
+        "rotationY": 3.141592653589793,
+        "scale": 1,
+        "offsetFrac": {
+          "ox": 0.22,
+          "oz": 0.4
+        }
+      },
+      "data": {
+        "role": "quest_traveler",
+        "raceId": "human",
+        "unarmed": true,
+        "dialogueSetId": "starter_quest_boat",
+        "networkServices": [
+          "vendor"
+        ],
+        "parentIsland": "faction_island_dwarf"
+      },
+      "tags": [
+        "quest_traveler",
+        "human",
+        "faction_npc"
+      ]
+    },
+    {
+      "id": "dwarf_starter_boat",
+      "kind": "boat",
+      "name": "Dwarf Starter Sloop",
+      "layer": "vehicle",
+      "asset": "https://assets.grudge-studio.com/models/ships/ship-medium.glb",
+      "transform": {
+        "position": [
+          0,
+          0.6499999999999999,
+          44.64
+        ],
+        "rotationY": 3.141592653589793,
+        "offsetFrac": {
+          "ox": 0.22,
+          "oz": 0.4
+        }
+      },
+      "data": {
+        "interact": "board",
+        "shipSize": "sloop",
+        "respawnLinked": true,
+        "parentIsland": "faction_island_dwarf",
+        "physics": {
+          "hull": "ship",
+          "boardable": true
+        }
+      },
+      "tags": [
+        "boat",
+        "faction",
+        "dwarf"
+      ]
+    },
+    {
+      "id": "faction_island_orc",
+      "kind": "prefab",
+      "name": "Bloodwake Atoll",
+      "layer": "island_base",
+      "transform": {
+        "position": [
+          0,
+          0,
+          0
+        ],
+        "offsetFrac": {
+          "ox": -0.3,
+          "oz": 0.38
+        }
+      },
+      "data": {
+        "raceId": "orc",
+        "template": {
+          "docks": 4,
+          "buildings": 5,
+          "tents": 4,
+          "campfires": 2,
+          "waterHoles": 1,
+          "trees": 18,
+          "rocks": 12,
+          "stones": 16,
+          "flowers": 14,
+          "grassClumps": 28,
+          "unarmedCount": 8,
+          "factionHeroCount": 8,
+          "captains": 1,
+          "travelers": 1,
+          "blacksmiths": 1,
+          "catapults": 1,
+          "boltThrowers": 1,
+          "towers": 2,
+          "professionBenches": [
+            "mining",
+            "woodworking",
+            "blacksmithing",
+            "alchemy",
+            "cooking",
+            "engineering",
+            "inscription",
+            "tailoring"
+          ],
+          "islandRadiusM": 42,
+          "dockLengthM": 14,
+          "dockWidthM": 4,
+          "buildingFootprintM": [
+            8,
+            6
+          ],
+          "tentScale": 1,
+          "campfireScale": 0.9,
+          "treeScaleRange": [
+            0.85,
+            1.35
+          ],
+          "rockScaleRange": [
+            0.6,
+            1.4
+          ],
+          "dockDeckY": 0.35,
+          "waterHoleRadiusM": 3.5
+        },
+        "bannerColor": 12077610,
+        "starterDockIndex": 2,
+        "boatShipSize": "sloop",
+        "propCount": 119,
+        "npcCount": 20,
+        "generator": "FactionIslandGenerator"
+      },
+      "tags": [
+        "faction",
+        "orc",
+        "border"
+      ]
+    },
+    {
+      "id": "orc_captain_mounted",
+      "kind": "npc",
+      "name": "Orc Captain",
+      "layer": "living",
+      "asset": "https://assets.grudge-studio.com/models/grudge6/races/ORC_Characters.glb",
+      "transform": {
+        "position": [
+          0,
+          0.2,
+          -6.3
+        ],
+        "rotationY": 0,
+        "scale": 1,
+        "offsetFrac": {
+          "ox": -0.3,
+          "oz": 0.38
+        }
+      },
+      "data": {
+        "role": "captain_mounted",
+        "raceId": "orc",
+        "mountPath": "https://assets.grudge-studio.com/models/vehicles/mounts/orc/cavalry.glb",
+        "unarmed": false,
+        "dialogueSetId": "faction_captain",
+        "parentIsland": "faction_island_orc"
+      },
+      "tags": [
+        "captain_mounted",
+        "orc",
+        "faction_npc"
+      ]
+    },
+    {
+      "id": "orc_traveler_network",
+      "kind": "npc",
+      "name": "Network Traveler",
+      "layer": "living",
+      "asset": "https://assets.grudge-studio.com/models/grudge6/races/WK_Characters.glb",
+      "transform": {
+        "position": [
+          6,
+          0.15,
+          0
+        ],
+        "rotationY": -1.5707963267948966,
+        "scale": 1,
+        "offsetFrac": {
+          "ox": -0.3,
+          "oz": 0.38
+        }
+      },
+      "data": {
+        "role": "traveler",
+        "raceId": "human",
+        "unarmed": true,
+        "dialogueSetId": "traveler_network",
+        "networkServices": [
+          "auction",
+          "leaderboards",
+          "teleport",
+          "vendor"
+        ],
+        "parentIsland": "faction_island_orc"
+      },
+      "tags": [
+        "traveler",
+        "human",
+        "faction_npc"
+      ]
+    },
+    {
+      "id": "orc_blacksmith_npc",
+      "kind": "npc",
+      "name": "Orc Blacksmith",
+      "layer": "living",
+      "asset": "https://assets.grudge-studio.com/models/grudge6/races/ORC_Characters.glb",
+      "transform": {
+        "position": [
+          17.64,
+          0.15,
+          5.04
+        ],
+        "rotationY": -1.5707963267948966,
+        "scale": 1,
+        "offsetFrac": {
+          "ox": -0.3,
+          "oz": 0.38
+        }
+      },
+      "data": {
+        "role": "blacksmith",
+        "raceId": "orc",
+        "unarmed": false,
+        "dialogueSetId": "blacksmith",
+        "parentIsland": "faction_island_orc"
+      },
+      "tags": [
+        "blacksmith",
+        "orc",
+        "faction_npc"
+      ]
+    },
+    {
+      "id": "orc_quest_traveler_boat",
+      "kind": "npc",
+      "name": "Dock Quest Traveler",
+      "layer": "living",
+      "asset": "https://assets.grudge-studio.com/models/grudge6/races/WK_Characters.glb",
+      "transform": {
+        "position": [
+          1.5,
+          0.55,
+          37.800000000000004
+        ],
+        "rotationY": 3.141592653589793,
+        "scale": 1,
+        "offsetFrac": {
+          "ox": -0.3,
+          "oz": 0.38
+        }
+      },
+      "data": {
+        "role": "quest_traveler",
+        "raceId": "human",
+        "unarmed": true,
+        "dialogueSetId": "starter_quest_boat",
+        "networkServices": [
+          "vendor"
+        ],
+        "parentIsland": "faction_island_orc"
+      },
+      "tags": [
+        "quest_traveler",
+        "human",
+        "faction_npc"
+      ]
+    },
+    {
+      "id": "orc_starter_boat",
+      "kind": "boat",
+      "name": "Orc Starter Sloop",
+      "layer": "vehicle",
+      "asset": "https://assets.grudge-studio.com/models/ships/ship-medium.glb",
+      "transform": {
+        "position": [
+          0,
+          0.6499999999999999,
+          44.64
+        ],
+        "rotationY": 3.141592653589793,
+        "offsetFrac": {
+          "ox": -0.3,
+          "oz": 0.38
+        }
+      },
+      "data": {
+        "interact": "board",
+        "shipSize": "sloop",
+        "respawnLinked": true,
+        "parentIsland": "faction_island_orc",
+        "physics": {
+          "hull": "ship",
+          "boardable": true
+        }
+      },
+      "tags": [
+        "boat",
+        "faction",
+        "orc"
+      ]
+    },
+    {
+      "id": "faction_island_undead",
+      "kind": "prefab",
+      "name": "Gravewake Shoal",
+      "layer": "island_base",
+      "transform": {
+        "position": [
+          0,
+          0,
+          0
+        ],
+        "offsetFrac": {
+          "ox": -0.42,
+          "oz": -0.08
+        }
+      },
+      "data": {
+        "raceId": "undead",
+        "template": {
+          "docks": 4,
+          "buildings": 5,
+          "tents": 4,
+          "campfires": 2,
+          "waterHoles": 1,
+          "trees": 18,
+          "rocks": 12,
+          "stones": 16,
+          "flowers": 14,
+          "grassClumps": 28,
+          "unarmedCount": 8,
+          "factionHeroCount": 8,
+          "captains": 1,
+          "travelers": 1,
+          "blacksmiths": 1,
+          "catapults": 1,
+          "boltThrowers": 1,
+          "towers": 2,
+          "professionBenches": [
+            "mining",
+            "woodworking",
+            "blacksmithing",
+            "alchemy",
+            "cooking",
+            "engineering",
+            "inscription",
+            "tailoring"
+          ],
+          "islandRadiusM": 42,
+          "dockLengthM": 14,
+          "dockWidthM": 4,
+          "buildingFootprintM": [
+            8,
+            6
+          ],
+          "tentScale": 1,
+          "campfireScale": 0.9,
+          "treeScaleRange": [
+            0.85,
+            1.35
+          ],
+          "rockScaleRange": [
+            0.6,
+            1.4
+          ],
+          "dockDeckY": 0.35,
+          "waterHoleRadiusM": 3.5
+        },
+        "bannerColor": 7035788,
+        "starterDockIndex": 2,
+        "boatShipSize": "sloop",
+        "propCount": 119,
+        "npcCount": 20,
+        "generator": "FactionIslandGenerator"
+      },
+      "tags": [
+        "faction",
+        "undead",
+        "border"
+      ]
+    },
+    {
+      "id": "undead_captain_mounted",
+      "kind": "npc",
+      "name": "Undead Captain",
+      "layer": "living",
+      "asset": "https://assets.grudge-studio.com/models/grudge6/races/UD_Characters.glb",
+      "transform": {
+        "position": [
+          0,
+          0.2,
+          -6.3
+        ],
+        "rotationY": 0,
+        "scale": 1,
+        "offsetFrac": {
+          "ox": -0.42,
+          "oz": -0.08
+        }
+      },
+      "data": {
+        "role": "captain_mounted",
+        "raceId": "undead",
+        "mountPath": "https://assets.grudge-studio.com/models/vehicles/mounts/undead/cavalry.glb",
+        "unarmed": false,
+        "dialogueSetId": "faction_captain",
+        "parentIsland": "faction_island_undead"
+      },
+      "tags": [
+        "captain_mounted",
+        "undead",
+        "faction_npc"
+      ]
+    },
+    {
+      "id": "undead_traveler_network",
+      "kind": "npc",
+      "name": "Network Traveler",
+      "layer": "living",
+      "asset": "https://assets.grudge-studio.com/models/grudge6/races/WK_Characters.glb",
+      "transform": {
+        "position": [
+          6,
+          0.15,
+          0
+        ],
+        "rotationY": -1.5707963267948966,
+        "scale": 1,
+        "offsetFrac": {
+          "ox": -0.42,
+          "oz": -0.08
+        }
+      },
+      "data": {
+        "role": "traveler",
+        "raceId": "human",
+        "unarmed": true,
+        "dialogueSetId": "traveler_network",
+        "networkServices": [
+          "auction",
+          "leaderboards",
+          "teleport",
+          "vendor"
+        ],
+        "parentIsland": "faction_island_undead"
+      },
+      "tags": [
+        "traveler",
+        "human",
+        "faction_npc"
+      ]
+    },
+    {
+      "id": "undead_blacksmith_npc",
+      "kind": "npc",
+      "name": "Undead Blacksmith",
+      "layer": "living",
+      "asset": "https://assets.grudge-studio.com/models/grudge6/races/UD_Characters.glb",
+      "transform": {
+        "position": [
+          17.64,
+          0.15,
+          5.04
+        ],
+        "rotationY": -1.5707963267948966,
+        "scale": 1,
+        "offsetFrac": {
+          "ox": -0.42,
+          "oz": -0.08
+        }
+      },
+      "data": {
+        "role": "blacksmith",
+        "raceId": "undead",
+        "unarmed": false,
+        "dialogueSetId": "blacksmith",
+        "parentIsland": "faction_island_undead"
+      },
+      "tags": [
+        "blacksmith",
+        "undead",
+        "faction_npc"
+      ]
+    },
+    {
+      "id": "undead_quest_traveler_boat",
+      "kind": "npc",
+      "name": "Dock Quest Traveler",
+      "layer": "living",
+      "asset": "https://assets.grudge-studio.com/models/grudge6/races/WK_Characters.glb",
+      "transform": {
+        "position": [
+          1.5,
+          0.55,
+          37.800000000000004
+        ],
+        "rotationY": 3.141592653589793,
+        "scale": 1,
+        "offsetFrac": {
+          "ox": -0.42,
+          "oz": -0.08
+        }
+      },
+      "data": {
+        "role": "quest_traveler",
+        "raceId": "human",
+        "unarmed": true,
+        "dialogueSetId": "starter_quest_boat",
+        "networkServices": [
+          "vendor"
+        ],
+        "parentIsland": "faction_island_undead"
+      },
+      "tags": [
+        "quest_traveler",
+        "human",
+        "faction_npc"
+      ]
+    },
+    {
+      "id": "undead_starter_boat",
+      "kind": "boat",
+      "name": "Undead Starter Sloop",
+      "layer": "vehicle",
+      "asset": "https://assets.grudge-studio.com/models/ships/ship-medium.glb",
+      "transform": {
+        "position": [
+          0,
+          0.6499999999999999,
+          44.64
+        ],
+        "rotationY": 3.141592653589793,
+        "offsetFrac": {
+          "ox": -0.42,
+          "oz": -0.08
+        }
+      },
+      "data": {
+        "interact": "board",
+        "shipSize": "sloop",
+        "respawnLinked": true,
+        "parentIsland": "faction_island_undead",
+        "physics": {
+          "hull": "ship",
+          "boardable": true
+        }
+      },
+      "tags": [
+        "boat",
+        "faction",
+        "undead"
+      ]
+    },
+    {
+      "id": "ship_catalog_rowboat",
+      "kind": "boat",
+      "name": "Rowboat",
+      "layer": "vehicle",
+      "asset": "https://assets.grudge-studio.com/models/ships/ship-small.glb",
+      "data": {
+        "size": "rowboat",
+        "shipClass": "sloop",
+        "prefabKey": "skiff",
+        "physics": {
+          "boardable": true,
+          "helm": true
+        }
+      },
+      "tags": [
+        "ship_catalog",
+        "rowboat"
+      ]
+    },
+    {
+      "id": "ship_catalog_sloop",
+      "kind": "boat",
+      "name": "Sloop",
+      "layer": "vehicle",
+      "asset": "https://assets.grudge-studio.com/models/ships/ship-medium.glb",
+      "data": {
+        "size": "sloop",
+        "shipClass": "sloop",
+        "prefabKey": "sloop",
+        "physics": {
+          "boardable": true,
+          "helm": true
+        }
+      },
+      "tags": [
+        "ship_catalog",
+        "sloop"
+      ]
+    },
+    {
+      "id": "ship_catalog_galleon",
+      "kind": "boat",
+      "name": "Galleon",
+      "layer": "vehicle",
+      "asset": "https://assets.grudge-studio.com/models/ships/ship-large.glb",
+      "data": {
+        "size": "galleon",
+        "shipClass": "galleon",
+        "prefabKey": "galleon",
+        "physics": {
+          "boardable": true,
+          "helm": true
+        }
+      },
+      "tags": [
+        "ship_catalog",
+        "galleon"
+      ]
+    },
+    {
+      "id": "net_traveler_services",
+      "kind": "network_service",
+      "name": "Network Traveler Services",
+      "layer": "network",
+      "data": {
+        "services": [
+          "auction",
+          "leaderboards",
+          "teleport",
+          "vendor"
+        ],
+        "presentOn": [
+          "faction_island_human",
+          "faction_island_barbarian",
+          "faction_island_elf",
+          "faction_island_dwarf",
+          "faction_island_orc",
+          "faction_island_undead"
+        ]
+      },
+      "tags": [
+        "network",
+        "traveler"
+      ]
+    },
+    {
+      "id": "phys_water_volume",
+      "kind": "prefab",
+      "name": "Water Volume Physics",
+      "layer": "physics",
+      "data": {
+        "waterLevel": 0,
+        "oceanFloor": -24,
+        "swim": true,
+        "boatBuoyancy": true
+      },
+      "tags": [
+        "physics",
+        "water"
+      ]
+    },
+    {
+      "id": "brain_ai_sailing",
+      "kind": "ai_brain",
+      "name": "AI Sailing",
+      "layer": "ai",
+      "data": {
+        "id": "brain_ai_sailing",
+        "name": "AI Sailing",
+        "domain": "sailing",
+        "controller": "LobbyShipHelmAI",
+        "params": {
+          "windInfluence": 0.3,
+          "dockApproachM": 12,
+          "avoidRadiusM": 8
+        },
+        "agentTools": [
+          "set_course",
+          "dock",
+          "board",
+          "disembark"
+        ]
+      },
+      "tags": [
+        "ai",
+        "sailing"
+      ]
+    },
+    {
+      "id": "brain_ai_ships",
+      "kind": "ai_brain",
+      "name": "AI Ships",
+      "layer": "ai",
+      "data": {
+        "id": "brain_ai_ships",
+        "name": "AI Ships",
+        "domain": "ship",
+        "controller": "FactionPatrolShipAI",
+        "params": {
+          "patrolRadiusM": 80,
+          "engageRangeM": 40
+        },
+        "agentTools": [
+          "spawn_ship",
+          "set_faction",
+          "patrol_route"
+        ]
+      },
+      "tags": [
+        "ai",
+        "ship"
+      ]
+    },
+    {
+      "id": "brain_ai_combat",
+      "kind": "ai_brain",
+      "name": "AI Combat",
+      "layer": "ai",
+      "data": {
+        "id": "brain_ai_combat",
+        "name": "AI Combat",
+        "domain": "combat",
+        "controller": "NpcCampCombatAI",
+        "params": {
+          "aggroRadiusM": 18,
+          "leashM": 35
+        },
+        "agentTools": [
+          "set_target",
+          "retreat",
+          "call_reinforcements"
+        ]
+      },
+      "tags": [
+        "ai",
+        "combat"
+      ]
+    },
+    {
+      "id": "brain_auto_harvest",
+      "kind": "ai_brain",
+      "name": "Units Auto Harvest",
+      "layer": "ai",
+      "data": {
+        "id": "brain_auto_harvest",
+        "name": "Units Auto Harvest",
+        "domain": "harvest",
+        "controller": "CampUnitHarvestAI",
+        "params": {
+          "searchRadiusM": 40,
+          "depositAt": "camp_storage"
+        },
+        "agentTools": [
+          "assign_node",
+          "set_resource",
+          "return_to_camp"
+        ]
+      },
+      "tags": [
+        "ai",
+        "harvest"
+      ]
+    },
+    {
+      "id": "brain_rts_capture",
+      "kind": "ai_brain",
+      "name": "RTS Claim Flags",
+      "layer": "ai",
+      "data": {
+        "id": "brain_rts_capture",
+        "name": "RTS Claim Flags",
+        "domain": "rts",
+        "controller": "LobbyCaptureAI",
+        "params": {
+          "reclaimRate": 0.08,
+          "holdRadiusM": 6
+        },
+        "agentTools": [
+          "claim_flag",
+          "set_owner",
+          "spawn_contest"
+        ]
+      },
+      "tags": [
+        "ai",
+        "rts"
+      ]
+    },
+    {
+      "id": "brain_captain_mounted",
+      "kind": "ai_brain",
+      "name": "Faction Captain",
+      "layer": "ai",
+      "data": {
+        "id": "brain_captain_mounted",
+        "name": "Faction Captain",
+        "domain": "captain",
+        "controller": "MountedCaptainAI",
+        "params": {
+          "greetRadiusM": 10
+        },
+        "agentTools": [
+          "dialogue",
+          "assign_quest",
+          "open_faction_shop"
+        ]
+      },
+      "tags": [
+        "ai",
+        "captain"
+      ]
+    },
+    {
+      "id": "brain_civilian",
+      "kind": "ai_brain",
+      "name": "Unarmed Civilian Ambient",
+      "layer": "ai",
+      "data": {
+        "id": "brain_civilian",
+        "name": "Unarmed Civilian Ambient",
+        "domain": "civilian",
+        "controller": "AmbientWanderAI",
+        "params": {
+          "wanderRadiusM": 8
+        },
+        "agentTools": [
+          "wander",
+          "idle",
+          "flee"
+        ]
+      },
+      "tags": [
+        "ai",
+        "civilian"
+      ]
+    }
+  ],
+  "aiBrains": [
+    {
+      "id": "brain_ai_sailing",
+      "name": "AI Sailing",
+      "domain": "sailing",
+      "controller": "LobbyShipHelmAI",
+      "params": {
+        "windInfluence": 0.3,
+        "dockApproachM": 12,
+        "avoidRadiusM": 8
+      },
+      "agentTools": [
+        "set_course",
+        "dock",
+        "board",
+        "disembark"
+      ]
+    },
+    {
+      "id": "brain_ai_ships",
+      "name": "AI Ships",
+      "domain": "ship",
+      "controller": "FactionPatrolShipAI",
+      "params": {
+        "patrolRadiusM": 80,
+        "engageRangeM": 40
+      },
+      "agentTools": [
+        "spawn_ship",
+        "set_faction",
+        "patrol_route"
+      ]
+    },
+    {
+      "id": "brain_ai_combat",
+      "name": "AI Combat",
+      "domain": "combat",
+      "controller": "NpcCampCombatAI",
+      "params": {
+        "aggroRadiusM": 18,
+        "leashM": 35
+      },
+      "agentTools": [
+        "set_target",
+        "retreat",
+        "call_reinforcements"
+      ]
+    },
+    {
+      "id": "brain_auto_harvest",
+      "name": "Units Auto Harvest",
+      "domain": "harvest",
+      "controller": "CampUnitHarvestAI",
+      "params": {
+        "searchRadiusM": 40,
+        "depositAt": "camp_storage"
+      },
+      "agentTools": [
+        "assign_node",
+        "set_resource",
+        "return_to_camp"
+      ]
+    },
+    {
+      "id": "brain_rts_capture",
+      "name": "RTS Claim Flags",
+      "domain": "rts",
+      "controller": "LobbyCaptureAI",
+      "params": {
+        "reclaimRate": 0.08,
+        "holdRadiusM": 6
+      },
+      "agentTools": [
+        "claim_flag",
+        "set_owner",
+        "spawn_contest"
+      ]
+    },
+    {
+      "id": "brain_captain_mounted",
+      "name": "Faction Captain",
+      "domain": "captain",
+      "controller": "MountedCaptainAI",
+      "params": {
+        "greetRadiusM": 10
+      },
+      "agentTools": [
+        "dialogue",
+        "assign_quest",
+        "open_faction_shop"
+      ]
+    },
+    {
+      "id": "brain_civilian",
+      "name": "Unarmed Civilian Ambient",
+      "domain": "civilian",
+      "controller": "AmbientWanderAI",
+      "params": {
+        "wanderRadiusM": 8
+      },
+      "agentTools": [
+        "wander",
+        "idle",
+        "flee"
+      ]
+    }
+  ],
+  "network": {
+    "mapRoom": "lobby_pirate_open_world",
+    "interestRadiusM": 120,
+    "tickHz": 10,
+    "harvestAuthoritative": true,
+    "captureAuthoritative": true,
+    "characterSync": true,
+    "equipmentSync": true,
+    "boatSync": true,
+    "endpoints": {
+      "worldHttp": "https://world.grudge-studio.com",
+      "multiplayerWs": "wss://world.grudge-studio.com"
+    }
+  },
+  "missions": [
+    {
+      "id": "mission_dock_starter",
+      "title": "Welcome Aboard",
+      "giverEntityId": "quest_traveler_boat",
+      "steps": [
+        {
+          "id": "talk",
+          "kind": "dialogue",
+          "detail": "Speak with Dock Quest Traveler"
+        },
+        {
+          "id": "board",
+          "kind": "board",
+          "detail": "Board the starter boat"
+        },
+        {
+          "id": "sail",
+          "kind": "sail",
+          "detail": "Sail toward Free Port hub"
+        }
+      ],
+      "rewards": [
+        {
+          "itemId": "item_copper_coin",
+          "qty": 25
+        }
+      ]
+    },
+    {
+      "id": "mission_claim_south",
+      "title": "Claim South Dock",
+      "steps": [
+        {
+          "id": "reach",
+          "kind": "goto",
+          "detail": "Reach South Dock capture ring"
+        },
+        {
+          "id": "hold",
+          "kind": "capture",
+          "detail": "Hold E to claim the flag"
+        }
+      ]
+    },
+    {
+      "id": "mission_faction_blacksmith",
+      "title": "Forge of Your Race",
+      "steps": [
+        {
+          "id": "visit",
+          "kind": "goto",
+          "detail": "Visit your race faction island blacksmith"
+        },
+        {
+          "id": "craft",
+          "kind": "craft",
+          "detail": "Use a profession bench"
+        }
+      ]
+    }
+  ],
+  "characterPrefabs": [
+    {
+      "raceId": "human",
+      "modelPath": "https://assets.grudge-studio.com/models/grudge6/races/WK_Characters.glb",
+      "scale": 1,
+      "mountPath": "https://assets.grudge-studio.com/models/vehicles/mounts/human/cavalry.glb",
+      "equipmentSlots": [
+        "head",
+        "chest",
+        "legs",
+        "feet",
+        "mainhand",
+        "offhand",
+        "back",
+        "ring1",
+        "ring2",
+        "amulet"
+      ]
+    },
+    {
+      "raceId": "barbarian",
+      "modelPath": "https://assets.grudge-studio.com/models/grudge6/races/BRB_Characters.glb",
+      "scale": 1.1,
+      "mountPath": "https://assets.grudge-studio.com/models/vehicles/mounts/barbarian/cavalry.glb",
+      "equipmentSlots": [
+        "head",
+        "chest",
+        "legs",
+        "feet",
+        "mainhand",
+        "offhand",
+        "back",
+        "ring1",
+        "ring2",
+        "amulet"
+      ]
+    },
+    {
+      "raceId": "elf",
+      "modelPath": "https://assets.grudge-studio.com/models/grudge6/races/ELF_Characters.glb",
+      "scale": 1,
+      "mountPath": "https://assets.grudge-studio.com/models/vehicles/mounts/elf/cavalry.glb",
+      "equipmentSlots": [
+        "head",
+        "chest",
+        "legs",
+        "feet",
+        "mainhand",
+        "offhand",
+        "back",
+        "ring1",
+        "ring2",
+        "amulet"
+      ]
+    },
+    {
+      "raceId": "dwarf",
+      "modelPath": "https://assets.grudge-studio.com/models/grudge6/races/DWF_Characters.glb",
+      "scale": 0.85,
+      "mountPath": "https://assets.grudge-studio.com/models/vehicles/mounts/dwarf/cavalry.glb",
+      "equipmentSlots": [
+        "head",
+        "chest",
+        "legs",
+        "feet",
+        "mainhand",
+        "offhand",
+        "back",
+        "ring1",
+        "ring2",
+        "amulet"
+      ]
+    },
+    {
+      "raceId": "orc",
+      "modelPath": "https://assets.grudge-studio.com/models/grudge6/races/ORC_Characters.glb",
+      "scale": 1.15,
+      "mountPath": "https://assets.grudge-studio.com/models/vehicles/mounts/orc/cavalry.glb",
+      "equipmentSlots": [
+        "head",
+        "chest",
+        "legs",
+        "feet",
+        "mainhand",
+        "offhand",
+        "back",
+        "ring1",
+        "ring2",
+        "amulet"
+      ]
+    },
+    {
+      "raceId": "undead",
+      "modelPath": "https://assets.grudge-studio.com/models/grudge6/races/UD_Characters.glb",
+      "scale": 1,
+      "mountPath": "https://assets.grudge-studio.com/models/vehicles/mounts/undead/cavalry.glb",
+      "equipmentSlots": [
+        "head",
+        "chest",
+        "legs",
+        "feet",
+        "mainhand",
+        "offhand",
+        "back",
+        "ring1",
+        "ring2",
+        "amulet"
+      ]
+    }
+  ],
+  "itemsCatalogRefs": [
+    "https://assets.grudge-studio.com/api/v1/items.json",
+    "shared/definitions/items.ts",
+    "shared/definitions/tier0Items.ts"
+  ],
+  "weaponsCatalogRefs": [
+    "https://assets.grudge-studio.com/api/v1/weapons.json",
+    "shared/definitions/weaponArsenal.ts"
+  ],
+  "hud": {
+    "version": "1.0.0",
+    "showChrome": true,
+    "defaultMode": "social",
+    "flags": {
+      "minimapDefaultOpen": true,
+      "capturePrompt": true,
+      "dockBoardPrompt": true,
+      "factionIslandLabels": true,
+      "tideClockWidget": true,
+      "loadoutPreview": true
+    },
+    "panels": [
+      {
+        "id": "hud_minimap",
+        "label": "Mini Map",
+        "surface": "minimap",
+        "enabled": true,
+        "anchor": "top-right",
+        "hotkey": "M",
+        "zIndex": 40
+      },
+      {
+        "id": "hud_mode_play",
+        "label": "Mode Play",
+        "surface": "mode_play",
+        "enabled": true,
+        "anchor": "bottom-left",
+        "hotkey": "Tab",
+        "zIndex": 35
+      },
+      {
+        "id": "hud_grudge6",
+        "label": "Character Panel",
+        "surface": "grudge6_shell",
+        "enabled": true,
+        "anchor": "bottom-right",
+        "hotkey": "C",
+        "zIndex": 36
+      },
+      {
+        "id": "hud_inventory",
+        "label": "Inventory",
+        "surface": "inventory",
+        "enabled": true,
+        "anchor": "center",
+        "hotkey": "I",
+        "zIndex": 50
+      },
+      {
+        "id": "hud_spellbook",
+        "label": "Spellbook",
+        "surface": "spellbook",
+        "enabled": true,
+        "anchor": "center",
+        "hotkey": "P",
+        "zIndex": 50
+      },
+      {
+        "id": "hud_capture",
+        "label": "Capture Prompt",
+        "surface": "capture",
+        "enabled": true,
+        "anchor": "center",
+        "zIndex": 30
+      },
+      {
+        "id": "hud_ship",
+        "label": "Ship Dock",
+        "surface": "ship_dock",
+        "enabled": true,
+        "anchor": "bottom-left",
+        "hotkey": "E",
+        "zIndex": 30
+      },
+      {
+        "id": "hud_clock",
+        "label": "Day / Tide",
+        "surface": "day_night",
+        "enabled": true,
+        "anchor": "top-left",
+        "zIndex": 25
+      },
+      {
+        "id": "hud_quest",
+        "label": "Quest Tracker",
+        "surface": "quest",
+        "enabled": true,
+        "anchor": "top-left",
+        "zIndex": 28
+      },
+      {
+        "id": "hud_build",
+        "label": "Build",
+        "surface": "build",
+        "enabled": true,
+        "anchor": "bottom-left",
+        "hotkey": "B",
+        "zIndex": 34
+      },
+      {
+        "id": "hud_camp",
+        "label": "Camp Command",
+        "surface": "camp_command",
+        "enabled": true,
+        "anchor": "bottom-right",
+        "zIndex": 33
+      },
+      {
+        "id": "hud_chat",
+        "label": "Chat",
+        "surface": "chat",
+        "enabled": false,
+        "anchor": "bottom-left",
+        "hotkey": "Enter",
+        "zIndex": 20
+      }
+    ]
+  },
+  "systems": {
+    "rtsCaptureFlags": true,
+    "aiSailing": true,
+    "aiCombat": true,
+    "aiShips": true,
+    "autoHarvestUnits": true,
+    "characterAccountEquipment": true,
+    "factionIslands": true,
+    "boatsPhysics": true,
+    "dayNight": true
+  },
+  "runtime": {
+    "engine": "Island3DEngine mode=lobby",
+    "entryUrls": [
+      "/island-3d?mode=lobby&map=pirate-islands&island=grudge-open-world",
+      "/island-3d?mode=zone&sector=lobby",
+      "https://forge.grudge-studio.com/"
+    ],
+    "generatorModules": [
+      "LobbyIslandLoader",
+      "FactionIslandGenerator",
+      "LobbyGameplay",
+      "LobbyPlayZone",
+      "MapCompositionLoader",
+      "BuildingSystem",
+      "NpcCampSystem",
+      "CampUnitSystem",
+      "MultiplayerSync"
+    ]
+  },
+  "notes": [
+    "Geometry: pirate-islands scene.gltf is LIVE on assets CDN; build scene.glb for single-file Forge mesh edit.",
+    "Full production map for Forge/AI is THIS .gmap package — not a monome GLB.",
+    "Faction islands, capture flags, travelers, boats, AI brains are scriptable entities.",
+    "Character account + equipment live in API/DB; prefabs listed for race models + mount paths.",
+    "Import to Forge via .studio.json bridge (exportStudioProjectFromGmap)."
+  ]
+}

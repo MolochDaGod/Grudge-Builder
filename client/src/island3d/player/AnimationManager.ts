@@ -82,6 +82,14 @@ export class AnimationManager {
     return 0.25;
   }
 
+  /** Global mixer time scale (0 = freeze, 0.1 = slow-mo, 1 = normal). */
+  get timeScale(): number {
+    return this.controller.mixer.timeScale;
+  }
+  set timeScale(v: number) {
+    this.controller.mixer.timeScale = v;
+  }
+
   /** Update the mixer each frame */
   update(dt: number): void {
     this.controller.update(dt);

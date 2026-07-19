@@ -436,10 +436,11 @@ function prng(seed: number): () => number {
  * Generate the initial zone population from a sector definition + world seed.
  * Deterministic — server and client produce identical results.
  *
- * Island count and sizes scale with sector difficulty:
- *   - Safe zones: 4-6 islands, mostly medium/large
- *   - Mid zones: 6-10 islands, mixed sizes
- *   - Endgame: 8-14 islands, more atolls + one fortress
+ * Production density (v2 — more land mass, assets, NPCs, enemy boats):
+ *   - Safe zones: 8–12 islands, medium/large bias
+ *   - Mid zones: 12–18 islands, mixed sizes
+ *   - Endgame / open sea: 10–16 islands + heavy ship patrols
+ * Island radii ~1.6× prior; harvest / wanderers / patrols scaled up.
  */
 export function generateZonePopulation(
   sectorId: string,
@@ -463,29 +464,35 @@ export function generateZonePopulation(
 
   function randInZone(): [number, number, number] {
     return [
-      (rng() - 0.5) * sizeMeters * 0.85,
+      (rng() - 0.5) * sizeMeters * 0.88,
       0,
-      (rng() - 0.5) * sizeMeters * 0.85,
+      (rng() - 0.5) * sizeMeters * 0.88,
     ];
   }
 
   function randOnIsland(ix: number, iz: number, radius: number): [number, number, number] {
     const angle = rng() * Math.PI * 2;
-    const dist = rng() * radius * 0.7;
+    const dist = rng() * radius * 0.75;
     return [ix + Math.cos(angle) * dist, 0, iz + Math.sin(angle) * dist];
   }
 
-  // ── Islands ──────────────────────────────────────────────
+  // ── Islands (production density) ─────────────────────────
   const avgDiff = (difficultyMin + difficultyMax) / 2;
   const layout = layoutProfileForBiome(biome);
+  // More islands across all biomes — full land mass coverage
   const islandCount = layout === 'open_sea'
-    ? Math.floor(2 + avgDiff * 0.45 + rng() * 2)
+    ? Math.floor(8 + avgDiff * 0.9 + rng() * 4) // 8–16
     : layout === 'archipelago'
-      ? Math.floor(6 + avgDiff * 1.4 + rng() * 4)
-      : Math.floor(4 + avgDiff * 1.2 + rng() * 3);
+      ? Math.floor(12 + avgDiff * 1.6 + rng() * 5) // 12–22
+      : Math.floor(10 + avgDiff * 1.3 + rng() * 4); // 10–18
   const sizes: IslandSize[] = ['atoll', 'small', 'medium', 'large', 'fortress'];
+  /** Collision / gameplay radii — ~1.6× prior for more land mass */
   const sizeRadii: Record<IslandSize, number> = {
-    atoll: 60, small: 120, medium: 220, large: 380, fortress: 500,
+    atoll: 100,
+    small: 200,
+    medium: 360,
+    large: 620,
+    fortress: 820,
   };
 
   for (let i = 0; i < islandCount; i++) {
@@ -541,8 +548,8 @@ export function generateZonePopulation(
       island.childNodeIds.push(dockId);
     }
 
-    // ── Harvesting nodes on island ──
-    const harvestCount = Math.floor(2 + radius / 80 + rng() * 3);
+    // ── Harvesting nodes on island (dense production scatter) ──
+    const harvestCount = Math.floor(5 + radius / 55 + rng() * 6);
     const professions: HarvestProfession[] = ['mining', 'herbalism', 'woodcutting'];
     for (let h = 0; h < harvestCount; h++) {
       const hId = nextId('harvest');
@@ -608,30 +615,34 @@ export function generateZonePopulation(
       island.childNodeIds.push(stlId);
     }
 
-    // ── NPC Camp (on islands with settlements) ──
-    if (island.hasSettlement) {
-      const campId = nextId('camp');
-      const factions: NPCFaction[] = ['crusade', 'fabled', 'legion', 'worge', 'neutral'];
-      const camp: NPCCampNode = {
-        id: campId,
-        category: 'npc_camp',
-        position: randOnIsland(pos[0], pos[2], radius * 0.4),
-        state: 'active',
-        respawnSec: 0,
-        difficulty: island.difficulty,
-        faction: factions[Math.floor(rng() * factions.length)],
-        population: 3 + Math.floor(rng() * 8),
-        roles: ['vendor', 'quest_giver', 'guard'],
-        hasPirateFlag: rng() > 0.6,
-        parentIslandId: id,
-        name: `${island.size === 'fortress' ? 'Stronghold' : 'Camp'} ${i + 1}`,
-      };
-      nodes.set(campId, camp);
-      island.childNodeIds.push(campId);
+    // ── NPC Camps — settlements always; medium+ islands often get a second outpost ──
+    {
+      const campSlots =
+        island.hasSettlement ? 1 + (size === 'fortress' || size === 'large' ? 1 : 0) : size === 'medium' && rng() > 0.45 ? 1 : 0;
+      const factions: NPCFaction[] = ['crusade', 'fabled', 'legion', 'worge', 'neutral', 'pirate'];
+      for (let c = 0; c < campSlots; c++) {
+        const campId = nextId('camp');
+        const camp: NPCCampNode = {
+          id: campId,
+          category: 'npc_camp',
+          position: randOnIsland(pos[0], pos[2], radius * (0.35 + c * 0.15)),
+          state: 'active',
+          respawnSec: 0,
+          difficulty: island.difficulty,
+          faction: factions[Math.floor(rng() * factions.length)],
+          population: 5 + Math.floor(rng() * 10),
+          roles: ['vendor', 'quest_giver', 'guard', 'blacksmith'],
+          hasPirateFlag: rng() > 0.5,
+          parentIslandId: id,
+          name: `${island.size === 'fortress' ? 'Stronghold' : 'Camp'} ${i + 1}${c ? 'b' : ''}`,
+        };
+        nodes.set(campId, camp);
+        island.childNodeIds.push(campId);
+      }
     }
 
-    // ── NPC Wanderers ──
-    const wandererCount = Math.floor(1 + rng() * (island.difficulty * 0.5));
+    // ── NPC Wanderers (more hostiles + neutrals) ──
+    const wandererCount = Math.floor(3 + rng() * (island.difficulty * 0.9 + 2));
     for (let w = 0; w < wandererCount; w++) {
       const wId = nextId('npc');
       const wanderer: NPCWandererNode = {
@@ -771,10 +782,10 @@ export function generateZonePopulation(
     nodes.set(hId, hazard);
   }
 
-  // Sea creatures
+  // Sea creatures (denser)
   const creatureCount = layout === 'open_sea'
-    ? 4 + Math.floor(rng() * avgDiff * 2.2)
-    : 2 + Math.floor(rng() * avgDiff);
+    ? 10 + Math.floor(rng() * avgDiff * 2.8)
+    : 6 + Math.floor(rng() * avgDiff * 1.5);
   for (let c = 0; c < creatureCount; c++) {
     const cId = nextId('creature');
     const creature: SeaCreatureNode = {
@@ -793,16 +804,16 @@ export function generateZonePopulation(
     nodes.set(cId, creature);
   }
 
-  // Ship patrols (AI faction ships sailing the zone)
+  // Enemy / faction ship patrols (AI boats — production density)
   const patrolCount = layout === 'open_sea'
-    ? Math.floor(2 + avgDiff * 0.7)
-    : Math.floor(1 + avgDiff * 0.4);
+    ? Math.floor(6 + avgDiff * 1.4)
+    : Math.floor(4 + avgDiff * 1.0);
   for (let p = 0; p < patrolCount; p++) {
     const pId = nextId('patrol');
     const wp1 = randInZone();
     const wp2 = randInZone();
     const wp3 = randInZone();
-    const factions: NPCFaction[] = ['crusade', 'fabled', 'legion', 'hostile'];
+    const factions: NPCFaction[] = ['crusade', 'fabled', 'legion', 'hostile', 'pirate'];
     const patrol: AIPatrolNode = {
       id: pId,
       category: 'ai_patrol',
@@ -812,10 +823,10 @@ export function generateZonePopulation(
       difficulty: difficultyMin + Math.floor(rng() * (difficultyMax - difficultyMin)),
       faction: factions[Math.floor(rng() * factions.length)],
       waypoints: [wp1, wp2, wp3],
-      unitCount: 1,
-      unitTemplates: [`ship_${biome}_${Math.floor(rng() * 3)}`],
+      unitCount: 1 + (rng() > 0.7 ? 1 : 0),
+      unitTemplates: [`ship_${biome}_${Math.floor(rng() * 3)}`, 'enemy_warship'],
       isShipPatrol: true,
-      aggroRadius: 150 + rng() * 200,
+      aggroRadius: 180 + rng() * 240,
       level: difficultyMin + Math.floor(rng() * (difficultyMax - difficultyMin)),
     };
     nodes.set(pId, patrol);

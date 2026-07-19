@@ -68,8 +68,11 @@ export function DangerRoomHud({ hud }: DangerRoomHudProps) {
         <div className="dr-action-slot is-active" title="LMB combo">
           LMB
         </div>
-        <div className="dr-action-slot" title="Z: +100→−50 lunge">
-          Z
+        <div className="dr-action-slot" title="C: motion attack 2">
+          C
+        </div>
+        <div className="dr-action-slot" title="Tab: soft-lock cycle">
+          Tab
         </div>
         <div className="dr-action-slot" title="X: −50 retreat poke">
           X

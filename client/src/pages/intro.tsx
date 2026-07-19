@@ -46,7 +46,15 @@ export default function IntroPage() {
     return () => clearInterval(timer);
   }, []);
 
-  const handleEnter = () => setLocation("/home");
+  const handleEnter = () => {
+    try {
+      localStorage.setItem('warlords_opening_seen_v1', '1');
+    } catch {
+      /* ignore */
+    }
+    // Production pipeline: opening → create / tutorial / open world / home@20
+    setLocation('/warlords/start');
+  };
   const accentColor = CLASS_ACCENT_COLORS[activeClass] ?? "#f6c945";
 
   return (

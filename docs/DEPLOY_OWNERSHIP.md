@@ -3,6 +3,9 @@
 **Rule:** One public hostname → one owning repo + deploy command.  
 Other repos may **call** the service; they must not re-attach its Cloudflare route / custom domain.
 
+**Warlords platform pattern:** [STACK_PATTERN.md](./STACK_PATTERN.md) — **Vercel + Railway + Colyseus + Cloudflare only**.  
+Supabase is not a production owner for player data or auth SSOT.
+
 Regenerate published truth after ownership changes:
 
 ```bash

@@ -1,0 +1,100 @@
+{
+  "version": "1.0.0",
+  "mapFamily": "chicken_gun_pirate_lobby",
+  "lobbyMapId": "pirate-islands",
+  "description": "6 race faction islands on pirate open-world border. Generated from factionLobbyIslands.ts SSOT.",
+  "template": {
+    "docks": 4,
+    "buildings": 5,
+    "tents": 4,
+    "campfires": 2,
+    "waterHoles": 1,
+    "unarmed": 8,
+    "factionHeroes": 8,
+    "captainMounted": 1,
+    "traveler": 1,
+    "blacksmith": 1,
+    "professionBenches": 8,
+    "catapults": 1,
+    "boltThrowers": 1,
+    "towers": 2,
+    "starterBoat": 1,
+    "respawnWaypoint": 1,
+    "islandRadiusM": 42
+  },
+  "races": [
+    {
+      "raceId": "human",
+      "islandId": "faction_island_human",
+      "name": "Haven Reach Outpost",
+      "borderOffset": { "ox": 0.0, "oz": -0.42 },
+      "bannerColor": "#c9a227",
+      "mount": "models/vehicles/mounts/human/cavalry.glb",
+      "siege": "models/vehicles/siege/human/catapult.glb",
+      "heroes": ["aurion", "sigurd", "kael", "theron"]
+    },
+    {
+      "raceId": "barbarian",
+      "islandId": "faction_island_barbarian",
+      "name": "Stormfang Isle",
+      "borderOffset": { "ox": 0.36, "oz": -0.22 },
+      "bannerColor": "#b87333",
+      "mount": "models/vehicles/mounts/barbarian/cavalry.glb",
+      "siege": null,
+      "heroes": ["thrax", "grok", "kira", "vox"]
+    },
+    {
+      "raceId": "elf",
+      "islandId": "faction_island_elf",
+      "name": "Starleaf Cay",
+      "borderOffset": { "ox": 0.42, "oz": 0.12 },
+      "bannerColor": "#4a9b6e",
+      "mount": "models/vehicles/mounts/elf/cavalry.glb",
+      "siege": "models/vehicles/siege/elf/bolt-thrower.glb",
+      "heroes": ["aelindor", "silvaine", "lyra", "fenwick"]
+    },
+    {
+      "raceId": "dwarf",
+      "islandId": "faction_island_dwarf",
+      "name": "Anvilspire Key",
+      "borderOffset": { "ox": 0.22, "oz": 0.40 },
+      "bannerColor": "#6b8cae",
+      "mount": "models/vehicles/mounts/dwarf/cavalry.glb",
+      "siege": null,
+      "heroes": ["durgin", "brenna", "thordak", "helga"]
+    },
+    {
+      "raceId": "orc",
+      "islandId": "faction_island_orc",
+      "name": "Bloodwake Atoll",
+      "borderOffset": { "ox": -0.30, "oz": 0.38 },
+      "bannerColor": "#b84a2a",
+      "mount": "models/vehicles/mounts/orc/cavalry.glb",
+      "siege": "models/vehicles/siege/orc/catapult.glb",
+      "heroes": ["gruk", "nazgrim", "vexol", "morgash"]
+    },
+    {
+      "raceId": "undead",
+      "islandId": "faction_island_undead",
+      "name": "Gravewake Shoal",
+      "borderOffset": { "ox": -0.42, "oz": -0.08 },
+      "bannerColor": "#6b5b8c",
+      "mount": "models/vehicles/mounts/undead/cavalry.glb",
+      "siege": null,
+      "heroes": ["silesh", "bone", "whisper", "dredge"]
+    }
+  ],
+  "assets": {
+    "grudge6Races": "/models/grudge6/races/{prefix}Characters.glb",
+    "docks": "/models/buildings/village/dock.glb",
+    "starterBoat": "/models/ships/ship-medium.glb",
+    "survivalKit": "/models/buildings/survival/free_survival_asset_kit.glb",
+    "medievalTowers": "/models/buildings/towers/3_medieval_towers.glb",
+    "travelerServices": ["auction", "leaderboards", "teleport", "vendor"]
+  },
+  "runtime": {
+    "generator": "client/src/island3d/lobby/FactionIslandGenerator.ts",
+    "engineHook": "Island3DEngine.initLobby → createFactionLobbyIslands",
+    "minimap": "LobbyMiniMap via LOBBY_ISLANDS + FACTION_LOBBY_ISLAND_DEFS"
+  }
+}

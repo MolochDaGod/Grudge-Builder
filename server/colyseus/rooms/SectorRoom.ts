@@ -43,6 +43,10 @@ import {
   getNodesByCategory,
   type HarvestNode as ZoneHarvestNode,
 } from "@shared/definitions/zoneServerNodes";
+import {
+  getSectorProductionContent,
+  resolveSectorSeeds,
+} from "@shared/definitions/sectorProductionContent";
 
 // ── Constants (from island-server.ts) ───────────────────────────
 
@@ -176,7 +180,7 @@ export class SectorRoom extends Room<SectorState> {
 
     // ── Message handlers ──────────────────────────────────────
 
-    // Movement (high frequency — clients send position updates)
+    // Movement (15 Hz) — also refreshes animState for locomotion
     this.onMessage("move", (client, data: {
       x: number; y: number; z: number; facing: number; state: string;
     }) => {
@@ -186,7 +190,14 @@ export class SectorRoom extends Room<SectorState> {
       player.y = data.y;
       player.z = data.z;
       player.facing = data.facing;
-      player.state = data.state;
+      player.state = data.state || player.state;
+      if (data.state === "moving" || data.state === "walk" || data.state === "run") {
+        player.animState = data.state === "run" ? "run" : "walk";
+        player.animClip = player.animState;
+      } else if (data.state === "idle") {
+        player.animState = "idle";
+        player.animClip = "idle";
+      }
     });
 
     // PvE attack
@@ -210,7 +221,7 @@ export class SectorRoom extends Room<SectorState> {
       this.handleHarvest(client, data.nodeId, data.professionId);
     });
 
-    // Chat
+    // Chat (authoritative server broadcast — all clients see same feed)
     this.onMessage("chat", (client, data: { text: string }) => {
       const player = this.state.players.get(client.sessionId);
       if (!player) return;
@@ -223,7 +234,60 @@ export class SectorRoom extends Room<SectorState> {
       this.broadcast("chat", msg);
     });
 
-    // ── Building placement ──────────────────────────────────────
+    // Animation state (change + heartbeat) — remotes play attack/walk/etc.
+    this.onMessage("anim", (client, data: { state?: string; clip?: string; oneshot?: boolean }) => {
+      const player = this.state.players.get(client.sessionId);
+      if (!player) return;
+      const state = String(data?.state || player.state || "idle").slice(0, 32);
+      player.animState = state;
+      player.animClip = String(data?.clip || state).slice(0, 48);
+      if (data?.oneshot) player.animSeq = (player.animSeq + 1) % 1_000_000;
+      // Keep coarse locomotion state aligned for older clients
+      if (state === "walk" || state === "run" || state === "moving") player.state = "moving";
+      else if (state === "attack" || state === "attacking") player.state = "attacking";
+      else if (state === "death" || state === "dead") player.state = "dead";
+      else if (state === "harvesting") player.state = "harvesting";
+      else if (state === "idle") player.state = "idle";
+    });
+
+    // One-shot VFX (attack burst, teleport smoke, dash feet) — reliable message
+    this.onMessage(
+      "fx",
+      (
+        client,
+        data: { kind?: string; x?: number; y?: number; z?: number; id?: string; meta?: string },
+      ) => {
+        const player = this.state.players.get(client.sessionId);
+        if (!player) return;
+        this.broadcast(
+          "fx",
+          {
+            kind: String(data?.kind || "custom").slice(0, 32),
+            x: Number(data?.x) || player.x,
+            y: Number(data?.y) || player.y,
+            z: Number(data?.z) || player.z,
+            id: data?.id,
+            meta: data?.meta,
+            senderId: client.sessionId,
+            timestamp: Date.now(),
+          },
+          { except: client },
+        );
+      },
+    );
+
+    // Protocol handshake
+    this.onMessage("ready", (client, data: { protocolVersion?: number }) => {
+      client.send("room_snapshot", {
+        sectorId: this.sectorId,
+        worldSeed: this.worldSeed,
+        protocolVersion: data?.protocolVersion ?? 1,
+        playerCount: this.state.players.size,
+        buildingCount: this.state.buildings.size,
+      });
+    });
+
+    // ── Building placement (synced schema — all clients instantiate) ──
 
     this.onMessage("place_building", (client, data: {
       id: string; assetId: string; x: number; y: number; z: number; rotation: number;
@@ -231,7 +295,7 @@ export class SectorRoom extends Room<SectorState> {
       const player = this.state.players.get(client.sessionId);
       if (!player) return;
       const building = new PlacedBuilding();
-      building.id = data.id;
+      building.id = data.id || `b_${client.sessionId}_${Date.now()}`;
       building.assetId = data.assetId;
       building.ownerId = client.sessionId;
       building.ownerName = player.characterName;
@@ -240,6 +304,16 @@ export class SectorRoom extends Room<SectorState> {
       building.z = data.z;
       building.rotation = data.rotation;
       this.state.buildings.set(building.id, building);
+      this.broadcast("building_placed", {
+        id: building.id,
+        assetId: building.assetId,
+        ownerId: building.ownerId,
+        ownerName: building.ownerName,
+        x: building.x,
+        y: building.y,
+        z: building.z,
+        rotation: building.rotation,
+      });
     });
 
     this.onMessage("remove_building", (client, data: { id: string }) => {
@@ -248,6 +322,7 @@ export class SectorRoom extends Room<SectorState> {
       // Only owner can remove
       if (building.ownerId !== client.sessionId) return;
       this.state.buildings.delete(data.id);
+      this.broadcast("building_removed", { id: data.id });
     });
 
     // Sector transition request
@@ -332,13 +407,16 @@ export class SectorRoom extends Room<SectorState> {
   /** Seed Colyseus harvest nodes from shared zone population (deterministic). */
   private seedZoneHarvestNodes(worldSector: NonNullable<ReturnType<typeof getSectorById>>) {
     const cfg = worldSector.terrain3d;
+    const prod = getSectorProductionContent(this.sectorId);
+    const seeds = resolveSectorSeeds(this.sectorId, this.worldSeed);
+    const resources = prod?.harvest.resources ?? worldSector.resources;
     const pop = generateZonePopulation(
       this.sectorId,
       this.worldSeed,
       cfg.sizeMeters,
       worldSector.difficultyMin,
       worldSector.difficultyMax,
-      worldSector.resources,
+      resources,
       worldSector.biome,
     );
     const harvestNodes = getNodesByCategory<ZoneHarvestNode>(pop, "harvest");
@@ -350,6 +428,12 @@ export class SectorRoom extends Room<SectorState> {
       h.z = node.position[2];
       this.state.harvestNodes.set(h.id, h);
     }
+    console.log(
+      `[SectorRoom] Production content: eco=${prod?.ecosystemId ?? worldSector.biome} ` +
+        `pbr=${prod?.harvest.groundPbr ?? worldSector.groundPBR} ` +
+        `hm=${prod?.terrain.heightmapModifier ?? cfg.heightmapModifier} ` +
+        `popSeed=${seeds.population} harvest=${harvestNodes.length}`,
+    );
   }
 
   /** Pick a spawn point from zone terrain config or fall back to center. */

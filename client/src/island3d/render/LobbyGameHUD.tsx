@@ -39,8 +39,8 @@ export function LobbyGameHUD({
           </p>
           <p className="text-slate-500">
             {sailing
-              ? '⛵ Deck — WASD · fish at rail · Tab combat · E disembark'
-              : 'Tab cycles Combat · Harvest · Build'}
+              ? '⛵ Deck — WASD · fish at rail · Tab soft-lock · E disembark'
+              : 'Tab soft-lock · Z sheath · modes via HUD'}
           </p>
         </div>
       </div>

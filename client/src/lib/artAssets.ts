@@ -119,8 +119,9 @@ export const GAME_CARD_BACKGROUNDS: Record<string, string> = {
   character:    BACKGROUNDS.darkFantasy1,
   tutorial:     assetUrl('/images/events/dungeon-raid-1.png'),
   homeisland:   assetUrl('/backgrounds/island-map.png'),
+  'warlords-pipeline': BACKGROUNDS.darkFantasy1,
   tactical:     assetUrl('/backgrounds/general.png'),
-  ocean:        assetUrl('/backgrounds/general.png'),
+  ocean:        assetUrl('/backgrounds/ocean_battle.png'),
   play:         assetUrl('/images/events/faction-war.png'),
   'islands-hub': assetUrl('/backgrounds/island-map.png'),
   rtsgrudge:    assetUrl('/images/events/faction-war.png'),
@@ -132,8 +133,28 @@ export const GAME_CARD_BACKGROUNDS: Record<string, string> = {
   worldmap:     assetUrl('/backgrounds/general.png'),
   skills:       assetUrl('/images/professions/cosmic_arcane_void_magic_background.png'),
   harvest:      assetUrl('/images/professions/ancient_mystical_forest_with_glowing_particles.png'),
-  sailing:      assetUrl('/backgrounds/general.png'),
+  sailing:      assetUrl('/backgrounds/ocean_battle.png'),
 } as const;
+
+/** Landing page section art (grudge.studio) — prefer CDN backgrounds that 200 */
+export const LANDING_SECTION_ART = {
+  heroFallback: assetUrl('/backgrounds/main-menu.png'),
+  factions: assetUrl('/images/events/faction-war.png'),
+  world: assetUrl('/backgrounds/general.png'),
+  path: assetUrl('/backgrounds/island-map.png'),
+  crusade: assetUrl('/backgrounds/castle_arena.jpg'),
+  legion: assetUrl('/backgrounds/volcanic_battle.png'),
+  fabled: assetUrl('/backgrounds/verdant_plains.png'),
+  pirate: assetUrl('/backgrounds/ocean_battle.png'),
+  dungeon: assetUrl('/images/events/dungeon-raid-1.png'),
+  void: assetUrl('/images/professions/cosmic_arcane_void_magic_background.png'),
+} as const;
+
+/** Safe img: hide broken art instead of broken-icon flash */
+export function hideBrokenImage(e: { currentTarget: HTMLImageElement }): void {
+  e.currentTarget.style.opacity = '0';
+  e.currentTarget.setAttribute('data-broken', '1');
+}
 
 // ── Profession icons & backgrounds (CDN — migrated from /assets/professions/) ──
 
@@ -235,25 +256,64 @@ export const CLASS_COLORS = {
   worg:    { primary: '#c792ff', bg: '#e1c8ff', text: '#1c0a3a' },
 } as const;
 
-// ── Hero codex character portraits (local) ───────────────────────────────────
+// ── Hero codex portraits (race×class archetype art keys) ─────────────────────
+// Canonical hero IDs (aurion, sigurd, …) resolve via heroCodex portraitKey.
 
 export const HERO_PORTRAITS: Record<string, string> = {
   barbarian_warrior: '/hero-codex/sprites/entities/units/barbarian/barbarian_warrior.png',
   barbarian_mage:    '/hero-codex/sprites/entities/units/barbarian/barbarian_mage.png',
   barbarian_ranger:  '/hero-codex/sprites/entities/units/barbarian/barbarian_archer.png',
+  barbarian_worg:    '/hero-codex/sprites/entities/units/barbarian/barbarian_paladin.png',
   dwarf_warrior:     '/hero-codex/sprites/entities/units/dwarf/dwarf_warrior.png',
   dwarf_mage:        '/hero-codex/sprites/entities/units/dwarf/dwarf_mage.png',
   dwarf_ranger:      '/hero-codex/sprites/entities/units/dwarf/dwarf_archer.png',
+  dwarf_worg:        '/hero-codex/sprites/entities/units/dwarf/dwarf_paladin.png',
   elf_warrior:       '/hero-codex/sprites/entities/units/elf/elf_warrior.png',
   elf_mage:          '/hero-codex/sprites/entities/units/elf/elf_mage.png',
   elf_ranger:        '/hero-codex/sprites/entities/units/elf/elf_archer.png',
+  elf_worg:          '/hero-codex/sprites/entities/units/elf/elf_paladin.png',
   human_warrior:     '/hero-codex/sprites/entities/units/human/human_warrior.png',
   human_mage:        '/hero-codex/sprites/entities/units/human/human_mage.png',
   human_ranger:      '/hero-codex/sprites/entities/units/human/human_archer.png',
+  human_worg:        '/hero-codex/sprites/entities/units/human/human_paladin.png',
   orc_warrior:       '/hero-codex/sprites/entities/units/orc/orc_warrior.png',
   orc_mage:          '/hero-codex/sprites/entities/units/orc/orc_mage.png',
   orc_ranger:        '/hero-codex/sprites/entities/units/orc/orc_archer.png',
+  orc_worg:          '/hero-codex/sprites/entities/units/orc/orc_paladin.png',
   undead_warrior:    '/hero-codex/sprites/entities/units/undead/undead_warrior.png',
   undead_mage:       '/hero-codex/sprites/entities/units/undead/undead_mage.png',
   undead_ranger:     '/hero-codex/sprites/entities/units/undead/undead_archer.png',
+  undead_worg:       '/hero-codex/sprites/entities/units/undead/undead_paladin.png',
+  pirate_king:       '/hero-codex/hero-portraits/pirate_king.png',
+  // Canonical roster ids → same art as race/class keys (heroCodex.portraitKey)
+  aurion:  '/hero-codex/hero-portraits/human_mage.png',
+  sigurd:  '/hero-codex/hero-portraits/human_warrior.png',
+  kael:    '/hero-codex/hero-portraits/human_ranger.png',
+  theron:  '/hero-codex/hero-portraits/human_worg.png',
+  thrax:   '/hero-codex/hero-portraits/barbarian_warrior.png',
+  grok:    '/hero-codex/hero-portraits/barbarian_mage.png',
+  kira:    '/hero-codex/hero-portraits/barbarian_worg.png',
+  vox:     '/hero-codex/hero-portraits/barbarian_ranger.png',
+  gruk:    '/hero-codex/hero-portraits/orc_warrior.png',
+  nazgrim: '/hero-codex/hero-portraits/nazgrim.png',
+  vexol:   '/hero-codex/hero-portraits/orc_ranger.png',
+  morgash: '/hero-codex/hero-portraits/morgash.png',
+  silesh:  '/hero-codex/hero-portraits/silesh.png',
+  bone:    '/hero-codex/hero-portraits/undead_warrior.png',
+  whisper: '/hero-codex/hero-portraits/undead_ranger.png',
+  dredge:  '/hero-codex/hero-portraits/dredge.png',
+  aelindor:'/hero-codex/hero-portraits/elf_warrior.png',
+  silvaine:'/hero-codex/hero-portraits/silvaine.png',
+  lyra:    '/hero-codex/hero-portraits/lyra.png',
+  fenwick: '/hero-codex/hero-portraits/elf_ranger.png',
+  durgin:  '/hero-codex/hero-portraits/durgin.png',
+  brenna:  '/hero-codex/hero-portraits/brenna.png',
+  thordak: '/hero-codex/hero-portraits/thordak.png',
+  helga:   '/hero-codex/hero-portraits/helga.png',
+  racalvin:'/hero-codex/hero-portraits/pirate_king.png',
+  john_wayne: '/hero-codex/hero-portraits/sky_captain.png',
+  cpt_john_wayne: '/hero-codex/hero-portraits/cpt_john_wayne.png',
+  sky_captain: '/hero-codex/hero-portraits/sky_captain.png',
+  scourge_faithbearer: '/hero-codex/hero-portraits/scourge_faithbearer.png',
+  scourge_faith: '/hero-codex/hero-portraits/scourge_faithbearer.png',
 } as const;

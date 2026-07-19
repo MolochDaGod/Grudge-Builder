@@ -1,0 +1,43 @@
+{
+  "id": "grudge-open-world",
+  "version": "1.0.0",
+  "schema": 2,
+  "name": "Racalvin's Free Port — Grudge Open World (Production)",
+  "geometry": {
+    "id": "pirate-islands-base",
+    "glbPath": "https://assets.grudge-studio.com/models/lobby/pirate-islands/scene.glb",
+    "gltfPath": "https://assets.grudge-studio.com/models/lobby/pirate-islands/scene.gltf",
+    "binPath": "https://assets.grudge-studio.com/models/lobby/pirate-islands/scene.bin",
+    "texturesDir": "https://assets.grudge-studio.com/models/lobby/pirate-islands/textures/",
+    "cdnBase": "https://assets.grudge-studio.com/models/lobby/pirate-islands/",
+    "colliderGlbPath": "https://assets.grudge-studio.com/models/lobby/pirate-islands/colliders.glb",
+    "navmeshPath": "https://assets.grudge-studio.com/models/lobby/pirate-islands/navmesh.json",
+    "notes": "Chicken Gun / PolygonPirates lobby. Live: scene.gltf+bin (~127MB). Build scene.glb for Forge single-file mesh edit. Colliders/navmesh optional bake outputs."
+  },
+  "forge": {
+    "editorUrl": "https://forge.grudge-studio.com/",
+    "preferredGeometry": "glb",
+    "studioProjectName": "Grudge_Open_World_Production",
+    "agentEditable": true
+  },
+  "files": {
+    "gmap": "grudge-open-world.gmap.json",
+    "studio": "grudge-open-world.studio.json",
+    "agentBrief": "AGENT_BRIEF.md"
+  },
+  "systems": {
+    "rtsCaptureFlags": true,
+    "aiSailing": true,
+    "aiCombat": true,
+    "aiShips": true,
+    "autoHarvestUnits": true,
+    "characterAccountEquipment": true,
+    "factionIslands": true,
+    "boatsPhysics": true,
+    "dayNight": true
+  },
+  "entityCount": 55,
+  "islandCount": 12,
+  "aiBrainCount": 7,
+  "builtAt": "2026-07-18T14:53:21.873Z"
+}

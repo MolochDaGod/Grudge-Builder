@@ -180,6 +180,19 @@ export async function setEnemyShipDamageState(
   root.name = `enemy_ship_${next}`;
   root.userData.enemyShipState = next;
   root.userData.enemyShipScale = mesh.userData.enemyShipScale;
+
+  // Fire + smoke on damaged / sunk hulls (threejs-games particles style)
+  try {
+    const { getWorldFxBus } = await import('@/island3d/vfx/WorldFxBus');
+    const bus = getWorldFxBus();
+    if (bus) {
+      if (next === 'healthy') bus.detachFrom(root);
+      else bus.attachBoatDamage(root, next === 'sunk' ? 'sunk' : 'damaged');
+    }
+  } catch {
+    /* fx bus optional */
+  }
+
   return next;
 }
 

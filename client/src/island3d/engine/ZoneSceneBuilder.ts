@@ -166,13 +166,14 @@ export function buildZoneScene(
     // Map island size to terrain config
     // Home islands need to be large enough for base building, farming, and exploration.
     // A 4 km sector means a home island at 1500-2000m feels substantial.
+    // Production land mass — larger footprints matching zoneServerNodes sizeRadii ~1.6×
     const sizeToConfig: Record<string, Partial<IslandTerrainConfig>> = {
-      atoll:    { xSegments: 31, ySegments: 31, xSize: 150, ySize: 150, maxHeight: 12 },
-      small:    { xSegments: 47, ySegments: 47, xSize: 350, ySize: 350, maxHeight: 40 },
-      medium:   { xSegments: 63, ySegments: 63, xSize: 600, ySize: 600, maxHeight: 70 },
-      large:    { xSegments: 95, ySegments: 95, xSize: 1000, ySize: 1000, maxHeight: 100 },
-      home:     { xSegments: 127, ySegments: 127, xSize: 1800, ySize: 1800, maxHeight: 140 },
-      fortress: { xSegments: 159, ySegments: 159, xSize: 2200, ySize: 2200, maxHeight: 180 },
+      atoll:    { xSegments: 39, ySegments: 39, xSize: 240, ySize: 240, maxHeight: 18 },
+      small:    { xSegments: 55, ySegments: 55, xSize: 520, ySize: 520, maxHeight: 55 },
+      medium:   { xSegments: 79, ySegments: 79, xSize: 900, ySize: 900, maxHeight: 95 },
+      large:    { xSegments: 111, ySegments: 111, xSize: 1500, ySize: 1500, maxHeight: 130 },
+      home:     { xSegments: 127, ySegments: 127, xSize: 2000, ySize: 2000, maxHeight: 150 },
+      fortress: { xSegments: 159, ySegments: 159, xSize: 2800, ySize: 2800, maxHeight: 200 },
     };
     const sizeConfig = sizeToConfig[island.size] ?? sizeToConfig.medium;
 
@@ -186,13 +187,19 @@ export function buildZoneScene(
       maxHeight: sizeConfig.maxHeight ?? cfg.maxHeight * 0.6,
     } as IslandTerrainConfig);
 
-    // Home islands: blended layers keyed to this sector's water level
+    // Multi-layer height+slope blend (Valheim-like) — home uses generic grass stack;
+    // other islands use sector biome GroundPBR stack.
     const material = island.size === 'home'
       ? createTerrainMaterial({
           minHeight: seafloorY,
           maxHeight: sizeConfig.maxHeight,
+          waterLevel: cfg.waterLevel,
         })
-      : createSectorTerrainMaterial(sector);
+      : createSectorTerrainMaterial(sector, {
+          waterLevel: cfg.waterLevel,
+          minHeight: landMin,
+          maxHeight: sizeConfig.maxHeight ?? cfg.maxHeight * 0.6,
+        });
     terrainResult.terrainMesh.material = material;
 
     // Collapse submerged verts → single water surface (ocean mesh only)
@@ -311,6 +318,40 @@ export function buildZoneScene(
     markers.set(sp.id, marker);
   }
 
+  // Enemy / faction ship patrols — hull markers on the water (minimap + world)
+  // Hostile / pirate / legion boats get continuous fire+smoke for combat readability.
+  const patrols = getNodesByCategory<AIPatrolNode>(population, 'ai_patrol');
+  for (const patrol of patrols) {
+    if (!patrol.isShipPatrol) continue;
+    const ship = createEnemyBoatMarker(patrol.faction);
+    ship.position.set(patrol.position[0], cfg.waterLevel + 1.2, patrol.position[2]);
+    ship.name = `marker_${patrol.id}`;
+    ship.userData.patrol = patrol;
+    ship.userData.waypoints = patrol.waypoints;
+    ship.userData.wpIndex = 0;
+    const hostile =
+      patrol.faction === 'hostile' ||
+      patrol.faction === 'pirate' ||
+      patrol.faction === 'legion' ||
+      patrol.difficulty >= 6;
+    ship.userData.burning = hostile;
+    root.add(ship);
+    markers.set(patrol.id, ship);
+    animatedObjects.push({ obj: ship, type: 'ship_patrol' });
+  }
+
+  // Sea creature fins
+  const seaCreatures = getNodesByCategory<SeaCreatureNode>(population, 'sea_creature');
+  for (const sc of seaCreatures) {
+    if (!sc.surfaces) continue;
+    const fin = createGlowMarker(MARKER_COLORS.sea_creature, 2.2);
+    fin.position.set(sc.position[0], cfg.waterLevel + 0.8, sc.position[2]);
+    fin.name = `marker_${sc.id}`;
+    root.add(fin);
+    markers.set(sc.id, fin);
+    animatedObjects.push({ obj: fin, type: 'pulse' });
+  }
+
   // ── 6. Update Function ─────────────────────────────────────
 
   function update(dt: number, elapsed: number): void {
@@ -348,6 +389,25 @@ export function buildZoneScene(
             if (mat.map) mat.map.offset.x += dt * 0.3;
           }
           break;
+        case 'ship_patrol': {
+          // Cruise between waypoints for live minimap + world presence
+          const wps = obj.userData.waypoints as [number, number, number][] | undefined;
+          if (!wps || wps.length < 2) break;
+          let idx = (obj.userData.wpIndex as number) ?? 0;
+          const target = wps[idx % wps.length];
+          const dx = target[0] - obj.position.x;
+          const dz = target[2] - obj.position.z;
+          const dist = Math.hypot(dx, dz);
+          const speed = 18;
+          if (dist < 12) {
+            obj.userData.wpIndex = (idx + 1) % wps.length;
+          } else {
+            obj.position.x += (dx / dist) * speed * dt;
+            obj.position.z += (dz / dist) * speed * dt;
+            obj.rotation.y = Math.atan2(dx, dz);
+          }
+          break;
+        }
       }
     }
   }
@@ -521,4 +581,41 @@ function createSpawnMarker(radius: number, type: string): THREE.Mesh {
     depthWrite: false,
   });
   return new THREE.Mesh(geo, mat);
+}
+
+/** Enemy / faction warship marker (hull + mast) for zone ocean + minimap. */
+function createEnemyBoatMarker(faction: string): THREE.Group {
+  const g = new THREE.Group();
+  g.name = 'enemy_boat';
+  const hullColor =
+    faction === 'crusade' ? 0xc9a227
+    : faction === 'fabled' ? 0x4a9eff
+    : faction === 'legion' ? 0xe53935
+    : faction === 'pirate' || faction === 'hostile' ? 0x7f1d1d
+    : 0x78716c;
+  const hull = new THREE.Mesh(
+    new THREE.BoxGeometry(14, 3.2, 5.5),
+    new THREE.MeshStandardMaterial({ color: hullColor, roughness: 0.75, metalness: 0.15 }),
+  );
+  hull.position.y = 0.4;
+  hull.castShadow = true;
+  g.add(hull);
+  const mast = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.2, 0.25, 9, 6),
+    new THREE.MeshStandardMaterial({ color: 0x4a3728 }),
+  );
+  mast.position.y = 5.5;
+  g.add(mast);
+  const sail = new THREE.Mesh(
+    new THREE.PlaneGeometry(5, 6),
+    new THREE.MeshStandardMaterial({
+      color: hullColor,
+      side: THREE.DoubleSide,
+      transparent: true,
+      opacity: 0.85,
+    }),
+  );
+  sail.position.set(0, 6.5, 0);
+  g.add(sail);
+  return g;
 }

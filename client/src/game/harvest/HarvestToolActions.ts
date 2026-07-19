@@ -1,7 +1,16 @@
 /**
  * HarvestToolActions — tool action sets (ported from RTS-Grudge / OpenWaterSailing).
  * Fishing uses equipped main-hand rod; slot 1 = Cast Line (LMB in harvest mode).
+ * Shovel: Valheim-like terrain raise / lower / level (2 m circle).
+ * Hoe: turn earth into growing plots (2 m circle).
+ * Bucket: fill at water → water crops + feed auto-craft.
  */
+import {
+  ITEM_EMPTY_BUCKET,
+  ITEM_WATER_BUCKET,
+  isSeedItemId,
+} from '@shared/definitions/farming';
+
 export type HarvestToolType =
   | 'pickaxe'
   | 'axe'
@@ -9,7 +18,10 @@ export type HarvestToolType =
   | 'sickle'
   | 'fishing_rod'
   | 'toolkit'
-  | 'shovel';
+  | 'shovel'
+  | 'hoe'
+  | 'bucket'
+  | 'seed';
 
 export type ActionSlotKind = 'action' | 'action2' | 'auto' | 'special';
 
@@ -26,13 +38,160 @@ export interface HarvestAction {
   isToggle?: boolean;
 }
 
+/** HUD / engine ground-tool selection (not always an equipment item). */
+export type GroundToolId = 'shovel' | 'hoe' | 'seed' | 'bucket' | null;
+
 export const TOOL_ACTIONS: Record<HarvestToolType, HarvestAction[]> = {
-  pickaxe: [],
-  axe: [],
-  skinning_knife: [],
-  sickle: [],
-  toolkit: [],
-  shovel: [],
+  pickaxe: [
+    {
+      id: 'pick_strike',
+      name: 'Mine Strike',
+      kind: 'action',
+      icon: '⛏️',
+      animation: 'mine',
+      cooldown: 0.35,
+      staminaCost: 2,
+      harvestMult: 1.4,
+      description: 'LMB — break stone / ore / rock nodes. Yields stone packs.',
+    },
+  ],
+  axe: [
+    {
+      id: 'axe_chop',
+      name: 'Chop',
+      kind: 'action',
+      icon: '🪓',
+      animation: 'chop',
+      cooldown: 0.35,
+      staminaCost: 2,
+      harvestMult: 1.4,
+      description: 'LMB — fell trees and gather wood / driftwood faster (hatchet).',
+    },
+  ],
+  skinning_knife: [
+    {
+      id: 'knife_skin',
+      name: 'Skin / Cut',
+      kind: 'action',
+      icon: '🔪',
+      animation: 'skin',
+      cooldown: 0.4,
+      staminaCost: 2,
+      harvestMult: 1.3,
+      description: 'LMB — skin carcasses for meat/hide; cut hemp / fiber.',
+    },
+  ],
+  sickle: [
+    {
+      id: 'sickle_reap',
+      name: 'Reap',
+      kind: 'action',
+      icon: '🌾',
+      animation: 'reap',
+      cooldown: 0.3,
+      staminaCost: 1,
+      harvestMult: 1.2,
+      description: 'LMB — harvest crops and tall grass.',
+    },
+  ],
+  toolkit: [
+    {
+      id: 'hammer_place',
+      name: 'Build Place',
+      kind: 'action',
+      icon: '🔨',
+      animation: 'build',
+      cooldown: 0.2,
+      staminaCost: 1,
+      harvestMult: 1,
+      description: 'Build hammer — place modular props / camp pieces (not combat).',
+    },
+  ],
+  seed: [
+    {
+      id: 'seed_place',
+      name: 'Plant Seed',
+      kind: 'action',
+      icon: '🌱',
+      animation: 'plant',
+      cooldown: 0.15,
+      staminaCost: 1,
+      harvestMult: 1,
+      description: 'Click tilled dirt (2 m circle) to plant the selected seed.',
+    },
+  ],
+  hoe: [
+    {
+      id: 'hoe_till',
+      name: 'Till Soil',
+      kind: 'action',
+      icon: '🪓',
+      animation: 'hoe',
+      cooldown: 0.2,
+      staminaCost: 2,
+      harvestMult: 1,
+      description: 'LMB — turn earth into a 2 m growing circle (Valheim cultivate).',
+    },
+  ],
+  bucket: [
+    {
+      id: 'bucket_water',
+      name: 'Water Crops',
+      kind: 'action',
+      icon: '💧',
+      animation: 'pour',
+      cooldown: 0.25,
+      staminaCost: 1,
+      harvestMult: 1,
+      description: 'LMB on planted crops with a full water bucket. Near water: fill empty bucket.',
+    },
+    {
+      id: 'bucket_fill',
+      name: 'Fill Bucket',
+      kind: 'action2',
+      icon: '🪣',
+      animation: 'fill',
+      cooldown: 0.5,
+      staminaCost: 1,
+      harvestMult: 1,
+      description: 'Fill empty bucket at ocean / water surface.',
+    },
+  ],
+  shovel: [
+    {
+      id: 'shovel_raise',
+      name: 'Raise Ground',
+      kind: 'action',
+      icon: '⛰️',
+      animation: 'shovel',
+      cooldown: 0.12,
+      staminaCost: 1,
+      harvestMult: 1,
+      description: 'LMB — heap earth under the 2 m brush (Valheim-like raise).',
+    },
+    {
+      id: 'shovel_lower',
+      name: 'Lower Ground',
+      kind: 'action2',
+      icon: '🕳️',
+      animation: 'shovel',
+      cooldown: 0.12,
+      staminaCost: 1,
+      harvestMult: 1,
+      description: 'Shift+LMB — dig / lower terrain under the 2 m brush.',
+    },
+    {
+      id: 'shovel_level',
+      name: 'Level Ground',
+      kind: 'special',
+      icon: '📐',
+      animation: 'shovel',
+      cooldown: 0.18,
+      staminaCost: 2,
+      harvestMult: 1,
+      description: 'Ctrl+LMB — smooth and level the 2 m brush area.',
+    },
+  ],
   fishing_rod: [
     {
       id: 'rod_action',
@@ -63,12 +222,44 @@ export const TOOL_ACTIONS: Record<HarvestToolType, HarvestAction[]> = {
 export function detectToolType(itemId: string): HarvestToolType | null {
   const id = itemId.toLowerCase();
   if (id.includes('pick')) return 'pickaxe';
-  if (id.includes('axe') && !id.includes('pick')) return 'axe';
-  if (id.includes('skinning') || id.includes('skin_knife')) return 'skinning_knife';
+  if (id.includes('hatchet') || (id.includes('axe') && !id.includes('pick'))) return 'axe';
+  if (
+    id.includes('skinning')
+    || id.includes('skin_knife')
+    || id === 't0_knife'
+    || (id.includes('knife') && !id.includes('throw'))
+  ) {
+    return 'skinning_knife';
+  }
   if (id.includes('sickle')) return 'sickle';
-  if (id.includes('rod') || id.includes('fish') || id.includes('cane')) return 'fishing_rod';
-  if (id.includes('toolkit') || id.includes('wrench')) return 'toolkit';
-  if (id.includes('shovel')) return 'shovel';
+  if (
+    id.includes('rod')
+    || id.includes('fishpole')
+    || id.includes('fish_pole')
+    || id.includes('fishing')
+    || id.includes('cane')
+  ) {
+    return 'fishing_rod';
+  }
+  if (
+    id.includes('toolkit')
+    || id.includes('wrench')
+    || id.includes('build_hammer')
+    || id === 'build_hammer'
+  ) {
+    return 'toolkit';
+  }
+  if (id.includes('shovel') || id.includes('toolshovel') || id.includes('spade')) return 'shovel';
+  if (id.includes('hoe') || id.includes('toolhoe') || id.includes('cultivat')) return 'hoe';
+  if (
+    id.includes('bucket')
+    || id === ITEM_EMPTY_BUCKET
+    || id === ITEM_WATER_BUCKET
+    || id.includes('pail')
+  ) {
+    return 'bucket';
+  }
+  if (isSeedItemId(id)) return 'seed';
   return null;
 }
 
@@ -101,4 +292,45 @@ export function hasFishingRodEquipped(
   equipment: Record<string, string | null> | undefined,
 ): boolean {
   return getEquippedToolType(equipment) === 'fishing_rod';
+}
+
+export function hasShovelEquipped(
+  equipment: Record<string, string | null> | undefined,
+): boolean {
+  return getEquippedToolType(equipment) === 'shovel';
+}
+
+export function hasHoeEquipped(
+  equipment: Record<string, string | null> | undefined,
+): boolean {
+  return getEquippedToolType(equipment) === 'hoe';
+}
+
+export function hasBucketEquipped(
+  equipment: Record<string, string | null> | undefined,
+): boolean {
+  return getEquippedToolType(equipment) === 'bucket';
+}
+
+/** True when main-hand is a full water bucket. */
+export function hasWaterBucket(
+  equipment: Record<string, string | null> | undefined,
+  inventory?: Record<string, number>,
+): boolean {
+  const hand = getMainHandItemId(equipment)?.toLowerCase() ?? '';
+  if (hand.includes('water') && hand.includes('bucket')) return true;
+  if (hand === ITEM_WATER_BUCKET.toLowerCase()) return true;
+  if (inventory && (inventory[ITEM_WATER_BUCKET] ?? 0) > 0) return true;
+  return false;
+}
+
+/** Resolve shovel sculpt mode from keyboard modifiers (Valheim-style). */
+export function shovelModeFromModifiers(
+  shiftKey: boolean,
+  ctrlKey: boolean,
+  altKey = false,
+): 'raise' | 'lower' | 'level' {
+  if (ctrlKey || altKey) return 'level';
+  if (shiftKey) return 'lower';
+  return 'raise';
 }

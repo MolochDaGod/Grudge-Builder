@@ -2,9 +2,10 @@
  * CharacterController3D — WASD character controller with full physics.
  *
  * W = forward (away from camera), S = back, A/D = turn, Q/E = strafe.
- * Tab toggles combat mode (face mouse) vs harvest mode (face movement).
- * Space = jump (double-jump if warrior). Terrain following, swimming,
- * climbing, fall damage, and vertical physics.
+ * Tab = soft-lock target cycle (yellow UI frame). Shift+Tab reverse.
+ * Mode harvest/combat/build via ModePlayHUD UI (not Tab).
+ * Z = put away / pull weapons. Auto-holster: climb, swim-edge, build.
+ * Auto-draw: attack / skills while sheathed. Climb: Space hold, WASD, X off.
  */
 import * as THREE from 'three';
 import { getTerrainHeightAt, getSceneHeightAt } from '../terrain/IslandTerrainGenerator';
@@ -39,6 +40,22 @@ import {
   type StateContext,
 } from '@/lib/characterStateMachine';
 import { getSkillById } from '@/lib/skillTreeData';
+import { WeaponHolsterController } from '@/lib/weaponHolsterController';
+import {
+  CLIMB_RULES,
+  STAMINA_LOCOMOTION,
+  HOLSTER_PROFILES,
+  holsterClassForWeaponType,
+  isForcedHolsterContext,
+  WEAPON_TOGGLE_KEY,
+  type DrawReason,
+  type HolsterReason,
+} from '@shared/definitions/weaponAttachSystem';
+import {
+  SoftLockSystem,
+  type SoftLockScreenFrame,
+  type SoftLockTarget,
+} from './SoftLockSystem';
 
 export type ControlMode = 'harvest' | 'combat' | 'build';
 
@@ -95,9 +112,12 @@ const DEFAULT_PHYSICS: PhysicsConfig = {
 export interface PhysicsCallbacks {
   onFallDamage?: (damage: number) => void;
   onStaminaDrain?: (amount: number) => void;
+  onStaminaChange?: (stamina: number, max: number) => void;
   onDrownDamage?: (damage: number) => void;
   onMovementStateChange?: (prev: MovementState, next: MovementState) => void;
   onOxygenChange?: (oxygen: number, max: number) => void;
+  /** Fired when weapons finish draw/holster transition */
+  onWeaponHolsterChange?: (drawn: boolean) => void;
 }
 
 export interface CharacterController3DConfig {
@@ -127,8 +147,26 @@ export class CharacterController3D {
   public explorerAnim: ExplorerAnimDriver | null = null;
   /** MM body lunge paired with attack clips. */
   private readonly motionDash = new MotionDash();
+  /** Optional world FX bus (fire/smoke/teleport/dash feet) */
+  private worldFx: import('../vfx/WorldFxBus').WorldFxBus | null = null;
+  /** Optional foot IK (dash landing pulse + plant on uneven ground) */
+  public characterIk: import('./CharacterIK').CharacterIK | null = null;
+  /**
+   * Animation / sim time scale (threejs-games player.timeScale pattern).
+   * 1 = normal · 0.1 = RMB slow-mo (IK debug) · 0 = LMB freeze when ikDebug.
+   */
+  public timeScale = 1;
+  private savedTimeScale = 1;
+  private ikDebugSlowLmb = false;
+  private ikDebugSlowRmb = false;
+  /** Enable with ?ikdebug=1 or localStorage grudge_ik_debug=1 */
+  public ikDebug = false;
   public weaponType: WeaponType = 'sword';
   public mode: ControlMode = 'harvest';
+  /** True while LMB is held in combat mode (primary attack / boss damage ticks). */
+  get isAttacking(): boolean {
+    return this.mode === 'combat' && this.mouseDown;
+  }
   public movementState: MovementState = 'falling';
   /** Panel equipment slots (MainHand rod → fishing, etc.) */
   public equipment: Record<string, string | null> = {};
@@ -138,8 +176,34 @@ export class CharacterController3D {
   private classIdStored = 'warrior';
   private model3dStored: Model3DField | null = null;
   private equipmentManager: Grudge6EquipmentManager | null = null;
+  /** Weapon draw/holster visual + transitional anims */
+  private holster: WeaponHolsterController | null = null;
+  /** True when weapons are currently in-hand (visual + combat ready) */
+  public weaponsDrawn = false;
+  /**
+   * Player preference from Z toggle. Forced holster (climb/build) does not clear this;
+   * when free again, Z still means "I want them out" only if they re-toggle or attack.
+   * After forced holster we stay sheathed until Z or auto-draw attack.
+   */
+  private playerPrefersDrawn = false;
+  /** Drawn state before build mode (restore on leave if player preferred drawn) */
+  private drawnBeforeBuild = false;
+  /** Soft-lock (Tab cycle) — engine feeds candidates each frame */
+  public readonly softLock = new SoftLockSystem();
+  private softLockFrame: SoftLockScreenFrame | null = null;
+  private softLockProvider: (() => SoftLockTarget[]) | null = null;
   /** Survival-kit hammer mesh @ 0.8 scale in right hand while in build mode */
   private buildHammer: BuildHammerHandle | null = null;
+  /** Local stamina pool for climb / swim (syncs to state machine) */
+  public stamina = STAMINA_LOCOMOTION.maxStamina;
+  public maxStamina = STAMINA_LOCOMOTION.maxStamina;
+  private staminaRegenDelay = 0;
+  /** Climb wall contact */
+  private climbNormal = new THREE.Vector3(0, 0, 1);
+  private climbPoint = new THREE.Vector3();
+  private spaceHoldTime = 0;
+  private climbAttachLatch = false;
+  private wallMoveDir = new THREE.Vector3();
   /**
    * Editor-style free locomotion: WASD relative to camera, mouse look (RMB).
    * Auto-enabled in build mode (Dune / Conan placement feel).
@@ -152,15 +216,48 @@ export class CharacterController3D {
   public currentForm: number = 0; // 0 = form1, 1 = form2, 2 = form3
 
   /** Assigned action bar slots 1-5 from spellbook (uMMORPG Grudge Warlords style) */
-  public actionBar: Record<number, string> = {1: null, 2: null, 3: null, 4: null, 5: null};
+  public actionBar: Record<number, string | null> = {
+    1: null,
+    2: null,
+    3: null,
+    4: null,
+    5: null,
+  };
   public lastUsedSlot: number | undefined = undefined;
   private lastUsedTime = 0;
   private skillCooldowns: Record<number, number> = {};
 
-  public loadActionBar(bar: Record<number, string>) {
+  public loadActionBar(bar: Record<number, string | null>) {
     if (bar && Object.keys(bar).length) {
       this.actionBar = { ...this.actionBar, ...bar };
     }
+  }
+
+  /**
+   * Production hotbar from CharacterManager / spellbook (uMMORPG layout):
+   *   1–5 weapon skills · 6–8 consumables · Shift+1–5 class abilities
+   */
+  public loadHotbar(hotbar: {
+    weaponSkills?: Record<number, string | null>;
+    consumables?: Record<number, string | null>;
+    classAbilities?: Record<number, string | null>;
+  }): void {
+    if (hotbar.weaponSkills) {
+      this.loadActionBar(hotbar.weaponSkills);
+    }
+    // Consumables / class abilities stored for HUD; combat keys 1–5 use actionBar
+    (this as any)._consumableBar = hotbar.consumables ?? {};
+    (this as any)._classAbilityBar = hotbar.classAbilities ?? {};
+  }
+
+  /** Assign skill ids into slots 1–5 (skillBar array from character / spellbook). */
+  public setActionBarSlots(skills: Array<string | null | undefined>): void {
+    const next: Record<number, string | null> = { ...this.actionBar };
+    for (let i = 0; i < 5; i++) {
+      const id = skills[i];
+      if (id) next[i + 1] = id;
+    }
+    this.loadActionBar(next);
   }
 
   /** For testing game flow - default real skill ids (only if completely empty) */
@@ -206,8 +303,21 @@ export class CharacterController3D {
   private climbRaycaster = new THREE.Raycaster();
   private climbCheckDir = new THREE.Vector3();
   private climbMeshes: THREE.Object3D[] = [];
+  private readonly _climbHitNormal = new THREE.Vector3();
+  private readonly _climbLateral = new THREE.Vector3();
   /** When true, deck rig drives position — skip terrain physics */
   public shipDeckLocked = false;
+  /** Tutorial wake cinematic — no move / no camera mouse until stand-up */
+  public cinematicLock = false;
+  /**
+   * Tutorial shipwreck: use ONLY injured Mixamo pack for locomotion/reactions.
+   * When true, idle/walk/run come from injured clips; invincible for opener UX.
+   */
+  public tutorialInjuredMode = false;
+  /** Tutorial invincibility — ignore fall/drown damage callbacks */
+  public invincible = false;
+  /** Soft cap display HP (tutorial locks at 5) */
+  public tutorialLockedHp: number | null = null;
   private shipDeckSampler: ((x: number, z: number) => number | null) | null = null;
 
   // Input state
@@ -308,8 +418,16 @@ export class CharacterController3D {
       const loaded = await loadCharacterModel(modelPath);
 
       // Mesh catalog + swap BEFORE fit (equip hides non-selected Units_* meshes)
+      // Same pipeline as uMMORPG / Unity race player prefabs:
+      //   race GLB → mesh wardrobe → race textures → color tints → scale → anims → holster
       if (resolvedModel3d) {
         this.equipmentManager = setupGrudge6Equipment(race.prefix, loaded.scene, resolvedModel3d);
+        try {
+          const { applyGrudge6RaceTextures } = await import('@/lib/grudge6Textures');
+          await applyGrudge6RaceTextures(loaded.scene, raceKey);
+        } catch {
+          /* textures optional offline */
+        }
         ensureCharacterTextureColorSpace(loaded.scene);
         applyCharacterColorTints(
           loaded.scene,
@@ -328,6 +446,12 @@ export class CharacterController3D {
           capeEnabled: false,
           scale: race.scale,
         });
+        try {
+          const { applyGrudge6RaceTextures } = await import('@/lib/grudge6Textures');
+          await applyGrudge6RaceTextures(loaded.scene, raceKey);
+        } catch {
+          /* optional */
+        }
         ensureCharacterTextureColorSpace(loaded.scene);
       }
 
@@ -339,6 +463,29 @@ export class CharacterController3D {
       if (this.animations?.hasClip('idle')) {
         this.animations.play('idle');
       }
+
+      // Foot IK layer (dash plant + terrain) — after skinned mesh is in place
+      try {
+        const { CharacterIK } = await import('./CharacterIK');
+        this.characterIk = new CharacterIK(this.model);
+      } catch {
+        this.characterIk = null;
+      }
+
+      // IK debug / slow-mo from URL or localStorage (threejs-games mouse timeScale)
+      try {
+        const q = new URLSearchParams(window.location.search);
+        this.ikDebug =
+          q.get('ikdebug') === '1' ||
+          localStorage.getItem('grudge_ik_debug') === '1';
+      } catch {
+        this.ikDebug = false;
+      }
+
+      this.initHolsterController(weaponType);
+      // Default: weapons on back/hip — player pulls with Z (or auto-draw on attack)
+      this.playerPrefersDrawn = false;
+      this.beginHolsterWeapons('forced', true);
 
       this.initStateMachine(characterId ?? 'local-player', raceKey, classId, weaponType);
     } catch (err) {
@@ -410,6 +557,129 @@ export class CharacterController3D {
       ? 'unarmed'
       : equippedWeaponType;
     await this.reloadWeaponAnimations(weaponType);
+    this.initHolsterController(equippedWeaponType);
+    if (this.weaponsDrawn) {
+      this.beginDrawWeapons(true);
+    } else {
+      this.beginHolsterWeapons('forced', true);
+    }
+  }
+
+  private initHolsterController(weaponType: string): void {
+    this.holster?.dispose();
+    this.holster = null;
+    const root = this.loadedModelScene ?? this.model;
+    if (!root) return;
+    this.holster = new WeaponHolsterController({
+      root,
+      equipment: this.equipmentManager,
+      weaponType,
+    });
+  }
+
+  /**
+   * Holster weapons to hip/back. Auto contexts (climb/edge/build) or Z put-away.
+   * Does not change control mode (Tab is independent).
+   */
+  beginHolsterWeapons(
+    reason: HolsterReason = 'forced',
+    instant = false,
+  ): number {
+    if (reason === 'player_toggle') {
+      this.playerPrefersDrawn = false;
+    }
+    this.weaponsDrawn = false;
+    const profile = HOLSTER_PROFILES[holsterClassForWeaponType(this.weaponType)] ?? HOLSTER_PROFILES.none;
+    const quick =
+      reason === 'climb_attach' ||
+      reason === 'swim_to_edge' ||
+      reason === 'edge_grab' ||
+      reason === 'enter_build';
+    const dur = this.holster?.requestState('holstered', {
+      instant,
+      durationSec: instant ? 0 : (quick ? CLIMB_RULES.quickHolsterSec : profile.transitionSec),
+    }) ?? 0;
+
+    if (!instant && this.animations && profile.holsterAnim === 'draw' && this.animations.hasClip('draw')) {
+      this.animations.play('draw', { loop: false, fadeDuration: 0.15 });
+      this.oneShotTimer = Math.max(this.oneShotTimer, dur || 0.35);
+    }
+    this.callbacks.onWeaponHolsterChange?.(false);
+    return dur;
+  }
+
+  /** Draw weapons into hands — Z pull-out or auto on attack. */
+  beginDrawWeapons(instant = false, reason: DrawReason = 'forced'): number {
+    // Cannot draw while climbing or in pure build (hammer owns hands)
+    if (
+      isForcedHolsterContext({
+        movementState: this.movementState,
+        controlMode: this.mode,
+      })
+    ) {
+      return 0;
+    }
+    if (reason === 'player_toggle' || reason === 'auto_attack' || reason === 'leave_build') {
+      this.playerPrefersDrawn = true;
+    }
+    this.weaponsDrawn = true;
+    const profile = HOLSTER_PROFILES[holsterClassForWeaponType(this.weaponType)] ?? HOLSTER_PROFILES.none;
+    const dur = this.holster?.requestState('drawn', {
+      instant,
+      durationSec: instant ? 0 : (reason === 'auto_attack' ? Math.min(0.28, profile.transitionSec) : profile.transitionSec),
+    }) ?? 0;
+
+    if (!instant && this.animations && profile.drawAnim === 'draw' && this.animations.hasClip('draw')) {
+      this.animations.play('draw', { loop: false, fadeDuration: 0.12 });
+      this.oneShotTimer = Math.max(this.oneShotTimer, dur || 0.4);
+    }
+    this.callbacks.onWeaponHolsterChange?.(true);
+    return dur;
+  }
+
+  /**
+   * Z — put weapons away on back/hip, or pull them out.
+   * Blocked while climbing / forced holster contexts.
+   */
+  toggleWeaponsDrawn(): boolean {
+    if (
+      isForcedHolsterContext({
+        movementState: this.movementState,
+        controlMode: this.mode,
+      })
+    ) {
+      return false;
+    }
+    if (this.holster?.isBusy) return false;
+    if (this.weaponsDrawn) {
+      this.beginHolsterWeapons('player_toggle', false);
+    } else {
+      this.beginDrawWeapons(false, 'player_toggle');
+    }
+    return true;
+  }
+
+  /** Ensure weapons in-hand before an attack/skill (auto-draw when sheathed). */
+  ensureWeaponsDrawnForAction(): void {
+    if (this.weaponsDrawn) return;
+    if (
+      isForcedHolsterContext({
+        movementState: this.movementState,
+        controlMode: this.mode,
+      })
+    ) {
+      return;
+    }
+    this.beginDrawWeapons(false, 'auto_attack');
+  }
+
+  get isClimbing(): boolean {
+    return this.movementState === 'climbing';
+  }
+
+  /** True while on wall / climbing — stamina must not regen (Conan Exiles). */
+  get blocksStaminaRegen(): boolean {
+    return this.movementState === 'climbing' && CLIMB_RULES.blockStaminaRegen;
   }
 
   /** Swap animation set when play mode or equipment changes */
@@ -450,6 +720,7 @@ export class CharacterController3D {
   }
 
   getCombatHudSnapshot(): CombatHudSnapshot {
+    const sl = this.softLock.getCurrent();
     return {
       combatMode: this.mode === 'combat',
       focusEnabled: this.focusEnabled,
@@ -473,7 +744,72 @@ export class CharacterController3D {
         });
         return out;
       })(),
+      softLock: this.softLockFrame,
+      softLockTargetId: sl?.id ?? null,
+      softLockTargetName: sl?.name ?? null,
     };
+  }
+
+  /** Engine supplies soft-lock candidates (creatures / bosses / camps). */
+  setSoftLockProvider(fn: (() => SoftLockTarget[]) | null): void {
+    this.softLockProvider = fn;
+  }
+
+  getSoftLockTargetId(): string | null {
+    return this.softLock.lockedTargetId;
+  }
+
+  getSoftLockFrame(): SoftLockScreenFrame | null {
+    return this.softLockFrame;
+  }
+
+  /**
+   * Call each frame after camera update — refreshes lock + screen frame.
+   * canvasW/H = container pixel size for HUD projection.
+   */
+  updateSoftLock(canvasW: number, canvasH: number): void {
+    const candidates = this.softLockProvider?.() ?? [];
+    const playerPos = this.model.position;
+    const target = this.softLock.refresh(candidates, playerPos, this.camera);
+    this.softLockFrame = this.softLock.projectToScreen(
+      target,
+      this.camera,
+      canvasW,
+      canvasH,
+      playerPos,
+    );
+  }
+
+  private cycleSoftLock(reverse: boolean): void {
+    const candidates = this.softLockProvider?.() ?? [];
+    this.softLock.cycle(candidates, this.model.position, this.camera, reverse);
+    // Immediate frame refresh with last known canvas size fallback
+    const w = (this.camera as THREE.PerspectiveCamera).aspect
+      ? Math.max(320, window.innerWidth)
+      : 1280;
+    const h = Math.max(240, window.innerHeight);
+    this.updateSoftLock(w, h);
+  }
+
+  /** Attach fire/smoke bus from Island3DEngine. */
+  setWorldFxBus(bus: import('../vfx/WorldFxBus').WorldFxBus | null): void {
+    this.worldFx = bus;
+  }
+
+  /** Apply timeScale to mixer (0 freeze · 0.1 slow-mo · 1 normal). */
+  setTimeScale(scale: number): void {
+    this.timeScale = scale;
+    if (this.animations) this.animations.timeScale = scale;
+  }
+
+  private refreshIkDebugTimeScale(): void {
+    if (!this.ikDebug) {
+      this.setTimeScale(this.savedTimeScale);
+      return;
+    }
+    if (this.ikDebugSlowLmb) this.setTimeScale(0);
+    else if (this.ikDebugSlowRmb) this.setTimeScale(0.1);
+    else this.setTimeScale(this.savedTimeScale);
   }
 
   /** Camera-forward attack lunge using dangerroom +/- MM profiles. */
@@ -490,10 +826,19 @@ export class CharacterController3D {
     } else if (this.animations?.hasClip('attack')) {
       this.animations.play('attack', { loop: false });
     }
+    // Attack fire spark at weapon reach
+    if (this.worldFx) {
+      const tip = this.model.position.clone();
+      tip.y += 1.1;
+      tip.x += dir.x * 1.4;
+      tip.z += dir.z * 1.4;
+      this.worldFx.attackBurst(tip);
+    }
   }
 
   /** Set harvest / combat / build mode from UI */
   async setControlMode(mode: ControlMode, classId?: string, hasWeapon = false): Promise<void> {
+    const prevMode = this.mode;
     this.mode = mode;
     this.stateMachine?.updateContext({ inCombat: mode === 'combat' });
     // Build mode = free WASD + mouse look (editor placement)
@@ -521,6 +866,25 @@ export class CharacterController3D {
       await this.equipBuildHammerTool();
     } else {
       this.unequipBuildHammerTool();
+    }
+
+    // Refresh holster mesh catalog after equip swaps (build hammer may hide weapons)
+    this.holster?.setWeaponType(
+      mode === 'build' ? 'unarmed' : (equippedWt as string) || wt,
+    );
+    this.holster?.setEquipment(this.equipmentManager);
+    this.holster?.rescanWeapons();
+
+    // Tab / mode swap does NOT draw or holster combat weapons.
+    // Only build auto-holsters (hands free for hammer); leave build restores preference.
+    if (mode === 'build' && prevMode !== 'build') {
+      this.drawnBeforeBuild = this.weaponsDrawn || this.playerPrefersDrawn;
+      this.beginHolsterWeapons('enter_build', true);
+    } else if (prevMode === 'build' && mode !== 'build') {
+      if (this.drawnBeforeBuild || this.playerPrefersDrawn) {
+        this.beginDrawWeapons(false, 'leave_build');
+      }
+      // else stay holstered — player uses Z to pull out
     }
   }
 
@@ -619,10 +983,17 @@ export class CharacterController3D {
       loaded.clips.forEach((clip) => {
         const name = clip.name.toLowerCase();
         let state: AnimState = 'idle';
-        if (name.includes('walk') || name.includes('run forward')) state = 'walk';
+        if (name.includes('injured') && name.includes('walk')) state = 'walk';
+        else if (name.includes('injured') && name.includes('run')) state = 'run';
+        else if (name.includes('injured') && (name.includes('ground') || name.includes('lying'))) state = 'death';
+        else if (name.includes('getting up') || name.includes('getup') || name.includes('stand up')) state = 'hard_landing';
+        else if (name.includes('injured') && name.includes('idle')) state = 'idle';
+        else if (name.includes('limp') && name.includes('walk')) state = 'walk';
+        else if (name.includes('walk') || name.includes('run forward')) state = 'walk';
         else if (name.includes('run')) state = 'run';
         else if (name.includes('attack') || name.includes('slash')) state = 'attack';
-        else if (name.includes('death')) state = 'death';
+        else if (name.includes('death') || name.includes('die')) state = 'death';
+        else if (name.includes('hurt') || name.includes('hit react') || name.includes('impact')) state = 'impact';
         else if (name.includes('idle')) state = 'idle';
         this.animations!.addClipFromGLTF(state, clip);
       });
@@ -639,32 +1010,57 @@ export class CharacterController3D {
   private setupInputListeners(): void {
     window.addEventListener('keydown', (e) => {
       this.keys.add(e.key.toLowerCase());
+      // Tab = soft-lock target cycle (yellow frame). Mode via ModePlayHUD UI.
       if (e.key === 'Tab') {
         e.preventDefault();
-        const cycle: ControlMode[] = ['harvest', 'combat', 'build'];
-        const idx = cycle.indexOf(this.mode);
-        const next = cycle[(idx + 1) % cycle.length];
-        // Full mode swap (hammer equip + free-move) — fire-and-forget
-        void this.setControlMode(next, this.classIdStored, Boolean(this.model3dStored?.hasWeapon));
+        this.cycleSoftLock(Boolean(e.shiftKey));
+        return;
       }
+
+      // Z — sheath / draw weapons (independent of Tab / combat mode)
+      if (
+        (e.key === WEAPON_TOGGLE_KEY || e.key === WEAPON_TOGGLE_KEY.toUpperCase()) &&
+        !e.ctrlKey &&
+        !e.altKey &&
+        !e.metaKey
+      ) {
+        if (this.toggleWeaponsDrawn()) {
+          e.preventDefault();
+          return;
+        }
+      }
+
+      // Climb detach — X while on wall (takes priority over combat X attack)
+      if ((e.key === 'x' || e.key === 'X') && this.movementState === 'climbing') {
+        this.detachFromClimb('input');
+        e.preventDefault();
+        return;
+      }
+
       // Combat bindings — use easy-win clips from catalog
-      if (this.mode === 'combat' && this.orchestrator) {
+      if (this.mode === 'combat' && this.orchestrator && this.movementState !== 'climbing') {
         if (e.key === 'f' || e.key === 'F') {
+          this.ensureWeaponsDrawnForAction();
           this.orchestrator.playDodge();
         }
         if (e.key === 'r' || e.key === 'R') {
+          this.ensureWeaponsDrawnForAction();
           this.orchestrator.playBlock();
         }
-        if (e.key === 'z' || e.key === 'Z') {
+        // C = former Z motion attack (Z is weapon toggle)
+        if (e.key === 'c' || e.key === 'C') {
+          this.ensureWeaponsDrawnForAction();
           this.orchestrator.playMotionAttack('attack2');
         }
         if (e.key === 'x' || e.key === 'X') {
+          this.ensureWeaponsDrawnForAction();
           this.orchestrator.playMotionAttack('attack3');
         }
 
         // Slots 1-5 for weapon/special skills like uMMORPG - production game flow
         const slotKey = parseInt(e.key);
         if (slotKey >= 1 && slotKey <= 5) {
+          this.ensureWeaponsDrawnForAction();
           this.useSkillSlot(slotKey);
           e.preventDefault();
         }
@@ -693,12 +1089,21 @@ export class CharacterController3D {
       if (e.button === 2) {
         this.rmbHeld = true;
         this.rmbDownAt = performance.now();
+        if (this.ikDebug) {
+          this.ikDebugSlowRmb = true;
+          this.refreshIkDebugTimeScale();
+        }
         e.preventDefault();
         return;
       }
       if (e.button === 0) {
         this.mouseDown = true;
+        if (this.ikDebug) {
+          this.ikDebugSlowLmb = true;
+          this.refreshIkDebugTimeScale();
+        }
         if (this.mode === 'combat' && this.orchestrator) {
+          this.ensureWeaponsDrawnForAction();
           this.orchestrator.playComboHit();
         } else if (this.mode === 'harvest') {
           if (this.shipDeckLocked && this.deckCastLineHandler?.()) {
@@ -713,17 +1118,30 @@ export class CharacterController3D {
       }
     });
     window.addEventListener('mouseup', (e) => {
-      if (e.button === 0) this.mouseDown = false;
+      if (e.button === 0) {
+        this.mouseDown = false;
+        if (this.ikDebug) {
+          this.ikDebugSlowLmb = false;
+          this.refreshIkDebugTimeScale();
+        }
+      }
       if (e.button === 2) {
-        if (performance.now() - this.rmbDownAt < 220) {
+        if (performance.now() - this.rmbDownAt < 220 && !this.ikDebug) {
           this.focusEnabled = !this.focusEnabled;
         }
         this.rmbHeld = false;
+        if (this.ikDebug) {
+          this.ikDebugSlowRmb = false;
+          this.refreshIkDebugTimeScale();
+        }
       }
     });
     window.addEventListener('contextmenu', (e) => e.preventDefault());
     window.addEventListener('blur', () => {
       this.rmbHeld = false;
+      this.ikDebugSlowLmb = false;
+      this.ikDebugSlowRmb = false;
+      this.refreshIkDebugTimeScale();
     });
     window.addEventListener('mousemove', (e) => {
       if (this.mouseDown || this.rmbHeld) {
@@ -799,6 +1217,18 @@ export class CharacterController3D {
   // ─── Main update ───────────────────────────────────────────────────────────
 
   update(dt: number): void {
+    // Keep mixer timeScale in sync (Three.js multiplies mixer.update by this)
+    if (this.animations && this.animations.timeScale !== this.timeScale) {
+      this.animations.timeScale = this.timeScale;
+    }
+
+    // IK debug freeze (LMB → timeScale 0) — anims frozen, no locomotion
+    if (this.ikDebug && this.timeScale <= 0) {
+      this.animations?.update(dt);
+      this.characterIk?.tickFootPhase(dt, false, false);
+      return;
+    }
+
     // Mouse look: RMB always; in free-move/build also allow when LMB not placing UI focus
     // (RMB is primary — matches editor free camera)
     const freeMove = this.freeMoveLocomotion || this.mode === 'build';
@@ -822,6 +1252,19 @@ export class CharacterController3D {
         this.orchestrator?.update(dt);
       }
       this.animations?.update(dt);
+      this.runFootIk(dt);
+      return;
+    }
+
+    if (this.cinematicLock) {
+      // Tutorial slow-zoom / prone — freeze locomotion; external cam drives
+      this.velocity.set(0, 0, 0);
+      this.keys.clear();
+      if (this.stateMachine) {
+        this.stateMachine.update(dt);
+        this.orchestrator?.update(dt);
+      }
+      this.animations?.update(dt);
       return;
     }
 
@@ -830,49 +1273,106 @@ export class CharacterController3D {
       this.lastUsedSlot = undefined;
     }
 
+    // Scaled sim dt (freeze / slow-mo for IK debug)
+    const sdt = dt * (this.timeScale <= 0 ? 0 : this.timeScale);
+
+    // ── Holster controller tick ──────────────────────────────────────────────
+    this.holster?.update(sdt);
+    this.updateStamina(sdt);
+
+    // ── Climb attach / active wall move (Conan Exiles style) ─────────────────
+    // Space hold near wall → attach (after holster). W/S up/down, A/D shimmy, X off.
+    const climbHit = this.sampleClimbHit();
+    const wasClimbing = this.movementState === 'climbing';
+
+    if (wasClimbing) {
+      if (this.stamina <= 0 && CLIMB_RULES.detachOnStaminaEmpty) {
+        this.detachFromClimb('stamina');
+      } else {
+        const stillOnWall = this.updateClimbLocomotion(dt, climbHit);
+        if (!stillOnWall && this.movementState === 'climbing') {
+          this.detachFromClimb('lost_contact');
+        }
+      }
+    } else if (climbHit && this.keys.has(' ')) {
+      // Hold Space near climbable surface to grab
+      this.spaceHoldTime += dt;
+      if (this.spaceHoldTime >= CLIMB_RULES.attachHoldSec && this.stamina > 0) {
+        this.tryAttachClimb(climbHit);
+      }
+    } else {
+      this.spaceHoldTime = 0;
+      this.climbAttachLatch = false;
+    }
+
+    // Swim-to-edge: quick holster when near climbable edge while swimming
+    const groundHeightPre = this.sampleGroundHeight(this.model.position.x, this.model.position.z);
+    const feetYPre = this.model.position.y;
+    const inWaterPre = feetYPre < this.physics.waterLevel;
+    if (
+      inWaterPre &&
+      climbHit &&
+      climbHit.distance <= CLIMB_RULES.swimEdgeHolsterDist &&
+      this.weaponsDrawn &&
+      !wasClimbing
+    ) {
+      this.beginHolsterWeapons('swim_to_edge', false);
+    }
+
     // ── Horizontal movement ──────────────────────────────────────────────────
-    // Build / freeMove: WASD strafe relative to camera (editor free movement).
-    // Default combat/harvest: W/S walk, Q/E strafe, A/D turn camera.
+    // Climbing uses wall-aligned move in updateClimbLocomotion — skip ground WASD.
     this.direction.set(0, 0, 0);
     let moving = false;
 
-    // freeMove declared above (mouse look + locomotion share one flag)
-    if (freeMove) {
-      if (this.keys.has('w')) { this.direction.z -= 1; moving = true; }
-      if (this.keys.has('s')) { this.direction.z += 1; moving = true; }
-      if (this.keys.has('a')) { this.direction.x -= 1; moving = true; }
-      if (this.keys.has('d')) { this.direction.x += 1; moving = true; }
-      // Optional Q/E still strafe
-      if (this.keys.has('q')) { this.direction.x -= 1; moving = true; }
-      if (this.keys.has('e')) { this.direction.x += 1; moving = true; }
-    } else {
-      if (this.keys.has('w')) { this.direction.z -= 1; moving = true; }
-      if (this.keys.has('s')) { this.direction.z += 1; moving = true; }
-      if (this.keys.has('q')) { this.direction.x -= 1; moving = true; }
-      if (this.keys.has('e')) { this.direction.x += 1; moving = true; }
-      if (this.keys.has('a')) { this.cameraYaw += this.turnSpeed * dt; }
-      if (this.keys.has('d')) { this.cameraYaw -= this.turnSpeed * dt; }
-    }
-
-    if (this.direction.length() > 0) this.direction.normalize();
-
-    const moveDir = this.direction.clone();
-    moveDir.applyAxisAngle(new THREE.Vector3(0, 1, 0), this.cameraYaw);
-
-    const speedMult = CharacterController3D.SPEED_MULT[this.movementState];
-    const effectiveSpeed = this.baseMoveSpeed * speedMult;
-
-    const dashing = this.motionDash.apply(this.model.position, dt);
-    if (this.motionDash.consumeImpact()) {
-      this.hitMarker += 1;
-    }
-    if (!dashing) {
-      this.velocity.lerp(moveDir.multiplyScalar(effectiveSpeed), dt * 5);
-      this.model.position.x += this.velocity.x * dt;
-      this.model.position.z += this.velocity.z * dt;
-    } else {
+    if (this.movementState === 'climbing') {
+      // Wall move already applied; keep velocity for anim flags
+      moving = this.wallMoveDir.lengthSq() > 0.01;
       this.velocity.set(0, 0, 0);
-      moving = false;
+    } else {
+      // Build / freeMove: WASD strafe relative to camera (editor free movement).
+      // Default combat/harvest: W/S walk, Q/E strafe, A/D turn camera.
+      if (freeMove) {
+        if (this.keys.has('w')) { this.direction.z -= 1; moving = true; }
+        if (this.keys.has('s')) { this.direction.z += 1; moving = true; }
+        if (this.keys.has('a')) { this.direction.x -= 1; moving = true; }
+        if (this.keys.has('d')) { this.direction.x += 1; moving = true; }
+        if (this.keys.has('q')) { this.direction.x -= 1; moving = true; }
+        if (this.keys.has('e')) { this.direction.x += 1; moving = true; }
+      } else {
+        if (this.keys.has('w')) { this.direction.z -= 1; moving = true; }
+        if (this.keys.has('s')) { this.direction.z += 1; moving = true; }
+        if (this.keys.has('q')) { this.direction.x -= 1; moving = true; }
+        if (this.keys.has('e')) { this.direction.x += 1; moving = true; }
+        if (this.keys.has('a')) { this.cameraYaw += this.turnSpeed * dt; }
+        if (this.keys.has('d')) { this.cameraYaw -= this.turnSpeed * dt; }
+      }
+
+      if (this.direction.length() > 0) this.direction.normalize();
+
+      const moveDir = this.direction.clone();
+      moveDir.applyAxisAngle(new THREE.Vector3(0, 1, 0), this.cameraYaw);
+
+      const speedMult = CharacterController3D.SPEED_MULT[this.movementState];
+      const effectiveSpeed = this.baseMoveSpeed * speedMult;
+
+      const dashing = this.motionDash.apply(this.model.position, dt);
+      if (this.motionDash.consumeImpact()) {
+        this.hitMarker += 1;
+        // Foot IK plant + dash foot smoke (threejs-games LegIK + particles spirit)
+        this.characterIk?.pulseDashFootIK();
+        this.worldFx?.dashFootSmoke(
+          this.model.position.clone(),
+          this.cameraYaw,
+        );
+      }
+      if (!dashing) {
+        this.velocity.lerp(moveDir.multiplyScalar(effectiveSpeed), dt * 5);
+        this.model.position.x += this.velocity.x * dt;
+        this.model.position.z += this.velocity.z * dt;
+      } else {
+        this.velocity.set(0, 0, 0);
+        moving = false;
+      }
     }
 
     // ── Vertical physics ─────────────────────────────────────────────────────
@@ -883,119 +1383,108 @@ export class CharacterController3D {
     const inWater = feetY < waterLevel;
     const submerged = headY < waterLevel;
 
-    if (inWater) {
-      const climbFromWater =
-        this.checkClimbing(dt) || this.movementState === 'climbing';
-      if (climbFromWater && this.keys.has('w')) {
-        this.setMovementState('climbing');
-        this.verticalVelocity = 6;
-        this.callbacks.onStaminaDrain?.(this.physics.climbStaminaDrain * dt);
-      } else {
+    if (this.movementState === 'climbing') {
+      // Vertical already applied in updateClimbLocomotion; no gravity
+      this.isGrounded = false;
+      this.jumpCount = 0;
+    } else if (inWater) {
       const forceDive = this.keys.has('control');
       // ── Swimming / Underwater ────────────────────────────────────────────
       if (submerged || forceDive) {
         this.setMovementState('swimming_underwater');
-        // Oxygen drain
         this.oxygen = Math.max(0, this.oxygen - dt);
         this.callbacks.onOxygenChange?.(this.oxygen, this.physics.maxOxygen);
-        if (this.oxygen <= 0) {
+        if (this.oxygen <= 0 && !this.invincible) {
           this.callbacks.onDrownDamage?.(this.physics.drownDamage * dt);
         }
-        // Buoyancy: slow upward drift when not pressing S
         if (!this.keys.has('s')) {
           this.verticalVelocity += 4 * dt;
         }
-        // Space = ascend, S / Ctrl = descend while underwater
-        if (this.keys.has(' ')) this.verticalVelocity += 8 * dt;
+        if (this.keys.has(' ') && !climbHit) this.verticalVelocity += 8 * dt;
         if (this.keys.has('s') || forceDive) this.verticalVelocity -= 4 * dt;
       } else {
         this.setMovementState('swimming_surface');
-        // Restore oxygen when head is above water
         this.oxygen = Math.min(this.physics.maxOxygen, this.oxygen + dt * 3);
         this.callbacks.onOxygenChange?.(this.oxygen, this.physics.maxOxygen);
-        // Float at water surface
         const surfaceTarget = waterLevel - 0.5;
         this.verticalVelocity = (surfaceTarget - feetY) * 5;
-        // Space = climb out (boost upward)
-        if (this.keys.has(' ') && groundHeight !== null && groundHeight > waterLevel - 1) {
+        // Space near shore with no wall = hop out; wall uses climb attach above
+        if (this.keys.has(' ') && !climbHit && groundHeight !== null && groundHeight > waterLevel - 1) {
           this.verticalVelocity = this.physics.jumpForce * 0.7;
         }
       }
-      // Stamina drain while swimming
-      this.callbacks.onStaminaDrain?.(this.physics.swimStaminaDrain * dt);
-      // Dampen horizontal velocity in water
+      this.drainStamina(this.physics.swimStaminaDrain * dt);
       this.verticalVelocity *= (1 - 2 * dt);
-      }
     } else {
       // ── Restore oxygen on land ──────────────────────────────────────────
       this.oxygen = Math.min(this.physics.maxOxygen, this.oxygen + dt * 5);
 
-      // ── Climbing check ──────────────────────────────────────────────────
-      const climbDetected = this.checkClimbing(dt);
+      // ── Ground / Air physics ───────────────────────────────────────────
+      const distToGround = groundHeight !== null ? feetY - groundHeight : 999;
 
-      if (climbDetected && this.keys.has('w')) {
-        this.setMovementState('climbing');
-        // Move up along the wall
-        this.verticalVelocity = 6;
-        this.callbacks.onStaminaDrain?.(this.physics.climbStaminaDrain * dt);
-      } else {
-        // ── Ground / Air physics ───────────────────────────────────────────
-        const distToGround = groundHeight !== null ? feetY - groundHeight : 999;
-
-        if (distToGround <= 0.2 && this.verticalVelocity <= 0) {
-          // Landing — choose animation based on fall speed
-          if (!this.isGrounded) {
-            const fallSpeed = Math.abs(this.verticalVelocity);
-            if (fallSpeed > this.physics.fallDamageThreshold) {
-              // Hard landing — take damage + play impact anim
-              const damage = (fallSpeed - this.physics.fallDamageThreshold) * this.physics.fallDamageScale;
+      if (distToGround <= 0.2 && this.verticalVelocity <= 0) {
+        if (!this.isGrounded) {
+          const fallSpeed = Math.abs(this.verticalVelocity);
+          if (fallSpeed > this.physics.fallDamageThreshold) {
+            const damage = (fallSpeed - this.physics.fallDamageThreshold) * this.physics.fallDamageScale;
+            if (!this.invincible) {
               this.callbacks.onFallDamage?.(damage);
-              if (this.animations) {
+            }
+            if (this.animations) {
+              if (this.tutorialInjuredMode && this.animations.hasClip('impact')) {
+                this.animations.play('impact', { loop: false });
+              } else {
                 this.animations.play('hard_landing', { loop: false });
-                this.oneShotTimer = 0.8;
               }
-            } else if (fallSpeed > 8) {
-              // Medium fall — parkour roll landing
-              if (this.animations) {
-                this.animations.play('fall_roll', { loop: false });
-                this.oneShotTimer = 0.6;
-              }
+              this.oneShotTimer = 0.8;
+            }
+          } else if (fallSpeed > 8) {
+            if (this.animations && !this.tutorialInjuredMode) {
+              this.animations.play('fall_roll', { loop: false });
+              this.oneShotTimer = 0.6;
             }
           }
-          this.isGrounded = true;
-          this.jumpCount = 0;
-          this.verticalVelocity = 0;
-          if (groundHeight !== null) {
-            this.model.position.y = groundHeight;
-          }
-          this.setMovementState('ground');
-        } else {
-          // Airborne — apply gravity
-          this.isGrounded = false;
-          this.verticalVelocity += this.physics.gravity * dt;
-          this.setMovementState(this.verticalVelocity > 0 ? 'jumping' : 'falling');
         }
+        this.isGrounded = true;
+        this.jumpCount = 0;
+        this.verticalVelocity = 0;
+        if (groundHeight !== null) {
+          this.model.position.y = groundHeight;
+        }
+        this.setMovementState('ground');
+      } else {
+        this.isGrounded = false;
+        this.verticalVelocity += this.physics.gravity * dt;
+        this.setMovementState(this.verticalVelocity > 0 ? 'jumping' : 'falling');
+      }
 
-        // ── Jump input ────────────────────────────────────────────────────
-        if (this.keys.has(' ')) {
-          const maxJumps = this.physics.doubleJump ? 2 : 1;
-          if (this.jumpCount < maxJumps && (this.isGrounded || this.jumpCount > 0)) {
-            this.verticalVelocity = this.physics.jumpForce;
-            this.isGrounded = false;
-            this.jumpCount++;
-            this.setMovementState('jumping');
-          }
-          // Consume key so holding space doesn't re-trigger
-          this.keys.delete(' ');
+      // ── Jump input (Space) — disabled when holding Space for climb attach ─
+      if (this.keys.has(' ') && !climbHit) {
+        const maxJumps = this.physics.doubleJump ? 2 : 1;
+        if (this.jumpCount < maxJumps && (this.isGrounded || this.jumpCount > 0)) {
+          this.verticalVelocity = this.physics.jumpForce;
+          this.isGrounded = false;
+          this.jumpCount++;
+          this.setMovementState('jumping');
         }
+        // Consume key so holding space doesn't re-trigger jump
+        this.keys.delete(' ');
+      } else if (this.keys.has(' ') && climbHit && this.spaceHoldTime < CLIMB_RULES.attachHoldSec) {
+        // Holding for climb — do not jump
       }
     }
 
-    // Apply vertical velocity
-    this.model.position.y += this.verticalVelocity * dt;
+    // Apply vertical velocity (climb path applies its own)
+    if (this.movementState !== 'climbing') {
+      this.model.position.y += this.verticalVelocity * dt;
+    }
 
     // ── Character rotation ───────────────────────────────────────────────────
-    if (this.mode === 'build' || this.freeMoveLocomotion) {
+    if (this.movementState === 'climbing') {
+      // Face into the wall (away from wall normal)
+      const faceYaw = Math.atan2(-this.climbNormal.x, -this.climbNormal.z);
+      this.model.rotation.y = THREE.MathUtils.lerp(this.model.rotation.y, faceYaw, dt * 12);
+    } else if (this.mode === 'build' || this.freeMoveLocomotion) {
       // Free-move editor: face move direction, or camera forward when idle (RMB look)
       if (moving && this.velocity.lengthSq() > 0.01) {
         const targetAngle = Math.atan2(this.velocity.x, this.velocity.z);
@@ -1053,6 +1542,7 @@ export class CharacterController3D {
 
       if (explorerBusy) {
         this.animations.update(dt);
+        this.runFootIk(dt);
         this.wasMoving = moving;
         return;
       }
@@ -1060,6 +1550,7 @@ export class CharacterController3D {
       if (this.oneShotTimer > 0) {
         this.oneShotTimer -= dt;
         this.animations.update(dt);
+        this.runFootIk(dt);
         this.wasMoving = moving;
         return;
       }
@@ -1070,9 +1561,24 @@ export class CharacterController3D {
       }
 
       switch (this.movementState) {
-        case 'climbing':
-          this.animations.play('climb_top');
+        case 'climbing': {
+          // W/S vertical, A/D shimmy — pick best available climb clip
+          const up = this.keys.has('w');
+          const down = this.keys.has('s');
+          const left = this.keys.has('a');
+          const right = this.keys.has('d');
+          let climbAnim: AnimState = 'climb_idle';
+          if (up || down) climbAnim = 'climb_up';
+          else if (left) climbAnim = 'climb_shimmy_l';
+          else if (right) climbAnim = 'climb_shimmy_r';
+          if (!this.animations.hasClip(climbAnim)) {
+            if (this.animations.hasClip('climb_top')) climbAnim = 'climb_top';
+            else if (this.animations.hasClip('climb_up')) climbAnim = 'climb_up';
+            else climbAnim = moving ? 'walk' : 'idle';
+          }
+          this.animations.play(climbAnim);
           break;
+        }
 
         case 'falling':
           this.animations.play('falling');
@@ -1099,22 +1605,39 @@ export class CharacterController3D {
               dt,
             });
           } else if (moving) {
-            this.animations.play(this.keys.has('shift') ? 'run' : 'walk');
+            // Tutorial opener: injured pack only (no healthy sprint)
+            if (this.tutorialInjuredMode) {
+              const sprint = this.keys.has('shift') && this.animations.hasClip('run');
+              this.animations.play(sprint ? 'run' : 'walk');
+            } else {
+              this.animations.play(this.keys.has('shift') ? 'run' : 'walk');
+            }
           } else {
             this.idleVariantTimer += dt;
             if (this.idleVariantTimer > 8 + Math.random() * 4) {
               this.idleVariantTimer = 0;
               this.useAltIdle = !this.useAltIdle;
             }
-            this.animations.play(this.useAltIdle ? 'idle_alt' : 'idle');
+            this.animations.play(this.useAltIdle && this.animations.hasClip('idle_alt') ? 'idle_alt' : 'idle');
           }
           break;
       }
 
       this.animations.update(dt);
+      this.runFootIk(dt);
     }
 
     this.wasMoving = moving;
+  }
+
+  /** Foot IK after FK animations (terrain plant + dash pulse). */
+  private runFootIk(dt: number): void {
+    if (!this.characterIk) return;
+    const terrain: THREE.Object3D[] = [];
+    if (this.terrainMesh) terrain.push(this.terrainMesh);
+    if (this.groundObject) terrain.push(this.groundObject);
+    if (terrain.length === 0) return;
+    this.characterIk.updateFootIK(terrain, dt);
   }
 
   // ─── Climbing detection ────────────────────────────────────────────────────
@@ -1129,35 +1652,231 @@ export class CharacterController3D {
     this.camera.lookAt(cameraTarget.x, cameraTarget.y + 3, cameraTarget.z);
   }
 
-  private checkClimbing(_dt: number): boolean {
+  /** Climb surface sample — returns null if no climbable wall in range. */
+  private sampleClimbHit(): { point: THREE.Vector3; normal: THREE.Vector3; distance: number } | null {
     const chestY = this.model.position.y + this.physics.characterHeight * 0.5;
     const origin = new THREE.Vector3(this.model.position.x, chestY, this.model.position.z);
     const inWater = this.model.position.y < this.physics.waterLevel;
     this.climbCheckDir.set(0, 0, -1);
-    if (inWater && this.climbMeshes.length > 0) {
+    if (this.movementState === 'climbing') {
+      // Keep probing into last known wall
+      this.climbCheckDir.copy(this.climbNormal).multiplyScalar(-1);
+      if (this.climbCheckDir.lengthSq() < 0.01) this.climbCheckDir.set(0, 0, -1);
+    } else if (inWater && this.climbMeshes.length > 0) {
       this.climbCheckDir.applyAxisAngle(new THREE.Vector3(0, 1, 0), this.cameraYaw);
     } else {
       this.climbCheckDir.applyQuaternion(this.model.quaternion);
     }
-    this.climbRaycaster.set(origin, this.climbCheckDir);
-    this.climbRaycaster.far = inWater ? 3.5 : 2.0;
+    this.climbRaycaster.set(origin, this.climbCheckDir.normalize());
+    this.climbRaycaster.far = inWater
+      ? Math.max(3.5, CLIMB_RULES.swimEdgeHolsterDist)
+      : CLIMB_RULES.wallDetectDist;
 
+    const maxNy = this.physics.climbableMaxNormalY ?? CLIMB_RULES.climbableMaxNormalY;
     const targets = [this.terrainMesh, ...this.climbMeshes];
     for (const target of targets) {
+      if (!target) continue;
       const hits = this.climbRaycaster.intersectObject(target, true);
       if (hits.length === 0) continue;
       const hit = hits[0];
-      if (hit.object.userData?.climbable || hit.object.userData?.shipHull) return true;
-      const normal = hit.face?.normal;
-      if (!normal) continue;
-      const worldNormal = normal.clone();
-      if (hit.object.parent) {
-        hit.object.getWorldQuaternion(new THREE.Quaternion());
+      const tagged = Boolean(hit.object.userData?.climbable || hit.object.userData?.shipHull);
+      let worldNormal = this._climbHitNormal.set(0, 0, 1);
+      if (hit.face) {
+        worldNormal.copy(hit.face.normal).transformDirection(hit.object.matrixWorld).normalize();
+      } else if (hit.normal) {
+        worldNormal.copy(hit.normal).normalize();
       }
-      worldNormal.transformDirection(hit.object.matrixWorld).normalize();
-      if (worldNormal.y < this.physics.climbableMaxNormalY) return true;
+      // Face outward from wall (toward free space)
+      const toPlayer = origin.clone().sub(hit.point);
+      if (worldNormal.dot(toPlayer) < 0) worldNormal.negate();
+
+      if (tagged || worldNormal.y < maxNy) {
+        return {
+          point: hit.point.clone(),
+          normal: worldNormal.clone(),
+          distance: hit.distance,
+        };
+      }
     }
-    return false;
+    return null;
+  }
+
+  /** @deprecated use sampleClimbHit — kept for callers expecting boolean */
+  private checkClimbing(_dt: number): boolean {
+    return this.sampleClimbHit() != null;
+  }
+
+  private tryAttachClimb(hit: { point: THREE.Vector3; normal: THREE.Vector3; distance: number }): void {
+    if (this.climbAttachLatch || this.movementState === 'climbing') return;
+    if (this.stamina <= 0) return;
+
+    // Holster weapons before grab (hands free)
+    if (CLIMB_RULES.holsterBeforeClimb && this.weaponsDrawn) {
+      this.beginHolsterWeapons('climb_attach', false);
+    } else if (CLIMB_RULES.holsterBeforeClimb) {
+      this.beginHolsterWeapons('climb_attach', true);
+    }
+
+    this.climbNormal.copy(hit.normal).normalize();
+    this.climbPoint.copy(hit.point);
+    this.climbAttachLatch = true;
+    this.spaceHoldTime = 0;
+    this.verticalVelocity = 0;
+    this.velocity.set(0, 0, 0);
+    this.isGrounded = false;
+    this.setMovementState('climbing');
+
+    // Stick to wall
+    const stick = hit.point.clone().addScaledVector(this.climbNormal, CLIMB_RULES.wallStickDistance);
+    this.model.position.x = stick.x;
+    this.model.position.z = stick.z;
+    // Keep Y — climbing starts at current height
+
+    if (this.animations) {
+      if (this.animations.hasClip('climb_attach')) {
+        this.animations.play('climb_attach', { loop: false, fadeDuration: 0.2 });
+        this.oneShotTimer = 0.45;
+      } else if (this.animations.hasClip('climb_idle')) {
+        this.animations.play('climb_idle');
+      } else if (this.animations.hasClip('climb_top')) {
+        this.animations.play('climb_top');
+      }
+    }
+  }
+
+  /**
+   * Wall locomotion: W/S vertical, A/D lateral along wall.
+   * Returns false if contact lost or stamina empty.
+   */
+  private updateClimbLocomotion(
+    dt: number,
+    hit: { point: THREE.Vector3; normal: THREE.Vector3; distance: number } | null,
+  ): boolean {
+    if (!hit) return false;
+
+    this.climbNormal.copy(hit.normal).normalize();
+    this.climbPoint.copy(hit.point);
+
+    // Lateral = world up × wall normal (shimmy along wall)
+    this._climbLateral.set(0, 1, 0).cross(this.climbNormal);
+    if (this._climbLateral.lengthSq() < 0.01) {
+      this._climbLateral.set(1, 0, 0).cross(this.climbNormal);
+    }
+    this._climbLateral.normalize();
+
+    let vUp = 0;
+    let vLat = 0;
+    if (this.keys.has('w')) vUp += 1;
+    if (this.keys.has('s')) vUp -= 1;
+    if (this.keys.has('a')) vLat -= 1; // left on wall
+    if (this.keys.has('d')) vLat += 1;
+
+    this.wallMoveDir.set(0, 0, 0);
+    if (vUp !== 0) this.wallMoveDir.y = vUp;
+    if (vLat !== 0) {
+      this.wallMoveDir.x += this._climbLateral.x * vLat;
+      this.wallMoveDir.z += this._climbLateral.z * vLat;
+    }
+
+    const moving = vUp !== 0 || vLat !== 0;
+    const ySpeed = CLIMB_RULES.climbSpeedVertical;
+    const latSpeed = CLIMB_RULES.climbSpeedLateral;
+
+    this.model.position.y += vUp * ySpeed * dt;
+    this.model.position.x += this._climbLateral.x * vLat * latSpeed * dt;
+    this.model.position.z += this._climbLateral.z * vLat * latSpeed * dt;
+
+    // Stick to wall face
+    const stick = hit.point.clone().addScaledVector(this.climbNormal, CLIMB_RULES.wallStickDistance);
+    this.model.position.x = THREE.MathUtils.lerp(this.model.position.x, stick.x, 0.35);
+    this.model.position.z = THREE.MathUtils.lerp(this.model.position.z, stick.z, 0.35);
+
+    this.verticalVelocity = 0;
+
+    // Stamina: always drain on wall; extra while moving (Conan style)
+    const drain =
+      CLIMB_RULES.staminaDrainPerSec *
+      (moving ? CLIMB_RULES.moveDrainMult : 1) *
+      dt;
+    this.drainStamina(drain);
+
+    if (CLIMB_RULES.detachOnStaminaEmpty && this.stamina <= 0) {
+      return false;
+    }
+
+    // Mantle / top-out: if feet near ground above wall, exit climb to ground
+    const gh = this.sampleGroundHeight(this.model.position.x, this.model.position.z);
+    if (gh !== null && this.model.position.y <= gh + 0.25 && vUp > 0) {
+      // Still on low wall — fine
+    }
+    if (gh !== null && this.model.position.y - gh < 0.15 && Math.abs(vUp) < 0.01 && hit.distance > 1.2) {
+      // Standing on top ledge
+      this.model.position.y = gh;
+      this.detachFromClimb('mantle');
+      return false;
+    }
+
+    return true;
+  }
+
+  private detachFromClimb(reason: 'input' | 'lost_contact' | 'stamina' | 'mantle'): void {
+    if (this.movementState !== 'climbing') return;
+    this.climbAttachLatch = false;
+    this.spaceHoldTime = 0;
+    this.wallMoveDir.set(0, 0, 0);
+    this.verticalVelocity = reason === 'input' || reason === 'stamina' ? -1 : 0;
+
+    if (this.animations) {
+      if (reason === 'mantle' && this.animations.hasClip('climb_mantle')) {
+        this.animations.play('climb_mantle', { loop: false });
+        this.oneShotTimer = 0.5;
+      } else if (this.animations.hasClip('climb_detach')) {
+        this.animations.play('climb_detach', { loop: false });
+        this.oneShotTimer = 0.35;
+      }
+    }
+
+    // Stay holstered after climb — player pulls with Z (or auto-draw on next attack)
+    this.setMovementState('falling');
+  }
+
+  private drainStamina(amount: number): void {
+    if (amount <= 0) return;
+    this.stamina = Math.max(0, this.stamina - amount);
+    this.staminaRegenDelay = STAMINA_LOCOMOTION.regenDelaySec;
+    this.callbacks.onStaminaDrain?.(amount);
+    this.callbacks.onStaminaChange?.(this.stamina, this.maxStamina);
+    // Avoid state-machine auto-sleep while hanging on a wall (climb handles empty stamina)
+    if (this.movementState === 'climbing') {
+      this.stateMachine?.updateContext({
+        stamina: Math.max(0.01, this.stamina),
+        maxStamina: this.maxStamina,
+      });
+    } else {
+      this.stateMachine?.updateContext({ stamina: this.stamina, maxStamina: this.maxStamina });
+    }
+  }
+
+  private updateStamina(dt: number): void {
+    // Conan: no regen while climbing / on wall
+    if (this.blocksStaminaRegen) {
+      this.staminaRegenDelay = STAMINA_LOCOMOTION.regenDelaySec;
+      return;
+    }
+    if (this.staminaRegenDelay > 0) {
+      this.staminaRegenDelay -= dt;
+      return;
+    }
+    if (this.stamina >= this.maxStamina) return;
+    // Also no regen while actively swimming hard (surface still allows slow regen)
+    if (this.movementState === 'swimming_underwater') return;
+
+    const before = this.stamina;
+    this.stamina = Math.min(this.maxStamina, this.stamina + STAMINA_LOCOMOTION.regenPerSec * dt);
+    if (this.stamina !== before) {
+      this.callbacks.onStaminaChange?.(this.stamina, this.maxStamina);
+      this.stateMachine?.updateContext({ stamina: this.stamina, maxStamina: this.maxStamina });
+    }
   }
 
   private sampleGroundHeight(x: number, z: number): number | null {
@@ -1206,10 +1925,66 @@ export class CharacterController3D {
     this.deckCastLineHandler = handler;
   }
 
+  /**
+   * Tutorial shipwreck opener: injured-only anims + invincibility + locked HP display.
+   */
+  enableTutorialInjuredMode(lockedHp = 5): void {
+    this.tutorialInjuredMode = true;
+    this.invincible = true;
+    this.tutorialLockedHp = lockedHp;
+    // Limp: slower base move during wash-up
+    this.baseMoveSpeed = Math.min(this.baseMoveSpeed, 14);
+  }
+
+  disableTutorialInjuredMode(): void {
+    this.tutorialInjuredMode = false;
+    this.invincible = false;
+    this.tutorialLockedHp = null;
+    this.baseMoveSpeed = 30;
+  }
+
+  /** Play injured ground loop (prone) for cinematic */
+  playInjuredGround(): void {
+    if (!this.animations) return;
+    if (this.animations.hasClip('death')) {
+      this.animations.play('death', { loop: true, fadeDuration: 0.4 });
+    } else if (this.animations.hasClip('idle')) {
+      this.animations.play('idle', { loop: true });
+    }
+  }
+
+  /** Play get-up one-shot then injured idle */
+  playInjuredGetUp(onDone?: () => void): void {
+    if (!this.animations) {
+      onDone?.();
+      return;
+    }
+    if (this.animations.hasClip('hard_landing')) {
+      this.animations.play('hard_landing', {
+        loop: false,
+        fadeDuration: 0.2,
+        onFinish: () => {
+          if (this.animations?.hasClip('idle')) this.animations.play('idle', { loop: true });
+          onDone?.();
+        },
+      });
+    } else {
+      if (this.animations.hasClip('idle')) this.animations.play('idle', { loop: true });
+      onDone?.();
+    }
+  }
+
   teleportTo(pos: THREE.Vector3): void {
+    // Smoke at departure + arrival
+    if (this.worldFx) {
+      this.worldFx.teleportSmoke(this.model.position.clone().add(new THREE.Vector3(0, 0.5, 0)));
+    }
     this.model.position.copy(pos);
     this.velocity.set(0, 0, 0);
     this.verticalVelocity = 0;
+    if (this.worldFx) {
+      this.worldFx.teleportSmoke(pos.clone().add(new THREE.Vector3(0, 0.5, 0)));
+    }
   }
 
   registerClimbMeshes(meshes: THREE.Object3D[]): void {
@@ -1282,8 +2057,22 @@ export class CharacterController3D {
     return this.stateMachine?.getState() ?? 'idle';
   }
 
+  getStamina(): number {
+    return this.stamina;
+  }
+
+  getMaxStamina(): number {
+    return this.maxStamina;
+  }
+
+  get weaponsAreDrawn(): boolean {
+    return this.weaponsDrawn;
+  }
+
   destroy(): void {
     this.unequipBuildHammerTool();
+    this.holster?.dispose();
+    this.holster = null;
     this.orchestrator?.dispose();
     this.orchestrator = null;
     this.animations?.dispose();

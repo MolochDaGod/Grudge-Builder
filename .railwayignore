@@ -1,14 +1,55 @@
-node_modules
-client
-.git
-diabloweb
-puter-vanilla
-docs
-migrations
-public/sprites
-public/avatars
-public/models
+# Slim upload for grudge-api (Nixpacks builds server only).
+# Patterns without a leading slash match ANY path segment — use /name for repo-root only.
+# Do NOT ignore server/** (includes server/supabase, etc.)
+
+/node_modules
+/client
+/.git
+/.github
+/.grok
+/.gemini
+/.vscode
+/.vercel
+/.wrangler
+/.tmp
+/.railway-deploy
+/diabloweb
+/puter-vanilla
+/docs
+/e2e
+/vendor
+/workers
+/steam
+/supabase
+/production
+/_skill-tree-assets
+/dist-puter
+/api
+/src
+/public
+/migrations
+
+# Media / noise
 *.zip
 *.rar
 *.7z
 *.tar.gz
+*.mp4
+*.log
+tmp-*
+ingest-*
+foods_export.csv
+asset-migration-manifest.json
+test-*.mjs
+playwright.config.ts
+vite.config.ts
+postcss.config.js
+components.json
+vercel.json
+middleware.ts
+Dockerfile.pvp
+apple-touch-icon.png
+favicon*
+
+# Keep: server/, shared/, script/, scripts/, package.json, package-lock.json,
+# railway.json, nixpacks.toml, tsconfig.json, drizzle.config.ts

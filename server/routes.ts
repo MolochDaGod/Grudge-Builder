@@ -314,6 +314,14 @@ export async function registerRoutes(
   const { registerWarTtsRoutes } = await import("./routes/warTts");
   registerWarTtsRoutes(app);
 
+  // Production map package publish (Forge Export Production → disk + deploy hook)
+  const { registerProductionMapPublishRoutes } = await import("./routes/productionMapPublish");
+  registerProductionMapPublishRoutes(app);
+
+  // Multiplayer REST bootstrap (status / session / sector asset manifests)
+  const { registerMultiplayerRoutes } = await import("./routes/multiplayerRoutes");
+  registerMultiplayerRoutes(app);
+
   // Local huge medieval battle GLB (dev) — 517MB on D: drive
   app.get("/api/local-war-scene", (req, res) => {
     const candidates = [

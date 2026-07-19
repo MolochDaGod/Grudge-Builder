@@ -35,6 +35,8 @@ server/public/
 !client/public/models/warlords/rts/**/*.fbx
 !client/public/models/warlords/rts/**/*.glb
 !client/public/models/warlords/mines/**/*.fbx
+# Fabled core zone + dwarf main city (also on R2 models/warlords/fabled/)
+!client/public/models/warlords/fabled/**/*.glb
 # scene.bin files are loaded at runtime but stored outside git (object storage / local)
 public/models/**/*.bin
 
@@ -89,3 +91,7 @@ scripts/pull-railway-db.mjs
 test-results/
 playwright-report/
 blob-report/
+
+# Production agent machine reports
+scripts/agents/reports/
+

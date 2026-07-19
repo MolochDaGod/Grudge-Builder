@@ -4,14 +4,12 @@
  * Grudge Warlords — Canonical Lore Constants
  * Single source of truth for all server rooms and client code.
  *
- * Everything here comes from:
- *   - loreSeed.ts (gods, factions, heroes)
- *   - loreHeroes.txt (full hero profiles, AI configs)
- *   - RACES_CLASSES.md (race bonuses, class abilities)
- *   - pirateUnits.ts (unit roles, faction colors)
- *   - worldMap.ts (zone types, player blocks)
- *   - GrudgesTerrainSystem.js (sector biomes, layer system)
- *   - zoneCutscenes.js (zone lore descriptions)
+ * Heroes (identity roster): HERO_ROSTER below — id/name/title/faction/race/class/sector.
+ * Full codex (lore, dialogue, quests, art): shared/definitions/heroCodex.ts
+ * DB seed: server/seeds/loreSeed.ts (imports heroCodex)
+ * Static UI: client/public/hero-codex/ (heroes-canonical.json)
+ *
+ * Do NOT invent alternate cast names in UI (no Sir Aldric / Grommash substitutes).
  * ─────────────────────────────────────────────────────────────
  */
 
@@ -595,31 +593,23 @@ export const WATERFALL_CONFIG = {
 } as const;
 
 // ═══════════════════════════════════════════════════════════════
-// OCEAN SYSTEM
+// OCEAN SYSTEM — SSOT: gameClock.ts (6h day · 8-day week · 2 tides/day)
 // ═══════════════════════════════════════════════════════════════
 
-export const OCEAN_CONFIG = {
-  baseHeight: 0,
-  tideAmplitude: 2.0,
-  tideCycleMs: 10 * 60 * 1000, // 10 min full cycle
-  /** Ocean covers all 9 sectors as one continuous plane */
-  worldOcean: true,
-  /** Ocean of Echoes — living sea that records memories */
-  echoes: {
-    enabled: true,
-    ancestralVoiceChance: 0.05, // 5% chance per minute at sea
-    description: "Sailors hear ancestral voices that may guide or misguide explorers.",
-  },
-} as const;
-
-/** Calculate tide height from server time */
-export function getTideHeight(serverTime: number): number {
-  const phase = (serverTime % OCEAN_CONFIG.tideCycleMs) / OCEAN_CONFIG.tideCycleMs;
-  return OCEAN_CONFIG.baseHeight + Math.sin(phase * Math.PI * 2) * OCEAN_CONFIG.tideAmplitude;
-}
+export {
+  OCEAN_CONFIG,
+  TIDE_CONFIG,
+  GAME_CLOCK,
+  getTideHeight,
+  getTidePhase,
+  getGameTimeOfDay,
+  getGameClockSnapshot,
+  DAY_NIGHT_DEFAULTS,
+} from './gameClock';
 
 // ═══════════════════════════════════════════════════════════════
 // HERO ROSTER (the 24 canonical heroes)
+// Full profiles / dialogues / quests: heroCodex.ts → HERO_CODEX_WITH_LEGENDS
 // ═══════════════════════════════════════════════════════════════
 
 export interface HeroDefinition {

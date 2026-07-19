@@ -66,10 +66,26 @@ export const D1_DATABASES = {
   grudgeGameState: { name: "grudge-game-state", id: "9b66919f-c94a-4ddd-8733-07896261df6a" },
 } as const;
 
+/**
+ * @deprecated Optional/legacy project only. Not Warlords player SSOT.
+ * Production stack: Vercel + Railway Postgres + Colyseus + Cloudflare R2.
+ * Leave SUPABASE_URL unset on grudge-api.
+ */
 export const SUPABASE_PROJECT = {
   name: "GrudgeWarlords",
   ref: "rdbkhvrpavhptxrmmwrc",
   url: "https://rdbkhvrpavhptxrmmwrc.supabase.co",
+  status: "deprecated-optional" as const,
+} as const;
+
+/** Canonical Warlords API + Colyseus host */
+export const WARLORDS_RAILWAY = {
+  projectName: "grudge-warlords-rpg",
+  projectId: "92f039ec-2cce-4e1e-b06a-dd0ac6256d70",
+  service: "grudge-api",
+  serviceId: "7a31d77f-e10e-403b-94ff-894a0feb5608",
+  publicUrl: "https://grudge-api-production-0d46.up.railway.app",
+  colyseusWss: "wss://grudge-api-production-0d46.up.railway.app",
 } as const;
 
 export const NEON_HOST =
@@ -121,50 +137,59 @@ export const SYSTEM_DB_MAPS: SystemDbMap[] = [
   },
   {
     id: "grudge-builder",
-    label: "GrudgeBuilder backend",
-    liveUrl: "https://grudge-api-production-0d46.up.railway.app",
+    label: "GrudgeBuilder / Warlords backend (grudge-api)",
+    liveUrl: WARLORDS_RAILWAY.publicUrl,
     connections: [
       {
         envVar: "DATABASE_URL",
-        engine: "neon",
-        host: NEON_HOST,
-        database: "neondb",
-        railwayProjectId: RAILWAY_PROJECTS.grudgeStudioApi.id,
-        railwayService: "grudge-api",
-        role: "Postgres SSOT - Drizzle schema (characters, islands, wallet, inventory)",
-        notes: "Authoritative game state; also GRUDGE_ACCOUNT_DB / _UNPOOLED for migrations",
+        engine: "postgres",
+        railwayProjectId: WARLORDS_RAILWAY.projectId,
+        railwayService: WARLORDS_RAILWAY.service,
+        url: WARLORDS_RAILWAY.publicUrl,
+        role: "Postgres SSOT — Drizzle (characters, islands, wallet, inventory, JWT)",
+        notes:
+          "Authoritative player state on Railway. Stack: Vercel + Railway + Colyseus + Cloudflare. Not Supabase.",
+      },
+      {
+        engine: "postgres",
+        railwayProjectId: WARLORDS_RAILWAY.projectId,
+        railwayService: WARLORDS_RAILWAY.service,
+        url: WARLORDS_RAILWAY.colyseusWss,
+        role: "Colyseus realtime (same process as grudge-api)",
+        notes: "Rooms: tutorial, shipwreck, lobby, dungeon, sector, world, town, home_island",
       },
       {
         engine: "supabase",
         url: SUPABASE_PROJECT.url,
         projectId: SUPABASE_PROJECT.ref,
         envVar: "SUPABASE_URL",
-        role: "Supabase auth spine (Phase 1)",
-        notes: "Publishable + secret keys in .env - never expose secret to browser",
+        role: "DEPRECATED optional probe only — not player SSOT",
+        notes:
+          "Leave unset in production. /api/supabase/health reports configured:false (OK).",
       },
       {
         envVar: "MYSQL_DATABASE",
         engine: "mysql",
         host: "74.208.155.229",
         database: "grudge_game",
-        role: "Legacy VPS MySQL game tables",
-        notes: "Parallel to Postgres - audit which tables live where",
+        role: "LEGACY VPS MySQL — not Warlords player path",
+        notes: "Do not write new hero/island code against MySQL",
       },
       {
         engine: "d1",
         d1Name: D1_DATABASES.grudgeObjectstore.name,
         d1Id: D1_DATABASES.grudgeObjectstore.id,
-        role: "ObjectStore search index (Cloudflare D1)",
+        role: "ObjectStore search index (Cloudflare D1) — not heroes",
       },
       {
         engine: "r2",
         url: "https://assets.grudge-studio.com",
-        role: "Binary assets bucket grudge-assets",
+        role: "Cloudflare R2 binary CDN (grudge-assets)",
       },
       {
         engine: "json-api",
         url: "https://objectstore.grudge-studio.com/api/v1",
-        role: "JSON game defs (races, weapons, recipes)",
+        role: "Catalog JSON defs (races, weapons, recipes)",
       },
       {
         engine: "puter",

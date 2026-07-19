@@ -97,6 +97,10 @@ export default function HomePage() {
     return () => clearInterval(timer);
   }, []);
 
+  // Prefer solid CDN hero art fallback when class stage fails
+  const heroStageBg =
+    CLASS_STAGE_BACKGROUNDS[activeClass] || BACKGROUNDS.darkFantasy1 || BACKGROUNDS.darkFantasy3;
+
   const handleLogout = () => {
     authLogout();
     setLocation("/");
@@ -125,12 +129,17 @@ export default function HomePage() {
   return (
     <div className="min-h-screen text-[#eef2ff]" style={{ background: "#05060c", fontFamily: FONTS.ui }}>
 
-      {/* ── BG — cycling class stage backgrounds ── */}
+      {/* ── BG — CDN fallback + cycling class stage art ── */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden">
+        <div style={{
+          position: 'absolute', inset: 0, backgroundSize: 'cover', backgroundPosition: 'center',
+          backgroundImage: `url('${BACKGROUNDS.darkFantasy1 || BACKGROUNDS.darkFantasy3}')`,
+          filter: 'saturate(1.05) brightness(.28)',
+        }} />
         {CLASS_CYCLE.map(cls => (
           <div key={cls} style={{
             position: 'absolute', inset: '-4%', backgroundSize: 'cover', backgroundPosition: 'center',
-            backgroundImage: `url('${CLASS_STAGE_BACKGROUNDS[cls]}')`,
+            backgroundImage: `url('${CLASS_STAGE_BACKGROUNDS[cls] || heroStageBg}')`,
             filter: 'saturate(1.1) brightness(.35)', transform: cls === activeClass ? 'scale(1.02)' : 'scale(1.06)',
             transition: 'opacity 1.4s ease, transform 8s ease', opacity: cls === activeClass ? 1 : 0,
           }} />  
@@ -344,12 +353,21 @@ export default function HomePage() {
                 key={step.id}
                 type="button"
                 onClick={() => navigateToGame(step.url, setLocation)}
-                className="text-left rounded-xl border border-white/[.06] hover:border-cyan-500/35 p-3 transition-all hover:-translate-y-0.5 group"
+                className="relative text-left rounded-xl border border-white/[.06] hover:border-cyan-500/35 p-3 transition-all hover:-translate-y-0.5 group overflow-hidden min-h-[88px]"
                 style={{ background: "linear-gradient(180deg,rgba(14,18,32,.75),rgba(8,10,20,.85))" }}
               >
-                <div className="text-[9px] text-cyan-400/70 font-mono mb-1">{String(i + 1).padStart(2, "0")}</div>
-                <div style={{ fontFamily: FONTS.title }} className="text-[10px] font-bold text-white group-hover:text-cyan-200">{step.title}</div>
-                <div className="text-[8px] text-white/35 mt-0.5 line-clamp-2">{step.subtitle}</div>
+                {GAME_CARD_BACKGROUNDS[step.id] && (
+                  <div
+                    className="absolute inset-0 opacity-40 group-hover:opacity-55 transition-opacity bg-cover bg-center"
+                    style={{ backgroundImage: `url('${GAME_CARD_BACKGROUNDS[step.id]}')`, filter: 'brightness(0.55)' }}
+                  />
+                )}
+                <div className="absolute inset-0 bg-gradient-to-t from-[#05060c] via-[#05060c]/70 to-transparent" />
+                <div className="relative z-10">
+                  <div className="text-[9px] text-cyan-400/70 font-mono mb-1">{String(i + 1).padStart(2, "0")}</div>
+                  <div style={{ fontFamily: FONTS.title }} className="text-[10px] font-bold text-white group-hover:text-cyan-200">{step.title}</div>
+                  <div className="text-[8px] text-white/45 mt-0.5 line-clamp-2">{step.subtitle}</div>
+                </div>
               </button>
             ))}
           </div>

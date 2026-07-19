@@ -1,11 +1,18 @@
 /**
- * Audio Manager — BGM and SFX using ObjectStore audio assets
+ * Audio Manager — BGM and SFX via CDN (assets.grudge-studio.com/audio/…)
  *
- * All audio files served from ObjectStore /audio/ directory.
- * Uses Howler.js for cross-browser audio playback.
+ * Catalog SSOT: shared/definitions/gameAudioCatalog.ts
+ * Upload: node scripts/upload-game-audio.mjs
  */
 
 import { assetUrl } from "@/lib/assetConfig";
+import {
+  GAME_AUDIO_BY_ID,
+  ABILITY_AUDIO,
+  STATUS_AUDIO,
+  resolveAudioEventId,
+  audioCdnUrl,
+} from "@shared/definitions/gameAudioCatalog";
 
 // ── Track definitions ────────────────────────────────────────────────────────
 
@@ -27,6 +34,14 @@ export const SFX = {
   hit2: assetUrl("/audio/swish_3.wav"),
   hit3: assetUrl("/audio/swish_4.wav"),
   bow: assetUrl("/audio/bow.wav"),
+  sword: assetUrl("/audio/fx/sword_clash.ogg"),
+  magic: assetUrl("/audio/fx/magic_cast.ogg"),
+  fire: assetUrl("/audio/fx/fire_impact.ogg"),
+  heal: assetUrl("/audio/fx/heal.ogg"),
+  death: assetUrl("/audio/fx/death.ogg"),
+  thunder: assetUrl("/audio/fx/thunder.ogg"),
+  click: assetUrl("/audio/fx/click.ogg"),
+  levelup: assetUrl("/audio/fx/levelup.ogg"),
 } as const;
 
 export type BGMTrack = keyof typeof BGM_TRACKS;
@@ -98,6 +113,44 @@ export function playSFX(name: SFXName): void {
 export function playRandomHit(): void {
   const hits: SFXName[] = ["hit1", "hit2", "hit3"];
   playSFX(hits[Math.floor(Math.random() * hits.length)]);
+}
+
+/**
+ * Play a catalogued game event (skills, status, combat, UI).
+ * Uses CDN keys from gameAudioCatalog; supports variants.
+ */
+export function playGameSfx(
+  eventId: string,
+  options?: { volume?: number; preferVariant?: boolean },
+): void {
+  if (sfxMuted) return;
+  const ev = GAME_AUDIO_BY_ID[eventId];
+  if (!ev) {
+    console.warn('[audio] unknown event', eventId);
+    return;
+  }
+  let key = ev.key;
+  if (options?.preferVariant !== false && ev.variants?.length) {
+    const pool = [ev.key, ...ev.variants];
+    key = pool[Math.floor(Math.random() * pool.length)];
+  }
+  const url = key.startsWith('http') ? key : audioCdnUrl(key);
+  const audio = new Audio(url);
+  audio.volume = Math.min(1, sfxVolume * (options?.volume ?? ev.volume ?? 1));
+  audio.play().catch(() => {});
+}
+
+/** Play SFX mapped to ability id (warrior_charge, mage_fireball, …) */
+export function playAbilitySfx(abilityId: string): void {
+  const eventId = ABILITY_AUDIO[abilityId] ?? resolveAudioEventId({ abilityId });
+  if (eventId) playGameSfx(eventId);
+  else playRandomHit();
+}
+
+/** Play SFX when a status is applied */
+export function playStatusSfx(statusId: string): void {
+  const eventId = STATUS_AUDIO[statusId] ?? resolveAudioEventId({ statusId });
+  if (eventId) playGameSfx(eventId);
 }
 
 export function setSFXVolume(vol: number): void {

@@ -74,6 +74,9 @@ export const BUILD_HAMMER: BuildHammerDef = {
 export const BUILD_TAB_ORDER = [
   'structure',
   'camp',
+  'units',
+  'siege',
+  'monsters',
   'crafting',
   'storage',
   'furniture',
@@ -90,6 +93,9 @@ export type BuildTabId = (typeof BUILD_TAB_ORDER)[number];
 export const BUILD_TAB_LABELS: Record<BuildTabId, string> = {
   structure: 'Structure',
   camp: 'Camps',
+  units: 'Units',
+  siege: 'Siege',
+  monsters: 'Monsters',
   crafting: 'Crafting',
   storage: 'Storage',
   furniture: 'Furniture',

@@ -48,6 +48,10 @@ export interface RemotePlayerData {
   skinColor: string;
   armorColor: string;
   equippedWeaponType: string;
+  /** Fine-grained anim from NetworkManager / schema */
+  animState?: string;
+  animClip?: string;
+  animSeq?: number;
 }
 
 interface RemotePlayerInstance {
@@ -187,10 +191,18 @@ export class RemotePlayerManager {
     if (data.z !== undefined) instance.targetPos.z = data.z;
     if (data.facing !== undefined) instance.targetFacing = data.facing;
 
-    // Update state → animation
-    if (data.state !== undefined && data.state !== instance.currentState) {
-      instance.currentState = data.state;
-      this.updateAnimation(instance, data.state);
+    // Prefer animState (fine) over coarse state for remote clips
+    const animKey = data.animState || data.state;
+    if (animKey !== undefined && animKey !== instance.currentState) {
+      instance.currentState = animKey;
+      this.updateAnimation(instance, animKey);
+    }
+    // Oneshot re-trigger (attack) when seq bumps
+    if (data.animSeq !== undefined && data.animSeq !== instance.data.animSeq) {
+      instance.data.animSeq = data.animSeq;
+      if ((data.animState || data.state || '').includes('attack')) {
+        this.updateAnimation(instance, 'attack');
+      }
     }
 
     // Update health bar
@@ -323,19 +335,33 @@ export class RemotePlayerManager {
 
   private updateAnimation(instance: RemotePlayerInstance, state: string): void {
     if (!instance.animations) return;
+    const s = (state || 'idle').toLowerCase();
 
-    switch (state) {
+    switch (s) {
       case 'moving':
+      case 'walk':
         instance.animations.play('walk');
         break;
+      case 'run':
+        instance.animations.play(
+          instance.animations.hasClip('run') ? 'run' : 'walk',
+        );
+        break;
       case 'attacking':
-        instance.animations.play('attack');
+      case 'attack':
+        instance.animations.play('attack', { loop: false });
         break;
       case 'dead':
-        instance.animations.play('death');
+      case 'death':
+        instance.animations.play(
+          instance.animations.hasClip('death') ? 'death' : 'idle',
+          { loop: false },
+        );
         break;
       case 'harvesting':
-        instance.animations.play('attack'); // reuse attack for harvesting
+        instance.animations.play(
+          instance.animations.hasClip('harvest') ? 'harvest' : 'attack',
+        );
         break;
       case 'idle':
       default:

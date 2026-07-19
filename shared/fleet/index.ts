@@ -170,3 +170,17 @@ export {
   type ToonAnimPack,
   type ToonSoldierDef,
 } from "./toonSoldiers";
+
+/** uMMORPG vehicles — mounts + catapult / bolt-thrower */
+export {
+  UMMORPG_VEHICLES_CATALOG_URL,
+  RACE_VEHICLES,
+  resolveVehicleMesh,
+  listSiegeDeployables,
+  listMountDeployables,
+  type VehicleRaceId,
+  type SiegeKind,
+  type RaceVehicles,
+  type MountDef,
+  type SiegeDef,
+} from "./vehicles";

@@ -1,0 +1,802 @@
+{
+  "version": "1.0.0",
+  "pipelineVersion": "1.0.0",
+  "updated": "2026-07-19",
+  "principles": [
+    "Describe lore and locals before rewrite",
+    "Publish to lore/info before build",
+    "Build only what fits the sector",
+    "Prove with flyby + snapshots on live zone",
+    "One sector at a time"
+  ],
+  "order": [
+    "ethereal_falls",
+    "frostbite_expanse",
+    "thornwood_wilds",
+    "stormbreak_reef",
+    "convergence_nexus",
+    "ashen_wastes",
+    "abyssal_trench",
+    "haven_shore",
+    "ember_depths"
+  ],
+  "statuses": {
+    "ethereal_falls": "proof",
+    "frostbite_expanse": "queued",
+    "thornwood_wilds": "queued",
+    "stormbreak_reef": "queued",
+    "convergence_nexus": "queued",
+    "ashen_wastes": "queued",
+    "abyssal_trench": "queued",
+    "haven_shore": "queued",
+    "ember_depths": "queued"
+  },
+  "activeSector": "ethereal_falls",
+  "dossiers": [
+    {
+      "sectorId": "ethereal_falls",
+      "legacyId": "NW",
+      "name": "Ethereal Falls",
+      "subtitle": "Where the First God wept",
+      "mapCorner": "top_left",
+      "stage": "proof",
+      "tagline": "Rivers of liquid light climb into the sky; floating crystal isles hang over a spectral abyss.",
+      "lore": "When the First God wept during the Sundering, their tears became rivers of liquid light that flow upward, defying gravity. The falls shimmer between purple and cyan, illuminating islands of crystallized magic suspended in mid-air. The mist below is alive — phantoms of drowned sailors reach up from the luminous depths, and the water itself dissolves mortal flesh. Fabled seers claim the Event Falls are a scar left when Madra’s domain brushed the Worldboard; only the worthy harvest Ethereal Crystals where light meets shadow. Pirate scavengers and neutral crystal-cutters share the outer docks with Fabled pilgrim camps — uneasy truce under violet aurora.",
+      "tone": "Impossible beauty + lethal magic. Cool purple/cyan palette, low sun, high fog drama. Verticality (floating islands), soft danger (mist drain), rare harvest prestige. Not a starter zone — mid-high risk pilgrimage.",
+      "locals": [
+        {
+          "id": "fabled_seer_camp",
+          "name": "Fabled Seer Circles",
+          "role": "faction",
+          "faction": "fabled",
+          "description": "Pilgrim camps under crystal canopies. Sell spectral essence, offer teleport whispers and shrine blessings.",
+          "services": [
+            "vendor",
+            "quest_giver",
+            "shrine"
+          ]
+        },
+        {
+          "id": "crystal_cutters",
+          "name": "Crystal Cutters Guild",
+          "role": "merchant",
+          "faction": "neutral",
+          "description": "Neutral harvesters who teach ethereal crystal safety (wrong cut = overload explosion).",
+          "services": [
+            "vendor",
+            "profession_trainer"
+          ]
+        },
+        {
+          "id": "void_pirates",
+          "name": "Voidwake Corsairs",
+          "role": "hostile",
+          "faction": "pirate",
+          "description": "Ship patrols hunting pilgrim freighters. Enemy boats in the luminous sea lanes.",
+          "services": [
+            "pve_combat",
+            "salvage_drop"
+          ]
+        },
+        {
+          "id": "phantom_choir",
+          "name": "Phantom Choir",
+          "role": "spirit",
+          "description": "Wisp processions in the mist. Not fully hostile — aggro if you mine crystals greedily."
+        },
+        {
+          "id": "falls_traveler",
+          "name": "Falls Dock Traveler",
+          "role": "traveler",
+          "faction": "neutral",
+          "description": "Same Dock Traveler lineage as tutorial — here sells cascade maps and warns of gravity inversion pockets.",
+          "services": [
+            "vendor",
+            "map_hints",
+            "teleport_rumors"
+          ]
+        }
+      ],
+      "gameplayPillars": [
+        "Vertical crystal isles + Event Falls landmark as hero shot",
+        "Rare ethereal harvest with risk (crystal_overload)",
+        "Fabled / neutral camps + pirate ship patrols",
+        "Phantom wildlife and mid-band undead/magic monsters",
+        "Spectral mist and gravity FX as zone identity"
+      ],
+      "hazards": [
+        "spectral_mist_drain",
+        "gravity_inversion",
+        "phantom_grasp",
+        "crystal_overload",
+        "luminous_whirlpool",
+        "reality_thin_zones"
+      ],
+      "resources": [
+        "ethereal_crystals",
+        "spectral_essence",
+        "luminous_pearl",
+        "voidtouched_coral",
+        "gravity_stone",
+        "phantom_silk",
+        "tear_of_the_first_god"
+      ],
+      "buildWants": [
+        {
+          "id": "event_falls_hero",
+          "title": "Event Falls + Starting Falls landmarks",
+          "whyItFits": "Authoring GLBs define the sector’s vertical cascade identity.",
+          "dependsOn": [
+            "event-falls.glb",
+            "starting-falls.glb",
+            "SectorEventLandmarks"
+          ],
+          "proofIds": [
+            "landmarks",
+            "islands"
+          ]
+        },
+        {
+          "id": "ethereal_ecosystem",
+          "title": "Ethereal biome ecosystem (ground_8, stylized/pine, 5 animals)",
+          "whyItFits": "Matches purple crystal ground and soft canopy tints.",
+          "dependsOn": [
+            "biomeEcosystemCatalog.ethereal",
+            "sectorProductionContent"
+          ],
+          "proofIds": [
+            "animals",
+            "harvestables"
+          ]
+        },
+        {
+          "id": "dense_isles_ships",
+          "title": "Dense archipelago + enemy boat patrols",
+          "whyItFits": "Pilgrims need docks; corsairs need sea lanes.",
+          "dependsOn": [
+            "zoneServerNodes",
+            "ZoneSceneBuilder ship markers"
+          ],
+          "proofIds": [
+            "islands",
+            "enemy_boats",
+            "docks"
+          ]
+        },
+        {
+          "id": "fabled_npc_camps",
+          "title": "Fabled / neutral / pirate NPC camps",
+          "whyItFits": "Locals from dossier — not generic crusade spam.",
+          "dependsOn": [
+            "npcCamps",
+            "spawnZoneCamps factions"
+          ],
+          "proofIds": [
+            "npcs",
+            "travelers"
+          ]
+        },
+        {
+          "id": "mid_magic_monsters",
+          "title": "Mid-band magic monsters + lich boss gate",
+          "whyItFits": "Difficulty 6–9 pilgrimage, spectral combat fantasy.",
+          "dependsOn": [
+            "monsters.ts",
+            "sectorProductionContent.monsters"
+          ],
+          "proofIds": [
+            "monsters"
+          ]
+        }
+      ],
+      "playUrl": "https://client.grudge-studio.com/island-3d?mode=zone&sector=ethereal_falls&worldSeed=grudge-world-1",
+      "flybyUrl": "https://client.grudge-studio.com/island-3d?mode=zone&sector=ethereal_falls&worldSeed=grudge-world-1&flyby=1&proof=1",
+      "snapshotDir": "/production/snapshots/ethereal_falls/",
+      "lorePath": "/lore/sectors/ethereal_falls",
+      "updated": "2026-07-18",
+      "notes": [
+        "Pilot sector for rewrite pipeline — complete proof before Frostbite.",
+        "Legacy SECTOR_LORE NW (\"Dried Basin\") is superseded for production by Ethereal Falls.",
+        "Canonical play: island-3d?mode=zone&sector=ethereal_falls"
+      ],
+      "production": {
+        "ecosystemId": "ethereal",
+        "groundPbr": "ground_8",
+        "heightmapModifier": "ethereal_falls",
+        "animals": [
+          "deer",
+          "rabbit",
+          "wolf",
+          "buffalo",
+          "boar"
+        ],
+        "monsters": {
+          "common": [
+            "monster_orc_warrior",
+            "monster_imp",
+            "monster_giant_spider",
+            "monster_skeleton_archer"
+          ],
+          "elites": [
+            "monster_shadow_stalker",
+            "monster_goblin_shaman",
+            "monster_frost_elemental"
+          ],
+          "bosses": [
+            "monster_boss_lich"
+          ],
+          "recommendedLevel": [
+            6,
+            9
+          ],
+          "monsterSeedKey": "monsters"
+        },
+        "landmarks": [
+          "event_falls",
+          "starting_falls"
+        ]
+      }
+    },
+    {
+      "sectorId": "frostbite_expanse",
+      "legacyId": "N",
+      "name": "Frostbite Expanse",
+      "subtitle": "Fabled forge under ice",
+      "mapCorner": "top_center",
+      "stage": "queued",
+      "tagline": "Snow pines, fabledzone core, ice kit props — next after Ethereal proof.",
+      "lore": "When the Sundering cracked the northern shelf, the sea froze in an instant, trapping ancient ships and their crews in eternal ice. Frost spirits patrol the glaciers, and the wind itself carries memories of the dead.",
+      "tone": "Pending describe stage.",
+      "locals": [],
+      "gameplayPillars": [],
+      "hazards": [
+        "blizzard_damage",
+        "ice_patches",
+        "frostbite_dot",
+        "avalanche_zones"
+      ],
+      "resources": [
+        "frost_herbs",
+        "ice",
+        "crystals",
+        "whale_bone",
+        "arctic_fish"
+      ],
+      "buildWants": [],
+      "playUrl": "https://client.grudge-studio.com/island-3d?mode=zone&sector=frostbite_expanse&worldSeed=grudge-world-1",
+      "flybyUrl": "https://client.grudge-studio.com/island-3d?mode=zone&sector=frostbite_expanse&worldSeed=grudge-world-1&flyby=1&proof=1",
+      "snapshotDir": "/production/snapshots/frostbite_expanse/",
+      "lorePath": "/lore/sectors/frostbite_expanse",
+      "updated": "2026-07-18",
+      "notes": [
+        "Queued — complete Ethereal Falls proof before opening this dossier."
+      ],
+      "production": {
+        "ecosystemId": "frozen",
+        "groundPbr": "ground_7",
+        "heightmapModifier": "frozen_glacier",
+        "animals": [
+          "wolf",
+          "bear",
+          "deer",
+          "rabbit",
+          "buffalo"
+        ],
+        "monsters": {
+          "common": [
+            "monster_orc_warrior",
+            "monster_imp",
+            "monster_giant_spider",
+            "monster_skeleton_archer"
+          ],
+          "elites": [
+            "monster_shadow_stalker",
+            "monster_goblin_shaman",
+            "monster_frost_elemental"
+          ],
+          "bosses": [
+            "monster_frost_elemental",
+            "monster_boss_lich"
+          ],
+          "recommendedLevel": [
+            4,
+            7
+          ],
+          "monsterSeedKey": "monsters"
+        },
+        "landmarks": [
+          "fabledzone_core",
+          "ice_biome_kit"
+        ]
+      }
+    },
+    {
+      "sectorId": "thornwood_wilds",
+      "legacyId": "NE",
+      "name": "Thornwood Wilds",
+      "subtitle": "Worge canopy & mountain city",
+      "mapCorner": "top_right",
+      "stage": "queued",
+      "tagline": "Dense forest, hidden mountain city warden — after Frostbite.",
+      "lore": "The Thornwood predates the factions. Its roots drink from the Worldboard itself, and its canopy hides creatures that have never seen sky. Worge clans claim dominion here, but the forest answers to no one.",
+      "tone": "Pending describe stage.",
+      "locals": [],
+      "gameplayPillars": [],
+      "hazards": [
+        "poison_thorns",
+        "beast_ambush",
+        "quicksand",
+        "living_vines"
+      ],
+      "resources": [
+        "hardwood",
+        "herbs",
+        "berries",
+        "rare_mushrooms",
+        "beast_hides"
+      ],
+      "buildWants": [],
+      "playUrl": "https://client.grudge-studio.com/island-3d?mode=zone&sector=thornwood_wilds&worldSeed=grudge-world-1",
+      "flybyUrl": "https://client.grudge-studio.com/island-3d?mode=zone&sector=thornwood_wilds&worldSeed=grudge-world-1&flyby=1&proof=1",
+      "snapshotDir": "/production/snapshots/thornwood_wilds/",
+      "lorePath": "/lore/sectors/thornwood_wilds",
+      "updated": "2026-07-18",
+      "notes": [
+        "Queued — complete Ethereal Falls proof before opening this dossier."
+      ],
+      "production": {
+        "ecosystemId": "forest",
+        "groundPbr": "ground_6",
+        "heightmapModifier": "dense_forest",
+        "animals": [
+          "deer",
+          "boar",
+          "wolf",
+          "bear",
+          "rabbit"
+        ],
+        "monsters": {
+          "common": [
+            "monster_orc_warrior",
+            "monster_imp",
+            "monster_giant_spider",
+            "monster_skeleton_archer"
+          ],
+          "elites": [
+            "monster_shadow_stalker",
+            "monster_goblin_shaman",
+            "monster_frost_elemental"
+          ],
+          "bosses": [
+            "monster_giant_spider"
+          ],
+          "recommendedLevel": [
+            3,
+            7
+          ],
+          "monsterSeedKey": "monsters"
+        },
+        "landmarks": [
+          "hidden_mountain_city"
+        ]
+      }
+    },
+    {
+      "sectorId": "stormbreak_reef",
+      "legacyId": "W",
+      "name": "Stormbreak Reef",
+      "subtitle": "Perpetual storms",
+      "mapCorner": "mid_left",
+      "stage": "queued",
+      "tagline": "Reefs, lightning, heavy sailing combat.",
+      "lore": "The gods clashed above these waters during the First Grudge, and the storm never stopped. Ships that wander in are torn apart by lightning-charged waves. Only the desperate sail here — and the brave.",
+      "tone": "Pending describe stage.",
+      "locals": [],
+      "gameplayPillars": [],
+      "hazards": [
+        "lightning_strikes",
+        "whirlpools",
+        "reef_damage",
+        "rogue_waves"
+      ],
+      "resources": [
+        "shells",
+        "coral",
+        "rare_ore",
+        "storm_crystals"
+      ],
+      "buildWants": [],
+      "playUrl": "https://client.grudge-studio.com/island-3d?mode=zone&sector=stormbreak_reef&worldSeed=grudge-world-1",
+      "flybyUrl": "https://client.grudge-studio.com/island-3d?mode=zone&sector=stormbreak_reef&worldSeed=grudge-world-1&flyby=1&proof=1",
+      "snapshotDir": "/production/snapshots/stormbreak_reef/",
+      "lorePath": "/lore/sectors/stormbreak_reef",
+      "updated": "2026-07-18",
+      "notes": [
+        "Queued — complete Ethereal Falls proof before opening this dossier."
+      ],
+      "production": {
+        "ecosystemId": "storm",
+        "groundPbr": "ground_4",
+        "heightmapModifier": "storm_reef",
+        "animals": [
+          "boar",
+          "wolf",
+          "deer",
+          "crab",
+          "rabbit"
+        ],
+        "monsters": {
+          "common": [
+            "monster_orc_warrior",
+            "monster_imp",
+            "monster_giant_spider",
+            "monster_skeleton_archer"
+          ],
+          "elites": [
+            "monster_shadow_stalker",
+            "monster_goblin_shaman",
+            "monster_frost_elemental"
+          ],
+          "bosses": [
+            "monster_boss_lich"
+          ],
+          "recommendedLevel": [
+            3,
+            6
+          ],
+          "monsterSeedKey": "monsters"
+        },
+        "landmarks": []
+      }
+    },
+    {
+      "sectorId": "convergence_nexus",
+      "legacyId": "CENTER",
+      "name": "Convergence Nexus",
+      "subtitle": "Contested heart",
+      "mapCorner": "center",
+      "stage": "queued",
+      "tagline": "Faction clash, embassies, world events.",
+      "lore": "Every ley line, every current, every wind pattern spirals toward this point. The Gould Flame itself pulses beneath these waters. Control the Nexus, and you control the world.",
+      "tone": "Pending describe stage.",
+      "locals": [],
+      "gameplayPillars": [],
+      "hazards": [
+        "faction_pvp",
+        "ley_line_surges",
+        "reality_tears",
+        "boss_spawns"
+      ],
+      "resources": [
+        "rare_ore",
+        "fire_crystals",
+        "void_essence",
+        "gould_shards"
+      ],
+      "buildWants": [],
+      "playUrl": "https://client.grudge-studio.com/island-3d?mode=zone&sector=convergence_nexus&worldSeed=grudge-world-1",
+      "flybyUrl": "https://client.grudge-studio.com/island-3d?mode=zone&sector=convergence_nexus&worldSeed=grudge-world-1&flyby=1&proof=1",
+      "snapshotDir": "/production/snapshots/convergence_nexus/",
+      "lorePath": "/lore/sectors/convergence_nexus",
+      "updated": "2026-07-18",
+      "notes": [
+        "Queued — complete Ethereal Falls proof before opening this dossier."
+      ],
+      "production": {
+        "ecosystemId": "nexus",
+        "groundPbr": "ground_10",
+        "heightmapModifier": "nexus_leylines",
+        "animals": [
+          "deer",
+          "boar",
+          "wolf",
+          "buffalo",
+          "bear"
+        ],
+        "monsters": {
+          "common": [
+            "monster_shadow_stalker",
+            "monster_orc_warrior",
+            "monster_imp",
+            "monster_vampire_girl"
+          ],
+          "elites": [
+            "monster_shadow_stalker",
+            "monster_converted_vampire"
+          ],
+          "bosses": [
+            "monster_boss_demon_lord"
+          ],
+          "recommendedLevel": [
+            7,
+            10
+          ],
+          "monsterSeedKey": "monsters"
+        },
+        "landmarks": []
+      }
+    },
+    {
+      "sectorId": "ashen_wastes",
+      "legacyId": "E",
+      "name": "Ashen Wastes",
+      "subtitle": "Glass desert",
+      "mapCorner": "mid_right",
+      "stage": "queued",
+      "tagline": "Demon capital, heat, sandstorms.",
+      "lore": "Before the Sundering, this was the seat of a great civilization. Now their towers rise from dunes of ash like broken teeth. Sandworms patrol the wastes, and cursed relics whisper from beneath the glass.",
+      "tone": "Pending describe stage.",
+      "locals": [],
+      "gameplayPillars": [],
+      "hazards": [
+        "heat_exhaustion",
+        "sandstorm",
+        "glass_shard_terrain",
+        "cursed_relics"
+      ],
+      "resources": [
+        "gold_ore",
+        "ancient_relics",
+        "scorpion_venom",
+        "glass_shards",
+        "cactus"
+      ],
+      "buildWants": [],
+      "playUrl": "https://client.grudge-studio.com/island-3d?mode=zone&sector=ashen_wastes&worldSeed=grudge-world-1",
+      "flybyUrl": "https://client.grudge-studio.com/island-3d?mode=zone&sector=ashen_wastes&worldSeed=grudge-world-1&flyby=1&proof=1",
+      "snapshotDir": "/production/snapshots/ashen_wastes/",
+      "lorePath": "/lore/sectors/ashen_wastes",
+      "updated": "2026-07-18",
+      "notes": [
+        "Queued — complete Ethereal Falls proof before opening this dossier."
+      ],
+      "production": {
+        "ecosystemId": "desert",
+        "groundPbr": "ground_3",
+        "heightmapModifier": "desert_dunes",
+        "animals": [
+          "rabbit",
+          "boar",
+          "buffalo",
+          "wolf",
+          "deer"
+        ],
+        "monsters": {
+          "common": [
+            "monster_shadow_stalker",
+            "monster_orc_warrior",
+            "monster_imp",
+            "monster_vampire_girl"
+          ],
+          "elites": [
+            "monster_shadow_stalker",
+            "monster_converted_vampire"
+          ],
+          "bosses": [
+            "monster_boss_demon_lord"
+          ],
+          "recommendedLevel": [
+            5,
+            8
+          ],
+          "monsterSeedKey": "monsters"
+        },
+        "landmarks": []
+      }
+    },
+    {
+      "sectorId": "abyssal_trench",
+      "legacyId": "SW",
+      "name": "Abyssal Trench",
+      "subtitle": "Deep trench",
+      "mapCorner": "bottom_left",
+      "stage": "queued",
+      "tagline": "Leviathans, undead capital, crushing pressure.",
+      "lore": "The trench plunges so deep that light becomes a memory. Bioluminescent horrors patrol its depths, and the pressure alone can crush a hull. Ancient ruins of a drowned civilization line the trench walls.",
+      "tone": "Pending describe stage.",
+      "locals": [],
+      "gameplayPillars": [],
+      "hazards": [
+        "crushing_pressure",
+        "leviathan_attacks",
+        "darkness_debuff",
+        "siren_lure"
+      ],
+      "resources": [
+        "abyssal_ore",
+        "leviathan_scale",
+        "deep_coral",
+        "void_fish",
+        "ocean_heart"
+      ],
+      "buildWants": [],
+      "playUrl": "https://client.grudge-studio.com/island-3d?mode=zone&sector=abyssal_trench&worldSeed=grudge-world-1",
+      "flybyUrl": "https://client.grudge-studio.com/island-3d?mode=zone&sector=abyssal_trench&worldSeed=grudge-world-1&flyby=1&proof=1",
+      "snapshotDir": "/production/snapshots/abyssal_trench/",
+      "lorePath": "/lore/sectors/abyssal_trench",
+      "updated": "2026-07-18",
+      "notes": [
+        "Queued — complete Ethereal Falls proof before opening this dossier."
+      ],
+      "production": {
+        "ecosystemId": "abyssal",
+        "groundPbr": "ground_9",
+        "heightmapModifier": "abyssal_trench",
+        "animals": [
+          "wolf",
+          "bear",
+          "boar",
+          "crab",
+          "deer"
+        ],
+        "monsters": {
+          "common": [
+            "monster_shadow_stalker",
+            "monster_orc_warrior",
+            "monster_imp",
+            "monster_vampire_girl"
+          ],
+          "elites": [
+            "monster_shadow_stalker",
+            "monster_converted_vampire"
+          ],
+          "bosses": [
+            "monster_shadow_stalker"
+          ],
+          "recommendedLevel": [
+            7,
+            10
+          ],
+          "monsterSeedKey": "monsters"
+        },
+        "landmarks": []
+      }
+    },
+    {
+      "sectorId": "haven_shore",
+      "legacyId": "S",
+      "name": "Haven Shore",
+      "subtitle": "Safe tropical start",
+      "mapCorner": "bottom_center",
+      "stage": "queued",
+      "tagline": "Fruzer foundation, Haven Port — starter safe zone.",
+      "lore": "Haven Shore is where every pirate begins their journey. Protected by the Grudge Pact, violence is forbidden in these waters. Palm-fringed islands offer shelter, training, and the first taste of adventure.",
+      "tone": "Pending describe stage.",
+      "locals": [],
+      "gameplayPillars": [],
+      "hazards": [],
+      "resources": [
+        "coconut",
+        "palm_frond",
+        "fish",
+        "shells",
+        "hardwood",
+        "herbs"
+      ],
+      "buildWants": [],
+      "playUrl": "https://client.grudge-studio.com/island-3d?mode=zone&sector=haven_shore&worldSeed=grudge-world-1",
+      "flybyUrl": "https://client.grudge-studio.com/island-3d?mode=zone&sector=haven_shore&worldSeed=grudge-world-1&flyby=1&proof=1",
+      "snapshotDir": "/production/snapshots/haven_shore/",
+      "lorePath": "/lore/sectors/haven_shore",
+      "updated": "2026-07-18",
+      "notes": [
+        "Queued — complete Ethereal Falls proof before opening this dossier."
+      ],
+      "production": {
+        "ecosystemId": "tropical",
+        "groundPbr": "ground_1",
+        "heightmapModifier": "tropical_island",
+        "animals": [
+          "deer",
+          "boar",
+          "rabbit",
+          "buffalo",
+          "crab"
+        ],
+        "monsters": {
+          "common": [
+            "monster_goblin",
+            "monster_skeleton",
+            "monster_zombie"
+          ],
+          "elites": [
+            "monster_goblin_shaman"
+          ],
+          "bosses": [],
+          "recommendedLevel": [
+            1,
+            3
+          ],
+          "monsterSeedKey": "monsters"
+        },
+        "landmarks": []
+      }
+    },
+    {
+      "sectorId": "ember_depths",
+      "legacyId": "SE",
+      "name": "Ember Depths",
+      "subtitle": "Volcanic birth of Legion",
+      "mapCorner": "bottom_right",
+      "stage": "queued",
+      "tagline": "Lava, ash, high-risk volcanic fantasy.",
+      "lore": "The Sundering ripped open the seabed here, exposing rivers of magma that flow into the ocean. The resulting islands are young, brutal, and rich with Gould Flame shards. The Legion was born in places like this.",
+      "tone": "Pending describe stage.",
+      "locals": [],
+      "gameplayPillars": [],
+      "hazards": [
+        "lava_flows",
+        "eruption_events",
+        "toxic_gas",
+        "fire_elementals"
+      ],
+      "resources": [
+        "obsidian",
+        "sulfur",
+        "fire_crystals",
+        "rare_ore",
+        "gems"
+      ],
+      "buildWants": [],
+      "playUrl": "https://client.grudge-studio.com/island-3d?mode=zone&sector=ember_depths&worldSeed=grudge-world-1",
+      "flybyUrl": "https://client.grudge-studio.com/island-3d?mode=zone&sector=ember_depths&worldSeed=grudge-world-1&flyby=1&proof=1",
+      "snapshotDir": "/production/snapshots/ember_depths/",
+      "lorePath": "/lore/sectors/ember_depths",
+      "updated": "2026-07-18",
+      "notes": [
+        "Queued — complete Ethereal Falls proof before opening this dossier."
+      ],
+      "production": {
+        "ecosystemId": "volcanic",
+        "groundPbr": "ground_5",
+        "heightmapModifier": "volcanic_caldera",
+        "animals": [
+          "boar",
+          "wolf",
+          "bear",
+          "buffalo",
+          "deer"
+        ],
+        "monsters": {
+          "common": [
+            "monster_shadow_stalker",
+            "monster_orc_warrior",
+            "monster_imp",
+            "monster_vampire_girl"
+          ],
+          "elites": [
+            "monster_shadow_stalker",
+            "monster_converted_vampire"
+          ],
+          "bosses": [
+            "monster_boss_dragon",
+            "monster_boss_demon_lord"
+          ],
+          "recommendedLevel": [
+            5,
+            9
+          ],
+          "monsterSeedKey": "monsters"
+        },
+        "landmarks": []
+      }
+    }
+  ],
+  "urls": {
+    "loreIndex": "/lore/sectors",
+    "api": "/api/production/dossiers",
+    "static": "/production/dossiers-content.json",
+    "sectorsPackage": "/production/sectors-content.json"
+  },
+  "legacyBridge": {
+    "NW": "ethereal_falls",
+    "N": "frostbite_expanse",
+    "NE": "thornwood_wilds",
+    "W": "stormbreak_reef",
+    "CENTER": "convergence_nexus",
+    "E": "ashen_wastes",
+    "SW": "abyssal_trench",
+    "S": "haven_shore",
+    "SE": "ember_depths"
+  }
+}

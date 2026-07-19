@@ -1,0 +1,1137 @@
+{
+  "version": "2.0.0",
+  "updated": "2026-07-18",
+  "canonicalSource": "grudge-builder/scripts/publish-production-world.mjs",
+  "worldSeedDefault": "grudge-world-1",
+  "playBaseUrl": "https://client.grudge-studio.com/play",
+  "onsetPattern": {
+    "version": "2.0.0",
+    "updated": "2026-07-18",
+    "worldSeedDefault": "grudge-world-1",
+    "journey": [
+      {
+        "step": 1,
+        "id": "intro",
+        "path": "/intro",
+        "label": "Opening scene"
+      },
+      {
+        "step": 2,
+        "id": "create",
+        "path": "/create-character",
+        "label": "GCS character (account)"
+      },
+      {
+        "step": 3,
+        "id": "tutorial",
+        "path": "/tutorial",
+        "label": "Shipwreck tutorial"
+      },
+      {
+        "step": 4,
+        "id": "open_world",
+        "path": "/play?sector=haven_shore&mode=zone&worldSeed=grudge-world-1&city=haven_port",
+        "label": "Open world · Haven Port (starter)"
+      },
+      {
+        "step": 5,
+        "id": "world_map",
+        "path": "/world-map",
+        "label": "9 sectors · 6 race capitals"
+      },
+      {
+        "step": 6,
+        "id": "fabled_core",
+        "path": "/play?sector=frostbite_expanse&mode=zone&worldSeed=grudge-world-1&city=runeforge_hold",
+        "label": "Fabled core · Runeforge Hold · cave portals → dwarf city"
+      },
+      {
+        "step": 7,
+        "id": "home_island",
+        "path": "/home-island",
+        "label": "Home island (level 20+)"
+      }
+    ],
+    "sources": {
+      "assetsCdn": "https://assets.grudge-studio.com",
+      "objectStore": "https://objectstore.grudge-studio.com",
+      "accounts": "https://id.grudge-studio.com",
+      "characters": "https://character.grudge-studio.com",
+      "gameData": "https://client.grudge-studio.com",
+      "vfx": "https://assets.grudge-studio.com/effects/",
+      "raceGlbs": "https://assets.grudge-studio.com/models/characters/races/"
+    }
+  },
+  "grid": {
+    "layout": "3x3",
+    "rows": [
+      [
+        "ethereal_falls",
+        "frostbite_expanse",
+        "thornwood_wilds"
+      ],
+      [
+        "stormbreak_reef",
+        "convergence_nexus",
+        "ashen_wastes"
+      ],
+      [
+        "abyssal_trench",
+        "haven_shore",
+        "ember_depths"
+      ]
+    ]
+  },
+  "legacyBridge": {
+    "NW": "ethereal_falls",
+    "N": "frostbite_expanse",
+    "NE": "thornwood_wilds",
+    "W": "stormbreak_reef",
+    "CENTER": "convergence_nexus",
+    "E": "ashen_wastes",
+    "SW": "abyssal_trench",
+    "S": "haven_shore",
+    "SE": "ember_depths"
+  },
+  "zones": [
+    {
+      "id": "ethereal_falls",
+      "legacyId": "NW",
+      "name": "Ethereal Falls",
+      "biome": "magic",
+      "difficultyMin": 3,
+      "difficultyMax": 6,
+      "isSafeZone": false,
+      "isContested": false,
+      "sizeMeters": 10000,
+      "grid": {
+        "col": 0,
+        "row": 0
+      },
+      "capitalCityId": null,
+      "foundation": "fabled_satellite",
+      "systems": {
+        "terrain3d": true,
+        "zonePopulation": true,
+        "harvestNodes": true,
+        "wildlife": true,
+        "fish": true,
+        "npcCamps": true,
+        "docks": true,
+        "colyseusSector": true,
+        "factionTown": false,
+        "fabledCore": true,
+        "islandEvents": true
+      },
+      "resources": [
+        "arcane_dust",
+        "herbs",
+        "crystals"
+      ],
+      "description": "Remote magical falls — satellite Fabled wilds (scaled core).",
+      "entryReady": true,
+      "playUrl": "https://client.grudge-studio.com/play?sector=ethereal_falls&mode=zone&worldSeed=grudge-world-1"
+    },
+    {
+      "id": "frostbite_expanse",
+      "legacyId": "N",
+      "name": "Frostbite Expanse",
+      "biome": "frozen",
+      "difficultyMin": 4,
+      "difficultyMax": 7,
+      "isSafeZone": false,
+      "isContested": false,
+      "sizeMeters": 10000,
+      "grid": {
+        "col": 1,
+        "row": 0
+      },
+      "capitalCityId": "runeforge_hold",
+      "foundation": "fabledzone",
+      "systems": {
+        "terrain3d": true,
+        "zonePopulation": true,
+        "harvestNodes": true,
+        "wildlife": true,
+        "fish": true,
+        "npcCamps": true,
+        "docks": true,
+        "colyseusSector": true,
+        "factionTown": true,
+        "fabledCore": true,
+        "cavePortals": true,
+        "dwarfCastleInterior": true,
+        "islandEvents": true,
+        "bosses": true
+      },
+      "resources": [
+        "frost_herbs",
+        "ice",
+        "crystals",
+        "whale_bone",
+        "arctic_fish",
+        "ore"
+      ],
+      "description": "Fabled sector core (fabledzone.glb): multi-island forge village. Cave doorways portal into dwarf main city / castle. Extra procedural islands allowed.",
+      "entryReady": true,
+      "playUrl": "https://client.grudge-studio.com/play?sector=frostbite_expanse&mode=zone&worldSeed=grudge-world-1&city=runeforge_hold"
+    },
+    {
+      "id": "thornwood_wilds",
+      "legacyId": "NE",
+      "name": "Thornwood Wilds",
+      "biome": "forest",
+      "difficultyMin": 3,
+      "difficultyMax": 7,
+      "isSafeZone": false,
+      "isContested": false,
+      "sizeMeters": 10000,
+      "grid": {
+        "col": 2,
+        "row": 0
+      },
+      "capitalCityId": "starweave_canopy",
+      "foundation": null,
+      "systems": {
+        "terrain3d": true,
+        "zonePopulation": true,
+        "harvestNodes": true,
+        "wildlife": true,
+        "fish": true,
+        "npcCamps": true,
+        "docks": true,
+        "colyseusSector": true,
+        "factionTown": false,
+        "islandEvents": true
+      },
+      "resources": [
+        "hardwood",
+        "herbs",
+        "berries",
+        "rare_mushrooms",
+        "beast_hides"
+      ],
+      "description": "Ancient forest canopy — Elf capital Starweave Canopy.",
+      "entryReady": true,
+      "playUrl": "https://client.grudge-studio.com/play?sector=thornwood_wilds&mode=zone&worldSeed=grudge-world-1&city=starweave_canopy"
+    },
+    {
+      "id": "stormbreak_reef",
+      "legacyId": "W",
+      "name": "Stormbreak Reef",
+      "biome": "storm",
+      "difficultyMin": 3,
+      "difficultyMax": 6,
+      "isSafeZone": false,
+      "isContested": false,
+      "sizeMeters": 10000,
+      "grid": {
+        "col": 0,
+        "row": 1
+      },
+      "capitalCityId": null,
+      "foundation": null,
+      "systems": {
+        "terrain3d": true,
+        "zonePopulation": true,
+        "harvestNodes": true,
+        "wildlife": true,
+        "fish": true,
+        "npcCamps": true,
+        "docks": true,
+        "colyseusSector": true,
+        "factionTown": false,
+        "islandEvents": true
+      },
+      "resources": [
+        "shells",
+        "coral",
+        "rare_ore",
+        "storm_crystals"
+      ],
+      "description": "Perpetual storms over razor coral reefs.",
+      "entryReady": true,
+      "playUrl": "https://client.grudge-studio.com/play?sector=stormbreak_reef&mode=zone&worldSeed=grudge-world-1"
+    },
+    {
+      "id": "convergence_nexus",
+      "legacyId": "CENTER",
+      "name": "Convergence Nexus",
+      "biome": "contested",
+      "difficultyMin": 5,
+      "difficultyMax": 9,
+      "isSafeZone": false,
+      "isContested": true,
+      "sizeMeters": 12000,
+      "grid": {
+        "col": 1,
+        "row": 1
+      },
+      "capitalCityId": null,
+      "foundation": null,
+      "systems": {
+        "terrain3d": true,
+        "zonePopulation": true,
+        "harvestNodes": true,
+        "wildlife": true,
+        "fish": true,
+        "npcCamps": true,
+        "docks": true,
+        "colyseusSector": true,
+        "factionTown": false,
+        "embassies": true,
+        "islandEvents": true,
+        "bosses": true
+      },
+      "resources": [
+        "scrap",
+        "ore",
+        "relics"
+      ],
+      "description": "Central clash zone — faction embassies and world events.",
+      "entryReady": true,
+      "playUrl": "https://client.grudge-studio.com/play?sector=convergence_nexus&mode=zone&worldSeed=grudge-world-1"
+    },
+    {
+      "id": "ashen_wastes",
+      "legacyId": "E",
+      "name": "Ashen Wastes",
+      "biome": "desert",
+      "difficultyMin": 5,
+      "difficultyMax": 8,
+      "isSafeZone": false,
+      "isContested": false,
+      "sizeMeters": 14000,
+      "grid": {
+        "col": 2,
+        "row": 1
+      },
+      "capitalCityId": "ashen_throne",
+      "foundation": null,
+      "systems": {
+        "terrain3d": true,
+        "zonePopulation": true,
+        "harvestNodes": true,
+        "wildlife": true,
+        "fish": true,
+        "npcCamps": true,
+        "docks": true,
+        "colyseusSector": true,
+        "factionTown": true,
+        "islandEvents": true,
+        "bosses": true
+      },
+      "resources": [
+        "glass_sand",
+        "ore",
+        "herbs",
+        "bones"
+      ],
+      "description": "Glass desert — Demon capital Ashen Throne.",
+      "entryReady": true,
+      "playUrl": "https://client.grudge-studio.com/play?sector=ashen_wastes&mode=zone&worldSeed=grudge-world-1&city=ashen_throne"
+    },
+    {
+      "id": "abyssal_trench",
+      "legacyId": "SW",
+      "name": "Abyssal Trench",
+      "biome": "abyss",
+      "difficultyMin": 6,
+      "difficultyMax": 10,
+      "isSafeZone": false,
+      "isContested": false,
+      "sizeMeters": 10000,
+      "grid": {
+        "col": 0,
+        "row": 2
+      },
+      "capitalCityId": "drowned_sepulcher",
+      "foundation": null,
+      "systems": {
+        "terrain3d": true,
+        "zonePopulation": true,
+        "harvestNodes": true,
+        "wildlife": true,
+        "fish": true,
+        "npcCamps": true,
+        "docks": true,
+        "colyseusSector": true,
+        "factionTown": true,
+        "islandEvents": true,
+        "bosses": true
+      },
+      "resources": [
+        "salvage",
+        "fish",
+        "ore",
+        "abyss_pearls"
+      ],
+      "description": "Deep trench — Undead capital Drowned Sepulcher.",
+      "entryReady": true,
+      "playUrl": "https://client.grudge-studio.com/play?sector=abyssal_trench&mode=zone&worldSeed=grudge-world-1&city=drowned_sepulcher"
+    },
+    {
+      "id": "haven_shore",
+      "legacyId": "S",
+      "name": "Haven Shore",
+      "biome": "tropical",
+      "difficultyMin": 1,
+      "difficultyMax": 3,
+      "isSafeZone": true,
+      "isContested": false,
+      "sizeMeters": 10000,
+      "grid": {
+        "col": 1,
+        "row": 2
+      },
+      "capitalCityId": "haven_port",
+      "foundation": "fruzer_islands",
+      "systems": {
+        "terrain3d": true,
+        "zonePopulation": true,
+        "harvestNodes": true,
+        "wildlife": true,
+        "fish": true,
+        "npcCamps": true,
+        "docks": true,
+        "colyseusSector": true,
+        "factionTown": false,
+        "havenShoreFoundation": true,
+        "vendors": true,
+        "missions": true,
+        "islandEvents": true
+      },
+      "resources": [
+        "coconut",
+        "palm_frond",
+        "fish",
+        "shells",
+        "hardwood",
+        "herbs"
+      ],
+      "description": "Safe tropical starter — Fruzer islands foundation + Haven Port vendors.",
+      "entryReady": true,
+      "playUrl": "https://client.grudge-studio.com/play?sector=haven_shore&mode=zone&worldSeed=grudge-world-1&city=haven_port"
+    },
+    {
+      "id": "ember_depths",
+      "legacyId": "SE",
+      "name": "Ember Depths",
+      "biome": "volcanic",
+      "difficultyMin": 5,
+      "difficultyMax": 9,
+      "isSafeZone": false,
+      "isContested": false,
+      "sizeMeters": 10000,
+      "grid": {
+        "col": 2,
+        "row": 2
+      },
+      "capitalCityId": "pit_foundry",
+      "foundation": null,
+      "systems": {
+        "terrain3d": true,
+        "zonePopulation": true,
+        "harvestNodes": true,
+        "wildlife": true,
+        "fish": true,
+        "npcCamps": true,
+        "docks": true,
+        "colyseusSector": true,
+        "factionTown": true,
+        "islandEvents": true,
+        "bosses": true
+      },
+      "resources": [
+        "obsidian",
+        "sulfur",
+        "fire_crystals",
+        "rare_ore",
+        "gems"
+      ],
+      "description": "Volcanic Legion caldera — Orc capital Pit Foundry.",
+      "entryReady": true,
+      "playUrl": "https://client.grudge-studio.com/play?sector=ember_depths&mode=zone&worldSeed=grudge-world-1&city=pit_foundry"
+    }
+  ],
+  "towns": [
+    {
+      "id": "haven_port",
+      "sectorId": "haven_shore",
+      "raceId": "human",
+      "faction": null,
+      "name": "Haven Port",
+      "subtitle": "Human Capital · PVE Trade Village",
+      "modelGlb": "models/warlords/haven_shore/fruzer_islands.glb",
+      "modelScale": 2.4,
+      "playUrl": "https://client.grudge-studio.com/play?sector=haven_shore&mode=zone&worldSeed=grudge-world-1&city=haven_port"
+    },
+    {
+      "id": "runeforge_hold",
+      "sectorId": "frostbite_expanse",
+      "raceId": "dwarf",
+      "faction": "fabled",
+      "name": "Runeforge Hold",
+      "subtitle": "Dwarf Capital · Fabled Core",
+      "modelGlb": "models/warlords/fabled/fabledzone.glb",
+      "modelScale": 1.15,
+      "interiors": {
+        "dwarfMainCity": "models/warlords/fabled/dwarf_main_city.glb",
+        "portalMode": "cave_doorway"
+      },
+      "playUrl": "https://client.grudge-studio.com/play?sector=frostbite_expanse&mode=zone&worldSeed=grudge-world-1&city=runeforge_hold"
+    },
+    {
+      "id": "starweave_canopy",
+      "sectorId": "thornwood_wilds",
+      "raceId": "elf",
+      "faction": "fabled",
+      "name": "Starweave Canopy",
+      "subtitle": "Elf Capital · Ancient Forest",
+      "modelGlb": "models/towns/cathedral_sanctum.glb",
+      "modelScale": 0.9,
+      "playUrl": "https://client.grudge-studio.com/play?sector=thornwood_wilds&mode=zone&worldSeed=grudge-world-1&city=starweave_canopy"
+    },
+    {
+      "id": "pit_foundry",
+      "sectorId": "ember_depths",
+      "raceId": "orc",
+      "faction": "legion",
+      "name": "The Pit Foundry",
+      "subtitle": "Orc Capital · Volcanic Creations",
+      "modelGlb": "models/towns/pit_foundry.glb",
+      "modelScale": 1,
+      "playUrl": "https://client.grudge-studio.com/play?sector=ember_depths&mode=zone&worldSeed=grudge-world-1&city=pit_foundry"
+    },
+    {
+      "id": "drowned_sepulcher",
+      "sectorId": "abyssal_trench",
+      "raceId": "undead",
+      "faction": "legion",
+      "name": "Drowned Sepulcher",
+      "subtitle": "Undead Capital · Flooded Ruins",
+      "modelGlb": "models/towns/pit_foundry.glb",
+      "modelScale": 0.85,
+      "playUrl": "https://client.grudge-studio.com/play?sector=abyssal_trench&mode=zone&worldSeed=grudge-world-1&city=drowned_sepulcher"
+    },
+    {
+      "id": "ashen_throne",
+      "sectorId": "ashen_wastes",
+      "raceId": "demon",
+      "faction": "crusade",
+      "name": "Ashen Throne",
+      "subtitle": "Demon Capital · Glass Desert",
+      "modelGlb": "models/towns/crusade/exterior.glb",
+      "modelScale": 1.2,
+      "playUrl": "https://client.grudge-studio.com/play?sector=ashen_wastes&mode=zone&worldSeed=grudge-world-1&city=ashen_throne"
+    }
+  ],
+  "islands": [
+    {
+      "id": "fabled_core_islands",
+      "sectorId": "frostbite_expanse",
+      "name": "Fabled Zone Core",
+      "kind": "foundation_core",
+      "glbKey": "models/warlords/fabled/fabledzone.glb",
+      "scale": 1.15,
+      "tags": [
+        "fabled",
+        "multi_island",
+        "capital"
+      ]
+    },
+    {
+      "id": "haven_fruzer_islands",
+      "sectorId": "haven_shore",
+      "name": "Fruzer Trade Isles",
+      "kind": "foundation_core",
+      "glbKey": "models/warlords/haven_shore/fruzer_islands.glb",
+      "scale": 2.4,
+      "tags": [
+        "haven",
+        "pve",
+        "trade"
+      ]
+    },
+    {
+      "id": "pirate_lobby_islands",
+      "sectorId": "haven_shore",
+      "name": "Pirate Lobby Islands",
+      "kind": "lobby",
+      "glbKey": "models/lobby/pirate-islands/scene.glb",
+      "scale": 1,
+      "tags": [
+        "lobby",
+        "open_world"
+      ]
+    },
+    {
+      "id": "ethereal_falls_proc_cluster",
+      "sectorId": "ethereal_falls",
+      "name": "Ethereal Falls Procedural Cluster",
+      "kind": "procedural",
+      "glbKey": null,
+      "scale": 1,
+      "tags": [
+        "procedural",
+        "satellite"
+      ]
+    },
+    {
+      "id": "frostbite_expanse_proc_cluster",
+      "sectorId": "frostbite_expanse",
+      "name": "Frostbite Expanse Procedural Cluster",
+      "kind": "procedural",
+      "glbKey": null,
+      "scale": 1,
+      "tags": [
+        "procedural",
+        "satellite"
+      ]
+    },
+    {
+      "id": "thornwood_wilds_proc_cluster",
+      "sectorId": "thornwood_wilds",
+      "name": "Thornwood Wilds Procedural Cluster",
+      "kind": "procedural",
+      "glbKey": null,
+      "scale": 1,
+      "tags": [
+        "procedural",
+        "satellite"
+      ]
+    },
+    {
+      "id": "stormbreak_reef_proc_cluster",
+      "sectorId": "stormbreak_reef",
+      "name": "Stormbreak Reef Procedural Cluster",
+      "kind": "procedural",
+      "glbKey": null,
+      "scale": 1,
+      "tags": [
+        "procedural",
+        "satellite"
+      ]
+    },
+    {
+      "id": "convergence_nexus_proc_cluster",
+      "sectorId": "convergence_nexus",
+      "name": "Convergence Nexus Procedural Cluster",
+      "kind": "procedural",
+      "glbKey": null,
+      "scale": 1,
+      "tags": [
+        "procedural",
+        "satellite"
+      ]
+    },
+    {
+      "id": "ashen_wastes_proc_cluster",
+      "sectorId": "ashen_wastes",
+      "name": "Ashen Wastes Procedural Cluster",
+      "kind": "procedural",
+      "glbKey": null,
+      "scale": 1,
+      "tags": [
+        "procedural",
+        "satellite"
+      ]
+    },
+    {
+      "id": "abyssal_trench_proc_cluster",
+      "sectorId": "abyssal_trench",
+      "name": "Abyssal Trench Procedural Cluster",
+      "kind": "procedural",
+      "glbKey": null,
+      "scale": 1,
+      "tags": [
+        "procedural",
+        "satellite"
+      ]
+    },
+    {
+      "id": "haven_shore_proc_cluster",
+      "sectorId": "haven_shore",
+      "name": "Haven Shore Procedural Cluster",
+      "kind": "procedural",
+      "glbKey": null,
+      "scale": 1,
+      "tags": [
+        "procedural",
+        "satellite"
+      ]
+    },
+    {
+      "id": "ember_depths_proc_cluster",
+      "sectorId": "ember_depths",
+      "name": "Ember Depths Procedural Cluster",
+      "kind": "procedural",
+      "glbKey": null,
+      "scale": 1,
+      "tags": [
+        "procedural",
+        "satellite"
+      ]
+    }
+  ],
+  "instances": [
+    {
+      "id": "inst_ethereal_falls_primary",
+      "sectorId": "ethereal_falls",
+      "kind": "open_world_zone",
+      "name": "Ethereal Falls Primary",
+      "maxPlayers": 40,
+      "entryUrl": "https://client.grudge-studio.com/play?sector=ethereal_falls&mode=zone&worldSeed=grudge-world-1"
+    },
+    {
+      "id": "inst_frostbite_expanse_primary",
+      "sectorId": "frostbite_expanse",
+      "kind": "open_world_zone",
+      "name": "Frostbite Expanse Primary",
+      "maxPlayers": 40,
+      "entryUrl": "https://client.grudge-studio.com/play?sector=frostbite_expanse&mode=zone&worldSeed=grudge-world-1&city=runeforge_hold"
+    },
+    {
+      "id": "inst_thornwood_wilds_primary",
+      "sectorId": "thornwood_wilds",
+      "kind": "open_world_zone",
+      "name": "Thornwood Wilds Primary",
+      "maxPlayers": 40,
+      "entryUrl": "https://client.grudge-studio.com/play?sector=thornwood_wilds&mode=zone&worldSeed=grudge-world-1&city=starweave_canopy"
+    },
+    {
+      "id": "inst_stormbreak_reef_primary",
+      "sectorId": "stormbreak_reef",
+      "kind": "open_world_zone",
+      "name": "Stormbreak Reef Primary",
+      "maxPlayers": 40,
+      "entryUrl": "https://client.grudge-studio.com/play?sector=stormbreak_reef&mode=zone&worldSeed=grudge-world-1"
+    },
+    {
+      "id": "inst_convergence_nexus_primary",
+      "sectorId": "convergence_nexus",
+      "kind": "open_world_zone",
+      "name": "Convergence Nexus Primary",
+      "maxPlayers": 60,
+      "entryUrl": "https://client.grudge-studio.com/play?sector=convergence_nexus&mode=zone&worldSeed=grudge-world-1"
+    },
+    {
+      "id": "inst_ashen_wastes_primary",
+      "sectorId": "ashen_wastes",
+      "kind": "open_world_zone",
+      "name": "Ashen Wastes Primary",
+      "maxPlayers": 40,
+      "entryUrl": "https://client.grudge-studio.com/play?sector=ashen_wastes&mode=zone&worldSeed=grudge-world-1&city=ashen_throne"
+    },
+    {
+      "id": "inst_abyssal_trench_primary",
+      "sectorId": "abyssal_trench",
+      "kind": "open_world_zone",
+      "name": "Abyssal Trench Primary",
+      "maxPlayers": 40,
+      "entryUrl": "https://client.grudge-studio.com/play?sector=abyssal_trench&mode=zone&worldSeed=grudge-world-1&city=drowned_sepulcher"
+    },
+    {
+      "id": "inst_haven_shore_primary",
+      "sectorId": "haven_shore",
+      "kind": "open_world_zone",
+      "name": "Haven Shore Primary",
+      "maxPlayers": 40,
+      "entryUrl": "https://client.grudge-studio.com/play?sector=haven_shore&mode=zone&worldSeed=grudge-world-1&city=haven_port"
+    },
+    {
+      "id": "inst_ember_depths_primary",
+      "sectorId": "ember_depths",
+      "kind": "open_world_zone",
+      "name": "Ember Depths Primary",
+      "maxPlayers": 40,
+      "entryUrl": "https://client.grudge-studio.com/play?sector=ember_depths&mode=zone&worldSeed=grudge-world-1&city=pit_foundry"
+    }
+  ],
+  "dungeons": [
+    {
+      "id": "tropical_dungeon_0",
+      "sectorId": "haven_shore",
+      "name": "Pirate's Crypt",
+      "entranceModel": "cave",
+      "minLevel": 1,
+      "bossId": "boss_pirate_captain",
+      "portalMode": "cave_door"
+    },
+    {
+      "id": "frozen_dungeon_0",
+      "sectorId": "frostbite_expanse",
+      "name": "Glacial Depths",
+      "entranceModel": "cave",
+      "minLevel": 4,
+      "bossId": "boss_frost_warden",
+      "interiorGlb": "models/warlords/fabled/dwarf_main_city.glb",
+      "portalMode": "cave_door"
+    },
+    {
+      "id": "fab_portal_main_city",
+      "sectorId": "frostbite_expanse",
+      "name": "Runeforge Hold · Dwarf Main City",
+      "entranceModel": "cave",
+      "minLevel": 4,
+      "bossId": null,
+      "interiorGlb": "models/warlords/fabled/dwarf_main_city.glb",
+      "portalMode": "cave_door"
+    },
+    {
+      "id": "forest_dungeon_0",
+      "sectorId": "thornwood_wilds",
+      "name": "Thornwood Labyrinth",
+      "entranceModel": "tree_hollow",
+      "minLevel": 3,
+      "bossId": "boss_thorn_worge",
+      "portalMode": "tree_hollow"
+    },
+    {
+      "id": "volcanic_dungeon_0",
+      "sectorId": "ember_depths",
+      "name": "Magma Core",
+      "entranceModel": "gate",
+      "minLevel": 5,
+      "bossId": "boss_gharthok",
+      "portalMode": "gate"
+    },
+    {
+      "id": "abyssal_dungeon_0",
+      "sectorId": "abyssal_trench",
+      "name": "Drowned Cathedral",
+      "entranceModel": "ruins",
+      "minLevel": 6,
+      "bossId": "boss_drowned_priest",
+      "portalMode": "ruins"
+    },
+    {
+      "id": "desert_dungeon_0",
+      "sectorId": "ashen_wastes",
+      "name": "Sunken Tomb",
+      "entranceModel": "ruins",
+      "minLevel": 5,
+      "bossId": "boss_ashen_aspect",
+      "portalMode": "ruins"
+    },
+    {
+      "id": "nexus_dungeon_0",
+      "sectorId": "convergence_nexus",
+      "name": "Racalvin's Vault",
+      "entranceModel": "portal",
+      "minLevel": 7,
+      "bossId": "boss_herald_first_grudge",
+      "portalMode": "portal"
+    }
+  ],
+  "npcs": [
+    {
+      "id": "npc_haven_vendor_general",
+      "townId": "haven_port",
+      "sectorId": "haven_shore",
+      "name": "Harbor Outfitter",
+      "role": "merchant"
+    },
+    {
+      "id": "npc_haven_vendor_weapons",
+      "townId": "haven_port",
+      "sectorId": "haven_shore",
+      "name": "Reef Arms",
+      "role": "merchant"
+    },
+    {
+      "id": "npc_haven_mission",
+      "townId": "haven_port",
+      "sectorId": "haven_shore",
+      "name": "Harbor Master",
+      "role": "questGiver"
+    },
+    {
+      "id": "npc_haven_fish",
+      "townId": "haven_port",
+      "sectorId": "haven_shore",
+      "name": "Dock Fisher",
+      "role": "merchant"
+    },
+    {
+      "id": "npc_runeforge_smith",
+      "townId": "runeforge_hold",
+      "sectorId": "frostbite_expanse",
+      "name": "Runesmith Borin",
+      "role": "merchant"
+    },
+    {
+      "id": "npc_runeforge_guard",
+      "townId": "runeforge_hold",
+      "sectorId": "frostbite_expanse",
+      "name": "Hold Guard",
+      "role": "guard"
+    },
+    {
+      "id": "npc_runeforge_portal",
+      "townId": "runeforge_hold",
+      "sectorId": "frostbite_expanse",
+      "name": "Cave Warden",
+      "role": "questGiver"
+    },
+    {
+      "id": "npc_starweave_herbalist",
+      "townId": "starweave_canopy",
+      "sectorId": "thornwood_wilds",
+      "name": "Canopy Herbalist",
+      "role": "merchant"
+    },
+    {
+      "id": "npc_pit_forgemaster",
+      "townId": "pit_foundry",
+      "sectorId": "ember_depths",
+      "name": "Forgemaster Kraag",
+      "role": "factionVendor"
+    },
+    {
+      "id": "npc_sepulcher_rite",
+      "townId": "drowned_sepulcher",
+      "sectorId": "abyssal_trench",
+      "name": "Rite Keeper",
+      "role": "questGiver"
+    },
+    {
+      "id": "npc_ashen_captain",
+      "townId": "ashen_throne",
+      "sectorId": "ashen_wastes",
+      "name": "Glass Captain",
+      "role": "questGiver"
+    }
+  ],
+  "events": [
+    {
+      "id": "evt_haven_trade_day",
+      "sectorId": "haven_shore",
+      "name": "Trade Day",
+      "eventType": "island_event",
+      "schedule": "daily"
+    },
+    {
+      "id": "evt_frost_blizzard",
+      "sectorId": "frostbite_expanse",
+      "name": "Howling Blizzard",
+      "eventType": "weather_hazard",
+      "schedule": "hourly_chance"
+    },
+    {
+      "id": "evt_fabled_forge_surge",
+      "sectorId": "frostbite_expanse",
+      "name": "Forge Surge",
+      "eventType": "island_event",
+      "schedule": "weekend"
+    },
+    {
+      "id": "evt_thorn_hunt",
+      "sectorId": "thornwood_wilds",
+      "name": "Worge Hunt",
+      "eventType": "island_event",
+      "schedule": "daily"
+    },
+    {
+      "id": "evt_nexus_clash",
+      "sectorId": "convergence_nexus",
+      "name": "Faction Clash",
+      "eventType": "pvp_event",
+      "schedule": "weekend"
+    },
+    {
+      "id": "evt_ember_eruption",
+      "sectorId": "ember_depths",
+      "name": "Caldera Eruption",
+      "eventType": "hazard",
+      "schedule": "hourly_chance"
+    },
+    {
+      "id": "evt_abyss_tide",
+      "sectorId": "abyssal_trench",
+      "name": "Black Tide",
+      "eventType": "hazard",
+      "schedule": "tide_cycle"
+    },
+    {
+      "id": "evt_ashen_storm",
+      "sectorId": "ashen_wastes",
+      "name": "Glass Storm",
+      "eventType": "weather_hazard",
+      "schedule": "daily"
+    }
+  ],
+  "bosses": [
+    {
+      "id": "boss_pirate_captain",
+      "sectorId": "haven_shore",
+      "dungeonId": "tropical_dungeon_0",
+      "name": "Pirate Captain",
+      "phases": 1,
+      "minLevel": 2
+    },
+    {
+      "id": "boss_frost_warden",
+      "sectorId": "frostbite_expanse",
+      "dungeonId": "frozen_dungeon_0",
+      "name": "Frost Warden",
+      "phases": 2,
+      "minLevel": 5
+    },
+    {
+      "id": "boss_thorn_worge",
+      "sectorId": "thornwood_wilds",
+      "dungeonId": "forest_dungeon_0",
+      "name": "Thorn Worge Alpha",
+      "phases": 2,
+      "minLevel": 4
+    },
+    {
+      "id": "boss_gharthok",
+      "sectorId": "ember_depths",
+      "dungeonId": "volcanic_dungeon_0",
+      "name": "Ghar'Thok the Unbroken",
+      "phases": 3,
+      "minLevel": 6,
+      "modelKey": "models/bosses/orc_warrior"
+    },
+    {
+      "id": "boss_drowned_priest",
+      "sectorId": "abyssal_trench",
+      "dungeonId": "abyssal_dungeon_0",
+      "name": "Drowned Priest",
+      "phases": 2,
+      "minLevel": 7
+    },
+    {
+      "id": "boss_ashen_aspect",
+      "sectorId": "ashen_wastes",
+      "dungeonId": "desert_dungeon_0",
+      "name": "Ashen Aspect",
+      "phases": 2,
+      "minLevel": 6
+    },
+    {
+      "id": "boss_herald_first_grudge",
+      "sectorId": "convergence_nexus",
+      "dungeonId": "nexus_dungeon_0",
+      "name": "Herald of First Grudge",
+      "phases": 3,
+      "minLevel": 8
+    }
+  ],
+  "cdnAssets": [
+    {
+      "key": "models/warlords/fabled/fabledzone.glb",
+      "category": "zone_core",
+      "tags": [
+        "fabled",
+        "frostbite"
+      ],
+      "url": "https://assets.grudge-studio.com/models/warlords/fabled/fabledzone.glb"
+    },
+    {
+      "key": "models/warlords/fabled/dwarf_main_city.glb",
+      "category": "interior",
+      "tags": [
+        "dwarf",
+        "castle"
+      ],
+      "url": "https://assets.grudge-studio.com/models/warlords/fabled/dwarf_main_city.glb"
+    },
+    {
+      "key": "models/warlords/haven_shore/fruzer_islands.glb",
+      "category": "zone_core",
+      "tags": [
+        "haven"
+      ],
+      "url": "https://assets.grudge-studio.com/models/warlords/haven_shore/fruzer_islands.glb"
+    },
+    {
+      "key": "models/characters/races/human.glb",
+      "category": "character",
+      "tags": [
+        "race"
+      ],
+      "url": "https://assets.grudge-studio.com/models/characters/races/human.glb"
+    },
+    {
+      "key": "models/characters/races/dwarf.glb",
+      "category": "character",
+      "tags": [
+        "race"
+      ],
+      "url": "https://assets.grudge-studio.com/models/characters/races/dwarf.glb"
+    },
+    {
+      "key": "models/characters/races/elf.glb",
+      "category": "character",
+      "tags": [
+        "race"
+      ],
+      "url": "https://assets.grudge-studio.com/models/characters/races/elf.glb"
+    },
+    {
+      "key": "models/characters/races/orc.glb",
+      "category": "character",
+      "tags": [
+        "race"
+      ],
+      "url": "https://assets.grudge-studio.com/models/characters/races/orc.glb"
+    },
+    {
+      "key": "models/characters/races/undead.glb",
+      "category": "character",
+      "tags": [
+        "race"
+      ],
+      "url": "https://assets.grudge-studio.com/models/characters/races/undead.glb"
+    },
+    {
+      "key": "models/characters/races/barbarian.glb",
+      "category": "character",
+      "tags": [
+        "race"
+      ],
+      "url": "https://assets.grudge-studio.com/models/characters/races/barbarian.glb"
+    },
+    {
+      "key": "models/ummorpg-vehicles-catalog.json",
+      "category": "catalog",
+      "tags": [
+        "vehicles"
+      ],
+      "url": "https://assets.grudge-studio.com/models/ummorpg-vehicles-catalog.json"
+    },
+    {
+      "key": "models/toon-soldiers/catalog.json",
+      "category": "catalog",
+      "tags": [
+        "toon"
+      ],
+      "url": "https://assets.grudge-studio.com/models/toon-soldiers/catalog.json"
+    },
+    {
+      "key": "catalogs/warlords/production-world.json",
+      "category": "catalog",
+      "tags": [
+        "world"
+      ],
+      "url": "https://assets.grudge-studio.com/catalogs/warlords/production-world.json"
+    },
+    {
+      "key": "catalogs/warlords/onset-pattern.json",
+      "category": "catalog",
+      "tags": [
+        "onset"
+      ],
+      "url": "https://assets.grudge-studio.com/catalogs/warlords/onset-pattern.json"
+    }
+  ],
+  "notes": [
+    "Fabled sector may host many islands; core is fabledzone.glb with cave-door portals into dwarf castle/buildings.",
+    "Haven Shore uses Fruzer foundation; starter path city=haven_port.",
+    "Account characters via id.grudge-studio.com + character.grudge-studio.com; binaries on assets.grudge-studio.com.",
+    "D1 tables world_* live in grudge-objectstore; query via ObjectStore worker / admin."
+  ]
+}

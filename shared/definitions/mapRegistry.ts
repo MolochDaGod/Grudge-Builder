@@ -185,6 +185,11 @@ export const MAP_FAMILIES: Record<MapFamilyId, MapFamilyDef> = {
       'client/src/island3d/engine/LobbyIslandLoader.ts',
       'public/models/lobby/pirate-islands/ (R2 CDN)',
       'Island3DEngine mode=lobby',
+      'shared/definitions/lobbyIslands.ts',
+      'shared/definitions/factionLobbyIslands.ts',
+      'shared/definitions/productionMapPackage.ts',
+      'public/maps/grudge-open-world/grudge-open-world.gmap.json',
+      'client/src/island3d/lobby/FactionIslandGenerator.ts',
     ],
     entry: {
       // Production open-world hub (boats, build, harvest, PvE, combat, Grudge6 main panel)
@@ -195,12 +200,21 @@ export const MAP_FAMILIES: Record<MapFamilyId, MapFamilyDef> = {
       ],
     },
     doNotConfuseWith: ['warlords_era_open_world', 'home_island', 'player_home_block'],
-    engines: ['LobbyIslandLoader', 'LobbyGameplay', 'LobbyPlayZone', 'BuildingSystem', 'Grudge6PlayShell'],
+    engines: [
+      'LobbyIslandLoader',
+      'LobbyGameplay',
+      'LobbyPlayZone',
+      'FactionIslandGenerator',
+      'BuildingSystem',
+      'Grudge6PlayShell',
+    ],
     notes: [
       'Asset: scene.gltf + scene.bin + textures/ (not a single glb)',
       'DEFAULT_PUBLIC_LOBBY_MAP_ID = pirate-islands',
       'URL aliases: sector=lobby | sector=pirate-islands | mode=lobby → same open-world hub',
       'Full systems: ModePlayHUD (combat/harvest/build), boats E-dock, Grudge6 panel/spellbook/inv',
+      '6 faction islands on border ring (SSOT factionLobbyIslands): 4 docks, 5 buildings, 4 tents, 2 campfires, water hole, 8 unarmed + 8 heroes, captain on race mount, traveler network, blacksmith, profession benches, siege, Unity-style dock boat + respawn',
+      'Production package (.gmap): public/maps/grudge-open-world/ — geometry pirate-islands GLTF/GLB + layers + AI + network + missions; Forge import .studio.json; rebuild npm run map:build-gmap',
     ],
   },
 

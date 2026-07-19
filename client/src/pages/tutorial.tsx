@@ -12,7 +12,7 @@ import * as THREE from 'three';
 import { Island3DEngine, type Island3DEngineConfig } from '@/island3d/engine/Island3DEngine';
 import { characterAPI } from '@/lib/api';
 import { getColyseusEndpoint } from '@/lib/colyseusEndpoint';
-import { TutorialGameplayHUD, type ControlMode } from '@/components/TutorialGameplayHUD';
+import type { ControlMode } from '@/components/TutorialGameplayHUD';
 import {
   buildGrudge6LoadConfig,
   getWeaponTypeForMode,
@@ -31,6 +31,27 @@ import {
 } from '@/lib/professionSystem';
 import type { Character } from '@/lib/characterManager';
 import { getAvatarForContext } from '@/lib/aiAvatars';
+import { TutorialWakeCinematic } from '@/island3d/tutorial/TutorialWakeCinematic';
+import { createShipwreckSceneRuntime, type ShipwreckSceneRuntime } from '@/island3d/tutorial/ShipwreckSceneRuntime';
+import { ShipwreckSceneEditorHUD } from '@/island3d/tutorial/ShipwreckSceneEditorHUD';
+import { TutorialHarvestController } from '@/island3d/tutorial/TutorialHarvestController';
+import {
+  TutorialProductionHUD,
+  DEFAULT_TUTORIAL_SETTINGS,
+  type TutorialSettings,
+} from '@/island3d/tutorial/TutorialProductionHUD';
+import { SHIPWRECK_SCENE } from '@shared/definitions/shipwreckScene';
+import {
+  TUTORIAL_QUICK_CRAFT,
+  canCraftQuick,
+  type TutorialSegmentPhase,
+} from '@shared/definitions/tutorialFirstSegment';
+import { SHIPWRECK_WAKE } from '@shared/definitions/tutorialShipwreckScene';
+import {
+  TUTORIAL_LOCKED_HP,
+  INJURED_OPENER_PHASES,
+} from '@shared/definitions/injuredAnimPack';
+import { loadInjuredAnimsOntoManager } from '@/island3d/tutorial/loadInjuredAnims';
 
 interface TutorialStep {
   id: string;
@@ -49,16 +70,29 @@ export default function TutorialPage() {
 
   const [loaded, setLoaded] = useState(false);
   const [steps, setSteps] = useState<TutorialStep[]>([]);
-  const [hp, setHp] = useState(100);
-  const [maxHp] = useState(100);
+  const [hp, setHp] = useState(TUTORIAL_LOCKED_HP);
+  const [maxHp] = useState(TUTORIAL_LOCKED_HP);
+  const [injuredAnimsReady, setInjuredAnimsReady] = useState(false);
   const [introPlaying, setIntroPlaying] = useState(true);
+  const [wakePhase, setWakePhase] = useState<'cinematic' | 'playable' | 'skipped'>('cinematic');
+  const [segmentPhase, setSegmentPhase] = useState<TutorialSegmentPhase>('intro_zoom');
   const [completed, setCompleted] = useState(false);
   const [notification, setNotification] = useState<string | null>(null);
   const [playMode, setPlayMode] = useState<ControlMode>('harvest');
-  const [resources, setResources] = useState<Record<string, number>>({});
+  const [resources, setResources] = useState<Record<string, number>>({ sticks: 0, stones: 0 });
+  const [craftedTools, setCraftedTools] = useState<string[]>([]);
+  const [equippedMainHand, setEquippedMainHand] = useState<string | null>(null);
+  const [chunkHits, setChunkHits] = useState<{ left: number; max: number } | null>(null);
+  const [settings, setSettings] = useState<TutorialSettings>(DEFAULT_TUTORIAL_SETTINGS);
   const [professions, setProfessions] = useState(getActiveGatheringProfessions({}));
   const [allyMessage, setAllyMessage] = useState<string | null>(null);
   const [hasWeapon, setHasWeapon] = useState(false);
+  const wakeCinematicRef = useRef<TutorialWakeCinematic | null>(null);
+  const harvestCtrlRef = useRef<TutorialHarvestController | null>(null);
+  const shipwreckRuntimeRef = useRef<ShipwreckSceneRuntime | null>(null);
+  const [shipwreckRuntime, setShipwreckRuntime] = useState<ShipwreckSceneRuntime | null>(null);
+  const [sceneEditorMode, setSceneEditorMode] = useState(false);
+  const segmentPhaseRef = useRef<TutorialSegmentPhase>('intro_zoom');
 
   const [characterName, setCharacterName] = useState('Shipwrecked');
   const [heroRace, setHeroRace] = useState('human');
@@ -231,7 +265,10 @@ export default function TutorialPage() {
           }
         });
 
-        room.onMessage('player_damaged', (data: { hp: number }) => setHp(data.hp));
+        room.onMessage('player_damaged', () => {
+          // Tutorial: invincible, HP locked at 5
+          setHp(TUTORIAL_LOCKED_HP);
+        });
         room.onMessage('enemy_killed', (data: { type: string; xp: number }) => {
           showNotification(`Defeated ${data.type}! +${data.xp} XP`);
           if (data.type === 'boar') {
@@ -256,10 +293,25 @@ export default function TutorialPage() {
           await addInventoryItem(data.resource, data.quantity);
         });
 
-        room.onMessage('craft_complete', async (data: { name: string; itemId?: string }) => {
+        room.onMessage('craft_complete', async (data: {
+          name: string;
+          itemId?: string;
+          results?: string[];
+          summary?: string;
+          kind?: string;
+        }) => {
           showNotification(`Crafted ${data.name}!`);
-          await addInventoryItem(data.itemId ?? 'item', 1);
-          if (data.itemId === 'raft') {
+          if (data.itemId) {
+            setCraftedTools((prev) =>
+              prev.includes(data.itemId!) ? prev : [...prev, data.itemId!],
+            );
+            await addInventoryItem(data.itemId, 1);
+          }
+          if (data.results?.length) {
+            setAllyMessage(`${data.name}: ${data.results[0]}`);
+          } else if (data.summary) {
+            setAllyMessage(`📖 ${data.summary}`);
+          } else if (data.itemId === 'raft') {
             setAllyMessage('Raft ready — deploy in the water, then press E to board.');
           }
         });
@@ -272,11 +324,28 @@ export default function TutorialPage() {
           showNotification(`+${data.xp} ${data.profession} XP`);
         });
 
-        room.onMessage('tutorial_complete', () => {
+        room.onMessage('tutorial_complete', (data: {
+          message?: string;
+          nextPath?: string;
+          raceId?: string;
+        }) => {
           setCompleted(true);
-          showNotification('Sail complete! Home Island creation next…');
-          // End cutscene → home-island video + create + cNFT
-          setTimeout(() => setLocation('/island-reveal'), 3000);
+          const race = (data?.raceId || heroRace || 'human').toLowerCase();
+          showNotification(data?.message || 'Sail to your faction island — outer ring!');
+          setAllyMessage(
+            'Dock Traveler: Hold the heading for your people. Outer ring — six race islands. Dock and report to the commander.',
+          );
+          try {
+            localStorage.setItem('warlords_tutorial_complete_v1', '1');
+            localStorage.setItem('warlords_tutorial_race_v1', race);
+          } catch {
+            /* ignore */
+          }
+          // Traveler quest end: raft → pirate lobby outer faction island (not home-island yet)
+          const dest =
+            data?.nextPath ||
+            `/island-3d?mode=lobby&map=pirate-islands&from=tutorial&race=${encodeURIComponent(race)}&focus=faction`;
+          setTimeout(() => setLocation(dest), 2800);
         });
 
         room.state.enemies?.onAdd?.((enemy: any, id: string) => {
@@ -373,6 +442,21 @@ export default function TutorialPage() {
     engine.init().then(async () => {
       setLoaded(true);
       engine.start();
+
+      // Complete shipwreck scene: zones, nodes, NPCs, prefabs, pathfinder, gizmo
+      const threeScene = engine.getScene();
+      const cam = engine.getCamera();
+      shipwreckRuntimeRef.current?.dispose();
+      const runtime = createShipwreckSceneRuntime({
+        scene: threeScene,
+        camera: cam,
+        domElement: canvas,
+        def: SHIPWRECK_SCENE,
+        editorMode: false,
+      });
+      shipwreckRuntimeRef.current = runtime;
+      setShipwreckRuntime(runtime);
+
       const cfg = loadConfigRef.current;
       if (engine.character && cfg) {
         await engine.character.loadCharacterFromManifest(
@@ -389,16 +473,171 @@ export default function TutorialPage() {
           },
         );
         engine.character.mode = 'harvest';
+        void engine.character.setControlMode('harvest', cfg.classId, false);
+
+        // Tutorial UX: 5 HP locked + invincible + injured anim pack only for opener
+        setHp(TUTORIAL_LOCKED_HP);
+        engine.character.enableTutorialInjuredMode(TUTORIAL_LOCKED_HP);
+
+        let hasGround = false;
+        let hasGetUp = false;
+        if (engine.character.animations) {
+          const inj = await loadInjuredAnimsOntoManager(engine.character.animations);
+          setInjuredAnimsReady(inj.usable);
+          hasGround = inj.loaded.includes('injured_ground') || engine.character.animations.hasClip('death');
+          hasGetUp = inj.loaded.includes('injured_getup') || engine.character.animations.hasClip('hard_landing');
+          if (inj.usable) {
+            setAllyMessage(
+              'Injured wash-up — Mixamo injured pack active. HP locked at 5 · invincible (tutorial).',
+            );
+          } else {
+            setAllyMessage(
+              'Injured opener (pose fallback) — upload Mixamo Injured Idle/Walk/Run/Ground/Getting Up to /models/animations/injured/. HP 5 · invincible.',
+            );
+          }
+        }
+
+        // First-segment harvest nodes
+        harvestCtrlRef.current?.dispose();
+        const harvest = new TutorialHarvestController(
+          engine.character,
+          threeScene,
+          {
+            onGather: (resource, qty) => {
+              const key = resource === 'stick' ? 'sticks' : 'stones';
+              setResources((prev) => {
+                const next = { ...prev, [key]: (prev[key] || 0) + qty };
+                const sticks = next.sticks || 0;
+                const stones = next.stones || 0;
+                if (
+                  segmentPhaseRef.current === 'gather_basics'
+                  && sticks >= 1
+                  && stones >= 1
+                ) {
+                  segmentPhaseRef.current = 'prompt_pickaxe';
+                  setSegmentPhase('prompt_pickaxe');
+                  setAllyMessage(
+                    'Open Quick Craft — craft a Flint Pickaxe (1 stick · 1 stone), then equip it to MainHand.',
+                  );
+                  showNotification('Objective: Craft flint pickaxe');
+                }
+                return next;
+              });
+              showNotification(`+${qty} ${resource}`);
+              void persistProfessionXp(resource === 'stick' ? 'wood' : 'stone');
+              void addInventoryItem(resource, qty);
+              roomRef.current?.send('harvest', {
+                nodeId: resource === 'stick' ? 'near_stick' : 'near_stone',
+              });
+            },
+            onChunkHit: (left, max) => {
+              setChunkHits({ left, max });
+            },
+            onChunkDestroyed: () => {
+              setChunkHits(null);
+              // Recover from injured opener after first rock break
+              engine.character.disableTutorialInjuredMode();
+              void engine.character.reloadWeaponAnimations('unarmed');
+              segmentPhaseRef.current = 'walk_forward';
+              setSegmentPhase('walk_forward');
+              setAllyMessage(
+                'You steady yourself. Rock shattered — walk forward to trees, flowers, and the chest.',
+              );
+              showNotification('Walk inland → grove');
+            },
+            onPhaseHint: (msg) => setAllyMessage(msg),
+          },
+        );
+        harvest.buildFirstSegmentNodes();
+        harvestCtrlRef.current = harvest;
+
+        const spawn = SHIPWRECK_WAKE.spawn;
+        engine.character.teleportTo(new THREE.Vector3(spawn.x, spawn.y, spawn.z));
+
+        // Slow zoom → injured ground → get-up → injured idle harvest
+        const cinematic = new TutorialWakeCinematic({
+          camera: cam,
+          character: engine.character,
+          skip: false,
+          hasInjuredGround: hasGround,
+          hasInjuredGetUp: hasGetUp,
+          onComplete: () => {
+            setWakePhase('playable');
+            setIntroPlaying(false);
+            setPlayMode('harvest');
+            setHp(TUTORIAL_LOCKED_HP);
+            segmentPhaseRef.current = 'gather_basics';
+            setSegmentPhase('gather_basics');
+            roomRef.current?.send('intro_complete');
+            setAllyMessage(
+              'Dock Traveler: Easy there, shipwrecked. Harvest sticks & stones · craft tools · claim · fight · then raft to your faction island on the outer lobby ring.',
+            );
+          },
+        });
+        wakeCinematicRef.current = cinematic;
+        cinematic.start();
       }
     }).catch(() => {
       engine.start();
       setLoaded(true);
+      setWakePhase('playable');
+      setIntroPlaying(false);
+      setSegmentPhase('gather_basics');
     });
+
+    // Drive cinematic + harvest + scene runtime
+    let raf = 0;
+    let last = performance.now();
+    const tick = (now: number) => {
+      raf = requestAnimationFrame(tick);
+      const dt = Math.min(0.05, (now - last) / 1000);
+      last = now;
+      wakeCinematicRef.current?.update(dt);
+      const eng = engineRef.current;
+      const pos = eng?.character?.getPosition();
+      shipwreckRuntimeRef.current?.update(dt, pos);
+      harvestCtrlRef.current?.update(dt, segmentPhaseRef.current);
+
+      // Walk-forward completion
+      if (
+        segmentPhaseRef.current === 'walk_forward'
+        && pos
+        && harvestCtrlRef.current?.isNearGrove(pos)
+      ) {
+        segmentPhaseRef.current = 'segment_complete';
+        setSegmentPhase('segment_complete');
+        setAllyMessage(
+          'First segment complete. Camp props (flag, fire, torch, tent, storage, benches) unlock for refine / over-time harvest.',
+        );
+        showNotification('Segment complete');
+      }
+    };
+    raf = requestAnimationFrame(tick);
 
     const handleResize = () => engine.resize(window.innerWidth, window.innerHeight);
     window.addEventListener('resize', handleResize);
+    // Tab cycles modes
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Tab') return;
+      e.preventDefault();
+      setPlayMode((prev) => {
+        const order: ControlMode[] = ['harvest', 'combat', 'build'];
+        const next = order[(order.indexOf(prev) + 1) % order.length];
+        void engineRef.current?.character?.setControlMode(next, heroClass, hasWeapon);
+        return next;
+      });
+    };
+    window.addEventListener('keydown', onKey);
     return () => {
+      cancelAnimationFrame(raf);
       window.removeEventListener('resize', handleResize);
+      window.removeEventListener('keydown', onKey);
+      harvestCtrlRef.current?.dispose();
+      harvestCtrlRef.current = null;
+      shipwreckRuntimeRef.current?.dispose();
+      shipwreckRuntimeRef.current = null;
+      setShipwreckRuntime(null);
+      wakeCinematicRef.current = null;
       engine.dispose();
       engineRef.current = null;
     };
@@ -453,9 +692,23 @@ export default function TutorialPage() {
 
   const handleHarvest = () => {
     if (playMode !== 'harvest') { setPlayMode('harvest'); return; }
+    // Prefer complete scene nodes (wake sticks/stones with visuals)
+    const pos = engineRef.current?.character?.getPosition();
+    if (pos && shipwreckRuntimeRef.current) {
+      const node = shipwreckRuntimeRef.current.harvestNearest(pos, 4);
+      if (node) {
+        const key = node.resource === 'stone' ? 'stones' : node.resource === 'stick' ? 'sticks' : (node.resource ?? node.kind);
+        setResources((prev) => ({ ...prev, [key]: (prev[key] || 0) + (node.quantity ?? 1) }));
+        showNotification(`Gathered ${node.resource ?? node.kind}`);
+        void persistProfessionXp(key === 'sticks' ? 'wood' : key);
+        void addInventoryItem(node.resource ?? node.kind, node.quantity ?? 1);
+        roomRef.current?.send('harvest', { nodeId: node.id });
+        return;
+      }
+    }
     const nearest = findNearest(nodesRef.current);
     if (nearest) roomRef.current?.send('harvest', { nodeId: nearest });
-    else showNotification('Click a tree or rock nearby, or walk closer to a node');
+    else showNotification('Walk closer to a stick or stone in the wake pocket');
   };
 
   const handleAttack = () => {
@@ -483,24 +736,95 @@ export default function TutorialPage() {
     if (slot.kind === 'weapon' && playMode !== 'combat') {
       setPlayMode('combat');
     }
-    showNotification(`${slot.label} — ${slot.description.slice(0, 60)}`);
+    showNotification(slot.label);
     roomRef.current?.send('use_skill', { skillId: slot.skillId, kind: slot.kind });
   };
 
   const handleModeChange = (mode: ControlMode) => {
     setPlayMode(mode);
+    // Keep HP locked for full tutorial scene
+    setHp(TUTORIAL_LOCKED_HP);
+    const eng = engineRef.current?.character;
+    if (eng) {
+      eng.invincible = true;
+      eng.tutorialLockedHp = TUTORIAL_LOCKED_HP;
+    }
+    const injuredOpen = (INJURED_OPENER_PHASES as readonly string[]).includes(segmentPhaseRef.current);
     const hints: Record<ControlMode, string> = {
-      harvest: 'Unarmed gather mode — harvest wood and stone for professions.',
-      combat: hasWeapon ? 'Combat ready — LMB attack, keys 1-8 for skills.' : 'Unarmed combat — craft a stone axe in Build mode first.',
-      build: 'Build mode — craft tools and construct your escape raft.',
+      harvest: injuredOpen
+        ? 'Injured harvest — limp walk, soft-lock gather with E / RMB / 1 / 2.'
+        : 'Unarmed gather mode — harvest wood and stone for professions.',
+      combat: hasWeapon ? 'Combat ready — LMB attack, keys 1-8 for skills.' : 'Unarmed combat — craft tools first (tutorial invincible).',
+      build: 'Build mode — craft tools and camp props (tutorial invincible).',
     };
     setAllyMessage(hints[mode]);
   };
 
-  const dismissIntro = () => {
+  const skipWakeCinematic = () => {
+    wakeCinematicRef.current?.skip();
+    setWakePhase('skipped');
     setIntroPlaying(false);
+    setPlayMode('harvest');
+    segmentPhaseRef.current = 'gather_basics';
+    setSegmentPhase('gather_basics');
     roomRef.current?.send('intro_complete');
-    setAllyMessage('Start in Harvest mode — gather driftwood and stone. I\'ll share supplies with our camp.');
+    setAllyMessage(
+      'Harvest mode (unarmed). E · RMB · 1 · 2 to gather stick and stone at your feet.',
+    );
+  };
+
+  const stickCount = resources.sticks ?? resources.stick ?? 0;
+  const stoneCount = resources.stones ?? resources.stone ?? 0;
+
+  const handleQuickCraft = (recipeId: string) => {
+    const recipe = TUTORIAL_QUICK_CRAFT.find((r) => r.id === recipeId);
+    if (!recipe) return;
+    if (!canCraftQuick(recipeId, { stick: stickCount, stone: stoneCount })) {
+      showNotification('Not enough materials');
+      return;
+    }
+    if (craftedTools.includes(recipeId)) {
+      showNotification('Already crafted');
+      return;
+    }
+    setResources((prev) => ({
+      ...prev,
+      sticks: Math.max(0, (prev.sticks || 0) - recipe.cost.stick),
+      stones: Math.max(0, (prev.stones || 0) - recipe.cost.stone),
+    }));
+    setCraftedTools((prev) => [...prev, recipeId]);
+    void addInventoryItem(recipeId, 1);
+    roomRef.current?.send('craft', { recipeId });
+    showNotification(`Crafted ${recipe.name}!`);
+
+    if (recipeId === 't0_pickaxe') {
+      segmentPhaseRef.current = 'equip_pickaxe';
+      setSegmentPhase('equip_pickaxe');
+      setAllyMessage(
+        'Pickaxe crafted! Open Inventory and equip it to MainHand — then soft-lock the large rock (hold E).',
+      );
+    }
+  };
+
+  const handleEquip = (itemId: string) => {
+    setEquippedMainHand(itemId);
+    harvestCtrlRef.current?.setEquippedTool(itemId);
+    void engineRef.current?.character?.setControlMode('harvest', heroClass, false);
+    showNotification(`Equipped ${itemId} → MainHand`);
+    if (itemId === 't0_pickaxe' || /pick/i.test(itemId)) {
+      segmentPhaseRef.current = 'chunk_harvest_stone';
+      setSegmentPhase('chunk_harvest_stone');
+      setAllyMessage(
+        'Pickaxe in hand. Soft-lock the glowing rock — hold E or 1. It will chip and chunk apart.',
+      );
+      setChunkHits({ left: 4, max: 4 });
+    }
+  };
+
+  const handleUnequip = () => {
+    setEquippedMainHand(null);
+    harvestCtrlRef.current?.setEquippedTool(null);
+    showNotification('MainHand cleared');
   };
 
   return (
@@ -508,62 +832,53 @@ export default function TutorialPage() {
       <canvas
         ref={canvasRef}
         className="w-full h-full"
-        onClick={(e) => engineRef.current?.handleClick(e.clientX, e.clientY)}
+        onClick={(e) => {
+          if (wakeCinematicRef.current?.active) return;
+          engineRef.current?.handleClick(e.clientX, e.clientY, {
+            shiftKey: e.shiftKey,
+            ctrlKey: e.ctrlKey,
+            altKey: e.altKey,
+          });
+        }}
       />
 
-      {introPlaying && loaded && (
-        <div className="absolute inset-0 z-50 bg-black/80 flex items-center justify-center pointer-events-auto">
-          <div className="text-center max-w-lg p-8">
-            <h1
-              className="text-4xl font-cinzel font-black tracking-[4px] mb-4"
-              style={{ background: 'linear-gradient(180deg, #f6c945, #fff3c2 50%, #f6c945)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}
-            >
-              SHIPWRECKED
-            </h1>
-            <p className="text-white/60 text-sm leading-relaxed mb-4">
-              Your Grudge6 hero washes ashore unarmed. Learn three play modes:
-              <span className="text-green-400"> Harvest</span>,
-              <span className="text-red-400"> Combat</span>, and
-              <span className="text-blue-400"> Build</span>.
-            </p>
-            <p className="text-amber-400/80 text-xs mb-8 font-cinzel tracking-wider">
-              Tab cycles modes · WASD move · {ally.name} guides your camp
-            </p>
-            <button
-              onClick={dismissIntro}
-              className="font-cinzel font-black text-sm px-10 py-3 rounded-xl border-0 cursor-pointer transition-all hover:-translate-y-0.5"
-              style={{ background: 'linear-gradient(180deg, #f6c945, #d8a819)', color: '#20180a', boxShadow: '0 10px 30px -10px rgba(246,201,69,.5)', letterSpacing: '2px' }}
-            >
-              AWAKEN
-            </button>
-          </div>
-        </div>
-      )}
-
-      {loaded && !introPlaying && (
-        <TutorialGameplayHUD
+      {/* Production HUD — intro chrome + first-segment objectives / craft / equip / settings */}
+      {loaded && (
+        <TutorialProductionHUD
+          phase={segmentPhase}
           characterName={characterName}
-          heroClass={heroClass}
-          level={level}
+          raceLabel={heroRace}
           hp={hp}
           maxHp={maxHp}
-          playMode={playMode}
-          onModeChange={handleModeChange}
-          steps={steps}
-          classHotbar={classHotbar}
-          weaponHotbar={weaponHotbar}
-          professions={professions}
-          resources={resources}
-          hasWeapon={hasWeapon}
-          allyName={ally.name}
+          sticks={stickCount}
+          stones={stoneCount}
+          inventory={craftedTools}
+          equippedMainHand={equippedMainHand}
+          chunkHitsLeft={chunkHits?.left ?? null}
+          chunkMaxHits={chunkHits?.max ?? null}
           allyMessage={allyMessage}
           notification={notification}
-          onHarvest={handleHarvest}
-          onAttack={handleAttack}
-          onCraft={handleCraft}
-          onBuildRaft={handleBuildRaft}
-          onUseSkill={handleUseSkill}
+          playMode={playMode}
+          onModeChange={handleModeChange}
+          onCraft={handleQuickCraft}
+          onEquip={handleEquip}
+          onUnequip={handleUnequip}
+          settings={settings}
+          onSettingsChange={setSettings}
+          introActive={introPlaying && wakePhase === 'cinematic'}
+          onSkipIntro={skipWakeCinematic}
         />
+      )}
+
+      {/* Optional scene editor (gizmo / zones) — after intro */}
+      {loaded && !introPlaying && (
+        <div className="absolute top-3 right-3 z-40">
+          <ShipwreckSceneEditorHUD
+            runtime={shipwreckRuntime}
+            editorMode={sceneEditorMode}
+            onEditorModeChange={setSceneEditorMode}
+          />
+        </div>
       )}
 
       {completed && (

@@ -160,7 +160,12 @@ export default function IslandRevealPage() {
     }
   };
 
-  const enter3D = () => setLocation(`/home-island?characterId=${encodeURIComponent(characterId!)}&islandId=${encodeURIComponent(island!.id)}`);
+  const enter3D = () => {
+    // Home island still requires level 20 in production; force unlock after reveal create
+    setLocation(
+      `/home-island?characterId=${encodeURIComponent(characterId!)}&islandId=${encodeURIComponent(island!.id)}&unlock=1`,
+    );
+  };
   const enter2D = () => setLocation(`/island?characterId=${encodeURIComponent(characterId!)}&islandId=${encodeURIComponent(island!.id)}`);
 
   return (

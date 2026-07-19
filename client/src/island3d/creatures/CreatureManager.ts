@@ -129,6 +129,15 @@ export class CreatureManager {
     this.sampleHeight = sampleHeight;
   }
 
+  /** Keep aquatic life on production tide surface */
+  setWaterLevel(y: number): void {
+    if (Number.isFinite(y)) this.waterLevel = y;
+  }
+
+  getWaterLevel(): number {
+    return this.waterLevel;
+  }
+
   private brainCtx() {
     return { navMesh: this.navMesh, sampleHeight: this.sampleHeight ?? undefined, rand: this.rand };
   }
@@ -618,6 +627,63 @@ export class CreatureManager {
     }
 
     return nearest;
+  }
+
+  /**
+   * Soft-lock candidates — all non-dead land/predator/boss-like within range.
+   * Fish excluded (not combat soft-lock targets).
+   */
+  listSoftLockTargets(
+    pos: THREE.Vector3,
+    maxRange: number,
+  ): Array<{
+    id: string;
+    name: string;
+    position: THREE.Vector3;
+    hp: number;
+    maxHp: number;
+    dist: number;
+    category: string;
+  }> {
+    const out: Array<{
+      id: string;
+      name: string;
+      position: THREE.Vector3;
+      hp: number;
+      maxHp: number;
+      dist: number;
+      category: string;
+    }> = [];
+    for (const [id, c] of this.creatures) {
+      if (c.state === 'dead' || c.state === 'despawned') continue;
+      if (c.def.category === 'fish') continue;
+      const dist = c.group.position.distanceTo(pos);
+      if (dist > maxRange) continue;
+      const chest = c.group.position.clone();
+      chest.y += 1.2;
+      out.push({
+        id,
+        name: c.def.name,
+        position: chest,
+        hp: c.hp ?? c.def.hp ?? 50,
+        maxHp: c.def.hp ?? 50,
+        dist,
+        category: c.def.category,
+      });
+    }
+    return out;
+  }
+
+  /** Alive check for soft-lock / combat preference */
+  isAlive(id: string): boolean {
+    const c = this.creatures.get(id);
+    return !!c && c.state !== 'dead' && c.state !== 'despawned';
+  }
+
+  getWorldPosition(id: string): THREE.Vector3 | null {
+    const c = this.creatures.get(id);
+    if (!c || c.state === 'dead' || c.state === 'despawned') return null;
+    return c.group.position.clone();
   }
 
   // ── Helpers ────────────────────────────────────────────────────────────

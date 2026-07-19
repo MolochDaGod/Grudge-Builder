@@ -67,14 +67,17 @@ export const RACE_CITIES: RaceCity[] = [
     id: 'runeforge_hold',
     raceId: 'dwarf',
     name: 'Runeforge Hold',
-    subtitle: 'Dwarf Capital · Frost Peaks',
+    subtitle: 'Dwarf Capital · Fabled Core',
     sectorId: 'frostbite_expanse',
     factionTownKey: 'fabled',
     dungeon: { id: 'frozen_dungeon_0', name: 'Glacial Depths', entranceModel: 'cave' },
     harvest: ['mining', 'skinning'],
-    description: 'Frozen highland forges and sealed dwarven gates. Ore veins and glacial dungeons.',
-    modelPath: '/models/towns/cathedral_sanctum.glb',
-    modelScale: 1.0,
+    description:
+      'Fabled sector core (fabledzone.glb): multi-island forge village. Cave doorways and building mouths ' +
+      'portal into the uMMORPG dwarf main city / castle and hold interiors. Extra procedural islands around the core.',
+    // Core visual — FabledZoneFoundationLoader; castle via portals
+    modelPath: '/models/warlords/fabled/fabledzone.glb',
+    modelScale: 1.15,
   },
   {
     id: 'starweave_canopy',

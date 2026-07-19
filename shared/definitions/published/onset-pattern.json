@@ -1,0 +1,58 @@
+{
+  "version": "2.0.0",
+  "updated": "2026-07-18",
+  "worldSeedDefault": "grudge-world-1",
+  "journey": [
+    {
+      "step": 1,
+      "id": "intro",
+      "path": "/intro",
+      "label": "Opening scene"
+    },
+    {
+      "step": 2,
+      "id": "create",
+      "path": "/create-character",
+      "label": "GCS character (account)"
+    },
+    {
+      "step": 3,
+      "id": "tutorial",
+      "path": "/tutorial",
+      "label": "Shipwreck tutorial"
+    },
+    {
+      "step": 4,
+      "id": "open_world",
+      "path": "/play?sector=haven_shore&mode=zone&worldSeed=grudge-world-1&city=haven_port",
+      "label": "Open world · Haven Port (starter)"
+    },
+    {
+      "step": 5,
+      "id": "world_map",
+      "path": "/world-map",
+      "label": "9 sectors · 6 race capitals"
+    },
+    {
+      "step": 6,
+      "id": "fabled_core",
+      "path": "/play?sector=frostbite_expanse&mode=zone&worldSeed=grudge-world-1&city=runeforge_hold",
+      "label": "Fabled core · Runeforge Hold · cave portals → dwarf city"
+    },
+    {
+      "step": 7,
+      "id": "home_island",
+      "path": "/home-island",
+      "label": "Home island (level 20+)"
+    }
+  ],
+  "sources": {
+    "assetsCdn": "https://assets.grudge-studio.com",
+    "objectStore": "https://objectstore.grudge-studio.com",
+    "accounts": "https://id.grudge-studio.com",
+    "characters": "https://character.grudge-studio.com",
+    "gameData": "https://client.grudge-studio.com",
+    "vfx": "https://assets.grudge-studio.com/effects/",
+    "raceGlbs": "https://assets.grudge-studio.com/models/characters/races/"
+  }
+}

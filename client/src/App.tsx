@@ -19,6 +19,15 @@ import CharacterRedirect from "@/pages/character-redirect";
 import ProfessionsPage from "@/pages/professions";
 import DatabasePage from "@/pages/database";
 import IntroPage from "@/pages/intro";
+import WarlordsLandingPage from "@/pages/warlords-landing";
+import WarlordsAccountPage from "@/pages/warlords-account";
+import LoreIndexPage from "@/pages/lore/index";
+import LoreGodsPage from "@/pages/lore/gods";
+import LoreFactionsPage from "@/pages/lore/factions";
+import LoreHeroesPage from "@/pages/lore/heroes";
+import LoreWorldPage from "@/pages/lore/world";
+import LoreSectorsPage from "@/pages/lore/sectors";
+import LoreSectorDetailPage from "@/pages/lore/sector-detail";
 import HomePage from "@/pages/home";
 import CombatPage from "@/pages/combat";
 import SkillTreePage from "@/pages/skill-tree";
@@ -56,6 +65,7 @@ import HarvestPage from "@/pages/Harvest";
 import HeroCodexPage from "@/pages/hero-codex";
 import CraftingPage from "@/pages/crafting";
 import Island3DPage from "@/pages/island-3d";
+import OpenWorldEntryPage from "@/pages/open-world";
 import WarScenePage from "@/pages/war-scene";
 import AuthCallbackPage from "@/pages/auth-callback";
 import EditorPage from "@/pages/editor";
@@ -75,9 +85,11 @@ import GrudaWarsPage from "@/pages/grudawars";
 import PlayPage from "@/pages/play";
 import OceanPage from "@/pages/ocean";
 import TutorialPage from "@/pages/tutorial";
+import WarlordsStartPage from "@/pages/warlords-start";
 const WorldNativePage = lazy(() => import("@/pages/world-native"));
 import IslandRevealPage from "@/pages/island-reveal";
 import HomeIslandPage from "@/pages/home-island";
+import HomeIslandEntryPage from "@/pages/homeisland";
 import IslandsPage from "@/pages/islands";
 import { RtsDomainBootstrap } from "@/components/RtsDomainBootstrap";
 import { hydrateVideoCatalog } from "@/lib/fleetVideo";
@@ -94,9 +106,17 @@ import { CharacterManager } from "@/lib/characterManager";
 function Router() {
   return (
     <Switch>
-      <Route path="/" component={IntroPage} />
+      <Route path="/" component={WarlordsLandingPage} />
       <Route path="/auth/callback" component={AuthCallbackPage} />
       <Route path="/intro" component={IntroPage} />
+      <Route path="/landing" component={WarlordsLandingPage} />
+      <Route path="/lore" component={LoreIndexPage} />
+      <Route path="/lore/gods" component={LoreGodsPage} />
+      <Route path="/lore/factions" component={LoreFactionsPage} />
+      <Route path="/lore/heroes" component={LoreHeroesPage} />
+      <Route path="/lore/world" component={LoreWorldPage} />
+      <Route path="/lore/sectors" component={LoreSectorsPage} />
+      <Route path="/lore/sectors/:sectorId" component={LoreSectorDetailPage} />
       <Route path="/home" component={HomePage} />
       <Route path="/character" component={CharacterRedirect} />
       <Route path="/characters" component={CharacterRedirect} />
@@ -124,7 +144,8 @@ function Router() {
       <Route path="/world-map" component={WorldMapPage} />
       <Route path="/missions" component={MissionBoardPage} />
       <Route path="/wallet" component={WalletPage} />
-      <Route path="/account" component={AccountPage} />
+      <Route path="/account" component={WarlordsAccountPage} />
+      <Route path="/account/legacy" component={AccountPage} />
       <Route path="/treaty" component={TreatyPage} />
       <Route path="/ai-helper" component={AIHelperGenerator} />
       <Route path="/admin-map" component={AdminMapPage} />
@@ -138,6 +159,8 @@ function Router() {
       <Route path="/lobby" component={HomePage} />
       <Route path="/launcher" component={LauncherPage} />
       <Route path="/rts-grudge" component={RtsGrudgePage} />
+      <Route path="/open-world" component={OpenWorldEntryPage} />
+      <Route path="/openworld" component={OpenWorldEntryPage} />
       <Route path="/sailing" component={OceanPage} />
       <Route path="/ocean" component={OceanPage} />
       <Route path="/tower-wars">{() => <Suspense fallback={null}><TowerWarsPage /></Suspense>}</Route>
@@ -161,9 +184,13 @@ function Router() {
       <Route path="/cloudfix">{() => <Suspense fallback={null}><WorldNativePage /></Suspense>}</Route>
       <Route path="/warlords">{() => <Suspense fallback={null}><WorldNativePage /></Suspense>}</Route>
       <Route path="/tutorial" component={TutorialPage} />
+      <Route path="/warlords/start" component={WarlordsStartPage} />
+      <Route path="/warlords" component={WarlordsStartPage} />
       <Route path="/island-reveal" component={IslandRevealPage} />
       <Route path="/islands" component={IslandsPage} />
       <Route path="/home-island" component={HomeIslandPage} />
+      <Route path="/homeisland" component={HomeIslandEntryPage} />
+      <Route path="/homeIsland" component={HomeIslandEntryPage} />
       <Route path="/weapon-admin" component={WeaponModelAdminPage} />
       <Route path="/weapon-skills" component={WeaponSkillsPage} />
       <Route path="/weapon-mastery" component={WeaponMasteryPage} />

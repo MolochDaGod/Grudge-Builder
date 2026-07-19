@@ -443,7 +443,11 @@ export default function PlayPage() {
           if (!engine) return;
           const wasProp = engine.building?.isPropPlacing;
           const propCountBefore = engine.building?.propCount ?? 0;
-          engine.handleClick(e.clientX, e.clientY);
+          engine.handleClick(e.clientX, e.clientY, {
+            shiftKey: e.shiftKey,
+            ctrlKey: e.ctrlKey,
+            altKey: e.altKey,
+          });
           // Sync placed prop to Colyseus if a prop was just placed
           if (wasProp && engine.building) {
             const props = engine.building.getAllProps();

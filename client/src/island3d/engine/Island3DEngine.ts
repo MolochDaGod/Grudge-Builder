@@ -16,6 +16,29 @@ import {
 } from '../terrain/IslandTerrainGenerator';
 import type { RtsHeightmapPayload } from '@shared/definitions/rtsTerrainBridge';
 import { createTerrainMaterialAsync } from '../terrain/TerrainMaterial';
+import {
+  sculptTerrainFromRay,
+  SHOVEL_BRUSH,
+  type ShovelSculptMode,
+} from '../terrain/ShovelTerrainSculptor';
+import {
+  getEquippedToolType,
+  hasShovelEquipped,
+  hasHoeEquipped,
+  hasBucketEquipped,
+  hasWaterBucket,
+  shovelModeFromModifiers,
+  type GroundToolId,
+} from '@/game/harvest/HarvestToolActions';
+import { FarmPlotSystem } from '../farming/FarmPlotSystem';
+import { GroundToolBrush } from '../farming/GroundToolBrush';
+import {
+  ITEM_EMPTY_BUCKET,
+  ITEM_WATER_BUCKET,
+  STARTER_SEED_STACKS,
+  tryAutoWaterCraft,
+  getSeedById,
+} from '@shared/definitions/farming';
 import { placeResourceNodes, type PlacedNode3D } from '../terrain/NodePlacer';
 import { createScatterDecorations } from '../objects/ScatterDecorations';
 import { createHarvestableTree, type HarvestableTree } from '../objects/HarvestableTree';
@@ -39,15 +62,33 @@ import { applyLobbySurfaceLayers } from '../terrain/LobbySurfaceLayers';
 import { buildLobbyCollider, type LobbyColliderResult } from '../physics/LobbyColliderSystem';
 import { createLobbyPlayZone, type LobbyPlayZoneResult } from './LobbyPlayZone';
 import {
+  createFactionLobbyIslands,
+  type FactionIslandRuntime,
+} from '../lobby/FactionIslandGenerator';
+import {
+  fetchProductionGmap,
+  applyGmapEntityOverlays,
+  resolveHudFromGmap,
+  type LoadedGmap,
+} from '../lobby/loadProductionGmap';
+import type { ProductionHudSchema } from '@shared/definitions/productionMapPackage';
+import {
   createOceanMesh,
   updateOceanMaterial,
   flattenTerrainBelowWater as flattenTerrainVertsBelowWater,
   removeDuplicateWaterMeshes,
 } from '../terrain/WaterMaterial';
+import {
+  createPirateLobbyOcean,
+  inferLobbyShoreDisks,
+  updatePirateLobbyOcean,
+  isPirateLobbyOcean,
+} from '../terrain/PirateLobbyOcean';
+import { registerMeshPrefabs, sculptSandPrefab } from '../map/MeshPrefabRegistry';
 import { PostProcessing, type QualityPreset } from '../render/PostProcessing';
 import { DayNightCycle, type DayNightConfig } from '../environment/DayNightCycle';
+import { getTideHeight, DAY_NIGHT_DEFAULTS } from '@shared/definitions/gameClock';
 import { CharacterController3D, type CharacterController3DConfig, type PhysicsCallbacks } from '../player/CharacterController3D';
-import { WEAPON_SKILL_SLOTS } from '@/lib/hotbarLayout';
 import { TerrainNavMesh } from '../navigation/TerrainNavMesh';
 import { AllyManager, type CombatTarget } from '../ai/AllyController';
 import { BuildingSystem, type PieceType } from '../building/BuildingSystem';
@@ -67,6 +108,20 @@ import {
   createEvilMountainTriad,
   EvilMountainTriadSystem,
 } from '../objects/EvilMountainTriad';
+import {
+  createHiddenMountainCity,
+  type HiddenMountainCityRuntime,
+} from '../objects/HiddenMountainCity';
+import {
+  createSectorEventLandmarks,
+  type SectorEventLandmarksRuntime,
+} from '../objects/SectorEventLandmarks';
+import { isHiddenMountainCitySector } from '@shared/definitions/hiddenMountainCity';
+import {
+  getSectorProductionContent,
+  resolveSectorSeeds,
+  type SectorProductionContent,
+} from '@shared/definitions/sectorProductionContent';
 import { preloadIslandResources } from '../objects/IslandResourceLoader';
 import type { RtsNatureScatterPayload } from '@shared/definitions/rtsNatureScatter';
 import { resolveHomeIslandFoundation } from '@shared/definitions/homeIslandFoundations';
@@ -80,10 +135,19 @@ import {
   type HavenFoundationResult,
 } from '../zone/HavenShoreFoundationLoader';
 import {
+  loadFabledZoneFoundation,
+  type FabledFoundationResult,
+} from '../zone/FabledZoneFoundationLoader';
+import {
   isHavenShoreSector,
   HAVEN_SHORE_FOUNDATION,
   havenHarvestToZoneNodes,
 } from '@shared/definitions/havenShoreFoundation';
+import {
+  isFabledZoneSector,
+  FABLED_ZONE_FOUNDATION,
+  fabledZoneScaleForSector,
+} from '@shared/definitions/fabledZoneFoundation';
 import { getRaceCityBySector, getRaceCityById } from '@shared/definitions/raceCities';
 import {
   HARVEST_RESPAWN_MS,
@@ -249,9 +313,67 @@ export class Island3DEngine {
   private lobbyAnimMixer: THREE.AnimationMixer | null = null;
   public lobbyCapture: LobbyCaptureSystem | null = null;
   public lobbyShip: LobbyShipSystem | null = null;
+
+  /** Bounds for LobbyMiniMap / island SSOT world projection */
+  public getLobbyMapBounds(): { center: THREE.Vector3; size: THREE.Vector3 } | null {
+    if (!this.lobbyResult) return null;
+    return { center: this.lobbyResult.center, size: this.lobbyResult.size };
+  }
+
+  /**
+   * Hot-reload published production .gmap → entity overlays + HUD schema.
+   * Safe to call after lobby load or when publish API updates package.
+   */
+  public async reloadProductionGmap(): Promise<LoadedGmap | null> {
+    if (this.gmapOverlayRoot) {
+      this.scene.remove(this.gmapOverlayRoot);
+      this.gmapOverlayRoot.traverse((o) => {
+        const m = o as THREE.Mesh;
+        if (m.isMesh) {
+          m.geometry?.dispose();
+          const mats = Array.isArray(m.material) ? m.material : [m.material];
+          mats.forEach((mat) => mat?.dispose?.());
+        }
+      });
+      this.gmapOverlayRoot = null;
+    }
+
+    const gmap = await fetchProductionGmap();
+    this.productionGmap = gmap;
+    this.productionHud = resolveHudFromGmap(gmap);
+
+    if (gmap && this.lobbyResult) {
+      this.gmapOverlayRoot = applyGmapEntityOverlays(
+        this.scene,
+        gmap,
+        { x: this.lobbyResult.center.x, z: this.lobbyResult.center.z },
+        { x: this.lobbyResult.size.x, z: this.lobbyResult.size.z },
+      );
+    }
+
+    // Notify UI layers (React can subscribe)
+    try {
+      window.dispatchEvent(
+        new CustomEvent('grudge:production-gmap', {
+          detail: { gmap, hud: this.productionHud },
+        }),
+      );
+    } catch {
+      /* non-browser */
+    }
+
+    return gmap;
+  }
   /** Set when player presses E at south dock — UI shows ShipDockPanel */
   public dockInteractPending = false;
   public lobbyPlayZone: LobbyPlayZoneResult | null = null;
+  /** 6 race faction islands on pirate open-world borders */
+  public factionIslands: FactionIslandRuntime | null = null;
+  /** Hot-loaded production .gmap (publish API / static) */
+  public productionGmap: LoadedGmap | null = null;
+  /** HUD layout from gmap (panels + flags) */
+  public productionHud: ProductionHudSchema | null = null;
+  private gmapOverlayRoot: THREE.Group | null = null;
   private lobbyCollider: LobbyColliderResult | null = null;
   private lobbyCapturing = false;
 
@@ -263,8 +385,21 @@ export class Island3DEngine {
   public zoneCapital: ZoneCapitalResult | null = null;
   /** Haven Shore Fruzer foundation (PVE trade village) — only for haven_shore */
   public havenFoundation: HavenFoundationResult | null = null;
+  /** Fabled core (fabledzone.glb) + cave portals → dwarf castle / interiors */
+  public fabledFoundation: FabledFoundationResult | null = null;
   /** Dungeon entrance portals from zone population */
   public zoneDungeonPortals: ZoneDungeonPortalsResult | null = null;
+  /**
+   * Thornwood Wilds (top-right / NE): mountainshiddencity.glb + island boss.
+   * Defeat the Warden to unseal the door into the city under the mountain.
+   */
+  public hiddenMountainCity: HiddenMountainCityRuntime | null = null;
+  /** Production sector landmarks (event falls, biome kits, etc.) */
+  public sectorEventLandmarks: SectorEventLandmarksRuntime | null = null;
+  /** Full per-sector production package (textures, seeds, monsters, harvest…) */
+  public sectorProduction: SectorProductionContent | null = null;
+  /** Fire / smoke / teleport / dash-foot particle bus (threejs-games style) */
+  public worldFx: import('../vfx/WorldFxBus').WorldFxBus | null = null;
 
   // Player character
   public character: CharacterController3D | null = null;
@@ -302,6 +437,32 @@ export class Island3DEngine {
   // Raycaster for mouse picking
   private raycaster = new THREE.Raycaster();
   private mouse = new THREE.Vector2();
+
+  /**
+   * Harvest HUD ground tool: shovel | hoe | seed | bucket.
+   * When null, equipment MainHand is used for shovel/hoe/bucket.
+   */
+  public harvestToolOverride: GroundToolId = null;
+  /** Selected seed item id for planting (from action slots / inventory). */
+  public selectedSeedId: string | null = null;
+  /** Empty vs full water bucket (Valheim pail). */
+  public bucketHasWater = false;
+  /** Water charges for auto-craft (each fill adds charges; each water use spends 1). */
+  public waterCharges = 0;
+  /** Local farm inventory overlay (seeds + harvest) — merged with HUD resources. */
+  public farmInventory: Record<string, number> = { ...STARTER_SEED_STACKS, [ITEM_EMPTY_BUCKET]: 1 };
+  /** Last shovel stroke feedback for HUD */
+  public lastShovelStroke: { mode: ShovelSculptMode; ok: boolean; at: number } | null = null;
+  private shovelCooldownUntil = 0;
+  private groundToolCooldownUntil = 0;
+
+  /** Valheim farm plots (hoe / seed / water) */
+  public farmPlots: FarmPlotSystem | null = null;
+  /** 2 m ground-tool circle preview */
+  public groundBrush: GroundToolBrush | null = null;
+  /** Optional external bag merge (page resources) */
+  private externalResourceGetter: (() => Record<string, number>) | null = null;
+  private externalResourceSetter: ((bag: Record<string, number>) => void) | null = null;
 
   // Harvest FX — log/debris drops + tree fall animations
   private harvestDrops: HarvestDrop[] = [];
@@ -344,6 +505,13 @@ export class Island3DEngine {
     this.clock = new THREE.Clock();
 
     this.setupLighting();
+
+    // Fire/smoke particle bus (boats, campfires, attacks, teleports, dash feet)
+    void import('../vfx/WorldFxBus').then(({ WorldFxBus, setWorldFxBus }) => {
+      this.worldFx = new WorldFxBus(this.scene);
+      setWorldFxBus(this.worldFx);
+      this.character?.setWorldFxBus?.(this.worldFx);
+    });
 
     // Post-processing — default to 'low' for performance
     this.postProcessing = new PostProcessing(
@@ -430,7 +598,7 @@ export class Island3DEngine {
     this.scene.add(this.lobbyResult.scene);
 
     const surface = await applyLobbySurfaceLayers(this.lobbyResult, (pct) => {
-      this.config.onLoadProgress?.(35 + Math.round(pct * 0.35));
+      this.config.onLoadProgress?.(35 + Math.round(pct * 0.25));
     });
     this.lobbyCollider = buildLobbyCollider(this.lobbyResult, surface.walkableMeshes);
     this.scene.add(this.lobbyCollider.colliderMesh);
@@ -442,20 +610,61 @@ export class Island3DEngine {
       this.lobbyResult.size.z,
     );
 
-    // Single strengthened ocean — GLTF water meshes already hidden in surface layers
+    // Every mesh = prefab (houses, rocks, docks, sand…); sand marked sculptable
+    const prefabReg = registerMeshPrefabs(
+      this.lobbyResult.scene,
+      this.config.lobbyIslandId || 'grudge-open-world',
+    );
+
+    // Map composition overlays (tents, chests, modular dock, nature samples)
+    try {
+      const { loadMapComposition } = await import('../map/MapCompositionLoader');
+      const comp = await loadMapComposition(
+        this.scene,
+        this.config.lobbyIslandId || 'grudge-open-world',
+        this.lobbyResult.scene,
+        (pct, label) => {
+          this.config.onLoadProgress?.(55 + Math.round(pct * 0.1));
+          if (pct % 30 === 0) console.log(`[Island3D] Map chunks: ${label}`);
+        },
+      );
+      // Drop composition's generic ocean — we use TI-quality pirate ocean below
+      if (comp.ocean) {
+        this.scene.remove(comp.ocean);
+        comp.ocean.geometry?.dispose();
+        (comp.ocean.material as THREE.Material)?.dispose?.();
+      }
+      console.log(`[Island3D] ${comp.summary}`);
+    } catch (err) {
+      console.warn('[Island3D] Map composition overlay skipped', err);
+    }
+
+    // TI-quality ocean: calm under decks/piers → shallow beach → deep falloff
     removeDuplicateWaterMeshes(this.scene);
-    this.waterPlane = createOceanMesh({
+    if (this.waterPlane) {
+      this.scene.remove(this.waterPlane);
+      this.waterPlane.geometry?.dispose();
+      this.waterPlane = null;
+    }
+    const shores = inferLobbyShoreDisks(
+      this.lobbyResult.scene,
+      this.lobbyResult.center,
+      this.lobbyResult.size,
+    );
+    this.waterPlane = createPirateLobbyOcean({
+      size: Math.max(maxDim * 6, 2400),
+      segments: 128,
       waterLevel: LOBBY_WATER_LEVEL,
-      size: Math.max(maxDim * 6, 1200),
-      segments: 64,
-      strength: 1.3,
-      shallowColor: new THREE.Color(0x1ec8d4),
-      deepColor: new THREE.Color(0x0a355f),
+      oceanFloorLevel: -24,
+      islands: shores.islands,
+      piers: shores.piers,
     });
-    this.waterPlane.name = 'lobby-ocean';
-    this.waterPlane.userData.grudgeKeepOcean = true;
-    this.waterPlane.renderOrder = 0;
     this.scene.add(this.waterPlane);
+    console.log(
+      `[Island3D] Pirate TI ocean · prefabs=${prefabReg.prefabs.length} · ` +
+        `sculptable sand=${prefabReg.sculptable.length} · ` +
+        `islands=${shores.islands.length} piers=${shores.piers.length}`,
+    );
 
     // Play any embedded animations
     if (this.lobbyResult.animations.length > 0) {
@@ -498,6 +707,32 @@ export class Island3DEngine {
 
     // Evil mountain triad — seeded dungeon event on a northern island
     await this.createLobbyMountainDungeon();
+
+    // 6 race faction islands on map borders (4 docks · 5 buildings · heroes · boat)
+    try {
+      this.factionIslands = await createFactionLobbyIslands({
+        scene: this.scene,
+        lobbyCenter: {
+          x: this.lobbyResult.center.x,
+          z: this.lobbyResult.center.z,
+        },
+        lobbySize: {
+          x: this.lobbyResult.size.x,
+          z: this.lobbyResult.size.z,
+        },
+      });
+      console.log(
+        `[Island3D] Faction islands ×${this.factionIslands.islands.length} ` +
+          `(captain+mount · traveler · blacksmith · benches · siege · dock boat)`,
+      );
+    } catch (err) {
+      console.warn('[Island3D] Faction islands skipped', err);
+      this.factionIslands = null;
+    }
+
+    // Hot-reload production .gmap (publish API / static package) → overlays + HUD
+    await this.reloadProductionGmap();
+
     this.config.onLoadProgress?.(92);
 
     // Playable Grudge6 character on lobby terrain
@@ -571,29 +806,14 @@ export class Island3DEngine {
       physics: { waterLevel: LOBBY_WATER_LEVEL, doubleJump: true },
       callbacks: this.config.physicsCallbacks,
     });
+    this.character.setWorldFxBus?.(this.worldFx);
 
-    const { CharacterManager } = await import('@/lib/characterManager');
-    const { hotbarFromCharacter } = await import('@/lib/hotbarLayout');
-    const activeChar = await CharacterManager.getActiveCharacter?.();
-    if (activeChar?.equipment) {
-      this.character.setEquipment(activeChar.equipment);
-    }
-    const hotbar = hotbarFromCharacter(activeChar);
-    const hasWeaponSkills = WEAPON_SKILL_SLOTS.some((s) => hotbar.weaponSkills[s]);
-    if (hasWeaponSkills) {
-      this.character.loadHotbar(hotbar);
-    } else {
-      this.character.loadHotbar({
-        weaponSkills: {
-          1: 'warrior_0_strike',
-          2: 'grim_dest_blast',
-          3: 'grim_prot_ward',
-          4: 'grim_conj_minion',
-          5: 'grim_conj_lord',
-        },
-        consumables: hotbar.consumables,
-        classAbilities: hotbar.classAbilities,
-      });
+    // Grudge6 race prefab + main-panel meshes + weapon skills (uMMORPG parity)
+    try {
+      const { applyGrudge6PlayerToController } = await import('@/lib/loadGrudge6Player');
+      await applyGrudge6PlayerToController(this.character, { forceDefault: true });
+    } catch (err) {
+      console.warn('[Island3D] Lobby Grudge6 character apply failed — capsule until UI reload', err);
     }
     this.controls.enabled = false;
     this.characterActive = true;
@@ -681,6 +901,7 @@ export class Island3DEngine {
       );
     }
     this.scene.add(this.terrain.terrainScene);
+    this.ensureFarmSystems();
     progress(28);
 
     // 2. Ocean optional — home island defaults to dry board (no conflicting water plane)
@@ -915,11 +1136,27 @@ export class Island3DEngine {
     this.zoneSector = sector;
     const cfg = sector.terrain3d;
 
+    // 0. Production content package — textures, seeds, monsters, harvest, landmarks
+    const prod = getSectorProductionContent(sectorId);
+    this.sectorProduction = prod;
+    const seeds = resolveSectorSeeds(sectorId, worldSeed);
+    if (prod) {
+      console.log(
+        `[Island3D] Sector production package "${prod.name}" ` +
+          `eco=${prod.ecosystemId} pbr=${prod.harvest.groundPbr} ` +
+          `landmarks=${prod.events.landmarks.length} ` +
+          `animals=${prod.wildlife.animals.join(',')} ` +
+          `terrainSeed=${seeds.terrain}`,
+      );
+    }
+
     // 1. Generate deterministic zone population (shared with server)
+    // Population uses worldSeed:sectorId:pop — matches sectorProductionContent keys.
     this.zonePopulation = generateZonePopulation(
       sectorId, worldSeed, cfg.sizeMeters,
       sector.difficultyMin, sector.difficultyMax,
-      sector.resources, sector.biome,
+      prod?.harvest.resources ?? sector.resources,
+      sector.biome,
     );
 
     // 1b. Haven Shore PVE trade foundation — inject DB harvest UUIDs into population
@@ -1005,7 +1242,42 @@ export class Island3DEngine {
       }
     }
 
-    if (raceCity && !this.havenFoundation && capitalIsland) {
+    // Fabled core — fabledzone.glb + cave doorways → dwarf main city / buildings
+    // Sector can still host many procedural islands; this is the capital core.
+    if (isFabledZoneSector(sectorId) && capitalIsland && !this.havenFoundation) {
+      try {
+        const ox = capitalIsland.position[0];
+        const oz = capitalIsland.position[2];
+        this.fabledFoundation = await loadFabledZoneFoundation(this.scene, {
+          sectorId,
+          origin: [ox, cfg.waterLevel, oz],
+          scale: fabledZoneScaleForSector(sectorId),
+          onEnterInterior: (def, session) => {
+            // Warp player into interior spawn when character is ready
+            if (this.character) {
+              this.character.teleportTo(session.spawn);
+            }
+            console.log(`[Island3D] Fabled portal → ${def.label}`);
+          },
+        });
+        if (raceCity) {
+          this.zoneCapital = await spawnRaceCapitalInZone(
+            this.scene,
+            { ...raceCity, modelPath: '' }, // fabledzone owns core 3D
+            ox,
+            oz,
+            this.zoneScene.islandMeshes.get(capitalIsland.id) ?? null,
+          );
+        }
+        console.log(
+          `[Island3D] Fabled zone core (fabledzone.glb) + cave portals at (${ox.toFixed(0)}, ${oz.toFixed(0)})`,
+        );
+      } catch (err) {
+        console.warn('[Island3D] Fabled zone foundation failed, falling back to capital GLB:', err);
+      }
+    }
+
+    if (raceCity && !this.havenFoundation && !this.fabledFoundation && capitalIsland) {
       const capMesh =
         this.zoneScene.islandMeshes.get(capitalIsland.id) ??
         this.zoneScene.islandMeshes.values().next().value ??
@@ -1036,6 +1308,73 @@ export class Island3DEngine {
       },
     );
 
+    // Shared ground sampler for landmarks / mountain city
+    const islandMeshes = this.zoneScene.islandMeshes;
+    const sampleGround = (x: number, z: number): number | null => {
+      const ray = new THREE.Raycaster(
+        new THREE.Vector3(x, 900, z),
+        new THREE.Vector3(0, -1, 0),
+      );
+      for (const mesh of islandMeshes.values()) {
+        const hits = ray.intersectObject(mesh, true);
+        if (hits.length > 0) return hits[0].point.y;
+      }
+      return cfg.waterLevel + 2;
+    };
+
+    // 2e. Hidden Mountain City — top-right biome (thornwood_wilds)
+    // Boss on the island must fall before the under-mountain city door opens.
+    if (isHiddenMountainCitySector(sectorId)) {
+      try {
+        this.hiddenMountainCity = await createHiddenMountainCity({
+          scene: this.scene,
+          zoneSizeM: cfg.sizeMeters,
+          sampleGround,
+          onEnterCity: (dungeonId, dungeonName) => {
+            this.config.onDungeonEnter?.(dungeonId, dungeonName);
+          },
+          onBossDefeated: () => {
+            console.info('[Island3D] Hidden Mountain City — Warden defeated, door unsealed');
+          },
+        });
+        if (this.hiddenMountainCity) {
+          console.log(
+            `[Island3D] Hidden Mountain City loaded in ${sectorId} (defeat boss to open door)`,
+          );
+        }
+      } catch (err) {
+        console.warn('[Island3D] Hidden Mountain City failed to load:', err);
+      }
+    }
+
+    // 2f. Sector event landmarks from production package
+    // (eventfalls.glb for ethereal_falls, ice kit, etc. — skip dedicated systems)
+    if (prod?.events.landmarks.length) {
+      try {
+        this.sectorEventLandmarks = await createSectorEventLandmarks({
+          scene: this.scene,
+          zoneSizeM: cfg.sizeMeters,
+          landmarks: prod.events.landmarks,
+          sampleGround,
+          skipIds: [
+            // Handled by dedicated systems
+            'hidden_mountain_city',
+            'fabledzone_core', // FabledZoneFoundationLoader
+          ],
+        });
+        if (this.sectorEventLandmarks) {
+          console.log(
+            `[Island3D] Sector landmarks loaded: ${this.sectorEventLandmarks.loaded.join(', ') || '(none)'} ` +
+              (this.sectorEventLandmarks.failed.length
+                ? `(fallback: ${this.sectorEventLandmarks.failed.join(', ')})`
+                : ''),
+          );
+        }
+      } catch (err) {
+        console.warn('[Island3D] Sector event landmarks failed:', err);
+      }
+    }
+
     // 3. Apply sector sky + fog
     this.scene.background = new THREE.Color(cfg.skyColor);
     this.scene.fog = new THREE.FogExp2(cfg.fog.color, cfg.fog.density);
@@ -1064,6 +1403,12 @@ export class Island3DEngine {
           cfg.waterLevel + 4,
           this.havenFoundation.root.position.z + 22,
         ]
+      : this.fabledFoundation
+        ? [
+            this.fabledFoundation.root.position.x + 12,
+            cfg.waterLevel + 6,
+            this.fabledFoundation.root.position.z + 28,
+          ]
       : this.zoneCapital
         ? [this.zoneCapital.spawn.x, this.zoneCapital.spawn.y, this.zoneCapital.spawn.z]
         : dockOrSpawn;
@@ -1099,6 +1444,7 @@ export class Island3DEngine {
         gridW: 0,
         gridH: 0,
       };
+      this.ensureFarmSystems();
       // Plant on spawn tile (no +3m float — feet sit on board square)
       const spawnPos = new THREE.Vector3(entryPoint[0], entryPoint[1], entryPoint[2]);
       this.character = new CharacterController3D({
@@ -1109,23 +1455,32 @@ export class Island3DEngine {
         physics: { waterLevel: cfg.waterLevel, characterHeight: 2.0 },
         callbacks: this.config.physicsCallbacks,
       });
+      this.character.setWorldFxBus?.(this.worldFx);
       this.controls.enabled = false;
       this.characterActive = true;
+      // Race prefab applied by Island3DRenderer (Grudge6 apply effect) once roster resolves
+      console.log('[Island3DEngine] Zone character controller ready — awaiting Grudge6 race prefab');
     }
 
     // 9. Building system works in zone mode too
     this.building = new BuildingSystem(this.scene, this.camera);
 
-    // 10. Wildlife — biome palette counts (land on dry ground, fish only in water)
+    // 10. Wildlife — production package animals + fish counts (land dry / fish water only)
     // Animals/monsters are enemy or neutral-attackable (never ally)
-    this.creatures = new CreatureManager(this.scene, cfg.waterLevel, sectorId.length + 99);
+    const animalSeed = seeds.animals;
+    this.creatures = new CreatureManager(this.scene, cfg.waterLevel, animalSeed);
     this.creatures.spawnForBiome(
       firstIslandMesh,
       sector.biome,
       cfg.sizeMeters * 0.28,
+      {
+        land: prod?.wildlife.landSpawnCount,
+        fish: prod?.wildlife.fishSpawnCount,
+      },
     );
 
     // 11. Faction NPC camps — stylized camp GLB; same faction ally, others enemy
+    // Seeds + factions from sector production package for client/server parity.
     const islands = getNodesByCategory<IslandNode>(this.zonePopulation, 'island');
     const islandCenters = islands.map((isl) => ({
       x: isl.position[0],
@@ -1145,17 +1500,31 @@ export class Island3DEngine {
     this.ensureCampSystems(cfg.waterLevel, sampleY);
     void spawnZoneCamps(this.npcCamps!, islandCenters, {
       playerFaction: this.playerFaction,
-      seed: sectorId.length * 9973,
-      campsPerIsland: 1,
+      seed: seeds.npcCamps,
+      campsPerIsland: prod?.npcs.campsPerIsland ?? 1,
+      factions: prod?.npcs.factions,
     }).then((n) => {
-      console.log(`[Island3DEngine] Spawned ${n} faction camps in zone`);
+      console.log(
+        `[Island3DEngine] Spawned ${n} faction camps in zone (seed=${seeds.npcCamps})`,
+      );
     });
+
+    // Hostile patrol boats: continuous fire + smoke (damaged-boat VFX)
+    if (this.worldFx && this.zoneScene) {
+      for (const [, marker] of this.zoneScene.markers) {
+        if (marker.userData?.burning) {
+          this.worldFx.attachBoatDamage(marker, 'damaged');
+        }
+      }
+    }
+    this.character?.setWorldFxBus?.(this.worldFx);
 
     console.log(
       `[Island3DEngine] Zone "${sector.name}" loaded:`,
       `${this.zonePopulation.islandIds.length} islands,`,
       `${this.zonePopulation.nodes.size} total nodes,`,
       `${this.creatures.count} creatures`,
+      prod ? `| prod v1 eco=${prod.ecosystemId}` : '',
     );
   }
 
@@ -1446,6 +1815,44 @@ export class Island3DEngine {
     // this.scene.add(this.grassBlades.mesh);
   }
 
+  /**
+   * Tab soft-lock: creatures (+ optional mountain boss) as cycle targets.
+   */
+  private ensureSoftLockProvider(): void {
+    if (!this.character) return;
+    this.character.setSoftLockProvider(() => {
+      const out: import('../player/SoftLockSystem').SoftLockTarget[] = [];
+      const playerPos = this.character!.getPosition();
+      if (this.creatures) {
+        for (const t of this.creatures.listSoftLockTargets(playerPos, 36)) {
+          out.push({
+            id: t.id,
+            name: t.name,
+            kind: 'creature',
+            position: t.position,
+            hp: t.hp,
+            maxHp: t.maxHp,
+          });
+        }
+      }
+      // Thornwood / mountain boss if present
+      const boss = this.hiddenMountainCity as
+        | { bossId?: string; bossName?: string; bossHp?: number; bossMaxHp?: number; bossPosition?: THREE.Vector3 }
+        | null;
+      if (boss?.bossPosition && (boss.bossHp ?? 1) > 0) {
+        out.push({
+          id: boss.bossId ?? 'hidden_mountain_boss',
+          name: boss.bossName ?? 'Warden',
+          kind: 'boss',
+          position: boss.bossPosition.clone().add(new THREE.Vector3(0, 1.5, 0)),
+          hp: boss.bossHp,
+          maxHp: boss.bossMaxHp,
+        });
+      }
+      return out;
+    });
+  }
+
   /** Spawn or respawn the playable character on a labeled board cell */
   private spawnCharacter(): void {
     if (!this.terrain) return;
@@ -1477,6 +1884,7 @@ export class Island3DEngine {
       },
       callbacks: this.config.physicsCallbacks,
     });
+    this.character.setWorldFxBus?.(this.worldFx);
 
     console.log(
       `[Island3D] Hero on board cell ${cell.label} @ (${startPos.x.toFixed(1)}, ${startPos.y.toFixed(1)}, ${startPos.z.toFixed(1)})`,
@@ -1497,12 +1905,21 @@ export class Island3DEngine {
     this.grassBlades?.update(time, camPos);
   }
 
-  /** Update Gerstner wave ocean shader + sync sun direction from day/night */
-  private updateWater(dt: number): void {
+  /** Update Gerstner wave ocean + production tide (2×/game day, gentle amp) */
+  private updateWater(_dt: number): void {
     if (!this.waterPlane) return;
+    const sunDir = this.dayNight?.getSunDirection();
+    const tideH = getTideHeight(Date.now());
+    if (isPirateLobbyOcean(this.waterPlane)) {
+      updatePirateLobbyOcean(this.waterPlane, this.clock.elapsedTime, sunDir, {
+        tideHeight: tideH,
+      });
+      this.creatures?.setWaterLevel?.(tideH);
+      return;
+    }
+    this.waterPlane.position.y = tideH;
     const mat = this.waterPlane.material;
     if (mat && 'uniforms' in mat) {
-      const sunDir = this.dayNight?.getSunDirection();
       updateOceanMaterial(mat as THREE.ShaderMaterial, this.clock.elapsedTime, sunDir);
     }
   }
@@ -1670,6 +2087,10 @@ export class Island3DEngine {
         this.lobbyShip.update(dt, this.character.getKeys(), this.character.getCameraYaw());
       }
       this.character.update(dt);
+      this.ensureSoftLockProvider();
+      const cw = this.config.canvas?.clientWidth || window.innerWidth;
+      const ch = this.config.canvas?.clientHeight || window.innerHeight;
+      this.character.updateSoftLock(cw, ch);
     } else {
       this.controls.update();
     }
@@ -1681,6 +2102,13 @@ export class Island3DEngine {
     if (this.lobbyPlayZone && this.character) {
       this.lobbyPlayZone.npcController.setPlayerPosition(this.character.getPosition());
       this.lobbyPlayZone.update(dt, this.camera.position);
+    }
+
+    if (this.factionIslands) {
+      this.factionIslands.update(
+        dt,
+        this.character?.getPosition() ?? undefined,
+      );
     }
 
     this.updateWater(dt);
@@ -1739,16 +2167,30 @@ export class Island3DEngine {
     if (this.havenFoundation) {
       this.havenFoundation.update(dt, this.clock.elapsedTime);
     }
+    if (this.fabledFoundation && this.character) {
+      this.fabledFoundation.update(dt, this.character.getPosition());
+    }
     if (this.zoneCapital) {
       this.zoneCapital.update(dt, this.clock.elapsedTime);
     }
     if (this.zoneDungeonPortals && this.character) {
       this.zoneDungeonPortals.update(dt, this.character.getPosition());
     }
+    if (this.hiddenMountainCity && this.character) {
+      this.hiddenMountainCity.update(dt, this.character.getPosition(), {
+        attacking: this.character.isAttacking,
+      });
+    }
 
     if (this.harvestZones && !this.lobbyPlayZone) {
       this.harvestZones.update(dt, this.camera.position);
     }
+
+    // Farm plots — crop growth after watering
+    this.farmPlots?.update(dt);
+
+    // Fire / smoke particles
+    this.worldFx?.update(dt);
 
     // External update hooks (RemotePlayerManager, TownNPCController, etc.)
     for (const fn of this.externalUpdates) fn(dt);
@@ -1779,7 +2221,11 @@ export class Island3DEngine {
   handleInteractKey(): boolean {
     if (this.mineSystem?.tryInteract()) return true;
     if (this.mountainTriad?.tryInteract()) return true;
+    if (this.fabledFoundation?.tryInteract()) return true;
     if (this.zoneDungeonPortals?.tryInteract()) return true;
+    if (this.hiddenMountainCity && this.character) {
+      if (this.hiddenMountainCity.tryInteract(this.character.getPosition())) return true;
+    }
 
     // Ice/snow event assets: E once per character to learn craft recipe
     if (this.nearestLearnAssetId) {
@@ -1823,7 +2269,19 @@ export class Island3DEngine {
 
   /** Is the dungeon portal prompting interaction? */
   get dungeonPortalActive(): boolean {
-    return (this.mountainTriad?.canInteract ?? false) || (this.zoneDungeonPortals?.canInteract ?? false);
+    if (
+      (this.mountainTriad?.canInteract ?? false) ||
+      (this.fabledFoundation?.canInteract ?? false) ||
+      (this.zoneDungeonPortals?.canInteract ?? false)
+    ) {
+      return true;
+    }
+    // Unsealed under-mountain city door
+    if (this.hiddenMountainCity?.bossDefeated && this.character) {
+      const prompt = this.hiddenMountainCity.getPrompt(this.character.getPosition());
+      return Boolean(prompt && prompt.includes('Press E'));
+    }
+    return false;
   }
 
   /** HUD hint for the evil mountain triad (approach / discovered / interact). */
@@ -1836,8 +2294,343 @@ export class Island3DEngine {
     return this.mountainTriad?.triad.dungeon.name ?? null;
   }
 
-  /** Handle mouse click — building placement (LMB) or harvesting / combat */
-  handleClick(clientX: number, clientY: number): void {
+  /**
+   * Thornwood Wilds hidden city — boss HP / locked door / enter prompt.
+   * Null when not in sector or player is out of range.
+   */
+  get hiddenMountainCityPrompt(): string | null {
+    if (!this.hiddenMountainCity || !this.character) return null;
+    return this.hiddenMountainCity.getPrompt(this.character.getPosition());
+  }
+
+  /** Boss HP fraction 0–1 for HUD bar (null if boss dead or system inactive). */
+  get hiddenMountainCityBossHp(): { hp: number; maxHp: number } | null {
+    if (!this.hiddenMountainCity || this.hiddenMountainCity.bossDefeated) return null;
+    return {
+      hp: this.hiddenMountainCity.bossHp,
+      maxHp: this.hiddenMountainCity.bossMaxHp,
+    };
+  }
+
+  /** Active ground tool for harvest mode (HUD override wins over equipment). */
+  getActiveGroundTool(): GroundToolId {
+    if (this.harvestToolOverride) return this.harvestToolOverride;
+    if (this.character) {
+      if (hasShovelEquipped(this.character.equipment)) return 'shovel';
+      if (hasHoeEquipped(this.character.equipment)) return 'hoe';
+      if (hasBucketEquipped(this.character.equipment)) return 'bucket';
+      const t = getEquippedToolType(this.character.equipment);
+      if (t === 'seed') return 'seed';
+    }
+    return null;
+  }
+
+  /** True when harvest shovel terrain sculpt is active (equip or HUD override). */
+  isShovelTerrainActive(): boolean {
+    return this.getActiveGroundTool() === 'shovel';
+  }
+
+  isHoeActive(): boolean {
+    return this.getActiveGroundTool() === 'hoe';
+  }
+
+  isSeedPlantActive(): boolean {
+    return this.getActiveGroundTool() === 'seed' && !!this.selectedSeedId;
+  }
+
+  isBucketActive(): boolean {
+    return this.getActiveGroundTool() === 'bucket';
+  }
+
+  setHarvestToolOverride(tool: GroundToolId): void {
+    this.harvestToolOverride = tool;
+    if (tool === 'bucket' && !this.bucketHasWater && (this.farmInventory[ITEM_WATER_BUCKET] ?? 0) > 0) {
+      this.bucketHasWater = true;
+    }
+  }
+
+  setSelectedSeed(seedId: string | null): void {
+    this.selectedSeedId = seedId;
+    if (seedId) this.harvestToolOverride = 'seed';
+  }
+
+  /** Wire page-level resources bag so farm harvests / crafts update HUD. */
+  bindResourceBag(
+    getter: () => Record<string, number>,
+    setter: (bag: Record<string, number>) => void,
+  ): void {
+    this.externalResourceGetter = getter;
+    this.externalResourceSetter = setter;
+  }
+
+  getMergedInventory(): Record<string, number> {
+    const ext = this.externalResourceGetter?.() ?? {};
+    return { ...this.farmInventory, ...ext };
+  }
+
+  private commitInventory(bag: Record<string, number>): void {
+    this.farmInventory = { ...bag };
+    this.externalResourceSetter?.({ ...bag });
+  }
+
+  private adjustItem(itemId: string, delta: number): number {
+    const bag = this.getMergedInventory();
+    const next = (bag[itemId] ?? 0) + delta;
+    if (next <= 0) delete bag[itemId];
+    else bag[itemId] = next;
+    this.commitInventory(bag);
+    return bag[itemId] ?? 0;
+  }
+
+  /** Ensure farm system + 2 m brush exist (home / zone after terrain ready). */
+  ensureFarmSystems(): void {
+    if (!this.farmPlots) {
+      this.farmPlots = new FarmPlotSystem();
+      this.scene.add(this.farmPlots.group);
+      this.farmPlots.setHarvestHandler((ev) => {
+        this.adjustItem(ev.itemId, ev.qty);
+        // Chance to return a seed for replanting
+        const seedMap: Record<string, string> = {
+          carrot: 'seed_carrot',
+          wheat: 'seed_wheat',
+          turnip: 'seed_turnip',
+          flax: 'seed_flax',
+          berries: 'seed_berry',
+        };
+        const seedId = seedMap[ev.itemId];
+        if (seedId && Math.random() < 0.4) this.adjustItem(seedId, 1);
+      });
+    }
+    if (this.terrain?.terrainMesh) {
+      this.farmPlots.setTerrain(this.terrain.terrainMesh);
+    }
+    if (!this.groundBrush) {
+      this.groundBrush = new GroundToolBrush();
+      this.scene.add(this.groundBrush.group);
+    }
+  }
+
+  private rayToTerrain(clientX: number, clientY: number): THREE.Vector3 | null {
+    const mesh = this.terrain?.terrainMesh;
+    if (!mesh) return null;
+    const rect = this.config.canvas.getBoundingClientRect();
+    this.mouse.x = ((clientX - rect.left) / rect.width) * 2 - 1;
+    this.mouse.y = -((clientY - rect.top) / rect.height) * 2 + 1;
+    this.raycaster.setFromCamera(this.mouse, this.camera);
+    const hits = this.raycaster.intersectObject(mesh, true);
+    return hits.length > 0 ? hits[0].point.clone() : null;
+  }
+
+  /**
+   * Valheim-like shovel: raise (LMB) / lower (Shift+LMB) / level (Ctrl+LMB).
+   * Brush is a 2 m wide circle.
+   */
+  tryShovelSculpt(
+    clientX: number,
+    clientY: number,
+    modifiers: { shiftKey?: boolean; ctrlKey?: boolean; altKey?: boolean } = {},
+  ): boolean {
+    if (!this.isShovelTerrainActive()) return false;
+    if (this.character && this.character.mode !== 'harvest' && this.character.mode !== 'build') {
+      return false;
+    }
+    const mesh = this.terrain?.terrainMesh;
+    if (!mesh) return false;
+
+    const now = performance.now();
+    if (now < this.shovelCooldownUntil) return true;
+
+    const rect = this.config.canvas.getBoundingClientRect();
+    this.mouse.x = ((clientX - rect.left) / rect.width) * 2 - 1;
+    this.mouse.y = -((clientY - rect.top) / rect.height) * 2 + 1;
+    this.raycaster.setFromCamera(this.mouse, this.camera);
+
+    const mode = shovelModeFromModifiers(
+      !!modifiers.shiftKey,
+      !!modifiers.ctrlKey,
+      !!modifiers.altKey,
+    );
+    const cfg = this.zoneSector?.terrain3d;
+    // Prefer sand/beach prefab sculpt on lobby (height-adjustable sand)
+    const hits = this.raycaster.intersectObjects(this.scene.children, true);
+    const sandHit = hits.find((h) => {
+      const m = h.object as THREE.Mesh;
+      return m.isMesh && (m.userData.sculptable || m.userData.prefab?.sculptable);
+    });
+    if (sandHit) {
+      const delta = mode === 'raise' ? 0.35 : mode === 'lower' ? -0.35 : 0;
+      const n = sculptSandPrefab(sandHit.object as THREE.Mesh, sandHit.point, delta, 2.0);
+      this.shovelCooldownUntil = now + 100;
+      this.lastShovelStroke = { mode, ok: n > 0, at: now };
+      return true;
+    }
+
+    const result = sculptTerrainFromRay(mesh, this.raycaster, mode, {
+      ...SHOVEL_BRUSH.standard,
+      minHeight: cfg?.minHeight ?? -80,
+      maxHeight: cfg?.maxHeight ?? 280,
+    });
+
+    this.shovelCooldownUntil = now + 120;
+    this.lastShovelStroke = {
+      mode,
+      ok: !!result?.ok,
+      at: now,
+    };
+    return true;
+  }
+
+  /** Hoe — cultivate 2 m growing circle. */
+  tryHoeCultivate(clientX: number, clientY: number): boolean {
+    if (!this.isHoeActive()) return false;
+    this.ensureFarmSystems();
+    const now = performance.now();
+    if (now < this.groundToolCooldownUntil) return true;
+    const hit = this.rayToTerrain(clientX, clientY);
+    if (!hit || !this.farmPlots) return true;
+    this.farmPlots.cultivateAt(hit);
+    this.groundToolCooldownUntil = now + 200;
+    return true;
+  }
+
+  /** Plant selected seed on tilled dirt. */
+  tryPlantSeed(clientX: number, clientY: number): boolean {
+    if (!this.isSeedPlantActive() || !this.selectedSeedId) return false;
+    this.ensureFarmSystems();
+    const now = performance.now();
+    if (now < this.groundToolCooldownUntil) return true;
+    const seed = getSeedById(this.selectedSeedId);
+    if (!seed) return true;
+    const bag = this.getMergedInventory();
+    if ((bag[seed.itemId] ?? 0) < 1) return true;
+
+    const hit = this.rayToTerrain(clientX, clientY);
+    if (!hit || !this.farmPlots) return true;
+    const ok = this.farmPlots.plantSeedAt(hit, seed.id);
+    if (ok) this.adjustItem(seed.itemId, -1);
+    this.groundToolCooldownUntil = now + 150;
+    return true;
+  }
+
+  /**
+   * Bucket: fill at water (low terrain / ocean) or water crops with full bucket.
+   * Full bucket also supplies water charges for auto-craft recipes.
+   */
+  tryBucketUse(clientX: number, clientY: number): boolean {
+    if (!this.isBucketActive()) return false;
+    this.ensureFarmSystems();
+    const now = performance.now();
+    if (now < this.groundToolCooldownUntil) return true;
+
+    const hit = this.rayToTerrain(clientX, clientY);
+    if (!hit) return true;
+
+    // Fill empty bucket near water: low height or configured water level
+    const waterY = this.zoneSector?.terrain3d.waterLevel ?? -2;
+    const nearWater = hit.y <= waterY + 1.25;
+
+    if (!this.bucketHasWater && nearWater) {
+      this.bucketHasWater = true;
+      this.waterCharges = Math.min(20, this.waterCharges + 5);
+      const bag = this.getMergedInventory();
+      if ((bag[ITEM_EMPTY_BUCKET] ?? 0) > 0) {
+        this.adjustItem(ITEM_EMPTY_BUCKET, -1);
+      }
+      this.adjustItem(ITEM_WATER_BUCKET, 1);
+      this.groundToolCooldownUntil = now + 400;
+      return true;
+    }
+
+    if (this.bucketHasWater || hasWaterBucket(this.character?.equipment, this.getMergedInventory())) {
+      // Prefer crop water; else dump to dirt for till wet look
+      if (this.farmPlots?.waterAt(hit)) {
+        this.waterCharges = Math.max(0, this.waterCharges - 1);
+        // Empty after several uses or when charges depleted
+        if (this.waterCharges <= 0) {
+          this.bucketHasWater = false;
+          if ((this.getMergedInventory()[ITEM_WATER_BUCKET] ?? 0) > 0) {
+            this.adjustItem(ITEM_WATER_BUCKET, -1);
+            this.adjustItem(ITEM_EMPTY_BUCKET, 1);
+          }
+        }
+        this.groundToolCooldownUntil = now + 250;
+        return true;
+      }
+    }
+
+    // Ready crop harvest with bucket hand free? Use sickle-style: LMB on ready with any farm tool
+    const harvest = this.farmPlots?.harvestAt(hit);
+    if (harvest) {
+      this.groundToolCooldownUntil = now + 200;
+      return true;
+    }
+
+    this.groundToolCooldownUntil = now + 150;
+    return true;
+  }
+
+  /** LMB harvest on ready crop when sickle / bare harvest hits plot. */
+  tryFarmHarvest(clientX: number, clientY: number): boolean {
+    this.ensureFarmSystems();
+    const hit = this.rayToTerrain(clientX, clientY);
+    if (!hit || !this.farmPlots) return false;
+    const ev = this.farmPlots.harvestAt(hit);
+    return !!ev;
+  }
+
+  /** Run auto-craft recipes that need water charges (dough, fiber wash, etc.). */
+  tryAutoCraftWithWater(): { ok: boolean; message: string } {
+    const bag = this.getMergedInventory();
+    const result = tryAutoWaterCraft(bag, this.waterCharges);
+    if (!result) {
+      return { ok: false, message: 'Need ingredients + water charges (fill bucket at shore).' };
+    }
+    this.waterCharges = Math.max(0, this.waterCharges - result.waterChargesSpent);
+    this.commitInventory(result.inventory);
+    if (this.waterCharges <= 0 && this.bucketHasWater) {
+      this.bucketHasWater = false;
+      if ((result.inventory[ITEM_WATER_BUCKET] ?? 0) > 0) {
+        const b = { ...result.inventory };
+        b[ITEM_WATER_BUCKET] = (b[ITEM_WATER_BUCKET] ?? 1) - 1;
+        if (b[ITEM_WATER_BUCKET] <= 0) delete b[ITEM_WATER_BUCKET];
+        b[ITEM_EMPTY_BUCKET] = (b[ITEM_EMPTY_BUCKET] ?? 0) + 1;
+        this.commitInventory(b);
+      }
+    }
+    return {
+      ok: true,
+      message: `Crafted ${result.outputQty}× ${result.outputItemId}`,
+    };
+  }
+
+  /** Update 2 m brush ring under cursor when a ground tool is active. */
+  updateGroundBrushPreview(clientX: number, clientY: number): void {
+    const tool = this.getActiveGroundTool();
+    if (!tool || !this.character || this.character.mode !== 'harvest') {
+      this.groundBrush?.hide();
+      return;
+    }
+    this.ensureFarmSystems();
+    const hit = this.rayToTerrain(clientX, clientY);
+    if (!hit || !this.groundBrush) {
+      this.groundBrush?.hide();
+      return;
+    }
+    const kind =
+      tool === 'shovel' ? 'shovel'
+        : tool === 'hoe' ? 'hoe'
+          : tool === 'seed' ? 'seed'
+            : tool === 'bucket' ? 'water'
+              : 'neutral';
+    this.groundBrush.showAt(hit.x, hit.y, hit.z, kind);
+  }
+
+  /** Handle mouse click — building placement (LMB) or harvesting / combat / shovel */
+  handleClick(
+    clientX: number,
+    clientY: number,
+    modifiers: { shiftKey?: boolean; ctrlKey?: boolean; altKey?: boolean } = {},
+  ): void {
     // Build mode: LMB places light-blue ghost at cursor
     if (this.building?.isBuilding) {
       if (this.building.isPropPlacing) {
@@ -1877,15 +2670,35 @@ export class Island3DEngine {
       return;
     }
 
+    // Harvest ground tools (2 m circle) — shovel / hoe / seed / bucket
+    if (this.character?.mode === 'harvest') {
+      const ground = this.getActiveGroundTool();
+      if (ground === 'shovel' && this.tryShovelSculpt(clientX, clientY, modifiers)) return;
+      if (ground === 'hoe' && this.tryHoeCultivate(clientX, clientY)) return;
+      if (ground === 'seed' && this.tryPlantSeed(clientX, clientY)) return;
+      if (ground === 'bucket' && this.tryBucketUse(clientX, clientY)) return;
+      // Bare LMB on ready crop still harvests
+      if (!ground && this.tryFarmHarvest(clientX, clientY)) return;
+      if (ground === null && this.tryFarmHarvest(clientX, clientY)) return;
+    }
+
     const rect = this.config.canvas.getBoundingClientRect();
     this.mouse.x = ((clientX - rect.left) / rect.width) * 2 - 1;
     this.mouse.y = -((clientY - rect.top) / rect.height) * 2 + 1;
 
     this.raycaster.setFromCamera(this.mouse, this.camera);
 
-    // In combat mode, attack nearest creature
+    // In combat mode, prefer soft-lock target then nearest creature
     if (this.character?.mode === 'combat' && this.creatures) {
       const playerPos = this.character.getPosition();
+      const lockId = this.character.getSoftLockTargetId();
+      if (lockId && this.creatures.isAlive(lockId)) {
+        const lockPos = this.creatures.getWorldPosition(lockId);
+        if (lockPos && lockPos.distanceTo(playerPos) <= 22) {
+          this.creatures.dealDamage(lockId, 15);
+          return;
+        }
+      }
       const nearest = this.creatures.findNearest(playerPos, 20);
       if (nearest) {
         this.creatures.dealDamage(nearest.id, 15);
@@ -2009,14 +2822,18 @@ export class Island3DEngine {
     }
   }
 
-  /** Handle mouse move — light-blue build ghost follows cursor */
+  /** Handle mouse move — build ghost + 2 m ground-tool brush */
   handleMouseMove(clientX: number, clientY: number): void {
-    if (!this.building?.isBuilding) return;
-    if (this.building.isPropPlacing) {
-      this.building.updatePropGhostPosition(clientX, clientY, this.config.canvas);
-    } else {
-      this.building.updateGhostPosition(clientX, clientY, this.config.canvas);
+    if (this.building?.isBuilding) {
+      if (this.building.isPropPlacing) {
+        this.building.updatePropGhostPosition(clientX, clientY, this.config.canvas);
+      } else {
+        this.building.updateGhostPosition(clientX, clientY, this.config.canvas);
+      }
+      this.groundBrush?.hide();
+      return;
     }
+    this.updateGroundBrushPreview(clientX, clientY);
   }
 
   /** Enter building mode for a piece type */
@@ -2042,6 +2859,10 @@ export class Island3DEngine {
   }
 
   /** Get the Three.js scene (for adding remote player meshes, etc.) */
+  getCamera(): THREE.PerspectiveCamera {
+    return this.camera;
+  }
+
   getScene(): THREE.Scene {
     return this.scene;
   }
@@ -2154,14 +2975,34 @@ export class Island3DEngine {
     } else {
       this.harvestZones?.dispose();
     }
+    this.factionIslands?.dispose();
+    this.factionIslands = null;
+    if (this.gmapOverlayRoot) {
+      this.scene.remove(this.gmapOverlayRoot);
+      this.gmapOverlayRoot = null;
+    }
+    this.productionGmap = null;
+    this.productionHud = null;
     this.lobbyCollider?.dispose();
     if (this.lobbyCollider?.colliderMesh.parent) {
       this.scene.remove(this.lobbyCollider.colliderMesh);
     }
     this.havenFoundation?.dispose();
     this.havenFoundation = null;
+    this.fabledFoundation?.dispose();
+    this.fabledFoundation = null;
     this.zoneCapital?.dispose();
     this.zoneCapital = null;
+    this.hiddenMountainCity?.dispose();
+    this.hiddenMountainCity = null;
+    this.sectorEventLandmarks?.dispose();
+    this.sectorEventLandmarks = null;
+    this.sectorProduction = null;
+    this.worldFx?.dispose();
+    this.worldFx = null;
+    void import('../vfx/WorldFxBus').then(({ setWorldFxBus }) => setWorldFxBus(null));
+    this.zoneDungeonPortals?.dispose();
+    this.zoneDungeonPortals = null;
     this.zoneScene?.dispose();
     this.grassLayer?.dispose();
     this.sandLayer?.dispose();

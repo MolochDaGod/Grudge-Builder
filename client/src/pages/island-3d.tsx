@@ -1,17 +1,19 @@
 /**
- * Island 3D Page — full generative Home Island system (Warlords Era).
+ * Island 3D Page — PRODUCTION client start (client.grudge-studio.com/island-3d).
  *
- * Default mode runs Island3DEngine procedural pipeline for a complete playable
- * home island: terrain + ocean depth + harvest zones + nature assets + navmesh +
- * mountain dungeon + wildlife + build/combat/harvest HUD. Seeded + foundation-
- * shaped (Driftwood Bay coastal / Ironfang Spire highland). 1024 m world, 2 m character.
+ * Production open:
+ *   TI Three.js storm intro (Stonewisp attacks ship) → playable world with UI + options ON.
+ *   Overboard float is NOT used here — that is home-island only (/island-reveal).
  *
  * Modes:
- *   (default) generative home island
+ *   (default) generative home island showcase
  *   ?mode=zone — Warlords open-world sector
- *   ?mode=lobby — pirate lobby map
+ *   ?mode=lobby — pirate lobby map (production hub)
  *   ?engine=studio — Studio Map Editor embed
  *   ?home=1 — load account Railway island when signed in
+ *   ?skipIntro=1 — skip storm intro gate
+ *   ?intro=1 — force storm intro
+ *   ?ui=1&options=1 — keep production chrome visible
  */
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useLocation } from 'wouter';
@@ -30,7 +32,8 @@ import {
 } from '@/island3d/engine/openWorldLobby';
 import { Loader2, Users, ExternalLink, Ship, Anchor, Home, Mountain } from 'lucide-react';
 import { clearTopDownCache } from '@/island3d/render/IslandTopDownCapture';
-import { useZoneColyseus } from '@/hooks/use-zone-colyseus';
+import { useZoneNetwork } from '@/hooks/use-zone-network';
+import type { NetworkPlayerJoin } from '@/lib/network/NetworkManager';
 import type { PlayerInfo } from '@/hooks/use-colyseus';
 import { parseModel3d, type Model3DField } from '@/lib/grudge6Character';
 import { weaponTypeFromModel3d } from '@shared/fleet';
@@ -51,6 +54,15 @@ import {
   type HomeIslandShowcasePreset,
 } from '@shared/definitions/homeIslandShowcase';
 import { natureScatterNeedsRegenerate } from '@shared/definitions/natureAssetCatalog';
+import { StormShipIntroGate } from '@/island3d/intro/StormShipIntroGate';
+import {
+  INTRO_SESSION_KEY,
+  DEFAULT_INTRO_OPTIONS,
+  INTRO_OPTIONS_KEY,
+  type AfterIntroDestination,
+  type Island3dIntroOptions,
+} from '@shared/definitions/productionIntro';
+import { buildZoneDungeonUrl, buildHomeDungeonUrl } from '@/lib/homeIslandDungeon';
 
 /** Studio embed only when explicitly requested (design surface, not play default). */
 function useStudioEmbed(): boolean {
@@ -204,10 +216,83 @@ function Island3DPlayPage() {
   const [worldSeed, setWorldSeed] = useState(params.get('worldSeed') || 'grudge-world-1');
   const zoneMultiplayer = params.get('solo') !== '1';
   const fromOcean = params.get('from') === 'ocean';
+  /** From /open-world entry: start in Build for Units/Siege/Monsters deploy */
+  const editorMode = params.get('edit') === '1' || params.get('editor') === '1';
   const [, navigate] = useLocation();
   const engineRef = useRef<Island3DEngine | null>(null);
   const [engine, setEngine] = useState<Island3DEngine | null>(null);
   const playableSectors = useMemo(() => getPlayableSectorList(), []);
+
+  // Production: storm ship intro (TI) + options/UI always available
+  const forceIntro = params.get('intro') === '1' || params.get('intro') === 'storm';
+  const skipIntroParam = params.get('skipIntro') === '1' || params.get('from') === 'storm-intro';
+  const [introOptions, setIntroOptions] = useState<Island3dIntroOptions>(() => {
+    try {
+      const raw = localStorage.getItem(INTRO_OPTIONS_KEY);
+      if (raw) return { ...DEFAULT_INTRO_OPTIONS, ...JSON.parse(raw) };
+    } catch { /* */ }
+    return { ...DEFAULT_INTRO_OPTIONS };
+  });
+  const [showStormIntro, setShowStormIntro] = useState(() => {
+    if (skipIntroParam) return false;
+    if (forceIntro) return true;
+    if (params.get('engine') === 'studio') return false;
+    if (isHomeIslandMode) return false; // home uses overboard elsewhere
+    try {
+      if (sessionStorage.getItem(INTRO_SESSION_KEY) === '1') return false;
+    } catch { /* */ }
+    return introOptions.playStormIntro;
+  });
+  const showOptionsChrome = params.get('options') !== '0' && (params.get('options') === '1' || introOptions.showOptions);
+  const showUiChrome = params.get('ui') !== '0' && (params.get('ui') === '1' || introOptions.showUi);
+
+  const handleStormIntroEnter = useCallback((dest: AfterIntroDestination, opts: Island3dIntroOptions) => {
+    setIntroOptions(opts);
+    setShowStormIntro(false);
+    try {
+      sessionStorage.setItem(INTRO_SESSION_KEY, '1');
+    } catch { /* */ }
+
+    if (dest === 'tutorial') {
+      navigate(`/tutorial?from=storm-intro${characterIdParam ? `&characterId=${characterIdParam}` : ''}`);
+      return;
+    }
+    if (dest === 'home_overboard') {
+      // Overboard float is home-island path only
+      navigate(`/island-reveal?from=overboard-intro${characterIdParam ? `&characterId=${characterIdParam}` : ''}`);
+      return;
+    }
+    if (dest === 'zone') {
+      setMode('zone');
+      setSectorId('haven_shore');
+      const next = new URLSearchParams(window.location.search);
+      next.set('mode', 'zone');
+      next.set('sector', 'haven_shore');
+      next.set('worldSeed', 'grudge-world-1');
+      next.set('from', 'storm-intro');
+      next.set('ui', opts.showUi ? '1' : '0');
+      next.set('options', opts.showOptions ? '1' : '0');
+      next.delete('intro');
+      window.history.replaceState(null, '', `?${next.toString()}`);
+      return;
+    }
+    // Default: pirate open-world lobby on island-3d
+    setMode('lobby');
+    setLobbyMapId(OPEN_WORLD_LOBBY_MAP_ID);
+    setSectorId('lobby');
+    const next = new URLSearchParams(window.location.search);
+    next.set('mode', 'lobby');
+    next.set('map', OPEN_WORLD_LOBBY_MAP_ID);
+    next.set('sector', 'lobby');
+    next.set('island', 'grudge-open-world');
+    next.set('from', 'storm-intro');
+    next.set('ui', opts.showUi ? '1' : '0');
+    next.set('options', opts.showOptions ? '1' : '0');
+    next.delete('intro');
+    next.delete('skipIntro');
+    if (characterIdParam) next.set('characterId', characterIdParam);
+    window.history.replaceState(null, '', `?${next.toString()}`);
+  }, [navigate, characterIdParam]);
 
   const [homeIsland, setHomeIsland] = useState<any>(null);
   const [homeIslandLoading, setHomeIslandLoading] = useState(useAccountIsland);
@@ -217,22 +302,43 @@ function Island3DPlayPage() {
   const [heroCharacterId, setHeroCharacterId] = useState(characterIdParam);
   const [heroName, setHeroName] = useState('Captain');
   const [heroModel3d, setHeroModel3d] = useState<Partial<Model3DField> | undefined>();
+  /** Main-panel equipment → Grudge6 mesh catalog on race prefab */
+  const [heroEquipment, setHeroEquipment] = useState<Record<string, string | null> | undefined>();
   const [playerInfo, setPlayerInfo] = useState<PlayerInfo | null>(null);
   const lobbyIslandId = params.get('island') || 'grudge-open-world';
   const pvpServerUrl = params.get('pvp') || undefined;
 
-  const zoneColyseus = useZoneColyseus({
+  const networkPlayer: NetworkPlayerJoin | null = playerInfo
+    ? {
+        characterName: playerInfo.characterName,
+        heroClass: playerInfo.heroClass,
+        heroRace: playerInfo.heroRace,
+        faction: playerInfo.faction,
+        level: playerInfo.level,
+        accountId: playerInfo.accountId,
+        characterId: playerInfo.characterId,
+        baseModelId: playerInfo.baseModelId,
+        equippedMeshes: playerInfo.equippedMeshes,
+        weaponSlots: playerInfo.weaponSlots,
+        skinColor: playerInfo.skinColor,
+        armorColor: playerInfo.armorColor,
+        equippedWeaponType: playerInfo.equippedWeaponType,
+      }
+    : null;
+
+  /** REST + Colyseus NetworkManager: remotes, buildings, chat, VFX, asset queue */
+  const zoneNetwork = useZoneNetwork({
     engine,
     sectorId: mode === 'zone' ? sectorId : '',
     worldSeed,
-    playerInfo,
+    player: networkPlayer,
     enabled: mode === 'zone' && zoneMultiplayer,
   });
 
   const handleZoneHarvest = useCallback((evt: { nodeId?: string; resourceType: string }) => {
     if (!evt.nodeId) return;
-    zoneColyseus.sendHarvest(evt.nodeId, evt.resourceType);
-  }, [zoneColyseus]);
+    zoneNetwork.sendHarvest(evt.nodeId, evt.resourceType);
+  }, [zoneNetwork]);
 
   useEffect(() => {
     clearTopDownCache();
@@ -278,18 +384,61 @@ function Island3DPlayPage() {
       const activeId = characterIdParam
         || localStorage.getItem(`gruda_active_character_${grudgeId}`)
         || localStorage.getItem('grudge_active_character')
-        || localStorage.getItem('gruda_active_character_guest');
+        || localStorage.getItem('gruda_active_character_guest')
+        || localStorage.getItem(`gruda_active_character_guest`);
+
+      // Prefer full roster resolve (Warlords era) so zone always gets race prefab data
+      try {
+        const { resolveActiveWarlordsCharacter } = await import('@/lib/loadGrudge6Player');
+        const char = await resolveActiveWarlordsCharacter(activeId);
+        if (char) {
+          const resolvedModel3d = parseModel3d(char as any);
+          setHeroRace(char.raceId || 'human');
+          setHeroClass(char.classId || 'warrior');
+          setHeroCharacterId(char.id);
+          setHeroName(char.name || 'Captain');
+          setHeroModel3d(resolvedModel3d);
+          setHeroEquipment((char.equipment as Record<string, string | null>) || {});
+          setPlayerInfo({
+            characterName: char.name,
+            heroClass: char.classId,
+            heroRace: char.raceId,
+            faction: (char as any).faction || 'crusade',
+            level: char.level,
+            characterId: char.id,
+            accountId: (char as any).accountId || grudgeId,
+            baseModelId: resolvedModel3d.baseModelId || char.raceId || 'human',
+            equippedMeshes: resolvedModel3d.equippedMeshes || {},
+            weaponSlots: resolvedModel3d.weaponSlots || {},
+            skinColor: resolvedModel3d.skinColor || '#ffffff',
+            armorColor: resolvedModel3d.armorColor || '#ffffff',
+            equippedWeaponType: weaponTypeFromModel3d(resolvedModel3d) || 'sword',
+          });
+          return;
+        }
+      } catch (e) {
+        console.warn('[Island3D] Warlords character resolve failed', e);
+      }
 
       if (!activeId) return;
 
       try {
         const char = await characterAPI.get(activeId);
+        try {
+          sessionStorage.setItem(
+            'grudge_active_character_level',
+            String(char.level ?? 1),
+          );
+        } catch {
+          /* ignore */
+        }
         const resolvedModel3d = parseModel3d(char as any);
         setHeroRace(char.raceId || 'human');
         setHeroClass(char.classId || 'warrior');
         setHeroCharacterId(char.id);
         setHeroName(char.name || 'Captain');
         setHeroModel3d(resolvedModel3d);
+        setHeroEquipment((char as any).equipment || {});
         setPlayerInfo({
           characterName: char.name,
           heroClass: char.classId,
@@ -409,7 +558,7 @@ function Island3DPlayPage() {
     isOpenWorldLobby
       ? 'Pirate Open World · Boats · Build · Harvest · Combat · Grudge6'
       : mode === 'zone'
-        ? `Zone — ${activeSector?.name || sectorId}`
+        ? `Zone — ${activeSector?.name || sectorId}${heroName ? ` · ${heroName}` : ''}`
         : mode === 'lobby'
           ? `Lobby — ${lobbyMapId}`
           : useAccountIsland && homeIsland?.name
@@ -418,17 +567,38 @@ function Island3DPlayPage() {
 
   return (
     <div className="flex flex-col h-screen bg-gray-950">
-      <div className="flex items-center gap-2 px-3 py-2 bg-gray-900 border-b border-gray-800 flex-wrap">
+      {/* Production: TI storm ship attack intro (not overboard home-island) */}
+      {showStormIntro && (
+        <StormShipIntroGate
+          characterId={heroCharacterId || characterIdParam}
+          characterName={heroName}
+          force={forceIntro}
+          onEnter={handleStormIntroEnter}
+          onSkipToGame={() => {
+            try {
+              sessionStorage.setItem(INTRO_SESSION_KEY, '1');
+            } catch { /* */ }
+            setShowStormIntro(false);
+          }}
+        />
+      )}
+
+      {/* Top chrome — options/UI on for production */}
+      {(showUiChrome || showOptionsChrome) && (
+      <div className="flex items-center gap-2 px-3 py-2 bg-gray-900 border-b border-gray-800 flex-wrap z-30">
         <button
-          onClick={() => navigate(useAccountIsland ? '/home' : '/play')}
+          onClick={() => navigate(useAccountIsland ? '/home' : '/open-world')}
           className="text-gray-400 hover:text-white text-sm shrink-0"
         >
-          ← Back
+          ← Entry
         </button>
         <span className="text-gray-600 hidden sm:inline">|</span>
         <h1 className="text-emerald-400 font-bold text-sm truncate max-w-[14rem] sm:max-w-none">
           {titleLabel}
         </h1>
+        <span className="text-[9px] px-1.5 py-0.5 rounded bg-cyan-950/80 text-cyan-300/90 border border-cyan-800/40 hidden sm:inline">
+          PRODUCTION
+        </span>
         {mode === 'procedural' && (
           <span className="text-[10px] text-slate-500 hidden md:inline">
             1024 m · dry harvest · baked nav · battle trees · mines
@@ -577,11 +747,11 @@ function Island3DPlayPage() {
         {mode === 'zone' && !isOpenWorldLobby && zoneMultiplayer && (
           <div className="flex items-center gap-1 text-xs text-slate-400">
             <Users className="w-3.5 h-3.5" />
-            {zoneColyseus.connecting
-              ? '…'
-              : zoneColyseus.connected
-                ? `${zoneColyseus.players.size}`
-                : 'off'}
+            {zoneNetwork.connected
+              ? 'MP on'
+              : zoneNetwork.error
+                ? 'MP err'
+                : '…'}
           </div>
         )}
 
@@ -598,9 +768,40 @@ function Island3DPlayPage() {
         >
           Studio
         </a>
+        {showOptionsChrome && (
+          <>
+            <button
+              type="button"
+              onClick={() => {
+                try {
+                  sessionStorage.removeItem(INTRO_SESSION_KEY);
+                } catch { /* */ }
+                setShowStormIntro(true);
+              }}
+              className="text-[10px] px-2 py-1 rounded-lg bg-cyan-950/80 text-cyan-200 border border-cyan-700/40 hover:bg-cyan-900"
+              title="Replay TI storm ship attack intro"
+            >
+              Storm Intro
+            </button>
+            <a
+              href="/tutorial?from=storm-intro"
+              className="text-[10px] px-2 py-1 rounded-lg bg-amber-950/60 text-amber-200 border border-amber-800/40 hover:bg-amber-900/50"
+            >
+              Shipwreck Tutorial
+            </a>
+            <a
+              href="/island-reveal?from=overboard-intro"
+              className="text-[10px] px-2 py-1 rounded-lg bg-rose-950/50 text-rose-200/90 border border-rose-900/40 hover:bg-rose-900/40 hidden md:inline"
+              title="Overboard float — home island only"
+            >
+              Home Overboard
+            </a>
+          </>
+        )}
       </div>
+      )}
 
-      <div className="flex-1 relative">
+      <div className={`flex-1 relative ${!showUiChrome && !showOptionsChrome ? 'h-screen' : ''}`}>
         <Island3DRenderer
           seed={seed}
           mode={mode}
@@ -609,14 +810,21 @@ function Island3DPlayPage() {
           sectorId={mode === 'zone' && !isOpenWorldLobby ? sectorId : undefined}
           worldSeed={worldSeed}
           quality={mode === 'procedural' || isOpenWorldLobby ? 'high' : 'medium'}
-          dayNight={{ dayDurationSeconds: 600, startTime: 0.35 }}
+          dayNight={{
+            // Production: 6 real hours = 1 game day; wall-clock sync for sky/tides
+            dayDurationSeconds: 6 * 60 * 60,
+            useWallClock: true,
+            startTime: 0.35,
+          }}
           enableCharacter
+          editorMode={editorMode}
           multiplayer={lobbyMultiplayer}
           characterId={heroCharacterId || undefined}
           characterName={heroName}
           raceId={heroRace}
           classId={heroClass}
           model3d={heroModel3d}
+          equipment={heroEquipment}
           mountainTriad={
             useAccountIsland
               ? (homeIsland?.state?.mountainTriad as MountainTriadSeed | undefined)
@@ -648,6 +856,16 @@ function Island3DPlayPage() {
             setEngine(eng);
           }}
           onHarvest={mode === 'zone' && zoneMultiplayer ? handleZoneHarvest : undefined}
+          onDungeonEnter={(dungeonId, dungeonName) => {
+            // Hidden Mountain City door, triad portals, zone dungeon entrances
+            if (mode === 'zone' && !isOpenWorldLobby) {
+              navigate(
+                buildZoneDungeonUrl(dungeonId, dungeonName, sectorId, worldSeed),
+              );
+            } else {
+              navigate(buildHomeDungeonUrl(dungeonId, dungeonName));
+            }
+          }}
         />
 
         {mode === 'procedural' && (
@@ -718,8 +936,13 @@ function Island3DPlayPage() {
                 Return to ocean
               </a>
             )}
-            {zoneColyseus.error && (
-              <div className="text-red-400 mt-1">{zoneColyseus.error}</div>
+            {zoneNetwork.error && (
+              <div className="text-red-400 mt-1">{zoneNetwork.error}</div>
+            )}
+            {zoneNetwork.connected && (
+              <div className="text-emerald-400/80 mt-1 text-[10px]">
+                Multiplayer connected · chat bottom-left
+              </div>
             )}
           </div>
         )}

@@ -448,29 +448,46 @@ export const FACTION_TOWNS: Record<FactionId, FactionTown> = {
   fabled: {
     id: 'cathedral_sanctum',
     factionId: 'fabled',
-    name: 'Cathedral Sanctum',
-    subtitle: 'Where Wind Meets Stone',
+    name: 'Runeforge Hold',
+    subtitle: 'Fabled Core · Dwarf Main City beyond the caves',
     sectorId: 'N',
-    modelPath: '/models/towns/fabled/platforms.glb',
-    modelScale: 0.0042,
-    modelOffset: [24.71, -8.21, 6.91],
+    // Open-world core is fabledzone.glb (Island3D FabledZoneFoundationLoader).
+    // Town composer fallback / editor uses dwarf city + gate overlays.
+    modelPath: '/models/warlords/fabled/fabledzone.glb',
+    modelScale: 1.15,
+    modelOffset: [0, 0, 0],
     composition: {
-      exteriorPath: '/models/towns/fabled/platforms.glb',
-      exteriorScale: 0.0042,
-      exteriorOffset: [24.71, -8.21, 6.91],
+      exteriorPath: '/models/warlords/fabled/fabledzone.glb',
+      exteriorScale: 1.15,
+      exteriorOffset: [0, 0, 0],
       overlays: [
         {
-          // Dwarf gate entrance — pillars and arches at the town entry
+          // Approach gate — ummorpg-style dwarf gate pillars
           modelPath: '/models/towns/fabled/dwarf_gate.glb',
           scale: 0.0006,
-          offset: [3.42, -6.78, -3.3],
+          offset: [0, 0, 40],
           placements: [
-            { position: [0, 0, 35], rotation: 0 }, // main gate
+            { position: [0, 0, 0], rotation: 0 },
+          ],
+        },
+        {
+          // Dwarf main city / castle (entered via cave portals in zone mode)
+          modelPath: '/models/warlords/fabled/dwarf_main_city.glb',
+          scale: 1.0,
+          offset: [0, 0, -80],
+          placements: [
+            { position: [0, 0, 0], rotation: 0 },
           ],
         },
       ],
     },
     interiors: [
+      {
+        id: 'fab_main_city', label: 'Dwarf Main City · Castle',
+        modelPath: '/models/warlords/fabled/dwarf_main_city.glb', modelScale: 1.0, modelOffset: [0, 0, 0],
+        doorPosition: [0, 0, 35], doorRadius: 5,
+        interiorSpawn: [0, 2, 8],
+      },
       {
         id: 'fab_cottage', label: 'Dwarf Hearth',
         modelPath: '/models/towns/fabled/cottage.glb', modelScale: 0.7011, modelOffset: [-0.79, -2.38, 0.26],

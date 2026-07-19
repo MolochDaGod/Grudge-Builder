@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { RACE_PORTRAITS } from '@/lib/artAssets';
+import { StatusEffectIcons } from '@/components/StatusEffectIcons';
+import type { ActiveStatusInstance } from '@shared/definitions/statusEffects';
 
 interface PlayerStatusBarsProps {
   race: string;
@@ -13,6 +15,8 @@ interface PlayerStatusBarsProps {
   playerName?: string;
   level?: number;
   avatarUrl?: string | null;
+  /** Buffs/debuffs shown above the portrait frame */
+  statusEffects?: ActiveStatusInstance[];
 }
 
 export default function PlayerStatusBars({
@@ -26,6 +30,7 @@ export default function PlayerStatusBars({
   playerName = 'Hero',
   level = 1,
   avatarUrl,
+  statusEffects = [],
 }: PlayerStatusBarsProps) {
   const [animatedHealth, setAnimatedHealth] = useState(health);
   const [animatedMana, setAnimatedMana] = useState(mana);
@@ -72,6 +77,11 @@ export default function PlayerStatusBars({
         animate={isLowHealth ? { scale: [1, 1.05, 1] } : {}}
         transition={{ repeat: Infinity, duration: 0.5 }}
       >
+        {statusEffects.length > 0 && (
+          <div className="absolute -top-5 left-1/2 -translate-x-1/2 z-30 w-max max-w-[140px]">
+            <StatusEffectIcons effects={statusEffects} size="sm" maxVisible={6} />
+          </div>
+        )}
         <div className="w-20 h-20 rounded-full overflow-hidden border-4 border-amber-900 shadow-lg shadow-black/50 bg-black">
           <div 
             className="absolute inset-0 rounded-full"

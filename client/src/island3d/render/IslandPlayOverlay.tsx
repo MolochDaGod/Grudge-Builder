@@ -20,6 +20,10 @@ interface IslandPlayOverlayProps {
   playMode?: ControlMode;
   onModeChange?: (mode: ControlMode) => void;
   resources?: Record<string, number>;
+  /** Weapon skills 1–5 from Grudge6 / spellbook */
+  weaponHotbar?: Array<{ key: string; label: string; skillId?: string }>;
+  /** Class abilities Shift+1–5 */
+  classHotbar?: Array<{ key: string; label: string; skillId?: string }>;
 }
 
 export function IslandPlayOverlay({
@@ -35,6 +39,8 @@ export function IslandPlayOverlay({
   playMode: playModeProp,
   onModeChange: onModeChangeProp,
   resources = {},
+  weaponHotbar = [],
+  classHotbar = [],
 }: IslandPlayOverlayProps) {
   const hp = session.character?.hp ?? 100;
   const maxHp = 100;
@@ -137,6 +143,8 @@ export function IslandPlayOverlay({
           selectedBuildId={selectedBuildId}
           onBuildSelect={(id) => setSelectedBuildId(id)}
           onBuildCancel={() => setSelectedBuildId(null)}
+          weaponHotbar={weaponHotbar}
+          classHotbar={classHotbar}
         />
       )}
     </div>

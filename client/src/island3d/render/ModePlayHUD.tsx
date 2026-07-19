@@ -8,7 +8,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
   Sword, Pickaxe, Hammer, X, RotateCw, Crosshair, TreePine, Package,
-  Flame, Shield, Truck, Wheat, Flag, Mountain, Armchair,
+  Flame, Shield, Truck, Wheat, Flag, Mountain, Armchair, Users, Bug,
 } from 'lucide-react';
 import type { ControlMode } from '../player/CharacterController3D';
 import type { Island3DEngine } from '../engine/Island3DEngine';
@@ -26,8 +26,10 @@ import {
   BUILD_HAMMER_NAME,
   BUILD_HAMMER_SCALE,
 } from '@shared/definitions/buildHammer';
+import { FARM_SEEDS } from '@shared/definitions/farming';
 import { CombatUnitStatus } from '@/components/CombatUnitStatus';
 import { CampCommandBar } from './CampCommandBar';
+import { usePlayerStatusEffects } from '@/hooks/useStatusEffects';
 
 // ── Mode config ──────────────────────────────────────────────────────────────
 
@@ -43,14 +45,14 @@ const MODES: {
     label: 'Combat',
     color: '#e74c3c',
     Icon: Sword,
-    hint: 'LMB attack · 1–5 skills · RMB focus · Tab cycle',
+    hint: 'LMB attack · 1–5 skills · Tab soft-lock · Z sheath · RMB hard focus',
   },
   {
     id: 'harvest',
     label: 'Harvest',
     color: '#2ecc71',
     Icon: Pickaxe,
-    hint: 'LMB gather trees · rocks · crystals · flowers · scrap',
+    hint: '2m tools · hoe till · seeds · water bucket · shovel land · LMB gather',
   },
   {
     id: 'build',
@@ -83,6 +85,9 @@ const CATEGORY_META: Record<BuildCategory, { label: string; icon: React.ReactNod
   nature: { label: 'Nature', icon: <TreePine className="w-3 h-3" /> },
   terrain: { label: 'Terrain', icon: <Mountain className="w-3 h-3" /> },
   camp: { label: 'Camps', icon: <Flag className="w-3 h-3" /> },
+  units: { label: 'Units', icon: <Users className="w-3 h-3" /> },
+  siege: { label: 'Siege', icon: <Shield className="w-3 h-3" /> },
+  monsters: { label: 'Monsters', icon: <Bug className="w-3 h-3" /> },
 };
 
 // ── Props ────────────────────────────────────────────────────────────────────
@@ -221,7 +226,10 @@ export function ModePlayHUD({
             />
           )}
           {mode === 'harvest' && (
-            <HarvestModePanel resources={resources} />
+            <HarvestModePanel
+              resources={resources}
+              engine={engine}
+            />
           )}
           {mode === 'build' && (
             <BuildModeInner
@@ -334,6 +342,7 @@ function CombatModePanel({
   classHotbar: Array<{ key: string; label: string }>;
   weaponHotbar: Array<{ key: string; label: string }>;
 }) {
+  const statusEffects = usePlayerStatusEffects();
   const slots = [
     ...weaponHotbar.slice(0, 3).map((s, i) => ({ ...s, key: s.key || String(i + 1) })),
     ...classHotbar.slice(0, 2).map((s, i) => ({ ...s, key: s.key || String(i + 4) })),
@@ -345,7 +354,7 @@ function CombatModePanel({
   return (
     <div className="p-3 space-y-3">
       <div className="flex items-start gap-3">
-        <div className="w-48">
+        <div className="w-48 pt-2">
           <CombatUnitStatus
             name={name}
             hp={hp}
@@ -357,6 +366,7 @@ function CombatModePanel({
             level={level}
             isActive
             compact
+            statusEffects={statusEffects}
           />
         </div>
         <div className="flex-1">
@@ -384,32 +394,198 @@ function CombatModePanel({
 
 // ── Harvest panel ────────────────────────────────────────────────────────────
 
-function HarvestModePanel({ resources }: { resources: Record<string, number> }) {
-  const entries = Object.entries(resources);
-  const tools = [
-    { id: 'axe', label: 'Axe', emoji: '🪓' },
-    { id: 'pick', label: 'Pick', emoji: '⛏️' },
-    { id: 'sickle', label: 'Sickle', emoji: '🌿' },
-    { id: 'scavenge', label: 'Scrap', emoji: '🔧' },
+function HarvestModePanel({
+  resources,
+  engine,
+}: {
+  resources: Record<string, number>;
+  engine: Island3DEngine | null;
+}) {
+  const [activeTool, setActiveTool] = useState<string | null>(
+    () => engine?.harvestToolOverride ?? null,
+  );
+  const [selectedSeed, setSelectedSeed] = useState<string | null>(
+    () => engine?.selectedSeedId ?? null,
+  );
+  const [craftMsg, setCraftMsg] = useState<string | null>(null);
+  const [, tick] = useState(0);
+
+  // Merge page resources + engine farm bag (seeds / bucket / harvests)
+  const bag = {
+    ...resources,
+    ...(engine?.farmInventory ?? {}),
+  };
+  const entries = Object.entries(bag);
+
+  // Seed action slots from inventory (Valheim seed bar)
+  const seedSlots = FARM_SEEDS.map((s) => ({
+    ...s,
+    qty: bag[s.itemId] ?? 0,
+  })).filter((s) => s.qty > 0);
+
+  const tools: Array<{
+    id: string;
+    label: string;
+    emoji: string;
+    ground: 'shovel' | 'hoe' | 'seed' | 'bucket' | null;
+    title: string;
+  }> = [
+    { id: 'axe', label: 'Axe', emoji: '🪓', ground: null, title: 'Chop trees' },
+    { id: 'pick', label: 'Pick', emoji: '⛏️', ground: null, title: 'Mine rock' },
+    { id: 'shovel', label: 'Shovel', emoji: '🪚', ground: 'shovel', title: '2m raise / dig / level' },
+    { id: 'hoe', label: 'Hoe', emoji: '🌾', ground: 'hoe', title: 'Till 2m growing circle' },
+    {
+      id: 'bucket',
+      label: engine?.bucketHasWater ? 'Water' : 'Bucket',
+      emoji: engine?.bucketHasWater ? '💧' : '🪣',
+      ground: 'bucket',
+      title: 'Fill at shore · water crops · auto-craft',
+    },
   ];
+
+  const selectTool = (id: string, ground: typeof tools[0]['ground']) => {
+    if (ground) {
+      const next = activeTool === id ? null : ground;
+      setActiveTool(next);
+      engine?.setHarvestToolOverride(next);
+      if (next !== 'seed') {
+        // keep seed selection but don't force seed tool unless clicking seed slot
+      }
+    } else {
+      setActiveTool(id);
+      engine?.setHarvestToolOverride(null);
+    }
+    tick((n) => n + 1);
+  };
+
+  const selectSeedSlot = (seedId: string) => {
+    const next = selectedSeed === seedId ? null : seedId;
+    setSelectedSeed(next);
+    setActiveTool(next ? 'seed' : null);
+    engine?.setSelectedSeed(next);
+    if (next) engine?.setHarvestToolOverride('seed');
+    else engine?.setHarvestToolOverride(null);
+    tick((n) => n + 1);
+  };
+
+  const runAutoCraft = () => {
+    if (!engine) return;
+    const r = engine.tryAutoCraftWithWater();
+    setCraftMsg(r.message);
+    tick((n) => n + 1);
+  };
+
+  const toolActive = (t: typeof tools[0]) =>
+    activeTool === t.id
+    || (t.ground !== null && engine?.harvestToolOverride === t.ground)
+    || (t.ground === 'seed' && engine?.harvestToolOverride === 'seed');
+
+  const hint =
+    engine?.harvestToolOverride === 'shovel'
+      ? '2m shovel: LMB raise · Shift dig · Ctrl level'
+      : engine?.harvestToolOverride === 'hoe'
+        ? '2m hoe: LMB turns earth into a growing plot'
+        : engine?.harvestToolOverride === 'seed'
+          ? 'Click tilled dirt to plant (arrow / brush on turned soil)'
+          : engine?.harvestToolOverride === 'bucket'
+            ? engine.bucketHasWater
+              ? `Water crops (charges ${engine.waterCharges}) · shore to refill`
+              : 'Empty bucket — LMB near water to fill'
+            : 'Gather with LMB · Build mode places objects / assets';
 
   return (
     <div className="p-3 space-y-2">
-      <p className="text-[10px] uppercase tracking-widest text-emerald-400/80">Harvest Tools</p>
+      <p className="text-[10px] uppercase tracking-widest text-emerald-400/80">
+        Harvest · Farm · 2m Ground Tools
+      </p>
       <div className="flex gap-1.5">
-        {tools.map((t) => (
-          <div
-            key={t.id}
-            className="flex-1 rounded-lg border border-emerald-800/40 bg-emerald-950/30 py-2 flex flex-col items-center gap-0.5"
-          >
-            <span className="text-lg">{t.emoji}</span>
-            <span className="text-[10px] text-emerald-200/80">{t.label}</span>
-          </div>
-        ))}
+        {tools.map((t) => {
+          const active = toolActive(t);
+          const accent = t.ground ? '#c4a35a' : '#2ecc71';
+          return (
+            <button
+              key={t.id}
+              type="button"
+              onClick={() => selectTool(t.id, t.ground)}
+              className="flex-1 rounded-lg border py-2 flex flex-col items-center gap-0.5 transition-colors"
+              style={{
+                borderColor: active ? accent : 'rgba(6, 78, 59, 0.4)',
+                background: active ? `${accent}28` : 'rgba(6, 40, 30, 0.3)',
+              }}
+              title={t.title}
+            >
+              <span className="text-lg">{t.emoji}</span>
+              <span
+                className="text-[10px]"
+                style={{ color: active ? '#e8dcc0' : 'rgba(167, 243, 208, 0.8)' }}
+              >
+                {t.label}
+              </span>
+            </button>
+          );
+        })}
       </div>
-      <div className="flex flex-wrap gap-1.5 pt-1">
+
+      {/* Seed action slots — inventory seeds on hotbar */}
+      <div>
+        <p className="text-[9px] uppercase tracking-widest text-amber-400/70 mb-1">
+          Seed action slots
+        </p>
+        <div className="flex gap-1.5 flex-wrap">
+          {seedSlots.length === 0 ? (
+            <span className="text-white/30 text-[10px]">No seeds — starter pack loads on farm systems</span>
+          ) : (
+            seedSlots.map((s, i) => {
+              const active = selectedSeed === s.id || engine?.selectedSeedId === s.id;
+              return (
+                <button
+                  key={s.id}
+                  type="button"
+                  onClick={() => selectSeedSlot(s.id)}
+                  className="relative min-w-[3.2rem] rounded-lg border px-2 py-1.5 flex flex-col items-center gap-0.5"
+                  style={{
+                    borderColor: active ? '#6bcb77' : 'rgba(100, 80, 40, 0.5)',
+                    background: active ? 'rgba(107, 203, 119, 0.2)' : 'rgba(30, 24, 12, 0.55)',
+                    boxShadow: active ? '0 0 10px rgba(107,203,119,0.35)' : 'none',
+                  }}
+                  title={`${s.name} — click then plant on tilled dirt`}
+                >
+                  <span className="absolute top-0.5 left-1 text-[8px] text-white/40">{i + 1}</span>
+                  <span className="text-base leading-none">{s.icon}</span>
+                  <span className="text-[9px] text-amber-100/90">{s.qty}</span>
+                </button>
+              );
+            })
+          )}
+        </div>
+      </div>
+
+      <p className="text-[10px] text-amber-200/80 leading-snug">{hint}</p>
+
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          onClick={runAutoCraft}
+          className="text-[10px] px-2 py-1 rounded-md border border-sky-700/50 bg-sky-950/40 text-sky-200 hover:bg-sky-900/50"
+          title="Uses water charges + farm ingredients (dough, fiber, mash)"
+        >
+          Auto-craft (water)
+        </button>
+        {engine && (
+          <span className="text-[10px] text-sky-300/70">
+            💧 {engine.waterCharges} · {engine.bucketHasWater ? 'full pail' : 'empty pail'}
+          </span>
+        )}
+      </div>
+      {craftMsg && (
+        <p className="text-[10px] text-emerald-300/90">{craftMsg}</p>
+      )}
+
+      <div className="flex flex-wrap gap-1.5 pt-1 max-h-16 overflow-y-auto">
         {entries.length === 0 ? (
-          <span className="text-white/25 text-xs">No resources yet — LMB trees & rocks</span>
+          <span className="text-white/25 text-xs">
+            Bag empty — gather or farm · Build places structures / props
+          </span>
         ) : (
           entries.map(([k, v]) => (
             <span
@@ -424,6 +600,7 @@ function HarvestModePanel({ resources }: { resources: Record<string, number> }) 
     </div>
   );
 }
+
 
 // ── Build panel (Dune Awakening–style horizontal group tabs + piece grid) ────
 

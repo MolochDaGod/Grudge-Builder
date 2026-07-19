@@ -24,6 +24,11 @@ import {
   HarvestNode,
 } from "../schemas/SectorState";
 import { TUTORIAL_STEPS } from "../../../shared/definitions/tutorialFlow";
+import {
+  TUTORIAL_T0_TOOLS,
+  TUTORIAL_REVIEW_BOOKS,
+  buildShipwreckWakeHarvestNodes,
+} from "../../../shared/definitions/tutorialShipwreckScene";
 
 interface TutorialJoinOptions {
   accountId?: string;
@@ -48,7 +53,8 @@ export class ShipwreckRoom extends Room<ShipwreckState> {
   autoDispose = true;
 
   private boarSpawnTimer: ReturnType<typeof setTimeout> | null = null;
-  private gatherCounts = { sticks: 0, stones: 0, rawMeat: 0, cookedMeat: 0 };
+  private gatherCounts = { sticks: 0, stones: 0, fiber: 0, rawMeat: 0, cookedMeat: 0 };
+  private craftedTools = new Set<string>();
   private campfirePlaced = false;
   private raftDeployed = false;
 
@@ -76,16 +82,13 @@ export class ShipwreckRoom extends Room<ShipwreckState> {
       state.steps.set(step.id, ts);
     }
 
-    // Beach sticks (forest) + stones (mining)
+    // Wake pocket sticks/stones (between wreck, boats, rocks) + a few outer nodes
     const nodes = [
-      { id: "stick_1", type: "forest", x: 18, z: 22 },
-      { id: "stick_2", type: "forest", x: -12, z: 28 },
-      { id: "stick_3", type: "forest", x: 26, z: -8 },
-      { id: "stick_4", type: "forest", x: -22, z: -14 },
-      { id: "stick_5", type: "forest", x: 8, z: 35 },
-      { id: "stone_1", type: "mining", x: 12, z: -28 },
-      { id: "stone_2", type: "mining", x: -18, z: -32 },
-      { id: "stone_3", type: "mining", x: 32, z: 6 },
+      ...buildShipwreckWakeHarvestNodes(),
+      { id: "stick_outer_1", type: "forest" as const, x: 18, z: 22 },
+      { id: "stick_outer_2", type: "forest" as const, x: -12, z: 28 },
+      { id: "stone_outer_1", type: "mining" as const, x: 12, z: -28 },
+      { id: "stone_outer_2", type: "mining" as const, x: -18, z: -32 },
     ];
 
     for (const n of nodes) {
@@ -125,9 +128,10 @@ export class ShipwreckRoom extends Room<ShipwreckState> {
     this.onMessage("intro_complete", (client) => {
       state.introPlayed = true;
       this.completeStep("intro_video");
+      this.completeStep("meet_traveler");
       client.send("ally_assist", {
         message:
-          "You wash ashore on the pirate island. Gather sticks and stones near the wreck.",
+          "Dock Traveler: Easy there, shipwrecked. I am the Dock Traveler — every race hears the same first lesson. Harvest sticks and stones by the wreck, craft T0 tools, then we build a raft to your faction island.",
       });
     });
 
@@ -157,9 +161,74 @@ export class ShipwreckRoom extends Room<ShipwreckState> {
       }
     });
 
-    /** Quick-craft from main panel */
+    /** Quick-craft from main panel / T0 wake tools */
     this.onMessage("craft", (client, data: { recipeId: string }) => {
       const recipe = String(data?.recipeId || "");
+
+      // T0 harvest tools from sticks + stones (+ fiber for pole/bucket)
+      const t0 = TUTORIAL_T0_TOOLS.find(
+        (t) => t.id === recipe || t.itemId === recipe,
+      );
+      if (t0) {
+        if (this.craftedTools.has(t0.itemId)) {
+          client.send("craft_fail", { reason: "already_owned", itemId: t0.itemId });
+          return;
+        }
+        const needFiber = t0.cost.fiber ?? 0;
+        if (
+          this.gatherCounts.sticks < t0.cost.stick
+          || this.gatherCounts.stones < t0.cost.stone
+          || this.gatherCounts.fiber < needFiber
+        ) {
+          client.send("craft_fail", {
+            reason: "materials",
+            need: t0.cost,
+            have: { ...this.gatherCounts },
+          });
+          return;
+        }
+        this.gatherCounts.sticks -= t0.cost.stick;
+        this.gatherCounts.stones -= t0.cost.stone;
+        this.gatherCounts.fiber -= needFiber;
+        this.craftedTools.add(t0.itemId);
+        client.send("craft_complete", {
+          itemId: t0.itemId,
+          name: t0.name,
+          toolType: t0.harvestToolType,
+          results: t0.results,
+        });
+        // Unlock step after first tool + minimum materials spent learning
+        if (this.craftedTools.size >= 1) {
+          this.completeStep("craft_t0_tools");
+        }
+        client.send("ally_assist", {
+          message: `${t0.name} crafted. Equip it in harvest mode — ${t0.results[0]}`,
+        });
+        return;
+      }
+
+      const book = TUTORIAL_REVIEW_BOOKS.find((b) => b.id === recipe);
+      if (book) {
+        if (
+          this.gatherCounts.sticks >= book.cost.stick
+          && this.gatherCounts.stones >= book.cost.stone
+          && !this.craftedTools.has(book.id)
+        ) {
+          this.gatherCounts.sticks -= book.cost.stick;
+          this.gatherCounts.stones -= book.cost.stone;
+          this.craftedTools.add(book.id);
+          client.send("craft_complete", {
+            itemId: book.id,
+            name: book.name,
+            summary: book.summary,
+            kind: "book",
+          });
+          client.send("ally_assist", {
+            message: `📖 ${book.name}: ${book.summary}`,
+          });
+        }
+        return;
+      }
 
       if (recipe === "campfire") {
         if (
@@ -256,7 +325,7 @@ export class ShipwreckRoom extends Room<ShipwreckState> {
       this.completeStep("ui_ux_tour");
       client.send("ally_assist", {
         message:
-          "Last mission: quick-craft a raft, place it in the water, press E to board.",
+          "Dock Traveler: Last craft of the shore — a raft. Build it true, board with E, then sail to your race faction island on the outer ring.",
       });
     });
 
@@ -267,7 +336,7 @@ export class ShipwreckRoom extends Room<ShipwreckState> {
       client.send("raft_deployed", { ready: true });
     });
 
-    /** Client pressed E near raft — boards and ends solo tutorial */
+    /** Client pressed E near raft — boards → sail to race faction island (outer ring) */
     this.onMessage("board_raft", (client) => {
       if (!this.isStepComplete("craft_raft")) return;
       if (!this.raftDeployed) {
@@ -275,14 +344,21 @@ export class ShipwreckRoom extends Room<ShipwreckState> {
         this.raftDeployed = true;
       }
       this.completeStep("board_raft");
+      this.completeStep("sail_faction_island");
       state.raftBuilt = true;
       state.completed = true;
+      const race = (state.players.get(client.sessionId)?.heroRace || "human").toLowerCase();
       client.send("tutorial_complete", {
         message:
-          "You set sail. End cutscene → create your Home Island and cNFT.",
-        next: "home_island_create",
-        nextPath: "/island-reveal",
-        nextRoom: "home_island",
+          "The Dock Traveler waves you off. Sail the raft to your race faction island on the outer lobby ring — report to the commander.",
+        next: "faction_island_report",
+        nextPath: `/island-3d?mode=lobby&map=pirate-islands&from=tutorial&race=${encodeURIComponent(race)}&focus=faction`,
+        nextRoom: "lobby",
+        raceId: race,
+      });
+      client.send("ally_assist", {
+        message:
+          "Traveler: Same road for every bloodline — only the shore changes. Your faction island waits on the outer ring. Dock and report to the commander.",
       });
     });
 

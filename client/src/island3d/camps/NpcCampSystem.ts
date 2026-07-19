@@ -318,6 +318,16 @@ export class NpcCampSystem {
 
     camp.root.add(group);
     camp.upgradeRoots.push(group);
+
+    // Continuous campfire fire + smoke particles
+    if (up.kind === 'fire' || up.upgradeId === 'camp_fire') {
+      try {
+        const { getWorldFxBus } = await import('../vfx/WorldFxBus');
+        getWorldFxBus()?.attachCampfire(group);
+      } catch {
+        /* optional */
+      }
+    }
   }
 
   private makeUpgradePlaceholder(kind: CampUpgradeKind): THREE.Mesh {
@@ -414,9 +424,14 @@ export async function spawnZoneCamps(
     playerFaction: CampFaction | string;
     seed?: number;
     campsPerIsland?: number;
+    /** Override faction pool (from sector production package) */
+    factions?: CampFaction[];
   },
 ): Promise<number> {
-  const factions: CampFaction[] = ['crusade', 'legion', 'fabled', 'pirate'];
+  const factions: CampFaction[] =
+    opts.factions && opts.factions.length > 0
+      ? opts.factions.filter((f) => f !== 'monster')
+      : ['crusade', 'legion', 'fabled', 'pirate'];
   let rng = opts.seed ?? 42;
   const rand = () => {
     rng = (rng * 1664525 + 1013904223) >>> 0;
@@ -432,7 +447,7 @@ export async function spawnZoneCamps(
       const dist = island.radius * (0.25 + rand() * 0.45);
       const x = island.x + Math.cos(angle) * dist;
       const z = island.z + Math.sin(angle) * dist;
-      const faction = factions[Math.floor(rand() * factions.length)];
+      const faction = factions[Math.floor(rand() * Math.max(1, factions.length))] ?? 'neutral';
       const defId =
         faction === 'crusade'
           ? 'crusade_camp'
@@ -440,7 +455,9 @@ export async function spawnZoneCamps(
             ? 'legion_camp'
             : faction === 'fabled'
               ? 'fabled_camp'
-              : 'pirate_camp';
+              : faction === 'worge'
+                ? 'crusade_camp' // visual kit; faction banner is worgen
+                : 'pirate_camp';
 
       const camp = await system.spawnCamp({
         defId,

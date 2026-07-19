@@ -1,0 +1,42 @@
+# Scheduled live-ops probe — maintenance signal for production Warlords.
+# Does not deploy. Writes agent report artifact.
+name: Live Ops Probe
+
+on:
+  schedule:
+    - cron: '0 */6 * * *' # every 6 hours
+  workflow_dispatch:
+
+jobs:
+  live-ops:
+    name: Production live-ops report
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Run live-ops report
+        run: node scripts/agents/live-ops-agent.mjs report
+
+      - name: Upload report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: live-ops-report
+          path: scripts/agents/reports/live-ops-*.json
+          if-no-files-found: warn
+
+      - name: Fail on hard health
+        run: |
+          node -e "
+          const fs=require('fs');
+          const p='scripts/agents/reports/live-ops-latest.json';
+          if(!fs.existsSync(p)) { console.error('missing report'); process.exit(1); }
+          const j=JSON.parse(fs.readFileSync(p,'utf8'));
+          if(j.ok===false) { console.error('live-ops hard fail', j.summary); process.exit(1); }
+          console.log('live-ops ok', j.summary);
+          "

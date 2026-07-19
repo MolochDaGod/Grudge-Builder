@@ -82,7 +82,21 @@ Per sector “fully built” means at minimum:
 | Survival kit SSOT | `shared/definitions/survivalKitBuildCatalog.ts` |
 | Pack models | `building/PackModelLoader.ts` → R2 `models/buildings/…` |
 
-**Shovel / terrain sculpt:** search home-island + studio editor paths (`Grudge-Studio-Forge` / studio editor for authoring; runtime place props via `BuildingSystem` terrain props). Confirm shovel tool binding in `ModePlayHUD` / build mode before server authoring.
+**Valheim-like ground tools + farming (runtime, 2 m circle):**
+| Piece | Path |
+|-------|------|
+| SSOT seeds / water craft | `shared/definitions/farming.ts` — 2 m diameter, seeds, water recipes |
+| Multi-layer materials | `terrain/TerrainMaterial.ts` — home + sector height/slope blend |
+| Sector layer stacks | `terrain/GroundPBRTextures.ts` → `SECTOR_LAYER_STACKS` |
+| Shovel brush (2 m) | `terrain/ShovelTerrainSculptor.ts` — raise / lower / level |
+| Hoe plots | `farming/FarmPlotSystem.ts` — till → plant → water → grow → harvest |
+| 2 m ring preview | `farming/GroundToolBrush.ts` |
+| Tool actions | `game/harvest/HarvestToolActions.ts` — shovel / hoe / bucket / seed |
+| Engine wire | `Island3DEngine` — ground tools, bucket fill, auto-craft water |
+| HUD | `ModePlayHUD` Harvest — tools + seed action slots + Auto-craft |
+| Place objects | Build mode (Farming tab + props) still places assets |
+
+**Play loop:** Harvest → **Hoe** (till 2 m dirt) → click **seed slot** → plant on tilled → **Bucket** at shore (fill) → water crops → LMB harvest when ready. **Shovel** sculpts height in same 2 m circle. **Auto-craft (water)** spends water charges + ingredients (dough / fiber / mash).
 
 ### Harvestables
 | System | Path |
@@ -161,7 +175,8 @@ Register: `server/colyseus/index.ts`.
 
 ### Phase C — Build grid + land tools
 - [ ] Foundation grid active per sector (`BoardGrid3D` + `BuildingSystem`)
-- [ ] Shovel / terrain-prop tool wired in build mode (home + sector)
+- [x] Shovel terrain sculpt wired in harvest mode (raise/lower/level; home + sector mesh)
+- [ ] Optional: persist shovel deltas to zone save / server heightmap
 - [ ] Persist builds to Railway (sector or island tables) with `grudge_id`
 
 ### Phase D — Harvestables

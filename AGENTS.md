@@ -2,11 +2,38 @@
 
 # Grudge Builder — Web Engine 1
 
+## Autonomous production agents (Railway / Deploy / Live Ops)
+
+Ship and maintain production with dedicated agents — see **[docs/PRODUCTION_AGENTS.md](./docs/PRODUCTION_AGENTS.md)**.
+
+| Agent | npm | Grok skill | Role |
+|-------|-----|------------|------|
+| Railway | `npm run agent:railway -- probe\|deploy --yes` | `grudge-railway-agent` | grudge-api + Colyseus |
+| Deploy | `npm run agent:deploy -- ship --yes --api` | `grudge-deploy-agent` | multi-surface production ship |
+| Live ops | `npm run agent:live-ops -- report` | `grudge-live-ops` | health, experience, backlog |
+| Orchestrator | `npm run agent:status` / `agent:maintenance` | (deploy skill) | status + maintenance loop |
+
+Catalog SSOT: `shared/agents/productionAgentCatalog.ts`. Reports: `scripts/agents/reports/*-latest.json`.
+
+**Rule:** production ship requires `--yes` (or CI). Agents never drop DB or print secrets.
+
+### Production stack (only these four)
+
+| Platform | Role |
+|----------|------|
+| **Vercel** | SPA client |
+| **Railway** | grudge-api — Postgres player SSOT + Express |
+| **Colyseus** | Realtime on same Railway process |
+| **Cloudflare** | R2 CDN, Workers (id-gateway, ObjectStore, CDN) |
+
+**Not SSOT:** Supabase (optional probe; leave unset), MySQL VPS (legacy), D1 heroes, Puter guest.  
+Pattern: [docs/STACK_PATTERN.md](./docs/STACK_PATTERN.md).
+
 ## Project Identity
 This is **Grudge Warlords** ([grudgewarlords.com](https://grudgewarlords.com)), the primary **web game client** for Grudge Studio (React + Vite + TypeScript, Three.js + Phaser).
 Created by **Racalvin The Pirate King**.
 
-**Read first (honest fleet + architecture):** root [README.md](./README.md) · [docs/CANONICAL_IDENTITY.md](./docs/CANONICAL_IDENTITY.md) · [docs/CANONICAL_DATA_LAYER.md](./docs/CANONICAL_DATA_LAYER.md) · [docs/FLEET_STATUS.md](./docs/FLEET_STATUS.md) · [docs/DEPLOY_OWNERSHIP.md](./docs/DEPLOY_OWNERSHIP.md).
+**Read first (honest fleet + architecture):** root [README.md](./README.md) · [docs/STACK_PATTERN.md](./docs/STACK_PATTERN.md) · [docs/CANONICAL_IDENTITY.md](./docs/CANONICAL_IDENTITY.md) · [docs/CANONICAL_DATA_LAYER.md](./docs/CANONICAL_DATA_LAYER.md) · [docs/FLEET_STATUS.md](./docs/FLEET_STATUS.md) · [docs/DEPLOY_OWNERSHIP.md](./docs/DEPLOY_OWNERSHIP.md).
 
 This repo is **not** Warlord Genesis (separate Vercel app), not ObjectStore, and not Character Studio — those are fleet siblings.
 
@@ -15,11 +42,13 @@ This repo is **not** Warlord Genesis (separate Vercel app), not ObjectStore, and
 ### Single Source of Truth (do not conflate layers)
 - **Account** (`grudge_id`): JWT from **id.grudge-studio.com** — email/Discord/Puter are **links**, not separate player DBs.
 - **Player data** (users, characters, islands, inventory, sessions): **Railway Postgres** via grudge-api — same-origin `/api/*` on Vercel; **absolute Railway URL** on Puter.
+- **Realtime:** **Colyseus** on grudge-api (not a separate Supabase realtime DB).
 - **Warlords heroes**: `GET/POST /api/characters?era=warlords` — primary key = **Postgres UUID**; display stamp = `grudgeCode`.
 - **Account bag** vs **character progress**: bag on `/api/account/*` + inventory; professions/equipment/XP on character UUID only.
 - **Game catalog** (races, classes, weapons, armor, attributes, recipes): ObjectStore / info `…/api/v1/*.json` — **definitions only**.
 - **3D models / icons**: R2 `assets.grudge-studio.com` via `assetUrl()` — **never** player SSOT.
 - **D1**: asset registry index only — **not** characters/islands/bag.
+- **Supabase**: **not required**. `/api/supabase/health` with `configured:false` is healthy production.
 - **Fleet bridge**: `client/public/grudge-fleet.js` **≥ 2.8.0** (CDN + Puter crafting). Hard-fails JWT≠stored `grudge_id`; rejects foreign active UUIDs.
 - **Frontend data layer**: prefer ObjectStore for catalog; **do not grow** hardcoded fallbacks.
 

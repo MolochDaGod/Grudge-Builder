@@ -113,17 +113,32 @@ export interface GameDeployment {
 
 /**
  * Recommended Three.js path (shown on /home):
- * tutorial → home island → world map (6 race cities) → open world → sail → tactical → RTS
+ * intro → create → tutorial → open world → home island (level 20+) → world map → sail
+ * SSOT detail: shared/definitions/warlordsProductionFlow.ts
  */
 export const PRODUCTION_DEPLOYMENT_PATH: GameDeployment[] = [
+  {
+    id: "warlords-pipeline",
+    title: "Warlords Start",
+    subtitle: "Full production pipeline · level gates",
+    description:
+      "Opening scene → character create → shipwreck tutorial → open world. Home island unlocks at level 20.",
+    url: "/warlords/start",
+    icon: "flame",
+    tier: "core",
+    badge: "Path",
+    badgeColor: "amber",
+    stage: "onboard",
+    featured: true,
+    order: 5,
+  },
   {
     id: "tutorial",
     title: "Shipwreck Adventure",
     subtitle: "Solo · Pirate Island · Not Multiplayer Lobby",
     description:
-      "Solo start: intro video → wash up on pirate island wreck → sticks/stones → quick-craft campfire → " +
-      "boar combat/skin/cook → UI tour → craft+deploy raft → E board → cutscene → home-island create/cNFT. " +
-      "Colyseus room: tutorial (private per characterId). Real multiplayer (lobby/zones) only after home-island.",
+      "Solo start: wash up on pirate island wreck → sticks/stones → campfire → combat → craft raft. " +
+      "Then open-world multiplayer. Home island unlocks at hero level 20 (not immediately after tutorial).",
     url: "/tutorial",
     icon: "flame",
     tier: "core",
@@ -136,13 +151,13 @@ export const PRODUCTION_DEPLOYMENT_PATH: GameDeployment[] = [
   {
     id: "homeisland",
     title: "Home Island 3D",
-    subtitle: "Personal Seed · Home Block Center",
+    subtitle: "Level 20+ · Personal Seed · Home Block Center",
     description:
-      "Your persistent 1024m island (home-block MC cell) — gather, build, dungeon. Not a Warlords era macro sector.",
-    url: THREE_HOME_ISLAND_PATH,
+      "Level 20: talk to your faction captain → mission End Game → abandon-ship cinematic (sink + jump all) → home island. URL: /homeisland",
+    url: "/homeisland?cinematic=abandon-ship&from=end-game",
     icon: "leaf",
     tier: "core",
-    badge: "Home",
+    badge: "Lv 20",
     badgeColor: "emerald",
     stage: "home",
     featured: true,

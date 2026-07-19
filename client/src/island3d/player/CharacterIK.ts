@@ -160,6 +160,10 @@ const DEFAULT_FOOT_CONFIG: FootIKConfig = {
   terrainLayers: [],
 };
 
+/** Boost foot IK briefly on dash impact (plants feet after lunge). */
+const DASH_FOOT_IK_BOOST = 1.15;
+const DASH_FOOT_IK_DURATION = 0.28;
+
 const DEFAULT_LOOKAT_CONFIG: LookAtIKConfig = {
   maxAngle: Math.PI * 0.4, // ~72 degrees
   smoothing: 5,
@@ -184,11 +188,20 @@ export class CharacterIK {
   // Config
   footConfig: FootIKConfig;
   lookAtConfig: LookAtIKConfig;
+  /** Remaining seconds of dash-landing foot IK boost */
+  private dashFootIkTimer = 0;
+  private baseFootWeight = 1;
+  /** Foot phase labels for debug panel (stance / plant / swing) */
+  private leftFootPhase = 'stance';
+  private rightFootPhase = 'stance';
+  private leftPhaseTimer = 0;
+  private rightPhaseTimer = 0;
 
   constructor(model: THREE.Object3D, footConfig?: Partial<FootIKConfig>, lookAtConfig?: Partial<LookAtIKConfig>) {
     this.rootModel = model;
     this.footConfig = { ...DEFAULT_FOOT_CONFIG, ...footConfig };
     this.lookAtConfig = { ...DEFAULT_LOOKAT_CONFIG, ...lookAtConfig };
+    this.baseFootWeight = this.footConfig.weight;
 
     // Find skeleton and index all bones by name
     model.traverse((child) => {
@@ -227,11 +240,50 @@ export class CharacterIK {
   // ═══════════════════════════════════════════════════════════
 
   /**
+   * Call on dash / attack lunge impact — snaps foot IK harder for a short window
+   * (pairs with dash_foot smoke VFX at the feet).
+   */
+  pulseDashFootIK(duration = DASH_FOOT_IK_DURATION): void {
+    this.dashFootIkTimer = Math.max(this.dashFootIkTimer, duration);
+    this.footConfig.weight = Math.min(1, this.baseFootWeight * DASH_FOOT_IK_BOOST);
+    this.footConfig.smoothing = 14;
+    this.leftFootPhase = 'plant';
+    this.rightFootPhase = 'plant';
+    this.leftPhaseTimer = duration;
+    this.rightPhaseTimer = duration;
+  }
+
+  /** Debug text for lil-gui style foot phase panel. */
+  getFootPhaseDebugText(side: 'left' | 'right'): string {
+    return side === 'left' ? this.leftFootPhase : this.rightFootPhase;
+  }
+
+  /** Tick phase labels without full IK (freeze debug). */
+  tickFootPhase(dt: number, leftMoving: boolean, rightMoving: boolean): void {
+    this.leftPhaseTimer = Math.max(0, this.leftPhaseTimer - dt);
+    this.rightPhaseTimer = Math.max(0, this.rightPhaseTimer - dt);
+    if (this.leftPhaseTimer <= 0) {
+      this.leftFootPhase = leftMoving ? 'swing' : 'stance';
+    }
+    if (this.rightPhaseTimer <= 0) {
+      this.rightFootPhase = rightMoving ? 'swing' : 'stance';
+    }
+  }
+
+  /**
    * Call this AFTER FK animation update, BEFORE render.
    * Raycasts down from each foot bone to find the ground,
    * adjusts hip height + ankle rotation so feet plant correctly.
    */
   updateFootIK(terrainObjects: THREE.Object3D[], delta: number): void {
+    if (this.dashFootIkTimer > 0) {
+      this.dashFootIkTimer = Math.max(0, this.dashFootIkTimer - delta);
+      if (this.dashFootIkTimer <= 0) {
+        this.footConfig.weight = this.baseFootWeight;
+        this.footConfig.smoothing = DEFAULT_FOOT_CONFIG.smoothing;
+      }
+    }
+    this.tickFootPhase(delta, false, false);
     if (this.footConfig.weight <= 0) return;
 
     const leftFoot = this.findBone("LeftFoot") || this.findBone("LeftToeBase");

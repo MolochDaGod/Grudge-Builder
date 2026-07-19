@@ -135,7 +135,7 @@ See [HAVEN_SHORE_FOUNDATION.md](./HAVEN_SHORE_FOUNDATION.md).
 
 ---
 
-## 5. Source files (quick)
+## 6. Source files (quick)
 
 | Concern | File |
 |---------|------|

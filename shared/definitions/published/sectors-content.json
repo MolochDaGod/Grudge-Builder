@@ -1,0 +1,2058 @@
+{
+  "version": "1.1.0",
+  "updated": "2026-07-19",
+  "worldSeedDefault": "grudge-world-1",
+  "grid": {
+    "layout": "3x3",
+    "rows": [
+      [
+        "ethereal_falls",
+        "frostbite_expanse",
+        "thornwood_wilds"
+      ],
+      [
+        "stormbreak_reef",
+        "convergence_nexus",
+        "ashen_wastes"
+      ],
+      [
+        "abyssal_trench",
+        "haven_shore",
+        "ember_depths"
+      ]
+    ]
+  },
+  "bestPractices": [
+    "One SSOT: sectorProductionContent.ts — client and server share seeds via resolveSectorSeeds()",
+    "Never mix megakit low-poly trees (CommonTree/Pine_*) — use ecosystem treeCdn paths",
+    "Animals: exactly 5 types per biome; spawn counts from wildlife.landSpawnCount",
+    "Fish only in water nodes; land wildlife never below waterLevel+1.25m",
+    "Heightmap modifier + terrain seed must stay paired for Colyseus / client parity",
+    "Landmark GLBs: local public first, then CDN; procedural fallback if both fail",
+    "Event falls (eventfalls.glb) is ethereal_falls only; mountain city is thornwood only",
+    "Safe zone haven_shore: starter monsters, vendors, Fruzer foundation — no world bosses"
+  ],
+  "sectorCount": 9,
+  "sectors": [
+    {
+      "sectorId": "ethereal_falls",
+      "legacyId": "NW",
+      "name": "Ethereal Falls",
+      "mapCorner": "top_left",
+      "biome": "ethereal",
+      "ecosystemId": "ethereal",
+      "difficulty": [
+        6,
+        9
+      ],
+      "isSafeZone": false,
+      "isContested": false,
+      "lore": "When the First God wept during the Sundering, their tears became rivers of liquid light that flow upward, defying gravity. The falls shimmer between purple and cyan, illuminating islands of crystallized magic suspended in mid-air. The mist below is alive — phantoms of drowned sailors reach up from the luminous depths, and the water itself dissolves mortal flesh. Only the worthy may harvest the Ethereal Crystals that grow where light meets shadow.",
+      "terrain": {
+        "heightmapModifier": "ethereal_falls",
+        "terrainSeedKey": "terrain:ethereal_falls",
+        "populationSeedKey": "pop:ethereal_falls",
+        "sizeMeters": 10000,
+        "segments": 255,
+        "minHeight": -120,
+        "maxHeight": 300,
+        "waterLevel": 10,
+        "noiseOctaves": 7,
+        "noisePersistence": 0.55,
+        "noiseBaseFreq": 0.0012,
+        "skyColor": 789018,
+        "fog": {
+          "color": 1707568,
+          "density": 0.00015
+        },
+        "ambientIntensity": 0.3,
+        "sunIntensity": 0.5,
+        "sunDirection": [
+          0.1,
+          0.6,
+          0.3
+        ],
+        "spawnPoints": [
+          [
+            300,
+            50,
+            300
+          ],
+          [
+            -400,
+            60,
+            200
+          ],
+          [
+            600,
+            40,
+            -500
+          ],
+          [
+            -200,
+            80,
+            -700
+          ],
+          [
+            800,
+            55,
+            100
+          ]
+        ]
+      },
+      "harvest": {
+        "treeVariants": [
+          "garden_tree_pink_11",
+          "ancient_tree_2_0",
+          "birch6_5"
+        ],
+        "rockVariants": [
+          "rock_3",
+          "rock_5",
+          "rock_7"
+        ],
+        "treeCdn": [
+          "/models/nature/stylized/biome/realistic_trees.glb",
+          "/models/nature/stylized/biome/nature_vegetation.glb"
+        ],
+        "groundPbr": "ground_8",
+        "groundTextureDir": "/textures/pbr/ground/ground_8",
+        "canopyTint": 10980346,
+        "snowCanopy": false,
+        "resources": [
+          "ethereal_crystals",
+          "spectral_essence",
+          "luminous_pearl",
+          "voidtouched_coral",
+          "gravity_stone",
+          "phantom_silk",
+          "tear_of_the_first_god"
+        ],
+        "harvestRegenMs": 14400000,
+        "professions": [
+          "mining",
+          "herbalism",
+          "woodcutting",
+          "fishing"
+        ]
+      },
+      "wildlife": {
+        "animals": [
+          "deer",
+          "rabbit",
+          "wolf",
+          "buffalo",
+          "boar"
+        ],
+        "fishSpecies": [
+          "anglerfish",
+          "lionfish",
+          "goldfish",
+          "blobfish",
+          "catfish",
+          "butterflyfish",
+          "flatfish",
+          "shark",
+          "crab",
+          "minnow"
+        ],
+        "landSpawnCount": 24,
+        "fishSpawnCount": 20,
+        "animalSeedKey": "animals"
+      },
+      "monsters": {
+        "common": [
+          "monster_orc_warrior",
+          "monster_imp",
+          "monster_giant_spider",
+          "monster_skeleton_archer"
+        ],
+        "elites": [
+          "monster_shadow_stalker",
+          "monster_goblin_shaman",
+          "monster_frost_elemental"
+        ],
+        "bosses": [
+          "monster_boss_lich"
+        ],
+        "recommendedLevel": [
+          6,
+          9
+        ],
+        "monsterSeedKey": "monsters"
+      },
+      "npcs": {
+        "factions": [
+          "fabled",
+          "neutral",
+          "pirate"
+        ],
+        "campsPerIsland": 1,
+        "npcSeedKey": "npc_camps",
+        "capitalCityId": null,
+        "vendors": false,
+        "missions": false
+      },
+      "events": {
+        "eventSeedKey": "events",
+        "eventTypes": [
+          "ethereal_cascade_surge",
+          "phantom_wisp_hunt",
+          "crystal_overload_event"
+        ],
+        "landmarks": [
+          {
+            "id": "event_falls",
+            "name": "Event Falls (Ethereal Cascade)",
+            "localPath": "/models/biomes/ethereal/event-falls.glb",
+            "cdnKey": "models/biomes/ethereal/event-falls.glb",
+            "authoringPath": "C:/Users/david/OneDrive/Desktop/MouseWithoutBorders/eventfalls.glb",
+            "targetHeightM": 160,
+            "zoneAnchorFrac": {
+              "ox": -0.22,
+              "oz": -0.28
+            },
+            "kind": "event",
+            "notes": "Primary NW ethereal cascade event mesh — sector improvement for ethereal_falls.",
+            "cdnUrl": "https://assets.grudge-studio.com/models/biomes/ethereal/event-falls.glb"
+          },
+          {
+            "id": "starting_falls",
+            "name": "Starting Falls Companion",
+            "localPath": "/models/biomes/ethereal/starting-falls.glb",
+            "cdnKey": "models/biomes/ethereal/starting-falls.glb",
+            "authoringPath": "C:/Users/david/OneDrive/Desktop/MouseWithoutBorders/startingfalls.glb",
+            "targetHeightM": 120,
+            "zoneAnchorFrac": {
+              "ox": 0.18,
+              "oz": 0.2
+            },
+            "kind": "event",
+            "notes": "Secondary falls prop for ethereal_falls entry approach.",
+            "cdnUrl": "https://assets.grudge-studio.com/models/biomes/ethereal/starting-falls.glb"
+          }
+        ],
+        "ambientFx": [
+          "waterfall_glow_purple",
+          "floating_islands",
+          "spectral_mist_rising",
+          "crystal_sparkle",
+          "phantom_wisps",
+          "gravity_particles",
+          "aurora_vertical",
+          "bioluminescent_water"
+        ],
+        "hazards": [
+          "spectral_mist_drain",
+          "gravity_inversion",
+          "phantom_grasp",
+          "crystal_overload",
+          "luminous_whirlpool",
+          "reality_thin_zones"
+        ]
+      },
+      "systems": {
+        "terrain3d": true,
+        "zonePopulation": true,
+        "harvestNodes": true,
+        "wildlife": true,
+        "fish": true,
+        "npcCamps": true,
+        "docks": true,
+        "colyseusSector": true,
+        "islandEvents": true,
+        "bosses": true,
+        "special": [
+          "event_falls_landmark",
+          "fabled_satellite",
+          "gravity_fx"
+        ]
+      },
+      "seeds": {
+        "terrain": 2134033285,
+        "population": 2298905743,
+        "animals": 2996440504,
+        "monsters": 1070372156,
+        "npcCamps": 1091943127,
+        "events": 1740940730,
+        "keys": {
+          "terrain": "grudge-world-1:ethereal_falls:terrain:ethereal_falls",
+          "population": "grudge-world-1:ethereal_falls:pop:ethereal_falls",
+          "animals": "grudge-world-1:ethereal_falls:animals",
+          "monsters": "grudge-world-1:ethereal_falls:monsters",
+          "npcCamps": "grudge-world-1:ethereal_falls:npc_camps",
+          "events": "grudge-world-1:ethereal_falls:events"
+        }
+      },
+      "playUrl": "https://client.grudge-studio.com/island-3d?mode=zone&sector=ethereal_falls&worldSeed=grudge-world-1",
+      "island3dUrl": "/island-3d?mode=zone&sector=ethereal_falls&worldSeed=grudge-world-1"
+    },
+    {
+      "sectorId": "frostbite_expanse",
+      "legacyId": "N",
+      "name": "Frostbite Expanse",
+      "mapCorner": "top_center",
+      "biome": "frozen",
+      "ecosystemId": "frozen",
+      "difficulty": [
+        4,
+        7
+      ],
+      "isSafeZone": false,
+      "isContested": false,
+      "lore": "When the Sundering cracked the northern shelf, the sea froze in an instant, trapping ancient ships and their crews in eternal ice. Frost spirits patrol the glaciers, and the wind itself carries memories of the dead.",
+      "terrain": {
+        "heightmapModifier": "frozen_glacier",
+        "terrainSeedKey": "terrain:frostbite_expanse",
+        "populationSeedKey": "pop:frostbite_expanse",
+        "sizeMeters": 10000,
+        "segments": 255,
+        "minHeight": -20,
+        "maxHeight": 180,
+        "waterLevel": -5,
+        "noiseOctaves": 5,
+        "noisePersistence": 0.38,
+        "noiseBaseFreq": 0.0006,
+        "skyColor": 8952251,
+        "fog": {
+          "color": 11584734,
+          "density": 0.0004
+        },
+        "ambientIntensity": 0.7,
+        "sunIntensity": 0.8,
+        "sunDirection": [
+          0.2,
+          0.4,
+          0.5
+        ],
+        "spawnPoints": [
+          [
+            400,
+            20,
+            400
+          ],
+          [
+            -300,
+            15,
+            600
+          ],
+          [
+            800,
+            25,
+            -200
+          ]
+        ]
+      },
+      "harvest": {
+        "treeVariants": [
+          "pine2_14",
+          "pine9_15"
+        ],
+        "rockVariants": [
+          "rock_7",
+          "rock_8",
+          "rock_4"
+        ],
+        "treeCdn": [
+          "/models/nature/stylized/biome/snowbiomes.glb"
+        ],
+        "groundPbr": "ground_7",
+        "groundTextureDir": "/textures/pbr/ground/ground_7",
+        "canopyTint": 15267071,
+        "snowCanopy": true,
+        "resources": [
+          "frost_herbs",
+          "ice",
+          "crystals",
+          "whale_bone",
+          "arctic_fish"
+        ],
+        "harvestRegenMs": 14400000,
+        "professions": [
+          "mining",
+          "herbalism",
+          "woodcutting",
+          "fishing"
+        ]
+      },
+      "wildlife": {
+        "animals": [
+          "wolf",
+          "bear",
+          "deer",
+          "rabbit",
+          "buffalo"
+        ],
+        "fishSpecies": [
+          "anglerfish",
+          "lionfish",
+          "goldfish",
+          "blobfish",
+          "catfish",
+          "butterflyfish",
+          "flatfish",
+          "shark",
+          "crab",
+          "minnow"
+        ],
+        "landSpawnCount": 22,
+        "fishSpawnCount": 14,
+        "animalSeedKey": "animals"
+      },
+      "monsters": {
+        "common": [
+          "monster_orc_warrior",
+          "monster_imp",
+          "monster_giant_spider",
+          "monster_skeleton_archer"
+        ],
+        "elites": [
+          "monster_shadow_stalker",
+          "monster_goblin_shaman",
+          "monster_frost_elemental"
+        ],
+        "bosses": [
+          "monster_frost_elemental",
+          "monster_boss_lich"
+        ],
+        "recommendedLevel": [
+          4,
+          7
+        ],
+        "monsterSeedKey": "monsters"
+      },
+      "npcs": {
+        "factions": [
+          "fabled",
+          "crusade",
+          "neutral"
+        ],
+        "campsPerIsland": 1,
+        "npcSeedKey": "npc_camps",
+        "capitalCityId": "runeforge_hold",
+        "vendors": false,
+        "missions": false
+      },
+      "events": {
+        "eventSeedKey": "events",
+        "eventTypes": [
+          "blizzard_front",
+          "ice_cave_breach",
+          "fabled_forge_pulse"
+        ],
+        "landmarks": [
+          {
+            "id": "fabledzone_core",
+            "name": "Fabled Zone Core",
+            "localPath": "/models/warlords/fabled/fabledzone.glb",
+            "cdnKey": "models/warlords/fabled/fabledzone.glb",
+            "targetHeightM": 80,
+            "zoneAnchorFrac": {
+              "ox": 0,
+              "oz": 0
+            },
+            "kind": "foundation",
+            "notes": "Frostbite / Fabled dwarf core — cave portals into interiors.",
+            "cdnUrl": "https://assets.grudge-studio.com/models/warlords/fabled/fabledzone.glb"
+          },
+          {
+            "id": "ice_biome_kit",
+            "name": "Ice Biome Multipack",
+            "localPath": "/models/biomes/ice/ice_biome_kit.glb",
+            "cdnKey": "models/biomes/ice/ice_biome_kit.glb",
+            "targetHeightM": 40,
+            "zoneAnchorFrac": {
+              "ox": 0.12,
+              "oz": -0.15
+            },
+            "kind": "biome_kit",
+            "notes": "Additive cold props; snow_pine canopy remains primary.",
+            "cdnUrl": "https://assets.grudge-studio.com/models/biomes/ice/ice_biome_kit.glb"
+          }
+        ],
+        "ambientFx": [
+          "snowfall",
+          "fog_dense",
+          "ice_sparkle"
+        ],
+        "hazards": [
+          "blizzard_damage",
+          "ice_patches",
+          "frostbite_dot",
+          "avalanche_zones"
+        ]
+      },
+      "systems": {
+        "terrain3d": true,
+        "zonePopulation": true,
+        "harvestNodes": true,
+        "wildlife": true,
+        "fish": true,
+        "npcCamps": true,
+        "docks": true,
+        "colyseusSector": true,
+        "islandEvents": true,
+        "bosses": true,
+        "special": [
+          "fabledzone_core",
+          "ice_biome_kit",
+          "cave_portals",
+          "dwarf_castle"
+        ]
+      },
+      "seeds": {
+        "terrain": 3565601233,
+        "population": 83851639,
+        "animals": 1849217204,
+        "monsters": 3339688336,
+        "npcCamps": 2201136227,
+        "events": 3608183614,
+        "keys": {
+          "terrain": "grudge-world-1:frostbite_expanse:terrain:frostbite_expanse",
+          "population": "grudge-world-1:frostbite_expanse:pop:frostbite_expanse",
+          "animals": "grudge-world-1:frostbite_expanse:animals",
+          "monsters": "grudge-world-1:frostbite_expanse:monsters",
+          "npcCamps": "grudge-world-1:frostbite_expanse:npc_camps",
+          "events": "grudge-world-1:frostbite_expanse:events"
+        }
+      },
+      "playUrl": "https://client.grudge-studio.com/island-3d?mode=zone&sector=frostbite_expanse&worldSeed=grudge-world-1",
+      "island3dUrl": "/island-3d?mode=zone&sector=frostbite_expanse&worldSeed=grudge-world-1"
+    },
+    {
+      "sectorId": "thornwood_wilds",
+      "legacyId": "NE",
+      "name": "Thornwood Wilds",
+      "mapCorner": "top_right",
+      "biome": "forest",
+      "ecosystemId": "forest",
+      "difficulty": [
+        3,
+        7
+      ],
+      "isSafeZone": false,
+      "isContested": false,
+      "lore": "The Thornwood predates the factions. Its roots drink from the Worldboard itself, and its canopy hides creatures that have never seen sky. Worge clans claim dominion here, but the forest answers to no one.",
+      "terrain": {
+        "heightmapModifier": "dense_forest",
+        "terrainSeedKey": "terrain:thornwood_wilds",
+        "populationSeedKey": "pop:thornwood_wilds",
+        "sizeMeters": 10000,
+        "segments": 255,
+        "minHeight": -10,
+        "maxHeight": 200,
+        "waterLevel": -2,
+        "noiseOctaves": 6,
+        "noisePersistence": 0.52,
+        "noiseBaseFreq": 0.0009,
+        "skyColor": 4876097,
+        "fog": {
+          "color": 2968098,
+          "density": 0.0005
+        },
+        "ambientIntensity": 0.35,
+        "sunIntensity": 0.7,
+        "sunDirection": [
+          0.3,
+          0.5,
+          0.2
+        ],
+        "spawnPoints": [
+          [
+            200,
+            15,
+            200
+          ],
+          [
+            -500,
+            20,
+            300
+          ],
+          [
+            700,
+            10,
+            -600
+          ]
+        ]
+      },
+      "harvest": {
+        "treeVariants": [
+          "pine2_14",
+          "pine9_15",
+          "ancient_tree_2_0",
+          "birch2_4"
+        ],
+        "rockVariants": [
+          "rock_1",
+          "rock_2",
+          "rock_3"
+        ],
+        "treeCdn": [
+          "/models/nature/stylized/biome/realistic_trees.glb",
+          "/models/nature/stylized/biome/nature_vegetation.glb"
+        ],
+        "groundPbr": "ground_6",
+        "groundTextureDir": "/textures/pbr/ground/ground_6",
+        "canopyTint": 1993502,
+        "snowCanopy": false,
+        "resources": [
+          "hardwood",
+          "herbs",
+          "berries",
+          "rare_mushrooms",
+          "beast_hides"
+        ],
+        "harvestRegenMs": 14400000,
+        "professions": [
+          "mining",
+          "herbalism",
+          "woodcutting",
+          "fishing"
+        ]
+      },
+      "wildlife": {
+        "animals": [
+          "deer",
+          "boar",
+          "wolf",
+          "bear",
+          "rabbit"
+        ],
+        "fishSpecies": [
+          "anglerfish",
+          "lionfish",
+          "goldfish",
+          "blobfish",
+          "catfish",
+          "butterflyfish",
+          "flatfish",
+          "shark",
+          "crab",
+          "minnow"
+        ],
+        "landSpawnCount": 30,
+        "fishSpawnCount": 18,
+        "animalSeedKey": "animals"
+      },
+      "monsters": {
+        "common": [
+          "monster_orc_warrior",
+          "monster_imp",
+          "monster_giant_spider",
+          "monster_skeleton_archer"
+        ],
+        "elites": [
+          "monster_shadow_stalker",
+          "monster_goblin_shaman",
+          "monster_frost_elemental"
+        ],
+        "bosses": [
+          "monster_giant_spider"
+        ],
+        "recommendedLevel": [
+          3,
+          7
+        ],
+        "monsterSeedKey": "monsters"
+      },
+      "npcs": {
+        "factions": [
+          "worge",
+          "fabled",
+          "pirate"
+        ],
+        "campsPerIsland": 1,
+        "npcSeedKey": "npc_camps",
+        "capitalCityId": "starweave_canopy",
+        "vendors": false,
+        "missions": false
+      },
+      "events": {
+        "eventSeedKey": "events",
+        "eventTypes": [
+          "beast_ambush",
+          "living_vines_surge",
+          "hidden_mountain_warden"
+        ],
+        "landmarks": [
+          {
+            "id": "hidden_mountain_city",
+            "name": "Mountains Hidden City",
+            "localPath": "/models/mountains/mountains-hidden-city.glb",
+            "cdnKey": "models/mountains/mountains-hidden-city.glb",
+            "authoringPath": "C:/Users/david/OneDrive/Desktop/MouseWithoutBorders/mountainshiddencity.glb",
+            "targetHeightM": 180,
+            "zoneAnchorFrac": {
+              "ox": 0.28,
+              "oz": -0.32
+            },
+            "kind": "dungeon_gate",
+            "notes": "Boss-gated city under the mountain (Thornwood).",
+            "cdnUrl": "https://assets.grudge-studio.com/models/mountains/mountains-hidden-city.glb"
+          }
+        ],
+        "ambientFx": [
+          "fireflies",
+          "leaf_fall",
+          "fog_light",
+          "pollen_drift"
+        ],
+        "hazards": [
+          "poison_thorns",
+          "beast_ambush",
+          "quicksand",
+          "living_vines"
+        ]
+      },
+      "systems": {
+        "terrain3d": true,
+        "zonePopulation": true,
+        "harvestNodes": true,
+        "wildlife": true,
+        "fish": true,
+        "npcCamps": true,
+        "docks": true,
+        "colyseusSector": true,
+        "islandEvents": true,
+        "bosses": true,
+        "special": [
+          "hidden_mountain_city",
+          "worge_territory"
+        ]
+      },
+      "seeds": {
+        "terrain": 3626133285,
+        "population": 409415171,
+        "animals": 2090007105,
+        "monsters": 2821772695,
+        "npcCamps": 2607549258,
+        "events": 2847383577,
+        "keys": {
+          "terrain": "grudge-world-1:thornwood_wilds:terrain:thornwood_wilds",
+          "population": "grudge-world-1:thornwood_wilds:pop:thornwood_wilds",
+          "animals": "grudge-world-1:thornwood_wilds:animals",
+          "monsters": "grudge-world-1:thornwood_wilds:monsters",
+          "npcCamps": "grudge-world-1:thornwood_wilds:npc_camps",
+          "events": "grudge-world-1:thornwood_wilds:events"
+        }
+      },
+      "playUrl": "https://client.grudge-studio.com/island-3d?mode=zone&sector=thornwood_wilds&worldSeed=grudge-world-1",
+      "island3dUrl": "/island-3d?mode=zone&sector=thornwood_wilds&worldSeed=grudge-world-1"
+    },
+    {
+      "sectorId": "stormbreak_reef",
+      "legacyId": "W",
+      "name": "Stormbreak Reef",
+      "mapCorner": "mid_left",
+      "biome": "storm",
+      "ecosystemId": "storm",
+      "difficulty": [
+        3,
+        6
+      ],
+      "isSafeZone": false,
+      "isContested": false,
+      "lore": "The gods clashed above these waters during the First Grudge, and the storm never stopped. Ships that wander in are torn apart by lightning-charged waves. Only the desperate sail here — and the brave.",
+      "terrain": {
+        "heightmapModifier": "storm_reef",
+        "terrainSeedKey": "terrain:stormbreak_reef",
+        "populationSeedKey": "pop:stormbreak_reef",
+        "sizeMeters": 10000,
+        "segments": 255,
+        "minHeight": -80,
+        "maxHeight": 60,
+        "waterLevel": 5,
+        "noiseOctaves": 6,
+        "noisePersistence": 0.5,
+        "noiseBaseFreq": 0.001,
+        "skyColor": 2899536,
+        "fog": {
+          "color": 3426654,
+          "density": 0.0006
+        },
+        "ambientIntensity": 0.4,
+        "sunIntensity": 0.6,
+        "sunDirection": [
+          0.1,
+          0.3,
+          0.6
+        ],
+        "spawnPoints": [
+          [
+            0,
+            10,
+            0
+          ],
+          [
+            600,
+            8,
+            -400
+          ]
+        ]
+      },
+      "harvest": {
+        "treeVariants": [
+          "pine2_14",
+          "pine9_15",
+          "creepy_tree1_10"
+        ],
+        "rockVariants": [
+          "rock_4",
+          "rock_6",
+          "rock_8"
+        ],
+        "treeCdn": [
+          "/models/nature/stylized/biome/realistic_trees.glb",
+          "/models/nature/stylized/biome/nature_vegetation.glb"
+        ],
+        "groundPbr": "ground_4",
+        "groundTextureDir": "/textures/pbr/ground/ground_4",
+        "canopyTint": 4871528,
+        "snowCanopy": false,
+        "resources": [
+          "shells",
+          "coral",
+          "rare_ore",
+          "storm_crystals"
+        ],
+        "harvestRegenMs": 14400000,
+        "professions": [
+          "mining",
+          "herbalism",
+          "woodcutting",
+          "fishing"
+        ]
+      },
+      "wildlife": {
+        "animals": [
+          "boar",
+          "wolf",
+          "deer",
+          "crab",
+          "rabbit"
+        ],
+        "fishSpecies": [
+          "anglerfish",
+          "lionfish",
+          "goldfish",
+          "blobfish",
+          "catfish",
+          "butterflyfish",
+          "flatfish",
+          "shark",
+          "crab",
+          "minnow"
+        ],
+        "landSpawnCount": 20,
+        "fishSpawnCount": 28,
+        "animalSeedKey": "animals"
+      },
+      "monsters": {
+        "common": [
+          "monster_orc_warrior",
+          "monster_imp",
+          "monster_giant_spider",
+          "monster_skeleton_archer"
+        ],
+        "elites": [
+          "monster_shadow_stalker",
+          "monster_goblin_shaman",
+          "monster_frost_elemental"
+        ],
+        "bosses": [
+          "monster_boss_lich"
+        ],
+        "recommendedLevel": [
+          3,
+          6
+        ],
+        "monsterSeedKey": "monsters"
+      },
+      "npcs": {
+        "factions": [
+          "pirate",
+          "crusade",
+          "neutral"
+        ],
+        "campsPerIsland": 1,
+        "npcSeedKey": "npc_camps",
+        "capitalCityId": null,
+        "vendors": false,
+        "missions": false
+      },
+      "events": {
+        "eventSeedKey": "events",
+        "eventTypes": [
+          "lightning_storm",
+          "reef_shipwreck",
+          "coral_bloom"
+        ],
+        "landmarks": [],
+        "ambientFx": [
+          "rain_heavy",
+          "lightning_flashes",
+          "wave_spray"
+        ],
+        "hazards": [
+          "lightning_strikes",
+          "whirlpools",
+          "reef_damage",
+          "rogue_waves"
+        ]
+      },
+      "systems": {
+        "terrain3d": true,
+        "zonePopulation": true,
+        "harvestNodes": true,
+        "wildlife": true,
+        "fish": true,
+        "npcCamps": true,
+        "docks": true,
+        "colyseusSector": true,
+        "islandEvents": true,
+        "bosses": true,
+        "special": [
+          "storm_fx",
+          "heavy_sailing"
+        ]
+      },
+      "seeds": {
+        "terrain": 828311077,
+        "population": 1700136463,
+        "animals": 417167448,
+        "monsters": 3347406172,
+        "npcCamps": 1258083383,
+        "events": 4181172698,
+        "keys": {
+          "terrain": "grudge-world-1:stormbreak_reef:terrain:stormbreak_reef",
+          "population": "grudge-world-1:stormbreak_reef:pop:stormbreak_reef",
+          "animals": "grudge-world-1:stormbreak_reef:animals",
+          "monsters": "grudge-world-1:stormbreak_reef:monsters",
+          "npcCamps": "grudge-world-1:stormbreak_reef:npc_camps",
+          "events": "grudge-world-1:stormbreak_reef:events"
+        }
+      },
+      "playUrl": "https://client.grudge-studio.com/island-3d?mode=zone&sector=stormbreak_reef&worldSeed=grudge-world-1",
+      "island3dUrl": "/island-3d?mode=zone&sector=stormbreak_reef&worldSeed=grudge-world-1"
+    },
+    {
+      "sectorId": "convergence_nexus",
+      "legacyId": "CENTER",
+      "name": "Convergence Nexus",
+      "mapCorner": "center",
+      "biome": "nexus",
+      "ecosystemId": "nexus",
+      "difficulty": [
+        7,
+        10
+      ],
+      "isSafeZone": false,
+      "isContested": true,
+      "lore": "Every ley line, every current, every wind pattern spirals toward this point. The Gould Flame itself pulses beneath these waters. Control the Nexus, and you control the world.",
+      "terrain": {
+        "heightmapModifier": "nexus_leylines",
+        "terrainSeedKey": "terrain:convergence_nexus",
+        "populationSeedKey": "pop:convergence_nexus",
+        "sizeMeters": 10000,
+        "segments": 255,
+        "minHeight": -60,
+        "maxHeight": 250,
+        "waterLevel": 0,
+        "noiseOctaves": 7,
+        "noisePersistence": 0.48,
+        "noiseBaseFreq": 0.0007,
+        "skyColor": 1706544,
+        "fog": {
+          "color": 1973067,
+          "density": 0.0002
+        },
+        "ambientIntensity": 0.5,
+        "sunIntensity": 0.9,
+        "sunDirection": [
+          0,
+          1,
+          0
+        ],
+        "spawnPoints": [
+          [
+            500,
+            20,
+            500
+          ],
+          [
+            -500,
+            20,
+            500
+          ],
+          [
+            500,
+            20,
+            -500
+          ],
+          [
+            -500,
+            20,
+            -500
+          ],
+          [
+            0,
+            30,
+            800
+          ],
+          [
+            0,
+            30,
+            -800
+          ],
+          [
+            800,
+            30,
+            0
+          ],
+          [
+            -800,
+            30,
+            0
+          ]
+        ]
+      },
+      "harvest": {
+        "treeVariants": [
+          "pine2_14",
+          "ancient_tree_2_0",
+          "birch2_4"
+        ],
+        "rockVariants": [
+          "rock_1",
+          "rock_4",
+          "rock_6"
+        ],
+        "treeCdn": [
+          "/models/nature/stylized/biome/realistic_trees.glb",
+          "/models/nature/stylized/biome/nature_vegetation.glb"
+        ],
+        "groundPbr": "ground_10",
+        "groundTextureDir": "/textures/pbr/ground/ground_10",
+        "canopyTint": 4906624,
+        "snowCanopy": false,
+        "resources": [
+          "rare_ore",
+          "fire_crystals",
+          "void_essence",
+          "gould_shards"
+        ],
+        "harvestRegenMs": 14400000,
+        "professions": [
+          "mining",
+          "herbalism",
+          "woodcutting",
+          "fishing"
+        ]
+      },
+      "wildlife": {
+        "animals": [
+          "deer",
+          "boar",
+          "wolf",
+          "buffalo",
+          "bear"
+        ],
+        "fishSpecies": [
+          "anglerfish",
+          "lionfish",
+          "goldfish",
+          "blobfish",
+          "catfish",
+          "butterflyfish",
+          "flatfish",
+          "shark",
+          "crab",
+          "minnow"
+        ],
+        "landSpawnCount": 28,
+        "fishSpawnCount": 16,
+        "animalSeedKey": "animals"
+      },
+      "monsters": {
+        "common": [
+          "monster_shadow_stalker",
+          "monster_orc_warrior",
+          "monster_imp",
+          "monster_vampire_girl"
+        ],
+        "elites": [
+          "monster_shadow_stalker",
+          "monster_converted_vampire"
+        ],
+        "bosses": [
+          "monster_boss_demon_lord"
+        ],
+        "recommendedLevel": [
+          7,
+          10
+        ],
+        "monsterSeedKey": "monsters"
+      },
+      "npcs": {
+        "factions": [
+          "crusade",
+          "legion",
+          "fabled",
+          "worge",
+          "pirate"
+        ],
+        "campsPerIsland": 2,
+        "npcSeedKey": "npc_camps",
+        "capitalCityId": null,
+        "vendors": false,
+        "missions": false
+      },
+      "events": {
+        "eventSeedKey": "events",
+        "eventTypes": [
+          "faction_clash",
+          "world_boss_pulse",
+          "embassy_summons"
+        ],
+        "landmarks": [],
+        "ambientFx": [
+          "energy_vortex",
+          "aurora",
+          "floating_debris",
+          "ley_line_glow"
+        ],
+        "hazards": [
+          "faction_pvp",
+          "ley_line_surges",
+          "reality_tears",
+          "boss_spawns"
+        ]
+      },
+      "systems": {
+        "terrain3d": true,
+        "zonePopulation": true,
+        "harvestNodes": true,
+        "wildlife": true,
+        "fish": true,
+        "npcCamps": true,
+        "docks": true,
+        "colyseusSector": true,
+        "islandEvents": true,
+        "bosses": true,
+        "special": [
+          "embassies",
+          "contested_pvp",
+          "world_events"
+        ]
+      },
+      "seeds": {
+        "terrain": 3128145689,
+        "population": 77455659,
+        "animals": 1269089330,
+        "monsters": 2443760942,
+        "npcCamps": 3426573525,
+        "events": 3402756556,
+        "keys": {
+          "terrain": "grudge-world-1:convergence_nexus:terrain:convergence_nexus",
+          "population": "grudge-world-1:convergence_nexus:pop:convergence_nexus",
+          "animals": "grudge-world-1:convergence_nexus:animals",
+          "monsters": "grudge-world-1:convergence_nexus:monsters",
+          "npcCamps": "grudge-world-1:convergence_nexus:npc_camps",
+          "events": "grudge-world-1:convergence_nexus:events"
+        }
+      },
+      "playUrl": "https://client.grudge-studio.com/island-3d?mode=zone&sector=convergence_nexus&worldSeed=grudge-world-1",
+      "island3dUrl": "/island-3d?mode=zone&sector=convergence_nexus&worldSeed=grudge-world-1"
+    },
+    {
+      "sectorId": "ashen_wastes",
+      "legacyId": "E",
+      "name": "Ashen Wastes",
+      "mapCorner": "mid_right",
+      "biome": "desert",
+      "ecosystemId": "desert",
+      "difficulty": [
+        5,
+        8
+      ],
+      "isSafeZone": false,
+      "isContested": false,
+      "lore": "Before the Sundering, this was the seat of a great civilization. Now their towers rise from dunes of ash like broken teeth. Sandworms patrol the wastes, and cursed relics whisper from beneath the glass.",
+      "terrain": {
+        "heightmapModifier": "desert_dunes",
+        "terrainSeedKey": "terrain:ashen_wastes",
+        "populationSeedKey": "pop:ashen_wastes",
+        "sizeMeters": 14000,
+        "segments": 255,
+        "minHeight": -15,
+        "maxHeight": 100,
+        "waterLevel": -10,
+        "noiseOctaves": 5,
+        "noisePersistence": 0.35,
+        "noiseBaseFreq": 0.0005,
+        "skyColor": 13935988,
+        "fog": {
+          "color": 12883306,
+          "density": 0.00022
+        },
+        "ambientIntensity": 0.8,
+        "sunIntensity": 1.6,
+        "sunDirection": [
+          0.5,
+          0.9,
+          0.2
+        ],
+        "spawnPoints": [
+          [
+            0,
+            5,
+            0
+          ],
+          [
+            -2200,
+            8,
+            -1800
+          ],
+          [
+            2400,
+            12,
+            1200
+          ],
+          [
+            -900,
+            6,
+            3200
+          ],
+          [
+            1800,
+            10,
+            -2800
+          ]
+        ]
+      },
+      "harvest": {
+        "treeVariants": [
+          "creepy_tree1_10",
+          "palm2_13"
+        ],
+        "rockVariants": [
+          "rock_2",
+          "rock_5",
+          "rock_6"
+        ],
+        "treeCdn": [
+          "/models/nature/stylized/biome/realistic_trees.glb",
+          "/models/nature/stylized/biome/nature_vegetation.glb",
+          "/models/nature/stylized/biome/tropical_plants.glb"
+        ],
+        "groundPbr": "ground_3",
+        "groundTextureDir": "/textures/pbr/ground/ground_3",
+        "canopyTint": 10124111,
+        "snowCanopy": false,
+        "resources": [
+          "gold_ore",
+          "ancient_relics",
+          "scorpion_venom",
+          "glass_shards",
+          "cactus"
+        ],
+        "harvestRegenMs": 14400000,
+        "professions": [
+          "mining",
+          "herbalism",
+          "woodcutting",
+          "fishing"
+        ]
+      },
+      "wildlife": {
+        "animals": [
+          "rabbit",
+          "boar",
+          "buffalo",
+          "wolf",
+          "deer"
+        ],
+        "fishSpecies": [
+          "anglerfish",
+          "lionfish",
+          "goldfish",
+          "blobfish",
+          "catfish",
+          "butterflyfish",
+          "flatfish",
+          "shark",
+          "crab",
+          "minnow"
+        ],
+        "landSpawnCount": 22,
+        "fishSpawnCount": 10,
+        "animalSeedKey": "animals"
+      },
+      "monsters": {
+        "common": [
+          "monster_shadow_stalker",
+          "monster_orc_warrior",
+          "monster_imp",
+          "monster_vampire_girl"
+        ],
+        "elites": [
+          "monster_shadow_stalker",
+          "monster_converted_vampire"
+        ],
+        "bosses": [
+          "monster_boss_demon_lord"
+        ],
+        "recommendedLevel": [
+          5,
+          8
+        ],
+        "monsterSeedKey": "monsters"
+      },
+      "npcs": {
+        "factions": [
+          "legion",
+          "pirate",
+          "neutral"
+        ],
+        "campsPerIsland": 1,
+        "npcSeedKey": "npc_camps",
+        "capitalCityId": "ashen_throne",
+        "vendors": false,
+        "missions": false
+      },
+      "events": {
+        "eventSeedKey": "events",
+        "eventTypes": [
+          "sandstorm",
+          "glass_dune_collapse",
+          "bone_field_rise"
+        ],
+        "landmarks": [],
+        "ambientFx": [
+          "dust_swirl",
+          "heat_shimmer",
+          "sand_particles"
+        ],
+        "hazards": [
+          "heat_exhaustion",
+          "sandstorm",
+          "glass_shard_terrain",
+          "cursed_relics"
+        ]
+      },
+      "systems": {
+        "terrain3d": true,
+        "zonePopulation": true,
+        "harvestNodes": true,
+        "wildlife": true,
+        "fish": true,
+        "npcCamps": true,
+        "docks": true,
+        "colyseusSector": true,
+        "islandEvents": true,
+        "bosses": true,
+        "special": [
+          "demon_capital",
+          "heat_haze"
+        ]
+      },
+      "seeds": {
+        "terrain": 2505663269,
+        "population": 2219605839,
+        "animals": 1601229904,
+        "monsters": 575905364,
+        "npcCamps": 523275679,
+        "events": 2478993362,
+        "keys": {
+          "terrain": "grudge-world-1:ashen_wastes:terrain:ashen_wastes",
+          "population": "grudge-world-1:ashen_wastes:pop:ashen_wastes",
+          "animals": "grudge-world-1:ashen_wastes:animals",
+          "monsters": "grudge-world-1:ashen_wastes:monsters",
+          "npcCamps": "grudge-world-1:ashen_wastes:npc_camps",
+          "events": "grudge-world-1:ashen_wastes:events"
+        }
+      },
+      "playUrl": "https://client.grudge-studio.com/island-3d?mode=zone&sector=ashen_wastes&worldSeed=grudge-world-1",
+      "island3dUrl": "/island-3d?mode=zone&sector=ashen_wastes&worldSeed=grudge-world-1"
+    },
+    {
+      "sectorId": "abyssal_trench",
+      "legacyId": "SW",
+      "name": "Abyssal Trench",
+      "mapCorner": "bottom_left",
+      "biome": "abyssal",
+      "ecosystemId": "abyssal",
+      "difficulty": [
+        7,
+        10
+      ],
+      "isSafeZone": false,
+      "isContested": false,
+      "lore": "The trench plunges so deep that light becomes a memory. Bioluminescent horrors patrol its depths, and the pressure alone can crush a hull. Ancient ruins of a drowned civilization line the trench walls.",
+      "terrain": {
+        "heightmapModifier": "abyssal_trench",
+        "terrainSeedKey": "terrain:abyssal_trench",
+        "populationSeedKey": "pop:abyssal_trench",
+        "sizeMeters": 10000,
+        "segments": 255,
+        "minHeight": -200,
+        "maxHeight": 40,
+        "waterLevel": 15,
+        "noiseOctaves": 6,
+        "noisePersistence": 0.42,
+        "noiseBaseFreq": 0.0007,
+        "skyColor": 132631,
+        "fog": {
+          "color": 264208,
+          "density": 0.0008
+        },
+        "ambientIntensity": 0.15,
+        "sunIntensity": 0.3,
+        "sunDirection": [
+          0,
+          0.2,
+          0.4
+        ],
+        "spawnPoints": [
+          [
+            0,
+            20,
+            0
+          ],
+          [
+            500,
+            18,
+            -300
+          ]
+        ]
+      },
+      "harvest": {
+        "treeVariants": [
+          "creepy_tree1_10",
+          "ancient_tree_2_0",
+          "pine9_15"
+        ],
+        "rockVariants": [
+          "rock_4",
+          "rock_7",
+          "rock_8"
+        ],
+        "treeCdn": [
+          "/models/nature/stylized/biome/realistic_trees.glb",
+          "/models/nature/stylized/biome/nature_vegetation.glb"
+        ],
+        "groundPbr": "ground_9",
+        "groundTextureDir": "/textures/pbr/ground/ground_9",
+        "canopyTint": 1450302,
+        "snowCanopy": false,
+        "resources": [
+          "abyssal_ore",
+          "leviathan_scale",
+          "deep_coral",
+          "void_fish",
+          "ocean_heart"
+        ],
+        "harvestRegenMs": 14400000,
+        "professions": [
+          "mining",
+          "herbalism",
+          "woodcutting",
+          "fishing"
+        ]
+      },
+      "wildlife": {
+        "animals": [
+          "wolf",
+          "bear",
+          "boar",
+          "crab",
+          "deer"
+        ],
+        "fishSpecies": [
+          "anglerfish",
+          "lionfish",
+          "goldfish",
+          "blobfish",
+          "catfish",
+          "butterflyfish",
+          "flatfish",
+          "shark",
+          "crab",
+          "minnow"
+        ],
+        "landSpawnCount": 18,
+        "fishSpawnCount": 32,
+        "animalSeedKey": "animals"
+      },
+      "monsters": {
+        "common": [
+          "monster_shadow_stalker",
+          "monster_orc_warrior",
+          "monster_imp",
+          "monster_vampire_girl"
+        ],
+        "elites": [
+          "monster_shadow_stalker",
+          "monster_converted_vampire"
+        ],
+        "bosses": [
+          "monster_shadow_stalker"
+        ],
+        "recommendedLevel": [
+          7,
+          10
+        ],
+        "monsterSeedKey": "monsters"
+      },
+      "npcs": {
+        "factions": [
+          "pirate",
+          "legion",
+          "monster"
+        ],
+        "campsPerIsland": 1,
+        "npcSeedKey": "npc_camps",
+        "capitalCityId": "drowned_sepulcher",
+        "vendors": false,
+        "missions": false
+      },
+      "events": {
+        "eventSeedKey": "events",
+        "eventTypes": [
+          "leviathan_sighting",
+          "pressure_surge",
+          "siren_song"
+        ],
+        "landmarks": [],
+        "ambientFx": [
+          "bioluminescence",
+          "bubble_columns",
+          "deep_fog",
+          "creature_shadows"
+        ],
+        "hazards": [
+          "crushing_pressure",
+          "leviathan_attacks",
+          "darkness_debuff",
+          "siren_lure"
+        ]
+      },
+      "systems": {
+        "terrain3d": true,
+        "zonePopulation": true,
+        "harvestNodes": true,
+        "wildlife": true,
+        "fish": true,
+        "npcCamps": true,
+        "docks": true,
+        "colyseusSector": true,
+        "islandEvents": true,
+        "bosses": true,
+        "special": [
+          "deep_ocean",
+          "undead_capital",
+          "crushing_pressure"
+        ]
+      },
+      "seeds": {
+        "terrain": 4230581771,
+        "population": 3315318869,
+        "animals": 285837267,
+        "monsters": 1350022161,
+        "npcCamps": 1716070616,
+        "events": 525240003,
+        "keys": {
+          "terrain": "grudge-world-1:abyssal_trench:terrain:abyssal_trench",
+          "population": "grudge-world-1:abyssal_trench:pop:abyssal_trench",
+          "animals": "grudge-world-1:abyssal_trench:animals",
+          "monsters": "grudge-world-1:abyssal_trench:monsters",
+          "npcCamps": "grudge-world-1:abyssal_trench:npc_camps",
+          "events": "grudge-world-1:abyssal_trench:events"
+        }
+      },
+      "playUrl": "https://client.grudge-studio.com/island-3d?mode=zone&sector=abyssal_trench&worldSeed=grudge-world-1",
+      "island3dUrl": "/island-3d?mode=zone&sector=abyssal_trench&worldSeed=grudge-world-1"
+    },
+    {
+      "sectorId": "haven_shore",
+      "legacyId": "S",
+      "name": "Haven Shore",
+      "mapCorner": "bottom_center",
+      "biome": "tropical",
+      "ecosystemId": "tropical",
+      "difficulty": [
+        1,
+        3
+      ],
+      "isSafeZone": true,
+      "isContested": false,
+      "lore": "Haven Shore is where every pirate begins their journey. Protected by the Grudge Pact, violence is forbidden in these waters. Palm-fringed islands offer shelter, training, and the first taste of adventure.",
+      "terrain": {
+        "heightmapModifier": "tropical_island",
+        "terrainSeedKey": "terrain:haven_shore",
+        "populationSeedKey": "pop:haven_shore",
+        "sizeMeters": 10000,
+        "segments": 255,
+        "minHeight": -24,
+        "maxHeight": 72,
+        "waterLevel": 0,
+        "noiseOctaves": 5,
+        "noisePersistence": 0.38,
+        "noiseBaseFreq": 0.00065,
+        "skyColor": 8900331,
+        "fog": {
+          "color": 8308963,
+          "density": 0.00012
+        },
+        "ambientIntensity": 0.75,
+        "sunIntensity": 1.45,
+        "sunDirection": [
+          0.4,
+          0.85,
+          0.28
+        ],
+        "spawnPoints": [
+          [
+            0,
+            6,
+            0
+          ],
+          [
+            300,
+            8,
+            -200
+          ],
+          [
+            -400,
+            7,
+            500
+          ]
+        ]
+      },
+      "harvest": {
+        "treeVariants": [
+          "palm2_13",
+          "garden_tree_pink_11",
+          "ancient_tree_2_0"
+        ],
+        "rockVariants": [
+          "rock_5",
+          "rock_1",
+          "rock_3"
+        ],
+        "treeCdn": [
+          "/models/nature/stylized/biome/tropical_plants.glb",
+          "/models/nature/stylized/biome/realistic_trees.glb",
+          "/models/nature/stylized/biome/nature_vegetation.glb"
+        ],
+        "groundPbr": "ground_1",
+        "groundTextureDir": "/textures/pbr/ground/ground_1",
+        "canopyTint": 2263842,
+        "snowCanopy": false,
+        "resources": [
+          "coconut",
+          "palm_frond",
+          "fish",
+          "shells",
+          "hardwood",
+          "herbs"
+        ],
+        "harvestRegenMs": 14400000,
+        "professions": [
+          "mining",
+          "herbalism",
+          "woodcutting",
+          "fishing"
+        ]
+      },
+      "wildlife": {
+        "animals": [
+          "deer",
+          "boar",
+          "rabbit",
+          "buffalo",
+          "crab"
+        ],
+        "fishSpecies": [
+          "anglerfish",
+          "lionfish",
+          "goldfish",
+          "blobfish",
+          "catfish",
+          "butterflyfish",
+          "flatfish",
+          "shark",
+          "crab",
+          "minnow"
+        ],
+        "landSpawnCount": 18,
+        "fishSpawnCount": 22,
+        "animalSeedKey": "animals"
+      },
+      "monsters": {
+        "common": [
+          "monster_goblin",
+          "monster_skeleton",
+          "monster_zombie"
+        ],
+        "elites": [
+          "monster_goblin_shaman"
+        ],
+        "bosses": [],
+        "recommendedLevel": [
+          1,
+          3
+        ],
+        "monsterSeedKey": "monsters"
+      },
+      "npcs": {
+        "factions": [
+          "crusade",
+          "neutral",
+          "fabled"
+        ],
+        "campsPerIsland": 1,
+        "npcSeedKey": "npc_camps",
+        "capitalCityId": "haven_port",
+        "vendors": true,
+        "missions": true
+      },
+      "events": {
+        "eventSeedKey": "events",
+        "eventTypes": [
+          "tutorial_escort",
+          "fish_run",
+          "merchant_caravan"
+        ],
+        "landmarks": [],
+        "ambientFx": [
+          "gentle_waves",
+          "seagulls",
+          "palm_sway",
+          "sunset_glow"
+        ],
+        "hazards": []
+      },
+      "systems": {
+        "terrain3d": true,
+        "zonePopulation": true,
+        "harvestNodes": true,
+        "wildlife": true,
+        "fish": true,
+        "npcCamps": true,
+        "docks": true,
+        "colyseusSector": true,
+        "islandEvents": true,
+        "bosses": false,
+        "special": [
+          "fruzer_foundation",
+          "haven_port_vendors",
+          "starter_safe"
+        ]
+      },
+      "seeds": {
+        "terrain": 1709534665,
+        "population": 3714867051,
+        "animals": 450614201,
+        "monsters": 2094858287,
+        "npcCamps": 1297093298,
+        "events": 1757901969,
+        "keys": {
+          "terrain": "grudge-world-1:haven_shore:terrain:haven_shore",
+          "population": "grudge-world-1:haven_shore:pop:haven_shore",
+          "animals": "grudge-world-1:haven_shore:animals",
+          "monsters": "grudge-world-1:haven_shore:monsters",
+          "npcCamps": "grudge-world-1:haven_shore:npc_camps",
+          "events": "grudge-world-1:haven_shore:events"
+        }
+      },
+      "playUrl": "https://client.grudge-studio.com/island-3d?mode=zone&sector=haven_shore&worldSeed=grudge-world-1",
+      "island3dUrl": "/island-3d?mode=zone&sector=haven_shore&worldSeed=grudge-world-1"
+    },
+    {
+      "sectorId": "ember_depths",
+      "legacyId": "SE",
+      "name": "Ember Depths",
+      "mapCorner": "bottom_right",
+      "biome": "volcanic",
+      "ecosystemId": "volcanic",
+      "difficulty": [
+        5,
+        9
+      ],
+      "isSafeZone": false,
+      "isContested": false,
+      "lore": "The Sundering ripped open the seabed here, exposing rivers of magma that flow into the ocean. The resulting islands are young, brutal, and rich with Gould Flame shards. The Legion was born in places like this.",
+      "terrain": {
+        "heightmapModifier": "volcanic_caldera",
+        "terrainSeedKey": "terrain:ember_depths",
+        "populationSeedKey": "pop:ember_depths",
+        "sizeMeters": 10000,
+        "segments": 255,
+        "minHeight": -30,
+        "maxHeight": 220,
+        "waterLevel": -5,
+        "noiseOctaves": 5,
+        "noisePersistence": 0.48,
+        "noiseBaseFreq": 0.0008,
+        "skyColor": 1705216,
+        "fog": {
+          "color": 2755072,
+          "density": 0.0004
+        },
+        "ambientIntensity": 0.4,
+        "sunIntensity": 1,
+        "sunDirection": [
+          0.3,
+          0.6,
+          0.1
+        ],
+        "spawnPoints": [
+          [
+            0,
+            15,
+            0
+          ],
+          [
+            -600,
+            20,
+            400
+          ],
+          [
+            700,
+            25,
+            -300
+          ]
+        ]
+      },
+      "harvest": {
+        "treeVariants": [
+          "creepy_tree1_10",
+          "ancient_tree_2_0",
+          "pine9_15"
+        ],
+        "rockVariants": [
+          "rock_4",
+          "rock_7",
+          "rock_8"
+        ],
+        "treeCdn": [
+          "/models/nature/stylized/biome/realistic_trees.glb",
+          "/models/nature/stylized/biome/nature_vegetation.glb"
+        ],
+        "groundPbr": "ground_5",
+        "groundTextureDir": "/textures/pbr/ground/ground_5",
+        "canopyTint": 4008212,
+        "snowCanopy": false,
+        "resources": [
+          "obsidian",
+          "sulfur",
+          "fire_crystals",
+          "rare_ore",
+          "gems"
+        ],
+        "harvestRegenMs": 14400000,
+        "professions": [
+          "mining",
+          "herbalism",
+          "woodcutting",
+          "fishing"
+        ]
+      },
+      "wildlife": {
+        "animals": [
+          "boar",
+          "wolf",
+          "bear",
+          "buffalo",
+          "deer"
+        ],
+        "fishSpecies": [
+          "anglerfish",
+          "lionfish",
+          "goldfish",
+          "blobfish",
+          "catfish",
+          "butterflyfish",
+          "flatfish",
+          "shark",
+          "crab",
+          "minnow"
+        ],
+        "landSpawnCount": 26,
+        "fishSpawnCount": 10,
+        "animalSeedKey": "animals"
+      },
+      "monsters": {
+        "common": [
+          "monster_shadow_stalker",
+          "monster_orc_warrior",
+          "monster_imp",
+          "monster_vampire_girl"
+        ],
+        "elites": [
+          "monster_shadow_stalker",
+          "monster_converted_vampire"
+        ],
+        "bosses": [
+          "monster_boss_dragon",
+          "monster_boss_demon_lord"
+        ],
+        "recommendedLevel": [
+          5,
+          9
+        ],
+        "monsterSeedKey": "monsters"
+      },
+      "npcs": {
+        "factions": [
+          "legion",
+          "monster",
+          "pirate"
+        ],
+        "campsPerIsland": 1,
+        "npcSeedKey": "npc_camps",
+        "capitalCityId": null,
+        "vendors": false,
+        "missions": false
+      },
+      "events": {
+        "eventSeedKey": "events",
+        "eventTypes": [
+          "eruption",
+          "lava_flow",
+          "legion_forge_call"
+        ],
+        "landmarks": [],
+        "ambientFx": [
+          "ember_rain",
+          "lava_glow",
+          "smoke_plumes",
+          "heat_distortion"
+        ],
+        "hazards": [
+          "lava_flows",
+          "eruption_events",
+          "toxic_gas",
+          "fire_elementals"
+        ]
+      },
+      "systems": {
+        "terrain3d": true,
+        "zonePopulation": true,
+        "harvestNodes": true,
+        "wildlife": true,
+        "fish": true,
+        "npcCamps": true,
+        "docks": true,
+        "colyseusSector": true,
+        "islandEvents": true,
+        "bosses": true,
+        "special": [
+          "volcanic_hazards",
+          "legion_origin"
+        ]
+      },
+      "seeds": {
+        "terrain": 4168504671,
+        "population": 3165494773,
+        "animals": 2941258837,
+        "monsters": 2949722531,
+        "npcCamps": 4239055294,
+        "events": 4111634229,
+        "keys": {
+          "terrain": "grudge-world-1:ember_depths:terrain:ember_depths",
+          "population": "grudge-world-1:ember_depths:pop:ember_depths",
+          "animals": "grudge-world-1:ember_depths:animals",
+          "monsters": "grudge-world-1:ember_depths:monsters",
+          "npcCamps": "grudge-world-1:ember_depths:npc_camps",
+          "events": "grudge-world-1:ember_depths:events"
+        }
+      },
+      "playUrl": "https://client.grudge-studio.com/island-3d?mode=zone&sector=ember_depths&worldSeed=grudge-world-1",
+      "island3dUrl": "/island-3d?mode=zone&sector=ember_depths&worldSeed=grudge-world-1"
+    }
+  ],
+  "landmarksIndex": {
+    "event_falls": {
+      "id": "event_falls",
+      "name": "Event Falls (Ethereal Cascade)",
+      "localPath": "/models/biomes/ethereal/event-falls.glb",
+      "cdnKey": "models/biomes/ethereal/event-falls.glb",
+      "authoringPath": "C:/Users/david/OneDrive/Desktop/MouseWithoutBorders/eventfalls.glb",
+      "targetHeightM": 160,
+      "zoneAnchorFrac": {
+        "ox": -0.22,
+        "oz": -0.28
+      },
+      "kind": "event",
+      "notes": "Primary NW ethereal cascade event mesh — sector improvement for ethereal_falls.",
+      "cdnUrl": "https://assets.grudge-studio.com/models/biomes/ethereal/event-falls.glb"
+    },
+    "starting_falls": {
+      "id": "starting_falls",
+      "name": "Starting Falls Companion",
+      "localPath": "/models/biomes/ethereal/starting-falls.glb",
+      "cdnKey": "models/biomes/ethereal/starting-falls.glb",
+      "authoringPath": "C:/Users/david/OneDrive/Desktop/MouseWithoutBorders/startingfalls.glb",
+      "targetHeightM": 120,
+      "zoneAnchorFrac": {
+        "ox": 0.18,
+        "oz": 0.2
+      },
+      "kind": "event",
+      "notes": "Secondary falls prop for ethereal_falls entry approach.",
+      "cdnUrl": "https://assets.grudge-studio.com/models/biomes/ethereal/starting-falls.glb"
+    },
+    "hidden_mountain_city": {
+      "id": "hidden_mountain_city",
+      "name": "Mountains Hidden City",
+      "localPath": "/models/mountains/mountains-hidden-city.glb",
+      "cdnKey": "models/mountains/mountains-hidden-city.glb",
+      "authoringPath": "C:/Users/david/OneDrive/Desktop/MouseWithoutBorders/mountainshiddencity.glb",
+      "targetHeightM": 180,
+      "zoneAnchorFrac": {
+        "ox": 0.28,
+        "oz": -0.32
+      },
+      "kind": "dungeon_gate",
+      "notes": "Boss-gated city under the mountain (Thornwood).",
+      "cdnUrl": "https://assets.grudge-studio.com/models/mountains/mountains-hidden-city.glb"
+    },
+    "ice_biome_kit": {
+      "id": "ice_biome_kit",
+      "name": "Ice Biome Multipack",
+      "localPath": "/models/biomes/ice/ice_biome_kit.glb",
+      "cdnKey": "models/biomes/ice/ice_biome_kit.glb",
+      "targetHeightM": 40,
+      "zoneAnchorFrac": {
+        "ox": 0.12,
+        "oz": -0.15
+      },
+      "kind": "biome_kit",
+      "notes": "Additive cold props; snow_pine canopy remains primary.",
+      "cdnUrl": "https://assets.grudge-studio.com/models/biomes/ice/ice_biome_kit.glb"
+    },
+    "fabledzone_core": {
+      "id": "fabledzone_core",
+      "name": "Fabled Zone Core",
+      "localPath": "/models/warlords/fabled/fabledzone.glb",
+      "cdnKey": "models/warlords/fabled/fabledzone.glb",
+      "targetHeightM": 80,
+      "zoneAnchorFrac": {
+        "ox": 0,
+        "oz": 0
+      },
+      "kind": "foundation",
+      "notes": "Frostbite / Fabled dwarf core — cave portals into interiors.",
+      "cdnUrl": "https://assets.grudge-studio.com/models/warlords/fabled/fabledzone.glb"
+    }
+  },
+  "urls": {
+    "clientManifest": "/production/sectors-content.json",
+    "apiAll": "/api/production/sectors",
+    "apiOne": "/api/production/sectors/:sectorId",
+    "playBase": "https://client.grudge-studio.com/island-3d",
+    "cdn": "https://assets.grudge-studio.com"
+  }
+}

@@ -31,15 +31,16 @@ export const CLASS_SKILL_TREES: Record<string, ClassSkillTree> = {
     className: "Warrior",
     classIcon: "/icons/entities/Human Warrior.png",
     specialAbility: {
-      id: "warrior_invincibility",
-      name: "Invincibility",
-      description: "Become completely immune to all damage for a short duration.",
-      icon: "/icons/misc/Glow.png",
-      effectType: "ultimate",
-      effects: ["1-4 seconds immunity", "Duration scales with level", "Break free from CC"],
-      cooldown: 60,
+      id: "warrior_charge",
+      name: "Charge",
+      description:
+        "uMMORPG dash into the enemy. On contact: 0.5s stun + disrupt. 6s CD. Bound to F.",
+      icon: "/icons/misc/Slash_07.png",
+      effectType: "active",
+      effects: ["Dash to target", "0.5s stun + interrupt", "6s cooldown", "Key: F"],
+      cooldown: 6,
       manaCost: 0,
-      staminaCost: 30
+      staminaCost: 15
     },
     tiers: [
       {
@@ -77,10 +78,10 @@ export const CLASS_SKILL_TREES: Record<string, ClassSkillTree> = {
           {
             id: "warrior_1_quickstrike",
             name: "Quick Strike",
-            description: "Fast attack combo that grants attack speed bonus.",
+            description: "Buff: your next attack hits twice (2×). Bound to Shift+2 option.",
             icon: "/icons/misc/Slash_07.png",
             effectType: "active",
-            effects: ["3 rapid strikes", "+15% attack speed for 4s", "Low stamina cost"],
+            effects: ["Next attack hits 2×", "Short CD", "Key option: Shift+2"],
             cooldown: 4,
             staminaCost: 8
           }
@@ -94,59 +95,68 @@ export const CLASS_SKILL_TREES: Record<string, ClassSkillTree> = {
           {
             id: "warrior_5_damage_surge",
             name: "Damage Surge",
-            description: "Empower your attacks with raw fury.",
+            description:
+              "PASSIVE: If you take ≥10% max HP damage within 2 seconds, enter Damage Surge (+40% damage, +25% crit, bleed) for 6s. No hotkey.",
             icon: "/icons/misc/Fires.png",
-            effectType: "active",
-            effects: ["+40% damage for 6s", "+25% crit chance", "Attacks cause bleed"],
-            cooldown: 20,
-            staminaCost: 25
+            effectType: "passive",
+            effects: [
+              "Trigger: ≥10% max HP taken in ≤2s",
+              "+40% damage / +25% crit / bleed for 6s",
+              "Internal CD ~20s",
+              "No hotkey",
+            ],
+            cooldown: 20
           },
           {
             id: "warrior_5_guardian_aura",
             name: "Guardian's Aura",
-            description: "Project a protective field around yourself.",
+            description:
+              "PASSIVE always-on aura: allies in 5m gain +30% defense; you share 15% of their damage. No hotkey.",
             icon: "/icons/armor/Shield_01.png",
-            effectType: "active",
-            effects: ["+30% defense for allies within 5m", "Duration: 8s", "You take 15% of ally damage"],
-            cooldown: 25,
-            staminaCost: 20
+            effectType: "passive",
+            effects: [
+              "+30% defense for allies within 5m",
+              "You take 15% of ally damage",
+              "Always on — no hotkey",
+            ],
+            cooldown: 0
           }
         ]
       },
       {
         level: 10,
         tierName: "Advanced Techniques",
-        description: "Master powerful combat abilities",
+        description: "Shift+3 path — Life Drain, Shield Wall, or Dual Combo Stun",
         choices: [
           {
-            id: "warrior_10_whirlwind",
-            name: "Whirlwind",
-            description: "Spin in a deadly circle striking all nearby foes.",
-            icon: "/icons/misc/CircleF.png",
+            id: "warrior_10_life_drain",
+            name: "Life Drain",
+            description: "Strike that returns a portion of damage as healing. Shift+3.",
+            icon: "/icons/misc/Life.png",
             effectType: "active",
-            effects: ["360° AoE damage", "3 second channel", "+10% damage per enemy hit"],
+            effects: ["Weapon damage + lifesteal", "Sustain path", "Bound to Shift+3"],
             cooldown: 12,
-            staminaCost: 35
+            staminaCost: 25
           },
           {
             id: "warrior_10_shield_wall",
             name: "Shield Wall",
-            description: "Raise an impenetrable shield defense.",
+            description: "Raise an impenetrable shield defense. Shift+3.",
             icon: "/icons/weapons/shield_01.png",
             effectType: "active",
-            effects: ["Block 90% damage from front", "Cannot attack while active", "Reflects 25% damage"],
+            effects: ["Block 90% damage from front", "Reflects 25% damage", "Bound to Shift+3"],
             cooldown: 18,
             staminaCost: 30
           },
           {
-            id: "warrior_10_execute",
-            name: "Execute",
-            description: "Devastating finisher against wounded foes.",
-            icon: "/icons/misc/Chaos_2.png",
+            id: "warrior_10_dual_combo_stun",
+            name: "Dual Combo Stun",
+            description: "Two-hit combo; second hit stuns. Shift+3.",
+            icon: "/icons/misc/CircleF.png",
             effectType: "active",
-            effects: ["3x damage to enemies below 30% HP", "Instant kill below 10% HP", "Reset cooldown on kill"],
-            cooldown: 15,
-            staminaCost: 40
+            effects: ["2-hit combo", "Stun on second hit", "Bound to Shift+3"],
+            cooldown: 14,
+            staminaCost: 30
           }
         ]
       },
@@ -185,22 +195,34 @@ export const CLASS_SKILL_TREES: Record<string, ClassSkillTree> = {
           {
             id: "warrior_20_avatar",
             name: "Avatar of War",
-            description: "Transform into an unstoppable avatar of battle.",
+            description:
+              "25s battle form. Magic immune, +20% attack, +100% armor. Attacks 25% stun / 10% Exhaustion. 2 min CD. Shift+5.",
             icon: "/icons/entities/heavy barb merc.PNG",
             effectType: "ultimate",
-            effects: ["+100% all stats for 10s", "Immune to death (can't drop below 1 HP)", "All cooldowns reset"],
+            effects: [
+              "25s duration / 120s CD",
+              "Immune to magic",
+              "+20% attack, +100% armor",
+              "25% stun on hit, 10% Exhaustion on hit",
+            ],
             cooldown: 120,
             staminaCost: 100
           },
           {
-            id: "warrior_20_champion",
-            name: "Champion's Stand",
-            description: "Plant your banner and inspire your allies.",
+            id: "warrior_20_perfect_counter",
+            name: "Perfect Counter",
+            description:
+              "3.5s spiritual guard: every attack is a perfect parry + knockback. 25s CD. Shift+5.",
             icon: "/icons/misc/Flag Icon.png",
             effectType: "ultimate",
-            effects: ["All allies gain +50% damage/defense", "Enemies within 10m are slowed 50%", "15s duration"],
-            cooldown: 90,
-            staminaCost: 80
+            effects: [
+              "3.5s duration / 25s CD",
+              "All incoming attacks → perfect parry",
+              "Knockback on parry",
+              "Spiritual helper VFX",
+            ],
+            cooldown: 25,
+            staminaCost: 40
           }
         ]
       }
@@ -213,13 +235,18 @@ export const CLASS_SKILL_TREES: Record<string, ClassSkillTree> = {
     classIcon: "/icons/entities/elf mage.png",
     specialAbility: {
       id: "mage_mana_shield",
-      name: "Arcane Affinity",
-      description: "Passive mana shield that charges when not taking damage. Activate for massive spell power boost.",
+      name: "Mage Shield",
+      description:
+        "Arcane barrier (Shift+1). On use: removes all cleansable debuffs. Passive charges when not taking damage.",
       icon: "/icons/misc/AquaCircle.png",
-      effectType: "passive",
-      effects: ["Passive: Shield = 50% current mana", "Active: +75% spell damage for 15s", "Charges over 5s without damage"],
+      effectType: "active",
+      effects: [
+        "On use: cleanse all cleansable debuffs",
+        "Absorption / mana shield",
+        "Key: Shift+1 with wand",
+      ],
       cooldown: 45,
-      manaCost: 0
+      manaCost: 20
     },
     tiers: [
       {

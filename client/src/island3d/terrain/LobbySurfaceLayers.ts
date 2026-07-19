@@ -134,6 +134,15 @@ export async function applyLobbySurfaceLayers(
     obj.material = mat.clone();
     const m = obj.material as THREE.MeshStandardMaterial;
     m.side = THREE.DoubleSide;
+    // Material quality pass for pirate lobby (readable beach/grass/rock)
+    m.roughness = layer === 'beach' || layer === 'path' ? 0.92 : layer === 'rock' ? 0.78 : 0.88;
+    m.metalness = layer === 'building' ? 0.08 : 0.02;
+    m.envMapIntensity = 0.45;
+    if (layer === 'beach') {
+      m.color?.multiplyScalar?.(1.05);
+      // Sand: height-adjustable with shovel (MeshPrefabRegistry also flags this)
+      obj.userData.sculptable = true;
+    }
   });
 
   // Align map so typical beach / low land meets LOBBY_WATER_LEVEL

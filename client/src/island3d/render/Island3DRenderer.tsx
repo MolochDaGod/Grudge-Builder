@@ -5,6 +5,7 @@
  * ghost preview, character controls, and HUD overlay for all new systems.
  */
 import { useRef, useEffect, useState, useCallback } from 'react';
+import * as THREE from 'three';
 import { Island3DEngine, type Island3DMode } from '../engine/Island3DEngine';
 import type { MountainTriadSeed } from '@shared/definitions/homeIslandSeed';
 import type { RtsHeightmapPayload } from '@shared/definitions/rtsTerrainBridge';
@@ -16,12 +17,23 @@ import { LobbyGameHUD } from './LobbyGameHUD';
 import { ShipDockPanel } from '@/components/ShipDockPanel';
 import { IslandPlayOverlay } from './IslandPlayOverlay';
 import { Grudge6PlayShell } from '@/components/Grudge6PlayShell';
+import { LobbyProductionHUD } from './LobbyProductionHUD';
+import { LobbyMiniMap } from './LobbyMiniMap';
+import { ZoneMiniMap } from './ZoneMiniMap';
+import { ZoneFlybyHUD } from './ZoneFlybyHUD';
+import { ServerChatHUD } from './ServerChatHUD';
+import { useProductionHud } from '@/hooks/useProductionHud';
 import { useIslandSession } from '../session/useIslandSession';
+import { FactionCaptainEndGame, type CaptainInteractState } from '../lobby/FactionCaptainEndGame';
+import { EndGameCaptainPanel, EndGameCaptainPrompt } from './EndGameCaptainPanel';
+import { endGameCinematicUrl } from '@shared/definitions/endGameMission';
 import type { QualityPreset } from '../render/PostProcessing';
 import type { DayNightConfig } from '../environment/DayNightCycle';
 import type { PhysicsCallbacks, MovementState } from '../player/CharacterController3D';
 import { EMPTY_COMBAT_HUD, type CombatHudSnapshot } from '../player/combatHudState';
 import { DangerRoomHud } from './DangerRoomHud';
+import { GrudgeStudioPlayChrome } from './GrudgeStudioPlayChrome';
+import type { SoftLockScreenFrame } from '../player/SoftLockSystem';
 import { WarlordsPvpLoadscreen } from '@/components/WarlordsPvpLoadscreen';
 import { HomeIslandLoadscreen } from '@/components/HomeIslandLoadscreen';
 import './dangerRoomHud.css';
@@ -45,12 +57,14 @@ interface Island3DRendererProps {
   dayNight?: Partial<DayNightConfig>;
   /** Enable the playable character controller (default true for procedural) */
   enableCharacter?: boolean;
-  /** Load manifest character after engine init */
+  /** Load Grudge6 / uMMORPG race prefab after engine init */
   characterId?: string;
   raceId?: string;
   classId?: string;
   characterName?: string;
   model3d?: Partial<Model3DField>;
+  /** Main-panel equipment slots (MainHand, body, …) */
+  equipment?: Record<string, string | null>;
   /** Open-world island room id (grudge-open-world, etc.) */
   lobbyIslandId?: string;
   /** Expose the engine ref for external control (building, allies, etc.) */
@@ -71,14 +85,20 @@ interface Island3DRendererProps {
   campPositionPercent?: { x: number; y: number };
   /** Regrowing forest / quarry / beach anchor regions */
   regrowRegions?: import('@shared/definitions/homeIslandSpec').HomeIslandRegrowRegion[];
+  /**
+   * Open-world editor mode — start in Build control mode so Units/Siege/Monsters
+   * (uMMORPG / 30grudge6 deployables) are one tab away.
+   */
+  editorMode?: boolean;
 }
 
 export function Island3DRenderer({
   seed, className = '', multiplayer, mode = 'procedural', lobbyMapId,
   sectorId, worldSeed,
   quality = 'medium', dayNight, enableCharacter, onEngineReady,
-  characterId, raceId, classId, characterName, model3d, lobbyIslandId, onHarvest,
+  characterId, raceId, classId, characterName, model3d, equipment, lobbyIslandId, onHarvest,
   mountainTriad, rtsHeightmap, rtsNatureScatter, biome, onDungeonEnter, campPositionPercent, regrowRegions,
+  editorMode = false,
 }: Island3DRendererProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -92,20 +112,101 @@ export function Island3DRenderer({
   // HUD state driven by physics callbacks
   const [movementState, setMovementState] = useState<MovementState>('ground');
   const [oxygen, setOxygen] = useState(1); // 0-1 ratio
+  const [stamina01, setStamina01] = useState(1); // 0-1 ratio
   const [dayPhase, setDayPhase] = useState('day');
   const [combatHud, setCombatHud] = useState<CombatHudSnapshot>(EMPTY_COMBAT_HUD);
+  const [softLockFrame, setSoftLockFrame] = useState<SoftLockScreenFrame | null>(null);
+  const [playVitals, setPlayVitals] = useState({
+    hp: 100,
+    maxHp: 100,
+    mana: 50,
+    maxMana: 50,
+    stamina: 100,
+    maxStamina: 100,
+  });
   const [showDockPanel, setShowDockPanel] = useState(false);
+  const [weaponHotbar, setWeaponHotbar] = useState<Array<{ key: string; label: string; skillId?: string }>>([]);
+  const [classHotbar, setClassHotbar] = useState<Array<{ key: string; label: string; skillId?: string }>>([]);
+  const [heroResolvedName, setHeroResolvedName] = useState(characterName);
   const { context: sessionCtx, send: sessionSend } = useIslandSession(characterId);
   const accountId = characterId ?? 'guest';
+  const { isPanelEnabled, flags: hudFlags } = useProductionHud(engineReady);
+  const [endGameCaptain, setEndGameCaptain] = useState<CaptainInteractState | null>(null);
+  const [endGamePrompt, setEndGamePrompt] = useState(false);
+  const captainSystemRef = useRef<FactionCaptainEndGame | null>(null);
+  /** Thornwood Wilds: boss / city door prompt */
+  const [hiddenCityPrompt, setHiddenCityPrompt] = useState<string | null>(null);
+  const [hiddenCityBossHp, setHiddenCityBossHp] = useState<{ hp: number; maxHp: number } | null>(null);
 
   useEffect(() => {
     onHarvestRef.current = onHarvest;
   }, [onHarvest]);
 
+  // End Game: level 20+ captain on faction islands (lobby)
+  useEffect(() => {
+    if (!engineReady || mode !== 'lobby') return;
+    // Wait until faction islands exist (async after lobby load)
+    let cancelled = false;
+    let raf = 0;
+    let sys: FactionCaptainEndGame | null = null;
+
+    const attach = () => {
+      if (cancelled) return;
+      const root = engineReady.factionIslands?.root;
+      if (!root) {
+        raf = requestAnimationFrame(attach);
+        return;
+      }
+      sys = new FactionCaptainEndGame({
+        root,
+        getPlayerPosition: () => {
+          const p = engineReady.character?.getPosition();
+          return p ? p.clone() : new THREE.Vector3(0, 0, 0);
+        },
+        getPlayerLevel: () => {
+          try {
+            const raw = sessionStorage.getItem('grudge_active_character_level');
+            if (raw) return parseInt(raw, 10) || 1;
+          } catch {
+            /* ignore */
+          }
+          return 1;
+        },
+        getPlayerName: () => heroResolvedName || characterName || 'Hero',
+        onOpen: (s) => setEndGameCaptain({ ...s }),
+        onClose: () => setEndGameCaptain(null),
+      });
+      captainSystemRef.current = sys;
+
+      const loop = () => {
+        if (cancelled || !sys) return;
+        sys.update();
+        setEndGamePrompt(sys.isPromptVisible());
+        raf = requestAnimationFrame(loop);
+      };
+      raf = requestAnimationFrame(loop);
+    };
+    attach();
+
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'e' && e.key !== 'E') return;
+      if (captainSystemRef.current?.getState()?.open) return;
+      captainSystemRef.current?.tryInteract();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => {
+      cancelled = true;
+      cancelAnimationFrame(raf);
+      window.removeEventListener('keydown', onKey);
+      captainSystemRef.current = null;
+    };
+  }, [engineReady, mode, heroResolvedName, characterName]);
+
   // Physics callbacks (bridge engine events → React state)
   const physicsCallbacks: PhysicsCallbacks = {
     onMovementStateChange: (_prev, next) => setMovementState(next),
     onOxygenChange: (o2, max) => setOxygen(max > 0 ? o2 / max : 1),
+    onStaminaChange: (stam, max) => setStamina01(max > 0 ? stam / max : 1),
   };
 
   // Init engine
@@ -154,36 +255,6 @@ export function Island3DRenderer({
         setError(null);
         sessionSend({ type: 'READY' });
         engine.start();
-        // Grudge6 / uMMORPG-style character: always try production load when we have a controller
-        // (race/class default to human/warrior; equipment meshes from CharacterManager + model3d)
-        if (engine.character) {
-          try {
-            const activeChar = await import('@/lib/characterManager').then((m) =>
-              m.CharacterManager.getActiveCharacter?.(),
-            );
-            const race = raceId || activeChar?.raceId || 'human';
-            const cls = classId || activeChar?.classId || 'warrior';
-            const equip = activeChar?.equipment as Record<string, string | null> | undefined;
-            await engine.character.loadCharacterFromManifest(
-              race,
-              cls,
-              characterId || activeChar?.id,
-              undefined,
-              model3d ?? activeChar?.model3d,
-              equip,
-            );
-            if (equip) {
-              engine.character.setEquipment(equip);
-            }
-            // Sync spellbook / action bar slots when present on character
-            const skills = (activeChar as { skillBar?: string[] } | undefined)?.skillBar;
-            if (skills?.length && typeof (engine.character as any).setActionBarSlots === 'function') {
-              (engine.character as any).setActionBarSlots(skills);
-            }
-          } catch (charErr) {
-            console.warn('[Island3D] Character load skipped — capsule fallback:', charErr);
-          }
-        }
         setEngineReady(engine);
         onEngineReady?.(engine);
       })
@@ -206,16 +277,61 @@ export function Island3DRenderer({
     return () => {
       engine.destroy();
       engineRef.current = null;
+      setEngineReady(null);
     };
   }, [
+    // Character identity is applied in a separate effect so race/gear refresh does not tear down the zone
     seed, multiplayer, mode, lobbyMapId, sectorId, worldSeed,
-    characterId, raceId, classId, model3d,
     mountainTriad, rtsHeightmap, rtsNatureScatter, biome, onDungeonEnter, campPositionPercent, regrowRegions,
   ]);
 
-  // Lobby / open-world interact: E capture / board ship
+  // Grudge6 race prefab + panel meshes + weapon skills (zone / home / lobby)
   useEffect(() => {
-    if (mode !== 'lobby') return;
+    const engine = engineRef.current;
+    if (!engine?.character || loading) return;
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const { applyGrudge6PlayerToController, hotbarLabelsForHud } = await import(
+          '@/lib/loadGrudge6Player'
+        );
+        const result = await applyGrudge6PlayerToController(engine.character!, {
+          characterId,
+          raceId,
+          classId,
+          model3d,
+          equipment,
+          forceDefault: true,
+        });
+        if (cancelled) return;
+        const labels = hotbarLabelsForHud(result.hotbar);
+        setWeaponHotbar(labels.weaponHotbar);
+        setClassHotbar(labels.classHotbar);
+        if (result.name) setHeroResolvedName(result.name);
+        if (result.raceId) {
+          // Align camp ally/enemy with race faction when known
+          const { RACE_GRUDGE6 } = await import('@shared/fleet');
+          const fac = RACE_GRUDGE6[result.raceId]?.faction;
+          if (fac) engine.setPlayerFaction(fac);
+        }
+        // Production editor mode — Build control for Units/Siege/Monsters deploy
+        if (editorMode) {
+          await engine.character!.setControlMode('build');
+        }
+      } catch (charErr) {
+        console.warn('[Island3D] Grudge6 character apply failed — capsule fallback:', charErr);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [engineReady, loading, characterId, raceId, classId, model3d, equipment, editorMode]);
+
+  // Interact: E — lobby (dock/capture) + zone (dungeons / hidden mountain city door)
+  useEffect(() => {
+    if (mode !== 'lobby' && mode !== 'zone' && mode !== 'procedural') return;
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'e' || e.key === 'E') {
         const eng = engineRef.current;
@@ -251,13 +367,44 @@ export function Island3DRenderer({
     return () => clearInterval(interval);
   }, [loading]);
 
-  // Danger Room HUD — combat crosshair + MM readout
+  // Hidden Mountain City (Thornwood / top-right) — prompt + boss HP bar
+  useEffect(() => {
+    if (loading || mode !== 'zone') return;
+    const interval = setInterval(() => {
+      const eng = engineRef.current;
+      if (!eng?.hiddenMountainCity) {
+        setHiddenCityPrompt(null);
+        setHiddenCityBossHp(null);
+        return;
+      }
+      setHiddenCityPrompt(eng.hiddenMountainCityPrompt);
+      setHiddenCityBossHp(eng.hiddenMountainCityBossHp);
+    }, 200);
+    return () => clearInterval(interval);
+  }, [loading, mode, engineReady]);
+
+  // Danger Room HUD — combat crosshair + soft-lock frame + vitals
   useEffect(() => {
     if (loading) return;
     let raf = 0;
     const tick = () => {
-      const snap = engineRef.current?.character?.getCombatHudSnapshot();
-      if (snap) setCombatHud(snap);
+      const ch = engineRef.current?.character;
+      const snap = ch?.getCombatHudSnapshot();
+      if (snap) {
+        setCombatHud(snap);
+        setSoftLockFrame(snap.softLock ?? null);
+      }
+      if (ch) {
+        const sm = ch.stateMachine?.getContext?.();
+        setPlayVitals({
+          hp: sm?.health ?? 100,
+          maxHp: sm?.maxHealth ?? 100,
+          mana: 50,
+          maxMana: 50,
+          stamina: ch.getStamina?.() ?? sm?.stamina ?? 100,
+          maxStamina: ch.getMaxStamina?.() ?? sm?.maxStamina ?? 100,
+        });
+      }
       raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
@@ -299,7 +446,11 @@ export function Island3DRenderer({
 
   // Click handler (harvesting or building confirm)
   const handleClick = useCallback((e: React.MouseEvent) => {
-    engineRef.current?.handleClick(e.clientX, e.clientY);
+    engineRef.current?.handleClick(e.clientX, e.clientY, {
+      shiftKey: e.shiftKey,
+      ctrlKey: e.ctrlKey,
+      altKey: e.altKey,
+    });
   }, []);
 
   // Mouse move handler (building ghost snap preview)
@@ -327,6 +478,7 @@ export function Island3DRenderer({
   };
 
   const isSwimming = movementState === 'swimming_surface' || movementState === 'swimming_underwater';
+  const isClimbing = movementState === 'climbing';
 
   return (
     <div
@@ -418,13 +570,13 @@ export function Island3DRenderer({
             {(mode === 'procedural' || mode === 'zone') && (
               <>
                 <p className="text-gray-400">{stateLabel[movementState] || movementState}</p>
-                <p className="text-gray-500 text-[10px]">WASD · Space · Tab · Click harvest</p>
+                <p className="text-gray-500 text-[10px]">WASD · Space · Tab soft-lock · Z sheath · I inv</p>
               </>
             )}
             {mode === 'lobby' && (
               <>
                 <p className="text-gray-300">{stateLabel[movementState] || movementState}</p>
-                <p className="text-gray-400">WASD move · Space jump · Tab combat/harvest</p>
+                <p className="text-gray-400">WASD · Tab soft-lock · Z weapons · I inventory</p>
                 <p className="text-gray-400">Combat: LMB MM combo · Z +100/−50 · X −50 · RMB tap focus</p>
                 <p className="text-gray-400">E hold = capture · E at dock = sail</p>
               </>
@@ -454,6 +606,21 @@ export function Island3DRenderer({
             </button>
           </div>
 
+          {/* Production unit frame + yellow soft-lock (ui.grudge-studio chrome) */}
+          <GrudgeStudioPlayChrome
+            characterName={heroResolvedName || characterName || 'Hero'}
+            raceId={raceId || 'human'}
+            classId={classId || 'warrior'}
+            level={1}
+            hp={playVitals.hp}
+            maxHp={playVitals.maxHp}
+            mana={playVitals.mana}
+            maxMana={playVitals.maxMana}
+            stamina={playVitals.stamina}
+            maxStamina={playVitals.maxStamina}
+            softLockFrame={softLockFrame}
+          />
+
           {/* Oxygen bar (only when swimming) */}
           <DangerRoomHud hud={combatHud} />
 
@@ -464,19 +631,150 @@ export function Island3DRenderer({
               session={sessionCtx}
               loadProgress={loadProgress}
               loading={loading}
-              characterName={characterName}
+              characterName={heroResolvedName || characterName}
               movementState={stateLabel[movementState]}
+              weaponHotbar={weaponHotbar}
+              classHotbar={classHotbar}
               onTickRate={(v) => sessionSend({ type: 'SET_TICK_RATE', tickRate: v })}
               onDayDuration={(v) => sessionSend({ type: 'SET_DAY_DURATION', dayDurationSeconds: v })}
               onCombatToggle={() => sessionSend({ type: 'TOGGLE_COMBAT' })}
             />
           )}
 
+          {/* Thornwood Wilds — Warden of the Hidden Gate + city door */}
+          {mode === 'zone' && (hiddenCityPrompt || hiddenCityBossHp) && (
+            <div className="absolute bottom-28 left-1/2 -translate-x-1/2 z-40 pointer-events-none flex flex-col items-center gap-2 max-w-lg px-4">
+              {hiddenCityBossHp && (
+                <div className="w-72 bg-black/80 border border-purple-700/60 rounded-lg px-3 py-2">
+                  <p className="text-[10px] uppercase tracking-widest text-purple-300 mb-1 text-center">
+                    Warden of the Hidden Gate
+                  </p>
+                  <div className="h-2.5 bg-slate-800 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-gradient-to-r from-purple-700 to-red-500 transition-all duration-150"
+                      style={{
+                        width: `${Math.max(0, (hiddenCityBossHp.hp / hiddenCityBossHp.maxHp) * 100)}%`,
+                      }}
+                    />
+                  </div>
+                  <p className="text-[10px] text-slate-400 text-center mt-1 tabular-nums">
+                    {Math.ceil(hiddenCityBossHp.hp).toLocaleString()} / {hiddenCityBossHp.maxHp.toLocaleString()}
+                  </p>
+                </div>
+              )}
+              {hiddenCityPrompt && (
+                <div className="bg-black/85 border border-amber-700/50 rounded-xl px-4 py-2 text-center text-sm text-amber-100 shadow-lg">
+                  {hiddenCityPrompt}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Production lobby: edit / test / deploy entry chrome */}
+          {mode === 'lobby' && (
+            <LobbyProductionHUD
+              characterName={heroResolvedName || characterName}
+              mapLabel="Pirate Open World · Free Port"
+              editorMode={editorMode}
+              waterLevel={0}
+              oceanFloorLevel={-24}
+              onOpenEntry={() => {
+                window.location.href = '/open-world';
+              }}
+              onEdit={() => {
+                void engineReady?.character?.setControlMode('build');
+              }}
+              onTest={() => {
+                window.open('/editor', '_blank', 'noopener');
+              }}
+              onDeploy={() => {
+                const q = new URLSearchParams({
+                  mode: 'lobby',
+                  map: lobbyMapId || 'pirate-islands',
+                  island: lobbyIslandId || 'grudge-open-world',
+                });
+                if (characterId) q.set('characterId', characterId);
+                window.location.href = `/play?mode=zone&sector=haven_shore&worldSeed=grudge-world-1&characterId=${characterId || ''}`;
+              }}
+            />
+          )}
+
+          {/* End Game captain (level 20+) on faction islands */}
+          {mode === 'lobby' && (
+            <>
+              <EndGameCaptainPrompt visible={endGamePrompt && !endGameCaptain?.open} />
+              {endGameCaptain?.open && (
+                <EndGameCaptainPanel
+                  state={endGameCaptain}
+                  onAdvance={() => {
+                    const r = captainSystemRef.current?.advanceDialogue();
+                    if (r === 'accept') {
+                      /* stay on last line until Accept button */
+                    } else if (captainSystemRef.current?.getState()) {
+                      setEndGameCaptain({ ...captainSystemRef.current.getState()! });
+                    }
+                  }}
+                  onAccept={() => {
+                    captainSystemRef.current?.close();
+                    setEndGameCaptain(null);
+                    const url = endGameCinematicUrl({
+                      characterId: characterId || undefined,
+                      characterName: heroResolvedName || characterName,
+                    });
+                    window.location.href = url;
+                  }}
+                  onClose={() => {
+                    captainSystemRef.current?.close();
+                    setEndGameCaptain(null);
+                  }}
+                />
+              )}
+            </>
+          )}
+
+          {/* Lobby minimap — pirate hub + outer faction ring (TI-style disclosure) */}
+          {mode === 'lobby' && engineReady && isPanelEnabled('minimap') && (
+            <div className="absolute top-3 right-3 z-40 pointer-events-none">
+              <LobbyMiniMap
+                engine={engineReady}
+                defaultFocusId="shipwreck_cove"
+                collapsed={!hudFlags.minimapDefaultOpen}
+              />
+            </div>
+          )}
+
+          {/* Zone minimap — islands · enemy ships · camps (Tactical Infinity pattern) */}
+          {mode === 'zone' && engineReady && !loading && (
+            <ZoneMiniMap
+              engine={engineReady}
+              size={200}
+              position="top-right"
+              onExpand={() => {
+                window.open('/maps/warlords-canonical-minimap.png', '_blank', 'noopener');
+              }}
+            />
+          )}
+
+          {/* Sector rewrite proof flyby — ?flyby=1 or ?proof=1 */}
+          {mode === 'zone' &&
+            engineReady &&
+            !loading &&
+            (new URLSearchParams(window.location.search).has('flyby') ||
+              new URLSearchParams(window.location.search).has('proof')) && (
+              <ZoneFlybyHUD engine={engineReady} sectorId={sectorId} />
+            )}
+
+          {/* Authoritative multiplayer chat (Colyseus) */}
+          {mode === 'zone' && engineReady && !loading && (
+            <ServerChatHUD enabled />
+          )}
+
           {/* Grudge6 lab: HUD · Main Panel · Spellbook · Character · Inventory (all play modes) */}
-          {(mode === 'procedural' || mode === 'zone' || mode === 'lobby') && (
+          {(mode === 'procedural' || mode === 'zone' || mode === 'lobby') &&
+            isPanelEnabled('grudge6_shell') && (
             <Grudge6PlayShell
               characterId={characterId}
-              characterName={characterName}
+              characterName={heroResolvedName || characterName}
               compact
             />
           )}
@@ -521,6 +819,28 @@ export function Island3DRenderer({
                     style={{
                       width: `${oxygen * 100}%`,
                       backgroundColor: oxygen > 0.3 ? '#22d3ee' : '#ef4444',
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {isClimbing && (
+            <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 w-52">
+              <div className="bg-black/70 rounded px-2 py-1.5 border border-amber-700/40">
+                <p className="text-[10px] text-amber-300 text-center mb-1">
+                  🧗 Climbing · Stamina {Math.round(stamina01 * 100)}%
+                </p>
+                <p className="text-[9px] text-gray-400 text-center mb-1">
+                  W/S up-down · A/D shimmy · X drop
+                </p>
+                <div className="w-full h-2 bg-gray-700 rounded-full overflow-hidden">
+                  <div
+                    className="h-full rounded-full transition-all duration-150"
+                    style={{
+                      width: `${stamina01 * 100}%`,
+                      backgroundColor: stamina01 > 0.25 ? '#f59e0b' : '#ef4444',
                     }}
                   />
                 </div>

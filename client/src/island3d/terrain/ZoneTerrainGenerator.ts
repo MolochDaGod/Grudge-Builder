@@ -539,7 +539,11 @@ export function generateZoneTerrain(
   const terrainMesh = terrainScene.children[0] as THREE.Mesh;
   terrainMesh.castShadow = true;
   terrainMesh.receiveShadow = true;
-  terrainMesh.material = createSectorTerrainMaterial(sector);
+  terrainMesh.material = createSectorTerrainMaterial(sector, {
+    waterLevel: cfg.waterLevel,
+    minHeight: cfg.minHeight,
+    maxHeight: cfg.maxHeight,
+  });
 
   return {
     terrainScene,

@@ -301,7 +301,11 @@ export default function TownPage() {
       <canvas
         ref={canvasRef}
         className="w-full h-full"
-        onClick={(e) => engineRef.current?.handleClick(e.clientX, e.clientY)}
+        onClick={(e) => engineRef.current?.handleClick(e.clientX, e.clientY, {
+          shiftKey: e.shiftKey,
+          ctrlKey: e.ctrlKey,
+          altKey: e.altKey,
+        })}
       />
 
       {loaded && (

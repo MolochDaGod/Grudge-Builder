@@ -6,16 +6,111 @@
 
 | | |
 |--|--|
-| **Live game** | [grudgewarlords.com](https://grudgewarlords.com) · alias [client.grudge-studio.com](https://client.grudge-studio.com) |
-| **Deploy** | Vercel (static SPA) + Railway (`grudge-api-production`) for game/auth API |
+| **Live game** | [grudge.studio](https://grudge.studio) · [grudgewarlords.com](https://grudgewarlords.com) · [client.grudge-studio.com](https://client.grudge-studio.com) |
+| **Forge map editor** | [forge.grudge-studio.com](https://forge.grudge-studio.com) (RTS-Grudge `studio/`) |
+| **Production stack** | **Vercel** (SPA) · **Railway** grudge-api (Postgres + Colyseus) · **Cloudflare** (R2 CDN + Workers) |
+| **Not SSOT** | Supabase, MySQL VPS, D1 for heroes, Puter guest as account |
 | **Owner** | Grudge Studio · *Racalvin The Pirate King* |
 | **License** | MIT |
 
 This is **not** a single monorepo for every Grudge title. Sibling products (Warlord Genesis, RTS-Grudge, Character Studio, ObjectStore) live in other repos and connect through **fleet SSO + shared Railway/ObjectStore**.
 
+**Stack law:** [docs/STACK_PATTERN.md](docs/STACK_PATTERN.md) · agents: [docs/PRODUCTION_AGENTS.md](docs/PRODUCTION_AGENTS.md)
+
 ---
 
-## Honest status (as of 2026-07-17)
+## Production stack (four platforms only)
+
+```
+Vercel (client SPA)
+    │  same-origin /api/*
+    ▼
+Railway grudge-api ── Postgres (player SSOT)
+       │            └── Colyseus (WS multiplayer rooms)
+       ▼
+Cloudflare ── R2 assets.grudge-studio.com
+           └── Workers (id-gateway, ObjectStore, CDN)
+```
+
+| Platform | Role | Ship command |
+|----------|------|--------------|
+| **Vercel** | Game client | `npm run agent:deploy -- ship --yes --client` or `npx vercel --prod` |
+| **Railway** | API + JWT + Colyseus | `npm run agent:deploy -- ship --yes --api` |
+| **Colyseus** | Realtime rooms on grudge-api | ships with Railway API |
+| **Cloudflare** | R2 binaries + edge | `npm run deploy:workers` / R2 upload scripts |
+
+**Supabase is optional/legacy.** Production leaves `SUPABASE_URL` unset.  
+`GET /api/supabase/health` → `configured: false`, `required: false` is **correct**.  
+Player data is **Railway Postgres only**.
+
+---
+
+## Production player path (Warlords · 2026-07-19)
+
+**Product hosts:** [grudge.studio](https://grudge.studio) · [grudgewarlords.com](https://grudgewarlords.com) · [client.grudge-studio.com](https://client.grudge-studio.com)
+
+| Step | Route | Notes |
+|------|-------|--------|
+| Landing | `/` | Art-forward Warlords landing |
+| Opening scene | `/intro` | Fleet video → pipeline |
+| Pipeline hub | `/warlords/start` | Gates + next-step resolver |
+| Character create | `/create-character` | GCS Warlords era → returns to tutorial |
+| Tutorial | `/tutorial` | Shipwreck solo · then open world |
+| Open world | `/play?sector=haven_shore&mode=zone&…` | Haven + lobby grind |
+| **End Game (Lv 20)** | Talk to **faction captain** (`E`) on race island | Mission **End Game** |
+| Abandon ship cinematic | `/homeisland?cinematic=abandon-ship` | Cannon · sink · **all jump** (no throw) |
+| Home island | `/home-island` (after cinematic / create) | Level **≥ 20** gate |
+| Pirate lobby map | `/island-3d?mode=lobby&map=pirate-islands` | Faction islands · production `.gmap` |
+| Black Tome | `/lore/tome-of-seasons-and-gods.html` | 6h day · 8 gods’ days · 96-day seasons |
+
+**SSOT**
+
+| Topic | File |
+|-------|------|
+| Onboarding + Lv20 gate | `shared/definitions/warlordsProductionFlow.ts` |
+| End Game mission | `shared/definitions/endGameMission.ts` |
+| Game clock / tides | `shared/definitions/gameClock.ts` |
+| Production map package | `shared/definitions/productionMapPackage.ts` · `production/` |
+| Intro variants | `shared/definitions/productionIntro.ts` |
+| Deploy path cards | `shared/fleet/gameDeployments.ts` |
+| Flow docs | [docs/WARLORDS_PRODUCTION_FLOW.md](docs/WARLORDS_PRODUCTION_FLOW.md) |
+
+**Publish map from Forge:** `POST /api/production/map/publish` (token `PRODUCTION_PUBLISH_TOKEN`) · Forge **🚀 Publish**  
+**Pirate mesh GLB:** `https://assets.grudge-studio.com/models/lobby/pirate-islands/scene.glb`
+
+### Deploy this SPA
+
+```bash
+# Client (Vercel → grudge.studio / grudgewarlords.com / client.grudge-studio.com)
+cd grudge-builder
+npm run map:build-gmap          # refresh production gmap JSON
+npx vercel --prod --yes
+
+# Forge map editor (RTS-Grudge monorepo → forge.grudge-studio.com / rts-grudge.vercel.app)
+cd path/to/RTS-Grudge
+npx vercel --prod --yes
+
+# Optional full refresh (R2 catalogs + workers + SPA)
+node scripts/production-refresh.mjs
+# or skip heavy upload: node scripts/production-refresh.mjs --skip-upload
+```
+
+**Last SPA prod ship (2026-07-18):** Vercel `grudge-builder` → aliased **https://grudge.studio** · RTS-Grudge + Forge editor → **https://rts-grudge.vercel.app** / **https://forge.grudge-studio.com**
+
+API + multiplayer REST ship with **Railway** grudge-api:
+
+```bash
+npm run agent:deploy -- ship --yes --api   # production API + Colyseus
+npm run agent:live-ops -- report           # health · colyseus · multiplayer/status
+```
+
+Set `PRODUCTION_PUBLISH_TOKEN` on Railway for Forge map publish.
+
+**Last API ship (2026-07-19):** Railway deploy `0068c34f…` — `/api/multiplayer/status` live · Colyseus matchMaker ready.
+
+---
+
+## Honest status (as of 2026-07-19)
 
 This section is meant to stay true under pressure. Prefer it over marketing copy in older docs.
 
@@ -58,10 +153,11 @@ Full contract: [`docs/CANONICAL_IDENTITY.md`](docs/CANONICAL_IDENTITY.md).
 |---------|------|----------------|
 | **grudgewarlords.com** | Main SPA | Live (Vercel). Same-origin `/api/*` rewrites to Railway + id hub. |
 | **id.grudge-studio.com** | Grudge ID login / register / SSO | Live. Edge Worker `grudge-identity-api` (`workers/id-gateway`) proxies to Railway auth. |
-| **Railway grudge-api** | Characters, island, inventory, auth API, JWT | Live SSOT for player data: `grudge-api-production-0d46.up.railway.app` |
-| **ObjectStore** | Catalog JSON + models registry | Live: [objectstore.grudge-studio.com](https://objectstore.grudge-studio.com/health) |
+| **Railway grudge-api** | Characters, island, inventory, auth API, JWT, **Colyseus** | Live SSOT: `grudge-api-production-0d46.up.railway.app` · `/api/multiplayer/status` 200 |
+| **Colyseus** | Realtime rooms on grudge-api | Live: `/api/colyseus/health` · rooms tutorial→home_island |
+| **ObjectStore** | Catalog JSON + models registry (Cloudflare Worker) | Live: [objectstore.grudge-studio.com](https://objectstore.grudge-studio.com/health) |
 | **info.grudge-studio.com** | Docs + alternate defs host | Recipes also available under `/api/v1/` |
-| **assets.grudge-studio.com** | R2 CDN binaries | Live |
+| **assets.grudge-studio.com** | R2 CDN binaries (Cloudflare) | Live |
 | **character.grudge-studio.com** | Character Studio (GCS) — create/edit grudge6 heroes | Canonical **create** path; Warlords routes often **redirect** here |
 | **warlord-genesis.vercel.app** | Separate MOBA/RTS satellite | Own repo (`warlord-genesis`); fleet SSO, not built from this SPA’s main bundle |
 | **grudge-crafting.puter.site** | Crafting shell (Puter) | Live; **must** Grudge ID JWT + Warlords UUID — not Puter-only guest |
@@ -75,32 +171,38 @@ Full contract: [`docs/CANONICAL_IDENTITY.md`](docs/CANONICAL_IDENTITY.md).
 | “Auth is Cloudflare Workers grudge-id” | **Incomplete.** Login **edge** is CF Worker; **auth API + session page SSOT** is **Railway** (`server/routes/auth.ts`, auth page templates). |
 | “account.grudge-studio.com” as core health | Host serves HTML; **`/health` 404**. Prefer `/api/health` or Railway account routes — treat as **legacy/secondary**. |
 | “ai.grudge-studio.com always healthy” | Root has returned **`401 unauthorized`** after bad worker deploys. See `docs/DEPLOY_OWNERSHIP.md`. |
-| “Arena PvP / multiplayer fully live” | **Colyseus rooms exist in code**; dedicated public `ws.grudge-studio.com` is **not** a hardened fleet product. Expect local/dev or partial wiring. |
+| “Arena PvP / multiplayer fully live” | **Colyseus is live on grudge-api** (rooms + multiplayer REST). Dedicated `ws.grudge-studio.com` is not required. Reconnect HUD still product work. |
 | “Every /combat /tower-wars /missions route is ship-quality” | Many routes are **playable prototypes or tools**. Treat **home, account, island, test-play, GCS create** as the spine. |
 | “ObjectStore is the only character store” | **False.** ObjectStore = catalog/assets. **Player characters = Railway Postgres.** D1 is asset registry, not hero SSOT. |
+| “Supabase is the database / auth spine” | **False.** Supabase is **optional/legacy**. Production leaves it unset. **Railway Postgres** is player SSOT. |
+| “MySQL VPS is game data SSOT” | **False** for Warlords. Legacy VPS only — do not write new hero/island code there. |
 | “Crafting sees characters via Puter login” | **False.** Crafting needs **Grudge ID** `sso_token` → Railway `era=warlords`. Puter guest alone = empty roster. |
 | “Characters live on GitHub Pages ObjectStore” | **Deprecated.** `molochdagod.github.io/ObjectStore` may still host **static UI images**; player rows do **not**. |
 
 ### Quick live probe (re-run anytime)
 
 ```bash
-npm run probe:truth:direct  # ONE TRUTH endpoints (characters?era=warlords, identity, craft shell)
-npm run probe:deployments   # fleet HTTP surfaces
-npm run probe:auth          # SSO / login rewrites
-npm run probe:gate          # hard-fail critical (when CI secrets/env present)
-npm run probe:all           # deployments + truth
+npm run agent:live-ops -- report   # health · colyseus · multiplayer · client · CDN
+npm run probe:truth:direct         # ONE TRUTH (characters?era=warlords, identity, craft shell)
+npm run probe:deployments          # fleet HTTP surfaces
+npm run probe:auth                 # SSO / login rewrites
+npm run probe:all                  # deployments + truth
 ```
 
-After **this SPA deploy** (Vercel `grudge-builder` / grudgewarlords.com), verify:
+After **this SPA deploy** (Vercel `grudge-builder` → **grudge.studio** / grudgewarlords.com / client alias), verify:
 
 | Check | How |
 |-------|-----|
-| SPA shell | `https://grudgewarlords.com/` → 200 |
+| SPA shell | `https://grudge.studio/` → 200 · art landing |
 | Client alias | `https://client.grudge-studio.com/` → 200 |
+| Pipeline | `/warlords/start` · End Game /homeisland |
+| Black Tome | `/lore/tome-of-seasons-and-gods.html` |
 | Open-world entry | `/play?sector=haven_shore&mode=zone&worldSeed=grudge-world-1&city=haven_port` loads zone |
-| Build mode | Tab → Build · Build Hammer in hand · category tabs 1–9 · WASD free-move |
-| Claim camp | Place camp + Claim Flag · F1–F5 bar when near owned camp |
-| Fleet status doc | Update [docs/FLEET_STATUS.md](docs/FLEET_STATUS.md) snapshot date after probes |
+| Pirate lobby | `/island-3d?mode=lobby&map=pirate-islands` · captains · faction islands |
+| Forge | [forge.grudge-studio.com](https://forge.grudge-studio.com) · auto-load production gmap · Publish |
+| Build mode | Tab → Build · Build Hammer · WASD free-move |
+| Claim camp | Place camp + Claim Flag · F1–F5 when near owned camp |
+| Fleet status doc | Update [docs/FLEET_STATUS.md](docs/FLEET_STATUS.md) after probes |
 
 Manual smoke baseline (re-probe on ship):
 
@@ -108,7 +210,10 @@ Manual smoke baseline (re-probe on ship):
 |-----|----------|
 | grudgewarlords.com | 200 HTML |
 | id…/login | 200 |
-| Railway `/api/health` | 200 JSON healthy |
+| Railway `/api/health` | 200 JSON healthy · `database: connected` |
+| Railway `/api/colyseus/health` | 200 · matchMakerReady |
+| Railway `/api/multiplayer/status` | 200 · protocolVersion · rooms |
+| Railway `/api/supabase/health` | `configured: false` (OK — not required) |
 | Railway `/api/characters?era=warlords` | **401** without JWT (auth-gated — good) |
 | objectstore…/health | 200 ok |
 | assets…/js/grudge-fleet.js | **2.8.0+** |
@@ -135,16 +240,20 @@ It shares **one Railway roster** with other fleet games when those apps use flee
 
 ## Architecture (one truth)
 
+Full pattern: [docs/STACK_PATTERN.md](docs/STACK_PATTERN.md)
+
 ```
 Browser apps (grudgewarlords.com · grudge-crafting.puter.site · GCS · …)
   │
   ├─ Identity ── id.grudge-studio.com/login|register
-  │                 └─ CF Worker id-gateway → Railway auth + JWT (grudge_id)
+  │                 └─ Cloudflare Worker id-gateway → Railway auth + JWT (grudge_id)
   │
-  ├─ Player state ── same-origin /api/* (Warlords) OR Railway absolute (Puter)
-  │                 └─ Postgres: users · characters (era=warlords UUID) · bag · island
+  ├─ Player state ── same-origin /api/* (Vercel rewrite) OR Railway absolute (Puter)
+  │                 └─ Railway Postgres: users · characters (era=warlords UUID) · bag · island
   │
-  ├─ Catalog JSON ── objectstore / info …/api/v1/*.json  (definitions only)
+  ├─ Realtime ──── Colyseus on Railway grudge-api (wss://…up.railway.app)
+  │
+  ├─ Catalog JSON ── Cloudflare ObjectStore …/api/v1/*.json  (definitions only)
   │
   └─ Binaries ────── assets.grudge-studio.com (R2)
 
@@ -246,6 +355,8 @@ Copy env from `.env.production.example` / local secrets. Without Railway Postgre
 |--------|---------|
 | `npm run build` / `build:client` | Production client |
 | `npm run start:production` | Railway entry |
+| `npm run agent:railway` / `agent:deploy` / `agent:live-ops` | Production agents |
+| `npm run agent:status` / `agent:maintenance` | Orchestrator health + backlog |
 | `npm run gen:fleet` / `gen:fleet-truth` | Fleet manifest / published truth |
 | `npm run probe:truth:direct` | ONE TRUTH (identity, era=warlords chars, craft shell) |
 | `npm run probe:auth` / `probe:deployments` | Live surface probes |
@@ -260,9 +371,11 @@ Copy env from `.env.production.example` / local secrets. Without Railway Postgre
 | Layer | Host | Holds |
 |-------|------|--------|
 | **Player SSOT** | Railway Postgres via grudge-api | users, characters, island rows, inventory, JWT sessions |
-| **Catalog SSOT** | ObjectStore JSON | races, classes, items, recipes, grudge6 mesh registries |
-| **Binary CDN** | assets.grudge-studio.com (R2) | icons, GLBs, audio, sprites |
-| **D1 (ObjectStore)** | Cloudflare | asset registry / metadata — **not** the hero save DB |
+| **Realtime** | Colyseus (same Railway process) | room presence, positions, chat — not long-term bag |
+| **Catalog SSOT** | Cloudflare ObjectStore JSON | races, classes, items, recipes, grudge6 mesh registries |
+| **Binary CDN** | assets.grudge-studio.com (Cloudflare R2) | icons, GLBs, audio, sprites |
+| **D1** | Cloudflare | asset registry / metadata — **not** the hero save DB |
+| **Supabase** | — | **Not used in production.** Optional probe only. |
 
 Client entry points: `client/src/lib/assetConfig.ts`, `objectStoreApi.ts`, `grudgeBackend.ts`, `characterManager.ts`.
 

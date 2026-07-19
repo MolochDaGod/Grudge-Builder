@@ -1,5 +1,7 @@
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
+import { StatusEffectIcons } from '@/components/StatusEffectIcons';
+import type { ActiveStatusInstance } from '@shared/definitions/statusEffects';
 
 interface CombatUnitStatusProps {
   name: string;
@@ -16,6 +18,8 @@ interface CombatUnitStatusProps {
   compact?: boolean;
   showAvatar?: boolean;
   className?: string;
+  /** Active buffs/debuffs — icons render above the unit frame */
+  statusEffects?: ActiveStatusInstance[];
 }
 
 export function CombatUnitStatus({
@@ -33,6 +37,7 @@ export function CombatUnitStatus({
   compact = false,
   showAvatar = true,
   className,
+  statusEffects = [],
 }: CombatUnitStatusProps) {
   const hpPercent = Math.max(0, (hp / maxHp) * 100);
   const mpPercent = Math.max(0, (mp / maxMp) * 100);
@@ -43,13 +48,18 @@ export function CombatUnitStatus({
     return (
       <div 
         className={cn(
-          "bg-gradient-to-b from-slate-900/95 to-black/95 border border-slate-700 rounded-lg p-2",
+          "relative bg-gradient-to-b from-slate-900/95 to-black/95 border border-slate-700 rounded-lg p-2",
           isActive && "border-amber-500/50 shadow-lg shadow-amber-500/20",
           isDead && "opacity-50 grayscale",
           className
         )}
         data-testid={`combat-status-${name.toLowerCase().replace(/\s+/g, '-')}`}
       >
+        {statusEffects.length > 0 && (
+          <div className="absolute -top-3 left-1 right-1 flex justify-center z-10">
+            <StatusEffectIcons effects={statusEffects} size="xs" maxVisible={6} />
+          </div>
+        )}
         <div className="flex items-center gap-2">
           {showAvatar && (
             <div className="relative shrink-0">
@@ -91,13 +101,18 @@ export function CombatUnitStatus({
   return (
     <div 
       className={cn(
-        "bg-gradient-to-b from-slate-900/95 to-black/95 border-2 rounded-lg p-3",
+        "relative bg-gradient-to-b from-slate-900/95 to-black/95 border-2 rounded-lg p-3",
         isActive ? "border-amber-500 shadow-lg shadow-amber-500/30" : "border-slate-700",
         isDead && "opacity-50 grayscale",
         className
       )}
       data-testid={`combat-status-${name.toLowerCase().replace(/\s+/g, '-')}`}
     >
+      {statusEffects.length > 0 && (
+        <div className="absolute -top-4 left-2 right-2 flex justify-center z-10">
+          <StatusEffectIcons effects={statusEffects} size="sm" maxVisible={8} />
+        </div>
+      )}
       <div className="flex items-start gap-3">
         {showAvatar && (
           <motion.div 

@@ -68,7 +68,10 @@ export const FLEET_URLS = {
   world: "wss://world.grudge-studio.com",
   charactersHub: "https://character.grudge-studio.com",
   gcs: "https://character.grudge-studio.com",
-  warlords: "https://grudgewarlords.com",
+  /** Warlords product apex (landing, lore, account) — also serves play SPA */
+  warlords: "https://grudge.studio",
+  /** Play / legacy game hostname (same grudge-builder deployment) */
+  warlordsPlay: "https://grudgewarlords.com",
   /** Lightweight Three.js MMO client — 9 sectors + Colyseus multiplayer */
   threePort: "https://grudge-three-port.vercel.app",
   /** Map & Model Editor — home-island creation (artifacts/studio) */

@@ -2,7 +2,7 @@
 
 Organized entry point for APIs, UUID systems, and fleet integration.
 
-**Start with product truth:** [../README.md](../README.md) (honest fleet + architecture) · [FLEET_STATUS.md](./FLEET_STATUS.md) (live probe snapshot) · [DEPLOY_OWNERSHIP.md](./DEPLOY_OWNERSHIP.md) (one host → one owner).
+**Start with product truth:** [../README.md](../README.md) (honest fleet + architecture) · [STACK_PATTERN.md](./STACK_PATTERN.md) (Vercel · Railway · Colyseus · Cloudflare) · [FLEET_STATUS.md](./FLEET_STATUS.md) (live probe snapshot) · [DEPLOY_OWNERSHIP.md](./DEPLOY_OWNERSHIP.md) (one host → one owner).
 
 ---
 
@@ -11,6 +11,9 @@ Organized entry point for APIs, UUID systems, and fleet integration.
 | Topic | Doc |
 |-------|-----|
 | **Live game** | https://grudgewarlords.com |
+| **Production stack pattern (4 platforms only)** | [STACK_PATTERN.md](./STACK_PATTERN.md) |
+| **Autonomous deploy / live-ops agents** | [PRODUCTION_AGENTS.md](./PRODUCTION_AGENTS.md) |
+| **Multiplayer + lag best practices** | [INDUSTRY_BEST_PRACTICES_MP_PERF.md](./INDUSTRY_BEST_PRACTICES_MP_PERF.md) · [MULTIPLAYER.md](./MULTIPLAYER.md) |
 | **Honest fleet / domain status** | [FLEET_STATUS.md](./FLEET_STATUS.md) · [ORGANIZER_PRODUCTION_AUDIT.md](./ORGANIZER_PRODUCTION_AUDIT.md) · root [README.md](../README.md) |
 | **Account + Warlords UUID law (ONE TRUTH)** | [CANONICAL_IDENTITY.md](./CANONICAL_IDENTITY.md) |
 | **Data layers (Railway / ObjectStore / R2 / D1)** | [CANONICAL_DATA_LAYER.md](./CANONICAL_DATA_LAYER.md) |
@@ -44,10 +47,14 @@ Organized entry point for APIs, UUID systems, and fleet integration.
 
 | Topic | Doc |
 |-------|-----|
+| **Stack law (Vercel / Railway / Colyseus / CF)** | [STACK_PATTERN.md](./STACK_PATTERN.md) |
+| **Agents (railway / deploy / live-ops)** | [PRODUCTION_AGENTS.md](./PRODUCTION_AGENTS.md) |
 | Express routes, storage, Railway | [BACKEND.md](./BACKEND.md) |
 | Frontend architecture | [FRONTEND.md](./FRONTEND.md) |
 | Asset packs & CDN paths | [ASSET_PACKS.md](./ASSET_PACKS.md) |
 | Spell/skill icon mapping | [SPELL_SKILL_ICONS.md](./SPELL_SKILL_ICONS.md) |
+
+**Not player SSOT:** Supabase (optional probe), MySQL VPS (legacy), D1 for heroes.
 
 ---
 

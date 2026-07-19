@@ -111,6 +111,67 @@ export function getSectorGroundMaterialId(sector: WorldSector): GroundMaterialId
   return SECTOR_GROUND_MATERIALS[sector.id] ?? 'ground_2';
 }
 
+/**
+ * Valheim-style multi-layer stack per sector (base → low → mid → high → cliff rock).
+ * Each entry is a GroundPBR material id loaded as a diffuse map for Terrain.generateBlendedMaterial.
+ */
+export interface SectorTerrainLayerStack {
+  base: GroundMaterialId;
+  low: GroundMaterialId;
+  mid: GroundMaterialId;
+  high: GroundMaterialId;
+  rock: GroundMaterialId;
+}
+
+/** Biome-aware layer stacks — primary sector ground + supporting soils / cliffs */
+export const SECTOR_LAYER_STACKS: Record<string, SectorTerrainLayerStack> = {
+  frostbite_expanse: { base: 'ground_7', low: 'ground_4', mid: 'ground_7', high: 'ground_7', rock: 'ground_4' },
+  stormbreak_reef: { base: 'ground_4', low: 'ground_1', mid: 'ground_4', high: 'ground_5', rock: 'ground_4' },
+  thornwood_wilds: { base: 'ground_6', low: 'ground_2', mid: 'ground_6', high: 'ground_6', rock: 'ground_4' },
+  ashen_wastes: { base: 'ground_3', low: 'ground_3', mid: 'ground_5', high: 'ground_5', rock: 'ground_4' },
+  convergence_nexus: { base: 'ground_10', low: 'ground_2', mid: 'ground_10', high: 'ground_8', rock: 'ground_4' },
+  ethereal_falls: { base: 'ground_8', low: 'ground_9', mid: 'ground_8', high: 'ground_8', rock: 'ground_4' },
+  abyssal_trench: { base: 'ground_9', low: 'ground_9', mid: 'ground_4', high: 'ground_5', rock: 'ground_4' },
+  ember_depths: { base: 'ground_5', low: 'ground_3', mid: 'ground_5', high: 'ground_5', rock: 'ground_4' },
+  haven_shore: { base: 'ground_2', low: 'ground_1', mid: 'ground_2', high: 'ground_6', rock: 'ground_4' },
+};
+
+export function getSectorLayerStack(sector: WorldSector): SectorTerrainLayerStack {
+  return SECTOR_LAYER_STACKS[sector.id] ?? {
+    base: getSectorGroundMaterialId(sector),
+    low: 'ground_1',
+    mid: getSectorGroundMaterialId(sector),
+    high: 'ground_6',
+    rock: 'ground_4',
+  };
+}
+
+function loadGroundDiffuse(id: GroundMaterialId, repeatScale = 1): THREE.Texture {
+  const def = GROUND_PBR_MATERIALS[id];
+  const repeat = Math.max(4, Math.round(def.repeat * repeatScale));
+  return loadTex(def.maps.baseColor, repeat, true);
+}
+
+/** Multi-layer diffuse maps for sector terrain blending (ThreeTerrain height+slope mix). */
+export function getSectorLayerMaterials(sector: WorldSector): {
+  base: THREE.Texture;
+  low: THREE.Texture;
+  mid: THREE.Texture;
+  high: THREE.Texture;
+  rock: THREE.Texture;
+} {
+  const stack = getSectorLayerStack(sector);
+  // Sector zones are larger than home islands — slightly tighter tiling for readability
+  const scale = 0.55;
+  return {
+    base: loadGroundDiffuse(stack.base, scale),
+    low: loadGroundDiffuse(stack.low, scale),
+    mid: loadGroundDiffuse(stack.mid, scale),
+    high: loadGroundDiffuse(stack.high, scale),
+    rock: loadGroundDiffuse(stack.rock, scale * 0.85),
+  };
+}
+
 export function getHomeIslandLayerMaterials(): {
   seafloor: THREE.Texture;
   sand: THREE.Texture;

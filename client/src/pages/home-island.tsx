@@ -105,7 +105,21 @@ export default function HomeIslandPage() {
         setCharacterName(char.name);
         setHeroRace(char.raceId);
         setHeroClass(char.classId);
-        setLevel(char.level ?? 1);
+        const charLevel = char.level ?? 1;
+        setLevel(charLevel);
+        // Production gate: home island requires level 20 (admin/dev: ?unlock=1)
+        const forceUnlock =
+          new URLSearchParams(window.location.search).get('unlock') === '1' ||
+          new URLSearchParams(window.location.search).get('dev') === '1';
+        const { WARLORDS_HOME_ISLAND_MIN_LEVEL } = await import(
+          '@shared/definitions/warlordsProductionFlow'
+        );
+        if (charLevel < WARLORDS_HOME_ISLAND_MIN_LEVEL && !forceUnlock) {
+          setLocation(
+            `/warlords/start?need=home-island&level=${charLevel}&auto=0`,
+          );
+          return;
+        }
         setHasWeapon(cfg.hasWeapon);
         setProfessions(getActiveGatheringProfessions(char.professionLevels ?? {}));
         setClassHotbar(buildClassHotbar(char));
@@ -577,7 +591,11 @@ export default function HomeIslandPage() {
       <canvas
         ref={canvasRef}
         className="w-full h-full"
-        onClick={(e) => engineRef.current?.handleClick(e.clientX, e.clientY)}
+        onClick={(e) => engineRef.current?.handleClick(e.clientX, e.clientY, {
+          shiftKey: e.shiftKey,
+          ctrlKey: e.ctrlKey,
+          altKey: e.altKey,
+        })}
         onMouseMove={(e) => engineRef.current?.handleMouseMove(e.clientX, e.clientY)}
       />
 

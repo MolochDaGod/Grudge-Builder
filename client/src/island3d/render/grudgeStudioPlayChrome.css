@@ -1,0 +1,275 @@
+/* Production HUD chrome — language from ui.grudge-studio.com fantasy / tactical equip */
+
+.gspc-root {
+  font-family: Inter, system-ui, sans-serif;
+  --gspc-panel: rgba(12, 10, 9, 0.88);
+  --gspc-border: rgba(180, 83, 9, 0.45);
+  --gspc-gold: #fbbf24;
+  --gspc-cream: #fef3c7;
+}
+
+.gspc-unit-frame {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 40;
+  display: flex;
+  gap: 10px;
+  padding: 8px 12px 10px 8px;
+  min-width: 260px;
+  background: radial-gradient(ellipse at 20% 0%, rgba(41, 37, 36, 0.95), rgba(12, 10, 9, 0.92));
+  border: 2px solid var(--gspc-border);
+  border-radius: 12px;
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.65),
+    0 10px 28px rgba(0, 0, 0, 0.55),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.gspc-portrait-wrap {
+  position: relative;
+  width: 56px;
+  height: 56px;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 2px solid color-mix(in srgb, var(--gspc-accent, #fbbf24) 70%, #78350f);
+  box-shadow: inset 0 0 12px rgba(0, 0, 0, 0.5);
+  flex-shrink: 0;
+}
+
+.gspc-portrait {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 30%;
+}
+
+.gspc-level {
+  position: absolute;
+  bottom: 2px;
+  right: 2px;
+  min-width: 18px;
+  height: 16px;
+  padding: 0 4px;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 16px;
+  text-align: center;
+  color: #0c0a09;
+  background: linear-gradient(180deg, #fde68a, #f59e0b);
+  border-radius: 4px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+}
+
+.gspc-bars {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  justify-content: center;
+}
+
+.gspc-name-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.gspc-name {
+  font-family: Cinzel, 'Times New Roman', serif;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--gspc-cream);
+  text-shadow: 0 1px 2px #000;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gspc-class {
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: #a8a29e;
+}
+
+.gspc-bar {
+  position: relative;
+  height: 12px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: rgba(0, 0, 0, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.6);
+}
+
+.gspc-bar-fill {
+  height: 100%;
+  border-radius: inherit;
+  transition: width 0.15s ease-out;
+}
+
+.gspc-hp .gspc-bar-fill {
+  background: linear-gradient(90deg, #7f1d1d, #ef4444, #fca5a5);
+}
+
+.gspc-mp .gspc-bar-fill {
+  background: linear-gradient(90deg, #1e3a8a, #3b82f6, #93c5fd);
+}
+
+.gspc-sp .gspc-bar-fill {
+  background: linear-gradient(90deg, #14532d, #22c55e, #86efac);
+}
+
+.gspc-bar-text {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  font-weight: 700;
+  color: #fff;
+  text-shadow: 0 1px 2px #000;
+  letter-spacing: 0.04em;
+}
+
+.gspc-softlock-hint {
+  position: absolute;
+  top: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 39;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 12px;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #fef3c7;
+  background: rgba(28, 25, 23, 0.85);
+  border: 1px solid rgba(250, 204, 21, 0.5);
+  border-radius: 999px;
+  box-shadow: 0 0 12px rgba(250, 204, 21, 0.25);
+}
+
+.gspc-sl-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #facc15;
+  box-shadow: 0 0 8px #facc15;
+  animation: gspc-dot 1s ease-in-out infinite;
+}
+
+@keyframes gspc-dot {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.gspc-inventory {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 50;
+  width: min(420px, 92vw);
+  padding: 0 0 14px;
+  border: 2px solid rgba(180, 83, 9, 0.55);
+  border-radius: 12px;
+  background-size: cover;
+  background-position: center;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.7), 0 20px 50px rgba(0, 0, 0, 0.7);
+}
+
+.gspc-inv-titlebar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: linear-gradient(180deg, #292524, #1c1917);
+  border-bottom: 1px solid rgba(180, 83, 9, 0.35);
+  border-radius: 10px 10px 0 0;
+}
+
+.gspc-inv-title {
+  font-family: Cinzel, serif;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  color: #fef3c7;
+  text-transform: uppercase;
+}
+
+.gspc-inv-sub {
+  flex: 1;
+  font-size: 10px;
+  color: #a8a29e;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.gspc-inv-close {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  border: 1px solid rgba(180, 83, 9, 0.4);
+  background: rgba(28, 25, 23, 0.9);
+  color: #fef3c7;
+  cursor: pointer;
+}
+
+.gspc-inv-close:hover {
+  filter: brightness(1.15);
+}
+
+.gspc-inv-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  padding: 14px;
+}
+
+.gspc-inv-slot {
+  aspect-ratio: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  border: 1px solid rgba(180, 83, 9, 0.4);
+  border-radius: 6px;
+  background: linear-gradient(135deg, rgba(28, 25, 23, 0.85), rgba(12, 10, 9, 0.92));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 2px 6px rgba(0, 0, 0, 0.45);
+  transition: transform 0.12s, filter 0.12s;
+  cursor: default;
+}
+
+.gspc-inv-slot:hover {
+  filter: brightness(1.15);
+  transform: scale(1.03);
+  border-color: rgba(251, 191, 36, 0.55);
+}
+
+.gspc-inv-icon {
+  font-size: 22px;
+  line-height: 1;
+}
+
+.gspc-inv-label {
+  font-size: 8px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #a8a29e;
+  text-align: center;
+  padding: 0 2px;
+}

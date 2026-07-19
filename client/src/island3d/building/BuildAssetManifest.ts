@@ -16,6 +16,7 @@
  */
 
 import { ASSET_CDN_BASE } from '@/lib/assetConfig';
+import { allUmmorpgDeployables } from '@shared/definitions/ummorpgDeployables';
 
 const CDN = ASSET_CDN_BASE;
 
@@ -34,7 +35,10 @@ export type BuildCategory =
   | 'decoration'   // flags, banners, signs, lanterns
   | 'nature'       // placed trees, rocks, stumps (landscaping)
   | 'terrain'      // terrain tiles, boulders (base blend)
-  | 'camp';        // NPC / faction camps + camp upgrades
+  | 'camp'         // NPC / faction camps + camp upgrades
+  | 'units'        // captains, travelers, bandits, mounts (uMMORPG / 30grudge6)
+  | 'siege'        // catapult, bolt-thrower
+  | 'monsters';     // wildlife / monster deployables
 
 export interface BuildAssetDef {
   id: string;
@@ -599,6 +603,31 @@ if (BUILD_ASSETS.camp_fire_soup && BUILD_ASSETS.fireplace) {
   fp.modelPath = BUILD_ASSETS.camp_fire_soup.modelPath;
   fp.nodeName = BUILD_ASSETS.camp_fire_soup.nodeName;
   fp.buildLayer = 'camp';
+}
+
+// ── uMMORPG / 30grudge6 deployables (edit / build mode) ──────────────────────
+// Captains, travelers, bandits, mounts, catapults, bolt-throwers, monsters
+for (const d of allUmmorpgDeployables()) {
+  if (BUILD_ASSETS[d.id]) continue;
+  BUILD_ASSETS[d.id] = {
+    id: d.id,
+    name: d.name,
+    category: d.buildCategory,
+    placement: 'prop',
+    modelPath: d.modelPath,
+    color: d.color,
+    size: d.size,
+    scale: d.scale,
+    rotatable: true,
+    requiresFloor: false,
+    terrainPlaceable: true,
+    cost: [],
+    effect: {
+      type: d.kind === 'siege' ? 'defense' : d.kind === 'monster' ? 'train_unit' : 'train_unit',
+      value: 1,
+      description: d.description,
+    },
+  };
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────

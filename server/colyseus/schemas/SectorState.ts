@@ -48,20 +48,31 @@ export const SECTOR_BIOMES: Record<SectorId, string> = {
 
 // ── Ocean / Tide Constants ──────────────────────────────────────
 
+/**
+ * Ocean / tide — re-export production SSOT (6h game day, 2 tides/day, gentle amp).
+ * Do not redefine amplitude here; clients + rooms must match.
+ */
+import {
+  OCEAN_CONFIG as _OCEAN,
+  getTideHeight as _getTide,
+  TIDE_CONFIG,
+  GAME_CLOCK,
+  tideCycleMs,
+} from '@shared/definitions/gameClock';
+
 export const OCEAN_CONFIG = {
-  /** Base ocean height (Y) — all 9 sectors share one ocean plane */
-  baseHeight: 0,
-  /** Tide amplitude: ocean oscillates baseHeight ± amplitude */
-  tideAmplitude: 2.0,
-  /** Full tide cycle in ms (10 minutes) */
-  tideCycleMs: 10 * 60 * 1000,
+  baseHeight: _OCEAN.baseHeight,
+  tideAmplitude: _OCEAN.tideAmplitude,
+  tideCycleMs: _OCEAN.tideCycleMs,
+  cyclesPerGameDay: TIDE_CONFIG.cyclesPerGameDay,
+  realMsPerGameDay: GAME_CLOCK.realMsPerGameDay,
 } as const;
 
-/** Calculate current tide height from server time */
 export function getTideHeight(serverTime: number): number {
-  const phase = (serverTime % OCEAN_CONFIG.tideCycleMs) / OCEAN_CONFIG.tideCycleMs;
-  return OCEAN_CONFIG.baseHeight + Math.sin(phase * Math.PI * 2) * OCEAN_CONFIG.tideAmplitude;
+  return _getTide(serverTime);
 }
+
+export { tideCycleMs, TIDE_CONFIG, GAME_CLOCK };
 
 // ── Instanced Room Types ────────────────────────────────────────
 
@@ -102,6 +113,11 @@ export class SectorPlayer extends Schema {
   @type("string")  skinColor: string = "#ffffff";
   @type("string")  armorColor: string = "#ffffff";
   @type("string")  equippedWeaponType: string = "sword-shield"; // weapon type for animation set
+
+  // Animation sync — remotes play matching clips without waiting for move-state only
+  @type("string")  animState: string = "idle"; // idle | walk | run | attack | harvesting | death
+  @type("string")  animClip: string = "idle";
+  @type("number")  animSeq: number = 0; // increments on oneshot so remotes re-trigger
 }
 
 export class SectorEnemy extends Schema {
