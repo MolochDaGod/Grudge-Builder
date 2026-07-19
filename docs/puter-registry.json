@@ -108,12 +108,16 @@
       "purpose": "Puter Desktop listing for GRUDOX fleet hub. Shell loads production grudox; characters + open-world entry use Grudge ID + Railway.",
       "title": "Grudox",
       "puterApp": {
+        "uid": "app-90e6d0ba-e264-4985-9c92-7a3058d22d0f",
         "name": "Grudox",
-        "index_url": "https://grudox.grudge-studio.com",
+        "index_url_target": "https://grudox.grudge-studio.com",
+        "index_url_interim_shell": "https://grudox-hub.puter.site",
+        "index_url_live_locked": "https://sandbox-grudge-loader-ydwm2g.puter.site",
         "canonicalGameUrl": "https://grudox.grudge-studio.com",
         "shipwreckSelect": "https://grudox.grudge-studio.com/warlords-shipwreck.html",
         "maximize_on_start": true,
-        "fullpage_on_landing": true
+        "fullpage_on_landing": true,
+        "metadata_locked": true
       },
       "dataSource": "https://grudox.grudge-studio.com (same-origin /api → Railway grudge-api-production-0d46) + ObjectStore + R2",
       "auth": "Grudge ID via id.grudge-studio.com (loginWithGrudgeId). Puter optional cache only — never character SSOT.",
