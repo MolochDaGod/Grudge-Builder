@@ -102,6 +102,36 @@
       "action": "Keep index_url pointed at production grudgewarlords.com. Prefer lowercase https://grudgewarlords.com. Social image assets-1ria8c74t02.puter.site/warlords.png was 404 as of 2026-07-09 — re-upload or fix OG image. approved_for_listing=false until ready for public Puter store."
     },
     {
+      "id": "puter-app-grudox",
+      "url": "https://puter.com/app/Grudox",
+      "status": "live",
+      "purpose": "Puter Desktop listing for GRUDOX fleet hub. Shell loads production grudox; characters + open-world entry use Grudge ID + Railway.",
+      "title": "Grudox",
+      "puterApp": {
+        "name": "Grudox",
+        "index_url": "https://grudox.grudge-studio.com",
+        "canonicalGameUrl": "https://grudox.grudge-studio.com",
+        "shipwreckSelect": "https://grudox.grudge-studio.com/warlords-shipwreck.html",
+        "maximize_on_start": true,
+        "fullpage_on_landing": true
+      },
+      "dataSource": "https://grudox.grudge-studio.com (same-origin /api → Railway grudge-api-production-0d46) + ObjectStore + R2",
+      "auth": "Grudge ID via id.grudge-studio.com (loginWithGrudgeId). Puter optional cache only — never character SSOT.",
+      "consumers": [
+        "Puter desktop users launching Grudox from puter.com/app/Grudox"
+      ],
+      "wiring": {
+        "auth": "id.grudge-studio.com",
+        "characters": "Railway /api/characters?era=warlords via grudox rewrites",
+        "openWorldEntry": "grudge6 only · sector shipwreck (not ethereal_falls) · /warlords-shipwreck.html",
+        "account": "Railway /api/account + inventory",
+        "definitions": "objectstore api/v1",
+        "assets": "assets.grudge-studio.com",
+        "arpg": "https://grudox.grudge-studio.com/arpg-game/ (portal /arpg-game redirects here)"
+      },
+      "action": "Keep index_url = https://grudox.grudge-studio.com (not sandbox-grudge-loader). Auth must hit id.grudge-studio.com. Shipwreck select is the Warlords grudge6 open-world entry."
+    },
+    {
       "id": "grudgewarlords-puter",
       "url": "https://grudgewarlords.puter.site",
       "status": "broken",
