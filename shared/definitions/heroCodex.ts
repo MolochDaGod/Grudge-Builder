@@ -69,7 +69,10 @@ export interface HeroRelationship {
 export interface HeroCodexEntry {
   /** Matches HERO_ROSTER.id (or "racalvin" for Pirate King legend) */
   id: string;
+  /** Full display name: First Last */
   name: string;
+  firstName: string;
+  lastName: string;
   title: string;
   /** Display faction name */
   faction: 'Crusade' | 'Legion' | 'Fabled' | 'Pirate';
@@ -154,32 +157,51 @@ function classArtKey(classId: string): string {
 }
 
 /**
- * Per-hero portrait keys — unique files under hero-portraits/{key}.png
- * Fixes roster collisions (two heroes sharing race_class) and wrong gender/role art.
- * Art sourced from Puter race packs + dedicated named files.
+ * Per-hero portrait keys — one unique PNG per hero under hero-portraits/{key}.png.
+ * All 24 roster heroes use id-named files (no shared race_class path on the page).
+ * Scourge uses dedicated art (scourgfaith.png → scourge_faithbearer.png).
  */
 const PORTRAIT_KEY_OVERRIDES: Record<string, string> = {
-  // Flamecaller — orc fire mage (unique file copy of orc_mage)
-  morgash: 'morgash',
-  // Profane necromancer — distinct from Morgash
+  // ── Crusade ──
+  aurion: 'aurion',
+  sigurd: 'sigurd',
+  kael: 'kael',
+  theron: 'theron',
+  thrax: 'thrax',
+  grok: 'grok',
+  kira: 'kira',
+  vox: 'vox',
+  // ── Legion ──
+  gruk: 'gruk',
   nazgrim: 'nazgrim',
-  // The Weaver — nature elf cleric (elf_worg pack), not Silvaine's frost mage
-  lyra: 'lyra',
-  silvaine: 'silvaine',
-  // The Risen — undead armored knight, not purple necromancer twin of Silesh
-  dredge: 'dredge',
+  vexol: 'vexol',
+  morgash: 'morgash',
   silesh: 'silesh',
-  // Forgemaster — female forge dwarf (dwarf_mage pack)
-  brenna: 'brenna',
-  // Durgin keeps classic male ironheart warrior
+  bone: 'bone',
+  whisper: 'whisper',
+  dredge: 'dredge',
+  // ── Fabled ──
+  aelindor: 'aelindor',
+  silvaine: 'silvaine',
+  lyra: 'lyra',
+  fenwick: 'fenwick',
   durgin: 'durgin',
-  // The Mender — dedicated female dwarf cleric portrait
-  helga: 'helga',
-  // Runekeeper
+  brenna: 'brenna',
   thordak: 'thordak',
-  // Pirate fire-knight legend
+  helga: 'helga',
+  // ── Pirate legends ──
   scourge_faithbearer: 'scourge_faithbearer',
+  john_wayne: 'sky_captain',
+  racalvin: 'pirate_king',
 };
+
+/** Split "First Last …" into firstName + lastName (rest joins last). */
+export function splitHeroName(full: string): { firstName: string; lastName: string } {
+  const parts = full.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return { firstName: full, lastName: '' };
+  if (parts.length === 1) return { firstName: parts[0], lastName: '' };
+  return { firstName: parts[0], lastName: parts.slice(1).join(' ') };
+}
 
 /** Absolute public base for Hero Codex static assets (SPA-safe). */
 export const HERO_CODEX_ASSET_BASE = '/hero-codex/';
@@ -398,7 +420,7 @@ type ProfileCore = {
 const PROFILES: Record<string, ProfileCore> = {
   // ── Crusade ──────────────────────────────────────────────────────────────
   aurion: {
-    lore: "The most powerful human mage in living memory. Marked by Odin at birth during a solar eclipse, golden divine energy constantly radiates from his form. He leads the Crusade's magical corps and is the light against Madra's expanding Waterfall.",
+    lore: "Aurion Solbrand is the most powerful human mage in living memory. Marked by Odin at birth during a solar eclipse, golden divine energy radiates from his form. From Ethereal Falls he leads the Crusade's magical corps against Madra's Cosmic Waterfall.",
     backstory: "Born as golden light erupted from the sky — Odin himself marking the child. By age 12 he could channel pure solar energy. Now at 34, he leads Crusade mages. His power waxes near the Cosmic Waterfall and wanes far from it — a blessing and a leash.",
     quote: '"The dawn always defeats the night."',
     flavorText: 'Where Aurion stands, the dark is measured.',
@@ -428,7 +450,7 @@ const PROFILES: Record<string, ProfileCore> = {
     ],
   },
   sigurd: {
-    lore: 'Supreme Commander of Crusade ground forces. He has never lost a duel, never abandoned a position, never broken a promise. The Unbreakable is the wall between the Legion and the free.',
+    lore: 'Sigurd Ironcrown is Supreme Commander of Crusade ground forces. He has never lost a duel, never abandoned a position, never broken a promise. On the Frostbite Expanse he is the wall between Legion ash and free shores.',
     backstory: "Born to a blacksmith family, at 16 he held a bridge for three days while his village evacuated. He fought Thrax the Savage for seven hours to a draw — they became blood brothers. His stubbornness is strength and tragic flaw.",
     quote: '"State your business."',
     flavorText: 'The line holds because he does.',
@@ -458,7 +480,7 @@ const PROFILES: Record<string, ProfileCore> = {
     ],
   },
   kael: {
-    lore: "The Crusade's intelligence master. No one knows his true origin — some whisper he was born in Legion lands and defected. He encourages all rumors equally. Arrows and secrets are the same weapon in his hands.",
+    lore: "Kael Nightwhisper is the Crusade's intelligence master of Stormbreak Reef. No one knows his true origin — some whisper he was born under Legion banners and defected. Arrows and secrets are the same weapon in his hands.",
     backstory: "Prevented seventeen assassination attempts, mapped three Legion fortresses, and once stole a crown from an orc warlord — replacing it with a Crusade banner. Loyalty absolute; morality flexible.",
     quote: '"You never saw me."',
     flavorText: 'Shadows are just arrows waiting to be loosed.',
@@ -485,7 +507,7 @@ const PROFILES: Record<string, ProfileCore> = {
     relationships: [],
   },
   theron: {
-    lore: 'Brother of Beasts — raised by wolves after being lost in the Wildwood at age 5. He walks between civilization and nature, translating for both. Fenrix is not a pet; he is pack.',
+    lore: 'Theron Greyclaw, Wildkin of Ethereal Falls — raised by wolves after being lost in the canopy at age five. He walks between civilization and nature. His pack-brother Fenrix is not a pet; he is pack.',
     backstory: 'Dire wolves adopted him. He lived as a wolf for twelve years. Through a magical bond he shares thoughts — and pain — with Fenrix. He serves the Crusade as Wildkin, never fully tame.',
     quote: '"The wild needs defenders. Will you run with us?"',
     flavorText: 'In the space between howl and silence, death waits.',
@@ -512,7 +534,7 @@ const PROFILES: Record<string, ProfileCore> = {
     relationships: [],
   },
   thrax: {
-    lore: "Odin's Berserker, born of prophecy: 'The Red Storm shall unite the axes with the swords, or all shall fall to the endless dark.' He is the bridge between barbarian tribes and the Crusade.",
+    lore: "Thrax Bloodmaw, Odin's Berserker of Convergence Nexus, born of prophecy: 'The Red Storm shall unite the axes with the swords, or all shall fall to the endless dark.' He bridges barbarian tribes and Crusade steel.",
     backstory: 'At 18 he defeated every tribal champion to unite the axes with civilized swords. Then he fought Sigurd for seven hours to a draw — blood brothers. Center-sector presence keeps pirate waters honest.',
     quote: '"RAAAAGH! BLOOD FOR ODIN!"',
     flavorText: 'The Red Storm does not negotiate.',
@@ -539,7 +561,7 @@ const PROFILES: Record<string, ProfileCore> = {
     ],
   },
   grok: {
-    lore: 'Spiritcaller of the northern tribes. Grok speaks to ancestors through smoke and storm, guiding barbarian warriors with visions of victory — or doom — before battle.',
+    lore: 'Grok Stormhowl is Spiritcaller of the northern tribes on Frostbite Expanse. He speaks to ancestors through smoke and storm, guiding barbarian warriors with visions of victory — or doom — before battle.',
     backstory: 'Cast out for hearing voices, he returned when those voices correctly predicted a Legion ambush. Now he is Spiritcaller: shaman of Odin’s wild half, posted in the Cathedral Highlands to watch the north.',
     quote: '"The spirits already know your answer."',
     flavorText: 'Smoke rises. Truth follows.',
@@ -567,7 +589,7 @@ const PROFILES: Record<string, ProfileCore> = {
     ],
   },
   kira: {
-    lore: 'The Fang — barbarian Worges who hunts Legion scouts in Crown Peaks. Her forms are wolf and raptor; her loyalty is pack first, Crusade second.',
+    lore: 'Kira Redfang, the Fang — barbarian Worges who hunts Legion scouts in Thornwood Wilds. Her forms are wolf and raptor; her loyalty is pack first, Crusade second.',
     backstory: 'Kira failed every formal drill under Sigurd, then thrived when Theron’s pack methods reached the north. She took the title Fang after breaking a Legion siege by leading beasts through ice tunnels.',
     quote: '"Hunt with me, or be hunted by me."',
     flavorText: 'Snow holds tracks. She holds grudges.',
@@ -595,7 +617,7 @@ const PROFILES: Record<string, ProfileCore> = {
     ],
   },
   vox: {
-    lore: 'Skyhunter of the eastern junkyards — barbarian ranger who maps wreck-fields from cliff nests and griffin perches. If it flies over the E sector, Vox has already named it.',
+    lore: 'Vox Skysplit, Skyhunter of the Ashen Wastes — barbarian ranger who maps wreck-fields from cliff nests and griffin perches. If it flies over the eastern flats, Vox has already named it.',
     backstory: 'Exiled for stealing a tribal longbow to shoot a frost wyrm mid-raid — and hitting it. Racalvin later hired her to chart smuggler lanes. She stayed near the Junkyards because “the sky is honest there.”',
     quote: '"If it has a shadow, I own the moment it lands."',
     flavorText: 'Wrecks below. Truth above.',
@@ -624,7 +646,7 @@ const PROFILES: Record<string, ProfileCore> = {
 
   // ── Legion ───────────────────────────────────────────────────────────────
   gruk: {
-    lore: "Skullcrusher — the Legion's living siege engine. Gruk leads from The Pit, where lava forges and Madra's temples birthed the orc war machine.",
+    lore: "Gruk Blacktusk, Skullcrusher — the Legion's living siege engine. He leads from Haven Shore's shadowed under-camps and the southern approaches, where Madra's war-priests still dream of The Pit.",
     backstory: 'Rose from pit-fights to warchief by crushing every rival’s skull — literally, in three cases. Sigurd calls him a worthy rival; Gruk calls Sigurd “the only wall that bruises back.”',
     quote: '"We Consume All!"',
     flavorText: 'The Pit does not forge cowards.',
@@ -652,7 +674,7 @@ const PROFILES: Record<string, ProfileCore> = {
     ],
   },
   nazgrim: {
-    lore: 'The Profane — orc necromancer of the Drowned Quarter. He binds tides and corpses so the ocean’s dead serve Madra.',
+    lore: 'Nazgrim Voidhand, the Profane — orc necromancer of the Abyssal Trench. He binds tides and corpses so the ocean’s dead serve Madra.',
     backstory: 'Once a living war-shaman, he drowned on purpose in a Madra rite and clawed back with power over the drowned. Undead priests answer his call in flooded temples.',
     quote: '"Death is only the first order I give."',
     flavorText: 'The tide brings soldiers free of pay.',
@@ -680,7 +702,7 @@ const PROFILES: Record<string, ProfileCore> = {
     ],
   },
   vexol: {
-    lore: 'The Silent — orc ranger of the Grinding March. Speaks little; his arrows end arguments. Endgame PvP warzone is his hunting ground.',
+    lore: 'Vexol Quietblade, the Silent — orc ranger of Ember Depths. Speaks little; his arrows end arguments. The endgame caldera is his hunting ground.',
     backstory: 'Tongue cut in a clan betrayal; he answered by putting arrows through every traitor’s eye at night. Now he watches claim flags change hands and sells shots to the highest Madra whisper.',
     quote: '…',
     flavorText: 'Silence is a full sentence.',
@@ -707,7 +729,7 @@ const PROFILES: Record<string, ProfileCore> = {
     ],
   },
   morgash: {
-    lore: 'The Flamecaller — orc mage of volcanic forges. He turns lava into war machines and ash into spells. The Pit’s sky is red because Morgash wills it.',
+    lore: 'Morgash Ashborn, the Flamecaller — orc mage of volcanic forges and Haven Shore’s southern smoke-lines. He turns lava into war machines and ash into spells.',
     backstory: 'Apprenticed under ash-sorcerers until he burned the school down — on purpose — to “graduate.” Gruk trusts him to soften walls; Madra’s temples pulse when he chants.',
     quote: '"Ash is just future shape."',
     flavorText: 'He speaks in sparks.',
@@ -734,7 +756,7 @@ const PROFILES: Record<string, ProfileCore> = {
     ],
   },
   silesh: {
-    lore: 'The Dread — undead mage, Aurion’s ancient rival. Where solar light ends, Silesh begins. She rules dread rites in the Drowned Quarter’s dark.',
+    lore: 'Silesh Dreadmire, the Dread — undead mage and Aurion Solbrand’s ancient rival. Where solar light ends at Ethereal Falls, Silesh begins. She rules dread rites in the Abyssal Trench’s dark.',
     backstory: 'Once living, she sought immortality through Madra and found something colder. Aurion’s light burned her first form; she returned as The Dread, collecting the fear of islands as they sink toward the Waterfall.',
     quote: '"Fear is the only honest prayer."',
     flavorText: 'She curates nightmares.',
@@ -762,7 +784,7 @@ const PROFILES: Record<string, ProfileCore> = {
     ],
   },
   bone: {
-    lore: 'The Collector — undead warrior who stacks trophies of bone and steel on the Grinding March. Every claim war leaves him richer in remains.',
+    lore: 'Bone Rattlebone, the Collector — undead warrior who stacks trophies of bone and steel on Ember Depths. Every claim war leaves him richer in remains.',
     backstory: 'A Crusade captain who died on SE soil and woke laughing. He collects spines of officers from all three factions “for the museum Madra promised.”',
     quote: '"Leave the bones. I catalog them."',
     flavorText: 'War is just inventory.',
@@ -790,7 +812,7 @@ const PROFILES: Record<string, ProfileCore> = {
     ],
   },
   whisper: {
-    lore: 'The Hollow — undead rogue of the Junkyards. She steals names, faces, and last words. Salvagers swear the wind in wrecks is her voice.',
+    lore: 'Whisper Pale, the Hollow — undead rogue of the Ashen Wastes. She steals names, faces, and last words. Salvagers swear the wind in wrecks is her voice.',
     backstory: 'Died in a betrayal mid-heist; returned without the part of her that felt guilt. Works for Legion intel the way Kael works for Crusade — mirror knives across the map.',
     quote: '"Your name is already mine."',
     flavorText: 'Wrecks keep secrets. She keeps better ones.',
@@ -818,7 +840,7 @@ const PROFILES: Record<string, ProfileCore> = {
     ],
   },
   dredge: {
-    lore: 'The Risen — undead cleric who heals Legion lines with stolen life. Madra’s mercy is a contradiction he embodies: unlife that mends unlife.',
+    lore: 'Dredge Gravewake, the Risen — undead cleric of the Abyssal Trench who heals Legion lines with stolen life. Madra’s mercy is a contradiction he embodies: unlife that mends unlife.',
     backstory: 'A battlefield medic who prayed to Odin as he died and was answered by Madra instead. He still wears prayer beads — cracked, inverted. Drowned Quarter patrols rally when his hollow hymns start.',
     quote: '"I mend what the living waste."',
     flavorText: 'His hospital never closes. Patients never leave.',
@@ -847,7 +869,7 @@ const PROFILES: Record<string, ProfileCore> = {
 
   // ── Fabled ───────────────────────────────────────────────────────────────
   aelindor: {
-    lore: 'The Swift — elven warrior of the Cathedral Highlands. Blade-dancer of The Omni’s faithful, friend of Aurion, edge of Fabled war doctrine.',
+    lore: 'Aelindor Swiftwind, the Swift — elven warrior of Frostbite Expanse. Blade-dancer of The Omni’s faithful, friend of Aurion Solbrand, edge of Fabled war doctrine.',
     backstory: 'Trained for centuries in balance-combat: never overcommit, never waste motion. Fought beside Aurion in the early Waterfall wars and still owes him a life — a debt he repays with speed.',
     quote: '"Balance is a blade edge. Stand on it."',
     flavorText: 'His second strike arrives before the first lands.',
@@ -875,7 +897,7 @@ const PROFILES: Record<string, ProfileCore> = {
     ],
   },
   silvaine: {
-    lore: 'Starwhisper — elven mage of Crown Peaks. She reads storms and star-paths where dwarven forge-gates sealed during the Grudge Wars.',
+    lore: 'Silvaine Moonsong, Starwhisper — elven mage of Thornwood Wilds. She reads storms and star-paths where dwarven forge-gates sealed during the Grudge Wars.',
     backstory: 'Sealed herself in a star-observatory for a decade after a failed prophecy. Returned speaking in half-verse, half-equation. Fabled high command trusts her forecasts more than scouts.',
     quote: '"The stars already argued. I only translate."',
     flavorText: 'Frost and starlight share her tongue.',
@@ -903,7 +925,7 @@ const PROFILES: Record<string, ProfileCore> = {
     ],
   },
   lyra: {
-    lore: 'The Weaver — elven cleric of Racalvin’s Domain. She threads diplomacy between faction embassies in Center, weaving peace that never quite holds — and healing that does.',
+    lore: 'Lyra Threadweaver, the Weaver — elven cleric of Convergence Nexus. She threads diplomacy between faction embassies, weaving peace that never quite holds — and healing that does.',
     backstory: 'Named for the loom of fate, not the storm (despite bard confusion with other Lyras). Stationed at Center because The Omni asked for a heart where all ships dock. She and Helga run the quiet hospital behind the Arena.',
     quote: '"Unity is a weave. Pull one thread carefully."',
     flavorText: 'She heals wars one sailor at a time.',
@@ -931,7 +953,7 @@ const PROFILES: Record<string, ProfileCore> = {
     ],
   },
   fenwick: {
-    lore: 'Shadowleaf — elven rogue of the Switchyard. He walks iron beams and smuggler docks, ensuring Fabled interests in the shipbuilding monopoly are… adjusted.',
+    lore: 'Fenwick Darkbough, Shadowleaf — elven rogue of Stormbreak Reef. He walks iron beams and smuggler docks, ensuring Fabled interests in the shipbuilding monopoly are… adjusted.',
     backstory: 'Former tree-warden who learned cities after a Legion fire. Prefers knives to speeches. Brenna pretends not to notice when contracts “update themselves” overnight.',
     quote: '"Leaves fall quiet. So do I."',
     flavorText: 'Industrial night is still a forest to him.',
@@ -959,7 +981,7 @@ const PROFILES: Record<string, ProfileCore> = {
     ],
   },
   durgin: {
-    lore: 'Ironheart — dwarf warrior of Crown Peaks. Guardian of sealed forge-gates from the Grudge Wars. The mountain’s patience given a beard and a shield.',
+    lore: 'Durgin Stonefist, Ironheart — dwarf warrior of Thornwood’s highland forges. Guardian of sealed forge-gates from the Grudge Wars. The mountain’s patience given a beard and a shield.',
     backstory: '47th of a line that sealed the deep forges when frost wyrms came. He still walks the gates each dawn with a hammer that has never been reforged — only resharpened by vows.',
     quote: '"Deeper than stone. Harder than iron. We endure."',
     flavorText: 'The mountain does not move. Neither does he.',
@@ -987,7 +1009,7 @@ const PROFILES: Record<string, ProfileCore> = {
     ],
   },
   brenna: {
-    lore: 'The Forgemaster — dwarf warrior-smith of Switchyard. She turns industrial monopoly into Fabled steel. If it floats and fights, Brenna’s mark may be under the deck.',
+    lore: 'Brenna Forgehammer, the Forgemaster — dwarf warrior-smith of Stormbreak Reef. She turns industrial monopoly into Fabled steel. If it floats and fights, Brenna’s mark may be under the deck.',
     backstory: 'Left the peaks to “teach iron to remember honor” in the dockyards. Runs a forge that supplies Fabled captains and quietly starves Legion orders. Fenwick is her night shift she pretends not to employ.',
     quote: '"Steel tells truth. People lie. I trust steel."',
     flavorText: 'Sparks are her punctuation.',
@@ -1015,7 +1037,7 @@ const PROFILES: Record<string, ProfileCore> = {
     ],
   },
   thordak: {
-    lore: 'Runekeeper — dwarf mage of Cathedral Highlands. He keeps Omni’s forge-secrets that dwarves swear The Omni taught them. Runes are his scripture.',
+    lore: 'Thordak Runebinder, Runekeeper — dwarf mage of Frostbite Expanse. He keeps Omni’s forge-secrets that dwarves swear The Omni taught them. Runes are his scripture.',
     backstory: 'Blind in one eye from a rune backlash that let him “see” magic structures. Advises Durgin on seals and Silvaine on star-scripts that rhyme with stone-scripts.',
     quote: '"Every rune is a law. Break one, learn gravity."',
     flavorText: 'He writes spells that outlive empires.',
@@ -1044,7 +1066,7 @@ const PROFILES: Record<string, ProfileCore> = {
     ],
   },
   helga: {
-    lore: 'The Mender — dwarf cleric of Center. She and Lyra keep Racalvin’s Domain from drowning in blood after Arena bouts and dock brawls. Omni’s mercy with dwarven practicality.',
+    lore: 'Helga Hearthhand, the Mender — dwarf cleric of Convergence Nexus. She and Lyra Threadweaver keep the Domain from drowning in blood after Arena bouts and dock brawls. Omni’s mercy with dwarven practicality.',
     backstory: 'Battlefield surgeon of three Grudge Wars. Retired to Center because “idiots cluster where ships dock.” Still carries a war-hammer “for setting bones and ending arguments.”',
     quote: '"Hold still. Complaining is optional; bleeding is not."',
     flavorText: 'She heals first. Lectures second.',
@@ -1075,7 +1097,7 @@ const PROFILES: Record<string, ProfileCore> = {
 // ── Racalvin (legend / pirate king — not in HERO_ROSTER but canonical) ───────
 
 const RACALVIN_PROFILE: ProfileCore = {
-  lore: "Racalvin the Pirate King rules the open waters of Center — Racalvin's Domain. Neutral docks, faction embassies, the Arena, and merchant guilds answer to his flag more than any god. The Grudge Ocean Line is his legend.",
+  lore: "Racalvin Tidebreaker, the Pirate King, rules Convergence Nexus — neutral docks, faction embassies, the Arena, and merchant guilds answer to his flag more than any god. The Grudge Ocean Line is his legend.",
   backstory: "Bastard of a barbarian chieftain and a merchant's daughter, cast out at birth. Mutinied young, commanded fleets by twenty. He keeps the three factions from claiming Center outright — because chaos is good for pirates, and pirates are good for trade.",
   quote: '"The sea does not bow. Neither do I."',
   flavorText: 'Crowns are taken. Thrones are stolen. The sea is earned.',
@@ -1108,7 +1130,7 @@ const RACALVIN_PROFILE: ProfileCore = {
 
 /** Cpt. John Wayne — Sky Captain (2D game mode secret hero / DCQ sky_captain art) */
 const JOHN_WAYNE_PROFILE: ProfileCore = {
-  lore: "Cpt. John Wayne, the Sky Captain, commands from the clouds as readily as from a deck. Where Racalvin rules the waterline, Wayne owns the air lanes above the Grudge Ocean Line — boarding ships from above with grit, guile, and a captain's coat that never bows to a faction color.",
+  lore: "Captain John Wayne, the Sky Captain, commands from the clouds as readily as from a deck. Where Racalvin Tidebreaker rules the waterline, Wayne owns the air lanes above the Grudge Ocean Line — grit, guile, and a captain's coat that never bows to a faction color.",
   backstory: "Born human, raised on war-balloons and storm skiffs. He stole his first airship from a Legion forge-yard and painted Racalvin's mark on the hull as a joke — the Pirate King kept him. In the 2D warlord modes he is a secret legendary: the man who proves the ground is only for those who've given up dreaming.",
   quote: '"The ground is for those who\'ve given up dreaming."',
   flavorText: 'Sky lanes remember his shadow.',
@@ -1139,7 +1161,7 @@ const JOHN_WAYNE_PROFILE: ProfileCore = {
 
 /** Scourge FaithBearer — Flame of Judgement (3v3 / GrudgeBox fire-knight art) */
 const SCOURGE_FAITHBEARER_PROFILE: ProfileCore = {
-  lore: "Scourge FaithBearer is the Flame of Judgement — a pirate legend who walks with fire as if it were holy law. In Grudge Studio's 3v3 tactical pits he is the fire-knight of the free decks: not Crusade gold, not Legion ash, but a third flame that judges all who board without leave.",
+  lore: "Scourge Faithbearer is the Flame of Judgement — a free-port fire-knight who walks with flame as if it were holy law. Not Crusade gold, not Legion ash: a third fire that judges all who board without leave. His temple-forged plate and judgement greatsword mark the Arena and Free Port decks alike.",
   backstory: "Once a temple warrior, he cast the beads into a forge when priests sold free ports to faction HQs. Racalvin offered him a deck; Scourge offered flame. Opponents in the arena know the orange glow means the bout is already half-lost. Canonical with Racalvin and Cpt. John Wayne as pirate legends of the Domain.",
   quote: '"Judgement burns. Mercy is ash."',
   flavorText: 'His shadow is heat.',
@@ -1180,9 +1202,15 @@ function buildFromRoster(h: HeroDefinition): HeroCodexEntry {
     h.raceId === 'barbarian'
       ? 'Barbarian'
       : RACES[h.raceId as RaceId]?.name ?? h.raceId;
+  const names = splitHeroName(h.name);
+  const pKey =
+    PORTRAIT_KEY_OVERRIDES[h.id] ??
+    `${h.raceId === 'barbarian' ? 'barbarian' : h.raceId}_${classArtKey(h.classId)}`;
   return {
     id: h.id,
     name: h.name,
+    firstName: names.firstName,
+    lastName: names.lastName,
     title: h.title,
     faction: factionDisplay(h.factionId),
     factionId: h.factionId,
@@ -1195,13 +1223,8 @@ function buildFromRoster(h: HeroDefinition): HeroCodexEntry {
     sectorSpawn: h.sectorSpawn,
     sectorName: sectorName(h.sectorSpawn),
     isQuestGiver: h.isQuestGiver,
-    portraitKey:
-      PORTRAIT_KEY_OVERRIDES[h.id] ??
-      `${h.raceId === 'barbarian' ? 'barbarian' : h.raceId}_${classArtKey(h.classId)}`,
-    portrait: portraitByKey(
-      PORTRAIT_KEY_OVERRIDES[h.id] ??
-        `${h.raceId === 'barbarian' ? 'barbarian' : h.raceId}_${classArtKey(h.classId)}`,
-    ),
+    portraitKey: pKey,
+    portrait: portraitByKey(pKey),
     sprite: spriteFile(h.raceId, h.classId),
     rarity: rarityFromLevel(h.level),
     lore: p.lore,
@@ -1247,9 +1270,12 @@ function buildLegend(opts: {
     opts.raceId === 'barbarian'
       ? 'Barbarian'
       : RACES[opts.raceId as RaceId]?.name ?? opts.raceId;
+  const names = splitHeroName(opts.name);
   return {
     id: opts.id,
     name: opts.name,
+    firstName: names.firstName,
+    lastName: names.lastName,
     title: opts.title,
     faction: 'Pirate',
     factionId: 'pirate',
@@ -1290,7 +1316,7 @@ function buildLegend(opts: {
 function buildRacalvin(): HeroCodexEntry {
   return buildLegend({
     id: 'racalvin',
-    name: 'Racalvin',
+    name: 'Racalvin Tidebreaker',
     title: 'The Pirate King',
     profile: RACALVIN_PROFILE,
     raceId: 'barbarian',
@@ -1307,19 +1333,19 @@ function buildRacalvin(): HeroCodexEntry {
       { name: 'Broadside', icon: 'split', description: 'Multi-shot volley', manaCost: 25 },
       { name: 'Storm of the Line', icon: 'crown', description: 'Ultimate sea-storm devastation', manaCost: 70 },
     ],
-    extraTraits: [{ name: 'Pirate King', effect: 'Center Domain authority; neutral dock law' }],
+    extraTraits: [{ name: 'Pirate King', effect: 'Convergence Nexus authority; neutral dock law' }],
   });
 }
 
 function buildJohnWayne(): HeroCodexEntry {
   return buildLegend({
     id: 'john_wayne',
-    name: 'Cpt. John Wayne',
+    name: 'John Wayne',
     title: 'The Sky Captain',
     profile: JOHN_WAYNE_PROFILE,
     raceId: 'human',
     classId: 'warrior',
-    // DCQ / 2D mode art: sky_captain.png (also cpt_john_wayne.png)
+    // Single portrait: sky_captain.png only (no john_wayne/cpt duplicates on page)
     portraitKey: 'sky_captain',
     sprite: spriteFile('human', 'warrior'),
     level: 58,
@@ -1339,17 +1365,17 @@ function buildJohnWayne(): HeroCodexEntry {
 function buildScourgeFaithbearer(): HeroCodexEntry {
   return buildLegend({
     id: 'scourge_faithbearer',
-    name: 'Scourge FaithBearer',
+    name: 'Scourge Faithbearer',
     title: 'Flame of Judgement',
     profile: SCOURGE_FAITHBEARER_PROFILE,
     raceId: 'human',
     classId: 'warrior',
-    // 3v3 / GrudgeBox fire-knight art → scourge_faithbearer.png
+    // Unique art: MouseWithoutBorders/scourgfaith.png → scourge_faithbearer.png
     portraitKey: 'scourge_faithbearer',
     sprite: spriteFile('human', 'warrior'),
     level: 58,
     weapons: 'Judgement greatsword, temple-forged plate',
-    loadoutShort: 'FaithBearer',
+    loadoutShort: 'Faithbearer',
     primary: 'STR',
     abilities: [
       { name: 'Flame Guard', icon: 'shield', description: 'Fire ward; reflect melee heat', manaCost: 25 },
@@ -1383,12 +1409,22 @@ export function getHeroCodexByFaction(faction: HeroCodexEntry['faction']): HeroC
 /** JSON-serializable export for static Codex page / ObjectStore */
 export function exportHeroCodexJson(includeLegends = true): unknown {
   const list = includeLegends ? HERO_CODEX_WITH_LEGENDS : CANONICAL_HERO_CODEX;
+  // Hard guarantee: no two heroes share the same portrait URL
+  const seen = new Set<string>();
+  for (const h of list) {
+    if (seen.has(h.portrait)) {
+      console.warn(`[heroCodex] duplicate portrait URL for ${h.id}: ${h.portrait}`);
+    }
+    seen.add(h.portrait);
+  }
   return {
-    version: '2.1.0',
-    updated: '2026-07-18',
+    version: '2.3.0',
+    updated: new Date().toISOString().slice(0, 10),
     assetBase: HERO_CODEX_ASSET_BASE,
     canonicalSource: 'shared/definitions/lore.ts HERO_ROSTER + heroCodex.ts',
     total: list.length,
+    naming: 'First Last on all roster + legend heroes',
+    uniquePortraits: true,
     heroes: list,
   };
 }

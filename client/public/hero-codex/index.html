@@ -4,9 +4,9 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Hero Codex | Grudge Warlords</title>
-  <meta name="description" content="Canonical Hero Codex of Grudge Warlords. 24 roster heroes across Crusade, Legion, and Fabled — plus Racalvin the Pirate King. Full lore, dialogue, quests, and combat profiles." />
+  <meta name="description" content="Canonical Hero Codex of Grudge Warlords. 24 roster heroes (First Last names) across Crusade, Legion, and Fabled — plus pirate legends. Unique portraits, lore, dialogue, and quests." />
   <meta property="og:title" content="Hero Codex | Grudge Warlords" />
-  <meta property="og:description" content="Canonical roster: Aurion, Sigurd, Gruk, Aelindor, and the full Warlords cast." />
+  <meta property="og:description" content="Canonical roster: Aurion Solbrand, Sigurd Ironcrown, Scourge Faithbearer, and the full Warlords cast." />
   <meta property="og:type" content="website" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Jost:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
@@ -81,6 +81,8 @@
     }
     .card-name-area { position: absolute; bottom: 0; left: 0; right: 0; padding: 12px; }
     .card-name { font-family: 'Cinzel', serif; font-size: 13px; font-weight: 700; color: #fff; text-shadow: 0 2px 4px rgba(0,0,0,0.8); }
+    .card-name-first { display: block; }
+    .card-name-last { display: block; font-size: 11px; font-weight: 600; opacity: 0.92; letter-spacing: 0.04em; }
     .card-title { font-size: 10px; font-style: italic; }
 
     .card-body { padding: 10px 12px; background: rgba(0,0,0,0.3); }
@@ -389,20 +391,10 @@ function isPuterPackKey(key) {
 }
 
 function portraitSrc(hero) {
-  const key =
-    hero.portraitKey ||
-    portraitKeyFromPath(hero.portrait) ||
-    null;
-  // Named heroes (morgash, lyra, dredge, helga, brenna, scourge, …) → local unique PNG
-  if (key && !isPuterPackKey(key)) {
-    return absUrl('hero-portraits/' + key + '.png');
-  }
-  // Race/class pack → Puter HD first
-  if (key && isPuterPackKey(key)) {
-    const puter = puterPortraitUrl(key);
-    if (puter) return puter;
-  }
+  // Always prefer SSOT local portrait path — each hero has a unique file (no duplicates).
+  // Puter CDN is fallback only when local 404s (see onerror chain).
   if (hero.portrait) return absUrl(hero.portrait);
+  const key = hero.portraitKey || portraitKeyFromPath(hero.portrait) || null;
   if (key) return absUrl('hero-portraits/' + key + '.png');
   return absUrl('hero-portraits/human_warrior.png');
 }
@@ -470,7 +462,12 @@ function renderGrid() {
         <div class="card-sector-tag" title="${hero.sectorName || ''}">${hero.sectorName || hero.sectorSpawn || ''}</div>
         <div class="card-faction-tag" style="color:${borderColor};border:1px solid ${borderColor}40">${hero.faction}</div>
         <div class="card-name-area">
-          <div class="card-name">${hero.name}</div>
+          <div class="card-name">
+            <span class="card-name-first">${hero.firstName || hero.name.split(/\s+/)[0]}</span>
+            ${hero.lastName || hero.name.split(/\s+/).slice(1).join(' ')
+              ? `<span class="card-name-last">${hero.lastName || hero.name.split(/\s+/).slice(1).join(' ')}</span>`
+              : ''}
+          </div>
           <div class="card-title" style="color:${borderColor}">${hero.title}</div>
         </div>
       </div>
@@ -647,6 +644,7 @@ function renderModal() {
         </div>
         <div class="modal-name-area">
           <div class="modal-name">${hero.name}</div>
+          <div style="font-size:11px;color:#aaa;margin-top:2px">${hero.firstName || ''}${hero.lastName ? ' · ' + hero.lastName : ''}</div>
           <div class="modal-title-text" style="color:${borderColor}">${hero.title}</div>
           <div class="modal-race-info">
             <span style="color:#ccc">${hero.race}</span>
@@ -680,7 +678,26 @@ fetch(CODEX_URL)
     return r.json();
   })
   .then(data => {
-    HEROES = data.heroes || [];
+    const raw = data.heroes || [];
+    // Enforce unique portrait URLs on the page (first hero wins if data ever collides)
+    const seenPortrait = new Set();
+    HEROES = raw.map((h) => {
+      let src = h.portrait || '';
+      if (seenPortrait.has(src) && h.portraitKey) {
+        src = ASSET_BASE + 'hero-portraits/' + h.portraitKey + '.png';
+      }
+      if (seenPortrait.has(src)) {
+        console.warn('[Hero Codex] duplicate portrait for', h.id, src);
+      }
+      seenPortrait.add(src);
+      const parts = (h.name || '').trim().split(/\s+/);
+      return {
+        ...h,
+        portrait: src,
+        firstName: h.firstName || parts[0] || h.name,
+        lastName: h.lastName || parts.slice(1).join(' ') || '',
+      };
+    });
     document.getElementById('loading').style.display = 'none';
     applyFilters();
   })

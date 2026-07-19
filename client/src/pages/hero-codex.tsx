@@ -1,8 +1,17 @@
-import { useAuthGuard } from '@/hooks/use-auth-guard';
-
+/**
+ * Hero Codex — public static codex (no login required).
+ * Serves client/public/hero-codex/index.html + heroes-canonical.json.
+ */
 export default function HeroCodexPage() {
-  const authReady = useAuthGuard();
-  if (!authReady) return null;
+  // Prefer hard navigation so static assets resolve under /hero-codex/
+  // (SPA iframe can 404 portrait keys before public files ship).
+  if (typeof window !== 'undefined') {
+    const path = window.location.pathname.replace(/\/$/, '');
+    if (path === '/hero-codex') {
+      window.location.replace('/hero-codex/index.html');
+      return null;
+    }
+  }
 
   return (
     <iframe
