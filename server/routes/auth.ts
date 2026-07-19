@@ -30,6 +30,11 @@ import crypto from "node:crypto";
 import { storage } from "../storage";
 import { buildScopedProfile } from "../lib/scopedProfile";
 import { isFleetAllowedReturnUrl, resolveFleetReturnUrl } from "@shared/fleet/authReturn";
+import {
+  resolveStudioRole,
+  isStudioAdminRole,
+  type StudioRole,
+} from "@shared/fleet/adminAllowlist";
 
 const JWT_SECRET = process.env.SESSION_SECRET || process.env.JWT_SECRET || "grudge-dev-secret";
 /**
@@ -147,9 +152,40 @@ function signToken(payload: {
   userId: string;
   grudgeId: string;
   username: string;
+  role?: StudioRole;
+  isAdmin?: boolean;
+  email?: string | null;
 }): string {
-  return jwt.sign(payload, JWT_SECRET, {
-    expiresIn: JWT_EXPIRES as jwt.SignOptions["expiresIn"],
+  const role = payload.role ?? "player";
+  return jwt.sign(
+    {
+      ...payload,
+      role,
+      isAdmin: payload.isAdmin === true || isStudioAdminRole(role),
+    },
+    JWT_SECRET,
+    {
+      expiresIn: JWT_EXPIRES as jwt.SignOptions["expiresIn"],
+    },
+  );
+}
+
+/** Resolve admin/master vs player for JWT + /me (TOP ADMIN = grudachain / grudgedev@gmail.com). */
+function resolveUserStudioRole(opts: {
+  user: { username?: string | null; email?: string | null; grudgeId?: string | null };
+  account?: { displayName?: string | null; grudgeId?: string | null } | null;
+  puterUsername?: string | null;
+  jwtRole?: string | null;
+  jwtIsAdmin?: boolean | null;
+}): StudioRole {
+  return resolveStudioRole({
+    email: opts.user.email,
+    username: opts.user.username,
+    displayName: opts.account?.displayName,
+    puterUsername: opts.puterUsername,
+    grudgeId: opts.user.grudgeId || opts.account?.grudgeId,
+    jwtRole: opts.jwtRole,
+    jwtIsAdmin: opts.jwtIsAdmin,
   });
 }
 
@@ -168,19 +204,29 @@ function detectProviders(username: string): string[] {
 }
 
 function buildAuthResponse(
-  user: { id: string; username: string; grudgeId: string | null },
+  user: { id: string; username: string; grudgeId: string | null; email?: string | null },
   account: { id: string; walletAddress: string | null; grudgeId: string | null; displayName?: string | null } | null,
+  puterUsername?: string | null,
 ) {
   const grudgeId = user.grudgeId || account?.grudgeId || "";
   const providers = detectProviders(user.username);
   // Display name: strip provider prefix for display
   const displayName =
     (account as any)?.displayName ||
+    puterUsername ||
     (user.username.includes(":") ? user.username.split(":").slice(1).join(":") : user.username);
+  const role = resolveUserStudioRole({
+    user,
+    account,
+    puterUsername: puterUsername || displayName,
+  });
   const token = signToken({
     userId: user.id,
     grudgeId,
     username: displayName,
+    email: user.email || null,
+    role,
+    isAdmin: isStudioAdminRole(role),
   });
 
   return {
@@ -190,6 +236,8 @@ function buildAuthResponse(
     grudgeId,
     username: displayName,
     userId: user.id,
+    role,
+    isAdmin: isStudioAdminRole(role),
     user: {
       id: user.id,
       grudgeId,
@@ -197,6 +245,9 @@ function buildAuthResponse(
       displayName,
       walletAddress: account?.walletAddress || null,
       providers,
+      role,
+      isAdmin: isStudioAdminRole(role),
+      email: user.email || null,
     },
   };
 }
@@ -375,6 +426,11 @@ function buildSsoUserPayload(
     !claimed &&
     (opts.isNew || isAutoUsername(user.username));
 
+  const role = resolveUserStudioRole({
+    user,
+    account,
+    puterUsername: opts.puterUsername,
+  });
   return {
     id: user.id,
     username: displayName,
@@ -382,7 +438,8 @@ function buildSsoUserPayload(
     displayName,
     avatarUrl: account?.avatarUrl || null,
     gbuxBalance: account?.gbuxBalance ?? 0,
-    role: "player",
+    role,
+    isAdmin: isStudioAdminRole(role),
     needsProfile,
     isNew: opts.isNew,
     email: user.email || null,
@@ -589,10 +646,18 @@ export function registerAuthRoutes(app: Express) {
           ? user.username.split(":").slice(1).join(":")
           : user.username);
       const grudgeId = user.grudgeId || account?.grudgeId || payload.grudgeId || "";
+      const role = resolveUserStudioRole({
+        user,
+        account,
+        puterUsername: displayName,
+      });
       const ssoToken = signToken({
         userId: user.id,
         grudgeId,
         username: displayName,
+        email: user.email || null,
+        role,
+        isAdmin: isStudioAdminRole(role),
       });
       // Dual handoff: full session + short launch for bridge-based satellites
       let launchToken = "";
@@ -692,7 +757,7 @@ export function registerAuthRoutes(app: Express) {
         ? await resolvePuterGrudgeAccount(puterUuid, username, email)
         : await resolvePuterGrudgeAccount(puterUuid, puterUsername, email);
 
-      const response = buildAuthResponse({ ...user, username }, account);
+      const response = buildAuthResponse(user, account, puterUsername || username);
       if (!isGuest) setSessionCookie(res, response.token);
       res.json({ ...response, isNew });
     } catch (e: any) {
@@ -715,10 +780,7 @@ export function registerAuthRoutes(app: Express) {
       }
 
       const { user, account, isNew } = await resolvePuterGrudgeAccount(puterId, puterUsername, email);
-      const response = buildAuthResponse(
-        { id: user.id, username: user.username, grudgeId: user.grudgeId },
-        account,
-      );
+      const response = buildAuthResponse(user, account, puterUsername);
       setSessionCookie(res, response.token);
       res.json({
         ...response,
@@ -1045,10 +1107,18 @@ export function registerAuthRoutes(app: Express) {
       const displayName =
         account?.displayName ||
         (user.username.includes(":") ? user.username.split(":").slice(1).join(":") : user.username);
+      const role = resolveUserStudioRole({
+        user,
+        account,
+        puterUsername: displayName,
+      });
       const sessionToken = signToken({
         userId: user.id,
         grudgeId: user.grudgeId || account?.grudgeId || "",
         username: displayName,
+        email: user.email || null,
+        role,
+        isAdmin: isStudioAdminRole(role),
       });
       setSessionCookie(res, sessionToken);
 
@@ -1057,6 +1127,8 @@ export function registerAuthRoutes(app: Express) {
         username: displayName,
         displayName,
         email: user.email || null,
+        role,
+        isAdmin: isStudioAdminRole(role),
         token: sessionToken,
         sessionToken,
       });
@@ -1459,10 +1531,18 @@ export function registerAuthRoutes(app: Express) {
       }
 
       const grudgeId = user.grudgeId || account?.grudgeId || "";
+      const role = resolveUserStudioRole({
+        user,
+        account,
+        puterUsername: displayName,
+      });
       const ssoToken = signToken({
         userId: user.id,
         grudgeId,
         username: displayName,
+        email: user.email || null,
+        role,
+        isAdmin: isStudioAdminRole(role),
       });
       setSessionCookie(res, ssoToken);
 
@@ -1509,13 +1589,23 @@ export function registerAuthRoutes(app: Express) {
         isAutoUsername(user.username) &&
         !rateLimitMap.has(`${PROFILE_COMPLETE_KEY}${user.id}`);
 
+      // Prefer email from DB; fall back to JWT claims (Puter SSO may mint with email)
+      const email = user.email || payload.email || null;
+      const role = resolveUserStudioRole({
+        user: { ...user, email },
+        account,
+        puterUsername: payload.username || account?.displayName,
+        jwtRole: payload.role,
+        jwtIsAdmin: payload.isAdmin,
+      });
+
       res.json({
         success: true,
         id: user.id,
         grudgeId: user.grudgeId || account?.grudgeId || "",
         username: displayName,
         displayName,
-        email: user.email || null,
+        email,
         walletAddress: account?.walletAddress || null,
         gbuxBalance: account?.gbuxBalance || 0,
         accountXp: account?.accountXp || 0,
@@ -1523,7 +1613,8 @@ export function registerAuthRoutes(app: Express) {
         avatarUrl: account?.avatarUrl || null,
         providers,
         needsProfile,
-        role: "player",
+        role,
+        isAdmin: isStudioAdminRole(role),
       });
     } catch {
       res.status(401).json({ success: false, error: "Invalid or expired token" });

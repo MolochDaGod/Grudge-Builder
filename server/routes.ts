@@ -27,6 +27,7 @@ import { detectSpriteType, SPRITE_TYPES } from "@shared/definitions/spriteTypes"
 import { getClassStartingGear } from "@shared/definitions/tier0Items";
 import { equipToPanelSlot } from "@shared/inventory/equipment";
 import { panelEquipmentToModel3d, type PanelEquipmentSlot } from "@shared/fleet";
+import { resolveStudioRole, isStudioAdminRole } from "@shared/fleet/adminAllowlist";
 import { resolveHeroIdentity } from "@shared/characterIdentity";
 import {
   applyCharacterProgressUpdate,
@@ -114,8 +115,22 @@ function isAdmin(req: Request): boolean {
   }
 
   try {
-    const payload = jwt.verify(token, JWT_SECRET) as AuthPayload;
-    return payload.isAdmin === true;
+    const payload = jwt.verify(token, JWT_SECRET) as AuthPayload & {
+      role?: string;
+      email?: string;
+      username?: string;
+      grudgeId?: string;
+    };
+    if (payload.isAdmin === true) return true;
+    // Allowlist: TOP ADMIN (grudachain / grudgedev@gmail.com) even on older JWTs without isAdmin
+    const role = resolveStudioRole({
+      email: payload.email,
+      username: payload.username,
+      grudgeId: payload.grudgeId,
+      jwtRole: payload.role,
+      jwtIsAdmin: payload.isAdmin,
+    });
+    return isStudioAdminRole(role);
   } catch {
     return false;
   }
