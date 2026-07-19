@@ -61,6 +61,12 @@ export type { HarvestKind, GrowthPhase } from './harvest/RegenerativeHarvest';
 // Engine
 export { Island3DEngine } from './engine/Island3DEngine';
 export type { Island3DEngineConfig, Island3DMode } from './engine/Island3DEngine';
+export {
+  resolvePlaySystems,
+  resolvePlayTickRates,
+  describePlaySystems,
+} from './engine/playSystems';
+export type { PlaySystemsFlags, PlayTickRates, PlayMode } from './engine/playSystems';
 
 // Performance — distance budget, instancing, shared DRACO/Meshopt loaders
 export { RenderBudgetSystem, horizontalDistance } from './render/RenderBudgetSystem';

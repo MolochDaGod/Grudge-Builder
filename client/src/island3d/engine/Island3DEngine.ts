@@ -89,6 +89,13 @@ import { PostProcessing, type QualityPreset } from '../render/PostProcessing';
 import { RenderBudgetSystem } from '../render/RenderBudgetSystem';
 import { InstancedPropPool } from '../render/InstancedPropPool';
 import { configureRenderer } from '@/lib/modelLoader';
+import {
+  resolvePlaySystems,
+  resolvePlayTickRates,
+  describePlaySystems,
+  type PlaySystemsFlags,
+  type PlayTickRates,
+} from './playSystems';
 import { DayNightCycle, type DayNightConfig } from '../environment/DayNightCycle';
 import { getTideHeight, DAY_NIGHT_DEFAULTS } from '@shared/definitions/gameClock';
 import { CharacterController3D, type CharacterController3DConfig, type PhysicsCallbacks } from '../player/CharacterController3D';
@@ -479,8 +486,20 @@ export class Island3DEngine {
   /** Shared InstancedMesh pools for static world props */
   public propPool: InstancedPropPool | null = null;
 
+  /**
+   * Canonical feature gates for this engine instance (by mode).
+   * Prevents lobby + zone + home systems from all fighting each other.
+   * Re-resolved in init() if mode is remapped (e.g. zone+sector=lobby → lobby).
+   */
+  public playSystems: PlaySystemsFlags;
+  public playTicks: PlayTickRates;
+  private loopFrame = 0;
+
   constructor(private config: Island3DEngineConfig) {
     const quality = config.quality || 'low';
+    const mode = config.mode || 'procedural';
+    this.playSystems = resolvePlaySystems(mode);
+    this.playTicks = resolvePlayTickRates(mode);
     this.renderBudget = new RenderBudgetSystem(quality);
 
     // Renderer — budget caps pixel ratio + shadow map type
@@ -635,6 +654,14 @@ export class Island3DEngine {
       if (!this.config.lobbyMapId) this.config.lobbyMapId = 'pirate-islands';
     }
 
+    // Lock systems to the *effective* mode (after lobby remap)
+    this.config.mode = mode;
+    this.playSystems = resolvePlaySystems(mode);
+    this.playTicks = resolvePlayTickRates(mode);
+    console.log(
+      `[Island3D] init mode=${mode} · systems: ${describePlaySystems(this.playSystems)}`,
+    );
+
     if (mode === 'lobby') {
       await this.initLobby();
     } else if (mode === 'zone') {
@@ -643,8 +670,8 @@ export class Island3DEngine {
       await this.initProcedural();
     }
 
-    // Multiplayer (if configured) — works with both modes
-    if (this.config.multiplayer) {
+    // Multiplayer only when this mode wants it
+    if (this.playSystems.multiplayer && this.config.multiplayer) {
       this.multiplayer = new MultiplayerSync(this.config.multiplayer, this.scene);
       this.multiplayer.connect();
     }
@@ -748,49 +775,56 @@ export class Island3DEngine {
       this.config.captainId ?? null,
     );
 
-    // Building + fish life
-    this.building = new BuildingSystem(this.scene, this.camera);
-    this.creatures = new CreatureManager(this.scene, LOBBY_WATER_LEVEL, this.config.seed.length + 7);
-    this.creatures.setGroundSampler(sampleGround);
-    this.creatures.spawnFish(14, maxDim * 0.9);
+    // Fish only (no building system / land wildlife swarm on lobby)
+    if (this.playSystems.creatures) {
+      this.creatures = new CreatureManager(this.scene, LOBBY_WATER_LEVEL, this.config.seed.length + 7);
+      this.creatures.setGroundSampler(sampleGround);
+      this.creatures.spawnFish(14, maxDim * 0.9);
+    }
 
-    // Center hub — vendors, harvest ring, PvE
-    this.lobbyPlayZone = await createLobbyPlayZone(
-      this.scene,
-      this.lobbyResult,
-      sampleGround,
-      this.creatures,
-      this.config.seed,
-    );
-    this.harvestZones = this.lobbyPlayZone.harvestZones;
-    this.trees.push(...this.lobbyPlayZone.trees);
-    this.rocks.push(...this.lobbyPlayZone.rocks);
-    this.crystals.push(...this.lobbyPlayZone.crystals);
-    this.hemps.push(...this.lobbyPlayZone.hemps);
-
-    // Evil mountain triad — seeded dungeon event on a northern island
-    await this.createLobbyMountainDungeon();
-
-    // 6 race faction islands on map borders (4 docks · 5 buildings · heroes · boat)
-    try {
-      this.factionIslands = await createFactionLobbyIslands({
-        scene: this.scene,
-        lobbyCenter: {
-          x: this.lobbyResult.center.x,
-          z: this.lobbyResult.center.z,
-        },
-        lobbySize: {
-          x: this.lobbyResult.size.x,
-          z: this.lobbyResult.size.z,
-        },
-      });
-      console.log(
-        `[Island3D] Faction islands ×${this.factionIslands.islands.length} ` +
-          `(captain+mount · traveler · blacksmith · benches · siege · dock boat)`,
+    // Center hub — vendors, harvest ring, PvE (single hub system — not home-island dual)
+    if (this.playSystems.lobbyPlayZone) {
+      this.lobbyPlayZone = await createLobbyPlayZone(
+        this.scene,
+        this.lobbyResult,
+        sampleGround,
+        this.creatures,
+        this.config.seed,
       );
-    } catch (err) {
-      console.warn('[Island3D] Faction islands skipped', err);
-      this.factionIslands = null;
+      this.harvestZones = this.lobbyPlayZone.harvestZones;
+      this.trees.push(...this.lobbyPlayZone.trees);
+      this.rocks.push(...this.lobbyPlayZone.rocks);
+      this.crystals.push(...this.lobbyPlayZone.crystals);
+      this.hemps.push(...this.lobbyPlayZone.hemps);
+    }
+
+    // Evil mountain triad — lobby dungeon event only
+    if (this.playSystems.mountainTriad) {
+      await this.createLobbyMountainDungeon();
+    }
+
+    // 6 race faction islands on map borders
+    if (this.playSystems.factionIslands) {
+      try {
+        this.factionIslands = await createFactionLobbyIslands({
+          scene: this.scene,
+          lobbyCenter: {
+            x: this.lobbyResult.center.x,
+            z: this.lobbyResult.center.z,
+          },
+          lobbySize: {
+            x: this.lobbyResult.size.x,
+            z: this.lobbyResult.size.z,
+          },
+        });
+        console.log(
+          `[Island3D] Faction islands ×${this.factionIslands.islands.length} ` +
+            `(captain+mount · traveler · blacksmith · benches · siege · dock boat)`,
+        );
+      } catch (err) {
+        console.warn('[Island3D] Faction islands skipped', err);
+        this.factionIslands = null;
+      }
     }
 
     // Hot-reload production .gmap (publish API / static package) → overlays + HUD
@@ -1097,28 +1131,34 @@ export class Island3DEngine {
     }
     progress(78);
 
-    // 9. Ally manager (+ hand to camp unit system for claim-flag AI)
-    this.allyManager = new AllyManager(this.scene, this.navMesh, this.terrain.terrainMesh);
-    this.campUnits?.setAllyManager(this.allyManager);
-    this.ensureCampSystems(
-      PROCEDURAL_WATER_LEVEL,
-      (wx, wz) => getTerrainHeightAt(this.terrain!.terrainMesh, wx, wz),
-    );
+    // 9. Ally + camp systems (home island only — skip when flags off)
+    if (this.playSystems.allies) {
+      this.allyManager = new AllyManager(this.scene, this.navMesh, this.terrain.terrainMesh);
+    }
+    if (this.playSystems.camps) {
+      this.ensureCampSystems(
+        PROCEDURAL_WATER_LEVEL,
+        (wx, wz) => getTerrainHeightAt(this.terrain!.terrainMesh, wx, wz),
+      );
+      this.campUnits?.setAllyManager(this.allyManager);
+    }
 
     // 10. Building system — camp plateau constraints + board snap
-    this.building = new BuildingSystem(this.scene, this.camera);
-    this.building.setBuildConstraints({
-      terrainMesh: this.terrain.terrainMesh,
-      minHeightM: HOME_ISLAND_BUILDABLE_MIN_HEIGHT_M,
-      maxHeightM: Math.min(HOME_ISLAND_BUILDABLE_MAX_HEIGHT_M, foundation.maxElevationM * 0.75),
-      maxSlopeRad: HOME_ISLAND_BUILDABLE_MAX_SLOPE_RAD,
-      campCenter: campWorld,
-      campRadiusM: foundation.campClearRadiusM ?? HOME_ISLAND_CAMP_CLEAR_RADIUS_M,
-      // Docks: deck at waterLevel + 0.2 (see DOCK_DECK_Y_OFFSET / BuildAssetDef.placeYOffset)
-      waterLevel: noOcean ? PROCEDURAL_WATER_LEVEL : PROCEDURAL_WATER_LEVEL,
-      sampleNormal: (x, z) => getTerrainNormalAt(this.terrain!.terrainMesh, x, z),
-      sampleHeight: (x, z) => getTerrainHeightAt(this.terrain!.terrainMesh, x, z),
-    });
+    if (this.playSystems.building) {
+      this.building = new BuildingSystem(this.scene, this.camera);
+      this.building.setBuildConstraints({
+        terrainMesh: this.terrain.terrainMesh,
+        minHeightM: HOME_ISLAND_BUILDABLE_MIN_HEIGHT_M,
+        maxHeightM: Math.min(HOME_ISLAND_BUILDABLE_MAX_HEIGHT_M, foundation.maxElevationM * 0.75),
+        maxSlopeRad: HOME_ISLAND_BUILDABLE_MAX_SLOPE_RAD,
+        campCenter: campWorld,
+        campRadiusM: foundation.campClearRadiusM ?? HOME_ISLAND_CAMP_CLEAR_RADIUS_M,
+        // Docks: deck at waterLevel + 0.2 (see DOCK_DECK_Y_OFFSET / BuildAssetDef.placeYOffset)
+        waterLevel: noOcean ? PROCEDURAL_WATER_LEVEL : PROCEDURAL_WATER_LEVEL,
+        sampleNormal: (x, z) => getTerrainNormalAt(this.terrain!.terrainMesh, x, z),
+        sampleHeight: (x, z) => getTerrainHeightAt(this.terrain!.terrainMesh, x, z),
+      });
+    }
     progress(84);
 
     // 11. Character — snapped to board XY cell, feet on terrain
@@ -1126,38 +1166,43 @@ export class Island3DEngine {
       this.spawnCharacter();
     }
 
-    // 12. Wildlife — land only when ocean disabled (no fish over dry board)
-    this.creatures = new CreatureManager(
-      this.scene,
-      noOcean ? -999 : PROCEDURAL_WATER_LEVEL,
-      this.config.seed.length,
-    );
-    const wildlifeBiome = this.wildlifeBiomeFor(this.config.biome ?? foundation.preferredBiomes[0]);
-    const wildlifeRadius = Math.round(HOME_ISLAND_WORLD_SIZE_M * 0.42);
-    this.creatures.spawnForBiome(this.terrain.terrainMesh, wildlifeBiome, wildlifeRadius, {
-      land: HOME_ISLAND_ANIMAL_TARGET,
-      fish: noOcean ? 0 : Math.max(8, Math.floor(HOME_ISLAND_ANIMAL_TARGET * 0.6)),
-    });
+    // 12. Wildlife — only when playSystems.creatures
+    if (this.playSystems.creatures) {
+      this.creatures = new CreatureManager(
+        this.scene,
+        noOcean ? -999 : PROCEDURAL_WATER_LEVEL,
+        this.config.seed.length,
+      );
+      const wildlifeBiome = this.wildlifeBiomeFor(this.config.biome ?? foundation.preferredBiomes[0]);
+      const wildlifeRadius = Math.round(HOME_ISLAND_WORLD_SIZE_M * 0.42);
+      this.creatures.spawnForBiome(this.terrain.terrainMesh, wildlifeBiome, wildlifeRadius, {
+        land: HOME_ISLAND_ANIMAL_TARGET,
+        fish: noOcean ? 0 : Math.max(8, Math.floor(HOME_ISLAND_ANIMAL_TARGET * 0.6)),
+      });
+      if (this.navMesh) this.creatures.setNavMesh(this.navMesh);
+    }
     progress(90);
 
     // 13. Event mountain (JJ cave) + dungeon portal triad
-    await this.createMountainDungeon();
+    if (this.playSystems.mountainTriad) {
+      await this.createMountainDungeon();
+    }
 
     // 14. Craftpix mines (≥2) — enter 4s → loot bag miner/engineer/mystic
-    this.mineSystem = new MineEntranceSystem({
-      scene: this.scene,
-      terrainMesh: this.terrain.terrainMesh,
-      seed: this.config.seed,
-      campX: campWorld.x,
-      campZ: campWorld.z,
-      campClearRadiusM: foundation.campClearRadiusM ?? HOME_ISLAND_CAMP_CLEAR_RADIUS_M,
-      worldSizeM: HOME_ISLAND_WORLD_SIZE_M,
-      placeEventMountain: true,
-      onLoot: (items, mineId) => this.config.onMineLoot?.(items, mineId),
-    });
-    await this.mineSystem.init();
-
-    if (this.navMesh) this.creatures.setNavMesh(this.navMesh);
+    if (this.playSystems.mines) {
+      this.mineSystem = new MineEntranceSystem({
+        scene: this.scene,
+        terrainMesh: this.terrain.terrainMesh,
+        seed: this.config.seed,
+        campX: campWorld.x,
+        campZ: campWorld.z,
+        campClearRadiusM: foundation.campClearRadiusM ?? HOME_ISLAND_CAMP_CLEAR_RADIUS_M,
+        worldSizeM: HOME_ISLAND_WORLD_SIZE_M,
+        placeEventMountain: true,
+        onLoot: (items, mineId) => this.config.onMineLoot?.(items, mineId),
+      });
+      await this.mineSystem.init();
+    }
     progress(100);
     console.log(
       `[Island3D] Home island ready — board ${HOME_ISLAND_BOARD_CELL_M}m cells, battle nature, ` +
@@ -1525,52 +1570,56 @@ export class Island3DEngine {
       console.log('[Island3DEngine] Zone character controller ready — awaiting Grudge6 race prefab');
     }
 
-    // 9. Building system works in zone mode too
-    this.building = new BuildingSystem(this.scene, this.camera);
+    // 9. Building (zone open-world only if enabled)
+    if (this.playSystems.building) {
+      this.building = new BuildingSystem(this.scene, this.camera);
+    }
 
-    // 10. Wildlife — production package animals + fish counts (land dry / fish water only)
-    // Animals/monsters are enemy or neutral-attackable (never ally)
-    const animalSeed = seeds.animals;
-    this.creatures = new CreatureManager(this.scene, cfg.waterLevel, animalSeed);
-    this.creatures.spawnForBiome(
-      firstIslandMesh,
-      sector.biome,
-      cfg.sizeMeters * 0.28,
-      {
-        land: prod?.wildlife.landSpawnCount,
-        fish: prod?.wildlife.fishSpawnCount,
-      },
-    );
-
-    // 11. Faction NPC camps — stylized camp GLB; same faction ally, others enemy
-    // Seeds + factions from sector production package for client/server parity.
-    const islands = getNodesByCategory<IslandNode>(this.zonePopulation, 'island');
-    const islandCenters = islands.map((isl) => ({
-      x: isl.position[0],
-      z: isl.position[2],
-      radius: isl.radiusM,
-    }));
-    const sampleY = firstIslandMesh
-      ? (x: number, z: number) => {
-          const ray = new THREE.Raycaster(
-            new THREE.Vector3(x, 800, z),
-            new THREE.Vector3(0, -1, 0),
-          );
-          const hits = ray.intersectObject(firstIslandMesh, true);
-          return hits.length > 0 ? hits[0].point.y : null;
-        }
-      : undefined;
-    this.ensureCampSystems(cfg.waterLevel, sampleY);
-    void spawnZoneCamps(this.npcCamps!, islandCenters, {
-      playerFaction: this.playerFaction,
-      seed: seeds.npcCamps,
-      campsPerIsland: prod?.npcs.campsPerIsland ?? 1,
-      factions: prod?.npcs.factions,
-    }).then((n) => {
-      console.log(
-        `[Island3DEngine] Spawned ${n} faction camps in zone (seed=${seeds.npcCamps})`,
+    // 10. Wildlife — production package (skip when playSystems.creatures off)
+    if (this.playSystems.creatures) {
+      const animalSeed = seeds.animals;
+      this.creatures = new CreatureManager(this.scene, cfg.waterLevel, animalSeed);
+      this.creatures.spawnForBiome(
+        firstIslandMesh,
+        sector.biome,
+        cfg.sizeMeters * 0.28,
+        {
+          land: prod?.wildlife.landSpawnCount,
+          fish: prod?.wildlife.fishSpawnCount,
+        },
       );
-    });
+    }
+
+    // 11. Faction NPC camps — only in zone/home with camps enabled
+    if (this.playSystems.camps) {
+      const islands = getNodesByCategory<IslandNode>(this.zonePopulation, 'island');
+      const islandCenters = islands.map((isl) => ({
+        x: isl.position[0],
+        z: isl.position[2],
+        radius: isl.radiusM,
+      }));
+      const sampleY = firstIslandMesh
+        ? (x: number, z: number) => {
+            const ray = new THREE.Raycaster(
+              new THREE.Vector3(x, 800, z),
+              new THREE.Vector3(0, -1, 0),
+            );
+            const hits = ray.intersectObject(firstIslandMesh, true);
+            return hits.length > 0 ? hits[0].point.y : null;
+          }
+        : undefined;
+      this.ensureCampSystems(cfg.waterLevel, sampleY);
+      void spawnZoneCamps(this.npcCamps!, islandCenters, {
+        playerFaction: this.playerFaction,
+        seed: seeds.npcCamps,
+        campsPerIsland: prod?.npcs.campsPerIsland ?? 1,
+        factions: prod?.npcs.factions,
+      }).then((n) => {
+        console.log(
+          `[Island3DEngine] Spawned ${n} faction camps in zone (seed=${seeds.npcCamps})`,
+        );
+      });
+    }
 
     // Hostile patrol boats: continuous fire + smoke (damaged-boat VFX)
     if (this.worldFx && this.zoneScene) {
@@ -2142,15 +2191,23 @@ export class Island3DEngine {
   /** Sim time multiplier — day/night and session tick rate (1 = realtime) */
   public simTickRate = 1;
 
+  /** True when this frame should run a system with the given tick rate. */
+  private shouldTick(everyN: number): boolean {
+    return everyN <= 1 || this.loopFrame % everyN === 0;
+  }
+
   private loop = (): void => {
     if (!this.isRunning) return;
 
+    this.loopFrame++;
     const dt = Math.min(this.clock.getDelta(), 0.05);
     const simDt = dt * this.simTickRate;
+    const sys = this.playSystems;
+    const tick = this.playTicks;
 
-    // Camera: Grudge6 on foot/deck/swim, or orbit when no character
-    if (this.characterActive && this.character) {
-      if (this.lobbyShip) {
+    // ── Player / camera (always critical) ────────────────────────────
+    if (sys.character && this.characterActive && this.character) {
+      if (sys.lobbyShip && this.lobbyShip) {
         this.lobbyShip.update(dt, this.character.getKeys(), this.character.getCameraYaw());
       }
       this.character.update(dt);
@@ -2162,34 +2219,41 @@ export class Island3DEngine {
       this.controls.update();
     }
 
-    if (this.lobbyCapture && this.character) {
+    // ── Lobby-only systems (never on home/zone) ──────────────────────
+    if (sys.lobbyCapture && this.lobbyCapture && this.character) {
       this.lobbyCapture.update(dt, this.character.getPosition(), this.lobbyCapturing);
     }
-
-    if (this.lobbyPlayZone && this.character) {
+    if (sys.lobbyPlayZone && this.lobbyPlayZone && this.character) {
       this.lobbyPlayZone.npcController.setPlayerPosition(this.character.getPosition());
       this.lobbyPlayZone.update(dt, this.camera.position);
     }
-
-    if (this.factionIslands) {
-      this.factionIslands.update(
-        dt,
-        this.character?.getPosition() ?? undefined,
-      );
+    if (sys.factionIslands && this.factionIslands) {
+      this.factionIslands.update(dt, this.character?.getPosition() ?? undefined);
     }
 
+    // ── Shared environment ───────────────────────────────────────────
     this.updateWater(dt);
-    this.updateHarvestables(dt);
-    this.updateDetailLayers(dt);
-    this.zoneScene?.update(dt, this.clock.elapsedTime);
-    this.lobbyAnimMixer?.update(dt);
-    this.multiplayer?.update(dt);
+    if (sys.harvestables && this.shouldTick(tick.harvestables)) {
+      this.updateHarvestables(dt * tick.harvestables);
+    }
+    if (sys.detailLayers && this.shouldTick(tick.detailLayers)) {
+      this.updateDetailLayers(dt * tick.detailLayers);
+    }
+    if (sys.zoneScene) {
+      this.zoneScene?.update(dt, this.clock.elapsedTime);
+    }
+    if (sys.lobbyShip || sys.lobbyPlayZone) {
+      this.lobbyAnimMixer?.update(dt);
+    }
+    if (sys.multiplayer) {
+      this.multiplayer?.update(dt);
+    }
+    if (sys.dayNight && this.shouldTick(tick.dayNight)) {
+      this.dayNight?.update(simDt * tick.dayNight);
+    }
 
-    // Day/night cycle
-    this.dayNight?.update(simDt);
-
-    // Ally AI — feed player position + current enemies from multiplayer
-    if (this.allyManager && this.character) {
+    // ── Combat / AI (gated) ──────────────────────────────────────────
+    if (sys.allies && this.allyManager && this.character) {
       const enemies: CombatTarget[] = [];
       if (this.multiplayer) {
         for (const [, e] of this.multiplayer.enemies) {
@@ -2204,78 +2268,86 @@ export class Island3DEngine {
       this.allyManager.update(dt, this.character.getPosition(), enemies);
     }
 
-    // Camp garrison AI orders / follow refresh
-    this.campUnits?.setAllyManager(this.allyManager);
-    this.campUnits?.update(dt);
-
-    // Wildlife AI
-    if (this.creatures && this.character) {
-      this.creatures.update(dt, this.character.getPosition());
-    } else if (this.creatures) {
-      this.creatures.update(dt, this.camera.position);
+    if (sys.camps && this.campUnits && this.shouldTick(tick.camps)) {
+      this.campUnits.update(dt * tick.camps);
     }
 
-    // Mountain dungeon portal (revealed when player walks behind secret peak)
-    if (this.mountainTriad && this.character) {
+    if (sys.creatures && this.creatures) {
+      const focus = this.character?.getPosition() ?? this.camera.position;
+      if (this.shouldTick(tick.creatures)) {
+        this.creatures.update(dt * tick.creatures, focus);
+      }
+    }
+
+    // ── Mode landmarks (only one family active) ──────────────────────
+    if (sys.mountainTriad && this.mountainTriad && this.character) {
       this.mountainTriad.update(dt, this.character.getPosition());
     }
-
-    // Mines — show prompt, 4s run timer
-    if (this.mineSystem) {
-      const charRoot = this.character?.model ?? null;
+    if (sys.mines && this.mineSystem) {
       this.mineSystem.update(
         dt,
         this.character ? this.character.getPosition() : null,
-        charRoot,
+        this.character?.model ?? null,
       );
     }
 
-    // Zone race capital + dungeon portals
-    if (this.havenFoundation) {
-      this.havenFoundation.update(dt, this.clock.elapsedTime);
-    }
-    if (this.fabledFoundation && this.character) {
-      this.fabledFoundation.update(dt, this.character.getPosition());
-    }
-    if (this.zoneCapital) {
-      this.zoneCapital.update(dt, this.clock.elapsedTime);
-    }
-    if (this.zoneDungeonPortals && this.character) {
-      this.zoneDungeonPortals.update(dt, this.character.getPosition());
-    }
-    if (this.hiddenMountainCity && this.character) {
-      this.hiddenMountainCity.update(dt, this.character.getPosition(), {
-        attacking: this.character.isAttacking,
-      });
-    }
-
-    if (this.harvestZones && !this.lobbyPlayZone) {
-      this.harvestZones.update(dt, this.camera.position);
-    }
-
-    // Farm plots — crop growth after watering
-    this.farmPlots?.update(dt);
-
-    // Fire / smoke particles
-    this.worldFx?.update(dt);
-
-    // External update hooks (RemotePlayerManager, TownNPCController, etc.)
-    for (const fn of this.externalUpdates) fn(dt);
-
-    // Distance / frustum budget — only render+update what's near the player
-    const focus = this.character?.getPosition() ?? this.camera.position;
-    this.renderBudget.setOrigin(focus.x, focus.y, focus.z);
-    this.renderBudget.update(this.camera);
-    // Keep sun shadow centered on player (cheap ortho cascade substitute)
-    if (this.sunLight && this.character) {
-      const p = this.character.getPosition();
-      const d = this.renderBudget.distances.shadowExtentM * 0.6;
-      this.sunLight.position.set(p.x + d * 0.5, p.y + d, p.z + d * 0.35);
-      this.sunLight.target.position.copy(p);
-      this.sunLight.target.updateMatrixWorld();
+    if (sys.havenFoundation || sys.fabledFoundation || sys.zoneCapital || sys.zoneDungeonPortals || sys.hiddenMountainCity) {
+      if (this.shouldTick(tick.foundations)) {
+        const fdt = dt * tick.foundations;
+        if (sys.havenFoundation && this.havenFoundation) {
+          this.havenFoundation.update(fdt, this.clock.elapsedTime);
+        }
+        if (sys.fabledFoundation && this.fabledFoundation && this.character) {
+          this.fabledFoundation.update(fdt, this.character.getPosition());
+        }
+        if (sys.zoneCapital && this.zoneCapital) {
+          this.zoneCapital.update(fdt, this.clock.elapsedTime);
+        }
+        if (sys.zoneDungeonPortals && this.zoneDungeonPortals && this.character) {
+          this.zoneDungeonPortals.update(fdt, this.character.getPosition());
+        }
+        if (sys.hiddenMountainCity && this.hiddenMountainCity && this.character) {
+          this.hiddenMountainCity.update(fdt, this.character.getPosition(), {
+            attacking: this.character.isAttacking,
+          });
+        }
+      }
     }
 
-    // Render via post-processing pipeline (or raw fallback)
+    if (sys.harvestZones && this.harvestZones) {
+      if (this.shouldTick(tick.harvestables)) {
+        this.harvestZones.update(dt * tick.harvestables, this.camera.position);
+      }
+    }
+
+    if (sys.farming) {
+      this.farmPlots?.update(dt);
+    }
+
+    if (sys.worldFx) {
+      this.worldFx?.update(dt);
+    }
+
+    // External hooks (RemotePlayerManager, etc.)
+    if (this.shouldTick(tick.external)) {
+      const edt = dt * tick.external;
+      for (const fn of this.externalUpdates) fn(edt);
+    }
+
+    // Distance budget (cheap, every frame when enabled)
+    if (sys.renderBudget) {
+      const focus = this.character?.getPosition() ?? this.camera.position;
+      this.renderBudget.setOrigin(focus.x, focus.y, focus.z);
+      this.renderBudget.update(this.camera);
+      if (this.sunLight && this.character) {
+        const p = this.character.getPosition();
+        const d = this.renderBudget.distances.shadowExtentM * 0.6;
+        this.sunLight.position.set(p.x + d * 0.5, p.y + d, p.z + d * 0.35);
+        this.sunLight.target.position.copy(p);
+        this.sunLight.target.updateMatrixWorld();
+      }
+    }
+
     if (this.postProcessing) {
       this.postProcessing.render();
     } else {
