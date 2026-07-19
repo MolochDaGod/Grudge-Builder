@@ -15,6 +15,13 @@ import {
   registerObjectStorageRoutes,
   registerDevToolObjectStorageRoutes,
 } from "./integrations/object_storage";
+import {
+  r2Configured,
+  r2ListPrefix,
+  r2PresignPut,
+  r2PublicBase,
+  safeFileName,
+} from "./integrations/r2Client";
 import { registerAuthRoutes } from "./routes/auth";
 import { registerWalletRoutes } from "./routes/wallet";
 import { registerTreatyRoutes } from "./routes/treaty";
@@ -97,6 +104,21 @@ function extractUserId(req: Request): string {
     return "guest";
   } catch {
     return "guest";
+  }
+}
+
+/** Extract grudgeId from Bearer JWT when present */
+function extractGrudgeId(req: Request): string | null {
+  const authHeader = req.get("Authorization") || req.get("X-Session-Token");
+  const token = authHeader?.startsWith("Bearer ")
+    ? authHeader.slice(7)
+    : authHeader || null;
+  if (!token || !JWT_SECRET) return null;
+  try {
+    const payload = jwt.verify(token, JWT_SECRET) as AuthPayload;
+    return payload.grudgeId || null;
+  } catch {
+    return null;
   }
 }
 
@@ -7725,60 +7747,158 @@ Your response must be valid JSON array only, no markdown or explanation.`;
     }
   });
 
-  // ==================== Asset Upload (GLB/glTF) ====================
+  // ==================== Asset Upload / List (R2 CDN) ====================
+  // Dash UI: GET /api/assets/list, POST /api/assets/upload (presign)
+  // Wired to assets.grudge-studio.com (R2 grudge-assets). Requires R2_S3_* env.
 
   /**
-   * POST /api/assets/upload — Upload a GLB model file.
-   * Accepts multipart/form-data with 'file' field.
-   * Stores to public/models/{path} for local dev, R2 CDN in production.
+   * GET /api/assets/list — list caller's user-uploads on R2 (dash R2 upload list).
+   * Query: ?prefix= optional extra subpath under user-uploads/{grudgeId}/
+   * Admin may pass ?prefix= to list any prefix under the bucket (scoped carefully).
+   */
+  app.get("/api/assets/list", requireAuth, async (req: Request, res: Response) => {
+    try {
+      if (!r2Configured()) {
+        return res.status(503).json({
+          error: "R2 not configured on fleet API",
+          hint: "Set R2_S3_ENDPOINT, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, OBJECT_STORAGE_BUCKET on Railway",
+          assets: [],
+        });
+      }
+
+      const grudgeId = extractGrudgeId(req);
+      const userId = extractUserId(req);
+      const ownerKey = grudgeId || userId;
+      if (!ownerKey || ownerKey === "guest") {
+        return res.status(401).json({ error: "Authentication required", assets: [] });
+      }
+
+      const qPrefix = typeof req.query.prefix === "string" ? req.query.prefix : "";
+      let listPrefix = `user-uploads/${ownerKey}/`;
+      if (qPrefix) {
+        // Admins can list fleet prefixes; players only under their own tree
+        if (isAdmin(req) && !qPrefix.includes("..")) {
+          listPrefix = qPrefix.replace(/^\//, "");
+          if (!listPrefix.endsWith("/") && !listPrefix.includes(".")) listPrefix += "/";
+        } else {
+          const cleaned = qPrefix.replace(/^\//, "").replace(/\.\./g, "");
+          listPrefix = `user-uploads/${ownerKey}/${cleaned}`.replace(/\/+/g, "/");
+        }
+      }
+
+      const limit = Math.min(parseInt(String(req.query.limit || "200"), 10) || 200, 1000);
+      const { assets, nextCursor } = await r2ListPrefix(listPrefix, {
+        limit,
+        cursor: typeof req.query.cursor === "string" ? req.query.cursor : undefined,
+      });
+
+      res.json({
+        assets,
+        prefix: listPrefix,
+        count: assets.length,
+        nextCursor,
+        cdn: r2PublicBase(),
+      });
+    } catch (error: any) {
+      console.error("[Assets] list failed:", error?.message || error);
+      res.status(500).json({ error: error?.message || "Failed to list assets", assets: [] });
+    }
+  });
+
+  /**
+   * POST /api/assets/upload
+   * Dash (presign): { filename, contentType, category, size } → { uploadUrl, key, publicUrl, expiresIn }
+   * Legacy (base64): { path, data, contentType } → local public/models write (dev only)
    */
   app.post("/api/assets/upload", requireAuth, async (req: any, res) => {
     try {
-      // Express doesn't parse multipart by default; this route expects
-      // the file as a raw body or via a middleware like multer.
-      // For now, accept base64 JSON payload as a simpler alternative.
-      const { path: remotePath, data, contentType } = req.body;
+      const body = req.body || {};
+
+      // ── Dash / fleet presigned upload ──
+      if (body.filename && !body.data) {
+        if (!r2Configured()) {
+          return res.status(503).json({
+            error: "R2 not configured on fleet API",
+            hint: "Set R2_S3_ENDPOINT + R2_ACCESS_KEY_ID + R2_SECRET_ACCESS_KEY on Railway",
+          });
+        }
+        const grudgeId = extractGrudgeId(req);
+        const userId = extractUserId(req);
+        const ownerKey = grudgeId || userId;
+        if (!ownerKey || ownerKey === "guest") {
+          return res.status(401).json({ error: "Authentication required" });
+        }
+
+        const category = safeFileName(String(body.category || "uploads"));
+        const filename = safeFileName(String(body.filename));
+        const contentType = String(body.contentType || "application/octet-stream");
+        const size = Number(body.size || 0);
+        if (size > 50 * 1024 * 1024) {
+          return res.status(413).json({ error: "File too large (max 50MB)" });
+        }
+
+        const key = `user-uploads/${ownerKey}/${category}/${Date.now()}-${filename}`;
+        const presigned = await r2PresignPut(key, contentType, 900);
+        return res.json({
+          success: true,
+          ...presigned,
+        });
+      }
+
+      // ── Legacy base64 → local disk (dev / offline) ──
+      const { path: remotePath, data, contentType } = body;
 
       if (!remotePath || !data) {
-        return res.status(400).json({ error: "'path' and 'data' (base64) are required" });
+        return res.status(400).json({
+          error: "Provide { filename, contentType, category } for R2 presign, or { path, data } for legacy base64",
+        });
       }
 
-      // Validate file extension
-      const ext = remotePath.split('.').pop()?.toLowerCase();
-      if (!['glb', 'gltf', 'bin'].includes(ext || '')) {
-        return res.status(400).json({ error: "Only .glb, .gltf, and .bin files are allowed" });
+      const ext = remotePath.split(".").pop()?.toLowerCase();
+      if (!["glb", "gltf", "bin", "png", "jpg", "jpeg", "webp", "gif", "mp3", "ogg"].includes(ext || "")) {
+        return res.status(400).json({ error: "Unsupported file type" });
       }
 
-      // Decode base64 and write to public/models/
-      const buffer = Buffer.from(data, 'base64');
-      const targetDir = path.join(process.cwd(), 'public', 'models');
-      const targetPath = path.join(targetDir, remotePath);
-
-      // Ensure directory exists
-      const dir = path.dirname(targetPath);
-      if (!fs.existsSync(dir)) {
-        fs.mkdirSync(dir, { recursive: true });
-      }
-
-      // Size limit: 50MB
+      const buffer = Buffer.from(data, "base64");
       if (buffer.length > 50 * 1024 * 1024) {
         return res.status(413).json({ error: "File too large (max 50MB)" });
       }
 
+      // Prefer R2 put when configured
+      if (r2Configured()) {
+        const grudgeId = extractGrudgeId(req);
+        const userId = extractUserId(req);
+        const ownerKey = grudgeId || userId || "anonymous";
+        const key = `user-uploads/${ownerKey}/${safeFileName(remotePath)}`;
+        const presigned = await r2PresignPut(key, contentType || "application/octet-stream", 900);
+        return res.json({
+          success: true,
+          ...presigned,
+          note: "Use uploadUrl with PUT and base64 decoded body; or re-call with filename for empty PUT",
+          path: `/${key}`,
+          url: presigned.publicUrl,
+          size: buffer.length,
+        });
+      }
+
+      const targetDir = path.join(process.cwd(), "public", "models");
+      const targetPath = path.join(targetDir, remotePath);
+      const dir = path.dirname(targetPath);
+      if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
       fs.writeFileSync(targetPath, buffer);
 
-      const userId = (req as any).userId || 'unknown';
-      console.log(`[Assets] ${userId} uploaded ${remotePath} (${(buffer.length / 1024).toFixed(1)}KB)`);
+      const uid = (req as any).userId || "unknown";
+      console.log(`[Assets] ${uid} uploaded ${remotePath} (${(buffer.length / 1024).toFixed(1)}KB)`);
 
       res.json({
         success: true,
         path: `/models/${remotePath}`,
-        url: `https://assets.grudge-studio.com/models/${remotePath}`,
+        url: `${r2PublicBase()}/models/${remotePath}`,
         size: buffer.length,
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error uploading asset:", error);
-      res.status(500).json({ error: "Failed to upload asset" });
+      res.status(500).json({ error: error?.message || "Failed to upload asset" });
     }
   });
 
