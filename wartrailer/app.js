@@ -19,16 +19,19 @@ function section(order, id, title, tagline, play, stillName) {
   };
 }
 
-/** Live flyby — always trailer+flyby so client skips foundry create gate. */
+/**
+ * Live flyby via /island-3d (cinematic surface) — does NOT require a roster character.
+ * /play still has create-character gate until client guest path deploys.
+ */
 function zonePlay(sector) {
-  return `https://client.grudge-studio.com/play?sector=${sector}&mode=zone&worldSeed=grudge-world-1&trailer=1&flyby=1&guest=1`;
+  return `https://client.grudge-studio.com/island-3d?mode=zone&sector=${encodeURIComponent(sector)}&worldSeed=grudge-world-1&flyby=1&proof=1&trailer=1`;
 }
 
 const SECTIONS = [
-  section(0, 'tutorial_shipwreck', 'Shipwreck Wake', 'You wash ashore.', 'https://client.grudge-studio.com/island-3d?mode=tutorial&trailer=1&flyby=1&guest=1', 'beach_shore.jpg'),
+  section(0, 'tutorial_shipwreck', 'Shipwreck Wake', 'You wash ashore.', 'https://client.grudge-studio.com/island-3d?mode=tutorial&flyby=1&trailer=1', 'beach_shore.jpg'),
   section(1, 'world_map_overview', 'World Map — Nine Sectors', 'Nine realms. One war.', 'https://client.grudge-studio.com/world-map', 'style_sheet.jpg'),
-  section(2, 'home_island', 'Home Island', 'Build your camp.', 'https://client.grudge-studio.com/play?mode=procedural&trailer=1&flyby=1&guest=1', 'beach_shore.jpg'),
-  section(3, 'lobby_open_world', 'Open World Lobby', 'Capture. Sail. Board.', 'https://client.grudge-studio.com/play?mode=lobby&trailer=1&flyby=1&guest=1', 'beach_shore.jpg'),
+  section(2, 'home_island', 'Home Island', 'Build your camp.', 'https://client.grudge-studio.com/island-3d?mode=procedural&flyby=1&trailer=1', 'beach_shore.jpg'),
+  section(3, 'lobby_open_world', 'Open World Lobby', 'Capture. Sail. Board.', 'https://client.grudge-studio.com/island-3d?mode=lobby&flyby=1&trailer=1', 'beach_shore.jpg'),
   section(4, 'haven_shore', 'Haven Shore', 'Safe tropical start.', zonePlay('haven_shore'), 'beach_shore.jpg'),
   section(5, 'stormbreak_reef', 'Stormbreak Reef', 'Perpetual storms.', zonePlay('stormbreak_reef'), 'deep_forest.jpg'),
   section(6, 'frostbite_expanse', 'Frostbite Expanse', 'Frozen northern shelf.', zonePlay('frostbite_expanse'), 'winter_snow.jpg'),
