@@ -28,7 +28,7 @@ export * from "./npcCamps";
 export * from "./completeWorldMap";
 export * from "./biomeEcosystemCatalog";
 export * from "./seedContentContract";
-export * from "./valheimStyleHarvest";
+// valheimStyleHarvest intentionally not re-exported until the module ships (broke CI client build).
 export * from "./biomeHarvestAssets";
 export * from "./resolveAsset";
 export * from "./terrainPackage";
