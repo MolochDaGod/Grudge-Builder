@@ -32,7 +32,24 @@ const candidates = [
   resolve(repoRoot, "vendor/grudge-character-animator"),
 ].filter(Boolean);
 
-let monorepoRoot = candidates.find((p) => existsSync(marker(p)));
+/** On Vercel, never trust a cached vendor/ tree — always re-fetch main. */
+const forceRefresh =
+  process.env.VERCEL === "1" ||
+  process.env.GRUDGE_FORCE_MONOREPO_REFRESH === "1";
+
+const vendorPath = resolve(repoRoot, "vendor/grudge-character-animator");
+if (forceRefresh && existsSync(vendorPath)) {
+  console.log(
+    "[ensure-grudge-monorepo] Vercel/force refresh — removing cached vendor",
+  );
+  rmSync(vendorPath, { recursive: true, force: true });
+}
+
+let monorepoRoot = forceRefresh
+  ? candidates
+      .filter((p) => p !== vendorPath)
+      .find((p) => existsSync(marker(p)))
+  : candidates.find((p) => existsSync(marker(p)));
 
 if (!monorepoRoot && process.env.GRUDGE_SKIP_MONOREPO_CLONE === "1") {
   console.warn(
