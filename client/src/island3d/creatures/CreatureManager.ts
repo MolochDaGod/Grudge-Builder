@@ -423,10 +423,49 @@ export class CreatureManager {
     instance.currentAnim = state;
   }
 
+  // Distance bands for wildlife (meters) — skip AI/anim when far
+  private static readonly AI_NEAR_M = 55;
+  private static readonly AI_MID_M = 120;
+  private static readonly AI_FAR_M = 200;
+  private _aiFrame = 0;
+
   // ── Update (call every frame) ──────────────────────────────────────────
 
   update(dt: number, playerPos: THREE.Vector3): void {
+    this._aiFrame++;
     for (const [, c] of this.creatures) {
+      const dist = c.group.position.distanceTo(playerPos);
+
+      // Culled: hide + no mixer / AI (cheapest)
+      if (dist > CreatureManager.AI_FAR_M) {
+        if (c.group.visible) c.group.visible = false;
+        continue;
+      }
+      if (!c.group.visible) c.group.visible = true;
+
+      // Far band: throttle AI to every 3rd frame, no shadows, still idle anim slowly
+      if (dist > CreatureManager.AI_MID_M) {
+        c.group.traverse((o) => {
+          const m = o as THREE.Mesh;
+          if (m.isMesh) m.castShadow = false;
+        });
+        if (this._aiFrame % 3 !== 0) {
+          c.mixer?.update(dt * 0.5);
+          continue;
+        }
+      } else if (dist > CreatureManager.AI_NEAR_M) {
+        // Mid: full AI, shadows off
+        c.group.traverse((o) => {
+          const m = o as THREE.Mesh;
+          if (m.isMesh) m.castShadow = false;
+        });
+      } else {
+        c.group.traverse((o) => {
+          const m = o as THREE.Mesh;
+          if (m.isMesh && m.userData.wantCastShadow !== false) m.castShadow = true;
+        });
+      }
+
       // Update mixer
       c.mixer?.update(dt);
 
@@ -708,6 +747,20 @@ export class CreatureManager {
     const c = this.creatures.get(id);
     if (!c || c.state === 'dead' || c.state === 'despawned') return null;
     return c.group.position.clone();
+  }
+
+  /** Horizontal push (flame wall / knockback skills) */
+  applyKnockback(id: string, dx: number, dz: number): void {
+    const c = this.creatures.get(id);
+    if (!c || c.state === 'dead' || c.state === 'despawned') return;
+    c.group.position.x += dx;
+    c.group.position.z += dz;
+    if (this.sampleHeight) {
+      const y = this.sampleHeight(c.group.position.x, c.group.position.z);
+      if (y !== null && c.def.category !== 'bird' && c.def.category !== 'fish') {
+        c.group.position.y = y;
+      }
+    }
   }
 
   // ── Helpers ────────────────────────────────────────────────────────────

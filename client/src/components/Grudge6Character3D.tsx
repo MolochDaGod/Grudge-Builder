@@ -223,11 +223,18 @@ export default function Grudge6Character3D({
     }
   }, [position.x, position.y, position.z]);
 
+  // Race mult is applied inside fitCharacterRootToHeightM — never replace fitted
+  // scale with a raw 1.0 override (that reintroduces 30–100× giant meshes).
   useEffect(() => {
-    if (modelRef.current && scaleOverride !== undefined) {
-      modelRef.current.scene.scale.setScalar(scaleOverride);
-    }
-  }, [scaleOverride]);
+    if (!modelRef.current || scaleOverride === undefined) return;
+    const race = RACE_GRUDGE6[raceKey] ?? RACE_GRUDGE6.human;
+    const raceMult = scaleOverride > 0 ? scaleOverride : race.scale ?? 1;
+    void import("@/island3d/zoneWorldScale").then(({ fitCharacterRootToHeightM, PLAYER_HEIGHT_M }) => {
+      if (!modelRef.current) return;
+      fitCharacterRootToHeightM(modelRef.current.scene, raceMult, PLAYER_HEIGHT_M);
+      modelRef.current.scene.position.set(position.x, position.y, position.z);
+    });
+  }, [scaleOverride, raceKey, position.x, position.y, position.z]);
 
   return null;
 }

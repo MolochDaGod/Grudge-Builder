@@ -1,14 +1,17 @@
 /**
  * PackModelLoader — load multipack GLB (or single-mesh FBX) and clone named nodes.
  * free_survival_asset_kit, medieval towers, Ultimate Fantasy RTS buildings.
+ * Uses shared DRACO + Meshopt pipeline for GLBs.
  */
 import * as THREE from 'three';
-import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader.js';
 import { assetUrl } from '@/lib/assetConfig';
 import type { BuildAssetDef } from './BuildAssetManifest';
+import {
+  loadGltfCached,
+  prepareMeshPerformance,
+} from '@/lib/three/SharedGltfPipeline';
 
-const gltfLoader = new GLTFLoader();
 const fbxLoader = new FBXLoader();
 const packCache = new Map<string, THREE.Group>();
 
@@ -21,14 +24,14 @@ async function loadPack(path: string): Promise<THREE.Group> {
   if (path.toLowerCase().endsWith('.fbx')) {
     root = (await fbxLoader.loadAsync(url)) as THREE.Group;
   } else {
-    const gltf = await gltfLoader.loadAsync(url);
+    const gltf = await loadGltfCached(url);
     root = gltf.scene as THREE.Group;
   }
-  root.traverse((c) => {
-    if ((c as THREE.Mesh).isMesh) {
-      c.castShadow = true;
-      c.receiveShadow = true;
-    }
+  // Template in cache: shadows off until clone; clones get near-only shadows via budget
+  prepareMeshPerformance(root, {
+    castShadow: false,
+    receiveShadow: true,
+    frustumCulled: true,
   });
   packCache.set(url, root);
   return root;
@@ -81,6 +84,8 @@ export async function loadBuildAssetModel(def: BuildAssetDef): Promise<THREE.Obj
       }
       if (group.children.length === 0) return makePlaceholder(def);
       group.scale.setScalar(def.scale);
+      prepareMeshPerformance(group, { castShadow: true, receiveShadow: true, frustumCulled: true });
+      group.userData.budgetRadius = Math.max(def.size[0], def.size[2], 2) * 0.6;
       return group;
     }
 
@@ -88,6 +93,8 @@ export async function loadBuildAssetModel(def: BuildAssetDef): Promise<THREE.Obj
     const clone = pack.clone(true);
     clone.scale.setScalar(def.scale);
     clone.name = `build_${def.id}`;
+    prepareMeshPerformance(clone, { castShadow: true, receiveShadow: true, frustumCulled: true });
+    clone.userData.budgetRadius = Math.max(def.size[0], def.size[2], 2) * 0.6;
     return clone;
   } catch (err) {
     console.warn(`[PackModel] load failed ${def.id}:`, err);

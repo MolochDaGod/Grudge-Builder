@@ -78,6 +78,20 @@ export class CampUnitSystem {
 
   /** unitId → record */
   private units = new Map<string, CampUnitRecord>();
+  /** Optional engine budget registration (distance cull unit meshes) */
+  private budgetRegister:
+    | ((id: string, obj: THREE.Object3D, opts?: { radius?: number; getPosition?: () => THREE.Vector3 }) => void)
+    | null = null;
+  private budgetUnregister: ((id: string) => void) | null = null;
+
+  /** Wire Island3DEngine distance budget (call once after construct). */
+  setRenderBudget(
+    register: CampUnitSystem['budgetRegister'],
+    unregister: CampUnitSystem['budgetUnregister'],
+  ): void {
+    this.budgetRegister = register;
+    this.budgetUnregister = unregister;
+  }
   /** campId → unitIds spawned from claim flag */
   private campGarrison = new Map<string, string[]>();
   /** Visual roots parented to camp (optional race GLBs) */
@@ -218,7 +232,13 @@ export class CampUnitSystem {
           ally.commandGuard();
           // Hide default green capsule if we load race mesh
           void this.attachRaceMesh(ally, raceId, buffs).then((mesh) => {
-            if (mesh) this.unitMeshes.set(unitId, mesh);
+            if (mesh) {
+              this.unitMeshes.set(unitId, mesh);
+              this.budgetRegister?.(unitId, mesh, {
+                radius: 1.2,
+                getPosition: () => ally.model.getWorldPosition(new THREE.Vector3()),
+              });
+            }
           });
         }
       } else {
@@ -228,6 +248,10 @@ export class CampUnitSystem {
           mesh.position.copy(world);
           this.scene.add(mesh);
           this.unitMeshes.set(unitId, mesh);
+          this.budgetRegister?.(unitId, mesh, {
+            radius: 1.2,
+            getPosition: () => mesh.getWorldPosition(new THREE.Vector3()),
+          });
         }
       }
 

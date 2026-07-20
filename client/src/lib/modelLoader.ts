@@ -17,11 +17,17 @@
  */
 
 import * as THREE from "three";
-import { GLTFLoader, type GLTF } from "three/examples/jsm/loaders/GLTFLoader.js";
-import { DRACOLoader } from "three/examples/jsm/loaders/DRACOLoader.js";
+import type { GLTF } from "three/examples/jsm/loaders/GLTFLoader.js";
 import * as SkeletonUtils from "three/examples/jsm/utils/SkeletonUtils.js";
 import { resolveModelUrl } from "@/lib/modelManifest";
 import { ASSET_CDN_BASE } from "@/lib/assetConfig";
+import {
+  loadGltfCached,
+  getSharedGltfLoader,
+  prepareMeshPerformance,
+  evictGltfCache,
+  getGltfCacheStats,
+} from "@/lib/three/SharedGltfPipeline";
 
 // ── Skeleton bone-name remapping ─────────────────────────────────────────────
 //
@@ -95,15 +101,10 @@ function collectBoneNames(root: THREE.Object3D): Set<string> {
 
 // ── Cache ────────────────────────────────────────────────────────────────────
 
-const gltfCache = new Map<string, GLTF>();
+// Shared DRACO + Meshopt pipeline — single decoder pool for the whole app
 const clipCache = new Map<string, THREE.AnimationClip>();
 const bakedClipCache = new Map<string, THREE.AnimationClip>();
-const loader = new GLTFLoader();
-
-// Wire DRACOLoader for Draco-compressed GLBs (from gltf-transform pipeline)
-const dracoLoader = new DRACOLoader();
-dracoLoader.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.7/');
-loader.setDRACOLoader(dracoLoader);
+const loader = getSharedGltfLoader();
 
 // ── Load a full GLTF model (mesh + embedded animations) ─────────────────────
 
@@ -117,27 +118,24 @@ export interface LoadedModel {
 export async function loadCharacterModel(path: string): Promise<LoadedModel> {
   // Race/equip GLBs always from R2 CDN — never relative 404s on Vercel
   const url = resolveModelUrl(path);
-  let gltf = gltfCache.get(url);
-
-  if (!gltf) {
-    gltf = await new Promise<GLTF>((resolve, reject) => {
-      loader.load(
-        url,
-        resolve,
-        undefined,
-        (err) => {
-          console.error(`[modelLoader] Failed to load character model: ${url}`, err);
-          reject(err instanceof Error ? err : new Error(`Failed to load ${url}`));
-        },
-      );
-    });
-    gltfCache.set(url, gltf);
+  let gltf: GLTF;
+  try {
+    gltf = await loadGltfCached(url);
+  } catch (err) {
+    console.error(`[modelLoader] Failed to load character model: ${url}`, err);
+    throw err instanceof Error ? err : new Error(`Failed to load ${url}`);
   }
 
   // SkeletonUtils.clone properly handles SkinnedMesh + skeleton bindings.
   // The plain Object3D.clone(true) breaks skeleton→bone references, causing
   // models to render as distorted white blobs.
   const scene = (SkeletonUtils as any).clone(gltf.scene) as THREE.Group;
+  // Heroes: cast shadows; keep frustumCulled true when possible (see skinned bounds)
+  prepareMeshPerformance(scene, {
+    castShadow: true,
+    receiveShadow: true,
+    frustumCulled: true,
+  });
 
   // Clone materials per-instance so tinting/metalness edits on one character
   // don't corrupt all other instances that share the cached GLTF.
@@ -412,12 +410,13 @@ export async function preloadAnimations(
 // ── Cache management ────────────────────────────────────────────────────────
 
 export function clearModelCache(): void {
-  gltfCache.clear();
+  evictGltfCache();
   clipCache.clear();
+  bakedClipCache.clear();
 }
 
 export function getModelCacheSize(): number {
-  return gltfCache.size + clipCache.size;
+  return getGltfCacheStats().entries + clipCache.size + bakedClipCache.size;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -553,8 +552,11 @@ function wrapProgress(onProgress?: (f: number) => void) {
 
 async function loadGLTFAsset(url: string, opts: LoadOptions) {
   await ensureGltfDecoders();
-  const gltf = await loader.loadAsync(url, wrapProgress(opts.onProgress));
-  return { object: asGroup(gltf.scene), animations: gltf.animations ?? [] };
+  // Shared DRACO + Meshopt cache; progress best-effort via parallel fetch not available here
+  opts.onProgress?.(0.1);
+  const gltf = await loadGltfCached(url);
+  opts.onProgress?.(1);
+  return { object: asGroup(gltf.scene.clone(true)), animations: gltf.animations ?? [] };
 }
 
 async function loadFBXAsset(url: string, opts: LoadOptions) {
