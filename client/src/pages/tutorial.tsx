@@ -112,8 +112,13 @@ export default function TutorialPage() {
   useEffect(() => {
     async function load() {
       try {
+        const params = new URLSearchParams(window.location.search);
+        const urlCharacterId = params.get('characterId');
         const grudgeId = localStorage.getItem('grudge_account_id') || 'guest';
-        const activeId = localStorage.getItem(`gruda_active_character_${grudgeId}`) ||
+        // Prefer Foundry handoff ?characterId= (from=gcs) over stale storage
+        const activeId =
+          urlCharacterId ||
+          localStorage.getItem(`gruda_active_character_${grudgeId}`) ||
           localStorage.getItem('grudge_active_character') ||
           localStorage.getItem('gruda_active_character_guest');
 
@@ -121,6 +126,11 @@ export default function TutorialPage() {
           // Prefer fleet GCS with returnTo=/tutorial (unarmed) — not stuck on /viewer
           setLocation('/create-character');
           return;
+        }
+
+        if (urlCharacterId) {
+          localStorage.setItem('grudge_active_character', urlCharacterId);
+          localStorage.setItem(`gruda_active_character_${grudgeId}`, urlCharacterId);
         }
 
         const char = await characterAPI.get(activeId);

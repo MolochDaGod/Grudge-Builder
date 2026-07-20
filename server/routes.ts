@@ -527,6 +527,15 @@ export async function registerRoutes(
       const model3dIn = (req.body.model3d && typeof req.body.model3d === "object")
         ? req.body.model3d
         : {};
+      // Production: Foundry/Warlords new heroes start at 20 so home-island + open play unlock.
+      const requestedLevel = Number(req.body.level);
+      const startLevel =
+        Number.isFinite(requestedLevel) && requestedLevel > 0
+          ? Math.min(100, Math.floor(requestedLevel))
+          : gameEra === "warlords"
+            ? 20
+            : 1;
+
       const validated = insertCharacterSchema.parse({
         ...req.body,
         userId,
@@ -535,6 +544,7 @@ export async function registerRoutes(
         raceId,
         classId,
         gameEra,
+        level: startLevel,
         activeForEra: eraCount === 0,
         attributes,
         equipment,

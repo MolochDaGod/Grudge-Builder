@@ -87,14 +87,25 @@ export default function HomeIslandPage() {
 
     async function load() {
       try {
+        const params = new URLSearchParams(window.location.search);
+        const fromGcs = params.get('from') === 'gcs';
+        const urlCharacterId = params.get('characterId');
         const grudgeId = localStorage.getItem('grudge_account_id') || 'guest';
-        const activeId = localStorage.getItem(`gruda_active_character_${grudgeId}`) ||
+        // Prefer Foundry/GCS handoff ?characterId= over stale localStorage
+        const activeId =
+          urlCharacterId ||
+          localStorage.getItem(`gruda_active_character_${grudgeId}`) ||
           localStorage.getItem('grudge_active_character') ||
           localStorage.getItem('gruda_active_character_guest');
 
         if (!activeId) {
           setLocation('/create-character');
           return;
+        }
+
+        if (urlCharacterId) {
+          localStorage.setItem('grudge_active_character', urlCharacterId);
+          localStorage.setItem(`gruda_active_character_${grudgeId}`, urlCharacterId);
         }
 
         const char = await characterAPI.get(activeId);
@@ -108,9 +119,11 @@ export default function HomeIslandPage() {
         const charLevel = char.level ?? 1;
         setLevel(charLevel);
         // Production gate: home island requires level 20 (admin/dev: ?unlock=1)
+        // Foundry handoff from=gcs with level-20 create skips the warlords/start detour.
         const forceUnlock =
-          new URLSearchParams(window.location.search).get('unlock') === '1' ||
-          new URLSearchParams(window.location.search).get('dev') === '1';
+          params.get('unlock') === '1' ||
+          params.get('dev') === '1' ||
+          fromGcs;
         const { WARLORDS_HOME_ISLAND_MIN_LEVEL } = await import(
           '@shared/definitions/warlordsProductionFlow'
         );
