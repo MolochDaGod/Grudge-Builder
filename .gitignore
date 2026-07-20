@@ -102,3 +102,7 @@ scripts/best-practices/.cache/
 # Cave GLBs (large — ship via R2 assets.grudge-studio.com/models/caves/)
 public/models/caves/*.glb
 
+
+wartrailer/videos/
+wartrailer/deploy-payload.json
+

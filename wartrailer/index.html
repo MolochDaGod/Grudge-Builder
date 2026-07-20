@@ -6,6 +6,7 @@
   <title>Warlords Trailer Hub · wartrailer.grudge-studio.com</title>
   <meta name="description" content="Grudge Warlords game trailer hub — section videos, flyby assets, biome packs, cave dungeons, production play links." />
   <link rel="preconnect" href="https://client.grudge-studio.com" />
+  <link rel="preconnect" href="https://assets.grudge-studio.com" />
   <style>
     :root {
       --bg: #07090e;
@@ -85,10 +86,10 @@
     article h3 { margin: 0; font-size: 0.95rem; color: #f0e6d2; }
     article p { margin: 0; font-size: 0.75rem; color: var(--muted); line-height: 1.4; flex: 1; }
     .actions { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.35rem; }
-    .actions a, .actions button {
+    .actions a {
       font-size: 0.7rem; padding: 0.35rem 0.6rem; border-radius: 8px;
       border: 1px solid var(--line); background: #1a1f2a; color: var(--text);
-      text-decoration: none; cursor: pointer;
+      text-decoration: none;
     }
     .actions a.primary { background: linear-gradient(180deg, #8b6914, #5c4510); border-color: var(--gold); color: #fff; }
     .actions a.play { background: rgba(6,182,212,.15); border-color: rgba(6,182,212,.4); color: #7dd3fc; }
@@ -108,6 +109,7 @@
       from { transform: scale(1) translate(0, 0); }
       to { transform: scale(1.12) translate(-2%, -1%); }
     }
+    .status { font-size: 0.8rem; color: #86efac; }
   </style>
 </head>
 <body>
@@ -118,11 +120,12 @@
       cave dungeon assets, and live play links. Combine segments in CapCut / Premiere using the cut list.
       Canonical world seed: <code>grudge-world-1</code>.
     </p>
+    <p class="status" id="cdnStatus">Checking CDN…</p>
   </header>
   <nav>
     <a href="#sections">Section trailers</a>
-    <a href="#biomes">Biomes &amp; styles</a>
-    <a href="#caves">Caves &amp; dungeons</a>
+    <a href="#biomes">Biomes and styles</a>
+    <a href="#caves">Caves and dungeons</a>
     <a href="#assets">Asset index</a>
     <a href="#deploy">Live play</a>
     <a href="https://client.grudge-studio.com/play?sector=haven_shore&mode=zone&worldSeed=grudge-world-1&trailer=1">Open trailer HUD</a>
@@ -131,33 +134,34 @@
     <section id="sections">
       <h2>Section trailers (individual)</h2>
       <p class="sub" style="margin-bottom:1rem">
-        Each card is one trailer section. Record live WebM via <code>?trailer=1</code> flyby HUD,
-        or use ken-burns stills until WebMs are uploaded to <code>/videos/</code>.
+        Each card is one trailer section. Record live WebM via <code>?trailer=1</code> flyby HUD.
+        Stills load from R2; WebMs appear when uploaded to
+        <code>assets.grudge-studio.com/videos/trailers/sections/</code>.
       </p>
       <div class="grid" id="sectionGrid"></div>
     </section>
 
     <section id="biomes">
-      <h2>Biome &amp; style stills</h2>
+      <h2>Biome and style stills</h2>
       <div class="grid">
         <article>
-          <div class="media"><span class="badge">Beach</span><img class="kenburns" src="assets/renders/2.jpg" alt="Beach shore" /></div>
+          <div class="media"><span class="badge">Beach</span><img class="kenburns" src="https://assets.grudge-studio.com/videos/trailers/renders/beach_shore.jpg" alt="Beach shore" /></div>
           <div class="body"><h3>Haven / Beach</h3><p>Tropical shore generation · palm / stylized packs</p></div>
         </article>
         <article>
-          <div class="media"><span class="badge">Forest</span><img class="kenburns" src="assets/renders/5.jpg" alt="Deep forest" /></div>
+          <div class="media"><span class="badge">Forest</span><img class="kenburns" src="https://assets.grudge-studio.com/videos/trailers/renders/deep_forest.jpg" alt="Deep forest" /></div>
           <div class="body"><h3>Thornwood / Forest</h3><p>Deep canopy · pine + stylized trees</p></div>
         </article>
         <article>
-          <div class="media"><span class="badge">Volcanic</span><img class="kenburns" src="assets/renders/1.jpg" alt="Volcanic" /></div>
+          <div class="media"><span class="badge">Volcanic</span><img class="kenburns" src="https://assets.grudge-studio.com/videos/trailers/renders/volcanic.jpg" alt="Volcanic" /></div>
           <div class="body"><h3>Ember Depths</h3><p>Volcanic rocks · lava accents</p></div>
         </article>
         <article>
-          <div class="media"><span class="badge">Winter</span><img class="kenburns" src="assets/renders/3.jpg" alt="Winter" /></div>
+          <div class="media"><span class="badge">Winter</span><img class="kenburns" src="https://assets.grudge-studio.com/videos/trailers/renders/winter_snow.jpg" alt="Winter" /></div>
           <div class="body"><h3>Frostbite</h3><p>Snow pines · ice water</p></div>
         </article>
         <article>
-          <div class="media"><span class="badge">Styles</span><img class="kenburns" src="assets/renders/4.jpg" alt="Styles" /></div>
+          <div class="media"><span class="badge">Styles</span><img class="kenburns" src="https://assets.grudge-studio.com/videos/trailers/renders/style_sheet.jpg" alt="Styles" /></div>
           <div class="body"><h3>Art styles</h3><p>Stylized · realistic · palm · snow pine</p></div>
         </article>
       </div>
@@ -167,34 +171,29 @@
       <h2>Cave dungeons (access · navmesh · no water)</h2>
       <table>
         <thead>
-          <tr><th>Prefab</th><th>GLB</th><th>Access</th><th>Use</th><th>Rules</th></tr>
+          <tr><th>Prefab</th><th>GLB (CDN)</th><th>Access</th><th>Use</th><th>Rules</th></tr>
         </thead>
         <tbody>
           <tr>
             <td>Twin Mouth Cave</td>
-            <td><code>models/caves/2cave.glb</code></td>
+            <td><a href="https://assets.grudge-studio.com/models/caves/2cave.glb"><code>models/caves/2cave.glb</code></a></td>
             <td>mouth_a + mouth_b</td>
             <td>On-island dungeon</td>
             <td>Navmesh floor sample · water suppressed</td>
           </tr>
           <tr>
             <td>Lethal Ape Redux</td>
-            <td><code>models/caves/old_cave_lethal_ape_redux.glb</code></td>
+            <td><a href="https://assets.grudge-studio.com/models/caves/old_cave_lethal_ape_redux.glb"><code>models/caves/old_cave_lethal_ape_redux.glb</code></a></td>
             <td>mouth_main</td>
             <td>Respawnable dungeon (4h)</td>
             <td>Layer caveInterior · no ocean swim</td>
           </tr>
         </tbody>
       </table>
-      <p class="sub" style="margin-top:0.75rem">
-        Contract: <code>shared/definitions/caveDungeonContract.ts</code> · runtime:
-        <code>CaveInteriorSystem</code>. Upload GLBs to R2
-        <code>assets.grudge-studio.com/models/caves/</code> for production.
-      </p>
     </section>
 
     <section id="assets">
-      <h2>Asset &amp; build index</h2>
+      <h2>Asset and build index</h2>
       <table>
         <thead>
           <tr><th>Build / surface</th><th>Assets</th><th>Record</th></tr>
@@ -212,9 +211,9 @@
       <table>
         <thead><tr><th>Surface</th><th>URL</th></tr></thead>
         <tbody>
-          <tr><td>Haven Shore zone</td><td><a class="play" href="https://client.grudge-studio.com/play?sector=haven_shore&mode=zone&worldSeed=grudge-world-1">client…/play?sector=haven_shore</a></td></tr>
-          <tr><td>Trailer HUD</td><td><a class="play" href="https://client.grudge-studio.com/play?sector=haven_shore&mode=zone&worldSeed=grudge-world-1&trailer=1">…&amp;trailer=1</a></td></tr>
-          <tr><td>Lobby</td><td><a class="play" href="https://client.grudge-studio.com/play?mode=lobby&trailer=1">…mode=lobby</a></td></tr>
+          <tr><td>Haven Shore zone</td><td><a class="play" href="https://client.grudge-studio.com/play?sector=haven_shore&mode=zone&worldSeed=grudge-world-1">client play haven_shore</a></td></tr>
+          <tr><td>Trailer HUD</td><td><a class="play" href="https://client.grudge-studio.com/play?sector=haven_shore&mode=zone&worldSeed=grudge-world-1&trailer=1">play + trailer=1</a></td></tr>
+          <tr><td>Lobby</td><td><a class="play" href="https://client.grudge-studio.com/play?mode=lobby&trailer=1">mode=lobby</a></td></tr>
           <tr><td>Auth</td><td><a href="https://id.grudge-studio.com">id.grudge-studio.com</a></td></tr>
           <tr><td>CDN</td><td><a href="https://assets.grudge-studio.com">assets.grudge-studio.com</a></td></tr>
           <tr><td>This hub</td><td><code>wartrailer.grudge-studio.com</code></td></tr>
@@ -227,5 +226,20 @@
     Caves contract 1.0.0 · Flyby uses cinematic camera sole-owner law
   </footer>
   <script src="app.js"></script>
+  <script>
+    (async () => {
+      const el = document.getElementById('cdnStatus');
+      try {
+        const r = await fetch('https://assets.grudge-studio.com/models/caves/2cave.glb', { method: 'HEAD' });
+        el.textContent = r.ok
+          ? 'CDN OK — caves + trailer stills live on assets.grudge-studio.com'
+          : 'CDN check failed for caves';
+        el.style.color = r.ok ? '#86efac' : '#f87171';
+      } catch {
+        el.textContent = 'CDN check error';
+        el.style.color = '#f87171';
+      }
+    })();
+  </script>
 </body>
 </html>
