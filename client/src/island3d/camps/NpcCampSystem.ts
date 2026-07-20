@@ -21,6 +21,7 @@ import {
   type RelationKind,
   type CampUpgradeKind,
 } from '@shared/definitions/npcCamps';
+import { ENEMY_CAMP_TRAP_SEED } from '@shared/definitions/mobileGameObstacles';
 import { getBuildAsset } from '../building/BuildAssetManifest';
 import { loadBuildAssetModel } from '../building/PackModelLoader';
 import { assetUrl } from '@/lib/assetConfig';
@@ -179,7 +180,44 @@ export class NpcCampSystem {
       await this.attachUpgradeMesh(runtime, up);
     }
 
+    // Hostile / monster camps get perimeter traps from the mobile obstacle pack
+    // when no upgrades were supplied (fresh world seed).
+    if (
+      (!params.upgrades || params.upgrades.length === 0) &&
+      (params.faction === 'pirate' ||
+        params.faction === 'monster' ||
+        params.faction === 'legion' ||
+        params.ownerAccountId == null)
+    ) {
+      await this.seedEnemyCampTraps(runtime);
+    }
+
     return runtime;
+  }
+
+  /**
+   * Ring hostile camps with spike plates / barrels / bombs from the mobile
+   * obstacle multipack (buildable defense assets).
+   */
+  private async seedEnemyCampTraps(camp: RuntimeCamp): Promise<void> {
+    // Map piece ids → camp upgrade ids
+    const pieceToUpgrade: Record<string, string> = {
+      trap_spike: 'camp_spike_trap',
+      trap_spike_base: 'camp_spike_plate',
+      trap_cylinder: 'camp_spin_barrel',
+      trap_bomb: 'camp_bomb_mine',
+      trap_gear: 'camp_gear_crusher',
+    };
+    for (const { pieceId, count } of ENEMY_CAMP_TRAP_SEED) {
+      const upgradeId = pieceToUpgrade[pieceId];
+      if (!upgradeId || !CAMP_UPGRADES[upgradeId]) continue;
+      for (let i = 0; i < count; i++) {
+        if (!canAddUpgrade(camp.data, upgradeId)) break;
+        await this.addUpgrade(camp.data.id, upgradeId, {
+          rotationY: (i * Math.PI) / 3,
+        });
+      }
+    }
   }
 
   /** Player/NPC adds bench, storage, tower, or claim flag to camp footprint. */

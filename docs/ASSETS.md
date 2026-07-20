@@ -55,6 +55,10 @@ node scripts/upload-ui-icons-to-r2.mjs
 # GLB / animations
 ./scripts/upload-glb-to-r2.ps1
 ./scripts/upload-animations-to-r2.ps1
+
+# Warlords session pack (creatures + obstacles + skeletons + dungeon enemies)
+node scripts/upload-session-warlords-assets-to-r2.mjs
+# Docs: docs/WARLORDS_CREATURES_TRAPS_SKELETONS.md
 ```
 
 Set R2 creds in `.env.local`: `R2_S3_ENDPOINT`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`.

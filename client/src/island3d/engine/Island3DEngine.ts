@@ -2896,6 +2896,18 @@ export class Island3DEngine {
     // Harvest ground tools — shovel / hoe (4×4 bed) / seed / bucket
     if (this.character?.mode === 'harvest') {
       const ground = this.getActiveGroundTool();
+      // Skinning knife: loot nearest dead creature → Skeletons_Free residual
+      if (
+        this.activeHarvestTool === 'skinning_knife' &&
+        this.creatures &&
+        this.character
+      ) {
+        const skinned = this.creatures.trySkinNear(this.character.getPosition(), 3.5);
+        if (skinned) {
+          this.worldFx?.weaponSkillImpact(skinned.position, 'slash', 1.2);
+          return;
+        }
+      }
       if (ground === 'shovel' && this.tryShovelSculpt(clientX, clientY, modifiers)) return;
       if (ground === 'hoe' && this.tryHoeCultivate(clientX, clientY)) return;
       if (ground === 'seed' && this.tryPlantSeed(clientX, clientY)) return;

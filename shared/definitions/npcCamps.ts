@@ -79,7 +79,7 @@ export function isAllyRelation(rel: RelationKind): boolean {
 
 // ── Camp upgrades (placed onto a camp footprint) ─────────────────────────────
 
-export type CampUpgradeKind = 'bench' | 'storage' | 'tower' | 'flag' | 'fire' | 'barricade';
+export type CampUpgradeKind = 'bench' | 'storage' | 'tower' | 'flag' | 'fire' | 'barricade' | 'trap';
 
 export interface CampUpgradeDef {
   id: string;
@@ -198,6 +198,114 @@ export const CAMP_UPGRADES: Record<string, CampUpgradeDef> = {
       description: 'Warmth + cook station — Cooking profession XP at owned camp',
     },
   },
+  /** Perimeter spike plate — mobile obstacle pack */
+  camp_spike_plate: {
+    id: 'camp_spike_plate',
+    kind: 'trap',
+    label: 'Spike Plate',
+    buildAssetId: 'trap_spike_base',
+    slotOffsets: [
+      [8, 0, 0],
+      [-8, 0, 0],
+      [0, 0, 8],
+      [0, 0, -8],
+    ],
+    maxPerCamp: 4,
+    cost: [
+      { itemId: 'iron', quantity: 6 },
+      { itemId: 'stone', quantity: 4 },
+    ],
+    effect: {
+      type: 'defense',
+      value: 20,
+      description: 'Floor spike plate — damages hostiles entering camp footprint',
+    },
+  },
+  camp_spike_trap: {
+    id: 'camp_spike_trap',
+    kind: 'trap',
+    label: 'Spike Trap',
+    buildAssetId: 'trap_spike',
+    slotOffsets: [
+      [7, 0, 5],
+      [-7, 0, 5],
+      [7, 0, -5],
+      [-7, 0, -5],
+      [5, 0, 7],
+      [-5, 0, 7],
+    ],
+    maxPerCamp: 6,
+    cost: [
+      { itemId: 'iron', quantity: 3 },
+      { itemId: 'wood', quantity: 2 },
+    ],
+    effect: {
+      type: 'defense',
+      value: 18,
+      description: 'Spike trap on camp approach paths',
+    },
+  },
+  camp_spin_barrel: {
+    id: 'camp_spin_barrel',
+    kind: 'trap',
+    label: 'Spinning Barrel',
+    buildAssetId: 'trap_cylinder',
+    slotOffsets: [
+      [9, 0, 3],
+      [-9, 0, -3],
+    ],
+    maxPerCamp: 2,
+    cost: [
+      { itemId: 'iron', quantity: 4 },
+      { itemId: 'wood', quantity: 4 },
+    ],
+    effect: {
+      type: 'defense',
+      value: 14,
+      description: 'Spinning barrel barrier — blocks + damages',
+    },
+  },
+  camp_bomb_mine: {
+    id: 'camp_bomb_mine',
+    kind: 'trap',
+    label: 'Bomb Mine',
+    buildAssetId: 'trap_bomb',
+    slotOffsets: [
+      [6, 0, 6],
+      [-6, 0, -6],
+      [6, 0, -6],
+    ],
+    maxPerCamp: 3,
+    cost: [
+      { itemId: 'iron', quantity: 2 },
+      { itemId: 'ember_core', quantity: 1 },
+    ],
+    effect: {
+      type: 'defense',
+      value: 45,
+      description: 'One-shot bomb mine for camp approaches',
+    },
+  },
+  camp_gear_crusher: {
+    id: 'camp_gear_crusher',
+    kind: 'trap',
+    label: 'Gear Crusher',
+    buildAssetId: 'trap_gear',
+    slotOffsets: [
+      [10, 0, 0],
+      [-10, 0, 0],
+    ],
+    maxPerCamp: 2,
+    cost: [
+      { itemId: 'iron', quantity: 8 },
+      { itemId: 'stone', quantity: 3 },
+    ],
+    effect: {
+      type: 'defense',
+      value: 28,
+      description: 'Heavy gear crusher at camp gate',
+    },
+  },
 };
 
 /** Alias for claim-flag product language */
@@ -231,10 +339,10 @@ export const STYLIZED_CAMP: NpcCampDef = {
   modelScale: 1.0,
   radiusM: 18,
   defaultFaction: 'pirate',
-  allowedUpgrades: ['bench', 'storage', 'tower', 'flag', 'fire'],
+  allowedUpgrades: ['bench', 'storage', 'tower', 'flag', 'fire', 'trap', 'barricade'],
   garrisonSize: 4,
   description:
-    'Prefabricated camp compound. Expand with benches, storage chests, and watchtowers. Same-faction camps are allies; other factions are enemies.',
+    'Prefabricated camp compound. Expand with benches, storage, watchtowers, and mobile obstacle traps (spikes, barrels, bombs, gears). Same-faction camps are allies; other factions are enemies.',
 };
 
 /** Alias for hostile default spawn */

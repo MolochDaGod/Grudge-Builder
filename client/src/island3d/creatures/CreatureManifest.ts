@@ -87,6 +87,427 @@ const COTW = `${CDN}/models/creatures/land/cotw`;
 // ── Land Animals ─────────────────────────────────────────────────────────────
 
 export const CREATURE_MANIFEST: Record<string, CreatureDef> = {
+  /**
+   * Belerick — Guard of Nature (aggressive land elite / dungeon).
+   * Local: public/models/creatures/land/belerick_guard_of_nature.glb
+   * Clips: fight_idle, run, attack1–3, skill1–3, dead, taunt
+   * category=land so island dry-land spawn pool includes him (not water predators).
+   */
+  belerick: {
+    id: 'belerick',
+    name: 'Belerick',
+    category: 'land',
+    modelPath: `${CDN}/models/creatures/land/belerick_guard_of_nature.glb`,
+    scale: 1.1,
+    anims: {
+      idle: 'belerick_guard_of_nature_in_game_fight_idle',
+      walk: 'belerick_guard_of_nature_in_game_run',
+      run: 'belerick_guard_of_nature_in_game_run2',
+      attack: 'belerick_guard_of_nature_in_game_attack1',
+      death: 'belerick_guard_of_nature_in_game_dead',
+      hitReact: 'belerick_guard_of_nature_in_game_taunt01',
+    },
+    ai: 'aggressive',
+    hp: 220,
+    damage: 28,
+    moveSpeed: 14,
+    alertRadius: 22,
+    attackRange: 3.2,
+    aggroChance: 1,
+    huntable: true,
+    huntValue: 40,
+    roamRadius: 28,
+    respawnTime: 180,
+    loot: [
+      { itemId: 'nature_bark', name: 'Nature Bark', quantity: [1, 3], chance: 1.0 },
+      { itemId: 'living_wood', name: 'Living Wood', quantity: [1, 2], chance: 0.7 },
+      { itemId: 'guardian_seed', name: 'Guardian Seed', quantity: [0, 1], chance: 0.35 },
+    ],
+    spawnWeight: 1,
+  },
+
+  /**
+   * Helcurt — Shadowbringer (aggressive land assassin elite).
+   * Local: public/models/creatures/land/helcurt_shadowbringer.glb
+   * Clips: fight_idle, run/fastrun, attack1–3, skill1–3, dead, landing, recall
+   */
+  helcurt: {
+    id: 'helcurt',
+    name: 'Helcurt',
+    category: 'land',
+    modelPath: `${CDN}/models/creatures/land/helcurt_shadowbringer.glb`,
+    scale: 1.05,
+    anims: {
+      idle: 'helcurt_shadowbringer_in_game_fight_idle',
+      walk: 'helcurt_shadowbringer_in_game_run',
+      run: 'helcurt_shadowbringer_in_game_fastrun',
+      attack: 'helcurt_shadowbringer_in_game_attack1',
+      death: 'helcurt_shadowbringer_in_game_dead',
+      hitReact: 'helcurt_shadowbringer_in_game_verigo',
+      jump: 'helcurt_shadowbringer_in_game_landing',
+    },
+    ai: 'aggressive',
+    hp: 165,
+    damage: 32,
+    moveSpeed: 20,
+    alertRadius: 26,
+    attackRange: 2.8,
+    aggroChance: 1,
+    huntable: true,
+    huntValue: 45,
+    roamRadius: 32,
+    respawnTime: 200,
+    loot: [
+      { itemId: 'shadow_essence', name: 'Shadow Essence', quantity: [1, 2], chance: 1.0 },
+      { itemId: 'void_shard', name: 'Void Shard', quantity: [0, 2], chance: 0.55 },
+      { itemId: 'assassin_claw', name: 'Assassin Claw', quantity: [1, 1], chance: 0.4 },
+    ],
+    spawnWeight: 1,
+  },
+
+  /**
+   * Fire Beetle — aggressive land insect (warlords island / dungeon wildlife).
+   * Local: public/models/creatures/land/fire_beetle.glb
+   * Clips: fight_idle, run, attack1–2, dead
+   */
+  fire_beetle: {
+    id: 'fire_beetle',
+    name: 'Fire Beetle',
+    category: 'land',
+    modelPath: `${CDN}/models/creatures/land/fire_beetle.glb`,
+    scale: 0.85,
+    anims: {
+      idle: 'fire_beetle_fight_idle',
+      walk: 'fire_beetle_run',
+      run: 'fire_beetle_run',
+      attack: 'fire_beetle_attack1',
+      death: 'fire_beetle_dead',
+      hitReact: 'fire_beetle_attack2',
+    },
+    ai: 'aggressive',
+    hp: 55,
+    damage: 14,
+    moveSpeed: 12,
+    alertRadius: 16,
+    attackRange: 2.2,
+    aggroChance: 0.85,
+    huntable: true,
+    huntValue: 12,
+    roamRadius: 22,
+    respawnTime: 90,
+    loot: [
+      { itemId: 'chitin_shell', name: 'Chitin Shell', quantity: [1, 2], chance: 1.0 },
+      { itemId: 'ember_core', name: 'Ember Core', quantity: [0, 1], chance: 0.45 },
+      { itemId: 'fire_ichor', name: 'Fire Ichor', quantity: [1, 2], chance: 0.6 },
+    ],
+    spawnWeight: 4,
+  },
+
+  /**
+   * Ember Beetle — second fire-beetle pack (fire_beetle (1).glb), slightly hotter stats.
+   * Local: public/models/creatures/land/fire_beetle_ember.glb
+   */
+  fire_beetle_ember: {
+    id: 'fire_beetle_ember',
+    name: 'Ember Beetle',
+    category: 'land',
+    modelPath: `${CDN}/models/creatures/land/fire_beetle_ember.glb`,
+    scale: 0.9,
+    anims: {
+      idle: 'fire_beetle_fight_idle',
+      walk: 'fire_beetle_run',
+      run: 'fire_beetle_run',
+      attack: 'fire_beetle_attack2',
+      death: 'fire_beetle_dead',
+      hitReact: 'fire_beetle_attack1',
+    },
+    ai: 'aggressive',
+    hp: 70,
+    damage: 18,
+    moveSpeed: 13,
+    alertRadius: 18,
+    attackRange: 2.3,
+    aggroChance: 0.95,
+    huntable: true,
+    huntValue: 16,
+    roamRadius: 24,
+    respawnTime: 110,
+    loot: [
+      { itemId: 'chitin_shell', name: 'Chitin Shell', quantity: [1, 3], chance: 1.0 },
+      { itemId: 'ember_core', name: 'Ember Core', quantity: [1, 1], chance: 0.7 },
+      { itemId: 'molten_carapace', name: 'Molten Carapace', quantity: [0, 1], chance: 0.3 },
+    ],
+    spawnWeight: 2,
+  },
+
+  /**
+   * Horned Lizard — aggressive land reptile.
+   * Local: public/models/creatures/land/horned_lizard.glb
+   * Clips: fight_idle, run, attack1–2, dead
+   */
+  horned_lizard: {
+    id: 'horned_lizard',
+    name: 'Horned Lizard',
+    category: 'land',
+    modelPath: `${CDN}/models/creatures/land/horned_lizard.glb`,
+    scale: 1.0,
+    anims: {
+      idle: 'horned_lizard_fight_idle',
+      walk: 'horned_lizard_run',
+      run: 'horned_lizard_run',
+      attack: 'horned_lizard_attack1',
+      death: 'horned_lizard_dead',
+      hitReact: 'horned_lizard_attack2',
+    },
+    ai: 'aggressive',
+    hp: 80,
+    damage: 16,
+    moveSpeed: 11,
+    alertRadius: 15,
+    attackRange: 2.5,
+    aggroChance: 0.75,
+    huntable: true,
+    huntValue: 18,
+    roamRadius: 26,
+    respawnTime: 120,
+    loot: [
+      { itemId: 'lizard_hide', name: 'Lizard Hide', quantity: [1, 2], chance: 1.0 },
+      { itemId: 'horn_plate', name: 'Horn Plate', quantity: [0, 2], chance: 0.55 },
+      { itemId: 'raw_meat', name: 'Raw Meat', quantity: [1, 2], chance: 0.8 },
+    ],
+    spawnWeight: 3,
+  },
+
+  /**
+   * Free Reptile — Vadim Ziambetov stylized reptile (open world / islands / dungeons).
+   * Local: public/models/creatures/land/free_reptile.glb
+   * Clips: Idle, Walk, Run, Attack, Get Hit, Dead, Jump
+   */
+  free_reptile: {
+    id: 'free_reptile',
+    name: 'Wild Reptile',
+    category: 'land',
+    modelPath: `${CDN}/models/creatures/land/free_reptile.glb`,
+    scale: 0.95,
+    anims: {
+      idle: 'Idle',
+      walk: 'Walk',
+      run: 'Run',
+      attack: 'Attack',
+      death: 'Dead',
+      hitReact: 'Get Hit',
+      jump: 'Jump',
+    },
+    ai: 'aggressive',
+    hp: 95,
+    damage: 18,
+    moveSpeed: 12,
+    alertRadius: 17,
+    attackRange: 2.6,
+    aggroChance: 0.8,
+    huntable: true,
+    huntValue: 20,
+    roamRadius: 28,
+    respawnTime: 130,
+    loot: [
+      { itemId: 'lizard_hide', name: 'Reptile Hide', quantity: [1, 3], chance: 1.0 },
+      { itemId: 'raw_meat', name: 'Raw Meat', quantity: [1, 2], chance: 0.85 },
+      { itemId: 'fang', name: 'Reptile Fang', quantity: [0, 2], chance: 0.45 },
+    ],
+    spawnWeight: 3,
+  },
+
+  /**
+   * Drake — small dragon companion pack used as island/dungeon elite.
+   * Local: public/models/creatures/land/drake.glb
+   * Clips: wait_1, walk, attack, die, hit, use_skill, skill_ready
+   */
+  drake: {
+    id: 'drake',
+    name: 'Drake',
+    category: 'land',
+    modelPath: `${CDN}/models/creatures/land/drake.glb`,
+    scale: 1.15,
+    anims: {
+      idle: 'wait_1',
+      walk: 'walk',
+      run: 'walk',
+      attack: 'attack',
+      death: 'die',
+      hitReact: 'hit',
+    },
+    ai: 'aggressive',
+    hp: 180,
+    damage: 26,
+    moveSpeed: 14,
+    alertRadius: 24,
+    attackRange: 3.0,
+    aggroChance: 1,
+    huntable: true,
+    huntValue: 42,
+    roamRadius: 30,
+    respawnTime: 200,
+    loot: [
+      { itemId: 'drake_scale', name: 'Drake Scale', quantity: [1, 3], chance: 1.0 },
+      { itemId: 'ember_core', name: 'Ember Core', quantity: [0, 2], chance: 0.55 },
+      { itemId: 'raw_meat', name: 'Raw Meat', quantity: [2, 4], chance: 0.9 },
+    ],
+    spawnWeight: 1,
+  },
+
+  /**
+   * Ifrit — fire demon elite (volcanic open world + dungeon boss pack).
+   * Local: public/models/creatures/land/ifrit.glb
+   * Clips: Monster_YiFuLiTe_Idle/Run/Attack/Death/BeHit + skills
+   */
+  ifrit: {
+    id: 'ifrit',
+    name: 'Ifrit',
+    category: 'land',
+    modelPath: `${CDN}/models/creatures/land/ifrit.glb`,
+    scale: 1.2,
+    anims: {
+      idle: 'Monster_YiFuLiTe_Idle',
+      walk: 'Monster_YiFuLiTe_Run',
+      run: 'Monster_YiFuLiTe_Run',
+      attack: 'Monster_YiFuLiTe_Attack',
+      death: 'Monster_YiFuLiTe_Death',
+      hitReact: 'Monster_YiFuLiTe_BeHit',
+    },
+    ai: 'aggressive',
+    hp: 240,
+    damage: 34,
+    moveSpeed: 13,
+    alertRadius: 26,
+    attackRange: 3.2,
+    aggroChance: 1,
+    huntable: true,
+    huntValue: 55,
+    roamRadius: 26,
+    respawnTime: 220,
+    loot: [
+      { itemId: 'fire_ichor', name: 'Fire Ichor', quantity: [2, 4], chance: 1.0 },
+      { itemId: 'ember_core', name: 'Ember Core', quantity: [1, 2], chance: 0.75 },
+      { itemId: 'void_shard', name: 'Infernal Shard', quantity: [0, 1], chance: 0.35 },
+    ],
+    spawnWeight: 1,
+  },
+
+  /**
+   * Lava Golem — molten rock brute (volcanic / dungeon).
+   * Local: public/models/creatures/land/lava_golem.glb
+   * Clips: lava_golem_fight_idle, run, attack1–2, dead
+   */
+  lava_golem: {
+    id: 'lava_golem',
+    name: 'Lava Golem',
+    category: 'land',
+    modelPath: `${CDN}/models/creatures/land/lava_golem.glb`,
+    scale: 1.35,
+    anims: {
+      idle: 'lava_golem_fight_idle',
+      walk: 'lava_golem_run',
+      run: 'lava_golem_run',
+      attack: 'lava_golem_attack1',
+      death: 'lava_golem_dead',
+      hitReact: 'lava_golem_attack2',
+    },
+    ai: 'aggressive',
+    hp: 280,
+    damage: 30,
+    moveSpeed: 8,
+    alertRadius: 18,
+    attackRange: 3.4,
+    aggroChance: 1,
+    huntable: true,
+    huntValue: 50,
+    roamRadius: 22,
+    respawnTime: 210,
+    loot: [
+      { itemId: 'molten_carapace', name: 'Molten Stone', quantity: [1, 3], chance: 1.0 },
+      { itemId: 'ember_core', name: 'Ember Core', quantity: [1, 2], chance: 0.65 },
+      { itemId: 'fire_ichor', name: 'Fire Ichor', quantity: [1, 2], chance: 0.5 },
+    ],
+    spawnWeight: 1,
+  },
+
+  /**
+   * Thorn Beast — Monsters X free pack (horned/thorned land elite).
+   * Local: public/models/creatures/land/monsters_x_free.glb
+   * Clips: Idle, Walk, Run, Attack1/2, Get Hit, Death, Shout, Jump
+   */
+  monsters_x: {
+    id: 'monsters_x',
+    name: 'Thorn Beast',
+    category: 'land',
+    modelPath: `${CDN}/models/creatures/land/monsters_x_free.glb`,
+    scale: 1.05,
+    anims: {
+      idle: 'Idle',
+      walk: 'Walk',
+      run: 'Run',
+      attack: 'Attack1',
+      death: 'Death',
+      hitReact: 'Get Hit',
+      jump: 'Jump',
+    },
+    ai: 'aggressive',
+    hp: 150,
+    damage: 24,
+    moveSpeed: 13,
+    alertRadius: 20,
+    attackRange: 2.8,
+    aggroChance: 0.9,
+    huntable: true,
+    huntValue: 35,
+    roamRadius: 30,
+    respawnTime: 160,
+    loot: [
+      { itemId: 'horn_plate', name: 'Thorn Plate', quantity: [1, 2], chance: 1.0 },
+      { itemId: 'raw_meat', name: 'Raw Meat', quantity: [2, 3], chance: 0.9 },
+      { itemId: 'fang', name: 'Beast Fang', quantity: [0, 2], chance: 0.5 },
+    ],
+    spawnWeight: 2,
+  },
+
+  /**
+   * Armored Crab — Vadim Ziambetov crab pack (coastal / storm / dungeon shore).
+   * Local: public/models/creatures/land/creature_crab.glb
+   * Clips: Idle, Walk, Run, Attack, Get Hit, Dead, Defend
+   */
+  creature_crab: {
+    id: 'creature_crab',
+    name: 'Armored Crab',
+    category: 'land',
+    modelPath: `${CDN}/models/creatures/land/creature_crab.glb`,
+    scale: 0.85,
+    anims: {
+      idle: 'Idle',
+      walk: 'Walk',
+      run: 'Run',
+      attack: 'Attack',
+      death: 'Dead',
+      hitReact: 'Get Hit',
+    },
+    ai: 'aggressive',
+    hp: 110,
+    damage: 20,
+    moveSpeed: 9,
+    alertRadius: 14,
+    attackRange: 2.4,
+    aggroChance: 0.7,
+    huntable: true,
+    huntValue: 22,
+    roamRadius: 20,
+    respawnTime: 120,
+    loot: [
+      { itemId: 'crab_meat', name: 'Crab Meat', quantity: [2, 4], chance: 1.0 },
+      { itemId: 'crab_shell', name: 'Armored Shell', quantity: [1, 2], chance: 0.8 },
+      { itemId: 'chitin_shell', name: 'Chitin Shell', quantity: [0, 1], chance: 0.4 },
+    ],
+    spawnWeight: 3,
+  },
+
   wolf: {
     id: 'wolf',
     name: 'Grey Wolf',

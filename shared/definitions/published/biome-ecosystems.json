@@ -1,6 +1,6 @@
 {
   "version": "1.1.0",
-  "updated": "2026-07-09",
+  "updated": "2026-07-20",
   "characterReferenceHeightM": 2,
   "mountainPeakHeightM": 20,
   "harvestRegenHours": 4,
@@ -32,10 +32,10 @@
       "foundationId": "driftwood_bay",
       "animals": [
         "deer",
-        "rabbit",
+        "creature_crab",
         "crab",
         "boar",
-        "buffalo"
+        "free_reptile"
       ],
       "treePolicy": "palm",
       "snowCanopy": false,
@@ -52,8 +52,8 @@
       "animals": [
         "deer",
         "boar",
-        "rabbit",
-        "buffalo",
+        "creature_crab",
+        "free_reptile",
         "crab"
       ],
       "treePolicy": "palm",
@@ -70,10 +70,10 @@
       "foundationId": "ironfang_spire",
       "animals": [
         "deer",
-        "boar",
         "wolf",
-        "bear",
-        "rabbit"
+        "horned_lizard",
+        "free_reptile",
+        "monsters_x"
       ],
       "treePolicy": "pine_stylized",
       "snowCanopy": false,
@@ -145,11 +145,11 @@
       "label": "Desert",
       "foundationId": "driftwood_bay",
       "animals": [
-        "rabbit",
-        "boar",
-        "buffalo",
-        "wolf",
-        "deer"
+        "horned_lizard",
+        "fire_beetle",
+        "free_reptile",
+        "drake",
+        "boar"
       ],
       "treePolicy": "palm_stylized",
       "snowCanopy": false,
@@ -164,11 +164,11 @@
       "label": "Volcanic",
       "foundationId": "ironfang_spire",
       "animals": [
-        "boar",
-        "wolf",
-        "bear",
-        "buffalo",
-        "deer"
+        "fire_beetle",
+        "lava_golem",
+        "ifrit",
+        "drake",
+        "horned_lizard"
       ],
       "treePolicy": "stylized_pine",
       "snowCanopy": false,
@@ -185,9 +185,9 @@
       "animals": [
         "boar",
         "wolf",
-        "deer",
+        "creature_crab",
         "crab",
-        "rabbit"
+        "free_reptile"
       ],
       "treePolicy": "pine_stylized",
       "snowCanopy": false,
@@ -203,9 +203,9 @@
       "foundationId": "ironfang_spire",
       "animals": [
         "deer",
-        "rabbit",
+        "monsters_x",
         "wolf",
-        "buffalo",
+        "free_reptile",
         "boar"
       ],
       "treePolicy": "stylized_pine",
@@ -222,10 +222,10 @@
       "foundationId": "ironfang_spire",
       "animals": [
         "wolf",
-        "bear",
+        "monsters_x",
         "boar",
-        "crab",
-        "deer"
+        "creature_crab",
+        "drake"
       ],
       "treePolicy": "stylized_pine",
       "snowCanopy": false,

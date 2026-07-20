@@ -37,10 +37,26 @@ import {
   wildlifeCountForBiome,
   fishCountForBiome,
 } from '@shared/definitions/biomeHarvestAssets';
+import {
+  CORPSE_TO_SKELETON_S,
+  SKELETON_LINGER_S,
+  createSkeletonCorpse,
+  preloadSkeletonCorpses,
+  skeletonScaleForBodyHeight,
+} from './SkeletonCorpse';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
-type CreatureState = 'idle' | 'wander' | 'flee' | 'chase' | 'attack' | 'eat' | 'dead' | 'despawned';
+type CreatureState =
+  | 'idle'
+  | 'wander'
+  | 'flee'
+  | 'chase'
+  | 'attack'
+  | 'eat'
+  | 'dead'
+  | 'skeleton'
+  | 'despawned';
 
 interface CreatureInstance {
   id: string;
@@ -58,6 +74,12 @@ interface CreatureInstance {
   respawnTimer: number;
   provoked: boolean;
   alerted: boolean;
+  /** Flesh looted / skinned (or auto after 2 min → skeleton). */
+  looted: boolean;
+  /** True once Skeletons_Free residual is showing. */
+  isSkeleton: boolean;
+  skeletonT: number;
+  fleshRoot: THREE.Object3D | null;
 
   // Movement / brain
   brain: CreatureBrain;
@@ -82,7 +104,8 @@ const WANDER_DURATION_MIN = 3;
 const WANDER_DURATION_MAX = 8;
 const IDLE_DURATION_MIN = 2;
 const IDLE_DURATION_MAX = 6;
-const DEATH_LINGER_TIME = 5;
+/** Flesh corpse window before auto-skeleton (also matches skin window). */
+const DEATH_LINGER_TIME = CORPSE_TO_SKELETON_S;
 const FLEE_DURATION = 4;
 const BIRD_ALTITUDE = 30;
 
@@ -119,6 +142,7 @@ export class CreatureManager {
     this.scene = scene;
     this.waterLevel = waterLevel;
     this.rand = mulberry32(seed);
+    preloadSkeletonCorpses();
   }
 
   setNavMesh(navMesh: TerrainNavMesh | null): void {
@@ -332,6 +356,10 @@ export class CreatureManager {
       respawnTimer: 0,
       provoked: false,
       alerted: false,
+      looted: false,
+      isSkeleton: false,
+      skeletonT: 0,
+      fleshRoot: null,
       brain: new CreatureBrain(),
       spawnPos: pos.clone(),
       targetPos: pos.clone(),
@@ -351,7 +379,19 @@ export class CreatureManager {
     instance.loading = true;
 
     try {
-      const loaded = await loadCharacterModel(instance.def.modelPath);
+      let loaded: Awaited<ReturnType<typeof loadCharacterModel>>;
+      try {
+        loaded = await loadCharacterModel(instance.def.modelPath);
+      } catch (cdnErr) {
+        // Same-origin public/ staging (Belerick etc.) before R2 upload
+        const rel = instance.def.modelPath.replace(/^https?:\/\/[^/]+/, '');
+        const origin =
+          typeof window !== 'undefined' && window.location?.origin
+            ? window.location.origin
+            : '';
+        if (!origin) throw cdnErr;
+        loaded = await loadCharacterModel(`${origin}${rel.startsWith('/') ? rel : `/${rel}`}`);
+      }
       instance.model = loaded;
 
       loaded.scene.scale.setScalar(instance.def.scale * WILDLIFE_SIZE_FACTOR);
@@ -376,7 +416,14 @@ export class CreatureManager {
 
       for (const clip of loaded.clips) {
         for (const [stateKey, clipName] of Object.entries(animDef)) {
-          if (clipName && clip.name === clipName) {
+          if (!clipName) continue;
+          const exact = clip.name === clipName;
+          const fuzzy =
+            !exact &&
+            (clip.name.toLowerCase().includes(String(clipName).toLowerCase()) ||
+              String(clipName).toLowerCase().includes(clip.name.toLowerCase()));
+          if (exact || fuzzy) {
+            if (instance.actions.has(stateKey) && !exact) continue;
             const action = instance.mixer.clipAction(clip, loaded.scene);
             instance.actions.set(stateKey, action);
           }
@@ -490,6 +537,9 @@ export class CreatureManager {
           break;
         case 'dead':
           this.updateDead(c, dt);
+          break;
+        case 'skeleton':
+          this.updateSkeleton(c, dt);
           break;
         case 'despawned':
           this.updateDespawned(c, dt);
@@ -610,8 +660,15 @@ export class CreatureManager {
     c.stateTimer -= dt;
     this.playAnim(c, 'death', false);
 
+    // After 2 minutes unskinned → skeleton residual (Skeletons_Free).
     if (c.stateTimer <= 0) {
-      // Hide and start respawn timer (1–5 minutes)
+      void this.toSkeleton(c);
+    }
+  }
+
+  private updateSkeleton(c: CreatureInstance, dt: number): void {
+    c.skeletonT -= dt;
+    if (c.skeletonT <= 0) {
       c.group.visible = false;
       c.state = 'despawned';
       c.respawnTimer = this.clampRespawnSec(c.def.respawnTime);
@@ -621,10 +678,21 @@ export class CreatureManager {
   private updateDespawned(c: CreatureInstance, dt: number): void {
     c.respawnTimer -= dt;
     if (c.respawnTimer <= 0) {
-      // Respawn at original position
+      // Respawn at original position — restore flesh if it was a skeleton
       c.hp = c.def.hp;
       c.provoked = false;
       c.alerted = false;
+      c.looted = false;
+      c.isSkeleton = false;
+      c.skeletonT = 0;
+      // Remove skeleton residual, re-show original model
+      const toRemove: THREE.Object3D[] = [];
+      c.group.traverse((o) => {
+        if (o.userData?.skeletonCorpse) toRemove.push(o);
+      });
+      for (const o of toRemove) o.parent?.remove(o);
+      if (c.fleshRoot) c.fleshRoot.visible = true;
+      if (c.model?.scene) c.model.scene.visible = true;
       c.group.position.copy(c.spawnPos);
       c.group.visible = true;
       c.group.rotation.y = this.rand() * Math.PI * 2;
@@ -633,12 +701,80 @@ export class CreatureManager {
     }
   }
 
+  /** Replace flesh with Skeletons_Free residual (loot or 2 min dead). */
+  private async toSkeleton(c: CreatureInstance): Promise<void> {
+    if (c.isSkeleton || c.state === 'despawned') return;
+    c.isSkeleton = true;
+    c.looted = true;
+    c.state = 'skeleton';
+    c.skeletonT = SKELETON_LINGER_S;
+    c.mixer?.stopAllAction();
+
+    // Hide flesh mesh
+    if (c.model?.scene) {
+      c.fleshRoot = c.model.scene;
+      c.model.scene.visible = false;
+    }
+    const placeholder = c.group.getObjectByName('__placeholder');
+    if (placeholder) placeholder.visible = false;
+
+    const scale = skeletonScaleForBodyHeight(
+      c.def.category === 'bird' ? 0.35 : c.def.scale * 1.2 * WILDLIFE_SIZE_FACTOR,
+    );
+    const skel = await createSkeletonCorpse({
+      position: new THREE.Vector3(0, 0, 0),
+      yaw: c.group.rotation.y,
+      scale,
+      variant: 'humanoid',
+      lieDown: true,
+    });
+    if (skel) c.group.add(skel);
+  }
+
+  /**
+   * Skin / loot a nearby dead creature (huntable flesh only).
+   * Grants loot once, then swaps to skeleton residual immediately.
+   */
+  trySkinNear(
+    pos: THREE.Vector3,
+    reach = 3.0,
+  ): CreatureLootEvent | null {
+    let best: CreatureInstance | null = null;
+    let bestD = reach;
+    for (const c of this.creatures.values()) {
+      if (c.state !== 'dead' || c.looted || c.isSkeleton) continue;
+      if (c.def.category === 'fish') continue;
+      const d = c.group.position.distanceTo(pos);
+      if (d <= bestD) {
+        best = c;
+        bestD = d;
+      }
+    }
+    if (!best) return null;
+
+    best.looted = true;
+    const loot = rollLoot(best.def, this.rand);
+    const event: CreatureLootEvent = {
+      creatureId: best.id,
+      creatureName: best.def.name,
+      position: best.group.position.clone(),
+      loot,
+    };
+    this.onLootDrop?.(event);
+    void this.toSkeleton(best);
+    return event;
+  }
+
   // ── Combat Interface ───────────────────────────────────────────────────
 
-  /** Deal damage to a creature. Returns loot if killed. */
+  /**
+   * Deal damage to a creature.
+   * On kill: starts 2-minute flesh corpse (skin with trySkinNear). Loot is
+   * deferred until skin — no auto-drop on death.
+   */
   dealDamage(creatureId: string, damage: number): CreatureLootEvent | null {
     const c = this.creatures.get(creatureId);
-    if (!c || c.state === 'dead' || c.state === 'despawned') return null;
+    if (!c || c.state === 'dead' || c.state === 'skeleton' || c.state === 'despawned') return null;
 
     c.hp = Math.max(0, c.hp - damage);
 
@@ -655,18 +791,12 @@ export class CreatureManager {
       return null;
     }
 
-    // Killed
+    // Killed — flesh corpse for up to 2 minutes (or until skinned).
+    c.looted = false;
+    c.isSkeleton = false;
     this.setState(c, 'dead', DEATH_LINGER_TIME);
-
-    const loot = rollLoot(c.def, this.rand);
-    const event: CreatureLootEvent = {
-      creatureId: c.id,
-      creatureName: c.def.name,
-      position: c.group.position.clone(),
-      loot,
-    };
-    this.onLootDrop?.(event);
-    return event;
+    this.playAnim(c, 'death', false);
+    return null;
   }
 
   /** Find nearest alive creature within range of a position */
@@ -679,7 +809,7 @@ export class CreatureManager {
     let nearest: { id: string; dist: number; name: string; huntValue: number } | null = null;
 
     for (const [id, c] of this.creatures) {
-      if (c.state === 'dead' || c.state === 'despawned') continue;
+      if (c.state === 'dead' || c.state === 'skeleton' || c.state === 'despawned') continue;
       if (category && c.def.category !== category) continue;
       if (huntableOnly && !c.def.huntable) continue;
 
@@ -718,7 +848,7 @@ export class CreatureManager {
       category: string;
     }> = [];
     for (const [id, c] of this.creatures) {
-      if (c.state === 'dead' || c.state === 'despawned') continue;
+      if (c.state === 'dead' || c.state === 'skeleton' || c.state === 'despawned') continue;
       if (c.def.category === 'fish') continue;
       const dist = c.group.position.distanceTo(pos);
       if (dist > maxRange) continue;
@@ -740,19 +870,19 @@ export class CreatureManager {
   /** Alive check for soft-lock / combat preference */
   isAlive(id: string): boolean {
     const c = this.creatures.get(id);
-    return !!c && c.state !== 'dead' && c.state !== 'despawned';
+    return !!c && c.state !== 'dead' && c.state !== 'skeleton' && c.state !== 'despawned';
   }
 
   getWorldPosition(id: string): THREE.Vector3 | null {
     const c = this.creatures.get(id);
-    if (!c || c.state === 'dead' || c.state === 'despawned') return null;
+    if (!c || c.state === 'dead' || c.state === 'skeleton' || c.state === 'despawned') return null;
     return c.group.position.clone();
   }
 
   /** Horizontal push (flame wall / knockback skills) */
   applyKnockback(id: string, dx: number, dz: number): void {
     const c = this.creatures.get(id);
-    if (!c || c.state === 'dead' || c.state === 'despawned') return;
+    if (!c || c.state === 'dead' || c.state === 'skeleton' || c.state === 'despawned') return;
     c.group.position.x += dx;
     c.group.position.z += dz;
     if (this.sampleHeight) {
@@ -862,7 +992,7 @@ export class CreatureManager {
   get aliveCount(): number {
     let n = 0;
     for (const [, c] of this.creatures) {
-      if (c.state !== 'dead' && c.state !== 'despawned') n++;
+      if (c.state !== 'dead' && c.state !== 'skeleton' && c.state !== 'despawned') n++;
     }
     return n;
   }
