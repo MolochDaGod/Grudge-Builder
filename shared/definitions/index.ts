@@ -52,8 +52,7 @@ export * from "./grimoireCastSystem";
 export * from "./rangerCastSystem";
 export * from "./warriorCastSystem";
 export * from "./statusEffects";
-export * from "./statusMagicIndicators";
-export * from "./supernovaImpactVfx";
+// statusMagicIndicators / supernovaImpactVfx not present on disk — do not re-export (breaks CI client build).
 export * from "./gameAudioCatalog";
 export * from "./weaponAttachSystem";
 export * from "./hiddenMountainCity";
