@@ -10,8 +10,13 @@
  *  - Size foundations: Driftwood Bay (coast) + Ironfang Spire (highland)
  *  - Harvest regen: 4 hours (generative seed deployment)
  *  - Character reference: 2.0 m
+ *  - Universal seed layers (seedContentContract): land wood/stone/crystal/animal/
+ *    flower/hemp/scrap/pve_zone; water fishing + enemy_ship; sky birds/weather/
+ *    dragon/air_mount; optional dungeon/boss/camp/treasure…
  */
 import { CHARACTER_REFERENCE_HEIGHT_M } from './homeIslandSpec';
+// Seed content contract (required node kinds + respawn rings) —
+// see seedContentContract.ts for validation.
 import {
   MOUNTAIN_TRIAD_PEAK_MODEL_PATHS,
   SKETCHFAB_EVIL_MOUNTAIN_TRIAD,

@@ -297,10 +297,13 @@ export class CharacterController3D {
   private turnSpeed = 3;
   private velocity = new THREE.Vector3();
   private direction = new THREE.Vector3();
-  /** @deprecated use thirdPersonCam — kept for external readers */
-  private cameraOffset = new THREE.Vector3(0, 4.5, 8);
-  /** Editable third-person camera (three-player-controller best practices) */
+  /**
+   * Sole play camera driver (WebGL Insights Ch.23 / CameraMode play_tps).
+   * Created eagerly in constructor — no Orbit dual-write while active.
+   */
   public thirdPersonCam: import('./ThirdPersonCameraSystem').ThirdPersonCameraSystem | null = null;
+  /** When false, skip follow (cinematic / orbit_edit owns the lens). */
+  public cameraFollowEnabled = true;
 
   // Climb raycast helpers
   private climbRaycaster = new THREE.Raycaster();
@@ -336,6 +339,13 @@ export class CharacterController3D {
   private lastMotionProfile: MotionProfile | null = null;
   private hitMarker = 0;
   private rmbDownAt = 0;
+  /**
+   * Auto-walk to world XZ (farm harvest, interactables).
+   * Cancelled by WASD/QE input or clearApproachTarget().
+   */
+  private approachTarget: THREE.Vector3 | null = null;
+  private approachRange = 1.75;
+  private onApproachArrive: (() => void) | null = null;
 
   // Speed multipliers per state
   private static readonly SPEED_MULT: Record<MovementState, number> = {
@@ -356,23 +366,8 @@ export class CharacterController3D {
     this.groundObject = config.groundObject ?? null;
     this.groundSampler = config.groundSampler ?? null;
 
-    // Third-person camera (editable — see ThirdPersonCameraSystem)
-    void import('./ThirdPersonCameraSystem').then(({ ThirdPersonCameraSystem }) => {
-      this.thirdPersonCam = new ThirdPersonCameraSystem(this.camera, {
-        distance: 8,
-        lookAtHeightRatio: 0.72,
-        overShoulder: 0.45,
-        minDistance: 2.2,
-        maxDistance: 14,
-      });
-      this.thirdPersonCam.setCharacterHeight(this.physics.characterHeight);
-      const cols: THREE.Object3D[] = [];
-      if (this.terrainMesh) cols.push(this.terrainMesh);
-      if (this.groundObject) cols.push(this.groundObject);
-      this.thirdPersonCam.setColliders(cols);
-      this.thirdPersonCam.setYaw(this.cameraYaw);
-      this.thirdPersonCam.setPitch(this.cameraPitch);
-    });
+    // Eager TPC — sole play camera (no async gap / dual follow)
+    void this.initThirdPersonCamera();
 
     // Placeholder model (capsule) — will be replaced by GLTF
     this.model = new THREE.Group();
@@ -615,7 +610,8 @@ export class CharacterController3D {
       reason === 'climb_attach' ||
       reason === 'swim_to_edge' ||
       reason === 'edge_grab' ||
-      reason === 'enter_build';
+      reason === 'enter_build' ||
+      reason === 'enter_harvest';
     const dur = this.holster?.requestState('holstered', {
       instant,
       durationSec: instant ? 0 : (quick ? CLIMB_RULES.quickHolsterSec : profile.transitionSec),
@@ -862,7 +858,7 @@ export class CharacterController3D {
     const prevMode = this.mode;
     this.mode = mode;
     this.stateMachine?.updateContext({ inCombat: mode === 'combat' });
-    // Build mode = free WASD + mouse look (editor placement)
+    // Build mode = free WASD + mouse look (editor placement / build hammer)
     this.freeMoveLocomotion = mode === 'build';
 
     if (mode === 'combat') {
@@ -891,19 +887,26 @@ export class CharacterController3D {
 
     // Refresh holster mesh catalog after equip swaps (build hammer may hide weapons)
     this.holster?.setWeaponType(
-      mode === 'build' ? 'unarmed' : (equippedWt as string) || wt,
+      mode === 'build' || mode === 'harvest' ? 'unarmed' : (equippedWt as string) || wt,
     );
     this.holster?.setEquipment(this.equipmentManager);
     this.holster?.rescanWeapons();
 
-    // Tab / mode swap does NOT draw or holster combat weapons.
-    // Only build auto-holsters (hands free for hammer); leave build restores preference.
-    if (mode === 'build' && prevMode !== 'build') {
-      this.drawnBeforeBuild = this.weaponsDrawn || this.playerPrefersDrawn;
+    // Enter harvest → sheath combat weapons (hands free for harvest tool).
+    // Enter build → sheath + hammer. Leave harvest/build → restore draw preference in combat only.
+    if (mode === 'harvest' && prevMode !== 'harvest') {
+      if (prevMode === 'combat') {
+        this.drawnBeforeBuild = this.weaponsDrawn || this.playerPrefersDrawn;
+      }
+      this.beginHolsterWeapons('enter_harvest', true);
+    } else if (mode === 'build' && prevMode !== 'build') {
+      if (prevMode === 'combat') {
+        this.drawnBeforeBuild = this.weaponsDrawn || this.playerPrefersDrawn;
+      }
       this.beginHolsterWeapons('enter_build', true);
-    } else if (prevMode === 'build' && mode !== 'build') {
+    } else if (mode === 'combat' && prevMode !== 'combat') {
       if (this.drawnBeforeBuild || this.playerPrefersDrawn) {
-        this.beginDrawWeapons(false, 'leave_build');
+        this.beginDrawWeapons(false, prevMode === 'harvest' ? 'leave_harvest' : 'leave_build');
       }
       // else stay holstered — player uses Z to pull out
     }
@@ -1147,7 +1150,12 @@ export class CharacterController3D {
         }
       }
       if (e.button === 2) {
-        if (performance.now() - this.rmbDownAt < 220 && !this.ikDebug) {
+        // Short RMB in combat = hard-focus toggle; harvest mode uses RMB for crop gather
+        if (
+          this.mode === 'combat' &&
+          performance.now() - this.rmbDownAt < 220 &&
+          !this.ikDebug
+        ) {
           this.focusEnabled = !this.focusEnabled;
         }
         this.rmbHeld = false;
@@ -1380,18 +1388,17 @@ export class CharacterController3D {
       this.velocity.set(0, 0, 0);
     } else {
       // Build / freeMove: WASD strafe relative to camera (editor free movement).
-      // Default combat/harvest: W/S walk, Q/E strafe, A/D turn camera.
+      // Default combat/harvest: W/S walk, E strafe right, A/D turn camera.
+      // Q is reserved for combat ↔ harvest mode swap (ModePlayHUD) — not strafe.
       if (freeMove) {
         if (this.keys.has('w')) { this.direction.z -= 1; moving = true; }
         if (this.keys.has('s')) { this.direction.z += 1; moving = true; }
         if (this.keys.has('a')) { this.direction.x -= 1; moving = true; }
         if (this.keys.has('d')) { this.direction.x += 1; moving = true; }
-        if (this.keys.has('q')) { this.direction.x -= 1; moving = true; }
         if (this.keys.has('e')) { this.direction.x += 1; moving = true; }
       } else {
         if (this.keys.has('w')) { this.direction.z -= 1; moving = true; }
         if (this.keys.has('s')) { this.direction.z += 1; moving = true; }
-        if (this.keys.has('q')) { this.direction.x -= 1; moving = true; }
         if (this.keys.has('e')) { this.direction.x += 1; moving = true; }
         if (this.keys.has('a')) { this.cameraYaw += this.turnSpeed * dt; }
         if (this.keys.has('d')) { this.cameraYaw -= this.turnSpeed * dt; }
@@ -1399,8 +1406,34 @@ export class CharacterController3D {
 
       if (this.direction.length() > 0) this.direction.normalize();
 
+      // Player steering cancels auto-approach (farm harvest walk)
+      if (moving && this.approachTarget) {
+        this.clearApproachTarget();
+      }
+
       const moveDir = this.direction.clone();
       moveDir.applyAxisAngle(new THREE.Vector3(0, 1, 0), this.cameraYaw);
+
+      // Auto-walk toward approach target when idle
+      if (this.approachTarget && !moving) {
+        const dx = this.approachTarget.x - this.model.position.x;
+        const dz = this.approachTarget.z - this.model.position.z;
+        const dist = Math.hypot(dx, dz);
+        if (dist <= this.approachRange) {
+          const cb = this.onApproachArrive;
+          this.clearApproachTarget();
+          cb?.();
+        } else if (dist > 1e-4) {
+          moveDir.set(dx / dist, 0, dz / dist);
+          moving = true;
+          const targetAngle = Math.atan2(dx, dz);
+          const cur = this.model.rotation.y;
+          let diff = targetAngle - cur;
+          while (diff > Math.PI) diff -= Math.PI * 2;
+          while (diff < -Math.PI) diff += Math.PI * 2;
+          this.model.rotation.y = cur + diff * Math.min(1, dt * 10);
+        }
+      }
 
       const speedMult = CharacterController3D.SPEED_MULT[this.movementState];
       const effectiveSpeed = this.baseMoveSpeed * speedMult;
@@ -1701,29 +1734,45 @@ export class CharacterController3D {
 
   // ─── Climbing detection ────────────────────────────────────────────────────
 
+  private async initThirdPersonCamera(): Promise<void> {
+    const { ThirdPersonCameraSystem } = await import('./ThirdPersonCameraSystem');
+    if (this.thirdPersonCam) return;
+    this.thirdPersonCam = new ThirdPersonCameraSystem(this.camera, {
+      distance: 8,
+      lookAtHeightRatio: 0.72,
+      overShoulder: 0.45,
+      minDistance: 2.2,
+      maxDistance: 14,
+    });
+    this.thirdPersonCam.setCharacterHeight(this.physics.characterHeight);
+    const cols: THREE.Object3D[] = [];
+    if (this.terrainMesh) cols.push(this.terrainMesh);
+    if (this.groundObject) cols.push(this.groundObject);
+    this.thirdPersonCam.setColliders(cols);
+    this.thirdPersonCam.setYaw(this.cameraYaw);
+    this.thirdPersonCam.setPitch(this.cameraPitch);
+  }
+
+  /**
+   * Play camera only. Skipped when cameraFollowEnabled is false
+   * (cinematic / orbit_edit — see Island3DEngine.setCameraMode).
+   * No inline dual-lerp fallback — TPC is the sole writer.
+   */
   private syncCameraFollow(dt: number): void {
-    if (this.thirdPersonCam) {
-      this.thirdPersonCam.setCharacterHeight(this.physics.characterHeight);
-      // Keep colliders fresh (terrain + climb meshes for ship/island walls)
-      const cols: THREE.Object3D[] = [];
-      if (this.terrainMesh) cols.push(this.terrainMesh);
-      if (this.groundObject) cols.push(this.groundObject);
-      for (const m of this.climbMeshes) cols.push(m);
-      this.thirdPersonCam.setColliders(cols);
-      // Sync yaw from A/D turn when not using free-look delta
-      this.thirdPersonCam.setYaw(this.cameraYaw);
-      this.thirdPersonCam.update(this.model.position, dt);
-      this.cameraPitch = this.thirdPersonCam.getPitch();
+    if (!this.cameraFollowEnabled) return;
+    if (!this.thirdPersonCam) {
+      void this.initThirdPersonCamera();
       return;
     }
-    // Fallback simple OTS if camera system not loaded yet
-    const cameraTarget = this.model.position.clone();
-    const offsetRotated = this.cameraOffset.clone();
-    offsetRotated.applyAxisAngle(new THREE.Vector3(0, 1, 0), this.cameraYaw);
-    offsetRotated.y *= (1 + this.cameraPitch);
-    const desiredCamPos = cameraTarget.clone().add(offsetRotated);
-    this.camera.position.lerp(desiredCamPos, dt * 5);
-    this.camera.lookAt(cameraTarget.x, cameraTarget.y + 3, cameraTarget.z);
+    this.thirdPersonCam.setCharacterHeight(this.physics.characterHeight);
+    const cols: THREE.Object3D[] = [];
+    if (this.terrainMesh) cols.push(this.terrainMesh);
+    if (this.groundObject) cols.push(this.groundObject);
+    for (const m of this.climbMeshes) cols.push(m);
+    this.thirdPersonCam.setColliders(cols);
+    this.thirdPersonCam.setYaw(this.cameraYaw);
+    this.thirdPersonCam.update(this.model.position, dt);
+    this.cameraPitch = this.thirdPersonCam.getPitch();
   }
 
   /** Climb surface sample — returns null if no climbable wall in range. */
@@ -1972,6 +2021,29 @@ export class CharacterController3D {
 
   getPosition(): THREE.Vector3 {
     return this.model.position.clone();
+  }
+
+  /**
+   * Walk to world position (XZ), then fire onArrive when within range.
+   * Used by farm crop harvest (RMB on final form).
+   */
+  setApproachTarget(
+    worldPos: THREE.Vector3,
+    onArrive?: () => void,
+    rangeM = 1.75,
+  ): void {
+    this.approachTarget = worldPos.clone();
+    this.onApproachArrive = onArrive ?? null;
+    this.approachRange = rangeM;
+  }
+
+  clearApproachTarget(): void {
+    this.approachTarget = null;
+    this.onApproachArrive = null;
+  }
+
+  get hasApproachTarget(): boolean {
+    return this.approachTarget != null;
   }
 
   getKeys(): Set<string> {

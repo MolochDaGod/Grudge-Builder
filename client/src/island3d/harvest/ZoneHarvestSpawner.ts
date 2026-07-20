@@ -30,6 +30,7 @@ import {
   findValidPlacement,
   type HarvestKind,
 } from './RegenerativeHarvest';
+import { sampleHarvestScatterSlots } from './ThreeScatterHarvest';
 import { calibrateHarvestScale } from '../zoneWorldScale';
 
 export interface ZoneHarvestSpawnResult {
@@ -71,12 +72,89 @@ function isGoldResource(node: HarvestNode): boolean {
   return /gold|ore|silver|copper|iron|vein|mining/.test(id) && node.tier >= 3;
 }
 
+function hashString(s: string): number {
+  let h = 2166136261 >>> 0;
+  for (let i = 0; i < s.length; i++) h = Math.imul(h ^ s.charCodeAt(i), 16777619) >>> 0;
+  return h >>> 0;
+}
+
+/**
+ * three-scatter style density fill on island meshes (seeded surface samples).
+ * Visual extras only (`userData.scatterFill`) until room owns ids.
+ * @see https://github.com/JaimeTorrealba/three-scatter
+ */
+export function scatterFillHarvestOnIslands(
+  scene: THREE.Scene,
+  islandMeshes: Map<string, THREE.Mesh>,
+  opts: {
+    seed: number;
+    waterLevel?: number;
+    perIslandFill?: number;
+  },
+): ZoneHarvestSpawnResult {
+  const result: ZoneHarvestSpawnResult = {
+    trees: [],
+    rocks: [],
+    crystals: [],
+    hemps: [],
+    flowers: [],
+    scraps: [],
+  };
+  const waterLevel = opts.waterLevel ?? 0;
+  const fill = opts.perIslandFill ?? 8;
+  let islandIdx = 0;
+  for (const [, mesh] of islandMeshes) {
+    const geo = mesh.geometry;
+    if (!geo) continue;
+    mesh.updateWorldMatrix(true, false);
+    const kinds: HarvestKind[] = ['tree', 'rock', 'flower', 'hemp'];
+    const slots = sampleHarvestScatterSlots(
+      {
+        baseGeometry: geo,
+        baseMatrixWorld: mesh.matrixWorld.clone(),
+        count: fill,
+        seed: opts.seed + islandIdx * 9973,
+        waterLevel,
+        minNormalY: 0.5,
+      },
+      (i) => kinds[i % kinds.length],
+    );
+    for (const slot of slots) {
+      const scale = 0.85 + (slot.seed % 10) * 0.02;
+      if (slot.kind === 'tree') {
+        const tree = createHarvestableTree(slot.position, scale);
+        tree.group.userData.scatterFill = true;
+        scene.add(tree.group);
+        result.trees.push(tree);
+      } else if (slot.kind === 'rock') {
+        const rock = createHarvestableRock(slot.position, scale);
+        rock.group.userData.scatterFill = true;
+        scene.add(rock.group);
+        result.rocks.push(rock);
+      } else if (slot.kind === 'flower') {
+        const flower = createFlowerPatch(slot.position, scale);
+        flower.group.userData.scatterFill = true;
+        scene.add(flower.group);
+        result.flowers.push(flower);
+      } else if (slot.kind === 'hemp') {
+        const hemp = createHempPlant(slot.position, scale);
+        hemp.group.userData.scatterFill = true;
+        scene.add(hemp.group);
+        result.hemps.push(hemp);
+      }
+    }
+    islandIdx++;
+  }
+  return result;
+}
+
 export function spawnZoneHarvestNodes(
   scene: THREE.Scene,
   population: ZonePopulation,
   islandMeshes: Map<string, THREE.Mesh>,
   markers?: Map<string, THREE.Object3D>,
   waterLevel = 0,
+  scatterOpts?: { seed?: number; fill?: boolean; perIslandFill?: number },
 ): ZoneHarvestSpawnResult {
   const result: ZoneHarvestSpawnResult = {
     trees: [],
@@ -110,7 +188,28 @@ export function spawnZoneHarvestNodes(
     else if (node.profession === 'mining' && isGemResource(node)) kind = 'crystal';
     else if (node.profession === 'mining') kind = 'rock';
 
-    const placement = findValidPlacement(kind, wx, wz, waterLevel, sample);
+    let placement = findValidPlacement(kind, wx, wz, waterLevel, sample);
+    // three-scatter fallback when node is slightly off terrain mesh
+    if (!placement && islandMesh.geometry) {
+      islandMesh.updateWorldMatrix(true, false);
+      const slots = sampleHarvestScatterSlots(
+        {
+          baseGeometry: islandMesh.geometry,
+          baseMatrixWorld: islandMesh.matrixWorld.clone(),
+          count: 1,
+          seed: hashString(node.id),
+          waterLevel,
+        },
+        () => kind,
+      );
+      if (slots[0]) {
+        placement = {
+          x: slots[0].position.x,
+          y: slots[0].position.y,
+          z: slots[0].position.z,
+        };
+      }
+    }
     if (!placement) continue; // refuse water / invalid land
 
     const pos = new THREE.Vector3(placement.x, placement.y, placement.z);
@@ -156,6 +255,21 @@ export function spawnZoneHarvestNodes(
 
     const marker = markers?.get(node.id);
     if (marker) marker.visible = false;
+  }
+
+  // Optional three-scatter density fill (seeded surface samples on island meshes)
+  if (scatterOpts?.fill !== false) {
+    const fill = scatterFillHarvestOnIslands(scene, islandMeshes, {
+      seed: scatterOpts?.seed ?? hashString(population.sectorId ?? population.worldSeed ?? 'zone'),
+      waterLevel,
+      perIslandFill: scatterOpts?.perIslandFill ?? 6,
+    });
+    result.trees.push(...fill.trees);
+    result.rocks.push(...fill.rocks);
+    result.crystals.push(...fill.crystals);
+    result.hemps.push(...fill.hemps);
+    result.flowers.push(...fill.flowers);
+    result.scraps.push(...fill.scraps);
   }
 
   return result;

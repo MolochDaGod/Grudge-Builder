@@ -225,9 +225,9 @@ export class BuildingSystem {
       depthWrite: false,
     });
 
-    // R key rotates prop 90°
+    // T rotates prop 90° (R is harvest tool radial in ModePlayHUD)
     window.addEventListener('keydown', (e) => {
-      if (e.key === 'r' || e.key === 'R') {
+      if (e.key === 't' || e.key === 'T') {
         if (this.propGhost) {
           this.propRotation = (this.propRotation + Math.PI / 2) % (Math.PI * 2);
           this.propGhost.rotation.y = this.propRotation;

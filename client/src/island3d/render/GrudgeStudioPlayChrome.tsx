@@ -11,6 +11,9 @@ import {
   getPanelParchmentUrl,
   getClassAccentColor,
 } from '@shared/fleet/uiArt';
+import { StatusEffectIcons } from '@/components/StatusEffectIcons';
+import { usePlayerStatusEffects } from '@/hooks/useStatusEffects';
+import { preloadMagicIndicatorThumbs } from '@/lib/magicIndicatorThumbs';
 import type { SoftLockScreenFrame } from '../player/SoftLockSystem';
 import { SoftLockFrame } from './SoftLockFrame';
 import './grudgeStudioPlayChrome.css';
@@ -65,6 +68,11 @@ export function GrudgeStudioPlayChrome({
   const parchment = getPanelParchmentUrl();
   const accent = getClassAccentColor(classId);
   const slots = inventorySlots?.length ? inventorySlots : DEFAULT_INV;
+  const statusEffects = usePlayerStatusEffects();
+
+  useEffect(() => {
+    void preloadMagicIndicatorThumbs();
+  }, []);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -94,6 +102,12 @@ export function GrudgeStudioPlayChrome({
 
       {/* Player unit frame — ui.grudge-studio fantasy kit language */}
       <div className="gspc-unit-frame pointer-events-auto" style={{ ['--gspc-accent' as string]: accent }}>
+        {/* Magic buff/debuff orbs above player frame */}
+        {statusEffects.length > 0 && (
+          <div className="gspc-status-row" data-testid="player-status-magic-icons">
+            <StatusEffectIcons effects={statusEffects} size="sm" maxVisible={8} showTimers />
+          </div>
+        )}
         <div className="gspc-portrait-wrap">
           <img src={portrait} alt="" className="gspc-portrait" draggable={false} />
           <div className="gspc-level">{level}</div>

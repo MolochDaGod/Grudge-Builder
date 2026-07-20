@@ -99,6 +99,9 @@ export class TutorialWakeCinematic {
 
     this.camera.position.copy(this.startCam);
     this.camera.lookAt(this.lookAt);
+    // Prefer engine camera mode if present (WebGL Insights sole-owner law)
+    const eng = (this as { engine?: { beginCinematicCamera?: () => void } }).engine;
+    eng?.beginCinematicCamera?.();
   }
 
   skip(): void {

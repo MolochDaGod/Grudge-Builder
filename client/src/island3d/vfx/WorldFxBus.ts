@@ -1,6 +1,7 @@
 /**
  * WorldFxBus — scene-level fire/smoke/teleport/dash emitters.
  * Attach once per Island3DEngine scene; call update(dt) each frame.
+ * Supernova impact orbs (spell / weapon skill hits) via SupernovaImpactSystem.
  */
 import * as THREE from 'three';
 import {
@@ -8,16 +9,29 @@ import {
   type FxPresetId,
   type ParticleEmitter,
 } from './FireSmokeParticles';
+import {
+  SupernovaImpactSystem,
+  setSupernovaImpactSystem,
+  type SupernovaImpactSpawnOpts,
+} from './SupernovaImpactSystem';
+import type { SupernovaImpactVariant } from '@shared/definitions/supernovaImpactVfx';
+import { SUPERNOVA_VARIANTS } from '@shared/definitions/supernovaImpactVfx';
 
 export class WorldFxBus {
   readonly root = new THREE.Group();
   private emitters: ParticleEmitter[] = [];
   private scene: THREE.Scene;
+  /** Spell / weapon skill impact pack (4 color variants) */
+  readonly supernova: SupernovaImpactSystem;
 
   constructor(scene: THREE.Scene) {
     this.scene = scene;
     this.root.name = 'world_fx_bus';
     scene.add(this.root);
+    this.supernova = new SupernovaImpactSystem(scene);
+    setSupernovaImpactSystem(this.supernova);
+    // Preload large pack in background so first skill hit isn't cold
+    void this.supernova.preload();
   }
 
   /** Continuous or burst emitter at a world position (or attached to object). */
@@ -83,6 +97,47 @@ export class WorldFxBus {
     this.spawn('attack_burst', { position: at, burst: true, burstCount: 24 });
   }
 
+  /**
+   * Spell / weapon skill impact — supernova pack with color variant.
+   * original | blue | purple | yellow
+   */
+  spellImpact(
+    at: THREE.Vector3,
+    opts?: {
+      variant?: SupernovaImpactVariant;
+      school?: string;
+      damageType?: string;
+      vfxKey?: string;
+      scale?: number;
+      /** Also emit particle burst in matching color */
+      withParticles?: boolean;
+    },
+  ): void {
+    const spawn: SupernovaImpactSpawnOpts = {
+      position: at.clone(),
+      variant: opts?.variant,
+      school: opts?.school,
+      damageType: opts?.damageType,
+      vfxKey: opts?.vfxKey,
+      scale: opts?.scale,
+    };
+    this.supernova.spawn(spawn);
+
+    if (opts?.withParticles !== false) {
+      // Lightweight supporting sparks
+      this.spawn('attack_burst', { position: at, burst: true, burstCount: 18 });
+    }
+  }
+
+  /** Weapon skill hit helper (defaults to original / physical). */
+  weaponSkillImpact(
+    at: THREE.Vector3,
+    damageType: string = 'physical',
+    scale?: number,
+  ): void {
+    this.spellImpact(at, { damageType, scale, withParticles: true });
+  }
+
   teleportSmoke(at: THREE.Vector3): void {
     this.spawn('teleport_smoke', { position: at, burst: true, burstCount: 36 });
   }
@@ -117,14 +172,21 @@ export class WorldFxBus {
       if (em.root.parent) still.push(em);
     }
     this.emitters = still;
+    this.supernova.update(dt);
   }
 
   dispose(): void {
     for (const em of this.emitters) em.dispose();
     this.emitters = [];
+    this.supernova.dispose();
+    setSupernovaImpactSystem(null);
     this.scene.remove(this.root);
   }
 }
+
+/** Expose variant catalog for HUD / skill editors */
+export { SUPERNOVA_VARIANTS };
+export type { SupernovaImpactVariant };
 
 function FX_IS_CONTINUOUS(id: FxPresetId): boolean {
   return (

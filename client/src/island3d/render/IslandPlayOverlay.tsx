@@ -56,14 +56,18 @@ export function IslandPlayOverlay({
 
   const handleModeChange = useCallback(
     (m: ControlMode) => {
-      setLocalMode(m);
-      onModeChangeProp?.(m);
-      void engine?.character?.setControlMode(m);
+      // ModePlayHUD already runs enterHarvestMode / enterCombatMode / setHarvestRadialTool.
+      // Map build-hammer sub-state under harvest shell for local UI state.
+      const uiMode: ControlMode = m === 'build' ? 'build' : m;
+      setLocalMode(uiMode);
+      onModeChangeProp?.(m === 'build' ? 'harvest' : m);
       if (m === 'combat' && !session.combatMode) onCombatToggle();
       if (m !== 'combat' && session.combatMode) onCombatToggle();
-      if (m !== 'build') {
-        engine?.cancelBuilding();
-        setSelectedBuildId(null);
+      if (m === 'combat' || m === 'harvest') {
+        if (m === 'combat') {
+          engine?.cancelBuilding();
+          setSelectedBuildId(null);
+        }
       }
     },
     [engine, onModeChangeProp, onCombatToggle, session.combatMode],

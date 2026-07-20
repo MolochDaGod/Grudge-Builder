@@ -482,17 +482,18 @@ export default function PlayPage() {
         </div>
       )}
 
-      {/* RTS triple-mode UI + build palette */}
+      {/* Dual-mode UI: combat / harvest (build via R radial hammer) */}
       {loaded && (
         <ModePlayHUD
           engine={engineRef.current}
           mode={buildPlacing ? 'build' : 'combat'}
           onModeChange={(m) => {
-            void engineRef.current?.character?.setControlMode(m);
-            if (m !== 'build') {
-              engineRef.current?.cancelBuilding();
+            // ModePlayHUD + engine own equip/sheath/tool; sync build-place flag
+            if (m === 'combat' || m === 'harvest') {
               setBuildPlacing(false);
               setBuildSelectedAsset(null);
+            } else if (m === 'build') {
+              setBuildPlacing(true);
             }
           }}
           characterName={playerInfo?.characterName}

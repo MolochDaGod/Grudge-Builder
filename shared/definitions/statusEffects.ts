@@ -2,7 +2,12 @@
  * Status Effects (Buffs / Debuffs) — CANONICAL SSOT
  *
  * Applied by combat, poisons, ranger/mage/warrior bars, traps, etc.
- * Icons render above unit frames (CombatUnitStatus, PlayerStatusBars, nameplates).
+ * Icons render above unit frames (CombatUnitStatus, PlayerStatusBars, nameplates,
+ * SoftLockFrame, GrudgeStudioPlayChrome).
+ *
+ * Visual language: magic orb GLBs from statusMagicIndicators (arcane/command/…
+ * chemical buffs · dark/blood/binding/atomic/primordial debuffs). See
+ * resolveMagicIndicator() — 2D icon paths remain as secondary fallback.
  *
  * Icon paths are public URL paths under assets CDN / local public (icons/misc/*).
  * emojiFallback is always available for HUD if art is missing.

@@ -29,13 +29,17 @@ import {
   hasWaterBucket,
   shovelModeFromModifiers,
   type GroundToolId,
+  type HarvestRadialToolId,
+  DEFAULT_HARVEST_RADIAL_TOOL,
 } from '@/game/harvest/HarvestToolActions';
 import { FarmPlotSystem } from '../farming/FarmPlotSystem';
 import { GroundToolBrush } from '../farming/GroundToolBrush';
+import { preloadCropPack } from '../farming/CropPackLoader';
 import {
   ITEM_EMPTY_BUCKET,
   ITEM_WATER_BUCKET,
   STARTER_SEED_STACKS,
+  FARM_HARVEST_RANGE_M,
   tryAutoWaterCraft,
   getSeedById,
 } from '@shared/definitions/farming';
@@ -89,6 +93,11 @@ import { PostProcessing, type QualityPreset } from '../render/PostProcessing';
 import { DayNightCycle, type DayNightConfig } from '../environment/DayNightCycle';
 import { getTideHeight, DAY_NIGHT_DEFAULTS } from '@shared/definitions/gameClock';
 import { CharacterController3D, type CharacterController3DConfig, type PhysicsCallbacks } from '../player/CharacterController3D';
+import {
+  type CameraMode,
+  orbitEnabledForMode,
+  playCameraActive,
+} from '../player/CameraMode';
 import { TerrainNavMesh } from '../navigation/TerrainNavMesh';
 import { AllyManager, type CombatTarget } from '../ai/AllyController';
 import { BuildingSystem, type PieceType } from '../building/BuildingSystem';
@@ -273,6 +282,14 @@ export class Island3DEngine {
   private scene: THREE.Scene;
   private camera: THREE.PerspectiveCamera;
   private controls: OrbitControls;
+  /**
+   * Sole camera ownership (WebGL Insights Ch.23).
+   * play_tps → CharacterController3D.thirdPersonCam only.
+   * orbit_edit / map → OrbitControls only.
+   * cinematic → external (wake/flyby); neither TPC nor Orbit write.
+   */
+  private cameraMode: CameraMode = 'orbit_edit';
+  private cameraModeBeforeCinematic: CameraMode | null = null;
   private clock: THREE.Clock;
   private animationFrameId: number | null = null;
   private isRunning = false;
@@ -443,6 +460,14 @@ export class Island3DEngine {
    * When null, equipment MainHand is used for shovel/hoe/bucket.
    */
   public harvestToolOverride: GroundToolId = null;
+  /**
+   * R-radial harvest tool (hatchet / pick / knife / fishing / build hammer).
+   * Last selection is restored when re-entering harvest (default hatchet).
+   */
+  public activeHarvestTool: HarvestRadialToolId = DEFAULT_HARVEST_RADIAL_TOOL;
+  public lastHarvestTool: HarvestRadialToolId = DEFAULT_HARVEST_RADIAL_TOOL;
+  /** True when build hammer is selected — build UI open under harvest shell. */
+  public harvestBuildUiOpen = false;
   /** Selected seed item id for planting (from action slots / inventory). */
   public selectedSeedId: string | null = null;
   /** Empty vs full water bucket (Valheim pail). */
@@ -456,9 +481,9 @@ export class Island3DEngine {
   private shovelCooldownUntil = 0;
   private groundToolCooldownUntil = 0;
 
-  /** Valheim farm plots (hoe / seed / water) */
+  /** Square 4×4 garden beds (hoe / seed / water / RMB harvest) */
   public farmPlots: FarmPlotSystem | null = null;
-  /** 2 m ground-tool circle preview */
+  /** Ground-tool brush preview (square plot / shovel circle) */
   public groundBrush: GroundToolBrush | null = null;
   /** Optional external bag merge (page resources) */
   private externalResourceGetter: (() => Record<string, number>) | null = null;
@@ -469,19 +494,25 @@ export class Island3DEngine {
   private treeFallCompleting = new Set<HarvestableTree>();
 
   constructor(private config: Island3DEngineConfig) {
-    // Renderer
+    // Renderer — threejs-production-best-practices (r185+): high-perf GPU,
+    // sRGB output, ACES, pixel-ratio cap, no stencil/preserve buffer.
     this.renderer = new THREE.WebGLRenderer({
       canvas: config.canvas,
-      antialias: true,
+      antialias: true, // MSAA; cheaper/cleaner than FXAA post on modern GPUs
       alpha: false,
+      powerPreference: "high-performance",
+      stencil: false,
+      preserveDrawingBuffer: false,
     });
     this.renderer.setSize(config.width, config.height);
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    // Cap fill-rate (especially mobile / multi-GPU laptops)
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
+    this.renderer.outputColorSpace = THREE.SRGBColorSpace;
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     this.renderer.localClippingEnabled = true;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    this.renderer.toneMappingExposure = 1.2;
+    this.renderer.toneMappingExposure = 1.05;
 
     // Scene
     this.scene = new THREE.Scene();
@@ -506,9 +537,10 @@ export class Island3DEngine {
 
     this.setupLighting();
 
-    // Fire/smoke particle bus (boats, campfires, attacks, teleports, dash feet)
+    // Fire/smoke + supernova spell/weapon impacts (4 color variants)
     void import('../vfx/WorldFxBus').then(({ WorldFxBus, setWorldFxBus }) => {
       this.worldFx = new WorldFxBus(this.scene);
+      this.worldFx.supernova.setCamera(this.camera);
       setWorldFxBus(this.worldFx);
       this.character?.setWorldFxBus?.(this.worldFx);
     });
@@ -525,19 +557,22 @@ export class Island3DEngine {
     this.hemiLight = new THREE.HemisphereLight(0x87ceeb, 0x3a5f0b, 0.6);
     this.scene.add(this.hemiLight);
 
-    // Directional sun light with shadows
+    // Directional sun — SI-ish intensity; tight shadow frustum for FPS
+    // (prefer follow-player update in tick over world-scale 2048 maps).
     this.sunLight = new THREE.DirectionalLight(0xfff4e0, 1.2);
     this.sunLight.position.set(150, 200, 100);
     this.sunLight.castShadow = true;
-    this.sunLight.shadow.mapSize.width = 2048;
-    this.sunLight.shadow.mapSize.height = 2048;
-    this.sunLight.shadow.camera.left = -300;
-    this.sunLight.shadow.camera.right = 300;
-    this.sunLight.shadow.camera.top = 300;
-    this.sunLight.shadow.camera.bottom = -300;
+    this.sunLight.shadow.mapSize.width = 1024;
+    this.sunLight.shadow.mapSize.height = 1024;
+    this.sunLight.shadow.bias = -0.0008;
+    this.sunLight.shadow.normalBias = 0.04;
+    this.sunLight.shadow.camera.left = -80;
+    this.sunLight.shadow.camera.right = 80;
+    this.sunLight.shadow.camera.top = 80;
+    this.sunLight.shadow.camera.bottom = -80;
     this.sunLight.shadow.camera.near = 1;
-    this.sunLight.shadow.camera.far = 800;
-    this.sunLight.shadow.bias = -0.001;
+    this.sunLight.shadow.camera.far = 400;
+    this.scene.add(this.sunLight.target);
     this.scene.add(this.sunLight);
 
     // Subtle fill light from opposite side
@@ -815,8 +850,7 @@ export class Island3DEngine {
     } catch (err) {
       console.warn('[Island3D] Lobby Grudge6 character apply failed — capsule until UI reload', err);
     }
-    this.controls.enabled = false;
-    this.characterActive = true;
+    this.setCameraMode('play_tps');
     this.lobbyShip?.attachBoarding(this.character);
 
     this.camera.position.set(
@@ -1456,8 +1490,7 @@ export class Island3DEngine {
         callbacks: this.config.physicsCallbacks,
       });
       this.character.setWorldFxBus?.(this.worldFx);
-      this.controls.enabled = false;
-      this.characterActive = true;
+      this.setCameraMode('play_tps');
       // Race prefab applied by Island3DRenderer (Grudge6 apply effect) once roster resolves
       console.log('[Island3DEngine] Zone character controller ready — awaiting Grudge6 race prefab');
     }
@@ -1890,9 +1923,8 @@ export class Island3DEngine {
       `[Island3D] Hero on board cell ${cell.label} @ (${startPos.x.toFixed(1)}, ${startPos.y.toFixed(1)}, ${startPos.z.toFixed(1)})`,
     );
 
-    // Disable orbit controls — character owns the camera now
-    this.controls.enabled = false;
-    this.characterActive = true;
+    // Character owns the camera (TPC sole driver)
+    this.setCameraMode('play_tps');
   }
 
   /** Update detail layers (grass/sand animation) */
@@ -2081,8 +2113,15 @@ export class Island3DEngine {
     const dt = Math.min(this.clock.getDelta(), 0.05);
     const simDt = dt * this.simTickRate;
 
-    // Camera: Grudge6 on foot/deck/swim, or orbit when no character
-    if (this.characterActive && this.character) {
+    // Camera ownership: one mode writes the lens (TPC vs Orbit vs cinematic)
+    if (this.cameraMode === 'cinematic') {
+      // External cinematic owns camera.position — still tick character anim if present
+      if (this.character) {
+        this.character.cameraFollowEnabled = false;
+        this.character.update(dt);
+      }
+    } else if (playCameraActive(this.cameraMode) && this.characterActive && this.character) {
+      this.character.cameraFollowEnabled = true;
       if (this.lobbyShip) {
         this.lobbyShip.update(dt, this.character.getKeys(), this.character.getCameraYaw());
       }
@@ -2091,7 +2130,8 @@ export class Island3DEngine {
       const cw = this.config.canvas?.clientWidth || window.innerWidth;
       const ch = this.config.canvas?.clientHeight || window.innerHeight;
       this.character.updateSoftLock(cw, ch);
-    } else {
+    } else if (orbitEnabledForMode(this.cameraMode)) {
+      if (this.character) this.character.cameraFollowEnabled = false;
       this.controls.update();
     }
 
@@ -2267,6 +2307,27 @@ export class Island3DEngine {
     return this.lobbyCapture?.points.filter((p) => p.owner === 'player').length ?? 0;
   }
 
+  /**
+   * Map equipped weapon / class to supernova impact damage type
+   * (original / blue / purple / yellow tints).
+   */
+  resolvePlayerDamageType(): string {
+    const wt = (this.character?.weaponType ?? 'sword').toLowerCase();
+    if (wt.includes('staff') || wt.includes('wand') || wt.includes('tome') || wt.includes('grimoire')) {
+      return 'arcane';
+    }
+    if (wt.includes('bow') || wt.includes('crossbow') || wt.includes('gun') || wt.includes('rifle')) {
+      return 'physical';
+    }
+    if (wt.includes('dagger') || wt.includes('knife')) return 'physical';
+    // Mage-ish class id
+    const cls = (this.character as { classId?: string } | null)?.classId?.toLowerCase?.() ?? '';
+    if (cls.includes('mage') || cls.includes('mystic') || cls.includes('sorcer')) return 'arcane';
+    if (cls.includes('priest') || cls.includes('paladin') || cls.includes('cleric')) return 'holy';
+    if (cls.includes('warlock') || cls.includes('necro') || cls.includes('shadow')) return 'shadow';
+    return 'physical';
+  }
+
   /** Is the dungeon portal prompting interaction? */
   get dungeonPortalActive(): boolean {
     if (
@@ -2349,6 +2410,63 @@ export class Island3DEngine {
     }
   }
 
+  /**
+   * Select R-radial harvest tool. Hatchet is default; build hammer opens build UI
+   * while control stays harvest-shell (character freeMove + hammer mesh via 'build').
+   */
+  async setHarvestRadialTool(tool: HarvestRadialToolId): Promise<void> {
+    this.activeHarvestTool = tool;
+    if (tool !== 'toolkit') {
+      this.lastHarvestTool = tool;
+    }
+    this.harvestBuildUiOpen = tool === 'toolkit';
+
+    // Ground-tool override only for farm tools; radial tools clear ground override
+    this.harvestToolOverride = null;
+
+    // Reflect as MainHand id for harvest action resolution (fishing rod, axe, etc.)
+    if (this.character) {
+      const mainHandId =
+        tool === 'axe' ? 't0_hatchet'
+        : tool === 'pickaxe' ? 't0_pickaxe'
+        : tool === 'skinning_knife' ? 't0_knife'
+        : tool === 'fishing_rod' ? 't0_fishing_rod'
+        : tool === 'toolkit' ? 'build_hammer'
+        : null;
+      this.character.setEquipment({
+        ...this.character.equipment,
+        MainHand: mainHandId,
+      });
+    }
+
+    if (tool === 'toolkit') {
+      // Free-move + build hammer mesh; HUD still treats this as harvest sub-state
+      await this.character?.setControlMode('build');
+    } else {
+      // Stay / return to harvest: sheath weapons, no hammer
+      if (this.character?.mode === 'build' || this.character?.hasBuildHammer) {
+        this.cancelBuilding();
+      }
+      await this.character?.setControlMode('harvest');
+    }
+  }
+
+  /** Re-equip last harvest tool when entering harvest mode (default hatchet). */
+  async enterHarvestMode(): Promise<void> {
+    const tool =
+      this.lastHarvestTool === 'toolkit'
+        ? DEFAULT_HARVEST_RADIAL_TOOL
+        : (this.lastHarvestTool || DEFAULT_HARVEST_RADIAL_TOOL);
+    await this.setHarvestRadialTool(tool);
+  }
+
+  /** Leave harvest/build shell → combat. */
+  async enterCombatMode(classId?: string, hasWeapon = false): Promise<void> {
+    this.harvestBuildUiOpen = false;
+    this.cancelBuilding();
+    await this.character?.setControlMode('combat', classId, hasWeapon);
+  }
+
   setSelectedSeed(seedId: string | null): void {
     this.selectedSeedId = seedId;
     if (seedId) this.harvestToolOverride = 'seed';
@@ -2382,17 +2500,20 @@ export class Island3DEngine {
     return bag[itemId] ?? 0;
   }
 
-  /** Ensure farm system + 2 m brush exist (home / zone after terrain ready). */
+  /** Ensure farm system + square 4×4 brush exist (home / zone after terrain ready). */
   ensureFarmSystems(): void {
     if (!this.farmPlots) {
       this.farmPlots = new FarmPlotSystem();
       this.scene.add(this.farmPlots.group);
+      void preloadCropPack();
       this.farmPlots.setHarvestHandler((ev) => {
         this.adjustItem(ev.itemId, ev.qty);
         // Chance to return a seed for replanting
         const seedMap: Record<string, string> = {
           carrot: 'seed_carrot',
           wheat: 'seed_wheat',
+          potato: 'seed_potato',
+          tomato: 'seed_tomato',
           turnip: 'seed_turnip',
           flax: 'seed_flax',
           berries: 'seed_berry',
@@ -2480,7 +2601,7 @@ export class Island3DEngine {
     return true;
   }
 
-  /** Hoe — cultivate 2 m growing circle. */
+  /** Hoe — till square 4×4 garden bed. */
   tryHoeCultivate(clientX: number, clientY: number): boolean {
     if (!this.isHoeActive()) return false;
     this.ensureFarmSystems();
@@ -2569,13 +2690,80 @@ export class Island3DEngine {
     return true;
   }
 
-  /** LMB harvest on ready crop when sickle / bare harvest hits plot. */
+  /** LMB harvest on ready crop when sickle / bare harvest hits plot (instant if in range). */
   tryFarmHarvest(clientX: number, clientY: number): boolean {
     this.ensureFarmSystems();
-    const hit = this.rayToTerrain(clientX, clientY);
-    if (!hit || !this.farmPlots) return false;
-    const ev = this.farmPlots.harvestAt(hit);
+    if (!this.farmPlots) return false;
+
+    // Prefer precise mesh raycast on ready plants
+    const rect = this.config.canvas.getBoundingClientRect();
+    this.mouse.x = ((clientX - rect.left) / rect.width) * 2 - 1;
+    this.mouse.y = -((clientY - rect.top) / rect.height) * 2 + 1;
+    this.raycaster.setFromCamera(this.mouse, this.camera);
+    const ready = this.farmPlots.raycastReadyPlant(this.raycaster)
+      ?? (() => {
+        const hit = this.rayToTerrain(clientX, clientY);
+        return hit ? this.farmPlots!.findReadyPlantAt(hit.x, hit.z) : null;
+      })();
+    if (!ready) return false;
+
+    const player = this.character?.getPosition();
+    if (player) {
+      const dist = Math.hypot(player.x - ready.worldPos.x, player.z - ready.worldPos.z);
+      if (dist > FARM_HARVEST_RANGE_M) {
+        // Out of range: walk to plant then harvest
+        this.beginFarmHarvestApproach(ready.plot.id, ready.cell.index, ready.worldPos);
+        return true;
+      }
+    }
+    const ev = this.farmPlots.harvestCell(ready.plot, ready.cell);
     return !!ev;
+  }
+
+  /**
+   * RMB on final-form crop: player walks to plant, removes it, adds to inventory.
+   * Returns true if a ready plant was targeted (consumes RMB for look/focus).
+   */
+  tryFarmHarvestRmb(clientX: number, clientY: number): boolean {
+    if (this.character && this.character.mode !== 'harvest') return false;
+    this.ensureFarmSystems();
+    if (!this.farmPlots) return false;
+
+    const rect = this.config.canvas.getBoundingClientRect();
+    this.mouse.x = ((clientX - rect.left) / rect.width) * 2 - 1;
+    this.mouse.y = -((clientY - rect.top) / rect.height) * 2 + 1;
+    this.raycaster.setFromCamera(this.mouse, this.camera);
+
+    const ready =
+      this.farmPlots.raycastReadyPlant(this.raycaster) ??
+      (() => {
+        const hit = this.rayToTerrain(clientX, clientY);
+        return hit ? this.farmPlots!.findReadyPlantAt(hit.x, hit.z, 0.7) : null;
+      })();
+    if (!ready) return false;
+
+    this.beginFarmHarvestApproach(ready.plot.id, ready.cell.index, ready.worldPos);
+    return true;
+  }
+
+  private beginFarmHarvestApproach(
+    plotId: string,
+    cellIndex: number,
+    worldPos: THREE.Vector3,
+  ): void {
+    if (!this.character || !this.farmPlots) return;
+    const plots = this.farmPlots;
+    this.character.setApproachTarget(
+      worldPos,
+      () => {
+        const plot = plots.getPlots().find((p) => p.id === plotId);
+        const cell = plot?.cells.find((c) => c.index === cellIndex);
+        if (plot && cell && cell.state === 'ready') {
+          plots.harvestCell(plot, cell);
+        }
+      },
+      FARM_HARVEST_RANGE_M,
+    );
   }
 
   /** Run auto-craft recipes that need water charges (dough, fiber wash, etc.). */
@@ -2670,14 +2858,14 @@ export class Island3DEngine {
       return;
     }
 
-    // Harvest ground tools (2 m circle) — shovel / hoe / seed / bucket
+    // Harvest ground tools — shovel / hoe (4×4 bed) / seed / bucket
     if (this.character?.mode === 'harvest') {
       const ground = this.getActiveGroundTool();
       if (ground === 'shovel' && this.tryShovelSculpt(clientX, clientY, modifiers)) return;
       if (ground === 'hoe' && this.tryHoeCultivate(clientX, clientY)) return;
       if (ground === 'seed' && this.tryPlantSeed(clientX, clientY)) return;
       if (ground === 'bucket' && this.tryBucketUse(clientX, clientY)) return;
-      // Bare LMB on ready crop still harvests
+      // Bare LMB on ready crop still harvests (walk-to if out of range)
       if (!ground && this.tryFarmHarvest(clientX, clientY)) return;
       if (ground === null && this.tryFarmHarvest(clientX, clientY)) return;
     }
@@ -2696,12 +2884,18 @@ export class Island3DEngine {
         const lockPos = this.creatures.getWorldPosition(lockId);
         if (lockPos && lockPos.distanceTo(playerPos) <= 22) {
           this.creatures.dealDamage(lockId, 15);
+          // Weapon skill impact VFX at hit point
+          this.worldFx?.weaponSkillImpact(lockPos, this.resolvePlayerDamageType(), 1.8);
           return;
         }
       }
       const nearest = this.creatures.findNearest(playerPos, 20);
       if (nearest) {
         this.creatures.dealDamage(nearest.id, 15);
+        const hitPos = this.creatures.getWorldPosition(nearest.id);
+        if (hitPos) {
+          this.worldFx?.weaponSkillImpact(hitPos, this.resolvePlayerDamageType(), 1.8);
+        }
         return;
       }
     }
@@ -2877,8 +3071,42 @@ export class Island3DEngine {
 
   /** Toggle between orbit controls and character controller */
   toggleCharacterControl(enabled: boolean): void {
-    this.characterActive = enabled;
-    this.controls.enabled = !enabled;
+    this.setCameraMode(enabled ? 'play_tps' : 'orbit_edit');
+  }
+
+  /** Current camera ownership mode (WebGL Insights Ch.23). */
+  getCameraMode(): CameraMode {
+    return this.cameraMode;
+  }
+
+  /**
+   * Switch sole camera driver. Always call this instead of flipping
+   * controls.enabled / characterActive separately.
+   */
+  setCameraMode(mode: CameraMode): void {
+    if (mode === 'cinematic' && this.cameraMode !== 'cinematic') {
+      this.cameraModeBeforeCinematic = this.cameraMode;
+    }
+    this.cameraMode = mode;
+    this.characterActive = playCameraActive(mode);
+    this.controls.enabled = orbitEnabledForMode(mode);
+    if (this.character) {
+      this.character.cameraFollowEnabled = playCameraActive(mode);
+    }
+  }
+
+  /** Enter cinematic (wake / flyby). Pair with endCinematicCamera(). */
+  beginCinematicCamera(): void {
+    this.setCameraMode('cinematic');
+  }
+
+  /** Restore mode from before cinematic (default play_tps if character). */
+  endCinematicCamera(): void {
+    const restore =
+      this.cameraModeBeforeCinematic
+      ?? (this.character ? 'play_tps' : 'orbit_edit');
+    this.cameraModeBeforeCinematic = null;
+    this.setCameraMode(restore);
   }
 
   /**

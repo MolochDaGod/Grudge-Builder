@@ -1,5 +1,6 @@
 /**
- * LobbyGameHUD — thin wrapper; full RTS triple-mode lives in ModePlayHUD.
+ * LobbyGameHUD — thin wrapper; dual-mode combat/harvest lives in ModePlayHUD.
+ * Build is a harvest sub-state (build hammer via R radial).
  */
 import { useState } from 'react';
 import type { Island3DEngine } from '../engine/Island3DEngine';
@@ -40,7 +41,7 @@ export function LobbyGameHUD({
           <p className="text-slate-500">
             {sailing
               ? '⛵ Deck — WASD · fish at rail · Tab soft-lock · E disembark'
-              : 'Tab soft-lock · Z sheath · modes via HUD'}
+              : 'Q combat/harvest · R tools · Z sheath · Tab soft-lock'}
           </p>
         </div>
       </div>
@@ -49,9 +50,9 @@ export function LobbyGameHUD({
         engine={engine}
         mode={mode}
         onModeChange={(m) => {
+          // ModePlayHUD + engine own setControlMode / tool equip
           setMode(m);
-          void engine?.character?.setControlMode(m);
-          if (m !== 'build') {
+          if (m === 'combat') {
             engine?.cancelBuilding();
             setSelectedBuildId(null);
           }

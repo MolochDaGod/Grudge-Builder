@@ -247,24 +247,48 @@ export class CreatureManager {
     this.spawnFish(fishN, radius);
   }
 
-  /** Spawn fish in water areas only (never on dry land). */
+  /**
+   * Spawn fish in water volumes only (never on dry land / under land mesh).
+   * Uses terrain height sampler when available: seabed must sit below waterLevel
+   * so fish swim in actual water columns, not buried under hills.
+   */
   spawnFish(count: number, radius: number = 200): void {
     const pool = [...getFishCreatures(), ...getWaterPredators()];
     if (pool.length === 0) return;
 
-    for (let i = 0; i < count; i++) {
+    let placed = 0;
+    let attempts = 0;
+    const maxAttempts = count * 24;
+
+    while (placed < count && attempts < maxAttempts) {
+      attempts++;
       const def = pickWeightedCreature(pool, this.rand);
       const angle = this.rand() * Math.PI * 2;
-      const dist = 30 + this.rand() * (radius - 30);
+      const dist = 30 + this.rand() * Math.max(40, radius - 30);
       const x = Math.cos(angle) * dist;
       const z = Math.sin(angle) * dist;
 
+      // Reject if terrain height is dry land (node must be in water column)
+      if (this.sampleHeight) {
+        const groundY = this.sampleHeight(x, z);
+        if (groundY === null || !Number.isFinite(groundY)) continue;
+        // Seabed must be under water; need enough water column for swim depth
+        if (groundY > this.waterLevel - 0.75) continue;
+      }
+
       const depthRange = def.swimDepth || [2, 8];
-      const depth = depthRange[0] + this.rand() * (depthRange[1] - depthRange[0]);
-      // Fish always under water surface
+      let depth = depthRange[0] + this.rand() * (depthRange[1] - depthRange[0]);
+      // Clamp swim depth so fish stay between seabed+0.4 and water surface-0.3
+      if (this.sampleHeight) {
+        const groundY = this.sampleHeight(x, z)!;
+        const maxDepth = Math.max(0.8, this.waterLevel - groundY - 0.4);
+        depth = Math.min(depth, maxDepth);
+      }
       const swimY = this.waterLevel - depth;
+      if (swimY >= this.waterLevel - 0.15) continue; // must be graphically under surface
 
       this.spawnCreature(def, new THREE.Vector3(x, swimY, z), swimY);
+      placed++;
     }
   }
 
@@ -704,6 +728,32 @@ export class CreatureManager {
 
   private pickWanderTarget(c: CreatureInstance): void {
     const roam = c.def.roamRadius ?? WANDER_RADIUS;
+    const isFish = c.def.category === 'fish' || c.def.category === 'predator';
+
+    // Fish / water predators: only roam in water columns (never onto land)
+    if (isFish && this.sampleHeight) {
+      let found = false;
+      for (let i = 0; i < 10; i++) {
+        const t = c.brain.pickRoamTarget(c.spawnPos, roam, this.brainCtx());
+        const groundY = this.sampleHeight(t.x, t.z);
+        if (groundY !== null && groundY <= this.waterLevel - 0.75) {
+          t.y = c.swimY;
+          c.targetPos.copy(t);
+          found = true;
+          break;
+        }
+      }
+      if (!found) {
+        c.targetPos.copy(c.spawnPos);
+        c.targetPos.y = c.swimY;
+      }
+      // Direct swim path (no land navmesh)
+      c.brain.clearPath();
+      c.brain.path = [c.targetPos.clone()];
+      c.brain.pathIndex = 0;
+      return;
+    }
+
     c.targetPos.copy(c.brain.pickRoamTarget(c.spawnPos, roam, this.brainCtx()));
     c.brain.planPath(this.brainCtx(), c.group.position, c.targetPos);
   }

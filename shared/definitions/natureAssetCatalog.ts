@@ -183,6 +183,8 @@ export const STYLIZED_PACK_PATHS = {
   minerals: '/models/nature/stylized/harvest/minerals_pack.glb',
   oreNodes: '/models/nature/stylized/harvest/ore_nodes.glb',
   pond: '/models/nature/stylized/harvest/pond_pack.glb',
+  /** Low-poly crop growth stages F1–F3 + soil tiles (carrot/potato/tomato/wheat) */
+  crops: '/models/nature/stylized/harvest/crops_low_poly.glb',
   templeRuins: '/models/nature/stylized/ruins/temple_ruins.glb',
   ancientRuins: '/models/nature/stylized/ruins/ancient_ruins.glb',
 } as const;

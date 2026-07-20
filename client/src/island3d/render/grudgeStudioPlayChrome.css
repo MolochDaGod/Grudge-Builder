@@ -26,6 +26,18 @@
     inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }
 
+/* Magic buff/debuff orbs sit above the player unit frame */
+.gspc-status-row {
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  top: -22px;
+  display: flex;
+  justify-content: flex-start;
+  pointer-events: none;
+  z-index: 5;
+}
+
 .gspc-portrait-wrap {
   position: relative;
   width: 56px;

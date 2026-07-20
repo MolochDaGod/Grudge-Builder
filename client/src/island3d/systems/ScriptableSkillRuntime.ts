@@ -15,6 +15,11 @@ import {
   createRimGlowMaterial,
 } from '../player/SkillEffects';
 import { r2CdnUrl } from '@shared/fleet/r2Layout';
+import { spawnSupernovaImpact } from '../vfx/SupernovaImpactSystem';
+import {
+  resolveSupernovaVariant,
+  type SupernovaImpactVariant,
+} from '@shared/definitions/supernovaImpactVfx';
 
 export type SkillTargeting =
   | 'self'
@@ -39,6 +44,12 @@ export interface ScriptableSkillDef {
   animKey?: string;
   /** CDN VFX key under vfx/skills/{vfxKey}/ */
   vfxKey?: string;
+  /** Spell school / element for supernova impact tint */
+  school?: string;
+  /** Force supernova color: original | blue | purple | yellow */
+  impactVariant?: SupernovaImpactVariant;
+  /** Impact scale multiplier (default 1) */
+  impactScale?: number;
   icon?: string;
   effects?: string[];
 }
@@ -135,11 +146,37 @@ export class ScriptableSkillRuntime {
       (skill.vfxKey && this.vfxCatalog?.entries[skill.vfxKey]) || null;
     opts.onVfx?.(vfx, skill);
 
-    // Lightweight default VFX if no catalog entry
-    if (!vfx && opts.targetPos) {
-      this.spawnPulse(opts.targetPos, skill.targeting === 'enemy_aoe' ? 3 : 1.2);
-    } else if (!vfx) {
-      this.spawnPulse(opts.caster.getWorldPosition(new THREE.Vector3()), 1);
+    // Supernova impact (4-color pack) at target or caster
+    const impactPos =
+      opts.targetPos?.clone() ??
+      opts.caster.getWorldPosition(new THREE.Vector3());
+    const aoe = skill.targeting === 'enemy_aoe' || skill.targeting === 'cone';
+    const baseScale = aoe ? 3.2 : 2.0;
+    const scale = baseScale * (skill.impactScale ?? 1);
+    const variant = resolveSupernovaVariant({
+      variant: skill.impactVariant,
+      school: skill.school,
+      damageType: skill.damage?.type,
+      vfxKey: skill.vfxKey ?? skill.id,
+    });
+    spawnSupernovaImpact({
+      position: impactPos,
+      variant,
+      school: skill.school,
+      damageType: skill.damage?.type,
+      vfxKey: skill.vfxKey ?? skill.id,
+      scale,
+    });
+
+    // Fallback pulse if catalog missing (tint matches variant)
+    if (!vfx) {
+      const colorMap: Record<SupernovaImpactVariant, number> = {
+        original: 0xff8833,
+        blue: 0x38bdf8,
+        purple: 0xa855f7,
+        yellow: 0xfacc15,
+      };
+      this.spawnPulse(impactPos, aoe ? 2.4 : 1.1, colorMap[variant]);
     }
 
     if (skill.damage) opts.onDamage?.(skill);
@@ -190,7 +227,11 @@ export class ScriptableSkillRuntime {
     damage: number;
     cooldown: number;
     effects: string[];
+    damageType?: string;
+    school?: string;
+    impactVariant?: SupernovaImpactVariant;
   }): ScriptableSkillDef {
+    const dmgType = opt.damageType ?? 'physical';
     return {
       id: opt.id,
       name: opt.name,
@@ -200,9 +241,11 @@ export class ScriptableSkillRuntime {
       castTimeSec: 0,
       range: 8,
       targeting: 'enemy_single',
-      damage: { amount: opt.damage, type: 'physical' },
+      damage: { amount: opt.damage, type: dmgType },
       animKey: 'attack',
       vfxKey: opt.id,
+      school: opt.school,
+      impactVariant: opt.impactVariant,
       icon: opt.icon,
       effects: opt.effects,
     };

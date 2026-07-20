@@ -32,8 +32,9 @@ export {
 } from './terrain/ShovelTerrainSculptor';
 export type { ShovelSculptMode, ShovelSculptOptions, ShovelSculptResult } from './terrain/ShovelTerrainSculptor';
 export { FarmPlotSystem } from './farming/FarmPlotSystem';
-export type { FarmPlot, FarmHarvestEvent } from './farming/FarmPlotSystem';
-export { GroundToolBrush, GROUND_TOOL_DIAMETER_M, GROUND_TOOL_RADIUS_M } from './farming/GroundToolBrush';
+export type { FarmPlot, FarmPlantCell, FarmHarvestEvent } from './farming/FarmPlotSystem';
+export { GroundToolBrush, GROUND_TOOL_DIAMETER_M, GROUND_TOOL_RADIUS_M, FARM_PLOT_SIZE_M, FARM_PLOT_CELLS } from './farming/GroundToolBrush';
+export { preloadCropPack, loadCropPack, cloneCropStage, isCropPackReady } from './farming/CropPackLoader';
 export type { TerrainTextures } from './terrain/ProceduralTextures';
 export { placeResourceNodes } from './terrain/NodePlacer';
 export type { PlacedNode3D, NodePlacementType } from './terrain/NodePlacer';
@@ -154,6 +155,18 @@ export { Island3DRenderer } from './render/Island3DRenderer';
 // Player
 export { CharacterController3D } from './player/CharacterController3D';
 export type { CharacterController3DConfig, ControlMode, MovementState, PhysicsConfig, PhysicsCallbacks } from './player/CharacterController3D';
+export type { CameraMode } from './player/CameraMode';
+export {
+  sampleHarvestScatterSlots,
+  scheduleScatterRespawn,
+  tryCreateThreeScatterGroup,
+} from './harvest/ThreeScatterHarvest';
+export { scatterFillHarvestOnIslands } from './harvest/ZoneHarvestSpawner';
+export type { HarvestRadialToolId, HarvestToolType, GroundToolId } from '@/game/harvest/HarvestToolActions';
+export {
+  HARVEST_RADIAL_TOOLS,
+  DEFAULT_HARVEST_RADIAL_TOOL,
+} from '@/game/harvest/HarvestToolActions';
 export { AnimationManager } from './player/AnimationManager';
 export type { AnimState } from './player/AnimationManager';
 
@@ -186,7 +199,15 @@ export {
   FX_PRESETS,
 } from './vfx/FireSmokeParticles';
 export type { FxPresetId, ParticleEmitter, ParticleEmitterOpts } from './vfx/FireSmokeParticles';
-export { WorldFxBus, getWorldFxBus, setWorldFxBus } from './vfx/WorldFxBus';
+export { WorldFxBus, getWorldFxBus, setWorldFxBus, SUPERNOVA_VARIANTS } from './vfx/WorldFxBus';
+export type { SupernovaImpactVariant } from './vfx/WorldFxBus';
+export {
+  SupernovaImpactSystem,
+  getSupernovaImpactSystem,
+  setSupernovaImpactSystem,
+  spawnSupernovaImpact,
+} from './vfx/SupernovaImpactSystem';
+export type { SupernovaImpactSpawnOpts } from './vfx/SupernovaImpactSystem';
 
 // Foot IK (dash landing pulse)
 export { CharacterIK, solveTwoBoneIK } from './player/CharacterIK';

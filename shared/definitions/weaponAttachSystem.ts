@@ -209,6 +209,7 @@ export const HOLSTER_PROFILES: Record<HolsterClass, HolsterProfile> = {
 export type HolsterReason =
   | 'player_toggle'   // Z put-away
   | 'enter_build'     // auto — hands free for hammer
+  | 'enter_harvest'   // auto — sheath combat weapons, equip harvest tool
   | 'climb_attach'    // auto
   | 'edge_grab'       // auto
   | 'swim_to_edge'    // auto
@@ -218,11 +219,12 @@ export type DrawReason =
   | 'player_toggle'   // Z pull-out
   | 'auto_attack'     // LMB / skill while sheathed
   | 'leave_build'     // restore prior preference
+  | 'leave_harvest'   // restore prior preference after harvest
   | 'forced';
 
 /**
  * Contexts that force weapons holstered (player cannot draw with Z until free).
- * Climbing / edge grab / active build hammer.
+ * Climbing / edge grab / harvest tools / active build hammer.
  */
 export function isForcedHolsterContext(opts: {
   movementState: string;
@@ -230,6 +232,8 @@ export function isForcedHolsterContext(opts: {
 }): boolean {
   if (opts.movementState === 'climbing') return true;
   if (opts.controlMode === 'build') return true;
+  // Harvest owns hands (hatchet / pick / knife / rod / hammer) — combat weapons stay sheathed
+  if (opts.controlMode === 'harvest') return true;
   return false;
 }
 

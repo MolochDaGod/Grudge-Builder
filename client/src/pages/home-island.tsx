@@ -157,12 +157,18 @@ export default function HomeIslandPage() {
     return () => window.removeEventListener('grudge:character:updated', onUpdated);
   }, []);
 
-  // ── Sync play mode → character animations ─────────────────────
+  // ── Sync play mode → sheath / last harvest tool / combat ───────
 
   useEffect(() => {
     const engine = engineRef.current;
     if (!engine?.character || !loaded) return;
-    engine.character.setControlMode(playMode, heroClass, hasWeapon).catch(() => {});
+    if (playMode === 'combat') {
+      void engine.enterCombatMode(heroClass, hasWeapon);
+    } else if (playMode === 'build') {
+      void engine.setHarvestRadialTool('toolkit');
+    } else {
+      void engine.enterHarvestMode();
+    }
   }, [playMode, heroClass, hasWeapon, loaded]);
 
   const persistProfessionXp = useCallback(async (resourceKey: string) => {
@@ -545,9 +551,9 @@ export default function HomeIslandPage() {
   const handleModeChange = (mode: ControlMode) => {
     setPlayMode(mode);
     const hints: Record<ControlMode, string> = {
-      harvest: 'Gather wood, ore, and herbs. Heroes auto-harvest while you\'re offline.',
-      combat: hasWeapon ? 'Combat mode — defend your island from wildlife.' : 'Visit Arsenal to equip a weapon.',
-      build: 'Place buildings and expand your camp.',
+      harvest: 'Harvest — R tools (hatchet default) · sheath weapons · Q combat.',
+      combat: hasWeapon ? 'Combat — Q harvest · Z sheath · Tab soft-lock.' : 'Visit Arsenal to equip a weapon.',
+      build: 'Build hammer (R radial) — place structures · R tools · Q combat.',
     };
     setAllyMessage(hints[mode]);
   };

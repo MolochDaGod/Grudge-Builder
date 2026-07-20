@@ -2,7 +2,7 @@
  * HarvestToolActions — tool action sets (ported from RTS-Grudge / OpenWaterSailing).
  * Fishing uses equipped main-hand rod; slot 1 = Cast Line (LMB in harvest mode).
  * Shovel: Valheim-like terrain raise / lower / level (2 m circle).
- * Hoe: turn earth into growing plots (2 m circle).
+ * Hoe: till square 4×4 garden beds (16 plant slots).
  * Bucket: fill at water → water crops + feed auto-craft.
  */
 import {
@@ -22,6 +22,32 @@ export type HarvestToolType =
   | 'hoe'
   | 'bucket'
   | 'seed';
+
+/**
+ * R-radial harvest tools (ModePlayHUD). Build hammer opens build UI while staying
+ * under harvest mode; Q always returns to combat.
+ */
+export type HarvestRadialToolId =
+  | 'axe'           // hatchet (default)
+  | 'pickaxe'
+  | 'skinning_knife'
+  | 'fishing_rod'
+  | 'toolkit';      // build hammer
+
+export const DEFAULT_HARVEST_RADIAL_TOOL: HarvestRadialToolId = 'axe';
+
+export const HARVEST_RADIAL_TOOLS: Array<{
+  id: HarvestRadialToolId;
+  label: string;
+  emoji: string;
+  title: string;
+}> = [
+  { id: 'axe', label: 'Hatchet', emoji: '🪓', title: 'Chop trees / wood' },
+  { id: 'pickaxe', label: 'Pick', emoji: '⛏️', title: 'Mine rock / ore' },
+  { id: 'skinning_knife', label: 'Knife', emoji: '🔪', title: 'Skin / cut fiber' },
+  { id: 'fishing_rod', label: 'Fishing', emoji: '🎣', title: 'Cast line at water' },
+  { id: 'toolkit', label: 'Hammer', emoji: '🔨', title: 'Build Hammer — open build UI' },
+];
 
 export type ActionSlotKind = 'action' | 'action2' | 'auto' | 'special';
 
@@ -130,7 +156,7 @@ export const TOOL_ACTIONS: Record<HarvestToolType, HarvestAction[]> = {
       cooldown: 0.2,
       staminaCost: 2,
       harvestMult: 1,
-      description: 'LMB — turn earth into a 2 m growing circle (Valheim cultivate).',
+      description: 'LMB — till a square 4×4 garden bed (16 plant slots).',
     },
   ],
   bucket: [

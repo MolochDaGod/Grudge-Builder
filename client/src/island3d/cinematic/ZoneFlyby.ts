@@ -175,8 +175,7 @@ export function createZoneFlyby(engine: Island3DEngine): ZoneFlybyHandle {
       cancel = false;
       playing = true;
 
-      const prevEnabled = controls.enabled;
-      controls.enabled = false;
+      engine.beginCinematicCamera?.();
       if (engine.character) {
         // Freeze player input during cinematic
         (engine.character as any).cinematicLock = true;
@@ -271,7 +270,7 @@ export function createZoneFlyby(engine: Island3DEngine): ZoneFlybyHandle {
       if (engine.zoneDungeonPortals) seen.add('nodes');
       if (engine.hiddenMountainCity || engine.sectorEventLandmarks) seen.add('landmarks');
 
-      controls.enabled = prevEnabled;
+      engine.endCinematicCamera?.();
       if (engine.character) {
         (engine.character as any).cinematicLock = false;
       }

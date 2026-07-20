@@ -157,12 +157,18 @@ export default function TutorialPage() {
     load();
   }, [setLocation]);
 
-  // ── Sync play mode → 3D character animations ───────────────────
+  // ── Sync play mode → sheath / last harvest tool / combat ───────
 
   useEffect(() => {
     const engine = engineRef.current;
     if (!engine?.character || !loaded) return;
-    engine.character.setControlMode(playMode, heroClass, hasWeapon).catch(() => {});
+    if (playMode === 'combat') {
+      void engine.enterCombatMode(heroClass, hasWeapon);
+    } else if (playMode === 'build') {
+      void engine.setHarvestRadialTool('toolkit');
+    } else {
+      void engine.enterHarvestMode();
+    }
   }, [playMode, heroClass, hasWeapon, loaded]);
 
   const showNotification = useCallback((text: string) => {
@@ -621,9 +627,15 @@ export default function TutorialPage() {
       if (e.key !== 'Tab') return;
       e.preventDefault();
       setPlayMode((prev) => {
-        const order: ControlMode[] = ['harvest', 'combat', 'build'];
-        const next = order[(order.indexOf(prev) + 1) % order.length];
-        void engineRef.current?.character?.setControlMode(next, heroClass, hasWeapon);
+        // Q / HUD owns mode swap; Tab is soft-lock in engine. Dual-mode only.
+        const order: ControlMode[] = ['harvest', 'combat'];
+        const cur = prev === 'build' ? 'harvest' : prev;
+        const next = order[(order.indexOf(cur) + 1) % order.length];
+        if (next === 'harvest') {
+          void engineRef.current?.enterHarvestMode();
+        } else {
+          void engineRef.current?.enterCombatMode(heroClass, hasWeapon);
+        }
         return next;
       });
     };
@@ -752,10 +764,10 @@ export default function TutorialPage() {
     const injuredOpen = (INJURED_OPENER_PHASES as readonly string[]).includes(segmentPhaseRef.current);
     const hints: Record<ControlMode, string> = {
       harvest: injuredOpen
-        ? 'Injured harvest — limp walk, soft-lock gather with E / RMB / 1 / 2.'
-        : 'Unarmed gather mode — harvest wood and stone for professions.',
-      combat: hasWeapon ? 'Combat ready — LMB attack, keys 1-8 for skills.' : 'Unarmed combat — craft tools first (tutorial invincible).',
-      build: 'Build mode — craft tools and camp props (tutorial invincible).',
+        ? 'Injured harvest — limp walk, soft-lock gather with E / RMB / 1 / 2. R tools · Q combat.'
+        : 'Harvest — sheath weapons, last tool (hatchet default). R tools · Q combat.',
+      combat: hasWeapon ? 'Combat ready — LMB attack, keys 1-8. Q harvest · Z sheath.' : 'Unarmed combat — craft tools first (tutorial invincible). Q harvest.',
+      build: 'Build hammer (R radial) — place camp props. R tools · Q combat.',
     };
     setAllyMessage(hints[mode]);
   };

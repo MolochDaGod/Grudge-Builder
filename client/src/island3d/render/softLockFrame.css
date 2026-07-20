@@ -68,6 +68,21 @@
   border-radius: 0 0 3px 0;
 }
 
+/* Buff/debuff magic orbs — above nameplate + unit frame */
+.sl-status-row {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 30px);
+  transform: translateX(-50%);
+  display: flex;
+  justify-content: center;
+  min-width: max-content;
+  max-width: 220px;
+  padding: 2px 4px;
+  z-index: 2;
+  pointer-events: none;
+}
+
 .sl-nameplate {
   position: absolute;
   left: 50%;

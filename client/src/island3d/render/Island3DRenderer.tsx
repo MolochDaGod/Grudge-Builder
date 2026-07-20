@@ -453,6 +453,13 @@ export function Island3DRenderer({
     });
   }, []);
 
+  // RMB on mature crop: walk-to-harvest (prevents browser context menu)
+  const handleContextMenu = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    const ok = engineRef.current?.tryFarmHarvestRmb(e.clientX, e.clientY);
+    if (ok) e.stopPropagation();
+  }, []);
+
   // Mouse move handler (building ghost snap preview)
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
     engineRef.current?.handleMouseMove(e.clientX, e.clientY);
@@ -490,6 +497,7 @@ export function Island3DRenderer({
         ref={canvasRef}
         className={`w-full h-full block${combatHud.combatMode ? ' dr-combat-cursor' : ''}`}
         onClick={handleClick}
+        onContextMenu={handleContextMenu}
         onMouseMove={handleMouseMove}
       />
 

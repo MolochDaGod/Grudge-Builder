@@ -90,9 +90,23 @@ class StatusEffectRuntime {
     this.emit();
   }
 
-  /** Demo / debug: seed a few effects for UI testing */
+  /**
+   * Demo / debug: seed effects spanning all 10 magic indicator orbs
+   * (buffs: arcane/command/kinetic/chemical · debuffs: dark/blood/binding/atomic/primordial).
+   */
   seedDemo(): void {
-    const demo = ['burning', 'poisoned', 'slowed', 'shielded', 'empowered']
+    const demo = [
+      'shielded', // arcane
+      'empowered', // command
+      'hasted', // kinetic
+      'regenerating', // chemical
+      'precision', // magnetic
+      'cursed', // dark
+      'bleeding', // blood
+      'rooted', // binding
+      'burning', // atomic
+      'poisoned', // primordial
+    ]
       .map((id) => createStatusInstance(id, { remainingSec: getStatusDef(id)?.defaultDurationSec ?? 10 }))
       .filter(Boolean) as ActiveStatusInstance[];
     this.effects = demo;

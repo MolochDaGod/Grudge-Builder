@@ -129,10 +129,35 @@ export function isDryWalkableTerrain(opts: {
   return true;
 }
 
+/**
+ * Water-column test for fish / fishing nodes / water harvest.
+ * groundY = terrain height at (x,z); node must sit in water, not on land mesh.
+ */
+export function isValidWaterColumn(opts: {
+  groundY: number;
+  waterLevel: number;
+  /** Swim / bob Y for visual fish */
+  entityY?: number;
+  minWaterDepthM?: number;
+}): boolean {
+  const minDepth = opts.minWaterDepthM ?? 0.75;
+  // Seabed must be below water by minDepth
+  if (opts.groundY > opts.waterLevel - minDepth) return false;
+  if (opts.entityY != null) {
+    // Entity must be under surface and above seabed
+    if (opts.entityY >= opts.waterLevel - 0.15) return false;
+    if (opts.entityY <= opts.groundY + 0.25) return false;
+  }
+  return true;
+}
+
 /** Serialize rules for dash / ObjectStore docs */
 export const HOME_ISLAND_NODE_RULESET_META = {
-  version: '1.0.0',
+  version: '1.1.0',
   landClearanceM: NODE_LAND_CLEARANCE_M,
   fishingOnlyInWater: true,
-  rule: 'Nodes on terrain (dry). Only fishing nodes may be in water.',
+  rule:
+    'Land nodes on dry terrain only. Fishing/fish only in water columns ' +
+    '(seabed < waterLevel - minDepth; entity under surface). Never under land mesh.',
+  waterColumn: true,
 } as const;

@@ -1,7 +1,9 @@
 /**
  * Soft-lock frame — yellow corner brackets over the soft-locked target.
- * Matches classic MMO soft-target chrome; colors from SOFT_LOCK_CONFIG.
+ * Buff/debuff magic orbs render above the frame (status-magic pack).
  */
+import { StatusEffectIcons } from '@/components/StatusEffectIcons';
+import { useEntityStatusEffects } from '@/hooks/useStatusEffects';
 import type { SoftLockScreenFrame } from '../player/SoftLockSystem';
 import { SOFT_LOCK_CONFIG } from '../player/SoftLockSystem';
 import './softLockFrame.css';
@@ -11,6 +13,9 @@ interface SoftLockFrameProps {
 }
 
 export function SoftLockFrame({ frame }: SoftLockFrameProps) {
+  const entityId = frame?.active && frame.onScreen ? frame.id : null;
+  const statusEffects = useEntityStatusEffects(entityId);
+
   if (!frame?.active || !frame.onScreen) return null;
 
   const half = frame.size / 2;
@@ -36,6 +41,14 @@ export function SoftLockFrame({ frame }: SoftLockFrameProps) {
       <span className="sl-corner sl-tr" />
       <span className="sl-corner sl-bl" />
       <span className="sl-corner sl-br" />
+
+      {/* Magic buff/debuff indicators ABOVE the unit frame */}
+      {statusEffects.length > 0 && (
+        <div className="sl-status-row" data-testid="softlock-status-icons">
+          <StatusEffectIcons effects={statusEffects} size="sm" maxVisible={8} showTimers />
+        </div>
+      )}
+
       <div className="sl-nameplate">
         <span className="sl-name">{frame.name}</span>
         {frame.distanceM > 0 && (

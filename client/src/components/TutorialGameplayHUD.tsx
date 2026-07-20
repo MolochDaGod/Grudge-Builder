@@ -9,6 +9,7 @@
 import { Pickaxe, Swords, Hammer, Sparkles, Leaf } from 'lucide-react';
 import type { HotbarSlot, GatheringProfession } from '@/lib/tutorialSkills';
 
+/** Build is a harvest sub-state (R radial → hammer); top-level modes are combat|harvest only. */
 export type ControlMode = 'harvest' | 'combat' | 'build';
 
 interface TutorialStep {
@@ -41,10 +42,9 @@ interface TutorialGameplayHUDProps {
   onUseSkill: (slot: HotbarSlot) => void;
 }
 
-const MODES: { id: ControlMode; label: string; icon: typeof Pickaxe }[] = [
+const MODES: { id: 'harvest' | 'combat'; label: string; icon: typeof Pickaxe }[] = [
   { id: 'harvest', label: 'Harvest', icon: Pickaxe },
   { id: 'combat', label: 'Combat', icon: Swords },
-  { id: 'build', label: 'Build', icon: Hammer },
 ];
 
 const PANEL = 'bg-black/70 backdrop-blur-sm rounded-xl border border-amber-600/30';
@@ -137,7 +137,8 @@ export function TutorialGameplayHUD(props: TutorialGameplayHUDProps) {
         <div className={`${PANEL} flex gap-1 p-1 pointer-events-auto`}>
           {MODES.map((m) => {
             const Icon = m.icon;
-            const active = playMode === m.id;
+            // build sub-state counts as harvest for the dual-mode dock
+            const active = m.id === 'combat' ? playMode === 'combat' : playMode !== 'combat';
             return (
               <button
                 key={m.id}
