@@ -47,7 +47,7 @@ This repo is **not** Warlord Genesis (separate Vercel app), not ObjectStore, and
 - **Account bag** vs **character progress**: bag on `/api/account/*` + inventory; professions/equipment/XP on character UUID only.
 - **Game catalog** (races, classes, weapons, armor, attributes, recipes): ObjectStore / info `…/api/v1/*.json` — **definitions only**.
 - **3D models / icons**: R2 `assets.grudge-studio.com` via `assetUrl()` — **never** player SSOT.
-- **Creatures / traps / skeleton corpses**: see **[docs/WARLORDS_CREATURES_TRAPS_SKELETONS.md](./docs/WARLORDS_CREATURES_TRAPS_SKELETONS.md)** — land wildlife, multipack obstacle traps, 120s corpse → Skeletons_Free residual; upload `node scripts/upload-session-warlords-assets-to-r2.mjs`.
+- **Creatures / traps / skeleton corpses**: **[docs/WARLORDS_ASSET_SSOT.md](./docs/WARLORDS_ASSET_SSOT.md)** (ONE TRUTH: R2 + assetUrl) · [WARLORDS_CREATURES_TRAPS_SKELETONS.md](./docs/WARLORDS_CREATURES_TRAPS_SKELETONS.md) — land wildlife, multipack traps, 120s corpse → skeleton residual; upload `node scripts/upload-session-warlords-assets-to-r2.mjs`.
 - **D1**: asset registry index only — **not** characters/islands/bag.
 - **Supabase**: **not required**. `/api/supabase/health` with `configured:false` is healthy production.
 - **Fleet bridge**: `client/public/grudge-fleet.js` **≥ 2.8.0** (CDN + Puter crafting). Hard-fails JWT≠stored `grudge_id`; rejects foreign active UUIDs.

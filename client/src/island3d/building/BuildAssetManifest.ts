@@ -17,8 +17,11 @@
 
 import { ASSET_CDN_BASE } from '@/lib/assetConfig';
 import { allUmmorpgDeployables } from '@shared/definitions/ummorpgDeployables';
+import { MOBILE_OBSTACLES_MODEL } from '@shared/definitions/mobileGameObstacles';
 
 const CDN = ASSET_CDN_BASE;
+/** Trap multipack — same key on R2 (`assets.grudge-studio.com`) and local public/. */
+const TRAP_PACK = MOBILE_OBSTACLES_MODEL;
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -296,7 +299,7 @@ export const BUILD_ASSETS: Record<string, BuildAssetDef> = {
     name: 'Spike Trap',
     category: 'defense',
     placement: 'prop',
-    modelPath: '/models/obstacles/mobile_game_obstacles.glb',
+    modelPath: TRAP_PACK,
     nodeName: 'spike-obstacle_8',
     color: 0x444850,
     size: [1.4, 1.2, 1.4],
@@ -315,7 +318,7 @@ export const BUILD_ASSETS: Record<string, BuildAssetDef> = {
     name: 'Rising Spikes',
     category: 'defense',
     placement: 'prop',
-    modelPath: '/models/obstacles/mobile_game_obstacles.glb',
+    modelPath: TRAP_PACK,
     nodeName: 'spike-obstacle.002_11',
     color: 0xcc2200,
     size: [1.2, 1.6, 1.2],
@@ -334,7 +337,7 @@ export const BUILD_ASSETS: Record<string, BuildAssetDef> = {
     name: 'Spinning Barrel',
     category: 'defense',
     placement: 'prop',
-    modelPath: '/models/obstacles/mobile_game_obstacles.glb',
+    modelPath: TRAP_PACK,
     nodeName: 'CylinderObstacle_6',
     color: 0x333840,
     size: [1.6, 1.8, 1.6],
@@ -353,7 +356,7 @@ export const BUILD_ASSETS: Record<string, BuildAssetDef> = {
     name: 'Gear Crusher',
     category: 'defense',
     placement: 'prop',
-    modelPath: '/models/obstacles/mobile_game_obstacles.glb',
+    modelPath: TRAP_PACK,
     nodeName: 'gear-base_7',
     color: 0x888a90,
     size: [2.0, 1.4, 2.0],
@@ -372,7 +375,7 @@ export const BUILD_ASSETS: Record<string, BuildAssetDef> = {
     name: 'Bomb Mine',
     category: 'defense',
     placement: 'prop',
-    modelPath: '/models/obstacles/mobile_game_obstacles.glb',
+    modelPath: TRAP_PACK,
     nodeName: 'Bomb_5',
     color: 0xcc1100,
     size: [0.9, 1.0, 0.9],
@@ -391,7 +394,7 @@ export const BUILD_ASSETS: Record<string, BuildAssetDef> = {
     name: 'Spike Plate',
     category: 'defense',
     placement: 'prop',
-    modelPath: '/models/obstacles/mobile_game_obstacles.glb',
+    modelPath: TRAP_PACK,
     nodeName: 'SpikeBase_16',
     color: 0x555555,
     size: [2.4, 0.6, 2.4],
@@ -410,7 +413,7 @@ export const BUILD_ASSETS: Record<string, BuildAssetDef> = {
     name: 'Spiral Plate',
     category: 'defense',
     placement: 'prop',
-    modelPath: '/models/obstacles/mobile_game_obstacles.glb',
+    modelPath: TRAP_PACK,
     nodeName: 'SpiralBase_15',
     color: 0xaaaaaa,
     size: [2.2, 0.5, 2.2],
@@ -429,7 +432,7 @@ export const BUILD_ASSETS: Record<string, BuildAssetDef> = {
     name: 'Hazard Grid',
     category: 'defense',
     placement: 'prop',
-    modelPath: '/models/obstacles/mobile_game_obstacles.glb',
+    modelPath: TRAP_PACK,
     nodeName: 'GridGround_4',
     color: 0x222222,
     size: [2.5, 0.2, 2.5],
@@ -448,7 +451,7 @@ export const BUILD_ASSETS: Record<string, BuildAssetDef> = {
     name: 'Trap Door Plate',
     category: 'defense',
     placement: 'prop',
-    modelPath: '/models/obstacles/mobile_game_obstacles.glb',
+    modelPath: TRAP_PACK,
     nodeName: 'GroundDoor01_2',
     color: 0x1a1a1a,
     size: [2.0, 0.35, 2.0],

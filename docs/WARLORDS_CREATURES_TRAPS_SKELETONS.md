@@ -1,7 +1,8 @@
 # Warlords — Creatures, Traps, Skeleton Corpses
 
 **Updated:** 2026-07-20  
-**Status:** staged locally · R2 keys documented · runtime wired in GrudgeBuilder + Danger Room animator
+**Status:** R2 live · runtime wired in GrudgeBuilder + Danger Room animator  
+**Asset law:** [WARLORDS_ASSET_SSOT.md](./WARLORDS_ASSET_SSOT.md) — binaries **only** from `assets.grudge-studio.com` via `assetUrl` / `ASSET_CDN_BASE`
 
 ## Overview
 

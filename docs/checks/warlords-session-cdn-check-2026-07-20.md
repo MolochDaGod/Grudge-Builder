@@ -22,3 +22,19 @@
 Also uploaded (not re-listed above): enemy free_reptile / monsters_x_free / creature_crab; skeleton FBX fallbacks + Texture.png.
 
 **Result:** All critical keys live on R2 CDN.
+
+### Re-verify 2026-07-20 (post-SSOT consolidation)
+
+| Key | Status | Content-Type |
+|-----|--------|--------------|
+| `models/creatures/land/drake.glb` | 200 | model/gltf-binary |
+| `models/creatures/land/ifrit.glb` | 200 | model/gltf-binary |
+| `models/creatures/land/lava_golem.glb` | 200 | model/gltf-binary |
+| `models/creatures/land/free_reptile.glb` | 200 | model/gltf-binary |
+| `models/creatures/land/monsters_x_free.glb` | 200 | model/gltf-binary |
+| `models/creatures/land/creature_crab.glb` | 200 | model/gltf-binary |
+| `models/obstacles/mobile_game_obstacles.glb` | 200 | model/gltf-binary |
+| `models/skeletons/Skeleton.glb` | 200 | model/gltf-binary |
+| `models/skeletons/Skeleton_Archer.glb` | 200 | model/gltf-binary |
+
+**SSOT resolve path:** `ASSET_CDN_BASE` + key · trap pack constant `MOBILE_OBSTACLES_MODEL` · creature `modelPath` uses `${CDN}/models/creatures/...`.

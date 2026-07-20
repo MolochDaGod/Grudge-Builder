@@ -1,15 +1,18 @@
 /**
  * Low-poly mobile game obstacles multipack — traps / defenses / dungeon hazards.
  *
- * Source: D:\Games\Models\low_poly_mobile_game_obstacles.glb
- * Production: public/models/obstacles/mobile_game_obstacles.glb
- *   (PBR-upgraded: metal/stone/hazard albedo + ORM maps)
+ * SSOT binary: R2 `grudge-assets` → assets.grudge-studio.com
+ *   key: models/obstacles/mobile_game_obstacles.glb
+ * Load via assetUrl(MOBILE_OBSTACLES_MODEL) / PackModelLoader (never a second host).
+ * Local public/ is authoring cache only. PBR-upgraded (metal/stone/hazard albedo + ORM).
  *
  * Node names are Sketchfab-export roots; PackModelLoader clones by nodeName.
+ * BuildAssetManifest imports MOBILE_OBSTACLES_MODEL as TRAP_PACK (single constant).
  */
 
+/** Site-relative path — resolve with assetUrl() or ASSET_CDN_BASE. */
 export const MOBILE_OBSTACLES_MODEL = '/models/obstacles/mobile_game_obstacles.glb';
-/** CDN-relative path used by BuildAssetManifest (same-origin public fallback). */
+/** R2 key without leading slash (upload scripts / wrangler). */
 export const MOBILE_OBSTACLES_CDN = 'models/obstacles/mobile_game_obstacles.glb';
 
 export type ObstacleKind =

@@ -125,9 +125,25 @@ This section is meant to stay true under pressure. Prefer it over marketing copy
 | **Build Hammer** | Client | 0.8× survival-kit hammer in hand · free WASD + RMB look · Dune-style tabs · [BUILD_SYSTEM_SSOT.md](docs/BUILD_SYSTEM_SSOT.md) |
 | **Claim Flag garrison** | Client | Unarmed race recruits · benches → profession XP · buildings → T0/AI/harvest buffs · **F1–F5** orders · [CAMP_CLAIM_UNITS.md](docs/CAMP_CLAIM_UNITS.md) |
 | **Modular / ice / fantasy catalogs** | Code + JSON catalogs | Multipack node extract; binaries on **assets.grudge-studio.com** (not in git) |
-| **Creatures / traps / skeleton corpses** | Client + CDN | Combat wildlife, obstacle traps, 2‑min/skin residual bones · [WARLORDS_CREATURES_TRAPS_SKELETONS.md](docs/WARLORDS_CREATURES_TRAPS_SKELETONS.md) · upload `node scripts/upload-session-warlords-assets-to-r2.mjs` |
+| **Creatures / traps / skeleton corpses** | Client + **R2 CDN only** | [WARLORDS_ASSET_SSOT.md](docs/WARLORDS_ASSET_SSOT.md) · [WARLORDS_CREATURES_TRAPS_SKELETONS.md](docs/WARLORDS_CREATURES_TRAPS_SKELETONS.md) · upload `node scripts/upload-session-warlords-assets-to-r2.mjs` |
 
 **Binaries:** `*.glb` is gitignored. Production loads from R2 (`assets.grudge-studio.com`). Local authoring under `client/public/models/…` is optional; upload via `grudge-assets-sync` / build-pack scripts / session upload script above.
+
+### Warlords asset SSOT (ONE TRUTH — 2026-07-20)
+
+| Concern | Single authority |
+|---------|------------------|
+| **3D / icons / audio binaries** | R2 `grudge-assets` → **`https://assets.grudge-studio.com`** via `assetUrl()` / `ASSET_CDN_BASE` (`client/src/lib/assetConfig.ts`) |
+| **Creature ids + clips + loot** | `client/src/island3d/creatures/CreatureManifest.ts` |
+| **Biome animal slots** | `shared/definitions/biomeEcosystemCatalog.ts` (published JSON mirrors) |
+| **Trap multipack path + nodes** | `shared/definitions/mobileGameObstacles.ts` → BuildAssetManifest `TRAP_PACK` |
+| **Skeleton residual** | `models/skeletons/Skeleton.glb` (+ Archer) · `SkeletonCorpse.ts` |
+| **JSON game data** | ObjectStore `apiUrl()` — not a second mesh host |
+| **Player save** | Railway Postgres — never R2 |
+
+**Rules:** multipack = `nodeName` isolation · land combat = `category: land` · corpse = 120s or skin → skeleton GLB · no second CDN for Warlords meshes.
+
+Full law: **[docs/WARLORDS_ASSET_SSOT.md](docs/WARLORDS_ASSET_SSOT.md)**
 
 ### Identity & player data — ONE TRUTH (law)
 
