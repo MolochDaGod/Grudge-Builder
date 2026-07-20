@@ -95,3 +95,6 @@ blob-report/
 # Production agent machine reports
 scripts/agents/reports/
 
+
+scripts/best-practices/.cache/
+
