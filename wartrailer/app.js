@@ -19,20 +19,25 @@ function section(order, id, title, tagline, play, stillName) {
   };
 }
 
+/** Live flyby — always trailer+flyby so client skips foundry create gate. */
+function zonePlay(sector) {
+  return `https://client.grudge-studio.com/play?sector=${sector}&mode=zone&worldSeed=grudge-world-1&trailer=1&flyby=1&guest=1`;
+}
+
 const SECTIONS = [
-  section(0, 'tutorial_shipwreck', 'Shipwreck Wake', 'You wash ashore.', 'https://client.grudge-studio.com/play?mode=tutorial&trailer=1', 'beach_shore.jpg'),
+  section(0, 'tutorial_shipwreck', 'Shipwreck Wake', 'You wash ashore.', 'https://client.grudge-studio.com/island-3d?mode=tutorial&trailer=1&flyby=1&guest=1', 'beach_shore.jpg'),
   section(1, 'world_map_overview', 'World Map — Nine Sectors', 'Nine realms. One war.', 'https://client.grudge-studio.com/world-map', 'style_sheet.jpg'),
-  section(2, 'home_island', 'Home Island', 'Build your camp.', 'https://client.grudge-studio.com/play?mode=procedural&trailer=1', 'beach_shore.jpg'),
-  section(3, 'lobby_open_world', 'Open World Lobby', 'Capture. Sail. Board.', 'https://client.grudge-studio.com/play?mode=lobby&trailer=1', 'beach_shore.jpg'),
-  section(4, 'haven_shore', 'Haven Shore', 'Safe tropical start.', 'https://client.grudge-studio.com/play?sector=haven_shore&mode=zone&worldSeed=grudge-world-1&trailer=1', 'beach_shore.jpg'),
-  section(5, 'stormbreak_reef', 'Stormbreak Reef', 'Perpetual storms.', 'https://client.grudge-studio.com/play?sector=stormbreak_reef&mode=zone&worldSeed=grudge-world-1&trailer=1', 'deep_forest.jpg'),
-  section(6, 'frostbite_expanse', 'Frostbite Expanse', 'Frozen northern shelf.', 'https://client.grudge-studio.com/play?sector=frostbite_expanse&mode=zone&worldSeed=grudge-world-1&trailer=1', 'winter_snow.jpg'),
-  section(7, 'thornwood_wilds', 'Thornwood Wilds', 'Ancient forest.', 'https://client.grudge-studio.com/play?sector=thornwood_wilds&mode=zone&worldSeed=grudge-world-1&trailer=1', 'deep_forest.jpg'),
-  section(8, 'convergence_nexus', 'Convergence Nexus', 'Where factions clash.', 'https://client.grudge-studio.com/play?sector=convergence_nexus&mode=zone&worldSeed=grudge-world-1&trailer=1', 'style_sheet.jpg'),
-  section(9, 'ashen_wastes', 'Ashen Wastes', 'Glass and bone.', 'https://client.grudge-studio.com/play?sector=ashen_wastes&mode=zone&worldSeed=grudge-world-1&trailer=1', 'volcanic.jpg'),
-  section(10, 'ember_depths', 'Ember Depths', 'Volcanic Legion birth.', 'https://client.grudge-studio.com/play?sector=ember_depths&mode=zone&worldSeed=grudge-world-1&trailer=1', 'volcanic.jpg'),
-  section(11, 'abyssal_trench', 'Abyssal Trench', 'Deepest waters.', 'https://client.grudge-studio.com/play?sector=abyssal_trench&mode=zone&worldSeed=grudge-world-1&trailer=1', 'deep_forest.jpg'),
-  section(12, 'ethereal_falls', 'Ethereal Falls', 'First God tears.', 'https://client.grudge-studio.com/play?sector=ethereal_falls&mode=zone&worldSeed=grudge-world-1&trailer=1', 'winter_snow.jpg'),
+  section(2, 'home_island', 'Home Island', 'Build your camp.', 'https://client.grudge-studio.com/play?mode=procedural&trailer=1&flyby=1&guest=1', 'beach_shore.jpg'),
+  section(3, 'lobby_open_world', 'Open World Lobby', 'Capture. Sail. Board.', 'https://client.grudge-studio.com/play?mode=lobby&trailer=1&flyby=1&guest=1', 'beach_shore.jpg'),
+  section(4, 'haven_shore', 'Haven Shore', 'Safe tropical start.', zonePlay('haven_shore'), 'beach_shore.jpg'),
+  section(5, 'stormbreak_reef', 'Stormbreak Reef', 'Perpetual storms.', zonePlay('stormbreak_reef'), 'deep_forest.jpg'),
+  section(6, 'frostbite_expanse', 'Frostbite Expanse', 'Frozen northern shelf.', zonePlay('frostbite_expanse'), 'winter_snow.jpg'),
+  section(7, 'thornwood_wilds', 'Thornwood Wilds', 'Ancient forest.', zonePlay('thornwood_wilds'), 'deep_forest.jpg'),
+  section(8, 'convergence_nexus', 'Convergence Nexus', 'Where factions clash.', zonePlay('convergence_nexus'), 'style_sheet.jpg'),
+  section(9, 'ashen_wastes', 'Ashen Wastes', 'Glass and bone.', zonePlay('ashen_wastes'), 'volcanic.jpg'),
+  section(10, 'ember_depths', 'Ember Depths', 'Volcanic Legion birth.', zonePlay('ember_depths'), 'volcanic.jpg'),
+  section(11, 'abyssal_trench', 'Abyssal Trench', 'Deepest waters.', zonePlay('abyssal_trench'), 'deep_forest.jpg'),
+  section(12, 'ethereal_falls', 'Ethereal Falls', 'First God tears.', zonePlay('ethereal_falls'), 'winter_snow.jpg'),
 ];
 
 function card(s) {

@@ -92,12 +92,35 @@ export default function PlayPage() {
 
       const params = new URLSearchParams(window.location.search);
       const gcsHandoff = params.get('from') === 'gcs' && params.get('characterId');
+      // Trailer / flyby / proof: never dump users into foundry create loop
+      const cinematicGuest =
+        params.has('trailer') ||
+        params.has('flyby') ||
+        params.has('proof') ||
+        params.get('guest') === '1';
 
       const handoffId = params.get('characterId');
       let char = await resolveActiveCharacterForPlay(handoffId);
       if (!char && gcsHandoff) {
         await new Promise((r) => setTimeout(r, 800));
         char = await resolveActiveCharacterForPlay(handoffId);
+      }
+      if (!char && cinematicGuest) {
+        console.info('[Play] Cinematic guest (trailer/flyby) — skip create-character');
+        char = {
+          id: 'guest-trailer',
+          name: 'Trailer Guest',
+          raceId: 'human',
+          classId: 'warrior',
+          level: 20,
+          accountId: 'guest',
+          equipment: {},
+          model3d: {
+            baseModelId: 'human',
+            weaponSlots: {},
+            equippedMeshes: {},
+          },
+        } as Character;
       }
       if (!char) {
         console.warn('[Play] No roster character — redirecting to create flow');
