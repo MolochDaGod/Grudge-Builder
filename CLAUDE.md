@@ -107,6 +107,15 @@ workers/
 4. KayKit undead model has 95 embedded animations (special handling in `getKaykitAnimMap`)
 5. `SkeletonUtils.clone()` required for proper mesh cloning (not `Object3D.clone`)
 
+## Wildlife / traps / corpse residuals (3D play)
+- **Manifest:** `client/src/island3d/creatures/CreatureManifest.ts` (land elites + biome wildlife)
+- **Land only for combat NPCs** — never `category: predator` for Belerick/Helcurt/ifrit (that forces water pool)
+- **Corpse residual:** 120s flesh or skin/loot → `models/skeletons/Skeleton.glb` (see `SkeletonCorpse.ts`)
+- **Traps:** multipack `models/obstacles/mobile_game_obstacles.glb` + `nodeName` in BuildAssetManifest; camps auto-seed traps
+- **Upload:** `node scripts/upload-session-warlords-assets-to-r2.mjs`
+- **Doc:** `docs/WARLORDS_CREATURES_TRAPS_SKELETONS.md`
+- **Danger Room twin:** `threejs-rapier…/artifacts/animator` — `DungeonHazards`, `DungeonEnemies` GLB kinds
+
 ## Auth Pattern
 - SSO: `id.grudge-studio.com/login?redirect_uri=...` → returns `?sso_token=JWT`
 - Token: `localStorage.grudge_auth_token`
