@@ -35,9 +35,15 @@ const TARGETS = [
   { group: "web3",     url: "https://grudgeplatform.io/play" },
   { group: "web3",     url: "https://grudgeplatform.com" },
   { group: "auth",     url: "https://id.grudge-studio.com" },
-  { group: "backend",  url: "https://api.grudge-studio.com/api/health" },
-  { group: "backend",  url: "https://api.grudge-studio.com/health" },
+  // api.grudge-studio.com is deprecated for browser clients (split-brain);
+  // keep one probe so regressions surface, but Railway is the SSOT health gate.
+  { group: "backend-deprecated", url: "https://api.grudge-studio.com/api/health" },
   { group: "backend",  url: "https://grudge-api-production-0d46.up.railway.app/api/health" },
+  { group: "frontend", url: "https://forge.grudge-studio.com/" },
+  { group: "frontend", url: "https://grudox.grudge-studio.com/" },
+  { group: "frontend", url: "https://carrier.grudge-studio.com/" },
+  { group: "frontend", url: "https://open.grudge-studio.com/" },
+  { group: "info",     url: "https://info.grudge-studio.com/grudge-guide.html" },
   { group: "assets",   url: "https://assets.grudge-studio.com" },
   { group: "assets",   url: "https://objectstore.grudge-studio.com/health" },
   { group: "assets",   url: "https://grudge-objectstore.pages.dev/api/v1/master-items.json" },
