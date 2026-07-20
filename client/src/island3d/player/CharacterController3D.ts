@@ -1462,9 +1462,12 @@ export class CharacterController3D {
     const groundHeight = this.sampleGroundHeight(this.model.position.x, this.model.position.z);
     const feetY = this.model.position.y;
     const headY = feetY + this.physics.characterHeight;
+    // Cave interiors: never apply ocean water (even if world Y < 0)
+    const caveInterior =
+      (this as CharacterController3D & { caveInteriorActive?: boolean }).caveInteriorActive === true;
     const { waterLevel } = this.physics;
-    const inWater = feetY < waterLevel;
-    const submerged = headY < waterLevel;
+    const inWater = !caveInterior && feetY < waterLevel;
+    const submerged = !caveInterior && headY < waterLevel;
 
     if (this.movementState === 'climbing') {
       // Vertical already applied in updateClimbLocomotion; no gravity

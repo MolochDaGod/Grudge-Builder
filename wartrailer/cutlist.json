@@ -1,0 +1,25 @@
+{
+  "version": "1.0.0",
+  "domain": "wartrailer.grudge-studio.com",
+  "worldSeed": "grudge-world-1",
+  "notes": [
+    "Import WebM segments in order into CapCut/Premiere/Resolve",
+    "Record each surface with client.grudge-studio.com ...&trailer=1",
+    "Cave GLBs: assets.grudge-studio.com/models/caves/"
+  ],
+  "segments": [
+    { "order": 0, "id": "tutorial_shipwreck", "title": "Shipwreck Wake", "video": "videos/tutorial_shipwreck-flyby.webm" },
+    { "order": 1, "id": "world_map_overview", "title": "World Map", "video": "videos/world_map_overview-flyby.webm" },
+    { "order": 2, "id": "home_island", "title": "Home Island", "video": "videos/home_island-flyby.webm" },
+    { "order": 3, "id": "lobby_open_world", "title": "Lobby", "video": "videos/lobby_open_world-flyby.webm" },
+    { "order": 4, "id": "haven_shore", "title": "Haven Shore", "video": "videos/haven_shore-flyby.webm" },
+    { "order": 5, "id": "stormbreak_reef", "title": "Stormbreak Reef", "video": "videos/stormbreak_reef-flyby.webm" },
+    { "order": 6, "id": "frostbite_expanse", "title": "Frostbite Expanse", "video": "videos/frostbite_expanse-flyby.webm" },
+    { "order": 7, "id": "thornwood_wilds", "title": "Thornwood Wilds", "video": "videos/thornwood_wilds-flyby.webm" },
+    { "order": 8, "id": "convergence_nexus", "title": "Convergence Nexus", "video": "videos/convergence_nexus-flyby.webm" },
+    { "order": 9, "id": "ashen_wastes", "title": "Ashen Wastes", "video": "videos/ashen_wastes-flyby.webm" },
+    { "order": 10, "id": "ember_depths", "title": "Ember Depths", "video": "videos/ember_depths-flyby.webm" },
+    { "order": 11, "id": "abyssal_trench", "title": "Abyssal Trench", "video": "videos/abyssal_trench-flyby.webm" },
+    { "order": 12, "id": "ethereal_falls", "title": "Ethereal Falls", "video": "videos/ethereal_falls-flyby.webm" }
+  ]
+}

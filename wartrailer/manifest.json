@@ -1,0 +1,33 @@
+{
+  "name": "Grudge Warlords Trailer Hub",
+  "domain": "wartrailer.grudge-studio.com",
+  "version": "1.0.0",
+  "client": "https://client.grudge-studio.com",
+  "assetsCdn": "https://assets.grudge-studio.com",
+  "worldSeed": "grudge-world-1",
+  "caves": {
+    "contract": "shared/definitions/caveDungeonContract.ts",
+    "prefabs": [
+      {
+        "id": "cave_dual",
+        "glb": "models/caves/2cave.glb",
+        "access": ["mouth_a", "mouth_b"],
+        "water": "suppressed",
+        "navmesh": "floor sample grid"
+      },
+      {
+        "id": "cave_lethal_ape",
+        "glb": "models/caves/old_cave_lethal_ape_redux.glb",
+        "access": ["mouth_main"],
+        "respawnMs": 14400000,
+        "water": "suppressed"
+      }
+    ]
+  },
+  "trailerSurfaces": 13,
+  "productionPlay": {
+    "haven": "https://client.grudge-studio.com/play?sector=haven_shore&mode=zone&worldSeed=grudge-world-1",
+    "trailerHud": "https://client.grudge-studio.com/play?sector=haven_shore&mode=zone&worldSeed=grudge-world-1&trailer=1",
+    "lobby": "https://client.grudge-studio.com/play?mode=lobby&trailer=1"
+  }
+}

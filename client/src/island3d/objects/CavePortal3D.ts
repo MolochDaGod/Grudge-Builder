@@ -19,9 +19,12 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 // ── Config (from DUNGEON_SPAWN_CONFIG.portalSwirl in lore.ts) ──
 
 const PORTAL_CONFIG = {
-  // Model
-  modelUrl: "/models/evil_rock_mountains_cave.glb",
-  scale: new THREE.Vector3(0.08, 0.08, 0.08), // scaled for player-size caves
+  // Prefer production dual-mouth / lethal-ape caves; fallback mountain mouth
+  modelUrl: "/models/caves/2cave.glb",
+  fallbackModelUrl: "/models/caves/old_cave_lethal_ape_redux.glb",
+  legacyModelUrl: "/models/evil_rock_mountains_cave.glb",
+  scale: new THREE.Vector3(1, 1, 1), // SI meters — art-authored scale
+  legacyScale: new THREE.Vector3(0.08, 0.08, 0.08),
   // Swirl vortex
   swirlColor: 0x8844ff,
   swirlSecondary: 0x22ccff,
@@ -81,21 +84,38 @@ export class CavePortal3D {
 
   private async loadModel() {
     const loader = new GLTFLoader();
-    const url = this.portalData.entranceModel || PORTAL_CONFIG.modelUrl;
+    const urls = [
+      this.portalData.entranceModel,
+      PORTAL_CONFIG.modelUrl,
+      PORTAL_CONFIG.fallbackModelUrl,
+      PORTAL_CONFIG.legacyModelUrl,
+    ].filter(Boolean) as string[];
 
-    try {
-      const gltf = await loader.loadAsync(url);
-      this.model = gltf.scene;
-      this.model.scale.copy(PORTAL_CONFIG.scale);
-      this.model.traverse((child) => {
-        if ((child as THREE.Mesh).isMesh) {
-          (child as THREE.Mesh).castShadow = true;
-          (child as THREE.Mesh).receiveShadow = true;
-        }
-      });
-      this.group.add(this.model);
-    } catch (err) {
-      console.warn(`[CavePortal] Failed to load model ${url}:`, err);
+    for (const url of urls) {
+      try {
+        const gltf = await loader.loadAsync(url);
+        this.model = gltf.scene;
+        const isLegacy = url.includes('evil_rock') || url.includes('mountains_cave');
+        this.model.scale.copy(isLegacy ? PORTAL_CONFIG.legacyScale : PORTAL_CONFIG.scale);
+        this.model.traverse((child) => {
+          if ((child as THREE.Mesh).isMesh) {
+            const m = child as THREE.Mesh;
+            m.castShadow = true;
+            m.receiveShadow = true;
+            // Water never treats cave shell as ocean volume
+            m.userData.suppressWater = true;
+            m.userData.caveAccess = true;
+          }
+        });
+        this.group.add(this.model);
+        this.group.userData.caveAccessPoint = true;
+        this.group.userData.accessRadius = PORTAL_CONFIG.interactionRange;
+        return;
+      } catch (err) {
+        console.warn(`[CavePortal] Failed to load model ${url}:`, err);
+      }
+    }
+    {
       // Fallback: dark rock placeholder
       const geo = new THREE.ConeGeometry(4, 8, 6);
       const mat = new THREE.MeshStandardMaterial({ color: 0x2a2a2a, roughness: 0.9 });

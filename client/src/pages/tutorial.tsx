@@ -567,6 +567,8 @@ export default function TutorialPage() {
           skip: false,
           hasInjuredGround: hasGround,
           hasInjuredGetUp: hasGetUp,
+          onCinematicBegin: () => engine.beginCinematicCamera(),
+          onCinematicEnd: () => engine.endCinematicCamera(),
           onComplete: () => {
             setWakePhase('playable');
             setIntroPlaying(false);

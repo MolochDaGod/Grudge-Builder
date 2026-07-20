@@ -139,6 +139,7 @@ import { buildHarvestZones, type HarvestZonesResult } from '../harvest/HarvestZo
 import { spawnZoneHarvestNodes } from '../harvest/ZoneHarvestSpawner';
 import { spawnRaceCapitalInZone, type ZoneCapitalResult } from '../zone/ZoneCapitalSpawner';
 import { spawnZoneDungeonPortals, type ZoneDungeonPortalsResult } from '../zone/ZoneDungeonPortals';
+import { CaveInteriorSystem } from '../dungeon/CaveInteriorSystem';
 import {
   loadHavenShoreFoundation,
   type HavenFoundationResult,
@@ -406,6 +407,8 @@ export class Island3DEngine {
   public fabledFoundation: FabledFoundationResult | null = null;
   /** Dungeon entrance portals from zone population */
   public zoneDungeonPortals: ZoneDungeonPortalsResult | null = null;
+  /** Cave interiors — access points, navmesh, water-suppressed layers */
+  public caveInteriors: CaveInteriorSystem | null = null;
   /**
    * Thornwood Wilds (top-right / NE): mountainshiddencity.glb + island boss.
    * Defeat the Warden to unseal the door into the city under the mountain.
@@ -1342,6 +1345,33 @@ export class Island3DEngine {
       },
     );
 
+    // 2d2. Cave interior system — dual/lethal-ape caves with access + nav + no water
+    this.caveInteriors = new CaveInteriorSystem(this.scene);
+    if (this.character) this.caveInteriors.setCharacter(this.character);
+    // Seed 1–2 island caves on first meshes (on-island + respawnable dungeon)
+    void (async () => {
+      try {
+        let i = 0;
+        for (const [, mesh] of this.zoneScene!.islandMeshes) {
+          if (i >= 2) break;
+          const box = new THREE.Box3().setFromObject(mesh);
+          const c = box.getCenter(new THREE.Vector3());
+          const y = box.max.y > box.min.y ? box.min.y + 1 : c.y;
+          const prefab = i === 0 ? 'cave_dual' : 'cave_lethal_ape';
+          await this.caveInteriors!.placeCaveOnIsland({
+            prefabId: prefab,
+            position: new THREE.Vector3(c.x + 20 * (i + 1), y, c.z + 15 * (i + 1)),
+            islandId: `isle_cave_${i}`,
+            respawnable: prefab === 'cave_lethal_ape',
+            seed: `${this.zonePopulation?.worldSeed ?? 'w'}-cave-${i}`,
+          });
+          i++;
+        }
+      } catch (err) {
+        console.warn('[Island3D] Cave seed place failed:', err);
+      }
+    })();
+
     // Shared ground sampler for landmarks / mountain city
     const islandMeshes = this.zoneScene.islandMeshes;
     const sampleGround = (x: number, z: number): number | null => {
@@ -2216,6 +2246,10 @@ export class Island3DEngine {
     if (this.zoneDungeonPortals && this.character) {
       this.zoneDungeonPortals.update(dt, this.character.getPosition());
     }
+    if (this.caveInteriors && this.character) {
+      this.caveInteriors.setCharacter(this.character);
+      this.caveInteriors.update(dt, this.character.getPosition());
+    }
     if (this.hiddenMountainCity && this.character) {
       this.hiddenMountainCity.update(dt, this.character.getPosition(), {
         attacking: this.character.isAttacking,
@@ -2263,6 +2297,7 @@ export class Island3DEngine {
     if (this.mountainTriad?.tryInteract()) return true;
     if (this.fabledFoundation?.tryInteract()) return true;
     if (this.zoneDungeonPortals?.tryInteract()) return true;
+    if (this.character && this.caveInteriors?.tryInteract(this.character.getPosition())) return true;
     if (this.hiddenMountainCity && this.character) {
       if (this.hiddenMountainCity.tryInteract(this.character.getPosition())) return true;
     }
@@ -3059,6 +3094,21 @@ export class Island3DEngine {
 
   getScene(): THREE.Scene {
     return this.scene;
+  }
+
+  /** WebGL renderer (flyby MediaRecorder + snapshot captures). */
+  getRenderer(): THREE.WebGLRenderer {
+    return this.renderer;
+  }
+
+  /** OrbitControls — only drive when cameraMode is orbit_edit / map. */
+  getOrbitControls(): OrbitControls {
+    return this.controls;
+  }
+
+  /** Engine play mode: procedural | lobby | zone | … */
+  getPlayMode(): string {
+    return this.config.mode ?? 'procedural';
   }
 
   /** Register an external update function that runs each frame */

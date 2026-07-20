@@ -61,7 +61,24 @@ export type { HarvestKind, GrowthPhase } from './harvest/RegenerativeHarvest';
 
 // Engine
 export { Island3DEngine } from './engine/Island3DEngine';
+export type { CameraMode } from './player/CameraMode';
+export { createSurfaceFlyby, buildSurfaceWaypoints } from './cinematic/SurfaceFlyby';
+export { createZoneFlyby, downloadFlybyResult } from './cinematic/ZoneFlyby';
+export {
+  GameTrailerSession,
+  getGameTrailerSession,
+  openSurfaceForTrailer,
+} from './cinematic/GameTrailer';
+export {
+  playCinematicPath,
+  captureCanvasPng,
+  startCanvasRecorder,
+} from './cinematic/CinematicCamera';
+export { ZoneFlybyHUD, TrailerHUD } from './render/ZoneFlybyHUD';
 export type { Island3DEngineConfig, Island3DMode } from './engine/Island3DEngine';
+export { CaveInteriorSystem, bakeCaveNavmesh } from './dungeon/CaveInteriorSystem';
+export type { CaveInteriorSession, CaveNavCell } from './dungeon/CaveInteriorSystem';
+// caveDungeonContract is @shared/definitions/caveDungeonContract
 
 // Haven Shore PVE trade foundation (Fruzer)
 export { loadHavenShoreFoundation } from './zone/HavenShoreFoundationLoader';
@@ -155,7 +172,6 @@ export { Island3DRenderer } from './render/Island3DRenderer';
 // Player
 export { CharacterController3D } from './player/CharacterController3D';
 export type { CharacterController3DConfig, ControlMode, MovementState, PhysicsConfig, PhysicsCallbacks } from './player/CharacterController3D';
-export type { CameraMode } from './player/CameraMode';
 export {
   sampleHarvestScatterSlots,
   scheduleScatterRespawn,

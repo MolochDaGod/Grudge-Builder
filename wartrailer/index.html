@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Warlords Trailer Hub · wartrailer.grudge-studio.com</title>
+  <meta name="description" content="Grudge Warlords game trailer hub — section videos, flyby assets, biome packs, cave dungeons, production play links." />
+  <link rel="preconnect" href="https://client.grudge-studio.com" />
+  <style>
+    :root {
+      --bg: #07090e;
+      --panel: #12151c;
+      --gold: #c5a059;
+      --cyan: #06b6d4;
+      --text: #e8dcc8;
+      --muted: #7a8494;
+      --line: #2a3140;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", system-ui, sans-serif;
+      background: radial-gradient(ellipse 80% 50% at 50% -10%, rgba(197,160,89,.08), transparent 50%), var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+    header {
+      padding: 2rem 1.5rem 1rem;
+      border-bottom: 1px solid var(--line);
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    h1 {
+      font-family: Georgia, "Times New Roman", serif;
+      color: var(--gold);
+      font-size: clamp(1.6rem, 4vw, 2.4rem);
+      margin: 0 0 0.35rem;
+      letter-spacing: 0.04em;
+    }
+    .sub { color: var(--muted); font-size: 0.95rem; max-width: 52rem; line-height: 1.5; }
+    nav {
+      display: flex; flex-wrap: wrap; gap: 0.5rem;
+      max-width: 1200px; margin: 0 auto; padding: 1rem 1.5rem;
+    }
+    nav a {
+      color: var(--cyan); text-decoration: none; font-size: 0.8rem;
+      border: 1px solid rgba(6,182,212,.35); padding: 0.35rem 0.7rem; border-radius: 999px;
+    }
+    nav a:hover { background: rgba(6,182,212,.12); }
+    main { max-width: 1200px; margin: 0 auto; padding: 0 1.5rem 3rem; }
+    section { margin-top: 2rem; }
+    h2 {
+      font-family: Georgia, serif; color: var(--gold);
+      font-size: 1.25rem; border-bottom: 1px solid var(--line); padding-bottom: 0.4rem;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 1rem;
+    }
+    article {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    article .media {
+      aspect-ratio: 16/9;
+      background: #000;
+      position: relative;
+      overflow: hidden;
+    }
+    article .media img, article .media video {
+      width: 100%; height: 100%; object-fit: cover; display: block;
+    }
+    article .media .badge {
+      position: absolute; top: 8px; left: 8px;
+      background: rgba(0,0,0,.7); color: var(--gold);
+      font-size: 0.65rem; padding: 0.2rem 0.45rem; border-radius: 6px;
+      text-transform: uppercase; letter-spacing: 0.06em;
+    }
+    article .body { padding: 0.75rem 0.9rem 1rem; flex: 1; display: flex; flex-direction: column; gap: 0.4rem; }
+    article h3 { margin: 0; font-size: 0.95rem; color: #f0e6d2; }
+    article p { margin: 0; font-size: 0.75rem; color: var(--muted); line-height: 1.4; flex: 1; }
+    .actions { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.35rem; }
+    .actions a, .actions button {
+      font-size: 0.7rem; padding: 0.35rem 0.6rem; border-radius: 8px;
+      border: 1px solid var(--line); background: #1a1f2a; color: var(--text);
+      text-decoration: none; cursor: pointer;
+    }
+    .actions a.primary { background: linear-gradient(180deg, #8b6914, #5c4510); border-color: var(--gold); color: #fff; }
+    .actions a.play { background: rgba(6,182,212,.15); border-color: rgba(6,182,212,.4); color: #7dd3fc; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+    th, td { text-align: left; padding: 0.45rem 0.5rem; border-bottom: 1px solid var(--line); }
+    th { color: var(--gold); font-weight: 600; }
+    code { font-size: 0.75rem; color: #a5b4c8; }
+    footer {
+      max-width: 1200px; margin: 0 auto; padding: 1.5rem;
+      color: var(--muted); font-size: 0.75rem; border-top: 1px solid var(--line);
+    }
+    .kenburns {
+      animation: kb 12s ease-in-out infinite alternate;
+      transform-origin: center;
+    }
+    @keyframes kb {
+      from { transform: scale(1) translate(0, 0); }
+      to { transform: scale(1.12) translate(-2%, -1%); }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Warlords Trailer Hub</h1>
+    <p class="sub">
+      Production trailer surface for <strong>Grudge Warlords</strong> — section flybys, biome art packs,
+      cave dungeon assets, and live play links. Combine segments in CapCut / Premiere using the cut list.
+      Canonical world seed: <code>grudge-world-1</code>.
+    </p>
+  </header>
+  <nav>
+    <a href="#sections">Section trailers</a>
+    <a href="#biomes">Biomes &amp; styles</a>
+    <a href="#caves">Caves &amp; dungeons</a>
+    <a href="#assets">Asset index</a>
+    <a href="#deploy">Live play</a>
+    <a href="https://client.grudge-studio.com/play?sector=haven_shore&mode=zone&worldSeed=grudge-world-1&trailer=1">Open trailer HUD</a>
+  </nav>
+  <main>
+    <section id="sections">
+      <h2>Section trailers (individual)</h2>
+      <p class="sub" style="margin-bottom:1rem">
+        Each card is one trailer section. Record live WebM via <code>?trailer=1</code> flyby HUD,
+        or use ken-burns stills until WebMs are uploaded to <code>/videos/</code>.
+      </p>
+      <div class="grid" id="sectionGrid"></div>
+    </section>
+
+    <section id="biomes">
+      <h2>Biome &amp; style stills</h2>
+      <div class="grid">
+        <article>
+          <div class="media"><span class="badge">Beach</span><img class="kenburns" src="assets/renders/2.jpg" alt="Beach shore" /></div>
+          <div class="body"><h3>Haven / Beach</h3><p>Tropical shore generation · palm / stylized packs</p></div>
+        </article>
+        <article>
+          <div class="media"><span class="badge">Forest</span><img class="kenburns" src="assets/renders/5.jpg" alt="Deep forest" /></div>
+          <div class="body"><h3>Thornwood / Forest</h3><p>Deep canopy · pine + stylized trees</p></div>
+        </article>
+        <article>
+          <div class="media"><span class="badge">Volcanic</span><img class="kenburns" src="assets/renders/1.jpg" alt="Volcanic" /></div>
+          <div class="body"><h3>Ember Depths</h3><p>Volcanic rocks · lava accents</p></div>
+        </article>
+        <article>
+          <div class="media"><span class="badge">Winter</span><img class="kenburns" src="assets/renders/3.jpg" alt="Winter" /></div>
+          <div class="body"><h3>Frostbite</h3><p>Snow pines · ice water</p></div>
+        </article>
+        <article>
+          <div class="media"><span class="badge">Styles</span><img class="kenburns" src="assets/renders/4.jpg" alt="Styles" /></div>
+          <div class="body"><h3>Art styles</h3><p>Stylized · realistic · palm · snow pine</p></div>
+        </article>
+      </div>
+    </section>
+
+    <section id="caves">
+      <h2>Cave dungeons (access · navmesh · no water)</h2>
+      <table>
+        <thead>
+          <tr><th>Prefab</th><th>GLB</th><th>Access</th><th>Use</th><th>Rules</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Twin Mouth Cave</td>
+            <td><code>models/caves/2cave.glb</code></td>
+            <td>mouth_a + mouth_b</td>
+            <td>On-island dungeon</td>
+            <td>Navmesh floor sample · water suppressed</td>
+          </tr>
+          <tr>
+            <td>Lethal Ape Redux</td>
+            <td><code>models/caves/old_cave_lethal_ape_redux.glb</code></td>
+            <td>mouth_main</td>
+            <td>Respawnable dungeon (4h)</td>
+            <td>Layer caveInterior · no ocean swim</td>
+          </tr>
+        </tbody>
+      </table>
+      <p class="sub" style="margin-top:0.75rem">
+        Contract: <code>shared/definitions/caveDungeonContract.ts</code> · runtime:
+        <code>CaveInteriorSystem</code>. Upload GLBs to R2
+        <code>assets.grudge-studio.com/models/caves/</code> for production.
+      </p>
+    </section>
+
+    <section id="assets">
+      <h2>Asset &amp; build index</h2>
+      <table>
+        <thead>
+          <tr><th>Build / surface</th><th>Assets</th><th>Record</th></tr>
+        </thead>
+        <tbody id="assetTable"></tbody>
+      </table>
+      <p class="actions" style="margin-top:1rem">
+        <a class="primary" href="cutlist.json" download>Download cut list JSON</a>
+        <a href="manifest.json" download>Full manifest</a>
+      </p>
+    </section>
+
+    <section id="deploy">
+      <h2>Live production play</h2>
+      <table>
+        <thead><tr><th>Surface</th><th>URL</th></tr></thead>
+        <tbody>
+          <tr><td>Haven Shore zone</td><td><a class="play" href="https://client.grudge-studio.com/play?sector=haven_shore&mode=zone&worldSeed=grudge-world-1">client…/play?sector=haven_shore</a></td></tr>
+          <tr><td>Trailer HUD</td><td><a class="play" href="https://client.grudge-studio.com/play?sector=haven_shore&mode=zone&worldSeed=grudge-world-1&trailer=1">…&amp;trailer=1</a></td></tr>
+          <tr><td>Lobby</td><td><a class="play" href="https://client.grudge-studio.com/play?mode=lobby&trailer=1">…mode=lobby</a></td></tr>
+          <tr><td>Auth</td><td><a href="https://id.grudge-studio.com">id.grudge-studio.com</a></td></tr>
+          <tr><td>CDN</td><td><a href="https://assets.grudge-studio.com">assets.grudge-studio.com</a></td></tr>
+          <tr><td>This hub</td><td><code>wartrailer.grudge-studio.com</code></td></tr>
+        </tbody>
+      </table>
+    </section>
+  </main>
+  <footer>
+    Grudge Studio · Warlords trailer hub · Catalog v1 · Seed grudge-world-1 ·
+    Caves contract 1.0.0 · Flyby uses cinematic camera sole-owner law
+  </footer>
+  <script src="app.js"></script>
+</body>
+</html>

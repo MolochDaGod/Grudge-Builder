@@ -763,13 +763,18 @@ export function Island3DRenderer({
             />
           )}
 
-          {/* Sector rewrite proof flyby — ?flyby=1 or ?proof=1 */}
-          {mode === 'zone' &&
-            engineReady &&
+          {/* Cinematic flyby + game trailer — all surfaces: zone, lobby, home */}
+          {engineReady &&
             !loading &&
+            (mode === 'zone' || mode === 'lobby' || mode === 'procedural') &&
             (new URLSearchParams(window.location.search).has('flyby') ||
-              new URLSearchParams(window.location.search).has('proof')) && (
-              <ZoneFlybyHUD engine={engineReady} sectorId={sectorId} />
+              new URLSearchParams(window.location.search).has('proof') ||
+              new URLSearchParams(window.location.search).has('trailer')) && (
+              <ZoneFlybyHUD
+                engine={engineReady}
+                sectorId={sectorId}
+                mode={mode}
+              />
             )}
 
           {/* Authoritative multiplayer chat (Colyseus) */}

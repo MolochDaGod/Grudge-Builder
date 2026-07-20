@@ -24,6 +24,12 @@ export interface WakeCinematicOptions {
   hasInjuredGround?: boolean;
   /** True when get-up clip is loaded */
   hasInjuredGetUp?: boolean;
+  /**
+   * Optional Island3DEngine cinematic hooks (WebGL Insights sole-owner law).
+   * When set, wake path calls beginCinematicCamera / endCinematicCamera.
+   */
+  onCinematicBegin?: () => void;
+  onCinematicEnd?: () => void;
 }
 
 function v3(p: { x: number; y: number; z: number }) {
@@ -50,6 +56,8 @@ export class TutorialWakeCinematic {
   private useAnimGround = false;
   private useAnimGetUp = false;
   private getUpStarted = false;
+  private onCinematicBegin?: () => void;
+  private onCinematicEnd?: () => void;
 
   constructor(opts: WakeCinematicOptions) {
     this.camera = opts.camera;
@@ -60,6 +68,8 @@ export class TutorialWakeCinematic {
       || !!opts.character.animations?.hasClip('death');
     this.useAnimGetUp = !!opts.hasInjuredGetUp
       || !!opts.character.animations?.hasClip('hard_landing');
+    this.onCinematicBegin = opts.onCinematicBegin;
+    this.onCinematicEnd = opts.onCinematicEnd;
   }
 
   get active(): boolean {
@@ -99,9 +109,7 @@ export class TutorialWakeCinematic {
 
     this.camera.position.copy(this.startCam);
     this.camera.lookAt(this.lookAt);
-    // Prefer engine camera mode if present (WebGL Insights sole-owner law)
-    const eng = (this as { engine?: { beginCinematicCamera?: () => void } }).engine;
-    eng?.beginCinematicCamera?.();
+    this.onCinematicBegin?.();
   }
 
   skip(): void {
@@ -179,6 +187,7 @@ export class TutorialWakeCinematic {
   private finishPlayable(): void {
     this.applyPronePose(0);
     this.lockPlayer(false);
+    this.onCinematicEnd?.();
     // Stay on injured idle if pack loaded
     if (this.character.animations?.hasClip('idle')) {
       this.character.animations.play('idle', { loop: true });
@@ -193,6 +202,7 @@ export class TutorialWakeCinematic {
   private finishImmediate(): void {
     this.applyPronePose(0);
     this.lockPlayer(false);
+    this.onCinematicEnd?.();
     if (this.character.animations?.hasClip('idle')) {
       this.character.animations.play('idle', { loop: true });
     }
