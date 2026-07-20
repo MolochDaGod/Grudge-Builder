@@ -16,7 +16,6 @@ function fv(
     Partial<Pick<BuildPieceDef, 'tier' | 'placeYOffset' | 'sourceGlb'>>,
 ): BuildPieceDef {
   return {
-    sourceGlb: PACK,
     placeYOffset: 0,
     placement: 'prop',
     requiresFloor: false,

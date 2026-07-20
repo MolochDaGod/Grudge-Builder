@@ -20,7 +20,6 @@ function kit(
   partial: Omit<BuildPieceDef, 'sourceGlb'> & { sourceGlb?: string },
 ): BuildPieceDef {
   return {
-    sourceGlb: KIT,
     placeYOffset: 0,
     placement: 'prop',
     requiresFloor: false,
