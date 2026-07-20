@@ -172,7 +172,7 @@ export default function PlayPage() {
     return () => window.removeEventListener('grudge:character:updated', onUpdated);
   }, []);
 
-  // Colyseus connection
+  // Colyseus connection — SectorRoom already has authority handlers for move/harvest/pve/pvp/anim/fx
   const colyseus = useColyseus(playerInfo);
   sendHarvestRef.current = colyseus.sendHarvest;
 
@@ -344,13 +344,16 @@ export default function PlayPage() {
         equippedWeaponType: player.equippedWeaponType,
       });
 
-      // Listen for property changes on this player
+      // Listen for property changes on this player (incl. anim for remotes)
       player.onChange(() => {
         rpm.updatePlayer(sessionId, {
           x: player.x, y: player.y, z: player.z,
           facing: player.facing,
           state: player.state,
           hp: player.hp, maxHp: player.maxHp,
+          animState: player.animState,
+          animClip: player.animClip,
+          animSeq: player.animSeq,
         });
       });
     });
@@ -416,6 +419,96 @@ export default function PlayPage() {
       applyNode(node, id);
     });
   }, [colyseus.sectorRoom]);
+
+  // ── Server authority events (already handled by SectorRoom; wire UI) ─
+
+  useEffect(() => {
+    const room = colyseus.sectorRoom;
+    if (!room) return;
+
+    const onHarvestComplete = (data: {
+      nodeId?: string;
+      playerId?: string;
+      playerName?: string;
+      professionId?: string;
+      respawnAt?: number;
+    }) => {
+      const me = data.playerId === colyseus.localSessionId;
+      const prof = data.professionId || 'resource';
+      if (me) {
+        setLootNotification(`Harvested ${prof} (server)`);
+      } else if (data.playerName) {
+        setLootNotification(`${data.playerName} harvested ${prof}`);
+      }
+      setTimeout(() => setLootNotification(null), 3000);
+      if (data.nodeId && engineRef.current) {
+        syncHarvestNodeDepleted(engineRef.current, data.nodeId, true);
+      }
+    };
+
+    const onHarvestError = (data: { nodeId?: string; error?: string }) => {
+      if (data.error === 'depleted') {
+        setLootNotification('Node depleted — wait for respawn');
+        setTimeout(() => setLootNotification(null), 2500);
+        if (data.nodeId && engineRef.current) {
+          syncHarvestNodeDepleted(engineRef.current, data.nodeId, true);
+        }
+      }
+    };
+
+    const onPveDamage = (data: { enemyId?: string; damage?: number; hp?: number }) => {
+      if (data.enemyId != null && data.hp != null && data.hp <= 0) {
+        setLootNotification(`Enemy down (−${data.damage ?? '?'})`);
+        setTimeout(() => setLootNotification(null), 2500);
+      }
+    };
+
+    const onPveKill = (data: { xp?: number; gold?: number; enemyType?: string }) => {
+      setLootNotification(
+        `Kill ${data.enemyType || 'enemy'} · +${data.xp ?? 0} XP · +${data.gold ?? 0}g`,
+      );
+      setTimeout(() => setLootNotification(null), 3500);
+    };
+
+    const onRoomSnapshot = (data: { sectorId?: string; playerCount?: number }) => {
+      console.log('[Play] room_snapshot', data);
+    };
+
+    room.onMessage('harvest_complete', onHarvestComplete);
+    room.onMessage('harvest_error', onHarvestError);
+    room.onMessage('pve_damage', onPveDamage);
+    room.onMessage('pve_kill', onPveKill);
+    room.onMessage('room_snapshot', onRoomSnapshot);
+
+    return () => {
+      // colyseus.js removes handlers when room is disposed; no offMessage API on all versions
+    };
+  }, [colyseus.sectorRoom, colyseus.localSessionId]);
+
+  // ── Send anim state so remotes see attack/harvest (server anim handler already exists) ─
+
+  useEffect(() => {
+    if (!colyseus.sectorRoom || !engineRef.current) return;
+    let lastAnim = '';
+    const id = setInterval(() => {
+      const engine = engineRef.current;
+      if (!engine?.character || !colyseus.sendAnim) return;
+      const moving = engine.character.isMoving?.() ?? false;
+      const mode = (engine as { playMode?: string }).playMode;
+      let anim = moving ? 'walk' : 'idle';
+      // Prefer character combat oneshot if exposed
+      const attackActive = (engine.character as { isAttacking?: () => boolean }).isAttacking?.();
+      if (attackActive) anim = 'attack';
+      if (mode === 'harvest' && !moving) {
+        /* keep idle unless tool swing — harvest oneshot via harvest path */
+      }
+      if (anim !== lastAnim) {
+        lastAnim = anim;
+        colyseus.sendAnim(anim, anim, anim === 'attack');
+      }
+    }, 200);
+    return () => clearInterval(id);
+  }, [colyseus.sectorRoom, colyseus.sendAnim]);
 
   // ── Get local player state ────────────────────────────────────
 

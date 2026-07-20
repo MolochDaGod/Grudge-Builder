@@ -138,6 +138,8 @@ export function useColyseus(playerInfo: PlayerInfo | null) {
         faction: playerInfo.faction,
         level: playerInfo.level,
         accountId: playerInfo.accountId,
+        // Required for authority + persistence correlation on server
+        characterId: playerInfo.characterId,
         sourceGame: 'warlords',
         // 3D model data for mesh sync
         baseModelId: playerInfo.baseModelId || playerInfo.heroRace || 'human',
@@ -149,7 +151,7 @@ export function useColyseus(playerInfo: PlayerInfo | null) {
       });
 
       sectorRoomRef.current = sectorRoom;
-      console.log('[Colyseus] Joined SectorRoom:', sectorRoom.sessionId);
+      console.log('[Colyseus] Joined SectorRoom:', sectorRoom.sessionId, 'char=', playerInfo.characterId);
 
       // Sync players
       sectorRoom.state.players.onAdd((player: any, sessionId: string) => {
@@ -157,6 +159,13 @@ export function useColyseus(playerInfo: PlayerInfo | null) {
           const players = new Map(s.players);
           players.set(sessionId, player);
           return { ...s, players };
+        });
+        player.onChange?.(() => {
+          setState(s => {
+            const players = new Map(s.players);
+            players.set(sessionId, player);
+            return { ...s, players };
+          });
         });
       });
 
@@ -175,6 +184,13 @@ export function useColyseus(playerInfo: PlayerInfo | null) {
           enemies.set(enemyId, enemy);
           return { ...s, enemies };
         });
+        enemy.onChange?.(() => {
+          setState(s => {
+            const enemies = new Map(s.enemies);
+            enemies.set(enemyId, enemy);
+            return { ...s, enemies };
+          });
+        });
       });
 
       sectorRoom.state.enemies.onRemove((_enemy: any, enemyId: string) => {
@@ -184,6 +200,9 @@ export function useColyseus(playerInfo: PlayerInfo | null) {
           return { ...s, enemies };
         });
       });
+
+      // Protocol handshake — server echoes room_snapshot
+      sectorRoom.send('ready', { protocolVersion: 1 });
 
       sectorRoom.onLeave(() => {
         console.log('[Colyseus] Left SectorRoom');
@@ -219,9 +238,24 @@ export function useColyseus(playerInfo: PlayerInfo | null) {
     sectorRoomRef.current?.send('pve_attack', { enemyId, damage });
   }, []);
 
+  // Send PvP attack (hanging handler already on server)
+  const sendPvpAttack = useCallback((targetId: string, damage: number) => {
+    sectorRoomRef.current?.send('pvp_attack', { targetId, damage });
+  }, []);
+
   // Send harvest
   const sendHarvest = useCallback((nodeId: string, professionId: string) => {
     sectorRoomRef.current?.send('harvest', { nodeId, professionId });
+  }, []);
+
+  // Animation oneshot for remotes (attack / harvest)
+  const sendAnim = useCallback((state: string, clip?: string, oneshot = false) => {
+    sectorRoomRef.current?.send('anim', { state, clip: clip || state, oneshot });
+  }, []);
+
+  // One-shot VFX broadcast
+  const sendFx = useCallback((kind: string, x: number, y: number, z: number, meta?: string) => {
+    sectorRoomRef.current?.send('fx', { kind, x, y, z, meta });
   }, []);
 
   // Cleanup on unmount
@@ -240,6 +274,9 @@ export function useColyseus(playerInfo: PlayerInfo | null) {
     sendMove,
     sendChat,
     sendPveAttack,
+    sendPvpAttack,
     sendHarvest,
+    sendAnim,
+    sendFx,
   };
 }
