@@ -28,7 +28,7 @@ export * from "./npcCamps";
 export * from "./completeWorldMap";
 export * from "./biomeEcosystemCatalog";
 export * from "./seedContentContract";
-// valheimStyleHarvest intentionally not re-exported until the module ships (broke CI client build).
+// valheimStyleHarvest intentionally not re-exported until the module ships.
 export * from "./biomeHarvestAssets";
 export * from "./resolveAsset";
 export * from "./terrainPackage";
@@ -52,7 +52,8 @@ export * from "./grimoireCastSystem";
 export * from "./rangerCastSystem";
 export * from "./warriorCastSystem";
 export * from "./statusEffects";
-// statusMagicIndicators / supernovaImpactVfx not present on disk — do not re-export (breaks CI client build).
+export * from "./statusMagicIndicators";
+export * from "./supernovaImpactVfx";
 export * from "./gameAudioCatalog";
 export * from "./weaponAttachSystem";
 export * from "./hiddenMountainCity";
@@ -167,3 +168,5 @@ export function createCombatLogId(): string {
 export function createSaveId(): string {
   return `save_${generateUUID()}`;
 }
+
+export * from "./lobbyBakedMap";
