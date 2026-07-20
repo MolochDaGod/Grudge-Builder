@@ -273,6 +273,14 @@ export function useZoneNetwork({
     getNetworkManager().sendHarvest(nodeId, professionId);
   }, []);
 
+  const sendPveAttack = useCallback((enemyId: string, damage: number) => {
+    getNetworkManager().sendPveAttack(enemyId, damage);
+  }, []);
+
+  const sendPvpAttack = useCallback((targetId: string, damage: number) => {
+    getNetworkManager().sendPvpAttack(targetId, damage);
+  }, []);
+
   return {
     connected,
     error,
@@ -280,6 +288,8 @@ export function useZoneNetwork({
     sendChat,
     sendPlaceBuilding,
     sendHarvest,
+    sendPveAttack,
+    sendPvpAttack,
     assetStats: () => AssetLoadQueue.getStats(),
   };
 }

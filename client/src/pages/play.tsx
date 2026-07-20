@@ -6,6 +6,7 @@
  */
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useLocation } from 'wouter';
+import * as THREE from 'three';
 import { useColyseus, type PlayerInfo } from '@/hooks/use-colyseus';
 import { syncHarvestNodeDepleted } from '@/island3d/harvest/ZoneHarvestSpawner';
 import { GameHUD } from '@/components/GameHUD';
@@ -60,6 +61,9 @@ export default function PlayPage() {
   const engineRef = useRef<Island3DEngine | null>(null);
   const remotePlayersRef = useRef<RemotePlayerManager | null>(null);
   const sendHarvestRef = useRef<(nodeId: string, professionId: string) => void>(() => {});
+  const sendPveAttackRef = useRef<(enemyId: string, damage: number) => void>(() => {});
+  const sendAnimRef = useRef<(state: string, clip?: string, oneshot?: boolean) => void>(() => {});
+  const sendFxRef = useRef<(kind: string, x: number, y: number, z: number, meta?: string) => void>(() => {});
   const moveIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const characterRef = useRef<Character | null>(null);
   const [loaded, setLoaded] = useState(false);
@@ -123,8 +127,8 @@ export default function PlayPage() {
         } as Character;
       }
       if (!char) {
-        console.warn('[Play] No roster character — redirecting to create flow');
-        setLocation('/create-character');
+        console.warn('[Play] No roster character — redirecting to hero select');
+        setLocation('/heroes');
         return;
       }
 
@@ -175,6 +179,9 @@ export default function PlayPage() {
   // Colyseus connection — SectorRoom already has authority handlers for move/harvest/pve/pvp/anim/fx
   const colyseus = useColyseus(playerInfo);
   sendHarvestRef.current = colyseus.sendHarvest;
+  sendPveAttackRef.current = colyseus.sendPveAttack;
+  sendAnimRef.current = colyseus.sendAnim;
+  sendFxRef.current = colyseus.sendFx;
 
   // ── Connect after character is loaded ───────────────────────────────
 
@@ -223,8 +230,16 @@ export default function PlayPage() {
       onHarvest: ({ nodeId, resourceType }) => {
         if (!nodeId) return;
         sendHarvestRef.current(nodeId, resourceType);
+        // Tell remotes we're swinging a tool
+        sendAnimRef.current('harvesting', 'harvesting', true);
         setLootNotification(`Harvested ${resourceType}`);
         setTimeout(() => setLootNotification(null), 3000);
+      },
+      // Local weapon hit → SectorRoom pve_attack (ids match via network enemy bridge)
+      onCombatHit: ({ creatureId, damage, position }) => {
+        sendPveAttackRef.current(creatureId, damage);
+        sendAnimRef.current('attack', 'attack', true);
+        sendFxRef.current('attack_burst', position.x, position.y + 1, position.z);
       },
       onDungeonEnter: (dungeonId, dungeonName) => {
         const city = new URLSearchParams(window.location.search).get('city');
@@ -456,14 +471,28 @@ export default function PlayPage() {
       }
     };
 
-    const onPveDamage = (data: { enemyId?: string; damage?: number; hp?: number }) => {
+    const onPveDamage = (data: {
+      enemyId?: string;
+      damage?: number;
+      hp?: number;
+      attackerId?: string;
+    }) => {
+      // Mesh HP/pose: enemies.onChange → upsertNetworkEnemy (absolute). Do NOT also
+      // dealDamage here or remotes double-apply onChange + message.
       if (data.enemyId != null && data.hp != null && data.hp <= 0) {
         setLootNotification(`Enemy down (−${data.damage ?? '?'})`);
         setTimeout(() => setLootNotification(null), 2500);
+      } else if (
+        data.attackerId &&
+        data.attackerId !== colyseus.localSessionId &&
+        data.damage
+      ) {
+        setLootNotification(`Hit −${data.damage}`);
+        setTimeout(() => setLootNotification(null), 1500);
       }
     };
 
-    const onPveKill = (data: { xp?: number; gold?: number; enemyType?: string }) => {
+    const onPveKill = (data: { xp?: number; gold?: number; enemyType?: string; enemyId?: string }) => {
       setLootNotification(
         `Kill ${data.enemyType || 'enemy'} · +${data.xp ?? 0} XP · +${data.gold ?? 0}g`,
       );
@@ -474,16 +503,78 @@ export default function PlayPage() {
       console.log('[Play] room_snapshot', data);
     };
 
+    // Remote one-shot VFX (SectorRoom broadcasts except sender)
+    const onFx = (data: {
+      kind?: string;
+      x?: number;
+      y?: number;
+      z?: number;
+      senderId?: string;
+    }) => {
+      const bus = engineRef.current?.worldFx;
+      if (!bus) return;
+      if (data.senderId && data.senderId === colyseus.localSessionId) return;
+      const v = new THREE.Vector3(
+        Number(data.x) || 0,
+        Number(data.y) || 1,
+        Number(data.z) || 0,
+      );
+      const kind = String(data.kind || 'custom');
+      try {
+        if (kind === 'attack_burst') bus.attackBurst(v);
+        else if (kind === 'teleport_smoke' || kind.includes('teleport')) bus.teleportSmoke(v);
+        else if (kind === 'dash_foot') bus.dashFootSmoke(v);
+        else bus.spawn(kind as any, { position: v, burst: true });
+      } catch {
+        /* fx optional */
+      }
+    };
+
     room.onMessage('harvest_complete', onHarvestComplete);
     room.onMessage('harvest_error', onHarvestError);
     room.onMessage('pve_damage', onPveDamage);
     room.onMessage('pve_kill', onPveKill);
     room.onMessage('room_snapshot', onRoomSnapshot);
+    room.onMessage('fx', onFx);
 
     return () => {
       // colyseus.js removes handlers when room is disposed; no offMessage API on all versions
     };
   }, [colyseus.sectorRoom, colyseus.localSessionId]);
+
+  // ── Bridge SectorRoom.enemies → CreatureManager (same server ids) ─
+
+  useEffect(() => {
+    const room = colyseus.sectorRoom;
+    const engine = engineRef.current;
+    if (!room || !engine?.creatures) return;
+
+    const applyEnemy = (enemy: any, enemyId: string) => {
+      engine.creatures!.upsertNetworkEnemy(
+        enemyId || enemy.id,
+        enemy.enemyType || 'enemy',
+        Number(enemy.x) || 0,
+        Number(enemy.y) || 0,
+        Number(enemy.z) || 0,
+        Number(enemy.hp) || 50,
+        Number(enemy.maxHp) || Number(enemy.hp) || 50,
+        enemy.state || 'idle',
+      );
+    };
+
+    room.state.enemies?.onAdd?.((enemy: any, enemyId: string) => {
+      applyEnemy(enemy, enemyId);
+      enemy.onChange?.(() => applyEnemy(enemy, enemyId));
+    });
+
+    room.state.enemies?.onRemove?.((_enemy: any, enemyId: string) => {
+      engine.creatures?.removeNetworkEnemy(enemyId);
+    });
+
+    room.state.enemies?.forEach?.((enemy: any, enemyId: string) => {
+      applyEnemy(enemy, enemyId);
+    });
+  }, [colyseus.sectorRoom, loaded]);
 
   // ── Send anim state so remotes see attack/harvest (server anim handler already exists) ─
 

@@ -12,37 +12,44 @@
 | **Remotes** | `RemotePlayerManager` (mesh + lerp + nameplate) | `island3d/sync/RemotePlayerManager.ts` |
 | **Harvest visuals** | Client harvest → server `harvest` → state `depleted` sync | ZoneHarvestSpawner + SectorRoom |
 | **Rooms registered** | sector, world, home_island, lobby, dungeon, town, tutorial/shipwreck | `server/colyseus/index.ts` |
+| **NetworkManager** | Alternate stack for island-3d: move/anim/fx/chat/buildings/harvest + **pve/pvp** | `lib/network/NetworkManager.ts` |
 
-## Was hanging / now wired (2026-07)
+## Wired (2026-07)
 
 | Gap | Status |
 |-----|--------|
 | `characterId` omitted on sector join | **Fixed** — passed in join options |
 | `harvest_complete` / `harvest_error` not listened on play | **Fixed** — UI toast + deplete sync |
-| `pve_damage` / `pve_kill` not listened | **Fixed** — UI feedback (enemy mesh HP still client-local) |
+| `pve_damage` / `pve_kill` not listened | **Fixed** — UI feedback + remote mesh damage |
 | `ready` / `room_snapshot` unused | **Fixed** — send ready on join |
-| `anim` / `fx` send helpers unused | **Fixed** — `sendAnim`/`sendFx` + coarse anim interval |
+| `anim` / `fx` send helpers unused | **Fixed** — `sendAnim`/`sendFx` + coarse anim interval + combat oneshots |
 | Remote `animState` not updated in onChange | **Fixed** — pass anim fields to RPM |
+| **`localSessionId` stuck on WorldRoom id** | **Fixed** — set to `sectorRoom.sessionId` on join (prevents self-as-remote) |
+| **`sendPveAttack` never called** | **Fixed** — `onCombatHit` → `sendPveAttack` + anim/fx |
+| **Server enemies ≠ client creature IDs** | **Fixed** — `CreatureManager.upsertNetworkEnemy` + play bridge from `state.enemies` |
+| NetworkManager missing combat send | **Fixed** — `sendPveAttack` / `sendPvpAttack` |
+| Remote `fx` not played on play path | **Fixed** — `room.onMessage('fx')` → WorldFxBus |
 
 ## Still hanging (do next)
 
-1. **PvE damage not applied to client creature meshes** — server enemies Map ≠ engine `CreatureManager` IDs. Need ID bridge or spawn enemies from room state.
-2. **`sendPveAttack` never called** from combat pipeline — wire ModePlayHUD / weapon hit to `colyseus.sendPveAttack(enemyId, dmg)`.
-3. **Harvest loot not persisted to Railway inventory** — `harvest_complete` is broadcast-only; need `storage.addInventory` on server handler.
-4. **Position authority** — server accepts client x/y/z with no clamp/speed check (predict-ok for slice, add validation next).
-5. **Lobby / HomeIsland rooms** — separate code paths; home-island has richer harvest_complete (qty/resource); sector is thinner.
-6. **NetworkManager** (`lib/network`) — alternate path used by island-3d; not used by play.tsx (two stacks).
-7. **Magic portals / caves** — authored systems, not required for dual-browser move+harvest proof.
+1. **Harvest loot not persisted to Railway inventory** — `harvest_complete` is broadcast-only; need bag/XP write for `characterId` on server.
+2. **Position authority** — server accepts client x/y/z with no clamp/speed check (predict-ok for slice).
+3. **Lobby / HomeIsland rooms** — separate code paths; home-island has richer harvest_complete (qty/resource); sector is thinner.
+4. **Two client stacks** — `play.tsx` uses `use-colyseus`; `island-3d` uses `NetworkManager`/`useZoneNetwork`. Prefer one facade long-term.
+5. **Local wildlife** (`creature_*` ids) still client-only — only schema enemies (`enemy_*`) are dual-browser authoritative.
+6. **Magic portals / caves** — authored systems, not required for dual-browser move+harvest+combat proof.
+7. **PvP mesh HP** — `pvp_attack` server exists; play UI does not yet call `sendPvpAttack` on player hits.
 
 ## Dual-browser test checklist
 
 ```
 [ ] Two accounts, each create/select hero on character.grudge-studio.com
 [ ] Both open: client…/play?mode=zone&sector=haven_shore&worldSeed=grudge-world-1&characterId=
-[ ] Console: Joined WorldRoom, Joined SectorRoom, room_snapshot
-[ ] Each sees the other mesh move (15 Hz move)
+[ ] Console: Joined WorldRoom, Joined SectorRoom <sectorSessionId>, room_snapshot
+[ ] Each sees the other mesh move (15 Hz move) — NOT a ghost of yourself
 [ ] One harvests → both see node deplete + harvest_complete toast
-[ ] (Later) one attacks shared enemy → both see pve_damage/kill
+[ ] Both see same server enemies (network-auth meshes); one attacks → both see damage/kill
+[ ] Attacker oneshot anim + remote sees attack_burst fx
 ```
 
 ## Server message map (SectorRoom)
@@ -61,7 +68,7 @@
 
 ## Recommended next code session
 
-1. Bridge SectorEnemy → CreatureManager (or render simple proxies from room.enemies).  
-2. On local weapon hit → `sendPveAttack(id, dmg)`.  
-3. On `handleHarvest` success → write profession XP + bag to Railway for `characterId`.  
-4. Smoke script: two headless colyseus clients join haven_shore, assert both in state.players.
+1. On `handleHarvest` success → write profession XP + bag to Railway for `characterId`.
+2. Optional speed clamp on `move` (anti-teleport).
+3. Smoke script: two headless colyseus clients join haven_shore, assert both in state.players + shared enemy id.
+4. Collapse play path onto NetworkManager **or** keep use-colyseus as SSOT and deprecate island-3d stack for zones.

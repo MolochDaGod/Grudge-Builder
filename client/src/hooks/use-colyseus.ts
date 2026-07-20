@@ -151,6 +151,8 @@ export function useColyseus(playerInfo: PlayerInfo | null) {
       });
 
       sectorRoomRef.current = sectorRoom;
+      // CRITICAL: localSessionId must be SectorRoom sessionId (not WorldRoom).
+      // RemotePlayerManager skips self by this id — world id would spawn self as remote.
       console.log('[Colyseus] Joined SectorRoom:', sectorRoom.sessionId, 'char=', playerInfo.characterId);
 
       // Sync players
@@ -177,7 +179,7 @@ export function useColyseus(playerInfo: PlayerInfo | null) {
         });
       });
 
-      // Sync enemies
+      // Sync enemies (schema SSOT for dual-browser PvE)
       sectorRoom.state.enemies.onAdd((enemy: any, enemyId: string) => {
         setState(s => {
           const enemies = new Map(s.enemies);
@@ -211,12 +213,19 @@ export function useColyseus(playerInfo: PlayerInfo | null) {
           ...s,
           sectorRoom: null,
           sectorId: null,
+          // Fall back to world session id if still connected
+          localSessionId: worldRoomRef.current?.sessionId ?? null,
           players: new Map(),
           enemies: new Map(),
         }));
       });
 
-      setState(s => ({ ...s, sectorRoom, sectorId: zoneId }));
+      setState(s => ({
+        ...s,
+        sectorRoom,
+        sectorId: zoneId,
+        localSessionId: sectorRoom.sessionId,
+      }));
     } catch (err: any) {
       console.error('[Colyseus] Sector join failed:', err);
       setState(s => ({ ...s, error: `Sector join failed: ${err.message}` }));

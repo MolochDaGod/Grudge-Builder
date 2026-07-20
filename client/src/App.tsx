@@ -81,6 +81,7 @@ import { GrudgeTokenWidget } from "@/components/grudge-token/GrudgeTokenWidget";
 const OrganizerPage = lazy(() => import("@/pages/organizer"));
 import CreateCharacterRedirect from "@/pages/create-character-redirect";
 import CharacterCreatorRedirect from "@/pages/character-creator-redirect";
+import HeroesPage from "@/pages/heroes";
 import GrudaWarsPage from "@/pages/grudawars";
 import PlayPage from "@/pages/play";
 import OceanPage from "@/pages/ocean";
@@ -122,6 +123,8 @@ function Router() {
       <Route path="/characters" component={CharacterRedirect} />
       <Route path="/create-character" component={CreateCharacterRedirect} />
       <Route path="/character-creator" component={CharacterCreatorRedirect} />
+      <Route path="/heroes" component={HeroesPage} />
+      <Route path="/select-character" component={HeroesPage} />
       <Route path="/professions" component={ProfessionsPage} />
       <Route path="/database" component={DatabasePage} />
       <Route path="/combat" component={CombatPage} />

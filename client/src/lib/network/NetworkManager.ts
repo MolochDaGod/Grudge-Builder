@@ -341,6 +341,16 @@ export class NetworkManager {
     this.sectorRoom?.send(CLIENT_MSG.harvest, { nodeId, professionId });
   }
 
+  /** PvE — SectorRoom.handlePveAttack (was hanging on NetworkManager path) */
+  sendPveAttack(enemyId: string, damage: number): void {
+    this.sectorRoom?.send(CLIENT_MSG.pve_attack, { enemyId, damage });
+  }
+
+  /** PvP — SectorRoom.handlePvpAttack */
+  sendPvpAttack(targetId: string, damage: number): void {
+    this.sectorRoom?.send(CLIENT_MSG.pvp_attack, { targetId, damage });
+  }
+
   // ── Lifecycle ────────────────────────────────────────────────────────────
 
   async dispose(): Promise<void> {

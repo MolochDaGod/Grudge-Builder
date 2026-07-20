@@ -88,6 +88,11 @@ interface CreatureInstance {
   speed: number;
   swimY: number;
   loading: boolean;
+  /**
+   * When true, this creature is owned by SectorRoom.state.enemies (server id).
+   * No local respawn — removal/death comes from schema.
+   */
+  networkAuth?: boolean;
 }
 
 export interface CreatureLootEvent {
@@ -316,8 +321,15 @@ export class CreatureManager {
     }
   }
 
-  private spawnCreature(def: CreatureDef, pos: THREE.Vector3, swimY?: number): void {
-    const id = `creature_${this.nextId++}`;
+  private spawnCreature(
+    def: CreatureDef,
+    pos: THREE.Vector3,
+    swimY?: number,
+    fixedId?: string,
+    networkAuth = false,
+  ): void {
+    const id = fixedId || `creature_${this.nextId++}`;
+    if (this.creatures.has(id)) return;
     const group = new THREE.Group();
     group.position.copy(pos);
     this.scene.add(group);
@@ -366,10 +378,98 @@ export class CreatureManager {
       speed: def.moveSpeed,
       swimY: swimY ?? pos.y,
       loading: false,
+      networkAuth,
     };
 
     this.creatures.set(id, instance);
     this.loadCreatureModel(instance);
+  }
+
+  /**
+   * Bridge SectorRoom.state.enemies → local mesh with matching server id.
+   * Dual-browser PvE: both clients spawn the same id so sendPveAttack hits schema.
+   */
+  upsertNetworkEnemy(
+    id: string,
+    enemyType: string,
+    x: number,
+    y: number,
+    z: number,
+    hp: number,
+    maxHp: number,
+    state = 'idle',
+  ): void {
+    const existing = this.creatures.get(id);
+    if (existing) {
+      existing.group.position.x = x;
+      existing.group.position.z = z;
+      if (this.sampleHeight) {
+        const gy = this.sampleHeight(x, z);
+        if (gy !== null) existing.group.position.y = gy;
+      } else if (y) {
+        existing.group.position.y = y;
+      }
+      const prevHp = existing.hp;
+      existing.hp = hp;
+      if ((state === 'dead' || hp <= 0) && existing.state !== 'dead' && existing.state !== 'skeleton' && existing.state !== 'despawned') {
+        this.setState(existing, 'dead', DEATH_LINGER_TIME);
+        this.playAnim(existing, 'death', false);
+      } else if (hp > 0 && hp < prevHp && existing.state !== 'dead') {
+        // Hit react from remote attacker
+        if (existing.def.anims.hitReact) {
+          this.playAnim(existing, 'hitReact', false);
+          existing.currentAnim = '';
+        }
+        existing.provoked = true;
+      }
+      return;
+    }
+
+    if (state === 'dead' || hp <= 0) return;
+
+    const def = this.resolveNetworkEnemyDef(enemyType, maxHp || hp || 50);
+    let spawnY = y;
+    if (this.sampleHeight) {
+      const gy = this.sampleHeight(x, z);
+      if (gy !== null) spawnY = gy;
+    }
+    this.spawnCreature(def, new THREE.Vector3(x, spawnY, z), undefined, id, true);
+    const spawned = this.creatures.get(id);
+    if (spawned) spawned.hp = hp > 0 ? hp : def.hp;
+  }
+
+  removeNetworkEnemy(id: string): void {
+    const c = this.creatures.get(id);
+    if (!c) return;
+    this.scene.remove(c.group);
+    c.group.traverse((child) => {
+      if ((child as THREE.Mesh).isMesh) {
+        const mesh = child as THREE.Mesh;
+        mesh.geometry?.dispose();
+        if (Array.isArray(mesh.material)) mesh.material.forEach((m) => m.dispose());
+        else mesh.material?.dispose();
+      }
+    });
+    this.creatures.delete(id);
+  }
+
+  /** Map SectorRoom enemyType strings → manifest defs (fallback aggressive beetle). */
+  private resolveNetworkEnemyDef(enemyType: string, maxHp: number): CreatureDef {
+    const t = (enemyType || '').toLowerCase();
+    const byKey =
+      CREATURE_MANIFEST[t] ||
+      CREATURE_MANIFEST[t.replace(/-/g, '_')] ||
+      Object.values(CREATURE_MANIFEST).find(
+        (d) => d.id === t || d.name.toLowerCase() === t || d.id.includes(t),
+      );
+    const base = byKey || CREATURE_MANIFEST.fire_beetle || Object.values(CREATURE_MANIFEST)[0];
+    return {
+      ...base,
+      name: enemyType || base.name,
+      hp: maxHp > 0 ? maxHp : base.hp,
+      // Network corpses stay until server removes — no wildlife respawn loop
+      respawnTime: 99999,
+    };
   }
 
   // ── Model Loading ──────────────────────────────────────────────────────
@@ -515,6 +615,15 @@ export class CreatureManager {
 
       // Update mixer
       c.mixer?.update(dt);
+
+      // Server-owned enemies: pose/HP from schema only — no local wander/chase AI
+      if (c.networkAuth) {
+        if (c.state === 'dead') this.updateDead(c, dt);
+        else if (c.state === 'skeleton') this.updateSkeleton(c, dt);
+        else if (c.state === 'despawned') this.updateDespawned(c, dt);
+        else this.playAnim(c, c.provoked ? 'idle' : 'idle');
+        continue;
+      }
 
       switch (c.state) {
         case 'idle':
@@ -676,6 +785,8 @@ export class CreatureManager {
   }
 
   private updateDespawned(c: CreatureInstance, dt: number): void {
+    // Server-owned enemies never local-respawn (schema onRemove cleans up)
+    if (c.networkAuth) return;
     c.respawnTimer -= dt;
     if (c.respawnTimer <= 0) {
       // Respawn at original position — restore flesh if it was a skeleton

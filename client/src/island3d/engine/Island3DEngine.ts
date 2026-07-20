@@ -262,6 +262,15 @@ export interface Island3DEngineConfig {
     resourceType: string;
     position: THREE.Vector3;
   }) => void;
+  /**
+   * Fired when local combat deals damage to a creature (soft-lock / nearest).
+   * Multiplayer: play.tsx → sendPveAttack + anim/fx (SectorRoom already handles).
+   */
+  onCombatHit?: (event: {
+    creatureId: string;
+    damage: number;
+    position: THREE.Vector3;
+  }) => void;
   /** Account + captain for dock ship roster */
   accountId?: string;
   captainId?: string | null;
@@ -2927,21 +2936,38 @@ export class Island3DEngine {
     if (this.character?.mode === 'combat' && this.creatures) {
       const playerPos = this.character.getPosition();
       const lockId = this.character.getSoftLockTargetId();
+      const hitDmg = 15;
       if (lockId && this.creatures.isAlive(lockId)) {
         const lockPos = this.creatures.getWorldPosition(lockId);
         if (lockPos && lockPos.distanceTo(playerPos) <= 22) {
-          this.creatures.dealDamage(lockId, 15);
+          this.creatures.dealDamage(lockId, hitDmg);
           // Weapon skill impact VFX at hit point
           this.worldFx?.weaponSkillImpact(lockPos, this.resolvePlayerDamageType(), 1.8);
+          this.config.onCombatHit?.({
+            creatureId: lockId,
+            damage: hitDmg,
+            position: lockPos.clone(),
+          });
           return;
         }
       }
       const nearest = this.creatures.findNearest(playerPos, 20);
       if (nearest) {
-        this.creatures.dealDamage(nearest.id, 15);
+        this.creatures.dealDamage(nearest.id, hitDmg);
         const hitPos = this.creatures.getWorldPosition(nearest.id);
         if (hitPos) {
           this.worldFx?.weaponSkillImpact(hitPos, this.resolvePlayerDamageType(), 1.8);
+          this.config.onCombatHit?.({
+            creatureId: nearest.id,
+            damage: hitDmg,
+            position: hitPos.clone(),
+          });
+        } else {
+          this.config.onCombatHit?.({
+            creatureId: nearest.id,
+            damage: hitDmg,
+            position: playerPos.clone(),
+          });
         }
         return;
       }
