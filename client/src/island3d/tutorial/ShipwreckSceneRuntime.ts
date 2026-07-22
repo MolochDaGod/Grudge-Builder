@@ -237,6 +237,11 @@ export interface CreateShipwreckSceneOpts {
   /** Deep-clone default scene or pass custom */
   def?: ShipwreckSceneDef;
   editorMode?: boolean;
+  /**
+   * World-space origin for the shipwreck layout (default 0,0,0).
+   * Tutorial on pirate-islands sets this to shipwreck_cove beach.
+   */
+  worldOrigin?: { x: number; y: number; z: number };
 }
 
 export function createShipwreckSceneRuntime(opts: CreateShipwreckSceneOpts): ShipwreckSceneRuntime {
@@ -245,6 +250,9 @@ export function createShipwreckSceneRuntime(opts: CreateShipwreckSceneOpts): Shi
   );
   const root = new THREE.Group();
   root.name = 'ShipwreckSceneRoot';
+  if (opts.worldOrigin) {
+    root.position.set(opts.worldOrigin.x, opts.worldOrigin.y, opts.worldOrigin.z);
+  }
   opts.scene.add(root);
 
   const zonesGroup = new THREE.Group();

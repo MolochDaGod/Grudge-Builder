@@ -225,6 +225,11 @@ export interface Island3DEngineConfig {
   mode?: Island3DMode;
   /** Lobby map ID (e.g. 'pirate-islands'). Only used when mode='lobby'. */
   lobbyMapId?: string;
+  /**
+   * Production island id for map composition / gmap (e.g. grudge-open-world).
+   * Used when mode='lobby' with chicken-gun pirate map.
+   */
+  lobbyIslandId?: string;
   /** Sector ID from WORLD_SECTORS. Only used when mode='zone'. */
   sectorId?: string;
   /** World seed shared across all zone instances for determinism. */
@@ -345,6 +350,13 @@ export class Island3DEngine {
   public getLobbyMapBounds(): { center: THREE.Vector3; size: THREE.Vector3 } | null {
     if (!this.lobbyResult) return null;
     return { center: this.lobbyResult.center, size: this.lobbyResult.size };
+  }
+
+  /** Sample walkable height on lobby map (pirate-islands colliders). */
+  public sampleLobbyGroundHeight(x: number, z: number): number | null {
+    if (!this.lobbyCollider?.sampleHeight) return null;
+    const y = this.lobbyCollider.sampleHeight(x, z);
+    return typeof y === 'number' && Number.isFinite(y) ? y : null;
   }
 
   /**

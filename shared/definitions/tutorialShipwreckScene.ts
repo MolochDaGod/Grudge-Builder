@@ -1,10 +1,13 @@
 /**
  * Tutorial Shipwreck Opening Scene — SSOT
  *
- * After TI / Warlords open movie → load /tutorial → shipwreck island.
- * Slow zoom arrives on unarmed Grudge6 race character **prone/ragdoll** between
- * the broken ship, boats on left/right, rocks opposite, sticks + small stones
- * in the wake area that teach T0 harvesting tools.
+ * Production map: Chicken Gun / PolygonPirates **pirate-islands** lobby
+ * (`mode=lobby&map=pirate-islands`, gmap island `grudge-open-world`).
+ * Wash-up entity: **shipwreck_cove** (frac ox=0.28, oz=0.22).
+ *
+ * Flow: heroes handoff → /tutorial?characterId=&from=heroes →
+ * load pirate-islands → spawn at shipwreck cove beach → injured wake cinematic.
+ * Slow zoom on unarmed Grudge6 race character prone among wreck props + T0 harvest.
  *
  * Mode on arrival: **harvest**. Character: unarmed race model.
  */
@@ -23,9 +26,12 @@ export type TutorialHarvestToolId =
   | 'book_farming'
   | 'book_fishing';
 
-/** Wake / spawn pocket on shipwreck island (world meters, procedural seed) */
+/**
+ * Wake / spawn pocket relative to shipwreck_cove origin on pirate-islands
+ * (local meters; origin resolved at runtime via resolveShipwreckCoveWorld).
+ */
 export const SHIPWRECK_WAKE = {
-  /** Character lies here at start of cinematic */
+  /** Character lies here at start of cinematic (relative to cove) */
   spawn: { x: 0, y: 1.2, z: 4 } as const,
   /** Facing toward open beach (away from wreck spine) */
   facingYaw: Math.PI,

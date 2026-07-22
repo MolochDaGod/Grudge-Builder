@@ -56,6 +56,7 @@ import {
   applyCharacterHandoffFromLocation,
   persistActiveCharacter,
 } from '@/lib/characterHandoff';
+import { resolveShipwreckCoveWorld } from '@/island3d/tutorial/resolveShipwreckCove';
 
 interface TutorialStep {
   id: string;
@@ -461,15 +462,24 @@ export default function TutorialPage() {
     const canvas = canvasRef.current;
     if (!canvas || engineRef.current) return;
 
+    // Production tutorial = Chicken Gun pirate-islands map (lobby), wash-up at shipwreck_cove.
+    // NOT procedural flat seed — same geometry as /island-3d?mode=lobby&map=pirate-islands.
     const config: Island3DEngineConfig = {
       seed: 'shipwreck-tutorial',
       canvas,
       width: window.innerWidth,
       height: window.innerHeight,
-      mode: 'procedural',
-      quality: 'low',
+      mode: 'lobby',
+      lobbyMapId: 'pirate-islands',
+      lobbyIslandId: 'grudge-open-world',
+      quality: 'medium',
       enableCharacter: true,
       dayNight: { dayDurationSeconds: 20 * 60 },
+      onLoadProgress: (pct) => {
+        if (pct === 0 || pct === 100 || pct % 25 === 0) {
+          console.log(`[Tutorial] pirate-islands load ${pct}%`);
+        }
+      },
       onHarvest: (evt) => onHarvestRef.current(evt),
     };
 
@@ -480,9 +490,10 @@ export default function TutorialPage() {
       setLoaded(true);
       engine.start();
 
-      // Complete shipwreck scene: zones, nodes, NPCs, prefabs, pathfinder, gizmo
+      // Pirate-islands map is the world; shipwreck SSOT overlays harvest/NPC at cove.
       const threeScene = engine.getScene();
       const cam = engine.getCamera();
+      const wakeOrigin = resolveShipwreckCoveWorld(engine);
       shipwreckRuntimeRef.current?.dispose();
       const runtime = createShipwreckSceneRuntime({
         scene: threeScene,
@@ -490,6 +501,8 @@ export default function TutorialPage() {
         domElement: canvas,
         def: SHIPWRECK_SCENE,
         editorMode: false,
+        // Anchor tutorial nodes/props on chicken-gun shipwreck cove (not 0,0 procedural)
+        worldOrigin: wakeOrigin,
       });
       shipwreckRuntimeRef.current = runtime;
       setShipwreckRuntime(runtime);
@@ -578,18 +591,29 @@ export default function TutorialPage() {
               segmentPhaseRef.current = 'walk_forward';
               setSegmentPhase('walk_forward');
               setAllyMessage(
-                'You steady yourself. Rock shattered — walk forward to trees, flowers, and the chest.',
+                'You steady yourself. Rock shattered — walk inland across Shipwreck Cove toward the pirate islands.',
               );
               showNotification('Walk inland → grove');
             },
             onPhaseHint: (msg) => setAllyMessage(msg),
           },
+          wakeOrigin,
         );
         harvest.buildFirstSegmentNodes();
         harvestCtrlRef.current = harvest;
 
-        const spawn = SHIPWRECK_WAKE.spawn;
-        engine.character.teleportTo(new THREE.Vector3(spawn.x, spawn.y, spawn.z));
+        // Wash-up on shipwreck_cove beach (chicken gun pirate map)
+        const spawn = new THREE.Vector3(
+          wakeOrigin.x + SHIPWRECK_WAKE.spawn.x,
+          wakeOrigin.y + SHIPWRECK_WAKE.spawn.y,
+          wakeOrigin.z + SHIPWRECK_WAKE.spawn.z,
+        );
+        // Snap to lobby ground if available
+        const groundY = engine.sampleLobbyGroundHeight?.(spawn.x, spawn.z);
+        if (typeof groundY === 'number' && Number.isFinite(groundY)) {
+          spawn.y = groundY + 0.15;
+        }
+        engine.character.teleportTo(spawn);
 
         // Slow zoom → injured ground → get-up → injured idle harvest
         const cinematic = new TutorialWakeCinematic({
@@ -598,6 +622,7 @@ export default function TutorialPage() {
           skip: false,
           hasInjuredGround: hasGround,
           hasInjuredGetUp: hasGetUp,
+          wakeOrigin,
           onCinematicBegin: () => engine.beginCinematicCamera(),
           onCinematicEnd: () => engine.endCinematicCamera(),
           onComplete: () => {

@@ -47,17 +47,26 @@ export class TutorialHarvestController {
   private boundMouseDown: (e: MouseEvent) => void;
   private boundMouseUp: (e: MouseEvent) => void;
   private group: THREE.Group;
+  /** World origin offset (shipwreck_cove on pirate-islands). */
+  private origin: THREE.Vector3;
 
   constructor(
     character: CharacterController3D,
     scene: THREE.Scene,
     cb: TutorialHarvestCallbacks,
+    worldOrigin?: { x: number; y: number; z: number },
   ) {
     this.character = character;
     this.scene = scene;
     this.cb = cb;
+    this.origin = new THREE.Vector3(
+      worldOrigin?.x ?? 0,
+      worldOrigin?.y ?? 0,
+      worldOrigin?.z ?? 0,
+    );
     this.group = new THREE.Group();
     this.group.name = 'TutorialHarvestNodes';
+    this.group.position.copy(this.origin);
     scene.add(this.group);
 
     this.boundKeyDown = (e) => {
@@ -128,11 +137,17 @@ export class TutorialHarvestController {
     mesh.scale.setScalar(scale);
     mesh.name = id;
     this.group.add(mesh);
+    // World position for soft-lock distance checks
+    const world = new THREE.Vector3(
+      this.origin.x + pos.x,
+      this.origin.y + pos.y,
+      this.origin.z + pos.z,
+    );
     this.nodes.set(id, {
       id,
       kind,
       object: mesh,
-      position: new THREE.Vector3(pos.x, pos.y, pos.z),
+      position: world,
       health: maxHealth,
       maxHealth,
       depleted: false,

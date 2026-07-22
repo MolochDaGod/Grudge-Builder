@@ -30,6 +30,11 @@ export interface WakeCinematicOptions {
    */
   onCinematicBegin?: () => void;
   onCinematicEnd?: () => void;
+  /**
+   * Optional world origin of shipwreck cove (pirate-islands). When set, camera
+   * keys are offset; otherwise uses character position after teleport.
+   */
+  wakeOrigin?: { x: number; y: number; z: number };
 }
 
 function v3(p: { x: number; y: number; z: number }) {
