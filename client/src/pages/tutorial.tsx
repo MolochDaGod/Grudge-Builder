@@ -52,6 +52,10 @@ import {
   INJURED_OPENER_PHASES,
 } from '@shared/definitions/injuredAnimPack';
 import { loadInjuredAnimsOntoManager } from '@/island3d/tutorial/loadInjuredAnims';
+import {
+  applyCharacterHandoffFromLocation,
+  persistActiveCharacter,
+} from '@/lib/characterHandoff';
 
 interface TutorialStep {
   id: string;
@@ -108,29 +112,29 @@ export default function TutorialPage() {
   const ally = getAvatarForContext('tutorial');
 
   // ── Load full character from DB ────────────────────────────────
+  // Handoff: /tutorial?characterId=<uuid>&from=heroes|gcs|foundry|open
 
   useEffect(() => {
     async function load() {
       try {
-        const params = new URLSearchParams(window.location.search);
-        const urlCharacterId = params.get('characterId');
-        const grudgeId = localStorage.getItem('grudge_account_id') || 'guest';
-        // Prefer Foundry handoff ?characterId= (from=gcs) over stale storage
-        const activeId =
-          urlCharacterId ||
-          localStorage.getItem(`gruda_active_character_${grudgeId}`) ||
-          localStorage.getItem('grudge_active_character') ||
-          localStorage.getItem('gruda_active_character_guest');
+        const handoff = applyCharacterHandoffFromLocation();
+        const activeId = handoff.characterId;
 
         if (!activeId) {
-          // Prefer fleet GCS with returnTo=/tutorial (unarmed) — not stuck on /viewer
-          setLocation('/create-character');
+          // No character — send to heroes select (not create) when unauthenticated flow allows
+          console.warn('[Tutorial] missing characterId — redirect /heroes');
+          setLocation('/heroes');
           return;
         }
 
-        if (urlCharacterId) {
-          localStorage.setItem('grudge_active_character', urlCharacterId);
-          localStorage.setItem(`gruda_active_character_${grudgeId}`, urlCharacterId);
+        if (handoff.fromUrl) {
+          persistActiveCharacter(activeId, handoff.from);
+          // Best-effort fleet activate so era slots stay coherent
+          try {
+            await characterAPI.activate(activeId, 'warlords');
+          } catch (e) {
+            console.warn('[Tutorial] activate failed (continuing with get):', e);
+          }
         }
 
         const char = await characterAPI.get(activeId);
@@ -160,8 +164,25 @@ export default function TutorialPage() {
         setProfessions(getActiveGatheringProfessions(char.professionLevels ?? {}));
         setClassHotbar(buildClassHotbar(char));
         setWeaponHotbar(buildWeaponHotbar(char, false));
-      } catch {
-        setLocation('/create-character');
+
+        if (handoff.from === 'heroes' || handoff.from === 'gcs' || handoff.from === 'foundry') {
+          setAllyMessage(
+            handoff.from === 'heroes'
+              ? 'Heroes handoff — shipwreck tutorial. Survive, craft, sail.'
+              : 'Foundry handoff — shipwreck tutorial. Your hero washes ashore.',
+          );
+        }
+      } catch (err) {
+        console.error('[Tutorial] character load failed', err);
+        // Keep characterId in URL when bouncing to heroes for retry
+        const handoff = applyCharacterHandoffFromLocation();
+        if (handoff.characterId) {
+          setLocation(
+            `/heroes?characterId=${encodeURIComponent(handoff.characterId)}&error=load`,
+          );
+        } else {
+          setLocation('/heroes');
+        }
       }
     }
     load();

@@ -88,24 +88,29 @@ export default function HomeIslandPage() {
     async function load() {
       try {
         const params = new URLSearchParams(window.location.search);
-        const fromGcs = params.get('from') === 'gcs';
-        const urlCharacterId = params.get('characterId');
-        const grudgeId = localStorage.getItem('grudge_account_id') || 'guest';
-        // Prefer Foundry/GCS handoff ?characterId= over stale localStorage
-        const activeId =
-          urlCharacterId ||
-          localStorage.getItem(`gruda_active_character_${grudgeId}`) ||
-          localStorage.getItem('grudge_active_character') ||
-          localStorage.getItem('gruda_active_character_guest');
+        const fromGcs =
+          params.get('from') === 'gcs' ||
+          params.get('from') === 'foundry' ||
+          params.get('from') === 'heroes';
+        const { applyCharacterHandoffFromLocation, persistActiveCharacter } = await import(
+          '@/lib/characterHandoff'
+        );
+        const handoff = applyCharacterHandoffFromLocation();
+        // Prefer Foundry/GCS/heroes handoff ?characterId= over stale localStorage
+        const activeId = handoff.characterId;
 
         if (!activeId) {
-          setLocation('/create-character');
+          setLocation('/heroes');
           return;
         }
 
-        if (urlCharacterId) {
-          localStorage.setItem('grudge_active_character', urlCharacterId);
-          localStorage.setItem(`gruda_active_character_${grudgeId}`, urlCharacterId);
+        if (handoff.fromUrl) {
+          persistActiveCharacter(activeId, handoff.from);
+          try {
+            await characterAPI.activate(activeId, 'warlords');
+          } catch {
+            /* non-fatal */
+          }
         }
 
         const char = await characterAPI.get(activeId);

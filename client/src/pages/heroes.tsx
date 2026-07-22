@@ -74,6 +74,16 @@ export default function HeroesPage() {
   const enterPlay = () => {
     if (!selected) return;
     setActive(selected.id);
+    try {
+      // Mirror handoff keys used by tutorial / home-island (from=heroes)
+      localStorage.setItem('grudge_active_character', selected.id);
+      localStorage.setItem('gruda_active_character', selected.id);
+      const gid = localStorage.getItem('grudge_account_id') || 'guest';
+      localStorage.setItem(`gruda_active_character_${gid}`, selected.id);
+      localStorage.setItem('grudge_character_handoff_from', 'heroes');
+    } catch {
+      /* ignore */
+    }
     const d = DEST.find((x) => x.id === dest) ?? DEST[1];
     setLocation(d.path(selected.id));
   };
