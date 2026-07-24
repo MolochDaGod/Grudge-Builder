@@ -6,14 +6,17 @@
  * into boss rooms (e.g. Hoth frozen chamber).
  */
 import * as THREE from 'three';
-import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import { assetUrl } from '@/lib/assetConfig';
 import {
+  FLOATING_ISLAND_LOAD_ORDER,
   HOTH_BOSS_ROOM,
   SPIRAL_MOUNTAIN_EVENT,
   type EventIslandBiome,
 } from '@shared/definitions/floatingIslandBossAssets';
-import { fitObjectHeight, stripSkyboxFromObject } from './gltfSceneUtils';
+import {
+  fitObjectHeight,
+  loadGlbFirst,
+  stripSkyboxFromObject,
+} from './gltfSceneUtils';
 
 export type EventIslandPhase = 'raised' | 'sinking' | 'sunken' | 'rising';
 
@@ -67,11 +70,9 @@ export class EventIslandSystem {
   }
 
   private async boot(opts: EventIslandOpts) {
-    const loader = new GLTFLoader();
-    const url = assetUrl(SPIRAL_MOUNTAIN_EVENT.glbPath);
-    try {
-      const gltf = await loader.loadAsync(url);
-      this.template = gltf.scene;
+    const scene = await loadGlbFirst(FLOATING_ISLAND_LOAD_ORDER.spiralMountain);
+    if (scene) {
+      this.template = scene;
       if (SPIRAL_MOUNTAIN_EVENT.stripSkybox) {
         const gone = stripSkyboxFromObject(this.template);
         if (gone.length) {
@@ -79,14 +80,18 @@ export class EventIslandSystem {
         }
       }
       fitObjectHeight(this.template, SPIRAL_MOUNTAIN_EVENT.targetHeightM);
-    } catch (e) {
-      console.warn('[EventIsland] spiral mountain load failed — cone fallback', e);
+    } else {
+      console.warn('[EventIsland] spiral mountain CDN+local failed — cone fallback');
       this.template = this.fallbackMountain();
     }
     if (this.disposed) return;
 
-    // 1–2 event islands per zone
-    const count = opts.biome === 'plains' ? 1 : 2;
+    // mountain → 2 islands; plains → 1
+    const isPlains =
+      opts.biome === 'plains' ||
+      opts.sectorId === 'haven_shore' ||
+      opts.sectorId === 'ashen_wastes';
+    const count = isPlains ? 1 : 2;
     for (let i = 0; i < count; i++) {
       this.spawnIsland(i, opts);
     }

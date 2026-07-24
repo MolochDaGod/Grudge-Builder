@@ -13,11 +13,38 @@
  *   D:\Games\Models\iceland_scene_for_canimatic.glb
  */
 
+/** Same-origin public paths (dev / Vercel when committed). */
 export const FLOATING_ISLAND_ASSET_PATHS = {
   lyoko: '/models/biomes/ethereal/lyoko_mountain_sector.glb',
   spiralMountain: '/models/biomes/event/spiral_mountain_reimagined.glb',
   hothBossRoom: '/models/biomes/frozen/hoth_boss_room_low_poly.glb',
   iceland: '/models/biomes/cold/iceland_scene_for_canimatic.glb',
+} as const;
+
+/** R2 CDN (assets.grudge-studio.com) — production SSOT for large GLBs. */
+export const FLOATING_ISLAND_CDN_PATHS = {
+  lyoko:
+    'https://assets.grudge-studio.com/models/biomes/ethereal/lyoko_mountain_sector.glb',
+  spiralMountain:
+    'https://assets.grudge-studio.com/models/biomes/event/spiral_mountain_reimagined.glb',
+  hothBossRoom:
+    'https://assets.grudge-studio.com/models/biomes/frozen/hoth_boss_room_low_poly.glb',
+  iceland:
+    'https://assets.grudge-studio.com/models/biomes/cold/iceland_scene_for_canimatic.glb',
+} as const;
+
+/** Load order: CDN first for large packs, then same-origin. */
+export const FLOATING_ISLAND_LOAD_ORDER = {
+  lyoko: [FLOATING_ISLAND_CDN_PATHS.lyoko, FLOATING_ISLAND_ASSET_PATHS.lyoko],
+  spiralMountain: [
+    FLOATING_ISLAND_CDN_PATHS.spiralMountain,
+    FLOATING_ISLAND_ASSET_PATHS.spiralMountain,
+  ],
+  hothBossRoom: [
+    FLOATING_ISLAND_CDN_PATHS.hothBossRoom,
+    FLOATING_ISLAND_ASSET_PATHS.hothBossRoom,
+  ],
+  iceland: [FLOATING_ISLAND_CDN_PATHS.iceland, FLOATING_ISLAND_ASSET_PATHS.iceland],
 } as const;
 
 export const FLOATING_ISLAND_SOURCE_PATHS = {
@@ -125,6 +152,17 @@ export interface EventIslandNpcConfig {
   npcRoles: string[];
 }
 
+/**
+ * Spiral mountain — **mountain + plains biomes only** (not frozen / ethereal / storm).
+ *
+ * | Sector            | Why |
+ * |-------------------|-----|
+ * | thornwood_wilds   | Mountain forest / highland (mountain) |
+ * | haven_shore       | Coastal plains / starter flats (plains) |
+ * | ashen_wastes      | Open desert plains (plains) |
+ *
+ * Frozen → Iceland plate. Ethereal → Lyoko floats. Do not mix.
+ */
 export const SPIRAL_MOUNTAIN_EVENT: EventIslandNpcConfig = {
   id: 'spiral_mountain_event',
   name: 'Spiral Mountain Event Island',
@@ -132,11 +170,9 @@ export const SPIRAL_MOUNTAIN_EVENT: EventIslandNpcConfig = {
   stripSkybox: true,
   biomes: ['mountain', 'plains'],
   sectors: [
-    'thornwood_wilds',
-    'frostbite_expanse',
-    'haven_shore',
-    'stormbreak_reef',
-    'ethereal_falls',
+    'thornwood_wilds', // mountain / canopy highlands
+    'haven_shore', // plains / trade coast flats
+    'ashen_wastes', // desert plains
   ],
   targetHeightM: 120,
   sinkDepthM: 45,
@@ -200,19 +236,25 @@ export const HOTH_BOSS_ROOM: BossRoomInstanceDef = {
   targetExtentM: 48,
 };
 
-// ── Iceland scene (frozen + near-frozen) ─────────────────────────────────────
+// ── Iceland scene — frozen biome SSOT (+ cold-adjacent only) ─────────────────
 
+/**
+ * Iceland cinematic plate — **frozen biome home**, plus western cold shelf.
+ *
+ * | Sector              | Role |
+ * |---------------------|------|
+ * | frostbite_expanse   | Primary frozen (full plate) |
+ * | stormbreak_reef     | Near-frozen cold-storm shelf (W of north ice) |
+ *
+ * Not ethereal (Lyoko), not abyssal deep, not spiral mountain plains.
+ */
 export const ICELAND_SCENE_PLACEMENT = {
   id: 'iceland_cinematic_scene',
   glbPath: FLOATING_ISLAND_ASSET_PATHS.iceland,
-  /** Full freeze sectors */
+  /** Full freeze sectors (biome: frozen) */
   frozenSectors: ['frostbite_expanse'] as const,
-  /** Near-frozen western cold band */
-  nearFrozenSectors: [
-    'stormbreak_reef',
-    'ethereal_falls',
-    'abyssal_trench',
-  ] as const,
+  /** Adjacent cold-storm shelf only (not ethereal / abyssal) */
+  nearFrozenSectors: ['stormbreak_reef'] as const,
   targetExtentM: 90,
   stripSkybox: false,
 };

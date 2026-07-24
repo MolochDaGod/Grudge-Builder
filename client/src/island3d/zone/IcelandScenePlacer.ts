@@ -2,13 +2,16 @@
  * Place iceland_scene_for_canimatic in frozen + near-frozen zones.
  */
 import * as THREE from 'three';
-import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import { assetUrl } from '@/lib/assetConfig';
 import {
+  FLOATING_ISLAND_LOAD_ORDER,
   ICELAND_SCENE_PLACEMENT,
   isIcelandSector,
 } from '@shared/definitions/floatingIslandBossAssets';
-import { fitObjectExtent, stripSkyboxFromObject } from './gltfSceneUtils';
+import {
+  fitObjectExtent,
+  loadGlbFirst,
+  stripSkyboxFromObject,
+} from './gltfSceneUtils';
 
 export interface IcelandPlaceOpts {
   scene: THREE.Scene;
@@ -28,18 +31,21 @@ export async function placeIcelandScene(
 ): Promise<IcelandPlaceResult | null> {
   if (!isIcelandSector(opts.sectorId)) return null;
 
-  const loader = new GLTFLoader();
   const root = new THREE.Group();
   root.name = 'IcelandCinematicScene';
 
+  const mesh = await loadGlbFirst(FLOATING_ISLAND_LOAD_ORDER.iceland);
+  if (!mesh) {
+    console.warn('[Iceland] CDN+local load failed for', opts.sectorId);
+    return null;
+  }
+
   try {
-    const gltf = await loader.loadAsync(assetUrl(ICELAND_SCENE_PLACEMENT.glbPath));
-    const mesh = gltf.scene;
     if (ICELAND_SCENE_PLACEMENT.stripSkybox) stripSkyboxFromObject(mesh);
     fitObjectExtent(mesh, ICELAND_SCENE_PLACEMENT.targetExtentM);
 
     const half = opts.zoneSizeM * 0.28;
-    // Frostbite: center-north shelf; near-frozen: west-biased cold rim
+    // frostbite (frozen): north ice shelf; stormbreak (near-frozen): western cold rim
     const frozen = (
       ICELAND_SCENE_PLACEMENT.frozenSectors as readonly string[]
     ).includes(opts.sectorId);
@@ -59,9 +65,13 @@ export async function placeIcelandScene(
       }
     });
     opts.scene.add(root);
-    console.log(`[Iceland] placed in ${opts.sectorId} at`, x.toFixed(0), z.toFixed(0));
+    console.log(
+      `[Iceland] placed in ${opts.sectorId} (${frozen ? 'frozen' : 'near-frozen'}) @`,
+      x.toFixed(0),
+      z.toFixed(0),
+    );
   } catch (e) {
-    console.warn('[Iceland] scene load failed', e);
+    console.warn('[Iceland] place failed', e);
     return null;
   }
 

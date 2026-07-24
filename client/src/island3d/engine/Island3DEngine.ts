@@ -1523,13 +1523,22 @@ export class Island3DEngine {
     }
 
     // 2h. Spiral mountain event islands (mountain/plains/ethereal) — sink/raise + portal
+    // Spiral mountain: mountain (thornwood) + plains (haven, ashen) only
     if (isSpiralEventSector(sectorId)) {
       try {
         this.eventIslands?.dispose();
+        const spiralBiome =
+          sectorId === 'thornwood_wilds'
+            ? 'mountain'
+            : sectorId === 'haven_shore' || sectorId === 'ashen_wastes'
+              ? 'plains'
+              : sector.biome === 'forest'
+                ? 'mountain'
+                : 'plains';
         this.eventIslands = new EventIslandSystem({
           scene: this.scene,
           sectorId,
-          biome: sector.biome === 'forest' ? 'mountain' : sector.biome === 'tropical' ? 'plains' : (sector.biome as string),
+          biome: spiralBiome,
           zoneSizeM: cfg.sizeMeters,
           waterLevel: cfg.waterLevel,
           sampleGround,

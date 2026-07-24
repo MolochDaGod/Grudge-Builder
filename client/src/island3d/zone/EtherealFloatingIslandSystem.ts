@@ -8,11 +8,9 @@
  *  - SE shelf preferred for dense stacks; NW half drifts harder (destruction system)
  */
 import * as THREE from 'three';
-import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import { assetUrl } from '@/lib/assetConfig';
 import {
   ETHEREAL_FLOAT_STEER,
-  FLOATING_ISLAND_ASSET_PATHS,
+  FLOATING_ISLAND_LOAD_ORDER,
   LYOKO_ISLAND_VARIANTS,
   type FloatingIslandVariant,
 } from '@shared/definitions/floatingIslandBossAssets';
@@ -21,7 +19,12 @@ import {
   worldXZToEtherealUV,
   destructionTipWorld,
 } from '@shared/definitions/etherealDestructionZone';
-import { applyVariantMaterials, fitObjectExtent, stripSkyboxFromObject } from './gltfSceneUtils';
+import {
+  applyVariantMaterials,
+  fitObjectExtent,
+  loadGlbFirst,
+  stripSkyboxFromObject,
+} from './gltfSceneUtils';
 
 export interface EtherealFloatingIslandOpts {
   scene: THREE.Scene;
@@ -68,15 +71,13 @@ export class EtherealFloatingIslandSystem {
   }
 
   private async loadAndSpawn(onReady?: (n: number) => void) {
-    const loader = new GLTFLoader();
-    const path = assetUrl(FLOATING_ISLAND_ASSET_PATHS.lyoko);
-    try {
-      const gltf = await loader.loadAsync(path);
-      this.template = gltf.scene;
+    const scene = await loadGlbFirst(FLOATING_ISLAND_LOAD_ORDER.lyoko);
+    if (scene) {
+      this.template = scene;
       stripSkyboxFromObject(this.template);
       fitObjectExtent(this.template, 36);
-    } catch (e) {
-      console.warn('[EtherealFloat] Lyoko GLB failed — procedural shelves', e);
+    } else {
+      console.warn('[EtherealFloat] Lyoko CDN+local failed — procedural shelves');
       this.template = this.proceduralShelf();
     }
     if (this.disposed) return;

@@ -9,14 +9,17 @@
  * Player is moved into an offset instance room; E at exit returns to entry stamp.
  */
 import * as THREE from 'three';
-import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import { assetUrl } from '@/lib/assetConfig';
 import {
+  FLOATING_ISLAND_LOAD_ORDER,
   HOTH_BOSS_ROOM,
   type BossRoomEntrySource,
   type BossRoomInstanceDef,
 } from '@shared/definitions/floatingIslandBossAssets';
-import { fitObjectExtent, stripSkyboxFromObject } from './gltfSceneUtils';
+import {
+  fitObjectExtent,
+  loadGlbFirst,
+  stripSkyboxFromObject,
+} from './gltfSceneUtils';
 
 export interface BossRoomCallbacks {
   onEnter?: (roomId: string, bossId: string) => void;
@@ -66,11 +69,10 @@ export class BossRoomInstanceSystem {
   }
 
   private async preload() {
-    const loader = new GLTFLoader();
     try {
-      const gltf = await loader.loadAsync(assetUrl(this.def.glbPath));
+      const scene = await loadGlbFirst(FLOATING_ISLAND_LOAD_ORDER.hothBossRoom);
       if (this.disposed) return;
-      const scene = gltf.scene;
+      if (!scene) throw new Error('Hoth GLB missing on CDN and local');
       if (this.def.stripSkybox) stripSkyboxFromObject(scene);
       fitObjectExtent(scene, this.def.targetExtentM);
       this.room = new THREE.Group();
