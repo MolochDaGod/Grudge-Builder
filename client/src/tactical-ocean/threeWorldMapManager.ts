@@ -94,7 +94,8 @@ export class ThreeWorldMapManager {
   private cannonballs: Map<string, Cannonball3D> = new Map();
   private treasures: Map<string, Treasure3D> = new Map();
   
-  private clock: THREE.Clock;
+  /** Frame timing — THREE.Timer (r183+); update once per frame in update(). */
+  private timer: THREE.Timer;
   private container: HTMLElement | null = null;
   
   private cameraOffset = new THREE.Vector3(0, 15, -30);
@@ -166,7 +167,8 @@ export class ThreeWorldMapManager {
     this.activeCamera = this.mainCamera;
     
     this.sun = new THREE.Vector3();
-    this.clock = new THREE.Clock();
+    this.timer = new THREE.Timer();
+    this.timer.connect(document);
     
     this.setupLighting();
     this.setupSkybox();
@@ -701,8 +703,9 @@ export class ThreeWorldMapManager {
     this.playerShip.mesh.position.set(position.x, 0, position.z);
     this.playerShip.mesh.rotation.y = rotation;
     
-    const bobAmount = Math.sin(this.clock.getElapsedTime() * 2) * 0.2;
-    const rollAmount = Math.sin(this.clock.getElapsedTime() * 1.5) * 0.02;
+    const t = this.timer.getElapsed();
+    const bobAmount = Math.sin(t * 2) * 0.2;
+    const rollAmount = Math.sin(t * 1.5) * 0.02;
     this.playerShip.mesh.position.y = bobAmount;
     this.playerShip.mesh.rotation.z = rollAmount;
   }
@@ -724,7 +727,7 @@ export class ThreeWorldMapManager {
     const bobAmount =
       ship.damageState === 'sunk'
         ? 0
-        : Math.sin((this.clock.getElapsedTime() + timeOffset * 0.1) * 2) * 0.15;
+        : Math.sin((this.timer.getElapsed() + timeOffset * 0.1) * 2) * 0.15;
     ship.mesh.position.y = baseY + bobAmount;
 
     // Swap healthy → damaged → sunk meshes from dangerroom GLBs
@@ -788,7 +791,7 @@ export class ThreeWorldMapManager {
   }
   
   updateTreasures(delta: number) {
-    const time = this.clock.getElapsedTime();
+    const time = this.timer.getElapsed();
     
     this.treasures.forEach(treasure => {
       if (!treasure.collected) {
@@ -833,8 +836,9 @@ export class ThreeWorldMapManager {
     }
   }
   
-  update(): number {
-    const delta = this.clock.getDelta();
+  update(timestamp?: number): number {
+    this.timer.update(timestamp);
+    const delta = Math.min(this.timer.getDelta(), 0.05);
     
     this.updateCannonballs(delta);
     this.updateTreasures(delta);
@@ -907,6 +911,8 @@ export class ThreeWorldMapManager {
   
   dispose() {
     this.unmount();
+    this.timer.disconnect();
+    this.timer.dispose();
     this.oceanEnv?.dispose();
     this.oceanEnv = null;
 
