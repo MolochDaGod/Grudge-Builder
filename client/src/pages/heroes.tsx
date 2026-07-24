@@ -125,6 +125,19 @@ export default function HeroesPage() {
           className="w-full h-full"
         />
       </div>
+      <div className="absolute inset-0 z-[1] pointer-events-none bg-gradient-to-b from-black/50 via-transparent to-black/85" />
+
+      <div className="relative z-10 flex flex-col flex-1 max-w-6xl w-full mx-auto px-3 sm:px-4 py-4 sm:py-6 gap-4">
+        <header className="text-center pointer-events-none">
+          <p className="font-cinzel text-[10px] uppercase tracking-[0.4em] text-sky-100/70 mb-1 drop-shadow">
+            Grudge Warlords · Black Tide
+          </p>
+          <h1 className="font-cinzel text-2xl sm:text-4xl font-bold tracking-[0.18em] text-amber-50 drop-shadow-[0_2px_12px_rgba(0,0,0,0.85)]">
+            CREW YOUR WARLORDS
+          </h1>
+          <p className="mt-1.5 text-xs sm:text-sm text-sky-50/80 max-w-xl mx-auto drop-shadow">
+            Clear skies on the Black Tide — four stations: helm, main battery, fore guns, crow&apos;s line.
+            Select a crew member, then enter play.
       {/* Light plate dim only — preserve airship sky (puter practice) */}
       <div className="absolute inset-0 z-[1] pointer-events-none bg-gradient-to-b from-black/35 via-transparent to-black/75" />
 

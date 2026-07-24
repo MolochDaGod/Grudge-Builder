@@ -2,7 +2,14 @@ import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertCharacterSchema, insertPartySchema, insertUnlockedSkillSchema, insertAccountInventorySchema, islandNFTs, accounts } from "@shared/schema";
-import { normalizeGameEra, mergeEraSlots, ERA_META, type GameEra } from "@shared/definitions/gameEras";
+import {
+  normalizeGameEra,
+  mergeEraSlots,
+  ERA_META,
+  eraAllowsCharacters,
+  defaultPipelineForEra,
+  type GameEra,
+} from "@shared/definitions/gameEras";
 import { db } from "./db";
 import { eq, sql } from "drizzle-orm";
 import { z } from "zod";
@@ -417,8 +424,27 @@ export async function registerRoutes(
       const userId = getUserId(req);
       const gameEra = normalizeGameEra(req.body.gameEra);
 
+      // Production law: armada has no character roster (ships only).
+      if (!eraAllowsCharacters(gameEra) || ERA_META[gameEra].slotCount <= 0) {
+        return res.status(403).json({
+          error: `${ERA_META[gameEra].shortLabel} has no character roster in production.`,
+          gameEra,
+          max: 0,
+          charactersEnabled: false,
+          hint: "Use warlords (grudge6), nexus (toon×12), or voxel.",
+        });
+      }
+
       const account = await storage.getOrCreateAccountForUser(userId);
       const eraSlots = mergeEraSlots(account.eraSlots as import("@shared/definitions/gameEras").AccountEraSlots | null);
+      // Persist product-law eraSlots when account still has legacy max values
+      if (JSON.stringify(account.eraSlots) !== JSON.stringify(eraSlots)) {
+        try {
+          await storage.updateAccount(account.id, { eraSlots });
+        } catch {
+          /* non-blocking */
+        }
+      }
       const eraCount = await storage.countCharactersForEra(userId, gameEra);
       if (eraCount >= eraSlots[gameEra].max) {
         return res.status(403).json({
@@ -523,7 +549,8 @@ export async function registerRoutes(
           ? { ...defaultAttrs, ...req.body.attributes }
           : defaultAttrs;
       
-      const pipeline = ERA_META[gameEra].defaultPipeline;
+      // Pipeline is era-locked: warlords→grudge6, nexus→toon, voxel→voxel (never client override).
+      const pipeline = defaultPipelineForEra(gameEra);
       const model3dIn = (req.body.model3d && typeof req.body.model3d === "object")
         ? req.body.model3d
         : {};
@@ -552,7 +579,8 @@ export async function registerRoutes(
         model3d: {
           ...model3dIn,
           gameEra,
-          renderPipeline: model3dIn.renderPipeline || pipeline,
+          renderPipeline: pipeline,
+          grudge6: pipeline === "grudge6" ? true : model3dIn.grudge6,
           grudgeDisplayId: identity.grudgeCode,
           grudgeCode: identity.grudgeCode,
         },
