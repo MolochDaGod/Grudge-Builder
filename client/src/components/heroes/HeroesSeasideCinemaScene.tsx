@@ -1,12 +1,9 @@
 /**
  * HeroesSeasideCinemaScene — full Three.js cinematic sector shelf.
  *
- * Replaces 2D airship plate: loads seaside_treasure_cave.glb + sector_islands.glb
- * near each other on deep ocean aligned with world-map sector waterLevel.
- * Capture zone under the cave is conquerable (visual + raycast volume).
- *
- * Crew (player explorer/voxel selections) stand on the cave shelf and can be
- * selected via avatar strip / click (same handoff as before).
+ * Loads seaside_treasure_cave.glb + sector_islands.glb on deep ocean.
+ * Sanitizes person / futuristic / global-water meshes; keeps barca as takeable.
+ * Teaches rowing: raft → dinghy (barca) → fishing boat + island cast (no main ship).
  */
 import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
@@ -15,11 +12,18 @@ import type { AnimationController } from "@/lib/modelLoader";
 import { getRacePortrait } from "@/lib/artAssets";
 import { resolveModelUrl } from "@/lib/modelManifest";
 import { getSharedGltfLoader } from "@/lib/three/SharedGltfPipeline";
+import {
+  SmallCraftRowSystem,
+  CRAFT_TIERS,
+  type CraftTier,
+  type RowLessonStep,
+} from "@/game/sailing/SmallCraftRowSystem";
 import { loadCrewHero } from "./heroesCrewLoader";
+import { sanitizeSeasideGltf } from "./sanitizeSeasideGltf";
 import {
   CAPTURE_ZONE,
   HEROES_CINEMA_SECTOR_ID,
-  SEASIDE_ASSET,
+  SEASIDE_LOAD_ORDER,
   heroesCinemaLandmark,
   type SectorSeasideLandmark,
 } from "@shared/definitions/sectorSeasideLandmarks";
@@ -169,6 +173,11 @@ export default function HeroesSeasideCinemaScene({
   selectedIdRef.current = selectedId;
   const [status, setStatus] = useState("Loading seaside sector cinema…");
   const [ready, setReady] = useState(false);
+  const [prompt, setPrompt] = useState<string | null>(null);
+  const [lessonStep, setLessonStep] = useState<RowLessonStep>("raft");
+  const [lessonDetail, setLessonDetail] = useState(CRAFT_TIERS.raft.lesson);
+  const [catchLog, setCatchLog] = useState<string[]>([]);
+  const [boardedTier, setBoardedTier] = useState<CraftTier | null>(null);
   const [landmark] = useState<SectorSeasideLandmark>(() => heroesCinemaLandmark());
   const runRef = useRef<{
     dispose: () => void;
@@ -255,12 +264,93 @@ export default function HeroesSeasideCinemaScene({
     const clock = new THREE.Clock();
     const raycaster = new THREE.Raycaster();
     const pointer = new THREE.Vector2();
+    const crafts: SmallCraftRowSystem[] = [];
+    let activeCraft: SmallCraftRowSystem | null = null;
+    const playerProxy = new THREE.Vector3(0, landmark.waterLevel + 1.5, 10);
+
+    const onCraftPrompt = (msg: string | null) => {
+      if (!disposed) setPrompt(msg);
+    };
+    const onCraftLesson = (step: RowLessonStep, detail: string) => {
+      if (disposed) return;
+      setLessonStep(step);
+      setLessonDetail(detail);
+    };
+    const onFishCatch = (fishId: string) => {
+      if (disposed) return;
+      setCatchLog((prev) => [`🎣 ${fishId}`, ...prev].slice(0, 5));
+    };
+
+    function spawnCrafts(barcaHull: THREE.Object3D | null, islandCenter: THREE.Vector3) {
+      // 1) Raft — shore lesson near cave (first oar technique)
+      const craftOpts = {
+        scene,
+        waterLevel: landmark.waterLevel,
+        autoAdvanceLesson: false as const,
+        onPrompt: onCraftPrompt,
+        onLesson: onCraftLesson,
+        onFishCatch,
+      };
+
+      const raft = new SmallCraftRowSystem({
+        ...craftOpts,
+        tier: "raft",
+      });
+      raft.root.position.set(8, landmark.waterLevel + 0.15, 14);
+      crafts.push(raft);
+
+      // 2) Dinghy — scene barca (takeable) or procedural stand-in
+      const dinghy = new SmallCraftRowSystem({
+        ...craftOpts,
+        hull: barcaHull,
+        tier: "dinghy",
+      });
+      if (!barcaHull) {
+        dinghy.root.position.set(18, landmark.waterLevel + 0.15, 20);
+      }
+      crafts.push(dinghy);
+
+      // 3) Fishing boat — island shallows; oar + cast without main ship
+      const fishing = new SmallCraftRowSystem({
+        ...craftOpts,
+        tier: "fishingBoat",
+      });
+      fishing.root.position.set(
+        islandCenter.x - 12,
+        landmark.waterLevel + 0.15,
+        islandCenter.z + 8,
+      );
+      // Fish spots around islands (shallow cast rings — no warship required)
+      const spots: THREE.Vector3[] = [];
+      for (let i = 0; i < 6; i++) {
+        const a = (i / 6) * Math.PI * 2;
+        spots.push(
+          new THREE.Vector3(
+            islandCenter.x + Math.cos(a) * 28,
+            landmark.waterLevel,
+            islandCenter.z + Math.sin(a) * 22,
+          ),
+        );
+      }
+      spots.push(new THREE.Vector3(12, landmark.waterLevel, 18)); // near cave shelf
+      fishing.setFishSpots(spots);
+      dinghy.setFishSpots(spots);
+      raft.setFishSpots(spots);
+      crafts.push(fishing);
+
+      activeCraft = raft;
+      setPrompt(
+        `E board Raft · ${CRAFT_TIERS.raft.lesson} · then Dinghy (barca) → Fishing boat`,
+      );
+      setLessonStep("raft");
+      setLessonDetail(CRAFT_TIERS.raft.lesson);
+    }
 
     async function buildEnvironment() {
       setStatus("Loading seaside treasure cave…");
       let cave: THREE.Group | null = null;
-      // Prefer same-origin sector-assets, then CDN
-      for (const u of [SEASIDE_ASSET.cave, SEASIDE_ASSET.caveCdn]) {
+      // Cave: same-origin first; islands: CDN first (large GLB not in Vercel bundle)
+      for (const u of SEASIDE_LOAD_ORDER.cave) {
         try {
           cave = await loadGlb(u);
           break;
@@ -269,7 +359,14 @@ export default function HeroesSeasideCinemaScene({
         }
       }
       if (!cave) console.error("[seaside cinema] cave load failed");
+      let extractedBoats: THREE.Object3D[] = [];
       if (cave && !disposed) {
+        // Strip Man/Hat/Water; keep rock/palm architecture
+        const caveSan = sanitizeSeasideGltf(cave);
+        if (caveSan.removed.length) {
+          console.info("[seaside cinema] cave stripped:", caveSan.removed.slice(0, 24));
+        }
+        extractedBoats.push(...caveSan.boats);
         fitGrounded(cave, 55);
         cave.position.set(0, landmark.waterLevel + 0.2, 0);
         worldRoot.add(cave);
@@ -277,7 +374,7 @@ export default function HeroesSeasideCinemaScene({
 
       setStatus("Loading sector islands…");
       let islands: THREE.Group | null = null;
-      for (const u of [SEASIDE_ASSET.islands, SEASIDE_ASSET.islandsCdn]) {
+      for (const u of SEASIDE_LOAD_ORDER.islands) {
         try {
           islands = await loadGlb(u);
           break;
@@ -286,14 +383,20 @@ export default function HeroesSeasideCinemaScene({
         }
       }
       if (!islands) console.warn("[seaside cinema] islands load failed — cave-only");
+      const islandCenter = new THREE.Vector3(
+        CAPTURE_ZONE.localOffset[0] + 48,
+        landmark.waterLevel - 1.5,
+        CAPTURE_ZONE.localOffset[2] + 22,
+      );
       if (islands && !disposed) {
+        // Strip dude/Acqua (global water); keep barca as takeable dinghy
+        const islandSan = sanitizeSeasideGltf(islands);
+        if (islandSan.removed.length) {
+          console.info("[seaside cinema] islands stripped:", islandSan.removed.slice(0, 24));
+        }
+        extractedBoats.push(...islandSan.boats);
         fitGrounded(islands, 90);
-        // Near cave, slightly deeper footing so deep ocean reads between
-        islands.position.set(
-          CAPTURE_ZONE.localOffset[0] + 48,
-          landmark.waterLevel - 1.5,
-          CAPTURE_ZONE.localOffset[2] + 22,
-        );
+        islands.position.copy(islandCenter);
         worldRoot.add(islands);
       }
 
@@ -307,7 +410,14 @@ export default function HeroesSeasideCinemaScene({
       capture.userData.captureZoneId = landmark.captureZoneId;
       worldRoot.add(capture);
 
-      // Establish look at cave + islands
+      // Takeable barca + raft / fishing-boat lesson chain
+      if (!disposed) {
+        setStatus("Spawning small craft (raft → barca → fishing)…");
+        const barca = extractedBoats[0] ?? null;
+        spawnCrafts(barca, islandCenter.clone().setY(landmark.waterLevel));
+      }
+
+      // Establish look at cave + islands + craft
       camLookT.set(12, landmark.waterLevel + 4, 10);
       camPosT.set(36, landmark.waterLevel + 16, 48);
     }
@@ -396,6 +506,56 @@ export default function HeroesSeasideCinemaScene({
     };
     renderer.domElement.addEventListener("click", onClick);
 
+    const onKeyDown = (ev: KeyboardEvent) => {
+      if (ev.repeat) return;
+      // E — board / leave nearest (or active) small craft
+      if (ev.key === "e" || ev.key === "E") {
+        // Prefer leave if already boarded
+        const boarded = crafts.find((c) => c.isBoarded);
+        if (boarded) {
+          boarded.tryToggleBoard(playerProxy, 99);
+          activeCraft = boarded;
+          setBoardedTier(null);
+          // Free cam back to establish if no hero selected
+          if (!selectedIdRef.current) {
+            camPosT.set(36, landmark.waterLevel + 16, 48);
+            camLookT.set(12, landmark.waterLevel + 4, 10);
+          }
+          return;
+        }
+        // Board nearest craft within range
+        let best: SmallCraftRowSystem | null = null;
+        let bestD = 6.5;
+        for (const c of crafts) {
+          const d = playerProxy.distanceTo(c.position);
+          if (d < bestD) {
+            bestD = d;
+            best = c;
+          }
+        }
+        // If player far (cinema mode), use camera look proximity fallback
+        if (!best) {
+          for (const c of crafts) {
+            const d = camLook.distanceTo(c.position);
+            if (d < 28 && (!best || d < bestD)) {
+              bestD = d;
+              best = c;
+            }
+          }
+        }
+        if (best) {
+          // Use craft position as stand-in for cinema player
+          playerProxy.copy(best.position);
+          playerProxy.y += 0.9;
+          best.tryToggleBoard(playerProxy, 99);
+          activeCraft = best;
+          const tier = (best.root.userData.craftTier as CraftTier) || "raft";
+          setBoardedTier(tier);
+        }
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+
     const onResize = () => {
       const w = el.clientWidth;
       const h = el.clientHeight;
@@ -415,10 +575,44 @@ export default function HeroesSeasideCinemaScene({
       // Ocean slow undulation
       ocean.position.y = landmark.waterLevel + Math.sin(t * 0.4) * 0.15;
 
+      // Small craft oar physics + animation
+      for (const c of crafts) {
+        const st = c.update(dt, c.isBoarded ? playerProxy : null);
+        if (st.boarded) {
+          activeCraft = c;
+          // Follow boat while rowing
+          const yaw = st.yaw;
+          const back = new THREE.Vector3(
+            -Math.sin(yaw) * 9,
+            5.5,
+            -Math.cos(yaw) * 9,
+          );
+          camPosT.set(
+            st.craftPos.x + back.x,
+            st.craftPos.y + back.y,
+            st.craftPos.z + back.z,
+          );
+          camLookT.set(st.craftPos.x, st.craftPos.y + 1.2, st.craftPos.z);
+          // Walk selected crew onto craft visual
+          const sel = slotRuntimes.find(
+            (rt) => rt.heroId && rt.heroId === selectedIdRef.current && rt.root,
+          );
+          if (sel?.root) {
+            sel.root.position.lerp(
+              new THREE.Vector3(st.craftPos.x, st.craftPos.y + 0.55, st.craftPos.z),
+              1 - Math.exp(-8 * dt),
+            );
+            sel.root.rotation.y = yaw;
+          }
+        }
+      }
+
       camPos.lerp(camPosT, 1 - Math.exp(-2.2 * dt));
       camLook.lerp(camLookT, 1 - Math.exp(-2.2 * dt));
-      // Subtle establish drift when not focused
-      if (camPosT.distanceToSquared(new THREE.Vector3(36, landmark.waterLevel + 16, 48)) < 4) {
+      // Subtle establish drift when not focused / not rowing
+      const establish = new THREE.Vector3(36, landmark.waterLevel + 16, 48);
+      const anyBoarded = crafts.some((c) => c.isBoarded);
+      if (!anyBoarded && camPosT.distanceToSquared(establish) < 4) {
         camera.position.set(
           camPos.x + Math.sin(t * 0.07) * 1.2,
           camPos.y + Math.sin(t * 0.09) * 0.35,
@@ -446,7 +640,10 @@ export default function HeroesSeasideCinemaScene({
         disposed = true;
         cancelAnimationFrame(raf);
         renderer.domElement.removeEventListener("click", onClick);
+        window.removeEventListener("keydown", onKeyDown);
         window.removeEventListener("resize", onResize);
+        crafts.forEach((c) => c.dispose());
+        crafts.length = 0;
         slotRuntimes.forEach((rt) => rt.controller?.dispose());
         renderer.dispose();
         if (renderer.domElement.parentNode) {
@@ -485,7 +682,7 @@ export default function HeroesSeasideCinemaScene({
           {landmark.sectorName} — Seaside Treasure Cave
         </div>
         <p className="text-[9px] uppercase tracking-[0.2em] text-cyan-200/70 font-cinzel">
-          Full Three.js cinema · deep ocean · conquerable zone under cave · islands nearby
+          Full Three.js · deep ocean · takeable barca · oar lesson raft→dinghy→fish
         </p>
         <div className="flex gap-2 sm:gap-3 pointer-events-auto px-2 mt-1">
           {[0, 1, 2, 3].map((i) => {
@@ -539,6 +736,70 @@ export default function HeroesSeasideCinemaScene({
           {landmark.waterLevel.toFixed(1)}m (deep shelf)
         </div>
       </div>
+
+      {/* Row lesson + oar technique HUD */}
+      <div
+        className="absolute bottom-3 right-3 z-10 max-w-sm pointer-events-none rounded-md border border-amber-400/40 px-3 py-2 backdrop-blur-sm"
+        style={{ background: "linear-gradient(180deg, rgba(28,18,6,0.9), rgba(12,8,4,0.94))" }}
+      >
+        <div className="font-cinzel text-[10px] uppercase tracking-[0.2em] text-amber-300/85">
+          Row technique · no main ship
+        </div>
+        <div className="flex gap-1.5 mt-1.5 flex-wrap">
+          {(["raft", "dinghy", "fishingBoat"] as CraftTier[]).map((t) => {
+            const active = lessonStep === t || boardedTier === t;
+            const done =
+              lessonStep === "complete" ||
+              (t === "raft" && (lessonStep === "dinghy" || lessonStep === "fishingBoat" || lessonStep === "complete")) ||
+              (t === "dinghy" && (lessonStep === "fishingBoat" || lessonStep === "complete"));
+            return (
+              <span
+                key={t}
+                className={`text-[9px] px-1.5 py-0.5 rounded border font-cinzel ${
+                  active
+                    ? "border-amber-300 bg-amber-500/25 text-amber-50"
+                    : done
+                      ? "border-emerald-500/50 bg-emerald-900/30 text-emerald-200/90"
+                      : "border-slate-600/50 text-slate-400"
+                }`}
+              >
+                {CRAFT_TIERS[t].label}
+              </span>
+            );
+          })}
+        </div>
+        <p className="text-[11px] text-amber-50/95 mt-1.5 leading-snug">{lessonDetail}</p>
+        {prompt && (
+          <p className="text-[10px] text-cyan-100/90 mt-1 border-t border-amber-500/20 pt-1">
+            {prompt}
+          </p>
+        )}
+        <p className="text-[9px] text-slate-400 mt-1">
+          E board/leave · WASD stroke &amp; turn · Space rest feather · F cast (fishing boat near islands)
+        </p>
+        {catchLog.length > 0 && (
+          <ul className="mt-1 space-y-0.5">
+            {catchLog.map((c, i) => (
+              <li key={`${c}-${i}`} className="text-[10px] text-emerald-200/90">
+                {c}
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+
+      {boardedTier && (
+        <div className="absolute top-1/2 left-3 -translate-y-1/2 z-10 pointer-events-none">
+          <div
+            className="rounded border border-amber-400/50 px-2 py-1.5 text-[10px] font-cinzel text-amber-100"
+            style={{ background: "rgba(20,12,4,0.85)" }}
+          >
+            <div className="uppercase tracking-widest text-amber-300/80 text-[8px]">Oar cycle</div>
+            <div className="mt-0.5">Push W · feather Space · sweep A/D</div>
+            <div className="text-amber-200/70 mt-0.5">{CRAFT_TIERS[boardedTier].label}</div>
+          </div>
+        </div>
+      )}
 
       {!ready && (
         <div className="absolute inset-0 z-20 flex items-center justify-center pointer-events-none">

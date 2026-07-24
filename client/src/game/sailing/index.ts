@@ -29,6 +29,16 @@ export { ShipDeckRig } from "./ShipDeckPhysics";
 export type { DeckRiderInit, DeckStaggerEvent, ShipDeckRigOpts } from "./ShipDeckPhysics";
 export { BoatBoardingSystem, DECK_Y_DEFAULT } from "./BoatBoardingSystem";
 export type { BoardingMode, BoardingCallbacks } from "./BoatBoardingSystem";
+export {
+  SmallCraftRowSystem,
+  CRAFT_TIERS,
+} from "./SmallCraftRowSystem";
+export type {
+  CraftTier,
+  CraftTierConfig,
+  RowLessonStep,
+  SmallCraftOpts,
+} from "./SmallCraftRowSystem";
 export { FishManager } from "./FishManager";
 export { SHIP_MODEL_PATHS, SHIP_TEXTURE_PATHS, ENEMY_SHIP_DAMAGE_PATHS } from "./ShipPrefabs";
 export {

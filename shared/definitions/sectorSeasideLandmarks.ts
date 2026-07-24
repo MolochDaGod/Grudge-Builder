@@ -13,12 +13,19 @@ import { WORLD_SECTORS, type WorldSector } from './worldMapSectors';
 export const SEASIDE_ASSET = {
   /**
    * Same-origin `/sector-assets/*` is NOT rewritten to CDN (vercel.json only rewrites /models/*).
-   * Cave also on R2 CDN when uploaded.
+   * Cave ships in repo (~2.8 MB). Islands (~55 MB) prefer R2 CDN so Vercel deploys stay lean;
+   * same-origin path is a local/dev fallback when the file is present.
    */
   cave: '/sector-assets/seaside/seaside_treasure_cave.glb',
   islands: '/sector-assets/seaside/sector_islands.glb',
   caveCdn: 'https://assets.grudge-studio.com/models/sectors/seaside/seaside_treasure_cave.glb',
   islandsCdn: 'https://assets.grudge-studio.com/models/sectors/seaside/sector_islands.glb',
+} as const;
+
+/** Load order: prefer CDN for large islands; cave prefers same-origin then CDN. */
+export const SEASIDE_LOAD_ORDER = {
+  cave: [SEASIDE_ASSET.cave, SEASIDE_ASSET.caveCdn] as const,
+  islands: [SEASIDE_ASSET.islandsCdn, SEASIDE_ASSET.islands] as const,
 } as const;
 
 /** Local offset of islands relative to cave root (meters, SI). */
