@@ -63,7 +63,8 @@ const ThreeScene = forwardRef<ThreeSceneHandle, ThreeSceneProps>(function ThreeS
   const sceneRef = useRef<THREE.Scene | null>(null);
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
-  const clockRef = useRef(new THREE.Clock());
+  /** THREE.Timer (r183+) — update once per RAF; safe multi-read getDelta. */
+  const timerRef = useRef(new THREE.Timer());
   const rafRef = useRef<number>(0);
   const updatesRef = useRef<Set<(dt: number) => void>>(new Set());
   const orbitAngleRef = useRef(0);
@@ -158,13 +159,17 @@ const ThreeScene = forwardRef<ThreeSceneHandle, ThreeSceneProps>(function ThreeS
       scene.add(ring);
     }
 
-    clockRef.current.start();
+    // Fresh timer per scene init (dispose on unmount invalidates previous instance)
+    timerRef.current = new THREE.Timer();
+    timerRef.current.connect(document);
+    timerRef.current.reset();
   }, [bgColor, cameraDistance, cameraHeight, showGround, width, height]);
 
   // ── Animation loop ────────────────────────────────────────────────────
 
-  const animate = useCallback(() => {
-    const dt = clockRef.current.getDelta();
+  const animate = useCallback((timestamp?: number) => {
+    timerRef.current.update(timestamp);
+    const dt = Math.min(timerRef.current.getDelta(), 0.05);
     const scene = sceneRef.current;
     const camera = cameraRef.current;
     const renderer = rendererRef.current;
@@ -228,6 +233,8 @@ const ThreeScene = forwardRef<ThreeSceneHandle, ThreeSceneProps>(function ThreeS
       mounted = false;
       observer.disconnect();
       cancelAnimationFrame(rafRef.current);
+      timerRef.current.disconnect();
+      timerRef.current.dispose();
       const renderer = rendererRef.current;
       if (renderer) {
         renderer.dispose();
