@@ -2,6 +2,31 @@
  * Shared GLTF scene helpers for zone landmark / boss / floating island loads.
  */
 import * as THREE from 'three';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { assetUrl } from '@/lib/assetConfig';
+
+const _loader = new GLTFLoader();
+
+/**
+ * Load first successful URL from a list (CDN then same-origin).
+ */
+export async function loadGlbFirst(
+  urls: readonly string[],
+): Promise<THREE.Group | null> {
+  for (const raw of urls) {
+    try {
+      const url =
+        raw.startsWith('http://') || raw.startsWith('https://')
+          ? raw
+          : assetUrl(raw);
+      const gltf = await _loader.loadAsync(url);
+      return gltf.scene as THREE.Group;
+    } catch {
+      /* try next */
+    }
+  }
+  return null;
+}
 
 const SKYBOX_NAME =
   /sky|skybox|skydome|background|atmosphere|clouds_sphere|env_sphere|hdr/i;

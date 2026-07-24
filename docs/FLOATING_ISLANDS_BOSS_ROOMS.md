@@ -2,68 +2,59 @@
 
 ## Assets
 
-| Source | Game path | Use |
-|--------|-----------|-----|
-| `lyoko_mountain_sector (1).glb` | `/models/biomes/ethereal/lyoko_mountain_sector.glb` | Ethereal Falls stacked floating islands |
-| `spiral_mountain_reimagined.glb` | `/models/biomes/event/spiral_mountain_reimagined.glb` | Event island sink/raise (skybox stripped) |
-| `hoth_boss_room_low_poly.glb` | `/models/biomes/frozen/hoth_boss_room_low_poly.glb` | Frozen boss instance |
-| `iceland_scene_for_canimatic.glb` | `/models/biomes/cold/iceland_scene_for_canimatic.glb` | Frozen + near-frozen zone plate |
+| Source | Game / CDN path | Use |
+|--------|-----------------|-----|
+| `lyoko_mountain_sector (1).glb` | `/models/biomes/ethereal/…` + CDN | Ethereal Falls stacked floats |
+| `spiral_mountain_reimagined.glb` | `/models/biomes/event/…` + CDN | Mountain + plains event islands |
+| `hoth_boss_room_low_poly.glb` | `/models/biomes/frozen/…` + CDN | Frozen boss instance |
+| `iceland_scene_for_canimatic.glb` | `/models/biomes/cold/…` + CDN | Frozen + near-frozen plate |
 
 ```bash
 node scripts/copy-cold-biome-assets.mjs
+node scripts/upload-floating-island-assets.mjs
 ```
 
-## Ethereal Falls — Lyoko best practices
+CDN base: `https://assets.grudge-studio.com/models/biomes/…`  
+Loaders try **CDN first**, then same-origin (`FLOATING_ISLAND_LOAD_ORDER`).
 
-Code: `EtherealFloatingIslandSystem` + `floatingIslandBossAssets.ts`
+## Ethereal Falls — Lyoko
 
-1. **Two variants per island mesh**
-   - **A cyan shelf** — scale 1.0, cool tint, lower emissive
-   - **B violet shard** — scale 0.55, magenta emissive, higher metalness
-2. **Stacked** — B rides above A (`stackOffsetY`)
-3. **Moving** — orbit + weave + bob (flying-mount style bank/steer)
-4. **Colorful upstream** — in destruction half, drift toward Cosmic Waterfall tip
-5. **No skybox** on Lyoko plate so zone sky/fog remain SSOT
+Code: `EtherealFloatingIslandSystem`
 
-## Event islands — spiral mountain
+1. Two variants per mesh (cyan large / violet small)
+2. Stacked + orbit/weave/bob (flying-mount steer)
+3. Upstream drift in destruction half
+
+## Spiral mountain — **mountain + plains only**
 
 Code: `EventIslandSystem`
 
-- **Strip skybox** on load
-- Biomes: **mountain + plains** (also allowed on ethereal/frostbite/storm/haven)
-- Phases: `raised → sinking → sunken → rising` with different **boss + NPC** each raise
-- Portal pad on island → **Hoth boss room** (`E`)
+| Sector | Role |
+|--------|------|
+| `thornwood_wilds` | Mountain / highland forest |
+| `haven_shore` | Plains / trade coast flats |
+| `ashen_wastes` | Desert plains |
+
+**Not** on ethereal (Lyoko), frostbite/storm (Iceland), or abyssal.
+
+- Skybox stripped
+- Sink/raise cycle + rotating NPC/boss
+- Portal → Hoth when cold-eligible
 
 ## Hoth boss room
 
-Code: `BossRoomInstanceSystem`
+- Event island portal, frozen Iceland approach, random dungeon portal (cold)
 
-Entry sources:
-- Event island portal
-- Frozen biome (near Iceland plate)
-- Mountain biome portal (via event island)
-- Random dungeon portal (same enter API)
+## Iceland — **frozen biomes only**
 
-`E` near portal enters instance; `E` on blue exit ring returns to stamp.
-
-## Iceland
-
-Code: `IcelandScenePlacer`
-
-- Full freeze: `frostbite_expanse`
-- Near-frozen: `stormbreak_reef`, `ethereal_falls`, `abyssal_trench`
+| Sector | Role |
+|--------|------|
+| `frostbite_expanse` | Primary frozen plate |
+| `stormbreak_reef` | Near-frozen cold-storm shelf only |
 
 ## Engine wiring
 
-`Island3DEngine` zone load:
-- ethereal → destruction + Lyoko floats
-- spiral sectors → event islands
-- hoth-eligible → boss room preload
-- iceland sectors → cinematic plate
-
-## Events
-
-```js
-window.addEventListener('grudge:event-island', (e) => console.log(e.detail.prompt));
-window.addEventListener('grudge:boss-room', (e) => console.log(e.detail.prompt));
-```
+- ethereal → Lyoko floats + destruction
+- thornwood / haven / ashen → spiral event islands
+- frostbite / stormbreak → Iceland plate
+- hoth-eligible cold → boss room preload

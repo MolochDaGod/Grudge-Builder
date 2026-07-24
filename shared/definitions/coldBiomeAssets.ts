@@ -134,14 +134,9 @@ export const COLD_ASSET_PACKS: ColdAssetPack[] = [
     path: '/models/biomes/cold/iceland_scene_for_canimatic.glb',
     sourcePath: 'D:\\Games\\Models\\iceland_scene_for_canimatic.glb',
     roles: ['scene', 'terrain'],
-    sectors: [
-      'frostbite_expanse',
-      'stormbreak_reef',
-      'ethereal_falls',
-      'abyssal_trench',
-    ],
+    sectors: ['frostbite_expanse', 'stormbreak_reef'],
     etherealSafe: false,
-    notes: 'Frozen + near-frozen zones via IcelandScenePlacer',
+    notes: 'Frozen (frostbite) + near-frozen cold-storm (stormbreak) only',
   },
   {
     id: 'hoth_boss_room',
