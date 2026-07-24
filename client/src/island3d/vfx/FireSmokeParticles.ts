@@ -10,6 +10,10 @@
  *
  * Soft circular sprites (canvas-generated), additive fire + alpha smoke,
  * rising velocity + fade + size growth. No external textures required.
+ *
+ * For CodePen-quality cone plumes, barrel muzzle, trails, and steam
+ * (https://codepen.io/MolochDaGod/pen/KwaNNap), use CodepenParticleFx via
+ * WorldFxBus.smokePlume / barrelMuzzle / spawnTrail / steamVent.
  */
 import * as THREE from 'three';
 

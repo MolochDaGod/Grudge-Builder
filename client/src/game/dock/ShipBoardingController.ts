@@ -295,25 +295,57 @@ export class ShipBoardingController {
     this.character.stateMachine?.transition('idle');
   }
 
+  /**
+   * Overboard recovery (worldSurfaceLayers):
+   *  - Swim next to hull + hold Space → climb wall (CharacterController)
+   *  - Climbing near deck Y + W/Space → mantle onto deck and board
+   *  - Swimming already at deck lip → W boards
+   */
   private tryClimbAboard(): void {
     const ms = this.character.getMovementState();
     if (ms !== 'climbing' && ms !== 'swimming_surface' && ms !== 'swimming_underwater') return;
-    const dist = this.character.model.position.distanceTo(
-      this.shipRoot.getWorldPosition(new THREE.Vector3()),
-    );
-    if (dist > 14) return;
+
+    const shipWorld = this.shipRoot.getWorldPosition(this._shipWorld);
+    const pos = this.character.model.position;
+    const dist = pos.distanceTo(shipWorld);
+    if (dist > 18) return;
+
     const deckH = worldDeckHeight(
       this.shipRoot,
       this.interactable.bounds,
-      this.character.model.position.x,
-      this.character.model.position.z,
+      pos.x,
+      pos.z,
       this.interactable,
     );
     if (deckH === null) return;
-    if (this.character.model.position.y < deckH - 0.5) return;
-    if (!this.character.getKeys().has('w')) return;
-    this.board();
+
+    const keys = this.character.getKeys();
+    const wantUp = keys.has('w') || keys.has(' ') || keys.has('W');
+    if (!wantUp) return;
+
+    // Mantle: climbing and feet within ~1.1 m of deck → board
+    if (ms === 'climbing' && pos.y >= deckH - 1.1) {
+      this.board();
+      return;
+    }
+
+    // Already at gunwale while swimming (wave lift / shallow)
+    if (
+      (ms === 'swimming_surface' || ms === 'swimming_underwater')
+      && pos.y >= deckH - 1.1
+      && dist < 10
+    ) {
+      this.board();
+      return;
+    }
+
+    // Prompt while climbing hull below deck
+    if (ms === 'climbing' && pos.y < deckH - 1.1) {
+      this.onPrompt?.('Climb up · W to mantle onto deck');
+    }
   }
+
+  private readonly _shipWorld = new THREE.Vector3();
 
   private spawnMuzzleFlash(cannonMesh: THREE.Object3D): void {
     if (!this._muzzleFlash) {
@@ -330,6 +362,24 @@ export class ShipBoardingController {
     this._muzzleFlash.position.copy(wp);
     this._muzzleFlash.visible = true;
     this._flashTimer = 0.12;
+
+    // CodePen KwaNNap barrel smoke + trail (fleet-consistent muzzle FX)
+    try {
+      // Lazy import avoids circular deps with island3d barrel
+      void import('@/island3d/vfx/WorldFxBus').then(({ getWorldFxBus }) => {
+        const bus = getWorldFxBus();
+        if (!bus) return;
+        const worldMuzzle = new THREE.Vector3();
+        cannonMesh.getWorldPosition(worldMuzzle);
+        // Barrel along local +X (procedural cannons use rotation.z = PI/2)
+        const dir = new THREE.Vector3(1, 0, 0);
+        dir.applyQuaternion(cannonMesh.getWorldQuaternion(new THREE.Quaternion()));
+        if (dir.lengthSq() < 1e-6) dir.set(0, 0, 1);
+        bus.barrelMuzzle(worldMuzzle, dir.normalize());
+      });
+    } catch {
+      /* VFX optional */
+    }
   }
 
   dispose(): void {
