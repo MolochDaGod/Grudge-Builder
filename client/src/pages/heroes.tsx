@@ -1,7 +1,7 @@
 /**
- * /heroes — Warlords airship cinema select (Puter GrudgeWar "The Grudge").
- * Up to 4 crew AI on 6 deck posts (Yuka-style wander/goals), stairs + wheel,
- * avatar strip zoom, stats/equip panel, select → play handoff.
+ * /heroes — Full Three.js seaside sector cinema (cave + islands + deep ocean).
+ * Capture zone under seaside_treasure_cave; islands nearby; once-per-sector SSOT.
+ * Crew = player explorer/voxel + warlords selections.
  */
 import { useEffect, useMemo, useState } from "react";
 import { useLocation } from "wouter";
@@ -15,9 +15,8 @@ import { RACES, CLASSES } from "@/lib/gameData";
 import { CharacterManager, type Character } from "@/lib/characterManager";
 import { characterAPI } from "@/lib/api";
 import { pickCrewSlots } from "@/components/heroes/heroesCrewLoader";
-import HeroesBlackTideScene, {
-  CREW_STATIONS,
-} from "@/components/heroes/HeroesBlackTideScene";
+import HeroesSeasideCinemaScene from "@/components/heroes/HeroesSeasideCinemaScene";
+import { CREW_STATIONS } from "@/components/heroes/HeroesBlackTideScene";
 
 const MAX_SLOTS = 4;
 
@@ -155,28 +154,29 @@ export default function HeroesPage() {
 
   return (
     <div className="min-h-screen w-full text-slate-100 relative overflow-hidden flex flex-col">
-      {/* Full-bleed Black Tide 3D */}
+      {/* Full-bleed Three.js seaside cinema (cave + islands + deep ocean) */}
       <div className="absolute inset-0 z-0">
-        <HeroesBlackTideScene
+        <HeroesSeasideCinemaScene
           slots={slots}
           selectedId={selected?.id ?? null}
           onSelectSlot={onSelectSlot}
           className="w-full h-full"
         />
       </div>
-      <div className="absolute inset-0 z-[1] pointer-events-none bg-gradient-to-b from-black/50 via-transparent to-black/85" />
+      {/* Light vignette only — keep 3D scene readable */}
+      <div className="absolute inset-0 z-[1] pointer-events-none bg-gradient-to-b from-black/35 via-transparent to-black/70" />
 
       <div className="relative z-10 flex flex-col flex-1 max-w-6xl w-full mx-auto px-3 sm:px-4 py-4 sm:py-6 gap-4">
         <header className="text-center pointer-events-none">
-          <p className="font-cinzel text-[10px] uppercase tracking-[0.4em] text-amber-200/80 mb-1 drop-shadow">
-            Grudge Warlords · The Grudge (Puter GrudgeWar scene)
+          <p className="font-cinzel text-[10px] uppercase tracking-[0.4em] text-cyan-200/80 mb-1 drop-shadow">
+            Grudge Warlords · Sector seaside cinema
           </p>
-          <h1 className="font-cinzel text-2xl sm:text-4xl font-bold tracking-[0.18em] text-amber-50 drop-shadow-[0_2px_12px_rgba(0,0,0,0.85)]">
-            CREW THE GRUDGE
+          <h1 className="font-cinzel text-2xl sm:text-4xl font-bold tracking-[0.18em] text-cyan-50 drop-shadow-[0_2px_12px_rgba(0,0,0,0.85)]">
+            SEASIDE TREASURE CAVE
           </h1>
-          <p className="mt-1.5 text-xs sm:text-sm text-amber-50/85 max-w-xl mx-auto drop-shadow">
-            Crew walks the deck (6 posts: helm, batteries, mid, stairs, crow). Click a portrait to
-            zoom — face camera, inspect stats &amp; gear — then enter play as that warlord.
+          <p className="mt-1.5 text-xs sm:text-sm text-cyan-50/85 max-w-xl mx-auto drop-shadow">
+            Full Three.js scene — treasure cave + islands on deep ocean (world-map water). Capture zone
+            under the cave. Pick your explorer crew, then enter play.
           </p>
         </header>
 
