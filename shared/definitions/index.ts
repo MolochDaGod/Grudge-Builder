@@ -29,6 +29,7 @@ export * from "./completeWorldMap";
 export * from "./biomeEcosystemCatalog";
 export * from "./etherealDestructionZone";
 export * from "./coldBiomeAssets";
+export * from "./floatingIslandBossAssets";
 export * from "./seedContentContract";
 // valheimStyleHarvest intentionally not re-exported until the module ships.
 export * from "./biomeHarvestAssets";
