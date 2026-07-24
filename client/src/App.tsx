@@ -102,6 +102,7 @@ import WeaponMasteryPage from "@/pages/weapon-mastery";
 import TownPage from "@/pages/town";
 import GameCharacterPage from "@/pages/game-character";
 import SystemsPage from "@/pages/systems";
+import MainPanelPage from "@/pages/main-panel";
 import { consumeGcsReturnHandoff } from "@/lib/gcsRedirect";
 import { CharacterManager } from "@/lib/characterManager";
 
@@ -120,6 +121,8 @@ function Router() {
       <Route path="/lore/sectors" component={LoreSectorsPage} />
       <Route path="/lore/sectors/:sectorId" component={LoreSectorDetailPage} />
       <Route path="/home" component={HomePage} />
+      <Route path="/main-panel" component={MainPanelPage} />
+      <Route path="/equipment" component={MainPanelPage} />
       <Route path="/character" component={CharacterRedirect} />
       <Route path="/characters" component={CharacterRedirect} />
       <Route path="/create-character" component={CreateCharacterRedirect} />
