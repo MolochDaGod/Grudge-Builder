@@ -703,17 +703,27 @@ export function registerAuthRoutes(app: Express) {
   app.get("/brand/auth-bg.jpg", serveAuthFavicon("auth-bg-racalvin.jpg", "jpeg"));
 
   // Fleet embed modal (id.grudge-studio.com / grudge-auth-modal.js) — login tool for all satellites
-  const serveEmbedAsset = (file: string, type: string) => (_req: Request, res: Response) => {
+  const serveEmbedAsset = (file: string, mime: string) => (_req: Request, res: Response) => {
     const assetPath = authAssetPath(file);
     if (!fs.existsSync(assetPath)) {
       return res.status(404).end();
     }
     res.setHeader("Cache-Control", "public, max-age=3600");
-    res.type(type).sendFile(assetPath);
+    // Explicit MIME — never let Express/sendFile map .js → application/octet-stream
+    res.setHeader("Content-Type", mime);
+    res.setHeader("X-Content-Type-Options", "nosniff");
+    res.send(fs.readFileSync(assetPath));
   };
-  app.get("/grudge-auth-modal.js", serveEmbedAsset("grudge-auth-modal.js", "javascript"));
-  app.get("/grudge-auth-modal.css", serveEmbedAsset("grudge-auth-modal.css", "css"));
+  app.get(
+    "/grudge-auth-modal.js",
+    serveEmbedAsset("grudge-auth-modal.js", "application/javascript; charset=utf-8"),
+  );
+  app.get(
+    "/grudge-auth-modal.css",
+    serveEmbedAsset("grudge-auth-modal.css", "text/css; charset=utf-8"),
+  );
   // Fleet modular login (redirect / popup / modal) — same file as client/public bootstrap
+  // CRITICAL: browsers refuse script if Content-Type is application/octet-stream (strict MIME).
   app.get("/grudge-game-bootstrap.js", (req: Request, res: Response) => {
     const candidates = [
       path.join(process.cwd(), "client", "public", "grudge-game-bootstrap.js"),
@@ -723,7 +733,10 @@ export function registerAuthRoutes(app: Express) {
     const assetPath = candidates.find((p) => fs.existsSync(p));
     if (!assetPath) return res.status(404).end();
     res.setHeader("Cache-Control", "public, max-age=300");
-    res.type("javascript").sendFile(assetPath);
+    res.setHeader("Content-Type", "application/javascript; charset=utf-8");
+    res.setHeader("X-Content-Type-Options", "nosniff");
+    // Prefer send over sendFile so Express mime lookup cannot override to octet-stream
+    res.send(fs.readFileSync(assetPath, "utf8"));
   });
 
   // ── Rate-limit middleware for auth routes ────────────────────────────

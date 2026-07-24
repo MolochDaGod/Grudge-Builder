@@ -8,12 +8,18 @@ import { assetUrl } from "@/lib/assetConfig";
 const HELMET_FALLBACK_IMG = assetUrl("/sprites/gbux-token.png");
 const MODEL_URL = `${ASSETS_CDN}/models/grudge-token-helmet.glb`;
 
-function HelmetFallback({ className = "w-full h-full" }: { className?: string }) {
+/** HTML fallback — only safe OUTSIDE Canvas (R3F treats <img> as THREE.Img). */
+function HelmetHtmlFallback({ className = "w-full h-full" }: { className?: string }) {
   return (
     <div className={`${className} flex items-center justify-center`}>
       <img src={HELMET_FALLBACK_IMG} alt="" className="w-10 h-10 rounded-full" />
     </div>
   );
+}
+
+/** Empty 3D placeholder while GLB loads — never put DOM nodes inside Canvas. */
+function HelmetCanvasFallback() {
+  return null;
 }
 
 class HelmetErrorBoundary extends Component<
@@ -28,7 +34,7 @@ class HelmetErrorBoundary extends Component<
 
   render() {
     if (this.state.failed) {
-      return <HelmetFallback className={this.props.className} />;
+      return <HelmetHtmlFallback className={this.props.className} />;
     }
     return this.props.children;
   }
@@ -65,7 +71,7 @@ export function GrudgeTokenHelmet({ className = "w-full h-full" }: { className?:
         <ambientLight intensity={1.1} />
         <directionalLight position={[2, 3, 2]} intensity={1.4} />
         <pointLight position={[-1, 1, 1]} intensity={0.6} color="#fbbf24" />
-        <Suspense fallback={<HelmetFallback className={className} />}>
+        <Suspense fallback={<HelmetCanvasFallback />}>
           <HelmetModel />
         </Suspense>
       </Canvas>

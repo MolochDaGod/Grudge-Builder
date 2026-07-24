@@ -349,6 +349,20 @@ export default {
     outHeaders.set("X-Grudge-Auth-Gateway", "id-gateway");
     outHeaders.set("X-Grudge-Upstream", upstreamHost);
 
+    // Force executable MIME for fleet JS embeds. Upstream Express has served
+    // .js as application/octet-stream; browsers refuse under strict MIME checking.
+    // Also cover modal CSS so id embeds stay correct.
+    const pathLower = url.pathname.toLowerCase();
+    if (
+      pathLower.endsWith(".js") ||
+      pathLower === "/grudge-game-bootstrap.js" ||
+      pathLower === "/grudge-auth-modal.js"
+    ) {
+      outHeaders.set("Content-Type", "application/javascript; charset=utf-8");
+    } else if (pathLower.endsWith(".css") || pathLower === "/grudge-auth-modal.css") {
+      outHeaders.set("Content-Type", "text/css; charset=utf-8");
+    }
+
     // Rewrite redirects to stay on public host
     const loc = outHeaders.get("Location");
     if (loc) {
