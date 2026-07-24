@@ -29,6 +29,20 @@ Catalog SSOT: `shared/agents/productionAgentCatalog.ts`. Reports: `scripts/agent
 **Not SSOT:** Supabase (optional probe; leave unset), MySQL VPS (legacy), D1 heroes, Puter guest.  
 Pattern: [docs/STACK_PATTERN.md](./docs/STACK_PATTERN.md).
 
+## Client 3D stack pin (SSOT)
+
+| Package | Version | Notes |
+|---------|---------|--------|
+| `three` | **0.185.1** | r185; prefer `three/addons/*` for loaders |
+| `@types/three` | ^0.185.0 | Match major.minor |
+| `@react-three/fiber` | ^9.6 | R3F owns delta via `useFrame` |
+| `@react-three/drei` | ^10.7 | |
+| `@react-three/rapier` | ^2.2 | Pair with fiber 9 |
+| `@dimforge/rapier3d-compat` | ^0.19.3 | Browser WASM physics |
+| Node (engines) | **22.x** | Vercel/Railway |
+
+**Frame timing:** raw engines use **`THREE.Timer`** — `timer.update(rafTimestamp)` once per frame, then `getDelta()` / `getElapsed()` (multi-read safe). Do **not** use deprecated `THREE.Clock`. R3F scenes use `useFrame((_, dt) => …)` only. Skills receive `dt` from the engine; no private clocks.
+
 ## Project Identity
 This is **Grudge Warlords** ([grudgewarlords.com](https://grudgewarlords.com)), the primary **web game client** for Grudge Studio (React + Vite + TypeScript, Three.js + Phaser).
 Created by **Racalvin The Pirate King**.

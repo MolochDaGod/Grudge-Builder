@@ -195,19 +195,13 @@ function makeNpcMesh(def: ShipwreckNpcDef): THREE.Group {
     def.faction === 'enemy' ? 0xef4444
     : def.faction === 'ally' ? 0x22c55e
     : 0xa78bfa;
-  const body = new THREE.Mesh(
-    new THREE.CapsuleGeometry(0.35, 1.1, 4, 8),
+  // Marker pip only (CDN mesh preferred elsewhere) — no production capsules
+  const pip = new THREE.Mesh(
+    new THREE.SphereGeometry(0.22, 8, 8),
     new THREE.MeshStandardMaterial({ color }),
   );
-  body.position.y = 1.0;
-  body.castShadow = true;
-  g.add(body);
-  // Name pip
-  const pip = new THREE.Mesh(
-    new THREE.SphereGeometry(0.12, 6, 6),
-    new THREE.MeshBasicMaterial({ color }),
-  );
-  pip.position.y = 2.1;
+  pip.position.y = 1.2;
+  pip.castShadow = true;
   g.add(pip);
   g.userData.npcId = def.id;
   g.userData.behavior = def.behavior;

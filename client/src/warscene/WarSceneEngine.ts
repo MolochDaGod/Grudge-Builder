@@ -13,8 +13,7 @@
  * SkeletonUtils via loadCharacterModel, regulator AI Hz.
  */
 import * as THREE from 'three';
-import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js';
+import { getSharedGltfLoader } from '@/lib/three/SharedGltfPipeline';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import {
   MEDIEVAL_BATTLE_CDN_PATH,
@@ -134,7 +133,8 @@ export class WarSceneEngine {
   private scene = new THREE.Scene();
   private camera: THREE.PerspectiveCamera;
   private controls: OrbitControls;
-  private clock = new THREE.Clock();
+  /** Frame timing — THREE.Timer (r183+); update once per RAF before getDelta. */
+  private timer = new THREE.Timer();
   private raf = 0;
   private running = false;
   private elapsed = 0;
@@ -390,10 +390,8 @@ export class WarSceneEngine {
     const progress = (p: number, label: string) => this.cfg.onLoadProgress?.(p, label);
     progress(2, 'Preparing loaders…');
 
-    const loader = new GLTFLoader();
-    const draco = new DRACOLoader();
-    draco.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.7/');
-    loader.setDRACOLoader(draco);
+    // Shared Draco + Meshopt pipeline
+    const loader = getSharedGltfLoader();
 
     const { url, mode } = this.resolveSceneUrl();
     progress(
@@ -1090,11 +1088,13 @@ export class WarSceneEngine {
   start(): void {
     if (this.running) return;
     this.running = true;
-    this.clock.start();
-    const loop = () => {
+    this.timer.connect(document);
+    this.timer.reset();
+    const loop = (timestamp?: number) => {
       if (!this.running) return;
       this.raf = requestAnimationFrame(loop);
-      const dt = Math.min(this.clock.getDelta(), 0.05);
+      this.timer.update(timestamp);
+      const dt = Math.min(this.timer.getDelta(), 0.05);
       this.tick(dt);
       this.controls.update();
       // Lightning boosts bloom
@@ -1274,6 +1274,8 @@ export class WarSceneEngine {
 
   dispose(): void {
     this.stop();
+    this.timer.disconnect();
+    this.timer.dispose();
     if (this.onCanvasClick) {
       this.cfg.canvas.removeEventListener('click', this.onCanvasClick);
       this.onCanvasClick = null;

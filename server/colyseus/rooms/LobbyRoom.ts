@@ -75,10 +75,22 @@ export class LobbyRoom extends Room<RoomState> {
     console.log(`[LobbyRoom] ${player.characterName} joined multiplayer lobby`);
   }
 
-  onLeave(client: Client) {
+  async onLeave(client: Client, consented?: boolean) {
     const player = this.state.players.get(client.sessionId);
-    if (player) console.log(`[LobbyRoom] ${player.characterName} left lobby`);
-    this.state.players.delete(client.sessionId);
+    const { leaveWithReconnect, RECONNECT_SECONDS_LOBBY } = await import("../reconnect");
+    await leaveWithReconnect(
+      this,
+      client,
+      consented,
+      () => {
+        this.state.players.delete(client.sessionId);
+        if (player) console.log(`[LobbyRoom] ${player.characterName} left lobby`);
+      },
+      () => {
+        if (player) console.log(`[LobbyRoom] ${player.characterName} reconnected`);
+      },
+      RECONNECT_SECONDS_LOBBY,
+    );
   }
 
   onDispose() {

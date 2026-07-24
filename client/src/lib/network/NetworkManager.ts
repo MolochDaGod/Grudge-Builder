@@ -171,9 +171,17 @@ export class NetworkManager {
     });
     this.sessionId = this.worldRoom.sessionId;
     this.emit('connected', { sessionId: this.sessionId });
-    this.worldRoom.onLeave(() => {
-      this.worldRoom = null;
-      this.emit('disconnected', undefined as void);
+    this.worldRoom.onLeave((code) => {
+      void this.tryReconnect(this.worldRoom, code, (room) => {
+        this.worldRoom = room;
+        this.sessionId = room.sessionId;
+        this.emit('connected', { sessionId: this.sessionId });
+      }).then((ok) => {
+        if (!ok) {
+          this.worldRoom = null;
+          this.emit('disconnected', undefined as void);
+        }
+      });
     });
     this.worldRoom.onError((_c, msg) => this.emit('error', String(msg)));
   }
@@ -292,10 +300,46 @@ export class NetworkManager {
     room.onMessage(CLIENT_MSG.fx, (msg: ServerFxEvent) => this.emit('fx', msg));
     room.onMessage('fx', (msg: ServerFxEvent) => this.emit('fx', msg));
 
-    room.onLeave(() => {
-      if (this.sectorRoom === room) this.sectorRoom = null;
+    room.onLeave((code) => {
+      void this.tryReconnect(room, code, (rejoined) => {
+        this.sectorRoom = rejoined;
+        this.sessionId = rejoined.sessionId;
+        this.wireSectorRoom(rejoined);
+        this.emit('connected', { sessionId: this.sessionId });
+      }).then((ok) => {
+        if (!ok && this.sectorRoom === room) {
+          this.sectorRoom = null;
+          this.emit('disconnected', undefined as void);
+        }
+      });
     });
     room.onError((_c, m) => this.emit('error', String(m)));
+  }
+
+  /**
+   * Attempt Colyseus reconnection after a network drop (non-1000 leave codes).
+   * Server must call allowReconnection (see server/colyseus/reconnect.ts).
+   */
+  private async tryReconnect(
+    room: Room | null,
+    code: number,
+    onOk: (room: Room) => void,
+  ): Promise<boolean> {
+    // 1000 = normal / consented close — do not reconnect
+    if (code === 1000 || !room || !this.client) return false;
+    const token =
+      (room as { rejoinToken?: string; reconnectionToken?: string }).reconnectionToken ||
+      (room as { rejoinToken?: string }).rejoinToken;
+    if (!token) return false;
+    this.emit('error', 'Connection lost — reconnecting…');
+    try {
+      const rejoined = await this.client.reconnect(token);
+      onOk(rejoined);
+      return true;
+    } catch (e) {
+      this.emit('error', `Could not rejoin: ${e instanceof Error ? e.message : String(e)}`);
+      return false;
+    }
   }
 
   // ── Outbound ─────────────────────────────────────────────────────────────

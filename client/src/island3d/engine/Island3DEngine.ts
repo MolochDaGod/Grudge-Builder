@@ -305,7 +305,11 @@ export class Island3DEngine {
    */
   private cameraMode: CameraMode = 'orbit_edit';
   private cameraModeBeforeCinematic: CameraMode | null = null;
-  private clock: THREE.Clock;
+  /**
+   * Frame timing — THREE.Timer (r183+) replaces deprecated Clock.
+   * Call update(timestamp) once per RAF before getDelta/getElapsed.
+   */
+  private timer: THREE.Timer;
   private animationFrameId: number | null = null;
   private isRunning = false;
   /** External update callbacks — added via onUpdate(), called each frame */
@@ -557,7 +561,8 @@ export class Island3DEngine {
     this.controls.maxDistance = 900;
     this.controls.update();
 
-    this.clock = new THREE.Clock();
+    this.timer = new THREE.Timer();
+    this.timer.connect(document);
 
     this.setupLighting();
 
@@ -1979,8 +1984,8 @@ export class Island3DEngine {
   }
 
   /** Update detail layers (grass/sand animation) */
-  private updateDetailLayers(dt: number): void {
-    const time = this.clock.elapsedTime;
+  private updateDetailLayers(_dt: number): void {
+    const time = this.timer.getElapsed();
     const camPos = this.camera.position;
 
     this.grassLayer?.update(time, camPos);
@@ -1993,8 +1998,9 @@ export class Island3DEngine {
     if (!this.waterPlane) return;
     const sunDir = this.dayNight?.getSunDirection();
     const tideH = getTideHeight(Date.now());
+    const elapsed = this.timer.getElapsed();
     if (isPirateLobbyOcean(this.waterPlane)) {
-      updatePirateLobbyOcean(this.waterPlane, this.clock.elapsedTime, sunDir, {
+      updatePirateLobbyOcean(this.waterPlane, elapsed, sunDir, {
         tideHeight: tideH,
       });
       this.creatures?.setWaterLevel?.(tideH);
@@ -2003,7 +2009,7 @@ export class Island3DEngine {
     this.waterPlane.position.y = tideH;
     const mat = this.waterPlane.material;
     if (mat && 'uniforms' in mat) {
-      updateOceanMaterial(mat as THREE.ShaderMaterial, this.clock.elapsedTime, sunDir);
+      updateOceanMaterial(mat as THREE.ShaderMaterial, elapsed, sunDir);
     }
   }
 
@@ -2143,7 +2149,7 @@ export class Island3DEngine {
   start(): void {
     if (this.isRunning) return;
     this.isRunning = true;
-    this.clock.start();
+    this.timer.reset();
     this.loop();
   }
 
@@ -2158,10 +2164,13 @@ export class Island3DEngine {
   /** Sim time multiplier — day/night and session tick rate (1 = realtime) */
   public simTickRate = 1;
 
-  private loop = (): void => {
+  private loop = (timestamp?: number): void => {
     if (!this.isRunning) return;
 
-    const dt = Math.min(this.clock.getDelta(), 0.05);
+    // Timer: update once per frame, then read delta/elapsed any number of times safely
+    this.timer.update(timestamp);
+    const dt = Math.min(this.timer.getDelta(), 0.05);
+    const elapsed = this.timer.getElapsed();
     const simDt = dt * this.simTickRate;
 
     // Camera ownership: one mode writes the lens (TPC vs Orbit vs cinematic)
@@ -2205,7 +2214,7 @@ export class Island3DEngine {
     this.updateWater(dt);
     this.updateHarvestables(dt);
     this.updateDetailLayers(dt);
-    this.zoneScene?.update(dt, this.clock.elapsedTime);
+    this.zoneScene?.update(dt, elapsed);
     this.lobbyAnimMixer?.update(dt);
     this.multiplayer?.update(dt);
 
@@ -2256,13 +2265,13 @@ export class Island3DEngine {
 
     // Zone race capital + dungeon portals
     if (this.havenFoundation) {
-      this.havenFoundation.update(dt, this.clock.elapsedTime);
+      this.havenFoundation.update(dt, elapsed);
     }
     if (this.fabledFoundation && this.character) {
       this.fabledFoundation.update(dt, this.character.getPosition());
     }
     if (this.zoneCapital) {
-      this.zoneCapital.update(dt, this.clock.elapsedTime);
+      this.zoneCapital.update(dt, elapsed);
     }
     if (this.zoneDungeonPortals && this.character) {
       this.zoneDungeonPortals.update(dt, this.character.getPosition());
@@ -3286,6 +3295,8 @@ export class Island3DEngine {
 
   destroy(): void {
     this.stop();
+    this.timer.disconnect();
+    this.timer.dispose();
     this.creatures?.dispose();
     this.campUnits?.dispose();
     this.campUnits = null;

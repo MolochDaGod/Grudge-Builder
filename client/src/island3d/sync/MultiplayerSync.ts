@@ -365,23 +365,8 @@ export class MultiplayerSync {
 
     const group = new THREE.Group();
 
-    // Placeholder capsule (same style as local player placeholder)
-    const body = new THREE.Mesh(
-      new THREE.CapsuleGeometry(0.8, 2, 8, 16),
-      new THREE.MeshLambertMaterial({ color: 0xff8844 }),
-    );
-    body.position.y = 1.8;
-    body.castShadow = true;
-    group.add(body);
-
-    // Direction cone
-    const arrow = new THREE.Mesh(
-      new THREE.ConeGeometry(0.3, 0.8, 4),
-      new THREE.MeshLambertMaterial({ color: 0xffcc00 }),
-    );
-    arrow.position.set(0, 2.5, -1.2);
-    arrow.rotation.x = -Math.PI / 2;
-    group.add(arrow);
+    // Empty root until race mesh streams in — no capsule placeholders
+    group.name = `mp_remote_${data.id}`;
 
     group.position.set(data.x ?? 0, data.y ?? 0, data.z ?? 0);
     this.scene.add(group);
@@ -433,14 +418,15 @@ export class MultiplayerSync {
 
     const group = new THREE.Group();
 
-    // Red enemy placeholder
-    const body = new THREE.Mesh(
-      new THREE.CapsuleGeometry(0.6, 1.5, 8, 16),
+    // Marker only until creature GLB loads (no capsule heroes)
+    const marker = new THREE.Mesh(
+      new THREE.SphereGeometry(0.35, 8, 8),
       new THREE.MeshLambertMaterial({ color: 0xcc2222 }),
     );
-    body.position.y = 1.2;
-    body.castShadow = true;
-    group.add(body);
+    marker.position.y = 1.0;
+    marker.castShadow = true;
+    marker.name = '__placeholder';
+    group.add(marker);
 
     // Health bar
     const hb = this.createHealthBar(0xff3333);

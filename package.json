@@ -100,6 +100,7 @@
     "agent:status": "node scripts/agents/run-agent.mjs status"
   },
   "dependencies": {
+    "@aws-sdk/s3-request-presigner": "^3.1094.0",
     "@colyseus/auth": "^0.17.9",
     "@colyseus/core": "^0.17.43",
     "@colyseus/monitor": "^0.17.8",
@@ -175,7 +176,7 @@
     "@tanstack/react-query": "^5.60.5",
     "@types/babylon": "^6.16.9",
     "@types/pngjs": "^6.0.5",
-    "@types/three": "^0.184.1",
+    "@types/three": "^0.185.1",
     "@uppy/aws-s3": "^5.1.0",
     "@uppy/core": "^5.2.0",
     "@uppy/dashboard": "^5.1.0",
@@ -290,7 +291,7 @@
     "tff": "^0.0.1",
     "tff-ckeditor5": "^1.0.3",
     "tff-models": "^0.0.158",
-    "three": "^0.184.0",
+    "three": "^0.185.1",
     "three-mesh-bvh": "^0.9.10",
     "three-pathfinding": "^1.3.0",
     "ttfinfo": "^0.2.0",
@@ -302,8 +303,7 @@
     "ws": "^8.18.0",
     "xstate": "^5.32.2",
     "zod": "^3.25.76",
-    "zod-validation-error": "^3.5.4",
-    "@aws-sdk/s3-request-presigner": "^3.1075.0"
+    "zod-validation-error": "^3.5.4"
   },
   "overrides": {
     "three-render-objects": "1.29.5",

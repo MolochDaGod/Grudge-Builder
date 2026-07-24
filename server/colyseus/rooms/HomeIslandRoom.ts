@@ -235,18 +235,31 @@ export class HomeIslandRoom extends Room<HomeIslandState> {
     );
   }
 
-  onLeave(client: Client) {
+  async onLeave(client: Client, consented?: boolean) {
     const player = this.state.players.get(client.sessionId);
-    this.state.players.delete(client.sessionId);
+    const { leaveWithReconnect } = await import("../reconnect");
 
-    // If owner leaves, save state
+    // Save owner state on any leave attempt (reconnect window still holds seat)
     if (player?.accountId === this.ownerId) {
       this.saveToDB();
     }
 
-    console.log(
-      `[HomeIslandRoom] ${player?.characterName || "Unknown"} left — ` +
-      `${this.state.players.size} remaining`
+    await leaveWithReconnect(
+      this,
+      client,
+      consented,
+      () => {
+        this.state.players.delete(client.sessionId);
+        console.log(
+          `[HomeIslandRoom] ${player?.characterName || "Unknown"} left (drop) — ` +
+            `${this.state.players.size} remaining`,
+        );
+      },
+      () => {
+        console.log(
+          `[HomeIslandRoom] ${player?.characterName || "Unknown"} reconnected`,
+        );
+      },
     );
   }
 

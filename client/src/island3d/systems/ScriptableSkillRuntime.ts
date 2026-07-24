@@ -74,7 +74,6 @@ export class ScriptableSkillRuntime {
   private cooldowns = new Map<string, number>(); // skillId → readyAt ms
   private vfxCatalog: VfxCatalog | null = null;
   private scene: THREE.Scene;
-  private clock = new THREE.Clock();
 
   constructor(scene: THREE.Scene) {
     this.scene = scene;

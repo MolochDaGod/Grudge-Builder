@@ -273,23 +273,23 @@ export class TownRoom extends Room<TownState> {
     );
   }
 
-  onLeave(client: Client) {
+  async onLeave(client: Client, consented?: boolean) {
     const player = this.state.players.get(client.sessionId);
+    const { leaveWithReconnect } = await import("../reconnect");
 
-    // Release any NPC locks
-    if (player?.interactingWith) {
-      const npc = this.state.npcs.get(player.interactingWith);
-      if (npc && npc.lockedBy === client.sessionId) {
-        npc.lockedBy = "";
+    await leaveWithReconnect(this, client, consented, () => {
+      if (player?.interactingWith) {
+        const npc = this.state.npcs.get(player.interactingWith);
+        if (npc && npc.lockedBy === client.sessionId) {
+          npc.lockedBy = "";
+        }
       }
-    }
-
-    this.state.players.delete(client.sessionId);
-
-    console.log(
-      `[TownRoom:${this.state.townId}] ${player?.characterName || "Unknown"} left — ` +
-      `${this.state.players.size} remaining`
-    );
+      this.state.players.delete(client.sessionId);
+      console.log(
+        `[TownRoom:${this.state.townId}] ${player?.characterName || "Unknown"} left — ` +
+          `${this.state.players.size} remaining`,
+      );
+    });
   }
 
   onDispose() {

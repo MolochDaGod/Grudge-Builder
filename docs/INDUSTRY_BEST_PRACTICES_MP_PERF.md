@@ -16,7 +16,7 @@ Prefer packages we already ship; add only high-ROI tools.
 | Realtime rooms | `@colyseus/*` 0.17 | Authoritative state, schema deltas, matchmake |
 | Horizontal scale | `@colyseus/redis-driver` + `redis-presence` | Multi-process rooms |
 | Client net | `colyseus.js` | Official reconnect APIs |
-| 3D | `three` ^0.184 | Core renderer |
+| 3D | `three` **0.185.1** | Core renderer; frame timing = `THREE.Timer` (not deprecated Clock) |
 | React 3D (where used) | `@react-three/fiber` + `drei` | Lifecycle, helpers |
 | Physics (compat) | `@dimforge/rapier3d-compat` | Deterministic-capable physics |
 | Mesh raycast speed | `three-mesh-bvh` | Faster picks / ground probes |
