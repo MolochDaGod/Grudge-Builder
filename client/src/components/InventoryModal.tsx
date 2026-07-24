@@ -2,9 +2,10 @@ import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Backpack, Sword, Shield, FlaskConical, Scroll, Coins, Package } from 'lucide-react';
+import { Backpack, Sword, Shield, FlaskConical, Scroll, Coins, Package, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Character } from '@shared/schema';
+import MainPanelHost from '@/components/MainPanelHost';
 
 interface InventoryItem {
   itemId: string;
@@ -81,6 +82,8 @@ export default function InventoryModal({
 }: InventoryModalProps) {
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null);
+  /** Tactical paperdoll main panel (ui.grudge-studio.com) replaces old equipment-only tab. */
+  const [paperdollOpen, setPaperdollOpen] = useState(false);
   
   const inventory = (Array.isArray(character.inventory) ? character.inventory : []) as InventoryItem[];
   
@@ -100,6 +103,7 @@ export default function InventoryModal({
   );
 
   return (
+    <>
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogTrigger asChild>
         {trigger || defaultTrigger}
@@ -111,6 +115,21 @@ export default function InventoryModal({
             {character.name}'s Inventory
           </DialogTitle>
         </DialogHeader>
+
+        <div className="flex gap-2 mb-2">
+          <Button
+            size="sm"
+            className="text-xs gap-1 bg-amber-700 hover:bg-amber-600"
+            onClick={() => setPaperdollOpen(true)}
+            data-testid="btn-open-equipment-paperdoll"
+          >
+            <User className="w-3.5 h-3.5" />
+            Equipment paperdoll
+          </Button>
+          <span className="text-[10px] text-slate-500 self-center">
+            Warlords · ui.grudge-studio.com main panel
+          </span>
+        </div>
         
         <div className="flex gap-4">
           <div className="flex-1">
@@ -193,6 +212,14 @@ export default function InventoryModal({
         </div>
       </DialogContent>
     </Dialog>
+    <MainPanelHost
+      open={paperdollOpen}
+      onClose={() => setPaperdollOpen(false)}
+      characterId={character.id}
+      tab="equipment"
+      era="warlords"
+    />
+    </>
   );
 }
 
