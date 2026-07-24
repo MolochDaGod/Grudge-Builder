@@ -15,6 +15,8 @@ export const IDENTITY_IMPLEMENTATION = FLEET_URLS.gameData;
 
 export type GameDataProductId =
   | "warlords"
+  | "foundry"
+  | "gcs"
   | "arena"
   | "genesis"
   | "forge"
@@ -51,6 +53,21 @@ export const FLEET_GAME_DATA_SERVICES: GameDataServiceSpec[] = [
     gameApiUrl: FLEET_URLS.gameData,
     notes:
       "Today co-hosts accounts + Warlords game on grudge-api. Target: split game schema later; keep accounts on identity.",
+  },
+  {
+    gameId: "foundry",
+    frontendUrl: FLEET_URLS.charactersHub,
+    gameApiUrl: FLEET_URLS.gameData,
+    notes:
+      "Character Foundry (GCS). Create/select heroes only — same Engine Account Postgres " +
+      "(users/accounts/characters/account_inventory) as Warlords. Pages worker proxies " +
+      "/api/* → grudge-api. Never a second roster store.",
+  },
+  {
+    gameId: "gcs",
+    frontendUrl: FLEET_URLS.gcs,
+    gameApiUrl: FLEET_URLS.gameData,
+    notes: "Alias of foundry — character.grudge-studio.com Engine Account SSOT.",
   },
   {
     gameId: "genesis",

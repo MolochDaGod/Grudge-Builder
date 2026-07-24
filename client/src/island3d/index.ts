@@ -59,6 +59,9 @@ export {
 } from './harvest/RegenerativeHarvest';
 export type { HarvestKind, GrowthPhase } from './harvest/RegenerativeHarvest';
 
+// Production barrel (preferred shared entry for play surfaces)
+export * from './production';
+
 // Engine
 export { Island3DEngine } from './engine/Island3DEngine';
 export type { CameraMode } from './player/CameraMode';
@@ -215,6 +218,20 @@ export {
   FX_PRESETS,
 } from './vfx/FireSmokeParticles';
 export type { FxPresetId, ParticleEmitter, ParticleEmitterOpts } from './vfx/FireSmokeParticles';
+// CodePen KwaNNap smoke / barrel / trail / steam
+export {
+  createCodepenEmitter,
+  createCodepenPresetEmitter,
+  spawnTrailRibbon,
+  CODEPEN_FX_PRESETS,
+  CODEPEN_SOURCE,
+} from './vfx/CodepenParticleFx';
+export type {
+  CodepenPresetId,
+  CodepenEmitterHandle,
+  CodepenEmitterConfig,
+  CodepenTextureId,
+} from './vfx/CodepenParticleFx';
 export { WorldFxBus, getWorldFxBus, setWorldFxBus, SUPERNOVA_VARIANTS } from './vfx/WorldFxBus';
 export type { SupernovaImpactVariant } from './vfx/WorldFxBus';
 export {
