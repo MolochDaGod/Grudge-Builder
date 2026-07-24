@@ -56,6 +56,11 @@ export * from "./statusMagicIndicators";
 export * from "./supernovaImpactVfx";
 export * from "./gameAudioCatalog";
 export * from "./weaponAttachSystem";
+// Terrain / water / deck / climb surface placement
+export * from "./worldSurfaceLayers";
+// Production combat profiles + full skill combat catalog
+export * from "./productionWeaponCombat";
+export * from "./weaponSkillCombatCatalog";
 export * from "./hiddenMountainCity";
 export * from "./sectorProductionContent";
 export * from "./sectorRewritePipeline";
