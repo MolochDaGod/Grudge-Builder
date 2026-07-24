@@ -25,7 +25,7 @@ export const characters = pgTable("characters", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").notNull(), // Links to users if we add auth later
   accountId: varchar("account_id"), // UUID linking to accounts.id for sync
-  /** Universe line: warlords | nexus | armada (GCS multi-era roster) */
+  /** Universe line: warlords | nexus | voxel | armada (GCS multi-era roster) */
   gameEra: text("game_era").notNull().default("warlords"),
   /** One active character per era per account */
   activeForEra: boolean("active_for_era").notNull().default(false),
@@ -61,11 +61,12 @@ export const characters = pgTable("characters", {
     scale: number;                 // Character scale (default 1.0)
     grudge6?: boolean;
     sourceUrl?: string;
-    gameEra?: 'warlords' | 'nexus' | 'armada';
+    gameEra?: 'warlords' | 'nexus' | 'voxel' | 'armada';
     voiceProfile?: string;
     shipId?: string;
     nexusMintId?: string;
-    renderPipeline?: 'grudge6' | 'vrm' | 'armada_ship' | 'sprite2d';
+    /** grudge6=warlords, toon=nexus 12, voxel=voxel, armada_ship=no heroes */
+    renderPipeline?: 'grudge6' | 'toon' | 'voxel' | 'vrm' | 'armada_ship' | 'sprite2d';
     /** Mirror of characters.grudge_code for 3D clients that only read model3d */
     grudgeDisplayId?: string;
     grudgeCode?: string;
@@ -588,12 +589,13 @@ export const accounts = pgTable("accounts", {
   premiumCurrency: integer("premium_currency").notNull().default(0),
   gbuxBalance: integer("gbux_balance").notNull().default(0), // GbuX token balance
   characterTokens: integer("character_tokens").notNull().default(1), // Tokens for creating new Warlords-era characters (1 free on account creation, +1 per boss clear)
-  /** Per-era roster caps and active character IDs (GCS) */
+  /** Per-era roster caps and active character IDs (GCS). Product law: warlords 4 grudge6, nexus 12 toon, voxel 4, armada 0. */
   eraSlots: jsonb("era_slots").$type<{
     warlords: { max: number; activeCharacterId: string | null };
     nexus: { max: number; activeCharacterId: string | null };
+    voxel: { max: number; activeCharacterId: string | null };
     armada: { max: number; activeCharacterId: string | null };
-  }>().default(sql`'{"warlords":{"max":5,"activeCharacterId":null},"nexus":{"max":2,"activeCharacterId":null},"armada":{"max":2,"activeCharacterId":null}}'::jsonb`),
+  }>().default(sql`'{"warlords":{"max":4,"activeCharacterId":null},"nexus":{"max":12,"activeCharacterId":null},"voxel":{"max":4,"activeCharacterId":null},"armada":{"max":0,"activeCharacterId":null}}'::jsonb`),
   accountXp: integer("account_xp").notNull().default(0), // Total aggregated XP from all characters
   avatarUrl: text("avatar_url"), // Custom avatar image URL
   // Solana wallet fields
