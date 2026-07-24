@@ -4,7 +4,7 @@
  * + nature scatter, captain-on-mount, traveler, blacksmith, benches, siege, boat.
  */
 import * as THREE from 'three';
-import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { getSharedGltfLoader } from '@/lib/three/SharedGltfPipeline';
 import {
   FACTION_LOBBY_ISLANDS,
   FACTION_ISLAND_TEMPLATE,
@@ -26,7 +26,7 @@ export interface FactionIslandRuntime {
   dispose: () => void;
 }
 
-const loader = new GLTFLoader();
+const loader = getSharedGltfLoader();
 const gltfCache = new Map<string, THREE.Group>();
 
 async function loadModel(path: string): Promise<THREE.Object3D | null> {
@@ -218,11 +218,12 @@ function proceduralProp(kind: FactionIslandProp['kind'], scale: number, color: n
 
 function npcMarker(npc: FactionIslandNpc, color: number): THREE.Group {
   const g = new THREE.Group();
+  // Box markers only (lobby layout); production play uses grudge6 GLBs
   const body = new THREE.Mesh(
-    new THREE.CapsuleGeometry(0.35, npc.role === 'captain_mounted' ? 1.0 : 1.15, 4, 8),
+    new THREE.BoxGeometry(0.55, npc.role === 'captain_mounted' ? 1.6 : 1.7, 0.45),
     new THREE.MeshStandardMaterial({ color }),
   );
-  body.position.y = npc.role === 'captain_mounted' ? 2.4 : 1.0;
+  body.position.y = npc.role === 'captain_mounted' ? 2.4 : 0.85;
   body.castShadow = true;
   g.add(body);
   if (npc.role === 'captain_mounted') {
@@ -377,6 +378,37 @@ async function resolveNpcObject(
   }
 
   if (npc.modelPath && (npc.role === 'faction_hero' || npc.role === 'blacksmith' || npc.role === 'unarmed' || npc.role === 'traveler' || npc.role === 'quest_traveler')) {
+    // Unity Traveler / quest giver: human modular kit + unarmed (same on all 6 boats)
+    if (npc.role === 'traveler' || npc.role === 'quest_traveler') {
+      try {
+        const { loadCharacterModel } = await import('@/lib/modelLoader');
+        const { setupGrudge6Equipment } = await import('@/lib/grudge6Equipment');
+        const { RACE_GRUDGE6, defaultModel3d } = await import('@shared/fleet');
+        const { fitCharacterRootToHeightM, PLAYER_HEIGHT_M } = await import('../zoneWorldScale');
+        const loaded = await loadCharacterModel(npc.modelPath);
+        setupGrudge6Equipment(
+          RACE_GRUDGE6.human.prefix,
+          loaded.scene,
+          defaultModel3d('human', {
+            weaponSlots: {},
+            equippedMeshes: { body: 'A', arms: 'A', legs: 'A', head: 'A' },
+          }),
+        );
+        fitCharacterRootToHeightM(loaded.scene, RACE_GRUDGE6.human.scale, PLAYER_HEIGHT_M);
+        wrap.add(loaded.scene);
+        const flag = new THREE.Mesh(
+          new THREE.PlaneGeometry(0.5, 0.35),
+          new THREE.MeshBasicMaterial({ color: 0x38bdf8, side: THREE.DoubleSide }),
+        );
+        flag.position.set(0.35, 2.1, 0);
+        wrap.add(flag);
+        wrap.userData.unityTraveler = true;
+        return wrap;
+      } catch {
+        /* fall through to generic loadModel */
+      }
+    }
+
     const obj = await loadModel(npc.modelPath);
     if (obj) {
       fitObjectToHeight(obj, npc.role === 'unarmed' ? 1.75 : 1.85);

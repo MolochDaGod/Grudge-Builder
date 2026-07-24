@@ -693,7 +693,7 @@ export function buildGrudgeOpenWorldPackage(): ProductionMapPackage {
       boatSync: true,
       endpoints: {
         worldHttp: 'https://world.grudge-studio.com',
-        multiplayerWs: typeof FLEET_URLS.world === 'string' ? FLEET_URLS.world : 'wss://world.grudge-studio.com',
+        multiplayerWs: typeof FLEET_URLS.world === 'string' ? FLEET_URLS.world : FLEET_URLS.colyseus,
       },
     },
     missions: missions(),

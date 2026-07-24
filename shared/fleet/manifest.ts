@@ -61,11 +61,18 @@ export const FLEET_URLS = {
   assets: "https://assets.grudge-studio.com",
   objectStore: "https://objectstore.grudge-studio.com/api/v1",
   ai: "https://ai.grudge-studio.com",
-  /** Local AnythingLLM desktop — dev RAG over fleet + ObjectStore docs */
-  anythingllm: "http://localhost:3001/api",
+  /**
+   * RAG endpoint for fleet docs. Never localhost in production manifests.
+   * Browser: same-origin `/api/ai/rag` (Vercel → Railway). Server may set ANYTHINGLLM_URL.
+   */
+  anythingllm: "https://ai.grudge-studio.com",
   /** Colyseus shares the GrudgeBuilder Railway HTTP server (home_island, sector, town, …). */
   colyseus: "wss://grudge-api-production-0d46.up.railway.app",
-  world: "wss://world.grudge-studio.com",
+  /**
+   * Open-world / PvP realtime alias — **same Colyseus process as colyseus**.
+   * Legacy `world.grudge-studio.com` DNS was never live; do not reintroduce a dead host.
+   */
+  world: "wss://grudge-api-production-0d46.up.railway.app",
   charactersHub: "https://character.grudge-studio.com",
   gcs: "https://character.grudge-studio.com",
   /** Warlords product apex (landing, lore, account) — also serves play SPA */
@@ -183,25 +190,25 @@ export const FLEET_SERVICES: FleetService[] = [
   },
   {
     id: "anythingllm",
-    label: "AnythingLLM (local RAG)",
+    label: "Fleet RAG (AI gateway)",
     role: "rag",
     url: FLEET_URLS.anythingllm,
     proxyPath: "/api/ai/rag",
-    notes: "Developer API — fleet docs, ObjectStore canonical JSON, Supabase context",
+    notes: "Production: ai.grudge-studio.com or same-origin /api/ai/rag — never localhost",
   },
   {
     id: "colyseus",
     label: "Colyseus realtime (Warlords)",
     role: "realtime",
     url: FLEET_URLS.colyseus,
-    notes: "Sectors, town, dungeon, home island rooms",
+    notes: "Sectors, town, dungeon, home island, world rooms + reconnection 60s",
   },
   {
     id: "world-server",
-    label: "Open world Socket.IO",
+    label: "Open world realtime (Colyseus alias)",
     role: "realtime",
     url: FLEET_URLS.world,
-    notes: "Island PvE/PvP — DNS pending",
+    notes: "Alias of colyseus WSS — world.grudge-studio.com retired",
   },
   {
     id: "gcs",

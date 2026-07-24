@@ -5,6 +5,8 @@
  * Uses TerrainNavMesh A* for pathfinding, AnimationBlendManager for anims.
  */
 import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { resolveRaceCdnUrl } from '@shared/fleet/character';
 import { TerrainNavMesh, type NavPath } from '../navigation/TerrainNavMesh';
 import { getTerrainHeightAt } from '../terrain/IslandTerrainGenerator';
 
@@ -100,15 +102,10 @@ export class AllyController {
     this.terrainMesh = terrainMesh;
     this.guardPosition = config.guardPosition || null;
 
-    // Placeholder model (green capsule — replaced by GLTF later)
+    // Empty root — load grudge6 mesh async. No production capsules.
     this.model = new THREE.Group();
-    const body = new THREE.Mesh(
-      new THREE.CapsuleGeometry(0.7, 1.8, 8, 16),
-      new THREE.MeshLambertMaterial({ color: 0x44cc44 }),
-    );
-    body.position.y = 1.5;
-    body.castShadow = true;
-    this.model.add(body);
+    this.model.name = `ally_${config.id}`;
+    void this.loadAllyMesh(config);
 
     // Nameplate
     const canvas = document.createElement('canvas');
@@ -126,6 +123,28 @@ export class AllyController {
 
     this.model.position.copy(config.position);
     scene.add(this.model);
+  }
+
+  /** Load production grudge6 race GLB (no Meshy / no capsule). */
+  private async loadAllyMesh(config: AllyConfig): Promise<void> {
+    const raceId = (config as AllyConfig & { raceId?: string }).raceId || 'human';
+    const url = resolveRaceCdnUrl(raceId);
+    try {
+      const loader = new GLTFLoader();
+      const gltf = await new Promise<import('three/addons/loaders/GLTFLoader.js').GLTF>((res, rej) =>
+        loader.load(url, res, undefined, rej),
+      );
+      const root = gltf.scene;
+      root.traverse((c) => {
+        if ((c as THREE.Mesh).isMesh) {
+          (c as THREE.Mesh).castShadow = true;
+          (c as THREE.Mesh).receiveShadow = true;
+        }
+      });
+      this.model.add(root);
+    } catch (e) {
+      console.warn(`[AllyController] grudge6 load failed for ${config.id}`, e);
+    }
   }
 
   // ─── State transitions ──────────────────────────────────────────────────────

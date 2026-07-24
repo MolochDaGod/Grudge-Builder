@@ -401,9 +401,19 @@ export class ShipwreckRoom extends Room<ShipwreckState> {
     console.log(`[Tutorial] ${player.characterName} washed ashore (solo)`);
   }
 
-  onLeave(client: Client) {
-    this.state.players.delete(client.sessionId);
-    console.log("[Tutorial] Player left solo adventure");
+  async onLeave(client: Client, consented?: boolean) {
+    const { leaveWithReconnect, RECONNECT_SECONDS } = await import("../reconnect");
+    await leaveWithReconnect(
+      this,
+      client,
+      consented,
+      () => {
+        this.state.players.delete(client.sessionId);
+        console.log("[Tutorial] Player left solo adventure");
+      },
+      () => console.log("[Tutorial] Player reconnected"),
+      RECONNECT_SECONDS,
+    );
   }
 
   onDispose() {

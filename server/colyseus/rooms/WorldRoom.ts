@@ -164,15 +164,18 @@ export class WorldRoom extends Room<WorldState> {
 
   // ── Player Leave ────────────────────────────────────────────
 
-  onLeave(client: Client) {
+  async onLeave(client: Client, consented?: boolean) {
     const wc = this.clients_.get(client.sessionId);
-    this.clients_.delete(client.sessionId);
-    this.state.totalPlayers = this.clients_.size;
+    const { leaveWithReconnect } = await import("../reconnect");
 
-    console.log(
-      `[WorldRoom] ${wc?.characterName || "Unknown"} disconnected — ` +
-      `${this.clients_.size} in world`
-    );
+    await leaveWithReconnect(this, client, consented, () => {
+      this.clients_.delete(client.sessionId);
+      this.state.totalPlayers = this.clients_.size;
+      console.log(
+        `[WorldRoom] ${wc?.characterName || "Unknown"} disconnected — ` +
+          `${this.clients_.size} in world`,
+      );
+    });
   }
 
   // ── Dispose ─────────────────────────────────────────────────

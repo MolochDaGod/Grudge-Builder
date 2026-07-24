@@ -16,21 +16,16 @@
  */
 
 import * as THREE from 'three';
-import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader.js';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { resolveGameAssetPath } from '@/lib/gameAssetPath';
+import { RACE_GRUDGE6, resolveRaceCdnUrl } from '@shared/fleet/character';
 import { calculateWaveHeightAt } from './ShipPhysics';
 import type { WeatherConfig } from './types';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const MODEL_PATH = '/models/player/Meshy_AI_Orc_Warlord_Render_1220104017_texture_fbx.fbx';
-const ANIM_PATHS: Record<string, string> = {
-  idle:    '/models/player/sword and shield idle.fbx',
-  walk:    '/models/player/sword and shield walk.fbx',
-  run:     '/models/player/sword and shield run.fbx',
-  jump:    '/models/player/sword and shield jump.fbx',
-  crouch:  '/models/player/sword and shield crouch.fbx',
-};
+/** Production captain mesh — grudge6 human (CDN). Never Meshy / capsule. */
+const CAPTAIN_GLB = resolveRaceCdnUrl('human');
 
 /** ship-local Y where the character stands on deck */
 export const DECK_Y_DEFAULT = 1.0;
@@ -139,44 +134,36 @@ export class BoatBoardingSystem {
   setDeckY(y: number): void                   { this.deckY = y; this.localPos.y = y; }
 
   async load(): Promise<void> {
-    const loader = new FBXLoader();
+    const loader = new GLTFLoader();
+    const url = CAPTAIN_GLB;
     try {
-      const fbx = await new Promise<THREE.Group>((res, rej) =>
-        loader.load(resolveGameAssetPath(MODEL_PATH), res, undefined, rej)
+      const gltf = await new Promise<import('three/examples/jsm/loaders/GLTFLoader.js').GLTF>((res, rej) =>
+        loader.load(url, res, undefined, rej),
       );
-      fbx.scale.setScalar(0.013);
-      fbx.traverse(c => {
+      const root = gltf.scene;
+      const scale = RACE_GRUDGE6.human.scale || 1;
+      root.scale.setScalar(scale);
+      root.traverse((c) => {
         if ((c as THREE.Mesh).isMesh) {
-          (c as THREE.Mesh).castShadow    = true;
+          (c as THREE.Mesh).castShadow = true;
           (c as THREE.Mesh).receiveShadow = true;
         }
       });
-      this.mixer = new THREE.AnimationMixer(fbx);
-      this.charGroup.add(fbx);
-
-      // Load animations
-      for (const [key, path] of Object.entries(ANIM_PATHS)) {
-        try {
-          const aFbx = await new Promise<THREE.Group>((res, rej) =>
-            loader.load(resolveGameAssetPath(path), res, undefined, rej)
-          );
-          if (aFbx.animations.length > 0) {
-            const clip = aFbx.animations[0];
-            clip.name = key;
-            const act = this.mixer.clipAction(clip);
-            act.setLoop(THREE.LoopRepeat, Infinity);
-            this.actionMap.set(key, act);
-          }
-        } catch { /* non-fatal */ }
+      this.mixer = new THREE.AnimationMixer(root);
+      this.charGroup.add(root);
+      // Clips from GLB if present
+      for (const clip of gltf.animations || []) {
+        const key = /idle/i.test(clip.name) ? 'idle'
+          : /walk/i.test(clip.name) ? 'walk'
+          : /run/i.test(clip.name) ? 'run'
+          : clip.name;
+        const act = this.mixer.clipAction(clip);
+        act.setLoop(THREE.LoopRepeat, Infinity);
+        this.actionMap.set(key, act);
       }
     } catch (e) {
-      // Fallback: use a simple box placeholder so the rest of the system still works
-      console.warn('[BoatBoarding] FBX load failed — using capsule placeholder', e);
-      const geo = new THREE.CapsuleGeometry(0.3, 1.1, 4, 8);
-      const mat = new THREE.MeshStandardMaterial({ color: 0x8855aa });
-      const mesh = new THREE.Mesh(geo, mat);
-      mesh.castShadow = true;
-      this.charGroup.add(mesh);
+      // Empty group only — no capsule/Meshy. Boarding logic still works via charGroup transform.
+      console.warn('[BoatBoarding] grudge6 captain load failed — invisible proxy until retry', e);
     }
 
     this.scene.add(this.charGroup);

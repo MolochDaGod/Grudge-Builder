@@ -331,16 +331,9 @@ export class TownNPCController {
       group.position.set(spawn.position[0], spawn.position[1], spawn.position[2]);
       group.rotation.y = spawn.facing;
 
-      // Placeholder capsule
+      // No capsule — mesh from race/CDN when available; nameplate always visible
       const roleColor = ROLE_COLORS[npcDef.role] || '#888888';
-      const capsule = new THREE.Mesh(
-        new THREE.CapsuleGeometry(0.5, 1.6, 8, 12),
-        new THREE.MeshLambertMaterial({ color: new THREE.Color(roleColor) }),
-      );
-      capsule.position.y = 1.3;
-      capsule.castShadow = true;
-      capsule.name = '__placeholder';
-      group.add(capsule);
+      group.name = `npc_${npcDef.id}`;
 
       // Nameplate
       const nameplate = this.createNameplate(npcDef.name, npcDef.role, roleColor);
