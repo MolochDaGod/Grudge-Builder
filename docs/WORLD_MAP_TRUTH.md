@@ -35,13 +35,13 @@ row2    Abyssal Trench    Haven Shore       Ember Depths
 
 | Sector id | Name | Biome | Notes |
 |-----------|------|-------|--------|
-| `ethereal_falls` | Ethereal Falls | ethereal | NW |
-| `frostbite_expanse` | Frostbite Expanse | frozen | N — dwarf capital |
+| `ethereal_falls` | Ethereal Falls | ethereal | **NW top-left** — Crusade cold; NW half = destruction / Cosmic Waterfall |
+| `frostbite_expanse` | Frostbite Expanse | frozen | N — Fabled dwarf capital; primary ice assets |
 | `thornwood_wilds` | Thornwood Wilds | forest | NE — elf capital |
-| `stormbreak_reef` | Stormbreak Reef | storm | W |
+| `stormbreak_reef` | Stormbreak Reef | storm+ice | **W mid-left** western cold band; Crusade ice patrols |
 | `convergence_nexus` | Convergence Nexus | nexus | CENTER — contested |
 | `ashen_wastes` | Ashen Wastes | desert | E — demon capital |
-| `abyssal_trench` | Abyssal Trench | abyssal | SW — undead capital |
+| `abyssal_trench` | Abyssal Trench | abyssal+ice-rim | **SW bottom-left** western cold rim; undead capital |
 | **`haven_shore`** | **Haven Shore** | **tropical** | **S — human capital, PVE trade (this Fruzer foundation)** |
 | `ember_depths` | Ember Depths | volcanic | SE — orc capital |
 

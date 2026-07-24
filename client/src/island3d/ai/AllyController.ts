@@ -513,6 +513,11 @@ export class AllyManager {
     return this.allies.get(id);
   }
 
+  /** All allies including dead (Ethereal Falls perma-death scan). */
+  getAll(): AllyController[] {
+    return Array.from(this.allies.values());
+  }
+
   /** Get all living allies */
   getLiving(): AllyController[] {
     return Array.from(this.allies.values()).filter(a => a.state !== 'dead');

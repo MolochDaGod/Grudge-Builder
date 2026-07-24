@@ -277,9 +277,17 @@ const HEIGHTMAP_MODIFIERS: Record<string, HeightmapModifier> = {
   },
 
   /**
-   * Ethereal Falls — the signature zone.
-   * Floating island archipelago over a luminous abyss.
-   * Massive waterfalls cascade between island layers.
+   * Ethereal Falls — signature zone (map top-left / NW).
+   *
+   * Diagonal destruction cut (map-aligned u west→east, v north→south):
+   *   Heightmap uses nx = x/w (east), ny = y/h (south if y↓ or north if y↑).
+   *   We treat (nx=0, ny=0) as NW tip (destruction hole) by flipping:
+   *     u = nx, v = ny  when generator y increases southward from north edge.
+   *   NW half (u+v < 1): islands break free, lift, drift toward tip; deep void.
+   *   SE half (u+v ≥ 1): playable floating shelf with sane platforms.
+   *
+   * Tip (0,0) = Cosmic Waterfall / Madra destruction — ships do not return.
+   * Surface physics broken in field; flight exempt (runtime system).
    */
   ethereal_falls: (hm, w, h, rng) => {
     const islandGrid = makeNoiseGrid(rng, 32);
@@ -289,70 +297,88 @@ const HEIGHTMAP_MODIFIERS: Record<string, HeightmapModifier> = {
     for (let y = 0; y < h; y++) {
       for (let x = 0; x < w; x++) {
         const idx = y * w + x;
-        const nx = x / w, ny = y / h;
+        const nx = x / w;
+        const ny = y / h;
+        // Map-aligned: u=0 west, v=0 north → destruction tip at NW
+        const u = nx;
+        const v = ny;
+        const inDestruction = u + v < 1.0;
+        const depth = inDestruction ? Math.min(1, (1 - (u + v)) / 1) : 0;
+        const tipProx = Math.min(1, Math.max(0, 1 - Math.hypot(u, v) / 0.55));
 
         // === Layer 1: Deep abyss floor (base) ===
         let base = -0.4 + hm[idx] * 0.15;
 
         // === Layer 2: Floating island platforms ===
-        // Multiple island clusters at different heights
         const islandNoise = sampleGrid(islandGrid, 32, nx * 18, ny * 18);
         const crystalNoise = sampleGrid(crystalGrid, 64, nx * 40, ny * 40);
 
-        // Island formation — threshold creates discrete platforms
         if (islandNoise > 0.55) {
-          const islandHeight = (islandNoise - 0.55) / 0.45; // 0-1
-          // Three tiers of floating islands
+          const islandHeight = (islandNoise - 0.55) / 0.45;
           const tier = Math.floor(islandHeight * 3);
           const tierHeight = [0.3, 0.55, 0.8][tier] ?? 0.3;
-          // Flat-topped islands with steep cliff edges (mesa style)
-          const edgeDist = (islandNoise - 0.55) * 5; // distance from island edge
-          const cliffProfile = Math.min(1, edgeDist * 3); // steep cliff then flat top
+          const edgeDist = (islandNoise - 0.55) * 5;
+          const cliffProfile = Math.min(1, edgeDist * 3);
           base = tierHeight + cliffProfile * 0.08;
 
-          // Crystal formations on island surfaces
           if (crystalNoise > 0.7) {
-            base += (crystalNoise - 0.7) * 0.4; // crystal spires
+            base += (crystalNoise - 0.7) * 0.4;
           }
+
+          // Destruction half: islands rise and fracture toward tip
+          if (inDestruction) {
+            base += depth * 0.45 + tipProx * 0.25;
+            // Tear gaps between islands (broken terrain / physics plate)
+            if (crystalNoise < 0.35) {
+              base -= depth * 0.55;
+            }
+          }
+        } else if (inDestruction) {
+          // Water column lifts toward tip — upward-flowing luminous sea
+          base = -0.15 + depth * 0.35 + Math.sin((u + v) * 18) * 0.04 * depth;
         }
 
-        // === Layer 3: Waterfall channels ===
-        // Vertical channels between islands where water cascades
+        // === Layer 3: Waterfall channels (SE playable) / void rifts (NW) ===
         const wfNoise = sampleGrid(waterfallGrid, 16, nx * 8, ny * 8);
-        const isWaterfall = wfNoise > 0.75 && islandNoise < 0.55;
-        if (isWaterfall) {
-          // Carved waterfall channel — deeper than surrounding abyss
-          base = Math.min(base, -0.3 - (wfNoise - 0.75) * 2.0);
+        if (!inDestruction) {
+          const isWaterfall = wfNoise > 0.75 && islandNoise < 0.55;
+          if (isWaterfall) {
+            base = Math.min(base, -0.3 - (wfNoise - 0.75) * 2.0);
+          }
+        } else if (wfNoise > 0.6) {
+          // Rifts draining into the Cosmic Waterfall
+          base -= depth * (0.4 + (wfNoise - 0.6) * 1.2);
         }
 
         // === Layer 4: Spectral mist shelves ===
-        // Thin ledges where mist collects at specific heights
-        const mistShelf = Math.sin(base * 12) * 0.01;
-        base += mistShelf;
+        base += Math.sin(base * 12) * 0.01;
 
-        // === Layer 5: Central vortex ===
-        // Massive whirlpool/abyss at zone center
-        const centerDist = Math.hypot(nx - 0.5, ny - 0.5);
-        if (centerDist < 0.12) {
-          const vortexDepth = (0.12 - centerDist) / 0.12;
-          base -= vortexDepth * vortexDepth * 0.6; // deep funnel
+        // === Layer 5: Destruction tip void (replaces center-only vortex) ===
+        if (tipProx > 0.35) {
+          const hole = (tipProx - 0.35) / 0.65;
+          base -= hole * hole * (0.9 + depth * 0.6);
         }
 
-        // === Edge falloff — ocean surrounds the zone ===
+        // Soft SE shelf reinforcement (playable half)
+        if (!inDestruction) {
+          const safe = Math.min(1, (u + v - 1) / 0.35);
+          base = base * (0.85 + 0.15 * safe) + 0.08 * safe;
+        }
+
+        // === Edge falloff — ocean surrounds the zone (except NW tip stays void) ===
         const edgeDist = Math.max(
           Math.max(nx, 1 - nx),
           Math.max(ny, 1 - ny),
         );
-        if (edgeDist > 0.85) {
+        if (edgeDist > 0.85 && tipProx < 0.5) {
           const edgeFade = (edgeDist - 0.85) / 0.15;
-          base = base * (1 - edgeFade) + (-0.5) * edgeFade;
+          base = base * (1 - edgeFade) + -0.5 * edgeFade;
         }
 
         hm[idx] = base;
       }
     }
-    // Light erosion — don't destroy the floating island shapes
-    thermalErosion(hm, w, h, 0.015, 1);
+    thermalErosion(hm, w, h, 0.012, 1);
   },
 
   /** Abyssal trench — deep underwater canyon with bioluminescent ridges */

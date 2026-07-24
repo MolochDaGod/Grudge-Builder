@@ -499,16 +499,28 @@ export const SECTOR_LORE: Record<SectorPosition, SectorLore> = {
   NW: {
     position: "NW", name: "Ethereal Falls", subtitle: "Where Reality Thins",
     biome: "ethereal", difficulty: 6,
-    description: "Cosmic Waterfall and luminous cascades. Crusade mages hold the rim against Madra's expanding void.",
+    description:
+      "Map top-left. SE shelf is playable cold-ethereal; NW half is diagonally cut — water lifts and islands drift into the Cosmic Waterfall tip. Ships do not return. Crusade cold front. Flight still works.",
     controllingFaction: "crusade", hasVendors: true, hasDockyards: false,
-    specialFeatures: ["ethereal_cascade", "cosmic_waterfall", "spirit_shoals", "reality_fractures"],
+    specialFeatures: [
+      "ethereal_cascade",
+      "cosmic_waterfall",
+      "destruction_half",
+      "ship_no_return",
+      "void_death_drops",
+      "ally_perma_death",
+      "flight_exempt_physics",
+      "spirit_shoals",
+      "reality_fractures",
+    ],
   },
   N: {
     position: "N", name: "Frostbite Expanse", subtitle: "The Silent White",
     biome: "frozen", difficulty: 5,
-    description: "Frozen shelf and storm-lit ice. Cathedral-like ice spires and Fabled shrines share the cold with barbarian winter camps.",
+    description:
+      "Primary frozen biome — ice kit, arctic scene, dwarf model kit. Fabled capital; Crusade cold war parties patrol the western approaches.",
     controllingFaction: "fabled", hasVendors: true, hasDockyards: false,
-    specialFeatures: ["glaciers", "omni_shrines", "frost_beasts", "ice_bridges"],
+    specialFeatures: ["glaciers", "omni_shrines", "frost_beasts", "ice_bridges", "dwarf_modelkit", "arctic_scene"],
   },
   NE: {
     position: "NE", name: "Thornwood Wilds", subtitle: "Roof of the Canopy",
@@ -518,11 +530,19 @@ export const SECTOR_LORE: Record<SectorPosition, SectorLore> = {
     specialFeatures: ["hidden_mountain_city", "worge_packs", "poison_thorns", "vertical_canopy"],
   },
   W: {
-    position: "W", name: "Stormbreak Reef", subtitle: "Iron, Smoke, and Lightning",
+    position: "W", name: "Stormbreak Reef", subtitle: "Frozen Storm Shelf",
     biome: "storm", difficulty: 4,
-    description: "Razor reefs and perpetual storms. Dockyards and faction workshops fight the shipbuilding monopoly under thunder.",
-    controllingFaction: null, hasVendors: true, hasDockyards: true,
-    specialFeatures: ["warship_construction", "lightning_reefs", "trade_hub", "smuggler_docks"],
+    description:
+      "Left-middle western cold band — ice reefs under perpetual sleet-storm. Crusade cold patrols and dockyards between thunder and frost.",
+    controllingFaction: "crusade", hasVendors: true, hasDockyards: true,
+    specialFeatures: [
+      "warship_construction",
+      "lightning_reefs",
+      "ice_shelf",
+      "crusade_cold_patrol",
+      "trade_hub",
+      "smuggler_docks",
+    ],
   },
   CENTER: {
     position: "CENTER", name: "Convergence Nexus", subtitle: "Racalvin's Domain",
@@ -541,9 +561,17 @@ export const SECTOR_LORE: Record<SectorPosition, SectorLore> = {
   SW: {
     position: "SW", name: "Abyssal Trench", subtitle: "Where the Sea Reclaims",
     biome: "abyssal", difficulty: 5,
-    description: "Half-drowned deeps and sunken temples. Undead Legion rites keep the dark water moving.",
+    description:
+      "Bottom-left deep. Undead Legion rites in the trench; northern ice-rim freezes wrecks where the western cold band meets the abyss.",
     controllingFaction: "legion", hasVendors: false, hasDockyards: false,
-    specialFeatures: ["underwater_temples", "undead_patrols", "flooded_dungeons", "tide_gates"],
+    specialFeatures: [
+      "underwater_temples",
+      "undead_patrols",
+      "flooded_dungeons",
+      "tide_gates",
+      "ice_rim",
+      "western_cold_band",
+    ],
   },
   S: {
     position: "S", name: "Haven Shore", subtitle: "Safe Harbor & Trade",
