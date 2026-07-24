@@ -19,13 +19,16 @@ Source repo: `GrudgeWars`
 | 3 | Crow's line | Rope to crow's nest |
 
 ### Boss
-- `BossWalkupScene`: walk → confront → charging → `startBossBattle`
-- Boss larger, higher on plate; hero walks up from bottom
-- Quote + Challenge / Retreat
+- Puter: `BossWalkupScene` walk → confront → charging → battle
+- **Client:** `/boss-walkup?characterId=&returnTo=/rpg-battle&boss=malachar`
+  - Plate: `/backgrounds/lava_boss_walkup.png`
+  - grudge6 hero + larger boss race mesh
+  - Challenge → rpg-battle; Retreat → /heroes
 
 ### Characters
 - 2D: spriteMap + SpriteAnimation (frame formula, flip, tier overlays)
 - 3D: grudge6 GLB + equip + `fitCharacterRootToHeightM` + idle on ship
 - 8 WCS attributes only; Foundry for empty slots
+- Layers: `client/src/lib/grudgewarSceneLayers.ts`
 
 See skill for full checklists and anti-patterns.

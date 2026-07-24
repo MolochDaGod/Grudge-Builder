@@ -18,7 +18,7 @@ import HeroesBlackTideScene, {
 
 const MAX_SLOTS = 4;
 
-type PlayDest = "home_island" | "zone" | "lobby" | "tutorial" | "world";
+type PlayDest = "home_island" | "zone" | "lobby" | "tutorial" | "world" | "boss_walkup";
 
 const DEST: { id: PlayDest; label: string; path: (id: string) => string; icon: React.ReactNode }[] = [
   {
@@ -38,6 +38,13 @@ const DEST: { id: PlayDest; label: string; path: (id: string) => string; icon: R
     id: "lobby",
     label: "Lobby",
     path: (id) => `/play?mode=lobby&characterId=${encodeURIComponent(id)}&from=heroes`,
+    icon: <Swords className="w-4 h-4" />,
+  },
+  {
+    id: "boss_walkup",
+    label: "Boss Walkup",
+    path: (id) =>
+      `/boss-walkup?characterId=${encodeURIComponent(id)}&returnTo=/rpg-battle&boss=malachar`,
     icon: <Swords className="w-4 h-4" />,
   },
   {
@@ -118,21 +125,32 @@ export default function HeroesPage() {
           className="w-full h-full"
         />
       </div>
-      <div className="absolute inset-0 z-[1] pointer-events-none bg-gradient-to-b from-black/50 via-transparent to-black/85" />
+      {/* Light plate dim only — preserve airship sky (puter practice) */}
+      <div className="absolute inset-0 z-[1] pointer-events-none bg-gradient-to-b from-black/35 via-transparent to-black/75" />
 
       <div className="relative z-10 flex flex-col flex-1 max-w-6xl w-full mx-auto px-3 sm:px-4 py-4 sm:py-6 gap-4">
         <header className="text-center pointer-events-none">
           <p className="font-cinzel text-[10px] uppercase tracking-[0.4em] text-amber-200/80 mb-1 drop-shadow">
-            Grudge Warlords · The Grudge (Puter GrudgeWar scene)
+            Grudge Warlords · puter.com/app/grudgewar
           </p>
           <h1 className="font-cinzel text-2xl sm:text-4xl font-bold tracking-[0.18em] text-amber-50 drop-shadow-[0_2px_12px_rgba(0,0,0,0.85)]">
             CREW THE GRUDGE
           </h1>
           <p className="mt-1.5 text-xs sm:text-sm text-amber-50/85 max-w-xl mx-auto drop-shadow">
-            Recreated from puter.com/app/grudgewar pirate airship — four deck stations: helm, main
-            battery, fore guns, crow&apos;s line. Select a warlord, then enter play.
+            Pirate airship roster — helm, main battery, fore guns, crow&apos;s line. Select a warlord,
+            then enter play or boss walkup.
           </p>
         </header>
+
+        {/* Puter-style leave ship */}
+        <div className="flex justify-center pointer-events-auto">
+          <a
+            href="/"
+            className="text-[11px] font-cinzel uppercase tracking-wider px-3 py-1 rounded border border-amber-700/40 bg-black/50 text-amber-100/80 hover:text-amber-50"
+          >
+            Leave Ship
+          </a>
+        </div>
 
         {!signedIn && (
           <div
