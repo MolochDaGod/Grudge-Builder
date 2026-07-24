@@ -7,7 +7,7 @@
  * - Spawns harvest markers / NPC markers / vessel tags from havenShoreFoundation SSOT
  */
 import * as THREE from 'three';
-import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { getSharedGltfLoader } from '@/lib/three/SharedGltfPipeline';
 import {
   HAVEN_SHORE_FOUNDATION,
   FRUZER_STRIP_NAME_PATTERNS,
@@ -242,14 +242,15 @@ function placeNpcMarkers(parent: THREE.Group, npcs: HavenNpcPlacement[]): THREE.
       category: 'npc',
       grudgeLayer: 'haven_npc',
     };
+    // Label-only marker until race mesh streams (no production capsules)
     const body = new THREE.Mesh(
-      new THREE.CapsuleGeometry(0.35, 1.2, 4, 8),
+      new THREE.BoxGeometry(0.5, 1.6, 0.4),
       new THREE.MeshStandardMaterial({
         color: roleColor[npc.role] ?? 0xffffff,
         roughness: 0.7,
       }),
     );
-    body.position.y = 1.1;
+    body.position.y = 0.8;
     body.castShadow = true;
     g.add(body);
     const indicator =
@@ -370,7 +371,7 @@ export async function loadHavenShoreFoundation(
   };
 
   const url = resolveModelUrl(cfg.glbPath);
-  const loader = new GLTFLoader();
+  const loader = getSharedGltfLoader();
   let gltfScene: THREE.Object3D;
 
   try {

@@ -334,10 +334,11 @@ export async function fetchRtsStatus(): Promise<RtsStatusDto> {
 
   try {
     const envPvp = (import.meta as { env?: { VITE_PVP_SERVER_URL?: string } }).env?.VITE_PVP_SERVER_URL;
-    const worldHttp = (envPvp || 'wss://world.grudge-studio.com')
+    // Same host as Colyseus / gameData (world.grudge-studio.com was never live)
+    const worldHttp = (envPvp || 'wss://grudge-api-production-0d46.up.railway.app')
       .replace(/^wss:\/\//, 'https://')
       .replace(/^ws:\/\//, 'http://');
-    const res = await fetch(`${worldHttp.replace(/\/$/, '')}/status`);
+    const res = await fetch(`${worldHttp.replace(/\/$/, '')}/api/health`);
     if (res.ok) {
       const data = await res.json();
       return {

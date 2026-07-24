@@ -4,11 +4,20 @@
  * Runtime: load → retargetClipToToon(roleMap).
  */
 
+/**
+ * Canonical baked anim CDN (live JSON clips).
+ * Manifest: /anims/baked/manifest.json (same-origin) and fleet assets when mirrored.
+ */
 export const BAKED_ANIM_BASE =
   "https://grudge-arena.grudge-studio.com/api/assets/anims/baked";
 
-/** Also available under arena public when self-hosted */
+/** Same-origin manifest + optional local mirror under client/public */
 export const BAKED_ANIM_LOCAL = "/anims/baked";
+
+/** R2 assets mirror path (populate via CDN upload; fall back to BAKED_ANIM_BASE) */
+export const BAKED_ANIM_ASSETS = "https://assets.grudge-studio.com/anims/baked";
+
+export const BAKED_ANIM_MANIFEST_URL = `${BAKED_ANIM_LOCAL}/manifest.json`;
 
 export type ToonWeaponMode =
   | "pistol"

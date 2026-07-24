@@ -493,14 +493,27 @@ export class SectorRoom extends Room<SectorState> {
 
   // ── Player Leave ────────────────────────────────────────────
 
-  onLeave(client: Client, consented: boolean) {
+  async onLeave(client: Client, consented: boolean) {
     const player = this.state.players.get(client.sessionId);
     const name = player?.characterName || client.sessionId;
-    this.state.players.delete(client.sessionId);
+    const { leaveWithReconnect, RECONNECT_SECONDS } = await import("../reconnect");
 
-    console.log(
-      `[SectorRoom:${this.sectorId}] ${name} left — ` +
-      `${this.state.players.size} remaining`
+    await leaveWithReconnect(
+      this,
+      client,
+      consented,
+      () => {
+        this.state.players.delete(client.sessionId);
+        console.log(
+          `[SectorRoom:${this.sectorId}] ${name} left (drop) — ` +
+            `${this.state.players.size} remaining`,
+        );
+      },
+      () => {
+        console.log(
+          `[SectorRoom:${this.sectorId}] ${name} reconnected within ${RECONNECT_SECONDS}s`,
+        );
+      },
     );
   }
 

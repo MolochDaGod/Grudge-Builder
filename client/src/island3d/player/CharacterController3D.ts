@@ -369,24 +369,9 @@ export class CharacterController3D {
     // Eager TPC — sole play camera (no async gap / dual follow)
     void this.initThirdPersonCamera();
 
-    // Placeholder model (capsule) — will be replaced by GLTF
+    // Empty root until loadCharacterFromManifest (CDN grudge6). No capsule placeholders.
     this.model = new THREE.Group();
-    const body = new THREE.Mesh(
-      new THREE.CapsuleGeometry(0.8, 2, 8, 16),
-      new THREE.MeshLambertMaterial({ color: 0x4488ff }),
-    );
-    body.position.y = 1.8;
-    body.castShadow = true;
-    this.model.add(body);
-
-    // Direction indicator
-    const arrow = new THREE.Mesh(
-      new THREE.ConeGeometry(0.3, 0.8, 4),
-      new THREE.MeshLambertMaterial({ color: 0xff4444 }),
-    );
-    arrow.position.set(0, 2.5, -1.2);
-    arrow.rotation.x = -Math.PI / 2;
-    this.model.add(arrow);
+    this.model.name = 'player_root';
 
     const startPos = config.startPosition || new THREE.Vector3(0, 20, 0);
     this.model.position.copy(startPos);

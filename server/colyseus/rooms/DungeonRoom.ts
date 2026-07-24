@@ -160,7 +160,12 @@ export class DungeonRoom extends Room<DungeonState> {
     console.log(`[Dungeon:${this.state.dungeonName}] ${p.characterName} joined`);
   }
 
-  onLeave(c: Client) { this.state.players.delete(c.sessionId); }
+  async onLeave(c: Client, consented?: boolean) {
+    const { leaveWithReconnect } = await import("../reconnect");
+    await leaveWithReconnect(this, c, consented, () => {
+      this.state.players.delete(c.sessionId);
+    });
+  }
 
   onDispose() {
     if (this.timeoutH) clearTimeout(this.timeoutH);

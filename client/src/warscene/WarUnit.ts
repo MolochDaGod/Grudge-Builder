@@ -171,15 +171,7 @@ export class WarUnit {
       }
       if (this.anim.hasClip('idle')) this.anim.play('idle');
     } catch (err) {
-      console.warn(`[WarUnit] load failed ${this.id}`, err);
-      // Placeholder capsule
-      const body = new THREE.Mesh(
-        new THREE.CapsuleGeometry(0.35, 1.1, 4, 8),
-        new THREE.MeshStandardMaterial({ color: this.factionColorHex() }),
-      );
-      body.position.y = 0.9;
-      body.castShadow = true;
-      this.root.add(body);
+      console.warn(`[WarUnit] load failed ${this.id} — no capsule fallback (CDN only)`, err);
     }
   }
 

@@ -112,18 +112,8 @@ export class RemotePlayerManager {
     group.position.set(data.x, data.y, data.z);
     group.rotation.y = data.facing;
 
-    // Placeholder capsule while model loads
-    const capsule = new THREE.Mesh(
-      new THREE.CapsuleGeometry(0.35, 1.2, 8, 12),
-      new THREE.MeshLambertMaterial({
-        color: FACTION_COLORS[data.faction] || 0xcccccc,
-      }),
-    );
-    // 2m hero: capsule center at ~1m
-    capsule.position.y = 1.0;
-    capsule.castShadow = true;
-    capsule.name = '__placeholder';
-    group.add(capsule);
+    // No capsule — race mesh loads async via loadRaceModel / CDN grudge6
+    group.name = `remote_${sessionId}`;
 
     // Nameplate sprite
     const nameplate = this.createNameplate(data.characterName, data.level, data.faction);

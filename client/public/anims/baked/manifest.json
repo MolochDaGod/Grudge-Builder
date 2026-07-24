@@ -1,0 +1,57 @@
+{
+  "version": "1.0.0",
+  "description": "Baked Mixamo/Bip001 animation packs for grudge6 / toon soldiers. JSON clips are Mixamo rotation-only; retarget via modelLoader.retargetClipToToon.",
+  "cdnBase": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked",
+  "cdnBaseMirror": "https://assets.grudge-studio.com/anims/baked",
+  "clientSameOrigin": "/anims/baked",
+  "format": "json",
+  "skeleton": "Bip001 / Mixamo-24 compatible",
+  "packs": {
+    "locomotion": {
+      "idle": "locomotion/idle.json",
+      "walk": "locomotion/walking.json",
+      "run": "locomotion/running.json",
+      "dodge": "locomotion/dodging.json",
+      "jump": "locomotion/jump.json",
+      "leftStrafe": "locomotion/left strafe walking.json",
+      "rightStrafe": "locomotion/right strafe walking.json",
+      "swim": "locomotion/swimming.json",
+      "swimIdle": "locomotion/treading-water.json"
+    },
+    "sword_shield": {
+      "note": "Warlords melee — prefer same locomotion base + melee attack clips when mirrored to assets CDN",
+      "inherits": "locomotion"
+    },
+    "longbow": {
+      "idle": "longbow/standing idle 01.json",
+      "walk": "longbow/standing walk forward.json",
+      "run": "longbow/standing run forward.json",
+      "attack": "longbow/standing aim recoil.json",
+      "dodge": "longbow/standing dodge forward.json"
+    },
+    "pistol": {
+      "idle": "pistol/pistol idle.json",
+      "walk": "pistol/pistol walk.json",
+      "run": "pistol/pistol run.json",
+      "attack": "pistol/gunplay.json",
+      "aim": "pistol/pistol aim.json"
+    },
+    "rifle": {
+      "idle": "rifle/idle.json",
+      "walk": "rifle/walk forward.json",
+      "run": "rifle/run forward.json",
+      "attack": "rifle/firing.json",
+      "reload": "rifle/reloading.json"
+    },
+    "magic": {
+      "inherits": "locomotion",
+      "note": "Spell one-shots use VFX bus + one-shot clips when present under boxanimations/"
+    }
+  },
+  "resolve": {
+    "preferred": "cdnBase",
+    "fallback": ["cdnBaseMirror", "clientSameOrigin"]
+  },
+  "exampleUrl": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/locomotion/walking.json",
+  "updated": "2026-07-24"
+}

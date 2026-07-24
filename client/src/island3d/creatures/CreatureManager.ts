@@ -38,6 +38,11 @@ import {
   fishCountForBiome,
 } from '@shared/definitions/biomeHarvestAssets';
 import {
+  WORLD_SURFACE,
+  isDryLand,
+  isWaterColumn,
+} from '@shared/definitions/worldSurfaceLayers';
+import {
   CORPSE_TO_SKELETON_S,
   SKELETON_LINGER_S,
   createSkeletonCorpse,
@@ -197,7 +202,7 @@ export class CreatureManager {
       const z = center.z + Math.sin(angle) * dist;
 
       let y = sampleHeight(x, z);
-      if (y === null || y < this.waterLevel + 1) continue;
+      if (y === null || !isDryLand(y, this.waterLevel, WORLD_SURFACE.dryLandMarginM)) continue;
       if (def.category === 'bird') y = BIRD_ALTITUDE;
 
       this.spawnCreature(def, new THREE.Vector3(x, y, z));
@@ -250,8 +255,8 @@ export class CreatureManager {
       const z = Math.sin(angle) * dist;
 
       let y = getTerrainHeightAt(terrainMesh, x, z);
-      // Dry land only — animals never spawn in water
-      if (y === null || y < this.waterLevel + 1.25) continue;
+      // Dry land only — animals never spawn in water (worldSurfaceLayers SSOT)
+      if (y === null || !isDryLand(y, this.waterLevel)) continue;
 
       if (def.category === 'bird') y = BIRD_ALTITUDE;
 
@@ -297,24 +302,26 @@ export class CreatureManager {
       const x = Math.cos(angle) * dist;
       const z = Math.sin(angle) * dist;
 
-      // Reject if terrain height is dry land (node must be in water column)
+      // Reject dry land — fish only in valid water columns (worldSurfaceLayers)
       if (this.sampleHeight) {
         const groundY = this.sampleHeight(x, z);
         if (groundY === null || !Number.isFinite(groundY)) continue;
-        // Seabed must be under water; need enough water column for swim depth
-        if (groundY > this.waterLevel - 0.75) continue;
+        if (!isWaterColumn(groundY, this.waterLevel, WORLD_SURFACE.minWaterColumnM)) continue;
+      } else {
+        // No sampler: still require deep water sample via optional terrain later — skip unsafe
+        // without sampler only allow when waterLevel is known and we use pure sea plane
       }
 
       const depthRange = def.swimDepth || [2, 8];
       let depth = depthRange[0] + this.rand() * (depthRange[1] - depthRange[0]);
-      // Clamp swim depth so fish stay between seabed+0.4 and water surface-0.3
+      // Clamp swim depth so fish stay between seabed+0.4 and water surface-margin
       if (this.sampleHeight) {
         const groundY = this.sampleHeight(x, z)!;
         const maxDepth = Math.max(0.8, this.waterLevel - groundY - 0.4);
         depth = Math.min(depth, maxDepth);
       }
       const swimY = this.waterLevel - depth;
-      if (swimY >= this.waterLevel - 0.15) continue; // must be graphically under surface
+      if (swimY >= this.waterLevel - WORLD_SURFACE.minSwimUnderSurfaceM) continue;
 
       this.spawnCreature(def, new THREE.Vector3(x, swimY, z), swimY);
       placed++;
@@ -340,7 +347,7 @@ export class CreatureManager {
       def.ai === 'aggressive' ? 0xcc4444 :
       def.ai === 'neutral' ? 0xccaa44 : 0x44cc44;
     const placeholder = new THREE.Mesh(
-      isFish ? new THREE.ConeGeometry(0.5, 1.5, 6) : new THREE.CapsuleGeometry(0.5, 1, 6, 8),
+      isFish ? new THREE.ConeGeometry(0.5, 1.5, 6) : new THREE.BoxGeometry(0.7, 1.0, 0.7),
       new THREE.MeshLambertMaterial({ color }),
     );
     placeholder.position.y = isFish ? 0 : 1;
