@@ -1,8 +1,9 @@
 /**
- * /heroes — Warlords character select on Black Tide (clear-sky galleon crew).
- * Up to 4 slots as working crew: helm, large cannons, small cannons, crow's rope.
+ * /heroes — Warlords airship cinema select (Puter GrudgeWar "The Grudge").
+ * Up to 4 crew AI on 6 deck posts (Yuka-style wander/goals), stairs + wheel,
+ * avatar strip zoom, stats/equip panel, select → play handoff.
  */
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useLocation } from "wouter";
 import { Home, LogIn, Map, Plus, Ship, Swords, Hammer, Loader2 } from "lucide-react";
 import { useCharacters } from "@/hooks/use-characters";
@@ -11,14 +12,16 @@ import { isAuthenticated } from "@/lib/grudgeBackend";
 import { buildSsoLoginUrl } from "@/lib/grudgeConfig";
 import { buildGcsUrl } from "@/lib/gcsRedirect";
 import { RACES, CLASSES } from "@/lib/gameData";
-import type { Character } from "@/lib/characterManager";
+import { CharacterManager, type Character } from "@/lib/characterManager";
+import { characterAPI } from "@/lib/api";
+import { pickCrewSlots } from "@/components/heroes/heroesCrewLoader";
 import HeroesBlackTideScene, {
   CREW_STATIONS,
 } from "@/components/heroes/HeroesBlackTideScene";
 
 const MAX_SLOTS = 4;
 
-type PlayDest = "home_island" | "zone" | "lobby" | "tutorial" | "world" | "boss_walkup";
+type PlayDest = "home_island" | "zone" | "lobby" | "tutorial" | "world";
 
 const DEST: { id: PlayDest; label: string; path: (id: string) => string; icon: React.ReactNode }[] = [
   {
@@ -38,13 +41,6 @@ const DEST: { id: PlayDest; label: string; path: (id: string) => string; icon: R
     id: "lobby",
     label: "Lobby",
     path: (id) => `/play?mode=lobby&characterId=${encodeURIComponent(id)}&from=heroes`,
-    icon: <Swords className="w-4 h-4" />,
-  },
-  {
-    id: "boss_walkup",
-    label: "Boss Walkup",
-    path: (id) =>
-      `/boss-walkup?characterId=${encodeURIComponent(id)}&returnTo=/rpg-battle&boss=malachar`,
     icon: <Swords className="w-4 h-4" />,
   },
   {
@@ -70,16 +66,41 @@ function className(id: string) {
 
 export default function HeroesPage() {
   const [, setLocation] = useLocation();
-  const { characters, loading, activeId, setActive, error } = useCharacters();
+  const { characters: warlordsChars, loading, activeId, setActive, error } = useCharacters();
+  const [voxelChars, setVoxelChars] = useState<Character[]>([]);
   const [dest, setDest] = useState<PlayDest>("zone");
   const signedIn = isAuthenticated();
 
-  const slots: (Character | null)[] = useMemo(() => {
-    const list = characters.slice(0, MAX_SLOTS);
-    return Array.from({ length: MAX_SLOTS }, (_, i) => list[i] ?? null);
-  }, [characters]);
+  // Explorer / voxel era selections (GRUDOX 4-slot) — merged with warlords for crew AI
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const list = await characterAPI.getAll("voxel");
+        if (!cancelled) setVoxelChars(Array.isArray(list) ? list : []);
+      } catch {
+        if (!cancelled) setVoxelChars([]);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [signedIn, loading]);
 
-  const selected = characters.find((c) => c.id === activeId) ?? characters[0] ?? null;
+  const crew = useMemo(
+    () => pickCrewSlots(voxelChars, warlordsChars, MAX_SLOTS),
+    [voxelChars, warlordsChars],
+  );
+
+  const slots: (Character | null)[] = useMemo(() => {
+    return Array.from({ length: MAX_SLOTS }, (_, i) => crew[i] ?? null);
+  }, [crew]);
+
+  const selected =
+    crew.find((c) => c.id === activeId) ??
+    warlordsChars.find((c) => c.id === activeId) ??
+    crew[0] ??
+    null;
   const selectedSlotIndex = selected
     ? slots.findIndex((s) => s?.id === selected.id)
     : -1;
@@ -90,9 +111,27 @@ export default function HeroesPage() {
     try {
       localStorage.setItem("grudge_active_character", selected.id);
       localStorage.setItem("gruda_active_character", selected.id);
+      localStorage.setItem("grudge.open.selectedCharacterId", selected.id);
+      localStorage.setItem("voxelrealms.selectedCharacterId", selected.id);
+      const era =
+        selected.gameEra ||
+        (selected.model3d as { gameEra?: string } | undefined)?.gameEra ||
+        "warlords";
+      try {
+        const byEra = JSON.parse(localStorage.getItem("grudge.selectedCharacterByEra") || "{}");
+        byEra[String(era)] = selected.id;
+        if (String(era) === "voxel" || String(era) === "warlords") {
+          byEra.voxel = byEra.voxel || selected.id;
+          byEra.warlords = byEra.warlords || selected.id;
+        }
+        localStorage.setItem("grudge.selectedCharacterByEra", JSON.stringify(byEra));
+      } catch {
+        /* ignore */
+      }
       const gid = localStorage.getItem("grudge_account_id") || "guest";
       localStorage.setItem(`gruda_active_character_${gid}`, selected.id);
       localStorage.setItem("grudge_character_handoff_from", "heroes");
+      CharacterManager.setActive(selected.id);
     } catch {
       /* ignore */
     }
@@ -101,7 +140,7 @@ export default function HeroesPage() {
   };
 
   const forgeUrl = buildGcsUrl({
-    era: "warlords",
+    era: voxelChars.length > 0 ? "voxel" : "warlords",
     mode: "create",
     returnTo:
       typeof window !== "undefined"
@@ -129,41 +168,17 @@ export default function HeroesPage() {
 
       <div className="relative z-10 flex flex-col flex-1 max-w-6xl w-full mx-auto px-3 sm:px-4 py-4 sm:py-6 gap-4">
         <header className="text-center pointer-events-none">
-          <p className="font-cinzel text-[10px] uppercase tracking-[0.4em] text-sky-100/70 mb-1 drop-shadow">
-            Grudge Warlords · Black Tide
-          </p>
-          <h1 className="font-cinzel text-2xl sm:text-4xl font-bold tracking-[0.18em] text-amber-50 drop-shadow-[0_2px_12px_rgba(0,0,0,0.85)]">
-            CREW YOUR WARLORDS
-          </h1>
-          <p className="mt-1.5 text-xs sm:text-sm text-sky-50/80 max-w-xl mx-auto drop-shadow">
-            Clear skies on the Black Tide — four stations: helm, main battery, fore guns, crow&apos;s line.
-            Select a crew member, then enter play.
-      {/* Light plate dim only — preserve airship sky (puter practice) */}
-      <div className="absolute inset-0 z-[1] pointer-events-none bg-gradient-to-b from-black/35 via-transparent to-black/75" />
-
-      <div className="relative z-10 flex flex-col flex-1 max-w-6xl w-full mx-auto px-3 sm:px-4 py-4 sm:py-6 gap-4">
-        <header className="text-center pointer-events-none">
           <p className="font-cinzel text-[10px] uppercase tracking-[0.4em] text-amber-200/80 mb-1 drop-shadow">
-            Grudge Warlords · puter.com/app/grudgewar
+            Grudge Warlords · The Grudge (Puter GrudgeWar scene)
           </p>
           <h1 className="font-cinzel text-2xl sm:text-4xl font-bold tracking-[0.18em] text-amber-50 drop-shadow-[0_2px_12px_rgba(0,0,0,0.85)]">
             CREW THE GRUDGE
           </h1>
           <p className="mt-1.5 text-xs sm:text-sm text-amber-50/85 max-w-xl mx-auto drop-shadow">
-            Pirate airship roster — helm, main battery, fore guns, crow&apos;s line. Select a warlord,
-            then enter play or boss walkup.
+            Crew walks the deck (6 posts: helm, batteries, mid, stairs, crow). Click a portrait to
+            zoom — face camera, inspect stats &amp; gear — then enter play as that warlord.
           </p>
         </header>
-
-        {/* Puter-style leave ship */}
-        <div className="flex justify-center pointer-events-auto">
-          <a
-            href="/"
-            className="text-[11px] font-cinzel uppercase tracking-wider px-3 py-1 rounded border border-amber-700/40 bg-black/50 text-amber-100/80 hover:text-amber-50"
-          >
-            Leave Ship
-          </a>
-        </div>
 
         {!signedIn && (
           <div
@@ -263,17 +278,68 @@ export default function HeroesPage() {
 
         {selected && (
           <div
-            className="p-3 text-center rounded-md border border-sky-400/25 pointer-events-auto backdrop-blur-sm"
-            style={{ background: "linear-gradient(180deg, rgba(8,24,36,0.9), rgba(6,12,20,0.94))" }}
+            className="p-3 sm:p-4 rounded-md border border-emerald-400/30 pointer-events-auto backdrop-blur-sm grid sm:grid-cols-[auto_1fr] gap-3"
+            style={{ background: "linear-gradient(180deg, rgba(8,32,28,0.92), rgba(6,14,18,0.95))" }}
           >
-            <div className="font-cinzel text-lg tracking-[0.12em] text-amber-100">
-              {selected.name.toUpperCase()}
+            <div className="flex sm:flex-col items-center gap-3 sm:gap-2">
+              <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full overflow-hidden ring-2 ring-emerald-400/70 shadow-[0_0_20px_rgba(52,211,153,0.25)] shrink-0">
+                <img
+                  src={selected.avatarUrl || getRacePortrait(selected.raceId)}
+                  alt={selected.name}
+                  className="w-full h-full object-cover object-top"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).src = getRacePortrait(selected.raceId);
+                  }}
+                />
+              </div>
+              <div className="text-center sm:text-left min-w-0">
+                <div className="font-cinzel text-lg tracking-[0.12em] text-amber-100">
+                  {selected.name.toUpperCase()}
+                </div>
+                <div className="text-xs text-emerald-100/80 mt-0.5">
+                  {selectedSlotIndex >= 0 ? `${CREW_STATIONS[selectedSlotIndex].role} · ` : ""}
+                  {raceName(selected.raceId)} · {className(selected.classId)} · Lv {selected.level}
+                </div>
+                {selected.grudgeCode && (
+                  <div className="text-[10px] text-slate-400 font-mono mt-0.5 truncate">
+                    {selected.grudgeCode}
+                  </div>
+                )}
+              </div>
             </div>
-            <div className="text-xs text-sky-100/70 mt-0.5">
-              {selectedSlotIndex >= 0
-                ? `${CREW_STATIONS[selectedSlotIndex].role} · `
-                : ""}
-              {raceName(selected.raceId)} · {className(selected.classId)} · Level {selected.level}
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-3 gap-y-1.5 text-[11px]">
+              <div className="col-span-2 sm:col-span-3 text-[9px] uppercase tracking-[0.2em] text-sky-200/55 font-cinzel">
+                Stats · equipment · active selection
+              </div>
+              {Object.entries(selected.attributes || {})
+                .slice(0, 6)
+                .map(([k, v]) => (
+                  <div key={k} className="flex justify-between gap-2 border-b border-white/5 pb-0.5">
+                    <span className="text-slate-400 capitalize">{k}</span>
+                    <span className="text-amber-100 font-semibold">{v}</span>
+                  </div>
+                ))}
+              <div className="col-span-2 sm:col-span-3 flex flex-wrap gap-1.5 mt-1">
+                {Object.entries(selected.equipment || {})
+                  .filter(([, id]) => !!id)
+                  .slice(0, 8)
+                  .map(([slot, id]) => (
+                    <span
+                      key={slot}
+                      className="px-1.5 py-0.5 rounded border border-amber-600/30 bg-black/30 text-[9px] text-amber-100/90"
+                      title={String(id)}
+                    >
+                      {slot}: {String(id).slice(0, 18)}
+                    </span>
+                  ))}
+                {!Object.values(selected.equipment || {}).some(Boolean) && (
+                  <span className="text-[10px] text-slate-500">No equipment equipped</span>
+                )}
+              </div>
+              <p className="col-span-2 sm:col-span-3 text-[10px] text-emerald-200/70 mt-1">
+                Selected for all play options below — stays active until you pick another crewmate on this
+                scene.
+              </p>
             </div>
           </div>
         )}
@@ -283,7 +349,7 @@ export default function HeroesPage() {
           style={{ background: "linear-gradient(180deg, rgba(8,24,36,0.92), rgba(6,12,20,0.96))" }}
         >
           <div className="text-[10px] uppercase tracking-[0.2em] text-sky-200/60 font-cinzel text-center">
-            Enter live play
+            Enter live play as selected hero
           </div>
           <div className="flex flex-wrap justify-center gap-2">
             {DEST.map((d) => (
