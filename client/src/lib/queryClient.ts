@@ -1,10 +1,12 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
-import { authHeaders, clearToken, logout } from "./grudgeBackend";
+import { authHeaders, clearToken, logout, getToken } from "./grudgeBackend";
 
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
-    // Auto-logout on 401
-    if (res.status === 401) {
+    // Only clear session on 401 when we actually had a JWT (expired / revoked).
+    // Guest home still hits /api/characters|wallet — 401 there must NOT call logout()
+    // or throw-hard cascades that take down the shell (Sentry "Something went wrong").
+    if (res.status === 401 && getToken()) {
       logout();
     }
     const text = (await res.text()) || res.statusText;
@@ -53,7 +55,9 @@ export const getQueryFn: <T>(options: {
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      queryFn: getQueryFn({ on401: "throw" }),
+      // Guest-safe default: unauthenticated GETs return null instead of throwing
+      // and crashing ErrorBoundaries on /home.
+      queryFn: getQueryFn({ on401: "returnNull" }),
       refetchInterval: false,
       refetchOnWindowFocus: false,
       staleTime: Infinity,
