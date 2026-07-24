@@ -3,6 +3,11 @@
  *
  * CDN: models/vehicles/flight/{griffin|wyvern|glider}/
  * Status: scaffold — altitude + stamina; mesh packs not all on CDN yet.
+ *
+ * Ethereal Falls destruction half: surface physics break, but **flight is exempt**
+ * (see EtherealDestructionSystem + etherealDestructionZone.flightExempt).
+ * Flying mounts / airborne players remain controllable while water + islands
+ * drift toward the Cosmic Waterfall tip.
  */
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';

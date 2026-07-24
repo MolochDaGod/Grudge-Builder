@@ -216,38 +216,48 @@ export const WORLD_SECTORS: WorldSector[] = [
   {
     id: 'stormbreak_reef',
     name: 'Stormbreak Reef',
-    description: 'Perpetual thunderstorms rage above a maze of razor-sharp coral reefs.',
-    lore: 'The gods clashed above these waters during the First Grudge, and the storm never stopped. Ships that wander in are torn apart by lightning-charged waves. Only the desperate sail here — and the brave.',
+    description:
+      'Frozen mid-left shelf — sleet-storm seas and ice-rimmed reefs where Crusade cold patrols meet the Falls.',
+    lore:
+      'Lightning still cracks the sky, but the western mid-band freezes hard. Ice shelves and arctic scatter mark Crusade cold approaches toward Ethereal Falls. Ships ice over between thunderheads; only cold-hardened crews sail the Stormbreak ice shelf.',
     biome: 'storm',
-    groundPBR: 'ground_4',
+    groundPBR: 'ground_7',
     difficultyMin: 3,
     difficultyMax: 6,
-    bounds: sectorBounds(0, 1),  // mid-left
-    colors: { deep: '#0f172a', mid: '#334155', accent: '#fbbf24' },
-    hazards: ['lightning_strikes', 'whirlpools', 'reef_damage', 'rogue_waves'],
-    ambientFx: ['rain_heavy', 'lightning_flashes', 'wave_spray'],
-    resources: ['shells', 'coral', 'rare_ore', 'storm_crystals'],
+    bounds: sectorBounds(0, 1), // mid-left — western cold band
+    colors: { deep: '#0a1628', mid: '#1e3a5f', accent: '#7dd3fc', glow: '#fbbf24' },
+    hazards: [
+      'lightning_strikes',
+      'whirlpools',
+      'reef_damage',
+      'rogue_waves',
+      'blizzard_damage',
+      'ice_patches',
+    ],
+    ambientFx: ['rain_heavy', 'lightning_flashes', 'wave_spray', 'snowfall', 'ice_sparkle'],
+    resources: ['shells', 'coral', 'rare_ore', 'storm_crystals', 'ice', 'frost_herbs'],
     terrain3d: defaultTerrain3d({
       minHeight: -80,
-      maxHeight: 60,
-      waterLevel: 5,
+      maxHeight: 90,
+      waterLevel: 2,
       noiseOctaves: 6,
-      noisePersistence: 0.5,
-      noiseBaseFreq: 0.001,
+      noisePersistence: 0.48,
+      noiseBaseFreq: 0.00095,
       heightmapModifier: 'storm_reef',
-      skyColor: 0x2c3e50,
-      fog: { color: 0x34495e, density: 0.0006 },
-      ambientIntensity: 0.4,
-      sunIntensity: 0.6,
-      sunDirection: [0.1, 0.3, 0.6],
-      spawnPoints: [[0, 10, 0], [600, 8, -400]],
+      skyColor: 0x3d4f66,
+      fog: { color: 0x8fa8c0, density: 0.00055 },
+      ambientIntensity: 0.5,
+      sunIntensity: 0.65,
+      sunDirection: [0.15, 0.35, 0.55],
+      spawnPoints: [[0, 10, 0], [600, 8, -400], [-400, 12, 200]],
     }),
     imagery: {
       backgroundUrl: '/backgrounds/dark-fantasy-3.png',
       thumbnailUrl: '/backgrounds/dark-fantasy-3.png',
       overlayFx: [
-        { type: 'rain_heavy', intensity: 0.9, color: '#94a3b8' },
-        { type: 'lightning_flashes', intensity: 0.6, color: '#fbbf24' },
+        { type: 'rain_heavy', intensity: 0.7, color: '#94a3b8' },
+        { type: 'snowfall', intensity: 0.55, color: '#dbeafe' },
+        { type: 'lightning_flashes', intensity: 0.55, color: '#fbbf24' },
       ],
     },
   },
@@ -379,36 +389,45 @@ export const WORLD_SECTORS: WorldSector[] = [
   {
     id: 'ethereal_falls',
     name: 'Ethereal Falls',
-    description: 'A zone of impossible beauty and lethal danger — luminescent waterfalls cascade from floating islands into a churning abyss of spectral mist.',
-    lore: 'When the First God wept during the Sundering, their tears became rivers of liquid light that flow upward, defying gravity. The falls shimmer between purple and cyan, illuminating islands of crystallized magic suspended in mid-air. The mist below is alive — phantoms of drowned sailors reach up from the luminous depths, and the water itself dissolves mortal flesh. Only the worthy may harvest the Ethereal Crystals that grow where light meets shadow.',
+    description:
+      'Map top-left. SE shelf is playable ethereal cold; NW half is diagonally cut — water lifts, islands drift to the Cosmic Waterfall tip. Ships do not return. Crusade cold front line.',
+    lore:
+      'When the First God wept, tears became upward light-rivers. A diagonal fracture split the zone: the SE half still holds floating crystal shelves for the living; the NW half is Madra’s Cosmic Waterfall — surface physics break, islands and water float toward the top-left tip of destruction. Ships that cross the cut never sail home. Characters who die in the field leave no drops; ally NPCs die permanent death. Only flight (mounts, airborne creatures, flying players) remains sane. Crusade holds the cold approaches and the SE sanctums.',
     biome: 'ethereal',
     groundPBR: 'ground_8',
     difficultyMin: 6,
     difficultyMax: 9,
-    bounds: sectorBounds(0, 0),  // top-left — remote magical corner
+    bounds: sectorBounds(0, 0), // top-left — NW world corner
     colors: {
-      deep: '#0c0a1a',      // void-dark purple-black
-      mid: '#2d1b69',       // deep spectral purple
-      accent: '#00e5ff',    // ethereal cyan glow
-      glow: '#bf40ff',      // phantom purple luminescence
+      deep: '#0c0a1a', // void-dark purple-black
+      mid: '#2d1b69', // deep spectral purple
+      accent: '#00e5ff', // ethereal cyan glow
+      glow: '#bf40ff', // phantom purple luminescence
     },
     hazards: [
-      'spectral_mist_drain',   // Standing in mist drains HP
-      'gravity_inversion',     // Zones where gravity flips
-      'phantom_grasp',         // Ghostly hands pull you into the abyss
-      'crystal_overload',      // Ethereal crystals explode if mined wrong
-      'luminous_whirlpool',    // Glowing water vortexes that suck ships down
-      'reality_thin_zones',    // Areas where the veil is thin — random teleports
+      'spectral_mist_drain',
+      'gravity_inversion',
+      'phantom_grasp',
+      'crystal_overload',
+      'luminous_whirlpool',
+      'reality_thin_zones',
+      'destruction_half', // NW diagonal field
+      'ship_no_return',
+      'void_death_drops',
+      'ally_perma_death',
+      'broken_surface_physics',
     ],
     ambientFx: [
-      'waterfall_glow_purple',   // Glowing purple-cyan waterfalls
-      'floating_islands',        // Rock formations suspended in air
-      'spectral_mist_rising',    // Luminous mist rising from below
-      'crystal_sparkle',         // Ethereal crystals pulsing with light
-      'phantom_wisps',           // Ghost lights drifting through the air
-      'gravity_particles',       // Particles that fall upward
-      'aurora_vertical',         // Vertical aurora columns around falls
-      'bioluminescent_water',    // Water surface glows cyan/purple
+      'waterfall_glow_purple',
+      'floating_islands',
+      'spectral_mist_rising',
+      'crystal_sparkle',
+      'phantom_wisps',
+      'gravity_particles',
+      'aurora_vertical',
+      'bioluminescent_water',
+      'destruction_tip_void',
+      'diagonal_fracture_glow',
     ],
     resources: [
       'ethereal_crystals',       // Primary rare resource — glows, used in T7-T8 crafting
@@ -455,17 +474,39 @@ export const WORLD_SECTORS: WorldSector[] = [
   {
     id: 'abyssal_trench',
     name: 'Abyssal Trench',
-    description: 'The deepest waters in the world — home to leviathans and sunken empires.',
-    lore: 'The trench plunges so deep that light becomes a memory. Bioluminescent horrors patrol its depths, and the pressure alone can crush a hull. Ancient ruins of a drowned civilization line the trench walls.',
+    description:
+      'Bottom-left deep — leviathan trench with a frozen northern ice-rim toward the western cold band.',
+    lore:
+      'The trench plunges so deep that light becomes a memory. Along its northern shelf, cold from Stormbreak and the Falls locks ice rims over black water — western cold band meets the abyss. Bioluminescent horrors patrol the deep; ice-crusted wrecks line the rim.',
     biome: 'abyssal',
     groundPBR: 'ground_9',
     difficultyMin: 7,
     difficultyMax: 10,
-    bounds: sectorBounds(0, 2),
-    colors: { deep: '#020617', mid: '#0f172a', accent: '#06b6d4', glow: '#22d3ee' },
-    hazards: ['crushing_pressure', 'leviathan_attacks', 'darkness_debuff', 'siren_lure'],
-    ambientFx: ['bioluminescence', 'bubble_columns', 'deep_fog', 'creature_shadows'],
-    resources: ['abyssal_ore', 'leviathan_scale', 'deep_coral', 'void_fish', 'ocean_heart'],
+    bounds: sectorBounds(0, 2), // bottom-left — western cold rim
+    colors: { deep: '#020617', mid: '#0f172a', accent: '#06b6d4', glow: '#7dd3fc' },
+    hazards: [
+      'crushing_pressure',
+      'leviathan_attacks',
+      'darkness_debuff',
+      'siren_lure',
+      'ice_patches',
+      'frostbite_dot',
+    ],
+    ambientFx: [
+      'bioluminescence',
+      'bubble_columns',
+      'deep_fog',
+      'creature_shadows',
+      'ice_sparkle',
+    ],
+    resources: [
+      'abyssal_ore',
+      'leviathan_scale',
+      'deep_coral',
+      'void_fish',
+      'ocean_heart',
+      'ice',
+    ],
     terrain3d: defaultTerrain3d({
       minHeight: -200,
       maxHeight: 40,

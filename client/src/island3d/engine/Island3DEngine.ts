@@ -148,6 +148,8 @@ import {
   loadFabledZoneFoundation,
   type FabledFoundationResult,
 } from '../zone/FabledZoneFoundationLoader';
+import { EtherealDestructionSystem } from '../zone/EtherealDestructionSystem';
+import { ETHEREAL_FALLS_SECTOR_ID } from '@shared/definitions/etherealDestructionZone';
 import {
   isHavenShoreSector,
   HAVEN_SHORE_FOUNDATION,
@@ -441,6 +443,12 @@ export class Island3DEngine {
   public hiddenMountainCity: HiddenMountainCityRuntime | null = null;
   /** Production sector landmarks (event falls, biome kits, etc.) */
   public sectorEventLandmarks: SectorEventLandmarksRuntime | null = null;
+  /**
+   * Ethereal Falls only — NW diagonal destruction half:
+   * ship no-return, void death drops, ally perma-death, broken surface physics
+   * (flight exempt).
+   */
+  public etherealDestruction: EtherealDestructionSystem | null = null;
   /** Full per-sector production package (textures, seeds, monsters, harvest…) */
   public sectorProduction: SectorProductionContent | null = null;
   /** Fire / smoke / teleport / dash-foot particle bus (threejs-games style) */
@@ -1437,6 +1445,40 @@ export class Island3DEngine {
       }
     }
 
+    // 2g. Ethereal Falls — diagonal destruction half (top-left tip void)
+    if (sectorId === ETHEREAL_FALLS_SECTOR_ID || sectorId === 'ethereal_falls') {
+      try {
+        this.etherealDestruction?.dispose();
+        this.etherealDestruction = new EtherealDestructionSystem(cfg.sizeMeters, {
+          onPrompt: (msg) => {
+            try {
+              window.dispatchEvent(
+                new CustomEvent('grudge:ethereal-destruction', { detail: { prompt: msg } }),
+              );
+            } catch {
+              /* non-browser */
+            }
+          },
+          onShipNoReturn: (shipId) => {
+            console.warn('[Island3D] Ship no-return in Ethereal destruction field', shipId);
+          },
+          onVoidDrops: (characterId) => {
+            console.info('[Island3D] Void death drops (Cosmic Waterfall)', characterId);
+          },
+          onAllyPermaDeath: (allyId) => {
+            console.info('[Island3D] Ally permanent death in Ethereal Falls', allyId);
+          },
+        });
+        this.etherealDestruction.attachScene(this.scene);
+        // Prefer SE shelf spawn (playable half) over NW tip
+        console.log(
+          '[Island3D] Ethereal destruction field active — NW half = Cosmic Waterfall tip; flight exempt',
+        );
+      } catch (err) {
+        console.warn('[Island3D] EtherealDestructionSystem failed:', err);
+      }
+    }
+
     // 2f. Sector event landmarks from production package
     // (eventfalls.glb for ethereal_falls, ice kit, etc. — skip dedicated systems)
     if (prod?.events.landmarks.length) {
@@ -2284,6 +2326,31 @@ export class Island3DEngine {
       this.hiddenMountainCity.update(dt, this.character.getPosition(), {
         attacking: this.character.isAttacking,
       });
+    }
+
+    // Ethereal Falls destruction field — track player, pull surface entities
+    if (this.etherealDestruction) {
+      if (this.character) {
+        // Mutate model.position so tip-pull actually moves the player
+        const pos = this.character.model.position;
+        const flying =
+          !!(this.character as { isFlying?: boolean }).isFlying ||
+          !!(this.character as { flying?: boolean }).flying;
+        this.etherealDestruction.track({
+          id: 'local_player',
+          kind: flying ? 'player_flying' : 'player_surface',
+          position: pos,
+          flying,
+        });
+      }
+      // Ally permanent death: dead allies last seen in the destruction field
+      if (this.allyManager) {
+        for (const a of this.allyManager.getAll()) {
+          if (a.state !== 'dead') continue;
+          this.etherealDestruction.onAllyDeath(a.id, a.model.position);
+        }
+      }
+      this.etherealDestruction.update(dt);
     }
 
     if (this.harvestZones && !this.lobbyPlayZone) {
@@ -3330,6 +3397,8 @@ export class Island3DEngine {
     this.havenFoundation = null;
     this.fabledFoundation?.dispose();
     this.fabledFoundation = null;
+    this.etherealDestruction?.dispose();
+    this.etherealDestruction = null;
     this.zoneCapital?.dispose();
     this.zoneCapital = null;
     this.hiddenMountainCity?.dispose();
