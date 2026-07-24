@@ -122,11 +122,51 @@ function mapUpstreamPath(url) {
     return "/api/auth/page" + (q.toString() ? `?${q}` : "");
   }
 
-  // Legacy /auth/* hub paths → /api/auth/*
-  if (path === "/auth" || path.startsWith("/auth/")) {
-    const rest = path === "/auth" || path === "/auth/" ? "" : path.slice("/auth".length);
+  // Bare /auth → sign-in page (NOT bare /api/auth which 404'd without a handler)
+  if (path === "/auth" || path === "/auth/") {
+    const redirect =
+      params.get("redirect_uri") ||
+      params.get("redirect") ||
+      params.get("return") ||
+      params.get("return_to") ||
+      params.get("returnUrl");
+    const q = new URLSearchParams();
+    if (redirect) {
+      q.set("redirect_uri", redirect);
+      q.set("redirect", redirect);
+    }
+    if (params.get("app")) q.set("app", params.get("app"));
+    if (params.get("origin")) q.set("origin", params.get("origin"));
+    if (params.get("handoff")) q.set("handoff", params.get("handoff"));
+    if (params.get("api")) q.set("api", params.get("api"));
+    return "/api/auth/page" + (q.toString() ? `?${q}` : "");
+  }
+
+  // Legacy /auth/* hub paths → /api/auth/* (sso-check, puter, …)
+  if (path.startsWith("/auth/")) {
+    const rest = path.slice("/auth".length);
     // Keep query as-is (sso-check uses ?return=)
-    return "/api/auth" + (rest || "") + url.search;
+    return "/api/auth" + rest + url.search;
+  }
+
+  // Bare /api/auth?query → auth page (WCS / grudgewarlords deep links)
+  if (path === "/api/auth" || path === "/api/auth/") {
+    const redirect =
+      params.get("redirect_uri") ||
+      params.get("redirect") ||
+      params.get("return") ||
+      params.get("return_to") ||
+      params.get("returnUrl");
+    const q = new URLSearchParams();
+    if (redirect) {
+      q.set("redirect_uri", redirect);
+      q.set("redirect", redirect);
+    }
+    if (params.get("app")) q.set("app", params.get("app"));
+    if (params.get("origin")) q.set("origin", params.get("origin"));
+    if (params.get("handoff")) q.set("handoff", params.get("handoff"));
+    if (params.get("api")) q.set("api", params.get("api"));
+    return "/api/auth/page" + (q.toString() ? `?${q}` : "");
   }
 
   // Root → auth page

@@ -543,29 +543,8 @@ function authAssetPath(file: string): string {
 
 export function registerAuthRoutes(app: Express) {
 
-  // ── GET /login — canonical Grudge ID entry (id.grudge-studio.com) ──
-  app.get("/login", (req: Request, res: Response) => {
-    const q = new URLSearchParams();
-    const redirect =
-      resolveFleetReturnUrl(
-        req.query as Record<string, string | string[] | undefined>,
-        "",
-      ) ||
-      (req.query.redirect_uri as string) ||
-      (req.query.redirect as string) ||
-      (req.query.return as string);
-    // Dual-write: fleet apps use redirect_uri; auth-page historically used redirect
-    if (redirect) {
-      q.set("redirect_uri", redirect);
-      q.set("redirect", redirect);
-    }
-    if (req.query.app) q.set("app", String(req.query.app));
-    const dest = "/api/auth/page" + (q.toString() ? `?${q.toString()}` : "");
-    res.redirect(302, dest);
-  });
-
-  // ── GET /auth — legacy entry → Grudge ID sign-in page ──
-  app.get("/auth", (req: Request, res: Response) => {
+  /** Shared browser entry → Grudge ID HTML page (preserves app + return aliases). */
+  function redirectToAuthPage(req: Request, res: Response): void {
     const q = new URLSearchParams();
     const redirect =
       resolveFleetReturnUrl(
@@ -575,7 +554,9 @@ export function registerAuthRoutes(app: Express) {
       (req.query.redirect_uri as string) ||
       (req.query.redirect as string) ||
       (req.query.return_to as string) ||
-      (req.query.return as string);
+      (req.query.return as string) ||
+      (req.query.returnUrl as string);
+    // Dual-write: fleet apps use redirect_uri; auth-page historically used redirect
     if (redirect) {
       q.set("redirect_uri", redirect);
       q.set("redirect", redirect);
@@ -586,7 +567,22 @@ export function registerAuthRoutes(app: Express) {
     if (req.query.handoff) q.set("handoff", String(req.query.handoff));
     const dest = "/api/auth/page" + (q.toString() ? `?${q.toString()}` : "");
     res.redirect(302, dest);
-  });
+  }
+
+  // ── GET /login — canonical Grudge ID entry (id.grudge-studio.com) ──
+  app.get("/login", redirectToAuthPage);
+
+  // ── GET /auth — legacy entry → Grudge ID sign-in page ──
+  app.get("/auth", redirectToAuthPage);
+
+  /**
+   * GET /api/auth — bare path (no subroute).
+   * Fleet callers sometimes hit `/api/auth?app=…&redirect=…` (WCS / grudgewarlords).
+   * Without this, Railway 404s with "API route not found".
+   * Always send them to the sign-in HTML page.
+   */
+  app.get("/api/auth", redirectToAuthPage);
+  app.get("/api/auth/", redirectToAuthPage);
 
   // ── GET /auth/sso-check — legacy alias (id.grudge-studio.com /auth/*) ──
   app.get("/auth/sso-check", (req: Request, res: Response) => {
