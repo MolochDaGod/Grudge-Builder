@@ -1,6 +1,6 @@
 /**
- * /heroes — Warlords character select (Undead forge aesthetic).
- * 4-slot roster → enter play, or jump to Foundry create on character.grudge-studio.com.
+ * /heroes — Warlords character select on Black Tide (clear-sky galleon crew).
+ * Up to 4 slots as working crew: helm, large cannons, small cannons, crow's rope.
  */
 import { useMemo, useState } from "react";
 import { useLocation } from "wouter";
@@ -12,6 +12,9 @@ import { buildSsoLoginUrl } from "@/lib/grudgeConfig";
 import { buildGcsUrl } from "@/lib/gcsRedirect";
 import { RACES, CLASSES } from "@/lib/gameData";
 import type { Character } from "@/lib/characterManager";
+import HeroesBlackTideScene, {
+  CREW_STATIONS,
+} from "@/components/heroes/HeroesBlackTideScene";
 
 const MAX_SLOTS = 4;
 
@@ -70,17 +73,19 @@ export default function HeroesPage() {
   }, [characters]);
 
   const selected = characters.find((c) => c.id === activeId) ?? characters[0] ?? null;
+  const selectedSlotIndex = selected
+    ? slots.findIndex((s) => s?.id === selected.id)
+    : -1;
 
   const enterPlay = () => {
     if (!selected) return;
     setActive(selected.id);
     try {
-      // Mirror handoff keys used by tutorial / home-island (from=heroes)
-      localStorage.setItem('grudge_active_character', selected.id);
-      localStorage.setItem('gruda_active_character', selected.id);
-      const gid = localStorage.getItem('grudge_account_id') || 'guest';
+      localStorage.setItem("grudge_active_character", selected.id);
+      localStorage.setItem("gruda_active_character", selected.id);
+      const gid = localStorage.getItem("grudge_account_id") || "guest";
       localStorage.setItem(`gruda_active_character_${gid}`, selected.id);
-      localStorage.setItem('grudge_character_handoff_from', 'heroes');
+      localStorage.setItem("grudge_character_handoff_from", "heroes");
     } catch {
       /* ignore */
     }
@@ -93,46 +98,48 @@ export default function HeroesPage() {
     mode: "create",
     returnTo:
       typeof window !== "undefined"
-        ? `${window.location.origin}/play?mode=zone&sector=haven_shore&worldSeed=grudge-world-1`
+        ? `${window.location.origin}/heroes`
         : undefined,
   });
 
-  return (
-    <div className="min-h-screen w-full text-slate-100 relative overflow-hidden">
-      <div
-        className="absolute inset-0 z-0"
-        style={{
-          backgroundColor: "#0a0202",
-          backgroundImage: `
-            radial-gradient(ellipse 80% 50% at 50% 100%, rgba(180,40,10,0.4), transparent 55%),
-            url(/assets/ui/create-bg-undead.jpg)
-          `,
-          backgroundSize: "cover, cover",
-          backgroundPosition: "center",
-          filter: "brightness(0.5) saturate(1.1)",
-        }}
-      />
-      <div className="absolute inset-0 z-0 bg-gradient-to-b from-black/75 via-black/45 to-black/90" />
+  const onSelectSlot = (index: number) => {
+    const hero = slots[index];
+    if (hero) setActive(hero.id);
+  };
 
-      <div className="relative z-10 max-w-5xl mx-auto px-4 py-10 flex flex-col gap-8">
-        <header className="text-center">
-          <p className="font-cinzel text-[10px] uppercase tracking-[0.4em] text-amber-200/50 mb-2">
-            Grudge Warlords
+  return (
+    <div className="min-h-screen w-full text-slate-100 relative overflow-hidden flex flex-col">
+      {/* Full-bleed Black Tide 3D */}
+      <div className="absolute inset-0 z-0">
+        <HeroesBlackTideScene
+          slots={slots}
+          selectedId={selected?.id ?? null}
+          onSelectSlot={onSelectSlot}
+          className="w-full h-full"
+        />
+      </div>
+      <div className="absolute inset-0 z-[1] pointer-events-none bg-gradient-to-b from-black/50 via-transparent to-black/85" />
+
+      <div className="relative z-10 flex flex-col flex-1 max-w-6xl w-full mx-auto px-3 sm:px-4 py-4 sm:py-6 gap-4">
+        <header className="text-center pointer-events-none">
+          <p className="font-cinzel text-[10px] uppercase tracking-[0.4em] text-sky-100/70 mb-1 drop-shadow">
+            Grudge Warlords · Black Tide
           </p>
-          <h1 className="font-cinzel text-3xl sm:text-4xl font-bold tracking-[0.2em] text-red-200 drop-shadow-[0_0_18px_rgba(220,50,40,0.45)]">
-            SELECT YOUR HERO
+          <h1 className="font-cinzel text-2xl sm:text-4xl font-bold tracking-[0.18em] text-amber-50 drop-shadow-[0_2px_12px_rgba(0,0,0,0.85)]">
+            CREW YOUR WARLORDS
           </h1>
-          <p className="mt-2 text-sm text-amber-100/60 max-w-lg mx-auto">
-            Choose a warlord for haven_shore dual-browser play — or forge a new champion.
+          <p className="mt-1.5 text-xs sm:text-sm text-sky-50/80 max-w-xl mx-auto drop-shadow">
+            Clear skies on the Black Tide — four stations: helm, main battery, fore guns, crow&apos;s line.
+            Select a crew member, then enter play.
           </p>
         </header>
 
         {!signedIn && (
           <div
-            className="p-5 flex flex-col sm:flex-row items-center justify-between gap-3 rounded-md border border-amber-700/40"
-            style={{ background: "linear-gradient(180deg, rgba(28,12,10,0.92), rgba(12,6,6,0.96))" }}
+            className="p-4 flex flex-col sm:flex-row items-center justify-between gap-3 rounded-md border border-sky-400/25 pointer-events-auto backdrop-blur-sm"
+            style={{ background: "linear-gradient(180deg, rgba(12,28,40,0.88), rgba(6,12,20,0.92))" }}
           >
-            <p className="text-sm text-slate-300">Sign in to load your 4-slot roster.</p>
+            <p className="text-sm text-slate-200">Sign in to load your 4-slot crew roster.</p>
             <a
               href={buildSsoLoginUrl(undefined, "/heroes")}
               className="inline-flex items-center gap-2 px-5 py-2 font-cinzel text-sm uppercase tracking-wider rounded border border-amber-600/50 bg-gradient-to-b from-[#5a2818] to-[#2a0e08] text-amber-50"
@@ -143,30 +150,33 @@ export default function HeroesPage() {
         )}
 
         {loading && (
-          <div className="flex justify-center py-12 text-amber-200/70">
+          <div className="flex justify-center py-6 text-amber-200/80 pointer-events-none">
             <Loader2 className="w-8 h-8 animate-spin" />
           </div>
         )}
 
-        {error && <p className="text-center text-red-400 text-sm">{error}</p>}
+        {error && (
+          <p className="text-center text-red-300 text-sm drop-shadow pointer-events-none">{error}</p>
+        )}
 
+        {/* Compact slot strip (works with 3D pick) */}
         {!loading && (
-          <section className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <section className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 pointer-events-auto">
             {slots.map((hero, i) => {
+              const station = CREW_STATIONS[i];
               if (!hero) {
                 return (
                   <a
                     key={`empty-${i}`}
                     href={forgeUrl}
-                    className="min-h-[200px] p-4 flex flex-col items-center justify-center gap-3 rounded-md border border-dashed border-amber-600/35 hover:border-amber-400/50 transition group"
-                    style={{ background: "linear-gradient(180deg, rgba(28,12,10,0.85), rgba(12,6,6,0.95))" }}
+                    className="min-h-[96px] p-3 flex flex-col items-center justify-center gap-1.5 rounded-md border border-dashed border-sky-400/30 hover:border-amber-400/50 transition backdrop-blur-sm"
+                    style={{ background: "linear-gradient(180deg, rgba(8,20,32,0.82), rgba(6,12,18,0.9))" }}
                   >
-                    <div className="w-20 h-20 rounded-full border-2 border-dashed border-amber-600/40 flex items-center justify-center group-hover:shadow-[0_0_20px_rgba(251,191,36,0.25)]">
-                      <Plus className="w-8 h-8 text-amber-400/60" />
-                    </div>
-                    <span className="font-cinzel text-[11px] uppercase tracking-[0.2em] text-slate-400">
-                      Slot {i + 1} · Forge
+                    <Plus className="w-6 h-6 text-amber-400/70" />
+                    <span className="font-cinzel text-[10px] uppercase tracking-[0.15em] text-slate-300">
+                      Slot {i + 1} · {station.label}
                     </span>
+                    <span className="text-[9px] text-slate-500">{station.role}</span>
                   </a>
                 );
               }
@@ -176,16 +186,20 @@ export default function HeroesPage() {
                   key={hero.id}
                   type="button"
                   onClick={() => setActive(hero.id)}
-                  className={`min-h-[200px] p-4 flex flex-col items-center gap-3 text-center rounded-md border transition ${
+                  className={`min-h-[96px] p-3 flex items-center gap-3 text-left rounded-md border transition backdrop-blur-sm ${
                     isSel
-                      ? "border-amber-400/70 shadow-[0_0_28px_rgba(251,191,36,0.25)] bg-amber-500/10"
-                      : "border-amber-800/30 hover:border-amber-600/40"
+                      ? "border-emerald-400/70 shadow-[0_0_20px_rgba(52,211,153,0.25)] bg-emerald-500/10"
+                      : "border-sky-500/20 hover:border-amber-500/40"
                   }`}
-                  style={{ background: "linear-gradient(180deg, rgba(28,12,10,0.9), rgba(12,6,6,0.96))" }}
+                  style={{
+                    background: isSel
+                      ? "linear-gradient(180deg, rgba(8,40,28,0.85), rgba(6,16,12,0.92))"
+                      : "linear-gradient(180deg, rgba(8,20,32,0.85), rgba(6,12,18,0.92))",
+                  }}
                 >
                   <div
-                    className={`relative w-24 h-24 rounded-full overflow-hidden bg-black/60 ${
-                      isSel ? "ring-2 ring-amber-400" : "ring-1 ring-amber-700/40"
+                    className={`relative w-14 h-14 rounded-full overflow-hidden bg-black/50 shrink-0 ${
+                      isSel ? "ring-2 ring-emerald-400" : "ring-1 ring-sky-600/40"
                     }`}
                   >
                     <img
@@ -196,20 +210,16 @@ export default function HeroesPage() {
                         (e.target as HTMLImageElement).src = getRacePortrait(hero.raceId);
                       }}
                     />
-                    <span className="absolute bottom-0 inset-x-0 bg-black/75 text-[9px] font-mono text-amber-300 py-0.5">
-                      Lv {hero.level}
-                    </span>
                   </div>
-                  <div className="w-full min-w-0">
-                    <div className="font-cinzel font-bold text-amber-50 text-sm truncate">{hero.name}</div>
-                    <div className="text-[11px] text-slate-400 truncate">
-                      {raceName(hero.raceId)} · {className(hero.classId)}
+                  <div className="min-w-0 flex-1">
+                    <div className="font-cinzel text-[9px] uppercase tracking-wider text-sky-300/80">
+                      {station.label}
                     </div>
-                    {isSel && (
-                      <span className="inline-block mt-1 text-[9px] font-cinzel uppercase tracking-wider text-emerald-300">
-                        Selected
-                      </span>
-                    )}
+                    <div className="font-cinzel font-bold text-amber-50 text-sm truncate">{hero.name}</div>
+                    <div className="text-[10px] text-slate-400 truncate">
+                      Lv {hero.level} · {raceName(hero.raceId)} · {className(hero.classId)}
+                    </div>
+                    <div className="text-[9px] text-slate-500 truncate">{station.role}</div>
                   </div>
                 </button>
               );
@@ -217,25 +227,31 @@ export default function HeroesPage() {
           </section>
         )}
 
+        {/* Spacer so 3D stays visible */}
+        <div className="flex-1 min-h-[12vh] pointer-events-none" />
+
         {selected && (
           <div
-            className="p-4 text-center rounded-md border border-amber-700/35"
-            style={{ background: "linear-gradient(180deg, rgba(28,12,10,0.92), rgba(12,6,6,0.96))" }}
+            className="p-3 text-center rounded-md border border-sky-400/25 pointer-events-auto backdrop-blur-sm"
+            style={{ background: "linear-gradient(180deg, rgba(8,24,36,0.9), rgba(6,12,20,0.94))" }}
           >
-            <div className="font-cinzel text-xl tracking-[0.15em] text-red-300">
+            <div className="font-cinzel text-lg tracking-[0.12em] text-amber-100">
               {selected.name.toUpperCase()}
             </div>
-            <div className="text-sm text-amber-100/70 mt-1">
+            <div className="text-xs text-sky-100/70 mt-0.5">
+              {selectedSlotIndex >= 0
+                ? `${CREW_STATIONS[selectedSlotIndex].role} · `
+                : ""}
               {raceName(selected.raceId)} · {className(selected.classId)} · Level {selected.level}
             </div>
           </div>
         )}
 
         <section
-          className="p-5 flex flex-col gap-4 rounded-md border border-amber-700/35"
-          style={{ background: "linear-gradient(180deg, rgba(28,12,10,0.92), rgba(12,6,6,0.96))" }}
+          className="p-4 flex flex-col gap-3 rounded-md border border-sky-400/25 pointer-events-auto backdrop-blur-sm"
+          style={{ background: "linear-gradient(180deg, rgba(8,24,36,0.92), rgba(6,12,20,0.96))" }}
         >
-          <div className="text-[11px] uppercase tracking-[0.2em] text-amber-200/50 font-cinzel text-center">
+          <div className="text-[10px] uppercase tracking-[0.2em] text-sky-200/60 font-cinzel text-center">
             Enter live play
           </div>
           <div className="flex flex-wrap justify-center gap-2">
@@ -247,7 +263,7 @@ export default function HeroesPage() {
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11px] font-cinzel uppercase tracking-wider border transition ${
                   dest === d.id
                     ? "border-emerald-400/50 bg-emerald-500/15 text-emerald-100"
-                    : "border-amber-500/15 text-slate-400 hover:text-amber-100"
+                    : "border-sky-500/20 text-slate-400 hover:text-amber-100"
                 }`}
               >
                 {d.icon}
@@ -266,7 +282,7 @@ export default function HeroesPage() {
             </button>
             <a
               href={forgeUrl}
-              className="flex items-center gap-2 px-5 py-2.5 font-cinzel text-sm tracking-wider uppercase rounded border border-slate-600/50 bg-black/50 text-slate-300 hover:text-amber-100"
+              className="flex items-center gap-2 px-5 py-2.5 font-cinzel text-sm tracking-wider uppercase rounded border border-slate-500/40 bg-black/40 text-slate-200 hover:text-amber-100"
             >
               <Hammer className="w-4 h-4" /> Forge new
             </a>
