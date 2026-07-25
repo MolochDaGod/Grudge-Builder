@@ -74,6 +74,42 @@ Player data is **Railway Postgres only**.
 | Intro variants | `shared/definitions/productionIntro.ts` |
 | Deploy path cards | `shared/fleet/gameDeployments.ts` |
 | Flow docs | [docs/WARLORDS_PRODUCTION_FLOW.md](docs/WARLORDS_PRODUCTION_FLOW.md) |
+| **cNFT escrow ownership** | [docs/CNFT_ESCROW_OWNERSHIP.md](docs/CNFT_ESCROW_OWNERSHIP.md) |
+
+---
+
+## Characters, heroes roster, and cNFT (escrow-first · 2026-07)
+
+**Game ownership** is always **Grudge ID + Railway account + character UUID**.  
+**Chain custody** defaults to the **server admin wallet** (escrow). Players do **not** need a wallet to create or play.
+
+```
+Create character (POST /api/characters)
+    → Railway characters row (userId / grudge_id)
+    → Mint compressed Solana cNFT → AI_AGENT_WALLET (Crossmint)
+    → character_nfts: accountId + characterId + ownerWalletAddress = escrow:<admin>
+    → Play immediately
+
+Optional later:
+    → POST /api/nfts/:id/claim  (wallet required; transfer fees / optional GBUX fee)
+```
+
+| Surface | Behavior |
+|---------|----------|
+| `/heroes` | Loads **JWT account roster** via `GET /api/characters`. Honors `?characterId=`; surfaces `?error=load` with sign-in / create recovery. |
+| Create | Escrow mint via `nftMintingService.mintCharacterAsCNFT` (default `directToUser: false`) |
+| Claim | Optional; `GET /api/nfts/escrowed` lists held cNFTs |
+
+**Required Railway env**
+
+| Variable | Role |
+|----------|------|
+| `CROSSMINT_SERVER_API_KEY` | Server mint / transfer |
+| `CROSSMINT_COLLECTION_ID` | Solana collection (or `default-solana`) |
+| `AI_AGENT_WALLET` | Admin escrow Solana address |
+| `CNFT_CLAIM_FEE_GBUX` | Optional GBUX fee on claim (default `0`) |
+
+**Do not** mint to the user on create. Use `directToUser: true` only for explicit admin/legacy tools.
 
 **Publish map from Forge:** `POST /api/production/map/publish` (token `PRODUCTION_PUBLISH_TOKEN`) · Forge **🚀 Publish**  
 **Pirate mesh GLB:** `https://assets.grudge-studio.com/models/lobby/pirate-islands/scene.glb`

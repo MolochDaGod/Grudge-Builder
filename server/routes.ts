@@ -645,30 +645,30 @@ export async function registerRoutes(
         }
       }
 
-      // Mint character as cNFT (non-blocking — character works even if mint fails)
+      // Escrow-first cNFT mint (non-blocking). Game ownership = Railway account.
+      // Chain custody = AI_AGENT_WALLET until optional claim.
       try {
-        const avatarForMint = finalCharacter.avatarUrl || '/avatars/default.png';
-        const imageUrl = avatarForMint.startsWith('http')
-          ? avatarForMint
-          : `${req.protocol}://${req.get('host')}${avatarForMint}`;
-
-        if (account.walletAddress) {
-          const mintResult = await crossmintService.mintCharacterNFT(
-            finalCharacter,
-            imageUrl,
-            account.walletAddress,
+        const { nftMintingService } = await import("./services/nftMinting");
+        const mintResult = await nftMintingService.mintCharacterAsCNFT(
+          finalCharacter.id,
+          account.id,
+          // email/wallet ignored unless directToUser — escrow default
+          undefined,
+          undefined,
+          { directToUser: false },
+        );
+        if (mintResult.success && mintResult.actionId) {
+          finalCharacter = await storage.updateCharacter(finalCharacter.id, {
+            cnftId: mintResult.actionId,
+          } as any);
+          console.log(
+            `[cNFT] Escrow mint for ${finalCharacter.name}: action=${mintResult.actionId} nftId=${mintResult.nftId}`,
           );
-          if (mintResult?.actionId) {
-            finalCharacter = await storage.updateCharacter(finalCharacter.id, {
-              cnftId: mintResult.actionId,
-            } as any);
-            console.log(`[cNFT] Character ${finalCharacter.name} mint initiated: ${mintResult.actionId}`);
-          }
-        } else {
-          console.log(`[cNFT] Skipped mint for ${finalCharacter.name} — no wallet on account`);
+        } else if (!mintResult.success) {
+          console.warn(`[cNFT] Escrow mint deferred: ${mintResult.error}`);
         }
       } catch (mintErr) {
-        console.warn(`[cNFT] Character mint skipped:`, mintErr);
+        console.warn(`[cNFT] Character mint skipped (playable without chain):`, mintErr);
       }
 
       res.json(finalCharacter);
@@ -6134,10 +6134,12 @@ Also suggest metadata values in this exact JSON format:
         return res.status(403).json({ error: "Character not found or access denied" });
       }
 
-      // Use provided email, or fall back to account's crossmint email
+      // Production default: escrow to admin wallet. Opt-in direct mint only with
+      // body.directToUser === true (legacy / admin tools).
+      const directToUser = req.body?.directToUser === true;
       const mintEmail = email || account.crossmintEmail || null;
-      
-      console.log(`[NFT] Minting character ${characterId} for account ${account.id}`);
+
+      console.log(`[NFT] Minting character ${characterId} for account ${account.id} escrow=${!directToUser}`);
       console.log(`[NFT] Wallet: ${account.walletAddress}, Email: ${mintEmail}, External: ${externalWallet}`);
 
       const { nftMintingService } = await import("./services/nftMinting");
@@ -6145,7 +6147,8 @@ Also suggest metadata values in this exact JSON format:
         characterId,
         account.id,
         mintEmail,
-        externalWallet
+        externalWallet,
+        { directToUser },
       );
 
       if (!result.success) {
@@ -6154,12 +6157,15 @@ Also suggest metadata values in this exact JSON format:
       }
 
       console.log(`[NFT] Mint initiated successfully: ${result.actionId}`);
-      
+
       res.json({
         success: true,
         nftId: result.nftId,
         actionId: result.actionId,
-        message: "NFT minting initiated. This may take 10-30 seconds.",
+        custody: directToUser ? "user" : "escrow_admin",
+        message: directToUser
+          ? "NFT minting to user initiated. This may take 10-30 seconds."
+          : "cNFT minted to server escrow. Play immediately; claim to wallet is optional.",
       });
     } catch (error) {
       console.error("Error minting NFT:", error);
@@ -6241,10 +6247,14 @@ Also suggest metadata values in this exact JSON format:
       const result = await nftMintingService.claimEscrowedNFT(nftId, account.id);
 
       if (!result.success) {
-        return res.status(400).json({ error: result.error });
+        return res.status(400).json({ error: result.error, fee: result.fee });
       }
 
-      res.json({ success: true, message: "NFT claimed and transferred to your wallet." });
+      res.json({
+        success: true,
+        message: "NFT claimed and transferred to your wallet. Game ownership was already on your account.",
+        fee: result.fee,
+      });
     } catch (error) {
       console.error("Error claiming escrowed NFT:", error);
       res.status(500).json({ error: "Failed to claim NFT" });
@@ -6257,12 +6267,16 @@ Also suggest metadata values in this exact JSON format:
       const userId = getUserId(req);
       const account = await storage.getAccountByUserId(userId);
       if (!account) {
-        return res.json({ nfts: [] });
+        return res.json({ nfts: [], fee: null });
       }
 
       const { nftMintingService } = await import("./services/nftMinting");
       const escrowed = await nftMintingService.getEscrowedNFTs(account.id);
-      res.json({ nfts: escrowed });
+      res.json({
+        nfts: escrowed,
+        fee: nftMintingService.getClaimFeeInfo(),
+        note: "cNFTs in server escrow. Claim is optional; play with account ownership anytime.",
+      });
     } catch (error) {
       console.error("Error fetching escrowed NFTs:", error);
       res.status(500).json({ error: "Failed to fetch escrowed NFTs" });
@@ -8047,23 +8061,17 @@ Your response must be valid JSON array only, no markdown or explanation.`;
         return res.status(403).json({ error: "Character not found or does not belong to account" });
       }
 
-      const mintEmail = email || account.crossmintEmail || `${account.grudgeId?.toLowerCase() || "player"}@grudgewarlords.com`;
-
-      if (!account.walletAddress) {
-        const { nftMintingService } = await import("./services/nftMinting");
-        const walletAddress = await nftMintingService.getWalletForAccount(account.id, mintEmail);
-        if (!walletAddress) {
-          return res.status(500).json({ error: "Failed to provision wallet before mint" });
-        }
-        account = (await storage.getAccount(account.id))!;
-      }
+      // Admin mint also defaults to escrow (organized custody). Pass directToUser to force user wallet.
+      const directToUser = req.body?.directToUser === true;
+      const mintEmail = email || account.crossmintEmail || null;
 
       const { nftMintingService } = await import("./services/nftMinting");
       const result = await nftMintingService.mintCharacterAsCNFT(
         characterId,
         account.id,
         mintEmail,
-        account.walletAddress,
+        account.walletAddress || undefined,
+        { directToUser },
       );
 
       if (!result.success) {
@@ -8075,10 +8083,13 @@ Your response must be valid JSON array only, no markdown or explanation.`;
         grudgeId: account.grudgeId,
         accountId: account.id,
         characterId,
+        custody: directToUser ? "user" : "escrow_admin",
         walletAddress: account.walletAddress,
         nftId: result.nftId,
         actionId: result.actionId,
-        message: "cNFT mint initiated",
+        message: directToUser
+          ? "cNFT mint to user initiated"
+          : "cNFT escrow mint initiated (admin wallet custody; account owns in game)",
       });
     } catch (error: any) {
       console.error("Error admin-minting cNFT:", error);
