@@ -635,23 +635,68 @@ export const WEAPON_PREFAB_MATRIX: Record<
       'Need converted bow prefabs (6 styles). Pipeline: place under models/codex/weapons/bow/{style}/',
     ),
   ),
-  STAFF: WEAPON_STYLE_DEFS.map((s, i) =>
-    missing(
-      'STAFF',
-      (i + 1) as WeaponStyleIndex,
-      s.id,
-      'Need converted staff prefabs (6 styles)',
-    ),
-  ),
-  DAGGER: WEAPON_STYLE_DEFS.map((s, i) =>
-    fallbackFrom(
-      'DAGGER',
-      (i + 1) as WeaponStyleIndex,
-      s.id,
-      rowFromGlitchTool('SWORD', 'sword', 'sword', null)[Math.min(i, 3)]!,
-      'Temporary: scale-down sword mesh until dagger pack converts',
-    ),
-  ),
+  /**
+   * T1 race-element staffs (6 races × element for spell VFX tests).
+   * Style index maps 1:1 to race order: human, barbarian, elf, dwarf, orc, undead.
+   */
+  STAFF: (() => {
+    const raceStaffs: Array<{
+      styleId: WeaponStyleId;
+      stem: string;
+      note: string;
+    }> = [
+      { styleId: 'copper', stem: 'human_holy', note: 'Human T1 holy staff' },
+      { styleId: 'silver', stem: 'barbarian_fire', note: 'Barbarian T1 fire staff' },
+      { styleId: 'gold', stem: 'elf_nature', note: 'Elf T1 nature staff' },
+      { styleId: 'diamond', stem: 'dwarf_arcane', note: 'Dwarf T1 arcane staff' },
+      { styleId: 'voxel', stem: 'orc_shadow', note: 'Orc T1 shadow staff' },
+      { styleId: 'cold_viking', stem: 'undead_frost', note: 'Undead T1 frost staff' },
+    ];
+    return raceStaffs.map((rs, i) => {
+      const r2Key = `models/codex/t1/staffs/${rs.stem}.glb`;
+      return ready(
+        'STAFF',
+        (i + 1) as WeaponStyleIndex,
+        rs.styleId,
+        {
+          r2Key,
+          cdnUrl: `${CDN}/${r2Key}`,
+          localPath: `/models/codex/t1/staffs/${rs.stem}.glb`,
+          colliderUrl: null,
+        },
+        't1-race-element-staffs',
+        rs.note,
+      );
+    });
+  })(),
+  /** Style 1 = bone dagger T0 mesh; 2–6 fallback sword until full dagger pack. */
+  DAGGER: (() => {
+    const bone = {
+      r2Key: 'models/codex/t0/bone_dagger.glb',
+      cdnUrl: `${CDN}/models/codex/t0/bone_dagger.glb`,
+      localPath: '/models/codex/t0/bone_dagger.glb',
+      colliderUrl: null as string | null,
+    };
+    return WEAPON_STYLE_DEFS.map((s, i) => {
+      if (i === 0) {
+        return ready(
+          'DAGGER',
+          1,
+          s.id,
+          bone,
+          't0-bone-dagger',
+          'T0 bone dagger (2bone_knife.glb) — copper/crude style',
+        );
+      }
+      return fallbackFrom(
+        'DAGGER',
+        (i + 1) as WeaponStyleIndex,
+        s.id,
+        rowFromGlitchTool('SWORD', 'sword', 'sword', null)[Math.min(i, 3)]!,
+        'Temporary: sword mesh until remaining dagger styles convert',
+      );
+    });
+  })(),
   MACE: WEAPON_STYLE_DEFS.map((s, i) =>
     fallbackFrom(
       'MACE',

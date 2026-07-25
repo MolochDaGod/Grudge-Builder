@@ -694,7 +694,7 @@ export const T0_WEAPONS: Record<string, T0ItemDefinition> = {
   t0_dagger: {
     id: 't0_dagger',
     name: 'Sharpened Bone',
-    description: 'An animal bone sharpened to a point.',
+    description: 'An animal bone sharpened to a point. Same T0 family as the bone dagger mesh.',
     icon: '🦴',
     type: 'weapon',
     subType: 'dagger',
@@ -703,6 +703,44 @@ export const T0_WEAPONS: Record<string, T0ItemDefinition> = {
     sellValue: 2,
     craftable: false,
     usedInT1Crafting: ['iron_dagger']
+  },
+  /** Explicit bone dagger — mesh: models/codex/t0/bone_dagger.glb (2bone_knife) */
+  t0_bone_dagger: {
+    id: 't0_bone_dagger',
+    name: 'Bone Dagger',
+    description: 'A carved bone dagger — canonical T0 dagger mesh for race prefabs and camp kits.',
+    icon: '🦴',
+    type: 'weapon',
+    subType: 'dagger',
+    stats: { 'Phys Dmg': 4, Crit: 8 },
+    stackable: false,
+    sellValue: 3,
+    craftable: true,
+    craftingRecipe: {
+      ingredients: [
+        { itemId: 't0_wood_scrap', quantity: 1 },
+        { itemId: 't0_grass_fiber', quantity: 2 },
+      ],
+      profession: 'Survival',
+      professionLevel: 1,
+      craftTime: 8,
+      gold: 2,
+    },
+    usedInT1Crafting: ['iron_dagger'],
+  },
+  /** Camp tower alias — resolves as t0_sword visually */
+  t0_training_sword: {
+    id: 't0_training_sword',
+    name: 'Training Shortsword',
+    description: 'Camp drill blade. Stats match Rusty Shortsword (t0_sword).',
+    icon: '🗡️',
+    type: 'weapon',
+    subType: 'sword',
+    stats: { 'Phys Dmg': 5 },
+    stackable: false,
+    sellValue: 1,
+    craftable: false,
+    usedInT1Crafting: ['iron_sword'],
   },
   t0_bow: {
     id: 't0_bow',

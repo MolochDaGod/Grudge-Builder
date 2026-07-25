@@ -6,6 +6,8 @@ export * from "./monsters";
 export * from "./animations";
 export * from "./dungeons";
 export * from "./tier0Items";
+export * from "./t0WeaponVisuals";
+export * from "./raceElementStaffs";
 export * from "./weaponArsenal";
 export * from "./weaponPrefabCatalog";
 export * from "./weaponTierVisuals";
