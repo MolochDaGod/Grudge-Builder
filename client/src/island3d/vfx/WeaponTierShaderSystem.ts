@@ -1,17 +1,20 @@
 /**
- * WeaponTierShaderSystem — Three.js tier / enhancement / infusion materials.
+ * WeaponTierShaderSystem — dress ONE mesh for T1–T8 (no GLB swap).
  *
- * Ladder (best-practice progressive quality):
- *   T1–T2  MeshStandardMaterial — high roughness, low metal, forge noise (rough look)
- *   T3–T4  MeshPhysicalMaterial — clearcoat begins, edge rim, spark trails
- *   T5–T8  Physical + custom onBeforeCompile rim/sheen/infusion pulse + aura particles
+ * Same weapon asset for all tiers. Tier / enhancement / infusion only change:
+ *   materials, colors, rim/sheen shaders, glow pulse, particle bursts.
+ * Nearly weightless — apply in place when item UUID tier upgrades.
  *
- * Does not replace the mesh; upgrades materials on an existing weapon Object3D.
+ * Ladder:
+ *   T1–T2  MeshStandardMaterial — high roughness (rough look)
+ *   T3–T4  MeshPhysicalMaterial — clearcoat, edge rim, sparks
+ *   T5–T8  Physical + onBeforeCompile rim/sheen/infusion pulse + FX
  *
- * Usage:
- *   const sys = new WeaponTierShaderSystem(scene, worldFx);
- *   sys.applyToWeapon(weaponRoot, { tier: 5, enhancement: 'sharpened', infusion: 'fire' });
- *   sys.update(dt); // glow pulse + particles
+ * Usage (equip once → upgrade many times without reload):
+ *   const root = await loadGlb(item.prefab mesh); // once
+ *   sys.applyToWeapon(root, { tier: item.tier, enhancement, infusion });
+ *   // later: item = upgradeWeaponItemTier(item, 6); re-apply shaders only
+ *   sys.applyToWeapon(root, { tier: 6, enhancement, infusion });
  */
 import * as THREE from 'three';
 import {

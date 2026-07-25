@@ -1,17 +1,24 @@
 /**
- * WeaponTierVisuals — visual appearance progression for weapon tiers 1–8.
+ * WeaponTierVisuals — SAME mesh T1–T8; only looks + item data change.
  *
- * Each tier upgrades: model variant, material tint, glow intensity, particle
- * trail color, and aura effect. This drives the 3D rendering in Island3DEngine
- * and the character creator preview.
+ * HARD RULE:
+ *   • One weapon asset (prefab style GLB) for all tiers of that item.
+ *   • Tier does NOT swap the mesh. No `_t1`…`_t8` GLB loads.
+ *   • Tier upgrades are nearly weightless: material/shader tint, roughness,
+ *     glow, edge sheen, particles, procs — applied on the existing Object3D.
+ *   • Stats, skill options, passives, enhancements, infusions live on the
+ *     **item UUID instance** and scale with tier — not a new asset.
  *
- * Tier names follow the Grudge crafting progression:
- *   T1: Crude       T2: Iron        T3: Steel       T4: Hardened
- *   T5: Runic       T6: Infernal    T7: Legendary   T8: Mythic
+ * Style (copper/silver/…/viking) picks which base mesh family.
+ * Tier (1–8) only dresses that mesh + upgrades the item record.
+ *
+ *   T1 Crude → T2 Iron → T3 Steel → T4 Hardened
+ *   T5 Runic → T6 Infernal → T7 Legendary → T8 Mythic
  *
  * Usage:
- *   const visuals = getWeaponVisuals('SWORD', 5);
- *   // → { tierName: 'Runic', modelSuffix: '_t5', tint: 0x6666ff, glow: 0.5, ... }
+ *   const vis = getWeaponVisuals('SWORD', 5); // same modelUrl as T1
+ *   applyToWeapon(root, { tier: 5, enhancement, infusion }); // looks only
+ *   upgradeWeaponItem(itemUuid, 5); // stats / skills / passives on UUID
  */
 
 import { ASSET_CDN_BASE } from '../../client/src/lib/assetConfig';
@@ -28,9 +35,12 @@ import {
 export interface TierVisual {
   tier: number;
   tierName: string;
-  /** Model suffix appended to base weapon GLB path (e.g. sword_t3.glb) */
+  /**
+   * @deprecated Never used for mesh loading. Same GLB for all tiers.
+   * Kept only for legacy UI labels; do not resolve assets with this suffix.
+   */
   modelSuffix: string;
-  /** Material color tint multiplied onto the base texture */
+  /** Material color tint multiplied onto the base texture (shader only) */
   tint: number;
   /** Emissive glow intensity (0 = none, 1 = fully emissive) */
   glowIntensity: number;
@@ -345,9 +355,12 @@ function multiplyHex(a: number, b: number): number {
 // ── Per-weapon-type model paths ──────────────────────────────────────────────
 
 export interface WeaponTypeModelConfig {
-  /** Base model path on R2 CDN (without tier suffix) */
+  /**
+   * Fallback base path if no style prefab exists.
+   * Path is style-level identity only — never append tier suffix.
+   */
   basePath: string;
-  /** Scale multiplier for the weapon mesh */
+  /** Scale multiplier for the weapon mesh (SI) */
   scale: number;
   /** Bone attachment point on the character skeleton */
   attachBone: string;
@@ -355,6 +368,139 @@ export interface WeaponTypeModelConfig {
   attachOffset: [number, number, number];
   /** Rotation offset */
   attachRotation: [number, number, number];
+}
+
+// ── Item UUID progression (stats / skills / passives — not mesh) ─────────────
+
+/**
+ * Per-instance weapon item. Mesh identity is `prefabId` / style; tier only
+ * upgrades numbers + unlocks skill/passive options on this UUID.
+ */
+export interface WeaponItemInstance {
+  /** Stable item UUID (inventory / save / network) */
+  itemUuid: string;
+  /** Weapon type enum (SWORD, GUN, …) */
+  weaponType: string;
+  /** Visual style 1–6 (which GLB family) — fixed at craft/loot, not tier */
+  styleId: WeaponStyleId | WeaponStyleIndex;
+  /** Prefab catalog id — the single mesh for all tiers of this item */
+  prefabId: string;
+  /** Power tier 1–8 */
+  tier: number;
+  enhancement: WeaponEnhancementId;
+  infusion: WeaponInfusionId;
+  /** Unlocked skill ids for this item at current tier */
+  unlockedSkills: string[];
+  /** Unlocked passive ids */
+  unlockedPassives: string[];
+  /** Flat / scaled stats snapshot (derived from arsenal × tier) */
+  stats: {
+    physicalDamage: number;
+    magicalDamage: number;
+    attackSpeed: number;
+    critChance: number;
+    critDamage: number;
+  };
+  /** Proc hooks that scale with tier (combat, not mesh) */
+  procs: Array<{ id: string; chance: number; effect: string }>;
+}
+
+/** Stat multipliers by tier (item UUID data — not visuals). */
+export const WEAPON_TIER_STAT_MULT: Record<number, number> = {
+  1: 1.0,
+  2: 1.12,
+  3: 1.28,
+  4: 1.48,
+  5: 1.72,
+  6: 2.0,
+  7: 2.35,
+  8: 2.75,
+};
+
+/** Skill slots unlocked by tier (option breadth grows — same weapon item). */
+export function skillSlotUnlocksForTier(tier: number): {
+  primary: boolean;
+  secondary: boolean;
+  ability: boolean;
+  ultimate: boolean;
+  maxUpgrades: number;
+} {
+  const t = Math.max(1, Math.min(8, tier));
+  return {
+    primary: true,
+    secondary: t >= 2,
+    ability: t >= 3,
+    ultimate: t >= 5,
+    maxUpgrades: t >= 7 ? 5 : t >= 4 ? 4 : 3,
+  };
+}
+
+/**
+ * Upgrade an item in place: same prefab/mesh, higher tier stats + unlocks.
+ * Call after craft/enchant; then re-apply shaders only (no reload GLB).
+ */
+export function upgradeWeaponItemTier(
+  item: WeaponItemInstance,
+  newTier: number,
+  baseStats: {
+    physicalDamage: number;
+    magicalDamage: number;
+    attackSpeed: number;
+    critChance: number;
+    critDamage: number;
+  },
+  opts?: {
+    enhancement?: WeaponEnhancementId;
+    infusion?: WeaponInfusionId;
+    unlockedSkills?: string[];
+    unlockedPassives?: string[];
+    procs?: WeaponItemInstance['procs'];
+  },
+): WeaponItemInstance {
+  const tier = Math.max(1, Math.min(8, Math.floor(newTier)));
+  const mult = WEAPON_TIER_STAT_MULT[tier] ?? 1;
+  return {
+    ...item,
+    tier,
+    enhancement: opts?.enhancement ?? item.enhancement,
+    infusion: opts?.infusion ?? item.infusion,
+    unlockedSkills: opts?.unlockedSkills ?? item.unlockedSkills,
+    unlockedPassives: opts?.unlockedPassives ?? item.unlockedPassives,
+    procs: opts?.procs ?? item.procs,
+    stats: {
+      physicalDamage: Math.round(baseStats.physicalDamage * mult),
+      magicalDamage: Math.round(baseStats.magicalDamage * mult),
+      attackSpeed: baseStats.attackSpeed * (1 + (tier - 1) * 0.03),
+      critChance: baseStats.critChance + (tier - 1) * 0.01,
+      critDamage: baseStats.critDamage + (tier - 1) * 0.05,
+    },
+  };
+}
+
+/** Create a new item UUID at T1 with fixed style mesh identity. */
+export function createWeaponItemInstance(opts: {
+  itemUuid: string;
+  weaponType: string;
+  styleId?: WeaponStyleId | WeaponStyleIndex;
+  baseStats: WeaponItemInstance['stats'];
+  enhancement?: WeaponEnhancementId;
+  infusion?: WeaponInfusionId;
+}): WeaponItemInstance {
+  const style = opts.styleId ?? 1;
+  const prefab = getWeaponPrefab(opts.weaponType, style);
+  return {
+    itemUuid: opts.itemUuid,
+    weaponType: opts.weaponType.toUpperCase(),
+    styleId: style,
+    prefabId: prefab?.id ?? `${opts.weaponType.toLowerCase()}_style_default`,
+    tier: 1,
+    enhancement: opts.enhancement ?? 'none',
+    infusion: opts.infusion ?? 'none',
+    unlockedSkills: [],
+    unlockedPassives: [],
+    stats: { ...opts.baseStats },
+    procs: [],
+  };
 }
 
 export const WEAPON_MODEL_CONFIGS: Record<string, WeaponTypeModelConfig> = {
@@ -414,13 +560,20 @@ export interface WeaponVisualResult {
 }
 
 /**
- * Get the full visual config for a weapon type at a specific tier.
- * Uses weaponPrefabCatalog (6 styles) when a converted mesh exists; otherwise
- * falls back to legacy models/weapons/{type}_tN.glb path.
+ * Visual config for a weapon type at a tier.
+ *
+ * **Mesh is style-locked:** `modelUrl` is the same for T1–T8 for a given style.
+ * Tier only changes `shader` / glow / trail / aura (apply in place — no GLB reload).
+ *
+ * Prefer `getWeaponVisualsForItem(item)` when you have a UUID instance.
  */
 export function getWeaponVisuals(
   weaponTypeId: string,
   tier: number,
+  /**
+   * Style selects mesh family. Do NOT pass tier as style.
+   * If omitted, uses style 1 (copper) — not tier-mapped — so mesh stays stable.
+   */
   styleOverride?: WeaponStyleIndex | WeaponStyleId,
   enhancement: WeaponEnhancementId = 'none',
   infusion: WeaponInfusionId = 'none',
@@ -429,11 +582,12 @@ export function getWeaponVisuals(
   const tierVis = TIER_VISUALS[clampedTier - 1]!;
   const modelConfig = WEAPON_MODEL_CONFIGS[weaponTypeId] ?? WEAPON_MODEL_CONFIGS.SWORD!;
 
-  const style =
-    styleOverride ?? styleIndexForPowerTier(clampedTier);
+  // Style = mesh identity. Default style 1 — never derive style from tier.
+  const style = styleOverride ?? 1;
   const prefab = getWeaponPrefab(weaponTypeId, style);
   const prefabUrl = resolveWeaponPrefabUrl(weaponTypeId, style);
-  const legacyUrl = `${ASSET_CDN_BASE}/${modelConfig.basePath}${tierVis.modelSuffix}.glb`;
+  // Same asset for all tiers — basePath only, no modelSuffix
+  const legacyUrl = `${ASSET_CDN_BASE}/${modelConfig.basePath}.glb`;
   const modelUrl = prefabUrl ?? legacyUrl;
   const shader = buildWeaponShaderStack(clampedTier, enhancement, infusion);
 
@@ -454,6 +608,19 @@ export function getWeaponVisuals(
     prefabStatus: prefab?.status,
     shader,
   };
+}
+
+/** From inventory item UUID — mesh from style, looks from tier/enhance/infuse. */
+export function getWeaponVisualsForItem(
+  item: WeaponItemInstance,
+): WeaponVisualResult {
+  return getWeaponVisuals(
+    item.weaponType,
+    item.tier,
+    item.styleId,
+    item.enhancement,
+    item.infusion,
+  );
 }
 
 /** Get stat values for a weapon at a specific tier */

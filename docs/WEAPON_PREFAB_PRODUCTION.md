@@ -16,7 +16,7 @@
 | 5 | `voxel` | voxel-weapons | voxel fantasy |
 | 6 | `cold_viking` | cold-biome | viking axe/shield |
 
-Power tiers **T1–T8** are separate (stats + tint/glow). Default equip maps T1–T4 → styles 1–4, T5–T6 → voxel, T7–T8 → cold.
+Power tiers **T1–T8** do **not** change the GLB. One style mesh for the item; tier upgrades looks (shaders) + item UUID stats/skills/passives.
 
 ## Converted & production-ready (mesh on CDN)
 

@@ -1,6 +1,18 @@
 # Weapon tier shaders (Three.js)
 
-**Yes — this is the production path.** We use progressive Three.js materials (not a single flat color), so **T1 looks rough** and each tier adds polish, glow, particles, and blade edge work.
+## One mesh, all tiers
+
+**Same weapon asset for T1–T8.** We never swap the GLB when tier goes up.
+
+| What upgrades | How |
+|---------------|-----|
+| **Looks** | Materials / shaders / glow / rim / particles (this system) |
+| **Stats, skills, passives, procs** | Item **UUID** record (`WeaponItemInstance`) |
+| **Mesh family** | Style (copper…viking) — chosen at craft/loot, fixed |
+
+Tier up = nearly weightless: re-run `applyToWeapon` on the existing Object3D + bump UUID stats.
+
+**Yes — progressive Three.js materials.** T1 looks rough; each tier adds polish, glow, particles, blade edge — without a new model.
 
 ## Ladder
 
@@ -34,17 +46,43 @@ SSOT: `buildWeaponShaderStack(tier, enhancement, infusion)` in `weaponTierVisual
 
 ```ts
 import { WeaponTierShaderSystem } from '@/island3d/vfx/WeaponTierShaderSystem';
-import { buildWeaponShaderStack } from '@shared/definitions/weaponTierVisuals';
+import {
+  createWeaponItemInstance,
+  upgradeWeaponItemTier,
+  getWeaponVisualsForItem,
+} from '@shared/definitions/weaponTierVisuals';
 
-// After loading weapon GLB into `weaponRoot` (hand bone child):
+// Craft / loot — mesh locked to style once
+let item = createWeaponItemInstance({
+  itemUuid: crypto.randomUUID(),
+  weaponType: 'SWORD',
+  styleId: 'copper', // mesh family forever
+  baseStats: { physicalDamage: 20, magicalDamage: 0, attackSpeed: 1, critChance: 0.05, critDamage: 1.5 },
+});
+const vis = getWeaponVisualsForItem(item);
+// load GLB once from vis.modelUrl (same URL at every tier)
+
 const shaders = new WeaponTierShaderSystem(scene, worldFx);
 shaders.applyToWeapon(weaponRoot, {
-  tier: 6,
-  enhancement: 'sharpened',
-  infusion: 'fire',
+  tier: item.tier,
+  enhancement: item.enhancement,
+  infusion: item.infusion,
 });
 
-// In game loop:
+// Tier up — NO mesh reload
+item = upgradeWeaponItemTier(item, 6, item.stats, {
+  enhancement: 'sharpened',
+  infusion: 'fire',
+  unlockedSkills: ['sword_whirlwind', 'sword_execute'],
+  unlockedPassives: ['duelist_poise'],
+});
+shaders.applyToWeapon(weaponRoot, {
+  tier: item.tier,
+  enhancement: item.enhancement,
+  infusion: item.infusion,
+}); // looks only
+
+// game loop
 shaders.update(dt);
 ```
 

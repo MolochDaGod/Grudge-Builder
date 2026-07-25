@@ -6,11 +6,14 @@
  *   D:\Games\Models\_codex_prod\mesh-registry.json → R2 CDN keys
  *   Packs: glitch-weapons (4 material styles), voxel-weapons, cold-biome viking
  *
- * Styles (art skins, not T1–T8 power tiers):
+ * Styles (art skins / mesh family — fixed for the item's life):
  *   1 copper   2 silver   3 gold   4 diamond   5 voxel   6 cold/viking (or fallback)
  *
- * Power tiers T1–T8 still live in weaponTierVisuals (tint/glow/trail).
- * Prefab styles pick the base mesh; tier visuals dress it for rarity.
+ * HARD RULE: T1–T8 use the **same prefab GLB**. Tier never swaps the asset.
+ *   • Looks: weaponTierVisuals shader stack (color, roughness, glow, particles)
+ *   • Power: item UUID stats, skill options, passives, procs (upgrade in place)
+ *
+ * Style picks the mesh once at craft/loot. Tier only upgrades that instance.
  *
  * CDN: https://assets.grudge-studio.com/models/codex/**
  */
@@ -853,12 +856,9 @@ export function buildWeaponPrefabCoverage(): WeaponPrefabCoverageReport {
 }
 
 /**
- * Map power tier (1–8) → preferred style index for default equip.
- * T1–T4 → styles 1–4 (copper…diamond); T5+ → style 5–6 cycle.
+ * @deprecated Do NOT map tier → style. Style is mesh identity; tier is looks+stats
+ * on the same asset. Kept as no-op default (style 1) for old call sites.
  */
-export function styleIndexForPowerTier(tier: number): WeaponStyleIndex {
-  const t = Math.max(1, Math.min(8, tier));
-  if (t <= 4) return t as WeaponStyleIndex;
-  if (t <= 6) return 5;
-  return 6;
+export function styleIndexForPowerTier(_tier: number): WeaponStyleIndex {
+  return 1;
 }
