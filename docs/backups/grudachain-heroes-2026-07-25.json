@@ -1,0 +1,236 @@
+﻿Γùç injected env (26) from .env.local // tip: Γùê secrets for agents [www.dotenvx.com]
+Γùç injected env (0) from .env // tip: Γùê secrets for agents [www.dotenvx.com]
+{
+  "user": {
+    "id": "2f415dc8-4d16-44e3-bd9f-f88be48e76a3",
+    "username": "GRUDACHAIN",
+    "grudgeId": "GRUDGE_MPOUIQCG529CA"
+  },
+  "account": {
+    "id": "2e8753f6-c9d8-473c-84bf-c63de203e669",
+    "grudgeId": "GRUDACHAIN"
+  },
+  "characterCount": 27,
+  "nftCount": 27,
+  "nftStatuses": {
+    "minting": 27
+  },
+  "heroes": [
+    {
+      "id": "59a555cf-c459-4b9d-8235-9069b29410d8",
+      "name": "Sigurd Ironcrown",
+      "race": "human",
+      "class": "warrior",
+      "codexId": "sigurd",
+      "isProductionNpc": true
+    },
+    {
+      "id": "ab2bf5d2-2a02-44f6-a188-113d92c04ca9",
+      "name": "Theron Greyclaw",
+      "race": "human",
+      "class": "worges",
+      "codexId": "theron",
+      "isProductionNpc": true
+    },
+    {
+      "id": "78c8ab17-e468-4d73-960f-748bb2338481",
+      "name": "Grok Stormhowl",
+      "race": "barbarian",
+      "class": "shaman",
+      "codexId": "grok",
+      "isProductionNpc": true
+    },
+    {
+      "id": "6e910baf-87a5-4355-a1d3-a0d0fdfe4630",
+      "name": "Vox Skysplit",
+      "race": "barbarian",
+      "class": "ranger",
+      "codexId": "vox",
+      "isProductionNpc": true
+    },
+    {
+      "id": "5408b057-49e9-4be2-b066-0e0cdf21555a",
+      "name": "Nazgrim Voidhand",
+      "race": "orc",
+      "class": "necromancer",
+      "codexId": "nazgrim",
+      "isProductionNpc": true
+    },
+    {
+      "id": "854c07f1-76ec-4ad2-a146-c2567f5e1b1c",
+      "name": "Morgash Ashborn",
+      "race": "orc",
+      "class": "mage",
+      "codexId": "morgash",
+      "isProductionNpc": true
+    },
+    {
+      "id": "80788118-045f-4b69-bfcf-192fa58dd4e1",
+      "name": "Bone Rattlebone",
+      "race": "undead",
+      "class": "warrior",
+      "codexId": "bone",
+      "isProductionNpc": true
+    },
+    {
+      "id": "254d569f-9881-4205-b42b-fb3342f69622",
+      "name": "Dredge Gravewake",
+      "race": "undead",
+      "class": "cleric",
+      "codexId": "dredge",
+      "isProductionNpc": true
+    },
+    {
+      "id": "7a1ce9b1-1b40-4d01-8340-c59648eebbf2",
+      "name": "Silvaine Moonsong",
+      "race": "elf",
+      "class": "mage",
+      "codexId": "silvaine",
+      "isProductionNpc": true
+    },
+    {
+      "id": "769395b4-7660-4dec-a619-92d6e03f6a4d",
+      "name": "Fenwick Darkbough",
+      "race": "elf",
+      "class": "rogue",
+      "codexId": "fenwick",
+      "isProductionNpc": true
+    },
+    {
+      "id": "dc471d8c-7840-4ae2-92f6-072f0a6425bd",
+      "name": "Brenna Forgehammer",
+      "race": "dwarf",
+      "class": "warrior",
+      "codexId": "brenna",
+      "isProductionNpc": true
+    },
+    {
+      "id": "a51337c8-7727-4720-83e7-b9c46b2c4844",
+      "name": "Helga Hearthhand",
+      "race": "dwarf",
+      "class": "cleric",
+      "codexId": "helga",
+      "isProductionNpc": true
+    },
+    {
+      "id": "ad381a60-56b3-4e1c-8517-82479c1c18eb",
+      "name": "Aurion Solbrand",
+      "race": "human",
+      "class": "mage",
+      "codexId": "aurion",
+      "isProductionNpc": true
+    },
+    {
+      "id": "1f55bf7a-ff14-4e23-8601-f07b1d0aa588",
+      "name": "John Wayne",
+      "race": "human",
+      "class": "warrior",
+      "codexId": "john_wayne",
+      "isProductionNpc": true
+    },
+    {
+      "id": "8853f6ae-18f5-41a8-8e60-d8b135703bd3",
+      "name": "Kael Nightwhisper",
+      "race": "human",
+      "class": "ranger",
+      "codexId": "kael",
+      "isProductionNpc": true
+    },
+    {
+      "id": "2a1728cd-e49a-4829-8c6f-1037d4cdbe48",
+      "name": "Thrax Bloodmaw",
+      "race": "barbarian",
+      "class": "warrior",
+      "codexId": "thrax",
+      "isProductionNpc": true
+    },
+    {
+      "id": "e4a19444-37d3-475c-b416-9be6120f3da7",
+      "name": "Kira Redfang",
+      "race": "barbarian",
+      "class": "worges",
+      "codexId": "kira",
+      "isProductionNpc": true
+    },
+    {
+      "id": "1708907a-20d5-428f-98bc-486f746e2b5a",
+      "name": "Gruk Blacktusk",
+      "race": "orc",
+      "class": "warrior",
+      "codexId": "gruk",
+      "isProductionNpc": true
+    },
+    {
+      "id": "2726382c-82ee-42b4-a356-d15990bffdd5",
+      "name": "Vexol Quietblade",
+      "race": "orc",
+      "class": "ranger",
+      "codexId": "vexol",
+      "isProductionNpc": true
+    },
+    {
+      "id": "88ad1a70-a4d0-4ea2-8fdc-87bc04e988fd",
+      "name": "Silesh Dreadmire",
+      "race": "undead",
+      "class": "mage",
+      "codexId": "silesh",
+      "isProductionNpc": true
+    },
+    {
+      "id": "dc54e6c5-8f23-42b0-bb6f-443e07ecbdbd",
+      "name": "Whisper Pale",
+      "race": "undead",
+      "class": "rogue",
+      "codexId": "whisper",
+      "isProductionNpc": true
+    },
+    {
+      "id": "10dca113-73a4-483b-b4ea-c7373861f69a",
+      "name": "Aelindor Swiftwind",
+      "race": "elf",
+      "class": "warrior",
+      "codexId": "aelindor",
+      "isProductionNpc": true
+    },
+    {
+      "id": "51eeb350-d16a-4e74-b7e7-b49fad509eb9",
+      "name": "Lyra Threadweaver",
+      "race": "elf",
+      "class": "cleric",
+      "codexId": "lyra",
+      "isProductionNpc": true
+    },
+    {
+      "id": "70c8b5bb-7862-4b2d-b6b2-1745dac6f70d",
+      "name": "Durgin Stonefist",
+      "race": "dwarf",
+      "class": "warrior",
+      "codexId": "durgin",
+      "isProductionNpc": true
+    },
+    {
+      "id": "80633757-dcf0-4c6d-960a-626663e4691f",
+      "name": "Thordak Runebinder",
+      "race": "dwarf",
+      "class": "mage",
+      "codexId": "thordak",
+      "isProductionNpc": true
+    },
+    {
+      "id": "209269c6-bcce-43b6-9c2f-f9c6f7cf2968",
+      "name": "Racalvin Tidebreaker",
+      "race": "barbarian",
+      "class": "ranger",
+      "codexId": "racalvin",
+      "isProductionNpc": true
+    },
+    {
+      "id": "6c5fab73-3026-4c5f-a410-d9f8e36cdf86",
+      "name": "Scourge Faithbearer",
+      "race": "human",
+      "class": "warrior",
+      "codexId": "scourge_faithbearer",
+      "isProductionNpc": true
+    }
+  ]
+}
