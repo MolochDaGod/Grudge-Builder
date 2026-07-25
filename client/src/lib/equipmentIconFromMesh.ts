@@ -1,15 +1,14 @@
-/**
+﻿/**
  * Generate inventory icons from the **actual** weapon/equipment mesh.
  *
- * HARD RULE: Cool / fancy assets are fine — the icon must be a render of
- * that GLB (or live Object3D), not a generic pack plate that doesn't match.
+ * Cool assets are fine ΓÇö the icon must be a render of that GLB, not a
+ * generic pack plate that doesn't match.
  *
  * Usage:
  *   const url = await generateEquipmentIconFromUrl(meshUrl, { prefabId: 'sword_style_copper' });
- *   // → data URL or blob URL of 256² product shot
- *   const url2 = generateEquipmentIconFromObject3D(equippedRoot, { prefabId });
+ *   // ΓåÆ data URL or blob URL of 256┬▓ product shot
  *
- * Pre-bake offline: /generate-equipment-icons.html + scripts/generate-equipment-icons.mjs
+ * Pre-bake offline: scripts/generate-equipment-icons.html + generate-equipment-icons.mjs
  */
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
@@ -58,54 +57,38 @@ export function setCachedEquipmentIcon(prefabId: string, dataUrl: string) {
 }
 
 /**
- * Render an Object3D to a PNG data URL.
- *
- * Clones materials so we never dispose the live equipped weapon's GPU state
- * (Three.js Object3D.clone shares material refs by default).
+ * Render an already-loaded Object3D (clone recommended) to a PNG data URL.
  */
 export function renderObjectToIconDataUrl(
   source: THREE.Object3D,
-  opts: {
-    size?: number;
-    transparent?: boolean;
-    yaw?: number;
-    pitch?: number;
-    tint?: number;
-    /** When true, also dispose cloned geometries (only for throwaway GLTF loads). */
-    disposeGeometries?: boolean;
-  } = {},
+  opts: { size?: number; transparent?: boolean; yaw?: number; pitch?: number; tint?: number } = {},
 ): string {
   const size = opts.size ?? 256;
   const transparent = opts.transparent !== false;
-  const disposeGeometries = opts.disposeGeometries === true;
 
   const scene = new THREE.Scene();
   if (!transparent) scene.background = new THREE.Color(0x1a1a24);
 
   const root = source.clone(true);
-  const ownedMats: THREE.Material[] = [];
   root.traverse((o) => {
     if (o instanceof THREE.Mesh) {
       o.castShadow = false;
       o.receiveShadow = false;
-      // Deep-clone materials so dispose never touches the in-world weapon
-      if (o.material) {
+      if (opts.tint != null && o.material) {
         const mats = Array.isArray(o.material) ? o.material : [o.material];
-        const cloned = mats.map((m) => {
-          const c = (m as THREE.Material).clone();
-          if (opts.tint != null && 'color' in c && (c as THREE.MeshStandardMaterial).color) {
-            (c as THREE.MeshStandardMaterial).color.multiply(new THREE.Color(opts.tint));
+        for (const m of mats) {
+          if (m && 'color' in m && (m as THREE.MeshStandardMaterial).color) {
+            const c = (m as THREE.MeshStandardMaterial).clone();
+            c.color.multiply(new THREE.Color(opts.tint));
+            o.material = Array.isArray(o.material) ? mats.map((x) => (x === m ? c : x)) : c;
           }
-          ownedMats.push(c);
-          return c;
-        });
-        o.material = Array.isArray(o.material) ? cloned : cloned[0]!;
+        }
       }
     }
   });
   scene.add(root);
 
-  // Fit to frame — work in local space of a detached root
+  // Fit to frame
   root.updateMatrixWorld(true);
   const box = new THREE.Box3().setFromObject(root);
   const center = box.getCenter(new THREE.Vector3());
@@ -151,21 +134,20 @@ export function renderObjectToIconDataUrl(
 
   const dataUrl = canvas.toDataURL('image/png');
   renderer.dispose();
-
-  // Throwaway GLTF loads: free cloned mats/geoms. Live equip path: skip —
-  // clone() shares textures; dispose would kill the in-world weapon look.
-  if (disposeGeometries) {
-    for (const m of ownedMats) m.dispose();
-    root.traverse((o) => {
-      if (o instanceof THREE.Mesh) o.geometry?.dispose();
-    });
-  }
+  // Dispose cloned geometries/materials lightly
+  root.traverse((o) => {
+    if (o instanceof THREE.Mesh) {
+      o.geometry?.dispose();
+      const m = o.material;
+      if (Array.isArray(m)) m.forEach((x) => x.dispose());
+      else (m as THREE.Material)?.dispose?.();
+    }
+  });
   return dataUrl;
 }
 
 /**
  * Load mesh from URL and generate icon. Caches by prefabId.
- * Use for cool unique weapons — icon is that mesh in fact.
  */
 export async function generateEquipmentIconFromUrl(
   meshUrl: string,
@@ -186,31 +168,6 @@ export async function generateEquipmentIconFromUrl(
     yaw: opts.yaw,
     pitch: opts.pitch,
     tint: opts.tint,
-    disposeGeometries: true,
-  });
-  setCachedEquipmentIcon(opts.prefabId, dataUrl);
-  return dataUrl;
-}
-
-/**
- * Generate icon from an already-loaded equipped weapon (no extra GLB fetch).
- * Ideal after equip of a cool mesh — inventory shows exactly what is in-hand.
- * Does NOT dispose shared geometries/materials on the live weapon.
- */
-export function generateEquipmentIconFromObject3D(
-  source: THREE.Object3D,
-  opts: EquipmentIconRenderOpts,
-): string {
-  const cached = getCachedEquipmentIcon(opts.prefabId);
-  if (cached) return cached;
-
-  const dataUrl = renderObjectToIconDataUrl(source, {
-    size: opts.size ?? 256,
-    transparent: opts.transparent,
-    yaw: opts.yaw,
-    pitch: opts.pitch,
-    tint: opts.tint,
-    disposeGeometries: false,
   });
   setCachedEquipmentIcon(opts.prefabId, dataUrl);
   return dataUrl;
@@ -227,7 +184,7 @@ export function bakedEquipmentIconPath(prefabId: string): string {
 
 /**
  * Resolve best icon for equipment:
- * 1) pre-baked generated PNG if present (HEAD optional — caller may skip)
+ * 1) pre-baked generated PNG if present (HEAD optional ΓÇö caller may skip)
  * 2) catalog iconUrl
  * 3) generate from mesh (async)
  */
@@ -258,6 +215,6 @@ export async function resolveEquipmentIcon(opts: {
       : assetUrl(opts.catalogIconUrl);
   }
 
-  // Last resort: baked path (may 404 — UI should onError fallback)
+  // Last resort: baked path (may 404 ΓÇö UI should onError fallback)
   return assetUrl(baked);
 }

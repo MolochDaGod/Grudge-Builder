@@ -15,6 +15,7 @@ import {
   getShieldIconPath,
 } from '@/data/weaponSpriteMap';
 import { getEquipmentIconSync } from '@/lib/equipmentIconResolver';
+import { getArmorIconSync } from '@/lib/armorIconResolver';
 import { assetUrl, resolveIconUrl } from "@/lib/assetConfig";
 import { fetchMasterItems, fetchMasterRecipes } from "@/lib/objectStoreApi";
 
@@ -101,7 +102,28 @@ export const resolveItemImage = (item: Partial<GrudaItem>): string => {
     return getWeaponSpritePath(item.weaponId, item.weaponType || '');
   }
   
-  // Check for armor ID mapping
+  // Armour — production icon (sprite / generated / override)
+  const isArmorLike =
+    !!item.armorId ||
+    typeLower.includes('armor') ||
+    typeLower.includes('helm') ||
+    typeLower.includes('chest') ||
+    typeLower.includes('cloth') ||
+    typeLower.includes('leather') ||
+    ['helm', 'shoulder', 'chest', 'hands', 'feet', 'ring', 'necklace', 'relic'].includes(
+      typeLower,
+    );
+  if (isArmorLike || item.armorId) {
+    return getArmorIconSync({
+      id: item.armorId || item.id,
+      armorId: item.armorId || item.id,
+      name: item.name,
+      type: item.slot || item.type,
+      material: item.material,
+      image: item.image,
+    });
+  }
+
   if (item.armorId && ARMOR_SPRITE_MAP[item.armorId]) {
     return getArmorSpritePath(item.armorId, item.slot || '', item.material || '');
   }

@@ -9,7 +9,6 @@ import type { WeaponSkillOption } from '@shared/definitions/weaponSkillsNew';
 import type { EquipmentStats } from '@shared/definitions/equipmentData';
 
 export const ARSENAL_DRAFT_KEY = 'grudge_arsenal_drafts_v2';
-/** Migrate from v1 if present */
 const ARSENAL_DRAFT_KEY_V1 = 'grudge_arsenal_drafts_v1';
 
 export interface SkillDraftPatch {
@@ -39,7 +38,6 @@ export interface ArmorDraftPatch {
   iconUrl?: string | null;
   status?: 'ready' | 'fallback' | 'missing';
   productionReady?: boolean;
-  /** Partial stat base overrides (not per-tier) */
   stats?: Partial<EquipmentStats>;
 }
 
@@ -48,7 +46,6 @@ export interface ArsenalDrafts {
   updatedAt: string;
   skills: Record<string, Record<string, SkillDraftPatch>>;
   prefabs: Record<string, PrefabDraftPatch>;
-  /** armor piece id → patch */
   armor: Record<string, ArmorDraftPatch>;
   systemNotes: string;
 }
@@ -68,9 +65,7 @@ export function loadArsenalDrafts(): ArsenalDrafts {
   try {
     if (typeof localStorage === 'undefined') return emptyDrafts();
     let raw = localStorage.getItem(ARSENAL_DRAFT_KEY);
-    if (!raw) {
-      raw = localStorage.getItem(ARSENAL_DRAFT_KEY_V1);
-    }
+    if (!raw) raw = localStorage.getItem(ARSENAL_DRAFT_KEY_V1);
     if (!raw) return emptyDrafts();
     const parsed = JSON.parse(raw) as Partial<ArsenalDrafts> & { version?: number };
     return {
@@ -93,7 +88,7 @@ export function saveArsenalDrafts(drafts: ArsenalDrafts): void {
     if (typeof localStorage === 'undefined') return;
     localStorage.setItem(ARSENAL_DRAFT_KEY, JSON.stringify(next));
   } catch {
-    /* quota / private */
+    /* quota */
   }
 }
 
@@ -135,9 +130,7 @@ export function patchArmorDraft(
 ): ArsenalDrafts {
   const prev = drafts.armor[armorId] ?? {};
   const stats =
-    patch.stats != null
-      ? { ...(prev.stats ?? {}), ...patch.stats }
-      : prev.stats;
+    patch.stats != null ? { ...(prev.stats ?? {}), ...patch.stats } : prev.stats;
   return {
     ...drafts,
     armor: {
@@ -172,7 +165,7 @@ export function clearArsenalDrafts(): ArsenalDrafts {
     localStorage.removeItem(ARSENAL_DRAFT_KEY);
     localStorage.removeItem(ARSENAL_DRAFT_KEY_V1);
   } catch {
-    /* private mode */
+    /* private */
   }
   return empty;
 }

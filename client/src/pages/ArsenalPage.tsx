@@ -487,6 +487,16 @@ export default function ArsenalPage() {
   }, [search]);
 
   const draftCounts = useMemo(() => countDraftPatches(drafts), [drafts]);
+  const codexPreview = useMemo(
+    () => buildCodexProductionPackage(drafts),
+    [drafts],
+  );
+
+  useEffect(() => {
+    if (tab === 'armor' && !selectedArmorId && armorList[0]) {
+      setSelectedArmorId(armorList[0].id);
+    }
+  }, [tab, armorList, selectedArmorId]);
 
   const persist = useCallback((next: ArsenalDrafts) => {
     setDrafts(next);
@@ -1083,20 +1093,271 @@ export default function ArsenalPage() {
                 {tab === 'armor' && (
                   <motion.div
                     key="armor"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0 }}
-                    className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3"
+                    className="space-y-4"
                   >
-                    {allArmor
-                      .filter(
-                        (a) =>
-                          !search ||
-                          a.name.toLowerCase().includes(search.toLowerCase()),
-                      )
-                      .map((item) => (
-                        <ArmorCard key={item.id} item={item} tier={tier} />
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-xs text-slate-500">Material</span>
+                      {['all', ...ARMOR_MATERIALS].map((m) => (
+                        <button
+                          key={m}
+                          type="button"
+                          onClick={() => setArmorMaterial(m)}
+                          className={cn(
+                            'px-2.5 py-1 rounded text-[11px] font-semibold',
+                            armorMaterial === m
+                              ? 'bg-amber-500 text-black'
+                              : 'bg-slate-800 text-slate-400',
+                          )}
+                        >
+                          {m}
+                        </button>
                       ))}
+                      <span className="text-xs text-slate-500 ml-2">Slot</span>
+                      <select
+                        value={armorSlot}
+                        onChange={(e) => setArmorSlot(e.target.value)}
+                        className="bg-slate-800 border border-slate-700 rounded px-2 py-1 text-xs text-white"
+                      >
+                        <option value="all">All slots</option>
+                        {EQUIPMENT_SLOTS.map((s) => (
+                          <option key={s} value={s}>
+                            {s}
+                          </option>
+                        ))}
+                        <option value="Offhand">Offhand</option>
+                      </select>
+                      <span className="text-xs text-slate-500 ml-2">Set</span>
+                      <select
+                        value={armorSet}
+                        onChange={(e) => setArmorSet(e.target.value)}
+                        className="bg-slate-800 border border-slate-700 rounded px-2 py-1 text-xs text-white"
+                      >
+                        <option value="all">All sets</option>
+                        {EQUIPMENT_SETS.map((s) => (
+                          <option key={s} value={s}>
+                            {s}
+                          </option>
+                        ))}
+                      </select>
+                      <span className="text-[11px] text-slate-500 ml-auto">
+                        {armorList.length} pieces · icon = that piece
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-1 xl:grid-cols-5 gap-4">
+                      <div className="xl:col-span-3 grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[70vh] overflow-y-auto pr-1">
+                        {armorList.map((p) => {
+                          const merged = mergeArmorEntry(p, drafts);
+                          return (
+                            <ArmorPieceCard
+                              key={p.id}
+                              entry={merged}
+                              tier={tier}
+                              selected={selectedArmor?.id === p.id}
+                              dirty={!!drafts.armor[p.id]}
+                              onSelect={() => setSelectedArmorId(p.id)}
+                            />
+                          );
+                        })}
+                        {armorList.length === 0 && (
+                          <p className="text-slate-500 text-sm col-span-2">
+                            No armour matches filters
+                          </p>
+                        )}
+                      </div>
+
+                      <div className="xl:col-span-2 rounded-xl border border-slate-700/50 bg-slate-900/70 p-4 space-y-3 sticky top-2">
+                        {selectedArmor ? (
+                          <>
+                            <div className="flex items-start gap-3">
+                              <img
+                                src={resolveArmorIconFromPrefab(
+                                  selectedArmor,
+                                  drafts.armor[selectedArmor.id]?.iconUrl,
+                                )}
+                                alt=""
+                                className="w-20 h-20 object-contain rounded-lg bg-slate-950 border border-slate-700"
+                                onError={(e) => {
+                                  (e.target as HTMLImageElement).style.opacity =
+                                    '0.3';
+                                }}
+                              />
+                              <div className="min-w-0 flex-1">
+                                <input
+                                  className="w-full bg-transparent text-lg font-bold text-amber-300 border-b border-transparent focus:border-amber-500/40 outline-none"
+                                  value={selectedArmor.name}
+                                  onChange={(e) =>
+                                    onArmorPatch(selectedArmor.id, {
+                                      name: e.target.value,
+                                    })
+                                  }
+                                />
+                                <p className="text-[10px] font-mono text-slate-500">
+                                  {selectedArmor.id}
+                                </p>
+                                <div className="mt-1 flex flex-wrap gap-1">
+                                  <StatusBadge status={selectedArmor.status} />
+                                  <span className="text-[9px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-400">
+                                    {selectedArmor.setName}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+
+                            <label className="block text-xs text-slate-500">
+                              Lore
+                              <textarea
+                                className="mt-1 w-full min-h-[56px] bg-slate-950/60 border border-slate-700 rounded px-2 py-1.5 text-sm text-slate-200"
+                                value={selectedArmor.lore}
+                                onChange={(e) =>
+                                  onArmorPatch(selectedArmor.id, {
+                                    lore: e.target.value,
+                                  })
+                                }
+                              />
+                            </label>
+
+                            <div className="grid grid-cols-2 gap-2">
+                              {(
+                                [
+                                  ['passive', 'Passive'],
+                                  ['attribute', 'Attribute'],
+                                  ['effect', 'Effect'],
+                                  ['proc', 'Proc'],
+                                ] as const
+                              ).map(([key, label]) => (
+                                <label
+                                  key={key}
+                                  className="block text-[10px] text-slate-500"
+                                >
+                                  {label}
+                                  <input
+                                    className="mt-0.5 w-full bg-slate-950/60 border border-slate-700 rounded px-2 py-1 text-xs text-slate-200"
+                                    value={selectedArmor[key]}
+                                    onChange={(e) =>
+                                      onArmorPatch(selectedArmor.id, {
+                                        [key]: e.target.value,
+                                      })
+                                    }
+                                  />
+                                </label>
+                              ))}
+                            </div>
+
+                            <label className="block text-[10px] text-slate-500">
+                              Set bonus
+                              <input
+                                className="mt-0.5 w-full bg-slate-950/60 border border-slate-700 rounded px-2 py-1 text-xs text-slate-200"
+                                value={selectedArmor.setBonus}
+                                onChange={(e) =>
+                                  onArmorPatch(selectedArmor.id, {
+                                    setBonus: e.target.value,
+                                  })
+                                }
+                              />
+                            </label>
+
+                            <div className="grid grid-cols-2 gap-2">
+                              {(
+                                [
+                                  ['hpBase', 'HP base'],
+                                  ['defenseBase', 'DEF base'],
+                                  ['manaBase', 'Mana base'],
+                                  ['critBase', 'Crit base'],
+                                ] as const
+                              ).map(([key, label]) => (
+                                <label
+                                  key={key}
+                                  className="block text-[10px] text-slate-500"
+                                >
+                                  {label}
+                                  <input
+                                    type="number"
+                                    className="mt-0.5 w-full bg-slate-950/60 border border-slate-700 rounded px-2 py-1 text-xs text-slate-200"
+                                    value={selectedArmor.stats[key]}
+                                    onChange={(e) =>
+                                      onArmorPatch(selectedArmor.id, {
+                                        stats: {
+                                          [key]: Number(e.target.value) || 0,
+                                        },
+                                      })
+                                    }
+                                  />
+                                </label>
+                              ))}
+                            </div>
+
+                            <label className="block text-xs text-slate-500">
+                              Icon URL (must be of this piece)
+                              <input
+                                className="mt-1 w-full bg-slate-950/60 border border-slate-700 rounded px-2 py-1.5 text-xs text-slate-200 font-mono"
+                                value={
+                                  drafts.armor[selectedArmor.id]?.iconUrl ??
+                                  selectedArmor.iconUrl ??
+                                  ''
+                                }
+                                onChange={(e) =>
+                                  onArmorPatch(selectedArmor.id, {
+                                    iconUrl: e.target.value || null,
+                                  })
+                                }
+                                placeholder="/icons/armor/… or CDN URL"
+                              />
+                            </label>
+
+                            <label className="block text-xs text-slate-500">
+                              Production status
+                              <select
+                                className="mt-1 w-full bg-slate-950/60 border border-slate-700 rounded px-2 py-1.5 text-xs text-white"
+                                value={selectedArmor.status}
+                                onChange={(e) =>
+                                  onArmorPatch(selectedArmor.id, {
+                                    status: e.target.value as
+                                      | 'ready'
+                                      | 'fallback'
+                                      | 'missing',
+                                    productionReady:
+                                      e.target.value !== 'missing',
+                                  })
+                                }
+                              >
+                                <option value="ready">ready</option>
+                                <option value="fallback">fallback</option>
+                                <option value="missing">missing</option>
+                              </select>
+                            </label>
+
+                            <label className="block text-xs text-slate-500">
+                              Notes / codex
+                              <textarea
+                                className="mt-1 w-full min-h-[64px] bg-slate-950/60 border border-slate-700 rounded px-2 py-1.5 text-sm text-slate-200"
+                                value={selectedArmor.notes ?? ''}
+                                onChange={(e) =>
+                                  onArmorPatch(selectedArmor.id, {
+                                    notes: e.target.value,
+                                  })
+                                }
+                              />
+                            </label>
+
+                            <div className="text-[10px] text-slate-500 space-y-0.5 break-all">
+                              <div>CDN: {selectedArmor.cdnUrl || '—'}</div>
+                              <div>
+                                Icon gen: {selectedArmor.generatedIconPath}
+                              </div>
+                              <div>R2: {selectedArmor.r2Key || '—'}</div>
+                            </div>
+                          </>
+                        ) : (
+                          <p className="text-slate-500 text-sm">
+                            Select armour to edit production info
+                          </p>
+                        )}
+                      </div>
+                    </div>
                   </motion.div>
                 )}
 
@@ -1106,16 +1367,15 @@ export default function ArsenalPage() {
                     initial={{ opacity: 0, y: 8 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0 }}
-                    className="max-w-2xl space-y-4 rounded-xl border border-slate-700/50 bg-slate-900/70 p-6"
+                    className="max-w-3xl space-y-4 rounded-xl border border-slate-700/50 bg-slate-900/70 p-6"
                   >
                     <h2 className="text-lg font-semibold text-amber-300 flex items-center gap-2">
-                      <Save className="w-5 h-5" /> Draft export
+                      <Save className="w-5 h-5" /> Export · Codex · Deploy
                     </h2>
                     <p className="text-sm text-slate-400">
-                      Production Arsenal keeps edits in{' '}
-                      <code className="text-slate-300">localStorage</code> so you
-                      can improve weapons, stats, and skills without redeploying
-                      mid-session. Download JSON and merge into:
+                      Correct weapons and armour, then export for merge and
+                      codex deployment. Drafts live in localStorage until
+                      download.
                     </p>
                     <ul className="text-xs text-slate-500 list-disc pl-5 space-y-1">
                       <li>
@@ -1125,17 +1385,26 @@ export default function ArsenalPage() {
                         <code>shared/definitions/weaponPrefabCatalog.ts</code>
                       </li>
                       <li>
-                        <code>shared/definitions/weaponTierVisuals.ts</code>
+                        <code>shared/definitions/armorPrefabCatalog.ts</code> /{' '}
+                        <code>equipmentData.ts</code>
+                      </li>
+                      <li>
+                        <code>client/public/codex/equipment-production.json</code>{' '}
+                        → R2{' '}
+                        <code>codex/equipment-production.json</code>
                       </li>
                     </ul>
-                    <pre className="text-[10px] bg-slate-950 rounded-lg p-3 max-h-48 overflow-auto text-slate-400 border border-slate-800">
+                    <pre className="text-[10px] bg-slate-950 rounded-lg p-3 max-h-52 overflow-auto text-slate-400 border border-slate-800">
                       {JSON.stringify(
                         {
                           updatedAt: drafts.updatedAt,
                           counts: draftCounts,
-                          systemNotes: drafts.systemNotes?.slice(0, 200),
-                          skillTypes: Object.keys(drafts.skills),
-                          prefabIds: Object.keys(drafts.prefabs),
+                          codex: {
+                            weapons: codexPreview.weapons.length,
+                            armor: codexPreview.armor.length,
+                            deploy: codexPreview.deployment,
+                          },
+                          armorDraftIds: Object.keys(drafts.armor).slice(0, 12),
                         },
                         null,
                         2,
@@ -1147,7 +1416,22 @@ export default function ArsenalPage() {
                         onClick={() => downloadArsenalDrafts(drafts)}
                       >
                         <Download className="w-4 h-4 mr-2" />
-                        Download drafts JSON
+                        Drafts JSON
+                      </Button>
+                      <Button
+                        className="bg-emerald-600 text-white hover:bg-emerald-500"
+                        onClick={() => downloadCodexProductionPackage(drafts)}
+                      >
+                        <Share2 className="w-4 h-4 mr-2" />
+                        Codex production package
+                      </Button>
+                      <Button
+                        variant="outline"
+                        className="border-slate-600 text-slate-300"
+                        onClick={() => void copyCodexShare()}
+                      >
+                        <Copy className="w-4 h-4 mr-2" />
+                        {shareFlash ? 'Copied' : 'Copy share blurb'}
                       </Button>
                       <Button
                         variant="outline"
@@ -1167,11 +1451,14 @@ export default function ArsenalPage() {
                       </Button>
                     </div>
                     <p className="text-[11px] text-slate-600">
-                      Canonical product URL:{' '}
+                      Canonical:{' '}
                       <span className="text-slate-400">
                         https://grudgewarlords.com/arsenal
                       </span>{' '}
-                      (not warlord-crafting-suite.vercel.app)
+                      · codex{' '}
+                      <code className="text-slate-500">
+                        /codex/equipment-production.json
+                      </code>
                     </p>
                   </motion.div>
                 )}
