@@ -111,6 +111,17 @@ Optional later:
 
 **Do not** mint to the user on create. Use `directToUser: true` only for explicit admin/legacy tools.
 
+### Next production cut (planned — not auto-run)
+
+Wipe **grudachain** account characters → seed **27** canonical heroes (24 roster + Racalvin, Cpt. John Wayne, Scourge Faithbearer) onto master admin **`grudachain`**. Playtest on **`molochdadev`**. Legend meshes/AI brains upload after asset delivery.
+
+| Doc / script | Role |
+|--------------|------|
+| [docs/PRODUCTION_HERO_WIPE_AND_MIGRATE.md](docs/PRODUCTION_HERO_WIPE_AND_MIGRATE.md) | Full checklist + 27-name list |
+| `npx tsx scripts/migrate-canonical-heroes-to-grudachain.ts` | Dry-run plan; wipe/seed only with confirm flags |
+
+**Do not wipe production** until Railway cNFT escrow smoke is green and an operator passes `--confirm-wipe-grudachain --confirm-seed`.
+
 **Publish map from Forge:** `POST /api/production/map/publish` (token `PRODUCTION_PUBLISH_TOKEN`) · Forge **🚀 Publish**  
 **Pirate mesh GLB:** `https://assets.grudge-studio.com/models/lobby/pirate-islands/scene.glb`
 
