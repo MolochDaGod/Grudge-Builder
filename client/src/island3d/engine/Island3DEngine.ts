@@ -99,6 +99,11 @@ import {
   playCameraActive,
 } from '../player/CameraMode';
 import { TerrainNavMesh } from '../navigation/TerrainNavMesh';
+import {
+  loadWarlordsMapLandmarks,
+  type LandmarkLoadResult,
+} from '../map/WarlordsMapLandmarks';
+import { HUMAN_HEIGHT_M } from '../zoneWorldScale';
 import { AllyManager, type CombatTarget } from '../ai/AllyController';
 import { BuildingSystem, type PieceType } from '../building/BuildingSystem';
 import { getSectorById, type WorldSector } from '@shared/definitions/worldMapSectors';
@@ -253,6 +258,8 @@ export interface Island3DEngineConfig {
   dayNight?: Partial<DayNightConfig>;
   /** Enable the playable character controller (default true for procedural) */
   enableCharacter?: boolean;
+  /** Place tower / fortress / jungle rock landmarks (SI prop scale). Default true. */
+  enableLandmarks?: boolean;
   /** Physics callbacks from the character controller */
   physicsCallbacks?: PhysicsCallbacks;
   /** Fired when player enters a home-island mountain dungeon portal */
@@ -479,6 +486,8 @@ export class Island3DEngine {
   // Navigation + AI
   public navMesh: TerrainNavMesh | null = null;
   public allyManager: AllyManager | null = null;
+  /** Towers / fortress / jungle rocks — SI scale + AABB colliders */
+  public mapLandmarks: LandmarkLoadResult | null = null;
 
   // Building
   public building: BuildingSystem | null = null;
@@ -1120,6 +1129,26 @@ export class Island3DEngine {
         `[Island3D] Nav bake: pathfinding=${bake.pathfindingReady} walkable=${bake.walkableCells} ` +
           `groups=${bake.groupCount} cell=${bake.cellSize}m`,
       );
+    }
+    progress(76);
+
+    // 8b. Warlords map landmarks (tower / fortress / jungle rocks) — SI prop scale, not hero-fit
+    try {
+      this.mapLandmarks = await loadWarlordsMapLandmarks(this.scene, {
+        sampleHeight: (x, z) => getTerrainHeightAt(this.terrain!.terrainMesh, x, z),
+        enabled: this.config.enableLandmarks !== false,
+      });
+      // Block nav under landmark footprints
+      if (this.navMesh && this.mapLandmarks.colliders.length) {
+        this.navMesh.markBlockedBoxes?.(this.mapLandmarks.colliders);
+      }
+      console.info(
+        `[Island3D] Map landmarks: ${this.mapLandmarks.landmarks.length} props, ` +
+          `${this.mapLandmarks.colliders.length} colliders (SI scale)`,
+      );
+    } catch (err) {
+      console.warn('[Island3D] Map landmarks skipped', err);
+      this.mapLandmarks = null;
     }
     progress(78);
 
@@ -2171,7 +2200,8 @@ export class Island3DEngine {
       physics: {
         // Far below map when dry board so walk never enters swim state
         waterLevel: noOcean ? -999 : PROCEDURAL_WATER_LEVEL,
-        characterHeight: 2.0,
+        // SI: adult human yardstick (not 100× giant capsule)
+        characterHeight: HUMAN_HEIGHT_M,
       },
       callbacks: this.config.physicsCallbacks,
     });

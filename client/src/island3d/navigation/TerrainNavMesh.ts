@@ -98,6 +98,38 @@ export class TerrainNavMesh {
     }
   }
 
+  /**
+   * Mark grid cells under world AABB footprints unwalkable (towers / fortress / rocks).
+   * Re-bakes three-pathfinding zone so AI routes around SI-scaled props.
+   */
+  markBlockedBoxes(boxes: THREE.Box3[], margin = 0.75): void {
+    if (!boxes?.length) return;
+    let blocked = 0;
+    for (let gz = 0; gz < this.gridH; gz++) {
+      for (let gx = 0; gx < this.gridW; gx++) {
+        const cell = this.grid[gz]?.[gx];
+        if (!cell?.walkable) continue;
+        for (const b of boxes) {
+          if (
+            cell.worldX >= b.min.x - margin
+            && cell.worldX <= b.max.x + margin
+            && cell.worldZ >= b.min.z - margin
+            && cell.worldZ <= b.max.z + margin
+          ) {
+            cell.walkable = false;
+            cell.cost = 99;
+            blocked++;
+            break;
+          }
+        }
+      }
+    }
+    if (blocked > 0) {
+      console.info(`[TerrainNavMesh] Blocked ${blocked} cells under ${boxes.length} colliders`);
+      this.bakeThreePathfinding();
+    }
+  }
+
   private buildGrid(): void {
     const halfX = this.worldXSize / 2;
     const halfZ = this.worldZSize / 2;
