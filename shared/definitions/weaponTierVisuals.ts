@@ -130,13 +130,21 @@ export const WEAPON_MODEL_CONFIGS: Record<string, WeaponTypeModelConfig> = {
   BOW:       { basePath: 'models/weapons/bow',       scale: 1.0, attachBone: 'handslot.l', attachOffset: [0, 0, 0],     attachRotation: [0, Math.PI / 2, 0] },
   CROSSBOW:  { basePath: 'models/weapons/crossbow',  scale: 1.0, attachBone: 'handslot.r', attachOffset: [0, 0, 0],     attachRotation: [0, 0, 0] },
   DAGGER:    { basePath: 'models/weapons/dagger',    scale: 0.8, attachBone: 'handslot.r', attachOffset: [0, 0, 0],     attachRotation: [0, 0, 0] },
-  GUN:       { basePath: 'models/weapons/gun',       scale: 1.0, attachBone: 'handslot.r', attachOffset: [0, 0, 0],     attachRotation: [0, 0, 0] },
+  GUN:       { basePath: 'models/codex/guns/gun_style_copper', scale: 1.0, attachBone: 'handslot.r', attachOffset: [0, 0, 0], attachRotation: [0, 0, 0] },
   STAFF:     { basePath: 'models/weapons/staff',     scale: 1.2, attachBone: 'handslot.r', attachOffset: [0, 0, 0],     attachRotation: [0, 0, 0] },
   SHIELD:    { basePath: 'models/weapons/shield',    scale: 1.0, attachBone: 'handslot.l', attachOffset: [0, 0, 0],     attachRotation: [0, 0, 0] },
   SPEAR:     { basePath: 'models/weapons/spear',     scale: 1.3, attachBone: 'handslot.r', attachOffset: [0, 0, 0],     attachRotation: [0, 0, 0] },
   HAMMER:    { basePath: 'models/weapons/hammer',    scale: 1.1, attachBone: 'handslot.r', attachOffset: [0, 0, 0],     attachRotation: [0, 0, 0] },
   MACE:      { basePath: 'models/weapons/mace',      scale: 1.0, attachBone: 'handslot.r', attachOffset: [0, 0, 0],     attachRotation: [0, 0, 0] },
   WAND:      { basePath: 'models/weapons/wand',      scale: 0.7, attachBone: 'handslot.r', attachOffset: [0, 0, 0],     attachRotation: [0, 0, 0] },
+  /** Mage focus — not warrior steel */
+  GRIMOIRE:  { basePath: 'models/weapons/grimoire',  scale: 0.9, attachBone: 'handslot.l', attachOffset: [0, 0, 0],     attachRotation: [0, 0, 0] },
+  /** Ranger log / ammo kit */
+  RANGER_LOG:{ basePath: 'models/weapons/ranger_log', scale: 0.85, attachBone: 'handslot.l', attachOffset: [0, 0, 0],  attachRotation: [0, 0, 0] },
+  /** Warrior dual-wield battle system */
+  BATTLE_DUAL:{ basePath: 'models/weapons/battle_dual', scale: 1.0, attachBone: 'handslot.r', attachOffset: [0, 0, 0], attachRotation: [0, 0, 0] },
+  /** 2H knives + chain throw */
+  CHAIN_KNIFE:{ basePath: 'models/weapons/chain_knife', scale: 1.0, attachBone: 'handslot.r', attachOffset: [0, 0, 0], attachRotation: [0, 0, 0] },
   TOME:      { basePath: 'models/weapons/tome',      scale: 0.9, attachBone: 'handslot.l', attachOffset: [0, 0, 0],     attachRotation: [0, 0, 0] },
   GREATSWORD:{ basePath: 'models/weapons/greatsword', scale: 1.3, attachBone: 'handslot.r', attachOffset: [0, 0, 0],    attachRotation: [0, 0, 0] },
   SCYTHE:    { basePath: 'models/weapons/scythe',    scale: 1.2, attachBone: 'handslot.r', attachOffset: [0, 0, 0],     attachRotation: [0, 0, 0] },

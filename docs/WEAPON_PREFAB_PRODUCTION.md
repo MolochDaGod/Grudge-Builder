@@ -81,3 +81,38 @@ const report = buildWeaponPrefabCoverage();
 ```bash
 node scripts/sync-weapon-prefabs.mjs
 ```
+
+## Class-locked weapon types
+
+| Type | Class | Notes |
+|------|-------|--------|
+| **WAND** | **Mage** | Light focus / spell channel |
+| **GRIMOIRE** | **Worge** | Shapeshift grimoire (not mage tome) |
+| **RANGER_LOG** | **Ranger** | Ammo/log + aspect toggles |
+| **BATTLE_DUAL** | **Warrior** | Dual-wield battle system |
+| **GUN / BOW** | Ranger-primary | Ranged |
+| **CHAIN_KNIFE** | Any | 2H knives; chain throw → yank dash |
+
+## GUN styles (5/6 ready)
+
+| Style | Mesh file | Icon sprite | Palette |
+|-------|-----------|-------------|---------|
+| 1 copper | `gun_style_copper.glb` | blackpowder_blaster | #b87333 brass |
+| 2 silver | `gun_style_silver.glb` | ironstorm_gun | #c0c0c0 steel |
+| 3 gold | `gun_style_gold.glb` | emberrifle | #d4af37 gold/pyro |
+| 4 diamond | `gun_style_diamond.glb` | wraithbarrel | #a5f3fc cyan tip |
+| 5 voxel | `gun_style_voxel.glb` | duskblaster | #68d391 blocky |
+| 6 cold_viking | **TBD** | bloodcannon | ice steel + blue |
+
+Skill descriptions for GUN reference these palettes so skill icons can match the mesh.
+
+## Icon ↔ asset match
+
+`STYLE_ICON_MATCH` in `weaponPrefabCatalog.ts` defines primary/secondary/glow hex + texture notes per style.  
+UI: `getGunStyleIconPath(styleId)` in `weaponSpriteMap.ts`.
+
+## Chain knife combat
+
+1. **Chain Throw** — ranged dagger with tether  
+2. **Yank Dash** — next attack dashes to enemy; chain + knife return to user  
+3. Mesh: `2bone_knife` + hook/twinblade multipacks for more styles

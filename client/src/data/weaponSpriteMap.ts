@@ -65,12 +65,19 @@ export const WEAPON_SPRITE_MAP: Record<string, string> = {
   "crossbow-emberbolt": "emberbolt",
   "crossbow-ironshard": "ironshard_crossbow",
   
-  "gun-blackpowder": "blackpowder_blaster",
-  "gun-ironstorm": "ironstorm_gun",
-  "gun-bloodcannon": "bloodcannon",
-  "gun-wraithbarrel": "wraithbarrel",
-  "gun-emberrifle": "emberrifle",
-  "gun-duskblaster": "duskblaster",
+  // 6 gun styles — sprite ids align with STYLE_ICON_MATCH + prefab mesh
+  "gun-blackpowder": "blackpowder_blaster", // copper / style 1
+  "gun-ironstorm": "ironstorm_gun", // silver / style 2
+  "gun-emberrifle": "emberrifle", // gold / style 3
+  "gun-wraithbarrel": "wraithbarrel", // diamond / style 4
+  "gun-duskblaster": "duskblaster", // voxel / style 5
+  "gun-bloodcannon": "bloodcannon", // cold_viking / style 6 (mesh TBD)
+  "gun_style_copper": "blackpowder_blaster",
+  "gun_style_silver": "ironstorm_gun",
+  "gun_style_gold": "emberrifle",
+  "gun_style_diamond": "wraithbarrel",
+  "gun_style_voxel": "duskblaster",
+  "gun_style_cold_viking": "bloodcannon",
   
   "staff-fire-emberwrath": "emberwrath_staff",
   "staff-fire-infernal": "infernal_grudge_staff",
@@ -272,6 +279,23 @@ export function getWeaponSpritePath(weaponId: string, weaponType: string): strin
     return resolveIconUrl(`/icons/weapons/${spriteName}.png`, { weaponType, category: weaponType });
   }
   return getPackIconForCategory({ weaponType, category: weaponType });
+}
+
+/**
+ * Resolve icon for a production weapon style so UI matches 3D mesh palette.
+ * Prefer named sprite; fall back to pack icon path from STYLE_ICON_MATCH.
+ */
+export function getGunStyleIconPath(styleId: string): string {
+  const key = `gun_style_${styleId}`;
+  const sprite = WEAPON_SPRITE_MAP[key];
+  if (sprite) {
+    return resolveIconUrl(`/icons/weapons/${sprite}.png`, {
+      weaponType: 'Gun',
+      category: 'guns',
+    });
+  }
+  const packKey = `gun_${styleId}`;
+  return getPackIconForCategory({ weaponType: 'Gun', category: packKey });
 }
 
 export function getArmorSpritePath(armorId: string, slot: string, material: string): string {
