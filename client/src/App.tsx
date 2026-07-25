@@ -99,6 +99,7 @@ import { loadFleetCdnFonts } from "@/lib/fleetFonts";
 import WeaponModelAdminPage from "@/pages/weapon-model-admin";
 import WeaponSkillsPage from "@/pages/weapon-skills";
 import WeaponMasteryPage from "@/pages/weapon-mastery";
+import CombatLabPage from "@/pages/combat-lab";
 import TownPage from "@/pages/town";
 import GameCharacterPage from "@/pages/game-character";
 import SystemsPage from "@/pages/systems";
@@ -199,6 +200,9 @@ function Router() {
       <Route path="/weapon-admin" component={WeaponModelAdminPage} />
       <Route path="/weapon-skills" component={WeaponSkillsPage} />
       <Route path="/weapon-mastery" component={WeaponMasteryPage} />
+      <Route path="/combat-lab" component={CombatLabPage} />
+      <Route path="/equipment-lab" component={CombatLabPage} />
+      <Route path="/editor/combat" component={CombatLabPage} />
       <Route path="/town" component={TownPage} />
       <Route path="/weaponskills" component={WeaponSkillsPage} />
       <Route path="/game/character" component={GameCharacterPage} />

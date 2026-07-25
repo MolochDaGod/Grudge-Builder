@@ -8,6 +8,7 @@
 import * as THREE from "three";
 import type { Model3DField } from "@shared/fleet";
 import { ensureCharacterTextureColorSpace } from "@/lib/characterAppearance";
+import { applyWeaponGripPose, updateWristLock } from "@/lib/weaponGripRuntime";
 
 interface SlotDef {
   slot: string;
@@ -181,7 +182,45 @@ export class Grudge6EquipmentManager {
       }
     }
     const v = def.noVariant ? "_default" : normalizeVariant(variant, false);
-    return this.equip(slot, v);
+    const ok = this.equip(slot, v);
+    if (ok) this.applyCombatGripForSlot(slot);
+    return ok;
+  }
+
+  /**
+   * Apply canonical grip / wrist lock from weaponCombatGeometry to the visible
+   * weapon mesh so blades stay in palm and do not clip the torso on run/attack.
+   */
+  applyCombatGripForSlot(slot: string): void {
+    if (!this.root) return;
+    const variants = this.slots[slot];
+    if (!variants) return;
+    const equippedVar = this.equipped[slot];
+    const mesh = equippedVar ? variants[equippedVar] : Object.values(variants)[0];
+    if (!mesh || !mesh.visible) return;
+    const typeMap: Record<string, string> = {
+      sword: "SWORD",
+      axe: "AXE",
+      hammer: "HAMMER",
+      pick: "HAMMER",
+      spear: "SPEAR",
+      bow: "BOW",
+      staff: "STAFF",
+      shield: "SHIELD",
+      dagger: "DAGGER",
+    };
+    const weaponTypeId = typeMap[slot.toLowerCase()] || "SWORD";
+    applyWeaponGripPose(this.root, mesh, weaponTypeId);
+  }
+
+  /** Per-frame wrist clamp for all currently equipped weapon meshes */
+  updateWeaponWristLocks(dt: number): void {
+    if (!this.root) return;
+    for (const slot of WEAPON_SLOTS) {
+      const v = this.equipped[slot];
+      if (!v || !this.slots[slot]?.[v]) continue;
+      updateWristLock(this.slots[slot][v], undefined, dt);
+    }
   }
 
   unequip(slot: string): void {
