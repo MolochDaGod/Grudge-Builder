@@ -21,6 +21,20 @@ export default function SystemsPage() {
 
         <TruthPanel variant="page" refreshMs={60_000} />
 
+        <section className="rounded-xl border border-emerald-800/40 bg-emerald-950/20 p-6">
+          <h2 className="text-lg font-semibold text-emerald-100 mb-2">Faction hero campaign (27 NPCs)</h2>
+          <p className="text-sm text-stone-400 mb-3">
+            Grudachain deploys 27 production hero NPCs. Each gives 3 quests; finish all 8 of your faction
+            (24 quests) to unlock the mounted commander for dragons, world bosses, island sacks, and
+            resource tributes. Daily board rotates automatically.
+          </p>
+          <div className="text-xs text-stone-500 space-y-1 font-mono">
+            <div>SSOT: shared/definitions/factionHeroCampaign.ts</div>
+            <div>Docs: docs/FACTION_HERO_CAMPAIGN.md</div>
+            <div>Progress: localStorage warlords_faction_hero_campaign_v1</div>
+          </div>
+        </section>
+
         <section className="rounded-xl border border-amber-800/40 bg-amber-950/20 p-6">
           <h2 className="text-lg font-semibold text-amber-100 mb-2">Combat equipment lab</h2>
           <p className="text-sm text-stone-400 mb-3">
