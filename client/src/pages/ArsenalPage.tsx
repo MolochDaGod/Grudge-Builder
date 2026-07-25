@@ -2,16 +2,16 @@
  * Production Arsenal — migrated from warlord-crafting-suite.vercel.app/arsenal
  * onto the GrudgeBuilder SPA (grudgewarlords.com / grudge.studio).
  *
- * Purpose: browse + improve weapons, stats, systems, and abilities/skills.
- * SSOT: shared/definitions (weaponPrefabCatalog, weaponSkillsNew, weaponTierVisuals).
- * Edits go to local draft store → export JSON for merge (never silent repo writes).
+ * Purpose: browse + correct + improve weapons AND armour, stats, systems, skills;
+ * share production codex for deployment.
+ * SSOT: weaponPrefabCatalog, armorPrefabCatalog, weaponSkillsNew, equipmentData.
+ * Edits → local drafts → export JSON / codex package (never silent repo writes).
  */
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useLocation } from 'wouter';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ChevronLeft,
-  Sword,
   Shield,
   Search,
   Sparkles,
@@ -27,6 +27,8 @@ import {
   CheckCircle2,
   AlertTriangle,
   XCircle,
+  Share2,
+  Copy,
 } from 'lucide-react';
 import Layout from '@/components/Layout';
 import { Button } from '@/components/ui/button';
@@ -42,29 +44,40 @@ import {
   type ProductionWeaponType,
 } from '@shared/definitions/weaponPrefabCatalog';
 import {
+  listArmorPrefabs,
+  buildArmorPrefabCoverage,
+  EQUIPMENT_SETS,
+  EQUIPMENT_SLOTS,
+  ARMOR_MATERIALS,
+  calculateStatsAtTier,
+  type ArmorPrefabEntry,
+} from '@shared/definitions/armorPrefabCatalog';
+import {
   getWeaponTypeDefinition,
   type WeaponSkillOption,
   type WeaponTypeDefinition,
 } from '@shared/definitions/weaponSkillsNew';
 import { TIER_VISUALS } from '@shared/definitions/weaponTierVisuals';
 import { getEquipmentIconSync } from '@/lib/equipmentIconResolver';
+import { resolveArmorIconFromPrefab } from '@/lib/armorIconResolver';
 import {
   loadArsenalDrafts,
   saveArsenalDrafts,
   patchSkillDraft,
   patchPrefabDraft,
+  patchArmorDraft,
   applySkillDraft,
   clearArsenalDrafts,
   downloadArsenalDrafts,
   countDraftPatches,
   type ArsenalDrafts,
+  type ArmorDraftPatch,
 } from '@/lib/arsenalDraftStore';
 import {
-  CLOTH_EQUIPMENT,
-  LEATHER_EQUIPMENT,
-  METAL_EQUIPMENT,
-  type EquipmentItem,
-} from '@shared/definitions/equipmentData';
+  downloadCodexProductionPackage,
+  buildCodexShareText,
+  buildCodexProductionPackage,
+} from '@/lib/arsenalCodexExport';
 
 type StudioTab =
   | 'prefabs'
@@ -289,23 +302,105 @@ function PrefabCard({
   );
 }
 
-function ArmorCard({ item, tier }: { item: EquipmentItem; tier: number }) {
-  const tb = tier - 1;
-  const stats = {
-    hp: Math.round(item.stats.hpBase + item.stats.hpPerTier * tb),
-    defense: Math.round(item.stats.defenseBase + item.stats.defensePerTier * tb),
+function mergeArmorEntry(
+  p: ArmorPrefabEntry,
+  drafts: ArsenalDrafts,
+): ArmorPrefabEntry {
+  const d = drafts.armor[p.id];
+  if (!d) return p;
+  return {
+    ...p,
+    name: d.name ?? p.name,
+    lore: d.lore ?? p.lore,
+    passive: d.passive ?? p.passive,
+    attribute: d.attribute ?? p.attribute,
+    effect: d.effect ?? p.effect,
+    proc: d.proc ?? p.proc,
+    setBonus: d.setBonus ?? p.setBonus,
+    notes: d.notes ?? p.notes,
+    iconUrl: d.iconUrl !== undefined ? d.iconUrl : p.iconUrl,
+    status: d.status ?? p.status,
+    productionReady: d.productionReady ?? p.productionReady,
+    stats: d.stats ? { ...p.stats, ...d.stats } : p.stats,
   };
+}
+
+function ArmorPieceCard({
+  entry,
+  tier,
+  selected,
+  dirty,
+  onSelect,
+}: {
+  entry: ArmorPrefabEntry;
+  tier: number;
+  selected: boolean;
+  dirty: boolean;
+  onSelect: () => void;
+}) {
+  const stats = calculateStatsAtTier(
+    {
+      id: entry.id,
+      name: entry.name,
+      type: entry.slot,
+      material: entry.material,
+      lore: entry.lore,
+      stats: entry.stats,
+      passive: entry.passive,
+      attribute: entry.attribute,
+      effect: entry.effect,
+      proc: entry.proc,
+      setBonus: entry.setBonus,
+    },
+    tier,
+  );
+  const icon = resolveArmorIconFromPrefab(entry);
   return (
-    <div className="rounded-xl border border-slate-700/50 bg-slate-900/60 p-3">
-      <h3 className="font-semibold text-sm text-white">{item.name}</h3>
-      <p className="text-[10px] text-slate-500">
-        {item.type} · {item.material}
-      </p>
-      <div className="flex gap-3 mt-2 text-xs">
-        <span className="text-red-400">HP {stats.hp}</span>
-        <span className="text-slate-300">DEF {stats.defense}</span>
+    <button
+      type="button"
+      onClick={onSelect}
+      className={cn(
+        'text-left rounded-xl border p-3 transition-all bg-gradient-to-br from-slate-800/80 to-slate-900/90',
+        selected
+          ? 'border-amber-500/70 ring-1 ring-amber-500/30'
+          : dirty
+            ? 'border-amber-500/30'
+            : 'border-slate-700/50 hover:border-slate-500/60',
+      )}
+      data-testid={`armor-card-${entry.id}`}
+    >
+      <div className="flex items-start gap-3">
+        <div className="w-14 h-14 rounded-lg bg-slate-950/80 border border-slate-700/50 flex items-center justify-center overflow-hidden shrink-0">
+          <img
+            src={icon}
+            alt={entry.name}
+            className="w-12 h-12 object-contain"
+            onError={(e) => {
+              const el = e.target as HTMLImageElement;
+              el.style.opacity = '0.25';
+            }}
+          />
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center justify-between gap-2">
+            <h3 className="text-sm font-semibold text-white truncate">
+              {entry.name}
+            </h3>
+            <StatusBadge status={entry.status} />
+          </div>
+          <p className="text-[10px] text-slate-500">
+            {entry.slot} · {entry.material} · {entry.setName}
+            {dirty && <span className="text-amber-400"> · draft</span>}
+          </p>
+          <div className="grid grid-cols-4 gap-1 mt-2 text-[10px]">
+            <span className="text-red-400">HP {stats.hp}</span>
+            <span className="text-blue-400">MP {stats.mana}</span>
+            <span className="text-amber-400">CRIT {stats.crit}</span>
+            <span className="text-slate-300">DEF {stats.defense}</span>
+          </div>
+        </div>
       </div>
-    </div>
+    </button>
   );
 }
 
@@ -317,19 +412,51 @@ export default function ArsenalPage() {
   const [search, setSearch] = useState('');
   const [weaponType, setWeaponType] = useState<ProductionWeaponType>('SWORD');
   const [selectedPrefabId, setSelectedPrefabId] = useState<string | null>(null);
+  const [selectedArmorId, setSelectedArmorId] = useState<string | null>(null);
+  const [armorMaterial, setArmorMaterial] = useState<string>('all');
+  const [armorSlot, setArmorSlot] = useState<string>('all');
+  const [armorSet, setArmorSet] = useState<string>('all');
   const [tier, setTier] = useState(1);
   const [drafts, setDrafts] = useState<ArsenalDrafts>(loadArsenalDrafts);
   const [savedFlash, setSavedFlash] = useState(false);
+  const [shareFlash, setShareFlash] = useState(false);
 
   useEffect(() => {
     setDrafts(loadArsenalDrafts());
   }, []);
 
   const coverage = useMemo(() => buildWeaponPrefabCoverage(), []);
+  const armorCoverage = useMemo(() => buildArmorPrefabCoverage(), []);
   const prefabs = useMemo(
     () => listPrefabsForType(weaponType),
     [weaponType],
   );
+  const armorList = useMemo(
+    () =>
+      listArmorPrefabs({
+        material: armorMaterial,
+        slot: armorSlot,
+        setName: armorSet,
+      }).filter((p) => {
+        if (!search.trim()) return true;
+        const q = search.toLowerCase();
+        return (
+          p.name.toLowerCase().includes(q) ||
+          p.id.includes(q) ||
+          p.setName.toLowerCase().includes(q) ||
+          p.passive.toLowerCase().includes(q)
+        );
+      }),
+    [armorMaterial, armorSlot, armorSet, search],
+  );
+  const selectedArmorBase =
+    armorList.find((p) => p.id === selectedArmorId) ||
+    listArmorPrefabs().find((p) => p.id === selectedArmorId) ||
+    armorList[0] ||
+    null;
+  const selectedArmor = selectedArmorBase
+    ? mergeArmorEntry(selectedArmorBase, drafts)
+    : null;
   const skillDef: WeaponTypeDefinition | undefined = useMemo(
     () => getWeaponTypeDefinition(weaponType),
     [weaponType],
@@ -390,14 +517,23 @@ export default function ArsenalPage() {
     [drafts, persist],
   );
 
-  const allArmor = useMemo(
-    () => [
-      ...(CLOTH_EQUIPMENT || []),
-      ...(LEATHER_EQUIPMENT || []),
-      ...(METAL_EQUIPMENT || []),
-    ],
-    [],
+  const onArmorPatch = useCallback(
+    (armorId: string, patch: ArmorDraftPatch) => {
+      persist(patchArmorDraft(drafts, armorId, patch));
+    },
+    [drafts, persist],
   );
+
+  const copyCodexShare = useCallback(async () => {
+    const text = buildCodexShareText(drafts);
+    try {
+      await navigator.clipboard.writeText(text);
+      setShareFlash(true);
+      window.setTimeout(() => setShareFlash(false), 1500);
+    } catch {
+      downloadCodexProductionPackage(drafts);
+    }
+  }, [drafts]);
 
   if (!authReady) return null;
 
@@ -430,15 +566,18 @@ export default function ArsenalPage() {
                   <Sparkles className="w-7 h-7" /> Production Arsenal
                 </h1>
                 <p className="text-xs text-slate-500 mt-0.5">
-                  Migrated from WCS · edit weapons, stats, systems &amp; skills on
-                  grudgewarlords.com · mesh-true icons · same mesh T1–T8
+                  Migrated from WCS · weapons + armour · icons · codex export ·
+                  deploy production info · mesh-true when mesh exists
                 </p>
               </div>
             </div>
             <div className="flex flex-wrap items-center gap-2">
-              {(draftCounts.skills > 0 || draftCounts.prefabs > 0) && (
+              {(draftCounts.skills > 0 ||
+                draftCounts.prefabs > 0 ||
+                draftCounts.armor > 0) && (
                 <span className="text-[11px] px-2 py-1 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30">
-                  {draftCounts.skills} skill · {draftCounts.prefabs} prefab drafts
+                  {draftCounts.skills} skill · {draftCounts.prefabs} weapon ·{' '}
+                  {draftCounts.armor} armour drafts
                   {savedFlash ? ' · saved' : ''}
                 </span>
               )}
@@ -509,14 +648,30 @@ export default function ArsenalPage() {
             </div>
           </div>
 
-          {/* Coverage strip */}
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-2 mb-5">
+          {/* Coverage strip — weapons + armour */}
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-2 mb-5">
             {[
-              { label: 'Types', value: coverage.weaponTypes },
-              { label: 'Slots', value: coverage.totalSlots },
-              { label: 'Ready', value: coverage.ready, color: 'text-emerald-400' },
-              { label: 'Fallback', value: coverage.fallback, color: 'text-amber-400' },
-              { label: 'Missing', value: coverage.missing, color: 'text-red-400' },
+              { label: 'Wpn types', value: coverage.weaponTypes },
+              { label: 'Wpn ready', value: coverage.ready, color: 'text-emerald-400' },
+              { label: 'Wpn miss', value: coverage.missing, color: 'text-red-400' },
+              { label: 'Armour', value: armorCoverage.total },
+              {
+                label: 'Arm ready',
+                value: armorCoverage.ready,
+                color: 'text-emerald-400',
+              },
+              {
+                label: 'Arm fallback',
+                value: armorCoverage.fallback,
+                color: 'text-amber-400',
+              },
+              { label: 'Sets', value: Object.keys(armorCoverage.bySet).length },
+              {
+                label: 'Skill trees',
+                value: PRODUCTION_WEAPON_TYPES.filter((t) =>
+                  getWeaponTypeDefinition(t),
+                ).length,
+              },
             ].map((c) => (
               <div
                 key={c.label}

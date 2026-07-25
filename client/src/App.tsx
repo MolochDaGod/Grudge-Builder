@@ -123,18 +123,21 @@ function Router() {
       <Route path="/home" component={HomePage} />
       <Route path="/main-panel" component={MainPanelPage} />
       <Route path="/equipment" component={MainPanelPage} />
+      {/* /character create → GCS; /characters roster → airship (max 4 warlords grudge6) */}
       <Route path="/character" component={CharacterRedirect} />
-      <Route path="/characters" component={CharacterRedirect} />
+      <Route path="/characters" component={HeroesPage} />
       <Route path="/create-character" component={CreateCharacterRedirect} />
       <Route path="/character-creator" component={CharacterCreatorRedirect} />
       <Route path="/heroes" component={HeroesPage} />
       <Route path="/select-character" component={HeroesPage} />
+      <Route path="/crew" component={HeroesPage} />
       <Route path="/boss-walkup" component={BossWalkupPage} />
       <Route path="/professions" component={ProfessionsPage} />
       <Route path="/database" component={DatabasePage} />
       <Route path="/combat" component={CombatPage} />
       <Route path="/skills" component={SkillTreePage} />
       <Route path="/skill-tree" component={SkillTreePage} />
+      <Route path="/skill-trees" component={SkillTreePage} />
       <Route path="/admin" component={AdminPage} />
       <Route path="/dungeon" component={DungeonTiledPage} />
       <Route path="/dungeon-tiled" component={DungeonTiledPage} />

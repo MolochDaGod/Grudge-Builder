@@ -155,7 +155,9 @@ export const RACE_ELEMENT_STAFFS: Record<string, RaceElementStaffDef> = {
     impactVariant: 'blue',
     vfxKeys: ['frost', 'ice', 'freeze', 'chill'],
     animKey: 'magic_cast',
-    description: 'Undead T1 staff — frost school for chill and ice bolt tests.',
+    /** Fleet ice-staff SSOT mesh — Frostbite / frostStaves catalog rows alias this GLB */
+    description:
+      'Undead T1 ice staff (canonical ice mesh models/codex/t1/staffs/undead_frost.glb) — frost school for chill and ice bolt tests. Catalog frost staves map to this mesh on Item Database.',
   },
 };
 

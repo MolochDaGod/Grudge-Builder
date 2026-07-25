@@ -140,16 +140,21 @@ export async function loadCrewHero(hero: Character): Promise<CrewLoaded> {
   }
 }
 
-/** Merge voxel + warlords rosters (player selections), max 4, prefer open/era selection order. */
+/**
+ * Merge rosters for airship cinema — max 4 crew.
+ * Warlords product: prefer warlords-era grudge6 heroes first, then voxel/open fills.
+ */
 export function pickCrewSlots(
   voxel: Character[],
   warlords: Character[],
   max = 4,
+  prefer: "warlords" | "voxel" = "warlords",
 ): Character[] {
   const byId = new Map<string, Character>();
-  // Prefer voxel explorer era first (user request)
-  for (const c of voxel) byId.set(String(c.id), c);
-  for (const c of warlords) {
+  const primary = prefer === "warlords" ? warlords : voxel;
+  const secondary = prefer === "warlords" ? voxel : warlords;
+  for (const c of primary) byId.set(String(c.id), c);
+  for (const c of secondary) {
     if (!byId.has(String(c.id))) byId.set(String(c.id), c);
   }
 
@@ -159,10 +164,17 @@ export function pickCrewSlots(
       string,
       string
     >;
-    if (byEra.voxel) selectedKeys.push(String(byEra.voxel));
-    if (byEra.warlords) selectedKeys.push(String(byEra.warlords));
+    // Prefer product era first
+    if (prefer === "warlords") {
+      if (byEra.warlords) selectedKeys.push(String(byEra.warlords));
+      if (byEra.voxel) selectedKeys.push(String(byEra.voxel));
+    } else {
+      if (byEra.voxel) selectedKeys.push(String(byEra.voxel));
+      if (byEra.warlords) selectedKeys.push(String(byEra.warlords));
+    }
     const open =
       localStorage.getItem("grudge.open.selectedCharacterId") ||
+      localStorage.getItem("grudge_active_character") ||
       localStorage.getItem("voxelrealms.selectedCharacterId");
     if (open) selectedKeys.unshift(String(open));
   } catch {
@@ -179,7 +191,14 @@ export function pickCrewSlots(
     }
     if (out.length >= max) return out;
   }
-  for (const c of byId.values()) {
+  // Fill remaining from primary roster first (warlords grudge6)
+  for (const c of primary) {
+    if (seen.has(String(c.id))) continue;
+    out.push(c);
+    seen.add(String(c.id));
+    if (out.length >= max) return out;
+  }
+  for (const c of secondary) {
     if (seen.has(String(c.id))) continue;
     out.push(c);
     seen.add(String(c.id));

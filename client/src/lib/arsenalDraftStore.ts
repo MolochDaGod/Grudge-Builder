@@ -1,15 +1,16 @@
 /**
- * Production Arsenal draft store — edit weapons/skills/stats in the SPA,
- * persist locally, export JSON for merge into shared/definitions SSOT.
+ * Production Arsenal draft store — edit weapons, armour, skills, stats in SPA.
+ * Persist locally; export JSON / codex package for merge + deploy.
  *
- * Source of truth remains TypeScript catalogs (weaponPrefabCatalog,
- * weaponSkillsNew, weaponTierVisuals). Drafts never auto-write the repo;
- * they are a content-authoring layer for production improvement.
+ * SSOT remains TypeScript catalogs. Drafts never auto-write the repo.
  */
 
 import type { WeaponSkillOption } from '@shared/definitions/weaponSkillsNew';
+import type { EquipmentStats } from '@shared/definitions/equipmentData';
 
-export const ARSENAL_DRAFT_KEY = 'grudge_arsenal_drafts_v1';
+export const ARSENAL_DRAFT_KEY = 'grudge_arsenal_drafts_v2';
+/** Migrate from v1 if present */
+const ARSENAL_DRAFT_KEY_V1 = 'grudge_arsenal_drafts_v1';
 
 export interface SkillDraftPatch {
   name?: string;
@@ -22,28 +23,43 @@ export interface SkillDraftPatch {
 
 export interface PrefabDraftPatch {
   notes?: string;
-  /** Optional override icon path (mesh-true or curated) */
   iconUrl?: string | null;
   label?: string;
 }
 
+export interface ArmorDraftPatch {
+  name?: string;
+  lore?: string;
+  passive?: string;
+  attribute?: string;
+  effect?: string;
+  proc?: string;
+  setBonus?: string;
+  notes?: string;
+  iconUrl?: string | null;
+  status?: 'ready' | 'fallback' | 'missing';
+  productionReady?: boolean;
+  /** Partial stat base overrides (not per-tier) */
+  stats?: Partial<EquipmentStats>;
+}
+
 export interface ArsenalDrafts {
-  version: 1;
+  version: 2;
   updatedAt: string;
-  /** weaponType → skillId → patch */
   skills: Record<string, Record<string, SkillDraftPatch>>;
-  /** prefabId → patch */
   prefabs: Record<string, PrefabDraftPatch>;
-  /** freeform system notes for combat systems work */
+  /** armor piece id → patch */
+  armor: Record<string, ArmorDraftPatch>;
   systemNotes: string;
 }
 
 function emptyDrafts(): ArsenalDrafts {
   return {
-    version: 1,
+    version: 2,
     updatedAt: new Date().toISOString(),
     skills: {},
     prefabs: {},
+    armor: {},
     systemNotes: '',
   };
 }
@@ -51,15 +67,19 @@ function emptyDrafts(): ArsenalDrafts {
 export function loadArsenalDrafts(): ArsenalDrafts {
   try {
     if (typeof localStorage === 'undefined') return emptyDrafts();
-    const raw = localStorage.getItem(ARSENAL_DRAFT_KEY);
+    let raw = localStorage.getItem(ARSENAL_DRAFT_KEY);
+    if (!raw) {
+      raw = localStorage.getItem(ARSENAL_DRAFT_KEY_V1);
+    }
     if (!raw) return emptyDrafts();
-    const parsed = JSON.parse(raw) as ArsenalDrafts;
-    if (parsed?.version !== 1) return emptyDrafts();
+    const parsed = JSON.parse(raw) as Partial<ArsenalDrafts> & { version?: number };
     return {
       ...emptyDrafts(),
       ...parsed,
+      version: 2,
       skills: parsed.skills ?? {},
       prefabs: parsed.prefabs ?? {},
+      armor: (parsed as ArsenalDrafts).armor ?? {},
       systemNotes: parsed.systemNotes ?? '',
     };
   } catch {
@@ -68,7 +88,7 @@ export function loadArsenalDrafts(): ArsenalDrafts {
 }
 
 export function saveArsenalDrafts(drafts: ArsenalDrafts): void {
-  const next = { ...drafts, updatedAt: new Date().toISOString() };
+  const next = { ...drafts, version: 2 as const, updatedAt: new Date().toISOString() };
   try {
     if (typeof localStorage === 'undefined') return;
     localStorage.setItem(ARSENAL_DRAFT_KEY, JSON.stringify(next));
@@ -108,6 +128,26 @@ export function patchPrefabDraft(
   };
 }
 
+export function patchArmorDraft(
+  drafts: ArsenalDrafts,
+  armorId: string,
+  patch: ArmorDraftPatch,
+): ArsenalDrafts {
+  const prev = drafts.armor[armorId] ?? {};
+  const stats =
+    patch.stats != null
+      ? { ...(prev.stats ?? {}), ...patch.stats }
+      : prev.stats;
+  return {
+    ...drafts,
+    armor: {
+      ...drafts.armor,
+      [armorId]: { ...prev, ...patch, stats },
+    },
+    updatedAt: new Date().toISOString(),
+  };
+}
+
 export function applySkillDraft(
   skill: WeaponSkillOption,
   weaponType: string,
@@ -130,30 +170,36 @@ export function clearArsenalDrafts(): ArsenalDrafts {
   const empty = emptyDrafts();
   try {
     localStorage.removeItem(ARSENAL_DRAFT_KEY);
+    localStorage.removeItem(ARSENAL_DRAFT_KEY_V1);
   } catch {
     /* private mode */
   }
   return empty;
 }
 
-/** Download drafts as JSON for PR / agent merge into shared definitions. */
-export function downloadArsenalDrafts(drafts: ArsenalDrafts, filename?: string): void {
-  const blob = new Blob([JSON.stringify(drafts, null, 2)], {
+export function downloadJson(data: unknown, filename: string): void {
+  const blob = new Blob([JSON.stringify(data, null, 2)], {
     type: 'application/json',
   });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download =
-    filename ??
-    `arsenal-drafts-${new Date().toISOString().slice(0, 10)}.json`;
+  a.download = filename;
   a.click();
   URL.revokeObjectURL(url);
+}
+
+export function downloadArsenalDrafts(drafts: ArsenalDrafts, filename?: string): void {
+  downloadJson(
+    drafts,
+    filename ?? `arsenal-drafts-${new Date().toISOString().slice(0, 10)}.json`,
+  );
 }
 
 export function countDraftPatches(drafts: ArsenalDrafts): {
   skills: number;
   prefabs: number;
+  armor: number;
 } {
   let skills = 0;
   for (const m of Object.values(drafts.skills)) {
@@ -162,5 +208,6 @@ export function countDraftPatches(drafts: ArsenalDrafts): {
   return {
     skills,
     prefabs: Object.keys(drafts.prefabs).length,
+    armor: Object.keys(drafts.armor).length,
   };
 }

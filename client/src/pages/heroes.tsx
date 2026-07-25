@@ -1,11 +1,12 @@
 /**
- * /heroes — Full Three.js seaside sector cinema (cave + islands + deep ocean).
- * Capture zone under seaside_treasure_cave; islands nearby; once-per-sector SSOT.
- * Crew = player explorer/voxel + warlords selections.
+ * /heroes · /characters · /select-character
+ * Warlords character page — The Grudge airship cinema (WCS-style roster).
+ * Up to 4 grudge6 warlords-era heroes on deck; camera establishes then follows selection.
+ * Arsenal / professions / skill trees live on the same SPA (not a separate WCS deploy).
  */
 import { useEffect, useMemo, useState } from "react";
 import { useLocation } from "wouter";
-import { Home, LogIn, Map, Plus, Ship, Swords, Hammer, Loader2 } from "lucide-react";
+import { Home, LogIn, Map, Plus, Ship, Swords, Hammer, Loader2, GitBranch } from "lucide-react";
 import { useCharacters } from "@/hooks/use-characters";
 import { getRacePortrait } from "@/lib/artAssets";
 import { isAuthenticated } from "@/lib/grudgeBackend";
@@ -15,8 +16,8 @@ import { RACES, CLASSES } from "@/lib/gameData";
 import { CharacterManager, type Character } from "@/lib/characterManager";
 import { characterAPI } from "@/lib/api";
 import { pickCrewSlots } from "@/components/heroes/heroesCrewLoader";
-import HeroesSeasideCinemaScene from "@/components/heroes/HeroesSeasideCinemaScene";
-import { CREW_STATIONS } from "@/components/heroes/HeroesBlackTideScene";
+import HeroesBlackTideScene, { CREW_STATIONS } from "@/components/heroes/HeroesBlackTideScene";
+import { Link } from "wouter";
 
 const MAX_SLOTS = 4;
 
@@ -121,7 +122,7 @@ export default function HeroesPage() {
     }
   }, [queryCharId, loading, warlordsChars, voxelChars, signedIn, setActive]);
 
-  // Explorer / voxel era selections (GRUDOX 4-slot) — merged with warlords for crew AI
+  // Optional voxel fills only — Warlords product prioritizes warlords-era grudge6 (max 4)
   useEffect(() => {
     let cancelled = false;
     void (async () => {
@@ -138,7 +139,7 @@ export default function HeroesPage() {
   }, [signedIn, loading]);
 
   const crew = useMemo(
-    () => pickCrewSlots(voxelChars, warlordsChars, MAX_SLOTS),
+    () => pickCrewSlots(voxelChars, warlordsChars, MAX_SLOTS, "warlords"),
     [voxelChars, warlordsChars],
   );
 
@@ -190,7 +191,7 @@ export default function HeroesPage() {
   };
 
   const forgeUrl = buildGcsUrl({
-    era: voxelChars.length > 0 ? "voxel" : "warlords",
+    era: "warlords",
     mode: "create",
     returnTo:
       typeof window !== "undefined"
@@ -205,40 +206,57 @@ export default function HeroesPage() {
 
   return (
     <div className="min-h-screen w-full text-slate-100 relative overflow-hidden flex flex-col">
-      {/* Full-bleed Three.js seaside cinema (cave + islands + deep ocean) */}
+      {/* Full-bleed Three.js airship cinema — The Grudge + grudge6 deck crew */}
       <div className="absolute inset-0 z-0">
-        <HeroesSeasideCinemaScene
+        <HeroesBlackTideScene
           slots={slots}
           selectedId={selected?.id ?? null}
           onSelectSlot={onSelectSlot}
           className="w-full h-full"
         />
       </div>
-      {/* Light vignette only — keep 3D scene readable */}
-      <div className="absolute inset-0 z-[1] pointer-events-none bg-gradient-to-b from-black/35 via-transparent to-black/70" />
+      <div className="absolute inset-0 z-[1] pointer-events-none bg-gradient-to-b from-black/40 via-transparent to-black/75" />
 
       <div className="relative z-10 flex flex-col flex-1 max-w-6xl w-full mx-auto px-3 sm:px-4 py-4 sm:py-6 gap-4">
+        {/* WCS-style product tabs (same SPA — no separate crafting-suite deploy) */}
+        <nav className="flex flex-wrap justify-center gap-1.5 sm:gap-2 pointer-events-auto">
+          {[
+            { href: "/heroes", label: "Characters", icon: <Ship className="w-3.5 h-3.5" /> },
+            { href: "/arsenal", label: "Arsenal", icon: <Swords className="w-3.5 h-3.5" /> },
+            { href: "/professions", label: "Professions", icon: <Hammer className="w-3.5 h-3.5" /> },
+            { href: "/skill-tree", label: "Skill Trees", icon: <GitBranch className="w-3.5 h-3.5" /> },
+            { href: "/crafting", label: "Crafting", icon: <Hammer className="w-3.5 h-3.5" /> },
+          ].map((t) => (
+            <Link key={t.href} href={t.href}>
+              <a className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-amber-600/35 bg-black/55 hover:bg-amber-500/10 hover:border-amber-400/50 text-[10px] sm:text-[11px] font-cinzel uppercase tracking-wider text-amber-100/90 no-underline backdrop-blur-sm">
+                {t.icon}
+                {t.label}
+              </a>
+            </Link>
+          ))}
+        </nav>
+
         <header className="text-center pointer-events-none">
-          <p className="font-cinzel text-[10px] uppercase tracking-[0.4em] text-cyan-200/80 mb-1 drop-shadow">
-            Grudge Warlords · Sector seaside cinema
+          <p className="font-cinzel text-[10px] uppercase tracking-[0.4em] text-amber-200/80 mb-1 drop-shadow">
+            Grudge Warlords · Airship roster · max 4 heroes
           </p>
-          <h1 className="font-cinzel text-2xl sm:text-4xl font-bold tracking-[0.18em] text-cyan-50 drop-shadow-[0_2px_12px_rgba(0,0,0,0.85)]">
-            SEASIDE TREASURE CAVE
+          <h1 className="font-cinzel text-2xl sm:text-4xl font-bold tracking-[0.18em] text-amber-50 drop-shadow-[0_2px_12px_rgba(0,0,0,0.85)]">
+            THE GRUDGE
           </h1>
-          <p className="mt-1.5 text-xs sm:text-sm text-cyan-50/85 max-w-xl mx-auto drop-shadow">
-            Full Three.js scene — treasure cave + islands on deep ocean (world-map water). Capture zone
-            under the cave. Pick your explorer crew, then enter play.
+          <p className="mt-1.5 text-xs sm:text-sm text-amber-50/85 max-w-xl mx-auto drop-shadow">
+            Camera descends to the pirate airship. Place up to four grudge6 Warlords-era characters on
+            deck stations, pick one, then enter play.
           </p>
         </header>
 
         {!signedIn && (
           <div
-            className="p-4 flex flex-col sm:flex-row items-center justify-between gap-3 rounded-md border border-sky-400/25 pointer-events-auto backdrop-blur-sm"
-            style={{ background: "linear-gradient(180deg, rgba(12,28,40,0.88), rgba(6,12,20,0.92))" }}
+            className="p-4 flex flex-col sm:flex-row items-center justify-between gap-3 rounded-md border border-amber-500/30 pointer-events-auto backdrop-blur-sm"
+            style={{ background: "linear-gradient(180deg, rgba(28,16,8,0.9), rgba(12,8,6,0.94))" }}
           >
             <p className="text-sm text-slate-200">
-              Sign in with Grudge ID to load your 4-slot crew. Characters are account-owned; cNFTs mint to
-              server escrow (claim to wallet is optional).
+              Sign in with Grudge ID to load your 4-slot Warlords crew. Characters are account-owned; cNFTs
+              mint to server escrow (claim to wallet is optional).
             </p>
             <a
               href={buildSsoLoginUrl(

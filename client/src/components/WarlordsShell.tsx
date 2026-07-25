@@ -174,8 +174,11 @@ export function WarlordsShell({
             </div>
           </div>
           <div className="flex flex-wrap gap-3">
+            <Link href="/heroes"><a className="text-slate-400 hover:text-amber-400 no-underline">Characters</a></Link>
+            <Link href="/arsenal"><a className="text-slate-400 hover:text-amber-400 no-underline">Arsenal</a></Link>
+            <Link href="/professions"><a className="text-slate-400 hover:text-amber-400 no-underline">Professions</a></Link>
+            <Link href="/skill-tree"><a className="text-slate-400 hover:text-amber-400 no-underline">Skills</a></Link>
             <Link href="/lore"><a className="text-slate-400 hover:text-amber-400 no-underline">Lore</a></Link>
-            <Link href="/hero-codex"><a className="text-slate-400 hover:text-amber-400 no-underline">Codex</a></Link>
             <Link href="/account"><a className="text-slate-400 hover:text-amber-400 no-underline">Account</a></Link>
             <a
               href="/lore/tome-of-seasons-and-gods.html"
