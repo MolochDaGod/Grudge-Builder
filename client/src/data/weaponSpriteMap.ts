@@ -274,11 +274,19 @@ export const ARMOR_SPRITE_MAP: Record<string, string> = {
 };
 
 export function getWeaponSpritePath(weaponId: string, weaponType: string): string {
-  // Shields: prefer real selected-shield images over generic pack plate
+  // Shields: selected shield art
   const wt = (weaponType || '').toLowerCase();
   if (wt === 'shield' || wt === 'offhand' || weaponId?.toLowerCase().includes('shield')) {
-    const shieldIcon = getShieldIconPath(weaponId, weaponType);
-    if (shieldIcon) return shieldIcon;
+    return getShieldIconPath(weaponId, weaponType);
+  }
+
+  // Prefer mesh-true baked icons: /icons/weapons/generated/{id}.png
+  if (weaponId) {
+    const safe = weaponId.replace(/[^a-zA-Z0-9_-]/g, '_');
+    // Named style keys gun_style_*, sword_style_*
+    if (/_style_|style_/.test(weaponId) || safe.includes('style')) {
+      return assetUrl(`/icons/weapons/generated/${safe}.png`);
+    }
   }
 
   const spriteName = WEAPON_SPRITE_MAP[weaponId];

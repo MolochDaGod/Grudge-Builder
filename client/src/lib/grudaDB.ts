@@ -14,6 +14,7 @@ import {
   getTomeIconPath,
   getShieldIconPath,
 } from '@/data/weaponSpriteMap';
+import { getEquipmentIconSync } from '@/lib/equipmentIconResolver';
 import { assetUrl, resolveIconUrl } from "@/lib/assetConfig";
 import { fetchMasterItems, fetchMasterRecipes } from "@/lib/objectStoreApi";
 
@@ -46,6 +47,31 @@ export interface GrudaItem {
 export const resolveItemImage = (item: Partial<GrudaItem>): string => {
   const tier = Math.min(Math.max(item.tier || 1, 1), 8) as 1|2|3|4|5|6|7|8;
 
+  // Equipment: prefer icon that matches the **selected mesh** (style/prefab)
+  const typeLower = (item.weaponType || item.type || item.slot || '').toLowerCase();
+  const isWeaponLike =
+    !!item.weaponType ||
+    !!item.weaponId ||
+    !!item.prefabId ||
+    typeLower.includes('weapon') ||
+    typeLower.includes('shield') ||
+    typeLower.includes('sword') ||
+    typeLower.includes('gun') ||
+    typeLower === 'offhand';
+
+  if (isWeaponLike && (item.prefabId || item.styleId || item.weaponType)) {
+    return getEquipmentIconSync({
+      weaponId: item.weaponId,
+      weaponType: item.weaponType || item.type,
+      type: item.type,
+      slot: item.slot,
+      name: item.name,
+      image: item.image,
+      prefabId: item.prefabId,
+      styleId: item.styleId,
+    });
+  }
+
   if (item.image) {
     return resolveIconUrl(item.image, {
       category: item.weaponType || item.type,
@@ -55,8 +81,7 @@ export const resolveItemImage = (item: Partial<GrudaItem>): string => {
     });
   }
 
-  // Shields: use the **selected** shield's image (craftpix / curated art)
-  const typeLower = (item.weaponType || item.type || item.slot || '').toLowerCase();
+  // Shields fallback
   if (
     typeLower.includes('shield') ||
     typeLower === 'offhand' ||
@@ -64,7 +89,7 @@ export const resolveItemImage = (item: Partial<GrudaItem>): string => {
     item.name?.toLowerCase().includes('shield')
   ) {
     return getShieldIconPath(
-      item.weaponId || item.prefabId || item.styleId || item.image || item.name || 'style_copper',
+      item.weaponId || item.prefabId || item.styleId || item.name || 'style_copper',
       item.weaponType,
     );
   }

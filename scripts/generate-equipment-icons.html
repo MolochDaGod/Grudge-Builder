@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Generate equipment icons from mesh</title>
+  <style>
+    body { font-family: system-ui, sans-serif; background: #0f1115; color: #e2e8f0; padding: 1rem; }
+    #grid { display: flex; flex-wrap: wrap; gap: 8px; }
+    .card { width: 128px; text-align: center; font-size: 10px; }
+    canvas, img { width: 96px; height: 96px; background: #1a1a24; border-radius: 8px; }
+    button { margin: 4px; padding: 8px 12px; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <h1>Mesh → icon (actual weapon)</h1>
+  <p>Renders each listed GLB to a transparent PNG. Cool assets OK — icon is that mesh.</p>
+  <button id="run">Generate all</button>
+  <button id="dl">Download ZIP (manual save each)</button>
+  <div id="status"></div>
+  <div id="grid"></div>
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://unpkg.com/three@0.185.1/build/three.module.js",
+      "three/addons/": "https://unpkg.com/three@0.185.1/examples/jsm/"
+    }
+  }
+  </script>
+  <script type="module">
+    import * as THREE from 'three';
+    import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+
+    // Edit this list or inject via ?manifest=...
+    const MANIFEST = [
+      { prefabId: 'gun_style_copper', url: '/models/codex/guns/gun_style_copper.glb' },
+      { prefabId: 'gun_style_silver', url: '/models/codex/guns/gun_style_silver.glb' },
+      { prefabId: 'gun_style_gold', url: '/models/codex/guns/gun_style_gold.glb' },
+      { prefabId: 'gun_style_diamond', url: '/models/codex/guns/gun_style_diamond.glb' },
+      { prefabId: 'gun_style_voxel', url: '/models/codex/guns/gun_style_voxel.glb' },
+      { prefabId: 'sword_style_copper', url: '/models/codex/glitch-weapons/weapons/copper_sword/copper_sword.glb' },
+      { prefabId: 'sword_style_silver', url: '/models/codex/glitch-weapons/weapons/silver_sword/silver_sword.glb' },
+      { prefabId: 'sword_style_gold', url: '/models/codex/glitch-weapons/weapons/gold_sword/gold_sword.glb' },
+      { prefabId: 'sword_style_diamond', url: '/models/codex/glitch-weapons/weapons/diamond_sword/diamond_sword.glb' },
+      { prefabId: 'axe_style_copper', url: '/models/codex/glitch-weapons/weapons/copper_axe/copper_axe.glb' },
+      { prefabId: 'axe_style_silver', url: '/models/codex/glitch-weapons/weapons/silver_axe/silver_axe.glb' },
+      { prefabId: 'axe_style_gold', url: '/models/codex/glitch-weapons/weapons/gold_axe/gold_axe.glb' },
+      { prefabId: 'axe_style_diamond', url: '/models/codex/glitch-weapons/weapons/diamond_axe/diamond_axe.glb' },
+      { prefabId: 'shield_style_copper', url: '/models/codex/cold-biome/viking/shield/shield.glb' },
+      { prefabId: 'shield_style_gold', url: '/models/equipment/shields/shield_of_fire.glb' },
+      { prefabId: 'shield_style_diamond', url: '/models/equipment/shields/shield_murozondsgaze_v002stylized.glb' },
+      { prefabId: 'shield_style_cold_viking', url: '/models/equipment/shields/crimson_rose_shield.glb' },
+    ];
+
+    const loader = new GLTFLoader();
+    const status = document.getElementById('status');
+    const grid = document.getElementById('grid');
+    const results = [];
+
+    function renderIcon(sceneRoot) {
+      const size = 256;
+      const scene = new THREE.Scene();
+      const root = sceneRoot.clone(true);
+      root.updateMatrixWorld(true);
+      const box = new THREE.Box3().setFromObject(root);
+      const center = box.getCenter(new THREE.Vector3());
+      const bsize = box.getSize(new THREE.Vector3());
+      const maxDim = Math.max(bsize.x, bsize.y, bsize.z, 0.001);
+      root.position.sub(center);
+      root.scale.multiplyScalar(1.6 / maxDim);
+      root.rotation.y = 0.55;
+      root.rotation.x = -0.25;
+      scene.add(root);
+      scene.add(new THREE.AmbientLight(0xffffff, 0.55));
+      const key = new THREE.DirectionalLight(0xfff5e6, 1.15);
+      key.position.set(2.5, 4, 3);
+      scene.add(key);
+      const fill = new THREE.DirectionalLight(0xaaccff, 0.45);
+      fill.position.set(-3, 1, -2);
+      scene.add(fill);
+      const camera = new THREE.PerspectiveCamera(28, 1, 0.05, 50);
+      camera.position.set(0, 0.35, 3.2);
+      camera.lookAt(0, 0, 0);
+      const canvas = document.createElement('canvas');
+      canvas.width = size;
+      canvas.height = size;
+      const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true, preserveDrawingBuffer: true });
+      renderer.setSize(size, size, false);
+      renderer.setClearColor(0x000000, 0);
+      renderer.outputColorSpace = THREE.SRGBColorSpace;
+      renderer.toneMapping = THREE.ACESFilmicToneMapping;
+      renderer.render(scene, camera);
+      const dataUrl = canvas.toDataURL('image/png');
+      renderer.dispose();
+      return dataUrl;
+    }
+
+    async function run() {
+      grid.innerHTML = '';
+      results.length = 0;
+      let i = 0;
+      for (const item of MANIFEST) {
+        status.textContent = `Rendering ${++i}/${MANIFEST.length}: ${item.prefabId}`;
+        try {
+          const gltf = await loader.loadAsync(item.url);
+          const dataUrl = renderIcon(gltf.scene);
+          results.push({ ...item, dataUrl });
+          const card = document.createElement('div');
+          card.className = 'card';
+          const img = document.createElement('img');
+          img.src = dataUrl;
+          const a = document.createElement('a');
+          a.href = dataUrl;
+          a.download = `${item.prefabId}.png`;
+          a.textContent = 'save';
+          card.appendChild(img);
+          card.appendChild(document.createTextNode(item.prefabId));
+          card.appendChild(document.createElement('br'));
+          card.appendChild(a);
+          grid.appendChild(card);
+        } catch (e) {
+          console.warn(item.prefabId, e);
+          status.textContent += ` FAIL ${item.prefabId}`;
+        }
+      }
+      status.textContent = `Done ${results.length}/${MANIFEST.length}. Click save under each, put files in client/public/icons/weapons/generated/`;
+    }
+
+    document.getElementById('run').onclick = run;
+    document.getElementById('dl').onclick = () => {
+      results.forEach((r) => {
+        const a = document.createElement('a');
+        a.href = r.dataUrl;
+        a.download = `${r.prefabId}.png`;
+        a.click();
+      });
+    };
+  </script>
+</body>
+</html>
