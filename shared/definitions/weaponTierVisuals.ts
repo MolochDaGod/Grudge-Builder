@@ -15,6 +15,13 @@
  */
 
 import { ASSET_CDN_BASE } from '../../client/src/lib/assetConfig';
+import {
+  getWeaponPrefab,
+  resolveWeaponPrefabUrl,
+  styleIndexForPowerTier,
+  type WeaponStyleId,
+  type WeaponStyleIndex,
+} from './weaponPrefabCatalog';
 
 // ── Tier Definitions (shared across all weapon types) ────────────────────────
 
@@ -156,15 +163,33 @@ export interface WeaponVisualResult {
   aura: { effect: string; color: number } | null;
   /** Bone attachment config for the character skeleton */
   attach: WeaponTypeModelConfig;
+  /** Production prefab style (1–6) when catalog has a mesh */
+  styleIndex?: WeaponStyleIndex;
+  styleId?: WeaponStyleId;
+  prefabId?: string;
+  prefabStatus?: 'ready' | 'fallback' | 'missing';
 }
 
-/** Get the full visual config for a weapon type at a specific tier */
-export function getWeaponVisuals(weaponTypeId: string, tier: number): WeaponVisualResult {
+/**
+ * Get the full visual config for a weapon type at a specific tier.
+ * Uses weaponPrefabCatalog (6 styles) when a converted mesh exists; otherwise
+ * falls back to legacy models/weapons/{type}_tN.glb path.
+ */
+export function getWeaponVisuals(
+  weaponTypeId: string,
+  tier: number,
+  styleOverride?: WeaponStyleIndex | WeaponStyleId,
+): WeaponVisualResult {
   const clampedTier = Math.max(1, Math.min(8, tier));
-  const tierVis = TIER_VISUALS[clampedTier - 1];
-  const modelConfig = WEAPON_MODEL_CONFIGS[weaponTypeId] ?? WEAPON_MODEL_CONFIGS.SWORD;
+  const tierVis = TIER_VISUALS[clampedTier - 1]!;
+  const modelConfig = WEAPON_MODEL_CONFIGS[weaponTypeId] ?? WEAPON_MODEL_CONFIGS.SWORD!;
 
-  const modelUrl = `${ASSET_CDN_BASE}/${modelConfig.basePath}${tierVis.modelSuffix}.glb`;
+  const style =
+    styleOverride ?? styleIndexForPowerTier(clampedTier);
+  const prefab = getWeaponPrefab(weaponTypeId, style);
+  const prefabUrl = resolveWeaponPrefabUrl(weaponTypeId, style);
+  const legacyUrl = `${ASSET_CDN_BASE}/${modelConfig.basePath}${tierVis.modelSuffix}.glb`;
+  const modelUrl = prefabUrl ?? legacyUrl;
 
   return {
     tier: clampedTier,
@@ -174,9 +199,17 @@ export function getWeaponVisuals(weaponTypeId: string, tier: number): WeaponVisu
     modelUrl,
     tint: tierVis.tint,
     glow: { intensity: tierVis.glowIntensity, color: tierVis.glowColor },
-    trail: tierVis.trailEffect ? { effect: tierVis.trailEffect, color: tierVis.trailColor } : null,
-    aura: tierVis.auraEffect ? { effect: tierVis.auraEffect, color: tierVis.auraColor } : null,
+    trail: tierVis.trailEffect
+      ? { effect: tierVis.trailEffect, color: tierVis.trailColor }
+      : null,
+    aura: tierVis.auraEffect
+      ? { effect: tierVis.auraEffect, color: tierVis.auraColor }
+      : null,
     attach: modelConfig,
+    styleIndex: prefab?.styleIndex,
+    styleId: prefab?.styleId,
+    prefabId: prefab?.id,
+    prefabStatus: prefab?.status,
   };
 }
 

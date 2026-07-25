@@ -7,6 +7,8 @@ export * from "./animations";
 export * from "./dungeons";
 export * from "./tier0Items";
 export * from "./weaponArsenal";
+export * from "./weaponPrefabCatalog";
+export * from "./weaponTierVisuals";
 export * from "./buildSystem";
 export * from "./survivalKitBuildCatalog";
 export * from "./fantasyVillageBuildCatalog";
