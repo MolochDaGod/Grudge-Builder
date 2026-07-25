@@ -128,7 +128,17 @@ export function resolveRaceTextureR2Key(raceId: string): string {
 }
 
 const ARMOR_SLOTS = new Set(["body", "arms", "legs", "head", "shoulders", "bag", "wood", "quiver"]);
-const WEAPON_SLOTS = new Set(["axe", "hammer", "sword", "pick", "spear", "bow", "staff", "shield"]);
+const WEAPON_SLOTS = new Set([
+  "axe",
+  "hammer",
+  "sword",
+  "dagger",
+  "pick",
+  "spear",
+  "bow",
+  "staff",
+  "shield",
+]);
 
 export function splitEquippedSlots(
   equipped: Record<string, string | boolean>,
@@ -252,7 +262,7 @@ const GRUDA_WPN_MESH_MAP: Record<string, string> = {
   SWORD: "sword",
   AXE: "axe",
   MACE: "hammer",
-  DAGGER: "sword",
+  DAGGER: "dagger",
   STAFF: "staff",
   BOW: "bow",
   HAMMER: "hammer",
@@ -261,6 +271,19 @@ const GRUDA_WPN_MESH_MAP: Record<string, string> = {
   GUN: "bow",
   SHIELD: "shield",
   PICK: "pick",
+};
+
+/** T0 item id → race kit mesh slot (see t0WeaponVisuals.ts for GLB URLs). */
+const T0_ITEM_MESH_MAP: Record<string, { meshSlot: string; variant: string }> = {
+  t0_sword: { meshSlot: "sword", variant: "A" },
+  t0_training_sword: { meshSlot: "sword", variant: "A" },
+  t0_axe: { meshSlot: "axe", variant: "A" },
+  t0_dagger: { meshSlot: "dagger", variant: "A" },
+  t0_bone_dagger: { meshSlot: "dagger", variant: "A" },
+  t0_bow: { meshSlot: "bow", variant: "_default" },
+  t0_staff: { meshSlot: "staff", variant: "A" },
+  t0_hammer: { meshSlot: "hammer", variant: "A" },
+  t0_shield: { meshSlot: "shield", variant: "A" },
 };
 
 /**
@@ -312,15 +335,32 @@ export function grudaItemToMesh(
     if (sub === "QUIVER") return { meshSlot: "quiver", variant: "_default", isWeapon: false };
   }
 
+  // T0 starter items (tier0Items + bone dagger)
+  const t0 = T0_ITEM_MESH_MAP[itemId] ?? T0_ITEM_MESH_MAP[itemId.toLowerCase()];
+  if (t0) {
+    return { meshSlot: t0.meshSlot, variant: t0.variant, isWeapon: true };
+  }
+
+  // T1 race-element staffs
+  if (/^t1_staff_/i.test(itemId) || itemId.toLowerCase().includes("staff_human") || itemId.toLowerCase().includes("staff_elf")) {
+    return { meshSlot: "staff", variant: tierToVariant(Math.max(tier, 1), 3), isWeapon: true };
+  }
+
   // Legacy / ObjectStore items — infer from id or name patterns
   const lower = itemId.toLowerCase();
   if (lower.includes("shield")) return { meshSlot: "shield", variant: tierToVariant(tier, 4), isWeapon: true };
   if (lower.includes("bow")) return { meshSlot: "bow", variant: "_default", isWeapon: true };
-  if (lower.includes("staff")) return { meshSlot: "staff", variant: tierToVariant(tier, 3), isWeapon: true };
+  if (lower.includes("staff") || lower.includes("scepter") || lower.includes("cane")) {
+    return { meshSlot: "staff", variant: tierToVariant(tier, 3), isWeapon: true };
+  }
   if (lower.includes("spear")) return { meshSlot: "spear", variant: "_default", isWeapon: true };
   if (lower.includes("axe")) return { meshSlot: "axe", variant: tierToVariant(tier, 2), isWeapon: true };
   if (lower.includes("hammer") || lower.includes("mace")) return { meshSlot: "hammer", variant: tierToVariant(tier, 2), isWeapon: true };
-  if (lower.includes("sword") || lower.includes("dagger")) return { meshSlot: "sword", variant: tierToVariant(tier, 2), isWeapon: true };
+  // Dagger before sword (bone dagger / iron_dagger)
+  if (lower.includes("dagger") || lower.includes("knife") || lower.includes("bone_dagger")) {
+    return { meshSlot: "dagger", variant: tierToVariant(tier, 2), isWeapon: true };
+  }
+  if (lower.includes("sword")) return { meshSlot: "sword", variant: tierToVariant(tier, 2), isWeapon: true };
   if (lower.includes("helm") || lower.includes("head") || lower.includes("hood")) return { meshSlot: "head", variant: tierToVariant(tier, 9), isWeapon: false };
   if (lower.includes("chest") || lower.includes("vest") || lower.includes("robe")) return { meshSlot: "body", variant: tierToVariant(tier, 5), isWeapon: false };
   if (lower.includes("hand") || lower.includes("glove")) return { meshSlot: "arms", variant: tierToVariant(tier, 4), isWeapon: false };
@@ -399,6 +439,7 @@ export function weaponTypeFromModel3d(
   if (ws.spear) return "spear";
   if (ws.axe) return "axe";
   if (ws.hammer) return "hammer1h";
+  if (ws.dagger) return "dagger";
   if (ws.sword && ws.shield) return "sword-shield";
   if (ws.sword) return "sword";
   if (ws.shield) return "sword-shield";

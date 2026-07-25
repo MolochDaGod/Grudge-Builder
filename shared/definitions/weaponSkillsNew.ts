@@ -296,6 +296,11 @@ export const WEAPON_TYPE_DEFINITIONS: Record<string, WeaponTypeDefinition> = {
     ]
   },
 
+  /**
+   * GUN — ranger firearm. Skill copy references mesh styles so icons can match:
+   * copper brass pistol, silver steampunk revolver, gold pyro rifle,
+   * diamond harpoon/cyan tip, voxel chicken-gun, style-6 frost TBD.
+   */
   GUN: {
     id: "GUN",
     name: "Gun",
@@ -306,42 +311,279 @@ export const WEAPON_TYPE_DEFINITIONS: Record<string, WeaponTypeDefinition> = {
         unlockTier: 1,
         label: "PRIMARY",
         skills: [
-          { id: "gun_grudge_shot", name: "Grudge Shot", description: "Single shot, builds Powder Mark", icon: "🔫", tier: 1, damage: 60, cooldown: 0, effects: ["Builds Mark"] },
-          { id: "gun_quick_reload", name: "Quick Reload", description: "+Attack speed buff", icon: "⚡", tier: 2, damage: 0, cooldown: 15, effects: ["+40% Atk Speed 4s"] },
-          { id: "gun_smoke_shot", name: "Smoke Shot", description: "AoE blind effect", icon: "💨", tier: 3, damage: 30, cooldown: 12, effects: ["Blind 3s", "AoE 4m"] },
-        ]
+          {
+            id: "gun_grudge_shot",
+            name: "Grudge Shot",
+            description:
+              "Brass-copper barrel crack — single powder shot that brands the target with a Powder Mark. Icon: dull copper metal, brown leather grip.",
+            icon: "🔫",
+            tier: 1,
+            damage: 60,
+            cooldown: 0,
+            effects: ["Builds Mark", "Style: copper #b87333"],
+          },
+          {
+            id: "gun_quick_reload",
+            name: "Quick Reload",
+            description:
+              "Spin the silver steampunk cylinder — polished steel gleams as chambers lock. +40% attack speed for 4s. Icon: cool grey metal.",
+            icon: "⚡",
+            tier: 2,
+            damage: 0,
+            cooldown: 15,
+            effects: ["+40% Atk Speed 4s", "Style: silver #c0c0c0"],
+          },
+          {
+            id: "gun_smoke_shot",
+            name: "Smoke Shot",
+            description:
+              "Cloud of blackpowder grit from the stock pistol — blinds foes in a 4m haze. Icon: copper frame with smoke grey plume.",
+            icon: "💨",
+            tier: 3,
+            damage: 30,
+            cooldown: 12,
+            effects: ["Blind 3s", "AoE 4m"],
+          },
+        ],
       },
       {
         type: "secondary",
         unlockTier: 2,
         label: "SECONDARY",
         skills: [
-          { id: "gun_explosive_round", name: "Explosive Round", description: "AoE burst damage", icon: "💥", tier: 1, damage: 70, cooldown: 8, effects: ["AoE 4m"] },
-          { id: "gun_flame_burst", name: "Flame Burst", description: "DoT AoE fire", icon: "🔥", tier: 2, damage: 50, cooldown: 10, effects: ["Burn 5s", "AoE"] },
-          { id: "gun_sniper_round", name: "Sniper Round", description: "Long range high damage", icon: "🎯", tier: 3, damage: 120, cooldown: 12, effects: ["40m Range"] },
-        ]
+          {
+            id: "gun_explosive_round",
+            name: "Explosive Round",
+            description:
+              "Gold-inlaid pyroslinger round detonates on impact — warm brass casing, orange blast. Icon: gold metal + fire orange core.",
+            icon: "💥",
+            tier: 1,
+            damage: 70,
+            cooldown: 8,
+            effects: ["AoE 4m", "Style: gold #d4af37"],
+          },
+          {
+            id: "gun_flame_burst",
+            name: "Flame Burst",
+            description:
+              "Emberrifle muzzle wash — sustained fire DoT matching gold pyro stock textures. Icon: gold barrel, red-orange flame tongue.",
+            icon: "🔥",
+            tier: 2,
+            damage: 50,
+            cooldown: 10,
+            effects: ["Burn 5s", "AoE"],
+          },
+          {
+            id: "gun_sniper_round",
+            name: "Sniper Round",
+            description:
+              "Long ironstorm-silver barrel shot to 40m — cold steel line, no brass. Icon: silver/steel long rifle silhouette.",
+            icon: "🎯",
+            tier: 3,
+            damage: 120,
+            cooldown: 12,
+            effects: ["40m Range", "Style: silver"],
+          },
+        ],
       },
       {
         type: "ability",
         unlockTier: 2,
         label: "ABILITY",
         skills: [
-          { id: "gun_hellfire_barrage", name: "Hellfire Barrage", description: "Channeled AoE fire", icon: "🌋", tier: 1, damage: 100, cooldown: 18, effects: ["Channel 3s", "Large AoE"] },
-          { id: "gun_crimson_blast", name: "Crimson Blast", description: "Lifesteal AoE", icon: "🩸", tier: 2, damage: 80, cooldown: 15, effects: ["Lifesteal 30%"] },
-          { id: "gun_shadow_shot", name: "Shadow Shot", description: "Silence AoE", icon: "🌑", tier: 3, damage: 60, cooldown: 12, effects: ["Silence 4s", "AoE"] },
-          { id: "gun_cannon_execute", name: "Cannon Execute", description: "Low HP burst", icon: "💀", tier: 4, damage: 200, cooldown: 20, effects: ["3x dmg <25% HP"] },
-        ]
+          {
+            id: "gun_hellfire_barrage",
+            name: "Hellfire Barrage",
+            description:
+              "Channel the gold pyroslinger — continuous orange-gold tracers for 3s. Icon must match ornate gold fittings.",
+            icon: "🌋",
+            tier: 1,
+            damage: 100,
+            cooldown: 18,
+            effects: ["Channel 3s", "Large AoE"],
+          },
+          {
+            id: "gun_crimson_blast",
+            name: "Crimson Blast",
+            description:
+              "Blood-red powder charge (style-6 frost/bloodcannon when ready). Lifesteal 30%. Icon: crimson core on dark steel.",
+            icon: "🩸",
+            tier: 2,
+            damage: 80,
+            cooldown: 15,
+            effects: ["Lifesteal 30%"],
+          },
+          {
+            id: "gun_shadow_shot",
+            name: "Shadow Shot",
+            description:
+              "Wraithbarrel cyan-diamond tip — silence mist with ice-blue edge glow. Icon: #a5f3fc crystal tip on dark frame.",
+            icon: "🌑",
+            tier: 3,
+            damage: 60,
+            cooldown: 12,
+            effects: ["Silence 4s", "AoE", "Style: diamond #a5f3fc"],
+          },
+          {
+            id: "gun_cannon_execute",
+            name: "Cannon Execute",
+            description:
+              "Heavy harpoon-gun spear tip finish on targets under 25% HP — cyan diamond point drives home. Icon: spear-tip cyan + steel shaft.",
+            icon: "💀",
+            tier: 4,
+            damage: 200,
+            cooldown: 20,
+            effects: ["3x dmg <25% HP", "Style: diamond harpoon"],
+          },
+        ],
       },
       {
         type: "ultimate",
         unlockTier: 3,
         label: "ULTIMATE",
         skills: [
-          { id: "gun_demon_blast", name: "Demon Blast", description: "Massive knockback explosion", icon: "👹", tier: 1, damage: 250, cooldown: 55, effects: ["Knockback 10m", "AoE 8m"] },
-          { id: "gun_thunder_blast", name: "Thunder Blast", description: "Ultimate storm attack", icon: "⚡", tier: 4, damage: 300, cooldown: 70, effects: ["Lightning Storm", "Stun 2s"] },
-        ]
-      }
-    ]
+          {
+            id: "gun_demon_blast",
+            name: "Demon Blast",
+            description:
+              "Voxel chicken-gun chaos ultimate — blocky green-grey silhouette, playful proportions, massive knockback. Icon: chunky low-poly gun, #68d391 accents.",
+            icon: "👹",
+            tier: 1,
+            damage: 250,
+            cooldown: 55,
+            effects: ["Knockback 10m", "AoE 8m", "Style: voxel"],
+          },
+          {
+            id: "gun_thunder_blast",
+            name: "Thunder Blast",
+            description:
+              "Storm ultimate — silver/steel lightning along the revolver cylinder. Icon: silver frame + electric #a0aec0 arcs.",
+            icon: "⚡",
+            tier: 4,
+            damage: 300,
+            cooldown: 70,
+            effects: ["Lightning Storm", "Stun 2s", "Style: silver"],
+          },
+        ],
+      },
+    ],
+  },
+
+  /**
+   * CHAIN_KNIFE — two-hand knives; some styles use chain tether.
+   * Throw chains dagger into target → next attack dashes to enemy as chain
+   * yanks the blade back to the user.
+   */
+  CHAIN_KNIFE: {
+    id: "CHAIN_KNIFE",
+    name: "Chain Knife",
+    icon: "⛓️",
+    slots: [
+      {
+        type: "primary",
+        unlockTier: 1,
+        label: "PRIMARY",
+        skills: [
+          {
+            id: "ck_twin_slash",
+            name: "Twin Slash",
+            description:
+              "Two-handed knife sweep — bone/leather grips, dual blades. Icon: twin silhouettes matching 2bone_knife mesh.",
+            icon: "🗡️",
+            tier: 1,
+            damage: 45,
+            cooldown: 1.2,
+            effects: ["2H Knives", "Physical"],
+          },
+          {
+            id: "ck_chain_throw",
+            name: "Chain Throw",
+            description:
+              "Hurl a chained dagger (ranged). Blade sticks in the foe with a visible chain tether. Icon: knife + chain line in style metal color.",
+            icon: "⛓️",
+            tier: 1,
+            damage: 40,
+            cooldown: 6,
+            effects: ["Ranged Throw", "Apply Chain Tether 8s", "15m Range"],
+          },
+          {
+            id: "ck_yank_dash",
+            name: "Yank Dash",
+            description:
+              "Next attack while tethered: dash to the chained enemy as the knife flies back to you. Chain retracts into the hand. Icon: dash streak + returning blade.",
+            icon: "💨",
+            tier: 2,
+            damage: 70,
+            cooldown: 8,
+            effects: ["Requires Tether", "Dash to Target", "Retrieve Knife", "Gap Close"],
+          },
+        ],
+      },
+      {
+        type: "secondary",
+        unlockTier: 2,
+        label: "SECONDARY",
+        skills: [
+          {
+            id: "ck_reel_slam",
+            name: "Reel Slam",
+            description:
+              "Yank the chain hard — pull enemy toward you or yourself toward them, then overhead dual-knife slam.",
+            icon: "💥",
+            tier: 1,
+            damage: 85,
+            cooldown: 12,
+            effects: ["Pull", "Slam", "Requires Tether"],
+          },
+          {
+            id: "ck_hook_sword",
+            name: "Hook Bind",
+            description:
+              "Sekiro-style hook knife — binds limb, reduces enemy attack speed. Icon matches hooked blade silhouette.",
+            icon: "🪝",
+            tier: 2,
+            damage: 35,
+            cooldown: 10,
+            effects: ["-30% Enemy Atk Speed 4s"],
+          },
+        ],
+      },
+      {
+        type: "ability",
+        unlockTier: 2,
+        label: "ABILITY",
+        skills: [
+          {
+            id: "ck_dual_storm",
+            name: "Dual Storm",
+            description: "Spin both knives in a 2H whirl — warrior dual-battle cadence.",
+            icon: "🌪️",
+            tier: 1,
+            damage: 90,
+            cooldown: 14,
+            effects: ["AoE 4m", "2H"],
+          },
+        ],
+      },
+      {
+        type: "ultimate",
+        unlockTier: 3,
+        label: "ULTIMATE",
+        skills: [
+          {
+            id: "ck_thousand_links",
+            name: "Thousand Links",
+            description:
+              "Ultimate: throw chain-knives to all nearby foes, then dash between them retrieving each blade in sequence.",
+            icon: "⚡",
+            tier: 1,
+            damage: 180,
+            cooldown: 50,
+            effects: ["Multi-Tether", "Dash Chain", "Retrieve All"],
+          },
+        ],
+      },
+    ],
   },
 
   DAGGER: {

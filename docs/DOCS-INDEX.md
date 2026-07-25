@@ -27,6 +27,7 @@ Organized entry point for APIs, UUID systems, and fleet integration.
 | **Characters, races, classes** | [RACES_CLASSES.md](./RACES_CLASSES.md) |
 | **Playtesting, tokens, local dev** | [PLAYTEST.md](./PLAYTEST.md) |
 | **Sprites & 2D animation** | [SPRITES.md](./SPRITES.md) · [ANIMATIONS.md](./ANIMATIONS.md) |
+| **3D models & retarget** | [MODELS_AND_RETARGET_BEST_PRACTICES.md](./MODELS_AND_RETARGET_BEST_PRACTICES.md) · [WARLORDS_ASSET_SSOT.md](./WARLORDS_ASSET_SSOT.md) |
 
 ---
 

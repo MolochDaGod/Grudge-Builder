@@ -52,10 +52,22 @@ Doc: [WARLORDS_CREATURES_TRAPS_SKELETONS.md](./WARLORDS_CREATURES_TRAPS_SKELETON
 ## Upload (only path for this pack)
 
 ```bash
+# cwd MUST be writable (F:\GitHub\GrudgeBuilder). Do NOT run from Program Files.
+# Wrangler cache: $env:WRANGLER_HOME = "C:\Users\nugye\.wrangler"
 cd F:\GitHub\GrudgeBuilder
 node scripts/upload-session-warlords-assets-to-r2.mjs
-# wrangler r2 object put grudge-assets/<key> --remote  (cwd workers/cdn)
+# wrangler r2 object put grudge-assets/<key> --file=... --remote
 ```
+
+Baked combat packs (rotation-only JSON):
+
+```bash
+# Example: samurai greatsword → Bip001
+npx wrangler r2 object put grudge-assets/anims/baked/greatsword_samurai/manifest.json \
+  --file=client/public/anims/baked/greatsword_samurai/manifest.json --remote
+```
+
+Retarget / naming / Y-hip / XZ: [MODELS_AND_RETARGET_BEST_PRACTICES.md](./MODELS_AND_RETARGET_BEST_PRACTICES.md)
 
 Verify:
 

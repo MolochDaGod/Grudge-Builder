@@ -46,6 +46,34 @@
     "magic": {
       "inherits": "locomotion",
       "note": "Spell one-shots use VFX bus + one-shot clips when present under boxanimations/"
+    },
+    "greatsword_samurai": {
+      "note": "Core_01→Bip001 rotation-only bake from sworattackssamurai.glb. No position tracks (Y-hip lock). Ground feet + pelvis XZ at runtime.",
+      "sourceSkeleton": "Core_01",
+      "targetSkeleton": "Bip001",
+      "weaponApiIds": ["GREATSWORD", "TWO_HAND_SWORD"],
+      "bestPractices": {
+        "naming": "gs_samurai_*",
+        "positionTracks": "stripped",
+        "ground": "feet bbox min.y + centerXZOnPelvis",
+        "units": "1 unit = 1 m after 1.8m kit fit"
+      },
+      "idle": "greatsword_samurai/gs_samurai_idle.json",
+      "idleSword": "greatsword_samurai/gs_samurai_idle_sword.json",
+      "walk": "greatsword_samurai/gs_samurai_walk.json",
+      "walkSword": "greatsword_samurai/gs_samurai_walk_sword.json",
+      "run": "greatsword_samurai/gs_samurai_run.json",
+      "runSword": "greatsword_samurai/gs_samurai_run_sword.json",
+      "jump": "greatsword_samurai/gs_samurai_jump.json",
+      "jumpSword": "greatsword_samurai/gs_samurai_jump_sword.json",
+      "attack": "greatsword_samurai/gs_samurai_combo_a.json",
+      "attack2": "greatsword_samurai/gs_samurai_combo_b.json",
+      "dashOpener": "greatsword_samurai/gs_samurai_dash_opener.json",
+      "teleportStrike": "greatsword_samurai/gs_samurai_teleport_strike.json",
+      "swordOn": "greatsword_samurai/gs_samurai_sword_on.json",
+      "swordOff": "greatsword_samurai/gs_samurai_sword_off.json",
+      "combatMap": "greatsword_samurai/combat-map.json",
+      "manifest": "greatsword_samurai/manifest.json"
     }
   },
   "resolve": {
@@ -53,5 +81,5 @@
     "fallback": ["cdnBaseMirror", "clientSameOrigin"]
   },
   "exampleUrl": "https://grudge-arena.grudge-studio.com/api/assets/anims/baked/locomotion/walking.json",
-  "updated": "2026-07-24"
+  "updated": "2026-07-25"
 }

@@ -363,7 +363,10 @@ export function professionsAvailableAtCamp(
 // ── T0 starter loadout for trained units (when tower / equipT0Weapons) ───────
 
 export const CAMP_UNIT_T0_LOADOUT = {
-  mainHand: 't0_training_sword',
+  /** Canonical T0 sword (t0_training_sword is a legacy alias → same mesh) */
+  mainHand: 't0_sword',
+  /** Optional offhand / dual-test: bone dagger for rogue camp kits */
+  offHandAlt: 't0_bone_dagger',
   armor: 't0_padded_vest',
   /** Weapon skill ids units may use when weaponSkillUsage is true */
   weaponSkills: ['warrior_0_strike', 'basic_slash', 'basic_block'] as string[],

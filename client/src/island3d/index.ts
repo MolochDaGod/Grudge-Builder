@@ -14,6 +14,25 @@ export {
 export type { ClassifiedChunk, ClassifyResult } from './map/MapChunkClassifier';
 export { loadMapComposition, getWaterHeights } from './map/MapCompositionLoader';
 export type { CompositionLoadResult } from './map/MapCompositionLoader';
+export {
+  loadWarlordsMapLandmarks,
+  DEFAULT_HOME_LANDMARKS,
+  pointInLandmarkColliders,
+} from './map/WarlordsMapLandmarks';
+export type {
+  MapLandmarkDef,
+  PlacedLandmark,
+  LandmarkLoadResult,
+} from './map/WarlordsMapLandmarks';
+export {
+  fitCharacterRootToHeightM,
+  reFitCharacterAfterAnimSample,
+  fitWorldPropToHeightM,
+  unitDecadeFactor,
+  sanitizeRaceScaleMult,
+  HUMAN_HEIGHT_M,
+  PLAYER_HEIGHT_M,
+} from './zoneWorldScale';
 export { loadTerrainTextures, loadTerrainTexturesAsync } from './terrain/ProceduralTextures';
 export {
   GROUND_PBR_MATERIALS,
@@ -234,6 +253,8 @@ export type {
 } from './vfx/CodepenParticleFx';
 export { WorldFxBus, getWorldFxBus, setWorldFxBus, SUPERNOVA_VARIANTS } from './vfx/WorldFxBus';
 export type { SupernovaImpactVariant } from './vfx/WorldFxBus';
+export { DragonKoiCastAuraSystem, applyDragonKoiSkin } from './vfx/DragonKoiCastAura';
+export type { DragonKoiCastOpts } from './vfx/DragonKoiCastAura';
 export {
   SupernovaImpactSystem,
   getSupernovaImpactSystem,

@@ -102,6 +102,7 @@ import WeaponMasteryPage from "@/pages/weapon-mastery";
 import TownPage from "@/pages/town";
 import GameCharacterPage from "@/pages/game-character";
 import SystemsPage from "@/pages/systems";
+import MainPanelPage from "@/pages/main-panel";
 import { consumeGcsReturnHandoff } from "@/lib/gcsRedirect";
 import { CharacterManager } from "@/lib/characterManager";
 
@@ -120,18 +121,23 @@ function Router() {
       <Route path="/lore/sectors" component={LoreSectorsPage} />
       <Route path="/lore/sectors/:sectorId" component={LoreSectorDetailPage} />
       <Route path="/home" component={HomePage} />
+      <Route path="/main-panel" component={MainPanelPage} />
+      <Route path="/equipment" component={MainPanelPage} />
+      {/* /character create → GCS; /characters roster → airship (max 4 warlords grudge6) */}
       <Route path="/character" component={CharacterRedirect} />
-      <Route path="/characters" component={CharacterRedirect} />
+      <Route path="/characters" component={HeroesPage} />
       <Route path="/create-character" component={CreateCharacterRedirect} />
       <Route path="/character-creator" component={CharacterCreatorRedirect} />
       <Route path="/heroes" component={HeroesPage} />
       <Route path="/select-character" component={HeroesPage} />
+      <Route path="/crew" component={HeroesPage} />
       <Route path="/boss-walkup" component={BossWalkupPage} />
       <Route path="/professions" component={ProfessionsPage} />
       <Route path="/database" component={DatabasePage} />
       <Route path="/combat" component={CombatPage} />
       <Route path="/skills" component={SkillTreePage} />
       <Route path="/skill-tree" component={SkillTreePage} />
+      <Route path="/skill-trees" component={SkillTreePage} />
       <Route path="/admin" component={AdminPage} />
       <Route path="/dungeon" component={DungeonTiledPage} />
       <Route path="/dungeon-tiled" component={DungeonTiledPage} />

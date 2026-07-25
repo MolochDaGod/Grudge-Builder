@@ -97,7 +97,9 @@
     "agent:live-ops": "node scripts/agents/live-ops-agent.mjs",
     "agent:run": "node scripts/agents/run-agent.mjs",
     "agent:maintenance": "node scripts/agents/run-agent.mjs maintenance",
-    "agent:status": "node scripts/agents/run-agent.mjs status"
+    "agent:status": "node scripts/agents/run-agent.mjs status",
+    "assets:ingest-recent": "node scripts/ingest-recent-downloads.mjs --hours 3",
+    "assets:ingest-recent:6h": "node scripts/ingest-recent-downloads.mjs --hours 6"
   },
   "dependencies": {
     "@aws-sdk/s3-request-presigner": "^3.1094.0",

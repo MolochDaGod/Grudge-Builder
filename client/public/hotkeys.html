@@ -3,7 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Grudge Warlords - Hotkeys Reference</title>
+  <title>Hotkeys Reference | Grudge Warlords</title>
+  <meta name="description" content="Keyboard controls for Grudge Warlords combat, movement, and UI." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Jost:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/assets/grudge-static-system.css" />
   <style>
     * {
       margin: 0;
@@ -12,11 +16,11 @@
     }
     
     body {
-      font-family: 'Cinzel', 'Georgia', serif;
-      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f0f23 100%);
+      font-family: var(--gs-font-body, 'Source Serif 4', Georgia, serif);
+      background: transparent;
       color: #e5e5e5;
       min-height: 100vh;
-      padding: 40px 20px;
+      padding: 0;
     }
     
     .container {
@@ -175,10 +179,24 @@
     }
   </style>
 </head>
-<body>
-  <div class="container">
-    <h1>Hotkeys Reference</h1>
-    <p class="subtitle">Grudge Warlords Keyboard Controls</p>
+<body class="gs-body">
+  <div class="gs-bg" aria-hidden="true"></div>
+  <div class="container" style="position:relative;z-index:1;padding:24px 20px 48px">
+    <nav class="gs-topnav" aria-label="Site" style="margin-bottom:28px">
+      <a class="gs-topnav-brand" href="/">
+        <img src="/grudge-logo.png" alt="" width="28" height="28" />
+        <span>Grudge Studio</span>
+      </a>
+      <div class="gs-topnav-links">
+        <a href="/lore/">Lore</a>
+        <a href="/lore/tome-of-seasons-and-gods.html">Black Tome</a>
+        <a href="/hero-codex/">Hero Codex</a>
+        <a href="/hotkeys.html" aria-current="page">Hotkeys</a>
+        <a href="/auth-page.html">Sign in</a>
+      </div>
+    </nav>
+    <h1 style="font-family:var(--gs-font-display);color:#fde68a;text-align:center;font-size:2.25rem;margin-bottom:8px">Hotkeys Reference</h1>
+    <p class="subtitle" style="text-align:center;color:#a8a29e;margin-bottom:32px;font-family:var(--gs-font-ui)">Grudge Warlords keyboard controls</p>
     
     <div class="section">
       <div class="section-header">

@@ -99,6 +99,11 @@ import {
   playCameraActive,
 } from '../player/CameraMode';
 import { TerrainNavMesh } from '../navigation/TerrainNavMesh';
+import {
+  loadWarlordsMapLandmarks,
+  type LandmarkLoadResult,
+} from '../map/WarlordsMapLandmarks';
+import { HUMAN_HEIGHT_M } from '../zoneWorldScale';
 import { AllyManager, type CombatTarget } from '../ai/AllyController';
 import { BuildingSystem, type PieceType } from '../building/BuildingSystem';
 import { getSectorById, type WorldSector } from '@shared/definitions/worldMapSectors';
@@ -148,6 +153,17 @@ import {
   loadFabledZoneFoundation,
   type FabledFoundationResult,
 } from '../zone/FabledZoneFoundationLoader';
+import { EtherealDestructionSystem } from '../zone/EtherealDestructionSystem';
+import { EtherealFloatingIslandSystem } from '../zone/EtherealFloatingIslandSystem';
+import { EventIslandSystem } from '../zone/EventIslandSystem';
+import { BossRoomInstanceSystem } from '../zone/BossRoomInstanceSystem';
+import { placeIcelandScene, type IcelandPlaceResult } from '../zone/IcelandScenePlacer';
+import { ETHEREAL_FALLS_SECTOR_ID } from '@shared/definitions/etherealDestructionZone';
+import {
+  isHothEligibleSector,
+  isIcelandSector,
+  isSpiralEventSector,
+} from '@shared/definitions/floatingIslandBossAssets';
 import {
   isHavenShoreSector,
   HAVEN_SHORE_FOUNDATION,
@@ -242,6 +258,8 @@ export interface Island3DEngineConfig {
   dayNight?: Partial<DayNightConfig>;
   /** Enable the playable character controller (default true for procedural) */
   enableCharacter?: boolean;
+  /** Place tower / fortress / jungle rock landmarks (SI prop scale). Default true. */
+  enableLandmarks?: boolean;
   /** Physics callbacks from the character controller */
   physicsCallbacks?: PhysicsCallbacks;
   /** Fired when player enters a home-island mountain dungeon portal */
@@ -441,6 +459,21 @@ export class Island3DEngine {
   public hiddenMountainCity: HiddenMountainCityRuntime | null = null;
   /** Production sector landmarks (event falls, biome kits, etc.) */
   public sectorEventLandmarks: SectorEventLandmarksRuntime | null = null;
+  /**
+   * Ethereal Falls only — NW diagonal destruction half:
+   * ship no-return, void death drops, ally perma-death, broken surface physics
+   * (flight exempt).
+   */
+  public etherealDestruction: EtherealDestructionSystem | null = null;
+  /** Lyoko stacked floating islands (2 variants: scale/color/texture). */
+  public etherealFloatIslands: EtherealFloatingIslandSystem | null = null;
+  /** Spiral mountain event islands — sink/raise + NPC/boss rotation. */
+  public eventIslands: EventIslandSystem | null = null;
+  /** Hoth (frozen) boss room instance from event/mountain/dungeon portals. */
+  public bossRooms: BossRoomInstanceSystem | null = null;
+  /** Iceland cinematic plate in frozen / near-frozen sectors. */
+  public icelandScene: IcelandPlaceResult | null = null;
+  private _bossPortalKey: ((e: KeyboardEvent) => void) | null = null;
   /** Full per-sector production package (textures, seeds, monsters, harvest…) */
   public sectorProduction: SectorProductionContent | null = null;
   /** Fire / smoke / teleport / dash-foot particle bus (threejs-games style) */
@@ -453,6 +486,8 @@ export class Island3DEngine {
   // Navigation + AI
   public navMesh: TerrainNavMesh | null = null;
   public allyManager: AllyManager | null = null;
+  /** Towers / fortress / jungle rocks — SI scale + AABB colliders */
+  public mapLandmarks: LandmarkLoadResult | null = null;
 
   // Building
   public building: BuildingSystem | null = null;
@@ -1095,6 +1130,26 @@ export class Island3DEngine {
           `groups=${bake.groupCount} cell=${bake.cellSize}m`,
       );
     }
+    progress(76);
+
+    // 8b. Warlords map landmarks (tower / fortress / jungle rocks) — SI prop scale, not hero-fit
+    try {
+      this.mapLandmarks = await loadWarlordsMapLandmarks(this.scene, {
+        sampleHeight: (x, z) => getTerrainHeightAt(this.terrain!.terrainMesh, x, z),
+        enabled: this.config.enableLandmarks !== false,
+      });
+      // Block nav under landmark footprints
+      if (this.navMesh && this.mapLandmarks.colliders.length) {
+        this.navMesh.markBlockedBoxes?.(this.mapLandmarks.colliders);
+      }
+      console.info(
+        `[Island3D] Map landmarks: ${this.mapLandmarks.landmarks.length} props, ` +
+          `${this.mapLandmarks.colliders.length} colliders (SI scale)`,
+      );
+    } catch (err) {
+      console.warn('[Island3D] Map landmarks skipped', err);
+      this.mapLandmarks = null;
+    }
     progress(78);
 
     // 9. Ally manager (+ hand to camp unit system for claim-flag AI)
@@ -1367,6 +1422,19 @@ export class Island3DEngine {
       this.zonePopulation,
       this.zoneScene.islandMeshes,
       (dungeonId, dungeonName) => {
+        // Frozen / cold sectors: some random dungeon portals open Hoth boss room
+        const iceName = /ice|frost|hoth|frozen|cold|snow/i.test(dungeonName + dungeonId);
+        if (
+          this.bossRooms &&
+          this.character &&
+          isHothEligibleSector(sectorId) &&
+          (iceName || Math.random() < 0.35)
+        ) {
+          this.bossRooms.enter(
+            this.character.model.position,
+            'random_dungeon_portal',
+          );
+        }
         this.config.onDungeonEnter?.(dungeonId, dungeonName);
       },
     );
@@ -1436,6 +1504,169 @@ export class Island3DEngine {
         console.warn('[Island3D] Hidden Mountain City failed to load:', err);
       }
     }
+
+    // 2g. Ethereal Falls — diagonal destruction half + Lyoko floating stacks
+    if (sectorId === ETHEREAL_FALLS_SECTOR_ID || sectorId === 'ethereal_falls') {
+      try {
+        this.etherealDestruction?.dispose();
+        this.etherealDestruction = new EtherealDestructionSystem(cfg.sizeMeters, {
+          onPrompt: (msg) => {
+            try {
+              window.dispatchEvent(
+                new CustomEvent('grudge:ethereal-destruction', { detail: { prompt: msg } }),
+              );
+            } catch {
+              /* non-browser */
+            }
+          },
+          onShipNoReturn: (shipId) => {
+            console.warn('[Island3D] Ship no-return in Ethereal destruction field', shipId);
+          },
+          onVoidDrops: (characterId) => {
+            console.info('[Island3D] Void death drops (Cosmic Waterfall)', characterId);
+          },
+          onAllyPermaDeath: (allyId) => {
+            console.info('[Island3D] Ally permanent death in Ethereal Falls', allyId);
+          },
+        });
+        this.etherealDestruction.attachScene(this.scene);
+        console.log(
+          '[Island3D] Ethereal destruction field active — NW half = Cosmic Waterfall tip; flight exempt',
+        );
+      } catch (err) {
+        console.warn('[Island3D] EtherealDestructionSystem failed:', err);
+      }
+
+      try {
+        this.etherealFloatIslands?.dispose();
+        this.etherealFloatIslands = new EtherealFloatingIslandSystem({
+          scene: this.scene,
+          zoneSizeM: cfg.sizeMeters,
+          waterLevel: cfg.waterLevel,
+          onReady: (n) =>
+            console.log(`[Island3D] Lyoko floating islands ready: ${n} (2 variants each stack)`),
+        });
+      } catch (err) {
+        console.warn('[Island3D] EtherealFloatingIslandSystem failed:', err);
+      }
+    }
+
+    // 2h. Spiral mountain event islands (mountain/plains/ethereal) — sink/raise + portal
+    // Spiral mountain: mountain (thornwood) + plains (haven, ashen) only
+    if (isSpiralEventSector(sectorId)) {
+      try {
+        this.eventIslands?.dispose();
+        const spiralBiome =
+          sectorId === 'thornwood_wilds'
+            ? 'mountain'
+            : sectorId === 'haven_shore' || sectorId === 'ashen_wastes'
+              ? 'plains'
+              : sector.biome === 'forest'
+                ? 'mountain'
+                : 'plains';
+        this.eventIslands = new EventIslandSystem({
+          scene: this.scene,
+          sectorId,
+          biome: spiralBiome,
+          zoneSizeM: cfg.sizeMeters,
+          waterLevel: cfg.waterLevel,
+          sampleGround,
+          cb: {
+            onPhase: (phase, id) =>
+              console.info(`[EventIsland] ${id} → ${phase}`),
+            onBossSpawn: (bossId, id) =>
+              console.info(`[EventIsland] boss ${bossId} on ${id}`),
+            onPortalReady: (kind, pos) =>
+              console.info(`[EventIsland] portal ${kind} @`, pos.x.toFixed(0), pos.z.toFixed(0)),
+            onPrompt: (msg) => {
+              try {
+                window.dispatchEvent(
+                  new CustomEvent('grudge:event-island', { detail: { prompt: msg } }),
+                );
+              } catch {
+                /* */
+              }
+            },
+          },
+        });
+      } catch (err) {
+        console.warn('[Island3D] EventIslandSystem failed:', err);
+      }
+    }
+
+    // 2i. Hoth boss room instance (frozen / cold portal targets)
+    if (isHothEligibleSector(sectorId)) {
+      try {
+        this.bossRooms?.dispose();
+        this.bossRooms = new BossRoomInstanceSystem({
+          scene: this.scene,
+          sectorId,
+          cb: {
+            onEnter: (roomId, bossId) =>
+              console.info(`[BossRoom] enter ${roomId} boss=${bossId}`),
+            onExit: (roomId) => console.info(`[BossRoom] exit ${roomId}`),
+            onPrompt: (msg) => {
+              try {
+                window.dispatchEvent(
+                  new CustomEvent('grudge:boss-room', { detail: { prompt: msg } }),
+                );
+              } catch {
+                /* */
+              }
+            },
+          },
+        });
+      } catch (err) {
+        console.warn('[Island3D] BossRoomInstanceSystem failed:', err);
+      }
+    }
+
+    // 2j. Iceland scene in frozen + near-frozen zones
+    if (isIcelandSector(sectorId)) {
+      try {
+        this.icelandScene?.dispose();
+        this.icelandScene = await placeIcelandScene({
+          scene: this.scene,
+          sectorId,
+          zoneSizeM: cfg.sizeMeters,
+          waterLevel: cfg.waterLevel,
+          sampleGround,
+        });
+      } catch (err) {
+        console.warn('[Island3D] Iceland scene failed:', err);
+      }
+    }
+
+    // E: event-island / mountain / frozen portal → Hoth boss room; exit pad inside
+    if (this._bossPortalKey) {
+      window.removeEventListener('keydown', this._bossPortalKey);
+    }
+    this._bossPortalKey = (e: KeyboardEvent) => {
+      if (e.repeat || (e.key !== 'e' && e.key !== 'E')) return;
+      if (!this.character) return;
+      const pos = this.character.model.position;
+      if (this.bossRooms?.isInside) {
+        this.bossRooms.tryExit(pos);
+        return;
+      }
+      // Event island portal
+      const near = this.eventIslands?.nearestPortal(pos, 9);
+      if (near && this.bossRooms) {
+        this.bossRooms.enter(pos, 'event_island_portal');
+        return;
+      }
+      // Frozen / mountain biome: allow Hoth enter when near SE freeze pad (tip of iceland)
+      if (this.bossRooms && isHothEligibleSector(sectorId)) {
+        // Soft radius around iceland or frostbite spawn for “frozen portal”
+        if (this.icelandScene) {
+          const ip = this.icelandScene.root.position;
+          if (pos.distanceTo(ip) < 35) {
+            this.bossRooms.enter(pos, 'frozen_biome_portal');
+          }
+        }
+      }
+    };
+    window.addEventListener('keydown', this._bossPortalKey);
 
     // 2f. Sector event landmarks from production package
     // (eventfalls.glb for ethereal_falls, ice kit, etc. — skip dedicated systems)
@@ -1969,7 +2200,8 @@ export class Island3DEngine {
       physics: {
         // Far below map when dry board so walk never enters swim state
         waterLevel: noOcean ? -999 : PROCEDURAL_WATER_LEVEL,
-        characterHeight: 2.0,
+        // SI: adult human yardstick (not 100× giant capsule)
+        characterHeight: HUMAN_HEIGHT_M,
       },
       callbacks: this.config.physicsCallbacks,
     });
@@ -2285,6 +2517,35 @@ export class Island3DEngine {
         attacking: this.character.isAttacking,
       });
     }
+
+    // Ethereal Falls destruction field — track player, pull surface entities
+    if (this.etherealDestruction) {
+      if (this.character) {
+        // Mutate model.position so tip-pull actually moves the player
+        const pos = this.character.model.position;
+        const flying =
+          !!(this.character as { isFlying?: boolean }).isFlying ||
+          !!(this.character as { flying?: boolean }).flying;
+        this.etherealDestruction.track({
+          id: 'local_player',
+          kind: flying ? 'player_flying' : 'player_surface',
+          position: pos,
+          flying,
+        });
+      }
+      // Ally permanent death: dead allies last seen in the destruction field
+      if (this.allyManager) {
+        for (const a of this.allyManager.getAll()) {
+          if (a.state !== 'dead') continue;
+          this.etherealDestruction.onAllyDeath(a.id, a.model.position);
+        }
+      }
+      this.etherealDestruction.update(dt);
+    }
+
+    this.etherealFloatIslands?.update(dt);
+    this.eventIslands?.update(dt);
+    this.bossRooms?.update(dt);
 
     if (this.harvestZones && !this.lobbyPlayZone) {
       this.harvestZones.update(dt, this.camera.position);
@@ -3330,6 +3591,20 @@ export class Island3DEngine {
     this.havenFoundation = null;
     this.fabledFoundation?.dispose();
     this.fabledFoundation = null;
+    this.etherealDestruction?.dispose();
+    this.etherealDestruction = null;
+    this.etherealFloatIslands?.dispose();
+    this.etherealFloatIslands = null;
+    this.eventIslands?.dispose();
+    this.eventIslands = null;
+    this.bossRooms?.dispose();
+    this.bossRooms = null;
+    this.icelandScene?.dispose();
+    this.icelandScene = null;
+    if (this._bossPortalKey) {
+      window.removeEventListener('keydown', this._bossPortalKey);
+      this._bossPortalKey = null;
+    }
     this.zoneCapital?.dispose();
     this.zoneCapital = null;
     this.hiddenMountainCity?.dispose();

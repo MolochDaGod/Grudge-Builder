@@ -5,6 +5,10 @@
  *   Race models:  /models/characters/races/{race}.glb
  *   Characters:   /models/characters/{name}.glb
  *   Animations:   /models/animations/{weapon-type}/{file}.glb
+ *   Baked packs:  /anims/baked/{pack}/{gs_*}.json  (Bip001 rotation-only)
+ *
+ * Greatsword samurai: /anims/baked/greatsword_samurai/gs_samurai_*.json
+ *   (Core_01→Bip001, no position tracks; center XZ on pelvis; feet from bbox)
  *
  * USAGE:
  *   getModelForCharacter(raceId, classId) → ModelUnit
@@ -177,22 +181,29 @@ export const WEAPON_ANIMATION_SETS: Record<AnimCategory, Partial<Record<AnimStat
     impact:    { file: animPath("sword-shield", "sword and shield impact.glb"), loop: false },
     draw:      { file: animPath("sword-shield", "draw sword 1.glb"), loop: false },
   },
+  /**
+   * Greatsword / 2H — prefer baked Bip001 samurai pack (rotation-only, no hip-float).
+   * Source: Core_01 retarget → gs_samurai_* under /anims/baked/greatsword_samurai/.
+   * Naming / Y-hip / XZ: docs/MODELS_AND_RETARGET_BEST_PRACTICES.md
+   */
   greatsword: {
-    idle:      { file: animPath("greatsword", "great sword idle.glb"), loop: true },
-    run:       { file: animPath("greatsword", "great sword run.glb"), loop: true },
-    walk:      { file: animPath("greatsword", "great sword walk.glb"), loop: true },
-    attack1:   { file: animPath("greatsword", "great sword attack.glb"), loop: false },
-    slash1:    { file: animPath("greatsword", "great sword slash.glb"), loop: false },
-    slash2:    { file: animPath("greatsword", "great sword slash (2).glb"), loop: false },
-    attack2:   { file: animPath("greatsword", "great sword slash (3).glb"), loop: false },
+    idle:      { file: "/anims/baked/greatsword_samurai/gs_samurai_idle_sword.json", loop: true },
+    run:       { file: "/anims/baked/greatsword_samurai/gs_samurai_run_sword.json", loop: true },
+    walk:      { file: "/anims/baked/greatsword_samurai/gs_samurai_walk_sword.json", loop: true },
+    attack1:   { file: "/anims/baked/greatsword_samurai/gs_samurai_combo_a.json", loop: false },
+    slash1:    { file: "/anims/baked/greatsword_samurai/gs_samurai_combo_a.json", loop: false },
+    slash2:    { file: "/anims/baked/greatsword_samurai/gs_samurai_combo_b.json", loop: false },
+    attack2:   { file: "/anims/baked/greatsword_samurai/gs_samurai_combo_b.json", loop: false },
+    attack3:   { file: "/anims/baked/greatsword_samurai/gs_samurai_dash_opener.json", loop: false },
+    special:   { file: "/anims/baked/greatsword_samurai/gs_samurai_teleport_strike.json", loop: false },
+    jump:      { file: "/anims/baked/greatsword_samurai/gs_samurai_jump_sword.json", loop: false },
+    draw:      { file: "/anims/baked/greatsword_samurai/gs_samurai_sword_on.json", loop: false },
+    cast:      { file: "/anims/baked/greatsword_samurai/gs_samurai_dash_opener.json", loop: false },
+    // Fallbacks from legacy Mixamo greatsword GLBs where baked pack has no clip
     block:     { file: animPath("greatsword", "great sword blocking.glb"), loop: false },
     death:     { file: animPath("sword-shield", "sword and shield death.glb"), loop: false },
-    jump:      { file: animPath("greatsword", "great sword jump.glb"), loop: false },
-    special:   { file: animPath("greatsword", "great sword high spin attack.glb"), loop: false },
     kick:      { file: animPath("greatsword", "great sword kick.glb"), loop: false },
-    cast:      { file: animPath("greatsword", "great sword casting.glb"), loop: false },
     impact:    { file: animPath("greatsword", "great sword impact.glb"), loop: false },
-    draw:      { file: animPath("greatsword", "draw a great sword 1.glb"), loop: false },
   },
   longbow: {
     idle:      { file: animPath("longbow", "standing idle 01.glb"), loop: true },

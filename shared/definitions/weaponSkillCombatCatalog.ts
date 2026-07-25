@@ -19,6 +19,10 @@ import {
   type ProjectileKind,
   type WeaponCombatProfile,
 } from './productionWeaponCombat';
+import {
+  GREATSWORD_SAMURAI_SKILLS,
+  TWO_HAND_TO_SAMURAI_ANIM,
+} from './greatswordSamuraiCombat';
 
 export interface ProductionSkillCombatDef {
   id: string;
@@ -309,11 +313,98 @@ export function buildWeaponSkillCombatCatalog(
   return map;
 }
 
+/**
+ * Wire baked samurai 2H clips into production combat:
+ * - Override TWO_HAND_SWORD skill animKeys → gs_samurai_*
+ * - Register hotbar product skills (cleave / teleport / dash / fissure)
+ */
+function applyGreatswordSamuraiOverrides(map: Map<string, ProductionSkillCombatDef>): void {
+  for (const [skillId, animKey] of Object.entries(TWO_HAND_TO_SAMURAI_ANIM)) {
+    const existing = map.get(skillId);
+    if (existing) {
+      existing.animKey = animKey;
+      if (animKey === 'gs_samurai_dash_opener') {
+        existing.dashMeters = Math.max(existing.dashMeters, 6);
+        existing.ignoreRangeGate = true;
+        existing.style = 'mobility';
+      }
+      if (animKey === 'gs_samurai_teleport_strike') {
+        existing.dashMeters = Math.max(existing.dashMeters, 10);
+        existing.ignoreRangeGate = true;
+        existing.style = 'mobility';
+      }
+      if (skillId === 'gs_flaming_fissure' || animKey === 'magic_cast') {
+        existing.damageType = 'fire';
+        existing.school = 'fire';
+        existing.hitCollider = 'aoe_target';
+        existing.aoeRadius = Math.max(existing.aoeRadius, 4);
+      }
+      continue;
+    }
+  }
+
+  const base2h = getWeaponCombatProfile('GREATSWORD');
+  for (const s of GREATSWORD_SAMURAI_SKILLS) {
+    if (map.has(s.id)) {
+      const def = map.get(s.id)!;
+      def.animKey = s.animKey;
+      continue;
+    }
+    const isFissure = s.id === 'gs_flaming_fissure';
+    const isDash = s.movement === 'dash';
+    const isTeleport = s.movement === 'teleport';
+    map.set(s.id, {
+      id: s.id,
+      name: s.label,
+      description: s.description,
+      icon: isFissure ? '🔥' : '⚔️',
+      weaponType: 'GREATSWORD',
+      slotType: s.slotKind,
+      tier: s.hotbarSlot,
+      damage: Math.round(40 * s.power),
+      cooldown: s.cooldown ?? base2h.cd,
+      effects: s.vfx,
+      style: isFissure
+        ? 'magic'
+        : isDash || isTeleport
+          ? 'mobility'
+          : 'melee',
+      range: isFissure ? 12 : base2h.range,
+      aoeRadius: isFissure ? 4.5 : 0,
+      arcDeg: base2h.arcDeg,
+      windup: isDash ? 0.12 : base2h.windup,
+      active: base2h.active,
+      recovery: base2h.recovery,
+      hitCollider: isFissure
+        ? 'aoe_target'
+        : isTeleport
+          ? 'aoe_self'
+          : base2h.hitCollider,
+      projectile: 'none',
+      projectileSpeed: 0,
+      damageType: s.damageType === 'fire' ? 'fire' : 'physical',
+      school: s.damageType === 'fire' ? 'fire' : 'physical',
+      animKey: s.animKey,
+      hitCount: s.animKeyB ? 2 : 1,
+      lifesteal: 0,
+      stunSec: isTeleport ? 0.4 : 0,
+      dashMeters: isTeleport ? 10 : isDash ? 6 : 0,
+      executeMult: 1,
+      executeThreshold: 0.3,
+      manaCost: s.cost.mana ?? 0,
+      vfxKey: s.vfx[0] ?? s.id,
+      requiresTarget: !isTeleport,
+      ignoreRangeGate: isDash || isTeleport,
+    });
+  }
+}
+
 export function ensureWeaponSkillCombatCatalog(): Map<string, ProductionSkillCombatDef> {
   if (!built) {
     for (const [k, v] of buildWeaponSkillCombatCatalog()) {
       catalog.set(k, v);
     }
+    applyGreatswordSamuraiOverrides(catalog);
     built = true;
   }
   return catalog;

@@ -6,7 +6,11 @@ export * from "./monsters";
 export * from "./animations";
 export * from "./dungeons";
 export * from "./tier0Items";
+export * from "./t0WeaponVisuals";
+export * from "./raceElementStaffs";
 export * from "./weaponArsenal";
+export * from "./weaponPrefabCatalog";
+export * from "./weaponTierVisuals";
 export * from "./buildSystem";
 export * from "./survivalKitBuildCatalog";
 export * from "./fantasyVillageBuildCatalog";
@@ -27,6 +31,9 @@ export * from "./campUnits";
 export * from "./npcCamps";
 export * from "./completeWorldMap";
 export * from "./biomeEcosystemCatalog";
+export * from "./etherealDestructionZone";
+export * from "./coldBiomeAssets";
+export * from "./floatingIslandBossAssets";
 export * from "./seedContentContract";
 // valheimStyleHarvest intentionally not re-exported until the module ships.
 export * from "./biomeHarvestAssets";
@@ -175,3 +182,7 @@ export function createSaveId(): string {
 }
 
 export * from "./lobbyBakedMap";
+
+export * from "./ingestAssetLayers";
+export * from "./greatswordSamuraiCombat";
+export * from "./dragonKoiCastVfx";

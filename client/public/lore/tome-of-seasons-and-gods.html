@@ -3,517 +3,650 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Grudge Tome of Seasons and Gods</title>
+  <title>Black Tome · Seasons & Gods | Grudge Studio</title>
   <meta name="description" content="The Black Tome — seasons, religions, events, and gods’ days of the Grudge universe. Six-hour days, eight-day weeks, 96-day seasons, 384-day years." />
+  <meta property="og:title" content="Black Tome · Seasons & Gods | Grudge Studio" />
+  <meta property="og:description" content="Lore calendar of the Grudge universe — seasons, patrons, omens, and the eight gods’ days." />
+  <meta property="og:image" content="/opengraph.jpg" />
+  <meta property="og:type" content="article" />
+  <link rel="icon" href="/favicon.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;900&family=Jost:wght@400;500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;0,8..60,700;1,8..60,400&display=swap" rel="stylesheet" />
   <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            display: ['Cinzel', 'serif'],
+            body: ['"Source Serif 4"', 'Georgia', 'serif'],
+            ui: ['Jost', 'system-ui', 'sans-serif'],
+          },
+          colors: {
+            tome: {
+              gold: '#d6b06a',
+              bright: '#f3d9a4',
+              ink: '#1a100a',
+              parchment: '#efe0c1',
+              edge: '#8f6b3d',
+              void: '#050404',
+            },
+          },
+          animation: {
+            'fade-up': 'fadeUp 0.55s cubic-bezier(0.22,1,0.36,1) both',
+            'pulse-gold': 'pulseGold 3.5s ease-in-out infinite',
+          },
+          keyframes: {
+            fadeUp: {
+              from: { opacity: '0', transform: 'translateY(10px)' },
+              to: { opacity: '1', transform: 'none' },
+            },
+            pulseGold: {
+              '0%, 100%': { boxShadow: '0 0 0 0 rgba(214,176,106,0.2)' },
+              '50%': { boxShadow: '0 0 28px 2px rgba(214,176,106,0.22)' },
+            },
+          },
+        },
+      },
+    };
+  </script>
+  <link rel="stylesheet" href="/assets/grudge-static-system.css" />
   <style>
-    :root { color-scheme: dark; }
-    body {
-      background:
-        radial-gradient(circle at top, rgba(130, 92, 44, 0.35), transparent 35%),
-        linear-gradient(180deg, #100d0a 0%, #0b0908 45%, #050404 100%);
-    }
-    .parchment {
-      background:
-        linear-gradient(180deg, rgba(244, 225, 190, 0.96), rgba(214, 186, 140, 0.92)),
-        radial-gradient(circle at center, rgba(255,255,255,0.18), transparent 60%);
-      color: #26180f;
-      box-shadow: 0 0 0 1px rgba(77, 47, 22, 0.55), 0 24px 90px rgba(0,0,0,0.55);
-    }
-    .ink { color: #2b1a10; }
-    .gold { color: #d6b06a; }
-    .chapter-link.active {
-      background: rgba(34, 20, 13, 0.92);
-      color: #f3d9a4;
-      border-color: rgba(214, 176, 106, 0.7);
-    }
     .chapter { display: none; }
-    .chapter.active { display: block; animation: fadeIn 0.3s ease; }
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(4px); }
+    .chapter.active { display: block; animation: fadeUp 0.45s cubic-bezier(0.22,1,0.36,1) both; }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(8px); }
       to { opacity: 1; transform: none; }
     }
-    .ornament { letter-spacing: 0.35em; }
-    .sigil {
-      background: linear-gradient(135deg, rgba(34,20,13,0.88), rgba(74,47,24,0.88));
-      border: 1px solid rgba(214, 176, 106, 0.35);
+    .season-dawnfall { --accent: #4ade80; }
+    .season-iron { --accent: #f59e0b; }
+    .season-hollow { --accent: #c2410c; }
+    .season-frost { --accent: #38bdf8; }
+    .season-card {
+      border-left: 4px solid var(--accent, #d6b06a);
     }
-    .divider {
-      height: 1px;
-      background: linear-gradient(90deg, transparent, rgba(115, 76, 34, 0.9), transparent);
+    .bell-rail {
+      display: grid;
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      gap: 0.35rem;
+    }
+    .bell-chip {
+      text-align: center;
+      font-family: var(--gs-font-ui);
+      font-size: 0.65rem;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      padding: 0.45rem 0.25rem;
+      border-radius: 0.5rem;
+      border: 1px solid rgba(143, 107, 61, 0.4);
+      background: rgba(255, 255, 255, 0.25);
+      color: #2b1a10;
+      transition: background 0.3s, color 0.3s, border-color 0.3s, transform 0.3s;
+    }
+    .bell-chip.is-live {
+      background: #2a1b10;
+      color: #fde68a;
+      border-color: rgba(253, 230, 138, 0.55);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(42, 27, 16, 0.25);
     }
   </style>
 </head>
-<body class="min-h-screen text-stone-100">
-  <div class="max-w-7xl mx-auto px-4 py-6 md:px-8 md:py-10">
-    <div class="parchment rounded-[2rem] overflow-hidden">
-      <header class="relative px-6 py-10 md:px-12 md:py-14 bg-[linear-gradient(180deg,rgba(31,22,14,0.96),rgba(18,13,10,0.98))] text-stone-100">
-        <div class="absolute inset-0 opacity-20" style="background-image: radial-gradient(circle at 20% 20%, rgba(214,176,106,.6) 0, transparent 25%), radial-gradient(circle at 80% 30%, rgba(214,176,106,.35) 0, transparent 20%), radial-gradient(circle at 50% 100%, rgba(214,176,106,.18) 0, transparent 30%);"></div>
-        <div class="relative max-w-4xl">
-          <p class="uppercase text-xs md:text-sm tracking-[0.45em] text-amber-200/70 ornament">THE BLACK TOME OF GRUDGE</p>
-          <h1 class="mt-4 text-4xl md:text-6xl font-black leading-tight text-amber-100">The Seasons, Religions, Events, and Gods’ Days</h1>
-          <p class="mt-5 max-w-3xl text-stone-300 text-base md:text-lg leading-7">
-            A lore book for the Grudge universe: a world of war, balance, chaos, and fate where time is counted in six-hour days, eight-day weeks, and sacred cycles that shape weather, omens, and divine power.
-          </p>
-          <div class="mt-8 grid gap-4 md:grid-cols-4">
-            <div class="sigil rounded-2xl p-4">
-              <div class="text-xs uppercase tracking-[0.3em] text-amber-200/70">Day</div>
-              <div class="mt-2 text-2xl font-bold">6 Hours</div>
-              <div class="mt-1 text-[11px] text-amber-100/50">real wall time</div>
-            </div>
-            <div class="sigil rounded-2xl p-4">
-              <div class="text-xs uppercase tracking-[0.3em] text-amber-200/70">Week</div>
-              <div class="mt-2 text-2xl font-bold">8 Days</div>
-              <div class="mt-1 text-[11px] text-amber-100/50">= 2 real days</div>
-            </div>
-            <div class="sigil rounded-2xl p-4">
-              <div class="text-xs uppercase tracking-[0.3em] text-amber-200/70">Season</div>
-              <div class="mt-2 text-2xl font-bold">96 Days</div>
-              <div class="mt-1 text-[11px] text-amber-100/50">12 weeks</div>
-            </div>
-            <div class="sigil rounded-2xl p-4">
-              <div class="text-xs uppercase tracking-[0.3em] text-amber-200/70">Year</div>
-              <div class="mt-2 text-2xl font-bold">384 Days</div>
-              <div class="mt-1 text-[11px] text-amber-100/50">4 seasons</div>
-            </div>
+<body class="gs-body font-body">
+  <div class="gs-bg" aria-hidden="true"></div>
+
+  <div class="gs-shell">
+    <nav class="gs-topnav" aria-label="Site">
+      <a class="gs-topnav-brand" href="/">
+        <img src="/grudge-logo.png" alt="" width="28" height="28" />
+        <span>Grudge Studio</span>
+      </a>
+      <div class="gs-topnav-links">
+        <a href="/lore/" aria-current="page">Lore</a>
+        <a href="/lore/tome-of-seasons-and-gods.html">Black Tome</a>
+        <a href="/hero-codex/">Hero Codex</a>
+        <a href="/hotkeys.html">Hotkeys</a>
+        <a href="/auth-page.html">Sign in</a>
+      </div>
+    </nav>
+
+    <article class="gs-parchment">
+      <header
+        class="gs-hero"
+        style="--gs-hero-image: url('/assets/backgrounds/main-menu.png')"
+      >
+        <p class="gs-kicker">The Black Tome of Grudge</p>
+        <h1 class="gs-display mt-4 text-4xl md:text-6xl max-w-4xl">
+          Seasons, Religions, Events &amp; Gods’ Days
+        </h1>
+        <p class="gs-lede mt-5">
+          A living lore book for the Grudge universe — war, balance, chaos, and fate —
+          where time is counted in six-hour days, eight-day weeks, and sacred cycles that
+          shape weather, omens, and divine power.
+        </p>
+
+        <div class="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-4 gs-stagger">
+          <div class="gs-sigil gs-pulse">
+            <div class="label">Day</div>
+            <div class="value">6 Hours</div>
+            <div class="hint">real wall time</div>
           </div>
-          <p class="mt-5 text-amber-200/55 text-xs tracking-wide" id="live-clock">Reading the sky…</p>
+          <div class="gs-sigil">
+            <div class="label">Week</div>
+            <div class="value">8 Days</div>
+            <div class="hint">= 2 real days</div>
+          </div>
+          <div class="gs-sigil">
+            <div class="label">Season</div>
+            <div class="value">96 Days</div>
+            <div class="hint">12 weeks</div>
+          </div>
+          <div class="gs-sigil">
+            <div class="label">Year</div>
+            <div class="value">384 Days</div>
+            <div class="hint">4 seasons</div>
+          </div>
+        </div>
+
+        <div class="mt-6 flex flex-wrap items-center gap-3">
+          <p class="gs-live-clock" id="live-clock">Reading the sky…</p>
+          <span class="hidden sm:inline text-amber-200/30">·</span>
+          <p class="gs-live-clock" id="live-short">—</p>
         </div>
       </header>
 
-      <div class="grid lg:grid-cols-[280px_1fr]">
-        <aside class="bg-stone-950 text-stone-200 border-r border-stone-800 p-5 md:p-8">
-          <h2 class="text-lg font-semibold text-amber-100">Contents</h2>
-          <p class="mt-2 text-sm text-stone-400">Open a chapter of the tome.</p>
-          <nav class="mt-6 space-y-3" id="nav">
-            <button class="chapter-link active w-full text-left rounded-xl border border-stone-700 px-4 py-3 transition hover:border-amber-400/70" data-target="chapter-overview">I. The Great Cycle</button>
-            <button class="chapter-link w-full text-left rounded-xl border border-stone-700 px-4 py-3 transition hover:border-amber-400/70" data-target="chapter-seasons">II. The Four Seasons</button>
-            <button class="chapter-link w-full text-left rounded-xl border border-stone-700 px-4 py-3 transition hover:border-amber-400/70" data-target="chapter-faiths">III. Religions and Patrons</button>
-            <button class="chapter-link w-full text-left rounded-xl border border-stone-700 px-4 py-3 transition hover:border-amber-400/70" data-target="chapter-events">IV. Events and Omens</button>
-            <button class="chapter-link w-full text-left rounded-xl border border-stone-700 px-4 py-3 transition hover:border-amber-400/70" data-target="chapter-gods-days">V. Gods’ Days</button>
-            <button class="chapter-link w-full text-left rounded-xl border border-stone-700 px-4 py-3 transition hover:border-amber-400/70" data-target="chapter-calendar">VI. Calendar Use</button>
+      <div class="grid lg:grid-cols-[270px_1fr]">
+        <aside class="bg-stone-950 text-stone-200 border-r border-stone-800/80 p-5 md:p-7">
+          <h2 class="font-display text-lg text-amber-100">Contents</h2>
+          <p class="mt-1 text-sm text-stone-400 font-ui">Open a chapter of the tome.</p>
+          <nav class="mt-5 space-y-2.5" id="nav" aria-label="Chapters">
+            <button type="button" class="gs-chapter-link active" data-target="chapter-overview">I. The Great Cycle</button>
+            <button type="button" class="gs-chapter-link" data-target="chapter-seasons">II. The Four Seasons</button>
+            <button type="button" class="gs-chapter-link" data-target="chapter-faiths">III. Religions &amp; Patrons</button>
+            <button type="button" class="gs-chapter-link" data-target="chapter-events">IV. Events &amp; Omens</button>
+            <button type="button" class="gs-chapter-link" data-target="chapter-gods-days">V. Gods’ Days</button>
+            <button type="button" class="gs-chapter-link" data-target="chapter-calendar">VI. Calendar Use</button>
           </nav>
 
-          <div class="mt-8 rounded-2xl border border-stone-800 bg-stone-900/70 p-4 text-sm leading-6 text-stone-300">
-            <p class="text-amber-100 font-semibold">Core factions</p>
-            <ul class="mt-2 space-y-2">
-              <li><span class="text-amber-200">The Crusade</span> — Odin’s warriors of valor and fate.</li>
-              <li><span class="text-amber-200">The Legion</span> — Madra’s dark army of chaos and rebirth.</li>
-              <li><span class="text-amber-200">The Fabled</span> — The Omni’s alliance of unity and balance.</li>
-              <li><span class="text-amber-200">Pirate Confederacy</span> — neutral dockside black-market power under Racalvin.</li>
+          <div class="mt-7 rounded-2xl border border-stone-800 bg-stone-900/70 p-4 text-sm leading-6 text-stone-300">
+            <p class="text-amber-100 font-semibold font-ui text-xs tracking-wider uppercase">Core factions</p>
+            <ul class="mt-3 space-y-3">
+              <li class="flex gap-2.5 items-center">
+                <img src="/assets/factions/crusade-emblem.png" alt="" class="w-8 h-8 rounded-md object-cover border border-amber-700/40" />
+                <span><span class="text-amber-200">Crusade</span> — Odin</span>
+              </li>
+              <li class="flex gap-2.5 items-center">
+                <img src="/assets/factions/legion-emblem.png" alt="" class="w-8 h-8 rounded-md object-cover border border-purple-500/40" />
+                <span><span class="text-amber-200">Legion</span> — Madra</span>
+              </li>
+              <li class="flex gap-2.5 items-center">
+                <img src="/assets/factions/fabled-emblem.png" alt="" class="w-8 h-8 rounded-md object-cover border border-sky-500/40" />
+                <span><span class="text-amber-200">Fabled</span> — Omni</span>
+              </li>
+              <li class="flex gap-2.5 items-center">
+                <img src="/PirateKing.png" alt="" class="w-8 h-8 rounded-md object-cover border border-amber-500/40" />
+                <span><span class="text-amber-200">Pirates</span> — Racalvin</span>
+              </li>
             </ul>
           </div>
 
-          <div class="mt-6 rounded-2xl border border-stone-800 bg-stone-900/50 p-4 text-xs leading-5 text-stone-400">
-            <p class="text-amber-100/80 font-semibold mb-1">Wall vs game time</p>
+          <div class="mt-5 rounded-2xl border border-stone-800 bg-stone-900/50 p-4 text-xs leading-5 text-stone-400 font-ui">
+            <p class="text-amber-100/80 font-semibold mb-1 uppercase tracking-wider text-[10px]">Wall vs game time</p>
             <p>Real clocks schedule live events. Game sky, tides, weather, and gods’ days use the 6-hour day / 8-day week.</p>
+          </div>
+
+          <div class="mt-5 hidden lg:block">
+            <img
+              src="/assets/backgrounds/island-map.png"
+              alt="Grudge island map"
+              class="w-full rounded-xl border border-stone-700/80 object-cover aspect-[4/3] opacity-90"
+              loading="lazy"
+            />
           </div>
         </aside>
 
-        <main class="px-5 py-6 md:px-10 md:py-10 ink">
-          <section id="chapter-overview" class="chapter active">
-            <h2 class="text-3xl md:text-4xl font-black">The Great Cycle</h2>
-            <p class="mt-4 text-lg leading-8">
-              Time in the Grudge universe is built to be readable at a glance. A day lasts six hours, a week holds eight days, and four seasons complete the year. This makes festivals, raids, divine awakenings, and weather shifts easy to predict in lore and gameplay alike.
+        <main class="px-5 py-6 md:px-10 md:py-10 text-tome-ink">
+          <!-- I -->
+          <section id="chapter-overview" class="chapter active" aria-labelledby="h-overview">
+            <h2 id="h-overview" class="font-display text-3xl md:text-4xl font-black text-tome-ink">The Great Cycle</h2>
+            <p class="mt-4 text-lg leading-8 text-tome-ink/90">
+              Time in the Grudge universe is built to be readable at a glance. A day lasts six hours,
+              a week holds eight days, and four seasons complete the year — so festivals, raids,
+              divine awakenings, and weather shifts stay predictable in lore and gameplay.
             </p>
 
-            <div class="mt-8 grid md:grid-cols-3 gap-5">
-              <div class="rounded-2xl bg-[#efe0c1] border border-[#8f6b3d] p-5">
-                <h3 class="font-bold text-xl">Bells of the Day</h3>
-                <p class="mt-2 leading-7">Each day is divided into six bells: Dawn, Rise, Heat, Ash, Dusk, and Night. These are used to mark patrols, rituals, and boss windows. Each bell is one real hour of a six-hour day.</p>
+            <div class="mt-6">
+              <p class="font-ui text-xs uppercase tracking-[0.2em] text-[#6b4423] mb-2">Bells of the day · live</p>
+              <div class="bell-rail" id="bell-rail" aria-label="Six bells">
+                <div class="bell-chip" data-bell="0">Dawn</div>
+                <div class="bell-chip" data-bell="1">Rise</div>
+                <div class="bell-chip" data-bell="2">Heat</div>
+                <div class="bell-chip" data-bell="3">Ash</div>
+                <div class="bell-chip" data-bell="4">Dusk</div>
+                <div class="bell-chip" data-bell="5">Night</div>
               </div>
-              <div class="rounded-2xl bg-[#efe0c1] border border-[#8f6b3d] p-5">
-                <h3 class="font-bold text-xl">Eight-Day Week</h3>
-                <p class="mt-2 leading-7">The week is long enough for travel, trade, and conflict without becoming difficult to track. Many holy days fall on fixed days to stay memorable. One week equals two real days.</p>
+            </div>
+
+            <div class="mt-8 grid md:grid-cols-3 gap-5 gs-stagger">
+              <div class="gs-card">
+                <div class="gs-card-media">
+                  <img src="/assets/professions/ancient_mystical_forest_with_glowing_particles.png" alt="" loading="lazy" />
+                </div>
+                <div class="gs-card-body">
+                  <h3>Bells of the Day</h3>
+                  <p>Six bells — Dawn, Rise, Heat, Ash, Dusk, Night — mark patrols, rituals, and boss windows. Each bell is one real hour of a six-hour day.</p>
+                </div>
               </div>
-              <div class="rounded-2xl bg-[#efe0c1] border border-[#8f6b3d] p-5">
-                <h3 class="font-bold text-xl">The Year</h3>
-                <p class="mt-2 leading-7">Four seasons, each 96 days, create a stable rhythm for weather tables, religious calendars, harvests, and recurring world events. A year is 384 game days.</p>
+              <div class="gs-card">
+                <div class="gs-card-media">
+                  <img src="/assets/events/faction-war.png" alt="" loading="lazy" />
+                </div>
+                <div class="gs-card-body">
+                  <h3>Eight-Day Week</h3>
+                  <p>Long enough for travel, trade, and conflict without losing track. Holy days fall on fixed gods’ days. One week equals two real days.</p>
+                </div>
+              </div>
+              <div class="gs-card">
+                <div class="gs-card-media">
+                  <img src="/assets/backgrounds/island-map.png" alt="" loading="lazy" />
+                </div>
+                <div class="gs-card-body">
+                  <h3>The Year</h3>
+                  <p>Four seasons × 96 days create weather tables, religious calendars, harvests, and recurring world events. A year is 384 game days.</p>
+                </div>
               </div>
             </div>
 
             <div class="mt-8 rounded-2xl bg-[#f1e1bf] border border-[#8f6b3d] p-6">
-              <h3 class="text-2xl font-bold">Practical time format</h3>
+              <h3 class="font-display text-2xl font-bold">Practical time format</h3>
               <p class="mt-2 leading-7">Use this structure for readable lore timestamps:</p>
               <div class="mt-4 grid md:grid-cols-2 gap-4 text-sm md:text-base">
                 <div class="rounded-xl bg-white/40 p-4 border border-[#8f6b3d]/40">
-                  <p class="font-semibold">Long form</p>
-                  <p class="mt-1">Year 12, Iron Sun 3, Week 4, Tide Day, Bell of Heat</p>
+                  <p class="font-semibold font-ui text-xs uppercase tracking-wider text-[#6b4423]">Long form</p>
+                  <p class="mt-2 font-display text-lg">Year 12, Iron Sun 3, Week 4, Tide Day, Bell of Heat</p>
                 </div>
                 <div class="rounded-xl bg-white/40 p-4 border border-[#8f6b3d]/40">
-                  <p class="font-semibold">Short form</p>
-                  <p class="mt-1">Y12 / S2 / W4 / D4 / H2</p>
+                  <p class="font-semibold font-ui text-xs uppercase tracking-wider text-[#6b4423]">Short form</p>
+                  <p class="mt-2 font-mono text-lg tracking-wide">Y12 / S2 / W4 / D4 / H2</p>
                 </div>
               </div>
-              <div class="mt-4 text-sm leading-6 opacity-80">
-                <p><strong>Y</strong> year · <strong>S</strong> season 1–4 · <strong>W</strong> week in season 1–12 · <strong>D</strong> day 1–8 · <strong>H</strong> bell 0–5 (Dawn→Night)</p>
-              </div>
+              <p class="mt-4 text-sm opacity-80">
+                <strong>Y</strong> year · <strong>S</strong> season 1–4 · <strong>W</strong> week in season 1–12 ·
+                <strong>D</strong> day 1–8 · <strong>H</strong> bell 0–5 (Dawn→Night)
+              </p>
             </div>
 
-            <div class="mt-8 overflow-x-auto">
-              <table class="w-full min-w-[640px] border-collapse rounded-2xl overflow-hidden shadow-lg text-sm">
+            <div class="mt-8 gs-table-wrap">
+              <table class="gs-table">
                 <thead>
-                  <tr class="bg-[#2a1b10] text-amber-100">
-                    <th class="text-left p-3">Measure</th>
-                    <th class="text-left p-3">Game</th>
-                    <th class="text-left p-3">Real time</th>
+                  <tr>
+                    <th>Measure</th>
+                    <th>Game</th>
+                    <th>Real time</th>
                   </tr>
                 </thead>
-                <tbody class="bg-[#f0e0c0]">
-                  <tr class="border-b border-[#8f6b3d]/30"><td class="p-3 font-semibold">Day</td><td class="p-3">6 bells</td><td class="p-3">6 hours</td></tr>
-                  <tr class="border-b border-[#8f6b3d]/30"><td class="p-3 font-semibold">Week</td><td class="p-3">8 days</td><td class="p-3">48 hours (2 days)</td></tr>
-                  <tr class="border-b border-[#8f6b3d]/30"><td class="p-3 font-semibold">Season</td><td class="p-3">96 days (12 weeks)</td><td class="p-3">24 real days</td></tr>
-                  <tr><td class="p-3 font-semibold">Year</td><td class="p-3">384 days (4 seasons)</td><td class="p-3">96 real days</td></tr>
+                <tbody>
+                  <tr><td class="font-semibold">Day</td><td>6 bells</td><td>6 hours</td></tr>
+                  <tr><td class="font-semibold">Week</td><td>8 days</td><td>48 hours (2 days)</td></tr>
+                  <tr><td class="font-semibold">Season</td><td>96 days (12 weeks)</td><td>24 real days</td></tr>
+                  <tr><td class="font-semibold">Year</td><td>384 days (4 seasons)</td><td>96 real days</td></tr>
                 </tbody>
               </table>
             </div>
           </section>
 
-          <section id="chapter-seasons" class="chapter">
-            <h2 class="text-3xl md:text-4xl font-black">The Four Seasons</h2>
+          <!-- II -->
+          <section id="chapter-seasons" class="chapter" aria-labelledby="h-seasons">
+            <h2 id="h-seasons" class="font-display text-3xl md:text-4xl font-black">The Four Seasons</h2>
             <p class="mt-4 text-lg leading-8">
               Seasons in Grudge are more than climate; they are divine moods that change the world’s hostility, abundance, and spiritual pressure.
             </p>
-            <div class="mt-8 grid gap-5">
-              <article class="rounded-2xl bg-[#efe0c1] border border-[#8f6b3d] p-6">
-                <h3 class="text-2xl font-bold">1. Dawnfall Spring</h3>
-                <p class="mt-2 leading-7">Rain returns, graves soften, and old magic wakes beneath root and stone. The Fabled’s influence is strongest here, and healing omens are common.</p>
-                <p class="mt-3 text-sm font-semibold">Days of year: 1–96 · Omni-leaning</p>
+            <div class="mt-8 grid gap-5 md:grid-cols-2 gs-stagger">
+              <article class="gs-card season-card season-dawnfall">
+                <div class="gs-card-media">
+                  <img src="/assets/professions/ancient_mystical_forest_with_glowing_particles.png" alt="Dawnfall Spring" loading="lazy" />
+                </div>
+                <div class="gs-card-body">
+                  <h3>1. Dawnfall Spring</h3>
+                  <p>Rain returns, graves soften, and old magic wakes beneath root and stone. The Fabled’s influence is strongest here, and healing omens are common.</p>
+                  <p class="gs-meta">Days 1–96 · Omni-leaning</p>
+                </div>
               </article>
-              <article class="rounded-2xl bg-[#efe0c1] border border-[#8f6b3d] p-6">
-                <h3 class="text-2xl font-bold">2. Iron Sun Summer</h3>
-                <p class="mt-2 leading-7">Heat drives warbands into motion. Sea routes are clear, battles are frequent, and Odin’s war-signs appear in lightning and banners of ash.</p>
-                <p class="mt-3 text-sm font-semibold">Days of year: 97–192 · Odin-leaning</p>
+              <article class="gs-card season-card season-iron">
+                <div class="gs-card-media">
+                  <img src="/assets/events/faction-war.png" alt="Iron Sun Summer" loading="lazy" />
+                </div>
+                <div class="gs-card-body">
+                  <h3>2. Iron Sun Summer</h3>
+                  <p>Heat drives warbands into motion. Sea routes are clear, battles are frequent, and Odin’s war-signs appear in lightning and banners of ash.</p>
+                  <p class="gs-meta">Days 97–192 · Odin-leaning</p>
+                </div>
               </article>
-              <article class="rounded-2xl bg-[#efe0c1] border border-[#8f6b3d] p-6">
-                <h3 class="text-2xl font-bold">3. Hollow Harvest Autumn</h3>
-                <p class="mt-2 leading-7">Crops, relics, and bones are gathered before the cold. Madra’s rites of transformation rise in power, and corruption spreads through weak villages.</p>
-                <p class="mt-3 text-sm font-semibold">Days of year: 193–288 · Madra-leaning</p>
+              <article class="gs-card season-card season-hollow">
+                <div class="gs-card-media">
+                  <img src="/assets/professions/mystic_flames_chemistry_background.png" alt="Hollow Harvest Autumn" loading="lazy" />
+                </div>
+                <div class="gs-card-body">
+                  <h3>3. Hollow Harvest Autumn</h3>
+                  <p>Crops, relics, and bones are gathered before the cold. Madra’s rites of transformation rise in power, and corruption spreads through weak villages.</p>
+                  <p class="gs-meta">Days 193–288 · Madra-leaning</p>
+                </div>
               </article>
-              <article class="rounded-2xl bg-[#efe0c1] border border-[#8f6b3d] p-6">
-                <h3 class="text-2xl font-bold">4. Black Frost Winter</h3>
-                <p class="mt-2 leading-7">Storms silence roads and sharpen the dead. Winter is the season of exile, siege, and divine judgment. The strongest prayers are made in this dark.</p>
-                <p class="mt-3 text-sm font-semibold">Days of year: 289–384 · Judgment season</p>
+              <article class="gs-card season-card season-frost">
+                <div class="gs-card-media">
+                  <img src="/assets/professions/dark_underground_mine_with_glowing_crystals.png" alt="Black Frost Winter" loading="lazy" />
+                </div>
+                <div class="gs-card-body">
+                  <h3>4. Black Frost Winter</h3>
+                  <p>Storms silence roads and sharpen the dead. Winter is the season of exile, siege, and divine judgment. The strongest prayers are made in this dark.</p>
+                  <p class="gs-meta">Days 289–384 · Judgment season</p>
+                </div>
               </article>
             </div>
           </section>
 
-          <section id="chapter-faiths" class="chapter">
-            <h2 class="text-3xl md:text-4xl font-black">Religions and Patrons</h2>
+          <!-- III -->
+          <section id="chapter-faiths" class="chapter" aria-labelledby="h-faiths">
+            <h2 id="h-faiths" class="font-display text-3xl md:text-4xl font-black">Religions and Patrons</h2>
             <p class="mt-4 text-lg leading-8">
               Faith is factional in Grudge. Each great power carries a patron god whose doctrine shapes war, law, magic, and the shape of holy days.
             </p>
-            <div class="mt-8 grid gap-5">
-              <div class="rounded-2xl bg-[#efe0c1] border border-[#8f6b3d] p-6">
-                <h3 class="text-2xl font-bold">The Crusade — Odin</h3>
-                <p class="mt-2 leading-7"><strong>Domain:</strong> War, Wisdom, Fate, Victory. The Crusade teaches that honor is proven through action and that a worthy death binds a soul to legend.</p>
-                <p class="mt-3 text-sm font-semibold">Sacred timing: Oathday at Bell of Rise · Temples near the Waterfall’s edge</p>
+            <div class="mt-8 grid gap-4 gs-stagger">
+              <div class="gs-faction crusade">
+                <img src="/assets/factions/crusade-emblem.png" alt="Crusade emblem" />
+                <div>
+                  <h3 class="font-display text-xl font-bold m-0">The Crusade — Odin</h3>
+                  <p class="mt-2 leading-7 m-0"><strong>Domain:</strong> War, Wisdom, Fate, Victory. Honor is proven through action; a worthy death binds a soul to legend.</p>
+                  <p class="gs-meta">Oathday · Bell of Rise · Temples near the Waterfall’s edge</p>
+                </div>
               </div>
-              <div class="rounded-2xl bg-[#efe0c1] border border-[#8f6b3d] p-6">
-                <h3 class="text-2xl font-bold">The Legion — Madra</h3>
-                <p class="mt-2 leading-7"><strong>Domain:</strong> Entropy, Transformation, Destruction, Rebirth. The Legion believes that all strength must be broken before it can become something greater.</p>
-                <p class="mt-3 text-sm font-semibold">Sacred timing: Ashday at Bell of Ash · Maw temples on fallen shores</p>
+              <div class="gs-faction legion">
+                <img src="/assets/factions/legion-emblem.png" alt="Legion emblem" />
+                <div>
+                  <h3 class="font-display text-xl font-bold m-0">The Legion — Madra</h3>
+                  <p class="mt-2 leading-7 m-0"><strong>Domain:</strong> Entropy, Transformation, Destruction, Rebirth. All strength must be broken before it can become greater.</p>
+                  <p class="gs-meta">Ashday · Bell of Ash · Maw temples on fallen shores</p>
+                </div>
               </div>
-              <div class="rounded-2xl bg-[#efe0c1] border border-[#8f6b3d] p-6">
-                <h3 class="text-2xl font-bold">The Fabled — The Omni</h3>
-                <p class="mt-2 leading-7"><strong>Domain:</strong> Balance, Unity, Infinity, Harmony. The Fabled preserve peace through order, consensus, and sacred geometry.</p>
-                <p class="mt-3 text-sm font-semibold">Sacred timing: Balance Day at Bell of Dusk · Sanctums on central isles</p>
+              <div class="gs-faction fabled">
+                <img src="/assets/factions/fabled-emblem.png" alt="Fabled emblem" />
+                <div>
+                  <h3 class="font-display text-xl font-bold m-0">The Fabled — The Omni</h3>
+                  <p class="mt-2 leading-7 m-0"><strong>Domain:</strong> Balance, Unity, Infinity, Harmony. Peace through order, consensus, and sacred geometry.</p>
+                  <p class="gs-meta">Balance Day · Bell of Dusk · Sanctums on central isles</p>
+                </div>
               </div>
-              <div class="rounded-2xl bg-[#efe0c1] border border-[#8f6b3d] p-6">
-                <h3 class="text-2xl font-bold">The Pirate Confederacy — Racalvin</h3>
-                <p class="mt-2 leading-7"><strong>Domain:</strong> Trade, theft, tide-law, and survival. They do not preach a faith so much as a code: coin obeys no throne, and every harbor has a price.</p>
-                <p class="mt-3 text-sm font-semibold">Sacred timing: Tide Day at Bell of Heat · Free Port markets</p>
-              </div>
-            </div>
-          </section>
-
-          <section id="chapter-events" class="chapter">
-            <h2 class="text-3xl md:text-4xl font-black">Events and Omens</h2>
-            <p class="mt-4 text-lg leading-8">
-              These are the recurring lore events that can anchor quests, world changes, and seasonal threats.
-            </p>
-            <div class="mt-8 grid lg:grid-cols-2 gap-5">
-              <div class="rounded-2xl bg-[#efe0c1] border border-[#8f6b3d] p-6">
-                <h3 class="text-2xl font-bold">The First Bell War</h3>
-                <p class="mt-2 leading-7">A yearly opening event where banners are raised and border fortresses test their strength.</p>
-                <p class="mt-3 text-sm font-semibold">Date: Dawnfall 1, Oathday, Bell of Dawn</p>
-              </div>
-              <div class="rounded-2xl bg-[#efe0c1] border border-[#8f6b3d] p-6">
-                <h3 class="text-2xl font-bold">Ash Tide Moon</h3>
-                <p class="mt-2 leading-7">A corruption season where undead rise easier, seas turn dark, and Madra-linked enemies appear more often.</p>
-                <p class="mt-3 text-sm font-semibold">Date: Hollow Harvest 63–70, Ashday through Night’s End</p>
-              </div>
-              <div class="rounded-2xl bg-[#efe0c1] border border-[#8f6b3d] p-6">
-                <h3 class="text-2xl font-bold">The Broken Crown Solstice</h3>
-                <p class="mt-2 leading-7">A midwinter omen when rulers, bosses, and gods are said to reveal their true names in dreams.</p>
-                <p class="mt-3 text-sm font-semibold">Date: Black Frost 96, Skywatch, Bell of Night</p>
-              </div>
-              <div class="rounded-2xl bg-[#efe0c1] border border-[#8f6b3d] p-6">
-                <h3 class="text-2xl font-bold">The Nexus Claim Feast</h3>
-                <p class="mt-2 leading-7">A pirate and trade event that turns hostile whenever territory is seized in the Nexus sector.</p>
-                <p class="mt-3 text-sm font-semibold">Date: Tide Day, Week 4 of any season, Bell of Heat</p>
-              </div>
-              <div class="rounded-2xl bg-[#efe0c1] border border-[#8f6b3d] p-6">
-                <h3 class="text-2xl font-bold">The Red Harvest</h3>
-                <p class="mt-2 leading-7">Villages, fields, and camps are taxed in blood or grain. This is a prime time for raids and monster migrations.</p>
-                <p class="mt-3 text-sm font-semibold">Date: Hollow Harvest 24, Gravesday, Bell of Dusk</p>
-              </div>
-              <div class="rounded-2xl bg-[#efe0c1] border border-[#8f6b3d] p-6">
-                <h3 class="text-2xl font-bold">The Godwake</h3>
-                <p class="mt-2 leading-7">A rare cycle when a god’s presence bleeds into the world, empowering temples, altering bosses, and changing weather for a full week.</p>
-                <p class="mt-3 text-sm font-semibold">Date: Any season, Year-turn + 8 days, Bell of Night</p>
+              <div class="gs-faction pirate">
+                <img src="/PirateKing.png" alt="Pirate King Racalvin" />
+                <div>
+                  <h3 class="font-display text-xl font-bold m-0">The Pirate Confederacy — Racalvin</h3>
+                  <p class="mt-2 leading-7 m-0"><strong>Domain:</strong> Trade, theft, tide-law, survival. Coin obeys no throne; every harbor has a price.</p>
+                  <p class="gs-meta">Tide Day · Bell of Heat · Free Port markets</p>
+                </div>
               </div>
             </div>
           </section>
 
-          <section id="chapter-gods-days" class="chapter">
-            <h2 class="text-3xl md:text-4xl font-black">The Gods’ Days</h2>
+          <!-- IV -->
+          <section id="chapter-events" class="chapter" aria-labelledby="h-events">
+            <h2 id="h-events" class="font-display text-3xl md:text-4xl font-black">Events and Omens</h2>
             <p class="mt-4 text-lg leading-8">
-              The eight-day week gives each power a sacred rhythm. These days are ideal for holy markets, raids, blessings, and world bosses.
+              Recurring lore events that anchor quests, world changes, and seasonal threats.
             </p>
-            <div class="mt-8 overflow-x-auto">
-              <table class="w-full min-w-[760px] border-collapse rounded-2xl overflow-hidden shadow-lg">
+            <div class="mt-8 grid lg:grid-cols-2 gap-5 gs-stagger">
+              <div class="gs-card">
+                <div class="gs-card-media">
+                  <img src="/assets/events/faction-war.png" alt="" loading="lazy" />
+                </div>
+                <div class="gs-card-body">
+                  <h3>The First Bell War</h3>
+                  <p>Yearly opening where banners rise and border fortresses test their strength.</p>
+                  <p class="gs-meta">Dawnfall 1 · Oathday · Bell of Dawn</p>
+                </div>
+              </div>
+              <div class="gs-card">
+                <div class="gs-card-media">
+                  <img src="/assets/events/dungeon-raid-1.png" alt="" loading="lazy" />
+                </div>
+                <div class="gs-card-body">
+                  <h3>Ash Tide Moon</h3>
+                  <p>Corruption season — undead rise easier, seas turn dark, Madra-linked enemies surge.</p>
+                  <p class="gs-meta">Hollow Harvest 63–70 · Ashday → Night’s End</p>
+                </div>
+              </div>
+              <div class="gs-card">
+                <div class="gs-card-media">
+                  <img src="/assets/events/dungeon-raid-2.png" alt="" loading="lazy" />
+                </div>
+                <div class="gs-card-body">
+                  <h3>The Broken Crown Solstice</h3>
+                  <p>Midwinter omen when rulers, bosses, and gods reveal true names in dreams.</p>
+                  <p class="gs-meta">Black Frost 96 · Skywatch · Bell of Night</p>
+                </div>
+              </div>
+              <div class="gs-card">
+                <div class="gs-card-media">
+                  <img src="/assets/backgrounds/general.png" alt="" loading="lazy" />
+                </div>
+                <div class="gs-card-body">
+                  <h3>The Nexus Claim Feast</h3>
+                  <p>Pirate and trade event that turns hostile when territory is seized in the Nexus sector.</p>
+                  <p class="gs-meta">Tide Day · Week 4 of any season · Bell of Heat</p>
+                </div>
+              </div>
+              <div class="gs-card">
+                <div class="gs-card-body">
+                  <h3>The Red Harvest</h3>
+                  <p>Villages and camps taxed in blood or grain — prime time for raids and monster migrations.</p>
+                  <p class="gs-meta">Hollow Harvest 24 · Gravesday · Bell of Dusk</p>
+                </div>
+              </div>
+              <div class="gs-card">
+                <div class="gs-card-body">
+                  <h3>The Godwake</h3>
+                  <p>A god’s presence bleeds into the world — temples empower, bosses alter, weather shifts for a full week.</p>
+                  <p class="gs-meta">Any season · Year-turn + 8 days · Bell of Night</p>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- V -->
+          <section id="chapter-gods-days" class="chapter" aria-labelledby="h-gods">
+            <h2 id="h-gods" class="font-display text-3xl md:text-4xl font-black">The Gods’ Days</h2>
+            <p class="mt-4 text-lg leading-8">
+              The eight-day week gives each power a sacred rhythm — holy markets, raids, blessings, and world bosses.
+            </p>
+            <div class="mt-8 gs-table-wrap">
+              <table class="gs-table" style="min-width:760px">
                 <thead>
-                  <tr class="bg-[#2a1b10] text-amber-100">
-                    <th class="text-left p-4 border-b border-amber-800">Day</th>
-                    <th class="text-left p-4 border-b border-amber-800">Name</th>
-                    <th class="text-left p-4 border-b border-amber-800">Sacred Meaning</th>
-                    <th class="text-left p-4 border-b border-amber-800">Typical Event</th>
-                    <th class="text-left p-4 border-b border-amber-800">Best Time</th>
+                  <tr>
+                    <th>Day</th>
+                    <th>Name</th>
+                    <th>Sacred Meaning</th>
+                    <th>Typical Event</th>
+                    <th>Best Time</th>
                   </tr>
                 </thead>
-                <tbody class="bg-[#f0e0c0] text-[#2b1a10]">
-                  <tr class="border-b border-[#8f6b3d]/40">
-                    <td class="p-4 font-semibold">1</td>
-                    <td class="p-4 font-semibold">Oathday</td>
-                    <td class="p-4">Victory, vows, banners, duels</td>
-                    <td class="p-4">Crusade rites and arena challenges</td>
-                    <td class="p-4">Bell of Rise</td>
-                  </tr>
-                  <tr class="border-b border-[#8f6b3d]/40">
-                    <td class="p-4 font-semibold">2</td>
-                    <td class="p-4 font-semibold">Gravesday</td>
-                    <td class="p-4">Loss, endings, remembrance</td>
-                    <td class="p-4">Funeral processions and ancestor prayers</td>
-                    <td class="p-4">Bell of Dusk</td>
-                  </tr>
-                  <tr class="border-b border-[#8f6b3d]/40">
-                    <td class="p-4 font-semibold">3</td>
-                    <td class="p-4 font-semibold">Forge Day</td>
-                    <td class="p-4">Craft, steel, rebuilding</td>
-                    <td class="p-4">Weapon blessings and siege preparations</td>
-                    <td class="p-4">Bell of Heat</td>
-                  </tr>
-                  <tr class="border-b border-[#8f6b3d]/40">
-                    <td class="p-4 font-semibold">4</td>
-                    <td class="p-4 font-semibold">Tide Day</td>
-                    <td class="p-4">Trade, travel, piracy</td>
-                    <td class="p-4">Harbor markets and black-market auctions</td>
-                    <td class="p-4">Bell of Heat</td>
-                  </tr>
-                  <tr class="border-b border-[#8f6b3d]/40">
-                    <td class="p-4 font-semibold">5</td>
-                    <td class="p-4 font-semibold">Balance Day</td>
-                    <td class="p-4">Harmony, judgment, law</td>
-                    <td class="p-4">Fabled councils and treaty renewals</td>
-                    <td class="p-4">Bell of Dusk</td>
-                  </tr>
-                  <tr class="border-b border-[#8f6b3d]/40">
-                    <td class="p-4 font-semibold">6</td>
-                    <td class="p-4 font-semibold">Ashday</td>
-                    <td class="p-4">Decay, sacrifice, change</td>
-                    <td class="p-4">Madra rites and mutation omens</td>
-                    <td class="p-4">Bell of Ash</td>
-                  </tr>
-                  <tr class="border-b border-[#8f6b3d]/40">
-                    <td class="p-4 font-semibold">7</td>
-                    <td class="p-4 font-semibold">Skywatch</td>
-                    <td class="p-4">Fate, prophecy, storms</td>
-                    <td class="p-4">Oracle readings and weather shifts</td>
-                    <td class="p-4">Bell of Night</td>
-                  </tr>
-                  <tr>
-                    <td class="p-4 font-semibold">8</td>
-                    <td class="p-4 font-semibold">Night’s End</td>
-                    <td class="p-4">Silence, rest, hidden things</td>
-                    <td class="p-4">Boss awakenings and secret cult meetings</td>
-                    <td class="p-4">Bell of Night</td>
-                  </tr>
+                <tbody>
+                  <tr><td class="font-semibold">1</td><td class="font-semibold">Oathday</td><td>Victory, vows, banners, duels</td><td>Crusade rites and arena challenges</td><td>Bell of Rise</td></tr>
+                  <tr><td class="font-semibold">2</td><td class="font-semibold">Gravesday</td><td>Loss, endings, remembrance</td><td>Funeral processions and ancestor prayers</td><td>Bell of Dusk</td></tr>
+                  <tr><td class="font-semibold">3</td><td class="font-semibold">Forge Day</td><td>Craft, steel, rebuilding</td><td>Weapon blessings and siege preparations</td><td>Bell of Heat</td></tr>
+                  <tr><td class="font-semibold">4</td><td class="font-semibold">Tide Day</td><td>Trade, travel, piracy</td><td>Harbor markets and black-market auctions</td><td>Bell of Heat</td></tr>
+                  <tr><td class="font-semibold">5</td><td class="font-semibold">Balance Day</td><td>Harmony, judgment, law</td><td>Fabled councils and treaty renewals</td><td>Bell of Dusk</td></tr>
+                  <tr><td class="font-semibold">6</td><td class="font-semibold">Ashday</td><td>Decay, sacrifice, change</td><td>Madra rites and mutation omens</td><td>Bell of Ash</td></tr>
+                  <tr><td class="font-semibold">7</td><td class="font-semibold">Skywatch</td><td>Fate, prophecy, storms</td><td>Oracle readings and weather shifts</td><td>Bell of Night</td></tr>
+                  <tr><td class="font-semibold">8</td><td class="font-semibold">Night’s End</td><td>Silence, rest, hidden things</td><td>Boss awakenings and secret cult meetings</td><td>Bell of Night</td></tr>
                 </tbody>
               </table>
             </div>
-            <p class="mt-4 text-sm opacity-70">Code alias map (gameClock dayNames): Firstdawn→Oathday · Brightide→Gravesday · Midsea→Forge Day · Forgecall→Tide Day · Harvestide→Balance Day · Stormwatch→Ashday · Duskdeep→Skywatch · Restday→Night’s End — or use gods’ day names as production SSOT going forward.</p>
+            <p class="mt-4 text-sm opacity-70 font-ui">
+              Production SSOT: <code class="text-xs">shared/definitions/gameClock.ts</code> dayNames —
+              Oathday · Gravesday · Forge Day · Tide Day · Balance Day · Ashday · Skywatch · Night’s End
+            </p>
           </section>
 
-          <section id="chapter-calendar" class="chapter">
-            <h2 class="text-3xl md:text-4xl font-black">Calendar Use in Lore</h2>
-            <p class="mt-4 text-lg leading-8">
-              Use this calendar to define readable timestamps for the world.
-            </p>
+          <!-- VI -->
+          <section id="chapter-calendar" class="chapter" aria-labelledby="h-cal">
+            <h2 id="h-cal" class="font-display text-3xl md:text-4xl font-black">Calendar Use in Lore</h2>
+            <p class="mt-4 text-lg leading-8">Use this calendar to define readable timestamps for the world.</p>
 
             <div class="mt-8 grid gap-5 md:grid-cols-2">
-              <div class="rounded-2xl bg-[#efe0c1] border border-[#8f6b3d] p-6">
-                <h3 class="text-2xl font-bold">Format</h3>
-                <p class="mt-2 leading-7">Year 12, Iron Sun 3, Week 4, Oathday, Bell of Heat</p>
-              </div>
-              <div class="rounded-2xl bg-[#efe0c1] border border-[#8f6b3d] p-6">
-                <h3 class="text-2xl font-bold">Seasonal Rules</h3>
-                <p class="mt-2 leading-7">Weather tables change by season, boss spawn rates shift by moon, and holy sites become stronger on their patron’s day.</p>
-              </div>
-              <div class="rounded-2xl bg-[#efe0c1] border border-[#8f6b3d] p-6">
-                <h3 class="text-2xl font-bold">Yearly Events</h3>
-                <p class="mt-2 leading-7">Every year can end with a divine convergence, a world siege, or a reset of faction influence across the map.</p>
-              </div>
-              <div class="rounded-2xl bg-[#efe0c1] border border-[#8f6b3d] p-6">
-                <h3 class="text-2xl font-bold">Lore Timing</h3>
-                <p class="mt-2 leading-7">If an event needs a sacred mood, tie it to a gods’ day. If it needs a broad world state, tie it to the season. If it needs a rare moment, tie it to a moon turn.</p>
-              </div>
+              <div class="gs-card"><div class="gs-card-body">
+                <h3>Format</h3>
+                <p>Year 12, Iron Sun 3, Week 4, Oathday, Bell of Heat</p>
+              </div></div>
+              <div class="gs-card"><div class="gs-card-body">
+                <h3>Seasonal Rules</h3>
+                <p>Weather tables change by season, boss spawn rates shift by moon, holy sites strengthen on their patron’s day.</p>
+              </div></div>
+              <div class="gs-card"><div class="gs-card-body">
+                <h3>Yearly Events</h3>
+                <p>Every year can end with a divine convergence, a world siege, or a reset of faction influence across the map.</p>
+              </div></div>
+              <div class="gs-card"><div class="gs-card-body">
+                <h3>Lore Timing</h3>
+                <p>Sacred mood → gods’ day. Broad world state → season. Rare moment → moon turn.</p>
+              </div></div>
             </div>
 
             <div class="mt-8 rounded-2xl bg-[#f1e1bf] border border-[#8f6b3d] p-6">
-              <h3 class="text-2xl font-bold">In practice</h3>
-              <div class="mt-4 grid gap-4">
+              <h3 class="font-display text-2xl font-bold">In practice</h3>
+              <div class="mt-4 grid gap-3 sm:grid-cols-2">
                 <div class="rounded-xl bg-white/40 p-4 border border-[#8f6b3d]/40">
-                  <p class="font-semibold">Daily content</p>
-                  <p class="mt-1">Rotating patrols, bounty boards, tavern rumors, and small shrine blessings.</p>
+                  <p class="font-semibold font-ui text-xs uppercase tracking-wider text-[#6b4423]">Daily</p>
+                  <p class="mt-1">Patrols, bounty boards, tavern rumors, shrine blessings.</p>
                 </div>
                 <div class="rounded-xl bg-white/40 p-4 border border-[#8f6b3d]/40">
-                  <p class="font-semibold">Weekly content</p>
-                  <p class="mt-1">One faction siege, one market day, one oracle event, and one hidden boss window.</p>
+                  <p class="font-semibold font-ui text-xs uppercase tracking-wider text-[#6b4423]">Weekly</p>
+                  <p class="mt-1">Faction siege, market day, oracle event, hidden boss window.</p>
                 </div>
                 <div class="rounded-xl bg-white/40 p-4 border border-[#8f6b3d]/40">
-                  <p class="font-semibold">Seasonal content</p>
-                  <p class="mt-1">Weather shifts, harvest wars, blizzard sieges, corruption surges, and pilgrimage routes.</p>
+                  <p class="font-semibold font-ui text-xs uppercase tracking-wider text-[#6b4423]">Seasonal</p>
+                  <p class="mt-1">Weather shifts, harvest wars, blizzard sieges, corruption surges.</p>
                 </div>
                 <div class="rounded-xl bg-white/40 p-4 border border-[#8f6b3d]/40">
-                  <p class="font-semibold">Yearly content</p>
-                  <p class="mt-1">Godwakes, world resets, relic migrations, grand festivals, and map-wide faction changes.</p>
+                  <p class="font-semibold font-ui text-xs uppercase tracking-wider text-[#6b4423]">Yearly</p>
+                  <p class="mt-1">Godwakes, world resets, relic migrations, grand festivals.</p>
                 </div>
               </div>
             </div>
 
-            <div class="mt-8 overflow-x-auto">
-              <table class="w-full min-w-[860px] border-collapse rounded-2xl overflow-hidden shadow-lg">
+            <div class="mt-8 gs-table-wrap">
+              <table class="gs-table" style="min-width:860px">
                 <thead>
-                  <tr class="bg-[#2a1b10] text-amber-100">
-                    <th class="text-left p-4 border-b border-amber-800">Time</th>
-                    <th class="text-left p-4 border-b border-amber-800">Lore Use</th>
-                    <th class="text-left p-4 border-b border-amber-800">Gameplay Use</th>
-                    <th class="text-left p-4 border-b border-amber-800">Example</th>
+                  <tr>
+                    <th>Time</th>
+                    <th>Lore Use</th>
+                    <th>Gameplay Use</th>
+                    <th>Example</th>
                   </tr>
                 </thead>
-                <tbody class="bg-[#f0e0c0] text-[#2b1a10]">
-                  <tr class="border-b border-[#8f6b3d]/40">
-                    <td class="p-4 font-semibold">Bell of Dawn</td>
-                    <td class="p-4">New beginnings, prayer, travel</td>
-                    <td class="p-4">Quest resets and dawn patrols</td>
-                    <td class="p-4">“At Bell of Dawn, the Crusade marched from the gate.”</td>
-                  </tr>
-                  <tr class="border-b border-[#8f6b3d]/40">
-                    <td class="p-4 font-semibold">Bell of Rise</td>
-                    <td class="p-4">Vows and training</td>
-                    <td class="p-4">Arena matches and oath quests</td>
-                    <td class="p-4">“The duel began on Oathday at Bell of Rise.”</td>
-                  </tr>
-                  <tr class="border-b border-[#8f6b3d]/40">
-                    <td class="p-4 font-semibold">Bell of Heat</td>
-                    <td class="p-4">Trade, war, labor</td>
-                    <td class="p-4">Market events and raid windows</td>
-                    <td class="p-4">“Pirates gathered at Tide Day, Bell of Heat.”</td>
-                  </tr>
-                  <tr class="border-b border-[#8f6b3d]/40">
-                    <td class="p-4 font-semibold">Bell of Ash</td>
-                    <td class="p-4">Decay, mutation, sacrifice</td>
-                    <td class="p-4">Corruption spawns and Madra rituals</td>
-                    <td class="p-4">“Ashday at Bell of Ash opens the old gate.”</td>
-                  </tr>
-                  <tr class="border-b border-[#8f6b3d]/40">
-                    <td class="p-4 font-semibold">Bell of Dusk</td>
-                    <td class="p-4">Judgment, endings, councils</td>
-                    <td class="p-4">Faction diplomacy and siege warnings</td>
-                    <td class="p-4">“Balance Day ends with the council at Dusk.”</td>
-                  </tr>
-                  <tr>
-                    <td class="p-4 font-semibold">Bell of Night</td>
-                    <td class="p-4">Secrets, omens, gods</td>
-                    <td class="p-4">Boss awakenings and cult encounters</td>
-                    <td class="p-4">“Night’s End at Bell of Night stirs the godwake.”</td>
-                  </tr>
+                <tbody>
+                  <tr><td class="font-semibold">Bell of Dawn</td><td>Beginnings, prayer, travel</td><td>Quest resets, dawn patrols</td><td>“At Bell of Dawn, the Crusade marched.”</td></tr>
+                  <tr><td class="font-semibold">Bell of Rise</td><td>Vows and training</td><td>Arena matches, oath quests</td><td>“The duel began on Oathday at Rise.”</td></tr>
+                  <tr><td class="font-semibold">Bell of Heat</td><td>Trade, war, labor</td><td>Market events, raid windows</td><td>“Pirates gathered at Tide Day, Heat.”</td></tr>
+                  <tr><td class="font-semibold">Bell of Ash</td><td>Decay, mutation, sacrifice</td><td>Corruption spawns, Madra rites</td><td>“Ashday at Ash opens the old gate.”</td></tr>
+                  <tr><td class="font-semibold">Bell of Dusk</td><td>Judgment, councils</td><td>Diplomacy, siege warnings</td><td>“Balance Day ends with the council.”</td></tr>
+                  <tr><td class="font-semibold">Bell of Night</td><td>Secrets, omens, gods</td><td>Boss awakenings, cults</td><td>“Night’s End stirs the godwake.”</td></tr>
                 </tbody>
               </table>
             </div>
 
             <div class="mt-10 rounded-2xl border border-[#8f6b3d]/50 bg-[#2a1b10] text-amber-100 p-6 text-sm leading-7">
-              <p class="font-bold text-amber-200">Open this tome</p>
+              <p class="font-bold text-amber-200 font-display text-lg">Open this tome</p>
               <p class="mt-2 font-mono text-xs md:text-sm opacity-90">/lore/tome-of-seasons-and-gods.html</p>
-              <p class="font-mono text-xs md:text-sm opacity-90">client/public/lore/tome-of-seasons-and-gods.html</p>
-              <p class="mt-3 opacity-70">Production clock SSOT: shared/definitions/gameClock.ts · Gods/factions: shared/definitions/lore.ts</p>
+              <p class="mt-3 opacity-70 font-ui text-xs">
+                Production clock SSOT: <code>shared/definitions/gameClock.ts</code> ·
+                Gods/factions: <code>shared/definitions/lore.ts</code>
+              </p>
+              <div class="mt-4 flex flex-wrap gap-2 font-ui text-xs">
+                <a href="/lore/" class="px-3 py-1.5 rounded-full border border-amber-500/40 text-amber-100 hover:bg-amber-500/10">Lore hub</a>
+                <a href="/hero-codex/" class="px-3 py-1.5 rounded-full border border-amber-500/40 text-amber-100 hover:bg-amber-500/10">Hero Codex</a>
+                <a href="/hotkeys.html" class="px-3 py-1.5 rounded-full border border-amber-500/40 text-amber-100 hover:bg-amber-500/10">Hotkeys</a>
+              </div>
             </div>
           </section>
         </main>
       </div>
-    </div>
+    </article>
 
-    <p class="text-center text-stone-500 text-xs mt-6">
+    <p class="gs-footer-note">
       Grudge Studio · Black Tome · 6h day · 8-day week · 96-day season · 384-day year
     </p>
   </div>
 
   <script>
-    const links = document.querySelectorAll('.chapter-link');
-    const chapters = document.querySelectorAll('.chapter');
+    (function () {
+      const links = document.querySelectorAll('.gs-chapter-link');
+      const chapters = document.querySelectorAll('.chapter');
 
-    links.forEach((link) => {
-      link.addEventListener('click', () => {
-        const target = link.dataset.target;
-        links.forEach((btn) => btn.classList.remove('active'));
-        chapters.forEach((chapter) => chapter.classList.remove('active'));
-        link.classList.add('active');
+      function openChapter(id, pushHash) {
+        const target = id || 'chapter-overview';
+        links.forEach((btn) => btn.classList.toggle('active', btn.dataset.target === target));
+        chapters.forEach((ch) => ch.classList.toggle('active', ch.id === target));
+        if (pushHash !== false) history.replaceState(null, '', '#' + target);
         const el = document.getElementById(target);
-        el.classList.add('active');
-        history.replaceState(null, '', '#' + target);
-        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      });
-    });
-
-    // Deep-link support
-    const hash = (location.hash || '').replace(/^#/, '');
-    if (hash && document.getElementById(hash)) {
-      links.forEach((btn) => btn.classList.toggle('active', btn.dataset.target === hash));
-      chapters.forEach((chapter) => chapter.classList.toggle('active', chapter.id === hash));
-    }
-
-    // Live clock aligned with production gameClock (6h day, 8-day week)
-    const GOD_DAYS = [
-      'Oathday', 'Gravesday', 'Forge Day', 'Tide Day',
-      'Balance Day', 'Ashday', 'Skywatch', "Night's End",
-    ];
-    const BELLS = ['Dawn', 'Rise', 'Heat', 'Ash', 'Dusk', 'Night'];
-    const SEASONS = ['Dawnfall Spring', 'Iron Sun Summer', 'Hollow Harvest Autumn', 'Black Frost Winter'];
-    const REAL_MS_PER_GAME_DAY = 6 * 60 * 60 * 1000;
-    const EPOCH = Date.UTC(2026, 0, 1, 0, 0, 0);
-    const DAYS_PER_YEAR = 384;
-
-    function tickClock() {
-      const now = Date.now();
-      const dayIndex = Math.floor((now - EPOCH) / REAL_MS_PER_GAME_DAY);
-      const dayOfWeek = ((dayIndex % 8) + 8) % 8;
-      const dayOfYear = ((dayIndex % DAYS_PER_YEAR) + DAYS_PER_YEAR) % DAYS_PER_YEAR;
-      const season = Math.floor(dayOfYear / 96);
-      const dayInSeason = (dayOfYear % 96) + 1;
-      const weekInSeason = Math.floor((dayInSeason - 1) / 8) + 1;
-      const intoDay = ((now - EPOCH) % REAL_MS_PER_GAME_DAY + REAL_MS_PER_GAME_DAY) % REAL_MS_PER_GAME_DAY;
-      const bell = Math.min(5, Math.floor((intoDay / REAL_MS_PER_GAME_DAY) * 6));
-      const year = Math.floor(dayIndex / DAYS_PER_YEAR) + 1;
-      const el = document.getElementById('live-clock');
-      if (el) {
-        el.textContent =
-          `Live · Year ${year}, ${SEASONS[season]} day ${dayInSeason}, Week ${weekInSeason}, ` +
-          `${GOD_DAYS[dayOfWeek]}, Bell of ${BELLS[bell]} · wall ${new Date(now).toUTCString()}`;
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
-    }
-    tickClock();
-    setInterval(tickClock, 1000);
+
+      links.forEach((link) => {
+        link.addEventListener('click', () => openChapter(link.dataset.target));
+      });
+
+      const hash = (location.hash || '').replace(/^#/, '');
+      if (hash && document.getElementById(hash)) openChapter(hash, false);
+
+      // Keyboard: 1–6 jump chapters
+      document.addEventListener('keydown', (e) => {
+        if (e.target.matches('input, textarea, select')) return;
+        const n = parseInt(e.key, 10);
+        if (n >= 1 && n <= 6) {
+          const btn = links[n - 1];
+          if (btn) openChapter(btn.dataset.target);
+        }
+      });
+
+      const GOD_DAYS = [
+        'Oathday', 'Gravesday', 'Forge Day', 'Tide Day',
+        'Balance Day', 'Ashday', 'Skywatch', "Night's End",
+      ];
+      const BELLS = ['Dawn', 'Rise', 'Heat', 'Ash', 'Dusk', 'Night'];
+      const SEASONS = ['Dawnfall Spring', 'Iron Sun Summer', 'Hollow Harvest Autumn', 'Black Frost Winter'];
+      const REAL_MS_PER_GAME_DAY = 6 * 60 * 60 * 1000;
+      const EPOCH = Date.UTC(2026, 0, 1, 0, 0, 0);
+      const DAYS_PER_YEAR = 384;
+
+      function tickClock() {
+        const now = Date.now();
+        const dayIndex = Math.floor((now - EPOCH) / REAL_MS_PER_GAME_DAY);
+        const dayOfWeek = ((dayIndex % 8) + 8) % 8;
+        const dayOfYear = ((dayIndex % DAYS_PER_YEAR) + DAYS_PER_YEAR) % DAYS_PER_YEAR;
+        const season = Math.floor(dayOfYear / 96);
+        const dayInSeason = (dayOfYear % 96) + 1;
+        const weekInSeason = Math.floor((dayInSeason - 1) / 8) + 1;
+        const intoDay = ((now - EPOCH) % REAL_MS_PER_GAME_DAY + REAL_MS_PER_GAME_DAY) % REAL_MS_PER_GAME_DAY;
+        const bell = Math.min(5, Math.floor((intoDay / REAL_MS_PER_GAME_DAY) * 6));
+        const year = Math.floor(dayIndex / DAYS_PER_YEAR) + 1;
+
+        const live = document.getElementById('live-clock');
+        if (live) {
+          live.innerHTML =
+            `Live · Year ${year}, ${SEASONS[season]} day ${dayInSeason}, Week ${weekInSeason}, ` +
+            `${GOD_DAYS[dayOfWeek]}, <span class="bell">Bell of ${BELLS[bell]}</span>`;
+        }
+        const short = document.getElementById('live-short');
+        if (short) {
+          short.textContent = `Y${year} / S${season + 1} / W${weekInSeason} / D${dayOfWeek + 1} / H${bell}`;
+        }
+        document.querySelectorAll('.bell-chip').forEach((chip) => {
+          chip.classList.toggle('is-live', Number(chip.dataset.bell) === bell);
+        });
+      }
+      tickClock();
+      setInterval(tickClock, 1000);
+    })();
   </script>
 </body>
 </html>

@@ -65,12 +65,19 @@ export const WEAPON_SPRITE_MAP: Record<string, string> = {
   "crossbow-emberbolt": "emberbolt",
   "crossbow-ironshard": "ironshard_crossbow",
   
-  "gun-blackpowder": "blackpowder_blaster",
-  "gun-ironstorm": "ironstorm_gun",
-  "gun-bloodcannon": "bloodcannon",
-  "gun-wraithbarrel": "wraithbarrel",
-  "gun-emberrifle": "emberrifle",
-  "gun-duskblaster": "duskblaster",
+  // 6 gun styles — sprite ids align with STYLE_ICON_MATCH + prefab mesh
+  "gun-blackpowder": "blackpowder_blaster", // copper / style 1
+  "gun-ironstorm": "ironstorm_gun", // silver / style 2
+  "gun-emberrifle": "emberrifle", // gold / style 3
+  "gun-wraithbarrel": "wraithbarrel", // diamond / style 4
+  "gun-duskblaster": "duskblaster", // voxel / style 5
+  "gun-bloodcannon": "bloodcannon", // cold_viking / style 6 (mesh TBD)
+  "gun_style_copper": "blackpowder_blaster",
+  "gun_style_silver": "ironstorm_gun",
+  "gun_style_gold": "emberrifle",
+  "gun_style_diamond": "wraithbarrel",
+  "gun_style_voxel": "duskblaster",
+  "gun_style_cold_viking": "bloodcannon",
   
   "staff-fire-emberwrath": "emberwrath_staff",
   "staff-fire-infernal": "infernal_grudge_staff",
@@ -267,11 +274,112 @@ export const ARMOR_SPRITE_MAP: Record<string, string> = {
 };
 
 export function getWeaponSpritePath(weaponId: string, weaponType: string): string {
+  // Shields: selected shield art
+  const wt = (weaponType || '').toLowerCase();
+  if (wt === 'shield' || wt === 'offhand' || weaponId?.toLowerCase().includes('shield')) {
+    return getShieldIconPath(weaponId, weaponType);
+  }
+
+  // Prefer mesh-true baked icons: /icons/weapons/generated/{id}.png
+  if (weaponId) {
+    const safe = weaponId.replace(/[^a-zA-Z0-9_-]/g, '_');
+    // Named style keys gun_style_*, sword_style_*
+    if (/_style_|style_/.test(weaponId) || safe.includes('style')) {
+      return assetUrl(`/icons/weapons/generated/${safe}.png`);
+    }
+  }
+
   const spriteName = WEAPON_SPRITE_MAP[weaponId];
   if (spriteName) {
     return resolveIconUrl(`/icons/weapons/${spriteName}.png`, { weaponType, category: weaponType });
   }
   return getPackIconForCategory({ weaponType, category: weaponType });
+}
+
+/**
+ * Icon for the **selected** shield — craftpix / curated shield PNGs that match
+ * the best-looking equipment mesh, not a generic Shield_01 pack plate.
+ */
+export function getShieldIconPath(
+  shieldIdOrStyle?: string | null,
+  _weaponType?: string,
+): string {
+  const id = (shieldIdOrStyle || 'style_copper').toLowerCase();
+
+  // Direct style keys
+  const styleKeys = [
+    'copper',
+    'silver',
+    'gold',
+    'diamond',
+    'voxel',
+    'cold_viking',
+  ] as const;
+  for (const s of styleKeys) {
+    if (id === s || id.includes(`style_${s}`) || id.endsWith(`_${s}`)) {
+      return assetUrl(`/icons/weapons/shields/style_${s}.png`);
+    }
+  }
+
+  // Named best-look equipment
+  if (id.includes('fire')) return assetUrl('/icons/weapons/shields/fire_shield.png');
+  if (id.includes('murozond') || id.includes('gaze')) {
+    return assetUrl('/icons/weapons/shields/murozond.png');
+  }
+  if (id.includes('crimson') || id.includes('rose')) {
+    return assetUrl('/icons/weapons/shields/crimson_rose.png');
+  }
+  if (id.includes('utcm') || id.includes('voxel')) {
+    return assetUrl('/icons/weapons/shields/utcm.png');
+  }
+  if (id.includes('rune')) {
+    return assetUrl('/icons/weapons/shields/style_silver.png');
+  }
+  if (id.includes('viking')) {
+    return assetUrl('/icons/weapons/shields/viking_shield.png');
+  }
+
+  // Prefab id: shield_style_gold
+  const m = id.match(/shield[_\-]?style[_\-]?(\w+)/);
+  if (m?.[1]) {
+    return assetUrl(`/icons/weapons/shields/style_${m[1]}.png`);
+  }
+
+  // Catalog number: shield_12
+  const num = id.match(/shield[_\-]?(\d{1,2})/);
+  if (num?.[1]) {
+    const n = num[1].padStart(2, '0');
+    return assetUrl(`/icons/weapons/shields/shield_${n}.png`);
+  }
+
+  return assetUrl('/icons/weapons/shields/style_copper.png');
+}
+
+/** Full list for shield picker UI (icon + mesh id). */
+export const SHIELD_ICON_CATALOG = [
+  { id: 'shield_style_copper', icon: '/icons/weapons/shields/style_copper.png', label: 'Viking Round' },
+  { id: 'shield_style_silver', icon: '/icons/weapons/shields/style_silver.png', label: 'Viking Rune' },
+  { id: 'shield_style_gold', icon: '/icons/weapons/shields/fire_shield.png', label: 'Shield of Fire' },
+  { id: 'shield_style_diamond', icon: '/icons/weapons/shields/murozond.png', label: "Murozond's Gaze" },
+  { id: 'shield_style_voxel', icon: '/icons/weapons/shields/utcm.png', label: 'UTCM Shield' },
+  { id: 'shield_style_cold_viking', icon: '/icons/weapons/shields/crimson_rose.png', label: 'Crimson Rose' },
+] as const;
+
+/**
+ * Resolve icon for a production weapon style so UI matches 3D mesh palette.
+ * Prefer named sprite; fall back to pack icon path from STYLE_ICON_MATCH.
+ */
+export function getGunStyleIconPath(styleId: string): string {
+  const key = `gun_style_${styleId}`;
+  const sprite = WEAPON_SPRITE_MAP[key];
+  if (sprite) {
+    return resolveIconUrl(`/icons/weapons/${sprite}.png`, {
+      weaponType: 'Gun',
+      category: 'guns',
+    });
+  }
+  const packKey = `gun_${styleId}`;
+  return getPackIconForCategory({ weaponType: 'Gun', category: packKey });
 }
 
 export function getArmorSpritePath(armorId: string, slot: string, material: string): string {

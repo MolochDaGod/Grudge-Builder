@@ -1,0 +1,136 @@
+{
+  "pack": "greatsword_samurai",
+  "source": "sworattackssamurai.glb",
+  "sourceSkeleton": "Core_01",
+  "targetSkeleton": "Bip001",
+  "bakedAt": "2026-07-25T04:28:35.918Z",
+  "bestPractices": {
+    "positionTracks": "stripped — no hip-float",
+    "naming": "gs_samurai_*",
+    "ground": "runtime feet y=0 + pelvis XZ center on kit",
+    "units": "1 unit = 1 m after kit fit 1.8m human"
+  },
+  "boneMap": {
+    "Core_01": "Bip001_Pelvis",
+    "Belly_02": "Bip001_Spine",
+    "Cheast_03": "Bip001_Spine1",
+    "Nesk_04": "Bip001_Neck",
+    "Head_05": "Bip001_Head",
+    "L_Arm_A_06": "Bip001_L_Clavicle",
+    "L_Arm_B_07": "Bip001_L_UpperArm",
+    "L_Arm_C_08": "Bip001_L_Forearm",
+    "L_Arm_D_09": "Bip001_L_Hand",
+    "R_Arm_A_020": "Bip001_R_Clavicle",
+    "R_Arm_B_021": "Bip001_R_UpperArm",
+    "R_Arm_C_022": "Bip001_R_Forearm",
+    "R_Arm_D_023": "Bip001_R_Hand",
+    "L_Leg_A_00": "Bip001_L_Thigh",
+    "L_Leg_B_035": "Bip001_L_Calf",
+    "L_Leg_C_036": "Bip001_L_Foot",
+    "L_Leg_D_037": "Bip001_L_Toe0",
+    "R_Leg_A_039": "Bip001_R_Thigh",
+    "R_Leg_B_040": "Bip001_R_Calf",
+    "R_Leg_C_041": "Bip001_R_Foot",
+    "R_Leg_D_042": "Bip001_R_Toe0"
+  },
+  "clips": [
+    {
+      "source": "4Combo_3",
+      "baked": "gs_samurai_teleport_strike",
+      "duration": 1.625,
+      "tracks": 21,
+      "file": "gs_samurai_teleport_strike.json"
+    },
+    {
+      "source": "11Sword_Off",
+      "baked": "gs_samurai_sword_off",
+      "duration": 2.5,
+      "tracks": 21,
+      "file": "gs_samurai_sword_off.json"
+    },
+    {
+      "source": "1Attack",
+      "baked": "gs_samurai_dash_opener",
+      "duration": 1.4166666269302368,
+      "tracks": 21,
+      "file": "gs_samurai_dash_opener.json"
+    },
+    {
+      "source": "2Combo_1",
+      "baked": "gs_samurai_combo_a",
+      "duration": 1.6666666269302368,
+      "tracks": 21,
+      "file": "gs_samurai_combo_a.json"
+    },
+    {
+      "source": "3Combo_2",
+      "baked": "gs_samurai_combo_b",
+      "duration": 1.6666666269302368,
+      "tracks": 21,
+      "file": "gs_samurai_combo_b.json"
+    },
+    {
+      "source": "5Idle",
+      "baked": "gs_samurai_idle",
+      "duration": 1.6666666269302368,
+      "tracks": 21,
+      "file": "gs_samurai_idle.json"
+    },
+    {
+      "source": "6Idle_sword",
+      "baked": "gs_samurai_idle_sword",
+      "duration": 1.25,
+      "tracks": 21,
+      "file": "gs_samurai_idle_sword.json"
+    },
+    {
+      "source": "7Jump",
+      "baked": "gs_samurai_jump",
+      "duration": 1.5833333730697632,
+      "tracks": 21,
+      "file": "gs_samurai_jump.json"
+    },
+    {
+      "source": "8Jump_sword",
+      "baked": "gs_samurai_jump_sword",
+      "duration": 1.625,
+      "tracks": 21,
+      "file": "gs_samurai_jump_sword.json"
+    },
+    {
+      "source": "9Rurring",
+      "baked": "gs_samurai_run",
+      "duration": 0.8333333134651184,
+      "tracks": 21,
+      "file": "gs_samurai_run.json"
+    },
+    {
+      "source": "10Rurring_sword",
+      "baked": "gs_samurai_run_sword",
+      "duration": 0.8333333134651184,
+      "tracks": 21,
+      "file": "gs_samurai_run_sword.json"
+    },
+    {
+      "source": "11Sword_On",
+      "baked": "gs_samurai_sword_on",
+      "duration": 1.3333333730697632,
+      "tracks": 21,
+      "file": "gs_samurai_sword_on.json"
+    },
+    {
+      "source": "12Walking",
+      "baked": "gs_samurai_walk",
+      "duration": 1.6666666269302368,
+      "tracks": 21,
+      "file": "gs_samurai_walk.json"
+    },
+    {
+      "source": "13Walking_Sword",
+      "baked": "gs_samurai_walk_sword",
+      "duration": 1.6666666269302368,
+      "tracks": 21,
+      "file": "gs_samurai_walk_sword.json"
+    }
+  ]
+}

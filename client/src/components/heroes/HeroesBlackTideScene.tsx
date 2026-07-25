@@ -98,10 +98,20 @@ interface SlotRuntime {
 
 const AIRSHIP_BG = "/backgrounds/scene_airship.png";
 
+/** Final deck establish framing (after intro descend). */
 const ESTABLISH = {
   pos: new THREE.Vector3(0, 3.55, 9.8),
   look: new THREE.Vector3(0, 1.15, 0),
 };
+
+/** High sky approach — camera starts here and follows down onto the airship. */
+const INTRO_HIGH = {
+  pos: new THREE.Vector3(0.4, 14.5, 18.5),
+  look: new THREE.Vector3(0, 0.4, -0.5),
+};
+
+/** Seconds for sky → deck cinema pull. */
+const INTRO_DESCEND_S = 3.2;
 
 function playAnimHint(
   controller: AnimationController | null,
@@ -164,14 +174,17 @@ export default function HeroesBlackTideScene({
     const scene = new THREE.Scene();
     scene.background = null;
 
-    const camera = new THREE.PerspectiveCamera(38, w0 / h0, 0.1, 80);
-    camera.position.copy(ESTABLISH.pos);
-    camera.lookAt(ESTABLISH.look);
+    const camera = new THREE.PerspectiveCamera(38, w0 / h0, 0.1, 120);
+    // Start high above the ship — tick lerps down to ESTABLISH over INTRO_DESCEND_S
+    camera.position.copy(INTRO_HIGH.pos);
+    camera.lookAt(INTRO_HIGH.look);
 
-    const camPos = ESTABLISH.pos.clone();
-    const camLook = ESTABLISH.look.clone();
+    const camPos = INTRO_HIGH.pos.clone();
+    const camLook = INTRO_HIGH.look.clone();
     const camPosT = ESTABLISH.pos.clone();
     const camLookT = ESTABLISH.look.clone();
+    let introElapsed = 0;
+    let introDone = false;
 
     const renderer = new THREE.WebGLRenderer({
       antialias: true,
@@ -387,18 +400,35 @@ export default function HeroesBlackTideScene({
       const dt = Math.min(clock.getDelta(), 0.05);
       const t = clock.elapsedTime;
 
-      camPos.lerp(camPosT, 1 - Math.exp(-2.8 * dt));
-      camLook.lerp(camLookT, 1 - Math.exp(-2.8 * dt));
-      if (camPosT.distanceTo(ESTABLISH.pos) < 0.45) {
-        camera.position.set(
-          camPos.x + Math.sin(t * 0.08) * 0.28,
-          camPos.y + Math.sin(t * 0.12) * 0.06,
-          camPos.z,
-        );
-      } else {
+      // Cinema: follow down from sky to airship deck, then settle / selection zoom
+      if (!introDone) {
+        introElapsed += dt;
+        const u = Math.min(1, introElapsed / INTRO_DESCEND_S);
+        // Smoothstep ease-in-out for cinematic descend
+        const s = u * u * (3 - 2 * u);
+        camPos.lerpVectors(INTRO_HIGH.pos, ESTABLISH.pos, s);
+        camLook.lerpVectors(INTRO_HIGH.look, ESTABLISH.look, s);
+        if (u >= 1) {
+          introDone = true;
+          camPosT.copy(ESTABLISH.pos);
+          camLookT.copy(ESTABLISH.look);
+        }
         camera.position.copy(camPos);
+        camera.lookAt(camLook);
+      } else {
+        camPos.lerp(camPosT, 1 - Math.exp(-2.8 * dt));
+        camLook.lerp(camLookT, 1 - Math.exp(-2.8 * dt));
+        if (camPosT.distanceTo(ESTABLISH.pos) < 0.45) {
+          camera.position.set(
+            camPos.x + Math.sin(t * 0.08) * 0.28,
+            camPos.y + Math.sin(t * 0.12) * 0.06,
+            camPos.z,
+          );
+        } else {
+          camera.position.copy(camPos);
+        }
+        camera.lookAt(camLook);
       }
-      camera.lookAt(camLook);
 
       const wheelWorker = agents.find(
         (a) => !a.locked && a.currentLoc === "wheel" && a.anim !== "walk",
@@ -529,7 +559,7 @@ export default function HeroesBlackTideScene({
           })}
         </div>
         <p className="text-[9px] uppercase tracking-[0.2em] text-amber-100/60 font-cinzel">
-          6 deck posts · goal AI wander · click portrait to zoom
+          Camera follows to deck · 4 crew · grudge6 · click portrait to zoom
         </p>
       </div>
 

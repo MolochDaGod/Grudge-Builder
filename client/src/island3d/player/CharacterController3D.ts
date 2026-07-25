@@ -32,7 +32,13 @@ import type { MotionProfile } from '@/lib/animation/explorer/motionMath';
 import { formatMotionLabel } from './combatHudState';
 import type { CombatHudSnapshot } from './combatHudState';
 import type { PlaybackSlot } from '@/lib/animation/animationCatalog';
-import { fitCharacterRootToHeightM, PLAYER_HEIGHT_M } from '../zoneWorldScale';
+import {
+  fitCharacterRootToHeightM,
+  reFitCharacterAfterAnimSample,
+  sanitizeRaceScaleMult,
+  PLAYER_HEIGHT_M,
+  HUMAN_HEIGHT_M,
+} from '../zoneWorldScale';
 import {
   CharacterStateMachine,
   globalStateManager,
@@ -293,7 +299,8 @@ export class CharacterController3D {
   private terrainMesh: THREE.Mesh;
   private groundObject: THREE.Object3D | null;
   private groundSampler: ((x: number, z: number) => number | null) | null;
-  private baseMoveSpeed = 30;
+  /** SI locomotion (m/s). Was 30 — absurd for 1.8 m human (felt fine only when 100× giant). */
+  private baseMoveSpeed = 5.5;
   private turnSpeed = 3;
   private velocity = new THREE.Vector3();
   private direction = new THREE.Vector3();
@@ -456,13 +463,29 @@ export class CharacterController3D {
         ensureCharacterTextureColorSpace(loaded.scene);
       }
 
-      // race height mult (1.0 human, 0.85 dwarf…) — fit to 2m world
-      const raceMult = resolvedModel3d?.scale ?? race.scale ?? modelUnit.scale ?? 1;
+      // race height mult (1.0 human, 0.85 dwarf…) — NEVER trust scale:100 from DB
+      const raceMult = sanitizeRaceScaleMult(
+        resolvedModel3d?.scale ?? race.scale ?? modelUnit.scale ?? 1,
+      );
       this.applyLoadedModel(loaded, raceMult);
       // Always load Mixamo idle/walk/run — race GLBs are often T-pose with no clips
       await this.reloadWeaponAnimations(weaponType);
       if (this.animations?.hasClip('idle')) {
         this.animations.play('idle');
+        // Pose changes bbox — re-fit after first mixer sample (100× / hip-float guard)
+        this.animations.update?.(1 / 30);
+        if (this.loadedModelScene) {
+          reFitCharacterAfterAnimSample(this.loadedModelScene, raceMult, PLAYER_HEIGHT_M);
+        }
+      }
+      const rep = this.loadedModelScene?.userData?.characterScale;
+      if (rep) {
+        console.info(
+          `[Character] SI scale ${rep.diagnosis} h=${Number(rep.measuredAfter).toFixed(2)}m ` +
+            `target=${Number(rep.targetHeight).toFixed(2)}m decade=${rep.unitDecade} ` +
+            `(HUMAN=${HUMAN_HEIGHT_M}m)`,
+          rep,
+        );
       }
 
       // Foot IK layer (dash plant + terrain) — after skinned mesh is in place
@@ -976,9 +999,12 @@ export class CharacterController3D {
     });
     ensureCharacterTextureColorSpace(loaded.scene);
 
-    // Fit to world meters + center on tile (prevents giant T-pose off-square)
-    // Uses visible equip meshes only (catalog already ran)
-    fitCharacterRootToHeightM(loaded.scene, raceScaleMult, PLAYER_HEIGHT_M);
+    // SI fit: 1 unit = 1 m, unit-decade UNCLAMPED (0.01 for classic 100× cm-as-m)
+    const mult = sanitizeRaceScaleMult(raceScaleMult);
+    fitCharacterRootToHeightM(loaded.scene, mult, PLAYER_HEIGHT_M);
+
+    // Never leave an extra scale on the controller root (double-scale = 100× regressions)
+    this.model.scale.set(1, 1, 1);
 
     while (this.model.children.length) {
       this.model.remove(this.model.children[0]);
@@ -2066,15 +2092,16 @@ export class CharacterController3D {
     this.tutorialInjuredMode = true;
     this.invincible = true;
     this.tutorialLockedHp = lockedHp;
-    // Limp: slower base move during wash-up
-    this.baseMoveSpeed = Math.min(this.baseMoveSpeed, 14);
+    // Limp: slower base move during wash-up (SI m/s)
+    this.baseMoveSpeed = Math.min(this.baseMoveSpeed, 2.8);
   }
 
   disableTutorialInjuredMode(): void {
     this.tutorialInjuredMode = false;
     this.invincible = false;
     this.tutorialLockedHp = null;
-    this.baseMoveSpeed = 30;
+    // Restore SI walk/run yardstick (~5.5 m/s base, not 30)
+    this.baseMoveSpeed = 5.5;
   }
 
   /** Play injured ground loop (prone) for cinematic */

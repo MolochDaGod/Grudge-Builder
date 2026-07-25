@@ -10,6 +10,7 @@
   <meta property="og:type" content="website" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Jost:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/assets/grudge-static-system.css" />
   <style>
     *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
     body {
@@ -31,6 +32,17 @@
       background: rgba(10,14,26,0.95);
       border-bottom: 1px solid rgba(255,215,0,0.15);
       backdrop-filter: blur(8px);
+    }
+    .header-fleet-links {
+      display: flex; flex-wrap: wrap; gap: 6px; align-items: center;
+      font-family: 'Jost', sans-serif; font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase;
+    }
+    .header-fleet-links a {
+      color: #a8a29e; text-decoration: none; padding: 4px 10px; border-radius: 999px;
+      border: 1px solid transparent; transition: color 0.2s, border-color 0.2s, background 0.2s;
+    }
+    .header-fleet-links a:hover {
+      color: #fde68a; border-color: rgba(253,230,138,0.35); background: rgba(253,230,138,0.06);
     }
     .header-left { display: flex; align-items: center; gap: 12px; }
     .header h1 { font-family: 'Cinzel', serif; color: #ffd700; font-size: 1.15rem; }
@@ -222,6 +234,13 @@
 
 <div class="header">
   <div class="header-left">
+    <nav class="header-fleet-links" aria-label="Fleet pages">
+      <a href="/">Home</a>
+      <a href="/lore/">Lore</a>
+      <a href="/lore/tome-of-seasons-and-gods.html">Black Tome</a>
+      <a href="/hotkeys.html">Hotkeys</a>
+    </nav>
+
     <div>
       <h1>Hero Codex</h1>
       <p class="sub"><span id="count">0</span> of <span id="total">0</span> · Canonical Warlords roster</p>

@@ -141,11 +141,20 @@ export const WEAPON_SKILL_TREES: Record<string, WeaponSkillTree> = {
   MACE: { weaponType: "MACE", skills: AXE_SKILLS },
   HAMMER: { weaponType: "HAMMER", skills: AXE_SKILLS },
   SPEAR: { weaponType: "SPEAR", skills: SWORD_SKILLS },
+  /** Mage focus weapon — light channel, not warrior steel */
   WAND: { weaponType: "WAND", skills: STAFF_SKILLS },
   SCYTHE: { weaponType: "SCYTHE", skills: AXE_SKILLS },
   SHIELD: { weaponType: "SHIELD", skills: SWORD_SKILLS },
   TWO_HAND_SWORD: { weaponType: "TWO_HAND_SWORD", skills: SWORD_SKILLS },
+  /** Worge shapeshift grimoire — not mage tome */
   GRIMOIRE: { weaponType: "GRIMOIRE", skills: STAFF_SKILLS },
+  /** Prefer weaponSkillsNew.GUN for full tree */
+  GUN: { weaponType: "GUN", skills: BOW_SKILLS },
+  CHAIN_KNIFE: { weaponType: "CHAIN_KNIFE", skills: DAGGER_SKILLS },
+  /** Warrior dual-wield battle system */
+  BATTLE_DUAL: { weaponType: "BATTLE_DUAL", skills: SWORD_SKILLS },
+  /** Ranger ammo/log kit */
+  RANGER_LOG: { weaponType: "RANGER_LOG", skills: BOW_SKILLS },
   // TOME → off-hand modifier (not a weapon, see weaponSkillsNew.ts)
   // RELIC → equipment trinket slot (not a weapon, see relicDatabase.ts)
 };

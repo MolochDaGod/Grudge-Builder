@@ -1,0 +1,59 @@
+{
+  "pack": "greatsword_samurai",
+  "weaponApiId": "GREATSWORD",
+  "aliasWeaponIds": ["GREATSWORD", "TWO_HAND_SWORD"],
+  "bakedPath": "/anims/baked/greatsword_samurai/",
+  "cdnPath": "https://assets.grudge-studio.com/anims/baked/greatsword_samurai/",
+  "bestPractices": {
+    "naming": "gs_samurai_*",
+    "positionTracks": "stripped",
+    "yHip": "rotation-only; never pelvis.y as feet",
+    "xz": "centerXZOnPelvis + controller root motion",
+    "units": "1 unit = 1 m after 1.8m kit fit"
+  },
+  "slots": {
+    "1": {
+      "id": "gs_samurai_cleave_combo",
+      "clips": [
+        "gs_samurai_combo_a",
+        "gs_samurai_combo_b"
+      ],
+      "role": "normal_attack_two_hit",
+      "source": [
+        "2Combo_1",
+        "3Combo_2"
+      ]
+    },
+    "2": {
+      "id": "gs_samurai_teleport_strike",
+      "clips": [
+        "gs_samurai_teleport_strike"
+      ],
+      "role": "teleport_skill",
+      "movement": "teleport",
+      "source": [
+        "4Combo_3"
+      ]
+    },
+    "3": {
+      "id": "gs_samurai_dash_opener",
+      "clips": [
+        "gs_samurai_dash_opener"
+      ],
+      "role": "opener_slash_dash",
+      "movement": "dash",
+      "source": [
+        "1Attack"
+      ]
+    },
+    "4": {
+      "id": "gs_flaming_fissure",
+      "clips": [
+        "magic_cast"
+      ],
+      "pack": "magic",
+      "role": "flaming_fissure",
+      "vfx": "fx.mage.fire_fissure"
+    }
+  }
+}

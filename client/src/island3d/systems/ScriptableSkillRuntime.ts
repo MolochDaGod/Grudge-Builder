@@ -145,6 +145,25 @@ export class ScriptableSkillRuntime {
       (skill.vfxKey && this.vfxCatalog?.entries[skill.vfxKey]) || null;
     opts.onVfx?.(vfx, skill);
 
+    // Surrounding dragon-koi cast aura for channel/cast time (multi color/shader)
+    const castSec = skill.castTimeSec ?? 0;
+    if (castSec > 0.05) {
+      void import('../vfx/WorldFxBus').then(({ getWorldFxBus }) => {
+        const bus = getWorldFxBus();
+        if (!bus) return;
+        const token = bus.beginCastAura({
+          attachTo: opts.caster,
+          school: skill.school,
+          damageType: skill.damage?.type,
+          skillId: skill.id,
+          vfxKey: skill.vfxKey ?? skill.id,
+          animKey: skill.animKey,
+          castTimeSec: castSec,
+        });
+        window.setTimeout(() => bus.endCastAura(token), castSec * 1000);
+      });
+    }
+
     // Supernova impact (4-color pack) at target or caster
     const impactPos =
       opts.targetPos?.clone() ??

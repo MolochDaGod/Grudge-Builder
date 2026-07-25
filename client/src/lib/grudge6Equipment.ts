@@ -31,6 +31,8 @@ const SLOT_DEFS: SlotDef[] = [
   { slot: "axe", re: /(?:Units_|weapon_)axe_([A-Z])$/i, group: "weapon_r" },
   { slot: "hammer", re: /(?:Units_|weapon_)hammer_([A-Z])$/i, group: "weapon_r" },
   { slot: "sword", re: /(?:Units_|weapon_)[Ss]word_([A-Z])$/i, group: "weapon_r" },
+  // BRB_weapon_Dagger — optional letter; empty → A. External bone_dagger.glb when race kit has no dagger
+  { slot: "dagger", re: /(?:Units_|weapon_)[Dd]agger(?:_([A-Z]))?$/i, group: "weapon_r" },
   { slot: "pick", re: /(?:Units_|weapon_)pick$/i, group: "weapon_r", noVariant: true },
   { slot: "spear", re: /(?:Units_|weapon_)[Ss]pear$/i, group: "weapon_r", noVariant: true },
   { slot: "bow", re: /(?:Units_|weapon_)[Bb]ow$/i, group: "weapon_l", noVariant: true },
@@ -41,7 +43,17 @@ const SLOT_DEFS: SlotDef[] = [
   { slot: "quiver", re: /(?:Xtra_|Units_)quiver$/i, group: "utility", noVariant: true },
 ];
 
-const WEAPON_SLOTS = new Set(["axe", "hammer", "sword", "pick", "spear", "bow", "staff", "shield"]);
+const WEAPON_SLOTS = new Set([
+  "axe",
+  "hammer",
+  "sword",
+  "dagger",
+  "pick",
+  "spear",
+  "bow",
+  "staff",
+  "shield",
+]);
 const ARMOR_DEFAULTS: Record<string, string> = {
   body: "A",
   arms: "A",

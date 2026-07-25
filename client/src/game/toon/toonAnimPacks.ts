@@ -24,6 +24,7 @@ export type ToonWeaponMode =
   | "rifle"
   | "shooter"
   | "longbow"
+  | "greatsword"
   | "adventure"
   | "native";
 
@@ -170,11 +171,30 @@ export const LONGBOW_PACK: PackClipMap = {
   roll: "longbow/standing dodge forward",
 };
 
+/**
+ * Greatsword / 2H samurai — Bip001 rotation-only (Core_01 retarget).
+ * Naming: gs_samurai_*; no hip position tracks; ground Y/XZ on kit.
+ * Prefer BAKED_ANIM_LOCAL or BAKED_ANIM_ASSETS base when resolving.
+ */
+export const GREATSWORD_SAMURAI_PACK: PackClipMap = {
+  ...ADVENTURE_PACK,
+  idle: "greatsword_samurai/gs_samurai_idle_sword",
+  walk: "greatsword_samurai/gs_samurai_walk_sword",
+  run: "greatsword_samurai/gs_samurai_run_sword",
+  sprint: "greatsword_samurai/gs_samurai_run_sword",
+  attack: "greatsword_samurai/gs_samurai_combo_a",
+  fire: "greatsword_samurai/gs_samurai_combo_b",
+  fire2: "greatsword_samurai/gs_samurai_dash_opener",
+  jump: "greatsword_samurai/gs_samurai_jump_sword",
+  draw: "greatsword_samurai/gs_samurai_sword_on",
+};
+
 export const WEAPON_MODE_PACKS: Record<ToonWeaponMode, PackClipMap> = {
   pistol: PISTOL_PACK,
   rifle: RIFLE_PACK,
   shooter: SHOOTER_PACK,
   longbow: LONGBOW_PACK,
+  greatsword: GREATSWORD_SAMURAI_PACK,
   adventure: ADVENTURE_PACK,
   native: {},
 };

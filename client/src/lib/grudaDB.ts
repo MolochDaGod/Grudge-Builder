@@ -6,7 +6,16 @@
  * syncItemsFromObjectStore() replaces ITEMS/RECIPES with canonical data on app init.
  */
 
-import { WEAPON_SPRITE_MAP, ARMOR_SPRITE_MAP, getWeaponSpritePath, getArmorSpritePath, getTomeIconPath } from '@/data/weaponSpriteMap';
+import {
+  WEAPON_SPRITE_MAP,
+  ARMOR_SPRITE_MAP,
+  getWeaponSpritePath,
+  getArmorSpritePath,
+  getTomeIconPath,
+  getShieldIconPath,
+} from '@/data/weaponSpriteMap';
+import { getEquipmentIconSync } from '@/lib/equipmentIconResolver';
+import { getArmorIconSync } from '@/lib/armorIconResolver';
 import { assetUrl, resolveIconUrl } from "@/lib/assetConfig";
 import { fetchMasterItems, fetchMasterRecipes } from "@/lib/objectStoreApi";
 
@@ -28,6 +37,8 @@ export interface GrudaItem {
   craftingLevel?: number;
   resources?: Record<string, number>; // For crafting
   weaponId?: string; // Links to weapon data for sprite mapping
+  prefabId?: string;
+  styleId?: string;
   armorId?: string; // Links to armor data for sprite mapping
   weaponType?: string; // Weapon type for sprite folder selection
   material?: string; // Armor material for sprite selection
@@ -36,6 +47,33 @@ export interface GrudaItem {
 // Helper to resolve icon path using parsed gear sprites
 export const resolveItemImage = (item: Partial<GrudaItem>): string => {
   const tier = Math.min(Math.max(item.tier || 1, 1), 8) as 1|2|3|4|5|6|7|8;
+
+  // Equipment: prefer icon that matches the **selected mesh** (style/prefab)
+  const typeLower = (item.weaponType || item.type || item.slot || '').toLowerCase();
+  const isWeaponLike =
+    !!item.weaponType ||
+    !!item.weaponId ||
+    !!item.prefabId ||
+    typeLower.includes('weapon') ||
+    typeLower.includes('shield') ||
+    typeLower.includes('sword') ||
+    typeLower.includes('gun') ||
+    typeLower === 'offhand';
+
+  if (isWeaponLike && (item.prefabId || item.styleId || item.weaponType)) {
+    // Mesh-true: cool weapons OK if icon is of that weapon (resolver generates)
+    return getEquipmentIconSync({
+      weaponId: item.weaponId,
+      weaponType: item.weaponType || item.type,
+      type: item.type,
+      slot: item.slot,
+      name: item.name,
+      image: item.image,
+      prefabId: item.prefabId,
+      styleId: item.styleId,
+      preferMeshIcon: true,
+    });
+  }
 
   if (item.image) {
     return resolveIconUrl(item.image, {
@@ -46,12 +84,46 @@ export const resolveItemImage = (item: Partial<GrudaItem>): string => {
     });
   }
 
+  // Shields fallback
+  if (
+    typeLower.includes('shield') ||
+    typeLower === 'offhand' ||
+    item.weaponId?.toLowerCase().includes('shield') ||
+    item.name?.toLowerCase().includes('shield')
+  ) {
+    return getShieldIconPath(
+      item.weaponId || item.prefabId || item.styleId || item.name || 'style_copper',
+      item.weaponType,
+    );
+  }
+
   // Check for weapon ID mapping first (priority over name-based)
   if (item.weaponId && WEAPON_SPRITE_MAP[item.weaponId]) {
     return getWeaponSpritePath(item.weaponId, item.weaponType || '');
   }
   
-  // Check for armor ID mapping
+  // Armour — production icon (sprite / generated / override)
+  const isArmorLike =
+    !!item.armorId ||
+    typeLower.includes('armor') ||
+    typeLower.includes('helm') ||
+    typeLower.includes('chest') ||
+    typeLower.includes('cloth') ||
+    typeLower.includes('leather') ||
+    ['helm', 'shoulder', 'chest', 'hands', 'feet', 'ring', 'necklace', 'relic'].includes(
+      typeLower,
+    );
+  if (isArmorLike || item.armorId) {
+    return getArmorIconSync({
+      id: item.armorId || item.id,
+      armorId: item.armorId || item.id,
+      name: item.name,
+      type: item.slot || item.type,
+      material: item.material,
+      image: item.image,
+    });
+  }
+
   if (item.armorId && ARMOR_SPRITE_MAP[item.armorId]) {
     return getArmorSpritePath(item.armorId, item.slot || '', item.material || '');
   }

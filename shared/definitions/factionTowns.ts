@@ -355,13 +355,14 @@ export const FACTION_TOWNS: Record<FactionId, FactionTown> = {
     spawnPoints: CRUSADE_SPAWN_POINTS,
     npcs: CRUSADE_NPCS,
     ambience: {
-      fogColor: 0xd4a574,
-      fogDensity: 0.0003,
+      // Crusade holds cold: Ethereal Falls SE shelf + Stormbreak ice approaches
+      fogColor: 0xb0c4de,
+      fogDensity: 0.00035,
       accentLightColor: 0x3b82f6,
-      accentLightIntensity: 0.4,
-      skyColor: 0xc4a06a,
-      shrineParticles: ['golden_lightning', 'odin_ravens'],
-      ambientSound: 'town_arid',
+      accentLightIntensity: 0.55,
+      skyColor: 0x8899bb,
+      shrineParticles: ['golden_lightning', 'odin_ravens', 'frost_sparkle'],
+      ambientSound: 'town_cold',
     },
     navmesh: {
       bounds: [-35, -40, 35, 50],
@@ -375,8 +376,15 @@ export const FACTION_TOWNS: Record<FactionId, FactionTown> = {
       ],
       cellSize: 1.0,
     },
-    specialFeatures: ['salt_mines', 'oasis_camps', 'mirage_events'],
-    description: 'Sun-bleached stone walls rise from the cracked salt flats. The Crusade garrison stands watch over precious mineral veins, its blue banners snapping in the hot wind.',
+    specialFeatures: [
+      'cold_garrison',
+      'ethereal_rim_watch',
+      'wizard_house',
+      'ice_patrols',
+      'cosmic_waterfall_warning',
+    ],
+    description:
+      'Crusade cold bastion on the Ethereal Falls SE shelf — blue banners over frost stone, wizard sanctums, and watchfires against the Cosmic Waterfall. Cold patrols range Stormbreak ice reefs; ships are warned never to cross the destruction diagonal.',
   },
 
   legion: {
