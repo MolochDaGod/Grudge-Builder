@@ -26,6 +26,10 @@ import {
   type CodepenPresetId,
   CODEPEN_SOURCE,
 } from './CodepenParticleFx';
+import {
+  DragonKoiCastAuraSystem,
+  type DragonKoiCastOpts,
+} from './DragonKoiCastAura';
 
 export class WorldFxBus {
   readonly root = new THREE.Group();
@@ -36,6 +40,8 @@ export class WorldFxBus {
   private scene: THREE.Scene;
   /** Spell / weapon skill impact pack (4 color variants) */
   readonly supernova: SupernovaImpactSystem;
+  /** Surrounding cast auras (dragon_koi multipack, multi color/opacity/shader) */
+  readonly dragonKoiCast: DragonKoiCastAuraSystem;
 
   constructor(scene: THREE.Scene) {
     this.scene = scene;
@@ -43,8 +49,22 @@ export class WorldFxBus {
     scene.add(this.root);
     this.supernova = new SupernovaImpactSystem(scene);
     setSupernovaImpactSystem(this.supernova);
+    this.dragonKoiCast = new DragonKoiCastAuraSystem(scene);
     // Preload large pack in background so first skill hit isn't cold
     void this.supernova.preload();
+    void this.dragonKoiCast.preload();
+  }
+
+  /**
+   * Surrounding cast FX while windup/channel runs.
+   * Ends automatically after duration or call endCastAura(token).
+   */
+  beginCastAura(opts: DragonKoiCastOpts): number {
+    return this.dragonKoiCast.beginCast(opts);
+  }
+
+  endCastAura(token?: number): void {
+    this.dragonKoiCast.endCast(token);
   }
 
   /** Continuous or burst emitter at a world position (or attached to object). */
@@ -328,6 +348,7 @@ export class WorldFxBus {
     this.trails = stillTrails;
 
     this.supernova.update(dt);
+    this.dragonKoiCast.update(dt);
   }
 
   dispose(): void {
@@ -338,6 +359,7 @@ export class WorldFxBus {
     for (const t of this.trails) t.dispose();
     this.trails = [];
     this.supernova.dispose();
+    this.dragonKoiCast.dispose();
     setSupernovaImpactSystem(null);
     this.scene.remove(this.root);
   }

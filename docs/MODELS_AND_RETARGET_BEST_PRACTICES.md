@@ -121,6 +121,32 @@ Deploy app code (Vercel/Railway) after manifest + catalog edits. Binary-only R2 
 | Raw `1Attack` in hotbar | `gs_samurai_dash_opener` |
 | Wrangler from Program Files cwd | cwd `F:\GitHub\GrudgeBuilder` + `WRANGLER_HOME` |
 
+## 8. Cast surround VFX — dragon koi multipack
+
+| Field | Value |
+|-------|--------|
+| Source | `C:\Users\nugye\Documents\dragon_koi.glb` |
+| Local / CDN | `/models/warlords/vfx/cast/dragon_koi.glb` |
+| SSOT | `shared/definitions/dragonKoiCastVfx.ts` |
+| Runtime | `client/src/island3d/vfx/DragonKoiCastAura.ts` via `WorldFxBus.beginCastAura` |
+
+**One mesh, many cast skins** (no rebake):
+
+| Variant | Shader | Opacity feel |
+|---------|--------|----------------|
+| fire | additive_glow | bright ember |
+| frost | soft_blend | translucent ice mist |
+| arcane | additive_glow | purple channel |
+| holy | emissive_toon | solid radiant body |
+| shadow / void | ghost_mask | dark fill + rim |
+| nature | soft_blend | bloom green |
+| lightning | additive_glow | fast orbit storm |
+| physical | emissive_toon | steel grey |
+
+Lifecycle: **spawn on cast start (windup)** → orbit caster + play embedded `Animation` → **fade out when cast finished** (`windup+active+recovery` or `endCastAura(token)`).
+
+Texture maps on the GLB are kept; color/emissive/opacity/blending are applied per skin so schools look different without separate assets.
+
 ## Sibling docs
 
 - [WARLORDS_ASSET_SSOT.md](./WARLORDS_ASSET_SSOT.md) — CDN / resolve

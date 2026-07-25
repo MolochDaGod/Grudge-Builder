@@ -173,6 +173,27 @@ export class ProductionSkillCombatRuntime {
     // Anim
     this.onAnim?.(skill.animKey, skill);
 
+    // Surrounding cast aura (dragon_koi multipack) for windup — multi color/shader by school
+    // Auto-ends when cast duration finishes; cancel via endCastAura if interrupted.
+    if (this.worldFx && skill.windup >= 0.12) {
+      const castToken = this.worldFx.beginCastAura({
+        position: ctx.casterPos.clone(),
+        school: skill.school,
+        damageType: skill.damageType,
+        skillId: skill.id,
+        vfxKey: skill.vfxKey,
+        animKey: skill.animKey,
+        windup: skill.windup,
+        active: skill.active,
+        recovery: skill.recovery,
+      });
+      const castMs = (skill.windup + skill.active + Math.min(skill.recovery, 0.35)) * 1000;
+      const endTimer = setTimeout(() => {
+        this.worldFx?.endCastAura(castToken);
+      }, castMs);
+      this.pendingTimers.push(endTimer);
+    }
+
     // Dash / blink
     if (skill.dashMeters > 0) {
       let yaw = ctx.casterYaw;

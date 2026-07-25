@@ -234,6 +234,8 @@ export type {
 } from './vfx/CodepenParticleFx';
 export { WorldFxBus, getWorldFxBus, setWorldFxBus, SUPERNOVA_VARIANTS } from './vfx/WorldFxBus';
 export type { SupernovaImpactVariant } from './vfx/WorldFxBus';
+export { DragonKoiCastAuraSystem, applyDragonKoiSkin } from './vfx/DragonKoiCastAura';
+export type { DragonKoiCastOpts } from './vfx/DragonKoiCastAura';
 export {
   SupernovaImpactSystem,
   getSupernovaImpactSystem,
