@@ -137,6 +137,30 @@ listShieldSelections().map(s => ({ icon: s.iconUrl, mesh: s.meshUrl }))
 
 Icons live at `/icons/weapons/shields/` (50 craftpix + named aliases).
 
+## Mesh-true icons (all equipment) — cool weapons OK
+
+**Policy:** Fancy / cool weapon meshes are welcome. The inventory / selection icon
+**must be of that weapon in fact** — a studio render of the equipped GLB, not a
+random pack plate.
+
+| Path | Where |
+|------|--------|
+| Runtime generate from URL | `equipmentIconFromMesh.generateEquipmentIconFromUrl` |
+| Runtime from live equip mesh | `cacheIconFromEquippedWeapon` via `WeaponTierShaderSystem.applyToWeapon({ prefabId })` |
+| Sync UI resolve | `getEquipmentIconSync` / `grudaDB.resolveItemImage` |
+| Prebake | `/generate-equipment-icons.html` → `client/public/icons/weapons/generated/{prefabId}.png` |
+
+```ts
+// Equip cool mesh once — icon becomes that mesh
+sys.applyToWeapon(root, {
+  tier: item.tier,
+  prefabId: item.prefabId ?? 'sword_style_diamond',
+});
+
+// Inventory preload
+await warmGenerateIconsForType('GUN');
+```
+
 ## Chain knife combat
 
 1. **Chain Throw** — ranged dagger with tether  

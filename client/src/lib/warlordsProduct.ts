@@ -71,6 +71,10 @@ export function gcsCreateHeroUrl(): string {
 
 export type WarlordsNavId =
   | 'home'
+  | 'characters'
+  | 'arsenal'
+  | 'professions'
+  | 'skills'
   | 'lore'
   | 'lore-factions'
   | 'lore-gods'
@@ -79,8 +83,15 @@ export type WarlordsNavId =
   | 'codex'
   | 'account'
   | 'play'
-  | 'home-island';
+  | 'home-island'
+  | 'crafting';
 
+/**
+ * Product chrome — WCS-style tabs hosted on GrudgeBuilder SPA (grudgewarlords.com).
+ * Arsenal (weapons / stats / systems / skills editor) is fully local — do not
+ * bounce to warlord-crafting-suite.vercel.app.
+ * No separate WCS / Cloudflare Pages deploy required for these surfaces.
+ */
 export const WARLORDS_NAV: Array<{
   id: WarlordsNavId;
   label: string;
@@ -88,8 +99,12 @@ export const WARLORDS_NAV: Array<{
   primary?: boolean;
 }> = [
   { id: 'home', label: 'Home', href: '/' },
+  { id: 'characters', label: 'Characters', href: '/heroes' },
+  { id: 'arsenal', label: 'Arsenal', href: '/arsenal' },
+  { id: 'professions', label: 'Professions', href: '/professions' },
+  { id: 'skills', label: 'Skill Trees', href: '/skill-tree' },
+  { id: 'crafting', label: 'Crafting', href: '/crafting' },
   { id: 'lore', label: 'Lore', href: '/lore' },
-  { id: 'codex', label: 'Heroes', href: '/hero-codex' },
   { id: 'account', label: 'Account', href: '/account' },
-  { id: 'play', label: 'Play', href: '/home', primary: true },
+  { id: 'play', label: 'Play', href: '/heroes', primary: true },
 ];

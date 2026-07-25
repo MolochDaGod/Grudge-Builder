@@ -12,7 +12,10 @@
  *
  * Usage (equip once → upgrade many times without reload):
  *   const root = await loadGlb(item.prefab mesh); // once
- *   sys.applyToWeapon(root, { tier: item.tier, enhancement, infusion });
+ *   sys.applyToWeapon(root, {
+ *     tier: item.tier, enhancement, infusion,
+ *     prefabId: item.prefabId, // mesh-true inventory icon from this cool mesh
+ *   });
  *   // later: item = upgradeWeaponItemTier(item, 6); re-apply shaders only
  *   sys.applyToWeapon(root, { tier: 6, enhancement, infusion });
  */
@@ -24,6 +27,7 @@ import {
   type WeaponShaderStack,
 } from '@shared/definitions/weaponTierVisuals';
 import type { WorldFxBus } from './WorldFxBus';
+import { cacheIconFromEquippedWeapon } from '@/lib/equipmentIconResolver';
 
 export interface ApplyWeaponVisualOpts {
   tier: number;
@@ -31,6 +35,13 @@ export interface ApplyWeaponVisualOpts {
   infusion?: WeaponInfusionId;
   /** Preserve existing map/normal/roughness maps when present */
   keepMaps?: boolean;
+  /**
+   * Prefab id for mesh-true inventory icon (e.g. sword_style_gold).
+   * Cool fancy meshes are fine — we generate the icon from this Object3D.
+   */
+  prefabId?: string;
+  /** Skip equip-time icon bake (default: bake when prefabId set) */
+  skipIconCache?: boolean;
 }
 
 interface TrackedWeapon {
@@ -142,6 +153,18 @@ export class WeaponTierShaderSystem {
     }
 
     this.tracked.set(id, { root: weaponRoot, stack, mats, uniforms, trailToken });
+
+    // Mesh-true inventory icon from the equipped weapon (cool assets OK)
+    if (opts.prefabId && !opts.skipIconCache) {
+      try {
+        cacheIconFromEquippedWeapon(weaponRoot, opts.prefabId, {
+          tint: stack.tint,
+        });
+      } catch {
+        /* icon bake is non-blocking */
+      }
+    }
+
     return id;
   }
 

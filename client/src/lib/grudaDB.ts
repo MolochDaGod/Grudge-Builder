@@ -60,6 +60,7 @@ export const resolveItemImage = (item: Partial<GrudaItem>): string => {
     typeLower === 'offhand';
 
   if (isWeaponLike && (item.prefabId || item.styleId || item.weaponType)) {
+    // Mesh-true: cool weapons OK if icon is of that weapon (resolver generates)
     return getEquipmentIconSync({
       weaponId: item.weaponId,
       weaponType: item.weaponType || item.type,
@@ -69,6 +70,7 @@ export const resolveItemImage = (item: Partial<GrudaItem>): string => {
       image: item.image,
       prefabId: item.prefabId,
       styleId: item.styleId,
+      preferMeshIcon: true,
     });
   }
 

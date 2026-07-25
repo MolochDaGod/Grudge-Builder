@@ -235,8 +235,9 @@ export interface WeaponPrefabEntry {
   /** Icon match palette for this style */
   iconMatch?: WeaponStyleIconMatch;
   /**
-   * Preferred UI icon — actual equipment image when selected
-   * (e.g. craftpix shield PNG). Prefer over generic pack icons.
+   * Preferred UI icon when it is art of **this** mesh (e.g. craftpix shield PNG).
+   * Cool unique weapons may leave this null — runtime generates a product shot
+   * from the GLB so the inventory icon is the weapon in fact.
    */
   iconUrl?: string | null;
 }
@@ -347,7 +348,9 @@ function ready(
 }
 
 /**
- * Icon for equipped/selected equipment — prefers prefab iconUrl (real shield art).
+ * Catalog plate for equipped/selected equipment when curated art exists.
+ * Prefer mesh-true generate (`equipmentIconFromMesh`) for cool unique weapons;
+ * this returns only explicit iconUrl (e.g. shield craftpix matching that mesh).
  */
 export function getPrefabIconUrl(
   weaponType: string,
