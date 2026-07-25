@@ -63,12 +63,63 @@ function className(id: string) {
   return CLASSES.find((c) => c.id === id)?.name ?? id;
 }
 
+function readQueryParams() {
+  if (typeof window === "undefined") return { characterId: null as string | null, errorCode: null as string | null };
+  const q = new URLSearchParams(window.location.search);
+  return {
+    characterId: q.get("characterId"),
+    errorCode: q.get("error"),
+  };
+}
+
 export default function HeroesPage() {
   const [, setLocation] = useLocation();
-  const { characters: warlordsChars, loading, activeId, setActive, error } = useCharacters();
+  const { characters: warlordsChars, loading, activeId, setActive, error, refetch } = useCharacters();
   const [voxelChars, setVoxelChars] = useState<Character[]>([]);
   const [dest, setDest] = useState<PlayDest>("zone");
   const signedIn = isAuthenticated();
+  const [handoffError, setHandoffError] = useState<string | null>(null);
+  const [queryCharId] = useState(() => readQueryParams().characterId);
+  const [queryError] = useState(() => readQueryParams().errorCode);
+
+  // Honor ?characterId= handoff + surface ?error=load recovery
+  useEffect(() => {
+    if (queryError === "load") {
+      setHandoffError(
+        signedIn
+          ? "Could not load that character. Pick a crew slot or create one — ownership is on your Grudge ID account (cNFT claim is optional)."
+          : "Sign in with Grudge ID to load your heroes. Characters are account-bound on Railway; cNFTs stay in server escrow until you claim.",
+      );
+    }
+  }, [queryError, signedIn]);
+
+  useEffect(() => {
+    if (!queryCharId || loading) return;
+    const found =
+      warlordsChars.find((c) => c.id === queryCharId) ||
+      voxelChars.find((c) => c.id === queryCharId);
+    if (found) {
+      setActive(found.id);
+      setHandoffError(null);
+      // Clean error/query noise from URL without reload
+      try {
+        const url = new URL(window.location.href);
+        url.searchParams.delete("error");
+        if (url.searchParams.get("characterId") === queryCharId) {
+          // keep characterId for shareable deep link, drop error only
+        }
+        window.history.replaceState({}, "", url.pathname + (url.search || "") + url.hash);
+      } catch {
+        /* ignore */
+      }
+    } else if (signedIn && warlordsChars.length + voxelChars.length > 0) {
+      setHandoffError(
+        `Character ${queryCharId.slice(0, 8)}… is not on this account roster. Select another hero or create a new one.`,
+      );
+    } else if (signedIn && !loading && warlordsChars.length === 0 && voxelChars.length === 0) {
+      setHandoffError("No characters on this Grudge ID yet. Create one to fill a crew slot.");
+    }
+  }, [queryCharId, loading, warlordsChars, voxelChars, signedIn, setActive]);
 
   // Explorer / voxel era selections (GRUDOX 4-slot) — merged with warlords for crew AI
   useEffect(() => {
@@ -185,9 +236,15 @@ export default function HeroesPage() {
             className="p-4 flex flex-col sm:flex-row items-center justify-between gap-3 rounded-md border border-sky-400/25 pointer-events-auto backdrop-blur-sm"
             style={{ background: "linear-gradient(180deg, rgba(12,28,40,0.88), rgba(6,12,20,0.92))" }}
           >
-            <p className="text-sm text-slate-200">Sign in to load your 4-slot crew roster.</p>
+            <p className="text-sm text-slate-200">
+              Sign in with Grudge ID to load your 4-slot crew. Characters are account-owned; cNFTs mint to
+              server escrow (claim to wallet is optional).
+            </p>
             <a
-              href={buildSsoLoginUrl(undefined, "/heroes")}
+              href={buildSsoLoginUrl(
+                undefined,
+                queryCharId ? `/heroes?characterId=${encodeURIComponent(queryCharId)}` : "/heroes",
+              )}
               className="inline-flex items-center gap-2 px-5 py-2 font-cinzel text-sm uppercase tracking-wider rounded border border-amber-600/50 bg-gradient-to-b from-[#5a2818] to-[#2a0e08] text-amber-50"
             >
               <LogIn className="w-4 h-4" /> Sign in
@@ -201,8 +258,22 @@ export default function HeroesPage() {
           </div>
         )}
 
-        {error && (
-          <p className="text-center text-red-300 text-sm drop-shadow pointer-events-none">{error}</p>
+        {(error || handoffError) && (
+          <div
+            className="p-3 rounded-md border border-red-400/40 pointer-events-auto backdrop-blur-sm text-center"
+            style={{ background: "linear-gradient(180deg, rgba(40,12,12,0.9), rgba(20,8,8,0.95))" }}
+          >
+            <p className="text-red-200 text-sm drop-shadow">{handoffError || error}</p>
+            {signedIn && (
+              <button
+                type="button"
+                onClick={() => void refetch()}
+                className="mt-2 text-xs text-amber-200/90 underline underline-offset-2"
+              >
+                Retry load roster
+              </button>
+            )}
+          </div>
         )}
 
         {/* Compact slot strip (works with 3D pick) */}

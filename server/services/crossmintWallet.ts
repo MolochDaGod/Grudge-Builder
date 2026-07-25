@@ -167,17 +167,42 @@ export class CrossmintWalletService {
 
   // ==================== CHARACTER NFT METHODS ====================
 
-  buildCharacterMetadata(character: Character, imageUrl: string): CharacterNFTMetadata {
-    const attrs = character.attributes as Record<string, number>;
+  buildCharacterMetadata(
+    character: Character,
+    imageUrl: string,
+    ownership?: {
+      characterId?: string | null;
+      accountId?: string | null;
+      grudgeId?: string | null;
+      grudgeCode?: string | null;
+    },
+  ): CharacterNFTMetadata {
+    const attrs = (character.attributes || {}) as Record<string, number>;
 
     // Case-insensitive attribute lookup (handles Strength, strength, STR, etc.)
     const getAttr = (key: string): number => {
       return attrs[key] || attrs[key.toLowerCase()] || attrs[key.toUpperCase()] || 0;
     };
 
+    const ownershipAttrs: Array<{ trait_type: string; value: string | number }> = [];
+    if (ownership?.characterId) {
+      ownershipAttrs.push({ trait_type: 'CharacterId', value: ownership.characterId });
+    }
+    if (ownership?.accountId) {
+      ownershipAttrs.push({ trait_type: 'AccountId', value: ownership.accountId });
+    }
+    if (ownership?.grudgeId) {
+      ownershipAttrs.push({ trait_type: 'GrudgeId', value: ownership.grudgeId });
+    }
+    if (ownership?.grudgeCode) {
+      ownershipAttrs.push({ trait_type: 'GrudgeCode', value: ownership.grudgeCode });
+    }
+    ownershipAttrs.push({ trait_type: 'Custody', value: 'escrow_admin' });
+    ownershipAttrs.push({ trait_type: 'GameOwnership', value: 'railway_account' });
+
     return {
       name: character.name,
-      description: `${character.name} is a Level ${character.level} ${character.raceId} ${character.classId} from Grudge Warlords.`,
+      description: `${character.name} is a Level ${character.level} ${character.raceId} ${character.classId} from Grudge Warlords. Game ownership is bound to Grudge ID / account; chain custody may be server-escrow until claimed.`,
       image: imageUrl,
       attributes: [
         { trait_type: 'Race', value: character.raceId },
@@ -193,6 +218,7 @@ export class CrossmintWalletService {
         { trait_type: 'Tactics', value: getAttr('Tactics') },
         { trait_type: 'XP', value: character.xp },
         { trait_type: 'HP', value: character.hp },
+        ...ownershipAttrs,
       ],
       properties: {
         files: [{ uri: imageUrl, type: 'image/png' }],
@@ -206,6 +232,12 @@ export class CrossmintWalletService {
     imageUrl: string,
     recipientWallet: string,
     compressed: boolean = true,
+    ownership?: {
+      characterId?: string | null;
+      accountId?: string | null;
+      grudgeId?: string | null;
+      grudgeCode?: string | null;
+    },
   ): Promise<CrossmintMintResponse | null> {
     if (!this.apiKey) {
       console.error('[Crossmint] Cannot mint NFT — API key not configured');
@@ -213,7 +245,7 @@ export class CrossmintWalletService {
     }
 
     try {
-      const metadata = this.buildCharacterMetadata(character, imageUrl);
+      const metadata = this.buildCharacterMetadata(character, imageUrl, ownership);
       const collectionId = CROSSMINT_COLLECTION_ID;
 
       console.log('[Crossmint] Minting NFT to wallet:', recipientWallet);
@@ -262,6 +294,12 @@ export class CrossmintWalletService {
     imageUrl: string,
     email: string,
     compressed: boolean = true,
+    ownership?: {
+      characterId?: string | null;
+      accountId?: string | null;
+      grudgeId?: string | null;
+      grudgeCode?: string | null;
+    },
   ): Promise<CrossmintMintResponse | null> {
     if (!this.apiKey) {
       console.error('[Crossmint] Cannot mint NFT — API key not configured');
@@ -269,7 +307,7 @@ export class CrossmintWalletService {
     }
 
     try {
-      const metadata = this.buildCharacterMetadata(character, imageUrl);
+      const metadata = this.buildCharacterMetadata(character, imageUrl, ownership);
       const collectionId = CROSSMINT_COLLECTION_ID;
 
       console.log('[Crossmint] Minting NFT to email:', email);
