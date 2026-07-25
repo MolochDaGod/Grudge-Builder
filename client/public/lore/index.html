@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lore Library | Grudge Studio</title>
+  <meta name="description" content="Grudge lore library — Black Tome calendar, hero codex, factions, and production time SSOT." />
+  <meta property="og:title" content="Lore Library | Grudge Studio" />
+  <meta property="og:image" content="/opengraph.jpg" />
+  <link rel="icon" href="/favicon.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;900&family=Jost:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            display: ['Cinzel', 'serif'],
+            body: ['"Source Serif 4"', 'Georgia', 'serif'],
+            ui: ['Jost', 'system-ui', 'sans-serif'],
+          },
+        },
+      },
+    };
+  </script>
+  <link rel="stylesheet" href="/assets/grudge-static-system.css" />
+</head>
+<body class="gs-body font-body">
+  <div class="gs-bg" aria-hidden="true"></div>
+  <div class="gs-shell max-w-5xl">
+    <nav class="gs-topnav" aria-label="Site">
+      <a class="gs-topnav-brand" href="/">
+        <img src="/grudge-logo.png" alt="" width="28" height="28" />
+        <span>Grudge Studio</span>
+      </a>
+      <div class="gs-topnav-links">
+        <a href="/lore/" aria-current="page">Lore</a>
+        <a href="/lore/tome-of-seasons-and-gods.html">Black Tome</a>
+        <a href="/hero-codex/">Hero Codex</a>
+        <a href="/hotkeys.html">Hotkeys</a>
+        <a href="/auth-page.html">Sign in</a>
+      </div>
+    </nav>
+
+    <header class="mb-8 animate-[fadeUp_0.55s_ease_both]">
+      <p class="gs-kicker">Library</p>
+      <h1 class="gs-display text-4xl md:text-5xl mt-3">Lore of the Grudge</h1>
+      <p class="gs-lede mt-4 text-stone-300">
+        Canonical books, calendars, and codices for Warlords and the fleet.
+        Time is law: 6-hour days, 8 gods’ days, 96-day seasons.
+      </p>
+    </header>
+
+    <div class="grid gap-5 md:grid-cols-2 gs-stagger">
+      <a href="/lore/tome-of-seasons-and-gods.html" class="gs-card block no-underline text-inherit group">
+        <div class="gs-card-media">
+          <img src="/assets/backgrounds/main-menu.png" alt="Black Tome" />
+        </div>
+        <div class="gs-card-body">
+          <h2 class="font-display text-xl font-bold m-0 group-hover:text-[#6b4423]">Black Tome · Seasons &amp; Gods</h2>
+          <p class="mt-2">Seasons, patrons, omens, gods’ days, and the production game clock — with live bells.</p>
+          <p class="gs-meta">/lore/tome-of-seasons-and-gods.html</p>
+        </div>
+      </a>
+
+      <a href="/hero-codex/" class="gs-card block no-underline text-inherit group">
+        <div class="gs-card-media">
+          <img src="/hero-codex/hero-portraits/aurion.png" alt="Hero Codex" />
+        </div>
+        <div class="gs-card-body">
+          <h2 class="font-display text-xl font-bold m-0 group-hover:text-[#6b4423]">Hero Codex</h2>
+          <p class="mt-2">Canonical roster portraits, factions, loadouts, and lore for Warlords heroes.</p>
+          <p class="gs-meta">/hero-codex/</p>
+        </div>
+      </a>
+
+      <a href="/hotkeys.html" class="gs-card block no-underline text-inherit group">
+        <div class="gs-card-media">
+          <img src="/assets/events/dungeon-raid-1.png" alt="Hotkeys" />
+        </div>
+        <div class="gs-card-body">
+          <h2 class="font-display text-xl font-bold m-0 group-hover:text-[#6b4423]">Hotkeys Reference</h2>
+          <p class="mt-2">Combat, movement, and UI bindings for Grudge Warlords.</p>
+          <p class="gs-meta">/hotkeys.html</p>
+        </div>
+      </a>
+
+      <a href="/auth-page.html" class="gs-card block no-underline text-inherit group">
+        <div class="gs-card-media">
+          <img src="/auth-bg-racalvin.jpg" alt="Sign in" />
+        </div>
+        <div class="gs-card-body">
+          <h2 class="font-display text-xl font-bold m-0 group-hover:text-[#6b4423]">Grudge ID</h2>
+          <p class="mt-2">Sign in for characters, islands, and fleet games — one identity.</p>
+          <p class="gs-meta">/auth-page.html</p>
+        </div>
+      </a>
+    </div>
+
+    <div class="mt-10 grid grid-cols-3 gap-3 sm:grid-cols-3">
+      <img src="/assets/factions/crusade-emblem.png" alt="Crusade" class="rounded-xl border border-amber-700/40 aspect-square object-cover" />
+      <img src="/assets/factions/legion-emblem.png" alt="Legion" class="rounded-xl border border-purple-500/40 aspect-square object-cover" />
+      <img src="/assets/factions/fabled-emblem.png" alt="Fabled" class="rounded-xl border border-sky-500/40 aspect-square object-cover" />
+    </div>
+
+    <p class="gs-footer-note">Grudge Studio · Lore Library · Black Tome SSOT</p>
+  </div>
+  <style>
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: none; }
+    }
+  </style>
+</body>
+</html>
