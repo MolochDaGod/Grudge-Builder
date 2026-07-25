@@ -21,6 +21,35 @@ export default function SystemsPage() {
 
         <TruthPanel variant="page" refreshMs={60_000} />
 
+        <section className="rounded-xl border border-amber-800/40 bg-amber-950/20 p-6">
+          <h2 className="text-lg font-semibold text-amber-100 mb-2">Combat equipment lab</h2>
+          <p className="text-sm text-stone-400 mb-3">
+            Canonical database browser for weapons/armor, grip + wrist IK (anti mesh-through-body),
+            hit reach colliders, force patterns (push/pull/knock-up/uppercut), passives, and live
+            buff/debuff stacks with icons and tooltips.
+          </p>
+          <a
+            href="/combat-lab"
+            className="inline-flex items-center gap-2 rounded-lg bg-amber-600/90 hover:bg-amber-500 px-4 py-2 text-sm font-medium text-stone-950"
+          >
+            Open Combat Lab
+          </a>
+          <div className="mt-3 flex flex-wrap gap-3 text-xs text-stone-500">
+            <a href="/weapon-admin" className="text-amber-400/80 hover:underline">
+              Weapon models
+            </a>
+            <a href="/weapon-skills" className="text-amber-400/80 hover:underline">
+              Weapon skills
+            </a>
+            <a href="/admin-combat" className="text-amber-400/80 hover:underline">
+              Timeline editor
+            </a>
+            <a href="/database" className="text-amber-400/80 hover:underline">
+              Item database
+            </a>
+          </div>
+        </section>
+
         <section className="rounded-xl border border-stone-700/60 bg-stone-950/60 p-6">
           <h2 className="text-lg font-semibold text-stone-200 mb-4">Registered services</h2>
           <div className="space-y-3">
