@@ -76,6 +76,7 @@ function plan() {
   console.log("After seed: each character is a world quest-giver NPC with prompted AI + 3 campaign quests.");
   console.log("Faction commander unlocks after 24 quests (8 heroes × 3) — see docs/FACTION_HERO_CAMPAIGN.md");
   return codex;
+}
 
 async function main() {
   const flags = parseArgs(process.argv.slice(2));
@@ -95,88 +96,174 @@ async function main() {
   const { accounts, characters, characterNFTs, users } = await import("../shared/schema");
   const { eq, or, sql } = await import("drizzle-orm");
 
-  // Resolve grudachain account
-  const [user] = await db
+  // Prefer exact GRUDACHAIN username (case-insensitive); avoid grabbing other grudgedev emails first
+  const userRows = await db
     .select()
     .from(users)
     .where(
       or(
-        eq(users.username, TARGET_USERNAME),
         sql`lower(${users.username}) = ${TARGET_USERNAME}`,
+        sql`lower(${users.username}) = 'grudachain'`,
+        sql`${users.grudgeId} = 'GRUDGE_MPOUIQCG529CA'`,
         sql`lower(${users.email}) = 'grudgedev@gmail.com'`,
       ) as any,
     )
-    .limit(1);
+    .limit(20);
+
+  const user =
+    userRows.find((u) => (u.username || "").toLowerCase() === TARGET_USERNAME) ||
+    userRows.find((u) => (u.username || "").toUpperCase() === "GRUDACHAIN") ||
+    userRows[0];
 
   if (!user) {
-    console.error(`No user found for ${TARGET_USERNAME} / grudgedev@gmail.com — abort.`);
+    console.error(`No user found for ${TARGET_USERNAME} — abort.`);
     process.exit(1);
   }
 
-  const [account] = await db
-    .select()
-    .from(accounts)
-    .where(eq(accounts.userId, user.id))
-    .limit(1);
+  console.log(`Resolved user=${user.id} username=${user.username} grudgeId=${user.grudgeId}`);
+
+  // Account: by userId, or orphan grudgeId GRUDACHAIN / user grudgeId, or create
+  let account =
+    (
+      await db.select().from(accounts).where(eq(accounts.userId, user.id)).limit(1)
+    )[0] || null;
 
   if (!account) {
-    console.error(`No account for user ${user.id} — abort.`);
+    const byGrudge = await db
+      .select()
+      .from(accounts)
+      .where(
+        or(
+          sql`upper(coalesce(${accounts.grudgeId}, '')) = 'GRUDACHAIN'`,
+          user.grudgeId ? eq(accounts.grudgeId, user.grudgeId) : sql`false`,
+        ) as any,
+      )
+      .limit(5);
+    account = byGrudge[0] || null;
+    if (account && account.userId !== user.id) {
+      console.log(`Linking account ${account.id} → user ${user.id} (was userId=${account.userId})`);
+      const [linked] = await db
+        .update(accounts)
+        .set({ userId: user.id, grudgeId: account.grudgeId || user.grudgeId || "GRUDACHAIN", updatedAt: Date.now() } as any)
+        .where(eq(accounts.id, account.id))
+        .returning();
+      account = linked;
+    }
+  }
+
+  if (!account) {
+    console.log(`Creating account for ${user.username}…`);
+    const [created] = await db
+      .insert(accounts)
+      .values({
+        userId: user.id,
+        grudgeId: user.grudgeId || "GRUDACHAIN",
+        displayName: "Grudachain Production",
+        gold: 0,
+        characterTokens: 99,
+      } as any)
+      .returning();
+    account = created;
+  }
+
+  if (!account) {
+    console.error("Failed to resolve/create account — abort.");
     process.exit(1);
   }
 
-  console.log(`Resolved user=${user.id} username=${(user as any).username} account=${account.id}`);
+  console.log(`Resolved account=${account.id} grudgeId=${account.grudgeId}`);
 
   if (flags.wipe) {
+    // Wipe by userId OR accountId so we catch all grudachain vault rows
     const existing = await db
       .select({ id: characters.id, name: characters.name })
       .from(characters)
-      .where(eq(characters.userId, user.id));
+      .where(
+        or(eq(characters.userId, user.id), eq(characters.accountId, account.id)) as any,
+      );
 
     console.log(`Wipe: ${existing.length} character(s) on grudachain`);
     for (const c of existing) {
-      await db.delete(characterNFTs).where(eq(characterNFTs.characterId, c.id));
+      try {
+        await db.delete(characterNFTs).where(eq(characterNFTs.characterId, c.id));
+      } catch (e) {
+        console.warn(`  nft cleanup ${c.id}:`, e);
+      }
       await db.delete(characters).where(eq(characters.id, c.id));
       console.log(`  deleted ${c.id} (${c.name})`);
     }
   }
 
   if (flags.seed) {
-    const { nftMintingService } = await import("../server/spriteGeneration/services/nftMinting");
+    let mintOk = 0;
+    let mintFail = 0;
+    let nftMintingService: any = null;
+    if (flags.mint) {
+      try {
+        ({ nftMintingService } = await import("../server/spriteGeneration/services/nftMinting"));
+      } catch (e) {
+        console.warn("nftMintingService unavailable — seeding without mint", e);
+        flags.mint = false;
+      }
+    }
 
     for (const hero of codex) {
       const raceId = hero.raceId === "pirate" ? "human" : hero.raceId;
       const classId = hero.classId || "warrior";
       const deploy = PRODUCTION_HERO_NPC_BY_ID[hero.id];
+      const attrs = {
+        Strength: 20,
+        Vitality: 20,
+        Endurance: 20,
+        Intellect: 20,
+        Wisdom: 20,
+        Dexterity: 20,
+        Agility: 20,
+        Tactics: 20,
+      };
+      const charId =
+        typeof crypto !== "undefined" && crypto.randomUUID
+          ? crypto.randomUUID()
+          : `char_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
       const [row] = await db
         .insert(characters)
         .values({
+          id: charId,
           userId: user.id,
+          accountId: account.id,
           name: hero.name,
           raceId: String(raceId),
           classId: String(classId),
           level: hero.level || 50,
           xp: 0,
-          // attributes filled by DB defaults / triggers if any — keep minimal
-          attributes: {
-            Strength: 20,
-            Vitality: 20,
-            Endurance: 20,
-            Intellect: 20,
-            Wisdom: 20,
-            Dexterity: 20,
-            Agility: 20,
-            Tactics: 20,
-          },
+          hp: 100 + (hero.level || 50) * 10,
+          energy: 100,
+          attributes: attrs,
           inventory: [],
           equipment: {},
+          professionLevels: {},
+          skillLoadouts: {},
+          weaponSkillSelections: {},
+          selectedSkills: {},
           avatarUrl: hero.portrait?.startsWith("http")
             ? hero.portrait
             : hero.portrait
               ? `https://grudgewarlords.com${hero.portrait}`
               : null,
           gameEra: "warlords",
+          createdAt: Date.now(),
           model3d: {
+            baseModelId: String(raceId),
+            equippedMeshes: { body: "A", arms: "A", legs: "A", head: "A" },
+            weaponSlots: {},
+            faceVariant: "A",
+            skinColor: "#ffffff",
+            armorColor: "#ffffff",
+            capeEnabled: false,
+            scale: 1,
             gameEra: "warlords",
+            grudge6: true,
+            renderPipeline: "grudge6",
             codexId: hero.id,
             isCanonical: true,
             isProductionNpc: true,
@@ -185,27 +272,37 @@ async function main() {
             campaignMissionIds: deploy?.campaignMissionIds ?? [],
             sectorSpawn: deploy?.sectorSpawn ?? hero.sectorSpawn,
             racePrefixHint: deploy?.racePrefixHint,
-            baseModelId: String(raceId),
+            aiSystemPrompt: deploy?.aiSystemPrompt?.slice(0, 500),
           },
         } as any)
         .returning();
 
       console.log(`  seeded ${row.id} ← ${hero.id} (${hero.name})`);
 
-      if (flags.mint) {
-        const mint = await nftMintingService.mintCharacterAsCNFT(
-          row.id,
-          account.id,
-          undefined,
-          undefined,
-          { directToUser: false },
-        );
-        console.log(
-          `    cNFT escrow: ${mint.success ? mint.actionId : mint.error || "failed"}`,
-        );
+      if (flags.mint && nftMintingService) {
+        try {
+          const mint = await nftMintingService.mintCharacterAsCNFT(
+            row.id,
+            account.id,
+            undefined,
+            undefined,
+            { directToUser: false },
+          );
+          if (mint.success) {
+            mintOk++;
+            console.log(`    cNFT escrow: ${mint.actionId}`);
+          } else {
+            mintFail++;
+            console.log(`    cNFT escrow failed: ${mint.error || "failed"}`);
+          }
+        } catch (e) {
+          mintFail++;
+          console.log(`    cNFT error:`, e instanceof Error ? e.message : e);
+        }
       }
     }
     console.log(`Seed complete: ${codex.length} heroes on ${TARGET_USERNAME}.`);
+    if (flags.mint) console.log(`cNFT mint: ok=${mintOk} fail=${mintFail}`);
   }
 
   process.exit(0);
