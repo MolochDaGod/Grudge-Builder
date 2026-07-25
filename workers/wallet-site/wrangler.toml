@@ -1,0 +1,34 @@
+# Production wallet edge — wallet.grudge-studio.com
+# Replaces old VPS origin 74.208.155.229 (A record must be CF-proxied Worker target).
+name = "grudge-wallet-site"
+main = "src/index.js"
+compatibility_date = "2025-03-01"
+account_id = "ee475864561b02d4588180b8b9acf694"
+workers_dev = true
+
+[[routes]]
+pattern = "wallet.grudge-studio.com/*"
+zone_name = "grudge-studio.com"
+
+[vars]
+ENVIRONMENT = "production"
+RAILWAY_API_ORIGIN = "https://grudge-api-production-0d46.up.railway.app"
+ID_GATEWAY_ORIGIN = "https://id.grudge-studio.com"
+ASSETS_CDN = "https://assets.grudge-studio.com"
+CLIENT_ORIGIN = "https://client.grudge-studio.com"
+PORTAL_ORIGIN = "https://grudge-studio.com"
+
+[env.production]
+name = "grudge-wallet-site"
+workers_dev = true
+[env.production.vars]
+ENVIRONMENT = "production"
+RAILWAY_API_ORIGIN = "https://grudge-api-production-0d46.up.railway.app"
+ID_GATEWAY_ORIGIN = "https://id.grudge-studio.com"
+ASSETS_CDN = "https://assets.grudge-studio.com"
+CLIENT_ORIGIN = "https://client.grudge-studio.com"
+PORTAL_ORIGIN = "https://grudge-studio.com"
+
+[[env.production.routes]]
+pattern = "wallet.grudge-studio.com/*"
+zone_name = "grudge-studio.com"
