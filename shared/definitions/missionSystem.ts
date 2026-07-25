@@ -12,7 +12,12 @@
  *   interact       — interact with a specific node (NPC, object, POI)
  *   escort         — keep an NPC alive while it walks a path
  *   survive        — stay alive for N seconds in a zone
+ *
+ * Faction hero campaigns / commander end-game / dailies live in
+ * factionHeroCampaign.ts and are merged into MISSION_CATALOG below.
  */
+
+import { FACTION_HERO_MISSION_CATALOG } from './factionHeroCampaign';
 
 // ── Objective Types ──────────────────────────────────────────────────────────
 
@@ -257,6 +262,8 @@ export const MISSION_FIRST_HARVEST: Mission = {
 export const MISSION_CATALOG: Record<string, Mission> = {
   [MISSION_SAFEHOUSE.id]: MISSION_SAFEHOUSE,
   [MISSION_FIRST_HARVEST.id]: MISSION_FIRST_HARVEST,
+  // 27 hero campaigns (×3), commander end-game, daily board — see factionHeroCampaign.ts
+  ...FACTION_HERO_MISSION_CATALOG,
 };
 
 /**

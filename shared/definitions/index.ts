@@ -46,6 +46,8 @@ export * from "./productionMapPackage";
 export * from "./gameClock";
 export * from "./warlordsProductionFlow";
 export * from "./endGameMission";
+export * from "./factionHeroCampaign";
+export * from "./missionSystem";
 export * from "./tutorialShipwreckScene";
 export * from "./shipwreckScene";
 export * from "./tutorialFirstSegment";

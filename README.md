@@ -113,12 +113,14 @@ Optional later:
 
 ### Next production cut (planned — not auto-run)
 
-Wipe **grudachain** account characters → seed **27** canonical heroes (24 roster + Racalvin, Cpt. John Wayne, Scourge Faithbearer) onto master admin **`grudachain`**. Playtest on **`molochdadev`**. Legend meshes/AI brains upload after asset delivery.
+Wipe **grudachain** account characters → seed **27** production **NPC heroes** (24 roster + Racalvin, Cpt. John Wayne, Scourge Faithbearer) onto master admin **`grudachain`**. They deploy as world quest-givers with **prompted AI** and **3 campaign quests each**. Finish all 8 of your faction → **mounted commander** end-game (enemy dragons, 3 world bosses, sack island, resource tribute). Dailies rotate. Playtest on **`molochdadev`**.
 
 | Doc / script | Role |
 |--------------|------|
-| [docs/PRODUCTION_HERO_WIPE_AND_MIGRATE.md](docs/PRODUCTION_HERO_WIPE_AND_MIGRATE.md) | Full checklist + 27-name list |
-| `npx tsx scripts/migrate-canonical-heroes-to-grudachain.ts` | Dry-run plan; wipe/seed only with confirm flags |
+| [docs/PRODUCTION_HERO_WIPE_AND_MIGRATE.md](docs/PRODUCTION_HERO_WIPE_AND_MIGRATE.md) | Wipe + seed checklist |
+| [docs/FACTION_HERO_CAMPAIGN.md](docs/FACTION_HERO_CAMPAIGN.md) | Campaign · AI · dailies · commander |
+| `shared/definitions/factionHeroCampaign.ts` | SSOT missions + deploy manifest |
+| `npx tsx scripts/migrate-canonical-heroes-to-grudachain.ts` | Dry-run; wipe/seed with confirm flags |
 
 **Do not wipe production** until Railway cNFT escrow smoke is green and an operator passes `--confirm-wipe-grudachain --confirm-seed`.
 

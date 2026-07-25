@@ -14,6 +14,9 @@
 | Canonical cast | **27 heroes** under admin account **`grudachain`** (master operator) |
 | Playtest | **`molochdadev`** remains admin for live playtest; **not** the permanent home of the 27 |
 | Chain | New rows use **escrow-first cNFT** (admin wallet custody; account owns in game) |
+| **World role** | Seeded heroes are **production NPCs** (`isProductionNpc`) that **grudachain deploys** as quest givers |
+| **Campaign** | Each hero → **3 quests**; finish all 8 faction heroes (24) → **mounted commander** end-game ([FACTION_HERO_CAMPAIGN.md](./FACTION_HERO_CAMPAIGN.md)) |
+| **AI** | Per-hero `aiSystemPrompt` from codex for prompted NPC dialogue |
 | Assets later | Racalvin, Cpt. John Wayne, Scourge Faithbearer get production baked meshes + AI brain when assets are delivered |
 
 **Accounts (fleet allowlist)**

@@ -19,9 +19,16 @@
 
 import { HERO_ROSTER } from "../shared/definitions/lore";
 import { HERO_CODEX_WITH_LEGENDS } from "../shared/definitions/heroCodex";
+import {
+  PRODUCTION_HERO_NPC_BY_ID,
+  PRODUCTION_HERO_DEPLOY_ACCOUNT,
+  assertProductionHeroCoverage,
+  productionHeroDeploySummary,
+  QUESTS_PER_HERO,
+} from "../shared/definitions/factionHeroCampaign";
 
 const LEGEND_IDS = ["racalvin", "john_wayne", "scourge_faithbearer"] as const;
-const TARGET_USERNAME = "grudachain";
+const TARGET_USERNAME = PRODUCTION_HERO_DEPLOY_ACCOUNT;
 
 function parseArgs(argv: string[]) {
   return {
@@ -35,29 +42,40 @@ function plan() {
   const rosterIds = HERO_ROSTER.map((h) => h.id);
   const codex = HERO_CODEX_WITH_LEGENDS;
   const legends = codex.filter((h) => (LEGEND_IDS as readonly string[]).includes(h.id));
+  const coverage = assertProductionHeroCoverage();
+  const summary = productionHeroDeploySummary();
 
-  console.log("═══ Canonical hero migrate plan ═══");
-  console.log(`Target account username: ${TARGET_USERNAME} (master admin)`);
+  console.log("═══ Canonical hero migrate plan (production NPCs) ═══");
+  console.log(`Target account username: ${TARGET_USERNAME} (master admin — deploys world NPCs)`);
   console.log(`HERO_ROSTER count:       ${rosterIds.length}`);
   console.log(`Legends:                 ${legends.map((h) => h.id).join(", ")}`);
   console.log(`Total codex with legends:${codex.length}`);
+  console.log(`Campaign missions:       ${summary.campaignMissions} (${QUESTS_PER_HERO}/hero)`);
+  console.log(`End-game missions:       ${summary.endGameMissions}`);
+  console.log(`Daily templates:         ${summary.dailyTemplates}`);
   console.log("");
-  console.log("Roster:");
+  console.log("Roster (faction hero NPCs):");
   for (const h of HERO_ROSTER) {
+    const npc = PRODUCTION_HERO_NPC_BY_ID[h.id];
+    const q = npc?.campaignMissionIds?.join(", ") ?? "—";
     console.log(`  - ${h.id.padEnd(12)} ${h.name} (${h.raceId}/${h.classId}) L${h.level}`);
+    console.log(`      quests: ${q}`);
   }
   console.log("Legends:");
   for (const h of legends) {
+    const npc = PRODUCTION_HERO_NPC_BY_ID[h.id];
     console.log(`  - ${h.id.padEnd(22)} ${h.name} [${h.rarity}]`);
+    if (npc) console.log(`      quests: ${npc.campaignMissionIds.join(", ")}`);
   }
   console.log("");
-  if (codex.length !== 27) {
-    console.warn(`⚠ Expected 27 heroes, codex has ${codex.length} — update plan before production seed.`);
+  if (!coverage.ok) {
+    for (const e of coverage.errors) console.warn(`⚠ ${e}`);
   } else {
-    console.log("✓ Count is 27 (24 roster + 3 legends).");
+    console.log("✓ Production coverage OK (27 NPCs, 81 campaign missions, 3 legends).");
   }
+  console.log("After seed: each character is a world quest-giver NPC with prompted AI + 3 campaign quests.");
+  console.log("Faction commander unlocks after 24 quests (8 heroes × 3) — see docs/FACTION_HERO_CAMPAIGN.md");
   return codex;
-}
 
 async function main() {
   const flags = parseArgs(process.argv.slice(2));
@@ -128,6 +146,7 @@ async function main() {
     for (const hero of codex) {
       const raceId = hero.raceId === "pirate" ? "human" : hero.raceId;
       const classId = hero.classId || "warrior";
+      const deploy = PRODUCTION_HERO_NPC_BY_ID[hero.id];
       const [row] = await db
         .insert(characters)
         .values({
@@ -160,6 +179,12 @@ async function main() {
             gameEra: "warlords",
             codexId: hero.id,
             isCanonical: true,
+            isProductionNpc: true,
+            deployAccount: TARGET_USERNAME,
+            deployRole: deploy?.deployRole ?? "faction_hero_npc",
+            campaignMissionIds: deploy?.campaignMissionIds ?? [],
+            sectorSpawn: deploy?.sectorSpawn ?? hero.sectorSpawn,
+            racePrefixHint: deploy?.racePrefixHint,
             baseModelId: String(raceId),
           },
         } as any)
