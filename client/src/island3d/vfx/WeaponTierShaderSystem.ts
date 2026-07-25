@@ -111,29 +111,27 @@ export class WeaponTierShaderSystem {
     const id = `wt_${++this.idSeq}`;
     weaponRoot.userData.weaponTierShaderId = id;
 
-    // Trail particles for T4+ (WorldFxBus CodePen ribbons when available)
+    // Trail / spark particles for T4+ via WorldFxBus
     let trailToken: string | null = null;
     if (stack.trail && this.worldFx && stack.tier >= 4) {
       try {
         const origin = new THREE.Vector3();
         weaponRoot.getWorldPosition(origin);
         trailToken = `trail_${id}`;
-        const fx = this.worldFx as WorldFxBus & {
-          spawnCodepenTrail?: (
-            pos: THREE.Vector3,
-            color: number,
-            opts?: { life?: number },
-          ) => void;
-        };
-        // Prefer bus helper if present; else soft particle emitter
-        if (typeof fx.spawnCodepenTrail === 'function') {
-          fx.spawnCodepenTrail(origin, stack.trail.color, { life: 0.4 });
-        } else {
-          this.worldFx.spawn?.(
-            'spark' as never,
-            origin,
-            { color: stack.trail.color, count: 4 + stack.tier },
-          );
+        // Burst sparks at tip — continuous trails attach via attachTo on swing VFX
+        this.worldFx.spawn('attack_burst', {
+          position: origin,
+          burst: true,
+          burstCount: 6 + stack.tier * 2,
+        });
+        // Soft continuous emitter parented to weapon for high tiers
+        if (stack.tier >= 6) {
+          this.worldFx.spawn('attack_burst', {
+            attachTo: weaponRoot,
+            localOffset: new THREE.Vector3(0, 0.4, 0),
+            burst: true,
+            burstCount: 4,
+          });
         }
       } catch {
         /* optional */
