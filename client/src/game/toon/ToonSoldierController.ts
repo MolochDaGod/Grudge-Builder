@@ -1,8 +1,9 @@
 /**
  * ToonSoldierController — Mixamo-retargeted packs + native clips + colliders.
  *
- * Packs: pistol | rifle | shooter | longbow | adventure (loco/climb/swim)
+ * Packs: pistol | rifle | shooter | longbow | greatsword | adventure (loco/climb/swim)
  * Skeleton: chicken_gun `Bone` hierarchy — baked Bip001 JSON is retargeted at load.
+ * Greatsword: gs_samurai_* rotation-only (Y-hip lock; re-ground XZ/feet after oneshot).
  *
  * Consumers: grudge-builder, shooters, gun games, editors, Nexus Era bows.
  */
@@ -75,7 +76,7 @@ export interface ToonSoldierLoadOpts {
   classId?: string;
   /** Initial weapon / adventure mode */
   mode?: ToonWeaponMode;
-  animPack?: "rifle" | "pistol" | "longbow" | "shooter" | "adventure";
+  animPack?: "rifle" | "pistol" | "longbow" | "shooter" | "greatsword" | "adventure";
   /** Baked JSON base (default arena CDN) */
   bakedBase?: string;
   /** Load Mixamo/baked packs and retarget (default true) */

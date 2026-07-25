@@ -4,6 +4,10 @@
 
 This document covers the spell animation system, combat effects, and animation techniques used in Grudge Warlords. The system supports sprite sheets, frame sequences, and various animation types for projectiles, impacts, buffs, and status effects.
 
+**3D character packs (Bip001):** baked rotation-only JSON under `/anims/baked/{pack}/`.  
+**Greatsword samurai:** `greatsword_samurai` — see [MODELS_AND_RETARGET_BEST_PRACTICES.md](./MODELS_AND_RETARGET_BEST_PRACTICES.md) (naming `gs_samurai_*`, Y-hip lock, XZ pelvis center).  
+**SSOT:** `shared/definitions/greatswordSamuraiCombat.ts` · client `game/toon/greatswordSamuraiOverride.ts`.
+
 ## Animation Definition Structure
 
 All animations are defined in `shared/definitions/spellAnimations.ts`:

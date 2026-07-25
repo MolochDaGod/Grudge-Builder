@@ -1,0 +1,121 @@
+{
+  "layer": "anims/combat",
+  "count": 5,
+  "assets": [
+    {
+      "id": "sandy_castle_ruins_animation",
+      "localPath": "/models/warlords/ingest/anims/combat/sandy_castle_ruins_animation.glb",
+      "cdnKey": "models/warlords/ingest/anims/combat/sandy_castle_ruins_animation.glb",
+      "tags": [
+        "animation",
+        "combat",
+        "2h_sword"
+      ],
+      "multipack": true,
+      "mb": 699.27,
+      "combatMap": null
+    },
+    {
+      "id": "steampunk_dune_harvester_animated",
+      "localPath": "/models/warlords/ingest/anims/combat/steampunk_dune_harvester_animated.glb",
+      "cdnKey": "models/warlords/ingest/anims/combat/steampunk_dune_harvester_animated.glb",
+      "tags": [
+        "animation",
+        "combat",
+        "2h_sword"
+      ],
+      "multipack": true,
+      "mb": 432.76,
+      "combatMap": null
+    },
+    {
+      "id": "sworattackssamurai",
+      "localPath": "/models/warlords/ingest/anims/combat/sworattackssamurai.glb",
+      "cdnKey": "models/warlords/ingest/anims/combat/sworattackssamurai.glb",
+      "tags": [
+        "animation",
+        "combat",
+        "2h_sword",
+        "retarget_source",
+        "samurai",
+        "bip001_target"
+      ],
+      "multipack": true,
+      "mb": 13.69,
+      "combatMap": {
+        "sourceGlb": "/models/warlords/ingest/anims/combat/sworattackssamurai.glb",
+        "sourceSkeleton": "Core_01",
+        "targetSkeleton": "Bip001",
+        "weaponPack": "greatsword_samurai",
+        "weaponApiIds": ["GREATSWORD", "TWO_HAND_SWORD"],
+        "bakedPath": "/anims/baked/greatsword_samurai/",
+        "cdnPath": "https://assets.grudge-studio.com/anims/baked/greatsword_samurai/",
+        "bestPractices": {
+          "naming": "gs_samurai_*",
+          "positionTracks": "stripped — no hip-float",
+          "yHip": "rotation-only; never pelvis.y as feet",
+          "xz": "centerXZOnPelvis + controller root motion"
+        },
+        "slots": {
+          "1": {
+            "role": "normal_attack_combo",
+            "sourceClips": ["2Combo_1", "3Combo_2"],
+            "bakedClips": ["gs_samurai_combo_a", "gs_samurai_combo_b"],
+            "skillId": "gs_samurai_cleave_combo",
+            "note": "Two-hit combo LMB / focus primary"
+          },
+          "2": {
+            "role": "teleport_strike",
+            "sourceClips": ["4Combo_3"],
+            "bakedClips": ["gs_samurai_teleport_strike"],
+            "skillId": "gs_samurai_teleport_strike",
+            "movement": "teleport",
+            "note": "Standalone skill + teleport"
+          },
+          "3": {
+            "role": "opener_slash_dash",
+            "sourceClips": ["1Attack"],
+            "bakedClips": ["gs_samurai_dash_opener"],
+            "skillId": "gs_samurai_dash_opener",
+            "movement": "dash",
+            "note": "2H sword opener slashing dash"
+          },
+          "4": {
+            "role": "flaming_fissure",
+            "sourceClips": ["magic_cast"],
+            "bakedClips": ["magic_cast"],
+            "skillId": "gs_flaming_fissure",
+            "vfx": "fx.mage.fire_fissure",
+            "note": "Cast anim from magic pack; ground fissure VFX toward enemy"
+          }
+        }
+      }
+    },
+    {
+      "id": "steampunk_revolver_with_animations",
+      "localPath": "/models/warlords/ingest/anims/combat/steampunk_revolver_with_animations.glb",
+      "cdnKey": "models/warlords/ingest/anims/combat/steampunk_revolver_with_animations.glb",
+      "tags": [
+        "animation",
+        "combat",
+        "2h_sword"
+      ],
+      "multipack": true,
+      "mb": 12.9,
+      "combatMap": null
+    },
+    {
+      "id": "test_light_saber_glow_animation",
+      "localPath": "/models/warlords/ingest/anims/combat/test_light_saber_glow_animation.glb",
+      "cdnKey": "models/warlords/ingest/anims/combat/test_light_saber_glow_animation.glb",
+      "tags": [
+        "animation",
+        "combat",
+        "2h_sword"
+      ],
+      "multipack": false,
+      "mb": 0.01,
+      "combatMap": null
+    }
+  ]
+}

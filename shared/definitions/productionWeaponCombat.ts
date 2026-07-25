@@ -30,6 +30,7 @@ export type ProjectileKind =
 export type AnimPackId =
   | 'sword_shield'
   | '2h_melee'
+  | 'greatsword_samurai'
   | 'longbow'
   | 'rifle'
   | 'magic'
@@ -108,7 +109,20 @@ export const GRUDGE6_WEAPON_COMBAT: Record<string, WeaponCombatProfile> = {
   TWO_HAND_SWORD: {
     style: 'melee', range: 3.2, arcDeg: 120,
     windup: 0.32, active: 0.34, recovery: 0.48, cd: 0.65,
-    animPack: '2h_melee', attackAnim: 'attack', hitCollider: 'arc',
+    animPack: 'greatsword_samurai', attackAnim: 'gs_samurai_combo_a', hitCollider: 'arc',
+    projectile: 'none', damageType: 'physical',
+  },
+  /** Alias for arsenal / tier visuals apiId GREATSWORD */
+  GREATSWORD: {
+    style: 'melee', range: 3.2, arcDeg: 120,
+    windup: 0.32, active: 0.34, recovery: 0.48, cd: 0.65,
+    animPack: 'greatsword_samurai', attackAnim: 'gs_samurai_combo_a', hitCollider: 'arc',
+    projectile: 'none', damageType: 'physical',
+  },
+  greatsword: {
+    style: 'melee', range: 3.2, arcDeg: 120,
+    windup: 0.32, active: 0.34, recovery: 0.48, cd: 0.65,
+    animPack: 'greatsword_samurai', attackAnim: 'gs_samurai_combo_a', hitCollider: 'arc',
     projectile: 'none', damageType: 'physical',
   },
   SCYTHE: {
