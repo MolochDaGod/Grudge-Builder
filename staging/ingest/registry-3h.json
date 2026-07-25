@@ -1,0 +1,3582 @@
+{
+  "version": "1.0.0",
+  "generatedAt": "2026-07-25T04:05:51.567Z",
+  "hours": 3,
+  "cutoff": "2026-07-25T01:05:41.327Z",
+  "totalFiles": 149,
+  "totalBytes": 8663252308,
+  "layers": {
+    "terrain/heightfield": 6,
+    "anims/combat": 5,
+    "islands/shells": 8,
+    "multipacks/environment": 5,
+    "harvest/gems": 7,
+    "maps/city": 5,
+    "ships/pirate": 7,
+    "buildings/fortress": 8,
+    "nature/rocks": 9,
+    "maps/dungeon": 7,
+    "unsorted": 14,
+    "terrain/desert": 2,
+    "terrain/water": 1,
+    "buildings/vendor": 1,
+    "equipment/weapons": 40,
+    "buildings/houses": 6,
+    "creatures/hero": 5,
+    "harvest/crops": 4,
+    "props/misc": 4,
+    "nature/scene": 2,
+    "harvest/food": 2,
+    "equipment/bags": 1
+  },
+  "assets": [
+    {
+      "id": "big_terrain",
+      "sourcePath": "C:\\Users\\nugye\\Documents\\big_terrain.glb",
+      "name": "big_terrain.glb",
+      "layer": "terrain/heightfield",
+      "tags": [
+        "terrain",
+        "heightfield"
+      ],
+      "bytes": 1909757692,
+      "mb": 1909.76,
+      "localPath": "/models/warlords/intake/terrain/heightfield/big_terrain.glb",
+      "cdnKey": "models/warlords/intake/terrain/heightfield/big_terrain.glb",
+      "cdnUrl": "https://assets.grudge-studio.com/models/warlords/intake/terrain/heightfield/big_terrain.glb",
+      "mtime": "2026-07-25T01:52:40.749Z",
+      "multipack": true,
+      "meshIsolation": {
+        "deferred": true,
+        "hint": "re-run with --inspect-multipack"
+      },
+      "animations": []
+    },
+    {
+      "id": "sandy_castle_ruins_animation",
+      "sourcePath": "C:\\Users\\nugye\\Documents\\sandy_castle_ruins_animation.glb",
+      "name": "sandy_castle_ruins_animation.glb",
+      "layer": "anims/combat",
+      "tags": [
+        "animation",
+        "combat",
+        "2h_sword"
+      ],
+      "bytes": 699272872,
+      "mb": 699.27,
+      "localPath": "/models/warlords/intake/anims/combat/sandy_castle_ruins_animation.glb",
+      "cdnKey": "models/warlords/intake/anims/combat/sandy_castle_ruins_animation.glb",
+      "cdnUrl": "https://assets.grudge-studio.com/models/warlords/intake/anims/combat/sandy_castle_ruins_animation.glb",
+      "mtime": "2026-07-25T03:25:58.345Z",
+      "multipack": true,
+      "meshIsolation": {
+        "deferred": true,
+        "hint": "re-run with --inspect-multipack"
+      },
+      "animations": []
+    },
+    {
+      "id": "steampunk_dune_harvester_animated",
+      "sourcePath": "C:\\Users\\nugye\\Documents\\steampunk_dune_harvester_animated.glb",
+      "name": "steampunk_dune_harvester_animated.glb",
+      "layer": "anims/combat",
+      "tags": [
+        "animation",
+        "combat",
+        "2h_sword"
+      ],
+      "bytes": 432763316,
+      "mb": 432.76,
+      "localPath": "/models/warlords/intake/anims/combat/steampunk_dune_harvester_animated.glb",
+      "cdnKey": "models/warlords/intake/anims/combat/steampunk_dune_harvester_animated.glb",
+      "cdnUrl": "https://assets.grudge-studio.com/models/warlords/intake/anims/combat/steampunk_dune_harvester_animated.glb",
+      "mtime": "2026-07-25T03:30:55.161Z",
+      "multipack": true,
+      "meshIsolation": {
+        "deferred": true,
+        "hint": "re-run with --inspect-multipack"
+      },
+      "animations": []
+    },
+    {
+      "id": "fantasy_mystical_island",
+      "sourcePath": "C:\\Users\\nugye\\Documents\\fantasy_mystical_island.glb",
+      "name": "fantasy_mystical_island.glb",
+      "layer": "islands/shells",
+      "tags": [
+        "island",
+        "section",
+        "shell"
+      ],
+      "bytes": 400758116,
+      "mb": 400.76,
+      "localPath": "/models/warlords/intake/islands/shells/fantasy_mystical_island.glb",
+      "cdnKey": "models/warlords/intake/islands/shells/fantasy_mystical_island.glb",
+      "cdnUrl": "https://assets.grudge-studio.com/models/warlords/intake/islands/shells/fantasy_mystical_island.glb",
+      "mtime": "2026-07-25T02:01:06.876Z",
+      "multipack": true,
+      "meshIsolation": {
+        "deferred": true,
+        "hint": "re-run with --inspect-multipack"
+      },
+      "animations": []
+    },
+    {
+      "id": "1_8_000_polygons_total",
+      "sourcePath": "C:\\Users\\nugye\\Documents\\1_-_8_000_polygons_total.glb",
+      "name": "1_-_8_000_polygons_total.glb",
+      "layer": "multipacks/environment",
+      "tags": [
+        "multipack",
+        "environment"
+      ],
+      "bytes": 315318728,
+      "mb": 315.32,
+      "localPath": "/models/warlords/intake/multipacks/environment/1_8_000_polygons_total.glb",
+      "cdnKey": "models/warlords/intake/multipacks/environment/1_8_000_polygons_total.glb",
+      "cdnUrl": "https://assets.grudge-studio.com/models/warlords/intake/multipacks/environment/1_8_000_polygons_total.glb",
+      "mtime": "2026-07-25T03:08:16.882Z",
+      "multipack": true,
+      "meshIsolation": {
+        "deferred": true,
+        "hint": "re-run with --inspect-multipack"
+      },
+      "animations": []
+    },
+    {
+      "id": "forest_generated_in_the_blender_ps1",
+      "sourcePath": "C:\\Users\\nugye\\Documents\\forest_generated_in_the_blender_ps1.glb",
+      "name": "forest_generated_in_the_blender_ps1.glb",
+      "layer": "harvest/gems",
+      "tags": [
+        "harvest",
+        "mining"
+      ],
+      "bytes": 308836364,
+      "mb": 308.84,
+      "localPath": "/models/warlords/intake/harvest/gems/forest_generated_in_the_blender_ps1.glb",
+      "cdnKey": "models/warlords/intake/harvest/gems/forest_generated_in_the_blender_ps1.glb",
+      "cdnUrl": "https://assets.grudge-studio.com/models/warlords/intake/harvest/gems/forest_generated_in_the_blender_ps1.glb",
+      "mtime": "2026-07-25T01:09:36.237Z",
+      "multipack": true,
+      "meshIsolation": {
+        "deferred": true,
+        "hint": "re-run with --inspect-multipack"
+      },
+      "animations": []
+    },
+    {
+      "id": "hill",
+      "sourcePath": "C:\\Users\\nugye\\Documents\\hill.glb",
+      "name": "hill.glb",
+      "layer": "terrain/heightfield",
+      "tags": [
+        "terrain",
+        "heightfield"
+      ],
+      "bytes": 306264004,
+      "mb": 306.26,
+      "localPath": "/models/warlords/intake/terrain/heightfield/hill.glb",
+      "cdnKey": "models/warlords/intake/terrain/heightfield/hill.glb",
+      "cdnUrl": "https://assets.grudge-studio.com/models/warlords/intake/terrain/heightfield/hill.glb",
+      "mtime": "2026-07-25T01:58:01.889Z",
+      "multipack": true,
+      "meshIsolation": {
+        "deferred": true,
+        "hint": "re-run with --inspect-multipack"
+      },
+      "animations": []
+    },
+    {
+      "id": "witcher_oxenfurt_city",
+      "sourcePath": "C:\\Users\\nugye\\Documents\\witcher_oxenfurt_city.glb",
+      "name": "witcher_oxenfurt_city.glb",
+      "layer": "maps/city",
+      "tags": [
+        "map",
+        "sector"
+      ],
+      "bytes": 272588584,
+      "mb": 272.59,
+      "localPath": "/models/warlords/intake/maps/city/witcher_oxenfurt_city.glb",
+      "cdnKey": "models/warlords/intake/maps/city/witcher_oxenfurt_city.glb",
+      "cdnUrl": "https://assets.grudge-studio.com/models/warlords/intake/maps/city/witcher_oxenfurt_city.glb",
+      "mtime": "2026-07-25T03:01:02.109Z",
+      "multipack": true,
+      "meshIsolation": {
+        "deferred": true,
+        "hint": "re-run with --inspect-multipack"
+      },
+      "animations": []
+    },
+    {
+      "id": "airship_restaurant_lunapark",
+      "sourcePath": "C:\\Users\\nugye\\Documents\\airship_restaurant_-_lunapark.glb",
+      "name": "airship_restaurant_-_lunapark.glb",
+      "layer": "ships/pirate",
+      "tags": [
+        "ship",
+        "lobby",
+        "gameflow"
+      ],
+      "bytes": 212338788,
+      "mb": 212.34,
+      "localPath": "/models/warlords/intake/ships/pirate/airship_restaurant_lunapark.glb",
+      "cdnKey": "models/warlords/intake/ships/pirate/airship_restaurant_lunapark.glb",
+      "cdnUrl": "https://assets.grudge-studio.com/models/warlords/intake/ships/pirate/airship_restaurant_lunapark.glb",
+      "mtime": "2026-07-25T02:12:48.965Z",
+      "multipack": true,
+      "meshIsolation": {
+        "deferred": true,
+        "hint": "re-run with --inspect-multipack"
+      },
+      "animations": []
+    },
+    {
+      "id": "siberian_wooden_fortress_of_the_mesolithic_era",
+      "sourcePath": "C:\\Users\\nugye\\Documents\\siberian_wooden_fortress_of_the_mesolithic_era.glb",
+      "name": "siberian_wooden_fortress_of_the_mesolithic_era.glb",
+      "layer": "buildings/fortress",
+      "tags": [
+        "building",
+        "fortress",
+        "map"
+      ],
+      "bytes": 201323916,
+      "mb": 201.32,
+      "localPath": "/models/warlords/intake/buildings/fortress/siberian_wooden_fortress_of_the_mesolithic_era.glb",
+      "cdnKey": "models/warlords/intake/buildings/fortress/siberian_wooden_fortress_of_the_mesolithic_era.glb",
+      "cdnUrl": "https://assets.grudge-studio.com/models/warlords/intake/buildings/fortress/siberian_wooden_fortress_of_the_mesolithic_era.glb",
+      "mtime": "2026-07-25T03:10:35.965Z",
+      "multipack": true,
+      "meshIsolation": {
+        "deferred": true,
+        "hint": "re-run with --inspect-multipack"
+      },
+      "animations": []
+    },
+    {
+      "id": "a_very_pirated_dinner",
+      "sourcePath": "C:\\Users\\nugye\\Documents\\a_very_pirated_dinner.glb",
+      "name": "a_very_pirated_dinner.glb",
+      "layer": "ships/pirate",
+      "tags": [
+        "ship",
+        "lobby",
+        "gameflow"
+      ],
+      "bytes": 172649880,
+      "mb": 172.65,
+      "localPath": "/models/warlords/intake/ships/pirate/a_very_pirated_dinner.glb",
+      "cdnKey": "models/warlords/intake/ships/pirate/a_very_pirated_dinner.glb",
+      "cdnUrl": "https://assets.grudge-studio.com/models/warlords/intake/ships/pirate/a_very_pirated_dinner.glb",
+      "mtime": "2026-07-25T03:06:29.595Z",
+      "multipack": true,
+      "meshIsolation": {
+        "deferred": true,
+        "hint": "re-run with --inspect-multipack"
+      },
+      "animations": []
+    },
+    {
+      "id": "rugged_mountain_landscape",
+      "sourcePath": "C:\\Users\\nugye\\Documents\\rugged_mountain_landscape.glb",
+      "name": "rugged_mountain_landscape.glb",
+      "layer": "nature/rocks",
+      "tags": [
+        "nature",
+        "rock",
+        "terrain"
+      ],
+      "bytes": 163480000,
+      "mb": 163.48,
+      "localPath": "/models/warlords/intake/nature/rocks/rugged_mountain_landscape.glb",
+      "cdnKey": "models/warlords/intake/nature/rocks/rugged_mountain_landscape.glb",
+      "cdnUrl": "https://assets.grudge-studio.com/models/warlords/intake/nature/rocks/rugged_mountain_landscape.glb",
+      "mtime": "2026-07-25T01:54:33.910Z",
+      "multipack": true,
+      "meshIsolation": {
+        "deferred": true,
+        "hint": "re-run with --inspect-multipack"
+      },
+      "animations": []
+    },
+    {
+      "id": "the_sirens_light_pirate_ship",
+      "sourcePath": "C:\\Users\\nugye\\Documents\\the_sirens_light_pirate_ship.glb",
+      "name": "the_sirens_light_pirate_ship.glb",
+      "layer": "ships/pirate",
+      "tags": [
+        "ship",
+        "lobby",
+        "gameflow"
+      ],
+      "bytes": 160384020,
+      "mb": 160.38,
+      "localPath": "/models/warlords/intake/ships/pirate/the_sirens_light_pirate_ship.glb",
+      "cdnKey": "models/warlords/intake/ships/pirate/the_sirens_light_pirate_ship.glb",
+      "cdnUrl": "https://assets.grudge-studio.com/models/warlords/intake/ships/pirate/the_sirens_light_pirate_ship.glb",
+      "mtime": "2026-07-25T03:06:37.151Z",
+      "multipack": true,
+      "meshIsolation": {
+        "deferred": true,
+        "hint": "re-run with --inspect-multipack"
+      },
+      "animations": []
+    },
+    {
+      "id": "3_evil_rock_mountains_with_cave_stylized",
+      "sourcePath": "C:\\Users\\nugye\\Documents\\3_evil_rock_mountains_with_cave_stylized.glb",
+      "name": "3_evil_rock_mountains_with_cave_stylized.glb",
+      "layer": "nature/rocks",
+      "tags": [
+        "nature",
+        "rock",
+        "terrain"
+      ],
+      "bytes": 142133168,
+      "mb": 142.13,
+      "localPath": "/models/warlords/intake/nature/rocks/3_evil_rock_mountains_with_cave_stylized.glb",
+      "cdnKey": "models/warlords/intake/nature/rocks/3_evil_rock_mountains_with_cave_stylized.glb",
+      "cdnUrl": "https://assets.grudge-studio.com/models/warlords/intake/nature/rocks/3_evil_rock_mountains_with_cave_stylized.glb",
+      "mtime": "2026-07-25T01:51:58.136Z",
+      "multipack": true,
+      "meshIsolation": {
+        "deferred": true,
+        "hint": "re-run with --inspect-multipack"
+      },
+      "animations": []
+    },
+    {
+      "id": "isla_biti",
+      "sourcePath": "C:\\Users\\nugye\\Documents\\isla_biti.glb",
+      "name": "isla_biti.glb",
+      "layer": "islands/shells",
+      "tags": [
+        "island",
+        "section",
+        "shell"
+      ],
+      "bytes": 130883152,
+      "mb": 130.88,
+      "localPath": "/models/warlords/intake/islands/shells/isla_biti.glb",
+      "cdnKey": "models/warlords/intake/islands/shells/isla_biti.glb",
+      "cdnUrl": "https://assets.grudge-studio.com/models/warlords/intake/islands/shells/isla_biti.glb",
+      "mtime": "2026-07-25T01:45:25.610Z",
+      "multipack": true,
+      "meshIsolation": {
+        "deferred": true,
+        "hint": "re-run with --inspect-multipack"
+      },
+      "animations": []
+    },
+    {
+      "id": "alien_world_explorer",
+      "sourcePath": "C:\\Users\\nugye\\Documents\\alien_world_explorer.glb",
+      "name": "alien_world_explorer.glb",
+      "layer": "harvest/gems",
+      "tags": [
+        "harvest",
+        "mining"
+      ],
+      "bytes": 123654180,
+      "mb": 123.65,
+      "localPath": "/models/warlords/intake/harvest/gems/alien_world_explorer.glb",
+      "cdnKey": "models/warlords/intake/harvest/gems/alien_world_explorer.glb",
+      "cdnUrl": "https://assets.grudge-studio.com/models/warlords/intake/harvest/gems/alien_world_explorer.glb",
+      "mtime": "2026-07-25T01:56:48.982Z",
+      "multipack": true,
+      "meshIsolation": {
+        "deferred": true,
+        "hint": "re-run with --inspect-multipack"
+      },
+      "animations": []
+    },
+    {
+      "id": "halloween_cemetery",
+      "sourcePath": "C:\\Users\\nugye\\Documents\\halloween_cemetery.glb",
+      "name": "halloween_cemetery.glb",
+      "layer": "maps/dungeon",
+      "tags": [
+        "map",
+        "dungeon",
+        "gameflow"
+      ],
+      "bytes": 97724864,
+      "mb": 97.72,
+      "localPath": "/models/warlords/intake/maps/dungeon/halloween_cemetery.glb",
+      "cdnKey": "models/warlords/intake/maps/dungeon/halloween_cemetery.glb",
+      "cdnUrl": "https://assets.grudge-studio.com/models/warlords/intake/maps/dungeon/halloween_cemetery.glb",
+      "mtime": "2026-07-25T01:59:22.492Z",
+      "multipack": true,
+      "meshIsolation": {
+        "deferred": true,
+        "hint": "re-run with --inspect-multipack"
+      },
+      "animations": []
+    },
+    {
+      "id": "hcf_spawn_pirates_theme",
+      "sourcePath": "C:\\Users\\nugye\\Documents\\hcf_spawn_pirates_theme.glb",
+      "name": "hcf_spawn_pirates_theme.glb",
+      "layer": "ships/pirate",
+      "tags": [
+        "ship",
+        "lobby",
+        "gameflow"
+      ],
+      "bytes": 96842420,
+      "mb": 96.84,
+      "localPath": "/models/warlords/intake/ships/pirate/hcf_spawn_pirates_theme.glb",
+      "cdnKey": "models/warlords/intake/ships/pirate/hcf_spawn_pirates_theme.glb",
+      "cdnUrl": "https://assets.grudge-studio.com/models/warlords/intake/ships/pirate/hcf_spawn_pirates_theme.glb",
+      "mtime": "2026-07-25T01:44:40.588Z",
+      "multipack": true,
+      "meshIsolation": {
+        "deferred": true,
+        "hint": "re-run with --inspect-multipack"
+      },
+      "animations": []
+    },
+    {
+      "id": "uts_viola_amalia_sp_literasi_tik",
+      "sourcePath": "C:\\Users\\nugye\\Documents\\uts_viola_amalia_sp_literasi_tik.glb",
+      "name": "uts_viola_amalia_sp_literasi_tik.glb",
+      "layer": "unsorted",
+      "tags": [
+        "unsorted"
+      ],
+      "bytes": 96676836,
+      "mb": 96.68,
+      "localPath": "/models/warlords/intake/unsorted/uts_viola_amalia_sp_literasi_tik.glb",
+      "cdnKey": "models/warlords/intake/unsorted/uts_viola_amalia_sp_literasi_tik.glb",
+      "cdnUrl": "https://assets.grudge-studio.com/models/warlords/intake/unsorted/uts_viola_amalia_sp_literasi_tik.glb",
+      "mtime": "2026-07-25T02:45:16.017Z",
+      "multipack": true,
+      "meshIsolation": {
+        "deferred": true,
+        "hint": "re-run with --inspect-multipack"
+      },
+      "animations": []
+    },
+    {
+      "id": "2piratebaots",
+      "sourcePath": "C:\\Users\\nugye\\Documents\\2piratebaots.glb",
+      "name": "2piratebaots.glb",
+      "layer": "ships/pirate",
+      "tags": [
+        "ship",
+        "lobby",
+        "gameflow"
+      ],
+      "bytes": 88966460,
+      "mb": 88.97,
+      "localPath": "/models/warlords/intake/ships/pirate/2piratebaots.glb",
+      "cdnKey": "models/warlords/intake/ships/pirate/2piratebaots.glb",
+      "cdnUrl": "https://assets.grudge-studio.com/models/warlords/intake/ships/pirate/2piratebaots.glb",
+      "mtime": "2026-07-25T01:35:57.719Z",
+      "multipack": true,
+      "meshIsolation": {
+        "deferred": true,
+        "hint": "re-run with --inspect-multipack"
+      },
+      "animations": []
+    },
+    {
+      "id": "mountain_1",
+      "sourcePath": "C:\\Users\\nugye\\Documents\\mountain_1.glb",
+      "name": "mountain_1.glb",
+      "layer": "nature/rocks",
+      "tags": [
+        "nature",
+        "rock",
+        "terrain"
+      ],
+      "bytes": 88386260,
+      "mb": 88.39,
+      "localPath": "/models/warlords/intake/nature/rocks/mountain_1.glb",
+      "cdnKey": "models/warlords/intake/nature/rocks/mountain_1.glb",
+      "cdnUrl": "https://assets.grudge-studio.com/models/warlords/intake/nature/rocks/mountain_1.glb",
+      "mtime": "2026-07-25T02:01:49.754Z",
+      "multipack": true,
+      "meshIsolation": {
+        "deferred": true,
+        "hint": "re-run with --inspect-multipack"
+      },
+      "animations": []
+    },
+    {
+      "id": "crusademain_lovely_town",
+      "sourcePath": "C:\\Users\\nugye\\Documents\\crusademain_lovely_town.glb",
+      "name": "crusademain_lovely_town.glb",
+      "layer": "maps/city",
+      "tags": [
+        "map",
+        "sector"
+      ],
+      "bytes": 83847852,
+      "mb": 83.85,
+      "localPath": "/models/warlords/intake/maps/city/crusademain_lovely_town.glb",
+      "cdnKey": "models/warlords/intake/maps/city/crusademain_lovely_town.glb",
+      "cdnUrl": "https://assets.grudge-studio.com/models/warlords/intake/maps/city/crusademain_lovely_town.glb",
+      "mtime": "2026-07-25T02:14:30.888Z",
+      "multipack": true,
+      "meshIsolation": {
+        "deferred": true,
+        "hint": "re-run with --inspect-multipack"
+      },
+      "animations": []
+    },
+    {
+      "id": "dangerroomundergroundbase",
+      "sourcePath": "C:\\Users\\nugye\\Documents\\dangerroomundergroundbase.glb",
+      "name": "dangerroomundergroundbase.glb",
+      "layer": "maps/dungeon",
+      "tags": [
+        "map",
+        "dungeon",
+        "gameflow"
+      ],
+      "bytes": 83662960,
+      "mb": 83.66,
+      "localPath": "/models/warlords/intake/maps/dungeon/dangerroomundergroundbase.glb",
+      "cdnKey": "models/warlords/intake/maps/dungeon/dangerroomundergroundbase.glb",
+      "cdnUrl": "https://assets.grudge-studio.com/models/warlords/intake/maps/dungeon/dangerroomundergroundbase.glb",
+      "mtime": "2026-07-25T02:46:29.616Z",
+      "multipack": true,
+      "meshIsolation": {
+        "deferred": true,
+        "hint": "re-run with --inspect-multipack"
+      },
+      "animations": []
+    },
+    {
+      "id": "undergroundbase",
+      "sourcePath": "C:\\Users\\nugye\\Documents\\undergroundbase.glb",
+      "name": "undergroundbase.glb",
+      "layer": "maps/dungeon",
+      "tags": [
+        "map",
+        "dungeon",
+        "gameflow"
+      ],
+      "bytes": 83662960,
+      "mb": 83.66,
+      "localPath": "/models/warlords/intake/maps/dungeon/undergroundbase.glb",
+      "cdnKey": "models/warlords/intake/maps/dungeon/undergroundbase.glb",
+      "cdnUrl": "https://assets.grudge-studio.com/models/warlords/intake/maps/dungeon/undergroundbase.glb",
+      "mtime": "2026-07-25T02:45:55.574Z",
+      "multipack": true,
+      "meshIsolation": {
+        "deferred": true,
+        "hint": "re-run with --inspect-multipack"
+      },
+      "animations": []
+    },
+    {
+      "id": "environment_pack_egypt_props",
+      "sourcePath": "C:\\Users\\nugye\\Documents\\environment_pack_-_egypt_props.glb",
+      "name": "environment_pack_-_egypt_props.glb",
+      "layer": "terrain/desert",
+      "tags": [
+        "terrain",
+        "biome",
+        "ashen"
+      ],
+      "bytes": 83055956,
+      "mb": 83.06,
+      "localPath": "/models/warlords/intake/terrain/desert/environment_pack_egypt_props.glb",
+      "cdnKey": "models/warlords/intake/terrain/desert/environment_pack_egypt_props.glb",
+      "cdnUrl": "https://assets.grudge-studio.com/models/warlords/intake/terrain/desert/environment_pack_egypt_props.glb",
+      "mtime": "2026-07-25T03:20:04.083Z",
+      "multipack": true,
+      "meshIsolation": {
+        "deferred": true,
+        "hint": "re-run with --inspect-multipack"
+      },
+      "animations": []
+    },
+    {
+      "id": "river",
+      "sourcePath": "C:\\Users\\nugye\\Documents\\river.glb",
+      "name": "river.glb",
+      "layer": "terrain/water",
+      "tags": [
+        "terrain",
+        "water"
+      ],
+      "bytes": 77405756,
+      "mb": 77.41,
+      "localPath": "/models/warlords/intake/terrain/water/river.glb",
+      "cdnKey": "models/warlords/intake/terrain/water/river.glb",
+      "cdnUrl": "https://assets.grudge-studio.com/models/warlords/intake/terrain/water/river.glb",
+      "mtime": "2026-07-25T02:43:51.572Z",
+      "multipack": true,
+      "meshIsolation": {
+        "deferred": true,
+        "hint": "re-run with --inspect-multipack"
+      },
+      "animations": []
+    },
+    {
+      "id": "biggerrock",
+      "sourcePath": "C:\\Users\\nugye\\Documents\\biggerrock.glb",
+      "name": "biggerrock.glb",
+      "layer": "nature/rocks",
+      "tags": [
+        "nature",
+        "rock",
+        "terrain"
+      ],
+      "bytes": 72013532,
+      "mb": 72.01,
+      "localPath": "/models/warlords/intake/nature/rocks/biggerrock.glb",
+      "cdnKey": "models/warlords/intake/nature/rocks/biggerrock.glb",
+      "cdnUrl": "https://assets.grudge-studio.com/models/warlords/intake/nature/rocks/biggerrock.glb",
+      "mtime": "2026-07-25T02:04:46.316Z",
+      "multipack": true,
+      "meshIsolation": {
+        "deferred": true,
+        "hint": "re-run with --inspect-multipack"
+      },
+      "animations": []
+    },
+    {
+      "id": "rock",
+      "sourcePath": "C:\\Users\\nugye\\Documents\\rock.glb",
+      "name": "rock.glb",
+      "layer": "nature/rocks",
+      "tags": [
+        "nature",
+        "rock",
+        "terrain"
+      ],
+      "bytes": 72013532,
+      "mb": 72.01,
+      "localPath": "/models/warlords/intake/nature/rocks/rock.glb",
+      "cdnKey": "models/warlords/intake/nature/rocks/rock.glb",
+      "cdnUrl": "https://assets.grudge-studio.com/models/warlords/intake/nature/rocks/rock.glb",
+      "mtime": "2026-07-25T01:51:48.261Z",
+      "multipack": true,
+      "meshIsolation": {
+        "deferred": true,
+        "hint": "re-run with --inspect-multipack"
+      },
+      "animations": []
+    },
+    {
+      "id": "death_valley_terrain",
+      "sourcePath": "C:\\Users\\nugye\\Documents\\death_valley_-_terrain.glb",
+      "name": "death_valley_-_terrain.glb",
+      "layer": "terrain/heightfield",
+      "tags": [
+        "terrain",
+        "heightfield"
+      ],
+      "bytes": 71337376,
+      "mb": 71.34,
+      "localPath": "/models/warlords/intake/terrain/heightfield/death_valley_terrain.glb",
+      "cdnKey": "models/warlords/intake/terrain/heightfield/death_valley_terrain.glb",
+      "cdnUrl": "https://assets.grudge-studio.com/models/warlords/intake/terrain/heightfield/death_valley_terrain.glb",
+      "mtime": "2026-07-25T02:03:44.838Z",
+      "multipack": true,
+      "meshIsolation": {
+        "deferred": true,
+        "hint": "re-run with --inspect-multipack"
+      },
+      "animations": []
+    },
+    {
+      "id": "weaponvendor",
+      "sourcePath": "C:\\Users\\nugye\\Documents\\weaponvendor.glb",
+      "name": "weaponvendor.glb",
+      "layer": "buildings/vendor",
+      "tags": [
+        "building",
+        "npc",
+        "gameflow"
+      ],
+      "bytes": 70244564,
+      "mb": 70.24,
+      "localPath": "/models/warlords/intake/buildings/vendor/weaponvendor.glb",
+      "cdnKey": "models/warlords/intake/buildings/vendor/weaponvendor.glb",
+      "cdnUrl": "https://assets.grudge-studio.com/models/warlords/intake/buildings/vendor/weaponvendor.glb",
+      "mtime": "2026-07-25T03:33:18.061Z",
+      "multipack": true,
+      "meshIsolation": {
+        "deferred": true,
+        "hint": "re-run with --inspect-multipack"
+      },
+      "animations": []
+    },
+    {
+      "id": "70_stylized_rocks",
+      "sourcePath": "C:\\Users\\nugye\\Documents\\70_stylized_rocks.glb",
+      "name": "70_stylized_rocks.glb",
+      "layer": "nature/rocks",
+      "tags": [
+        "nature",
+        "rock",
+        "terrain"
+      ],
+      "bytes": 69016308,
+      "mb": 69.02,
+      "localPath": "/models/warlords/intake/nature/rocks/70_stylized_rocks.glb",
+      "cdnKey": "models/warlords/intake/nature/rocks/70_stylized_rocks.glb",
+      "cdnUrl": "https://assets.grudge-studio.com/models/warlords/intake/nature/rocks/70_stylized_rocks.glb",
+      "mtime": "2026-07-25T02:14:06.958Z",
+      "multipack": true,
+      "meshIsolation": {
+        "deferred": true,
+        "hint": "re-run with --inspect-multipack"
+      },
+      "animations": []
+    },
+    {
+      "id": "terrain",
+      "sourcePath": "C:\\Users\\nugye\\Documents\\terrain.glb",
+      "name": "terrain.glb",
+      "layer": "terrain/heightfield",
+      "tags": [
+        "terrain",
+        "heightfield"
+      ],
+      "bytes": 68976520,
+      "mb": 68.98,
+      "localPath": "/models/warlords/intake/terrain/heightfield/terrain.glb",
+      "cdnKey": "models/warlords/intake/terrain/heightfield/terrain.glb",
+      "cdnUrl": "https://assets.grudge-studio.com/models/warlords/intake/terrain/heightfield/terrain.glb",
+      "mtime": "2026-07-25T01:49:39.999Z",
+      "multipack": true,
+      "meshIsolation": {
+        "deferred": true,
+        "hint": "re-run with --inspect-multipack"
+      },
+      "animations": []
+    },
+    {
+      "id": "temple_ruins_asset_pack",
+      "sourcePath": "C:\\Users\\nugye\\Documents\\temple_ruins_asset_pack.glb",
+      "name": "temple_ruins_asset_pack.glb",
+      "layer": "buildings/fortress",
+      "tags": [
+        "building",
+        "fortress",
+        "map"
+      ],
+      "bytes": 64239276,
+      "mb": 64.24,
+      "localPath": "/models/warlords/intake/buildings/fortress/temple_ruins_asset_pack.glb",
+      "cdnKey": "models/warlords/intake/buildings/fortress/temple_ruins_asset_pack.glb",
+      "cdnUrl": "https://assets.grudge-studio.com/models/warlords/intake/buildings/fortress/temple_ruins_asset_pack.glb",
+      "mtime": "2026-07-25T02:14:01.378Z",
+      "multipack": true,
+      "meshIsolation": {
+        "deferred": true,
+        "hint": "re-run with --inspect-multipack"
+      },
+      "animations": []
+    },
+    {
+      "id": "castle_kitbash_asset_pack",
+      "sourcePath": "C:\\Users\\nugye\\Documents\\castle_kitbash_asset_pack.glb",
+      "name": "castle_kitbash_asset_pack.glb",
+      "layer": "buildings/fortress",
+      "tags": [
+        "building",
+        "fortress",
+        "map"
+      ],
+      "bytes": 62383976,
+      "mb": 62.38,
+      "localPath": "/models/warlords/intake/buildings/fortress/castle_kitbash_asset_pack.glb",
+      "cdnKey": "models/warlords/intake/buildings/fortress/castle_kitbash_asset_pack.glb",
+      "cdnUrl": "https://assets.grudge-studio.com/models/warlords/intake/buildings/fortress/castle_kitbash_asset_pack.glb",
+      "mtime": "2026-07-25T03:28:39.686Z",
+      "multipack": true,
+      "meshIsolation": {
+        "deferred": true,
+        "hint": "re-run with --inspect-multipack"
+      },
+      "animations": []
+    },
+    {
+      "id": "mars_olympus_mons",
+      "sourcePath": "C:\\Users\\nugye\\Documents\\mars_-_olympus_mons.glb",
+      "name": "mars_-_olympus_mons.glb",
+      "layer": "terrain/heightfield",
+      "tags": [
+        "terrain",
+        "heightfield"
+      ],
+      "bytes": 50711112,
+      "mb": 50.71,
+      "localPath": "/models/warlords/intake/terrain/heightfield/mars_olympus_mons.glb",
+      "cdnKey": "models/warlords/intake/terrain/heightfield/mars_olympus_mons.glb",
+      "cdnUrl": "https://assets.grudge-studio.com/models/warlords/intake/terrain/heightfield/mars_olympus_mons.glb",
+      "mtime": "2026-07-25T02:02:45.446Z",
+      "multipack": true,
+      "meshIsolation": {
+        "deferred": true,
+        "hint": "re-run with --inspect-multipack"
+      },
+      "animations": []
+    },
+    {
+      "id": "gaea_02",
+      "sourcePath": "C:\\Users\\nugye\\Documents\\gaea_02.glb",
+      "name": "gaea_02.glb",
+      "layer": "maps/city",
+      "tags": [
+        "map",
+        "sector"
+      ],
+      "bytes": 48891720,
+      "mb": 48.89,
+      "localPath": "/models/warlords/intake/maps/city/gaea_02.glb",
+      "cdnKey": "models/warlords/intake/maps/city/gaea_02.glb",
+      "cdnUrl": "https://assets.grudge-studio.com/models/warlords/intake/maps/city/gaea_02.glb",
+      "mtime": "2026-07-25T02:28:36.889Z",
+      "multipack": true,
+      "meshIsolation": {
+        "deferred": true,
+        "hint": "re-run with --inspect-multipack"
+      },
+      "animations": []
+    },
+    {
+      "id": "sekiro_hook_sword",
+      "sourcePath": "C:\\Users\\nugye\\Documents\\sekiro_hook_sword.glb",
+      "name": "sekiro_hook_sword.glb",
+      "layer": "equipment/weapons",
+      "tags": [
+        "equipment",
+        "weapon"
+      ],
+      "bytes": 46461460,
+      "mb": 46.46,
+      "localPath": "/models/warlords/intake/equipment/weapons/sekiro_hook_sword.glb",
+      "cdnKey": "models/warlords/intake/equipment/weapons/sekiro_hook_sword.glb",
+      "cdnUrl": "https://assets.grudge-studio.com/models/warlords/intake/equipment/weapons/sekiro_hook_sword.glb",
+      "mtime": "2026-07-25T03:46:30.223Z",
+      "multipack": true,
+      "meshIsolation": {
+        "deferred": true,
+        "hint": "re-run with --inspect-multipack"
+      },
+      "animations": []
+    },
+    {
+      "id": "double_faux_sci_fi_nordique",
+      "sourcePath": "C:\\Users\\nugye\\Documents\\double_faux_sci-fi_nordique.glb",
+      "name": "double_faux_sci-fi_nordique.glb",
+      "layer": "equipment/weapons",
+      "tags": [
+        "equipment",
+        "weapon"
+      ],
+      "bytes": 45161324,
+      "mb": 45.16,
+      "localPath": "/models/warlords/intake/equipment/weapons/double_faux_sci_fi_nordique.glb",
+      "cdnKey": "models/warlords/intake/equipment/weapons/double_faux_sci_fi_nordique.glb",
+      "cdnUrl": "https://assets.grudge-studio.com/models/warlords/intake/equipment/weapons/double_faux_sci_fi_nordique.glb",
+      "mtime": "2026-07-25T03:43:24.093Z",
+      "multipack": true,
+      "meshIsolation": {
+        "deferred": true,
+        "hint": "re-run with --inspect-multipack"
+      },
+      "animations": []
+    },
+    {
+      "id": "grabrok_crater_iceland",
+      "sourcePath": "C:\\Users\\nugye\\Documents\\grabrok_crater_iceland.glb",
+      "name": "grabrok_crater_iceland.glb",
+      "layer": "nature/rocks",
+      "tags": [
+        "nature",
+        "rock",
+        "terrain"
+      ],
+      "bytes": 43310016,
+      "mb": 43.31,
+      "localPath": "/models/warlords/intake/nature/rocks/grabrok_crater_iceland.glb",
+      "cdnKey": "models/warlords/intake/nature/rocks/grabrok_crater_iceland.glb",
+      "cdnUrl": "https://assets.grudge-studio.com/models/warlords/intake/nature/rocks/grabrok_crater_iceland.glb",
+      "mtime": "2026-07-25T01:59:49.609Z",
+      "multipack": true,
+      "meshIsolation": {
+        "deferred": true,
+        "hint": "re-run with --inspect-multipack"
+      },
+      "animations": []
+    },
+    {
+      "id": "dae_diorama_grandmas_house",
+      "sourcePath": "C:\\Users\\nugye\\Documents\\dae_diorama_-_grandmas_house.glb",
+      "name": "dae_diorama_-_grandmas_house.glb",
+      "layer": "buildings/houses",
+      "tags": [
+        "building",
+        "interior"
+      ],
+      "bytes": 35464720,
+      "mb": 35.46,
+      "localPath": "/models/warlords/intake/buildings/houses/dae_diorama_grandmas_house.glb",
+      "cdnKey": "models/warlords/intake/buildings/houses/dae_diorama_grandmas_house.glb",
+      "cdnUrl": "https://assets.grudge-studio.com/models/warlords/intake/buildings/houses/dae_diorama_grandmas_house.glb",
+      "mtime": "2026-07-25T02:29:07.416Z",
+      "multipack": true,
+      "meshIsolation": {
+        "deferred": true,
+        "hint": "re-run with --inspect-multipack"
+      },
+      "animations": []
+    },
+    {
+      "id": "ds_stylized_hero_asset",
+      "sourcePath": "C:\\Users\\nugye\\Documents\\ds_-_stylized_hero_asset.glb",
+      "name": "ds_-_stylized_hero_asset.glb",
+      "layer": "creatures/hero",
+      "tags": [
+        "creature",
+        "hero_prop"
+      ],
+      "bytes": 34745808,
+      "mb": 34.75,
+      "localPath": "/models/warlords/intake/creatures/hero/ds_stylized_hero_asset.glb",
+      "cdnKey": "models/warlords/intake/creatures/hero/ds_stylized_hero_asset.glb",
+      "cdnUrl": "https://assets.grudge-studio.com/models/warlords/intake/creatures/hero/ds_stylized_hero_asset.glb",
+      "mtime": "2026-07-25T03:38:25.857Z",
+      "multipack": true,
+      "meshIsolation": {
+        "deferred": true,
+        "hint": "re-run with --inspect-multipack"
+      },
+      "animations": []
+    },
+    {
+      "id": "snake_isle_the_forgotten_artifact",
+      "sourcePath": "C:\\Users\\nugye\\Documents\\snake_isle_-_the_forgotten_artifact.glb",
+      "name": "snake_isle_-_the_forgotten_artifact.glb",
+      "layer": "islands/shells",
+      "tags": [
+        "island",
+        "section",
+        "shell"
+      ],
+      "bytes": 34573076,
+      "mb": 34.57,
+      "localPath": "/models/warlords/intake/islands/shells/snake_isle_the_forgotten_artifact.glb",
+      "cdnKey": "models/warlords/intake/islands/shells/snake_isle_the_forgotten_artifact.glb",
+      "cdnUrl": "https://assets.grudge-studio.com/models/warlords/intake/islands/shells/snake_isle_the_forgotten_artifact.glb",
+      "mtime": "2026-07-25T02:11:06.586Z",
+      "multipack": true,
+      "meshIsolation": {
+        "deferred": true,
+        "hint": "re-run with --inspect-multipack"
+      },
+      "animations": []
+    },
+    {
+      "id": "free_steampunk_da_vincis_sword_game_ready",
+      "sourcePath": "C:\\Users\\nugye\\Documents\\free__steampunk_da_vincis_sword_game-ready.glb",
+      "name": "free__steampunk_da_vincis_sword_game-ready.glb",
+      "layer": "equipment/weapons",
+      "tags": [
+        "equipment",
+        "weapon"
+      ],
+      "bytes": 33778416,
+      "mb": 33.78,
+      "localPath": "/models/warlords/intake/equipment/weapons/free_steampunk_da_vincis_sword_game_ready.glb",
+      "cdnKey": "models/warlords/intake/equipment/weapons/free_steampunk_da_vincis_sword_game_ready.glb",
+      "cdnUrl": "https://assets.grudge-studio.com/models/warlords/intake/equipment/weapons/free_steampunk_da_vincis_sword_game_ready.glb",
+      "mtime": "2026-07-25T03:30:56.877Z",
+      "multipack": true,
+      "meshIsolation": {
+        "deferred": true,
+        "hint": "re-run with --inspect-multipack"
+      },
+      "animations": []
+    },
+    {
+      "id": "ds_grappling_hook",
+      "sourcePath": "C:\\Users\\nugye\\Documents\\ds_-_grappling_hook.glb",
+      "name": "ds_-_grappling_hook.glb",
+      "layer": "creatures/hero",
+      "tags": [
+        "creature",
+        "hero_prop"
+      ],
+      "bytes": 33157868,
+      "mb": 33.16,
+      "localPath": "/models/warlords/intake/creatures/hero/ds_grappling_hook.glb",
+      "cdnKey": "models/warlords/intake/creatures/hero/ds_grappling_hook.glb",
+      "cdnUrl": "https://assets.grudge-studio.com/models/warlords/intake/creatures/hero/ds_grappling_hook.glb",
+      "mtime": "2026-07-25T03:36:57.845Z",
+      "multipack": true,
+      "meshIsolation": {
+        "deferred": true,
+        "hint": "re-run with --inspect-multipack"
+      },
+      "animations": []
+    },
+    {
+      "id": "demonic_twinblades_stylized_weapon_free",
+      "sourcePath": "C:\\Users\\nugye\\Documents\\demonic_twinblades_-_stylized_weapon__free.glb",
+      "name": "demonic_twinblades_-_stylized_weapon__free.glb",
+      "layer": "equipment/weapons",
+      "tags": [
+        "equipment",
+        "weapon"
+      ],
+      "bytes": 31229492,
+      "mb": 31.23,
+      "localPath": "/models/warlords/intake/equipment/weapons/demonic_twinblades_stylized_weapon_free.glb",
+      "cdnKey": "models/warlords/intake/equipment/weapons/demonic_twinblades_stylized_weapon_free.glb",
+      "cdnUrl": "https://assets.grudge-studio.com/models/warlords/intake/equipment/weapons/demonic_twinblades_stylized_weapon_free.glb",
+      "mtime": "2026-07-25T02:52:32.710Z",
+      "multipack": true,
+      "meshIsolation": {
+        "deferred": true,
+        "hint": "re-run with --inspect-multipack"
+      },
+      "animations": []
+    },
+    {
+      "id": "medieval_one_handed_mace",
+      "sourcePath": "C:\\Users\\nugye\\Documents\\medieval_one_handed_mace.glb",
+      "name": "medieval_one_handed_mace.glb",
+      "layer": "equipment/weapons",
+      "tags": [
+        "equipment",
+        "weapon"
+      ],
+      "bytes": 31146092,
+      "mb": 31.15,
+      "localPath": "/models/warlords/intake/equipment/weapons/medieval_one_handed_mace.glb",
+      "cdnKey": "models/warlords/intake/equipment/weapons/medieval_one_handed_mace.glb",
+      "cdnUrl": "https://assets.grudge-studio.com/models/warlords/intake/equipment/weapons/medieval_one_handed_mace.glb",
+      "mtime": "2026-07-25T01:39:15.477Z",
+      "multipack": true,
+      "meshIsolation": {
+        "deferred": true,
+        "hint": "re-run with --inspect-multipack"
+      },
+      "animations": []
+    },
+    {
+      "id": "3d_3d_model_of_aogashima_island",
+      "sourcePath": "C:\\Users\\nugye\\Documents\\3d_-_3d_model_of_aogashima_island.glb",
+      "name": "3d_-_3d_model_of_aogashima_island.glb",
+      "layer": "islands/shells",
+      "tags": [
+        "island",
+        "section",
+        "shell"
+      ],
+      "bytes": 30297796,
+      "mb": 30.3,
+      "localPath": "/models/warlords/intake/islands/shells/3d_3d_model_of_aogashima_island.glb",
+      "cdnKey": "models/warlords/intake/islands/shells/3d_3d_model_of_aogashima_island.glb",
+      "cdnUrl": "https://assets.grudge-studio.com/models/warlords/intake/islands/shells/3d_3d_model_of_aogashima_island.glb",
+      "mtime": "2026-07-25T01:14:12.309Z",
+      "multipack": true,
+      "meshIsolation": {
+        "deferred": true,
+        "hint": "re-run with --inspect-multipack"
+      },
+      "animations": []
+    },
+    {
+      "id": "nordic_village",
+      "sourcePath": "C:\\Users\\nugye\\Documents\\nordic_village.glb",
+      "name": "nordic_village.glb",
+      "layer": "maps/city",
+      "tags": [
+        "map",
+        "sector"
+      ],
+      "bytes": 28741624,
+      "mb": 28.74,
+      "localPath": "/models/warlords/intake/maps/city/nordic_village.glb",
+      "cdnKey": "models/warlords/intake/maps/city/nordic_village.glb",
+      "cdnUrl": "https://assets.grudge-studio.com/models/warlords/intake/maps/city/nordic_village.glb",
+      "mtime": "2026-07-25T01:35:45.572Z",
+      "multipack": true,
+      "meshIsolation": {
+        "deferred": true,
+        "hint": "re-run with --inspect-multipack"
+      },
+      "animations": []
+    },
+    {
+      "id": "game_ready_crown_pack_low_poly",
+      "sourcePath": "C:\\Users\\nugye\\Documents\\game-ready_crown_pack_low_poly.glb",
+      "name": "game-ready_crown_pack_low_poly.glb",
+      "layer": "creatures/hero",
+      "tags": [
+        "creature",
+        "hero_prop"
+      ],
+      "bytes": 28088892,
+      "mb": 28.09,
+      "localPath": "/models/warlords/intake/creatures/hero/game_ready_crown_pack_low_poly.glb",
+      "cdnKey": "models/warlords/intake/creatures/hero/game_ready_crown_pack_low_poly.glb",
+      "cdnUrl": "https://assets.grudge-studio.com/models/warlords/intake/creatures/hero/game_ready_crown_pack_low_poly.glb",
+      "mtime": "2026-07-25T02:53:02.137Z",
+      "multipack": true,
+      "meshIsolation": {
+        "deferred": true,
+        "hint": "re-run with --inspect-multipack"
+      },
+      "animations": []
+    },
+    {
+      "id": "captains_quarters",
+      "sourcePath": "C:\\Users\\nugye\\Documents\\captains_quarters.glb",
+      "name": "captains_quarters.glb",
+      "layer": "buildings/houses",
+      "tags": [
+        "building",
+        "interior"
+      ],
+      "bytes": 27936576,
+      "mb": 27.94,
+      "localPath": "/models/warlords/intake/buildings/houses/captains_quarters.glb",
+      "cdnKey": "models/warlords/intake/buildings/houses/captains_quarters.glb",
+      "cdnUrl": "https://assets.grudge-studio.com/models/warlords/intake/buildings/houses/captains_quarters.glb",
+      "mtime": "2026-07-25T02:58:04.623Z",
+      "multipack": true,
+      "meshIsolation": {
+        "deferred": true,
+        "hint": "re-run with --inspect-multipack"
+      },
+      "animations": []
+    },
+    {
+      "id": "castingstaff_shockrod_v001standard",
+      "sourcePath": "C:\\Users\\nugye\\Documents\\castingstaff_shockrod_v001standard.glb",
+      "name": "castingstaff_shockrod_v001standard.glb",
+      "layer": "equipment/weapons",
+      "tags": [
+        "equipment",
+        "weapon"
+      ],
+      "bytes": 24572888,
+      "mb": 24.57,
+      "localPath": "/models/warlords/intake/equipment/weapons/castingstaff_shockrod_v001standard.glb",
+      "cdnKey": "models/warlords/intake/equipment/weapons/castingstaff_shockrod_v001standard.glb",
+      "cdnUrl": "https://assets.grudge-studio.com/models/warlords/intake/equipment/weapons/castingstaff_shockrod_v001standard.glb",
+      "mtime": "2026-07-25T03:32:43.020Z",
+      "multipack": true,
+      "meshIsolation": {
+        "deferred": true,
+        "hint": "re-run with --inspect-multipack"
+      },
+      "animations": []
+    },
+    {
+      "id": "the_steampunk_vault",
+      "sourcePath": "C:\\Users\\nugye\\Documents\\the_steampunk_vault.glb",
+      "name": "the_steampunk_vault.glb",
+      "layer": "buildings/fortress",
+      "tags": [
+        "building",
+        "fortress",
+        "map"
+      ],
+      "bytes": 24396988,
+      "mb": 24.4,
+      "localPath": "/models/warlords/intake/buildings/fortress/the_steampunk_vault.glb",
+      "cdnKey": "models/warlords/intake/buildings/fortress/the_steampunk_vault.glb",
+      "cdnUrl": "https://assets.grudge-studio.com/models/warlords/intake/buildings/fortress/the_steampunk_vault.glb",
+      "mtime": "2026-07-25T03:09:53.469Z",
+      "multipack": true,
+      "meshIsolation": {
+        "deferred": true,
+        "hint": "re-run with --inspect-multipack"
+      },
+      "animations": []
+    },
+    {
+      "id": "electric_melee_weapons",
+      "sourcePath": "C:\\Users\\nugye\\Documents\\electric_melee_weapons.glb",
+      "name": "electric_melee_weapons.glb",
+      "layer": "equipment/weapons",
+      "tags": [
+        "equipment",
+        "weapon"
+      ],
+      "bytes": 22789124,
+      "mb": 22.79,
+      "localPath": "/models/warlords/intake/equipment/weapons/electric_melee_weapons.glb",
+      "cdnKey": "models/warlords/intake/equipment/weapons/electric_melee_weapons.glb",
+      "cdnUrl": "https://assets.grudge-studio.com/models/warlords/intake/equipment/weapons/electric_melee_weapons.glb",
+      "mtime": "2026-07-25T03:42:43.597Z",
+      "multipack": true,
+      "meshIsolation": {
+        "deferred": true,
+        "hint": "re-run with --inspect-multipack"
+      },
+      "animations": []
+    },
+    {
+      "id": "tower_spror",
+      "sourcePath": "C:\\Users\\nugye\\Documents\\tower_spror.glb",
+      "name": "tower_spror.glb",
+      "layer": "buildings/fortress",
+      "tags": [
+        "building",
+        "fortress",
+        "map"
+      ],
+      "bytes": 22618776,
+      "mb": 22.62,
+      "localPath": "/models/warlords/intake/buildings/fortress/tower_spror.glb",
+      "cdnKey": "models/warlords/intake/buildings/fortress/tower_spror.glb",
+      "cdnUrl": "https://assets.grudge-studio.com/models/warlords/intake/buildings/fortress/tower_spror.glb",
+      "mtime": "2026-07-25T02:24:07.750Z",
+      "multipack": true,
+      "meshIsolation": {
+        "deferred": true,
+        "hint": "re-run with --inspect-multipack"
+      },
+      "animations": []
+    },
+    {
+      "id": "oathkeeper_weapon_model",
+      "sourcePath": "C:\\Users\\nugye\\Documents\\oathkeeper_-_weapon_model.glb",
+      "name": "oathkeeper_-_weapon_model.glb",
+      "layer": "equipment/weapons",
+      "tags": [
+        "equipment",
+        "weapon"
+      ],
+      "bytes": 22243356,
+      "mb": 22.24,
+      "localPath": "/models/warlords/intake/equipment/weapons/oathkeeper_weapon_model.glb",
+      "cdnKey": "models/warlords/intake/equipment/weapons/oathkeeper_weapon_model.glb",
+      "cdnUrl": "https://assets.grudge-studio.com/models/warlords/intake/equipment/weapons/oathkeeper_weapon_model.glb",
+      "mtime": "2026-07-25T03:45:47.670Z",
+      "multipack": true,
+      "meshIsolation": {
+        "deferred": true,
+        "hint": "re-run with --inspect-multipack"
+      },
+      "animations": []
+    },
+    {
+      "id": "snow_mountain_low_poly_free",
+      "sourcePath": "C:\\Users\\nugye\\Documents\\snow_mountain_-_low_poly_free.glb",
+      "name": "snow_mountain_-_low_poly_free.glb",
+      "layer": "nature/rocks",
+      "tags": [
+        "nature",
+        "rock",
+        "terrain"
+      ],
+      "bytes": 22227164,
+      "mb": 22.23,
+      "localPath": "/models/warlords/intake/nature/rocks/snow_mountain_low_poly_free.glb",
+      "cdnKey": "models/warlords/intake/nature/rocks/snow_mountain_low_poly_free.glb",
+      "cdnUrl": "https://assets.grudge-studio.com/models/warlords/intake/nature/rocks/snow_mountain_low_poly_free.glb",
+      "mtime": "2026-07-25T02:14:17.086Z",
+      "multipack": true,
+      "meshIsolation": {
+        "deferred": true,
+        "hint": "re-run with --inspect-multipack"
+      },
+      "animations": []
+    },
+    {
+      "id": "red_spear",
+      "sourcePath": "C:\\Users\\nugye\\Documents\\red_spear.glb",
+      "name": "red_spear.glb",
+      "layer": "equipment/weapons",
+      "tags": [
+        "equipment",
+        "weapon"
+      ],
+      "bytes": 22047544,
+      "mb": 22.05,
+      "localPath": "/models/warlords/intake/equipment/weapons/red_spear.glb",
+      "cdnKey": "models/warlords/intake/equipment/weapons/red_spear.glb",
+      "cdnUrl": "https://assets.grudge-studio.com/models/warlords/intake/equipment/weapons/red_spear.glb",
+      "mtime": "2026-07-25T03:47:40.540Z",
+      "multipack": true,
+      "meshIsolation": {
+        "deferred": true,
+        "hint": "re-run with --inspect-multipack"
+      },
+      "animations": []
+    },
+    {
+      "id": "a_welcoming_sign",
+      "sourcePath": "C:\\Users\\nugye\\Documents\\a_welcoming_sign.glb",
+      "name": "a_welcoming_sign.glb",
+      "layer": "buildings/fortress",
+      "tags": [
+        "building",
+        "fortress",
+        "map"
+      ],
+      "bytes": 21642296,
+      "mb": 21.64,
+      "localPath": "/models/warlords/intake/buildings/fortress/a_welcoming_sign.glb",
+      "cdnKey": "models/warlords/intake/buildings/fortress/a_welcoming_sign.glb",
+      "cdnUrl": "https://assets.grudge-studio.com/models/warlords/intake/buildings/fortress/a_welcoming_sign.glb",
+      "mtime": "2026-07-25T03:07:15.520Z",
+      "multipack": true,
+      "meshIsolation": {
+        "deferred": true,
+        "hint": "re-run with --inspect-multipack"
+      },
+      "animations": []
+    },
+    {
+      "id": "squid_game_island",
+      "sourcePath": "C:\\Users\\nugye\\Documents\\squid_game_island.glb",
+      "name": "squid_game_island.glb",
+      "layer": "islands/shells",
+      "tags": [
+        "island",
+        "section",
+        "shell"
+      ],
+      "bytes": 21279416,
+      "mb": 21.28,
+      "localPath": "/models/warlords/intake/islands/shells/squid_game_island.glb",
+      "cdnKey": "models/warlords/intake/islands/shells/squid_game_island.glb",
+      "cdnUrl": "https://assets.grudge-studio.com/models/warlords/intake/islands/shells/squid_game_island.glb",
+      "mtime": "2026-07-25T02:13:29.084Z",
+      "multipack": true,
+      "meshIsolation": {
+        "deferred": true,
+        "hint": "re-run with --inspect-multipack"
+      },
+      "animations": []
+    },
+    {
+      "id": "crops_low_poly",
+      "sourcePath": "C:\\Users\\nugye\\Documents\\crops_low_poly.glb",
+      "name": "crops_low_poly.glb",
+      "layer": "harvest/crops",
+      "tags": [
+        "harvest",
+        "farming"
+      ],
+      "bytes": 19355008,
+      "mb": 19.36,
+      "localPath": "/models/warlords/intake/harvest/crops/crops_low_poly.glb",
+      "cdnKey": "models/warlords/intake/harvest/crops/crops_low_poly.glb",
+      "cdnUrl": "https://assets.grudge-studio.com/models/warlords/intake/harvest/crops/crops_low_poly.glb",
+      "mtime": "2026-07-25T01:11:32.930Z",
+      "multipack": true,
+      "meshIsolation": {
+        "deferred": true,
+        "hint": "re-run with --inspect-multipack"
+      },
+      "animations": []
+    },
+    {
+      "id": "steampunk_grenade_set",
+      "sourcePath": "C:\\Users\\nugye\\Documents\\steampunk_grenade_set.glb",
+      "name": "steampunk_grenade_set.glb",
+      "layer": "equipment/weapons",
+      "tags": [
+        "equipment",
+        "weapon"
+      ],
+      "bytes": 18737616,
+      "mb": 18.74,
+      "localPath": "/models/warlords/intake/equipment/weapons/steampunk_grenade_set.glb",
+      "cdnKey": "models/warlords/intake/equipment/weapons/steampunk_grenade_set.glb",
+      "cdnUrl": "https://assets.grudge-studio.com/models/warlords/intake/equipment/weapons/steampunk_grenade_set.glb",
+      "mtime": "2026-07-25T03:42:51.898Z",
+      "multipack": true,
+      "meshIsolation": {
+        "deferred": true,
+        "hint": "re-run with --inspect-multipack"
+      },
+      "animations": []
+    },
+    {
+      "id": "small_time_town_village_asset_pack",
+      "sourcePath": "C:\\Users\\nugye\\Documents\\small_time_town__village_asset_pack.glb",
+      "name": "small_time_town__village_asset_pack.glb",
+      "layer": "maps/city",
+      "tags": [
+        "map",
+        "sector"
+      ],
+      "bytes": 18629136,
+      "mb": 18.63,
+      "localPath": "/models/warlords/intake/maps/city/small_time_town_village_asset_pack.glb",
+      "cdnKey": "models/warlords/intake/maps/city/small_time_town_village_asset_pack.glb",
+      "cdnUrl": "https://assets.grudge-studio.com/models/warlords/intake/maps/city/small_time_town_village_asset_pack.glb",
+      "mtime": "2026-07-25T01:11:19.853Z",
+      "multipack": true,
+      "meshIsolation": {
+        "deferred": true,
+        "hint": "re-run with --inspect-multipack"
+      },
+      "animations": []
+    },
+    {
+      "id": "16_mysterious_contraption",
+      "sourcePath": "C:\\Users\\nugye\\Documents\\16_mysterious_contraption.glb",
+      "name": "16_mysterious_contraption.glb",
+      "layer": "props/misc",
+      "tags": [
+        "prop"
+      ],
+      "bytes": 18039580,
+      "mb": 18.04,
+      "localPath": "/models/warlords/intake/props/misc/16_mysterious_contraption.glb",
+      "cdnKey": "models/warlords/intake/props/misc/16_mysterious_contraption.glb",
+      "cdnUrl": "https://assets.grudge-studio.com/models/warlords/intake/props/misc/16_mysterious_contraption.glb",
+      "mtime": "2026-07-25T02:23:13.598Z",
+      "multipack": true,
+      "meshIsolation": {
+        "deferred": true,
+        "hint": "re-run with --inspect-multipack"
+      },
+      "animations": []
+    },
+    {
+      "id": "falcias",
+      "sourcePath": "C:\\Users\\nugye\\Documents\\falcias.glb",
+      "name": "falcias.glb",
+      "layer": "islands/shells",
+      "tags": [
+        "island",
+        "section",
+        "shell"
+      ],
+      "bytes": 16835416,
+      "mb": 16.84,
+      "localPath": "/models/warlords/intake/islands/shells/falcias.glb",
+      "cdnKey": "models/warlords/intake/islands/shells/falcias.glb",
+      "cdnUrl": "https://assets.grudge-studio.com/models/warlords/intake/islands/shells/falcias.glb",
+      "mtime": "2026-07-25T01:17:39.083Z",
+      "multipack": true,
+      "meshIsolation": {
+        "deferred": true,
+        "hint": "re-run with --inspect-multipack"
+      },
+      "animations": []
+    },
+    {
+      "id": "tesb_dragonbone_weapons",
+      "sourcePath": "C:\\Users\\nugye\\Documents\\tesb_dragonbone_weapons.glb",
+      "name": "tesb_dragonbone_weapons.glb",
+      "layer": "equipment/weapons",
+      "tags": [
+        "equipment",
+        "weapon"
+      ],
+      "bytes": 16799960,
+      "mb": 16.8,
+      "localPath": "/models/warlords/intake/equipment/weapons/tesb_dragonbone_weapons.glb",
+      "cdnKey": "models/warlords/intake/equipment/weapons/tesb_dragonbone_weapons.glb",
+      "cdnUrl": "https://assets.grudge-studio.com/models/warlords/intake/equipment/weapons/tesb_dragonbone_weapons.glb",
+      "mtime": "2026-07-25T03:42:24.684Z",
+      "multipack": true,
+      "meshIsolation": {
+        "deferred": true,
+        "hint": "re-run with --inspect-multipack"
+      },
+      "animations": []
+    },
+    {
+      "id": "nature_scene_free",
+      "sourcePath": "C:\\Users\\nugye\\Documents\\nature_scene_free.glb",
+      "name": "nature_scene_free.glb",
+      "layer": "nature/scene",
+      "tags": [
+        "nature",
+        "scatter"
+      ],
+      "bytes": 15377868,
+      "mb": 15.38,
+      "localPath": "/models/warlords/intake/nature/scene/nature_scene_free.glb",
+      "cdnKey": "models/warlords/intake/nature/scene/nature_scene_free.glb",
+      "cdnUrl": "https://assets.grudge-studio.com/models/warlords/intake/nature/scene/nature_scene_free.glb",
+      "mtime": "2026-07-25T01:58:52.756Z",
+      "multipack": true,
+      "meshIsolation": {
+        "deferred": true,
+        "hint": "re-run with --inspect-multipack"
+      },
+      "animations": []
+    },
+    {
+      "id": "2bone_knife",
+      "sourcePath": "C:\\Users\\nugye\\Documents\\2bone_knife.glb",
+      "name": "2bone_knife.glb",
+      "layer": "equipment/weapons",
+      "tags": [
+        "equipment",
+        "weapon"
+      ],
+      "bytes": 15026300,
+      "mb": 15.03,
+      "localPath": "/models/warlords/intake/equipment/weapons/2bone_knife.glb",
+      "cdnKey": "models/warlords/intake/equipment/weapons/2bone_knife.glb",
+      "cdnUrl": "https://assets.grudge-studio.com/models/warlords/intake/equipment/weapons/2bone_knife.glb",
+      "mtime": "2026-07-25T03:47:51.123Z",
+      "multipack": true,
+      "meshIsolation": {
+        "deferred": true,
+        "hint": "re-run with --inspect-multipack"
+      },
+      "animations": []
+    },
+    {
+      "id": "sword_primordial",
+      "sourcePath": "C:\\Users\\nugye\\Documents\\sword_-_primordial.glb",
+      "name": "sword_-_primordial.glb",
+      "layer": "equipment/weapons",
+      "tags": [
+        "equipment",
+        "weapon"
+      ],
+      "bytes": 14494708,
+      "mb": 14.49,
+      "localPath": "/models/warlords/intake/equipment/weapons/sword_primordial.glb",
+      "cdnKey": "models/warlords/intake/equipment/weapons/sword_primordial.glb",
+      "cdnUrl": "https://assets.grudge-studio.com/models/warlords/intake/equipment/weapons/sword_primordial.glb",
+      "mtime": "2026-07-25T03:36:24.305Z",
+      "multipack": true,
+      "meshIsolation": {
+        "deferred": true,
+        "hint": "re-run with --inspect-multipack"
+      },
+      "animations": []
+    },
+    {
+      "id": "sworattackssamurai",
+      "sourcePath": "C:\\Users\\nugye\\Documents\\sworattackssamurai.glb",
+      "name": "sworattackssamurai.glb",
+      "layer": "anims/combat",
+      "tags": [
+        "animation",
+        "combat",
+        "2h_sword",
+        "retarget_source",
+        "samurai",
+        "bip001_target"
+      ],
+      "bytes": 13694128,
+      "mb": 13.69,
+      "localPath": "/models/warlords/intake/anims/combat/sworattackssamurai.glb",
+      "cdnKey": "models/warlords/intake/anims/combat/sworattackssamurai.glb",
+      "cdnUrl": "https://assets.grudge-studio.com/models/warlords/intake/anims/combat/sworattackssamurai.glb",
+      "mtime": "2026-07-25T03:48:09.125Z",
+      "multipack": true,
+      "meshIsolation": {
+        "deferred": true,
+        "hint": "re-run with --inspect-multipack"
+      },
+      "animations": [],
+      "combatMap": {
+        "sourceGlb": "/models/warlords/intake/anims/combat/sworattackssamurai.glb",
+        "targetSkeleton": "bip001",
+        "weaponPack": "greatsword",
+        "slots": {
+          "1": {
+            "role": "normal_attack_combo",
+            "clips": [
+              "2combo_1",
+              "3combo_2"
+            ],
+            "note": "Two-hit combo LMB / focus primary"
+          },
+          "2": {
+            "role": "teleport_strike",
+            "clips": [
+              "4combo"
+            ],
+            "note": "Standalone skill + teleport",
+            "vfx": "cast_from_sword_shield_magic_pack"
+          },
+          "3": {
+            "role": "opener_slash_dash",
+            "clips": [
+              "attack1"
+            ],
+            "note": "2H sword opener slashing dash"
+          },
+          "4": {
+            "role": "flaming_fissure",
+            "clips": [
+              "/* use sword_shield cast / magic_cast */"
+            ],
+            "skill": "gs_flaming_fissure",
+            "note": "Cast anim from sword pack; ground fissure VFX toward enemy"
+          }
+        }
+      }
+    },
+    {
+      "id": "cyberpunk_stylized_mask",
+      "sourcePath": "C:\\Users\\nugye\\Documents\\cyberpunk_stylized_mask.glb",
+      "name": "cyberpunk_stylized_mask.glb",
+      "layer": "creatures/hero",
+      "tags": [
+        "creature",
+        "hero_prop"
+      ],
+      "bytes": 13478376,
+      "mb": 13.48,
+      "localPath": "/models/warlords/intake/creatures/hero/cyberpunk_stylized_mask.glb",
+      "cdnKey": "models/warlords/intake/creatures/hero/cyberpunk_stylized_mask.glb",
+      "cdnUrl": "https://assets.grudge-studio.com/models/warlords/intake/creatures/hero/cyberpunk_stylized_mask.glb",
+      "mtime": "2026-07-25T02:55:52.611Z",
+      "multipack": true,
+      "meshIsolation": {
+        "deferred": true,
+        "hint": "re-run with --inspect-multipack"
+      },
+      "animations": []
+    },
+    {
+      "id": "steampunk_revolver_with_animations",
+      "sourcePath": "C:\\Users\\nugye\\Documents\\steampunk_revolver_with_animations.glb",
+      "name": "steampunk_revolver_with_animations.glb",
+      "layer": "anims/combat",
+      "tags": [
+        "animation",
+        "combat",
+        "2h_sword"
+      ],
+      "bytes": 12901984,
+      "mb": 12.9,
+      "localPath": "/models/warlords/intake/anims/combat/steampunk_revolver_with_animations.glb",
+      "cdnKey": "models/warlords/intake/anims/combat/steampunk_revolver_with_animations.glb",
+      "cdnUrl": "https://assets.grudge-studio.com/models/warlords/intake/anims/combat/steampunk_revolver_with_animations.glb",
+      "mtime": "2026-07-25T01:32:59.847Z",
+      "multipack": true,
+      "meshIsolation": {
+        "deferred": true,
+        "hint": "re-run with --inspect-multipack"
+      },
+      "animations": []
+    },
+    {
+      "id": "little_nightmares_2_trashpile",
+      "sourcePath": "C:\\Users\\nugye\\Documents\\little_nightmares_2_trashpile.glb",
+      "name": "little_nightmares_2_trashpile.glb",
+      "layer": "maps/dungeon",
+      "tags": [
+        "map",
+        "dungeon",
+        "gameflow"
+      ],
+      "bytes": 12787632,
+      "mb": 12.79,
+      "localPath": "/models/warlords/intake/maps/dungeon/little_nightmares_2_trashpile.glb",
+      "cdnKey": "models/warlords/intake/maps/dungeon/little_nightmares_2_trashpile.glb",
+      "cdnUrl": "https://assets.grudge-studio.com/models/warlords/intake/maps/dungeon/little_nightmares_2_trashpile.glb",
+      "mtime": "2026-07-25T03:22:19.868Z",
+      "multipack": true,
+      "meshIsolation": {
+        "deferred": true,
+        "hint": "re-run with --inspect-multipack"
+      },
+      "animations": []
+    },
+    {
+      "id": "viking_fisherman_house",
+      "sourcePath": "C:\\Users\\nugye\\Documents\\viking_fisherman_house.glb",
+      "name": "viking_fisherman_house.glb",
+      "layer": "buildings/houses",
+      "tags": [
+        "building",
+        "interior"
+      ],
+      "bytes": 12769944,
+      "mb": 12.77,
+      "localPath": "/models/warlords/intake/buildings/houses/viking_fisherman_house.glb",
+      "cdnKey": "models/warlords/intake/buildings/houses/viking_fisherman_house.glb",
+      "cdnUrl": "https://assets.grudge-studio.com/models/warlords/intake/buildings/houses/viking_fisherman_house.glb",
+      "mtime": "2026-07-25T03:36:33.309Z",
+      "multipack": true,
+      "meshIsolation": {
+        "deferred": true,
+        "hint": "re-run with --inspect-multipack"
+      },
+      "animations": []
+    },
+    {
+      "id": "carapace_hammer",
+      "sourcePath": "C:\\Users\\nugye\\Documents\\carapace_hammer.glb",
+      "name": "carapace_hammer.glb",
+      "layer": "equipment/weapons",
+      "tags": [
+        "equipment",
+        "weapon"
+      ],
+      "bytes": 12300832,
+      "mb": 12.3,
+      "localPath": "/models/warlords/intake/equipment/weapons/carapace_hammer.glb",
+      "cdnKey": "models/warlords/intake/equipment/weapons/carapace_hammer.glb",
+      "cdnUrl": "https://assets.grudge-studio.com/models/warlords/intake/equipment/weapons/carapace_hammer.glb",
+      "mtime": "2026-07-25T01:26:48.554Z",
+      "multipack": true,
+      "meshIsolation": {
+        "deferred": true,
+        "hint": "re-run with --inspect-multipack"
+      },
+      "animations": []
+    },
+    {
+      "id": "baselowpoly_island",
+      "sourcePath": "C:\\Users\\nugye\\Documents\\baselowpoly_island.glb",
+      "name": "baselowpoly_island.glb",
+      "layer": "islands/shells",
+      "tags": [
+        "island",
+        "section",
+        "shell"
+      ],
+      "bytes": 12065344,
+      "mb": 12.07,
+      "localPath": "/models/warlords/intake/islands/shells/baselowpoly_island.glb",
+      "cdnKey": "models/warlords/intake/islands/shells/baselowpoly_island.glb",
+      "cdnUrl": "https://assets.grudge-studio.com/models/warlords/intake/islands/shells/baselowpoly_island.glb",
+      "mtime": "2026-07-25T01:48:21.627Z",
+      "multipack": true,
+      "meshIsolation": {
+        "deferred": true,
+        "hint": "re-run with --inspect-multipack"
+      },
+      "animations": []
+    },
+    {
+      "id": "harvestmountains",
+      "sourcePath": "C:\\Users\\nugye\\Documents\\harvestmountains.glb",
+      "name": "harvestmountains.glb",
+      "layer": "harvest/crops",
+      "tags": [
+        "harvest",
+        "farming"
+      ],
+      "bytes": 11748668,
+      "mb": 11.75,
+      "localPath": "/models/warlords/intake/harvest/crops/harvestmountains.glb",
+      "cdnKey": "models/warlords/intake/harvest/crops/harvestmountains.glb",
+      "cdnUrl": "https://assets.grudge-studio.com/models/warlords/intake/harvest/crops/harvestmountains.glb",
+      "mtime": "2026-07-25T01:54:58.295Z",
+      "multipack": true,
+      "meshIsolation": {
+        "deferred": true,
+        "hint": "re-run with --inspect-multipack"
+      },
+      "animations": []
+    },
+    {
+      "id": "captains_desk_on_a_pirate_ship",
+      "sourcePath": "C:\\Users\\nugye\\Documents\\captains_desk_on_a_pirate_ship.glb",
+      "name": "captains_desk_on_a_pirate_ship.glb",
+      "layer": "buildings/houses",
+      "tags": [
+        "building",
+        "interior"
+      ],
+      "bytes": 11207808,
+      "mb": 11.21,
+      "localPath": "/models/warlords/intake/buildings/houses/captains_desk_on_a_pirate_ship.glb",
+      "cdnKey": "models/warlords/intake/buildings/houses/captains_desk_on_a_pirate_ship.glb",
+      "cdnUrl": "https://assets.grudge-studio.com/models/warlords/intake/buildings/houses/captains_desk_on_a_pirate_ship.glb",
+      "mtime": "2026-07-25T03:39:47.852Z",
+      "multipack": true,
+      "meshIsolation": {
+        "deferred": true,
+        "hint": "re-run with --inspect-multipack"
+      },
+      "animations": []
+    },
+    {
+      "id": "stylized_fatasy_hammer",
+      "sourcePath": "C:\\Users\\nugye\\Documents\\stylized_fatasy_hammer.glb",
+      "name": "stylized_fatasy_hammer.glb",
+      "layer": "equipment/weapons",
+      "tags": [
+        "equipment",
+        "weapon"
+      ],
+      "bytes": 11153816,
+      "mb": 11.15,
+      "localPath": "/models/warlords/intake/equipment/weapons/stylized_fatasy_hammer.glb",
+      "cdnKey": "models/warlords/intake/equipment/weapons/stylized_fatasy_hammer.glb",
+      "cdnUrl": "https://assets.grudge-studio.com/models/warlords/intake/equipment/weapons/stylized_fatasy_hammer.glb",
+      "mtime": "2026-07-25T03:38:59.922Z",
+      "multipack": true,
+      "meshIsolation": {
+        "deferred": true,
+        "hint": "re-run with --inspect-multipack"
+      },
+      "animations": []
+    },
+    {
+      "id": "box_stylized",
+      "sourcePath": "C:\\Users\\nugye\\Documents\\box_stylized.glb",
+      "name": "box_stylized.glb",
+      "layer": "nature/scene",
+      "tags": [
+        "nature",
+        "scatter"
+      ],
+      "bytes": 10408708,
+      "mb": 10.41,
+      "localPath": "/models/warlords/intake/nature/scene/box_stylized.glb",
+      "cdnKey": "models/warlords/intake/nature/scene/box_stylized.glb",
+      "cdnUrl": "https://assets.grudge-studio.com/models/warlords/intake/nature/scene/box_stylized.glb",
+      "mtime": "2026-07-25T01:39:53.960Z",
+      "multipack": true,
+      "meshIsolation": {
+        "deferred": true,
+        "hint": "re-run with --inspect-multipack"
+      },
+      "animations": []
+    },
+    {
+      "id": "hell_stylized_low_poly_asset_pack",
+      "sourcePath": "C:\\Users\\nugye\\Documents\\hell_-_stylized_low_poly_asset_pack.glb",
+      "name": "hell_-_stylized_low_poly_asset_pack.glb",
+      "layer": "multipacks/environment",
+      "tags": [
+        "multipack",
+        "environment"
+      ],
+      "bytes": 10217736,
+      "mb": 10.22,
+      "localPath": "/models/warlords/intake/multipacks/environment/hell_stylized_low_poly_asset_pack.glb",
+      "cdnKey": "models/warlords/intake/multipacks/environment/hell_stylized_low_poly_asset_pack.glb",
+      "cdnUrl": "https://assets.grudge-studio.com/models/warlords/intake/multipacks/environment/hell_stylized_low_poly_asset_pack.glb",
+      "mtime": "2026-07-25T01:13:04.741Z",
+      "multipack": true,
+      "meshIsolation": {
+        "deferred": true,
+        "hint": "re-run with --inspect-multipack"
+      },
+      "animations": []
+    },
+    {
+      "id": "verdict_axe_free",
+      "sourcePath": "C:\\Users\\nugye\\Documents\\verdict_axe_free.glb",
+      "name": "verdict_axe_free.glb",
+      "layer": "equipment/weapons",
+      "tags": [
+        "equipment",
+        "weapon"
+      ],
+      "bytes": 9935180,
+      "mb": 9.94,
+      "localPath": "/models/warlords/intake/equipment/weapons/verdict_axe_free.glb",
+      "cdnKey": "models/warlords/intake/equipment/weapons/verdict_axe_free.glb",
+      "cdnUrl": "https://assets.grudge-studio.com/models/warlords/intake/equipment/weapons/verdict_axe_free.glb",
+      "mtime": "2026-07-25T03:28:08.251Z",
+      "multipack": true,
+      "meshIsolation": {
+        "deferred": true,
+        "hint": "re-run with --inspect-multipack"
+      },
+      "animations": []
+    },
+    {
+      "id": "anchor_sword",
+      "sourcePath": "C:\\Users\\nugye\\Documents\\anchor_sword.glb",
+      "name": "anchor_sword.glb",
+      "layer": "equipment/weapons",
+      "tags": [
+        "equipment",
+        "weapon"
+      ],
+      "bytes": 9868288,
+      "mb": 9.87,
+      "localPath": "/models/warlords/intake/equipment/weapons/anchor_sword.glb",
+      "cdnKey": "models/warlords/intake/equipment/weapons/anchor_sword.glb",
+      "cdnUrl": "https://assets.grudge-studio.com/models/warlords/intake/equipment/weapons/anchor_sword.glb",
+      "mtime": "2026-07-25T03:00:07.858Z",
+      "multipack": true,
+      "meshIsolation": {
+        "deferred": true,
+        "hint": "re-run with --inspect-multipack"
+      },
+      "animations": []
+    },
+    {
+      "id": "celestia_shard_valkyrie",
+      "sourcePath": "C:\\Users\\nugye\\Documents\\celestia_shard_valkyrie.glb",
+      "name": "celestia_shard_valkyrie.glb",
+      "layer": "harvest/gems",
+      "tags": [
+        "harvest",
+        "mining"
+      ],
+      "bytes": 9662528,
+      "mb": 9.66,
+      "localPath": "/models/warlords/intake/harvest/gems/celestia_shard_valkyrie.glb",
+      "cdnKey": "models/warlords/intake/harvest/gems/celestia_shard_valkyrie.glb",
+      "cdnUrl": "https://assets.grudge-studio.com/models/warlords/intake/harvest/gems/celestia_shard_valkyrie.glb",
+      "mtime": "2026-07-25T02:34:36.670Z",
+      "multipack": true,
+      "meshIsolation": {
+        "deferred": true,
+        "hint": "re-run with --inspect-multipack"
+      },
+      "animations": []
+    },
+    {
+      "id": "purple_horror",
+      "sourcePath": "C:\\Users\\nugye\\Documents\\purple_horror.glb",
+      "name": "purple_horror.glb",
+      "layer": "maps/dungeon",
+      "tags": [
+        "map",
+        "dungeon",
+        "gameflow"
+      ],
+      "bytes": 9237652,
+      "mb": 9.24,
+      "localPath": "/models/warlords/intake/maps/dungeon/purple_horror.glb",
+      "cdnKey": "models/warlords/intake/maps/dungeon/purple_horror.glb",
+      "cdnUrl": "https://assets.grudge-studio.com/models/warlords/intake/maps/dungeon/purple_horror.glb",
+      "mtime": "2026-07-25T03:21:34.961Z",
+      "multipack": true,
+      "meshIsolation": {
+        "deferred": true,
+        "hint": "re-run with --inspect-multipack"
+      },
+      "animations": []
+    },
+    {
+      "id": "siege_hammer_arknights_2nd_version",
+      "sourcePath": "C:\\Users\\nugye\\Documents\\siege_hammer_arknights___-_2nd_version.glb",
+      "name": "siege_hammer_arknights___-_2nd_version.glb",
+      "layer": "equipment/weapons",
+      "tags": [
+        "equipment",
+        "weapon"
+      ],
+      "bytes": 8053952,
+      "mb": 8.05,
+      "localPath": "/models/warlords/intake/equipment/weapons/siege_hammer_arknights_2nd_version.glb",
+      "cdnKey": "models/warlords/intake/equipment/weapons/siege_hammer_arknights_2nd_version.glb",
+      "cdnUrl": "https://assets.grudge-studio.com/models/warlords/intake/equipment/weapons/siege_hammer_arknights_2nd_version.glb",
+      "mtime": "2026-07-25T01:27:00.106Z",
+      "multipack": true,
+      "meshIsolation": {
+        "deferred": true,
+        "hint": "re-run with --inspect-multipack"
+      },
+      "animations": []
+    },
+    {
+      "id": "utcm_3_0_hammer",
+      "sourcePath": "C:\\Users\\nugye\\Documents\\utcm_3.0_hammer.glb",
+      "name": "utcm_3.0_hammer.glb",
+      "layer": "equipment/weapons",
+      "tags": [
+        "equipment",
+        "weapon"
+      ],
+      "bytes": 7840652,
+      "mb": 7.84,
+      "localPath": "/models/warlords/intake/equipment/weapons/utcm_3_0_hammer.glb",
+      "cdnKey": "models/warlords/intake/equipment/weapons/utcm_3_0_hammer.glb",
+      "cdnUrl": "https://assets.grudge-studio.com/models/warlords/intake/equipment/weapons/utcm_3_0_hammer.glb",
+      "mtime": "2026-07-25T01:27:08.290Z",
+      "multipack": false,
+      "meshIsolation": null,
+      "animations": []
+    },
+    {
+      "id": "orbs",
+      "sourcePath": "C:\\Users\\nugye\\Documents\\orbs.glb",
+      "name": "orbs.glb",
+      "layer": "harvest/gems",
+      "tags": [
+        "harvest",
+        "mining"
+      ],
+      "bytes": 7447712,
+      "mb": 7.45,
+      "localPath": "/models/warlords/intake/harvest/gems/orbs.glb",
+      "cdnKey": "models/warlords/intake/harvest/gems/orbs.glb",
+      "cdnUrl": "https://assets.grudge-studio.com/models/warlords/intake/harvest/gems/orbs.glb",
+      "mtime": "2026-07-25T01:39:30.035Z",
+      "multipack": false,
+      "meshIsolation": null,
+      "animations": []
+    },
+    {
+      "id": "haytor_rocks_3d_reconsrtuction",
+      "sourcePath": "C:\\Users\\nugye\\Documents\\haytor_rocks_3d_reconsrtuction.glb",
+      "name": "haytor_rocks_3d_reconsrtuction.glb",
+      "layer": "harvest/crops",
+      "tags": [
+        "harvest",
+        "farming"
+      ],
+      "bytes": 7204656,
+      "mb": 7.2,
+      "localPath": "/models/warlords/intake/harvest/crops/haytor_rocks_3d_reconsrtuction.glb",
+      "cdnKey": "models/warlords/intake/harvest/crops/haytor_rocks_3d_reconsrtuction.glb",
+      "cdnUrl": "https://assets.grudge-studio.com/models/warlords/intake/harvest/crops/haytor_rocks_3d_reconsrtuction.glb",
+      "mtime": "2026-07-25T02:02:08.729Z",
+      "multipack": false,
+      "meshIsolation": null,
+      "animations": []
+    },
+    {
+      "id": "stylized_brutal_sword",
+      "sourcePath": "C:\\Users\\nugye\\Documents\\stylized_brutal_sword.glb",
+      "name": "stylized_brutal_sword.glb",
+      "layer": "equipment/weapons",
+      "tags": [
+        "equipment",
+        "weapon"
+      ],
+      "bytes": 6993340,
+      "mb": 6.99,
+      "localPath": "/models/warlords/intake/equipment/weapons/stylized_brutal_sword.glb",
+      "cdnKey": "models/warlords/intake/equipment/weapons/stylized_brutal_sword.glb",
+      "cdnUrl": "https://assets.grudge-studio.com/models/warlords/intake/equipment/weapons/stylized_brutal_sword.glb",
+      "mtime": "2026-07-25T03:27:06.011Z",
+      "multipack": false,
+      "meshIsolation": null,
+      "animations": []
+    },
+    {
+      "id": "book_set",
+      "sourcePath": "C:\\Users\\nugye\\Documents\\book_set.glb",
+      "name": "book_set.glb",
+      "layer": "props/misc",
+      "tags": [
+        "prop"
+      ],
+      "bytes": 6488968,
+      "mb": 6.49,
+      "localPath": "/models/warlords/intake/props/misc/book_set.glb",
+      "cdnKey": "models/warlords/intake/props/misc/book_set.glb",
+      "cdnUrl": "https://assets.grudge-studio.com/models/warlords/intake/props/misc/book_set.glb",
+      "mtime": "2026-07-25T03:33:02.186Z",
+      "multipack": true,
+      "meshIsolation": {
+        "deferred": true,
+        "hint": "re-run with --inspect-multipack"
+      },
+      "animations": []
+    },
+    {
+      "id": "medieval_castle_scene_01",
+      "sourcePath": "C:\\Users\\nugye\\Documents\\medieval_castle_scene_01.glb",
+      "name": "medieval_castle_scene_01.glb",
+      "layer": "buildings/fortress",
+      "tags": [
+        "building",
+        "fortress",
+        "map"
+      ],
+      "bytes": 6239328,
+      "mb": 6.24,
+      "localPath": "/models/warlords/intake/buildings/fortress/medieval_castle_scene_01.glb",
+      "cdnKey": "models/warlords/intake/buildings/fortress/medieval_castle_scene_01.glb",
+      "cdnUrl": "https://assets.grudge-studio.com/models/warlords/intake/buildings/fortress/medieval_castle_scene_01.glb",
+      "mtime": "2026-07-25T01:36:23.134Z",
+      "multipack": false,
+      "meshIsolation": null,
+      "animations": []
+    },
+    {
+      "id": "felbound_decimator",
+      "sourcePath": "C:\\Users\\nugye\\Documents\\felbound_decimator.glb",
+      "name": "felbound_decimator.glb",
+      "layer": "equipment/weapons",
+      "tags": [
+        "equipment",
+        "weapon"
+      ],
+      "bytes": 6130844,
+      "mb": 6.13,
+      "localPath": "/models/warlords/intake/equipment/weapons/felbound_decimator.glb",
+      "cdnKey": "models/warlords/intake/equipment/weapons/felbound_decimator.glb",
+      "cdnUrl": "https://assets.grudge-studio.com/models/warlords/intake/equipment/weapons/felbound_decimator.glb",
+      "mtime": "2026-07-25T03:42:11.152Z",
+      "multipack": false,
+      "meshIsolation": null,
+      "animations": []
+    },
+    {
+      "id": "stylized_prop_the_dwarven_cooks_stew_pot",
+      "sourcePath": "C:\\Users\\nugye\\Documents\\stylized_prop_the_dwarven_cooks_stew_pot.glb",
+      "name": "stylized_prop_the_dwarven_cooks_stew_pot.glb",
+      "layer": "harvest/food",
+      "tags": [
+        "harvest",
+        "prop"
+      ],
+      "bytes": 6112040,
+      "mb": 6.11,
+      "localPath": "/models/warlords/intake/harvest/food/stylized_prop_the_dwarven_cooks_stew_pot.glb",
+      "cdnKey": "models/warlords/intake/harvest/food/stylized_prop_the_dwarven_cooks_stew_pot.glb",
+      "cdnUrl": "https://assets.grudge-studio.com/models/warlords/intake/harvest/food/stylized_prop_the_dwarven_cooks_stew_pot.glb",
+      "mtime": "2026-07-25T03:39:59.740Z",
+      "multipack": false,
+      "meshIsolation": null,
+      "animations": []
+    },
+    {
+      "id": "enhanced_drinks_flying_merchant_dae_bazar",
+      "sourcePath": "C:\\Users\\nugye\\Documents\\enhanced_drinks_flying_merchant__dae_bazar.glb",
+      "name": "enhanced_drinks_flying_merchant__dae_bazar.glb",
+      "layer": "harvest/food",
+      "tags": [
+        "harvest",
+        "prop"
+      ],
+      "bytes": 5277760,
+      "mb": 5.28,
+      "localPath": "/models/warlords/intake/harvest/food/enhanced_drinks_flying_merchant_dae_bazar.glb",
+      "cdnKey": "models/warlords/intake/harvest/food/enhanced_drinks_flying_merchant_dae_bazar.glb",
+      "cdnUrl": "https://assets.grudge-studio.com/models/warlords/intake/harvest/food/enhanced_drinks_flying_merchant_dae_bazar.glb",
+      "mtime": "2026-07-25T02:40:15.326Z",
+      "multipack": false,
+      "meshIsolation": null,
+      "animations": []
+    },
+    {
+      "id": "crystal_shuriken",
+      "sourcePath": "C:\\Users\\nugye\\Documents\\crystal_shuriken.glb",
+      "name": "crystal_shuriken.glb",
+      "layer": "equipment/weapons",
+      "tags": [
+        "equipment",
+        "weapon"
+      ],
+      "bytes": 4896588,
+      "mb": 4.9,
+      "localPath": "/models/warlords/intake/equipment/weapons/crystal_shuriken.glb",
+      "cdnKey": "models/warlords/intake/equipment/weapons/crystal_shuriken.glb",
+      "cdnUrl": "https://assets.grudge-studio.com/models/warlords/intake/equipment/weapons/crystal_shuriken.glb",
+      "mtime": "2026-07-25T03:45:33.226Z",
+      "multipack": false,
+      "meshIsolation": null,
+      "animations": []
+    },
+    {
+      "id": "nice_underground_room",
+      "sourcePath": "C:\\Users\\nugye\\Documents\\nice_underground_room.glb",
+      "name": "nice_underground_room.glb",
+      "layer": "maps/dungeon",
+      "tags": [
+        "map",
+        "dungeon",
+        "gameflow"
+      ],
+      "bytes": 4775816,
+      "mb": 4.78,
+      "localPath": "/models/warlords/intake/maps/dungeon/nice_underground_room.glb",
+      "cdnKey": "models/warlords/intake/maps/dungeon/nice_underground_room.glb",
+      "cdnUrl": "https://assets.grudge-studio.com/models/warlords/intake/maps/dungeon/nice_underground_room.glb",
+      "mtime": "2026-07-25T02:00:07.246Z",
+      "multipack": false,
+      "meshIsolation": null,
+      "animations": []
+    },
+    {
+      "id": "frellos_anchor_weaponcraft",
+      "sourcePath": "C:\\Users\\nugye\\Documents\\frellos_anchor_-_weaponcraft.glb",
+      "name": "frellos_anchor_-_weaponcraft.glb",
+      "layer": "equipment/weapons",
+      "tags": [
+        "equipment",
+        "weapon"
+      ],
+      "bytes": 4633332,
+      "mb": 4.63,
+      "localPath": "/models/warlords/intake/equipment/weapons/frellos_anchor_weaponcraft.glb",
+      "cdnKey": "models/warlords/intake/equipment/weapons/frellos_anchor_weaponcraft.glb",
+      "cdnUrl": "https://assets.grudge-studio.com/models/warlords/intake/equipment/weapons/frellos_anchor_weaponcraft.glb",
+      "mtime": "2026-07-25T03:01:07.678Z",
+      "multipack": false,
+      "meshIsolation": null,
+      "animations": []
+    },
+    {
+      "id": "orange_wood_outpost",
+      "sourcePath": "C:\\Users\\nugye\\Documents\\orange_wood_outpost.glb",
+      "name": "orange_wood_outpost.glb",
+      "layer": "buildings/houses",
+      "tags": [
+        "building",
+        "interior"
+      ],
+      "bytes": 4604068,
+      "mb": 4.6,
+      "localPath": "/models/warlords/intake/buildings/houses/orange_wood_outpost.glb",
+      "cdnKey": "models/warlords/intake/buildings/houses/orange_wood_outpost.glb",
+      "cdnUrl": "https://assets.grudge-studio.com/models/warlords/intake/buildings/houses/orange_wood_outpost.glb",
+      "mtime": "2026-07-25T01:37:14.412Z",
+      "multipack": false,
+      "meshIsolation": null,
+      "animations": []
+    },
+    {
+      "id": "skyrend_javelin",
+      "sourcePath": "C:\\Users\\nugye\\Documents\\skyrend_javelin.glb",
+      "name": "skyrend_javelin.glb",
+      "layer": "equipment/weapons",
+      "tags": [
+        "equipment",
+        "weapon"
+      ],
+      "bytes": 3966560,
+      "mb": 3.97,
+      "localPath": "/models/warlords/intake/equipment/weapons/skyrend_javelin.glb",
+      "cdnKey": "models/warlords/intake/equipment/weapons/skyrend_javelin.glb",
+      "cdnUrl": "https://assets.grudge-studio.com/models/warlords/intake/equipment/weapons/skyrend_javelin.glb",
+      "mtime": "2026-07-25T03:42:02.196Z",
+      "multipack": false,
+      "meshIsolation": null,
+      "animations": []
+    },
+    {
+      "id": "blender_procedural_terrain_shader",
+      "sourcePath": "C:\\Users\\nugye\\Documents\\blender_procedural_terrain_shader.glb",
+      "name": "blender_procedural_terrain_shader.glb",
+      "layer": "terrain/heightfield",
+      "tags": [
+        "terrain",
+        "heightfield"
+      ],
+      "bytes": 3858824,
+      "mb": 3.86,
+      "localPath": "/models/warlords/intake/terrain/heightfield/blender_procedural_terrain_shader.glb",
+      "cdnKey": "models/warlords/intake/terrain/heightfield/blender_procedural_terrain_shader.glb",
+      "cdnUrl": "https://assets.grudge-studio.com/models/warlords/intake/terrain/heightfield/blender_procedural_terrain_shader.glb",
+      "mtime": "2026-07-25T01:13:20.190Z",
+      "multipack": false,
+      "meshIsolation": null,
+      "animations": []
+    },
+    {
+      "id": "cartoonic_pirates_ship",
+      "sourcePath": "C:\\Users\\nugye\\Documents\\cartoonic_pirates_ship.glb",
+      "name": "cartoonic_pirates_ship.glb",
+      "layer": "ships/pirate",
+      "tags": [
+        "ship",
+        "lobby",
+        "gameflow"
+      ],
+      "bytes": 3847504,
+      "mb": 3.85,
+      "localPath": "/models/warlords/intake/ships/pirate/cartoonic_pirates_ship.glb",
+      "cdnKey": "models/warlords/intake/ships/pirate/cartoonic_pirates_ship.glb",
+      "cdnUrl": "https://assets.grudge-studio.com/models/warlords/intake/ships/pirate/cartoonic_pirates_ship.glb",
+      "mtime": "2026-07-25T02:59:03.264Z",
+      "multipack": false,
+      "meshIsolation": null,
+      "animations": []
+    },
+    {
+      "id": "3pirate_ship",
+      "sourcePath": "C:\\Users\\nugye\\Documents\\3pirate_ship.glb",
+      "name": "3pirate_ship.glb",
+      "layer": "ships/pirate",
+      "tags": [
+        "ship",
+        "lobby",
+        "gameflow"
+      ],
+      "bytes": 3761648,
+      "mb": 3.76,
+      "localPath": "/models/warlords/intake/ships/pirate/3pirate_ship.glb",
+      "cdnKey": "models/warlords/intake/ships/pirate/3pirate_ship.glb",
+      "cdnUrl": "https://assets.grudge-studio.com/models/warlords/intake/ships/pirate/3pirate_ship.glb",
+      "mtime": "2026-07-25T02:58:22.164Z",
+      "multipack": false,
+      "meshIsolation": null,
+      "animations": []
+    },
+    {
+      "id": "happy_farm",
+      "sourcePath": "C:\\Users\\nugye\\Documents\\happy_farm.glb",
+      "name": "happy_farm.glb",
+      "layer": "harvest/crops",
+      "tags": [
+        "harvest",
+        "farming"
+      ],
+      "bytes": 3542280,
+      "mb": 3.54,
+      "localPath": "/models/warlords/intake/harvest/crops/happy_farm.glb",
+      "cdnKey": "models/warlords/intake/harvest/crops/happy_farm.glb",
+      "cdnUrl": "https://assets.grudge-studio.com/models/warlords/intake/harvest/crops/happy_farm.glb",
+      "mtime": "2026-07-25T01:11:52.848Z",
+      "multipack": false,
+      "meshIsolation": null,
+      "animations": []
+    },
+    {
+      "id": "chicken_gun_fruzer_bhop_river",
+      "sourcePath": "C:\\Users\\nugye\\Documents\\chicken_gun_fruzer_bhop_river.glb",
+      "name": "chicken_gun_fruzer_bhop_river.glb",
+      "layer": "equipment/weapons",
+      "tags": [
+        "equipment",
+        "weapon"
+      ],
+      "bytes": 3381648,
+      "mb": 3.38,
+      "localPath": "/models/warlords/intake/equipment/weapons/chicken_gun_fruzer_bhop_river.glb",
+      "cdnKey": "models/warlords/intake/equipment/weapons/chicken_gun_fruzer_bhop_river.glb",
+      "cdnUrl": "https://assets.grudge-studio.com/models/warlords/intake/equipment/weapons/chicken_gun_fruzer_bhop_river.glb",
+      "mtime": "2026-07-25T02:43:56.014Z",
+      "multipack": false,
+      "meshIsolation": null,
+      "animations": []
+    },
+    {
+      "id": "procedural_hammer_test_4",
+      "sourcePath": "C:\\Users\\nugye\\Documents\\procedural_hammer_test_4.glb",
+      "name": "procedural_hammer_test_4.glb",
+      "layer": "equipment/weapons",
+      "tags": [
+        "equipment",
+        "weapon"
+      ],
+      "bytes": 3106704,
+      "mb": 3.11,
+      "localPath": "/models/warlords/intake/equipment/weapons/procedural_hammer_test_4.glb",
+      "cdnKey": "models/warlords/intake/equipment/weapons/procedural_hammer_test_4.glb",
+      "cdnUrl": "https://assets.grudge-studio.com/models/warlords/intake/equipment/weapons/procedural_hammer_test_4.glb",
+      "mtime": "2026-07-25T03:41:20.836Z",
+      "multipack": false,
+      "meshIsolation": null,
+      "animations": []
+    },
+    {
+      "id": "mystic_monarch_weaponcraft",
+      "sourcePath": "C:\\Users\\nugye\\Documents\\mystic_monarch_-_weaponcraft.glb",
+      "name": "mystic_monarch_-_weaponcraft.glb",
+      "layer": "equipment/weapons",
+      "tags": [
+        "equipment",
+        "weapon"
+      ],
+      "bytes": 3066812,
+      "mb": 3.07,
+      "localPath": "/models/warlords/intake/equipment/weapons/mystic_monarch_weaponcraft.glb",
+      "cdnKey": "models/warlords/intake/equipment/weapons/mystic_monarch_weaponcraft.glb",
+      "cdnUrl": "https://assets.grudge-studio.com/models/warlords/intake/equipment/weapons/mystic_monarch_weaponcraft.glb",
+      "mtime": "2026-07-25T03:44:23.079Z",
+      "multipack": false,
+      "meshIsolation": null,
+      "animations": []
+    },
+    {
+      "id": "free_lowpoly_wooden_docks_vol_3_asset_pack",
+      "sourcePath": "C:\\Users\\nugye\\Documents\\free_lowpoly_wooden_docks_vol.3_asset_pack.glb",
+      "name": "free_lowpoly_wooden_docks_vol.3_asset_pack.glb",
+      "layer": "multipacks/environment",
+      "tags": [
+        "multipack",
+        "environment"
+      ],
+      "bytes": 2744160,
+      "mb": 2.74,
+      "localPath": "/models/warlords/intake/multipacks/environment/free_lowpoly_wooden_docks_vol_3_asset_pack.glb",
+      "cdnKey": "models/warlords/intake/multipacks/environment/free_lowpoly_wooden_docks_vol_3_asset_pack.glb",
+      "cdnUrl": "https://assets.grudge-studio.com/models/warlords/intake/multipacks/environment/free_lowpoly_wooden_docks_vol_3_asset_pack.glb",
+      "mtime": "2026-07-25T01:38:39.076Z",
+      "multipack": true,
+      "meshIsolation": {
+        "deferred": true,
+        "hint": "re-run with --inspect-multipack"
+      },
+      "animations": []
+    },
+    {
+      "id": "gun",
+      "sourcePath": "C:\\Users\\nugye\\Documents\\gun.glb",
+      "name": "gun.glb",
+      "layer": "equipment/weapons",
+      "tags": [
+        "equipment",
+        "weapon"
+      ],
+      "bytes": 2638692,
+      "mb": 2.64,
+      "localPath": "/models/warlords/intake/equipment/weapons/gun.glb",
+      "cdnKey": "models/warlords/intake/equipment/weapons/gun.glb",
+      "cdnUrl": "https://assets.grudge-studio.com/models/warlords/intake/equipment/weapons/gun.glb",
+      "mtime": "2026-07-25T01:28:01.401Z",
+      "multipack": false,
+      "meshIsolation": null,
+      "animations": []
+    },
+    {
+      "id": "low_poly_halloween_cemetery_scene",
+      "sourcePath": "C:\\Users\\nugye\\Documents\\low_poly_halloween_cemetery_scene.glb",
+      "name": "low_poly_halloween_cemetery_scene.glb",
+      "layer": "maps/dungeon",
+      "tags": [
+        "map",
+        "dungeon",
+        "gameflow"
+      ],
+      "bytes": 2585948,
+      "mb": 2.59,
+      "localPath": "/models/warlords/intake/maps/dungeon/low_poly_halloween_cemetery_scene.glb",
+      "cdnKey": "models/warlords/intake/maps/dungeon/low_poly_halloween_cemetery_scene.glb",
+      "cdnUrl": "https://assets.grudge-studio.com/models/warlords/intake/maps/dungeon/low_poly_halloween_cemetery_scene.glb",
+      "mtime": "2026-07-25T02:44:25.270Z",
+      "multipack": false,
+      "meshIsolation": null,
+      "animations": []
+    },
+    {
+      "id": "desert_city",
+      "sourcePath": "C:\\Users\\nugye\\Documents\\desert_city.glb",
+      "name": "desert_city.glb",
+      "layer": "terrain/desert",
+      "tags": [
+        "terrain",
+        "biome",
+        "ashen"
+      ],
+      "bytes": 2486800,
+      "mb": 2.49,
+      "localPath": "/models/warlords/intake/terrain/desert/desert_city.glb",
+      "cdnKey": "models/warlords/intake/terrain/desert/desert_city.glb",
+      "cdnUrl": "https://assets.grudge-studio.com/models/warlords/intake/terrain/desert/desert_city.glb",
+      "mtime": "2026-07-25T03:16:59.992Z",
+      "multipack": false,
+      "meshIsolation": null,
+      "animations": []
+    },
+    {
+      "id": "hero_climb",
+      "sourcePath": "C:\\Users\\nugye\\Documents\\hero_climb.glb",
+      "name": "hero_climb.glb",
+      "layer": "creatures/hero",
+      "tags": [
+        "creature",
+        "hero_prop"
+      ],
+      "bytes": 2192456,
+      "mb": 2.19,
+      "localPath": "/models/warlords/intake/creatures/hero/hero_climb.glb",
+      "cdnKey": "models/warlords/intake/creatures/hero/hero_climb.glb",
+      "cdnUrl": "https://assets.grudge-studio.com/models/warlords/intake/creatures/hero/hero_climb.glb",
+      "mtime": "2026-07-25T01:09:59.660Z",
+      "multipack": false,
+      "meshIsolation": null,
+      "animations": []
+    },
+    {
+      "id": "adventure_bag",
+      "sourcePath": "C:\\Users\\nugye\\Documents\\adventure_bag.glb",
+      "name": "adventure_bag.glb",
+      "layer": "equipment/bags",
+      "tags": [
+        "equipment",
+        "bag"
+      ],
+      "bytes": 2069596,
+      "mb": 2.07,
+      "localPath": "/models/warlords/intake/equipment/bags/adventure_bag.glb",
+      "cdnKey": "models/warlords/intake/equipment/bags/adventure_bag.glb",
+      "cdnUrl": "https://assets.grudge-studio.com/models/warlords/intake/equipment/bags/adventure_bag.glb",
+      "mtime": "2026-07-25T03:37:59.535Z",
+      "multipack": false,
+      "meshIsolation": null,
+      "animations": []
+    },
+    {
+      "id": "star_aventure_mage_stick",
+      "sourcePath": "C:\\Users\\nugye\\Documents\\star_aventure_mage_stick.glb",
+      "name": "star_aventure_mage_stick.glb",
+      "layer": "unsorted",
+      "tags": [
+        "unsorted"
+      ],
+      "bytes": 1985540,
+      "mb": 1.99,
+      "localPath": "/models/warlords/intake/unsorted/star_aventure_mage_stick.glb",
+      "cdnKey": "models/warlords/intake/unsorted/star_aventure_mage_stick.glb",
+      "cdnUrl": "https://assets.grudge-studio.com/models/warlords/intake/unsorted/star_aventure_mage_stick.glb",
+      "mtime": "2026-07-25T03:45:01.720Z",
+      "multipack": false,
+      "meshIsolation": null,
+      "animations": []
+    },
+    {
+      "id": "target",
+      "sourcePath": "C:\\Users\\nugye\\Documents\\target.glb",
+      "name": "target.glb",
+      "layer": "props/misc",
+      "tags": [
+        "prop"
+      ],
+      "bytes": 1580172,
+      "mb": 1.58,
+      "localPath": "/models/warlords/intake/props/misc/target.glb",
+      "cdnKey": "models/warlords/intake/props/misc/target.glb",
+      "cdnUrl": "https://assets.grudge-studio.com/models/warlords/intake/props/misc/target.glb",
+      "mtime": "2026-07-25T03:04:28.594Z",
+      "multipack": false,
+      "meshIsolation": null,
+      "animations": []
+    },
+    {
+      "id": "b8cc5b0edc624cda964f009f72170688",
+      "sourcePath": "C:\\Users\\nugye\\Documents\\b8cc5b0edc624cda964f009f72170688.glb",
+      "name": "b8cc5b0edc624cda964f009f72170688.glb",
+      "layer": "unsorted",
+      "tags": [
+        "unsorted"
+      ],
+      "bytes": 1552184,
+      "mb": 1.55,
+      "localPath": "/models/warlords/intake/unsorted/b8cc5b0edc624cda964f009f72170688.glb",
+      "cdnKey": "models/warlords/intake/unsorted/b8cc5b0edc624cda964f009f72170688.glb",
+      "cdnUrl": "https://assets.grudge-studio.com/models/warlords/intake/unsorted/b8cc5b0edc624cda964f009f72170688.glb",
+      "mtime": "2026-07-25T02:04:14.299Z",
+      "multipack": false,
+      "meshIsolation": null,
+      "animations": []
+    },
+    {
+      "id": "dawnstar",
+      "sourcePath": "C:\\Users\\nugye\\Documents\\dawnstar.glb",
+      "name": "dawnstar.glb",
+      "layer": "unsorted",
+      "tags": [
+        "unsorted"
+      ],
+      "bytes": 1485604,
+      "mb": 1.49,
+      "localPath": "/models/warlords/intake/unsorted/dawnstar.glb",
+      "cdnKey": "models/warlords/intake/unsorted/dawnstar.glb",
+      "cdnUrl": "https://assets.grudge-studio.com/models/warlords/intake/unsorted/dawnstar.glb",
+      "mtime": "2026-07-25T01:41:11.377Z",
+      "multipack": false,
+      "meshIsolation": null,
+      "animations": []
+    },
+    {
+      "id": "ethiziel_whip_of_the_icestorm",
+      "sourcePath": "C:\\Users\\nugye\\Documents\\ethiziel_whip_of_the_icestorm.glb",
+      "name": "ethiziel_whip_of_the_icestorm.glb",
+      "layer": "unsorted",
+      "tags": [
+        "unsorted"
+      ],
+      "bytes": 1303040,
+      "mb": 1.3,
+      "localPath": "/models/warlords/intake/unsorted/ethiziel_whip_of_the_icestorm.glb",
+      "cdnKey": "models/warlords/intake/unsorted/ethiziel_whip_of_the_icestorm.glb",
+      "cdnUrl": "https://assets.grudge-studio.com/models/warlords/intake/unsorted/ethiziel_whip_of_the_icestorm.glb",
+      "mtime": "2026-07-25T01:28:39.028Z",
+      "multipack": false,
+      "meshIsolation": null,
+      "animations": []
+    },
+    {
+      "id": "egyptian_spear",
+      "sourcePath": "C:\\Users\\nugye\\Documents\\egyptian_spear.glb",
+      "name": "egyptian_spear.glb",
+      "layer": "equipment/weapons",
+      "tags": [
+        "equipment",
+        "weapon"
+      ],
+      "bytes": 1205092,
+      "mb": 1.21,
+      "localPath": "/models/warlords/intake/equipment/weapons/egyptian_spear.glb",
+      "cdnKey": "models/warlords/intake/equipment/weapons/egyptian_spear.glb",
+      "cdnUrl": "https://assets.grudge-studio.com/models/warlords/intake/equipment/weapons/egyptian_spear.glb",
+      "mtime": "2026-07-25T03:18:12.470Z",
+      "multipack": false,
+      "meshIsolation": null,
+      "animations": []
+    },
+    {
+      "id": "hacha_cavernicola",
+      "sourcePath": "C:\\Users\\nugye\\Documents\\hacha_cavernicola.glb",
+      "name": "hacha_cavernicola.glb",
+      "layer": "unsorted",
+      "tags": [
+        "unsorted"
+      ],
+      "bytes": 1124372,
+      "mb": 1.12,
+      "localPath": "/models/warlords/intake/unsorted/hacha_cavernicola.glb",
+      "cdnKey": "models/warlords/intake/unsorted/hacha_cavernicola.glb",
+      "cdnUrl": "https://assets.grudge-studio.com/models/warlords/intake/unsorted/hacha_cavernicola.glb",
+      "mtime": "2026-07-25T03:35:27.004Z",
+      "multipack": false,
+      "meshIsolation": null,
+      "animations": []
+    },
+    {
+      "id": "chakram_weapon",
+      "sourcePath": "C:\\Users\\nugye\\Documents\\chakram_weapon.glb",
+      "name": "chakram_weapon.glb",
+      "layer": "equipment/weapons",
+      "tags": [
+        "equipment",
+        "weapon"
+      ],
+      "bytes": 992136,
+      "mb": 0.99,
+      "localPath": "/models/warlords/intake/equipment/weapons/chakram_weapon.glb",
+      "cdnKey": "models/warlords/intake/equipment/weapons/chakram_weapon.glb",
+      "cdnUrl": "https://assets.grudge-studio.com/models/warlords/intake/equipment/weapons/chakram_weapon.glb",
+      "mtime": "2026-07-25T03:27:40.264Z",
+      "multipack": false,
+      "meshIsolation": null,
+      "animations": []
+    },
+    {
+      "id": "baseislands",
+      "sourcePath": "C:\\Users\\nugye\\Documents\\baseislands.glb",
+      "name": "baseislands.glb",
+      "layer": "islands/shells",
+      "tags": [
+        "island",
+        "section",
+        "shell"
+      ],
+      "bytes": 989800,
+      "mb": 0.99,
+      "localPath": "/models/warlords/intake/islands/shells/baseislands.glb",
+      "cdnKey": "models/warlords/intake/islands/shells/baseislands.glb",
+      "cdnUrl": "https://assets.grudge-studio.com/models/warlords/intake/islands/shells/baseislands.glb",
+      "mtime": "2026-07-25T01:36:10.938Z",
+      "multipack": false,
+      "meshIsolation": null,
+      "animations": []
+    },
+    {
+      "id": "mountains_in_asturias_spain",
+      "sourcePath": "C:\\Users\\nugye\\Documents\\mountains_in_asturias_spain.glb",
+      "name": "mountains_in_asturias_spain.glb",
+      "layer": "nature/rocks",
+      "tags": [
+        "nature",
+        "rock",
+        "terrain"
+      ],
+      "bytes": 943908,
+      "mb": 0.94,
+      "localPath": "/models/warlords/intake/nature/rocks/mountains_in_asturias_spain.glb",
+      "cdnKey": "models/warlords/intake/nature/rocks/mountains_in_asturias_spain.glb",
+      "cdnUrl": "https://assets.grudge-studio.com/models/warlords/intake/nature/rocks/mountains_in_asturias_spain.glb",
+      "mtime": "2026-07-25T01:18:17.174Z",
+      "multipack": false,
+      "meshIsolation": null,
+      "animations": []
+    },
+    {
+      "id": "the_snake_eater_weaponcraft",
+      "sourcePath": "C:\\Users\\nugye\\Documents\\the_snake_eater-_weaponcraft.glb",
+      "name": "the_snake_eater-_weaponcraft.glb",
+      "layer": "equipment/weapons",
+      "tags": [
+        "equipment",
+        "weapon"
+      ],
+      "bytes": 925268,
+      "mb": 0.93,
+      "localPath": "/models/warlords/intake/equipment/weapons/the_snake_eater_weaponcraft.glb",
+      "cdnKey": "models/warlords/intake/equipment/weapons/the_snake_eater_weaponcraft.glb",
+      "cdnUrl": "https://assets.grudge-studio.com/models/warlords/intake/equipment/weapons/the_snake_eater_weaponcraft.glb",
+      "mtime": "2026-07-25T01:19:37.817Z",
+      "multipack": false,
+      "meshIsolation": null,
+      "animations": []
+    },
+    {
+      "id": "ethereal_slingshot_dae_weaponcraft",
+      "sourcePath": "C:\\Users\\nugye\\Documents\\ethereal_slingshot_-_dae_weaponcraft.glb",
+      "name": "ethereal_slingshot_-_dae_weaponcraft.glb",
+      "layer": "equipment/weapons",
+      "tags": [
+        "equipment",
+        "weapon"
+      ],
+      "bytes": 897376,
+      "mb": 0.9,
+      "localPath": "/models/warlords/intake/equipment/weapons/ethereal_slingshot_dae_weaponcraft.glb",
+      "cdnKey": "models/warlords/intake/equipment/weapons/ethereal_slingshot_dae_weaponcraft.glb",
+      "cdnUrl": "https://assets.grudge-studio.com/models/warlords/intake/equipment/weapons/ethereal_slingshot_dae_weaponcraft.glb",
+      "mtime": "2026-07-25T01:19:30.064Z",
+      "multipack": false,
+      "meshIsolation": null,
+      "animations": []
+    },
+    {
+      "id": "moremodular_terrain",
+      "sourcePath": "C:\\Users\\nugye\\Documents\\moremodular_terrain.glb",
+      "name": "moremodular_terrain.glb",
+      "layer": "harvest/gems",
+      "tags": [
+        "harvest",
+        "mining"
+      ],
+      "bytes": 866576,
+      "mb": 0.87,
+      "localPath": "/models/warlords/intake/harvest/gems/moremodular_terrain.glb",
+      "cdnKey": "models/warlords/intake/harvest/gems/moremodular_terrain.glb",
+      "cdnUrl": "https://assets.grudge-studio.com/models/warlords/intake/harvest/gems/moremodular_terrain.glb",
+      "mtime": "2026-07-25T01:51:01.740Z",
+      "multipack": false,
+      "meshIsolation": null,
+      "animations": []
+    },
+    {
+      "id": "krossroads_mortal_kombat_x",
+      "sourcePath": "C:\\Users\\nugye\\Documents\\krossroads_-_mortal_kombat_x.glb",
+      "name": "krossroads_-_mortal_kombat_x.glb",
+      "layer": "unsorted",
+      "tags": [
+        "unsorted"
+      ],
+      "bytes": 849572,
+      "mb": 0.85,
+      "localPath": "/models/warlords/intake/unsorted/krossroads_mortal_kombat_x.glb",
+      "cdnKey": "models/warlords/intake/unsorted/krossroads_mortal_kombat_x.glb",
+      "cdnUrl": "https://assets.grudge-studio.com/models/warlords/intake/unsorted/krossroads_mortal_kombat_x.glb",
+      "mtime": "2026-07-25T02:44:58.340Z",
+      "multipack": false,
+      "meshIsolation": null,
+      "animations": []
+    },
+    {
+      "id": "ice_world",
+      "sourcePath": "C:\\Users\\nugye\\Documents\\ice_world.glb",
+      "name": "ice_world.glb",
+      "layer": "unsorted",
+      "tags": [
+        "unsorted"
+      ],
+      "bytes": 837112,
+      "mb": 0.84,
+      "localPath": "/models/warlords/intake/unsorted/ice_world.glb",
+      "cdnKey": "models/warlords/intake/unsorted/ice_world.glb",
+      "cdnUrl": "https://assets.grudge-studio.com/models/warlords/intake/unsorted/ice_world.glb",
+      "mtime": "2026-07-25T01:37:29.391Z",
+      "multipack": false,
+      "meshIsolation": null,
+      "animations": []
+    },
+    {
+      "id": "free_survival_asset_kit",
+      "sourcePath": "C:\\Users\\nugye\\Documents\\free_survival_asset_kit.glb",
+      "name": "free_survival_asset_kit.glb",
+      "layer": "multipacks/environment",
+      "tags": [
+        "multipack",
+        "environment"
+      ],
+      "bytes": 824468,
+      "mb": 0.82,
+      "localPath": "/models/warlords/intake/multipacks/environment/free_survival_asset_kit.glb",
+      "cdnKey": "models/warlords/intake/multipacks/environment/free_survival_asset_kit.glb",
+      "cdnUrl": "https://assets.grudge-studio.com/models/warlords/intake/multipacks/environment/free_survival_asset_kit.glb",
+      "mtime": "2026-07-25T01:08:54.170Z",
+      "multipack": true,
+      "meshIsolation": {
+        "deferred": true,
+        "hint": "re-run with --inspect-multipack"
+      },
+      "animations": []
+    },
+    {
+      "id": "cargo_commodities_industrial_crystals",
+      "sourcePath": "C:\\Users\\nugye\\Documents\\cargo_commodities_industrial_crystals.glb",
+      "name": "cargo_commodities_industrial_crystals.glb",
+      "layer": "harvest/gems",
+      "tags": [
+        "harvest",
+        "mining"
+      ],
+      "bytes": 812820,
+      "mb": 0.81,
+      "localPath": "/models/warlords/intake/harvest/gems/cargo_commodities_industrial_crystals.glb",
+      "cdnKey": "models/warlords/intake/harvest/gems/cargo_commodities_industrial_crystals.glb",
+      "cdnUrl": "https://assets.grudge-studio.com/models/warlords/intake/harvest/gems/cargo_commodities_industrial_crystals.glb",
+      "mtime": "2026-07-25T01:24:36.695Z",
+      "multipack": false,
+      "meshIsolation": null,
+      "animations": []
+    },
+    {
+      "id": "fallout_spear_handpainted",
+      "sourcePath": "C:\\Users\\nugye\\Documents\\fallout_spear_handpainted.glb",
+      "name": "fallout_spear_handpainted.glb",
+      "layer": "equipment/weapons",
+      "tags": [
+        "equipment",
+        "weapon"
+      ],
+      "bytes": 777140,
+      "mb": 0.78,
+      "localPath": "/models/warlords/intake/equipment/weapons/fallout_spear_handpainted.glb",
+      "cdnKey": "models/warlords/intake/equipment/weapons/fallout_spear_handpainted.glb",
+      "cdnUrl": "https://assets.grudge-studio.com/models/warlords/intake/equipment/weapons/fallout_spear_handpainted.glb",
+      "mtime": "2026-07-25T03:35:11.381Z",
+      "multipack": false,
+      "meshIsolation": null,
+      "animations": []
+    },
+    {
+      "id": "lowpoly_melee_fantasy",
+      "sourcePath": "C:\\Users\\nugye\\Documents\\lowpoly_melee_fantasy.glb",
+      "name": "lowpoly_melee_fantasy.glb",
+      "layer": "equipment/weapons",
+      "tags": [
+        "equipment",
+        "weapon"
+      ],
+      "bytes": 631184,
+      "mb": 0.63,
+      "localPath": "/models/warlords/intake/equipment/weapons/lowpoly_melee_fantasy.glb",
+      "cdnKey": "models/warlords/intake/equipment/weapons/lowpoly_melee_fantasy.glb",
+      "cdnUrl": "https://assets.grudge-studio.com/models/warlords/intake/equipment/weapons/lowpoly_melee_fantasy.glb",
+      "mtime": "2026-07-25T03:43:11.608Z",
+      "multipack": true,
+      "meshIsolation": {
+        "deferred": true,
+        "hint": "re-run with --inspect-multipack"
+      },
+      "animations": []
+    },
+    {
+      "id": "the_fairies_fortress",
+      "sourcePath": "C:\\Users\\nugye\\Documents\\the_fairies_fortress.glb",
+      "name": "the_fairies_fortress.glb",
+      "layer": "buildings/fortress",
+      "tags": [
+        "building",
+        "fortress",
+        "map"
+      ],
+      "bytes": 614900,
+      "mb": 0.61,
+      "localPath": "/models/warlords/intake/buildings/fortress/the_fairies_fortress.glb",
+      "cdnKey": "models/warlords/intake/buildings/fortress/the_fairies_fortress.glb",
+      "cdnUrl": "https://assets.grudge-studio.com/models/warlords/intake/buildings/fortress/the_fairies_fortress.glb",
+      "mtime": "2026-07-25T01:36:58.658Z",
+      "multipack": false,
+      "meshIsolation": null,
+      "animations": []
+    },
+    {
+      "id": "w008_cubic_mace",
+      "sourcePath": "C:\\Users\\nugye\\Documents\\w008_cubic_mace.glb",
+      "name": "w008_cubic_mace.glb",
+      "layer": "equipment/weapons",
+      "tags": [
+        "equipment",
+        "weapon"
+      ],
+      "bytes": 554452,
+      "mb": 0.55,
+      "localPath": "/models/warlords/intake/equipment/weapons/w008_cubic_mace.glb",
+      "cdnKey": "models/warlords/intake/equipment/weapons/w008_cubic_mace.glb",
+      "cdnUrl": "https://assets.grudge-studio.com/models/warlords/intake/equipment/weapons/w008_cubic_mace.glb",
+      "mtime": "2026-07-25T03:41:01.086Z",
+      "multipack": false,
+      "meshIsolation": null,
+      "animations": []
+    },
+    {
+      "id": "dragon_stylized_sword",
+      "sourcePath": "C:\\Users\\nugye\\Documents\\dragon stylized_sword.glb",
+      "name": "dragon stylized_sword.glb",
+      "layer": "equipment/weapons",
+      "tags": [
+        "equipment",
+        "weapon"
+      ],
+      "bytes": 554268,
+      "mb": 0.55,
+      "localPath": "/models/warlords/intake/equipment/weapons/dragon_stylized_sword.glb",
+      "cdnKey": "models/warlords/intake/equipment/weapons/dragon_stylized_sword.glb",
+      "cdnUrl": "https://assets.grudge-studio.com/models/warlords/intake/equipment/weapons/dragon_stylized_sword.glb",
+      "mtime": "2026-07-25T03:01:25.740Z",
+      "multipack": false,
+      "meshIsolation": null,
+      "animations": []
+    },
+    {
+      "id": "barricadas",
+      "sourcePath": "C:\\Users\\nugye\\Documents\\barricadas.glb",
+      "name": "barricadas.glb",
+      "layer": "unsorted",
+      "tags": [
+        "unsorted"
+      ],
+      "bytes": 517748,
+      "mb": 0.52,
+      "localPath": "/models/warlords/intake/unsorted/barricadas.glb",
+      "cdnKey": "models/warlords/intake/unsorted/barricadas.glb",
+      "cdnUrl": "https://assets.grudge-studio.com/models/warlords/intake/unsorted/barricadas.glb",
+      "mtime": "2026-07-25T01:11:13.255Z",
+      "multipack": false,
+      "meshIsolation": null,
+      "animations": []
+    },
+    {
+      "id": "cargo_commodities_iridium",
+      "sourcePath": "C:\\Users\\nugye\\Documents\\cargo_commodities_iridium.glb",
+      "name": "cargo_commodities_iridium.glb",
+      "layer": "unsorted",
+      "tags": [
+        "unsorted"
+      ],
+      "bytes": 497232,
+      "mb": 0.5,
+      "localPath": "/models/warlords/intake/unsorted/cargo_commodities_iridium.glb",
+      "cdnKey": "models/warlords/intake/unsorted/cargo_commodities_iridium.glb",
+      "cdnUrl": "https://assets.grudge-studio.com/models/warlords/intake/unsorted/cargo_commodities_iridium.glb",
+      "mtime": "2026-07-25T01:24:27.658Z",
+      "multipack": false,
+      "meshIsolation": null,
+      "animations": []
+    },
+    {
+      "id": "cargo_commodities_osmium",
+      "sourcePath": "C:\\Users\\nugye\\Documents\\cargo_commodities_osmium.glb",
+      "name": "cargo_commodities_osmium.glb",
+      "layer": "unsorted",
+      "tags": [
+        "unsorted"
+      ],
+      "bytes": 484944,
+      "mb": 0.48,
+      "localPath": "/models/warlords/intake/unsorted/cargo_commodities_osmium.glb",
+      "cdnKey": "models/warlords/intake/unsorted/cargo_commodities_osmium.glb",
+      "cdnUrl": "https://assets.grudge-studio.com/models/warlords/intake/unsorted/cargo_commodities_osmium.glb",
+      "mtime": "2026-07-25T01:24:45.374Z",
+      "multipack": false,
+      "meshIsolation": null,
+      "animations": []
+    },
+    {
+      "id": "rain_2",
+      "sourcePath": "C:\\Users\\nugye\\Documents\\rain_2.glb",
+      "name": "rain_2.glb",
+      "layer": "unsorted",
+      "tags": [
+        "unsorted"
+      ],
+      "bytes": 425768,
+      "mb": 0.43,
+      "localPath": "/models/warlords/intake/unsorted/rain_2.glb",
+      "cdnKey": "models/warlords/intake/unsorted/rain_2.glb",
+      "cdnUrl": "https://assets.grudge-studio.com/models/warlords/intake/unsorted/rain_2.glb",
+      "mtime": "2026-07-25T01:06:04.347Z",
+      "multipack": false,
+      "meshIsolation": null,
+      "animations": []
+    },
+    {
+      "id": "sword_n_shield",
+      "sourcePath": "C:\\Users\\nugye\\Documents\\sword_n_shield.glb",
+      "name": "sword_n_shield.glb",
+      "layer": "equipment/weapons",
+      "tags": [
+        "equipment",
+        "weapon"
+      ],
+      "bytes": 388136,
+      "mb": 0.39,
+      "localPath": "/models/warlords/intake/equipment/weapons/sword_n_shield.glb",
+      "cdnKey": "models/warlords/intake/equipment/weapons/sword_n_shield.glb",
+      "cdnUrl": "https://assets.grudge-studio.com/models/warlords/intake/equipment/weapons/sword_n_shield.glb",
+      "mtime": "2026-07-25T01:37:48.264Z",
+      "multipack": false,
+      "meshIsolation": null,
+      "animations": []
+    },
+    {
+      "id": "tf2_stock_weapons",
+      "sourcePath": "C:\\Users\\nugye\\Documents\\tf2_stock_weapons.glb",
+      "name": "tf2_stock_weapons.glb",
+      "layer": "equipment/weapons",
+      "tags": [
+        "equipment",
+        "weapon"
+      ],
+      "bytes": 329000,
+      "mb": 0.33,
+      "localPath": "/models/warlords/intake/equipment/weapons/tf2_stock_weapons.glb",
+      "cdnKey": "models/warlords/intake/equipment/weapons/tf2_stock_weapons.glb",
+      "cdnUrl": "https://assets.grudge-studio.com/models/warlords/intake/equipment/weapons/tf2_stock_weapons.glb",
+      "mtime": "2026-07-25T02:51:07.731Z",
+      "multipack": true,
+      "meshIsolation": {
+        "deferred": true,
+        "hint": "re-run with --inspect-multipack"
+      },
+      "animations": []
+    },
+    {
+      "id": "magic_staff_low_poly",
+      "sourcePath": "C:\\Users\\nugye\\Documents\\magic_staff_low-poly.glb",
+      "name": "magic_staff_low-poly.glb",
+      "layer": "equipment/weapons",
+      "tags": [
+        "equipment",
+        "weapon"
+      ],
+      "bytes": 276876,
+      "mb": 0.28,
+      "localPath": "/models/warlords/intake/equipment/weapons/magic_staff_low_poly.glb",
+      "cdnKey": "models/warlords/intake/equipment/weapons/magic_staff_low_poly.glb",
+      "cdnUrl": "https://assets.grudge-studio.com/models/warlords/intake/equipment/weapons/magic_staff_low_poly.glb",
+      "mtime": "2026-07-25T03:32:53.437Z",
+      "multipack": false,
+      "meshIsolation": null,
+      "animations": []
+    },
+    {
+      "id": "free_modular_cliffs",
+      "sourcePath": "C:\\Users\\nugye\\Documents\\free_modular_cliffs.glb",
+      "name": "free_modular_cliffs.glb",
+      "layer": "unsorted",
+      "tags": [
+        "unsorted"
+      ],
+      "bytes": 230556,
+      "mb": 0.23,
+      "localPath": "/models/warlords/intake/unsorted/free_modular_cliffs.glb",
+      "cdnKey": "models/warlords/intake/unsorted/free_modular_cliffs.glb",
+      "cdnUrl": "https://assets.grudge-studio.com/models/warlords/intake/unsorted/free_modular_cliffs.glb",
+      "mtime": "2026-07-25T01:38:12.045Z",
+      "multipack": false,
+      "meshIsolation": null,
+      "animations": []
+    },
+    {
+      "id": "wardrobe_minecraft_room",
+      "sourcePath": "C:\\Users\\nugye\\Documents\\wardrobe_minecraft_room.glb",
+      "name": "wardrobe_minecraft_room.glb",
+      "layer": "buildings/houses",
+      "tags": [
+        "building",
+        "interior"
+      ],
+      "bytes": 229408,
+      "mb": 0.23,
+      "localPath": "/models/warlords/intake/buildings/houses/wardrobe_minecraft_room.glb",
+      "cdnKey": "models/warlords/intake/buildings/houses/wardrobe_minecraft_room.glb",
+      "cdnUrl": "https://assets.grudge-studio.com/models/warlords/intake/buildings/houses/wardrobe_minecraft_room.glb",
+      "mtime": "2026-07-25T02:47:12.334Z",
+      "multipack": false,
+      "meshIsolation": null,
+      "animations": []
+    },
+    {
+      "id": "harpoon_gun",
+      "sourcePath": "C:\\Users\\nugye\\Documents\\harpoon_gun.glb",
+      "name": "harpoon_gun.glb",
+      "layer": "equipment/weapons",
+      "tags": [
+        "equipment",
+        "weapon"
+      ],
+      "bytes": 203628,
+      "mb": 0.2,
+      "localPath": "/models/warlords/intake/equipment/weapons/harpoon_gun.glb",
+      "cdnKey": "models/warlords/intake/equipment/weapons/harpoon_gun.glb",
+      "cdnUrl": "https://assets.grudge-studio.com/models/warlords/intake/equipment/weapons/harpoon_gun.glb",
+      "mtime": "2026-07-25T01:31:48.424Z",
+      "multipack": false,
+      "meshIsolation": null,
+      "animations": []
+    },
+    {
+      "id": "meteor_blockbench",
+      "sourcePath": "C:\\Users\\nugye\\Documents\\meteor_-_blockbench.glb",
+      "name": "meteor_-_blockbench.glb",
+      "layer": "props/misc",
+      "tags": [
+        "prop"
+      ],
+      "bytes": 108476,
+      "mb": 0.11,
+      "localPath": "/models/warlords/intake/props/misc/meteor_blockbench.glb",
+      "cdnKey": "models/warlords/intake/props/misc/meteor_blockbench.glb",
+      "cdnUrl": "https://assets.grudge-studio.com/models/warlords/intake/props/misc/meteor_blockbench.glb",
+      "mtime": "2026-07-25T02:43:32.151Z",
+      "multipack": false,
+      "meshIsolation": null,
+      "animations": []
+    },
+    {
+      "id": "minecraft_mystery_industrial_props_pack",
+      "sourcePath": "C:\\Users\\nugye\\Documents\\minecraft_mystery__industrial_props_pack.glb",
+      "name": "minecraft_mystery__industrial_props_pack.glb",
+      "layer": "multipacks/environment",
+      "tags": [
+        "multipack",
+        "environment"
+      ],
+      "bytes": 81884,
+      "mb": 0.08,
+      "localPath": "/models/warlords/intake/multipacks/environment/minecraft_mystery_industrial_props_pack.glb",
+      "cdnKey": "models/warlords/intake/multipacks/environment/minecraft_mystery_industrial_props_pack.glb",
+      "cdnUrl": "https://assets.grudge-studio.com/models/warlords/intake/multipacks/environment/minecraft_mystery_industrial_props_pack.glb",
+      "mtime": "2026-07-25T02:37:00.943Z",
+      "multipack": true,
+      "meshIsolation": {
+        "deferred": true,
+        "hint": "re-run with --inspect-multipack"
+      },
+      "animations": []
+    },
+    {
+      "id": "gems_from_bejeweled_3twist",
+      "sourcePath": "C:\\Users\\nugye\\Documents\\gems_from_bejeweled_3twist.glb",
+      "name": "gems_from_bejeweled_3twist.glb",
+      "layer": "harvest/gems",
+      "tags": [
+        "harvest",
+        "mining"
+      ],
+      "bytes": 71092,
+      "mb": 0.07,
+      "localPath": "/models/warlords/intake/harvest/gems/gems_from_bejeweled_3twist.glb",
+      "cdnKey": "models/warlords/intake/harvest/gems/gems_from_bejeweled_3twist.glb",
+      "cdnUrl": "https://assets.grudge-studio.com/models/warlords/intake/harvest/gems/gems_from_bejeweled_3twist.glb",
+      "mtime": "2026-07-25T03:26:47.355Z",
+      "multipack": false,
+      "meshIsolation": null,
+      "animations": []
+    },
+    {
+      "id": "crossbow_bolt",
+      "sourcePath": "C:\\Users\\nugye\\Documents\\crossbow_bolt.glb",
+      "name": "crossbow_bolt.glb",
+      "layer": "unsorted",
+      "tags": [
+        "unsorted"
+      ],
+      "bytes": 25828,
+      "mb": 0.03,
+      "localPath": "/models/warlords/intake/unsorted/crossbow_bolt.glb",
+      "cdnKey": "models/warlords/intake/unsorted/crossbow_bolt.glb",
+      "cdnUrl": "https://assets.grudge-studio.com/models/warlords/intake/unsorted/crossbow_bolt.glb",
+      "mtime": "2026-07-25T01:26:02.268Z",
+      "multipack": false,
+      "meshIsolation": null,
+      "animations": []
+    },
+    {
+      "id": "test_light_saber_glow_animation",
+      "sourcePath": "C:\\Users\\nugye\\Documents\\test_light_saber_glow_animation.glb",
+      "name": "test_light_saber_glow_animation.glb",
+      "layer": "anims/combat",
+      "tags": [
+        "animation",
+        "combat",
+        "2h_sword"
+      ],
+      "bytes": 14112,
+      "mb": 0.01,
+      "localPath": "/models/warlords/intake/anims/combat/test_light_saber_glow_animation.glb",
+      "cdnKey": "models/warlords/intake/anims/combat/test_light_saber_glow_animation.glb",
+      "cdnUrl": "https://assets.grudge-studio.com/models/warlords/intake/anims/combat/test_light_saber_glow_animation.glb",
+      "mtime": "2026-07-25T03:12:47.844Z",
+      "multipack": false,
+      "meshIsolation": null,
+      "animations": []
+    }
+  ],
+  "multipacks": [
+    {
+      "id": "big_terrain",
+      "deferred": true
+    },
+    {
+      "id": "sandy_castle_ruins_animation",
+      "deferred": true
+    },
+    {
+      "id": "steampunk_dune_harvester_animated",
+      "deferred": true
+    },
+    {
+      "id": "fantasy_mystical_island",
+      "deferred": true
+    },
+    {
+      "id": "1_8_000_polygons_total",
+      "deferred": true
+    },
+    {
+      "id": "forest_generated_in_the_blender_ps1",
+      "deferred": true
+    },
+    {
+      "id": "hill",
+      "deferred": true
+    },
+    {
+      "id": "witcher_oxenfurt_city",
+      "deferred": true
+    },
+    {
+      "id": "airship_restaurant_lunapark",
+      "deferred": true
+    },
+    {
+      "id": "siberian_wooden_fortress_of_the_mesolithic_era",
+      "deferred": true
+    },
+    {
+      "id": "a_very_pirated_dinner",
+      "deferred": true
+    },
+    {
+      "id": "rugged_mountain_landscape",
+      "deferred": true
+    },
+    {
+      "id": "the_sirens_light_pirate_ship",
+      "deferred": true
+    },
+    {
+      "id": "3_evil_rock_mountains_with_cave_stylized",
+      "deferred": true
+    },
+    {
+      "id": "isla_biti",
+      "deferred": true
+    },
+    {
+      "id": "alien_world_explorer",
+      "deferred": true
+    },
+    {
+      "id": "halloween_cemetery",
+      "deferred": true
+    },
+    {
+      "id": "hcf_spawn_pirates_theme",
+      "deferred": true
+    },
+    {
+      "id": "uts_viola_amalia_sp_literasi_tik",
+      "deferred": true
+    },
+    {
+      "id": "2piratebaots",
+      "deferred": true
+    },
+    {
+      "id": "mountain_1",
+      "deferred": true
+    },
+    {
+      "id": "crusademain_lovely_town",
+      "deferred": true
+    },
+    {
+      "id": "dangerroomundergroundbase",
+      "deferred": true
+    },
+    {
+      "id": "undergroundbase",
+      "deferred": true
+    },
+    {
+      "id": "environment_pack_egypt_props",
+      "deferred": true
+    },
+    {
+      "id": "river",
+      "deferred": true
+    },
+    {
+      "id": "biggerrock",
+      "deferred": true
+    },
+    {
+      "id": "rock",
+      "deferred": true
+    },
+    {
+      "id": "death_valley_terrain",
+      "deferred": true
+    },
+    {
+      "id": "weaponvendor",
+      "deferred": true
+    },
+    {
+      "id": "70_stylized_rocks",
+      "deferred": true
+    },
+    {
+      "id": "terrain",
+      "deferred": true
+    },
+    {
+      "id": "temple_ruins_asset_pack",
+      "deferred": true
+    },
+    {
+      "id": "castle_kitbash_asset_pack",
+      "deferred": true
+    },
+    {
+      "id": "mars_olympus_mons",
+      "deferred": true
+    },
+    {
+      "id": "gaea_02",
+      "deferred": true
+    },
+    {
+      "id": "sekiro_hook_sword",
+      "deferred": true
+    },
+    {
+      "id": "double_faux_sci_fi_nordique",
+      "deferred": true
+    },
+    {
+      "id": "grabrok_crater_iceland",
+      "deferred": true
+    },
+    {
+      "id": "dae_diorama_grandmas_house",
+      "deferred": true
+    },
+    {
+      "id": "ds_stylized_hero_asset",
+      "deferred": true
+    },
+    {
+      "id": "snake_isle_the_forgotten_artifact",
+      "deferred": true
+    },
+    {
+      "id": "free_steampunk_da_vincis_sword_game_ready",
+      "deferred": true
+    },
+    {
+      "id": "ds_grappling_hook",
+      "deferred": true
+    },
+    {
+      "id": "demonic_twinblades_stylized_weapon_free",
+      "deferred": true
+    },
+    {
+      "id": "medieval_one_handed_mace",
+      "deferred": true
+    },
+    {
+      "id": "3d_3d_model_of_aogashima_island",
+      "deferred": true
+    },
+    {
+      "id": "nordic_village",
+      "deferred": true
+    },
+    {
+      "id": "game_ready_crown_pack_low_poly",
+      "deferred": true
+    },
+    {
+      "id": "captains_quarters",
+      "deferred": true
+    },
+    {
+      "id": "castingstaff_shockrod_v001standard",
+      "deferred": true
+    },
+    {
+      "id": "the_steampunk_vault",
+      "deferred": true
+    },
+    {
+      "id": "electric_melee_weapons",
+      "deferred": true
+    },
+    {
+      "id": "tower_spror",
+      "deferred": true
+    },
+    {
+      "id": "oathkeeper_weapon_model",
+      "deferred": true
+    },
+    {
+      "id": "snow_mountain_low_poly_free",
+      "deferred": true
+    },
+    {
+      "id": "red_spear",
+      "deferred": true
+    },
+    {
+      "id": "a_welcoming_sign",
+      "deferred": true
+    },
+    {
+      "id": "squid_game_island",
+      "deferred": true
+    },
+    {
+      "id": "crops_low_poly",
+      "deferred": true
+    },
+    {
+      "id": "steampunk_grenade_set",
+      "deferred": true
+    },
+    {
+      "id": "small_time_town_village_asset_pack",
+      "deferred": true
+    },
+    {
+      "id": "16_mysterious_contraption",
+      "deferred": true
+    },
+    {
+      "id": "falcias",
+      "deferred": true
+    },
+    {
+      "id": "tesb_dragonbone_weapons",
+      "deferred": true
+    },
+    {
+      "id": "nature_scene_free",
+      "deferred": true
+    },
+    {
+      "id": "2bone_knife",
+      "deferred": true
+    },
+    {
+      "id": "sword_primordial",
+      "deferred": true
+    },
+    {
+      "id": "sworattackssamurai",
+      "deferred": true
+    },
+    {
+      "id": "cyberpunk_stylized_mask",
+      "deferred": true
+    },
+    {
+      "id": "steampunk_revolver_with_animations",
+      "deferred": true
+    },
+    {
+      "id": "little_nightmares_2_trashpile",
+      "deferred": true
+    },
+    {
+      "id": "viking_fisherman_house",
+      "deferred": true
+    },
+    {
+      "id": "carapace_hammer",
+      "deferred": true
+    },
+    {
+      "id": "baselowpoly_island",
+      "deferred": true
+    },
+    {
+      "id": "harvestmountains",
+      "deferred": true
+    },
+    {
+      "id": "captains_desk_on_a_pirate_ship",
+      "deferred": true
+    },
+    {
+      "id": "stylized_fatasy_hammer",
+      "deferred": true
+    },
+    {
+      "id": "box_stylized",
+      "deferred": true
+    },
+    {
+      "id": "hell_stylized_low_poly_asset_pack",
+      "deferred": true
+    },
+    {
+      "id": "verdict_axe_free",
+      "deferred": true
+    },
+    {
+      "id": "anchor_sword",
+      "deferred": true
+    },
+    {
+      "id": "celestia_shard_valkyrie",
+      "deferred": true
+    },
+    {
+      "id": "purple_horror",
+      "deferred": true
+    },
+    {
+      "id": "siege_hammer_arknights_2nd_version",
+      "deferred": true
+    },
+    {
+      "id": "book_set",
+      "deferred": true
+    },
+    {
+      "id": "free_lowpoly_wooden_docks_vol_3_asset_pack",
+      "deferred": true
+    },
+    {
+      "id": "free_survival_asset_kit",
+      "deferred": true
+    },
+    {
+      "id": "lowpoly_melee_fantasy",
+      "deferred": true
+    },
+    {
+      "id": "tf2_stock_weapons",
+      "deferred": true
+    },
+    {
+      "id": "minecraft_mystery_industrial_props_pack",
+      "deferred": true
+    }
+  ],
+  "pipeline": {
+    "next": [
+      "glb2glb bake large multipacks (ObjectStore grudge-convert)",
+      "wrangler r2 put grudge-assets/models/warlords/intake/... --remote",
+      "seed D1 asset_registry rows from this registry",
+      "wire multipack meshName isolation in loaders"
+    ]
+  }
+}
