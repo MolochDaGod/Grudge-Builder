@@ -234,6 +234,11 @@ export interface WeaponPrefabEntry {
   classRole?: WeaponClassRole;
   /** Icon match palette for this style */
   iconMatch?: WeaponStyleIconMatch;
+  /**
+   * Preferred UI icon — actual equipment image when selected
+   * (e.g. craftpix shield PNG). Prefer over generic pack icons.
+   */
+  iconUrl?: string | null;
 }
 
 const CDN = 'https://assets.grudge-studio.com';
@@ -337,7 +342,43 @@ function ready(
     productionReady: true,
     classRole: WEAPON_CLASS_ROLE[weaponType],
     iconMatch: STYLE_ICON_MATCH[styleId],
+    iconUrl: null,
   };
+}
+
+/**
+ * Icon for equipped/selected equipment — prefers prefab iconUrl (real shield art).
+ */
+export function getPrefabIconUrl(
+  weaponType: string,
+  style: WeaponStyleIndex | WeaponStyleId = 1,
+): string | null {
+  const p = getWeaponPrefab(weaponType, style);
+  if (!p) return null;
+  return p.iconUrl ?? null;
+}
+
+/** All selectable shield options with mesh + icon for UI pickers. */
+export function listShieldSelections(): Array<{
+  id: string;
+  styleId: WeaponStyleId;
+  styleIndex: WeaponStyleIndex;
+  label: string;
+  meshUrl: string | null;
+  iconUrl: string;
+  productionReady: boolean;
+}> {
+  return listPrefabsForType('SHIELD').map((p) => ({
+    id: p.id,
+    styleId: p.styleId,
+    styleIndex: p.styleIndex,
+    label: p.label,
+    meshUrl: p.cdnUrl ?? p.localPath,
+    iconUrl:
+      p.iconUrl ??
+      `/icons/weapons/shields/style_${p.styleId}.png`,
+    productionReady: p.productionReady,
+  }));
 }
 
 function gunLocal(
@@ -488,20 +529,100 @@ export const WEAPON_PREFAB_MATRIX: Record<
         : { ...e, weaponType: 'GREATSWORD' as const, id: `greatsword_style_${e.styleId}` },
   ),
 
-  // Shield from viking cold pack (styles 1–4 reuse shield/shieldrune; 5–6 variants)
+  /**
+   * SHIELD — best-looking meshes + **selected shield icons** (craftpix 50-pack).
+   * UI should show iconUrl for the equipped/selected style, not a generic pack plate.
+   */
   SHIELD: (() => {
-    const base = viking('shield');
-    const rune = viking('shieldrune');
-    return WEAPON_STYLE_DEFS.map((s, i) => {
-      const paths = i % 2 === 0 ? base : rune;
-      return ready(
+    /** Best meshes paired with distinct high-quality icons */
+    const options: Array<{
+      styleId: WeaponStyleId;
+      mesh: ReturnType<typeof viking> | {
+        r2Key: string;
+        cdnUrl: string;
+        localPath: string;
+        colliderUrl: string | null;
+      };
+      icon: string;
+      label: string;
+      pack: string;
+    }> = [
+      {
+        styleId: 'copper',
+        mesh: viking('shield'),
+        icon: '/icons/weapons/shields/style_copper.png',
+        label: 'Viking Round (copper/iron look)',
+        pack: 'cold-biome',
+      },
+      {
+        styleId: 'silver',
+        mesh: viking('shieldrune'),
+        icon: '/icons/weapons/shields/style_silver.png',
+        label: 'Viking Rune Shield',
+        pack: 'cold-biome',
+      },
+      {
+        styleId: 'gold',
+        mesh: {
+          r2Key: 'models/equipment/shields/shield_of_fire.glb',
+          cdnUrl: `${CDN}/models/equipment/shields/shield_of_fire.glb`,
+          localPath: '/models/equipment/shields/shield_of_fire.glb',
+          colliderUrl: null,
+        },
+        icon: '/icons/weapons/shields/fire_shield.png',
+        label: 'Shield of Fire',
+        pack: 'downloads',
+      },
+      {
+        styleId: 'diamond',
+        mesh: {
+          r2Key: 'models/equipment/shields/shield_murozondsgaze_v002stylized.glb',
+          cdnUrl: `${CDN}/models/equipment/shields/shield_murozondsgaze_v002stylized.glb`,
+          localPath: '/models/equipment/shields/shield_murozondsgaze_v002stylized.glb',
+          colliderUrl: null,
+        },
+        icon: '/icons/weapons/shields/murozond.png',
+        label: "Murozond's Gaze (stylized)",
+        pack: 'downloads',
+      },
+      {
+        styleId: 'voxel',
+        mesh: {
+          r2Key: 'models/equipment/shields/pro4ik_utcm_shield.glb',
+          cdnUrl: `${CDN}/models/equipment/shields/pro4ik_utcm_shield.glb`,
+          localPath: '/models/equipment/shields/pro4ik_utcm_shield.glb',
+          colliderUrl: null,
+        },
+        icon: '/icons/weapons/shields/utcm.png',
+        label: 'UTCM Low-poly Shield',
+        pack: 'downloads',
+      },
+      {
+        styleId: 'cold_viking',
+        mesh: {
+          r2Key: 'models/equipment/shields/crimson_rose_shield.glb',
+          cdnUrl: `${CDN}/models/equipment/shields/crimson_rose_shield.glb`,
+          localPath: '/models/equipment/shields/crimson_rose_shield.glb',
+          colliderUrl: null,
+        },
+        icon: '/icons/weapons/shields/crimson_rose.png',
+        label: 'Crimson Rose Shield',
+        pack: 'downloads',
+      },
+    ];
+
+    return options.map((opt, i) => {
+      const entry = ready(
         'SHIELD',
         (i + 1) as WeaponStyleIndex,
-        s.id,
-        { ...paths, colliderUrl: null },
-        'cold-biome',
-        i % 2 === 0 ? 'viking shield' : 'viking shield rune',
+        opt.styleId,
+        { ...opt.mesh, colliderUrl: opt.mesh.colliderUrl ?? null },
+        opt.pack,
+        `${opt.label} — icon from selected shield art`,
       );
+      entry.iconUrl = opt.icon;
+      entry.label = `SHIELD · ${opt.label}`;
+      return entry;
     });
   })(),
 

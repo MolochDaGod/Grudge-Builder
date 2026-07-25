@@ -6,7 +6,14 @@
  * syncItemsFromObjectStore() replaces ITEMS/RECIPES with canonical data on app init.
  */
 
-import { WEAPON_SPRITE_MAP, ARMOR_SPRITE_MAP, getWeaponSpritePath, getArmorSpritePath, getTomeIconPath } from '@/data/weaponSpriteMap';
+import {
+  WEAPON_SPRITE_MAP,
+  ARMOR_SPRITE_MAP,
+  getWeaponSpritePath,
+  getArmorSpritePath,
+  getTomeIconPath,
+  getShieldIconPath,
+} from '@/data/weaponSpriteMap';
 import { assetUrl, resolveIconUrl } from "@/lib/assetConfig";
 import { fetchMasterItems, fetchMasterRecipes } from "@/lib/objectStoreApi";
 
@@ -28,6 +35,8 @@ export interface GrudaItem {
   craftingLevel?: number;
   resources?: Record<string, number>; // For crafting
   weaponId?: string; // Links to weapon data for sprite mapping
+  prefabId?: string;
+  styleId?: string;
   armorId?: string; // Links to armor data for sprite mapping
   weaponType?: string; // Weapon type for sprite folder selection
   material?: string; // Armor material for sprite selection
@@ -44,6 +53,20 @@ export const resolveItemImage = (item: Partial<GrudaItem>): string => {
       name: item.name,
       weaponType: item.weaponType,
     });
+  }
+
+  // Shields: use the **selected** shield's image (craftpix / curated art)
+  const typeLower = (item.weaponType || item.type || item.slot || '').toLowerCase();
+  if (
+    typeLower.includes('shield') ||
+    typeLower === 'offhand' ||
+    item.weaponId?.toLowerCase().includes('shield') ||
+    item.name?.toLowerCase().includes('shield')
+  ) {
+    return getShieldIconPath(
+      item.weaponId || item.prefabId || item.styleId || item.image || item.name || 'style_copper',
+      item.weaponType,
+    );
   }
 
   // Check for weapon ID mapping first (priority over name-based)

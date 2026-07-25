@@ -111,6 +111,32 @@ Skill descriptions for GUN reference these palettes so skill icons can match the
 `STYLE_ICON_MATCH` in `weaponPrefabCatalog.ts` defines primary/secondary/glow hex + texture notes per style.  
 UI: `getGunStyleIconPath(styleId)` in `weaponSpriteMap.ts`.
 
+## Shield icons = selected equipment art
+
+Shields use **real shield images** (craftpix 50-pack + curated picks), not a generic plate.
+
+| Style | Mesh | Icon |
+|-------|------|------|
+| copper | viking shield | `style_copper.png` |
+| silver | viking rune | `style_silver.png` |
+| gold | shield_of_fire | `fire_shield.png` |
+| diamond | murozond stylized | `murozond.png` |
+| voxel | utcm shield | `utcm.png` |
+| cold_viking | crimson rose | `crimson_rose.png` |
+
+```ts
+import { getShieldIconPath, SHIELD_ICON_CATALOG } from '@/data/weaponSpriteMap';
+import { listShieldSelections } from '@shared/definitions/weaponPrefabCatalog';
+
+// Inventory / equip UI — icon follows selected shield
+<img src={getShieldIconPath(item.weaponId || item.styleId)} />
+
+// Picker of best-looking options
+listShieldSelections().map(s => ({ icon: s.iconUrl, mesh: s.meshUrl }))
+```
+
+Icons live at `/icons/weapons/shields/` (50 craftpix + named aliases).
+
 ## Chain knife combat
 
 1. **Chain Throw** — ranged dagger with tether  
