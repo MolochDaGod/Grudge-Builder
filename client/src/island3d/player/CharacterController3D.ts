@@ -1347,6 +1347,8 @@ export class CharacterController3D {
 
     // ── Holster controller tick ──────────────────────────────────────────────
     this.holster?.update(sdt);
+    // Wrist lock: clamp weapon grip after anim so blades do not clip torso
+    this.equipmentManager?.updateWeaponWristLocks(sdt);
     this.updateStamina(sdt);
 
     // ── Climb attach / active wall move (Conan Exiles style) ─────────────────
