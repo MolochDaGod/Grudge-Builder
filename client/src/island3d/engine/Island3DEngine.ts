@@ -1719,19 +1719,49 @@ export class Island3DEngine {
     const docks = getNodesByCategory<DockNode>(this.zonePopulation, 'dock');
     const dockOrSpawn = spawns[0]?.position ?? docks[0]?.position ?? cfg.spawnPoints[0] ?? [0, 20, 0];
 
+    /**
+     * Sample solid ground only (Mesh geometry). Never recurse into Sprites —
+     * THREE.Sprite.raycast requires ray.camera and some labels have null matrixWorld,
+     * which hard-crashed initZone ([Play] Engine init failed: matrixWorld).
+     */
     const sampleGroundY = (x: number, z: number, fallbackY: number): number => {
-      const ray = new THREE.Raycaster();
-      ray.set(new THREE.Vector3(x, cfg.waterLevel + 800, z), new THREE.Vector3(0, -1, 0));
-      const targets: THREE.Object3D[] = [];
-      if (this.havenFoundation?.root) targets.push(this.havenFoundation.root);
-      if (this.fabledFoundation?.root) targets.push(this.fabledFoundation.root);
-      for (const m of this.zoneScene.islandMeshes.values()) targets.push(m);
-      if (targets.length === 0) return fallbackY;
-      const hits = ray.intersectObjects(targets, true);
-      for (const h of hits) {
-        const n = (h.object.name || '').toLowerCase();
-        if (n.includes('water') || n.includes('ocean')) continue;
-        return h.point.y;
+      try {
+        const meshes: THREE.Mesh[] = [];
+        const collectMeshes = (root: THREE.Object3D | null | undefined) => {
+          if (!root) return;
+          try {
+            root.updateMatrixWorld(true);
+          } catch {
+            /* ignore incomplete hierarchies */
+          }
+          root.traverse((o) => {
+            const m = o as THREE.Mesh;
+            // Skip sprites, lights, empty groups — only real geometry
+            if (!(m as THREE.Mesh).isMesh) return;
+            if ((o as THREE.Sprite).isSprite) return;
+            if (!m.geometry || !m.matrixWorld) return;
+            meshes.push(m);
+          });
+        };
+        collectMeshes(this.havenFoundation?.root);
+        collectMeshes(this.fabledFoundation?.root);
+        for (const m of this.zoneScene.islandMeshes.values()) {
+          if (m?.isMesh && m.geometry && m.matrixWorld) meshes.push(m);
+        }
+        if (meshes.length === 0) return fallbackY;
+
+        const ray = new THREE.Raycaster();
+        // Guard sprite path if anything slips through
+        ray.camera = this.camera;
+        ray.set(new THREE.Vector3(x, cfg.waterLevel + 800, z), new THREE.Vector3(0, -1, 0));
+        const hits = ray.intersectObjects(meshes, false);
+        for (const h of hits) {
+          const n = (h.object.name || '').toLowerCase();
+          if (n.includes('water') || n.includes('ocean')) continue;
+          if (Number.isFinite(h.point.y)) return h.point.y;
+        }
+      } catch (err) {
+        console.warn('[Island3D] sampleGroundY failed — using fallback Y', err);
       }
       return fallbackY;
     };
