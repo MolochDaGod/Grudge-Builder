@@ -90,6 +90,14 @@ export class AnimationManager {
     this.controller.mixer.timeScale = v;
   }
 
+  /** When false, skip mixer work (culled / far NPC). */
+  set enabled(v: boolean) {
+    this.controller.enabled = v;
+  }
+  get enabled(): boolean {
+    return this.controller.enabled;
+  }
+
   /** Update the mixer each frame */
   update(dt: number): void {
     this.controller.update(dt);

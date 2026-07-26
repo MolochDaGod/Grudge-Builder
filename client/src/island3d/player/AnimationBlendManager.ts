@@ -58,6 +58,9 @@ export class Spring3 {
   position = new THREE.Vector3();
   velocity = new THREE.Vector3();
   target = new THREE.Vector3();
+  // Scratch — never allocate in update()
+  private _force = new THREE.Vector3();
+  private _tmp = new THREE.Vector3();
 
   constructor(
     public stiffness = 100,
@@ -65,11 +68,12 @@ export class Spring3 {
   ) {}
 
   update(dt: number): THREE.Vector3 {
-    const force = this.target.clone().sub(this.position).multiplyScalar(-this.stiffness * -1);
-    const dampForce = this.velocity.clone().multiplyScalar(-this.damping);
-    const accel = force.add(dampForce);
-    this.velocity.add(accel.multiplyScalar(dt));
-    this.position.add(this.velocity.clone().multiplyScalar(dt));
+    // F = k * (target - pos) - c * vel
+    this._force.copy(this.target).sub(this.position).multiplyScalar(this.stiffness);
+    this._tmp.copy(this.velocity).multiplyScalar(-this.damping);
+    this._force.add(this._tmp);
+    this.velocity.addScaledVector(this._force, dt);
+    this.position.addScaledVector(this.velocity, dt);
     return this.position;
   }
 

@@ -9,6 +9,8 @@ import * as THREE from "three";
 import type { Model3DField } from "@shared/fleet";
 import { ensureCharacterTextureColorSpace } from "@/lib/characterAppearance";
 import { applyWeaponGripPose, updateWristLock } from "@/lib/weaponGripRuntime";
+import { finalizeEquipmentVisibility } from "@/lib/three/SkeletonEquip";
+import { estimateVisibleTris } from "@/lib/three/SkeletonEquip";
 
 interface SlotDef {
   slot: string;
@@ -180,6 +182,7 @@ export class Grudge6EquipmentManager {
       }
     }
     this.equipped[slot] = resolved;
+    if (this.root) finalizeEquipmentVisibility(this.root);
     return true;
   }
 
@@ -240,6 +243,12 @@ export class Grudge6EquipmentManager {
     if (!variants) return;
     for (const mesh of Object.values(variants)) mesh.visible = false;
     delete this.equipped[slot];
+    if (this.root) finalizeEquipmentVisibility(this.root);
+  }
+
+  /** Visible triangle estimate after wardrobe filter (debug / LOD). */
+  estimateDrawCost(): number {
+    return this.root ? estimateVisibleTris(this.root) : 0;
   }
 
   /** Show a safe base armor set (body/arms/legs) so character is never invisible */

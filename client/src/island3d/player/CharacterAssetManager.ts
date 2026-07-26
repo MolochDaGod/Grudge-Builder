@@ -12,11 +12,15 @@
  * Based on threejs-skills loader patterns.
  */
 import * as THREE from 'three';
-import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js';
 import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
 import { resolveModelUrl } from '@/lib/modelManifest';
 import { ensureCharacterTextureColorSpace } from '@/lib/characterAppearance';
+import {
+  loadGltfCached,
+  prepareMeshPerformance,
+  getGltfCacheStats,
+} from '@/lib/three/SharedGltfPipeline';
+import { optimizeAnimationClip, refreshSkinnedBounds } from '@/lib/three/WorldMath';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -38,7 +42,6 @@ export interface LoadProgress {
 let _instance: CharacterAssetManager | null = null;
 
 export class CharacterAssetManager {
-  private gltfLoader: GLTFLoader;
   private textureLoader: THREE.TextureLoader;
   private modelCache = new Map<string, CachedModel>();
   private textureCache = new Map<string, THREE.Texture>();
@@ -51,11 +54,7 @@ export class CharacterAssetManager {
 
   private constructor() {
     THREE.Cache.enabled = true;
-    this.gltfLoader = new GLTFLoader();
-    // Draco race/equip packs from the gltf-transform pipeline
-    const draco = new DRACOLoader();
-    draco.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.7/');
-    this.gltfLoader.setDRACOLoader(draco);
+    // GLTF decode: SharedGltfPipeline (DRACO + Meshopt + concurrency)
     this.textureLoader = new THREE.TextureLoader();
   }
 
@@ -107,66 +106,39 @@ export class CharacterAssetManager {
     url: string,
     onProgress?: (p: LoadProgress) => void,
   ): Promise<CachedModel> {
-    const gltf = await this.loadWithRetry(url, 3, onProgress);
-    this.loadCount++;
+    onProgress?.({ url, loaded: 0, total: 1, percent: 0 });
+    let lastErr: unknown;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        const gltf = await loadGltfCached(url, attempt === 0 ? 'high' : 'medium');
+        this.loadCount++;
+        onProgress?.({ url, loaded: 1, total: 1, percent: 100 });
 
-    const scene = gltf.scene as THREE.Group;
+        const scene = gltf.scene as THREE.Group;
+        prepareMeshPerformance(scene, {
+          castShadow: true,
+          receiveShadow: true,
+          frustumCulled: true,
+          refreshSkinnedBounds: true,
+        });
+        ensureCharacterTextureColorSpace(scene);
 
-    // Enable shadows + correct texture color space for grudge6 race/equip kits
-    scene.traverse((child: THREE.Object3D) => {
-      if (child instanceof THREE.Mesh) {
-        child.castShadow = true;
-        child.receiveShadow = true;
+        const boundingBox = new THREE.Box3().setFromObject(scene);
+        const anims = gltf.animations.map((c) => {
+          const clone = c.clone();
+          optimizeAnimationClip(clone);
+          return clone;
+        });
+        if (anims.length > 0) this.clipCache.set(key, anims);
+
+        return { scene, animations: anims, boundingBox };
+      } catch (e) {
+        lastErr = e;
+        console.warn(`[AssetManager] Retry ${attempt + 1}/3 for ${url}`);
+        await new Promise((r) => setTimeout(r, 400 * (attempt + 1)));
       }
-    });
-    ensureCharacterTextureColorSpace(scene);
-
-    const boundingBox = new THREE.Box3().setFromObject(scene);
-
-    // Cache animation clips separately
-    if (gltf.animations.length > 0) {
-      this.clipCache.set(key, gltf.animations);
     }
-
-    return { scene, animations: gltf.animations, boundingBox };
-  }
-
-  private loadWithRetry(
-    url: string,
-    maxRetries: number,
-    onProgress?: (p: LoadProgress) => void,
-  ): Promise<any> {
-    return new Promise((resolve, reject) => {
-      let attempt = 0;
-
-      const tryLoad = () => {
-        this.gltfLoader.load(
-          url,
-          (gltf) => resolve(gltf),
-          (event) => {
-            if (onProgress && event.total > 0) {
-              onProgress({
-                url,
-                loaded: event.loaded,
-                total: event.total,
-                percent: Math.round((event.loaded / event.total) * 100),
-              });
-            }
-          },
-          (error) => {
-            attempt++;
-            if (attempt < maxRetries) {
-              console.warn(`[AssetManager] Retry ${attempt}/${maxRetries} for ${url}`);
-              setTimeout(tryLoad, 1000 * attempt); // exponential backoff
-            } else {
-              reject(error);
-            }
-          },
-        );
-      };
-
-      tryLoad();
-    });
+    throw lastErr instanceof Error ? lastErr : new Error(String(lastErr));
   }
 
   private cloneModel(cached: CachedModel): CachedModel {
@@ -174,22 +146,31 @@ export class CharacterAssetManager {
     const scene = (SkeletonUtils as { clone: (o: THREE.Object3D) => THREE.Object3D }).clone(
       cached.scene,
     ) as THREE.Group;
-    // Per-instance materials so equip tint doesn't leak across clones
-    scene.traverse((child) => {
-      if ((child as THREE.Mesh).isMesh) {
-        const mesh = child as THREE.Mesh;
-        if (mesh.material) {
-          mesh.material = Array.isArray(mesh.material)
-            ? mesh.material.map((m) => m.clone())
-            : mesh.material.clone();
-        }
-      }
+    prepareMeshPerformance(scene, {
+      castShadow: true,
+      receiveShadow: true,
+      frustumCulled: true,
+      cloneMaterials: true,
+      refreshSkinnedBounds: true,
     });
     ensureCharacterTextureColorSpace(scene);
+    refreshSkinnedBounds(scene);
     return {
       scene,
       animations: cached.animations,
       boundingBox: cached.boundingBox.clone(),
+    };
+  }
+
+  /** Shared pipeline + local cache stats */
+  getStats() {
+    return {
+      models: this.modelCache.size,
+      textures: this.textureCache.size,
+      clips: this.clipCache.size,
+      loadCount: this.loadCount,
+      cacheHits: this.cacheHits,
+      gltf: getGltfCacheStats(),
     };
   }
 
@@ -202,10 +183,16 @@ export class CharacterAssetManager {
       return this.clipCache.get(key)!;
     }
 
-    const gltf = await this.loadWithRetry(url, 2);
-    this.clipCache.set(key, gltf.animations);
+    const resolved = resolveModelUrl(url);
+    const gltf = await loadGltfCached(resolved, 'medium');
+    const clips = gltf.animations.map((c) => {
+      const clone = c.clone();
+      optimizeAnimationClip(clone);
+      return clone;
+    });
+    this.clipCache.set(key, clips);
     this.loadCount++;
-    return gltf.animations;
+    return clips;
   }
 
   /** Get cached clips by key */

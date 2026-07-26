@@ -28,6 +28,7 @@ import {
   evictGltfCache,
   getGltfCacheStats,
 } from "@/lib/three/SharedGltfPipeline";
+import { optimizeAnimationClip } from "@/lib/three/WorldMath";
 
 // ── Skeleton bone-name remapping ─────────────────────────────────────────────
 //
@@ -178,6 +179,7 @@ export async function loadCharacterModel(path: string): Promise<LoadedModel> {
   for (const clip of gltf.animations) {
     const cloned = clip.clone();
     remapClipBoneNames(cloned);
+    optimizeAnimationClip(cloned);
     clonedClips.push(cloned);
     const action = mixer.clipAction(cloned, scene);
     actions.set(cloned.name, action);
@@ -199,16 +201,15 @@ export async function loadAnimationClip(path: string): Promise<THREE.AnimationCl
   if (cached) return cached;
 
   try {
-    const gltf = await new Promise<GLTF>((resolve, reject) => {
-      loader.load(url, resolve, undefined, reject);
-    });
+    // Shared cache + Meshopt/DRACO — do not spin a second decoder
+    const gltf = await loadGltfCached(url, 'medium');
 
     if (gltf.animations.length === 0) {
       console.warn(`No animations in ${path}`);
       return null;
     }
 
-    const clip = remapClipBoneNames(gltf.animations[0]);
+    const clip = optimizeAnimationClip(remapClipBoneNames(gltf.animations[0].clone()));
     clipCache.set(url, clip);
     return clip;
   } catch (err) {
@@ -322,8 +323,12 @@ export class AnimationController {
     });
   }
 
+  /** When false, skip mixer.update (off-screen / culled characters). */
+  enabled = true;
+
   /** Register a clip under a state name */
   registerClip(name: string, clip: THREE.AnimationClip): void {
+    optimizeAnimationClip(clip);
     const action = applyAnimationToMixer(this.mixer, this.root, clip, name);
     this.actions.set(name, action);
   }
@@ -362,6 +367,7 @@ export class AnimationController {
 
   /** Update the mixer (call every frame with delta time) */
   update(dt: number): void {
+    if (!this.enabled) return;
     this.mixer.update(dt);
   }
 

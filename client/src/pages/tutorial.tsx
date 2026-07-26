@@ -36,10 +36,10 @@ import { createShipwreckSceneRuntime, type ShipwreckSceneRuntime } from '@/islan
 import { ShipwreckSceneEditorHUD } from '@/island3d/tutorial/ShipwreckSceneEditorHUD';
 import { TutorialHarvestController } from '@/island3d/tutorial/TutorialHarvestController';
 import {
-  TutorialProductionHUD,
   DEFAULT_TUTORIAL_SETTINGS,
   type TutorialSettings,
 } from '@/island3d/tutorial/TutorialProductionHUD';
+import { TutorialShell } from '@/tutorial/TutorialShell';
 import { SHIPWRECK_SCENE } from '@shared/definitions/shipwreckScene';
 import {
   TUTORIAL_QUICK_CRAFT,
@@ -98,6 +98,13 @@ export default function TutorialPage() {
   const [shipwreckRuntime, setShipwreckRuntime] = useState<ShipwreckSceneRuntime | null>(null);
   const [sceneEditorMode, setSceneEditorMode] = useState(false);
   const segmentPhaseRef = useRef<TutorialSegmentPhase>('intro_zoom');
+  /** Bridge production events → Traveler mission machine */
+  const missionEventRef = useRef<((e: {
+    type: string;
+    itemId?: string;
+    panel?: string;
+    resource?: string;
+  }) => void) | null>(null);
 
   const [characterName, setCharacterName] = useState('Shipwrecked');
   const [heroRace, setHeroRace] = useState('human');
@@ -567,13 +574,14 @@ export default function TutorialPage() {
                   segmentPhaseRef.current = 'prompt_pickaxe';
                   setSegmentPhase('prompt_pickaxe');
                   setAllyMessage(
-                    'Open Quick Craft — craft a Flint Pickaxe (1 stick · 1 stone), then equip it to MainHand.',
+                    'Open Main Panel (P) → Craft — Flint Pickaxe (1 stick · 1 stone), then equip MainHand.',
                   );
                   showNotification('Objective: Craft flint pickaxe');
                 }
                 return next;
               });
               showNotification(`+${qty} ${resource}`);
+              missionEventRef.current?.({ type: 'harvest', resource });
               void persistProfessionXp(resource === 'stick' ? 'wood' : 'stone');
               void addInventoryItem(resource, qty);
               roomRef.current?.send('harvest', {
@@ -866,12 +874,13 @@ export default function TutorialPage() {
     void addInventoryItem(recipeId, 1);
     roomRef.current?.send('craft', { recipeId });
     showNotification(`Crafted ${recipe.name}!`);
+    missionEventRef.current?.({ type: 'craft', itemId: recipeId });
 
     if (recipeId === 't0_pickaxe') {
       segmentPhaseRef.current = 'equip_pickaxe';
       setSegmentPhase('equip_pickaxe');
       setAllyMessage(
-        'Pickaxe crafted! Open Inventory and equip it to MainHand — then soft-lock the large rock (hold E).',
+        'Pickaxe crafted! Open Main Panel → Inventory and equip MainHand — then soft-lock the large rock (hold E).',
       );
     }
   };
@@ -879,8 +888,12 @@ export default function TutorialPage() {
   const handleEquip = (itemId: string) => {
     setEquippedMainHand(itemId);
     harvestCtrlRef.current?.setEquippedTool(itemId);
-    void engineRef.current?.character?.setControlMode('harvest', heroClass, false);
+    void engineRef.current?.character?.setControlMode('harvest', heroClass, false).then(() => {
+      // Ensure pickaxe mesh + harvest locomotion after mode equip
+      void engineRef.current?.character?.equipHarvestPickaxeTool?.();
+    });
     showNotification(`Equipped ${itemId} → MainHand`);
+    missionEventRef.current?.({ type: 'equip', itemId });
     if (itemId === 't0_pickaxe' || /pick/i.test(itemId)) {
       segmentPhaseRef.current = 'chunk_harvest_stone';
       setSegmentPhase('chunk_harvest_stone');
@@ -912,31 +925,43 @@ export default function TutorialPage() {
         }}
       />
 
-      {/* Production HUD — intro chrome + first-segment objectives / craft / equip / settings */}
+      {/* Production shell — character HUD + Main Panel + Dock Traveler missions */}
       {loaded && (
-        <TutorialProductionHUD
-          phase={segmentPhase}
+        <TutorialShell
           characterName={characterName}
-          raceLabel={heroRace}
+          raceId={heroRace}
+          classId={heroClass}
+          level={level}
           hp={hp}
           maxHp={maxHp}
+          playMode={playMode}
+          onModeChange={handleModeChange}
           sticks={stickCount}
           stones={stoneCount}
           inventory={craftedTools}
           equippedMainHand={equippedMainHand}
-          chunkHitsLeft={chunkHits?.left ?? null}
-          chunkMaxHits={chunkHits?.max ?? null}
-          allyMessage={allyMessage}
+          classHotbar={classHotbar}
+          weaponHotbar={weaponHotbar}
+          hasWeapon={hasWeapon}
           notification={notification}
-          playMode={playMode}
-          onModeChange={handleModeChange}
+          allyMessage={allyMessage}
+          introActive={introPlaying && wakePhase === 'cinematic'}
+          onSkipIntro={skipWakeCinematic}
+          chunkHits={chunkHits}
           onCraft={handleQuickCraft}
           onEquip={handleEquip}
           onUnequip={handleUnequip}
-          settings={settings}
-          onSettingsChange={setSettings}
-          introActive={introPlaying && wakePhase === 'cinematic'}
-          onSkipIntro={skipWakeCinematic}
+          eventBridgeRef={missionEventRef as any}
+          onMissionComplete={(id, title) => {
+            showNotification(`✓ ${title}`);
+            setAllyMessage(`Traveler: step complete — ${title}`);
+            roomRef.current?.send('step_complete', { stepId: id });
+          }}
+          onAllMissionsComplete={() => {
+            setAllyMessage(
+              'Traveler line complete — craft/board raft and sail to your faction island on the outer ring.',
+            );
+          }}
         />
       )}
 

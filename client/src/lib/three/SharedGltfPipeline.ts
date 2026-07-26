@@ -2,8 +2,9 @@
  * SharedGltfPipeline — single GLTFLoader for the whole client with:
  *   - DRACO geometry decode (local decoder when possible)
  *   - Meshopt compression (KHR_meshopt_compression)
+ *   - Priority queue + concurrency limit (protects mobile RAM)
  *   - Scene-level GLTF cache (clone per consumer)
- *   - Mesh performance prep (frustum, shadow flags, material sharing)
+ *   - Mesh performance prep (frustum, shadow flags, skinned bounds)
  *
  * Always import loaders from here instead of constructing new GLTFLoader/DRACOLoader.
  */
@@ -12,6 +13,7 @@ import { GLTFLoader, type GLTF } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js';
 import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
 import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
+import { refreshSkinnedBounds, optimizeAnimationClip } from './WorldMath';
 
 // Prefer same-origin decoder (cached by CDN worker / public/) then Google CDN fallback
 const DRACO_DECODER_CANDIDATES = [
@@ -19,16 +21,37 @@ const DRACO_DECODER_CANDIDATES = [
   'https://www.gstatic.com/draco/versioned/decoders/1.5.7/',
 ];
 
+export type LoadPriority = 'critical' | 'high' | 'medium' | 'low';
+
+const PRIORITY_ORDER: Record<LoadPriority, number> = {
+  critical: 0,
+  high: 1,
+  medium: 2,
+  low: 3,
+};
+
+/** Max parallel network decodes — keep low for mobile / shared decoder workers */
+const MAX_CONCURRENT = 4;
+
 let _loader: GLTFLoader | null = null;
 let _draco: DRACOLoader | null = null;
 const gltfCache = new Map<string, GLTF>();
 const inflight = new Map<string, Promise<GLTF>>();
 
+interface QueueItem {
+  url: string;
+  priority: LoadPriority;
+  resolve: (g: GLTF) => void;
+  reject: (e: Error) => void;
+}
+
+const queue: QueueItem[] = [];
+let activeLoads = 0;
+
 function ensureLoader(): GLTFLoader {
   if (_loader) return _loader;
 
   _draco = new DRACOLoader();
-  // Local public/draco first (shipped with app), Google CDN fallback on load error
   _draco.setDecoderPath(DRACO_DECODER_CANDIDATES[0]);
   _draco.setDecoderConfig({ type: 'wasm' });
   _draco.preload();
@@ -37,7 +60,6 @@ function ensureLoader(): GLTFLoader {
   _loader.setDRACOLoader(_draco);
 
   try {
-    // Meshopt is sync WASM in three's module
     _loader.setMeshoptDecoder(MeshoptDecoder);
   } catch (e) {
     console.warn('[SharedGltf] MeshoptDecoder unavailable', e);
@@ -51,31 +73,39 @@ function cacheKey(url: string): string {
   return url.split('?')[0];
 }
 
-/**
- * Load a GLTF/GLB once; subsequent calls reuse the parsed document.
- * Does not clone — callers that need independent scenes should cloneScene().
- */
-export async function loadGltfCached(url: string): Promise<GLTF> {
-  const key = cacheKey(url);
-  const hit = gltfCache.get(key);
-  if (hit) return hit;
+function drainQueue(): void {
+  while (activeLoads < MAX_CONCURRENT && queue.length > 0) {
+    queue.sort((a, b) => PRIORITY_ORDER[a.priority] - PRIORITY_ORDER[b.priority]);
+    const item = queue.shift()!;
+    activeLoads++;
+    loadOnce(item.url)
+      .then(item.resolve)
+      .catch(item.reject)
+      .finally(() => {
+        activeLoads--;
+        drainQueue();
+      });
+  }
+}
 
-  const pending = inflight.get(key);
-  if (pending) return pending;
-
+function loadOnce(url: string): Promise<GLTF> {
   const loader = ensureLoader();
-  const p = new Promise<GLTF>((resolve, reject) => {
+  return new Promise<GLTF>((resolve, reject) => {
     loader.load(
       url,
       (gltf) => {
-        gltfCache.set(key, gltf);
-        inflight.delete(key);
+        // Optimize embedded clips once at cache time
+        for (const clip of gltf.animations) {
+          try {
+            optimizeAnimationClip(clip);
+          } catch {
+            /* ignore */
+          }
+        }
         resolve(gltf);
       },
       undefined,
       (err) => {
-        inflight.delete(key);
-        // Retry once with Google CDN Draco path if local decoder failed
         if (_draco && DRACO_DECODER_CANDIDATES[1]) {
           try {
             _draco.setDecoderPath(DRACO_DECODER_CANDIDATES[1]);
@@ -86,6 +116,39 @@ export async function loadGltfCached(url: string): Promise<GLTF> {
         reject(err instanceof Error ? err : new Error(String(err)));
       },
     );
+  });
+}
+
+/**
+ * Load a GLTF/GLB once; subsequent calls reuse the parsed document.
+ * Does not clone — callers that need independent scenes should cloneGltfScene().
+ */
+export async function loadGltfCached(
+  url: string,
+  priority: LoadPriority = 'medium',
+): Promise<GLTF> {
+  const key = cacheKey(url);
+  const hit = gltfCache.get(key);
+  if (hit) return hit;
+
+  const pending = inflight.get(key);
+  if (pending) return pending;
+
+  const p = new Promise<GLTF>((resolve, reject) => {
+    queue.push({
+      url,
+      priority,
+      resolve: (gltf) => {
+        gltfCache.set(key, gltf);
+        inflight.delete(key);
+        resolve(gltf);
+      },
+      reject: (err) => {
+        inflight.delete(key);
+        reject(err);
+      },
+    });
+    drainQueue();
   });
   inflight.set(key, p);
   return p;
@@ -98,16 +161,25 @@ export function cloneGltfScene(gltf: GLTF): THREE.Group {
   ) as THREE.Group;
 }
 
+/** Skinned-safe clone of any Object3D graph. */
+export function cloneSkinned(root: THREE.Object3D): THREE.Object3D {
+  return (SkeletonUtils as { clone: (o: THREE.Object3D) => THREE.Object3D }).clone(root);
+}
+
 export interface MeshPerfOptions {
   /** Enable castShadow (expensive). Default false for props, true for heroes. */
   castShadow?: boolean;
   receiveShadow?: boolean;
-  /** Force frustum culling on (default true). Skinned heroes may set false. */
+  /** Force frustum culling on (default true). */
   frustumCulled?: boolean;
   /** Share materials when possible (default true for static props). */
   shareMaterials?: boolean;
   /** Disable shadows beyond this world distance from origin of mesh (0 = no check). */
   shadowDistance?: number;
+  /** Recompute skinned bounding spheres after clone/equip. Default true for skinned. */
+  refreshSkinnedBounds?: boolean;
+  /** Clone materials (heroes / tintable). Default false. */
+  cloneMaterials?: boolean;
 }
 
 /**
@@ -121,35 +193,71 @@ export function prepareMeshPerformance(
   const castShadow = opts.castShadow ?? false;
   const receiveShadow = opts.receiveShadow ?? true;
   const frustumCulled = opts.frustumCulled ?? true;
+  const cloneMaterials = opts.cloneMaterials ?? false;
+  let hasSkinned = false;
 
   root.traverse((obj) => {
     const mesh = obj as THREE.Mesh;
     if (!mesh.isMesh) return;
 
+    if ((mesh as THREE.SkinnedMesh).isSkinnedMesh) hasSkinned = true;
+
     mesh.frustumCulled = frustumCulled;
     mesh.castShadow = castShadow;
     mesh.receiveShadow = receiveShadow;
 
-    // Prefer static matrix auto-update off when parent manages transforms
     if (mesh.userData.staticProp) {
       mesh.matrixAutoUpdate = false;
       mesh.updateMatrix();
     }
 
-    // Cheap materials for distant/static props: skip envMap if unused
+    if (cloneMaterials && mesh.material) {
+      mesh.material = Array.isArray(mesh.material)
+        ? mesh.material.map((m) => m.clone())
+        : mesh.material.clone();
+    }
+
     const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
     for (const m of mats) {
       if (!m) continue;
       const std = m as THREE.MeshStandardMaterial;
       if (std.isMeshStandardMaterial) {
-        // Cap light work
         if (std.envMapIntensity != null && std.envMapIntensity > 0.6) {
           std.envMapIntensity = 0.6;
         }
+        // Albedo color space
+        if (std.map && std.map.colorSpace !== THREE.SRGBColorSpace) {
+          std.map.colorSpace = THREE.SRGBColorSpace;
+          std.map.needsUpdate = true;
+        }
       }
-      m.needsUpdate = false;
     }
   });
+
+  if (hasSkinned && opts.refreshSkinnedBounds !== false) {
+    refreshSkinnedBounds(root);
+  }
+}
+
+/**
+ * One-shot: load + skinned clone + perf prep.
+ * Preferred entry for characters / NPCs.
+ */
+export async function loadAndCloneGltf(
+  url: string,
+  opts?: MeshPerfOptions & { priority?: LoadPriority },
+): Promise<{ scene: THREE.Group; animations: THREE.AnimationClip[]; gltf: GLTF }> {
+  const gltf = await loadGltfCached(url, opts?.priority ?? 'high');
+  const scene = cloneGltfScene(gltf);
+  prepareMeshPerformance(scene, {
+    castShadow: true,
+    receiveShadow: true,
+    frustumCulled: true,
+    cloneMaterials: true,
+    refreshSkinnedBounds: true,
+    ...opts,
+  });
+  return { scene, animations: gltf.animations, gltf };
 }
 
 /** Drop a URL from cache (after hot-reload / asset swap). */
@@ -168,6 +276,8 @@ export function disposeSharedGltfPipeline(): void {
   _loader = null;
   gltfCache.clear();
   inflight.clear();
+  queue.length = 0;
+  activeLoads = 0;
 }
 
 /** Access shared loader (for advanced consumers). */
@@ -175,6 +285,16 @@ export function getSharedGltfLoader(): GLTFLoader {
   return ensureLoader();
 }
 
-export function getGltfCacheStats(): { entries: number; inflight: number } {
-  return { entries: gltfCache.size, inflight: inflight.size };
+export function getGltfCacheStats(): {
+  entries: number;
+  inflight: number;
+  queued: number;
+  active: number;
+} {
+  return {
+    entries: gltfCache.size,
+    inflight: inflight.size,
+    queued: queue.length,
+    active: activeLoads,
+  };
 }

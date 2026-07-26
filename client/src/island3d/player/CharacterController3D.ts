@@ -21,6 +21,11 @@ import {
   unequipBuildHammer,
   type BuildHammerHandle,
 } from '../building/BuildHammerAttachment';
+import {
+  equipHarvestPickaxe,
+  unequipHarvestPickaxe,
+  type HarvestPickaxeHandle,
+} from '../building/HarvestPickaxeAttachment';
 import { RACE_GRUDGE6, weaponTypeFromModel3d } from '@shared/fleet';
 import { setupGrudge6Equipment, type Grudge6EquipmentManager } from '@/lib/grudge6Equipment';
 import { applyCharacterColorTints, ensureCharacterTextureColorSpace } from '@/lib/characterAppearance';
@@ -200,6 +205,7 @@ export class CharacterController3D {
   private softLockProvider: (() => SoftLockTarget[]) | null = null;
   /** Survival-kit hammer mesh @ 0.8 scale in right hand while in build mode */
   private buildHammer: BuildHammerHandle | null = null;
+  private harvestPickaxe: HarvestPickaxeHandle | null = null;
   /** Local stamina pool for climb / swim (syncs to state machine) */
   public stamina = STAMINA_LOCOMOTION.maxStamina;
   public maxStamina = STAMINA_LOCOMOTION.maxStamina;
@@ -888,25 +894,36 @@ export class CharacterController3D {
     await this.reloadWeaponAnimations(wt);
 
     if (mode === 'build') {
+      this.unequipHarvestPickaxeTool();
       await this.equipBuildHammerTool();
+    } else if (mode === 'harvest') {
+      this.unequipBuildHammerTool();
+      await this.equipHarvestPickaxeTool();
     } else {
       this.unequipBuildHammerTool();
+      this.unequipHarvestPickaxeTool();
     }
 
-    // Refresh holster mesh catalog after equip swaps (build hammer may hide weapons)
+    // Refresh holster mesh catalog after equip swaps (tools may hide weapons)
     this.holster?.setWeaponType(
       mode === 'build' || mode === 'harvest' ? 'unarmed' : (equippedWt as string) || wt,
     );
     this.holster?.setEquipment(this.equipmentManager);
     this.holster?.rescanWeapons();
 
-    // Enter harvest → sheath combat weapons (hands free for harvest tool).
+    // Enter harvest → sheath combat weapons, pickaxe in hand + harvest locomotion set.
     // Enter build → sheath + hammer. Leave harvest/build → restore draw preference in combat only.
     if (mode === 'harvest' && prevMode !== 'harvest') {
       if (prevMode === 'combat') {
         this.drawnBeforeBuild = this.weaponsDrawn || this.playerPrefersDrawn;
       }
       this.beginHolsterWeapons('enter_harvest', true);
+      // Ensure harvest one-shot available (catalog maps attack → harvest when missing)
+      if (this.animations?.hasClip('harvest')) {
+        /* ready */
+      } else if (this.animations?.hasClip('attack')) {
+        /* harvest uses attack clip via catalog */
+      }
     } else if (mode === 'build' && prevMode !== 'build') {
       if (prevMode === 'combat') {
         this.drawnBeforeBuild = this.weaponsDrawn || this.playerPrefersDrawn;
@@ -940,6 +957,40 @@ export class CharacterController3D {
   /** Whether the build hammer tool is currently in-hand. */
   get hasBuildHammer(): boolean {
     return this.buildHammer != null;
+  }
+
+  /** Put harvest pickaxe in hand (survival kit + race pick slot). */
+  async equipHarvestPickaxeTool(): Promise<void> {
+    this.unequipHarvestPickaxeTool();
+    const root = this.loadedModelScene ?? this.model;
+    if (!root) return;
+    try {
+      this.harvestPickaxe = await equipHarvestPickaxe(root, this.equipmentManager);
+    } catch (err) {
+      console.warn('[Character] Harvest pickaxe equip failed:', err);
+    }
+  }
+
+  unequipHarvestPickaxeTool(): void {
+    unequipHarvestPickaxe(this.harvestPickaxe, this.equipmentManager);
+    this.harvestPickaxe = null;
+  }
+
+  get hasHarvestPickaxe(): boolean {
+    return this.harvestPickaxe != null;
+  }
+
+  /** Play harvest swing one-shot while keeping locomotion when moving. */
+  playHarvestSwing(): void {
+    if (this.mode !== 'harvest') return;
+    if (this.animations?.hasClip('harvest')) {
+      this.animations.play('harvest', { loop: false, fadeDuration: 0.12, speed: 1.05 });
+    } else if (this.animations?.hasClip('attack')) {
+      this.animations.play('attack', { loop: false, fadeDuration: 0.12, speed: 1.1 });
+    }
+    if (this.stateMachine?.canTransitionTo('harvesting')) {
+      this.stateMachine.transition('harvesting');
+    }
   }
 
   private initStateMachine(
@@ -1144,9 +1195,7 @@ export class CharacterController3D {
           if (this.shipDeckLocked && this.deckCastLineHandler?.()) {
             return;
           }
-          if (this.stateMachine?.canTransitionTo('harvesting')) {
-            this.stateMachine.transition('harvesting');
-          }
+          this.playHarvestSwing();
         } else if (this.mode === 'build' && this.stateMachine?.canTransitionTo('building')) {
           this.stateMachine.transition('building');
         }
@@ -2259,6 +2308,7 @@ export class CharacterController3D {
 
   destroy(): void {
     this.unequipBuildHammerTool();
+    this.unequipHarvestPickaxeTool();
     this.holster?.dispose();
     this.holster = null;
     this.orchestrator?.dispose();

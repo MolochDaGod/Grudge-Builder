@@ -117,6 +117,12 @@ export {
   createBuildHammerMesh,
 } from './building/BuildHammerAttachment';
 export type { BuildHammerHandle } from './building/BuildHammerAttachment';
+export {
+  equipHarvestPickaxe,
+  unequipHarvestPickaxe,
+  createHarvestPickaxeMesh,
+} from './building/HarvestPickaxeAttachment';
+export type { HarvestPickaxeHandle } from './building/HarvestPickaxeAttachment';
 
 // RTS triple-mode UI (combat / harvest / build)
 export { ModePlayHUD } from './render/ModePlayHUD';
