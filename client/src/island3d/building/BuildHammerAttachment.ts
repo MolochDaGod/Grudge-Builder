@@ -3,7 +3,6 @@
  * at 0.8 scale, named "Build Hammer". Used only in build control mode.
  */
 import * as THREE from 'three';
-import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import {
   BUILD_HAMMER,
   BUILD_HAMMER_BONE_CANDIDATES,
@@ -11,8 +10,12 @@ import {
 } from '@shared/definitions/buildHammer';
 import { assetUrl } from '@/lib/assetConfig';
 import type { Grudge6EquipmentManager } from '@/lib/grudge6Equipment';
+import {
+  loadGltfCached,
+  cloneGltfScene,
+  prepareMeshPerformance,
+} from '@/lib/three/SharedGltfPipeline';
 
-const loader = new GLTFLoader();
 const packCache = new Map<string, THREE.Group>();
 
 export interface BuildHammerHandle {
@@ -26,8 +29,10 @@ async function loadPack(path: string): Promise<THREE.Group> {
   const url = assetUrl(path);
   const hit = packCache.get(url);
   if (hit) return hit;
-  const gltf = await loader.loadAsync(url);
-  const root = gltf.scene as THREE.Group;
+  // Shared DRACO/Meshopt pipeline — do not spin a private GLTFLoader
+  const gltf = await loadGltfCached(url, 'high');
+  const root = cloneGltfScene(gltf);
+  prepareMeshPerformance(root, { castShadow: true, frustumCulled: true });
   packCache.set(url, root);
   return root;
 }

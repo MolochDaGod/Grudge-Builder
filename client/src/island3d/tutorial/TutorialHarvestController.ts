@@ -285,10 +285,18 @@ export class TutorialHarvestController {
       }
     }
 
-    // Play harvest anim if available
+    // Harvest swing + pickaxe (CharacterController3D API)
     try {
-      (this.character as any).animations?.playAction?.('harvest');
-      (this.character as any).animationBlend?.playAction?.('harvest');
+      const ch = this.character as {
+        playHarvestSwing?: () => void;
+        equipHarvestPickaxeTool?: () => Promise<void>;
+        hasHarvestPickaxe?: boolean;
+        mode?: string;
+      };
+      if (ch.mode === 'harvest' || ch.playHarvestSwing) {
+        if (!ch.hasHarvestPickaxe) void ch.equipHarvestPickaxeTool?.();
+        ch.playHarvestSwing?.();
+      }
     } catch { /* optional */ }
 
     n.health = Math.max(0, n.health - dmg);

@@ -898,7 +898,12 @@ export class CharacterController3D {
       await this.equipBuildHammerTool();
     } else if (mode === 'harvest') {
       this.unequipBuildHammerTool();
+      // Pickaxe in hand + unarmed locomotion set (reloadWeaponAnimations above)
       await this.equipHarvestPickaxeTool();
+      // Start in idle/walk blend ready — not T-pose
+      if (this.animations?.hasClip('idle')) {
+        this.animations.play('idle', { fadeDuration: 0.2 });
+      }
     } else {
       this.unequipBuildHammerTool();
       this.unequipHarvestPickaxeTool();
@@ -959,8 +964,11 @@ export class CharacterController3D {
     return this.buildHammer != null;
   }
 
-  /** Put harvest pickaxe in hand (survival kit + race pick slot). */
+  /** Put harvest pickaxe in hand (survival kit + race pick slot). Idempotent. */
   async equipHarvestPickaxeTool(): Promise<void> {
+    if (this.harvestPickaxe?.attached && this.harvestPickaxe.root?.parent) {
+      return; // already in hand
+    }
     this.unequipHarvestPickaxeTool();
     const root = this.loadedModelScene ?? this.model;
     if (!root) return;
@@ -980,13 +988,41 @@ export class CharacterController3D {
     return this.harvestPickaxe != null;
   }
 
-  /** Play harvest swing one-shot while keeping locomotion when moving. */
+  /**
+   * Harvest swing one-shot. Uses oneShotTimer so locomotion (walk/run/idle)
+   * resumes after the clip without fighting the ground anim switch.
+   */
   playHarvestSwing(): void {
     if (this.mode !== 'harvest') return;
+    // Ensure tool is present even if mode was set before model finished loading
+    if (!this.harvestPickaxe) {
+      void this.equipHarvestPickaxeTool();
+    }
+    const moving = this.velocity.lengthSq() > 0.04;
+    const onDone = () => {
+      if (this.mode !== 'harvest' || !this.animations) return;
+      if (moving || this.velocity.lengthSq() > 0.04) {
+        this.animations.play(this.keys.has('shift') ? 'run' : 'walk', { fadeDuration: 0.18 });
+      } else {
+        this.animations.play('idle', { fadeDuration: 0.2 });
+      }
+    };
     if (this.animations?.hasClip('harvest')) {
-      this.animations.play('harvest', { loop: false, fadeDuration: 0.12, speed: 1.05 });
+      this.animations.play('harvest', {
+        loop: false,
+        fadeDuration: 0.1,
+        speed: 1.05,
+        onFinish: onDone,
+      });
+      this.oneShotTimer = 0.55;
     } else if (this.animations?.hasClip('attack')) {
-      this.animations.play('attack', { loop: false, fadeDuration: 0.12, speed: 1.1 });
+      this.animations.play('attack', {
+        loop: false,
+        fadeDuration: 0.1,
+        speed: 1.1,
+        onFinish: onDone,
+      });
+      this.oneShotTimer = 0.5;
     }
     if (this.stateMachine?.canTransitionTo('harvesting')) {
       this.stateMachine.transition('harvesting');
