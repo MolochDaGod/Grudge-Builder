@@ -553,14 +553,22 @@ export async function loadHavenShoreFoundation(
   const vesselMarkers = placeVesselTags(layer, cfg.vessels);
   const animalMarkers = placeAnimalMarkers(layer, cfg.animals);
 
-  // Collect ground meshes
+  // Collect ground meshes (name match preferred; fall back to every Mesh so
+  // CharacterController raycasts never fall through empty ocean)
   const groundMeshes: THREE.Object3D[] = [];
+  const allMeshes: THREE.Object3D[] = [];
   gltfScene.traverse((o) => {
-    const n = o.name || '';
-    if (/island|house|tower|hut|dock|pirate_hut|building/i.test(n)) {
-      groundMeshes.push(o);
+    const mesh = o as THREE.Mesh;
+    if (!mesh.isMesh) return;
+    allMeshes.push(mesh);
+    const n = mesh.name || '';
+    if (/island|house|tower|hut|dock|pirate_hut|building|ground|terrain|rock|sand|grass|base/i.test(n)) {
+      groundMeshes.push(mesh);
     }
   });
+  if (groundMeshes.length === 0) {
+    groundMeshes.push(...allMeshes);
+  }
 
   scene.add(root);
 

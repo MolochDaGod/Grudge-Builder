@@ -44,6 +44,7 @@ import {
   getSeedById,
 } from '@shared/definitions/farming';
 import { placeResourceNodes, type PlacedNode3D } from '../terrain/NodePlacer';
+import { TREE_GROWTH } from '@shared/definitions/islandGrowthRules';
 import { createScatterDecorations } from '../objects/ScatterDecorations';
 import { createHarvestableTree, type HarvestableTree } from '../objects/HarvestableTree';
 import { createHarvestableRock, type HarvestableRock } from '../objects/HarvestableRock';
@@ -191,6 +192,29 @@ import {
   type HarvestDropKind,
 } from '../harvest/HarvestFeedback';
 import { tickGrowth, isHarvestable } from '../harvest/RegenerativeHarvest';
+import {
+  convertToGroundedLog,
+  tickGroundedLog,
+  chopGroundedLog,
+  rollTreeFallDrops,
+  applyRockChunk,
+  spawnRockChunkDebris,
+  tickRockDebris,
+  type GroundedLogState,
+} from '../harvest/ValheimHarvestPhysics';
+import {
+  HarvestToolSoftLock,
+  softLockKindForTool,
+  shouldAutoWalkToHarvest,
+  type HarvestLockTarget,
+} from '../harvest/HarvestToolSoftLock';
+import {
+  createAllyHarvestAgent,
+  tickAllyHarvest,
+  resolveAllyAfkSession,
+  type AllyHarvestAgent,
+  type HarvestNodeRef,
+} from '../ai/AllyHarvestJob';
 import {
   generateMountainTriadSeed,
   HOME_ISLAND_WORLD_SIZE_M,
@@ -555,6 +579,15 @@ export class Island3DEngine {
   // Harvest FX — log/debris drops + tree fall animations
   private harvestDrops: HarvestDrop[] = [];
   private treeFallCompleting = new Set<HarvestableTree>();
+  /** Valheim grounded logs awaiting RMB piece-chop */
+  private groundedLogs = new Map<HarvestableTree, GroundedLogState>();
+  private rockDebrisMeshes: THREE.Mesh[] = [];
+  /** Tool soft/hard lock for harvestables */
+  public harvestSoftLock = new HarvestToolSoftLock();
+  /** RTS ally AFK harvest agents + camp storage */
+  public allyHarvestAgents: AllyHarvestAgent[] = [];
+  public campStorage = new Map<string, number>();
+  private lastAfkResolveMs = Date.now();
 
   constructor(private config: Island3DEngineConfig) {
     // Renderer — threejs-production-best-practices (r185+): high-perf GPU,
@@ -1073,6 +1106,8 @@ export class Island3DEngine {
 
     // 6b. BATTLE nature pack (game.grudge-studio.com/game/battle NatureDecor)
     // CommonTree / DeadTree / Pine / Pebble / Bush — NOT stylized multi-pack dumps
+    // Density caps align with islandGrowthRules (InstancedMesh / CodePen jEyBpVb).
+    // Full 2/m² wood-node fill: generateLushFromSeed + production seed nodes.
     this.treeCanopyLayers = await scatterBattleNatureOnTerrain(
       this.scene,
       this.terrain.terrainMesh,
@@ -1083,7 +1118,7 @@ export class Island3DEngine {
         campX: campWorld.x,
         campZ: campWorld.z,
         layers: 4,
-        treeCount: 200,
+        treeCount: Math.min(200, TREE_GROWTH.maxInstancesPerChunk),
         rockCount: 100,
         bushCount: 80,
       },
@@ -1713,48 +1748,93 @@ export class Island3DEngine {
       );
     }
 
-    // 6. Camera — prefer Haven foundation / race capital spawn, else dock / player spawn
+    // 6. Entry / spawn — raycast onto Haven foundation or zone islands so we never
+    // start under the ocean (waterLevel+N without ground sampling was drowning TPS).
     const spawns = getNodesByCategory<SpawnPointNode>(this.zonePopulation, 'spawn_point')
       .filter(s => s.spawnType === 'player');
     const docks = getNodesByCategory<DockNode>(this.zonePopulation, 'dock');
     const dockOrSpawn = spawns[0]?.position ?? docks[0]?.position ?? cfg.spawnPoints[0] ?? [0, 20, 0];
-    const entryPoint: [number, number, number] = this.havenFoundation
-      ? [
-          this.havenFoundation.root.position.x + 18,
-          cfg.waterLevel + 4,
-          this.havenFoundation.root.position.z + 22,
-        ]
-      : this.fabledFoundation
-        ? [
-            this.fabledFoundation.root.position.x + 12,
-            cfg.waterLevel + 6,
-            this.fabledFoundation.root.position.z + 28,
-          ]
-      : this.zoneCapital
-        ? [this.zoneCapital.spawn.x, this.zoneCapital.spawn.y, this.zoneCapital.spawn.z]
-        : dockOrSpawn;
-    const camLift = Math.max(180, cfg.sizeMeters * 0.018);
-    const camBack = Math.max(280, cfg.sizeMeters * 0.028);
 
+    const sampleGroundY = (x: number, z: number, fallbackY: number): number => {
+      const ray = new THREE.Raycaster();
+      ray.set(new THREE.Vector3(x, cfg.waterLevel + 800, z), new THREE.Vector3(0, -1, 0));
+      const targets: THREE.Object3D[] = [];
+      if (this.havenFoundation?.root) targets.push(this.havenFoundation.root);
+      if (this.fabledFoundation?.root) targets.push(this.fabledFoundation.root);
+      for (const m of this.zoneScene.islandMeshes.values()) targets.push(m);
+      if (targets.length === 0) return fallbackY;
+      const hits = ray.intersectObjects(targets, true);
+      for (const h of hits) {
+        // Ignore water-ish hits
+        const n = (h.object.name || '').toLowerCase();
+        if (n.includes('water') || n.includes('ocean')) continue;
+        return h.point.y;
+      }
+      return fallbackY;
+    };
+
+    let entryX = dockOrSpawn[0];
+    let entryZ = dockOrSpawn[2];
+    let entryY = Math.max(dockOrSpawn[1], cfg.waterLevel + 6);
+    if (this.havenFoundation) {
+      entryX = this.havenFoundation.root.position.x + 8;
+      entryZ = this.havenFoundation.root.position.z + 14;
+      entryY = sampleGroundY(entryX, entryZ, cfg.waterLevel + 8) + 1.1;
+    } else if (this.fabledFoundation) {
+      entryX = this.fabledFoundation.root.position.x + 12;
+      entryZ = this.fabledFoundation.root.position.z + 28;
+      entryY = sampleGroundY(entryX, entryZ, cfg.waterLevel + 10) + 1.1;
+    } else if (this.zoneCapital) {
+      entryX = this.zoneCapital.spawn.x;
+      entryZ = this.zoneCapital.spawn.z;
+      entryY = sampleGroundY(entryX, entryZ, this.zoneCapital.spawn.y) + 0.5;
+    } else {
+      entryY = sampleGroundY(entryX, entryZ, entryY) + 0.5;
+    }
+    // Hard floor: never start below waterline + 2m
+    entryY = Math.max(entryY, cfg.waterLevel + 2.5);
+    const entryPoint: [number, number, number] = [entryX, entryY, entryZ];
+
+    // Island-facing camera (not a distant aerial that only shows ocean)
+    const camLift = Math.min(48, Math.max(22, cfg.sizeMeters * 0.0025));
+    const camBack = Math.min(56, Math.max(28, cfg.sizeMeters * 0.003));
     this.camera.position.set(entryPoint[0], entryPoint[1] + camLift, entryPoint[2] + camBack);
-    this.controls.target.set(entryPoint[0], entryPoint[1], entryPoint[2]);
-    this.controls.maxDistance = Math.max(2500, cfg.sizeMeters * 0.35);
-    this.controls.minDistance = 10;
-    this.controls.maxPolarAngle = Math.PI * 0.85;
+    this.controls.target.set(entryPoint[0], entryPoint[1] + 1.6, entryPoint[2]);
+    this.controls.maxDistance = Math.max(900, cfg.sizeMeters * 0.12);
+    this.controls.minDistance = 4;
+    this.controls.maxPolarAngle = Math.PI * 0.48; // keep camera above horizon / water
     this.controls.update();
 
-    // 7. Grab the first island's terrain mesh for character ground detection
-    // Prefer capital island mesh when race city is present
+    // 7. Ground mesh for character — prefer Haven foundation deck over distant grey islands
     const capitalMesh = this.zoneCapital
       ? (this.zoneScene.islandMeshes.values().next().value as THREE.Mesh | undefined)
       : undefined;
     const firstIslandId = this.zonePopulation.islandIds[0];
-    const firstIslandMesh =
+    const zoneIslandMesh =
       (capitalMesh as THREE.Mesh | undefined) ??
       (firstIslandId ? this.zoneScene.islandMeshes.get(firstIslandId) : null) ??
       null;
 
-    // 8. Character controller (spawns at capital or first dock)
+    let foundationMesh: THREE.Mesh | null = null;
+    if (this.havenFoundation) {
+      for (const o of this.havenFoundation.groundMeshes) {
+        const m = o as THREE.Mesh;
+        if (m.isMesh) {
+          foundationMesh = m;
+          break;
+        }
+      }
+      if (!foundationMesh) {
+        this.havenFoundation.root.traverse((o) => {
+          if (foundationMesh) return;
+          const m = o as THREE.Mesh;
+          if (m.isMesh) foundationMesh = m;
+        });
+      }
+    }
+    const firstIslandMesh = foundationMesh ?? zoneIslandMesh;
+
+    // 8. Character controller (spawns on foundation / capital island ground)
     if (this.config.enableCharacter !== false && firstIslandMesh) {
       this.terrain = {
         terrainScene: this.zoneScene.root,
@@ -1766,20 +1846,25 @@ export class Island3DEngine {
         gridH: 0,
       };
       this.ensureFarmSystems();
-      // Plant on spawn tile (no +3m float — feet sit on board square)
       const spawnPos = new THREE.Vector3(entryPoint[0], entryPoint[1], entryPoint[2]);
       this.character = new CharacterController3D({
         scene: this.scene,
         camera: this.camera,
         terrainMesh: firstIslandMesh,
+        // Raycast entire foundation + zone islands so feet plant on real decks
+        groundObject: this.havenFoundation?.root ?? this.fabledFoundation?.root ?? this.zoneScene.root,
         startPosition: spawnPos,
         physics: { waterLevel: cfg.waterLevel, characterHeight: 2.0 },
         callbacks: this.config.physicsCallbacks,
       });
       this.character.setWorldFxBus?.(this.worldFx);
       this.setCameraMode('play_tps');
-      // Race prefab applied by Island3DRenderer (Grudge6 apply effect) once roster resolves
-      console.log('[Island3DEngine] Zone character controller ready — awaiting Grudge6 race prefab');
+      console.log(
+        `[Island3DEngine] Zone character ready at (${entryPoint[0].toFixed(1)}, ${entryPoint[1].toFixed(1)}, ${entryPoint[2].toFixed(1)}) ` +
+          `haven=${!!this.havenFoundation} ground=${firstIslandMesh.name || 'mesh'}`,
+      );
+    } else if (this.config.enableCharacter !== false) {
+      console.warn('[Island3DEngine] Zone character skipped — no ground mesh (foundation + islands empty)');
     }
 
     // 9. Building system works in zone mode too
@@ -1987,9 +2072,14 @@ export class Island3DEngine {
 
     for (const node of this.placedNodes) {
       switch (node.type) {
-        case 'tree': {
-          // Always full CDN pack tree (hidden until mounted). No 0.01 hitbox-only poly path.
-          const tree = createHarvestableTree(node.position, node.scale);
+        case 'tree':
+        case 'wood': {
+          // Biome-aware tall stylized forest trees (plains/snow/palm/autumn)
+          const tree = createHarvestableTree(
+            node.position,
+            node.scale,
+            String(node.biome || this.config.biome || 'plains'),
+          );
           tree.nodeId = node.id;
           this.trees.push(tree);
           this.scene.add(tree.group);
@@ -2275,12 +2365,60 @@ export class Island3DEngine {
         }
       }
 
-      // Stump → begin visible growth when respawn timer elapses
-      if (tree.respawnAt > 0 && now >= tree.respawnAt && tree.fallPhase === 'stump') {
+      // Grounded log gravity settle
+      const logSt = this.groundedLogs.get(tree);
+      if (logSt && tree.group.visible) {
+        const gy = this.terrain
+          ? getTerrainHeightAt(this.terrain.terrainMesh, tree.group.position.x, tree.group.position.z) ?? 0
+          : 0;
+        tickGroundedLog(logSt, dt, gy);
+      }
+
+      // Stump → begin visible growth when respawn timer elapses (not mid-log)
+      if (
+        tree.respawnAt > 0 &&
+        now >= tree.respawnAt &&
+        tree.fallPhase === 'stump' &&
+        !this.groundedLogs.has(tree)
+      ) {
         this.treeFallCompleting.delete(tree);
         resetHarvestableTree(tree, tree.baseScale);
       }
     }
+
+    // Rock debris physics
+    if (this.rockDebrisMeshes.length) {
+      const gy = 0;
+      this.rockDebrisMeshes = tickRockDebris(this.rockDebrisMeshes, dt, gy);
+    }
+
+    // Ally online harvest tick
+    if (this.allyHarvestAgents.length && this.terrain) {
+      const nodes: HarvestNodeRef[] = [
+        ...this.trees
+          .filter((t) => t.fallPhase === 'live')
+          .map((t) => ({
+            id: t.nodeId || 't',
+            kind: 'wood' as const,
+            position: t.group.position.clone(),
+            remaining: t.health,
+          })),
+        ...this.rocks
+          .filter((r) => r.group.visible)
+          .map((r) => ({
+            id: r.nodeId || 'r',
+            kind: (r.oreVariant ? 'ore' : 'stone') as 'ore' | 'stone',
+            position: r.group.position.clone(),
+            remaining: r.health,
+          })),
+      ];
+      for (const agent of this.allyHarvestAgents) {
+        tickAllyHarvest(agent, nodes, this.campStorage, dt);
+      }
+    }
+
+    // Tool soft-lock refresh
+    this.updateHarvestToolLock();
 
     for (const rock of this.rocks) {
       if ((rock as any).growthPhase === 'growing') {
@@ -2349,15 +2487,213 @@ export class Island3DEngine {
 
   private async completeTreeFall(tree: HarvestableTree): Promise<void> {
     const pos = tree.group.position.clone();
-    const scale = tree.baseScale;
-    await swapTreeToStump(tree, scale);
-    const drops = await spawnResourceDrops(this.scene, pos, 'log', 3);
+    // Keep fallen trunk as grounded log (Valheim) — stump only after fully chopped
+    const logState = convertToGroundedLog(tree);
+    this.groundedLogs.set(tree, logState);
+
+    // Fall drops: wood + branch + seed + fruit + fiber (+ rare egg)
+    const tableKey =
+      (tree.group.userData.fallDropTable as string) ||
+      tree.spawnSpec?.fallDropTable ||
+      'default';
+    const rolled = rollTreeFallDrops(tableKey);
+    for (const d of rolled) {
+      this.grantHarvestItem(d.item, d.qty);
+    }
+    // Visual log debris
+    const drops = await spawnResourceDrops(this.scene, pos, 'log', 2);
     this.harvestDrops.push(...drops);
     this.config.onHarvest?.({
       nodeId: tree.nodeId,
       resourceType: 'forest',
       position: pos,
     });
+  }
+
+  /** Inventory / farm bag grant for harvest materials */
+  private grantHarvestItem(item: string, qty: number): void {
+    if (qty <= 0) return;
+    this.farmInventory[item] = (this.farmInventory[item] ?? 0) + qty;
+    if (this.externalResourceSetter && this.externalResourceGetter) {
+      const bag = { ...this.externalResourceGetter() };
+      bag[item] = (bag[item] ?? 0) + qty;
+      this.externalResourceSetter(bag);
+    }
+  }
+
+  /** Collect harvest soft-lock candidates for current tool */
+  public listHarvestLockTargets(): HarvestLockTarget[] {
+    const out: HarvestLockTarget[] = [];
+    for (const tree of this.trees) {
+      if (tree.fallPhase === 'live' && isHarvestable(tree as any)) {
+        out.push({
+          id: tree.nodeId || `tree_${out.length}`,
+          kind: 'tree',
+          position: tree.group.position.clone().add(new THREE.Vector3(0, 1.5, 0)),
+          object: tree.group,
+          hp01: tree.health / tree.maxHealth,
+          name: 'Tree',
+        });
+      } else if (
+        (tree.fallPhase === 'stump' || tree.group.userData.groundedLog) &&
+        tree.group.visible
+      ) {
+        out.push({
+          id: (tree.nodeId || 'tree') + '_log',
+          kind: 'tree',
+          position: tree.group.position.clone(),
+          object: tree.group,
+          hp01: 0.5,
+          name: 'Fallen log',
+        });
+      }
+    }
+    for (const rock of this.rocks) {
+      if (!isHarvestable(rock as any)) continue;
+      out.push({
+        id: rock.nodeId || `rock_${out.length}`,
+        kind: 'rock',
+        position: rock.group.position.clone().add(new THREE.Vector3(0, 0.8, 0)),
+        object: rock.group,
+        hp01: rock.health / rock.maxHealth,
+        name: rock.oreVariant ? 'Ore' : 'Rock',
+      });
+    }
+    for (const f of this.flowers) {
+      if (!isHarvestable(f as any)) continue;
+      out.push({
+        id: f.nodeId || `flower_${out.length}`,
+        kind: 'flower',
+        position: f.group.position.clone(),
+        object: f.group,
+        name: 'Flower',
+      });
+    }
+    return out;
+  }
+
+  /** Soft-lock nearest harvestable for held tool (call each frame in harvest mode) */
+  public updateHarvestToolLock(): void {
+    if (!this.character || this.character.mode !== 'harvest') return;
+    const tool = this.activeHarvestTool || this.getActiveGroundTool() || 'hatchet';
+    const kind = softLockKindForTool(String(tool));
+    if (!kind || kind === 'terrain') return;
+    const targets = this.listHarvestLockTargets();
+    this.harvestSoftLock.softLockNearest(
+      targets,
+      this.character.getPosition(),
+      this.camera,
+      kind,
+    );
+    // Auto-walk when hard-locked
+    const active = this.harvestSoftLock.getActive(targets);
+    if (
+      this.harvestSoftLock.isHard() &&
+      active &&
+      shouldAutoWalkToHarvest(this.character.getPosition(), active)
+    ) {
+      this.character.setApproachTarget(active.position, undefined, 1.8);
+    }
+  }
+
+  /**
+   * RMB hard-lock harvest target + auto-walk; if already on grounded log, chop pieces.
+   */
+  public hardLockHarvestAt(clientX: number, clientY: number): boolean {
+    if (!this.character || !this.terrain) return false;
+    this.raycaster.setFromCamera(this.getNdc(clientX, clientY), this.camera);
+    const targets = this.listHarvestLockTargets();
+    let best: HarvestLockTarget | null = null;
+    let bestD = Infinity;
+    for (const t of targets) {
+      const hits = this.raycaster.intersectObject(t.object, true);
+      if (!hits.length) continue;
+      const d = hits[0]!.distance;
+      if (d < bestD) {
+        bestD = d;
+        best = t;
+      }
+    }
+    if (!best) return false;
+
+    // Grounded log piece-chop
+    const tree = this.trees.find(
+      (tr) =>
+        tr.group === best!.object ||
+        (tr.nodeId && best!.id.startsWith(tr.nodeId)),
+    );
+    if (tree && this.groundedLogs.has(tree)) {
+      const st = this.groundedLogs.get(tree)!;
+      const { wood, finished } = chopGroundedLog(st);
+      this.grantHarvestItem('wood', wood);
+      if (finished) {
+        this.groundedLogs.delete(tree);
+        const scale = tree.baseScale;
+        void swapTreeToStump(tree, scale);
+        tree.respawnAt = Date.now() + 4 * 60 * 60 * 1000;
+      }
+      return true;
+    }
+
+    this.harvestSoftLock.hardLock(best);
+    if (shouldAutoWalkToHarvest(this.character.getPosition(), best)) {
+      this.character.setApproachTarget(best.position, () => {
+        // Arrived — LMB harvest will apply when player attacks
+      }, 1.8);
+    }
+    return true;
+  }
+
+  private getNdc(clientX: number, clientY: number): THREE.Vector2 {
+    const rect = this.config.canvas.getBoundingClientRect();
+    const x = ((clientX - rect.left) / rect.width) * 2 - 1;
+    const y = -((clientY - rect.top) / rect.height) * 2 + 1;
+    return new THREE.Vector2(x, y);
+  }
+
+  /** Spawn forester/miner allies at camp for auto-harvest */
+  public spawnHarvestAllies(
+    campPos: THREE.Vector3,
+    opts?: { foresters?: number; miners?: number },
+  ): void {
+    const f = opts?.foresters ?? 1;
+    const m = opts?.miners ?? 1;
+    for (let i = 0; i < f; i++) {
+      this.allyHarvestAgents.push(
+        createAllyHarvestAgent(`forester_${i}`, `Forester ${i + 1}`, campPos, 'wood', 5),
+      );
+    }
+    for (let i = 0; i < m; i++) {
+      this.allyHarvestAgents.push(
+        createAllyHarvestAgent(`miner_${i}`, `Miner ${i + 1}`, campPos, 'stone', 5),
+      );
+    }
+  }
+
+  /** Apply offline AFK gather into camp storage (call on island load) */
+  public resolveOfflineAllyHarvest(offlineRealHours: number): void {
+    const counts: Partial<Record<'wood' | 'stone' | 'ore' | 'fiber' | 'fruit' | 'fish' | 'scrap', number>> = {
+      wood: this.trees.length,
+      stone: this.rocks.length,
+      ore: this.rocks.filter((r) => r.oreVariant).length,
+      fiber: this.flowers.length + this.hemps.length,
+      scrap: this.scraps.length,
+    };
+    resolveAllyAfkSession({
+      allies: this.allyHarvestAgents.map((a) => ({
+        profession: a.profession,
+        level: a.professionLevel,
+      })),
+      offlineRealHours,
+      islandNodeCounts: counts,
+      campStorage: this.campStorage,
+    });
+    // Merge camp into farm inventory for HUD
+    for (const [item, qty] of this.campStorage) {
+      this.grantHarvestItem(item, qty);
+    }
+    this.campStorage.clear();
+    this.lastAfkResolveMs = Date.now();
   }
 
   private async emitHarvestDrops(
@@ -3271,18 +3607,18 @@ export class Island3DEngine {
       }
     }
 
-    // Check rock hits
+    // Check rock hits — Valheim 0.5 m circular chunk, solid remainder (never hollow)
     for (const rock of this.rocks) {
       if (!isHarvestable(rock as any)) continue;
       const hits = this.raycaster.intersectObject(rock.group, true);
       if (hits.length > 0) {
-        rock.health--;
-        rock.chipping = true;
-        rock.chipTime = 0;
-        const scale = Math.max(0.3, rock.health / rock.maxHealth);
-        rock.group.scale.setScalar(rock.baseScale * scale);
+        const chunk = applyRockChunk(rock);
+        this.grantHarvestItem('stone', chunk.stone);
+        if (chunk.ore) this.grantHarvestItem('ore_chunk', 1);
+        const debris = spawnRockChunkDebris(this.scene, rock.group.position.clone(), 3);
+        this.rockDebrisMeshes.push(...debris);
         void this.spawnRockDebris(rock, 1);
-        if (rock.health <= 0) {
+        if (chunk.depleted) {
           markDepleted(rock as any, 'rock', true);
           void this.emitHarvestDrops(
             rock.group.position.clone(),
