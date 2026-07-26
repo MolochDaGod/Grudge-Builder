@@ -342,6 +342,119 @@ function placeAnimalMarkers(
 }
 
 /**
+ * Candidate foundation meshes (CDN keys). Fruzer first; live fallbacks that
+ * exist on assets.grudge-studio.com so Haven is never an empty ocean.
+ */
+const HAVEN_FOUNDATION_CANDIDATES: string[] = [
+  '/models/warlords/haven_shore/fruzer_islands.glb',
+  'models/warlords/haven_shore/fruzer_islands.glb',
+  '/models/warlords/islands/lost_island.glb',
+  '/models/environment/pirate-island.glb',
+  '/models/nature/stylized/concept/example_home_island.glb',
+];
+
+async function loadFirstGlb(urls: string[]): Promise<{ scene: THREE.Object3D; url: string } | null> {
+  const loader = getSharedGltfLoader();
+  for (const raw of urls) {
+    const url = resolveModelUrl(raw);
+    try {
+      const gltf = await loader.loadAsync(url);
+      return { scene: gltf.scene.clone(true), url };
+    } catch (err) {
+      console.warn('[HavenShore] candidate failed:', url, err);
+    }
+  }
+  return null;
+}
+
+/** Textured tropical disk so play is never camera-in-water + flat grey. */
+function buildProceduralHavenIsland(): THREE.Group {
+  const g = new THREE.Group();
+  g.name = 'haven_procedural_island';
+
+  const segs = 96;
+  const radius = 95;
+  const geo = new THREE.CircleGeometry(radius, segs);
+  // Lift to a gentle dome so feet sample above waterline
+  const pos = geo.attributes.position as THREE.BufferAttribute;
+  for (let i = 0; i < pos.count; i++) {
+    const x = pos.getX(i);
+    const y = pos.getY(i); // circle is in XY before rotate
+    const r = Math.hypot(x, y) / radius;
+    const h = (1 - r * r) * 4.2 + Math.sin(x * 0.08) * 0.35 + Math.cos(y * 0.07) * 0.25;
+    pos.setZ(i, Math.max(0.15, h));
+  }
+  pos.needsUpdate = true;
+  geo.computeVertexNormals();
+
+  const sand = new THREE.MeshStandardMaterial({
+    color: 0xc9b07a,
+    roughness: 0.92,
+    metalness: 0.02,
+  });
+  const ground = new THREE.Mesh(geo, sand);
+  ground.rotation.x = -Math.PI / 2;
+  ground.name = 'island_base';
+  ground.receiveShadow = true;
+  ground.castShadow = true;
+  g.add(ground);
+
+  // Beach ring
+  const beach = new THREE.Mesh(
+    new THREE.RingGeometry(radius * 0.88, radius * 1.08, 64),
+    new THREE.MeshStandardMaterial({ color: 0xe8d4a8, roughness: 0.95, metalness: 0.01, side: THREE.DoubleSide }),
+  );
+  beach.rotation.x = -Math.PI / 2;
+  beach.position.y = 0.12;
+  beach.name = 'island_beach';
+  beach.receiveShadow = true;
+  g.add(beach);
+
+  // Central green plateau
+  const grass = new THREE.Mesh(
+    new THREE.CircleGeometry(radius * 0.55, 48),
+    new THREE.MeshStandardMaterial({ color: 0x2f8f4e, roughness: 0.88, metalness: 0 }),
+  );
+  grass.rotation.x = -Math.PI / 2;
+  grass.position.y = 2.8;
+  grass.name = 'island_grass';
+  grass.receiveShadow = true;
+  g.add(grass);
+
+  // Simple palm stubs (visual only — harvest markers still own gameplay)
+  const trunkMat = new THREE.MeshStandardMaterial({ color: 0x6b4423, roughness: 0.9 });
+  const frondMat = new THREE.MeshStandardMaterial({ color: 0x1f6b34, roughness: 0.75 });
+  for (let i = 0; i < 14; i++) {
+    const a = (i / 14) * Math.PI * 2 + 0.2;
+    const d = 28 + (i % 4) * 12;
+    const palm = new THREE.Group();
+    palm.name = `palm_${i}`;
+    palm.position.set(Math.cos(a) * d, 2.2, Math.sin(a) * d);
+    const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.55, 6.5, 6), trunkMat);
+    trunk.position.y = 3.25;
+    trunk.castShadow = true;
+    const crown = new THREE.Mesh(new THREE.ConeGeometry(3.2, 4.5, 7), frondMat);
+    crown.position.y = 7.2;
+    crown.castShadow = true;
+    palm.add(trunk, crown);
+    g.add(palm);
+  }
+
+  // Harbor pier block (spawn-visible landmark)
+  const dock = new THREE.Mesh(
+    new THREE.BoxGeometry(8, 1.2, 28),
+    new THREE.MeshStandardMaterial({ color: 0x8b6914, roughness: 0.85 }),
+  );
+  dock.position.set(0, 0.9, 55);
+  dock.name = 'dock';
+  dock.castShadow = true;
+  dock.receiveShadow = true;
+  g.add(dock);
+
+  return g;
+}
+
+/**
  * Load Fruzer foundation at world origin (cx, cz) with sector waterLevel.
  * Caller must already own the zone ocean mesh — we never create water here.
  */
@@ -370,37 +483,61 @@ export async function loadHavenShoreFoundation(
     isPveTradeHub: true,
   };
 
-  const url = resolveModelUrl(cfg.glbPath);
-  const loader = getSharedGltfLoader();
-  let gltfScene: THREE.Object3D;
+  const candidates = [
+    cfg.glbPath,
+    cfg.cdnKey.startsWith('/') ? cfg.cdnKey : `/${cfg.cdnKey}`,
+    ...HAVEN_FOUNDATION_CANDIDATES,
+  ];
+  // de-dupe while preserving order
+  const seen = new Set<string>();
+  const unique = candidates.filter((u) => {
+    const k = resolveModelUrl(u);
+    if (seen.has(k)) return false;
+    seen.add(k);
+    return true;
+  });
 
-  try {
-    const gltf = await loader.loadAsync(url);
-    gltfScene = gltf.scene.clone(true);
-  } catch (err) {
-    console.warn('[HavenShore] GLB load failed, using empty foundation shell:', err);
-    gltfScene = new THREE.Group();
-    gltfScene.name = 'fruzer_missing';
+  const loaded = await loadFirstGlb(unique);
+  let gltfScene: THREE.Object3D;
+  let usedScale = scale;
+  let sourceLabel = 'procedural';
+
+  if (loaded) {
+    gltfScene = loaded.scene;
+    sourceLabel = loaded.url;
+    // Non-Fruzer packs are often different unit scale — fit to ~180m island
+    if (!/fruzer_islands/i.test(loaded.url)) {
+      const pre = new THREE.Box3().setFromObject(gltfScene);
+      const size = new THREE.Vector3();
+      pre.getSize(size);
+      const maxXZ = Math.max(size.x, size.z, 1);
+      usedScale = THREE.MathUtils.clamp(180 / maxXZ, 0.15, 12);
+    }
+  } else {
+    console.warn('[HavenShore] All foundation GLBs failed — procedural tropical island');
+    gltfScene = buildProceduralHavenIsland();
+    usedScale = 1;
   }
 
-  gltfScene.name = 'fruzer_islands_raw';
-  gltfScene.scale.setScalar(scale);
+  gltfScene.name = loaded ? 'fruzer_islands_raw' : 'haven_procedural_island';
+  gltfScene.scale.setScalar(usedScale);
 
-  // Center XZ on origin (preserve relative heights)
+  // Center XZ on origin; sit bottoms near waterline (ocean y≈0)
   const box = new THREE.Box3().setFromObject(gltfScene);
   if (!box.isEmpty()) {
     const center = box.getCenter(new THREE.Vector3());
     gltfScene.position.x -= center.x;
     gltfScene.position.z -= center.z;
-    // Sit island bottoms near waterline
-    const minY = box.min.y;
-    gltfScene.position.y -= minY * scale;
+    gltfScene.position.y -= box.min.y;
+    // Keep foundation deck above the zone ocean so camera/player are not submerged
+    if (gltfScene.position.y < 0.35) gltfScene.position.y = 0.35;
   }
 
   const stripped = stripEmbeddedWaterAndJunk(gltfScene);
   applyIslandTextures(gltfScene, cfg);
   tagHarvestableNature(gltfScene);
   root.add(gltfScene);
+  root.userData.foundationSource = sourceLabel;
 
   // Re-run water strip after parenting
   removeDuplicateWaterMeshes(root);
@@ -428,7 +565,7 @@ export async function loadHavenShoreFoundation(
   scene.add(root);
 
   console.log(
-    `[HavenShore] Foundation v${cfg.version} loaded — stripped ${stripped} water/junk nodes, ` +
+    `[HavenShore] Foundation v${cfg.version} from ${sourceLabel} — stripped ${stripped} water/junk nodes, ` +
       `${cfg.vendors.length} vendors, ${cfg.missionGivers.length} mission givers, ` +
       `${cfg.harvest.length} harvest UUIDs, ${cfg.vessels.length} vessels (map ocean only)`,
   );

@@ -470,11 +470,21 @@ export function getCharacterAnimation(
 }
 
 /** Resolve a model path to a loadable URL.
- *  Paths that are already absolute CDN URLs are returned as-is.
- *  All models live on R2 CDN — no local fallback needed. */
+ *  Absolute URLs pass through. Relative paths go to R2 CDN.
+ *  Same-origin /models/* is also valid when the file is shipped with the SPA. */
 export function resolveModelUrl(path: string): string {
-  if (path.startsWith('https://') || path.startsWith('http://')) return path;
-  return `${CDN}${path.startsWith('/') ? path : '/' + path}`;
+  if (!path) return path;
+  if (/^(https?:|data:|blob:)/i.test(path)) return path;
+  if (path.startsWith('//')) return `https:${path}`;
+
+  const host = String(CDN).replace(/^https?:\/\//i, '').replace(/\/$/, '');
+  if (path.includes(host)) {
+    return path.startsWith('http') ? path : `https://${path.replace(/^\/+/, '')}`;
+  }
+
+  const rel = path.startsWith('/') ? path : `/${path}`;
+  const base = String(CDN).replace(/\/$/, '');
+  return `${base}${rel}`;
 }
 
 /** List all available animation states for a weapon type */

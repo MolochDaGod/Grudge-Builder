@@ -45,8 +45,24 @@ const OBJECT_STORE_VERSION = '3.2.0';
  *   // => 'https://assets.grudge-studio.com/backgrounds/general.png'
  */
 export function assetUrl(path: string): string {
+  if (!path) return ASSET_CDN_BASE;
+  // Absolute / data / blob — never re-prefix (prevents assets.grudge-studio.comhttps://…)
+  if (/^(https?:|data:|blob:)/i.test(path)) return path;
+  if (path.startsWith('//')) return `https:${path}`;
+
   const cleanPath = normalizeAssetPath(path);
-  return `${ASSET_CDN_BASE}${cleanPath}`;
+  if (/^(https?:|data:|blob:)/i.test(cleanPath)) return cleanPath;
+
+  // Path already contains the CDN host without scheme (or with)
+  const host = ASSET_CDN_BASE.replace(/^https?:\/\//i, '');
+  if (cleanPath.includes(host)) {
+    if (/^https?:\/\//i.test(cleanPath)) return cleanPath;
+    return `https://${cleanPath.replace(/^\/+/, '')}`;
+  }
+
+  const base = ASSET_CDN_BASE.replace(/\/$/, '');
+  const rel = cleanPath.startsWith('/') ? cleanPath : `/${cleanPath}`;
+  return `${base}${rel}`;
 }
 
 /**
