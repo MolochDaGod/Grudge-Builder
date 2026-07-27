@@ -514,3 +514,71 @@ export function deploymentUrl(
 export function threePlayNowPath(): string {
   return THREE_HOME_ISLAND_PATH;
 }
+
+// ── Warlords /home production surface (ONLY these actions) ─────────────────
+// Lobby = center tile of the 9-sector era map. Sail to the edge of the lobby
+// scene to leave the middle square into a neighboring sector.
+
+/** Pirate open-world lobby (center of era 9). */
+export const WARLORDS_LOBBY_PATH =
+  "/island-3d?mode=lobby&map=pirate-islands" as const;
+
+/** Classic 2D Warlords island play (same client, 2D engine). */
+export const WARLORDS_2D_PLAY_PATH = "/island" as const;
+
+/**
+ * Production home destinations — nothing else on /home for Warlords era.
+ * Order matches player funnel: roster → tutorial → 2D → home → lobby → sectors.
+ */
+export const WARLORDS_HOME_ACTIONS = [
+  {
+    id: "characters",
+    title: "Characters",
+    subtitle: "Roster · create · equip",
+    description: "View and select your Warlords heroes. Create at Foundry when empty.",
+    url: "/character",
+    icon: "user" as const,
+  },
+  {
+    id: "2d-play",
+    title: "2D Gameplay",
+    subtitle: "Classic island · harvest · build",
+    description: "2D Warlords island mode — professions, harvest, and building.",
+    url: WARLORDS_2D_PLAY_PATH,
+    icon: "leaf" as const,
+  },
+  {
+    id: "home-island",
+    title: "Home Island",
+    subtitle: "Personal 1024 m seed",
+    description: "Your Three.js home island (level gate applies in production flow).",
+    url: THREE_HOME_ISLAND_PATH,
+    icon: "globe" as const,
+  },
+  {
+    id: "tutorial",
+    title: "Start Tutorial",
+    subtitle: "Shipwreck · raft · first combat",
+    description: "New player shipwreck tutorial → then lobby / open world.",
+    url: "/tutorial",
+    icon: "flame" as const,
+  },
+  {
+    id: "lobby",
+    title: "Enter Lobby Scene",
+    subtitle: "Center tile of the 9-sector map",
+    description:
+      "Pirate lobby is the middle square of the Warlords era 9 map. Sail to the edge to enter a neighboring sector.",
+    url: WARLORDS_LOBBY_PATH,
+    icon: "anchor" as const,
+  },
+  {
+    id: "sectors",
+    title: "9 Sector Map",
+    subtitle: "Era map · sail from lobby center",
+    description:
+      "Warlords era 9 macro sectors. In production you reach a sector by sailing off the lobby (center) edge; this map is the overview hub.",
+    url: THREE_WORLD_MAP_PATH,
+    icon: "map" as const,
+  },
+] as const;
