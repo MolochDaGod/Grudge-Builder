@@ -100,9 +100,14 @@ export async function applyTextureOverride(
   });
 }
 
+const _worldNormal = new THREE.Vector3();
+
 /**
  * threejs-games `putOnSolids` — plant object so its lowest point sits on
  * the first downward hit of `solids` (terrain, buildings).
+ *
+ * Face normals are transformed to world space so rotated ground planes
+ * (e.g. PlaneGeometry + rot.x = −π/2) still count as upward-facing solids.
  */
 export function plantOnSolids(
   obj: THREE.Object3D,
@@ -111,21 +116,35 @@ export function plantOnSolids(
 ): number {
   obj.updateMatrixWorld(true);
   _box.setFromObject(obj);
-  const footLocal = _box.min.y;
+  // World-space foot (Box3.setFromObject is always world AABB).
+  const footY = _box.min.y;
   _origin.set(obj.position.x, obj.position.y + 200, obj.position.z);
   _ray.set(_origin, _down);
   _ray.far = 400;
   const targets = Array.isArray(solids) ? solids : [solids];
+  for (const t of targets) t.updateMatrixWorld(true);
   const hits = _ray.intersectObjects(targets, true).filter((h) => {
-    const n = h.face?.normal;
-    return !n || n.y > 0.2;
+    if (h.object === obj || isDescendantOf(h.object, obj)) return false;
+    if (!h.face) return true;
+    // face.normal is local — transform so horizontal ground (local +Z → world +Y) passes.
+    _worldNormal.copy(h.face.normal).transformDirection(h.object.matrixWorld);
+    return _worldNormal.y > 0.2;
   });
   if (!hits.length) return obj.position.y;
   const groundY = hits[0]!.point.y;
-  // After scale, keep base on ground: world min.y = groundY + adjustment
-  const lift = groundY + adjustment - footLocal;
+  // Keep world min.y = groundY + adjustment
+  const lift = groundY + adjustment - footY;
   obj.position.y += lift;
   return obj.position.y;
+}
+
+function isDescendantOf(node: THREE.Object3D, root: THREE.Object3D): boolean {
+  let p: THREE.Object3D | null = node.parent;
+  while (p) {
+    if (p === root) return true;
+    p = p.parent;
+  }
+  return false;
 }
 
 export type DeployedLoadOpts = {
@@ -172,7 +191,13 @@ export async function loadDeployedGltf(opts: DeployedLoadOpts): Promise<{
   return { root, heightM: objectHeightM(root) };
 }
 
-/** Shuffled grid coords (threejs-games getEmptyCoords). */
+/**
+ * Shuffled grid coords (threejs-games getEmptyCoords).
+ *
+ * `emptyCenter` is a half-extent square (metres) kept clear of placements.
+ * Grid cells whose centers fall inside that square are skipped; jitter is
+ * clamped so randomised offsets cannot re-enter the empty region.
+ */
 export function shuffleCoords(opts: {
   mapSize?: number;
   fieldSize?: number;
@@ -187,20 +212,25 @@ export function shuffleCoords(opts: {
   const coords: THREE.Vector3[] = [];
   for (let x = -half; x < half; x += fieldSize) {
     for (let z = -half; z < half; z += fieldSize) {
+      // Include cell-edge equality so fieldSize-aligned rings at emptyCenter stay clear.
       if (
         emptyCenter > 0 &&
-        Math.abs(x) < emptyCenter &&
-        Math.abs(z) < emptyCenter
+        Math.abs(x) <= emptyCenter &&
+        Math.abs(z) <= emptyCenter
       ) {
         continue;
       }
-      coords.push(
-        new THREE.Vector3(
-          x + (Math.random() - 0.5) * jitter,
-          0,
-          z + (Math.random() - 0.5) * jitter,
-        ),
-      );
+      let jx = x + (Math.random() - 0.5) * jitter;
+      let jz = z + (Math.random() - 0.5) * jitter;
+      // Jitter must not push a border cell back into the empty center square.
+      if (emptyCenter > 0 && Math.abs(jx) < emptyCenter && Math.abs(jz) < emptyCenter) {
+        if (Math.abs(jx) >= Math.abs(jz)) {
+          jx = Math.sign(jx || x || 1) * emptyCenter;
+        } else {
+          jz = Math.sign(jz || z || 1) * emptyCenter;
+        }
+      }
+      coords.push(new THREE.Vector3(jx, 0, jz));
     }
   }
   for (let i = coords.length - 1; i > 0; i--) {
