@@ -350,16 +350,38 @@ export function createOceanGeometry(width = 400, height = 400, segments = 256): 
   return geometry;
 }
 
+/**
+ * Quality → segments for open water.
+ * low/medium for mobile; high default; ultra desktop showcase.
+ * Ref waves example uses dense grids — we keep Gerstner + LOD budget.
+ */
+export type OceanMeshQuality = "low" | "medium" | "high" | "ultra";
+export const DYNAMIC_OCEAN_SEGMENTS: Record<OceanMeshQuality, number> = {
+  low: 96,
+  medium: 160,
+  high: 256,
+  ultra: 384,
+};
+
 export class DynamicOcean {
   mesh: THREE.Mesh;
   material: THREE.ShaderMaterial;
   geometry: THREE.PlaneGeometry;
 
-  constructor(size: number = 400, segments: number = 256) {
-    this.geometry = createOceanGeometry(size, size, segments);
+  constructor(
+    size: number = 400,
+    segments: number | OceanMeshQuality = 256,
+  ) {
+    const segs =
+      typeof segments === "string"
+        ? DYNAMIC_OCEAN_SEGMENTS[segments]
+        : segments;
+    this.geometry = createOceanGeometry(size, size, segs);
     this.material = createOceanMaterial({});
     this.mesh     = new THREE.Mesh(this.geometry, this.material);
+    this.mesh.name = "DynamicOcean";
     this.mesh.receiveShadow = true;
+    // Follow camera optional: host may reparent; keep culled false for horizon
     this.mesh.frustumCulled = false;
   }
 

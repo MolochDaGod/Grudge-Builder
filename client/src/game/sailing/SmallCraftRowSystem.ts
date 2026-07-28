@@ -2,20 +2,31 @@
  * Small-craft oar progression — teach rowing without the main warship.
  *
  * Tiers (lesson order):
- *   1. raft        — simple push oar, wide drag, slow
- *   2. dinghy      — scene "barca" takeable boat, dual oar stroke
- *   3. fishingBoat — longer hull, oar + cast fishing near islands
+ *   1. raft        — oars only, wide drag, slow
+ *   2. dinghy      — dual oar stroke (barca)
+ *   3. fishingBoat — oars + optional small sail (T raise / R oars down)
  *
  * Controls (while boarded):
- *   W/S or ↑/↓  — stroke forward / reverse (oar cycle)
+ *   R / O       — OAR mode (sails down) — precision near islands/docks
+ *   T           — SAIL mode on fishingBoat (wind assist)
+ *   W/S or ↑/↓  — oar stroke (OAR) or sheet (SAIL)
  *   A/D or ←/→  — yaw / sweep
- *   Space       — rest stroke
+ *   Space       — rest stroke (OAR)
  *   F           — cast line (fishingBoat only, near island fish spots)
  *   E           — board / disembark when near craft
  *
  * Animation: procedural oar bones + optional character clips (row, fishing_*).
+ * SSOT drive modes: OpenWaterDriveMode (no conflicting sail+oar thrust).
  */
 import * as THREE from "three";
+import {
+  OpenWaterDriveController,
+  sailWindThrust,
+  type CraftDriveClass,
+} from "./OpenWaterDriveMode";
+import type { WeatherConfig } from "./types";
+import { DEFAULT_WEATHER } from "./types";
+import { applySailMaterialsToShip } from "./SailMaterialSystem";
 
 export type CraftTier = "raft" | "dinghy" | "fishingBoat";
 
@@ -109,6 +120,9 @@ export class SmallCraftRowSystem {
   };
   private lessonAnnounced: Partial<Record<CraftTier | "complete", boolean>> = {};
   private fishSpots: THREE.Vector3[] = [];
+  private drive: OpenWaterDriveController;
+  private weather: WeatherConfig = { ...DEFAULT_WEATHER };
+  private sailVis: THREE.Mesh | null = null;
 
   private _kd: ((e: KeyboardEvent) => void) | null = null;
   private _ku: ((e: KeyboardEvent) => void) | null = null;
@@ -122,6 +136,10 @@ export class SmallCraftRowSystem {
     this.onLesson = opts.onLesson;
     this.onFishCatch = opts.onFishCatch;
     this.autoAdvanceLesson = opts.autoAdvanceLesson !== false;
+    this.drive = new OpenWaterDriveController(
+      this.tier as CraftDriveClass,
+      (s) => this.onPrompt?.(s.prompt),
+    );
 
     this.root.name = `SmallCraft_${this.tier}`;
     this.root.userData.smallCraft = true;
@@ -154,6 +172,10 @@ export class SmallCraftRowSystem {
     this.oarL = this.buildOar(-1);
     this.oarR = this.buildOar(1);
     this.root.add(this.oarL, this.oarR);
+    if (this.tier === "fishingBoat") {
+      this.attachSmallSail();
+    }
+    applySailMaterialsToShip(this.root);
     this.scene.add(this.root);
 
     this._kd = (e) => this.keys.add(e.key.toLowerCase());
@@ -167,6 +189,50 @@ export class SmallCraftRowSystem {
     this.onLesson?.(this.tier, this.cfg.lesson);
   }
 
+  /** Weather for wind assist when sails up (fishing boat). */
+  setWeather(w: WeatherConfig): void {
+    this.weather = w;
+  }
+
+  getDriveMode() {
+    return this.drive.getState();
+  }
+
+  private attachSmallSail(): void {
+    if (this.sailVis) return;
+    const mast = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.04, 0.05, 2.4, 6),
+      new THREE.MeshStandardMaterial({ color: 0x5c4033, roughness: 0.9 }),
+    );
+    mast.position.set(0, 1.4, -0.2);
+    mast.name = "fishing_mast";
+    const sail = new THREE.Mesh(
+      new THREE.PlaneGeometry(1.6, 1.8, 4, 4),
+      new THREE.MeshStandardMaterial({
+        color: 0xe6dcc0,
+        roughness: 0.92,
+        metalness: 0.02,
+        side: THREE.DoubleSide,
+      }),
+    );
+    sail.position.set(0, 1.6, 0.1);
+    sail.name = "mainsail";
+    sail.userData.sailCanvas = true;
+    this.root.add(mast, sail);
+    this.sailVis = sail;
+  }
+
+  private syncSailVisual(): void {
+    if (!this.sailVis) return;
+    const d = this.drive.getState();
+    // Reef: scale Y down when oar mode / deploy 0
+    const deploy = d.sailDeploy;
+    this.sailVis.scale.set(1, 0.15 + deploy * 0.85, 1);
+    this.sailVis.visible = deploy > 0.08;
+    // Slight wind billow
+    this.sailVis.rotation.y = Math.sin(performance.now() * 0.002) * 0.08 * deploy;
+  }
+
   setFishSpots(spots: THREE.Vector3[]) {
     this.fishSpots = spots;
   }
@@ -175,8 +241,10 @@ export class SmallCraftRowSystem {
     const prev = this.tier;
     this.tier = tier;
     this.cfg = CRAFT_TIERS[tier];
+    this.drive.setCraft(tier as CraftDriveClass);
     this.root.userData.craftTier = tier;
     this.root.name = `SmallCraft_${tier}`;
+    if (tier === "fishingBoat") this.attachSmallSail();
     // When lesson advances on a procedural craft, swap hull silhouette
     if (opts?.rebuildHull !== false && prev !== tier) {
       const keep: THREE.Object3D[] = [this.oarL, this.oarR];
@@ -229,9 +297,13 @@ export class SmallCraftRowSystem {
     if (d > range && !this.boarded) return false;
     this.boarded = !this.boarded;
     if (this.boarded) {
-      this.onPrompt?.(this.cfg.lesson + " · E leave craft");
+      this.drive.bindInput();
+      this.onPrompt?.(
+        `${this.cfg.lesson} · ${this.drive.getState().prompt} · E leave`,
+      );
       this.lessonProgress[this.tier] = Math.max(this.lessonProgress[this.tier], 0.1);
     } else {
+      this.drive.unbindInput();
       this.strokePower = 0;
       this.onPrompt?.(`E board ${this.cfg.label}`);
     }
@@ -240,7 +312,12 @@ export class SmallCraftRowSystem {
 
   forceBoard(on: boolean) {
     this.boarded = on;
-    if (on) this.onPrompt?.(this.cfg.lesson + " · E leave craft");
+    if (on) {
+      this.drive.bindInput();
+      this.onPrompt?.(this.drive.getState().prompt + " · E leave");
+    } else {
+      this.drive.unbindInput();
+    }
   }
 
   update(dt: number, playerWorld?: THREE.Vector3 | null): {
@@ -248,15 +325,23 @@ export class SmallCraftRowSystem {
     craftPos: THREE.Vector3;
     yaw: number;
   } {
-    // Bob on water
+    // Bob on water (wave-linked amplitude from weather)
     const t = performance.now() * 0.001;
-    const baseY = this.waterLevel + 0.12 + Math.sin(t * 1.2 + this.root.position.x) * 0.06;
+    const waveAmp = 0.05 + this.weather.waveHeight * 0.035;
+    const baseY =
+      this.waterLevel +
+      0.12 +
+      Math.sin(t * 1.2 + this.root.position.x) * waveAmp;
+    this.drive.updateSailTrim(dt);
+    this.syncSailVisual();
+
     if (!this.boarded) {
       this.root.position.y = baseY;
       this.animateOars(dt, 0);
       return { boarded: false, craftPos: this.root.position.clone(), yaw: this.yaw };
     }
 
+    const drive = this.drive.getState();
     const fwd =
       (this.keys.has("w") || this.keys.has("arrowup") ? 1 : 0) -
       (this.keys.has("s") || this.keys.has("arrowdown") ? 1 : 0);
@@ -264,36 +349,57 @@ export class SmallCraftRowSystem {
       (this.keys.has("d") || this.keys.has("arrowright") ? 1 : 0) -
       (this.keys.has("a") || this.keys.has("arrowleft") ? 1 : 0);
 
-    if (this.keys.has(" ")) {
-      this.strokePower *= 0.9;
-    } else if (fwd !== 0) {
-      // Oar cycle power
-      this.oarPhase += dt * (Math.PI * 2) / this.cfg.oarPeriod;
-      const stroke = Math.sin(this.oarPhase);
-      // Push phase only when sin > 0
-      const push = Math.max(0, stroke);
-      this.strokePower = THREE.MathUtils.lerp(this.strokePower, push, 1 - Math.exp(-6 * dt));
+    let targetSpeed = 0;
+    if (drive.mode === "oar") {
+      // ── OAR ONLY (sails down) — precision ─────────────────────
+      if (this.keys.has(" ")) {
+        this.strokePower *= 0.9;
+      } else if (fwd !== 0) {
+        this.oarPhase += (dt * (Math.PI * 2)) / this.cfg.oarPeriod;
+        const push = Math.max(0, Math.sin(this.oarPhase));
+        this.strokePower = THREE.MathUtils.lerp(
+          this.strokePower,
+          push,
+          1 - Math.exp(-6 * dt),
+        );
+        this.lessonProgress[this.tier] = Math.min(
+          1,
+          this.lessonProgress[this.tier] + dt * 0.04 * Math.abs(fwd),
+        );
+      } else {
+        this.strokePower *= this.cfg.drag;
+      }
+      targetSpeed = fwd * this.cfg.speed * this.strokePower;
+      this.animateOars(dt, fwd !== 0 ? this.strokePower : 0);
+    } else {
+      // ── SAIL (fishing boat+) — no oar thrust; wind only ────────
+      this.strokePower *= 0.85;
+      this.animateOars(dt, 0);
+      const windAng = this.weather.windDirection - this.yaw;
+      const thrust = sailWindThrust(
+        this.weather.windStrength,
+        drive.sailDeploy,
+        windAng,
+        this.cfg.speed * 1.35,
+      );
+      // W sheets increase; S reduces (already in sailDeploy)
+      targetSpeed = thrust * (0.4 + drive.sailDeploy * 0.6);
       this.lessonProgress[this.tier] = Math.min(
         1,
-        this.lessonProgress[this.tier] + dt * 0.04 * Math.abs(fwd),
+        this.lessonProgress[this.tier] + dt * 0.02 * drive.sailDeploy,
       );
-    } else {
-      this.strokePower *= this.cfg.drag;
     }
 
-    this.yaw += turn * this.cfg.turn * dt;
+    this.yaw += turn * this.cfg.turn * dt * (drive.mode === "oar" ? 1 : 0.75);
     const dir = new THREE.Vector3(Math.sin(this.yaw), 0, Math.cos(this.yaw));
-    const targetSpeed = fwd * this.cfg.speed * this.strokePower;
     this.vel.lerp(dir.multiplyScalar(targetSpeed), 1 - Math.exp(-3 * dt));
     this.vel.multiplyScalar(this.cfg.drag);
     this.root.position.x += this.vel.x * dt;
     this.root.position.z += this.vel.z * dt;
     this.root.position.y = baseY;
     this.root.rotation.y = this.yaw;
-    // light roll with stroke
-    this.root.rotation.z = Math.sin(this.oarPhase) * 0.04 * Math.sign(fwd || 1);
-
-    this.animateOars(dt, fwd !== 0 ? this.strokePower : 0);
+    this.root.rotation.z =
+      Math.sin(this.oarPhase) * 0.04 * (drive.mode === "oar" ? 1 : 0.3);
 
     // Fishing boat cast
     this.fishCooldown = Math.max(0, this.fishCooldown - dt);
@@ -454,6 +560,7 @@ export class SmallCraftRowSystem {
   }
 
   dispose() {
+    this.drive.dispose();
     if (this._kd) window.removeEventListener("keydown", this._kd);
     if (this._ku) window.removeEventListener("keyup", this._ku);
     this.scene.remove(this.root);

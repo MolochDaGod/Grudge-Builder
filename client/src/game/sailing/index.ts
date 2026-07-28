@@ -88,3 +88,28 @@ export {
 export type { ClimbEdgeSpec } from "./OceanBoatClimbRig";
 export { ClothSimulation } from "./clothPhysics";
 export type { WindForce } from "./clothPhysics";
+
+// Open water production (waves + storm rain + weather + sail/oar)
+export { DynamicOcean, createOceanMaterial, createOceanGeometry } from "./OceanShader";
+export { StormRainSystem } from "./StormRainSystem";
+export type { StormRainOpts } from "./StormRainSystem";
+export {
+  OpenWaterProduction,
+  WEATHER_PRESETS,
+  OCEAN_QUALITY_SEGMENTS,
+  OPEN_WATER_RULES,
+} from "./OpenWaterProduction";
+export type { OceanQuality, OpenWaterProductionOpts } from "./OpenWaterProduction";
+export {
+  OpenWaterDriveController,
+  defaultDriveMode,
+  craftCanSail,
+  sailWindThrust,
+  oarThrust,
+  DRIVE_MODE_RULES,
+} from "./OpenWaterDriveMode";
+export type {
+  DriveMode,
+  CraftDriveClass,
+  DriveModeState,
+} from "./OpenWaterDriveMode";

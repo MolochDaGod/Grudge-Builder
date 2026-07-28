@@ -1,9 +1,14 @@
 /**
  * OceanEnvironment — canonical open-water rendering (RTS OceanShader + FishManager).
- * Replaces duplicate procedural water/sea-life in tactical-ocean.
+ * Prefer OpenWaterProduction when rain/storms/weather presets are needed.
+ * NEVER create a second ocean plane beside this mesh.
  */
 import * as THREE from 'three';
-import { DynamicOcean } from '@/game/sailing/OceanShader';
+import {
+  DynamicOcean,
+  type OceanMeshQuality,
+  DYNAMIC_OCEAN_SEGMENTS,
+} from '@/game/sailing/OceanShader';
 import { FishManager } from '@/game/sailing/FishManager';
 import type { WindState } from '@/tactical-ocean/threeWorldMapManager';
 
@@ -15,9 +20,11 @@ export class OceanEnvironment {
   constructor(
     scene: THREE.Scene,
     worldSize: number,
-    segments = 256,
+    segments: number | OceanMeshQuality = 256,
   ) {
-    this.ocean = new DynamicOcean(worldSize, segments);
+    const segs =
+      typeof segments === 'string' ? DYNAMIC_OCEAN_SEGMENTS[segments] : segments;
+    this.ocean = new DynamicOcean(worldSize, segs);
     scene.add(this.ocean.mesh);
 
     this.fishManager = new FishManager(
