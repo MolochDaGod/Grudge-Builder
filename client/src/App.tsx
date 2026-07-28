@@ -124,7 +124,7 @@ function Router() {
       <Route path="/home" component={HomePage} />
       <Route path="/main-panel" component={MainPanelPage} />
       <Route path="/equipment" component={MainPanelPage} />
-      {/* /character create → GCS; /characters roster → airship (max 4 warlords grudge6) */}
+      {/* /character create → GCS; /characters|/heroes → 4-slot seaside roster (no airship painting) */}
       <Route path="/character" component={CharacterRedirect} />
       <Route path="/characters" component={HeroesPage} />
       <Route path="/create-character" component={CreateCharacterRedirect} />

@@ -1,17 +1,8 @@
 /**
- * HeroesBlackTideScene — /heroes airship cinema roster (Puter GrudgeWar "The Grudge").
- *
- * Production practices:
- *   - grudge-production-cinema: locked cinema camera, establish → focus beats
- *   - grudge-fps-combat / Yuka-style: wander + goal stack (idle/animate/wait/goto)
- *   - three-mesh-bvh-pathfinding: deck height sample + stair colliders
- *   - grudge-character-correctness: SI 1.8 m grudge6 idle/walk
- *
- * Features:
- *   - Up to 4 crew AI on 6 deck locations (wheel, batteries, mid, stairs, crow)
- *   - Stairs height + colliders; helm wheel prop spins while AI works
- *   - Top avatar / CNFT strip → click zooms cinema cam + face camera
- *   - Select persists via parent setActive for all play destinations
+ * @deprecated PURGED from product `/heroes` (2026-07-28).
+ * Painted airship plate (`scene_airship.png`) + balloon deck cinema was a product
+ * mistake. Production route uses {@link HeroesSeasideCinemaScene}.
+ * Keep file only for archive / optional demos — do not import from App or heroes.tsx.
  */
 import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
@@ -19,7 +10,13 @@ import type { Character } from "@/lib/characterManager";
 import type { AnimationController } from "@/lib/modelLoader";
 import { getRacePortrait } from "@/lib/artAssets";
 import { DECK_LOCATIONS, SLOT_HOME, getDeckLocation, type DeckLocId } from "./deck/DeckLocations";
-import { buildDeckColliderGroup, buildHelmWheel, sampleDeckHeight } from "./deck/DeckPhysics";
+import {
+  buildAirshipDeckVisual,
+  buildDeckColliderGroup,
+  buildHelmWheel,
+  collectLanternLights,
+  sampleDeckHeight,
+} from "./deck/DeckPhysics";
 import {
   createAgentsForSlots,
   lockAgentToCamera,
@@ -28,6 +25,8 @@ import {
   type CrewAnimHint,
 } from "./deck/DeckCrewAI";
 import { loadCrewHero } from "./heroesCrewLoader";
+import { loadAndCloneGltf } from "@/lib/three/SharedGltfPipeline";
+import { createEtherealFallsSky, flickerLantern } from "./etherealFallsSky";
 
 export type CrewStationId = "wheel" | "large_cannon" | "small_cannon" | "crow_rope";
 
@@ -96,22 +95,33 @@ interface SlotRuntime {
   lastAnim: string;
 }
 
-const AIRSHIP_BG = "/backgrounds/scene_airship.png";
+/** Optional hull — archive demos only (not product /heroes) */
+const AIRSHIP_HULL_URL = "/models/warlords/airships/airship.glb";
+const CREW_SCENE_CANDIDATES = [
+  "/models/warlords/foundry/warlords_crew_scene.glb",
+  "https://assets.grudge-studio.com/models/warlords/foundry/warlords_crew_scene.glb",
+  "https://character.grudge-studio.com/models/warlords/foundry/warlords_crew_scene.glb",
+];
 
-/** Final deck establish framing (after intro descend). */
+/** Ethereal night clear-color under shader sky */
+const SKY_COLOR = 0x0e1630;
+const FOG_COLOR = 0x1a2848;
+
+/**
+ * Deck establish — camera **on deck inside sky**, never exterior dome view.
+ */
 const ESTABLISH = {
-  pos: new THREE.Vector3(0, 3.55, 9.8),
-  look: new THREE.Vector3(0, 1.15, 0),
+  pos: new THREE.Vector3(0.2, 3.1, 7.2),
+  look: new THREE.Vector3(0, 1.2, 0),
 };
 
-/** High sky approach — camera starts here and follows down onto the airship. */
+/** Intro starts slightly elevated still *over the deck* (inside sky shell). */
 const INTRO_HIGH = {
-  pos: new THREE.Vector3(0.4, 14.5, 18.5),
-  look: new THREE.Vector3(0, 0.4, -0.5),
+  pos: new THREE.Vector3(1.2, 5.2, 9.5),
+  look: new THREE.Vector3(-1.5, 1.1, 0.2),
 };
 
-/** Seconds for sky → deck cinema pull. */
-const INTRO_DESCEND_S = 3.2;
+const INTRO_DESCEND_S = 4.0;
 
 function playAnimHint(
   controller: AnimationController | null,
@@ -151,7 +161,7 @@ export default function HeroesBlackTideScene({
   const selectedIdRef = useRef(selectedId);
   selectedIdRef.current = selectedId;
 
-  const [status, setStatus] = useState("Loading The Grudge airship…");
+  const [status, setStatus] = useState("Archive airship scene (purged)…");
   const [ready, setReady] = useState(false);
   const runRef = useRef<{
     dispose: () => void;
@@ -172,10 +182,14 @@ export default function HeroesBlackTideScene({
     const h0 = Math.max(el.clientHeight, 4);
 
     const scene = new THREE.Scene();
-    scene.background = null;
+    scene.background = new THREE.Color(SKY_COLOR);
+    scene.fog = new THREE.FogExp2(FOG_COLOR, 0.012);
 
-    const camera = new THREE.PerspectiveCamera(38, w0 / h0, 0.1, 120);
-    // Start high above the ship — tick lerps down to ESTABLISH over INTRO_DESCEND_S
+    // Ethereal falls sky — camera stays inside (BackSide shell)
+    const ethereal = createEtherealFallsSky(110);
+    scene.add(ethereal.root);
+
+    const camera = new THREE.PerspectiveCamera(40, w0 / h0, 0.12, 250);
     camera.position.copy(INTRO_HIGH.pos);
     camera.lookAt(INTRO_HIGH.look);
 
@@ -188,12 +202,12 @@ export default function HeroesBlackTideScene({
 
     const renderer = new THREE.WebGLRenderer({
       antialias: true,
-      alpha: true,
+      alpha: false,
       powerPreference: "high-performance",
     });
     renderer.setSize(w0, h0);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    renderer.setClearColor(0x000000, 0);
+    renderer.setClearColor(SKY_COLOR, 1);
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -202,22 +216,108 @@ export default function HeroesBlackTideScene({
     el.innerHTML = "";
     el.appendChild(renderer.domElement);
     renderer.domElement.style.cssText =
-      "width:100%;height:100%;display:block;background:transparent;";
+      "width:100%;height:100%;display:block;";
 
-    scene.add(new THREE.AmbientLight(0xffe8c8, 0.7));
-    scene.add(new THREE.HemisphereLight(0xfff0d8, 0x6a5a40, 0.55));
-    const sun = new THREE.DirectionalLight(0xfff2d0, 1.25);
-    sun.position.set(6, 14, 8);
-    sun.castShadow = true;
-    sun.shadow.mapSize.set(1024, 1024);
-    scene.add(sun);
-    const fill = new THREE.DirectionalLight(0xb8d4f0, 0.3);
-    fill.position.set(-8, 4, -4);
+    // Cool ethereal key + warm deck bounce so lanterns read on wood
+    scene.add(new THREE.AmbientLight(0xa8c0e8, 0.35));
+    scene.add(new THREE.HemisphereLight(0x9ec8ff, 0x2a1810, 0.55));
+    const moon = new THREE.DirectionalLight(0xc8d8ff, 0.65);
+    moon.position.set(-8, 18, 6);
+    moon.castShadow = true;
+    moon.shadow.mapSize.set(1024, 1024);
+    moon.shadow.camera.near = 1;
+    moon.shadow.camera.far = 50;
+    moon.shadow.camera.left = -14;
+    moon.shadow.camera.right = 14;
+    moon.shadow.camera.top = 14;
+    moon.shadow.camera.bottom = -14;
+    scene.add(moon);
+    const fill = new THREE.DirectionalLight(0xffb080, 0.25);
+    fill.position.set(6, 4, -4);
     scene.add(fill);
 
+    // Walkable deck + pathfinding colliders + lantern PointLights
+    const deckVisual = buildAirshipDeckVisual();
+    scene.add(deckVisual);
     scene.add(buildDeckColliderGroup());
     const helmWheel = buildHelmWheel();
     scene.add(helmWheel);
+    const lanterns = collectLanternLights(deckVisual);
+
+    // Optional hull GLB under deck (non-blocking)
+    void loadAndCloneGltf(AIRSHIP_HULL_URL, {
+      priority: "high",
+      castShadow: true,
+      receiveShadow: true,
+      cloneMaterials: false,
+    })
+      .then(({ scene: hull }) => {
+        if (disposed) return;
+        hull.name = "AirshipHullGLB";
+        const box = new THREE.Box3().setFromObject(hull);
+        const size = box.getSize(new THREE.Vector3());
+        const center = box.getCenter(new THREE.Vector3());
+        const targetLen = 14;
+        const s = targetLen / Math.max(size.x, size.z, 0.001);
+        hull.scale.setScalar(s);
+        hull.position.set(-center.x * s, -box.min.y * s - 1.2, -center.z * s);
+        scene.add(hull);
+      })
+      .catch(() => {
+        /* procedural deck is production fallback */
+      });
+
+    // Optional foundry crew scene backdrop (islands/sky mesh) — never drives camera span
+    void (async () => {
+      for (const url of CREW_SCENE_CANDIDATES) {
+        try {
+          const { scene: crew } = await loadAndCloneGltf(url, {
+            priority: "low",
+            castShadow: false,
+            receiveShadow: true,
+            cloneMaterials: false,
+          });
+          if (disposed) return;
+          // Force any huge sky shell to BackSide so we stay "inside"
+          crew.traverse((o) => {
+            const m = o as THREE.Mesh;
+            if (!m.isMesh) return;
+            const box = new THREE.Box3().setFromObject(m);
+            const sz = box.getSize(new THREE.Vector3());
+            const maxD = Math.max(sz.x, sz.y, sz.z);
+            const n = (m.name || "").toLowerCase();
+            if (maxD > 40 || /sky|dome|cloud|environ/.test(n)) {
+              const mats = Array.isArray(m.material) ? m.material : [m.material];
+              for (const mat of mats) {
+                if (mat) {
+                  mat.side = THREE.BackSide;
+                  mat.depthWrite = false;
+                  (mat as THREE.MeshStandardMaterial).fog = false;
+                }
+              }
+            }
+          });
+          // Fit deck region only — park as distant islands under walk deck
+          const box = new THREE.Box3().setFromObject(crew);
+          const size = box.getSize(new THREE.Vector3());
+          const span = Math.max(size.x, size.z, 1);
+          // If it's mostly the huge scene, scale so deck-ish width ~22m then push down/back
+          if (span > 30) {
+            crew.scale.setScalar(22 / span);
+            crew.updateMatrixWorld(true);
+            const b2 = new THREE.Box3().setFromObject(crew);
+            const c2 = b2.getCenter(new THREE.Vector3());
+            crew.position.set(-c2.x, -b2.min.y - 6, -c2.z - 18);
+          }
+          crew.name = "FoundryCrewSceneBG";
+          scene.add(crew);
+          console.info("[heroes] loaded foundry crew scene backdrop", url);
+          break;
+        } catch {
+          /* try next CDN host */
+        }
+      }
+    })();
 
     const locMarkers = new THREE.Group();
     for (const loc of DECK_LOCATIONS) {
@@ -226,7 +326,7 @@ export default function HeroesBlackTideScene({
         new THREE.MeshBasicMaterial({
           color: 0xd4a017,
           transparent: true,
-          opacity: 0.16,
+          opacity: 0.1,
           side: THREE.DoubleSide,
           depthWrite: false,
         }),
@@ -430,15 +530,35 @@ export default function HeroesBlackTideScene({
         camera.lookAt(camLook);
       }
 
+      // Ethereal falls sky animation
+      ethereal.update(t);
+
+      // Lantern flicker — deck path lit for crew AI
+      for (const L of lanterns) {
+        flickerLantern(
+          L,
+          t,
+          Number(L.userData.lanternSeed) || 0,
+          Number(L.userData.baseIntensity) || 1.1,
+        );
+      }
+
       const wheelWorker = agents.find(
         (a) => !a.locked && a.currentLoc === "wheel" && a.anim !== "walk",
       );
       helmWheel.rotation.z += dt * (wheelWorker ? 1.45 : 0.12);
 
+      // Soft ship float (deck + crew together)
+      deckVisual.position.y = Math.sin(t * 0.28) * 0.04;
+      crewRoot.position.y = deckVisual.position.y;
+
       for (const agent of agents) {
         updateCrewAgent(agent, dt, t, camera.position);
         const rt = slotRuntimes[agent.slotIndex];
         if (!rt?.root) continue;
+        // Pathfind Y from deck height field (stairs / crow)
+        const y = sampleDeckHeight(agent.position.x, agent.position.z);
+        agent.position.y = y;
         rt.root.position.copy(agent.position);
         rt.root.rotation.y = agent.yaw;
         placeRing(agent.slotIndex, agent.position);
@@ -468,6 +588,7 @@ export default function HeroesBlackTideScene({
         renderer.domElement.removeEventListener("click", onClick);
         window.removeEventListener("resize", onResize);
         slotRuntimes.forEach((rt) => rt.controller?.dispose());
+        ethereal.dispose();
         renderer.dispose();
         if (renderer.domElement.parentNode) {
           renderer.domElement.parentNode.removeChild(renderer.domElement);
@@ -493,30 +614,20 @@ export default function HeroesBlackTideScene({
   }, [slotsKey]);
 
   return (
-    <div className={`relative w-full h-full min-h-[360px] overflow-hidden ${className}`}>
-      <div
-        className="absolute inset-0 z-0"
-        style={{
-          backgroundImage: `url(${AIRSHIP_BG})`,
-          backgroundSize: "cover",
-          backgroundPosition: "center bottom",
-          filter: "saturate(1.05) brightness(1.02)",
-        }}
-      />
-      <div
-        className="absolute inset-0 z-[1] pointer-events-none"
-        style={{ background: "rgba(0,0,0,0.12)" }}
-      />
-
+    <div
+      className={`relative w-full h-full min-h-[360px] overflow-hidden ${className}`}
+      style={{ background: `#${SKY_COLOR.toString(16).padStart(6, "0")}` }}
+    >
+      {/* Painting airship plate PURGED — solid sky only */}
       <div ref={mountRef} className="absolute inset-0 z-[2]" />
 
-      {/* Top avatar / CNFT strip */}
+      {/* Top avatar strip */}
       <div className="absolute top-2 left-0 right-0 z-[8] flex flex-col items-center gap-1.5 pointer-events-none">
         <div
           className="font-cinzel text-sm sm:text-lg tracking-wide"
           style={{ color: "#d4a017", textShadow: "0 2px 10px rgba(0,0,0,0.9)" }}
         >
-          The Grudge — Pirate Airship
+          Archive scene (not product /heroes)
         </div>
         <div className="flex gap-2 sm:gap-3 pointer-events-auto px-2">
           {CREW_STATIONS.map((st, i) => {

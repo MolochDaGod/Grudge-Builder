@@ -85,7 +85,8 @@ export const ERA_META: Record<
     shortLabel: 'Nexus',
     description: 'Toon RTS 12-character roster (the 12 heroes we made)',
     defaultPipeline: 'toon',
-    playUrl: 'https://mine.grudge-studio.com',
+    // Mine-Loader / Realms — not client.grudge-studio.com (Warlords only)
+    playUrl: 'https://mine-loader.vercel.app/#/play',
     slotCount: 12,
     createUrl: 'https://character.grudge-studio.com/?era=nexus',
     charactersEnabled: true,
@@ -93,9 +94,9 @@ export const ERA_META: Record<
   voxel: {
     label: 'Voxel Era',
     shortLabel: 'Voxel',
-    description: 'Voxel / Explorer heroes (TVS + mine-loader play)',
+    description: 'Voxel / Explorer heroes (TVS + Mine-Loader play)',
     defaultPipeline: 'voxel',
-    playUrl: 'https://mine.grudge-studio.com/#/play?era=voxel',
+    playUrl: 'https://mine-loader.vercel.app/#/play',
     slotCount: 4,
     createUrl: 'https://character.grudge-studio.com/?era=voxel',
     charactersEnabled: true,

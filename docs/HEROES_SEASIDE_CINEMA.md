@@ -1,11 +1,15 @@
-# Heroes seaside cinema (`/heroes`)
+# Heroes seaside cinema (`/heroes`) — PRODUCTION
+
+**Status:** Production roster cinema on `client.grudge-studio.com/heroes` (2026-07).  
+**Purged:** painted airship plate (`scene_airship.png`) / `HeroesBlackTideScene`.
 
 **SSOT scene:** Full Three.js sector shelf — seaside treasure cave + islands on deep ocean.  
 **Code:** `client/src/components/heroes/HeroesSeasideCinemaScene.tsx`  
 **Sanitize:** `client/src/components/heroes/sanitizeSeasideGltf.ts`  
 **Small craft:** `client/src/game/sailing/SmallCraftRowSystem.ts`  
 **Landmarks:** `shared/definitions/sectorSeasideLandmarks.ts`  
-**Page:** `client/src/pages/heroes.tsx`
+**Page:** `client/src/pages/heroes.tsx`  
+**Era:** **warlords only** (4 grudge6 slots) — no voxel merge
 
 ## Assets
 

@@ -1,12 +1,12 @@
 /**
  * /heroes · /characters · /select-character
- * Warlords character page — The Grudge airship cinema (WCS-style roster).
- * Up to 4 grudge6 warlords-era heroes on deck; camera establishes then follows selection.
- * Arsenal / professions / skill trees live on the same SPA (not a separate WCS deploy).
+ * Warlords 4-slot roster — seaside sector cinema (NO painted airship plate).
+ * Airship / scene_airship.png cinema was a product mistake; purged 2026-07.
+ * Arsenal / professions / skill trees stay on the same SPA.
  */
 import { useEffect, useMemo, useState } from "react";
 import { useLocation } from "wouter";
-import { Home, LogIn, Map, Plus, Ship, Swords, Hammer, Loader2, GitBranch } from "lucide-react";
+import { Home, LogIn, Map, Plus, Swords, Hammer, Loader2, GitBranch, Users } from "lucide-react";
 import { useCharacters } from "@/hooks/use-characters";
 import { getRacePortrait } from "@/lib/artAssets";
 import { isAuthenticated } from "@/lib/grudgeBackend";
@@ -14,12 +14,19 @@ import { buildSsoLoginUrl } from "@/lib/grudgeConfig";
 import { buildGcsUrl } from "@/lib/gcsRedirect";
 import { RACES, CLASSES } from "@/lib/gameData";
 import { CharacterManager, type Character } from "@/lib/characterManager";
-import { characterAPI } from "@/lib/api";
 import { pickCrewSlots } from "@/components/heroes/heroesCrewLoader";
-import HeroesBlackTideScene, { CREW_STATIONS } from "@/components/heroes/HeroesBlackTideScene";
+import HeroesSeasideCinemaScene from "@/components/heroes/HeroesSeasideCinemaScene";
 import { Link } from "wouter";
 
 const MAX_SLOTS = 4;
+
+/** Simple slot labels — not airship crew stations. */
+const SLOT_META = [
+  { id: "slot1", label: "Hero 1", role: "Warlord slot" },
+  { id: "slot2", label: "Hero 2", role: "Warlord slot" },
+  { id: "slot3", label: "Hero 3", role: "Warlord slot" },
+  { id: "slot4", label: "Hero 4", role: "Warlord slot" },
+] as const;
 
 type PlayDest = "home_island" | "zone" | "lobby" | "tutorial" | "world";
 
@@ -47,7 +54,7 @@ const DEST: { id: PlayDest; label: string; path: (id: string) => string; icon: R
     id: "tutorial",
     label: "Tutorial",
     path: (id) => `/tutorial?characterId=${encodeURIComponent(id)}&from=heroes`,
-    icon: <Ship className="w-4 h-4" />,
+    icon: <Users className="w-4 h-4" />,
   },
   {
     id: "world",
@@ -75,8 +82,8 @@ function readQueryParams() {
 
 export default function HeroesPage() {
   const [, setLocation] = useLocation();
+  // Warlords product page — era=warlords only (voxel/nexus have their own hosts).
   const { characters: warlordsChars, loading, activeId, setActive, error, refetch } = useCharacters();
-  const [voxelChars, setVoxelChars] = useState<Character[]>([]);
   const [dest, setDest] = useState<PlayDest>("zone");
   const signedIn = isAuthenticated();
   const [handoffError, setHandoffError] = useState<string | null>(null);
@@ -96,9 +103,7 @@ export default function HeroesPage() {
 
   useEffect(() => {
     if (!queryCharId || loading) return;
-    const found =
-      warlordsChars.find((c) => c.id === queryCharId) ||
-      voxelChars.find((c) => c.id === queryCharId);
+    const found = warlordsChars.find((c) => c.id === queryCharId);
     if (found) {
       setActive(found.id);
       setHandoffError(null);
@@ -106,41 +111,23 @@ export default function HeroesPage() {
       try {
         const url = new URL(window.location.href);
         url.searchParams.delete("error");
-        if (url.searchParams.get("characterId") === queryCharId) {
-          // keep characterId for shareable deep link, drop error only
-        }
         window.history.replaceState({}, "", url.pathname + (url.search || "") + url.hash);
       } catch {
         /* ignore */
       }
-    } else if (signedIn && warlordsChars.length + voxelChars.length > 0) {
+    } else if (signedIn && warlordsChars.length > 0) {
       setHandoffError(
-        `Character ${queryCharId.slice(0, 8)}… is not on this account roster. Select another hero or create a new one.`,
+        `Character ${queryCharId.slice(0, 8)}… is not on this Warlords roster (era=warlords). Select another hero or create one in Foundry.`,
       );
-    } else if (signedIn && !loading && warlordsChars.length === 0 && voxelChars.length === 0) {
-      setHandoffError("No characters on this Grudge ID yet. Create one to fill a crew slot.");
+    } else if (signedIn && !loading && warlordsChars.length === 0) {
+      setHandoffError("No Warlords heroes on this Grudge ID yet. Create one in Foundry (4 slots, grudge6).");
     }
-  }, [queryCharId, loading, warlordsChars, voxelChars, signedIn, setActive]);
+  }, [queryCharId, loading, warlordsChars, signedIn, setActive]);
 
-  // Optional voxel fills only — Warlords product prioritizes warlords-era grudge6 (max 4)
-  useEffect(() => {
-    let cancelled = false;
-    void (async () => {
-      try {
-        const list = await characterAPI.getAll("voxel");
-        if (!cancelled) setVoxelChars(Array.isArray(list) ? list : []);
-      } catch {
-        if (!cancelled) setVoxelChars([]);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [signedIn, loading]);
-
+  // Warlords-only: never merge voxel/nexus into product /heroes (era SSOT).
   const crew = useMemo(
-    () => pickCrewSlots(voxelChars, warlordsChars, MAX_SLOTS, "warlords"),
-    [voxelChars, warlordsChars],
+    () => pickCrewSlots([], warlordsChars, MAX_SLOTS, "warlords"),
+    [warlordsChars],
   );
 
   const slots: (Character | null)[] = useMemo(() => {
@@ -206,22 +193,22 @@ export default function HeroesPage() {
 
   return (
     <div className="min-h-screen w-full text-slate-100 relative overflow-hidden flex flex-col">
-      {/* Full-bleed Three.js airship cinema — The Grudge + grudge6 deck crew */}
+      {/* Full-bleed sector seaside cinema — NO painted airship plate */}
       <div className="absolute inset-0 z-0">
-        <HeroesBlackTideScene
+        <HeroesSeasideCinemaScene
           slots={slots}
           selectedId={selected?.id ?? null}
           onSelectSlot={onSelectSlot}
           className="w-full h-full"
         />
       </div>
-      <div className="absolute inset-0 z-[1] pointer-events-none bg-gradient-to-b from-black/40 via-transparent to-black/75" />
+      <div className="absolute inset-0 z-[1] pointer-events-none bg-gradient-to-b from-black/45 via-transparent to-black/80" />
 
       <div className="relative z-10 flex flex-col flex-1 max-w-6xl w-full mx-auto px-3 sm:px-4 py-4 sm:py-6 gap-4">
         {/* WCS-style product tabs (same SPA — no separate crafting-suite deploy) */}
         <nav className="flex flex-wrap justify-center gap-1.5 sm:gap-2 pointer-events-auto">
           {[
-            { href: "/heroes", label: "Characters", icon: <Ship className="w-3.5 h-3.5" /> },
+            { href: "/heroes", label: "Characters", icon: <Users className="w-3.5 h-3.5" /> },
             { href: "/arsenal", label: "Arsenal", icon: <Swords className="w-3.5 h-3.5" /> },
             { href: "/professions", label: "Professions", icon: <Hammer className="w-3.5 h-3.5" /> },
             { href: "/skill-tree", label: "Skill Trees", icon: <GitBranch className="w-3.5 h-3.5" /> },
@@ -238,14 +225,13 @@ export default function HeroesPage() {
 
         <header className="text-center pointer-events-none">
           <p className="font-cinzel text-[10px] uppercase tracking-[0.4em] text-amber-200/80 mb-1 drop-shadow">
-            Grudge Warlords · Airship roster · max 4 heroes
+            Grudge Warlords · 4-slot roster
           </p>
           <h1 className="font-cinzel text-2xl sm:text-4xl font-bold tracking-[0.18em] text-amber-50 drop-shadow-[0_2px_12px_rgba(0,0,0,0.85)]">
-            THE GRUDGE
+            HEROES
           </h1>
           <p className="mt-1.5 text-xs sm:text-sm text-amber-50/85 max-w-xl mx-auto drop-shadow">
-            Camera descends to the pirate airship. Place up to four grudge6 Warlords-era characters on
-            deck stations, pick one, then enter play.
+            Select a warlord from your roster, then enter home island, zone, lobby, or world.
           </p>
         </header>
 
@@ -298,7 +284,7 @@ export default function HeroesPage() {
         {!loading && (
           <section className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 pointer-events-auto">
             {slots.map((hero, i) => {
-              const station = CREW_STATIONS[i];
+              const station = SLOT_META[i] ?? SLOT_META[0];
               if (!hero) {
                 return (
                   <a
@@ -386,7 +372,9 @@ export default function HeroesPage() {
                   {selected.name.toUpperCase()}
                 </div>
                 <div className="text-xs text-emerald-100/80 mt-0.5">
-                  {selectedSlotIndex >= 0 ? `${CREW_STATIONS[selectedSlotIndex].role} · ` : ""}
+                  {selectedSlotIndex >= 0
+                    ? `${SLOT_META[selectedSlotIndex]?.label ?? `Slot ${selectedSlotIndex + 1}`} · `
+                    : ""}
                   {raceName(selected.raceId)} · {className(selected.classId)} · Lv {selected.level}
                 </div>
                 {selected.grudgeCode && (
