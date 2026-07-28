@@ -89,6 +89,15 @@ export {
   type CharacterControllerTuning,
 } from "./characterControllerConfig";
 
+export {
+  WATERCRAFT_PHYSICS,
+  WATER_SENSOR_GROUPS,
+  DECK_COLLIDER_GROUPS,
+  WATERCRAFT_RULES,
+  type WatercraftKind,
+  type WatercraftPhysicsPreset,
+} from "./oceanWatercraftPresets";
+
 /** Package gate for grudgewarlords.com / Island3D deploys */
 export const RAPIER_FLEET = {
   package: "@dimforge/rapier3d-compat",

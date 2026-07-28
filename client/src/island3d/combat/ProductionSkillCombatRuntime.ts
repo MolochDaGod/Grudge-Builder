@@ -29,6 +29,11 @@ import { spawnSupernovaImpact } from '../vfx/SupernovaImpactSystem';
 import type { WorldFxBus } from '../vfx/WorldFxBus';
 import { SpiritualSwordSystem } from '../vfx/SpiritualSwordSystem';
 import { spiritualColorFromSchool } from '@shared/definitions/spiritualSwords';
+import {
+  applyHitResponse,
+  resolveHitResponse,
+  type HitResponseHost,
+} from './HitResponseSystem';
 
 export interface CombatTarget {
   id: string;
@@ -59,6 +64,12 @@ export interface SkillHitEvent {
   stunSec: number;
   lifesteal: number;
   isExecute: boolean;
+  /** Horizontal knockback m/s (filled by HitResponse when wired) */
+  knockback?: number;
+  /** Upward launch m/s */
+  knockUp?: number;
+  /** Hit-react anim key */
+  hitAnim?: string;
 }
 
 export interface SkillCastResult {
@@ -101,6 +112,10 @@ export class ProductionSkillCombatRuntime {
   onHit: OnHit | null = null;
   onDash: OnDash | null = null;
   onBuff: OnBuff | null = null;
+  /** Optional host for knockback / knock-up / hit-react (player or NPC) */
+  hitResponseHost: HitResponseHost | null = null;
+  /** When true, hitResponseHost.applyImpulse is used (dynamic Rapier props) */
+  useRapierImpulse = false;
 
   constructor(scene: THREE.Scene, worldFx?: WorldFxBus | null) {
     this.scene = scene;
@@ -110,6 +125,11 @@ export class ProductionSkillCombatRuntime {
     this.root.name = 'production_skill_projectiles';
     scene.add(this.root);
     ensureWeaponSkillCombatCatalog();
+  }
+
+  setHitResponseHost(host: HitResponseHost | null, useRapierImpulse = false): void {
+    this.hitResponseHost = host;
+    this.useRapierImpulse = useRapierImpulse;
   }
 
   setWorldFx(fx: WorldFxBus | null) {
@@ -288,8 +308,26 @@ export class ProductionSkillCombatRuntime {
         lifesteal: skill.lifesteal,
         isExecute,
       };
+      // Knockback / knock-up / hit-react (SSOT HitResponseSystem)
+      const response = resolveHitResponse(skill, hit, ctx.casterPos, t.position);
+      hit.knockback = response.knockback;
+      hit.knockUp = response.knockUp;
+      hit.hitAnim = response.anim;
+      hit.stunSec = Math.max(hit.stunSec, response.stunSec);
+      if (this.hitResponseHost) {
+        applyHitResponse(
+          this.hitResponseHost,
+          {
+            id: t.id,
+            position: t.position,
+            object: t.object,
+          },
+          response,
+          { school: skill.school, useRapierImpulse: this.useRapierImpulse },
+        );
+      }
       hits.push(hit);
-      this.spawnImpactVfx(point, skill, 1.6);
+      this.spawnImpactVfx(point, skill, Math.max(1.6, response.impactScale));
     }
 
     // Self AoE empty — still show VFX

@@ -67,8 +67,15 @@ export class ShipBoardingController {
 
     this.interactable = buildShipInteractable(opts.shipRoot, opts.shipSize);
     this.localAnchor = defaultBoardLocalAnchor(this.interactable.bounds);
-    this.deckRig = new ShipDeckRig({ deck: opts.shipRoot });
+    this.deckRig = new ShipDeckRig({
+      deck: opts.shipRoot,
+      // Hard wave roll → balance stagger (host wires anim via prompt / combat)
+      onStagger: () => {
+        this.onPrompt?.('Steady! (deck stagger)');
+      },
+    });
 
+    // Gunwales + hull climb for swim → deck (OceanBoatClimbRig)
     this.character.registerClimbMeshes(this.interactable.climbColliders);
     this.character.setWaterLevel(opts.waterLevel);
     this.character.setDeckCastLineHandler(() => this.tryCastLine());
