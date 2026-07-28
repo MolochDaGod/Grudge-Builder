@@ -29,6 +29,10 @@ export const GRUDGE_EXACT_ORIGINS: string[] = [
   // RTS Grudge 3D client (Vercel)
   "https://rts-grudge.vercel.app",
 
+  // Mine-Loader / Voxel Realms (explicit SPA + edge)
+  "https://mine-loader.vercel.app",
+  "https://mine.grudge-studio.com",
+
   // Fleet game clients (explicit until Railway redeploys regex allowlist)
   "https://metaverse.grudge-studio.com",
   "https://forge.grudge-studio.com",

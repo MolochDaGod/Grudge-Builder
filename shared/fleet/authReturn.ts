@@ -26,6 +26,9 @@ const EXACT_HOSTS = new Set([
   "grudgestudio.puter.site",
   "grudge-studio.puter.site",
   "grudge-heros.puter.site",
+  // Mine-Loader / Voxel Realms (also covered by .vercel.app / .grudge-studio.com)
+  "mine-loader.vercel.app",
+  "mine.grudge-studio.com",
 ]);
 
 const SUFFIX_HOSTS = [
