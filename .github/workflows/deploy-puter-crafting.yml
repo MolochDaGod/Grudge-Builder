@@ -19,7 +19,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
       - name: Upload to R2 CDN
         working-directory: workers/cdn
         env:
@@ -41,7 +41,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
       - name: Deploy to grudge-crafting.puter.site
         env:
           PUTER_TOKEN: ${{ secrets.PUTER_TOKEN }}
