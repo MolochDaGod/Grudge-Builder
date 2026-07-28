@@ -4,8 +4,9 @@
  *
  * Pipelines (gameEras SSOT):
  *   warlords → grudge6 race GLB + equipment  (client.grudge-studio.com/heroes)
- *   voxel    → explorer / TVS                 (mine-loader)
- *   nexus    → toon soldier CDN, else grudge6
+ *   voxel    → race / explorer avatars       (Mine-Loader play + maker worlds)
+ *   nexus    → toon soon; interim = voxel    (Grudox play)
+ *   armada   → mech                          (Mech Builder)
  *
  * Always SI-fit height via fitCharacterRootToHeightM / explorer appearance.
  */
@@ -30,7 +31,11 @@ import { applyGrudge6RaceTextures } from "@/lib/grudge6Textures";
 import { applyCharacterColorTints, ensureCharacterTextureColorSpace } from "@/lib/characterAppearance";
 import { fitCharacterRootToHeightM, PLAYER_HEIGHT_M } from "@/island3d/zoneWorldScale";
 import { getAnimationSet, type AnimationDef, type WeaponType } from "@/lib/modelManifest";
-import { defaultPipelineForEra, normalizeGameEra, type GameEra } from "@shared/definitions/gameEras";
+import {
+  effectivePipelineForEra,
+  normalizeGameEra,
+  type GameEra,
+} from "@shared/definitions/gameEras";
 import {
   applyExplorerAppearanceToRoot,
   createBlockyExplorer,
@@ -42,7 +47,8 @@ export type CrewPipeline = "grudge6" | "voxel" | "toon" | "armada";
 
 export function pipelineForCharacter(hero: Character): CrewPipeline {
   const era = normalizeGameEra(hero.gameEra || hero.model3d?.gameEra || "warlords");
-  const pipe = defaultPipelineForEra(era as GameEra);
+  // Nexus uses voxel mesh until dedicated toon kits ship
+  const pipe = effectivePipelineForEra(era as GameEra);
   if (pipe === "voxel") return "voxel";
   if (pipe === "toon") return "toon";
   // Armada era = mechs (Mech Builder); armada_ship is legacy naval prop only
