@@ -35,6 +35,27 @@ export default function SystemsPage() {
           </div>
         </section>
 
+        <section className="rounded-xl border border-sky-800/40 bg-sky-950/20 p-6">
+          <h2 className="text-lg font-semibold text-sky-100 mb-2">Asset showcase (mounts · buildings · boats)</h2>
+          <p className="text-sm text-stone-400 mb-3">
+            Full in-game usage catalog: all mounts, benches, towers, boats, camp upgrades, modular
+            pieces, and siege engines — with craft recipes, cost, HP, abilities, armor/weapons, and
+            add-ons.
+          </p>
+          <a
+            href="/asset-showcase"
+            className="inline-flex items-center gap-2 rounded-lg bg-sky-600/90 hover:bg-sky-500 px-4 py-2 text-sm font-medium text-stone-950"
+          >
+            Open asset showcase
+          </a>
+          <div className="mt-3 flex flex-wrap gap-3 text-xs text-stone-500">
+            <a href="/assets" className="text-sky-400/80 hover:underline">
+              /assets
+            </a>
+            <span>SSOT: shared/definitions/warlordsAssetShowcase.ts</span>
+          </div>
+        </section>
+
         <section className="rounded-xl border border-amber-800/40 bg-amber-950/20 p-6">
           <h2 className="text-lg font-semibold text-amber-100 mb-2">Combat equipment lab</h2>
           <p className="text-sm text-stone-400 mb-3">

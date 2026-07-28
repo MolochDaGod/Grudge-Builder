@@ -103,6 +103,7 @@ import CombatLabPage from "@/pages/combat-lab";
 import TownPage from "@/pages/town";
 import GameCharacterPage from "@/pages/game-character";
 import SystemsPage from "@/pages/systems";
+import AssetShowcasePage from "@/pages/asset-showcase";
 import MainPanelPage from "@/pages/main-panel";
 import { consumeGcsReturnHandoff } from "@/lib/gcsRedirect";
 import { CharacterManager } from "@/lib/characterManager";
@@ -219,6 +220,9 @@ function Router() {
       <Route path="/game/inventory">{() => <Grudge6Redirect route="inventory" />}</Route>
       <Route path="/game/foundry">{() => <Grudge6Redirect route="foundry" />}</Route>
       <Route path="/systems" component={SystemsPage} />
+      <Route path="/asset-showcase" component={AssetShowcasePage} />
+      <Route path="/assets" component={AssetShowcasePage} />
+      <Route path="/showcase/assets" component={AssetShowcasePage} />
       {/* Fallback to 404 */}
       <Route component={NotFound} />
     </Switch>
