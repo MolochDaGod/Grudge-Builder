@@ -117,6 +117,36 @@ export {
   createBuildHammerMesh,
 } from './building/BuildHammerAttachment';
 export type { BuildHammerHandle } from './building/BuildHammerAttachment';
+
+// Sectional damage (hide-chunk) + hammer repair (RMB select, LMB −1 wood)
+export {
+  SectionalDamageSystem,
+  BuildHammerRepair,
+  REPAIR_WOOD_IDS,
+  REPAIR_RULES,
+  registerWatercraftSections,
+  registerBuildingSections,
+  registerVehicleSections,
+  registerEnemySections,
+  registerObjectSections,
+  ensurePinataLoaded,
+  fractureSection,
+  createPinataDestroyHandler,
+} from './damage';
+export type {
+  DamageAssetKind,
+  SectionState,
+  DamageSection,
+  RegisterAssetOpts,
+  ImpactResult,
+  SectionalDamageHost,
+  WoodInventoryHost,
+  BuildHammerRepairOpts,
+  RepairSelectResult,
+  RepairApplyResult,
+  PinataFractureOpts,
+  PinataFractureResult,
+} from './damage';
 export {
   equipHarvestPickaxe,
   unequipHarvestPickaxe,

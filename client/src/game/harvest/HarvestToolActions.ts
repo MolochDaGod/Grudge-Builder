@@ -46,7 +46,12 @@ export const HARVEST_RADIAL_TOOLS: Array<{
   { id: 'pickaxe', label: 'Pick', emoji: '⛏️', title: 'Mine rock / ore' },
   { id: 'skinning_knife', label: 'Knife', emoji: '🔪', title: 'Skin / cut fiber' },
   { id: 'fishing_rod', label: 'Fishing', emoji: '🎣', title: 'Cast line at water' },
-  { id: 'toolkit', label: 'Hammer', emoji: '🔨', title: 'Build Hammer — open build UI' },
+  {
+    id: 'toolkit',
+    label: 'Hammer',
+    emoji: '🔨',
+    title: 'Build Hammer — place props; RMB damaged chunk → LMB repair (−1 wood)',
+  },
 ];
 
 export type ActionSlotKind = 'action' | 'action2' | 'auto' | 'special';
@@ -130,7 +135,20 @@ export const TOOL_ACTIONS: Record<HarvestToolType, HarvestAction[]> = {
       cooldown: 0.2,
       staminaCost: 1,
       harvestMult: 1,
-      description: 'Build hammer — place modular props / camp pieces (not combat).',
+      description:
+        'LMB — place modular props / camp pieces. With RMB target on damaged boat/building/vehicle chunk: LMB repairs (−1 wood from bag or boat hold).',
+    },
+    {
+      id: 'hammer_repair',
+      name: 'Repair Chunk',
+      kind: 'action2',
+      icon: '🔧',
+      animation: 'build',
+      cooldown: 0.25,
+      staminaCost: 1,
+      harvestMult: 1,
+      description:
+        'RMB damaged section (hidden chunk) → LMB restore with 1 wood. Works on boats, buildings, vehicles, objects.',
     },
   ],
   seed: [

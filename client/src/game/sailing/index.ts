@@ -126,6 +126,12 @@ export type {
   WaveboardRigHandle,
 } from "./waveboard";
 
+// Sectional damage for ships — re-export island3d damage registrars
+export {
+  registerWatercraftSections,
+  SectionalDamageSystem,
+} from "@/island3d/damage";
+
 export {
   WAVEBOARD_ITEM,
   WAVEBOARD_RECIPE,

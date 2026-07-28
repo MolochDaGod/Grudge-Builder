@@ -106,6 +106,14 @@ import {
 import { HUMAN_HEIGHT_M } from '../zoneWorldScale';
 import { AllyManager, type CombatTarget } from '../ai/AllyController';
 import { BuildingSystem, type PieceType } from '../building/BuildingSystem';
+import {
+  SectionalDamageSystem,
+  BuildHammerRepair,
+  registerBuildingSections,
+  registerWatercraftSections,
+  createPinataDestroyHandler,
+  type DamageSection,
+} from '../damage';
 import { getSectorById, type WorldSector } from '@shared/definitions/worldMapSectors';
 import {
   generateZonePopulation, getNodesByCategory,
@@ -492,6 +500,21 @@ export class Island3DEngine {
   // Building
   public building: BuildingSystem | null = null;
 
+  /**
+   * Progressive hide-chunk damage for boats / buildings / vehicles / enemies.
+   * Damaged sections are hidden; repair with build hammer + 1 wood (RMB then LMB).
+   */
+  public sectionalDamage: SectionalDamageSystem | null = null;
+  /** Toolkit repair controller (RMB select damaged chunk, LMB spend wood + restore). */
+  public hammerRepair: BuildHammerRepair | null = null;
+  /**
+   * Optional boat / ship cargo hold for repair wood.
+   * Hosts (dock / boarding) may merge ship storage here.
+   */
+  public boatCargo: Record<string, number> = {};
+  /** Last sectional repair / select prompt for HUD */
+  public lastRepairPrompt: string | null = null;
+
   // Wildlife
   public creatures: CreatureManager | null = null;
 
@@ -783,6 +806,10 @@ export class Island3DEngine {
       this.config.accountId ?? 'guest',
       this.config.captainId ?? null,
     );
+    // Hide-chunk sectional damage on lobby dock ship (hammer repair ready)
+    if (this.lobbyShip?.shipGroup) {
+      this.registerWatercraftDamage('lobby_dock_ship', this.lobbyShip.shipGroup);
+    }
 
     // Building + fish life
     this.building = new BuildingSystem(this.scene, this.camera);
@@ -2851,12 +2878,18 @@ export class Island3DEngine {
     if (tool === 'toolkit') {
       // Free-move + build hammer mesh; HUD still treats this as harvest sub-state
       await this.character?.setControlMode('build');
+      this.ensureSectionalDamage();
+      if (this.hammerRepair) this.hammerRepair.enabled = true;
     } else {
       // Stay / return to harvest: sheath weapons, no hammer
       if (this.character?.mode === 'build' || this.character?.hasBuildHammer) {
         this.cancelBuilding();
       }
       await this.character?.setControlMode('harvest');
+      if (this.hammerRepair) {
+        this.hammerRepair.enabled = false;
+        this.hammerRepair.clear();
+      }
     }
   }
 
@@ -2907,6 +2940,122 @@ export class Island3DEngine {
     else bag[itemId] = next;
     this.commitInventory(bag);
     return bag[itemId] ?? 0;
+  }
+
+  /**
+   * Init hide-chunk sectional damage + build-hammer repair (1 wood, RMB→LMB).
+   * Safe to call multiple times; reuses existing system instances.
+   */
+  ensureSectionalDamage(): void {
+    if (!this.sectionalDamage) {
+      this.sectionalDamage = new SectionalDamageSystem({
+        onPrompt: (msg) => {
+          this.lastRepairPrompt = msg;
+        },
+        onImpactFx: (point, scale) => {
+          this.worldFx?.weaponSkillImpact(point, 'physical', scale);
+        },
+        onSectionDestroy: createPinataDestroyHandler({
+          scene: this.scene,
+          fragmentCount: 10,
+          burstSpeed: 3.2,
+          despawnSec: 8,
+          // Fragments are visual-only unless a host wires PhysicsWorld later
+        }),
+      });
+    }
+    if (!this.hammerRepair) {
+      this.hammerRepair = new BuildHammerRepair({
+        damage: this.sectionalDamage,
+        inventory: {
+          getCounts: () => this.getMergedInventory(),
+          trySpend: (itemId, qty) => {
+            const have = this.getMergedInventory()[itemId] ?? 0;
+            if (have < qty) return false;
+            this.adjustItem(itemId, -qty);
+            return true;
+          },
+          getBoatCounts: () => this.boatCargo,
+          trySpendBoat: (itemId, qty) => {
+            const have = this.boatCargo[itemId] ?? 0;
+            if (have < qty) return false;
+            this.boatCargo[itemId] = have - qty;
+            if (this.boatCargo[itemId] <= 0) delete this.boatCargo[itemId];
+            return true;
+          },
+        },
+        getPlayerPosition: () => this.character?.getPosition() ?? null,
+        onPrompt: (msg) => {
+          this.lastRepairPrompt = msg;
+        },
+        onRepaired: (section) => {
+          this.worldFx?.weaponSkillImpact(section.center, 'physical', 1.1);
+        },
+      });
+    }
+    // Repair path active when build hammer is out
+    this.hammerRepair.enabled =
+      this.activeHarvestTool === 'toolkit' ||
+      this.character?.mode === 'build' ||
+      !!this.character?.hasBuildHammer;
+  }
+
+  /**
+   * Register a watercraft root for sectional damage (hull/deck/mast hide-chunks).
+   * Call after ship/boat GLB is parented into the scene.
+   */
+  registerWatercraftDamage(assetId: string, root: THREE.Object3D): DamageSection[] {
+    this.ensureSectionalDamage();
+    return registerWatercraftSections(this.sectionalDamage!, assetId, root);
+  }
+
+  /**
+   * Register a building / prop mesh for sectional damage + hammer repair.
+   */
+  registerBuildingDamage(assetId: string, root: THREE.Object3D): DamageSection[] {
+    this.ensureSectionalDamage();
+    return registerBuildingSections(this.sectionalDamage!, assetId, root);
+  }
+
+  /**
+   * Apply combat / collision impact to the nearest section (hide chunk at 0 HP).
+   */
+  applySectionImpactAt(
+    point: THREE.Vector3,
+    damage: number,
+    radius = 2.5,
+  ): ReturnType<SectionalDamageSystem['applyImpactAtPoint']> {
+    this.ensureSectionalDamage();
+    return this.sectionalDamage!.applyImpactAtPoint(point, damage, radius);
+  }
+
+  /**
+   * RMB with toolkit: select damaged section for repair.
+   * Returns true if a damage section was targeted (consumes RMB).
+   */
+  tryHammerRepairSelect(clientX: number, clientY: number): boolean {
+    this.ensureSectionalDamage();
+    if (!this.hammerRepair?.enabled) return false;
+
+    const rect = this.config.canvas.getBoundingClientRect();
+    this.mouse.x = ((clientX - rect.left) / rect.width) * 2 - 1;
+    this.mouse.y = -((clientY - rect.top) / rect.height) * 2 + 1;
+    this.raycaster.setFromCamera(this.mouse, this.camera);
+
+    const result = this.hammerRepair.selectWithRaycaster(this.raycaster);
+    return result.ok;
+  }
+
+  /**
+   * LMB with toolkit + prior RMB selection: spend 1 wood and restore chunk.
+   * Returns true if repair consumed the click.
+   */
+  tryHammerRepairApply(): boolean {
+    this.ensureSectionalDamage();
+    if (!this.hammerRepair?.enabled) return false;
+    if (!this.hammerRepair.selected) return false;
+    const result = this.hammerRepair.applyRepair();
+    return result.ok || result.reason === 'no_wood' || result.reason === 'already_intact';
   }
 
   /** Ensure farm system + square 4×4 brush exist (home / zone after terrain ready). */
@@ -3131,10 +3280,22 @@ export class Island3DEngine {
 
   /**
    * RMB on final-form crop: player walks to plant, removes it, adds to inventory.
-   * Returns true if a ready plant was targeted (consumes RMB for look/focus).
+   * With build hammer: select damaged section for repair (then LMB to apply +1 wood).
+   * Returns true if a ready plant or repair target was selected (consumes RMB).
    */
   tryFarmHarvestRmb(clientX: number, clientY: number): boolean {
-    if (this.character && this.character.mode !== 'harvest') return false;
+    // Build hammer: RMB selects sectional damage target first
+    if (
+      this.activeHarvestTool === 'toolkit' ||
+      this.character?.mode === 'build' ||
+      this.character?.hasBuildHammer
+    ) {
+      if (this.tryHammerRepairSelect(clientX, clientY)) return true;
+    }
+
+    if (this.character && this.character.mode !== 'harvest' && this.character.mode !== 'build') {
+      return false;
+    }
     this.ensureFarmSystems();
     if (!this.farmPlots) return false;
 
@@ -3228,11 +3389,31 @@ export class Island3DEngine {
     clientY: number,
     modifiers: { shiftKey?: boolean; ctrlKey?: boolean; altKey?: boolean } = {},
   ): void {
+    // Build hammer repair: LMB applies after RMB section select (1 wood)
+    // Only when not actively placing a blueprint ghost.
+    if (
+      !this.building?.isBuilding &&
+      (this.activeHarvestTool === 'toolkit' ||
+        this.character?.mode === 'build' ||
+        this.character?.hasBuildHammer) &&
+      this.tryHammerRepairApply()
+    ) {
+      return;
+    }
+
     // Build mode: LMB places light-blue ghost at cursor
     if (this.building?.isBuilding) {
       if (this.building.isPropPlacing) {
         const selectedId = this.building.selectedPropId;
         const result = this.building.confirmPropPlacement();
+        // Register prop for sectional damage / hammer repair
+        if (result) {
+          const props = this.building.getAllProps();
+          const last = props.find((p) => p.id === result.id);
+          if (last?.group) {
+            this.registerBuildingDamage(`prop_${result.id}`, last.group);
+          }
+        }
         // Outpost camp base → faction camp system owns the GLB (avoid double mesh)
         if (result && selectedId === 'npc_camp_base') {
           const props = this.building.getAllProps();
@@ -3263,7 +3444,10 @@ export class Island3DEngine {
         }
         return;
       }
-      this.building.confirmPlacement();
+      const placed = this.building.confirmPlacement();
+      if (placed?.mesh) {
+        this.registerBuildingDamage(`piece_${placed.id}`, placed.mesh);
+      }
       return;
     }
 

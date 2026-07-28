@@ -9,7 +9,9 @@
 |-------|------|
 | Island3D world | `client/src/island3d/physics/PhysicsWorld.ts` |
 | Fleet presets | `client/src/island3d/physics/fleet/*` |
-| Pinata harvest | `PhysicsWorld.addDynamicFragment` + `PinataHarvestBreak` |
+| Pinata harvest / debris | `PhysicsWorld.addDynamicFragment` + optional `@dgreenheck/three-pinata` |
+| Sectional damage (hide chunk) | `client/src/island3d/damage/SectionalDamageSystem.ts` |
+| Hammer repair (RMB→LMB, 1 wood) | `client/src/island3d/damage/BuildHammerRepair.ts` |
 | Package | `@dimforge/rapier3d-compat@^0.19.3` |
 
 ## Deploy surfaces
