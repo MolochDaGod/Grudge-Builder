@@ -65,7 +65,8 @@ export class PhysicsWorld {
   private bodies = new Map<string, PhysicsBody>();
   private nextId = 0;
   private accumulatedTime = 0;
-  private readonly fixedStep = 1 / 60; // 60Hz physics
+  /** Fixed 1/60 — Rapier determinism + CCT stability (never use frame dt alone). */
+  private readonly fixedStep = 1 / 60;
 
   private constructor(world: RAPIER.World) {
     this.world = world;
@@ -74,6 +75,7 @@ export class PhysicsWorld {
   /** Async factory — must await Rapier WASM init */
   static async create(config: PhysicsWorldConfig = {}): Promise<PhysicsWorld> {
     await RAPIER.init();
+    // SI gravity m/s² — non-zero so dynamic bodies fall (common_mistakes)
     const gravity = new RAPIER.Vector3(0, config.gravity ?? -30, 0);
     const world = new RAPIER.World(gravity);
     return new PhysicsWorld(world);
@@ -83,11 +85,13 @@ export class PhysicsWorld {
 
   update(dt: number): void {
     this.accumulatedTime += dt;
-    // Run physics at fixed 60Hz regardless of frame rate
-    while (this.accumulatedTime >= this.fixedStep) {
+    // Cap catch-up steps (background tab spiral)
+    let guard = 0;
+    while (this.accumulatedTime >= this.fixedStep && guard++ < 8) {
       this.world.step();
       this.accumulatedTime -= this.fixedStep;
     }
+    if (this.accumulatedTime > this.fixedStep * 2) this.accumulatedTime = 0;
 
     // Sync dynamic body positions → Three.js meshes
     for (const [, body] of this.bodies) {
@@ -145,23 +149,41 @@ export class PhysicsWorld {
 
   // ── Character capsule (kinematic position-based) ───────────────────────
 
+  /**
+   * Kinematic capsule + Rapier Character Controller (CCT).
+   *
+   * Best practices (rapier.rs character_controller + common_mistakes):
+   * - Kinematic position-based (NOT dynamic) — gravity applied by caller
+   * - SI meters: human ~radius 0.32, halfHeight 0.55
+   * - offset 0.01 m; slopes 45°/30°; autostep; snap-to-ground
+   * - Friction 0 on capsule — CCT owns sliding
+   * - Density set (harmless on kinematic; required if ever switched to dynamic)
+   */
   addCharacterCapsule(
     radius: number,
     halfHeight: number,
     position: THREE.Vector3,
   ): CharacterController {
+    // position = feet; center = feet + radius + halfHeight
     const bodyDesc = RAPIER.RigidBodyDesc.kinematicPositionBased()
       .setTranslation(position.x, position.y + halfHeight + radius, position.z);
     const rigidBody = this.world.createRigidBody(bodyDesc);
 
     const colliderDesc = RAPIER.ColliderDesc.capsule(halfHeight, radius)
-      .setFriction(0.5)
-      .setRestitution(0.0);
+      .setFriction(0.0)
+      .setRestitution(0.0)
+      .setDensity(1.0);
     const collider = this.world.createCollider(colliderDesc, rigidBody);
 
-    const controller = this.world.createCharacterController(0.01); // 1cm offset
-    controller.enableAutostep(0.5, 0.3, true); // max step height, min width, include dynamic
-    controller.enableSnapToGround(0.5); // snap down 0.5m
+    // CCT offset ≈ 1cm (do not change after create if avoidable)
+    const controller = this.world.createCharacterController(0.01);
+    controller.setUp({ x: 0, y: 1, z: 0 });
+    // Don't climb slopes steeper than 45°; slide on slopes steeper than 30°
+    controller.setMaxSlopeClimbAngle((45 * Math.PI) / 180);
+    controller.setMinSlopeSlideAngle((30 * Math.PI) / 180);
+    // Autostep: max height 0.5 m, min width 0.2 m, include dynamic bodies
+    controller.enableAutostep(0.5, 0.2, true);
+    controller.enableSnapToGround(0.5);
     controller.setApplyImpulsesToDynamicBodies(true);
 
     const id = `character_${this.nextId++}`;
@@ -171,11 +193,15 @@ export class PhysicsWorld {
     return { body, controller, capsuleHalfHeight: halfHeight, capsuleRadius: radius };
   }
 
-  /** Move a kinematic character controller */
+  /**
+   * Move CCT — desiredMovement is already a translation for this step
+   * (include gravity in Y yourself; CCT does not apply gravity).
+   * Uses setNextKinematicTranslation (position-based kinematic rule).
+   */
   moveCharacter(
     ctrl: CharacterController,
     desiredMovement: THREE.Vector3,
-    dt: number,
+    _dt: number,
   ): THREE.Vector3 {
     ctrl.controller.computeColliderMovement(
       ctrl.body.collider,
@@ -194,9 +220,13 @@ export class PhysicsWorld {
     return newPos;
   }
 
-  /** Check if character is grounded */
+  /** Check if character is grounded (valid after computeColliderMovement). */
   isCharacterGrounded(ctrl: CharacterController): boolean {
     return ctrl.controller.computedGrounded();
+  }
+
+  get fixedDt(): number {
+    return this.fixedStep;
   }
 
   // ── GLB collider (auto-detect named mesh or convex hull) ───────────────
@@ -296,14 +326,100 @@ export class PhysicsWorld {
     position: THREE.Vector3,
     type: ColliderType = 'dynamic',
   ): PhysicsBody {
+    // Dynamic requires non-zero mass (setDensity) — common_mistakes
     const bodyDesc = type === 'static' ? RAPIER.RigidBodyDesc.fixed()
       : RAPIER.RigidBodyDesc.dynamic().setLinearDamping(0.3);
     bodyDesc.setTranslation(position.x, position.y, position.z);
     const rigidBody = this.world.createRigidBody(bodyDesc);
-    const desc = RAPIER.ColliderDesc.ball(radius).setFriction(0.5).setRestitution(0.4);
+    let desc = RAPIER.ColliderDesc.ball(radius)
+      .setFriction(0.5)
+      .setRestitution(0.4);
+    // Dynamic RBs need non-zero mass (common_mistakes) — density on collider
+    if (type === 'dynamic') desc = desc.setDensity(1.2);
     const collider = this.world.createCollider(desc, rigidBody);
     const id = `sphere_${this.nextId++}`;
     const body: PhysicsBody = { id, rigidBody, collider, mesh: null, type };
+    this.bodies.set(id, body);
+    return body;
+  }
+
+  /**
+   * Dynamic fragment for three-pinata harvest breaks (ore / rock / trees).
+   * Convex hull from mesh positions + optional linear velocity impulse.
+   * Mesh is synced each physics step (body.type = dynamic).
+   */
+  addDynamicFragment(
+    mesh: THREE.Object3D,
+    opts: {
+      linearVelocity?: THREE.Vector3;
+      angularVelocity?: THREE.Vector3;
+      restitution?: number;
+      friction?: number;
+      linearDamping?: number;
+      angularDamping?: number;
+      massScale?: number;
+    } = {},
+  ): PhysicsBody {
+    mesh.updateMatrixWorld(true);
+    const pos = new THREE.Vector3();
+    mesh.getWorldPosition(pos);
+
+    const bodyDesc = RAPIER.RigidBodyDesc.dynamic()
+      .setTranslation(pos.x, pos.y, pos.z)
+      .setLinearDamping(opts.linearDamping ?? 0.35)
+      .setAngularDamping(opts.angularDamping ?? 0.4)
+      .setCanSleep(true);
+
+    const rigidBody = this.world.createRigidBody(bodyDesc);
+
+    // Prefer convex hull of fragment geometry; ball fallback from AABB
+    const points = this.extractAllVertices(mesh);
+    let colliderDesc: RAPIER.ColliderDesc | null = null;
+    if (points.length >= 9) {
+      colliderDesc = RAPIER.ColliderDesc.convexHull(points);
+    }
+    if (!colliderDesc) {
+      const box = new THREE.Box3().setFromObject(mesh);
+      const size = box.getSize(new THREE.Vector3());
+      const r = Math.max(0.05, size.length() * 0.28);
+      colliderDesc = RAPIER.ColliderDesc.ball(r);
+    }
+    colliderDesc
+      .setFriction(opts.friction ?? 0.55)
+      .setRestitution(opts.restitution ?? 0.25)
+      .setDensity(opts.massScale ?? 1.2);
+
+    const collider = this.world.createCollider(colliderDesc, rigidBody);
+
+    if (opts.linearVelocity) {
+      rigidBody.setLinvel(
+        {
+          x: opts.linearVelocity.x,
+          y: opts.linearVelocity.y,
+          z: opts.linearVelocity.z,
+        },
+        true,
+      );
+    }
+    if (opts.angularVelocity) {
+      rigidBody.setAngvel(
+        {
+          x: opts.angularVelocity.x,
+          y: opts.angularVelocity.y,
+          z: opts.angularVelocity.z,
+        },
+        true,
+      );
+    }
+
+    const id = `frag_${this.nextId++}`;
+    const body: PhysicsBody = {
+      id,
+      rigidBody,
+      collider,
+      mesh,
+      type: 'dynamic',
+    };
     this.bodies.set(id, body);
     return body;
   }
