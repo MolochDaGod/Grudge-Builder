@@ -4,6 +4,7 @@
  * Height: 1.55–2.05 m SI (mid ≈ 1.8 m).
  */
 import * as THREE from "three";
+import { ensureLedFaceOnExplorer } from "./ledFaceDefault";
 
 export const APPEARANCE_STORAGE_KEY = "grudge.avatar.appearance.v1";
 export const SELECTED_BY_ERA_KEY = "grudge.selectedCharacterByEra";
@@ -118,11 +119,13 @@ export function applyExplorerAppearanceToRoot(
   return hM;
 }
 
-/** Procedural blocky explorer for voxel era when no GLB kit. */
+/** Procedural blocky explorer for voxel / nexus interim when no GLB kit. */
 export function createBlockyExplorer(options?: {
   skinColor?: number;
   shirtColor?: number;
   pantsColor?: number;
+  /** LED smile visor on cube head (default true — nexus/voxel product law). */
+  ledFace?: boolean;
 }): THREE.Group {
   const skin = options?.skinColor ?? 0xc68642;
   const shirt = options?.shirtColor ?? 0x3b6ea5;
@@ -133,7 +136,9 @@ export function createBlockyExplorer(options?: {
   const mat = (c: number) =>
     new THREE.MeshStandardMaterial({ color: c, roughness: 0.85, metalness: 0.05 });
 
-  const head = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.28, 0.28), mat(skin));
+  // Darker "visor shell" head — LED panel is the face (not blank skin cube)
+  const headMat = mat(options?.ledFace === false ? skin : 0x1a2430);
+  const head = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.28, 0.28), headMat);
   head.name = "head";
   head.userData.avatarPart = "head";
   head.position.y = 1.55;
@@ -163,5 +168,14 @@ export function createBlockyExplorer(options?: {
       o.receiveShadow = true;
     }
   });
+
+  // Nexus / Voxel default + Armada backup: LED smile face (Open LED Mask parity)
+  if (options?.ledFace !== false && typeof document !== "undefined") {
+    try {
+      ensureLedFaceOnExplorer(group);
+    } catch {
+      /* SSR / test without canvas */
+    }
+  }
   return group;
 }

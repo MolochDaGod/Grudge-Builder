@@ -129,20 +129,23 @@ async function loadVoxelExplorer(hero: Character): Promise<CrewLoaded> {
 }
 
 /**
- * Load crew mesh for airship AI. Always returns a grounded root.
+ * Load crew mesh for roster cinema. Always returns a grounded root.
+ * Nexus/voxel → LED face default; armada → LED face on load failure (backup).
  */
 export async function loadCrewHero(hero: Character): Promise<CrewLoaded> {
   const pipe = pipelineForCharacter(hero);
   if (pipe === "voxel") {
+    // LED face default on blocky explorer (createBlockyExplorer)
     return loadVoxelExplorer(hero);
   }
-  // toon / armada / warlords — use grudge6 race kits until dedicated loaders land
+  // toon / armada / warlords — grudge6 kits until dedicated loaders land
   try {
     return await loadGrudge6(hero);
   } catch (e) {
-    console.warn("[heroesCrew] grudge6 load failed, blocky explorer", e);
+    console.warn("[heroesCrew] primary mesh failed — LED face backup body", e);
     const app = getAppearance(hero.id);
-    const blocky = createBlockyExplorer();
+    // Armada backup + any failed primary: LED-faced cube body
+    const blocky = createBlockyExplorer({ ledFace: true });
     const hM = applyExplorerAppearanceToRoot(blocky, app, 1.8);
     return { root: blocky, controller: null, pipeline: pipe, heightM: hM };
   }

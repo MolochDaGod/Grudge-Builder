@@ -5,9 +5,9 @@
  * | Era      | Pipeline | Slots | Characters / builds                         | Play / worlds              |
  * |----------|----------|-------|---------------------------------------------|----------------------------|
  * | warlords | grudge6  | 4     | Foundry create (character.gs.com)           | client.grudge-studio.com   |
- * | nexus    | toon     | 12    | Toon RTS (soon). Interim: voxel avatars     | **Grudox**                 |
- * | voxel    | voxel    | 4     | Voxel race / explorer avatars               | Mine-Loader + maker       |
- * | armada   | mech     | 4     | Mechs from Mech Builder / Forge             | mech-playground            |
+ * | nexus    | toon     | 12    | Toon (soon). Interim voxel + **LED face** default | **Grudox**           |
+ * | voxel    | voxel    | 4     | Race/explorer avatars + **LED face** default      | Mine-Loader + maker  |
+ * | armada   | mech     | 4     | Mechs (Mech Builder); **LED face** as backup      | mech-playground      |
  *
  * All fleet games list via GET /api/characters?era=<era>.
  * Account bag / GBUX stay account-scoped on /api/account/* (shared).
@@ -81,6 +81,13 @@ export const ERA_META: Record<
     createUrl: string | null;
     /** false = no hero/mech roster in production */
     charactersEnabled: boolean;
+    /**
+     * LED face (Open LED Mask smile visor) on cube / explorer head.
+     * - default: always paint when using interim/voxel body
+     * - backup: only when primary mech mesh / pilot head is missing
+     * - none: grudge6 race kits (warlords)
+     */
+    ledFace: 'default' | 'backup' | 'none';
   }
 > = {
   warlords: {
@@ -94,12 +101,13 @@ export const ERA_META: Record<
     slotCount: 4,
     createUrl: 'https://character.grudge-studio.com/foundry?era=warlords',
     charactersEnabled: true,
+    ledFace: 'none',
   },
   nexus: {
     label: 'Nexus Era (Toon)',
     shortLabel: 'Nexus',
     description:
-      'Toon RTS roster (in progress). Until toon kits ship, use voxel avatars. Play surface: Grudox.',
+      'Toon RTS (in progress). Interim: voxel avatars with LED face default. Play: Grudox.',
     defaultPipeline: 'toon',
     /** Stand-in mesh until dedicated Toon RTS characters are built */
     interimPipeline: 'voxel',
@@ -108,12 +116,13 @@ export const ERA_META: Record<
     slotCount: 12,
     createUrl: 'https://character.grudge-studio.com/?era=nexus',
     charactersEnabled: true,
+    ledFace: 'default',
   },
   voxel: {
     label: 'Voxel Era',
     shortLabel: 'Voxel',
     description:
-      'Voxel race / explorer avatars. Play: Mine-Loader game deployers; worlds: Mine-Loader maker.',
+      'Voxel race / explorer avatars (LED face default). Play: Mine-Loader deployers; worlds: maker.',
     defaultPipeline: 'voxel',
     interimPipeline: null,
     playUrl: 'https://mine-loader.vercel.app/#/play',
@@ -121,12 +130,13 @@ export const ERA_META: Record<
     slotCount: 4,
     createUrl: 'https://character.grudge-studio.com/?era=voxel',
     charactersEnabled: true,
+    ledFace: 'default',
   },
   armada: {
     label: 'Armada (Mech)',
     shortLabel: 'Armada',
     description:
-      'Modular mechs built in Mech Builder / Mech Forge — hangar loadouts, dust-arena combat (not naval ships)',
+      'Modular mechs from Mech Builder — LED face as backup pilot/head when mesh missing',
     defaultPipeline: 'mech',
     interimPipeline: null,
     playUrl: 'https://mech-playground.vercel.app',
@@ -134,6 +144,7 @@ export const ERA_META: Record<
     slotCount: 4,
     createUrl: 'https://grudge-studio.com/mech-armada',
     charactersEnabled: true,
+    ledFace: 'backup',
   },
 };
 
@@ -181,6 +192,11 @@ export function eraAllowsCharacters(era: GameEra): boolean {
 
 export function defaultPipelineForEra(era: GameEra): RenderPipeline {
   return ERA_META[era].defaultPipeline;
+}
+
+/** LED face policy for era (default / backup / none). */
+export function ledFacePolicyForEra(era: GameEra): 'default' | 'backup' | 'none' {
+  return ERA_META[era].ledFace;
 }
 
 /**
