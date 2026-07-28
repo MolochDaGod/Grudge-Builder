@@ -5,12 +5,12 @@ Scope by `characters.game_era` + `accounts.era_slots`.
 
 ## Production matrix
 
-| Era | Pipeline (`model3d.renderPipeline`) |Slots | Create surface | Play / delivery |
+| Era | Pipeline (`model3d.renderPipeline`) | Slots | Create surface | Play / delivery |
 |-----|--------------------------------------|-------|----------------|-----------------|
 | **warlords** | **grudge6** | **4** | character.grudge-studio.com/foundry | **client.grudge-studio.com** (`/heroes` seaside roster — **no airship painting**) |
 | **nexus** | **toon** | **12** | select/link the 12 Toon RTS heroes | **mine-loader.vercel.app** `#/play` |
 | **voxel** | **voxel** | **4** | voxel / Explorer shell | **mine-loader.vercel.app** `#/play` |
-| **armada** | armada_ship (ships only) | **0** | **none** — no characters | armada ships later |
+| **armada** | **mech** | **4** | **Mech Builder / Mech Forge** (`grudge-studio.com/mech-armada`, `mech-playground`) | **mech-playground.vercel.app** |
 
 ### Delivery conflicts (resolved)
 
@@ -19,27 +19,27 @@ Scope by `characters.game_era` + `accounts.era_slots`.
 | Mix voxel into Warlords `/heroes` | Warlords page = `era=warlords` only |
 | Paint airship plate on `/heroes` | Purged → seaside sector cinema |
 | Voxel play URL `mine.grudge-studio.com` | `mine-loader.vercel.app/#/play` |
-| Armada hero slots | Always **0** — ships only |
+| Armada = naval ships / 0 slots | **Armada = mechs from Mech Builder** (4 loadout slots, pipeline `mech`) |
 
 Code: `shared/definitions/gameEras.ts`  
 DB default: `accounts.era_slots` JSON (see schema.ts)
 
 ## Rules
 
-1. **One Grudge ID → many characters**, each tagged `gameEra`.
+1. **One Grudge ID → many characters / builds**, each tagged `gameEra`.
 2. **Foundry = Warlords grudge6 create only** (not Nexus/Voxel mesh forge).
-3. **Armada create always 403** (`eraAllowsCharacters('armada') === false`).
-4. **Pipeline is server-forced** from era — clients cannot save warlords with `toon` pipeline.
+3. **Armada = Mech Builder mechs** (`eraAllowsCharacters('armada') === true`, 4 slots) — not ship hulls as the player roster.
+4. **Pipeline is server-forced** from era — clients cannot save warlords with `toon` pipeline; armada forces `mech`.
 5. Account bag / GBUX = `/api/account/*` (shared across eras).
-6. List: `GET /api/characters?era=warlords|nexus|voxel`.
+6. List: `GET /api/characters?era=warlords|nexus|voxel|armada`.
 
-## Foundry
+## Foundry / create surfaces
 
 - `?era=warlords` (default) → 4-slot hub + `/foundry` grudge6 create  
-- `?era=nexus` → 12-slot select (toon), create only if product allows  
+- `?era=nexus` → 12-slot select (toon)  
 - `?era=voxel` → 4-slot voxel select  
-- `?era=armada` → message: no characters  
+- `?era=armada` → Mech Builder / hangar (mech chassis + parts)  
 
 ## Migration note
 
-Legacy rows with `eraSlots.warlords.max=5` or `armada.max=2` are **clamped** by `mergeEraSlots()` on every account read/create.
+Legacy rows with `eraSlots.warlords.max=5` or `armada.max=0` (old “ships only” law) are **clamped/raised to product DEFAULT** by `mergeEraSlots()` on every account read/create (`armada.max` → **4**).

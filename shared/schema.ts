@@ -65,8 +65,8 @@ export const characters = pgTable("characters", {
     voiceProfile?: string;
     shipId?: string;
     nexusMintId?: string;
-    /** grudge6=warlords, toon=nexus 12, voxel=voxel, armada_ship=no heroes */
-    renderPipeline?: 'grudge6' | 'toon' | 'voxel' | 'vrm' | 'armada_ship' | 'sprite2d';
+    /** grudge6=warlords, toon=nexus 12, voxel=voxel, mech=armada mechs, armada_ship=legacy naval prop */
+    renderPipeline?: 'grudge6' | 'toon' | 'voxel' | 'mech' | 'vrm' | 'armada_ship' | 'sprite2d';
     /** Mirror of characters.grudge_code for 3D clients that only read model3d */
     grudgeDisplayId?: string;
     grudgeCode?: string;
@@ -589,13 +589,13 @@ export const accounts = pgTable("accounts", {
   premiumCurrency: integer("premium_currency").notNull().default(0),
   gbuxBalance: integer("gbux_balance").notNull().default(0), // GbuX token balance
   characterTokens: integer("character_tokens").notNull().default(1), // Tokens for creating new Warlords-era characters (1 free on account creation, +1 per boss clear)
-  /** Per-era roster caps and active character IDs (GCS). Product law: warlords 4 grudge6, nexus 12 toon, voxel 4, armada 0. */
+  /** Per-era roster caps and active IDs (GCS). Product law: warlords 4 grudge6, nexus 12 toon, voxel 4, armada 4 mechs. */
   eraSlots: jsonb("era_slots").$type<{
     warlords: { max: number; activeCharacterId: string | null };
     nexus: { max: number; activeCharacterId: string | null };
     voxel: { max: number; activeCharacterId: string | null };
     armada: { max: number; activeCharacterId: string | null };
-  }>().default(sql`'{"warlords":{"max":4,"activeCharacterId":null},"nexus":{"max":12,"activeCharacterId":null},"voxel":{"max":4,"activeCharacterId":null},"armada":{"max":0,"activeCharacterId":null}}'::jsonb`),
+  }>().default(sql`'{"warlords":{"max":4,"activeCharacterId":null},"nexus":{"max":12,"activeCharacterId":null},"voxel":{"max":4,"activeCharacterId":null},"armada":{"max":4,"activeCharacterId":null}}'::jsonb`),
   accountXp: integer("account_xp").notNull().default(0), // Total aggregated XP from all characters
   avatarUrl: text("avatar_url"), // Custom avatar image URL
   // Solana wallet fields

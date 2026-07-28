@@ -2,12 +2,12 @@
  * Grudge Character Studio — multi-era account rosters (Engine Account DB SSOT).
  *
  * Production law (2026-07):
- * | Era      | Pipeline  | Slots | Characters                         |
- * |----------|-----------|-------|------------------------------------|
- * | warlords | grudge6   | 4     | Foundry create (character.gs.com)  |
- * | nexus    | toon      | 12    | Toon RTS roster (the 12 we made)   |
- * | voxel    | voxel     | 4     | Voxel / Explorer TVS heroes        |
- * | armada   | —         | 0     | NO characters (ships only later)   |
+ * | Era      | Pipeline  | Slots | Characters / builds                    |
+ * |----------|-----------|-------|----------------------------------------|
+ * | warlords | grudge6   | 4     | Foundry create (character.gs.com)      |
+ * | nexus    | toon      | 12    | Toon RTS roster (the 12 we made)       |
+ * | voxel    | voxel     | 4     | Voxel / Explorer TVS heroes            |
+ * | armada   | mech      | 4     | Mechs built in Mech Builder / Forge    |
  *
  * All fleet games list via GET /api/characters?era=<era>.
  * Account bag / GBUX stay account-scoped on /api/account/* (shared).
@@ -20,13 +20,15 @@ export type GameEra = 'warlords' | 'nexus' | 'voxel' | 'armada';
  * - grudge6: modular race kits (WK_/ELF_/…) — Warlords Foundry
  * - toon: Toon RTS 12-character set — Nexus
  * - voxel: voxel TVS / box-hero pipeline — Voxel / Explorer
- * - armada_ship: ships only (no player hero roster)
+ * - mech: modular mech chassis/parts — Armada (Mech Builder / Mech Forge)
+ * - armada_ship: legacy alias for naval props only (not the player roster)
  * - vrm / sprite2d: legacy optional
  */
 export type RenderPipeline =
   | 'grudge6'
   | 'toon'
   | 'voxel'
+  | 'mech'
   | 'armada_ship'
   | 'vrm'
   | 'sprite2d';
@@ -40,18 +42,23 @@ export type AccountEraSlots = Record<GameEra, EraSlotConfig>;
 
 export const GAME_ERAS: GameEra[] = ['warlords', 'nexus', 'voxel', 'armada'];
 
-/** Eras that allow hero create/select (max > 0). */
-export const PLAYABLE_CHARACTER_ERAS: GameEra[] = ['warlords', 'nexus', 'voxel'];
+/** Eras that allow create/select (max > 0). Includes Armada mechs. */
+export const PLAYABLE_CHARACTER_ERAS: GameEra[] = [
+  'warlords',
+  'nexus',
+  'voxel',
+  'armada',
+];
 
 /**
  * Product law slot caps — Engine accounts.eraSlots.max must match.
- * Armada = 0 (no characters in production).
+ * Armada = 4 mech loadouts (Mech Builder), not ships.
  */
 export const DEFAULT_ERA_SLOTS: AccountEraSlots = {
   warlords: { max: 4, activeCharacterId: null },
   nexus: { max: 12, activeCharacterId: null },
   voxel: { max: 4, activeCharacterId: null },
-  armada: { max: 0, activeCharacterId: null },
+  armada: { max: 4, activeCharacterId: null },
 };
 
 export const ERA_META: Record<
@@ -66,7 +73,7 @@ export const ERA_META: Record<
     slotCount: number;
     /** Foundry / create surface */
     createUrl: string | null;
-    /** false = no hero roster in production */
+    /** false = no hero/mech roster in production */
     charactersEnabled: boolean;
   }
 > = {
@@ -102,26 +109,40 @@ export const ERA_META: Record<
     charactersEnabled: true,
   },
   armada: {
-    label: 'Grim Armada',
+    label: 'Armada (Mech)',
     shortLabel: 'Armada',
-    description: 'Naval / ships — no player character roster in production',
-    defaultPipeline: 'armada_ship',
-    playUrl: 'https://armada.grudge-studio.com',
-    slotCount: 0,
-    createUrl: null,
-    charactersEnabled: false,
+    description:
+      'Modular mechs built in Mech Builder / Mech Forge — hangar loadouts, dust-arena combat (not naval ships)',
+    defaultPipeline: 'mech',
+    playUrl: 'https://mech-playground.vercel.app',
+    slotCount: 4,
+    createUrl: 'https://grudge-studio.com/mech-armada',
+    charactersEnabled: true,
   },
 };
 
 export function normalizeGameEra(value: unknown): GameEra {
   const v = String(value || '')
     .toLowerCase()
-    .trim();
+    .trim()
+    .replace(/[\s-]+/g, '_');
   if (v === 'nexus' || v === 'armada' || v === 'warlords' || v === 'voxel') return v;
   // Aliases
   if (v === 'toon' || v === 'toon_rts' || v === 'rts_toon') return 'nexus';
   if (v === 'vox' || v === 'explorer' || v === 'grudox') return 'voxel';
   if (v === 'gcs' || v === 'warlord' || v === 'grudge6') return 'warlords';
+  // Armada = mech builder product
+  if (
+    v === 'mech' ||
+    v === 'mechs' ||
+    v === 'mech_builder' ||
+    v === 'mech_forge' ||
+    v === 'mechforge' ||
+    v === 'grim_armada' ||
+    v === 'mech_armada'
+  ) {
+    return 'armada';
+  }
   return 'warlords';
 }
 
@@ -135,7 +156,8 @@ export function defaultPipelineForEra(era: GameEra): RenderPipeline {
 
 /**
  * Merge DB era_slots with product law.
- * Always clamp max to product DEFAULT (so legacy max:5 warlords → 4, armada → 0).
+ * Always clamp max to product DEFAULT (so legacy max:5 warlords → 4;
+ * legacy armada max:0 or max:2 → 4 mechs).
  */
 export function mergeEraSlots(raw?: Partial<AccountEraSlots> | null): AccountEraSlots {
   const merged: AccountEraSlots = {
@@ -150,7 +172,7 @@ export function mergeEraSlots(raw?: Partial<AccountEraSlots> | null): AccountEra
     const incoming = raw[era];
     if (incoming) {
       merged[era] = {
-        // Never exceed product law; never expand armada above 0
+        // Product law slot cap (never invent a higher max than DEFAULT)
         max: productMax,
         activeCharacterId: incoming.activeCharacterId ?? null,
       };
@@ -166,5 +188,5 @@ export const ERA_SLOTS_SQL_DEFAULT = JSON.stringify({
   warlords: { max: 4, activeCharacterId: null },
   nexus: { max: 12, activeCharacterId: null },
   voxel: { max: 4, activeCharacterId: null },
-  armada: { max: 0, activeCharacterId: null },
+  armada: { max: 4, activeCharacterId: null },
 });

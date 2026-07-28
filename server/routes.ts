@@ -424,14 +424,15 @@ export async function registerRoutes(
       const userId = getUserId(req);
       const gameEra = normalizeGameEra(req.body.gameEra);
 
-      // Production law: armada has no character roster (ships only).
+      // Production law: only eras with charactersEnabled + slotCount > 0
+      // (warlords heroes, nexus toon, voxel explorers, armada mechs).
       if (!eraAllowsCharacters(gameEra) || ERA_META[gameEra].slotCount <= 0) {
         return res.status(403).json({
-          error: `${ERA_META[gameEra].shortLabel} has no character roster in production.`,
+          error: `${ERA_META[gameEra].shortLabel} has no character/mech roster in production.`,
           gameEra,
           max: 0,
           charactersEnabled: false,
-          hint: "Use warlords (grudge6), nexus (toon×12), or voxel.",
+          hint: "Use warlords (grudge6), nexus (toon×12), voxel, or armada (mechs).",
         });
       }
 
