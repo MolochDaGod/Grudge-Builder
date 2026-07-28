@@ -113,3 +113,23 @@ export type {
   CraftDriveClass,
   DriveModeState,
 } from "./OpenWaterDriveMode";
+
+// Waveboard (tslda-inspired · Grudge6 back-slot · dock craft)
+export {
+  WaveboardController,
+  loadWaveboardRig,
+} from "./waveboard";
+export type {
+  WaveboardOpts,
+  WaveboardState,
+  WaveboardUpdateResult,
+  WaveboardRigHandle,
+} from "./waveboard";
+
+export {
+  WAVEBOARD_ITEM,
+  WAVEBOARD_RECIPE,
+  WAVEBOARD_GLB,
+  WAVEBOARD_ITEM_ID,
+  WAVEBOARD_MATERIALS,
+} from "@shared/definitions/waveboard";

@@ -24,6 +24,20 @@ export interface CraftingRecipe {
 }
 
 export const RECIPES: CraftingRecipe[] = [
+  // Dock / open-water (Forester Lumber Table + dock UI)
+  {
+    id: 'waveboard',
+    name: 'Waveboard',
+    type: 'Utilities',
+    tier: 'T1',
+    station: 'Lumber Table',
+    time: '8s',
+    chance: '100%',
+    mats: { 'Wood Scraps': 2, 'Scrap Cloth': 2 },
+    description:
+      'Back-slot open-water board. Craft at dock: 2 wood + 2 cloth. Deploy with B on the ocean.',
+  },
+
   { id: 'copper-ingot', name: 'Copper Ingot', type: 'Refining', tier: 'T1', station: 'Smithing Table', time: '3s', chance: '100%', mats: { 'Copper Ore': 3, 'Coal': 1 }, description: 'Basic smelted metal' },
   { id: 'iron-ingot', name: 'Iron Ingot', type: 'Refining', tier: 'T2', station: 'Smithing Table', time: '4s', chance: '100%', mats: { 'Iron Ore': 3, 'Coal': 1, 'Flux': 1 }, description: 'Common crafting metal' },
   { id: 'steel-ingot', name: 'Steel Ingot', type: 'Refining', tier: 'T3', station: 'Smithing Table', time: '5s', chance: '98%', mats: { 'Steel Ore': 4, 'Coal': 2, 'Flux': 1 }, description: 'Quality refined metal' },

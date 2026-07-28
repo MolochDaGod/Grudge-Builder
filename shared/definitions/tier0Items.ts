@@ -255,9 +255,34 @@ export const T0_MATERIALS: Record<string, T0ItemDefinition> = {
     maxStack: 200,
     sellValue: 1,
     craftable: false,
-    usedInT1Crafting: ['plank']
+    usedInT1Crafting: ['plank', 'waveboard']
   }
 };
+
+/** Dock craft: Waveboard (Back slot) — 2 wood + 2 cloth */
+export const T0_WAVEBOARD: T0ItemDefinition = {
+  id: 'waveboard',
+  name: 'Waveboard',
+  description:
+    'Open-water wind board. Equip in Back slot, deploy with B on the ocean. Craft at dock: 2 Wood Scraps + 2 Scrap Cloth.',
+  icon: '🏄',
+  type: 'equipment',
+  slot: 'Back',
+  subType: 'waveboard',
+  stackable: false,
+  sellValue: 12,
+  craftable: true,
+  craftingRecipe: {
+    ingredients: [
+      { itemId: 't0_wood_scrap', quantity: 2 },
+      { itemId: 't0_scrap_cloth', quantity: 2 },
+    ],
+    profession: 'Forester',
+    professionLevel: 1,
+    craftTime: 8,
+  },
+};
+
 
 export const T0_CLOTH_EQUIPMENT: Record<string, T0ItemDefinition> = {
   t0_cloth_helm: {
@@ -812,7 +837,8 @@ export const ALL_T0_ITEMS: Record<string, T0ItemDefinition> = {
   ...T0_METAL_EQUIPMENT,
   ...T0_ACCESSORIES,
   ...T0_OFFHAND,
-  ...T0_WEAPONS
+  ...T0_WEAPONS,
+  [T0_WAVEBOARD.id]: T0_WAVEBOARD,
 };
 
 export function getT0Item(id: string): T0ItemDefinition | undefined {
