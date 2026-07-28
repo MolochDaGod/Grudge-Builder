@@ -33,10 +33,15 @@ import {
   DEFAULT_HARVEST_RADIAL_TOOL,
   type HarvestRadialToolId,
 } from '@/game/harvest/HarvestToolActions';
-import { CombatUnitStatus } from '@/components/CombatUnitStatus';
 import { CampCommandBar } from './CampCommandBar';
 import { usePlayerStatusEffects } from '@/hooks/useStatusEffects';
 import { preloadMagicIndicatorThumbs } from '@/lib/magicIndicatorThumbs';
+import { UiKitActionSlot } from '@/components/uiKit/UiKitActionSlot';
+import { UiKitPlayerFrame } from '@/components/uiKit/UiKitPlayerFrame';
+import { iconForSkillLabel, iconForHarvestTool, UI_FRAMES, UI_SLOTS } from '@/lib/uiKit/craftpixAssets';
+import { ensureCraftpixRpgCss } from '@/lib/uiKit/loadGrudgeGameUI';
+import { UI_STUDIO_ORIGIN } from '@/lib/uiKit/uiStudioConfig';
+import '@/styles/ui-kit-production.css';
 
 // ── Mode config (combat + harvest only) ──────────────────────────────────────
 
@@ -148,8 +153,9 @@ export function ModePlayHUD({
     && (engine?.harvestBuildUiOpen || engine?.character?.hasBuildHammer || activeTool === 'toolkit' || mode === 'build');
   const placing = isPlacing || placingLocal || (engine?.isBuildPlacing ?? false);
 
-  // Bake magic buff/debuff GLB orbs for unit-frame indicators
+  // Production craftpix CSS (ui.grudge-studio.com / R2) + magic thumbs
   useEffect(() => {
+    ensureCraftpixRpgCss();
     void preloadMagicIndicatorThumbs();
   }, []);
 
@@ -298,8 +304,20 @@ export function ModePlayHUD({
   const activeRadialMeta = HARVEST_RADIAL_TOOLS.find((t) => t.id === activeTool);
 
   return (
-    <div className="absolute inset-0 pointer-events-none z-40">
+    <div className="absolute inset-0 pointer-events-none z-40 uikit-root">
       <CampCommandBar engine={engine} />
+
+      {/* Production unit frame — craftpix assets from ui.grudge-studio.com */}
+      <div className="uikit-chrome-tl">
+        <UiKitPlayerFrame
+          name={characterName}
+          level={level}
+          hp={hp}
+          maxHp={maxHp}
+          mp={80}
+          maxMp={100}
+        />
+      </div>
 
       {/* ── Harvest tool radial (R) ─────────────────────────────────── */}
       {toolRadialOpen && hudMode === 'harvest' && (
@@ -336,41 +354,39 @@ export function ModePlayHUD({
               const y = Math.sin(angle) * radius;
               const active = activeTool === t.id;
               return (
-                <button
+                <div
                   key={t.id}
-                  type="button"
-                  title={t.title}
-                  onClick={() => void selectRadialTool(t.id)}
-                  className="absolute w-16 h-16 -ml-8 -mt-8 rounded-2xl border flex flex-col items-center justify-center gap-0.5 transition-all"
+                  className="absolute -ml-[26px] -mt-[26px]"
                   style={{
                     left: `calc(50% + ${x}px)`,
                     top: `calc(50% + ${y}px)`,
-                    borderColor: active ? '#2ecc71' : 'rgba(46,204,113,0.25)',
-                    background: active
-                      ? 'linear-gradient(180deg, rgba(46,204,113,0.35), rgba(20,60,40,0.9))'
-                      : 'rgba(10,16,12,0.92)',
-                    boxShadow: active ? '0 0 16px rgba(46,204,113,0.45)' : 'none',
-                    color: active ? '#d8ffe8' : 'rgba(200,220,200,0.85)',
                   }}
                 >
-                  <span className="text-xl leading-none">{t.emoji}</span>
-                  <span className="text-[9px] font-bold uppercase tracking-wide">{t.label}</span>
-                </button>
+                  <UiKitActionSlot
+                    emoji={t.emoji}
+                    iconUrl={iconForHarvestTool(t.id)}
+                    label={t.label}
+                    title={t.title}
+                    active={active}
+                    size={56}
+                    onClick={() => void selectRadialTool(t.id)}
+                  />
+                </div>
               );
             })}
           </div>
         </div>
       )}
 
-      {/* ── Mode dock (bottom center) ─────────────────────────────────── */}
+      {/* ── Mode dock (bottom center) — craftpix panel chrome ─────────── */}
       <div className="absolute bottom-3 left-1/2 -translate-x-1/2 pointer-events-auto flex flex-col items-center gap-2">
         <div
-          className="rounded-2xl border backdrop-blur-md shadow-2xl overflow-hidden"
+          className="uikit-panel overflow-hidden"
           style={{
-            background: 'rgba(10, 8, 6, 0.92)',
             borderColor: `${modeCfg.color}55`,
             minWidth: buildUiOpen ? 420 : 320,
             maxWidth: 'min(92vw, 520px)',
+            ['--uikit-panel-bg' as string]: `url(${UI_FRAMES.windowBackground})`,
           }}
         >
           {hudMode === 'combat' && (
@@ -411,10 +427,10 @@ export function ModePlayHUD({
 
         {/* Mode switcher — combat + harvest only */}
         <div
-          className="flex gap-1.5 p-1.5 rounded-2xl border backdrop-blur-md"
+          className="uikit-panel flex gap-1.5 p-1.5"
           style={{
-            background: 'rgba(12, 8, 5, 0.95)',
             borderColor: 'rgba(197, 160, 89, 0.35)',
+            ['--uikit-panel-bg' as string]: `url(${UI_FRAMES.windowBackground})`,
           }}
         >
           {MODES.map(({ id, label, color, Icon }) => {
@@ -424,24 +440,11 @@ export function ModePlayHUD({
                 key={id}
                 type="button"
                 onClick={() => void applyHudMode(id)}
-                className="relative flex items-center gap-2 px-4 py-2.5 rounded-xl transition-all text-sm font-semibold"
-                style={{
-                  background: active
-                    ? `linear-gradient(180deg, ${color}33, ${color}18)`
-                    : 'transparent',
-                  border: `1.5px solid ${active ? color : 'transparent'}`,
-                  color: active ? color : 'rgba(224, 216, 200, 0.55)',
-                  boxShadow: active ? `0 0 14px ${color}40` : 'none',
-                }}
+                className={`uikit-mode-btn ${active ? 'is-active' : ''}`}
+                style={{ ['--mode-color' as string]: color }}
               >
                 <Icon className="w-4 h-4" />
-                <span className="font-cinzel tracking-wide">{label}</span>
-                {active && (
-                  <span
-                    className="absolute -bottom-0.5 left-1/2 -translate-x-1/2 w-4 h-0.5 rounded-full"
-                    style={{ background: color, boxShadow: `0 0 6px ${color}` }}
-                  />
-                )}
+                <span>{label}</span>
               </button>
             );
           })}
@@ -449,7 +452,16 @@ export function ModePlayHUD({
 
         <p className="text-[10px] text-white/35 tracking-wide">
           {modeCfg.hint}
-          <span className="text-white/20 ml-2">[Q] swap · [R] tools</span>
+          <span className="text-white/20 ml-2">[Q] swap · [R] tools · [I] bag</span>
+          <a
+            href={`${UI_STUDIO_ORIGIN}/`}
+            target="_blank"
+            rel="noreferrer"
+            className="ml-2 text-amber-500/50 hover:text-amber-400/80 pointer-events-auto"
+            title="UI kit studio"
+          >
+            ui kit
+          </a>
         </p>
       </div>
 
@@ -489,10 +501,10 @@ export function ModePlayHUD({
 // ── Combat panel ─────────────────────────────────────────────────────────────
 
 function CombatModePanel({
-  name,
-  hp,
-  maxHp,
-  level,
+  name: _name,
+  hp: _hp,
+  maxHp: _maxHp,
+  level: _level,
   classHotbar,
   weaponHotbar,
 }: {
@@ -503,7 +515,8 @@ function CombatModePanel({
   classHotbar: Array<{ key: string; label: string }>;
   weaponHotbar: Array<{ key: string; label: string }>;
 }) {
-  const statusEffects = usePlayerStatusEffects();
+  // Unit frame is rendered once in chrome-tl; status effects reserved for frame buffs later
+  usePlayerStatusEffects();
   const slots = [
     ...weaponHotbar.slice(0, 3).map((s, i) => ({ ...s, key: s.key || String(i + 1) })),
     ...classHotbar.slice(0, 2).map((s, i) => ({ ...s, key: s.key || String(i + 4) })),
@@ -514,40 +527,20 @@ function CombatModePanel({
 
   return (
     <div className="p-3 space-y-3">
-      <div className="flex items-start gap-3">
-        <div className="w-48 pt-2">
-          <CombatUnitStatus
-            name={name}
-            hp={hp}
-            maxHp={maxHp}
-            mp={80}
-            maxMp={100}
-            sp={60}
-            maxSp={100}
-            level={level}
-            isActive
-            compact
-            statusEffects={statusEffects}
+      <div className="uikit-panel__header flex items-center gap-1.5">
+        <Crosshair className="w-3 h-3" /> Combat skills · craftpix slots
+      </div>
+      <div className="uikit-slot-row" style={{ justifyContent: 'flex-start', padding: '4px 8px 8px' }}>
+        {slots.slice(0, 5).map((s) => (
+          <UiKitActionSlot
+            key={s.key}
+            keyLabel={s.key}
+            label={s.label}
+            iconUrl={iconForSkillLabel(s.label) ?? UI_SLOTS.actionEmpty}
+            title={s.label}
+            size={52}
           />
-        </div>
-        <div className="flex-1">
-          <p className="text-[10px] uppercase tracking-widest text-red-400/80 mb-1.5 flex items-center gap-1">
-            <Crosshair className="w-3 h-3" /> Combat Skills
-          </p>
-          <div className="flex gap-1.5">
-            {slots.slice(0, 5).map((s) => (
-              <div
-                key={s.key}
-                className="w-11 h-11 rounded-lg border border-red-800/50 bg-red-950/40 flex flex-col items-center justify-center"
-              >
-                <span className="text-[9px] text-red-300/70 font-mono">{s.key}</span>
-                <span className="text-[9px] text-red-100/90 truncate max-w-[40px] text-center leading-tight">
-                  {s.label}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
+        ))}
       </div>
     </div>
   );
@@ -636,6 +629,7 @@ function HarvestModePanel({
     || (t.ground !== null && engine?.harvestToolOverride === t.ground);
 
   const radialMeta = HARVEST_RADIAL_TOOLS.find((t) => t.id === activeRadialTool);
+  const resourceEntries = entries.slice(0, 12);
 
   const hint =
     engine?.harvestToolOverride === 'shovel'
@@ -672,32 +666,20 @@ function HarvestModePanel({
         </button>
       </div>
 
-      {/* Compact radial tool strip */}
-      <div className="flex gap-1">
-        {HARVEST_RADIAL_TOOLS.map((t) => {
-          const active = activeRadialTool === t.id;
-          return (
-            <button
-              key={t.id}
-              type="button"
-              onClick={() => onSelectRadialTool(t.id)}
-              title={t.title}
-              className="flex-1 rounded-lg border py-1.5 flex flex-col items-center gap-0.5 transition-colors"
-              style={{
-                borderColor: active ? '#2ecc71' : 'rgba(6, 78, 59, 0.4)',
-                background: active ? 'rgba(46,204,113,0.22)' : 'rgba(6, 40, 30, 0.3)',
-              }}
-            >
-              <span className="text-base leading-none">{t.emoji}</span>
-              <span
-                className="text-[9px]"
-                style={{ color: active ? '#e8dcc0' : 'rgba(167, 243, 208, 0.75)' }}
-              >
-                {t.label}
-              </span>
-            </button>
-          );
-        })}
+      {/* Compact radial tool strip — craftpix action slots */}
+      <div className="uikit-slot-row" style={{ justifyContent: 'flex-start', padding: '0 2px' }}>
+        {HARVEST_RADIAL_TOOLS.map((t) => (
+          <UiKitActionSlot
+            key={t.id}
+            emoji={t.emoji}
+            iconUrl={iconForHarvestTool(t.id)}
+            label={t.label}
+            title={t.title}
+            active={activeRadialTool === t.id}
+            size={48}
+            onClick={() => onSelectRadialTool(t.id)}
+          />
+        ))}
       </div>
 
       {/* Secondary ground tools */}
@@ -783,18 +765,22 @@ function HarvestModePanel({
         <p className="text-[10px] text-emerald-300/90">{craftMsg}</p>
       )}
 
-      <div className="flex flex-wrap gap-1.5 pt-1 max-h-16 overflow-y-auto">
-        {entries.length === 0 ? (
+      <div className="uikit-panel__header" style={{ border: 'none', paddingBottom: 0 }}>
+        Island bag
+      </div>
+      <div
+        className="flex flex-wrap gap-1.5 pt-1 max-h-20 overflow-y-auto px-1"
+        style={{ ['--uikit-inv-slot' as string]: `url(${UI_SLOTS.inventoryBg})` }}
+      >
+        {resourceEntries.length === 0 ? (
           <span className="text-white/25 text-xs">
-            Bag empty — gather or farm · R → hammer for build
+            Bag empty — gather or farm · R → hammer for build · I equipment
           </span>
         ) : (
-          entries.map(([k, v]) => (
-            <span
-              key={k}
-              className="px-2 py-0.5 rounded-md bg-emerald-900/40 border border-emerald-700/30 text-emerald-200 text-[11px]"
-            >
-              {k}: <strong>{v}</strong>
+          resourceEntries.map(([k, v]) => (
+            <span key={k} className="uikit-resource" title={k}>
+              <span className="truncate max-w-[4.5rem]">{k}</span>
+              <strong>{v}</strong>
             </span>
           ))
         )}
