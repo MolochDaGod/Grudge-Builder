@@ -25,6 +25,7 @@ import chatRoute from './routes/chat';
 import imageRoute from './routes/image';
 import mediaRoute from './routes/media';
 import agentRoute from './routes/agent';
+import rapierRoute from './routes/rapier';
 import { handleQueue } from './queue';
 
 const app = new Hono<{ Bindings: Env }>();
@@ -60,12 +61,16 @@ app.get('/health', (c) => {
   return c.json({
     ok: true,
     service: 'grudge-ai-gateway',
-    version: '1.0.0',
+    version: '1.1.0',
     environment: c.env.ENVIRONMENT,
     models: MODEL_REGISTRY.length,
+    rapier: '/v1/rapier/checklist',
     timestamp: new Date().toISOString(),
   });
 });
+
+// Rapier fleet physics agent context (public checklist + system prompt)
+app.route('/', rapierRoute);
 
 app.get('/v1/models', (c) => {
   return c.json({
