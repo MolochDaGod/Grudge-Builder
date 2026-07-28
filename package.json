@@ -357,9 +357,11 @@
     "vitest": "^4.1.7"
   },
   "engines": {
-    "node": "22.x"
+    "node": "22.x",
+    "npm": ">=10"
   },
   "optionalDependencies": {
     "bufferutil": "^4.0.8"
-  }
+  },
+  "packageManager": "npm@10.9.2"
 }

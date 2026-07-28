@@ -38,6 +38,9 @@ import { clearTopDownCache } from '@/island3d/render/IslandTopDownCapture';
 import type { MountainHintState } from '@/island3d/objects/EvilMountainTriad';
 import { Home, Mountain, ArrowLeft, Map as MapIcon } from 'lucide-react';
 import { Grudge6PlayShell } from '@/components/Grudge6PlayShell';
+import { GrudgeGameUiLayer } from '@/components/uiKit/GrudgeGameUiLayer';
+import MainPanelHost from '@/components/MainPanelHost';
+import { ensureCraftpixRpgCss } from '@/lib/uiKit/loadGrudgeGameUI';
 
 export default function HomeIslandPage() {
   const [, setLocation] = useLocation();
@@ -67,6 +70,8 @@ export default function HomeIslandPage() {
   const [buildingCount, setBuildingCount] = useState(0);
   const [mountainHint, setMountainHint] = useState<MountainHintState>('none');
   const [mountainDungeonName, setMountainDungeonName] = useState<string | null>(null);
+  const [mainPanelOpen, setMainPanelOpen] = useState(false);
+  const [authToken, setAuthToken] = useState<string | null>(null);
 
   const [characterName, setCharacterName] = useState('Islander');
   const [heroRace, setHeroRace] = useState('human');
@@ -79,6 +84,36 @@ export default function HomeIslandPage() {
     setNotification(text);
     setTimeout(() => setNotification(null), 3000);
   }, []);
+
+  // Production UI kit CSS (frames / slots from ui.grudge-studio.com)
+  useEffect(() => {
+    ensureCraftpixRpgCss();
+    try {
+      for (const k of ['grudge_auth_token', 'grudge_session_token', 'grudge.token', 'sso_token']) {
+        const v = localStorage.getItem(k);
+        if (v) {
+          setAuthToken(v);
+          break;
+        }
+      }
+    } catch {
+      /* private mode */
+    }
+  }, []);
+
+  // I = open Warlords main panel (equipment / inventory) from ui.grudge-studio.com
+  useEffect(() => {
+    if (!loaded) return;
+    const onKey = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+      if (e.key.toLowerCase() !== 'i' || e.ctrlKey || e.metaKey || e.altKey) return;
+      e.preventDefault();
+      setMainPanelOpen((o) => !o);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [loaded]);
 
   // ── Load character + persisted home island ─────────────────────
 
@@ -625,7 +660,39 @@ export default function HomeIslandPage() {
 
       {loaded && (
         <>
-          {/* RTS triple-mode UI: Combat · Harvest · Build (+ light-blue ghost) */}
+          {/* Pack chrome from ui.grudge-studio.com (water-island) — non-interactive layer */}
+          <GrudgeGameUiLayer
+            surface="homeIsland"
+            packId="water-island"
+            state={
+              playMode === 'build'
+                ? 'build'
+                : playMode === 'harvest'
+                  ? 'harvest'
+                  : 'island'
+            }
+            bind={{
+              pf1: {
+                name: characterName,
+                level,
+                hp,
+                hpMax: maxHp,
+                mp: 80,
+                mpMax: 100,
+              },
+              obj1: {
+                label: 'Home tasks',
+                objective:
+                  Object.keys(resources).length > 0
+                    ? buildingCount > 0
+                      ? 'Island active — explore mountains north'
+                      : 'Place a building (R → hammer)'
+                    : 'Gather resources · harvest mode',
+              },
+            }}
+          />
+
+          {/* RTS triple-mode UI: Combat · Harvest · Build (+ craftpix frames/slots) */}
           <ModePlayHUD
             engine={engineRef.current}
             mode={playMode}
@@ -673,6 +740,15 @@ export default function HomeIslandPage() {
             characterId={characterRef.current?.id}
             characterName={characterName}
             compact
+          />
+
+          <MainPanelHost
+            open={mainPanelOpen}
+            onClose={() => setMainPanelOpen(false)}
+            characterId={characterRef.current?.id}
+            token={authToken}
+            tab="equipment"
+            era="warlords"
           />
 
           {mountainHint !== 'none' && (

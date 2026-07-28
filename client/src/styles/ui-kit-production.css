@@ -1,0 +1,253 @@
+﻿/**
+ * Production HUD chrome — assets from ui.grudge-studio.com craftpix pack.
+ */
+.uikit-root {
+  --uikit-ink: #f4e6c8;
+  --uikit-ink-dim: #b9a688;
+  --uikit-gold: #e8c46a;
+  --uikit-danger: #e0553a;
+  --uikit-good: #6dce5a;
+  --uikit-shadow: 0 2px 0 #000, 0 0 14px rgba(0, 0, 0, 0.55);
+  font-family: Cinzel, "Trebuchet MS", "Segoe UI", system-ui, sans-serif;
+  color: var(--uikit-ink);
+}
+.uikit-player-frame {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 240px;
+  min-height: 72px;
+  padding: 8px 12px 8px 8px;
+  background-image: var(--uikit-frame-bg);
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+  filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.65));
+}
+.uikit-player-frame__face {
+  width: 52px;
+  height: 52px;
+  flex-shrink: 0;
+  border-radius: 4px;
+  border: 2px solid var(--uikit-gold);
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.6);
+}
+.uikit-player-frame__face img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.uikit-player-frame__info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.uikit-player-frame__name {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-shadow: 1px 1px 0 #000;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.uikit-player-frame__lvl {
+  color: var(--uikit-gold);
+  font-size: 10px;
+  margin-left: 6px;
+}
+.uikit-bar {
+  height: 10px;
+  border-radius: 3px;
+  background: rgba(0, 0, 0, 0.65);
+  border: 1px solid rgba(232, 196, 106, 0.35);
+  overflow: hidden;
+  position: relative;
+}
+.uikit-bar > i {
+  display: block;
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.2s ease;
+}
+.uikit-bar--hp > i {
+  background: linear-gradient(90deg, #8b1a1a, #e0553a 55%, #f0a090);
+}
+.uikit-bar--hp.uikit-bar--warn > i {
+  background: linear-gradient(90deg, #8b5a1a, #e0a03a);
+}
+.uikit-bar--hp.uikit-bar--crit > i {
+  background: linear-gradient(90deg, #5a1010, #ff3030);
+}
+.uikit-bar--mp > i {
+  background: linear-gradient(90deg, #1a3a8b, #5eb6e8);
+}
+.uikit-slot {
+  position: relative;
+  width: var(--uikit-slot-size, 52px);
+  height: var(--uikit-slot-size, 52px);
+  flex-shrink: 0;
+  background-image: var(--uikit-slot-bg);
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition: filter 0.12s, transform 0.12s;
+  border: none;
+  padding: 0;
+  color: var(--uikit-ink);
+}
+.uikit-slot:hover,
+.uikit-slot.is-hover {
+  filter: brightness(1.2);
+  background-image: var(--uikit-slot-hover), var(--uikit-slot-bg);
+  background-size: 100% 100%;
+}
+.uikit-slot.is-active {
+  filter: brightness(1.15) drop-shadow(0 0 8px rgba(232, 196, 106, 0.55));
+  background-image: var(--uikit-slot-press), var(--uikit-slot-bg);
+  background-size: 100% 100%;
+}
+.uikit-slot__icon {
+  width: 68%;
+  height: 68%;
+  object-fit: contain;
+  pointer-events: none;
+  filter: drop-shadow(0 1px 1px #000);
+}
+.uikit-slot__emoji {
+  font-size: 1.25rem;
+  line-height: 1;
+  pointer-events: none;
+  text-shadow: 0 1px 2px #000;
+}
+.uikit-slot__key {
+  position: absolute;
+  bottom: 2px;
+  right: 4px;
+  font-size: 9px;
+  font-family: ui-monospace, monospace;
+  font-weight: 700;
+  color: var(--uikit-gold);
+  text-shadow: 1px 1px 0 #000;
+  line-height: 1;
+}
+.uikit-slot__label {
+  position: absolute;
+  left: 2px;
+  right: 2px;
+  bottom: 12px;
+  font-size: 8px;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-shadow: 1px 1px 0 #000;
+  pointer-events: none;
+  opacity: 0.9;
+}
+.uikit-slot__qty {
+  position: absolute;
+  top: 2px;
+  right: 4px;
+  font-size: 9px;
+  font-weight: 700;
+  color: #fff;
+  text-shadow: 1px 1px 0 #000;
+}
+.uikit-panel {
+  background-image: var(--uikit-panel-bg);
+  background-size: 100% 100%;
+  background-color: rgba(12, 8, 5, 0.88);
+  border: 1px solid rgba(122, 92, 16, 0.55);
+  border-radius: 8px;
+  box-shadow: var(--uikit-shadow);
+  backdrop-filter: blur(6px);
+}
+.uikit-panel__header {
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--uikit-gold);
+  padding: 6px 10px 4px;
+  border-bottom: 1px solid rgba(122, 92, 16, 0.35);
+}
+.uikit-slot-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  justify-content: center;
+}
+.uikit-resource {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 56px;
+  height: 36px;
+  padding: 0 8px 0 4px;
+  background-image: var(--uikit-inv-slot);
+  background-size: 100% 100%;
+  font-size: 11px;
+  font-weight: 600;
+  text-shadow: 1px 1px 0 #000;
+}
+.uikit-mode-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: 1.5px solid transparent;
+  background: transparent;
+  color: rgba(244, 230, 200, 0.55);
+  font-family: Cinzel, serif;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.uikit-mode-btn.is-active {
+  color: var(--mode-color, var(--uikit-gold));
+  border-color: var(--mode-color, var(--uikit-gold));
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--mode-color, #e8c46a) 28%, transparent),
+    color-mix(in srgb, var(--mode-color, #e8c46a) 12%, transparent)
+  );
+  box-shadow: 0 0 14px color-mix(in srgb, var(--mode-color, #e8c46a) 40%, transparent);
+}
+.uikit-chrome-tl {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 45;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.uikit-chrome-tl .uikit-player-frame {
+  pointer-events: auto;
+}
+.uikit-pack-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 35;
+  pointer-events: none;
+  overflow: hidden;
+}
+.uikit-pack-layer .ggui-root {
+  pointer-events: none !important;
+}
+.uikit-pack-layer .ggui-comp {
+  pointer-events: none !important;
+}
