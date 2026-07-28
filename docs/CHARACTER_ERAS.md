@@ -5,12 +5,14 @@ Scope by `characters.game_era` + `accounts.era_slots`.
 
 ## Production matrix
 
-| Era | Pipeline | Interim mesh | Slots | Create / avatar | Play | Worlds |
-|-----|----------|--------------|-------|-----------------|------|--------|
-| **warlords** | **grudge6** | — | **4** | Foundry `character.grudge-studio.com/foundry` | **client.grudge-studio.com** (`/heroes` seaside) | Islands / zones on client |
-| **nexus** | **toon** (soon) | **voxel avatars** until toon kits ship | **12** | GCS `?era=nexus` (may stand on voxel avatar) | **Grudox** `grudox.grudge-studio.com` | Grudox title / fleet play |
-| **voxel** | **voxel** | — | **4** | GCS `?era=voxel` — race / explorer avatars | **Mine-Loader** deployers `#/play` | **Mine-Loader maker** / lobby worlds |
-| **armada** | **mech** | — | **4** | **Mech Builder** (`grudge-studio.com/mech-armada`) | **mech-playground.vercel.app** | Hangar / arena |
+| Era | Pipeline | Interim mesh | LED face | Slots | Create / avatar | Play | Worlds |
+|-----|----------|--------------|----------|-------|-----------------|------|--------|
+| **warlords** | **grudge6** | — | none | **4** | Foundry | **client.grudge-studio.com** | Islands / zones |
+| **nexus** | **toon** (soon) | **voxel avatars** | **default** (LED smile) | **12** | GCS `?era=nexus` | **Grudox** | Grudox |
+| **voxel** | **voxel** | — | **default** (LED smile) | **4** | GCS race/explorer avatars | **Mine-Loader** `#/play` | **Maker** / lobby |
+| **armada** | **mech** | — | **backup** (if pilot head missing) | **4** | **Mech Builder** | **mech-playground** | Hangar |
+
+**LED face** = Open LED Mask style cyan smile visor on cube head (`ledFaceDefault.ts`, keys `ledmask:avatarConfig:v1` / Avatar Edit). Shared with gameopen `#/ledmask`.
 
 Code: `shared/definitions/gameEras.ts`  
 DB default: `accounts.era_slots` JSON (see schema.ts)
@@ -19,10 +21,10 @@ DB default: `accounts.era_slots` JSON (see schema.ts)
 
 | Era | Detail |
 |-----|--------|
-| **Nexus toon** | Full Toon RTS roster is **being built**. Until ready: load **voxel pipeline** meshes (`interimPipeline: 'voxel'`). **Play host is Grudox**, not Mine-Loader. |
-| **Voxel** | Avatars = voxel race/explorer kits. **Play** = Mine-Loader game deployers; **worlds** = Mine-Loader maker / lobby seeds. |
-| **Warlords** | grudge6 only on client; no airship painting on `/heroes`. |
-| **Armada** | Mechs from Mech Builder — **not** naval ships as the player roster. |
+| **Nexus toon** | Toon kits **soon**. Until then: **voxel mesh + LED face default**. **Play = Grudox**. |
+| **Voxel** | Race/explorer avatars + **LED face default**. **Play** = Mine-Loader deployers; **worlds** = maker / lobby. |
+| **Warlords** | grudge6 only; no LED cube default (full race kits). |
+| **Armada** | Mechs from Mech Builder; **LED face = backup** when mesh/head missing. |
 
 ### Delivery conflicts (resolved)
 
