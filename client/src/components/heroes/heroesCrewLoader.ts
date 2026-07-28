@@ -1,10 +1,11 @@
 /**
- * Resolve player character meshes for the airship cinema crew.
+ * Resolve player character meshes for heroes roster cinema (seaside / product).
+ * Painted airship plate is purged — this loader is era-mesh only.
  *
  * Pipelines (gameEras SSOT):
- *   warlords → grudge6 race GLB + equipment
- *   voxel    → explorer selection (appearance body ranges + blocky or kit mesh)
- *   nexus    → toon soldier CDN mesh when available, else grudge6 fallback
+ *   warlords → grudge6 race GLB + equipment  (client.grudge-studio.com/heroes)
+ *   voxel    → explorer / TVS                 (mine-loader)
+ *   nexus    → toon soldier CDN, else grudge6
  *
  * Always SI-fit height via fitCharacterRootToHeightM / explorer appearance.
  */
@@ -141,8 +142,9 @@ export async function loadCrewHero(hero: Character): Promise<CrewLoaded> {
 }
 
 /**
- * Merge rosters for airship cinema — max 4 crew.
- * Warlords product: prefer warlords-era grudge6 heroes first, then voxel/open fills.
+ * Merge rosters for heroes cinema — max slots from era law.
+ * Warlords product `/heroes`: pass `voxel=[]` and prefer `"warlords"` so only
+ * grudge6 warlords-era heroes appear (no cross-era pollution).
  */
 export function pickCrewSlots(
   voxel: Character[],

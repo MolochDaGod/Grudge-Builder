@@ -6,17 +6,11 @@ Source repo: `GrudgeWars`
 
 ## Quick reference
 
-### Airship / boat (“The Grudge”)
-- Plate: `/backgrounds/scene_airship.png`
-- Puter: `AirshipScene.jsx` — % deck placement, gold chrome, pirate shop NPCs
-- Client: `/heroes` → `HeroesBlackTideScene` — same plate + 4 grudge6 crew stations
-
-| Slot | Station | Role |
-|------|---------|------|
-| 0 | Helm | At the wheel |
-| 1 | Main battery | Large cannons |
-| 2 | Fore guns | Smaller cannons |
-| 3 | Crow's line | Rope to crow's nest |
+### Airship / boat (“The Grudge”) — PURGED from product `/heroes` (2026-07-28)
+- Plate: `/backgrounds/scene_airship.png` — **never mount on client heroes**
+- Puter archive only: `AirshipScene.jsx`
+- Client **was** `HeroesBlackTideScene` — **replaced** by `HeroesSeasideCinemaScene`
+- Product `/heroes`: 4-slot warlord roster + seaside sector cinema
 
 ### Boss
 - Puter: `BossWalkupScene` walk → confront → charging → battle
@@ -27,7 +21,7 @@ Source repo: `GrudgeWars`
 
 ### Characters
 - 2D: spriteMap + SpriteAnimation (frame formula, flip, tier overlays)
-- 3D: grudge6 GLB + equip + `fitCharacterRootToHeightM` + idle on ship
+- 3D: grudge6 GLB + equip + `fitCharacterRootToHeightM` + idle on roster scene
 - 8 WCS attributes only; Foundry for empty slots
 - Layers: `client/src/lib/grudgewarSceneLayers.ts`
 

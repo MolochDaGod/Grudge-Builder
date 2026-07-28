@@ -5,12 +5,21 @@ Scope by `characters.game_era` + `accounts.era_slots`.
 
 ## Production matrix
 
-| Era | Pipeline (`model3d.renderPipeline`) | Slots | Create surface | Play |
-|-----|--------------------------------------|-------|----------------|------|
-| **warlords** | **grudge6** | **4** | character.grudge-studio.com/foundry | client.grudge-studio.com |
-| **nexus** | **toon** | **12** | select/link the 12 Toon RTS heroes | mine / nexus titles |
-| **voxel** | **voxel** | **4** | voxel / Explorer shell | mine.grudge-studio.com `#/play?era=voxel` |
+| Era | Pipeline (`model3d.renderPipeline`) |Slots | Create surface | Play / delivery |
+|-----|--------------------------------------|-------|----------------|-----------------|
+| **warlords** | **grudge6** | **4** | character.grudge-studio.com/foundry | **client.grudge-studio.com** (`/heroes` seaside roster — **no airship painting**) |
+| **nexus** | **toon** | **12** | select/link the 12 Toon RTS heroes | **mine-loader.vercel.app** `#/play` |
+| **voxel** | **voxel** | **4** | voxel / Explorer shell | **mine-loader.vercel.app** `#/play` |
 | **armada** | armada_ship (ships only) | **0** | **none** — no characters | armada ships later |
+
+### Delivery conflicts (resolved)
+
+| Mistake | Correct |
+|---------|---------|
+| Mix voxel into Warlords `/heroes` | Warlords page = `era=warlords` only |
+| Paint airship plate on `/heroes` | Purged → seaside sector cinema |
+| Voxel play URL `mine.grudge-studio.com` | `mine-loader.vercel.app/#/play` |
+| Armada hero slots | Always **0** — ships only |
 
 Code: `shared/definitions/gameEras.ts`  
 DB default: `accounts.era_slots` JSON (see schema.ts)

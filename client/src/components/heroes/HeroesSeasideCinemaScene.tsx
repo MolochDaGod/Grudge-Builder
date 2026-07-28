@@ -1,5 +1,8 @@
 /**
- * HeroesSeasideCinemaScene — full Three.js cinematic sector shelf.
+ * HeroesSeasideCinemaScene — production `/heroes` cinema (2026-07 restore).
+ *
+ * Painted airship plate (`scene_airship.png` / HeroesBlackTideScene) is PURGED —
+ * do not rewire airship underlays onto this page.
  *
  * Loads seaside_treasure_cave.glb + sector_islands.glb on deep ocean.
  * Sanitizes person / futuristic / global-water meshes; keeps barca as takeable.
