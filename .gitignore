@@ -99,10 +99,18 @@ scripts/agents/reports/
 scripts/best-practices/.cache/
 
 
-# Cave GLBs (large — ship via R2 assets.grudge-studio.com/models/caves/)
+# Cave GLBs (large ï¿½ ship via R2 assets.grudge-studio.com/models/caves/)
 public/models/caves/*.glb
 
 
 wartrailer/videos/
 wartrailer/deploy-payload.json
+
+
+# Airship opener â€” allow optimized zone assets; block raw import only
+!client/public/models/airship-zone/**/*.glb
+!client/public/models/airship-zone/**/*.fbx
+!client/public/models/airship-zone/**/*.json
+client/public/models/airship-zone/opener-scene-raw.glb
+client/public/models/airship-zone/airship.glb
 

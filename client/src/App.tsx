@@ -62,6 +62,7 @@ import LauncherPage from "@/pages/launcher";
 import RtsGrudgePage from "@/pages/rts-grudge";
 const TowerWarsPage = lazy(() => import("@/pages/tower-wars")); // legacy, keep route
 import HarvestPage from "@/pages/Harvest";
+import AirshipZonePage from "@/pages/AirshipZonePage";
 import HeroCodexPage from "@/pages/hero-codex";
 import CraftingPage from "@/pages/crafting";
 import Island3DPage from "@/pages/island-3d";
@@ -177,6 +178,8 @@ function Router() {
       <Route path="/ocean" component={OceanPage} />
       <Route path="/tower-wars">{() => <Suspense fallback={null}><TowerWarsPage /></Suspense>}</Route>
       <Route path="/harvest" component={HarvestPage} />
+      <Route path="/airship-zone" component={AirshipZonePage} />
+      <Route path="/airship" component={AirshipZonePage} />
       <Route path="/hero-codex" component={HeroCodexPage} />
       <Route path="/crafting" component={CraftingPage} />
       <Route path="/crafting-suite" component={CraftingPage} />
