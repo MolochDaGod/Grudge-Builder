@@ -1,37 +1,46 @@
 /**
  * PhysicsWorld — Rapier3D physics integration for Island3DEngine.
  *
+ * Official API: https://rapier.rs/docs/api/javascript/JavaScript3D
+ * Fleet SSOT:   ./fleet/* + docs/RAPIER_FLEET.md + skill grudge-rapier
+ *
  * Provides:
- *   - Rapier world with configurable gravity
+ *   - Rapier world with configurable gravity (SI, fixed 1/60)
  *   - Terrain trimesh collider from terrain mesh geometry
- *   - Character capsule controller (kinematic position-based)
+ *   - Character capsule controller (kinematic position-based CCT)
  *   - GLB collider extraction: named "Collider" mesh or auto convex hull
- *   - Static prop colliders (buildings, rocks, trees)
- *   - Dynamic prop colliders (crates, barrels)
- *   - Creature capsule/convex hull colliders
- *   - Raycast queries (ground check, click picking)
+ *   - Static / dynamic / kinematic prop colliders
+ *   - Dynamic pinata fragments (harvest break)
+ *   - Scene queries (ray + normal), EventQueue, takeSnapshot/restore
  *
  * Architecture:
  *   The PhysicsWorld owns the Rapier world and all rigid bodies.
- *   It runs a fixed-timestep physics step each frame via update(dt).
- *   Three.js meshes are synced FROM physics bodies after each step
- *   (physics → render, not the other way around for dynamic bodies).
- *   Kinematic bodies (player, NPCs) are driven render → physics.
+ *   Fixed-timestep step each frame via update(dt).
+ *   Three.js meshes synced FROM physics for dynamic bodies.
+ *   Kinematic bodies (player, NPCs) driven render → physics.
  *
  * Usage:
  *   const physics = await PhysicsWorld.create({ gravity: -30 });
  *   physics.addTerrainCollider(terrainMesh);
- *   const charBody = physics.addCharacterCapsule(0.5, 1.2, startPos);
+ *   const charBody = physics.addCharacterCapsule(0.32, 0.55, startPos);
  *   physics.addGLBCollider(glbScene, 'static');
  *   engine.onUpdate(dt => physics.update(dt));
  */
 import * as THREE from 'three';
 import RAPIER from '@dimforge/rapier3d-compat';
+import {
+  PHYSICS_FIXED_DT,
+  PHYSICS_GRAVITY_Y,
+  RIGID_BODY_PRESETS,
+} from './fleet';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
 export interface PhysicsWorldConfig {
-  gravity?: number; // Y gravity (default -30)
+  /** Y gravity m/s² (default PHYSICS_GRAVITY_Y ≈ -30) */
+  gravity?: number;
+  /** Create EventQueue(true) for collision / contact-force events */
+  enableEventQueue?: boolean;
 }
 
 export type ColliderType = 'static' | 'dynamic' | 'kinematic';
@@ -66,7 +75,12 @@ export class PhysicsWorld {
   private nextId = 0;
   private accumulatedTime = 0;
   /** Fixed 1/60 — Rapier determinism + CCT stability (never use frame dt alone). */
-  private readonly fixedStep = 1 / 60;
+  private readonly fixedStep = PHYSICS_FIXED_DT;
+  /** EventQueue(autoDrain=true) — advanced_collision_detection_js */
+  private eventQueue: RAPIER.EventQueue | null = null;
+  private collisionListeners: Array<
+    (e: { handle1: number; handle2: number; started: boolean }) => void
+  > = [];
 
   private constructor(world: RAPIER.World) {
     this.world = world;
@@ -76,9 +90,34 @@ export class PhysicsWorld {
   static async create(config: PhysicsWorldConfig = {}): Promise<PhysicsWorld> {
     await RAPIER.init();
     // SI gravity m/s² — non-zero so dynamic bodies fall (common_mistakes)
-    const gravity = new RAPIER.Vector3(0, config.gravity ?? -30, 0);
+    const gravity = new RAPIER.Vector3(0, config.gravity ?? PHYSICS_GRAVITY_Y, 0);
     const world = new RAPIER.World(gravity);
-    return new PhysicsWorld(world);
+    const phys = new PhysicsWorld(world);
+    if (config.enableEventQueue) phys.ensureEventQueue();
+    return phys;
+  }
+
+  ensureEventQueue(): RAPIER.EventQueue {
+    if (!this.eventQueue) this.eventQueue = new RAPIER.EventQueue(true);
+    return this.eventQueue;
+  }
+
+  /** Collision enter/exit — colliders need ActiveEvents.COLLISION_EVENTS */
+  onCollision(
+    listener: (e: { handle1: number; handle2: number; started: boolean }) => void,
+  ): () => void {
+    this.ensureEventQueue();
+    this.collisionListeners.push(listener);
+    return () => {
+      this.collisionListeners = this.collisionListeners.filter((l) => l !== listener);
+    };
+  }
+
+  enableCollisionEvents(collider: RAPIER.Collider): void {
+    const cur = collider.activeEvents?.() ?? 0;
+    collider.setActiveEvents(
+      (cur | RAPIER.ActiveEvents.COLLISION_EVENTS) as RAPIER.ActiveEvents,
+    );
   }
 
   // ── Fixed-step physics update ──────────────────────────────────────────
@@ -88,7 +127,20 @@ export class PhysicsWorld {
     // Cap catch-up steps (background tab spiral)
     let guard = 0;
     while (this.accumulatedTime >= this.fixedStep && guard++ < 8) {
-      this.world.step();
+      if (this.eventQueue) {
+        this.world.step(this.eventQueue);
+        if (this.collisionListeners.length) {
+          this.eventQueue.drainCollisionEvents((handle1, handle2, started) => {
+            const e = { handle1, handle2, started };
+            for (const l of this.collisionListeners) l(e);
+          });
+        } else {
+          this.eventQueue.drainCollisionEvents(() => {});
+          this.eventQueue.drainContactForceEvents(() => {});
+        }
+      } else {
+        this.world.step();
+      }
       this.accumulatedTime -= this.fixedStep;
     }
     if (this.accumulatedTime > this.fixedStep * 2) this.accumulatedTime = 0;
@@ -100,6 +152,29 @@ export class PhysicsWorld {
       const rot = body.rigidBody.rotation();
       body.mesh.position.set(pos.x, pos.y, pos.z);
       body.mesh.quaternion.set(rot.x, rot.y, rot.z, rot.w);
+    }
+  }
+
+  // ── Serialization (rapier.rs serialization guide) ────────────────────
+
+  /** Complete physics world → Uint8Array. Same Rapier version on restore. */
+  takeSnapshot(): Uint8Array {
+    return this.world.takeSnapshot();
+  }
+
+  /**
+   * Replace world with World.restoreSnapshot.
+   * Clears body maps (handles invalid). Re-add terrain/CCT after restore.
+   */
+  restoreSnapshot(data: Uint8Array): void {
+    const restored = RAPIER.World.restoreSnapshot(data);
+    const old = this.world;
+    this.bodies.clear();
+    this.world = restored;
+    try {
+      old.free();
+    } catch {
+      /* wasm */
     }
   }
 
@@ -325,17 +400,30 @@ export class PhysicsWorld {
     radius: number,
     position: THREE.Vector3,
     type: ColliderType = 'dynamic',
+    opts: { ccd?: boolean; density?: number } = {},
   ): PhysicsBody {
     // Dynamic requires non-zero mass (setDensity) — common_mistakes
-    const bodyDesc = type === 'static' ? RAPIER.RigidBodyDesc.fixed()
-      : RAPIER.RigidBodyDesc.dynamic().setLinearDamping(0.3);
+    const prop = RIGID_BODY_PRESETS.dynamic_prop;
+    const proj = RIGID_BODY_PRESETS.dynamic_projectile;
+    const useCcd = opts.ccd ?? false;
+    const preset = useCcd ? proj : prop;
+    let bodyDesc =
+      type === 'static'
+        ? RAPIER.RigidBodyDesc.fixed()
+        : RAPIER.RigidBodyDesc.dynamic()
+            .setLinearDamping(preset.linearDamping)
+            .setAngularDamping(preset.angularDamping)
+            .setCcdEnabled(useCcd)
+            .setCanSleep(preset.canSleep);
     bodyDesc.setTranslation(position.x, position.y, position.z);
     const rigidBody = this.world.createRigidBody(bodyDesc);
     let desc = RAPIER.ColliderDesc.ball(radius)
-      .setFriction(0.5)
-      .setRestitution(0.4);
+      .setFriction(preset.friction)
+      .setRestitution(preset.restitution);
     // Dynamic RBs need non-zero mass (common_mistakes) — density on collider
-    if (type === 'dynamic') desc = desc.setDensity(1.2);
+    if (type === 'dynamic') {
+      desc = desc.setDensity(opts.density ?? preset.density);
+    }
     const collider = this.world.createCollider(desc, rigidBody);
     const id = `sphere_${this.nextId++}`;
     const body: PhysicsBody = { id, rigidBody, collider, mesh: null, type };
@@ -431,22 +519,47 @@ export class PhysicsWorld {
       new RAPIER.Vector3(origin.x, origin.y, origin.z),
       new RAPIER.Vector3(direction.x, direction.y, direction.z),
     );
+    // Prefer castRayAndGetNormal when available (scene_queries guide)
+    const hitWithN = this.world.castRayAndGetNormal(ray, maxDistance, true);
+    if (hitWithN) {
+      const point = ray.pointAt(hitWithN.timeOfImpact);
+      let bodyId: string | null = null;
+      const hitCollider = hitWithN.collider;
+      for (const [id, body] of this.bodies) {
+        if (body.collider === hitCollider) {
+          bodyId = id;
+          break;
+        }
+      }
+      const n = hitWithN.normal;
+      return {
+        point: new THREE.Vector3(point.x, point.y, point.z),
+        normal: n
+          ? new THREE.Vector3(n.x, n.y, n.z)
+          : new THREE.Vector3(0, 1, 0),
+        distance: hitWithN.timeOfImpact,
+        bodyId,
+      };
+    }
+
     const hit = this.world.castRay(ray, maxDistance, true);
     if (!hit) return null;
 
     const point = ray.pointAt(hit.timeOfImpact);
     const hitPoint = new THREE.Vector3(point.x, point.y, point.z);
 
-    // Find which body was hit
     let bodyId: string | null = null;
     const hitCollider = hit.collider;
     for (const [id, body] of this.bodies) {
-      if (body.collider === hitCollider) { bodyId = id; break; }
+      if (body.collider === hitCollider) {
+        bodyId = id;
+        break;
+      }
     }
 
     return {
       point: hitPoint,
-      normal: new THREE.Vector3(0, 1, 0), // Rapier ray doesn't give normal directly
+      normal: new THREE.Vector3(0, 1, 0),
       distance: hit.timeOfImpact,
       bodyId,
     };
@@ -548,6 +661,15 @@ export class PhysicsWorld {
   dispose(): void {
     for (const [id] of this.bodies) {
       this.removeBody(id);
+    }
+    this.collisionListeners = [];
+    if (this.eventQueue) {
+      try {
+        this.eventQueue.free();
+      } catch {
+        /* */
+      }
+      this.eventQueue = null;
     }
     this.world.free();
   }
