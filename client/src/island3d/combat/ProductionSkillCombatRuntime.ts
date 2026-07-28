@@ -27,6 +27,8 @@ import {
 } from '@shared/definitions/productionWeaponCombat';
 import { spawnSupernovaImpact } from '../vfx/SupernovaImpactSystem';
 import type { WorldFxBus } from '../vfx/WorldFxBus';
+import { SpiritualSwordSystem } from '../vfx/SpiritualSwordSystem';
+import { spiritualColorFromSchool } from '@shared/definitions/spiritualSwords';
 
 export interface CombatTarget {
   id: string;
@@ -89,6 +91,7 @@ const _fwd = new THREE.Vector3();
 export class ProductionSkillCombatRuntime {
   private scene: THREE.Scene;
   private worldFx: WorldFxBus | null = null;
+  private spiritualSwords: SpiritualSwordSystem | null = null;
   private cooldowns = new Map<string, number>();
   private flights: Flight[] = [];
   private pendingTimers: Array<ReturnType<typeof setTimeout>> = [];
@@ -102,6 +105,8 @@ export class ProductionSkillCombatRuntime {
   constructor(scene: THREE.Scene, worldFx?: WorldFxBus | null) {
     this.scene = scene;
     this.worldFx = worldFx ?? null;
+    this.spiritualSwords = new SpiritualSwordSystem(scene);
+    void this.spiritualSwords.preload();
     this.root.name = 'production_skill_projectiles';
     scene.add(this.root);
     ensureWeaponSkillCombatCatalog();
@@ -109,6 +114,11 @@ export class ProductionSkillCombatRuntime {
 
   setWorldFx(fx: WorldFxBus | null) {
     this.worldFx = fx;
+  }
+
+  /** Color-organized spiritual swords (projectiles, fall, stacks, spin, block). */
+  getSpiritualSwords(): SpiritualSwordSystem | null {
+    return this.spiritualSwords;
   }
 
   isReady(skillId: string, now = performance.now()): boolean {
@@ -361,6 +371,49 @@ export class ProductionSkillCombatRuntime {
     to: THREE.Vector3,
     targetId: string | null,
   ): void {
+    // Spiritual sword projectiles for elemental / holy magic (color-organized FreeSwords)
+    const proj = String(skill.projectile ?? '');
+    const useSpirit =
+      /magic_orb|fireball|ice_shard|arcane|orb|bolt|missile|shard/.test(proj) ||
+      skill.damageType === 'fire' ||
+      skill.damageType === 'frost' ||
+      skill.damageType === 'nature' ||
+      skill.damageType === 'holy' ||
+      skill.damageType === 'arcane' ||
+      skill.damageType === 'shadow';
+
+    if (
+      useSpirit &&
+      this.spiritualSwords &&
+      skill.projectile !== 'arrow' &&
+      skill.projectile !== 'bullet' &&
+      skill.projectile !== 'none'
+    ) {
+      const color = spiritualColorFromSchool(skill.damageType);
+      this.spiritualSwords.fireProjectile(from, to, {
+        color,
+        damageType: skill.damageType,
+        speed: Math.max(8, skill.projectileSpeed),
+        onImpact: (point) => {
+          this.spawnImpactVfx(point, skill, skill.aoeRadius > 0 ? skill.aoeRadius * 0.5 : 1.8);
+          if (targetId) {
+            const hit: SkillHitEvent = {
+              skillId: skill.id,
+              targetId,
+              damage: skill.damage,
+              damageType: skill.damageType,
+              point,
+              stunSec: skill.stunSec,
+              lifesteal: skill.lifesteal,
+              isExecute: false,
+            };
+            this.onHit?.(hit, skill);
+          }
+        },
+      });
+      return;
+    }
+
     if (this.flights.length >= MAX_FLIGHTS) {
       const old = this.flights.shift();
       if (old) this.disposeFlight(old);
@@ -434,6 +487,7 @@ export class ProductionSkillCombatRuntime {
   }
 
   update(dt: number): void {
+    this.spiritualSwords?.update(dt);
     for (let i = this.flights.length - 1; i >= 0; i--) {
       const f = this.flights[i];
       f.t += dt;
@@ -530,6 +584,8 @@ export class ProductionSkillCombatRuntime {
     this.pendingTimers = [];
     for (const f of this.flights) this.disposeFlight(f);
     this.flights = [];
+    this.spiritualSwords?.dispose();
+    this.spiritualSwords = null;
     this.scene.remove(this.root);
   }
 }
