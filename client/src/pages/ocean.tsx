@@ -2,7 +2,7 @@
  * OceanPage — Tactical Infinity wind-sailing open ocean.
  * Sail between 9 Warlords sectors, then deploy into live 3D zones.
  */
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useLocation } from 'wouter';
 import { TacticalOceanScene } from '@/tactical-ocean/TacticalOceanScene';
 import { Button } from '@/components/ui/button';
@@ -16,6 +16,7 @@ import {
 import { getSectorById } from '@shared/definitions/worldMapSectors';
 import { Anchor, ExternalLink, Globe, MapPin, Ship, Swords } from 'lucide-react';
 import { getTacticalInfinityUrl } from '@/lib/gameNav';
+import { ensureStarterShip } from '@/lib/shipDockService';
 
 interface LandedSector {
   id: string;
@@ -26,6 +27,18 @@ export default function OceanPage() {
   const [, setLocation] = useLocation();
   const [landed, setLanded] = useState<LandedSector | null>(null);
   const worldSeed = new URLSearchParams(window.location.search).get('worldSeed') || 'grudge-world-1';
+
+  // Guarantee fleet roster so direct /ocean links never soft-lock without a ship
+  useEffect(() => {
+    const account =
+      sessionStorage.getItem('grudge-ocean-account') ||
+      new URLSearchParams(window.location.search).get('characterId') ||
+      localStorage.getItem('grudge_account_id') ||
+      localStorage.getItem('grudge_user_id') ||
+      'guest';
+    sessionStorage.setItem('grudge-ocean-account', account);
+    ensureStarterShip(account, null);
+  }, []);
 
   const zone = landed ? getSectorById(resolveDeploySectorId(landed.id)) : null;
   const townUrl = landed ? buildTownUrl(landed.id) : null;

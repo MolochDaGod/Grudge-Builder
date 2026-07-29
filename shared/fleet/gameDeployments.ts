@@ -516,8 +516,8 @@ export function threePlayNowPath(): string {
 }
 
 // ── Warlords /home production surface (ONLY these actions) ─────────────────
-// Lobby = center tile of the 9-sector era map. Sail to the edge of the lobby
-// scene to leave the middle square into a neighboring sector.
+// Funnel: roster → home island → ocean sail / world map → lobby / zones.
+// Ocean is a first-class play surface (wind sailing over era 9), not lobby-only.
 
 /** Pirate open-world lobby (center of era 9). */
 export const WARLORDS_LOBBY_PATH =
@@ -526,9 +526,12 @@ export const WARLORDS_LOBBY_PATH =
 /** Classic 2D Warlords island play (same client, 2D engine). */
 export const WARLORDS_2D_PLAY_PATH = "/island" as const;
 
+/** In-client tactical ocean (wind + ships + land on sectors). */
+export const WARLORDS_OCEAN_PATH = "/ocean?worldSeed=grudge-world-1" as const;
+
 /**
  * Production home destinations — nothing else on /home for Warlords era.
- * Order matches player funnel: roster → tutorial → 2D → home → lobby → sectors.
+ * Order matches player funnel: roster → tutorial → 2D → home → ocean → map → lobby.
  */
 export const WARLORDS_HOME_ACTIONS = [
   {
@@ -564,21 +567,30 @@ export const WARLORDS_HOME_ACTIONS = [
     icon: "flame" as const,
   },
   {
-    id: "lobby",
-    title: "Enter Lobby Scene",
-    subtitle: "Center tile of the 9-sector map",
+    id: "ocean",
+    title: "Ocean Sail",
+    subtitle: "Wind · ships · era 9 sectors",
     description:
-      "Pirate lobby is the middle square of the Warlords era 9 map. Sail to the edge to enter a neighboring sector.",
-    url: WARLORDS_LOBBY_PATH,
+      "3D tactical ocean with wind sailing. Board your fleet ship, sail between the 9 Warlords sectors, land into live zones.",
+    url: WARLORDS_OCEAN_PATH,
     icon: "anchor" as const,
   },
   {
     id: "sectors",
-    title: "9 Sector Map",
-    subtitle: "Era map · sail from lobby center",
+    title: "9 Sector World Map",
+    subtitle: "Strategic map · deploy ocean or land",
     description:
-      "Warlords era 9 macro sectors. In production you reach a sector by sailing off the lobby (center) edge; this map is the overview hub.",
+      "Complete Warlords era 9 map. Open ocean sail, land in a sector, or inspect biomes from the strategic overview.",
     url: THREE_WORLD_MAP_PATH,
     icon: "map" as const,
+  },
+  {
+    id: "lobby",
+    title: "Enter Lobby Scene",
+    subtitle: "Center tile · dock board · PvP",
+    description:
+      "Pirate lobby (middle square of era 9). E at south dock for fleet panel → Set Sail ocean, or sail the lobby waters.",
+    url: WARLORDS_LOBBY_PATH,
+    icon: "compass" as const,
   },
 ] as const;

@@ -33,13 +33,19 @@ export interface ShipCatalogEntry {
 
 export const DOCK_GLB = '/models/buildings/village/dock.glb';
 
+/**
+ * Player craftable fleet sizes (ShipSize SSOT).
+ * Prefab keys map into game/sailing/ShipPrefabs SHIP_PREFAB_CONFIGS
+ * (raft, skiff, sloop, brigantine, galleon, large, ghost, wreck, enemy).
+ * GLB paths load when present; procedural hull+sail colliders always fall back.
+ */
 export const SHIP_CATALOG: ShipCatalogEntry[] = [
   {
     size: 'rowboat',
     prefabKey: 'skiff',
     shipClass: 'sloop',
     label: 'Rowboat',
-    glbModel: '/models/ships/ship-small.glb',
+    glbModel: '/models/ships/ship-pirate-small.glb',
     cannonSlots: 0,
     crewCap: 2,
     maxHp: 30,
@@ -56,7 +62,7 @@ export const SHIP_CATALOG: ShipCatalogEntry[] = [
     shipClass: 'sloop',
     label: 'Sloop',
     glbModel: '/models/ships/ship-medium.glb',
-    cannonSlots: 3,
+    cannonSlots: 4,
     crewCap: 5,
     maxHp: 80,
     oceanSpeed: 3,
@@ -71,9 +77,9 @@ export const SHIP_CATALOG: ShipCatalogEntry[] = [
     prefabKey: 'galleon',
     shipClass: 'galleon',
     label: 'Galleon',
-    glbModel: '/models/ships/ship-large.glb',
-    cannonSlots: 5,
-    crewCap: 10,
+    glbModel: '/models/ships/ship-pirate-large.glb',
+    cannonSlots: 12,
+    crewCap: 16,
     maxHp: 200,
     oceanSpeed: 2,
     craftGold: 2000,
@@ -83,6 +89,19 @@ export const SHIP_CATALOG: ShipCatalogEntry[] = [
     starterFree: false,
   },
 ];
+
+/** Full prefab roster used by tactical ocean / enemy spawns (not all craftable). */
+export const OCEAN_SHIP_PREFAB_KEYS = [
+  'raft',
+  'skiff',
+  'sloop',
+  'brigantine',
+  'galleon',
+  'large',
+  'enemy',
+  'ghost',
+  'wreck',
+] as const;
 
 export const SHIP_CATALOG_BY_SIZE: Record<ShipSize, ShipCatalogEntry> = Object.fromEntries(
   SHIP_CATALOG.map((e) => [e.size, e]),
