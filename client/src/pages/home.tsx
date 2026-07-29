@@ -284,10 +284,15 @@ export default function HomePage() {
               </Button>
               <Button
                 size="sm"
-                onClick={() => setLocation("/character")}
+                onClick={() =>
+                  setLocation(
+                    characters.length === 0 ? "/create-character" : "/heroes",
+                  )
+                }
                 className="h-8 text-[11px] bg-amber-600/20 border border-amber-600/40 text-amber-200 hover:bg-amber-600/30"
               >
-                <Plus className="w-3.5 h-3.5 mr-1" /> Manage
+                <Plus className="w-3.5 h-3.5 mr-1" />{" "}
+                {characters.length === 0 ? "Create" : "Manage"}
               </Button>
             </div>
           </div>
@@ -332,18 +337,27 @@ export default function HomePage() {
                 </p>
                 {isAuthenticated || hasAuthToken() ? (
                   <Button
-                    onClick={() => setLocation("/character")}
+                    onClick={() => setLocation("/create-character")}
                     className="bg-gradient-to-r from-amber-600 to-amber-700 text-white text-sm"
                   >
                     <Plus className="w-4 h-4 mr-1.5" /> Create hero
                   </Button>
                 ) : (
-                  <Button
-                    onClick={openLogin}
-                    className="bg-gradient-to-r from-amber-600 to-amber-700 text-white text-sm"
-                  >
-                    Sign in to load heroes
-                  </Button>
+                  <div className="flex flex-wrap gap-2 justify-center">
+                    <Button
+                      onClick={openLogin}
+                      className="bg-gradient-to-r from-amber-600 to-amber-700 text-white text-sm"
+                    >
+                      Sign in to load heroes
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => setLocation("/create-character")}
+                      className="border-amber-600/40 text-amber-200 text-sm"
+                    >
+                      Create at Foundry
+                    </Button>
+                  </div>
                 )}
               </div>
             )}
@@ -438,8 +452,29 @@ export default function HomePage() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.04 * i }}
                   onClick={() => {
+                    // Empty roster: Foundry create with return into the intended play path
+                    // (SSOT: character.grudge-studio.com → Railway → client with characterId)
                     if (needsHero && action.id !== "characters") {
-                      setLocation("/character");
+                      const returnTo = encodeURIComponent(action.url);
+                      setLocation(`/create-character?returnTo=${returnTo}`);
+                      return;
+                    }
+                    if (action.id === "characters" && characters.length === 0) {
+                      setLocation("/create-character");
+                      return;
+                    }
+                    if (action.id === "characters") {
+                      setLocation("/heroes");
+                      return;
+                    }
+                    // Prefer active hero id on play destinations
+                    if (activeCharacter && action.url.startsWith("/")) {
+                      const u = new URL(action.url, window.location.origin);
+                      if (!u.searchParams.get("characterId")) {
+                        u.searchParams.set("characterId", activeCharacter.id);
+                        u.searchParams.set("from", "home");
+                      }
+                      go(u.pathname + u.search);
                       return;
                     }
                     go(action.url);

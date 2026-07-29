@@ -1,14 +1,9 @@
 {
   "alias": [
-    "grudge.studio",
-    "www.grudge.studio",
     "client.grudge-studio.com",
     "warlord3d.grudge-studio.com",
     "grudgewarlords.com",
-    "www.grudgewarlords.com",
-    "rts-grudge.vercel.app",
-    "id.grudge-studio.com",
-    "id.grudge.studio"
+    "www.grudgewarlords.com"
   ],
   "buildCommand": "npm run build:client",
   "outputDirectory": "client/dist",

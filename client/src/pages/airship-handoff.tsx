@@ -38,8 +38,9 @@ export default function AirshipHandoffPage() {
       return;
     }
 
-    setStatus("No hero selected — open roster…");
-    setLocation("/heroes");
+    // No characterId — Foundry create (not empty /heroes dead-end)
+    setStatus("No hero yet — open Foundry to create…");
+    setLocation("/create-character?returnTo=" + encodeURIComponent("/airship?from=gcs"));
   }, [setLocation]);
 
   return (
@@ -47,8 +48,17 @@ export default function AirshipHandoffPage() {
       <div className="w-8 h-8 border-2 border-amber-500/40 border-t-amber-400 rounded-full animate-spin" />
       <p className="text-sm tracking-wide">{status}</p>
       <p className="text-[10px] uppercase tracking-[0.3em] text-amber-500/50">
-        Foundry → client handoff
+        Foundry → client handoff (SSOT)
       </p>
+      <a
+        href="/create-character"
+        className="text-xs text-amber-400/90 underline mt-2"
+      >
+        Create hero at Foundry
+      </a>
+      <a href="/home" className="text-xs text-white/40 underline">
+        Back to home hub
+      </a>
     </div>
   );
 }

@@ -130,7 +130,11 @@ export default function HomeIslandPage() {
         const activeId = handoff.characterId;
 
         if (!activeId) {
-          setLocation('/heroes');
+          // SSOT: create at Foundry, then return here with characterId
+          setLocation(
+            '/create-character?returnTo=' +
+              encodeURIComponent('/home-island?from=gcs'),
+          );
           return;
         }
 
