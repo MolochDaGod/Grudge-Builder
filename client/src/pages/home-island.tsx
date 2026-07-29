@@ -122,11 +122,6 @@ export default function HomeIslandPage() {
 
     async function load() {
       try {
-        const params = new URLSearchParams(window.location.search);
-        const fromGcs =
-          params.get('from') === 'gcs' ||
-          params.get('from') === 'foundry' ||
-          params.get('from') === 'heroes';
         const { applyCharacterHandoffFromLocation, persistActiveCharacter } = await import(
           '@/lib/characterHandoff'
         );
@@ -158,21 +153,8 @@ export default function HomeIslandPage() {
         setHeroClass(char.classId);
         const charLevel = char.level ?? 1;
         setLevel(charLevel);
-        // Production gate: home island requires level 20 (admin/dev: ?unlock=1)
-        // Foundry handoff from=gcs with level-20 create skips the warlords/start detour.
-        const forceUnlock =
-          params.get('unlock') === '1' ||
-          params.get('dev') === '1' ||
-          fromGcs;
-        const { WARLORDS_HOME_ISLAND_MIN_LEVEL } = await import(
-          '@shared/definitions/warlordsProductionFlow'
-        );
-        if (charLevel < WARLORDS_HOME_ISLAND_MIN_LEVEL && !forceUnlock) {
-          setLocation(
-            `/warlords/start?need=home-island&level=${charLevel}&auto=0`,
-          );
-          return;
-        }
+        // Happy path 2026-07: home island is immediate after first character.
+        // Level-20 / End Game gate removed so Foundry → /airship → /home-island works.
         setHasWeapon(cfg.hasWeapon);
         setProfessions(getActiveGatheringProfessions(char.professionLevels ?? {}));
         setClassHotbar(buildClassHotbar(char));
