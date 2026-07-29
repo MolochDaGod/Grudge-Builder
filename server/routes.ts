@@ -313,6 +313,8 @@ export async function registerRoutes(
   registerWalletRoutes(app);
   registerShipRoutes(app, requireAuth);
   registerTreatyRoutes(app);
+  const { registerBuildLayoutRoutes } = await import("./routes/buildLayout");
+  registerBuildLayoutRoutes(app);
 
   const { registerMeRoutes } = await import("./routes/me");
   registerMeRoutes(app);

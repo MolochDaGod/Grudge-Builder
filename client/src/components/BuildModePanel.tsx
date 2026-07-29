@@ -40,6 +40,9 @@ const CATEGORY_META: Record<BuildCategory, { label: string; icon: React.ReactNod
   nature:     { label: 'Nature',     icon: <TreePine className="w-3.5 h-3.5" />,   color: '#44aa44' },
   terrain:    { label: 'Terrain',    icon: <Mountain className="w-3.5 h-3.5" />,   color: '#777' },
   camp:       { label: 'Camps',      icon: <Flag className="w-3.5 h-3.5" />,       color: '#64b5f6' },
+  units:      { label: 'Units',      icon: <Shield className="w-3.5 h-3.5" />,     color: '#c4a35a' },
+  siege:      { label: 'Siege',      icon: <Truck className="w-3.5 h-3.5" />,      color: '#aa6644' },
+  monsters:   { label: 'Monsters',   icon: <Mountain className="w-3.5 h-3.5" />,   color: '#884466' },
 };
 
 // ── Props ────────────────────────────────────────────────────────

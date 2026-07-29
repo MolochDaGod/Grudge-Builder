@@ -9,7 +9,7 @@
  *   Tools  — DevTools: ObjectStore browser, health checks
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useAIStatus, aiClient, type AITaskType } from "@/lib/aiClient";
 import { useObjectStoreData } from "@/lib/objectStoreData";
@@ -195,26 +195,97 @@ function AIHubTab() {
 
 function AssetsTab() {
   const { totalItems, isLoading } = useObjectStoreData();
+  // Lazy catalog — full BUILD_ASSETS + showcase families for in-editor placeables
+  const [catalog, setCatalog] = useState<{
+    total: number;
+    byCategory: Array<{ category: string; count: number; sample: string[] }>;
+  } | null>(null);
+
+  useEffect(() => {
+    void import("@/island3d/building/BuildAssetManifest").then((m) => {
+      const all = Object.values(m.BUILD_ASSETS);
+      const map = new Map<string, string[]>();
+      for (const a of all) {
+        const list = map.get(a.category) || [];
+        if (list.length < 6) list.push(a.name);
+        map.set(a.category, list);
+      }
+      setCatalog({
+        total: all.length,
+        byCategory: [...map.entries()]
+          .map(([category, sample]) => ({
+            category,
+            count: all.filter((x) => x.category === category).length,
+            sample,
+          }))
+          .sort((a, b) => b.count - a.count),
+      });
+    });
+  }, []);
+
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h2 className="text-lg font-bold">3D Viewer & Asset Inspector</h2>
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        <h2 className="text-lg font-bold">3D Viewer & Warlords Placeables</h2>
         <span className="text-sm text-slate-400">
-          {isLoading ? "Loading..." : `${totalItems} items in database`}
+          {isLoading ? "Loading..." : `${totalItems} ObjectStore items`}
+          {catalog ? ` · ${catalog.total} build placeables` : ""}
         </span>
       </div>
+
+      {/* Production build catalog — all assets for island-3d editor (savable) */}
+      <div className="rounded-xl border border-amber-500/25 bg-amber-500/5 p-4 space-y-3">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <h3 className="font-semibold text-amber-200">In-game placeables (BUILD_ASSETS)</h3>
+            <p className="text-xs text-slate-400 mt-0.5">
+              Benches, towers, camps, modular, docks, units, siege, mounts — place with Build
+              Hammer on /island-3d or /play. Layouts autosave to localStorage + API.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <a
+              href="/island-3d?mode=lobby&editor=1"
+              className="px-3 py-1.5 rounded-lg bg-amber-600/90 hover:bg-amber-500 text-sm font-medium text-slate-950"
+            >
+              Open 3D editor
+            </a>
+            <a
+              href="/asset-showcase"
+              className="px-3 py-1.5 rounded-lg border border-slate-600 text-sm text-slate-200 hover:bg-slate-800"
+            >
+              Cost / HP catalog
+            </a>
+          </div>
+        </div>
+        {catalog && (
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-2 max-h-56 overflow-y-auto">
+            {catalog.byCategory.map((row) => (
+              <div
+                key={row.category}
+                className="rounded-lg border border-slate-700/80 bg-slate-900/60 px-3 py-2 text-xs"
+              >
+                <div className="flex justify-between text-slate-300">
+                  <span className="font-medium capitalize">{row.category}</span>
+                  <span className="text-amber-400/90 tabular-nums">{row.count}</span>
+                </div>
+                <div className="text-slate-500 mt-1 truncate" title={row.sample.join(", ")}>
+                  {row.sample.join(" · ")}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
       {/* Opening scene doubles as a universal model viewer: drop or import a
           GLB/glTF/FBX/OBJ/STL/PLY/DAE/3MF file to inspect it. */}
       <OpeningScene className="h-[70vh]" />
       <p className="text-xs text-slate-500">
         Drag-and-drop or use <span className="text-amber-400">Import</span> to load any supported
-        format. Connected to objectstore.grudge-studio.com.
+        format. Connected to objectstore.grudge-studio.com. Placed island props restore from{" "}
+        <code className="text-slate-400">warlords_build_layout_v1</code>.
       </p>
-      <div className="rounded-xl border border-slate-700 p-8 bg-slate-800/30 text-center text-slate-500">
-        <p className="text-4xl mb-3">📦</p>
-        <p>Asset browser — browse ObjectStore, upload assets, preview 3D models</p>
-        <p className="text-xs mt-1">Connected to info.grudge-studio.com</p>
-      </div>
     </div>
   );
 }

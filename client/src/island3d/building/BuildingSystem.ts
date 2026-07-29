@@ -688,6 +688,130 @@ export class BuildingSystem {
     return true;
   }
 
+  /**
+   * Place a prop from a saved layout (no ghost). Used by island restore + multiplayer.
+   * Returns the new prop id or null if asset unknown.
+   */
+  placePropAt(
+    assetId: string,
+    position: THREE.Vector3 | { x: number; y: number; z: number },
+    rotationY = 0,
+    opts: { id?: string } = {},
+  ): string | null {
+    const asset = getBuildAsset(assetId);
+    if (!asset) {
+      console.warn('[BuildingSystem] placePropAt unknown asset', assetId);
+      return null;
+    }
+
+    const id =
+      opts.id ||
+      `prop_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+    const pos =
+      position instanceof THREE.Vector3
+        ? position.clone()
+        : new THREE.Vector3(position.x, position.y, position.z);
+
+    const group = new THREE.Group();
+    group.name = `placed_${assetId}`;
+    group.position.copy(pos);
+    group.rotation.y = rotationY;
+    group.userData.buildAssetId = assetId;
+    group.userData.buildPropId = id;
+
+    const [w, h, d] = asset.size;
+    const geo = new THREE.BoxGeometry(w, h, d);
+    const mat = new THREE.MeshStandardMaterial({
+      color: asset.color,
+      roughness: 0.8,
+      metalness: 0.1,
+    });
+    const placeholder = new THREE.Mesh(geo, mat);
+    placeholder.position.y = h / 2;
+    placeholder.castShadow = true;
+    placeholder.receiveShadow = true;
+    placeholder.name = '__placeholder';
+    group.add(placeholder);
+    this.scene.add(group);
+
+    if (asset.modelPath) {
+      void loadBuildAssetModel(asset)
+        .then((model) => {
+          const ph = group.getObjectByName('__placeholder');
+          if (ph) group.remove(ph);
+          model.traverse((child) => {
+            if ((child as THREE.Mesh).isMesh) {
+              child.castShadow = true;
+              child.receiveShadow = true;
+            }
+          });
+          group.add(model);
+        })
+        .catch(() => {});
+    }
+
+    this.placedProps.push({
+      id,
+      assetId,
+      group,
+      position: pos,
+      rotation: rotationY,
+    });
+    return id;
+  }
+
+  /** Snapshot of all placed props for save / network */
+  exportLayout(): Array<{
+    id: string;
+    assetId: string;
+    x: number;
+    y: number;
+    z: number;
+    rotation: number;
+  }> {
+    return this.placedProps.map((p) => ({
+      id: p.id,
+      assetId: p.assetId,
+      x: p.position.x,
+      y: p.position.y,
+      z: p.position.z,
+      rotation: p.rotation,
+    }));
+  }
+
+  /**
+   * Clear props and restore from layout records.
+   * Skips unknown assetIds (logs once).
+   */
+  importLayout(
+    records: Array<{
+      id?: string;
+      assetId: string;
+      x: number;
+      y: number;
+      z: number;
+      rotation?: number;
+    }>,
+  ): { placed: number; skipped: number } {
+    // Clear existing props
+    for (const prop of [...this.placedProps]) {
+      this.removeProp(prop.id);
+    }
+    let placed = 0;
+    let skipped = 0;
+    for (const r of records) {
+      const id = this.placePropAt(
+        r.assetId,
+        { x: r.x, y: r.y, z: r.z },
+        r.rotation ?? 0,
+        { id: r.id },
+      );
+      if (id) placed++;
+      else skipped++;
+    }
+    return { placed, skipped };
+  }
+
   /** Check if a point is on top of a placed foundation */
   private isOnFoundation(point: THREE.Vector3): boolean {
     for (const [, piece] of this.pieces) {

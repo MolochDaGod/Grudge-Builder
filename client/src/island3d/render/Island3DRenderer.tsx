@@ -255,6 +255,37 @@ export function Island3DRenderer({
         setError(null);
         sessionSend({ type: 'READY' });
         engine.start();
+        // Savable build layout: account + island identity → restore props
+        try {
+          const accountId =
+            multiplayer?.accountId ||
+            (typeof localStorage !== 'undefined'
+              ? localStorage.getItem('grudge_account_id') || 'guest'
+              : 'guest');
+          const islandKey =
+            lobbyIslandId ||
+            sectorId ||
+            (mode === 'lobby' ? lobbyMapId || 'lobby' : seed) ||
+            'default';
+          engine.configureBuildSave({
+            accountId,
+            islandKey: String(islandKey),
+            seed,
+          });
+          const restored = await engine.loadSavedBuildLayout();
+          if (restored.placed > 0) {
+            console.info(
+              `[Island3D] Restored ${restored.placed} saved build props` +
+                (restored.skipped ? ` (${restored.skipped} skipped)` : ''),
+            );
+          }
+          if (editorMode) {
+            // Open-world editor: equip build hammer for placeables (units/siege/props)
+            void engine.setHarvestRadialTool('toolkit');
+          }
+        } catch (e) {
+          console.warn('[Island3D] build layout restore skipped', e);
+        }
         setEngineReady(engine);
         onEngineReady?.(engine);
       })

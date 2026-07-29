@@ -118,6 +118,17 @@ export {
 } from './building/BuildHammerAttachment';
 export type { BuildHammerHandle } from './building/BuildHammerAttachment';
 
+// Savable build layouts (placeables → localStorage + /api/island/build-layout)
+export {
+  persistBuildLayout,
+  resolveBuildLayout,
+  applyBuildLayout,
+  downloadBuildLayoutJson,
+  collectLayoutFromBuilding,
+  BUILD_LAYOUT_VERSION,
+} from './building/buildLayoutSave';
+export type { BuildLayoutDoc, BuildLayoutRecord } from './building/buildLayoutSave';
+
 // Sectional damage (hide-chunk) + hammer repair (RMB select, LMB −1 wood)
 export {
   SectionalDamageSystem,

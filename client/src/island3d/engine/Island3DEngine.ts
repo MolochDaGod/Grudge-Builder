@@ -3406,13 +3406,14 @@ export class Island3DEngine {
       if (this.building.isPropPlacing) {
         const selectedId = this.building.selectedPropId;
         const result = this.building.confirmPropPlacement();
-        // Register prop for sectional damage / hammer repair
+        // Register prop for sectional damage / hammer repair + autosave layout
         if (result) {
           const props = this.building.getAllProps();
           const last = props.find((p) => p.id === result.id);
           if (last?.group) {
             this.registerBuildingDamage(`prop_${result.id}`, last.group);
           }
+          this.scheduleBuildLayoutSave();
         }
         // Outpost camp base → faction camp system owns the GLB (avoid double mesh)
         if (result && selectedId === 'npc_camp_base') {
@@ -3668,6 +3669,106 @@ export class Island3DEngine {
   cancelBuilding(): void {
     this.building?.cancelPlacement();
     this.building?.cancelPropPlacement();
+  }
+
+  /**
+   * Island key for build layout persistence (seed / lobby map / sector).
+   * Set from page after load; defaults to seed or "default".
+   */
+  public buildSaveAccountId = 'guest';
+  public buildSaveIslandKey = 'default';
+  public buildSaveSeed: string | undefined;
+  /** Debounce timer for layout autosave */
+  private _buildSaveTimer: ReturnType<typeof setTimeout> | null = null;
+
+  /** Configure who/where layouts save (call after auth + island identity known). */
+  configureBuildSave(opts: {
+    accountId?: string;
+    islandKey?: string;
+    seed?: string;
+  }): void {
+    if (opts.accountId) this.buildSaveAccountId = opts.accountId;
+    if (opts.islandKey) this.buildSaveIslandKey = opts.islandKey;
+    if (opts.seed !== undefined) this.buildSaveSeed = opts.seed;
+  }
+
+  /** Snapshot + localStorage + optional remote PATCH. */
+  persistBuildLayoutNow(): number {
+    if (!this.building) return 0;
+    // Lazy import via dynamic then sync path — use pre-imported module when available
+    return this._persistBuildLayoutSync();
+  }
+
+  private _persistBuildLayoutSync(): number {
+    if (!this.building) return 0;
+    // Inline minimal persist to avoid require() in ESM browser
+    try {
+      const props = this.building.exportLayout();
+      const doc = {
+        version: 1 as const,
+        updatedAt: Date.now(),
+        accountId: this.buildSaveAccountId || 'guest',
+        islandKey: this.buildSaveIslandKey || 'default',
+        seed: this.buildSaveSeed ?? this.config.seed,
+        props,
+      };
+      const key = `warlords_build_layout_v1:${doc.accountId}:${doc.islandKey}`;
+      localStorage.setItem(key, JSON.stringify(doc));
+      const token =
+        typeof localStorage !== 'undefined'
+          ? localStorage.getItem('grudge_auth_token') ||
+            localStorage.getItem('grudge_session_token')
+          : null;
+      void fetch('/api/island/build-layout', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify(doc),
+        keepalive: true,
+      }).catch(() => {});
+      return props.length;
+    } catch (e) {
+      console.warn('[Island3D] build layout persist failed', e);
+      return 0;
+    }
+  }
+
+  /** Debounced save after place/remove (800ms). */
+  scheduleBuildLayoutSave(): void {
+    if (this._buildSaveTimer) clearTimeout(this._buildSaveTimer);
+    this._buildSaveTimer = setTimeout(() => {
+      this._buildSaveTimer = null;
+      try {
+        this.persistBuildLayoutNow();
+      } catch (e) {
+        console.warn('[Island3D] build layout save failed', e);
+      }
+    }, 800);
+  }
+
+  /**
+   * Restore saved props for this island (local, then remote if newer).
+   * Safe to call after terrain + BuildingSystem exist.
+   */
+  async loadSavedBuildLayout(): Promise<{ placed: number; skipped: number }> {
+    if (!this.building) return { placed: 0, skipped: 0 };
+    const {
+      resolveBuildLayout,
+      applyBuildLayout,
+    } = await import('../building/buildLayoutSave');
+    const doc = await resolveBuildLayout(
+      this.buildSaveAccountId,
+      this.buildSaveIslandKey,
+    );
+    if (!doc) return { placed: 0, skipped: 0 };
+    const result = applyBuildLayout(this.building, doc);
+    // Register restored props for sectional damage / hammer repair
+    for (const p of this.building.getAllProps()) {
+      if (p.group) this.registerBuildingDamage(`prop_${p.id}`, p.group);
+    }
+    return result;
   }
 
   get isBuildPlacing(): boolean {
