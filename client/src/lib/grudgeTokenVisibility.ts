@@ -21,6 +21,11 @@ const HIDDEN_PREFIXES = [
   "/editor",
   "/forge",
   "/scene",
+  // Catalog / docs surfaces — no need for 3D wallet FAB noise
+  "/asset-showcase",
+  "/assets",
+  "/showcase",
+  "/systems",
 ];
 
 /** Explicit show-list for game surfaces that need wallet (overrides future hide mistakes). */

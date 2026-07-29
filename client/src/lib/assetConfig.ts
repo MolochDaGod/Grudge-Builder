@@ -4,12 +4,14 @@ import { objectStoreApiBase, CANONICAL_OBJECT_STORE_API } from './objectStoreUrl
 /**
  * ObjectStore Asset & API URL Configuration — ONE TRUTH
  *
- *   BINARY ASSETS → assets.grudge-studio.com (R2 CDN)
+ *   BINARY ASSETS → browser: /api/assets/* (same-origin → R2) · SSR: assets.grudge-studio.com
  *   JSON DATA     → objectstore.grudge-studio.com/api/v1 (browser: /api/objectstore/v1 proxy)
  *
- * assetUrl()  → R2 CDN
- * apiUrl()    → ObjectStore JSON (same-origin proxy in browser)
- * workerUrl() → objectstore.grudge-studio.com
+ * assetUrl()      → same-origin proxy in browser (no CORS); absolute CDN in tests/SSR
+ * cdnAssetUrl()   → always absolute R2
+ * sameOriginAssetUrl() → force /api/assets/*
+ * apiUrl()        → ObjectStore JSON
+ * workerUrl()     → objectstore.grudge-studio.com
  */
 
 /** R2 CDN — primary for ALL binary assets (images, sprites, audio, models) */
@@ -37,39 +39,119 @@ const OBJECT_STORE_BASE = ASSET_CDN_BASE;
 const OBJECT_STORE_VERSION = '3.2.0';
 
 /**
- * Build a URL for a game asset (image, sprite, audio, etc.).
- * Points to R2 CDN (assets.grudge-studio.com) which has all assets.
+ * Browser pages should load binaries via same-origin rewrites:
+ *   /api/assets/*  → assets.grudge-studio.com (Vercel + Vite proxy)
+ *   /icons|/models|/sprites|/fonts|/videos → also rewritten on Vercel
+ *
+ * Why: direct cross-origin fetch/WebGL/canvas of R2 can fail CORS when an
+ * edge returns HTML (miss) or a browser extension wraps fetch. Same-origin
+ * keeps TextureLoader / useGLTF / icon probe fetches quiet.
+ */
+function preferSameOriginAssets(): boolean {
+  if (typeof window === 'undefined') return false;
+  try {
+    const env = (import.meta as { env?: Record<string, unknown> }).env;
+    if (env?.MODE === 'test' || env?.VITEST || env?.VITE_ASSET_ABSOLUTE === '1') {
+      return false;
+    }
+  } catch {
+    /* ignore */
+  }
+  return true;
+}
+
+/** Strip CDN host → site-relative path (leading slash). */
+function toCdnRelativePath(pathOrUrl: string): string {
+  let raw = pathOrUrl.trim();
+  if (!raw) return '';
+  // //assets.grudge-studio.com/...
+  if (raw.startsWith('//')) raw = `https:${raw}`;
+  const host = ASSET_CDN_BASE.replace(/^https?:\/\//i, '').replace(/\/$/, '');
+  raw = raw.replace(new RegExp(`^https?:\\/\\/${host.replace(/\./g, '\\.')}`, 'i'), '');
+  raw = raw.replace(/^\/api\/assets\/?/i, '/');
+  if (!raw.startsWith('/')) raw = `/${raw}`;
+  return raw;
+}
+
+/**
+ * Same-origin URL that Vercel / Vite proxy to R2.
+ * Prefer this for fetch, Three.js loaders, and canvas.
+ */
+export function sameOriginAssetUrl(path: string): string {
+  if (!path) return '/api/assets/';
+  if (/^(data:|blob:)/i.test(path)) return path;
+  const rel = toCdnRelativePath(normalizeAssetPath(path) || path);
+  const clean = rel.replace(/^\/+/, '');
+  return `/api/assets/${clean}`;
+}
+
+/**
+ * Build a URL for a game asset (image, sprite, audio, model, etc.).
+ *
+ * Browser (production/dev): same-origin `/api/assets/...` (no CORS).
+ * SSR / tests / VITE_ASSET_ABSOLUTE=1: absolute R2 CDN URL.
  *
  * @example
  *   assetUrl('/backgrounds/general.png')
- *   // => 'https://assets.grudge-studio.com/backgrounds/general.png'
+ *   // browser => '/api/assets/backgrounds/general.png'
+ *   // node/test => 'https://assets.grudge-studio.com/backgrounds/general.png'
  */
 export function assetUrl(path: string): string {
-  if (!path) return ASSET_CDN_BASE;
-  // Absolute / data / blob — never re-prefix (prevents assets.grudge-studio.comhttps://…)
-  if (/^(https?:|data:|blob:)/i.test(path)) return path;
-  if (path.startsWith('//')) return `https:${path}`;
+  if (!path) return preferSameOriginAssets() ? '/api/assets/' : ASSET_CDN_BASE;
+  // data / blob — never re-prefix
+  if (/^(data:|blob:)/i.test(path)) return path;
 
-  const cleanPath = normalizeAssetPath(path);
-  if (/^(https?:|data:|blob:)/i.test(cleanPath)) return cleanPath;
-
-  // Path already contains the CDN host without scheme (or with)
-  const host = ASSET_CDN_BASE.replace(/^https?:\/\//i, '');
-  if (cleanPath.includes(host)) {
-    if (/^https?:\/\//i.test(cleanPath)) return cleanPath;
-    return `https://${cleanPath.replace(/^\/+/, '')}`;
+  // Already same-origin proxy
+  if (path.startsWith('/api/assets/') || path === '/api/assets') {
+    return path;
   }
 
-  const base = ASSET_CDN_BASE.replace(/\/$/, '');
+  // Absolute non-CDN http(s) (e.g. external) — leave alone
+  if (/^https?:\/\//i.test(path)) {
+    const host = ASSET_CDN_BASE.replace(/^https?:\/\//i, '');
+    if (!path.includes(host)) return path;
+    // CDN absolute → same-origin in browser
+    if (preferSameOriginAssets()) return sameOriginAssetUrl(path);
+    return path;
+  }
+  if (path.startsWith('//')) {
+    const abs = `https:${path}`;
+    return preferSameOriginAssets() ? sameOriginAssetUrl(abs) : abs;
+  }
+
+  const cleanPath = normalizeAssetPath(path);
+  if (/^(data:|blob:)/i.test(cleanPath)) return cleanPath;
+  if (/^https?:\/\//i.test(cleanPath)) {
+    return preferSameOriginAssets() ? sameOriginAssetUrl(cleanPath) : cleanPath;
+  }
+
+  const host = ASSET_CDN_BASE.replace(/^https?:\/\//i, '');
+  if (cleanPath.includes(host)) {
+    const abs = /^https?:\/\//i.test(cleanPath)
+      ? cleanPath
+      : `https://${cleanPath.replace(/^\/+/, '')}`;
+    return preferSameOriginAssets() ? sameOriginAssetUrl(abs) : abs;
+  }
+
   const rel = cleanPath.startsWith('/') ? cleanPath : `/${cleanPath}`;
+  if (preferSameOriginAssets()) return sameOriginAssetUrl(rel);
+
+  const base = ASSET_CDN_BASE.replace(/\/$/, '');
   return `${base}${rel}`;
 }
 
 /**
- * CDN asset URL — same as assetUrl() now (both point to R2 CDN).
+ * Always absolute R2 CDN URL (sharing, SSR, emails, workers).
  */
 export function cdnAssetUrl(path: string): string {
-  return assetUrl(path);
+  if (!path) return ASSET_CDN_BASE;
+  if (/^(data:|blob:)/i.test(path)) return path;
+  if (/^https?:\/\//i.test(path) && path.includes('assets.grudge-studio.com')) {
+    return path;
+  }
+  const rel = toCdnRelativePath(normalizeAssetPath(path) || path);
+  const base = ASSET_CDN_BASE.replace(/\/$/, '');
+  return `${base}${rel.startsWith('/') ? rel : `/${rel}`}`;
 }
 
 /**

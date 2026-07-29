@@ -83,6 +83,19 @@ async function treatyFetch<T>(path: string, init?: RequestInit): Promise<T> {
   return data as T;
 }
 
+/** Soft unread badge — 401/403 → 0 (public pages with stale JWT stay quiet). */
+export async function fetchTreatyUnread(): Promise<{ unread: number }> {
+  try {
+    const res = await fetch(`${API_BASE}/treaty/unread`, { headers: authHeaders() });
+    if (res.status === 401 || res.status === 403) return { unread: 0 };
+    if (!res.ok) return { unread: 0 };
+    const data = (await res.json().catch(() => ({}))) as { unread?: number };
+    return { unread: Number(data.unread) || 0 };
+  } catch {
+    return { unread: 0 };
+  }
+}
+
 // ── Social / friends ────────────────────────────────────────────────────
 
 export async function fetchTreatySocial(): Promise<TreatySocial> {

@@ -621,8 +621,20 @@ export interface WalletOverview {
   rates: { gbuxUsd: number; purchaseFeePercent: number };
 }
 
+const EMPTY_WALLET_OVERVIEW: WalletOverview = {
+  gbuxBalance: 0,
+  primaryWallet: null,
+  walletType: null,
+  linkedWallets: [],
+  onChain: [],
+  treasuryAddress: null,
+  rates: { gbuxUsd: 0, purchaseFeePercent: 0 },
+};
+
 export async function fetchWalletOverview(): Promise<WalletOverview> {
   const res = await fetch(`${API_BASE}/wallet/overview`, { headers: authHeaders() });
+  // Guest / expired JWT — quiet empty shell (do not throw → no console red on public pages)
+  if (res.status === 401 || res.status === 403) return { ...EMPTY_WALLET_OVERVIEW };
   if (!res.ok) throw new Error("Failed to load wallet overview");
   return res.json();
 }

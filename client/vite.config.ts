@@ -147,5 +147,25 @@ export default defineConfig({
     fs: {
       allow: monorepoRoot ? [repoRoot, monorepoRoot] : [repoRoot],
     },
+    // Match production Vercel rewrites — same-origin /api/assets + /icons + /models
+    proxy: {
+      "/api/assets": {
+        target: "https://assets.grudge-studio.com",
+        changeOrigin: true,
+        rewrite: (p: string) => p.replace(/^\/api\/assets/, ""),
+      },
+      "/icons": {
+        target: "https://assets.grudge-studio.com",
+        changeOrigin: true,
+      },
+      "/models": {
+        target: "https://assets.grudge-studio.com",
+        changeOrigin: true,
+      },
+      "/sprites": {
+        target: "https://assets.grudge-studio.com",
+        changeOrigin: true,
+      },
+    },
   },
 });

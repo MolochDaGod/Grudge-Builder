@@ -25,19 +25,24 @@ export function GrudgeTokenWidget() {
   const hasToken = isAuthenticated();
   const sessionReady = authContextAuthed || hasToken;
 
+  // Only hit wallet/treaty when both context + token agree (avoids 401 spam from stale localStorage)
+  const canFetchPrivate = authContextAuthed && hasToken;
+
   const { data: overview } = useQuery({
     queryKey: ["wallet-overview"],
     queryFn: fetchWalletOverview,
-    enabled: sessionReady,
+    enabled: canFetchPrivate,
     staleTime: 30_000,
+    retry: false,
   });
 
   const { data: unreadData } = useQuery({
     queryKey: ["treaty-unread"],
     queryFn: fetchTreatyUnread,
-    enabled: sessionReady,
-    refetchInterval: sessionReady ? 15_000 : false,
+    enabled: canFetchPrivate,
+    refetchInterval: canFetchPrivate ? 15_000 : false,
     staleTime: 10_000,
+    retry: false,
   });
 
   if (!shouldShowGrudgeToken(location)) return null;
