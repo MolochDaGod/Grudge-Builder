@@ -1,8 +1,10 @@
 /**
- * Grudge token FAB visual — prefers 2D sprite; optional 3D helmet when GLB is healthy.
+ * Grudge token FAB visual — 2D sprite by default; optional 3D only after a
+ * verified glTF binary (magic "glTF").
  *
- * Never throw uncaught useGLTF errors into the console (missing/HTML responses used
- * to spam "Unexpected token '<'" on every page including /asset-showcase).
+ * Production R2 once served HTML under models/grudge-token-helmet.glb with
+ * Content-Type: model/gltf-binary — HEAD alone is not trustworthy. Never mount
+ * useGLTF until magic bytes pass, so pages stay free of "Unexpected token '<'".
  */
 import { Component, Suspense, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
@@ -11,8 +13,21 @@ import type { Group } from "three";
 import { assetUrl } from "@/lib/assetConfig";
 
 const HELMET_FALLBACK_IMG = assetUrl("/sprites/gbux-token.png");
-/** Same-origin proxy → R2 (avoids CORS / HTML error bodies). */
+/** Same-origin proxy → R2 (when a real GLB is uploaded). */
 const MODEL_URL = assetUrl("/models/grudge-token-helmet.glb");
+
+/**
+ * Force 2D until R2 has a real GLB. Set VITE_GRUDGE_TOKEN_3D=1 after upload.
+ * Default off avoids console spam when the key is HTML/404 SPA.
+ */
+function allowHelmet3dAttempt(): boolean {
+  try {
+    const env = (import.meta as { env?: Record<string, string | undefined> }).env;
+    return env?.VITE_GRUDGE_TOKEN_3D === "1" || env?.VITE_GRUDGE_TOKEN_3D === "true";
+  } catch {
+    return false;
+  }
+}
 
 /** HTML fallback — only safe OUTSIDE Canvas (R3F treats <img> as THREE.Img). */
 function HelmetHtmlFallback({ className = "w-full h-full" }: { className?: string }) {
@@ -73,58 +88,61 @@ function HelmetModel({ url }: { url: string }) {
   );
 }
 
-/** Probe model before mounting R3F — rejects HTML error pages and non-OK status. */
+/** True only if body starts with glTF binary magic — never trust Content-Type alone. */
 async function probeHelmetModel(url: string): Promise<boolean> {
   try {
-    const head = await fetch(url, { method: "HEAD", mode: "cors", credentials: "omit" });
-    if (head.ok) {
-      const ct = (head.headers.get("content-type") || "").toLowerCase();
-      if (ct.includes("html")) return false;
-      if (ct.includes("gltf") || ct.includes("octet") || ct.includes("model") || ct === "") {
-        return true;
-      }
-    }
-    // Some edges block HEAD — try ranged GET
     const get = await fetch(url, {
       method: "GET",
       mode: "cors",
       credentials: "omit",
-      headers: { Range: "bytes=0-3" },
+      headers: { Range: "bytes=0-15" },
+      cache: "no-store",
     });
+    // 200 or 206 Partial Content
     if (!get.ok && get.status !== 206) return false;
+
+    const ct = (get.headers.get("content-type") || "").toLowerCase();
+    if (ct.includes("html") || ct.includes("text/")) return false;
+
     const buf = await get.arrayBuffer();
     if (buf.byteLength < 4) return false;
     const bytes = new Uint8Array(buf);
-    // glTF binary magic "glTF"
-    const magic =
+
+    // HTML / DOCTYPE / BOM
+    if (bytes[0] === 0x3c /* < */) return false;
+    if (bytes[0] === 0xef && bytes[1] === 0xbb && bytes[2] === 0xbf) return false;
+
+    // glTF binary magic "glTF" (0x67 0x6c 0x54 0x46)
+    return (
       bytes[0] === 0x67 &&
       bytes[1] === 0x6c &&
       bytes[2] === 0x54 &&
-      bytes[3] === 0x46;
-    // Not HTML `<!DO` / `<htm`
-    const looksHtml =
-      bytes[0] === 0x3c /* < */ ||
-      (bytes[0] === 0xef && bytes[1] === 0xbb); // BOM often precedes HTML
-    return magic && !looksHtml;
+      bytes[3] === 0x46
+    );
   } catch {
     return false;
   }
 }
 
 export function GrudgeTokenHelmet({ className = "w-full h-full" }: { className?: string }) {
-  const [mode, setMode] = useState<"pending" | "3d" | "2d">("pending");
+  // Default 2d — never flash a broken useGLTF load
+  const [mode, setMode] = useState<"2d" | "3d">("2d");
 
   useEffect(() => {
+    if (!allowHelmet3dAttempt()) {
+      setMode("2d");
+      return;
+    }
     let cancelled = false;
     void probeHelmetModel(MODEL_URL).then((ok) => {
-      if (!cancelled) setMode(ok ? "3d" : "2d");
+      if (!cancelled && ok) setMode("3d");
     });
     return () => {
       cancelled = true;
     };
   }, []);
 
-  if (mode === "pending" || mode === "2d") {
+  if (mode === "2d") {
     return <HelmetHtmlFallback className={className} />;
   }
 
