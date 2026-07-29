@@ -63,11 +63,14 @@ export async function ensurePinataLoaded(): Promise<boolean> {
   if (pinataLoadAttempted) return false;
   pinataLoadAttempted = true;
   try {
-    // Dynamic import — package is optional; hide-chunk remains primary path.
-    const mod = await import(
-      /* @vite-ignore */ "@dgreenheck/three-pinata"
-    );
-    pinataModule = mod as NonNullable<typeof pinataModule>;
+    // Optional peer — build string at runtime so Vite/Rollup never hard-resolves it.
+    const pkg = ["@dgreenheck", "three-pinata"].join("/");
+    // eslint-disable-next-line @typescript-eslint/no-implied-eval
+    const dynamicImport = new Function("s", "return import(s)") as (
+      s: string,
+    ) => Promise<NonNullable<typeof pinataModule>>;
+    const mod = await dynamicImport(pkg);
+    pinataModule = mod;
     return true;
   } catch {
     console.info(

@@ -111,6 +111,8 @@ export default defineConfig({
       transformMixedEsModules: true,
     },
     rollupOptions: {
+      // Optional peer for pinata shatter (hide-chunk works without it)
+      external: ["@dgreenheck/three-pinata"],
       // three-render-objects imports Timer, WebGPURenderer etc. from three.js
       // that don't exist in v0.160. shimMissingExports creates undefined stubs
       // so the build doesn't crash. These code paths are never reached at runtime
