@@ -1,6 +1,6 @@
-/**
- * Treaty chat client — Grudge ID account social (friends, DMs, groups).
- * Same-origin /api/treaty/* → Railway Postgres SSOT.
+﻿/**
+ * Treaty chat client â€” Grudge ID account social (friends, DMs, groups).
+ * Same-origin /api/treaty/* â†’ Railway Postgres SSOT.
  */
 import { API_BASE, authHeaders } from "./grudgeBackend";
 
@@ -83,7 +83,7 @@ async function treatyFetch<T>(path: string, init?: RequestInit): Promise<T> {
   return data as T;
 }
 
-/** Soft unread badge — 401/403 → 0 (public pages with stale JWT stay quiet). */
+/** Soft unread badge â€” 401/403 â†’ 0 (public pages with stale JWT stay quiet). */
 export async function fetchTreatyUnread(): Promise<{ unread: number }> {
   try {
     const res = await fetch(`${API_BASE}/treaty/unread`, { headers: authHeaders() });
@@ -96,7 +96,7 @@ export async function fetchTreatyUnread(): Promise<{ unread: number }> {
   }
 }
 
-// ── Social / friends ────────────────────────────────────────────────────
+// â”€â”€ Social / friends â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export async function fetchTreatySocial(): Promise<TreatySocial> {
   return treatyFetch<TreatySocial>("/social");
@@ -118,7 +118,7 @@ export async function respondTreatyFriendRequest(requestId: string, accept: bool
   });
 }
 
-// ── DMs ─────────────────────────────────────────────────────────────────
+// â”€â”€ DMs â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export async function fetchTreatyDmThreads(): Promise<{ threads: TreatyDmThread[] }> {
   return treatyFetch<{ threads: TreatyDmThread[] }>("/dm/threads");
@@ -144,7 +144,7 @@ export async function sendTreatyMessage(threadId: string, content: string) {
   });
 }
 
-// ── Groups ──────────────────────────────────────────────────────────────
+// â”€â”€ Groups â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export async function fetchTreatyGroups(): Promise<{ groups: TreatyGroupSummary[] }> {
   return treatyFetch<{ groups: TreatyGroupSummary[] }>("/groups");
@@ -195,13 +195,8 @@ export async function sendTreatyGroupMessage(groupId: string, content: string) {
   });
 }
 
-// ── Unread ──────────────────────────────────────────────────────────────
-
-export async function fetchTreatyUnread(): Promise<{ unread: number }> {
-  return treatyFetch<{ unread: number }>("/unread");
-}
-
-// ── Server / fleet chat (all games + studio) ─────────────────────────────
+// Unread: fetchTreatyUnread (soft 401) is defined near the top of this file.
+// â”€â”€ Server / fleet chat (all games + studio) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export interface TreatyServerChannel {
   id: string;
