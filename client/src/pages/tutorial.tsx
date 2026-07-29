@@ -129,9 +129,9 @@ export default function TutorialPage() {
         const activeId = handoff.characterId;
 
         if (!activeId) {
-          // No character — send to heroes select (not create) when unauthenticated flow allows
-          console.warn('[Tutorial] missing characterId — redirect /heroes');
-          setLocation('/heroes');
+          // SSOT: no hero → Foundry create, then return to tutorial with characterId
+          console.warn('[Tutorial] missing characterId — redirect /create-character');
+          setLocation('/create-character?returnTo=' + encodeURIComponent('/tutorial?from=gcs'));
           return;
         }
 
@@ -182,14 +182,17 @@ export default function TutorialPage() {
         }
       } catch (err) {
         console.error('[Tutorial] character load failed', err);
-        // Keep characterId in URL when bouncing to heroes for retry
         const handoff = applyCharacterHandoffFromLocation();
         if (handoff.characterId) {
+          // Keep id for roster retry; user can re-enter tutorial
           setLocation(
             `/heroes?characterId=${encodeURIComponent(handoff.characterId)}&error=load`,
           );
         } else {
-          setLocation('/heroes');
+          setLocation(
+            '/create-character?returnTo=' +
+              encodeURIComponent('/tutorial?from=gcs'),
+          );
         }
       }
     }

@@ -127,8 +127,13 @@ export default function PlayPage() {
         } as Character;
       }
       if (!char) {
-        console.warn('[Play] No roster character — redirecting to hero select');
-        setLocation('/heroes');
+        // SSOT funnel: create at Foundry, then return to this play URL with characterId
+        console.warn('[Play] No roster character — redirecting to create-character');
+        const returnTo =
+          window.location.pathname + window.location.search || '/play';
+        setLocation(
+          '/create-character?returnTo=' + encodeURIComponent(returnTo),
+        );
         return;
       }
 
