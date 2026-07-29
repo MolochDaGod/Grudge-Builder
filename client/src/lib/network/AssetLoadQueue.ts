@@ -40,7 +40,8 @@ class AssetLoadQueueImpl {
   /** Load race character GLB with priority (0 = local, 1 = remote near, …). */
   loadRaceModel(raceId: string, priority: LoadPriority = 2): Promise<LoadedModel | null> {
     const race = RACE_GRUDGE6[normalizeRaceId(raceId)] ?? RACE_GRUDGE6.human;
-    const path = race.cdnPath || `/models/characters/races/${race.modelId}.glb`;
+    // Always grudge6 kit path — never legacy /models/characters/races/* (corrupt skins).
+    const path = race.cdnPath || `/models/grudge6/races/WK_Characters.glb`;
     return this.enqueue({
       id: `race:${normalizeRaceId(raceId)}`,
       url: path.startsWith('http') ? path : assetUrl(path),
