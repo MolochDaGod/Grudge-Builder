@@ -92,6 +92,7 @@ const WorldNativePage = lazy(() => import("@/pages/world-native"));
 import IslandRevealPage from "@/pages/island-reveal";
 import HomeIslandPage from "@/pages/home-island";
 import HomeIslandEntryPage from "@/pages/homeisland";
+import AirshipHandoffPage from "@/pages/airship-handoff";
 import IslandsPage from "@/pages/islands";
 import { RtsDomainBootstrap } from "@/components/RtsDomainBootstrap";
 import { hydrateVideoCatalog } from "@/lib/fleetVideo";
@@ -204,6 +205,9 @@ function Router() {
       <Route path="/home-island" component={HomeIslandPage} />
       <Route path="/homeisland" component={HomeIslandEntryPage} />
       <Route path="/homeIsland" component={HomeIslandEntryPage} />
+      {/* Foundry default post-create dest — bridge to home-island until full airship ships */}
+      <Route path="/airship" component={AirshipHandoffPage} />
+      <Route path="/airship-zone" component={AirshipHandoffPage} />
       <Route path="/weapon-admin" component={WeaponModelAdminPage} />
       <Route path="/weapon-skills" component={WeaponSkillsPage} />
       <Route path="/weapon-mastery" component={WeaponMasteryPage} />

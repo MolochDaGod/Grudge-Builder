@@ -68,15 +68,13 @@ export function buildWarlordsProgress(opts: {
   });
 }
 
-export function canEnterHomeIsland(level: number): boolean {
-  return level >= WARLORDS_HOME_ISLAND_MIN_LEVEL;
+export function canEnterHomeIsland(_level: number): boolean {
+  // Immediate after first character (no level-20 gate)
+  return true;
 }
 
-export function homeIslandLockMessage(level: number): string {
-  const need = WARLORDS_HOME_ISLAND_MIN_LEVEL;
-  const cur = Math.max(1, level || 1);
-  if (cur >= need) return '';
-  return `Home Island unlocks at level ${need}. Your hero is level ${cur}. Keep playing the open world!`;
+export function homeIslandLockMessage(_level: number): string {
+  return '';
 }
 
 export function stepPath(
