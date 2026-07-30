@@ -78,7 +78,14 @@ function getOpenAI(): OpenAI | null {
 
 // ── JWT Auth Middleware (#9) ──────────────────────────────────────────────────
 
-const JWT_SECRET = process.env.SESSION_SECRET || process.env.JWT_SECRET || "";
+/** Prefer SESSION_SECRET (auth.ts) then JWT_SECRET / GRUDGE_JWT_SECRET — try all on verify. */
+const JWT_SECRET_CANDIDATES = [
+  process.env.SESSION_SECRET,
+  process.env.JWT_SECRET,
+  process.env.GRUDGE_JWT_SECRET,
+].filter((s): s is string => !!s && s.length > 0);
+
+const JWT_SECRET = JWT_SECRET_CANDIDATES[0] || "";
 
 interface AuthPayload {
   userId?: string;
@@ -86,47 +93,61 @@ interface AuthPayload {
   username?: string;
   isAdmin?: boolean;
   sub?: string | number;
+  id?: string | number;
+  accountId?: string;
+}
+
+function verifyAuthToken(token: string): AuthPayload | null {
+  if (!token) return null;
+  if (JWT_SECRET_CANDIDATES.length === 0) {
+    // Dev: no secret configured — cannot verify; treat as guest
+    return null;
+  }
+  for (const secret of JWT_SECRET_CANDIDATES) {
+    try {
+      return jwt.verify(token, secret) as AuthPayload;
+    } catch {
+      /* try next secret (id gateway vs Railway env name drift) */
+    }
+  }
+  return null;
+}
+
+function readBearerToken(req: Request): string | null {
+  const authHeader = req.get("Authorization") || req.get("X-Session-Token");
+  if (!authHeader) return null;
+  return authHeader.startsWith("Bearer ") ? authHeader.slice(7) : authHeader;
 }
 
 /**
  * Extract and verify the user ID from a Bearer token.
  * Falls back to "guest" only when no token is provided (public read routes).
- * Admin status comes from the verified token payload, NOT from a header.
+ * Accepts userId | sub | id | grudgeId (Foundry / Grudge ID claim variants).
  */
 function extractUserId(req: Request): string {
-  const authHeader = req.get("Authorization") || req.get("X-Session-Token");
-  const token = authHeader?.startsWith("Bearer ")
-    ? authHeader.slice(7)
-    : authHeader || null;
-
+  const token = readBearerToken(req);
   if (!token) return "guest";
 
-  // If no JWT_SECRET is configured, skip verification (dev mode)
-  if (!JWT_SECRET) return "guest";
+  // Dev without secrets: allow guest only
+  if (JWT_SECRET_CANDIDATES.length === 0) return "guest";
 
-  try {
-    const payload = jwt.verify(token, JWT_SECRET) as AuthPayload;
-    if (payload.userId) return payload.userId;
-    if (payload.sub != null && payload.sub !== "") return String(payload.sub);
-    return "guest";
-  } catch {
-    return "guest";
-  }
+  const payload = verifyAuthToken(token);
+  if (!payload) return "guest";
+
+  if (payload.userId) return String(payload.userId);
+  if (payload.sub != null && payload.sub !== "") return String(payload.sub);
+  if (payload.id != null && payload.id !== "") return String(payload.id);
+  // Last resort: some fleet tokens only mint grudgeId (characters may be keyed by it)
+  if (payload.grudgeId) return String(payload.grudgeId);
+  return "guest";
 }
 
 /** Extract grudgeId from Bearer JWT when present */
 function extractGrudgeId(req: Request): string | null {
-  const authHeader = req.get("Authorization") || req.get("X-Session-Token");
-  const token = authHeader?.startsWith("Bearer ")
-    ? authHeader.slice(7)
-    : authHeader || null;
-  if (!token || !JWT_SECRET) return null;
-  try {
-    const payload = jwt.verify(token, JWT_SECRET) as AuthPayload;
-    return payload.grudgeId || null;
-  } catch {
-    return null;
-  }
+  const token = readBearerToken(req);
+  if (!token) return null;
+  const payload = verifyAuthToken(token);
+  return payload?.grudgeId || null;
 }
 
 /** Returns true if the token belongs to an admin user */
@@ -173,6 +194,7 @@ function requireAuth(req: Request, res: Response, next: NextFunction): void {
     return;
   }
   (req as any).userId = userId;
+  (req as any).grudgeId = extractGrudgeId(req);
   next();
 }
 
@@ -371,10 +393,12 @@ export async function registerRoutes(
   app.get("/api/characters", requireAuth, async (req, res) => {
     try {
       const userId = getUserId(req);
+      const grudgeId = (req as any).grudgeId as string | null;
       const eraQuery = typeof req.query.era === "string" ? req.query.era : undefined;
       const eraParam = eraQuery ? normalizeGameEra(eraQuery) : undefined;
       const envelope = req.query.envelope === "1" || !!eraQuery;
-      const characters = await storage.getCharacters(userId, eraParam);
+      // Resolve by userId + grudgeId/account so Foundry/id-gateway claim drift still finds heroes
+      const characters = await storage.getCharactersForAuth(userId, eraParam, grudgeId);
       if (!envelope) {
         return res.json(characters);
       }
@@ -421,7 +445,8 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/characters", async (req, res) => {
+  // Production: require signed-in account so heroes are never orphaned under "guest"
+  app.post("/api/characters", requireAuth, async (req, res) => {
     try {
       const userId = getUserId(req);
       const gameEra = normalizeGameEra(req.body.gameEra);

@@ -175,8 +175,35 @@ export async function bridgeGrudgeLaunchToken(launchToken: string): Promise<bool
 
 // ── Token helpers ────────────────────────────────────────────────────
 
+/**
+ * Read JWT from all fleet SSO keys (Foundry, id gateway, RTS, legacy).
+ * Without this, home thinks the user is logged out while other tabs hold sso_token.
+ */
 export function getToken(): string | null {
-  return localStorage.getItem(AUTH_TOKEN_KEY) || localStorage.getItem(LEGACY_SESSION_TOKEN_KEY);
+  if (typeof localStorage === "undefined") return null;
+  const keys = [
+    AUTH_TOKEN_KEY, // grudge_auth_token
+    LEGACY_SESSION_TOKEN_KEY, // grudge_session_token
+    "grudge.token",
+    "sso_token",
+    "grudge_token",
+    "grudge_jwt",
+  ];
+  for (const k of keys) {
+    try {
+      const v = localStorage.getItem(k);
+      if (v && v.length > 20) return v;
+    } catch {
+      /* ignore */
+    }
+  }
+  try {
+    const s = sessionStorage.getItem(AUTH_TOKEN_KEY) || sessionStorage.getItem("sso_token");
+    if (s && s.length > 20) return s;
+  } catch {
+    /* ignore */
+  }
+  return null;
 }
 
 /** Cookie TTL — 7 days, matches a typical session lifetime */

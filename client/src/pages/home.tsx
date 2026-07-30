@@ -113,7 +113,7 @@ export default function HomePage() {
         setActiveCharacter(null);
       } else {
         let active = await CharacterManager.getActiveCharacter();
-        if (!active) {
+        if (!active || !list.some((c) => c.id === active?.id)) {
           CharacterManager.setActive(list[0].id);
           active = list[0];
         }
@@ -121,13 +121,9 @@ export default function HomePage() {
       }
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Failed to load characters";
-      // Stale JWT → empty roster UI (apiFetch clears token); no red console spam
-      if (!/401|403|Unauthorized/i.test(msg)) {
-        console.warn("[home] character load failed", e);
-        setLoadError(msg);
-      } else {
-        setLoadError(null);
-      }
+      console.warn("[home] character load failed", e);
+      // Always surface auth/roster errors — silent empty roster hid real failures
+      setLoadError(msg);
       setCharacters([]);
       setActiveCharacter(null);
     } finally {
@@ -318,16 +314,25 @@ export default function HomePage() {
             {!loadingChars && loadError && (
               <div className="flex items-start gap-2 text-rose-300/90 text-xs bg-rose-950/30 border border-rose-800/40 rounded-xl p-3 mb-3">
                 <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-                <div>
+                <div className="flex-1">
                   <div className="font-semibold mb-0.5">Could not load characters</div>
                   <div className="text-rose-200/60">{loadError}</div>
-                  <button
-                    type="button"
-                    className="mt-2 text-amber-300 underline"
-                    onClick={() => void loadCharacters()}
-                  >
-                    Retry
-                  </button>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      className="text-amber-300 underline"
+                      onClick={() => void loadCharacters()}
+                    >
+                      Retry
+                    </button>
+                    <button
+                      type="button"
+                      className="text-amber-300 underline"
+                      onClick={() => openLogin()}
+                    >
+                      Sign in again
+                    </button>
+                  </div>
                 </div>
               </div>
             )}
@@ -338,16 +343,18 @@ export default function HomePage() {
                   <User className="w-7 h-7 text-white/20" />
                 </div>
                 <p style={{ fontFamily: FONTS.title }} className="text-sm text-white/50 mb-1">
-                  No Warlords heroes yet
+                  {isAuthenticated || hasAuthToken()
+                    ? "No Warlords heroes on this account"
+                    : "Sign in to see your heroes"}
                 </p>
                 <p className="text-[11px] text-white/30 mb-4 max-w-sm mx-auto">
                   {isAuthenticated || hasAuthToken()
-                    ? "Create a hero to unlock home island, ocean sail, and the 9-sector map."
-                    : "Sign in with Grudge ID to load your account characters."}
+                    ? "Create a hero on this signed-in account (heroes are tied to your Grudge ID, not this browser)."
+                    : "Your roster lives on Railway under your Grudge ID. Sign in first — guests cannot see existing heroes."}
                 </p>
                 {isAuthenticated || hasAuthToken() ? (
                   <Button
-                    onClick={() => setLocation("/create-character")}
+                    onClick={() => setLocation("/create-character?returnTo=/home")}
                     className="bg-gradient-to-r from-amber-600 to-amber-700 text-white text-sm"
                   >
                     <Plus className="w-4 h-4 mr-1.5" /> Create hero
@@ -362,10 +369,14 @@ export default function HomePage() {
                     </Button>
                     <Button
                       variant="outline"
-                      onClick={() => setLocation("/create-character")}
+                      onClick={() =>
+                        setLocation(
+                          `/create-character?returnTo=${encodeURIComponent("/home")}`,
+                        )
+                      }
                       className="border-amber-600/40 text-amber-200 text-sm"
                     >
-                      Create at Foundry
+                      Create hero (after sign-in)
                     </Button>
                   </div>
                 )}

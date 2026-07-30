@@ -24,6 +24,18 @@ export interface CharacterEnvelope {
  * Base: same-origin /api/* — Vercel rewrites → Railway game-data API (see @shared/fleet).
  */
 
+function isJwtExpired(token: string): boolean {
+  try {
+    const parts = token.split(".");
+    if (parts.length !== 3) return false;
+    const payload = JSON.parse(atob(parts[1].replace(/-/g, "+").replace(/_/g, "/")));
+    if (typeof payload.exp !== "number") return false;
+    return payload.exp * 1000 < Date.now() - 5000;
+  } catch {
+    return false;
+  }
+}
+
 async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
   const headers = {
     "Content-Type": "application/json",
@@ -37,7 +49,7 @@ async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> 
     path.includes("/treaty") ||
     path.includes("/account");
   if (needsAuth && !headers.Authorization) {
-    throw new Error(`API 401: ${path}`);
+    throw new Error(`Not signed in — open Sign in to load your heroes`);
   }
   const res = await fetch(fleetApi(path), {
     ...options,
@@ -45,14 +57,20 @@ async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> 
   });
   if (!res.ok) {
     const body = await res.json().catch(() => ({ error: res.statusText }));
-    // Stale JWT: clear so subsequent loads stop flooding 401 in Network
+    // Only clear token when JWT is clearly expired — never wipe a good session
+    // on transient 401 / secret mismatch (that made /home look "empty" forever).
     if (res.status === 401 || res.status === 403) {
       try {
-        const { clearToken } = await import("./grudgeBackend");
-        clearToken();
+        const { getToken, clearToken } = await import("./grudgeBackend");
+        const t = getToken();
+        if (t && isJwtExpired(t)) clearToken();
       } catch {
         /* ignore */
       }
+      throw new Error(
+        body?.error ||
+          `Session rejected (${res.status}). Sign in again to load your characters.`,
+      );
     }
     throw new Error(body?.error || `API ${res.status}: ${path}`);
   }
@@ -63,43 +81,30 @@ export const WARLORDS_ERA: GameEra = "warlords";
 
 export const characterAPI = {
   getAll: async (era: GameEra = WARLORDS_ERA): Promise<Character[]> => {
-    try {
-      const envelope = await characterAPI.getEnvelope(era);
-      return envelope.characters;
-    } catch (e) {
-      console.warn("[api] getAll failed:", e);
-      return [];
-    }
+    // Propagate errors to home UI (do not swallow as empty roster)
+    const envelope = await characterAPI.getEnvelope(era);
+    return envelope.characters;
   },
 
   getEnvelope: async (era: GameEra = WARLORDS_ERA): Promise<CharacterEnvelope> => {
-    try {
-      const data = await apiFetch<CharacterEnvelope | Character[]>(
-        `/api/characters?era=${encodeURIComponent(era)}`,
-      );
-      if (Array.isArray(data)) {
-        return {
-          characters: data,
-          era,
-          eraSlots: mergeEraSlots(),
-          eraMeta: ERA_META,
-        };
-      }
+    // Always request envelope so eraSlots + full roster shape is consistent
+    const data = await apiFetch<CharacterEnvelope | Character[]>(
+      `/api/characters?era=${encodeURIComponent(era)}&envelope=1`,
+    );
+    if (Array.isArray(data)) {
       return {
-        characters: data.characters ?? [],
-        era: data.era ? normalizeGameEra(data.era) : era,
-        eraSlots: mergeEraSlots(data.eraSlots),
-        eraMeta: data.eraMeta ?? ERA_META,
-      };
-    } catch (e) {
-      console.warn("[api] getEnvelope failed:", e);
-      return {
-        characters: [],
+        characters: data,
         era,
         eraSlots: mergeEraSlots(),
         eraMeta: ERA_META,
       };
     }
+    return {
+      characters: data.characters ?? [],
+      era: data.era ? normalizeGameEra(data.era) : era,
+      eraSlots: mergeEraSlots(data.eraSlots),
+      eraMeta: data.eraMeta ?? ERA_META,
+    };
   },
 
   activate: async (
