@@ -31,26 +31,22 @@ interface FishSpecies {
   depthPreference: { min: number; max: number };
 }
 
+/**
+ * CDN-verified fish GLBs on assets.grudge-studio.com/fish/*
+ * (space-named keys like "Blue Tang.glb" are 404 — do not request them).
+ */
 const FISH_SPECIES: FishSpecies[] = [
   { name: 'Clownfish', path: '/fish/Clownfish.glb', scale: 0.8, swimSpeed: 4, depthPreference: { min: -4, max: -12 } },
-  { name: 'BlueTang', path: '/fish/Blue Tang.glb', scale: 0.9, swimSpeed: 5, depthPreference: { min: -5, max: -15 } },
-  { name: 'YellowTang', path: '/fish/Yellow Tang.glb', scale: 0.8, swimSpeed: 4.5, depthPreference: { min: -4, max: -14 } },
   { name: 'Koi', path: '/fish/Koi.glb', scale: 1.0, swimSpeed: 3, depthPreference: { min: -3, max: -10 } },
   { name: 'Tuna', path: '/fish/Tuna.glb', scale: 1.5, swimSpeed: 8, depthPreference: { min: -8, max: -25 } },
   { name: 'Shark', path: '/fish/Shark.glb', scale: 2.5, swimSpeed: 6, depthPreference: { min: -10, max: -28 } },
   { name: 'Goldfish', path: '/fish/Goldfish.glb', scale: 0.6, swimSpeed: 3, depthPreference: { min: -3, max: -8 } },
   { name: 'Tetra', path: '/fish/Tetra.glb', scale: 0.5, swimSpeed: 4, depthPreference: { min: -4, max: -12 } },
-  { name: 'ButterflyFish', path: '/fish/Butterfly Fish.glb', scale: 0.7, swimSpeed: 3.5, depthPreference: { min: -5, max: -15 } },
   { name: 'Piranha', path: '/fish/Piranha.glb', scale: 0.8, swimSpeed: 7, depthPreference: { min: -6, max: -18 } },
   { name: 'Anglerfish', path: '/fish/Anglerfish.glb', scale: 1.2, swimSpeed: 2, depthPreference: { min: -15, max: -28 } },
   { name: 'Lionfish', path: '/fish/Lionfish.glb', scale: 0.9, swimSpeed: 3.5, depthPreference: { min: -6, max: -16 } },
   { name: 'Puffer', path: '/fish/Puffer.glb', scale: 0.7, swimSpeed: 2.5, depthPreference: { min: -4, max: -12 } },
   { name: 'Swordfish', path: '/fish/Swordfish.glb', scale: 1.8, swimSpeed: 10, depthPreference: { min: -10, max: -25 } },
-  { name: 'MoorishIdol', path: '/fish/Moorish Idol.glb', scale: 0.7, swimSpeed: 4, depthPreference: { min: -5, max: -15 } },
-  { name: 'ParrotFish', path: '/fish/Parrot Fish.glb', scale: 0.9, swimSpeed: 3.5, depthPreference: { min: -4, max: -14 } },
-  { name: 'CoralGrouper', path: '/fish/Coral Grouper.glb', scale: 1.4, swimSpeed: 4, depthPreference: { min: -8, max: -20 } },
-  { name: 'MandarinFish', path: '/fish/Mandarin Fish.glb', scale: 0.5, swimSpeed: 2.5, depthPreference: { min: -3, max: -10 } },
-  { name: 'ZebraClownFish', path: '/fish/Zebra Clown Fish.glb', scale: 0.7, swimSpeed: 4, depthPreference: { min: -4, max: -12 } },
   { name: 'Sunfish', path: '/fish/Sunfish.glb', scale: 2.0, swimSpeed: 3, depthPreference: { min: -8, max: -22 } },
 ];
 

@@ -272,6 +272,8 @@ export const TRUTH_PROBE_SPECS: TruthProbeSpec[] = [
     productionUrl: `${LIVE_GAME_SERVER_ORIGIN}/api/health`,
     method: "GET",
     rejectHtml: true,
+    // Cross-origin Railway — no CORS for client.grudge-studio.com browser audits
+    browserSkip: true,
   },
   {
     id: "grudox-hub",
@@ -280,6 +282,7 @@ export const TRUTH_PROBE_SPECS: TruthProbeSpec[] = [
     productionUrl: `${FLEET_URLS.grudox}/`,
     method: "HEAD",
     rejectHtml: false,
+    browserSkip: true,
   },
   {
     id: "carrier-hub",
@@ -288,6 +291,9 @@ export const TRUTH_PROBE_SPECS: TruthProbeSpec[] = [
     productionUrl: `${FLEET_URLS.carrier}/`,
     method: "HEAD",
     rejectHtml: false,
+    // Carrier root has no Access-Control-Allow-Origin for client SPA — skip browser
+    // probes (avoids red CORS spam on every page). Still checked in CLI/CI.
+    browserSkip: true,
   },
 ];
 

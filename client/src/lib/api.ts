@@ -25,16 +25,35 @@ export interface CharacterEnvelope {
  */
 
 async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
+  const headers = {
+    "Content-Type": "application/json",
+    ...authHeaders(),
+    ...(options.headers as Record<string, string> | undefined),
+  };
+  // Private roster/wallet routes: skip network when there is no Bearer (quiet guests)
+  const needsAuth =
+    path.includes("/characters") ||
+    path.includes("/wallet") ||
+    path.includes("/treaty") ||
+    path.includes("/account");
+  if (needsAuth && !headers.Authorization) {
+    throw new Error(`API 401: ${path}`);
+  }
   const res = await fetch(fleetApi(path), {
     ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...authHeaders(),
-      ...(options.headers as Record<string, string> | undefined),
-    },
+    headers,
   });
   if (!res.ok) {
     const body = await res.json().catch(() => ({ error: res.statusText }));
+    // Stale JWT: clear so subsequent loads stop flooding 401 in Network
+    if (res.status === 401 || res.status === 403) {
+      try {
+        const { clearToken } = await import("./grudgeBackend");
+        clearToken();
+      } catch {
+        /* ignore */
+      }
+    }
     throw new Error(body?.error || `API ${res.status}: ${path}`);
   }
   return res.json() as Promise<T>;

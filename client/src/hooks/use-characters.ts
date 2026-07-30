@@ -12,7 +12,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { CharacterManager, type Character } from '@/lib/characterManager';
-import { authHeaders } from '@/lib/grudgeBackend';
+import { getToken, isAuthenticated } from '@/lib/grudgeBackend';
 
 const POLL_INTERVAL_MS = 60_000; // live-sync every 60 s
 
@@ -35,6 +35,14 @@ export function useCharacters(): UseCharactersReturn {
 
   // ── Fetch from Grudge backend ────────────────────────────────────────
   const fetchCharacters = useCallback(async () => {
+    // Guest / no JWT — do not hit /api/characters (avoids Network 401 spam)
+    if (!getToken() || !isAuthenticated()) {
+      setCharacters([]);
+      setActiveIdState(null);
+      setError(null);
+      setLoading(false);
+      return;
+    }
     try {
       // CharacterManager.getAll() already uses the backend-authoritative API
       const chars = await CharacterManager.getAll();
@@ -55,7 +63,10 @@ export function useCharacters(): UseCharactersReturn {
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Failed to load characters';
       setError(msg);
-      console.error('[useCharacters]', msg);
+      // Soft: stale JWT is common on public pages
+      if (!/401|403|Unauthorized/i.test(msg)) {
+        console.warn('[useCharacters]', msg);
+      }
     } finally {
       setLoading(false);
     }
