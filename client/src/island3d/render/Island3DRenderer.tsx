@@ -832,6 +832,16 @@ export function Island3DRenderer({
                 islandId={lobbyIslandId}
                 multiplayerConnected={!!multiplayer}
               />
+              {!showDockPanel && (
+                <button
+                  type="button"
+                  onClick={() => setShowDockPanel(true)}
+                  className="absolute bottom-24 left-4 z-30 pointer-events-auto px-3 py-2 rounded-xl bg-cyan-950/85 border border-cyan-600/50 text-cyan-100 text-xs font-semibold shadow-lg hover:bg-cyan-900/90"
+                  data-testid="open-dock-panel"
+                >
+                  ⚓ Fleet Dock · Ocean
+                </button>
+              )}
               {showDockPanel && (
                 <ShipDockPanel
                   accountId={accountId}
@@ -844,6 +854,35 @@ export function Island3DRenderer({
                     if (eng?.lobbyShip && pos && eng.lobbyShip.tryBoard(pos)) {
                       eng.character?.stateMachine?.transition('sailing');
                     }
+                  }}
+                  onClose={() => setShowDockPanel(false)}
+                />
+              )}
+            </>
+          )}
+
+          {/* Zone / procedural: fleet panel without requiring lobby dock walk */}
+          {(mode === 'zone' || mode === 'procedural') && (
+            <>
+              {!showDockPanel && (
+                <button
+                  type="button"
+                  onClick={() => setShowDockPanel(true)}
+                  className="absolute bottom-24 left-4 z-30 pointer-events-auto px-3 py-2 rounded-xl bg-cyan-950/85 border border-cyan-600/50 text-cyan-100 text-xs font-semibold shadow-lg hover:bg-cyan-900/90"
+                  data-testid="open-dock-panel-zone"
+                >
+                  ⚓ Fleet · Ocean Sail
+                </button>
+              )}
+              {showDockPanel && (
+                <ShipDockPanel
+                  accountId={accountId}
+                  captainId={characterId ?? null}
+                  captainName={characterName}
+                  isBoarded={false}
+                  onBoard={() => {
+                    /* Zone has no lobby ship mesh — ocean deploy is the path */
+                    setShowDockPanel(false);
                   }}
                   onClose={() => setShowDockPanel(false)}
                 />

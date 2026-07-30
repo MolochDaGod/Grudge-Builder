@@ -514,24 +514,33 @@ export async function verifyPhoneCode(
   return handleAuthResponse(res, "phone");
 }
 
-// ── Phantom Embedded SDK ──────────────────────────────────────────────
+// ── Phantom Embedded SDK (lazy — never load on page boot) ─────────────
 
-import { BrowserSDK, AddressType } from '@phantom/browser-sdk';
+/** Phantom Portal app ID — override with VITE_PHANTOM_APP_ID on Vercel */
+function phantomAppId(): string {
+  try {
+    const env = (import.meta as { env?: Record<string, string | undefined> }).env;
+    return env?.VITE_PHANTOM_APP_ID || "656b4ef2-7acc-44fe-bec7-4b288cfdd2e9";
+  } catch {
+    return "656b4ef2-7acc-44fe-bec7-4b288cfdd2e9";
+  }
+}
 
-/** Phantom Portal app ID — registered for grudge-studio.com + grudgewarlords.com */
-const PHANTOM_APP_ID = '656b4ef2-7acc-44fe-bec7-4b288cfdd2e9';
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let _phantomSdk: any = null;
 
-let _phantomSdk: InstanceType<typeof BrowserSDK> | null = null;
-
-/** Get or create the Phantom embedded SDK singleton */
-function getPhantomSDK(): InstanceType<typeof BrowserSDK> {
+/** Get or create the Phantom embedded SDK singleton (dynamic import). */
+async function getPhantomSDK(): Promise<{
+  connect: () => Promise<{ addresses?: Array<{ type?: string; address?: string; publicKey?: string } | string> }>;
+}> {
   if (!_phantomSdk) {
+    const { BrowserSDK, AddressType } = await import("@phantom/browser-sdk");
     _phantomSdk = new BrowserSDK({
-      providerType: 'embedded',
+      providerType: "embedded",
       addressTypes: [AddressType.solana],
-      appId: PHANTOM_APP_ID,
+      appId: phantomAppId(),
       authOptions: {
-        authUrl: 'https://connect.phantom.app/login',
+        authUrl: "https://connect.phantom.app/login",
         redirectUrl: window.location.origin,
       },
     });
@@ -541,19 +550,24 @@ function getPhantomSDK(): InstanceType<typeof BrowserSDK> {
 
 /**
  * Connect via Phantom Embedded SDK → authenticate with Grudge backend.
- * Works without the browser extension installed — Phantom provides
- * an embedded wallet via their SDK.
+ * Works without the browser extension — SDK loads only after user clicks Connect.
  */
 export async function connectPhantomEmbedded(): Promise<AuthResponse> {
-  const sdk = getPhantomSDK();
+  const sdk = await getPhantomSDK();
   const { addresses } = await sdk.connect();
-  const solAddress = addresses?.find((a: any) => a.type === 'solana');
+  const solAddress = addresses?.find((a: { type?: string } | string) =>
+    typeof a === "string" ? false : a.type === "solana",
+  );
   if (!solAddress) {
-    throw new Error('No Solana address returned from Phantom. Please try again.');
+    throw new Error("No Solana address returned from Phantom. Please try again.");
   }
-  const address = typeof solAddress === 'string' ? solAddress : (solAddress as any).address || (solAddress as any).publicKey;
+  const address =
+    typeof solAddress === "string"
+      ? solAddress
+      : (solAddress as { address?: string; publicKey?: string }).address ||
+        (solAddress as { publicKey?: string }).publicKey;
   if (!address) {
-    throw new Error('Could not read Solana address from Phantom response.');
+    throw new Error("Could not read Solana address from Phantom response.");
   }
   return loginWithWallet(address);
 }
@@ -641,12 +655,13 @@ export async function fetchWalletOverview(): Promise<WalletOverview> {
 
 async function connectSolanaForLink(provider: "phantom" | "solflare"): Promise<string> {
   if (provider === "phantom") {
+    // Prefer extension only when user already has it; never force window.ethereum
     const phantom = (window as any).phantom?.solana;
     if (phantom?.connect) {
       const { publicKey } = await phantom.connect();
       return publicKey.toBase58();
     }
-    const sdk = getPhantomSDK();
+    const sdk = await getPhantomSDK();
     const { addresses } = await sdk.connect();
     const sol = addresses?.find((a: { type?: string }) => a.type === "solana");
     const addr =

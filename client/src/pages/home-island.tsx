@@ -36,7 +36,8 @@ import type { MountainTriadSeed } from '@shared/definitions/homeIslandSeed';
 import { buildHomeDungeonUrl } from '@/lib/homeIslandDungeon';
 import { clearTopDownCache } from '@/island3d/render/IslandTopDownCapture';
 import type { MountainHintState } from '@/island3d/objects/EvilMountainTriad';
-import { Home, Mountain, ArrowLeft, Map as MapIcon } from 'lucide-react';
+import { Home, Mountain, ArrowLeft, Map as MapIcon, Ship, Waves } from 'lucide-react';
+import { WARLORDS_OCEAN_PATH, THREE_WORLD_MAP_PATH } from '@shared/fleet';
 import { Grudge6PlayShell } from '@/components/Grudge6PlayShell';
 import { GrudgeGameUiLayer } from '@/components/uiKit/GrudgeGameUiLayer';
 import MainPanelHost from '@/components/MainPanelHost';
@@ -599,8 +600,21 @@ export default function HomeIslandPage() {
 
   const handleLeave = () => {
     roomRef.current?.send('leave_island');
-    // Open world starter sector (not bare /play procedural)
-    setLocation('/play?sector=haven_shore&mode=zone&worldSeed=grudge-world-1');
+    // Strategic map is the sail hub (ocean + land-in). Zone play is still available from map.
+    setLocation(THREE_WORLD_MAP_PATH);
+  };
+
+  const handleOceanSail = () => {
+    roomRef.current?.send('leave_island');
+    const params = new URLSearchParams(window.location.search);
+    const characterId = params.get('characterId');
+    const account =
+      characterId ||
+      localStorage.getItem('grudge_account_id') ||
+      localStorage.getItem('grudge_user_id') ||
+      'guest';
+    sessionStorage.setItem('grudge-ocean-account', account);
+    setLocation(WARLORDS_OCEAN_PATH);
   };
 
   const homeSteps = [
@@ -772,11 +786,30 @@ export default function HomeIslandPage() {
               <div>Visitors: {playerCount}</div>
               <div>Buildings: {buildingCount}</div>
               <button
+                onClick={handleOceanSail}
+                className="mt-2 w-full py-1.5 rounded-lg bg-cyan-900/50 border border-cyan-600/50 text-cyan-200 hover:bg-cyan-800/50 transition-colors flex items-center justify-center gap-1"
+                data-testid="home-island-ocean-sail"
+              >
+                <Waves className="w-3 h-3" />
+                Ocean Sail
+              </button>
+              <button
                 onClick={handleLeave}
-                className="mt-2 w-full py-1.5 rounded-lg bg-emerald-900/40 border border-emerald-700/40 text-emerald-300 hover:bg-emerald-800/40 transition-colors flex items-center justify-center gap-1"
+                className="w-full py-1.5 rounded-lg bg-emerald-900/40 border border-emerald-700/40 text-emerald-300 hover:bg-emerald-800/40 transition-colors flex items-center justify-center gap-1"
+                data-testid="home-island-world-map"
               >
                 <MapIcon className="w-3 h-3" />
-                Sail to World
+                World Map
+              </button>
+              <button
+                onClick={() => {
+                  roomRef.current?.send('leave_island');
+                  setLocation('/play?sector=haven_shore&mode=zone&worldSeed=grudge-world-1');
+                }}
+                className="w-full py-1 rounded-lg border border-slate-700/60 text-slate-400 hover:text-slate-200 text-[10px] transition-colors flex items-center justify-center gap-1"
+              >
+                <Ship className="w-3 h-3" />
+                Haven Shore zone
               </button>
             </div>
           </div>

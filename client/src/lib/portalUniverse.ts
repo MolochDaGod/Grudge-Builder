@@ -35,24 +35,25 @@ function readToken(): string | null {
   }
 }
 
-function captureLaunch(): Record<string, string | null> {
+function captureLaunch(): Record<string, string | null> & { urlToken: string | null } {
   const p = new URLSearchParams(window.location.search);
   const hash = new URLSearchParams(
     window.location.hash?.startsWith("#")
       ? window.location.hash.slice(1)
       : window.location.hash || "",
   );
-  const token =
+  /** Token only from this navigation’s URL/hash — not localStorage. */
+  const urlToken =
     p.get("grudge_token") ||
     p.get("sso_token") ||
     p.get("token") ||
     hash.get("sso_token") ||
     hash.get("grudge_token") ||
     hash.get("token");
-  if (token) {
+  if (urlToken) {
     try {
-      localStorage.setItem("grudge_auth_token", token);
-      sessionStorage.setItem("grudge_auth_token", token);
+      localStorage.setItem("grudge_auth_token", urlToken);
+      sessionStorage.setItem("grudge_auth_token", urlToken);
     } catch {
       /* ignore */
     }
@@ -65,7 +66,8 @@ function captureLaunch(): Record<string, string | null> {
     }
   }
   return {
-    token: token || readToken(),
+    urlToken: urlToken || null,
+    token: urlToken || readToken(),
     hero: p.get("hero"),
     characterId: p.get("characterId"),
     islandId: p.get("islandId"),
@@ -76,11 +78,12 @@ function captureLaunch(): Record<string, string | null> {
 }
 
 async function portalGet(path: string, token: string | null) {
-  const headers: Record<string, string> = { Accept: "application/json" };
-  if (token) {
+  if (!token) throw new Error("HTTP 401");
+  const headers: Record<string, string> = {
+    Accept: "application/json",
     // Authorization only — do NOT send X-Grudge-Token (breaks CORS on legacy hosts)
-    headers.Authorization = `Bearer ${token}`;
-  }
+    Authorization: `Bearer ${token}`,
+  };
   const res = await fetch(`${PORTAL_API}${path}`, {
     credentials: "include",
     headers,
@@ -136,12 +139,32 @@ async function fallbackUniverseFromCharacters(token: string | null) {
   }
 }
 
+function clearStaleAuthTokens(): void {
+  try {
+    [
+      "grudge_auth_token",
+      "sso_token",
+      "grudge_session_token",
+      "grudge.token",
+      "grudge.token.exp",
+    ].forEach((k) => {
+      localStorage.removeItem(k);
+      sessionStorage.removeItem(k);
+    });
+  } catch {
+    /* ignore */
+  }
+}
+
 export async function hydratePortalUniverse(): Promise<PortalUniverseState> {
   const launch = captureLaunch();
-  let token = launch.token;
-  if (token && token.split(".").length === 3) {
-    await exchange(token);
-    token = readToken() || token;
+  let token = readToken() || launch.token;
+
+  // Only POST session/exchange for tokens that arrived on this navigation.
+  // Re-exchanging a stored JWT every page load floods 401s when already sessioned.
+  if (launch.urlToken && launch.urlToken.split(".").length === 3) {
+    await exchange(launch.urlToken);
+    token = readToken() || launch.urlToken;
   }
 
   // Guest / no token: skip network noise (401 spam on every page)
@@ -173,7 +196,33 @@ export async function hydratePortalUniverse(): Promise<PortalUniverseState> {
   try {
     player = await portalGet("/api/auth/me", token);
   } catch (e: any) {
-    errors.push(`me: ${e?.message || e}`);
+    const msg = String(e?.message || e);
+    errors.push(`me: ${msg}`);
+    // Dead/stale JWT — clear so we stop hammering private routes every navigation
+    if (/401|403|Unauthorized|invalid|expired/i.test(msg)) {
+      clearStaleAuthTokens();
+      token = null;
+    }
+  }
+
+  if (!token) {
+    const empty: PortalUniverseState = {
+      ok: false,
+      player: null,
+      universe: null,
+      playSettings: null,
+      activeCharacter: null,
+      homeIsland: null,
+      activeDeck: null,
+      launch,
+      errors,
+    };
+    try {
+      (window as any).__GRUDGE_UNIVERSE__ = empty;
+    } catch {
+      /* ignore */
+    }
+    return empty;
   }
 
   try {

@@ -48,11 +48,12 @@ export const ENEMY_SHIP_DAMAGE_PATHS = {
   state_2: '/models/ships/enemy/state_2.glb',
 } as const;
 
-// Ship texture paths for realistic materials
+// Ship texture paths — R2 CDN (assets.grudge-studio.com/textures/ships/*)
+// Legacy /attached_assets/* paths 404 on production and spam the console.
 export const SHIP_TEXTURE_PATHS = {
-  hullWood: '/attached_assets/generated_images/weathered_oak_hull_wood_texture.png',
-  deckWood: '/attached_assets/generated_images/mahogany_deck_wood_texture.png',
-  sailCloth: '/attached_assets/generated_images/canvas_sail_cloth_fabric_texture.png',
+  hullWood: '/textures/ships/weathered_oak_hull.png',
+  deckWood: '/textures/ships/mahogany_deck.png',
+  sailCloth: '/textures/ships/canvas_sail.png',
 };
 
 // Create procedural wood texture for fallback

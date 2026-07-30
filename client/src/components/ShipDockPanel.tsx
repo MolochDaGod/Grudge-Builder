@@ -102,18 +102,22 @@ export function ShipDockPanel({
     refresh();
   };
 
-  const handleOcean = () => {
+  const ensureFleetAndGo = (path: string) => {
+    // Always grant a free starter so ocean is never gated on empty roster
+    ensureStarterShip(accountId, captainId);
+    const ship = getActiveShip(accountId);
     sessionStorage.setItem('grudge-ocean-account', accountId);
-    if (active) sessionStorage.setItem('grudge-ocean-ship', active.id);
-    setLocation('/ocean');
+    if (ship) sessionStorage.setItem('grudge-ocean-ship', ship.id);
+    setLocation(path);
     onClose();
   };
 
+  const handleOcean = () => {
+    ensureFleetAndGo('/ocean?worldSeed=grudge-world-1');
+  };
+
   const handleWorldMap = () => {
-    sessionStorage.setItem('grudge-ocean-account', accountId);
-    if (active) sessionStorage.setItem('grudge-ocean-ship', active.id);
-    setLocation('/world-map');
-    onClose();
+    ensureFleetAndGo('/world-map');
   };
 
   return (
@@ -201,14 +205,13 @@ export function ShipDockPanel({
               disabled={!active}
             >
               <Ship className="w-3.5 h-3.5 mr-1.5" />
-              Board {active?.name ?? 'Ship'} (lobby sail)
+              Board {active?.name ?? 'Ship'} (lobby waters)
             </Button>
           )}
           <Button
-            variant="outline"
-            className="w-full border-indigo-600/60 text-indigo-200 hover:bg-indigo-950/50 text-xs"
+            className="w-full bg-indigo-700 hover:bg-indigo-600 text-xs font-semibold"
             onClick={handleOcean}
-            disabled={!active}
+            data-testid="dock-set-sail-ocean"
           >
             <Waves className="w-3.5 h-3.5 mr-1.5" />
             Set Sail — Tactical Ocean
@@ -217,7 +220,7 @@ export function ShipDockPanel({
             variant="outline"
             className="w-full border-amber-600/50 text-amber-100 hover:bg-amber-950/40 text-xs"
             onClick={handleWorldMap}
-            disabled={!active}
+            data-testid="dock-embark-world-map"
           >
             <Ship className="w-3.5 h-3.5 mr-1.5" />
             Embark — 9-Sector World Map

@@ -656,7 +656,9 @@ export function TacticalOceanScene({ onBackToMenu, onLandOnIsland }: TacticalOce
       <Card className="absolute top-4 right-4 p-3 bg-background/90 backdrop-blur-sm" data-testid="panel-controls-3d">
         <div className="text-sm space-y-1">
           <div className="font-bold mb-2">Sailing Controls</div>
-          <div>W - Deploy Sails</div>
+          <div className={!hudState.sailsDeployed ? 'text-cyan-300 font-semibold' : ''}>
+            W - Deploy Sails {hudState.sailsDeployed ? '' : '← press now'}
+          </div>
           <div>S - Furl Sails (Stop)</div>
           <div>A/D - Turn Left/Right</div>
           <div>Q/E - Trim Sail Angle</div>
@@ -664,14 +666,24 @@ export function TacticalOceanScene({ onBackToMenu, onLandOnIsland }: TacticalOce
             <div className="font-bold mb-1">Combat</div>
             <div>Space - Fire Cannon</div>
             <div>Right-Click - Aim</div>
-            <div>1 - Repair</div>
+            <div>1 - Repair · 2 - Wind Magic</div>
           </div>
           <div className="pt-2 border-t border-border mt-2 text-xs text-muted-foreground">
             <div>Best speed: 90-135° from wind</div>
             <div>No-sail zone: 0-45° into wind</div>
+            <div className="text-cyan-400/80 mt-1">Sail near a sector island · land when prompted</div>
           </div>
         </div>
       </Card>
+
+      {!hudState.sailsDeployed && (
+        <div
+          className="absolute bottom-36 left-1/2 -translate-x-1/2 z-20 pointer-events-none px-4 py-2 rounded-xl bg-cyan-950/90 border border-cyan-500/50 text-cyan-100 text-sm font-semibold shadow-lg"
+          data-testid="ocean-deploy-sails-hint"
+        >
+          Press <kbd className="px-1.5 py-0.5 rounded bg-black/50 border border-cyan-700/50 mx-1">W</kbd> to deploy sails and catch the wind
+        </div>
+      )}
       
       <div className="absolute top-4 left-1/2 -translate-x-1/2 flex gap-2">
         <Button

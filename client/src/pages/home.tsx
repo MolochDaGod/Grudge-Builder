@@ -6,8 +6,9 @@
  *  2. 2D gameplay
  *  3. Home island
  *  4. Start tutorial
- *  5. Enter lobby scene (center tile of era 9)
- *  6. 9 sector map (overview; sail from lobby edge in play)
+ *  5. Ocean Sail (wind sailing over era 9)
+ *  6. 9 sector world map
+ *  7. Lobby scene (center tile dock / PvP)
  *
  * Character roster loads from Railway via CharacterManager after auth is ready.
  */
@@ -21,6 +22,7 @@ import {
   Flame,
   Anchor,
   Map,
+  Compass,
   Plus,
   LogOut,
   Crown,
@@ -41,6 +43,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import {
   WARLORDS_HOME_ACTIONS,
   WARLORDS_LOBBY_PATH,
+  WARLORDS_OCEAN_PATH,
   THREE_HOME_ISLAND_PATH,
   THREE_WORLD_MAP_PATH,
 } from "@shared/fleet";
@@ -58,6 +61,7 @@ const ACTION_ICONS: Record<string, React.ReactNode> = {
   flame: <Flame className="w-5 h-5" />,
   anchor: <Anchor className="w-5 h-5" />,
   map: <Map className="w-5 h-5" />,
+  compass: <Compass className="w-5 h-5" />,
 };
 
 export default function HomePage() {
@@ -116,8 +120,14 @@ export default function HomePage() {
         setActiveCharacter(active);
       }
     } catch (e) {
-      console.error("[home] character load failed", e);
-      setLoadError(e instanceof Error ? e.message : "Failed to load characters");
+      const msg = e instanceof Error ? e.message : "Failed to load characters";
+      // Stale JWT → empty roster UI (apiFetch clears token); no red console spam
+      if (!/401|403|Unauthorized/i.test(msg)) {
+        console.warn("[home] character load failed", e);
+        setLoadError(msg);
+      } else {
+        setLoadError(null);
+      }
       setCharacters([]);
       setActiveCharacter(null);
     } finally {
@@ -332,7 +342,7 @@ export default function HomePage() {
                 </p>
                 <p className="text-[11px] text-white/30 mb-4 max-w-sm mx-auto">
                   {isAuthenticated || hasAuthToken()
-                    ? "Create a hero to unlock lobby, home island, and the 9-sector map."
+                    ? "Create a hero to unlock home island, ocean sail, and the 9-sector map."
                     : "Sign in with Grudge ID to load your account characters."}
                 </p>
                 {isAuthenticated || hasAuthToken() ? (
@@ -432,10 +442,10 @@ export default function HomePage() {
             Warlords play · production only
           </h2>
           <p className="text-[11px] text-white/30 mb-4 max-w-2xl leading-relaxed">
-            The pirate <strong className="text-white/50">lobby</strong> is the{" "}
-            <strong className="text-white/50">middle square</strong> of the 9-sector era map.
-            Sail to the edge of the lobby scene to enter a neighboring sector. Use the sector map
-            for overview; entry in production is from the lobby.
+            Production sail path: <strong className="text-white/50">Ocean Sail</strong> (wind
+            sailing over all 9 sectors) or the <strong className="text-white/50">World Map</strong>{" "}
+            hub. Lobby is the center tile for dock boarding and PvP; home island is your private
+            seed.
           </p>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -540,6 +550,13 @@ export default function HomePage() {
             </Button>
             <Button
               size="sm"
+              className="bg-cyan-800/80 hover:bg-cyan-700 text-cyan-50 text-xs"
+              onClick={() => go(WARLORDS_OCEAN_PATH)}
+            >
+              Ocean Sail
+            </Button>
+            <Button
+              size="sm"
               variant="outline"
               onClick={() => go(THREE_WORLD_MAP_PATH)}
               className="border-white/15 text-white/70 text-xs"
@@ -554,7 +571,7 @@ export default function HomePage() {
             style={{ fontFamily: FONTS.title }}
             className="text-[8px] text-white/15 tracking-[3px]"
           >
-            WARLORDS ERA · LOBBY = CENTER TILE
+            WARLORDS ERA · OCEAN SAIL · 9 SECTOR MAP
           </p>
         </div>
       </main>

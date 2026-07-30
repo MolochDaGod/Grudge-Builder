@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { resolveGameAssetPath } from '@/lib/gameAssetPath';
 
 export interface IslandConfig {
   seed: number;
@@ -119,13 +120,23 @@ export class IslandGenerator {
   }
 
   private async preloadModels() {
-    const models = ['bush', 'palmer', 'rock', 'tree'];
-    for (const model of models) {
-      try {
-        const gltf = await this.loader.loadAsync(`/models/islands/${model}.glb`);
-        this.modelCache.set(model, gltf.scene.clone());
-      } catch (e) {
-        console.warn(`Failed to load model: ${model}`);
+    // Prefer CDN keys that actually exist; fall back quietly to procedural props.
+    // models/islands/{bush,palmer,rock,tree}.glb are 404 on R2.
+    const candidates: Array<{ key: string; paths: string[] }> = [
+      { key: 'bush', paths: ['/models/props/bush.glb', '/models/nature/stylized/bush.glb'] },
+      { key: 'rock', paths: ['/models/props/rock.glb', '/models/nature/stylized/rock.glb'] },
+      { key: 'tree', paths: ['/models/props/tree.glb', '/models/nature/stylized/tree.glb'] },
+      { key: 'palmer', paths: ['/models/props/palm.glb', '/models/nature/stylized/palm.glb'] },
+    ];
+    for (const { key, paths } of candidates) {
+      for (const path of paths) {
+        try {
+          const gltf = await this.loader.loadAsync(resolveGameAssetPath(path));
+          this.modelCache.set(key, gltf.scene.clone());
+          break;
+        } catch {
+          /* try next path — procedural island props used if none load */
+        }
       }
     }
   }

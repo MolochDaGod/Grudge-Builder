@@ -33,6 +33,7 @@ export {
   PRODUCTION_DEPLOYMENT_PATH,
   HOME_GAME_MODES,
   WARLORDS_HOME_ACTIONS,
+  WARLORDS_OCEAN_PATH,
   WARLORDS_LOBBY_PATH,
   WARLORDS_2D_PLAY_PATH,
   deploymentUrl,
@@ -72,7 +73,7 @@ export {
   type AuthSymptomFix,
 } from "./authConnect";
 
-export { FLEET_STORAGE, FLEET_CLIENT_ENV } from "./storage";
+export { FLEET_STORAGE, FLEET_CLIENT_ENV, FLEET_SERVER_SECRET_KEYS } from "./storage";
 
 export {
   IDENTITY_GATEWAY,
