@@ -51,7 +51,9 @@ const CLASS_EMOJI: Record<string, string> = {
 export default function CreateCharacterPage() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
-  // Auth guard removed — guests can create characters (linked to guest account)
+  // Production: heroes must attach to a real Grudge ID JWT (not guest pool)
+  const authReady = useAuthGuard();
+  const signedIn = isAuthenticated();
 
   // 3D preview refs + state
   const threeSceneRef = useRef<ThreeSceneHandle | null>(null);
@@ -147,22 +149,40 @@ export default function CreateCharacterPage() {
   // 4. If no server wallet, mint to agent escrow wallet for later claim
   async function handleCreate() {
     if (!canLock || !selectedRace || !selectedClass) return;
+    if (!isAuthenticated()) {
+      toast({
+        title: "Sign in required",
+        description: "Sign in with Grudge ID so this hero is saved to your account roster.",
+        variant: "destructive",
+      });
+      setLocation(`/create-character?returnTo=${encodeURIComponent("/home")}`);
+      // Bounce to home so LoginModal / SSO is obvious
+      window.dispatchEvent(new CustomEvent("grudge:auth:need-login"));
+      return;
+    }
     setIsCreating(true);
     setCreationStep('creating');
     setAvatarUrl(null);
     setMintStatus(null);
 
     try {
-      // Step 1: Create the character in the backend
+      // Step 1: Create the character in the backend (requireAuth on Railway)
       const skillLoadouts = classPicks;
       const result = await characterAPI.create({
         name: characterName.trim(),
         raceId: selectedRace,
         classId: selectedClass,
         skillLoadouts,
-      });
+        gameEra: "warlords",
+      } as any);
       const charId = result.id;
       setCreatedCharId(charId);
+      try {
+        const { CharacterManager } = await import("@/lib/characterManager");
+        CharacterManager.setActive(charId);
+      } catch {
+        /* ignore */
+      }
       toast({ title: "Character Created!", description: `${characterName} is ready.` });
 
       // Step 2: Generate AI avatar via Puter txt2img
@@ -210,6 +230,10 @@ export default function CreateCharacterPage() {
       }
 
       setCreationStep('complete');
+      // Return to home roster so the new hero is visible immediately
+      const params = new URLSearchParams(window.location.search);
+      const returnTo = params.get("returnTo") || "/home";
+      window.setTimeout(() => setLocation(returnTo), 1200);
     } catch (e: any) {
       toast({ title: "Creation Failed", description: e.message || "Could not create character.", variant: "destructive" });
       setCreationStep('idle');
@@ -220,6 +244,37 @@ export default function CreateCharacterPage() {
 
   // ── Render ───────────────────────────────────────────────────────
   const classColors = selectedClass ? CLASS_COLORS[selectedClass] : null;
+
+  if (authReady && !signedIn) {
+    return (
+      <div className="min-h-screen bg-[#05060c] text-stone-100 flex flex-col items-center justify-center gap-4 px-6 text-center">
+        <p className="font-cinzel text-xl text-amber-300">Sign in to create a hero</p>
+        <p className="text-sm text-white/40 max-w-md">
+          Heroes are stored on your Grudge account (Railway). Creating while signed out
+          used to orphan characters under a guest id — that is disabled in production.
+        </p>
+        <div className="flex gap-3">
+          <Button
+            className="bg-amber-700 hover:bg-amber-600"
+            onClick={() => setLocation("/home")}
+          >
+            Back to Home · Sign in
+          </Button>
+          <Button
+            variant="outline"
+            className="border-amber-600/40 text-amber-200"
+            onClick={() => {
+              window.location.href = `https://id.grudge-studio.com/login?return=${encodeURIComponent(
+                window.location.origin + "/create-character?returnTo=/home",
+              )}`;
+            }}
+          >
+            Grudge ID login
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-stone-950 via-[#05060c] to-stone-950 text-stone-100 overflow-x-hidden">

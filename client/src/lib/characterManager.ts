@@ -123,29 +123,24 @@ export const CharacterManager = {
    * Clears stale active UUIDs that are not on this account's warlords list.
    */
   getAll: async (era = WARLORDS_ERA): Promise<Character[]> => {
-    try {
-      const envelope = await characterAPI.getEnvelope(era);
-      cachedEraSlots = envelope.eraSlots;
-      const list = Array.isArray(envelope.characters) ? envelope.characters : [];
-      const serverActive = envelope.eraSlots?.[era]?.activeCharacterId;
-      const localActive = CharacterManager.getActiveId();
-      const owned = (id: string | null | undefined) =>
-        !!id && list.some((c) => String(c.id) === String(id));
+    const envelope = await characterAPI.getEnvelope(era);
+    cachedEraSlots = envelope.eraSlots;
+    const list = Array.isArray(envelope.characters) ? envelope.characters : [];
+    const serverActive = envelope.eraSlots?.[era]?.activeCharacterId;
+    const localActive = CharacterManager.getActiveId();
+    const owned = (id: string | null | undefined) =>
+      !!id && list.some((c) => String(c.id) === String(id));
 
-      if (serverActive && owned(serverActive)) {
-        CharacterManager.setActiveLocal(serverActive);
-      } else if (localActive && !owned(localActive)) {
-        console.warn(
-          "[CharacterManager] active character not on warlords roster — clearing",
-          localActive,
-        );
-        CharacterManager.clearActiveLocal();
-      }
-      return list;
-    } catch (e) {
-      console.error("Failed to load characters from API", e);
-      return [];
+    if (serverActive && owned(serverActive)) {
+      CharacterManager.setActiveLocal(serverActive);
+    } else if (localActive && !owned(localActive)) {
+      console.warn(
+        "[CharacterManager] active character not on warlords roster — clearing",
+        localActive,
+      );
+      CharacterManager.clearActiveLocal();
     }
+    return list;
   },
 
   addCharacter: async (character: Omit<Character, "id" | "createdAt" | "userId">, onAvatarReady?: (char: Character) => void): Promise<Character> => {

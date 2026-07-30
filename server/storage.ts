@@ -205,6 +205,12 @@ export interface IStorage {
   // Account methods
   getAccount(id: string): Promise<Account | undefined>;
   getAccountByUserId(userId: string): Promise<Account | undefined>;
+  getAccountByGrudgeId(grudgeId: string): Promise<Account | undefined>;
+  getCharactersForAuth(
+    userId: string,
+    era?: import("@shared/definitions/gameEras").GameEra,
+    grudgeId?: string | null,
+  ): Promise<Character[]>;
   createAccount(account: InsertAccount): Promise<Account>;
   updateAccount(id: string, updates: Partial<InsertAccount>): Promise<Account>;
   getOrCreateAccountForUser(userId: string): Promise<Account>;
@@ -911,6 +917,77 @@ export class DatabaseStorage implements IStorage {
   async getAccountByUserId(userId: string): Promise<Account | undefined> {
     const [account] = await db.select().from(accounts).where(eq(accounts.userId, userId));
     return account || undefined;
+  }
+
+  async getAccountByGrudgeId(grudgeId: string): Promise<Account | undefined> {
+    if (!grudgeId) return undefined;
+    try {
+      const [account] = await db.select().from(accounts).where(eq(accounts.grudgeId, grudgeId));
+      return account || undefined;
+    } catch {
+      return undefined;
+    }
+  }
+
+  /**
+   * Roster for authenticated requests — merge by users.id AND account_id / grudgeId
+   * so Foundry-created heroes still appear when JWT claim shape differs slightly.
+   */
+  async getCharactersForAuth(
+    userId: string,
+    era?: import("@shared/definitions/gameEras").GameEra,
+    grudgeId?: string | null,
+  ): Promise<Character[]> {
+    const byId = new Map<string, Character>();
+    const addAll = (rows: Character[]) => {
+      for (const c of rows) {
+        if (c?.id) byId.set(String(c.id), c);
+      }
+    };
+
+    addAll(await this.getCharacters(userId, era));
+
+    // Account linked to this userId
+    try {
+      const acc = await this.getAccountByUserId(userId);
+      if (acc?.id) {
+        try {
+          let rows = await db.select().from(characters).where(eq(characters.accountId, acc.id));
+          if (era) rows = rows.filter((r) => !r.gameEra || r.gameEra === era);
+          addAll(rows);
+        } catch {
+          /* column drift */
+        }
+        if (acc.userId && acc.userId !== userId) {
+          addAll(await this.getCharacters(acc.userId, era));
+        }
+      }
+    } catch {
+      /* ignore */
+    }
+
+    // Account linked by grudgeId claim (Foundry / Grudge ID SSO)
+    if (grudgeId) {
+      try {
+        const byG = await this.getAccountByGrudgeId(grudgeId);
+        if (byG?.id) {
+          try {
+            let rows = await db.select().from(characters).where(eq(characters.accountId, byG.id));
+            if (era) rows = rows.filter((r) => !r.gameEra || r.gameEra === era);
+            addAll(rows);
+          } catch {
+            /* ignore */
+          }
+          if (byG.userId) addAll(await this.getCharacters(byG.userId, era));
+        }
+        // Some legacy rows used grudgeId string as characters.user_id
+        addAll(await this.getCharacters(grudgeId, era));
+      } catch {
+        /* ignore */
+      }
+    }
+
+    return Array.from(byId.values());
   }
 
   async createAccount(account: InsertAccount): Promise<Account> {

@@ -9,7 +9,18 @@ export function useAccount() {
 
   const fetchAccount = useCallback(async () => {
     try {
-      const response = await fetch('/api/account', { headers: authHeaders() });
+      const headers = authHeaders();
+      if (!headers.Authorization) {
+        setAccount(null);
+        setError(null);
+        return;
+      }
+      const response = await fetch('/api/account', { headers });
+      if (response.status === 401 || response.status === 403) {
+        setAccount(null);
+        setError(null);
+        return;
+      }
       if (!response.ok) throw new Error('Failed to fetch account');
       const data = await response.json();
       setAccount(data);
