@@ -2,7 +2,8 @@
  * MODEL MANIFEST — Central registry for all 3D character models & animations
  *
  * ALL assets served from R2 CDN: assets.grudge-studio.com
- *   Race models:  /models/characters/races/{race}.glb
+ *   Race models:  /models/grudge6/races/{WK|BRB|ELF|DWF|ORC|UD}_Characters.glb
+ *                 (legacy /models/characters/races/*.glb is CORRUPT — skin joints null)
  *   Characters:   /models/characters/{name}.glb
  *   Animations:   /models/animations/{weapon-type}/{file}.glb
  *   Baked packs:  /anims/baked/{pack}/{gs_*}.json  (Bip001 rotation-only)
@@ -16,6 +17,10 @@
  */
 
 import { ASSET_CDN_BASE } from "@/lib/assetConfig";
+import {
+  RACE_GRUDGE6,
+  resolveCanonicalRaceModelPath,
+} from "@shared/fleet/character";
 
 // ── R2 CDN base ─────────────────────────────────────────────────────────────
 const CDN = ASSET_CDN_BASE; // https://assets.grudge-studio.com
@@ -135,7 +140,14 @@ export interface AnimationDef {
  * - "static"     = No skeleton (static mesh, cannot be animated).
  *                  Used by: ogre.glb, elf-knight.glb
  */
-export type SkeletonType = "mixamo-24" | "mixamo-62" | "kaykit-41" | "toon-bone" | "custom" | "static";
+export type SkeletonType =
+  | "mixamo-24"
+  | "mixamo-62"
+  | "kaykit-41"
+  | "toon-bone"
+  | "bip001"
+  | "custom"
+  | "static";
 
 export interface ModelUnit {
   id: string;
@@ -244,24 +256,33 @@ export const WEAPON_ANIMATION_SETS: Record<AnimCategory, Partial<Record<AnimStat
 
 // ── Character model registry ────────────────────────────────────────────────
 
-/** Race models on R2 — /models/characters/races/ */
-const RACE_BASE = `${CDN}/models/characters/races`;
+/**
+ * Canonical grudge6 modular race kits (Bip001).
+ * NEVER use /models/characters/races/*.glb — those GLBs have null skin.joints
+ * (generator: grudge-arena process-30grudge6-characters) and throw isBone errors.
+ */
+function raceKitPath(raceId: string): string {
+  const cfg = RACE_GRUDGE6[raceId] ?? RACE_GRUDGE6.human;
+  return `${CDN}${cfg.cdnPath}`;
+}
+
 /** Detailed character models on R2 — /models/characters/ */
 const CHAR_BASE = `${CDN}/models/characters`;
 /** Toon soldiers (chicken_gun) — Nexus / Hero RTS / shooters */
 const TOON_BASE = `${CDN}/models/toon-soldiers`;
 
+/** Skeletons that can play fleet weapon / baked anim packs. */
+const PLAYABLE_SKELETONS = new Set(["mixamo-24", "bip001"]);
+
 export const MODEL_MANIFEST: Record<string, ModelUnit> = {
-  // ── THE 6 GRUDGE RACE CHARACTERS (all Mixamo-24, share all weapon animations) ──
-  // These are the canonical player models from Grudge Warlords (Unity port).
-  // All 6 use the same Mixamo 24-joint skeleton so they share the full weapon
-  // animation library. Do NOT change these to kaykit or custom skeletons.
-  human:      { id: "human",      name: "Human",      modelPath: `${RACE_BASE}/human.glb`,      scale: 1.0,  weaponType: "sword",       skeleton: "mixamo-24", jointCount: 24 },
-  barbarian:  { id: "barbarian",  name: "Barbarian",  modelPath: `${RACE_BASE}/barbarian.glb`,  scale: 1.1,  weaponType: "greataxe",    skeleton: "mixamo-24", jointCount: 24 },
-  dwarf:      { id: "dwarf",      name: "Dwarf",      modelPath: `${RACE_BASE}/dwarf.glb`,      scale: 0.85, weaponType: "hammer1h",    skeleton: "mixamo-24", jointCount: 24 },
-  elf:        { id: "elf",        name: "Elf",        modelPath: `${RACE_BASE}/elf.glb`,        scale: 1.0,  weaponType: "bow",         skeleton: "mixamo-24", jointCount: 24 },
-  orc:        { id: "orc",        name: "Orc",        modelPath: `${RACE_BASE}/orc.glb`,        scale: 1.15, weaponType: "greatsword",   skeleton: "mixamo-24", jointCount: 24 },
-  undead:     { id: "undead",     name: "Undead",     modelPath: `${RACE_BASE}/undead.glb`,     scale: 1.0,  weaponType: "sword",       skeleton: "mixamo-24", jointCount: 24 },
+  // ── THE 6 GRUDGE RACE CHARACTERS (grudge6 Bip001 modular kits) ──
+  // Production SSOT: assets…/models/grudge6/races/*_Characters.glb
+  human:      { id: "human",      name: "Human",      modelPath: raceKitPath("human"),      scale: 1.0,  weaponType: "sword",       skeleton: "bip001", jointCount: 24 },
+  barbarian:  { id: "barbarian",  name: "Barbarian",  modelPath: raceKitPath("barbarian"),  scale: 1.1,  weaponType: "greataxe",    skeleton: "bip001", jointCount: 24 },
+  dwarf:      { id: "dwarf",      name: "Dwarf",      modelPath: raceKitPath("dwarf"),      scale: 0.85, weaponType: "hammer1h",    skeleton: "bip001", jointCount: 24 },
+  elf:        { id: "elf",        name: "Elf",        modelPath: raceKitPath("elf"),        scale: 1.0,  weaponType: "bow",         skeleton: "bip001", jointCount: 24 },
+  orc:        { id: "orc",        name: "Orc",        modelPath: raceKitPath("orc"),        scale: 1.15, weaponType: "greatsword",   skeleton: "bip001", jointCount: 24 },
+  undead:     { id: "undead",     name: "Undead",     modelPath: raceKitPath("undead"),     scale: 1.0,  weaponType: "sword",       skeleton: "bip001", jointCount: 24 },
 
   // ── Toon Soldiers (chicken_gun) — Nexus Era / Hero RTS / shooters / editors ──
   // Custom Bone skeleton: use ToonSoldierController (native clips + gunplay packs).
@@ -421,10 +442,9 @@ export function getModelForCharacter(raceId: string, _classId?: string): ModelUn
   const modelId = RACE_MODEL_ID[key] ?? (MODEL_MANIFEST[key] ? key : "human");
   let unit = MODEL_MANIFEST[modelId];
 
-  // Fall back to human for incompatible skeletons.
-  // All 6 Grudge race characters are mixamo-24 — this catches edge cases
-  // where a model lookup resolves to a static/custom skeleton.
-  if (!unit || unit.skeleton !== "mixamo-24") {
+  // Fall back to human for incompatible skeletons (static/custom/kaykit-only).
+  // Playable races are bip001 (grudge6) or legacy mixamo-24.
+  if (!unit || !PLAYABLE_SKELETONS.has(unit.skeleton)) {
     unit = MODEL_MANIFEST.human;
   }
 
@@ -432,10 +452,10 @@ export function getModelForCharacter(raceId: string, _classId?: string): ModelUn
   return { ...unit };
 }
 
-/** Check if a model can be animated (uses the shared Mixamo animation library) */
+/** Check if a model can be animated with fleet weapon / baked packs */
 export function isAnimationCompatible(modelId: string): boolean {
   const unit = MODEL_MANIFEST[modelId];
-  return unit?.skeleton === "mixamo-24";
+  return !!unit && PLAYABLE_SKELETONS.has(unit.skeleton);
 }
 
 /** Get only animation-compatible model IDs */
@@ -470,11 +490,17 @@ export function getCharacterAnimation(
 }
 
 /** Resolve a model path to a loadable URL.
- *  Absolute URLs pass through. Relative paths go to R2 CDN.
+ *  Absolute URLs pass through (after legacy race rewrite). Relative paths → R2 CDN.
  *  Same-origin /models/* is also valid when the file is shipped with the SPA. */
 export function resolveModelUrl(path: string): string {
   if (!path) return path;
-  if (/^(https?:|data:|blob:)/i.test(path)) return path;
+  if (/^(data:|blob:)/i.test(path)) return path;
+
+  // Rewrite corrupt legacy race GLBs → grudge6 kits (also handles full CDN URLs).
+  const canonical = resolveCanonicalRaceModelPath(path);
+  path = canonical;
+
+  if (/^https?:\/\//i.test(path)) return path;
   if (path.startsWith('//')) return `https:${path}`;
 
   const host = String(CDN).replace(/^https?:\/\//i, '').replace(/\/$/, '');
