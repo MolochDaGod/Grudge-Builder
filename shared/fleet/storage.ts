@@ -61,9 +61,15 @@ export const FLEET_STORAGE = {
   },
 } as const;
 
-/** Canonical Vite/Vercel client env defaults — mirror in vercel.json `env`. */
+/**
+ * Canonical Vite/Vercel **public** client env defaults.
+ * Mirror on Vercel Project → Environment Variables (Production + Preview).
+ * NEVER put JWT_SECRET, DATABASE_URL, or Crossmint server keys here / in VITE_*.
+ */
 export const FLEET_CLIENT_ENV = {
+  /** Identity API host (docs only — browser uses same-origin /api/*) */
   VITE_API_URL: FLEET_URLS.identityApi,
+  /** Game-data Railway origin (Colyseus / health; browser still prefers same-origin) */
   VITE_GAME_DATA_API: FLEET_URLS.gameData,
   VITE_COLYSEUS_URL: FLEET_URLS.colyseus,
   VITE_ASSETS_URL: FLEET_URLS.assets,
@@ -71,4 +77,33 @@ export const FLEET_CLIENT_ENV = {
   VITE_AUTH_GATEWAY_URL: FLEET_URLS.auth,
   VITE_AI_URL: FLEET_URLS.ai,
   VITE_PVP_SERVER_URL: FLEET_URLS.world,
+  /**
+   * Phantom Portal embedded app id (public).
+   * Register origins: client.grudge-studio.com, grudgewarlords.com, localhost
+   */
+  VITE_PHANTOM_APP_ID: "656b4ef2-7acc-44fe-bec7-4b288cfdd2e9",
+  /** Optional: force absolute CDN URLs instead of /api/assets (tests) */
+  // VITE_ASSET_ABSOLUTE: "0",
+  /** Optional: enable 3D grudge-token helmet when real GLB is on R2 */
+  // VITE_GRUDGE_TOKEN_3D: "0",
 } as const;
+
+/**
+ * Server-only secret env keys (Railway / never VITE_ / never browser).
+ * Documented for ops — values live only in host secret stores.
+ */
+export const FLEET_SERVER_SECRET_KEYS = [
+  "DATABASE_URL",
+  "JWT_SECRET",
+  "SESSION_SECRET",
+  "CROSSMINT_SERVER_API_KEY",
+  "CROSSMINT_COLLECTION_ID",
+  "DISCORD_CLIENT_SECRET",
+  "GBUX_TREASURY_SECRET_KEY",
+  "SOLANA_RPC_URL",
+  "R2_ACCESS_KEY_ID",
+  "R2_SECRET_ACCESS_KEY",
+  "OBJECTSTORE_API_KEY",
+  "ADMIN_API_KEY",
+  "TELEGRAM_BOT_ADMIN_KEY",
+] as const;

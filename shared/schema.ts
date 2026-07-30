@@ -1225,6 +1225,14 @@ export const LINKED_WALLET_PROVIDERS = [
   "solflare",
   "backpack",
   "crossmint",
+  /** EIP-6963 EVM providers (session connect; full Railway link uses personal_sign later) */
+  "metamask",
+  "binance",
+  "coinbase",
+  "brave",
+  "okx",
+  "rabby",
+  "injected_evm",
   "other",
 ] as const;
 

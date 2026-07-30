@@ -25,7 +25,8 @@ export function GrudgeTokenWidget() {
   const hasToken = isAuthenticated();
   const sessionReady = authContextAuthed || hasToken;
 
-  // Only hit wallet/treaty when both context + token agree (avoids 401 spam from stale localStorage)
+  // Only hit wallet/treaty when both context + token agree (avoids 401 spam from stale localStorage).
+  // Wallet SDKs / EIP-6963 never run here — only inside GrudgeWalletModal on user action.
   const canFetchPrivate = authContextAuthed && hasToken;
 
   const { data: overview } = useQuery({

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { X } from "lucide-react";
@@ -31,14 +31,24 @@ import {
 } from "lucide-react";
 import { TreatyChatPanel } from "./TreatyChatPanel";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   authHeaders,
   fetchWalletOverview,
+  isAuthenticated,
   linkThirdPartyWallet,
   quoteWalletPurchase,
   createWalletPurchaseIntent,
   type WalletOverview,
 } from "@/lib/grudgeBackend";
+import {
+  discoverEip6963Providers,
+  connectEvmWallet,
+  loadEvmSession,
+  clearEvmSession,
+  type DiscoveredEvmWallet,
+  type EvmWalletSession,
+} from "@/lib/wallet";
 
 interface NFTStatus {
   id: string;
@@ -61,6 +71,8 @@ interface GrudgeWalletModalProps {
 export function GrudgeWalletModal({ open, onOpenChange }: GrudgeWalletModalProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { isAuthenticated: authCtx, openLogin } = useAuth();
+  const sessionReady = authCtx || isAuthenticated();
   const [linking, setLinking] = useState(false);
   const [swapDirection, setSwapDirection] = useState<"sol-to-gbux" | "gbux-to-sol">("sol-to-gbux");
   const [swapAmount, setSwapAmount] = useState("0.1");
@@ -69,11 +81,18 @@ export function GrudgeWalletModal({ open, onOpenChange }: GrudgeWalletModalProps
   const [sendTx, setSendTx] = useState("");
   const [pendingPurchaseId, setPendingPurchaseId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("balances");
+  const [evmWallets, setEvmWallets] = useState<DiscoveredEvmWallet[]>([]);
+  const [evmScanning, setEvmScanning] = useState(false);
+  const [evmSession, setEvmSession] = useState<EvmWalletSession | null>(() => loadEvmSession());
+
+  // Private APIs only when modal open + signed in (no 401 spam for guests)
+  const canFetchPrivate = open && sessionReady;
 
   const { data: overview, isLoading: loadingOverview } = useQuery<WalletOverview>({
     queryKey: ["wallet-overview"],
     queryFn: fetchWalletOverview,
-    enabled: open,
+    enabled: canFetchPrivate,
+    retry: false,
   });
 
   const { data: nftsData } = useQuery<{ nfts: NFTStatus[] }>({
@@ -84,7 +103,8 @@ export function GrudgeWalletModal({ open, onOpenChange }: GrudgeWalletModalProps
       const data = await res.json();
       return { nfts: Array.isArray(data) ? data : data.nfts || [] };
     },
-    enabled: open,
+    enabled: canFetchPrivate,
+    retry: false,
   });
 
   const { data: islandNft } = useQuery<{ nft: NFTStatus | null }>({
@@ -96,8 +116,26 @@ export function GrudgeWalletModal({ open, onOpenChange }: GrudgeWalletModalProps
       const nfts = data.nfts || [];
       return { nft: nfts[0] ?? null };
     },
-    enabled: open,
+    enabled: canFetchPrivate,
+    retry: false,
   });
+
+  // EIP-6963 only when Wallets tab active — never on app boot
+  useEffect(() => {
+    if (!open || activeTab !== "wallets") return;
+    let cancelled = false;
+    setEvmScanning(true);
+    void discoverEip6963Providers(150).then((list) => {
+      if (!cancelled) {
+        setEvmWallets(list);
+        setEvmScanning(false);
+      }
+    });
+    setEvmSession(loadEvmSession());
+    return () => {
+      cancelled = true;
+    };
+  }, [open, activeTab]);
 
   const copy = (text: string, label: string) => {
     navigator.clipboard.writeText(text);
@@ -394,83 +432,196 @@ export function GrudgeWalletModal({ open, onOpenChange }: GrudgeWalletModalProps
             </TabsContent>
 
             <TabsContent value="wallets" className="space-y-4 mt-4">
-              <p className="text-sm text-slate-400">
-                Link Phantom or Solflare for purchases and on-chain balance reads.
-              </p>
-              <div className="flex flex-wrap gap-2">
-                <Button
-                  variant="outline"
-                  disabled={linking}
-                  onClick={async () => {
-                    setLinking(true);
-                    try {
-                      const addr = await linkThirdPartyWallet("phantom");
-                      toast({ title: "Phantom linked", description: shorten(addr) });
-                      refresh();
-                    } catch (e: unknown) {
-                      toast({
-                        title: "Link failed",
-                        description: e instanceof Error ? e.message : "Error",
-                        variant: "destructive",
-                      });
-                    } finally {
-                      setLinking(false);
-                    }
-                  }}
-                >
-                  {linking ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Link2 className="h-4 w-4 mr-2" />}
-                  Link Phantom
-                </Button>
-                <Button variant="outline" disabled={linking} onClick={async () => {
-                  setLinking(true);
-                  try {
-                    const addr = await linkThirdPartyWallet("solflare");
-                    toast({ title: "Solflare linked", description: shorten(addr) });
-                    refresh();
-                  } catch (e: unknown) {
-                    toast({
-                      title: "Link failed",
-                      description: e instanceof Error ? e.message : "Error",
-                      variant: "destructive",
-                    });
-                  } finally {
-                    setLinking(false);
-                  }
-                }}>
-                  Link Solflare
-                </Button>
-              </div>
-              <Separator className="bg-amber-900/20" />
-              {(overview?.linkedWallets?.length ?? 0) > 0 ? (
-                overview!.linkedWallets.map((w) => {
-                  const bal = overview!.onChain.find((b) => b.walletAddress === w.walletAddress);
-                  return (
-                    <div
-                      key={w.id}
-                      className="flex flex-wrap justify-between gap-2 rounded-lg border border-slate-800 p-3 text-sm"
-                    >
-                      <div>
-                        <p className="font-mono">{shorten(w.walletAddress)}</p>
-                        <p className="text-xs text-slate-500 capitalize">{w.provider}{w.isPrimary ? " • primary" : ""}</p>
-                      </div>
-                      {bal?.rpcConfigured && (
-                        <div className="text-xs text-slate-400 flex gap-2">
-                          <span>SOL {bal.sol?.toFixed(3)}</span>
-                          <span>USDT {bal.usdt?.toFixed(2)}</span>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })
+              {!sessionReady ? (
+                <div className="rounded-lg border border-amber-900/40 bg-amber-950/30 p-4 space-y-3">
+                  <p className="text-sm text-amber-100/90">
+                    Sign in with <strong>Grudge ID</strong> first, then link a wallet for purchases and cNFTs.
+                  </p>
+                  <Button size="sm" className="bg-amber-700 hover:bg-amber-600" onClick={() => openLogin()}>
+                    Sign in
+                  </Button>
+                </div>
               ) : (
-                <p className="text-sm text-slate-500">No linked wallets yet.</p>
+                <>
+                  <div>
+                    <p className="text-xs uppercase tracking-widest text-slate-500 mb-2">Solana (Railway SSOT link)</p>
+                    <p className="text-sm text-slate-400 mb-3">
+                      Phantom Embedded (no extension) or Solflare. Signs a challenge →{" "}
+                      <code className="text-amber-500/80">/api/wallet/link/*</code>.
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        variant="outline"
+                        disabled={linking}
+                        data-testid="link-phantom"
+                        onClick={async () => {
+                          setLinking(true);
+                          try {
+                            const addr = await linkThirdPartyWallet("phantom");
+                            toast({ title: "Phantom linked", description: shorten(addr) });
+                            refresh();
+                          } catch (e: unknown) {
+                            toast({
+                              title: "Link failed",
+                              description: e instanceof Error ? e.message : "Error",
+                              variant: "destructive",
+                            });
+                          } finally {
+                            setLinking(false);
+                          }
+                        }}
+                      >
+                        {linking ? (
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        ) : (
+                          <Link2 className="h-4 w-4 mr-2" />
+                        )}
+                        Link Phantom
+                      </Button>
+                      <Button
+                        variant="outline"
+                        disabled={linking}
+                        onClick={async () => {
+                          setLinking(true);
+                          try {
+                            const addr = await linkThirdPartyWallet("solflare");
+                            toast({ title: "Solflare linked", description: shorten(addr) });
+                            refresh();
+                          } catch (e: unknown) {
+                            toast({
+                              title: "Link failed",
+                              description: e instanceof Error ? e.message : "Error",
+                              variant: "destructive",
+                            });
+                          } finally {
+                            setLinking(false);
+                          }
+                        }}
+                      >
+                        Link Solflare
+                      </Button>
+                    </div>
+                  </div>
+
+                  <Separator className="bg-amber-900/20" />
+
+                  <div>
+                    <p className="text-xs uppercase tracking-widest text-slate-500 mb-2">
+                      EVM (EIP-6963 — MetaMask, Binance, …)
+                    </p>
+                    <p className="text-sm text-slate-400 mb-3">
+                      Multi-wallet discovery without racing on <code className="text-slate-500">window.ethereum</code>.
+                      Connect is opt-in only when you click a wallet below.
+                    </p>
+                    {evmScanning && (
+                      <p className="text-xs text-slate-500 flex items-center gap-2 mb-2">
+                        <Loader2 className="h-3 w-3 animate-spin" /> Scanning extensions…
+                      </p>
+                    )}
+                    {evmSession && (
+                      <div className="mb-3 rounded-lg border border-emerald-800/40 bg-emerald-950/30 p-3 flex flex-wrap items-center justify-between gap-2">
+                        <div>
+                          <p className="text-xs text-emerald-400/90">Session connected</p>
+                          <p className="font-mono text-sm">{shorten(evmSession.address)}</p>
+                          <p className="text-xs text-slate-500">{evmSession.providerName}</p>
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => {
+                            clearEvmSession();
+                            setEvmSession(null);
+                          }}
+                        >
+                          Disconnect
+                        </Button>
+                      </div>
+                    )}
+                    <div className="flex flex-col gap-2">
+                      {evmWallets.length === 0 && !evmScanning && (
+                        <p className="text-sm text-slate-500">
+                          No EVM extension announced. Install MetaMask / Binance Wallet, or use Solana above.
+                        </p>
+                      )}
+                      {evmWallets.map((w) => (
+                        <Button
+                          key={w.uuid}
+                          variant="outline"
+                          className="justify-start h-auto py-2"
+                          disabled={linking}
+                          data-testid={`connect-evm-${w.rdns || w.uuid}`}
+                          onClick={async () => {
+                            setLinking(true);
+                            try {
+                              const { address, providerName } = await connectEvmWallet(w);
+                              setEvmSession(loadEvmSession());
+                              toast({
+                                title: `${providerName} connected`,
+                                description: `${shorten(address)} (session — Solana link for GBUX purchases)`,
+                              });
+                            } catch (e: unknown) {
+                              toast({
+                                title: "Connect failed",
+                                description: e instanceof Error ? e.message : "User rejected or no accounts",
+                                variant: "destructive",
+                              });
+                            } finally {
+                              setLinking(false);
+                            }
+                          }}
+                        >
+                          {w.icon ? (
+                            <img src={w.icon} alt="" className="w-5 h-5 mr-2 rounded" />
+                          ) : (
+                            <Wallet className="h-4 w-4 mr-2" />
+                          )}
+                          <span className="flex flex-col items-start">
+                            <span>{w.name}</span>
+                            <span className="text-[10px] text-slate-500 font-normal">
+                              {w.source === "eip6963" ? "EIP-6963" : "legacy"} · {w.rdns || "—"}
+                            </span>
+                          </span>
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <Separator className="bg-amber-900/20" />
+                  {(overview?.linkedWallets?.length ?? 0) > 0 ? (
+                    overview!.linkedWallets.map((w) => {
+                      const bal = overview!.onChain.find((b) => b.walletAddress === w.walletAddress);
+                      return (
+                        <div
+                          key={w.id}
+                          className="flex flex-wrap justify-between gap-2 rounded-lg border border-slate-800 p-3 text-sm"
+                        >
+                          <div>
+                            <p className="font-mono">{shorten(w.walletAddress)}</p>
+                            <p className="text-xs text-slate-500 capitalize">
+                              {w.provider}
+                              {w.isPrimary ? " • primary" : ""}
+                            </p>
+                          </div>
+                          {bal?.rpcConfigured && (
+                            <div className="text-xs text-slate-400 flex gap-2">
+                              <span>SOL {bal.sol?.toFixed(3)}</span>
+                              <span>USDT {bal.usdt?.toFixed(2)}</span>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })
+                  ) : (
+                    <p className="text-sm text-slate-500">No Solana wallets linked to this account yet.</p>
+                  )}
+                  <Button variant="ghost" size="sm" asChild>
+                    <a href="/wallet">
+                      <Wallet className="h-4 w-4 mr-2" />
+                      Open full wallet page
+                    </a>
+                  </Button>
+                </>
               )}
-              <Button variant="ghost" size="sm" asChild>
-                <a href="/wallet">
-                  <Wallet className="h-4 w-4 mr-2" />
-                  Open full wallet page
-                </a>
-              </Button>
             </TabsContent>
           </Tabs>
         )}
