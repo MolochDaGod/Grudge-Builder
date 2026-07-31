@@ -1,6 +1,12 @@
 /**
  * Copy static public assets into client/dist after Vite bundle.
- * Decoupled from Vite prepare-out-dir to avoid Windows EBUSY during copyPublicDir.
+ *
+ * SSOT order (client wins):
+ *   1. repo-root `public/`  — skill-tree, icons-src, legacy shells
+ *   2. `client/public/`     — SPA SSOT (auth scripts, cinema, audio, favicons)
+ *
+ * Binary GLB/FBX for games live on Cloudflare R2 (assets.grudge-studio.com),
+ * not in these trees (see .gitignore / .vercelignore).
  */
 import { cp } from "node:fs/promises";
 import { existsSync } from "node:fs";
@@ -25,9 +31,10 @@ async function copyDirSafe(src, dest, retries = 6) {
   }
 }
 
+// Root first, then client/public overwrites so SPA SSOT always wins
 const sources = [
-  path.join(repoRoot, "client", "public"),
   path.join(repoRoot, "public"),
+  path.join(repoRoot, "client", "public"),
 ].filter((p) => existsSync(p));
 
 if (!existsSync(distDir)) {
@@ -40,4 +47,4 @@ for (const src of sources) {
   await copyDirSafe(src, distDir);
 }
 
-console.log("public assets copied to client/dist");
+console.log("public assets copied to client/dist (client/public SSOT last)");

@@ -107,12 +107,12 @@ wartrailer/videos/
 wartrailer/deploy-payload.json
 
 
-# Airship opener — allow optimized zone assets; block raw import only
-!client/public/models/airship-zone/**/*.glb
-!client/public/models/airship-zone/**/*.fbx
+# Airship zone — binaries on Cloudflare R2 only (never GitHub)
+# Keep tiny JSON camera pins if needed; ignore all meshes
+client/public/models/airship-zone/**/*.glb
+client/public/models/airship-zone/**/*.fbx
+client/public/models/airship-zone/**/*.FBX
 !client/public/models/airship-zone/**/*.json
-client/public/models/airship-zone/opener-scene-raw.glb
-client/public/models/airship-zone/airship.glb
 
 # PR/work junk — never ship
 .tmp-main-panel/

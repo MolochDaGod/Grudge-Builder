@@ -25,11 +25,9 @@ migrations
 /public/sprites/**
 client/public/models/**
 !client/public/models/cinema/**
-# Airship opener zone (optimized GLB only — FBX NPCs stay on R2/CDN)
-!client/public/models/airship-zone/**
-!client/public/models/airship-zone/**/*.glb
+# Airship meshes are R2-only — never package into Vercel (JSON camera pins ok via ignore globs)
+client/public/models/airship-zone/**
 !client/public/models/airship-zone/**/*.json
-client/public/models/airship-zone/**/*.fbx
 client/public/sprites/**
 client/public/icons/tomes/**
 # Binary art lives on R2 (assets.grudge-studio.com) — see docs/ASSETS.md

@@ -62,13 +62,13 @@ import LauncherPage from "@/pages/launcher";
 import RtsGrudgePage from "@/pages/rts-grudge";
 const TowerWarsPage = lazy(() => import("@/pages/tower-wars")); // legacy, keep route
 import HarvestPage from "@/pages/Harvest";
-import AirshipZonePage from "@/pages/AirshipZonePage";
+const AirshipZonePage = lazy(() => import("@/pages/AirshipZonePage"));
 import HeroCodexPage from "@/pages/hero-codex";
 import CraftingPage from "@/pages/crafting";
-import Island3DPage from "@/pages/island-3d";
-import ShipwreckCinemaPage from "@/pages/shipwreck-cinema";
+const Island3DPage = lazy(() => import("@/pages/island-3d"));
+const ShipwreckCinemaPage = lazy(() => import("@/pages/shipwreck-cinema"));
 import OpenWorldEntryPage from "@/pages/open-world";
-import WarScenePage from "@/pages/war-scene";
+const WarScenePage = lazy(() => import("@/pages/war-scene"));
 import AuthCallbackPage from "@/pages/auth-callback";
 import EditorPage from "@/pages/editor";
 import ForgePage from "@/pages/forge";
@@ -113,6 +113,7 @@ import { CharacterManager } from "@/lib/characterManager";
 
 function Router() {
   return (
+    <Suspense fallback={<div className="min-h-screen bg-black" />}>
     <Switch>
       <Route path="/" component={WarlordsLandingPage} />
       <Route path="/auth/callback" component={AuthCallbackPage} />
@@ -237,6 +238,7 @@ function Router() {
       {/* Fallback to 404 */}
       <Route component={NotFound} />
     </Switch>
+    </Suspense>
   );
 }
 

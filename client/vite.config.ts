@@ -129,6 +129,33 @@ export default defineConfig({
           const worldChunk = grudgeGameManualChunk(norm);
           if (worldChunk) return worldChunk;
           if (norm.includes("/artifacts/grudge-game/")) return "grudge-world";
+          // Vendor splits — keep main index under control
+          if (norm.includes("node_modules/three/") || norm.includes("node_modules/three\\")) {
+            return "three-vendor";
+          }
+          if (
+            norm.includes("node_modules/three-stdlib") ||
+            norm.includes("node_modules/@types/three") ||
+            norm.includes("/examples/jsm/")
+          ) {
+            return "three-extras";
+          }
+          if (
+            norm.includes("node_modules/react-dom") ||
+            norm.includes("node_modules/react/") ||
+            norm.includes("node_modules/scheduler") ||
+            norm.includes("node_modules/wouter")
+          ) {
+            return "react-vendor";
+          }
+          if (norm.includes("node_modules/@tanstack") || norm.includes("node_modules/@radix-ui")) {
+            return "ui-vendor";
+          }
+          // Heavy game surfaces — load with their routes
+          if (norm.includes("/island3d/intro/")) return "cinema-intro";
+          if (norm.includes("/island3d/airship/")) return "airship-zone";
+          if (norm.includes("/island3d/")) return "island3d";
+          if (norm.includes("/game/sailing/") || norm.includes("/game/ocean/")) return "sailing";
           return undefined;
         },
       },

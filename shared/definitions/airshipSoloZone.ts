@@ -1,32 +1,47 @@
 /**
  * Airship Solo Zone — SSOT for deck + cabin + 3 captains.
  *
- * First visit: boatvoxelinside cabin → create grudge6 character → walk out to deck.
- * NPCs (2 m tall, Mixamo-style skinned meshes):
- *  - Captain John Wayne — helm wheel only
- *  - Scourge Faithbearer — front top deck patrol
- *  - Racalvin Pirate King — cabin mentor, then deck wander
+ * HARD ASSET RULE (fleet):
+ *   Binary meshes live on **Cloudflare R2** → `assets.grudge-studio.com`
+ *   Runtime loads via `assetUrl()` → same-origin `/api/assets/...` proxy.
+ *   Never commit FBX or multi-MB GLB to GitHub.
+ *   Convert: gltf-transform (weld, meshopt, webp, SI scale) → wrangler r2 object put.
+ *
+ * First visit: cabin → grudge6 create → deck.
+ * NPCs: production `.prod.glb` on R2; fallback WK_Characters grudge6 kit.
  */
 
-export const AIRSHIP_ZONE_VERSION = '1.0.0';
+export const AIRSHIP_ZONE_VERSION = '2.0.0';
 
+/**
+ * Site-relative paths — resolved through assetUrl / Vercel /models rewrite to R2.
+ * JSON camera pins may remain in repo (tiny); all meshes are CDN-only.
+ */
 export const AIRSHIP_ZONE_PATHS = {
-  /**
-   * Opener hull/islands — D:\Games\Models\scene (2).glb
-   * welded + meshopt + webp → opener-scene.glb (~1.5 MB)
-   */
+  /** Opener hull/islands — R2: models/airship-zone/opener-scene.glb */
   airship: '/models/airship-zone/opener-scene.glb',
-  /** Fallback if opener fails */
+  /** Legacy hull fallback on R2 */
   airshipLegacy: '/models/airship-zone/airship.glb',
-  /** Cabin create (boatinside voxel) */
-  interior: '/models/airship-zone/boatvoxelinside.glb',
+  /**
+   * Cabin create — prefer cabin.prod.glb (non-voxel) on R2.
+   * boatvoxelinside is temporary until converted cabin ships.
+   */
+  interior: '/models/airship-zone/cabin.prod.glb',
+  interiorFallback: '/models/airship-zone/boatvoxelinside.glb',
+  /** Camera pins (JSON only — safe in git under client/public) */
   camera: '/models/airship-zone/scene-camera.json',
   perspectiveCamera: '/models/airship-zone/PerspectiveCamera.json',
+  /**
+   * Crew — converted GLB only (never .fbx at runtime).
+   * Upload: models/airship-zone/npcs/*.prod.glb after FBX→GLB convert + SI fit.
+   */
   npcs: {
-    johnWayne: '/models/airship-zone/npcs/cptjohnwayne.fbx',
-    scourge: '/models/airship-zone/npcs/scourgefaith.fbx',
-    racalvin: '/models/airship-zone/npcs/racalvinking.glb',
+    johnWayne: '/models/airship-zone/npcs/cptjohnwayne.prod.glb',
+    scourge: '/models/airship-zone/npcs/scourgefaith.prod.glb',
+    racalvin: '/models/airship-zone/npcs/racalvinking.prod.glb',
   },
+  /** Fleet grudge6 kit when custom NPC GLB missing on R2 */
+  grudge6HumanFallback: '/models/grudge6/races/WK_Characters.glb',
 } as const;
 
 /** All heroes in this zone target 2.0 m (user SSOT for this scene). */

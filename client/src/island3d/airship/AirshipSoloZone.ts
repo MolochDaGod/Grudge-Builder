@@ -6,7 +6,6 @@
  */
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-import { FBXLoader } from 'three/addons/loaders/FBXLoader.js';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { assetUrl } from '@/lib/assetConfig';
 import { fitCharacterRootToHeightM } from '@/island3d/zoneWorldScale';
@@ -39,7 +38,6 @@ import {
 } from '@/island3d/airship/airshipScenePolish';
 
 const gltfLoader = new GLTFLoader();
-const fbxLoader = new FBXLoader();
 
 export type AirshipZonePhase = 'loading' | 'cabin_create' | 'deck' | 'chat';
 
@@ -205,14 +203,25 @@ export class AirshipSoloZone {
 
   private deckPosts: Record<DeckPostKind, THREE.Vector3> | null = null;
 
-  private async loadAirship(): Promise<void> {
-    let gltf: Awaited<ReturnType<typeof gltfLoader.loadAsync>>;
-    try {
-      gltf = await gltfLoader.loadAsync(assetUrl(AIRSHIP_ZONE_PATHS.airship));
-    } catch (e) {
-      console.warn('[AirshipZone] opener-scene failed, legacy airship', e);
-      gltf = await gltfLoader.loadAsync(assetUrl(AIRSHIP_ZONE_PATHS.airshipLegacy));
+  private async loadGltfChain(urls: string[]): Promise<Awaited<ReturnType<typeof gltfLoader.loadAsync>>> {
+    let last: unknown;
+    for (const u of urls) {
+      try {
+        return await gltfLoader.loadAsync(assetUrl(u));
+      } catch (e) {
+        last = e;
+        console.warn('[AirshipZone] load miss', u, e);
+      }
     }
+    throw last instanceof Error ? last : new Error('[AirshipZone] all GLB candidates failed');
+  }
+
+  private async loadAirship(): Promise<void> {
+    // CDN R2 first (assetUrl → /api/assets); no local FBX/GLB in git
+    const gltf = await this.loadGltfChain([
+      AIRSHIP_ZONE_PATHS.airship,
+      AIRSHIP_ZONE_PATHS.airshipLegacy,
+    ]);
     this.airshipRoot = gltf.scene as THREE.Group;
     this.airshipRoot.name = 'airship_opener_scene';
 
@@ -281,9 +290,12 @@ export class AirshipSoloZone {
   }
 
   private async loadCabin(): Promise<void> {
-    const gltf = await gltfLoader.loadAsync(assetUrl(AIRSHIP_ZONE_PATHS.interior));
+    const gltf = await this.loadGltfChain([
+      AIRSHIP_ZONE_PATHS.interior,
+      AIRSHIP_ZONE_PATHS.interiorFallback,
+    ]);
     this.cabinRoot = gltf.scene as THREE.Group;
-    this.cabinRoot.name = 'airship_cabin_boatvoxelinside';
+    this.cabinRoot.name = 'airship_cabin';
     // Boat-inside voxel: weld + toon polish (same pipeline, smaller span)
     try {
       const { weldSceneGeometries, applyStylizedToonMaterials, fitOpenerSceneToSpan } =
@@ -340,14 +352,27 @@ export class AirshipSoloZone {
     this.scene.add(ring);
   }
 
+  /**
+   * Load NPC mesh: production GLB on R2 only (no FBX in runtime).
+   * Fallback: fleet grudge6 WK race kit (mesh+texture equip system).
+   */
   private async loadNpcModel(path: string): Promise<THREE.Group> {
-    const url = assetUrl(path);
-    if (path.toLowerCase().endsWith('.fbx')) {
-      const g = (await fbxLoader.loadAsync(url)) as THREE.Group;
-      return g;
+    const candidates = [path, AIRSHIP_ZONE_PATHS.grudge6HumanFallback];
+    let last: unknown;
+    for (const p of candidates) {
+      try {
+        // Never load .fbx in production path — convert to .prod.glb on R2
+        if (p.toLowerCase().endsWith('.fbx')) {
+          console.warn('[AirshipZone] skipping FBX (not in CDN pipeline)', p);
+          continue;
+        }
+        const gltf = await gltfLoader.loadAsync(assetUrl(p));
+        return gltf.scene as THREE.Group;
+      } catch (e) {
+        last = e;
+      }
     }
-    const gltf = await gltfLoader.loadAsync(url);
-    return gltf.scene as THREE.Group;
+    throw last instanceof Error ? last : new Error(`NPC model failed ${path}`);
   }
 
   private async spawnNpcs(): Promise<void> {
@@ -358,11 +383,11 @@ export class AirshipSoloZone {
         root.name = `npc_${def.id}`;
         root.add(model);
         fitCharacterRootToHeightM(model, 1, def.heightM);
-        // Mixamo often faces +Z already; ensure feet plant
+        // Production GLB / grudge6 — art-forward auto
         deploySafeCharacter(model, {
           targetHeightM: def.heightM,
-          facePlusZ: def.skeletonClass === 'mixamo' ? false : 'auto',
-          importPipeline: def.skeletonClass === 'mixamo' ? 'unknown' : 'glb-baked',
+          facePlusZ: 'auto',
+          importPipeline: 'glb-baked',
         });
         model.userData.npcId = def.id;
         model.userData.interactable = true;
@@ -470,9 +495,8 @@ export class AirshipSoloZone {
         raceId: id,
         facePlusZ: 'auto',
       });
-      if (!dep.shippable) {
+      if (!dep.report.ok) {
         console.warn(formatSafeReport(dep.report));
-        // Still force 2m fit
         fitCharacterRootToHeightM(model, 1, AIRSHIP_HERO_HEIGHT_M);
       }
     } catch (e) {
