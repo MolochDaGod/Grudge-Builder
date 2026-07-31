@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Purged — use /shipwreck-cinema</title>
+  <!--
+    PURGED: old standalone preview (video / empty assets / TI) is dead.
+    Redirect to frontend SPA route with full LeviathanOceanCinema systems.
+  -->
+  <meta http-equiv="refresh" content="0;url=/shipwreck-cinema" />
+  <script>
+    // Hard purge of old session keys that locked empty preview loops
+    try {
+      sessionStorage.removeItem('grudge_storm_intro_seen_v1');
+      sessionStorage.removeItem('grudge_shipwreck_intro_seen_v4');
+      sessionStorage.removeItem('grudge_shipwreck_intro_seen_v7');
+    } catch (e) {}
+    location.replace('/shipwreck-cinema' + (location.search || ''));
+  </script>
+</head>
+<body style="background:#000;color:#9ca3af;font-family:system-ui;display:flex;align-items:center;justify-content:center;height:100vh;margin:0">
+  <p>Old preview purged. Redirecting to <a href="/shipwreck-cinema" style="color:#22d3ee">/shipwreck-cinema</a>…</p>
+</body>
+</html>

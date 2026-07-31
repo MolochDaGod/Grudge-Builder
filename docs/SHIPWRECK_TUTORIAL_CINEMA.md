@@ -42,18 +42,35 @@
 | 40 | finisher | finisher | sink | attack |
 | 44–52 | black / logo / handoff | gone | hidden | logo |
 
-## QA
+## QA (frontend SPA only)
 
 ```
+# Full systems cinema page (replaces purged shipwreck-cinema-preview.html)
+http://127.0.0.1:5173/shipwreck-cinema
+http://127.0.0.1:5173/leviathan-cinema
+
+# island-3d production gate
 http://127.0.0.1:5173/island-3d?intro=1
 http://127.0.0.1:5173/island-3d?intro=shipwreck
+
+# Old standalone URL — hard redirect only, no video / empty canvas
+http://127.0.0.1:5173/shipwreck-cinema-preview.html  →  /shipwreck-cinema
+
 # after skip/complete:
 /tutorial?from=shipwreck-intro
 ```
 
+### Staged local assets (`client/public/models/cinema/`)
+
+- `startingfalls.glb` / `.prod.glb` — waterfall island foundation map  
+- `leviathan.glb` · `magic-ring-yinyang-blue.glb` · `physics1_fluid.glb`  
+- `supernova-impact.prod.glb` · `megumin-explosion.prod.glb` · `smoke-rings.glb` · `tornado.prod.glb`  
+- Logo: `client/public/cinema/grudge-logo.jpeg`
+
 ## Kill list
 
-- TI iframe / Stonewisp / intro.mp4 as primary  
+- TI iframe / Stonewisp / intro.mp4 as primary island-3d gate  
+- Standalone `shipwreck-cinema-preview.html` as the real cinema (redirect only)  
 - Capsule-only cast when CDN available  
 - Free-float positions outside stage UUIDs  
 - Mixer after IK (order must be: mixer → spine IK)  

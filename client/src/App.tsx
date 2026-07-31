@@ -65,6 +65,7 @@ import HarvestPage from "@/pages/Harvest";
 import HeroCodexPage from "@/pages/hero-codex";
 import CraftingPage from "@/pages/crafting";
 import Island3DPage from "@/pages/island-3d";
+import ShipwreckCinemaPage from "@/pages/shipwreck-cinema";
 import OpenWorldEntryPage from "@/pages/open-world";
 import WarScenePage from "@/pages/war-scene";
 import AuthCallbackPage from "@/pages/auth-callback";
@@ -183,6 +184,9 @@ function Router() {
       <Route path="/crafting" component={CraftingPage} />
       <Route path="/crafting-suite" component={CraftingPage} />
       <Route path="/island-3d" component={Island3DPage} />
+      {/* Full-systems leviathan cinema — replaces purged shipwreck-cinema-preview.html */}
+      <Route path="/shipwreck-cinema" component={ShipwreckCinemaPage} />
+      <Route path="/leviathan-cinema" component={ShipwreckCinemaPage} />
       <Route path="/war-scene" component={WarScenePage} />
       <Route path="/medieval-battle" component={WarScenePage} />
       <Route path="/editor" component={EditorPage} />

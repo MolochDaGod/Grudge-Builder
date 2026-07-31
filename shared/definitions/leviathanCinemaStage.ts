@@ -410,7 +410,7 @@ export const CIN_ACTOR_HOME: Record<
   mage_3: 'deck_mage_3',
 };
 
-/** Asset roles for scripted battle cast */
+/** Asset roles for scripted battle cast — local public first, CDN fallback */
 export const CIN_CAST_ASSETS = {
   leviathan: [
     '/models/cinema/leviathan.glb',
@@ -439,8 +439,18 @@ export const CIN_CAST_ASSETS = {
     'https://assets.grudge-studio.com/models/ships/ship-wreck.glb',
     '/models/ships/ship-wreck.glb',
   ],
+  /** Waterfall island foundation map (user startingfalls) */
   foundation: [
     '/models/cinema/startingfalls.prod.glb',
     '/models/cinema/startingfalls.glb',
   ],
+  /** Fluid FX / wave volume (physics1_fluid) */
+  fluid: ['/models/cinema/physics1_fluid.glb'],
+  supernova: ['/models/cinema/supernova-impact.prod.glb'],
+  megumin: [
+    '/models/cinema/megumin-explosion.prod.glb',
+    '/models/cinema/megumin-explosion.glb',
+  ],
+  smokeRings: ['/models/cinema/smoke-rings.glb'],
+  tornado: ['/models/cinema/tornado.prod.glb', '/models/cinema/tornado.glb'],
 } as const;

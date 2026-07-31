@@ -2,7 +2,8 @@
  * Island 3D Page — PRODUCTION client start (client.grudge-studio.com/island-3d).
  *
  * Production open:
- *   TI Three.js storm intro (Stonewisp attacks ship) → playable world with UI + options ON.
+ *   Native LeviathanOceanCinema (startingfalls · stage UUIDs · spine IK · 4 mages)
+ *   via StormShipIntroGate — NO TI iframe / Stonewisp / intro.mp4 / old preview HTML.
  *   Overboard float is NOT used here — that is home-island only (/island-reveal).
  *
  * Modes:
@@ -11,9 +12,11 @@
  *   ?mode=lobby — pirate lobby map (production hub)
  *   ?engine=studio — Studio Map Editor embed
  *   ?home=1 — load account Railway island when signed in
- *   ?skipIntro=1 — skip storm intro gate
- *   ?intro=1 — force storm intro
+ *   ?skipIntro=1 — skip cinema gate
+ *   ?intro=1 | ?intro=shipwreck — force leviathan cinema
  *   ?ui=1&options=1 — keep production chrome visible
+ *
+ * Dedicated cinema surface: /shipwreck-cinema (replaces purged shipwreck-cinema-preview.html)
  */
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useLocation } from 'wouter';
@@ -223,9 +226,16 @@ function Island3DPlayPage() {
   const [engine, setEngine] = useState<Island3DEngine | null>(null);
   const playableSectors = useMemo(() => getPlayableSectorList(), []);
 
-  // Production: storm ship intro (TI) + options/UI always available
-  const forceIntro = params.get('intro') === '1' || params.get('intro') === 'storm';
-  const skipIntroParam = params.get('skipIntro') === '1' || params.get('from') === 'storm-intro';
+  // Production: native leviathan cinema gate + options/UI
+  const forceIntro =
+    params.get('intro') === '1' ||
+    params.get('intro') === 'storm' ||
+    params.get('intro') === 'shipwreck' ||
+    params.get('intro') === 'leviathan';
+  const skipIntroParam =
+    params.get('skipIntro') === '1' ||
+    params.get('from') === 'storm-intro' ||
+    params.get('from') === 'shipwreck-intro';
   const [introOptions, setIntroOptions] = useState<Island3dIntroOptions>(() => {
     try {
       const raw = localStorage.getItem(INTRO_OPTIONS_KEY);
@@ -254,7 +264,7 @@ function Island3DPlayPage() {
     } catch { /* */ }
 
     if (dest === 'tutorial') {
-      navigate(`/tutorial?from=storm-intro${characterIdParam ? `&characterId=${characterIdParam}` : ''}`);
+      navigate(`/tutorial?from=shipwreck-intro${characterIdParam ? `&characterId=${characterIdParam}` : ''}`);
       return;
     }
     if (dest === 'home_overboard') {
@@ -567,7 +577,7 @@ function Island3DPlayPage() {
 
   return (
     <div className="flex flex-col h-screen bg-gray-950">
-      {/* Production: TI storm ship attack intro (not overboard home-island) */}
+      {/* Production: native leviathan / startingfalls cinema (not TI / not video) */}
       {showStormIntro && (
         <StormShipIntroGate
           characterId={heroCharacterId || characterIdParam}

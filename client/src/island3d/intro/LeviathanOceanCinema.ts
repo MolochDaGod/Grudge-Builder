@@ -42,7 +42,7 @@ export {
 };
 export const SHIPWRECK_CINEMA_DURATION_SEC = LEVIATHAN_BATTLE_DURATION_SEC;
 export const SHIPWRECK_CINEMA_SKIPPABLE_AFTER_SEC = LEVIATHAN_BATTLE_SKIPPABLE_AFTER_SEC;
-export const CINEMA_LOGO_URL = '/cinema/grudge-logo.jpeg';
+export const CINEMA_LOGO_URL = '/cinema/grudge-logo.png';
 export const HUMAN_HEIGHT_M = CIN_HUMAN_M;
 export const HERO_THROW_M = CIN_HERO_THROW_M;
 
@@ -207,6 +207,12 @@ export class LeviathanOceanCinema {
 
   private fireBeam: THREE.Mesh | null = null;
   private pinataFired = false;
+  private tornadoRoot: THREE.Object3D | null = null;
+  private fluidSplash: THREE.Object3D | null = null;
+  private fluidMixer: THREE.AnimationMixer | null = null;
+  private smokeRingPool: THREE.Object3D[] = [];
+  private supernovaPool: THREE.Object3D[] = [];
+  private meguminRoot: THREE.Object3D | null = null;
 
   constructor(host: HTMLElement, cbs: CinemaCallbacks = {}) {
     this.host = host;
@@ -272,7 +278,10 @@ export class LeviathanOceanCinema {
       u.startsWith('http') ? u : `${ASSETS_CDN}${u}`,
     );
 
-    const [ship, wreck, leviPack, ring, heroPack, m0, m1, m2, m3, foundation] = await Promise.all([
+    const [
+      ship, wreck, leviPack, ring, heroPack, m0, m1, m2, m3,
+      foundation, fluidPack, tornado, smoke, supernova, meguminPack,
+    ] = await Promise.all([
       loadFirst(CIN_CAST_ASSETS.ship),
       loadFirst(CIN_CAST_ASSETS.wreck),
       loadFirstWithClips(CIN_CAST_ASSETS.leviathan),
@@ -283,13 +292,18 @@ export class LeviathanOceanCinema {
       loadFirstWithClips(mageUrls),
       loadFirstWithClips(mageUrls),
       loadFirst(CIN_CAST_ASSETS.foundation),
+      loadFirstWithClips(CIN_CAST_ASSETS.fluid),
+      loadFirst(CIN_CAST_ASSETS.tornado),
+      loadFirst(CIN_CAST_ASSETS.smokeRings),
+      loadFirst(CIN_CAST_ASSETS.supernova),
+      loadFirstWithClips(CIN_CAST_ASSETS.megumin),
     ]);
     if (this.disposed) return;
 
-    // Foundation map (optional)
+    // Foundation: startingfalls waterfall island (user map) — stones stage
     if (foundation) {
       foundation.name = 'startingfalls_foundation';
-      fitLength(foundation, 80);
+      this.plantStartingFalls(foundation);
       this.scene.add(foundation);
     }
 
@@ -381,6 +395,53 @@ export class LeviathanOceanCinema {
     );
     this.fireBeam.visible = false;
     this.scene.add(this.fireBeam);
+
+    // VFX systems on stage UUID pins
+    if (tornado) {
+      this.tornadoRoot = tornado;
+      fitLength(tornado, 14);
+      this.stage.place(tornado, 'vfx_tornado');
+      tornado.visible = false;
+      this.scene.add(tornado);
+    }
+    if (fluidPack?.root) {
+      this.fluidSplash = fluidPack.root;
+      fitLength(this.fluidSplash, 12);
+      this.fluidSplash.visible = false;
+      this.scene.add(this.fluidSplash);
+      if (fluidPack.clips.length) {
+        this.fluidMixer = new THREE.AnimationMixer(this.fluidSplash);
+        for (const c of fluidPack.clips) {
+          const a = this.fluidMixer.clipAction(c);
+          a.setLoop(THREE.LoopRepeat, Infinity);
+          a.play();
+        }
+      }
+    }
+    if (smoke) {
+      for (let i = 0; i < 3; i++) {
+        const s = smoke.clone(true);
+        fitLength(s, 4 + i);
+        s.visible = false;
+        this.scene.add(s);
+        this.smokeRingPool.push(s);
+      }
+    }
+    if (supernova) {
+      for (let i = 0; i < 3; i++) {
+        const sn = supernova.clone(true);
+        fitLength(sn, 2 + i * 0.6);
+        sn.visible = false;
+        this.scene.add(sn);
+        this.supernovaPool.push(sn);
+      }
+    }
+    if (meguminPack?.root) {
+      this.meguminRoot = meguminPack.root;
+      fitLength(this.meguminRoot, 6);
+      this.meguminRoot.visible = false;
+      this.scene.add(this.meguminRoot);
+    }
 
     // Logo overlay
     this.logoEl = document.createElement('img');
@@ -489,9 +550,92 @@ export class LeviathanOceanCinema {
       (this.fireBeam.material as THREE.MeshBasicMaterial).opacity = beat.fireBeam ? 0.85 : 0;
     }
 
+    // Tornado / fluid splash at VFX UUID pins
+    if (this.tornadoRoot) {
+      this.tornadoRoot.visible = !!beat.tornado;
+      if (beat.tornado) this.stage.place(this.tornadoRoot, 'vfx_tornado');
+    }
+    if (this.fluidSplash) {
+      // Fluid volume near leviathan waterline on surface/breach/whirlpool beats
+      const leviAt = beat.actors.leviathan?.at ?? '';
+      const splash =
+        leviAt.includes('surface') ||
+        leviAt.includes('breach') ||
+        leviAt.includes('rise') ||
+        leviAt.includes('dive') ||
+        leviAt.includes('swim') ||
+        !!beat.whirlpools;
+      this.fluidSplash.visible = splash;
+      if (splash && this.leviathanRoot) {
+        const p = this.leviathanRoot.position.clone();
+        p.y = 0.2;
+        this.fluidSplash.position.copy(p);
+      }
+    }
+
+    // Shield impacts → supernova at ring world positions
+    if (beat.shieldImpact && prev !== idx) {
+      for (let i = 0; i < this.rings.length; i++) {
+        const sn = this.supernovaPool[i % this.supernovaPool.length];
+        if (!sn) continue;
+        const wp = new THREE.Vector3();
+        this.rings[i].getWorldPosition(wp);
+        sn.position.copy(wp);
+        sn.visible = true;
+        sn.scale.setScalar(1);
+      }
+    }
+    if (beat.shieldDefeat && prev !== idx) {
+      for (let i = 0; i < this.smokeRingPool.length; i++) {
+        const s = this.smokeRingPool[i];
+        const wp = this.stage.worldPos('ik_ship_deck_center');
+        s.position.copy(wp);
+        s.position.y += 2 + i * 0.5;
+        s.visible = true;
+      }
+    }
+    if (beat.meguminMark && prev !== idx && this.meguminRoot) {
+      this.stage.place(this.meguminRoot, 'vfx_megumin_keel');
+      this.meguminRoot.visible = true;
+    }
+
     // Logo / blackout
     if (this.logoEl) {
       this.logoEl.style.opacity = beat.logo ? '1' : '0';
+    }
+  }
+
+  /** Fit startingfalls: stones near origin, hide baked water (Gerstner owns near field). */
+  private plantStartingFalls(root: THREE.Object3D): void {
+    root.updateMatrixWorld(true);
+    // Soft-hide map water planes — cinema Gerstner is primary
+    root.traverse((o) => {
+      const n = (o.name || '').toLowerCase();
+      if (n.includes('water')) {
+        o.visible = false;
+      }
+      if ((o as THREE.Mesh).isMesh) {
+        o.castShadow = true;
+        o.receiveShadow = true;
+      }
+    });
+    // Prefer stones as stage scale reference
+    let stone: THREE.Object3D | null = null;
+    root.traverse((o) => {
+      const n = (o.name || '').toLowerCase();
+      if (!stone && (n.includes('stone_1') || n.includes('stones'))) stone = o;
+    });
+    fitLength(root, 90);
+    root.updateMatrixWorld(true);
+    if (stone) {
+      const box = new THREE.Box3().setFromObject(stone);
+      const c = box.getCenter(new THREE.Vector3());
+      root.position.x -= c.x;
+      root.position.z -= c.z;
+      root.position.y -= box.min.y;
+    } else {
+      const box = new THREE.Box3().setFromObject(root);
+      root.position.y -= box.min.y;
     }
   }
 
@@ -599,6 +743,10 @@ export class LeviathanOceanCinema {
     this.leviDirector?.update(dt);
     for (const d of this.mageDirectors) d.update(dt);
     this.heroDirector?.update(dt);
+    this.fluidMixer?.update(dt);
+    if (this.tornadoRoot?.visible) {
+      this.tornadoRoot.rotation.y += dt * 2.2;
+    }
 
     // Then spine IK (post-mixer)
     this.updateIkMarkers();
