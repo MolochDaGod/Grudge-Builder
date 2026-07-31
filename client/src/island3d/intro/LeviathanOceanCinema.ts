@@ -236,6 +236,17 @@ export class LeviathanOceanCinema {
   }> = [];
   private glyphCd = 0;
   private castingActive = false;
+  /** Cycle 2H magic attack clips until pinata */
+  private mage2hIndex = 0;
+  private mage2hCd = 0;
+  private pinataPieces: Array<{
+    mesh: THREE.Object3D;
+    vel: THREE.Vector3;
+    ang: THREE.Vector3;
+    life: number;
+  }> = [];
+  private explosionBurst: THREE.Points | null = null;
+  private launchCamLocked = false;
 
   constructor(host: HTMLElement, cbs: CinemaCallbacks = {}) {
     this.host = host;
@@ -425,6 +436,9 @@ export class LeviathanOceanCinema {
       g.visible = false;
     });
 
+    // Load 2H magic attack clips for casters (CDN pack when present; flat attack.glb fallback)
+    void this.loadMage2hAttackClips();
+
     // Fire beam mesh
     this.fireBeam = new THREE.Mesh(
       new THREE.CylinderGeometry(0.25, 0.85, 1, 10, 1, true),
@@ -458,6 +472,54 @@ export class LeviathanOceanCinema {
     this.tick();
 
     void this.loadVfxBackground();
+  }
+
+  /**
+   * Inject 2H magic attack AnimationClips into each mage director.
+   * "Loop" in cinema = cycle these attacks until leviathan pinatas the boat.
+   * Preferred: magic pack 2H attack GLBs. Fallback: flat models/animations/attack.glb
+   */
+  private async loadMage2hAttackClips(): Promise<void> {
+    const candidates = [
+      `${ASSETS_CDN}/models/animations/magic/Standing 2H Magic Attack 01.glb`,
+      `${ASSETS_CDN}/models/animations/magic/Standing 2H Magic Attack 02.glb`,
+      `${ASSETS_CDN}/models/animations/magic/Standing 2H Magic Area Attack 01.glb`,
+      `${ASSETS_CDN}/models/animations/magic/Standing 1H Magic Attack 01.glb`,
+      `${ASSETS_CDN}/models/animations/attack.glb`,
+    ];
+    const loaded: THREE.AnimationClip[] = [];
+    for (let i = 0; i < candidates.length; i++) {
+      try {
+        const gltf = await loadGltfCached(candidates[i], 'high');
+        const clips = gltf.animations?.slice() ?? [];
+        for (const c of clips) {
+          // Alias so fuzzy find hits "2h magic attack"
+          const renamed = c.clone();
+          renamed.name = i < 3
+            ? `2h_magic_attack_${i + 1}`
+            : i === 3
+              ? `1h_magic_attack`
+              : `2h_magic_attack_fallback`;
+          loaded.push(renamed);
+        }
+      } catch {
+        /* next candidate */
+      }
+    }
+    if (!loaded.length) {
+      console.warn('[cinema] no 2H magic attack clips on CDN — mages use embedded only');
+      return;
+    }
+    for (const d of this.mageDirectors) {
+      d.addClips(loaded);
+      // Start cycling 2H attacks immediately while wards are up
+      d.play(['2h_magic_attack', '2h magic attack', 'attack', 'combat'], {
+        fade: 0.2,
+        loop: THREE.LoopRepeat,
+        restart: true,
+      });
+    }
+    console.info('[cinema] mage 2H attack clips ready:', loaded.map((c) => c.name).join(', '));
   }
 
   /** Optional VFX — failures are non-fatal */
@@ -562,14 +624,22 @@ export class LeviathanOceanCinema {
       // Feet stay on deck (ship-local); do not free-float
       this.placeOnDeck(root, mageKeys[i]);
       root.visible = a.visible !== false;
-      // 2H cast loop while rings/defend/cast
-      const castLoop =
-        a.anim === 'cast' || a.anim === 'defend' || !!beat.rings;
+      // Until pinata: cycle 2H magic attacks (play repeatedly). After: idle/hidden.
+      const keep2h =
+        !this.pinataFired &&
+        (a.anim === 'cast' || a.anim === 'defend' || !!beat.rings || a.anim === 'attack');
       if (this.mageDirectors[i]) {
-        this.mageDirectors[i].play(
-          animHintsFor(castLoop ? 'cast' : a.anim ?? 'idle'),
-          { fade: 0.28, loop: THREE.LoopRepeat },
-        );
+        if (keep2h) {
+          this.mageDirectors[i].play(
+            animHintsFor('cast'),
+            { fade: 0.25, loop: THREE.LoopRepeat, restart: prev !== idx },
+          );
+        } else {
+          this.mageDirectors[i].play(animHintsFor(a.anim ?? 'idle'), {
+            fade: 0.28,
+            loop: THREE.LoopRepeat,
+          });
+        }
       }
       // Spine IK look at leviathan mouth (casters aim wards at the beast)
       const look = a.lookAt ? this.stage.get(a.lookAt) : this.stage.get('ik_levi_mouth');
@@ -612,13 +682,16 @@ export class LeviathanOceanCinema {
       }
     }
 
-    // Ship intact / pinata
+    // Ship intact / pinata shatter + explosion + hero launch frame
     if (this.intactShip) this.intactShip.visible = beat.shipIntact !== false && !this.pinataFired;
     if (this.wreckShip) this.wreckShip.visible = beat.shipIntact === false || this.pinataFired;
     if (beat.shipPinata && !this.pinataFired) {
-      this.pinataFired = true;
-      if (this.intactShip) this.intactShip.visible = false;
-      if (this.wreckShip) this.wreckShip.visible = true;
+      this.fireShipPinata();
+    }
+    // After pinata: hard camera frame on launched hero (wreck in BG)
+    if (this.pinataFired && (beat.heroMode === 'throw' || beat.heroMode === 'air') && !this.launchCamLocked) {
+      this.launchCamLocked = true;
+      this.frameHeroLaunchCam();
     }
 
     // Fire beam
@@ -753,6 +826,186 @@ export class LeviathanOceanCinema {
     const size = box.getSize(new THREE.Vector3());
     const s = Math.max(size.x, size.y, size.z, 0.001);
     obj.scale.multiplyScalar(spanM / s);
+  }
+
+  /**
+   * Pinata the intact ship (three.js mesh shatter — no Rapier required).
+   * Hides hull, spawns debris with impulse, plays explosion, launches hero from wreck.
+   */
+  private fireShipPinata(): void {
+    this.pinataFired = true;
+    this.castingActive = false;
+
+    const origin = new THREE.Vector3();
+    this.shipGroup.getWorldPosition(origin);
+    origin.y += this.deckY;
+
+    // Explosion burst at keel
+    this.spawnExplosionBurst(origin);
+
+    if (this.meguminRoot) {
+      this.meguminRoot.visible = true;
+      this.meguminRoot.position.copy(origin);
+      this.fitObjectSpanLocal(this.meguminRoot, 10);
+    }
+    for (const s of this.smokeRingPool) {
+      s.visible = true;
+      s.position.copy(origin);
+      s.position.y += 1 + Math.random() * 2;
+    }
+
+    // Shatter: clone ship child meshes as flying debris
+    const source = this.intactShip;
+    if (source) {
+      const pieces: THREE.Object3D[] = [];
+      source.updateMatrixWorld(true);
+      source.traverse((o) => {
+        const m = o as THREE.Mesh;
+        if (!m.isMesh || !m.geometry) return;
+        pieces.push(m);
+      });
+      // Cap debris count
+      const max = Math.min(pieces.length, 48);
+      for (let i = 0; i < max; i++) {
+        const src = pieces[i] as THREE.Mesh;
+        const geo = src.geometry.clone();
+        const mat = Array.isArray(src.material)
+          ? (src.material[0] as THREE.Material).clone()
+          : (src.material as THREE.Material).clone();
+        const mesh = new THREE.Mesh(geo, mat);
+        mesh.castShadow = true;
+        // World pose of source
+        src.getWorldPosition(mesh.position);
+        src.getWorldQuaternion(mesh.quaternion);
+        src.getWorldScale(mesh.scale);
+        // Shrink large pieces
+        mesh.scale.multiplyScalar(0.85 + Math.random() * 0.3);
+        this.scene.add(mesh);
+        const dir = new THREE.Vector3(
+          (Math.random() - 0.5) * 2,
+          0.6 + Math.random() * 1.4,
+          (Math.random() - 0.5) * 2,
+        ).normalize();
+        this.pinataPieces.push({
+          mesh,
+          vel: dir.multiplyScalar(8 + Math.random() * 14),
+          ang: new THREE.Vector3(
+            (Math.random() - 0.5) * 8,
+            (Math.random() - 0.5) * 8,
+            (Math.random() - 0.5) * 8,
+          ),
+          life: 3.5 + Math.random() * 2,
+        });
+      }
+      source.visible = false;
+    }
+    if (this.wreckShip) this.wreckShip.visible = true;
+
+    // Hide casters (lost with ship)
+    for (const r of this.mageRoots) r.visible = false;
+    for (const r of this.rings) r.visible = false;
+
+    // Launch hero from wreckage
+    if (this.heroRoot.parent === this.shipGroup) {
+      this.scene.attach(this.heroRoot);
+    }
+    this.heroRoot.visible = true;
+    this.heroRoot.position.copy(origin);
+    this.heroRoot.position.y += 1.5;
+    // Frame launch immediately
+    this.frameHeroLaunchCam();
+    this.launchCamLocked = true;
+  }
+
+  private spawnExplosionBurst(at: THREE.Vector3): void {
+    const n = 400;
+    const pos = new Float32Array(n * 3);
+    const vel = new Float32Array(n * 3);
+    for (let i = 0; i < n; i++) {
+      pos[i * 3] = at.x;
+      pos[i * 3 + 1] = at.y;
+      pos[i * 3 + 2] = at.z;
+      const d = new THREE.Vector3(
+        Math.random() - 0.5,
+        Math.random() * 0.8 + 0.2,
+        Math.random() - 0.5,
+      ).normalize().multiplyScalar(6 + Math.random() * 16);
+      vel[i * 3] = d.x;
+      vel[i * 3 + 1] = d.y;
+      vel[i * 3 + 2] = d.z;
+    }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    geo.setAttribute('velocity', new THREE.BufferAttribute(vel, 3));
+    this.explosionBurst = new THREE.Points(
+      geo,
+      new THREE.PointsMaterial({
+        color: 0xff6622,
+        size: 0.35,
+        transparent: true,
+        opacity: 0.95,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending,
+      }),
+    );
+    this.scene.add(this.explosionBurst);
+  }
+
+  private updatePinata(dt: number): void {
+    const g = 12;
+    for (let i = this.pinataPieces.length - 1; i >= 0; i--) {
+      const p = this.pinataPieces[i];
+      p.life -= dt;
+      p.vel.y -= g * dt;
+      p.mesh.position.addScaledVector(p.vel, dt);
+      p.mesh.rotation.x += p.ang.x * dt;
+      p.mesh.rotation.y += p.ang.y * dt;
+      p.mesh.rotation.z += p.ang.z * dt;
+      if (p.life <= 0 || p.mesh.position.y < -4) {
+        this.scene.remove(p.mesh);
+        const m = p.mesh as THREE.Mesh;
+        m.geometry?.dispose?.();
+        if (m.material) {
+          const mats = Array.isArray(m.material) ? m.material : [m.material];
+          for (const mat of mats) mat.dispose?.();
+        }
+        this.pinataPieces.splice(i, 1);
+      }
+    }
+    if (this.explosionBurst) {
+      const pos = this.explosionBurst.geometry.getAttribute('position') as THREE.BufferAttribute;
+      const vel = this.explosionBurst.geometry.getAttribute('velocity') as THREE.BufferAttribute;
+      const arr = pos.array as Float32Array;
+      const varr = vel.array as Float32Array;
+      for (let i = 0; i < arr.length / 3; i++) {
+        varr[i * 3 + 1] -= g * dt * 0.6;
+        arr[i * 3] += varr[i * 3] * dt;
+        arr[i * 3 + 1] += varr[i * 3 + 1] * dt;
+        arr[i * 3 + 2] += varr[i * 3 + 2] * dt;
+      }
+      pos.needsUpdate = true;
+      const mat = this.explosionBurst.material as THREE.PointsMaterial;
+      mat.opacity *= Math.exp(-dt * 1.2);
+      if (mat.opacity < 0.05) {
+        this.scene.remove(this.explosionBurst);
+        this.explosionBurst.geometry.dispose();
+        mat.dispose();
+        this.explosionBurst = null;
+      }
+    }
+  }
+
+  /** Hard multi-cam: hero in FG, wreck/pinata in BG */
+  private frameHeroLaunchCam(): void {
+    const hp = this.heroRoot.position.clone();
+    // Camera slightly behind/side of hero looking past them at wreck
+    const eye: [number, number, number] = [
+      hp.x + 4.5,
+      hp.y + 2.2,
+      hp.z + 6.5,
+    ];
+    const look: [number, number, number] = [hp.x, hp.y + 1.0, hp.z - 2];
+    this.multiCam.setTarget(eye, look, 34, 'cut');
   }
 
   /** Throw spell glyph from caster toward leviathan mouth (attack beats). */
@@ -893,18 +1146,52 @@ export class LeviathanOceanCinema {
       }
     }
 
-    // Spin cast rings; throw glyphs on a cadence while casting
+    // Spin cast rings; throw glyphs while 2H magic attacks fire (until pinata)
     for (const r of this.rings) {
       if (r.visible) r.rotation.z += dt * 2.8;
     }
     this.glyphCd -= dt;
-    if (this.castingActive && this.glyphCd <= 0) {
-      this.glyphCd = 0.85;
+    if (this.castingActive && !this.pinataFired && this.glyphCd <= 0) {
+      this.glyphCd = 0.75;
       for (const root of this.mageRoots) {
         if (root.visible) this.throwGlyph(root);
       }
     }
     this.updateGlyphs(dt);
+
+    // Cycle 2H magic attack clips across mages until boat is blasted apart
+    this.mage2hCd -= dt;
+    if (!this.pinataFired && this.castingActive && this.mage2hCd <= 0) {
+      this.mage2hCd = 1.15;
+      this.mage2hIndex = (this.mage2hIndex + 1) % 3;
+      const hints =
+        this.mage2hIndex === 0
+          ? ['2h_magic_attack_1', '2h_magic_attack', 'attack']
+          : this.mage2hIndex === 1
+            ? ['2h_magic_attack_2', '2h_magic_attack', 'attack']
+            : ['2h_magic_attack_3', '2h_magic_attack_fallback', 'attack', 'combat'];
+      for (const d of this.mageDirectors) {
+        d.play(hints, { fade: 0.18, loop: THREE.LoopRepeat, restart: true });
+      }
+    }
+
+    // Pinata debris + explosion sim
+    if (this.pinataFired) this.updatePinata(dt);
+
+    // While hero is in air after launch, keep camera framed on them
+    if (
+      this.pinataFired &&
+      (beat.heroMode === 'throw' || beat.heroMode === 'air') &&
+      this.heroRoot.visible
+    ) {
+      const hp = this.heroRoot.position;
+      this.multiCam.setTarget(
+        [hp.x + 5, hp.y + 2.5, hp.z + 7],
+        [hp.x, hp.y + 0.8, hp.z - 1],
+        36,
+        'blend',
+      );
+    }
 
     // Hero throw arc (world space after detach)
     if (beat.heroMode === 'throw' || beat.heroMode === 'air') {
@@ -1003,6 +1290,16 @@ export class LeviathanOceanCinema {
     this.heroDirector?.dispose();
     this.spineIk.dispose();
     this.stage.dispose();
+    for (const p of this.pinataPieces) {
+      this.scene.remove(p.mesh);
+    }
+    this.pinataPieces = [];
+    if (this.explosionBurst) {
+      this.scene.remove(this.explosionBurst);
+      this.explosionBurst = null;
+    }
+    for (const g of this.glyphs) this.scene.remove(g.mesh);
+    this.glyphs = [];
     this.logoEl?.remove();
     this.renderer.dispose();
     this.renderer.domElement.remove();

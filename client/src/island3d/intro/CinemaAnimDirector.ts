@@ -85,6 +85,23 @@ export class CinemaAnimDirector {
     }
   }
 
+  /** Inject extra clips (e.g. CDN 2H magic attack pack) after construct. */
+  addClips(clips: THREE.AnimationClip[], aliasPrefix?: string): void {
+    for (const c of clips) {
+      this.clips.set(c.name, c);
+      this.clips.set(c.name.toLowerCase(), c);
+      if (aliasPrefix) {
+        this.clips.set(`${aliasPrefix}${c.name}`, c);
+        this.clips.set(`${aliasPrefix}${c.name.toLowerCase()}`, c);
+      }
+    }
+  }
+
+  /** All known clip names (debug). */
+  listClipNames(): string[] {
+    return [...new Set([...this.clips.keys()])];
+  }
+
   update(dt: number): void {
     this.mixer.update(dt);
   }

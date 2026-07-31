@@ -573,20 +573,20 @@ export function animHintsFor(hint: CinAnimHint | undefined): string[] {
     case 'attack':
       return ['attack', 'combat', 'skill'];
     case 'cast':
-      // Prefer 2H cast loops for deck mages (magic pack / modular)
+      // "Loop" = keep firing 2H magic attack clips until boat pinata (not a separate cast-loop file)
       return [
-        '2h_cast',
-        '2h cast',
-        'twohand_cast',
-        'two_hand_cast',
-        '2h_magic',
-        'cast_2h',
-        'cast',
-        'spell',
-        'magic',
-        'skill',
+        '2h magic attack',
+        '2h_magic_attack',
+        'standing 2h magic attack',
+        'Standing 2H Magic Attack',
+        'magic attack',
+        '2h magic',
+        'attack2',
         'attack',
         'combat',
+        'skill',
+        'cast',
+        'magic',
         'idle',
       ];
     case 'defend':
