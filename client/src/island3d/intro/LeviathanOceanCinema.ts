@@ -576,7 +576,8 @@ export class LeviathanOceanCinema {
     this.logoEl.src = CINEMA_LOGO_URL;
     this.logoEl.alt = 'Grudge';
     this.logoEl.onerror = () => {
-      if (this.logoEl) this.logoEl.src = '/cinema/grudge-logo.jpeg';
+      // Fallback: root brand mark (not the large cinema stinger)
+      if (this.logoEl) this.logoEl.src = '/grudge-logo.png';
     };
     this.logoEl.style.cssText =
       'position:absolute;inset:0;margin:auto;max-width:42vw;max-height:28vh;opacity:0;pointer-events:none;transition:opacity .8s;z-index:5;filter:drop-shadow(0 0 24px rgba(0,0,0,.8))';
