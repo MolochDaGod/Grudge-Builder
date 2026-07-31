@@ -166,8 +166,8 @@ export const AFTER_INTRO_DESTINATIONS: Array<{
 ];
 
 /** Bump when cinema cut changes so players re-see the battle */
-export const INTRO_SESSION_KEY = 'grudge_shipwreck_intro_seen_v8';
-export const INTRO_OPTIONS_KEY = 'grudge_island3d_intro_options_v8';
+export const INTRO_SESSION_KEY = 'grudge_shipwreck_intro_seen_v9';
+export const INTRO_OPTIONS_KEY = 'grudge_island3d_intro_options_v9';
 
 export interface Island3dIntroOptions {
   /** Play leviathan cinema on visit when not yet seen */

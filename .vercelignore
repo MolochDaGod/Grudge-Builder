@@ -18,8 +18,13 @@ docs
 migrations
 /public/models/lobby/warlords-lobby/scene.glb
 /public/models/**/*.glb
+# Production intro cinema — allow local package fallback (primary SSOT is R2 CDN)
+!/public/models/cinema/**
+!public/models/cinema/**
+!public/cinema/**
 /public/sprites/**
 client/public/models/**
+!client/public/models/cinema/**
 client/public/sprites/**
 client/public/icons/tomes/**
 # Binary art lives on R2 (assets.grudge-studio.com) — see docs/ASSETS.md
