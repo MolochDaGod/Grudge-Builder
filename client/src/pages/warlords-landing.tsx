@@ -296,7 +296,7 @@ export default function WarlordsLandingPage() {
               Production path
             </h3>
             <p className="text-slate-500 text-sm mt-1">
-              Intro → create → tutorial → open world → home island at level 20
+              Create → airship → home island immediately → open world
             </p>
           </div>
           <Link href="/warlords/start">
@@ -457,7 +457,7 @@ export default function WarlordsLandingPage() {
             </li>
             <li className="flex gap-3">
               <span className="text-amber-400 font-mono text-xs">03</span>
-              Tutorial → open world → End Game at level 20
+              Airship → home island → map · tutorial optional
             </li>
           </ol>
           <div className="flex flex-wrap gap-2 mt-5">

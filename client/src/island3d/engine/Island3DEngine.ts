@@ -79,6 +79,7 @@ import type { ProductionHudSchema } from '@shared/definitions/productionMapPacka
 import {
   createOceanMesh,
   updateOceanMaterial,
+  bindOceanMaps,
   flattenTerrainBelowWater as flattenTerrainVertsBelowWater,
   removeDuplicateWaterMeshes,
 } from '../terrain/WaterMaterial';
@@ -88,6 +89,13 @@ import {
   updatePirateLobbyOcean,
   isPirateLobbyOcean,
 } from '../terrain/PirateLobbyOcean';
+import {
+  OceanReflectionRig,
+  createProceduralOceanTextures,
+} from '../terrain/OceanReflectionRig';
+import { UnderwaterPost } from '../terrain/UnderwaterPost';
+import { BoatWakeSystem } from '../terrain/BoatWakeSystem';
+import type { QualityPreset } from '../render/PostProcessing';
 import { registerMeshPrefabs, sculptSandPrefab } from '../map/MeshPrefabRegistry';
 import { PostProcessing, type QualityPreset } from '../render/PostProcessing';
 import { DayNightCycle, type DayNightConfig } from '../environment/DayNightCycle';
@@ -165,13 +173,22 @@ import { EtherealDestructionSystem } from '../zone/EtherealDestructionSystem';
 import { EtherealFloatingIslandSystem } from '../zone/EtherealFloatingIslandSystem';
 import { EventIslandSystem } from '../zone/EventIslandSystem';
 import { BossRoomInstanceSystem } from '../zone/BossRoomInstanceSystem';
+import { VolcanicClimbIslandSystem } from '../zone/VolcanicClimbIslandSystem';
+import { resolveZoneInteract } from '../zone/zoneInteract';
 import { placeIcelandScene, type IcelandPlaceResult } from '../zone/IcelandScenePlacer';
+import { resolvePlatformerJumpForSector } from '../physics/PlatformerJump';
 import { ETHEREAL_FALLS_SECTOR_ID } from '@shared/definitions/etherealDestructionZone';
 import {
   isHothEligibleSector,
   isIcelandSector,
   isSpiralEventSector,
 } from '@shared/definitions/floatingIslandBossAssets';
+import {
+  isVolcanicClimbSector,
+  layoutVolcanicClimbFloor,
+  volcanicClimbOrigin,
+  volcanicClimbSpawnY,
+} from '@shared/definitions/volcanicClimb';
 import {
   isHavenShoreSector,
   HAVEN_SHORE_FOUNDATION,
@@ -199,6 +216,11 @@ import {
   type HarvestDropKind,
 } from '../harvest/HarvestFeedback';
 import { tickGrowth, isHarvestable } from '../harvest/RegenerativeHarvest';
+import { PinataHarvestBreakSystem } from '../harvest/PinataHarvestBreak';
+import { FirewoodChopSystem } from '../harvest/FirewoodChopSystem';
+import { resolveBossHitResponse } from '../combat/HitResponseSystem';
+import type { LargeBossHitEvent } from '../combat/LargeBossFightSystem';
+import { PveBossInstanceSystem } from '../systems/PveBossInstanceSystem';
 import {
   generateMountainTriadSeed,
   HOME_ISLAND_WORLD_SIZE_M,
@@ -235,8 +257,13 @@ import type { MineLootItem } from '@shared/definitions/homeIslandMines';
 
 export type Island3DMode = 'procedural' | 'lobby' | 'zone';
 
-/** Canonical water surface for procedural home islands (used if ocean enabled) */
+/**
+ * Free-surface Y for procedural home-island ocean.
+ * waterLevel ≡ oceanSurfaceY ≡ open water / sea (namingSsot).
+ */
 export const PROCEDURAL_WATER_LEVEL = -2;
+/** Preferred alias of PROCEDURAL_WATER_LEVEL */
+export const PROCEDURAL_OCEAN_SURFACE_Y = PROCEDURAL_WATER_LEVEL;
 
 export interface Island3DEngineConfig {
   seed: string;
@@ -344,6 +371,17 @@ export class Island3DEngine {
   // Terrain
   public terrain: IslandTerrainResult | null = null;
   private waterPlane: THREE.Mesh | null = null;
+  /** Dual-pass reflect/refract RTs for ocean (Captain-style polish) */
+  private oceanReflectionRig: OceanReflectionRig | null = null;
+  /** Camera-below-water fog + tint */
+  private underwaterPost: UnderwaterPost | null = null;
+  private oceanProcTextures: ReturnType<typeof createProceduralOceanTextures> = null;
+  private _oceanRes = new THREE.Vector2(1920, 1080);
+  /** off = Gerstner only · low = no dual-pass · high = full polish */
+  private oceanQuality: 'off' | 'low' | 'high' = 'high';
+  private boatWake: BoatWakeSystem | null = null;
+  private _shipPrevPos = new THREE.Vector3();
+  private _shipHasPrev = false;
 
   // Interactable objects
   public trees: HarvestableTree[] = [];
@@ -479,8 +517,20 @@ export class Island3DEngine {
   public eventIslands: EventIslandSystem | null = null;
   /** Hoth (frozen) boss room instance from event/mountain/dungeon portals. */
   public bossRooms: BossRoomInstanceSystem | null = null;
+  /** Open-zone boss_arena PvE fights (PIP-style large bosses) */
+  public arenaBosses: import('../combat/LargeBossFightSystem').LargeBossFightSystem[] = [];
+  /**
+   * Home-island evil mountain doorway + Warlords under-mountain / dungeon PvE
+   * boss chambers (PIP-style colossus).
+   */
+  public pveBossInstance: PveBossInstanceSystem | null = null;
   /** Iceland cinematic plate in frozen / near-frozen sectors. */
   public icelandScene: IcelandPlaceResult | null = null;
+  /**
+   * Ember Spire infinite climb — volcanic platforms + summit chests
+   * (random-boxes style jumper on fleet assets).
+   */
+  public volcanicClimb: VolcanicClimbIslandSystem | null = null;
   private _bossPortalKey: ((e: KeyboardEvent) => void) | null = null;
   /** Full per-sector production package (textures, seeds, monsters, harvest…) */
   public sectorProduction: SectorProductionContent | null = null;
@@ -578,6 +628,13 @@ export class Island3DEngine {
   // Harvest FX — log/debris drops + tree fall animations
   private harvestDrops: HarvestDrop[] = [];
   private treeFallCompleting = new Set<HarvestableTree>();
+  /** three-pinata fracture for rock/ore/tree chips */
+  public pinataHarvest: PinataHarvestBreakSystem | null = null;
+  /**
+   * Firewood-style axe: base angle notch → directional fall → ground split → collect.
+   * Reference: https://screen.toys/firewood/
+   */
+  public firewoodChop: FirewoodChopSystem | null = null;
 
   constructor(private config: Island3DEngineConfig) {
     // Renderer — threejs-production-best-practices (r185+): high-perf GPU,
@@ -782,8 +839,9 @@ export class Island3DEngine {
       piers: shores.piers,
     });
     this.scene.add(this.waterPlane);
+    this.setupOceanPolish(LOBBY_WATER_LEVEL);
     console.log(
-      `[Island3D] Pirate TI ocean · prefabs=${prefabReg.prefabs.length} · ` +
+      `[Island3D] Pirate TI ocean · reflect/refract · prefabs=${prefabReg.prefabs.length} · ` +
         `sculptable sand=${prefabReg.sculptable.length} · ` +
         `islands=${shores.islands.length} piers=${shores.piers.length}`,
     );
@@ -1322,6 +1380,11 @@ export class Island3DEngine {
     if (this.zoneScene.ocean) {
       this.waterPlane = this.zoneScene.ocean;
       removeDuplicateWaterMeshes(this.scene, this.zoneScene.ocean);
+      const wl =
+        (this.zoneScene.ocean.userData?.waterLevel as number | undefined)
+        ?? this.zoneScene.ocean.position.y
+        ?? 0;
+      this.setupOceanPolish(wl);
     }
 
     // 2b. Interactive harvest meshes on zone nodes (Warlords era open world)
@@ -1461,10 +1524,19 @@ export class Island3DEngine {
             this.character.model.position,
             'random_dungeon_portal',
           );
+          this.config.onDungeonEnter?.(dungeonId, dungeonName);
+          return;
         }
-        this.config.onDungeonEnter?.(dungeonId, dungeonName);
+        // Warlords era sectors: dungeon entrance → PvE boss instance chamber
+        const entered = this.enterPveBossFromDoorway(
+          dungeonId,
+          dungeonName,
+          'warlords_dungeon_portal',
+        );
+        if (!entered) this.config.onDungeonEnter?.(dungeonId, dungeonName);
       },
     );
+    this.ensurePveBossInstance();
 
     // 2d2. Cave interior system — dual/lethal-ape caves with access + nav + no water
     this.caveInteriors = new CaveInteriorSystem(this.scene);
@@ -1516,12 +1588,19 @@ export class Island3DEngine {
           zoneSizeM: cfg.sizeMeters,
           sampleGround,
           onEnterCity: (dungeonId, dungeonName) => {
-            this.config.onDungeonEnter?.(dungeonId, dungeonName);
+            // Warlords thornwood: unsealed under-mountain door → PvE boss instance
+            const entered = this.enterPveBossFromDoorway(
+              dungeonId,
+              dungeonName,
+              'hidden_mountain_city_door',
+            );
+            if (!entered) this.config.onDungeonEnter?.(dungeonId, dungeonName);
           },
           onBossDefeated: () => {
             console.info('[Island3D] Hidden Mountain City — Warden defeated, door unsealed');
           },
         });
+        this.ensurePveBossInstance();
         if (this.hiddenMountainCity) {
           console.log(
             `[Island3D] Hidden Mountain City loaded in ${sectorId} (defeat boss to open door)`,
@@ -1628,10 +1707,34 @@ export class Island3DEngine {
         this.bossRooms = new BossRoomInstanceSystem({
           scene: this.scene,
           sectorId,
+          worldFx: this.worldFx,
           cb: {
             onEnter: (roomId, bossId) =>
               console.info(`[BossRoom] enter ${roomId} boss=${bossId}`),
             onExit: (roomId) => console.info(`[BossRoom] exit ${roomId}`),
+            onBossDeath: (bossId) => {
+              try {
+                window.dispatchEvent(
+                  new CustomEvent('grudge:boss-room', {
+                    detail: { type: 'death', bossId },
+                  }),
+                );
+              } catch {
+                /* */
+              }
+            },
+            onPlayerHit: (hit) => {
+              this.applyBossHitToPlayer(hit);
+              try {
+                window.dispatchEvent(
+                  new CustomEvent('grudge:boss-room', {
+                    detail: { type: 'hit', ...hit },
+                  }),
+                );
+              } catch {
+                /* */
+              }
+            },
             onPrompt: (msg) => {
               try {
                 window.dispatchEvent(
@@ -1664,33 +1767,96 @@ export class Island3DEngine {
       }
     }
 
-    // E: event-island / mountain / frozen portal → Hoth boss room; exit pad inside
+    // 2k. Volcanic infinite climb (random-boxes platform jumper + summit chest)
+    if (isVolcanicClimbSector(sectorId)) {
+      try {
+        this.volcanicClimb?.dispose();
+        this.volcanicClimb = new VolcanicClimbIslandSystem({
+          scene: this.scene,
+          sectorId,
+          zoneSizeM: cfg.sizeMeters,
+          waterLevel: cfg.waterLevel,
+          fallbackMeshes: islandMeshes.values(),
+          cb: {
+            onReady: (n) =>
+              console.log(`[Island3D] Volcanic climb ready: ${n} platforms`),
+            onSummitReached: (floor, pos) =>
+              console.info(
+                `[Island3D] Summit floor ${floor} @ ${pos.x.toFixed(0)},${pos.y.toFixed(0)},${pos.z.toFixed(0)}`,
+              ),
+            onChestOpened: (floor, grants) => {
+              console.info(
+                `[Island3D] Summit chest floor ${floor}:`,
+                grants.map((g) => `${g.qty}×${g.itemId}`).join(', '),
+              );
+              try {
+                window.dispatchEvent(
+                  new CustomEvent('grudge:volcanic-climb', {
+                    detail: { type: 'chest', floor, grants },
+                  }),
+                );
+              } catch {
+                /* */
+              }
+            },
+            onEventPad: (floor, pos) => {
+              try {
+                window.dispatchEvent(
+                  new CustomEvent('grudge:volcanic-climb', {
+                    detail: {
+                      type: 'event',
+                      floor,
+                      pos: { x: pos.x, y: pos.y, z: pos.z },
+                    },
+                  }),
+                );
+              } catch {
+                /* */
+              }
+            },
+            onPrompt: (msg) => {
+              try {
+                window.dispatchEvent(
+                  new CustomEvent('grudge:volcanic-climb', {
+                    detail: { type: 'prompt', prompt: msg },
+                  }),
+                );
+              } catch {
+                /* */
+              }
+            },
+          },
+        });
+      } catch (err) {
+        console.warn('[Island3D] VolcanicClimbIslandSystem failed:', err);
+      }
+    }
+
+    // E: single priority chain (climb chest → boss exit → event portal → iceland)
     if (this._bossPortalKey) {
       window.removeEventListener('keydown', this._bossPortalKey);
     }
     this._bossPortalKey = (e: KeyboardEvent) => {
       if (e.repeat || (e.key !== 'e' && e.key !== 'E')) return;
       if (!this.character) return;
-      const pos = this.character.model.position;
-      if (this.bossRooms?.isInside) {
-        this.bossRooms.tryExit(pos);
-        return;
-      }
-      // Event island portal
-      const near = this.eventIslands?.nearestPortal(pos, 9);
-      if (near && this.bossRooms) {
-        this.bossRooms.enter(pos, 'event_island_portal');
-        return;
-      }
-      // Frozen / mountain biome: allow Hoth enter when near SE freeze pad (tip of iceland)
-      if (this.bossRooms && isHothEligibleSector(sectorId)) {
-        // Soft radius around iceland or frostbite spawn for “frozen portal”
-        if (this.icelandScene) {
-          const ip = this.icelandScene.root.position;
-          if (pos.distanceTo(ip) < 35) {
-            this.bossRooms.enter(pos, 'frozen_biome_portal');
-          }
+      // Exit PvE mountain / Warlords boss instance first
+      if (this.pveBossInstance?.isInside) {
+        if (this.pveBossInstance.tryExit(this.character.model.position)) {
+          console.info('[Island3D] left PvE boss instance');
+          return;
         }
+      }
+      const result = resolveZoneInteract({
+        playerPos: this.character.model.position,
+        volcanicClimb: this.volcanicClimb,
+        eventIslands: this.eventIslands,
+        bossRooms: this.bossRooms,
+        icelandScene: this.icelandScene,
+        sectorId,
+        isHothEligible: isHothEligibleSector(sectorId),
+      });
+      if (result.kind !== 'none') {
+        console.info('[Island3D] zone interact:', result.kind);
       }
     };
     window.addEventListener('keydown', this._bossPortalKey);
@@ -1865,16 +2031,42 @@ export class Island3DEngine {
       };
       this.ensureFarmSystems();
       const spawnPos = new THREE.Vector3(entryPoint[0], entryPoint[1], entryPoint[2]);
+      // Climb-first ground sampler (SSOT on VolcanicClimbIslandSystem)
+      const climbGround = this.volcanicClimb
+        ? this.volcanicClimb.makeGroundSampler(islandMeshes.values())
+        : undefined;
+
       this.character = new CharacterController3D({
         scene: this.scene,
         camera: this.camera,
         terrainMesh: firstIslandMesh,
-        groundObject: this.havenFoundation?.root ?? this.fabledFoundation?.root ?? this.zoneScene.root,
+        groundObject:
+          this.volcanicClimb?.root ??
+          this.havenFoundation?.root ??
+          this.fabledFoundation?.root ??
+          this.zoneScene.root,
+        groundSampler: climbGround,
         startPosition: spawnPos,
         physics: { waterLevel: cfg.waterLevel, characterHeight: 2.0 },
         callbacks: this.config.physicsCallbacks,
       });
       this.character.setWorldFxBus?.(this.worldFx);
+
+      // Hold-to-jump — single sector resolver (volcanic / ethereal)
+      const jumpCfg = resolvePlatformerJumpForSector(sectorId);
+      if (jumpCfg) {
+        this.character.setPlatformerJump(true, jumpCfg);
+      }
+      if (this.volcanicClimb) {
+        const f0 = layoutVolcanicClimbFloor(0);
+        const origin = volcanicClimbOrigin(sectorId);
+        this.character.model.position.set(
+          origin.x + f0.x,
+          volcanicClimbSpawnY(cfg.waterLevel),
+          origin.z + f0.z,
+        );
+      }
+
       this.setCameraMode('play_tps');
       console.log(
         '[Island3DEngine] Zone character ready at (' +
@@ -1885,6 +2077,8 @@ export class Island3DEngine {
           entryPoint[2].toFixed(1) +
           ') haven=' +
           !!this.havenFoundation +
+          ' climb=' +
+          !!this.volcanicClimb +
           ' ground=' +
           (firstIslandMesh.name || 'mesh'),
       );
@@ -1948,6 +2142,76 @@ export class Island3DEngine {
       }
     }
     this.character?.setWorldFxBus?.(this.worldFx);
+
+    // PvE boss_arena nodes → PIP-style large bosses (open zone)
+    try {
+      this.arenaBosses.forEach((b) => b.dispose());
+      this.arenaBosses = [];
+      const { LargeBossFightSystem } = await import('../combat/LargeBossFightSystem');
+      type BossArenaNode = import('@shared/definitions/zoneServerNodes').BossArenaNode;
+      const arenas = getNodesByCategory<BossArenaNode>(
+        this.zonePopulation,
+        'boss_arena',
+      );
+      for (const arena of arenas.slice(0, 3)) {
+        const pos = new THREE.Vector3(
+          arena.position[0],
+          (arena.position[1] ?? 0) + 0.5,
+          arena.position[2],
+        );
+        const boss = new LargeBossFightSystem({
+          scene: this.scene,
+          position: pos,
+          arenaCenter: pos.clone(),
+          bossId: arena.id ?? `arena_${this.arenaBosses.length}`,
+          worldFx: this.worldFx,
+          cb: {
+            onPrompt: (msg) => {
+              try {
+                window.dispatchEvent(
+                  new CustomEvent('grudge:arena-boss', {
+                    detail: { type: 'prompt', prompt: msg, arenaId: arena.id },
+                  }),
+                );
+              } catch {
+                /* */
+              }
+            },
+            onDeath: (id) => {
+              try {
+                window.dispatchEvent(
+                  new CustomEvent('grudge:arena-boss', {
+                    detail: { type: 'death', bossId: id, arenaId: arena.id },
+                  }),
+                );
+              } catch {
+                /* */
+              }
+            },
+            onPlayerHit: (hit) => {
+              this.applyBossHitToPlayer(hit);
+              try {
+                window.dispatchEvent(
+                  new CustomEvent('grudge:arena-boss', {
+                    detail: { type: 'hit', arenaId: arena.id, ...hit },
+                  }),
+                );
+              } catch {
+                /* */
+              }
+            },
+          },
+        });
+        this.arenaBosses.push(boss);
+      }
+      if (this.arenaBosses.length) {
+        console.log(
+          `[Island3D] Spawned ${this.arenaBosses.length} PIP-style arena bosses`,
+        );
+      }
+    } catch (err) {
+      console.warn('[Island3D] arena boss spawn failed', err);
+    }
 
     console.log(
       `[Island3DEngine] Zone "${sector.name}" loaded:`,
@@ -2090,6 +2354,93 @@ export class Island3DEngine {
     this.waterPlane.userData.grudgeKeepOcean = true;
     this.waterPlane.renderOrder = 0;
     this.scene.add(this.waterPlane);
+    this.setupOceanPolish(PROCEDURAL_WATER_LEVEL);
+  }
+
+  /**
+   * Reflection + refraction RTs, procedural foam/caustics/normal, underwater post.
+   * Safe to call after any ocean mesh is assigned (procedural or pirate lobby).
+   * Honors oceanQuality: off skips all polish; low skips dual-pass RTs.
+   */
+  private setupOceanPolish(waterLevel: number): void {
+    this.oceanReflectionRig?.dispose();
+    this.oceanReflectionRig = null;
+    this.underwaterPost?.dispose();
+    this.underwaterPost = null;
+
+    // Infer from post quality if never set: low graphics → low ocean
+    if (this.config.quality === 'low' && this.oceanQuality === 'high') {
+      this.oceanQuality = 'low';
+    }
+
+    if (this.oceanQuality === 'off') return;
+
+    this.underwaterPost = new UnderwaterPost({ waterLevel });
+    if (this.config.canvas) {
+      this.underwaterPost.attachOverlay(this.config.canvas);
+    }
+
+    if (!this.oceanProcTextures) {
+      this.oceanProcTextures = createProceduralOceanTextures();
+    }
+
+    const wantDualPass = this.oceanQuality === 'high';
+    if (wantDualPass) {
+      this.oceanReflectionRig = new OceanReflectionRig({
+        waterLevel,
+        reflectionSize: 512,
+        refractionSize: 512,
+      });
+    }
+
+    const mat = this.waterPlane?.material as THREE.ShaderMaterial | undefined;
+    if (mat?.uniforms) {
+      bindOceanMaps(mat, {
+        reflection: this.oceanReflectionRig?.reflectionMap ?? null,
+        refraction: this.oceanReflectionRig?.refractionMap ?? null,
+        normal: this.oceanProcTextures?.normal ?? null,
+        foam: this.oceanProcTextures?.foam ?? null,
+        caustics: this.oceanProcTextures?.caustics ?? null,
+      });
+      if (mat.uniforms.uHasReflection) {
+        if (this.oceanReflectionRig) {
+          mat.uniforms.uReflectionMap.value = this.oceanReflectionRig.reflectionMap;
+          mat.uniforms.uRefractionMap.value = this.oceanReflectionRig.refractionMap;
+          mat.uniforms.uHasReflection.value = 1;
+          mat.uniforms.uHasRefraction.value = 1;
+        } else {
+          mat.uniforms.uHasReflection.value = 0;
+          mat.uniforms.uHasRefraction.value = 0;
+        }
+      }
+    }
+
+    if (!this.boatWake) {
+      this.boatWake = new BoatWakeSystem(this.scene);
+    }
+  }
+
+  /** Runtime graphics / ocean quality from play settings UI. */
+  setGraphicsQuality(quality: QualityPreset): void {
+    this.postProcessing?.setQuality(quality);
+    if (this.sunLight) {
+      this.sunLight.castShadow = quality !== 'low';
+    }
+    this.renderer.shadowMap.enabled = quality !== 'low';
+  }
+
+  setOceanQuality(q: 'off' | 'low' | 'high'): void {
+    if (this.oceanQuality === q) return;
+    this.oceanQuality = q;
+    const wl =
+      this.waterPlane?.position.y
+      ?? (this.waterPlane?.userData?.waterLevel as number | undefined)
+      ?? 0;
+    if (this.waterPlane) this.setupOceanPolish(wl);
+  }
+
+  getOceanQuality(): 'off' | 'low' | 'high' {
+    return this.oceanQuality;
   }
 
   private createHarvestables(): void {
@@ -2172,14 +2523,21 @@ export class Island3DEngine {
       terrainSize,
       anchorWorld,
       onEnterDungeon: (_portalId, dungeonId) => {
-        const name = this.mountainTriad?.triad.dungeon.name ?? 'Dungeon';
-        this.config.onDungeonEnter?.(dungeonId, name);
+        const name = this.mountainTriad?.triad.dungeon.name ?? 'Evil Mountain Dungeon';
+        // Home-island / lobby: walk into evil mountain doorway → PvE boss instance
+        const entered = this.enterPveBossFromDoorway(
+          dungeonId,
+          name,
+          'evil_mountain_door',
+        );
+        if (!entered) this.config.onDungeonEnter?.(dungeonId, name);
       },
     });
     if (!triadResult) return;
 
     const facingYaw = Math.atan2(-triadResult.anchor.x, -triadResult.anchor.z);
     this.mountainTriad = new EvilMountainTriadSystem(triadResult, facingYaw);
+    this.ensurePveBossInstance();
     console.log(
       `[Island3D] Lobby evil mountain triad — secret peak #${triadResult.secretIndex + 1}, dungeon: ${triadResult.dungeon.name}`,
     );
@@ -2196,14 +2554,21 @@ export class Island3DEngine {
       gridH: this.terrain.gridH,
       terrainSize: 1024,
       onEnterDungeon: (_portalId, dungeonId) => {
-        const name = this.mountainTriad?.triad.dungeon.name ?? 'Dungeon';
-        this.config.onDungeonEnter?.(dungeonId, name);
+        const name = this.mountainTriad?.triad.dungeon.name ?? 'Evil Mountain Dungeon';
+        // Home-island: E at cave mouth → PIP-style PvE boss chamber
+        const entered = this.enterPveBossFromDoorway(
+          dungeonId,
+          name,
+          'evil_mountain_door',
+        );
+        if (!entered) this.config.onDungeonEnter?.(dungeonId, name);
       },
     });
     if (!triadResult) return;
 
     const facingYaw = Math.atan2(-triadResult.anchor.x, -triadResult.anchor.z);
     this.mountainTriad = new EvilMountainTriadSystem(triadResult, facingYaw);
+    this.ensurePveBossInstance();
     console.log(
       `[Island3D] Evil mountain triad — secret peak #${triadResult.secretIndex + 1}, dungeon: ${triadResult.dungeon.name}`,
     );
@@ -2341,18 +2706,30 @@ export class Island3DEngine {
     const sunDir = this.dayNight?.getSunDirection();
     const tideH = getTideHeight(Date.now());
     const elapsed = this.timer.getElapsed();
+    this.oceanReflectionRig?.setWaterLevel(tideH);
+    this.underwaterPost?.setWaterLevel(tideH);
+
+    const size = this.renderer.getSize(this._oceanRes);
+    this._oceanRes.set(size.x * this.renderer.getPixelRatio(), size.y * this.renderer.getPixelRatio());
+
     if (isPirateLobbyOcean(this.waterPlane)) {
       updatePirateLobbyOcean(this.waterPlane, elapsed, sunDir, {
         tideHeight: tideH,
       });
+      const pmat = this.waterPlane.material as THREE.ShaderMaterial;
+      if (pmat?.uniforms?.uResolution) {
+        pmat.uniforms.uResolution.value.copy(this._oceanRes);
+      }
       this.creatures?.setWaterLevel?.(tideH);
-      return;
+    } else {
+      this.waterPlane.position.y = tideH;
+      const mat = this.waterPlane.material;
+      if (mat && 'uniforms' in mat) {
+        updateOceanMaterial(mat as THREE.ShaderMaterial, elapsed, sunDir, this._oceanRes);
+      }
     }
-    this.waterPlane.position.y = tideH;
-    const mat = this.waterPlane.material;
-    if (mat && 'uniforms' in mat) {
-      updateOceanMaterial(mat as THREE.ShaderMaterial, elapsed, sunDir);
-    }
+
+    this.underwaterPost?.update(this.scene, this.camera);
   }
 
   /** Update harvestable animations, tree fall, growth regrow, debris drops */
@@ -2366,14 +2743,22 @@ export class Island3DEngine {
         continue;
       }
 
-      if (tree.shaking && tree.fallPhase === 'live') {
+      if (
+        tree.shaking &&
+        (tree.fallPhase === 'live' || tree.fallPhase === 'notching')
+      ) {
         tree.shakeTime += dt;
         const shake = Math.sin(tree.shakeTime * 15) * Math.max(0, 0.1 - tree.shakeTime * 0.05);
-        tree.group.rotation.z = shake;
+        // Don't fully overwrite directional lean while notching
+        if (tree.fallPhase === 'live') {
+          tree.group.rotation.z = shake;
+        } else {
+          tree.group.rotation.y += shake * 0.15;
+        }
         if (tree.shakeTime > 2) {
           tree.shaking = false;
           tree.shakeTime = 0;
-          tree.group.rotation.z = 0;
+          if (tree.fallPhase === 'live') tree.group.rotation.z = 0;
         }
       }
 
@@ -2391,6 +2776,20 @@ export class Island3DEngine {
         resetHarvestableTree(tree, tree.baseScale);
       }
     }
+
+    // Firewood collectibles + pinata fragments
+    if (this.firewoodChop) {
+      const p = this.character?.model.position;
+      const wood = this.firewoodChop.update(dt, p);
+      if (wood > 0) {
+        this.config.onHarvest?.({
+          resourceType: 'forest',
+          position: p?.clone() ?? new THREE.Vector3(),
+          amount: wood,
+        } as any);
+      }
+    }
+    this.pinataHarvest?.update(dt);
 
     for (const rock of this.rocks) {
       if ((rock as any).growthPhase === 'growing') {
@@ -2457,7 +2856,187 @@ export class Island3DEngine {
     this.harvestDrops = updateHarvestDrops(this.harvestDrops, dt, this.scene);
   }
 
+  /** Ensure shared PvE boss chamber (home mountain door + Warlords doors). */
+  private ensurePveBossInstance(): void {
+    if (this.pveBossInstance || !this.scene) return;
+    this.pveBossInstance = new PveBossInstanceSystem({
+      scene: this.scene,
+      worldFx: this.worldFx,
+      cb: {
+        onEnter: (id, name, source) => {
+          console.info(`[Island3D] PvE instance enter ${id} (${source})`);
+          this.config.onDungeonEnter?.(id, name);
+        },
+        onExit: (id) => console.info(`[Island3D] PvE instance exit ${id}`),
+        onBossDeath: (bossId, dungeonId) => {
+          try {
+            window.dispatchEvent(
+              new CustomEvent('grudge:pve-boss-instance', {
+                detail: { type: 'death', bossId, dungeonId },
+              }),
+            );
+          } catch {
+            /* */
+          }
+        },
+        onPlayerHit: (hit) => this.applyBossHitToPlayer(hit),
+        onPrompt: (msg) => {
+          try {
+            window.dispatchEvent(
+              new CustomEvent('grudge:pve-boss-instance', {
+                detail: { type: 'prompt', prompt: msg },
+              }),
+            );
+          } catch {
+            /* */
+          }
+        },
+      },
+    });
+  }
+
+  /**
+   * Enter PIP-style PvE boss chamber from mountain / city / dungeon doorway.
+   */
+  enterPveBossFromDoorway(
+    dungeonId: string,
+    dungeonName: string,
+    source:
+      | 'evil_mountain_door'
+      | 'hidden_mountain_city_door'
+      | 'warlords_dungeon_portal'
+      | 'sector_boss_arena'
+      | 'home_island_mine',
+  ): boolean {
+    if (!this.character) return false;
+    this.ensurePveBossInstance();
+    return (
+      this.pveBossInstance?.enter(this.character.model.position, {
+        dungeonId,
+        dungeonName,
+        source,
+        bossId: `${dungeonId}_colossus`,
+      }) ?? false
+    );
+  }
+
+  /**
+   * Boss AoE / shockwave / stun → CharacterController physical knockback.
+   * Uses HitResponseSystem.resolveBossHitResponse for consistent feel.
+   */
+  private applyBossHitToPlayer(hit: LargeBossHitEvent): void {
+    if (!this.character) return;
+    if (this.character.invincible) return;
+
+    const origin = hit.origin ?? this.character.getPosition();
+    const target = hit.targetPos ?? this.character.getPosition();
+    const response = resolveBossHitResponse({
+      damage: hit.damage,
+      kind: hit.kind,
+      origin,
+      targetPos: target,
+      knockdown: hit.knockdown,
+      stunSec: hit.stunSec,
+      knockbackMps: hit.knockbackMps,
+      knockUpMps: hit.knockUpMps,
+    });
+
+    const delta = response.dir.clone().multiplyScalar(response.knockback);
+    delta.y = response.knockUp;
+    this.character.applyCombatHit(delta, response.stunSec, {
+      knockdown: hit.knockdown || response.knockUp >= 4,
+      anim: response.anim,
+    });
+
+    if (hit.damage > 0) {
+      this.config.physicsCallbacks?.onFallDamage?.(
+        Math.min(40, hit.damage * 0.08),
+      );
+      this.worldFx?.weaponSkillImpact?.(
+        target.clone().add(new THREE.Vector3(0, 1.1, 0)),
+        /electric/i.test(hit.kind) ? 'lightning' : 'fire',
+        response.impactScale,
+      );
+    }
+  }
+
+  /** Lazy-init pinata + firewood chop (home island / zones that have trees). */
+  private ensureFirewoodChop(): void {
+    if (this.firewoodChop) return;
+    if (!this.scene) return;
+    this.pinataHarvest = new PinataHarvestBreakSystem(this.scene, null);
+    this.firewoodChop = new FirewoodChopSystem({
+      scene: this.scene,
+      pinata: this.pinataHarvest,
+      cb: {
+        onPrompt: (msg) => {
+          try {
+            window.dispatchEvent(
+              new CustomEvent('grudge:firewood-chop', {
+                detail: { type: 'prompt', prompt: msg },
+              }),
+            );
+          } catch {
+            /* */
+          }
+        },
+        onFell: (tree, yaw) => {
+          try {
+            window.dispatchEvent(
+              new CustomEvent('grudge:firewood-chop', {
+                detail: {
+                  type: 'fell',
+                  nodeId: tree.nodeId,
+                  fallYaw: yaw,
+                },
+              }),
+            );
+          } catch {
+            /* */
+          }
+        },
+        onSegmentSplit: (tree, segment) => {
+          try {
+            window.dispatchEvent(
+              new CustomEvent('grudge:firewood-chop', {
+                detail: {
+                  type: 'segment',
+                  nodeId: tree.nodeId,
+                  segment,
+                },
+              }),
+            );
+          } catch {
+            /* */
+          }
+        },
+        onWoodCollected: (qty) => {
+          try {
+            window.dispatchEvent(
+              new CustomEvent('grudge:firewood-chop', {
+                detail: { type: 'collect', qty },
+              }),
+            );
+          } catch {
+            /* */
+          }
+        },
+      },
+    });
+  }
+
   private async completeTreeFall(tree: HarvestableTree): Promise<void> {
+    // Firewood path: keep fallen trunk for ground splitting (do not stump yet)
+    if (this.firewoodChop) {
+      this.firewoodChop.onFallComplete(tree);
+      this.treeFallCompleting.delete(tree);
+      // Small log chips on impact
+      const pos = tree.group.position.clone();
+      const drops = await spawnResourceDrops(this.scene, pos, 'log', 1);
+      this.harvestDrops.push(...drops);
+      return;
+    }
+    // Legacy: stump + log drops immediately
     const pos = tree.group.position.clone();
     const scale = tree.baseScale;
     await swapTreeToStump(tree, scale);
@@ -2526,6 +3105,27 @@ export class Island3DEngine {
       this.character.cameraFollowEnabled = true;
       if (this.lobbyShip) {
         this.lobbyShip.update(dt, this.character.getKeys(), this.character.getCameraYaw());
+        // Boat wake when sailing
+        if (this.boatWake && this.lobbyShip.isBoarded) {
+          const root = this.lobbyShip.dockGroup;
+          const pos = root.position;
+          let speed = 0;
+          if (this._shipHasPrev) {
+            speed =
+              Math.hypot(pos.x - this._shipPrevPos.x, pos.z - this._shipPrevPos.z) /
+              Math.max(dt, 1e-4);
+          }
+          this._shipPrevPos.copy(pos);
+          this._shipHasPrev = true;
+          const waterY =
+            (this.waterPlane?.userData?.waterLevel as number | undefined)
+            ?? this.waterPlane?.position.y
+            ?? 0;
+          this.boatWake.update(dt, this.lobbyShip.shipGroup, root.rotation.y, waterY, speed);
+        } else {
+          this._shipHasPrev = false;
+          this.boatWake?.clear();
+        }
       }
       this.character.update(dt);
       this.ensureSoftLockProvider();
@@ -2655,7 +3255,14 @@ export class Island3DEngine {
 
     this.etherealFloatIslands?.update(dt);
     this.eventIslands?.update(dt);
-    this.bossRooms?.update(dt);
+    this.bossRooms?.update(dt, this.character?.model.position);
+    this.pveBossInstance?.update(dt, this.character?.model.position);
+    // Arena / dungeon PIP bosses (open-zone boss_arena nodes)
+    this.arenaBosses?.forEach((b) => b.update(dt, this.character?.model.position));
+    if (this.volcanicClimb) {
+      const p = this.character?.model.position;
+      this.volcanicClimb.update(dt, p);
+    }
 
     if (this.harvestZones && !this.lobbyPlayZone) {
       this.harvestZones.update(dt, this.camera.position);
@@ -2669,6 +3276,16 @@ export class Island3DEngine {
 
     // External update hooks (RemotePlayerManager, TownNPCController, etc.)
     for (const fn of this.externalUpdates) fn(dt);
+
+    // Ocean dual-pass RTs (hide ocean, render reflect/refract) then main frame
+    if (this.oceanReflectionRig && this.waterPlane) {
+      this.oceanReflectionRig.update(
+        this.renderer,
+        this.scene,
+        this.camera,
+        this.waterPlane,
+      );
+    }
 
     // Render via post-processing pipeline (or raw fallback)
     if (this.postProcessing) {
@@ -2694,6 +3311,10 @@ export class Island3DEngine {
 
   /** Press E/F near interactables — mine, dungeon portal, capture point, ship dock, or learn recipe. */
   handleInteractKey(): boolean {
+    // Inside PvE boss chamber: E near blue ring exits
+    if (this.pveBossInstance?.isInside && this.character) {
+      if (this.pveBossInstance.tryExit(this.character.model.position)) return true;
+    }
     if (this.mineSystem?.tryInteract()) return true;
     if (this.mountainTriad?.tryInteract()) return true;
     if (this.fabledFoundation?.tryInteract()) return true;
@@ -2766,6 +3387,7 @@ export class Island3DEngine {
 
   /** Is the dungeon portal prompting interaction? */
   get dungeonPortalActive(): boolean {
+    if (this.pveBossInstance?.isInside) return true;
     if (
       (this.mountainTriad?.canInteract ?? false) ||
       (this.fabledFoundation?.canInteract ?? false) ||
@@ -2779,6 +3401,20 @@ export class Island3DEngine {
       return Boolean(prompt && prompt.includes('Press E'));
     }
     return false;
+  }
+
+  /** True while player is inside mountain / Warlords PvE boss chamber */
+  get inPveBossInstance(): boolean {
+    return !!this.pveBossInstance?.isInside;
+  }
+
+  get pveBossInstancePrompt(): string | null {
+    if (!this.pveBossInstance?.isInside) return null;
+    const boss = this.pveBossInstance.largeBoss;
+    if (boss?.isAlive) {
+      return `Colossus · ${Math.round(boss.hpRatio * 100)}% — dodge telegraphs · E at blue ring to flee`;
+    }
+    return 'Boss fallen — Press E at blue ring to leave';
   }
 
   /** HUD hint for the evil mountain triad (approach / discovered / interact). */
@@ -3482,6 +4118,29 @@ export class Island3DEngine {
 
     this.raycaster.setFromCamera(this.mouse, this.camera);
 
+    // Combat: large boss (room + PvE mountain instance + arena) hit first
+    if (this.character?.mode === 'combat') {
+      const hitDmgBoss = 45;
+      const hitsBoss = this.raycaster.intersectObjects(
+        [
+          ...(this.bossRooms?.largeBoss ? [this.bossRooms.largeBoss.root] : []),
+          ...(this.pveBossInstance?.largeBoss
+            ? [this.pveBossInstance.largeBoss.root]
+            : []),
+          ...this.arenaBosses.map((b) => b.root),
+        ],
+        true,
+      );
+      if (hitsBoss.length > 0) {
+        const pt = hitsBoss[0]!.point;
+        if (this.bossRooms?.tryHitBoss(pt, hitDmgBoss)) return;
+        if (this.pveBossInstance?.tryHitBoss(pt, hitDmgBoss)) return;
+        for (const b of this.arenaBosses) {
+          if (b.tryHitWeakness(pt, hitDmgBoss)) return;
+        }
+      }
+    }
+
     // In combat mode, prefer soft-lock target then nearest creature
     if (this.character?.mode === 'combat' && this.creatures) {
       const playerPos = this.character.getPosition();
@@ -3523,11 +4182,50 @@ export class Island3DEngine {
       }
     }
 
-    // Check tree hits (only mature / harvestable)
+    // Tree hits — firewood axe (base angle notch → fall → ground split)
+    // or legacy HP spam when firewood system unavailable
+    this.ensureFirewoodChop();
     for (const tree of this.trees) {
-      if (tree.fallPhase !== 'live' || !isHarvestable(tree as any)) continue;
+      const phase = tree.fallPhase;
+      const standing =
+        (phase === 'live' || phase === 'notching') && isHarvestable(tree as any);
+      const downed = phase === 'downed' || phase === 'splitting';
+      if (!standing && !downed) continue;
+
       const hits = this.raycaster.intersectObject(tree.group, true);
-      if (hits.length > 0) {
+      if (hits.length === 0) continue;
+
+      const impact = hits[0]!.point;
+      const playerPos =
+        this.character?.model.position ?? this.camera.position;
+
+      if (this.firewoodChop && standing) {
+        this.firewoodChop.strikeStanding(tree, impact, playerPos);
+        if (tree.fallPhase === 'falling') {
+          markDepleted(tree as any, 'tree', false);
+        }
+        return;
+      }
+      if (this.firewoodChop && downed) {
+        const facing =
+          this.character?.model.rotation.y ??
+          this.camera.rotation.y ??
+          0;
+        this.firewoodChop.strikeDowned(tree, impact, facing);
+        if (tree.fallPhase === 'stump') {
+          void swapTreeToStump(tree, tree.baseScale);
+          tree.respawnAt = Date.now() + (HARVEST_RESPAWN_MS || 150_000);
+          this.config.onHarvest?.({
+            nodeId: tree.nodeId,
+            resourceType: 'forest',
+            position: tree.group.position.clone(),
+          });
+        }
+        return;
+      }
+
+      // Legacy fallback (no firewood)
+      if (standing) {
         tree.health--;
         tree.shaking = true;
         tree.shakeTime = 0;
@@ -3535,8 +4233,8 @@ export class Island3DEngine {
           beginTreeFall(tree);
           markDepleted(tree as any, 'tree', false);
         }
-        return;
       }
+      return;
     }
 
     // Check rock hits
@@ -3919,6 +4617,18 @@ export class Island3DEngine {
 
   /** Cleanup — alias for destroy() (pages call dispose()) */
   dispose(): void {
+    this.oceanReflectionRig?.dispose();
+    this.oceanReflectionRig = null;
+    this.underwaterPost?.dispose();
+    this.underwaterPost = null;
+    this.boatWake?.dispose();
+    this.boatWake = null;
+    if (this.oceanProcTextures) {
+      this.oceanProcTextures.foam.dispose();
+      this.oceanProcTextures.caustics.dispose();
+      this.oceanProcTextures.normal.dispose();
+      this.oceanProcTextures = null;
+    }
     this.destroy();
   }
 
@@ -3969,6 +4679,12 @@ export class Island3DEngine {
     this.bossRooms = null;
     this.icelandScene?.dispose();
     this.icelandScene = null;
+    this.volcanicClimb?.dispose();
+    this.volcanicClimb = null;
+    this.arenaBosses.forEach((b) => b.dispose());
+    this.arenaBosses = [];
+    this.pveBossInstance?.dispose();
+    this.pveBossInstance = null;
     if (this._bossPortalKey) {
       window.removeEventListener('keydown', this._bossPortalKey);
       this._bossPortalKey = null;

@@ -9,6 +9,12 @@
  */
 import * as THREE from 'three';
 import { getTerrainHeightAt, getSceneHeightAt } from '../terrain/IslandTerrainGenerator';
+import {
+  createJumpState,
+  stepPlatformerJump,
+  type PlatformerJumpConfig,
+  type PlatformerJumpState,
+} from '../physics/PlatformerJump';
 import { AnimationManager, type AnimState } from './AnimationManager';
 import { loadCharacterModel, type LoadedModel } from '@/lib/modelLoader';
 import {
@@ -216,6 +222,21 @@ export class CharacterController3D {
   private spaceHoldTime = 0;
   private climbAttachLatch = false;
   private wallMoveDir = new THREE.Vector3();
+  /**
+   * Random-boxes FLY_JUMP (hold Space for variable height).
+   * Opt-in via setPlatformerJump — Ethereal Falls, airship, volcanic climb.
+   */
+  private platformerJumpEnabled = false;
+  private platformerJumpConfig: PlatformerJumpConfig | null = null;
+  private platformerJumpState: PlatformerJumpState = createJumpState();
+  private spaceWasHeld = false;
+  /**
+   * Combat hit: horizontal knockback (m/s) + stun lockout.
+   * Boss AoE / shockwave / skills apply via applyCombatHit().
+   */
+  private knockVel = new THREE.Vector3();
+  private stunTimer = 0;
+  private hitReactTimer = 0;
   /**
    * Editor-style free locomotion: WASD relative to camera, mouse look (RMB).
    * Auto-enabled in build mode (Dune / Conan placement feel).
@@ -1475,6 +1496,11 @@ export class CharacterController3D {
       this.beginHolsterWeapons('swim_to_edge', false);
     }
 
+    // ── Stun / hit-react timers ──────────────────────────────────────────────
+    if (this.stunTimer > 0) this.stunTimer = Math.max(0, this.stunTimer - dt);
+    if (this.hitReactTimer > 0) this.hitReactTimer = Math.max(0, this.hitReactTimer - dt);
+    const stunned = this.stunTimer > 0;
+
     // ── Horizontal movement ──────────────────────────────────────────────────
     // Climbing uses wall-aligned move in updateClimbLocomotion — skip ground WASD.
     this.direction.set(0, 0, 0);
@@ -1484,6 +1510,14 @@ export class CharacterController3D {
       // Wall move already applied; keep velocity for anim flags
       moving = this.wallMoveDir.lengthSq() > 0.01;
       this.velocity.set(0, 0, 0);
+      // Knockback can still detach from wall
+      if (this.knockVel.lengthSq() > 0.5) {
+        this.detachFromClimb('lost_contact');
+      }
+    } else if (stunned) {
+      // Stun: no WASD, only knockback + gravity
+      this.velocity.set(0, 0, 0);
+      moving = false;
     } else {
       // Build / freeMove: WASD strafe relative to camera (editor free movement).
       // Default combat/harvest: W/S walk, E strafe right, A/D turn camera.
@@ -1556,6 +1590,17 @@ export class CharacterController3D {
       }
     }
 
+    // Apply residual knockback (boss AoE / skills) — physical push in XZ
+    if (this.knockVel.lengthSq() > 1e-4) {
+      this.model.position.x += this.knockVel.x * dt;
+      this.model.position.z += this.knockVel.z * dt;
+      // Exponential decay (~0.2s half-life feel)
+      const damp = Math.exp(-dt * 5.5);
+      this.knockVel.x *= damp;
+      this.knockVel.z *= damp;
+      if (this.knockVel.lengthSq() < 0.05) this.knockVel.set(0, 0, 0);
+    }
+
     // ── Vertical physics ─────────────────────────────────────────────────────
     const groundHeight = this.sampleGroundHeight(this.model.position.x, this.model.position.z);
     const feetY = this.model.position.y;
@@ -1605,61 +1650,97 @@ export class CharacterController3D {
 
       // ── Ground / Air physics ───────────────────────────────────────────
       const distToGround = groundHeight !== null ? feetY - groundHeight : 999;
+      const jumpHeld = this.keys.has(' ') && !climbHit && !stunned;
+      const jumpPressed = jumpHeld && !this.spaceWasHeld;
 
-      if (distToGround <= 0.2 && this.verticalVelocity <= 0) {
-        if (!this.isGrounded) {
-          const fallSpeed = Math.abs(this.verticalVelocity);
-          if (fallSpeed > this.physics.fallDamageThreshold) {
-            const damage = (fallSpeed - this.physics.fallDamageThreshold) * this.physics.fallDamageScale;
-            if (!this.invincible) {
-              this.callbacks.onFallDamage?.(damage);
-            }
-            if (this.animations) {
-              if (this.tutorialInjuredMode && this.animations.hasClip('impact')) {
-                this.animations.play('impact', { loop: false });
-              } else {
-                this.animations.play('hard_landing', { loop: false });
+      if (this.platformerJumpEnabled && this.platformerJumpConfig && !stunned) {
+        // Random-boxes FLY_JUMP — hold Space for variable height (do not consume key)
+        const prevVy = this.verticalVelocity;
+        const result = stepPlatformerJump({
+          dt,
+          y: feetY,
+          groundY: groundHeight,
+          jumpHeld,
+          jumpPressed,
+          config: this.platformerJumpConfig,
+          state: this.platformerJumpState,
+        });
+        this.platformerJumpState = result.state;
+        this.verticalVelocity = result.state.velocityY;
+        this.model.position.y = result.y;
+        this.isGrounded = result.state.grounded;
+        if (result.state.grounded) this.jumpCount = 0;
+        else this.jumpCount = Math.max(this.jumpCount, 1);
+
+        if (result.movement === 'ground') this.setMovementState('ground');
+        else if (result.movement === 'jumping') this.setMovementState('jumping');
+        else this.setMovementState('falling');
+
+        // Fall damage on land transition
+        if (result.state.grounded && prevVy < -this.physics.fallDamageThreshold) {
+          const fallSpeed = Math.abs(prevVy);
+          const damage =
+            (fallSpeed - this.physics.fallDamageThreshold) * this.physics.fallDamageScale;
+          if (!this.invincible) this.callbacks.onFallDamage?.(damage);
+        }
+      } else {
+        if (distToGround <= 0.2 && this.verticalVelocity <= 0) {
+          if (!this.isGrounded) {
+            const fallSpeed = Math.abs(this.verticalVelocity);
+            if (fallSpeed > this.physics.fallDamageThreshold) {
+              const damage =
+                (fallSpeed - this.physics.fallDamageThreshold) * this.physics.fallDamageScale;
+              if (!this.invincible) {
+                this.callbacks.onFallDamage?.(damage);
               }
-              this.oneShotTimer = 0.8;
-            }
-          } else if (fallSpeed > 8) {
-            if (this.animations && !this.tutorialInjuredMode) {
-              this.animations.play('fall_roll', { loop: false });
-              this.oneShotTimer = 0.6;
+              if (this.animations) {
+                if (this.tutorialInjuredMode && this.animations.hasClip('impact')) {
+                  this.animations.play('impact', { loop: false });
+                } else {
+                  this.animations.play('hard_landing', { loop: false });
+                }
+                this.oneShotTimer = 0.8;
+              }
+            } else if (fallSpeed > 8) {
+              if (this.animations && !this.tutorialInjuredMode) {
+                this.animations.play('fall_roll', { loop: false });
+                this.oneShotTimer = 0.6;
+              }
             }
           }
-        }
-        this.isGrounded = true;
-        this.jumpCount = 0;
-        this.verticalVelocity = 0;
-        if (groundHeight !== null) {
-          this.model.position.y = groundHeight;
-        }
-        this.setMovementState('ground');
-      } else {
-        this.isGrounded = false;
-        this.verticalVelocity += this.physics.gravity * dt;
-        this.setMovementState(this.verticalVelocity > 0 ? 'jumping' : 'falling');
-      }
-
-      // ── Jump input (Space) — disabled when holding Space for climb attach ─
-      if (this.keys.has(' ') && !climbHit) {
-        const maxJumps = this.physics.doubleJump ? 2 : 1;
-        if (this.jumpCount < maxJumps && (this.isGrounded || this.jumpCount > 0)) {
-          this.verticalVelocity = this.physics.jumpForce;
+          this.isGrounded = true;
+          this.jumpCount = 0;
+          this.verticalVelocity = 0;
+          if (groundHeight !== null) {
+            this.model.position.y = groundHeight;
+          }
+          this.setMovementState('ground');
+        } else {
           this.isGrounded = false;
-          this.jumpCount++;
-          this.setMovementState('jumping');
+          this.verticalVelocity += this.physics.gravity * dt;
+          this.setMovementState(this.verticalVelocity > 0 ? 'jumping' : 'falling');
         }
-        // Consume key so holding space doesn't re-trigger jump
-        this.keys.delete(' ');
-      } else if (this.keys.has(' ') && climbHit && this.spaceHoldTime < CLIMB_RULES.attachHoldSec) {
-        // Holding for climb — do not jump
+
+        // ── Jump input (Space) — disabled when stunned or climb-hold ─
+        if (this.keys.has(' ') && !climbHit && !stunned) {
+          const maxJumps = this.physics.doubleJump ? 2 : 1;
+          if (this.jumpCount < maxJumps && (this.isGrounded || this.jumpCount > 0)) {
+            this.verticalVelocity = this.physics.jumpForce;
+            this.isGrounded = false;
+            this.jumpCount++;
+            this.setMovementState('jumping');
+          }
+          // Consume key so holding space doesn't re-trigger jump
+          this.keys.delete(' ');
+        } else if (this.keys.has(' ') && climbHit && this.spaceHoldTime < CLIMB_RULES.attachHoldSec) {
+          // Holding for climb — do not jump
+        }
       }
+      this.spaceWasHeld = this.keys.has(' ');
     }
 
-    // Apply vertical velocity (climb path applies its own)
-    if (this.movementState !== 'climbing') {
+    // Apply vertical velocity (climb path applies its own; platformer jump already integrated y)
+    if (this.movementState !== 'climbing' && !this.platformerJumpEnabled) {
       this.model.position.y += this.verticalVelocity * dt;
     }
 
@@ -2113,12 +2194,112 @@ export class CharacterController3D {
       if (h !== null) return h;
     }
     if (this.groundObject) {
-      return getSceneHeightAt(this.groundObject, x, z);
+      // High maxY so volcanic climb shelves above 400 m still ray-hit
+      return getSceneHeightAt(this.groundObject, x, z, 2800);
     }
     return getTerrainHeightAt(this.terrainMesh, x, z);
   }
 
   // ─── Public API ────────────────────────────────────────────────────────────
+
+  /**
+   * Enable random-boxes hold-to-jump (FLY_JUMP). Pass config from PlatformerJump presets.
+   * When enabled, Space is held for variable height instead of one-shot impulse.
+   */
+  setPlatformerJump(enabled: boolean, config?: PlatformerJumpConfig): void {
+    this.platformerJumpEnabled = enabled;
+    this.platformerJumpConfig = enabled ? (config ?? null) : null;
+    this.platformerJumpState = createJumpState();
+    this.spaceWasHeld = false;
+  }
+
+  isPlatformerJumpEnabled(): boolean {
+    return this.platformerJumpEnabled;
+  }
+
+  /**
+   * Apply boss / skill combat hit: horizontal knockback, optional knock-up, stun lockout.
+   * `deltaVel` is m/s (X/Z push + Y launch). Stun blocks WASD for `stunSec`.
+   * Invincible / tutorial lockout skips application.
+   */
+  applyCombatHit(
+    deltaVel: THREE.Vector3,
+    stunSec = 0.3,
+    opts?: { knockdown?: boolean; anim?: string },
+  ): void {
+    if (this.invincible || this.cinematicLock) return;
+
+    this.knockVel.x += deltaVel.x;
+    this.knockVel.z += deltaVel.z;
+    // Cap horizontal knock so multi-hits don't launch to orbit
+    const h = Math.hypot(this.knockVel.x, this.knockVel.z);
+    if (h > 22) {
+      this.knockVel.x = (this.knockVel.x / h) * 22;
+      this.knockVel.z = (this.knockVel.z / h) * 22;
+    }
+
+    if (deltaVel.y > 0) {
+      this.verticalVelocity = Math.max(this.verticalVelocity, deltaVel.y);
+      this.isGrounded = false;
+      this.setMovementState('jumping');
+    }
+
+    this.stunTimer = Math.max(this.stunTimer, stunSec);
+    this.hitReactTimer = Math.max(this.hitReactTimer, Math.min(0.9, stunSec + 0.15));
+
+    // Hit-react one-shot when anim pack has it
+    if (this.animations && this.hitReactTimer > 0) {
+      const key =
+        opts?.anim === 'stun_loop'
+          ? 'hit_reaction'
+          : opts?.knockdown || deltaVel.y > 3
+            ? 'hard_landing'
+            : 'hit_reaction';
+      if (this.animations.hasClip?.(key)) {
+        this.animations.play(key, { loop: false });
+        this.oneShotTimer = Math.min(0.85, stunSec + 0.2);
+      } else if (this.animations.hasClip?.('impact')) {
+        this.animations.play('impact', { loop: false });
+        this.oneShotTimer = 0.5;
+      }
+    }
+  }
+
+  /** Convenience: radial knock from a world origin (boss AoE). */
+  applyRadialKnock(
+    origin: THREE.Vector3,
+    knockbackMps: number,
+    knockUpMps: number,
+    stunSec: number,
+    opts?: { knockdown?: boolean },
+  ): void {
+    const dx = this.model.position.x - origin.x;
+    const dz = this.model.position.z - origin.z;
+    let len = Math.hypot(dx, dz);
+    if (len < 1e-4) {
+      // Dead center — pick camera-away
+      const yaw = this.cameraYaw;
+      this.applyCombatHit(
+        new THREE.Vector3(Math.sin(yaw) * knockbackMps, knockUpMps, Math.cos(yaw) * knockbackMps),
+        stunSec,
+        opts,
+      );
+      return;
+    }
+    this.applyCombatHit(
+      new THREE.Vector3((dx / len) * knockbackMps, knockUpMps, (dz / len) * knockbackMps),
+      stunSec,
+      opts,
+    );
+  }
+
+  isStunned(): boolean {
+    return this.stunTimer > 0;
+  }
+
+  get stunRemaining(): number {
+    return this.stunTimer;
+  }
 
   getPosition(): THREE.Vector3 {
     return this.model.position.clone();

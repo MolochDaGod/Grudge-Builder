@@ -251,3 +251,174 @@
 .uikit-pack-layer .ggui-comp {
   pointer-events: none !important;
 }
+
+/* Craftpix unit-frame bar fills (optional texture via CSS vars) */
+.uikit-bar--hp > i {
+  background-image: var(--uikit-hp-fill, none);
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+}
+.uikit-bar--mp > i {
+  background-image: var(--uikit-mp-fill, none);
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+}
+
+/* ── Settings panel (Game Menu craftpix) ───────────────────────── */
+.uikit-settings-root {
+  position: absolute;
+  inset: 0;
+  z-index: 80;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: Cinzel, "Segoe UI", system-ui, sans-serif;
+  color: var(--uikit-ink, #f4e6c8);
+}
+.uikit-settings-backdrop {
+  position: absolute;
+  inset: 0;
+  border: none;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(3px);
+  cursor: pointer;
+}
+.uikit-settings-panel {
+  position: relative;
+  z-index: 1;
+  width: min(420px, 92vw);
+  padding: 16px 18px 18px;
+  background-image: var(--uikit-panel-bg), var(--uikit-window-bg);
+  background-size: 100% 100%;
+  background-color: rgba(14, 10, 6, 0.94);
+  border: 1px solid rgba(200, 150, 40, 0.45);
+  border-radius: 10px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.65);
+}
+.uikit-settings-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(200, 150, 40, 0.3);
+}
+.uikit-settings-header h2 {
+  margin: 0;
+  flex: 1;
+  font-size: 1.05rem;
+  letter-spacing: 0.06em;
+  color: var(--uikit-gold, #e8c46a);
+}
+.uikit-settings-icon {
+  image-rendering: pixelated;
+  filter: drop-shadow(0 1px 2px #000);
+}
+.uikit-settings-close {
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(200, 150, 40, 0.4);
+  color: var(--uikit-ink, #f4e6c8);
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+}
+.uikit-settings-close:hover {
+  background: rgba(180, 60, 40, 0.5);
+}
+.uikit-settings-section h3 {
+  margin: 0 0 8px;
+  font-size: 0.7rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--uikit-gold, #e8c46a);
+  opacity: 0.9;
+}
+.uikit-settings-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+  font-size: 0.85rem;
+}
+.uikit-settings-pills {
+  display: flex;
+  gap: 4px;
+}
+.uikit-pill {
+  border: 1px solid rgba(200, 150, 40, 0.35);
+  background: rgba(0, 0, 0, 0.45);
+  color: rgba(244, 230, 200, 0.75);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 5px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-family: inherit;
+}
+.uikit-pill.is-active,
+.uikit-pill:hover {
+  border-color: var(--uikit-gold, #e8c46a);
+  color: #111;
+  background: linear-gradient(180deg, #e8c46a, #b8892a);
+  font-weight: 700;
+}
+.uikit-toggle {
+  width: 52px;
+  height: 28px;
+  border: none;
+  border-radius: 14px;
+  background: rgba(0, 0, 0, 0.5);
+  background-image: var(--uikit-toggle-bg);
+  background-size: 100% 100%;
+  position: relative;
+  cursor: pointer;
+  padding: 0;
+}
+.uikit-toggle > i {
+  position: absolute;
+  top: 3px;
+  left: 4px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #c4b48a;
+  transition: left 0.15s ease;
+  box-shadow: 0 1px 3px #000;
+}
+.uikit-toggle.is-on > i {
+  left: 26px;
+  background: #6dce5a;
+}
+.uikit-settings-hint {
+  margin: 12px 0 0;
+  font-size: 0.65rem;
+  line-height: 1.4;
+  color: rgba(244, 230, 200, 0.45);
+  font-family: "Segoe UI", system-ui, sans-serif;
+}
+.uikit-dock-settings {
+  width: 40px;
+  height: 40px;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  background: transparent;
+  background-image: var(--uikit-btn-bg);
+  background-size: 100% 100%;
+  display: grid;
+  place-items: center;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.6));
+}
+.uikit-dock-settings:hover {
+  background-image: var(--uikit-btn-hover), var(--uikit-btn-bg);
+  filter: brightness(1.15) drop-shadow(0 2px 6px rgba(0, 0, 0, 0.7));
+}
+.uikit-dock-settings img {
+  width: 22px;
+  height: 22px;
+  image-rendering: pixelated;
+}

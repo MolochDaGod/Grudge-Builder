@@ -62,6 +62,7 @@ import LauncherPage from "@/pages/launcher";
 import RtsGrudgePage from "@/pages/rts-grudge";
 const TowerWarsPage = lazy(() => import("@/pages/tower-wars")); // legacy, keep route
 import HarvestPage from "@/pages/Harvest";
+import AirshipZonePage from "@/pages/AirshipZonePage";
 import HeroCodexPage from "@/pages/hero-codex";
 import CraftingPage from "@/pages/crafting";
 import Island3DPage from "@/pages/island-3d";
@@ -127,7 +128,7 @@ function Router() {
       <Route path="/home" component={HomePage} />
       <Route path="/main-panel" component={MainPanelPage} />
       <Route path="/equipment" component={MainPanelPage} />
-      {/* /character create → GCS; /characters|/heroes → 4-slot seaside roster (no airship painting) */}
+      {/* /character create → GCS; /heroes roster; /home → /airship; /airship = era select */}
       <Route path="/character" component={CharacterRedirect} />
       <Route path="/characters" component={HeroesPage} />
       <Route path="/create-character" component={CreateCharacterRedirect} />
@@ -180,11 +181,16 @@ function Router() {
       <Route path="/ocean" component={OceanPage} />
       <Route path="/tower-wars">{() => <Suspense fallback={null}><TowerWarsPage /></Suspense>}</Route>
       <Route path="/harvest" component={HarvestPage} />
+      {/* Airship solo opener zone (merged PR #44) */}
+      <Route path="/airship-zone" component={AirshipZonePage} />
+      {/* Foundry / era handoff bridge → home-island when no solo zone query */}
+      <Route path="/airship" component={AirshipHandoffPage} />
+      <Route path="/airship-handoff" component={AirshipHandoffPage} />
       <Route path="/hero-codex" component={HeroCodexPage} />
       <Route path="/crafting" component={CraftingPage} />
       <Route path="/crafting-suite" component={CraftingPage} />
       <Route path="/island-3d" component={Island3DPage} />
-      {/* Full-systems leviathan cinema — replaces purged shipwreck-cinema-preview.html */}
+      {/* Full-systems leviathan cinema v10 film */}
       <Route path="/shipwreck-cinema" component={ShipwreckCinemaPage} />
       <Route path="/leviathan-cinema" component={ShipwreckCinemaPage} />
       <Route path="/war-scene" component={WarScenePage} />
@@ -200,18 +206,15 @@ function Router() {
       <Route path="/game/world" component={PlayPage} />
       <Route path="/world">{() => <Suspense fallback={null}><WorldNativePage /></Suspense>}</Route>
       <Route path="/cloudfix">{() => <Suspense fallback={null}><WorldNativePage /></Suspense>}</Route>
-      <Route path="/warlords">{() => <Suspense fallback={null}><WorldNativePage /></Suspense>}</Route>
-      <Route path="/tutorial" component={TutorialPage} />
-      <Route path="/warlords/start" component={WarlordsStartPage} />
+      {/* /warlords = production flow router (was dead: WorldNativePage claimed bare /warlords first) */}
       <Route path="/warlords" component={WarlordsStartPage} />
+      <Route path="/warlords/start" component={WarlordsStartPage} />
+      <Route path="/tutorial" component={TutorialPage} />
       <Route path="/island-reveal" component={IslandRevealPage} />
       <Route path="/islands" component={IslandsPage} />
       <Route path="/home-island" component={HomeIslandPage} />
       <Route path="/homeisland" component={HomeIslandEntryPage} />
       <Route path="/homeIsland" component={HomeIslandEntryPage} />
-      {/* Foundry default post-create dest — bridge to home-island until full airship ships */}
-      <Route path="/airship" component={AirshipHandoffPage} />
-      <Route path="/airship-zone" component={AirshipHandoffPage} />
       <Route path="/weapon-admin" component={WeaponModelAdminPage} />
       <Route path="/weapon-skills" component={WeaponSkillsPage} />
       <Route path="/weapon-mastery" component={WeaponMasteryPage} />

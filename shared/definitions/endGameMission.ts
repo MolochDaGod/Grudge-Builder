@@ -1,16 +1,17 @@
 /**
- * End Game mission — level 20 faction captain → abandon-ship cinematic → home island.
+ * End Game mission — OPTIONAL lore cinematic (no longer unlocks home island).
  *
- * Flow:
- *   1. Hero reaches level ≥ WARLORDS_HOME_ISLAND_MIN_LEVEL (20)
- *   2. Talk to race captain (mounted) on faction lobby island
- *   3. Accept mission "End Game"
- *   4. Play abandon-ship intro (cannon fire · ship sinks · crew jumps · no throw)
- *   5. Spawn / reveal home island on production host
+ * Happy path (2026-07): home island is available immediately after first character.
+ * This mission may still play abandon-ship as flavor when accepted from a captain.
+ *
+ * Flow (optional):
+ *   1. Talk to race captain on faction island
+ *   2. Accept mission "End Game"
+ *   3. Optional abandon-ship intro
+ *   4. Continue on /home-island (already unlocked)
  *
  * Production home island URL:
- *   https://client.grudge-studio.com/homeisland
- *   (alias of /home-island after cinematic)
+ *   https://client.grudge-studio.com/home-island
  */
 
 import { WARLORDS_HOME_ISLAND_MIN_LEVEL } from './warlordsProductionFlow';
@@ -84,20 +85,20 @@ export const END_GAME_MISSION: EndGameMissionDef = {
   giverDialogueSetId: 'end_game_captain',
   introVariant: 'abandon_ship_home_island',
   destinations: {
-    homeIslandPath: '/homeisland',
-    homeIslandUrl: 'https://client.grudge-studio.com/homeisland',
+    homeIslandPath: '/home-island',
+    homeIslandUrl: 'https://client.grudge-studio.com/home-island',
     islandRevealPath: '/island-reveal?from=end-game',
   },
   steps: [
     {
       id: 'talk_captain',
       title: 'Speak with your faction captain',
-      detail: 'Find the mounted captain on your race faction island (lobby borders).',
+      detail: 'Optional flavor — find the mounted captain on a faction island.',
     },
     {
       id: 'accept_end_game',
       title: 'Accept “End Game”',
-      detail: 'The captain offers the abandon-ship mission.',
+      detail: 'Optional abandon-ship cinematic (does not unlock home island).',
     },
     {
       id: 'abandon_ship_cinematic',
@@ -105,14 +106,13 @@ export const END_GAME_MISSION: EndGameMissionDef = {
       detail: 'Cannon fire · hull sinks · all models jump free (no overboard throw).',
     },
     {
-      id: 'claim_home_island',
-      title: 'Claim home island',
-      detail: 'Wash up and spawn your personal 1024m home island.',
+      id: 'return_home_island',
+      title: 'Return to home island',
+      detail: 'Continue on your personal home island (already available after first character).',
     },
   ],
   rewards: [
-    { kind: 'unlock', id: 'home_island', note: 'Personal home-block island' },
-    { kind: 'title', id: 'island_founder', note: 'End Game survivor' },
+    { kind: 'title', id: 'island_founder', note: 'End Game survivor (flavor)' },
   ],
 };
 
@@ -151,7 +151,7 @@ export function endGameCinematicUrl(opts?: {
 
 export function endGameAfterCinematicPath(hasIsland: boolean, characterId?: string): string {
   const base = hasIsland
-    ? `/home-island?unlock=1&from=end-game`
+    ? `/home-island?from=end-game`
     : END_GAME_MISSION.destinations.islandRevealPath;
   if (!characterId) return base;
   const sep = base.includes('?') ? '&' : '?';

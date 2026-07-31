@@ -96,7 +96,8 @@ export const TOOL_ACTIONS: Record<HarvestToolType, HarvestAction[]> = {
       cooldown: 0.35,
       staminaCost: 2,
       harvestMult: 1.4,
-      description: 'LMB — fell trees and gather wood / driftwood faster (hatchet).',
+      description:
+        'LMB — notch tree base at one angle (firewood/Valheim), fell, then split the log on the ground; walk to collect pinata wood.',
     },
   ],
   skinning_knife: [

@@ -1,5 +1,9 @@
 /**
- * PirateLobbyOcean — TI / Tethical-quality water for the pirate open-world lobby.
+ * PirateLobbyOcean — TI-quality **ocean** for pirate open-world lobby.
+ *
+ * Naming: ocean ≡ open water ≡ sea (same free surface as WaterMaterial).
+ * mesh.name = 'pirate-lobby-ocean', userData.isPirateLobbyOcean = true.
+ * waterLevel in config = free-surface Y (oceanSurfaceY).
  *
  * Lessons from Tactical Infinity islands-and-terrain + toonWaterShader:
  *   - Depth bands: shore (calm under piers/decks) → shallow → mid → deep → falloff
@@ -7,8 +11,8 @@
  *   - Shore foam ring + crest foam only in open water
  *   - Beer-style color extinction shallow→deep without flattening normals
  *
- * Uses Gerstner geometry (same family as sailing DynamicOcean) with island-aware
- * fragment shading. Single ocean mesh per scene.
+ * Gerstner geometry (same family as sailing DynamicOcean) + island-aware fragment.
+ * Single ocean mesh per scene — not a second "sea" system.
  */
 import * as THREE from 'three';
 
@@ -124,6 +128,14 @@ const fragmentShader = /* glsl */ `
   uniform vec3 uSunDirection;
   uniform float uOceanFloorLevel;
   uniform float uWaterLevel;
+  // Optional dual-pass maps (OceanReflectionRig)
+  uniform sampler2D uReflectionMap;
+  uniform sampler2D uRefractionMap;
+  uniform float uHasReflection;
+  uniform float uHasRefraction;
+  uniform float uReflectivity;
+  uniform float uDistort;
+  uniform vec2 uResolution;
 
   varying vec3 vWorldPos;
   varying vec3 vNormalW;
@@ -188,15 +200,31 @@ const fragmentShader = /* glsl */ `
     float totalFoam = clamp(shoreFoam + crest, 0.0, 1.0);
     col = mix(col, uColorFoam, totalFoam * 0.85);
 
-    // Specular + fresnel
+    // Specular + fresnel (+ real reflection when RT bound)
     vec3 H = normalize(sun + viewDir);
     float NdH = max(dot(N, H), 0.0);
     float spec = pow(NdH, 80.0) * 0.55 * t;
     col += uColorCrest * spec;
 
-    float fresnel = pow(1.0 - max(dot(N, viewDir), 0.0), 3.5) * 0.32;
-    vec3 skyCol = vec3(0.48, 0.66, 0.85);
-    col = mix(col, skyCol, fresnel * mix(0.4, 1.0, t));
+    float fresnel = pow(1.0 - max(dot(N, viewDir), 0.0), 3.5);
+    vec2 res = max(uResolution, vec2(1.0));
+    vec2 screenUv = gl_FragCoord.xy / res;
+    vec2 distort = N.xz * uDistort * 0.035;
+    if (uHasReflection > 0.5) {
+      vec2 rUv = clamp(vec2(screenUv.x + distort.x, 1.0 - screenUv.y + distort.y), 0.001, 0.999);
+      vec3 refl = texture2D(uReflectionMap, rUv).rgb;
+      float fr = clamp(fresnel * uReflectivity, 0.08, 0.9);
+      col = mix(col, refl, fr * mix(0.35, 0.85, t));
+    } else {
+      vec3 skyCol = vec3(0.48, 0.66, 0.85);
+      col = mix(col, skyCol, fresnel * 0.32 * mix(0.4, 1.0, t));
+    }
+    if (uHasRefraction > 0.5) {
+      vec2 fUv = clamp(screenUv + distort * 1.3, 0.001, 0.999);
+      vec3 refr = texture2D(uRefractionMap, fUv).rgb;
+      float under = 1.0 - fresnel;
+      col = mix(col, mix(refr, col, 0.4), under * 0.35 * (1.0 - t * 0.5));
+    }
 
     // Caustics in shallow (under pier/beach reading)
     float caustic = pow(max(fbm(vWorldPos.xz * 0.18 + uTime * 0.05) *
@@ -275,6 +303,13 @@ export function createPirateLobbyOcean(config: PirateOceanConfig = {}): THREE.Me
       uSunDirection: { value: new THREE.Vector3(0.5, 0.9, 0.3).normalize() },
       uOceanFloorLevel: { value: oceanFloorLevel },
       uWaterLevel: { value: waterLevel },
+      uReflectionMap: { value: new THREE.Texture() },
+      uRefractionMap: { value: new THREE.Texture() },
+      uHasReflection: { value: 0 },
+      uHasRefraction: { value: 0 },
+      uReflectivity: { value: 0.8 },
+      uDistort: { value: 1.0 },
+      uResolution: { value: new THREE.Vector2(1920, 1080) },
     },
     vertexShader,
     fragmentShader,

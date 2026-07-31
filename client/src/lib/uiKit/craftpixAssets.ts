@@ -70,6 +70,57 @@ export const UI_BARS = {
   castBarBg: craftpixUrl('Cast Bars', 'CastBar_Bar_Background.png'),
   xpBg: craftpixUrl('Action Bar', 'XP Bar', 'ActionBar_XP_Background.png'),
   sliderFill: craftpixUrl('Slider', 'Slider_Horizontal_Bar_Fill_Green.png'),
+  /** Unit frame fills — better than pure CSS gradients when available */
+  hpFill: craftpixUrl('Unit Frames', 'Main', 'Bars', 'UnitFrame_HP_Fill_Red.png'),
+  mpFill: craftpixUrl('Unit Frames', 'Main', 'Bars', 'UnitFrame_MP_Fill_Green.png'),
+  hpFillGray: craftpixUrl('Unit Frames', 'Main', 'Bars', 'UnitFrame_HP_Fill_Grayscale.png'),
+} as const;
+
+/** Game menu / settings chrome */
+export const UI_MENU = {
+  gameMenuBg: craftpixUrl('Game Menu', 'GameMenu_Background.png'),
+  btnBrown: craftpixUrl('Game Menu', 'GameMenu_Button_Foreground_Brown.png'),
+  btnYellow: craftpixUrl('Game Menu', 'GameMenu_Button_Foreground_Yellow.png'),
+  btnBrownHover: craftpixUrl('Game Menu', 'GameMenu_Button_Hover_Brown.png'),
+  btnYellowHover: craftpixUrl('Game Menu', 'GameMenu_Button_Hover_Yellow.png'),
+  settingsIcon: craftpixUrl('Action Bar', 'Buttons', 'ActionBar_Buttons_Icon_Settings.png'),
+  bookIcon: craftpixUrl('Action Bar', 'Buttons', 'ActionBar_Buttons_Icon_Book.png'),
+  profileIcon: craftpixUrl('Action Bar', 'Buttons', 'ActionBar_Buttons_Icon_Profile.png'),
+  flameIcon: craftpixUrl('Action Bar', 'Buttons', 'ActionBar_Buttons_Icon_Flame.png'),
+  actionBtnBg: craftpixUrl('Action Bar', 'Buttons', 'ActionBar_Buttons_Background.png'),
+  actionBtnHover: craftpixUrl('Action Bar', 'Buttons', 'ActionBar_Buttons_Hover.png'),
+  actionBtnPress: craftpixUrl('Action Bar', 'Buttons', 'ActionBar_Buttons_Press.png'),
+} as const;
+
+/** Sliders / toggles / inputs for settings panels */
+export const UI_CONTROLS = {
+  sliderBg: craftpixUrl('Slider', 'Slider_Horizontal_Background.png'),
+  sliderBarBg: craftpixUrl('Slider', 'Slider_Horizontal_Bar_Background.png'),
+  sliderFill: craftpixUrl('Slider', 'Slider_Horizontal_Bar_Fill_Green.png'),
+  sliderHandle: craftpixUrl('Slider', 'Slider_Horizontal_Handle.png'),
+  sliderHandleHover: craftpixUrl('Slider', 'Slider_Horizontal_Handle_Hover.png'),
+  toggleBg: craftpixUrl('Toggles', 'Toggle_Background.png'),
+  toggleOn: craftpixUrl('Toggles', 'OnOff', 'Toggle_OnOff_Foreground.png'),
+  toggleHover: craftpixUrl('Toggles', 'OnOff', 'Toggle_OnOff_Hover.png'),
+  checkboxBg: craftpixUrl('Toggles', 'Checkbox', 'Checkbox_Background.png'),
+  checkboxMark: craftpixUrl('Toggles', 'Checkbox', 'Checkbox_Checkmark.png'),
+  inputBg: craftpixUrl('Inputs', 'Input_Background.png'),
+  inputFocus: craftpixUrl('Inputs', 'Input_Focus.png'),
+  btnGreen: craftpixUrl('Buttons', 'Rectangular', 'Large', 'Button_RL_Background_Green.png'),
+  btnYellow: craftpixUrl('Buttons', 'Rectangular', 'Large', 'Button_RL_Background_Yellow.png'),
+  btnHoverGreen: craftpixUrl('Buttons', 'Rectangular', 'Large', 'Button_RL_Hover_Green.png'),
+} as const;
+
+/** Spellbook chrome */
+export const UI_SPELLBOOK = {
+  background: craftpixUrl('Spell Book', 'SpellBook_Spell_Background.png'),
+  slotBg: craftpixUrl('Spell Book', 'Slots', 'Spells', 'SpellBook_Spell_Slot_Background.png'),
+  slotOverlay: craftpixUrl('Spell Book', 'Slots', 'Spells', 'SpellBook_Spell_Slot_Overlay.png'),
+  tabBg: craftpixUrl('Spell Book', 'Tabs', 'SpellBook_Tab_Background.png'),
+  tabActive: craftpixUrl('Spell Book', 'Tabs', 'SpellBook_Tab_Background_Active.png'),
+  tabFlame: craftpixUrl('Spell Book', 'Tabs', 'SpellBook_Tab_Icon_Flame.png'),
+  tabShield: craftpixUrl('Spell Book', 'Tabs', 'SpellBook_Tab_Icon_Shield.png'),
+  tabSword: craftpixUrl('Spell Book', 'Tabs', 'SpellBook_Tab_Icon_Sword.png'),
 } as const;
 
 /** Map hotbar skill labels → craftpix icon when no ObjectStore icon */
@@ -86,19 +137,47 @@ export function iconForSkillLabel(label: string): string | undefined {
   return undefined;
 }
 
-/** Harvest tool → icon */
+/**
+ * Harvest tool → craftpix icon fallback.
+ * Prefer ObjectStore tool icons when inventory has them; these are genre stand-ins only.
+ */
 export function iconForHarvestTool(toolId: string): string {
   switch (toolId) {
     case 'pickaxe':
-      return UI_ICONS.deathkiss;
+      return UI_ICONS.shield; // hard tool stand-in
     case 'skinning_knife':
-      return UI_ICONS.arrows;
+      return UI_ICONS.deathkiss; // blade
     case 'fishing_rod':
-      return UI_ICONS.leafs;
+      return UI_ICONS.leafs; // nature / water
     case 'toolkit':
-      return UI_ICONS.shield;
+    case 'build_hammer':
+      return UI_ICONS.shield; // structure / solid stand-in until hammer icon ships
     case 'hatchet':
+    case 'axe':
     default:
       return UI_ICONS.sword;
+  }
+}
+
+/** Preload key craftpix URLs so first HUD paint is not blank. */
+export function preloadCraftpixHudAssets(): void {
+  if (typeof Image === 'undefined') return;
+  const urls = [
+    UI_FRAMES.unitBackground,
+    UI_FRAMES.windowBackground,
+    UI_SLOTS.actionBg,
+    UI_SLOTS.actionHover,
+    UI_BARS.hpFill,
+    UI_BARS.mpFill,
+    UI_MENU.settingsIcon,
+    UI_MENU.gameMenuBg,
+    UI_ICONS.sword,
+    UI_ICONS.shield,
+    UI_ICONS.fireball,
+  ];
+  for (const src of urls) {
+    const img = new Image();
+    img.decoding = 'async';
+    img.src = src;
   }
 }

@@ -19,7 +19,15 @@ import { getActiveShip, ensureStarterShip } from '@/lib/shipDockService';
 import { getSceneHeightAt } from '../terrain/IslandTerrainGenerator';
 import type { LobbyLoadResult } from './LobbyIslandLoader';
 
-export const LOBBY_WATER_LEVEL = 0;
+import { OCEAN } from '@shared/definitions/namingSsot';
+
+/**
+ * Free-surface Y for lobby ocean (ocean ≡ open water ≡ sea).
+ * Canonical: OCEAN.lobbySurfaceY — alias kept for call sites.
+ */
+export const LOBBY_WATER_LEVEL = OCEAN.lobbySurfaceY;
+/** Preferred alias */
+export const LOBBY_OCEAN_SURFACE_Y = OCEAN.lobbySurfaceY;
 
 export interface CapturePointState {
   id: string;

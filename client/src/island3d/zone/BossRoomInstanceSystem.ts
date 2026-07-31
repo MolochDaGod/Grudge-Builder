@@ -20,11 +20,15 @@ import {
   loadGlbFirst,
   stripSkyboxFromObject,
 } from './gltfSceneUtils';
+import { LargeBossFightSystem } from '../combat/LargeBossFightSystem';
+import type { WorldFxBus } from '../vfx/WorldFxBus';
 
 export interface BossRoomCallbacks {
   onEnter?: (roomId: string, bossId: string) => void;
   onExit?: (roomId: string) => void;
   onPrompt?: (msg: string | null) => void;
+  onBossDeath?: (bossId: string) => void;
+  onPlayerHit?: (hit: import('../combat/LargeBossFightSystem').LargeBossHitEvent) => void;
 }
 
 export interface BossRoomSystemOpts {
@@ -33,6 +37,7 @@ export interface BossRoomSystemOpts {
   /** Offset so the room sits away from open zone (m). */
   instanceOffset?: THREE.Vector3;
   cb?: BossRoomCallbacks;
+  worldFx?: WorldFxBus | null;
 }
 
 export class BossRoomInstanceSystem {
@@ -46,10 +51,14 @@ export class BossRoomInstanceSystem {
   private cb: BossRoomCallbacks;
   private exitPad: THREE.Mesh | null = null;
   private disposed = false;
+  private worldFx: WorldFxBus | null;
+  /** PIP-style large boss fight inside the chamber */
+  public largeBoss: LargeBossFightSystem | null = null;
 
   constructor(opts: BossRoomSystemOpts) {
     this.scene = opts.scene;
     this.cb = opts.cb ?? {};
+    this.worldFx = opts.worldFx ?? null;
     this.bossId = this.def.bossIds[0]!;
     this.root.name = 'BossRoomInstances';
     this.root.position.copy(
@@ -160,7 +169,34 @@ export class BossRoomInstanceSystem {
     this.cb.onPrompt?.(
       `${this.def.name} (${source}) — defeat ${this.bossId} · E at blue ring to exit`,
     );
+
+    // Spawn PIP-style large boss at chamber center
+    this.spawnLargeBoss();
     return true;
+  }
+
+  private spawnLargeBoss(): void {
+    this.largeBoss?.dispose();
+    const local = new THREE.Vector3(0, 0, -4);
+    const world = local.clone();
+    this.root.localToWorld(world);
+    this.largeBoss = new LargeBossFightSystem({
+      scene: this.scene,
+      position: world,
+      arenaCenter: world.clone(),
+      bossId: this.bossId,
+      worldFx: this.worldFx,
+      cb: {
+        onPrompt: (msg) => this.cb.onPrompt?.(msg),
+        onPlayerHit: (hit) => this.cb.onPlayerHit?.(hit),
+        onDeath: (id) => {
+          this.cb.onBossDeath?.(id);
+          this.cb.onPrompt?.(`${id} fallen — E at blue ring to exit`);
+        },
+        onPhase: (p) =>
+          this.cb.onPrompt?.(`Boss phase: ${p.name}`),
+      },
+    });
   }
 
   /** Exit if near exit pad. */
@@ -173,23 +209,33 @@ export class BossRoomInstanceSystem {
     playerPos.copy(this.entryStamp);
     this.active = false;
     this.root.visible = false;
+    this.largeBoss?.dispose();
+    this.largeBoss = null;
     this.cb.onExit?.(this.def.id);
     this.cb.onPrompt?.('Returned from boss chamber');
     this.entryStamp = null;
     return true;
   }
 
-  update(dt: number) {
+  update(dt: number, playerPos?: THREE.Vector3) {
     if (!this.active || !this.room) return;
     // Subtle ice shimmer
     this.room.rotation.y += dt * 0.01;
     if (this.exitPad) {
       this.exitPad.rotation.z += dt * 1.2;
     }
+    this.largeBoss?.update(dt, playerPos);
+  }
+
+  /** Forward player melee hits into large boss (weakness / body). */
+  tryHitBoss(point: THREE.Vector3, damage: number): boolean {
+    return this.largeBoss?.tryHitWeakness(point, damage) ?? false;
   }
 
   dispose() {
     this.disposed = true;
+    this.largeBoss?.dispose();
+    this.largeBoss = null;
     this.scene.remove(this.root);
     this.root.traverse((o) => {
       if (o instanceof THREE.Mesh) {

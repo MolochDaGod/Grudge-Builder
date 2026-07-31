@@ -273,3 +273,31 @@ export function isIcelandSector(sectorId: string): boolean {
     (ICELAND_SCENE_PLACEMENT.nearFrozenSectors as readonly string[]).includes(sectorId)
   );
 }
+
+/**
+ * Volcanic climb SSOT lives in `./volcanicClimb` (layout, loot, sector offsets).
+ * Re-export here so older `floatingIslandBossAssets` imports keep working.
+ */
+export {
+  VOLCANIC_CLIMB,
+  VOLCANIC_CLIMB_ASSET_PATHS,
+  VOLCANIC_CLIMB_CDN_PATHS,
+  VOLCANIC_CLIMB_LOAD_ORDER,
+  VOLCANIC_CLIMB_LOOT_TIERS,
+  isVolcanicClimbSector,
+  volcanicClimbRng,
+  layoutVolcanicClimbFloor,
+  volcanicClimbOrigin,
+  volcanicClimbFloorBaseY,
+  volcanicClimbSpawnY,
+  rollSummitChestLoot,
+  summitTierFromFloor,
+  volcanicClimbPlayPath,
+} from './volcanicClimb';
+export type {
+  VolcanicClimbConfig,
+  VolcanicClimbPlatformKind,
+  VolcanicClimbFloorLayout,
+  ClimbLootEntry,
+  ClimbLootGrant,
+} from './volcanicClimb';

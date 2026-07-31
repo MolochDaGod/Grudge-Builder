@@ -1,7 +1,8 @@
 /**
  * /warlords/start — production deployment router for Warlords era.
  *
- * Resolves: opening → create character → tutorial → open world → home island (lv20).
+ * Resolves: create → airship → home island (immediate) → map / open world.
+ * Ops zone testing: info.grudge-studio.com/WORLD_MAP.html
  */
 import { useEffect, useState } from 'react';
 import { useLocation } from 'wouter';
@@ -12,7 +13,6 @@ import {
   getActiveCharacterId,
   markOpeningSeen,
   stepPath,
-  WARLORDS_HOME_ISLAND_MIN_LEVEL,
 } from '@/lib/warlordsOnboarding';
 import { WARLORDS_PRODUCTION_FLOW } from '@shared/definitions/warlordsProductionFlow';
 import { ChevronRight, Lock, Check, Loader2 } from 'lucide-react';
@@ -101,9 +101,18 @@ export default function WarlordsStartPage() {
           Deployment Path
         </h1>
         <p className="mt-2 text-sm text-white/50 leading-relaxed">
-          Opening scene → character creation → tutorial → open world. Home island unlocks at{' '}
-          <strong className="text-amber-300">level {WARLORDS_HOME_ISLAND_MIN_LEVEL}</strong>
-          {level ? ` · you are level ${level}` : ''}.
+          Foundry create → airship → <strong className="text-amber-300">home island immediately</strong>
+          {' '}→ world map / open world. Tutorial is optional.
+          {level ? ` · you are level ${level}` : ''}. Zone ops:{' '}
+          <a
+            className="text-sky-300 underline"
+            href="https://info.grudge-studio.com/WORLD_MAP.html"
+            target="_blank"
+            rel="noreferrer"
+          >
+            info WORLD_MAP
+          </a>
+          .
         </p>
 
         <div className="mt-8 space-y-3">

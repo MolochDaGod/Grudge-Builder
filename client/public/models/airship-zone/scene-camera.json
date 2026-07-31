@@ -1,0 +1,58 @@
+{
+  "version": 1,
+  "source": "project (1).json",
+  "camera": {
+    "metadata": {
+      "version": 4.7,
+      "type": "Object",
+      "generator": "Object3D.toJSON"
+    },
+    "object": {
+      "uuid": "ce8e00e3-34b6-437d-8de2-763305fbee93",
+      "type": "PerspectiveCamera",
+      "name": "PerspectiveCamera",
+      "layers": 1,
+      "matrix": [
+        1,
+        0,
+        0,
+        0,
+        0,
+        0.9621376118392094,
+        -0.2725641500350749,
+        0,
+        0,
+        0.2725641500350749,
+        0.9621376118392094,
+        0,
+        18.400379711113057,
+        77.43167386438184,
+        -15.961525794095802,
+        1
+      ],
+      "up": [
+        0,
+        1,
+        0
+      ],
+      "fov": 50,
+      "zoom": 1,
+      "near": 0.1,
+      "far": 2000,
+      "focus": 10,
+      "aspect": 1.6809421841541756,
+      "filmGauge": 35,
+      "filmOffset": 0
+    }
+  },
+  "controls": {
+    "center": [
+      18.400379711113057,
+      77.43167386438184,
+      -15.961525794095802
+    ]
+  },
+  "backgroundType": "Default",
+  "environmentType": "Equirectangular",
+  "notes": "Full scene is interdimensional floating islands (34MB). Runtime uses airship.glb + boatvoxelinside + camera from this extract."
+}

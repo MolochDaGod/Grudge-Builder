@@ -2,14 +2,28 @@
  * World surface layers SSOT — terrain / water / deck / climb across fleet.
  *
  * Production rules (grudge-production-world + threejs SI units):
- *   - Terrain assets sit on dry ground (feet Y > water + margin)
- *   - Water assets (fish, boats, docks floats) use water columns only
- *   - Decks are walkable surfaces (sample Y; no ocean water while locked)
- *   - Hull sides are climbable from water (overboard recovery)
+ *   - Terrain assets sit on dry ground (feet Y > ocean surface + margin)
+ *   - Water-column assets (fish, boats, dock floats) sit under ocean surface
+ *   - Decks are walkable surfaces (sample Y; no ocean swim while locked)
+ *   - Hull sides are climbable from open water (overboard recovery)
+ *
+ * Naming: ocean ≡ open water ≡ sea (one free surface). See namingSsot.ts.
+ * Parameter `waterLevel` = free-surface Y (legacy name; same as oceanSurfaceY).
  *
  * Used by: harvest placement, wildlife spawn, character climb/swim/deck,
  * camps, buildings, sector kits.
  */
+export {
+  OCEAN,
+  OCEAN_SURFACE_Y,
+  SEA_SURFACE_Y,
+  OPEN_WATER_SURFACE_Y,
+  resolveOceanSurfaceY,
+  isOceanMesh,
+  WEAPON_SLOTS,
+  playModeFromControlMode,
+} from './namingSsot';
+export type { PlayModeName, ControlModeName } from './namingSsot';
 
 /** Physics / content layer tags for mesh userData */
 export type WorldSurfaceLayer =
@@ -73,6 +87,9 @@ export const PLACEMENT_DOMAIN: Record<string, PlacementDomain> = {
   deck: 'deck',
 };
 
+/**
+ * @param waterLevel free-surface Y — same as oceanSurfaceY / sea level / open-water Y
+ */
 export function isDryLand(
   groundY: number,
   waterLevel: number,
@@ -81,6 +98,10 @@ export function isDryLand(
   return Number.isFinite(groundY) && groundY > waterLevel + margin;
 }
 
+/**
+ * Seabed far enough under the ocean free surface for fish / water props.
+ * @param waterLevel free-surface Y (ocean ≡ sea ≡ open water)
+ */
 export function isWaterColumn(
   seabedY: number,
   waterLevel: number,
@@ -89,7 +110,10 @@ export function isWaterColumn(
   return Number.isFinite(seabedY) && seabedY <= waterLevel - minColumn;
 }
 
-/** Feet in water enough to swim (not cave interior) */
+/**
+ * Feet below free surface enough to swim (not cave interior).
+ * @param waterLevel ocean free-surface Y
+ */
 export function isSwimmingFeet(
   feetY: number,
   waterLevel: number,
@@ -97,6 +121,11 @@ export function isSwimmingFeet(
 ): boolean {
   return feetY < waterLevel - enterDepth;
 }
+
+/** Alias: ocean surface Y used as dry-land reference */
+export const isDryLandAboveOcean = isDryLand;
+/** Alias: column under ocean for aquatic spawn */
+export const isOpenWaterColumn = isWaterColumn;
 
 export function isWading(
   feetY: number,

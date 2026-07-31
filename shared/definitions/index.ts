@@ -34,6 +34,10 @@ export * from "./biomeEcosystemCatalog";
 export * from "./etherealDestructionZone";
 export * from "./coldBiomeAssets";
 export * from "./floatingIslandBossAssets";
+// volcanicClimb is re-exported from floatingIslandBossAssets (single path for index)
+// Prefer: import { VOLCANIC_CLIMB, … } from '@shared/definitions/volcanicClimb' in climb code
+export * from "./firewoodChop";
+export * from "./pipSkullBossFight";
 export * from "./seedContentContract";
 // valheimStyleHarvest intentionally not re-exported until the module ships.
 export * from "./biomeHarvestAssets";
@@ -67,6 +71,8 @@ export * from "./gameAudioCatalog";
 export * from "./weaponAttachSystem";
 // Terrain / water / deck / climb surface placement
 export * from "./worldSurfaceLayers";
+// Naming SSOT — ocean≡sea≡open water, play modes, weapon slots, UI surfaces
+export * from "./namingSsot";
 // Production combat profiles + full skill combat catalog
 export * from "./productionWeaponCombat";
 export * from "./weaponSkillCombatCatalog";

@@ -179,6 +179,67 @@ export function applyHitResponse(
   host.cameraPunch?.(response.cameraPunch * scale);
 }
 
+// ── Boss / environmental AoE hits ────────────────────────────────────────────
+
+export interface BossHitPayload {
+  damage: number;
+  kind: string;
+  /** World origin of force (boss / impact center) */
+  origin: THREE.Vector3;
+  /** Victim world position */
+  targetPos: THREE.Vector3;
+  knockdown?: boolean;
+  stunSec?: number;
+  knockbackMps?: number;
+  knockUpMps?: number;
+}
+
+/**
+ * Build HitResponse for boss AoE / shockwave / meteor / stun hits.
+ * Direction is always away from origin (radial push).
+ */
+export function resolveBossHitResponse(hit: BossHitPayload): HitResponse {
+  const dir = new THREE.Vector3(
+    hit.targetPos.x - hit.origin.x,
+    0,
+    hit.targetPos.z - hit.origin.z,
+  );
+  if (dir.lengthSq() < 1e-6) dir.set(0, 0, 1);
+  else dir.normalize();
+
+  const kind = hit.kind.toLowerCase();
+  const isElectric = /electric|shock|stun/.test(kind);
+  const isSlam = /slam|stomp|shockwave|whirlwind|meteor|rock/.test(kind);
+  const isBeam = /beam/.test(kind);
+
+  let knockback = hit.knockbackMps ?? (isSlam ? 11 : isBeam ? 8 : 5);
+  let knockUp = hit.knockUpMps ?? (isSlam ? 5 : 1.5);
+  let stunSec = hit.stunSec ?? (isElectric ? 1.2 : hit.knockdown ? 0.45 : 0.2);
+  let anim: HitReactAnim = 'hit_light';
+
+  if (isElectric) {
+    anim = 'stun_loop';
+    knockback = hit.knockbackMps ?? 3;
+    knockUp = hit.knockUpMps ?? 1;
+    stunSec = Math.max(stunSec, 1.2);
+  } else if (hit.knockdown || knockUp >= 4) {
+    anim = 'knockup_rise';
+    stunSec = Math.max(stunSec, 0.4);
+  } else if (isSlam) {
+    anim = 'hit_heavy';
+  }
+
+  return {
+    knockback,
+    knockUp,
+    stunSec,
+    anim,
+    impactScale: isSlam ? 2.2 : isElectric ? 1.8 : 1.4,
+    cameraPunch: isSlam ? 0.5 : isElectric ? 0.35 : 0.2,
+    dir,
+  };
+}
+
 /**
  * Per-frame follow-up for airborne knock-up victims (anim stages).
  * Call while target.velocity.y > 0.15 or falling after launch.

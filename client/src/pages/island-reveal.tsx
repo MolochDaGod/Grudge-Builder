@@ -161,9 +161,9 @@ export default function IslandRevealPage() {
   };
 
   const enter3D = () => {
-    // Home island still requires level 20 in production; force unlock after reveal create
+    // Home island is available immediately after first character (no level gate)
     setLocation(
-      `/home-island?characterId=${encodeURIComponent(characterId!)}&islandId=${encodeURIComponent(island!.id)}&unlock=1`,
+      `/home-island?characterId=${encodeURIComponent(characterId!)}&islandId=${encodeURIComponent(island!.id)}&from=island-reveal`,
     );
   };
   const enter2D = () => setLocation(`/island?characterId=${encodeURIComponent(characterId!)}&islandId=${encodeURIComponent(island!.id)}`);

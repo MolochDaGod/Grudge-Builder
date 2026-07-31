@@ -1,6 +1,10 @@
 /**
  * Fleet cinematics — Warlords intro + loadscreen from Cloudflare R2 / D1.
  * Source: grudge loadin.mp4 → gruda-armada/grudge-warlords/videos/intro.mp4
+ *
+ * PURGED from /island-3d: do NOT use warlordsIntro for the production open.
+ * island-3d uses native Three.js ShipwreckTutorialCinema (no video gate).
+ * This catalog remains for /intro, IslandCutscene, and loadscreen transitions only.
  */
 /** Same-origin → Railway /api/videos/catalog via fleet rewrites */
 const CATALOG_API =

@@ -1,5 +1,6 @@
 /**
- * Proximity + E interaction with faction captains for End Game mission (level 20+).
+ * Proximity + E interaction with faction captains for optional End Game cinematic.
+ * Home island is no longer locked behind this mission (2026-07 happy path).
  */
 import * as THREE from 'three';
 import {

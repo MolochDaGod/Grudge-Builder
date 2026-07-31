@@ -322,10 +322,17 @@ export function syncHarvestNodeDepleted(
 ): void {
   const tree = collections.trees.find((t) => t.nodeId === nodeId);
   if (tree) {
-    if (depleted && tree.fallPhase === 'live') {
+    if (
+      depleted &&
+      (tree.fallPhase === 'live' || tree.fallPhase === 'notching')
+    ) {
       beginTreeFall(tree);
       markDepleted(tree as any, 'tree', false);
-    } else if (!depleted && tree.fallPhase !== 'live') {
+    } else if (
+      !depleted &&
+      tree.fallPhase !== 'live' &&
+      tree.fallPhase !== 'notching'
+    ) {
       tree.respawnAt = 0;
       resetHarvestableTree(tree, tree.baseScale);
     }

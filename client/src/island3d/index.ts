@@ -110,6 +110,43 @@ export type { HavenFoundationResult } from './zone/HavenShoreFoundationLoader';
 export { loadFabledZoneFoundation } from './zone/FabledZoneFoundationLoader';
 export type { FabledFoundationResult, FabledInteriorSession } from './zone/FabledZoneFoundationLoader';
 
+// Firewood-style axe (base notch → fall → ground split → pinata collect)
+export { FirewoodChopSystem } from './harvest/FirewoodChopSystem';
+export { PinataHarvestBreakSystem } from './harvest/PinataHarvestBreak';
+
+// PIP Skull–style large boss (dungeon rooms + PvE arenas)
+export { LargeBossFightSystem } from './combat/LargeBossFightSystem';
+export type { LargeBossHitEvent, LargeBossCallbacks } from './combat/LargeBossFightSystem';
+export { BossCinemaFx } from './combat/BossCinemaFx';
+export type { CinemaHitEvent } from './combat/BossCinemaFx';
+export { AttackWarningSystem } from './combat/AttackWarningSystem';
+export {
+  resolveBossHitResponse,
+  resolveHitResponse,
+  applyHitResponse,
+} from './combat/HitResponseSystem';
+export { PveBossInstanceSystem } from './systems/PveBossInstanceSystem';
+export type {
+  PveInstanceSource,
+  PveBossInstanceCallbacks,
+} from './systems/PveBossInstanceSystem';
+
+// Ember Spire volcanic climb + zone E-interact priority
+export { VolcanicClimbIslandSystem } from './zone/VolcanicClimbIslandSystem';
+export type {
+  VolcanicClimbOpts,
+  VolcanicClimbCallbacks,
+} from './zone/VolcanicClimbIslandSystem';
+export { resolveZoneInteract } from './zone/zoneInteract';
+export type { ZoneInteractContext, ZoneInteractResult } from './zone/zoneInteract';
+export {
+  resolvePlatformerJumpForSector,
+  VOLCANIC_CLIMB_JUMP,
+  ETHEREAL_FALLS_JUMP,
+  AIRSHIP_DECK_JUMP,
+  RANDOM_BOXES_JUMP,
+} from './physics/PlatformerJump';
+
 // Build Hammer (0.8× survival kit hammer in hand)
 export {
   equipBuildHammer,
