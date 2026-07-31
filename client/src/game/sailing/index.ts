@@ -68,3 +68,23 @@ export {
   SKITTISHNESS_CONFIG,
   getFleeParameters,
 } from "./types";
+
+// Sails + ocean climb (production SSOT)
+export {
+  createSailMaterial,
+  applySailMaterialsToShip,
+  createLiveClothSail,
+  windFromWeather,
+  SAIL_COLOR_HEX,
+  SAIL_MATERIAL_RULES,
+} from "./SailMaterialSystem";
+export type { SailRigKind, SailMaterialOpts, LiveSailCloth } from "./SailMaterialSystem";
+export {
+  buildOceanClimbMeshes,
+  trySnapOntoDeck,
+  CRAFT_CLIMB_PROFILE,
+  OCEAN_CLIMB_RULES,
+} from "./OceanBoatClimbRig";
+export type { ClimbEdgeSpec } from "./OceanBoatClimbRig";
+export { ClothSimulation } from "./clothPhysics";
+export type { WindForce } from "./clothPhysics";

@@ -88,4 +88,35 @@ When a user has two `grudge_id`s (Puter guest + real ID):
 4. Invalidate JWTs for the orphan id.  
 5. User signs in once via Grudge ID → one roster.
 
-Until merge tooling ships, prefer **Switch account** on crafting and re-create on GCS only if heroes never hit Railway.
+### Runtime (code SSOT)
+
+| Path | Behavior |
+|------|----------|
+| `server/lib/identityLink.ts` | Resolve Discord/Puter by provider id **or email** → one `users` row; stamp `discord_*` / `puter_*` columns |
+| Discord callback | Uses `resolveDiscordGrudgeAccount` — **no new grudge_id** when email matches |
+| Puter `/api/auth/puter*` | Uses `resolvePuterIdentity` — same email merge |
+| `POST /api/auth/puter-link` | Stamps Puter onto **authenticated** user (no stub) |
+
+### Admin merge script (grudachain)
+
+```bash
+# dry-run
+node scripts/merge-identity-grudachain.mjs
+# apply
+node scripts/merge-identity-grudachain.mjs --confirm
+```
+
+**Canonical production admin (2026-07-29 proof):**
+
+| Field | Value |
+|-------|--------|
+| username | `GRUDACHAIN` |
+| **grudge_id** | **`GRUDGE_MPOUIQCG529CA`** |
+| email | `grudgedev@gmail.com` |
+| discord_id | `1292303312334618695` (`grudgelegion_11303`) |
+| puter_user_id | `ae19bdda-af53-4421-838f-ca5958be63b0` |
+| warlords characters | **27** |
+| client alias (metadata only) | `GRUDGE_MS5O7IJUA54E6` (not a second DB row) |
+
+Orphan Discord row `GID-48fb4fcf` was soft-merged (`auth_method=merged_orphan`).  
+**JWT / fleet must use `GRUDGE_MPOUIQCG529CA`**, not the client alias alone.

@@ -6,6 +6,8 @@
 import * as THREE from 'three';
 import type { ShipSize } from '@shared/definitions/shipCatalog';
 import { getShipCatalogEntry } from '@shared/definitions/shipCatalog';
+import { buildOceanClimbMeshes } from '@/game/sailing/OceanBoatClimbRig';
+import { applySailMaterialsToShip } from '@/game/sailing/SailMaterialSystem';
 
 export interface ShipDeckBounds {
   halfWidth: number;
@@ -275,6 +277,9 @@ export function buildShipInteractable(
   shipRoot: THREE.Group,
   size: ShipSize = 'rowboat',
 ): ShipInteractable {
+  // Production canvas sails (not plastic emissive)
+  applySailMaterialsToShip(shipRoot);
+
   const layout = probeShipLayout(shipRoot, size);
   const bounds = layout.bounds;
 
@@ -343,11 +348,16 @@ export function buildShipInteractable(
     deckColliders.push(plate);
   }
 
-  // Climb walls
-  const climbColliders: THREE.Mesh[] = [];
+  // Climb walls — ocean gunwales / bow / stern lips (swim → deck)
+  // SSOT: OceanBoatClimbRig (freeboard per craft size)
+  const climbColliders: THREE.Mesh[] = buildOceanClimbMeshes(
+    interactRoot,
+    bounds,
+    size === 'rowboat' || size === 'sloop' || size === 'galleon' ? size : 'rowboat',
+  );
+  // Keep legacy thick hull walls as backup when climb rays miss thin lips
   const wallH = bounds.deckY + 2.2;
   const wallThick = 0.35;
-
   for (const side of [-1, 1] as const) {
     const wall = new THREE.Mesh(
       new THREE.BoxGeometry(wallThick, wallH, bounds.halfLength * 2 + 1),
@@ -360,17 +370,6 @@ export function buildShipInteractable(
     interactRoot.add(wall);
     climbColliders.push(wall);
   }
-
-  const stern = new THREE.Mesh(
-    new THREE.BoxGeometry(bounds.halfWidth * 2, wallH * 0.7, wallThick),
-    climbMat,
-  );
-  stern.position.set(0, wallH * 0.35, -bounds.halfLength - wallThick * 0.5);
-  stern.name = 'ship_climb_stern';
-  stern.userData.climbable = true;
-  stern.userData.shipHull = true;
-  interactRoot.add(stern);
-  climbColliders.push(stern);
 
   // Cannons — attach from mesh or synthetic broadside
   const cannons: ShipCannonAttach[] = [];

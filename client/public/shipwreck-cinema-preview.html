@@ -1,0 +1,726 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Shipwreck Tutorial Cinema · Preview</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Inter:wght@400;600&display=swap" rel="stylesheet" />
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { width: 100%; height: 100%; background: #04080e; overflow: hidden; font-family: Inter, system-ui, sans-serif; color: #e8eef6; }
+    #stage { position: absolute; inset: 0; }
+    canvas { display: block; width: 100%; height: 100%; }
+    .bar { position: absolute; left: 0; right: 0; height: 8vh; background: #000; z-index: 5; pointer-events: none; }
+    .bar.top { top: 0; }
+    .bar.bot { bottom: 0; }
+    .vignette {
+      position: absolute; inset: 0; z-index: 4; pointer-events: none;
+      background: radial-gradient(ellipse at center, transparent 42%, rgba(0,0,0,.6) 100%);
+    }
+    .hud-top {
+      position: absolute; top: 9vh; left: 1rem; right: 1rem; z-index: 10;
+      display: flex; justify-content: space-between; gap: .75rem; pointer-events: none;
+    }
+    .chip {
+      pointer-events: auto;
+      background: rgba(0,0,0,.6); border: 1px solid rgba(255,255,255,.12);
+      backdrop-filter: blur(10px); border-radius: 14px; padding: .7rem .9rem; max-width: 20rem;
+    }
+    .chip .k { font-size: 9px; letter-spacing: .28em; text-transform: uppercase; color: #5eead4; font-weight: 600; }
+    .chip .t { font-size: 14px; font-weight: 600; margin-top: 2px; }
+    .chip .s { font-size: 11px; color: #94a3b8; margin-top: 2px; line-height: 1.35; }
+    .actions { display: flex; gap: .4rem; flex-wrap: wrap; justify-content: flex-end; }
+    .actions button {
+      pointer-events: auto; cursor: pointer;
+      border-radius: 10px; border: 1px solid rgba(255,255,255,.18);
+      background: rgba(0,0,0,.72); color: #f1f5f9; font-size: 11px; font-weight: 600;
+      padding: .45rem .7rem;
+    }
+    .actions button.primary {
+      background: rgba(4,120,87,.95); border-color: rgba(52,211,153,.45); font-weight: 700;
+    }
+    .actions button:disabled { opacity: .35; cursor: default; }
+    .titles {
+      position: absolute; left: 0; right: 0; bottom: 12vh; z-index: 10;
+      text-align: center; pointer-events: none; padding: 0 1.25rem;
+    }
+    .titles h1 {
+      font-family: Cinzel, Georgia, serif; font-size: clamp(1.25rem, 3.5vw, 2.25rem);
+      letter-spacing: .08em; color: #fff8eb;
+      text-shadow: 0 2px 16px rgba(0,0,0,.95);
+      animation: fadeUp .65s ease;
+    }
+    .titles p {
+      margin-top: .45rem; font-size: clamp(.75rem, 1.6vw, .95rem); color: rgba(224,242,254,.92);
+      text-shadow: 0 1px 10px rgba(0,0,0,.95); max-width: 36rem; margin-left: auto; margin-right: auto;
+      animation: fadeUp .75s ease;
+    }
+    .dots { margin-top: .85rem; display: flex; gap: 6px; justify-content: center; }
+    .dots span { height: 4px; width: 8px; border-radius: 99px; background: rgba(255,255,255,.2); transition: all .25s; }
+    .dots span.on { width: 20px; background: #fbbf24; }
+    .dots span.done { background: rgba(8,145,178,.85); }
+    .progress {
+      position: absolute; left: 0; right: 0; bottom: 8vh; height: 2px; background: rgba(255,255,255,.1); z-index: 10;
+    }
+    .progress > i {
+      display: block; height: 100%; width: 0%;
+      background: linear-gradient(90deg, #0891b2, #7dd3fc, #fbbf24);
+      transition: width .08s linear;
+    }
+    .load {
+      position: absolute; inset: 0; z-index: 20; display: grid; place-items: center;
+      background: #04080e; transition: opacity .5s;
+    }
+    .load.hide { opacity: 0; pointer-events: none; }
+    .load .ring {
+      width: 64px; height: 64px; border-radius: 50%;
+      border: 1px solid rgba(34,211,238,.35); margin: 0 auto 1rem;
+      animation: pulse 1.4s ease infinite;
+    }
+    .hint { position: absolute; top: calc(9vh + 4.2rem); right: 1rem; z-index: 10; font-size: 10px; color: rgba(255,255,255,.35); }
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+    @keyframes pulse { 0%,100% { transform: scale(1); opacity: .7; } 50% { transform: scale(1.08); opacity: 1; } }
+  </style>
+</head>
+<body>
+  <div id="stage"></div>
+  <div class="bar top"></div>
+  <div class="bar bot"></div>
+  <div class="vignette"></div>
+
+  <div class="hud-top">
+    <div class="chip">
+      <div class="k">Preview · island-3d open</div>
+      <div class="t">Shipwreck Tutorial Cinema</div>
+      <div class="s">Native Three.js · SI scale · no video · no Stonewisp</div>
+    </div>
+    <div class="actions">
+      <button id="btnMute" type="button">Audio</button>
+      <button id="btnSkip" class="primary" type="button" disabled>Skip · Tutorial</button>
+    </div>
+  </div>
+  <div class="hint" id="hint" hidden>Space / Enter to continue</div>
+
+  <div class="titles">
+    <h1 id="caption">…</h1>
+    <p id="sub">Loading cinema…</p>
+    <div class="dots" id="dots"></div>
+  </div>
+  <div class="progress"><i id="bar"></i></div>
+
+  <div class="load" id="load">
+    <div>
+      <div class="ring"></div>
+      <div style="text-align:center;letter-spacing:.3em;font-size:11px;text-transform:uppercase;color:#a5f3fc">Loading cinema</div>
+      <div style="text-align:center;margin-top:.4rem;font-size:13px;color:#64748b">Storm · ship · shipwreck cove</div>
+    </div>
+  </div>
+
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+    }
+  }
+  </script>
+  <script type="module">
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
+
+const CDN = 'https://assets.grudge-studio.com';
+const HUMAN = 1.8;
+const SHIP_LEN = 22;
+const DURATION = 32;
+const SKIP_AFTER = 1.5;
+
+const ASSETS = {
+  ship: [
+    `${CDN}/models/cinema/stylized-pirate-ship.prod.glb`,
+    `${CDN}/models/ships/ship-pirate-medium.glb`,
+    `${CDN}/models/pirate/black-tide.glb`,
+  ],
+  wreck: [`${CDN}/models/ships/ship-wreck.glb`],
+  island: [`${CDN}/models/environment/pirate-island.glb`],
+  hero: [
+    `${CDN}/models/heroes/grudge6/western-kingdoms_warrior.glb`,
+    `${CDN}/models/heroes/grudge6/orcs_warrior.glb`,
+  ],
+};
+
+const BEATS = [
+  { t: 0, caption: 'THE SHATTERED SEAS', sub: 'Far from any flag… a lone hull runs the dark.',
+    cam: { pos: [52, 22, 62], look: [0, 3, 0], fov: 48 }, storm: 0.35, roll: 0.06, pitch: 0.04, intact: true, hero: 'hidden', exp: 0.85, bloom: 0.28 },
+  { t: 3.2, caption: 'BLACK WATER', sub: 'Wind peels the canvas. The swell builds like a wall.',
+    cam: { pos: [24, 9, 28], look: [0, 4, -2], fov: 42 }, storm: 0.55, roll: 0.14, pitch: 0.08, intact: true, hero: 'deck', exp: 0.9, bloom: 0.32 },
+  { t: 6.8, caption: 'HOLD FAST', sub: 'Every timber answers the storm. One more crest…',
+    cam: { pos: [8, 5.5, 14], look: [0, 3.2, 0], fov: 38 }, storm: 0.72, roll: 0.22, pitch: 0.12, intact: true, hero: 'brace', exp: 0.92, bloom: 0.38 },
+  { t: 10.5, caption: 'THE REEF STRIKES', sub: 'Keel meets stone. The world turns over.',
+    cam: { pos: [-14, 4, 11], look: [1, 2.5, -1], fov: 34 }, storm: 0.98, roll: 0.72, pitch: 0.35, intact: true, break: 0.6, hero: 'fall', exp: 1.05, bloom: 0.55 },
+  { t: 14.2, caption: 'ABANDON SHIP', sub: 'Hull opens. You fall with the spar into the black.',
+    cam: { pos: [5, 2.4, 10], look: [1, 0.4, -3], fov: 40 }, storm: 0.9, roll: 1.05, pitch: 0.55, intact: false, break: 1, hero: 'sea', exp: 0.88, bloom: 0.42 },
+  { t: 18.5, caption: 'SWIM FOR THE COVE', sub: 'Lights on a broken shore — pirate islands, shipwreck cove.',
+    cam: { pos: [18, 8, 26], look: [-10, 1.5, -22], fov: 44 }, storm: 0.45, roll: 0.25, pitch: 0.1, intact: false, hero: 'wash', exp: 0.95, bloom: 0.36 },
+  { t: 23.5, caption: 'SHIPWRECK ISLAND', sub: 'Chicken-gun pirate map · tutorial wash-up · unarmed',
+    cam: { pos: [7, 4.2, 12], look: [-1, 0.8, -8], fov: 38 }, storm: 0.22, roll: 0.08, pitch: 0.03, intact: false, hero: 'beach', exp: 1.0, bloom: 0.3 },
+  { t: 28, caption: 'SURVIVE', sub: 'Sticks. Stones. Tools. Stand. The open world waits beyond the cove.',
+    cam: { pos: [3.2, 2.4, 6.5], look: [0, 0.55, -1], fov: 32 }, storm: 0.12, roll: 0.04, pitch: 0.02, intact: false, hero: 'beach', exp: 1.05, bloom: 0.26 },
+];
+
+const $ = (id) => document.getElementById(id);
+const captionEl = $('caption');
+const subEl = $('sub');
+const barEl = $('bar');
+const dotsEl = $('dots');
+const loadEl = $('load');
+const btnSkip = $('btnSkip');
+const hintEl = $('hint');
+
+BEATS.forEach((_, i) => {
+  const s = document.createElement('span');
+  s.dataset.i = String(i);
+  dotsEl.appendChild(s);
+});
+
+function easeInOutCubic(t) {
+  const x = Math.min(1, Math.max(0, t));
+  return x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
+}
+function smoothstep(e0, e1, x) {
+  const t = Math.min(1, Math.max(0, (x - e0) / Math.max(1e-6, e1 - e0)));
+  return t * t * (3 - 2 * t);
+}
+function plantHeight(obj, h) {
+  obj.updateMatrixWorld(true);
+  const box = new THREE.Box3().setFromObject(obj);
+  const size = box.getSize(new THREE.Vector3());
+  obj.scale.multiplyScalar(h / Math.max(size.y, 0.001));
+  obj.updateMatrixWorld(true);
+  const b2 = new THREE.Box3().setFromObject(obj);
+  obj.position.y -= b2.min.y;
+}
+function fitLength(obj, len, seatY = -0.5) {
+  obj.updateMatrixWorld(true);
+  const box = new THREE.Box3().setFromObject(obj);
+  const size = box.getSize(new THREE.Vector3());
+  const span = Math.max(size.x, size.z, 0.001);
+  obj.scale.multiplyScalar(len / span);
+  obj.updateMatrixWorld(true);
+  const b2 = new THREE.Box3().setFromObject(obj);
+  obj.position.y -= b2.min.y;
+  obj.position.y += seatY;
+}
+function grade(root, wet = true) {
+  root.traverse((o) => {
+    const m = o;
+    if (!m.isMesh) return;
+    m.castShadow = true;
+    m.receiveShadow = true;
+    const mats = Array.isArray(m.material) ? m.material : [m.material];
+    for (const mat of mats) {
+      if (mat && 'roughness' in mat) {
+        mat.roughness = wet ? Math.min(0.88, (mat.roughness ?? 0.7) * 0.72 + 0.12) : mat.roughness;
+        mat.metalness = Math.min(0.25, (mat.metalness ?? 0) + 0.04);
+        mat.needsUpdate = true;
+      }
+    }
+  });
+}
+
+const loader = new GLTFLoader();
+try { loader.setMeshoptDecoder(MeshoptDecoder); } catch {}
+
+async function loadFirst(urls) {
+  for (const url of urls) {
+    try {
+      const gltf = await loader.loadAsync(url);
+      const root = gltf.scene.clone(true);
+      grade(root, true);
+      return root;
+    } catch { /* next */ }
+  }
+  return null;
+}
+
+function makeShip() {
+  const g = new THREE.Group();
+  const wood = new THREE.MeshStandardMaterial({ color: 0x4a3224, roughness: 0.82 });
+  const sail = new THREE.MeshStandardMaterial({ color: 0xd4c2a4, roughness: 0.95, side: THREE.DoubleSide });
+  const hull = new THREE.Mesh(new THREE.BoxGeometry(20, 3.6, 6.2), wood); hull.position.y = 1.4; g.add(hull);
+  const mast = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.34, 14, 10), wood); mast.position.set(-1, 9.5, 0); g.add(mast);
+  const s1 = new THREE.Mesh(new THREE.PlaneGeometry(8.5, 9.5), sail); s1.position.set(-1, 8.8, 0.5); s1.name = 'sail'; g.add(s1);
+  return g;
+}
+function makeWreck() {
+  const g = new THREE.Group();
+  const wood = new THREE.MeshStandardMaterial({ color: 0x3a281c, roughness: 0.94 });
+  const hull = new THREE.Mesh(new THREE.BoxGeometry(15, 3.4, 5.4), wood);
+  hull.position.y = 1.1; hull.rotation.z = 0.48; g.add(hull);
+  const mast = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.3, 10, 6), wood);
+  mast.position.set(-3, 2.6, 0.6); mast.rotation.z = 1.15; g.add(mast);
+  return g;
+}
+function makeHero() {
+  const g = new THREE.Group();
+  const cloth = new THREE.MeshStandardMaterial({ color: 0x3d5a4c, roughness: 0.8 });
+  const skin = new THREE.MeshStandardMaterial({ color: 0xc4a484, roughness: 0.65 });
+  const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.28, 0.95, 6, 10), cloth); body.position.y = 0.95; g.add(body);
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.2, 14, 14), skin); head.position.y = 1.68; g.add(head);
+  return g;
+}
+function makeIsland() {
+  const g = new THREE.Group();
+  const sand = new THREE.MeshStandardMaterial({ color: 0xcbb07a, roughness: 0.96 });
+  const green = new THREE.MeshStandardMaterial({ color: 0x2a5c36, roughness: 0.9 });
+  const rock = new THREE.MeshStandardMaterial({ color: 0x5a6570, roughness: 0.92 });
+  const base = new THREE.Mesh(new THREE.CylinderGeometry(34, 44, 5, 28), sand); base.position.set(-20, -2, -46); g.add(base);
+  const beach = new THREE.Mesh(new THREE.CylinderGeometry(14, 16, 1.4, 20), sand); beach.position.set(-3, 0.15, -14); g.add(beach);
+  for (let i = 0; i < 4; i++) {
+    const hill = new THREE.Mesh(new THREE.ConeGeometry(9 + i, 11 + i * 2, 9), green);
+    hill.position.set(-24 - i * 3, 4 + i, -52 - i * 3); g.add(hill);
+  }
+  for (let i = 0; i < 5; i++) {
+    const r = new THREE.Mesh(new THREE.DodecahedronGeometry(1.8, 0), rock);
+    r.position.set(-6 + Math.random() * 12, 0.6, -10 - Math.random() * 10); g.add(r);
+  }
+  return g;
+}
+
+const WATER_VERT = `
+uniform float uTime; uniform float uStorm;
+varying vec3 vWorld; varying float vWave; varying vec3 vN;
+vec3 g(vec2 p,float t,float a,float wl,float sp,vec2 d){
+  float k=6.28318/wl; float c=sqrt(9.8/k)*sp; float f=k*(dot(d,p)-c*t);
+  float amp=a*(.45+.55*uStorm); return vec3(d.x*amp*cos(f), amp*sin(f), d.y*amp*cos(f));
+}
+void main(){
+  vec3 pos=position; vec2 p=pos.xz; float t=uTime; vec3 d=vec3(0.);
+  d+=g(p,t,.72,16.,1.05,normalize(vec2(1.,.32)));
+  d+=g(p,t,.42,8.2,1.3,normalize(vec2(-.45,1.)));
+  d+=g(p,t,.22,4.1,1.7,normalize(vec2(.75,-.55)));
+  d+=g(p,t,.12*uStorm,2.,2.3,normalize(vec2(-.95,.15)));
+  pos+=d; vWave=d.y;
+  float e=.4;
+  vec3 dx=g(p+vec2(e,0.),t,.72,16.,1.05,normalize(vec2(1.,.32)))-g(p-vec2(e,0.),t,.72,16.,1.05,normalize(vec2(1.,.32)));
+  vN=normalize(mat3(modelMatrix)*normalize(vec3(-dx.y,e*2.,0.)));
+  vec4 w=modelMatrix*vec4(pos,1.); vWorld=w.xyz;
+  gl_Position=projectionMatrix*viewMatrix*w;
+}`;
+const WATER_FRAG = `
+precision highp float;
+uniform float uTime,uStorm; uniform vec3 uDeep,uShallow,uFoam,uSun;
+varying vec3 vWorld; varying float vWave; varying vec3 vN;
+void main(){
+  vec3 N=normalize(vN); vec3 V=normalize(cameraPosition-vWorld); vec3 L=normalize(uSun);
+  float fres=pow(1.-max(dot(N,V),0.),3.4);
+  float dm=clamp(.32+vWave*.55,0.,1.);
+  vec3 col=mix(uDeep,uShallow,dm);
+  col=mix(col,vec3(.04,.07,.1),uStorm*.62);
+  vec3 H=normalize(L+V);
+  float spec=pow(max(dot(N,H),0.),80.)*(.22+.5*(1.-uStorm));
+  float foam=smoothstep(.22,.58,vWave)*(.35+.65*uStorm);
+  col=mix(col,uFoam,foam*.62); col+=spec*vec3(.7,.82,1.); col+=fres*mix(vec3(.12,.22,.32),vec3(.06,.08,.1),uStorm);
+  gl_FragColor=vec4(col,.96);
+}`;
+
+// ── scene ────────────────────────────────────────────────────────────
+const stage = document.getElementById('stage');
+const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 0.95;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+stage.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x070c14);
+scene.fog = new THREE.FogExp2(0x0a121c, 0.01);
+
+const camera = new THREE.PerspectiveCamera(48, innerWidth / innerHeight, 0.15, 600);
+camera.position.set(52, 22, 62);
+
+const hemi = new THREE.HemisphereLight(0x6a849e, 0x1a120c, 0.5); scene.add(hemi);
+const key = new THREE.DirectionalLight(0xb0c4dc, 0.9);
+key.position.set(28, 48, 14); key.castShadow = true;
+key.shadow.mapSize.set(1024, 1024); scene.add(key);
+const rim = new THREE.DirectionalLight(0x4a7aaa, 0.35); rim.position.set(-30, 12, -20); scene.add(rim);
+
+const composer = new EffectComposer(renderer);
+composer.addPass(new RenderPass(scene, camera));
+const bloom = new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), 0.32, 0.48, 0.72);
+composer.addPass(bloom);
+const vignette = new ShaderPass({
+  uniforms: { tDiffuse: { value: null }, uV: { value: 0.48 }, uC: { value: 1.1 }, uTint: { value: -0.22 } },
+  vertexShader: `varying vec2 vUv; void main(){ vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.); }`,
+  fragmentShader: `
+    uniform sampler2D tDiffuse; uniform float uV,uC,uTint; varying vec2 vUv;
+    void main(){
+      vec3 c=texture2D(tDiffuse,vUv).rgb; c=(c-.5)*uC+.5;
+      if(uTint<0.){ c.b-=uTint*.06; c.r+=uTint*.03; } else { c.r+=uTint*.06; c.b-=uTint*.03; }
+      float d=length(vUv-.5); c*=mix(1., smoothstep(.55,.2,d), uV);
+      gl_FragColor=vec4(clamp(c,0.,1.),1.);
+    }`,
+});
+composer.addPass(vignette);
+
+const waterMat = new THREE.ShaderMaterial({
+  uniforms: {
+    uTime: { value: 0 }, uStorm: { value: 0.4 },
+    uDeep: { value: new THREE.Color(0x041018) },
+    uShallow: { value: new THREE.Color(0x1a4d62) },
+    uFoam: { value: new THREE.Color(0xd0e0ec) },
+    uSun: { value: new THREE.Vector3(0.35, 0.88, 0.28).normalize() },
+  },
+  vertexShader: WATER_VERT, fragmentShader: WATER_FRAG, transparent: true, side: THREE.DoubleSide,
+});
+const water = new THREE.Mesh(new THREE.PlaneGeometry(280, 280, 140, 140), waterMat);
+water.rotation.x = -Math.PI / 2; water.receiveShadow = true; scene.add(water);
+
+const skyMat = new THREE.ShaderMaterial({
+  side: THREE.BackSide, depthWrite: false,
+  uniforms: { uTime: { value: 0 }, uStorm: { value: 0.4 }, uFlash: { value: 0 } },
+  vertexShader: `varying vec3 vDir; void main(){ vDir=normalize(position); gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.); }`,
+  fragmentShader: `
+    varying vec3 vDir; uniform float uTime,uStorm,uFlash;
+    float n(vec2 p){ return fract(sin(dot(p,vec2(12.9898,78.233)))*43758.5453); }
+    void main(){
+      float h=vDir.y*.5+.5;
+      vec3 low=mix(vec3(.12,.16,.22),vec3(.04,.05,.07),uStorm);
+      vec3 mid=mix(vec3(.2,.26,.34),vec3(.07,.09,.12),uStorm);
+      vec3 high=mix(vec3(.28,.34,.42),vec3(.1,.12,.16),uStorm);
+      vec3 col=mix(low,mid,smoothstep(0.,.4,h)); col=mix(col,high,smoothstep(.35,1.,h));
+      float clouds=n(vDir.xz*2.8+uTime*.015);
+      col*=.72+.28*clouds;
+      col+=vec3(.15,.1,.05)*exp(-abs(vDir.y)*8.)*(1.-uStorm*.6);
+      col+=vec3(.55,.68,.95)*uFlash;
+      gl_FragColor=vec4(col,1.);
+    }`,
+});
+scene.add(new THREE.Mesh(new THREE.SphereGeometry(220, 36, 22), skyMat));
+
+// rain
+const rainN = 4800;
+const rainPos = new Float32Array(rainN * 3);
+const rainVel = new Float32Array(rainN);
+for (let i = 0; i < rainN; i++) {
+  rainPos[i * 3] = (Math.random() - 0.5) * 90;
+  rainPos[i * 3 + 1] = Math.random() * 45 + 1;
+  rainPos[i * 3 + 2] = (Math.random() - 0.5) * 90;
+  rainVel[i] = 14 + Math.random() * 22;
+}
+const rainGeo = new THREE.BufferGeometry();
+rainGeo.setAttribute('position', new THREE.BufferAttribute(rainPos, 3));
+const rain = new THREE.Points(rainGeo, new THREE.PointsMaterial({
+  color: 0xb8d0e4, size: 0.07, transparent: true, opacity: 0.5, depthWrite: false, blending: THREE.AdditiveBlending,
+}));
+scene.add(rain);
+
+// spray
+const sprayN = 700;
+const sprayPos = new Float32Array(sprayN * 3);
+const sprayVel = new Float32Array(sprayN * 3);
+for (let i = 0; i < sprayN; i++) sprayPos[i * 3 + 1] = -10;
+const sprayGeo = new THREE.BufferGeometry();
+sprayGeo.setAttribute('position', new THREE.BufferAttribute(sprayPos, 3));
+const spray = new THREE.Points(sprayGeo, new THREE.PointsMaterial({
+  color: 0xe8f2fa, size: 0.18, transparent: true, opacity: 0.65, depthWrite: false, blending: THREE.AdditiveBlending,
+}));
+scene.add(spray);
+
+const foamRing = new THREE.Mesh(
+  new THREE.RingGeometry(0.5, 3.5, 32).rotateX(-Math.PI / 2),
+  new THREE.MeshBasicMaterial({ color: 0xd8e8f4, transparent: true, opacity: 0, side: THREE.DoubleSide, depthWrite: false }),
+);
+foamRing.position.y = 0.08; scene.add(foamRing);
+
+const shipGroup = new THREE.Group(); scene.add(shipGroup);
+const debris = new THREE.Group(); scene.add(debris);
+const heroRoot = new THREE.Group(); scene.add(heroRoot);
+
+let intactShip, wreckShip, hero, island;
+let sails = [];
+let beatIdx = -1;
+let heroMode = 'hidden';
+let elapsed = 0, ready = false, done = false;
+let stormCur = 0.4, stormT = 0.4, rollCur = 0.08, rollT = 0.08, pitchCur = 0.04, pitchT = 0.04;
+let flash = 0, flashCool = 0, bloomCur = 0.32, expCur = 0.95;
+
+function burstSpray(origin, power = 1) {
+  const start = Math.floor(Math.random() * sprayN);
+  const count = Math.floor(90 * power);
+  for (let k = 0; k < count; k++) {
+    const i = (start + k) % sprayN;
+    sprayPos[i * 3] = origin.x + (Math.random() - 0.5) * 2;
+    sprayPos[i * 3 + 1] = origin.y + Math.random();
+    sprayPos[i * 3 + 2] = origin.z + (Math.random() - 0.5) * 2;
+    sprayVel[i * 3] = (Math.random() - 0.5) * 8 * power;
+    sprayVel[i * 3 + 1] = (2 + Math.random() * 10) * power;
+    sprayVel[i * 3 + 2] = (Math.random() - 0.5) * 8 * power;
+  }
+  sprayGeo.attributes.position.needsUpdate = true;
+}
+
+function setCaption(c, s) {
+  captionEl.style.animation = 'none';
+  subEl.style.animation = 'none';
+  void captionEl.offsetWidth;
+  captionEl.style.animation = '';
+  subEl.style.animation = '';
+  captionEl.textContent = c;
+  subEl.textContent = s;
+}
+
+function setHero(mode) {
+  heroMode = mode;
+  if (!hero) return;
+  heroRoot.visible = mode !== 'hidden';
+  if (mode === 'deck') { heroRoot.position.set(0.5, 3.15, 0.4); heroRoot.rotation.set(0, Math.PI * 0.2, 0); }
+  if (mode === 'brace') { heroRoot.position.set(0.3, 3.15, -0.2); heroRoot.rotation.set(0.15, Math.PI * 0.1, -0.1); }
+  if (mode === 'fall') { heroRoot.position.set(2.5, 4.5, 2); heroRoot.rotation.set(0.8, 0.6, 0.4); }
+  if (mode === 'sea') { heroRoot.position.set(4, 0.2, 7); heroRoot.rotation.set(1.15, 0.5, 0.25); }
+  if (mode === 'wash') { heroRoot.position.set(1, 0.35, -4); heroRoot.rotation.set(1.25, 0.2, 0.1); }
+  if (mode === 'beach') { heroRoot.position.set(-1.5, 0.55, -12); heroRoot.rotation.set(1.5, 0.05, 0.02); }
+}
+
+function applyBeat(i) {
+  if (i === beatIdx) return;
+  const b = BEATS[i];
+  if (!b) return;
+  beatIdx = i;
+  setCaption(b.caption, b.sub);
+  stormT = b.storm; rollT = b.roll; pitchT = b.pitch;
+  if (intactShip) intactShip.visible = b.intact !== false;
+  if (wreckShip) wreckShip.visible = b.intact === false;
+  debris.visible = b.intact === false || (b.break ?? 0) > 0.4;
+  setHero(b.hero);
+  [...dotsEl.children].forEach((el, di) => {
+    el.className = di === i ? 'on' : di < i ? 'done' : '';
+  });
+  if (i === 3 || i === 4) {
+    burstSpray(new THREE.Vector3(0, 1.5, 0), i === 3 ? 1.4 : 1.1);
+    flash = 0.9;
+    foamRing.material.opacity = 0.55;
+    foamRing.scale.setScalar(0.4);
+  }
+}
+
+function spawnDebris() {
+  const wood = new THREE.MeshStandardMaterial({ color: 0x5c4033, roughness: 0.9 });
+  for (let i = 0; i < 18; i++) {
+    const m = new THREE.Mesh(new THREE.BoxGeometry(0.6 + Math.random(), 0.08, 0.2 + Math.random() * 0.3), wood);
+    m.position.set((Math.random() - 0.5) * 18, 0.3, (Math.random() - 0.5) * 12);
+    m.rotation.set(Math.random(), Math.random() * Math.PI, Math.random());
+    m.userData.phase = Math.random() * 6;
+    debris.add(m);
+  }
+  debris.visible = false;
+  debris.position.set(-2, 0.2, -12);
+}
+
+async function boot() {
+  const [ship, wreck, isl, hr] = await Promise.all([
+    loadFirst(ASSETS.ship), loadFirst(ASSETS.wreck), loadFirst(ASSETS.island), loadFirst(ASSETS.hero),
+  ]);
+  intactShip = ship || makeShip();
+  fitLength(intactShip, SHIP_LEN, -0.5);
+  shipGroup.add(intactShip);
+  intactShip.traverse((o) => { if (/sail|cloth/i.test(o.name)) sails.push(o); });
+
+  wreckShip = wreck || makeWreck();
+  fitLength(wreckShip, 16, -0.15);
+  wreckShip.visible = false;
+  shipGroup.add(wreckShip);
+
+  island = isl || makeIsland();
+  if (isl) { fitLength(island, 100, 0); island.position.set(-24, -2.5, -52); }
+  scene.add(island);
+
+  hero = hr || makeHero();
+  plantHeight(hero, HUMAN);
+  heroRoot.add(hero);
+  heroRoot.visible = false;
+
+  spawnDebris();
+  ready = true;
+  loadEl.classList.add('hide');
+  applyBeat(0);
+  btnSkip.disabled = false;
+}
+
+function finish() {
+  if (done) return;
+  done = true;
+  setCaption('SURVIVE', 'Cinema complete · in production this enters /tutorial shipwreck island');
+  setTimeout(() => {
+    // In full client this navigates to /tutorial
+    const next = new URLSearchParams(location.search).get('next');
+    if (next) location.href = next;
+  }, 900);
+}
+
+btnSkip.addEventListener('click', () => finish());
+window.addEventListener('keydown', (e) => {
+  if (e.key === ' ' || e.key === 'Enter') {
+    if (elapsed >= SKIP_AFTER && ready) { e.preventDefault(); finish(); }
+  }
+});
+
+const clock = new THREE.Clock();
+const _a = new THREE.Vector3(), _b = new THREE.Vector3();
+
+function tick() {
+  requestAnimationFrame(tick);
+  const dt = Math.min(0.05, clock.getDelta());
+  if (!ready) { renderer.render(scene, camera); return; }
+
+  elapsed += dt;
+  barEl.style.width = `${Math.min(100, (elapsed / DURATION) * 100)}%`;
+  if (elapsed >= SKIP_AFTER) {
+    hintEl.hidden = false;
+    btnSkip.disabled = false;
+  }
+
+  // beat + camera
+  let i = 0;
+  while (i < BEATS.length - 1 && elapsed >= BEATS[i + 1].t) i++;
+  applyBeat(i);
+  const a = BEATS[i], b = BEATS[Math.min(i + 1, BEATS.length - 1)];
+  const u = easeInOutCubic((elapsed - a.t) / Math.max(0.001, b.t - a.t));
+  _a.set(...a.cam.pos); _b.set(...b.cam.pos);
+  camera.position.lerpVectors(_a, _b, u);
+  _a.set(...a.cam.look); _b.set(...b.cam.look);
+  const look = _a.clone().lerp(_b, u);
+  const shake = 0.025 + stormCur * 0.06;
+  camera.position.x += Math.sin(elapsed * 2.1) * shake;
+  camera.position.y += Math.cos(elapsed * 1.7) * shake * 0.7;
+  if (i === 3) {
+    const hit = smoothstep(10.5, 11.2, elapsed) * (1 - smoothstep(11.5, 13, elapsed));
+    camera.position.y += hit * 0.8;
+  }
+  camera.lookAt(look);
+  camera.fov = THREE.MathUtils.lerp(a.cam.fov, b.cam.fov, u);
+  if (i === 3) camera.fov += smoothstep(10.5, 11.2, elapsed) * (1 - smoothstep(11.5, 13, elapsed)) * 6;
+  camera.updateProjectionMatrix();
+
+  const bloomT = THREE.MathUtils.lerp(a.bloom, b.bloom, u);
+  const expT = THREE.MathUtils.lerp(a.exp, b.exp, u);
+  bloomCur += (bloomT - bloomCur) * 0.08;
+  expCur += (expT - expCur) * 0.08;
+
+  // storm
+  stormCur += (stormT - stormCur) * Math.min(1, dt * 1.6);
+  rollCur += (rollT - rollCur) * Math.min(1, dt * 2);
+  pitchCur += (pitchT - pitchCur) * Math.min(1, dt * 2);
+  waterMat.uniforms.uTime.value = elapsed;
+  waterMat.uniforms.uStorm.value = stormCur;
+  skyMat.uniforms.uTime.value = elapsed;
+  skyMat.uniforms.uStorm.value = stormCur;
+  skyMat.uniforms.uFlash.value = flash;
+
+  flashCool -= dt;
+  if (stormCur > 0.5 && flashCool <= 0 && Math.random() < dt * 0.4 * stormCur) {
+    flash = 0.5 + Math.random() * 0.55;
+    flashCool = 0.8 + Math.random() * 2.5;
+  }
+  flash *= Math.exp(-dt * 5.5);
+  key.intensity = 0.75 + flash * 3.2;
+  hemi.intensity = 0.45 + flash * 0.9;
+  renderer.toneMappingExposure = expCur + flash * 0.35;
+  bloom.strength = bloomCur + flash * 0.45;
+
+  const bob = Math.sin(elapsed * 1.55) * (0.22 + stormCur * 0.55);
+  shipGroup.position.y = bob;
+  shipGroup.rotation.z = Math.sin(elapsed * 0.9) * rollCur;
+  shipGroup.rotation.x = Math.sin(elapsed * 1.15 + 0.4) * pitchCur;
+  shipGroup.rotation.y = Math.sin(elapsed * 0.35) * 0.05 * stormCur;
+  for (const s of sails) {
+    s.rotation.y = Math.sin(elapsed * 3.2) * 0.08 * stormCur;
+    s.scale.x = 1 + Math.sin(elapsed * 4) * 0.03 * stormCur;
+  }
+
+  // rain
+  const arr = rainPos;
+  const wind = 5.5 * stormCur;
+  for (let ri = 0; ri < rainN; ri++) {
+    arr[ri * 3 + 1] -= rainVel[ri] * dt * (0.55 + stormCur);
+    arr[ri * 3] -= wind * dt;
+    if (arr[ri * 3 + 1] < 0) {
+      arr[ri * 3 + 1] = 28 + Math.random() * 22;
+      arr[ri * 3] = camera.position.x + (Math.random() - 0.5) * 70;
+      arr[ri * 3 + 2] = camera.position.z + (Math.random() - 0.5) * 70;
+    }
+  }
+  rainGeo.attributes.position.needsUpdate = true;
+  rain.material.opacity = 0.18 + stormCur * 0.55;
+
+  // spray
+  for (let si = 0; si < sprayN; si++) {
+    if (sprayPos[si * 3 + 1] < -5) continue;
+    sprayVel[si * 3 + 1] -= 12 * dt;
+    sprayPos[si * 3] += sprayVel[si * 3] * dt;
+    sprayPos[si * 3 + 1] += sprayVel[si * 3 + 1] * dt;
+    sprayPos[si * 3 + 2] += sprayVel[si * 3 + 2] * dt;
+    if (sprayPos[si * 3 + 1] < 0) sprayPos[si * 3 + 1] = -10;
+  }
+  sprayGeo.attributes.position.needsUpdate = true;
+
+  if (foamRing.material.opacity > 0.01) {
+    foamRing.scale.multiplyScalar(1 + dt * 1.8);
+    foamRing.material.opacity *= Math.exp(-dt * 1.2);
+  }
+
+  if (debris.visible) {
+    debris.children.forEach((c) => {
+      c.position.y = 0.25 + Math.sin(elapsed * 1.5 + c.userData.phase) * 0.08;
+      c.rotation.y += dt * 0.25;
+    });
+  }
+
+  // hero motion
+  if (heroRoot.visible) {
+    const t = elapsed;
+    if (heroMode === 'deck' || heroMode === 'brace') {
+      heroRoot.position.y = 3.15 + bob;
+      heroRoot.rotation.z = Math.sin(t * 0.9) * rollCur * 0.6;
+    } else if (heroMode === 'fall') {
+      const u2 = smoothstep(10.5, 14, t);
+      heroRoot.position.set(0.5 + u2 * 4, 4.5 - u2 * u2 * 5.5, 0.4 + u2 * 6);
+      heroRoot.rotation.set(0.3 + u2 * 1.2, 0.4 + u2 * 0.8, 0.2 + u2 * 0.5);
+    } else if (heroMode === 'sea') {
+      heroRoot.position.y = 0.12 + Math.sin(t * 2.4) * 0.14;
+      heroRoot.position.x = 4 + Math.sin(t * 0.7) * 0.4;
+    } else if (heroMode === 'wash') {
+      const u2 = smoothstep(18.5, 23.5, t);
+      heroRoot.position.set(4 - u2 * 5.5, 0.2 + (1 - u2) * 0.15, 7 - u2 * 11);
+    } else if (heroMode === 'beach') {
+      heroRoot.position.set(-1.5, 0.52 + Math.sin(t * 1.2) * 0.015, -12);
+      heroRoot.rotation.set(1.52, 0.04, 0.02);
+    }
+  }
+
+  composer.render();
+  if (!done && elapsed >= DURATION) finish();
+}
+
+window.addEventListener('resize', () => {
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+  composer.setSize(innerWidth, innerHeight);
+  bloom.resolution.set(innerWidth, innerHeight);
+});
+
+boot().then(() => { clock.start(); tick(); });
+tick();
+  </script>
+</body>
+</html>

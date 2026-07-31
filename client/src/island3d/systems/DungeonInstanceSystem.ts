@@ -5,7 +5,11 @@
  * SSOT definitions: lore.DUNGEON_DEFINITIONS
  * CDN kit (planned): models/dungeons/warlords-dungeon-kit.json + pieces/
  * Entrances today: CavePortal3D / EvilMountainTriad / mine entrances /
- * HiddenMountainCity (Thornwood Wilds — boss-gated under-mountain door)
+ * HiddenMountainCity (Thornwood Wilds — boss-gated under-mountain door).
+ *
+ * On enter, Island3DEngine routes most doorways into
+ * `PveBossInstanceSystem` (PIP-style large boss chamber) for home-island
+ * evil mountain doors and Warlords era dungeon portals.
  */
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';

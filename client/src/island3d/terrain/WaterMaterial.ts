@@ -1,9 +1,13 @@
 /**
- * WaterMaterial — single Gerstner-style ocean shader for islands / zones / lobby.
+ * WaterMaterial — single Gerstner-style **ocean** shader (islands / zones / lobby).
+ *
+ * Naming (see @shared/definitions/namingSsot):
+ *   ocean ≡ open water ≡ sea — one free surface. Property `waterLevel` = free-surface Y.
+ *   Mesh name: 'ocean'. Not farm-bucket "water" or placement-domain "water".
  *
  * Design rules:
  *  - Exactly ONE ocean mesh per scene (no R3F Water, no GLTF water layers).
- *  - Opaque depth-written surface so terrain seafloor never shows as a 2nd water.
+ *  - Opaque depth-written surface so terrain seafloor never shows as a 2nd ocean.
  *  - Stronger color contrast + animated waves + shore foam + fresnel.
  *  - getWaveHeightAt() for buoyancy / swim sync.
  */
@@ -22,7 +26,10 @@ export interface OceanConfig {
   size: number;
   /** Segments per side (higher = smoother waves, more GPU) */
   segments: number;
-  /** Base Y position of the water surface */
+  /**
+   * Free-surface world Y (ocean ≡ open water ≡ sea).
+   * Legacy name waterLevel — same as oceanSurfaceY.
+   */
   waterLevel: number;
   /** Shallow water color */
   shallowColor: THREE.Color;
@@ -117,6 +124,20 @@ const fragmentShader = /* glsl */ `
   uniform vec3 uDeepColor;
   uniform vec3 uFoamColor;
   uniform vec3 uSunDirection;
+  // Captain-style dual-pass maps (optional — flags disable when unset)
+  uniform sampler2D uReflectionMap;
+  uniform sampler2D uRefractionMap;
+  uniform sampler2D uNormalMap;
+  uniform sampler2D uFoamMap;
+  uniform sampler2D uCausticsMap;
+  uniform float uHasReflection;
+  uniform float uHasRefraction;
+  uniform float uHasNormalMap;
+  uniform float uHasFoamMap;
+  uniform float uHasCaustics;
+  uniform float uReflectivity;
+  uniform float uDistort;
+  uniform vec2 uResolution;
 
   varying vec3 vWorldPos;
   varying vec2 vUv;
@@ -127,24 +148,70 @@ const fragmentShader = /* glsl */ `
     vec3 N = normalize(vNormalW);
     vec3 viewDir = normalize(cameraPosition - vWorldPos);
 
+    // Optional scrolling normal map (Captain-of-the-Seas style)
+    if (uHasNormalMap > 0.5) {
+      vec2 nUv1 = vWorldPos.xz * 0.02 + vec2(uTime * 0.02, uTime * 0.015);
+      vec2 nUv2 = vWorldPos.xz * 0.035 - vec2(uTime * 0.018, uTime * 0.012);
+      vec3 n1 = texture2D(uNormalMap, nUv1).xyz * 2.0 - 1.0;
+      vec3 n2 = texture2D(uNormalMap, nUv2).xyz * 2.0 - 1.0;
+      vec3 nTex = normalize(n1 + n2);
+      // Tangent-ish blend into world up-dominant ocean normal
+      N = normalize(mix(N, normalize(vec3(nTex.x, N.y + nTex.y * 0.5, nTex.z)), 0.45));
+    }
+
     // Deep ↔ shallow by wave height + UV scroll
     float depthMix = clamp(0.35 + vWaveH * 2.2 * uStrength + 0.15 * sin(vUv.x * 40.0 + uTime), 0.0, 1.0);
     vec3 waterColor = mix(uDeepColor, uShallowColor, depthMix);
 
-    // Strong fresnel rim (horizon pop)
-    float fresnel = pow(1.0 - max(0.0, dot(viewDir, N)), 2.4);
-    fresnel = clamp(fresnel * uStrength, 0.08, 0.85);
-    waterColor = mix(waterColor, vec3(0.55, 0.75, 0.95), fresnel * 0.45);
+    // Screen-space sample coords with normal distortion
+    vec2 res = max(uResolution, vec2(1.0));
+    vec2 screenUv = gl_FragCoord.xy / res;
+    vec2 distort = N.xz * uDistort * 0.04;
+
+    // Reflection (mirrored FBO)
+    if (uHasReflection > 0.5) {
+      vec2 rUv = clamp(screenUv + distort, 0.001, 0.999);
+      // Reflection was rendered mirrored in Y for plane — flip V
+      rUv.y = 1.0 - rUv.y;
+      vec3 refl = texture2D(uReflectionMap, rUv).rgb;
+      float fresnelR = pow(1.0 - max(0.0, dot(viewDir, N)), 2.6);
+      fresnelR = clamp(fresnelR * uReflectivity, 0.05, 0.92);
+      waterColor = mix(waterColor, refl, fresnelR * 0.72);
+    } else {
+      float fresnel = pow(1.0 - max(0.0, dot(viewDir, N)), 2.4);
+      fresnel = clamp(fresnel * uStrength, 0.08, 0.85);
+      waterColor = mix(waterColor, vec3(0.55, 0.75, 0.95), fresnel * 0.45);
+    }
+
+    // Refraction (scene under water surface)
+    if (uHasRefraction > 0.5) {
+      vec2 fUv = clamp(screenUv + distort * 1.4, 0.001, 0.999);
+      vec3 refr = texture2D(uRefractionMap, fUv).rgb;
+      float under = 1.0 - pow(1.0 - max(0.0, dot(viewDir, N)), 1.8);
+      waterColor = mix(waterColor, mix(refr, waterColor, 0.35), under * 0.4);
+    }
 
     // Specular sun glint
     vec3 H = normalize(uSunDirection + viewDir);
     float spec = pow(max(0.0, dot(N, H)), 96.0) * 0.55 * uStrength;
     waterColor += vec3(spec);
 
-    // Crest foam
+    // Crest + texture foam
     float foam = smoothstep(0.12, 0.35, vWaveH * uStrength);
     foam *= 0.55 + 0.45 * sin(vUv.x * 80.0 + uTime * 2.0) * sin(vUv.y * 60.0 - uTime * 1.5);
+    if (uHasFoamMap > 0.5) {
+      float fm = texture2D(uFoamMap, vWorldPos.xz * 0.08 + vec2(uTime * 0.03, 0.0)).r;
+      foam = max(foam, fm * smoothstep(0.08, 0.28, vWaveH * uStrength) * 0.75);
+    }
     waterColor = mix(waterColor, uFoamColor, clamp(foam * 0.55, 0.0, 0.55));
+
+    // Shallow caustics
+    if (uHasCaustics > 0.5) {
+      float c = texture2D(uCausticsMap, vWorldPos.xz * 0.12 + uTime * 0.04).r
+              * texture2D(uCausticsMap, vWorldPos.xz * 0.09 - uTime * 0.03).r;
+      float cMask = (1.0 - depthMix) * 0.55;
+      waterColor += vec3(0.1, 0.28, 0.24) * c * cMask * uStrength;
+    }
 
     // Opaque — never stack with terrain "water" layers
     gl_FragColor = vec4(waterColor, 1.0);
@@ -156,6 +223,25 @@ const fragmentShader = /* glsl */ `
 function waveUniform(w: WaveSet): THREE.Vector4 {
   return new THREE.Vector4(w.direction.x, w.direction.y, w.steepness, w.wavelength);
 }
+
+/** Dummy 1×1 textures so samplers are always bound. */
+function dummyTex(color = 0x8080ff): THREE.DataTexture {
+  const data = new Uint8Array([
+    (color >> 16) & 255,
+    (color >> 8) & 255,
+    color & 255,
+    255,
+  ]);
+  const t = new THREE.DataTexture(data, 1, 1);
+  t.needsUpdate = true;
+  return t;
+}
+
+const _dummyReflect = dummyTex(0x6a90b8);
+const _dummyRefract = dummyTex(0x1a5070);
+const _dummyNormal = dummyTex(0x8080ff);
+const _dummyFoam = dummyTex(0xffffff);
+const _dummyCaustic = dummyTex(0x204040);
 
 export function createOceanMaterial(config: Partial<OceanConfig> = {}): THREE.ShaderMaterial {
   const c = { ...DEFAULT_OCEAN, ...config, waves: config.waves ?? DEFAULT_OCEAN.waves };
@@ -173,6 +259,19 @@ export function createOceanMaterial(config: Partial<OceanConfig> = {}): THREE.Sh
       uWave0: { value: waveUniform(waves[0] ?? DEFAULT_OCEAN.waves[0]) },
       uWave1: { value: waveUniform(waves[1] ?? DEFAULT_OCEAN.waves[1]) },
       uWave2: { value: waveUniform(waves[2] ?? DEFAULT_OCEAN.waves[2]) },
+      uReflectionMap: { value: _dummyReflect },
+      uRefractionMap: { value: _dummyRefract },
+      uNormalMap: { value: _dummyNormal },
+      uFoamMap: { value: _dummyFoam },
+      uCausticsMap: { value: _dummyCaustic },
+      uHasReflection: { value: 0 },
+      uHasRefraction: { value: 0 },
+      uHasNormalMap: { value: 0 },
+      uHasFoamMap: { value: 0 },
+      uHasCaustics: { value: 0 },
+      uReflectivity: { value: 0.85 },
+      uDistort: { value: 1.0 },
+      uResolution: { value: new THREE.Vector2(1920, 1080) },
     },
     vertexShader,
     fragmentShader,
@@ -182,6 +281,41 @@ export function createOceanMaterial(config: Partial<OceanConfig> = {}): THREE.Sh
     depthTest: true,
     side: THREE.FrontSide,
   });
+}
+
+/** Bind dual-pass + procedural maps onto an ocean material. */
+export function bindOceanMaps(
+  mat: THREE.ShaderMaterial,
+  maps: {
+    reflection?: THREE.Texture | null;
+    refraction?: THREE.Texture | null;
+    normal?: THREE.Texture | null;
+    foam?: THREE.Texture | null;
+    caustics?: THREE.Texture | null;
+  },
+): void {
+  const u = mat.uniforms;
+  if (!u) return;
+  if (maps.reflection) {
+    u.uReflectionMap.value = maps.reflection;
+    u.uHasReflection.value = 1;
+  }
+  if (maps.refraction) {
+    u.uRefractionMap.value = maps.refraction;
+    u.uHasRefraction.value = 1;
+  }
+  if (maps.normal) {
+    u.uNormalMap.value = maps.normal;
+    u.uHasNormalMap.value = 1;
+  }
+  if (maps.foam) {
+    u.uFoamMap.value = maps.foam;
+    u.uHasFoamMap.value = 1;
+  }
+  if (maps.caustics) {
+    u.uCausticsMap.value = maps.caustics;
+    u.uHasCaustics.value = 1;
+  }
 }
 
 export function createOceanMesh(config: Partial<OceanConfig> = {}): THREE.Mesh {
@@ -194,11 +328,18 @@ export function createOceanMesh(config: Partial<OceanConfig> = {}): THREE.Mesh {
   const mesh = new THREE.Mesh(geo, mat);
   mesh.position.y = c.waterLevel;
   mesh.receiveShadow = true;
-  mesh.name = 'ocean';
+  mesh.name = 'ocean'; // canonical — not "sea" / "open-water" / "waterplane"
+  mesh.userData.grudgeKeepOcean = true;
+  mesh.userData.waterLevel = c.waterLevel;
+  mesh.userData.oceanSurfaceY = c.waterLevel; // alias of waterLevel
   mesh.renderOrder = 0;
   mesh.frustumCulled = true;
   return mesh;
 }
+
+/** Alias: open water / sea mesh — same as createOceanMesh */
+export const createOpenWaterMesh = createOceanMesh;
+export const createSeaMesh = createOceanMesh;
 
 /**
  * Sample Gerstner wave height at (x, z). Matches GPU vertex displacement.
@@ -228,10 +369,14 @@ export function updateOceanMaterial(
   mat: THREE.ShaderMaterial,
   time: number,
   sunDir?: THREE.Vector3,
+  resolution?: THREE.Vector2,
 ): void {
   if (mat.uniforms.uTime) mat.uniforms.uTime.value = time;
   if (sunDir && mat.uniforms.uSunDirection) {
     mat.uniforms.uSunDirection.value.copy(sunDir).normalize();
+  }
+  if (resolution && mat.uniforms.uResolution) {
+    mat.uniforms.uResolution.value.copy(resolution);
   }
 }
 
@@ -278,23 +423,33 @@ export function flattenTerrainBelowWater(
   mesh.geometry.computeBoundingSphere();
 }
 
-/** Remove any leftover water meshes so only one ocean remains. */
+/**
+ * Remove leftover ocean/sea/open-water meshes so only one free surface remains.
+ * Uses namingSsot.isOceanMesh rules (ocean ≡ sea ≡ open water).
+ */
 export function removeDuplicateWaterMeshes(root: THREE.Object3D, keep?: THREE.Object3D): void {
   const stale: THREE.Object3D[] = [];
   root.traverse((o) => {
     if (o === keep) return;
+    if (o.userData?.grudgeKeepOcean) return;
     const n = (o.name || '').toLowerCase();
     const layer = String(o.userData?.grudgeLayer || '').toLowerCase();
+    const kind = String((o.userData?.grudgeChunk as { kind?: string } | undefined)?.kind || '').toLowerCase();
     if (
       n === 'ocean' ||
+      n === 'pirate-lobby-ocean' ||
       n === 'water' ||
+      n === 'open-water' ||
+      n === 'openwater' ||
+      n === 'sea' ||
+      n === 'seawater' ||
       n === 'r3f-water' ||
       n.includes('waterplane') ||
-      layer === 'water'
+      n.includes('ocean') ||
+      layer === 'water' ||
+      layer === 'ocean' ||
+      kind === 'ocean'
     ) {
-      // Don't remove our strengthened ocean if named ocean and is keep
-      if (keep && o === keep) return;
-      if (o.userData?.grudgeKeepOcean) return;
       stale.push(o);
     }
   });

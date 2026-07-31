@@ -114,3 +114,7 @@ wartrailer/deploy-payload.json
 client/public/models/airship-zone/opener-scene-raw.glb
 client/public/models/airship-zone/airship.glb
 
+
+dist._bak*/
+workers/cdn/NUL
+

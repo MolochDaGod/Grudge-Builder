@@ -2,7 +2,7 @@
  * Production player unit frame — craftpix frame from ui.grudge-studio.com
  */
 import type { CSSProperties } from 'react';
-import { UI_FRAMES } from '@/lib/uiKit/craftpixAssets';
+import { UI_FRAMES, UI_BARS } from '@/lib/uiKit/craftpixAssets';
 
 export interface UiKitPlayerFrameProps {
   name: string;
@@ -44,7 +44,13 @@ export function UiKitPlayerFrame({
   return (
     <div
       className={`uikit-player-frame uikit-root ${className}`}
-      style={{ '--uikit-frame-bg': `url(${frameBg})` } as CSSProperties}
+      style={
+        {
+          '--uikit-frame-bg': `url(${frameBg})`,
+          '--uikit-hp-fill': `url(${UI_BARS.hpFill})`,
+          '--uikit-mp-fill': `url(${UI_BARS.mpFill})`,
+        } as CSSProperties
+      }
     >
       <div className="uikit-player-frame__face">
         {portraitUrl ? (

@@ -7,7 +7,18 @@ import * as THREE from 'three';
 import { harvestFitHeightM } from '@shared/definitions/homeIslandSpec';
 import { cloneIslandResource, fitModelToHeight } from './IslandResourceLoader';
 
-export type TreeFallPhase = 'live' | 'falling' | 'stump' | 'hidden';
+/**
+ * Tree chop lifecycle (firewood + Valheim-like):
+ * live → notching → falling → downed → splitting → stump → (regrow) live
+ */
+export type TreeFallPhase =
+  | 'live'
+  | 'notching'
+  | 'falling'
+  | 'downed'
+  | 'splitting'
+  | 'stump'
+  | 'hidden';
 
 export interface HarvestableTree {
   group: THREE.Group;
@@ -19,7 +30,19 @@ export interface HarvestableTree {
   fallen: boolean;
   fallPhase: TreeFallPhase;
   fallProgress: number;
+  /** Legacy signed lean on X for simple fall anim */
   fallAxis: number;
+  /** Optional Z lean for directional timber fall */
+  fallAxisZ?: number;
+  /** World yaw the tree falls toward (rad) */
+  fallYaw?: number;
+  /** Firewood: cumulative notch progress 0–1 */
+  notchProgress?: number;
+  /** Firewood: locked cut-face yaw (null until first good base hit) */
+  notchFaceYaw?: number | null;
+  /** Hits per ground log segment */
+  segmentHits?: number[];
+  woodCollected?: number;
   baseScale: number;
   respawnAt: number;
   nodeId?: string;
@@ -53,6 +76,11 @@ export function createHarvestableTree(
     fallPhase: 'live',
     fallProgress: 0,
     fallAxis: 1,
+    fallAxisZ: 0,
+    notchProgress: 0,
+    notchFaceYaw: null,
+    segmentHits: undefined,
+    woodCollected: 0,
     baseScale: scale,
     respawnAt: 0,
     meshReady: false,

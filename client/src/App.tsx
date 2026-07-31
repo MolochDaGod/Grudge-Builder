@@ -125,7 +125,7 @@ function Router() {
       <Route path="/home" component={HomePage} />
       <Route path="/main-panel" component={MainPanelPage} />
       <Route path="/equipment" component={MainPanelPage} />
-      {/* /character create → GCS; /characters|/heroes → 4-slot seaside roster (no airship painting) */}
+      {/* /character create → GCS; /heroes roster; /home → /airship; /airship = era select */}
       <Route path="/character" component={CharacterRedirect} />
       <Route path="/characters" component={HeroesPage} />
       <Route path="/create-character" component={CreateCharacterRedirect} />
@@ -197,10 +197,10 @@ function Router() {
       <Route path="/game/world" component={PlayPage} />
       <Route path="/world">{() => <Suspense fallback={null}><WorldNativePage /></Suspense>}</Route>
       <Route path="/cloudfix">{() => <Suspense fallback={null}><WorldNativePage /></Suspense>}</Route>
-      <Route path="/warlords">{() => <Suspense fallback={null}><WorldNativePage /></Suspense>}</Route>
-      <Route path="/tutorial" component={TutorialPage} />
-      <Route path="/warlords/start" component={WarlordsStartPage} />
+      {/* /warlords = production flow router (was dead: WorldNativePage claimed bare /warlords first) */}
       <Route path="/warlords" component={WarlordsStartPage} />
+      <Route path="/warlords/start" component={WarlordsStartPage} />
+      <Route path="/tutorial" component={TutorialPage} />
       <Route path="/island-reveal" component={IslandRevealPage} />
       <Route path="/islands" component={IslandsPage} />
       <Route path="/home-island" component={HomeIslandPage} />

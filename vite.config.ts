@@ -119,6 +119,11 @@ export default defineConfig({
         find: "three/tsl",
         replacement: path.resolve(repoRoot, "client/src/lib/three-webgpu-stub.js"),
       },
+      // Package main points at missing file → browser TextEncoder/Decoder stub
+      {
+        find: "text-encoding-utf-8",
+        replacement: path.resolve(repoRoot, "client/src/lib/text-encoding-utf-8-stub.js"),
+      },
     ],
     extensions: ['.mjs', '.js', '.mts', '.ts', '.jsx', '.tsx', '.json'],
     dedupe: ["react", "react-dom"],
@@ -160,6 +165,11 @@ export default defineConfig({
     },
   },
   optimizeDeps: {
+    // Only scan the SPA entry — public/*.html multi-pages + broken vendor trees
+    // crash vite:dep-scan (missing @radix-ui dist, duplicate symbols in vendor/).
+    entries: ["index.html"],
+    // Broken/incomplete packages that crash vite:dep-pre-bundle on Windows
+    exclude: ["text-encoding-utf-8", "borsh"],
     esbuildOptions: {
       define: { global: "globalThis" },
     },
@@ -178,6 +188,20 @@ export default defineConfig({
       strict: true,
       deny: ["**/.*"],
       allow: monorepoRoot ? [repoRoot, monorepoRoot] : [repoRoot],
+    },
+    // Broken/stale build trees crash chokidar lstat on Windows (root is client/)
+    watch: {
+      ignored: [
+        "**/dist/**",
+        "**/dist._bak*/**",
+        "**/node_modules/**",
+        "**/.git/**",
+        "**/*.png",
+        "**/*.jpg",
+        "**/*.webp",
+        "**/*.glb",
+        "**/*.fbx",
+      ],
     },
     proxy: {
       // R2 asset CDN — forward directly to Cloudflare R2 (must come before /api catch-all)

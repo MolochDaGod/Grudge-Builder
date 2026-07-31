@@ -42,6 +42,10 @@ export const THREE_WORLD_MAP_PATH = "/world-map" as const;
 export const THREE_OPEN_WORLD_PATH =
   "/play?sector=haven_shore&mode=zone&worldSeed=grudge-world-1&city=haven_port" as const;
 
+/** Ember Spire volcanic infinite climb (random-boxes platform jumper) */
+export const THREE_EMBER_SPIRE_PATH =
+  "/play?sector=ember_depths&mode=zone&worldSeed=grudge-world-1&feature=ember_spire" as const;
+
 /** Lightweight satellite Three MMO client (same sectors / Colyseus) */
 export const THREE_PORT_PLAY_URL = `${FLEET_URLS.threePort}?mode=play&sector=haven_shore&worldSeed=grudge-world-1`;
 
@@ -120,9 +124,9 @@ export const PRODUCTION_DEPLOYMENT_PATH: GameDeployment[] = [
   {
     id: "warlords-pipeline",
     title: "Warlords Start",
-    subtitle: "Full production pipeline · level gates",
+    subtitle: "Create → airship → home island",
     description:
-      "Opening scene → character create → shipwreck tutorial → open world. Home island unlocks at level 20.",
+      "Foundry create → airship era scene → home island immediately → map / open world. Ops: info WORLD_MAP.",
     url: "/warlords/start",
     icon: "flame",
     tier: "core",
@@ -151,13 +155,13 @@ export const PRODUCTION_DEPLOYMENT_PATH: GameDeployment[] = [
   {
     id: "homeisland",
     title: "Home Island 3D",
-    subtitle: "Level 20+ · Personal Seed · Home Block Center",
+    subtitle: "Immediate after first character · large terrain",
     description:
-      "Level 20: talk to your faction captain → mission End Game → abandon-ship cinematic (sink + jump all) → home island. URL: /homeisland",
-    url: "/homeisland?cinematic=abandon-ship&from=end-game",
+      "Personal Three.js home island with harvest nodes and build. No level-20 gate. URL: /home-island",
+    url: "/home-island",
     icon: "leaf",
     tier: "core",
-    badge: "Lv 20",
+    badge: "Base",
     badgeColor: "emerald",
     stage: "home",
     featured: true,
@@ -208,6 +212,21 @@ export const PRODUCTION_DEPLOYMENT_PATH: GameDeployment[] = [
     fleetGameId: "play",
     featured: true,
     order: 35,
+  },
+  {
+    id: "ember-spire",
+    title: "Ember Spire Climb",
+    subtitle: "Volcanic Platforms · Summit Chests",
+    description:
+      "Infinite floating-island platform jumper (random-boxes style) on fleet volcanic rocks + Lyoko/spiral shelves. Hold Space to jump higher; E opens summit chests. Host: ember_depths (ashen_wastes offset tower).",
+    url: THREE_EMBER_SPIRE_PATH,
+    icon: "mountain",
+    tier: "explore",
+    badge: "Climb",
+    badgeColor: "orange",
+    stage: "sector",
+    featured: true,
+    order: 45,
   },
   {
     id: "ocean",
@@ -527,58 +546,59 @@ export const WARLORDS_LOBBY_PATH =
 export const WARLORDS_2D_PLAY_PATH = "/island" as const;
 
 /**
- * Production home destinations — nothing else on /home for Warlords era.
- * Order matches player funnel: roster → tutorial → 2D → home → lobby → sectors.
+ * Production destinations (happy path 2026-07).
+ * /home redirects to /airship — these cards are for thin shells / legacy=1 only.
+ * Ops zone testing: https://info.grudge-studio.com/WORLD_MAP.html
+ * Order: airship → home island → map → open world → optional tutorial.
  */
 export const WARLORDS_HOME_ACTIONS = [
   {
-    id: "characters",
-    title: "Characters",
-    subtitle: "Roster · create · equip",
-    description: "View and select your Warlords heroes. Create at Foundry when empty.",
-    url: "/character",
-    icon: "user" as const,
+    id: "airship",
+    title: "Airship",
+    subtitle: "Warlords era character scene",
+    description: "Primary player entry — select hero, then home island / map.",
+    url: "/airship",
+    icon: "anchor" as const,
   },
   {
-    id: "2d-play",
-    title: "2D Gameplay",
-    subtitle: "Classic island · harvest · build",
-    description: "2D Warlords island mode — professions, harvest, and building.",
-    url: WARLORDS_2D_PLAY_PATH,
-    icon: "leaf" as const,
+    id: "characters",
+    title: "Characters",
+    subtitle: "Roster · Foundry create",
+    description: "4-slot roster fallback. Create at Foundry when empty.",
+    url: "/heroes",
+    icon: "user" as const,
   },
   {
     id: "home-island",
     title: "Home Island",
-    subtitle: "Personal 1024 m seed",
-    description: "Your Three.js home island (level gate applies in production flow).",
+    subtitle: "Immediate after first character",
+    description: "Large Three.js home island — terrain, nodes, build. No level-20 gate.",
     url: THREE_HOME_ISLAND_PATH,
     icon: "globe" as const,
   },
   {
-    id: "tutorial",
-    title: "Start Tutorial",
-    subtitle: "Shipwreck · raft · first combat",
-    description: "New player shipwreck tutorial → then lobby / open world.",
-    url: "/tutorial",
-    icon: "flame" as const,
+    id: "sectors",
+    title: "World Map",
+    subtitle: "9-sector overview",
+    description:
+      "In-game era map. Ops/testing: info.grudge-studio.com/WORLD_MAP.html (Play uses skipIntro=1).",
+    url: THREE_WORLD_MAP_PATH,
+    icon: "map" as const,
   },
   {
     id: "lobby",
-    title: "Enter Lobby Scene",
-    subtitle: "Center tile of the 9-sector map",
-    description:
-      "Pirate lobby is the middle square of the Warlords era 9 map. Sail to the edge to enter a neighboring sector.",
-    url: WARLORDS_LOBBY_PATH,
+    title: "Open World",
+    subtitle: "Haven Shore zone",
+    description: "mode=zone land-in without TI storm intro.",
+    url: "/play?mode=zone&sector=haven_shore&worldSeed=grudge-world-1&skipIntro=1",
     icon: "anchor" as const,
   },
   {
-    id: "sectors",
-    title: "9 Sector Map",
-    subtitle: "Era map · sail from lobby center",
-    description:
-      "Warlords era 9 macro sectors. In production you reach a sector by sailing off the lobby (center) edge; this map is the overview hub.",
-    url: THREE_WORLD_MAP_PATH,
-    icon: "map" as const,
+    id: "tutorial",
+    title: "Tutorial (optional)",
+    subtitle: "Shipwreck side path",
+    description: "Optional first voyage — not required before home island.",
+    url: "/tutorial",
+    icon: "flame" as const,
   },
 ] as const;

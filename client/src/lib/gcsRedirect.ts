@@ -46,11 +46,11 @@ export function isAllowedReturnUrl(url: string): boolean {
 }
 
 /**
- * Default return after GCS save — shipwreck tutorial with unarmed race entry.
+ * Default return after GCS save — airship Warlords era scene, then home island.
  * Never return into character.grudge-studio.com/viewer.
  */
-export function defaultWarlordsReturnTo(path = "/tutorial"): string {
-  if (typeof window === "undefined") return `https://grudgewarlords.com${path}`;
+export function defaultWarlordsReturnTo(path = "/airship"): string {
+  if (typeof window === "undefined") return `https://client.grudge-studio.com${path}`;
   return `${window.location.origin}${path}`;
 }
 
@@ -71,12 +71,12 @@ export function buildGcsUrl(options: BuildGcsUrlOptions = {}): string {
     params.set("mode", "create");
   }
 
-  const returnTo = options.returnTo ?? defaultWarlordsReturnTo("/tutorial");
+  const returnTo = options.returnTo ?? defaultWarlordsReturnTo("/airship");
   if (isAllowedReturnUrl(returnTo)) {
     params.set("returnTo", returnTo);
   }
-  // Hint Character Studio: unarmed race → tutorial (not /viewer lab)
-  params.set("entry", "tutorial_unarmed");
+  // Hint Character Studio: Warlords era → airship handoff (not /viewer lab)
+  params.set("entry", "airship_warlords");
 
   const token = getToken() || localStorage.getItem("grudge_auth_token");
   if (token) params.set("grudge_token", token);

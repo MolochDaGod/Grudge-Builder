@@ -147,5 +147,13 @@ export default defineConfig({
     fs: {
       allow: monorepoRoot ? [repoRoot, monorepoRoot] : [repoRoot],
     },
+    // client/dist can contain broken/stale assets that crash chokidar on Windows
+    watch: {
+      ignored: [
+        "**/client/dist/**",
+        "**/dist/**",
+        "**/node_modules/**",
+      ],
+    },
   },
 });

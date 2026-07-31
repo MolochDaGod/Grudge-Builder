@@ -18,7 +18,7 @@ export interface FleetVideoEntry {
 export const FLEET_VIDEO_CATALOG: Record<string, FleetVideoEntry> = {
   warlordsIntro: {
     key: "warlordsIntro",
-    label: "Warlords intro cinematic",
+    label: "Warlords intro cinematic (NOT island-3d — use ShipwreckTutorialCinema)",
     r2_key: "gruda-armada/grudge-warlords/videos/intro.mp4",
     r2_url: `${CDN}/gruda-armada/grudge-warlords/videos/intro.mp4`,
     contentType: "video/mp4",

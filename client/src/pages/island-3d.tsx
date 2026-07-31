@@ -2,7 +2,8 @@
  * Island 3D Page — PRODUCTION client start (client.grudge-studio.com/island-3d).
  *
  * Production open:
- *   TI Three.js storm intro (Stonewisp attacks ship) → playable world with UI + options ON.
+ *   Native Three.js shipwreck cinema (storm → break → wash-up) → tutorial island
+ *   (chicken-gun pirate-islands shipwreck_cove) by default. No TI iframe / intro.mp4.
  *   Overboard float is NOT used here — that is home-island only (/island-reveal).
  *
  * Modes:
@@ -11,8 +12,8 @@
  *   ?mode=lobby — pirate lobby map (production hub)
  *   ?engine=studio — Studio Map Editor embed
  *   ?home=1 — load account Railway island when signed in
- *   ?skipIntro=1 — skip storm intro gate
- *   ?intro=1 — force storm intro
+ *   ?skipIntro=1 — skip shipwreck intro gate
+ *   ?intro=1 — force shipwreck intro
  *   ?ui=1&options=1 — keep production chrome visible
  */
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
@@ -223,9 +224,23 @@ function Island3DPlayPage() {
   const [engine, setEngine] = useState<Island3DEngine | null>(null);
   const playableSectors = useMemo(() => getPlayableSectorList(), []);
 
-  // Production: storm ship intro (TI) + options/UI always available
-  const forceIntro = params.get('intro') === '1' || params.get('intro') === 'storm';
-  const skipIntroParam = params.get('skipIntro') === '1' || params.get('from') === 'storm-intro';
+  // Shipwreck native cinema: once per session for cold open. Never block zone land-in
+  // from info WORLD_MAP (skipIntro=1 / from=info-world-map) or mode=zone sector play.
+  const forceIntro =
+    params.get('intro') === '1' ||
+    params.get('intro') === 'storm' ||
+    params.get('intro') === 'shipwreck';
+  const fromInfoMap =
+    params.get('from') === 'info-world-map' ||
+    params.get('from') === 'info' ||
+    params.get('from') === 'world-map';
+  const skipIntroParam =
+    params.get('skipIntro') === '1' ||
+    params.get('from') === 'storm-intro' ||
+    params.get('from') === 'shipwreck-intro' ||
+    fromInfoMap ||
+    // Sector zone entry never auto-plays ship intro (wrong narrative for MMO land-in)
+    (params.get('mode') === 'zone' && !forceIntro);
   const [introOptions, setIntroOptions] = useState<Island3dIntroOptions>(() => {
     try {
       const raw = localStorage.getItem(INTRO_OPTIONS_KEY);
@@ -237,11 +252,12 @@ function Island3DPlayPage() {
     if (skipIntroParam) return false;
     if (forceIntro) return true;
     if (params.get('engine') === 'studio') return false;
-    if (isHomeIslandMode) return false; // home uses overboard elsewhere
+    if (isHomeIslandMode) return false; // home uses optional abandon-ship elsewhere
     try {
       if (sessionStorage.getItem(INTRO_SESSION_KEY) === '1') return false;
     } catch { /* */ }
-    return introOptions.playStormIntro;
+    // Default: play native shipwreck cinema once → tutorial island
+    return introOptions.playStormIntro !== false;
   });
   const showOptionsChrome = params.get('options') !== '0' && (params.get('options') === '1' || introOptions.showOptions);
   const showUiChrome = params.get('ui') !== '0' && (params.get('ui') === '1' || introOptions.showUi);
@@ -251,15 +267,20 @@ function Island3DPlayPage() {
     setShowStormIntro(false);
     try {
       sessionStorage.setItem(INTRO_SESSION_KEY, '1');
+      localStorage.setItem(INTRO_OPTIONS_KEY, JSON.stringify(opts));
     } catch { /* */ }
 
     if (dest === 'tutorial') {
-      navigate(`/tutorial?from=storm-intro${characterIdParam ? `&characterId=${characterIdParam}` : ''}`);
+      navigate(`/tutorial?from=shipwreck-intro${characterIdParam ? `&characterId=${characterIdParam}` : ''}`);
       return;
     }
     if (dest === 'home_overboard') {
       // Overboard float is home-island path only
       navigate(`/island-reveal?from=overboard-intro${characterIdParam ? `&characterId=${characterIdParam}` : ''}`);
+      return;
+    }
+    if (dest === 'home_abandon_ship') {
+      navigate(`/homeisland?cinematic=abandon-ship&from=end-game${characterIdParam ? `&characterId=${characterIdParam}` : ''}`);
       return;
     }
     if (dest === 'zone') {
@@ -269,14 +290,14 @@ function Island3DPlayPage() {
       next.set('mode', 'zone');
       next.set('sector', 'haven_shore');
       next.set('worldSeed', 'grudge-world-1');
-      next.set('from', 'storm-intro');
+      next.set('from', 'shipwreck-intro');
       next.set('ui', opts.showUi ? '1' : '0');
       next.set('options', opts.showOptions ? '1' : '0');
       next.delete('intro');
       window.history.replaceState(null, '', `?${next.toString()}`);
       return;
     }
-    // Default: pirate open-world lobby on island-3d
+    // Pirate open-world lobby on island-3d
     setMode('lobby');
     setLobbyMapId(OPEN_WORLD_LOBBY_MAP_ID);
     setSectorId('lobby');
@@ -285,7 +306,7 @@ function Island3DPlayPage() {
     next.set('map', OPEN_WORLD_LOBBY_MAP_ID);
     next.set('sector', 'lobby');
     next.set('island', 'grudge-open-world');
-    next.set('from', 'storm-intro');
+    next.set('from', 'shipwreck-intro');
     next.set('ui', opts.showUi ? '1' : '0');
     next.set('options', opts.showOptions ? '1' : '0');
     next.delete('intro');
@@ -567,7 +588,7 @@ function Island3DPlayPage() {
 
   return (
     <div className="flex flex-col h-screen bg-gray-950">
-      {/* Production: TI storm ship attack intro (not overboard home-island) */}
+      {/* Production: native shipwreck cinema → tutorial island (not overboard) */}
       {showStormIntro && (
         <StormShipIntroGate
           characterId={heroCharacterId || characterIdParam}

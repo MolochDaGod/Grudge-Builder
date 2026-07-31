@@ -1,11 +1,22 @@
 # World Map — Current Truth vs Canonical 9 Sectors
 
-**Updated:** 2026-07-16  
+**Updated:** 2026-07-29  
 **Machine SSOT:** `shared/definitions/mapRegistry.ts`  
-**Human SSOT index:** `Desktop/SOURCE_OF_TRUTH.md`  
-**Primary client:** `Desktop/grudge-builder` → grudgewarlords.com
+**Happy path:** [HAPPY_PATH.md](./HAPPY_PATH.md)  
+**Ops / zone test frontend:** https://info.grudge-studio.com/WORLD_MAP.html  
+**3D runtime:** https://client.grudge-studio.com (not the world ops hub; `/home` redirects to `/airship`)
 
 There is **more than one map**. Mixing IDs is a bug.
+
+### Surface ownership (2026-07)
+
+| Role | Host |
+|------|------|
+| Zone systems browser + health + Play links | **info.grudge-studio.com/WORLD_MAP.html** |
+| 3D sector / home island / airship runtime | **client.grudge-studio.com** |
+| Character create | **character.grudge-studio.com** |
+
+Play links from info must use `skipIntro=1&from=info-world-map` so TI storm intro never blocks QA.
 
 ---
 

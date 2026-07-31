@@ -64,19 +64,23 @@ export function buildWarlordsProgress(opts: {
     flags: {
       openingSeen: readFlowFlag(WARLORDS_FLOW_FLAGS.openingSeen),
       tutorialComplete: readFlowFlag(WARLORDS_FLOW_FLAGS.tutorialComplete),
+      airshipSeen: readFlowFlag(WARLORDS_FLOW_FLAGS.airshipSeen),
     },
   });
 }
 
-export function canEnterHomeIsland(level: number): boolean {
-  return level >= WARLORDS_HOME_ISLAND_MIN_LEVEL;
+/** Home island is available immediately (no level gate). Character required by the page itself. */
+export function canEnterHomeIsland(_level?: number): boolean {
+  return true;
 }
 
-export function homeIslandLockMessage(level: number): string {
-  const need = WARLORDS_HOME_ISLAND_MIN_LEVEL;
-  const cur = Math.max(1, level || 1);
-  if (cur >= need) return '';
-  return `Home Island unlocks at level ${need}. Your hero is level ${cur}. Keep playing the open world!`;
+export function homeIslandLockMessage(_level?: number): string {
+  if (getActiveCharacterId()) return '';
+  return 'Create a character first, then your home island unlocks immediately.';
+}
+
+export function markAirshipSeen(): void {
+  setFlowFlag(WARLORDS_FLOW_FLAGS.airshipSeen);
 }
 
 export function stepPath(

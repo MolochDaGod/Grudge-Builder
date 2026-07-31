@@ -8,16 +8,21 @@
 <script src="https://js.puter.com/v2/"></script>
 <script>
   window.GRUDGE_CONFIG = {
+    // Auth SSOT = id only (never auth.* / never apex as login host)
     AUTH_GATEWAY: 'https://id.grudge-studio.com',
-    IDENTITY_API: 'https://grudge-studio.com',
+    IDENTITY_API: 'https://id.grudge-studio.com',
     // Railway Postgres — SAME DB as Warlords / GCS account characters (never Puter KV as SSOT)
     GAME_DATA: 'https://grudge-api-production-0d46.up.railway.app',
+    // Definitions: objectstore primary, info mirror (both /api/v1 JSON)
     OBJECTSTORE_URL: 'https://objectstore.grudge-studio.com/api/v1',
+    INFO_URL: 'https://info.grudge-studio.com/api/v1',
     ASSETS: 'https://assets.grudge-studio.com',
-    VERSION: '5.7.1',
+    VERSION: '5.7.2',
     WCS_URL: 'https://wcs.grudge-studio.com',
-    SKILL_TREE_URL: './skill-tree.html',
-    WEAPON_MASTERY_URL: './weaponmastery.html',
+    // Local skill-tree.html / weaponmastery.html are NOT deployed on puter.site (404).
+    // Use production Warlords pages with SSO hash handoff.
+    SKILL_TREE_URL: 'https://grudgewarlords.com/skill-tree.html',
+    WEAPON_MASTERY_URL: 'https://grudgewarlords.com/weaponmastery.html',
     // Inventory is account-shared on Railway; progress is per character UUID on Railway
     INVENTORY_SCOPE: 'account',
     PROGRESS_SCOPE: 'character',
@@ -4292,14 +4297,127 @@ function showToast(msg, type='') {
 // OBJECTSTORE ITEM DATABASE + CANONICAL ICONS
 // ============================================================
 // Binary icons: assets.grudge-studio.com (R2)
-// JSON catalog: objectstore.grudge-studio.com/api/v1/master-items.json
+// JSON catalog: objectstore|info …/api/v1/master-items.json
 // Category folders on CDN (/icons/swords/…) are HTML shells — map to pack/.
 let ITEM_DB = [];
 let ITEM_DB_CATEGORIES = [];
 let ITEM_ICON_MAP = {};
 let dbFilterCat = 'all';
+let MASTER_RECIPES_LOADED = false;
 
 const ASSET_CDN = (window.GRUDGE_CONFIG && window.GRUDGE_CONFIG.ASSETS) || 'https://assets.grudge-studio.com';
+
+/** Definition base URLs (objectstore first, info mirror). Puter has no same-origin rewrite. */
+function definitionBases() {
+  const cfg = window.GRUDGE_CONFIG || {};
+  const list = [
+    cfg.OBJECTSTORE_URL,
+    cfg.INFO_URL,
+    'https://objectstore.grudge-studio.com/api/v1',
+    'https://info.grudge-studio.com/api/v1',
+  ]
+    .filter(Boolean)
+    .map((u) => String(u).replace(/\/$/, ''));
+  return [...new Set(list)];
+}
+
+/** GET JSON from first definition host that returns ok. */
+async function fetchDefinitionJson(file) {
+  let lastErr = null;
+  for (const base of definitionBases()) {
+    try {
+      const res = await fetch(base + '/' + file.replace(/^\//, ''));
+      if (!res.ok) {
+        lastErr = new Error(file + ' HTTP ' + res.status + ' @ ' + base);
+        continue;
+      }
+      return await res.json();
+    } catch (e) {
+      lastErr = e;
+    }
+  }
+  throw lastErr || new Error('definition unavailable: ' + file);
+}
+
+function mapMasterCategoryToType(category) {
+  const c = String(category || '').toLowerCase();
+  if (/food|potion|consumable|bandage|stew|meat|soup/.test(c)) return 'Consumable';
+  if (/armor|helm|chest|boot|glove|robe|leather|plate|shield/.test(c)) return 'Armor';
+  if (/sword|axe|bow|staff|dagger|hammer|gun|crossbow|spear|weapon|mace|club/.test(c)) return 'Weapon';
+  if (/build|camp|bench|anvil|tent|chest|trap|util/.test(c)) return 'Utility';
+  if (/ingot|plank|thread|refin|essence|leather|cloth|gear|mat/.test(c)) return 'Refining';
+  return 'Craft';
+}
+
+function normalizeProfession(prof) {
+  const p = String(prof || 'All').trim();
+  const known = ['Miner', 'Forester', 'Mystic', 'Chef', 'Engineer', 'All'];
+  const hit = known.find((k) => k.toLowerCase() === p.toLowerCase());
+  return hit || (p || 'All');
+}
+
+/**
+ * Merge ObjectStore master-recipes (2k+) into inline RECIPES so Puter crafting
+ * matches Warlords production definitions. Inline recipes win on id collisions.
+ */
+async function loadMasterRecipes() {
+  try {
+    const data = await fetchDefinitionJson('master-recipes.json');
+    const raw = Array.isArray(data.recipes) ? data.recipes : Array.isArray(data) ? data : [];
+    if (!raw.length) throw new Error('master-recipes empty');
+
+    const existing = new Set(RECIPES.map((r) => r.id));
+    let added = 0;
+    for (const mr of raw) {
+      const resultName = mr.resultName || mr.name || mr.result || '';
+      if (!resultName) continue;
+      const id =
+        String(mr.uuid || mr.id || resultName)
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, '-')
+          .replace(/^-|-$/g, '')
+          .slice(0, 80) || `recp-${added}`;
+      if (existing.has(id)) continue;
+
+      const mats = {};
+      const materials = Array.isArray(mr.materials) ? mr.materials : [];
+      for (const m of materials) {
+        const name = m.name || m.itemName || m.id;
+        const qty = Number(m.quantity ?? m.qty ?? m.count ?? 1) || 1;
+        if (name) mats[name] = qty;
+      }
+
+      const prof = normalizeProfession(mr.profession || mr.prof || 'All');
+      const type = mapMasterCategoryToType(mr.category || mr.type);
+      const recipe = {
+        id,
+        n: resultName,
+        prof,
+        type,
+        tier: Number(mr.tier ?? mr.level ?? 0) || 0,
+        icon: mr.icon || mr.emoji || '⚒️',
+        mats,
+        desc: mr.name && mr.name !== resultName ? mr.name : (mr.description || resultName),
+        station: PROF_TO_STATION[prof] || 'camp',
+        uuid: mr.uuid || null,
+        resultItemId: mr.resultItemId || null,
+        source: 'objectstore',
+      };
+      RECIPES.push(recipe);
+      existing.add(id);
+      RECIPE_OUTPUT_MAP[recipe.n] = recipe.id;
+      added++;
+    }
+
+    MASTER_RECIPES_LOADED = true;
+    console.log('[ObjectStore] Merged ' + added + ' master recipes (total ' + RECIPES.length + ')');
+    const badge = document.getElementById('recipe-count') || document.querySelector('[data-recipe-count]');
+    if (badge) badge.textContent = String(RECIPES.length);
+    renderAll();
+  } catch (e) {
+    console.warn('[ObjectStore] master-recipes merge skipped:', e);
+  }
+}
 
 /** master-items category → pack/weapons stem (PascalCase file prefix) */
 const ICON_CAT_TO_PACK = {
@@ -4405,29 +4523,17 @@ function iconImgTag(url, name, cssClass, size) {
 
 async function loadItemDatabase() {
   try {
-    const base = (window.GRUDGE_CONFIG.OBJECTSTORE_URL || 'https://objectstore.grudge-studio.com/api/v1').replace(/\/$/, '');
-    let itemsUrl = base + '/master-items.json';
     try {
-      const lib = (typeof GrudgeFleet !== 'undefined' && GrudgeFleet.getGamesLibrary)
-        ? await GrudgeFleet.getGamesLibrary()
-        : await fetch(base + '/games-library.json').then(r => { if (!r.ok) throw new Error('games-library HTTP ' + r.status); return r.json(); });
-      // Prefer worker API master-items (canonical, full catalog) over github.io static links
-      if (lib.runtime && lib.runtime.masterItems) {
-        const mid = lib.runtime.masterItems;
-        // github.io static is fine if it returns JSON; prefer objectstore worker always for icons rewrite
-        itemsUrl = base + '/master-items.json';
-        if (typeof mid === 'string' && mid.includes('objectstore.grudge-studio.com')) itemsUrl = mid;
-      }
-      if (lib.assetCdn) {
-        // keep ASSET_CDN from GRUDGE_CONFIG
+      if (typeof GrudgeFleet !== 'undefined' && GrudgeFleet.getGamesLibrary) {
+        await GrudgeFleet.getGamesLibrary();
+      } else {
+        await fetchDefinitionJson('games-library.json');
       }
     } catch (libErr) {
-      console.warn('[ObjectStore] games-library fallback to master-items.json', libErr);
+      console.warn('[ObjectStore] games-library optional fail', libErr);
     }
 
-    const res = await fetch(itemsUrl);
-    if (!res.ok) throw new Error('master-items HTTP ' + res.status);
-    const data = await res.json();
+    const data = await fetchDefinitionJson('master-items.json');
     const raw = data.items || [];
     ITEM_DB = raw.map(item => {
       const category = item.category || item.type || 'weapon';
@@ -4447,7 +4553,6 @@ async function loadItemDatabase() {
     ITEM_DB.forEach(item => {
       if (item.icon && item.name) ITEM_ICON_MAP[item.name.toLowerCase()] = item.icon;
     });
-    // Enrich local recipes with canonical icons when names match
     if (typeof RECIPES !== 'undefined') {
       RECIPES.forEach(r => {
         const u = ITEM_ICON_MAP[(r.n || '').toLowerCase()];
@@ -4533,7 +4638,13 @@ initAcctTabs();
 document.body.classList.remove('access-ready');
 updateAccessGate();
 // Definitions may load in background; gameplay stays locked behind the gate
-loadItemDatabase();
+void (async () => {
+  try {
+    await Promise.all([loadItemDatabase(), loadMasterRecipes()]);
+  } catch (e) {
+    console.warn('[init] definition load', e);
+  }
+})();
 if (typeof GrudgeFleet !== 'undefined') {
   checkAuth();
 } else {

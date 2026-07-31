@@ -1,4 +1,5 @@
 /** Lobby world scale / camera distance SSOT. */
+import { OCEAN } from '@shared/definitions/namingSsot';
 
 export const LOBBY_CHARACTER_HEIGHT_M = 1.8;
 export const LOBBY_RENDER_NEAR_M = 0.1;
@@ -9,7 +10,13 @@ export interface LobbyWorldSpec {
   characterHeightM: number;
   nearM: number;
   farM: number;
+  /**
+   * Ocean free-surface Y (ocean ≡ open water ≡ sea).
+   * Legacy field name waterLevel — same as oceanSurfaceY.
+   */
   waterLevel: number;
+  /** Preferred alias of waterLevel */
+  oceanSurfaceY?: number;
 }
 
 export const WARLORDS_LOBBY_SPEC: LobbyWorldSpec = {
@@ -17,7 +24,8 @@ export const WARLORDS_LOBBY_SPEC: LobbyWorldSpec = {
   characterHeightM: LOBBY_CHARACTER_HEIGHT_M,
   nearM: LOBBY_RENDER_NEAR_M,
   farM: LOBBY_RENDER_FAR_M,
-  waterLevel: 0,
+  waterLevel: OCEAN.lobbySurfaceY,
+  oceanSurfaceY: OCEAN.lobbySurfaceY,
 };
 
 export function getLobbyWorldSpec(_id?: string): LobbyWorldSpec {

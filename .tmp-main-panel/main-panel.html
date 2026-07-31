@@ -1,0 +1,1038 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/x-icon" href="favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
+  <title>Grudge Warlords — Main Panel</title>
+  <link rel="stylesheet" href="css/grudge-theme.css">
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.5.0/model-viewer.min.js"></script>
+  <style>
+    .app { display: flex; height: 100vh; flex-direction: column; overflow: hidden; }
+    .top-bar { display: flex; align-items: center; justify-content: space-between; padding: 8px 16px; background: linear-gradient(90deg,#1a100a,#221710,#1a100a); border-bottom: 2px solid var(--gold); flex-shrink: 0; }
+    .logo h1 { font-family: var(--font-display); font-size: 15px; color: var(--gold); letter-spacing: 2px; text-transform: uppercase; }
+    .player-info { display: flex; align-items: center; gap: 14px; font-size: 12px; }
+    .player-info .name { color: var(--gold); font-family: var(--font-display); font-weight: 700; }
+    .player-info .xp-bar { width: 120px; height: 6px; background: #2a1e14; border-radius: 3px; overflow: hidden; border: 1px solid #3a2a1a; }
+    .player-info .xp-fill { height: 100%; width: 35%; background: linear-gradient(90deg, var(--gold-dark), var(--gold)); border-radius: 3px; transition: width 0.3s; }
+    .main-body { display: flex; flex: 1; min-height: 0; }
+    .left-col { width: 260px; flex-shrink: 0; background: #1a120c; border-right: 2px solid #3a2a1a; overflow-y: auto; padding: 12px; }
+    .center-col { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+    .right-col { width: 280px; flex-shrink: 0; background: #1a120c; border-left: 2px solid #3a2a1a; display: flex; flex-direction: column; }
+    .tab-strip { display: flex; background: #14100a; border-bottom: 2px solid var(--gold); flex-shrink: 0; overflow-x: auto; }
+    .tab-btn { border: 0; background: transparent; color: var(--muted); cursor: pointer; padding: 10px 14px; font-family: var(--font-display); font-size: 10px; text-transform: uppercase; letter-spacing: 1px; font-weight: 700; border-bottom: 2px solid transparent; white-space: nowrap; transition: all 0.15s; }
+    .tab-btn:hover { color: var(--text); background: rgba(255,215,0,0.05); }
+    .tab-btn.active { color: var(--gold); border-bottom-color: var(--gold); background: rgba(255,215,0,0.08); }
+    .content-area { flex: 1; overflow-y: auto; padding: 16px; }
+    .stat-row { display: flex; justify-content: space-between; padding: 4px 0; font-size: 12px; border-bottom: 1px solid rgba(255,255,255,0.03); }
+    .stat-row .k { color: var(--muted); font-weight: 600; }
+    .stat-row .v { font-family: monospace; font-size: 11px; }
+    .stat-row .v.positive { color: var(--green); }
+    .inv-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; padding: 8px; flex: 1; overflow-y: auto; align-content: start; }
+    .inv-cell { aspect-ratio: 1; border: 2px solid #3a2a1a; border-radius: 6px; background: #221710; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 9px; color: var(--dim); position: relative; transition: all 0.15s; }
+    .inv-cell:hover { border-color: var(--gold); box-shadow: 0 0 8px rgba(212,175,55,0.2); }
+    .inv-cell.has-item { border-color: #3a2a1a; }
+    .inv-cell img { width: 100%; height: 100%; object-fit: contain; padding: 4px; image-rendering: pixelated; }
+    .inv-cell .inv-tier { position: absolute; top: 1px; right: 2px; font-size: 6px; font-weight: 700; padding: 0 3px; border-radius: 2px; }
+    .inv-cell .inv-stack { position: absolute; bottom: 1px; right: 2px; font-size: 7px; font-weight: 700; color: #fff; text-shadow: 0 1px 2px #000; }
+    .inv-header { padding: 10px 12px; border-bottom: 1px solid #3a2a1a; display: flex; justify-content: space-between; align-items: center; }
+    .inv-header h3 { font-family: var(--font-display); font-size: 12px; color: var(--gold); text-transform: uppercase; }
+    .inv-count { font-size: 10px; color: var(--dim); }
+    .hotbar { display: flex; gap: 4px; justify-content: center; padding: 6px; background: #120c06; border-top: 2px solid var(--gold); align-items: center; }
+    .hb-slot { width: 44px; height: 44px; border: 2px solid #3a2a1a; border-radius: 6px; background: #2a1e14; display: flex; align-items: center; justify-content: center; font-size: 9px; color: var(--dim); cursor: pointer; position: relative; transition: all 0.15s; }
+    .hb-slot:hover { border-color: var(--gold); }
+    .hb-slot .key { position: absolute; top: 2px; left: 4px; font-size: 8px; color: var(--muted); }
+    .hb-slot.skill { border-color: #4a3520; }
+    .hb-slot.consumable { border-color: #2a3520; }
+    .hb-slot img { width: 100%; height: 100%; object-fit: contain; padding: 3px; image-rendering: pixelated; }
+    .hb-divider { width: 2px; height: 30px; background: #3a2a1a; margin: 0 4px; border-radius: 1px; }
+    .section-title { font-family: var(--font-display); font-size: 12px; color: var(--gold); text-transform: uppercase; letter-spacing: 1px; margin: 16px 0 10px; padding-left: 12px; border-left: 3px solid var(--gold); }
+
+    /* ===== Profession Bars ===== */
+    .prof-row { display: flex; align-items: center; gap: 8px; padding: 3px 0; font-size: 11px; }
+    .prof-row .prof-name { color: var(--muted); width: 70px; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .prof-row .prof-bar { flex: 1; height: 8px; background: #221710; border-radius: 4px; overflow: hidden; border: 1px solid #3a2a1a; }
+    .prof-row .prof-fill { height: 100%; border-radius: 4px; transition: width 0.3s; }
+    .prof-row .prof-lv { font-family: monospace; font-size: 10px; color: var(--gold); width: 20px; text-align: right; }
+
+    /* ===== Equipment Panel Layout ===== */
+    .eq-panel { display: flex; align-items: stretch; gap: 0; width: 100%; min-height: 480px; }
+    .eq-col { display: flex; flex-direction: column; gap: 6px; justify-content: center; padding: 8px 6px; width: 86px; flex-shrink: 0; }
+    .eq-center { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; background: radial-gradient(ellipse at center, rgba(212,175,55,0.04) 0%, transparent 70%); border-left: 1px solid rgba(212,175,55,0.1); border-right: 1px solid rgba(212,175,55,0.1); min-width: 160px; }
+    .eq-center .silhouette { width: 130px; height: 240px; background: linear-gradient(180deg, rgba(30,20,12,0.9) 0%, rgba(20,14,8,0.7) 100%); border: 2px solid rgba(212,175,55,0.15); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: var(--dim); font-size: 60px; text-shadow: 0 0 20px rgba(212,175,55,0.2); }
+    .eq-slot { width: 68px; height: 68px; border: 2px solid var(--gold-dim); border-radius: 8px; background: linear-gradient(180deg, #2e1f14 0%, #221710 100%); display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; font-size: 8px; color: var(--muted); text-transform: uppercase; position: relative; transition: all 0.2s; box-shadow: inset 0 2px 4px rgba(0,0,0,0.4); }
+    .eq-slot:hover { border-color: var(--gold); box-shadow: 0 0 12px rgba(212,175,55,0.3), inset 0 2px 4px rgba(0,0,0,0.4); transform: scale(1.05); z-index: 2; }
+    .eq-slot.equipped { border-color: var(--gold); background: linear-gradient(180deg, #3a2a1a 0%, #2e1f14 100%); }
+    .eq-slot .slot-icon { width: 44px; height: 44px; object-fit: contain; image-rendering: pixelated; filter: drop-shadow(0 0 4px rgba(212,175,55,0.3)); }
+    .eq-slot .slot-label { font-size: 7px; margin-top: 1px; letter-spacing: 1px; color: var(--dim); }
+    .eq-slot .slot-tier { position: absolute; top: 2px; right: 3px; font-size: 7px; font-weight: 700; padding: 1px 4px; border-radius: 3px; }
+    .eq-slot .slot-placeholder { font-size: 18px; opacity: 0.15; margin-bottom: 2px; }
+    .eq-summary { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin-top: 14px; padding: 10px; background: rgba(0,0,0,0.2); border-radius: 8px; border: 1px solid rgba(212,175,55,0.08); }
+    .eq-summary .eq-sum-item { text-align: center; min-width: 50px; }
+    .eq-summary .eq-sum-val { font-family: monospace; font-size: 13px; font-weight: 700; color: var(--green); }
+    .eq-summary .eq-sum-lbl { font-size: 8px; color: var(--dim); text-transform: uppercase; letter-spacing: 0.5px; }
+
+    /* ===== Attribute Cards ===== */
+    .attr-card { background: linear-gradient(180deg, #221710 0%, #1a120c 100%); border: 2px solid #3a2a1a; border-radius: 8px; padding: 14px; margin-bottom: 10px; transition: all 0.2s; cursor: default; }
+    .attr-card:hover { border-color: var(--gold-dim); box-shadow: 0 0 10px rgba(212,175,55,0.1); }
+    .attr-card-head { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+    .attr-card-head img { width: 28px; height: 28px; object-fit: contain; image-rendering: pixelated; }
+    .attr-card-head .attr-name { font-family: var(--font-display); font-size: 13px; font-weight: 700; }
+    .attr-card-head .attr-role { font-size: 9px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+    .attr-desc { font-size: 10px; color: var(--muted); line-height: 1.4; margin-bottom: 8px; }
+    .attr-formula { font-size: 9px; color: var(--dim); font-family: monospace; padding: 6px 8px; background: rgba(0,0,0,0.3); border-radius: 4px; border-left: 2px solid var(--gold-dim); }
+    .attr-gains { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px; }
+    .attr-gain-chip { font-size: 8px; padding: 2px 6px; border-radius: 10px; background: rgba(68,255,68,0.1); color: var(--green); }
+    .attr-points-bar { display: flex; align-items: center; gap: 8px; padding: 12px 0; }
+    .attr-points-bar .pts-label { font-size: 11px; color: var(--muted); }
+    .attr-points-bar .pts-val { font-family: monospace; font-size: 14px; color: var(--gold); font-weight: 700; }
+
+    /* ===== Item Hover Tooltip ===== */
+    .eq-tooltip { position: fixed; z-index: 9999; width: 320px; max-height: 480px; overflow-y: auto; background: linear-gradient(180deg, hsl(225 25% 14%) 0%, hsl(225 28% 10%) 50%, hsl(225 25% 8%) 100%); border: 2px solid var(--gold); border-radius: 8px; padding: 16px; pointer-events: none; opacity: 0; transition: opacity 0.15s; box-shadow: 0 8px 32px rgba(0,0,0,0.7), 0 0 16px rgba(212,175,55,0.15); }
+    .eq-tooltip.visible { opacity: 1; }
+    .eq-tooltip .tt-header { display: flex; gap: 12px; align-items: flex-start; margin-bottom: 12px; }
+    .eq-tooltip .tt-icon { width: 56px; height: 56px; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; overflow: hidden; border: 2px solid var(--gold-dim); }
+    .eq-tooltip .tt-icon img { width: 100%; height: 100%; object-fit: contain; }
+    .eq-tooltip .tt-name { font-family: var(--font-display); font-size: 14px; font-weight: 700; letter-spacing: 0.03em; }
+    .eq-tooltip .tt-sub { color: var(--muted); font-size: 10px; margin-top: 2px; text-transform: uppercase; letter-spacing: 1px; }
+    .eq-tooltip .tt-tier { display: inline-block; padding: 2px 8px; border-radius: 3px; font-size: 9px; font-weight: 700; margin-top: 4px; }
+    .eq-tooltip .tt-action { font-size: 9px; color: var(--gold); margin-top: 6px; text-align: center; padding: 4px; background: rgba(212,175,55,0.08); border-radius: 4px; }
+    .eq-tooltip .tt-section { margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(212,175,55,0.15); }
+    .eq-tooltip .tt-section-title { font-size: 8px; text-transform: uppercase; color: var(--dim); letter-spacing: 1px; margin-bottom: 6px; font-weight: 700; }
+    .eq-tooltip .tt-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
+    .eq-tooltip .tt-stat { background: rgba(0,0,0,0.3); padding: 4px 8px; border-radius: 4px; border-left: 2px solid var(--green); }
+    .eq-tooltip .tt-stat-label { font-size: 8px; color: var(--dim); text-transform: uppercase; }
+    .eq-tooltip .tt-stat-val { font-size: 12px; font-weight: 700; color: var(--green); font-family: monospace; }
+    .eq-tooltip .tt-abilities li { padding: 3px 0; font-size: 10px; color: var(--text); border-bottom: 1px solid rgba(255,255,255,0.03); list-style: none; }
+    .eq-tooltip .tt-signature { background: linear-gradient(135deg, rgba(212,168,75,0.15), rgba(240,216,144,0.05)); padding: 6px 10px; border-radius: 6px; border-left: 3px solid var(--gold); margin-top: 6px; font-size: 10px; }
+    .eq-tooltip .tt-passive { display: inline-block; background: rgba(74,158,255,0.15); color: #4a9eff; padding: 2px 8px; border-radius: 12px; font-size: 9px; margin: 2px 3px 2px 0; }
+    .eq-tooltip .tt-lore { font-style: italic; color: var(--dim); font-size: 10px; line-height: 1.4; }
+    .eq-tooltip .tt-uuid { font-family: monospace; font-size: 8px; color: var(--dim); margin-top: 6px; word-break: break-all; }
+    .back-link { display: inline-block; padding: 8px 16px; color: var(--gold); font-size: 0.9em; background: #14100a; }
+
+    /* ===== Error Banner ===== */
+    .error-banner { padding: 12px 16px; background: rgba(255,68,68,0.1); border: 1px solid rgba(255,68,68,0.3); border-radius: 6px; color: #ff6666; font-size: 11px; margin-bottom: 12px; display: none; }
+    .error-banner.visible { display: block; }
+
+    /* Weapon skill tree (equipped weapon) */
+    .wst-header { display:flex; gap:14px; align-items:center; margin-bottom:16px; padding:14px; background:linear-gradient(180deg,rgba(212,175,55,0.06),transparent); border:1px solid rgba(212,175,55,0.2); border-radius:8px; }
+    .wst-icon { width:56px; height:56px; object-fit:contain; border:2px solid var(--gold-dim); border-radius:6px; background:#221710; padding:4px; }
+    .wst-title { font-family:var(--font-display); font-size:15px; color:var(--gold); font-weight:700; }
+    .wst-lore { font-size:10px; color:var(--muted); margin-top:4px; line-height:1.4; }
+    .wst-meta { font-size:9px; color:var(--dim); margin-top:4px; }
+    .wst-empty { text-align:center; padding:40px 16px; color:var(--muted); font-size:12px; }
+    .tree-container { margin-top:8px; }
+    .tree-title { font-family:var(--font-display); font-size:12px; color:var(--gold); margin-bottom:14px; letter-spacing:0.04em; }
+    .tier-row { display:flex; gap:14px; margin-bottom:12px; align-items:flex-start; }
+    .tier-marker { display:flex; flex-direction:column; align-items:center; width:42px; flex-shrink:0; }
+    .tier-badge { width:36px; height:36px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-family:var(--font-display); font-size:9px; font-weight:700; border:2px solid var(--gold-dim); background:#221710; color:var(--gold); }
+    .tier-badge.active { background:linear-gradient(180deg,var(--gold),var(--gold-dark)); color:#1a100a; border-color:var(--gold); }
+    .tier-badge.unlocked { border-color:#4a9eff; color:#4a9eff; }
+    .tier-line { width:2px; flex:1; min-height:20px; background:linear-gradient(180deg,var(--gold-dim),transparent); margin-top:4px; }
+    .tier-row:last-child .tier-line { display:none; }
+    .tier-nodes { display:flex; flex-wrap:wrap; gap:8px; flex:1; }
+    .tree-node { min-width:140px; flex:1; max-width:220px; padding:10px 12px; border-radius:6px; border:1px solid #3a2a1a; background:linear-gradient(180deg,#221710,#1a120c); }
+    .tree-node.locked { opacity:0.45; }
+    .tree-node .node-type { font-size:7px; letter-spacing:0.08em; padding:2px 6px; border-radius:3px; display:inline-block; margin-bottom:4px; font-weight:700; }
+    .tree-node .node-name { font-size:11px; font-weight:700; color:var(--text-light); }
+    .tree-node .node-desc { font-size:9px; color:var(--muted); margin-top:3px; line-height:1.35; }
+    .tree-node.sig { border-color:hsl(43 60% 35%); }
+    .tree-node.sig .node-name { color:var(--gold); }
+    .tree-node.sig .node-type { background:rgba(212,168,75,0.15); color:var(--gold); }
+    .tree-node.ability .node-type { background:rgba(74,158,255,0.12); color:#4a9eff; }
+    .tree-node.passive .node-name { color:#6ec96e; }
+    .tree-node.passive .node-type { background:rgba(110,201,110,0.12); color:#6ec96e; }
+
+    /* Canonical weapon skill slots (master-weaponSkills.json) */
+    .wst-action-bar-compact { display:flex; gap:6px; justify-content:center; flex-wrap:wrap; margin:12px 0; }
+    .wst-action-bar-compact .action-slot { width:48px; height:48px; border-radius:6px; border:2px solid #3a2a1a; background:#221710; position:relative; display:flex; align-items:center; justify-content:center; }
+    .wst-action-bar-compact .action-slot img { width:34px; height:34px; object-fit:contain; }
+    .wst-action-bar-compact .slot-num { position:absolute; top:-6px; left:-6px; width:16px; height:16px; border-radius:50%; background:#1a100a; border:1px solid var(--gold); font-size:8px; color:var(--gold); display:flex; align-items:center; justify-content:center; font-weight:700; }
+    .wst-compact-cols { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:10px; margin-top:8px; }
+    .wst-compact-cols .slot-header { text-align:center; padding:8px; margin-bottom:8px; border-radius:6px; border:1px solid #3a2a1a; font-family:var(--font-display); font-size:9px; font-weight:700; text-transform:uppercase; color:var(--gold); }
+    .wst-compact-cols .unlock-tag { display:block; font-size:8px; color:var(--dim); margin-top:3px; text-transform:none; font-weight:400; }
+    .wst-compact-cols .skill-card { border:1px solid #3a2a1a; border-radius:6px; padding:8px; margin-bottom:6px; background:#1a120c; font-size:10px; }
+    .wst-compact-cols .skill-card.locked { opacity:0.45; }
+    .wst-compact-cols .skill-name { font-weight:700; color:var(--gold); font-size:10px; }
+    .wst-compact-cols .skill-desc { color:var(--muted); font-size:9px; margin-top:3px; line-height:1.35; }
+    .wst-compact-cols .skill-tier-tag { font-size:8px; color:var(--dim); margin-left:auto; }
+    .wst-compact-cols .skill-icon-row { display:flex; align-items:center; gap:6px; margin-bottom:4px; }
+    .wst-compact-cols .skill-icon { width:32px; height:32px; border:1px solid #3a2a1a; border-radius:4px; display:flex; align-items:center; justify-content:center; background:#221710; flex-shrink:0; }
+    .wst-compact-cols .skill-icon img { width:100%; height:100%; object-fit:contain; }
+    .wst-compact-cols .effect-tag { display:inline-block; font-size:8px; padding:1px 5px; border-radius:8px; background:rgba(212,175,55,0.08); border:1px solid rgba(212,175,55,0.2); color:var(--muted); margin:2px 2px 0 0; }
+    .wst-slot-placeholder { border:1px dashed #3a2a1a; border-radius:4px; padding:8px; text-align:center; color:var(--dim); font-size:8px; margin-top:4px; }
+    .wst-offhand-chip { font-size:10px; color:var(--muted); margin:-8px 0 10px; padding:6px 10px; border:1px solid #3a2a1a; border-radius:6px; background:#1a120c; }
+    .wst-modifier-banner { font-size:10px; padding:8px 12px; border-radius:6px; margin-bottom:10px; line-height:1.4; }
+    .wst-modifier-banner strong { display:block; color:var(--gold); margin-bottom:3px; }
+    .wst-banner-shield { border:1px solid hsl(210 50% 35%); background:hsl(210 40% 12%); }
+    .wst-banner-tome { border:1px solid hsl(270 40% 35%); background:hsl(270 30% 12%); }
+
+    @media(max-width:1000px) { .left-col, .right-col { display: none; } }
+    @media(max-width:700px) { .eq-col { width: 70px; } .eq-slot { width: 58px; height: 58px; } .eq-slot .slot-icon { width: 36px; height: 36px; } }
+  </style>
+</head>
+<body>
+<div class="app">
+  <header class="top-bar">
+    <div class="logo"><a href="index.html" style="color:var(--gold)">← Hub</a> <h1 style="display:inline;margin-left:12px" class="gold-text">Grudge Warlords</h1></div>
+    <div class="player-info">
+      <span class="name" id="playerName">Guest</span>
+      <span style="color:var(--muted);font-size:11px" id="playerClass">Lv.1 Warrior</span>
+      <div class="xp-bar"><div class="xp-fill" id="xpFill"></div></div>
+    </div>
+  </header>
+  <div class="main-body">
+    <aside class="left-col" id="leftCol"></aside>
+    <main class="center-col">
+      <div class="error-banner" id="errorBanner"></div>
+      <nav class="tab-strip" id="tabStrip"></nav>
+      <div class="content-area" id="contentArea"></div>
+    </main>
+    <aside class="right-col">
+      <div class="inv-header">
+        <h3>Inventory</h3>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <span class="inv-count" id="invCount">0/42</span>
+          <span style="font-family:monospace;font-size:12px;color:var(--gold)" id="goldDisplay">250 Gold</span>
+        </div>
+      </div>
+      <div class="inv-grid" id="invGrid"></div>
+    </aside>
+  </div>
+  <footer class="hotbar" id="hotbar"></footer>
+</div>
+
+<!-- Item Hover Tooltip -->
+<div class="eq-tooltip" id="eqTooltip"></div>
+
+<script src="./js/weapon-skill-tree.js"></script>
+<script>
+  const CDN = 'https://assets.grudge-studio.com';
+  const PAGE_BASE = (() => {
+    const slash = window.location.pathname.lastIndexOf('/');
+    return slash <= 0 ? '' : window.location.pathname.slice(0, slash);
+  })();
+  function asset(url) {
+    if (!url) return url;
+    if (/^(https?:|data:|blob:)/i.test(url)) return url;
+    if (url.startsWith('/')) return `${PAGE_BASE}${url}`;
+    return url;
+  }
+  const API_SOURCES = [
+    'https://objectstore.grudge-studio.com/api/v1',
+    'https://assets.grudge-studio.com/api/v1',
+    './api/v1',  // local ObjectStore JSON fallback
+  ];
+  const TABS = ['Equipment','Attributes','Skills','Crafting','Quests'];
+  let activeTab = 'Equipment';
+  let allItems = [], allRecipes = [], allAttributes = [], allMaterials = [];
+  let allProfessions = [], allSkillTrees = [], allWeaponSkills = [], allArtifacts = [];
+  let raceManifest = null;
+  let selectedRace = 'human';
+  let selectedClass = 'Warrior';
+  const RACE_PACK = `${CDN}/asset-packs/toon-rts-characters`;
+  const RACE_IDS = ['human','orc','elf','dwarf','undead','barbarian'];
+  const RACE_META = {
+    human:     { name:'Human',     display:'Western Kingdoms', faction:'crusade', color:'#c9a04e', mount:'Horse' },
+    orc:       { name:'Orc',       display:'Orcs',             faction:'legion',  color:'#8b2020', mount:'Wolf' },
+    elf:       { name:'Elf',       display:'Elves',            faction:'fabled',  color:'#7ec8e3', mount:'Stag' },
+    dwarf:     { name:'Dwarf',     display:'Dwarves',          faction:'fabled',  color:'#7ec8e3', mount:'Boar' },
+    undead:    { name:'Undead',     display:'Undead',           faction:'legion',  color:'#8b2020', mount:'Skeletal Horse' },
+    barbarian: { name:'Barbarian',  display:'Barbarians',       faction:'crusade', color:'#c9a04e', mount:'Warhorse' },
+  };
+  // Classes exist but players don't switch class — it's set at character creation
+  // Class only affects armor material type for the demo display
+
+  // Equipment slot definitions — matches ObjectStore armor slotTypes
+  const ARMOR_SLOTS = ['Helm','Shoulder','Chest','Hands','Feet','Relic'];
+  const WEAPON_SLOTS = ['Mainhand','Offhand'];
+  const JEWELRY_SLOTS = ['Ring','Necklace'];
+  const LEFT_SLOTS  = ARMOR_SLOTS;
+  const RIGHT_SLOTS = [...WEAPON_SLOTS, ...JEWELRY_SLOTS];
+  const ALL_SLOTS = [...LEFT_SLOTS, ...RIGHT_SLOTS];
+
+  // Slot placeholder icons
+  const SLOT_ICONS = {
+    Helm:'🪖', Shoulder:'🛡', Chest:'🎽', Hands:'🧤', Feet:'🥾', Relic:'🔮',
+    Mainhand:'⚔', Offhand:'🛡', Ring:'💍', Necklace:'📿'
+  };
+
+  // Class → armor material type
+  const CLASS_ARMOR = {
+    'Warrior': 'metal', 'Ranger': 'leather', 'Mage Priest': 'cloth', 'Worge': 'leather'
+  };
+
+  // All weapon categories — no class restrictions, any class can use any weapon
+  const ALL_WEAPON_CATS = ['swords','axes1h','daggers','greatswords','greataxes','hammers1h','hammers2h','spears','maces','bows','crossbows','guns','fireStaves','frostStaves','holyStaves','lightningStaves','natureStaves','tools'];
+  const ALL_OFFHAND_CATS = ['shields','tomes','offhand-tome','daggers'];
+
+  // Equipped items (slot → item UUID). Connect to Grudge backend for real data.
+  const equippedItems = {};
+
+  // Inventory items (array of {uuid, stack})
+  let inventoryItems = [];
+
+  // All armor items (loaded separately from master-armor.json)
+  let allArmor = [];
+
+  // Tier colors matching ObjectStore tier system
+  const TIER_COLORS = {
+    1:'#8b7355', 2:'#a8a8a8', 3:'#4a9eff', 4:'#9d4dff',
+    5:'#ff4d4d', 6:'#ffaa00', 7:'#d4a84b', 8:'#f0d890'
+  };
+  const TIER_LABELS = {
+    1:'Common', 2:'Uncommon', 3:'Rare', 4:'Epic',
+    5:'Heroic', 6:'Mythic', 7:'Ancient', 8:'Legendary'
+  };
+
+  // Base stats before gear
+  const BASE_STATS = { health:250, mana:100, stamina:100, damage:0, defense:0, speed:1.0, crit:0, block:0 };
+
+  // Profession data — loaded from master-professions.json, demo fallback
+  const PROFESSION_FALLBACK = [
+    { name:'Miner', color:'var(--miner)', level:3, xp:45, iconUrl:`${CDN}/icons/pack/weapons/Hammer_01.png` },
+    { name:'Forester', color:'var(--forester)', level:2, xp:60, iconUrl:`${CDN}/icons/pack/weapons/Bow_01.png` },
+    { name:'Mystic', color:'var(--mystic)', level:1, xp:20, iconUrl:`${CDN}/icons/pack/weapons/Staff_01.png` },
+    { name:'Chef', color:'var(--chef)', level:4, xp:80, iconUrl:`${CDN}/icons/pack/misc/Burns.png` },
+    { name:'Engineer', color:'var(--engineer)', level:1, xp:10, iconUrl:`${CDN}/icons/pack/weapons/Crossbow_01.png` },
+  ];
+
+  // Runtime icon URL fixer — remaps legacy broken paths to real ObjectStore paths
+  function fixIconUrl(url) {
+    if (!url) return '';
+    if (url.includes('/icons/food/')) {
+      const map = { 'food_red.png':'food_steak_cooked.png', 'food_green.png':'food_grapes.png', 'food_blue.png':'food_fish_red.png' };
+      const file = url.split('/').pop();
+      return `${CDN}/icons/consumables/${map[file] || 'food_steak_cooked.png'}`;
+    }
+    if (url.includes('/icons/potions/')) {
+      return `${CDN}/icons/consumables/health_potion.png`;
+    }
+    return url;
+  }
+
+  function findItemByUuid(uuid) { return allItems.find(i => i.uuid === uuid); }
+  function findAnyItem(uuid) { return findItemByUuid(uuid) || allMaterials.find(m => m.uuid === uuid); }
+
+  // ── API Fetch with CF-first fallback ─────────────────────────────────
+  async function fetchJSON(filename) {
+    for (const base of API_SOURCES) {
+      try {
+        const res = await fetch(`${base}/${filename}`);
+        if (!res.ok) continue;
+        return await res.json();
+      } catch { continue; }
+    }
+    return null;
+  }
+
+  // ── Init ────────────────────────────────────────────────────────────
+  async function init() {
+    try {
+      const [itemsRes, recipesRes, attrsRes, matsRes, profsRes, skillsRes, wpnSkillsRes, artsRes] = await Promise.all([
+        fetchJSON('master-items.json'),
+        fetchJSON('master-recipes.json'),
+        fetchJSON('master-attributes.json'),
+        fetchJSON('master-materials.json'),
+        fetchJSON('master-professions.json'),
+        fetchJSON('master-skillTrees.json'),
+        fetchJSON('master-weaponSkills.json'),
+        fetchJSON('master-artifacts.json'),
+      ]);
+      allItems = itemsRes?.items || [];
+      allRecipes = recipesRes?.recipes || [];
+      allAttributes = attrsRes?.attributes || [];
+      allMaterials = matsRes?.materials || [];
+      allProfessions = profsRes?.professions || profsRes?.gathering?.concat?.(profsRes?.crafting || []) || [];
+      allSkillTrees = skillsRes?.classes || skillsRes?.skillTrees || [];
+      allWeaponSkills = wpnSkillsRes?.weaponTypes || wpnSkillsRes?.weapons || [];
+      if (wpnSkillsRes?.weaponTypes?.length) WeaponSkillTree.setCatalog(wpnSkillsRes);
+      allArtifacts = artsRes?.artifacts || [];
+      // Load armor separately (master-items has them but master-armor has slotType/material)
+      const armorRes = await fetchJSON('master-armor.json');
+      allArmor = armorRes?.items || [];
+      if (!allItems.length) showError('No items loaded — ObjectStore API may be unreachable.');
+    } catch (err) {
+      showError('Failed to load game data: ' + err.message);
+    }
+
+    // Load race manifest from CDN
+    try {
+      const mRes = await fetch(`${RACE_PACK}/manifest.json`);
+      if (mRes.ok) raceManifest = await mRes.json();
+    } catch { /* non-fatal */ }
+
+    autoEquipDemo();
+    populateInventoryDemo();
+
+    // Tab strip
+    document.getElementById('tabStrip').innerHTML = TABS.map(t =>
+      `<button class="tab-btn ${t===activeTab?'active':''}" onclick="switchTab('${t}')">${t}</button>`
+    ).join('');
+
+    renderLeftCol();
+    renderInventory();
+    renderHotbar();
+    renderTab();
+  }
+
+  function showError(msg) {
+    const el = document.getElementById('errorBanner');
+    el.textContent = msg;
+    el.classList.add('visible');
+  }
+
+  // ── Helpers: find armor/weapon by slot ─────────────────────────────
+  function findArmorItem(uuid) { return allArmor.find(i => i.uuid === uuid); }
+  function findEquippedItem(uuid) { return findItemByUuid(uuid) || findArmorItem(uuid); }
+
+  function getClassArmorMaterial() { return CLASS_ARMOR[selectedClass] || 'metal'; }
+  function getClassWeapons() { return ALL_WEAPON_CATS; }
+  function getClassOffhands() { return ALL_OFFHAND_CATS; }
+
+  // ── Demo Data Population ────────────────────────────────────────────
+  function autoEquipDemo() {
+    // Clear previous
+    Object.keys(equippedItems).forEach(k => delete equippedItems[k]);
+
+    const mat = getClassArmorMaterial();
+    const allowedWpns = getClassWeapons();
+    const allowedOff = getClassOffhands();
+
+    // Equip armor: pick first T1 set piece in the right material for each slot
+    ARMOR_SLOTS.forEach(slot => {
+      const piece = allArmor.find(i => i.slotType === slot && i.material === mat && i.tier === 1);
+      if (piece) equippedItems[slot] = piece.uuid;
+    });
+
+    // Equip jewelry from armor data
+    JEWELRY_SLOTS.forEach(slot => {
+      const piece = allArmor.find(i => i.slotType === slot && i.material === mat && i.tier === 1);
+      if (piece) equippedItems[slot] = piece.uuid;
+    });
+
+    // Equip mainhand: first allowed weapon category T1
+    if (allowedWpns.length) {
+      const wpn = allItems.find(i => i.type === 'weapon' && allowedWpns.includes(i.category) && i.tier === 1);
+      if (wpn) equippedItems['Mainhand'] = wpn.uuid;
+    }
+
+    // Equip offhand: shield/tome/dagger or gem relic
+    if (allowedOff.length) {
+      // Try weapon offhand first
+      const off = allItems.find(i => i.type === 'weapon' && allowedOff.includes(i.category) && i.tier === 1)
+        || allItems.find(i => allowedOff.includes(i.type) && i.tier === 1);
+      if (off) equippedItems['Offhand'] = off.uuid;
+      else {
+        // Gem relic from armor
+        const relic = allArmor.find(i => i.slotType === 'Offhand' && i.material === 'gem' && i.tier === 1);
+        if (relic) equippedItems['Offhand'] = relic.uuid;
+      }
+    }
+  }
+
+  function populateInventoryDemo() {
+    inventoryItems = [];
+    const allowedWpns = getClassWeapons();
+
+    // Add class-appropriate weapons (T1 and T2 samples)
+    allowedWpns.slice(0, 4).forEach(cat => {
+      const wpns = allItems.filter(i => i.type === 'weapon' && i.category === cat && i.tier <= 2);
+      wpns.slice(0, 2).forEach(w => inventoryItems.push({ uuid: w.uuid, stack: 1 }));
+    });
+
+    // Add some armor from a different set (for swapping)
+    const mat = getClassArmorMaterial();
+    const altArmor = allArmor.filter(i => i.material === mat && i.tier === 2);
+    altArmor.slice(0, 4).forEach(a => inventoryItems.push({ uuid: a.uuid, stack: 1 }));
+
+    // Add food and potions
+    allItems.filter(i => i.type === 'food').slice(0, 4).forEach(i =>
+      inventoryItems.push({ uuid: i.uuid, stack: Math.floor(Math.random()*10)+1 }));
+    allItems.filter(i => i.type === 'potion').slice(0, 3).forEach(i =>
+      inventoryItems.push({ uuid: i.uuid, stack: Math.floor(Math.random()*5)+1 }));
+  }
+
+  // ── Left Column: Stats + Professions ────────────────────────────────
+  function renderLeftCol() {
+    const stats = computeStats();
+    const profs = allProfessions.length ? allProfessions : PROFESSION_FALLBACK;
+    const col = document.getElementById('leftCol');
+    col.innerHTML = `
+      <div class="section-title">Combat Stats</div>
+      <div class="stat-row"><span class="k">Health</span><span class="v">${stats.health}</span></div>
+      <div class="stat-row"><span class="k">Mana</span><span class="v">${stats.mana}</span></div>
+      <div class="stat-row"><span class="k">Stamina</span><span class="v">${stats.stamina}</span></div>
+      <div class="stat-row"><span class="k">Damage</span><span class="v positive">${stats.damage}</span></div>
+      <div class="stat-row"><span class="k">Crit %</span><span class="v">${stats.crit}%</span></div>
+      <div class="stat-row"><span class="k">Defense</span><span class="v">${stats.defense}</span></div>
+      <div class="stat-row"><span class="k">Block %</span><span class="v">${stats.block}%</span></div>
+      <div class="stat-row"><span class="k">Speed</span><span class="v">${stats.speed.toFixed(1)}</span></div>
+      <div class="section-title" style="margin-top:20px;">Professions (${profs.length})</div>
+      ${profs.map(p => {
+        const icon = p.iconUrl || p.icon || '';
+        const name = p.name || p.professionName || 'Unknown';
+        const level = p.level || 1;
+        const xp = p.xp || Math.min(level * 15, 100);
+        const color = p.color || 'var(--gold)';
+        return `<div class="prof-row">
+          <img src="${icon}" alt="${name}" style="width:16px;height:16px;object-fit:contain;image-rendering:pixelated;" onerror="this.style.display='none'">
+          <span class="prof-name">${name}</span>
+          <div class="prof-bar"><div class="prof-fill" style="width:${xp}%;background:${color};"></div></div>
+          <span class="prof-lv">${level}</span>
+        </div>`;
+      }).join('')}
+      <div class="section-title" style="margin-top:20px;">Equipped</div>
+      <div style="font-size:10px;color:var(--dim);">${Object.keys(equippedItems).length} / ${ALL_SLOTS.length} slots filled</div>
+      <div class="section-title" style="margin-top:20px;">Data Sources</div>
+      <div style="font-size:9px;color:var(--dim);line-height:1.6;">
+        Items: ${allItems.length}<br>
+        Recipes: ${allRecipes.length}<br>
+        Materials: ${allMaterials.length}<br>
+        Attributes: ${allAttributes.length}<br>
+        Professions: ${allProfessions.length}<br>
+        Class Trees: ${allSkillTrees.length}<br>
+        Weapon Skills: ${allWeaponSkills.length}<br>
+        Artifacts: ${allArtifacts.length}
+      </div>
+    `;
+  }
+
+  function computeStats() {
+    const s = { ...BASE_STATS };
+    for (const uuid of Object.values(equippedItems)) {
+      const item = findEquippedItem(uuid);
+      if (!item?.stats) continue;
+      // Weapon stats
+      if (item.stats.damage) s.damage += item.stats.damage;
+      if (item.stats.defense) s.defense += item.stats.defense;
+      if (item.stats.crit) s.crit += item.stats.crit;
+      if (item.stats.block) s.block += item.stats.block;
+      if (item.stats.speed) s.speed += item.stats.speed / 100;
+      // Armor stats (use hp/mana from armor data)
+      if (item.stats.hp) s.health += item.stats.hp;
+      if (item.stats.health) s.health += item.stats.health;
+      if (item.stats.mana) s.mana += item.stats.mana;
+    }
+    return s;
+  }
+
+  // ── Inventory ──────────────────────────────────────────────────────
+  function renderInventory() {
+    const grid = document.getElementById('invGrid');
+    const totalSlots = 42;
+    let html = '';
+    for (let i = 0; i < totalSlots; i++) {
+      const inv = inventoryItems[i];
+      if (inv) {
+        const item = findAnyItem(inv.uuid);
+        if (item) {
+          const tier = item.tier || 1;
+          const tc = TIER_COLORS[tier] || '#3a2a1a';
+          const icon = item.iconUrl || '';
+          html += `<div class="inv-cell has-item" data-inv-idx="${i}" data-uuid="${inv.uuid}" style="border-color:${tc};">`;
+          if (icon) html += `<img src="${fixIconUrl(icon)}" alt="${esc(item.name)}" onerror="this.style.display='none'">`;
+          html += `<span class="inv-tier" style="background:${tc};color:#000;">T${tier}</span>`;
+          if (inv.stack > 1) html += `<span class="inv-stack">${inv.stack}</span>`;
+          html += `</div>`;
+        } else {
+          html += `<div class="inv-cell"></div>`;
+        }
+      } else {
+        html += `<div class="inv-cell"></div>`;
+      }
+    }
+    grid.innerHTML = html;
+    document.getElementById('invCount').textContent = `${inventoryItems.length}/${totalSlots}`;
+    attachInventoryListeners();
+  }
+
+  function attachInventoryListeners() {
+    document.querySelectorAll('.inv-cell[data-uuid]').forEach(el => {
+      el.addEventListener('mouseenter', onInvHover);
+      el.addEventListener('mousemove', onSlotMove);
+      el.addEventListener('mouseleave', onSlotLeave);
+      el.addEventListener('click', onInvClick);
+    });
+  }
+
+  function onInvHover(e) {
+    const uuid = e.currentTarget.dataset.uuid;
+    if (!uuid) return;
+    const item = findAnyItem(uuid);
+    if (!item) return;
+    const tt = document.getElementById('eqTooltip');
+    tt.innerHTML = buildTooltipHTML(item, 'Click to equip');
+    tt.style.borderColor = TIER_COLORS[item.tier] || 'var(--gold)';
+    positionTooltip(e);
+    tt.classList.add('visible');
+  }
+
+  // onInvClick moved above into findBestSlot section
+
+  function findBestSlot(item) {
+    // Armor items go to their slotType
+    if (item.type === 'armor' && item.slotType) {
+      const slot = item.slotType;
+      // Map armor slotType to panel slots
+      if (ALL_SLOTS.includes(slot)) return slot;
+      if (slot === 'Offhand') return 'Offhand';
+      return null;
+    }
+    // Weapon items
+    if (item.type === 'weapon' || item.type === 'tool' || item.type === 'offhand-tome') {
+      const cat = item.category || item.type;
+      const offhandCats = ['shields','tomes','offhand-tome'];
+      const pref = offhandCats.includes(cat) ? 'Offhand' : 'Mainhand';
+      if (!equippedItems[pref]) return pref;
+      // Try the other weapon slot
+      const alt = pref === 'Mainhand' ? 'Offhand' : 'Mainhand';
+      if (!equippedItems[alt]) return alt;
+      return pref; // swap
+    }
+    return null;
+  }
+
+  function onInvClick(e) {
+    const uuid = e.currentTarget.dataset.uuid;
+    const idx = parseInt(e.currentTarget.dataset.invIdx);
+    if (!uuid) return;
+    // Try finding in weapons/items first, then armor
+    const item = findItemByUuid(uuid) || findArmorItem(uuid);
+    if (!item) return;
+    const slot = findBestSlot(item);
+    if (slot) {
+      if (equippedItems[slot]) {
+        inventoryItems[idx] = { uuid: equippedItems[slot], stack: 1 };
+      } else {
+        inventoryItems.splice(idx, 1);
+      }
+      equippedItems[slot] = uuid;
+      refreshAll();
+    }
+  }
+
+  // ── Hotbar: slots 1-5 canonical weapon skills, 6-8 consumables ────
+  function renderHotbar() {
+    const consumables = inventoryItems.filter(inv => {
+      const item = findItemByUuid(inv.uuid);
+      return item && (item.type === 'food' || item.type === 'potion');
+    }).slice(0, 3);
+    const weapon = getEquippedMainhandWeapon();
+    const offhand = getEquippedOffhandItem();
+    const hotbarSkills = weapon ? WeaponSkillTree.getHotbarSkills(weapon, weapon.tier || 1, { offhand, blockActive: true }) : [];
+    let html = '';
+    for (let i = 0; i < 5; i++) {
+      const s = hotbarSkills[i];
+      const icon = s?.icon || '';
+      const title = s?.label || `Slot ${i + 1}`;
+      html += `<div class="hb-slot skill" title="${esc(title)}"><span class="key">${i + 1}</span>`;
+      if (icon) html += `<img src="${icon}" alt="${esc(title)}" onerror="this.style.display='none'">`;
+      html += `</div>`;
+    }
+    html += `<div class="hb-divider"></div>`;
+    for (let i = 0; i < 3; i++) {
+      const c = consumables[i];
+      if (c) {
+        const item = findItemByUuid(c.uuid);
+        const icon = item?.iconUrl || '';
+        html += `<div class="hb-slot consumable" data-uuid="${c.uuid}"><span class="key">${i+6}</span>`;
+        if (icon) html += `<img src="${fixIconUrl(icon)}" alt="${esc(item?.name)}" onerror="this.style.display='none'">`;
+        html += `</div>`;
+      } else {
+        html += `<div class="hb-slot consumable"><span class="key">${i+6}</span></div>`;
+      }
+    }
+    document.getElementById('hotbar').innerHTML = html;
+    // Hotbar tooltips
+    document.querySelectorAll('.hb-slot[data-uuid]').forEach(el => {
+      el.addEventListener('mouseenter', e => {
+        const item = findItemByUuid(el.dataset.uuid);
+        if (!item) return;
+        const tt = document.getElementById('eqTooltip');
+        tt.innerHTML = buildTooltipHTML(item);
+        tt.style.borderColor = TIER_COLORS[item.tier] || 'var(--gold)';
+        positionTooltip(e);
+        tt.classList.add('visible');
+      });
+      el.addEventListener('mousemove', onSlotMove);
+      el.addEventListener('mouseleave', onSlotLeave);
+    });
+  }
+
+  // ── Refresh everything after equip/unequip ─────────────────────────
+  function refreshAll() {
+    renderLeftCol();
+    renderInventory();
+    renderHotbar();
+    if (activeTab === 'Equipment' || activeTab === 'Skills') renderTab();
+  }
+
+  function switchTab(t) {
+    activeTab = t;
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.textContent === t));
+    renderTab();
+  }
+
+  function renderTab() {
+    const area = document.getElementById('contentArea');
+    if (activeTab === 'Equipment') {
+      area.innerHTML = renderEquipmentPanel();
+      attachSlotListeners();
+    } else if (activeTab === 'Attributes') {
+      area.innerHTML = renderAttributesTab();
+    } else if (activeTab === 'Crafting') {
+      area.innerHTML = renderCraftingTab();
+    } else if (activeTab === 'Skills') {
+      area.innerHTML = renderSkillsTab();
+    } else if (activeTab === 'Quests') {
+      area.innerHTML = `<div class="section-title">Active Quests</div><p style="color:var(--muted)">Connect to Grudge backend to view quests</p>`;
+    } else {
+      area.innerHTML = `<div class="section-title">${activeTab}</div><p style="color:var(--muted)">Content loaded from shared game data</p>`;
+    }
+  }
+
+  // ── Race/Class Selector ────────────────────────────────────────────
+  function selectRace(race) {
+    selectedRace = race;
+    document.getElementById('playerClass').textContent = `Lv.1 ${selectedClass}`;
+    autoEquipDemo();
+    populateInventoryDemo();
+    refreshAll();
+  }
+
+  // ── Equipment Panel ─────────────────────────────────────────────────
+  function renderEquipmentPanel() {
+    const stats = computeStats();
+    const rm = RACE_META[selectedRace];
+    const rd = raceManifest?.races?.[selectedRace];
+    const modelUrl = `${RACE_PACK}/glb/characters/${selectedRace}.glb`;
+    const equipSlots = raceManifest?.meta?.sharedEquipmentSlots;
+    const animPacks = raceManifest?.animationPacks?.packs;
+
+    // Race selector pills
+    const racePills = RACE_IDS.map(id => {
+      const m = RACE_META[id];
+      const active = id === selectedRace;
+      return `<button onclick="selectRace('${id}')" style="
+        border:2px solid ${active ? m.color : '#3a2a1a'};
+        background:${active ? m.color+'22' : 'transparent'};
+        color:${active ? m.color : 'var(--muted)'};
+        padding:4px 10px;border-radius:16px;font-size:10px;font-family:var(--font-display);
+        cursor:pointer;font-weight:${active?'700':'400'};letter-spacing:1px;text-transform:uppercase;
+        transition:all 0.15s;
+      ">${m.name}</button>`;
+    }).join('');
+
+
+    // Race info panel (replaces silhouette)
+    let centerHtml = `
+      <div style="text-align:center;padding:8px;">
+        <div style="font-family:var(--font-display);font-size:14px;color:${rm.color};letter-spacing:1px;">${rm.name}</div>
+        <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:2px;margin:2px 0 8px;">${rm.display} · ${rm.faction}</div>
+        <div style="width:140px;height:200px;margin:0 auto;border-radius:8px;overflow:hidden;border:2px solid ${rm.color}44;
+          background:linear-gradient(180deg,rgba(30,20,12,0.95),rgba(20,14,8,0.8));position:relative;">
+          <model-viewer src="${modelUrl}" alt="${rm.name}" auto-rotate camera-controls
+            style="width:100%;height:100%;--poster-color:transparent;"
+            camera-orbit="0deg 80deg 2.2m" min-camera-orbit="auto auto 1.5m" max-camera-orbit="auto auto 4m"
+            interaction-prompt="none" ar-status="not-presenting"
+            onerror="this.style.display='none';this.nextElementSibling.style.display='flex';"></model-viewer>
+          <div style="display:none;width:100%;height:100%;align-items:center;justify-content:center;font-size:48px;color:var(--dim);position:absolute;top:0;left:0;">&#9876;</div>
+        </div>
+        <div style="font-size:8px;color:var(--dim);margin-top:6px;">Mount: ${rm.mount}</div>`;
+
+    // Equipment slot info from manifest
+    if (equipSlots) {
+      const armorSlots = equipSlots.armor ? Object.keys(equipSlots.armor).length : 0;
+      const wpnSlots = (equipSlots.mainHand ? Object.keys(equipSlots.mainHand).length : 0) +
+                       (equipSlots.offHand ? Object.keys(equipSlots.offHand).length : 0) +
+                       (equipSlots.shield ? Object.keys(equipSlots.shield).length : 0);
+      centerHtml += `<div style="font-size:8px;color:var(--dim);margin-top:2px;">${armorSlots} armor slots · ${wpnSlots} weapon slots</div>`;
+    }
+
+    // Extra weapons for this race
+    if (rd?.extraWeapons?.length) {
+      centerHtml += `<div style="display:flex;gap:4px;justify-content:center;flex-wrap:wrap;margin-top:6px;">`;
+      rd.extraWeapons.forEach(w => {
+        centerHtml += `<span style="font-size:7px;padding:2px 6px;background:rgba(74,158,255,0.1);color:#4a9eff;border-radius:8px;">${w.type}</span>`;
+      });
+      centerHtml += `</div>`;
+    }
+
+    // Animation packs summary
+    if (animPacks) {
+      const totalClips = Object.values(animPacks).reduce((s, p) => s + (p.clipCount || 0), 0);
+      centerHtml += `<div style="font-size:8px;color:var(--dim);margin-top:4px;">${Object.keys(animPacks).length} anim packs · ${totalClips} clips</div>`;
+    }
+
+    centerHtml += `<div style="margin-top:6px;"><a href="${modelUrl}" target="_blank" style="font-size:8px;color:var(--gold);">Download GLB ↗</a></div>`;
+    centerHtml += `</div>`;
+
+    return `
+      <div style="display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin-bottom:10px;">${racePills}</div>
+      <div class="section-title" style="text-align:center;border-left:0;padding-left:0;">Grudge Warlord</div>
+      <div style="text-align:center;font-family:var(--font-display);font-size:11px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-bottom:8px;">${rm.name} &bull; ${selectedClass}</div>
+      <div class="eq-panel">
+        <div class="eq-col">
+          ${LEFT_SLOTS.map(s => renderSlot(s)).join('')}
+        </div>
+        <div class="eq-center">
+          ${centerHtml}
+        </div>
+        <div class="eq-col">
+          ${RIGHT_SLOTS.map(s => renderSlot(s)).join('')}
+        </div>
+      </div>
+      <div class="eq-summary">
+        <div class="eq-sum-item"><div class="eq-sum-val">${stats.damage}</div><div class="eq-sum-lbl">Damage</div></div>
+        <div class="eq-sum-item"><div class="eq-sum-val">${stats.defense}</div><div class="eq-sum-lbl">Defense</div></div>
+        <div class="eq-sum-item"><div class="eq-sum-val">${stats.health}</div><div class="eq-sum-lbl">Health</div></div>
+        <div class="eq-sum-item"><div class="eq-sum-val">${stats.crit}%</div><div class="eq-sum-lbl">Crit</div></div>
+        <div class="eq-sum-item"><div class="eq-sum-val">${stats.block}%</div><div class="eq-sum-lbl">Block</div></div>
+        <div class="eq-sum-item"><div class="eq-sum-val">${stats.speed.toFixed(1)}</div><div class="eq-sum-lbl">Speed</div></div>
+      </div>
+      <div style="text-align:center;margin-top:10px;font-size:10px;color:var(--dim);">Click equipped slot to unequip &middot; Click inventory item to equip &middot; <a href="https://info.grudge-studio.com/GRUDGE_Item_Database.html" target="_blank" rel="noopener" style="font-size:10px;">Item Database &#8599;</a></div>
+    `;
+  }
+
+  function renderSlot(slotName) {
+    const uuid = equippedItems[slotName];
+    const item = uuid ? findEquippedItem(uuid) : null;
+    const isEquipped = !!item;
+    const tier = item ? item.tier : 0;
+    const tierColor = TIER_COLORS[tier] || '#3a2a1a';
+    const iconHtml = item && item.iconUrl
+      ? `<img class="slot-icon" src="${fixIconUrl(item.iconUrl)}" alt="${esc(item.name)}" onerror="this.style.display='none'">`
+      : `<span class="slot-placeholder">${SLOT_ICONS[slotName] || '◻'}</span>`;
+    const tierBadge = item
+      ? `<span class="slot-tier" style="background:${tierColor};color:#000;">T${tier}</span>`
+      : '';
+    return `<div class="eq-slot ${isEquipped ? 'equipped' : ''}" data-slot="${slotName}" data-uuid="${uuid||''}" style="${isEquipped ? 'border-color:'+tierColor : ''}">
+      ${tierBadge}
+      ${iconHtml}
+      <span class="slot-label">${slotName}</span>
+    </div>`;
+  }
+
+  // ── Attributes Tab ─────────────────────────────────────────────────
+  function renderAttributesTab() {
+    if (!allAttributes.length) {
+return `<div class="section-title">Attributes</div><p style="color:var(--muted)">Attribute data not loaded. Check ./api/v1/master-attributes.json.</p>`;
+    }
+    let html = `<div class="section-title">Character Attributes</div>`;
+    html += `<div class="attr-points-bar"><span class="pts-label">Available Points:</span><span class="pts-val">20</span><span class="pts-label" style="margin-left:16px;">Per Level:</span><span class="pts-val">+7</span></div>`;
+    allAttributes.forEach(attr => {
+      const iconUrl = attr.icon ? `${CDN}/${attr.icon}` : '';
+      html += `<div class="attr-card" style="border-left:3px solid ${attr.color || 'var(--gold)'};">`;
+      html += `<div class="attr-card-head">`;
+      if (iconUrl) html += `<img src="${esc(iconUrl)}" alt="${esc(attr.name)}" style="width:28px;height:28px;object-fit:contain;image-rendering:pixelated;" onerror="this.style.display='none'">`;
+      html += `<div><div class="attr-name" style="color:${attr.color || 'var(--gold)'};">${esc(attr.name)}</div>`;
+      html += `<div class="attr-role">${esc(attr.role)}</div></div></div>`;
+      html += `<div class="attr-desc">${esc(attr.description)}</div>`;
+      if (attr.gains) {
+        html += `<div class="attr-gains">`;
+        for (const [, g] of Object.entries(attr.gains)) {
+          const parts = [];
+          if (g.flat !== undefined && g.flat !== 0) parts.push(`+${g.flat} flat`);
+          if (g.percent !== undefined && g.percent !== 0) parts.push(`+${g.percent}% base`);
+          const display = parts.length ? parts.join(' / ') : '+0';
+          html += `<span class="attr-gain-chip">${esc(g.label)} ${display}</span>`;
+        }
+        html += `</div>`;
+      }
+      html += `</div>`;
+    });
+    return html;
+  }
+
+  // ── Crafting Tab ───────────────────────────────────────────────────
+  function renderCraftingTab() {
+    const recipes = allRecipes.slice(0, 40);
+    return `<div class="section-title">Crafting Recipes (${allRecipes.length} total)</div>
+      <div style="font-size:10px;color:var(--dim);margin-bottom:10px;">Showing ${recipes.length} of ${allRecipes.length} — <a href="crafting.html" style="font-size:10px;">View all recipes →</a></div>` +
+      recipes.map(r => {
+        const resultItem = r.resultItemId ? findAnyItem(r.resultItemId) : null;
+        const iconUrl = resultItem?.iconUrl || '';
+        const iconHtml = iconUrl
+          ? `<img src="${esc(iconUrl)}" alt="${esc(r.resultName || r.name)}" style="width:36px;height:36px;object-fit:contain;image-rendering:pixelated;border-radius:4px;border:1px solid rgba(255,255,255,0.08);background:rgba(0,0,0,0.2);padding:2px;flex-shrink:0;" onerror="this.style.display='none'">`
+          : '';
+        return `<div style="padding:10px;margin-bottom:6px;background:#1e1510;border-radius:8px;border-left:3px solid var(--gold);transition:all 0.15s;cursor:default;display:flex;gap:10px;align-items:flex-start;" onmouseenter="this.style.borderLeftColor='var(--gold-light)'" onmouseleave="this.style.borderLeftColor='var(--gold)'">
+          ${iconHtml}
+          <div>
+            <div style="font-weight:700;font-size:13px">${esc(r.resultName || r.name)}</div>
+            <div style="font-size:11px;color:var(--muted);margin-top:4px">${esc(r.profession)} · ${esc(r.category)}</div>
+            <div style="font-size:10px;color:var(--dim);margin-top:4px">${(r.materials||[]).map(m=>`${esc(m.name)} ×${m.quantity}`).join(', ')}</div>
+          </div>
+        </div>`;
+      }).join('');
+  }
+
+  // ── Slot Interactions ──────────────────────────────────────────────
+  function attachSlotListeners() {
+    document.querySelectorAll('.eq-slot').forEach(el => {
+      el.addEventListener('mouseenter', onSlotHover);
+      el.addEventListener('mousemove', onSlotMove);
+      el.addEventListener('mouseleave', onSlotLeave);
+      el.addEventListener('click', onSlotClick);
+    });
+  }
+
+  function onSlotHover(e) {
+    const uuid = e.currentTarget.dataset.uuid;
+    if (!uuid) return;
+    const item = findEquippedItem(uuid);
+    if (!item) return;
+    const tt = document.getElementById('eqTooltip');
+    tt.innerHTML = buildTooltipHTML(item, 'Click to unequip');
+    tt.style.borderColor = TIER_COLORS[item.tier] || 'var(--gold)';
+    positionTooltip(e);
+    tt.classList.add('visible');
+  }
+
+  function onSlotMove(e) { positionTooltip(e); }
+
+  function onSlotLeave() {
+    document.getElementById('eqTooltip').classList.remove('visible');
+  }
+
+  function onSlotClick(e) {
+    const slot = e.currentTarget.dataset.slot;
+    const uuid = e.currentTarget.dataset.uuid;
+    if (!uuid || !slot) return;
+    // Unequip: move item back to inventory
+    inventoryItems.push({ uuid, stack: 1 });
+    delete equippedItems[slot];
+    onSlotLeave();
+    refreshAll();
+  }
+
+  function positionTooltip(e) {
+    const tt = document.getElementById('eqTooltip');
+    const pad = 16;
+    let x = e.clientX + pad;
+    let y = e.clientY + pad;
+    if (x + 340 > window.innerWidth) x = e.clientX - 340;
+    if (y + 400 > window.innerHeight) y = Math.max(8, e.clientY - 400);
+    tt.style.left = x + 'px';
+    tt.style.top = y + 'px';
+  }
+
+  function esc(s) { return s ? String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;') : ''; }
+
+  function buildTooltipHTML(item, actionHint) {
+    const tier = item.tier || 1;
+    const tc = TIER_COLORS[tier] || '#8b7355';
+    const tl = item.tierLabel || TIER_LABELS[tier] || 'Common';
+    let h = '';
+
+    // Header: icon + name + tier
+    h += `<div class="tt-header">`;
+    if (item.iconUrl) {
+      h += `<div class="tt-icon" style="background:linear-gradient(135deg,${tc}33,rgba(0,0,0,0.3));border-color:${tc};"><img src="${esc(fixIconUrl(item.iconUrl))}" alt="${esc(item.name)}"></div>`;
+    }
+    h += `<div>
+      <div class="tt-name" style="color:${tc};">${esc(item.name)}</div>
+      <div class="tt-sub">${esc(item.type)} &bull; ${esc(item.category)}</div>
+      <span class="tt-tier" style="background:${tc};color:#000;">${tl} &mdash; T${tier}</span>
+    </div></div>`;
+
+    // Stats
+    if (item.stats && Object.keys(item.stats).length) {
+      h += `<div class="tt-section"><div class="tt-section-title">Stats</div><div class="tt-stats">`;
+      for (const [k, v] of Object.entries(item.stats)) {
+        const label = k.replace(/([A-Z])/g, ' $1').trim();
+        h += `<div class="tt-stat"><div class="tt-stat-label">${esc(label)}</div><div class="tt-stat-val">+${v}</div></div>`;
+      }
+      h += `</div></div>`;
+    }
+
+    // Abilities
+    if (item.abilities && item.abilities.length) {
+      h += `<div class="tt-section"><div class="tt-section-title">Abilities</div><ul class="tt-abilities">`;
+      item.abilities.forEach(a => { h += `<li>&#9889; ${esc(a)}</li>`; });
+      h += `</ul>`;
+      if (item.signature) {
+        h += `<div class="tt-signature"><strong>&#11088; Signature:</strong> ${esc(item.signature)}</div>`;
+      }
+      h += `</div>`;
+    }
+
+    // Passives
+    if (item.passives && item.passives.length) {
+      h += `<div class="tt-section"><div class="tt-section-title">Passives</div>`;
+      item.passives.forEach(p => { h += `<span class="tt-passive">${esc(p)}</span>`; });
+      h += `</div>`;
+    }
+
+    // Lore
+    if (item.description) {
+      h += `<div class="tt-section"><div class="tt-section-title">Lore</div><p class="tt-lore">&ldquo;${esc(item.description)}&rdquo;</p></div>`;
+    }
+
+    // Source
+    if (item.craftedBy) {
+      h += `<div class="tt-section"><div class="tt-section-title">Source</div><div style="font-size:10px;">Crafted by: <strong style="color:var(--gold)">${esc(item.craftedBy)}</strong></div></div>`;
+    }
+
+    // UUID
+    h += `<div class="tt-uuid">${esc(item.uuid)}</div>`;
+
+    // Action hint
+    if (actionHint) {
+      h += `<div class="tt-action">${esc(actionHint)}</div>`;
+    }
+
+    return h;
+  }
+
+  function getEquippedMainhandWeapon() {
+    const uuid = equippedItems['Mainhand'];
+    if (!uuid) return null;
+    const item = findEquippedItem(uuid);
+    if (!item) return null;
+    if (item.type === 'weapon' || item.type === 'tool') return item;
+    return null;
+  }
+
+  function getEquippedOffhandItem() {
+    const uuid = equippedItems['Offhand'];
+    if (!uuid) return null;
+    const item = findEquippedItem(uuid);
+    if (!item) return null;
+    if (item.type === 'weapon' || item.type === 'offhand-tome') return item;
+    return null;
+  }
+
+  // ── Skills Tab: canonical slot loadout from master-weaponSkills.json ─
+  function renderSkillsTab() {
+    let html = '<div class="section-title">Equipped Weapon — Skill Loadout</div>';
+    const weapon = getEquippedMainhandWeapon();
+    const offhand = getEquippedOffhandItem();
+
+    if (!weapon) {
+      html += `<div class="wst-empty">Equip a weapon in <strong>Mainhand</strong> to view slot 1 (LMB combo) and tier-unlock skills (slots 2–4).<br><span style="font-size:10px;color:var(--dim)">Shield mods slots 1–3 while blocking · Tome couples 1H slots 1–4</span></div>`;
+      html += `<div style="margin-top:12px;text-align:center;"><a href="./WEAPON_SKILLS.html" style="font-size:11px;color:var(--gold);">Browse all weapon types →</a></div>`;
+      return html;
+    }
+
+    const w = { ...weapon };
+    if (w.iconUrl) w.iconUrl = fixIconUrl(w.iconUrl);
+    const o = offhand ? { ...offhand } : null;
+    if (o?.iconUrl) o.iconUrl = fixIconUrl(o.iconUrl);
+    html += WeaponSkillTree.renderEquippedWeaponPanel(w, {
+      asset: (u) => asset(fixIconUrl(u)),
+      playerTier: weapon.tier || 1,
+      offhand: o,
+      blockActive: true,
+    });
+    return html;
+  }
+
+  init();
+</script>
+<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v4513226cdae34746b4dedf0b4dfa099e1781791509496" integrity="sha512-ZE9pZaUXND66v380QUtch/5sE9tPFh2zg45pR2PB0CVkCtOREv2AJKkSidISWkysEuQ0EH8faUU5du78bx87UQ==" data-cf-beacon='{"version":"2024.11.0","token":"466184703ece43238c37b349e74b19c5","r":1}' crossorigin="anonymous"></script>
+</body>
+</html>

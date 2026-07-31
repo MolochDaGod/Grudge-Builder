@@ -1,23 +1,30 @@
 /**
  * Production intro SSOT — do not mix destinations.
  *
- * 1) STORM SHIP ATTACK (TI IntroScene)
- *    → open world / island-3d
+ * 1) SHIPWRECK TUTORIAL CINEMA (native Three.js on client)
+ *    Storm → hull break → wash-up on chicken-gun pirate-islands shipwreck_cove
+ *    → /tutorial (default) or island-3d lobby
  *
  * 2) OVERBOARD / DEATH FLOAT (legacy)
  *    → old home-island path (prefer abandon_ship)
  *
- * 3) ABANDON SHIP (End Game · level 20)
+ * 3) ABANDON SHIP (End Game · home island)
  *    Cannon fire · ship sinks · all models jump off (no throw overboard)
  *    → /homeisland · home-island spawn
  *
  * Production: https://client.grudge-studio.com/island-3d
  * Home island: https://client.grudge-studio.com/homeisland
- * TI host: https://water.grudge-studio.com
+ *
+ * PURGED from island-3d:
+ *  - TI iframe (water.grudge-studio.com/intro) Stonewisp / race video
+ *  - fleet R2 intro.mp4 as the island-3d opener
+ * Native cinema: client/src/island3d/intro/LeviathanOceanCinema.ts
+ *   (barrel: ShipwreckTutorialCinema.ts)
  */
 
 export type ProductionIntroVariant =
-  | 'storm_ship_attack'
+  | 'shipwreck_tutorial'
+  | 'storm_ship_attack' // alias retained for session keys / older bookmarks
   | 'overboard_home_island'
   | 'abandon_ship_home_island';
 
@@ -27,36 +34,54 @@ export interface ProductionIntroDef {
   description: string;
   /** Where this intro may be used */
   usedFor: 'island-3d' | 'home-island';
-  /** TI / local embed */
+  /**
+   * @deprecated TI embed no longer used for island-3d (kept for abandon-ship optional iframe).
+   */
   tiPath: string;
-  /** Absolute TI production URL */
+  /** @deprecated Absolute TI production URL — abandon-ship only */
   tiUrl: string;
-  /** Approximate ms before auto-complete if embed cannot signal */
+  /** Approximate ms before auto-complete */
   durationMs: number;
   /** Cut before overboard float when used for island-3d */
   cutBeforeOverboard: boolean;
   notes: string;
+  /** Native Three.js cinema (no video, no TI iframe) */
+  engine: 'three_native' | 'ti_embed' | 'storyboard';
 }
 
 export const TI_HOST =
   (typeof process !== 'undefined' && (process as any).env?.VITE_TI_HOST) ||
   'https://water.grudge-studio.com';
 
-/** Storm + monster attacks ship — production open into island-3d */
-export const STORM_SHIP_INTRO: ProductionIntroDef = {
-  id: 'storm_ship_attack',
-  label: 'Storm Ship Attack',
+/**
+ * Production open into island-3d / tutorial —
+ * native Three.js shipwreck cinema (NO video, NO Stonewisp, NO TI iframe).
+ */
+export const SHIPWRECK_TUTORIAL_INTRO: ProductionIntroDef = {
+  id: 'shipwreck_tutorial',
+  label: 'Leviathan Ocean · Tutorial Open',
   description:
-    'Tactical Infinity Three.js cinematic: storm seas, slave ship, Stonewisp rises and attacks. Ends as the wreck breaks — player continues on island-3d.',
+    'Native Three.js cinema: open ocean leviathan attack, casters raise yin-yang ward rings, ' +
+    'fire beam/aura, supernova shield contacts, pinata hull breach, hero thrown 20 m, ' +
+    'logo stinger, then chicken-gun pirate-islands shipwreck_cove tutorial wake.',
   usedFor: 'island-3d',
-  tiPath: '/intro',
-  tiUrl: `${TI_HOST}/intro`,
-  // Full TI intro ~58s; we cut auto-advance earlier for shipwreck entry (~ship break)
-  durationMs: 42_000,
+  tiPath: '',
+  tiUrl: '',
+  durationMs: 56_000,
   cutBeforeOverboard: true,
+  engine: 'three_native',
   notes:
-    'Source: D:/repos/Tactical-Infinity/client/src/components/IntroScene.tsx. ' +
-    'Do NOT run the death-float overboard sequence for island-3d — that is home-island only.',
+    'Code: island3d/intro/LeviathanOceanCinema.ts · StormShipIntroGate.tsx (v6). ' +
+    'Assets: public/models/cinema/{leviathan,magic-ring-yinyang-blue,supernova-impact.prod}.glb ' +
+    '+ public/cinema/grudge-logo.jpeg. ' +
+    'PURGED: TI /intro, intro.mp4, Stonewisp. Handoff: /tutorial?from=shipwreck-intro.',
+};
+
+/** @deprecated Use SHIPWRECK_TUTORIAL_INTRO — kept so older imports compile */
+export const STORM_SHIP_INTRO: ProductionIntroDef = {
+  ...SHIPWRECK_TUTORIAL_INTRO,
+  id: 'storm_ship_attack',
+  label: 'Shipwreck Tutorial Open (alias)',
 };
 
 /** Overboard float — legacy home island only (prefer ABANDON_SHIP_HOME_INTRO) */
@@ -70,6 +95,7 @@ export const OVERBOARD_HOME_INTRO: ProductionIntroDef = {
   tiUrl: `${TI_HOST}/intro`,
   durationMs: 58_000,
   cutBeforeOverboard: false,
+  engine: 'ti_embed',
   notes:
     'Legacy. End Game uses abandon_ship_home_island (sink + jump off, no throw).',
 };
@@ -88,10 +114,11 @@ export const ABANDON_SHIP_HOME_INTRO: ProductionIntroDef = {
   tiUrl: `${TI_HOST}/intro`,
   durationMs: 48_000,
   cutBeforeOverboard: true,
+  engine: 'ti_embed',
   notes:
-    'Triggered by faction captain mission “End Game” at level 20. ' +
+    'Optional flavor cinematic (home island no longer level-gated). ' +
     'Query: variant=abandon_ship&noThrow=1&sink=1&jumpAll=1. ' +
-    'Destination: /homeisland → island-reveal or /home-island?unlock=1',
+    'Destination: /home-island (canonical) or /homeisland alias.',
 };
 
 export const HOME_ISLAND_PRODUCTION_PATH = '/homeisland' as const;
@@ -101,13 +128,13 @@ export const HOME_ISLAND_PRODUCTION_URL =
 export const PRODUCTION_START_PATH = '/island-3d';
 export const PRODUCTION_START_URL = 'https://client.grudge-studio.com/island-3d';
 
-/** Default query after storm intro completes */
+/** Default query after shipwreck intro completes → tutorial island */
 export const AFTER_STORM_INTRO_QUERY = {
   mode: 'lobby',
   map: 'pirate-islands',
   sector: 'lobby',
   island: 'grudge-open-world',
-  from: 'storm-intro',
+  from: 'shipwreck-intro',
   ui: '1',
   options: '1',
 } as const;
@@ -126,16 +153,16 @@ export const AFTER_INTRO_DESTINATIONS: Array<{
   path: string;
 }> = [
   {
+    id: 'tutorial',
+    label: 'Shipwreck Tutorial Island',
+    hint: 'Chicken-gun pirate map · shipwreck_cove · injured wake · T0 harvest',
+    path: '/tutorial?from=shipwreck-intro',
+  },
+  {
     id: 'lobby',
     label: 'Pirate Open World',
     hint: 'island-3d lobby · boats · build · harvest · full HUD',
-    path: '/island-3d?mode=lobby&map=pirate-islands&sector=lobby&ui=1&options=1&from=storm-intro',
-  },
-  {
-    id: 'tutorial',
-    label: 'Shipwreck Tutorial',
-    hint: 'Solo wash-up beach · injured opener · T0 harvest',
-    path: '/tutorial?from=storm-intro',
+    path: '/island-3d?mode=lobby&map=pirate-islands&sector=lobby&ui=1&options=1&from=shipwreck-intro',
   },
   {
     id: 'zone',
@@ -157,13 +184,14 @@ export const AFTER_INTRO_DESTINATIONS: Array<{
   },
 ];
 
-export const INTRO_SESSION_KEY = 'grudge_storm_intro_seen_v1';
-export const INTRO_OPTIONS_KEY = 'grudge_island3d_intro_options_v1';
+/** Bump session key so players re-see the leviathan cut once */
+export const INTRO_SESSION_KEY = 'grudge_shipwreck_intro_seen_v7';
+export const INTRO_OPTIONS_KEY = 'grudge_island3d_intro_options_v7';
 
 export interface Island3dIntroOptions {
-  /** Play storm intro on visit when not yet seen */
+  /** Play shipwreck cinema on visit when not yet seen this session */
   playStormIntro: boolean;
-  /** Mute TI embed audio */
+  /** Mute (reserved for procedural audio) */
   mute: boolean;
   /** Show production options panel after enter */
   showOptions: boolean;
@@ -175,12 +203,17 @@ export interface Island3dIntroOptions {
   autoAdvance: boolean;
 }
 
+/**
+ * Zone / sector land-in must NOT auto-play shipwreck cinema (blocks WORLD_MAP QA).
+ * Default: play once → tutorial island for cold open /island-3d.
+ */
 export const DEFAULT_INTRO_OPTIONS: Island3dIntroOptions = {
   playStormIntro: true,
   mute: false,
   showOptions: true,
   showUi: true,
-  destination: 'lobby',
+  /** Always land tutorial island after leviathan open (production story) */
+  destination: 'tutorial',
   autoAdvance: true,
 };
 

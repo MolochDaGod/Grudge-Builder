@@ -2,13 +2,14 @@
  * Grudge Fleet Bridge — vanilla JS auth + character sync for Puter/external apps.
  * Mirrors GrudgeAccountSDK + wireGrudgeFleet from grudge-builder.
  *
- * @version 2.8.1
+ * @version 2.8.2
  * Character progress SSOT + account inventory/resources on Railway only (same DB as Warlords).
  * ONE TRUTH: grudge_id account · Warlords character UUID · Railway Postgres only.
  * Hard-fail when JWT grudge_id ≠ stored account; roster is era=warlords only.
  * Active character must be a UUID owned by the signed-in account.
  * Sign-in defaults to Grudge ID (id.grudge-studio.com) — never puter:* as primary.
  * SSO: prefer sso_token (full JWT) over grudge_token bridge.
+ * Identity + auth bridge hosts: id.grudge-studio.com only (never auth.*).
  * @see docs/CHARACTER_PROGRESS_SSOT.md · docs/CANONICAL_IDENTITY.md
  */
 (function (global) {
@@ -32,11 +33,21 @@
     return 'https://grudge-api-production-0d46.up.railway.app';
   }
 
+  function resolveObjectStoreBase() {
+    return String(
+      CFG.OBJECTSTORE_URL ||
+        CFG.INFO_URL ||
+        'https://objectstore.grudge-studio.com/api/v1',
+    ).replace(/\/$/, '');
+  }
+
   const FLEET = {
     auth: CFG.AUTH_GATEWAY || 'https://id.grudge-studio.com',
-    identityApi: CFG.IDENTITY_API || 'https://grudge-studio.com',
+    // Identity + auth API SSOT — id hub (proxies Railway /api/auth/*)
+    identityApi: CFG.IDENTITY_API || CFG.AUTH_GATEWAY || 'https://id.grudge-studio.com',
     gameData: resolveGameDataBase(),
-    objectStore: CFG.OBJECTSTORE_URL || 'https://objectstore.grudge-studio.com/api/v1',
+    objectStore: resolveObjectStoreBase(),
+    infoStore: String(CFG.INFO_URL || 'https://info.grudge-studio.com/api/v1').replace(/\/$/, ''),
     assets: CFG.ASSETS || 'https://assets.grudge-studio.com',
     wcs: CFG.WCS_URL || 'https://wcs.grudge-studio.com',
     crafting: CFG.CRAFTING_URL || 'https://grudge-crafting.puter.site',
@@ -45,7 +56,7 @@
     treaty: CFG.TREATY_URL || 'https://grudgewarlords.com/treaty',
     /** Embeddable Treaty UI for any studio page / game */
     treatyEmbed: CFG.TREATY_EMBED_URL || 'https://grudgewarlords.com/treaty-embed.html',
-    gamesLibrary: (CFG.OBJECTSTORE_URL || 'https://objectstore.grudge-studio.com/api/v1') + '/games-library.json',
+    gamesLibrary: resolveObjectStoreBase() + '/games-library.json',
   };
 
   // Canonical keys + SDK aliases so we never multi-login across fleet apps
@@ -929,7 +940,7 @@
     },
     getActiveCharacter: getActiveCharacterLocal,
     warlordsEra: WARLORDS_ERA,
-    version: '2.8.1',
+    version: '2.8.2',
 
     /** Select first character matching race id/name (for VFX Character Lab sync) */
     selectCharacterByRace(race) {
@@ -1319,11 +1330,25 @@
       }
     },
 
-    /** Load canonical games-library.json from ObjectStore. */
+    /** Load canonical games-library.json from ObjectStore (info mirror fallback). */
     async getGamesLibrary() {
-      const res = await fleetFetch(FLEET.gamesLibrary);
-      if (!res.ok) throw new Error('games-library unavailable');
-      return res.json();
+      const urls = [
+        FLEET.gamesLibrary,
+        FLEET.infoStore + '/games-library.json',
+        'https://objectstore.grudge-studio.com/api/v1/games-library.json',
+        'https://info.grudge-studio.com/api/v1/games-library.json',
+      ];
+      let lastErr = null;
+      for (const url of urls) {
+        try {
+          const res = await fleetFetch(url);
+          if (res && res.ok) return await res.json();
+          lastErr = new Error('games-library HTTP ' + (res && res.status));
+        } catch (e) {
+          lastErr = e;
+        }
+      }
+      throw lastErr || new Error('games-library unavailable');
     },
 
     /** PATCH character on Railway (professionLevels, equipment, inventory, etc.) */

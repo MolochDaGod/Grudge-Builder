@@ -154,18 +154,30 @@ export async function swapTreeToStump(tree: HarvestableTree, scale: number): Pro
 }
 
 export function beginTreeFall(tree: HarvestableTree): void {
-  if (tree.fallPhase !== 'live') return;
+  // Allow fall from live or firewood notching
+  if (tree.fallPhase !== 'live' && tree.fallPhase !== 'notching') return;
   tree.fallPhase = 'falling';
   tree.fallProgress = 0;
-  tree.fallAxis = (Math.random() > 0.5 ? 1 : -1) * (0.8 + Math.random() * 0.4);
+  // Prefer firewood-directed fall; else random lean
+  if (tree.fallYaw == null) {
+    tree.fallAxis = (Math.random() > 0.5 ? 1 : -1) * (0.8 + Math.random() * 0.4);
+    tree.fallAxisZ = 0;
+  } else {
+    tree.fallAxis = Math.sin(tree.fallYaw);
+    tree.fallAxisZ = Math.cos(tree.fallYaw);
+  }
   tree.shaking = false;
 }
 
 export function updateTreeFall(tree: HarvestableTree, dt: number): boolean {
   if (tree.fallPhase !== 'falling') return false;
-  tree.fallProgress = Math.min(1, tree.fallProgress + dt * 1.8);
+  tree.fallProgress = Math.min(1, tree.fallProgress + dt * 1.65);
   const ease = tree.fallProgress * tree.fallProgress;
-  tree.group.rotation.x = ease * (Math.PI / 2) * tree.fallAxis;
+  const ax = tree.fallAxis ?? 1;
+  const az = tree.fallAxisZ ?? 0;
+  // Directional timber: lean in XZ toward fall yaw
+  tree.group.rotation.x = ease * (Math.PI / 2) * ax;
+  tree.group.rotation.z = ease * (Math.PI / 2) * az * 0.85;
   return tree.fallProgress >= 1;
 }
 
@@ -173,6 +185,12 @@ export function updateTreeFall(tree: HarvestableTree, dt: number): boolean {
 export function resetHarvestableTree(tree: HarvestableTree, scale: number): void {
   tree.fallPhase = 'live';
   tree.fallProgress = 0;
+  tree.notchProgress = 0;
+  tree.notchFaceYaw = null;
+  tree.segmentHits = undefined;
+  tree.woodCollected = 0;
+  tree.fallYaw = undefined;
+  tree.fallAxisZ = 0;
   tree.group.rotation.set(0, tree.group.rotation.y, 0);
   tree.baseScale = scale;
   void mountHarvestableTreeModel(tree, scale);

@@ -10,7 +10,6 @@ import { characterAPI } from '@/lib/api';
 import { getActiveCharacterId } from '@/lib/warlordsOnboarding';
 import {
   END_GAME_FLAGS,
-  END_GAME_MIN_LEVEL,
   endGameAfterCinematicPath,
 } from '@shared/definitions/endGameMission';
 import { Loader2 } from 'lucide-react';
@@ -59,14 +58,9 @@ export default function HomeIslandEntryPage() {
           /* optional */
         }
 
-        const accepted = localStorage.getItem(END_GAME_FLAGS.missionAccepted) === '1';
         const cinematicDone = localStorage.getItem(END_GAME_FLAGS.cinematicComplete) === '1';
-        const level = char.level ?? 1;
-
-        if (level < END_GAME_MIN_LEVEL && !accepted) {
-          setLocation(`/warlords/start?need=home-island&level=${level}&auto=0`);
-          return;
-        }
+        // Level gate removed: home island is immediate after first character.
+        // Cinematic is optional (skip with ?cinematic=0 or already completed).
 
         if (wantCinematic && !cinematicDone) {
           setPhase('cinematic');

@@ -6,7 +6,7 @@
  * R = tool radial (hatchet, pick, knife, fishing pole, build hammer).
  * Build hammer opens build UI under harvest; R still opens tools; Q → combat.
  */
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, type CSSProperties } from 'react';
 import {
   Sword, Pickaxe, Hammer, X, RotateCw, Crosshair, TreePine, Package,
   Flame, Shield, Truck, Wheat, Flag, Mountain, Armchair, Users, Bug,
@@ -38,9 +38,21 @@ import { usePlayerStatusEffects } from '@/hooks/useStatusEffects';
 import { preloadMagicIndicatorThumbs } from '@/lib/magicIndicatorThumbs';
 import { UiKitActionSlot } from '@/components/uiKit/UiKitActionSlot';
 import { UiKitPlayerFrame } from '@/components/uiKit/UiKitPlayerFrame';
-import { iconForSkillLabel, iconForHarvestTool, UI_FRAMES, UI_SLOTS } from '@/lib/uiKit/craftpixAssets';
+import {
+  iconForSkillLabel,
+  iconForHarvestTool,
+  UI_FRAMES,
+  UI_SLOTS,
+  UI_MENU,
+  preloadCraftpixHudAssets,
+} from '@/lib/uiKit/craftpixAssets';
 import { ensureCraftpixRpgCss } from '@/lib/uiKit/loadGrudgeGameUI';
 import { UI_STUDIO_ORIGIN } from '@/lib/uiKit/uiStudioConfig';
+import {
+  UiKitSettingsPanel,
+  DEFAULT_PLAY_GRAPHICS,
+  type PlayGraphicsSettings,
+} from '@/components/uiKit/UiKitSettingsPanel';
 import '@/styles/ui-kit-production.css';
 
 // ── Mode config (combat + harvest only) ──────────────────────────────────────
@@ -60,14 +72,14 @@ const MODES: {
     label: 'Combat',
     color: '#e74c3c',
     Icon: Sword,
-    hint: 'LMB attack · 1–5 skills · Tab soft-lock · Z sheath · RMB hard focus · Q harvest',
+    hint: 'LMB attack · 1–5 skills · Tab soft-lock · Z sheath · Tap Q weapon swap · Hold Q radial',
   },
   {
     id: 'harvest',
     label: 'Harvest',
     color: '#2ecc71',
     Icon: Pickaxe,
-    hint: 'R tools · LMB gather · Q combat · hammer opens build UI',
+    hint: 'R tools · LMB gather · Tap Q hammer↔tool · Hold Q radial',
   },
 ];
 
@@ -143,6 +155,14 @@ export function ModePlayHUD({
   const [buildCategory, setBuildCategory] = useState<BuildCategory>('structure');
   const [placingLocal, setPlacingLocal] = useState(false);
   const [toolRadialOpen, setToolRadialOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [gfx, setGfx] = useState<PlayGraphicsSettings>(() => {
+    try {
+      const raw = localStorage.getItem('grudge:play-graphics');
+      if (raw) return { ...DEFAULT_PLAY_GRAPHICS, ...JSON.parse(raw) };
+    } catch { /* ignore */ }
+    return { ...DEFAULT_PLAY_GRAPHICS };
+  });
   const [activeTool, setActiveTool] = useState<HarvestRadialToolId>(
     () => engine?.activeHarvestTool ?? engine?.lastHarvestTool ?? DEFAULT_HARVEST_RADIAL_TOOL,
   );
@@ -156,8 +176,19 @@ export function ModePlayHUD({
   // Production craftpix CSS (ui.grudge-studio.com / R2) + magic thumbs
   useEffect(() => {
     ensureCraftpixRpgCss();
+    preloadCraftpixHudAssets();
     void preloadMagicIndicatorThumbs();
   }, []);
+
+  // Apply graphics / ocean quality to engine
+  useEffect(() => {
+    if (!engine) return;
+    engine.setGraphicsQuality(gfx.graphics);
+    engine.setOceanQuality(gfx.ocean);
+    try {
+      localStorage.setItem('grudge:play-graphics', JSON.stringify(gfx));
+    } catch { /* ignore */ }
+  }, [engine, gfx]);
 
   // Sync tool from engine when it changes externally
   useEffect(() => {
@@ -425,9 +456,9 @@ export function ModePlayHUD({
           )}
         </div>
 
-        {/* Mode switcher — combat + harvest only */}
+        {/* Mode switcher — combat + harvest + settings */}
         <div
-          className="uikit-panel flex gap-1.5 p-1.5"
+          className="uikit-panel flex gap-1.5 p-1.5 items-center"
           style={{
             borderColor: 'rgba(197, 160, 89, 0.35)',
             ['--uikit-panel-bg' as string]: `url(${UI_FRAMES.windowBackground})`,
@@ -448,11 +479,33 @@ export function ModePlayHUD({
               </button>
             );
           })}
+          <button
+            type="button"
+            className="uikit-dock-settings"
+            title="Settings"
+            style={
+              {
+                '--uikit-btn-bg': `url(${UI_MENU.actionBtnBg})`,
+                '--uikit-btn-hover': `url(${UI_MENU.actionBtnHover})`,
+              } as CSSProperties
+            }
+            onClick={() => setSettingsOpen(true)}
+          >
+            <img src={UI_MENU.settingsIcon} alt="" />
+          </button>
         </div>
+
+      <UiKitSettingsPanel
+        open={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+        value={gfx}
+        onChange={setGfx}
+        title="Play Settings"
+      />
 
         <p className="text-[10px] text-white/35 tracking-wide">
           {modeCfg.hint}
-          <span className="text-white/20 ml-2">[Q] swap · [R] tools · [I] bag</span>
+          <span className="text-white/20 ml-2">Tap Q swap · R tools · ⚙ settings</span>
           <a
             href={`${UI_STUDIO_ORIGIN}/`}
             target="_blank"

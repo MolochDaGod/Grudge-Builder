@@ -8,7 +8,7 @@ export default function CharacterRedirect() {
       legacyComponent={CharacterBuilder}
       era="warlords"
       mode="landing"
-      returnPath="/home"
+      returnPath="/airship"
     />
   );
 }

@@ -35,6 +35,15 @@ import {
   isStudioAdminRole,
   type StudioRole,
 } from "@shared/fleet/adminAllowlist";
+import {
+  resolveDiscordGrudgeAccount,
+  resolvePuterIdentity,
+  stampPuterLink,
+  listLinkedProviders,
+  asSchemaUser,
+  fetchIdentityUserById,
+  type IdentityUser,
+} from "../lib/identityLink";
 
 const JWT_SECRET = process.env.SESSION_SECRET || process.env.JWT_SECRET || "grudge-dev-secret";
 /**
@@ -190,16 +199,17 @@ function resolveUserStudioRole(opts: {
 }
 
 /**
- * Detect which auth providers are linked based on username patterns.
- * Provider prefixes in the users table: puter:, wallet:, discord:, phone:
+ * Detect linked auth providers — prefer production link columns when present.
+ * Falls back to username prefixes: puter:, wallet:, discord:, phone:
  */
-function detectProviders(username: string): string[] {
+function detectProviders(username: string, identity?: IdentityUser | null): string[] {
+  if (identity) return listLinkedProviders(identity);
   const providers: string[] = [];
   if (username.startsWith("puter:")) providers.push("puter");
   else if (username.startsWith("wallet:")) providers.push("phantom");
   else if (username.startsWith("discord:")) providers.push("discord");
   else if (username.startsWith("phone:")) providers.push("phone");
-  else providers.push("grudge"); // username+password account
+  else providers.push("grudge");
   return providers;
 }
 
@@ -207,13 +217,17 @@ function buildAuthResponse(
   user: { id: string; username: string; grudgeId: string | null; email?: string | null },
   account: { id: string; walletAddress: string | null; grudgeId: string | null; displayName?: string | null } | null,
   puterUsername?: string | null,
+  identity?: IdentityUser | null,
 ) {
   const grudgeId = user.grudgeId || account?.grudgeId || "";
-  const providers = detectProviders(user.username);
+  const providers = detectProviders(user.username, identity);
   // Display name: strip provider prefix for display
   const displayName =
     (account as any)?.displayName ||
     puterUsername ||
+    identity?.display_name ||
+    identity?.puter_username ||
+    identity?.discord_username ||
     (user.username.includes(":") ? user.username.split(":").slice(1).join(":") : user.username);
   const role = resolveUserStudioRole({
     user,
@@ -447,61 +461,23 @@ function buildSsoUserPayload(
 }
 
 /**
- * Scoped Puter → Grudge ID resolution:
- * 1) match by Puter UUID (puter:<uuid>)
- * 2) else match by email when provided
- * 3) else create linked Puter + Grudge ID (email stored when available)
+ * Scoped Puter → Grudge ID resolution (single-account SSOT):
+ * 1) match by puter_user_id / puter:<uuid>
+ * 2) else match by email (links Discord/password admin → same grudge_id)
+ * 3) else create linked Puter + Grudge ID
+ * Always stamps puter_* link columns on the resolved user.
  */
 async function resolvePuterGrudgeAccount(
   puterId: string,
   puterUsername?: string,
   email?: string,
 ): Promise<{ user: typeof users.$inferSelect; account: Awaited<ReturnType<typeof ensureAccount>>; isNew: boolean }> {
-  const puterKey = puterUsernameKey(puterId);
-  let isNew = false;
-
-  let [user] = await db.select().from(users).where(eq(users.username, puterKey)).limit(1);
-
-  if (!user && email) {
-    const normalized = email.trim().toLowerCase();
-    [user] = await db
-      .select()
-      .from(users)
-      .where(sql`lower(${users.email}) = ${normalized}`)
-      .limit(1);
-  }
-
-  if (!user) {
-    isNew = true;
-    const grudgeId = generateGrudgeId();
-    const dummyPw = await hashPassword(crypto.randomBytes(32).toString("hex"));
-
-    [user] = await db
-      .insert(users)
-      .values({
-        username: puterKey,
-        password: dummyPw,
-        grudgeId,
-        email: email?.trim().toLowerCase() || null,
-      })
-      .onConflictDoNothing()
-      .returning();
-
-    if (!user) {
-      [user] = await db.select().from(users).where(eq(users.username, puterKey)).limit(1);
-    }
-
-  } else if (email && !user.email) {
-    await db
-      .update(users)
-      .set({ email: email.trim().toLowerCase() })
-      .where(eq(users.id, user.id));
-    user = { ...user, email: email.trim().toLowerCase() };
-  }
-
-  if (!user) {
-    throw new Error("Failed to create Puter-linked Grudge account");
-  }
+  const { user: identity, isNew } = await resolvePuterIdentity({
+    puterId,
+    puterUsername,
+    email,
+  });
+  let user = asSchemaUser(identity);
 
   let account = await ensureAccount(user.id);
   // Prefer real Puter/handle username as account displayName (not puter:uuid)
@@ -514,7 +490,20 @@ async function resolvePuterGrudgeAccount(
     markProfileComplete(user.id);
   }
 
-  if (!user.grudgeId && account.grudgeId) {
+  // Keep accounts.grudge_id aligned with users.grudge_id (not display names)
+  if (user.grudgeId && account.grudgeId && account.grudgeId !== user.grudgeId) {
+    const accGid = String(account.grudgeId);
+    if (!accGid.startsWith("GRUDGE_") || accGid === "GRUDACHAIN" || accGid.startsWith("puter_")) {
+      try {
+        await storage.updateAccount(account.id, { grudgeId: user.grudgeId } as any);
+        account = { ...account, grudgeId: user.grudgeId };
+      } catch {
+        /* column/type variance — non-fatal */
+      }
+    }
+  }
+
+  if (!user.grudgeId && account.grudgeId && String(account.grudgeId).startsWith("GRUDGE_")) {
     await db.update(users).set({ grudgeId: account.grudgeId }).where(eq(users.id, user.id));
     user = { ...user, grudgeId: account.grudgeId };
   }
@@ -1365,15 +1354,30 @@ export function registerAuthRoutes(app: Express) {
       const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : "";
       if (!token) return res.status(401).json({ success: false, error: "Auth required" });
 
-      const payload = jwt.verify(token, JWT_SECRET) as any;
-      const { puterUuid } = req.body;
+      const payload = jwt.verify(token, JWT_SECRET) as { userId?: string; grudgeId?: string };
+      if (!payload.userId) return res.status(401).json({ success: false, error: "Invalid token" });
+
+      const puterUuid = (req.body?.puterUuid || req.body?.puterId) as string | undefined;
+      const puterUsername = (req.body?.puterUsername || req.body?.username) as string | undefined;
+      const email = (req.body?.email as string | undefined) || undefined;
       if (!puterUuid) return res.status(400).json({ success: false, error: "puterUuid required" });
 
-      // Store the puter UUID link — in a real system this would be a separate table,
-      // but for now we ensure a puter user row exists and is linked
-      res.json({ success: true, linked: true });
-    } catch {
-      res.json({ success: false, error: "Invalid token" });
+      // Stamp Puter onto the *authenticated* user — never create a second grudge_id.
+      await stampPuterLink(payload.userId, {
+        id: puterUuid,
+        username: puterUsername ?? null,
+        email: email ?? null,
+      });
+      const identity = await fetchIdentityUserById(payload.userId);
+      res.json({
+        success: true,
+        linked: true,
+        grudgeId: identity?.grudgeId || payload.grudgeId || null,
+        puter_user_id: puterUuid,
+        providers: identity ? listLinkedProviders(identity) : ["puter"],
+      });
+    } catch (e: any) {
+      res.status(400).json({ success: false, error: e?.message || "Invalid token" });
     }
   });
 
@@ -1497,36 +1501,20 @@ export function registerAuthRoutes(app: Express) {
         return res.redirect(`${returnUrl}?error=Discord+user+fetch+failed`);
       }
 
-      const discordKey = `discord:${discordUser.id}`;
-      let [user] = await db.select().from(users).where(eq(users.username, discordKey)).limit(1);
-
-      if (!user) {
-        const grudgeId = generateGrudgeId();
-        const dummyPw = await hashPassword(crypto.randomBytes(32).toString("hex"));
-        const insertValues: Record<string, unknown> = {
-          username: discordKey,
-          password: dummyPw,
-          grudgeId,
-        };
-        if (discordUser.email) insertValues.email = String(discordUser.email).toLowerCase();
-        [user] = await db
-          .insert(users)
-          .values(insertValues as typeof users.$inferInsert)
-          .onConflictDoNothing()
-          .returning();
-
-        if (!user) {
-          [user] = await db.select().from(users).where(eq(users.username, discordKey)).limit(1);
-        }
-      } else if (discordUser.email && !user.email) {
-        await db
-          .update(users)
-          .set({ email: String(discordUser.email).toLowerCase() })
-          .where(eq(users.id, user.id));
-      }
-
-      if (!user) {
-        return res.redirect(`${returnUrl}?error=Account+creation+failed`);
+      // Single-account SSOT: merge by discord_id OR email (never a second grudge_id for same human)
+      const { user: identity, isNew, mergedByEmail } = await resolveDiscordGrudgeAccount({
+        id: discordUser.id,
+        username: discordUser.username,
+        global_name: discordUser.global_name,
+        email: discordUser.email,
+      });
+      const user = asSchemaUser(identity);
+      if (mergedByEmail) {
+        console.log(
+          `[Auth/Discord] email-merge → grudge_id=${identity.grudgeId} user=${user.username} discord=${discordUser.id}`,
+        );
+      } else if (isNew) {
+        console.log(`[Auth/Discord] created grudge_id=${identity.grudgeId} discord=${discordUser.id}`);
       }
 
       const account = await ensureAccount(user.id);
@@ -1534,9 +1522,24 @@ export function registerAuthRoutes(app: Express) {
         discordUser.global_name ||
         discordUser.username ||
         account?.displayName ||
+        identity.display_name ||
         "Discord Player";
       if (account && (!account.displayName || account.displayName.startsWith("discord:"))) {
         await storage.updateAccount(account.id, { displayName });
+      }
+      // Align accounts.grudge_id when it was a display-name placeholder
+      if (
+        user.grudgeId &&
+        account?.grudgeId &&
+        account.grudgeId !== user.grudgeId &&
+        (!String(account.grudgeId).startsWith("GRUDGE_") ||
+          account.grudgeId === "GRUDACHAIN")
+      ) {
+        try {
+          await storage.updateAccount(account.id, { grudgeId: user.grudgeId } as any);
+        } catch {
+          /* non-fatal */
+        }
       }
 
       const grudgeId = user.grudgeId || account?.grudgeId || "";
@@ -1549,7 +1552,7 @@ export function registerAuthRoutes(app: Express) {
         userId: user.id,
         grudgeId,
         username: displayName,
-        email: user.email || null,
+        email: user.email || identity.email || null,
         role,
         isAdmin: isStudioAdminRole(role),
       });
