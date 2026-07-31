@@ -1,8 +1,9 @@
 /**
  * Production intro SSOT — do not mix destinations.
  *
- * 1) STORM SHIP ATTACK (TI IntroScene)
- *    → open world / island-3d
+ * 1) LEVIATHAN OCEAN / SHIPWRECK TUTORIAL (native Three.js · v8)
+ *    LeviathanOceanCinema — stage UUIDs · spine IK · 4 mages · unarmed throw
+ *    → default /tutorial?from=shipwreck-intro
  *
  * 2) OVERBOARD / DEATH FLOAT (legacy)
  *    → old home-island path (prefer abandon_ship)
@@ -13,7 +14,8 @@
  *
  * Production: https://client.grudge-studio.com/island-3d
  * Home island: https://client.grudge-studio.com/homeisland
- * TI host: https://water.grudge-studio.com
+ *
+ * KILL LIST for island-3d: TI iframe, Stonewisp stand-in, intro.mp4 as primary.
  */
 
 export type ProductionIntroVariant =
@@ -42,22 +44,28 @@ export const TI_HOST =
   (typeof process !== 'undefined' && (process as any).env?.VITE_TI_HOST) ||
   'https://water.grudge-studio.com';
 
-/** Storm + monster attacks ship — production open into island-3d */
+/**
+ * Leviathan ocean battle — production open into island-3d / tutorial.
+ * Native Three.js (LeviathanOceanCinema). TI fields kept only for legacy links.
+ */
 export const STORM_SHIP_INTRO: ProductionIntroDef = {
   id: 'storm_ship_attack',
-  label: 'Storm Ship Attack',
+  label: 'Leviathan Ocean Battle',
   description:
-    'Tactical Infinity Three.js cinematic: storm seas, slave ship, Stonewisp rises and attacks. Ends as the wreck breaks — player continues on island-3d.',
+    'Native Three.js cinema: startingfalls stage, 4 human mages + unarmed hero on deck, leviathan scripted path, spine IK look-ats, 20 m throw, logo → tutorial shipwreck cove.',
   usedFor: 'island-3d',
   tiPath: '/intro',
   tiUrl: `${TI_HOST}/intro`,
-  // Full TI intro ~58s; we cut auto-advance earlier for shipwreck entry (~ship break)
-  durationMs: 42_000,
+  durationMs: 56_000,
   cutBeforeOverboard: true,
   notes:
-    'Source: D:/repos/Tactical-Infinity/client/src/components/IntroScene.tsx. ' +
-    'Do NOT run the death-float overboard sequence for island-3d — that is home-island only.',
+    'Engine: client/src/island3d/intro/LeviathanOceanCinema.ts · stage SSOT leviathanCinemaStage.ts · ' +
+    'battle script LeviathanBattleScript.ts · spine IK CinemaSpineIk.ts. ' +
+    'NO TI iframe / Stonewisp / intro.mp4 as primary island-3d gate.',
 };
+
+/** Alias for docs / gates */
+export const SHIPWRECK_TUTORIAL_INTRO = STORM_SHIP_INTRO;
 
 /** Overboard float — legacy home island only (prefer ABANDON_SHIP_HOME_INTRO) */
 export const OVERBOARD_HOME_INTRO: ProductionIntroDef = {
@@ -135,7 +143,7 @@ export const AFTER_INTRO_DESTINATIONS: Array<{
     id: 'tutorial',
     label: 'Shipwreck Tutorial',
     hint: 'Solo wash-up beach · injured opener · T0 harvest',
-    path: '/tutorial?from=storm-intro',
+    path: '/tutorial?from=shipwreck-intro',
   },
   {
     id: 'zone',
@@ -157,13 +165,14 @@ export const AFTER_INTRO_DESTINATIONS: Array<{
   },
 ];
 
-export const INTRO_SESSION_KEY = 'grudge_storm_intro_seen_v1';
-export const INTRO_OPTIONS_KEY = 'grudge_island3d_intro_options_v1';
+/** Bump when cinema cut changes so players re-see the battle */
+export const INTRO_SESSION_KEY = 'grudge_shipwreck_intro_seen_v8';
+export const INTRO_OPTIONS_KEY = 'grudge_island3d_intro_options_v8';
 
 export interface Island3dIntroOptions {
-  /** Play storm intro on visit when not yet seen */
+  /** Play leviathan cinema on visit when not yet seen */
   playStormIntro: boolean;
-  /** Mute TI embed audio */
+  /** Mute cinema audio */
   mute: boolean;
   /** Show production options panel after enter */
   showOptions: boolean;
@@ -180,7 +189,8 @@ export const DEFAULT_INTRO_OPTIONS: Island3dIntroOptions = {
   mute: false,
   showOptions: true,
   showUi: true,
-  destination: 'lobby',
+  /** Production default: tutorial shipwreck after cinema */
+  destination: 'tutorial',
   autoAdvance: true,
 };
 

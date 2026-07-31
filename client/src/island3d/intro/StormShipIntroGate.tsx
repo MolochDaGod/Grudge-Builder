@@ -1,24 +1,25 @@
 /**
  * StormShipIntroGate — production opener for /island-3d
  *
- * Uses the Tactical Infinity Three.js IntroScene (storm + Stonewisp attacks ship).
- * UI + options stay ON. Overboard float is a separate home-island flow.
+ * Native Three.js LeviathanOceanCinema (scripted battle · stage UUIDs · spine IK).
+ * NO TI iframe · NO Stonewisp · NO intro.mp4 as primary gate.
  *
- * Embed: water.grudge-studio.com/intro
- * Local fallback: storyboard + skip if embed blocked.
+ * Default handoff: /tutorial?from=shipwreck-intro (chicken-gun shipwreck_cove)
  */
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  STORM_SHIP_INTRO,
-  OVERBOARD_HOME_INTRO,
   AFTER_INTRO_DESTINATIONS,
   DEFAULT_INTRO_OPTIONS,
   INTRO_OPTIONS_KEY,
   INTRO_SESSION_KEY,
-  buildAfterIntroUrl,
   type AfterIntroDestination,
   type Island3dIntroOptions,
 } from '@shared/definitions/productionIntro';
+import {
+  LeviathanOceanCinema,
+  LEVIATHAN_CINEMA_DURATION_SEC,
+  LEVIATHAN_CINEMA_SKIPPABLE_AFTER_SEC,
+} from './LeviathanOceanCinema';
 import {
   SkipForward, Volume2, VolumeX, Settings, Play, Ship, Anchor, Home, Waves,
 } from 'lucide-react';
@@ -40,7 +41,6 @@ function saveOptions(o: Island3dIntroOptions) {
 export interface StormShipIntroGateProps {
   characterId?: string | null;
   characterName?: string;
-  /** Force show even if session already saw intro */
   force?: boolean;
   onEnter: (destination: AfterIntroDestination, opts: Island3dIntroOptions) => void;
   onSkipToGame?: () => void;
@@ -54,9 +54,14 @@ export function StormShipIntroGate({
   onSkipToGame,
 }: StormShipIntroGateProps) {
   const [opts, setOpts] = useState<Island3dIntroOptions>(() => loadOptions());
-  const [optionsOpen, setOptionsOpen] = useState(true); // production: options ON
+  const [optionsOpen, setOptionsOpen] = useState(false);
   const [progress, setProgress] = useState(0);
-  const [embedFailed, setEmbedFailed] = useState(false);
+  const [caption, setCaption] = useState('WATERFALL ISLAND');
+  const [sub, setSub] = useState('Four human mages hold the deck…');
+  const [canSkip, setCanSkip] = useState(false);
+  const hostRef = useRef<HTMLDivElement>(null);
+  const cinemaRef = useRef<LeviathanOceanCinema | null>(null);
+  const finishedRef = useRef(false);
 
   const alreadySeen = useMemo(() => {
     if (force) return false;
@@ -67,17 +72,6 @@ export function StormShipIntroGate({
     }
   }, [force]);
 
-  const tiSrc = useMemo(() => {
-    const u = new URL(STORM_SHIP_INTRO.tiUrl);
-    u.searchParams.set('embed', '1');
-    u.searchParams.set('from', 'warlords-island-3d');
-    u.searchParams.set('variant', 'storm_ship_attack');
-    u.searchParams.set('cutOverboard', '1');
-    if (opts.mute) u.searchParams.set('mute', '1');
-    if (characterName) u.searchParams.set('hero', characterName);
-    return u.toString();
-  }, [opts.mute, characterName]);
-
   const patchOpts = useCallback((partial: Partial<Island3dIntroOptions>) => {
     setOpts((prev) => {
       const next = { ...prev, ...partial };
@@ -87,31 +81,57 @@ export function StormShipIntroGate({
   }, []);
 
   const finish = useCallback((dest?: AfterIntroDestination) => {
+    if (finishedRef.current) return;
+    finishedRef.current = true;
     try {
       sessionStorage.setItem(INTRO_SESSION_KEY, '1');
     } catch { /* */ }
+    cinemaRef.current?.dispose();
+    cinemaRef.current = null;
     const d = dest ?? opts.destination;
     onEnter(d, opts);
   }, [onEnter, opts]);
 
-  // Auto-advance (cut before full overboard for island-3d)
+  // Mount native cinema
   useEffect(() => {
-    if (!opts.autoAdvance || alreadySeen) return;
-    const start = performance.now();
-    const dur = STORM_SHIP_INTRO.durationMs;
-    let raf = 0;
-    const tick = (now: number) => {
-      const t = Math.min(1, (now - start) / dur);
-      setProgress(t);
-      if (t >= 1) {
-        finish();
-        return;
-      }
-      raf = requestAnimationFrame(tick);
+    if (alreadySeen && !force) return;
+    const host = hostRef.current;
+    if (!host) return;
+
+    const cinema = new LeviathanOceanCinema(host, {
+      onCaption: (c, s) => {
+        setCaption(c);
+        setSub(s);
+      },
+      onProgress: (u, t) => {
+        setProgress(u);
+        if (t >= LEVIATHAN_CINEMA_SKIPPABLE_AFTER_SEC) setCanSkip(true);
+      },
+      onComplete: () => finish(),
+    });
+    cinemaRef.current = cinema;
+
+    return () => {
+      cinema.dispose();
+      cinemaRef.current = null;
     };
-    raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
-  }, [opts.autoAdvance, alreadySeen, finish]);
+  }, [alreadySeen, force, finish]);
+
+  // Keyboard skip
+  useEffect(() => {
+    if (alreadySeen && !force) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' || e.key === 'Enter' || e.key === ' ') {
+        if (canSkip || e.key === 'Escape') {
+          e.preventDefault();
+          cinemaRef.current?.skip();
+          finish();
+        }
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [alreadySeen, force, canSkip, finish]);
 
   if (alreadySeen && !force) {
     return null;
@@ -119,54 +139,50 @@ export function StormShipIntroGate({
 
   return (
     <div className="fixed inset-0 z-[200] bg-black flex flex-col">
-      {/* TI Three.js storm intro embed */}
+      {/* Letterbox top */}
+      <div className="h-[7vh] shrink-0 bg-black z-20" />
+
       <div className="flex-1 relative min-h-0">
-        {!embedFailed ? (
-          <iframe
-            title="Storm Ship Attack Intro — Tactical Infinity"
-            src={tiSrc}
-            className="absolute inset-0 w-full h-full border-0"
-            allow="autoplay; fullscreen"
-            onError={() => setEmbedFailed(true)}
-          />
-        ) : (
-          <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-b from-slate-950 via-slate-900 to-black text-center px-6">
-            <Waves className="w-12 h-12 text-cyan-500/80 mb-4" />
-            <h1 className="font-cinzel text-2xl text-amber-300 tracking-widest mb-2">STORM SHIP ATTACK</h1>
-            <p className="text-slate-400 text-sm max-w-md leading-relaxed mb-2">
-              {STORM_SHIP_INTRO.description}
-            </p>
-            <p className="text-[11px] text-slate-600 max-w-sm">
-              TI embed unavailable — open{' '}
-              <a className="text-cyan-400 underline" href={STORM_SHIP_INTRO.tiUrl} target="_blank" rel="noreferrer">
-                water.grudge-studio.com/intro
-              </a>{' '}
-              or continue into island-3d.
-            </p>
-          </div>
-        )}
+        {/* Native Three.js host */}
+        <div ref={hostRef} className="absolute inset-0 w-full h-full" />
 
         {/* Progress */}
-        <div className="absolute bottom-0 left-0 right-0 h-1 bg-black/50">
+        <div className="absolute bottom-0 left-0 right-0 h-1 bg-black/50 z-10">
           <div
             className="h-full bg-gradient-to-r from-cyan-600 to-amber-500 transition-[width]"
             style={{ width: `${progress * 100}%` }}
           />
         </div>
 
-        {/* Top chrome — UI always on */}
+        {/* Caption plate */}
+        {(caption || sub) && (
+          <div className="absolute bottom-[10vh] inset-x-0 z-10 flex justify-center pointer-events-none px-4">
+            <div className="rounded-xl border border-cyan-800/40 bg-black/70 backdrop-blur-md px-6 py-3 max-w-xl text-center">
+              {caption && (
+                <div className="font-cinzel text-lg md:text-xl tracking-widest text-amber-200">
+                  {caption}
+                </div>
+              )}
+              {sub && <p className="text-sm text-slate-300 mt-1 leading-relaxed">{sub}</p>}
+            </div>
+          </div>
+        )}
+
+        {/* Top chrome */}
         <div className="absolute top-0 inset-x-0 z-10 flex items-start justify-between gap-2 p-3 pointer-events-none">
           <div className="pointer-events-auto rounded-xl border border-cyan-800/40 bg-black/75 backdrop-blur-md px-3 py-2 max-w-sm">
             <div className="text-[10px] uppercase tracking-widest text-cyan-400/90 font-semibold">
-              Production Open · island-3d
+              Production Open · island-3d · v8 scripted
             </div>
-            <div className="text-sm text-white font-medium">{STORM_SHIP_INTRO.label}</div>
+            <div className="text-sm text-white font-medium">Leviathan Ocean Battle</div>
             <div className="text-[10px] text-slate-400 mt-0.5">
-              TI Three.js · Stonewisp attacks ship · not overboard (home-island only)
+              Stage UUIDs · spine IK · 4 human mages · unarmed throw hero
             </div>
             <div className="text-[9px] text-slate-500 mt-1">
               Captain {characterName}
               {characterId ? ` · ${characterId.slice(0, 8)}…` : ''}
+              {' · '}
+              {Math.round(progress * LEVIATHAN_CINEMA_DURATION_SEC)}s / {LEVIATHAN_CINEMA_DURATION_SEC}s
             </div>
           </div>
 
@@ -175,7 +191,6 @@ export function StormShipIntroGate({
               type="button"
               onClick={() => patchOpts({ mute: !opts.mute })}
               className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold bg-black/80 border border-slate-600 text-slate-200"
-              title="Mute"
             >
               {opts.mute ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
               {opts.mute ? 'Muted' : 'Audio'}
@@ -190,23 +205,29 @@ export function StormShipIntroGate({
             </button>
             <button
               type="button"
-              onClick={() => finish()}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-bold bg-emerald-800/90 border border-emerald-500/50 text-white"
+              disabled={!canSkip}
+              onClick={() => {
+                cinemaRef.current?.skip();
+                finish();
+              }}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-bold bg-emerald-800/90 border border-emerald-500/50 text-white disabled:opacity-40"
             >
               <SkipForward className="w-3.5 h-3.5" />
-              Skip · Enter
+              {canSkip ? 'Skip · Enter' : `Skip in ${Math.ceil(Math.max(0, LEVIATHAN_CINEMA_SKIPPABLE_AFTER_SEC - progress * LEVIATHAN_CINEMA_DURATION_SEC))}s`}
             </button>
           </div>
         </div>
       </div>
 
-      {/* Options panel — production default open */}
+      {/* Letterbox bottom */}
+      <div className="h-[7vh] shrink-0 bg-black z-20" />
+
       {optionsOpen && (
-        <div className="shrink-0 border-t border-white/10 bg-black/95 backdrop-blur-md px-4 py-3 max-h-[42vh] overflow-y-auto">
+        <div className="absolute bottom-[7vh] inset-x-0 z-30 shrink-0 border-t border-white/10 bg-black/95 backdrop-blur-md px-4 py-3 max-h-[42vh] overflow-y-auto">
           <div className="max-w-4xl mx-auto grid md:grid-cols-2 gap-4">
             <div>
               <h3 className="text-[10px] uppercase tracking-widest text-amber-400/90 font-semibold mb-2">
-                After storm intro
+                After leviathan cinema
               </h3>
               <div className="space-y-1.5">
                 {AFTER_INTRO_DESTINATIONS.map((d) => {
@@ -228,11 +249,6 @@ export function StormShipIntroGate({
                       <div className="flex items-center gap-2">
                         <Icon className="w-3.5 h-3.5 text-amber-300 shrink-0" />
                         <span className="text-sm font-semibold text-white">{d.label}</span>
-                        {d.id === 'home_overboard' && (
-                          <span className="ml-auto text-[8px] uppercase text-rose-400 border border-rose-800/50 px-1 rounded">
-                            overboard
-                          </span>
-                        )}
                       </div>
                       <p className="text-[10px] text-slate-400 mt-0.5 pl-5">{d.hint}</p>
                     </button>
@@ -256,42 +272,31 @@ export function StormShipIntroGate({
               <label className="flex items-center gap-2 text-[12px] text-slate-200">
                 <input
                   type="checkbox"
-                  checked={opts.showOptions}
-                  onChange={(e) => patchOpts({ showOptions: e.target.checked })}
-                />
-                Keep options chrome on island-3d
-              </label>
-              <label className="flex items-center gap-2 text-[12px] text-slate-200">
-                <input
-                  type="checkbox"
-                  checked={opts.autoAdvance}
-                  onChange={(e) => patchOpts({ autoAdvance: e.target.checked })}
-                />
-                Auto-enter after storm beat (cut before overboard)
-              </label>
-              <label className="flex items-center gap-2 text-[12px] text-slate-200">
-                <input
-                  type="checkbox"
                   checked={opts.playStormIntro}
                   onChange={(e) => patchOpts({ playStormIntro: e.target.checked })}
                 />
-                Play storm intro next visit
+                Play cinema next visit
               </label>
 
               <div className="rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-[10px] text-slate-500 space-y-1">
                 <p>
-                  <span className="text-cyan-400/90">Storm ship:</span> {STORM_SHIP_INTRO.tiUrl}
+                  <span className="text-cyan-400/90">Engine:</span> LeviathanOceanCinema v8 · stage UUIDs · spine IK
                 </p>
                 <p>
-                  <span className="text-rose-400/90">Overboard (home only):</span>{' '}
-                  {OVERBOARD_HOME_INTRO.label} → /island-reveal
+                  <span className="text-amber-400/90">Cast:</span> leviathan + 4 human mages + 1 human unarmed hero
+                </p>
+                <p>
+                  <span className="text-rose-400/90">Kill list:</span> TI iframe · Stonewisp · intro.mp4 primary
                 </p>
               </div>
 
               <div className="flex flex-wrap gap-2 pt-1">
                 <button
                   type="button"
-                  onClick={() => finish()}
+                  onClick={() => {
+                    cinemaRef.current?.skip();
+                    finish();
+                  }}
                   className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-bold bg-emerald-700 text-white border border-emerald-500/40"
                 >
                   <Play className="w-4 h-4" />
@@ -300,10 +305,13 @@ export function StormShipIntroGate({
                 {onSkipToGame && (
                   <button
                     type="button"
-                    onClick={onSkipToGame}
-                    className="px-3 py-2 rounded-xl text-[11px] text-slate-400 border border-slate-700 hover:text-white"
+                    onClick={() => {
+                      cinemaRef.current?.dispose();
+                      onSkipToGame();
+                    }}
+                    className="px-3 py-2 rounded-xl text-xs text-slate-300 border border-white/15"
                   >
-                    Skip session forever
+                    Skip all
                   </button>
                 )}
               </div>
@@ -314,5 +322,3 @@ export function StormShipIntroGate({
     </div>
   );
 }
-
-export { buildAfterIntroUrl, loadOptions as loadIsland3dIntroOptions };
