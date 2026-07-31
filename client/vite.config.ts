@@ -149,7 +149,17 @@ export default defineConfig({
     fs: {
       allow: monorepoRoot ? [repoRoot, monorepoRoot] : [repoRoot],
     },
+    // Don't chokidar-watch huge cinema GLBs (EBUSY crash on Windows)
+    watch: {
+      ignored: [
+        "**/public/models/cinema/**",
+        "**/client/public/models/cinema/**",
+        "**/*.glb",
+        "**/*.GLB",
+      ],
+    },
     // Match production Vercel rewrites — same-origin /api/assets + /icons + /models
+    // Prefer LOCAL public files first (cinema pack: leviathan, startingfalls, fluid…)
     proxy: {
       "/api/assets": {
         target: "https://assets.grudge-studio.com",
@@ -159,10 +169,20 @@ export default defineConfig({
       "/icons": {
         target: "https://assets.grudge-studio.com",
         changeOrigin: true,
+        bypass(req: { url?: string }) {
+          const rel = (req.url || "").split("?")[0];
+          const local = path.resolve(repoRoot, "public", rel.replace(/^\//, ""));
+          if (fs.existsSync(local) && fs.statSync(local).isFile()) return rel;
+        },
       },
       "/models": {
         target: "https://assets.grudge-studio.com",
         changeOrigin: true,
+        bypass(req: { url?: string }) {
+          const rel = (req.url || "").split("?")[0];
+          const local = path.resolve(repoRoot, "public", rel.replace(/^\//, ""));
+          if (fs.existsSync(local) && fs.statSync(local).isFile()) return rel;
+        },
       },
       "/sprites": {
         target: "https://assets.grudge-studio.com",
