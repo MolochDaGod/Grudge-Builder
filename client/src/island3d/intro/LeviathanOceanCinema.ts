@@ -19,7 +19,10 @@ import {
   CIN_SHIP_LOA_M,
   CIN_LEVIATHAN_LOA_M,
   CIN_RING_SPAN_M,
+  CIN_GLYPH_SPAN_M,
   CIN_HERO_THROW_M,
+  CIN_ISLAND_OFFSET,
+  CIN_ISLAND_SPAN_M,
   LEVIATHAN_STAGE_ID,
   cinPos,
 } from '@shared/definitions/leviathanCinemaStage';
@@ -56,14 +59,22 @@ export type CinemaCallbacks = {
 
 // ── helpers ────────────────────────────────────────────────────────────
 
-function plantHeight(obj: THREE.Object3D, heightM: number): void {
+/** Scale human to SI height and plant feet at local Y=0 (deck contact). */
+function plantFeet(obj: THREE.Object3D, heightM: number): void {
+  obj.position.set(0, 0, 0);
   obj.updateMatrixWorld(true);
   const box = new THREE.Box3().setFromObject(obj);
   const size = box.getSize(new THREE.Vector3());
-  obj.scale.multiplyScalar(heightM / Math.max(size.y, 0.001));
+  const h = Math.max(size.y, 0.001);
+  obj.scale.multiplyScalar(heightM / h);
   obj.updateMatrixWorld(true);
   const b2 = new THREE.Box3().setFromObject(obj);
+  // Feet on y=0 of parent (deck)
   obj.position.y -= b2.min.y;
+}
+
+function plantHeight(obj: THREE.Object3D, heightM: number): void {
+  plantFeet(obj, heightM);
 }
 
 function fitLength(obj: THREE.Object3D, targetLength: number): void {
@@ -213,6 +224,18 @@ export class LeviathanOceanCinema {
   private smokeRingPool: THREE.Object3D[] = [];
   private supernovaPool: THREE.Object3D[] = [];
   private meguminRoot: THREE.Object3D | null = null;
+  /** Measured ship-local deck Y after SI fit (feet plant) */
+  private deckY = 3.0;
+  private glyphTemplate: THREE.Object3D | null = null;
+  private glyphs: Array<{
+    mesh: THREE.Object3D;
+    t: number;
+    life: number;
+    from: THREE.Vector3;
+    to: THREE.Vector3;
+  }> = [];
+  private glyphCd = 0;
+  private castingActive = false;
 
   constructor(host: HTMLElement, cbs: CinemaCallbacks = {}) {
     this.host = host;
@@ -314,18 +337,19 @@ export class LeviathanOceanCinema {
       this.scene.add(foundation);
     }
 
-    // Ship at ship_origin UUID
+    // Ship at ship_origin UUID — SI LOA, then measure deck for feet plant
     this.intactShip = ship ?? makeProceduralShip();
     fitLength(this.intactShip, CIN_SHIP_LOA_M);
     this.shipGroup.add(this.intactShip);
     this.stage.place(this.shipGroup, 'ship_origin');
+    this.deckY = this.measureDeckY(this.intactShip);
 
     this.wreckShip = wreck ?? makeProceduralShip();
     fitLength(this.wreckShip, 16);
     this.wreckShip.visible = false;
     this.shipGroup.add(this.wreckShip);
 
-    // Leviathan
+    // Leviathan — mouth/spine attacks aim at boat via IK
     this.leviathan = leviPack?.root ?? makeProceduralLeviathan();
     fitLength(this.leviathan, CIN_LEVIATHAN_LOA_M);
     this.leviathanRoot.add(this.leviathan);
@@ -336,7 +360,7 @@ export class LeviathanOceanCinema {
     }
     this.spineIk.bind('leviathan', this.leviathan);
 
-    // 4 human mages → deck UUID slots
+    // 4 human mages — SI 1.8 m, feet on deck, face leviathan, cast rings
     const magePacks = [m0, m1, m2, m3];
     const mageKeys = ['deck_mage_0', 'deck_mage_1', 'deck_mage_2', 'deck_mage_3'] as const;
     const actorIds = ['mage_0', 'mage_1', 'mage_2', 'mage_3'] as const;
@@ -345,49 +369,61 @@ export class LeviathanOceanCinema {
       const root = new THREE.Group();
       root.name = actorIds[i];
       const mesh = pack?.root ? pack.root.clone(true) : makeCapsuleHero();
-      plantHeight(mesh, CIN_HUMAN_M);
+      plantFeet(mesh, CIN_HUMAN_M);
       root.add(mesh);
       this.mages.push(mesh);
       this.mageRoots.push(root);
 
       if (pack?.clips?.length) {
         const dir = new CinemaAnimDirector(mesh, pack.clips);
-        dir.play(['idle', 'stand'], { fade: 0.2 });
+        // Default: 2H cast loop (will re-assert on cast beats)
+        dir.play(animHintsFor('cast'), { fade: 0.2, loop: THREE.LoopRepeat });
         this.mageDirectors.push(dir);
       }
 
-      // Ring
+      // Yin-yang magic ring (user asset) — held in cast pose in front of caster
       if (ring) {
         const r = ring.clone(true);
         const box = new THREE.Box3().setFromObject(r);
         const span = Math.max(...box.getSize(new THREE.Vector3()).toArray(), 0.001);
         r.scale.setScalar(CIN_RING_SPAN_M / span);
-        r.position.set(0, 2.15, 0.45);
+        // Hand/chest cast height for 1.8 m human
+        r.position.set(0, 1.15, 0.55);
+        r.rotation.x = -0.35;
         r.visible = false;
         root.add(r);
         this.rings.push(r);
       }
 
-      // Parent to ship so deck slots ride hull; place in ship-local
+      // Parent to ship — feet on deck (XZ from stage, Y = deckY)
       this.shipGroup.add(root);
-      this.stage.place(root, mageKeys[i], { copyYaw: true, localToParent: this.shipGroup });
+      this.placeOnDeck(root, mageKeys[i]);
       this.spineIk.bind(actorIds[i], mesh);
     }
 
-    // Hero — human unarmed default (throw watch)
+    // Hero — SI unarmed, feet on deck, parented to ship until throw
     {
       const mesh = heroPack?.root ?? makeCapsuleHero();
-      plantHeight(mesh, CIN_HUMAN_M);
+      plantFeet(mesh, CIN_HUMAN_M);
       this.hero = mesh;
       this.heroRoot.add(mesh);
       this.heroRoot.name = 'hero_throw';
-      this.stage.place(this.heroRoot, 'deck_hero');
+      this.shipGroup.add(this.heroRoot);
+      this.placeOnDeck(this.heroRoot, 'deck_hero');
       if (heroPack?.clips?.length) {
         this.heroDirector = new CinemaAnimDirector(mesh, heroPack.clips);
         this.heroDirector.play(['idle', 'stand'], { fade: 0.2 });
       }
       this.spineIk.bind('hero', mesh);
     }
+
+    // Spell glyph template (thrown at leviathan during cast/attack)
+    void loadFirst(CIN_CAST_ASSETS.spellGlyph).then((g) => {
+      if (this.disposed || !g) return;
+      this.glyphTemplate = g;
+      this.fitObjectSpanLocal(g, CIN_GLYPH_SPAN_M);
+      g.visible = false;
+    });
 
     // Fire beam mesh
     this.fireBeam = new THREE.Mesh(
@@ -496,6 +532,12 @@ export class LeviathanOceanCinema {
       const a = assign.leviathan;
       this.stage.place(this.leviathanRoot, a.at, { copyYaw: true });
       this.leviathanRoot.visible = a.visible !== false;
+      // Always face boat when on surface
+      if (a.visible !== false) {
+        const boat = this.shipGroup.position.clone();
+        boat.y = this.leviathanRoot.position.y;
+        this.leviathanRoot.lookAt(boat);
+      }
       if (this.leviDirector && a.anim) {
         this.leviDirector.play(animHintsFor(a.anim), {
           fade: 0.3,
@@ -505,42 +547,51 @@ export class LeviathanOceanCinema {
       } else if (this.leviDirector && a.timeScale != null) {
         this.leviDirector.setTimeScale(a.timeScale);
       }
-      if (a.lookAt) {
-        const t = this.stage.get(a.lookAt);
-        this.spineIk.aimAtObject('leviathan', t, a.ikWeight ?? 0.6);
-      }
+      // Spine / head aim at deck (boat) — mouth attacks drive from this
+      const lookKey = a.lookAt ?? 'ik_ship_deck_center';
+      this.spineIk.aimAtObject('leviathan', this.stage.get(lookKey), a.ikWeight ?? 0.75, 0);
     }
 
     const mageActors = ['mage_0', 'mage_1', 'mage_2', 'mage_3'] as const;
+    const mageKeys = ['deck_mage_0', 'deck_mage_1', 'deck_mage_2', 'deck_mage_3'] as const;
+    this.castingActive = !!beat.rings || assign.mage_0?.anim === 'cast' || assign.mage_0?.anim === 'defend';
     for (let i = 0; i < 4; i++) {
       const a = assign[mageActors[i]];
       const root = this.mageRoots[i];
       if (!a || !root) continue;
-      this.stage.place(root, a.at, { copyYaw: true, localToParent: this.shipGroup });
+      // Feet stay on deck (ship-local); do not free-float
+      this.placeOnDeck(root, mageKeys[i]);
       root.visible = a.visible !== false;
-      if (this.mageDirectors[i] && a.anim) {
-        this.mageDirectors[i].play(animHintsFor(a.anim), { fade: 0.28 });
+      // 2H cast loop while rings/defend/cast
+      const castLoop =
+        a.anim === 'cast' || a.anim === 'defend' || !!beat.rings;
+      if (this.mageDirectors[i]) {
+        this.mageDirectors[i].play(
+          animHintsFor(castLoop ? 'cast' : a.anim ?? 'idle'),
+          { fade: 0.28, loop: THREE.LoopRepeat },
+        );
       }
-      if (a.lookAt) {
-        this.spineIk.aimAtObject(mageActors[i], this.stage.get(a.lookAt), a.ikWeight ?? 0.7, 0.5);
-      } else {
-        this.spineIk.aim(mageActors[i], null, 0);
-      }
+      // Spine IK look at leviathan mouth (casters aim wards at the beast)
+      const look = a.lookAt ? this.stage.get(a.lookAt) : this.stage.get('ik_levi_mouth');
+      this.spineIk.aimAtObject(mageActors[i], look, a.ikWeight ?? 0.85, 0.4);
     }
 
     if (assign.hero) {
       const a = assign.hero;
-      // Throw arc: world positions; deck: ship-local
       if (beat.heroMode === 'throw' || beat.heroMode === 'air' || beat.heroMode === 'sink') {
+        // Detach to world for throw arc
+        if (this.heroRoot.parent === this.shipGroup) {
+          this.scene.attach(this.heroRoot);
+        }
         this.stage.place(this.heroRoot, a.at, { copyYaw: false });
       } else if (beat.heroMode === 'hidden') {
         this.heroRoot.visible = false;
       } else {
-        // deck / brace — keep near ship, world place from deck_hero then offset with ship
-        const p = this.stage.worldPos(a.at);
-        this.heroRoot.position.copy(p);
-        // ride ship bob
-        this.heroRoot.position.y = p.y + Math.sin(this.elapsed * 1.5) * 0.15;
+        if (this.heroRoot.parent !== this.shipGroup) {
+          this.shipGroup.attach(this.heroRoot);
+        }
+        this.placeOnDeck(this.heroRoot, 'deck_hero');
+        this.heroRoot.visible = true;
       }
       this.heroRoot.visible = a.visible !== false && beat.heroMode !== 'hidden';
       if (this.heroDirector && a.anim) {
@@ -551,8 +602,15 @@ export class LeviathanOceanCinema {
       }
     }
 
-    // Rings
-    for (const r of this.rings) r.visible = !!beat.rings;
+    // Magic rings visible while casting wards
+    for (const r of this.rings) r.visible = !!beat.rings || this.castingActive;
+
+    // On cast/attack beats: throw spell glyphs at leviathan
+    if (prev !== idx && (beat.rings || beat.fireBeam || beat.shieldImpact || assign.mage_0?.anim === 'cast')) {
+      for (const root of this.mageRoots) {
+        if (root.visible) this.throwGlyph(root);
+      }
+    }
 
     // Ship intact / pinata
     if (this.intactShip) this.intactShip.visible = beat.shipIntact !== false && !this.pinataFired;
@@ -624,72 +682,157 @@ export class LeviathanOceanCinema {
     }
   }
 
-  /** Fit startingfalls: stones near origin, hide baked water (Gerstner owns near field). */
+  /**
+   * Fit startingfalls as DISTANT island land mass — ship fights on open water at origin.
+   * Map geometry stays intact; only translated/scaled into the background.
+   */
   private plantStartingFalls(root: THREE.Object3D): void {
     root.updateMatrixWorld(true);
-    // Soft-hide map water planes — cinema Gerstner is primary
     root.traverse((o) => {
       const n = (o.name || '').toLowerCase();
+      // Keep map water subtle — cinema Gerstner is near-field primary
       if (n.includes('water')) {
-        o.visible = false;
+        const m = o as THREE.Mesh;
+        if (m.isMesh && m.material) {
+          const mats = Array.isArray(m.material) ? m.material : [m.material];
+          for (const mat of mats) {
+            const std = mat as THREE.MeshStandardMaterial;
+            if ('opacity' in std) {
+              std.transparent = true;
+              std.opacity = 0.25;
+            }
+          }
+        }
       }
       if ((o as THREE.Mesh).isMesh) {
         o.castShadow = true;
         o.receiveShadow = true;
       }
     });
-    // Prefer stones as stage scale reference
-    let stone: THREE.Object3D | null = null;
-    root.traverse((o) => {
-      const n = (o.name || '').toLowerCase();
-      if (!stone && (n.includes('stone_1') || n.includes('stones'))) stone = o;
-    });
-    fitLength(root, 90);
+    fitLength(root, CIN_ISLAND_SPAN_M);
     root.updateMatrixWorld(true);
-    if (stone) {
-      const box = new THREE.Box3().setFromObject(stone);
-      const c = box.getCenter(new THREE.Vector3());
-      root.position.x -= c.x;
-      root.position.z -= c.z;
-      root.position.y -= box.min.y;
-    } else {
-      const box = new THREE.Box3().setFromObject(root);
-      root.position.y -= box.min.y;
+    const box = new THREE.Box3().setFromObject(root);
+    // Ground and push island into the distance (behind/beside the fight)
+    root.position.set(
+      CIN_ISLAND_OFFSET.x - (box.min.x + box.max.x) * 0.5,
+      CIN_ISLAND_OFFSET.y - box.min.y,
+      CIN_ISLAND_OFFSET.z - (box.min.z + box.max.z) * 0.5,
+    );
+  }
+
+  /** Ship-local deck Y from mesh bounds (SI after fitLength). */
+  private measureDeckY(ship: THREE.Object3D): number {
+    ship.updateMatrixWorld(true);
+    const box = new THREE.Box3().setFromObject(ship);
+    // Deck ~ 55–65% up hull for stylized pirate hulls
+    const y = THREE.MathUtils.lerp(box.min.y, box.max.y, 0.58);
+    return Math.max(1.2, Math.min(y, box.max.y - 0.3));
+  }
+
+  /** Place character root on deck: feet at deckY, XZ/yaw from stage slot. */
+  private placeOnDeck(root: THREE.Object3D, slotKey: 'deck_mage_0' | 'deck_mage_1' | 'deck_mage_2' | 'deck_mage_3' | 'deck_hero'): void {
+    const def = this.stage.def(slotKey);
+    const p = def?.position ?? { x: 0, y: 0, z: 0 };
+    root.position.set(p.x, this.deckY, p.z);
+    if (def?.yaw != null) root.rotation.y = def.yaw;
+    // Face leviathan (roughly -Z / toward path)
+    root.lookAt(
+      root.position.x + Math.sin(def?.yaw ?? 0) * 4,
+      root.position.y + 1.2,
+      root.position.z + Math.cos(def?.yaw ?? 0) * 4,
+    );
+    // Keep upright (lookAt can tilt)
+    root.rotation.x = 0;
+    root.rotation.z = 0;
+    if (def?.yaw != null) root.rotation.y = def.yaw;
+  }
+
+  private fitObjectSpanLocal(obj: THREE.Object3D, spanM: number): void {
+    obj.updateMatrixWorld(true);
+    const box = new THREE.Box3().setFromObject(obj);
+    const size = box.getSize(new THREE.Vector3());
+    const s = Math.max(size.x, size.y, size.z, 0.001);
+    obj.scale.multiplyScalar(spanM / s);
+  }
+
+  /** Throw spell glyph from caster toward leviathan mouth (attack beats). */
+  private throwGlyph(fromRoot: THREE.Object3D): void {
+    if (!this.glyphTemplate) return;
+    const mesh = this.glyphTemplate.clone(true);
+    // Reset scale then fit once
+    mesh.scale.set(1, 1, 1);
+    this.fitObjectSpanLocal(mesh, CIN_GLYPH_SPAN_M);
+    mesh.visible = true;
+    const from = new THREE.Vector3();
+    fromRoot.getWorldPosition(from);
+    from.y += 1.25;
+    // Aim at live leviathan mouth IK
+    const to = this.stage.worldPos('ik_levi_mouth');
+    mesh.position.copy(from);
+    this.scene.add(mesh);
+    this.glyphs.push({
+      mesh,
+      t: 0,
+      life: 1.4,
+      from: from.clone(),
+      to: to.clone(),
+    });
+  }
+
+  private updateGlyphs(dt: number): void {
+    for (let i = this.glyphs.length - 1; i >= 0; i--) {
+      const g = this.glyphs[i];
+      g.t += dt;
+      const u = Math.min(1, g.t / g.life);
+      // Arc toward leviathan mouth
+      g.mesh.position.lerpVectors(g.from, g.to, u);
+      g.mesh.position.y += Math.sin(u * Math.PI) * 3.2;
+      g.mesh.rotation.y += dt * 6;
+      g.mesh.rotation.x += dt * 3;
+      const fade = THREE.MathUtils.lerp(1, 0.4, u);
+      g.mesh.scale.setScalar(fade);
+      if (u >= 1) {
+        this.scene.remove(g.mesh);
+        this.glyphs.splice(i, 1);
+      }
     }
   }
 
   private updateIkMarkers(): void {
-    // Keep IK empties following live leviathan head / mouth / hero chest / deck
+    // Leviathan head / mouth from bounds (mouth toward ship for attack beam)
     if (this.leviathan) {
-      // Approximate head: top of leviathan bounds
       this.leviathan.updateMatrixWorld(true);
       const box = new THREE.Box3().setFromObject(this.leviathan);
-      const head = new THREE.Vector3(
-        (box.min.x + box.max.x) * 0.5,
-        box.max.y * 0.85 + box.min.y * 0.15,
-        (box.min.z + box.max.z) * 0.5,
-      );
-      const mouth = head.clone();
-      mouth.y -= 1.2;
-      mouth.z += 2;
+      const center = box.getCenter(new THREE.Vector3());
+      const size = box.getSize(new THREE.Vector3());
+      // Head: forward-upper toward ship
+      const head = center.clone();
+      head.y = box.min.y + size.y * 0.72;
+      // Mouth slightly lower / ahead of head along boat direction
+      const boat = new THREE.Vector3();
+      this.shipGroup.getWorldPosition(boat);
+      const toBoat = boat.clone().sub(center).normalize();
+      const mouth = head.clone().addScaledVector(toBoat, size.z * 0.22);
+      mouth.y -= size.y * 0.08;
+
       const inv = new THREE.Matrix4().copy(this.stage.root.matrixWorld).invert();
-      const headLocal = head.clone().applyMatrix4(inv);
-      const mouthLocal = mouth.clone().applyMatrix4(inv);
-      this.stage.must('ik_levi_head').position.copy(headLocal);
-      this.stage.must('ik_levi_mouth').position.copy(mouthLocal);
+      this.stage.must('ik_levi_head').position.copy(head.clone().applyMatrix4(inv));
+      this.stage.must('ik_levi_mouth').position.copy(mouth.clone().applyMatrix4(inv));
     }
     if (this.heroRoot.visible) {
       this.stage.follow('ik_hero_chest', this.heroRoot, new THREE.Vector3(0, 1.1, 0));
     }
-    this.stage.follow('ik_ship_deck_center', this.shipGroup, new THREE.Vector3(0, 3.4, 0));
+    // Deck center tracks live ship deck (feet height + 1.2 for aim)
+    this.stage.follow('ik_ship_deck_center', this.shipGroup, new THREE.Vector3(0, this.deckY + 1.2, 0));
   }
 
+  /** Fire beam: leviathan mouth → boat deck (spine IK target). */
   private updateBeam(): void {
-    if (!this.fireBeam?.visible || !this.leviathan) return;
+    if (!this.fireBeam?.visible) return;
     const mouth = this.stage.worldPos('ik_levi_mouth');
     const deck = this.stage.worldPos('ik_ship_deck_center');
     const mid = mouth.clone().lerp(deck, 0.5);
-    const dist = mouth.distanceTo(deck);
+    const dist = Math.max(0.5, mouth.distanceTo(deck));
     this.fireBeam.position.copy(mid);
     this.fireBeam.scale.set(1, dist, 1);
     this.fireBeam.lookAt(deck);
@@ -721,7 +864,7 @@ export class LeviathanOceanCinema {
     }
     this.dirLight.intensity = 0.75 + this.flash * 2.5;
 
-    // Ship bob + roll from script
+    // Ship bob + roll from script (casters parented → ride deck)
     const bob = Math.sin(this.elapsed * 1.5) * (0.22 + this.stormCur * 0.45);
     const roll = Math.sin(this.elapsed * 0.9) * (beat.shipRoll ?? 0.1);
     const pitch = Math.sin(this.elapsed * 1.1) * (beat.shipPitch ?? 0.05);
@@ -729,14 +872,43 @@ export class LeviathanOceanCinema {
     this.shipGroup.rotation.z = roll;
     this.shipGroup.rotation.x = pitch;
 
-    // Hero deck ride
-    if (beat.heroMode === 'deck' || beat.heroMode === 'brace') {
-      const p = this.stage.worldPos('deck_hero');
-      this.heroRoot.position.set(p.x, p.y + bob, p.z);
-      this.heroRoot.rotation.z = roll * 0.5;
-      this.heroRoot.visible = true;
-    } else if (beat.heroMode === 'throw' || beat.heroMode === 'air') {
-      // lerp throw_apex → throw_end across breach→twenty window
+    // Keep mage feet locked to deck slots while ship rolls
+    const mageKeysTick = ['deck_mage_0', 'deck_mage_1', 'deck_mage_2', 'deck_mage_3'] as const;
+    for (let i = 0; i < this.mageRoots.length; i++) {
+      const root = this.mageRoots[i];
+      if (!root.visible) continue;
+      const def = this.stage.def(mageKeysTick[i]);
+      if (!def) continue;
+      root.position.x = def.position.x;
+      root.position.z = def.position.z;
+      root.position.y = this.deckY; // feet on deck — IK is upper-body only
+    }
+    if (
+      this.heroRoot.parent === this.shipGroup &&
+      (beat.heroMode === 'deck' || beat.heroMode === 'brace')
+    ) {
+      const hd = this.stage.def('deck_hero');
+      if (hd) {
+        this.heroRoot.position.set(hd.position.x, this.deckY, hd.position.z);
+      }
+    }
+
+    // Spin cast rings; throw glyphs on a cadence while casting
+    for (const r of this.rings) {
+      if (r.visible) r.rotation.z += dt * 2.8;
+    }
+    this.glyphCd -= dt;
+    if (this.castingActive && this.glyphCd <= 0) {
+      this.glyphCd = 0.85;
+      for (const root of this.mageRoots) {
+        if (root.visible) this.throwGlyph(root);
+      }
+    }
+    this.updateGlyphs(dt);
+
+    // Hero throw arc (world space after detach)
+    if (beat.heroMode === 'throw' || beat.heroMode === 'air') {
+      if (this.heroRoot.parent === this.shipGroup) this.scene.attach(this.heroRoot);
       const t0 = 31;
       const t1 = 35.5;
       const u = THREE.MathUtils.clamp((this.elapsed - t0) / (t1 - t0), 0, 1);
@@ -747,15 +919,21 @@ export class LeviathanOceanCinema {
       this.heroRoot.rotation.set(u * 2, u * 3, u * 1.2);
       this.heroRoot.visible = true;
     } else if (beat.heroMode === 'sink') {
+      if (this.heroRoot.parent === this.shipGroup) this.scene.attach(this.heroRoot);
       const b = this.stage.worldPos('throw_end');
       const u = THREE.MathUtils.clamp((this.elapsed - 40) / 6, 0, 1);
       this.heroRoot.position.set(b.x, b.y - u * 3.5, b.z);
       this.heroRoot.visible = true;
     }
 
-    // Soft leviathan sway at current path node
+    // Soft leviathan sway; keep facing boat + spine aim
     if (this.leviathanRoot.visible) {
-      this.leviathanRoot.position.y += Math.sin(this.elapsed * 0.9) * 0.01;
+      this.leviathanRoot.position.y += Math.sin(this.elapsed * 0.9) * 0.008;
+      const boat = this.shipGroup.position.clone();
+      boat.y = this.leviathanRoot.position.y;
+      this.leviathanRoot.lookAt(boat);
+      // Leviathan spine always aims mouth-path at deck
+      this.spineIk.aimAtObject('leviathan', this.stage.get('ik_ship_deck_center'), 0.8, 0);
     }
 
     // Anim mixers FIRST

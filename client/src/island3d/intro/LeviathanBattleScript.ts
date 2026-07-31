@@ -573,9 +573,24 @@ export function animHintsFor(hint: CinAnimHint | undefined): string[] {
     case 'attack':
       return ['attack', 'combat', 'skill'];
     case 'cast':
-      return ['cast', 'spell', 'magic', 'attack', 'skill'];
+      // Prefer 2H cast loops for deck mages (magic pack / modular)
+      return [
+        '2h_cast',
+        '2h cast',
+        'twohand_cast',
+        'two_hand_cast',
+        '2h_magic',
+        'cast_2h',
+        'cast',
+        'spell',
+        'magic',
+        'skill',
+        'attack',
+        'combat',
+        'idle',
+      ];
     case 'defend':
-      return ['defend', 'block', 'guard', 'idle', 'cast'];
+      return ['defend', 'block', 'guard', '2h_cast', 'cast', 'idle'];
     case 'brace':
       return ['idle', 'stand', 'breath', 'defend'];
     case 'swim':

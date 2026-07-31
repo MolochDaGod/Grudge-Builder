@@ -17,6 +17,16 @@ export const CIN_SHIP_LOA_M = 22;
 export const CIN_LEVIATHAN_LOA_M = 42;
 export const CIN_HERO_THROW_M = 20;
 export const CIN_RING_SPAN_M = 2.4;
+/** Spell glyph projectile span (metres) */
+export const CIN_GLYPH_SPAN_M = 1.2;
+/**
+ * Distant startingfalls island offset (ship fights on open water at origin).
+ * Land mass stays in the background as an island, not under the ship.
+ */
+export type CinVec3 = { x: number; y: number; z: number };
+
+export const CIN_ISLAND_OFFSET: CinVec3 = { x: 55, y: 0, z: -145 };
+export const CIN_ISLAND_SPAN_M = 140;
 
 export type CinLocRole =
   | 'world_anchor'
@@ -28,8 +38,6 @@ export type CinLocRole =
   | 'camera'
   | 'throw_arc'
   | 'water';
-
-export type CinVec3 = { x: number; y: number; z: number };
 
 export type CinLocationDef = {
   /** Stable fleet UUID — never renumber; append new ids only */
@@ -163,28 +171,29 @@ export const LEVIATHAN_STAGE_LOCATIONS: readonly CinLocationDef[] = [
     tags: ['aft'],
   }),
 
-  // ── 4 mage deck slots (port / mid / starboard / aft) ─────────────────
-  L('deck_mage_0', 'deck_slot', 'Deck Mage 0 · Port', { x: -2.2, y: 3.15, z: 1.4 }, {
-    yaw: 0.35,
-    tags: ['mage', 'human', 'caster', 'ring'],
+  // ── 4 mage deck slots — Y is deck height in ship-local (feet on deck) ─
+  // Runtime overwrites Y from measured ship deck top after SI fit.
+  L('deck_mage_0', 'deck_slot', 'Deck Mage 0 · Port', { x: -2.4, y: 0, z: 1.6 }, {
+    yaw: 0.45,
+    tags: ['mage', 'human', 'caster', 'ring', 'feet_on_deck'],
   }),
-  L('deck_mage_1', 'deck_slot', 'Deck Mage 1 · Starboard', { x: 2.0, y: 3.15, z: -0.8 }, {
-    yaw: -0.4,
-    tags: ['mage', 'human', 'caster', 'ring'],
+  L('deck_mage_1', 'deck_slot', 'Deck Mage 1 · Starboard', { x: 2.2, y: 0, z: -0.6 }, {
+    yaw: -0.5,
+    tags: ['mage', 'human', 'caster', 'ring', 'feet_on_deck'],
   }),
-  L('deck_mage_2', 'deck_slot', 'Deck Mage 2 · Forward', { x: 0.4, y: 3.15, z: 3.2 }, {
-    yaw: 0.1,
-    tags: ['mage', 'human', 'caster', 'ring'],
+  L('deck_mage_2', 'deck_slot', 'Deck Mage 2 · Forward', { x: 0.5, y: 0, z: 3.4 }, {
+    yaw: 0.15,
+    tags: ['mage', 'human', 'caster', 'ring', 'feet_on_deck'],
   }),
-  L('deck_mage_3', 'deck_slot', 'Deck Mage 3 · Aft', { x: -0.8, y: 3.15, z: -2.6 }, {
-    yaw: 0.55,
-    tags: ['mage', 'human', 'caster', 'ring'],
+  L('deck_mage_3', 'deck_slot', 'Deck Mage 3 · Aft', { x: -0.9, y: 0, z: -2.8 }, {
+    yaw: 0.65,
+    tags: ['mage', 'human', 'caster', 'ring', 'feet_on_deck'],
   }),
 
-  // ── Throw hero (human unarmed default) ───────────────────────────────
-  L('deck_hero', 'deck_slot', 'Deck Hero · Unarmed', { x: 0.5, y: 3.15, z: 0.3 }, {
+  // ── Throw hero (human unarmed default) — feet on deck ────────────────
+  L('deck_hero', 'deck_slot', 'Deck Hero · Unarmed', { x: 0.4, y: 0, z: 0.2 }, {
     yaw: 0,
-    tags: ['hero', 'human', 'unarmed', 'throw'],
+    tags: ['hero', 'human', 'unarmed', 'throw', 'feet_on_deck'],
   }),
   L('throw_apex', 'throw_arc', 'Throw Apex', { x: 10, y: 9.5, z: 6 }, {
     tags: ['air'],
@@ -430,6 +439,8 @@ export const CIN_CAST_ASSETS = {
     '/models/cinema/magic-ring-yinyang-blue.glb',
     'https://assets.grudge-studio.com/models/cinema/magic-ring-yinyang-blue.glb',
   ],
+  /** Thrown cast projectiles toward leviathan attacks */
+  spellGlyph: ['/models/cinema/spell-glyph.glb'],
   ship: [
     'https://assets.grudge-studio.com/models/cinema/stylized-pirate-ship.prod.glb',
     'https://assets.grudge-studio.com/models/ships/ship-pirate-medium.glb',
