@@ -42,6 +42,10 @@ export const THREE_WORLD_MAP_PATH = "/world-map" as const;
 export const THREE_OPEN_WORLD_PATH =
   "/play?sector=haven_shore&mode=zone&worldSeed=grudge-world-1&city=haven_port" as const;
 
+/** Ember Spire explore pin — volcanic sector feature (fleet play matrix) */
+export const THREE_EMBER_SPIRE_PATH =
+  "/play?sector=ember_depths&mode=zone&worldSeed=grudge-world-1&feature=ember_spire" as const;
+
 /** Lightweight satellite Three MMO client (same sectors / Colyseus) */
 export const THREE_PORT_PLAY_URL = `${FLEET_URLS.threePort}?mode=play&sector=haven_shore&worldSeed=grudge-world-1`;
 
