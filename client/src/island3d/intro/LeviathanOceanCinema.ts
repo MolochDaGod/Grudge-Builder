@@ -271,6 +271,19 @@ export class LeviathanOceanCinema {
   }
 
   private async bootstrap(): Promise<void> {
+    try {
+      await this.bootstrapInner();
+    } catch (err) {
+      console.error('[LeviathanOceanCinema] bootstrap failed', err);
+      // Still mark ready so the canvas is not stuck on "Loading…"
+      this.ready = true;
+      this.cbs.onReady?.();
+      this.cbs.onCaption?.('BOOT ERROR', err instanceof Error ? err.message : String(err));
+      if (!this.disposed) this.tick();
+    }
+  }
+
+  private async bootstrapInner(): Promise<void> {
     const mageUrls = CIN_CAST_ASSETS.humanMage.map((u) =>
       u.startsWith('http') ? u : `${ASSETS_CDN}${u}`,
     );
@@ -278,26 +291,20 @@ export class LeviathanOceanCinema {
       u.startsWith('http') ? u : `${ASSETS_CDN}${u}`,
     );
 
-    const [
-      ship, wreck, leviPack, ring, heroPack, m0, m1, m2, m3,
-      foundation, fluidPack, tornado, smoke, supernova, meguminPack,
-    ] = await Promise.all([
-      loadFirst(CIN_CAST_ASSETS.ship),
-      loadFirst(CIN_CAST_ASSETS.wreck),
-      loadFirstWithClips(CIN_CAST_ASSETS.leviathan),
-      loadFirst(CIN_CAST_ASSETS.magicRing),
-      loadFirstWithClips(heroUrls),
-      loadFirstWithClips(mageUrls),
-      loadFirstWithClips(mageUrls),
-      loadFirstWithClips(mageUrls),
-      loadFirstWithClips(mageUrls),
-      loadFirst(CIN_CAST_ASSETS.foundation),
-      loadFirstWithClips(CIN_CAST_ASSETS.fluid),
-      loadFirst(CIN_CAST_ASSETS.tornado),
-      loadFirst(CIN_CAST_ASSETS.smokeRings),
-      loadFirst(CIN_CAST_ASSETS.supernova),
-      loadFirstWithClips(CIN_CAST_ASSETS.megumin),
-    ]);
+    // CRITICAL path only — never block on 100MB+ VFX
+    const [ship, wreck, leviPack, ring, heroPack, m0, m1, m2, m3, foundation] =
+      await Promise.all([
+        loadFirst(CIN_CAST_ASSETS.ship),
+        loadFirst(CIN_CAST_ASSETS.wreck),
+        loadFirstWithClips(CIN_CAST_ASSETS.leviathan),
+        loadFirst(CIN_CAST_ASSETS.magicRing),
+        loadFirstWithClips(heroUrls),
+        loadFirstWithClips(mageUrls),
+        loadFirstWithClips(mageUrls),
+        loadFirstWithClips(mageUrls),
+        loadFirstWithClips(mageUrls),
+        loadFirst(CIN_CAST_ASSETS.foundation),
+      ]);
     if (this.disposed) return;
 
     // Foundation: startingfalls waterfall island (user map) — stones stage
@@ -396,66 +403,78 @@ export class LeviathanOceanCinema {
     this.fireBeam.visible = false;
     this.scene.add(this.fireBeam);
 
-    // VFX systems on stage UUID pins
-    if (tornado) {
-      this.tornadoRoot = tornado;
-      fitLength(tornado, 14);
-      this.stage.place(tornado, 'vfx_tornado');
-      tornado.visible = false;
-      this.scene.add(tornado);
-    }
-    if (fluidPack?.root) {
-      this.fluidSplash = fluidPack.root;
-      fitLength(this.fluidSplash, 12);
-      this.fluidSplash.visible = false;
-      this.scene.add(this.fluidSplash);
-      if (fluidPack.clips.length) {
-        this.fluidMixer = new THREE.AnimationMixer(this.fluidSplash);
-        for (const c of fluidPack.clips) {
-          const a = this.fluidMixer.clipAction(c);
-          a.setLoop(THREE.LoopRepeat, Infinity);
-          a.play();
-        }
-      }
-    }
-    if (smoke) {
-      for (let i = 0; i < 3; i++) {
-        const s = smoke.clone(true);
-        fitLength(s, 4 + i);
-        s.visible = false;
-        this.scene.add(s);
-        this.smokeRingPool.push(s);
-      }
-    }
-    if (supernova) {
-      for (let i = 0; i < 3; i++) {
-        const sn = supernova.clone(true);
-        fitLength(sn, 2 + i * 0.6);
-        sn.visible = false;
-        this.scene.add(sn);
-        this.supernovaPool.push(sn);
-      }
-    }
-    if (meguminPack?.root) {
-      this.meguminRoot = meguminPack.root;
-      fitLength(this.meguminRoot, 6);
-      this.meguminRoot.visible = false;
-      this.scene.add(this.meguminRoot);
-    }
-
     // Logo overlay
     this.logoEl = document.createElement('img');
     this.logoEl.src = CINEMA_LOGO_URL;
     this.logoEl.alt = 'Grudge';
+    this.logoEl.onerror = () => {
+      if (this.logoEl) this.logoEl.src = '/cinema/grudge-logo.jpeg';
+    };
     this.logoEl.style.cssText =
       'position:absolute;inset:0;margin:auto;max-width:42vw;max-height:28vh;opacity:0;pointer-events:none;transition:opacity .8s;z-index:5;filter:drop-shadow(0 0 24px rgba(0,0,0,.8))';
     this.host.style.position = this.host.style.position || 'relative';
     this.host.appendChild(this.logoEl);
 
+    // Scene is playable now — VFX loads in background (never block ready)
     this.ready = true;
     this.cbs.onReady?.();
     this.applyBeat(0, true);
     this.tick();
+
+    void this.loadVfxBackground();
+  }
+
+  /** Optional VFX — failures are non-fatal */
+  private async loadVfxBackground(): Promise<void> {
+    try {
+      const [fluidPack, tornado, smoke, meguminPack] = await Promise.all([
+        loadFirstWithClips(CIN_CAST_ASSETS.fluid),
+        loadFirst(CIN_CAST_ASSETS.tornado),
+        loadFirst(CIN_CAST_ASSETS.smokeRings),
+        loadFirstWithClips(CIN_CAST_ASSETS.megumin),
+        // deliberately skip supernova (~122MB) in cinema bootstrap
+      ]);
+      if (this.disposed) return;
+
+      if (tornado) {
+        this.tornadoRoot = tornado;
+        fitLength(tornado, 14);
+        this.stage.place(tornado, 'vfx_tornado');
+        tornado.visible = false;
+        this.scene.add(tornado);
+      }
+      if (fluidPack?.root) {
+        this.fluidSplash = fluidPack.root;
+        fitLength(this.fluidSplash, 12);
+        this.fluidSplash.visible = false;
+        this.scene.add(this.fluidSplash);
+        if (fluidPack.clips.length) {
+          this.fluidMixer = new THREE.AnimationMixer(this.fluidSplash);
+          for (const c of fluidPack.clips) {
+            const a = this.fluidMixer.clipAction(c);
+            a.setLoop(THREE.LoopRepeat, Infinity);
+            a.play();
+          }
+        }
+      }
+      if (smoke) {
+        for (let i = 0; i < 3; i++) {
+          const s = smoke.clone(true);
+          fitLength(s, 4 + i);
+          s.visible = false;
+          this.scene.add(s);
+          this.smokeRingPool.push(s);
+        }
+      }
+      if (meguminPack?.root) {
+        this.meguminRoot = meguminPack.root;
+        fitLength(this.meguminRoot, 6);
+        this.meguminRoot.visible = false;
+        this.scene.add(this.meguminRoot);
+      }
+    } catch (e) {
+      console.warn('[LeviathanOceanCinema] optional VFX load failed', e);
+    }
   }
 
   private applyBeat(idx: number, force = false): void {

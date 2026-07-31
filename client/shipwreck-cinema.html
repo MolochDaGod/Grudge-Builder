@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Leviathan Cinema · startingfalls</title>
+    <link rel="icon" type="image/png" href="/favicon.png" />
+    <style>
+      html, body { margin: 0; height: 100%; background: #000; color: #e2e8f0; font-family: system-ui, sans-serif; }
+      #root { width: 100%; height: 100%; }
+      #boot-err { display: none; position: fixed; inset: 0; z-index: 9999; padding: 24px; background: #0a0a0a; overflow: auto; }
+      #boot-err pre { white-space: pre-wrap; color: #fca5a5; font-size: 13px; }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <div id="boot-err">
+      <h1>Cinema failed to start</h1>
+      <pre id="boot-err-msg"></pre>
+      <p><a href="/shipwreck-cinema.html" style="color:#22d3ee">Reload</a></p>
+    </div>
+    <script type="module" src="/src/shipwreck-cinema-entry.tsx"></script>
+  </body>
+</html>
