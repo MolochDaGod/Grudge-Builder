@@ -1,4 +1,4 @@
-# Leviathan Ocean → Shipwreck Tutorial Cinema (v8)
+# Leviathan Ocean → Shipwreck Tutorial Cinema (v10 · film)
 
 **Surface:** `https://client.grudge-studio.com/island-3d`  
 **Engine:** `client/src/island3d/intro/LeviathanOceanCinema.ts`  
@@ -6,7 +6,9 @@
 **Stage SSOT:** `shared/definitions/leviathanCinemaStage.ts`  
 **Battle script:** `client/src/island3d/intro/LeviathanBattleScript.ts`  
 **Spine IK:** `client/src/island3d/intro/CinemaSpineIk.ts`  
-**Session key:** `grudge_shipwreck_intro_seen_v8`
+**Film post:** `island3d/render/PostProcessing.ts` (bloom · SMAA · grade · vignette)  
+**Box3 SI:** `intro/CinemaBoxSystems.ts` (`?box3=1` helpers)  
+**Session key:** `grudge_shipwreck_intro_seen_v10`
 
 ## Architecture (scripted battle best practices)
 

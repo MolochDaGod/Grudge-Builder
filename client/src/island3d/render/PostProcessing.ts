@@ -173,6 +173,43 @@ export class PostProcessing {
     this.bloomPass.strength = strength;
   }
 
+  /** Bloom radius (cinema impact beams) */
+  setBloomRadius(radius: number): void {
+    this.bloomPass.radius = radius;
+  }
+
+  /** Bloom threshold — lower = more glow on fire/wards */
+  setBloomThreshold(threshold: number): void {
+    this.bloomPass.threshold = threshold;
+  }
+
+  /** Contrast boost (1.0 = neutral) */
+  setContrast(contrast: number): void {
+    this.colorGradingPass.uniforms.uContrast.value = contrast;
+  }
+
+  /** Current quality preset */
+  getQuality(): QualityPreset {
+    return this.quality;
+  }
+
+  /** Apply a full film-look snapshot (cinema beats) */
+  applyFilmLook(opts: {
+    bloom?: number;
+    bloomRadius?: number;
+    bloomThreshold?: number;
+    tint?: number;
+    vignette?: number;
+    contrast?: number;
+  }): void {
+    if (opts.bloom != null) this.setBloomStrength(opts.bloom);
+    if (opts.bloomRadius != null) this.setBloomRadius(opts.bloomRadius);
+    if (opts.bloomThreshold != null) this.setBloomThreshold(opts.bloomThreshold);
+    if (opts.tint != null) this.setColorTint(opts.tint);
+    if (opts.vignette != null) this.setVignette(opts.vignette);
+    if (opts.contrast != null) this.setContrast(opts.contrast);
+  }
+
   dispose(): void {
     this.composer.dispose();
   }

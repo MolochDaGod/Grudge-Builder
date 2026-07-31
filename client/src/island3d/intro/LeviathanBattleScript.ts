@@ -28,6 +28,14 @@ export type CinActorAssignment = {
   anim?: CinAnimHint;
   /** Mixer timeScale (roar slow-mo 0.42) */
   timeScale?: number;
+  /**
+   * When false, keep the current clip running (no reset) — only adjust timeScale.
+   * Critical for dragon beam: one attack plays through mouth-open → beam → end,
+   * BEFORE relocating to station 2 (finisher).
+   */
+  animRestart?: boolean;
+  /** LoopOnce + clamp so attack completes once (beam sequence) */
+  animOnce?: boolean;
   /** Visibility */
   visible?: boolean;
 };
@@ -51,6 +59,20 @@ export type CinBattleBeat = {
   rings?: boolean;
   fireBeam?: boolean;
   fireAura?: boolean;
+  /**
+   * Dragon beam attack cadence (moon-beam structure, fire palette):
+   *   snap     — ~0.1s attack start + hot-hands flash
+   *   charge   — pause; flame aura + fireballs gather at maw
+   *   blast    — multi-layer dragon beam + shield bounce
+   *   aftermath — residual heat / sparks
+   */
+  dragonPhase?: 'off' | 'snap' | 'charge' | 'blast' | 'aftermath';
+  /** Hot hands at jaw (charge/blast) */
+  hotHands?: boolean;
+  /** Fireball orbs gather / launch */
+  fireballs?: boolean;
+  /** Flame aura ricochets off mage wards between boat and leviathan */
+  shieldBounce?: boolean;
   shieldImpact?: boolean;
   shieldDefeat?: boolean;
   shipHit?: 'beam' | 'breach' | 'ram' | null;
@@ -59,6 +81,14 @@ export type CinBattleBeat = {
   meguminMark?: boolean;
   stylizedBoom?: boolean;
   tornado?: boolean;
+  /** Two mages fire spell splines that push/destroy water twisters */
+  mageSplineKill?: boolean;
+  /** Vertical glyph ward wall between boat and leviathan */
+  wardWall?: boolean;
+  /** Ship/deck blowback from beam hit */
+  blowback?: boolean;
+  /** Freeze leviathan root XZ for attack channel (0–0.1s static) */
+  leviChannelLock?: boolean;
   hullFire?: boolean;
   exposure?: number;
   bloom?: number;
@@ -185,8 +215,8 @@ export const LEVIATHAN_BATTLE_SCRIPT: readonly CinBattleBeat[] = [
     heroMode: 'brace',
     rings: true,
     fireAura: true,
+    wardWall: true,
     whirlpools: true,
-    tornado: true,
     skyLightning: true,
     exposure: 1.0,
     bloom: 0.48,
@@ -207,73 +237,208 @@ export const LEVIATHAN_BATTLE_SCRIPT: readonly CinBattleBeat[] = [
     },
   },
   {
-    t: 15,
-    id: 'cast_storm',
-    caption: 'CAST THE STORM',
-    sub: 'Lightning. Twisters. The leviathan gathers fire for the beam.',
-    camEye: 'cam_cast_eye',
-    camLook: 'cam_cast_look',
-    camMode: 'cut',
-    storm: 0.8,
-    shipRoll: 0.22,
+    t: 14.5,
+    id: 'twisters_rise',
+    caption: 'WATER TWISTERS',
+    sub: 'Ocean cyclones spin toward the hull. The ward wall must hold.',
+    camEye: 'cam_surface_eye',
+    camLook: 'cam_surface_look',
+    camMode: 'blend',
+    storm: 0.78,
+    shipRoll: 0.2,
     shipIntact: true,
     heroMode: 'brace',
     rings: true,
-    fireAura: true,
-    whirlpools: true,
+    wardWall: true,
     tornado: true,
+    whirlpools: true,
     skyLightning: true,
-    exposure: 1.05,
-    bloom: 0.58,
+    exposure: 1.0,
+    bloom: 0.5,
     fogDensity: 0.012,
     actors: {
       leviathan: {
         at: 'levi_cast',
         lookAt: 'ik_ship_deck_center',
-        ikWeight: 0.65,
-        anim: 'attack',
+        ikWeight: 0.55,
+        anim: 'idle',
         timeScale: 1,
         visible: true,
       },
-      mage_0: { at: 'deck_mage_0', lookAt: 'ik_levi_mouth', ikWeight: 0.95, anim: 'defend' },
-      mage_1: { at: 'deck_mage_1', lookAt: 'ik_levi_mouth', ikWeight: 0.95, anim: 'defend' },
+      mage_0: { at: 'deck_mage_0', lookAt: 'ik_levi_mouth', ikWeight: 0.9, anim: 'defend' },
+      mage_1: { at: 'deck_mage_1', lookAt: 'ik_levi_mouth', ikWeight: 0.9, anim: 'defend' },
+      mage_2: { at: 'deck_mage_2', lookAt: 'ik_levi_mouth', ikWeight: 0.9, anim: 'defend' },
+      mage_3: { at: 'deck_mage_3', lookAt: 'ik_levi_mouth', ikWeight: 0.9, anim: 'defend' },
+      hero: { at: 'deck_hero', lookAt: 'ik_levi_head', ikWeight: 0.8, anim: 'brace' },
+    },
+  },
+  {
+    t: 16.2,
+    id: 'mage_spline_kill',
+    caption: 'COUNTER-SPELL',
+    sub: 'Two mages cast spell-splines — push the twisters apart and break them.',
+    camEye: 'cam_cast_eye',
+    camLook: 'cam_cast_look',
+    camMode: 'cut',
+    storm: 0.82,
+    shipRoll: 0.22,
+    shipIntact: true,
+    heroMode: 'brace',
+    rings: true,
+    wardWall: true,
+    tornado: true,
+    mageSplineKill: true,
+    skyLightning: true,
+    exposure: 1.08,
+    bloom: 0.62,
+    fogDensity: 0.012,
+    actors: {
+      leviathan: {
+        at: 'levi_cast',
+        lookAt: 'ik_ship_deck_center',
+        ikWeight: 0.5,
+        anim: 'idle',
+        timeScale: 1,
+        visible: true,
+      },
+      // Spline casters — attack toward twisters
+      mage_0: { at: 'deck_mage_0', lookAt: 'vfx_tornado', ikWeight: 1, anim: 'cast' },
+      mage_1: { at: 'deck_mage_1', lookAt: 'vfx_whirlpool_0', ikWeight: 1, anim: 'cast' },
+      // Wall holders
       mage_2: { at: 'deck_mage_2', lookAt: 'ik_levi_mouth', ikWeight: 0.95, anim: 'defend' },
       mage_3: { at: 'deck_mage_3', lookAt: 'ik_levi_mouth', ikWeight: 0.95, anim: 'defend' },
       hero: { at: 'deck_hero', lookAt: 'ik_levi_mouth', ikWeight: 0.85, anim: 'brace' },
     },
   },
+  /**
+   * Dragon beam station 1 — 0–0.1s STATIC channel lock, then blast + blowback.
+   */
   {
-    t: 18.5,
-    id: 'roar_beam',
-    caption: 'ROAR',
-    sub: 'Time stretches. Attack and roar — a long beam burns the wards.',
+    t: 18.0,
+    id: 'dragon_channel_lock',
+    caption: 'CHANNEL',
+    sub: '0.1s static — jaws locked on the boat. Attack channel. Then the beam.',
     camEye: 'cam_roar_eye',
     camLook: 'cam_roar_look',
-    camMode: 'blend',
+    camMode: 'cut',
     storm: 0.9,
-    shipRoll: 0.3,
+    shipRoll: 0.28,
     shipIntact: true,
     heroMode: 'brace',
     rings: true,
-    fireBeam: true,
+    wardWall: true,
+    dragonPhase: 'snap',
+    leviChannelLock: true,
+    hotHands: true,
     fireAura: true,
+    fireballs: true,
+    exposure: 1.14,
+    bloom: 0.75,
+    fogDensity: 0.012,
+    actors: {
+      leviathan: {
+        at: 'levi_beam',
+        lookAt: 'ik_ship_deck_center',
+        ikWeight: 0.9,
+        anim: 'attack',
+        // Near-freeze after first frames — static channel pose
+        timeScale: 0.02,
+        animRestart: true,
+        animOnce: true,
+        visible: true,
+      },
+      mage_0: { at: 'deck_mage_0', lookAt: 'ik_levi_mouth', ikWeight: 1, anim: 'defend' },
+      mage_1: { at: 'deck_mage_1', lookAt: 'ik_levi_mouth', ikWeight: 1, anim: 'defend' },
+      mage_2: { at: 'deck_mage_2', lookAt: 'ik_levi_mouth', ikWeight: 1, anim: 'defend' },
+      mage_3: { at: 'deck_mage_3', lookAt: 'ik_levi_mouth', ikWeight: 1, anim: 'defend' },
+      hero: { at: 'deck_hero', lookAt: 'ik_levi_mouth', ikWeight: 0.95, anim: 'brace' },
+    },
+  },
+  {
+    t: 18.1,
+    id: 'dragon_beam_blowback',
+    caption: 'DRAGON BEAM',
+    sub: 'Beam hits the ward wall — blowback rocks the deck. Hold the line.',
+    // Side-quarter angle: levi maw FG-left, ward wall mid, boat right
+    camEye: 'cam_roar_eye',
+    camLook: 'cam_roar_look',
+    camMode: 'cut',
+    storm: 0.96,
+    shipRoll: 0.55,
+    shipPitch: 0.18,
+    shipIntact: true,
+    heroMode: 'brace',
+    rings: true,
+    wardWall: true,
+    dragonPhase: 'blast',
+    fireBeam: true,
+    hotHands: true,
+    fireAura: true,
+    fireballs: true,
+    shieldBounce: true,
     shieldImpact: true,
+    blowback: true,
     meguminMark: true,
     shipHit: 'beam',
     hullFire: true,
-    whirlpools: true,
-    tornado: true,
     skyLightning: true,
-    exposure: 1.2,
+    // Twisters already broken — keep off during beam read
+    tornado: false,
+    exposure: 1.32,
+    bloom: 0.95,
+    fogDensity: 0.014,
+    actors: {
+      leviathan: {
+        at: 'levi_beam',
+        lookAt: 'ik_ship_deck_center',
+        ikWeight: 0.95,
+        anim: 'attack',
+        timeScale: 0.75,
+        animRestart: false,
+        animOnce: true,
+        visible: true,
+      },
+      mage_0: { at: 'deck_mage_0', lookAt: 'ik_levi_mouth', ikWeight: 1, anim: 'defend' },
+      mage_1: { at: 'deck_mage_1', lookAt: 'ik_levi_mouth', ikWeight: 1, anim: 'defend' },
+      mage_2: { at: 'deck_mage_2', lookAt: 'ik_levi_mouth', ikWeight: 1, anim: 'defend' },
+      mage_3: { at: 'deck_mage_3', lookAt: 'ik_levi_mouth', ikWeight: 1, anim: 'defend' },
+      hero: { at: 'deck_hero', lookAt: 'ik_levi_mouth', ikWeight: 0.95, anim: 'brace' },
+    },
+  },
+  {
+    t: 20.8,
+    id: 'dragon_beam_tail',
+    caption: 'WARDS STRAIN',
+    sub: 'Beam still burning the wall. Blowback fades. Station 1 holds.',
+    camEye: 'cam_deck_eye',
+    camLook: 'cam_deck_look',
+    camMode: 'blend',
+    storm: 0.92,
+    shipRoll: 0.38,
+    shipPitch: 0.1,
+    shipIntact: true,
+    heroMode: 'brace',
+    rings: true,
+    wardWall: true,
+    dragonPhase: 'blast',
+    fireBeam: true,
+    hotHands: true,
+    fireAura: true,
+    shieldBounce: true,
+    blowback: true,
+    hullFire: true,
+    exposure: 1.18,
     bloom: 0.82,
     fogDensity: 0.013,
     actors: {
       leviathan: {
         at: 'levi_beam',
         lookAt: 'ik_ship_deck_center',
-        ikWeight: 0.75,
-        anim: 'attack and roar',
-        timeScale: 0.42,
+        ikWeight: 0.9,
+        anim: 'attack',
+        timeScale: 0.85,
+        animRestart: false,
+        animOnce: true,
         visible: true,
       },
       mage_0: { at: 'deck_mage_0', lookAt: 'ik_levi_mouth', ikWeight: 1, anim: 'defend' },
@@ -284,10 +449,49 @@ export const LEVIATHAN_BATTLE_SCRIPT: readonly CinBattleBeat[] = [
     },
   },
   {
-    t: 24,
+    t: 22.4,
+    id: 'dragon_attack_finish',
+    caption: 'ATTACK COMPLETES',
+    sub: 'Beam dies. Attack finishes on station 1 — then it dives for the kill.',
+    camEye: 'cam_cast_eye',
+    camLook: 'cam_cast_look',
+    camMode: 'blend',
+    storm: 0.86,
+    shipRoll: 0.24,
+    shipIntact: true,
+    heroMode: 'brace',
+    rings: true,
+    wardWall: true,
+    dragonPhase: 'aftermath',
+    fireAura: true,
+    hullFire: true,
+    shieldImpact: true,
+    exposure: 1.02,
+    bloom: 0.52,
+    fogDensity: 0.012,
+    actors: {
+      leviathan: {
+        at: 'levi_beam',
+        lookAt: 'ik_ship_deck_center',
+        ikWeight: 0.6,
+        anim: 'attack',
+        timeScale: 1.0,
+        animRestart: false,
+        animOnce: true,
+        visible: true,
+      },
+      mage_0: { at: 'deck_mage_0', lookAt: 'ik_levi_mouth', ikWeight: 0.9, anim: 'defend' },
+      mage_1: { at: 'deck_mage_1', lookAt: 'ik_levi_mouth', ikWeight: 0.9, anim: 'defend' },
+      mage_2: { at: 'deck_mage_2', lookAt: 'ik_levi_mouth', ikWeight: 0.9, anim: 'defend' },
+      mage_3: { at: 'deck_mage_3', lookAt: 'ik_levi_mouth', ikWeight: 0.9, anim: 'defend' },
+      hero: { at: 'deck_hero', lookAt: 'ik_levi_head', ikWeight: 0.85, anim: 'brace' },
+    },
+  },
+  {
+    t: 23.8,
     id: 'dive',
     caption: 'DIVE',
-    sub: 'Wards fail. Smoke rings bloom. The beast slides under again.',
+    sub: 'Station 1 clear. Dive — station 2 for the finishing breach.',
     camEye: 'cam_dive_eye',
     camLook: 'cam_dive_look',
     camMode: 'cut',

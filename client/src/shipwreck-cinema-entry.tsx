@@ -75,8 +75,17 @@ if (!rootEl) {
   const meta = document.getElementById('cin-meta') as HTMLDivElement;
 
   try {
-    sessionStorage.removeItem('grudge_shipwreck_intro_seen_v8');
-    sessionStorage.removeItem('grudge_storm_intro_seen_v1');
+    for (const k of [
+      'grudge_shipwreck_intro_seen_v4',
+      'grudge_shipwreck_intro_seen_v7',
+      'grudge_shipwreck_intro_seen_v8',
+      'grudge_shipwreck_intro_seen_v9',
+      'grudge_shipwreck_intro_seen_v10',
+      'grudge_storm_intro_seen_v1',
+      'grudge_island3d_intro_options_v9',
+    ]) {
+      sessionStorage.removeItem(k);
+    }
   } catch { /* */ }
 
   let skippable = false;

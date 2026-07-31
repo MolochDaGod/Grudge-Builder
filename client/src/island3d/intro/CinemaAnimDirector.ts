@@ -85,6 +85,38 @@ export class CinemaAnimDirector {
     }
   }
 
+  /** Current clip local time (seconds into the action). */
+  getActionTime(): number {
+    if (!this.current) return 0;
+    const a = this.actions.get(this.current);
+    return a?.time ?? 0;
+  }
+
+  /** Duration of the currently playing clip (seconds). */
+  getClipDuration(): number {
+    if (!this.current) return 0;
+    const a = this.actions.get(this.current);
+    return a?.getClip()?.duration ?? 0;
+  }
+
+  getCurrentName(): string | null {
+    return this.current;
+  }
+
+  /** True if current action is playing an attack-family clip. */
+  isPlayingAttack(): boolean {
+    if (!this.current) return false;
+    const n = this.current.toLowerCase();
+    return n.includes('attack') || n.includes('roar') || n.includes('bite');
+  }
+
+  /** Normalized 0..1 progress through current clip. */
+  getActionProgress(): number {
+    const d = this.getClipDuration();
+    if (d <= 1e-4) return 0;
+    return THREE.MathUtils.clamp(this.getActionTime() / d, 0, 1);
+  }
+
   /** Inject extra clips (e.g. CDN 2H magic attack pack) after construct. */
   addClips(clips: THREE.AnimationClip[], aliasPrefix?: string): void {
     for (const c of clips) {
@@ -131,8 +163,11 @@ export class MultiCameraDirector {
     fov: 42,
   };
   private blend = 1;
-  private blendSpeed = 1.2;
+  private blendSpeed = 1.15;
   private cut = false;
+  /** Film impact: FOV kick + vertical pop (decays each frame) */
+  private impactFov = 0;
+  private impactY = 0;
 
   setTarget(
     pos: [number, number, number],
@@ -162,26 +197,47 @@ export class MultiCameraDirector {
     this.cut = false;
   }
 
+  /** Hit impact — FOV punch + camera Y pop (beam / pinata / roar). */
+  impact(fovKick = 5, yPop = 0.45): void {
+    this.impactFov = Math.max(this.impactFov, fovKick);
+    this.impactY = Math.max(this.impactY, yPop);
+  }
+
+  /** Slower dolly for emotional beats; faster for action. */
+  setBlendSpeed(speed: number): void {
+    this.blendSpeed = Math.max(0.2, speed);
+  }
+
   update(dt: number): void {
     if (this.blend < 1) {
       this.blend = Math.min(1, this.blend + dt * this.blendSpeed);
     }
+    // Decay impact like a film punch-in
+    this.impactFov *= Math.exp(-dt * 4.5);
+    this.impactY *= Math.exp(-dt * 5.5);
+    if (this.impactFov < 0.05) this.impactFov = 0;
+    if (this.impactY < 0.01) this.impactY = 0;
   }
 
   evaluate(handheld = 0): VirtualCam {
     const u = this.cut ? 1 : this.smooth(this.blend);
     const pos = new THREE.Vector3().lerpVectors(this.from.pos, this.to.pos, u);
     const look = new THREE.Vector3().lerpVectors(this.from.look, this.to.look, u);
-    const fov = THREE.MathUtils.lerp(this.from.fov, this.to.fov, u);
+    let fov = THREE.MathUtils.lerp(this.from.fov, this.to.fov, u);
+    // Impact FOV opens then settles (classic action beat)
+    fov += this.impactFov;
+    pos.y += this.impactY;
     if (handheld > 0) {
       const t = performance.now() * 0.001;
       pos.x += Math.sin(t * 2.1) * handheld;
       pos.y += Math.cos(t * 1.7) * handheld * 0.65;
+      pos.z += Math.sin(t * 1.3) * handheld * 0.4;
     }
     return { pos, look, fov };
   }
 
   private smooth(t: number): number {
-    return t * t * (3 - 2 * t);
+    // smootherstep — more cinematic ease than smoothstep
+    return t * t * t * (t * (t * 6 - 15) + 10);
   }
 }

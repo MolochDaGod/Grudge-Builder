@@ -1,8 +1,9 @@
 /**
  * Production intro SSOT — do not mix destinations.
  *
- * 1) LEVIATHAN OCEAN / SHIPWRECK TUTORIAL (native Three.js · v8)
- *    LeviathanOceanCinema — stage UUIDs · spine IK · 4 mages · unarmed throw
+ * 1) LEVIATHAN OCEAN / SHIPWRECK TUTORIAL (native Three.js · v9)
+ *    LeviathanOceanCinema — SI scale · Grudge6 RTS toon · clock rings · force fields
+ *    OceanShader · stage UUIDs · spine IK · 4 mages · unarmed throw · pinata explode
  *    → default /tutorial?from=shipwreck-intro
  *
  * 2) OVERBOARD / DEATH FLOAT (legacy)
@@ -52,16 +53,17 @@ export const STORM_SHIP_INTRO: ProductionIntroDef = {
   id: 'storm_ship_attack',
   label: 'Leviathan Ocean Battle',
   description:
-    'Native Three.js cinema: startingfalls stage, 4 human mages + unarmed hero on deck, leviathan scripted path, spine IK look-ats, 20 m throw, logo → tutorial shipwreck cove.',
+    'v10 film cinema: Grudge6 RTS cast (1.8 m), 18 m pirate ship, 42 m leviathan, Gerstner OceanShader, ' +
+    'film post (bloom/SMAA/grade), Box3 SI, ward wall, mage spline kill, dragon beam channel + blowback + pinata.',
   usedFor: 'island-3d',
   tiPath: '/intro',
   tiUrl: `${TI_HOST}/intro`,
   durationMs: 56_000,
   cutBeforeOverboard: true,
   notes:
-    'Engine: client/src/island3d/intro/LeviathanOceanCinema.ts · stage SSOT leviathanCinemaStage.ts · ' +
-    'battle script LeviathanBattleScript.ts · spine IK CinemaSpineIk.ts. ' +
-    'NO TI iframe / Stonewisp / intro.mp4 as primary island-3d gate.',
+    'Engine: LeviathanOceanCinema.ts v10 · PostProcessing · CinemaBoxSystems · cinemaGrudge6 · ' +
+    'LeviathanDragonBeamVfx · LeviathanLookAndWater · stage SSOT. ' +
+    'PURGED: voxel boats, western-kingdoms packs, toy water, lookAt tumble, TI/mp4 primary gate.',
 };
 
 /** Alias for docs / gates */
@@ -166,8 +168,8 @@ export const AFTER_INTRO_DESTINATIONS: Array<{
 ];
 
 /** Bump when cinema cut changes so players re-see the battle */
-export const INTRO_SESSION_KEY = 'grudge_shipwreck_intro_seen_v9';
-export const INTRO_OPTIONS_KEY = 'grudge_island3d_intro_options_v9';
+export const INTRO_SESSION_KEY = 'grudge_shipwreck_intro_seen_v10';
+export const INTRO_OPTIONS_KEY = 'grudge_island3d_intro_options_v10';
 
 export interface Island3dIntroOptions {
   /** Play leviathan cinema on visit when not yet seen */

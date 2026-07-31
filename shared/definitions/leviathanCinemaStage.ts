@@ -8,25 +8,35 @@
  * Prefix: cinloc_ (cinema location) · versioned stage id for session rebind.
  */
 
-export const LEVIATHAN_STAGE_ID = 'cin_stage_leviathan_ocean_v8' as const;
-export const LEVIATHAN_STAGE_VERSION = '8.0.0';
+export const LEVIATHAN_STAGE_ID = 'cin_stage_leviathan_ocean_v9' as const;
+export const LEVIATHAN_STAGE_VERSION = '9.0.0';
 
 /** SI yardstick */
+/** SI SSOT — 1 unit = 1 m. Human 1.8 m is the yardstick. */
 export const CIN_HUMAN_M = 1.8;
-export const CIN_SHIP_LOA_M = 22;
+/** Pirate ship LOA (~ medium brig) — stylized pirate GLB only (no voxel kits) */
+export const CIN_SHIP_LOA_M = 18;
+/** Leviathan LOA — 50% larger than original 28 m (threat reads on camera) */
 export const CIN_LEVIATHAN_LOA_M = 42;
 export const CIN_HERO_THROW_M = 20;
-export const CIN_RING_SPAN_M = 2.4;
-/** Spell glyph projectile span (metres) */
-export const CIN_GLYPH_SPAN_M = 1.2;
-/**
- * Distant startingfalls island offset (ship fights on open water at origin).
- * Land mass stays in the background as an island, not under the ship.
- */
+/** Clock-face ward ring diameter (~ chest shield) */
+export const CIN_RING_SPAN_M = 1.45;
+/** Spell glyph span — 70% smaller than original 0.9 m (projectile / wall tiles) */
+export const CIN_GLYPH_SPAN_M = 0.27;
+/** Water cyclone height (40% smaller than original 14 m) */
+export const CIN_TWISTER_H_M = 8.4;
+/** Ward wall glyph face span (vertical wall between boat and levi) */
+export const CIN_WARD_GLYPH_M = 0.55;
+
 export type CinVec3 = { x: number; y: number; z: number };
 
-export const CIN_ISLAND_OFFSET: CinVec3 = { x: 55, y: 0, z: -145 };
-export const CIN_ISLAND_SPAN_M = 140;
+/**
+ * Distant startingfalls island offset (ship fights on open water at origin).
+ * Land mass stays in the background — raw GLB is ~59k units (cm-scale authoring).
+ */
+export const CIN_ISLAND_OFFSET: CinVec3 = { x: 40, y: 0, z: -95 };
+/** Distant island silhouette span (metres) — NOT the raw 59km authoring units */
+export const CIN_ISLAND_SPAN_M = 70;
 
 export type CinLocRole =
   | 'world_anchor'
@@ -320,11 +330,12 @@ export const LEVIATHAN_STAGE_LOCATIONS: readonly CinLocationDef[] = [
   L('cam_cast_look', 'camera', 'Cam Cast Look', { x: 10, y: 4, z: -6 }, {
     tags: ['cam'],
   }),
-  L('cam_roar_eye', 'camera', 'Cam Roar Eye', { x: 4, y: 4, z: 14 }, {
-    fov: 32,
-    tags: ['cam', 'blend', 'slowmo'],
+  // Side-quarter: levi maw left, ward wall mid, boat right (beam + blowback read)
+  L('cam_roar_eye', 'camera', 'Cam Roar Eye', { x: 16, y: 5.5, z: 11 }, {
+    fov: 34,
+    tags: ['cam', 'blend', 'slowmo', 'beam_blowback'],
   }),
-  L('cam_roar_look', 'camera', 'Cam Roar Look', { x: 8, y: 3.5, z: -4 }, {
+  L('cam_roar_look', 'camera', 'Cam Roar Look', { x: 4, y: 3.2, z: -2 }, {
     tags: ['cam'],
   }),
   L('cam_dive_eye', 'camera', 'Cam Dive Eye', { x: 16, y: 7, z: 20 }, {
@@ -419,49 +430,65 @@ export const CIN_ACTOR_HOME: Record<
   mage_3: 'deck_mage_3',
 };
 
-/** Asset roles for scripted battle cast — local public first, CDN fallback */
+/**
+ * Cinema assets — PURGED: western-kingdoms_mage/warrior hero packs.
+ * Humans: only WK_Characters via cinemaGrudge6 (equip + texture + SI fit).
+ */
 export const CIN_CAST_ASSETS = {
   leviathan: [
     '/models/cinema/leviathan.glb',
     'https://assets.grudge-studio.com/models/cinema/leviathan.glb',
   ],
-  /** Human modular race kit — unarmed default for throw hero */
-  humanUnarmed: [
+  /** Canonical RTS toon race kit only */
+  humanRace: [
     'https://assets.grudge-studio.com/models/grudge6/races/WK_Characters.glb',
-  ],
-  /** Prefer mage presentation; warrior only as last CDN fallback */
-  humanMage: [
-    'https://assets.grudge-studio.com/models/heroes/grudge6/western-kingdoms_mage.glb',
-    'https://assets.grudge-studio.com/models/grudge6/races/WK_Characters.glb',
-    'https://assets.grudge-studio.com/models/heroes/grudge6/western-kingdoms_warrior.glb',
+    '/models/grudge6/races/WK_Characters.glb',
   ],
   magicRing: [
     '/models/cinema/magic-ring-yinyang-blue.glb',
     'https://assets.grudge-studio.com/models/cinema/magic-ring-yinyang-blue.glb',
   ],
-  /** Thrown cast projectiles toward leviathan attacks */
-  spellGlyph: ['/models/cinema/spell-glyph.glb'],
+  spellGlyph: [
+    '/models/cinema/spell-glyph.glb',
+    'https://assets.grudge-studio.com/models/cinema/spell-glyph.glb',
+  ],
+  /**
+   * Pirate cinema ship ONLY — prefer stylized pirate production bake.
+   * NEVER voxel/prototype/kenney kits (wrong look for this cut).
+   */
   ship: [
     'https://assets.grudge-studio.com/models/cinema/stylized-pirate-ship.prod.glb',
+    'https://assets.grudge-studio.com/models/cinema/stylized-pirate-ship.glb',
+    '/models/cinema/stylized-pirate-ship.prod.glb',
+    '/models/cinema/stylized-pirate-ship.glb',
     'https://assets.grudge-studio.com/models/ships/ship-pirate-medium.glb',
     '/models/ships/ship-pirate-medium.glb',
   ],
   wreck: [
     'https://assets.grudge-studio.com/models/ships/ship-wreck.glb',
+    'https://assets.grudge-studio.com/models/cinema/stylized-pirate-wreck.prod.glb',
     '/models/ships/ship-wreck.glb',
   ],
-  /** Waterfall island foundation map (user startingfalls) */
   foundation: [
     '/models/cinema/startingfalls.prod.glb',
     '/models/cinema/startingfalls.glb',
+    'https://assets.grudge-studio.com/models/cinema/startingfalls.prod.glb',
+    'https://assets.grudge-studio.com/models/cinema/startingfalls.glb',
   ],
-  /** Fluid FX / wave volume (physics1_fluid) */
-  fluid: ['/models/cinema/physics1_fluid.glb'],
-  supernova: ['/models/cinema/supernova-impact.prod.glb'],
+  fluid: [
+    '/models/cinema/physics1_fluid.glb',
+    'https://assets.grudge-studio.com/models/cinema/physics1_fluid.glb',
+  ],
   megumin: [
     '/models/cinema/megumin-explosion.prod.glb',
-    '/models/cinema/megumin-explosion.glb',
+    'https://assets.grudge-studio.com/models/cinema/megumin-explosion.prod.glb',
   ],
-  smokeRings: ['/models/cinema/smoke-rings.glb'],
-  tornado: ['/models/cinema/tornado.prod.glb', '/models/cinema/tornado.glb'],
+  smokeRings: [
+    '/models/cinema/smoke-rings.glb',
+    'https://assets.grudge-studio.com/models/cinema/smoke-rings.glb',
+  ],
+  tornado: [
+    '/models/cinema/tornado.prod.glb',
+    'https://assets.grudge-studio.com/models/cinema/tornado.prod.glb',
+  ],
 } as const;

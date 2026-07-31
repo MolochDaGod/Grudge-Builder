@@ -172,11 +172,11 @@ export function StormShipIntroGate({
         <div className="absolute top-0 inset-x-0 z-10 flex items-start justify-between gap-2 p-3 pointer-events-none">
           <div className="pointer-events-auto rounded-xl border border-cyan-800/40 bg-black/75 backdrop-blur-md px-3 py-2 max-w-sm">
             <div className="text-[10px] uppercase tracking-widest text-cyan-400/90 font-semibold">
-              Production Open · island-3d · v8 scripted
+              Production Open · island-3d · v10 film · Grudge6
             </div>
             <div className="text-sm text-white font-medium">Leviathan Ocean Battle</div>
             <div className="text-[10px] text-slate-400 mt-0.5">
-              Stage UUIDs · spine IK · 4 human mages · unarmed throw hero
+              ACES post · bloom · Box3 SI · dragon beam · letterbox
             </div>
             <div className="text-[9px] text-slate-500 mt-1">
               Captain {characterName}
@@ -280,7 +280,7 @@ export function StormShipIntroGate({
 
               <div className="rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-[10px] text-slate-500 space-y-1">
                 <p>
-                  <span className="text-cyan-400/90">Engine:</span> LeviathanOceanCinema v8 · stage UUIDs · spine IK
+                  <span className="text-cyan-400/90">Engine:</span> LeviathanOceanCinema v10 · film post · Box3 · Grudge6
                 </p>
                 <p>
                   <span className="text-amber-400/90">Cast:</span> leviathan + 4 human mages + 1 human unarmed hero
