@@ -1,10 +1,16 @@
-# Grudge AI Gateway Worker — unified AI model hub at ai.grudge-studio.com
-# Routes ALL AI calls (chat, image, video, speech, music, agent) through
-# Cloudflare AI Gateway to 137+ models.
+# Grudge AI Gateway Worker — Hono gateway with queues (async jobs).
+#
+# PRODUCTION DNS for Legion chat is grudge-ai-hub (F:\GitHub\grudge-ai-hub),
+# not this worker. Keep this for job-queue / multi-model experiments.
+# Do NOT re-bind ai.grudge-studio.com/* here without retiring grudge-ai-hub.
 name = "grudge-ai-gateway"
 main = "src/index.ts"
-compatibility_date = "2024-09-23"
+compatibility_date = "2026-03-01"
 compatibility_flags = ["nodejs_compat"]
+
+[observability]
+enabled = true
+head_sampling_rate = 1
 
 # ── AI Gateway ────────────────────────────────────────────────────────────────
 # Cloudflare AI Gateway proxies requests to third-party AI providers.
@@ -33,10 +39,9 @@ queue = "grudge-ai-jobs"
 max_batch_size = 5
 max_retries = 3
 
-# ── Custom domain ─────────────────────────────────────────────────────────────
-[[routes]]
-pattern = "ai.grudge-studio.com/*"
-zone_name = "grudge-studio.com"
+# Custom domain DISABLED — Legion production is grudge-ai-hub (see fleet docs).
+# Use workers.dev or a dedicated staging host for this gateway.
+# Secrets: wrangler secret put JWT_SECRET ; wrangler secret put CF_AI_GATEWAY_TOKEN
 
 # ── Secrets (set via `wrangler secret put`) ───────────────────────────────────
 # JWT_SECRET         — shared with VPS for Grudge ID token validation
