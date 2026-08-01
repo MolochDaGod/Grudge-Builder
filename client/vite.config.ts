@@ -169,24 +169,30 @@ export default defineConfig({
           if (norm.includes("node_modules/three/examples/jsm/")) {
             return "three-extras";
           }
-          // R3F + zustand stay out of pure three-vendor (avoids island3d edge)
+          // R3F out of pure three-vendor (avoids island3d edge)
           if (
             norm.includes("node_modules/@react-three/") ||
             norm.includes("node_modules/meshline")
           ) {
             return "r3f-vendor";
           }
-          if (
-            norm.includes("node_modules/zustand") ||
-            norm.includes("node_modules/use-sync-external-store")
-          ) {
-            return "state-vendor";
-          }
+          /**
+           * NEVER split zustand / use-sync-external-store into "state-vendor".
+           * That created a circular chunk graph:
+           *   react-vendor ⇄ state-vendor
+           * which leaves React's export object undefined at runtime:
+           *   TypeError: Cannot set properties of undefined (setting 'Activity')
+           * (React 19 production factory: G.Activity = …).
+           * Keep the entire React state stack in react-vendor.
+           */
           if (
             norm.includes("node_modules/react-dom") ||
             norm.includes("node_modules/react/") ||
             norm.includes("node_modules/scheduler") ||
-            norm.includes("node_modules/wouter")
+            norm.includes("node_modules/wouter") ||
+            norm.includes("node_modules/zustand") ||
+            norm.includes("node_modules/use-sync-external-store") ||
+            norm.includes("node_modules/react-is")
           ) {
             return "react-vendor";
           }
