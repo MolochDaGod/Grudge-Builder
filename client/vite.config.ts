@@ -21,7 +21,17 @@ const grudgeAliases = grudgeGameAliasEntries(repoRoot, __dir);
  * Must mirror the resolve aliases and shims from the root vite.config.ts.
  */
 
-// three@0.185+ ships three/webgpu + three/tsl — resolve from package exports (no stub).
+// three/webgpu doesn't exist in v0.160 — shim it at the Rollup level
+const threeWebgpuShim: Plugin = {
+  name: "three-webgpu-shim",
+  enforce: "pre",
+  resolveId(id: string) {
+    if (id === "three/webgpu" || id === "three/tsl") {
+      return { id: "three", external: false };
+    }
+    return null;
+  },
+};
 
 /** Auth/fleet scripts live in client/public; Vercel build uses repo-root publicDir. */
 const CLIENT_AUTH_PUBLIC_FILES = [
@@ -29,7 +39,6 @@ const CLIENT_AUTH_PUBLIC_FILES = [
   "grudge-fleet.js",
   "grudge-auth-modal.js",
   "grudge-auth-modal.css",
-  "js/grudge-render-capabilities.js",
 ] as const;
 
 const clientPublicDir = path.resolve(__dir, "public");
@@ -65,6 +74,7 @@ export default defineConfig({
   // Use repo-root public/ so skill-tree.html, icons-src/, etc. are included in builds
   publicDir: path.resolve(__dir, "..", "public"),
   plugins: [
+    threeWebgpuShim,
     copyClientAuthPublic,
     react(),
     tailwindcss(),
@@ -74,13 +84,14 @@ export default defineConfig({
       ...grudgeAliases,
       { find: "@shared", replacement: path.resolve(__dir, "..", "shared") },
       { find: "@assets", replacement: path.resolve(__dir, "..", "attached_assets") },
+      { find: "three/webgpu", replacement: "three" },
       {
         find: "@tailwindcss/typography",
         replacement: path.resolve(repoRoot, "node_modules/@tailwindcss/typography"),
       },
     ],
     extensions: [".mjs", ".js", ".mts", ".ts", ".jsx", ".tsx", ".json"],
-    dedupe: ["react", "react-dom", "three"],
+    dedupe: ["react", "react-dom"],
   },
   define: {
     __GRUDGE_ASSET_BASE_DEFAULT__: JSON.stringify("https://assets.grudge-studio.com"),
@@ -100,9 +111,13 @@ export default defineConfig({
       transformMixedEsModules: true,
     },
     rollupOptions: {
-      // Optional peer for pinata shatter (hide-chunk works without it)
-      external: ["@dgreenheck/three-pinata"],
-      // three@0.185 exports WebGPURenderer via three/webgpu — keep shim soft for edge packages
+      // Do NOT externalize @dgreenheck/three-pinata — bare specifier in browser
+      // throws: Failed to resolve module specifier (breaks client.* /home).
+      // Pinata is optional; harvest/damage use debris/hide-chunk without it.
+      // three-render-objects imports Timer, WebGPURenderer etc. from three.js
+      // that don't exist in v0.160. shimMissingExports creates undefined stubs
+      // so the build doesn't crash. These code paths are never reached at runtime
+      // (force-graph VR branch only).
       shimMissingExports: true,
       onwarn(warning, warn) {
         if (warning.code === "MISSING_EXPORT" && warning.exporter?.includes("three")) return;
@@ -115,10 +130,6 @@ export default defineConfig({
           const worldChunk = grudgeGameManualChunk(norm);
           if (worldChunk) return worldChunk;
           if (norm.includes("/artifacts/grudge-game/")) return "grudge-world";
-          // Split WebGPU entry so default play path stays lighter
-          if (norm.includes("three.webgpu") || norm.includes("/renderers/webgpu/")) {
-            return "three-webgpu";
-          }
           // Vendor splits — keep main index under control
           if (norm.includes("node_modules/three/") || norm.includes("node_modules/three\\")) {
             return "three-vendor";
@@ -149,10 +160,18 @@ export default defineConfig({
           return undefined;
         },
       },
+      plugins: [
+        {
+          name: "rollup-three-webgpu-shim",
+          resolveId(id: string) {
+            if (id === "three/webgpu" || id === "three/tsl") {
+              return { id: "three", external: false };
+            }
+            return null;
+          },
+        },
+      ],
     },
-  },
-  optimizeDeps: {
-    include: ["three", "three/webgpu", "three/tsl"],
   },
   server: {
     fs: {

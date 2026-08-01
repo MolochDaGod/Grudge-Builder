@@ -13,12 +13,31 @@
  * Fragment count stays in the 8–28 band for frame budget (pinata docs: 10–50).
  */
 import * as THREE from 'three';
-import {
-  DestructibleMesh,
-  FractureOptions,
-} from '@dgreenheck/three-pinata';
 import type { PhysicsWorld, PhysicsBody } from '../physics/PhysicsWorld';
 import type { HarvestNodeClass } from './HarvestNodeRecognition';
+
+/**
+ * Optional three-pinata (NOT a static import — package is not always installed and
+ * must never ship as a bare browser specifier or client.* dies with:
+ *   Failed to resolve module specifier "@dgreenheck/three-pinata"
+ */
+type DestructibleMeshCtor = new (
+  geometry?: THREE.BufferGeometry,
+  outerMaterial?: THREE.Material,
+  innerMaterial?: THREE.Material,
+) => THREE.Mesh & {
+  fracture: (
+    options: unknown,
+    onFragment?: (fragment: THREE.Mesh, index: number) => void,
+  ) => THREE.Mesh[];
+};
+type FractureOptionsCtor = new (opts: Record<string, unknown>) => unknown;
+
+/** Always null in production unless you wire a bundled pinata entry later. */
+const pinataApi: {
+  DestructibleMesh: DestructibleMeshCtor;
+  FractureOptions: FractureOptionsCtor;
+} | null = null;
 
 // ── Materials (shared — never alloc per hit) ─────────────────────────────────
 
@@ -228,37 +247,10 @@ export class PinataHarvestBreakSystem {
     const outer = OUTER_MATS[kind];
     const inner = INNER_MATS[kind];
 
-    let mesh: DestructibleMesh;
-    try {
-      mesh = new DestructibleMesh(geo, outer, inner);
-    } catch (err) {
-      console.warn('[PinataHarvest] DestructibleMesh create failed', err);
-      geo.dispose();
-      return 0;
-    }
-
-    // Parent transform — pinata copies matrixWorld onto each fragment position
-    mesh.position.copy(center);
-    mesh.updateMatrixWorld(true);
-
-    const fractureOpts = new FractureOptions({
-      fractureMethod: 'voronoi',
-      fragmentCount: count,
-      seed: Math.floor(Math.random() * 1e9),
-      voronoiOptions: {
-        mode: kind === 'tree' ? '2.5D' : '3D',
-        impactPoint: impactLocal,
-        impactRadius: opts.mode === 'chip' ? size.length() * 0.18 : size.length() * 0.45,
-        useApproximation: count > 20,
-        approximationNeighborCount: 10,
-      },
-    });
-
     const strikeDir = (opts.impactDir ?? new THREE.Vector3(0, 0.2, 1)).clone().normalize();
     let spawned = 0;
 
     const registerFragment = (fragment: THREE.Object3D, force?: THREE.Vector3) => {
-      // Fragment.position is already world-space (DestructibleMesh.applyMatrix4)
       fragment.castShadow = true;
       fragment.receiveShadow = true;
       fragment.userData.pinataFragment = true;
@@ -301,23 +293,69 @@ export class PinataHarvestBreakSystem {
       spawned++;
     };
 
-    try {
-      mesh.fracture(fractureOpts, (fragment) => {
-        registerFragment(fragment);
-      });
-    } catch (err) {
-      console.warn('[PinataHarvest] fracture failed — node still harvests loot', err);
+    // Prefer three-pinata when available; never hard-depend on bare import
+    if (pinataApi) {
+      let mesh: THREE.Mesh | null = null;
+      try {
+        mesh = new pinataApi.DestructibleMesh(geo, outer, inner);
+        mesh.position.copy(center);
+        mesh.updateMatrixWorld(true);
+        const fractureOpts = new pinataApi.FractureOptions({
+          fractureMethod: 'voronoi',
+          fragmentCount: count,
+          seed: Math.floor(Math.random() * 1e9),
+          voronoiOptions: {
+            mode: kind === 'tree' ? '2.5D' : '3D',
+            impactPoint: impactLocal,
+            impactRadius:
+              opts.mode === 'chip' ? size.length() * 0.18 : size.length() * 0.45,
+            useApproximation: count > 20,
+            approximationNeighborCount: 10,
+          },
+        });
+        (mesh as THREE.Mesh & { fracture: (o: unknown, cb: (f: THREE.Mesh) => void) => void }).fracture(
+          fractureOpts,
+          (fragment) => {
+            registerFragment(fragment);
+          },
+        );
+        mesh.visible = false;
+        if (spawned === 0) mesh.geometry?.dispose();
+      } catch (err) {
+        console.warn('[PinataHarvest] fracture failed — using debris fallback', err);
+        try {
+          mesh?.geometry?.dispose();
+        } catch {
+          /* */
+        }
+      }
     }
 
-    // Dispose proxy shell (fragments own their geometry)
-    try {
-      mesh.visible = false;
-      // Do not dispose fragment geos; only drop unused proxy if fracture failed
-      if (spawned === 0) {
-        mesh.geometry?.dispose();
+    // Fallback debris (or pinata unavailable / failed)
+    if (spawned === 0) {
+      const n = Math.min(count, opts.mode === 'chip' ? 6 : 12);
+      for (let i = 0; i < n; i++) {
+        const piece = new THREE.Mesh(
+          geo.clone(),
+          outer.clone(),
+        );
+        piece.scale.setScalar(0.15 + Math.random() * 0.25);
+        piece.position.copy(center).add(
+          new THREE.Vector3(
+            (Math.random() - 0.5) * size.x * 0.4,
+            Math.random() * size.y * 0.5,
+            (Math.random() - 0.5) * size.z * 0.4,
+          ),
+        );
+        registerFragment(piece);
       }
-    } catch {
-      /* ignore */
+      geo.dispose();
+    } else {
+      try {
+        geo.dispose();
+      } catch {
+        /* pinata owns copies */
+      }
     }
 
     return spawned;

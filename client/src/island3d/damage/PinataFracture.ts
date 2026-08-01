@@ -62,16 +62,12 @@ export async function ensurePinataLoaded(): Promise<boolean> {
   if (pinataModule) return true;
   if (pinataLoadAttempted) return false;
   pinataLoadAttempted = true;
+  // Do NOT bare-import in the browser. Vite marks this package external and the
+  // browser throws: Failed to resolve module specifier "@dgreenheck/three-pinata"
+  // (breaks client.* /home). Optional shatter only if a real bundled path is added later.
   try {
-    // Optional peer — build string at runtime so Vite/Rollup never hard-resolves it.
-    const pkg = ["@dgreenheck", "three-pinata"].join("/");
-    // eslint-disable-next-line @typescript-eslint/no-implied-eval
-    const dynamicImport = new Function("s", "return import(s)") as (
-      s: string,
-    ) => Promise<NonNullable<typeof pinataModule>>;
-    const mod = await dynamicImport(pkg);
-    pinataModule = mod;
-    return true;
+    // Prefer silent no-op when package is not installed (production default).
+    return false;
   } catch {
     console.info(
       "[PinataFracture] @dgreenheck/three-pinata not available — hide-chunk only.",
