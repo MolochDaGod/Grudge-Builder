@@ -2,12 +2,15 @@ import { useState } from "react";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ITEMS, resolveItemImage } from "@/lib/grudaDB";
+import { resolveItemIconUrl } from "@shared/inventory/itemIcons";
 import { motion, AnimatePresence } from "framer-motion";
 
 export interface LootItem {
   itemId: string;
   quantity: number;
   isNew?: boolean;
+  iconUrl?: string;
+  name?: string;
 }
 
 interface LootPanelProps {
@@ -78,7 +81,16 @@ export default function LootPanel({ isOpen, onClose, loot, onCollect, title = "L
                   <div className="grid grid-cols-3 gap-3 mb-4">
                     {slots.map((item, i) => {
                       const itemDef = item ? ITEMS.find(it => it.id === item.itemId) : null;
-                      
+                      const iconSrc = item
+                        ? item.iconUrl ||
+                          (itemDef ? resolveItemImage(itemDef) : null) ||
+                          resolveItemIconUrl({
+                            itemId: item.itemId,
+                            name: item.name || itemDef?.name,
+                          })
+                        : null;
+                      const label = itemDef?.name || item?.name || item?.itemId || "";
+
                       return (
                         <div 
                           key={i}
@@ -88,12 +100,19 @@ export default function LootPanel({ isOpen, onClose, loot, onCollect, title = "L
                           )}
                           data-testid={`loot-slot-${i}`}
                         >
-                          {item && itemDef && (
+                          {item && iconSrc && (
                             <>
                               <img 
-                                src={resolveItemImage(itemDef)} 
-                                alt={itemDef.name}
+                                src={iconSrc} 
+                                alt={label}
                                 className="w-10 h-10 object-contain pixelated"
+                                onError={(e) => {
+                                  const el = e.currentTarget;
+                                  if (!el.dataset.fb) {
+                                    el.dataset.fb = "1";
+                                    el.src = resolveItemIconUrl({ itemId: "default" });
+                                  }
+                                }}
                               />
                               {item.quantity > 1 && (
                                 <span className="absolute bottom-0 right-0 bg-black/70 text-white text-[10px] px-1 rounded-tl font-bold">

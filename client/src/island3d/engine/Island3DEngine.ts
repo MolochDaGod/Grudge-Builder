@@ -130,6 +130,11 @@ import {
 } from '@shared/definitions/zoneServerNodes';
 import { buildZoneScene, type ZoneSceneResult } from './ZoneSceneBuilder';
 import { CreatureManager, type CreatureLootEvent } from '../creatures/CreatureManager';
+import {
+  GroundLootSystem,
+  type GroundLootItem,
+  type GroundLootPile,
+} from '../loot/GroundLootSystem';
 import { NpcCampSystem, spawnZoneCamps } from '../camps/NpcCampSystem';
 import { CampUnitSystem } from '../camps/CampUnitSystem';
 import type { CampFaction } from '@shared/definitions/npcCamps';
@@ -568,6 +573,12 @@ export class Island3DEngine {
   // Wildlife
   public creatures: CreatureManager | null = null;
 
+  /**
+   * World ground loot piles — icon sprites (slow rotate) pickable with E.
+   * Creature skin / chest / craft reward drops land here.
+   */
+  public groundLoot: GroundLootSystem | null = null;
+
   // Faction NPC camps (stylized camp GLB + upgrades)
   public npcCamps: NpcCampSystem | null = null;
   /** Claim-flag garrison + F1–F5 orders + bench professions */
@@ -639,14 +650,30 @@ export class Island3DEngine {
   constructor(private config: Island3DEngineConfig) {
     // Renderer — threejs-production-best-practices (r185+): high-perf GPU,
     // sRGB output, ACES, pixel-ratio cap, no stencil/preserve buffer.
-    this.renderer = new THREE.WebGLRenderer({
-      canvas: config.canvas,
-      antialias: true, // MSAA; cheaper/cleaner than FXAA post on modern GPUs
-      alpha: false,
-      powerPreference: "high-performance",
-      stencil: false,
-      preserveDrawingBuffer: false,
-    });
+    // Try/catch: Chrome can block new contexts after prior page-caused loss
+    // ("Web page caused context loss and was blocked").
+    try {
+      this.renderer = new THREE.WebGLRenderer({
+        canvas: config.canvas,
+        antialias: true, // MSAA; cheaper/cleaner than FXAA post on modern GPUs
+        alpha: false,
+        powerPreference: "high-performance",
+        stencil: false,
+        preserveDrawingBuffer: false,
+        failIfMajorPerformanceCaveat: false,
+      });
+    } catch (e) {
+      console.warn("[Island3D] high-perf WebGL failed, retrying default…", e);
+      this.renderer = new THREE.WebGLRenderer({
+        canvas: config.canvas,
+        antialias: false,
+        alpha: false,
+        powerPreference: "default",
+        stencil: false,
+        preserveDrawingBuffer: false,
+        failIfMajorPerformanceCaveat: false,
+      });
+    }
     this.renderer.setSize(config.width, config.height);
     // Cap fill-rate (especially mobile / multi-GPU laptops)
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
@@ -656,6 +683,14 @@ export class Island3DEngine {
     this.renderer.localClippingEnabled = true;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
     this.renderer.toneMappingExposure = 1.05;
+    this.renderer.domElement.addEventListener(
+      "webglcontextlost",
+      (ev) => {
+        ev.preventDefault();
+        console.warn("[Island3D] WebGL context lost");
+      },
+      false,
+    );
 
     // Scene
     this.scene = new THREE.Scene();
@@ -1293,7 +1328,24 @@ export class Island3DEngine {
       campClearRadiusM: foundation.campClearRadiusM ?? HOME_ISLAND_CAMP_CLEAR_RADIUS_M,
       worldSizeM: HOME_ISLAND_WORLD_SIZE_M,
       placeEventMountain: true,
-      onLoot: (items, mineId) => this.config.onMineLoot?.(items, mineId),
+      onLoot: (items, mineId) => {
+        // Ground icon piles near camp (E pickup) + host bag callback
+        if (this.character && items?.length) {
+          const p = this.character.getPosition();
+          this.spawnGroundLoot(
+            p.clone().add(new THREE.Vector3((Math.random() - 0.5) * 2, 0, (Math.random() - 0.5) * 2)),
+            items.map((it) => ({
+              itemId: (it as { itemId?: string; id?: string }).itemId ||
+                (it as { id?: string }).id ||
+                "mine_ore",
+              name: (it as { name?: string }).name,
+              quantity: (it as { quantity?: number }).quantity ?? 1,
+            })),
+            `mine:${mineId}`,
+          );
+        }
+        this.config.onMineLoot?.(items, mineId);
+      },
     });
     await this.mineSystem.init();
 
@@ -2612,6 +2664,7 @@ export class Island3DEngine {
 
   /**
    * Tab soft-lock: creatures (+ optional mountain boss) as cycle targets.
+   * Also feeds skill combat hostiles + PlayModeStateManager Q-swap bridge.
    */
   private ensureSoftLockProvider(): void {
     if (!this.character) return;
@@ -2646,6 +2699,54 @@ export class Island3DEngine {
       }
       return out;
     });
+
+    // Skill projectiles / melee hit queries use same hostiles as soft-lock
+    this.character.setSkillCombatHostiles(() => {
+      const playerPos = this.character!.getPosition();
+      const out: Array<{ id: string; position: THREE.Vector3; hpFrac?: number }> = [];
+      if (this.creatures) {
+        for (const t of this.creatures.listSoftLockTargets(playerPos, 48)) {
+          out.push({
+            id: t.id,
+            position: t.position.clone(),
+            hpFrac: t.maxHp ? t.hp / t.maxHp : undefined,
+          });
+        }
+      }
+      return out;
+    });
+
+    void this.connectPlayModeBridge();
+  }
+
+  /** Q-tap dual weapon + mode dock → equipment / anims. */
+  private async connectPlayModeBridge(): Promise<void> {
+    if (!this.character) return;
+    try {
+      const { getPlayModeStateManager } = await import('../player/PlayModeStateManager');
+      const pm = getPlayModeStateManager();
+      pm.connect({
+        enterCombatMode: () => this.enterCombatMode(),
+        enterHarvestMode: () => this.enterHarvestMode(),
+        setHarvestRadialTool: (tool) => this.setHarvestRadialTool(tool),
+        applyCombatWeapons: async ({ mainHand, secondary, activeSet }) => {
+          if (!this.character) return;
+          const next = {
+            ...this.character.equipment,
+            MainHand: mainHand,
+            SecondaryWeapon: secondary,
+          };
+          // Active set is already mirrored into MainHand by PlayModeStateManager
+          void activeSet;
+          this.character.setEquipment(next);
+        },
+        getEquipment: () => this.character?.equipment ?? {},
+      });
+      pm.bindInput(window);
+      pm.hydrateWeaponsFromEquipment(this.character.equipment);
+    } catch (err) {
+      console.warn('[Island3D] PlayModeStateManager bridge failed', err);
+    }
   }
 
   /** Spawn or respawn the playable character on a labeled board cell */
@@ -3274,6 +3375,12 @@ export class Island3DEngine {
     // Fire / smoke particles
     this.worldFx?.update(dt);
 
+    // Ground loot sprites (rotate + bob + E prompt)
+    if (this.groundLoot) {
+      const p = this.character?.getPosition() ?? null;
+      this.groundLoot.update(dt, p);
+    }
+
     // External update hooks (RemotePlayerManager, TownNPCController, etc.)
     for (const fn of this.externalUpdates) fn(dt);
 
@@ -3309,8 +3416,57 @@ export class Island3DEngine {
    */
   nearestLearnAssetId: string | null = null;
 
-  /** Press E/F near interactables — mine, dungeon portal, capture point, ship dock, or learn recipe. */
+  /**
+   * Lazy-init ground loot system (icon sprites + E pickup).
+   * Call after terrain exists; safe to call multiple times.
+   */
+  ensureGroundLoot(
+    onPickup?: (pile: GroundLootPile, items: GroundLootItem[]) => void,
+  ): GroundLootSystem {
+    if (this.groundLoot) {
+      if (onPickup) this.groundLoot.setPickupHandler(onPickup);
+      return this.groundLoot;
+    }
+    const sampleY = (x: number, z: number) => {
+      if (this.terrain?.terrainMesh) {
+        return getTerrainHeightAt(this.terrain.terrainMesh, x, z);
+      }
+      const lobby = this.sampleLobbyGroundHeight(x, z);
+      return lobby ?? 0;
+    };
+    this.groundLoot = new GroundLootSystem(this.scene, sampleY, {
+      onPickup:
+        onPickup ??
+        ((_, items) => {
+          for (const it of items) {
+            const bag = this.getMergedInventory();
+            bag[it.itemId] = (bag[it.itemId] ?? 0) + it.quantity;
+            this.commitInventory(bag);
+          }
+        }),
+    });
+    return this.groundLoot;
+  }
+
+  /**
+   * Drop world loot pile at position (chest / creature / reward).
+   * Icons resolved via shared itemIcons.
+   */
+  spawnGroundLoot(
+    position: THREE.Vector3,
+    items: Array<{ itemId: string; name?: string; quantity?: number; iconUrl?: string; rarity?: string }>,
+    source = 'drop',
+  ): string {
+    const sys = this.ensureGroundLoot();
+    return sys.spawn(position, items, source);
+  }
+
+  /** Press E/F near interactables — loot first, then mine, dungeon portal, ship dock, recipe learn. */
   handleInteractKey(): boolean {
+    // Ground loot piles (icon sprites) — highest priority when near
+    if (this.character && this.groundLoot?.tryPickup(this.character.getPosition())) {
+      return true;
+    }
     // Inside PvE boss chamber: E near blue ring exits
     if (this.pveBossInstance?.isInside && this.character) {
       if (this.pveBossInstance.tryExit(this.character.model.position)) return true;
@@ -4636,6 +4792,8 @@ export class Island3DEngine {
     this.stop();
     this.timer.disconnect();
     this.timer.dispose();
+    this.groundLoot?.dispose();
+    this.groundLoot = null;
     this.creatures?.dispose();
     this.campUnits?.dispose();
     this.campUnits = null;
@@ -4705,7 +4863,17 @@ export class Island3DEngine {
     this.grassLayer?.dispose();
     this.sandLayer?.dispose();
     this.postProcessing?.dispose();
-    this.renderer.dispose();
+    // forceContextLoss — free GPU slot so Chrome won't origin-block after OOM
+    try {
+      this.renderer.forceContextLoss();
+    } catch {
+      /* ignore */
+    }
+    try {
+      this.renderer.dispose();
+    } catch {
+      /* ignore */
+    }
     this.controls.dispose();
     // Dispose geometries and materials
     this.scene.traverse((obj) => {

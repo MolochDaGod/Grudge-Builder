@@ -234,10 +234,15 @@ export function resolveCanonicalRaceModelPath(urlOrKey: string): string {
   return s.startsWith("/") || s.startsWith("http") ? s : `/${key}`;
 }
 
-/** Panel equipment slot names from character-builder / main equipment UI */
+/**
+ * Panel equipment slot names (main-panel paperdoll + character.equipment jsonb).
+ * SecondaryWeapon is a non-drop Q-swap reserve — not a paperdoll drop slot for loot.
+ * See namingSsot WEAPON_SLOTS.
+ */
 export type PanelEquipmentSlot =
   | "Head" | "Back" | "Shoulder" | "Chest" | "Hands"
-  | "Accessory1" | "MainHand" | "OffHand" | "Legs" | "Feet" | "Accessory2";
+  | "Accessory1" | "MainHand" | "OffHand" | "SecondaryWeapon"
+  | "Legs" | "Feet" | "Accessory2";
 
 export type PanelEquipment = Partial<Record<PanelEquipmentSlot, string | null>>;
 
@@ -278,11 +283,14 @@ const T0_ITEM_MESH_MAP: Record<string, { meshSlot: string; variant: string }> = 
   t0_sword: { meshSlot: "sword", variant: "A" },
   t0_training_sword: { meshSlot: "sword", variant: "A" },
   t0_axe: { meshSlot: "axe", variant: "A" },
+  t0_hatchet: { meshSlot: "axe", variant: "A" },
   t0_dagger: { meshSlot: "dagger", variant: "A" },
   t0_bone_dagger: { meshSlot: "dagger", variant: "A" },
   t0_bow: { meshSlot: "bow", variant: "_default" },
   t0_staff: { meshSlot: "staff", variant: "A" },
   t0_hammer: { meshSlot: "hammer", variant: "A" },
+  t0_pickaxe: { meshSlot: "pick", variant: "_default" },
+  t0_knife: { meshSlot: "dagger", variant: "A" },
   t0_shield: { meshSlot: "shield", variant: "A" },
 };
 

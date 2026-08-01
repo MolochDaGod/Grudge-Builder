@@ -212,14 +212,43 @@ export default function HeroesSeasideCinemaScene({
     camera.position.copy(camPos);
     camera.lookAt(camLook);
 
-    const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
+    let renderer: THREE.WebGLRenderer;
+    try {
+      renderer = new THREE.WebGLRenderer({
+        antialias: true,
+        powerPreference: "high-performance",
+        failIfMajorPerformanceCaveat: false,
+      });
+    } catch (e) {
+      try {
+        renderer = new THREE.WebGLRenderer({
+          antialias: false,
+          powerPreference: "default",
+          failIfMajorPerformanceCaveat: false,
+        });
+      } catch (e2) {
+        console.error("[seaside cinema] WebGL create failed", e2 || e);
+        setStatus(
+          "WebGL blocked — hard-refresh (Ctrl+Shift+R) or close other 3D tabs.",
+        );
+        return;
+      }
+    }
     renderer.setSize(w0, h0);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.05;
     renderer.outputColorSpace = THREE.SRGBColorSpace;
+    renderer.domElement.addEventListener(
+      "webglcontextlost",
+      (ev) => {
+        ev.preventDefault();
+        console.warn("[seaside cinema] WebGL context lost");
+      },
+      false,
+    );
     el.innerHTML = "";
     el.appendChild(renderer.domElement);
     renderer.domElement.style.cssText = "width:100%;height:100%;display:block;";
@@ -229,7 +258,7 @@ export default function HeroesSeasideCinemaScene({
     const sun = new THREE.DirectionalLight(0xfff0d0, 1.35);
     sun.position.set(40, 60, 20);
     sun.castShadow = true;
-    sun.shadow.mapSize.set(2048, 2048);
+    sun.shadow.mapSize.set(1024, 1024);
     sun.shadow.camera.near = 1;
     sun.shadow.camera.far = 200;
     sun.shadow.camera.left = -80;
@@ -648,7 +677,17 @@ export default function HeroesSeasideCinemaScene({
         crafts.forEach((c) => c.dispose());
         crafts.length = 0;
         slotRuntimes.forEach((rt) => rt.controller?.dispose());
-        renderer.dispose();
+        // Release GPU context so Chrome does not block this origin after OOM
+        try {
+          renderer.forceContextLoss();
+        } catch {
+          /* ignore */
+        }
+        try {
+          renderer.dispose();
+        } catch {
+          /* ignore */
+        }
         if (renderer.domElement.parentNode) {
           renderer.domElement.parentNode.removeChild(renderer.domElement);
         }

@@ -17,8 +17,10 @@
     OBJECTSTORE_URL: 'https://objectstore.grudge-studio.com/api/v1',
     INFO_URL: 'https://info.grudge-studio.com/api/v1',
     ASSETS: 'https://assets.grudge-studio.com',
-    VERSION: '5.7.2',
+    VERSION: '5.8.0',
     WCS_URL: 'https://wcs.grudge-studio.com',
+    // Full suite also embeds from main-panel Quick Craft tab
+    MAIN_PANEL_URL: 'https://ui.grudge-studio.com/main-panel.html?era=warlords&tab=craft',
     // Local skill-tree.html / weaponmastery.html are NOT deployed on puter.site (404).
     // Use production Warlords pages with SSO hash handoff.
     SKILL_TREE_URL: 'https://grudgewarlords.com/skill-tree.html',
@@ -27,6 +29,8 @@
     INVENTORY_SCOPE: 'account',
     PROGRESS_SCOPE: 'character',
     PLAYER_STATE_SSOT: 'railway',
+    // Browse definitions without login; only craft/gather mutates require Grudge ID
+    REQUIRE_LOGIN_TO_BROWSE: false,
   };
 </script>
 <script src="./grudge-fleet.js"></script>
@@ -215,199 +219,132 @@ body {
   border-color: rgba(239,68,68,0.4);
 }
 
-/* ======================== ACCESS GATE (login + character) ======================== */
+/* ======================== SOFT AUTH BANNER (never blocks suite) ======================== */
+/* Hard login modal was removed — suite is always browsable. Auth only for craft/gather. */
 .access-gate {
-  position: fixed;
-  inset: 0;
-  z-index: 100000;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 24px;
-  background:
-    radial-gradient(ellipse at 50% 20%, rgba(212,168,67,0.12), transparent 55%),
-    radial-gradient(ellipse at 80% 80%, rgba(96,165,250,0.06), transparent 50%),
-    rgba(6, 6, 12, 0.97);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-}
-.access-gate.hidden {
   display: none !important;
   pointer-events: none;
 }
-.access-gate-card {
-  width: min(520px, 100%);
-  max-height: min(90vh, 720px);
-  overflow: auto;
-  background: var(--panel);
-  border: 1px solid var(--border-hot);
-  border-radius: 14px;
-  padding: 28px 26px 24px;
-  box-shadow: 0 24px 80px rgba(0,0,0,0.65), 0 0 0 1px rgba(212,168,67,0.08);
-}
-.access-gate-kicker {
-  font-size: 10px;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: var(--gold-dim);
-  margin-bottom: 8px;
-}
-.access-gate-title {
-  font-family: 'Cinzel', serif;
-  font-size: 22px;
-  color: var(--gold);
-  margin: 0 0 8px;
-  line-height: 1.25;
-}
-.access-gate-sub {
-  font-size: 13px;
-  color: var(--text-dim);
-  line-height: 1.55;
-  margin: 0 0 20px;
-}
-.access-gate-sub strong { color: var(--text); }
-.access-gate-steps {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 20px;
+.access-gate.hidden { display: none !important; }
+.soft-auth-banner {
+  display: none;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
   flex-wrap: wrap;
-}
-.access-gate-step {
-  flex: 1;
-  min-width: 120px;
-  padding: 10px 12px;
+  margin: 0 0 16px;
+  padding: 10px 14px;
   border-radius: 8px;
-  border: 1px solid var(--border);
-  background: rgba(0,0,0,0.25);
-  font-size: 11px;
+  border: 1px solid rgba(212,168,67,0.28);
+  background: linear-gradient(90deg, rgba(212,168,67,0.1), rgba(14,14,24,0.4));
+  font-size: 12px;
   color: var(--text-dim);
 }
-.access-gate-step.on {
-  border-color: rgba(212,168,67,0.45);
-  color: var(--gold);
-  background: rgba(212,168,67,0.08);
-}
-.access-gate-step.done {
-  border-color: rgba(34,197,94,0.35);
-  color: var(--green);
-  background: rgba(34,197,94,0.08);
-}
-.access-gate-step b {
-  display: block;
-  font-size: 10px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  margin-bottom: 4px;
-  opacity: 0.85;
-}
-.access-gate-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  margin-bottom: 8px;
-}
-.access-gate-btn {
+.soft-auth-banner.show { display: flex; }
+.soft-auth-banner strong { color: var(--gold); }
+.soft-auth-banner .sab-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.soft-auth-banner button, .soft-auth-banner a.sab-btn {
   appearance: none;
   border: 1px solid var(--border-hot);
-  background: linear-gradient(180deg, rgba(212,168,67,0.28), rgba(212,168,67,0.12));
+  background: rgba(212,168,67,0.15);
   color: var(--gold-bright);
   font-family: inherit;
-  font-size: 13px;
+  font-size: 11px;
   font-weight: 600;
-  padding: 12px 18px;
-  border-radius: 8px;
+  padding: 6px 12px;
+  border-radius: 6px;
   cursor: pointer;
-  transition: background 0.15s, transform 0.1s;
+  text-decoration: none;
 }
-.access-gate-btn:hover { background: linear-gradient(180deg, rgba(212,168,67,0.4), rgba(212,168,67,0.18)); }
-.access-gate-btn:active { transform: scale(0.98); }
-.access-gate-btn.secondary {
+.soft-auth-banner button.secondary, .soft-auth-banner a.sab-btn.secondary {
   background: rgba(255,255,255,0.04);
   border-color: var(--border);
   color: var(--text);
-  font-weight: 500;
 }
-.access-gate-btn.secondary:hover { background: rgba(255,255,255,0.08); border-color: rgba(212,168,67,0.35); }
-.access-gate-btn:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
-  transform: none;
-}
-.access-gate-chars {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 8px;
-  margin-top: 14px;
-  max-height: 280px;
-  overflow: auto;
-}
-.access-gate-char {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px 14px;
-  border-radius: 10px;
-  border: 1px solid var(--border);
-  background: rgba(255,255,255,0.02);
-  cursor: pointer;
-  text-align: left;
-  color: inherit;
-  font-family: inherit;
-  width: 100%;
-  transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
-}
-.access-gate-char:hover {
-  border-color: rgba(212,168,67,0.45);
-  background: rgba(212,168,67,0.08);
-}
-.access-gate-char .ag-icon {
-  width: 42px;
-  height: 42px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 18px;
-  border: 2px solid rgba(212,168,67,0.35);
-  background: rgba(212,168,67,0.08);
-  flex-shrink: 0;
-}
-.access-gate-char .ag-meta { min-width: 0; flex: 1; }
-.access-gate-char .ag-name {
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--gold);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.access-gate-char .ag-sub {
-  font-size: 11px;
-  color: var(--text-dim);
-  margin-top: 2px;
-}
-.access-gate-hint {
-  margin-top: 14px;
-  font-size: 11px;
-  color: var(--text-dim);
-  line-height: 1.45;
-}
-.access-gate-hint a { color: var(--gold); }
-.access-gate-status {
-  font-size: 12px;
-  color: var(--text-dim);
-  min-height: 1.2em;
-  margin-bottom: 12px;
-}
-body:not(.access-ready) .app {
-  filter: blur(1.5px) saturate(0.85);
-  pointer-events: none;
-  user-select: none;
-}
-body.access-ready .app {
+/* Suite always interactive — no blur/lock overlay */
+body .app {
   filter: none;
   pointer-events: auto;
   user-select: auto;
+}
+
+/* Station page art (WCS benches) */
+#page-crafting.station-themed {
+  position: relative;
+}
+#page-crafting .station-scene {
+  position: relative;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  margin-bottom: 14px;
+  min-height: 88px;
+  background:
+    radial-gradient(ellipse at 20% 30%, var(--station-glow, rgba(212,168,67,0.2)), transparent 55%),
+    linear-gradient(135deg, rgba(10,10,16,0.95), rgba(20,16,12,0.9));
+}
+#page-crafting .station-scene::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: var(--station-bg, none);
+  background-size: cover;
+  background-position: center;
+  opacity: 0.22;
+  pointer-events: none;
+}
+#page-crafting .station-scene-inner {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+}
+#page-crafting .station-scene-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 12px;
+  border: 1px solid var(--border-hot);
+  background: rgba(0,0,0,0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  flex-shrink: 0;
+  box-shadow: 0 0 20px var(--station-glow, rgba(212,168,67,0.25));
+}
+#page-crafting .station-scene-icon img {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+}
+#page-crafting .station-scene-meta h3 {
+  margin: 0 0 4px;
+  font-family: 'Cinzel', serif;
+  font-size: 16px;
+  color: var(--gold);
+}
+#page-crafting .station-scene-meta p {
+  margin: 0;
+  font-size: 11px;
+  color: var(--text-dim);
+  line-height: 1.4;
+}
+.station-tab .st-icon img {
+  width: 18px;
+  height: 18px;
+  object-fit: contain;
+  vertical-align: middle;
+}
+.codex-card .codex-icon {
+  width: 36px;
+  height: 36px;
+  object-fit: contain;
+  margin-right: 8px;
+  vertical-align: middle;
+  border-radius: 4px;
+  background: rgba(0,0,0,0.25);
 }
 
 /* ======================== MAIN CONTENT ======================== */
@@ -1170,26 +1107,9 @@ body.access-ready .app {
 }
 </style>
 </head>
-<body>
-<!-- ACCESS GATE — blocks suite until Grudge ID login + owned character selected -->
-<div id="access-gate" class="access-gate" role="dialog" aria-modal="true" aria-labelledby="access-gate-title">
-  <div class="access-gate-card">
-    <div class="access-gate-kicker">Grudge Crafting · Warlords</div>
-    <h1 class="access-gate-title" id="access-gate-title">Sign in required</h1>
-    <p class="access-gate-sub" id="access-gate-sub">
-      Crafting uses your <strong>shared account bag</strong> and <strong>per-character profession XP</strong>.
-      You must sign in with Grudge ID and select one of your characters before using the suite.
-    </p>
-    <div class="access-gate-steps" id="access-gate-steps">
-      <div class="access-gate-step on" id="ag-step-login"><b>1 · Account</b>Sign in with Grudge ID</div>
-      <div class="access-gate-step" id="ag-step-char"><b>2 · Character</b>Select your warlord</div>
-    </div>
-    <div class="access-gate-status" id="access-gate-status">Checking session…</div>
-    <div class="access-gate-actions" id="access-gate-actions"></div>
-    <div class="access-gate-chars" id="access-gate-chars" hidden></div>
-    <div class="access-gate-hint" id="access-gate-hint"></div>
-  </div>
-</div>
+<body class="access-ready">
+<!-- Access gate removed: suite always open. Soft banner lives inside .main. Hidden stub kept for API compat. -->
+<div id="access-gate" class="access-gate hidden" aria-hidden="true"></div>
 <div class="app">
   <!-- SIDEBAR -->
   <aside class="sidebar">
@@ -1245,6 +1165,7 @@ body.access-ready .app {
 
     <div class="sidebar-section">
       <div class="sidebar-section-title">Links</div>
+      <a href="https://ui.grudge-studio.com/main-panel.html?era=warlords&tab=craft" target="_blank" class="nav-btn"><span class="icon">🗂</span><span>Main Panel</span></a>
       <a href="https://grudgewarlords.com" target="_blank" class="nav-btn"><span class="icon">🌐</span><span>Grudge Warlords</span></a>
       <a href="https://wcs.grudge-studio.com" target="_blank" class="nav-btn"><span class="icon">⚔</span><span>WCS (host)</span></a>
       <a href="https://docs.grudge-studio.com/crafting" target="_blank" class="nav-btn"><span class="icon">📄</span><span>Craft Skills Docs</span></a>
@@ -1271,6 +1192,14 @@ body.access-ready .app {
   <!-- MAIN -->
   <div class="main">
     <div id="toast" class="toast"></div>
+    <!-- Soft auth hint — never blocks browsing; only craft/gather need session -->
+    <div id="soft-auth-banner" class="soft-auth-banner" role="status">
+      <span id="soft-auth-msg">Browse recipes freely. Sign in with Grudge ID to craft and sync bag/XP.</span>
+      <span class="sab-actions">
+        <button type="button" onclick="doSignIn()">Sign in</button>
+        <a class="sab-btn secondary" href="https://ui.grudge-studio.com/main-panel.html?era=warlords&tab=craft" target="_blank" rel="noopener">Main Panel</a>
+      </span>
+    </div>
 
     <!-- LEVEL-UP OVERLAY (shown via showLevelUpBanner) -->
     <div id="lvl-overlay" class="lvl-overlay" onclick="this.classList.remove('show')">
@@ -1303,13 +1232,22 @@ body.access-ready .app {
       </div>
     </div>
 
-    <!-- CRAFTING (WCS station tabs) -->
-    <div class="page" id="page-crafting">
+    <!-- CRAFTING (WCS station tabs + bench scene) -->
+    <div class="page station-themed" id="page-crafting">
       <div class="page-header">
         <h2 class="page-title">🔨 Crafting</h2>
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
           <span class="scope-pill account">🎒 Shared inventory</span>
           <span class="scope-pill character">📈 XP / levels / gear = character</span>
+        </div>
+      </div>
+      <div class="station-scene" id="station-scene">
+        <div class="station-scene-inner">
+          <div class="station-scene-icon" id="station-scene-icon">⛺</div>
+          <div class="station-scene-meta">
+            <h3 id="station-scene-title">Camp Bench</h3>
+            <p id="station-scene-desc">T0 universal recipes — starter camp workbench.</p>
+          </div>
         </div>
       </div>
       <div class="station-tabs" id="station-tabs"></div>
@@ -1625,24 +1563,38 @@ const SURVIVAL_KIT = {
   ],
 };
 
-/** Canonical WCS stations → profession + unlock keys from camp buildings / kit nodes */
+/** Canonical WCS stations → profession + unlock keys + CDN icon/art */
+const ASSET_CDN_ROOT = (typeof window !== 'undefined' && window.GRUDGE_CONFIG && window.GRUDGE_CONFIG.ASSETS)
+  || 'https://assets.grudge-studio.com';
 const WCS_STATIONS = [
   { id: 'camp',     name: 'Camp Bench',     icon: '⛺', prof: 'All',      color: '#d4a843', always: true,
+    iconUrl: ASSET_CDN_ROOT + '/icons/pack/misc/Effect.png',
+    bgUrl: ASSET_CDN_ROOT + '/icons/pack/armor/Chest_01.png',
     unlockKeys: ['camp', 'campfire', 'tent', 'tent_stage', 'tenthalf', 'tentclosed', 'workbench', 'crafting bench', 'starter'],
     desc: 'T0 universal recipes — always at owned starter camp (tent + fire + workbench).' },
   { id: 'smithing', name: 'Smithing Table', icon: '⚒️', prof: 'Miner',     color: '#ef4444', always: false,
+    iconUrl: ASSET_CDN_ROOT + '/icons/pack/weapons/Hammer_01.png',
+    bgUrl: ASSET_CDN_ROOT + '/icons/pack/weapons/Sword_01.png',
     unlockKeys: ['smithing', 'forge', 'anvil', 'workbenchanvil', 'grind_wheel', 'workbenchgrind', 'smithy', 'smelter', 'sharpen'],
     desc: 'Miner station — anvil / forge / grind wheel (survival kit workbenchAnvil + workbenchGrind).' },
   { id: 'lumber',   name: 'Lumber Table',   icon: '🌲', prof: 'Forester',  color: '#22c55e', always: false,
+    iconUrl: ASSET_CDN_ROOT + '/icons/pack/weapons/Axe_01.png',
+    bgUrl: ASSET_CDN_ROOT + '/icons/pack/weapons/Bow_01.png',
     unlockKeys: ['lumber', 'sawmill', 'lumbermill', 'woodwork', 'carpentry', 'tanner', 'toolaxe'],
     desc: 'Forester station — bows, leather, planks (lumbermill / sawmill building).' },
   { id: 'loom',     name: 'Loom Table',     icon: '🧵', prof: 'Mystic',    color: '#a78bfa', always: false,
+    iconUrl: ASSET_CDN_ROOT + '/icons/pack/weapons/Staff_01.png',
+    bgUrl: ASSET_CDN_ROOT + '/icons/pack/weapons/Staff_01.png',
     unlockKeys: ['loom', 'spell_table', 'spelltable', 'enchanter', 'arcane table', 'tailor', 'structurecloth'],
     desc: 'Mystic station — cloth, staves, essence (spell table / loom).' },
   { id: 'cooking',  name: 'Cooking Table',  icon: '🍳', prof: 'Chef',      color: '#f59e0b', always: false,
+    iconUrl: ASSET_CDN_ROOT + '/icons/pack/misc/Effect.png',
+    bgUrl: ASSET_CDN_ROOT + '/icons/pack/misc/Effect.png',
     unlockKeys: ['cooking', 'kitchen', 'campfire', 'cookfire', 'cooking_bench', 'cooking table', 'stove', 'hearth', 'fishingstand'],
     desc: 'Chef station — campfire or cooking bench (kit campfire + fishingStand). Starter always has campfire.' },
   { id: 'tinker',   name: 'Tinker Table',   icon: '🔧', prof: 'Engineer',  color: '#60a5fa', always: false,
+    iconUrl: ASSET_CDN_ROOT + '/icons/pack/weapons/Crossbow_01.png',
+    bgUrl: ASSET_CDN_ROOT + '/icons/pack/weapons/Hammer_01.png',
     unlockKeys: ['tinker', 'tinker table', 'workshop', 'engineer', 'workbench', 'gunsmith', 'anvil', 'workbenchanvil'],
     desc: 'Engineer station — workbench (hammer+note) or anvil from survival kit.' },
 ];
@@ -1875,7 +1827,10 @@ function getActiveOwnedCharacterId() {
   return id;
 }
 
-/** True when suite may be used: Grudge session + selected owned character. */
+/**
+ * True when Railway session + active owned character are ready for mutates
+ * (craft / gather / bag sync). Browse mode never requires this.
+ */
 function isAccessReady() {
   try {
     if (typeof GrudgeFleet === 'undefined' || typeof GrudgeFleet.isLoggedIn !== 'function') return false;
@@ -1887,169 +1842,78 @@ function isAccessReady() {
 }
 
 /**
- * Block gated actions. Shows toast + refreshes gate UI.
+ * Soft-gate mutates only (craft, gather, progress writes). Never locks navigation/browse.
  * @returns {boolean} true if access allowed
  */
 function requireAccess(actionLabel) {
   if (isAccessReady()) return true;
   updateAccessGate();
-  const label = actionLabel || 'use crafting';
+  const label = actionLabel || 'craft';
   try {
     if (typeof GrudgeFleet === 'undefined' || !GrudgeFleet.isLoggedIn()) {
       showToast('Sign in with Grudge ID to ' + label, 'error');
     } else if (!getOwnedCharacters().length) {
       showToast('Create a Warlords character first, then return here', 'error');
     } else {
-      showToast('Select one of your characters to ' + label, 'error');
+      showToast('Select a character on Account tab to ' + label, 'error');
+      try { navigate('account'); } catch { /* ok */ }
     }
   } catch {
-    showToast('Sign in and select a character to continue', 'error');
+    showToast('Sign in and select a character to ' + label, 'error');
   }
   return false;
 }
 
+/**
+ * Never blocks the suite. Updates soft banner + keeps body.access-ready always.
+ * Character pick is optional (Account tab) until you craft.
+ */
 function updateAccessGate() {
+  document.body.classList.add('access-ready');
   const gate = document.getElementById('access-gate');
-  if (!gate) return;
-
-  const titleEl = document.getElementById('access-gate-title');
-  const subEl = document.getElementById('access-gate-sub');
-  const statusEl = document.getElementById('access-gate-status');
-  const actionsEl = document.getElementById('access-gate-actions');
-  const charsEl = document.getElementById('access-gate-chars');
-  const hintEl = document.getElementById('access-gate-hint');
-  const stepLogin = document.getElementById('ag-step-login');
-  const stepChar = document.getElementById('ag-step-char');
+  if (gate) {
+    gate.classList.add('hidden');
+    gate.setAttribute('aria-hidden', 'true');
+  }
 
   const fleetReady = typeof GrudgeFleet !== 'undefined';
   const loggedIn = fleetReady && typeof GrudgeFleet.isLoggedIn === 'function' && GrudgeFleet.isLoggedIn();
   const chars = getOwnedCharacters();
   const activeId = getActiveOwnedCharacterId();
-  const ready = loggedIn && !!activeId;
 
-  // Sync STATE roster when fleet is ahead
   if (chars.length && (!STATE.grudgeCharacters || STATE.grudgeCharacters.length !== chars.length)) {
     STATE.grudgeCharacters = chars;
   }
   if (activeId) STATE.activeCharacterId = activeId;
 
-  if (ready) {
-    gate.classList.add('hidden');
-    document.body.classList.add('access-ready');
-    if (charsEl) { charsEl.hidden = true; charsEl.innerHTML = ''; }
+  const banner = document.getElementById('soft-auth-banner');
+  const msg = document.getElementById('soft-auth-msg');
+  if (!banner) return;
+
+  if (loggedIn && activeId) {
+    banner.classList.remove('show');
     return;
   }
 
-  gate.classList.remove('hidden');
-  document.body.classList.remove('access-ready');
-
-  if (stepLogin) {
-    stepLogin.classList.toggle('done', loggedIn);
-    stepLogin.classList.toggle('on', !loggedIn);
-  }
-  if (stepChar) {
-    stepChar.classList.toggle('done', !!activeId);
-    stepChar.classList.toggle('on', loggedIn && !activeId);
-  }
-
-  const classIcons = { warrior: '⚔️', mage: '🔮', rogue: '🗡️', cleric: '✨', worg: '🐺', ranger: '🏹' };
-
+  banner.classList.add('show');
   if (!fleetReady) {
-    if (titleEl) titleEl.textContent = 'Loading…';
-    if (subEl) subEl.innerHTML = 'Connecting to Grudge fleet auth…';
-    if (statusEl) statusEl.textContent = 'Waiting for grudge-fleet.js';
-    if (actionsEl) actionsEl.innerHTML = '';
-    if (charsEl) { charsEl.hidden = true; charsEl.innerHTML = ''; }
-    if (hintEl) hintEl.innerHTML = 'If this persists, hard-refresh the page.';
+    if (msg) msg.innerHTML = 'Loading fleet bridge… recipes still browseable.';
     return;
   }
-
   if (!loggedIn) {
-    if (titleEl) titleEl.textContent = 'Sign in with Grudge ID';
-    if (subEl) {
-      subEl.innerHTML = 'Crafting uses your <strong>shared account bag</strong> and <strong>per-character profession XP</strong> on Railway. '
-        + 'Use the <strong>same Grudge ID</strong> as <strong>grudgewarlords.com</strong> — Puter login alone is not enough.';
-    }
-    if (statusEl) statusEl.textContent = 'Not signed in — suite is locked.';
-    if (actionsEl) {
-      actionsEl.innerHTML = `
-        <button type="button" class="access-gate-btn" onclick="doSignIn()">Sign in with Grudge ID</button>
-        <button type="button" class="access-gate-btn secondary" onclick="doCreateAccount()">Create account</button>
-        <a class="access-gate-btn secondary" href="https://grudgewarlords.com" target="_blank" rel="noopener">Open Warlords</a>`;
-    }
-    if (charsEl) { charsEl.hidden = true; charsEl.innerHTML = ''; }
-    if (hintEl) {
-      hintEl.innerHTML = 'After login you return here and pick a warlord UUID. Guest / Puter-only sessions cannot see your heroes.';
+    if (msg) {
+      msg.innerHTML = 'Browse recipes freely. <strong>Sign in with Grudge ID</strong> when you want to craft (shared bag + per-character XP).';
     }
     return;
   }
-
-  // Logged in but no owned character selected (or empty roster)
   if (!chars.length) {
-    if (titleEl) titleEl.textContent = 'No Warlords characters on this account';
-    if (subEl) {
-      subEl.innerHTML = 'You are signed in as Grudge ID, but Railway has <strong>no warlords-era heroes</strong> for this account. '
-        + 'Create one, or switch to the account that owns your characters.';
-    }
-    if (statusEl) {
-      const gid = (typeof GrudgeFleet.getGrudgeId === 'function' && GrudgeFleet.getGrudgeId()) || '';
-      statusEl.textContent = gid
-        ? ('Signed in as ' + gid.slice(0, 12) + (gid.length > 12 ? '…' : '') + ' — roster empty.')
-        : 'Signed in — roster empty on Railway.';
-    }
-    if (actionsEl) {
-      actionsEl.innerHTML = `
-        <a class="access-gate-btn" href="https://character.grudge-studio.com?era=warlords" target="_blank" rel="noopener">Create character (GCS)</a>
-        <a class="access-gate-btn secondary" href="https://grudgewarlords.com/character" target="_blank" rel="noopener">Warlords character</a>
-        <button type="button" class="access-gate-btn secondary" onclick="loginToGrudge()">Refresh roster</button>
-        <button type="button" class="access-gate-btn secondary" onclick="doSwitchAccount()">Switch account</button>
-        <button type="button" class="access-gate-btn secondary" onclick="doSignOut()">Sign out</button>`;
-    }
-    if (charsEl) { charsEl.hidden = true; charsEl.innerHTML = ''; }
-    if (hintEl) {
-      hintEl.innerHTML = 'ONE TRUTH: Railway Postgres under this grudge_id. Wrong account = empty list.';
+    if (msg) {
+      msg.innerHTML = 'Signed in — no Warlords heroes on this account. <a href="https://character.grudge-studio.com?era=warlords" target="_blank" rel="noopener" style="color:var(--gold)">Create one</a>, or pick Account → Switch account.';
     }
     return;
   }
-
-  // Has characters — must pick one (or re-pick if stale active id)
-  if (titleEl) titleEl.textContent = 'Select your character';
-  if (subEl) {
-    subEl.innerHTML = 'Profession XP, gear, and skill progress bind to the character UUID you pick. '
-      + 'The account bag is shared across all of them.';
-  }
-  if (statusEl) {
-    statusEl.textContent = chars.length + ' Warlords character' + (chars.length === 1 ? '' : 's')
-      + ' — choose one to unlock the suite.';
-  }
-  if (actionsEl) {
-    actionsEl.innerHTML = `
-      <button type="button" class="access-gate-btn secondary" onclick="loginToGrudge()">Refresh roster</button>
-      <button type="button" class="access-gate-btn secondary" onclick="doSwitchAccount()">Switch account</button>
-      <button type="button" class="access-gate-btn secondary" onclick="doSignOut()">Sign out</button>`;
-  }
-  if (charsEl) {
-    charsEl.hidden = false;
-    charsEl.innerHTML = chars.map((c) => {
-      const id = String(c.id || '').replace(/'/g, "\\'");
-      const icon = classIcons[(c.class || c.classId || '').toLowerCase()] || '⚔';
-      const name = (c.name || c.grudgeCode || 'Warlord').replace(/</g, '&lt;');
-      const race = (c.race || c.raceId || '').replace(/</g, '&lt;');
-      const cls = (c.class || c.classId || '').replace(/</g, '&lt;');
-      const lvl = c.level || 1;
-      const code = c.grudgeCode ? `<div class="ag-sub" style="font-family:monospace;opacity:0.85">${String(c.grudgeCode).replace(/</g, '&lt;')}</div>` : '';
-      return `<button type="button" class="access-gate-char" onclick="selectCharacter('${id}')">
-        <span class="ag-icon">${icon}</span>
-        <span class="ag-meta">
-          <span class="ag-name">${name}</span>
-          <span class="ag-sub">${race} ${cls} · Lv ${lvl}</span>
-          ${code}
-        </span>
-      </button>`;
-    }).join('');
-  }
-  if (hintEl) {
-    hintEl.innerHTML = 'Selecting a character loads their profession sheet from Railway and unlocks crafting.';
+  if (msg) {
+    msg.innerHTML = 'Signed in — select a character on the <strong>Account</strong> tab to bind profession XP when you craft.';
   }
 }
 
@@ -2597,7 +2461,7 @@ async function loadSaveData() {
 // NAVIGATION
 // ============================================================
 function navigate(page) {
-  if (!requireAccess('open the suite')) return;
+  // Browse always allowed — no login gate on navigation
   STATE.currentPage = page;
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
@@ -2918,7 +2782,7 @@ function isStationUnlocked(stationId) {
 }
 
 function openStation(stationId) {
-  if (!requireAccess('use crafting stations')) return;
+  // Browse benches without login; craft still soft-gated
   if (!isStationUnlocked(stationId)) {
     showToast('Station locked — need a friendly/owned camp with this bench', 'error');
     navigate('camps');
@@ -2927,6 +2791,38 @@ function openStation(stationId) {
   STATE.activeStation = stationId;
   STATE.selectedRecipe = null;
   navigate('crafting');
+}
+
+function stationIconHtml(st, size) {
+  if (st && st.iconUrl) {
+    const s = size || 18;
+    return `<img src="${st.iconUrl}" alt="" width="${s}" height="${s}" loading="lazy" onerror="this.style.display='none';this.nextElementSibling&&(this.nextElementSibling.style.display='inline')">` +
+      `<span style="display:none">${st.icon || '⚒'}</span>`;
+  }
+  return st?.icon || '⚒';
+}
+
+function applyStationScene(st) {
+  const page = document.getElementById('page-crafting');
+  const scene = document.getElementById('station-scene');
+  const iconEl = document.getElementById('station-scene-icon');
+  const titleEl = document.getElementById('station-scene-title');
+  const descEl = document.getElementById('station-scene-desc');
+  if (!st) return;
+  if (page) {
+    page.style.setProperty('--station-glow', (st.color || '#d4a843') + '55');
+  }
+  if (scene) {
+    if (st.bgUrl) scene.style.setProperty('--station-bg', `url("${st.bgUrl}")`);
+    else scene.style.removeProperty('--station-bg');
+  }
+  if (iconEl) {
+    iconEl.innerHTML = st.iconUrl
+      ? `<img src="${st.iconUrl}" alt="${st.name}" onerror="this.parentNode.textContent='${st.icon || '⚒'}'">`
+      : (st.icon || '⚒');
+  }
+  if (titleEl) titleEl.textContent = st.name;
+  if (descEl) descEl.textContent = st.desc || '';
 }
 
 function updateStationLockBadges() {
@@ -2948,7 +2844,7 @@ function renderStationTabs() {
     return `<button class="station-tab ${active ? 'active' : ''} ${unlocked ? '' : 'locked'}"
       onclick="${unlocked ? `STATE.activeStation='${st.id}';STATE.selectedRecipe=null;renderCraftingPage()` : `showToast('Locked — unlock at Camps & Benches','error')`}"
       title="${st.desc}">
-      <span class="st-icon">${st.icon}</span>
+      <span class="st-icon">${stationIconHtml(st, 18)}</span>
       <span>${st.name}</span>
       ${unlocked ? '' : '<span class="lock">🔒</span>'}
     </button>`;
@@ -2956,6 +2852,7 @@ function renderStationTabs() {
 
   const hint = document.getElementById('station-hint');
   const st = WCS_STATIONS.find((s) => s.id === STATE.activeStation) || WCS_STATIONS[0];
+  applyStationScene(st);
   const unlocked = isStationUnlocked(st.id);
   const char = STATE.grudgeCharacters.find((c) => c.id === STATE.activeCharacterId);
   if (hint) {
@@ -3828,9 +3725,9 @@ function renderWcsArsenal() {
   const util = RECIPES.filter((r) => /util|consumable|building/i.test(r.type));
   const section = (title, items) => `
     <div class="card" style="grid-column:1/-1;margin-bottom:8px"><div class="card-title">${title} (${items.length})</div></div>
-    ${items.map((r) => `<div class="codex-card">
-      <h4>${r.icon || '📦'} ${r.n}</h4>
-      <p>T${r.tier} ${WCS_TIER_NAMES[r.tier] || ''} · ${r.prof} · ${r.station || ''}</p>
+    ${items.slice(0, 120).map((r) => `<div class="codex-card">
+      <h4>${itemIcon(r.n, r.icon || '📦', 'codex-icon', 32)} ${r.n}</h4>
+      <p>T${r.tier} ${WCS_TIER_NAMES[r.tier] || ''} · ${r.prof} · ${r.station || PROF_TO_STATION[r.prof] || 'camp'}</p>
       <p>${r.desc || ''}</p>
     </div>`).join('')}`;
   el.innerHTML = section('Weapons', weapons) + section('Armor', armor) + section('Utilities / Consumables', util);
@@ -3842,18 +3739,15 @@ function renderWcsMaterials() {
   el.innerHTML = `<div class="codex-grid">` + Object.entries(WCS_MAT_TIERS).map(([t, mats]) => `
     <div class="codex-card">
       <h4>T${t} — ${WCS_TIER_NAMES[t] || ''}</h4>
-      <p>Ingot: ${mats.ingot}</p>
-      <p>Plank: ${mats.plank}</p>
-      <p>Cloth: ${mats.cloth}</p>
-      <p>Leather: ${mats.leather}</p>
-      <p>Gem: ${mats.gem}</p>
-      <p style="margin-top:6px">In bag:
-        ${['ingot','plank','cloth','leather','gem'].map((k) => {
-          const n = mats[k];
-          const q = STATE.inventory[n] || 0;
-          return `<span class="scope-pill ${q ? 'account' : ''}" style="margin:2px">${n}: ${q}</span>`;
-        }).join(' ')}
-      </p>
+      ${['ingot','plank','cloth','leather','gem'].map((k) => {
+        const n = mats[k];
+        const q = STATE.inventory[n] || 0;
+        return `<p style="display:flex;align-items:center;gap:6px;margin:4px 0">
+          ${itemIcon(n, MAT_ICONS[n] || '🧱', 'codex-icon', 22)}
+          <span>${k}: <strong style="color:var(--gold)">${n}</strong>
+          <span class="scope-pill ${q ? 'account' : ''}" style="margin-left:4px">${q}</span></span>
+        </p>`;
+      }).join('')}
     </div>`).join('') + `</div>`;
 }
 
@@ -4307,14 +4201,14 @@ let MASTER_RECIPES_LOADED = false;
 
 const ASSET_CDN = (window.GRUDGE_CONFIG && window.GRUDGE_CONFIG.ASSETS) || 'https://assets.grudge-studio.com';
 
-/** Definition base URLs (objectstore first, info mirror). Puter has no same-origin rewrite. */
+/** Definition base URLs — info first (objectstore recipe/item paths currently 404). */
 function definitionBases() {
   const cfg = window.GRUDGE_CONFIG || {};
   const list = [
-    cfg.OBJECTSTORE_URL,
     cfg.INFO_URL,
-    'https://objectstore.grudge-studio.com/api/v1',
     'https://info.grudge-studio.com/api/v1',
+    cfg.OBJECTSTORE_URL,
+    'https://objectstore.grudge-studio.com/api/v1',
   ]
     .filter(Boolean)
     .map((u) => String(u).replace(/\/$/, ''));
@@ -4632,23 +4526,50 @@ window.addEventListener('grudge:sync:complete', () => { renderCharactersList(); 
 // ============================================================
 // INIT
 // ============================================================
-addLog('⚔ Grudge Crafting Suite v' + (window.GRUDGE_CONFIG?.VERSION || '?') + ' — login + character required · shared bag · per-char XP');
+addLog('⚔ Grudge Crafting Suite v' + (window.GRUDGE_CONFIG?.VERSION || '?') + ' — browse open · sign-in only to craft · shared bag · per-char XP');
 initAcctTabs();
-// Gate closed until Grudge ID session + owned character
-document.body.classList.remove('access-ready');
+// Suite always open — soft banner only when not ready to craft
+document.body.classList.add('access-ready');
+// Deep-link from main-panel: ?station=smithing&embed=1
+try {
+  const params = new URLSearchParams(window.location.search || '');
+  const st = (params.get('station') || params.get('bench') || '').toLowerCase();
+  if (st && WCS_STATIONS.some((s) => s.id === st)) {
+    STATE.activeStation = st;
+    STATE.currentPage = 'crafting';
+  }
+  if (params.get('embed') === '1' || params.get('embed') === 'true' || window.parent !== window) {
+    document.body.classList.add('embed-mode');
+    const style = document.createElement('style');
+    style.textContent = 'body.embed-mode .sidebar{width:64px} body.embed-mode .sidebar .nav-btn span:not(.icon),.embed-mode .sidebar-logo small,.embed-mode .sidebar-section-title,.embed-mode .sidebar-account .account-meta,.embed-mode .sidebar-account .auth-menu-btns{display:none}';
+    document.head.appendChild(style);
+  }
+  const pageQ = (params.get('page') || params.get('tab') || '').toLowerCase();
+  if (pageQ && document.getElementById('page-' + pageQ)) STATE.currentPage = pageQ;
+} catch (e) { console.warn('[init] query', e); }
 updateAccessGate();
-// Definitions may load in background; gameplay stays locked behind the gate
+// Definitions load immediately (no auth required)
 void (async () => {
   try {
     await Promise.all([loadItemDatabase(), loadMasterRecipes()]);
+    if (typeof renderAll === 'function') renderAll();
+    if (typeof navigate === 'function' && STATE.currentPage) navigate(STATE.currentPage);
   } catch (e) {
     console.warn('[init] definition load', e);
   }
 })();
+// Render dashboard/stations immediately from inline recipes
+try {
+  if (STATE.currentPage && STATE.currentPage !== 'dashboard') navigate(STATE.currentPage);
+  else {
+    if (typeof renderStationTabs === 'function') renderStationTabs();
+    if (typeof renderDashboard === 'function') renderDashboard();
+  }
+} catch (e) { console.warn('[init] first paint', e); }
+
 if (typeof GrudgeFleet !== 'undefined') {
   checkAuth();
 } else {
-  // Fleet script late? re-check shortly
   let tries = 0;
   const waitFleet = setInterval(() => {
     tries++;

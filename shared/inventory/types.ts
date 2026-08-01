@@ -26,7 +26,24 @@ export interface LegacyInventoryRow {
 
 export const DEFAULT_INVENTORY_SIZE = 30;
 
+/** Paperdoll + bag equip targets (includes non-drop SecondaryWeapon reserve). */
 export const PANEL_EQUIPMENT_SLOTS: PanelEquipmentSlot[] = [
+  "Head",
+  "Back",
+  "Shoulder",
+  "Chest",
+  "Hands",
+  "Accessory1",
+  "MainHand",
+  "OffHand",
+  "SecondaryWeapon",
+  "Legs",
+  "Feet",
+  "Accessory2",
+];
+
+/** Slots that show on the tactical paperdoll body (SecondaryWeapon is reserve strip). */
+export const PAPERDOLL_VISIBLE_SLOTS: PanelEquipmentSlot[] = [
   "Head",
   "Back",
   "Shoulder",
@@ -39,6 +56,9 @@ export const PANEL_EQUIPMENT_SLOTS: PanelEquipmentSlot[] = [
   "Feet",
   "Accessory2",
 ];
+
+/** Non-drop: cannot be looted off corpse / not a world drop target. */
+export const NON_DROP_EQUIP_SLOTS: PanelEquipmentSlot[] = ["SecondaryWeapon"];
 
 export type EquipmentPanel = PanelEquipment;
 

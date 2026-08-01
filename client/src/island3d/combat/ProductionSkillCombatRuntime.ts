@@ -34,6 +34,24 @@ import {
   resolveHitResponse,
   type HitResponseHost,
 } from './HitResponseSystem';
+import { resolveNinjaProjectileMesh } from '@/data/ninjaThrowables';
+import { assetUrl } from '@/lib/assetConfig';
+import {
+  loadGltfCached,
+  cloneGltfScene,
+  prepareMeshPerformance,
+} from '@/lib/three/SharedGltfPipeline';
+
+/** CDN projectile mesh cache (arrow, shuriken, etc.) */
+const projectileMeshCache = new Map<string, THREE.Object3D>();
+let projectilePreloadStarted = false;
+
+const CDN_PROJECTILE_URLS: Record<string, string> = {
+  arrow: 'https://assets.grudge-studio.com/models/weapons/projectiles/arrow.glb',
+  bolt: 'https://assets.grudge-studio.com/models/weapons/projectiles/arrow.glb',
+  shuriken: resolveNinjaProjectileMesh('shuriken-4'),
+  kunai: resolveNinjaProjectileMesh('kunai'),
+};
 
 export interface CombatTarget {
   id: string;
@@ -125,6 +143,42 @@ export class ProductionSkillCombatRuntime {
     this.root.name = 'production_skill_projectiles';
     scene.add(this.root);
     ensureWeaponSkillCombatCatalog();
+    void this.preloadProjectileMeshes();
+  }
+
+  /** Warm CDN projectile GLBs so cast uses real meshes, not only primitives. */
+  private async preloadProjectileMeshes(): Promise<void> {
+    if (projectilePreloadStarted) return;
+    projectilePreloadStarted = true;
+    const urls = new Set<string>([
+      ...Object.values(CDN_PROJECTILE_URLS),
+      resolveNinjaProjectileMesh('shuriken-4'),
+      resolveNinjaProjectileMesh('kunai'),
+    ]);
+    for (const url of urls) {
+      if (!url || projectileMeshCache.has(url)) continue;
+      try {
+        const gltf = await loadGltfCached(url.startsWith('http') ? url : assetUrl(url), 'low');
+        const root = cloneGltfScene(gltf);
+        prepareMeshPerformance(root);
+        // Normalize flight length ~0.9 m
+        root.updateMatrixWorld(true);
+        const box = new THREE.Box3().setFromObject(root);
+        const size = box.getSize(new THREE.Vector3());
+        const longest = Math.max(size.x, size.y, size.z, 1e-3);
+        root.scale.multiplyScalar(0.9 / longest);
+        projectileMeshCache.set(url, root);
+      } catch {
+        /* keep procedural fallback */
+      }
+    }
+  }
+
+  private cloneCachedProjectile(key: string): THREE.Object3D | null {
+    const url = CDN_PROJECTILE_URLS[key] ?? key;
+    const src = projectileMeshCache.get(url);
+    if (!src) return null;
+    return src.clone(true);
   }
 
   setHitResponseHost(host: HitResponseHost | null, useRapierImpulse = false): void {
@@ -488,6 +542,25 @@ export class ProductionSkillCombatRuntime {
       : skill.damageType === 'holy' ? 0xffee88
       : 0xcccccc;
 
+    const proj = String(skill.projectile ?? '');
+
+    // Prefer CDN meshes when preloaded (arrow / ninja throwables)
+    if (proj === 'arrow' || proj === 'bolt') {
+      const mesh = this.cloneCachedProjectile('arrow');
+      if (mesh) {
+        g.add(mesh);
+        return g;
+      }
+    }
+    if (/shuriken|kunai|throwing|ninja/.test(proj) || /shuriken|kunai|throw/.test(skill.id)) {
+      const key = /kunai/.test(proj) || /kunai/.test(skill.id) ? 'kunai' : 'shuriken';
+      const mesh = this.cloneCachedProjectile(key);
+      if (mesh) {
+        g.add(mesh);
+        return g;
+      }
+    }
+
     if (skill.projectile === 'arrow' || skill.projectile === 'bolt') {
       const shaft = new THREE.Mesh(
         new THREE.CylinderGeometry(0.02, 0.025, 0.9, 6),
@@ -509,7 +582,7 @@ export class ProductionSkillCombatRuntime {
       );
       g.add(b);
     } else {
-      // Magic orb
+      // Magic orb — core + glow (spiritual sword path handles elemental when available)
       const core = new THREE.Mesh(
         new THREE.SphereGeometry(0.18, 12, 12),
         new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.9 }),

@@ -74,10 +74,22 @@ export default function MainPanelHost({
     characterId: inspect ? null : characterId,
   });
 
-  // Handshake: auth + optional inspect entity
+  // Handshake: auth + optional inspect entity; listen for equip changes from panel
   useEffect(() => {
     if (!open) return;
     const onMsg = (e: MessageEvent) => {
+      if (e.data?.type === "GRUDGE_EQUIP_CHANGE") {
+        // Parent game should re-apply character.equipment + mesh
+        window.dispatchEvent(
+          new CustomEvent("grudge:equip:change", {
+            detail: {
+              equipment: e.data.equipment,
+              characterId: e.data.characterId || characterId,
+            },
+          }),
+        );
+        return;
+      }
       if (e.data?.type !== "GRUDGE_MAIN_PANEL_READY" && e.data?.type !== "GRUDGE_READY") return;
       const win = iframeRef.current?.contentWindow;
       if (!win) return;

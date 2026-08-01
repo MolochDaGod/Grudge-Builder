@@ -275,12 +275,29 @@ export default function PlayPage() {
       setLoaded(true);
       engine.start();
 
-      // Wire creature loot notifications
+      // Wire creature loot → ground icon piles (E to pick up) + toast
+      engine.ensureGroundLoot((pile, items) => {
+        const label = items.map((l) => `${l.name} ×${l.quantity}`).join(', ');
+        setLootNotification(`Picked up: ${label}`);
+        setTimeout(() => setLootNotification(null), 3500);
+      });
       if (engine.creatures) {
         engine.creatures.onLootDrop = (event: CreatureLootEvent) => {
-          const items = event.loot.map(l => `${l.name} ×${l.quantity}`).join(', ');
-          setLootNotification(`${event.creatureName}: ${items}`);
-          setTimeout(() => setLootNotification(null), 4000);
+          engine.spawnGroundLoot(
+            event.position,
+            event.loot.map((l) => ({
+              itemId: l.itemId,
+              name: l.name,
+              quantity: l.quantity,
+            })),
+            `creature:${event.creatureName}`,
+          );
+          const items = event.loot.map((l) => `${l.name} ×${l.quantity}`).join(', ');
+          setLootNotification(`${event.creatureName} dropped loot — press E to pick up`);
+          setTimeout(() => setLootNotification(null), 4500);
+          if (items) {
+            /* toast already set */
+          }
         };
       }
     }).catch((err) => {

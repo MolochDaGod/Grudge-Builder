@@ -34,7 +34,12 @@ import {
 } from '../building/HarvestPickaxeAttachment';
 import { RACE_GRUDGE6, weaponTypeFromModel3d } from '@shared/fleet';
 import { setupGrudge6Equipment, type Grudge6EquipmentManager } from '@/lib/grudge6Equipment';
+import { applyExternalWeaponsForEquipment } from '@/lib/externalWeaponAttach';
 import { applyCharacterColorTints, ensureCharacterTextureColorSpace } from '@/lib/characterAppearance';
+import {
+  ProductionSkillCombatRuntime,
+  type CombatTarget as SkillCombatTarget,
+} from '../combat/ProductionSkillCombatRuntime';
 import { buildAnimLoadMap } from '@/lib/animation/animationCatalog';
 import { CharacterAnimOrchestrator } from '@/lib/animation/characterAnimOrchestrator';
 import { ExplorerAnimDriver } from '@/lib/animation/explorer/ExplorerAnimDriver';
@@ -193,6 +198,9 @@ export class CharacterController3D {
   private classIdStored = 'warrior';
   private model3dStored: Model3DField | null = null;
   private equipmentManager: Grudge6EquipmentManager | null = null;
+  /** Production skill cast + projectile flight (keys 1–5) */
+  private skillCombat: ProductionSkillCombatRuntime | null = null;
+  private skillCombatHostiles: (() => SkillCombatTarget[]) | null = null;
   /** Weapon draw/holster visual + transitional anims */
   private holster: WeaponHolsterController | null = null;
   /** True when weapons are currently in-hand (visual + combat ready) */
@@ -534,10 +542,13 @@ export class CharacterController3D {
       }
 
       this.initHolsterController(weaponType);
+      // External prefabs (bone dagger, codex GLB) when kit mesh missing
+      await this.applyExternalWeaponMeshes();
       // Default: weapons on back/hip — player pulls with Z (or auto-draw on attack)
       this.playerPrefersDrawn = false;
       this.beginHolsterWeapons('forced', true);
 
+      this.ensureSkillCombat();
       this.initStateMachine(characterId ?? 'local-player', raceKey, classId, weaponType);
     } catch (err) {
       console.warn(`Failed to load character model for ${raceId}/${classId}:`, err);
@@ -609,11 +620,48 @@ export class CharacterController3D {
       : equippedWeaponType;
     await this.reloadWeaponAnimations(weaponType);
     this.initHolsterController(equippedWeaponType);
+    await this.applyExternalWeaponMeshes();
     if (this.weaponsDrawn) {
       this.beginDrawWeapons(true);
     } else {
       this.beginHolsterWeapons('forced', true);
     }
+  }
+
+  /** Attach external GLB weapons (dagger etc.) after kit wardrobe equip. */
+  private async applyExternalWeaponMeshes(): Promise<void> {
+    const root = this.loadedModelScene ?? this.model;
+    if (!root) return;
+    try {
+      await applyExternalWeaponsForEquipment(root, this.equipment, this.equipmentManager);
+      this.holster?.rescanWeapons?.();
+    } catch (err) {
+      console.warn('[Character] external weapon attach failed', err);
+    }
+  }
+
+  /** Lazy-init production skill combat + projectile runtime. */
+  private ensureSkillCombat(): void {
+    if (this.skillCombat) return;
+    try {
+      this.skillCombat = new ProductionSkillCombatRuntime(this.config.scene, this.worldFx);
+      this.skillCombat.onAnim = (animKey) => {
+        if (this.orchestrator && animKey) {
+          try {
+            this.orchestrator.playSkill(animKey, this.currentForm);
+          } catch {
+            /* anim optional */
+          }
+        }
+      };
+    } catch (err) {
+      console.warn('[Character] skill combat runtime failed', err);
+    }
+  }
+
+  /** Engine feeds hostiles for skill hit queries (creatures / PvE). */
+  setSkillCombatHostiles(fn: (() => SkillCombatTarget[]) | null): void {
+    this.skillCombatHostiles = fn;
   }
 
   private initHolsterController(weaponType: string): void {
@@ -846,6 +894,12 @@ export class CharacterController3D {
   /** Attach fire/smoke bus from Island3DEngine. */
   setWorldFxBus(bus: import('../vfx/WorldFxBus').WorldFxBus | null): void {
     this.worldFx = bus;
+    // Recreate combat runtime with FX bus when available
+    if (this.skillCombat) {
+      this.skillCombat.dispose();
+      this.skillCombat = null;
+    }
+    this.ensureSkillCombat();
   }
 
   /** Apply timeScale to mixer (0 freeze · 0.1 slow-mo · 1 normal). */
@@ -1365,25 +1419,46 @@ export class CharacterController3D {
     this.lastUsedSlot = slot;
     this.lastUsedTime = now;
 
+    // Auto-draw weapons for combat skills
+    if (this.mode === 'combat' && !this.weaponsDrawn) {
+      this.beginDrawWeapons(true);
+    }
+
     if (this.orchestrator) {
-      // For slot 1 basic or strike-like, the orchestrator will prefer combo for authentic warlords feel.
-      // Other skills get specialized playback.
       this.orchestrator.playSkill(skillId, this.currentForm);
+    }
+
+    // Production cast: range gate, projectiles, hit windows, impact VFX
+    this.ensureSkillCombat();
+    if (this.skillCombat) {
+      const lock = this.softLock.getCurrent();
+      const hostiles = this.skillCombatHostiles?.() ?? [];
+      const lockTarget: SkillCombatTarget | null = lock
+        ? { id: lock.id, position: lock.position.clone(), hpFrac: lock.hp != null && lock.maxHp ? lock.hp / lock.maxHp : undefined }
+        : null;
+      // Prefer hand height for projectile origin (not chest)
+      const hand =
+        this.loadedModelScene?.getObjectByName('R_hand_container')
+        ?? this.loadedModelScene?.getObjectByName('L_hand_container');
+      const handPos = new THREE.Vector3();
+      if (hand) hand.getWorldPosition(handPos);
+      else handPos.copy(this.model.position).add(new THREE.Vector3(0, 1.35, 0));
+
+      try {
+        this.skillCombat.cast(skillId, {
+          casterPos: handPos,
+          casterYaw: this.cameraYaw,
+          lockTarget,
+          hostiles: hostiles.length ? hostiles : (lockTarget ? [lockTarget] : []),
+          weaponType: this.weaponType,
+        });
+      } catch (err) {
+        console.warn('[Skill] cast failed', skillId, err);
+      }
     }
 
     // Feedback + hit marker like DangerRoom
     this.hitMarker = (this.hitMarker || 0) + 1;
-
-    // Simple effect categorization for testing (extend here for real damage/vfx/projectiles later)
-    if (skillId.includes('blast') || skillId.includes('meteor') || skillId.includes('exp') || skillId.includes('chain')) {
-      console.log(`[Skill] ${display}: casting projectile / AoE blast`);
-    } else if (skillId.includes('ward') || skillId.includes('shield') || skillId.includes('block') || skillId.includes('reflect') || skillId.includes('fortify')) {
-      console.log(`[Skill] ${display}: activating defense buff`);
-    } else if (skillId.includes('minion') || skillId.includes('conj') || skillId.includes('summon') || skillId.includes('lord')) {
-      console.log(`[Skill] ${display}: summoning entity`);
-    } else {
-      console.log(`[Skill] ${display}: executing attack/motion`);
-    }
   }
 
   // ─── Main update ───────────────────────────────────────────────────────────
@@ -1393,6 +1468,9 @@ export class CharacterController3D {
     if (this.animations && this.animations.timeScale !== this.timeScale) {
       this.animations.timeScale = this.timeScale;
     }
+
+    // Projectile flights + spiritual sword projectiles
+    this.skillCombat?.update(dt * this.timeScale);
 
     // IK debug freeze (LMB → timeScale 0) — anims frozen, no locomotion
     if (this.ikDebug && this.timeScale <= 0) {

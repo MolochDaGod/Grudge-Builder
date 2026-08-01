@@ -2,28 +2,61 @@
  * Grudge Fleet Bridge — vanilla JS auth + character sync for Puter/external apps.
  * Mirrors GrudgeAccountSDK + wireGrudgeFleet from grudge-builder.
  *
- * @version 2.5.2
+ * @version 2.8.2
  * Character progress SSOT + account inventory/resources on Railway only (same DB as Warlords).
- * Sign-in defaults to Grudge ID (id.grudge-studio.com) so Puter sites load the REAL
- * Warlords roster — never a synthetic empty puter:* account as the primary login path.
- * SSO handoff: prefer sso_token (full JWT) over grudge_token bridge so puter.site
- * never loses the session when launch-bridge fails.
- * @see docs/CHARACTER_PROGRESS_SSOT.md
+ * ONE TRUTH: grudge_id account · Warlords character UUID · Railway Postgres only.
+ * Hard-fail when JWT grudge_id ≠ stored account; roster is era=warlords only.
+ * Active character must be a UUID owned by the signed-in account.
+ * Sign-in defaults to Grudge ID (id.grudge-studio.com) — never puter:* as primary.
+ * SSO: prefer sso_token (full JWT) over grudge_token bridge.
+ * Identity + auth bridge hosts: id.grudge-studio.com only (never auth.*).
+ * @see docs/CHARACTER_PROGRESS_SSOT.md · docs/CANONICAL_IDENTITY.md
  */
 (function (global) {
   'use strict';
 
   const CFG = (typeof window !== 'undefined' && window.GRUDGE_CONFIG) || {};
+  /** Prefer same-origin /api on fleet frontends (avoids CORS); absolute Railway as fallback. */
+  function resolveGameDataBase() {
+    if (CFG.GAME_DATA) return String(CFG.GAME_DATA).replace(/\/$/, '');
+    try {
+      var h = typeof location !== 'undefined' ? location.hostname || '' : '';
+      // Puter hosts have NO Vercel /api rewrites — always use Railway absolute URL
+      if (/\.puter\.site$/i.test(h) || /\.puter\.work$/i.test(h)) {
+        return 'https://grudge-api-production-0d46.up.railway.app';
+      }
+      // First-party fleet frontends: same-origin /api/* → Railway
+      if (/(^|\.)grudge-studio\.com$|(^|\.)grudgewarlords\.com$|\.vercel\.app$/i.test(h)) {
+        return '';
+      }
+    } catch (_) {}
+    return 'https://grudge-api-production-0d46.up.railway.app';
+  }
+
+  function resolveObjectStoreBase() {
+    return String(
+      CFG.OBJECTSTORE_URL ||
+        CFG.INFO_URL ||
+        'https://objectstore.grudge-studio.com/api/v1',
+    ).replace(/\/$/, '');
+  }
+
   const FLEET = {
     auth: CFG.AUTH_GATEWAY || 'https://id.grudge-studio.com',
-    identityApi: CFG.IDENTITY_API || 'https://grudge-studio.com',
-    gameData: CFG.GAME_DATA || 'https://grudge-api-production-0d46.up.railway.app',
-    objectStore: CFG.OBJECTSTORE_URL || 'https://objectstore.grudge-studio.com/api/v1',
+    // Identity + auth API SSOT — id hub (proxies Railway /api/auth/*)
+    identityApi: CFG.IDENTITY_API || CFG.AUTH_GATEWAY || 'https://id.grudge-studio.com',
+    gameData: resolveGameDataBase(),
+    objectStore: resolveObjectStoreBase(),
+    infoStore: String(CFG.INFO_URL || 'https://info.grudge-studio.com/api/v1').replace(/\/$/, ''),
     assets: CFG.ASSETS || 'https://assets.grudge-studio.com',
     wcs: CFG.WCS_URL || 'https://wcs.grudge-studio.com',
     crafting: CFG.CRAFTING_URL || 'https://grudge-crafting.puter.site',
     vfxStudio: CFG.VFX_STUDIO_URL || 'https://vfx-studio-sigma.vercel.app',
-    gamesLibrary: (CFG.OBJECTSTORE_URL || 'https://objectstore.grudge-studio.com/api/v1') + '/games-library.json',
+    /** Full Treaty app (Warlords / client shell) */
+    treaty: CFG.TREATY_URL || 'https://grudgewarlords.com/treaty',
+    /** Embeddable Treaty UI for any studio page / game */
+    treatyEmbed: CFG.TREATY_EMBED_URL || 'https://grudgewarlords.com/treaty-embed.html',
+    gamesLibrary: resolveObjectStoreBase() + '/games-library.json',
   };
 
   // Canonical keys + SDK aliases so we never multi-login across fleet apps
@@ -95,6 +128,101 @@
       try { sessionStorage.removeItem(TOKEN_KEY); } catch {}
     }
   }
+
+  /** Decode JWT payload (no verify — Railway verifies). Returns null if not a JWT. */
+  function decodeJwtPayload(token) {
+    if (!token || typeof token !== 'string') return null;
+    const parts = token.split('.');
+    if (parts.length < 2) return null;
+    try {
+      const b64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+      const pad = b64 + '==='.slice((b64.length + 3) % 4);
+      const json = typeof atob === 'function'
+        ? atob(pad)
+        : (typeof Buffer !== 'undefined' ? Buffer.from(pad, 'base64').toString('utf8') : null);
+      if (!json) return null;
+      return JSON.parse(json);
+    } catch {
+      return null;
+    }
+  }
+
+  /** Extract canonical grudge_id from JWT claims (various issuer shapes). */
+  function grudgeIdFromToken(token) {
+    const p = decodeJwtPayload(token);
+    if (!p || typeof p !== 'object') return '';
+    const raw =
+      p.grudgeId || p.grudge_id || p.sub || p.userId || p.user_id || p.accountId || p.account_id || '';
+    const s = String(raw || '').trim();
+    // Reject non-account subjects (pure guest markers)
+    if (!s || /^puter:/i.test(s) || /^guest_/i.test(s)) return s.startsWith('puter:') || s.startsWith('guest_') ? s : s;
+    return s;
+  }
+
+  function storedGrudgeId() {
+    return String(
+      lsGet(ACCOUNT_ID_KEY) || lsGet(GRUDGE_ID_KEY) || lsGet(SDK_USER_ID_KEY) || (_user && _user.grudgeId) || '',
+    ).trim();
+  }
+
+  /**
+   * Hard-fail split-brain: JWT account must match stored grudge_id when both present.
+   * Returns true if session is consistent (or only one side known).
+   * On mismatch: wipe session and return false.
+   */
+  function enforceAccountConsistency(jwtGid, apiGid, reason) {
+    const a = String(jwtGid || '').trim();
+    const b = String(apiGid || '').trim();
+    const stored = storedGrudgeId();
+    const candidates = [a, b, stored].filter(Boolean);
+    if (candidates.length < 2) return true;
+
+    const norm = (x) => x.toLowerCase();
+    const primary = norm(a || b || stored);
+    for (const c of candidates) {
+      if (norm(c) !== primary) {
+        console.error(
+          '[GrudgeFleet] ACCOUNT MISMATCH — clearing session.',
+          { jwt: a || null, api: b || null, stored: stored || null, reason: reason || 'mismatch' },
+        );
+        clearSessionLocal('account_mismatch');
+        dispatch('grudge:auth:mismatch', {
+          jwtGrudgeId: a || null,
+          apiGrudgeId: b || null,
+          storedGrudgeId: stored || null,
+          reason: reason || 'mismatch',
+        });
+        return false;
+      }
+    }
+    return true;
+  }
+
+  /** Wipe JWT + identity + active character (local only). */
+  function clearSessionLocal(reason) {
+    saveToken(null);
+    _user = null;
+    _characters = [];
+    _activeId = null;
+    const gid = lsGet(ACCOUNT_ID_KEY) || lsGet(GRUDGE_ID_KEY) || 'guest';
+    [
+      GRUDGE_ID_KEY, ACCOUNT_ID_KEY, SDK_USER_ID_KEY, USERNAME_KEY, SESSION_BLOB_KEY,
+      CHAR_ACTIVE_ALT, 'grudge_active_character', `${CHAR_ACTIVE_PREFIX}_${gid}`,
+      `${CHAR_ACTIVE_PREFIX}_guest`,
+    ].forEach(lsDel);
+    try { sessionStorage.removeItem('grudge_active_character'); } catch {}
+    if (reason) {
+      try { console.warn('[GrudgeFleet] session cleared:', reason); } catch {}
+    }
+  }
+
+  function isOwnedCharacterId(id) {
+    if (!id) return false;
+    return _characters.some((c) => String(c.id) === String(id));
+  }
+
+  /** Warlords-era only — never mix nexus/armada into crafting/warlords shells. */
+  const WARLORDS_ERA = 'warlords';
 
   function readActiveId() {
     const gid = lsGet(ACCOUNT_ID_KEY) || lsGet(GRUDGE_ID_KEY) || lsGet(SDK_USER_ID_KEY) || 'guest';
@@ -172,9 +300,20 @@
 
   function applyAuthResponse(data) {
     const token = data.sessionToken || data.token;
-    if (token) saveToken(token);
+    if (token) {
+      const jwtGid = grudgeIdFromToken(token);
+      const bodyGid = String((data.user && (data.user.grudgeId || data.user.grudge_id)) || data.grudgeId || data.grudge_id || '').trim();
+      if (jwtGid && bodyGid && !enforceAccountConsistency(jwtGid, bodyGid, 'apply_auth')) {
+        return data;
+      }
+      // New login: if stored account differs from JWT, wipe then save (switch account)
+      if (jwtGid && storedGrudgeId() && storedGrudgeId().toLowerCase() !== jwtGid.toLowerCase()) {
+        clearSessionLocal('apply_auth_switch');
+      }
+      saveToken(token);
+    }
     const u = data.user || data;
-    const gid = u.grudgeId || data.grudgeId;
+    const gid = u.grudgeId || u.grudge_id || data.grudgeId || data.grudge_id || grudgeIdFromToken(token);
     const un = u.username || data.username;
     if (gid) {
       lsSet(GRUDGE_ID_KEY, gid);
@@ -200,11 +339,19 @@
 
   /** On *.puter.site, puter.net.fetch bypasses CORS for Grudge API calls. */
   async function fleetFetch(url, init) {
+    // Prefer native fetch first for Grudge APIs (Bearer + CORS). puter.net.fetch can
+    // silently fail or strip headers on some Puter builds — Open uses native fetch.
+    try {
+      const r = await fetch(url, init);
+      if (r) return r;
+    } catch {
+      /* try puter net */
+    }
     if (typeof puter !== 'undefined' && puter.net && puter.net.fetch) {
       try {
         return await puter.net.fetch(url, init);
       } catch {
-        /* fall through to browser fetch */
+        /* fall through */
       }
     }
     return fetch(url, init);
@@ -350,24 +497,59 @@
     return bridgePuterUser(pu);
   }
 
-  /** Fetch character roster from Railway (same Postgres as Warlords / GCS). */
+  /** Fetch Warlords-era roster only from Railway (same Postgres as Warlords / GCS). */
   async function fetchCharacterRoster() {
     const headers = authHeaders();
+    // SSOT: era=warlords only for craft/play shells. Bare list is fallback if era query 404s.
+    // On Puter, also try open.grudge-studio.com (Vercel rewrite → Railway) — same path Open uses successfully.
+    const openProxy =
+      typeof location !== 'undefined' && /\.puter\.(site|work)$/i.test(location.hostname)
+        ? 'https://open.grudge-studio.com/api/characters?era=' + encodeURIComponent(WARLORDS_ERA)
+        : null;
     const urls = [
-      FLEET.gameData + '/api/characters?era=warlords',
-      FLEET.gameData + '/api/characters',
-    ];
+      FLEET.gameData + '/api/characters?era=' + encodeURIComponent(WARLORDS_ERA),
+      FLEET.gameData + '/api/characters?gameEra=' + encodeURIComponent(WARLORDS_ERA),
+      openProxy,
+      FLEET.gameData + '/api/characters?era=' + encodeURIComponent(WARLORDS_ERA),
+    ].filter(Boolean);
     let best = [];
+    let warlordsOk = false;
     for (const url of urls) {
       try {
         const res = await fleetFetch(url, { headers });
-        if (!res || !res.ok) continue;
+        if (!res || !res.ok) {
+          if (res && (res.status === 401 || res.status === 403)) {
+            clearSessionLocal('characters_unauthorized');
+            return [];
+          }
+          continue;
+        }
+        warlordsOk = true;
         const list = parseCharactersPayload(await res.json());
-        if (list.length > best.length) best = list;
-        // Prefer non-empty warlords first; still try bare list if empty
-        if (best.length > 0 && url.includes('era=warlords')) break;
+        // Filter defensively if API ignored era
+        const warlords = list.filter((c) => {
+          const era = String(c.gameEra || c.era || WARLORDS_ERA).toLowerCase();
+          return !era || era === WARLORDS_ERA || era === 'default';
+        });
+        if (warlords.length > best.length) best = warlords;
+        if (best.length > 0) break;
+        if (list.length && !warlords.length) best = list; // era field missing — trust API filter
       } catch (e) {
         console.warn('[GrudgeFleet] characters fetch failed:', url, e);
+      }
+    }
+    // Last resort only when era endpoints failed entirely (legacy API)
+    if (!warlordsOk && best.length === 0) {
+      try {
+        const res = await fleetFetch(FLEET.gameData + '/api/characters', { headers });
+        if (res && res.ok) {
+          best = parseCharactersPayload(await res.json()).filter((c) => {
+            const era = String(c.gameEra || c.era || WARLORDS_ERA).toLowerCase();
+            return !era || era === WARLORDS_ERA || era === 'default';
+          });
+        }
+      } catch (e) {
+        console.warn('[GrudgeFleet] bare characters fetch failed:', e);
       }
     }
     return best;
@@ -377,43 +559,76 @@
     const token = readToken();
     if (!token) return;
 
+    const jwtGid = grudgeIdFromToken(token);
+    // Pre-check: stored account must not disagree with JWT before we trust either
+    if (jwtGid && storedGrudgeId() && !enforceAccountConsistency(jwtGid, null, 'pre_sync')) {
+      return;
+    }
+
     try {
       const userRes = await fleetFetch(FLEET.gameData + '/api/account', { headers: authHeaders() });
       if (userRes.ok) {
         const userData = await userRes.json();
+        const apiGid = String(userData.grudgeId || userData.grudge_id || userData.id || '').trim();
+        if (!enforceAccountConsistency(jwtGid, apiGid, 'account_sync')) {
+          return;
+        }
+        const gid = apiGid || jwtGid || storedGrudgeId();
         _user = {
-          grudgeId: userData.grudgeId || lsGet(GRUDGE_ID_KEY) || '',
+          grudgeId: gid,
           username: userData.username || lsGet(USERNAME_KEY) || '',
           displayName: userData.displayName,
           gbuxBalance: Number(userData.gbuxBalance ?? 0),
+          email: userData.email || null,
         };
-        if (_user.grudgeId) {
-          lsSet(GRUDGE_ID_KEY, _user.grudgeId);
-          lsSet(ACCOUNT_ID_KEY, _user.grudgeId);
-          lsSet(SDK_USER_ID_KEY, _user.grudgeId);
+        if (gid) {
+          lsSet(GRUDGE_ID_KEY, gid);
+          lsSet(ACCOUNT_ID_KEY, gid);
+          lsSet(SDK_USER_ID_KEY, gid);
         }
+        if (_user.username) lsSet(USERNAME_KEY, _user.username);
       } else if (userRes.status === 401 || userRes.status === 403) {
-        // Stale JWT (e.g. synthetic puter guest) — clear so UI can re-auth via Grudge ID
         console.warn('[GrudgeFleet] /api/account unauthorized — clearing session');
-        saveToken(null);
-        _user = null;
-        _characters = [];
+        clearSessionLocal('account_unauthorized');
+        dispatch('grudge:auth:logout');
         return;
       }
 
-      // Characters — Railway only (same Postgres as Warlords / GCS).
+      // Characters — Railway Warlords era only
       _characters = await fetchCharacterRoster();
+      if (!readToken()) return; // cleared mid-fetch
 
       const stored = readActiveId();
-      if (stored && _characters.some((c) => String(c.id) === String(stored))) {
+      if (stored && isOwnedCharacterId(stored)) {
         _activeId = stored;
-      } else if (_characters.length > 0) {
-        saveActiveId(_characters[0].id);
+        saveActiveId(stored); // re-scope keys under current grudge_id
+      } else {
+        // Stale active id from another account — do not auto-pick silently for craft gate;
+        // still pick first so single-hero accounts unlock, multi-hero UIs re-prompt if needed.
+        if (stored && !isOwnedCharacterId(stored)) {
+          console.warn('[GrudgeFleet] active character not on this account roster — clearing', stored);
+          _activeId = null;
+          lsDel('grudge_active_character');
+          lsDel(CHAR_ACTIVE_ALT);
+        }
+        if (_characters.length === 1) {
+          saveActiveId(_characters[0].id);
+        } else if (_characters.length > 1 && !readActiveId()) {
+          // Leave unset so UI forces selection
+          _activeId = null;
+        } else if (_characters.length > 0 && !readActiveId()) {
+          saveActiveId(_characters[0].id);
+        }
       }
 
       notifyCallbacks(getActiveCharacterLocal());
       dispatch('grudge:character:updated', { character: getActiveCharacterLocal() });
-      dispatch('grudge:characters:loaded', { characters: _characters, activeId: readActiveId() });
+      dispatch('grudge:characters:loaded', {
+        characters: _characters,
+        activeId: readActiveId(),
+        era: WARLORDS_ERA,
+        grudgeId: storedGrudgeId(),
+      });
 
       dispatch('grudge:sync:complete');
       dispatch('grudge:auth:ready');
@@ -424,14 +639,12 @@
 
   /**
    * Canonical Grudge ID login URL.
-   * Auth page returns ?grudge_token=… which bridgeGrudgeLaunchToken exchanges for a Railway JWT
-   * bound to the REAL Warlords account (not puter:<uuid>).
+   * Auth page returns sso_token / grudge_token for Railway JWT bound to real account.
    */
   function buildLoginUrl(returnUrl) {
     const base = (returnUrl || (typeof window !== 'undefined'
       ? (window.location.origin + window.location.pathname)
       : FLEET.crafting)).split('#')[0];
-    // Strip prior SSO params so we don't stack tokens
     let clean = base;
     try {
       const u = new URL(base, typeof window !== 'undefined' ? window.location.origin : FLEET.crafting);
@@ -439,6 +652,18 @@
       clean = u.origin + u.pathname + (u.search || '');
     } catch { /* keep base */ }
     return FLEET.auth.replace(/\/$/, '') + '/login?redirect_uri=' + encodeURIComponent(clean);
+  }
+
+  /** Create-account entry on Grudge ID (same redirect_uri). */
+  function buildRegisterUrl(returnUrl) {
+    const login = buildLoginUrl(returnUrl);
+    try {
+      const u = new URL(login);
+      u.searchParams.set('mode', 'register');
+      return u.toString();
+    } catch {
+      return login + (login.includes('?') ? '&' : '?') + 'mode=register';
+    }
   }
 
   function startPoll() {
@@ -624,6 +849,7 @@
     },
 
     buildLoginUrl,
+    buildRegisterUrl,
 
     /** Puter-only auth (legacy / guest cloud). Prefer signIn() for account characters. */
     async signInWithPuter() {
@@ -673,22 +899,48 @@
 
     /** Clear JWT + local fleet identity (keeps Puter session if any). */
     signOut() {
-      saveToken(null);
-      _user = null;
-      _characters = [];
-      _activeId = null;
-      [GRUDGE_ID_KEY, ACCOUNT_ID_KEY, SDK_USER_ID_KEY, USERNAME_KEY, SESSION_BLOB_KEY].forEach(lsDel);
+      clearSessionLocal('sign_out');
       dispatch('grudge:auth:logout');
+    },
+
+    /**
+     * Sign out then redirect to Grudge ID login (switch account).
+     * Always clears local state first so the next account cannot inherit UUID/bag cache.
+     */
+    async switchAccount(returnUrl) {
+      clearSessionLocal('switch_account');
+      dispatch('grudge:auth:logout');
+      if (typeof window === 'undefined') return { redirected: false };
+      const url = buildLoginUrl(returnUrl);
+      window.location.href = url;
+      return { redirected: true, url };
+    },
+
+    /** Redirect to Grudge ID create-account (mode=register). */
+    createAccount(returnUrl) {
+      if (typeof window === 'undefined') throw new Error('No window');
+      clearSessionLocal('create_account');
+      const url = buildRegisterUrl(returnUrl);
+      window.location.href = url;
+      return url;
     },
 
     getToken: readToken,
     getUser: () => _user,
+    getGrudgeId: () => storedGrudgeId() || (_user && _user.grudgeId) || '',
     isLoggedIn: () => !!readToken(),
     /** True when we have a JWT but roster is still empty (wrong account / no chars yet). */
     hasEmptyRoster: () => !!readToken() && _characters.length === 0,
-    getCharacters: () => _characters,
-    getActiveId: readActiveId,
+    /** True when JWT present, roster loaded, and active UUID is owned. */
+    isReady: () => !!readToken() && !!readActiveId() && isOwnedCharacterId(readActiveId()),
+    getCharacters: () => _characters.slice(),
+    getActiveId: () => {
+      const id = readActiveId();
+      return id && isOwnedCharacterId(id) ? id : null;
+    },
     getActiveCharacter: getActiveCharacterLocal,
+    warlordsEra: WARLORDS_ERA,
+    version: '2.8.2',
 
     /** Select first character matching race id/name (for VFX Character Lab sync) */
     selectCharacterByRace(race) {
@@ -706,20 +958,27 @@
     },
 
     selectCharacter(id) {
+      if (!id) return null;
+      if (!isOwnedCharacterId(id)) {
+        console.error('[GrudgeFleet] selectCharacter rejected — UUID not on account roster', id);
+        dispatch('grudge:character:rejected', { characterId: id, reason: 'not_owned' });
+        return null;
+      }
       saveActiveId(id);
       const char = _characters.find((c) => String(c.id) === String(id)) ?? null;
       notifyCallbacks(char);
-      dispatch('grudge:character:selected', { characterId: id, character: char });
+      dispatch('grudge:character:selected', { characterId: id, character: char, era: WARLORDS_ERA });
       if (_embedded) {
         window.parent?.postMessage({ type: 'GRUDGE_CHARACTER_CHANGE', characterId: id, character: char }, '*');
       }
       try {
         if (typeof BroadcastChannel !== 'undefined') {
           const bc = new BroadcastChannel('grudge-fleet');
-          bc.postMessage({ type: 'character', characterId: id });
+          bc.postMessage({ type: 'character', characterId: id, era: WARLORDS_ERA });
           bc.close();
         }
       } catch { /* ignore */ }
+      return char;
     },
 
     onCharacterChange(cb) {
@@ -1071,11 +1330,25 @@
       }
     },
 
-    /** Load canonical games-library.json from ObjectStore. */
+    /** Load canonical games-library.json from ObjectStore (info mirror fallback). */
     async getGamesLibrary() {
-      const res = await fleetFetch(FLEET.gamesLibrary);
-      if (!res.ok) throw new Error('games-library unavailable');
-      return res.json();
+      const urls = [
+        FLEET.gamesLibrary,
+        FLEET.infoStore + '/games-library.json',
+        'https://objectstore.grudge-studio.com/api/v1/games-library.json',
+        'https://info.grudge-studio.com/api/v1/games-library.json',
+      ];
+      let lastErr = null;
+      for (const url of urls) {
+        try {
+          const res = await fleetFetch(url);
+          if (res && res.ok) return await res.json();
+          lastErr = new Error('games-library HTTP ' + (res && res.status));
+        } catch (e) {
+          lastErr = e;
+        }
+      }
+      throw lastErr || new Error('games-library unavailable');
     },
 
     /** PATCH character on Railway (professionLevels, equipment, inventory, etc.) */
@@ -1136,6 +1409,127 @@
         }
       }
       return professions;
+    },
+
+    /**
+     * Treaty — Grudge ID account social (friends, DMs, groups, server chat).
+     * Account-scoped; never character-scoped. Railway Postgres SSOT.
+     * Uses same-origin /api when hosted on fleet frontends.
+     */
+    async treatyFetch(path, init) {
+      if (!readToken()) throw new Error('Sign in required for Treaty');
+      const base = (FLEET.gameData || '') + '/api/treaty';
+      const res = await fleetFetch(base + path, {
+        ...init,
+        headers: { ...authHeaders(), ...(init && init.headers) || {} },
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Treaty request failed (' + res.status + ')');
+      return data;
+    },
+
+    getTreatySocial() {
+      return fleet.treatyFetch('/social');
+    },
+
+    getTreatyDmThreads() {
+      return fleet.treatyFetch('/dm/threads');
+    },
+
+    getTreatyGroups() {
+      return fleet.treatyFetch('/groups');
+    },
+
+    getTreatyUnread() {
+      return fleet.treatyFetch('/unread');
+    },
+
+    /** Fleet + per-game server channels (public account chat). */
+    getTreatyServers(gameId) {
+      var q = gameId ? ('?game=' + encodeURIComponent(gameId)) : '';
+      return fleet.treatyFetch('/servers' + q);
+    },
+
+    getTreatyServerMessages(slug, limit) {
+      var q = limit ? ('?limit=' + encodeURIComponent(String(limit))) : '';
+      return fleet.treatyFetch('/servers/' + encodeURIComponent(slug) + '/messages' + q);
+    },
+
+    sendTreatyServerMessage(slug, content) {
+      return fleet.treatyFetch('/servers/' + encodeURIComponent(slug) + '/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: String(content || '') }),
+      });
+    },
+
+    sendTreatyFriendRequest(query) {
+      return fleet.treatyFetch('/friends/request', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query: String(query || '').trim() }),
+      });
+    },
+
+    sendTreatyDm(threadId, content) {
+      return fleet.treatyFetch('/dm/threads/' + encodeURIComponent(threadId) + '/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: String(content || '') }),
+      });
+    },
+
+    sendTreatyGroupMessage(groupId, content) {
+      return fleet.treatyFetch('/groups/' + encodeURIComponent(groupId) + '/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: String(content || '') }),
+      });
+    },
+
+    createTreatyGroup(name, members) {
+      return fleet.treatyFetch('/groups', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: String(name || '').trim(),
+          members: Array.isArray(members) ? members : [],
+        }),
+      });
+    },
+
+    /** Open full Treaty app with SSO handoff when possible. */
+    openTreaty(opts) {
+      opts = opts || {};
+      const url = fleet.buildSSOUrl(FLEET.treaty, opts);
+      if (typeof window !== 'undefined') {
+        window.open(url, opts.target || '_blank', 'noopener');
+      }
+      return url;
+    },
+
+    /**
+     * Open embeddable Treaty panel (server chat + deep link to full app).
+     * opts.game — warlords | genesis | grudge6 | forge | fleet
+     */
+    openTreatyEmbed(opts) {
+      opts = opts || {};
+      var game = opts.game || 'fleet';
+      var base = FLEET.treatyEmbed + (FLEET.treatyEmbed.indexOf('?') >= 0 ? '&' : '?') + 'game=' + encodeURIComponent(game);
+      var url = fleet.buildSSOUrl ? fleet.buildSSOUrl(base, opts) : base;
+      if (typeof window !== 'undefined') {
+        if (opts.iframe && opts.iframe.appendChild) {
+          var frame = document.createElement('iframe');
+          frame.src = url;
+          frame.title = 'Grudge Treaty';
+          frame.style.cssText = opts.iframeStyle || 'width:100%;height:100%;border:0;border-radius:12px;';
+          opts.iframe.innerHTML = '';
+          opts.iframe.appendChild(frame);
+          return frame;
+        }
+        window.open(url, opts.target || 'grudge-treaty', 'noopener,width=420,height=640');
+      }
+      return url;
     },
 
     logout() {

@@ -138,22 +138,24 @@ export function iconForSkillLabel(label: string): string | undefined {
 }
 
 /**
- * Harvest tool → craftpix icon fallback.
- * Prefer ObjectStore tool icons when inventory has them; these are genre stand-ins only.
+ * Harvest tool → craftpix / CDN icon.
+ * Prefer dedicated tool icons from assets CDN when present; craftpix as genre fallback.
  */
 export function iconForHarvestTool(toolId: string): string {
+  const CDN = 'https://assets.grudge-studio.com';
   switch (toolId) {
     case 'pickaxe':
-      return UI_ICONS.shield; // hard tool stand-in
+      return `${CDN}/icons/tools/pickaxe.png`;
     case 'skinning_knife':
-      return UI_ICONS.deathkiss; // blade
+      return `${CDN}/icons/tools/knife.png`;
     case 'fishing_rod':
-      return UI_ICONS.leafs; // nature / water
+      return `${CDN}/icons/tools/fishing_rod.png`;
     case 'toolkit':
     case 'build_hammer':
-      return UI_ICONS.shield; // structure / solid stand-in until hammer icon ships
+      return `${CDN}/icons/tools/hammer.png`;
     case 'hatchet':
     case 'axe':
+      return `${CDN}/icons/tools/hatchet.png`;
     default:
       return UI_ICONS.sword;
   }

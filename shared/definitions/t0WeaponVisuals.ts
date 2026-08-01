@@ -183,11 +183,12 @@ export function getT0WeaponVisual(itemId: string): T0WeaponVisual | null {
   return null;
 }
 
-/** Resolve best mesh URL for external attach (null → use race kit only). */
+/** Resolve best mesh URL for external attach (null → use race kit only). Prefer CDN. */
 export function resolveT0WeaponMeshUrl(itemId: string): string | null {
   const v = getT0WeaponVisual(itemId);
   if (!v) return null;
-  return v.localPath ?? v.cdnUrl;
+  // Production: R2 first so local /models/codex/* missing on Vercel still works
+  return v.cdnUrl ?? v.localPath;
 }
 
 export function listT0WeaponVisuals(): T0WeaponVisual[] {

@@ -19,7 +19,7 @@ import {
   type SocketPose,
 } from '@shared/definitions/weaponAttachSystem';
 
-const WEAPON_MESH_SLOTS = ['sword', 'axe', 'hammer', 'pick', 'spear', 'bow', 'staff', 'shield'] as const;
+const WEAPON_MESH_SLOTS = ['sword', 'axe', 'hammer', 'pick', 'spear', 'bow', 'staff', 'shield', 'dagger'] as const;
 
 export type HolsterVisualState = 'drawn' | 'holstered' | 'transitioning';
 

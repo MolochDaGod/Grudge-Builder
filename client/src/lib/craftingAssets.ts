@@ -1,16 +1,22 @@
-export const ASSET_BASE_PATH = "/2dassets";
+/**
+ * Crafting icon paths — production layout on R2 via assetUrl().
+ * Legacy /2dassets/* is not on the CDN and 404s in play.
+ */
+import { assetUrl } from './assetConfig';
+
+export const ASSET_BASE_PATH = "/icons";
 
 export const ASSET_CATEGORIES = {
   weapons: {
-    melee: `${ASSET_BASE_PATH}/weapons/melee`,
-    ranged: `${ASSET_BASE_PATH}/weapons/ranged`,
-    magic: `${ASSET_BASE_PATH}/weapons/magic`,
+    melee: `${ASSET_BASE_PATH}/weapons`,
+    ranged: `${ASSET_BASE_PATH}/weapons`,
+    magic: `${ASSET_BASE_PATH}/weapons`,
   },
   armor: {
-    cloth: `${ASSET_BASE_PATH}/armor/cloth`,
-    leather: `${ASSET_BASE_PATH}/armor/leather`,
-    metal: `${ASSET_BASE_PATH}/armor/metal`,
-    gem: `${ASSET_BASE_PATH}/armor/gem`,
+    cloth: `${ASSET_BASE_PATH}/armor`,
+    leather: `${ASSET_BASE_PATH}/armor`,
+    metal: `${ASSET_BASE_PATH}/armor`,
+    gem: `${ASSET_BASE_PATH}/armor`,
   },
   professions: `${ASSET_BASE_PATH}/professions`,
   materials: `${ASSET_BASE_PATH}/materials`,
@@ -18,23 +24,23 @@ export const ASSET_CATEGORIES = {
 } as const;
 
 export function getWeaponAssetPath(weaponId: string, category: "melee" | "ranged" | "magic"): string {
-  return `${ASSET_CATEGORIES.weapons[category]}/${weaponId}.png`;
+  return assetUrl(`${ASSET_CATEGORIES.weapons[category]}/${weaponId}.png`);
 }
 
 export function getArmorAssetPath(armorId: string, material: "cloth" | "leather" | "metal" | "gem"): string {
-  return `${ASSET_CATEGORIES.armor[material]}/${armorId}.png`;
+  return assetUrl(`${ASSET_CATEGORIES.armor[material]}/${armorId}.png`);
 }
 
 export function getProfessionAssetPath(profession: string): string {
-  return `${ASSET_CATEGORIES.professions}/${profession.toLowerCase()}.png`;
+  return assetUrl(`${ASSET_CATEGORIES.professions}/${profession.toLowerCase()}.png`);
 }
 
 export function getMaterialAssetPath(materialId: string): string {
-  return `${ASSET_CATEGORIES.materials}/${materialId}.png`;
+  return assetUrl(`${ASSET_CATEGORIES.materials}/${materialId}.png`);
 }
 
 export function getUIAssetPath(assetName: string): string {
-  return `${ASSET_CATEGORIES.ui}/${assetName}.png`;
+  return assetUrl(`${ASSET_CATEGORIES.ui}/${assetName}.png`);
 }
 
 export function generateAssetSlug(category: string, subtype: string | null, itemId: string): string {

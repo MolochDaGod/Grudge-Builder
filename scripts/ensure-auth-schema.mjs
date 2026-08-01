@@ -58,6 +58,72 @@ await client.query(`
   );
 `);
 
+// Identity link columns — required by server/lib/identityLink.ts (Discord / Puter SSO).
+// Production id.grudge-studio.com proxies to Railway; missing columns → 500
+// "column discord_id does not exist" on Discord login / /me provider merge.
+console.log("[ensure-auth-schema] Patching users for Discord / Puter identity links...");
+for (const [col, ddl] of [
+  ["grudge_id", "TEXT"],
+  ["email", "TEXT"],
+  ["discord_id", "TEXT"],
+  ["discord_username", "TEXT"],
+  ["discord_email", "TEXT"],
+  ["discord_avatar", "TEXT"],
+  ["discord_verified", "BOOLEAN DEFAULT false"],
+  ["puter_user_id", "TEXT"],
+  ["puter_username", "TEXT"],
+  ["puter_email", "TEXT"],
+  ["puter_linked_at", "TIMESTAMPTZ"],
+  ["auth_method", "TEXT"],
+  ["display_name", "TEXT"],
+  ["is_admin", "BOOLEAN DEFAULT false"],
+  ["last_login_at", "TIMESTAMPTZ"],
+  ["avatar_url", "TEXT"],
+  ["phone_number", "TEXT"],
+]) {
+  await addColumn("users", col, ddl);
+}
+// Unique indexes for fast provider lookups (idempotent)
+await client
+  .query(
+    `CREATE UNIQUE INDEX IF NOT EXISTS users_discord_id_uidx
+     ON users (discord_id) WHERE discord_id IS NOT NULL`,
+  )
+  .catch(() => {});
+await client
+  .query(
+    `CREATE UNIQUE INDEX IF NOT EXISTS users_puter_user_id_uidx
+     ON users (puter_user_id) WHERE puter_user_id IS NOT NULL`,
+  )
+  .catch(() => {});
+// Backfill discord_id from username prefix discord:<id> (legacy scoped profiles)
+try {
+  const bf = await client.query(`
+    UPDATE users
+    SET discord_id = substring(username from 9)
+    WHERE username LIKE 'discord:%'
+      AND (discord_id IS NULL OR discord_id = '')
+  `);
+  if (bf.rowCount) {
+    console.log(`[ensure-auth-schema] backfilled discord_id from username: ${bf.rowCount}`);
+  }
+} catch (e) {
+  console.warn("[ensure-auth-schema] discord_id backfill skipped:", e.message);
+}
+try {
+  const bf = await client.query(`
+    UPDATE users
+    SET puter_user_id = substring(username from 7)
+    WHERE username LIKE 'puter:%'
+      AND (puter_user_id IS NULL OR puter_user_id = '')
+  `);
+  if (bf.rowCount) {
+    console.log(`[ensure-auth-schema] backfilled puter_user_id from username: ${bf.rowCount}`);
+  }
+} catch (e) {
+  console.warn("[ensure-auth-schema] puter_user_id backfill skipped:", e.message);
+}
+
 if (await hasTable("accounts")) {
   const tsDefault = `(extract(epoch from now()) * 1000)::bigint`;
 

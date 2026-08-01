@@ -84,7 +84,8 @@ export default function HeroesPage() {
   const [, setLocation] = useLocation();
   // Warlords product page — era=warlords only (voxel/nexus have their own hosts).
   const { characters: warlordsChars, loading, activeId, setActive, error, refetch } = useCharacters();
-  const [dest, setDest] = useState<PlayDest>("zone");
+  /** Default = home island (happy path), not open zone — avoids new players landing cold in haven_shore */
+  const [dest, setDest] = useState<PlayDest>("home_island");
   const signedIn = isAuthenticated();
   const [handoffError, setHandoffError] = useState<string | null>(null);
   const [queryCharId] = useState(() => readQueryParams().characterId);

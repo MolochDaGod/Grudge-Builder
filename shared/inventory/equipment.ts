@@ -135,6 +135,8 @@ function canEquipToSlot(itemId: string, slot: PanelEquipmentSlot): boolean {
   if (!target) return false;
   if (target === slot) return true;
   if (slot === "MainHand" && target === "MainHand") return true;
+  // SecondaryWeapon reserve accepts any MainHand weapon (not shields)
+  if (slot === "SecondaryWeapon" && target === "MainHand" && !isShield(itemId)) return true;
   if (slot === "OffHand" && (target === "OffHand" || isShield(itemId))) return true;
   return false;
 }

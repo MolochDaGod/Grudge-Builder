@@ -8,20 +8,29 @@
 <script src="https://js.puter.com/v2/"></script>
 <script>
   window.GRUDGE_CONFIG = {
+    // Auth SSOT = id only (never auth.* / never apex as login host)
     AUTH_GATEWAY: 'https://id.grudge-studio.com',
-    IDENTITY_API: 'https://grudge-studio.com',
+    IDENTITY_API: 'https://id.grudge-studio.com',
     // Railway Postgres — SAME DB as Warlords / GCS account characters (never Puter KV as SSOT)
     GAME_DATA: 'https://grudge-api-production-0d46.up.railway.app',
+    // Definitions: objectstore primary, info mirror (both /api/v1 JSON)
     OBJECTSTORE_URL: 'https://objectstore.grudge-studio.com/api/v1',
+    INFO_URL: 'https://info.grudge-studio.com/api/v1',
     ASSETS: 'https://assets.grudge-studio.com',
-    VERSION: '5.3.2',
+    VERSION: '5.8.0',
     WCS_URL: 'https://wcs.grudge-studio.com',
-    SKILL_TREE_URL: './skill-tree.html',
-    WEAPON_MASTERY_URL: './weaponmastery.html',
+    // Full suite also embeds from main-panel Quick Craft tab
+    MAIN_PANEL_URL: 'https://ui.grudge-studio.com/main-panel.html?era=warlords&tab=craft',
+    // Local skill-tree.html / weaponmastery.html are NOT deployed on puter.site (404).
+    // Use production Warlords pages with SSO hash handoff.
+    SKILL_TREE_URL: 'https://grudgewarlords.com/skill-tree.html',
+    WEAPON_MASTERY_URL: 'https://grudgewarlords.com/weaponmastery.html',
     // Inventory is account-shared on Railway; progress is per character UUID on Railway
     INVENTORY_SCOPE: 'account',
     PROGRESS_SCOPE: 'character',
     PLAYER_STATE_SSOT: 'railway',
+    // Browse definitions without login; only craft/gather mutates require Grudge ID
+    REQUIRE_LOGIN_TO_BROWSE: false,
   };
 </script>
 <script src="./grudge-fleet.js"></script>
@@ -136,19 +145,29 @@ body {
 }
 .sidebar-account {
   margin-top: auto;
-  padding: 12px 16px;
+  padding: 12px 14px 14px;
   border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  position: relative;
+}
+.sidebar-account-row {
   display: flex;
   align-items: center;
   gap: 8px;
+  min-width: 0;
 }
 .account-dot {
   width: 8px; height: 8px;
   border-radius: 50%;
   background: #444;
+  flex-shrink: 0;
 }
 .account-dot.on { background: var(--green); box-shadow: 0 0 6px var(--green); }
-.account-name { font-size: 11px; color: var(--text-dim); }
+.account-meta { min-width: 0; flex: 1; }
+.account-name { font-size: 11px; color: var(--text-dim); display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.account-sub { font-size: 9px; color: #555; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-family: 'JetBrains Mono', monospace; }
 .auth-btn {
   margin-left: auto;
   padding: 4px 10px;
@@ -159,8 +178,174 @@ body {
   font-size: 10px;
   cursor: pointer;
   font-family: inherit;
+  flex-shrink: 0;
 }
 .auth-btn:hover { background: rgba(212,168,67,0.2); }
+.auth-menu-btns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.auth-menu-btns button,
+.auth-menu-btns a {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 5px 6px;
+  border: 1px solid var(--border);
+  background: rgba(0,0,0,0.25);
+  color: var(--text-dim);
+  border-radius: 4px;
+  font-size: 9px;
+  cursor: pointer;
+  font-family: inherit;
+  text-align: center;
+  text-decoration: none;
+  line-height: 1.2;
+}
+.auth-menu-btns button:hover,
+.auth-menu-btns a:hover {
+  border-color: var(--border-hot);
+  color: var(--gold);
+  background: rgba(212,168,67,0.08);
+}
+.auth-menu-btns button.primary {
+  background: rgba(212,168,67,0.18);
+  color: var(--gold);
+  border-color: rgba(212,168,67,0.35);
+  font-weight: 600;
+}
+.auth-menu-btns button.danger:hover {
+  color: var(--red);
+  border-color: rgba(239,68,68,0.4);
+}
+
+/* ======================== SOFT AUTH BANNER (never blocks suite) ======================== */
+/* Hard login modal was removed — suite is always browsable. Auth only for craft/gather. */
+.access-gate {
+  display: none !important;
+  pointer-events: none;
+}
+.access-gate.hidden { display: none !important; }
+.soft-auth-banner {
+  display: none;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin: 0 0 16px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: 1px solid rgba(212,168,67,0.28);
+  background: linear-gradient(90deg, rgba(212,168,67,0.1), rgba(14,14,24,0.4));
+  font-size: 12px;
+  color: var(--text-dim);
+}
+.soft-auth-banner.show { display: flex; }
+.soft-auth-banner strong { color: var(--gold); }
+.soft-auth-banner .sab-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.soft-auth-banner button, .soft-auth-banner a.sab-btn {
+  appearance: none;
+  border: 1px solid var(--border-hot);
+  background: rgba(212,168,67,0.15);
+  color: var(--gold-bright);
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  text-decoration: none;
+}
+.soft-auth-banner button.secondary, .soft-auth-banner a.sab-btn.secondary {
+  background: rgba(255,255,255,0.04);
+  border-color: var(--border);
+  color: var(--text);
+}
+/* Suite always interactive — no blur/lock overlay */
+body .app {
+  filter: none;
+  pointer-events: auto;
+  user-select: auto;
+}
+
+/* Station page art (WCS benches) */
+#page-crafting.station-themed {
+  position: relative;
+}
+#page-crafting .station-scene {
+  position: relative;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  margin-bottom: 14px;
+  min-height: 88px;
+  background:
+    radial-gradient(ellipse at 20% 30%, var(--station-glow, rgba(212,168,67,0.2)), transparent 55%),
+    linear-gradient(135deg, rgba(10,10,16,0.95), rgba(20,16,12,0.9));
+}
+#page-crafting .station-scene::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: var(--station-bg, none);
+  background-size: cover;
+  background-position: center;
+  opacity: 0.22;
+  pointer-events: none;
+}
+#page-crafting .station-scene-inner {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+}
+#page-crafting .station-scene-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 12px;
+  border: 1px solid var(--border-hot);
+  background: rgba(0,0,0,0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  flex-shrink: 0;
+  box-shadow: 0 0 20px var(--station-glow, rgba(212,168,67,0.25));
+}
+#page-crafting .station-scene-icon img {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+}
+#page-crafting .station-scene-meta h3 {
+  margin: 0 0 4px;
+  font-family: 'Cinzel', serif;
+  font-size: 16px;
+  color: var(--gold);
+}
+#page-crafting .station-scene-meta p {
+  margin: 0;
+  font-size: 11px;
+  color: var(--text-dim);
+  line-height: 1.4;
+}
+.station-tab .st-icon img {
+  width: 18px;
+  height: 18px;
+  object-fit: contain;
+  vertical-align: middle;
+}
+.codex-card .codex-icon {
+  width: 36px;
+  height: 36px;
+  object-fit: contain;
+  margin-right: 8px;
+  vertical-align: middle;
+  border-radius: 4px;
+  background: rgba(0,0,0,0.25);
+}
 
 /* ======================== MAIN CONTENT ======================== */
 .page { display: none; padding: 24px; }
@@ -288,7 +473,19 @@ body {
 .recipe-item:hover { border-color: var(--gold-dim); background: rgba(212,168,67,0.04); }
 .recipe-item.selected { border-color: var(--gold); background: rgba(212,168,67,0.08); }
 .recipe-item.cant-craft { opacity: 0.5; }
-.recipe-icon { font-size: 20px; width: 28px; text-align: center; }
+.recipe-icon { font-size: 20px; width: 28px; text-align: center; flex-shrink: 0; }
+.recipe-icon img, .item-img, .inv-item .icon img, .result-icon img, .ch-icon img, .slot img {
+  width: 28px; height: 28px; object-fit: contain; image-rendering: auto;
+  vertical-align: middle; border-radius: 4px;
+  background: rgba(0,0,0,0.25);
+}
+.result-icon img { width: 36px; height: 36px; }
+.db-card img {
+  width: 48px; height: 48px; object-fit: contain; flex-shrink: 0;
+  border-radius: 6px; background: rgba(0,0,0,0.3);
+  border: 1px solid var(--border);
+}
+.db-card { display: flex; gap: 12px; align-items: center; }
 .recipe-info { flex: 1; min-width: 0; }
 .recipe-name { font-size: 12px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .recipe-meta { font-size: 9px; color: var(--text-dim); }
@@ -905,12 +1102,14 @@ body {
 
 @media (max-width: 700px) {
   .sidebar { width: 60px; }
-  .sidebar .nav-btn span:not(.icon), .sidebar-logo small, .sidebar-section-title, .sidebar-account .account-name, .sidebar-account .auth-btn, .nav-btn .badge { display: none; }
+  .sidebar .nav-btn span:not(.icon), .sidebar-logo small, .sidebar-section-title, .sidebar-account .account-meta, .sidebar-account .auth-menu-btns, .sidebar-account .auth-btn, .nav-btn .badge { display: none; }
   .sidebar-logo h1 { font-size: 10px; }
 }
 </style>
 </head>
-<body>
+<body class="access-ready">
+<!-- Access gate removed: suite always open. Soft banner lives inside .main. Hidden stub kept for API compat. -->
+<div id="access-gate" class="access-gate hidden" aria-hidden="true"></div>
 <div class="app">
   <!-- SIDEBAR -->
   <aside class="sidebar">
@@ -966,21 +1165,41 @@ body {
 
     <div class="sidebar-section">
       <div class="sidebar-section-title">Links</div>
+      <a href="https://ui.grudge-studio.com/main-panel.html?era=warlords&tab=craft" target="_blank" class="nav-btn"><span class="icon">🗂</span><span>Main Panel</span></a>
       <a href="https://grudgewarlords.com" target="_blank" class="nav-btn"><span class="icon">🌐</span><span>Grudge Warlords</span></a>
       <a href="https://wcs.grudge-studio.com" target="_blank" class="nav-btn"><span class="icon">⚔</span><span>WCS (host)</span></a>
       <a href="https://docs.grudge-studio.com/crafting" target="_blank" class="nav-btn"><span class="icon">📄</span><span>Craft Skills Docs</span></a>
     </div>
 
-    <div class="sidebar-account">
-      <span class="account-dot" id="acctDot"></span>
-      <span class="account-name" id="acctName">Not signed in</span>
-      <button class="auth-btn" id="authBtn" onclick="doAuth()">Sign In</button>
+    <div class="sidebar-account" id="sidebarAccount">
+      <div class="sidebar-account-row">
+        <span class="account-dot" id="acctDot"></span>
+        <div class="account-meta">
+          <span class="account-name" id="acctName">Not signed in</span>
+          <span class="account-sub" id="acctSub">Grudge ID required</span>
+        </div>
+        <button class="auth-btn" id="authBtn" type="button" onclick="doAuth()">Sign In</button>
+      </div>
+      <div class="auth-menu-btns" id="authMenuBtns">
+        <button type="button" class="primary" id="btnSignIn" onclick="doSignIn()">Sign in</button>
+        <button type="button" id="btnCreateAccount" onclick="doCreateAccount()">Create account</button>
+        <button type="button" id="btnSwitchAccount" onclick="doSwitchAccount()" hidden>Switch account</button>
+        <button type="button" class="danger" id="btnSignOut" onclick="doSignOut()" hidden>Sign out</button>
+      </div>
     </div>
   </aside>
 
   <!-- MAIN -->
   <div class="main">
     <div id="toast" class="toast"></div>
+    <!-- Soft auth hint — never blocks browsing; only craft/gather need session -->
+    <div id="soft-auth-banner" class="soft-auth-banner" role="status">
+      <span id="soft-auth-msg">Browse recipes freely. Sign in with Grudge ID to craft and sync bag/XP.</span>
+      <span class="sab-actions">
+        <button type="button" onclick="doSignIn()">Sign in</button>
+        <a class="sab-btn secondary" href="https://ui.grudge-studio.com/main-panel.html?era=warlords&tab=craft" target="_blank" rel="noopener">Main Panel</a>
+      </span>
+    </div>
 
     <!-- LEVEL-UP OVERLAY (shown via showLevelUpBanner) -->
     <div id="lvl-overlay" class="lvl-overlay" onclick="this.classList.remove('show')">
@@ -1013,13 +1232,22 @@ body {
       </div>
     </div>
 
-    <!-- CRAFTING (WCS station tabs) -->
-    <div class="page" id="page-crafting">
+    <!-- CRAFTING (WCS station tabs + bench scene) -->
+    <div class="page station-themed" id="page-crafting">
       <div class="page-header">
         <h2 class="page-title">🔨 Crafting</h2>
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
           <span class="scope-pill account">🎒 Shared inventory</span>
           <span class="scope-pill character">📈 XP / levels / gear = character</span>
+        </div>
+      </div>
+      <div class="station-scene" id="station-scene">
+        <div class="station-scene-inner">
+          <div class="station-scene-icon" id="station-scene-icon">⛺</div>
+          <div class="station-scene-meta">
+            <h3 id="station-scene-title">Camp Bench</h3>
+            <p id="station-scene-desc">T0 universal recipes — starter camp workbench.</p>
+          </div>
         </div>
       </div>
       <div class="station-tabs" id="station-tabs"></div>
@@ -1046,11 +1274,14 @@ body {
         <button class="filter-btn" onclick="refreshCampsAndBenches()">🔄 Refresh</button>
       </div>
       <div class="station-hint">
-        Station tabs unlock when you <strong>own</strong> a camp with that crafting bench, or are <strong>friendly</strong> with a camp that has one.
-        Home island starter camp always unlocks Camp Bench + Cooking (campfire).
+        Station tabs unlock when you <strong>own</strong> a camp (or boat cabin) with that crafting bench, or are <strong>friendly</strong> with a camp that has one.
+        Home island <strong>Starter Camp</strong> always unlocks <strong>Camp Bench</strong> + <strong>Cooking</strong> (campfire).
+        Place survival-kit props anywhere: tent stages, campfire, workbench (craft), grind wheel (miner), anvil (engineer).
       </div>
       <div id="camps-list"></div>
       <div class="card" style="margin-top:12px">
+        <div class="card-title">Bench → station map (survival kit meshes)</div>
+        <div id="bench-map-list" style="font-size:11px;color:var(--text-dim);margin-bottom:8px"></div>
         <div class="card-title">Unlocked stations</div>
         <div id="unlocked-stations-list" style="font-size:12px;color:var(--text-dim)"></div>
       </div>
@@ -1306,20 +1537,66 @@ const PROF_SKILL_TREES = {
   ],
 };
 
-/** Canonical WCS stations → profession + unlock keys from camp buildings */
+/**
+ * Survival kit mesh nodes (free_survival_asset_kit.glb) → WCS stations.
+ * Placeable in any camp, home island, or boat cabin.
+ * CDN: assets.grudge-studio.com/models/survival/free_survival_asset_kit.glb
+ */
+const SURVIVAL_KIT = {
+  packUrl: 'https://assets.grudge-studio.com/models/survival/free_survival_asset_kit.glb',
+  /** Starter camp always has these building ids */
+  starterBuildings: ['campfire', 'tent', 'workbench', 'camp'],
+  benches: [
+    { id: 'tent_stage_1', label: 'Tent Frame', node: 'tentHalf', stations: ['camp'] },
+    { id: 'tent_stage_2', label: 'Closed Tent', node: 'tentClosed', stations: ['camp'] },
+    { id: 'tent', label: 'Camp Tent', node: 'tent', stations: ['camp'] },
+    { id: 'camp', label: 'Camp', node: 'tent', stations: ['camp'] },
+    { id: 'campfire', label: 'Campfire', node: 'campfire', stations: ['camp', 'cooking'] },
+    { id: 'cooking_bench', label: 'Cooking Bench', node: 'fishingStand', stations: ['cooking'] },
+    { id: 'workbench', label: 'Workbench (hammer + note)', node: 'workbench', stations: ['camp', 'tinker'] },
+    { id: 'grind_wheel', label: 'Sharpening Wheel', node: 'workbenchGrind', stations: ['smithing'] },
+    { id: 'anvil', label: 'Anvil', node: 'workbenchAnvil', stations: ['smithing', 'tinker'] },
+    { id: 'forge', label: 'Forge', node: 'workbenchAnvil', stations: ['smithing'] },
+    { id: 'chest', label: 'Storage Chest', node: 'chest', stations: [] },
+    { id: 'fence', label: 'Fence', node: 'fence', stations: [] },
+    { id: 'floor', label: 'Floor', node: 'floor', stations: [] },
+  ],
+};
+
+/** Canonical WCS stations → profession + unlock keys + CDN icon/art */
+const ASSET_CDN_ROOT = (typeof window !== 'undefined' && window.GRUDGE_CONFIG && window.GRUDGE_CONFIG.ASSETS)
+  || 'https://assets.grudge-studio.com';
 const WCS_STATIONS = [
   { id: 'camp',     name: 'Camp Bench',     icon: '⛺', prof: 'All',      color: '#d4a843', always: true,
-    unlockKeys: ['camp', 'campfire', 'tent', 'workbench', 'crafting bench'], desc: 'T0 universal recipes — always available at any camp.' },
+    iconUrl: ASSET_CDN_ROOT + '/icons/pack/misc/Effect.png',
+    bgUrl: ASSET_CDN_ROOT + '/icons/pack/armor/Chest_01.png',
+    unlockKeys: ['camp', 'campfire', 'tent', 'tent_stage', 'tenthalf', 'tentclosed', 'workbench', 'crafting bench', 'starter'],
+    desc: 'T0 universal recipes — always at owned starter camp (tent + fire + workbench).' },
   { id: 'smithing', name: 'Smithing Table', icon: '⚒️', prof: 'Miner',     color: '#ef4444', always: false,
-    unlockKeys: ['smithing', 'forge', 'anvil', 'smithy', 'smithing table', 'smelter'], desc: 'Miner station — metal weapons, armor, refining.' },
+    iconUrl: ASSET_CDN_ROOT + '/icons/pack/weapons/Hammer_01.png',
+    bgUrl: ASSET_CDN_ROOT + '/icons/pack/weapons/Sword_01.png',
+    unlockKeys: ['smithing', 'forge', 'anvil', 'workbenchanvil', 'grind_wheel', 'workbenchgrind', 'smithy', 'smelter', 'sharpen'],
+    desc: 'Miner station — anvil / forge / grind wheel (survival kit workbenchAnvil + workbenchGrind).' },
   { id: 'lumber',   name: 'Lumber Table',   icon: '🌲', prof: 'Forester',  color: '#22c55e', always: false,
-    unlockKeys: ['lumber', 'sawmill', 'woodwork', 'lumber table', 'carpentry', 'tanner'], desc: 'Forester station — bows, leather, planks.' },
+    iconUrl: ASSET_CDN_ROOT + '/icons/pack/weapons/Axe_01.png',
+    bgUrl: ASSET_CDN_ROOT + '/icons/pack/weapons/Bow_01.png',
+    unlockKeys: ['lumber', 'sawmill', 'lumbermill', 'woodwork', 'carpentry', 'tanner', 'toolaxe'],
+    desc: 'Forester station — bows, leather, planks (lumbermill / sawmill building).' },
   { id: 'loom',     name: 'Loom Table',     icon: '🧵', prof: 'Mystic',    color: '#a78bfa', always: false,
-    unlockKeys: ['loom', 'loom table', 'enchanter', 'arcane table', 'tailor'], desc: 'Mystic station — cloth, staves, essence.' },
+    iconUrl: ASSET_CDN_ROOT + '/icons/pack/weapons/Staff_01.png',
+    bgUrl: ASSET_CDN_ROOT + '/icons/pack/weapons/Staff_01.png',
+    unlockKeys: ['loom', 'spell_table', 'spelltable', 'enchanter', 'arcane table', 'tailor', 'structurecloth'],
+    desc: 'Mystic station — cloth, staves, essence (spell table / loom).' },
   { id: 'cooking',  name: 'Cooking Table',  icon: '🍳', prof: 'Chef',      color: '#f59e0b', always: false,
-    unlockKeys: ['cooking', 'kitchen', 'campfire', 'cookfire', 'cooking table', 'stove', 'hearth'], desc: 'Chef station — food, potions, buffs. Campfire unlocks basic cooking.' },
+    iconUrl: ASSET_CDN_ROOT + '/icons/pack/misc/Effect.png',
+    bgUrl: ASSET_CDN_ROOT + '/icons/pack/misc/Effect.png',
+    unlockKeys: ['cooking', 'kitchen', 'campfire', 'cookfire', 'cooking_bench', 'cooking table', 'stove', 'hearth', 'fishingstand'],
+    desc: 'Chef station — campfire or cooking bench (kit campfire + fishingStand). Starter always has campfire.' },
   { id: 'tinker',   name: 'Tinker Table',   icon: '🔧', prof: 'Engineer',  color: '#60a5fa', always: false,
-    unlockKeys: ['tinker', 'tinker table', 'workshop', 'engineer', 'workbench', 'gunsmith'], desc: 'Engineer station — guns, crossbows, traps, gears.' },
+    iconUrl: ASSET_CDN_ROOT + '/icons/pack/weapons/Crossbow_01.png',
+    bgUrl: ASSET_CDN_ROOT + '/icons/pack/weapons/Hammer_01.png',
+    unlockKeys: ['tinker', 'tinker table', 'workshop', 'engineer', 'workbench', 'gunsmith', 'anvil', 'workbenchanvil'],
+    desc: 'Engineer station — workbench (hammer+note) or anvil from survival kit.' },
 ];
 
 const WCS_TIER_NAMES = { 0:'Broken',1:'Copper',2:'Iron',3:'Steel',4:'Mithril',5:'Adamantine',6:'Orichalcum',7:'Starmetal',8:'Divine' };
@@ -1391,9 +1668,15 @@ const RECIPES = [
   { id:'ragged-pants', n:'Ragged Pants', prof:'All', type:'Armor', tier:0, icon:'👖', mats:{'Torn Rag':3,'Simple Thread':1}, desc:'+1 Defense' },
   { id:'scrap-helm', n:'Scrap Helm', prof:'All', type:'Armor', tier:0, icon:'⛑️', mats:{'Scrap Metal':2}, desc:'+1 Defense' },
   { id:'hand-wraps', n:'Hand Wraps', prof:'All', type:'Armor', tier:0, icon:'🧤', mats:{'Torn Rag':2}, desc:'+1 Defense' },
-  { id:'tent', n:'Tent', prof:'All', type:'Building', tier:0, icon:'⛺', mats:{'Rotted Wood':4,'Torn Rag':6,'Simple Thread':3}, desc:'Basic shelter' },
-  { id:'campfire-b', n:'Campfire', prof:'All', type:'Building', tier:0, icon:'🔥', mats:{'Stone Fragments':5,'Rotted Wood':3}, desc:'Cooking & light' },
-  { id:'storage-chest', n:'Storage Chest', prof:'All', type:'Building', tier:0, icon:'📦', mats:{'Rotted Wood':5,'Scrap Metal':1}, desc:'Item storage' },
+  { id:'tent', n:'Tent', prof:'All', type:'Building', tier:0, icon:'⛺', mats:{'Rotted Wood':4,'Torn Rag':6,'Simple Thread':3}, desc:'Camp stage 3 — open tent (kit: tent). Unlocks Camp Bench.' },
+  { id:'tent-half', n:'Tent Frame', prof:'All', type:'Building', tier:0, icon:'⛺', mats:{'Rotted Wood':3,'Torn Rag':3}, desc:'Camp stage 1 (kit: tentHalf)' },
+  { id:'tent-closed', n:'Closed Tent', prof:'All', type:'Building', tier:0, icon:'⛺', mats:{'Rotted Wood':4,'Torn Rag':5,'Simple Thread':2}, desc:'Camp stage 2 (kit: tentClosed)' },
+  { id:'campfire-b', n:'Campfire', prof:'All', type:'Building', tier:0, icon:'🔥', mats:{'Stone Fragments':5,'Rotted Wood':3}, desc:'Fireplace (kit: campfire). Unlocks Cooking Table.' },
+  { id:'cooking-bench-b', n:'Cooking Bench', prof:'Chef', type:'Building', tier:0, icon:'🍳', mats:{'Rotted Wood':6,'Stone Fragments':2}, desc:'Cooking stand (kit: fishingStand)' },
+  { id:'workbench-b', n:'Workbench', prof:'All', type:'Building', tier:0, icon:'🔨', mats:{'Rotted Wood':8,'Scrap Metal':2}, desc:'Hammer + note table (kit: workbench). Unlocks Tinker.' },
+  { id:'grind-wheel-b', n:'Sharpening Wheel', prof:'Miner', type:'Building', tier:0, icon:'⚙️', mats:{'Stone Fragments':8,'Rotted Wood':4,'Scrap Metal':2}, desc:'Miner grind (kit: workbenchGrind). Unlocks Smithing.' },
+  { id:'anvil-b', n:'Anvil', prof:'Engineer', type:'Building', tier:0, icon:'⚒️', mats:{'Scrap Metal':10,'Stone Fragments':6}, desc:'Engineer anvil (kit: workbenchAnvil). Unlocks Smithing + Tinker.' },
+  { id:'storage-chest', n:'Storage Chest', prof:'All', type:'Building', tier:0, icon:'📦', mats:{'Rotted Wood':5,'Scrap Metal':1}, desc:'Item storage (kit: chest)' },
 
   // === MINER T0 ===
   { id:'smelt-scrap', n:'Smelt Scrap Metal', prof:'Miner', type:'Refining', tier:0, icon:'🔩', mats:{'Junk Ore':3}, desc:'Salvage metal from junk' },
@@ -1511,36 +1794,226 @@ const MAT_ICONS = {
 };
 
 // ============================================================
+// ACCESS GATE — must be logged in + own character selected
+// ============================================================
+/** Characters owned by the current Grudge account (Railway roster). */
+function getOwnedCharacters() {
+  try {
+    if (typeof GrudgeFleet !== 'undefined' && typeof GrudgeFleet.getCharacters === 'function') {
+      const fleet = GrudgeFleet.getCharacters() || [];
+      if (fleet.length) return fleet;
+    }
+  } catch { /* fleet optional during boot */ }
+  return Array.isArray(STATE.grudgeCharacters) ? STATE.grudgeCharacters : [];
+}
+
+/**
+ * Active character only if it belongs to this account's roster.
+ * Stale IDs from other sessions do not count.
+ */
+function getActiveOwnedCharacterId() {
+  const chars = getOwnedCharacters();
+  if (!chars.length) return null;
+  let id = STATE.activeCharacterId || null;
+  try {
+    if (!id && typeof GrudgeFleet !== 'undefined' && typeof GrudgeFleet.getActiveId === 'function') {
+      id = GrudgeFleet.getActiveId();
+    }
+  } catch { /* ignore */ }
+  if (!id) return null;
+  const owned = chars.some((c) => String(c.id) === String(id));
+  if (!owned) return null;
+  if (String(STATE.activeCharacterId || '') !== String(id)) STATE.activeCharacterId = id;
+  return id;
+}
+
+/**
+ * True when Railway session + active owned character are ready for mutates
+ * (craft / gather / bag sync). Browse mode never requires this.
+ */
+function isAccessReady() {
+  try {
+    if (typeof GrudgeFleet === 'undefined' || typeof GrudgeFleet.isLoggedIn !== 'function') return false;
+    if (!GrudgeFleet.isLoggedIn()) return false;
+    return !!getActiveOwnedCharacterId();
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Soft-gate mutates only (craft, gather, progress writes). Never locks navigation/browse.
+ * @returns {boolean} true if access allowed
+ */
+function requireAccess(actionLabel) {
+  if (isAccessReady()) return true;
+  updateAccessGate();
+  const label = actionLabel || 'craft';
+  try {
+    if (typeof GrudgeFleet === 'undefined' || !GrudgeFleet.isLoggedIn()) {
+      showToast('Sign in with Grudge ID to ' + label, 'error');
+    } else if (!getOwnedCharacters().length) {
+      showToast('Create a Warlords character first, then return here', 'error');
+    } else {
+      showToast('Select a character on Account tab to ' + label, 'error');
+      try { navigate('account'); } catch { /* ok */ }
+    }
+  } catch {
+    showToast('Sign in and select a character to ' + label, 'error');
+  }
+  return false;
+}
+
+/**
+ * Never blocks the suite. Updates soft banner + keeps body.access-ready always.
+ * Character pick is optional (Account tab) until you craft.
+ */
+function updateAccessGate() {
+  document.body.classList.add('access-ready');
+  const gate = document.getElementById('access-gate');
+  if (gate) {
+    gate.classList.add('hidden');
+    gate.setAttribute('aria-hidden', 'true');
+  }
+
+  const fleetReady = typeof GrudgeFleet !== 'undefined';
+  const loggedIn = fleetReady && typeof GrudgeFleet.isLoggedIn === 'function' && GrudgeFleet.isLoggedIn();
+  const chars = getOwnedCharacters();
+  const activeId = getActiveOwnedCharacterId();
+
+  if (chars.length && (!STATE.grudgeCharacters || STATE.grudgeCharacters.length !== chars.length)) {
+    STATE.grudgeCharacters = chars;
+  }
+  if (activeId) STATE.activeCharacterId = activeId;
+
+  const banner = document.getElementById('soft-auth-banner');
+  const msg = document.getElementById('soft-auth-msg');
+  if (!banner) return;
+
+  if (loggedIn && activeId) {
+    banner.classList.remove('show');
+    return;
+  }
+
+  banner.classList.add('show');
+  if (!fleetReady) {
+    if (msg) msg.innerHTML = 'Loading fleet bridge… recipes still browseable.';
+    return;
+  }
+  if (!loggedIn) {
+    if (msg) {
+      msg.innerHTML = 'Browse recipes freely. <strong>Sign in with Grudge ID</strong> when you want to craft (shared bag + per-character XP).';
+    }
+    return;
+  }
+  if (!chars.length) {
+    if (msg) {
+      msg.innerHTML = 'Signed in — no Warlords heroes on this account. <a href="https://character.grudge-studio.com?era=warlords" target="_blank" rel="noopener" style="color:var(--gold)">Create one</a>, or pick Account → Switch account.';
+    }
+    return;
+  }
+  if (msg) {
+    msg.innerHTML = 'Signed in — select a character on the <strong>Account</strong> tab to bind profession XP when you craft.';
+  }
+}
+
+// ============================================================
 // AUTH
 // ============================================================
 /**
  * Sign in via Grudge ID (canonical).
- * Redirects to id.grudge-studio.com → returns with ?grudge_token= →
- * grudge-bridge mints Railway JWT for the REAL Warlords account.
+ * Redirects to id.grudge-studio.com → returns with sso_token / grudge_token →
+ * Railway JWT for the REAL Warlords account.
  * Do NOT use Puter-only bridge as primary login (empty puter:* roster).
  */
-async function doAuth() {
+async function doSignIn() {
   try {
     if (typeof GrudgeFleet === 'undefined') {
       showToast('Fleet bridge not loaded', 'error');
       return;
     }
-    // Already on a session with characters — just refresh
     if (GrudgeFleet.isLoggedIn() && (GrudgeFleet.getCharacters() || []).length > 0) {
       await fetchGrudgeCharacters();
+      updateAuthUI();
+      updateAccessGate();
       showToast('Characters refreshed', 'success');
       return;
     }
-    // Empty / wrong session — clear synthetic puter guest and send to Grudge ID
-    if (GrudgeFleet.isLoggedIn() && typeof GrudgeFleet.signOut === 'function') {
-      GrudgeFleet.signOut();
-    }
     showToast('Redirecting to Grudge ID…', 'success');
     await GrudgeFleet.signIn({ mode: 'grudge-id' });
-    // Browser navigates away; if somehow not, fall through refresh
   } catch (e) {
     console.error(e);
     showToast('Sign in failed: ' + (e.message || e), 'error');
+  }
+}
+
+/** Alias for older onclick handlers */
+async function doAuth() {
+  return doSignIn();
+}
+
+/** Create a new Grudge ID account, then return here. */
+function doCreateAccount() {
+  try {
+    if (typeof GrudgeFleet === 'undefined') {
+      showToast('Fleet bridge not loaded', 'error');
+      return;
+    }
+    showToast('Opening create account…', 'success');
+    if (typeof GrudgeFleet.createAccount === 'function') {
+      GrudgeFleet.createAccount();
+      return;
+    }
+    const base = (window.GRUDGE_CONFIG && GRUDGE_CONFIG.AUTH_GATEWAY) || 'https://id.grudge-studio.com';
+    const ret = encodeURIComponent(window.location.origin + window.location.pathname);
+    window.location.href = base.replace(/\/$/, '') + '/login?mode=register&redirect_uri=' + ret;
+  } catch (e) {
+    console.error(e);
+    showToast('Could not open create account', 'error');
+  }
+}
+
+/** Sign out current grudge_id and open login for a different account. */
+async function doSwitchAccount() {
+  try {
+    if (typeof GrudgeFleet === 'undefined') {
+      showToast('Fleet bridge not loaded', 'error');
+      return;
+    }
+    if (!confirm('Switch Grudge account?\n\nYou will sign out of this account and open Grudge ID login.')) {
+      return;
+    }
+    showToast('Switching account…', 'success');
+    if (typeof GrudgeFleet.switchAccount === 'function') {
+      await GrudgeFleet.switchAccount();
+      return;
+    }
+    if (typeof GrudgeFleet.signOut === 'function') GrudgeFleet.signOut();
+    await GrudgeFleet.signIn({ mode: 'grudge-id' });
+  } catch (e) {
+    console.error(e);
+    showToast('Switch account failed: ' + (e.message || e), 'error');
+  }
+}
+
+/** Clear JWT + local fleet identity; stay on crafting (gate shows sign-in). */
+function doSignOut() {
+  try {
+    if (typeof GrudgeFleet !== 'undefined' && typeof GrudgeFleet.signOut === 'function') {
+      GrudgeFleet.signOut();
+    }
+    STATE.activeCharacterId = null;
+    STATE.grudgeCharacters = [];
+    STATE.user = null;
+    STATE.inventory = {};
+    updateAuthUI();
+    updateAccessGate();
+    renderCharactersList();
+    updateCharacterUI();
+    showToast('Signed out — sign in with Grudge ID to continue', 'success');
+  } catch (e) {
+    console.error(e);
+    showToast('Sign out failed', 'error');
   }
 }
 
@@ -1637,22 +2110,37 @@ function loadCharacterSheet(charId) {
 async function refreshFleetState() {
   STATE.grudgeToken = GrudgeFleet.getToken();
   STATE.grudgeCharacters = GrudgeFleet.getCharacters();
-  STATE.activeCharacterId = GrudgeFleet.getActiveId();
-  applyCharacterToState(GrudgeFleet.getActiveCharacter());
+  // Only adopt fleet active id when it is on this account's roster
+  const fleetActive = GrudgeFleet.getActiveId();
+  const roster = STATE.grudgeCharacters || [];
+  const ownedActive = fleetActive && roster.some((c) => String(c.id) === String(fleetActive))
+    ? fleetActive
+    : null;
+  STATE.activeCharacterId = ownedActive || (roster.some((c) => String(c.id) === String(STATE.activeCharacterId))
+    ? STATE.activeCharacterId
+    : null);
+  if (STATE.activeCharacterId) {
+    applyCharacterToState(GrudgeFleet.getActiveCharacter() || roster.find((c) => String(c.id) === String(STATE.activeCharacterId)));
+  }
   try { STATE.user = await puter.auth.getUser(); } catch {}
   updateAuthUI();
+  updateAccessGate();
   // 1) Puter cache for UI chrome (not bag when Railway auth)
   await loadSaveData();
   // 2) Railway account bag + character list already from same Postgres as Warlords
-  await loadAccountInventory();
-  await refreshCampsAndBenches();
+  if (isAccessReady()) {
+    await loadAccountInventory();
+    await refreshCampsAndBenches();
+  }
   renderCharactersList();
   updateCharacterUI();
   updateStationLockBadges();
+  updateAccessGate();
 }
 
 async function checkAuth() {
   try {
+    updateAccessGate();
     const embedded = window.parent !== window;
     // init picks up ?sso_token= (preferred) / ?grudge_token= and loads Railway JWT
     await GrudgeFleet.init({ mode: embedded ? 'embedded' : 'standalone' });
@@ -1662,28 +2150,42 @@ async function checkAuth() {
     }
     if (GrudgeFleet.isLoggedIn()) await GrudgeFleet.syncFromBackend();
     await refreshFleetState();
-    // After SSO return: open Account panel so characters/inventory are visible
+    // After SSO: only enter suite when an owned character is selected
     if (GrudgeFleet.isLoggedIn()) {
-      try {
-        if (typeof navigate === 'function') navigate('account');
-      } catch { /* panel optional */ }
       if (typeof renderAll === 'function') renderAll();
       const n = (GrudgeFleet.getCharacters() || []).length;
-      if (n > 0) {
-        showToast('Signed in — ' + n + ' character' + (n === 1 ? '' : 's') + ' loaded', 'success');
+      if (isAccessReady()) {
+        try {
+          if (typeof navigate === 'function') navigate('dashboard');
+        } catch { /* panel optional */ }
+        showToast('Ready — crafting as active character', 'success');
+      } else if (n > 0) {
+        showToast('Select a character to unlock crafting', 'error');
       } else {
         showToast('Signed in — no Warlords characters on this account yet', 'error');
       }
     }
+    updateAccessGate();
     // Keep UI in sync when character changes (other tabs / VFX studio SSO)
     if (typeof GrudgeFleet.onCharacterChange === 'function') {
       GrudgeFleet.onCharacterChange(async (char) => {
-        if (!char) return;
+        if (!char) {
+          STATE.activeCharacterId = null;
+          updateAccessGate();
+          return;
+        }
+        // Only accept characters from this account's roster
+        const owned = getOwnedCharacters().some((c) => String(c.id) === String(char.id));
+        if (!owned) {
+          updateAccessGate();
+          return;
+        }
         applyCharacterToState(char);
         // Inventory stays account-shared — do not swap bag
         renderCharactersList();
         updateCharacterUI();
         updateStationLockBadges();
+        updateAccessGate();
         if (typeof renderInventoryPage === 'function') renderInventoryPage();
         if (typeof renderDashboard === 'function' && STATE.currentPage === 'dashboard') renderDashboard();
         if (STATE.currentPage === 'crafting') renderCraftingPage();
@@ -1692,40 +2194,85 @@ async function checkAuth() {
     window.addEventListener('grudge:auth:ready', () => {
       refreshFleetState().then(() => {
         if (typeof renderAll === 'function') renderAll();
+        updateAccessGate();
       }).catch(() => {});
     });
     window.addEventListener('grudge:characters:loaded', () => {
       refreshFleetState().catch(() => {});
     });
-  } catch(e) { console.warn('Auth check:', e); }
+    window.addEventListener('grudge:auth:mismatch', () => {
+      showToast('Account mismatch — signed out. Sign in with the correct Grudge ID.', 'error');
+      updateAuthUI();
+      updateAccessGate();
+    });
+    window.addEventListener('grudge:auth:logout', () => {
+      updateAuthUI();
+      updateAccessGate();
+    });
+  } catch (e) {
+    console.warn('Auth check:', e);
+    updateAccessGate();
+  }
 }
 
 function updateAuthUI() {
   const dot = document.getElementById('acctDot');
   const name = document.getElementById('acctName');
+  const sub = document.getElementById('acctSub');
   const btn = document.getElementById('authBtn');
+  const btnSignIn = document.getElementById('btnSignIn');
+  const btnCreate = document.getElementById('btnCreateAccount');
+  const btnSwitch = document.getElementById('btnSwitchAccount');
+  const btnOut = document.getElementById('btnSignOut');
   const fleetUser = (typeof GrudgeFleet !== 'undefined' && GrudgeFleet.getUser) ? GrudgeFleet.getUser() : null;
+  const gid = (typeof GrudgeFleet !== 'undefined' && GrudgeFleet.getGrudgeId)
+    ? GrudgeFleet.getGrudgeId()
+    : (fleetUser?.grudgeId || '');
   const displayName = fleetUser?.username || fleetUser?.displayName || STATE.user?.username;
   const loggedIn = typeof GrudgeFleet !== 'undefined' && GrudgeFleet.isLoggedIn();
   const charCount = (typeof GrudgeFleet !== 'undefined' && GrudgeFleet.getCharacters)
     ? GrudgeFleet.getCharacters().length
     : STATE.grudgeCharacters.length;
+  const ready = isAccessReady();
   if (loggedIn) {
-    dot.classList.add('on');
-    name.textContent = displayName || (charCount ? 'Warlord' : 'Account (no chars)');
-    // Never permanently disable — empty roster needs re-auth to real Warlords account
-    btn.disabled = false;
-    btn.textContent = charCount > 0 ? 'Switch' : 'Sign In';
-    btn.title = charCount > 0
-      ? 'Switch Grudge account'
-      : 'Sign in with Grudge ID to load Warlords characters';
+    if (dot) dot.classList.add('on');
+    if (name) {
+      name.textContent = ready
+        ? (displayName || 'Warlord')
+        : (displayName || (charCount ? 'Pick character' : 'Account (no chars)'));
+    }
+    if (sub) {
+      sub.textContent = gid
+        ? (gid.length > 18 ? gid.slice(0, 16) + '…' : gid)
+        : (charCount + ' hero' + (charCount === 1 ? '' : 'es') + ' · era warlords');
+      sub.title = gid || '';
+    }
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = 'Switch';
+      btn.title = 'Switch Grudge account';
+      btn.onclick = function () { doSwitchAccount(); };
+    }
+    if (btnSignIn) btnSignIn.hidden = true;
+    if (btnCreate) btnCreate.hidden = true;
+    if (btnSwitch) btnSwitch.hidden = false;
+    if (btnOut) btnOut.hidden = false;
   } else {
-    dot.classList.remove('on');
-    name.textContent = 'Not signed in';
-    btn.disabled = false;
-    btn.textContent = 'Sign In';
-    btn.title = 'Sign in with Grudge ID';
+    if (dot) dot.classList.remove('on');
+    if (name) name.textContent = 'Not signed in';
+    if (sub) { sub.textContent = 'Grudge ID required'; sub.title = ''; }
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = 'Sign In';
+      btn.title = 'Sign in with Grudge ID';
+      btn.onclick = function () { doSignIn(); };
+    }
+    if (btnSignIn) btnSignIn.hidden = false;
+    if (btnCreate) btnCreate.hidden = false;
+    if (btnSwitch) btnSwitch.hidden = true;
+    if (btnOut) btnOut.hidden = true;
   }
+  updateAccessGate();
 }
 
 function applyCharacterToState(char) {
@@ -1914,6 +2461,7 @@ async function loadSaveData() {
 // NAVIGATION
 // ============================================================
 function navigate(page) {
+  // Browse always allowed — no login gate on navigation
   STATE.currentPage = page;
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
@@ -1952,6 +2500,7 @@ function renderCurrentPage() {
 
 /** Open class skill tree with SSO token + character UUID */
 function openCharacterSkillTree() {
+  if (!requireAccess('open the skill tree')) return;
   const base = window.GRUDGE_CONFIG.SKILL_TREE_URL || './skill-tree.html';
   const url = (typeof GrudgeFleet !== 'undefined' && GrudgeFleet.buildSSOUrl)
     ? GrudgeFleet.buildSSOUrl(base, { characterId: STATE.activeCharacterId })
@@ -1959,6 +2508,7 @@ function openCharacterSkillTree() {
   window.open(url, '_blank', 'noopener');
 }
 function openCharacterWeaponMastery() {
+  if (!requireAccess('open weapon mastery')) return;
   const base = window.GRUDGE_CONFIG.WEAPON_MASTERY_URL || './weaponmastery.html';
   const url = (typeof GrudgeFleet !== 'undefined' && GrudgeFleet.buildSSOUrl)
     ? GrudgeFleet.buildSSOUrl(base, { characterId: STATE.activeCharacterId })
@@ -2232,6 +2782,7 @@ function isStationUnlocked(stationId) {
 }
 
 function openStation(stationId) {
+  // Browse benches without login; craft still soft-gated
   if (!isStationUnlocked(stationId)) {
     showToast('Station locked — need a friendly/owned camp with this bench', 'error');
     navigate('camps');
@@ -2240,6 +2791,38 @@ function openStation(stationId) {
   STATE.activeStation = stationId;
   STATE.selectedRecipe = null;
   navigate('crafting');
+}
+
+function stationIconHtml(st, size) {
+  if (st && st.iconUrl) {
+    const s = size || 18;
+    return `<img src="${st.iconUrl}" alt="" width="${s}" height="${s}" loading="lazy" onerror="this.style.display='none';this.nextElementSibling&&(this.nextElementSibling.style.display='inline')">` +
+      `<span style="display:none">${st.icon || '⚒'}</span>`;
+  }
+  return st?.icon || '⚒';
+}
+
+function applyStationScene(st) {
+  const page = document.getElementById('page-crafting');
+  const scene = document.getElementById('station-scene');
+  const iconEl = document.getElementById('station-scene-icon');
+  const titleEl = document.getElementById('station-scene-title');
+  const descEl = document.getElementById('station-scene-desc');
+  if (!st) return;
+  if (page) {
+    page.style.setProperty('--station-glow', (st.color || '#d4a843') + '55');
+  }
+  if (scene) {
+    if (st.bgUrl) scene.style.setProperty('--station-bg', `url("${st.bgUrl}")`);
+    else scene.style.removeProperty('--station-bg');
+  }
+  if (iconEl) {
+    iconEl.innerHTML = st.iconUrl
+      ? `<img src="${st.iconUrl}" alt="${st.name}" onerror="this.parentNode.textContent='${st.icon || '⚒'}'">`
+      : (st.icon || '⚒');
+  }
+  if (titleEl) titleEl.textContent = st.name;
+  if (descEl) descEl.textContent = st.desc || '';
 }
 
 function updateStationLockBadges() {
@@ -2261,7 +2844,7 @@ function renderStationTabs() {
     return `<button class="station-tab ${active ? 'active' : ''} ${unlocked ? '' : 'locked'}"
       onclick="${unlocked ? `STATE.activeStation='${st.id}';STATE.selectedRecipe=null;renderCraftingPage()` : `showToast('Locked — unlock at Camps & Benches','error')`}"
       title="${st.desc}">
-      <span class="st-icon">${st.icon}</span>
+      <span class="st-icon">${stationIconHtml(st, 18)}</span>
       <span>${st.name}</span>
       ${unlocked ? '' : '<span class="lock">🔒</span>'}
     </button>`;
@@ -2269,6 +2852,7 @@ function renderStationTabs() {
 
   const hint = document.getElementById('station-hint');
   const st = WCS_STATIONS.find((s) => s.id === STATE.activeStation) || WCS_STATIONS[0];
+  applyStationScene(st);
   const unlocked = isStationUnlocked(st.id);
   const char = STATE.grudgeCharacters.find((c) => c.id === STATE.activeCharacterId);
   if (hint) {
@@ -2313,7 +2897,7 @@ function renderCraftingPage() {
       const sel = STATE.selectedRecipe && STATE.selectedRecipe.id === r.id;
       const tierColors = ['#666','#22c55e','#60a5fa','#a78bfa','#f59e0b','#ef4444','#ec4899','#f97316','#dc2626'];
       return `<div class="recipe-item ${sel?'selected':''} ${canCraft?'':'cant-craft'}" onclick="selectRecipe('${r.id}')">
-        <span class="recipe-icon">${r.icon||'📦'}</span>
+        <span class="recipe-icon">${itemIcon(r.n, r.icon || '📦', 'item-img', 28)}</span>
         <div class="recipe-info">
           <div class="recipe-name">${r.n}</div>
           <div class="recipe-meta">${r.prof} · ${r.type} · ${st.name}</div>
@@ -2343,7 +2927,7 @@ function renderBenchDetail() {
     const have = STATE.inventory[name] || 0;
     const enough = have >= qty;
     return `<div class="slot ${enough?'filled':'missing'}">
-      <span>${MAT_ICONS[name]||'📦'}</span>
+      <span>${itemIcon(name, MAT_ICONS[name]||'📦', 'item-img', 22)}</span>
       <span class="slot-qty ${enough?'enough':'short'}">${have}/${qty}</span>
       <span class="slot-name">${name}</span>
     </div>`;
@@ -2353,13 +2937,13 @@ function renderBenchDetail() {
   const emptySlotsHtml = Array(emptySlots).fill('<div class="slot"></div>').join('');
 
   el.innerHTML = `
-    <div class="card-title">${r.icon} ${r.n}</div>
+    <div class="card-title" style="display:flex;align-items:center;gap:8px">${itemIcon(r.n, r.icon||'📦', 'item-img', 28)} ${r.n}</div>
     <p style="font-size:11px;color:var(--text-dim);margin-bottom:12px">${r.desc || ''}</p>
     <div style="font-size:9px;color:var(--text-dim);margin-bottom:6px;letter-spacing:0.1em">MATERIALS REQUIRED</div>
     <div class="bench-slots">${slotsHtml}${emptySlotsHtml}</div>
     <div class="craft-result">
       <span class="craft-arrow">→</span>
-      <span class="result-icon">${r.icon||'📦'}</span>
+      <span class="result-icon">${itemIcon(r.n, r.icon||'📦', 'item-img', 36)}</span>
       <div>
         <div class="result-name">${r.n}</div>
         <div style="font-size:9px;color:var(--text-dim)">${r.prof} · T${r.tier} · ${r.type}</div>
@@ -2378,6 +2962,7 @@ function checkCanCraft(recipe) {
 }
 
 async function craftItem(id) {
+  if (!requireAccess('craft')) return;
   const recipe = RECIPES.find(r => r.id === id);
   if (!recipe || !checkCanCraft(recipe) || STATE.isCrafting) return;
   const stId = recipe.station || PROF_TO_STATION[recipe.prof] || 'camp';
@@ -2385,10 +2970,14 @@ async function craftItem(id) {
     showToast('Station locked — visit a friendly/owned camp bench', 'error');
     return;
   }
-  // XP always applies to the active character sheet
-  if (!STATE.activeCharacterId && GrudgeFleet.getActiveId()) {
-    STATE.activeCharacterId = GrudgeFleet.getActiveId();
+  // XP always applies to the active owned character sheet
+  const ownedId = getActiveOwnedCharacterId();
+  if (!ownedId) {
+    showToast('Select one of your characters before crafting', 'error');
+    updateAccessGate();
+    return;
   }
+  STATE.activeCharacterId = ownedId;
 
   STATE.isCrafting = true;
   renderBenchDetail();
@@ -2507,7 +3096,7 @@ function renderInventoryPage() {
           </div>
           ${ready.slice(0,6).map(r => `
             <div class="craft-hint" onclick="navigate('crafting');selectRecipe('${r.id}');renderCraftingPage()">
-              <span class="ch-icon">${r.icon||'\ud83d\udce6'}</span>
+              <span class="ch-icon">${itemIcon(r.n, r.icon||'📦', 'item-img', 28)}</span>
               <div class="ch-info">
                 <div class="ch-name">${r.n}</div>
                 <div class="ch-sub">${r.prof} · T${r.tier} · ${r.desc}</div>
@@ -2534,8 +3123,9 @@ function renderInvFiltered(type, btn) {
 
 function renderInvItems(items) {
   document.getElementById('inv-grid').innerHTML = items.map(([name, qty]) => {
+    const emoji = MAT_ICONS[name] || (RECIPES.find(r=>r.n===name)?.icon) || '📦';
     return `<div class="inv-item">
-      <span class="icon">${MAT_ICONS[name] || (RECIPES.find(r=>r.n===name)?.icon) || '📦'}</span>
+      <span class="icon">${itemIcon(name, emoji, 'item-img', 24)}</span>
       <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${name}</span>
       <span class="qty">×${qty}</span>
     </div>`;
@@ -2727,6 +3317,7 @@ function renderMatProgressBars(elId, inv) {
 // ENHANCED GATHER MATERIALS
 // ============================================================
 function gatherMaterials() {
+  if (!requireAccess('gather materials')) return;
   const gatherables = [
     'Wood Scraps','Stone Fragments','Plant Fiber','Animal Hide','Animal Bone',
     'Raw Meat','Wild Herbs','Water','Junk Ore','Torn Rag','Leather Scraps',
@@ -2795,21 +3386,34 @@ function gatherMaterials() {
 
 // === GRUDGE WARLORDS API (via GrudgeFleet → Railway Postgres) ===
 async function fetchGrudgeCharacters() {
-  if (!GrudgeFleet.isLoggedIn()) return;
+  if (!GrudgeFleet.isLoggedIn()) {
+    updateAccessGate();
+    return;
+  }
   await GrudgeFleet.syncFromBackend();
   STATE.grudgeToken = GrudgeFleet.getToken();
-  STATE.grudgeCharacters = GrudgeFleet.getCharacters();
-  if (!STATE.activeCharacterId && GrudgeFleet.getActiveId()) {
-    STATE.activeCharacterId = GrudgeFleet.getActiveId();
+  STATE.grudgeCharacters = GrudgeFleet.getCharacters() || [];
+  const fleetActive = GrudgeFleet.getActiveId();
+  const ownedActive = fleetActive && STATE.grudgeCharacters.some((c) => String(c.id) === String(fleetActive))
+    ? fleetActive
+    : getActiveOwnedCharacterId();
+  STATE.activeCharacterId = ownedActive;
+  if (STATE.activeCharacterId) {
+    applyCharacterToState(GrudgeFleet.getActiveCharacter()
+      || STATE.grudgeCharacters.find((c) => String(c.id) === String(STATE.activeCharacterId)));
   }
-  applyCharacterToState(GrudgeFleet.getActiveCharacter());
-  try { await loadAccountInventory(); } catch {}
+  try { if (isAccessReady()) await loadAccountInventory(); } catch {}
   updateAuthUI();
+  updateAccessGate();
   renderCharactersList();
   updateCharacterUI();
-  renderAll();
+  if (isAccessReady()) renderAll();
   if (STATE.grudgeCharacters.length) {
-    showToast('Loaded ' + STATE.grudgeCharacters.length + ' characters from Railway', 'success');
+    if (isAccessReady()) {
+      showToast('Loaded ' + STATE.grudgeCharacters.length + ' characters from Railway', 'success');
+    } else {
+      showToast('Loaded ' + STATE.grudgeCharacters.length + ' characters — select one to continue', 'success');
+    }
   }
 }
 
@@ -2841,12 +3445,26 @@ async function loginToGrudge() {
 }
 
 async function selectCharacter(charId) {
+  if (typeof GrudgeFleet === 'undefined' || !GrudgeFleet.isLoggedIn()) {
+    showToast('Sign in with Grudge ID first', 'error');
+    updateAccessGate();
+    return;
+  }
+  // Must belong to this account's Railway roster
+  const roster = getOwnedCharacters();
+  const owned = roster.find((x) => String(x.id) === String(charId));
+  if (!owned) {
+    showToast('That character is not on your account', 'error');
+    updateAccessGate();
+    return;
+  }
   // Stash current char progress, load target UUID — inventory stays shared
   stashActiveCharacterSheet();
   STATE.activeCharacterId = charId;
+  STATE.grudgeCharacters = roster;
   GrudgeFleet.selectCharacter(charId);
   // Prefer full detail (attrs, skills, mastery) from API
-  let char = GrudgeFleet.getActiveCharacter() || { id: charId };
+  let char = GrudgeFleet.getActiveCharacter() || owned || { id: charId };
   try {
     if (typeof GrudgeFleet.getCharacterDetail === 'function' && GrudgeFleet.isLoggedIn()) {
       const detail = await GrudgeFleet.getCharacterDetail(charId);
@@ -2854,43 +3472,86 @@ async function selectCharacter(charId) {
     }
   } catch (e) { console.warn('character detail:', e); }
   applyCharacterToState(char);
+  try { await loadAccountInventory(); } catch { /* optional */ }
+  try { await refreshCampsAndBenches(); } catch { /* optional */ }
   renderCharactersList();
   renderActiveCharacter();
   updateCharacterUI();
   updateStationLockBadges();
-  if (STATE.currentPage === 'dashboard') renderDashboard();
-  if (STATE.currentPage === 'crafting') renderCraftingPage();
-  if (STATE.currentPage === 'inventory') renderInventoryPage();
-  if (STATE.currentPage === 'char-progress') renderCharProgressPage();
-  if (STATE.currentPage.startsWith('prof-')) renderProfessionPage(STATE.currentPage.replace('prof-', ''));
+  updateAccessGate();
+  if (isAccessReady()) {
+    if (STATE.currentPage === 'dashboard') renderDashboard();
+    if (STATE.currentPage === 'crafting') renderCraftingPage();
+    if (STATE.currentPage === 'inventory') renderInventoryPage();
+    if (STATE.currentPage === 'char-progress') renderCharProgressPage();
+    if (STATE.currentPage.startsWith('prof-')) renderProfessionPage(STATE.currentPage.replace('prof-', ''));
+    renderAll();
+  }
   saveData();
-  const c = STATE.grudgeCharacters.find((x) => String(x.id) === String(charId));
-  showToast(c ? `${c.name} — skills/mastery/attrs bound to UUID` : 'Character selected!', 'success');
+  const c = roster.find((x) => String(x.id) === String(charId));
+  showToast(c ? `${c.name} selected — crafting unlocked` : 'Character selected!', 'success');
 }
 
 // ============================================================
-// CAMPS & BENCH UNLOCKS (own or friendly)
+// CAMPS & BENCH UNLOCKS (own or friendly — any camp / boat cabin)
 // ============================================================
 function normalizeBuildingName(b) {
   if (!b) return '';
-  if (typeof b === 'string') return b.toLowerCase();
-  return String(b.type || b.name || b.id || b.buildingType || b.kind || '').toLowerCase();
+  if (typeof b === 'string') return b.toLowerCase().replace(/[\s-]+/g, '_');
+  const raw = String(b.type || b.name || b.id || b.buildingType || b.kind || b.nodeName || b.kitNode || '').toLowerCase();
+  return raw.replace(/[\s-]+/g, '_');
+}
+
+/** Expand aliases so TI placeables + kit nodes all match unlockKeys */
+function buildingAliases(name) {
+  const n = normalizeBuildingName(name);
+  const out = new Set([n]);
+  // tent stages
+  if (/^tent_stage_[123]$/.test(n) || n === 'tenthalf' || n === 'tent_closed' || n === 'tentclosed') {
+    out.add('tent'); out.add('camp'); out.add(n.replace(/_/g, ''));
+  }
+  if (n === 'tent' || n === 'camp') { out.add('tent'); out.add('camp'); }
+  // fireplace / cooking
+  if (n === 'campfire' || n === 'fireplace') { out.add('campfire'); out.add('cooking'); }
+  if (n === 'cooking_bench' || n === 'fishingstand' || n === 'fishing_stand') {
+    out.add('cooking_bench'); out.add('cooking'); out.add('fishingstand');
+  }
+  // craft tables
+  if (n === 'workbench') { out.add('workbench'); out.add('tinker'); out.add('camp'); }
+  if (n === 'grind_wheel' || n === 'workbenchgrind' || n === 'sharpening_wheel') {
+    out.add('grind_wheel'); out.add('workbenchgrind'); out.add('smithing'); out.add('sharpen');
+  }
+  if (n === 'anvil' || n === 'workbenchanvil' || n === 'forge') {
+    out.add('anvil'); out.add('workbenchanvil'); out.add('forge'); out.add('smithing'); out.add('tinker');
+  }
+  // strip underscores for key matching
+  out.add(n.replace(/_/g, ''));
+  return [...out];
 }
 
 function unlockStationsFromBuildings(buildings, campMeta) {
-  const names = (buildings || []).map(normalizeBuildingName).filter(Boolean);
-  // Always grant camp + cooking when any camp exists (campfire baseline)
-  if (campMeta) {
+  const names = [];
+  (buildings || []).forEach((b) => buildingAliases(b).forEach((a) => names.push(a)));
+  // Owned / starter camp always: Camp Bench + Cooking (campfire contract)
+  if (campMeta && (campMeta.relation === 'owned' || campMeta.starter)) {
     STATE.unlockedStations.camp = true;
-    // campfire / hearth → cooking
-    if (names.some((n) => /campfire|hearth|stove|cook/.test(n)) || campMeta.relation === 'owned') {
-      STATE.unlockedStations.cooking = true;
-    }
+    STATE.unlockedStations.cooking = true;
+  }
+  if (campMeta && campMeta.relation === 'friendly') {
+    STATE.unlockedStations.camp = true;
+  }
+  // Explicit campfire / cooking bench
+  if (names.some((n) => /campfire|hearth|stove|cook|fishingstand/.test(n))) {
+    STATE.unlockedStations.cooking = true;
   }
   for (const st of WCS_STATIONS) {
     if (st.always) { STATE.unlockedStations[st.id] = true; continue; }
     for (const key of st.unlockKeys) {
-      if (names.some((n) => n.includes(key) || key.includes(n))) {
+      const k = key.toLowerCase().replace(/[\s-]+/g, '_').replace(/_/g, '');
+      if (names.some((n) => {
+        const nn = n.replace(/_/g, '');
+        return nn.includes(k) || k.includes(nn) || n.includes(key.toLowerCase());
+      })) {
         STATE.unlockedStations[st.id] = true;
         break;
       }
@@ -2898,74 +3559,102 @@ function unlockStationsFromBuildings(buildings, campMeta) {
   }
 }
 
+function collectBuildingsFromState(state) {
+  const placed = [];
+  if (!state || typeof state !== 'object') return placed;
+  const arrKeys = ['buildings', 'structures', 'benches', 'props', 'placedBuildings'];
+  for (const k of arrKeys) {
+    if (Array.isArray(state[k])) placed.push(...state[k]);
+  }
+  if (Array.isArray(state.nodes)) {
+    placed.push(...state.nodes.filter((n) =>
+      n && (n.kind === 'building' || n.type === 'building' || n.survivalKitNode || n.kitNode || n.category === 'production' || n.category === 'structure')
+    ));
+  }
+  // flat single props
+  ['workshop', 'camp', 'campfire', 'forge', 'anvil', 'workbench', 'cabin'].forEach((k) => {
+    if (state[k]) placed.push(state[k]);
+  });
+  return placed;
+}
+
 async function refreshCampsAndBenches() {
   const camps = [];
   // Owned home island
   try {
-    if (GrudgeFleet.isLoggedIn() && typeof GrudgeFleet.getHomeIsland === 'function') {
+    if (typeof GrudgeFleet !== 'undefined' && GrudgeFleet.isLoggedIn() && typeof GrudgeFleet.getHomeIsland === 'function') {
       const island = await GrudgeFleet.getHomeIsland();
       if (island) {
         const state = island.state || island;
-        const buildings = state.buildings || state.structures || state.nodes?.filter?.((n) => n.kind === 'building' || n.type === 'building') || [];
-        // Also scan flat keys for placed benches
-        const placed = [];
-        if (Array.isArray(buildings)) placed.push(...buildings);
-        if (state.workshop) placed.push(state.workshop);
-        if (state.camp) placed.push(state.camp);
-        // Common starter set on owned home island
-        const starter = ['campfire', 'tent', 'workbench', 'camp'];
-        if (island.ownerId || island.userId || true) {
-          // Owned home always unlocks camp + cooking; higher benches if present
-          camps.push({
-            id: island.id || 'home',
-            name: island.name || 'Home Island Camp',
-            relation: 'owned',
-            buildings: [...starter, ...placed.map(normalizeBuildingName)],
-          });
-        }
+        const placed = collectBuildingsFromState(state);
+        const starter = [...SURVIVAL_KIT.starterBuildings];
+        camps.push({
+          id: island.id || 'home',
+          name: island.name || 'Home Island — Starter Camp',
+          relation: 'owned',
+          starter: true,
+          kind: 'camp',
+          buildings: [...new Set([...starter, ...placed.map(normalizeBuildingName)])],
+          meshPack: SURVIVAL_KIT.packUrl,
+        });
       }
     }
   } catch (e) { console.warn('home island:', e); }
 
-  // Friendly camps from islandData / API (best-effort)
+  // Boat cabin / ship workshops (island state or character bag flags)
   try {
     const id = STATE.activeCharacterId;
-    if (id && STATE.islandData[id]?.friendlyCamps) {
-      for (const fc of STATE.islandData[id].friendlyCamps) {
-        camps.push({
-          id: fc.id || fc.name,
-          name: fc.name || 'Friendly Camp',
-          relation: 'friendly',
-          buildings: (fc.buildings || fc.benches || []).map(normalizeBuildingName),
-        });
-      }
+    const boat = STATE.islandData[id]?.boatCabin || STATE.islandData[id]?.cabin;
+    if (boat) {
+      const placed = collectBuildingsFromState(boat);
+      camps.push({
+        id: boat.id || 'boat-cabin',
+        name: boat.name || 'Boat Cabin',
+        relation: 'owned',
+        kind: 'cabin',
+        buildings: placed.map(normalizeBuildingName),
+        meshPack: SURVIVAL_KIT.packUrl,
+      });
     }
   } catch { /* ignore */ }
 
-  // Demo unlock path when no remote camps: owned starter only
+  // Friendly camps from islandData / API
+  try {
+    const id = STATE.activeCharacterId;
+    const friendly = STATE.islandData[id]?.friendlyCamps || STATE.islandData[id]?.camps || [];
+    for (const fc of friendly) {
+      if (fc.relation === 'enemy' || fc.hostile) continue;
+      camps.push({
+        id: fc.id || fc.name,
+        name: fc.name || 'Friendly Camp',
+        relation: fc.relation === 'owned' ? 'owned' : 'friendly',
+        kind: fc.kind || 'camp',
+        buildings: (fc.buildings || fc.benches || []).map(normalizeBuildingName),
+        meshPack: SURVIVAL_KIT.packUrl,
+      });
+    }
+  } catch { /* ignore */ }
+
+  // Local starter when offline / no remote camps
   if (!camps.length) {
     camps.push({
       id: 'local-starter',
       name: 'Starter Camp (local)',
       relation: 'owned',
-      buildings: ['campfire', 'tent', 'workbench', 'camp'],
+      starter: true,
+      kind: 'camp',
+      buildings: [...SURVIVAL_KIT.starterBuildings],
+      meshPack: SURVIVAL_KIT.packUrl,
     });
   }
 
   STATE.camps = camps;
-  // Reset unlocks then re-apply (keep camp defaults)
+  // Reset then re-apply from all owned/friendly sites
   STATE.unlockedStations = { camp: true, cooking: true };
   for (const c of camps) {
     if (c.relation === 'owned' || c.relation === 'friendly') {
       unlockStationsFromBuildings(c.buildings, c);
     }
-  }
-  // Owned camps also grant smithing/lumber baseline workbench progression later;
-  // if a workbench is present on owned camp, unlock tinker lightly
-  for (const c of camps) {
-    if (c.relation !== 'owned') continue;
-    const b = (c.buildings || []).join(' ');
-    if (/workbench|workshop/.test(b)) STATE.unlockedStations.tinker = true;
   }
 
   updateStationLockBadges();
@@ -2974,24 +3663,43 @@ async function refreshCampsAndBenches() {
   return camps;
 }
 
+function labelForBuilding(id) {
+  const n = normalizeBuildingName(id);
+  const hit = SURVIVAL_KIT.benches.find((b) => b.id === n || b.node === n || n.includes(b.id) || n.includes(b.node));
+  return hit ? hit.label : id;
+}
+
 function renderCampsPage() {
   const list = document.getElementById('camps-list');
   const unlockEl = document.getElementById('unlocked-stations-list');
+  const mapEl = document.getElementById('bench-map-list');
+  if (mapEl) {
+    mapEl.innerHTML = SURVIVAL_KIT.benches
+      .filter((b) => b.stations.length)
+      .map((b) => `<div style="display:flex;gap:8px;padding:4px 0;border-bottom:1px solid var(--border)">
+        <code style="color:var(--gold);min-width:120px">${b.node}</code>
+        <span style="flex:1">${b.label}</span>
+        <span style="color:var(--text-dim)">${b.stations.map((s) => WCS_STATIONS.find((x) => x.id === s)?.name || s).join(', ')}</span>
+      </div>`).join('');
+  }
   if (!list) return;
   if (!STATE.camps.length) {
-    list.innerHTML = `<div class="card"><p style="font-size:12px;color:var(--text-dim)">No camps loaded. Sign in and refresh to pull your home island.</p>
+    list.innerHTML = `<div class="card"><p style="font-size:12px;color:var(--text-dim)">No camps loaded. Sign in and refresh to pull your home island / boat cabin.</p>
       <button class="filter-btn" onclick="refreshCampsAndBenches()">🔄 Refresh</button></div>`;
   } else {
     list.innerHTML = STATE.camps.map((c) => {
       const relColor = c.relation === 'owned' ? 'var(--green)' : c.relation === 'friendly' ? 'var(--blue)' : 'var(--text-dim)';
+      const kindIcon = c.kind === 'cabin' ? '⛵' : c.relation === 'owned' ? '🏠' : '🤝';
       const benches = (c.buildings || []).filter(Boolean);
       return `<div class="card" style="margin-bottom:10px">
-        <div class="card-title">${c.relation === 'owned' ? '🏠' : '🤝'} ${c.name}
-          <span style="float:right;font-size:10px;color:${relColor};font-family:Inter;font-weight:500">${c.relation}</span>
+        <div class="card-title">${kindIcon} ${c.name}
+          <span style="float:right;font-size:10px;color:${relColor};font-family:Inter;font-weight:500">${c.relation}${c.starter ? ' · starter' : ''}</span>
         </div>
-        <div style="font-size:11px;color:var(--text-dim);margin-bottom:6px">Benches / buildings</div>
+        <div style="font-size:11px;color:var(--text-dim);margin-bottom:6px">Benches / buildings
+          ${c.meshPack ? `<span style="opacity:.7"> · kit meshes</span>` : ''}
+        </div>
         <div style="display:flex;flex-wrap:wrap;gap:6px">
-          ${benches.length ? benches.map((b) => `<span class="scope-pill" style="font-size:10px">${b}</span>`).join('') : '<span class="scope-pill">none listed</span>'}
+          ${benches.length ? benches.map((b) => `<span class="scope-pill" style="font-size:10px" title="${b}">${labelForBuilding(b)}</span>`).join('') : '<span class="scope-pill">none listed</span>'}
         </div>
       </div>`;
     }).join('');
@@ -3001,7 +3709,7 @@ function renderCampsPage() {
       const ok = isStationUnlocked(st.id);
       return `<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border)">
         <span>${st.icon}</span>
-        <span style="flex:1">${st.name}</span>
+        <span style="flex:1">${st.name}<div style="font-size:10px;color:var(--text-dim);font-weight:400">${st.desc || ''}</div></span>
         <span style="color:${ok ? 'var(--green)' : 'var(--text-dim)'};font-size:11px">${ok ? '✓ Unlocked' : '🔒 Locked'}</span>
         ${ok ? `<button class="filter-btn" onclick="openStation('${st.id}')">Open</button>` : ''}
       </div>`;
@@ -3017,9 +3725,9 @@ function renderWcsArsenal() {
   const util = RECIPES.filter((r) => /util|consumable|building/i.test(r.type));
   const section = (title, items) => `
     <div class="card" style="grid-column:1/-1;margin-bottom:8px"><div class="card-title">${title} (${items.length})</div></div>
-    ${items.map((r) => `<div class="codex-card">
-      <h4>${r.icon || '📦'} ${r.n}</h4>
-      <p>T${r.tier} ${WCS_TIER_NAMES[r.tier] || ''} · ${r.prof} · ${r.station || ''}</p>
+    ${items.slice(0, 120).map((r) => `<div class="codex-card">
+      <h4>${itemIcon(r.n, r.icon || '📦', 'codex-icon', 32)} ${r.n}</h4>
+      <p>T${r.tier} ${WCS_TIER_NAMES[r.tier] || ''} · ${r.prof} · ${r.station || PROF_TO_STATION[r.prof] || 'camp'}</p>
       <p>${r.desc || ''}</p>
     </div>`).join('')}`;
   el.innerHTML = section('Weapons', weapons) + section('Armor', armor) + section('Utilities / Consumables', util);
@@ -3031,18 +3739,15 @@ function renderWcsMaterials() {
   el.innerHTML = `<div class="codex-grid">` + Object.entries(WCS_MAT_TIERS).map(([t, mats]) => `
     <div class="codex-card">
       <h4>T${t} — ${WCS_TIER_NAMES[t] || ''}</h4>
-      <p>Ingot: ${mats.ingot}</p>
-      <p>Plank: ${mats.plank}</p>
-      <p>Cloth: ${mats.cloth}</p>
-      <p>Leather: ${mats.leather}</p>
-      <p>Gem: ${mats.gem}</p>
-      <p style="margin-top:6px">In bag:
-        ${['ingot','plank','cloth','leather','gem'].map((k) => {
-          const n = mats[k];
-          const q = STATE.inventory[n] || 0;
-          return `<span class="scope-pill ${q ? 'account' : ''}" style="margin:2px">${n}: ${q}</span>`;
-        }).join(' ')}
-      </p>
+      ${['ingot','plank','cloth','leather','gem'].map((k) => {
+        const n = mats[k];
+        const q = STATE.inventory[n] || 0;
+        return `<p style="display:flex;align-items:center;gap:6px;margin:4px 0">
+          ${itemIcon(n, MAT_ICONS[n] || '🧱', 'codex-icon', 22)}
+          <span>${k}: <strong style="color:var(--gold)">${n}</strong>
+          <span class="scope-pill ${q ? 'account' : ''}" style="margin-left:4px">${q}</span></span>
+        </p>`;
+      }).join('')}
     </div>`).join('') + `</div>`;
 }
 
@@ -3376,6 +4081,7 @@ function refreshIslandData() {
 }
 
 function resetData() {
+  if (!requireAccess('reset local craft cache')) return;
   if (!confirm('Reset all crafting data? This cannot be undone.')) return;
   STATE.professions = blankProfessions();
   STATE.equipment = blankEquipment();
@@ -3482,40 +4188,274 @@ function showToast(msg, type='') {
 }
 
 // ============================================================
-// OBJECTSTORE ITEM DATABASE
+// OBJECTSTORE ITEM DATABASE + CANONICAL ICONS
 // ============================================================
+// Binary icons: assets.grudge-studio.com (R2)
+// JSON catalog: objectstore|info …/api/v1/master-items.json
+// Category folders on CDN (/icons/swords/…) are HTML shells — map to pack/.
 let ITEM_DB = [];
 let ITEM_DB_CATEGORIES = [];
 let ITEM_ICON_MAP = {};
 let dbFilterCat = 'all';
+let MASTER_RECIPES_LOADED = false;
+
+const ASSET_CDN = (window.GRUDGE_CONFIG && window.GRUDGE_CONFIG.ASSETS) || 'https://assets.grudge-studio.com';
+
+/** Definition base URLs — info first (objectstore recipe/item paths currently 404). */
+function definitionBases() {
+  const cfg = window.GRUDGE_CONFIG || {};
+  const list = [
+    cfg.INFO_URL,
+    'https://info.grudge-studio.com/api/v1',
+    cfg.OBJECTSTORE_URL,
+    'https://objectstore.grudge-studio.com/api/v1',
+  ]
+    .filter(Boolean)
+    .map((u) => String(u).replace(/\/$/, ''));
+  return [...new Set(list)];
+}
+
+/** GET JSON from first definition host that returns ok. */
+async function fetchDefinitionJson(file) {
+  let lastErr = null;
+  for (const base of definitionBases()) {
+    try {
+      const res = await fetch(base + '/' + file.replace(/^\//, ''));
+      if (!res.ok) {
+        lastErr = new Error(file + ' HTTP ' + res.status + ' @ ' + base);
+        continue;
+      }
+      return await res.json();
+    } catch (e) {
+      lastErr = e;
+    }
+  }
+  throw lastErr || new Error('definition unavailable: ' + file);
+}
+
+function mapMasterCategoryToType(category) {
+  const c = String(category || '').toLowerCase();
+  if (/food|potion|consumable|bandage|stew|meat|soup/.test(c)) return 'Consumable';
+  if (/armor|helm|chest|boot|glove|robe|leather|plate|shield/.test(c)) return 'Armor';
+  if (/sword|axe|bow|staff|dagger|hammer|gun|crossbow|spear|weapon|mace|club/.test(c)) return 'Weapon';
+  if (/build|camp|bench|anvil|tent|chest|trap|util/.test(c)) return 'Utility';
+  if (/ingot|plank|thread|refin|essence|leather|cloth|gear|mat/.test(c)) return 'Refining';
+  return 'Craft';
+}
+
+function normalizeProfession(prof) {
+  const p = String(prof || 'All').trim();
+  const known = ['Miner', 'Forester', 'Mystic', 'Chef', 'Engineer', 'All'];
+  const hit = known.find((k) => k.toLowerCase() === p.toLowerCase());
+  return hit || (p || 'All');
+}
+
+/**
+ * Merge ObjectStore master-recipes (2k+) into inline RECIPES so Puter crafting
+ * matches Warlords production definitions. Inline recipes win on id collisions.
+ */
+async function loadMasterRecipes() {
+  try {
+    const data = await fetchDefinitionJson('master-recipes.json');
+    const raw = Array.isArray(data.recipes) ? data.recipes : Array.isArray(data) ? data : [];
+    if (!raw.length) throw new Error('master-recipes empty');
+
+    const existing = new Set(RECIPES.map((r) => r.id));
+    let added = 0;
+    for (const mr of raw) {
+      const resultName = mr.resultName || mr.name || mr.result || '';
+      if (!resultName) continue;
+      const id =
+        String(mr.uuid || mr.id || resultName)
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, '-')
+          .replace(/^-|-$/g, '')
+          .slice(0, 80) || `recp-${added}`;
+      if (existing.has(id)) continue;
+
+      const mats = {};
+      const materials = Array.isArray(mr.materials) ? mr.materials : [];
+      for (const m of materials) {
+        const name = m.name || m.itemName || m.id;
+        const qty = Number(m.quantity ?? m.qty ?? m.count ?? 1) || 1;
+        if (name) mats[name] = qty;
+      }
+
+      const prof = normalizeProfession(mr.profession || mr.prof || 'All');
+      const type = mapMasterCategoryToType(mr.category || mr.type);
+      const recipe = {
+        id,
+        n: resultName,
+        prof,
+        type,
+        tier: Number(mr.tier ?? mr.level ?? 0) || 0,
+        icon: mr.icon || mr.emoji || '⚒️',
+        mats,
+        desc: mr.name && mr.name !== resultName ? mr.name : (mr.description || resultName),
+        station: PROF_TO_STATION[prof] || 'camp',
+        uuid: mr.uuid || null,
+        resultItemId: mr.resultItemId || null,
+        source: 'objectstore',
+      };
+      RECIPES.push(recipe);
+      existing.add(id);
+      RECIPE_OUTPUT_MAP[recipe.n] = recipe.id;
+      added++;
+    }
+
+    MASTER_RECIPES_LOADED = true;
+    console.log('[ObjectStore] Merged ' + added + ' master recipes (total ' + RECIPES.length + ')');
+    const badge = document.getElementById('recipe-count') || document.querySelector('[data-recipe-count]');
+    if (badge) badge.textContent = String(RECIPES.length);
+    renderAll();
+  } catch (e) {
+    console.warn('[ObjectStore] master-recipes merge skipped:', e);
+  }
+}
+
+/** master-items category → pack/weapons stem (PascalCase file prefix) */
+const ICON_CAT_TO_PACK = {
+  swords: 'Sword', sword: 'Sword',
+  axes1h: 'Axe', axe: 'Axe', greataxes: 'Axe', greataxe: 'Axe',
+  daggers: 'Dagger', dagger: 'Dagger',
+  hammers1h: 'Hammer', hammers2h: 'Hammer', hammer: 'Hammer',
+  greatswords: 'Sword', greatsword: 'Sword',
+  spears: 'Spear', spear: 'Spear',
+  bows: 'Bow', bow: 'Bow',
+  crossbows: 'Crossbow', crossbow: 'Crossbow',
+  guns: 'Crossbow', gun: 'Crossbow',
+  shields: 'Shield', shield: 'Shield',
+  fireStaves: 'Staff', frostStaves: 'Staff', holyStaves: 'Staff',
+  lightningStaves: 'Staff', natureStaves: 'Staff', wands: 'Staff',
+  staff: 'Staff', staves: 'Staff', tools: 'Hammer',
+};
+
+const ICON_PACK_FALLBACK = {
+  armor: '/icons/pack/armor/Chest_01.png',
+  greenFoods: '/icons/pack/misc/Effect.png',
+  blueFoods: '/icons/pack/misc/Effect.png',
+  redFoods: '/icons/pack/misc/Effect.png',
+  mysticPotions: '/icons/pack/misc/Effect.png',
+  engineerConsumables: '/icons/pack/misc/Effect.png',
+  tools: '/icons/pack/weapons/Hammer_01.png',
+  default: '/icons/pack/misc/Effect.png',
+};
+
+function rewriteIconHost(url) {
+  if (!url || typeof url !== 'string') return '';
+  return url
+    .replace(/https?:\/\/molochdagod\.github\.io\/ObjectStore/gi, ASSET_CDN)
+    .replace(/https?:\/\/grudge-objectstore\.pages\.dev/gi, ASSET_CDN)
+    .replace(/https?:\/\/info\.grudge-studio\.com(\/api\/v1)?/gi, ASSET_CDN)
+    .replace(/https?:\/\/objectstore\.grudge-studio\.com(?!\/api)/gi, ASSET_CDN);
+}
+
+/**
+ * Resolve any icon field to a working assets.grudge-studio.com PNG.
+ * Category folders (swords/, axes1h/, …) on CDN are broken HTML → pack weapons.
+ */
+function resolveCanonicalIcon(urlOrPath, category, name) {
+  const cat = (category || '').toString();
+  let raw = rewriteIconHost((urlOrPath || '').trim());
+  let path = raw;
+
+  if (raw.startsWith('http')) {
+    try { path = new URL(raw).pathname; } catch { /* keep */ }
+  }
+  if (path && !path.startsWith('/') && !path.startsWith('http')) path = '/' + path;
+
+  // Already a pack path
+  if (/\/icons\/pack\//i.test(path)) {
+    return ASSET_CDN + path.replace(/^\/api\/v1/, '');
+  }
+  // Armor atlas (works on CDN under /icons/armor_full/ and /icons/pack/armor/)
+  if (/\/icons\/armor_full\//i.test(path)) {
+    return ASSET_CDN + path.replace(/^\/api\/v1/, '');
+  }
+  if (/\/icons\/food\//i.test(path) || /\/icons\/consumables\//i.test(path)) {
+    return ASSET_CDN + path.replace(/^\/api\/v1/, '');
+  }
+
+  // /icons/{category}/{stem}_{num}.png → /icons/pack/weapons/{Pack}_{num}.png
+  const m = path.match(/\/icons\/([^/]+)\/([A-Za-z_]*?)(\d+)\.(png|webp|jpe?g)$/i);
+  if (m) {
+    const folder = m[1];
+    const num = m[3].padStart(2, '0');
+    const stem = ICON_CAT_TO_PACK[folder] || ICON_CAT_TO_PACK[folder.toLowerCase()];
+    if (stem) {
+      return `${ASSET_CDN}/icons/pack/weapons/${stem}_${num}.png`;
+    }
+    if (folder === 'armor' || folder === 'armor_full') {
+      const file = path.split('/').pop();
+      return `${ASSET_CDN}/icons/pack/armor/${file}`;
+    }
+  }
+
+  // Category-only fallback
+  if (ICON_CAT_TO_PACK[cat] || ICON_CAT_TO_PACK[cat.toLowerCase()]) {
+    const stem = ICON_CAT_TO_PACK[cat] || ICON_CAT_TO_PACK[cat.toLowerCase()];
+    return `${ASSET_CDN}/icons/pack/weapons/${stem}_01.png`;
+  }
+  if (cat === 'armor' || /armor|helm|chest|boot|bracer|shoulder|ring|necklace/i.test(name || '')) {
+    return ASSET_CDN + ICON_PACK_FALLBACK.armor;
+  }
+  if (ICON_PACK_FALLBACK[cat]) return ASSET_CDN + ICON_PACK_FALLBACK[cat];
+
+  if (path && path.startsWith('/icons/')) return ASSET_CDN + path;
+  if (raw.startsWith(ASSET_CDN)) return raw;
+  return ASSET_CDN + ICON_PACK_FALLBACK.default;
+}
+
+function iconImgTag(url, name, cssClass, size) {
+  const cls = cssClass || 'item-img';
+  const fallback = ASSET_CDN + ICON_PACK_FALLBACK.default;
+  const safe = (url || fallback).replace(/"/g, '');
+  const alt = (name || 'item').replace(/"/g, '');
+  const dim = size ? ` style="width:${size}px;height:${size}px"` : '';
+  return `<img class="${cls}" src="${safe}" alt="${alt}" loading="lazy"${dim} onerror="if(!this.dataset.fb){this.dataset.fb=1;this.src='${fallback}'}">`;
+}
 
 async function loadItemDatabase() {
   try {
-    const base = (window.GRUDGE_CONFIG.OBJECTSTORE_URL || 'https://objectstore.grudge-studio.com/api/v1').replace(/\/$/, '');
-    const lib = (typeof GrudgeFleet !== 'undefined' && GrudgeFleet.getGamesLibrary)
-      ? await GrudgeFleet.getGamesLibrary()
-      : await fetch(base + '/games-library.json').then(r => { if (!r.ok) throw new Error('games-library HTTP ' + r.status); return r.json(); });
-    const itemsUrl = (lib.runtime && lib.runtime.masterItems) ? lib.runtime.masterItems : (base + '/master-items.json');
-    const res = await fetch(itemsUrl);
-    if (!res.ok) throw new Error('master-items HTTP ' + res.status);
-    const data = await res.json();
+    try {
+      if (typeof GrudgeFleet !== 'undefined' && GrudgeFleet.getGamesLibrary) {
+        await GrudgeFleet.getGamesLibrary();
+      } else {
+        await fetchDefinitionJson('games-library.json');
+      }
+    } catch (libErr) {
+      console.warn('[ObjectStore] games-library optional fail', libErr);
+    }
+
+    const data = await fetchDefinitionJson('master-items.json');
     const raw = data.items || [];
-    ITEM_DB = raw.map(item => ({
-      name: item.name,
-      category: item.category || item.type || 'weapon',
-      icon: item.iconUrl || item.icon,
-      stats: item.stats || {},
-      tier: item.tier,
-      uuid: item.uuid,
-    }));
+    ITEM_DB = raw.map(item => {
+      const category = item.category || item.type || 'weapon';
+      const icon = resolveCanonicalIcon(item.iconUrl || item.icon || item.iconPath, category, item.name);
+      return {
+        name: item.name,
+        category,
+        icon,
+        stats: item.stats || {},
+        tier: item.tier,
+        uuid: item.uuid,
+      };
+    });
     const cats = new Set(ITEM_DB.map(i => i.category).filter(Boolean));
     ITEM_DB_CATEGORIES = Array.from(cats).sort();
+    ITEM_ICON_MAP = {};
     ITEM_DB.forEach(item => {
-      if (item.icon) ITEM_ICON_MAP[item.name.toLowerCase()] = item.icon;
+      if (item.icon && item.name) ITEM_ICON_MAP[item.name.toLowerCase()] = item.icon;
     });
+    if (typeof RECIPES !== 'undefined') {
+      RECIPES.forEach(r => {
+        const u = ITEM_ICON_MAP[(r.n || '').toLowerCase()];
+        if (u) r.iconUrl = u;
+      });
+    }
     const el = document.getElementById('db-count');
     if (el) el.textContent = ITEM_DB.length;
-    console.log('[ObjectStore] Loaded ' + ITEM_DB.length + ' items via games-library → master-items');
+    console.log('[ObjectStore] Loaded ' + ITEM_DB.length + ' items with canonical CDN icons');
     renderAll();
   } catch(e) {
     console.error('[ObjectStore] Failed:', e);
@@ -3526,10 +4466,16 @@ async function loadItemDatabase() {
   }
 }
 
-function itemIcon(name, emoji, cssClass) {
+function itemIcon(name, emoji, cssClass, size) {
   const cls = cssClass || 'item-img';
-  const url = ITEM_ICON_MAP[name.toLowerCase()];
-  if (url) return `<img class="${cls}" src="${url}" alt="${name}" loading="lazy">`;
+  const key = (name || '').toLowerCase();
+  const url = ITEM_ICON_MAP[key] || resolveCanonicalIcon(null, null, name);
+  // Prefer real icon; keep emoji only if no map and no sensible URL
+  if (ITEM_ICON_MAP[key] || (url && !url.endsWith('/Effect.png'))) {
+    return iconImgTag(url, name, cls, size);
+  }
+  // Still try default pack icon over emoji when we have a name
+  if (name) return iconImgTag(url, name, cls, size);
   return emoji || '📦';
 }
 
@@ -3545,18 +4491,21 @@ function renderItemDatabase() {
   if (dbFilterCat !== 'all') items = items.filter(i => i.category === dbFilterCat);
   if (query) items = items.filter(i => i.name.toLowerCase().includes(query));
 
-  document.getElementById('db-summary').textContent = `${items.length} of ${ITEM_DB.length} items`;
+  document.getElementById('db-summary').textContent = `${items.length} of ${ITEM_DB.length} items · icons: assets.grudge-studio.com`;
   const showing = items.slice(0, 200);
   document.getElementById('db-grid').innerHTML = showing.map(item => {
     const statsArr = [];
     if (item.stats?.damage) statsArr.push(`DMG <span>${item.stats.damage}</span>`);
     if (item.stats?.defense) statsArr.push(`DEF <span>${item.stats.defense}</span>`);
     if (item.stats?.requiredLevel) statsArr.push(`Lv <span>${item.stats.requiredLevel}</span>`);
+    const iconHtml = item.icon
+      ? iconImgTag(item.icon, item.name, '', 48)
+      : '<div style="width:48px;height:48px;display:flex;align-items:center;justify-content:center;font-size:28px">📦</div>';
     return `<div class="db-card">
-      ${item.icon ? `<img src="${item.icon}" alt="${item.name}" loading="lazy">` : '<div style="width:48px;height:48px;display:flex;align-items:center;justify-content:center;font-size:28px">📦</div>'}
+      ${iconHtml}
       <div>
         <div class="db-card-name">${item.name}</div>
-        <div class="db-card-cat">${item.category || ''}</div>
+        <div class="db-card-cat">${item.category || ''}${item.tier != null ? ' · T' + item.tier : ''}</div>
         ${statsArr.length ? `<div class="db-card-stats">${statsArr.join(' · ')}</div>` : ''}
       </div>
     </div>`;
@@ -3577,13 +4526,62 @@ window.addEventListener('grudge:sync:complete', () => { renderCharactersList(); 
 // ============================================================
 // INIT
 // ============================================================
-addLog('⚔ Grudge Crafting Suite v' + (window.GRUDGE_CONFIG?.VERSION || '?') + ' — shared inventory · per-char XP · WCS stations');
+addLog('⚔ Grudge Crafting Suite v' + (window.GRUDGE_CONFIG?.VERSION || '?') + ' — browse open · sign-in only to craft · shared bag · per-char XP');
 initAcctTabs();
-refreshCampsAndBenches();
-updateStationLockBadges();
-renderAll();
-loadItemDatabase();
-if (typeof puter !== 'undefined') checkAuth();
+// Suite always open — soft banner only when not ready to craft
+document.body.classList.add('access-ready');
+// Deep-link from main-panel: ?station=smithing&embed=1
+try {
+  const params = new URLSearchParams(window.location.search || '');
+  const st = (params.get('station') || params.get('bench') || '').toLowerCase();
+  if (st && WCS_STATIONS.some((s) => s.id === st)) {
+    STATE.activeStation = st;
+    STATE.currentPage = 'crafting';
+  }
+  if (params.get('embed') === '1' || params.get('embed') === 'true' || window.parent !== window) {
+    document.body.classList.add('embed-mode');
+    const style = document.createElement('style');
+    style.textContent = 'body.embed-mode .sidebar{width:64px} body.embed-mode .sidebar .nav-btn span:not(.icon),.embed-mode .sidebar-logo small,.embed-mode .sidebar-section-title,.embed-mode .sidebar-account .account-meta,.embed-mode .sidebar-account .auth-menu-btns{display:none}';
+    document.head.appendChild(style);
+  }
+  const pageQ = (params.get('page') || params.get('tab') || '').toLowerCase();
+  if (pageQ && document.getElementById('page-' + pageQ)) STATE.currentPage = pageQ;
+} catch (e) { console.warn('[init] query', e); }
+updateAccessGate();
+// Definitions load immediately (no auth required)
+void (async () => {
+  try {
+    await Promise.all([loadItemDatabase(), loadMasterRecipes()]);
+    if (typeof renderAll === 'function') renderAll();
+    if (typeof navigate === 'function' && STATE.currentPage) navigate(STATE.currentPage);
+  } catch (e) {
+    console.warn('[init] definition load', e);
+  }
+})();
+// Render dashboard/stations immediately from inline recipes
+try {
+  if (STATE.currentPage && STATE.currentPage !== 'dashboard') navigate(STATE.currentPage);
+  else {
+    if (typeof renderStationTabs === 'function') renderStationTabs();
+    if (typeof renderDashboard === 'function') renderDashboard();
+  }
+} catch (e) { console.warn('[init] first paint', e); }
+
+if (typeof GrudgeFleet !== 'undefined') {
+  checkAuth();
+} else {
+  let tries = 0;
+  const waitFleet = setInterval(() => {
+    tries++;
+    if (typeof GrudgeFleet !== 'undefined') {
+      clearInterval(waitFleet);
+      checkAuth();
+    } else if (tries > 40) {
+      clearInterval(waitFleet);
+      updateAccessGate();
+    }
+  }, 100);
+}
 </script>
 </body>
 </html>
