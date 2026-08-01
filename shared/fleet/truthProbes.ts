@@ -285,6 +285,16 @@ export const TRUTH_PROBE_SPECS: TruthProbeSpec[] = [
     browserSkip: true,
   },
   {
+    id: "carrier-health",
+    label: "Carrier / GRUDOX room health",
+    role: "game-data",
+    productionUrl: `${FLEET_URLS.carrier}/api/health`,
+    method: "GET",
+    rejectHtml: true,
+    // Carrier is L3 edge (WS + health). Shell HTML is optional Worker static.
+    browserSkip: true,
+  },
+  {
     id: "carrier-hub",
     label: "Carrier game shell",
     role: "game-data",

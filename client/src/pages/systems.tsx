@@ -56,6 +56,34 @@ export default function SystemsPage() {
           </div>
         </section>
 
+        <section className="rounded-xl border border-rose-800/40 bg-rose-950/20 p-6">
+          <h2 className="text-lg font-semibold text-rose-100 mb-2">Assassination Grounds</h2>
+          <p className="text-sm text-stone-400 mb-3">
+            Ultimate Assassination Grounds map with full navmesh, target systems, entrance/exit
+            portals, and a Return to Danger Room yes/no prompt.
+          </p>
+          <a
+            href="/assassination-grounds"
+            className="inline-flex items-center gap-2 rounded-lg bg-rose-600/90 hover:bg-rose-500 px-4 py-2 text-sm font-medium text-stone-50"
+          >
+            Enter Assassination Grounds
+          </a>
+          <div className="mt-3 flex flex-wrap gap-3 text-xs text-stone-500">
+            <a href="/maps/assassination-grounds" className="text-rose-400/80 hover:underline">
+              /maps/assassination-grounds
+            </a>
+            <a
+              href="https://open.grudge-studio.com/danger"
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1 text-amber-400/80 hover:underline"
+            >
+              Danger Room <ExternalLink className="h-3 w-3" />
+            </a>
+            <span>SSOT: shared/definitions/assassinationGroundsMap.ts</span>
+          </div>
+        </section>
+
         <section className="rounded-xl border border-amber-800/40 bg-amber-950/20 p-6">
           <h2 className="text-lg font-semibold text-amber-100 mb-2">Combat equipment lab</h2>
           <p className="text-sm text-stone-400 mb-3">

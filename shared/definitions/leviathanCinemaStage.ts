@@ -453,10 +453,13 @@ export const CIN_CAST_ASSETS = {
     'https://assets.grudge-studio.com/models/cinema/spell-glyph.glb',
   ],
   /**
-   * Pirate cinema ship ONLY — prefer stylized pirate production bake.
+   * Pirate cinema ship ONLY — tz-pirate-ship is the Grudge Warlords intro SSOT.
    * NEVER voxel/prototype/kenney kits (wrong look for this cut).
+   * Fallback chain: stylized production bake → medium pirate hull.
    */
   ship: [
+    'https://assets.grudge-studio.com/models/cinema/tz-pirate-ship.glb',
+    '/models/cinema/tz-pirate-ship.glb',
     'https://assets.grudge-studio.com/models/cinema/stylized-pirate-ship.prod.glb',
     'https://assets.grudge-studio.com/models/cinema/stylized-pirate-ship.glb',
     '/models/cinema/stylized-pirate-ship.prod.glb',
