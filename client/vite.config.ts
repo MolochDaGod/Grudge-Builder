@@ -130,16 +130,57 @@ export default defineConfig({
           const worldChunk = grudgeGameManualChunk(norm);
           if (worldChunk) return worldChunk;
           if (norm.includes("/artifacts/grudge-game/")) return "grudge-world";
-          // Vendor splits — keep main index under control
+
+          // Shared asset URL helpers — must NOT land in island3d/sailing or
+          // sailing→island3d edges recreate the /ocean TDZ cycle.
+          if (
+            norm.includes("/lib/gameAssetPath") ||
+            norm.includes("/lib/assetConfig") ||
+            norm.includes("/lib/legacyAssetPaths") ||
+            norm.includes("/lib/objectStoreUrl")
+          ) {
+            return "game-assets";
+          }
+
+          // App helpers under src/lib/three — NEVER three-vendor (that matched
+          // /three/ and pulled island3d into the Three vendor graph).
+          if (norm.includes("/src/lib/three/") || norm.includes("/client/src/lib/three/")) {
+            return "three-app";
+          }
+
+          // Split WebGPU entry so default play path stays lighter
+          if (
+            norm.includes("node_modules/three") &&
+            (norm.includes("three.webgpu") || norm.includes("/renderers/webgpu/"))
+          ) {
+            return "three-webgpu";
+          }
+          // Pure npm three only — never match client/src/lib/three/*
           if (norm.includes("node_modules/three/") || norm.includes("node_modules/three\\")) {
             return "three-vendor";
           }
           if (
             norm.includes("node_modules/three-stdlib") ||
-            norm.includes("node_modules/@types/three") ||
-            norm.includes("/examples/jsm/")
+            norm.includes("node_modules/@types/three")
           ) {
             return "three-extras";
+          }
+          // three/examples/jsm only when resolved from the three package
+          if (norm.includes("node_modules/three/examples/jsm/")) {
+            return "three-extras";
+          }
+          // R3F + zustand stay out of pure three-vendor (avoids island3d edge)
+          if (
+            norm.includes("node_modules/@react-three/") ||
+            norm.includes("node_modules/meshline")
+          ) {
+            return "r3f-vendor";
+          }
+          if (
+            norm.includes("node_modules/zustand") ||
+            norm.includes("node_modules/use-sync-external-store")
+          ) {
+            return "state-vendor";
           }
           if (
             norm.includes("node_modules/react-dom") ||
@@ -149,13 +190,43 @@ export default defineConfig({
           ) {
             return "react-vendor";
           }
-          if (norm.includes("node_modules/@tanstack") || norm.includes("node_modules/@radix-ui")) {
+          if (
+            norm.includes("node_modules/@tanstack") ||
+            norm.includes("node_modules/@radix-ui") ||
+            norm.includes("node_modules/lucide-react") ||
+            norm.includes("node_modules/class-variance-authority") ||
+            norm.includes("node_modules/clsx") ||
+            norm.includes("node_modules/tailwind-merge")
+          ) {
+            return "ui-vendor";
+          }
+          // shadcn/ui + cn() — keep out of island3d so ocean/sailing don't import it
+          if (
+            norm.includes("/components/ui/") ||
+            /\/lib\/utils\.(ts|js|mjs)$/.test(norm) ||
+            norm.includes("/lib/utils.ts") ||
+            norm.includes("/lib/utils.js")
+          ) {
             return "ui-vendor";
           }
           // Heavy game surfaces — load with their routes
           if (norm.includes("/island3d/intro/")) return "cinema-intro";
           if (norm.includes("/island3d/airship/")) return "airship-zone";
           if (norm.includes("/island3d/")) return "island3d";
+          // Shared ship deck/climb/sails used by lobby dock + open water.
+          // Keep OUT of both island3d and full sailing to break init cycles.
+          if (
+            norm.includes("/game/dock/") ||
+            norm.includes("/game/sailing/ShipDeckPhysics") ||
+            norm.includes("/game/sailing/OceanBoatClimbRig") ||
+            norm.includes("/game/sailing/SailMaterialSystem") ||
+            norm.includes("/game/sailing/clothPhysics")
+          ) {
+            return "ship-boarding";
+          }
+          // Tactical ocean page UI (own chunk — not mixed into pure sailing sim)
+          if (norm.includes("/tactical-ocean/")) return "tactical-ocean";
+          if (norm.includes("/pages/ocean")) return "tactical-ocean";
           if (norm.includes("/game/sailing/") || norm.includes("/game/ocean/")) return "sailing";
           return undefined;
         },

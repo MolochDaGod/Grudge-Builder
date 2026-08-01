@@ -87,7 +87,8 @@ import HeroesPage from "@/pages/heroes";
 import BossWalkupPage from "@/pages/boss-walkup";
 import GrudaWarsPage from "@/pages/grudawars";
 import PlayPage from "@/pages/play";
-import OceanPage from "@/pages/ocean";
+// Lazy: tactical ocean + sailing graph is heavy and must not init with main/three
+const OceanPage = lazy(() => import("@/pages/ocean"));
 import TutorialPage from "@/pages/tutorial";
 import WarlordsStartPage from "@/pages/warlords-start";
 const WorldNativePage = lazy(() => import("@/pages/world-native"));

@@ -4,10 +4,9 @@
  */
 import * as THREE from 'three';
 import { loadGltf } from '@/lib/GltfAssetLoader';
-import {
-  ShipBoardingController,
-  shipSizeFromAccount,
-} from '@/game/dock/ShipBoardingController';
+// Dynamic import of ShipBoardingController — avoids static island3d ↔ ship-boarding
+// ↔ sailing cycles that caused production TDZ on /ocean (Vector3 before init).
+import type { ShipBoardingController } from '@/game/dock/ShipBoardingController';
 import type { CharacterController3D } from '@/island3d/player/CharacterController3D';
 
 import {
@@ -227,7 +226,9 @@ export async function createLobbyShipSystem(
 
   ensureStarterShip(accountId, captainId);
   const active = getActiveShip(accountId);
-  const shipSize = active?.size ?? shipSizeFromAccount(accountId);
+  // Lazy-load dock module (breaks island3d → ship-boarding static cycle)
+  const dockMod = await import('@/game/dock/ShipBoardingController');
+  const shipSize = active?.size ?? dockMod.shipSizeFromAccount(accountId);
   const entry = getShipCatalogEntry(shipSize);
   const shipLoaded = await loadDockGlb(shipGroup, entry.glbModel, 0.85);
 
@@ -243,6 +244,7 @@ export async function createLobbyShipSystem(
   const velocity = new THREE.Vector3();
   let boarding: ShipBoardingController | null = null;
   const boardRadius = RTS_SOUTH_DOCK.boardRadius;
+  const { ShipBoardingController: ShipBoardingCtl } = dockMod;
 
   return {
     dockGroup,
@@ -253,7 +255,7 @@ export async function createLobbyShipSystem(
     dockId: RTS_SOUTH_DOCK.id,
     attachBoarding(character) {
       if (boarding) boarding.dispose();
-      boarding = new ShipBoardingController({
+      boarding = new ShipBoardingCtl({
         shipRoot: shipGroup,
         shipSize,
         waterLevel: LOBBY_WATER_LEVEL,

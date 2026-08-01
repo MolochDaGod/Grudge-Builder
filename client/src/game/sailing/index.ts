@@ -126,11 +126,9 @@ export type {
   WaveboardRigHandle,
 } from "./waveboard";
 
-// Sectional damage for ships — re-export island3d damage registrars
-export {
-  registerWatercraftSections,
-  SectionalDamageSystem,
-} from "@/island3d/damage";
+// Sectional damage lives in @/island3d/damage — import there directly.
+// Do NOT re-export from this barrel: it forced sailing ↔ island3d static
+// edges and caused production TDZ ("Cannot access 'u' before initialization").
 
 export {
   WAVEBOARD_ITEM,

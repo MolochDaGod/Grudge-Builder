@@ -169,17 +169,32 @@ export function grudgeGameAtAliasPlugin(monorepoRoot: string): Plugin {
   };
 }
 
+/**
+ * Vendor-only chunk assignment for optional monorepo deps.
+ *
+ * HARD RULE: never match app source paths like `client/src/lib/three/*`.
+ * A broad `/three/` check previously dumped DeployedAssetPatterns (which
+ * imports island3d) into three-vendor → circular chunk init TDZ on /ocean:
+ *   sailing → three-vendor → island3d → sailing
+ *   "Cannot access 'u' before initialization" (minified THREE.Vector3)
+ */
 export function grudgeGameManualChunk(id: string): string | undefined {
-  if (!id.includes("node_modules")) return undefined;
-  if (id.includes("@dimforge/")) return "rapier-vendor";
+  const norm = id.replace(/\\/g, "/");
+  if (!norm.includes("node_modules")) return undefined;
+  if (norm.includes("@dimforge/")) return "rapier-vendor";
+  // Pure three npm package only — not @react-three (pulls zustand/react)
   if (
-    id.includes("/three/") ||
-    id.includes("three-stdlib") ||
-    id.includes("@react-three/") ||
-    id.includes("/meshline/")
+    /node_modules\/three\//.test(norm) ||
+    norm.includes("node_modules/three-stdlib")
   ) {
+    if (norm.includes("three.webgpu") || norm.includes("/renderers/webgpu/")) {
+      return "three-webgpu";
+    }
     return "three-vendor";
   }
-  if (id.includes("/artifacts/grudge-game/")) return "grudge-world";
+  if (norm.includes("node_modules/@react-three/") || norm.includes("node_modules/meshline")) {
+    return "r3f-vendor";
+  }
+  if (norm.includes("/artifacts/grudge-game/")) return "grudge-world";
   return undefined;
 }
