@@ -2,16 +2,25 @@
 
 This document outlines best practices for using the PostgreSQL database in GRUDGE Warlords and related GRUDGE games.
 
+> **Fleet SSOT (2026):** Player state = **Railway Postgres** only. Definitions = **ObjectStore / info**. Binaries = **R2**. Asset index = **D1**.  
+> Full multi-store map + backups: [grudge-dev-tool · Databases · sharing · backups](https://grudge-warlords.github.io/grudge-dev-tool/database-backups-sharing.html)  
+> Skill: **`grudge-production-wiring`**. DB connection map (no secrets): `shared/fleet/dbConnections.ts`.
+
 ## Database Architecture
 
-### Data Source Strategy
+### Data Source Strategy (production)
 
 | Data Type | Source | Reasoning |
 |-----------|--------|-----------|
-| **Game Content** (weapons, armor, spells, monsters) | PostgreSQL | Fast queries, joins, filtering, tier calculations |
-| **Player Data** (characters, inventory, progress) | PostgreSQL | Transactional integrity, relationships |
-| **Cross-App Shared Data** | Google Sheets | Easy editing by designers, shared across all GRUDGE apps |
-| **Session Data** | In-memory (connect-pg-simple) | Performance, temporary by nature |
+| **Player Data** (characters, bag, island, wallet) | **Railway Postgres** | Transactional SSOT; fleet REST `/api/*` |
+| **Game definitions** (items, recipes, weapons) | **ObjectStore / info JSON** | Designer-editable, git-backed share surface |
+| **Meshes / icons / audio** | **R2 CDN** | Immutable binaries; not BYTEA in Postgres |
+| **Asset search index** | **Cloudflare D1** | Index only — never bag/XP |
+| **Cross-app shared bag** | Same Railway account APIs | One login, one bag, many eras/games |
+| **Realtime room state** | Per-game Railway (e.g. Multiverse `/api/mv`) | Ephemeral; not character ownership |
+| **Session cache** | In-memory / Puter KV | Never sole truth |
+
+Legacy note: older rows below may mention seeding static content into Postgres for local ARPG tools — **do not** treat that as fleet definition SSOT.
 
 ### Table Categories
 
@@ -311,11 +320,51 @@ Response:
 
 | Variable | Description |
 |----------|-------------|
-| `DATABASE_URL` | PostgreSQL connection string |
+| `DATABASE_URL` | PostgreSQL connection string (Railway / server only — never `VITE_*`) |
+| `DATABASE_PUBLIC_URL` | Public proxy URL for local dump tools |
 | `PGHOST`, `PGPORT`, `PGUSER`, `PGPASSWORD`, `PGDATABASE` | Individual connection params |
+
+## Sharing scopes (cross-game)
+
+| Scope | Shared? | API |
+|-------|---------|-----|
+| Account bag / GBUX / wallet | **Yes** across eras | `/api/account/*`, `/api/inventory/*`, `/api/wallet/*` |
+| Character XP / equipment / progress | **No** — per character UUID | `/api/characters/:id`, `…/progress` (+ revision) |
+| Definitions | **Yes** (read-only JSON) | ObjectStore / info |
+| Meshes | **Yes** (CDN keys) | `assets.grudge-studio.com` |
+
+Games **never** open Postgres from the browser. Use same-origin `/api/*` rewrites (Vercel) or explicit CORS (Puter).
+
+## Backups (PlanetScale-inspired)
+
+Adapted from [Massively parallel Postgres backups](https://planetscale.com/blog/massively-parallel-postgres-backups):
+
+| Rule | Practice |
+|------|----------|
+| Make it boring | Scheduled dump + meta time **T** + offsite artifact |
+| Don't thrash primary | Dump off HTTP path; cap parallel workers |
+| Parallelism | Table-parallel logical dumps today; WAL/base backup when RPO requires |
+| Prove restore | Weekly load into Docker / staging Postgres |
+| Object storage | Optional R2 prefix `backups/postgres/grudge-api/<stamp>/` |
+| Never git | `backups/` gitignored — no player dumps in commits |
+
+```powershell
+# From grudge-dev-tool (fleet ops tool)
+$env:DATABASE_URL = "<Railway public DATABASE_URL>"
+npm i -D pg   # once
+npm run backup:postgres
+# → backups/<stamp>/meta.json + tables/*.jsonl.gz
+```
+
+After schema migrations: dump immediately. Room Railways (Multiverse, GRUDOX) are **not** a substitute for this player dump.
+
+Canonical runbook: https://grudge-warlords.github.io/grudge-dev-tool/database-backups-sharing.html
 
 ## Related Documentation
 
 - `README.md` - Project architecture overview
 - `shared/schema.ts` - Full database schema definitions
+- `shared/fleet/dbConnections.ts` / `storage.ts` - Fleet store map
+- `docs/CANONICAL_DATA_LAYER.md` - One-truth stack
 - `server/storage.ts` - Storage interface implementation
+- grudge-dev-tool docs: Databases · sharing · backups
