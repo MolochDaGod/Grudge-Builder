@@ -30,7 +30,7 @@ function argVal(name, fallback) {
   return i >= 0 ? argv[i + 1] : fallback;
 }
 
-const THREE_VER = argVal("--three", "0.170.0");
+const THREE_VER = argVal("--three", "0.185.1");
 const wantFleet = argv.includes("--fleet");
 
 function get(url) {
@@ -86,7 +86,10 @@ async function main() {
     "https://assets.grudge-studio.com/icons/pack/weapons/Sword_01.png",
     "https://assets.grudge-studio.com/icons/pack/weapons/staff_1.png",
     "https://objectstore.grudge-studio.com/api/v1/master-items.json",
-    "https://unpkg.com/three@0.170.0/build/three.module.js",
+    "https://unpkg.com/three@0.185.1/build/three.module.js",
+    "https://unpkg.com/three@0.185.1/build/three.webgpu.min.js",
+    "https://assets.grudge-studio.com/js/grudge-render-capabilities.js",
+    "https://assets.grudge-studio.com/js/vendor/three/0.185.1/three.webgpu.min.js",
   ];
   console.log("→ CDN / registry samples");
   for (const url of cdnSamples) {

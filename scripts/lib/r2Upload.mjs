@@ -21,6 +21,8 @@ export const MIME = {
   '.ttf': 'font/ttf',
   '.otf': 'font/otf',
   '.css': 'text/css',
+  '.js': 'application/javascript; charset=utf-8',
+  '.mjs': 'application/javascript; charset=utf-8',
   '.json': 'application/json',
   '.mp3': 'audio/mpeg',
   '.ogg': 'audio/ogg',

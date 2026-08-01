@@ -39,21 +39,9 @@ const THREE_GLOBAL_PACKAGES = [
 // engine.io-client packaging bug: the ESM build imports './globals.node.js'
 // (a Node.js-specific file) but the browser version 'globals.js' was never
 // published. Intercept the relative import at resolve time.
-// three/webgpu doesn't exist in v0.160 — a transitive dep imports WebGPURenderer.
-// Redirect to a stub that exports a dummy class + re-exports all of 'three'.
-const THREE_WEBGPU_STUB = path.resolve(
-  import.meta.dirname, "client/src/lib/three-webgpu-stub.js"
-);
-const threeWebgpuShim: Plugin = {
-  name: "three-webgpu-shim",
-  enforce: "pre",
-  resolveId(id: string) {
-    if (id === "three/webgpu" || id === "three/tsl") {
-      return { id: THREE_WEBGPU_STUB, external: false };
-    }
-    return null;
-  },
-};
+//
+// three@0.185+ ships real three/webgpu + three/tsl — do NOT stub them.
+// Resolve from package exports (node_modules/three/build/three.webgpu.js).
 
 const engineIoGlobalsShim: Plugin = {
   name: "engine-io-globals-browser-shim",
@@ -99,7 +87,6 @@ const injectThreeForKnownPackages: Plugin = {
 
 export default defineConfig({
   plugins: [
-    threeWebgpuShim,
     engineIoGlobalsShim,
     injectThreeForKnownPackages,
     react(),
@@ -110,15 +97,6 @@ export default defineConfig({
       ...grudgeAliases,
       { find: "@shared", replacement: path.resolve(repoRoot, "shared") },
       { find: "@assets", replacement: path.resolve(repoRoot, "attached_assets") },
-      // three/webgpu was added in r167+; our pinned v0.160 doesn't have it.
-      {
-        find: "three/webgpu",
-        replacement: path.resolve(repoRoot, "client/src/lib/three-webgpu-stub.js"),
-      },
-      {
-        find: "three/tsl",
-        replacement: path.resolve(repoRoot, "client/src/lib/three-webgpu-stub.js"),
-      },
       // Package main points at missing file → browser TextEncoder/Decoder stub
       {
         find: "text-encoding-utf-8",
@@ -145,23 +123,7 @@ export default defineConfig({
       transformMixedEsModules: true,
     },
     rollupOptions: {
-      plugins: [
-        {
-          // Intercept three/webgpu and three/tsl at the Rollup resolver level.
-          // The [commonjs--resolver] fires before Vite plugins, so we need
-          // a Rollup-level plugin here to catch it in time.
-          name: "rollup-three-webgpu-shim",
-          resolveId(id: string) {
-            if (id === "three/webgpu" || id === "three/tsl") {
-              return {
-                id: path.resolve(import.meta.dirname, "client/src/lib/three-webgpu-stub.js"),
-                external: false,
-              };
-            }
-            return null;
-          },
-        },
-      ],
+      // three/webgpu + three/tsl resolve via package exports (three@0.185+)
     },
   },
   optimizeDeps: {
@@ -170,6 +132,8 @@ export default defineConfig({
     entries: ["index.html"],
     // Broken/incomplete packages that crash vite:dep-pre-bundle on Windows
     exclude: ["text-encoding-utf-8", "borsh"],
+    // Pre-bundle real WebGPU entry so force-graph / optional paths resolve
+    include: ["three", "three/webgpu", "three/tsl"],
     esbuildOptions: {
       define: { global: "globalThis" },
     },

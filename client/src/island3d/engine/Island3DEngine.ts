@@ -135,6 +135,11 @@ import {
   type GroundLootItem,
   type GroundLootPile,
 } from '../loot/GroundLootSystem';
+import {
+  createWebGLPlayRenderer,
+  getRenderCapabilitiesSync,
+  formatRenderCapsLine,
+} from '@/lib/renderBackend';
 import { NpcCampSystem, spawnZoneCamps } from '../camps/NpcCampSystem';
 import { CampUnitSystem } from '../camps/CampUnitSystem';
 import type { CampFaction } from '@shared/definitions/npcCamps';
@@ -648,41 +653,31 @@ export class Island3DEngine {
   public firewoodChop: FirewoodChopSystem | null = null;
 
   constructor(private config: Island3DEngineConfig) {
-    // Renderer — threejs-production-best-practices (r185+): high-perf GPU,
-    // sRGB output, ACES, pixel-ratio cap, no stencil/preserve buffer.
-    // Try/catch: Chrome can block new contexts after prior page-caused loss
-    // ("Web page caused context loss and was blocked").
-    try {
-      this.renderer = new THREE.WebGLRenderer({
-        canvas: config.canvas,
-        antialias: true, // MSAA; cheaper/cleaner than FXAA post on modern GPUs
-        alpha: false,
-        powerPreference: "high-performance",
-        stencil: false,
-        preserveDrawingBuffer: false,
-        failIfMajorPerformanceCaveat: false,
-      });
-    } catch (e) {
-      console.warn("[Island3D] high-perf WebGL failed, retrying default…", e);
-      this.renderer = new THREE.WebGLRenderer({
-        canvas: config.canvas,
-        antialias: false,
-        alpha: false,
-        powerPreference: "default",
-        stencil: false,
-        preserveDrawingBuffer: false,
-        failIfMajorPerformanceCaveat: false,
-      });
-    }
+    // Renderer — WebGL2 when available (THREE.WebGLRenderer), high-perf GPU,
+    // sRGB + ACES. Capabilities: client/src/lib/renderBackend.ts
+    // Optional WebGPU: ?webgpu=1 via createPlayRenderer (async paths later).
+    this.renderer = createWebGLPlayRenderer({
+      canvas: config.canvas,
+      antialias: true,
+      alpha: false,
+      powerPreference: "high-performance",
+      maxPixelRatio: 1.5,
+    });
     this.renderer.setSize(config.width, config.height);
-    // Cap fill-rate (especially mobile / multi-GPU laptops)
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
-    this.renderer.outputColorSpace = THREE.SRGBColorSpace;
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     this.renderer.localClippingEnabled = true;
-    this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    this.renderer.toneMappingExposure = 1.05;
+    try {
+      const caps = getRenderCapabilitiesSync();
+      console.info("[Island3D] render backend:", formatRenderCapsLine(caps), caps);
+      (this.renderer.domElement as HTMLCanvasElement).dataset.renderApi = caps.webgl2
+        ? "webgl2"
+        : caps.webgl
+          ? "webgl"
+          : "none";
+    } catch {
+      /* ok */
+    }
     this.renderer.domElement.addEventListener(
       "webglcontextlost",
       (ev) => {
