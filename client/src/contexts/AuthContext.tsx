@@ -3,9 +3,14 @@
  *
  * Provides:
  *   - isAuthenticated / user / session
- *   - openLogin() / closeLogin() to control the LoginModal
+ *   - openLogin() → **canonical Grudge ID SSO** (id.grudge-studio.com)
+ *   - redirectToGrudgeIdLogin(returnPath) same as openLogin with explicit path
  *   - handleLogout()
  *   - refreshAuth() to re-check token validity
+ *
+ * HARD RULE: Warlords product hosts never use a unique/local login page.
+ * All sign-in goes through id.grudge-studio.com (fleet SSOT).
+ * LoginModal remains only as an emergency/dev override via openLoginModalLegacy.
  *
  * Wraps the entire app so any component can `useAuth()`.
  */
@@ -26,10 +31,18 @@ interface AuthState {
   user: GrudgeUser | null;
   session: GrudgeSession | null;
   loginOpen: boolean;
-  /** Opens the in-page LoginModal (credentials, wallet, guest). */
-  openLogin: () => void;
-  /** Redirects to id.grudge-studio.com SSO. */
+  /**
+   * Canonical login — redirects to id.grudge-studio.com/login and returns
+   * via /auth/callback with JWT. Prefer this everywhere on Warlords.
+   */
+  openLogin: (returnPath?: string) => void;
+  /** Same as openLogin (explicit name for callers that want SSO semantics). */
   redirectToGrudgeIdLogin: (returnPath?: string) => void;
+  /**
+   * @deprecated Dev/emergency only — opens in-page LoginModal.
+   * Do not use for production Warlords entry (intro, shell, etc.).
+   */
+  openLoginModalLegacy: () => void;
   closeLogin: () => void;
   handleLogout: () => void;
   refreshAuth: () => Promise<void>;
@@ -64,11 +77,42 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, [refreshAuth]);
 
-  const openLogin = useCallback(() => setLoginOpen(true), []);
+  /** Remember where the user was so /auth/callback can send them back. */
+  const rememberReturnPath = useCallback((returnPath?: string) => {
+    try {
+      const path =
+        returnPath ||
+        (typeof window !== "undefined"
+          ? `${window.location.pathname}${window.location.search || ""}`
+          : "/home");
+      // Callback handler + warlordsLoginUrl both read this key
+      sessionStorage.setItem("grudge_auth_return", path.startsWith("/") ? path : `/${path}`);
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
+  /**
+   * Production login = Grudge ID SSO only.
+   * After login, id.grudge-studio.com returns to /auth/callback with token.
+   */
   const redirectToGrudgeIdLogin = useCallback(
-    (returnPath = "/auth/callback") => loginWithGrudgeId(returnPath),
-    [],
+    (returnPath?: string) => {
+      rememberReturnPath(returnPath);
+      // Fleet SSO entry: callback always /auth/callback; post-callback uses grudge_auth_return
+      loginWithGrudgeId("/auth/callback");
+    },
+    [rememberReturnPath],
   );
+
+  const openLogin = useCallback(
+    (returnPath?: string) => {
+      redirectToGrudgeIdLogin(returnPath);
+    },
+    [redirectToGrudgeIdLogin],
+  );
+
+  const openLoginModalLegacy = useCallback(() => setLoginOpen(true), []);
   const closeLogin = useCallback(() => setLoginOpen(false), []);
 
   const handleLogout = useCallback(() => {
@@ -87,6 +131,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         loginOpen,
         openLogin,
         redirectToGrudgeIdLogin,
+        openLoginModalLegacy,
         closeLogin,
         handleLogout,
         refreshAuth,

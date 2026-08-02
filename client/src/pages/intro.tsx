@@ -19,6 +19,7 @@ export default function IntroPage() {
   const [showEnter, setShowEnter] = useState(false);
   const [activeClass, setActiveClass] = useState<string>("warrior");
   const { isAuthenticated, user, openLogin } = useAuth();
+  // openLogin → id.grudge-studio.com (fleet SSOT), not a unique Warlords modal
 
   // Stable particle definitions (no re-randomize on render)
   const particles = useMemo(() =>
@@ -208,10 +209,11 @@ export default function IntroPage() {
               {isAuthenticated ? 'CONTINUE' : 'ENTER WORLD'}
             </button>
 
-            {/* Sign In button — only shown when not authenticated */}
+            {/* Sign In → id.grudge-studio.com (standard Grudge ID SSO) */}
             {!isAuthenticated && (
               <button
-                onClick={openLogin}
+                type="button"
+                onClick={() => openLogin('/intro')}
                 className="flex items-center gap-2 font-cinzel font-bold text-sm px-8 py-3 rounded-xl cursor-pointer transition-all hover:-translate-y-0.5"
                 style={{
                   background: 'rgba(255,255,255,.06)',
@@ -221,10 +223,15 @@ export default function IntroPage() {
                 }}
               >
                 <LogIn className="w-4 h-4" />
-                SIGN IN
+                SIGN IN WITH GRUDGE ID
               </button>
             )}
           </div>
+          {!isAuthenticated && (
+            <p className="text-[10px] text-slate-500 tracking-wide mt-1">
+              Secure login at id.grudge-studio.com · same account across the fleet
+            </p>
+          )}
 
           {/* Welcome back line for authenticated users */}
           {isAuthenticated && user && (

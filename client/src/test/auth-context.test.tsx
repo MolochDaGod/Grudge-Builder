@@ -3,7 +3,7 @@
  *
  * Tests the AuthProvider + useAuth hook that wraps the entire app:
  *   - Initial state based on localStorage
- *   - openLogin / closeLogin toggle
+ *   - openLogin → Grudge ID SSO (id.grudge-studio.com)
  *   - handleLogout clears all state
  *   - refreshAuth rehydrates from storage
  */
@@ -111,14 +111,15 @@ describe("AuthProvider", () => {
     expect(screen.getByTestId("user").textContent).toBe("TestHero");
   });
 
-  it("openLogin opens the login modal", async () => {
+  it("openLogin redirects to Grudge ID SSO (not unique modal)", async () => {
     const user = userEvent.setup();
     renderWithAuth();
     await act(async () => {});
 
     await user.click(screen.getByTestId("open"));
-    expect(screen.getByTestId("login-open").textContent).toBe("true");
-    expect(mockLoginWithGrudgeId).not.toHaveBeenCalled();
+    // Modal must stay closed — login is id.grudge-studio.com only
+    expect(screen.getByTestId("login-open").textContent).toBe("false");
+    expect(mockLoginWithGrudgeId).toHaveBeenCalledWith("/auth/callback");
   });
 
   it("redirectToGrudgeIdLogin sends user to Grudge ID SSO", async () => {
