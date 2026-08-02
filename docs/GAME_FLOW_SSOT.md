@@ -95,7 +95,7 @@ Code: `WARLORDS_PRODUCTION_FLOW` in `shared/definitions/warlordsProductionFlow.t
 | World map | **grudgewarlords.com** `/world-map` | Yes | Yes |
 | Open zone | **grudgewarlords.com** `/play?mode=zone&sector=…` | Yes | Yes |
 | Tutorial | **grudgewarlords.com** `/tutorial` | Yes | Yes — **optional** |
-| Craft | **grudge-crafting.puter.site** | Browse free; craft needs auth + hero | Yes for XP |
+| Craft | **`grudgewarlords.com/craft/`** (legacy puter redirects) | Browse free; craft needs auth + hero | Yes for XP |
 
 **Outdated:** Docs that say “home island only at level 20” are **superseded** by `WARLORDS_HOME_ISLAND_MIN_LEVEL = 1` and Foundry L20 create defaults for *content*, not an entry gate.
 
@@ -183,9 +183,10 @@ https://airship.grudgewarlords.com/?characterId={uuid}&from=gcs
 https://home.grudgewarlords.com/?characterId={uuid}
 https://map.grudgewarlords.com/
 
-# Craft (select hero in UI)
-https://grudge-crafting.puter.site/
-# later: https://craft.grudgewarlords.com/
+# Craft suite (Warlords product domain)
+https://grudgewarlords.com/craft/
+# alias: https://grudgewarlords.com/wcs/
+# legacy redirect: https://grudge-crafting.puter.site/ → /craft/
 ```
 
 ---

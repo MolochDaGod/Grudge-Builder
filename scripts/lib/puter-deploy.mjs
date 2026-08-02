@@ -14,8 +14,14 @@ const PUBLIC = resolve(__dirname, '..', '..', 'client', 'public');
 const CRAFTING_ICONS_DIR = resolve(PUBLIC, 'crafting-icons');
 
 export function craftingBundle() {
+  // Prefer redirect shell so Puter bookmarks land on grudgewarlords.com/craft/
+  const redirectPath = resolve(PUBLIC, 'grudge-crafting-redirect.html');
+  const fullPath = resolve(PUBLIC, 'grudge-crafting.html');
+  const htmlPath = existsSync(redirectPath) ? redirectPath : fullPath;
   return {
-    html: readFileSync(resolve(PUBLIC, 'grudge-crafting.html')),
+    html: readFileSync(htmlPath),
+    /** Full suite still uploaded as craft.html for debugging / offline puter */
+    fullHtml: existsSync(fullPath) ? readFileSync(fullPath) : null,
     fleet: readFileSync(resolve(PUBLIC, 'grudge-fleet.js')),
   };
 }
@@ -115,19 +121,31 @@ export async function bindHosting(token, rootDir, subdomain = CRAFTING_SUBDOMAIN
 }
 
 export async function deployCraftingToPaths(token, paths, opts = {}) {
-  const { html, fleet } = craftingBundle();
+  // Keep Puter + Warlords public/craft in sync before upload
+  try {
+    const { spawnSync } = await import('node:child_process');
+    const sync = resolve(__dirname, '../sync-craft-public.mjs');
+    spawnSync(process.execPath, [sync], { stdio: 'inherit' });
+  } catch {
+    /* optional */
+  }
+  const { html, fullHtml, fleet } = craftingBundle();
   const icons = craftingIconFiles();
   const results = [];
   for (const dir of paths) {
     try {
+      // index.html = redirect → grudgewarlords.com/craft/
       await batchWrite(token, dir, 'index.html', html, 'text/html');
+      // Full suite kept as craft.html for emergency / offline
+      if (fullHtml) {
+        await batchWrite(token, dir, 'craft.html', fullHtml, 'text/html');
+      }
       await batchWrite(token, dir, 'grudge-fleet.js', fleet, 'application/javascript');
-      // ./crafting-icons/* next to index.html
       const iconsDir = `${dir.replace(/\/$/, '')}/crafting-icons`;
       for (const icon of icons) {
         await batchWrite(token, iconsDir, icon.name, icon.body, icon.mime);
       }
-      results.push({ dir, ok: true, icons: icons.length });
+      results.push({ dir, ok: true, icons: icons.length, mode: 'redirect-to-warlords' });
       if (opts.stopOnFirst) break;
     } catch (e) {
       results.push({ dir, ok: false, error: e.message });
@@ -158,5 +176,11 @@ export async function deployCraftingSite(token, username, opts = {}) {
     }
   }
 
-  return { uploads, bound, hostingRoot, url: `https://${CRAFTING_SUBDOMAIN}.puter.site` };
+  return {
+    uploads,
+    bound,
+    hostingRoot,
+    url: `https://${CRAFTING_SUBDOMAIN}.puter.site`,
+    canonical: 'https://grudgewarlords.com/craft/',
+  };
 }

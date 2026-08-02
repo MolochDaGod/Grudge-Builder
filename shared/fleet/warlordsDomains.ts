@@ -42,11 +42,21 @@ export const WARLORDS_SUBDOMAINS = {
   home: "https://home.grudgewarlords.com",
   map: "https://map.grudgewarlords.com",
   scenes: "https://scenes.grudgewarlords.com",
-  /** Craft UI (can proxy Puter site or host static shell) */
-  craft: "https://craft.grudgewarlords.com",
+  /**
+   * Craft suite (inventory, recipes, item DB) — static HTML under SPA public/.
+   * Path host is live today; craft.* subdomain optional CNAME later.
+   */
+  craft: "https://grudgewarlords.com/craft/",
+  craftSubdomain: "https://craft.grudgewarlords.com",
+  /** Legacy Puter host — redirect only */
+  craftLegacyPuter: "https://grudge-crafting.puter.site",
   /** Foundry alias (may 302 → character.grudge-studio.com) */
   foundry: "https://foundry.grudgewarlords.com",
 } as const;
+
+/** Canonical absolute craft suite URL (path on apex SPA deploy). */
+export const WARLORDS_CRAFT_PATH = "/craft/" as const;
+export const WARLORDS_CRAFT_URL = `${WARLORDS_APEX}${WARLORDS_CRAFT_PATH}` as const;
 
 export type WarlordsSubdomainKey = keyof typeof WARLORDS_SUBDOMAINS;
 

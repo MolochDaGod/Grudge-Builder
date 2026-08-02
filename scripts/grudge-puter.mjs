@@ -74,8 +74,9 @@ async function cmdDeployCrafting() {
     console.log(u.ok ? `✓ ${u.dir}` : `✗ ${u.dir} — ${u.error}`);
   }
   if (result.bound) console.log(`✓ hosting → ${result.bound}`);
-  console.log(`\n✅ ${result.url}`);
-  console.log('   Expect GRUDGE_CONFIG + ./grudge-fleet.js in page source\n');
+  console.log(`\n✅ Puter redirect: ${result.url}`);
+  console.log(`✅ Canonical craft: ${result.canonical || 'https://grudgewarlords.com/craft/'}`);
+  console.log('   Puter index.html redirects here; full suite also at craft.html on Puter.\n');
 }
 
 async function cmdSiteInfo() {

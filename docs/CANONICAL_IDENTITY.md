@@ -41,7 +41,8 @@ email / Discord / Puter / wallet  →  LINK only
 | `client.grudge-studio.com` | **Canonical 3D play** (home-island, play, tutorial, airship) |
 | `grudgewarlords.com` | Same SPA as client (product alias) |
 | `grudge-studio.com` | Studio portal / marketing — **not** login, **not** play SSOT |
-| `grudge-crafting.puter.site` | Craft UI — same Railway + JWT; selects heroes only |
+| `grudgewarlords.com/craft/` | Craft UI — same Railway + JWT; selects heroes only |
+| `grudge-crafting.puter.site` | **Legacy redirect** → `grudgewarlords.com/craft/` |
 | ObjectStore / info | Recipe **definitions** only |
 | R2 `assets.grudge-studio.com` | Binaries only |
 | D1 | Asset registry index only |

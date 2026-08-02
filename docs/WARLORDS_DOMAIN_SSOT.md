@@ -21,7 +21,8 @@ Studio platform (login, forge, assets CDN, Foundry CF Pages) stays on **`*.grudg
 | **`home.grudgewarlords.com`** | Pretty host → `/home-island` | 🔧 Wire + optional 301 |
 | **`map.grudgewarlords.com`** | Pretty host → `/world-map` | 🔧 Wire + optional 301 |
 | **`scenes.grudgewarlords.com`** | Pretty host → `/island-3d` (cinema / scene plate) | 🔧 Wire + optional 301 |
-| **`craft.grudgewarlords.com`** | Craft shell (proxy Puter or static) | 🔧 Wire later |
+| **`grudgewarlords.com/craft/`** | **Craft suite** (recipes, bag, item DB) | ✅ `public/craft/` |
+| **`craft.grudgewarlords.com`** | Optional CNAME → `/craft/` | 🔧 Wire DNS later |
 | **`foundry.grudgewarlords.com`** | Optional 302 → `character.grudge-studio.com` | 🔧 Wire later |
 
 ### SPA paths (same deploy on apex / play)
@@ -34,8 +35,12 @@ Studio platform (login, forge, assets CDN, Foundry CF Pages) stays on **`*.grudg
 | `/play?mode=zone&sector=…` | Open world |
 | `/tutorial` | Optional shipwreck |
 | `/island-3d` | Scene / lobby / cinema plates |
+| **`/craft/`** | WCS craft suite (inventory, recipes, item database) |
 
-Until `play.*` DNS is live, **absolute links use apex** `https://grudgewarlords.com{path}` via `warlordsPlayOrigin()`.
+**Canonical craft URL:** `https://grudgewarlords.com/craft/`  
+Legacy Puter `grudge-crafting.puter.site` redirects to that URL.
+
+Until `play.*` DNS is live, **absolute play links use apex** `https://grudgewarlords.com{path}` via `warlordsPlayOrigin()`.
 
 Set `WARLORDS_PLAY_ORIGIN=https://play.grudgewarlords.com` (or `VITE_WARLORDS_PLAY_ORIGIN`) after DNS.
 

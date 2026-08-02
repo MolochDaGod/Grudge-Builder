@@ -28,6 +28,8 @@ export {
   WARLORDS_CLIENT_STUDIO,
   WARLORDS_SUBDOMAINS,
   WARLORDS_HOST_PATH,
+  WARLORDS_CRAFT_PATH,
+  WARLORDS_CRAFT_URL,
   warlordsPlayOrigin,
   warlordsPlayUrl,
   warlordsFoundryUrl,

@@ -102,7 +102,12 @@ export const FLEET_URLS = {
   warlordsHome: "https://home.grudgewarlords.com",
   warlordsMap: "https://map.grudgewarlords.com",
   warlordsScenes: "https://scenes.grudgewarlords.com",
-  warlordsCraft: "https://craft.grudgewarlords.com",
+  /** Craft suite on Warlords product domain (static /craft/ on SPA deploy) */
+  warlordsCraft: "https://grudgewarlords.com/craft/",
+  /** Optional subdomain alias (DNS later → /craft/) */
+  warlordsCraftHost: "https://craft.grudgewarlords.com",
+  /** Legacy Puter craft — keep for redirects only */
+  warlordsCraftLegacy: "https://grudge-crafting.puter.site",
   warlordsFoundry: "https://foundry.grudgewarlords.com",
   /** Lightweight Three.js MMO client — 9 sectors + Colyseus multiplayer */
   threePort: "https://grudge-three-port.vercel.app",

@@ -505,6 +505,22 @@
       "destination": "/hero-codex/index.html"
     },
     {
+      "source": "/craft",
+      "destination": "/craft/index.html"
+    },
+    {
+      "source": "/craft/",
+      "destination": "/craft/index.html"
+    },
+    {
+      "source": "/wcs",
+      "destination": "/craft/index.html"
+    },
+    {
+      "source": "/wcs/",
+      "destination": "/craft/index.html"
+    },
+    {
       "source": "/map/:mapId",
       "destination": "https://world.grudge-studio.com/map/:mapId"
     },
