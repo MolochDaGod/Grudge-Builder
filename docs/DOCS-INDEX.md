@@ -26,7 +26,9 @@ Organized entry point for APIs, UUID systems, and fleet integration.
 | **API routes (auth, characters, island, crafting)** | [API.md](./API.md) |
 | **Hero identity (name + GRDG code, create SSOT)** | [CHARACTER_IDENTITY.md](./CHARACTER_IDENTITY.md) |
 | **Character progress SSOT (skills, mastery, attrs, bag scope, revisions)** | [CHARACTER_PROGRESS_SSOT.md](./CHARACTER_PROGRESS_SSOT.md) |
-| **Home island gameplay** | [ISLANDS.md](./ISLANDS.md) |
+| **Warlords account ↔ character (attrs, skills, bag, camps, home island cNFT, hosting)** | [WARLORDS_ACCOUNT_CHARACTER_SSOT.md](./WARLORDS_ACCOUNT_CHARACTER_SSOT.md) |
+| **Warlords MMO product (grudgewarlords.com)** | [WARLORDS_MMO_PRODUCT.md](./WARLORDS_MMO_PRODUCT.md) |
+| **Home island gameplay** | [ISLANDS.md](./ISLANDS.md) · [HOME_ISLAND_PIPELINE_CANONICAL.md](./HOME_ISLAND_PIPELINE_CANONICAL.md) |
 | **Professions & crafting** | [PROFESSIONS.md](./PROFESSIONS.md) |
 | **Characters, races, classes** | [RACES_CLASSES.md](./RACES_CLASSES.md) |
 | **Playtesting, tokens, local dev** | [PLAYTEST.md](./PLAYTEST.md) |

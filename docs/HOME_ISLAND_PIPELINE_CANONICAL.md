@@ -178,6 +178,9 @@ Studio editor entities (`creature`, `resource_node`) map into home state animals
 
 ## Related SSOT files
 
+- [WARLORDS_ACCOUNT_CHARACTER_SSOT.md](./WARLORDS_ACCOUNT_CHARACTER_SSOT.md) — account-owned island, shared bag/camps, guest hosting  
+- [MULTIPLAYER_DEPLOY_PATTERN.md](./MULTIPLAYER_DEPLOY_PATTERN.md) — Colyseus `home_island` owner + visitors  
+- [WARLORDS_CNFT_MARKETPLACE_SSOT.md](./WARLORDS_CNFT_MARKETPLACE_SSOT.md) · [CNFT_ESCROW_OWNERSHIP.md](./CNFT_ESCROW_OWNERSHIP.md)  
 - `shared/definitions/homeIslandSeed.ts`  
 - `shared/definitions/homeIslandSpec.ts`  
 - `shared/definitions/homeIslandQuality.ts`  

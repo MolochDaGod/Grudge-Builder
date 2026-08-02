@@ -3,7 +3,7 @@
 **Status:** Product law (confirm with ops).  
 **Deploy:** Vercel project **grudge-builder** (team grudgenexus) → apex **`https://grudgewarlords.com`**  
 **Code:** this monorepo (GrudgeBuilder) · domains `shared/fleet/warlordsDomains.ts`  
-**Related:** [GAME_FLOW_SSOT.md](./GAME_FLOW_SSOT.md) · [WARLORDS_DOMAIN_SSOT.md](./WARLORDS_DOMAIN_SSOT.md) · [COMPLETE_WORLD_MAP.md](./COMPLETE_WORLD_MAP.md) · [CNFT_ESCROW_OWNERSHIP.md](./CNFT_ESCROW_OWNERSHIP.md)
+**Related:** [WARLORDS_ACCOUNT_CHARACTER_SSOT.md](./WARLORDS_ACCOUNT_CHARACTER_SSOT.md) (attrs / skills / bag / camps / home-island cNFT) · [GAME_FLOW_SSOT.md](./GAME_FLOW_SSOT.md) · [WARLORDS_DOMAIN_SSOT.md](./WARLORDS_DOMAIN_SSOT.md) · [COMPLETE_WORLD_MAP.md](./COMPLETE_WORLD_MAP.md) · [CNFT_ESCROW_OWNERSHIP.md](./CNFT_ESCROW_OWNERSHIP.md)
 
 ---
 
@@ -65,10 +65,10 @@ Legacy alias of the **same SPA:** `client.grudge-studio.com` (prefer `*.grudgewa
 - RTS-adjacent island content (planning, reveal, enemy BT) where merged into client  
 
 ### Economy & panel
-- Professions (gather + craft T0–T8, five stations)  
+- Professions (gather + craft T0–T8, five stations) — **XP per character**  
 - **Main panel** (`main-panel.tsx`) — hub UX  
 - Arsenal, recipes, shop, wallet, exchange  
-- Account bag shared; profession XP per character  
+- **Account bag + resources + claimed camps shared** across all warlords heroes; home island one-per-account with guest hosting — see [WARLORDS_ACCOUNT_CHARACTER_SSOT.md](./WARLORDS_ACCOUNT_CHARACTER_SSOT.md)
 
 ### Lore & defs
 - **info.grudge-studio.com** — definitions, ops maps, lore/docs surfaces  

@@ -1,9 +1,10 @@
 # Claim Flag, Camp Units & F1–F5 Orders
 
-**Updated:** 2026-07-17  
+**Updated:** 2026-08-02  
 **SSOT:** `shared/definitions/campUnits.ts` · `shared/definitions/npcCamps.ts`  
 **Runtime:** `client/src/island3d/camps/CampUnitSystem.ts` · `NpcCampSystem.ts`  
-**UI:** `client/src/island3d/render/CampCommandBar.tsx` (via ModePlayHUD)
+**UI:** `client/src/island3d/render/CampCommandBar.tsx` (via ModePlayHUD)  
+**Ownership:** Claim flag binds **`ownerAccountId`** (account-shared across all warlords heroes) — [WARLORDS_ACCOUNT_CHARACTER_SSOT.md](./WARLORDS_ACCOUNT_CHARACTER_SSOT.md)
 
 ---
 
@@ -12,9 +13,10 @@
 | | |
 |--|--|
 | Upgrade id | `camp_flag` |
-| Effect | Claims camp ownership for the player account |
-| Spawn | **3 unarmed variants of the player’s race** (Grudge6 kit, empty weapon slots) |
+| Effect | Claims camp ownership for the **player account** (`ownerAccountId`) — every warlords hero on that account may command |
+| Spawn | **3 unarmed variants of the active hero’s race** (Grudge6 kit, empty weapon slots) |
 | Mesh | `RACE_GRUDGE6[raceId]` · armor A · no weapons until buildings train them |
+| Scope | **Account**, not character — bag materials shared; bench **profession XP** still goes to the active character |
 
 Place via build mode near a player-owned camp, or:
 
