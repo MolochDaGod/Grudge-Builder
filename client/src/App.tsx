@@ -243,17 +243,17 @@ function Router() {
         <Suspense fallback={<div className="min-h-screen bg-black" />}>
           <AssassinationGroundsPage />
         </Suspense>
-      )} />
+      )}</Route>
       <Route path="/maps/assassination-grounds">{() => (
         <Suspense fallback={<div className="min-h-screen bg-black" />}>
           <AssassinationGroundsPage />
         </Suspense>
-      )} />
+      )}</Route>
       <Route path="/danger-grounds">{() => (
         <Suspense fallback={<div className="min-h-screen bg-black" />}>
           <AssassinationGroundsPage />
         </Suspense>
-      )} />
+      )}</Route>
       {/* Fallback to 404 */}
       <Route component={NotFound} />
     </Switch>
