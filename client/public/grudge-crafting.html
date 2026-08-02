@@ -5,7 +5,7 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Grudge Warlords — Crafting &amp; Professions</title>
-<link rel="icon" type="image/png" href="https://assets.grudge-studio.com/icons/pack/weapons/Sword_01.png"/>
+<link rel="icon" type="image/png" href="./crafting-icons/management.png"/>
 <!-- Capture SSO tokens BEFORE any other script so login survives fleet load delays -->
 <script>
 (function earlySsoCapture() {
@@ -81,7 +81,7 @@
     if (t.dataset.gfb === '2') { t.style.opacity = '0.4'; return; }
     if (t.dataset.gfb === '1') {
       t.dataset.gfb = '2';
-      t.src = 'https://assets.grudge-studio.com/icons/pack/misc/Effect.png';
+      t.src = './crafting-icons/eagle-shield.png';
       return;
     }
     t.dataset.gfb = '1';
@@ -110,7 +110,7 @@
     // Icons: pack weapons on assets CDN (reliable); skills on info
     ASSETS: 'https://assets.grudge-studio.com',
     INFO_ORIGIN: 'https://info.grudge-studio.com',
-    VERSION: '5.10.1',
+    VERSION: '5.11.0',
     WCS_URL: 'https://wcs.grudge-studio.com',
     // Full suite also embeds from main-panel Quick Craft tab
     MAIN_PANEL_URL: 'https://ui.grudge-studio.com/main-panel.html?era=warlords&tab=craft',
@@ -375,13 +375,7 @@ img.nav-icon {
 }
 /* Large skill-class portraits crop better as cover at tiny sizes */
 .nav-btn .icon img[data-icon-kind="skill"],
-img.nav-icon[data-icon-kind="skill"] {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: center 18%;
-  filter: none;
-}
+img.nav-icon[data-icon-kind="skill"], img.nav-icon[data-icon-kind="single"] { object-fit: contain !important; object-position: center !important; }
 .acct-tab-btn .nav-icon {
   width: 16px;
   height: 16px;
@@ -1459,7 +1453,7 @@ body .app {
 <body class="access-ready">
 <!-- TOP BAR: account name + character select + login (always visible) -->
 <header class="topbar" id="topbar" role="banner">
-  <div class="topbar-brand">Grudge Crafting <small>v5.10.1 · shared bag · per-char XP</small></div>
+  <div class="topbar-brand">Grudge Crafting <small>v5.11.0 · shared bag · per-char XP</small></div>
   <div class="topbar-status">
     <span class="topbar-dot" id="topDot"></span>
     <div class="topbar-account">
@@ -1491,7 +1485,7 @@ body .app {
         <span class="page-title-icon" style="width:28px;height:28px;font-size:18px;display:inline-flex;align-items:center;justify-content:center">âš”</span>
         <h1 style="margin:0">Grudge Crafting</h1>
       </div>
-      <small>Warlords Profession Suite · v5.10.1</small>
+      <small>Warlords Profession Suite · v5.11.0</small>
     </div>
 
     <!-- ACTIVE CHARACTER PANEL — shown once characters load -->
@@ -1499,52 +1493,52 @@ body .app {
 
     <div class="sidebar-section">
       <div class="sidebar-section-title">Navigation</div>
-      <button class="nav-btn active" data-page="dashboard"><span class="icon"><img referrerpolicy="no-referrer" class="nav-icon" data-icon-kind="pack" src="https://assets.grudge-studio.com/icons/pack/weapons/Sword_01.png" alt="" loading="lazy" decoding="async"></span><span>Dashboard</span></button>
-      <button class="nav-btn" data-page="crafting"><span class="icon"><img referrerpolicy="no-referrer" class="nav-icon" data-icon-kind="pack" src="https://assets.grudge-studio.com/icons/pack/weapons/Hammer_01.png" alt="" loading="lazy" decoding="async"></span><span>Crafting</span></button>
-      <button class="nav-btn" data-page="inventory"><span class="icon"><img referrerpolicy="no-referrer" class="nav-icon" data-icon-kind="pack" src="https://assets.grudge-studio.com/icons/pack/armor/Chest_01.png" alt="" loading="lazy" decoding="async"></span><span>Inventory</span><span class="badge" id="inv-count">0</span><span class="scope-pill account" style="margin-left:auto;font-size:8px">SHARED</span></button>
-      <button class="nav-btn" data-page="camps"><span class="icon"><img referrerpolicy="no-referrer" class="nav-icon" data-icon-kind="pack" src="https://assets.grudge-studio.com/icons/pack/misc/Effect.png" alt="" loading="lazy" decoding="async"></span><span>Camps &amp; Benches</span></button>
-      <button class="nav-btn" data-page="account"><span class="icon"><img referrerpolicy="no-referrer" class="nav-icon" data-icon-kind="skill" src="https://info.grudge-studio.com/icons/skills/class/paladin/paladin_01.png" alt="" loading="lazy" decoding="async"></span><span>Account</span></button>
+      <button class="nav-btn active" data-page="dashboard"><span class="icon"><img referrerpolicy="no-referrer" class="nav-icon" data-icon-kind="pack" src="./crafting-icons/management.png" alt="" loading="lazy" decoding="async"></span><span>Dashboard</span></button>
+      <button class="nav-btn" data-page="crafting"><span class="icon"><img referrerpolicy="no-referrer" class="nav-icon" data-icon-kind="pack" src="./crafting-icons/miner.png" alt="" loading="lazy" decoding="async"></span><span>Crafting</span></button>
+      <button class="nav-btn" data-page="inventory"><span class="icon"><img referrerpolicy="no-referrer" class="nav-icon" data-icon-kind="pack" src="./crafting-icons/management.png" alt="" loading="lazy" decoding="async"></span><span>Inventory</span><span class="badge" id="inv-count">0</span><span class="scope-pill account" style="margin-left:auto;font-size:8px">SHARED</span></button>
+      <button class="nav-btn" data-page="camps"><span class="icon"><img referrerpolicy="no-referrer" class="nav-icon" data-icon-kind="pack" src="./crafting-icons/eagle-shield.png" alt="" loading="lazy" decoding="async"></span><span>Camps &amp; Benches</span></button>
+      <button class="nav-btn" data-page="account"><span class="icon"><img referrerpolicy="no-referrer" class="nav-icon" data-icon-kind="skill" src="./crafting-icons/management.png" alt="" loading="lazy" decoding="async"></span><span>Account</span></button>
     </div>
 
     <div class="sidebar-section">
       <div class="sidebar-section-title">WCS Stations</div>
-      <button class="nav-btn" data-page="crafting" data-station="camp" onclick="openStation('camp')"><span class="icon"><img referrerpolicy="no-referrer" class="nav-icon" data-icon-kind="pack" src="https://assets.grudge-studio.com/icons/pack/misc/Effect.png" alt="" loading="lazy" decoding="async"></span><span>Camp Bench</span></button>
-      <button class="nav-btn" data-page="crafting" data-station="smithing" onclick="openStation('smithing')"><span class="icon"><img referrerpolicy="no-referrer" class="nav-icon" data-icon-kind="skill" data-prof-icon="Miner" src="https://info.grudge-studio.com/icons/skills/class/engineer/engineer_01.png" alt="" loading="lazy" decoding="async"></span><span>Smithing</span><span class="badge" id="lock-smithing" title="Locked">ðŸ”’</span></button>
-      <button class="nav-btn" data-page="crafting" data-station="lumber" onclick="openStation('lumber')"><span class="icon"><img referrerpolicy="no-referrer" class="nav-icon" data-icon-kind="skill" data-prof-icon="Forester" src="https://info.grudge-studio.com/icons/skills/class/hunter/hunter_01.png" alt="" loading="lazy" decoding="async"></span><span>Lumber</span><span class="badge" id="lock-lumber" title="Locked">ðŸ”’</span></button>
-      <button class="nav-btn" data-page="crafting" data-station="loom" onclick="openStation('loom')"><span class="icon"><img referrerpolicy="no-referrer" class="nav-icon" data-icon-kind="skill" data-prof-icon="Mystic" src="https://info.grudge-studio.com/icons/skills/class/bloodmage/bloodmage_01.png" alt="" loading="lazy" decoding="async"></span><span>Loom</span><span class="badge" id="lock-loom" title="Locked">ðŸ”’</span></button>
-      <button class="nav-btn" data-page="crafting" data-station="cooking" onclick="openStation('cooking')"><span class="icon"><img referrerpolicy="no-referrer" class="nav-icon" data-icon-kind="skill" data-prof-icon="Chef" src="https://info.grudge-studio.com/icons/skills/class/firemage/firemage_01.png" alt="" loading="lazy" decoding="async"></span><span>Cooking</span><span class="badge" id="lock-cooking" title="Unlocked">âœ“</span></button>
-      <button class="nav-btn" data-page="crafting" data-station="tinker" onclick="openStation('tinker')"><span class="icon"><img referrerpolicy="no-referrer" class="nav-icon" data-icon-kind="pack" data-prof-icon="Engineer" src="https://assets.grudge-studio.com/icons/pack/weapons/Crossbow_01.png" alt="" loading="lazy" decoding="async"></span><span>Tinker</span><span class="badge" id="lock-tinker" title="Locked">ðŸ”’</span></button>
+      <button class="nav-btn" data-page="crafting" data-station="camp" onclick="openStation('camp')"><span class="icon"><img referrerpolicy="no-referrer" class="nav-icon" data-icon-kind="pack" src="./crafting-icons/eagle-shield.png" alt="" loading="lazy" decoding="async"></span><span>Camp Bench</span></button>
+      <button class="nav-btn" data-page="crafting" data-station="smithing" onclick="openStation('smithing')"><span class="icon"><img referrerpolicy="no-referrer" class="nav-icon" data-icon-kind="skill" data-prof-icon="Miner" src="./crafting-icons/miner.png" alt="" loading="lazy" decoding="async"></span><span>Smithing</span><span class="badge" id="lock-smithing" title="Locked">ðŸ”’</span></button>
+      <button class="nav-btn" data-page="crafting" data-station="lumber" onclick="openStation('lumber')"><span class="icon"><img referrerpolicy="no-referrer" class="nav-icon" data-icon-kind="skill" data-prof-icon="Forester" src="./crafting-icons/forester.png" alt="" loading="lazy" decoding="async"></span><span>Lumber</span><span class="badge" id="lock-lumber" title="Locked">ðŸ”’</span></button>
+      <button class="nav-btn" data-page="crafting" data-station="loom" onclick="openStation('loom')"><span class="icon"><img referrerpolicy="no-referrer" class="nav-icon" data-icon-kind="skill" data-prof-icon="Mystic" src="./crafting-icons/mystic.png" alt="" loading="lazy" decoding="async"></span><span>Loom</span><span class="badge" id="lock-loom" title="Locked">ðŸ”’</span></button>
+      <button class="nav-btn" data-page="crafting" data-station="cooking" onclick="openStation('cooking')"><span class="icon"><img referrerpolicy="no-referrer" class="nav-icon" data-icon-kind="skill" data-prof-icon="Chef" src="./crafting-icons/chef.png" alt="" loading="lazy" decoding="async"></span><span>Cooking</span><span class="badge" id="lock-cooking" title="Unlocked">âœ“</span></button>
+      <button class="nav-btn" data-page="crafting" data-station="tinker" onclick="openStation('tinker')"><span class="icon"><img referrerpolicy="no-referrer" class="nav-icon" data-icon-kind="pack" data-prof-icon="Engineer" src="./crafting-icons/engineer.png" alt="" loading="lazy" decoding="async"></span><span>Tinker</span><span class="badge" id="lock-tinker" title="Locked">ðŸ”’</span></button>
     </div>
 
     <div class="sidebar-section">
       <div class="sidebar-section-title">WCS Codex</div>
-      <button class="nav-btn" data-page="wcs-arsenal"><span class="icon"><img referrerpolicy="no-referrer" class="nav-icon" data-icon-kind="pack" src="https://assets.grudge-studio.com/icons/pack/weapons/Sword_01.png" alt="" loading="lazy" decoding="async"></span><span>Arsenal</span></button>
-      <button class="nav-btn" data-page="wcs-materials"><span class="icon"><img referrerpolicy="no-referrer" class="nav-icon" data-icon-kind="pack" src="https://assets.grudge-studio.com/icons/pack/weapons/Hammer_01.png" alt="" loading="lazy" decoding="async"></span><span>Materials T0—T8</span></button>
-      <button class="nav-btn" data-page="item-database"><span class="icon"><img referrerpolicy="no-referrer" class="nav-icon" data-icon-kind="pack" src="https://assets.grudge-studio.com/icons/pack/armor/Chest_01.png" alt="" loading="lazy" decoding="async"></span><span>Item Database</span><span class="badge" id="db-count">…</span></button>
+      <button class="nav-btn" data-page="wcs-arsenal"><span class="icon"><img referrerpolicy="no-referrer" class="nav-icon" data-icon-kind="pack" src="./crafting-icons/management.png" alt="" loading="lazy" decoding="async"></span><span>Arsenal</span></button>
+      <button class="nav-btn" data-page="wcs-materials"><span class="icon"><img referrerpolicy="no-referrer" class="nav-icon" data-icon-kind="pack" src="./crafting-icons/miner.png" alt="" loading="lazy" decoding="async"></span><span>Materials T0—T8</span></button>
+      <button class="nav-btn" data-page="item-database"><span class="icon"><img referrerpolicy="no-referrer" class="nav-icon" data-icon-kind="pack" src="./crafting-icons/management.png" alt="" loading="lazy" decoding="async"></span><span>Item Database</span><span class="badge" id="db-count">…</span></button>
     </div>
 
     <div class="sidebar-section">
       <div class="sidebar-section-title">Professions <span class="scope-pill character" style="margin-left:4px">PER CHAR</span></div>
-      <button class="nav-btn" data-page="prof-miner"><span class="icon"><img referrerpolicy="no-referrer" class="nav-icon" data-icon-kind="skill" data-prof-icon="Miner" src="https://info.grudge-studio.com/icons/skills/class/engineer/engineer_01.png" alt="" loading="lazy" decoding="async"></span><span>Miner</span><span class="badge prof-lvl" data-prof="Miner">1</span></button>
-      <button class="nav-btn" data-page="prof-forester"><span class="icon"><img referrerpolicy="no-referrer" class="nav-icon" data-icon-kind="skill" data-prof-icon="Forester" src="https://info.grudge-studio.com/icons/skills/class/hunter/hunter_01.png" alt="" loading="lazy" decoding="async"></span><span>Forester</span><span class="badge prof-lvl" data-prof="Forester">1</span></button>
-      <button class="nav-btn" data-page="prof-mystic"><span class="icon"><img referrerpolicy="no-referrer" class="nav-icon" data-icon-kind="skill" data-prof-icon="Mystic" src="https://info.grudge-studio.com/icons/skills/class/bloodmage/bloodmage_01.png" alt="" loading="lazy" decoding="async"></span><span>Mystic</span><span class="badge prof-lvl" data-prof="Mystic">1</span></button>
-      <button class="nav-btn" data-page="prof-chef"><span class="icon"><img referrerpolicy="no-referrer" class="nav-icon" data-icon-kind="skill" data-prof-icon="Chef" src="https://info.grudge-studio.com/icons/skills/class/firemage/firemage_01.png" alt="" loading="lazy" decoding="async"></span><span>Chef</span><span class="badge prof-lvl" data-prof="Chef">1</span></button>
-      <button class="nav-btn" data-page="prof-engineer"><span class="icon"><img referrerpolicy="no-referrer" class="nav-icon" data-icon-kind="pack" data-prof-icon="Engineer" src="https://assets.grudge-studio.com/icons/pack/weapons/Crossbow_01.png" alt="" loading="lazy" decoding="async"></span><span>Engineer</span><span class="badge prof-lvl" data-prof="Engineer">1</span></button>
+      <button class="nav-btn" data-page="prof-miner"><span class="icon"><img referrerpolicy="no-referrer" class="nav-icon" data-icon-kind="skill" data-prof-icon="Miner" src="./crafting-icons/miner.png" alt="" loading="lazy" decoding="async"></span><span>Miner</span><span class="badge prof-lvl" data-prof="Miner">1</span></button>
+      <button class="nav-btn" data-page="prof-forester"><span class="icon"><img referrerpolicy="no-referrer" class="nav-icon" data-icon-kind="skill" data-prof-icon="Forester" src="./crafting-icons/forester.png" alt="" loading="lazy" decoding="async"></span><span>Forester</span><span class="badge prof-lvl" data-prof="Forester">1</span></button>
+      <button class="nav-btn" data-page="prof-mystic"><span class="icon"><img referrerpolicy="no-referrer" class="nav-icon" data-icon-kind="skill" data-prof-icon="Mystic" src="./crafting-icons/mystic.png" alt="" loading="lazy" decoding="async"></span><span>Mystic</span><span class="badge prof-lvl" data-prof="Mystic">1</span></button>
+      <button class="nav-btn" data-page="prof-chef"><span class="icon"><img referrerpolicy="no-referrer" class="nav-icon" data-icon-kind="skill" data-prof-icon="Chef" src="./crafting-icons/chef.png" alt="" loading="lazy" decoding="async"></span><span>Chef</span><span class="badge prof-lvl" data-prof="Chef">1</span></button>
+      <button class="nav-btn" data-page="prof-engineer"><span class="icon"><img referrerpolicy="no-referrer" class="nav-icon" data-icon-kind="pack" data-prof-icon="Engineer" src="./crafting-icons/engineer.png" alt="" loading="lazy" decoding="async"></span><span>Engineer</span><span class="badge prof-lvl" data-prof="Engineer">1</span></button>
     </div>
 
     <div class="sidebar-section">
       <div class="sidebar-section-title">Combat Skills <span class="scope-pill character" style="margin-left:4px">UUID</span></div>
-      <button class="nav-btn" onclick="openCharacterSkillTree()"><span class="icon"><img referrerpolicy="no-referrer" class="nav-icon" data-icon-kind="skill" src="https://info.grudge-studio.com/icons/skills/class/paladin/paladin_01.png" alt="" loading="lazy" decoding="async"></span><span>Class Skill Tree</span></button>
-      <button class="nav-btn" onclick="openCharacterWeaponMastery()"><span class="icon"><img referrerpolicy="no-referrer" class="nav-icon" data-icon-kind="pack" src="https://assets.grudge-studio.com/icons/pack/weapons/Sword_01.png" alt="" loading="lazy" decoding="async"></span><span>Weapon Mastery</span></button>
-      <button class="nav-btn" data-page="char-progress"><span class="icon"><img referrerpolicy="no-referrer" class="nav-icon" data-icon-kind="pack" src="https://assets.grudge-studio.com/icons/pack/weapons/Axe_01.png" alt="" loading="lazy" decoding="async"></span><span>Attrs &amp; Progress</span></button>
+      <button class="nav-btn" onclick="openCharacterSkillTree()"><span class="icon"><img referrerpolicy="no-referrer" class="nav-icon" data-icon-kind="skill" src="./crafting-icons/management.png" alt="" loading="lazy" decoding="async"></span><span>Class Skill Tree</span></button>
+      <button class="nav-btn" onclick="openCharacterWeaponMastery()"><span class="icon"><img referrerpolicy="no-referrer" class="nav-icon" data-icon-kind="pack" src="./crafting-icons/management.png" alt="" loading="lazy" decoding="async"></span><span>Weapon Mastery</span></button>
+      <button class="nav-btn" data-page="char-progress"><span class="icon"><img referrerpolicy="no-referrer" class="nav-icon" data-icon-kind="pack" src="./crafting-icons/forester.png" alt="" loading="lazy" decoding="async"></span><span>Attrs &amp; Progress</span></button>
     </div>
 
     <div class="sidebar-section">
       <div class="sidebar-section-title">Links</div>
-      <a href="https://ui.grudge-studio.com/main-panel.html?era=warlords&tab=craft" target="_blank" rel="noopener" class="nav-btn"><span class="icon"><img referrerpolicy="no-referrer" class="nav-icon" data-icon-kind="pack" src="https://assets.grudge-studio.com/icons/pack/misc/Effect.png" alt="" loading="lazy" decoding="async"></span><span>Main Panel</span></a>
-      <a href="https://grudgewarlords.com" target="_blank" rel="noopener" class="nav-btn"><span class="icon"><img referrerpolicy="no-referrer" class="nav-icon" data-icon-kind="pack" src="https://assets.grudge-studio.com/icons/pack/weapons/Sword_01.png" alt="" loading="lazy" decoding="async"></span><span>Grudge Warlords</span></a>
-      <a href="https://wcs.grudge-studio.com" target="_blank" rel="noopener" class="nav-btn"><span class="icon"><img referrerpolicy="no-referrer" class="nav-icon" data-icon-kind="pack" src="https://assets.grudge-studio.com/icons/pack/weapons/Axe_01.png" alt="" loading="lazy" decoding="async"></span><span>WCS (host)</span></a>
-      <a href="https://docs.grudge-studio.com/crafting" target="_blank" rel="noopener" class="nav-btn"><span class="icon"><img referrerpolicy="no-referrer" class="nav-icon" data-icon-kind="pack" src="https://assets.grudge-studio.com/icons/pack/weapons/Bow_01.png" alt="" loading="lazy" decoding="async"></span><span>Craft Skills Docs</span></a>
+      <a href="https://ui.grudge-studio.com/main-panel.html?era=warlords&tab=craft" target="_blank" rel="noopener" class="nav-btn"><span class="icon"><img referrerpolicy="no-referrer" class="nav-icon" data-icon-kind="pack" src="./crafting-icons/eagle-shield.png" alt="" loading="lazy" decoding="async"></span><span>Main Panel</span></a>
+      <a href="https://grudgewarlords.com" target="_blank" rel="noopener" class="nav-btn"><span class="icon"><img referrerpolicy="no-referrer" class="nav-icon" data-icon-kind="pack" src="./crafting-icons/management.png" alt="" loading="lazy" decoding="async"></span><span>Grudge Warlords</span></a>
+      <a href="https://wcs.grudge-studio.com" target="_blank" rel="noopener" class="nav-btn"><span class="icon"><img referrerpolicy="no-referrer" class="nav-icon" data-icon-kind="pack" src="./crafting-icons/forester.png" alt="" loading="lazy" decoding="async"></span><span>WCS (host)</span></a>
+      <a href="https://docs.grudge-studio.com/crafting" target="_blank" rel="noopener" class="nav-btn"><span class="icon"><img referrerpolicy="no-referrer" class="nav-icon" data-icon-kind="pack" src="./crafting-icons/management.png" alt="" loading="lazy" decoding="async"></span><span>Craft Skills Docs</span></a>
     </div>
 
     <div class="sidebar-account" id="sidebarAccount">
@@ -1592,7 +1586,7 @@ body .app {
 
     <!-- DASHBOARD -->
     <div class="page active" id="page-dashboard">
-      <div class="page-header"><h2 class="page-title"><span class="page-title-icon"><img referrerpolicy="no-referrer" data-icon-kind="pack" src="https://assets.grudge-studio.com/icons/pack/weapons/Sword_01.png" alt=""></span> Crafting Dashboard</h2></div>
+      <div class="page-header"><h2 class="page-title"><span class="page-title-icon"><img referrerpolicy="no-referrer" data-icon-kind="pack" src="./crafting-icons/management.png" alt=""></span> Crafting Dashboard</h2></div>
       <!-- Active character banner (populated by renderDashboard) -->
       <div id="dash-char-banner"></div>
       <div class="grid4" id="dash-stats"></div>
@@ -1611,7 +1605,7 @@ body .app {
     <!-- CRAFTING (WCS station tabs + bench scene) -->
     <div class="page station-themed" id="page-crafting">
       <div class="page-header">
-        <h2 class="page-title"><span class="page-title-icon"><img referrerpolicy="no-referrer" data-icon-kind="pack" src="https://assets.grudge-studio.com/icons/pack/weapons/Hammer_01.png" alt=""></span> Crafting</h2>
+        <h2 class="page-title"><span class="page-title-icon"><img referrerpolicy="no-referrer" data-icon-kind="pack" src="./crafting-icons/miner.png" alt=""></span> Crafting</h2>
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
           <span class="scope-pill account">ðŸŽ’ Shared inventory</span>
           <span class="scope-pill character">ðŸ“ˆ XP / levels / gear = character</span>
@@ -1646,7 +1640,7 @@ body .app {
     <!-- CAMPS & BENCHES -->
     <div class="page" id="page-camps">
       <div class="page-header">
-        <h2 class="page-title"><span class="page-title-icon"><img referrerpolicy="no-referrer" data-icon-kind="pack" src="https://assets.grudge-studio.com/icons/pack/misc/Effect.png" alt=""></span> Camps &amp; Benches</h2>
+        <h2 class="page-title"><span class="page-title-icon"><img referrerpolicy="no-referrer" data-icon-kind="pack" src="./crafting-icons/eagle-shield.png" alt=""></span> Camps &amp; Benches</h2>
         <button class="filter-btn" onclick="refreshCampsAndBenches()">ðŸ”„ Refresh</button>
       </div>
       <div class="station-hint">
@@ -1665,14 +1659,14 @@ body .app {
 
     <!-- WCS ARSENAL CODEX -->
     <div class="page" id="page-wcs-arsenal">
-      <div class="page-header"><h2 class="page-title"><span class="page-title-icon"><img referrerpolicy="no-referrer" data-icon-kind="pack" src="https://assets.grudge-studio.com/icons/pack/weapons/Sword_01.png" alt=""></span> WCS Arsenal</h2></div>
+      <div class="page-header"><h2 class="page-title"><span class="page-title-icon"><img referrerpolicy="no-referrer" data-icon-kind="pack" src="./crafting-icons/management.png" alt=""></span> WCS Arsenal</h2></div>
       <div class="station-hint">Canonical weapon / armor / utility types from Warlord Crafting Suite taxonomy (T0—T8).</div>
       <div id="wcs-arsenal-body" class="codex-grid"></div>
     </div>
 
     <!-- WCS MATERIALS CODEX -->
     <div class="page" id="page-wcs-materials">
-      <div class="page-header"><h2 class="page-title"><span class="page-title-icon"><img referrerpolicy="no-referrer" data-icon-kind="pack" src="https://assets.grudge-studio.com/icons/pack/weapons/Hammer_01.png" alt=""></span> Materials T0—T8</h2></div>
+      <div class="page-header"><h2 class="page-title"><span class="page-title-icon"><img referrerpolicy="no-referrer" data-icon-kind="pack" src="./crafting-icons/miner.png" alt=""></span> Materials T0—T8</h2></div>
       <div class="station-hint">Shared account bag uses these material tiers. Profession XP for refining stays on the active character.</div>
       <div id="wcs-materials-body"></div>
     </div>
@@ -1680,7 +1674,7 @@ body .app {
     <!-- ITEM DATABASE -->
     <div class="page" id="page-item-database">
       <div class="page-header">
-        <h2 class="page-title"><span class="page-title-icon"><img referrerpolicy="no-referrer" data-icon-kind="pack" src="https://assets.grudge-studio.com/icons/pack/armor/Chest_01.png" alt=""></span> Item Database</h2>
+        <h2 class="page-title"><span class="page-title-icon"><img referrerpolicy="no-referrer" data-icon-kind="pack" src="./crafting-icons/management.png" alt=""></span> Item Database</h2>
         <div class="db-summary" id="db-summary">Loading items…</div>
       </div>
       <div class="db-toolbar">
@@ -1693,7 +1687,7 @@ body .app {
     <!-- INVENTORY (account-shared) -->
     <div class="page" id="page-inventory">
       <div class="page-header">
-        <h2 class="page-title"><span class="page-title-icon"><img referrerpolicy="no-referrer" data-icon-kind="pack" src="https://assets.grudge-studio.com/icons/pack/armor/Chest_01.png" alt=""></span> Inventory <span class="scope-pill account">SHARED ACCOUNT BAG</span></h2>
+        <h2 class="page-title"><span class="page-title-icon"><img referrerpolicy="no-referrer" data-icon-kind="pack" src="./crafting-icons/management.png" alt=""></span> Inventory <span class="scope-pill account">SHARED ACCOUNT BAG</span></h2>
         <button class="filter-btn" onclick="gatherMaterials()">ðŸŒ¿ Gather Materials</button>
       </div>
       <div class="station-hint">One inventory for all characters. Profession XP, levels, and equipment stay unique to the active character.</div>
@@ -1705,13 +1699,13 @@ body .app {
 
     <!-- ACCOUNT -->
     <div class="page" id="page-account">
-      <div class="page-header"><h2 class="page-title"><span class="page-title-icon"><img referrerpolicy="no-referrer" data-icon-kind="skill" src="https://info.grudge-studio.com/icons/skills/class/paladin/paladin_01.png" alt=""></span> Account</h2></div>
+      <div class="page-header"><h2 class="page-title"><span class="page-title-icon"><img referrerpolicy="no-referrer" data-icon-kind="skill" src="./crafting-icons/management.png" alt=""></span> Account</h2></div>
 
       <!-- Sub-tab bar -->
       <div class="acct-tabs">
-        <button class="acct-tab-btn active" data-acct-tab="characters"><img referrerpolicy="no-referrer" class="nav-icon" src="https://info.grudge-studio.com/icons/skills/class/paladin/paladin_01.png" alt=""> Characters</button>
-        <button class="acct-tab-btn" data-acct-tab="crafting"><img referrerpolicy="no-referrer" class="nav-icon" src="https://assets.grudge-studio.com/icons/pack/weapons/Hammer_01.png" alt=""> Crafting Log</button>
-        <button class="acct-tab-btn" data-acct-tab="island"><img referrerpolicy="no-referrer" class="nav-icon" src="https://assets.grudge-studio.com/icons/pack/misc/Effect.png" alt=""> Home Island</button>
+        <button class="acct-tab-btn active" data-acct-tab="characters"><img referrerpolicy="no-referrer" class="nav-icon" src="./crafting-icons/management.png" alt=""> Characters</button>
+        <button class="acct-tab-btn" data-acct-tab="crafting"><img referrerpolicy="no-referrer" class="nav-icon" src="./crafting-icons/miner.png" alt=""> Crafting Log</button>
+        <button class="acct-tab-btn" data-acct-tab="island"><img referrerpolicy="no-referrer" class="nav-icon" src="./crafting-icons/eagle-shield.png" alt=""> Home Island</button>
       </div>
 
       <!-- TAB: CHARACTERS -->
@@ -1810,7 +1804,7 @@ body .app {
     <!-- CHARACTER PROGRESS (attrs, skills, mastery summary) -->
     <div class="page" id="page-char-progress">
       <div class="page-header">
-        <h2 class="page-title"><span class="page-title-icon"><img referrerpolicy="no-referrer" data-icon-kind="pack" src="https://assets.grudge-studio.com/icons/pack/weapons/Axe_01.png" alt=""></span> Character Progress</h2>
+        <h2 class="page-title"><span class="page-title-icon"><img referrerpolicy="no-referrer" data-icon-kind="pack" src="./crafting-icons/forester.png" alt=""></span> Character Progress</h2>
         <span class="scope-pill character">bound to Grudge UUID</span>
       </div>
       <div id="char-progress-body"></div>
@@ -1832,13 +1826,57 @@ body .app {
 const GRUDGE_API = window.GRUDGE_CONFIG.GAME_DATA;
 const GRUDGE_AUTH = window.GRUDGE_CONFIG.AUTH_GATEWAY;
 
+/** Grudge Islands single-frame icons (NOT pack/skill spritesheets).
+ *  Source: grudge-islands dist assets — profession + management + eagle-shield + factions.
+ *  Served as ./crafting-icons/* next to this page on Puter.
+ *  HARD RULE: never use multi-image sprite sheets (pack/weapons, pack/misc/Effect,
+ *  skills/class/* crop sheets) as UI icons for nav, stations, or professions.
+ */
+const CRAFTING_ICON_BASE = (function () {
+  try {
+    return new URL('./crafting-icons/', window.location.href).href;
+  } catch (e) {
+    return './crafting-icons/';
+  }
+})();
+const CRAFTING_UI_ICONS = {
+  Miner: CRAFTING_ICON_BASE + 'miner.png',
+  Forester: CRAFTING_ICON_BASE + 'forester.png',
+  Mystic: CRAFTING_ICON_BASE + 'mystic.png',
+  Chef: CRAFTING_ICON_BASE + 'chef.png',
+  Engineer: CRAFTING_ICON_BASE + 'engineer.png',
+  recipes: CRAFTING_ICON_BASE + 'management.png',
+  management: CRAFTING_ICON_BASE + 'management.png',
+  camps: CRAFTING_ICON_BASE + 'eagle-shield.png',
+  camp: CRAFTING_ICON_BASE + 'eagle-shield.png',
+  benches: CRAFTING_ICON_BASE + 'eagle-shield.png',
+  dashboard: CRAFTING_ICON_BASE + 'management.png',
+  inventory: CRAFTING_ICON_BASE + 'management.png',
+  arsenal: CRAFTING_ICON_BASE + 'management.png',
+  materials: CRAFTING_ICON_BASE + 'miner.png',
+  account: CRAFTING_ICON_BASE + 'management.png',
+  factions: {
+    crusade: CRAFTING_ICON_BASE + 'faction-crusade.png',
+    fabled: CRAFTING_ICON_BASE + 'faction-fabled.png',
+    legion: CRAFTING_ICON_BASE + 'faction-legion.png',
+  },
+};
+function isForbiddenSpriteIconUrl(url) {
+  const u = String(url || '');
+  if (/\/icons\/pack\//i.test(u)) return true;
+  if (/\/icons\/skills\/class\//i.test(u)) return true;
+  if (/Effect\.png/i.test(u)) return true;
+  return false;
+}
+
+
 /** Profession icons from info.grudge-studio.com (professions.json iconUrl) */
 const PROF_ICON_URLS = {
-  Miner: 'https://info.grudge-studio.com/icons/skills/class/engineer/engineer_01.png',
-  Forester: 'https://info.grudge-studio.com/icons/skills/class/hunter/hunter_01.png',
-  Mystic: 'https://info.grudge-studio.com/icons/skills/class/bloodmage/bloodmage_01.png',
-  Chef: 'https://info.grudge-studio.com/icons/skills/class/firemage/firemage_01.png',
-  Engineer: 'https://assets.grudge-studio.com/icons/pack/weapons/Crossbow_01.png',
+  Miner: CRAFTING_UI_ICONS.Miner,
+  Forester: CRAFTING_UI_ICONS.Forester,
+  Mystic: CRAFTING_UI_ICONS.Mystic,
+  Chef: CRAFTING_UI_ICONS.Chef,
+  Engineer: CRAFTING_UI_ICONS.Engineer,
 };
 
 function blankProfessions() {
@@ -1954,36 +1992,36 @@ const ASSET_CDN_ROOT = (typeof window !== 'undefined' && window.GRUDGE_CONFIG &&
 const INFO_CDN_ROOT = (typeof window !== 'undefined' && window.GRUDGE_CONFIG && window.GRUDGE_CONFIG.INFO_ORIGIN)
   || 'https://info.grudge-studio.com';
 const WCS_STATIONS = [
-  { id: 'camp',     name: 'Camp Bench',     icon: 'â›º', prof: 'All',      color: '#d4a843', always: true,
-    iconUrl: INFO_CDN_ROOT + '/icons/pack/misc/Effect.png',
-    bgUrl: INFO_CDN_ROOT + '/icons/pack/armor/Chest_01.png',
+  { id: 'camp',     name: 'Camp Bench',     icon: '⛺', prof: 'All',      color: '#d4a843', always: true,
+    iconUrl: CRAFTING_UI_ICONS.camp,
+    bgUrl: CRAFTING_UI_ICONS.camps,
     unlockKeys: ['camp', 'campfire', 'tent', 'tent_stage', 'tenthalf', 'tentclosed', 'workbench', 'crafting bench', 'starter'],
     desc: 'T0 universal recipes — always at owned starter camp (tent + fire + workbench).' },
-  { id: 'smithing', name: 'Smithing Table', icon: 'âš’ï¸', prof: 'Miner',     color: '#ef4444', always: false,
-    iconUrl: INFO_CDN_ROOT + '/icons/skills/class/engineer/engineer_01.png',
-    bgUrl: INFO_CDN_ROOT + '/icons/pack/weapons/Hammer_01.png',
+  { id: 'smithing', name: 'Smithing Table', icon: '⚒️', prof: 'Miner',     color: '#ef4444', always: false,
+    iconUrl: CRAFTING_UI_ICONS.Miner,
+    bgUrl: CRAFTING_UI_ICONS.Miner,
     unlockKeys: ['smithing', 'forge', 'anvil', 'workbenchanvil', 'grind_wheel', 'workbenchgrind', 'smithy', 'smelter', 'sharpen'],
-    desc: 'Miner station — anvil / forge / grind wheel (survival kit workbenchAnvil + workbenchGrind).' },
-  { id: 'lumber',   name: 'Lumber Table',   icon: 'ðŸŒ²', prof: 'Forester',  color: '#22c55e', always: false,
-    iconUrl: INFO_CDN_ROOT + '/icons/skills/class/hunter/hunter_01.png',
-    bgUrl: INFO_CDN_ROOT + '/icons/pack/weapons/Axe_01.png',
+    desc: 'Miner station — anvil / forge / grind wheel.' },
+  { id: 'lumber',   name: 'Lumber Table',   icon: '🌲', prof: 'Forester',  color: '#22c55e', always: false,
+    iconUrl: CRAFTING_UI_ICONS.Forester,
+    bgUrl: CRAFTING_UI_ICONS.Forester,
     unlockKeys: ['lumber', 'sawmill', 'lumbermill', 'woodwork', 'carpentry', 'tanner', 'toolaxe'],
-    desc: 'Forester station — bows, leather, planks (lumbermill / sawmill building).' },
-  { id: 'loom',     name: 'Loom Table',     icon: 'ðŸ§µ', prof: 'Mystic',    color: '#a78bfa', always: false,
-    iconUrl: INFO_CDN_ROOT + '/icons/skills/class/bloodmage/bloodmage_01.png',
-    bgUrl: INFO_CDN_ROOT + '/icons/pack/weapons/Staff_01.png',
+    desc: 'Forester station — bows, leather, planks.' },
+  { id: 'loom',     name: 'Loom Table',     icon: '🧵', prof: 'Mystic',    color: '#a78bfa', always: false,
+    iconUrl: CRAFTING_UI_ICONS.Mystic,
+    bgUrl: CRAFTING_UI_ICONS.Mystic,
     unlockKeys: ['loom', 'spell_table', 'spelltable', 'enchanter', 'arcane table', 'tailor', 'structurecloth'],
-    desc: 'Mystic station — cloth, staves, essence (spell table / loom).' },
-  { id: 'cooking',  name: 'Cooking Table',  icon: 'ðŸ³', prof: 'Chef',      color: '#f59e0b', always: false,
-    iconUrl: INFO_CDN_ROOT + '/icons/skills/class/firemage/firemage_01.png',
-    bgUrl: INFO_CDN_ROOT + '/icons/pack/misc/Effect.png',
+    desc: 'Mystic station — cloth, staves, essence.' },
+  { id: 'cooking',  name: 'Cooking Table',  icon: '🍳', prof: 'Chef',      color: '#f59e0b', always: false,
+    iconUrl: CRAFTING_UI_ICONS.Chef,
+    bgUrl: CRAFTING_UI_ICONS.Chef,
     unlockKeys: ['cooking', 'kitchen', 'campfire', 'cookfire', 'cooking_bench', 'cooking table', 'stove', 'hearth', 'fishingstand'],
-    desc: 'Chef station — campfire or cooking bench (kit campfire + fishingStand). Starter always has campfire.' },
-  { id: 'tinker',   name: 'Tinker Table',   icon: 'ðŸ”§', prof: 'Engineer',  color: '#60a5fa', always: false,
-    iconUrl: INFO_CDN_ROOT + '/icons/pack/weapons/Crossbow_01.png',
-    bgUrl: INFO_CDN_ROOT + '/icons/pack/weapons/Hammer_01.png',
+    desc: 'Chef station — campfire or cooking bench.' },
+  { id: 'tinker',   name: 'Tinker Table',   icon: '🔧', prof: 'Engineer',  color: '#60a5fa', always: false,
+    iconUrl: CRAFTING_UI_ICONS.Engineer,
+    bgUrl: CRAFTING_UI_ICONS.Engineer,
     unlockKeys: ['tinker', 'tinker table', 'workshop', 'engineer', 'workbench', 'gunsmith', 'anvil', 'workbenchanvil'],
-    desc: 'Engineer station — workbench (hammer+note) or anvil from survival kit.' },
+    desc: 'Engineer station — workbench or anvil.' },
 ];
 
 const WCS_TIER_NAMES = { 0:'Broken',1:'Copper',2:'Iron',3:'Steel',4:'Mithril',5:'Adamantine',6:'Orichalcum',7:'Starmetal',8:'Divine' };
@@ -3338,13 +3376,13 @@ function openStation(stationId) {
 function stationIconHtml(st, size) {
   if (st && st.iconUrl) {
     const s = size || 18;
-    const kind = /\/skills\//i.test(st.iconUrl) ? "skill" : "pack";
-    const fb =
-      (typeof INFO_CDN !== "undefined" ? INFO_CDN : "https://info.grudge-studio.com") +
-      "/icons/pack/misc/Effect.png";
-    return `<img referrerpolicy="no-referrer" data-icon-kind="${kind}" src="${st.iconUrl}" alt="" width="${s}" height="${s}" loading="lazy" decoding="async" onerror="if(!this.dataset.fb){this.dataset.fb=1;this.src='${fb}';this.dataset.iconKind='pack'}">`;
+    const fb = (typeof CRAFTING_UI_ICONS !== 'undefined' ? CRAFTING_UI_ICONS.camp : './crafting-icons/eagle-shield.png');
+    const src = (typeof isForbiddenSpriteIconUrl === 'function' && isForbiddenSpriteIconUrl(st.iconUrl))
+      ? fb
+      : st.iconUrl;
+    return `<img referrerpolicy="no-referrer" data-icon-kind="single" src="${src}" alt="" width="${s}" height="${s}" style="object-fit:contain" loading="lazy" decoding="async" onerror="if(!this.dataset.fb){this.dataset.fb=1;this.src='${fb}';this.dataset.iconKind='single'}">`;
   }
-  return st?.icon || "âš’";
+  return st?.icon || "⛺";
 }
 
 function applyStationScene(st) {
@@ -3363,7 +3401,7 @@ function applyStationScene(st) {
   }
   if (iconEl) {
     iconEl.innerHTML = st.iconUrl
-      ? `<img referrerpolicy="no-referrer" data-icon-kind="${/\/skills\//i.test(st.iconUrl) ? "skill" : "pack"}" src="${st.iconUrl}" alt="${st.name}" loading="lazy" decoding="async" onerror="this.onerror=null;this.src='https://assets.grudge-studio.com/icons/pack/misc/Effect.png';this.dataset.iconKind='pack'">`
+      ? `<img referrerpolicy="no-referrer" data-icon-kind="${/\/skills\//i.test(st.iconUrl) ? "skill" : "pack"}" src="${st.iconUrl}" alt="${st.name}" loading="lazy" decoding="async" onerror="this.onerror=null;this.src='./crafting-icons/eagle-shield.png';this.dataset.iconKind='pack'">`
       : (st.icon || "âš’");
   }
   if (titleEl) titleEl.textContent = st.name;
@@ -4902,15 +4940,16 @@ const ICON_CAT_TO_PACK = {
   staff: 'Staff', staves: 'Staff', tools: 'Hammer',
 };
 
+/** Legacy name kept — values are single-frame only (no pack spritesheets). */
 const ICON_PACK_FALLBACK = {
-  armor: '/icons/pack/armor/Chest_01.png',
-  greenFoods: '/icons/pack/misc/Effect.png',
-  blueFoods: '/icons/pack/misc/Effect.png',
-  redFoods: '/icons/pack/misc/Effect.png',
-  mysticPotions: '/icons/pack/misc/Effect.png',
-  engineerConsumables: '/icons/pack/misc/Effect.png',
-  tools: '/icons/pack/weapons/Hammer_01.png',
-  default: '/icons/pack/misc/Effect.png',
+  armor: 'https://molochdagod.github.io/ObjectStore/icons/496_rpg_icons/A_Clothing01.png',
+  greenFoods: 'https://molochdagod.github.io/ObjectStore/icons/496_rpg_icons/I_C_Meat.png',
+  blueFoods: 'https://molochdagod.github.io/ObjectStore/icons/496_rpg_icons/I_C_Meat.png',
+  redFoods: 'https://molochdagod.github.io/ObjectStore/icons/496_rpg_icons/I_C_RawMeat.png',
+  mysticPotions: 'https://molochdagod.github.io/ObjectStore/icons/496_rpg_icons/E_Gold02.png',
+  engineerConsumables: 'https://molochdagod.github.io/ObjectStore/icons/496_rpg_icons/I_Rock03.png',
+  tools: 'https://molochdagod.github.io/ObjectStore/icons/496_rpg_icons/S_Axe02.png',
+  default: './crafting-icons/management.png',
 };
 
 function rewriteIconHost(url) {
@@ -4929,8 +4968,72 @@ function rewriteIconHost(url) {
  * or assets when needed. Category folders (swords/, axes1h/, …) â†’ pack weapons.
  * Skill class icons MUST stay on info (assets.grudge-studio.com/icons/skills/* 404).
  */
+
+/** ObjectStore single-frame icons — never multi-sprite pack atlases. */
+const OBJECTSTORE_ICON_GH = 'https://molochdagod.github.io/ObjectStore/icons';
+const OBJECTSTORE_ICON_RAW = 'https://raw.githubusercontent.com/MolochDaGod/ObjectStore/main/icons';
+
+const CATEGORY_SINGLE_FALLBACK = {
+  swords: OBJECTSTORE_ICON_GH + '/496_rpg_icons/S_Sword01.png',
+  sword: OBJECTSTORE_ICON_GH + '/496_rpg_icons/S_Sword01.png',
+  greatswords: OBJECTSTORE_ICON_GH + '/496_rpg_icons/S_Sword15.png',
+  axes1h: OBJECTSTORE_ICON_GH + '/496_rpg_icons/S_Axe01.png',
+  axe: OBJECTSTORE_ICON_GH + '/496_rpg_icons/S_Axe01.png',
+  greataxes: OBJECTSTORE_ICON_GH + '/496_rpg_icons/S_Axe05.png',
+  daggers: OBJECTSTORE_ICON_GH + '/496_rpg_icons/S_Sword03.png',
+  hammers1h: OBJECTSTORE_ICON_GH + '/496_rpg_icons/I_Rock01.png',
+  hammers2h: OBJECTSTORE_ICON_GH + '/496_rpg_icons/I_Rock02.png',
+  spears: OBJECTSTORE_ICON_GH + '/496_rpg_icons/S_Axe03.png',
+  bows: OBJECTSTORE_ICON_GH + '/496_rpg_icons/S_Sword07.png',
+  crossbows: OBJECTSTORE_ICON_GH + '/496_rpg_icons/S_Sword08.png',
+  guns: OBJECTSTORE_ICON_GH + '/496_rpg_icons/S_Sword09.png',
+  shields: OBJECTSTORE_ICON_GH + '/496_rpg_icons/E_Gold01.png',
+  armor: OBJECTSTORE_ICON_GH + '/496_rpg_icons/A_Clothing01.png',
+  greenFoods: OBJECTSTORE_ICON_GH + '/496_rpg_icons/I_C_Meat.png',
+  blueFoods: OBJECTSTORE_ICON_GH + '/496_rpg_icons/I_C_Meat.png',
+  redFoods: OBJECTSTORE_ICON_GH + '/496_rpg_icons/I_C_RawMeat.png',
+  mysticPotions: OBJECTSTORE_ICON_GH + '/496_rpg_icons/E_Gold02.png',
+  engineerConsumables: OBJECTSTORE_ICON_GH + '/496_rpg_icons/I_Rock03.png',
+  tools: OBJECTSTORE_ICON_GH + '/496_rpg_icons/S_Axe02.png',
+  default: (typeof CRAFTING_UI_ICONS !== 'undefined' ? CRAFTING_UI_ICONS.management : './crafting-icons/management.png'),
+};
+
+const MAT_ICON_URLS = {
+  'Wood Scraps': OBJECTSTORE_ICON_GH + '/materials/oak-log.png',
+  'Stone Fragments': OBJECTSTORE_ICON_GH + '/496_rpg_icons/I_Rock01.png',
+  'Plant Fiber': OBJECTSTORE_ICON_GH + '/materials/oak-log.png',
+  'Animal Hide': OBJECTSTORE_ICON_GH + '/materials/rawhide.png',
+  'Animal Bone': OBJECTSTORE_ICON_GH + '/496_rpg_icons/I_Rock02.png',
+  'Raw Meat': OBJECTSTORE_ICON_GH + '/496_rpg_icons/I_C_RawMeat.png',
+  'Wild Herbs': OBJECTSTORE_ICON_RAW + '/items/herbs/herbs_01.png',
+  'Water': OBJECTSTORE_ICON_GH + '/496_rpg_icons/E_Gold02.png',
+  'Junk Ore': OBJECTSTORE_ICON_GH + '/materials/iron-ore.png',
+  'Scrap Metal': OBJECTSTORE_ICON_GH + '/materials/iron-ore.png',
+  'Torn Rag': OBJECTSTORE_ICON_GH + '/496_rpg_icons/A_Clothing01.png',
+  'Leather Scraps': OBJECTSTORE_ICON_GH + '/materials/rawhide.png',
+  'Charcoal': OBJECTSTORE_ICON_GH + '/496_rpg_icons/I_Rock05.png',
+  'Rotted Wood': OBJECTSTORE_ICON_GH + '/materials/oak-log.png',
+  'Copper Ore': OBJECTSTORE_ICON_GH + '/materials/iron-ore.png',
+  'Iron Ore': OBJECTSTORE_ICON_GH + '/materials/iron-ore.png',
+  'Pine Log': OBJECTSTORE_ICON_GH + '/materials/oak-log.png',
+  'Oak Log': OBJECTSTORE_ICON_GH + '/materials/oak-log.png',
+  'Herb': OBJECTSTORE_ICON_RAW + '/items/herbs/herbs_01.png',
+  'Linen Cloth': OBJECTSTORE_ICON_GH + '/496_rpg_icons/A_Clothing02.png',
+  'Copper Ingot': OBJECTSTORE_ICON_GH + '/496_rpg_icons/I_GoldBar.png',
+  'Iron Ingot': OBJECTSTORE_ICON_GH + '/496_rpg_icons/I_GoldBar.png',
+  'Hardened Leather': OBJECTSTORE_ICON_GH + '/materials/rawhide.png',
+  'Pine Plank': OBJECTSTORE_ICON_GH + '/496_rpg_icons/E_Wood01.png',
+  'Oak Plank': OBJECTSTORE_ICON_GH + '/496_rpg_icons/E_Wood02.png',
+  'Rough Plank': OBJECTSTORE_ICON_GH + '/496_rpg_icons/E_Wood01.png',
+};
+
 function resolveCanonicalIcon(urlOrPath, category, name) {
   const cat = (category || '').toString();
+  const nm = (name || '').toString();
+  if (MAT_ICON_URLS[nm]) return MAT_ICON_URLS[nm];
+  const matHit = Object.keys(MAT_ICON_URLS).find((k) => k.toLowerCase() === nm.toLowerCase());
+  if (matHit) return MAT_ICON_URLS[matHit];
+
   let raw = (urlOrPath || '').trim();
   let path = rewriteIconHost(raw);
 
@@ -4943,69 +5046,43 @@ function resolveCanonicalIcon(urlOrPath, category, name) {
   if (path && !path.startsWith('/') && !path.startsWith('http')) path = '/' + path;
   path = (path || '').replace(/^\/api\/v1/, '');
 
-  // Skill trees / class packs — always info
-  if (/\/icons\/skills\//i.test(path)) {
-    return INFO_CDN + path;
+  if (isForbiddenSpriteIconUrl(path) || isForbiddenSpriteIconUrl(raw)) {
+    return CATEGORY_SINGLE_FALLBACK[cat]
+      || CATEGORY_SINGLE_FALLBACK[cat.toLowerCase()]
+      || CATEGORY_SINGLE_FALLBACK.default;
   }
 
-  // Already a pack path
-  if (/\/icons\/pack\//i.test(path)) {
-    return iconCdnForPath(path) + path;
-  }
-  // Armor atlas
-  if (/\/icons\/armor_full\//i.test(path)) {
-    return iconCdnForPath(path) + path;
-  }
-  if (/\/icons\/food\//i.test(path) || /\/icons\/consumables\//i.test(path)) {
-    return iconCdnForPath(path) + path;
+  // Category item paths on assets CDN (real single PNGs when present)
+  if (/\/icons\/(swords|axes1h|greataxes|daggers|hammers1h|hammers2h|greatswords|spears|bows|crossbows|guns|shields|armor|armor_full|food|consumables)\//i.test(path)) {
+    return ASSET_CDN + path;
   }
 
-  // /icons/{category}/{stem}_{num}.png â†’ /icons/pack/weapons/{Pack}_{num}.png
-  const m = path.match(/\/icons\/([^/]+)\/([A-Za-z_]*?)(\d+)\.(png|webp|jpe?g)$/i);
-  if (m) {
-    const folder = m[1];
-    const num = m[3].padStart(2, '0');
-    if (folder === 'skills' || folder === 'class') {
-      return INFO_CDN + path;
-    }
-    const stem = ICON_CAT_TO_PACK[folder] || ICON_CAT_TO_PACK[folder.toLowerCase()];
-    if (stem) {
-      const packPath = `/icons/pack/weapons/${stem}_${num}.png`;
-      return iconCdnForPath(packPath) + packPath;
-    }
-    if (folder === 'armor' || folder === 'armor_full') {
-      const file = path.split('/').pop();
-      const packPath = `/icons/pack/armor/${file}`;
-      return iconCdnForPath(packPath) + packPath;
-    }
+  if (/molochdagod\.github\.io\/ObjectStore/i.test(raw) || /raw\.githubusercontent\.com\/MolochDaGod\/ObjectStore/i.test(raw)) {
+    return raw;
   }
 
-  // Category-only fallback
-  if (ICON_CAT_TO_PACK[cat] || ICON_CAT_TO_PACK[cat.toLowerCase()]) {
-    const stem = ICON_CAT_TO_PACK[cat] || ICON_CAT_TO_PACK[cat.toLowerCase()];
-    const packPath = `/icons/pack/weapons/${stem}_01.png`;
-    return iconCdnForPath(packPath) + packPath;
+  if (CATEGORY_SINGLE_FALLBACK[cat] || CATEGORY_SINGLE_FALLBACK[cat.toLowerCase()]) {
+    return CATEGORY_SINGLE_FALLBACK[cat] || CATEGORY_SINGLE_FALLBACK[cat.toLowerCase()];
   }
-  if (cat === 'armor' || /armor|helm|chest|boot|bracer|shoulder|ring|necklace/i.test(name || '')) {
-    return iconCdnForPath(ICON_PACK_FALLBACK.armor) + ICON_PACK_FALLBACK.armor;
-  }
-  if (ICON_PACK_FALLBACK[cat]) {
-    return iconCdnForPath(ICON_PACK_FALLBACK[cat]) + ICON_PACK_FALLBACK[cat];
-  }
+  if (/armor|helm|chest|boot|bracer|shoulder|ring|necklace/i.test(nm)) return CATEGORY_SINGLE_FALLBACK.armor;
+  if (/sword|axe|bow|staff|dagger|hammer|gun|crossbow|spear|weapon|mace/i.test(nm)) return CATEGORY_SINGLE_FALLBACK.swords;
+  if (/ore|ingot|metal|scrap/i.test(nm)) return OBJECTSTORE_ICON_GH + '/materials/iron-ore.png';
+  if (/log|plank|wood/i.test(nm)) return OBJECTSTORE_ICON_GH + '/materials/oak-log.png';
+  if (/leather|hide|rawhide/i.test(nm)) return OBJECTSTORE_ICON_GH + '/materials/rawhide.png';
+  if (/herb|plant|fiber/i.test(nm)) return OBJECTSTORE_ICON_RAW + '/items/herbs/herbs_01.png';
+  if (/meat|food|stew|soup/i.test(nm)) return OBJECTSTORE_ICON_GH + '/496_rpg_icons/I_C_Meat.png';
 
-  if (path && path.startsWith('/icons/')) return iconCdnForPath(path) + path;
-  if (raw.startsWith('https://info.grudge-studio.com')) return raw;
-  if (raw.startsWith(ASSET_CDN) && /\/icons\/skills\//i.test(raw)) {
-    return raw.replace(ASSET_CDN, INFO_CDN);
-  }
-  if (raw.startsWith(ASSET_CDN) || raw.startsWith(INFO_CDN)) return raw;
-  return INFO_CDN + ICON_PACK_FALLBACK.default;
+  if (path && path.startsWith('/icons/') && !isForbiddenSpriteIconUrl(path)) return ASSET_CDN + path;
+  if (raw.startsWith('https://') && !isForbiddenSpriteIconUrl(raw)) return raw;
+
+  return CATEGORY_SINGLE_FALLBACK.default;
 }
+
 
 function iconImgTag(url, name, cssClass, size) {
   const cls = cssClass || "item-img";
-  const fallbackInfo = INFO_CDN + ICON_PACK_FALLBACK.default;
-  const fallbackAsset = ASSET_CDN + ICON_PACK_FALLBACK.default;
+  const fallbackInfo = CRAFTING_UI_ICONS.management;
+  const fallbackAsset = CRAFTING_UI_ICONS.management;
   let safe = (url || fallbackInfo).replace(/"/g, "");
   // assets.grudge-studio.com/icons/skills/* always 404 â†’ rewrite to info
   if (/assets\.grudge-studio\.com\/icons\/skills\//i.test(safe)) {
@@ -5013,7 +5090,7 @@ function iconImgTag(url, name, cssClass, size) {
   }
   const alt = (name || "item").replace(/"/g, "");
   const dim = size ? ` style="width:${size}px;height:${size}px"` : "";
-  const kind = /\/skills\//i.test(safe) ? "skill" : "pack";
+  const kind = /crafting-icons\//i.test(safe) || /ObjectStore\/icons/i.test(safe) ? "single" : "item";
   // onerror chain: primary â†’ info default â†’ assets default
   return `<img referrerpolicy="no-referrer" class="${cls}" data-icon-kind="${kind}" referrerpolicy="no-referrer" referrerpolicy="no-referrer" src="${safe}" alt="${alt}" loading="lazy" decoding="async"${dim} onerror="if(this.dataset.fb==='2'){return}if(this.dataset.fb==='1'){this.dataset.fb='2';this.src='${fallbackAsset}'}else{this.dataset.fb='1';this.src='${fallbackInfo}'}">`;
 }
@@ -5023,41 +5100,20 @@ function iconImgTag(url, name, cssClass, size) {
  */
 async function loadProfessionIconsFromInfo() {
   try {
-    const data = await fetchDefinitionJson('professions.json');
-    const map = data.professions || data;
-    if (!map || typeof map !== 'object') return;
-    const nameMap = {
-      miner: 'Miner', forester: 'Forester', mystic: 'Mystic', chef: 'Chef', engineer: 'Engineer',
-    };
-    for (const [key, def] of Object.entries(map)) {
-      const name = nameMap[key.toLowerCase()] || (def && def.name) || key;
-      if (!STATE.professions[name]) continue;
-      let iconPath = def.iconUrl || def.icon || '';
-      if (!iconPath || String(iconPath).length < 4 || /[\u{1F300}-\u{1FAFF}]/u.test(String(iconPath))) {
-        iconPath = PROF_ICON_URLS[name] || '';
-      }
-      const url = resolveCanonicalIcon(iconPath, name, name);
-      if (url) {
-        STATE.professions[name].iconUrl = url;
-        PROF_ICON_URLS[name] = url;
-        // Engineer shares engineer skill pack with Miner — keep Crossbow for visual distinction
-        if (name === 'Engineer' && /engineer_01\.png/i.test(url)) {
-          STATE.professions[name].iconUrl = PROF_ICON_URLS.Engineer =
-            INFO_CDN + '/icons/pack/weapons/Crossbow_01.png';
-        }
-      }
+    for (const name of ['Miner', 'Forester', 'Mystic', 'Chef', 'Engineer']) {
+      PROF_ICON_URLS[name] = CRAFTING_UI_ICONS[name];
+      if (STATE.professions[name]) STATE.professions[name].iconUrl = CRAFTING_UI_ICONS[name];
     }
-    // Patch nav imgs + station cards
     document.querySelectorAll('img[data-prof-icon]').forEach((img) => {
       const n = img.getAttribute('data-prof-icon');
-      const u = STATE.professions[n]?.iconUrl || PROF_ICON_URLS[n];
-      if (u) img.src = u;
+      const u = CRAFTING_UI_ICONS[n] || PROF_ICON_URLS[n];
+      if (u) { img.src = u; img.dataset.iconKind = 'single'; }
     });
     for (const st of WCS_STATIONS) {
-      if (st.prof && PROF_ICON_URLS[st.prof]) st.iconUrl = PROF_ICON_URLS[st.prof];
-      if (st.prof === 'All') st.iconUrl = INFO_CDN + '/icons/pack/misc/Effect.png';
+      if (st.prof && CRAFTING_UI_ICONS[st.prof]) st.iconUrl = CRAFTING_UI_ICONS[st.prof];
+      if (st.prof === 'All' || st.id === 'camp') st.iconUrl = CRAFTING_UI_ICONS.camp;
     }
-    console.log('[info] Profession icons applied from professions.json');
+    console.log('[icons] Profession icons forced from crafting-icons (islands SSOT)');
   } catch (e) {
     console.warn('[info] professions icons load skipped:', e);
   }
@@ -5117,14 +5173,17 @@ async function loadItemDatabase() {
 function itemIcon(name, emoji, cssClass, size) {
   const cls = cssClass || 'item-img';
   const key = (name || '').toLowerCase();
-  const url = ITEM_ICON_MAP[key] || resolveCanonicalIcon(null, null, name);
-  // Prefer real icon; keep emoji only if no map and no sensible URL
-  if (ITEM_ICON_MAP[key] || (url && !url.endsWith('/Effect.png'))) {
-    return iconImgTag(url, name, cls, size);
+  let url = ITEM_ICON_MAP[key] || (typeof MAT_ICON_URLS !== 'undefined' ? MAT_ICON_URLS[name] : null) || null;
+  if (!url && typeof MAT_ICON_URLS !== 'undefined') {
+    const matHit = Object.keys(MAT_ICON_URLS).find((k) => k.toLowerCase() === key);
+    if (matHit) url = MAT_ICON_URLS[matHit];
   }
-  // Still try default pack icon over emoji when we have a name
-  if (name) return iconImgTag(url, name, cls, size);
-  return emoji || 'ðŸ“¦';
+  if (!url) url = resolveCanonicalIcon(null, null, name);
+  if (typeof isForbiddenSpriteIconUrl === 'function' && isForbiddenSpriteIconUrl(url)) {
+    url = CRAFTING_UI_ICONS.management;
+  }
+  if (url) return iconImgTag(url, name, cls, size);
+  return emoji || '📦';
 }
 
 function renderItemDatabase() {
