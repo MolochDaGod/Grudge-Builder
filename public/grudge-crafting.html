@@ -110,7 +110,7 @@
     // Icons: pack weapons on assets CDN (reliable); skills on info
     ASSETS: 'https://assets.grudge-studio.com',
     INFO_ORIGIN: 'https://info.grudge-studio.com',
-    VERSION: '5.11.0',
+    VERSION: '5.11.1',
     WCS_URL: 'https://wcs.grudge-studio.com',
     // Full suite also embeds from main-panel Quick Craft tab
     MAIN_PANEL_URL: 'https://ui.grudge-studio.com/main-panel.html?era=warlords&tab=craft',
@@ -494,6 +494,22 @@ img.nav-icon[data-icon-kind="skill"], img.nav-icon[data-icon-kind="single"] { ob
 }
 .soft-auth-banner.show { display: flex; }
 .soft-auth-banner strong { color: var(--gold); }
+.prof-lvl.is-guest {
+  opacity: 0.55;
+  min-width: 1.4em;
+  text-align: center;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+.auth-ready-pulse {
+  box-shadow: 0 0 0 0 rgba(212,168,67,0.55);
+  animation: authPulse 1.6s ease-out infinite;
+}
+@keyframes authPulse {
+  0% { box-shadow: 0 0 0 0 rgba(212,168,67,0.45); }
+  70% { box-shadow: 0 0 0 10px rgba(212,168,67,0); }
+  100% { box-shadow: 0 0 0 0 rgba(212,168,67,0); }
+}
 .soft-auth-banner .sab-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 .soft-auth-banner button, .soft-auth-banner a.sab-btn {
   appearance: none;
@@ -1485,7 +1501,7 @@ body .app {
         <span class="page-title-icon" style="width:28px;height:28px;font-size:18px;display:inline-flex;align-items:center;justify-content:center">âš”</span>
         <h1 style="margin:0">Grudge Crafting</h1>
       </div>
-      <small>Warlords Profession Suite · v5.11.0</small>
+      <small>Warlords Profession Suite · v5.11.1</small>
     </div>
 
     <!-- ACTIVE CHARACTER PANEL — shown once characters load -->
@@ -1519,11 +1535,11 @@ body .app {
 
     <div class="sidebar-section">
       <div class="sidebar-section-title">Professions <span class="scope-pill character" style="margin-left:4px">PER CHAR</span></div>
-      <button class="nav-btn" data-page="prof-miner"><span class="icon"><img referrerpolicy="no-referrer" class="nav-icon" data-icon-kind="skill" data-prof-icon="Miner" src="./crafting-icons/miner.png" alt="" loading="lazy" decoding="async"></span><span>Miner</span><span class="badge prof-lvl" data-prof="Miner">1</span></button>
-      <button class="nav-btn" data-page="prof-forester"><span class="icon"><img referrerpolicy="no-referrer" class="nav-icon" data-icon-kind="skill" data-prof-icon="Forester" src="./crafting-icons/forester.png" alt="" loading="lazy" decoding="async"></span><span>Forester</span><span class="badge prof-lvl" data-prof="Forester">1</span></button>
-      <button class="nav-btn" data-page="prof-mystic"><span class="icon"><img referrerpolicy="no-referrer" class="nav-icon" data-icon-kind="skill" data-prof-icon="Mystic" src="./crafting-icons/mystic.png" alt="" loading="lazy" decoding="async"></span><span>Mystic</span><span class="badge prof-lvl" data-prof="Mystic">1</span></button>
-      <button class="nav-btn" data-page="prof-chef"><span class="icon"><img referrerpolicy="no-referrer" class="nav-icon" data-icon-kind="skill" data-prof-icon="Chef" src="./crafting-icons/chef.png" alt="" loading="lazy" decoding="async"></span><span>Chef</span><span class="badge prof-lvl" data-prof="Chef">1</span></button>
-      <button class="nav-btn" data-page="prof-engineer"><span class="icon"><img referrerpolicy="no-referrer" class="nav-icon" data-icon-kind="pack" data-prof-icon="Engineer" src="./crafting-icons/engineer.png" alt="" loading="lazy" decoding="async"></span><span>Engineer</span><span class="badge prof-lvl" data-prof="Engineer">1</span></button>
+      <button class="nav-btn" data-page="prof-miner"><span class="icon"><img referrerpolicy="no-referrer" class="nav-icon" data-icon-kind="skill" data-prof-icon="Miner" src="./crafting-icons/miner.png" alt="" loading="lazy" decoding="async"></span><span>Miner</span><span class="badge prof-lvl" data-prof="Miner" title="Per character — select a hero">—</span></button>
+      <button class="nav-btn" data-page="prof-forester"><span class="icon"><img referrerpolicy="no-referrer" class="nav-icon" data-icon-kind="skill" data-prof-icon="Forester" src="./crafting-icons/forester.png" alt="" loading="lazy" decoding="async"></span><span>Forester</span><span class="badge prof-lvl" data-prof="Forester" title="Per character — select a hero">—</span></button>
+      <button class="nav-btn" data-page="prof-mystic"><span class="icon"><img referrerpolicy="no-referrer" class="nav-icon" data-icon-kind="skill" data-prof-icon="Mystic" src="./crafting-icons/mystic.png" alt="" loading="lazy" decoding="async"></span><span>Mystic</span><span class="badge prof-lvl" data-prof="Mystic" title="Per character — select a hero">—</span></button>
+      <button class="nav-btn" data-page="prof-chef"><span class="icon"><img referrerpolicy="no-referrer" class="nav-icon" data-icon-kind="skill" data-prof-icon="Chef" src="./crafting-icons/chef.png" alt="" loading="lazy" decoding="async"></span><span>Chef</span><span class="badge prof-lvl" data-prof="Chef" title="Per character — select a hero">—</span></button>
+      <button class="nav-btn" data-page="prof-engineer"><span class="icon"><img referrerpolicy="no-referrer" class="nav-icon" data-icon-kind="pack" data-prof-icon="Engineer" src="./crafting-icons/engineer.png" alt="" loading="lazy" decoding="async"></span><span>Engineer</span><span class="badge prof-lvl" data-prof="Engineer" title="Per character — select a hero">—</span></button>
     </div>
 
     <div class="sidebar-section">
@@ -1563,10 +1579,11 @@ body .app {
   <div class="main">
     <div id="toast" class="toast"></div>
     <!-- Soft auth hint — never blocks browsing; only craft/gather need session -->
-    <div id="soft-auth-banner" class="soft-auth-banner" role="status">
-      <span id="soft-auth-msg">Recipes free. Sign in → pick a character (top bar). Bag & recipes shared; profession XP is per character.</span>
+    <div id="soft-auth-banner" class="soft-auth-banner show" role="status">
+      <span id="soft-auth-msg"><strong>Guest browse</strong> — recipes load without login. Profession levels stay blank until you <strong>Sign in with Grudge ID</strong> and pick a character (top bar).</span>
       <span class="sab-actions">
-        <button type="button" onclick="doSignIn()">Sign in</button>
+        <button type="button" onclick="doSignIn()">Sign in with Grudge ID</button>
+        <button type="button" class="secondary" onclick="doCreateAccount()">Create account</button>
         <a class="sab-btn secondary" href="https://ui.grudge-studio.com/main-panel.html?era=warlords&tab=craft" target="_blank" rel="noopener">Main Panel</a>
       </span>
     </div>
@@ -2315,6 +2332,10 @@ function updateAccessGate() {
   const msg = document.getElementById('soft-auth-msg');
   if (!banner) return;
 
+  // Pulse top sign-in when guest
+  const topIn = document.getElementById('topBtnSignIn');
+  if (topIn) topIn.classList.toggle('auth-ready-pulse', !loggedIn);
+
   if (loggedIn && activeId) {
     banner.classList.remove('show');
     return;
@@ -2322,23 +2343,31 @@ function updateAccessGate() {
 
   banner.classList.add('show');
   if (!fleetReady) {
-    if (msg) msg.innerHTML = 'Loading fleet bridge… recipes still browseable.';
+    if (msg) msg.innerHTML = 'Loading fleet bridge… recipes still browseable. Profession levels stay blank until a hero is selected.';
     return;
   }
   if (!loggedIn) {
     if (msg) {
-      msg.innerHTML = 'Browse recipes freely. <strong>Sign in with Grudge ID</strong> when you want to craft (shared bag + per-character XP).';
+      msg.innerHTML =
+        '<strong>Guest browse</strong> — recipes & codex work offline. ' +
+        'Profession levels are <strong>per character</strong> and stay blank until you ' +
+        '<strong>Sign in with Grudge ID</strong> (top bar) and pick a hero.';
     }
     return;
   }
   if (!chars.length) {
     if (msg) {
-      msg.innerHTML = 'Signed in — no Warlords heroes on this account. <a href="https://character.grudge-studio.com?era=warlords" target="_blank" rel="noopener" style="color:var(--gold)">Create one</a>, or pick Account â†’ Switch account.';
+      msg.innerHTML =
+        'Signed in — no Warlords heroes on this account. ' +
+        '<a href="https://character.grudge-studio.com/?era=warlords&mode=create" target="_blank" rel="noopener" style="color:var(--gold)">Create one in Foundry</a>, ' +
+        'or use <strong>Switch account</strong>.';
     }
     return;
   }
   if (msg) {
-    msg.innerHTML = 'Signed in — select a character on the <strong>Account</strong> tab to bind profession XP when you craft.';
+    msg.innerHTML =
+      'Signed in — <strong>select a character</strong> in the top bar (or Account tab). ' +
+      'Profession XP and levels bind to that hero only; the bag stays shared.';
   }
 }
 
@@ -2373,31 +2402,69 @@ async function doSignIn() {
       (typeof GrudgeFleet !== 'undefined' && GrudgeFleet.isLoggedIn && GrudgeFleet.isLoggedIn()) ||
       !!(localStorage.getItem('grudge_auth_token') || localStorage.getItem('grudge_session_token'));
 
+    // Already have a session — refresh roster and push UX to character pick
     if (hasToken && typeof GrudgeFleet !== 'undefined') {
-      try { if (typeof GrudgeFleet.syncFromBackend === 'function') await GrudgeFleet.syncFromBackend(); } catch (e) {}
-      await fetchGrudgeCharacters();
-      const chars = getOwnedCharacters();
-      if (chars.length === 1 && !getActiveOwnedCharacterId()) {
-        try { await selectCharacter(chars[0].id); } catch (e) { console.warn(e); }
+      try {
+        if (typeof GrudgeFleet.syncFromBackend === 'function') await GrudgeFleet.syncFromBackend();
+      } catch (e) {
+        console.warn('[doSignIn] sync failed — session may be stale', e);
       }
+      try {
+        if (typeof fetchGrudgeCharacters === 'function') await fetchGrudgeCharacters();
+      } catch (e) { /* optional */ }
+      await refreshFleetState();
+      const chars = getOwnedCharacters();
       updateAuthUI();
       updateAccessGate();
-      if (chars.length > 0) {
-        showToast('Signed in — ' + chars.length + ' hero' + (chars.length === 1 ? '' : 'es') + ' loaded', 'success');
+      updateSidebarBadges();
+      if (chars.length === 1 && !getActiveOwnedCharacterId()) {
+        try { await selectCharacter(chars[0].id); } catch (e) { console.warn(e); }
+        showToast('Signed in — hero selected', 'success');
+        try { if (typeof navigate === 'function') navigate('dashboard'); } catch (e) {}
         return;
       }
-      if (confirm('This Grudge account has no Warlords heroes.\n\nOpen character create?')) {
-        window.open('https://character.grudge-studio.com/?era=warlords&mode=create&returnTo=' + encodeURIComponent(window.location.href), '_blank', 'noopener');
+      if (chars.length > 1 && !getActiveOwnedCharacterId()) {
+        showToast('Select a character in the top bar to bind profession XP', 'error');
+        try {
+          if (typeof navigate === 'function') navigate('account');
+          const sel = document.getElementById('topCharSelect');
+          if (sel) {
+            sel.classList.add('auth-ready-pulse');
+            sel.focus();
+            setTimeout(() => sel.classList.remove('auth-ready-pulse'), 4000);
+          }
+        } catch (e) {}
+        return;
+      }
+      if (chars.length > 0) {
+        showToast('Signed in — ' + chars.length + ' hero' + (chars.length === 1 ? '' : 'es'), 'success');
+        return;
+      }
+      // Token present but no heroes / bad token — offer re-auth or create
+      if (confirm('No Warlords heroes on this account (or session expired).\n\nOK = open Character Foundry\nCancel = re-login with Grudge ID')) {
+        window.open(
+          'https://character.grudge-studio.com/?era=warlords&mode=create&returnTo=' +
+            encodeURIComponent(window.location.origin + window.location.pathname),
+          '_blank',
+          'noopener',
+        );
+      } else {
+        try { if (typeof GrudgeFleet.signOut === 'function') GrudgeFleet.signOut(); } catch (e) {}
+        window.location.href = buildCraftingLoginUrl();
       }
       return;
     }
 
-    showToast('Redirecting to Grudge ID…', 'success');
+    // Fresh login — always full redirect to id.grudge-studio.com (best UX on puter.site)
+    showToast('Opening Grudge ID sign-in…', 'success');
+    const ret = window.location.origin + window.location.pathname + (window.location.search || '');
     if (typeof GrudgeFleet !== 'undefined' && typeof GrudgeFleet.signIn === 'function') {
       try {
-        await GrudgeFleet.signIn({ mode: 'grudge-id', returnUrl: window.location.origin + window.location.pathname });
+        await GrudgeFleet.signIn({ mode: 'grudge-id', returnUrl: ret.split('#')[0] });
         return;
-      } catch (e) { console.warn('[doSignIn] fleet.signIn failed', e); }
+      } catch (e) {
+        console.warn('[doSignIn] fleet.signIn failed', e);
+      }
     }
     window.location.href = buildCraftingLoginUrl();
   } catch (e) {
@@ -2623,7 +2690,8 @@ async function checkAuth() {
       try { await selectCharacter(charsBoot[0].id); } catch (e) { console.warn(e); }
     }
     updateAuthUI();
-    // After SSO: only enter suite when an owned character is selected
+    updateSidebarBadges();
+    // After SSO: guide user to character pick; never leave fake Lv1 XP visible
     if (GrudgeFleet.isLoggedIn()) {
       if (typeof renderAll === 'function') renderAll();
       const n = (GrudgeFleet.getCharacters() || []).length;
@@ -2633,7 +2701,16 @@ async function checkAuth() {
         } catch { /* panel optional */ }
         showToast('Ready — crafting as active character', 'success');
       } else if (n > 0) {
-        showToast('Select a character to unlock crafting', 'error');
+        showToast('Select a character in the top bar to bind profession XP', 'error');
+        try {
+          if (typeof navigate === 'function') navigate('account');
+          const sel = document.getElementById('topCharSelect');
+          if (sel) {
+            sel.classList.add('auth-ready-pulse');
+            sel.focus();
+            setTimeout(() => sel.classList.remove('auth-ready-pulse'), 5000);
+          }
+        } catch (e) { /* ok */ }
       } else {
         showToast('Signed in — no Warlords characters on this account yet', 'error');
       }
@@ -3211,13 +3288,31 @@ async function hydrateActiveCharacterDetail() {
   }
 }
 
+/** True when profession XP UI should show real levels (owned hero selected). */
+function hasActiveCharacterProgress() {
+  return typeof isAccessReady === 'function' ? isAccessReady() : !!getActiveOwnedCharacterId();
+}
+
 function updateSidebarBadges() {
-  document.querySelectorAll('.prof-lvl').forEach(el => {
+  const bound = hasActiveCharacterProgress();
+  document.querySelectorAll('.prof-lvl').forEach((el) => {
     const prof = el.dataset.prof;
-    if (STATE.professions[prof]) el.textContent = STATE.professions[prof].level;
+    if (!bound) {
+      el.textContent = '—';
+      el.title = 'Per character — sign in and select a hero';
+      el.classList.add('is-guest');
+      return;
+    }
+    el.classList.remove('is-guest');
+    const lvl = STATE.professions[prof]?.level;
+    el.textContent = lvl != null ? String(lvl) : '—';
+    el.title = prof + ' level (active character)';
   });
-  const items = Object.values(STATE.inventory).reduce((a,b) => a+b, 0);
-  document.getElementById('inv-count').textContent = items;
+  const invEl = document.getElementById('inv-count');
+  if (invEl) {
+    const items = Object.values(STATE.inventory || {}).reduce((a, b) => a + b, 0);
+    invEl.textContent = String(items);
+  }
   updateCharacterUI();
 }
 
@@ -3319,23 +3414,51 @@ function renderDashboard() {
     }
   }
 
-  const totalLvl = Object.values(STATE.professions).reduce((a,p) => a + p.level, 0);
-  const totalItems = Object.values(STATE.inventory).reduce((a,b) => a+b, 0);
+  const bound = hasActiveCharacterProgress();
+  const totalLvl = bound
+    ? Object.values(STATE.professions).reduce((a, p) => a + (p.level || 0), 0)
+    : '—';
+  const totalItems = bound
+    ? Object.values(STATE.inventory).reduce((a, b) => a + b, 0)
+    : '—';
+  const crafts = bound ? (STATE.stats.totalCrafts || 0) : '—';
+  const matsUsed = bound ? (STATE.stats.materialsUsed || 0) : '—';
+  const uniqueItems = bound ? Object.keys(STATE.inventory).length : '—';
   document.getElementById('dash-stats').innerHTML = `
-    <div class="stat-card"><div class="stat-val">${STATE.stats.totalCrafts}</div><div class="stat-label">Total Crafts</div></div>
+    <div class="stat-card"><div class="stat-val">${crafts}</div><div class="stat-label">Total Crafts</div></div>
     <div class="stat-card"><div class="stat-val">${totalLvl}</div><div class="stat-label">Combined Level</div></div>
     <div class="stat-card"><div class="stat-val">${RECIPES.length}</div><div class="stat-label">Known Recipes</div></div>
     <div class="stat-card"><div class="stat-val">${totalItems}</div><div class="stat-label">Materials</div></div>
-    <div class="stat-card"><div class="stat-val">${Object.keys(STATE.inventory).length}</div><div class="stat-label">Unique Items</div></div>
-    <div class="stat-card"><div class="stat-val">${STATE.stats.materialsUsed}</div><div class="stat-label">Materials Used</div></div>
+    <div class="stat-card"><div class="stat-val">${uniqueItems}</div><div class="stat-label">Unique Items</div></div>
+    <div class="stat-card"><div class="stat-val">${matsUsed}</div><div class="stat-label">Materials Used</div></div>
   `;
+  if (!bound && bannerEl && !String(bannerEl.innerHTML || '').trim()) {
+    const loggedIn = typeof GrudgeFleet !== 'undefined' && GrudgeFleet.isLoggedIn && GrudgeFleet.isLoggedIn();
+    bannerEl.innerHTML = `
+      <div class="char-banner" onclick="${loggedIn ? "navigate('account')" : 'doSignIn()'}">
+        <div class="char-banner-none">
+          <span style="font-size:28px">⚔️</span>
+          <div>
+            <div style="font-size:13px;font-weight:700;color:var(--gold)">${loggedIn ? 'Select a character' : 'Sign in to track professions'}</div>
+            <div style="font-size:11px;margin-top:2px">${loggedIn
+              ? 'Profession levels are per hero — pick one in the top bar or Account tab.'
+              : 'Browse recipes as a guest. Sign in with Grudge ID to load Warlords heroes and XP.'}</div>
+          </div>
+          <button type="button" onclick="event.stopPropagation();${loggedIn ? "navigate('account')" : 'doSignIn()'}"
+            style="margin-left:auto;font-size:11px;font-weight:700;color:#1a1400;background:linear-gradient(180deg,#f6c945,#c89a15);border:none;padding:8px 14px;border-radius:6px;cursor:pointer;white-space:nowrap">
+            ${loggedIn ? 'Pick hero' : 'Sign in'}
+          </button>
+        </div>
+      </div>`;
+  }
   document.getElementById('dash-professions').innerHTML = Object.entries(STATE.professions).map(([name, p]) => {
-    const pct = Math.min(100, (p.xp / p.xpNext) * 100);
-    const kind = p.iconUrl && /\/skills\//i.test(p.iconUrl) ? "skill" : "pack";
+    const pct = bound ? Math.min(100, ((p.xp || 0) / (p.xpNext || 100)) * 100) : 0;
     const iconHtml = p.iconUrl
-      ? `<img referrerpolicy="no-referrer" data-icon-kind="${kind}" src="${p.iconUrl}" alt="${name}" width="32" height="32" style="object-fit:${kind === "skill" ? "cover" : "contain"};object-position:center 18%;border-radius:6px;flex-shrink:0;background:rgba(0,0,0,.4);border:1px solid rgba(212,168,67,.25)" loading="lazy" decoding="async">`
+      ? `<img referrerpolicy="no-referrer" data-icon-kind="single" src="${p.iconUrl}" alt="${name}" width="32" height="32" style="object-fit:contain;border-radius:6px;flex-shrink:0;background:rgba(0,0,0,.4);border:1px solid rgba(212,168,67,.25)" loading="lazy" decoding="async">`
       : `<span style="font-size:24px">${p.icon}</span>`;
-    return `<div class="prof-card" onclick="navigate('prof-${name.toLowerCase()}')" style="margin-bottom:8px">
+    const lvlLabel = bound ? `Lv ${p.level}` : '—';
+    const xpLabel = bound ? `${p.xp}/${p.xpNext} XP` : 'select hero';
+    return `<div class="prof-card" onclick="navigate('prof-${name.toLowerCase()}')" style="margin-bottom:8px;opacity:${bound ? 1 : 0.72}">
       <div style="display:flex;align-items:center;gap:10px">
         ${iconHtml}
         <div style="flex:1">
@@ -3343,11 +3466,11 @@ function renderDashboard() {
           <div style="font-size:10px;color:var(--text-dim)">${p.role}</div>
         </div>
         <div style="text-align:right">
-          <div style="font-family:'JetBrains Mono';font-size:12px;color:${p.color}">Lv ${p.level}</div>
-          <div style="font-size:9px;color:var(--text-dim)">${p.xp}/${p.xpNext} XP</div>
+          <div style="font-family:'JetBrains Mono';font-size:12px;color:${bound ? p.color : 'var(--text-dim)'}">${lvlLabel}</div>
+          <div style="font-size:9px;color:var(--text-dim)">${xpLabel}</div>
         </div>
       </div>
-      <div class="prof-xp-bar"><div class="prof-xp-fill" style="width:${pct}%;background:${p.color}"></div></div>
+      <div class="prof-xp-bar"><div class="prof-xp-fill" style="width:${pct}%;background:${bound ? p.color : 'transparent'}"></div></div>
     </div>`;
   }).join('');
   renderLog('dash-log');
@@ -5259,6 +5382,7 @@ try {
   if (pageQ && document.getElementById('page-' + pageQ)) STATE.currentPage = pageQ;
 } catch (e) { console.warn('[init] query', e); }
 updateAccessGate();
+try { updateSidebarBadges(); } catch (e) { /* badges optional */ }
 // Definitions load immediately (no auth required)
 void (async () => {
   try {
