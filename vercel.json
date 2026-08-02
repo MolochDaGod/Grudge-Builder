@@ -18,16 +18,6 @@
   },
   "rewrites": [
     {
-      "source": "/",
-      "has": [{ "type": "host", "value": "craft.grudgewarlords.com" }],
-      "destination": "/craft/index.html"
-    },
-    {
-      "source": "/((?!api/|craft/).*)",
-      "has": [{ "type": "host", "value": "craft.grudgewarlords.com" }],
-      "destination": "/craft/$1"
-    },
-    {
       "source": "/api/assets/:path*",
       "destination": "https://assets.grudge-studio.com/:path*"
     },
@@ -681,6 +671,30 @@
           "value": "public, max-age=0, must-revalidate"
         }
       ]
+    }
+  ],
+  "redirects": [
+    {
+      "source": "/",
+      "has": [
+        {
+          "type": "host",
+          "value": "craft.grudgewarlords.com"
+        }
+      ],
+      "destination": "https://grudgewarlords.com/craft/",
+      "permanent": false
+    },
+    {
+      "source": "/((?!api/).*)",
+      "has": [
+        {
+          "type": "host",
+          "value": "craft.grudgewarlords.com"
+        }
+      ],
+      "destination": "https://grudgewarlords.com/craft/$1",
+      "permanent": false
     }
   ]
 }
