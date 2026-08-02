@@ -21,8 +21,8 @@ Studio platform (login, forge, assets CDN, Foundry CF Pages) stays on **`*.grudg
 | **`home.grudgewarlords.com`** | Pretty host → `/home-island` | 🔧 Wire + optional 301 |
 | **`map.grudgewarlords.com`** | Pretty host → `/world-map` | 🔧 Wire + optional 301 |
 | **`scenes.grudgewarlords.com`** | Pretty host → `/island-3d` (cinema / scene plate) | 🔧 Wire + optional 301 |
-| **`grudgewarlords.com/craft/`** | **Craft suite** (recipes, bag, item DB) | ✅ `public/craft/` |
-| **`craft.grudgewarlords.com`** | Optional CNAME → `/craft/` | 🔧 Wire DNS later |
+| **`grudgewarlords.com/craft/`** | **Craft suite** (recipes, bag, item DB) | ✅ Live |
+| **`craft.grudgewarlords.com`** | Pretty host → `/craft/*` (same suite) | ✅ Vercel domain + host rewrites |
 | **`foundry.grudgewarlords.com`** | Optional 302 → `character.grudge-studio.com` | 🔧 Wire later |
 
 ### SPA paths (same deploy on apex / play)
@@ -70,7 +70,8 @@ Set `WARLORDS_PLAY_ORIGIN=https://play.grudgewarlords.com` (or `VITE_WARLORDS_PL
 ## 3. DNS / Vercel ops checklist
 
 ```
-[ ] Cloudflare DNS: grudgewarlords.com zone
+[x] Vercel DNS zone: grudgewarlords.com (ns1/ns2.vercel-dns.com)
+[x] craft.grudgewarlords.com added to grudge-builder (+ host rewrites → /craft/*)
 [ ] CNAME play → cname.vercel-dns.com (or apex target)
 [ ] CNAME client, airship, home, map, scenes → same
 [ ] Vercel project grudge-builder: add domains play|client|airship|home|map|scenes.grudgewarlords.com
@@ -79,7 +80,7 @@ Set `WARLORDS_PLAY_ORIGIN=https://play.grudgewarlords.com` (or `VITE_WARLORDS_PL
       home.*    → https://play.grudgewarlords.com/home-island
       map.*     → https://play.grudgewarlords.com/world-map
       scenes.*  → https://play.grudgewarlords.com/island-3d
-[ ] AUTH return allowlist: already includes .grudgewarlords.com suffix
+[x] AUTH return allowlist: already includes .grudgewarlords.com + craft.*
 [ ] Set WARLORDS_PLAY_ORIGIN after play.* is green
 [ ] Foundry returnTo defaults → warlords apex/play (gcsRedirect uses warlordsPlayOrigin)
 ```

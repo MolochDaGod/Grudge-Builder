@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta name="referrer" content="no-referrer">
@@ -104,7 +104,9 @@
 <script>
   window.GRUDGE_CONFIG = (function () {
     // Canonical Warlords craft host (product zone). Puter remains a redirect legacy.
+    // Path on apex is always valid; craft.* subdomain rewrites to /craft/* on Vercel.
     var CANONICAL_CRAFT = 'https://grudgewarlords.com/craft/';
+    var CRAFT_HOST = 'https://craft.grudgewarlords.com/';
     var host = '';
     try { host = String(location.hostname || '').toLowerCase(); } catch (e) {}
     var onWarlords =
@@ -124,10 +126,11 @@
       OBJECTSTORE_URL: 'https://info.grudge-studio.com/api/v1',
       ASSETS: 'https://assets.grudge-studio.com',
       INFO_ORIGIN: 'https://info.grudge-studio.com',
-      VERSION: '5.13.0',
+      VERSION: '5.13.1',
       /** Canonical craft URL on Warlords product domain */
       CRAFTING_URL: CANONICAL_CRAFT,
-      WCS_URL: 'https://grudgewarlords.com/craft/',
+      CRAFT_HOST_URL: CRAFT_HOST,
+      WCS_URL: CANONICAL_CRAFT,
       MAIN_PANEL_URL: 'https://ui.grudge-studio.com/main-panel.html?era=warlords&tab=craft',
       SKILL_TREE_URL: 'https://grudgewarlords.com/skill-tree.html',
       WEAPON_MASTERY_URL: 'https://grudgewarlords.com/weaponmastery.html',
@@ -1547,10 +1550,10 @@ body .app {
   <aside class="sidebar">
     <div class="sidebar-logo">
       <div style="display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:4px">
-        <span class="page-title-icon" style="width:28px;height:28px;font-size:18px;display:inline-flex;align-items:center;justify-content:center">âš”</span>
+        <span class="page-title-icon" style="width:28px;height:28px;font-size:18px;display:inline-flex;align-items:center;justify-content:center">⚔</span>
         <h1 style="margin:0">Grudge Crafting</h1>
       </div>
-      <small>Warlords Profession Suite · v5.13.0 · grudgewarlords.com/craft</small>
+      <small>Warlords Profession Suite · v5.13.1 · grudgewarlords.com/craft · craft.grudgewarlords.com</small>
     </div>
 
     <!-- ACTIVE CHARACTER PANEL — shown once characters load -->
@@ -1568,11 +1571,11 @@ body .app {
     <div class="sidebar-section">
       <div class="sidebar-section-title">WCS Stations</div>
       <button class="nav-btn" data-page="crafting" data-station="camp" onclick="openStation('camp')"><span class="icon"><img referrerpolicy="no-referrer" class="nav-icon" data-icon-kind="pack" src="./crafting-icons/eagle-shield.png" alt="" loading="lazy" decoding="async"></span><span>Camp Bench</span></button>
-      <button class="nav-btn" data-page="crafting" data-station="smithing" onclick="openStation('smithing')"><span class="icon"><img referrerpolicy="no-referrer" class="nav-icon" data-icon-kind="skill" data-prof-icon="Miner" src="./crafting-icons/miner.png" alt="" loading="lazy" decoding="async"></span><span>Smithing</span><span class="badge" id="lock-smithing" title="Locked">ðŸ”’</span></button>
-      <button class="nav-btn" data-page="crafting" data-station="lumber" onclick="openStation('lumber')"><span class="icon"><img referrerpolicy="no-referrer" class="nav-icon" data-icon-kind="skill" data-prof-icon="Forester" src="./crafting-icons/forester.png" alt="" loading="lazy" decoding="async"></span><span>Lumber</span><span class="badge" id="lock-lumber" title="Locked">ðŸ”’</span></button>
-      <button class="nav-btn" data-page="crafting" data-station="loom" onclick="openStation('loom')"><span class="icon"><img referrerpolicy="no-referrer" class="nav-icon" data-icon-kind="skill" data-prof-icon="Mystic" src="./crafting-icons/mystic.png" alt="" loading="lazy" decoding="async"></span><span>Loom</span><span class="badge" id="lock-loom" title="Locked">ðŸ”’</span></button>
-      <button class="nav-btn" data-page="crafting" data-station="cooking" onclick="openStation('cooking')"><span class="icon"><img referrerpolicy="no-referrer" class="nav-icon" data-icon-kind="skill" data-prof-icon="Chef" src="./crafting-icons/chef.png" alt="" loading="lazy" decoding="async"></span><span>Cooking</span><span class="badge" id="lock-cooking" title="Unlocked">âœ“</span></button>
-      <button class="nav-btn" data-page="crafting" data-station="tinker" onclick="openStation('tinker')"><span class="icon"><img referrerpolicy="no-referrer" class="nav-icon" data-icon-kind="pack" data-prof-icon="Engineer" src="./crafting-icons/engineer.png" alt="" loading="lazy" decoding="async"></span><span>Tinker</span><span class="badge" id="lock-tinker" title="Locked">ðŸ”’</span></button>
+      <button class="nav-btn" data-page="crafting" data-station="smithing" onclick="openStation('smithing')"><span class="icon"><img referrerpolicy="no-referrer" class="nav-icon" data-icon-kind="skill" data-prof-icon="Miner" src="./crafting-icons/miner.png" alt="" loading="lazy" decoding="async"></span><span>Smithing</span><span class="badge" id="lock-smithing" title="Locked">🔒</span></button>
+      <button class="nav-btn" data-page="crafting" data-station="lumber" onclick="openStation('lumber')"><span class="icon"><img referrerpolicy="no-referrer" class="nav-icon" data-icon-kind="skill" data-prof-icon="Forester" src="./crafting-icons/forester.png" alt="" loading="lazy" decoding="async"></span><span>Lumber</span><span class="badge" id="lock-lumber" title="Locked">🔒</span></button>
+      <button class="nav-btn" data-page="crafting" data-station="loom" onclick="openStation('loom')"><span class="icon"><img referrerpolicy="no-referrer" class="nav-icon" data-icon-kind="skill" data-prof-icon="Mystic" src="./crafting-icons/mystic.png" alt="" loading="lazy" decoding="async"></span><span>Loom</span><span class="badge" id="lock-loom" title="Locked">🔒</span></button>
+      <button class="nav-btn" data-page="crafting" data-station="cooking" onclick="openStation('cooking')"><span class="icon"><img referrerpolicy="no-referrer" class="nav-icon" data-icon-kind="skill" data-prof-icon="Chef" src="./crafting-icons/chef.png" alt="" loading="lazy" decoding="async"></span><span>Cooking</span><span class="badge" id="lock-cooking" title="Unlocked">✓</span></button>
+      <button class="nav-btn" data-page="crafting" data-station="tinker" onclick="openStation('tinker')"><span class="icon"><img referrerpolicy="no-referrer" class="nav-icon" data-icon-kind="pack" data-prof-icon="Engineer" src="./crafting-icons/engineer.png" alt="" loading="lazy" decoding="async"></span><span>Tinker</span><span class="badge" id="lock-tinker" title="Locked">🔒</span></button>
     </div>
 
     <div class="sidebar-section">
@@ -1641,7 +1644,7 @@ body .app {
     <div id="lvl-overlay" class="lvl-overlay" onclick="this.classList.remove('show')">
       <div class="lvl-inner">
         <div class="lvl-confetti" id="lvl-confetti"></div>
-        <div class="lvl-badge" id="lvl-badge">âš”ï¸</div>
+        <div class="lvl-badge" id="lvl-badge">⚔️</div>
         <div class="lvl-title">Profession Level Up</div>
         <div class="lvl-prof" id="lvl-prof">Miner</div>
         <div class="lvl-number" id="lvl-number">2</div>
@@ -1673,13 +1676,13 @@ body .app {
       <div class="page-header">
         <h2 class="page-title"><span class="page-title-icon"><img referrerpolicy="no-referrer" data-icon-kind="pack" src="./crafting-icons/miner.png" alt=""></span> Crafting</h2>
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-          <span class="scope-pill account">ðŸŽ’ Shared inventory</span>
-          <span class="scope-pill character">ðŸ“ˆ XP / levels / gear = character</span>
+          <span class="scope-pill account">🎒 Shared inventory</span>
+          <span class="scope-pill character">📈 XP / levels / gear = character</span>
         </div>
       </div>
       <div class="station-scene" id="station-scene">
         <div class="station-scene-inner">
-          <div class="station-scene-icon" id="station-scene-icon">â›º</div>
+          <div class="station-scene-icon" id="station-scene-icon">⛺</div>
           <div class="station-scene-meta">
             <h3 id="station-scene-title">Camp Bench</h3>
             <p id="station-scene-desc">T0 universal recipes — starter camp workbench.</p>
@@ -1707,7 +1710,7 @@ body .app {
     <div class="page" id="page-camps">
       <div class="page-header">
         <h2 class="page-title"><span class="page-title-icon"><img referrerpolicy="no-referrer" data-icon-kind="pack" src="./crafting-icons/eagle-shield.png" alt=""></span> Camps &amp; Benches</h2>
-        <button class="filter-btn" onclick="refreshCampsAndBenches()">ðŸ”„ Refresh</button>
+        <button class="filter-btn" onclick="refreshCampsAndBenches()">🔄 Refresh</button>
       </div>
       <div class="station-hint">
         Station tabs unlock when you <strong>own</strong> a camp (or boat cabin) with that crafting bench, or are <strong>friendly</strong> with a camp that has one.
@@ -1716,7 +1719,7 @@ body .app {
       </div>
       <div id="camps-list"></div>
       <div class="card" style="margin-top:12px">
-        <div class="card-title">Bench â†’ station map (survival kit meshes)</div>
+        <div class="card-title">Bench → station map (survival kit meshes)</div>
         <div id="bench-map-list" style="font-size:11px;color:var(--text-dim);margin-bottom:8px"></div>
         <div class="card-title">Unlocked stations</div>
         <div id="unlocked-stations-list" style="font-size:12px;color:var(--text-dim)"></div>
@@ -1754,7 +1757,7 @@ body .app {
     <div class="page" id="page-inventory">
       <div class="page-header">
         <h2 class="page-title"><span class="page-title-icon"><img referrerpolicy="no-referrer" data-icon-kind="pack" src="./crafting-icons/management.png" alt=""></span> Inventory <span class="scope-pill account">SHARED ACCOUNT BAG</span></h2>
-        <button class="filter-btn" onclick="gatherMaterials()">ðŸŒ¿ Gather Materials</button>
+        <button class="filter-btn" onclick="gatherMaterials()">🌿 Gather Materials</button>
       </div>
       <div class="station-hint">One inventory for all characters. Profession XP, levels, and equipment stay unique to the active character.</div>
       <div class="recipe-filters" id="inv-filters"></div>
@@ -1778,15 +1781,15 @@ body .app {
       <div class="acct-tab-content active" id="acct-tab-characters">
         <!-- All characters grid -->
         <div class="card" style="margin-bottom:12px">
-          <div class="card-title">âš” Your Characters
+          <div class="card-title">⚔ Your Characters
             <span style="font-size:10px;color:var(--text-dim);font-family:Inter;font-weight:400">(from grudgewarlords.com)</span>
-            <button class="filter-btn" onclick="loginToGrudge()" style="float:right;margin-top:-2px">ðŸ”„ Refresh</button>
+            <button class="filter-btn" onclick="loginToGrudge()" style="float:right;margin-top:-2px">🔄 Refresh</button>
           </div>
           <div id="acct-characters-list" style="font-size:11px;color:var(--text-dim)">Sign in to load your characters...</div>
         </div>
         <!-- Active character detail -->
         <div class="card" id="acct-active-char-card" style="margin-bottom:12px;display:none">
-          <div class="card-title">ðŸ›¡ Active Character</div>
+          <div class="card-title">🛡 Active Character</div>
           <div id="acct-active-char"></div>
         </div>
         <!-- Equipment & save/load -->
@@ -1805,7 +1808,7 @@ body .app {
       <!-- TAB: CRAFTING LOG -->
       <div class="acct-tab-content" id="acct-tab-crafting">
         <div class="card">
-          <div class="card-title">ðŸ”¨ Crafting Stats</div>
+          <div class="card-title">🔨 Crafting Stats</div>
           <div class="grid3" id="acct-stats" style="margin-bottom:12px"></div>
         </div>
         <div class="card">
@@ -1831,7 +1834,7 @@ body .app {
 
         <!-- Craft Suggestions from island stockpile -->
         <div class="card">
-          <div class="card-title">âœ¨ Suggested Crafts
+          <div class="card-title">✨ Suggested Crafts
             <span style="font-size:9px;color:var(--text-dim);font-weight:400;margin-left:6px">from island stockpile · click to go craft</span>
           </div>
           <div id="island-craft-suggestions">
@@ -1841,8 +1844,8 @@ body .app {
 
         <!-- Auto Harvest Live Feed -->
         <div class="card">
-          <div class="card-title">ðŸŒ± Auto Harvest Feed
-            <button class="filter-btn" onclick="refreshIslandData()" style="float:right;margin-top:-2px">ðŸ”„ Refresh</button>
+          <div class="card-title">🌱 Auto Harvest Feed
+            <button class="filter-btn" onclick="refreshIslandData()" style="float:right;margin-top:-2px">🔄 Refresh</button>
           </div>
           <div id="acct-island-harvest" style="font-size:11px;color:var(--text-dim)">
             Loading island data...
@@ -1851,7 +1854,7 @@ body .app {
 
         <!-- Island Resource Progress (bars toward next recipe) -->
         <div class="card">
-          <div class="card-title">ðŸ“¦ Island Stockpile
+          <div class="card-title">📦 Island Stockpile
             <span style="font-size:9px;color:var(--text-dim);font-weight:400;margin-left:6px">bars show progress toward nearest recipe</span>
           </div>
           <div id="acct-island-resources"></div>
@@ -1859,7 +1862,7 @@ body .app {
 
         <!-- Crafting Queue -->
         <div class="card">
-          <div class="card-title">âš— Island Crafting Queue</div>
+          <div class="card-title">⚗ Island Crafting Queue</div>
           <div id="acct-island-queue" style="font-size:11px;color:var(--text-dim)">
             No queued crafts.
           </div>
@@ -1952,11 +1955,11 @@ const PROF_ICON_URLS = {
 
 function blankProfessions() {
   return {
-    Miner:     { level: 1, xp: 0, xpNext: 100, totalCrafts: 0, color: '#ef4444', icon: 'â›ï¸', iconUrl: PROF_ICON_URLS.Miner, role: 'Metal · Weapons · Armor' },
-    Forester:  { level: 1, xp: 0, xpNext: 100, totalCrafts: 0, color: '#22c55e', icon: 'ðŸª“', iconUrl: PROF_ICON_URLS.Forester, role: 'Wood · Bows · Leather' },
-    Mystic:    { level: 1, xp: 0, xpNext: 100, totalCrafts: 0, color: '#a78bfa', icon: 'ðŸ”®', iconUrl: PROF_ICON_URLS.Mystic, role: 'Cloth · Staves · Enchants' },
-    Chef:      { level: 1, xp: 0, xpNext: 100, totalCrafts: 0, color: '#f59e0b', icon: 'ðŸ³', iconUrl: PROF_ICON_URLS.Chef, role: 'Food · Potions · Buffs' },
-    Engineer:  { level: 1, xp: 0, xpNext: 100, totalCrafts: 0, color: '#60a5fa', icon: 'âš™ï¸', iconUrl: PROF_ICON_URLS.Engineer, role: 'Guns · Crossbows · Traps' },
+    Miner:     { level: 1, xp: 0, xpNext: 100, totalCrafts: 0, color: '#ef4444', icon: '⛏️', iconUrl: PROF_ICON_URLS.Miner, role: 'Metal · Weapons · Armor' },
+    Forester:  { level: 1, xp: 0, xpNext: 100, totalCrafts: 0, color: '#22c55e', icon: '🪓', iconUrl: PROF_ICON_URLS.Forester, role: 'Wood · Bows · Leather' },
+    Mystic:    { level: 1, xp: 0, xpNext: 100, totalCrafts: 0, color: '#a78bfa', icon: '🔮', iconUrl: PROF_ICON_URLS.Mystic, role: 'Cloth · Staves · Enchants' },
+    Chef:      { level: 1, xp: 0, xpNext: 100, totalCrafts: 0, color: '#f59e0b', icon: '🍳', iconUrl: PROF_ICON_URLS.Chef, role: 'Food · Potions · Buffs' },
+    Engineer:  { level: 1, xp: 0, xpNext: 100, totalCrafts: 0, color: '#60a5fa', icon: '⚙️', iconUrl: PROF_ICON_URLS.Engineer, role: 'Guns · Crossbows · Traps' },
   };
 }
 function blankEquipment() {
@@ -2032,7 +2035,7 @@ const PROF_SKILL_TREES = {
 };
 
 /**
- * Survival kit mesh nodes (free_survival_asset_kit.glb) â†’ WCS stations.
+ * Survival kit mesh nodes (free_survival_asset_kit.glb) → WCS stations.
  * Placeable in any camp, home island, or boat cabin.
  * CDN: assets.grudge-studio.com/models/survival/free_survival_asset_kit.glb
  */
@@ -2057,7 +2060,7 @@ const SURVIVAL_KIT = {
   ],
 };
 
-/** Canonical WCS stations â†’ profession + unlock keys + info.* icons */
+/** Canonical WCS stations → profession + unlock keys + info.* icons */
 const ASSET_CDN_ROOT = (typeof window !== 'undefined' && window.GRUDGE_CONFIG && window.GRUDGE_CONFIG.ASSETS)
   || 'https://assets.grudge-studio.com';
 const INFO_CDN_ROOT = (typeof window !== 'undefined' && window.GRUDGE_CONFIG && window.GRUDGE_CONFIG.INFO_ORIGIN)
@@ -2149,93 +2152,93 @@ const STATE = {
 // ============================================================
 const RECIPES = [
   // === T0 UNIVERSAL ===
-  { id:'parchment', n:'Parchment', prof:'All', type:'Refining', tier:0, icon:'ðŸ“œ', mats:{'Plant Fiber':3}, desc:'Thin writing surface' },
-  { id:'simple-thread', n:'Simple Thread', prof:'All', type:'Refining', tier:0, icon:'ðŸ§µ', mats:{'Plant Fiber':5}, desc:'Basic thread spun from fibers' },
-  { id:'ink', n:'Ink', prof:'All', type:'Refining', tier:0, icon:'ðŸ–‹ï¸', mats:{'Charcoal':1,'Water':1}, desc:'Dark writing fluid' },
-  { id:'crude-bandage', n:'Crude Bandage', prof:'All', type:'Consumable', tier:0, icon:'ðŸ©¹', mats:{'Torn Rag':2}, desc:'Stops bleeding, +10 HP/10s' },
-  { id:'simple-bandage', n:'Simple Bandage', prof:'All', type:'Consumable', tier:0, icon:'ðŸ©¹', mats:{'Simple Thread':2,'Herb':1}, desc:'+20 HP/10s' },
-  { id:'minor-hp', n:'Minor Health Potion', prof:'All', type:'Consumable', tier:0, icon:'â¤ï¸', mats:{'Herb':2,'Water':1}, desc:'Restores 25 HP' },
-  { id:'minor-mp', n:'Minor Mana Potion', prof:'All', type:'Consumable', tier:0, icon:'ðŸ’™', mats:{'Arcane Dust':1,'Water':2}, desc:'Restores 25 Mana' },
-  { id:'wooden-club', n:'Wooden Club', prof:'All', type:'Weapon', tier:0, icon:'ðŸ', mats:{'Rotted Wood':3}, desc:'Crude bludgeon, 3 DMG' },
-  { id:'stone-knife', n:'Stone Knife', prof:'All', type:'Weapon', tier:0, icon:'ðŸ”ª', mats:{'Stone Fragments':2,'Simple Thread':1}, desc:'Sharp stone dagger, 2 DMG' },
-  { id:'makeshift-spear', n:'Makeshift Spear', prof:'All', type:'Weapon', tier:0, icon:'ðŸ—¡ï¸', mats:{'Rotted Wood':2,'Stone Fragments':1}, desc:'Pointed stick, 4 DMG' },
-  { id:'wooden-sword', n:'Wooden Sword', prof:'All', type:'Weapon', tier:0, icon:'âš”ï¸', mats:{'Wood Scraps':3,'Plant Fiber':1}, desc:'Starter sword, 3 DMG' },
-  { id:'tattered-shirt', n:'Tattered Shirt', prof:'All', type:'Armor', tier:0, icon:'ðŸ‘•', mats:{'Torn Rag':4,'Simple Thread':2}, desc:'+1 Defense' },
-  { id:'ragged-pants', n:'Ragged Pants', prof:'All', type:'Armor', tier:0, icon:'ðŸ‘–', mats:{'Torn Rag':3,'Simple Thread':1}, desc:'+1 Defense' },
-  { id:'scrap-helm', n:'Scrap Helm', prof:'All', type:'Armor', tier:0, icon:'â›‘ï¸', mats:{'Scrap Metal':2}, desc:'+1 Defense' },
-  { id:'hand-wraps', n:'Hand Wraps', prof:'All', type:'Armor', tier:0, icon:'ðŸ§¤', mats:{'Torn Rag':2}, desc:'+1 Defense' },
-  { id:'tent', n:'Tent', prof:'All', type:'Building', tier:0, icon:'â›º', mats:{'Rotted Wood':4,'Torn Rag':6,'Simple Thread':3}, desc:'Camp stage 3 — open tent (kit: tent). Unlocks Camp Bench.' },
-  { id:'tent-half', n:'Tent Frame', prof:'All', type:'Building', tier:0, icon:'â›º', mats:{'Rotted Wood':3,'Torn Rag':3}, desc:'Camp stage 1 (kit: tentHalf)' },
-  { id:'tent-closed', n:'Closed Tent', prof:'All', type:'Building', tier:0, icon:'â›º', mats:{'Rotted Wood':4,'Torn Rag':5,'Simple Thread':2}, desc:'Camp stage 2 (kit: tentClosed)' },
-  { id:'campfire-b', n:'Campfire', prof:'All', type:'Building', tier:0, icon:'ðŸ”¥', mats:{'Stone Fragments':5,'Rotted Wood':3}, desc:'Fireplace (kit: campfire). Unlocks Cooking Table.' },
-  { id:'cooking-bench-b', n:'Cooking Bench', prof:'Chef', type:'Building', tier:0, icon:'ðŸ³', mats:{'Rotted Wood':6,'Stone Fragments':2}, desc:'Cooking stand (kit: fishingStand)' },
-  { id:'workbench-b', n:'Workbench', prof:'All', type:'Building', tier:0, icon:'ðŸ”¨', mats:{'Rotted Wood':8,'Scrap Metal':2}, desc:'Hammer + note table (kit: workbench). Unlocks Tinker.' },
-  { id:'grind-wheel-b', n:'Sharpening Wheel', prof:'Miner', type:'Building', tier:0, icon:'âš™ï¸', mats:{'Stone Fragments':8,'Rotted Wood':4,'Scrap Metal':2}, desc:'Miner grind (kit: workbenchGrind). Unlocks Smithing.' },
-  { id:'anvil-b', n:'Anvil', prof:'Engineer', type:'Building', tier:0, icon:'âš’ï¸', mats:{'Scrap Metal':10,'Stone Fragments':6}, desc:'Engineer anvil (kit: workbenchAnvil). Unlocks Smithing + Tinker.' },
-  { id:'storage-chest', n:'Storage Chest', prof:'All', type:'Building', tier:0, icon:'ðŸ“¦', mats:{'Rotted Wood':5,'Scrap Metal':1}, desc:'Item storage (kit: chest)' },
+  { id:'parchment', n:'Parchment', prof:'All', type:'Refining', tier:0, icon:'📜', mats:{'Plant Fiber':3}, desc:'Thin writing surface' },
+  { id:'simple-thread', n:'Simple Thread', prof:'All', type:'Refining', tier:0, icon:'🧵', mats:{'Plant Fiber':5}, desc:'Basic thread spun from fibers' },
+  { id:'ink', n:'Ink', prof:'All', type:'Refining', tier:0, icon:'🖋️', mats:{'Charcoal':1,'Water':1}, desc:'Dark writing fluid' },
+  { id:'crude-bandage', n:'Crude Bandage', prof:'All', type:'Consumable', tier:0, icon:'🩹', mats:{'Torn Rag':2}, desc:'Stops bleeding, +10 HP/10s' },
+  { id:'simple-bandage', n:'Simple Bandage', prof:'All', type:'Consumable', tier:0, icon:'🩹', mats:{'Simple Thread':2,'Herb':1}, desc:'+20 HP/10s' },
+  { id:'minor-hp', n:'Minor Health Potion', prof:'All', type:'Consumable', tier:0, icon:'❤️', mats:{'Herb':2,'Water':1}, desc:'Restores 25 HP' },
+  { id:'minor-mp', n:'Minor Mana Potion', prof:'All', type:'Consumable', tier:0, icon:'💙', mats:{'Arcane Dust':1,'Water':2}, desc:'Restores 25 Mana' },
+  { id:'wooden-club', n:'Wooden Club', prof:'All', type:'Weapon', tier:0, icon:'🏏', mats:{'Rotted Wood':3}, desc:'Crude bludgeon, 3 DMG' },
+  { id:'stone-knife', n:'Stone Knife', prof:'All', type:'Weapon', tier:0, icon:'🔪', mats:{'Stone Fragments':2,'Simple Thread':1}, desc:'Sharp stone dagger, 2 DMG' },
+  { id:'makeshift-spear', n:'Makeshift Spear', prof:'All', type:'Weapon', tier:0, icon:'🗡️', mats:{'Rotted Wood':2,'Stone Fragments':1}, desc:'Pointed stick, 4 DMG' },
+  { id:'wooden-sword', n:'Wooden Sword', prof:'All', type:'Weapon', tier:0, icon:'⚔️', mats:{'Wood Scraps':3,'Plant Fiber':1}, desc:'Starter sword, 3 DMG' },
+  { id:'tattered-shirt', n:'Tattered Shirt', prof:'All', type:'Armor', tier:0, icon:'👕', mats:{'Torn Rag':4,'Simple Thread':2}, desc:'+1 Defense' },
+  { id:'ragged-pants', n:'Ragged Pants', prof:'All', type:'Armor', tier:0, icon:'👖', mats:{'Torn Rag':3,'Simple Thread':1}, desc:'+1 Defense' },
+  { id:'scrap-helm', n:'Scrap Helm', prof:'All', type:'Armor', tier:0, icon:'⛑️', mats:{'Scrap Metal':2}, desc:'+1 Defense' },
+  { id:'hand-wraps', n:'Hand Wraps', prof:'All', type:'Armor', tier:0, icon:'🧤', mats:{'Torn Rag':2}, desc:'+1 Defense' },
+  { id:'tent', n:'Tent', prof:'All', type:'Building', tier:0, icon:'⛺', mats:{'Rotted Wood':4,'Torn Rag':6,'Simple Thread':3}, desc:'Camp stage 3 — open tent (kit: tent). Unlocks Camp Bench.' },
+  { id:'tent-half', n:'Tent Frame', prof:'All', type:'Building', tier:0, icon:'⛺', mats:{'Rotted Wood':3,'Torn Rag':3}, desc:'Camp stage 1 (kit: tentHalf)' },
+  { id:'tent-closed', n:'Closed Tent', prof:'All', type:'Building', tier:0, icon:'⛺', mats:{'Rotted Wood':4,'Torn Rag':5,'Simple Thread':2}, desc:'Camp stage 2 (kit: tentClosed)' },
+  { id:'campfire-b', n:'Campfire', prof:'All', type:'Building', tier:0, icon:'🔥', mats:{'Stone Fragments':5,'Rotted Wood':3}, desc:'Fireplace (kit: campfire). Unlocks Cooking Table.' },
+  { id:'cooking-bench-b', n:'Cooking Bench', prof:'Chef', type:'Building', tier:0, icon:'🍳', mats:{'Rotted Wood':6,'Stone Fragments':2}, desc:'Cooking stand (kit: fishingStand)' },
+  { id:'workbench-b', n:'Workbench', prof:'All', type:'Building', tier:0, icon:'🔨', mats:{'Rotted Wood':8,'Scrap Metal':2}, desc:'Hammer + note table (kit: workbench). Unlocks Tinker.' },
+  { id:'grind-wheel-b', n:'Sharpening Wheel', prof:'Miner', type:'Building', tier:0, icon:'⚙️', mats:{'Stone Fragments':8,'Rotted Wood':4,'Scrap Metal':2}, desc:'Miner grind (kit: workbenchGrind). Unlocks Smithing.' },
+  { id:'anvil-b', n:'Anvil', prof:'Engineer', type:'Building', tier:0, icon:'⚒️', mats:{'Scrap Metal':10,'Stone Fragments':6}, desc:'Engineer anvil (kit: workbenchAnvil). Unlocks Smithing + Tinker.' },
+  { id:'storage-chest', n:'Storage Chest', prof:'All', type:'Building', tier:0, icon:'📦', mats:{'Rotted Wood':5,'Scrap Metal':1}, desc:'Item storage (kit: chest)' },
 
   // === MINER T0 ===
-  { id:'smelt-scrap', n:'Smelt Scrap Metal', prof:'Miner', type:'Refining', tier:0, icon:'ðŸ”©', mats:{'Junk Ore':3}, desc:'Salvage metal from junk' },
-  { id:'broken-blade', n:'Broken Blade', prof:'Miner', type:'Weapon', tier:0, icon:'ðŸ—¡ï¸', mats:{'Scrap Metal':3,'Simple Thread':1}, desc:'Crude forged blade, 5 DMG' },
-  { id:'rusty-mace', n:'Rusty Mace', prof:'Miner', type:'Weapon', tier:0, icon:'ðŸ”¨', mats:{'Scrap Metal':2,'Rotted Wood':1}, desc:'Heavy bludgeon, 6 DMG' },
-  { id:'stone-hatchet', n:'Stone Hatchet', prof:'Miner', type:'Weapon', tier:0, icon:'ðŸª“', mats:{'Stone Fragments':2,'Wood Scraps':1,'Plant Fiber':1}, desc:'Stone axe, 5 DMG' },
-  { id:'bone-sword', n:'Sharpened Bone Blade', prof:'Miner', type:'Weapon', tier:0, icon:'ðŸ¦´', mats:{'Animal Bone':2,'Plant Fiber':1}, desc:'Bone sword, 4 DMG' },
+  { id:'smelt-scrap', n:'Smelt Scrap Metal', prof:'Miner', type:'Refining', tier:0, icon:'🔩', mats:{'Junk Ore':3}, desc:'Salvage metal from junk' },
+  { id:'broken-blade', n:'Broken Blade', prof:'Miner', type:'Weapon', tier:0, icon:'🗡️', mats:{'Scrap Metal':3,'Simple Thread':1}, desc:'Crude forged blade, 5 DMG' },
+  { id:'rusty-mace', n:'Rusty Mace', prof:'Miner', type:'Weapon', tier:0, icon:'🔨', mats:{'Scrap Metal':2,'Rotted Wood':1}, desc:'Heavy bludgeon, 6 DMG' },
+  { id:'stone-hatchet', n:'Stone Hatchet', prof:'Miner', type:'Weapon', tier:0, icon:'🪓', mats:{'Stone Fragments':2,'Wood Scraps':1,'Plant Fiber':1}, desc:'Stone axe, 5 DMG' },
+  { id:'bone-sword', n:'Sharpened Bone Blade', prof:'Miner', type:'Weapon', tier:0, icon:'🦴', mats:{'Animal Bone':2,'Plant Fiber':1}, desc:'Bone sword, 4 DMG' },
 
   // === MINER T1 ===
-  { id:'copper-ingot', n:'Copper Ingot', prof:'Miner', type:'Refining', tier:1, icon:'ðŸŸ ', mats:{'Copper Ore':3}, desc:'Refined copper bar' },
-  { id:'iron-ingot', n:'Iron Ingot', prof:'Miner', type:'Refining', tier:1, icon:'â¬œ', mats:{'Iron Ore':3}, desc:'Refined iron bar' },
-  { id:'bloodfeud-blade', n:'Bloodfeud Blade', prof:'Miner', type:'Weapon', tier:1, icon:'âš”ï¸', mats:{'Copper Ingot':3,'Wooden Sword':1,'Simple Thread':2}, desc:'T1 Sword · 12 DMG · Bloodfeud set' },
-  { id:'gorehowl', n:'Gorehowl', prof:'Miner', type:'Weapon', tier:1, icon:'ðŸª“', mats:{'Iron Ingot':2,'Stone Hatchet':1,'Animal Hide':1}, desc:'T1 Axe · 14 DMG · Gore set' },
-  { id:'grudgehammer', n:'Grudgehammer', prof:'Miner', type:'Weapon', tier:1, icon:'ðŸ”¨', mats:{'Iron Ingot':3,'Rusty Mace':1}, desc:'T1 Hammer · 16 DMG' },
-  { id:'bloodshiv', n:'Bloodshiv', prof:'Miner', type:'Weapon', tier:1, icon:'ðŸ—¡ï¸', mats:{'Copper Ingot':2,'Stone Knife':1}, desc:'T1 Dagger · 8 DMG · Fast' },
-  { id:'iron-helm', n:'Iron Helm', prof:'Miner', type:'Armor', tier:1, icon:'â›‘ï¸', mats:{'Iron Ingot':2,'Scrap Helm':1}, desc:'+5 Def · Metal' },
-  { id:'iron-chest', n:'Iron Chestplate', prof:'Miner', type:'Armor', tier:1, icon:'ðŸ›¡ï¸', mats:{'Iron Ingot':4,'Tattered Shirt':1}, desc:'+8 Def · Metal' },
+  { id:'copper-ingot', n:'Copper Ingot', prof:'Miner', type:'Refining', tier:1, icon:'🟠', mats:{'Copper Ore':3}, desc:'Refined copper bar' },
+  { id:'iron-ingot', n:'Iron Ingot', prof:'Miner', type:'Refining', tier:1, icon:'⬜', mats:{'Iron Ore':3}, desc:'Refined iron bar' },
+  { id:'bloodfeud-blade', n:'Bloodfeud Blade', prof:'Miner', type:'Weapon', tier:1, icon:'⚔️', mats:{'Copper Ingot':3,'Wooden Sword':1,'Simple Thread':2}, desc:'T1 Sword · 12 DMG · Bloodfeud set' },
+  { id:'gorehowl', n:'Gorehowl', prof:'Miner', type:'Weapon', tier:1, icon:'🪓', mats:{'Iron Ingot':2,'Stone Hatchet':1,'Animal Hide':1}, desc:'T1 Axe · 14 DMG · Gore set' },
+  { id:'grudgehammer', n:'Grudgehammer', prof:'Miner', type:'Weapon', tier:1, icon:'🔨', mats:{'Iron Ingot':3,'Rusty Mace':1}, desc:'T1 Hammer · 16 DMG' },
+  { id:'bloodshiv', n:'Bloodshiv', prof:'Miner', type:'Weapon', tier:1, icon:'🗡️', mats:{'Copper Ingot':2,'Stone Knife':1}, desc:'T1 Dagger · 8 DMG · Fast' },
+  { id:'iron-helm', n:'Iron Helm', prof:'Miner', type:'Armor', tier:1, icon:'⛑️', mats:{'Iron Ingot':2,'Scrap Helm':1}, desc:'+5 Def · Metal' },
+  { id:'iron-chest', n:'Iron Chestplate', prof:'Miner', type:'Armor', tier:1, icon:'🛡️', mats:{'Iron Ingot':4,'Tattered Shirt':1}, desc:'+8 Def · Metal' },
 
   // === FORESTER T0 ===
-  { id:'rough-plank', n:'Rough Plank', prof:'Forester', type:'Refining', tier:0, icon:'ðŸªµ', mats:{'Rotted Wood':2}, desc:'Crude wooden plank' },
-  { id:'shortbow', n:'Shortbow', prof:'Forester', type:'Weapon', tier:0, icon:'ðŸ¹', mats:{'Wood Scraps':3,'Plant Fiber':2}, desc:'Basic bow, 4 DMG' },
-  { id:'crude-leather', n:'Crude Leather', prof:'Forester', type:'Refining', tier:0, icon:'ðŸŸ¤', mats:{'Animal Hide':2}, desc:'Tanned hide piece' },
-  { id:'leather-vest', n:'Leather Vest', prof:'Forester', type:'Armor', tier:0, icon:'ðŸ¦º', mats:{'Crude Leather':3,'Simple Thread':2}, desc:'+2 Def · Leather' },
+  { id:'rough-plank', n:'Rough Plank', prof:'Forester', type:'Refining', tier:0, icon:'🪵', mats:{'Rotted Wood':2}, desc:'Crude wooden plank' },
+  { id:'shortbow', n:'Shortbow', prof:'Forester', type:'Weapon', tier:0, icon:'🏹', mats:{'Wood Scraps':3,'Plant Fiber':2}, desc:'Basic bow, 4 DMG' },
+  { id:'crude-leather', n:'Crude Leather', prof:'Forester', type:'Refining', tier:0, icon:'🟤', mats:{'Animal Hide':2}, desc:'Tanned hide piece' },
+  { id:'leather-vest', n:'Leather Vest', prof:'Forester', type:'Armor', tier:0, icon:'🦺', mats:{'Crude Leather':3,'Simple Thread':2}, desc:'+2 Def · Leather' },
   // === FORESTER T1 ===
-  { id:'pine-plank', n:'Pine Plank', prof:'Forester', type:'Refining', tier:1, icon:'ðŸªµ', mats:{'Pine Log':2}, desc:'Refined pine wood' },
-  { id:'oak-plank', n:'Oak Plank', prof:'Forester', type:'Refining', tier:1, icon:'ðŸªµ', mats:{'Oak Log':2}, desc:'Strong oak plank' },
-  { id:'wraithbone-bow', n:'Wraithbone Bow', prof:'Forester', type:'Weapon', tier:1, icon:'ðŸ¹', mats:{'Pine Plank':2,'Shortbow':1,'Simple Thread':3}, desc:'T1 Bow · 11 DMG · Spectral' },
-  { id:'hardened-leather', n:'Hardened Leather', prof:'Forester', type:'Refining', tier:1, icon:'ðŸŸ¤', mats:{'Crude Leather':2,'Pine Plank':1}, desc:'Treated leather' },
-  { id:'leather-armor-t1', n:'Ranger Leathers', prof:'Forester', type:'Armor', tier:1, icon:'ðŸ¦º', mats:{'Hardened Leather':4,'Simple Thread':2}, desc:'+6 Def · +2 Agi' },
+  { id:'pine-plank', n:'Pine Plank', prof:'Forester', type:'Refining', tier:1, icon:'🪵', mats:{'Pine Log':2}, desc:'Refined pine wood' },
+  { id:'oak-plank', n:'Oak Plank', prof:'Forester', type:'Refining', tier:1, icon:'🪵', mats:{'Oak Log':2}, desc:'Strong oak plank' },
+  { id:'wraithbone-bow', n:'Wraithbone Bow', prof:'Forester', type:'Weapon', tier:1, icon:'🏹', mats:{'Pine Plank':2,'Shortbow':1,'Simple Thread':3}, desc:'T1 Bow · 11 DMG · Spectral' },
+  { id:'hardened-leather', n:'Hardened Leather', prof:'Forester', type:'Refining', tier:1, icon:'🟤', mats:{'Crude Leather':2,'Pine Plank':1}, desc:'Treated leather' },
+  { id:'leather-armor-t1', n:'Ranger Leathers', prof:'Forester', type:'Armor', tier:1, icon:'🦺', mats:{'Hardened Leather':4,'Simple Thread':2}, desc:'+6 Def · +2 Agi' },
 
   // === MYSTIC T0 ===
-  { id:'raw-essence', n:'Raw Essence', prof:'Mystic', type:'Refining', tier:0, icon:'âœ¨', mats:{'Arcane Dust':2,'Water':1}, desc:'Unrefined magical energy' },
-  { id:'crude-staff', n:'Crude Staff', prof:'Mystic', type:'Weapon', tier:0, icon:'ðŸª„', mats:{'Rotted Wood':3,'Raw Essence':1}, desc:'Basic staff, 3 DMG + 5 SP' },
-  { id:'linen-cloth', n:'Linen Cloth', prof:'Mystic', type:'Refining', tier:0, icon:'ðŸ§µ', mats:{'Plant Fiber':4}, desc:'Rough woven cloth' },
-  { id:'acolyte-robe', n:'Acolyte Robe', prof:'Mystic', type:'Armor', tier:0, icon:'ðŸ‘˜', mats:{'Linen Cloth':3,'Simple Thread':2}, desc:'+1 Def · +3 SP' },
+  { id:'raw-essence', n:'Raw Essence', prof:'Mystic', type:'Refining', tier:0, icon:'✨', mats:{'Arcane Dust':2,'Water':1}, desc:'Unrefined magical energy' },
+  { id:'crude-staff', n:'Crude Staff', prof:'Mystic', type:'Weapon', tier:0, icon:'🪄', mats:{'Rotted Wood':3,'Raw Essence':1}, desc:'Basic staff, 3 DMG + 5 SP' },
+  { id:'linen-cloth', n:'Linen Cloth', prof:'Mystic', type:'Refining', tier:0, icon:'🧵', mats:{'Plant Fiber':4}, desc:'Rough woven cloth' },
+  { id:'acolyte-robe', n:'Acolyte Robe', prof:'Mystic', type:'Armor', tier:0, icon:'👘', mats:{'Linen Cloth':3,'Simple Thread':2}, desc:'+1 Def · +3 SP' },
   // === MYSTIC T1 ===
-  { id:'minor-essence', n:'Minor Essence', prof:'Mystic', type:'Refining', tier:1, icon:'âœ¨', mats:{'Raw Essence':3}, desc:'Concentrated magical energy' },
-  { id:'emberwrath', n:'Emberwrath', prof:'Mystic', type:'Weapon', tier:1, icon:'ðŸ”¥', mats:{'Crude Staff':1,'Minor Essence':2,'Copper Ingot':1}, desc:'T1 Fire Staff · 10 DMG + 15 SP' },
-  { id:'frostbite-staff', n:'Frostbite', prof:'Mystic', type:'Weapon', tier:1, icon:'â„ï¸', mats:{'Crude Staff':1,'Minor Essence':2,'Water':3}, desc:'T1 Frost Staff · 9 DMG + 18 SP' },
-  { id:'silk-robe', n:'Mystic Silks', prof:'Mystic', type:'Armor', tier:1, icon:'ðŸ‘˜', mats:{'Linen Cloth':4,'Minor Essence':1,'Simple Thread':3}, desc:'+3 Def · +8 SP' },
+  { id:'minor-essence', n:'Minor Essence', prof:'Mystic', type:'Refining', tier:1, icon:'✨', mats:{'Raw Essence':3}, desc:'Concentrated magical energy' },
+  { id:'emberwrath', n:'Emberwrath', prof:'Mystic', type:'Weapon', tier:1, icon:'🔥', mats:{'Crude Staff':1,'Minor Essence':2,'Copper Ingot':1}, desc:'T1 Fire Staff · 10 DMG + 15 SP' },
+  { id:'frostbite-staff', n:'Frostbite', prof:'Mystic', type:'Weapon', tier:1, icon:'❄️', mats:{'Crude Staff':1,'Minor Essence':2,'Water':3}, desc:'T1 Frost Staff · 9 DMG + 18 SP' },
+  { id:'silk-robe', n:'Mystic Silks', prof:'Mystic', type:'Armor', tier:1, icon:'👘', mats:{'Linen Cloth':4,'Minor Essence':1,'Simple Thread':3}, desc:'+3 Def · +8 SP' },
 
   // === CHEF T0 ===
-  { id:'charred-meat', n:'Charred Meat', prof:'Chef', type:'Consumable', tier:0, icon:'ðŸ¥©', mats:{'Raw Meat':1}, desc:'+15 HP · Basic food' },
-  { id:'herb-soup', n:'Herb Soup', prof:'Chef', type:'Consumable', tier:0, icon:'ðŸ¥£', mats:{'Wild Herbs':2,'Water':2}, desc:'+20 HP · +5 MP' },
-  { id:'trail-mix', n:'Trail Mix', prof:'Chef', type:'Consumable', tier:0, icon:'ðŸ¥œ', mats:{'Wild Herbs':1,'Plant Fiber':2}, desc:'+10 Stamina regen' },
+  { id:'charred-meat', n:'Charred Meat', prof:'Chef', type:'Consumable', tier:0, icon:'🥩', mats:{'Raw Meat':1}, desc:'+15 HP · Basic food' },
+  { id:'herb-soup', n:'Herb Soup', prof:'Chef', type:'Consumable', tier:0, icon:'🥣', mats:{'Wild Herbs':2,'Water':2}, desc:'+20 HP · +5 MP' },
+  { id:'trail-mix', n:'Trail Mix', prof:'Chef', type:'Consumable', tier:0, icon:'🥜', mats:{'Wild Herbs':1,'Plant Fiber':2}, desc:'+10 Stamina regen' },
   // === CHEF T1 ===
-  { id:'seasoned-steak', n:'Seasoned Steak', prof:'Chef', type:'Consumable', tier:1, icon:'ðŸ¥©', mats:{'Raw Meat':2,'Wild Herbs':1,'Charred Meat':1}, desc:'+40 HP · +5 STR buff 5min' },
-  { id:'mana-stew', n:'Mana Stew', prof:'Chef', type:'Consumable', tier:1, icon:'ðŸ¥˜', mats:{'Wild Herbs':3,'Water':2,'Arcane Dust':1}, desc:'+30 MP · +5 INT buff 5min' },
-  { id:'hp-potion-t1', n:'Health Potion', prof:'Chef', type:'Consumable', tier:1, icon:'â¤ï¸', mats:{'Herb':3,'Water':2,'Minor Health Potion':1}, desc:'Restores 75 HP' },
-  { id:'mp-potion-t1', n:'Mana Potion', prof:'Chef', type:'Consumable', tier:1, icon:'ðŸ’™', mats:{'Arcane Dust':2,'Water':3,'Minor Mana Potion':1}, desc:'Restores 75 MP' },
+  { id:'seasoned-steak', n:'Seasoned Steak', prof:'Chef', type:'Consumable', tier:1, icon:'🥩', mats:{'Raw Meat':2,'Wild Herbs':1,'Charred Meat':1}, desc:'+40 HP · +5 STR buff 5min' },
+  { id:'mana-stew', n:'Mana Stew', prof:'Chef', type:'Consumable', tier:1, icon:'🥘', mats:{'Wild Herbs':3,'Water':2,'Arcane Dust':1}, desc:'+30 MP · +5 INT buff 5min' },
+  { id:'hp-potion-t1', n:'Health Potion', prof:'Chef', type:'Consumable', tier:1, icon:'❤️', mats:{'Herb':3,'Water':2,'Minor Health Potion':1}, desc:'Restores 75 HP' },
+  { id:'mp-potion-t1', n:'Mana Potion', prof:'Chef', type:'Consumable', tier:1, icon:'💙', mats:{'Arcane Dust':2,'Water':3,'Minor Mana Potion':1}, desc:'Restores 75 MP' },
 
   // === ENGINEER T0 ===
-  { id:'crude-parts', n:'Crude Mechanism', prof:'Engineer', type:'Refining', tier:0, icon:'âš™ï¸', mats:{'Scrap Metal':2,'Stone Fragments':1}, desc:'Basic mechanical parts' },
-  { id:'slingshot', n:'Slingshot', prof:'Engineer', type:'Weapon', tier:0, icon:'ðŸŽ¯', mats:{'Wood Scraps':2,'Leather Scraps':2}, desc:'Ranged weapon, 3 DMG' },
-  { id:'bear-trap', n:'Bear Trap', prof:'Engineer', type:'Utility', tier:0, icon:'ðŸª¤', mats:{'Scrap Metal':3,'Crude Mechanism':1}, desc:'Immobilize target 3s' },
+  { id:'crude-parts', n:'Crude Mechanism', prof:'Engineer', type:'Refining', tier:0, icon:'⚙️', mats:{'Scrap Metal':2,'Stone Fragments':1}, desc:'Basic mechanical parts' },
+  { id:'slingshot', n:'Slingshot', prof:'Engineer', type:'Weapon', tier:0, icon:'🎯', mats:{'Wood Scraps':2,'Leather Scraps':2}, desc:'Ranged weapon, 3 DMG' },
+  { id:'bear-trap', n:'Bear Trap', prof:'Engineer', type:'Utility', tier:0, icon:'🪤', mats:{'Scrap Metal':3,'Crude Mechanism':1}, desc:'Immobilize target 3s' },
   // === ENGINEER T1 ===
-  { id:'gears', n:'Precision Gears', prof:'Engineer', type:'Refining', tier:1, icon:'âš™ï¸', mats:{'Copper Ingot':2,'Crude Mechanism':1}, desc:'Refined mechanical parts' },
-  { id:'shadowflight', n:'Shadowflight Crossbow', prof:'Engineer', type:'Weapon', tier:1, icon:'ðŸ¹', mats:{'Pine Plank':2,'Precision Gears':2,'Slingshot':1}, desc:'T1 Crossbow · 13 DMG' },
-  { id:'bloodcannon', n:'Bloodcannon', prof:'Engineer', type:'Weapon', tier:1, icon:'ðŸ”«', mats:{'Iron Ingot':3,'Precision Gears':2,'Crude Mechanism':1}, desc:'T1 Gun · 15 DMG · Slow' },
-  { id:'spike-trap', n:'Spike Trap', prof:'Engineer', type:'Utility', tier:1, icon:'ðŸª¤', mats:{'Iron Ingot':2,'Precision Gears':1,'Bear Trap':1}, desc:'25 DMG + Bleed' },
+  { id:'gears', n:'Precision Gears', prof:'Engineer', type:'Refining', tier:1, icon:'⚙️', mats:{'Copper Ingot':2,'Crude Mechanism':1}, desc:'Refined mechanical parts' },
+  { id:'shadowflight', n:'Shadowflight Crossbow', prof:'Engineer', type:'Weapon', tier:1, icon:'🏹', mats:{'Pine Plank':2,'Precision Gears':2,'Slingshot':1}, desc:'T1 Crossbow · 13 DMG' },
+  { id:'bloodcannon', n:'Bloodcannon', prof:'Engineer', type:'Weapon', tier:1, icon:'🔫', mats:{'Iron Ingot':3,'Precision Gears':2,'Crude Mechanism':1}, desc:'T1 Gun · 15 DMG · Slow' },
+  { id:'spike-trap', n:'Spike Trap', prof:'Engineer', type:'Utility', tier:1, icon:'🪤', mats:{'Iron Ingot':2,'Precision Gears':1,'Bear Trap':1}, desc:'25 DMG + Bleed' },
 ];
 
-// Map profession â†’ WCS station (canonical)
+// Map profession → WCS station (canonical)
 const PROF_TO_STATION = { All: 'camp', Miner: 'smithing', Forester: 'lumber', Mystic: 'loom', Chef: 'cooking', Engineer: 'tinker' };
 // Attach station field to base recipes
 RECIPES.forEach((r) => { if (!r.station) r.station = PROF_TO_STATION[r.prof] || 'camp'; });
@@ -2243,28 +2246,28 @@ RECIPES.forEach((r) => { if (!r.station) r.station = PROF_TO_STATION[r.prof] || 
 // === WCS T2—T8 extended recipes (from Warlord Crafting Suite canon) ===
 const WCS_EXTRA_RECIPES = [
   // Smithing refining T2—T4
-  { id:'wcs-steel-ingot', n:'Steel Ingot', prof:'Miner', type:'Refining', tier:3, station:'smithing', icon:'â¬œ', mats:{'Iron Ingot':2,'Charcoal':2}, desc:'WCS T3 refined metal' },
-  { id:'wcs-mithril-ingot', n:'Mithril Ingot', prof:'Miner', type:'Refining', tier:4, station:'smithing', icon:'ðŸ”·', mats:{'Steel Ingot':2,'Arcane Dust':1}, desc:'WCS T4 lightweight metal' },
-  { id:'wcs-doomspire', n:'Doomspire', prof:'Miner', type:'Weapon', tier:5, station:'smithing', icon:'âš”ï¸', mats:{'Iron Ingot':8,'Hardened Leather':2}, desc:'WCS T5 greatsword' },
-  { id:'wcs-metal-helm-t2', n:'Bloodfeud Helm (Metal)', prof:'Miner', type:'Armor', tier:2, station:'smithing', icon:'â›‘ï¸', mats:{'Iron Ingot':4,'Leather Scraps':2}, desc:'WCS T2 metal helm' },
+  { id:'wcs-steel-ingot', n:'Steel Ingot', prof:'Miner', type:'Refining', tier:3, station:'smithing', icon:'⬜', mats:{'Iron Ingot':2,'Charcoal':2}, desc:'WCS T3 refined metal' },
+  { id:'wcs-mithril-ingot', n:'Mithril Ingot', prof:'Miner', type:'Refining', tier:4, station:'smithing', icon:'🔷', mats:{'Steel Ingot':2,'Arcane Dust':1}, desc:'WCS T4 lightweight metal' },
+  { id:'wcs-doomspire', n:'Doomspire', prof:'Miner', type:'Weapon', tier:5, station:'smithing', icon:'⚔️', mats:{'Iron Ingot':8,'Hardened Leather':2}, desc:'WCS T5 greatsword' },
+  { id:'wcs-metal-helm-t2', n:'Bloodfeud Helm (Metal)', prof:'Miner', type:'Armor', tier:2, station:'smithing', icon:'⛑️', mats:{'Iron Ingot':4,'Leather Scraps':2}, desc:'WCS T2 metal helm' },
   // Lumber
-  { id:'wcs-maple-plank', n:'Maple Plank', prof:'Forester', type:'Refining', tier:3, station:'lumber', icon:'ðŸªµ', mats:{'Oak Log':3}, desc:'WCS T3 hardwood' },
-  { id:'wcs-bloodstring-bow', n:'Bloodstring Bow', prof:'Forester', type:'Weapon', tier:3, station:'lumber', icon:'ðŸ¹', mats:{'Maple Plank':3,'Simple Thread':3,'Hardened Leather':1}, desc:'WCS T3 bow' },
-  { id:'wcs-leather-helm-t2', n:'Bloodfeud Helm (Leather)', prof:'Forester', type:'Armor', tier:2, station:'lumber', icon:'ðŸª–', mats:{'Hardened Leather':3,'Pine Plank':1}, desc:'WCS T2 leather helm' },
+  { id:'wcs-maple-plank', n:'Maple Plank', prof:'Forester', type:'Refining', tier:3, station:'lumber', icon:'🪵', mats:{'Oak Log':3}, desc:'WCS T3 hardwood' },
+  { id:'wcs-bloodstring-bow', n:'Bloodstring Bow', prof:'Forester', type:'Weapon', tier:3, station:'lumber', icon:'🏹', mats:{'Maple Plank':3,'Simple Thread':3,'Hardened Leather':1}, desc:'WCS T3 bow' },
+  { id:'wcs-leather-helm-t2', n:'Bloodfeud Helm (Leather)', prof:'Forester', type:'Armor', tier:2, station:'lumber', icon:'🪖', mats:{'Hardened Leather':3,'Pine Plank':1}, desc:'WCS T2 leather helm' },
   // Loom
-  { id:'wcs-wool-cloth', n:'Wool Cloth', prof:'Mystic', type:'Refining', tier:2, station:'loom', icon:'ðŸ§¶', mats:{'Linen Cloth':2,'Minor Essence':1}, desc:'WCS T2 cloth' },
-  { id:'wcs-silk-cloth', n:'Silk Cloth', prof:'Mystic', type:'Refining', tier:4, station:'loom', icon:'ðŸ§µ', mats:{'Wool Cloth':2,'Minor Essence':2}, desc:'WCS T4 silk' },
-  { id:'wcs-emberwrath-t3', n:'Emberwrath Staff', prof:'Mystic', type:'Weapon', tier:3, station:'loom', icon:'ðŸ”¥', mats:{'Wool Cloth':2,'Oak Plank':2,'Minor Essence':3}, desc:'WCS T3 fire staff' },
-  { id:'wcs-cloth-helm-t2', n:'Bloodfeud Helm (Cloth)', prof:'Mystic', type:'Armor', tier:2, station:'loom', icon:'ðŸ§¢', mats:{'Wool Cloth':3,'Minor Essence':1}, desc:'WCS T2 cloth helm' },
+  { id:'wcs-wool-cloth', n:'Wool Cloth', prof:'Mystic', type:'Refining', tier:2, station:'loom', icon:'🧶', mats:{'Linen Cloth':2,'Minor Essence':1}, desc:'WCS T2 cloth' },
+  { id:'wcs-silk-cloth', n:'Silk Cloth', prof:'Mystic', type:'Refining', tier:4, station:'loom', icon:'🧵', mats:{'Wool Cloth':2,'Minor Essence':2}, desc:'WCS T4 silk' },
+  { id:'wcs-emberwrath-t3', n:'Emberwrath Staff', prof:'Mystic', type:'Weapon', tier:3, station:'loom', icon:'🔥', mats:{'Wool Cloth':2,'Oak Plank':2,'Minor Essence':3}, desc:'WCS T3 fire staff' },
+  { id:'wcs-cloth-helm-t2', n:'Bloodfeud Helm (Cloth)', prof:'Mystic', type:'Armor', tier:2, station:'loom', icon:'🧢', mats:{'Wool Cloth':3,'Minor Essence':1}, desc:'WCS T2 cloth helm' },
   // Cooking
-  { id:'wcs-meat-stew', n:'Meat Stew', prof:'Chef', type:'Consumable', tier:2, station:'cooking', icon:'ðŸ¥£', mats:{'Raw Meat':2,'Wild Herbs':2,'Water':1}, desc:'WCS T2 food' },
-  { id:'wcs-mana-brew', n:'Mana Brew', prof:'Chef', type:'Consumable', tier:3, station:'cooking', icon:'ðŸ§ª', mats:{'Wild Herbs':3,'Arcane Dust':1,'Water':2}, desc:'WCS T3 mana food' },
-  { id:'wcs-stamina-elixir', n:'Stamina Elixir', prof:'Chef', type:'Consumable', tier:3, station:'cooking', icon:'âš¡', mats:{'Herb':4,'Wild Herbs':2,'Water':1}, desc:'WCS T3 utility' },
+  { id:'wcs-meat-stew', n:'Meat Stew', prof:'Chef', type:'Consumable', tier:2, station:'cooking', icon:'🥣', mats:{'Raw Meat':2,'Wild Herbs':2,'Water':1}, desc:'WCS T2 food' },
+  { id:'wcs-mana-brew', n:'Mana Brew', prof:'Chef', type:'Consumable', tier:3, station:'cooking', icon:'🧪', mats:{'Wild Herbs':3,'Arcane Dust':1,'Water':2}, desc:'WCS T3 mana food' },
+  { id:'wcs-stamina-elixir', n:'Stamina Elixir', prof:'Chef', type:'Consumable', tier:3, station:'cooking', icon:'⚡', mats:{'Herb':4,'Wild Herbs':2,'Water':1}, desc:'WCS T3 utility' },
   // Tinker
-  { id:'wcs-iron-gear', n:'Iron Gear', prof:'Engineer', type:'Refining', tier:2, station:'tinker', icon:'âš™ï¸', mats:{'Iron Ingot':2,'Crude Mechanism':1}, desc:'WCS T2 mechanism' },
-  { id:'wcs-steel-crossbow', n:'Skullpiercer', prof:'Engineer', type:'Weapon', tier:3, station:'tinker', icon:'ðŸ¹', mats:{'Iron Gear':3,'Oak Plank':3,'Simple Thread':2}, desc:'WCS T3 crossbow' },
-  { id:'wcs-blackpowder', n:'Blackpowder Blaster', prof:'Engineer', type:'Weapon', tier:3, station:'tinker', icon:'ðŸ”«', mats:{'Iron Gear':4,'Iron Ingot':2,'Charcoal':3}, desc:'WCS T3 gun' },
-  { id:'wcs-auto-turret', n:'Auto-Turret', prof:'Engineer', type:'Utility', tier:4, station:'tinker', icon:'ðŸŽ¯', mats:{'Precision Gears':4,'Iron Ingot':6,'Crude Mechanism':2}, desc:'WCS T4 defense' },
+  { id:'wcs-iron-gear', n:'Iron Gear', prof:'Engineer', type:'Refining', tier:2, station:'tinker', icon:'⚙️', mats:{'Iron Ingot':2,'Crude Mechanism':1}, desc:'WCS T2 mechanism' },
+  { id:'wcs-steel-crossbow', n:'Skullpiercer', prof:'Engineer', type:'Weapon', tier:3, station:'tinker', icon:'🏹', mats:{'Iron Gear':3,'Oak Plank':3,'Simple Thread':2}, desc:'WCS T3 crossbow' },
+  { id:'wcs-blackpowder', n:'Blackpowder Blaster', prof:'Engineer', type:'Weapon', tier:3, station:'tinker', icon:'🔫', mats:{'Iron Gear':4,'Iron Ingot':2,'Charcoal':3}, desc:'WCS T3 gun' },
+  { id:'wcs-auto-turret', n:'Auto-Turret', prof:'Engineer', type:'Utility', tier:4, station:'tinker', icon:'🎯', mats:{'Precision Gears':4,'Iron Ingot':6,'Crude Mechanism':2}, desc:'WCS T4 defense' },
 ];
 // Merge (skip id collisions)
 const _existingIds = new Set(RECIPES.map((r) => r.id));
@@ -2278,15 +2281,15 @@ RECIPES.forEach(r => { RECIPE_OUTPUT_MAP[r.n] = r.id; });
 // MATERIAL ICONS
 // ============================================================
 const MAT_ICONS = {
-  'Wood Scraps':'ðŸªµ','Stone Fragments':'ðŸª¨','Plant Fiber':'ðŸŒ¿','Animal Hide':'ðŸ¦Œ',
-  'Animal Bone':'ðŸ¦´','Raw Meat':'ðŸ¥©','Wild Herbs':'ðŸŒ¿','Water':'ðŸ’§',
-  'Junk Ore':'â›ï¸','Scrap Metal':'ðŸ”©','Torn Rag':'ðŸ§µ','Leather Scraps':'ðŸŸ¤',
-  'Charcoal':'â¬›','Rotted Wood':'ðŸªµ','Copper Ore':'ðŸŸ ','Iron Ore':'â¬œ',
-  'Pine Log':'ðŸŒ²','Oak Log':'ðŸŒ³','Arcane Dust':'âœ¨','Herb':'ðŸŒ¿',
-  'Simple Thread':'ðŸ§µ','Crude Leather':'ðŸŸ¤','Raw Essence':'âœ¨','Linen Cloth':'ðŸ§¶',
-  'Crude Mechanism':'âš™ï¸','Rough Plank':'ðŸªµ','Pine Plank':'ðŸªµ','Oak Plank':'ðŸªµ',
-  'Copper Ingot':'ðŸŸ ','Iron Ingot':'â¬œ','Hardened Leather':'ðŸŸ¤',
-  'Minor Essence':'ðŸ’«','Precision Gears':'âš™ï¸','Parchment':'ðŸ“œ','Ink':'ðŸ–‹ï¸',
+  'Wood Scraps':'🪵','Stone Fragments':'🪨','Plant Fiber':'🌿','Animal Hide':'🦌',
+  'Animal Bone':'🦴','Raw Meat':'🥩','Wild Herbs':'🌿','Water':'💧',
+  'Junk Ore':'⛏️','Scrap Metal':'🔩','Torn Rag':'🧵','Leather Scraps':'🟤',
+  'Charcoal':'⬛','Rotted Wood':'🪵','Copper Ore':'🟠','Iron Ore':'⬜',
+  'Pine Log':'🌲','Oak Log':'🌳','Arcane Dust':'✨','Herb':'🌿',
+  'Simple Thread':'🧵','Crude Leather':'🟤','Raw Essence':'✨','Linen Cloth':'🧶',
+  'Crude Mechanism':'⚙️','Rough Plank':'🪵','Pine Plank':'🪵','Oak Plank':'🪵',
+  'Copper Ingot':'🟠','Iron Ingot':'⬜','Hardened Leather':'🟤',
+  'Minor Essence':'💫','Precision Gears':'⚙️','Parchment':'📜','Ink':'🖋️',
 };
 
 // ============================================================
@@ -2430,7 +2433,7 @@ function updateAccessGate() {
 // ============================================================
 /**
  * Sign in via Grudge ID (canonical).
- * Redirects to id.grudge-studio.com â†’ returns with sso_token / grudge_token â†’
+ * Redirects to id.grudge-studio.com → returns with sso_token / grudge_token →
  * Railway JWT for the REAL Warlords account.
  * Do NOT use Puter-only bridge as primary login (empty puter:* roster).
  */
@@ -3248,7 +3251,7 @@ function renderCharProgressPage() {
 
   el.innerHTML = `
     <div class="card" style="margin-bottom:12px">
-      <div class="card-title">âš” ${char?.name || 'Character'}
+      <div class="card-title">⚔ ${char?.name || 'Character'}
         <span style="float:right;font-size:10px;color:var(--text-dim);font-family:Inter;font-weight:400">UUID ${String(id).slice(0, 13)}…</span>
       </div>
       <div style="font-size:11px;color:var(--text-dim);margin-bottom:8px">
@@ -3263,9 +3266,9 @@ function renderCharProgressPage() {
         <span class="scope-pill character">Class skills: ${skillCount}</span>
       </div>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
-        <button class="filter-btn" onclick="openCharacterSkillTree()">ðŸŒ³ Class Skill Tree</button>
-        <button class="filter-btn" onclick="openCharacterWeaponMastery()">âš” Weapon Mastery</button>
-        <button class="filter-btn" onclick="hydrateActiveCharacterDetail()">ðŸ”„ Refresh from API</button>
+        <button class="filter-btn" onclick="openCharacterSkillTree()">🌳 Class Skill Tree</button>
+        <button class="filter-btn" onclick="openCharacterWeaponMastery()">⚔ Weapon Mastery</button>
+        <button class="filter-btn" onclick="hydrateActiveCharacterDetail()">🔄 Refresh from API</button>
       </div>
     </div>
 
@@ -3370,8 +3373,8 @@ function updateSidebarBadges() {
   updateCharacterUI();
 }
 
-// â”€â”€ Character UI helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-const CLASS_ICONS  = { warrior:'âš”ï¸', mage:'ðŸ”®', rogue:'ðŸ—¡ï¸', cleric:'âœ¨', worg:'ðŸº', ranger:'ðŸ¹' };
+// ── Character UI helpers ──────────────────────────────────────────────────────
+const CLASS_ICONS  = { warrior:'⚔️', mage:'🔮', rogue:'🗡️', cleric:'✨', worg:'🐺', ranger:'🏹' };
 const RACE_COLORS  = { human:'#60a5fa', orc:'#22c55e', elf:'#a78bfa', dwarf:'#f59e0b', undead:'#8b5cf6', barbarian:'#ef4444', demon:'#dc2626' };
 
 /** Updates the sidebar character panel and the dashboard banner. */
@@ -3385,7 +3388,7 @@ function updateCharacterUI() {
     // No character selected — show a prompt to sign in or select
     if (STATE.grudgeCharacters.length > 0) {
       panel.style.display = 'block';
-      panel.innerHTML = `<div class="char-none">âš” Pick your Warlord â†‘</div>`;
+      panel.innerHTML = `<div class="char-none">⚔ Pick your Warlord ↑</div>`;
     } else if (STATE.user) {
       panel.style.display = 'block';
       panel.innerHTML = `<div class="char-none">Loading characters…</div>`;
@@ -3395,7 +3398,7 @@ function updateCharacterUI() {
     return;
   }
 
-  const classIcon  = CLASS_ICONS[char.class?.toLowerCase()]  || 'âš”ï¸';
+  const classIcon  = CLASS_ICONS[char.class?.toLowerCase()]  || '⚔️';
   const raceColor  = RACE_COLORS[char.race?.toLowerCase()]   || 'var(--gold)';
   const lvl        = char.level || 1;
   // XP bar: use a rough 0-100% based on level progress if available
@@ -3417,12 +3420,12 @@ function updateCharacterUI() {
 
 // === DASHBOARD ===
 function renderDashboard() {
-  // â”€â”€ Character banner â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Character banner ──────────────────────────────────────────────────────
   const bannerEl = document.getElementById('dash-char-banner');
   if (bannerEl) {
     const char = STATE.grudgeCharacters.find(c => c.id === STATE.activeCharacterId);
     if (char) {
-      const classIcon = CLASS_ICONS[char.class?.toLowerCase()] || 'âš”ï¸';
+      const classIcon = CLASS_ICONS[char.class?.toLowerCase()] || '⚔️';
       const raceColor = RACE_COLORS[char.race?.toLowerCase()]   || 'var(--gold)';
       const stats     = char.stats || {};
       const attrMap   = [
@@ -3446,21 +3449,21 @@ function renderDashboard() {
             <div style="font-size:9px;color:var(--text-dim);margin-bottom:4px">Active Warlord</div>
             <a href="https://grudgewarlords.com" target="_blank" onclick="event.stopPropagation()"
                style="font-size:10px;color:var(--gold);text-decoration:none;border:1px solid var(--border);
-                      padding:3px 8px;border-radius:4px;white-space:nowrap;display:block">ðŸŒ Warlords</a>
+                      padding:3px 8px;border-radius:4px;white-space:nowrap;display:block">🌐 Warlords</a>
           </div>
         </div>`;
     } else if (STATE.user && STATE.grudgeCharacters.length === 0) {
       bannerEl.innerHTML = `
         <div class="char-banner" onclick="navigate('account')">
           <div class="char-banner-none">
-            <span style="font-size:28px">âš”</span>
+            <span style="font-size:28px">⚔</span>
             <div>
               <div style="font-size:13px;font-weight:700;color:var(--gold)">No character selected</div>
               <div style="font-size:11px;margin-top:2px">Connect your Grudge Warlords characters to personalize crafting</div>
             </div>
             <a href="https://grudgewarlords.com" target="_blank" onclick="event.stopPropagation()"
                style="margin-left:auto;font-size:10px;color:var(--gold);text-decoration:none;border:1px solid var(--border);
-                      padding:4px 10px;border-radius:4px;white-space:nowrap">Open Warlords â†’</a>
+                      padding:4px 10px;border-radius:4px;white-space:nowrap">Open Warlords →</a>
           </div>
         </div>`;
     } else {
@@ -3579,7 +3582,7 @@ function applyStationScene(st) {
   if (iconEl) {
     iconEl.innerHTML = st.iconUrl
       ? `<img referrerpolicy="no-referrer" data-icon-kind="${/\/skills\//i.test(st.iconUrl) ? "skill" : "pack"}" src="${st.iconUrl}" alt="${st.name}" loading="lazy" decoding="async" onerror="this.onerror=null;this.src='./crafting-icons/eagle-shield.png';this.dataset.iconKind='pack'">`
-      : (st.icon || "âš’");
+      : (st.icon || "⚒");
   }
   if (titleEl) titleEl.textContent = st.name;
   if (descEl) descEl.textContent = st.desc || '';
@@ -3590,7 +3593,7 @@ function updateStationLockBadges() {
     const el = document.getElementById('lock-' + st.id);
     if (!el) return;
     const unlocked = isStationUnlocked(st.id);
-    el.textContent = unlocked ? 'âœ“' : 'ðŸ”’';
+    el.textContent = unlocked ? '✓' : '🔒';
     el.style.color = unlocked ? 'var(--green)' : 'var(--text-dim)';
   });
 }
@@ -3606,7 +3609,7 @@ function renderStationTabs() {
       title="${st.desc}">
       <span class="st-icon">${stationIconHtml(st, 18)}</span>
       <span>${st.name}</span>
-      ${unlocked ? '' : '<span class="lock">ðŸ”’</span>'}
+      ${unlocked ? '' : '<span class="lock">🔒</span>'}
     </button>`;
   }).join('');
 
@@ -3620,7 +3623,7 @@ function renderStationTabs() {
       ? `<strong style="display:inline-flex;align-items:center;gap:6px">${stationIconHtml(st,16)} ${st.name}</strong> · ${st.desc}
          ${st.prof !== 'All' ? ` · XP goes to <strong>${st.prof}</strong>${char ? ` (${char.name})` : ''}` : ''}
          · <span class="scope-pill account">shared bag</span>`
-      : `<strong>ðŸ”’ ${st.name} locked</strong> — unlock by owning or befriending a camp with this bench. <a href="#" onclick="navigate('camps');return false" style="color:var(--gold)">View camps</a>`;
+      : `<strong>🔒 ${st.name} locked</strong> — unlock by owning or befriending a camp with this bench. <a href="#" onclick="navigate('camps');return false" style="color:var(--gold)">View camps</a>`;
   }
   updateStationLockBadges();
 }
@@ -3651,7 +3654,7 @@ function renderCraftingPage() {
 
   const locked = !isStationUnlocked(st.id);
   document.getElementById('recipe-list').innerHTML = locked
-    ? `<div style="padding:24px;text-align:center;color:var(--text-dim)">ðŸ”’ Unlock <strong>${st.name}</strong> at a friendly or owned camp.</div>`
+    ? `<div style="padding:24px;text-align:center;color:var(--text-dim)">🔒 Unlock <strong>${st.name}</strong> at a friendly or owned camp.</div>`
     : filtered.map((r) => {
       const canCraft = checkCanCraft(r);
       const sel = STATE.selectedRecipe && STATE.selectedRecipe.id === r.id;
@@ -3687,7 +3690,7 @@ function renderBenchDetail() {
     const have = STATE.inventory[name] || 0;
     const enough = have >= qty;
     return `<div class="slot ${enough?'filled':'missing'}">
-      <span>${itemIcon(name, MAT_ICONS[name]||'ðŸ“¦', 'item-img', 22)}</span>
+      <span>${itemIcon(name, MAT_ICONS[name]||'📦', 'item-img', 22)}</span>
       <span class="slot-qty ${enough?'enough':'short'}">${have}/${qty}</span>
       <span class="slot-name">${name}</span>
     </div>`;
@@ -3710,7 +3713,7 @@ function renderBenchDetail() {
       </div>
     </div>
     <button class="craft-btn" ${canCraft && !STATE.isCrafting ? '' : 'disabled'} onclick="craftItem('${r.id}')">
-      ${STATE.isCrafting ? 'â³ Crafting...' : canCraft ? 'ðŸ”¨ Craft Item' : 'âŒ Missing Materials'}
+      ${STATE.isCrafting ? '⏳ Crafting...' : canCraft ? '🔨 Craft Item' : '❌ Missing Materials'}
     </button>
     <div class="craft-progress"><div class="craft-progress-fill" id="craft-bar"></div></div>
   `;
@@ -3786,7 +3789,7 @@ function finishCraft(recipe) {
       const set = new Set(STATE._activeProfNodes[prof]);
       tree.forEach((n) => { if (STATE.professions[prof].level >= n.req) set.add(n.id); });
       STATE._activeProfNodes[prof] = [...set];
-      addLog(`ðŸŽ‰ ${prof} leveled up to ${STATE.professions[prof].level}!`, 'level');
+      addLog(`🎉 ${prof} leveled up to ${STATE.professions[prof].level}!`, 'level');
       if (STATE.activeCharacterId) syncCharacterToBackend();
       // Full-screen level-up banner + floating XP pop
       showLevelUpBanner(
@@ -3796,8 +3799,8 @@ function finishCraft(recipe) {
         STATE.professions[prof].iconUrl || STATE.professions[prof].icon
       );
       spawnRewardPop([
-        { text: `ðŸŽ‰ LEVEL UP!`, cls: 'lvl' },
-        { text: `${prof} â†’ Lv ${STATE.professions[prof].level}`, cls: 'gold' },
+        { text: `🎉 LEVEL UP!`, cls: 'lvl' },
+        { text: `${prof} → Lv ${STATE.professions[prof].level}`, cls: 'gold' },
       ]);
     }
   }
@@ -3811,7 +3814,7 @@ function finishCraft(recipe) {
   if (STATE.activeCharacterId) {
     if (!STATE.characterCrafting[STATE.activeCharacterId]) STATE.characterCrafting[STATE.activeCharacterId] = [];
     STATE.characterCrafting[STATE.activeCharacterId].unshift({
-      item: recipe.n, icon: recipe.icon || 'ðŸ“¦',
+      item: recipe.n, icon: recipe.icon || '📦',
       profession: prof, tier: recipe.tier, xp: xpGain,
       time: new Date().toISOString(),
     });
@@ -3820,7 +3823,7 @@ function finishCraft(recipe) {
       STATE.characterCrafting[STATE.activeCharacterId].length = 200;
   }
 
-  addLog(`ðŸ”¨ Crafted ${recipe.n} (+${xpGain} ${prof} XP)`, 'craft');
+  addLog(`🔨 Crafted ${recipe.n} (+${xpGain} ${prof} XP)`, 'craft');
   stashActiveCharacterSheet(); // persist per-char XP/levels
   STATE.isCrafting = false;
   showToast(`Crafted ${recipe.icon} ${recipe.n}!`);
@@ -3849,19 +3852,19 @@ function renderInventoryPage() {
         <div style="margin-bottom:10px">
           <div style="font-size:10px;letter-spacing:0.12em;text-transform:uppercase;
                       color:var(--gold-dim);margin-bottom:8px;display:flex;align-items:center;gap:8px">
-            âœ¨ READY TO CRAFT
+            ✨ READY TO CRAFT
             ${STATE.gatherStreak >= 3
-              ? `<span class="streak-badge">ðŸ”¥ Streak Ã—${STATE.gatherStreak}</span>`
+              ? `<span class="streak-badge">🔥 Streak ×${STATE.gatherStreak}</span>`
               : ''}
           </div>
           ${ready.slice(0,6).map(r => `
             <div class="craft-hint" onclick="navigate('crafting');selectRecipe('${r.id}');renderCraftingPage()">
-              <span class="ch-icon">${itemIcon(r.n, r.icon||'ðŸ“¦', 'item-img', 28)}</span>
+              <span class="ch-icon">${itemIcon(r.n, r.icon||'📦', 'item-img', 28)}</span>
               <div class="ch-info">
                 <div class="ch-name">${r.n}</div>
                 <div class="ch-sub">${r.prof} · T${r.tier} · ${r.desc}</div>
               </div>
-              <span class="ch-badge ready">âœ“ CRAFT NOW</span>
+              <span class="ch-badge ready">✓ CRAFT NOW</span>
             </div>`).join('')}
         </div>`;
     } else {
@@ -3883,11 +3886,11 @@ function renderInvFiltered(type, btn) {
 
 function renderInvItems(items) {
   document.getElementById('inv-grid').innerHTML = items.map(([name, qty]) => {
-    const emoji = MAT_ICONS[name] || (RECIPES.find(r=>r.n===name)?.icon) || 'ðŸ“¦';
+    const emoji = MAT_ICONS[name] || (RECIPES.find(r=>r.n===name)?.icon) || '📦';
     return `<div class="inv-item">
       <span class="icon">${itemIcon(name, emoji, 'item-img', 24)}</span>
       <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${name}</span>
-      <span class="qty">Ã—${qty}</span>
+      <span class="qty">×${qty}</span>
     </div>`;
   }).join('') || '<div style="padding:20px;text-align:center;color:var(--text-dim)">Inventory is empty</div>';
 }
@@ -3904,7 +3907,7 @@ function showLevelUpBanner(profName, level, color, icon) {
   if (!overlay) return;
 
   const badge = document.getElementById('lvl-badge');
-  const iconVal = icon || STATE.professions[profName]?.iconUrl || PROF_ICON_URLS[profName] || 'âš’ï¸';
+  const iconVal = icon || STATE.professions[profName]?.iconUrl || PROF_ICON_URLS[profName] || '⚒️';
   if (badge) {
     if (typeof iconVal === 'string' && (iconVal.startsWith('http') || iconVal.startsWith('/'))) {
       const src = iconVal.startsWith('http') ? iconVal : (INFO_CDN + iconVal);
@@ -4019,13 +4022,13 @@ function renderCraftSuggestionsPanel(elId, inv, source) {
 
   const cards = [
     ...ready.map(r => ({
-      r, badge: 'ready', label: 'âœ“ READY',
+      r, badge: 'ready', label: '✓ READY',
       sub: r.prof + ' · T' + r.tier + ' · ' + r.type + ' · ' + r.desc,
     })),
     ...almost.map(r => {
       const missMat = Object.entries(r.mats).find(([n,q]) => (inv[n]||0) < q);
-      const stillNeed = missMat ? `${r.mats[missMat[0]] - (inv[missMat[0]]||0)}Ã— ${missMat[0]}` : '';
-      return { r, badge: 'almost', label: `â‰ˆ ALMOST (+${stillNeed})`,
+      const stillNeed = missMat ? `${r.mats[missMat[0]] - (inv[missMat[0]]||0)}× ${missMat[0]}` : '';
+      return { r, badge: 'almost', label: `≈ ALMOST (+${stillNeed})`,
         sub: r.prof + ' · T' + r.tier + ' · ' + r.desc };
     }),
   ];
@@ -4077,7 +4080,7 @@ function renderMatProgressBars(elId, inv) {
       <span class="mat-prog-icon">${MAT_ICONS[mat] || '\ud83d\udce6'}</span>
       <span class="mat-prog-name">${mat}</span>
       <div class="mat-prog-wrap"><div class="mat-prog-fill" style="width:${pct}%;background:${color}"></div></div>
-      <span class="mat-prog-qty" style="color:${pct>=100?'var(--green)':'var(--gold)'}">Ã—${have}</span>
+      <span class="mat-prog-qty" style="color:${pct>=100?'var(--green)':'var(--gold)'}">×${have}</span>
     </div>`;
   }).join('');
 }
@@ -4117,8 +4120,8 @@ function gatherMaterials() {
   });
 
   // Log
-  const logStr = gathered.map(g => `${g.qty}Ã— ${g.mat}`).join(', ');
-  addLog(`ðŸŒ¿ Gathered: ${logStr}${bonusRolls ? ' (+bonus roll!)' : ''}`, 'craft');
+  const logStr = gathered.map(g => `${g.qty}× ${g.mat}`).join(', ');
+  addLog(`🌿 Gathered: ${logStr}${bonusRolls ? ' (+bonus roll!)' : ''}`, 'craft');
 
   // --- Floating reward pop ---
   const popItems = gathered.slice(0, 5).map(g => ({
@@ -4127,16 +4130,16 @@ function gatherMaterials() {
   }));
   if (gathered.length > 5) popItems.push({ text: `+${gathered.length - 5} more…`, cls: 'gold' });
   if (newlyUnlocked.length > 0) {
-    popItems.push({ text: `âœ¨ ${newlyUnlocked.length} recipe${newlyUnlocked.length > 1 ? 's' : ''} ready!`, cls: 'lvl' });
+    popItems.push({ text: `✨ ${newlyUnlocked.length} recipe${newlyUnlocked.length > 1 ? 's' : ''} ready!`, cls: 'lvl' });
   }
   if (bonusRolls > 0) {
-    popItems.unshift({ text: `ðŸ”¥ Streak x${STATE.gatherStreak} — bonus items!`, cls: 'gold' });
+    popItems.unshift({ text: `🔥 Streak x${STATE.gatherStreak} — bonus items!`, cls: 'gold' });
   }
   spawnRewardPop(popItems);
 
   // --- Streak badge in log area ---
   if (STATE.gatherStreak >= 3) {
-    showToast(`ðŸ”¥ Gather streak ${STATE.gatherStreak}! Bonus loot added.`, 'success');
+    showToast(`🔥 Gather streak ${STATE.gatherStreak}! Bonus loot added.`, 'success');
   } else {
     showToast(`Gathered ${count} items!`, 'success');
   }
@@ -4148,12 +4151,12 @@ function gatherMaterials() {
   // --- Newly-unlocked recipe toast with small delay ---
   if (newlyUnlocked.length > 0) {
     setTimeout(() => {
-      showToast(`âœ¨ ${newlyUnlocked[0].n} is now craftable!`, 'success');
+      showToast(`✨ ${newlyUnlocked[0].n} is now craftable!`, 'success');
     }, 600);
   }
 }
 
-// === GRUDGE WARLORDS API (via GrudgeFleet â†’ Railway Postgres) ===
+// === GRUDGE WARLORDS API (via GrudgeFleet → Railway Postgres) ===
 async function fetchGrudgeCharacters() {
   if (!GrudgeFleet.isLoggedIn()) {
     updateAccessGate();
@@ -4455,11 +4458,11 @@ function renderCampsPage() {
   if (!list) return;
   if (!STATE.camps.length) {
     list.innerHTML = `<div class="card"><p style="font-size:12px;color:var(--text-dim)">No camps loaded. Sign in and refresh to pull your home island / boat cabin.</p>
-      <button class="filter-btn" onclick="refreshCampsAndBenches()">ðŸ”„ Refresh</button></div>`;
+      <button class="filter-btn" onclick="refreshCampsAndBenches()">🔄 Refresh</button></div>`;
   } else {
     list.innerHTML = STATE.camps.map((c) => {
       const relColor = c.relation === 'owned' ? 'var(--green)' : c.relation === 'friendly' ? 'var(--blue)' : 'var(--text-dim)';
-      const kindIcon = c.kind === 'cabin' ? 'â›µ' : c.relation === 'owned' ? 'ðŸ ' : 'ðŸ¤';
+      const kindIcon = c.kind === 'cabin' ? '⛵' : c.relation === 'owned' ? '🏠' : '🤝';
       const benches = (c.buildings || []).filter(Boolean);
       return `<div class="card" style="margin-bottom:10px">
         <div class="card-title">${kindIcon} ${c.name}
@@ -4480,7 +4483,7 @@ function renderCampsPage() {
       return `<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border)">
         <span>${st.icon}</span>
         <span style="flex:1">${st.name}<div style="font-size:10px;color:var(--text-dim);font-weight:400">${st.desc || ''}</div></span>
-        <span style="color:${ok ? 'var(--green)' : 'var(--text-dim)'};font-size:11px">${ok ? 'âœ“ Unlocked' : 'ðŸ”’ Locked'}</span>
+        <span style="color:${ok ? 'var(--green)' : 'var(--text-dim)'};font-size:11px">${ok ? '✓ Unlocked' : '🔒 Locked'}</span>
         ${ok ? `<button class="filter-btn" onclick="openStation('${st.id}')">Open</button>` : ''}
       </div>`;
     }).join('');
@@ -4513,7 +4516,7 @@ function renderWcsMaterials() {
         const n = mats[k];
         const q = STATE.inventory[n] || 0;
         return `<p style="display:flex;align-items:center;gap:6px;margin:4px 0">
-          ${itemIcon(n, MAT_ICONS[n] || 'ðŸ§±', 'codex-icon', 22)}
+          ${itemIcon(n, MAT_ICONS[n] || '🧱', 'codex-icon', 22)}
           <span>${k}: <strong style="color:var(--gold)">${n}</strong>
           <span class="scope-pill ${q ? 'account' : ''}" style="margin-left:4px">${q}</span></span>
         </p>`;
@@ -4541,13 +4544,13 @@ function renderCharactersList() {
     }
     return;
   }
-  const classIcons = { warrior:'âš”ï¸', mage:'ðŸ”®', rogue:'ðŸ—¡ï¸', cleric:'âœ¨', worg:'ðŸº', ranger:'ðŸ¹' };
+  const classIcons = { warrior:'⚔️', mage:'🔮', rogue:'🗡️', cleric:'✨', worg:'🐺', ranger:'🏹' };
   const raceColors = { human:'#60a5fa', orc:'#22c55e', elf:'#a78bfa', dwarf:'#f59e0b', undead:'#8b5cf6', barbarian:'#ef4444', demon:'#dc2626' };
   el.innerHTML = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px">' +
     STATE.grudgeCharacters.map(c => {
       const active = STATE.activeCharacterId === c.id;
       const raceColor = raceColors[c.race?.toLowerCase()] || '#888';
-      const classIcon = classIcons[c.class?.toLowerCase()] || 'âš”ï¸';
+      const classIcon = classIcons[c.class?.toLowerCase()] || '⚔️';
       return `<div onclick="selectCharacter('${c.id}')" style="
         padding:12px;border-radius:8px;cursor:pointer;transition:all 0.15s;
         background:${active ? 'rgba(212,168,67,0.15)' : 'rgba(255,255,255,0.02)'};
@@ -4562,7 +4565,7 @@ function renderCharactersList() {
             ${c.grudgeCode ? `<div style="font-size:9px;font-family:monospace;color:var(--gold-dim);margin-top:2px;opacity:0.85">${c.grudgeCode}</div>` : ''}
           </div>
         </div>
-        ${active ? '<div style="font-size:9px;color:var(--gold);margin-top:6px;text-align:center;letter-spacing:0.1em">âœ“ ACTIVE</div>' : ''}
+        ${active ? '<div style="font-size:9px;color:var(--gold);margin-top:6px;text-align:center;letter-spacing:0.1em">✓ ACTIVE</div>' : ''}
       </div>`;
     }).join('') + '</div>';
 }
@@ -4583,7 +4586,7 @@ function renderActiveCharacter() {
 
   el.innerHTML = `
     <div style="display:flex;align-items:center;gap:16px;margin-bottom:12px">
-      <div style="width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,rgba(212,168,67,0.2),rgba(212,168,67,0.05));border:2px solid var(--gold);display:flex;align-items:center;justify-content:center;font-size:24px">âš”</div>
+      <div style="width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,rgba(212,168,67,0.2),rgba(212,168,67,0.05));border:2px solid var(--gold);display:flex;align-items:center;justify-content:center;font-size:24px">⚔</div>
       <div>
         <div style="font-size:16px;font-weight:700;color:var(--gold);font-family:Cinzel,serif">${char.name}</div>
         <div style="font-size:11px;color:var(--text-dim)">${char.race} ${char.class} · Level ${char.level || 1}</div>
@@ -4602,8 +4605,8 @@ function renderActiveCharacter() {
       </div>
     ` : '<div style="font-size:11px;color:var(--text-dim);margin-bottom:8px">No attributes allocated yet. <a href="https://grudgewarlords.com/character" target="_blank" style="color:var(--gold)">Allocate at grudgewarlords.com</a></div>'}
     <div style="display:flex;gap:8px">
-      <a href="https://grudgewarlords.com/character" target="_blank" style="flex:1;text-align:center;padding:8px;border:1px solid var(--border);border-radius:6px;color:var(--gold);font-size:11px;text-decoration:none;transition:all 0.15s" onmouseover="this.style.background='rgba(212,168,67,0.1)'" onmouseout="this.style.background='none'">ðŸ“‹ Character Sheet</a>
-      <a href="https://grudgewarlords.com/dungeon" target="_blank" style="flex:1;text-align:center;padding:8px;border:1px solid var(--border);border-radius:6px;color:var(--red);font-size:11px;text-decoration:none;transition:all 0.15s" onmouseover="this.style.background='rgba(239,68,68,0.1)'" onmouseout="this.style.background='none'">âš” Dungeons</a>
+      <a href="https://grudgewarlords.com/character" target="_blank" style="flex:1;text-align:center;padding:8px;border:1px solid var(--border);border-radius:6px;color:var(--gold);font-size:11px;text-decoration:none;transition:all 0.15s" onmouseover="this.style.background='rgba(212,168,67,0.1)'" onmouseout="this.style.background='none'">📋 Character Sheet</a>
+      <a href="https://grudgewarlords.com/dungeon" target="_blank" style="flex:1;text-align:center;padding:8px;border:1px solid var(--border);border-radius:6px;color:var(--red);font-size:11px;text-decoration:none;transition:all 0.15s" onmouseover="this.style.background='rgba(239,68,68,0.1)'" onmouseout="this.style.background='none'">⚔ Dungeons</a>
     </div>
   `;
 }
@@ -4733,16 +4736,16 @@ function renderAcctIsland() {
     return;
   }
 
-  // â”€â”€ Craft suggestions from island stockpile â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Craft suggestions from island stockpile ────────────────────────────
   const resources  = island.resources || {};
   renderCraftSuggestionsPanel('island-craft-suggestions', resources, 'island');
 
-  // â”€â”€ Auto-harvest live feed â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Auto-harvest live feed ─────────────────────────────────────────────
   const harvests = island.harvests || [];
   if (harvestEl) {
     if (harvests.length === 0) {
       harvestEl.innerHTML = `<div style="padding:12px;font-size:11px;color:var(--text-dim);text-align:center">
-        ðŸŒ³ Your island workers are en route. Check back soon!
+        🌳 Your island workers are en route. Check back soon!
       </div>`;
     } else {
       // Running total across all harvests
@@ -4771,10 +4774,10 @@ function renderAcctIsland() {
     }
   }
 
-  // â”€â”€ Resource progress bars â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Resource progress bars ─────────────────────────────────────────────
   renderMatProgressBars('acct-island-resources', resources);
 
-  // â”€â”€ Crafting queue with progress bars â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Crafting queue with progress bars ─────────────────────────────────
   const queue = island.craftingQueue || [];
   if (queueEl) {
     if (queue.length === 0) {
@@ -4784,7 +4787,7 @@ function renderAcctIsland() {
     } else {
       const totalDone = queue.filter(q => (q.progress||0) >= 100).length;
       queueEl.innerHTML = `
-        ${totalDone > 0 ? `<div style="font-size:10px;color:var(--green);margin-bottom:8px">âœ“ ${totalDone} craft${totalDone>1?'s':''} complete — collect in game!</div>` : ''}
+        ${totalDone > 0 ? `<div style="font-size:10px;color:var(--green);margin-bottom:8px">✓ ${totalDone} craft${totalDone>1?'s':''} complete — collect in game!</div>` : ''}
         ${queue.map(q => {
           const pct = q.progress || 0;
           const done = pct >= 100;
@@ -4792,7 +4795,7 @@ function renderAcctIsland() {
           return `<div style="padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.04)">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">
               <span style="font-size:12px">${q.icon||'\ud83d\udce6'} ${q.item}</span>
-              <span style="font-size:10px;color:${done?'var(--green)':'var(--text-dim)'}">${done ? 'âœ“ Done' : pct + '%'}</span>
+              <span style="font-size:10px;color:${done?'var(--green)':'var(--text-dim)'}">${done ? '✓ Done' : pct + '%'}</span>
             </div>
             <div style="height:6px;background:rgba(255,255,255,0.06);border-radius:3px;overflow:hidden">
               <div style="height:100%;width:${pct}%;background:${barColor};border-radius:3px;transition:width 0.5s ease"></div>
@@ -4862,7 +4865,7 @@ function resetData() {
   STATE.unlockedStations = { camp: true, cooking: true };
   STATE.camps = [];
   STATE.log = [];
-  addLog('ðŸ—‘ï¸ Data reset', 'fail');
+  addLog('🗑️ Data reset', 'fail');
   renderAll();
   saveData();
   showToast('Data reset!', 'error');
@@ -4906,7 +4909,7 @@ function renderProfessionPage(name) {
         ${tree.map((n) => {
           const ok = unlocked.has(n.id) || prof.level >= n.req;
           return `<div class="codex-card" style="opacity:${ok?1:0.45};border-color:${ok ? prof.color + '55' : 'var(--border)'}">
-            <h4>${ok ? 'âœ“' : 'ðŸ”’'} ${n.n}</h4>
+            <h4>${ok ? '✓' : '🔒'} ${n.n}</h4>
             <p>${n.branch} · req Lv ${n.req}</p>
             <p>${n.desc || ''}</p>
           </div>`;
@@ -4920,7 +4923,7 @@ function renderProfessionPage(name) {
           const canCraft = checkCanCraft(r);
           const tierColors = ['#666','#22c55e','#60a5fa','#a78bfa','#f59e0b','#ef4444','#ec4899','#f97316','#dc2626'];
           return `<div class="recipe-item ${canCraft?'':'cant-craft'}" onclick="openStation('${r.station || PROF_TO_STATION[profName] || 'camp'}');selectRecipe('${r.id}');">
-            <span class="recipe-icon">${r.icon||'ðŸ“¦'}</span>
+            <span class="recipe-icon">${r.icon||'📦'}</span>
             <div class="recipe-info">
               <div class="recipe-name">${r.n}</div>
               <div class="recipe-meta">${r.desc || ''}</div>
@@ -5076,7 +5079,7 @@ async function loadMasterRecipes() {
         prof,
         type,
         tier: Number(mr.tier ?? mr.level ?? 0) || 0,
-        icon: mr.icon || mr.emoji || 'âš’ï¸',
+        icon: mr.icon || mr.emoji || '⚒️',
         mats,
         desc: mr.name && mr.name !== resultName ? mr.name : (mr.description || resultName),
         station: PROF_TO_STATION[prof] || 'camp',
@@ -5100,7 +5103,7 @@ async function loadMasterRecipes() {
   }
 }
 
-/** master-items category â†’ pack/weapons stem (PascalCase file prefix) */
+/** master-items category → pack/weapons stem (PascalCase file prefix) */
 const ICON_CAT_TO_PACK = {
   swords: 'Sword', sword: 'Sword',
   axes1h: 'Axe', axe: 'Axe', greataxes: 'Axe', greataxe: 'Axe',
@@ -5439,7 +5442,7 @@ function renderItemDatabase() {
     if (item.stats?.requiredLevel) statsArr.push(`Lv <span>${item.stats.requiredLevel}</span>`);
     const iconHtml = item.icon
       ? iconImgTag(item.icon, item.name, '', 48)
-      : '<div style="width:48px;height:48px;display:flex;align-items:center;justify-content:center;font-size:28px">ðŸ“¦</div>';
+      : '<div style="width:48px;height:48px;display:flex;align-items:center;justify-content:center;font-size:28px">📦</div>';
     return `<div class="db-card">
       ${iconHtml}
       <div>
@@ -5465,7 +5468,7 @@ window.addEventListener('grudge:sync:complete', () => { renderCharactersList(); 
 // ============================================================
 // INIT
 // ============================================================
-addLog('âš” Grudge Crafting Suite v' + (window.GRUDGE_CONFIG?.VERSION || '?') + ' — browse open · sign-in only to craft · shared bag · per-char XP');
+addLog('⚔ Grudge Crafting Suite v' + (window.GRUDGE_CONFIG?.VERSION || '?') + ' — browse open · sign-in only to craft · shared bag · per-char XP');
 initAcctTabs();
 // Suite always open — soft banner only when not ready to craft
 document.body.classList.add('access-ready');

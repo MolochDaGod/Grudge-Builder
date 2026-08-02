@@ -21,6 +21,11 @@ if (!existsSync(SRC_HTML)) {
   console.error('Missing', SRC_HTML);
   process.exit(1);
 }
+// Ensure UTF-8 is clean (no CP1252 mojibake like âœ“) before publishing
+const html = readFileSync(SRC_HTML, 'utf8');
+if ((html.match(/â|ðŸ/g) || []).length >= 20) {
+  console.warn('[sync-craft-public] WARNING: mojibake markers in source — run: node scripts/fix-craft-mojibake.mjs');
+}
 copyFileSync(SRC_HTML, join(CRAFT, 'index.html'));
 if (existsSync(SRC_FLEET)) copyFileSync(SRC_FLEET, join(CRAFT, 'grudge-fleet.js'));
 if (existsSync(ICONS)) {

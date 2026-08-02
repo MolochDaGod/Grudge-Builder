@@ -3,7 +3,8 @@
     "client.grudge-studio.com",
     "warlord3d.grudge-studio.com",
     "grudgewarlords.com",
-    "www.grudgewarlords.com"
+    "www.grudgewarlords.com",
+    "craft.grudgewarlords.com"
   ],
   "buildCommand": "npm run build:client",
   "outputDirectory": "client/dist",
@@ -16,6 +17,16 @@
     }
   },
   "rewrites": [
+    {
+      "source": "/",
+      "has": [{ "type": "host", "value": "craft.grudgewarlords.com" }],
+      "destination": "/craft/index.html"
+    },
+    {
+      "source": "/((?!api/|craft/).*)",
+      "has": [{ "type": "host", "value": "craft.grudgewarlords.com" }],
+      "destination": "/craft/$1"
+    },
     {
       "source": "/api/assets/:path*",
       "destination": "https://assets.grudge-studio.com/:path*"
