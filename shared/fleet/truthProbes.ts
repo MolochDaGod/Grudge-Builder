@@ -138,7 +138,7 @@ export const TRUTH_PROBE_SPECS: TruthProbeSpec[] = [
     id: "crafting-shell",
     label: "Crafting suite shell",
     role: "identity",
-    productionUrl: "https://grudge-crafting.puter.site/",
+    productionUrl: "https://grudgewarlords.com/craft/",
     method: "GET",
     rejectHtml: false,
     browserSkip: true,

@@ -12,8 +12,9 @@
 | `character.grudge-studio.com` | Foundry create + 4-slot heroes — **not** 3D play |
 | `client.grudge-studio.com` | **Canonical play runtime** |
 | `grudgewarlords.com` | Same SPA as client (product alias) |
+| `grudgewarlords.com/craft/` | **Canonical craft suite** (inventory, recipes, item DB) |
 | `grudge-studio.com` | Studio portal — not login, not play SSOT |
-| `grudge-crafting.puter.site` | Craft UI only |
+| `grudge-crafting.puter.site` | **Legacy redirect** → `grudgewarlords.com/craft/` |
 
 ## Pipeline (happy path 2026)
 

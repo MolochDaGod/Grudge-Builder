@@ -368,7 +368,7 @@ const HOME_GAME_MODE_EXTRAS: GameDeployment[] = [
     title: "Warlord Crafting",
     subtitle: "Forge Weapons & Armor",
     description: "Craft weapons, armor, consumables using your profession skills.",
-    url: "/crafting",
+    url: "/craft/",
     icon: "hammer",
     tier: "craft",
     badge: "Craft",

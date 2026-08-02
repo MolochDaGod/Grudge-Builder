@@ -30,8 +30,9 @@ grudgewarlords.com (Vercel) → SPA client
   ├── Catalog → objectstore / info …/api/v1/*.json
   └── Assets → assets.grudge-studio.com (R2 CDN)
 
-Puter crafting (grudge-crafting.puter.site):
-  absolute Railway GAME_DATA + grudge-fleet.js ≥ 2.8 (no Vercel /api rewrites)
+Warlords craft (grudgewarlords.com/craft/):
+  same-origin /api/* → Railway Postgres (bag, inventory, professions)
+  Legacy puter grudge-crafting.puter.site redirects → /craft/
 ```
 Law: [docs/CANONICAL_IDENTITY.md](docs/CANONICAL_IDENTITY.md) · agent map: [AGENTS.md](AGENTS.md) · honest README: [README.md](README.md)
 
@@ -78,7 +79,7 @@ workers/
 - **Assets CDN**: https://assets.grudge-studio.com
 - **ObjectStore defs**: https://objectstore.grudge-studio.com/api/v1
 - **Character create (GCS)**: https://character.grudge-studio.com?era=warlords
-- **Crafting**: https://grudge-crafting.puter.site (fleet.js ≥ 2.8, suite ≥ 5.7)
+- **Crafting**: https://grudgewarlords.com/craft/ (fleet.js ≥ 2.8, suite ≥ 5.13; Puter = redirect only)
 - **AI gateway**: https://ai.grudge-studio.com (fragile — see deploy ownership)
 - **Colyseus**: wss on Railway grudge-api (not a separate public `ws.` product)
 

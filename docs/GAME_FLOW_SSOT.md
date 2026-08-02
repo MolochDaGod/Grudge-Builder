@@ -36,7 +36,8 @@ Full DNS map: [WARLORDS_DOMAIN_SSOT.md](./WARLORDS_DOMAIN_SSOT.md) · code `shar
 
 | Host | Role |
 |------|------|
-| **`grudge-crafting.puter.site`** | Craft UI until `craft.grudgewarlords.com` is live |
+| **`grudgewarlords.com/craft/`** | **Canonical craft suite** (inventory, recipes, item DB) |
+| **`grudge-crafting.puter.site`** | **Legacy redirect** → `grudgewarlords.com/craft/` |
 | **`play.grudge.studio`** | **Deprecated / 404** — do not use for Warlords |
 | **`objectstore` / info `/api/v1`** | Recipe / item JSON |
 
@@ -45,8 +46,8 @@ Full DNS map: [WARLORDS_DOMAIN_SSOT.md](./WARLORDS_DOMAIN_SSOT.md) · code `shar
 1. **Login** → always `id.grudge-studio.com`.  
 2. **Create hero** → `character.grudge-studio.com/foundry` (or `foundry.grudgewarlords.com` when DNS).  
 3. **Play 3D (Warlords era)** → **`https://grudgewarlords.com{path}`** or **`play.grudgewarlords.com{path}`** with `characterId` (not studio portal).  
-4. **Craft** → crafting surface selects a hero; **does not create**.  
-5. **Player state** → Railway Postgres only.  
+4. **Craft** → `grudgewarlords.com/craft/` selects a hero; **does not create**. Same Railway bag/inventory.  
+5. **Player state** → Railway Postgres only (characters, bag, inventory, professions).  
 6. **`client.grudge-studio.com`** is a **legacy alias** of the same SPA — new handoffs prefer `*.grudgewarlords.com`.
 
 ### `character.*` vs Warlords play
