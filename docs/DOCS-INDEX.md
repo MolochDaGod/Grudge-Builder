@@ -10,8 +10,9 @@ Organized entry point for APIs, UUID systems, and fleet integration.
 
 | Topic | Doc |
 |-------|-----|
-| **Game flow / hosts / loops (client vs character vs warlords vs studio)** | [GAME_FLOW_SSOT.md](./GAME_FLOW_SSOT.md) |
-| **Live game (play SPA)** | https://client.grudge-studio.com · alias https://grudgewarlords.com |
+| **Game flow / hosts / loops** | [GAME_FLOW_SSOT.md](./GAME_FLOW_SSOT.md) |
+| **Warlords `*.grudgewarlords.com` domain zone** | [WARLORDS_DOMAIN_SSOT.md](./WARLORDS_DOMAIN_SSOT.md) |
+| **Live game (Warlords SPA)** | https://grudgewarlords.com · target https://play.grudgewarlords.com |
 | **Foundry (create)** | https://character.grudge-studio.com |
 | **Login** | https://id.grudge-studio.com |
 | **Production stack pattern (4 platforms only)** | [STACK_PATTERN.md](./STACK_PATTERN.md) |

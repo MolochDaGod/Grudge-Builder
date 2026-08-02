@@ -9,10 +9,21 @@
 const EXACT_HOSTS = new Set([
   "localhost",
   "127.0.0.1",
+  // Warlords product apex + SPA
   "grudgewarlords.com",
   "www.grudgewarlords.com",
+  // Warlords zone subdomains (CNAME → same SPA when DNS live)
+  "play.grudgewarlords.com",
+  "client.grudgewarlords.com",
+  "airship.grudgewarlords.com",
+  "home.grudgewarlords.com",
+  "map.grudgewarlords.com",
+  "scenes.grudgewarlords.com",
+  "craft.grudgewarlords.com",
+  "foundry.grudgewarlords.com",
   "grudge-studio.com",
   "www.grudge-studio.com",
+  "client.grudge-studio.com",
   "grudge.studio",
   "www.grudge.studio",
   "grudgestudio.org",
@@ -32,6 +43,7 @@ const EXACT_HOSTS = new Set([
 ]);
 
 const SUFFIX_HOSTS = [
+  ".grudgewarlords.com",
   ".grudge-studio.com",
   ".grudge.studio",
   ".vercel.app",

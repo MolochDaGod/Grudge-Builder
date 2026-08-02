@@ -74,24 +74,36 @@ export const FLEET_URLS = {
    */
   world: "wss://grudge-api-production-0d46.up.railway.app",
   /**
-   * Foundry + 4-slot My Heroes (character.grudge-studio.com).
-   * CREATE / SELECT only — never 3D play. Handoff → clientPlay.
-   * @see docs/GAME_FLOW_SSOT.md
+   * Foundry + 4-slot My Heroes (studio host).
+   * CREATE / SELECT only — never 3D play. Handoff → warlordsPlay / play.grudgewarlords.com.
+   * Optional alias target: foundry.grudgewarlords.com (DNS pending).
+   * @see docs/GAME_FLOW_SSOT.md · docs/WARLORDS_DOMAIN_SSOT.md
    */
   charactersHub: "https://character.grudge-studio.com",
   gcs: "https://character.grudge-studio.com",
   /**
-   * Canonical Warlords 3D play runtime (same Vercel SPA as warlordsPlay).
-   * Paths: /home-island · /play · /tutorial · /airship · /world-map
+   * @deprecated Prefer warlordsPlay / play.grudgewarlords.com for Warlords era.
+   * Legacy studio-branded client host — same SPA until traffic cut over.
    */
   clientPlay: "https://client.grudge-studio.com",
-  /** Warlords product apex (landing, lore) — grudge.studio */
+  /** Warlords product marketing apex (grudge.studio) — not play SSOT */
   warlords: "https://grudge.studio",
   /**
-   * Play / product hostname — SAME grudge-builder SPA as clientPlay.
-   * Prefer clientPlay in new handoff links; warlordsPlay is a domain alias.
+   * Warlords era product zone apex + SPA (live).
+   * Prefer this and *.grudgewarlords.com for airship / home / maps / zones.
    */
   warlordsPlay: "https://grudgewarlords.com",
+  /**
+   * Branded game-client host (target). Wire DNS → same Vercel as warlordsPlay.
+   * Until live, use warlordsPlay for absolute links (see warlordsDomains.ts).
+   */
+  warlordsPlayHost: "https://play.grudgewarlords.com",
+  warlordsAirship: "https://airship.grudgewarlords.com",
+  warlordsHome: "https://home.grudgewarlords.com",
+  warlordsMap: "https://map.grudgewarlords.com",
+  warlordsScenes: "https://scenes.grudgewarlords.com",
+  warlordsCraft: "https://craft.grudgewarlords.com",
+  warlordsFoundry: "https://foundry.grudgewarlords.com",
   /** Lightweight Three.js MMO client — 9 sectors + Colyseus multiplayer */
   threePort: "https://grudge-three-port.vercel.app",
   /** Map & Model Editor — home-island creation (artifacts/studio) */
@@ -101,8 +113,10 @@ export const FLEET_URLS = {
   /** RTS-Grudge 3D open world + /forge editor */
   rtsGrudge: "https://rts-grudge.vercel.app",
   forge: "https://forge.grudge-studio.com",
-  /** Voxel / character play hub (Camofire, Ethereal Falls, mode launcher) */
-  play: "https://play.grudge.studio",
+  /**
+   * @deprecated Non-Warlords voxel hub (404 as of 2026-08). Use warlordsPlayHost.
+   */
+  play: "https://play.grudgewarlords.com",
   /** GRUDOX fleet hub — arcade, studio, editors */
   grudox: "https://grudox.grudge-studio.com",
   /** Carrier PvP client — dedicated subdomain, same game server */

@@ -8,53 +8,55 @@
 
 ## 1. Host roles (stop confusing these)
 
+### Warlords product zone — `*.grudgewarlords.com` (prefer)
+
+| Host | Role | Is it “the game”? |
+|------|------|-------------------|
+| **`grudgewarlords.com`** | Apex + **live SPA** (airship, home, maps, zones) | **Yes** |
+| **`play.grudgewarlords.com`** | Branded game client (same SPA; wire DNS) | **Yes — preferred brand** |
+| **`airship.` / `home.` / `map.` / `scenes.`** | Pretty hosts → SPA paths | Same SPA |
+| **`craft.grudgewarlords.com`** | Craft brand (proxy Puter later) | Craft only |
+| **`foundry.grudgewarlords.com`** | Optional alias → Foundry | Create only |
+
+Full DNS map: [WARLORDS_DOMAIN_SSOT.md](./WARLORDS_DOMAIN_SSOT.md) · code `shared/fleet/warlordsDomains.ts`.
+
+### Studio platform — `*.grudge-studio.com`
+
 | Host | Role | Is it “the game”? |
 |------|------|-------------------|
 | **`id.grudge-studio.com`** | **Login only** — mint JWT, SSO return | No |
-| **`character.grudge-studio.com`** | **Foundry** — create hero + 4-slot My Heroes hub | No play runtime |
-| **`client.grudge-studio.com`** | **Canonical 3D play runtime** (Island3D, home-island, play, tutorial, airship) | **Yes — play** |
-| **`grudgewarlords.com`** | **Same Vercel SPA** as client (product / legacy domain alias) | **Yes — same build** |
-| **`grudge.studio`** | Product apex / marketing shell (fleet manifest `warlords`) | Entry, not Foundry |
-| **`grudge-studio.com`** | Studio **portal / marketing** (Rec0deD). **Not** login. **Not** play SSOT | No |
-| **`grudge-crafting.puter.site`** | Craft / professions UI (shared bag, per-char XP) | No 3D world |
+| **`character.grudge-studio.com`** | **Foundry** — create hero + 4-slot hub | No play runtime |
+| **`client.grudge-studio.com`** | **Legacy** same SPA as warlords apex | Yes — legacy alias |
+| **`grudge-studio.com`** | Studio **portal / marketing**. **Not** login. **Not** Warlords play SSOT | No |
 | **`forge.grudge-studio.com`** | Map / scene editor | No player progress |
 | **`info.grudge-studio.com`** | Definitions + ops WORLD_MAP | Not play |
 | **`assets.grudge-studio.com`** | R2 binaries | Not play |
-| **`objectstore` / info `/api/v1`** | Recipe / item JSON | Not player state |
+
+### Other
+
+| Host | Role |
+|------|------|
+| **`grudge-crafting.puter.site`** | Craft UI until `craft.grudgewarlords.com` is live |
+| **`play.grudge.studio`** | **Deprecated / 404** — do not use for Warlords |
+| **`objectstore` / info `/api/v1`** | Recipe / item JSON |
 
 ### One-line rules
 
-1. **Login** → always `id.grudge-studio.com` (never apex, never character.*, never client login page as identity).  
-2. **Create hero** → always `character.grudge-studio.com/foundry` (or Warlords `/create-character` redirect).  
-3. **Play 3D** → always `client.grudge-studio.com{path}` with `characterId` (or same path on `grudgewarlords.com` — **same deploy**).  
-4. **Craft** → `grudge-crafting.puter.site` selects an existing hero; **does not create** heroes.  
-5. **Player state** → Railway Postgres only (not D1, not Puter KV as SSOT).
+1. **Login** → always `id.grudge-studio.com`.  
+2. **Create hero** → `character.grudge-studio.com/foundry` (or `foundry.grudgewarlords.com` when DNS).  
+3. **Play 3D (Warlords era)** → **`https://grudgewarlords.com{path}`** or **`play.grudgewarlords.com{path}`** with `characterId` (not studio portal).  
+4. **Craft** → crafting surface selects a hero; **does not create**.  
+5. **Player state** → Railway Postgres only.  
+6. **`client.grudge-studio.com`** is a **legacy alias** of the same SPA — new handoffs prefer `*.grudgewarlords.com`.
 
-### `client.*` vs `grudgewarlords.com`
+### `character.*` vs Warlords play
 
-| | |
-|--|--|
-| **Truth** | Both host the **GrudgeBuilder** client SPA (Vercel). |
-| **Prefer in new links** | `https://client.grudge-studio.com` for play handoffs (Foundry skill + happy path). |
-| **OK** | `https://grudgewarlords.com` as marketing + legacy play URLs (same routes). |
-| **Never** | Treat them as two different game servers or two rosters. |
-
-### `character.*` vs `client.*`
-
-| | `character.*` | `client.*` |
-|--|---------------|------------|
+| | `character.*` | `*.grudgewarlords.com` / play |
+|--|---------------|-------------------------------|
 | Create race/class | **Yes** (`/foundry`) | Redirects to Foundry |
-| 4-slot pick | **Yes** (`/`) | Optional account UI only |
-| Home island / zones / tutorial | **No** | **Yes** |
-| Stay after create | **No** — hand off | **Yes** — land with `?characterId=&from=gcs` |
-
-### `grudge-studio.com` vs `grudgewarlords.com`
-
-| | `grudge-studio.com` | `grudgewarlords.com` / `client.*` |
-|--|---------------------|-------------------------------------|
-| Portal / studio marketing | Yes | No (game product) |
-| Login UI | No → use **id.*** | No → use **id.*** |
-| Warlords 3D play | No | Yes |
+| 4-slot pick | **Yes** (`/`) | Optional |
+| Home island / zones / tutorial / airship | **No** | **Yes** |
+| Stay after create | **No** — hand off | **Yes** — `?characterId=&from=gcs` |
 
 ---
 
@@ -64,7 +66,7 @@ Code: `WARLORDS_PRODUCTION_FLOW` in `shared/definitions/warlordsProductionFlow.t
 
 ```
 ┌─────────────┐     ┌──────────────────────────┐     ┌─────────────────────────────┐
-│ Sign in     │────►│ Create or pick hero      │────►│ Live play (client runtime)  │
+│ Sign in     │────►│ Create or pick hero      │────►│ Live play (*.grudgewarlords.com) │
 │ id.*        │     │ character.*/foundry  or  │     │ /airship → /home-island     │
 │             │     │ character.*/ (4-slot)    │     │ → /world-map · /play zones  │
 └─────────────┘     └──────────────────────────┘     │ (tutorial optional)         │
@@ -73,8 +75,8 @@ Code: `WARLORDS_PRODUCTION_FLOW` in `shared/definitions/warlordsProductionFlow.t
                         ┌────────────────────────────────────────────┤
                         ▼                                            ▼
               ┌─────────────────────┐                    ┌───────────────────────┐
-              │ Craft UI (Puter)    │                    │ Open world / MP       │
-              │ grudge-crafting.*   │                    │ /play?mode=zone&…     │
+              │ Craft UI            │                    │ Open world / MP       │
+              │ craft.* or puter    │                    │ /play?mode=zone&…     │
               │ bag = account       │                    │ Colyseus Railway      │
               │ XP = character      │                    └───────────────────────┘
               └─────────────────────┘
@@ -84,15 +86,15 @@ Code: `WARLORDS_PRODUCTION_FLOW` in `shared/definitions/warlordsProductionFlow.t
 
 | Step | Where | Needs auth | Needs character |
 |------|--------|------------|-----------------|
-| Opening / intro (optional) | client `/intro` or product landing | No | No |
+| Opening / intro (optional) | grudgewarlords.com `/intro` or product landing | No | No |
 | Sign in | **id.*** → return to origin | — | — |
 | Create hero | **character.*** `/foundry` | Yes | No |
 | My Heroes (≤4) | **character.*** `/` | Yes | Pick one |
-| Airship handoff | **client.*** `/airship?characterId=&from=gcs` | Yes | Yes |
-| Home island | **client.*** `/home-island` | Yes | Yes — **no level-20 gate** (SSOT min level 1) |
-| World map | **client.*** `/world-map` | Yes | Yes |
-| Open zone | **client.*** `/play?mode=zone&sector=…` | Yes | Yes |
-| Tutorial | **client.*** `/tutorial` | Yes | Yes — **optional** |
+| Airship handoff | **grudgewarlords.com** `/airship?characterId=&from=gcs` | Yes | Yes |
+| Home island | **grudgewarlords.com** `/home-island` (or play.*) | Yes | Yes — **no level-20 gate** |
+| World map | **grudgewarlords.com** `/world-map` | Yes | Yes |
+| Open zone | **grudgewarlords.com** `/play?mode=zone&sector=…` | Yes | Yes |
+| Tutorial | **grudgewarlords.com** `/tutorial` | Yes | Yes — **optional** |
 | Craft | **grudge-crafting.puter.site** | Browse free; craft needs auth + hero | Yes for XP |
 
 **Outdated:** Docs that say “home island only at level 20” are **superseded** by `WARLORDS_HOME_ISLAND_MIN_LEVEL = 1` and Foundry L20 create defaults for *content*, not an entry gate.
@@ -114,13 +116,13 @@ Any surface → id.grudge-studio.com/login?redirect_uri=<this origin>
 ### B. Create → play loop
 ```
 Empty roster / Create
-  → character.grudge-studio.com/foundry?era=warlords&returnTo=https://client.grudge-studio.com/...
+  → character.grudge-studio.com/foundry?era=warlords&returnTo=https://grudgewarlords.com/airship
   → POST Railway /api/characters (gameEra=warlords, grudge6 model3d)
   → set active character localStorage
-  → client.grudge-studio.com/airship|home-island|play|tutorial?characterId=&from=gcs
+  → grudgewarlords.com|/play.*/airship|home-island|play|tutorial?characterId=&from=gcs
 ```
 - **`returnTo` must never** point at `character.*` or grudge6 lab hosts.  
-- Prefer **`client.grudge-studio.com`** in `returnTo` (grudgewarlords.com also OK as alias).
+- Prefer **`https://grudgewarlords.com`** or **`play.grudgewarlords.com`** in `returnTo` (not studio portal).
 
 ### C. Session play loop (in-world)
 ```
@@ -167,17 +169,23 @@ grudge-crafting.puter.site
 ### Deep-link examples (production)
 
 ```
-# Foundry create then home island
-https://character.grudge-studio.com/foundry?era=warlords&returnTo=https%3A%2F%2Fclient.grudge-studio.com%2Fhome-island
+# Foundry create → Warlords play zone
+https://character.grudge-studio.com/foundry?era=warlords&returnTo=https%3A%2F%2Fgrudgewarlords.com%2Fairship
 
-# Enter zone with hero
-https://client.grudge-studio.com/play?mode=zone&sector=haven_shore&worldSeed=grudge-world-1&skipIntro=1&characterId={uuid}
+# Enter zone with hero (apex live today)
+https://grudgewarlords.com/play?mode=zone&sector=haven_shore&worldSeed=grudge-world-1&skipIntro=1&characterId={uuid}
 
-# Same SPA on product domain
-https://grudgewarlords.com/home-island?characterId={uuid}&from=gcs
+# Preferred brand host after DNS
+https://play.grudgewarlords.com/home-island?characterId={uuid}&from=gcs
+
+# Pretty hosts (after DNS + redirects)
+https://airship.grudgewarlords.com/?characterId={uuid}&from=gcs
+https://home.grudgewarlords.com/?characterId={uuid}
+https://map.grudgewarlords.com/
 
 # Craft (select hero in UI)
 https://grudge-crafting.puter.site/
+# later: https://craft.grudgewarlords.com/
 ```
 
 ---

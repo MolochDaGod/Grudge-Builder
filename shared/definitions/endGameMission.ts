@@ -86,7 +86,8 @@ export const END_GAME_MISSION: EndGameMissionDef = {
   introVariant: 'abandon_ship_home_island',
   destinations: {
     homeIslandPath: '/home-island',
-    homeIslandUrl: 'https://client.grudge-studio.com/home-island',
+    /** Prefer Warlords product zone; client.* remains a legacy alias */
+    homeIslandUrl: 'https://grudgewarlords.com/home-island',
     islandRevealPath: '/island-reveal?from=end-game',
   },
   steps: [
@@ -139,7 +140,7 @@ export function endGameCinematicUrl(opts?: {
   characterName?: string;
   raceId?: string;
 }): string {
-  const u = new URL('/homeisland', 'https://client.grudge-studio.com');
+  const u = new URL('/homeisland', 'https://grudgewarlords.com');
   u.searchParams.set('cinematic', 'abandon-ship');
   u.searchParams.set('from', 'end-game');
   if (opts?.characterId) u.searchParams.set('characterId', opts.characterId);

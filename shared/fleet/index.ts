@@ -20,6 +20,25 @@ export {
 
 export { isFleetAllowedReturnUrl, resolveFleetReturnUrl } from "./authReturn";
 
+/** Warlords era *.grudgewarlords.com product zone */
+export {
+  WARLORDS_APEX,
+  WARLORDS_PLAY_HOST,
+  WARLORDS_PLAY_URL,
+  WARLORDS_CLIENT_STUDIO,
+  WARLORDS_SUBDOMAINS,
+  WARLORDS_HOST_PATH,
+  warlordsPlayOrigin,
+  warlordsPlayUrl,
+  warlordsFoundryUrl,
+  warlordsDefaultReturnTo,
+  warlordsAirshipUrl,
+  warlordsZoneUrl,
+  isWarlordsPlayHost,
+  isStudioPlatformHost,
+  type WarlordsSubdomainKey,
+} from "./warlordsDomains";
+
 export {
   STEAM_APP_ID,
   STEAM_DEPOT_WINDOWS,
