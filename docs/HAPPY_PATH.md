@@ -4,10 +4,16 @@
 
 | Surface | URL | Owns |
 |---------|-----|------|
+| **Login** | https://id.grudge-studio.com | JWT / SSO only |
 | **Ops / zone test frontend** | https://info.grudge-studio.com/WORLD_MAP.html | 3×3 sectors, lore, assets, health, Play deep-links |
-| **3D runtime** | https://client.grudge-studio.com | Island3DEngine: airship, home-island, play, tutorial |
-| **Character create** | https://character.grudge-studio.com | Foundry create only → handoff |
+| **3D runtime (canonical)** | https://client.grudge-studio.com | Island3DEngine: airship, home-island, play, tutorial |
+| **3D runtime (alias)** | https://grudgewarlords.com | **Same SPA** as client — not a second game |
+| **Character create / 4-slot** | https://character.grudge-studio.com | Foundry create + My Heroes → handoff to **client** |
+| **Studio portal** | https://grudge-studio.com | Marketing / hub — **not** login, **not** play SSOT |
+| **Craft UI** | https://grudge-crafting.puter.site | Bag + professions (select hero; no create SSOT) |
 | **Sail satellite** | https://water.grudge-studio.com | Ocean/captain — not sector intro iframe |
+
+**Host matrix + loops:** [GAME_FLOW_SSOT.md](./GAME_FLOW_SSOT.md)
 
 **client `/home` is deprecated.** It redirects to `/airship`. Use `?ops=1` for info WORLD_MAP, `?legacy=1` for old multi-CTA stub.
 

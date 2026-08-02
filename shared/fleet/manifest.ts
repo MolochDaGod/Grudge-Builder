@@ -73,11 +73,24 @@ export const FLEET_URLS = {
    * Legacy `world.grudge-studio.com` DNS was never live; do not reintroduce a dead host.
    */
   world: "wss://grudge-api-production-0d46.up.railway.app",
+  /**
+   * Foundry + 4-slot My Heroes (character.grudge-studio.com).
+   * CREATE / SELECT only — never 3D play. Handoff → clientPlay.
+   * @see docs/GAME_FLOW_SSOT.md
+   */
   charactersHub: "https://character.grudge-studio.com",
   gcs: "https://character.grudge-studio.com",
-  /** Warlords product apex (landing, lore, account) — also serves play SPA */
+  /**
+   * Canonical Warlords 3D play runtime (same Vercel SPA as warlordsPlay).
+   * Paths: /home-island · /play · /tutorial · /airship · /world-map
+   */
+  clientPlay: "https://client.grudge-studio.com",
+  /** Warlords product apex (landing, lore) — grudge.studio */
   warlords: "https://grudge.studio",
-  /** Play / legacy game hostname (same grudge-builder deployment) */
+  /**
+   * Play / product hostname — SAME grudge-builder SPA as clientPlay.
+   * Prefer clientPlay in new handoff links; warlordsPlay is a domain alias.
+   */
   warlordsPlay: "https://grudgewarlords.com",
   /** Lightweight Three.js MMO client — 9 sectors + Colyseus multiplayer */
   threePort: "https://grudge-three-port.vercel.app",

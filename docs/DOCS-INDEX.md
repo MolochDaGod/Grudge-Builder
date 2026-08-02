@@ -10,7 +10,10 @@ Organized entry point for APIs, UUID systems, and fleet integration.
 
 | Topic | Doc |
 |-------|-----|
-| **Live game** | https://grudgewarlords.com |
+| **Game flow / hosts / loops (client vs character vs warlords vs studio)** | [GAME_FLOW_SSOT.md](./GAME_FLOW_SSOT.md) |
+| **Live game (play SPA)** | https://client.grudge-studio.com · alias https://grudgewarlords.com |
+| **Foundry (create)** | https://character.grudge-studio.com |
+| **Login** | https://id.grudge-studio.com |
 | **Production stack pattern (4 platforms only)** | [STACK_PATTERN.md](./STACK_PATTERN.md) |
 | **Autonomous deploy / live-ops agents** | [PRODUCTION_AGENTS.md](./PRODUCTION_AGENTS.md) |
 | **Multiplayer + lag best practices** | [INDUSTRY_BEST_PRACTICES_MP_PERF.md](./INDUSTRY_BEST_PRACTICES_MP_PERF.md) · [MULTIPLAYER.md](./MULTIPLAYER.md) |

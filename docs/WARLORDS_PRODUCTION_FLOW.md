@@ -1,57 +1,58 @@
 # Warlords Production Deployment Flow
 
-**Entry:** https://grudgewarlords.com/warlords/start  
-**SSOT:** `shared/definitions/warlordsProductionFlow.ts`
+**Canonical player journey SSOT (hosts + loops):** [GAME_FLOW_SSOT.md](./GAME_FLOW_SSOT.md)  
+**Code SSOT:** `shared/definitions/warlordsProductionFlow.ts`  
+**Short happy path:** [HAPPY_PATH.md](./HAPPY_PATH.md)
 
-## Pipeline
+## Hosts (do not confuse)
+
+| Host | Role |
+|------|------|
+| `id.grudge-studio.com` | Login only |
+| `character.grudge-studio.com` | Foundry create + 4-slot heroes — **not** 3D play |
+| `client.grudge-studio.com` | **Canonical play runtime** |
+| `grudgewarlords.com` | Same SPA as client (product alias) |
+| `grudge-studio.com` | Studio portal — not login, not play SSOT |
+| `grudge-crafting.puter.site` | Craft UI only |
+
+## Pipeline (happy path 2026)
 
 ```
-/intro                 Opening scene (Warlords video)
+Sign in (id.*)
     ↓
-/create-character      GCS Warlords create (return → tutorial)
+Create / pick hero (character.*/foundry or /)
     ↓
-/tutorial              Shipwreck solo tutorial
+/airship?characterId=&from=gcs   (client.* handoff)
     ↓
-/play?sector=haven…    Open world grind (also /island-3d lobby)
-    ↓  (level ≥ 20)
-/home-island           Personal 1024m island
+/home-island                     (immediate — no level-20 gate)
     ↓
-/world-map             9 sectors · race cities · sail
+/world-map  ·  /play?mode=zone&sector=haven_shore&…
+    ↓
+/tutorial                        (optional side path)
 ```
 
-## Level gate
+**Entry marketing:** https://grudgewarlords.com or product landings → same SPA as client.
+
+## Level gates (code)
 
 | Destination | Min level |
 |-------------|-----------|
-| Tutorial, open world, world map | 0 (after prerequisites) |
-| **Home island (End Game)** | **20** |
+| Home island, open world, world map, tutorial | **0 / 1** after first hero (`WARLORDS_HOME_ISLAND_MIN_LEVEL = 1`) |
+| ~~Home island only at 20~~ | **Superseded** — do not reintroduce in new docs |
 
-### End Game mission (level 20)
-
-1. Reach level **20**
-2. Talk to **faction captain** (mounted) on your race island in the pirate lobby (`E`)
-3. Accept mission **“End Game”**
-4. Cinematic at `/homeisland?cinematic=abandon-ship`:
-   - Cannon fire
-   - Ship sinks
-   - **All models jump off** (abandon ship)
-   - **Not** a single-character throw overboard
-5. Land on **home island** create/play  
-   Production: `https://client.grudge-studio.com/homeisland`
-
-Dev override: `/home-island?unlock=1` or `?dev=1`
+Foundry may still **create heroes at level 20** for content unlocks; that is not a home-island entry gate.
 
 ## Local flags
 
 | Key | Meaning |
 |-----|---------|
 | `warlords_opening_seen_v1` | Opening scene finished |
+| `warlords_airship_seen_v1` | Airship handoff seen |
 | `warlords_tutorial_complete_v1` | Tutorial finished |
 
 ## Related
 
-- Character create redirect: `/create-character` → GCS → `/tutorial?from=character-create`
-- After tutorial: `/play?sector=haven_shore&mode=zone&…&from=tutorial` (not island-reveal)
-- First home island at 20: `/island-reveal?from=level-20` if no island yet, else `/home-island`
-- Black Tome calendar: `/lore/tome-of-seasons-and-gods.html`
-- Production map: `/island-3d?mode=lobby&map=pirate-islands`
+- Full host matrix + anti-patterns: [GAME_FLOW_SSOT.md](./GAME_FLOW_SSOT.md)
+- Identity: [CANONICAL_IDENTITY.md](./CANONICAL_IDENTITY.md)
+- Character create redirect: `/create-character` → Foundry → client `/airship` or `/home-island`
+- Ops zone map: https://info.grudge-studio.com/WORLD_MAP.html → Play deep-links to **client.***
