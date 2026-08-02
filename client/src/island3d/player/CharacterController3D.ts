@@ -41,6 +41,7 @@ import {
   type CombatTarget as SkillCombatTarget,
 } from '../combat/ProductionSkillCombatRuntime';
 import { buildAnimLoadMap } from '@/lib/animation/animationCatalog';
+import { buildBip001AnimLoadMap } from '@/lib/animation/bip001DrcAnims';
 import { CharacterAnimOrchestrator } from '@/lib/animation/characterAnimOrchestrator';
 import { ExplorerAnimDriver } from '@/lib/animation/explorer/ExplorerAnimDriver';
 import { MotionDash } from '@/lib/animation/explorer/MotionDash';
@@ -503,7 +504,7 @@ export class CharacterController3D {
         resolvedModel3d?.scale ?? race.scale ?? modelUnit.scale ?? 1,
       );
       this.applyLoadedModel(loaded, raceMult);
-      // Always load Mixamo idle/walk/run — race GLBs are often T-pose with no clips
+      // Production grudge6 kits are T-pose — load Open Bip001 DRC packs (not Mixamo remap)
       await this.reloadWeaponAnimations(weaponType);
       if (this.animations?.hasClip('idle')) {
         this.animations.play('idle');
@@ -782,21 +783,46 @@ export class CharacterController3D {
     return this.movementState === 'climbing' && CLIMB_RULES.blockStaminaRegen;
   }
 
-  /** Swap animation set when play mode or equipment changes */
+  /**
+   * Swap animation set when play mode or equipment changes.
+   * Production grudge6 heroes: Open Bip001 baked packs (DRC).
+   * Mixamo GLB remap kept only as last-resort fallback if all JSON 404.
+   */
   async reloadWeaponAnimations(weaponType: WeaponType): Promise<void> {
     this.weaponType = weaponType;
     if (!this.animations) return;
-    const animPaths = buildAnimLoadMap(weaponType) as Partial<Record<AnimState, string>>;
-    // Guarantee locomotion even if weapon set is sparse (stops permanent T-pose)
+
+    // Prefer Bip001 DRC (samurai 1H, run_forward, dual_wield skills)
+    let animPaths = buildBip001AnimLoadMap(weaponType) as Partial<Record<AnimState, string>>;
     if (!animPaths.idle || !animPaths.walk) {
-      const unarmed = buildAnimLoadMap('unarmed') as Partial<Record<AnimState, string>>;
+      const unarmed = buildBip001AnimLoadMap('unarmed') as Partial<Record<AnimState, string>>;
       if (!animPaths.idle && unarmed.idle) animPaths.idle = unarmed.idle;
       if (!animPaths.walk && unarmed.walk) animPaths.walk = unarmed.walk;
       if (!animPaths.run && unarmed.run) animPaths.run = unarmed.run;
     }
+
     if (Object.keys(animPaths).length > 0) {
       await this.animations.loadAnimations(animPaths);
     }
+
+    // Fallback: legacy Mixamo GLB library if Bip001 failed entirely
+    if (!this.animations.hasClip('idle')) {
+      console.warn(
+        '[Character] Bip001 DRC packs missing — falling back to Mixamo GLB set',
+        weaponType,
+      );
+      animPaths = buildAnimLoadMap(weaponType) as Partial<Record<AnimState, string>>;
+      if (!animPaths.idle || !animPaths.walk) {
+        const unarmed = buildAnimLoadMap('unarmed') as Partial<Record<AnimState, string>>;
+        if (!animPaths.idle && unarmed.idle) animPaths.idle = unarmed.idle;
+        if (!animPaths.walk && unarmed.walk) animPaths.walk = unarmed.walk;
+        if (!animPaths.run && unarmed.run) animPaths.run = unarmed.run;
+      }
+      if (Object.keys(animPaths).length > 0) {
+        await this.animations.loadAnimations(animPaths);
+      }
+    }
+
     if (this.animations.hasClip('idle')) {
       this.animations.play('idle');
     }
@@ -1138,7 +1164,9 @@ export class CharacterController3D {
       this.applyLoadedModel(loaded, 1);
       // Default locomotion so non-manifest loads still idle
       if (this.animations) {
-        const animPaths = buildAnimLoadMap('unarmed') as Partial<Record<AnimState, string>>;
+        const animPaths = buildBip001AnimLoadMap('unarmed') as Partial<
+          Record<AnimState, string>
+        >;
         if (Object.keys(animPaths).length > 0) {
           await this.animations.loadAnimations(animPaths);
         }
@@ -1149,8 +1177,8 @@ export class CharacterController3D {
   }
 
   /**
-   * Attach GLB under controller root, fit to ~2m × raceMult, plant feet on board/terrain origin.
-   * Always builds AnimationManager (external Mixamo idle loaded via reloadWeaponAnimations).
+   * Attach grudge6 race GLB under controller root, fit SI height, plant feet.
+   * AnimationManager filled by reloadWeaponAnimations (Open Bip001 DRC packs).
    */
   private applyLoadedModel(loaded: LoadedModel, raceScaleMult: number): void {
     loaded.scene.traverse((child) => {
@@ -1174,7 +1202,7 @@ export class CharacterController3D {
     this.model.add(loaded.scene);
     this.loadedModelScene = loaded.scene;
 
-    // Always create mixer — embedded clips optional; Mixamo set fills idle/walk
+    // Mixer always; grudge6 race kits are usually T-pose — Bip001 packs fill idle/walk
     this.animations = new AnimationManager(loaded.scene);
     if (loaded.clips.length > 0) {
       loaded.clips.forEach((clip) => {
@@ -2263,19 +2291,26 @@ export class CharacterController3D {
   }
 
   private sampleGroundHeight(x: number, z: number): number | null {
-    if (this.shipDeckSampler) {
-      const dh = this.shipDeckSampler(x, z);
-      if (dh !== null) return dh;
+    try {
+      if (this.shipDeckSampler) {
+        const dh = this.shipDeckSampler(x, z);
+        if (dh !== null) return dh;
+      }
+      if (this.groundSampler) {
+        const h = this.groundSampler(x, z);
+        if (h !== null) return h;
+      }
+      if (this.groundObject) {
+        // High maxY so volcanic climb shelves above 400 m still ray-hit.
+        // getSceneHeightAt only hits real meshes (sprites skip) — never throws.
+        return getSceneHeightAt(this.groundObject, x, z, 2800);
+      }
+      return getTerrainHeightAt(this.terrainMesh, x, z);
+    } catch (err) {
+      // Last-resort: never let a bad raycast kill the /play frame loop
+      console.warn('[CharacterController3D] sampleGroundHeight failed', err);
+      return null;
     }
-    if (this.groundSampler) {
-      const h = this.groundSampler(x, z);
-      if (h !== null) return h;
-    }
-    if (this.groundObject) {
-      // High maxY so volcanic climb shelves above 400 m still ray-hit
-      return getSceneHeightAt(this.groundObject, x, z, 2800);
-    }
-    return getTerrainHeightAt(this.terrainMesh, x, z);
   }
 
   // ─── Public API ────────────────────────────────────────────────────────────
