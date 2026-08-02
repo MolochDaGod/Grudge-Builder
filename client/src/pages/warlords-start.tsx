@@ -101,8 +101,9 @@ export default function WarlordsStartPage() {
           Deployment Path
         </h1>
         <p className="mt-2 text-sm text-white/50 leading-relaxed">
-          Foundry create → airship → <strong className="text-amber-300">home island immediately</strong>
-          {' '}→ world map / open world. Tutorial is optional.
+          Intro → create → <strong className="text-amber-300">airship (combat)</strong>
+          {' '}→ tutorial island → raft → <strong className="text-amber-300">home island</strong>
+          {' '}(not level 20). Home island skips tutorial forever after claim.
           {level ? ` · you are level ${level}` : ''}. Zone ops:{' '}
           <a
             className="text-sky-300 underline"

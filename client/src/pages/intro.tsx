@@ -52,8 +52,8 @@ export default function IntroPage() {
     } catch {
       /* ignore */
     }
-    // Production pipeline: opening → create / tutorial / open world / home@20
-    setLocation('/warlords/start');
+    // Production: intro video → create / airship / tutorial / home island (after raft)
+    setLocation('/warlords/start?auto=1');
   };
   const accentColor = CLASS_ACCENT_COLORS[activeClass] ?? "#f6c945";
 

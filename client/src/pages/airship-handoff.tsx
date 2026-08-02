@@ -1,14 +1,12 @@
 /**
- * /airship · /airship-zone — production Foundry handoff bridge.
+ * /airship — Foundry post-create handoff → Warlords era airship scene.
  *
- * Foundry (character.grudge-studio.com) default post-create dest is /airship.
- * Production client previously had NO /airship route → SPA NotFound and broke
- * create → play for every new hero.
+ * Foundry default dest is /airship with ?characterId=&from=gcs.
+ * Production path:
+ *   create → /airship (persist id) → /combat (airship 4-character scene)
+ *   → Continue → intro (if needed) → tutorial island → raft → home island
  *
- * Until the full AirshipSoloZone opener ships on main, this page:
- *   1. Accepts ?characterId=&from=gcs (and storage fallbacks)
- *   2. Persists active character keys
- *   3. Forwards to /home-island (immediate play) or /heroes if no id
+ * Does NOT send new heroes straight to home-island (home unlocks after tutorial).
  */
 import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
@@ -16,6 +14,8 @@ import {
   applyCharacterHandoffFromLocation,
   persistActiveCharacter,
 } from "@/lib/characterHandoff";
+import { markAirshipSeen, isTutorialComplete } from "@/lib/warlordsOnboarding";
+import { AFTER_TUTORIAL_PATH } from "@shared/definitions/warlordsProductionFlow";
 
 export default function AirshipHandoffPage() {
   const [, setLocation] = useLocation();
@@ -26,21 +26,47 @@ export default function AirshipHandoffPage() {
     const id = handoff.characterId?.trim() || null;
     const from = handoff.from || "gcs";
 
+    // Returning players with base / finished tutorial skip airship opener
+    if (id && isTutorialComplete()) {
+      try {
+        const hasClaimed =
+          localStorage.getItem("warlords_home_island_claimed_v1") === "1";
+        persistActiveCharacter(id, from);
+        setStatus(
+          hasClaimed
+            ? "Welcome back — opening home island…"
+            : "Tutorial complete — home island unlock…",
+        );
+        setLocation(
+          hasClaimed
+            ? `/home-island?characterId=${encodeURIComponent(id)}`
+            : `${AFTER_TUTORIAL_PATH}&characterId=${encodeURIComponent(id)}`,
+        );
+        return;
+      } catch {
+        /* fall through */
+      }
+    }
+
     if (id) {
       persistActiveCharacter(id, from);
-      setStatus("Loading your home island…");
+      markAirshipSeen();
+      setStatus("Boarding the airship…");
       const q = new URLSearchParams({
         characterId: id,
         from: String(from),
+        continue: "tutorial",
       });
-      // Prefer replace so back-button doesn't loop on this bridge
-      setLocation(`/home-island?${q.toString()}`);
+      // Combat tab = same airship 4-character scene
+      setLocation(`/combat?${q.toString()}`);
       return;
     }
 
-    // No characterId — Foundry create (not empty /heroes dead-end)
     setStatus("No hero yet — open Foundry to create…");
-    setLocation("/create-character?returnTo=" + encodeURIComponent("/airship?from=gcs"));
+    setLocation(
+      "/create-character?returnTo=" +
+        encodeURIComponent("/airship?from=gcs"),
+    );
   }, [setLocation]);
 
   return (
@@ -48,7 +74,7 @@ export default function AirshipHandoffPage() {
       <div className="w-8 h-8 border-2 border-amber-500/40 border-t-amber-400 rounded-full animate-spin" />
       <p className="text-sm tracking-wide">{status}</p>
       <p className="text-[10px] uppercase tracking-[0.3em] text-amber-500/50">
-        Foundry → client handoff (SSOT)
+        Foundry → airship → tutorial → home island
       </p>
       <a
         href="/create-character"

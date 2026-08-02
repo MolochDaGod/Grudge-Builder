@@ -29,7 +29,8 @@ import LoreWorldPage from "@/pages/lore/world";
 import LoreSectorsPage from "@/pages/lore/sectors";
 import LoreSectorDetailPage from "@/pages/lore/sector-detail";
 import HomePage from "@/pages/home";
-import CombatPage from "@/pages/combat";
+// Combat tab = airship 4-character Warlords era scene (heavy Three.js)
+const CombatPage = lazy(() => import("@/pages/combat"));
 import SkillTreePage from "@/pages/skill-tree";
 import AdminPage from "@/pages/admin";
 import DungeonTiledPage from "@/pages/dungeon-tiled";

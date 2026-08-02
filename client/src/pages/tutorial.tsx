@@ -57,6 +57,13 @@ import {
   persistActiveCharacter,
 } from '@/lib/characterHandoff';
 import { resolveShipwreckCoveWorld } from '@/island3d/tutorial/resolveShipwreckCove';
+import {
+  markTutorialComplete,
+  markRaftCrafted,
+  isTutorialComplete,
+  getActiveCharacterId,
+} from '@/lib/warlordsOnboarding';
+import { AFTER_TUTORIAL_PATH } from '@shared/definitions/warlordsProductionFlow';
 
 interface TutorialStep {
   id: string;
@@ -66,6 +73,57 @@ interface TutorialStep {
 
 export default function TutorialPage() {
   const [, setLocation] = useLocation();
+
+  // Skip tutorial forever once home island is claimed (or tutorial already done)
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      if (!isTutorialComplete()) {
+        // Probe home island — if claimed, never force shipwreck again
+        try {
+          const res = await fetch('/api/island/current', { credentials: 'include' });
+          if (res.ok && !cancelled) {
+            markTutorialComplete();
+            try {
+              localStorage.setItem('warlords_home_island_claimed_v1', '1');
+            } catch {
+              /* ignore */
+            }
+            const id = getActiveCharacterId();
+            setLocation(
+              id
+                ? `/home-island?characterId=${encodeURIComponent(id)}&from=skip-tutorial`
+                : '/home-island?from=skip-tutorial',
+            );
+            return;
+          }
+        } catch {
+          /* offline — stay on tutorial */
+        }
+        return;
+      }
+      // Tutorial flag set but maybe no island yet → home island create
+      try {
+        const res = await fetch('/api/island/current', { credentials: 'include' });
+        if (res.ok && !cancelled) {
+          const id = getActiveCharacterId();
+          setLocation(
+            id
+              ? `/home-island?characterId=${encodeURIComponent(id)}&from=skip-tutorial`
+              : '/home-island?from=skip-tutorial',
+          );
+        } else if (!cancelled) {
+          setLocation(AFTER_TUTORIAL_PATH);
+        }
+      } catch {
+        if (!cancelled) setLocation(AFTER_TUTORIAL_PATH);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [setLocation]);
+
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const engineRef = useRef<Island3DEngine | null>(null);
   const onHarvestRef = useRef<(event: { nodeId?: string; resourceType: string }) => void>(() => {});
@@ -379,20 +437,26 @@ export default function TutorialPage() {
         }) => {
           setCompleted(true);
           const race = (data?.raceId || heroRace || 'human').toLowerCase();
-          showNotification(data?.message || 'Sail to your faction island — outer ring!');
-          setAllyMessage(
-            'Dock Traveler: Hold the heading for your people. Outer ring — six race islands. Dock and report to the commander.',
+          showNotification(
+            data?.message || 'Raft ready — your home island awaits.',
           );
+          setAllyMessage(
+            'Traveler: The raft is yours. Home island is granted after the shipwreck trial — not at level 20. Sail true.',
+          );
+          markRaftCrafted();
+          markTutorialComplete();
           try {
-            localStorage.setItem('warlords_tutorial_complete_v1', '1');
             localStorage.setItem('warlords_tutorial_race_v1', race);
           } catch {
             /* ignore */
           }
-          // Traveler quest end: raft → pirate lobby outer faction island (not home-island yet)
+          // Production: tutorial + raft → home-island intro + creation
+          const id = getActiveCharacterId();
           const dest =
             data?.nextPath ||
-            `/island-3d?mode=lobby&map=pirate-islands&from=tutorial&race=${encodeURIComponent(race)}&focus=faction`;
+            (id
+              ? `${AFTER_TUTORIAL_PATH}&characterId=${encodeURIComponent(id)}&race=${encodeURIComponent(race)}`
+              : `${AFTER_TUTORIAL_PATH}&race=${encodeURIComponent(race)}`);
           setTimeout(() => setLocation(dest), 2800);
         });
 

@@ -42,6 +42,7 @@ import { Grudge6PlayShell } from '@/components/Grudge6PlayShell';
 import { GrudgeGameUiLayer } from '@/components/uiKit/GrudgeGameUiLayer';
 import MainPanelHost from '@/components/MainPanelHost';
 import { ensureCraftpixRpgCss } from '@/lib/uiKit/loadGrudgeGameUI';
+import { markHomeIslandClaimed } from '@/lib/warlordsOnboarding';
 
 export default function HomeIslandPage() {
   const [, setLocation] = useLocation();
@@ -78,6 +79,18 @@ export default function HomeIslandPage() {
   const [heroRace, setHeroRace] = useState('human');
   const [heroClass, setHeroClass] = useState('warrior');
   const [level, setLevel] = useState(1);
+
+  // Owning a home island skips tutorial forever
+  useEffect(() => {
+    if (islandDto || islandSeed) {
+      markHomeIslandClaimed();
+      try {
+        localStorage.setItem('warlords_tutorial_complete_v1', '1');
+      } catch {
+        /* ignore */
+      }
+    }
+  }, [islandDto, islandSeed]);
   const [classHotbar, setClassHotbar] = useState<HotbarSlot[]>([]);
   const [weaponHotbar, setWeaponHotbar] = useState<HotbarSlot[]>([]);
 

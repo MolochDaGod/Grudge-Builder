@@ -72,6 +72,7 @@ export function gcsCreateHeroUrl(): string {
 export type WarlordsNavId =
   | 'home'
   | 'characters'
+  | 'combat'
   | 'arsenal'
   | 'professions'
   | 'skills'
@@ -84,13 +85,12 @@ export type WarlordsNavId =
   | 'account'
   | 'play'
   | 'home-island'
+  | 'tutorial'
   | 'crafting';
 
 /**
- * Product chrome — WCS-style tabs hosted on GrudgeBuilder SPA (grudgewarlords.com).
- * Arsenal (weapons / stats / systems / skills editor) is fully local — do not
- * bounce to warlord-crafting-suite.vercel.app.
- * No separate WCS / Cloudflare Pages deploy required for these surfaces.
+ * Product chrome — full Warlords era game app (grudgewarlords.com).
+ * Combat tab = airship 4-character scene. Play = smart onboarding router.
  */
 export const WARLORDS_NAV: Array<{
   id: WarlordsNavId;
@@ -100,11 +100,13 @@ export const WARLORDS_NAV: Array<{
 }> = [
   { id: 'home', label: 'Home', href: '/' },
   { id: 'characters', label: 'Characters', href: '/heroes' },
+  { id: 'combat', label: 'Combat', href: '/combat' },
   { id: 'arsenal', label: 'Arsenal', href: '/arsenal' },
   { id: 'professions', label: 'Professions', href: '/professions' },
   { id: 'skills', label: 'Skill Trees', href: '/skill-tree' },
   { id: 'crafting', label: 'Crafting', href: '/crafting' },
+  { id: 'home-island', label: 'Home Island', href: '/home-island' },
   { id: 'lore', label: 'Lore', href: '/lore' },
   { id: 'account', label: 'Account', href: '/account' },
-  { id: 'play', label: 'Play', href: '/heroes', primary: true },
+  { id: 'play', label: 'Play', href: '/intro', primary: true },
 ];
