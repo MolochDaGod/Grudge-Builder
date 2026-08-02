@@ -150,6 +150,18 @@ export const LANDING_SECTION_ART = {
   void: assetUrl('/images/professions/cosmic_arcane_void_magic_background.png'),
 } as const;
 
+/**
+ * Production path tile art (landing PLAY_PATH containers).
+ * Local SPA assets under public/backgrounds — not R2-dependent for first paint.
+ */
+export const PRODUCTION_PATH_ART = {
+  opening: '/backgrounds/production-path-01-opening.jpg',
+  createHero: '/backgrounds/production-path-02-create-hero.jpg',
+  tutorial: '/backgrounds/production-path-03-tutorial.jpg',
+  openWorld: '/backgrounds/production-path-04-open-world.jpg',
+  homeIsland: '/backgrounds/production-path-05-home-island.jpg',
+} as const;
+
 /** Safe img: hide broken art instead of broken-icon flash */
 export function hideBrokenImage(e: { currentTarget: HTMLImageElement }): void {
   e.currentTarget.style.opacity = '0';

@@ -272,6 +272,11 @@ export function fetchMasterItems() {
   return fetchObjectStoreData<Record<string, unknown>>("/master-items.json", {});
 }
 
+/** Fetch master weapons catalog (tiered weapons authority — T0–T8) */
+export function fetchMasterWeapons() {
+  return fetchObjectStoreData<Record<string, unknown>>("/master-weapons.json", {});
+}
+
 /** Fetch master recipes (with GRUDGE UUIDs, material links) */
 export function fetchMasterRecipes() {
   return fetchObjectStoreData<Record<string, unknown>>("/master-recipes.json", {});
