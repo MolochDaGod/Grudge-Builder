@@ -2788,7 +2788,7 @@ function syncTopBar(s) {
   if (bOut) bOut.hidden = !s.loggedIn;
 }
 
-function applyCharacterToState(function applyCharacterToState(char) {
+function applyCharacterToState(char) {
   if (!char) return;
   const nextId = char.id || STATE.activeCharacterId;
   // Stash previous character's full sheet before switching
