@@ -81,15 +81,19 @@
     if (t.dataset.gfb === '2') { t.style.opacity = '0.4'; return; }
     if (t.dataset.gfb === '1') {
       t.dataset.gfb = '2';
-      t.src = './crafting-icons/eagle-shield.png';
+      // Never fall back to management.png for bag/item imgs
+      if (t.closest && t.closest('.recipe-icon-shell')) return;
+      t.src = 'https://molochdagod.github.io/ObjectStore/icons/496_rpg_icons/I_Rock01.png';
       return;
     }
     t.dataset.gfb = '1';
-    // Retry once with cache-buster after no-referrer (prior 403 may be cached)
-    if (/info\.grudge-studio\.com\/icons\/pack\//i.test(src)) {
+    // info.* category paths are often HTML shells — retry same path on assets CDN
+    if (/info\.grudge-studio\.com\/icons\//i.test(src) && !/\/icons\/skills\//i.test(src)) {
       t.src = src.replace(/https?:\/\/info\.grudge-studio\.com/i, 'https://assets.grudge-studio.com').split('?')[0] + '?nr=1';
     } else if (/assets\.grudge-studio\.com\/icons\/skills\//i.test(src)) {
       t.src = src.replace(/https?:\/\/assets\.grudge-studio\.com/i, 'https://info.grudge-studio.com').split('?')[0] + '?nr=1';
+    } else if (/crafting-icons\/management\.png/i.test(src) && !(t.closest && t.closest('.recipe-icon-shell'))) {
+      t.src = 'https://molochdagod.github.io/ObjectStore/icons/496_rpg_icons/I_Rock01.png';
     } else {
       t.src = src.split('?')[0] + '?nr=1';
     }
@@ -110,7 +114,7 @@
     // Icons: pack weapons on assets CDN (reliable); skills on info
     ASSETS: 'https://assets.grudge-studio.com',
     INFO_ORIGIN: 'https://info.grudge-studio.com',
-    VERSION: '5.11.1',
+    VERSION: '5.12.0',
     WCS_URL: 'https://wcs.grudge-studio.com',
     // Full suite also embeds from main-panel Quick Craft tab
     MAIN_PANEL_URL: 'https://ui.grudge-studio.com/main-panel.html?era=warlords&tab=craft',
@@ -805,6 +809,41 @@ body .app {
 .recipe-item.selected { border-color: var(--gold); background: rgba(212,168,67,0.08); }
 .recipe-item.cant-craft { opacity: 0.5; }
 .recipe-icon { font-size: 20px; width: 28px; text-align: center; flex-shrink: 0; }
+/* Recipe chrome: management.png + tint + Roman tier (not bag item art) */
+.recipe-icon-shell {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border-radius: 6px;
+  border: 1px solid rgba(212,168,67,0.35);
+  background: rgba(0,0,0,0.45);
+  overflow: hidden;
+  box-sizing: border-box;
+}
+.recipe-icon-shell .recipe-mgmt-base {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  padding: 2px;
+  box-sizing: border-box;
+}
+.recipe-icon-shell .recipe-tier-roman {
+  position: absolute;
+  right: 1px;
+  bottom: 0;
+  font-family: 'Cinzel', 'Times New Roman', serif;
+  font-size: 9px;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: 0.02em;
+  pointer-events: none;
+}
+.recipe-kind-weapon { box-shadow: inset 0 0 0 1px rgba(239,68,68,0.35); }
+.recipe-kind-armor  { box-shadow: inset 0 0 0 1px rgba(96,165,250,0.35); }
+.recipe-kind-item   { box-shadow: inset 0 0 0 1px rgba(34,197,94,0.35); }
 .recipe-icon img, .item-img, .inv-item .icon img, .result-icon img, .ch-icon img, .slot img {
   width: 28px; height: 28px; object-fit: contain; image-rendering: auto;
   vertical-align: middle; border-radius: 4px;
@@ -1469,7 +1508,7 @@ body .app {
 <body class="access-ready">
 <!-- TOP BAR: account name + character select + login (always visible) -->
 <header class="topbar" id="topbar" role="banner">
-  <div class="topbar-brand">Grudge Crafting <small>v5.11.0 · shared bag · per-char XP</small></div>
+  <div class="topbar-brand">Grudge Crafting <small>v5.12.0 · shared bag · per-char XP</small></div>
   <div class="topbar-status">
     <span class="topbar-dot" id="topDot"></span>
     <div class="topbar-account">
@@ -1501,7 +1540,7 @@ body .app {
         <span class="page-title-icon" style="width:28px;height:28px;font-size:18px;display:inline-flex;align-items:center;justify-content:center">âš”</span>
         <h1 style="margin:0">Grudge Crafting</h1>
       </div>
-      <small>Warlords Profession Suite · v5.11.1</small>
+      <small>Warlords Profession Suite · v5.12.0</small>
     </div>
 
     <!-- ACTIVE CHARACTER PANEL — shown once characters load -->
@@ -1878,11 +1917,16 @@ const CRAFTING_UI_ICONS = {
     legion: CRAFTING_ICON_BASE + 'faction-legion.png',
   },
 };
+/**
+ * Chrome-only ban list (multi-frame atlases / skill crop sheets).
+ * Item icons from assets category paths + pack/weapons singles are allowed.
+ * management.png is ONLY for recipe chrome (tinted + tier), never bag/items.
+ */
 function isForbiddenSpriteIconUrl(url) {
   const u = String(url || '');
-  if (/\/icons\/pack\//i.test(u)) return true;
   if (/\/icons\/skills\/class\//i.test(u)) return true;
-  if (/Effect\.png/i.test(u)) return true;
+  if (/pack\/misc\/Effect\.png/i.test(u)) return true;
+  if (/crafting-icons\/management\.png/i.test(u)) return true; // not a real item icon
   return false;
 }
 
@@ -3603,7 +3647,7 @@ function renderCraftingPage() {
       const sel = STATE.selectedRecipe && STATE.selectedRecipe.id === r.id;
       const tierColors = ['#666','#22c55e','#60a5fa','#a78bfa','#f59e0b','#ef4444','#ec4899','#f97316','#dc2626'];
       return `<div class="recipe-item ${sel?'selected':''} ${canCraft?'':'cant-craft'}" onclick="selectRecipe('${r.id}')">
-        <span class="recipe-icon">${itemIcon(r.n, r.icon || 'ðŸ“¦', 'item-img', 28)}</span>
+        <span class="recipe-icon">${recipeIconHtml(r, 28)}</span>
         <div class="recipe-info">
           <div class="recipe-name">${r.n}</div>
           <div class="recipe-meta">${r.prof} · ${r.type} · ${st.name}</div>
@@ -3643,13 +3687,13 @@ function renderBenchDetail() {
   const emptySlotsHtml = Array(emptySlots).fill('<div class="slot"></div>').join('');
 
   el.innerHTML = `
-    <div class="card-title" style="display:flex;align-items:center;gap:8px">${itemIcon(r.n, r.icon||'ðŸ“¦', 'item-img', 28)} ${r.n}</div>
+    <div class="card-title" style="display:flex;align-items:center;gap:8px">${recipeIconHtml(r, 32)} <span style="margin-left:4px">${r.n}</span></div>
     <p style="font-size:11px;color:var(--text-dim);margin-bottom:12px">${r.desc || ''}</p>
     <div style="font-size:9px;color:var(--text-dim);margin-bottom:6px;letter-spacing:0.1em">MATERIALS REQUIRED</div>
     <div class="bench-slots">${slotsHtml}${emptySlotsHtml}</div>
     <div class="craft-result">
-      <span class="craft-arrow">â†’</span>
-      <span class="result-icon">${itemIcon(r.n, r.icon||'ðŸ“¦', 'item-img', 36)}</span>
+      <span class="craft-arrow">→</span>
+      <span class="result-icon" title="Crafted item art">${itemIcon(r.n, r.icon||'📦', 'item-img', 36)}</span>
       <div>
         <div class="result-name">${r.n}</div>
         <div style="font-size:9px;color:var(--text-dim)">${r.prof} · T${r.tier} · ${r.type}</div>
@@ -4442,7 +4486,7 @@ function renderWcsArsenal() {
   const section = (title, items) => `
     <div class="card" style="grid-column:1/-1;margin-bottom:8px"><div class="card-title">${title} (${items.length})</div></div>
     ${items.slice(0, 120).map((r) => `<div class="codex-card">
-      <h4>${itemIcon(r.n, r.icon || 'ðŸ“¦', 'codex-icon', 32)} ${r.n}</h4>
+      <h4 style="display:flex;align-items:center;gap:8px">${recipeIconHtml(r, 32)} ${r.n}</h4>
       <p>T${r.tier} ${WCS_TIER_NAMES[r.tier] || ''} · ${r.prof} · ${r.station || PROF_TO_STATION[r.prof] || 'camp'}</p>
       <p>${r.desc || ''}</p>
     </div>`).join('')}`;
@@ -5063,62 +5107,27 @@ const ICON_CAT_TO_PACK = {
   staff: 'Staff', staves: 'Staff', tools: 'Hammer',
 };
 
-/** Legacy name kept — values are single-frame only (no pack spritesheets). */
-const ICON_PACK_FALLBACK = {
-  armor: 'https://molochdagod.github.io/ObjectStore/icons/496_rpg_icons/A_Clothing01.png',
-  greenFoods: 'https://molochdagod.github.io/ObjectStore/icons/496_rpg_icons/I_C_Meat.png',
-  blueFoods: 'https://molochdagod.github.io/ObjectStore/icons/496_rpg_icons/I_C_Meat.png',
-  redFoods: 'https://molochdagod.github.io/ObjectStore/icons/496_rpg_icons/I_C_RawMeat.png',
-  mysticPotions: 'https://molochdagod.github.io/ObjectStore/icons/496_rpg_icons/E_Gold02.png',
-  engineerConsumables: 'https://molochdagod.github.io/ObjectStore/icons/496_rpg_icons/I_Rock03.png',
-  tools: 'https://molochdagod.github.io/ObjectStore/icons/496_rpg_icons/S_Axe02.png',
-  default: './crafting-icons/management.png',
-};
-
-function rewriteIconHost(url) {
-  if (!url || typeof url !== 'string') return '';
-  // Keep info.grudge-studio.com (skill icons only exist there). Map legacy hosts â†’ path only.
-  return url
-    .replace(/https?:\/\/molochdagod\.github\.io\/ObjectStore/gi, '')
-    .replace(/https?:\/\/grudge-objectstore\.pages\.dev/gi, '')
-    .replace(/https?:\/\/objectstore\.grudge-studio\.com(?!\/api)/gi, '')
-    .replace(/https?:\/\/assets\.grudge-studio\.com/gi, '')
-    .replace(/https?:\/\/info\.grudge-studio\.com(\/api\/v1)?/gi, '');
-}
-
-/**
- * Resolve any icon field to a working PNG on info.grudge-studio.com (preferred)
- * or assets when needed. Category folders (swords/, axes1h/, …) â†’ pack weapons.
- * Skill class icons MUST stay on info (assets.grudge-studio.com/icons/skills/* 404).
- */
-
-/** ObjectStore single-frame icons — never multi-sprite pack atlases. */
+/** ObjectStore singles for materials only (not bag weapon art). */
 const OBJECTSTORE_ICON_GH = 'https://molochdagod.github.io/ObjectStore/icons';
 const OBJECTSTORE_ICON_RAW = 'https://raw.githubusercontent.com/MolochDaGod/ObjectStore/main/icons';
 
-const CATEGORY_SINGLE_FALLBACK = {
-  swords: OBJECTSTORE_ICON_GH + '/496_rpg_icons/S_Sword01.png',
-  sword: OBJECTSTORE_ICON_GH + '/496_rpg_icons/S_Sword01.png',
-  greatswords: OBJECTSTORE_ICON_GH + '/496_rpg_icons/S_Sword15.png',
-  axes1h: OBJECTSTORE_ICON_GH + '/496_rpg_icons/S_Axe01.png',
-  axe: OBJECTSTORE_ICON_GH + '/496_rpg_icons/S_Axe01.png',
-  greataxes: OBJECTSTORE_ICON_GH + '/496_rpg_icons/S_Axe05.png',
-  daggers: OBJECTSTORE_ICON_GH + '/496_rpg_icons/S_Sword03.png',
-  hammers1h: OBJECTSTORE_ICON_GH + '/496_rpg_icons/I_Rock01.png',
-  hammers2h: OBJECTSTORE_ICON_GH + '/496_rpg_icons/I_Rock02.png',
-  spears: OBJECTSTORE_ICON_GH + '/496_rpg_icons/S_Axe03.png',
-  bows: OBJECTSTORE_ICON_GH + '/496_rpg_icons/S_Sword07.png',
-  crossbows: OBJECTSTORE_ICON_GH + '/496_rpg_icons/S_Sword08.png',
-  guns: OBJECTSTORE_ICON_GH + '/496_rpg_icons/S_Sword09.png',
-  shields: OBJECTSTORE_ICON_GH + '/496_rpg_icons/E_Gold01.png',
-  armor: OBJECTSTORE_ICON_GH + '/496_rpg_icons/A_Clothing01.png',
-  greenFoods: OBJECTSTORE_ICON_GH + '/496_rpg_icons/I_C_Meat.png',
-  blueFoods: OBJECTSTORE_ICON_GH + '/496_rpg_icons/I_C_Meat.png',
-  redFoods: OBJECTSTORE_ICON_GH + '/496_rpg_icons/I_C_RawMeat.png',
-  mysticPotions: OBJECTSTORE_ICON_GH + '/496_rpg_icons/E_Gold02.png',
-  engineerConsumables: OBJECTSTORE_ICON_GH + '/496_rpg_icons/I_Rock03.png',
-  tools: OBJECTSTORE_ICON_GH + '/496_rpg_icons/S_Axe02.png',
-  default: (typeof CRAFTING_UI_ICONS !== 'undefined' ? CRAFTING_UI_ICONS.management : './crafting-icons/management.png'),
+/**
+ * Category → assets CDN pack stem (PascalCase file on /icons/pack/weapons|armor).
+ * Used only when master-items path is missing; never management.png.
+ */
+const ICON_CAT_PACK_STEM = {
+  swords: 'Sword', sword: 'Sword', greatswords: 'Sword', greatsword: 'Sword',
+  axes1h: 'Axe', axe: 'Axe', greataxes: 'Axe', greataxe: 'Axe',
+  daggers: 'Dagger', dagger: 'Dagger',
+  hammers1h: 'Hammer', hammers2h: 'Hammer', hammer: 'Hammer', tools: 'Hammer',
+  spears: 'Spear', spear: 'Spear',
+  bows: 'Bow', bow: 'Bow',
+  crossbows: 'Crossbow', crossbow: 'Crossbow', guns: 'Crossbow', gun: 'Crossbow',
+  shields: 'Shield', shield: 'Shield',
+  fireStaves: 'Staff', frostStaves: 'Staff', holyStaves: 'Staff',
+  lightningStaves: 'Staff', natureStaves: 'Staff', wands: 'Staff',
+  staff: 'Staff', staves: 'Staff',
+  armor: 'Chest',
 };
 
 const MAT_ICON_URLS = {
@@ -5150,6 +5159,20 @@ const MAT_ICON_URLS = {
   'Rough Plank': OBJECTSTORE_ICON_GH + '/496_rpg_icons/E_Wood01.png',
 };
 
+function rewriteIconHost(url) {
+  if (!url || typeof url !== 'string') return '';
+  return url
+    .replace(/https?:\/\/molochdagod\.github\.io\/ObjectStore/gi, '')
+    .replace(/https?:\/\/grudge-objectstore\.pages\.dev/gi, '')
+    .replace(/https?:\/\/objectstore\.grudge-studio\.com(?!\/api)/gi, '')
+    .replace(/https?:\/\/assets\.grudge-studio\.com/gi, '')
+    .replace(/https?:\/\/info\.grudge-studio\.com(\/api\/v1)?/gi, '');
+}
+
+/**
+ * Real item icons: master-items paths are often on info.* but binaries live on assets.*.
+ * Never returns management.png (recipe chrome only).
+ */
 function resolveCanonicalIcon(urlOrPath, category, name) {
   const cat = (category || '').toString();
   const nm = (name || '').toString();
@@ -5158,8 +5181,12 @@ function resolveCanonicalIcon(urlOrPath, category, name) {
   if (matHit) return MAT_ICON_URLS[matHit];
 
   let raw = (urlOrPath || '').trim();
-  let path = rewriteIconHost(raw);
+  // Already assets absolute — use as-is (unless forbidden chrome atlas)
+  if (/^https?:\/\/assets\.grudge-studio\.com\/icons\//i.test(raw) && !isForbiddenSpriteIconUrl(raw)) {
+    return raw.split('?')[0];
+  }
 
+  let path = rewriteIconHost(raw);
   if (raw.startsWith('http') && path.startsWith('http')) {
     try { path = new URL(raw).pathname; } catch { /* keep */ }
   }
@@ -5169,14 +5196,12 @@ function resolveCanonicalIcon(urlOrPath, category, name) {
   if (path && !path.startsWith('/') && !path.startsWith('http')) path = '/' + path;
   path = (path || '').replace(/^\/api\/v1/, '');
 
-  if (isForbiddenSpriteIconUrl(path) || isForbiddenSpriteIconUrl(raw)) {
-    return CATEGORY_SINGLE_FALLBACK[cat]
-      || CATEGORY_SINGLE_FALLBACK[cat.toLowerCase()]
-      || CATEGORY_SINGLE_FALLBACK.default;
-  }
+  // Skill trees stay on info
+  if (/\/icons\/skills\//i.test(path)) return INFO_CDN + path;
 
-  // Category item paths on assets CDN (real single PNGs when present)
-  if (/\/icons\/(swords|axes1h|greataxes|daggers|hammers1h|hammers2h|greatswords|spears|bows|crossbows|guns|shields|armor|armor_full|food|consumables)\//i.test(path)) {
+  // info.* HTML shells for category icons → serve PNG from assets (same path)
+  // e.g. /icons/swords/sword_01.png, /icons/armor_full/Helm_23.png
+  if (path && path.startsWith('/icons/') && !isForbiddenSpriteIconUrl(path)) {
     return ASSET_CDN + path;
   }
 
@@ -5184,38 +5209,94 @@ function resolveCanonicalIcon(urlOrPath, category, name) {
     return raw;
   }
 
-  if (CATEGORY_SINGLE_FALLBACK[cat] || CATEGORY_SINGLE_FALLBACK[cat.toLowerCase()]) {
-    return CATEGORY_SINGLE_FALLBACK[cat] || CATEGORY_SINGLE_FALLBACK[cat.toLowerCase()];
+  // Category-only → pack stem on assets (distinct per category, not management)
+  const stem = ICON_CAT_PACK_STEM[cat] || ICON_CAT_PACK_STEM[cat.toLowerCase()];
+  if (stem) {
+    if (stem === 'Chest' || cat === 'armor' || /armor/i.test(cat)) {
+      return ASSET_CDN + '/icons/pack/armor/Chest_01.png';
+    }
+    return ASSET_CDN + `/icons/pack/weapons/${stem}_01.png`;
   }
-  if (/armor|helm|chest|boot|bracer|shoulder|ring|necklace/i.test(nm)) return CATEGORY_SINGLE_FALLBACK.armor;
-  if (/sword|axe|bow|staff|dagger|hammer|gun|crossbow|spear|weapon|mace/i.test(nm)) return CATEGORY_SINGLE_FALLBACK.swords;
+
+  if (/armor|helm|chest|boot|bracer|shoulder|ring|necklace/i.test(nm + ' ' + cat)) {
+    return ASSET_CDN + '/icons/pack/armor/Chest_01.png';
+  }
+  if (/sword|axe|bow|staff|dagger|hammer|gun|crossbow|spear|weapon|mace|shield/i.test(nm + ' ' + cat)) {
+    return ASSET_CDN + '/icons/pack/weapons/Sword_01.png';
+  }
   if (/ore|ingot|metal|scrap/i.test(nm)) return OBJECTSTORE_ICON_GH + '/materials/iron-ore.png';
   if (/log|plank|wood/i.test(nm)) return OBJECTSTORE_ICON_GH + '/materials/oak-log.png';
   if (/leather|hide|rawhide/i.test(nm)) return OBJECTSTORE_ICON_GH + '/materials/rawhide.png';
   if (/herb|plant|fiber/i.test(nm)) return OBJECTSTORE_ICON_RAW + '/items/herbs/herbs_01.png';
-  if (/meat|food|stew|soup/i.test(nm)) return OBJECTSTORE_ICON_GH + '/496_rpg_icons/I_C_Meat.png';
+  if (/meat|food|stew|soup|potion/i.test(nm)) return OBJECTSTORE_ICON_GH + '/496_rpg_icons/I_C_Meat.png';
 
-  if (path && path.startsWith('/icons/') && !isForbiddenSpriteIconUrl(path)) return ASSET_CDN + path;
-  if (raw.startsWith('https://') && !isForbiddenSpriteIconUrl(raw)) return raw;
-
-  return CATEGORY_SINGLE_FALLBACK.default;
+  // Last resort: ObjectStore generic rock — NEVER management.png for items
+  return OBJECTSTORE_ICON_GH + '/496_rpg_icons/I_Rock01.png';
 }
 
+/** Placeholder when image 404s — not management (avoids recipe-icon spam). */
+const ITEM_ICON_BROKEN_FALLBACK = OBJECTSTORE_ICON_GH + '/496_rpg_icons/I_Rock01.png';
 
 function iconImgTag(url, name, cssClass, size) {
-  const cls = cssClass || "item-img";
-  const fallbackInfo = CRAFTING_UI_ICONS.management;
-  const fallbackAsset = CRAFTING_UI_ICONS.management;
-  let safe = (url || fallbackInfo).replace(/"/g, "");
-  // assets.grudge-studio.com/icons/skills/* always 404 â†’ rewrite to info
+  const cls = cssClass || 'item-img';
+  let safe = String(url || ITEM_ICON_BROKEN_FALLBACK).replace(/"/g, '');
+  // Never render management as an item/bag icon
+  if (/crafting-icons\/management\.png/i.test(safe)) {
+    safe = ITEM_ICON_BROKEN_FALLBACK;
+  }
+  // info category paths often return HTML — prefer assets binary host
+  if (/info\.grudge-studio\.com\/icons\//i.test(safe) && !/\/icons\/skills\//i.test(safe)) {
+    safe = safe.replace(/https?:\/\/info\.grudge-studio\.com/i, ASSET_CDN);
+  }
   if (/assets\.grudge-studio\.com\/icons\/skills\//i.test(safe)) {
     safe = safe.replace(/https?:\/\/assets\.grudge-studio\.com/i, INFO_CDN);
   }
-  const alt = (name || "item").replace(/"/g, "");
-  const dim = size ? ` style="width:${size}px;height:${size}px"` : "";
-  const kind = /crafting-icons\//i.test(safe) || /ObjectStore\/icons/i.test(safe) ? "single" : "item";
-  // onerror chain: primary â†’ info default â†’ assets default
-  return `<img referrerpolicy="no-referrer" class="${cls}" data-icon-kind="${kind}" referrerpolicy="no-referrer" referrerpolicy="no-referrer" src="${safe}" alt="${alt}" loading="lazy" decoding="async"${dim} onerror="if(this.dataset.fb==='2'){return}if(this.dataset.fb==='1'){this.dataset.fb='2';this.src='${fallbackAsset}'}else{this.dataset.fb='1';this.src='${fallbackInfo}'}">`;
+  const alt = (name || 'item').replace(/"/g, '');
+  const dim = size ? ` style="width:${size}px;height:${size}px;object-fit:contain"` : ' style="object-fit:contain"';
+  const fb = ITEM_ICON_BROKEN_FALLBACK.replace(/'/g, "\\'");
+  return `<img referrerpolicy="no-referrer" class="${cls}" data-icon-kind="item" src="${safe}" alt="${alt}" loading="lazy" decoding="async"${dim} onerror="if(this.dataset.fb==='1'){return}this.dataset.fb='1';this.src='${fb}'">`;
+}
+
+// ── Recipe icons: management.png ONLY, tinted by kind + Roman tier ──────────
+const RECIPE_KIND_TINT = {
+  weapon: { filter: 'hue-rotate(-8deg) saturate(1.55) brightness(1.05)', edge: '#ef4444', label: 'weapon' },
+  armor:  { filter: 'hue-rotate(195deg) saturate(1.45) brightness(1.08)', edge: '#60a5fa', label: 'armor' },
+  item:   { filter: 'hue-rotate(95deg) saturate(1.35) brightness(1.05)', edge: '#22c55e', label: 'item' },
+};
+
+function recipeKindFromRecipe(r) {
+  const t = String((r && (r.type || r.category)) || '').toLowerCase();
+  const n = String((r && r.n) || '').toLowerCase();
+  const blob = t + ' ' + n;
+  if (/weapon|sword|axe|bow|staff|dagger|hammer|gun|crossbow|spear|mace|club|blade|rifle|shield/.test(blob)) return 'weapon';
+  if (/armor|helm|chest|boot|glove|robe|plate|leather|bracer|shoulder|ring|necklace|cape|belt|pants|legs|hands|feet|head/.test(blob)) return 'armor';
+  return 'item';
+}
+
+function tierToRoman(tier) {
+  const map = ['0', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X'];
+  const t = Math.max(0, Math.min(10, Number(tier) || 0));
+  return map[t] || String(t);
+}
+
+/**
+ * Recipe list/detail icon — always management.png base, never item art.
+ * Color encodes weapon / armor / item; Roman numeral encodes tier.
+ */
+function recipeIconHtml(recipe, size) {
+  const s = size || 28;
+  const kind = recipeKindFromRecipe(recipe || {});
+  const tint = RECIPE_KIND_TINT[kind] || RECIPE_KIND_TINT.item;
+  const roman = tierToRoman(recipe && recipe.tier);
+  const src = (typeof CRAFTING_UI_ICONS !== 'undefined' && CRAFTING_UI_ICONS.recipes)
+    ? CRAFTING_UI_ICONS.recipes
+    : './crafting-icons/management.png';
+  const name = String((recipe && recipe.n) || 'Recipe').replace(/"/g, '');
+  return `<span class="recipe-icon-shell recipe-kind-${kind}" title="${name} · ${tint.label} · T${recipe && recipe.tier != null ? recipe.tier : 0}" style="width:${s}px;height:${s}px;border-color:${tint.edge}55">
+    <img referrerpolicy="no-referrer" class="recipe-mgmt-base" src="${src}" alt="" width="${s}" height="${s}"
+      style="filter:${tint.filter}" loading="lazy" decoding="async">
+    <span class="recipe-tier-roman" style="color:${tint.edge};text-shadow:0 0 4px rgba(0,0,0,.9)">${roman}</span>
+  </span>`;
 }
 
 /**
@@ -5293,17 +5374,35 @@ async function loadItemDatabase() {
   }
 }
 
+/** Bag / materials / craft-result art — never management.png */
 function itemIcon(name, emoji, cssClass, size) {
   const cls = cssClass || 'item-img';
   const key = (name || '').toLowerCase();
-  let url = ITEM_ICON_MAP[key] || (typeof MAT_ICON_URLS !== 'undefined' ? MAT_ICON_URLS[name] : null) || null;
+  let url = ITEM_ICON_MAP[key] || null;
   if (!url && typeof MAT_ICON_URLS !== 'undefined') {
-    const matHit = Object.keys(MAT_ICON_URLS).find((k) => k.toLowerCase() === key);
-    if (matHit) url = MAT_ICON_URLS[matHit];
+    if (MAT_ICON_URLS[name]) url = MAT_ICON_URLS[name];
+    else {
+      const matHit = Object.keys(MAT_ICON_URLS).find((k) => k.toLowerCase() === key);
+      if (matHit) url = MAT_ICON_URLS[matHit];
+    }
   }
-  if (!url) url = resolveCanonicalIcon(null, null, name);
+  // Prefer master-items category when we know it
+  let cat = null;
+  if (!url && typeof ITEM_DB !== 'undefined' && Array.isArray(ITEM_DB)) {
+    const row = ITEM_DB.find((i) => (i.name || '').toLowerCase() === key);
+    if (row) {
+      cat = row.category;
+      url = row.icon || resolveCanonicalIcon(row.icon, row.category, row.name);
+    }
+  }
+  if (!url) url = resolveCanonicalIcon(null, cat, name);
   if (typeof isForbiddenSpriteIconUrl === 'function' && isForbiddenSpriteIconUrl(url)) {
-    url = CRAFTING_UI_ICONS.management;
+    url = resolveCanonicalIcon(null, cat, name);
+  }
+  if (/management\.png/i.test(String(url || ''))) {
+    url = typeof ITEM_ICON_BROKEN_FALLBACK !== 'undefined'
+      ? ITEM_ICON_BROKEN_FALLBACK
+      : 'https://molochdagod.github.io/ObjectStore/icons/496_rpg_icons/I_Rock01.png';
   }
   if (url) return iconImgTag(url, name, cls, size);
   return emoji || '📦';
