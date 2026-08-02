@@ -10,26 +10,32 @@ import { dirname, join, resolve } from 'path';
 import { fileURLToPath } from 'url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const PUBLIC = resolve(__dirname, '../client/public');
-const CRAFT = join(PUBLIC, 'craft');
-const ICONS = join(PUBLIC, 'crafting-icons');
-const SRC_HTML = join(PUBLIC, 'grudge-crafting.html');
-const SRC_FLEET = join(PUBLIC, 'grudge-fleet.js');
+const CLIENT_PUBLIC = resolve(__dirname, '../client/public');
+const ROOT_PUBLIC = resolve(__dirname, '../public');
+const ICONS = join(CLIENT_PUBLIC, 'crafting-icons');
+const SRC_HTML = join(CLIENT_PUBLIC, 'grudge-crafting.html');
+const SRC_FLEET = join(CLIENT_PUBLIC, 'grudge-fleet.js');
+/** Ship under both trees: Vite/root public + client/public (copy-public-to-dist SSOT). */
+const CRAFT_DIRS = [join(CLIENT_PUBLIC, 'craft'), join(ROOT_PUBLIC, 'craft')];
 
-mkdirSync(join(CRAFT, 'crafting-icons'), { recursive: true });
 if (!existsSync(SRC_HTML)) {
   console.error('Missing', SRC_HTML);
   process.exit(1);
 }
 // Ensure UTF-8 is clean (no CP1252 mojibake like âœ“) before publishing
 const html = readFileSync(SRC_HTML, 'utf8');
-if ((html.match(/â|ðŸ/g) || []).length >= 20) {
+if ((html.match(/\u00e2|\u00f0\u0178/g) || []).length >= 20) {
   console.warn('[sync-craft-public] WARNING: mojibake markers in source — run: node scripts/fix-craft-mojibake.mjs');
 }
-copyFileSync(SRC_HTML, join(CRAFT, 'index.html'));
-if (existsSync(SRC_FLEET)) copyFileSync(SRC_FLEET, join(CRAFT, 'grudge-fleet.js'));
-if (existsSync(ICONS)) {
-  cpSync(ICONS, join(CRAFT, 'crafting-icons'), { recursive: true });
+
+for (const CRAFT of CRAFT_DIRS) {
+  mkdirSync(join(CRAFT, 'crafting-icons'), { recursive: true });
+  copyFileSync(SRC_HTML, join(CRAFT, 'index.html'));
+  if (existsSync(SRC_FLEET)) copyFileSync(SRC_FLEET, join(CRAFT, 'grudge-fleet.js'));
+  if (existsSync(ICONS)) {
+    cpSync(ICONS, join(CRAFT, 'crafting-icons'), { recursive: true });
+  }
+  console.log('[sync-craft-public] →', CRAFT);
 }
 
 // Puter legacy redirect shell (optional deploy to puter.site)
@@ -50,7 +56,8 @@ const puterRedirect = `<!DOCTYPE html>
 </body>
 </html>
 `;
-writeFileSync(join(PUBLIC, 'grudge-crafting-redirect.html'), puterRedirect);
+writeFileSync(join(CLIENT_PUBLIC, 'grudge-crafting-redirect.html'), puterRedirect);
 
-console.log('[sync-craft-public] → client/public/craft/index.html + icons');
+console.log('[sync-craft-public] dual tree: client/public/craft + public/craft');
 console.log('[sync-craft-public] canonical: https://grudgewarlords.com/craft/');
+console.log('[sync-craft-public] host:      https://craft.grudgewarlords.com/');

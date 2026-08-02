@@ -47,4 +47,13 @@ for (const src of sources) {
   await copyDirSafe(src, distDir);
 }
 
+// Hard gate: craft suite must ship on grudgewarlords.com/craft/ + craft.*
+const craftIndex = path.join(distDir, "craft", "index.html");
+if (!existsSync(craftIndex)) {
+  console.error(
+    "copy-public-to-dist: MISSING client/dist/craft/index.html — run: node scripts/sync-craft-public.mjs",
+  );
+  process.exit(1);
+}
 console.log("public assets copied to client/dist (client/public SSOT last)");
+console.log("craft suite present:", path.relative(repoRoot, craftIndex));
