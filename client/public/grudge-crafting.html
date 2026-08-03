@@ -19,9 +19,18 @@
     var un = g('grudge_username') || g('username');
     var charId = g('characterId') || g('char_id') || g('charId');
     if (token) {
-      localStorage.setItem('grudge_auth_token', token);
-      localStorage.setItem('grudge_session_token', token);
-      localStorage.setItem('grudge_studio_session', token);
+      // Mirror SPA fleet keys so craft + main app share one session
+      ['grudge_auth_token','grudge_session_token','grudge_studio_session','grudge.token','sso_token','access_token','grudge_token'].forEach(function(k){
+        try { localStorage.setItem(k, token); } catch(e) {}
+      });
+      try {
+        var host = location.hostname || '';
+        var domain = (host === 'grudgewarlords.com' || /\.grudgewarlords\.com$/i.test(host))
+          ? '; Domain=.grudgewarlords.com' : '';
+        var secure = location.protocol === 'https:' ? '; Secure' : '';
+        document.cookie = 'grudge_auth_token=' + encodeURIComponent(token) + '; path=/; max-age=1209600; SameSite=Lax' + secure + domain;
+        document.cookie = 'sso_token=' + encodeURIComponent(token) + '; path=/; max-age=1209600; SameSite=Lax' + secure + domain;
+      } catch (e) {}
     }
     if (gid) {
       localStorage.setItem('grudge_id', gid);
@@ -2444,11 +2453,27 @@ function buildCraftingLoginUrl(mode) {
   try {
     const u = new URL(window.location.href);
     ['token','sso_token','jwt','access_token','grudge_token','launch_token','grudge_id','grudgeId','username','grudge_username'].forEach((k) => u.searchParams.delete(k));
+    u.hash = '';
     ret = u.origin + u.pathname + (u.search || '');
   } catch (e) {}
+  // Prefer fleet helper (dual return params + origin + app) when loaded
+  if (typeof GrudgeFleet !== 'undefined' && typeof GrudgeFleet.buildLoginUrl === 'function') {
+    let url = GrudgeFleet.buildLoginUrl(ret);
+    if (mode === 'register') {
+      try {
+        const u2 = new URL(url);
+        u2.searchParams.set('mode', 'register');
+        return u2.toString();
+      } catch (e) { return url + (url.indexOf('?') >= 0 ? '&' : '?') + 'mode=register'; }
+    }
+    return url;
+  }
   const q = new URLSearchParams();
+  q.set('return', ret);
   q.set('redirect_uri', ret);
   q.set('redirect', ret);
+  q.set('origin', window.location.origin);
+  q.set('app', 'warlords-craft');
   if (mode === 'register') q.set('mode', 'register');
   return gateway.replace(/\/$/, '') + '/login?' + q.toString();
 }

@@ -1,30 +1,25 @@
 /**
  * Warlords production deployment pipeline (grudgewarlords.com runtime)
  *
- * Canonical player journey (2026-08 happy path):
- *   1. Opening intro video
- *   2. Character creation (Foundry / GCS)
- *   3. Airship — Warlords era 4-character scene (player + 3 crew) · also /combat
- *   4. Tutorial island (shipwreck) — required once
- *   5. Craft raft → complete tutorial
- *   6. Home-island intro + creation (given after tutorial — NOT level 20)
- *   7. Open world / map
+ * Canonical player journey:
+ *   1. Opening intro video (game lore)
+ *   2. First character creation (Foundry / GCS · grudge6)
+ *   3. Shipwreck tutorial island (required once per account)
+ *   4. After tutorial: airship handoff → home island
+ *   5. World map / open world
+ *   6. Later characters: Foundry → airship → home island (skip tutorial)
  *
- * Skip rules:
- *   - If account already has a home island → never force tutorial again
- *   - If tutorial complete flag is set → home island create/play
- *
- * Ops zone testing: https://info.grudge-studio.com/WORLD_MAP.html
+ * Ops / zone testing: https://info.grudge-studio.com/WORLD_MAP.html
  */
 
-/** Home island unlocks after tutorial + raft — level is never a gate. */
+/** Home island is available after tutorial (or once claimed). Legacy import name kept. */
 export const WARLORDS_HOME_ISLAND_MIN_LEVEL = 1 as const;
 
 export type WarlordsFlowStepId =
   | 'opening_scene'
   | 'character_create'
-  | 'airship'
   | 'tutorial'
+  | 'airship'
   | 'home_island'
   | 'world_map'
   | 'open_world';
@@ -37,10 +32,13 @@ export interface WarlordsFlowStep {
   description: string;
   /** Same-origin path (query optional) */
   path: string;
-  /** Minimum character level to enter (0 = always). Home island does NOT use level. */
+  /** Minimum character level to enter (0 = always) */
   minLevel: number;
+  /** Requires authenticated account */
   requiresAuth: boolean;
+  /** Requires an active character id in localStorage / session */
   requiresCharacter: boolean;
+  /** Local flag key when step is completed (optional) */
   completeFlagKey?: string;
   icon: string;
   badge: string;
@@ -52,9 +50,9 @@ export const WARLORDS_PRODUCTION_FLOW: WarlordsFlowStep[] = [
     id: 'opening_scene',
     order: 10,
     title: 'Opening Scene',
-    subtitle: 'Warlords intro video',
+    subtitle: 'Warlords intro video · lore',
     description:
-      'Era cinematic. Enter the app — sign in if needed, then create or pick a hero.',
+      'Watch the fleet intro so the era and start make sense. Sign in if needed, then create your first hero.',
     path: '/intro',
     minLevel: 0,
     requiresAuth: false,
@@ -69,7 +67,7 @@ export const WARLORDS_PRODUCTION_FLOW: WarlordsFlowStep[] = [
     title: 'Character Creation',
     subtitle: 'Foundry · Warlords era · grudge6',
     description:
-      'Create your hero at character.grudge-studio.com (Foundry). Returns via /airship with characterId.',
+      'Create your first hero at character.grudge-studio.com (Foundry). First hero returns to the shipwreck tutorial.',
     path: '/create-character',
     minLevel: 0,
     requiresAuth: true,
@@ -78,47 +76,46 @@ export const WARLORDS_PRODUCTION_FLOW: WarlordsFlowStep[] = [
     badge: 'Create',
   },
   {
-    id: 'airship',
-    order: 30,
-    title: 'Airship · Combat Tab',
-    subtitle: '4-character Warlords era scene',
-    description:
-      'Player captain + John Wayne (helm), Scourge (bow), Racalvin (mentor). /combat and /airship-zone are this scene.',
-    path: '/combat',
-    minLevel: 0,
-    requiresAuth: true,
-    requiresCharacter: true,
-    completeFlagKey: 'warlords_airship_seen_v1',
-    icon: 'anchor',
-    badge: 'Crew',
-  },
-  {
     id: 'tutorial',
-    order: 40,
-    title: 'Tutorial Island',
-    subtitle: 'Shipwreck · T0 harvest · craft raft',
+    order: 30,
+    title: 'Leviathan → Shipwreck Cove',
+    subtitle: 'Required once · attack · ship destroy · wash-up',
     description:
-      'Wash up, gather, craft tools and a raft. Required once — skipped forever after home island is claimed.',
-    path: '/tutorial',
+      'First voyage: leviathan attack cinema destroys the hull, then you wash up on chicken-gun pirate-islands (shipwreck_cove) for harvest / craft / raft. Complete once per account.',
+    path: '/shipwreck-cinema',
     minLevel: 0,
     requiresAuth: true,
     requiresCharacter: true,
     completeFlagKey: 'warlords_tutorial_complete_v1',
     icon: 'flame',
-    badge: 'Tutorial',
+    badge: 'Required',
+  },
+  {
+    id: 'airship',
+    order: 40,
+    title: 'Airship Handoff',
+    subtitle: 'Foundry → client bridge (after tutorial)',
+    description:
+      'After tutorial (and for every later hero): accept Foundry ?characterId=&from=gcs and forward to home island.',
+    path: '/airship',
+    minLevel: 0,
+    requiresAuth: true,
+    requiresCharacter: true,
+    completeFlagKey: 'warlords_airship_seen_v1',
+    icon: 'anchor',
+    badge: 'Handoff',
   },
   {
     id: 'home_island',
     order: 50,
     title: 'Home Island',
-    subtitle: 'Given after tutorial + raft · not level 20',
+    subtitle: 'After tutorial · 3D personal base',
     description:
-      'Home-island intro cinematic + creation. Unlocked when tutorial is finished (raft boarded) — never gated by level 20.',
-    path: '/homeisland?cinematic=abandon-ship&from=tutorial',
+      'Personal Three.js home island with terrain, harvest, and build. Unlocked after the first tutorial (no level-20 gate).',
+    path: '/home-island',
     minLevel: 0,
     requiresAuth: true,
     requiresCharacter: true,
-    completeFlagKey: 'warlords_home_island_claimed_v1',
     icon: 'leaf',
     badge: 'Base',
   },
@@ -126,8 +123,9 @@ export const WARLORDS_PRODUCTION_FLOW: WarlordsFlowStep[] = [
     id: 'world_map',
     order: 60,
     title: 'World Map',
-    subtitle: '9 sectors · era overview',
-    description: 'Strategic Warlords era map of the nine seas.',
+    subtitle: '9 sectors · in-game overview',
+    description:
+      'Strategic era map. Ops/testing use info.grudge-studio.com/WORLD_MAP.html for health + Play links.',
     path: '/world-map',
     minLevel: 0,
     requiresAuth: true,
@@ -139,9 +137,9 @@ export const WARLORDS_PRODUCTION_FLOW: WarlordsFlowStep[] = [
     id: 'open_world',
     order: 70,
     title: 'Open World Zones',
-    subtitle: 'Haven · lobby · grind',
+    subtitle: '9 sectors · mode=zone · worldSeed=grudge-world-1',
     description:
-      'Shared MMO sectors after you own a home island (or finished tutorial).',
+      'Shared MMO sectors (haven_shore default). Deep-link from info WORLD_MAP with skipIntro=1 for clean land-in.',
     path: '/play?sector=haven_shore&mode=zone&worldSeed=grudge-world-1&city=haven_port&skipIntro=1',
     minLevel: 0,
     requiresAuth: true,
@@ -157,13 +155,11 @@ export const WARLORDS_FLOW_BY_ID: Record<WarlordsFlowStepId, WarlordsFlowStep> =
     WarlordsFlowStep
   >;
 
-/** Session / local flags */
+/** Session / local flags (Warlords SPA origin only — not shared with Foundry host) */
 export const WARLORDS_FLOW_FLAGS = {
   openingSeen: 'warlords_opening_seen_v1',
   tutorialComplete: 'warlords_tutorial_complete_v1',
-  raftCrafted: 'warlords_raft_crafted_v1',
   airshipSeen: 'warlords_airship_seen_v1',
-  homeIslandClaimed: 'warlords_home_island_claimed_v1',
   homeIslandUnlockedShown: 'warlords_home_island_unlock_toast_v1',
 } as const;
 
@@ -171,20 +167,21 @@ export interface WarlordsProgressInput {
   isAuthenticated: boolean;
   hasCharacter: boolean;
   characterLevel: number;
+  /** localStorage flags */
   flags: {
     openingSeen?: boolean;
     tutorialComplete?: boolean;
     airshipSeen?: boolean;
-    raftCrafted?: boolean;
-    homeIslandClaimed?: boolean;
   };
   /** True if home_islands row exists for account */
   hasHomeIsland?: boolean;
 }
 
 export interface WarlordsProgressResult {
+  /** Recommended next step id */
   nextStepId: WarlordsFlowStepId;
   nextPath: string;
+  /** All steps with lock state for UI */
   steps: Array<
     WarlordsFlowStep & {
       locked: boolean;
@@ -195,33 +192,19 @@ export interface WarlordsProgressResult {
   >;
   homeIslandUnlocked: boolean;
   homeIslandMinLevel: typeof WARLORDS_HOME_ISLAND_MIN_LEVEL;
-  /** True when player should never re-enter tutorial */
-  skipTutorial: boolean;
 }
 
 /**
  * Resolve where the player should go next.
- *
- * Priority:
- *   intro → create → airship (once) → tutorial → home island (after raft/tutorial) → open world
- *   hasHomeIsland ⇒ skip tutorial forever
+ * First hero: intro → create → tutorial → home.
+ * After tutorial: create → airship → home (tutorial step marked done).
  */
 export function resolveWarlordsProgress(input: WarlordsProgressInput): WarlordsProgressResult {
   const level = Math.max(0, Math.floor(input.characterLevel || 0));
-  const hasHome =
-    !!input.hasHomeIsland ||
-    !!input.flags.homeIslandClaimed;
-  const tutorialDone =
-    !!input.flags.tutorialComplete ||
-    !!input.flags.raftCrafted ||
-    hasHome;
-  const openingSeen = !!input.flags.openingSeen || input.hasCharacter;
-  const airshipSeen = !!input.flags.airshipSeen || hasHome || tutorialDone;
-
-  // Home island is unlocked only after tutorial/raft OR already claimed — never by level
-  const homeIslandUnlocked = tutorialDone || hasHome;
-
-  const skipTutorial = hasHome || tutorialDone;
+  const tutorialDone = !!input.flags.tutorialComplete;
+  const openingSeen = !!input.flags.openingSeen;
+  const airshipSeen = !!input.flags.airshipSeen;
+  const homeIslandUnlocked = tutorialDone || !!input.hasHomeIsland || input.hasCharacter;
 
   const steps = WARLORDS_PRODUCTION_FLOW.map((step) => {
     let locked = false;
@@ -229,50 +212,50 @@ export function resolveWarlordsProgress(input: WarlordsProgressInput): WarlordsP
     let done = false;
 
     if (step.id === 'opening_scene') {
-      done = openingSeen;
+      done = openingSeen || input.hasCharacter;
     } else if (step.id === 'character_create') {
       done = input.hasCharacter;
       if (!input.isAuthenticated) {
         locked = true;
         lockReason = 'Sign in required';
       }
-    } else if (step.id === 'airship') {
-      done = airshipSeen;
-      if (!input.hasCharacter) {
-        locked = true;
-        lockReason = 'Create a character first';
-      }
     } else if (step.id === 'tutorial') {
       done = tutorialDone;
       if (!input.hasCharacter) {
         locked = true;
         lockReason = 'Create a character first';
-      } else if (hasHome) {
-        done = true;
-        lockReason = undefined;
+      }
+    } else if (step.id === 'airship') {
+      // Bridge used after tutorial (and for every later Foundry handoff)
+      done = airshipSeen || (!!input.hasHomeIsland && tutorialDone);
+      if (!input.hasCharacter) {
+        locked = true;
+        lockReason = 'Create a character first';
+      } else if (!tutorialDone) {
+        locked = true;
+        lockReason = 'Complete the shipwreck tutorial first';
       }
     } else if (step.id === 'home_island') {
-      done = hasHome;
+      done = !!input.hasHomeIsland;
       if (!input.hasCharacter) {
         locked = true;
         lockReason = 'Create a character first';
-      } else if (!tutorialDone && !hasHome) {
+      } else if (!tutorialDone) {
         locked = true;
-        lockReason = 'Finish tutorial island and craft a raft first';
+        lockReason = 'Complete the shipwreck tutorial first';
       }
     } else if (step.id === 'world_map' || step.id === 'open_world') {
-      done = hasHome;
+      done = !!input.hasHomeIsland || tutorialDone;
       if (!input.hasCharacter) {
         locked = true;
         lockReason = 'Create a character first';
-      } else if (!hasHome && !tutorialDone) {
+      } else if (!tutorialDone) {
         locked = true;
-        lockReason = 'Complete tutorial and claim home island first';
+        lockReason = 'Complete the shipwreck tutorial first';
       }
     }
 
-    // Explicit: never lock home island on character level
-    if (step.id !== 'home_island' && step.minLevel > 0 && level < step.minLevel) {
+    if (step.minLevel > 0 && level < step.minLevel) {
       locked = true;
       lockReason = lockReason || `Requires level ${step.minLevel}`;
     }
@@ -280,22 +263,13 @@ export function resolveWarlordsProgress(input: WarlordsProgressInput): WarlordsP
     return { ...step, locked, lockReason, done, isNext: false };
   });
 
+  // Next step: intro → create → tutorial (once) → home → open world
   let nextStepId: WarlordsFlowStepId = 'opening_scene';
-  if (!openingSeen && !input.hasCharacter) {
-    nextStepId = 'opening_scene';
-  } else if (!input.hasCharacter) {
-    nextStepId = 'character_create';
-  } else if (hasHome) {
-    // Returning player with base — hub play
-    nextStepId = 'open_world';
-  } else if (!airshipSeen) {
-    nextStepId = 'airship';
-  } else if (!tutorialDone) {
-    nextStepId = 'tutorial';
-  } else {
-    // Tutorial/raft done, need home island create
-    nextStepId = 'home_island';
-  }
+  if (!openingSeen && !input.hasCharacter) nextStepId = 'opening_scene';
+  else if (!input.hasCharacter) nextStepId = 'character_create';
+  else if (!tutorialDone) nextStepId = 'tutorial';
+  else if (!input.hasHomeIsland) nextStepId = 'home_island';
+  else nextStepId = 'open_world';
 
   const next = steps.find((s) => s.id === nextStepId) ?? steps[0];
   for (const s of steps) {
@@ -308,7 +282,6 @@ export function resolveWarlordsProgress(input: WarlordsProgressInput): WarlordsP
     steps,
     homeIslandUnlocked,
     homeIslandMinLevel: WARLORDS_HOME_ISLAND_MIN_LEVEL,
-    skipTutorial,
   };
 }
 
@@ -318,26 +291,74 @@ export function warlordsStepUrl(
   opts?: { characterId?: string; force?: boolean },
 ): string {
   const step = WARLORDS_FLOW_BY_ID[stepId];
-  let path = step?.path ?? '/tutorial';
+  let path = step?.path ?? '/home-island';
   if (opts?.characterId) {
     const sep = path.includes('?') ? '&' : '?';
     path = `${path}${sep}characterId=${encodeURIComponent(opts.characterId)}`;
   }
   if (opts?.force && stepId === 'home_island') {
     const sep = path.includes('?') ? '&' : '?';
-    path = `${path}${sep}unlock=1&from=tutorial`;
+    path = `${path}${sep}unlock=1`;
   }
   return path;
 }
 
-/** After raft / tutorial complete → home island intro (not pirate lobby, not L20) */
+/**
+ * Relative return path after Foundry create (no origin).
+ *
+ * First account play:
+ *   Leviathan attack cinema (ship destroy) → wash-up on /tutorial
+ *   (chicken-gun pirate-islands · shipwreck_cove)
+ * After tutorial:
+ *   /airship → home island
+ */
+export function postCreateReturnRelativePath(tutorialComplete: boolean): string {
+  if (tutorialComplete) {
+    return '/airship?from=gcs';
+  }
+  // Full-systems leviathan cut, then handoff to pirate-islands tutorial
+  return '/shipwreck-cinema?from=create';
+}
+
+/**
+ * Where /airship bridge should send a resolved characterId.
+ * First voyage still needs leviathan → shipwreck cove before home island.
+ */
+export function airshipForwardRelativePath(
+  characterId: string,
+  tutorialComplete: boolean,
+  from = 'gcs',
+): string {
+  const q = new URLSearchParams({
+    characterId,
+    from: String(from || 'gcs'),
+  });
+  if (tutorialComplete) {
+    return `/home-island?${q.toString()}`;
+  }
+  return `/shipwreck-cinema?${q.toString()}`;
+}
+
+/**
+ * Build tutorial wash-up URL on chicken-gun pirate-islands shipwreck_cove.
+ */
+export function tutorialShipwreckWashupPath(
+  characterId?: string | null,
+  from = 'shipwreck-intro',
+): string {
+  const q = new URLSearchParams({
+    from: String(from || 'shipwreck-intro'),
+    map: 'pirate-islands',
+    island: 'grudge-open-world',
+    wake: '1',
+  });
+  if (characterId) q.set('characterId', characterId);
+  return `/tutorial?${q.toString()}`;
+}
+
+/** After tutorial complete message — faction lobby ring */
 export const AFTER_TUTORIAL_PATH =
-  '/homeisland?cinematic=abandon-ship&from=tutorial' as const;
+  '/island-3d?mode=lobby&map=pirate-islands&from=tutorial&focus=faction' as const;
 
-export const HOME_ISLAND_UNLOCK_PATH =
-  '/homeisland?cinematic=abandon-ship&from=tutorial' as const;
+export const HOME_ISLAND_UNLOCK_PATH = '/home-island' as const;
 export const HOME_ISLAND_PLAY_PATH = '/home-island' as const;
-
-/** Combat tab = airship 4-character Warlords era scene */
-export const COMBAT_TAB_PATH = '/combat' as const;
-export const AIRSHIP_SCENE_PATH = '/airship-zone' as const;

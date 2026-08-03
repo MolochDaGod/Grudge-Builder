@@ -1,24 +1,18 @@
 /**
- * Client helpers for Warlords production onboarding (grudgewarlords.com).
- *
- * Flow: intro → create → airship (combat tab) → tutorial → raft → home island
- * Home island is NOT level-gated. Tutorial is skipped if home island already owned.
+ * Client helpers for Warlords production onboarding.
  */
 import {
   WARLORDS_FLOW_FLAGS,
   WARLORDS_HOME_ISLAND_MIN_LEVEL,
+  airshipForwardRelativePath,
+  postCreateReturnRelativePath,
   resolveWarlordsProgress,
   warlordsStepUrl,
-  AFTER_TUTORIAL_PATH,
   type WarlordsFlowStepId,
   type WarlordsProgressResult,
 } from '@shared/definitions/warlordsProductionFlow';
 
-export {
-  WARLORDS_HOME_ISLAND_MIN_LEVEL,
-  AFTER_TUTORIAL_PATH,
-  WARLORDS_FLOW_FLAGS,
-};
+export { WARLORDS_HOME_ISLAND_MIN_LEVEL };
 
 export function readFlowFlag(key: string): boolean {
   try {
@@ -41,30 +35,50 @@ export function markOpeningSeen(): void {
   setFlowFlag(WARLORDS_FLOW_FLAGS.openingSeen);
 }
 
-export function markAirshipSeen(): void {
-  setFlowFlag(WARLORDS_FLOW_FLAGS.airshipSeen);
-}
-
 export function markTutorialComplete(): void {
   setFlowFlag(WARLORDS_FLOW_FLAGS.tutorialComplete);
 }
 
-/** Raft craft/board — same unlock gate as tutorial complete for home island */
-export function markRaftCrafted(): void {
-  setFlowFlag(WARLORDS_FLOW_FLAGS.raftCrafted);
-  setFlowFlag(WARLORDS_FLOW_FLAGS.tutorialComplete);
+export function markAirshipSeen(): void {
+  setFlowFlag(WARLORDS_FLOW_FLAGS.airshipSeen);
 }
 
-export function markHomeIslandClaimed(): void {
-  setFlowFlag(WARLORDS_FLOW_FLAGS.homeIslandClaimed);
-}
-
+/** True once this browser completed shipwreck tutorial (account first voyage). */
 export function isTutorialComplete(): boolean {
-  return (
-    readFlowFlag(WARLORDS_FLOW_FLAGS.tutorialComplete) ||
-    readFlowFlag(WARLORDS_FLOW_FLAGS.raftCrafted) ||
-    readFlowFlag(WARLORDS_FLOW_FLAGS.homeIslandClaimed)
-  );
+  return readFlowFlag(WARLORDS_FLOW_FLAGS.tutorialComplete);
+}
+
+export function isOpeningSeen(): boolean {
+  return readFlowFlag(WARLORDS_FLOW_FLAGS.openingSeen);
+}
+
+/**
+ * Relative path for Foundry returnTo after create.
+ * First play: leviathan cinema → pirate-islands wash-up tutorial.
+ * After tutorial: /airship → home island.
+ */
+export function postCreatePlayPath(): string {
+  return postCreateReturnRelativePath(isTutorialComplete());
+}
+
+/**
+ * Absolute same-origin URL for Foundry returnTo.
+ */
+export function postCreatePlayAbsoluteUrl(): string {
+  if (typeof window === 'undefined') {
+    return `https://grudgewarlords.com${postCreatePlayPath()}`;
+  }
+  return `${window.location.origin}${postCreatePlayPath()}`;
+}
+
+/**
+ * /airship bridge target after characterId is known.
+ */
+export function resolveAirshipForward(
+  characterId: string,
+  from: string = 'gcs',
+): string {
+  return airshipForwardRelativePath(characterId, isTutorialComplete(), from);
 }
 
 export function getActiveCharacterId(): string | null {
@@ -95,25 +109,18 @@ export function buildWarlordsProgress(opts: {
       openingSeen: readFlowFlag(WARLORDS_FLOW_FLAGS.openingSeen),
       tutorialComplete: readFlowFlag(WARLORDS_FLOW_FLAGS.tutorialComplete),
       airshipSeen: readFlowFlag(WARLORDS_FLOW_FLAGS.airshipSeen),
-      raftCrafted: readFlowFlag(WARLORDS_FLOW_FLAGS.raftCrafted),
-      homeIslandClaimed: readFlowFlag(WARLORDS_FLOW_FLAGS.homeIslandClaimed),
     },
   });
 }
 
-/** Always true once character exists — level is never the gate */
-export function canEnterHomeIsland(_level: number, opts?: {
-  tutorialComplete?: boolean;
-  hasHomeIsland?: boolean;
-}): boolean {
-  if (opts?.hasHomeIsland) return true;
-  if (opts?.tutorialComplete ?? isTutorialComplete()) return true;
-  return false;
+export function canEnterHomeIsland(_level?: number): boolean {
+  // Home island after tutorial complete (or force query handled by page)
+  return isTutorialComplete();
 }
 
-export function homeIslandLockMessage(_level: number): string {
+export function homeIslandLockMessage(_level?: number): string {
   if (isTutorialComplete()) return '';
-  return 'Finish tutorial island and craft a raft to unlock your home island.';
+  return 'Complete the shipwreck tutorial with your first hero first.';
 }
 
 export function stepPath(
@@ -121,14 +128,4 @@ export function stepPath(
   characterId?: string | null,
 ): string {
   return warlordsStepUrl(id, { characterId: characterId || undefined });
-}
-
-/** Smart entry for Play CTA — returns path for current onboarding state */
-export function resolvePlayEntryPath(opts: {
-  isAuthenticated: boolean;
-  characterLevel?: number;
-  hasHomeIsland?: boolean;
-}): string {
-  const p = buildWarlordsProgress(opts);
-  return p.nextPath;
 }

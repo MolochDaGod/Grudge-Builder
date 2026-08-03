@@ -95,7 +95,20 @@ if (!rootEl) {
     if (finished) return;
     finished = true;
     cinema?.dispose();
-    window.location.href = '/tutorial?from=shipwreck-intro';
+    try {
+      sessionStorage.setItem('grudge_shipwreck_intro_seen_v11', '1');
+    } catch { /* */ }
+    // Chicken-gun pirate-islands · shipwreck_cove wash-up
+    const q = new URLSearchParams(window.location.search);
+    const cid = q.get('characterId') || '';
+    const dest = new URLSearchParams({
+      from: 'shipwreck-intro',
+      map: 'pirate-islands',
+      island: 'grudge-open-world',
+      wake: '1',
+    });
+    if (cid) dest.set('characterId', cid);
+    window.location.href = `/tutorial?${dest.toString()}`;
   };
 
   let cinema: LeviathanOceanCinema | null = null;

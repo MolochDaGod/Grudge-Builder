@@ -1,0 +1,686 @@
+{
+  "alias": [
+    "client.grudge-studio.com",
+    "warlord3d.grudge-studio.com",
+    "grudgewarlords.com",
+    "www.grudgewarlords.com",
+    "craft.grudgewarlords.com"
+  ],
+  "buildCommand": "npm run build:client",
+  "outputDirectory": "client/dist",
+  "devCommand": "npm run dev:client",
+  "installCommand": "npm install --legacy-peer-deps --include=dev",
+  "framework": null,
+  "build": {
+    "env": {
+      "NODE_VERSION": "22"
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/",
+      "has": [{ "type": "host", "value": "craft.grudgewarlords.com" }],
+      "destination": "/craft/index.html"
+    },
+    {
+      "source": "/((?!api/|craft/).*)",
+      "has": [{ "type": "host", "value": "craft.grudgewarlords.com" }],
+      "destination": "/craft/$1"
+    },
+    {
+      "source": "/api/assets/:path*",
+      "destination": "https://assets.grudge-studio.com/:path*"
+    },
+    {
+      "source": "/sprites/:path*",
+      "destination": "https://assets.grudge-studio.com/sprites/:path*"
+    },
+    {
+      "source": "/icons/:path*",
+      "destination": "https://assets.grudge-studio.com/icons/:path*"
+    },
+    {
+      "source": "/videos/:path*",
+      "destination": "https://assets.grudge-studio.com/videos/:path*"
+    },
+    {
+      "source": "/fonts/:path*",
+      "destination": "https://assets.grudge-studio.com/fonts/:path*"
+    },
+    {
+      "source": "/models/:path*",
+      "destination": "https://assets.grudge-studio.com/models/:path*"
+    },
+    {
+      "source": "/api/objectstore/:path*",
+      "destination": "https://objectstore.grudge-studio.com/api/:path*"
+    },
+    {
+      "source": "/health",
+      "destination": "https://grudge-api-production-0d46.up.railway.app/api/health"
+    },
+    {
+      "source": "/api/health",
+      "destination": "https://grudge-api-production-0d46.up.railway.app/api/health"
+    },
+    {
+      "source": "/api/colyseus/health",
+      "destination": "https://grudge-api-production-0d46.up.railway.app/api/colyseus/health"
+    },
+    {
+      "source": "/matchmake/:path*",
+      "destination": "https://grudge-api-production-0d46.up.railway.app/matchmake/:path*"
+    },
+    {
+      "source": "/api/health/:path*",
+      "destination": "https://grudge-api-production-0d46.up.railway.app/api/health/:path*"
+    },
+    {
+      "source": "/api/characters",
+      "destination": "https://grudge-api-production-0d46.up.railway.app/api/characters"
+    },
+    {
+      "source": "/api/characters/:path*",
+      "destination": "https://grudge-api-production-0d46.up.railway.app/api/characters/:path*"
+    },
+    {
+      "source": "/api/party",
+      "destination": "https://grudge-api-production-0d46.up.railway.app/api/party"
+    },
+    {
+      "source": "/api/party/:path*",
+      "destination": "https://grudge-api-production-0d46.up.railway.app/api/party/:path*"
+    },
+    {
+      "source": "/api/account",
+      "destination": "https://grudge-api-production-0d46.up.railway.app/api/account"
+    },
+    {
+      "source": "/api/account/:path*",
+      "destination": "https://grudge-api-production-0d46.up.railway.app/api/account/:path*"
+    },
+    {
+      "source": "/api/island",
+      "destination": "https://grudge-api-production-0d46.up.railway.app/api/island"
+    },
+    {
+      "source": "/api/island/:path*",
+      "destination": "https://grudge-api-production-0d46.up.railway.app/api/island/:path*"
+    },
+    {
+      "source": "/api/islands",
+      "destination": "https://grudge-api-production-0d46.up.railway.app/api/islands"
+    },
+    {
+      "source": "/api/islands/:path*",
+      "destination": "https://grudge-api-production-0d46.up.railway.app/api/islands/:path*"
+    },
+    {
+      "source": "/api/inventory",
+      "destination": "https://grudge-api-production-0d46.up.railway.app/api/inventory"
+    },
+    {
+      "source": "/api/inventory/:path*",
+      "destination": "https://grudge-api-production-0d46.up.railway.app/api/inventory/:path*"
+    },
+    {
+      "source": "/api/wallet",
+      "destination": "https://grudge-api-production-0d46.up.railway.app/api/wallet"
+    },
+    {
+      "source": "/api/wallet/:path*",
+      "destination": "https://grudge-api-production-0d46.up.railway.app/api/wallet/:path*"
+    },
+    {
+      "source": "/api/nfts",
+      "destination": "https://grudge-api-production-0d46.up.railway.app/api/nfts"
+    },
+    {
+      "source": "/api/nfts/:path*",
+      "destination": "https://grudge-api-production-0d46.up.railway.app/api/nfts/:path*"
+    },
+    {
+      "source": "/api/island-nfts",
+      "destination": "https://grudge-api-production-0d46.up.railway.app/api/island-nfts"
+    },
+    {
+      "source": "/api/island-nfts/:path*",
+      "destination": "https://grudge-api-production-0d46.up.railway.app/api/island-nfts/:path*"
+    },
+    {
+      "source": "/api/professions",
+      "destination": "https://grudge-api-production-0d46.up.railway.app/api/professions"
+    },
+    {
+      "source": "/api/professions/:path*",
+      "destination": "https://grudge-api-production-0d46.up.railway.app/api/professions/:path*"
+    },
+    {
+      "source": "/api/missions",
+      "destination": "https://grudge-api-production-0d46.up.railway.app/api/missions"
+    },
+    {
+      "source": "/api/missions/:path*",
+      "destination": "https://grudge-api-production-0d46.up.railway.app/api/missions/:path*"
+    },
+    {
+      "source": "/api/player",
+      "destination": "https://grudge-api-production-0d46.up.railway.app/api/player"
+    },
+    {
+      "source": "/api/player/:path*",
+      "destination": "https://grudge-api-production-0d46.up.railway.app/api/player/:path*"
+    },
+    {
+      "source": "/api/resource-nodes",
+      "destination": "https://grudge-api-production-0d46.up.railway.app/api/resource-nodes"
+    },
+    {
+      "source": "/api/resource-nodes/:path*",
+      "destination": "https://grudge-api-production-0d46.up.railway.app/api/resource-nodes/:path*"
+    },
+    {
+      "source": "/api/resources",
+      "destination": "https://grudge-api-production-0d46.up.railway.app/api/resources"
+    },
+    {
+      "source": "/api/resources/:path*",
+      "destination": "https://grudge-api-production-0d46.up.railway.app/api/resources/:path*"
+    },
+    {
+      "source": "/api/sprites",
+      "destination": "https://grudge-api-production-0d46.up.railway.app/api/sprites"
+    },
+    {
+      "source": "/api/sprites/:path*",
+      "destination": "https://grudge-api-production-0d46.up.railway.app/api/sprites/:path*"
+    },
+    {
+      "source": "/api/generate-dungeon",
+      "destination": "https://grudge-api-production-0d46.up.railway.app/api/generate-dungeon"
+    },
+    {
+      "source": "/api/generate-dungeon/:path*",
+      "destination": "https://grudge-api-production-0d46.up.railway.app/api/generate-dungeon/:path*"
+    },
+    {
+      "source": "/api/fleet",
+      "destination": "https://grudge-api-production-0d46.up.railway.app/api/fleet"
+    },
+    {
+      "source": "/api/fleet/:path*",
+      "destination": "https://grudge-api-production-0d46.up.railway.app/api/fleet/:path*"
+    },
+    {
+      "source": "/api/supabase",
+      "destination": "https://grudge-api-production-0d46.up.railway.app/api/supabase"
+    },
+    {
+      "source": "/api/supabase/:path*",
+      "destination": "https://grudge-api-production-0d46.up.railway.app/api/supabase/:path*"
+    },
+    {
+      "source": "/api/lore",
+      "destination": "https://grudge-api-production-0d46.up.railway.app/api/lore"
+    },
+    {
+      "source": "/api/lore/:path*",
+      "destination": "https://grudge-api-production-0d46.up.railway.app/api/lore/:path*"
+    },
+    {
+      "source": "/api/combat-challenges",
+      "destination": "https://grudge-api-production-0d46.up.railway.app/api/combat-challenges"
+    },
+    {
+      "source": "/api/combat-challenges/:path*",
+      "destination": "https://grudge-api-production-0d46.up.railway.app/api/combat-challenges/:path*"
+    },
+    {
+      "source": "/api/story-arcs",
+      "destination": "https://grudge-api-production-0d46.up.railway.app/api/story-arcs"
+    },
+    {
+      "source": "/api/story-arcs/:path*",
+      "destination": "https://grudge-api-production-0d46.up.railway.app/api/story-arcs/:path*"
+    },
+    {
+      "source": "/api/skills",
+      "destination": "https://grudge-api-production-0d46.up.railway.app/api/skills"
+    },
+    {
+      "source": "/api/skills/:path*",
+      "destination": "https://grudge-api-production-0d46.up.railway.app/api/skills/:path*"
+    },
+    {
+      "source": "/api/sheets",
+      "destination": "https://grudge-api-production-0d46.up.railway.app/api/sheets"
+    },
+    {
+      "source": "/api/sheets/:path*",
+      "destination": "https://grudge-api-production-0d46.up.railway.app/api/sheets/:path*"
+    },
+    {
+      "source": "/api/aseprite",
+      "destination": "https://grudge-api-production-0d46.up.railway.app/api/aseprite"
+    },
+    {
+      "source": "/api/aseprite/:path*",
+      "destination": "https://grudge-api-production-0d46.up.railway.app/api/aseprite/:path*"
+    },
+    {
+      "source": "/api/sprite-specs",
+      "destination": "https://grudge-api-production-0d46.up.railway.app/api/sprite-specs"
+    },
+    {
+      "source": "/api/sprite-specs/:path*",
+      "destination": "https://grudge-api-production-0d46.up.railway.app/api/sprite-specs/:path*"
+    },
+    {
+      "source": "/api/sprite-generation-jobs",
+      "destination": "https://grudge-api-production-0d46.up.railway.app/api/sprite-generation-jobs"
+    },
+    {
+      "source": "/api/sprite-generation-jobs/:path*",
+      "destination": "https://grudge-api-production-0d46.up.railway.app/api/sprite-generation-jobs/:path*"
+    },
+    {
+      "source": "/api/admin",
+      "destination": "https://grudge-api-production-0d46.up.railway.app/api/admin"
+    },
+    {
+      "source": "/api/admin/:path*",
+      "destination": "https://grudge-api-production-0d46.up.railway.app/api/admin/:path*"
+    },
+    {
+      "source": "/api/activity",
+      "destination": "https://grudge-api-production-0d46.up.railway.app/api/activity"
+    },
+    {
+      "source": "/api/activity/:path*",
+      "destination": "https://grudge-api-production-0d46.up.railway.app/api/activity/:path*"
+    },
+    {
+      "source": "/api/analytics",
+      "destination": "https://grudge-api-production-0d46.up.railway.app/api/analytics"
+    },
+    {
+      "source": "/api/analytics/:path*",
+      "destination": "https://grudge-api-production-0d46.up.railway.app/api/analytics/:path*"
+    },
+    {
+      "source": "/api/crafting",
+      "destination": "https://grudge-api-production-0d46.up.railway.app/api/crafting"
+    },
+    {
+      "source": "/api/crafting/:path*",
+      "destination": "https://grudge-api-production-0d46.up.railway.app/api/crafting/:path*"
+    },
+    {
+      "source": "/api/harvest",
+      "destination": "https://grudge-api-production-0d46.up.railway.app/api/harvest"
+    },
+    {
+      "source": "/api/harvest/:path*",
+      "destination": "https://grudge-api-production-0d46.up.railway.app/api/harvest/:path*"
+    },
+    {
+      "source": "/api/combat",
+      "destination": "https://grudge-api-production-0d46.up.railway.app/api/combat"
+    },
+    {
+      "source": "/api/combat/:path*",
+      "destination": "https://grudge-api-production-0d46.up.railway.app/api/combat/:path*"
+    },
+    {
+      "source": "/api/rts",
+      "destination": "https://grudge-api-production-0d46.up.railway.app/api/rts"
+    },
+    {
+      "source": "/api/rts/:path*",
+      "destination": "https://grudge-api-production-0d46.up.railway.app/api/rts/:path*"
+    },
+    {
+      "source": "/api/discord",
+      "destination": "https://grudge-api-production-0d46.up.railway.app/api/discord"
+    },
+    {
+      "source": "/api/discord/:path*",
+      "destination": "https://grudge-api-production-0d46.up.railway.app/api/discord/:path*"
+    },
+    {
+      "source": "/api/videos",
+      "destination": "https://grudge-api-production-0d46.up.railway.app/api/videos"
+    },
+    {
+      "source": "/api/videos/:path*",
+      "destination": "https://grudge-api-production-0d46.up.railway.app/api/videos/:path*"
+    },
+    {
+      "source": "/api/races",
+      "destination": "https://grudge-api-production-0d46.up.railway.app/api/races"
+    },
+    {
+      "source": "/api/races/:path*",
+      "destination": "https://grudge-api-production-0d46.up.railway.app/api/races/:path*"
+    },
+    {
+      "source": "/api/classes",
+      "destination": "https://grudge-api-production-0d46.up.railway.app/api/classes"
+    },
+    {
+      "source": "/api/classes/:path*",
+      "destination": "https://grudge-api-production-0d46.up.railway.app/api/classes/:path*"
+    },
+    {
+      "source": "/api/items",
+      "destination": "https://grudge-api-production-0d46.up.railway.app/api/items"
+    },
+    {
+      "source": "/api/items/:path*",
+      "destination": "https://grudge-api-production-0d46.up.railway.app/api/items/:path*"
+    },
+    {
+      "source": "/api/spells",
+      "destination": "https://grudge-api-production-0d46.up.railway.app/api/spells"
+    },
+    {
+      "source": "/api/spells/:path*",
+      "destination": "https://grudge-api-production-0d46.up.railway.app/api/spells/:path*"
+    },
+    {
+      "source": "/api/monsters",
+      "destination": "https://grudge-api-production-0d46.up.railway.app/api/monsters"
+    },
+    {
+      "source": "/api/monsters/:path*",
+      "destination": "https://grudge-api-production-0d46.up.railway.app/api/monsters/:path*"
+    },
+    {
+      "source": "/api/maps",
+      "destination": "https://grudge-api-production-0d46.up.railway.app/api/maps"
+    },
+    {
+      "source": "/api/maps/:path*",
+      "destination": "https://grudge-api-production-0d46.up.railway.app/api/maps/:path*"
+    },
+    {
+      "source": "/api/launcher",
+      "destination": "https://grudge-api-production-0d46.up.railway.app/api/launcher"
+    },
+    {
+      "source": "/api/launcher/:path*",
+      "destination": "https://grudge-api-production-0d46.up.railway.app/api/launcher/:path*"
+    },
+    {
+      "source": "/api/ai-units",
+      "destination": "https://grudge-api-production-0d46.up.railway.app/api/ai-units"
+    },
+    {
+      "source": "/api/ai-units/:path*",
+      "destination": "https://grudge-api-production-0d46.up.railway.app/api/ai-units/:path*"
+    },
+    {
+      "source": "/api/rewards",
+      "destination": "https://grudge-api-production-0d46.up.railway.app/api/rewards"
+    },
+    {
+      "source": "/api/rewards/:path*",
+      "destination": "https://grudge-api-production-0d46.up.railway.app/api/rewards/:path*"
+    },
+    {
+      "source": "/api/game/:path*",
+      "destination": "https://grudge-api-production-0d46.up.railway.app/api/:path*"
+    },
+    {
+      "source": "/auth/callback",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/api/auth",
+      "destination": "https://grudge-api-production-0d46.up.railway.app/api/auth"
+    },
+    {
+      "source": "/api/auth/:path*",
+      "destination": "https://grudge-api-production-0d46.up.railway.app/api/auth/:path*"
+    },
+    {
+      "source": "/auth",
+      "destination": "https://grudge-api-production-0d46.up.railway.app/api/auth"
+    },
+    {
+      "source": "/auth/:path*",
+      "destination": "https://grudge-api-production-0d46.up.railway.app/api/auth/:path*"
+    },
+    {
+      "source": "/login",
+      "destination": "https://grudge-api-production-0d46.up.railway.app/api/auth/page"
+    },
+    {
+      "source": "/api/war",
+      "destination": "https://grudge-api-production-0d46.up.railway.app/api/war"
+    },
+    {
+      "source": "/api/war/:path*",
+      "destination": "https://grudge-api-production-0d46.up.railway.app/api/war/:path*"
+    },
+    {
+      "source": "/api/treaty",
+      "destination": "https://grudge-api-production-0d46.up.railway.app/api/treaty"
+    },
+    {
+      "source": "/api/treaty/:path*",
+      "destination": "https://grudge-api-production-0d46.up.railway.app/api/treaty/:path*"
+    },
+    {
+      "source": "/api/ai/gateway/:path*",
+      "destination": "https://grudge-api-production-0d46.up.railway.app/api/ai/gateway/:path*"
+    },
+    {
+      "source": "/api/ai/rag/:path*",
+      "destination": "https://grudge-api-production-0d46.up.railway.app/api/ai/rag/:path*"
+    },
+    {
+      "source": "/api/ai/ollama/:path*",
+      "destination": "https://grudge-api-production-0d46.up.railway.app/api/ai/ollama/:path*"
+    },
+    {
+      "source": "/api/ai/:path*",
+      "destination": "https://ai.grudge-studio.com/:path*"
+    },
+    {
+      "source": "/api/:path*",
+      "destination": "https://grudge-studio.com/api/:path*"
+    },
+    {
+      "source": "/api/polyhaven/:path*",
+      "destination": "https://api.polyhaven.com/:path*"
+    },
+    {
+      "source": "/api/polyhaven-dl/:path*",
+      "destination": "https://dl.polyhaven.org/:path*"
+    },
+    {
+      "source": "/models/lobby/pirate-islands/:path*",
+      "destination": "https://assets.grudge-studio.com/models/lobby/pirate-islands/:path*"
+    },
+    {
+      "source": "/skill-tree.html",
+      "destination": "/skill-tree.html"
+    },
+    {
+      "source": "/hero-codex",
+      "destination": "/hero-codex/index.html"
+    },
+    {
+      "source": "/hero-codex/",
+      "destination": "/hero-codex/index.html"
+    },
+    {
+      "source": "/craft",
+      "destination": "/craft/index.html"
+    },
+    {
+      "source": "/craft/",
+      "destination": "/craft/index.html"
+    },
+    {
+      "source": "/wcs",
+      "destination": "/craft/index.html"
+    },
+    {
+      "source": "/wcs/",
+      "destination": "/craft/index.html"
+    },
+    {
+      "source": "/map/:mapId",
+      "destination": "https://world.grudge-studio.com/map/:mapId"
+    },
+    {
+      "source": "/models/lobby/:mapId/scene.glb",
+      "destination": "https://world.grudge-studio.com/models/lobby/:mapId/scene.glb"
+    },
+    {
+      "source": "/models/:path*",
+      "destination": "https://assets.grudge-studio.com/models/:path*"
+    },
+    {
+      "source": "/((?!api/|assets/|sprites/|icons/|fonts/|videos/|models/|textures/|.*\\.[a-zA-Z0-9]+$).*)",
+      "destination": "/index.html"
+    }
+  ],
+  "env": {
+    "VITE_API_URL": "https://grudge-studio.com",
+    "VITE_PVP_SERVER_URL": "wss://world.grudge-studio.com",
+    "VITE_ASSETS_URL": "https://assets.grudge-studio.com",
+    "VITE_OBJECTSTORE_URL": "https://objectstore.grudge-studio.com/api/v1",
+    "VITE_GAME_DATA_API": "https://grudge-api-production-0d46.up.railway.app",
+    "VITE_COLYSEUS_URL": "wss://grudge-api-production-0d46.up.railway.app",
+    "VITE_AI_URL": "https://ai.grudge-studio.com",
+    "VITE_AUTH_GATEWAY_URL": "https://id.grudge-studio.com"
+  },
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "SAMEORIGIN"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "no-referrer-when-downgrade"
+        },
+        {
+          "key": "Permissions-Policy",
+          "value": "camera=(), microphone=(), geolocation=()"
+        },
+        {
+          "key": "Content-Security-Policy",
+          "value": "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.puter.com https://static.cloudflareinsights.com https://*.grudge-studio.com https://*.vercel.app https://vercel.live; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://assets.grudge-studio.com; font-src 'self' https://fonts.gstatic.com https://assets.grudge-studio.com https://vercel.live data:; img-src 'self' data: blob: https: http:; connect-src 'self' https: wss: data: blob:; frame-src 'self' https://*.puter.com https://*.puter.site https://*.grudge-studio.com https://*.vercel.app https://vercel.live; media-src 'self' https://assets.grudge-studio.com blob: data:; worker-src 'self' blob:"
+        }
+      ]
+    },
+    {
+      "source": "/editor",
+      "headers": [
+        {
+          "key": "Cross-Origin-Embedder-Policy",
+          "value": "require-corp"
+        },
+        {
+          "key": "Cross-Origin-Opener-Policy",
+          "value": "same-origin"
+        }
+      ]
+    },
+    {
+      "source": "/assets/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
+      ]
+    },
+    {
+      "source": "/sprites/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=86400, stale-while-revalidate=3600"
+        }
+      ]
+    },
+    {
+      "source": "/models/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=86400, stale-while-revalidate=3600"
+        }
+      ]
+    },
+    {
+      "source": "/api/:path*",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-store"
+        },
+        {
+          "key": "X-Grudge-Proxy",
+          "value": "vercel"
+        }
+      ]
+    },
+    {
+      "source": "/shipwreck-cinema",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=0, must-revalidate"
+        }
+      ]
+    },
+    {
+      "source": "/shipwreck-cinema.html",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=0, must-revalidate"
+        }
+      ]
+    },
+    {
+      "source": "/island-3d",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=0, must-revalidate"
+        }
+      ]
+    },
+    {
+      "source": "/leviathan-cinema",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=0, must-revalidate"
+        }
+      ]
+    },
+    {
+      "source": "/index.html",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=0, must-revalidate"
+        }
+      ]
+    }
+  ]
+}

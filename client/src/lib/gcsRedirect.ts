@@ -13,6 +13,7 @@ import {
   type GameEra,
 } from "@shared/definitions/gameEras";
 import { getToken } from "./grudgeBackend";
+import { postCreatePlayPath } from "./warlordsOnboarding";
 
 export type GcsLaunchMode = "landing" | "create";
 
@@ -46,12 +47,20 @@ export function isAllowedReturnUrl(url: string): boolean {
 }
 
 /**
- * Default return after GCS save — /airship bridge → home-island (Foundry SSOT).
- * Prefer Warlords product zone (*.grudgewarlords.com / apex) over studio client.*.
+ * Default return after GCS save.
+ * First account voyage (tutorial not complete): /tutorial island.
+ * After tutorial: /airship bridge → home island (later heroes too).
+ * Prefer Warlords product zone over studio client.*.
  * Never return into character.grudge-studio.com/viewer.
  */
-export function defaultWarlordsReturnTo(path = "/airship"): string {
-  const p = path.startsWith("/") ? path : `/${path}`;
+export function defaultWarlordsReturnTo(path?: string): string {
+  const resolved =
+    path && path.startsWith("/")
+      ? path
+      : typeof window !== "undefined"
+        ? postCreatePlayPath()
+        : "/tutorial?from=gcs";
+  const p = resolved.startsWith("/") ? resolved : `/${resolved}`;
   // Same-origin when already on a Warlords play host (apex, play.*, client.*)
   if (typeof window !== "undefined") {
     try {
@@ -89,16 +98,20 @@ export function buildGcsUrl(options: BuildGcsUrlOptions = {}): string {
 
   params.set("era", era);
 
+  // Create only when explicitly requested — never imply create via returnTo alone
+  // (Foundry EntryGate used to treat returnTo as create → infinite foundry loop).
   if (options.mode === "create") {
     params.set("mode", "create");
+    params.set("entry", "warlords_play");
   }
 
-  const returnTo = options.returnTo ?? defaultWarlordsReturnTo("/airship");
-  if (isAllowedReturnUrl(returnTo)) {
+  // Stash return for post-save OR post-pick play. Never forces Foundry by itself.
+  const returnTo =
+    options.returnTo ??
+    (options.mode === "create" ? defaultWarlordsReturnTo() : undefined);
+  if (returnTo && isAllowedReturnUrl(returnTo)) {
     params.set("returnTo", returnTo);
   }
-  // Hint Character Studio: Warlords era → airship → home-island (not /viewer lab)
-  params.set("entry", "airship_warlords");
 
   const token = getToken() || localStorage.getItem("grudge_auth_token");
   if (token) params.set("grudge_token", token);

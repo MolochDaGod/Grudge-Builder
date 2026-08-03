@@ -567,8 +567,8 @@ export const LEVIATHAN_BATTLE_SCRIPT: readonly CinBattleBeat[] = [
   {
     t: 31,
     id: 'breach',
-    caption: 'BREACH',
-    sub: 'Roar into the pinata. Timber becomes confetti. You leave the deck.',
+    caption: 'SHIP DESTROYED',
+    sub: 'Leviathan breach — hull pinata. Timbers explode. You are thrown clear of the wreck.',
     camEye: 'cam_breach_eye',
     camLook: 'cam_breach_look',
     camMode: 'cut',
@@ -737,8 +737,8 @@ export const LEVIATHAN_BATTLE_SCRIPT: readonly CinBattleBeat[] = [
   {
     t: 52,
     id: 'handoff',
-    caption: 'GRUDGE WARLORDS',
-    sub: 'Wash up on the tutorial shore · chicken-gun pirate map awaits',
+    caption: 'SHIPWRECK COVE',
+    sub: 'Leviathan shattered the hull · you wash up on pirate-islands (chicken-gun map) · tutorial shore',
     camEye: 'cam_blackout_eye',
     camLook: 'cam_blackout_look',
     heroMode: 'hidden',

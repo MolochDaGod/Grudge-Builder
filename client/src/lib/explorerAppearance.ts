@@ -92,8 +92,10 @@ export function readOpenSelectedCharacterId(): string | null {
 }
 
 /**
- * Apply explorer body ranges after mesh is fit to ~1.8 m.
- * Uses root uniform scale for height; light XZ bulk from weight.
+ * Apply explorer body ranges after mesh is already SI-fit (~1.55–2.05 m).
+ *
+ * HARD RULE: never `root.scale.set(≈1)` — that destroys classic cm→m decade
+ * fit (0.01) and makes heroes 100× giant. Multiply onto the current scale only.
  */
 export function applyExplorerAppearanceToRoot(
   root: THREE.Object3D,
@@ -102,12 +104,27 @@ export function applyExplorerAppearanceToRoot(
 ): number {
   const a = normalizeAppearance(app);
   const hM = heightMeters(a);
-  const uniform = hM / Math.max(0.5, baseHeightM);
+  const relative = hM / Math.max(0.5, baseHeightM);
   const bulk = lerp(0.9, 1.12, a.weight);
-  root.scale.set(uniform * bulk, uniform, uniform * bulk);
+
+  // Multiply — preserve unit decade (0.01 / 0.1 / …) already on the root
+  const sx = Math.max(1e-8, Math.abs(root.scale.x) || 1);
+  const sy = Math.max(1e-8, Math.abs(root.scale.y) || 1);
+  const sz = Math.max(1e-8, Math.abs(root.scale.z) || 1);
+  root.scale.set(sx * relative * bulk, sy * relative, sz * relative * bulk);
   root.updateMatrixWorld(true);
+
+  // Guard: if mesh still measures as a giant, do not leave it unnoticed
   try {
     const box = new THREE.Box3().setFromObject(root);
+    const measured = box.max.y - box.min.y;
+    if (Number.isFinite(measured) && measured > 8) {
+      console.error(
+        `[explorerAppearance] height ${measured.toFixed(2)}m after appearance — still ~100×? ` +
+          `scale=(${root.scale.x.toFixed(5)},${root.scale.y.toFixed(5)},${root.scale.z.toFixed(5)}) ` +
+          `Call fitCharacterRootToHeightM BEFORE this helper.`,
+      );
+    }
     if (Number.isFinite(box.min.y)) {
       root.position.y -= box.min.y;
     }

@@ -15,7 +15,8 @@
 
 **Host matrix + loops:** [GAME_FLOW_SSOT.md](./GAME_FLOW_SSOT.md)
 
-**client `/home` is deprecated.** It redirects to `/airship`. Use `?ops=1` for info WORLD_MAP, `?legacy=1` for old multi-CTA stub.
+**client `/home` is a bridge, not a hub.** It resolves auth → hero → tutorial (once) → island claim → **`/home-island`** and auto-forwards.  
+Overrides: `?ops=1` → info WORLD_MAP · `?legacy=1` → old multi-CTA menu · `?stay=1` → show path without redirect.
 
 ## Player journey
 

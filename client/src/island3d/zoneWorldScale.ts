@@ -275,6 +275,64 @@ export function reFitCharacterAfterAnimSample(
   return fitCharacterRootToHeightM(root, raceScaleMult, targetBaseHeightM);
 }
 
+/**
+ * HARD gate: hero world height must land in SI human band.
+ * If not, force re-fit and log loudly — never leave 100× silent.
+ * Returns measured height after assert (metres).
+ */
+export function assertHeroSiHeight(
+  root: THREE.Object3D,
+  opts?: {
+    raceScaleMult?: number;
+    targetBaseHeightM?: number;
+    label?: string;
+    /** If true (default), re-run fitCharacterRootToHeightM when out of band */
+    autoRefit?: boolean;
+  },
+): number {
+  const raceMult = sanitizeRaceScaleMult(opts?.raceScaleMult);
+  const target = Math.max(1.2, (opts?.targetBaseHeightM ?? PLAYER_HEIGHT_M) * raceMult);
+  const label = opts?.label ?? (root.name || "hero");
+  const autoRefit = opts?.autoRefit !== false;
+
+  root.updateMatrixWorld(true);
+  let h = measureCharacterWorldHeight(root);
+  if (h < 1e-4) h = measureObjectWorldHeight(root);
+
+  const lo = 1.2;
+  const hi = 2.6;
+  const decade = unitDecadeFactor(h, target);
+
+  if (h >= lo && h <= hi && decade === 1) {
+    root.userData.siHeightAssert = { ok: true, heightM: h, target, label };
+    return h;
+  }
+
+  console.error(
+    `[zoneWorldScale] SI HEIGHT FAIL "${label}": measured ${h.toFixed(3)}m ` +
+      `(target ${target.toFixed(2)}m, decade×${decade}) — 100× must not ship unnoticed`,
+  );
+
+  if (autoRefit) {
+    fitCharacterRootToHeightM(root, raceMult, opts?.targetBaseHeightM ?? PLAYER_HEIGHT_M);
+    h = measureCharacterWorldHeight(root) || measureObjectWorldHeight(root);
+    console.info(
+      `[zoneWorldScale] SI HEIGHT auto-refit "${label}" → ${h.toFixed(3)}m ` +
+        `scale.y=${root.scale.y.toFixed(5)}`,
+    );
+  }
+
+  const ok = h >= lo && h <= hi;
+  root.userData.siHeightAssert = { ok, heightM: h, target, label, decade };
+  if (!ok) {
+    console.error(
+      `[zoneWorldScale] SI HEIGHT STILL BAD "${label}": ${h.toFixed(3)}m after refit`,
+      root.userData.characterScale,
+    );
+  }
+  return h;
+}
+
 function groundAndCenterRoot(root: THREE.Object3D): void {
   root.updateMatrixWorld(true);
   const box = new THREE.Box3().setFromObject(root);

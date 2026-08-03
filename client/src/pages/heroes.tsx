@@ -178,13 +178,11 @@ export default function HeroesPage() {
     setLocation(d.path(selected.id));
   };
 
+  // First voyage → tutorial; after tutorial → airship → home (not empty /heroes)
   const forgeUrl = buildGcsUrl({
     era: "warlords",
     mode: "create",
-    returnTo:
-      typeof window !== "undefined"
-        ? `${window.location.origin}/heroes`
-        : undefined,
+    // omit returnTo → defaultWarlordsReturnTo() uses postCreatePlayPath()
   });
 
   const onSelectSlot = (index: number) => {

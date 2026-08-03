@@ -91,6 +91,11 @@ export interface Faction {
   alliedTo: FactionId[];
 }
 
+/**
+ * Player faction SSOT (Warlords era).
+ * Races: Crusade = Human + Barbarian (barbarian is human sub-race in roster),
+ * Legion = Orc + Undead, Fabled = Elf + Dwarf. Never put orcs on Crusade.
+ */
 export const FACTIONS: Record<FactionId, Faction> = {
   crusade: {
     id: "crusade",
@@ -98,8 +103,9 @@ export const FACTIONS: Record<FactionId, Faction> = {
     title: "Victory Through Valor",
     motto: "We March Forward!",
     patronGodId: "odin",
-    races: ["human", "orc"],
-    color: "#3b82f6",
+    /** Core race keys (barbarian sub-race shown via FACTION_RACE_LABELS) */
+    races: ["human"],
+    color: "#fbbf24",
     pirateColor: "blue",
     hostileTo: ["legion", "fabled"],
     alliedTo: [],
@@ -123,11 +129,28 @@ export const FACTIONS: Record<FactionId, Faction> = {
     motto: "Unity Through Wisdom",
     patronGodId: "omni",
     races: ["elf", "dwarf"],
-    color: "#22c55e",
+    color: "#22d3ee",
     pirateColor: "green",
     hostileTo: ["crusade", "legion"],
     alliedTo: [],
   },
+};
+
+/** Player-facing race chips (includes Barbarian under Crusade). */
+export const FACTION_RACE_LABELS: Record<FactionId, string[]> = {
+  crusade: ["Human", "Barbarian"],
+  legion: ["Orc", "Undead"],
+  fabled: ["Elf", "Dwarf"],
+};
+
+/** Short faction dossier for lore cards (not invent alternate gods). */
+export const FACTION_LORE_BLURB: Record<FactionId, string> = {
+  crusade:
+    "Odin’s warlords of the cold marches and steel coasts. Humans of the Red Storm prophecy stand with barbarian kin — valor, honor, and the long push against the Waterfall’s edge.",
+  legion:
+    "Madra’s children of entropy. Orc warbands and undead hosts feast on ruin and rebirth; ash forges, void rites, and the expanding chaos of the Cosmic Waterfall.",
+  fabled:
+    "The Omni’s alliance of balance. Elves of starlaw and dwarves of the deep forge keep unity, craft, and the middle seas from tipping into crusade zeal or legion hunger.",
 };
 
 // ═══════════════════════════════════════════════════════════════

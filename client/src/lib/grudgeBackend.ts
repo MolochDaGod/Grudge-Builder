@@ -118,13 +118,106 @@ export async function bridgeGrudgeLaunchToken(launchToken: string): Promise<bool
   return false;
 }
 
+/** Cookie TTL — 7 days, matches a typical session lifetime */
+const COOKIE_MAX_AGE = 7 * 24 * 60 * 60;
+
+function readCookie(name: string): string | null {
+  try {
+    const m = document.cookie.match(new RegExp(`(?:^|;\\s*)${name}=([^;]*)`));
+    return m ? decodeURIComponent(m[1]) : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Fleet-wide cookie (readable by JS on *.grudge-studio.com).
+ * Complements HttpOnly host cookies from Railway / id gateway.
+ */
+function setFleetCookie(name: string, value: string, maxAge = COOKIE_MAX_AGE): void {
+  try {
+    const secure =
+      typeof location !== "undefined" && location.protocol === "https:" ? "; Secure" : "";
+    // Domain cookie so SPA ↔ /craft/ (and subdomains) share session without URL handoff
+    const host = typeof location !== "undefined" ? location.hostname : "";
+    let domain = "";
+    if (host === "grudgewarlords.com" || host.endsWith(".grudgewarlords.com")) {
+      domain = "; Domain=.grudgewarlords.com";
+    } else if (host === "grudge-studio.com" || host.endsWith(".grudge-studio.com")) {
+      domain = "; Domain=.grudge-studio.com";
+    }
+    document.cookie = `${name}=${encodeURIComponent(value)}; path=/; max-age=${maxAge}; SameSite=Lax${secure}${domain}`;
+  } catch {
+    /* SSR */
+  }
+}
+
+/** Claim Railway session from cookie or refresh JWT into local fleet keys. */
+export async function ensureFleetSessionClaim(): Promise<boolean> {
+  if (typeof window === "undefined") return false;
+  if (isAuthenticated()) {
+    // Refresh profile / ensure cookie mirror
+    try {
+      const tok = getToken();
+      if (tok) setFleetCookie("grudge_auth_token", tok);
+    } catch {
+      /* ignore */
+    }
+    return true;
+  }
+  // Recover from shared Domain cookie (set by wallet or client after login)
+  const cookieTok = readCookie("grudge_auth_token") || readCookie("sso_token");
+  if (cookieTok && cookieTok.length > 20) {
+    setToken(cookieTok);
+    try {
+      window.dispatchEvent(
+        new CustomEvent("grudge:auth:ready", { detail: { source: "fleet_cookie" } }),
+      );
+    } catch {
+      /* ignore */
+    }
+    return true;
+  }
+  try {
+    const res = await fetch(`${API_BASE}/auth/session/claim`, {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: "{}",
+    });
+    if (!res.ok) return false;
+    const data = await res.json();
+    const token = data.sessionToken || data.token || data.access_token;
+    if (!token) return false;
+    setToken(token);
+    if (data.grudgeId) {
+      localStorage.setItem("grudge_id", data.grudgeId);
+      localStorage.setItem("grudge_account_id", data.grudgeId);
+    }
+    if (data.username || data.displayName) {
+      localStorage.setItem("grudge_username", data.username || data.displayName);
+    }
+    window.dispatchEvent(
+      new CustomEvent("grudge:auth:ready", { detail: { source: "session_claim" } }),
+    );
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 (function pickupSsoToken() {
   try {
     const params = new URLSearchParams(window.location.search);
+    const hashParams = new URLSearchParams(
+      (window.location.hash || "").replace(/^#/, ""),
+    );
     const onAuthCallback =
       window.location.pathname.replace(/\/$/, "") === "/auth/callback";
 
-    const launchToken = params.get("grudge_token");
+    const pick = (k: string) => params.get(k) || hashParams.get(k);
+
+    const launchToken = pick("grudge_token");
     if (launchToken) {
       // AuthCallbackPage awaits bridge; stripping the param here causes a race.
       if (onAuthCallback) return;
@@ -140,35 +233,47 @@ export async function bridgeGrudgeLaunchToken(launchToken: string): Promise<bool
       });
       return;
     }
-    const ssoToken = params.get("sso_token") || params.get("token");
+    const ssoToken = pick("sso_token") || pick("token");
     if (ssoToken && onAuthCallback) return;
     if (ssoToken) {
       setToken(ssoToken);
-      const returnedGrudgeId = params.get("grudge_id") || params.get("grudgeId") || "";
-      const returnedUsername = params.get("grudge_username") || params.get("username") || "";
+      const returnedGrudgeId = pick("grudge_id") || pick("grudgeId") || "";
+      const returnedUsername = pick("grudge_username") || pick("username") || "";
       if (returnedGrudgeId) localStorage.setItem("grudge_id", returnedGrudgeId);
       if (returnedUsername) localStorage.setItem("grudge_username", returnedUsername);
       if (returnedGrudgeId) localStorage.setItem("grudge_account_id", returnedGrudgeId);
-      // Also set cookies so Edge Middleware picks them up immediately
-      const maxAge = 7 * 24 * 60 * 60;
-      document.cookie = `grudge_auth_token=${encodeURIComponent(ssoToken)}; path=/; max-age=${maxAge}; SameSite=Lax`;
-      if (returnedGrudgeId) document.cookie = `grudge_id=${encodeURIComponent(returnedGrudgeId)}; path=/; max-age=${maxAge}; SameSite=Lax`;
       // Clean URL without reload
-      params.delete("sso_token");
-      params.delete("token");
-      params.delete("grudge_id");
-      params.delete("grudgeId");
-      params.delete("grudge_username");
-      params.delete("username");
-      params.delete("provider");
+      [
+        "sso_token",
+        "token",
+        "grudge_id",
+        "grudgeId",
+        "grudge_username",
+        "username",
+        "provider",
+        "grudge_token",
+      ].forEach((k) => {
+        params.delete(k);
+        hashParams.delete(k);
+      });
       const clean = params.toString();
-      const newUrl = window.location.pathname + (clean ? `?${clean}` : "") + window.location.hash;
+      const h = hashParams.toString();
+      const newUrl =
+        window.location.pathname +
+        (clean ? `?${clean}` : "") +
+        (h ? `#${h}` : "");
       window.history.replaceState(null, "", newUrl);
       if (typeof window !== "undefined") {
         window.dispatchEvent(
           new CustomEvent("grudge:auth:ready", { detail: { source: "sso_token" } }),
         );
       }
+      return;
+    }
+
+    // No URL token — recover from Domain cookie or session claim (wallet → client handoff)
+    if (!getToken()) {
+      void ensureFleetSessionClaim();
     }
   } catch { /* ignore in SSR/test */ }
 })();
@@ -206,9 +311,6 @@ export function getToken(): string | null {
   return null;
 }
 
-/** Cookie TTL — 7 days, matches a typical session lifetime */
-const COOKIE_MAX_AGE = 7 * 24 * 60 * 60;
-
 function setCookie(name: string, value: string, maxAge = COOKIE_MAX_AGE): void {
   try {
     document.cookie = `${name}=${encodeURIComponent(value)}; path=/; max-age=${maxAge}; SameSite=Lax`;
@@ -218,6 +320,10 @@ function setCookie(name: string, value: string, maxAge = COOKIE_MAX_AGE): void {
 function clearCookie(name: string): void {
   try {
     document.cookie = `${name}=; path=/; max-age=0; SameSite=Lax`;
+    // Also clear fleet-domain cookie
+    if (typeof location !== "undefined" && location.hostname.endsWith("grudge-studio.com")) {
+      document.cookie = `${name}=; path=/; max-age=0; Domain=.grudge-studio.com; SameSite=Lax`;
+    }
   } catch { /* SSR/test guard */ }
 }
 
@@ -226,9 +332,16 @@ export function setToken(token: string): void {
   localStorage.setItem(LEGACY_SESSION_TOKEN_KEY, token);
   // RTS / GrudgeSession cross-app keys
   localStorage.setItem("grudge.token", token);
+  localStorage.setItem("sso_token", token);
+  localStorage.setItem("access_token", token);
+  if (token.split(".").length === 3) {
+    localStorage.setItem("grudge_token", token);
+  }
   localStorage.setItem("grudge.token.exp", String(Date.now() + 7 * 24 * 60 * 60 * 1000));
-  // Mirror to cookie so Vercel Edge Middleware can read it
+  // Host cookie (middleware) + fleet Domain cookie (wallet ↔ client)
   setCookie("grudge_auth_token", token);
+  setFleetCookie("grudge_auth_token", token);
+  setFleetCookie("sso_token", token);
 }
 
 export function clearToken(): void {
@@ -236,7 +349,11 @@ export function clearToken(): void {
   localStorage.removeItem(LEGACY_SESSION_TOKEN_KEY);
   localStorage.removeItem("grudge.token");
   localStorage.removeItem("grudge.token.exp");
+  localStorage.removeItem("sso_token");
+  localStorage.removeItem("access_token");
+  localStorage.removeItem("grudge_token");
   clearCookie("grudge_auth_token");
+  clearCookie("sso_token");
 }
 
 export function isAuthenticated(): boolean {

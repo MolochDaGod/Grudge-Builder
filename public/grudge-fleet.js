@@ -2,7 +2,7 @@
  * Grudge Fleet Bridge — vanilla JS auth + character sync for Puter/external apps.
  * Mirrors GrudgeAccountSDK + wireGrudgeFleet from grudge-builder.
  *
- * @version 2.8.2
+ * @version 2.9.1
  * Character progress SSOT + account inventory/resources on Railway only (same DB as Warlords).
  * ONE TRUTH: grudge_id account · Warlords character UUID · Railway Postgres only.
  * Hard-fail when JWT grudge_id ≠ stored account; roster is era=warlords only.
@@ -10,6 +10,7 @@
  * Sign-in defaults to Grudge ID (id.grudge-studio.com) — never puter:* as primary.
  * SSO: prefer sso_token (full JWT) over grudge_token bridge.
  * Identity + auth bridge hosts: id.grudge-studio.com only (never auth.*).
+ * Profession levels: Railway forceRemote merge (never let Puter KV regress XP).
  * @see docs/CHARACTER_PROGRESS_SSOT.md · docs/CANONICAL_IDENTITY.md
  */
 (function (global) {
@@ -34,10 +35,12 @@
   }
 
   function resolveObjectStoreBase() {
+    // info.grudge-studio.com is live SSOT for master-recipes / professions JSON.
+    // objectstore.grudge-studio.com/api/v1/master-recipes.json currently 404s.
     return String(
-      CFG.OBJECTSTORE_URL ||
-        CFG.INFO_URL ||
-        'https://objectstore.grudge-studio.com/api/v1',
+      CFG.INFO_URL ||
+        CFG.OBJECTSTORE_URL ||
+        'https://info.grudge-studio.com/api/v1',
     ).replace(/\/$/, '');
   }
 
@@ -50,7 +53,9 @@
     infoStore: String(CFG.INFO_URL || 'https://info.grudge-studio.com/api/v1').replace(/\/$/, ''),
     assets: CFG.ASSETS || 'https://assets.grudge-studio.com',
     wcs: CFG.WCS_URL || 'https://wcs.grudge-studio.com',
-    crafting: CFG.CRAFTING_URL || 'https://grudge-crafting.puter.site',
+    // Canonical craft on Warlords product domain; Puter is legacy redirect only
+    crafting: CFG.CRAFTING_URL || 'https://grudgewarlords.com/craft/',
+    craftingLegacy: CFG.CRAFTING_LEGACY_PUTER || 'https://grudge-crafting.puter.site',
     vfxStudio: CFG.VFX_STUDIO_URL || 'https://vfx-studio-sigma.vercel.app',
     /** Full Treaty app (Warlords / client shell) */
     treaty: CFG.TREATY_URL || 'https://grudgewarlords.com/treaty',
@@ -940,7 +945,7 @@
     },
     getActiveCharacter: getActiveCharacterLocal,
     warlordsEra: WARLORDS_ERA,
-    version: '2.8.2',
+    version: '2.9.1',
 
     /** Select first character matching race id/name (for VFX Character Lab sync) */
     selectCharacterByRace(race) {
@@ -1396,16 +1401,38 @@
       return out;
     },
 
-    /** Merge remote professionLevels into local STATE.professions (never regress) */
-    mergeProfessionsFromCharacter(char, professions) {
-      if (!char?.professionLevels) return professions;
+    /**
+     * Merge remote professionLevels into local STATE.professions.
+     * opts.forceRemote (default true): Railway SSOT wins — always apply remote level/xp.
+     * When false: only upgrade (legacy “never regress” for offline merge).
+     * Accepts keys miner|Miner and nested { level, xp, unlockedNodes }.
+     */
+    mergeProfessionsFromCharacter(char, professions, opts) {
+      if (!char?.professionLevels || !professions) return professions;
+      const forceRemote = !opts || opts.forceRemote !== false;
       const keyMap = { miner: 'Miner', forester: 'Forester', chef: 'Chef', engineer: 'Engineer', mystic: 'Mystic' };
+      const pl = char.professionLevels;
       for (const [key, label] of Object.entries(keyMap)) {
-        const remote = char.professionLevels[key];
-        if (!remote || !professions[label]) continue;
-        if (remote.level > professions[label].level) {
-          professions[label].level = remote.level;
-          professions[label].xp = remote.xp || 0;
+        if (!professions[label]) continue;
+        const remote =
+          pl[key] ||
+          pl[label] ||
+          pl[key.toLowerCase()] ||
+          pl[label.toLowerCase()];
+        if (!remote || typeof remote !== 'object') continue;
+        const rLvl = Number(remote.level) || 1;
+        const rXp = Number(remote.xp) || 0;
+        const loc = professions[label];
+        if (
+          forceRemote ||
+          rLvl > (loc.level || 1) ||
+          (rLvl === (loc.level || 1) && rXp > (loc.xp || 0))
+        ) {
+          loc.level = rLvl;
+          loc.xp = rXp;
+          if (Array.isArray(remote.unlockedNodes)) {
+            loc.unlockedNodes = remote.unlockedNodes.slice();
+          }
         }
       }
       return professions;

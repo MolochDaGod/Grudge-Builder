@@ -144,8 +144,8 @@ export const AFTER_INTRO_DESTINATIONS: Array<{
   {
     id: 'tutorial',
     label: 'Shipwreck Tutorial',
-    hint: 'Solo wash-up beach · injured opener · T0 harvest',
-    path: '/tutorial?from=shipwreck-intro',
+    hint: 'Chicken-gun pirate-islands · shipwreck_cove wash-up · injured opener · T0 harvest',
+    path: '/tutorial?from=shipwreck-intro&map=pirate-islands&island=grudge-open-world&wake=1',
   },
   {
     id: 'zone',
@@ -168,8 +168,8 @@ export const AFTER_INTRO_DESTINATIONS: Array<{
 ];
 
 /** Bump when cinema cut changes so players re-see the battle */
-export const INTRO_SESSION_KEY = 'grudge_shipwreck_intro_seen_v10';
-export const INTRO_OPTIONS_KEY = 'grudge_island3d_intro_options_v10';
+export const INTRO_SESSION_KEY = 'grudge_shipwreck_intro_seen_v11';
+export const INTRO_OPTIONS_KEY = 'grudge_island3d_intro_options_v11';
 
 export interface Island3dIntroOptions {
   /** Play leviathan cinema on visit when not yet seen */

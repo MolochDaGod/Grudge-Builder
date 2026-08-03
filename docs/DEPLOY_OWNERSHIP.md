@@ -28,7 +28,7 @@ npm run check:ownership     # wrangler deny-list (sibling repos)
 
 | Public surface | Owner repo | Worker / project | Deploy | Forbidden |
 |----------------|------------|------------------|--------|-----------|
-| `ai.grudge-studio.com` | `grudge-ai-hub` + UI `GrudaNode/grudge-agent` | CF `grudge-ai-hub` (domain) + `grudge-legion-ai` (`/v1/*`,`/health`) · Vercel `grudge-agent` | `cd grudge-ai-hub && npm run deploy` · `cd GrudaNode/grudge-agent && npx vercel --prod` | ObjectStore `workers/ai` custom domain; studio-backend `cloudflare/workers/ai-hub` routes; ALE attaching `ai.*` |
+| `ai.grudge-studio.com` | `grudge-ai-hub` + UI `GrudaNode/grudge-agent` | CF `grudge-ai-hub` (domain) + `grudge-legion-ai` (`/v1/*`,`/health`) · Vercel **`grudaagent`** | `cd grudge-ai-hub && npx wrangler deploy --config wrangler.domain.toml` · `cd GrudaNode/grudge-agent && npx vercel --prod --yes` | ObjectStore `workers/ai` custom domain; **UI_ORIGIN must be grudaagent.vercel.app** (not grudge-agent — no secrets) |
 | `id.grudge-studio.com` | GrudgeBuilder / id-gateway | CF `grudge-identity-api` or Vercel alias → Railway auth | `cd workers/id-gateway && npx wrangler deploy` + Railway `grudge-api-production` | Split `api.grudge-studio.com` auth; see `docs/ID_SSO_PRODUCTION.md` |
 | Game state API | GrudgeBuilder `server/` | Railway `grudge-api-production-0d46` | Railway auto / `npm run start:production` | Railway Postgres characters SSOT (D1 = asset registry only) |
 | `objectstore.grudge-studio.com` | ObjectStore | CF Pages + worker | ObjectStore wrangler / Pages | Claiming AI domain |
@@ -45,7 +45,7 @@ npm run check:ownership     # wrangler deny-list (sibling repos)
 
 | Worker name | Role |
 |-------------|------|
-| **grudge-ai-hub** | Custom domain `ai.grudge-studio.com` + `legion-ai…` — UI proxy (`UI_ORIGIN` → grudge-agent.vercel.app) + catch-all |
+| **grudge-ai-hub** | Custom domain `ai.grudge-studio.com` + `legion-ai…` — UI proxy (`UI_ORIGIN` → **grudaagent.vercel.app**) + catch-all |
 | **grudge-legion-ai** | Path routes `/v1/*`, `/health`, `/api/health` — Gemini BYOK secrets historically first |
 
 **Clients must only use** `https://ai.grudge-studio.com`.

@@ -264,7 +264,15 @@ function Island3DPlayPage() {
     } catch { /* */ }
 
     if (dest === 'tutorial') {
-      navigate(`/tutorial?from=shipwreck-intro${characterIdParam ? `&characterId=${characterIdParam}` : ''}`);
+      // Chicken-gun pirate-islands · shipwreck_cove wash-up (not lobby spawn 0,0)
+      const q = new URLSearchParams({
+        from: 'shipwreck-intro',
+        map: 'pirate-islands',
+        island: 'grudge-open-world',
+        wake: '1',
+      });
+      if (characterIdParam) q.set('characterId', characterIdParam);
+      navigate(`/tutorial?${q.toString()}`);
       return;
     }
     if (dest === 'home_overboard') {

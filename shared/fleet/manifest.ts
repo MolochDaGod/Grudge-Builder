@@ -507,7 +507,26 @@ export const FLEET_VERCEL_REWRITES: readonly FleetRewrite[] = [
   { source: "/api/:path*", destination: `${FLEET_URLS.identityApi}/api/:path*` },
 ];
 
+/**
+ * Crossmint grudgedev project (production).
+ * Project: 8410e23e-d003-4061-9b65-7c886a6c46ec
+ *
+ * ONE Solana collection holds both character + home-island templates:
+ *   collection 5061318d-ff65-4893-ac4b-9b28efb18ace  ("Grudge Warlords")
+ *   template  a9bb2c8d-…  Warlord Pre Sale (characters)
+ *   template  18d0e641-…  Home Island
+ *
+ * Note: 18d0e641 is a **template id**, not a collection id.
+ */
 export const CROSSMINT_COLLECTIONS = {
+  /** Shared MCC for heroes + islands */
   character: "5061318d-ff65-4893-ac4b-9b28efb18ace",
-  island: "a8f3e2d1-4b5c-6d7e-8f9a-0b1c2d3e4f5a",
+  /** Same collection — islands are templates on this collection */
+  island: "5061318d-ff65-4893-ac4b-9b28efb18ace",
 } as const;
+
+export const CROSSMINT_PROJECT_ID = "8410e23e-d003-4061-9b65-7c886a6c46ec" as const;
+export const CROSSMINT_CHARACTER_TEMPLATE_ID =
+  "a9bb2c8d-1350-4413-aec7-5ba1f6888511" as const;
+export const CROSSMINT_ISLAND_TEMPLATE_ID =
+  "18d0e641-8713-4d5b-9a1d-ba67c516a3ce" as const;

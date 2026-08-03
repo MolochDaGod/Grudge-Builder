@@ -6,6 +6,7 @@ import { LoreLayout } from './LoreLayout';
 import {
   listSectorDossiers,
   dossierStatuses,
+  forgeSectorUrl,
 } from '@shared/definitions/sectorDossiers';
 import {
   SECTOR_REWRITE_ORDER,
@@ -31,7 +32,7 @@ export default function LoreSectorsPage() {
   return (
     <LoreLayout
       title="Sector dossiers"
-      subtitle="One sector at a time: describe lore & locals → publish to info → build what fits → prove with live flyby."
+      subtitle="One sector at a time: describe lore & locals → publish to info → build what fits → prove live in Forge (forge.grudge-studio.com)."
     >
       <div className="mb-8 rounded-xl border border-amber-500/20 bg-amber-500/[.04] p-4">
         <p className="text-[10px] uppercase tracking-widest text-amber-500/80 mb-2">Pipeline</p>
@@ -75,6 +76,28 @@ export default function LoreSectorsPage() {
             </Link>
           );
         })}
+      </div>
+
+      <div className="mb-8 flex flex-wrap gap-2">
+        {SECTOR_REWRITE_ORDER.slice(0, 3).map((id) => (
+          <a
+            key={id}
+            href={forgeSectorUrl(id)}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-[11px] px-2.5 py-1.5 rounded-lg border border-violet-500/30 text-violet-300/90 no-underline hover:bg-violet-500/10"
+          >
+            Forge · {id}
+          </a>
+        ))}
+        <a
+          href="https://forge.grudge-studio.com/"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-[11px] px-2.5 py-1.5 rounded-lg border border-white/10 text-slate-500 no-underline hover:text-amber-400"
+        >
+          Open Forge →
+        </a>
       </div>
 
       <p className="text-[11px] text-slate-600">

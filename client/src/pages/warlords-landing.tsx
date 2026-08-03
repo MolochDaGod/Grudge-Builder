@@ -226,11 +226,16 @@ export default function WarlordsLandingPage() {
             <p className="text-slate-500 text-sm mb-8 italic">By Racalvin the Pirate King</p>
 
             <div className="flex flex-wrap gap-3 mb-10">
+              {/* Single primary CTA → /home resolves next production step (create / voyage / home island) */}
               <button
                 type="button"
-                onClick={() =>
-                  setLocation(isAuthenticated ? '/warlords/start' : '/intro')
-                }
+                onClick={() => {
+                  if (!isAuthenticated) {
+                    openLogin();
+                    return;
+                  }
+                  setLocation('/home');
+                }}
                 className="px-8 py-3.5 rounded-xl font-bold tracking-wider border-0 cursor-pointer"
                 style={{
                   fontFamily: "'Cinzel', serif",
@@ -239,17 +244,8 @@ export default function WarlordsLandingPage() {
                   boxShadow: '0 14px 40px -10px rgba(246,201,69,.55)',
                 }}
               >
-                {isAuthenticated ? 'CONTINUE' : 'ENTER WORLD'}
+                {isAuthenticated ? 'CONTINUE' : 'SIGN IN · CONTINUE'}
               </button>
-              {!isAuthenticated && (
-                <button
-                  type="button"
-                  onClick={() => openLogin()}
-                  className="px-6 py-3.5 rounded-xl text-sm font-semibold tracking-wide cursor-pointer border border-white/15 bg-white/[.06] text-[#cfd5f5]"
-                >
-                  Sign in with Grudge ID
-                </button>
-              )}
               <Link href="/lore">
                 <a className="px-6 py-3.5 rounded-xl text-sm font-semibold tracking-wide border border-white/10 text-slate-300 no-underline inline-flex items-center gap-2 hover:border-amber-500/40">
                   <BookOpen className="w-4 h-4" />

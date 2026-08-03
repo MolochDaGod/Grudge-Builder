@@ -147,11 +147,27 @@ export default function HomeIslandPage() {
         // Prefer Foundry/GCS/heroes handoff ?characterId= over stale localStorage
         const activeId = handoff.characterId;
 
+        // First voyage gate: home island only after shipwreck tutorial
+        const forceHome =
+          new URLSearchParams(window.location.search).get('force') === '1' ||
+          new URLSearchParams(window.location.search).get('unlock') === '1';
+        try {
+          const { isTutorialComplete } = await import('@/lib/warlordsOnboarding');
+          if (!isTutorialComplete() && !forceHome) {
+            const q = new URLSearchParams({ from: 'home-island-gate' });
+            if (activeId) q.set('characterId', activeId);
+            setLocation(`/tutorial?${q.toString()}`);
+            return;
+          }
+        } catch {
+          /* continue if helper missing */
+        }
+
         if (!activeId) {
-          // SSOT: create at Foundry, then return here with characterId
+          // After tutorial: create next hero returns via airship → home
           setLocation(
             '/create-character?returnTo=' +
-              encodeURIComponent('/home-island?from=gcs'),
+              encodeURIComponent('/airship?from=gcs'),
           );
           return;
         }

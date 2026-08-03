@@ -88,15 +88,20 @@ export default function CharacterModel3D({
       modelRef.current = loaded;
       loadedKeyRef.current = loadKey;
 
-      // Fit to ~2m × race mult (avoid giant T-pose in UI)
-      const { fitCharacterRootToHeightM, PLAYER_HEIGHT_M } = await import(
-        '@/island3d/zoneWorldScale'
-      );
-      fitCharacterRootToHeightM(
-        loaded.scene,
-        scaleOverride ?? modelUnit.scale ?? 1,
+      // Fit to ~1.8m × race mult — assert so 100× never ships silent
+      const {
+        fitCharacterRootToHeightM,
+        assertHeroSiHeight,
+        sanitizeRaceScaleMult,
         PLAYER_HEIGHT_M,
-      );
+      } = await import('@/island3d/zoneWorldScale');
+      const raceMult = sanitizeRaceScaleMult(scaleOverride ?? modelUnit.scale ?? 1);
+      fitCharacterRootToHeightM(loaded.scene, raceMult, PLAYER_HEIGHT_M);
+      assertHeroSiHeight(loaded.scene, {
+        raceScaleMult: raceMult,
+        targetBaseHeightM: PLAYER_HEIGHT_M,
+        label: `CharacterModel3D/${modelUnit.id || 'hero'}`,
+      });
       loaded.scene.position.x += position.x;
       loaded.scene.position.y += position.y;
       loaded.scene.position.z += position.z;

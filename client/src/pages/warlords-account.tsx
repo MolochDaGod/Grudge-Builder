@@ -40,8 +40,8 @@ interface ConnProbe {
 
 export default function WarlordsAccountPage() {
   const [, setLocation] = useLocation();
-  const { account, loading } = useAccount();
-  const { isAuthenticated, openLogin } = useAuth();
+  const { account, loading, error: accountError, refetch: refetchAccount } = useAccount();
+  const { isAuthenticated, openLogin, redirectToGrudgeIdLogin, refreshAuth } = useAuth();
   const user = getCurrentUser();
   const session = getSession();
   const [chars, setChars] = useState<Character[]>([]);
@@ -51,34 +51,45 @@ export default function WarlordsAccountPage() {
   const [islandOk, setIslandOk] = useState<boolean | null>(null);
 
   useEffect(() => {
-    CharacterManager.getAll()
+    void refreshAuth();
+    void CharacterManager.getAll('warlords')
       .then(setChars)
       .catch(() => setChars([]));
 
-    fetchPlayReadiness().then(async (r) => {
+    void fetchPlayReadiness().then(async (r) => {
       setPlayReady(r);
       const dest = await resolvePlayDestination();
       setPlayLabel(playDestinationLabel(dest));
     });
 
-    fetch('/api/island/status', { headers: authHeaders() })
+    fetch('/api/island/status', { headers: authHeaders(), credentials: 'include' })
       .then((r) => {
         setIslandOk(r.ok);
         return r.ok ? r.json() : null;
       })
       .catch(() => setIslandOk(false));
 
-    // Connection probes (same-origin + public fleet)
+    // Connection probes — use endpoints that exist (manifest.json is not on CDN root)
     const list: ConnProbe[] = [
       { id: 'auth', label: 'Grudge ID', url: WARLORDS_CONNECTIONS.auth, ok: null },
       { id: 'api', label: 'Game data API', url: `${WARLORDS_CONNECTIONS.gameData}/api/health`, ok: null },
-      { id: 'assets', label: 'Assets CDN', url: `${WARLORDS_CONNECTIONS.assets}/manifest.json`, ok: null },
+      {
+        id: 'assets',
+        label: 'Assets CDN',
+        url: `${WARLORDS_CONNECTIONS.assets}/icons/pack/weapons/Sword_01.png`,
+        ok: null,
+      },
       { id: 'local', label: 'This client /api/health', url: '/api/health', ok: null },
     ];
     setProbes(list);
-    list.forEach(async (p, i) => {
+    list.forEach(async (p) => {
       try {
-        const r = await fetch(p.url, { method: 'GET', mode: 'cors' });
+        const r = await fetch(p.url, {
+          method: 'GET',
+          mode: 'cors',
+          // Avoid CDN hotlink 403 when probing from grudgewarlords.com
+          referrerPolicy: 'no-referrer',
+        });
         setProbes((prev) => {
           const next = [...prev];
           const idx = next.findIndex((x) => x.id === p.id);
@@ -99,7 +110,7 @@ export default function WarlordsAccountPage() {
         });
       }
     });
-  }, []);
+  }, [refreshAuth]);
 
   const copy = (t: string) => {
     void navigator.clipboard.writeText(t);
@@ -143,25 +154,44 @@ export default function WarlordsAccountPage() {
           </button>
         </div>
 
-        {!isAuthenticated && !session && (
+        {(!isAuthenticated && !session) || accountError ? (
           <div className="mb-6 rounded-xl border border-amber-900/40 bg-amber-950/20 p-5">
-            <p className="text-sm text-slate-300 mb-3">Sign in with Grudge ID to manage heroes and home island.</p>
-            <button
-              type="button"
-              onClick={() => {
-                try {
-                  openLogin();
-                } catch {
-                  window.location.href = warlordsLoginUrl('/account');
-                }
-              }}
-              className="px-4 py-2 rounded-lg text-xs font-bold cursor-pointer border-0"
-              style={{ background: 'linear-gradient(180deg,#f6c945,#d8a819)', color: '#20180a' }}
-            >
-              Sign in
-            </button>
+            <p className="text-sm text-slate-300 mb-3">
+              {accountError ||
+                'Sign in with Grudge ID to manage heroes and home island.'}
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  // Prefer Grudge ID redirect (fleet JWT handoff) over local modal only
+                  try {
+                    redirectToGrudgeIdLogin('/auth/callback');
+                  } catch {
+                    try {
+                      openLogin();
+                    } catch {
+                      window.location.href = warlordsLoginUrl('/account');
+                    }
+                  }
+                }}
+                className="px-4 py-2 rounded-lg text-xs font-bold cursor-pointer border-0"
+                style={{ background: 'linear-gradient(180deg,#f6c945,#d8a819)', color: '#20180a' }}
+              >
+                Sign in with Grudge ID
+              </button>
+              {accountError && (
+                <button
+                  type="button"
+                  onClick={() => void refetchAccount()}
+                  className="px-4 py-2 rounded-lg text-xs font-bold cursor-pointer border border-amber-700/50 bg-transparent text-amber-200"
+                >
+                  Retry
+                </button>
+              )}
+            </div>
           </div>
-        )}
+        ) : null}
 
         {/* Profile */}
         <section className="rounded-2xl border border-white/10 bg-[#0b0f1e] p-5 mb-5">

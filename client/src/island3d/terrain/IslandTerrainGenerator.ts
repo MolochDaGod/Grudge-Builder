@@ -442,33 +442,82 @@ export function generateIslandTerrainWithBridge(config: IslandTerrainConfig): Is
 /**
  * Get the world-space height at a given (x, z) position on the terrain
  * using raycasting from above.
+ *
+ * HARD RULE: never recurse into THREE.Sprite / incomplete nodes — Sprite.raycast
+ * requires Raycaster.camera and some UI labels have null matrixWorld, which
+ * hard-crashed /play ([Play] Engine init failed: matrixWorld).
  */
 const _heightRay = new THREE.Raycaster();
 const _heightOrigin = new THREE.Vector3();
 const _heightDir = new THREE.Vector3(0, -1, 0);
+const _heightMeshes: THREE.Object3D[] = [];
+
+/** Collect only safe Mesh/SkinnedMesh targets for height rays. */
+function collectHeightMeshes(root: THREE.Object3D | null | undefined, out: THREE.Object3D[]): void {
+  if (!root) return;
+  try {
+    root.updateMatrixWorld(true);
+  } catch {
+    /* incomplete hierarchy */
+  }
+  root.traverse((o) => {
+    const m = o as THREE.Mesh;
+    if ((o as THREE.Sprite).isSprite) return;
+    if (!m.isMesh && !(m as THREE.SkinnedMesh).isSkinnedMesh) return;
+    if (!m.geometry) return;
+    if (!m.matrixWorld) return;
+    // Skip invisible / non-solid helpers when marked
+    if (m.userData?.noGround === true) return;
+    out.push(m);
+  });
+}
 
 export function getTerrainHeightAt(
-  terrainMesh: THREE.Mesh,
+  terrainMesh: THREE.Mesh | null | undefined,
   x: number,
   z: number,
 ): number | null {
-  _heightOrigin.set(x, 200, z);
-  _heightRay.set(_heightOrigin, _heightDir);
-  const hits = _heightRay.intersectObject(terrainMesh, true);
-  return hits.length > 0 ? hits[0].point.y : null;
+  if (!terrainMesh?.geometry || !terrainMesh.matrixWorld) return null;
+  try {
+    _heightOrigin.set(x, 200, z);
+    _heightRay.set(_heightOrigin, _heightDir);
+    const hits = _heightRay.intersectObject(terrainMesh, false);
+    return hits.length > 0 && Number.isFinite(hits[0].point.y) ? hits[0].point.y : null;
+  } catch (err) {
+    console.warn('[getTerrainHeightAt] raycast failed', err);
+    return null;
+  }
 }
 
 /** Raycast height against any Object3D subtree (lobby GLTF maps, zone islands). */
 export function getSceneHeightAt(
-  root: THREE.Object3D,
+  root: THREE.Object3D | null | undefined,
   x: number,
   z: number,
   maxY = 400,
 ): number | null {
-  _heightOrigin.set(x, maxY, z);
-  _heightRay.set(_heightOrigin, _heightDir);
-  const hits = _heightRay.intersectObject(root, true);
-  return hits.length > 0 ? hits[0].point.y : null;
+  if (!root) return null;
+  try {
+    _heightMeshes.length = 0;
+    collectHeightMeshes(root, _heightMeshes);
+    if (_heightMeshes.length === 0) return null;
+
+    _heightOrigin.set(x, maxY, z);
+    _heightRay.set(_heightOrigin, _heightDir);
+    // Guard Sprite path if anything non-mesh ever slips through
+    (_heightRay as THREE.Raycaster & { camera?: THREE.Camera }).camera = undefined as unknown as THREE.Camera;
+
+    const hits = _heightRay.intersectObjects(_heightMeshes, false);
+    for (const h of hits) {
+      const n = (h.object.name || '').toLowerCase();
+      if (n.includes('water') || n.includes('ocean')) continue;
+      if (Number.isFinite(h.point.y)) return h.point.y;
+    }
+    return null;
+  } catch (err) {
+    console.warn('[getSceneHeightAt] raycast failed — null height', err);
+    return null;
+  }
 }
 
 /**
