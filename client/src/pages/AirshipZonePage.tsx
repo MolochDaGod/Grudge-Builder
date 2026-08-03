@@ -18,6 +18,16 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import {
+  markAirshipSeen,
+  isTutorialComplete,
+  getActiveCharacterId,
+} from '@/lib/warlordsOnboarding';
+import { AFTER_TUTORIAL_PATH } from '@shared/definitions/warlordsProductionFlow';
+import {
+  applyCharacterHandoffFromLocation,
+  persistActiveCharacter,
+} from '@/lib/characterHandoff';
 
 const RACES = [
   { id: 'human', label: 'Human (WK)', prefix: 'WK_' },
@@ -46,7 +56,34 @@ export default function AirshipZonePage() {
   const [classId, setClassId] = useState('warrior');
   const [creating, setCreating] = useState(false);
 
+  /** Continue production path: airship → tutorial (or home if already past tutorial) */
+  const continueWarlordsPath = useCallback(() => {
+    markAirshipSeen();
+    const id = getActiveCharacterId();
+    if (isTutorialComplete()) {
+      setLocation(
+        id
+          ? `${AFTER_TUTORIAL_PATH}&characterId=${encodeURIComponent(id)}`
+          : AFTER_TUTORIAL_PATH,
+      );
+      return;
+    }
+    const q = id ? `?characterId=${encodeURIComponent(id)}&from=airship` : '?from=airship';
+    setLocation(`/tutorial${q}`);
+  }, [setLocation]);
+
   useEffect(() => {
+    // Persist handoff + mark combat/airship tab visited
+    try {
+      const handoff = applyCharacterHandoffFromLocation();
+      if (handoff.characterId) {
+        persistActiveCharacter(handoff.characterId, handoff.from || 'airship');
+      }
+    } catch {
+      /* ignore */
+    }
+    markAirshipSeen();
+
     // Scene-load BGM: soundssilents.mp3 (loop)
     playBGM('silents', { volume: 0.35, loop: true });
 
@@ -119,10 +156,10 @@ export default function AirshipZonePage() {
     <div className="relative w-full h-screen bg-slate-950 overflow-hidden">
       <div ref={mountRef} className="absolute inset-0" />
 
-      {/* Top crew bar */}
+      {/* Top crew bar — 4-character Warlords era scene (player + 3 NPCs) */}
       <div className="absolute top-0 left-0 right-0 z-20 flex flex-wrap items-center gap-2 p-3 bg-gradient-to-b from-black/80 to-transparent">
         <Badge variant="outline" className="text-amber-300 border-amber-600">
-          Airship Opener · boatvoxelinside create
+          Combat · Airship · 4 characters
         </Badge>
         {AIRSHIP_NPCS.map((npc) => (
           <Button
@@ -144,11 +181,18 @@ export default function AirshipZonePage() {
           + New grudge6 (cabin)
         </Button>
         <div className="flex-1" />
-        <Button size="sm" variant="ghost" className="text-stone-300" onClick={() => setLocation('/play')}>
-          Main panel / Play
+        <Button
+          size="sm"
+          className="bg-amber-500 hover:bg-amber-400 text-black font-semibold"
+          onClick={continueWarlordsPath}
+        >
+          {isTutorialComplete() ? 'Continue → Home island' : 'Continue → Tutorial island'}
         </Button>
-        <Button size="sm" variant="ghost" className="text-stone-300" onClick={() => setLocation('/lobby')}>
-          Lobby
+        <Button size="sm" variant="ghost" className="text-stone-300" onClick={() => setLocation('/heroes')}>
+          Characters
+        </Button>
+        <Button size="sm" variant="ghost" className="text-stone-300" onClick={() => setLocation('/home')}>
+          Hub
         </Button>
       </div>
 

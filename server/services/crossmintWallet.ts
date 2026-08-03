@@ -21,8 +21,40 @@ const CROSSMINT_API_KEY = process.env.CROSSMINT_SERVER_API_KEY
   || process.env.CROSSMINT_SECRET_KEY
   || process.env.CROSSMINT_API_KEY;
 
-const CROSSMINT_COLLECTION_ID = process.env.CROSSMINT_COLLECTION_ID || 'default-solana';
-const CROSSMINT_ISLAND_TEMPLATE_ID = process.env.CROSSMINT_ISLAND_CNFT || '';
+/**
+ * Warlords character collection (grudgedev project) — fleet SSOT.
+ * Never fall back to Crossmint "default-solana" in production.
+ * @see shared/fleet/manifest.ts CROSSMINT_COLLECTIONS.character
+ */
+const WARLORDS_CHARACTER_COLLECTION =
+  "5061318d-ff65-4893-ac4b-9b28efb18ace";
+const WARLORDS_CHARACTER_TEMPLATE =
+  "a9bb2c8d-1350-4413-aec7-5ba1f6888511";
+
+const CROSSMINT_COLLECTION_ID =
+  process.env.CROSSMINT_COLLECTION_ID || WARLORDS_CHARACTER_COLLECTION;
+const CROSSMINT_CHARACTER_TEMPLATE_ID =
+  process.env.CROSSMINT_CHARACTER_TEMPLATE_ID || WARLORDS_CHARACTER_TEMPLATE;
+/**
+ * Home Island is a **template** on the same Solana collection as characters
+ * (not a separate Crossmint collection). Verified GET:
+ *   /collections/5061318d-…/templates/18d0e641-…
+ * Env aliases:
+ *   CROSSMINT_ISLAND_CNFT | CROSSMINT_ISLAND_TEMPLATE_ID | VITE_CROSSMINT_ISLAND_COLLECTION (legacy misname)
+ */
+const WARLORDS_ISLAND_TEMPLATE = "18d0e641-8713-4d5b-9a1d-ba67c516a3ce";
+const CROSSMINT_ISLAND_TEMPLATE_ID =
+  process.env.CROSSMINT_ISLAND_CNFT ||
+  process.env.CROSSMINT_ISLAND_TEMPLATE_ID ||
+  process.env.VITE_CROSSMINT_ISLAND_COLLECTION || // legacy: was mislabeled "collection"
+  WARLORDS_ISLAND_TEMPLATE;
+/** Islands mint into the Warlords collection (characters + islands share one MCC). */
+const CROSSMINT_ISLAND_COLLECTION_ID =
+  process.env.CROSSMINT_ISLAND_COLLECTION_ID ||
+  process.env.CROSSMINT_COLLECTION_ID ||
+  WARLORDS_CHARACTER_COLLECTION;
+const CROSSMINT_PROJECT_ID =
+  process.env.CROSSMINT_PROJECT_ID || "8410e23e-d003-4061-9b65-7c886a6c46ec";
 
 // ── Shared types ──────────────────────────────────────────────────────
 
@@ -165,6 +197,25 @@ export class CrossmintWalletService {
     return this.createWalletForUser(email);
   }
 
+  /**
+   * Stable server-side wallet locator for a Grudge ID.
+   * Email form is Crossmint v1-alpha2 custodial convention (phase 1).
+   * Always use the same synthetic address so one grudgeId → one Solana wallet.
+   */
+  stableEmailForGrudgeId(grudgeId: string): string {
+    const safe = String(grudgeId || "guest")
+      .toLowerCase()
+      .replace(/[^a-z0-9_-]/g, "")
+      .slice(0, 48) || "guest";
+    return `grudge+${safe}@accounts.grudge-studio.com`;
+  }
+
+  /** Ensure Crossmint Solana custodial wallet for this Grudge ID (preferred over raw email). */
+  async getOrCreateWalletForGrudgeId(grudgeId: string): Promise<CrossmintWallet | null> {
+    if (!grudgeId) return null;
+    return this.getOrCreateWallet(this.stableEmailForGrudgeId(grudgeId));
+  }
+
   // ==================== CHARACTER NFT METHODS ====================
 
   buildCharacterMetadata(
@@ -175,54 +226,103 @@ export class CrossmintWalletService {
       accountId?: string | null;
       grudgeId?: string | null;
       grudgeCode?: string | null;
+      custody?: string | null;
     },
   ): CharacterNFTMetadata {
     const attrs = (character.attributes || {}) as Record<string, number>;
+    const equip = (character.equipment || {}) as Record<string, unknown>;
+    const model3d = (character.model3d || {}) as Record<string, unknown>;
 
     // Case-insensitive attribute lookup (handles Strength, strength, STR, etc.)
     const getAttr = (key: string): number => {
       return attrs[key] || attrs[key.toLowerCase()] || attrs[key.toUpperCase()] || 0;
     };
 
+    const equipSlot = (slot: string): string => {
+      const v = equip[slot] ?? equip[slot.toLowerCase()] ?? equip[slot.toUpperCase()];
+      if (v == null || v === "") return "none";
+      if (typeof v === "string") return v;
+      if (typeof v === "object" && v && "itemId" in (v as object)) {
+        return String((v as { itemId?: string }).itemId || "none");
+      }
+      return String(v);
+    };
+
+    const equipSlots = [
+      "Head",
+      "Chest",
+      "Hands",
+      "Legs",
+      "Feet",
+      "Shoulder",
+      "Back",
+      "MainHand",
+      "OffHand",
+      "Accessory1",
+      "Accessory2",
+    ] as const;
+
     const ownershipAttrs: Array<{ trait_type: string; value: string | number }> = [];
+    ownershipAttrs.push({ trait_type: "Name", value: character.name });
+    ownershipAttrs.push({
+      trait_type: "Era",
+      value: (character as { gameEra?: string }).gameEra || "warlords",
+    });
     if (ownership?.characterId) {
-      ownershipAttrs.push({ trait_type: 'CharacterId', value: ownership.characterId });
+      ownershipAttrs.push({ trait_type: "CharacterId", value: ownership.characterId });
     }
     if (ownership?.accountId) {
-      ownershipAttrs.push({ trait_type: 'AccountId', value: ownership.accountId });
+      ownershipAttrs.push({ trait_type: "AccountId", value: ownership.accountId });
     }
     if (ownership?.grudgeId) {
-      ownershipAttrs.push({ trait_type: 'GrudgeId', value: ownership.grudgeId });
+      ownershipAttrs.push({ trait_type: "GrudgeId", value: ownership.grudgeId });
     }
     if (ownership?.grudgeCode) {
-      ownershipAttrs.push({ trait_type: 'GrudgeCode', value: ownership.grudgeCode });
+      ownershipAttrs.push({ trait_type: "GrudgeCode", value: ownership.grudgeCode });
     }
-    ownershipAttrs.push({ trait_type: 'Custody', value: 'escrow_admin' });
-    ownershipAttrs.push({ trait_type: 'GameOwnership', value: 'railway_account' });
+    const prefabId =
+      (typeof model3d.prefabId === "string" && model3d.prefabId) ||
+      (typeof model3d.startingPrefabId === "string" && model3d.startingPrefabId) ||
+      "";
+    if (prefabId) {
+      ownershipAttrs.push({ trait_type: "PrefabId", value: prefabId });
+    }
+    for (const slot of equipSlots) {
+      ownershipAttrs.push({ trait_type: slot, value: equipSlot(slot) });
+    }
+    ownershipAttrs.push({
+      trait_type: "Custody",
+      value: ownership?.custody || "escrow_admin",
+    });
+    ownershipAttrs.push({ trait_type: "GameOwnership", value: "railway_account" });
+    ownershipAttrs.push({
+      trait_type: "CrossmintProject",
+      value: CROSSMINT_PROJECT_ID.slice(0, 8),
+    });
 
     return {
       name: character.name,
       description: `${character.name} is a Level ${character.level} ${character.raceId} ${character.classId} from Grudge Warlords. Game ownership is bound to Grudge ID / account; chain custody may be server-escrow until claimed.`,
       image: imageUrl,
       attributes: [
-        { trait_type: 'Race', value: character.raceId },
-        { trait_type: 'Class', value: character.classId },
-        { trait_type: 'Level', value: character.level },
-        { trait_type: 'Strength', value: getAttr('Strength') },
-        { trait_type: 'Vitality', value: getAttr('Vitality') },
-        { trait_type: 'Endurance', value: getAttr('Endurance') },
-        { trait_type: 'Intellect', value: getAttr('Intellect') },
-        { trait_type: 'Wisdom', value: getAttr('Wisdom') },
-        { trait_type: 'Dexterity', value: getAttr('Dexterity') },
-        { trait_type: 'Agility', value: getAttr('Agility') },
-        { trait_type: 'Tactics', value: getAttr('Tactics') },
-        { trait_type: 'XP', value: character.xp },
-        { trait_type: 'HP', value: character.hp },
+        { trait_type: "Race", value: character.raceId },
+        { trait_type: "Class", value: character.classId },
+        { trait_type: "Level", value: character.level },
+        { trait_type: "Strength", value: getAttr("Strength") },
+        { trait_type: "Vitality", value: getAttr("Vitality") },
+        { trait_type: "Endurance", value: getAttr("Endurance") },
+        { trait_type: "Intellect", value: getAttr("Intellect") },
+        { trait_type: "Wisdom", value: getAttr("Wisdom") },
+        { trait_type: "Dexterity", value: getAttr("Dexterity") },
+        { trait_type: "Agility", value: getAttr("Agility") },
+        { trait_type: "Tactics", value: getAttr("Tactics") },
+        { trait_type: "XP", value: character.xp },
+        { trait_type: "HP", value: character.hp },
         ...ownershipAttrs,
       ],
       properties: {
-        files: [{ uri: imageUrl, type: 'image/png' }],
-        category: 'image',
+        files: [{ uri: imageUrl, type: "image/png" }],
+        category: "image",
       },
     };
   }
@@ -249,30 +349,40 @@ export class CrossmintWalletService {
       const collectionId = CROSSMINT_COLLECTION_ID;
 
       console.log('[Crossmint] Minting NFT to wallet:', recipientWallet);
-      console.log('[Crossmint] Using collection:', collectionId);
+      console.log('[Crossmint] Using collection:', collectionId, 'template:', CROSSMINT_CHARACTER_TEMPLATE_ID);
 
-      const response = await fetch(
-        `${this.baseUrl}/api/2022-06-09/collections/${collectionId}/nfts`,
-        {
-          method: 'POST',
-          headers: {
-            'accept': 'application/json',
-            'content-type': 'application/json',
-            'x-api-key': this.apiKey,
-          },
-          body: JSON.stringify({
-            recipient: `solana:${recipientWallet}`,
-            metadata: {
-              name: metadata.name,
-              image: metadata.image,
-              description: metadata.description,
-              attributes: metadata.attributes,
-            },
-            compressed,
-            reuploadLinkedFiles: false,
-          }),
+      // Idempotent mint-with-id when character UUID available (avoids duplicate cNFTs)
+      const idempotentId = ownership?.characterId
+        ? encodeURIComponent(String(ownership.characterId))
+        : null;
+      const mintUrl = idempotentId
+        ? `${this.baseUrl}/api/2022-06-09/collections/${collectionId}/nfts/${idempotentId}`
+        : `${this.baseUrl}/api/2022-06-09/collections/${collectionId}/nfts`;
+
+      const body: Record<string, unknown> = {
+        recipient: `solana:${recipientWallet}`,
+        metadata: {
+          name: metadata.name,
+          image: metadata.image,
+          description: metadata.description,
+          attributes: metadata.attributes,
         },
-      );
+        compressed,
+        reuploadLinkedFiles: false,
+      };
+      if (CROSSMINT_CHARACTER_TEMPLATE_ID) {
+        body.templateId = CROSSMINT_CHARACTER_TEMPLATE_ID;
+      }
+
+      const response = await fetch(mintUrl, {
+        method: idempotentId ? "PUT" : "POST",
+        headers: {
+          'accept': 'application/json',
+          'content-type': 'application/json',
+          'x-api-key': this.apiKey,
+        },
+        body: JSON.stringify(body),
+      });
 
       if (!response.ok) {
         const errorText = await response.text();
@@ -312,28 +422,37 @@ export class CrossmintWalletService {
 
       console.log('[Crossmint] Minting NFT to email:', email);
 
-      const response = await fetch(
-        `${this.baseUrl}/api/2022-06-09/collections/${collectionId}/nfts`,
-        {
-          method: 'POST',
-          headers: {
-            'accept': 'application/json',
-            'content-type': 'application/json',
-            'x-api-key': this.apiKey,
-          },
-          body: JSON.stringify({
-            recipient: `email:${email}:solana`,
-            metadata: {
-              name: metadata.name,
-              image: metadata.image,
-              description: metadata.description,
-              attributes: metadata.attributes,
-            },
-            compressed,
-            reuploadLinkedFiles: false,
-          }),
+      const idempotentId = ownership?.characterId
+        ? encodeURIComponent(String(ownership.characterId))
+        : null;
+      const mintUrl = idempotentId
+        ? `${this.baseUrl}/api/2022-06-09/collections/${collectionId}/nfts/${idempotentId}`
+        : `${this.baseUrl}/api/2022-06-09/collections/${collectionId}/nfts`;
+
+      const body: Record<string, unknown> = {
+        recipient: `email:${email}:solana`,
+        metadata: {
+          name: metadata.name,
+          image: metadata.image,
+          description: metadata.description,
+          attributes: metadata.attributes,
         },
-      );
+        compressed,
+        reuploadLinkedFiles: false,
+      };
+      if (CROSSMINT_CHARACTER_TEMPLATE_ID) {
+        body.templateId = CROSSMINT_CHARACTER_TEMPLATE_ID;
+      }
+
+      const response = await fetch(mintUrl, {
+        method: idempotentId ? 'PUT' : 'POST',
+        headers: {
+          'accept': 'application/json',
+          'content-type': 'application/json',
+          'x-api-key': this.apiKey,
+        },
+        body: JSON.stringify(body),
+      });
 
       if (!response.ok) {
         const errorText = await response.text();
@@ -449,8 +568,21 @@ export class CrossmintWalletService {
     };
 
     try {
+      // Same Warlords collection as characters; Home Island is template 18d0e641-…
+      const islandCollection = CROSSMINT_ISLAND_COLLECTION_ID || CROSSMINT_COLLECTION_ID;
+      const body: Record<string, unknown> = {
+        recipient: `solana:${walletAddress}`,
+        metadata,
+        compressed: true,
+      };
+      if (CROSSMINT_ISLAND_TEMPLATE_ID) {
+        body.templateId = CROSSMINT_ISLAND_TEMPLATE_ID;
+      }
+      console.log(
+        `[Crossmint] Island mint collection=${islandCollection} template=${CROSSMINT_ISLAND_TEMPLATE_ID || "none"} wallet=${walletAddress}`,
+      );
       const response = await fetch(
-        `${this.baseUrl}/api/2022-06-09/collections/${CROSSMINT_COLLECTION_ID}/nfts`,
+        `${this.baseUrl}/api/2022-06-09/collections/${islandCollection}/nfts`,
         {
           method: 'POST',
           headers: {
@@ -458,11 +590,7 @@ export class CrossmintWalletService {
             'content-type': 'application/json',
             'x-api-key': this.apiKey,
           },
-          body: JSON.stringify({
-            recipient: `solana:${walletAddress}`,
-            metadata,
-            compressed: true,
-          }),
+          body: JSON.stringify(body),
         },
       );
 
@@ -510,8 +638,9 @@ export class CrossmintWalletService {
         body.templateId = CROSSMINT_ISLAND_TEMPLATE_ID;
       }
 
+      const islandCollection = CROSSMINT_ISLAND_COLLECTION_ID || CROSSMINT_COLLECTION_ID;
       const response = await fetch(
-        `${this.baseUrl}/api/2022-06-09/collections/${CROSSMINT_COLLECTION_ID}/nfts`,
+        `${this.baseUrl}/api/2022-06-09/collections/${islandCollection}/nfts`,
         {
           method: 'POST',
           headers: {
@@ -573,8 +702,9 @@ export class CrossmintWalletService {
         body.templateId = CROSSMINT_ISLAND_TEMPLATE_ID;
       }
 
+      const islandCollection = CROSSMINT_ISLAND_COLLECTION_ID || CROSSMINT_COLLECTION_ID;
       const response = await fetch(
-        `${this.baseUrl}/api/2022-06-09/collections/${CROSSMINT_COLLECTION_ID}/nfts`,
+        `${this.baseUrl}/api/2022-06-09/collections/${islandCollection}/nfts`,
         {
           method: 'POST',
           headers: {

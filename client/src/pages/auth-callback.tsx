@@ -100,14 +100,27 @@ export default function AuthCallbackPage() {
       } catch { /* ignore */ }
 
       setStatus("success");
+      // Prefer explicit query return, then sessionStorage from openLogin(), else /home
+      let storedReturn = "";
+      try {
+        storedReturn = sessionStorage.getItem("grudge_auth_return") || "";
+        if (storedReturn) sessionStorage.removeItem("grudge_auth_return");
+      } catch {
+        /* ignore */
+      }
       const returnDest =
         params.get("return") ||
         params.get("redirect") ||
         params.get("redirect_uri") ||
+        storedReturn ||
         "/home";
-      const safeReturn = returnDest.startsWith("/") && !returnDest.startsWith("//")
-        ? returnDest
-        : "/home";
+      // Never bounce back to /auth/callback itself
+      const safeReturn =
+        returnDest.startsWith("/") &&
+        !returnDest.startsWith("//") &&
+        !returnDest.startsWith("/auth/callback")
+          ? returnDest
+          : "/home";
       redirectTimer = setTimeout(() => setLocation(safeReturn), 600);
     })();
 

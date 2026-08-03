@@ -19,7 +19,7 @@ import {
   CLASS_CYCLE,
   RACE_PORTRAITS,
   LANDING_SECTION_ART,
-  BACKGROUNDS,
+  PRODUCTION_PATH_ART,
   hideBrokenImage,
 } from '@/lib/artAssets';
 import { useEffect, useState } from 'react';
@@ -49,42 +49,42 @@ const PLAY_PATH = [
   {
     n: '01',
     title: 'Opening',
-    detail: 'Warlords intro · sign in',
+    detail: 'Intro video · sign in',
     href: '/intro',
     icon: Flame,
-    art: BACKGROUNDS.darkFantasy1,
+    art: PRODUCTION_PATH_ART.opening,
   },
   {
     n: '02',
     title: 'Create hero',
-    detail: 'GCS · Warlords era',
+    detail: 'Foundry · Warlords era',
     href: '/create-character',
     icon: Swords,
-    art: BACKGROUNDS.darkFantasy3,
+    art: PRODUCTION_PATH_ART.createHero,
   },
   {
     n: '03',
-    title: 'Tutorial',
-    detail: 'Shipwreck · T0 loop',
-    href: '/tutorial',
+    title: 'Airship',
+    detail: 'Combat tab · 4 characters',
+    href: '/combat',
     icon: Anchor,
-    art: LANDING_SECTION_ART.pirate,
+    art: PRODUCTION_PATH_ART.tutorial,
   },
   {
     n: '04',
-    title: 'Open world',
-    detail: 'Haven · lobby · grind',
-    href: '/play?sector=haven_shore&mode=zone&worldSeed=grudge-world-1',
+    title: 'Tutorial island',
+    detail: 'Shipwreck · craft raft',
+    href: '/tutorial',
     icon: Globe,
-    art: LANDING_SECTION_ART.factions,
+    art: PRODUCTION_PATH_ART.openWorld,
   },
   {
     n: '05',
     title: 'Home island',
-    detail: 'Level 20 · End Game',
-    href: '/homeisland?cinematic=abandon-ship&from=end-game',
+    detail: 'After raft · not level 20',
+    href: '/homeisland?cinematic=abandon-ship&from=tutorial',
     icon: Leaf,
-    art: LANDING_SECTION_ART.path,
+    art: PRODUCTION_PATH_ART.homeIsland,
   },
 ];
 
@@ -292,7 +292,7 @@ export default function WarlordsLandingPage() {
               Production path
             </h3>
             <p className="text-slate-500 text-sm mt-1">
-              Create → airship → home island immediately → open world
+              Intro → create → airship → tutorial → raft → home island → play
             </p>
           </div>
           <Link href="/warlords/start">
@@ -383,8 +383,8 @@ export default function WarlordsLandingPage() {
                     />
                     <div className="relative z-10 p-5 h-full flex flex-col justify-end">
                       <div className="flex items-center gap-3 mb-3">
-                        <div className="rounded-xl bg-black/40 border border-white/10 p-1.5 backdrop-blur-sm">
-                          <Emblem size={40} />
+                        <div className="rounded-xl bg-black/40 border border-white/10 p-1.5 backdrop-blur-sm overflow-hidden shadow-[0_0_24px_rgba(0,0,0,.45)]">
+                          <Emblem size={52} className="drop-shadow-lg" />
                         </div>
                         <div>
                           <div className="font-bold text-white" style={{ fontFamily: "'Cinzel', serif" }}>

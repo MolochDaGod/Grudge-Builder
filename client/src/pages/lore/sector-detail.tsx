@@ -1,9 +1,13 @@
 /**
  * /lore/sectors/:sectorId — full dossier for grudge.studio info/lore.
+ * Live zone + flyby CTAs open the sector on forge.grudge-studio.com.
  */
 import { useRoute, Link } from 'wouter';
 import { LoreLayout } from './LoreLayout';
-import { getSectorDossier } from '@shared/definitions/sectorDossiers';
+import {
+  forgeSectorUrl,
+  getSectorDossier,
+} from '@shared/definitions/sectorDossiers';
 import { getSectorProductionContent } from '@shared/definitions/sectorProductionContent';
 import { SECTOR_PROOF_CHECKLIST } from '@shared/definitions/sectorRewritePipeline';
 
@@ -12,6 +16,9 @@ export default function LoreSectorDetailPage() {
   const sectorId = params?.sectorId ?? '';
   const d = getSectorDossier(sectorId);
   const prod = getSectorProductionContent(sectorId);
+  const forgeLive = d?.forgeUrl ?? (sectorId ? forgeSectorUrl(sectorId) : 'https://forge.grudge-studio.com/');
+  const forgeFlyby =
+    d?.flybyUrl ?? (sectorId ? forgeSectorUrl(sectorId, { flyby: true }) : forgeLive);
 
   if (!d) {
     return (
@@ -156,18 +163,29 @@ export default function LoreSectorDetailPage() {
         </ul>
         <div className="flex flex-wrap gap-2">
           <a
-            href={d.playUrl.replace('https://client.grudge-studio.com', '')}
-            className="px-3 py-2 rounded-lg bg-violet-700/80 hover:bg-violet-600 text-white text-xs no-underline"
+            href={forgeLive}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="px-3 py-2 rounded-lg bg-violet-700/80 hover:bg-violet-600 text-white text-xs no-underline font-semibold"
           >
-            Open live zone
+            Open live zone in Forge
           </a>
           <a
-            href={d.flybyUrl.replace('https://client.grudge-studio.com', '')}
-            className="px-3 py-2 rounded-lg bg-amber-700/80 hover:bg-amber-600 text-white text-xs no-underline"
+            href={forgeFlyby}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="px-3 py-2 rounded-lg bg-amber-700/80 hover:bg-amber-600 text-white text-xs no-underline font-semibold"
           >
-            Open with flyby proof
+            Sector flyby in Forge
+          </a>
+          <a
+            href={d.playUrl}
+            className="px-3 py-2 rounded-lg border border-white/15 text-slate-400 hover:text-white text-xs no-underline"
+          >
+            Play SPA zone (optional)
           </a>
         </div>
+        <p className="text-[10px] text-slate-600 mt-2 font-mono break-all">{forgeLive}</p>
       </section>
 
       {d.notes && d.notes.length > 0 && (

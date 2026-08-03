@@ -178,8 +178,10 @@ export async function setupColyseus(httpServer: HttpServer, app: Express) {
   gameServer.define("sector", SectorRoom).filterBy(["sectorId", "worldSeed"]);
   gameServer.define("world", WorldRoom);
   gameServer.define("town", TownRoom);
-  // Owned home island — invite others via UI (E → invite create/accept)
-  gameServer.define("home_island", HomeIslandRoom);
+  // Owned home island — one room per owner accountId (filterBy).
+  // Hosting: owner + 5 guests; harvest/build owner-only (HomeIslandRoom).
+  // Visitors must join existing room (onCreate rejects isVisitor create).
+  gameServer.define("home_island", HomeIslandRoom).filterBy(["accountId"]);
 
   // ── Activate matchmaker (replaces gameServer.listen when HTTP is external) ─
   // Server constructor only runs matchMaker.setup(); accept() is required for
@@ -205,7 +207,8 @@ export async function setupColyseus(httpServer: HttpServer, app: Express) {
             "SOLO starting adventure (pirate shipwreck island) — filterBy characterId, maxClients 1",
           shipwreck: "alias of tutorial",
           lobby: "multiplayer hub AFTER home-island (not tutorial)",
-          home_island: "owned island + invites; real multiplayer starts here",
+          home_island:
+            "owner + 5 guests (filterBy accountId); owner-only harvest/build; guests visit-only",
           sector: "9-sector open world zones",
           world: "overworld router / social",
         },

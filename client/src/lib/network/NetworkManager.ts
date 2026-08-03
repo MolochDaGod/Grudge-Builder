@@ -235,6 +235,11 @@ export class NetworkManager {
     return room;
   }
 
+  /**
+   * Home island hosting: filterBy owner accountId.
+   * Owner: joinOrCreate. Guest: join only (owner must be online) — max 5 guests.
+   * Harvest/build enforced owner-only on the server.
+   */
   async joinHomeIsland(
     player: NetworkPlayerJoin & {
       islandUUID?: string;
@@ -245,18 +250,29 @@ export class NetworkManager {
   ): Promise<Room> {
     if (!this.client) await this.connectWorld(player);
     void AssetLoadQueue.loadRaceModel(player.heroRace || 'human', 0);
-    const room = await this.client!.joinOrCreate('home_island', {
-      accountId: player.isVisitor ? player.ownerAccountId : player.accountId,
+    const isVisitor = !!player.isVisitor;
+    const ownerAccountId = isVisitor
+      ? player.ownerAccountId || player.accountId
+      : player.accountId;
+    if (!ownerAccountId) {
+      throw new Error('HOME_ISLAND_ACCOUNT_REQUIRED');
+    }
+    const opts = {
+      accountId: ownerAccountId,
+      visitorAccountId: isVisitor ? player.accountId : undefined,
       islandUUID: player.islandUUID,
       islandSeed: player.islandSeed,
-      isVisitor: !!player.isVisitor,
+      isVisitor,
       characterName: player.characterName,
       heroRace: player.heroRace,
       heroClass: player.heroClass,
       level: player.level,
       baseModelId: player.baseModelId || player.heroRace,
       equippedWeaponType: player.equippedWeaponType,
-    });
+    };
+    const room = isVisitor
+      ? await this.client!.join('home_island', opts)
+      : await this.client!.joinOrCreate('home_island', opts);
     this.sectorRoom = room;
     this.sessionId = room.sessionId;
     this.wireSectorRoom(room);

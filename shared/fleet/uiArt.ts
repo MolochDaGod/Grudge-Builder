@@ -72,30 +72,85 @@ export interface UiArtRegistry {
   viewer: UiArtViewerTokens;
 }
 
-/** Embedded fallback — keep in sync with ObjectStore api/v1/ui-art.json */
+/**
+ * Production race portraits (SPA public/ + R2).
+ * NEVER use imgur / placeholder art on Warlords product surfaces.
+ */
+export const WARLORDS_RACE_PORTRAIT_PATHS: Record<UiRaceId, string> = {
+  human: "/races/human-portrait.png",
+  barbarian: "/races/barbarian-portrait.png",
+  elf: "/races/elf-portrait.png",
+  dwarf: "/races/dwarf-portrait.png",
+  orc: "/races/orc-portrait.png",
+  undead: "/races/undead-portrait.png",
+};
+
+const ASSETS_CDN = "https://assets.grudge-studio.com";
+
+/** Embedded fallback — production paths only (no imgur) */
 export const UI_ART_FALLBACK: UiArtRegistry = {
-  version: "1.0.0",
-  updated: "2026-06-29",
-  source: "grudge-skill-tree/class-selector.html",
-  cdnBase: "https://assets.grudge-studio.com/gruda-armada/grudge-warlords/ui",
+  version: "1.1.0",
+  updated: "2026-08-02",
+  source: "client/public/races/*-portrait.png + assets.grudge-studio.com",
+  cdnBase: ASSETS_CDN,
   races: {
-    elf: { portrait: "https://i.imgur.com/rWEKVAw.png", cdn: "/races/elf.png" },
-    human: { portrait: "https://i.imgur.com/qBSRLZG.png", cdn: "/races/human.png" },
-    dwarf: { portrait: "https://i.imgur.com/6A4px2O.png", cdn: "/races/dwarf.png" },
-    orc: { portrait: "https://i.imgur.com/4PyTEN5.png", cdn: "/races/orc.png" },
-    barbarian: { portrait: "https://i.imgur.com/7WKJ8Bw.png", cdn: "/races/barbarian.png" },
-    undead: { portrait: "https://i.imgur.com/mPTojTj.png", cdn: "/races/undead.png" },
+    human: {
+      portrait: WARLORDS_RACE_PORTRAIT_PATHS.human,
+      cdn: `${ASSETS_CDN}/races/human-portrait.png`,
+    },
+    barbarian: {
+      portrait: WARLORDS_RACE_PORTRAIT_PATHS.barbarian,
+      cdn: `${ASSETS_CDN}/races/barbarian-portrait.png`,
+    },
+    elf: {
+      portrait: WARLORDS_RACE_PORTRAIT_PATHS.elf,
+      cdn: `${ASSETS_CDN}/races/elf-portrait.png`,
+    },
+    dwarf: {
+      portrait: WARLORDS_RACE_PORTRAIT_PATHS.dwarf,
+      cdn: `${ASSETS_CDN}/races/dwarf-portrait.png`,
+    },
+    orc: {
+      portrait: WARLORDS_RACE_PORTRAIT_PATHS.orc,
+      cdn: `${ASSETS_CDN}/races/orc-portrait.png`,
+    },
+    undead: {
+      portrait: WARLORDS_RACE_PORTRAIT_PATHS.undead,
+      cdn: `${ASSETS_CDN}/races/undead-portrait.png`,
+    },
   },
   classes: {
-    mage: { hero: "https://i.imgur.com/vKQR4UT.png", cdn: "/classes/mage.png", accent: "#6aa9ff" },
-    warrior: { hero: "https://i.imgur.com/Wj2mUH2.png", cdn: "/classes/warrior.png", accent: "#ff6b57" },
-    ranger: { hero: "https://i.imgur.com/5A6e5kL.png", cdn: "/classes/ranger.png", accent: "#6bdc8b" },
-    worge: { hero: "https://i.imgur.com/BrQH0Bx.png", cdn: "/classes/worge.png", accent: "#c792ff" },
-    worg: { hero: "https://i.imgur.com/BrQH0Bx.png", cdn: "/classes/worge.png", accent: "#c792ff" },
+    // Class hero stills — use race production portraits as reliable fleet art
+    // (dedicated class PNGs are not on CDN yet; accents drive UI chrome)
+    mage: {
+      hero: WARLORDS_RACE_PORTRAIT_PATHS.elf,
+      cdn: WARLORDS_RACE_PORTRAIT_PATHS.elf,
+      accent: "#6aa9ff",
+    },
+    warrior: {
+      hero: WARLORDS_RACE_PORTRAIT_PATHS.human,
+      cdn: WARLORDS_RACE_PORTRAIT_PATHS.human,
+      accent: "#ff6b57",
+    },
+    ranger: {
+      hero: WARLORDS_RACE_PORTRAIT_PATHS.barbarian,
+      cdn: WARLORDS_RACE_PORTRAIT_PATHS.barbarian,
+      accent: "#6bdc8b",
+    },
+    worge: {
+      hero: WARLORDS_RACE_PORTRAIT_PATHS.orc,
+      cdn: WARLORDS_RACE_PORTRAIT_PATHS.orc,
+      accent: "#c792ff",
+    },
+    worg: {
+      hero: WARLORDS_RACE_PORTRAIT_PATHS.orc,
+      cdn: WARLORDS_RACE_PORTRAIT_PATHS.orc,
+      accent: "#c792ff",
+    },
   },
   panels: {
-    parchment: "https://i.imgur.com/0SOCXgv.png",
-    parchmentCdn: "/panels/parchment.png",
+    parchment: `${ASSETS_CDN}/backgrounds/main-menu.png`,
+    parchmentCdn: "/backgrounds/main-menu.png",
   },
   combatClassBackgrounds: {
     melee: "warrior",
@@ -142,9 +197,23 @@ export function getUiArtRegistry(): UiArtRegistry {
   return cachedRegistry;
 }
 
+/**
+ * Race portrait for UI tiles (intro, creator, roster).
+ * Prefer same-origin production files under /races/*-portrait.png.
+ */
 export function getRacePortraitUrl(race: string): string {
   const key = race.toLowerCase() as UiRaceId;
-  return cachedRegistry.races[key]?.portrait ?? cachedRegistry.races.human.portrait;
+  // Hard SSOT: local public portraits always win over stale registry imgur URLs
+  if (key in WARLORDS_RACE_PORTRAIT_PATHS) {
+    return WARLORDS_RACE_PORTRAIT_PATHS[key as UiRaceId];
+  }
+  const entry = cachedRegistry.races[key] ?? cachedRegistry.races.human;
+  // Reject banned placeholder hosts if registry ever reintroduces them
+  const p = entry.portrait || "";
+  if (/imgur\.com|placehold|via\.placeholder|dummyimage/i.test(p)) {
+    return WARLORDS_RACE_PORTRAIT_PATHS.human;
+  }
+  return p || WARLORDS_RACE_PORTRAIT_PATHS.human;
 }
 
 export function getClassHeroUrl(cls: string): string {

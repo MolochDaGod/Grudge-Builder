@@ -29,7 +29,12 @@ import {
 import { setupGrudge6Equipment } from "@/lib/grudge6Equipment";
 import { applyGrudge6RaceTextures } from "@/lib/grudge6Textures";
 import { applyCharacterColorTints, ensureCharacterTextureColorSpace } from "@/lib/characterAppearance";
-import { fitCharacterRootToHeightM, PLAYER_HEIGHT_M } from "@/island3d/zoneWorldScale";
+import {
+  assertHeroSiHeight,
+  fitCharacterRootToHeightM,
+  PLAYER_HEIGHT_M,
+  sanitizeRaceScaleMult,
+} from "@/island3d/zoneWorldScale";
 import { getAnimationSet, type AnimationDef, type WeaponType } from "@/lib/modelManifest";
 import {
   effectivePipelineForEra,
@@ -37,7 +42,6 @@ import {
   type GameEra,
 } from "@shared/definitions/gameEras";
 import {
-  applyExplorerAppearanceToRoot,
   createBlockyExplorer,
   getAppearance,
   heightMeters,
@@ -82,12 +86,19 @@ async function loadGrudge6(hero: Character): Promise<CrewLoaded> {
   ensureCharacterTextureColorSpace(loaded.scene);
   applyCharacterColorTints(loaded.scene, model3d.skinColor, model3d.armorColor);
 
-  const raceMult = model3d.scale ?? race.scale ?? 1;
-  fitCharacterRootToHeightM(loaded.scene, raceMult, PLAYER_HEIGHT_M);
-
-  // If this hero also has explorer appearance saved, apply height range on top
+  // Race mult is aesthetic only (~0.7–1.35). NEVER accept scale:100 from DB/model3d.
+  const raceMult = sanitizeRaceScaleMult(model3d.scale ?? race.scale ?? 1);
+  // Explorer height preference (1.55–2.05 m) is the FIT TARGET — not a post-fit scale.set(1).
+  // Old path: fit → applyExplorerAppearanceToRoot → scale.set(~1) → 100× giant again.
   const app = getAppearance(hero.id);
-  const hM = applyExplorerAppearanceToRoot(loaded.scene, app, PLAYER_HEIGHT_M * raceMult);
+  const targetH = heightMeters(app);
+  fitCharacterRootToHeightM(loaded.scene, raceMult, targetH);
+  // HARD gate: refuse silent 100× on /heroes roster cinema
+  const hM = assertHeroSiHeight(loaded.scene, {
+    raceScaleMult: raceMult,
+    targetBaseHeightM: targetH,
+    label: `heroes/${hero.name || hero.id}`,
+  });
 
   const controller = new AnimationController(loaded.mixer, loaded.scene);
   const weaponType = weaponTypeFromModel3d(model3d, hero.classId) as WeaponType;
@@ -105,7 +116,20 @@ async function loadGrudge6(hero: Character): Promise<CrewLoaded> {
     if (first) controller.play(first, { loop: true, speed: 1 });
   }
 
-  return { root: loaded.scene, controller, pipeline: "grudge6", heightM: hM };
+  // Idle pose can inflate bbox — re-assert SI so 100× never sticks after first sample
+  let heightOut = hM;
+  try {
+    loaded.mixer.update(1 / 30);
+    heightOut = assertHeroSiHeight(loaded.scene, {
+      raceScaleMult: raceMult,
+      targetBaseHeightM: targetH,
+      label: `heroes/post-idle/${hero.name || hero.id}`,
+    });
+  } catch {
+    /* ignore mixer sample */
+  }
+
+  return { root: loaded.scene, controller, pipeline: "grudge6", heightM: heightOut };
 }
 
 async function loadVoxelExplorer(hero: Character): Promise<CrewLoaded> {
@@ -120,11 +144,15 @@ async function loadVoxelExplorer(hero: Character): Promise<CrewLoaded> {
     }
   }
 
-  // Procedural explorer blocky + body ranges
+  // Procedural explorer blocky — fit once to appearance target height (no post scale.set)
   const app = getAppearance(hero.id);
   const blocky = createBlockyExplorer();
-  const hM = applyExplorerAppearanceToRoot(blocky, app, 1.8);
-  // No skinned mixer — AI will skip clip play; still walks via root motion positions
+  const targetH = heightMeters(app);
+  fitCharacterRootToHeightM(blocky, 1, targetH);
+  const hM = assertHeroSiHeight(blocky, {
+    targetBaseHeightM: targetH,
+    label: `heroes/voxel/${hero.name || hero.id}`,
+  });
   return { root: blocky, controller: null, pipeline: "voxel", heightM: hM };
 }
 
@@ -144,9 +172,13 @@ export async function loadCrewHero(hero: Character): Promise<CrewLoaded> {
   } catch (e) {
     console.warn("[heroesCrew] primary mesh failed — LED face backup body", e);
     const app = getAppearance(hero.id);
-    // Armada backup + any failed primary: LED-faced cube body
     const blocky = createBlockyExplorer({ ledFace: true });
-    const hM = applyExplorerAppearanceToRoot(blocky, app, 1.8);
+    const targetH = heightMeters(app);
+    fitCharacterRootToHeightM(blocky, 1, targetH);
+    const hM = assertHeroSiHeight(blocky, {
+      targetBaseHeightM: targetH,
+      label: `heroes/backup/${hero.name || hero.id}`,
+    });
     return { root: blocky, controller: null, pipeline: pipe, heightM: hM };
   }
 }

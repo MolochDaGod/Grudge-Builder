@@ -122,11 +122,21 @@ export default function Grudge6Character3D({
       await applyGrudge6RaceTextures(loaded.scene, raceKey);
       await applyCharacterAppearance(loaded.scene, resolvedModel3d, heroId);
 
-      const { fitCharacterRootToHeightM, PLAYER_HEIGHT_M } = await import(
-        "@/island3d/zoneWorldScale"
+      const {
+        fitCharacterRootToHeightM,
+        assertHeroSiHeight,
+        sanitizeRaceScaleMult,
+        PLAYER_HEIGHT_M,
+      } = await import("@/island3d/zoneWorldScale");
+      const raceMult = sanitizeRaceScaleMult(
+        scaleOverride ?? resolvedModel3d.scale ?? race.scale ?? 1,
       );
-      const raceMult = scaleOverride ?? resolvedModel3d.scale ?? race.scale ?? 1;
       fitCharacterRootToHeightM(loaded.scene, raceMult, PLAYER_HEIGHT_M);
+      assertHeroSiHeight(loaded.scene, {
+        raceScaleMult: raceMult,
+        targetBaseHeightM: PLAYER_HEIGHT_M,
+        label: `Grudge6Character3D/${raceKey}`,
+      });
       loaded.scene.position.set(position.x, position.y, position.z);
       scene.add(loaded.scene);
 
@@ -228,12 +238,19 @@ export default function Grudge6Character3D({
   useEffect(() => {
     if (!modelRef.current || scaleOverride === undefined) return;
     const race = RACE_GRUDGE6[raceKey] ?? RACE_GRUDGE6.human;
-    const raceMult = scaleOverride > 0 ? scaleOverride : race.scale ?? 1;
-    void import("@/island3d/zoneWorldScale").then(({ fitCharacterRootToHeightM, PLAYER_HEIGHT_M }) => {
-      if (!modelRef.current) return;
-      fitCharacterRootToHeightM(modelRef.current.scene, raceMult, PLAYER_HEIGHT_M);
-      modelRef.current.scene.position.set(position.x, position.y, position.z);
-    });
+    void import("@/island3d/zoneWorldScale").then(
+      ({ fitCharacterRootToHeightM, assertHeroSiHeight, sanitizeRaceScaleMult, PLAYER_HEIGHT_M }) => {
+        if (!modelRef.current) return;
+        const raceMult = sanitizeRaceScaleMult(scaleOverride > 0 ? scaleOverride : race.scale ?? 1);
+        fitCharacterRootToHeightM(modelRef.current.scene, raceMult, PLAYER_HEIGHT_M);
+        assertHeroSiHeight(modelRef.current.scene, {
+          raceScaleMult: raceMult,
+          targetBaseHeightM: PLAYER_HEIGHT_M,
+          label: `Grudge6Character3D/scaleFx/${raceKey}`,
+        });
+        modelRef.current.scene.position.set(position.x, position.y, position.z);
+      },
+    );
   }, [scaleOverride, raceKey, position.x, position.y, position.z]);
 
   return null;

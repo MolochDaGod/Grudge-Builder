@@ -4,7 +4,11 @@
  *
  * Purpose: browse + correct + improve weapons AND armour, stats, systems, skills;
  * share production codex for deployment.
- * SSOT: weaponPrefabCatalog, armorPrefabCatalog, weaponSkillsNew, equipmentData.
+ *
+ * SSOT:
+ *   Prefab meshes  → weaponPrefabCatalog / armorPrefabCatalog
+ *   Items/icons    → info.grudge-studio.com master-items + master-weapons (T0–T8)
+ *   Skills/info    → master-weaponSkills.json (loadMasterWeaponSkills)
  * Edits → local drafts → export JSON / codex package (never silent repo writes).
  */
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -29,6 +33,8 @@ import {
   XCircle,
   Share2,
   Copy,
+  Package,
+  RefreshCw,
 } from 'lucide-react';
 import Layout from '@/components/Layout';
 import { Button } from '@/components/ui/button';
@@ -78,8 +84,21 @@ import {
   buildCodexShareText,
   buildCodexProductionPackage,
 } from '@/lib/arsenalCodexExport';
+import {
+  loadArsenalMasterBundle,
+  filterMasterItems,
+  formatItemStats,
+  isIconUrl,
+  type ArsenalMasterBundle,
+  type MasterCatalogItem,
+} from '@/lib/arsenalMasterCatalog';
+import {
+  getCachedWeaponTypeDef,
+  loadMasterWeaponSkillsCatalog,
+} from '@/lib/loadMasterWeaponSkills';
 
 type StudioTab =
+  | 'catalog'
   | 'prefabs'
   | 'skills'
   | 'stats'
@@ -134,6 +153,88 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
+function SkillIcon({ icon, name }: { icon?: string; name: string }) {
+  if (isIconUrl(icon)) {
+    return (
+      <img
+        src={icon}
+        alt={name}
+        className="w-9 h-9 rounded object-contain bg-slate-950/80 border border-slate-700/50 shrink-0"
+        onError={(e) => {
+          const el = e.target as HTMLImageElement;
+          el.style.display = 'none';
+        }}
+      />
+    );
+  }
+  return (
+    <span className="text-lg shrink-0 w-9 h-9 flex items-center justify-center">
+      {icon || '⚔️'}
+    </span>
+  );
+}
+
+function MasterItemCard({
+  item,
+  selected,
+  onSelect,
+}: {
+  item: MasterCatalogItem;
+  selected: boolean;
+  onSelect: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onSelect}
+      className={cn(
+        'text-left rounded-xl border p-3 transition-all bg-gradient-to-br from-slate-800/80 to-slate-900/90',
+        selected
+          ? 'border-amber-500/70 ring-1 ring-amber-500/30'
+          : 'border-slate-700/50 hover:border-slate-500/60',
+      )}
+      data-testid={`master-item-${item.id}`}
+    >
+      <div className="flex items-start gap-3">
+        <div className="w-14 h-14 rounded-lg bg-slate-950/80 border border-slate-700/50 flex items-center justify-center overflow-hidden shrink-0">
+          <img
+            src={item.iconUrl}
+            alt={item.name}
+            className="w-12 h-12 object-contain"
+            onError={(e) => {
+              (e.target as HTMLImageElement).style.opacity = '0.25';
+            }}
+          />
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center justify-between gap-2">
+            <h3 className="text-sm font-semibold text-white truncate">{item.name}</h3>
+            <span
+              className={cn(
+                'text-[10px] font-bold shrink-0 px-1.5 py-0.5 rounded',
+                item.tier === 0
+                  ? 'bg-slate-600/40 text-slate-200'
+                  : 'bg-amber-500/15 text-amber-300',
+              )}
+            >
+              T{item.tier}
+            </span>
+          </div>
+          <p className="text-[10px] text-slate-500 mt-0.5">
+            {item.type}
+            {item.weaponType ? ` · ${item.weaponType}` : ''}
+            {item.slot ? ` · ${item.slot}` : ''}
+            {item.craftedBy ? ` · ${item.craftedBy}` : ''}
+          </p>
+          <p className="text-[10px] text-slate-400 mt-1 line-clamp-2 font-mono">
+            {formatItemStats(item.stats)}
+          </p>
+        </div>
+      </div>
+    </button>
+  );
+}
+
 function SkillEditorRow({
   skill,
   weaponType,
@@ -158,7 +259,7 @@ function SkillEditorRow({
     >
       <div className="flex items-start justify-between gap-2">
         <div className="flex items-center gap-2 min-w-0">
-          <span className="text-lg shrink-0">{merged.icon || '⚔️'}</span>
+          <SkillIcon icon={merged.icon} name={merged.name} />
           <div className="min-w-0">
             <input
               className="w-full bg-transparent text-sm font-semibold text-amber-300 border-b border-transparent focus:border-amber-500/50 outline-none"
@@ -408,7 +509,7 @@ export default function ArsenalPage() {
   const authReady = useAuthGuard();
   const [, setLocation] = useLocation();
 
-  const [tab, setTab] = useState<StudioTab>('prefabs');
+  const [tab, setTab] = useState<StudioTab>('catalog');
   const [search, setSearch] = useState('');
   const [weaponType, setWeaponType] = useState<ProductionWeaponType>('SWORD');
   const [selectedPrefabId, setSelectedPrefabId] = useState<string | null>(null);
@@ -417,6 +518,13 @@ export default function ArsenalPage() {
   const [armorSlot, setArmorSlot] = useState<string>('all');
   const [armorSet, setArmorSet] = useState<string>('all');
   const [tier, setTier] = useState(1);
+  const [catalogTier, setCatalogTier] = useState<number | 'all'>('all');
+  const [catalogType, setCatalogType] = useState<string>('all');
+  const [selectedMasterId, setSelectedMasterId] = useState<string | null>(null);
+  const [master, setMaster] = useState<ArsenalMasterBundle | null>(null);
+  const [masterLoading, setMasterLoading] = useState(true);
+  const [masterError, setMasterError] = useState<string | null>(null);
+  const [skillsReady, setSkillsReady] = useState(false);
   const [drafts, setDrafts] = useState<ArsenalDrafts>(loadArsenalDrafts);
   const [savedFlash, setSavedFlash] = useState(false);
   const [shareFlash, setShareFlash] = useState(false);
@@ -424,6 +532,25 @@ export default function ArsenalPage() {
   useEffect(() => {
     setDrafts(loadArsenalDrafts());
   }, []);
+
+  const reloadMaster = useCallback(async () => {
+    setMasterLoading(true);
+    setMasterError(null);
+    try {
+      await loadMasterWeaponSkillsCatalog(true);
+      setSkillsReady(true);
+      const bundle = await loadArsenalMasterBundle();
+      setMaster(bundle);
+    } catch (e) {
+      setMasterError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setMasterLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void reloadMaster();
+  }, [reloadMaster]);
 
   const coverage = useMemo(() => buildWeaponPrefabCoverage(), []);
   const armorCoverage = useMemo(() => buildArmorPrefabCoverage(), []);
@@ -457,12 +584,31 @@ export default function ArsenalPage() {
   const selectedArmor = selectedArmorBase
     ? mergeArmorEntry(selectedArmorBase, drafts)
     : null;
-  const skillDef: WeaponTypeDefinition | undefined = useMemo(
-    () => getWeaponTypeDefinition(weaponType),
-    [weaponType],
-  );
+
+  /** Prefer info.* master-weaponSkills; fallback to local weaponSkillsNew */
+  const skillDef: WeaponTypeDefinition | undefined = useMemo(() => {
+    const fromMaster = skillsReady ? getCachedWeaponTypeDef(weaponType) : null;
+    return fromMaster ?? getWeaponTypeDefinition(weaponType) ?? undefined;
+  }, [weaponType, skillsReady, master?.skillsVersion]);
+
   const selectedPrefab =
     prefabs.find((p) => p.id === selectedPrefabId) ?? prefabs[0] ?? null;
+
+  const catalogItems = useMemo(() => {
+    if (!master?.items) return [];
+    return filterMasterItems(master.items, {
+      search,
+      tier: catalogTier,
+      type: catalogType,
+      weaponType:
+        catalogType === 'weapon' || catalogType === 'tool' ? weaponType : 'all',
+    });
+  }, [master, search, catalogTier, catalogType, weaponType]);
+
+  const selectedMaster =
+    catalogItems.find((i) => i.uuid === selectedMasterId || i.id === selectedMasterId) ||
+    catalogItems[0] ||
+    null;
 
   useEffect(() => {
     if (!selectedPrefabId && prefabs[0]) {
@@ -547,7 +693,8 @@ export default function ArsenalPage() {
 
   if (!authReady) return null;
 
-  const tabs: { id: StudioTab; label: string; icon: typeof Sword }[] = [
+  const tabs: { id: StudioTab; label: string; icon: typeof Package }[] = [
+    { id: 'catalog', label: 'Catalog T0–T8', icon: Package },
     { id: 'prefabs', label: 'Prefabs', icon: Box },
     { id: 'skills', label: 'Skills', icon: Zap },
     { id: 'stats', label: 'Stats / Tiers', icon: BarChart3 },
@@ -576,8 +723,15 @@ export default function ArsenalPage() {
                   <Sparkles className="w-7 h-7" /> Production Arsenal
                 </h1>
                 <p className="text-xs text-slate-500 mt-0.5">
-                  Migrated from WCS · weapons + armour · icons · codex export ·
-                  deploy production info · mesh-true when mesh exists
+                  info.* master items + skills · prefab meshes · T0–T8 icons ·
+                  codex export · mesh-true when mesh exists
+                  {master && (
+                    <span className="text-emerald-500/80">
+                      {' '}
+                      · {master.totalItems} items · skills v
+                      {master.skillsVersion || '—'}
+                    </span>
+                  )}
                 </p>
               </div>
             </div>
@@ -591,6 +745,21 @@ export default function ArsenalPage() {
                   {savedFlash ? ' · saved' : ''}
                 </span>
               )}
+              <Button
+                size="sm"
+                variant="outline"
+                className="border-slate-600 text-slate-300"
+                onClick={() => void reloadMaster()}
+                disabled={masterLoading}
+              >
+                <RefreshCw
+                  className={cn(
+                    'w-3.5 h-3.5 mr-1',
+                    masterLoading && 'animate-spin',
+                  )}
+                />{' '}
+                Sync info.*
+              </Button>
               <Button
                 size="sm"
                 variant="outline"
@@ -638,7 +807,7 @@ export default function ArsenalPage() {
               <input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Filter types / prefabs…"
+                placeholder="Filter catalog / types / prefabs…"
                 className="w-full bg-slate-800/50 border border-slate-700 rounded-lg pl-10 pr-3 py-2 text-sm text-white placeholder:text-slate-500"
               />
             </div>
@@ -649,6 +818,7 @@ export default function ArsenalPage() {
                 onChange={(e) => setTier(Number(e.target.value))}
                 className="bg-slate-800 border border-slate-700 rounded px-2 py-1 text-sm text-white"
               >
+                <option value={0}>T0 Starter</option>
                 {TIER_VISUALS.map((tv) => (
                   <option key={tv.tier} value={tv.tier}>
                     T{tv.tier} {tv.tierName}
@@ -658,28 +828,42 @@ export default function ArsenalPage() {
             </div>
           </div>
 
-          {/* Coverage strip — weapons + armour */}
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-2 mb-5">
+          {/* Coverage strip — weapons + armour + info.* catalog */}
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-10 gap-2 mb-5">
             {[
+              {
+                label: 'Info items',
+                value: master?.totalItems ?? (masterLoading ? '…' : 0),
+                color: 'text-cyan-400',
+              },
+              {
+                label: 'Weapons',
+                value: master?.weaponsTotal ?? '—',
+                color: 'text-amber-300',
+              },
+              {
+                label: 'Armor',
+                value: master?.armorTotal ?? '—',
+                color: 'text-sky-300',
+              },
+              {
+                label: 'Tools',
+                value: master?.toolsTotal ?? '—',
+                color: 'text-lime-300',
+              },
               { label: 'Wpn types', value: coverage.weaponTypes },
               { label: 'Wpn ready', value: coverage.ready, color: 'text-emerald-400' },
               { label: 'Wpn miss', value: coverage.missing, color: 'text-red-400' },
-              { label: 'Armour', value: armorCoverage.total },
               {
                 label: 'Arm ready',
                 value: armorCoverage.ready,
                 color: 'text-emerald-400',
               },
-              {
-                label: 'Arm fallback',
-                value: armorCoverage.fallback,
-                color: 'text-amber-400',
-              },
               { label: 'Sets', value: Object.keys(armorCoverage.bySet).length },
               {
                 label: 'Skill trees',
-                value: PRODUCTION_WEAPON_TYPES.filter((t) =>
-                  getWeaponTypeDefinition(t),
+                value: PRODUCTION_WEAPON_TYPES.filter(
+                  (t) => getCachedWeaponTypeDef(t) || getWeaponTypeDefinition(t),
                 ).length,
               },
             ].map((c) => (
@@ -699,7 +883,8 @@ export default function ArsenalPage() {
 
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
             {/* Type rail */}
-            {(tab === 'prefabs' ||
+            {(tab === 'catalog' ||
+              tab === 'prefabs' ||
               tab === 'skills' ||
               tab === 'stats' ||
               tab === 'systems') && (
@@ -707,6 +892,12 @@ export default function ArsenalPage() {
                 {filteredTypes.map((t) => {
                   const cov = coverage.byType[t];
                   const role = WEAPON_CLASS_ROLE[t];
+                  const masterCount =
+                    master?.items.filter(
+                      (i) =>
+                        (i.weaponType || '').toUpperCase() === t &&
+                        (catalogType === 'all' || i.type === catalogType),
+                    ).length ?? 0;
                   return (
                     <button
                       key={t}
@@ -724,9 +915,11 @@ export default function ArsenalPage() {
                     >
                       <div className="font-semibold tracking-wide">{t}</div>
                       <div className="text-[10px] text-slate-500 mt-0.5">
-                        {cov
-                          ? `${cov.ready}r/${cov.fallback}f/${cov.missing}m`
-                          : '—'}
+                        {tab === 'catalog'
+                          ? `${masterCount} info.*`
+                          : cov
+                            ? `${cov.ready}r/${cov.fallback}f/${cov.missing}m`
+                            : '—'}
                         {role && role !== 'any' ? ` · ${role}` : ''}
                       </div>
                     </button>
@@ -744,6 +937,212 @@ export default function ArsenalPage() {
               )}
             >
               <AnimatePresence mode="wait">
+                {tab === 'catalog' && (
+                  <motion.div
+                    key="catalog"
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0 }}
+                    className="space-y-4"
+                  >
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h2 className="text-lg font-semibold text-white mr-2">
+                        Master catalog (info.*)
+                      </h2>
+                      <span className="text-[11px] text-slate-500">
+                        {masterLoading
+                          ? 'Loading master-items + master-weapons…'
+                          : masterError
+                            ? `Error: ${masterError}`
+                            : `${catalogItems.length} shown · SSOT info.grudge-studio.com`}
+                      </span>
+                      <div className="flex flex-wrap gap-1 ml-auto">
+                        {(
+                          [
+                            'all',
+                            'weapon',
+                            'armor',
+                            'tool',
+                            'food',
+                            'potion',
+                            'consumable',
+                          ] as const
+                        ).map((t) => (
+                          <button
+                            key={t}
+                            type="button"
+                            onClick={() => setCatalogType(t)}
+                            className={cn(
+                              'px-2 py-1 rounded text-[10px] font-semibold uppercase',
+                              catalogType === t
+                                ? 'bg-cyan-500 text-black'
+                                : 'bg-slate-800 text-slate-400',
+                            )}
+                          >
+                            {t}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap gap-1">
+                      <button
+                        type="button"
+                        onClick={() => setCatalogTier('all')}
+                        className={cn(
+                          'px-2.5 py-1 rounded text-[11px] font-semibold',
+                          catalogTier === 'all'
+                            ? 'bg-amber-500 text-black'
+                            : 'bg-slate-800 text-slate-400',
+                        )}
+                      >
+                        All tiers
+                      </button>
+                      {[0, 1, 2, 3, 4, 5, 6, 7, 8].map((t) => (
+                        <button
+                          key={t}
+                          type="button"
+                          onClick={() => setCatalogTier(t)}
+                          className={cn(
+                            'px-2.5 py-1 rounded text-[11px] font-semibold',
+                            catalogTier === t
+                              ? 'bg-amber-500 text-black'
+                              : 'bg-slate-800 text-slate-400',
+                          )}
+                        >
+                          T{t}
+                          {master?.byTier[t] != null
+                            ? ` (${master.byTier[t]})`
+                            : ''}
+                        </button>
+                      ))}
+                    </div>
+                    <div className="grid grid-cols-1 xl:grid-cols-5 gap-4">
+                      <div className="xl:col-span-3 grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[62vh] overflow-y-auto pr-1">
+                        {catalogItems.slice(0, 200).map((item) => (
+                          <MasterItemCard
+                            key={item.uuid || item.id}
+                            item={item}
+                            selected={
+                              selectedMaster?.uuid === item.uuid ||
+                              selectedMaster?.id === item.id
+                            }
+                            onSelect={() =>
+                              setSelectedMasterId(item.uuid || item.id)
+                            }
+                          />
+                        ))}
+                        {catalogItems.length > 200 && (
+                          <p className="text-xs text-slate-500 col-span-2">
+                            Showing first 200 of {catalogItems.length} — refine
+                            filters / search.
+                          </p>
+                        )}
+                        {!masterLoading && catalogItems.length === 0 && (
+                          <p className="text-slate-500 text-sm col-span-2">
+                            No items match. Sync info.* or clear filters.
+                          </p>
+                        )}
+                      </div>
+                      <div className="xl:col-span-2 rounded-xl border border-slate-700/50 bg-slate-900/50 p-4 space-y-3">
+                        {selectedMaster ? (
+                          <>
+                            <div className="flex items-start gap-3">
+                              <img
+                                src={selectedMaster.iconUrl}
+                                alt={selectedMaster.name}
+                                className="w-16 h-16 object-contain rounded-lg bg-slate-950 border border-slate-700"
+                              />
+                              <div className="min-w-0">
+                                <h3 className="text-base font-bold text-amber-300">
+                                  {selectedMaster.name}
+                                </h3>
+                                <p className="text-[10px] text-slate-500 font-mono break-all">
+                                  {selectedMaster.uuid}
+                                </p>
+                                <p className="text-xs text-slate-400 mt-1">
+                                  T{selectedMaster.tier}
+                                  {selectedMaster.tierLabel
+                                    ? ` ${selectedMaster.tierLabel}`
+                                    : ''}{' '}
+                                  · {selectedMaster.type}
+                                  {selectedMaster.weaponType
+                                    ? ` · ${selectedMaster.weaponType}`
+                                    : ''}
+                                </p>
+                              </div>
+                            </div>
+                            {(selectedMaster.lore ||
+                              selectedMaster.description) && (
+                              <p className="text-sm text-slate-300 leading-relaxed">
+                                {selectedMaster.lore ||
+                                  selectedMaster.description}
+                              </p>
+                            )}
+                            <div className="text-xs text-slate-400 space-y-1">
+                              <div>
+                                <span className="text-slate-500">Stats: </span>
+                                {formatItemStats(selectedMaster.stats)}
+                              </div>
+                              {selectedMaster.craftedBy && (
+                                <div>
+                                  <span className="text-slate-500">
+                                    Crafted by:{' '}
+                                  </span>
+                                  {selectedMaster.craftedBy}
+                                </div>
+                              )}
+                              {selectedMaster.prefabSource && (
+                                <div>
+                                  <span className="text-slate-500">
+                                    Prefab:{' '}
+                                  </span>
+                                  {selectedMaster.prefabSource}
+                                </div>
+                              )}
+                              <div className="break-all">
+                                <span className="text-slate-500">Icon: </span>
+                                <a
+                                  href={selectedMaster.iconUrl}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="text-cyan-400/90 hover:underline"
+                                >
+                                  {selectedMaster.rawIcon ||
+                                    selectedMaster.iconUrl}
+                                </a>
+                              </div>
+                            </div>
+                            {selectedMaster.weaponType && (
+                              <Button
+                                size="sm"
+                                className="bg-amber-500 text-black hover:bg-amber-400"
+                                onClick={() => {
+                                  const wt =
+                                    selectedMaster.weaponType!.toUpperCase();
+                                  if (
+                                    PRODUCTION_WEAPON_TYPES.includes(
+                                      wt as ProductionWeaponType,
+                                    )
+                                  ) {
+                                    setWeaponType(wt as ProductionWeaponType);
+                                  }
+                                  setTab('prefabs');
+                                }}
+                              >
+                                Open prefabs · {selectedMaster.weaponType}
+                              </Button>
+                            )}
+                          </>
+                        ) : (
+                          <p className="text-slate-500 text-sm">
+                            Select an item from the master catalog
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+
                 {tab === 'prefabs' && (
                   <motion.div
                     key="prefabs"
@@ -863,13 +1262,17 @@ export default function ArsenalPage() {
                         {skillDef?.name || weaponType} abilities
                       </h2>
                       <span className="text-xs text-slate-500">
-                        SSOT: weaponSkillsNew · drafts overlay local edits
+                        SSOT:{' '}
+                        {getCachedWeaponTypeDef(weaponType)
+                          ? `master-weaponSkills v${master?.skillsVersion || '?'}`
+                          : 'weaponSkillsNew (local fallback)'}{' '}
+                        · drafts overlay
                       </span>
                     </div>
                     {!skillDef && (
                       <p className="text-amber-400/80 text-sm">
-                        No skill tree defined for {weaponType} yet — add slots in
-                        shared/definitions/weaponSkillsNew.ts
+                        No skill tree for {weaponType} — sync info.* master-weaponSkills
+                        or define local slots in weaponSkillsNew.ts
                       </p>
                     )}
                     {skillDef?.slots.map((slot, si) => (
@@ -1016,7 +1419,9 @@ export default function ArsenalPage() {
                         <tbody>
                           {PRODUCTION_WEAPON_TYPES.map((t) => {
                             const cov = coverage.byType[t];
-                            const def = getWeaponTypeDefinition(t);
+                            const def =
+                              getCachedWeaponTypeDef(t) ||
+                              getWeaponTypeDefinition(t);
                             const skillCount =
                               def?.slots.reduce(
                                 (n, s) => n + s.skills.length,

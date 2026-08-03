@@ -162,50 +162,119 @@ button:disabled{opacity:.5;cursor:not-allowed;transform:none}
   <main class="card">
     <div class="badge" id="edge-badge">edge · production</div>
     <h1>Fleet Wallet</h1>
-    <p class="sub">Server-side Solana wallets (Crossmint) and GBUX — backed by Railway Postgres SSOT, not the old VPS.</p>
+    <p class="sub">Server-side Solana wallets (Crossmint) and GBUX — Railway Postgres SSOT via Grudge ID (Discord / password / Puter). Same account as Foundry &amp; play client.</p>
 
     <div id="status-block">
       <div class="row"><span class="k">Network</span><span class="v" id="net">…</span></div>
       <div class="row"><span class="k">Crossmint</span><span class="v" id="xm">…</span></div>
       <div class="row"><span class="k">GBUX mint</span><span class="v" id="mint">…</span></div>
       <div class="row"><span class="k">Session</span><span class="v" id="sess">checking…</span></div>
+      <div class="row"><span class="k">Grudge ID</span><span class="v" id="gid">—</span></div>
+      <div class="row"><span class="k">Account</span><span class="v" id="acct">—</span></div>
+      <div class="row"><span class="k">GBUX</span><span class="v" id="gbux">—</span></div>
+      <div class="row"><span class="k">Heroes</span><span class="v" id="heroes">—</span></div>
     </div>
 
     <div class="addr" id="addr"></div>
+    <div id="hero-list" style="margin-top:12px;font-size:.82rem;color:var(--dim)"></div>
 
     <div class="btns">
       <button class="primary" type="button" id="btn-refresh">Refresh</button>
       <button class="ghost" type="button" id="btn-login">Sign in with Grudge ID</button>
-      <a class="btn ghost" href="${client}">Open client</a>
+      <button class="ghost" type="button" id="btn-logout" style="display:none">Sign out</button>
+      <a class="btn ghost" href="${client}/home" id="btn-client">Open client</a>
+      <a class="btn ghost" href="https://character.grudge-studio.com/?era=warlords" id="btn-foundry">Foundry</a>
     </div>
     <p class="msg" id="msg"></p>
   </main>
 
-  <p class="foot">wallet.grudge-studio.com · grudge-wallet-site · Railway API</p>
+  <p class="foot">wallet.grudge-studio.com · grudge-wallet-site · Railway API · id.grudge-studio.com</p>
 
 <script>
 const RAILWAY = ${JSON.stringify(railway)};
 const ID_GW = ${JSON.stringify(idGw)};
+const FLEET_KEYS = [
+  'grudge_auth_token','grudge_session_token','grudge.token','sso_token','grudge_token','access_token'
+];
 const $ = (id) => document.getElementById(id);
 
-function tokenFromUrl() {
+function storeFleetToken(token, meta) {
+  if (!token) return;
+  try {
+    // Full session JWT must win — never prefer short launch tokens as sole key
+    localStorage.setItem('grudge_auth_token', token);
+    localStorage.setItem('grudge_session_token', token);
+    localStorage.setItem('grudge.token', token);
+    localStorage.setItem('sso_token', token);
+    localStorage.setItem('access_token', token);
+    // Only write grudge_token if it looks like a long session JWT (3 segments)
+    if (token.split('.').length === 3) localStorage.setItem('grudge_token', token);
+    if (meta && meta.grudgeId) {
+      localStorage.setItem('grudge_id', meta.grudgeId);
+      localStorage.setItem('grudge_account_id', meta.grudgeId);
+      localStorage.setItem('grudge_user_id', meta.grudgeId);
+    }
+    if (meta && meta.username) localStorage.setItem('grudge_username', meta.username);
+  } catch {}
+}
+
+function getAuthToken() {
+  try {
+    // Prefer full session keys FIRST (sso_token / grudge_auth_token), NOT short launch grudge_token
+    for (const k of ['grudge_auth_token','grudge_session_token','grudge.token','sso_token','access_token','grudge_token']) {
+      const v = localStorage.getItem(k);
+      if (v && v.trim()) return v.trim();
+    }
+  } catch {}
+  return '';
+}
+
+function clearFleetAuth() {
+  try {
+    FLEET_KEYS.forEach((k) => localStorage.removeItem(k));
+    ['grudge_id','grudge_account_id','grudge_user_id','grudge_username'].forEach((k) => localStorage.removeItem(k));
+  } catch {}
+}
+
+/** Consume id.grudge-studio.com return: prefer sso_token/token (session JWT) over grudge_token (launch). */
+function consumeAuthFromUrl() {
   const u = new URL(location.href);
-  const t = u.searchParams.get('grudge_token') || u.searchParams.get('sso_token') || u.searchParams.get('token');
-  if (t) {
-    try { localStorage.setItem('grudge_token', t); } catch {}
-    u.searchParams.delete('grudge_token');
-    u.searchParams.delete('sso_token');
-    u.searchParams.delete('token');
-    history.replaceState(null, '', u.pathname + u.search);
+  const hash = new URLSearchParams((u.hash || '').replace(/^#/, ''));
+  const sp = u.searchParams;
+  const session =
+    sp.get('sso_token') || sp.get('token') ||
+    hash.get('sso_token') || hash.get('token') || '';
+  const launch =
+    sp.get('grudge_token') || hash.get('grudge_token') || '';
+  const grudgeId =
+    sp.get('grudgeId') || sp.get('grudge_id') ||
+    hash.get('grudgeId') || hash.get('grudge_id') || '';
+  const username =
+    sp.get('username') || sp.get('grudge_username') ||
+    hash.get('username') || hash.get('grudge_username') || '';
+
+  // Session JWT first; launch token only if no session (will bridge)
+  const primary = session || launch;
+  if (primary) {
+    storeFleetToken(primary, { grudgeId, username });
+    if (launch && launch !== session) {
+      try { localStorage.setItem('grudge_launch_token', launch); } catch {}
+    }
   }
-  try { return localStorage.getItem('grudge_token') || ''; } catch { return ''; }
+  ['sso_token','token','grudge_token','grudgeId','grudge_id','username','grudge_username','gid'].forEach((k) => {
+    sp.delete(k); hash.delete(k);
+  });
+  const qs = sp.toString();
+  const hs = hash.toString();
+  history.replaceState(null, '', u.pathname + (qs ? '?' + qs : '') + (hs ? '#' + hs : ''));
+  return !!primary;
 }
 
 async function api(path, opts = {}) {
   const headers = Object.assign({ 'Accept': 'application/json' }, opts.headers || {});
-  const tok = tokenFromUrl();
+  const tok = getAuthToken();
   if (tok) headers['Authorization'] = 'Bearer ' + tok;
-  // Same-origin proxy first (edge), fallback Railway absolute
+  // Same-origin edge proxy first, then Railway direct
   const urls = [path, RAILWAY + path];
   let lastErr;
   for (const url of urls) {
@@ -220,10 +289,61 @@ async function api(path, opts = {}) {
   throw lastErr || new Error('fetch failed');
 }
 
+/** Bridge short launch token → full Railway session when needed */
+async function bridgeIfNeeded() {
+  const tok = getAuthToken();
+  if (!tok) return false;
+  // If /me works, done
+  const me = await api('/api/auth/me');
+  if (me.ok && me.data) {
+    const t = me.data.token || me.data.sessionToken || tok;
+    storeFleetToken(t, {
+      grudgeId: me.data.grudgeId || me.data.id || '',
+      username: me.data.username || me.data.displayName || '',
+    });
+    return true;
+  }
+  // Try launch bridge
+  let launch = tok;
+  try { launch = localStorage.getItem('grudge_launch_token') || tok; } catch {}
+  const br = await api('/api/auth/grudge-bridge', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ token: launch, audience: location.origin }),
+  });
+  if (br.ok && br.data) {
+    const t = br.data.sessionToken || br.data.token || br.data.access_token;
+    if (t) {
+      storeFleetToken(t, {
+        grudgeId: br.data.grudgeId || br.data.user?.grudgeId || '',
+        username: br.data.username || br.data.user?.username || '',
+      });
+      return true;
+    }
+  }
+  // Claim cookie session (Domain=.grudge-studio.com)
+  const claim = await api('/api/auth/session/claim', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+  if (claim.ok && claim.data) {
+    const t = claim.data.sessionToken || claim.data.token;
+    if (t) {
+      storeFleetToken(t, {
+        grudgeId: claim.data.grudgeId || '',
+        username: claim.data.username || claim.data.displayName || '',
+      });
+      return true;
+    }
+  }
+  return false;
+}
+
 async function load() {
   $('msg').textContent = '';
   $('msg').className = 'msg';
+  $('hero-list').textContent = '';
   try {
+    consumeAuthFromUrl();
+    await bridgeIfNeeded();
+
     const cfg = await api('/api/wallet/config');
     if (cfg.ok && cfg.data) {
       $('net').textContent = cfg.data.network || '—';
@@ -231,21 +351,72 @@ async function load() {
       const m = cfg.data.gbuxMint || '';
       $('mint').textContent = m ? m.slice(0, 6) + '…' + m.slice(-4) : '—';
     }
-    const st = await api('/api/wallet/status');
-    if (st.status === 401 || st.status === 403) {
+
+    const me = await api('/api/auth/me');
+    if (!me.ok) {
       $('sess').textContent = 'signed out';
+      $('gid').textContent = '—';
+      $('acct').textContent = '—';
+      $('gbux').textContent = '—';
+      $('heroes').textContent = '—';
       $('addr').style.display = 'none';
+      $('btn-logout').style.display = 'none';
+      $('btn-login').style.display = '';
+      if (me.status === 401) {
+        $('msg').textContent = 'Sign in with Grudge ID (Discord works on id.grudge-studio.com). Session uses Railway account SSOT — not guest.';
+      }
       return;
     }
+
+    const profile = me.data || {};
+    const name = profile.displayName || profile.username || profile.name || 'Player';
+    const grudgeId = profile.grudgeId || profile.grudge_id || localStorage.getItem('grudge_id') || '—';
+    $('sess').textContent = 'signed in · ' + name;
+    $('gid').textContent = grudgeId;
+    $('btn-logout').style.display = '';
+    $('btn-login').style.display = 'none';
+    storeFleetToken(getAuthToken(), { grudgeId, username: name });
+
+    const st = await api('/api/wallet/status');
     if (st.ok && st.data) {
-      $('sess').textContent = st.data.hasWallet ? (st.data.walletType || 'wallet') : 'no wallet';
+      $('sess').textContent = (st.data.hasWallet ? (st.data.walletType || 'wallet') : 'no wallet') + ' · ' + name;
+      $('acct').textContent = (st.data.displayName || name) + (st.data.accountId ? ' · ' + String(st.data.accountId).slice(0, 8) : '');
+      $('gbux').textContent = String(st.data.gbuxBalance ?? 0);
+      if (st.data.grudgeId) $('gid').textContent = st.data.grudgeId;
       if (st.data.walletAddress) {
         $('addr').style.display = 'block';
         $('addr').textContent = st.data.walletAddress;
+      } else {
+        $('addr').style.display = 'none';
+      }
+    } else if (st.status === 401) {
+      // Should not happen if /me ok — clear and re-login
+      $('msg').textContent = 'Session not accepted by wallet API. Sign in again.';
+      $('msg').className = 'msg err';
+    }
+
+    // Heroes from SAME Railway /api/characters (warlords era)
+    const ch = await api('/api/characters?era=warlords');
+    if (ch.ok && ch.data) {
+      const list = Array.isArray(ch.data) ? ch.data : (ch.data.characters || []);
+      $('heroes').textContent = list.length + ' / 4 warlords';
+      if (list.length) {
+        $('hero-list').innerHTML = '<strong style="color:var(--gold2)">Your heroes (Railway SSOT)</strong><ul style="margin:8px 0 0 18px">' +
+          list.map((h) => {
+            const n = h.name || 'Hero';
+            const race = h.raceId || h.race || '?';
+            const cls = h.classId || h.class || '?';
+            const lv = h.level != null ? 'L' + h.level : '';
+            const id = h.id ? String(h.id).slice(0, 8) : '';
+            return '<li>' + n + ' · ' + race + '/' + cls + ' ' + lv + (id ? ' · ' + id : '') + '</li>';
+          }).join('') + '</ul>';
+      } else {
+        $('hero-list').textContent = 'No warlords heroes yet — create on Foundry.';
       }
     } else {
-      $('sess').textContent = 'status ' + st.status;
+      $('heroes').textContent = ch.status === 401 ? 'auth required' : 'load failed';
     }
+    mirrorFleetCookie();
   } catch (e) {
     $('msg').textContent = 'Edge/API error: ' + (e && e.message ? e.message : e);
     $('msg').className = 'msg err';
@@ -254,9 +425,60 @@ async function load() {
 
 $('btn-refresh').onclick = () => load();
 $('btn-login').onclick = () => {
+  // Grudge ID only — Discord is on id.grudge-studio.com login page
   const redir = encodeURIComponent(location.origin + '/');
-  location.href = ID_GW + '/login?redirect_uri=' + redir;
+  location.href = ID_GW + '/login?redirect_uri=' + redir + '&return=' + redir + '&origin=' + encodeURIComponent(location.origin) + '&app=grudge-wallet';
 };
+$('btn-logout').onclick = () => {
+  clearFleetAuth();
+  // Clear fleet Domain cookies so client.* also signs out
+  try {
+    document.cookie = 'grudge_auth_token=; path=/; max-age=0; Domain=.grudge-studio.com; SameSite=Lax';
+    document.cookie = 'sso_token=; path=/; max-age=0; Domain=.grudge-studio.com; SameSite=Lax';
+  } catch {}
+  location.reload();
+};
+
+/** Hand session JWT to client/Foundry (different origins cannot read wallet localStorage). */
+function handoffUrl(base) {
+  const tok = getAuthToken();
+  if (!tok) return base;
+  try {
+    const u = new URL(base, location.origin);
+    u.searchParams.set('sso_token', tok);
+    const gid = localStorage.getItem('grudge_id') || '';
+    const name = localStorage.getItem('grudge_username') || '';
+    if (gid) { u.searchParams.set('grudge_id', gid); u.searchParams.set('grudgeId', gid); }
+    if (name) { u.searchParams.set('username', name); u.searchParams.set('grudge_username', name); }
+    // Also write Domain cookie for client.grudge-studio.com
+    const maxAge = 7 * 24 * 60 * 60;
+    document.cookie = 'grudge_auth_token=' + encodeURIComponent(tok) + '; path=/; max-age=' + maxAge + '; Domain=.grudge-studio.com; SameSite=Lax; Secure';
+    document.cookie = 'sso_token=' + encodeURIComponent(tok) + '; path=/; max-age=' + maxAge + '; Domain=.grudge-studio.com; SameSite=Lax; Secure';
+    return u.toString();
+  } catch {
+    return base;
+  }
+}
+$('btn-client').onclick = (e) => {
+  e.preventDefault();
+  location.href = handoffUrl('${client}/home');
+};
+$('btn-foundry').onclick = (e) => {
+  e.preventDefault();
+  location.href = handoffUrl('https://character.grudge-studio.com/?era=warlords');
+};
+
+/** Mirror session to Domain=.grudge-studio.com so client.* can pick it up without URL. */
+function mirrorFleetCookie() {
+  const tok = getAuthToken();
+  if (!tok) return;
+  try {
+    const maxAge = 7 * 24 * 60 * 60;
+    document.cookie = 'grudge_auth_token=' + encodeURIComponent(tok) + '; path=/; max-age=' + maxAge + '; Domain=.grudge-studio.com; SameSite=Lax; Secure';
+    document.cookie = 'sso_token=' + encodeURIComponent(tok) + '; path=/; max-age=' + maxAge + '; Domain=.grudge-studio.com; SameSite=Lax; Secure';
+  } catch {}
+}
+
 load();
 </script>
 </body>
@@ -291,19 +513,27 @@ export default {
     const railway = env.RAILWAY_API_ORIGIN || 'https://grudge-api-production-0d46.up.railway.app';
     const idGw = env.ID_GATEWAY_ORIGIN || 'https://id.grudge-studio.com';
 
-    // Auth API → id gateway (session exchange, etc.)
-    if (
-      url.pathname.startsWith('/api/auth') ||
-      url.pathname === '/login' ||
-      url.pathname.startsWith('/auth/')
-    ) {
+    // Auth implementation SSOT = Railway (same JWT/users/accounts DB as play + Foundry).
+    // id.grudge-studio.com is the LOGIN UI only — do not proxy /api/auth/* there (526 / split-brain).
+    const railwayAuth =
+      url.pathname.startsWith('/api/auth/') ||
+      url.pathname === '/api/auth';
+    if (railwayAuth) {
+      const res = await proxyTo(railway, request, url.pathname + url.search);
+      const h = new Headers(res.headers);
+      Object.entries(cors).forEach(([k, v]) => h.set(k, v));
+      return new Response(res.body, { status: res.status, headers: h });
+    }
+
+    // Login UI / Discord OAuth start pages live on id gateway
+    if (url.pathname === '/login' || url.pathname.startsWith('/auth/')) {
       const res = await proxyTo(idGw, request, url.pathname + url.search);
       const h = new Headers(res.headers);
       Object.entries(cors).forEach(([k, v]) => h.set(k, v));
       return new Response(res.body, { status: res.status, headers: h });
     }
 
-    // Game-state wallet API → Railway SSOT
+    // Game-state wallet + characters + account → Railway Postgres SSOT
     if (url.pathname.startsWith('/api/')) {
       const res = await proxyTo(railway, request, url.pathname + url.search);
       const h = new Headers(res.headers);

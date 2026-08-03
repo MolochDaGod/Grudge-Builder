@@ -150,6 +150,7 @@ export {
   getUiArtRegistry,
   setUiArtRegistry,
   getRacePortraitUrl,
+  WARLORDS_RACE_PORTRAIT_PATHS,
   getClassHeroUrl,
   getClassAccentColor,
   getPanelParchmentUrl,

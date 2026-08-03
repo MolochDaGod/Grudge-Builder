@@ -1,13 +1,14 @@
 /**
- * Shipwreck / Leviathan cinema — full-systems production frontend surface.
+ * Shipwreck / Leviathan cinema — production first-voyage opener.
  *
- * Replaces the purged standalone `shipwreck-cinema-preview.html` (no assets / video).
- * Runs LeviathanOceanCinema on startingfalls map with stage UUIDs, spine IK,
- * 4 mages + unarmed hero + leviathan battle script.
+ * Beat flow (LeviathanOceanCinema / battle script):
+ *   leviathan attack → ship destroy (breach/pinata) → throw/sink → blackout logo
+ *   → handoff to /tutorial on chicken-gun pirate-islands shipwreck_cove wash-up
  *
  * Routes:
  *   /shipwreck-cinema
- *   /island-3d?intro=1  (via StormShipIntroGate on island-3d page)
+ *   /leviathan-cinema (alias)
+ *   /island-3d?intro=1 (StormShipIntroGate)
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useLocation } from 'wouter';
@@ -17,14 +18,22 @@ import {
   LEVIATHAN_CINEMA_SKIPPABLE_AFTER_SEC,
   STAGE_ID,
 } from '@/island3d/intro/LeviathanOceanCinema';
-import { SkipForward, ExternalLink } from 'lucide-react';
+import { INTRO_SESSION_KEY } from '@shared/definitions/productionIntro';
+import { tutorialShipwreckWashupPath } from '@shared/definitions/warlordsProductionFlow';
+import {
+  applyCharacterHandoffFromLocation,
+  persistActiveCharacter,
+} from '@/lib/characterHandoff';
+import { SkipForward } from 'lucide-react';
 
 export default function ShipwreckCinemaPage() {
   const hostRef = useRef<HTMLDivElement>(null);
   const cinemaRef = useRef<LeviathanOceanCinema | null>(null);
   const [, navigate] = useLocation();
   const [caption, setCaption] = useState('LOADING');
-  const [sub, setSub] = useState('Staging startingfalls · leviathan · grudge6 cast…');
+  const [sub, setSub] = useState(
+    'Leviathan attack · ship destroy · wash-up on pirate-islands…',
+  );
   const [progress, setProgress] = useState(0);
   const [ready, setReady] = useState(false);
   const [canSkip, setCanSkip] = useState(false);
@@ -35,16 +44,27 @@ export default function ShipwreckCinemaPage() {
     finished.current = true;
     cinemaRef.current?.dispose();
     cinemaRef.current = null;
-    navigate('/tutorial?from=shipwreck-intro');
+
+    try {
+      sessionStorage.setItem(INTRO_SESSION_KEY, '1');
+    } catch {
+      /* ignore */
+    }
+
+    const handoff = applyCharacterHandoffFromLocation();
+    const id = handoff.characterId?.trim() || null;
+    if (id) persistActiveCharacter(id, handoff.from || 'shipwreck-intro');
+
+    // Chicken-gun pirate-islands · shipwreck_cove wash-up tutorial
+    navigate(tutorialShipwreckWashupPath(id, 'shipwreck-intro'));
   }, [navigate]);
 
   useEffect(() => {
     const host = hostRef.current;
     if (!host) return;
 
-    // Clear any stale session so QA always plays
+    // Purge stale intro keys so the ship-destroy cut re-plays after v11 bump
     try {
-      // Purge stale intro session keys so v10 film cut always re-plays in QA
       for (const k of [
         'grudge_shipwreck_intro_seen_v4',
         'grudge_shipwreck_intro_seen_v7',
@@ -53,10 +73,13 @@ export default function ShipwreckCinemaPage() {
         'grudge_shipwreck_intro_seen_v10',
         'grudge_storm_intro_seen_v1',
         'grudge_island3d_intro_options_v9',
+        'grudge_island3d_intro_options_v10',
       ]) {
         sessionStorage.removeItem(k);
       }
-    } catch { /* */ }
+    } catch {
+      /* ignore */
+    }
 
     let skippable = false;
     const cinema = new LeviathanOceanCinema(host, {
@@ -101,7 +124,9 @@ export default function ShipwreckCinemaPage() {
         {!ready && (
           <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 z-20 gap-3">
             <div className="w-10 h-10 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin" />
-            <p className="text-sm text-cyan-200/90">Loading startingfalls · leviathan battle systems…</p>
+            <p className="text-sm text-cyan-200/90">
+              Loading leviathan attack · ship destroy systems…
+            </p>
             <p className="text-[10px] text-slate-500 font-mono">{STAGE_ID}</p>
           </div>
         )}
@@ -125,23 +150,17 @@ export default function ShipwreckCinemaPage() {
         <div className="absolute top-3 left-3 right-3 z-20 flex justify-between gap-2 pointer-events-none">
           <div className="pointer-events-auto rounded-xl border border-cyan-800/40 bg-black/80 px-3 py-2 max-w-md">
             <div className="text-[10px] uppercase tracking-widest text-cyan-400 font-semibold">
-              Frontend cinema · full systems
+              First voyage cinema
             </div>
-            <div className="text-sm font-medium">Leviathan · startingfalls · stage UUIDs · spine IK</div>
+            <div className="text-sm font-medium">
+              Leviathan attack → ship destroyed → wash-up
+            </div>
             <div className="text-[10px] text-slate-500 mt-0.5">
               {Math.round(progress * LEVIATHAN_CINEMA_DURATION_SEC)}s / {LEVIATHAN_CINEMA_DURATION_SEC}s
-              {' · '}no video · no TI iframe
+              {' · '}then pirate-islands shipwreck_cove tutorial
             </div>
           </div>
           <div className="pointer-events-auto flex gap-1.5">
-            <button
-              type="button"
-              onClick={() => navigate('/island-3d?intro=1')}
-              className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] bg-black/80 border border-slate-600 text-slate-200"
-            >
-              <ExternalLink className="w-3.5 h-3.5" />
-              island-3d gate
-            </button>
             <button
               type="button"
               disabled={!canSkip}
@@ -152,12 +171,16 @@ export default function ShipwreckCinemaPage() {
               className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-bold bg-emerald-800 border border-emerald-500 text-white disabled:opacity-40"
             >
               <SkipForward className="w-3.5 h-3.5" />
-              {canSkip ? 'Skip · Tutorial' : 'Skip soon…'}
+              Skip · wash up
             </button>
           </div>
         </div>
       </div>
-      <div className="h-[7vh] bg-black" />
+      <div className="h-[7vh] bg-black flex items-center justify-center">
+        <p className="text-[10px] text-slate-600 tracking-wide">
+          Destination: chicken-gun pirate-islands · shipwreck_cove · unarmed Grudge6
+        </p>
+      </div>
     </div>
   );
 }

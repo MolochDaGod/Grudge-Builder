@@ -673,27 +673,27 @@ export async function registerRoutes(
         }
       }
 
-      // Escrow-first cNFT mint (non-blocking). Game ownership = Railway account.
-      // Chain custody = AI_AGENT_WALLET until optional claim.
+      // cNFT → account.walletAddress (ensure server wallet; escrow only if provision fails).
+      // Game ownership = Railway account. Non-blocking for play.
       try {
         const { nftMintingService } = await import("./services/nftMinting");
+        await nftMintingService.ensureAccountWallet(account.id);
         const mintResult = await nftMintingService.mintCharacterAsCNFT(
           finalCharacter.id,
           account.id,
-          // email/wallet ignored unless directToUser — escrow default
+          (account as { crossmintEmail?: string | null }).crossmintEmail || undefined,
           undefined,
-          undefined,
-          { directToUser: false },
+          // default = mint to singular account wallet
         );
         if (mintResult.success && mintResult.actionId) {
           finalCharacter = await storage.updateCharacter(finalCharacter.id, {
             cnftId: mintResult.actionId,
           } as any);
           console.log(
-            `[cNFT] Escrow mint for ${finalCharacter.name}: action=${mintResult.actionId} nftId=${mintResult.nftId}`,
+            `[cNFT] Account-wallet mint for ${finalCharacter.name}: action=${mintResult.actionId} nftId=${mintResult.nftId}`,
           );
         } else if (!mintResult.success) {
-          console.warn(`[cNFT] Escrow mint deferred: ${mintResult.error}`);
+          console.warn(`[cNFT] Character mint deferred: ${mintResult.error}`);
         }
       } catch (mintErr) {
         console.warn(`[cNFT] Character mint skipped (playable without chain):`, mintErr);
@@ -1400,7 +1400,9 @@ export async function registerRoutes(
   // ============================================
 
   // Get or create account for current user
-  app.get("/api/account", async (req, res) => {
+  // HARD: requireAuth — never return GRUDGE_GUEST 200 for missing/invalid JWT
+  // (that made /account and craft look "signed in" as guest).
+  app.get("/api/account", requireAuth, async (req, res) => {
     try {
       const userId = getUserId(req);
       const account = await storage.getOrCreateAccountForUser(userId);
@@ -1412,7 +1414,7 @@ export async function registerRoutes(
   });
 
   // Update account
-  app.patch("/api/account", async (req, res) => {
+  app.patch("/api/account", requireAuth, async (req, res) => {
     try {
       const userId = getUserId(req);
       const account = await storage.getOrCreateAccountForUser(userId);
@@ -1433,7 +1435,7 @@ export async function registerRoutes(
   });
 
   // Get account inventory
-  app.get("/api/account/inventory", async (req, res) => {
+  app.get("/api/account/inventory", requireAuth, async (req, res) => {
     try {
       const userId = getUserId(req);
       const account = await storage.getOrCreateAccountForUser(userId);
@@ -1446,7 +1448,7 @@ export async function registerRoutes(
   });
 
   // Add item to account inventory
-  app.post("/api/account/inventory", async (req, res) => {
+  app.post("/api/account/inventory", requireAuth, async (req, res) => {
     try {
       const userId = getUserId(req);
       const account = await storage.getOrCreateAccountForUser(userId);
@@ -1478,7 +1480,7 @@ export async function registerRoutes(
   });
 
   // Update inventory item
-  app.patch("/api/account/inventory/:id", async (req, res) => {
+  app.patch("/api/account/inventory/:id", requireAuth, async (req, res) => {
     try {
       const userId = getUserId(req);
       const account = await storage.getOrCreateAccountForUser(userId);
@@ -1502,7 +1504,7 @@ export async function registerRoutes(
   });
 
   // Remove inventory item
-  app.delete("/api/account/inventory/:id", async (req, res) => {
+  app.delete("/api/account/inventory/:id", requireAuth, async (req, res) => {
     try {
       const userId = getUserId(req);
       const account = await storage.getOrCreateAccountForUser(userId);
@@ -1522,7 +1524,7 @@ export async function registerRoutes(
   });
 
   // Transfer item to/from character
-  app.post("/api/account/inventory/:id/transfer", async (req, res) => {
+  app.post("/api/account/inventory/:id/transfer", requireAuth, async (req, res) => {
     try {
       const userId = getUserId(req);
       const account = await storage.getOrCreateAccountForUser(userId);
@@ -1537,7 +1539,7 @@ export async function registerRoutes(
   });
 
   // Get account resources
-  app.get("/api/account/resources", async (req, res) => {
+  app.get("/api/account/resources", requireAuth, async (req, res) => {
     try {
       const userId = getUserId(req);
       const account = await storage.getOrCreateAccountForUser(userId);
@@ -1550,7 +1552,7 @@ export async function registerRoutes(
   });
 
   // Update account resources
-  app.post("/api/account/resources", async (req, res) => {
+  app.post("/api/account/resources", requireAuth, async (req, res) => {
     try {
       const userId = getUserId(req);
       const account = await storage.getOrCreateAccountForUser(userId);
@@ -1564,7 +1566,7 @@ export async function registerRoutes(
   });
 
   // Add specific resource
-  app.post("/api/account/resources/add", async (req, res) => {
+  app.post("/api/account/resources/add", requireAuth, async (req, res) => {
     try {
       const userId = getUserId(req);
       const account = await storage.getOrCreateAccountForUser(userId);
@@ -1588,7 +1590,7 @@ export async function registerRoutes(
     })).min(1).max(100)
   });
   
-  app.post("/api/account/resources/batch", async (req, res) => {
+  app.post("/api/account/resources/batch", requireAuth, async (req, res) => {
     try {
       const parseResult = batchResourceSchema.safeParse(req.body);
       if (!parseResult.success) {
@@ -1897,20 +1899,25 @@ export async function registerRoutes(
         } catch { /* node row created on first gather */ }
       }
 
-      let mintResult: { actionId?: string; mintAddress?: string } = {};
+      let mintResult: { actionId?: string; mintAddress?: string; walletAddress?: string | null } = {};
       try {
-        const { crossmintWalletService: crossmint } = await import("./services/crossmintWallet");
-        mintResult = await crossmint.mintIslandCNFT(account, updatedIsland);
-        if (mintResult.actionId) {
-          await storage.updateAccount(account.id, { homeIslandMintActionId: mintResult.actionId });
+        const { nftMintingService } = await import("./services/nftMinting");
+        const r = await nftMintingService.mintIslandAsCNFT(account.id, updatedIsland);
+        mintResult = {
+          actionId: r.actionId,
+          mintAddress: r.mintAddress,
+          walletAddress: r.walletAddress,
+        };
+        if (r.actionId) {
+          await storage.updateAccount(account.id, { homeIslandMintActionId: r.actionId });
         }
         await db.insert(islandNFTs).values({
           islandId: island.id,
           accountId: account.id,
-          status: mintResult.mintAddress ? "minted" : "minting",
-          mintAddress: mintResult.mintAddress || null,
-          crossmintActionId: mintResult.actionId || null,
-          ownerWalletAddress: account.walletAddress || null,
+          status: r.mintAddress ? "minted" : "minting",
+          mintAddress: r.mintAddress || null,
+          crossmintActionId: r.actionId || null,
+          ownerWalletAddress: r.walletAddress || account.walletAddress || null,
           isCompressed: true,
         }).onConflictDoNothing();
       } catch (mintErr) {
@@ -1973,22 +1980,27 @@ export async function registerRoutes(
         validatedAt: now,
       } as any);
       
-      // Mint island as cNFT to server wallet
-      let mintResult: { actionId?: string; mintAddress?: string } = {};
+      // Mint island cNFT → singular account.walletAddress (same as characters)
+      let mintResult: { actionId?: string; mintAddress?: string; walletAddress?: string | null } = {};
       try {
-        const { crossmintWalletService: crossmint } = await import("./services/crossmintWallet");
-        mintResult = await crossmint.mintIslandCNFT(account, island);
-        if (mintResult.actionId) {
-          await storage.updateAccount(account.id, { homeIslandMintActionId: mintResult.actionId });
+        const { nftMintingService } = await import("./services/nftMinting");
+        const r = await nftMintingService.mintIslandAsCNFT(account.id, island);
+        mintResult = {
+          actionId: r.actionId,
+          mintAddress: r.mintAddress,
+          walletAddress: r.walletAddress,
+        };
+        if (r.actionId) {
+          await storage.updateAccount(account.id, { homeIslandMintActionId: r.actionId });
         }
         // Record in islandNFTs table
         await db.insert(islandNFTs).values({
           islandId: island.id,
           accountId: account.id,
-          status: mintResult.mintAddress ? 'minted' : 'minting',
-          mintAddress: mintResult.mintAddress || null,
-          crossmintActionId: mintResult.actionId || null,
-          ownerWalletAddress: account.walletAddress || null,
+          status: r.mintAddress ? 'minted' : 'minting',
+          mintAddress: r.mintAddress || null,
+          crossmintActionId: r.actionId || null,
+          ownerWalletAddress: r.walletAddress || account.walletAddress || null,
           isCompressed: true,
         }).onConflictDoNothing();
       } catch (mintErr) {
@@ -5421,7 +5433,7 @@ Also suggest metadata values in this exact JSON format:
   });
 
   // GET /api/account/activity - Get activity logs for current user
-  app.get("/api/account/activity", async (req, res) => {
+  app.get("/api/account/activity", requireAuth, async (req, res) => {
     try {
       const userId = getUserId(req);
       const logs = await storage.getActivityLogs({
@@ -5511,7 +5523,7 @@ Also suggest metadata values in this exact JSON format:
   });
 
   // GET /api/account/sessions - Get user's sessions
-  app.get("/api/account/sessions", async (req, res) => {
+  app.get("/api/account/sessions", requireAuth, async (req, res) => {
     try {
       const userId = getUserId(req);
       const sessions = await storage.getUserSessions(userId);
@@ -5954,17 +5966,26 @@ Also suggest metadata values in this exact JSON format:
   // WALLET & NFT ROUTES - Solana Integration
   // ============================================
 
-  // GET /api/wallet/status - Get account wallet status
+  // GET /api/wallet/status - Get account wallet status (NEVER guest — guest has a shared test wallet)
   app.get("/api/wallet/status", async (req, res) => {
     try {
       const userId = getUserId(req);
+      if (!userId || userId === "guest") {
+        return res.status(401).json({
+          error: "Authentication required",
+          hasWallet: false,
+          walletType: null,
+          walletAddress: null,
+        });
+      }
       const account = await storage.getAccountByUserId(userId);
       
       if (!account) {
         return res.json({ 
           hasWallet: false, 
           walletType: null, 
-          walletAddress: null 
+          walletAddress: null,
+          userId,
         });
       }
 
@@ -5974,6 +5995,10 @@ Also suggest metadata values in this exact JSON format:
         walletAddress: account.walletAddress || null,
         crossmintEmail: account.crossmintEmail || null,
         gbuxBalance: account.gbuxBalance ?? 0,
+        grudgeId: account.grudgeId || null,
+        displayName: account.displayName || null,
+        accountId: account.id,
+        userId,
       });
     } catch (error) {
       console.error("Error fetching wallet status:", error);
@@ -5985,6 +6010,9 @@ Also suggest metadata values in this exact JSON format:
   app.post("/api/wallet/create", async (req, res) => {
     try {
       const userId = getUserId(req);
+      if (!userId || userId === "guest") {
+        return res.status(401).json({ error: "Authentication required" });
+      }
       const { email } = req.body;
       
       if (!email) {
@@ -6162,12 +6190,14 @@ Also suggest metadata values in this exact JSON format:
         return res.status(403).json({ error: "Character not found or access denied" });
       }
 
-      // Production default: escrow to admin wallet. Opt-in direct mint only with
-      // body.directToUser === true (legacy / admin tools).
-      const directToUser = req.body?.directToUser === true;
+      // Production default: ensure account.walletAddress → mint character cNFT there.
+      // body.escrowOnly === true forces admin escrow (ops only).
+      const escrowOnly = req.body?.escrowOnly === true;
       const mintEmail = email || account.crossmintEmail || null;
 
-      console.log(`[NFT] Minting character ${characterId} for account ${account.id} escrow=${!directToUser}`);
+      console.log(
+        `[NFT] Minting character ${characterId} for account ${account.id} escrowOnly=${escrowOnly}`,
+      );
       console.log(`[NFT] Wallet: ${account.walletAddress}, Email: ${mintEmail}, External: ${externalWallet}`);
 
       const { nftMintingService } = await import("./services/nftMinting");
@@ -6176,7 +6206,7 @@ Also suggest metadata values in this exact JSON format:
         account.id,
         mintEmail,
         externalWallet,
-        { directToUser },
+        { escrowOnly },
       );
 
       if (!result.success) {
@@ -6190,10 +6220,11 @@ Also suggest metadata values in this exact JSON format:
         success: true,
         nftId: result.nftId,
         actionId: result.actionId,
-        custody: directToUser ? "user" : "escrow_admin",
-        message: directToUser
-          ? "NFT minting to user initiated. This may take 10-30 seconds."
-          : "cNFT minted to server escrow. Play immediately; claim to wallet is optional.",
+        walletAddress: account.walletAddress,
+        custody: escrowOnly ? "escrow_admin" : "player",
+        message: escrowOnly
+          ? "cNFT minted to server escrow. Claim to account wallet when ready."
+          : "cNFT minting to your account server wallet. This may take 10-30 seconds.",
       });
     } catch (error) {
       console.error("Error minting NFT:", error);
@@ -7811,7 +7842,7 @@ Your response must be valid JSON array only, no markdown or explanation.`;
   // ==================== Password Change Route ====================
   
   // POST /api/account/change-password - Change user password
-  app.post("/api/account/change-password", async (req, res) => {
+  app.post("/api/account/change-password", requireAuth, async (req, res) => {
     try {
       const { currentPassword, newPassword } = req.body;
       
@@ -8089,35 +8120,37 @@ Your response must be valid JSON array only, no markdown or explanation.`;
         return res.status(403).json({ error: "Character not found or does not belong to account" });
       }
 
-      // Admin mint also defaults to escrow (organized custody). Pass directToUser to force user wallet.
-      const directToUser = req.body?.directToUser === true;
+      // Admin mint → account server wallet by default. escrowOnly for ops custody.
+      const escrowOnly = req.body?.escrowOnly === true;
       const mintEmail = email || account.crossmintEmail || null;
 
       const { nftMintingService } = await import("./services/nftMinting");
+      await nftMintingService.ensureAccountWallet(account.id, mintEmail || undefined);
       const result = await nftMintingService.mintCharacterAsCNFT(
         characterId,
         account.id,
         mintEmail,
         account.walletAddress || undefined,
-        { directToUser },
+        { escrowOnly },
       );
 
       if (!result.success) {
         return res.status(400).json({ error: result.error || "cNFT mint failed" });
       }
 
+      const refreshed = await storage.getAccount(account.id);
       res.json({
         success: true,
         grudgeId: account.grudgeId,
         accountId: account.id,
         characterId,
-        custody: directToUser ? "user" : "escrow_admin",
-        walletAddress: account.walletAddress,
+        custody: escrowOnly ? "escrow_admin" : "player",
+        walletAddress: refreshed?.walletAddress || account.walletAddress,
         nftId: result.nftId,
         actionId: result.actionId,
-        message: directToUser
-          ? "cNFT mint to user initiated"
-          : "cNFT escrow mint initiated (admin wallet custody; account owns in game)",
+        message: escrowOnly
+          ? "cNFT escrow mint initiated (admin wallet custody; account owns in game)"
+          : "cNFT mint to account server wallet initiated",
       });
     } catch (error: any) {
       console.error("Error admin-minting cNFT:", error);

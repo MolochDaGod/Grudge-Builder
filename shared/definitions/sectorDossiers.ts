@@ -53,8 +53,14 @@ export interface SectorDossier {
   resources: string[];
   /** Approved build list for this sector only */
   buildWants: SectorBuildWant[];
-  /** Live proof URL (zone mode) */
+  /**
+   * Open sector in Forge map editor (production SSOT surface).
+   * https://forge.grudge-studio.com/?sector=…
+   */
+  forgeUrl: string;
+  /** Legacy play SPA zone (optional; prefer forgeUrl for “live zone”) */
   playUrl: string;
+  /** Cinema flyby — same Forge sector with flyby/proof flags */
   flybyUrl: string;
   snapshotDir: string;
   /** Info / lore page path */
@@ -63,10 +69,28 @@ export interface SectorDossier {
   notes?: string[];
 }
 
+/** Forge opens the sector map for live inspect / edit. */
+export function forgeSectorUrl(
+  sectorId: string,
+  opts?: { flyby?: boolean; worldSeed?: string },
+): string {
+  const u = new URL("https://forge.grudge-studio.com/");
+  u.searchParams.set("sector", sectorId);
+  u.searchParams.set("worldSeed", opts?.worldSeed ?? "grudge-world-1");
+  u.searchParams.set("mode", "zone");
+  if (opts?.flyby) {
+    u.searchParams.set("flyby", "1");
+    u.searchParams.set("proof", "1");
+  }
+  return u.href;
+}
+
 function baseUrls(sectorId: string) {
   return {
-    playUrl: `https://client.grudge-studio.com/island-3d?mode=zone&sector=${sectorId}&worldSeed=grudge-world-1`,
-    flybyUrl: `https://client.grudge-studio.com/island-3d?mode=zone&sector=${sectorId}&worldSeed=grudge-world-1&flyby=1&proof=1`,
+    forgeUrl: forgeSectorUrl(sectorId),
+    // Kept for deep-links / play SPA; UI primary CTAs use forgeUrl
+    playUrl: `https://grudgewarlords.com/island-3d?mode=zone&sector=${sectorId}&worldSeed=grudge-world-1&skipIntro=1`,
+    flybyUrl: forgeSectorUrl(sectorId, { flyby: true }),
     snapshotDir: `/production/snapshots/${sectorId}/`,
     lorePath: `/lore/sectors/${sectorId}`,
   };

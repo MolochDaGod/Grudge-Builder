@@ -169,8 +169,29 @@ export function getPackIconForCategory(ctx: IconResolveContext = {}): string {
 }
 
 /**
+ * Reject VFX strips / model dumps / UUID frame dumps as UI icons.
+ * Skill and item icons MUST live under assets.grudge-studio.com/icons/*
+ */
+export function isBannedAsUiIcon(urlOrPath: string): boolean {
+  const lower = urlOrPath.trim().toLowerCase().replace(/\\/g, '/');
+  if (!lower) return true;
+  if (
+    lower.includes('/models/') ||
+    lower.includes('games/models') ||
+    lower.includes('d:/games') ||
+    lower.includes('/vfx/') ||
+    (lower.includes('sprite') && lower.includes('sheet')) ||
+    /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/.test(lower)
+  ) {
+    return true;
+  }
+  return false;
+}
+
+/**
  * Resolve any icon URL/path to a working assets.grudge-studio.com URL.
  * Falls back to pack icons (grudge-guide.html convention) when named icons 404.
+ * Never returns Models/VFX/UUID animation strips.
  */
 export function resolveIconUrl(
   urlOrPath?: string | null,
@@ -181,14 +202,54 @@ export function resolveIconUrl(
   let raw = urlOrPath.trim();
   if (!raw) return getPackIconForCategory(ctx);
 
+  if (isBannedAsUiIcon(raw)) {
+    return getPackIconForCategory(ctx);
+  }
+
   if (raw.startsWith('http')) {
     raw = rewriteDeprecatedHost(raw);
-    if (raw.startsWith(ASSET_CDN_BASE)) return raw;
-    if (/\.(png|jpe?g|webp|gif|svg)(\?|$)/i.test(raw)) return raw;
+    if (isBannedAsUiIcon(raw)) return getPackIconForCategory(ctx);
+    // Only accept CDN/fleet icon URLs for UI; other absolute image hosts → pack fallback
+    if (raw.startsWith(ASSET_CDN_BASE) && raw.toLowerCase().includes('/icons/')) {
+      return raw;
+    }
+    // info.* / objectstore master-items icon hosts (icons under /icons/**)
+    if (
+      /\.(png|jpe?g|webp|gif|svg)(\?|$)/i.test(raw) &&
+      raw.toLowerCase().includes('/icons/') &&
+      (raw.includes('grudge-studio.com') ||
+        raw.includes('assets.grudge-studio.com') ||
+        raw.includes('info.grudge-studio.com') ||
+        raw.includes('objectstore.grudge-studio.com'))
+    ) {
+      return raw;
+    }
+    // game-assets/icons on assets CDN (weapon art authority)
+    if (
+      raw.includes('assets.grudge-studio.com') &&
+      (raw.toLowerCase().includes('/icons/') ||
+        raw.toLowerCase().includes('/game-assets/icons/'))
+    ) {
+      return raw;
+    }
+    if (/\.(png|jpe?g|webp|gif|svg)(\?|$)/i.test(raw) && raw.toLowerCase().includes('/icons/')) {
+      return raw;
+    }
+    if (/\.(png|jpe?g|webp|gif|svg)(\?|$)/i.test(raw) && !raw.toLowerCase().includes('/icons/')) {
+      // Allow assets CDN game-assets paths used by T8 master-weapons
+      if (raw.includes('assets.grudge-studio.com/game-assets/')) {
+        return raw;
+      }
+      return getPackIconForCategory(ctx);
+    }
   }
 
   let path = raw.startsWith('/') ? raw : `/${raw}`;
   path = flattenWeaponIconPath(path);
+
+  if (isBannedAsUiIcon(path) || !path.toLowerCase().includes('/icons/')) {
+    return getPackIconForCategory(ctx);
+  }
 
   if (path.includes('/icons/weapons/')) {
     const file = path.split('/').pop() || '';

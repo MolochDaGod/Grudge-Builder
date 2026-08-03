@@ -1,0 +1,6107 @@
+{
+  "version": "1.0.0",
+  "updatedAt": "2026-08-01T20:53:00.587Z",
+  "description": "Warlords-era entity prefabs derived from Desktop icons/icons/entities. Icons are SSOT for UI; mesh links race kits / build packs when known, else icon_only.",
+  "era": "warlords",
+  "cdnBase": "https://assets.grudge-studio.com",
+  "iconCdnPath": "/icons/pack/entities",
+  "count": 118,
+  "countsByKind": {
+    "vehicle": 4,
+    "structure": 61,
+    "unit": 36,
+    "siege": 6,
+    "mount": 11
+  },
+  "countsByCategory": {
+    "airship": 1,
+    "camp_building": 10,
+    "unit": 36,
+    "race_home": 7,
+    "ship": 3,
+    "furniture": 6,
+    "bench": 13,
+    "siege": 6,
+    "mount": 11,
+    "fire": 1,
+    "fortification": 10,
+    "claim_flag": 2,
+    "structure": 6,
+    "tent": 6
+  },
+  "prefabs": [
+    {
+      "prefabId": "PFAB-ENT-E828D75F",
+      "id": "entities/Air_Ship",
+      "kind": "vehicle",
+      "category": "airship",
+      "name": "Air Ship",
+      "displayName": "Air Ship",
+      "era": "warlords",
+      "layer": "vehicle",
+      "race": null,
+      "role": null,
+      "faction": null,
+      "tags": [
+        "vehicle",
+        "air"
+      ],
+      "icon": {
+        "uuid": "ICON-23C5-2620-84D8",
+        "path": "/icons/pack/entities/Air_Ship.png",
+        "cdnUrl": "https://assets.grudge-studio.com/game-assets/icons/pack/entities/Air_Ship.png",
+        "cdnUrlAlt": "https://assets.grudge-studio.com/icons/pack/entities/Air_Ship.png",
+        "localSource": "C:\\Users\\nugye\\Desktop\\icons\\icons\\entities\\Air Ship.png"
+      },
+      "mesh": {
+        "r2Key": null,
+        "cdnUrl": null,
+        "contentType": null,
+        "status": "icon_only",
+        "note": "Icon registered; 3D mesh pending bake/upload"
+      },
+      "stats": {
+        "health": 500,
+        "speed": 12,
+        "armor": 15,
+        "seats": 4
+      },
+      "si": {
+        "heightM": 1.2,
+        "unit": "meter"
+      },
+      "game": {
+        "placeable": false,
+        "trainable": false,
+        "mountable": true,
+        "craftStation": false,
+        "claimFlag": false,
+        "buildLayer": null
+      },
+      "package": "warlords-entities",
+      "status": "icon_only"
+    },
+    {
+      "prefabId": "PFAB-ENT-586BF4B9",
+      "id": "entities/Armory_Icon",
+      "kind": "structure",
+      "category": "camp_building",
+      "name": "Armory",
+      "displayName": "Armory",
+      "era": "warlords",
+      "layer": "structure",
+      "race": null,
+      "role": null,
+      "faction": null,
+      "tags": [
+        "structure",
+        "camp_building"
+      ],
+      "icon": {
+        "uuid": "ICON-68AF-590F-93A9",
+        "path": "/icons/pack/entities/Armory_Icon.png",
+        "cdnUrl": "https://assets.grudge-studio.com/game-assets/icons/pack/entities/Armory_Icon.png",
+        "cdnUrlAlt": "https://assets.grudge-studio.com/icons/pack/entities/Armory_Icon.png",
+        "localSource": "C:\\Users\\nugye\\Desktop\\icons\\icons\\entities\\Armory Icon.png"
+      },
+      "mesh": {
+        "r2Key": null,
+        "cdnUrl": null,
+        "contentType": null,
+        "status": "icon_only",
+        "note": "Icon registered; 3D mesh pending bake/upload"
+      },
+      "stats": {
+        "health": 400,
+        "storageSlots": 24,
+        "craftStation": false
+      },
+      "si": {
+        "heightM": 4,
+        "unit": "meter"
+      },
+      "game": {
+        "placeable": true,
+        "trainable": false,
+        "mountable": false,
+        "craftStation": false,
+        "claimFlag": false,
+        "buildLayer": "rts"
+      },
+      "package": "warlords-entities",
+      "status": "icon_only"
+    },
+    {
+      "prefabId": "PFAB-ENT-AEF51222",
+      "id": "entities/Arsenal_Icon",
+      "kind": "structure",
+      "category": "camp_building",
+      "name": "Arsenal",
+      "displayName": "Arsenal",
+      "era": "warlords",
+      "layer": "structure",
+      "race": null,
+      "role": null,
+      "faction": null,
+      "tags": [
+        "structure",
+        "camp_building"
+      ],
+      "icon": {
+        "uuid": "ICON-0CBF-FF0D-A1A6",
+        "path": "/icons/pack/entities/Arsenal_Icon.png",
+        "cdnUrl": "https://assets.grudge-studio.com/game-assets/icons/pack/entities/Arsenal_Icon.png",
+        "cdnUrlAlt": "https://assets.grudge-studio.com/icons/pack/entities/Arsenal_Icon.png",
+        "localSource": "C:\\Users\\nugye\\Desktop\\icons\\icons\\entities\\Arsenal Icon.png"
+      },
+      "mesh": {
+        "r2Key": null,
+        "cdnUrl": null,
+        "contentType": null,
+        "status": "icon_only",
+        "note": "Icon registered; 3D mesh pending bake/upload"
+      },
+      "stats": {
+        "health": 400,
+        "storageSlots": 24,
+        "craftStation": false
+      },
+      "si": {
+        "heightM": 4,
+        "unit": "meter"
+      },
+      "game": {
+        "placeable": true,
+        "trainable": false,
+        "mountable": false,
+        "craftStation": false,
+        "claimFlag": false,
+        "buildLayer": "rts"
+      },
+      "package": "warlords-entities",
+      "status": "icon_only"
+    },
+    {
+      "prefabId": "PFAB-ENT-EB576A5F",
+      "id": "entities/barb_archer",
+      "kind": "unit",
+      "category": "unit",
+      "name": "Barb Archer",
+      "displayName": "Barb Archer",
+      "era": "warlords",
+      "layer": "living",
+      "race": "barbarian",
+      "role": "archer",
+      "faction": null,
+      "tags": [
+        "unit",
+        "barbarian",
+        "archer",
+        "standard"
+      ],
+      "icon": {
+        "uuid": "ICON-7CE9-744E-3E99",
+        "path": "/icons/pack/entities/barb_archer.png",
+        "cdnUrl": "https://assets.grudge-studio.com/game-assets/icons/pack/entities/barb_archer.png",
+        "cdnUrlAlt": "https://assets.grudge-studio.com/icons/pack/entities/barb_archer.png",
+        "localSource": "C:\\Users\\nugye\\Desktop\\icons\\icons\\entities\\barb archer.png"
+      },
+      "mesh": {
+        "r2Key": "prod/gltf/characters/brb_characters.glb",
+        "cdnUrl": "https://assets.grudge-studio.com/prod/gltf/characters/brb_characters.glb",
+        "contentType": "model/gltf-binary",
+        "note": "Race kit GLB — equip/class mesh_ids applied at spawn",
+        "status": "kit_linked"
+      },
+      "stats": {
+        "health": 90,
+        "attackDamage": 22,
+        "attackRange": 14,
+        "speed": 5.5,
+        "armor": 4
+      },
+      "si": {
+        "heightM": 1.8,
+        "unit": "meter"
+      },
+      "game": {
+        "placeable": false,
+        "trainable": true,
+        "mountable": false,
+        "craftStation": false,
+        "claimFlag": false,
+        "buildLayer": null
+      },
+      "package": "warlords-entities",
+      "status": "kit_linked"
+    },
+    {
+      "prefabId": "PFAB-ENT-F15D4BE6",
+      "id": "entities/Barb_merc",
+      "kind": "unit",
+      "category": "unit",
+      "name": "Barb Merc",
+      "displayName": "Barb Merc",
+      "era": "warlords",
+      "layer": "living",
+      "race": "barbarian",
+      "role": "merc",
+      "faction": null,
+      "tags": [
+        "unit",
+        "barbarian",
+        "merc",
+        "standard"
+      ],
+      "icon": {
+        "uuid": "ICON-73E9-6850-A7EE",
+        "path": "/icons/pack/entities/Barb_merc.png",
+        "cdnUrl": "https://assets.grudge-studio.com/game-assets/icons/pack/entities/Barb_merc.png",
+        "cdnUrlAlt": "https://assets.grudge-studio.com/icons/pack/entities/Barb_merc.png",
+        "localSource": "C:\\Users\\nugye\\Desktop\\icons\\icons\\entities\\Barb merc.PNG"
+      },
+      "mesh": {
+        "r2Key": "prod/gltf/characters/brb_characters.glb",
+        "cdnUrl": "https://assets.grudge-studio.com/prod/gltf/characters/brb_characters.glb",
+        "contentType": "model/gltf-binary",
+        "note": "Race kit GLB — equip/class mesh_ids applied at spawn",
+        "status": "kit_linked"
+      },
+      "stats": {
+        "health": 140,
+        "attackDamage": 18,
+        "attackRange": 2.5,
+        "speed": 4.5,
+        "armor": 4
+      },
+      "si": {
+        "heightM": 1.8,
+        "unit": "meter"
+      },
+      "game": {
+        "placeable": false,
+        "trainable": true,
+        "mountable": false,
+        "craftStation": false,
+        "claimFlag": false,
+        "buildLayer": null
+      },
+      "package": "warlords-entities",
+      "status": "kit_linked"
+    },
+    {
+      "prefabId": "PFAB-ENT-715B61B7",
+      "id": "entities/barb_paladin",
+      "kind": "unit",
+      "category": "unit",
+      "name": "Barb Paladin",
+      "displayName": "Barb Paladin",
+      "era": "warlords",
+      "layer": "living",
+      "race": "barbarian",
+      "role": "paladin",
+      "faction": null,
+      "tags": [
+        "unit",
+        "barbarian",
+        "paladin",
+        "standard"
+      ],
+      "icon": {
+        "uuid": "ICON-01E4-9F8C-FAE9",
+        "path": "/icons/pack/entities/barb_paladin.png",
+        "cdnUrl": "https://assets.grudge-studio.com/game-assets/icons/pack/entities/barb_paladin.png",
+        "cdnUrlAlt": "https://assets.grudge-studio.com/icons/pack/entities/barb_paladin.png",
+        "localSource": "C:\\Users\\nugye\\Desktop\\icons\\icons\\entities\\barb paladin.png"
+      },
+      "mesh": {
+        "r2Key": "prod/gltf/characters/brb_characters.glb",
+        "cdnUrl": "https://assets.grudge-studio.com/prod/gltf/characters/brb_characters.glb",
+        "contentType": "model/gltf-binary",
+        "note": "Race kit GLB — equip/class mesh_ids applied at spawn",
+        "status": "kit_linked"
+      },
+      "stats": {
+        "health": 180,
+        "attackDamage": 18,
+        "attackRange": 2.5,
+        "speed": 4.5,
+        "armor": 12
+      },
+      "si": {
+        "heightM": 1.8,
+        "unit": "meter"
+      },
+      "game": {
+        "placeable": false,
+        "trainable": true,
+        "mountable": false,
+        "craftStation": false,
+        "claimFlag": false,
+        "buildLayer": null
+      },
+      "package": "warlords-entities",
+      "status": "kit_linked"
+    },
+    {
+      "prefabId": "PFAB-ENT-B3A8A027",
+      "id": "entities/barb_warrior",
+      "kind": "unit",
+      "category": "unit",
+      "name": "Barb Warrior",
+      "displayName": "Barb Warrior",
+      "era": "warlords",
+      "layer": "living",
+      "race": "barbarian",
+      "role": "warrior",
+      "faction": null,
+      "tags": [
+        "unit",
+        "barbarian",
+        "warrior",
+        "standard"
+      ],
+      "icon": {
+        "uuid": "ICON-E46F-6D06-39B7",
+        "path": "/icons/pack/entities/barb_warrior.png",
+        "cdnUrl": "https://assets.grudge-studio.com/game-assets/icons/pack/entities/barb_warrior.png",
+        "cdnUrlAlt": "https://assets.grudge-studio.com/icons/pack/entities/barb_warrior.png",
+        "localSource": "C:\\Users\\nugye\\Desktop\\icons\\icons\\entities\\barb warrior.png"
+      },
+      "mesh": {
+        "r2Key": "prod/gltf/characters/brb_characters.glb",
+        "cdnUrl": "https://assets.grudge-studio.com/prod/gltf/characters/brb_characters.glb",
+        "contentType": "model/gltf-binary",
+        "note": "Race kit GLB — equip/class mesh_ids applied at spawn",
+        "status": "kit_linked"
+      },
+      "stats": {
+        "health": 140,
+        "attackDamage": 18,
+        "attackRange": 2.5,
+        "speed": 4.5,
+        "armor": 4
+      },
+      "si": {
+        "heightM": 1.8,
+        "unit": "meter"
+      },
+      "game": {
+        "placeable": false,
+        "trainable": true,
+        "mountable": false,
+        "craftStation": false,
+        "claimFlag": false,
+        "buildLayer": null
+      },
+      "package": "warlords-entities",
+      "status": "kit_linked"
+    },
+    {
+      "prefabId": "PFAB-ENT-E426214D",
+      "id": "entities/barbarian_cabin",
+      "kind": "structure",
+      "category": "race_home",
+      "name": "Barbarian Cabin",
+      "displayName": "Barbarian Cabin",
+      "era": "warlords",
+      "layer": "structure",
+      "race": null,
+      "role": null,
+      "faction": null,
+      "tags": [
+        "structure",
+        "race_home"
+      ],
+      "icon": {
+        "uuid": "ICON-3FF2-9747-71DC",
+        "path": "/icons/pack/entities/barbarian_cabin.png",
+        "cdnUrl": "https://assets.grudge-studio.com/game-assets/icons/pack/entities/barbarian_cabin.png",
+        "cdnUrlAlt": "https://assets.grudge-studio.com/icons/pack/entities/barbarian_cabin.png",
+        "localSource": "C:\\Users\\nugye\\Desktop\\icons\\icons\\entities\\barbarian cabin.PNG"
+      },
+      "mesh": {
+        "r2Key": null,
+        "cdnUrl": null,
+        "contentType": null,
+        "status": "icon_only",
+        "note": "Icon registered; 3D mesh pending bake/upload"
+      },
+      "stats": {
+        "health": 400,
+        "storageSlots": 0,
+        "craftStation": false
+      },
+      "si": {
+        "heightM": 4,
+        "unit": "meter"
+      },
+      "game": {
+        "placeable": true,
+        "trainable": false,
+        "mountable": false,
+        "craftStation": false,
+        "claimFlag": false,
+        "buildLayer": "rts"
+      },
+      "package": "warlords-entities",
+      "status": "icon_only"
+    },
+    {
+      "prefabId": "PFAB-ENT-A16782BC",
+      "id": "entities/barbarian_Mage",
+      "kind": "unit",
+      "category": "unit",
+      "name": "Barbarian Mage",
+      "displayName": "Barbarian Mage",
+      "era": "warlords",
+      "layer": "living",
+      "race": "barbarian",
+      "role": "mage",
+      "faction": null,
+      "tags": [
+        "unit",
+        "barbarian",
+        "mage",
+        "standard"
+      ],
+      "icon": {
+        "uuid": "ICON-9D85-3615-77D6",
+        "path": "/icons/pack/entities/barbarian_Mage.png",
+        "cdnUrl": "https://assets.grudge-studio.com/game-assets/icons/pack/entities/barbarian_Mage.png",
+        "cdnUrlAlt": "https://assets.grudge-studio.com/icons/pack/entities/barbarian_Mage.png",
+        "localSource": "C:\\Users\\nugye\\Desktop\\icons\\icons\\entities\\barbarian Mage.png"
+      },
+      "mesh": {
+        "r2Key": "prod/gltf/characters/brb_characters.glb",
+        "cdnUrl": "https://assets.grudge-studio.com/prod/gltf/characters/brb_characters.glb",
+        "contentType": "model/gltf-binary",
+        "note": "Race kit GLB — equip/class mesh_ids applied at spawn",
+        "status": "kit_linked"
+      },
+      "stats": {
+        "health": 70,
+        "attackDamage": 28,
+        "attackRange": 14,
+        "speed": 4.5,
+        "armor": 4
+      },
+      "si": {
+        "heightM": 1.8,
+        "unit": "meter"
+      },
+      "game": {
+        "placeable": false,
+        "trainable": true,
+        "mountable": false,
+        "craftStation": false,
+        "claimFlag": false,
+        "buildLayer": null
+      },
+      "package": "warlords-entities",
+      "status": "kit_linked"
+    },
+    {
+      "prefabId": "PFAB-ENT-A70A16D7",
+      "id": "entities/Battle_Ship",
+      "kind": "vehicle",
+      "category": "ship",
+      "name": "Battle Ship",
+      "displayName": "Battle Ship",
+      "era": "warlords",
+      "layer": "vehicle",
+      "race": null,
+      "role": null,
+      "faction": null,
+      "tags": [
+        "vehicle",
+        "naval"
+      ],
+      "icon": {
+        "uuid": "ICON-ECE0-A4D0-EA35",
+        "path": "/icons/pack/entities/Battle_Ship.png",
+        "cdnUrl": "https://assets.grudge-studio.com/game-assets/icons/pack/entities/Battle_Ship.png",
+        "cdnUrlAlt": "https://assets.grudge-studio.com/icons/pack/entities/Battle_Ship.png",
+        "localSource": "C:\\Users\\nugye\\Desktop\\icons\\icons\\entities\\Battle Ship.PNG"
+      },
+      "mesh": {
+        "r2Key": null,
+        "cdnUrl": null,
+        "contentType": null,
+        "status": "icon_only",
+        "note": "Icon registered; 3D mesh pending bake/upload"
+      },
+      "stats": {
+        "health": 350,
+        "speed": 6,
+        "armor": 15,
+        "seats": 8
+      },
+      "si": {
+        "heightM": 1.2,
+        "unit": "meter"
+      },
+      "game": {
+        "placeable": false,
+        "trainable": false,
+        "mountable": true,
+        "craftStation": false,
+        "claimFlag": false,
+        "buildLayer": null
+      },
+      "package": "warlords-entities",
+      "status": "icon_only"
+    },
+    {
+      "prefabId": "PFAB-ENT-BC6D338D",
+      "id": "entities/Bed_Icon",
+      "kind": "structure",
+      "category": "furniture",
+      "name": "Bed",
+      "displayName": "Bed",
+      "era": "warlords",
+      "layer": "structure",
+      "race": null,
+      "role": null,
+      "faction": null,
+      "tags": [
+        "structure",
+        "furniture"
+      ],
+      "icon": {
+        "uuid": "ICON-69AB-9D8E-894F",
+        "path": "/icons/pack/entities/Bed_Icon.png",
+        "cdnUrl": "https://assets.grudge-studio.com/game-assets/icons/pack/entities/Bed_Icon.png",
+        "cdnUrlAlt": "https://assets.grudge-studio.com/icons/pack/entities/Bed_Icon.png",
+        "localSource": "C:\\Users\\nugye\\Desktop\\icons\\icons\\entities\\Bed Icon.png"
+      },
+      "mesh": {
+        "r2Key": null,
+        "cdnUrl": null,
+        "contentType": null,
+        "status": "icon_only",
+        "note": "Icon registered; 3D mesh pending bake/upload"
+      },
+      "stats": {
+        "health": 400,
+        "storageSlots": 24,
+        "craftStation": false
+      },
+      "si": {
+        "heightM": 4,
+        "unit": "meter"
+      },
+      "game": {
+        "placeable": true,
+        "trainable": false,
+        "mountable": false,
+        "craftStation": false,
+        "claimFlag": false,
+        "buildLayer": "rts"
+      },
+      "package": "warlords-entities",
+      "status": "icon_only"
+    },
+    {
+      "prefabId": "PFAB-ENT-4B5CF22F",
+      "id": "entities/Blacksmith_Icon",
+      "kind": "structure",
+      "category": "bench",
+      "name": "Blacksmith",
+      "displayName": "Blacksmith",
+      "era": "warlords",
+      "layer": "structure",
+      "race": null,
+      "role": null,
+      "faction": null,
+      "tags": [
+        "structure",
+        "bench"
+      ],
+      "icon": {
+        "uuid": "ICON-5FBA-31F0-AC4C",
+        "path": "/icons/pack/entities/Blacksmith_Icon.png",
+        "cdnUrl": "https://assets.grudge-studio.com/game-assets/icons/pack/entities/Blacksmith_Icon.png",
+        "cdnUrlAlt": "https://assets.grudge-studio.com/icons/pack/entities/Blacksmith_Icon.png",
+        "localSource": "C:\\Users\\nugye\\Desktop\\icons\\icons\\entities\\Blacksmith Icon.png"
+      },
+      "mesh": {
+        "r2Key": "models/buildings/survival/free_survival_asset_kit.glb",
+        "cdnUrl": "https://assets.grudge-studio.com/models/buildings/survival/free_survival_asset_kit.glb",
+        "contentType": "model/gltf-binary",
+        "note": "Survival kit multipack — bind nodeName in BuildAssetManifest",
+        "status": "pack_linked"
+      },
+      "stats": {
+        "health": 200,
+        "storageSlots": 0,
+        "craftStation": true
+      },
+      "si": {
+        "heightM": 4,
+        "unit": "meter"
+      },
+      "game": {
+        "placeable": true,
+        "trainable": false,
+        "mountable": false,
+        "craftStation": true,
+        "claimFlag": false,
+        "buildLayer": "camp"
+      },
+      "package": "warlords-entities",
+      "status": "pack_linked"
+    },
+    {
+      "prefabId": "PFAB-ENT-7EA7BEA3",
+      "id": "entities/Boat_Icon",
+      "kind": "vehicle",
+      "category": "ship",
+      "name": "Boat",
+      "displayName": "Boat",
+      "era": "warlords",
+      "layer": "vehicle",
+      "race": null,
+      "role": null,
+      "faction": null,
+      "tags": [
+        "vehicle",
+        "naval"
+      ],
+      "icon": {
+        "uuid": "ICON-D594-DB7D-C101",
+        "path": "/icons/pack/entities/Boat_Icon.png",
+        "cdnUrl": "https://assets.grudge-studio.com/game-assets/icons/pack/entities/Boat_Icon.png",
+        "cdnUrlAlt": "https://assets.grudge-studio.com/icons/pack/entities/Boat_Icon.png",
+        "localSource": "C:\\Users\\nugye\\Desktop\\icons\\icons\\entities\\Boat Icon.png"
+      },
+      "mesh": {
+        "r2Key": null,
+        "cdnUrl": null,
+        "contentType": null,
+        "status": "icon_only",
+        "note": "Icon registered; 3D mesh pending bake/upload"
+      },
+      "stats": {
+        "health": 350,
+        "speed": 6,
+        "armor": 15,
+        "seats": 8
+      },
+      "si": {
+        "heightM": 1.2,
+        "unit": "meter"
+      },
+      "game": {
+        "placeable": false,
+        "trainable": false,
+        "mountable": true,
+        "craftStation": false,
+        "claimFlag": false,
+        "buildLayer": null
+      },
+      "package": "warlords-entities",
+      "status": "icon_only"
+    },
+    {
+      "prefabId": "PFAB-ENT-F5A60D9B",
+      "id": "entities/Bolt_Thrower",
+      "kind": "siege",
+      "category": "siege",
+      "name": "Bolt Thrower",
+      "displayName": "Bolt Thrower",
+      "era": "warlords",
+      "layer": "vehicle",
+      "race": null,
+      "role": null,
+      "faction": null,
+      "tags": [
+        "siege",
+        "standard"
+      ],
+      "icon": {
+        "uuid": "ICON-79D9-0BA4-4CE6",
+        "path": "/icons/pack/entities/Bolt_Thrower.png",
+        "cdnUrl": "https://assets.grudge-studio.com/game-assets/icons/pack/entities/Bolt_Thrower.png",
+        "cdnUrlAlt": "https://assets.grudge-studio.com/icons/pack/entities/Bolt_Thrower.png",
+        "localSource": "C:\\Users\\nugye\\Desktop\\icons\\icons\\entities\\Bolt Thrower.png"
+      },
+      "mesh": {
+        "r2Key": null,
+        "cdnUrl": null,
+        "contentType": null,
+        "status": "icon_only",
+        "note": "Icon registered; 3D mesh pending bake/upload"
+      },
+      "stats": {
+        "health": 400,
+        "attackDamage": 55,
+        "attackRange": 28,
+        "speed": 1.2,
+        "armor": 20
+      },
+      "si": {
+        "heightM": 3.5,
+        "unit": "meter"
+      },
+      "game": {
+        "placeable": true,
+        "trainable": false,
+        "mountable": false,
+        "craftStation": false,
+        "claimFlag": false,
+        "buildLayer": null
+      },
+      "package": "warlords-entities",
+      "status": "icon_only"
+    },
+    {
+      "prefabId": "PFAB-ENT-B3BF2899",
+      "id": "entities/Brute_Mecha_Icon",
+      "kind": "mount",
+      "category": "mount",
+      "name": "Brute Mecha",
+      "displayName": "Brute Mecha",
+      "era": "warlords",
+      "layer": "vehicle",
+      "race": null,
+      "role": null,
+      "faction": null,
+      "tags": [
+        "mount",
+        "mech"
+      ],
+      "icon": {
+        "uuid": "ICON-491D-61D7-29A2",
+        "path": "/icons/pack/entities/Brute_Mecha_Icon.png",
+        "cdnUrl": "https://assets.grudge-studio.com/game-assets/icons/pack/entities/Brute_Mecha_Icon.png",
+        "cdnUrlAlt": "https://assets.grudge-studio.com/icons/pack/entities/Brute_Mecha_Icon.png",
+        "localSource": "C:\\Users\\nugye\\Desktop\\icons\\icons\\entities\\Brute Mecha Icon.png"
+      },
+      "mesh": {
+        "r2Key": null,
+        "cdnUrl": null,
+        "contentType": null,
+        "status": "icon_only",
+        "note": "Icon registered; 3D mesh pending bake/upload"
+      },
+      "stats": {
+        "health": 160,
+        "speed": 8,
+        "armor": 2,
+        "seats": 1
+      },
+      "si": {
+        "heightM": 1.2,
+        "unit": "meter"
+      },
+      "game": {
+        "placeable": false,
+        "trainable": false,
+        "mountable": true,
+        "craftStation": false,
+        "claimFlag": false,
+        "buildLayer": null
+      },
+      "package": "warlords-entities",
+      "status": "icon_only"
+    },
+    {
+      "prefabId": "PFAB-ENT-CFFC994D",
+      "id": "entities/Campfire",
+      "kind": "structure",
+      "category": "fire",
+      "name": "Campfire",
+      "displayName": "Campfire",
+      "era": "warlords",
+      "layer": "structure",
+      "race": null,
+      "role": null,
+      "faction": null,
+      "tags": [
+        "structure",
+        "fire"
+      ],
+      "icon": {
+        "uuid": "ICON-2669-C898-E8B7",
+        "path": "/icons/pack/entities/Campfire.png",
+        "cdnUrl": "https://assets.grudge-studio.com/game-assets/icons/pack/entities/Campfire.png",
+        "cdnUrlAlt": "https://assets.grudge-studio.com/icons/pack/entities/Campfire.png",
+        "localSource": "C:\\Users\\nugye\\Desktop\\icons\\icons\\entities\\Campfire.PNG"
+      },
+      "mesh": {
+        "r2Key": "models/buildings/survival/free_survival_asset_kit.glb",
+        "cdnUrl": "https://assets.grudge-studio.com/models/buildings/survival/free_survival_asset_kit.glb",
+        "contentType": "model/gltf-binary",
+        "note": "Survival kit multipack — bind nodeName in BuildAssetManifest",
+        "status": "pack_linked"
+      },
+      "stats": {
+        "health": 400,
+        "storageSlots": 0,
+        "craftStation": false
+      },
+      "si": {
+        "heightM": 4,
+        "unit": "meter"
+      },
+      "game": {
+        "placeable": true,
+        "trainable": false,
+        "mountable": false,
+        "craftStation": false,
+        "claimFlag": false,
+        "buildLayer": "camp"
+      },
+      "package": "warlords-entities",
+      "status": "pack_linked"
+    },
+    {
+      "prefabId": "PFAB-ENT-C26DBC38",
+      "id": "entities/Castle_Gate_Icon",
+      "kind": "structure",
+      "category": "fortification",
+      "name": "Castle Gate",
+      "displayName": "Castle Gate",
+      "era": "warlords",
+      "layer": "structure",
+      "race": null,
+      "role": null,
+      "faction": null,
+      "tags": [
+        "structure",
+        "fortification"
+      ],
+      "icon": {
+        "uuid": "ICON-376D-53B6-0AB5",
+        "path": "/icons/pack/entities/Castle_Gate_Icon.png",
+        "cdnUrl": "https://assets.grudge-studio.com/game-assets/icons/pack/entities/Castle_Gate_Icon.png",
+        "cdnUrlAlt": "https://assets.grudge-studio.com/icons/pack/entities/Castle_Gate_Icon.png",
+        "localSource": "C:\\Users\\nugye\\Desktop\\icons\\icons\\entities\\Castle Gate Icon.png"
+      },
+      "mesh": {
+        "r2Key": "models/buildings/towers/3_medieval_towers.glb",
+        "cdnUrl": "https://assets.grudge-studio.com/models/buildings/towers/3_medieval_towers.glb",
+        "contentType": "model/gltf-binary",
+        "status": "pack_linked"
+      },
+      "stats": {
+        "health": 800,
+        "storageSlots": 0,
+        "craftStation": false
+      },
+      "si": {
+        "heightM": 4,
+        "unit": "meter"
+      },
+      "game": {
+        "placeable": true,
+        "trainable": false,
+        "mountable": false,
+        "craftStation": false,
+        "claimFlag": false,
+        "buildLayer": "modular"
+      },
+      "package": "warlords-entities",
+      "status": "pack_linked"
+    },
+    {
+      "prefabId": "PFAB-ENT-17957051",
+      "id": "entities/Castle_Stairs_Icon",
+      "kind": "structure",
+      "category": "fortification",
+      "name": "Castle Stairs",
+      "displayName": "Castle Stairs",
+      "era": "warlords",
+      "layer": "structure",
+      "race": null,
+      "role": null,
+      "faction": null,
+      "tags": [
+        "structure",
+        "fortification"
+      ],
+      "icon": {
+        "uuid": "ICON-6B00-9351-E3A5",
+        "path": "/icons/pack/entities/Castle_Stairs_Icon.png",
+        "cdnUrl": "https://assets.grudge-studio.com/game-assets/icons/pack/entities/Castle_Stairs_Icon.png",
+        "cdnUrlAlt": "https://assets.grudge-studio.com/icons/pack/entities/Castle_Stairs_Icon.png",
+        "localSource": "C:\\Users\\nugye\\Desktop\\icons\\icons\\entities\\Castle Stairs Icon.png"
+      },
+      "mesh": {
+        "r2Key": "models/buildings/towers/3_medieval_towers.glb",
+        "cdnUrl": "https://assets.grudge-studio.com/models/buildings/towers/3_medieval_towers.glb",
+        "contentType": "model/gltf-binary",
+        "status": "pack_linked"
+      },
+      "stats": {
+        "health": 800,
+        "storageSlots": 0,
+        "craftStation": false
+      },
+      "si": {
+        "heightM": 4,
+        "unit": "meter"
+      },
+      "game": {
+        "placeable": true,
+        "trainable": false,
+        "mountable": false,
+        "craftStation": false,
+        "claimFlag": false,
+        "buildLayer": "modular"
+      },
+      "package": "warlords-entities",
+      "status": "pack_linked"
+    },
+    {
+      "prefabId": "PFAB-ENT-D23740C1",
+      "id": "entities/Castle_Wall_Icon",
+      "kind": "structure",
+      "category": "fortification",
+      "name": "Castle Wall",
+      "displayName": "Castle Wall",
+      "era": "warlords",
+      "layer": "structure",
+      "race": null,
+      "role": null,
+      "faction": null,
+      "tags": [
+        "structure",
+        "fortification"
+      ],
+      "icon": {
+        "uuid": "ICON-B33F-CAE3-FA25",
+        "path": "/icons/pack/entities/Castle_Wall_Icon.png",
+        "cdnUrl": "https://assets.grudge-studio.com/game-assets/icons/pack/entities/Castle_Wall_Icon.png",
+        "cdnUrlAlt": "https://assets.grudge-studio.com/icons/pack/entities/Castle_Wall_Icon.png",
+        "localSource": "C:\\Users\\nugye\\Desktop\\icons\\icons\\entities\\Castle Wall Icon.png"
+      },
+      "mesh": {
+        "r2Key": "models/buildings/towers/3_medieval_towers.glb",
+        "cdnUrl": "https://assets.grudge-studio.com/models/buildings/towers/3_medieval_towers.glb",
+        "contentType": "model/gltf-binary",
+        "status": "pack_linked"
+      },
+      "stats": {
+        "health": 800,
+        "storageSlots": 0,
+        "craftStation": false
+      },
+      "si": {
+        "heightM": 4,
+        "unit": "meter"
+      },
+      "game": {
+        "placeable": true,
+        "trainable": false,
+        "mountable": false,
+        "craftStation": false,
+        "claimFlag": false,
+        "buildLayer": "modular"
+      },
+      "package": "warlords-entities",
+      "status": "pack_linked"
+    },
+    {
+      "prefabId": "PFAB-ENT-0C8B2240",
+      "id": "entities/Catamaran",
+      "kind": "vehicle",
+      "category": "ship",
+      "name": "Catamaran",
+      "displayName": "Catamaran",
+      "era": "warlords",
+      "layer": "vehicle",
+      "race": null,
+      "role": null,
+      "faction": null,
+      "tags": [
+        "vehicle",
+        "naval"
+      ],
+      "icon": {
+        "uuid": "ICON-B29F-86B2-263E",
+        "path": "/icons/pack/entities/Catamaran.png",
+        "cdnUrl": "https://assets.grudge-studio.com/game-assets/icons/pack/entities/Catamaran.png",
+        "cdnUrlAlt": "https://assets.grudge-studio.com/icons/pack/entities/Catamaran.png",
+        "localSource": "C:\\Users\\nugye\\Desktop\\icons\\icons\\entities\\Catamaran.PNG"
+      },
+      "mesh": {
+        "r2Key": null,
+        "cdnUrl": null,
+        "contentType": null,
+        "status": "icon_only",
+        "note": "Icon registered; 3D mesh pending bake/upload"
+      },
+      "stats": {
+        "health": 350,
+        "speed": 6,
+        "armor": 15,
+        "seats": 8
+      },
+      "si": {
+        "heightM": 1.2,
+        "unit": "meter"
+      },
+      "game": {
+        "placeable": false,
+        "trainable": false,
+        "mountable": true,
+        "craftStation": false,
+        "claimFlag": false,
+        "buildLayer": null
+      },
+      "package": "warlords-entities",
+      "status": "icon_only"
+    },
+    {
+      "prefabId": "PFAB-ENT-AEB94A68",
+      "id": "entities/Catapult",
+      "kind": "siege",
+      "category": "siege",
+      "name": "Catapult",
+      "displayName": "Catapult",
+      "era": "warlords",
+      "layer": "vehicle",
+      "race": null,
+      "role": null,
+      "faction": null,
+      "tags": [
+        "siege",
+        "standard"
+      ],
+      "icon": {
+        "uuid": "ICON-67D3-EE28-1B9A",
+        "path": "/icons/pack/entities/Catapult.png",
+        "cdnUrl": "https://assets.grudge-studio.com/game-assets/icons/pack/entities/Catapult.png",
+        "cdnUrlAlt": "https://assets.grudge-studio.com/icons/pack/entities/Catapult.png",
+        "localSource": "C:\\Users\\nugye\\Desktop\\icons\\icons\\entities\\Catapult.png"
+      },
+      "mesh": {
+        "r2Key": null,
+        "cdnUrl": null,
+        "contentType": null,
+        "status": "icon_only",
+        "note": "Icon registered; 3D mesh pending bake/upload"
+      },
+      "stats": {
+        "health": 400,
+        "attackDamage": 55,
+        "attackRange": 28,
+        "speed": 1.2,
+        "armor": 20
+      },
+      "si": {
+        "heightM": 3.5,
+        "unit": "meter"
+      },
+      "game": {
+        "placeable": true,
+        "trainable": false,
+        "mountable": false,
+        "craftStation": false,
+        "claimFlag": false,
+        "buildLayer": null
+      },
+      "package": "warlords-entities",
+      "status": "icon_only"
+    },
+    {
+      "prefabId": "PFAB-ENT-0C84462E",
+      "id": "entities/Chair",
+      "kind": "structure",
+      "category": "furniture",
+      "name": "Chair",
+      "displayName": "Chair",
+      "era": "warlords",
+      "layer": "structure",
+      "race": null,
+      "role": null,
+      "faction": null,
+      "tags": [
+        "structure",
+        "furniture"
+      ],
+      "icon": {
+        "uuid": "ICON-7BD3-DFE2-20CD",
+        "path": "/icons/pack/entities/Chair.png",
+        "cdnUrl": "https://assets.grudge-studio.com/game-assets/icons/pack/entities/Chair.png",
+        "cdnUrlAlt": "https://assets.grudge-studio.com/icons/pack/entities/Chair.png",
+        "localSource": "C:\\Users\\nugye\\Desktop\\icons\\icons\\entities\\Chair.PNG"
+      },
+      "mesh": {
+        "r2Key": null,
+        "cdnUrl": null,
+        "contentType": null,
+        "status": "icon_only",
+        "note": "Icon registered; 3D mesh pending bake/upload"
+      },
+      "stats": {
+        "health": 400,
+        "storageSlots": 24,
+        "craftStation": false
+      },
+      "si": {
+        "heightM": 4,
+        "unit": "meter"
+      },
+      "game": {
+        "placeable": true,
+        "trainable": false,
+        "mountable": false,
+        "craftStation": false,
+        "claimFlag": false,
+        "buildLayer": "rts"
+      },
+      "package": "warlords-entities",
+      "status": "icon_only"
+    },
+    {
+      "prefabId": "PFAB-ENT-3DFA060D",
+      "id": "entities/Dark_Horse",
+      "kind": "mount",
+      "category": "mount",
+      "name": "Dark Horse",
+      "displayName": "Dark Horse",
+      "era": "warlords",
+      "layer": "vehicle",
+      "race": null,
+      "role": null,
+      "faction": null,
+      "tags": [
+        "mount",
+        "beast"
+      ],
+      "icon": {
+        "uuid": "ICON-C929-168F-00EB",
+        "path": "/icons/pack/entities/Dark_Horse.png",
+        "cdnUrl": "https://assets.grudge-studio.com/game-assets/icons/pack/entities/Dark_Horse.png",
+        "cdnUrlAlt": "https://assets.grudge-studio.com/icons/pack/entities/Dark_Horse.png",
+        "localSource": "C:\\Users\\nugye\\Desktop\\icons\\icons\\entities\\Dark Horse.PNG"
+      },
+      "mesh": {
+        "r2Key": null,
+        "cdnUrl": null,
+        "contentType": null,
+        "status": "icon_only",
+        "note": "Icon registered; 3D mesh pending bake/upload"
+      },
+      "stats": {
+        "health": 160,
+        "speed": 8,
+        "armor": 2,
+        "seats": 1
+      },
+      "si": {
+        "heightM": 1.2,
+        "unit": "meter"
+      },
+      "game": {
+        "placeable": false,
+        "trainable": false,
+        "mountable": true,
+        "craftStation": false,
+        "claimFlag": false,
+        "buildLayer": null
+      },
+      "package": "warlords-entities",
+      "status": "icon_only"
+    },
+    {
+      "prefabId": "PFAB-ENT-67F07101",
+      "id": "entities/Dragon_Glider_Icon",
+      "kind": "mount",
+      "category": "mount",
+      "name": "Dragon Glider",
+      "displayName": "Dragon Glider",
+      "era": "warlords",
+      "layer": "vehicle",
+      "race": null,
+      "role": null,
+      "faction": null,
+      "tags": [
+        "mount",
+        "mech"
+      ],
+      "icon": {
+        "uuid": "ICON-DE5D-B7E6-EF63",
+        "path": "/icons/pack/entities/Dragon_Glider_Icon.png",
+        "cdnUrl": "https://assets.grudge-studio.com/game-assets/icons/pack/entities/Dragon_Glider_Icon.png",
+        "cdnUrlAlt": "https://assets.grudge-studio.com/icons/pack/entities/Dragon_Glider_Icon.png",
+        "localSource": "C:\\Users\\nugye\\Desktop\\icons\\icons\\entities\\Dragon Glider Icon.png"
+      },
+      "mesh": {
+        "r2Key": null,
+        "cdnUrl": null,
+        "contentType": null,
+        "status": "icon_only",
+        "note": "Icon registered; 3D mesh pending bake/upload"
+      },
+      "stats": {
+        "health": 160,
+        "speed": 8,
+        "armor": 2,
+        "seats": 1
+      },
+      "si": {
+        "heightM": 1.2,
+        "unit": "meter"
+      },
+      "game": {
+        "placeable": false,
+        "trainable": false,
+        "mountable": true,
+        "craftStation": false,
+        "claimFlag": false,
+        "buildLayer": null
+      },
+      "package": "warlords-entities",
+      "status": "icon_only"
+    },
+    {
+      "prefabId": "PFAB-ENT-437FC07E",
+      "id": "entities/dwarf_archer",
+      "kind": "unit",
+      "category": "unit",
+      "name": "Dwarf Archer",
+      "displayName": "Dwarf Archer",
+      "era": "warlords",
+      "layer": "living",
+      "race": "dwarf",
+      "role": "archer",
+      "faction": null,
+      "tags": [
+        "unit",
+        "dwarf",
+        "archer",
+        "standard"
+      ],
+      "icon": {
+        "uuid": "ICON-99EC-DF3E-8DBC",
+        "path": "/icons/pack/entities/dwarf_archer.png",
+        "cdnUrl": "https://assets.grudge-studio.com/game-assets/icons/pack/entities/dwarf_archer.png",
+        "cdnUrlAlt": "https://assets.grudge-studio.com/icons/pack/entities/dwarf_archer.png",
+        "localSource": "C:\\Users\\nugye\\Desktop\\icons\\icons\\entities\\dwarf archer.png"
+      },
+      "mesh": {
+        "r2Key": "prod/gltf/characters/dwf_characters.glb",
+        "cdnUrl": "https://assets.grudge-studio.com/prod/gltf/characters/dwf_characters.glb",
+        "contentType": "model/gltf-binary",
+        "note": "Race kit GLB — equip/class mesh_ids applied at spawn",
+        "status": "kit_linked"
+      },
+      "stats": {
+        "health": 90,
+        "attackDamage": 22,
+        "attackRange": 14,
+        "speed": 5.5,
+        "armor": 4
+      },
+      "si": {
+        "heightM": 1.8,
+        "unit": "meter"
+      },
+      "game": {
+        "placeable": false,
+        "trainable": true,
+        "mountable": false,
+        "craftStation": false,
+        "claimFlag": false,
+        "buildLayer": null
+      },
+      "package": "warlords-entities",
+      "status": "kit_linked"
+    },
+    {
+      "prefabId": "PFAB-ENT-C49B977C",
+      "id": "entities/dwarf_house",
+      "kind": "structure",
+      "category": "race_home",
+      "name": "Dwarf House",
+      "displayName": "Dwarf House",
+      "era": "warlords",
+      "layer": "structure",
+      "race": null,
+      "role": null,
+      "faction": null,
+      "tags": [
+        "structure",
+        "race_home"
+      ],
+      "icon": {
+        "uuid": "ICON-DAA0-2C04-9C6B",
+        "path": "/icons/pack/entities/dwarf_house.png",
+        "cdnUrl": "https://assets.grudge-studio.com/game-assets/icons/pack/entities/dwarf_house.png",
+        "cdnUrlAlt": "https://assets.grudge-studio.com/icons/pack/entities/dwarf_house.png",
+        "localSource": "C:\\Users\\nugye\\Desktop\\icons\\icons\\entities\\dwarf house.PNG"
+      },
+      "mesh": {
+        "r2Key": null,
+        "cdnUrl": null,
+        "contentType": null,
+        "status": "icon_only",
+        "note": "Icon registered; 3D mesh pending bake/upload"
+      },
+      "stats": {
+        "health": 400,
+        "storageSlots": 0,
+        "craftStation": false
+      },
+      "si": {
+        "heightM": 4,
+        "unit": "meter"
+      },
+      "game": {
+        "placeable": true,
+        "trainable": false,
+        "mountable": false,
+        "craftStation": false,
+        "claimFlag": false,
+        "buildLayer": "rts"
+      },
+      "package": "warlords-entities",
+      "status": "icon_only"
+    },
+    {
+      "prefabId": "PFAB-ENT-687735C2",
+      "id": "entities/dwarf_mage",
+      "kind": "unit",
+      "category": "unit",
+      "name": "Dwarf Mage",
+      "displayName": "Dwarf Mage",
+      "era": "warlords",
+      "layer": "living",
+      "race": "dwarf",
+      "role": "mage",
+      "faction": null,
+      "tags": [
+        "unit",
+        "dwarf",
+        "mage",
+        "standard"
+      ],
+      "icon": {
+        "uuid": "ICON-9F7E-C90C-FA39",
+        "path": "/icons/pack/entities/dwarf_mage.png",
+        "cdnUrl": "https://assets.grudge-studio.com/game-assets/icons/pack/entities/dwarf_mage.png",
+        "cdnUrlAlt": "https://assets.grudge-studio.com/icons/pack/entities/dwarf_mage.png",
+        "localSource": "C:\\Users\\nugye\\Desktop\\icons\\icons\\entities\\dwarf mage.png"
+      },
+      "mesh": {
+        "r2Key": "prod/gltf/characters/dwf_characters.glb",
+        "cdnUrl": "https://assets.grudge-studio.com/prod/gltf/characters/dwf_characters.glb",
+        "contentType": "model/gltf-binary",
+        "note": "Race kit GLB — equip/class mesh_ids applied at spawn",
+        "status": "kit_linked"
+      },
+      "stats": {
+        "health": 70,
+        "attackDamage": 28,
+        "attackRange": 14,
+        "speed": 4.5,
+        "armor": 4
+      },
+      "si": {
+        "heightM": 1.8,
+        "unit": "meter"
+      },
+      "game": {
+        "placeable": false,
+        "trainable": true,
+        "mountable": false,
+        "craftStation": false,
+        "claimFlag": false,
+        "buildLayer": null
+      },
+      "package": "warlords-entities",
+      "status": "kit_linked"
+    },
+    {
+      "prefabId": "PFAB-ENT-C720D77E",
+      "id": "entities/dwarf_paladin",
+      "kind": "unit",
+      "category": "unit",
+      "name": "Dwarf Paladin",
+      "displayName": "Dwarf Paladin",
+      "era": "warlords",
+      "layer": "living",
+      "race": "dwarf",
+      "role": "paladin",
+      "faction": null,
+      "tags": [
+        "unit",
+        "dwarf",
+        "paladin",
+        "standard"
+      ],
+      "icon": {
+        "uuid": "ICON-847C-F3C0-18F0",
+        "path": "/icons/pack/entities/dwarf_paladin.png",
+        "cdnUrl": "https://assets.grudge-studio.com/game-assets/icons/pack/entities/dwarf_paladin.png",
+        "cdnUrlAlt": "https://assets.grudge-studio.com/icons/pack/entities/dwarf_paladin.png",
+        "localSource": "C:\\Users\\nugye\\Desktop\\icons\\icons\\entities\\dwarf paladin.png"
+      },
+      "mesh": {
+        "r2Key": "prod/gltf/characters/dwf_characters.glb",
+        "cdnUrl": "https://assets.grudge-studio.com/prod/gltf/characters/dwf_characters.glb",
+        "contentType": "model/gltf-binary",
+        "note": "Race kit GLB — equip/class mesh_ids applied at spawn",
+        "status": "kit_linked"
+      },
+      "stats": {
+        "health": 180,
+        "attackDamage": 18,
+        "attackRange": 2.5,
+        "speed": 4.5,
+        "armor": 12
+      },
+      "si": {
+        "heightM": 1.8,
+        "unit": "meter"
+      },
+      "game": {
+        "placeable": false,
+        "trainable": true,
+        "mountable": false,
+        "craftStation": false,
+        "claimFlag": false,
+        "buildLayer": null
+      },
+      "package": "warlords-entities",
+      "status": "kit_linked"
+    },
+    {
+      "prefabId": "PFAB-ENT-9E2A86C8",
+      "id": "entities/dwarf_warrior",
+      "kind": "unit",
+      "category": "unit",
+      "name": "Dwarf Warrior",
+      "displayName": "Dwarf Warrior",
+      "era": "warlords",
+      "layer": "living",
+      "race": "dwarf",
+      "role": "warrior",
+      "faction": null,
+      "tags": [
+        "unit",
+        "dwarf",
+        "warrior",
+        "standard"
+      ],
+      "icon": {
+        "uuid": "ICON-EA77-410C-F5AA",
+        "path": "/icons/pack/entities/dwarf_warrior.png",
+        "cdnUrl": "https://assets.grudge-studio.com/game-assets/icons/pack/entities/dwarf_warrior.png",
+        "cdnUrlAlt": "https://assets.grudge-studio.com/icons/pack/entities/dwarf_warrior.png",
+        "localSource": "C:\\Users\\nugye\\Desktop\\icons\\icons\\entities\\dwarf warrior.png"
+      },
+      "mesh": {
+        "r2Key": "prod/gltf/characters/dwf_characters.glb",
+        "cdnUrl": "https://assets.grudge-studio.com/prod/gltf/characters/dwf_characters.glb",
+        "contentType": "model/gltf-binary",
+        "note": "Race kit GLB — equip/class mesh_ids applied at spawn",
+        "status": "kit_linked"
+      },
+      "stats": {
+        "health": 140,
+        "attackDamage": 18,
+        "attackRange": 2.5,
+        "speed": 4.5,
+        "armor": 4
+      },
+      "si": {
+        "heightM": 1.8,
+        "unit": "meter"
+      },
+      "game": {
+        "placeable": false,
+        "trainable": true,
+        "mountable": false,
+        "craftStation": false,
+        "claimFlag": false,
+        "buildLayer": null
+      },
+      "package": "warlords-entities",
+      "status": "kit_linked"
+    },
+    {
+      "prefabId": "PFAB-ENT-C007FEC9",
+      "id": "entities/Dwarve_merc",
+      "kind": "unit",
+      "category": "unit",
+      "name": "Dwarve Merc",
+      "displayName": "Dwarve Merc",
+      "era": "warlords",
+      "layer": "living",
+      "race": "dwarf",
+      "role": "merc",
+      "faction": null,
+      "tags": [
+        "unit",
+        "dwarf",
+        "merc",
+        "standard"
+      ],
+      "icon": {
+        "uuid": "ICON-C15A-BEE9-FD82",
+        "path": "/icons/pack/entities/Dwarve_merc.png",
+        "cdnUrl": "https://assets.grudge-studio.com/game-assets/icons/pack/entities/Dwarve_merc.png",
+        "cdnUrlAlt": "https://assets.grudge-studio.com/icons/pack/entities/Dwarve_merc.png",
+        "localSource": "C:\\Users\\nugye\\Desktop\\icons\\icons\\entities\\Dwarve merc.PNG"
+      },
+      "mesh": {
+        "r2Key": "prod/gltf/characters/dwf_characters.glb",
+        "cdnUrl": "https://assets.grudge-studio.com/prod/gltf/characters/dwf_characters.glb",
+        "contentType": "model/gltf-binary",
+        "note": "Race kit GLB — equip/class mesh_ids applied at spawn",
+        "status": "kit_linked"
+      },
+      "stats": {
+        "health": 140,
+        "attackDamage": 18,
+        "attackRange": 2.5,
+        "speed": 4.5,
+        "armor": 4
+      },
+      "si": {
+        "heightM": 1.8,
+        "unit": "meter"
+      },
+      "game": {
+        "placeable": false,
+        "trainable": true,
+        "mountable": false,
+        "craftStation": false,
+        "claimFlag": false,
+        "buildLayer": null
+      },
+      "package": "warlords-entities",
+      "status": "kit_linked"
+    },
+    {
+      "prefabId": "PFAB-ENT-D0614119",
+      "id": "entities/elf_archer",
+      "kind": "unit",
+      "category": "unit",
+      "name": "Elf Archer",
+      "displayName": "Elf Archer",
+      "era": "warlords",
+      "layer": "living",
+      "race": "elf",
+      "role": "archer",
+      "faction": null,
+      "tags": [
+        "unit",
+        "elf",
+        "archer",
+        "standard"
+      ],
+      "icon": {
+        "uuid": "ICON-C9FC-6F4D-3E3C",
+        "path": "/icons/pack/entities/elf_archer.png",
+        "cdnUrl": "https://assets.grudge-studio.com/game-assets/icons/pack/entities/elf_archer.png",
+        "cdnUrlAlt": "https://assets.grudge-studio.com/icons/pack/entities/elf_archer.png",
+        "localSource": "C:\\Users\\nugye\\Desktop\\icons\\icons\\entities\\elf archer.png"
+      },
+      "mesh": {
+        "r2Key": "prod/gltf/characters/elf_characters.glb",
+        "cdnUrl": "https://assets.grudge-studio.com/prod/gltf/characters/elf_characters.glb",
+        "contentType": "model/gltf-binary",
+        "note": "Race kit GLB — equip/class mesh_ids applied at spawn",
+        "status": "kit_linked"
+      },
+      "stats": {
+        "health": 90,
+        "attackDamage": 22,
+        "attackRange": 14,
+        "speed": 5.5,
+        "armor": 4
+      },
+      "si": {
+        "heightM": 1.8,
+        "unit": "meter"
+      },
+      "game": {
+        "placeable": false,
+        "trainable": true,
+        "mountable": false,
+        "craftStation": false,
+        "claimFlag": false,
+        "buildLayer": null
+      },
+      "package": "warlords-entities",
+      "status": "kit_linked"
+    },
+    {
+      "prefabId": "PFAB-ENT-7F67D7D6",
+      "id": "entities/elf_house",
+      "kind": "structure",
+      "category": "race_home",
+      "name": "Elf House",
+      "displayName": "Elf House",
+      "era": "warlords",
+      "layer": "structure",
+      "race": null,
+      "role": null,
+      "faction": null,
+      "tags": [
+        "structure",
+        "race_home"
+      ],
+      "icon": {
+        "uuid": "ICON-1F70-0C12-5761",
+        "path": "/icons/pack/entities/elf_house.png",
+        "cdnUrl": "https://assets.grudge-studio.com/game-assets/icons/pack/entities/elf_house.png",
+        "cdnUrlAlt": "https://assets.grudge-studio.com/icons/pack/entities/elf_house.png",
+        "localSource": "C:\\Users\\nugye\\Desktop\\icons\\icons\\entities\\elf house.PNG"
+      },
+      "mesh": {
+        "r2Key": null,
+        "cdnUrl": null,
+        "contentType": null,
+        "status": "icon_only",
+        "note": "Icon registered; 3D mesh pending bake/upload"
+      },
+      "stats": {
+        "health": 400,
+        "storageSlots": 0,
+        "craftStation": false
+      },
+      "si": {
+        "heightM": 4,
+        "unit": "meter"
+      },
+      "game": {
+        "placeable": true,
+        "trainable": false,
+        "mountable": false,
+        "craftStation": false,
+        "claimFlag": false,
+        "buildLayer": "rts"
+      },
+      "package": "warlords-entities",
+      "status": "icon_only"
+    },
+    {
+      "prefabId": "PFAB-ENT-33C23776",
+      "id": "entities/elf_mage",
+      "kind": "unit",
+      "category": "unit",
+      "name": "Elf Mage",
+      "displayName": "Elf Mage",
+      "era": "warlords",
+      "layer": "living",
+      "race": "elf",
+      "role": "mage",
+      "faction": null,
+      "tags": [
+        "unit",
+        "elf",
+        "mage",
+        "standard"
+      ],
+      "icon": {
+        "uuid": "ICON-AC1E-6E40-6A38",
+        "path": "/icons/pack/entities/elf_mage.png",
+        "cdnUrl": "https://assets.grudge-studio.com/game-assets/icons/pack/entities/elf_mage.png",
+        "cdnUrlAlt": "https://assets.grudge-studio.com/icons/pack/entities/elf_mage.png",
+        "localSource": "C:\\Users\\nugye\\Desktop\\icons\\icons\\entities\\elf mage.png"
+      },
+      "mesh": {
+        "r2Key": "prod/gltf/characters/elf_characters.glb",
+        "cdnUrl": "https://assets.grudge-studio.com/prod/gltf/characters/elf_characters.glb",
+        "contentType": "model/gltf-binary",
+        "note": "Race kit GLB — equip/class mesh_ids applied at spawn",
+        "status": "kit_linked"
+      },
+      "stats": {
+        "health": 70,
+        "attackDamage": 28,
+        "attackRange": 14,
+        "speed": 4.5,
+        "armor": 4
+      },
+      "si": {
+        "heightM": 1.8,
+        "unit": "meter"
+      },
+      "game": {
+        "placeable": false,
+        "trainable": true,
+        "mountable": false,
+        "craftStation": false,
+        "claimFlag": false,
+        "buildLayer": null
+      },
+      "package": "warlords-entities",
+      "status": "kit_linked"
+    },
+    {
+      "prefabId": "PFAB-ENT-653DA412",
+      "id": "entities/Elf_Merc",
+      "kind": "unit",
+      "category": "unit",
+      "name": "Elf Merc",
+      "displayName": "Elf Merc",
+      "era": "warlords",
+      "layer": "living",
+      "race": "elf",
+      "role": "merc",
+      "faction": null,
+      "tags": [
+        "unit",
+        "elf",
+        "merc",
+        "standard"
+      ],
+      "icon": {
+        "uuid": "ICON-C132-48F0-9FBF",
+        "path": "/icons/pack/entities/Elf_Merc.png",
+        "cdnUrl": "https://assets.grudge-studio.com/game-assets/icons/pack/entities/Elf_Merc.png",
+        "cdnUrlAlt": "https://assets.grudge-studio.com/icons/pack/entities/Elf_Merc.png",
+        "localSource": "C:\\Users\\nugye\\Desktop\\icons\\icons\\entities\\Elf Merc.PNG"
+      },
+      "mesh": {
+        "r2Key": "prod/gltf/characters/elf_characters.glb",
+        "cdnUrl": "https://assets.grudge-studio.com/prod/gltf/characters/elf_characters.glb",
+        "contentType": "model/gltf-binary",
+        "note": "Race kit GLB — equip/class mesh_ids applied at spawn",
+        "status": "kit_linked"
+      },
+      "stats": {
+        "health": 140,
+        "attackDamage": 18,
+        "attackRange": 2.5,
+        "speed": 4.5,
+        "armor": 4
+      },
+      "si": {
+        "heightM": 1.8,
+        "unit": "meter"
+      },
+      "game": {
+        "placeable": false,
+        "trainable": true,
+        "mountable": false,
+        "craftStation": false,
+        "claimFlag": false,
+        "buildLayer": null
+      },
+      "package": "warlords-entities",
+      "status": "kit_linked"
+    },
+    {
+      "prefabId": "PFAB-ENT-31B66307",
+      "id": "entities/elf_paladin",
+      "kind": "unit",
+      "category": "unit",
+      "name": "Elf Paladin",
+      "displayName": "Elf Paladin",
+      "era": "warlords",
+      "layer": "living",
+      "race": "elf",
+      "role": "paladin",
+      "faction": null,
+      "tags": [
+        "unit",
+        "elf",
+        "paladin",
+        "standard"
+      ],
+      "icon": {
+        "uuid": "ICON-58E3-F5F9-F56A",
+        "path": "/icons/pack/entities/elf_paladin.png",
+        "cdnUrl": "https://assets.grudge-studio.com/game-assets/icons/pack/entities/elf_paladin.png",
+        "cdnUrlAlt": "https://assets.grudge-studio.com/icons/pack/entities/elf_paladin.png",
+        "localSource": "C:\\Users\\nugye\\Desktop\\icons\\icons\\entities\\elf paladin.png"
+      },
+      "mesh": {
+        "r2Key": "prod/gltf/characters/elf_characters.glb",
+        "cdnUrl": "https://assets.grudge-studio.com/prod/gltf/characters/elf_characters.glb",
+        "contentType": "model/gltf-binary",
+        "note": "Race kit GLB — equip/class mesh_ids applied at spawn",
+        "status": "kit_linked"
+      },
+      "stats": {
+        "health": 180,
+        "attackDamage": 18,
+        "attackRange": 2.5,
+        "speed": 4.5,
+        "armor": 12
+      },
+      "si": {
+        "heightM": 1.8,
+        "unit": "meter"
+      },
+      "game": {
+        "placeable": false,
+        "trainable": true,
+        "mountable": false,
+        "craftStation": false,
+        "claimFlag": false,
+        "buildLayer": null
+      },
+      "package": "warlords-entities",
+      "status": "kit_linked"
+    },
+    {
+      "prefabId": "PFAB-ENT-5C11B8EC",
+      "id": "entities/elf_warrior",
+      "kind": "unit",
+      "category": "unit",
+      "name": "Elf Warrior",
+      "displayName": "Elf Warrior",
+      "era": "warlords",
+      "layer": "living",
+      "race": "elf",
+      "role": "warrior",
+      "faction": null,
+      "tags": [
+        "unit",
+        "elf",
+        "warrior",
+        "standard"
+      ],
+      "icon": {
+        "uuid": "ICON-051D-7FCE-0795",
+        "path": "/icons/pack/entities/elf_warrior.png",
+        "cdnUrl": "https://assets.grudge-studio.com/game-assets/icons/pack/entities/elf_warrior.png",
+        "cdnUrlAlt": "https://assets.grudge-studio.com/icons/pack/entities/elf_warrior.png",
+        "localSource": "C:\\Users\\nugye\\Desktop\\icons\\icons\\entities\\elf warrior.png"
+      },
+      "mesh": {
+        "r2Key": "prod/gltf/characters/elf_characters.glb",
+        "cdnUrl": "https://assets.grudge-studio.com/prod/gltf/characters/elf_characters.glb",
+        "contentType": "model/gltf-binary",
+        "note": "Race kit GLB — equip/class mesh_ids applied at spawn",
+        "status": "kit_linked"
+      },
+      "stats": {
+        "health": 140,
+        "attackDamage": 18,
+        "attackRange": 2.5,
+        "speed": 4.5,
+        "armor": 4
+      },
+      "si": {
+        "heightM": 1.8,
+        "unit": "meter"
+      },
+      "game": {
+        "placeable": false,
+        "trainable": true,
+        "mountable": false,
+        "craftStation": false,
+        "claimFlag": false,
+        "buildLayer": null
+      },
+      "package": "warlords-entities",
+      "status": "kit_linked"
+    },
+    {
+      "prefabId": "PFAB-ENT-2AD551C9",
+      "id": "entities/Flag_Icon",
+      "kind": "structure",
+      "category": "claim_flag",
+      "name": "Flag",
+      "displayName": "Flag",
+      "era": "warlords",
+      "layer": "structure",
+      "race": null,
+      "role": null,
+      "faction": null,
+      "tags": [
+        "structure",
+        "claim_flag"
+      ],
+      "icon": {
+        "uuid": "ICON-ED00-F0B1-D1E4",
+        "path": "/icons/pack/entities/Flag_Icon.png",
+        "cdnUrl": "https://assets.grudge-studio.com/game-assets/icons/pack/entities/Flag_Icon.png",
+        "cdnUrlAlt": "https://assets.grudge-studio.com/icons/pack/entities/Flag_Icon.png",
+        "localSource": "C:\\Users\\nugye\\Desktop\\icons\\icons\\entities\\Flag Icon.png"
+      },
+      "mesh": {
+        "r2Key": null,
+        "cdnUrl": null,
+        "contentType": null,
+        "status": "icon_only",
+        "note": "Icon registered; 3D mesh pending bake/upload"
+      },
+      "stats": {
+        "health": 400,
+        "storageSlots": 0,
+        "craftStation": false
+      },
+      "si": {
+        "heightM": 4,
+        "unit": "meter"
+      },
+      "game": {
+        "placeable": true,
+        "trainable": false,
+        "mountable": false,
+        "craftStation": false,
+        "claimFlag": true,
+        "buildLayer": "rts"
+      },
+      "package": "warlords-entities",
+      "status": "icon_only"
+    },
+    {
+      "prefabId": "PFAB-ENT-DE5B57DB",
+      "id": "entities/Foundry_Icon",
+      "kind": "structure",
+      "category": "bench",
+      "name": "Foundry",
+      "displayName": "Foundry",
+      "era": "warlords",
+      "layer": "structure",
+      "race": null,
+      "role": null,
+      "faction": null,
+      "tags": [
+        "structure",
+        "bench"
+      ],
+      "icon": {
+        "uuid": "ICON-B3D3-F41C-691A",
+        "path": "/icons/pack/entities/Foundry_Icon.png",
+        "cdnUrl": "https://assets.grudge-studio.com/game-assets/icons/pack/entities/Foundry_Icon.png",
+        "cdnUrlAlt": "https://assets.grudge-studio.com/icons/pack/entities/Foundry_Icon.png",
+        "localSource": "C:\\Users\\nugye\\Desktop\\icons\\icons\\entities\\Foundry Icon.png"
+      },
+      "mesh": {
+        "r2Key": "models/buildings/survival/free_survival_asset_kit.glb",
+        "cdnUrl": "https://assets.grudge-studio.com/models/buildings/survival/free_survival_asset_kit.glb",
+        "contentType": "model/gltf-binary",
+        "note": "Survival kit multipack — bind nodeName in BuildAssetManifest",
+        "status": "pack_linked"
+      },
+      "stats": {
+        "health": 200,
+        "storageSlots": 0,
+        "craftStation": true
+      },
+      "si": {
+        "heightM": 4,
+        "unit": "meter"
+      },
+      "game": {
+        "placeable": true,
+        "trainable": false,
+        "mountable": false,
+        "craftStation": true,
+        "claimFlag": false,
+        "buildLayer": "camp"
+      },
+      "package": "warlords-entities",
+      "status": "pack_linked"
+    },
+    {
+      "prefabId": "PFAB-ENT-7818CF93",
+      "id": "entities/heavy_barb_merc",
+      "kind": "unit",
+      "category": "unit",
+      "name": "Heavy Barb Merc",
+      "displayName": "Heavy Barb Merc",
+      "era": "warlords",
+      "layer": "living",
+      "race": "barbarian",
+      "role": "heavy_merc",
+      "faction": null,
+      "tags": [
+        "unit",
+        "barbarian",
+        "heavy_merc",
+        "heavy"
+      ],
+      "icon": {
+        "uuid": "ICON-9BCB-382C-A335",
+        "path": "/icons/pack/entities/heavy_barb_merc.png",
+        "cdnUrl": "https://assets.grudge-studio.com/game-assets/icons/pack/entities/heavy_barb_merc.png",
+        "cdnUrlAlt": "https://assets.grudge-studio.com/icons/pack/entities/heavy_barb_merc.png",
+        "localSource": "C:\\Users\\nugye\\Desktop\\icons\\icons\\entities\\heavy barb merc.PNG"
+      },
+      "mesh": {
+        "r2Key": "prod/gltf/characters/brb_characters.glb",
+        "cdnUrl": "https://assets.grudge-studio.com/prod/gltf/characters/brb_characters.glb",
+        "contentType": "model/gltf-binary",
+        "note": "Race kit GLB — equip/class mesh_ids applied at spawn",
+        "status": "kit_linked"
+      },
+      "stats": {
+        "health": 220,
+        "attackDamage": 18,
+        "attackRange": 2.5,
+        "speed": 4.5,
+        "armor": 12
+      },
+      "si": {
+        "heightM": 1.8,
+        "unit": "meter"
+      },
+      "game": {
+        "placeable": false,
+        "trainable": true,
+        "mountable": false,
+        "craftStation": false,
+        "claimFlag": false,
+        "buildLayer": null
+      },
+      "package": "warlords-entities",
+      "status": "kit_linked"
+    },
+    {
+      "prefabId": "PFAB-ENT-E035DE66",
+      "id": "entities/Heavy_Catapult",
+      "kind": "siege",
+      "category": "siege",
+      "name": "Heavy Catapult",
+      "displayName": "Heavy Catapult",
+      "era": "warlords",
+      "layer": "vehicle",
+      "race": null,
+      "role": null,
+      "faction": null,
+      "tags": [
+        "siege",
+        "heavy"
+      ],
+      "icon": {
+        "uuid": "ICON-2537-69DF-3FEB",
+        "path": "/icons/pack/entities/Heavy_Catapult.png",
+        "cdnUrl": "https://assets.grudge-studio.com/game-assets/icons/pack/entities/Heavy_Catapult.png",
+        "cdnUrlAlt": "https://assets.grudge-studio.com/icons/pack/entities/Heavy_Catapult.png",
+        "localSource": "C:\\Users\\nugye\\Desktop\\icons\\icons\\entities\\Heavy Catapult.png"
+      },
+      "mesh": {
+        "r2Key": null,
+        "cdnUrl": null,
+        "contentType": null,
+        "status": "icon_only",
+        "note": "Icon registered; 3D mesh pending bake/upload"
+      },
+      "stats": {
+        "health": 400,
+        "attackDamage": 55,
+        "attackRange": 28,
+        "speed": 1.2,
+        "armor": 20
+      },
+      "si": {
+        "heightM": 3.5,
+        "unit": "meter"
+      },
+      "game": {
+        "placeable": true,
+        "trainable": false,
+        "mountable": false,
+        "craftStation": false,
+        "claimFlag": false,
+        "buildLayer": null
+      },
+      "package": "warlords-entities",
+      "status": "icon_only"
+    },
+    {
+      "prefabId": "PFAB-ENT-21182960",
+      "id": "entities/Heavy_Dwarve_Merc",
+      "kind": "unit",
+      "category": "unit",
+      "name": "Heavy Dwarve Merc",
+      "displayName": "Heavy Dwarve Merc",
+      "era": "warlords",
+      "layer": "living",
+      "race": "dwarf",
+      "role": "heavy_merc",
+      "faction": null,
+      "tags": [
+        "unit",
+        "dwarf",
+        "heavy_merc",
+        "heavy"
+      ],
+      "icon": {
+        "uuid": "ICON-B2C7-4D48-5324",
+        "path": "/icons/pack/entities/Heavy_Dwarve_Merc.png",
+        "cdnUrl": "https://assets.grudge-studio.com/game-assets/icons/pack/entities/Heavy_Dwarve_Merc.png",
+        "cdnUrlAlt": "https://assets.grudge-studio.com/icons/pack/entities/Heavy_Dwarve_Merc.png",
+        "localSource": "C:\\Users\\nugye\\Desktop\\icons\\icons\\entities\\Heavy Dwarve Merc.PNG"
+      },
+      "mesh": {
+        "r2Key": "prod/gltf/characters/dwf_characters.glb",
+        "cdnUrl": "https://assets.grudge-studio.com/prod/gltf/characters/dwf_characters.glb",
+        "contentType": "model/gltf-binary",
+        "note": "Race kit GLB — equip/class mesh_ids applied at spawn",
+        "status": "kit_linked"
+      },
+      "stats": {
+        "health": 220,
+        "attackDamage": 18,
+        "attackRange": 2.5,
+        "speed": 4.5,
+        "armor": 12
+      },
+      "si": {
+        "heightM": 1.8,
+        "unit": "meter"
+      },
+      "game": {
+        "placeable": false,
+        "trainable": true,
+        "mountable": false,
+        "craftStation": false,
+        "claimFlag": false,
+        "buildLayer": null
+      },
+      "package": "warlords-entities",
+      "status": "kit_linked"
+    },
+    {
+      "prefabId": "PFAB-ENT-AFA32C65",
+      "id": "entities/Heavy_Elf_Merc",
+      "kind": "unit",
+      "category": "unit",
+      "name": "Heavy Elf Merc",
+      "displayName": "Heavy Elf Merc",
+      "era": "warlords",
+      "layer": "living",
+      "race": "elf",
+      "role": "heavy_merc",
+      "faction": null,
+      "tags": [
+        "unit",
+        "elf",
+        "heavy_merc",
+        "heavy"
+      ],
+      "icon": {
+        "uuid": "ICON-2103-F94D-0FF1",
+        "path": "/icons/pack/entities/Heavy_Elf_Merc.png",
+        "cdnUrl": "https://assets.grudge-studio.com/game-assets/icons/pack/entities/Heavy_Elf_Merc.png",
+        "cdnUrlAlt": "https://assets.grudge-studio.com/icons/pack/entities/Heavy_Elf_Merc.png",
+        "localSource": "C:\\Users\\nugye\\Desktop\\icons\\icons\\entities\\Heavy Elf Merc.PNG"
+      },
+      "mesh": {
+        "r2Key": "prod/gltf/characters/elf_characters.glb",
+        "cdnUrl": "https://assets.grudge-studio.com/prod/gltf/characters/elf_characters.glb",
+        "contentType": "model/gltf-binary",
+        "note": "Race kit GLB — equip/class mesh_ids applied at spawn",
+        "status": "kit_linked"
+      },
+      "stats": {
+        "health": 220,
+        "attackDamage": 18,
+        "attackRange": 2.5,
+        "speed": 4.5,
+        "armor": 12
+      },
+      "si": {
+        "heightM": 1.8,
+        "unit": "meter"
+      },
+      "game": {
+        "placeable": false,
+        "trainable": true,
+        "mountable": false,
+        "craftStation": false,
+        "claimFlag": false,
+        "buildLayer": null
+      },
+      "package": "warlords-entities",
+      "status": "kit_linked"
+    },
+    {
+      "prefabId": "PFAB-ENT-1915FBE5",
+      "id": "entities/Heavy_Human_Merc",
+      "kind": "unit",
+      "category": "unit",
+      "name": "Heavy Human Merc",
+      "displayName": "Heavy Human Merc",
+      "era": "warlords",
+      "layer": "living",
+      "race": "human",
+      "role": "heavy_merc",
+      "faction": null,
+      "tags": [
+        "unit",
+        "human",
+        "heavy_merc",
+        "heavy"
+      ],
+      "icon": {
+        "uuid": "ICON-1419-B545-210E",
+        "path": "/icons/pack/entities/Heavy_Human_Merc.png",
+        "cdnUrl": "https://assets.grudge-studio.com/game-assets/icons/pack/entities/Heavy_Human_Merc.png",
+        "cdnUrlAlt": "https://assets.grudge-studio.com/icons/pack/entities/Heavy_Human_Merc.png",
+        "localSource": "C:\\Users\\nugye\\Desktop\\icons\\icons\\entities\\Heavy Human Merc.PNG"
+      },
+      "mesh": {
+        "r2Key": "prod/gltf/characters/wk_characters.glb",
+        "cdnUrl": "https://assets.grudge-studio.com/prod/gltf/characters/wk_characters.glb",
+        "contentType": "model/gltf-binary",
+        "note": "Race kit GLB — equip/class mesh_ids applied at spawn",
+        "status": "kit_linked"
+      },
+      "stats": {
+        "health": 220,
+        "attackDamage": 18,
+        "attackRange": 2.5,
+        "speed": 4.5,
+        "armor": 12
+      },
+      "si": {
+        "heightM": 1.8,
+        "unit": "meter"
+      },
+      "game": {
+        "placeable": false,
+        "trainable": true,
+        "mountable": false,
+        "craftStation": false,
+        "claimFlag": false,
+        "buildLayer": null
+      },
+      "package": "warlords-entities",
+      "status": "kit_linked"
+    },
+    {
+      "prefabId": "PFAB-ENT-A1950313",
+      "id": "entities/Heavy_Orc_Merc",
+      "kind": "unit",
+      "category": "unit",
+      "name": "Heavy Orc Merc",
+      "displayName": "Heavy Orc Merc",
+      "era": "warlords",
+      "layer": "living",
+      "race": "orc",
+      "role": "heavy_merc",
+      "faction": null,
+      "tags": [
+        "unit",
+        "orc",
+        "heavy_merc",
+        "heavy"
+      ],
+      "icon": {
+        "uuid": "ICON-393B-6220-46A9",
+        "path": "/icons/pack/entities/Heavy_Orc_Merc.png",
+        "cdnUrl": "https://assets.grudge-studio.com/game-assets/icons/pack/entities/Heavy_Orc_Merc.png",
+        "cdnUrlAlt": "https://assets.grudge-studio.com/icons/pack/entities/Heavy_Orc_Merc.png",
+        "localSource": "C:\\Users\\nugye\\Desktop\\icons\\icons\\entities\\Heavy Orc Merc.PNG"
+      },
+      "mesh": {
+        "r2Key": "prod/gltf/characters/orc_characters.glb",
+        "cdnUrl": "https://assets.grudge-studio.com/prod/gltf/characters/orc_characters.glb",
+        "contentType": "model/gltf-binary",
+        "note": "Race kit GLB — equip/class mesh_ids applied at spawn",
+        "status": "kit_linked"
+      },
+      "stats": {
+        "health": 220,
+        "attackDamage": 18,
+        "attackRange": 2.5,
+        "speed": 4.5,
+        "armor": 12
+      },
+      "si": {
+        "heightM": 1.8,
+        "unit": "meter"
+      },
+      "game": {
+        "placeable": false,
+        "trainable": true,
+        "mountable": false,
+        "craftStation": false,
+        "claimFlag": false,
+        "buildLayer": null
+      },
+      "package": "warlords-entities",
+      "status": "kit_linked"
+    },
+    {
+      "prefabId": "PFAB-ENT-0E5C264C",
+      "id": "entities/Heavy_Undead_Merc",
+      "kind": "unit",
+      "category": "unit",
+      "name": "Heavy Undead Merc",
+      "displayName": "Heavy Undead Merc",
+      "era": "warlords",
+      "layer": "living",
+      "race": "undead",
+      "role": "heavy_merc",
+      "faction": null,
+      "tags": [
+        "unit",
+        "undead",
+        "heavy_merc",
+        "heavy"
+      ],
+      "icon": {
+        "uuid": "ICON-34BE-5E4A-6D73",
+        "path": "/icons/pack/entities/Heavy_Undead_Merc.png",
+        "cdnUrl": "https://assets.grudge-studio.com/game-assets/icons/pack/entities/Heavy_Undead_Merc.png",
+        "cdnUrlAlt": "https://assets.grudge-studio.com/icons/pack/entities/Heavy_Undead_Merc.png",
+        "localSource": "C:\\Users\\nugye\\Desktop\\icons\\icons\\entities\\Heavy Undead Merc.PNG"
+      },
+      "mesh": {
+        "r2Key": "prod/gltf/characters/ud_characters.glb",
+        "cdnUrl": "https://assets.grudge-studio.com/prod/gltf/characters/ud_characters.glb",
+        "contentType": "model/gltf-binary",
+        "note": "Race kit GLB — equip/class mesh_ids applied at spawn",
+        "status": "kit_linked"
+      },
+      "stats": {
+        "health": 220,
+        "attackDamage": 18,
+        "attackRange": 2.5,
+        "speed": 4.5,
+        "armor": 12
+      },
+      "si": {
+        "heightM": 1.8,
+        "unit": "meter"
+      },
+      "game": {
+        "placeable": false,
+        "trainable": true,
+        "mountable": false,
+        "craftStation": false,
+        "claimFlag": false,
+        "buildLayer": null
+      },
+      "package": "warlords-entities",
+      "status": "kit_linked"
+    },
+    {
+      "prefabId": "PFAB-ENT-198BDAB1",
+      "id": "entities/horse",
+      "kind": "mount",
+      "category": "mount",
+      "name": "Horse",
+      "displayName": "Horse",
+      "era": "warlords",
+      "layer": "vehicle",
+      "race": null,
+      "role": null,
+      "faction": null,
+      "tags": [
+        "mount",
+        "beast"
+      ],
+      "icon": {
+        "uuid": "ICON-86FF-5E1E-AA16",
+        "path": "/icons/pack/entities/horse.png",
+        "cdnUrl": "https://assets.grudge-studio.com/game-assets/icons/pack/entities/horse.png",
+        "cdnUrlAlt": "https://assets.grudge-studio.com/icons/pack/entities/horse.png",
+        "localSource": "C:\\Users\\nugye\\Desktop\\icons\\icons\\entities\\horse.PNG"
+      },
+      "mesh": {
+        "r2Key": null,
+        "cdnUrl": null,
+        "contentType": null,
+        "status": "icon_only",
+        "note": "Icon registered; 3D mesh pending bake/upload"
+      },
+      "stats": {
+        "health": 160,
+        "speed": 8,
+        "armor": 2,
+        "seats": 1
+      },
+      "si": {
+        "heightM": 1.2,
+        "unit": "meter"
+      },
+      "game": {
+        "placeable": false,
+        "trainable": false,
+        "mountable": true,
+        "craftStation": false,
+        "claimFlag": false,
+        "buildLayer": null
+      },
+      "package": "warlords-entities",
+      "status": "icon_only"
+    },
+    {
+      "prefabId": "PFAB-ENT-3351FA2E",
+      "id": "entities/House_Icon",
+      "kind": "structure",
+      "category": "race_home",
+      "name": "House",
+      "displayName": "House",
+      "era": "warlords",
+      "layer": "structure",
+      "race": null,
+      "role": null,
+      "faction": null,
+      "tags": [
+        "structure",
+        "race_home"
+      ],
+      "icon": {
+        "uuid": "ICON-9D63-EA06-3E93",
+        "path": "/icons/pack/entities/House_Icon.png",
+        "cdnUrl": "https://assets.grudge-studio.com/game-assets/icons/pack/entities/House_Icon.png",
+        "cdnUrlAlt": "https://assets.grudge-studio.com/icons/pack/entities/House_Icon.png",
+        "localSource": "C:\\Users\\nugye\\Desktop\\icons\\icons\\entities\\House Icon.png"
+      },
+      "mesh": {
+        "r2Key": null,
+        "cdnUrl": null,
+        "contentType": null,
+        "status": "icon_only",
+        "note": "Icon registered; 3D mesh pending bake/upload"
+      },
+      "stats": {
+        "health": 400,
+        "storageSlots": 0,
+        "craftStation": false
+      },
+      "si": {
+        "heightM": 4,
+        "unit": "meter"
+      },
+      "game": {
+        "placeable": true,
+        "trainable": false,
+        "mountable": false,
+        "craftStation": false,
+        "claimFlag": false,
+        "buildLayer": "rts"
+      },
+      "package": "warlords-entities",
+      "status": "icon_only"
+    },
+    {
+      "prefabId": "PFAB-ENT-4DFBCACA",
+      "id": "entities/human_archer",
+      "kind": "unit",
+      "category": "unit",
+      "name": "Human Archer",
+      "displayName": "Human Archer",
+      "era": "warlords",
+      "layer": "living",
+      "race": "human",
+      "role": "archer",
+      "faction": null,
+      "tags": [
+        "unit",
+        "human",
+        "archer",
+        "standard"
+      ],
+      "icon": {
+        "uuid": "ICON-7EA6-D2C6-9824",
+        "path": "/icons/pack/entities/human_archer.png",
+        "cdnUrl": "https://assets.grudge-studio.com/game-assets/icons/pack/entities/human_archer.png",
+        "cdnUrlAlt": "https://assets.grudge-studio.com/icons/pack/entities/human_archer.png",
+        "localSource": "C:\\Users\\nugye\\Desktop\\icons\\icons\\entities\\human archer.png"
+      },
+      "mesh": {
+        "r2Key": "prod/gltf/characters/wk_characters.glb",
+        "cdnUrl": "https://assets.grudge-studio.com/prod/gltf/characters/wk_characters.glb",
+        "contentType": "model/gltf-binary",
+        "note": "Race kit GLB — equip/class mesh_ids applied at spawn",
+        "status": "kit_linked"
+      },
+      "stats": {
+        "health": 90,
+        "attackDamage": 22,
+        "attackRange": 14,
+        "speed": 5.5,
+        "armor": 4
+      },
+      "si": {
+        "heightM": 1.8,
+        "unit": "meter"
+      },
+      "game": {
+        "placeable": false,
+        "trainable": true,
+        "mountable": false,
+        "craftStation": false,
+        "claimFlag": false,
+        "buildLayer": null
+      },
+      "package": "warlords-entities",
+      "status": "kit_linked"
+    },
+    {
+      "prefabId": "PFAB-ENT-669EA624",
+      "id": "entities/Human_Cabin",
+      "kind": "structure",
+      "category": "race_home",
+      "name": "Human Cabin",
+      "displayName": "Human Cabin",
+      "era": "warlords",
+      "layer": "structure",
+      "race": null,
+      "role": null,
+      "faction": null,
+      "tags": [
+        "structure",
+        "race_home"
+      ],
+      "icon": {
+        "uuid": "ICON-E8E2-EFD1-6DB4",
+        "path": "/icons/pack/entities/Human_Cabin.png",
+        "cdnUrl": "https://assets.grudge-studio.com/game-assets/icons/pack/entities/Human_Cabin.png",
+        "cdnUrlAlt": "https://assets.grudge-studio.com/icons/pack/entities/Human_Cabin.png",
+        "localSource": "C:\\Users\\nugye\\Desktop\\icons\\icons\\entities\\Human Cabin.PNG"
+      },
+      "mesh": {
+        "r2Key": null,
+        "cdnUrl": null,
+        "contentType": null,
+        "status": "icon_only",
+        "note": "Icon registered; 3D mesh pending bake/upload"
+      },
+      "stats": {
+        "health": 400,
+        "storageSlots": 0,
+        "craftStation": false
+      },
+      "si": {
+        "heightM": 4,
+        "unit": "meter"
+      },
+      "game": {
+        "placeable": true,
+        "trainable": false,
+        "mountable": false,
+        "craftStation": false,
+        "claimFlag": false,
+        "buildLayer": "rts"
+      },
+      "package": "warlords-entities",
+      "status": "icon_only"
+    },
+    {
+      "prefabId": "PFAB-ENT-E81880F9",
+      "id": "entities/human_mage",
+      "kind": "unit",
+      "category": "unit",
+      "name": "Human Mage",
+      "displayName": "Human Mage",
+      "era": "warlords",
+      "layer": "living",
+      "race": "human",
+      "role": "mage",
+      "faction": null,
+      "tags": [
+        "unit",
+        "human",
+        "mage",
+        "standard"
+      ],
+      "icon": {
+        "uuid": "ICON-895B-E4BB-3A16",
+        "path": "/icons/pack/entities/human_mage.png",
+        "cdnUrl": "https://assets.grudge-studio.com/game-assets/icons/pack/entities/human_mage.png",
+        "cdnUrlAlt": "https://assets.grudge-studio.com/icons/pack/entities/human_mage.png",
+        "localSource": "C:\\Users\\nugye\\Desktop\\icons\\icons\\entities\\human mage.png"
+      },
+      "mesh": {
+        "r2Key": "prod/gltf/characters/wk_characters.glb",
+        "cdnUrl": "https://assets.grudge-studio.com/prod/gltf/characters/wk_characters.glb",
+        "contentType": "model/gltf-binary",
+        "note": "Race kit GLB — equip/class mesh_ids applied at spawn",
+        "status": "kit_linked"
+      },
+      "stats": {
+        "health": 70,
+        "attackDamage": 28,
+        "attackRange": 14,
+        "speed": 4.5,
+        "armor": 4
+      },
+      "si": {
+        "heightM": 1.8,
+        "unit": "meter"
+      },
+      "game": {
+        "placeable": false,
+        "trainable": true,
+        "mountable": false,
+        "craftStation": false,
+        "claimFlag": false,
+        "buildLayer": null
+      },
+      "package": "warlords-entities",
+      "status": "kit_linked"
+    },
+    {
+      "prefabId": "PFAB-ENT-97219975",
+      "id": "entities/Human_Merc",
+      "kind": "unit",
+      "category": "unit",
+      "name": "Human Merc",
+      "displayName": "Human Merc",
+      "era": "warlords",
+      "layer": "living",
+      "race": "human",
+      "role": "merc",
+      "faction": null,
+      "tags": [
+        "unit",
+        "human",
+        "merc",
+        "standard"
+      ],
+      "icon": {
+        "uuid": "ICON-B6D9-063A-123D",
+        "path": "/icons/pack/entities/Human_Merc.png",
+        "cdnUrl": "https://assets.grudge-studio.com/game-assets/icons/pack/entities/Human_Merc.png",
+        "cdnUrlAlt": "https://assets.grudge-studio.com/icons/pack/entities/Human_Merc.png",
+        "localSource": "C:\\Users\\nugye\\Desktop\\icons\\icons\\entities\\Human Merc.PNG"
+      },
+      "mesh": {
+        "r2Key": "prod/gltf/characters/wk_characters.glb",
+        "cdnUrl": "https://assets.grudge-studio.com/prod/gltf/characters/wk_characters.glb",
+        "contentType": "model/gltf-binary",
+        "note": "Race kit GLB — equip/class mesh_ids applied at spawn",
+        "status": "kit_linked"
+      },
+      "stats": {
+        "health": 140,
+        "attackDamage": 18,
+        "attackRange": 2.5,
+        "speed": 4.5,
+        "armor": 4
+      },
+      "si": {
+        "heightM": 1.8,
+        "unit": "meter"
+      },
+      "game": {
+        "placeable": false,
+        "trainable": true,
+        "mountable": false,
+        "craftStation": false,
+        "claimFlag": false,
+        "buildLayer": null
+      },
+      "package": "warlords-entities",
+      "status": "kit_linked"
+    },
+    {
+      "prefabId": "PFAB-ENT-2AD89C28",
+      "id": "entities/human_paladin",
+      "kind": "unit",
+      "category": "unit",
+      "name": "Human Paladin",
+      "displayName": "Human Paladin",
+      "era": "warlords",
+      "layer": "living",
+      "race": "human",
+      "role": "paladin",
+      "faction": null,
+      "tags": [
+        "unit",
+        "human",
+        "paladin",
+        "standard"
+      ],
+      "icon": {
+        "uuid": "ICON-D350-D021-B853",
+        "path": "/icons/pack/entities/human_paladin.png",
+        "cdnUrl": "https://assets.grudge-studio.com/game-assets/icons/pack/entities/human_paladin.png",
+        "cdnUrlAlt": "https://assets.grudge-studio.com/icons/pack/entities/human_paladin.png",
+        "localSource": "C:\\Users\\nugye\\Desktop\\icons\\icons\\entities\\human paladin.png"
+      },
+      "mesh": {
+        "r2Key": "prod/gltf/characters/wk_characters.glb",
+        "cdnUrl": "https://assets.grudge-studio.com/prod/gltf/characters/wk_characters.glb",
+        "contentType": "model/gltf-binary",
+        "note": "Race kit GLB — equip/class mesh_ids applied at spawn",
+        "status": "kit_linked"
+      },
+      "stats": {
+        "health": 180,
+        "attackDamage": 18,
+        "attackRange": 2.5,
+        "speed": 4.5,
+        "armor": 12
+      },
+      "si": {
+        "heightM": 1.8,
+        "unit": "meter"
+      },
+      "game": {
+        "placeable": false,
+        "trainable": true,
+        "mountable": false,
+        "craftStation": false,
+        "claimFlag": false,
+        "buildLayer": null
+      },
+      "package": "warlords-entities",
+      "status": "kit_linked"
+    },
+    {
+      "prefabId": "PFAB-ENT-2934841C",
+      "id": "entities/Human_Warrior",
+      "kind": "unit",
+      "category": "unit",
+      "name": "Human Warrior",
+      "displayName": "Human Warrior",
+      "era": "warlords",
+      "layer": "living",
+      "race": "human",
+      "role": "warrior",
+      "faction": null,
+      "tags": [
+        "unit",
+        "human",
+        "warrior",
+        "standard"
+      ],
+      "icon": {
+        "uuid": "ICON-8FEB-70BF-FEC3",
+        "path": "/icons/pack/entities/Human_Warrior.png",
+        "cdnUrl": "https://assets.grudge-studio.com/game-assets/icons/pack/entities/Human_Warrior.png",
+        "cdnUrlAlt": "https://assets.grudge-studio.com/icons/pack/entities/Human_Warrior.png",
+        "localSource": "C:\\Users\\nugye\\Desktop\\icons\\icons\\entities\\Human Warrior.png"
+      },
+      "mesh": {
+        "r2Key": "prod/gltf/characters/wk_characters.glb",
+        "cdnUrl": "https://assets.grudge-studio.com/prod/gltf/characters/wk_characters.glb",
+        "contentType": "model/gltf-binary",
+        "note": "Race kit GLB — equip/class mesh_ids applied at spawn",
+        "status": "kit_linked"
+      },
+      "stats": {
+        "health": 140,
+        "attackDamage": 18,
+        "attackRange": 2.5,
+        "speed": 4.5,
+        "armor": 4
+      },
+      "si": {
+        "heightM": 1.8,
+        "unit": "meter"
+      },
+      "game": {
+        "placeable": false,
+        "trainable": true,
+        "mountable": false,
+        "craftStation": false,
+        "claimFlag": false,
+        "buildLayer": null
+      },
+      "package": "warlords-entities",
+      "status": "kit_linked"
+    },
+    {
+      "prefabId": "PFAB-ENT-483198F4",
+      "id": "entities/Laboritory",
+      "kind": "structure",
+      "category": "structure",
+      "name": "Laboritory",
+      "displayName": "Laboritory",
+      "era": "warlords",
+      "layer": "structure",
+      "race": null,
+      "role": null,
+      "faction": null,
+      "tags": [
+        "structure",
+        "structure"
+      ],
+      "icon": {
+        "uuid": "ICON-7B59-45F5-30CA",
+        "path": "/icons/pack/entities/Laboritory.png",
+        "cdnUrl": "https://assets.grudge-studio.com/game-assets/icons/pack/entities/Laboritory.png",
+        "cdnUrlAlt": "https://assets.grudge-studio.com/icons/pack/entities/Laboritory.png",
+        "localSource": "C:\\Users\\nugye\\Desktop\\icons\\icons\\entities\\Laboritory.PNG"
+      },
+      "mesh": {
+        "r2Key": null,
+        "cdnUrl": null,
+        "contentType": null,
+        "status": "icon_only",
+        "note": "Icon registered; 3D mesh pending bake/upload"
+      },
+      "stats": {
+        "health": 400,
+        "storageSlots": 0,
+        "craftStation": false
+      },
+      "si": {
+        "heightM": 4,
+        "unit": "meter"
+      },
+      "game": {
+        "placeable": true,
+        "trainable": false,
+        "mountable": false,
+        "craftStation": false,
+        "claimFlag": false,
+        "buildLayer": "rts"
+      },
+      "package": "warlords-entities",
+      "status": "icon_only"
+    },
+    {
+      "prefabId": "PFAB-ENT-40C796F4",
+      "id": "entities/Ladder",
+      "kind": "structure",
+      "category": "fortification",
+      "name": "Ladder",
+      "displayName": "Ladder",
+      "era": "warlords",
+      "layer": "structure",
+      "race": null,
+      "role": null,
+      "faction": null,
+      "tags": [
+        "structure",
+        "fortification"
+      ],
+      "icon": {
+        "uuid": "ICON-6DE5-7BEC-7343",
+        "path": "/icons/pack/entities/Ladder.png",
+        "cdnUrl": "https://assets.grudge-studio.com/game-assets/icons/pack/entities/Ladder.png",
+        "cdnUrlAlt": "https://assets.grudge-studio.com/icons/pack/entities/Ladder.png",
+        "localSource": "C:\\Users\\nugye\\Desktop\\icons\\icons\\entities\\Ladder.PNG"
+      },
+      "mesh": {
+        "r2Key": "models/buildings/towers/3_medieval_towers.glb",
+        "cdnUrl": "https://assets.grudge-studio.com/models/buildings/towers/3_medieval_towers.glb",
+        "contentType": "model/gltf-binary",
+        "status": "pack_linked"
+      },
+      "stats": {
+        "health": 800,
+        "storageSlots": 0,
+        "craftStation": false
+      },
+      "si": {
+        "heightM": 4,
+        "unit": "meter"
+      },
+      "game": {
+        "placeable": true,
+        "trainable": false,
+        "mountable": false,
+        "craftStation": false,
+        "claimFlag": false,
+        "buildLayer": "modular"
+      },
+      "package": "warlords-entities",
+      "status": "pack_linked"
+    },
+    {
+      "prefabId": "PFAB-ENT-EA5D525E",
+      "id": "entities/Lamp_Icon",
+      "kind": "structure",
+      "category": "furniture",
+      "name": "Lamp",
+      "displayName": "Lamp",
+      "era": "warlords",
+      "layer": "structure",
+      "race": null,
+      "role": null,
+      "faction": null,
+      "tags": [
+        "structure",
+        "furniture"
+      ],
+      "icon": {
+        "uuid": "ICON-FB89-4EE2-5240",
+        "path": "/icons/pack/entities/Lamp_Icon.png",
+        "cdnUrl": "https://assets.grudge-studio.com/game-assets/icons/pack/entities/Lamp_Icon.png",
+        "cdnUrlAlt": "https://assets.grudge-studio.com/icons/pack/entities/Lamp_Icon.png",
+        "localSource": "C:\\Users\\nugye\\Desktop\\icons\\icons\\entities\\Lamp Icon.png"
+      },
+      "mesh": {
+        "r2Key": null,
+        "cdnUrl": null,
+        "contentType": null,
+        "status": "icon_only",
+        "note": "Icon registered; 3D mesh pending bake/upload"
+      },
+      "stats": {
+        "health": 400,
+        "storageSlots": 24,
+        "craftStation": false
+      },
+      "si": {
+        "heightM": 4,
+        "unit": "meter"
+      },
+      "game": {
+        "placeable": true,
+        "trainable": false,
+        "mountable": false,
+        "craftStation": false,
+        "claimFlag": false,
+        "buildLayer": "rts"
+      },
+      "package": "warlords-entities",
+      "status": "icon_only"
+    },
+    {
+      "prefabId": "PFAB-ENT-EAA4405E",
+      "id": "entities/Large_Furnace_Icon",
+      "kind": "structure",
+      "category": "bench",
+      "name": "Large Furnace",
+      "displayName": "Large Furnace",
+      "era": "warlords",
+      "layer": "structure",
+      "race": null,
+      "role": null,
+      "faction": null,
+      "tags": [
+        "structure",
+        "bench"
+      ],
+      "icon": {
+        "uuid": "ICON-A1CD-03B1-21FD",
+        "path": "/icons/pack/entities/Large_Furnace_Icon.png",
+        "cdnUrl": "https://assets.grudge-studio.com/game-assets/icons/pack/entities/Large_Furnace_Icon.png",
+        "cdnUrlAlt": "https://assets.grudge-studio.com/icons/pack/entities/Large_Furnace_Icon.png",
+        "localSource": "C:\\Users\\nugye\\Desktop\\icons\\icons\\entities\\Large Furnace Icon.png"
+      },
+      "mesh": {
+        "r2Key": "models/buildings/survival/free_survival_asset_kit.glb",
+        "cdnUrl": "https://assets.grudge-studio.com/models/buildings/survival/free_survival_asset_kit.glb",
+        "contentType": "model/gltf-binary",
+        "note": "Survival kit multipack — bind nodeName in BuildAssetManifest",
+        "status": "pack_linked"
+      },
+      "stats": {
+        "health": 200,
+        "storageSlots": 0,
+        "craftStation": true
+      },
+      "si": {
+        "heightM": 4,
+        "unit": "meter"
+      },
+      "game": {
+        "placeable": true,
+        "trainable": false,
+        "mountable": false,
+        "craftStation": true,
+        "claimFlag": false,
+        "buildLayer": "camp"
+      },
+      "package": "warlords-entities",
+      "status": "pack_linked"
+    },
+    {
+      "prefabId": "PFAB-ENT-1EF41B3E",
+      "id": "entities/Legion_Alch",
+      "kind": "structure",
+      "category": "bench",
+      "name": "Legion Alch",
+      "displayName": "Legion Alch",
+      "era": "warlords",
+      "layer": "structure",
+      "race": null,
+      "role": null,
+      "faction": "legion",
+      "tags": [
+        "structure",
+        "bench",
+        "legion"
+      ],
+      "icon": {
+        "uuid": "ICON-E71A-5CFC-799B",
+        "path": "/icons/pack/entities/Legion_Alch.png",
+        "cdnUrl": "https://assets.grudge-studio.com/game-assets/icons/pack/entities/Legion_Alch.png",
+        "cdnUrlAlt": "https://assets.grudge-studio.com/icons/pack/entities/Legion_Alch.png",
+        "localSource": "C:\\Users\\nugye\\Desktop\\icons\\icons\\entities\\Legion Alch.png"
+      },
+      "mesh": {
+        "r2Key": "models/buildings/survival/free_survival_asset_kit.glb",
+        "cdnUrl": "https://assets.grudge-studio.com/models/buildings/survival/free_survival_asset_kit.glb",
+        "contentType": "model/gltf-binary",
+        "note": "Survival kit multipack — bind nodeName in BuildAssetManifest",
+        "status": "pack_linked"
+      },
+      "stats": {
+        "health": 200,
+        "storageSlots": 0,
+        "craftStation": true
+      },
+      "si": {
+        "heightM": 4,
+        "unit": "meter"
+      },
+      "game": {
+        "placeable": true,
+        "trainable": false,
+        "mountable": false,
+        "craftStation": true,
+        "claimFlag": false,
+        "buildLayer": "camp"
+      },
+      "package": "warlords-entities",
+      "status": "pack_linked"
+    },
+    {
+      "prefabId": "PFAB-ENT-4E1BBC89",
+      "id": "entities/legion_armory",
+      "kind": "structure",
+      "category": "camp_building",
+      "name": "Legion Armory",
+      "displayName": "Legion Armory",
+      "era": "warlords",
+      "layer": "structure",
+      "race": null,
+      "role": null,
+      "faction": "legion",
+      "tags": [
+        "structure",
+        "camp_building",
+        "legion"
+      ],
+      "icon": {
+        "uuid": "ICON-CAF0-6B19-46C4",
+        "path": "/icons/pack/entities/legion_armory.png",
+        "cdnUrl": "https://assets.grudge-studio.com/game-assets/icons/pack/entities/legion_armory.png",
+        "cdnUrlAlt": "https://assets.grudge-studio.com/icons/pack/entities/legion_armory.png",
+        "localSource": "C:\\Users\\nugye\\Desktop\\icons\\icons\\entities\\legion armory.PNG"
+      },
+      "mesh": {
+        "r2Key": null,
+        "cdnUrl": null,
+        "contentType": null,
+        "status": "icon_only",
+        "note": "Icon registered; 3D mesh pending bake/upload"
+      },
+      "stats": {
+        "health": 400,
+        "storageSlots": 24,
+        "craftStation": false
+      },
+      "si": {
+        "heightM": 4,
+        "unit": "meter"
+      },
+      "game": {
+        "placeable": true,
+        "trainable": false,
+        "mountable": false,
+        "craftStation": false,
+        "claimFlag": false,
+        "buildLayer": "rts"
+      },
+      "package": "warlords-entities",
+      "status": "icon_only"
+    },
+    {
+      "prefabId": "PFAB-ENT-AB06CA76",
+      "id": "entities/Legion_Arsenal",
+      "kind": "structure",
+      "category": "camp_building",
+      "name": "Legion Arsenal",
+      "displayName": "Legion Arsenal",
+      "era": "warlords",
+      "layer": "structure",
+      "race": null,
+      "role": null,
+      "faction": "legion",
+      "tags": [
+        "structure",
+        "camp_building",
+        "legion"
+      ],
+      "icon": {
+        "uuid": "ICON-A5CB-7BBB-0C2D",
+        "path": "/icons/pack/entities/Legion_Arsenal.png",
+        "cdnUrl": "https://assets.grudge-studio.com/game-assets/icons/pack/entities/Legion_Arsenal.png",
+        "cdnUrlAlt": "https://assets.grudge-studio.com/icons/pack/entities/Legion_Arsenal.png",
+        "localSource": "C:\\Users\\nugye\\Desktop\\icons\\icons\\entities\\Legion Arsenal.PNG"
+      },
+      "mesh": {
+        "r2Key": null,
+        "cdnUrl": null,
+        "contentType": null,
+        "status": "icon_only",
+        "note": "Icon registered; 3D mesh pending bake/upload"
+      },
+      "stats": {
+        "health": 400,
+        "storageSlots": 24,
+        "craftStation": false
+      },
+      "si": {
+        "heightM": 4,
+        "unit": "meter"
+      },
+      "game": {
+        "placeable": true,
+        "trainable": false,
+        "mountable": false,
+        "craftStation": false,
+        "claimFlag": false,
+        "buildLayer": "rts"
+      },
+      "package": "warlords-entities",
+      "status": "icon_only"
+    },
+    {
+      "prefabId": "PFAB-ENT-389446F2",
+      "id": "entities/Legion_Blacksmith",
+      "kind": "structure",
+      "category": "bench",
+      "name": "Legion Blacksmith",
+      "displayName": "Legion Blacksmith",
+      "era": "warlords",
+      "layer": "structure",
+      "race": null,
+      "role": null,
+      "faction": "legion",
+      "tags": [
+        "structure",
+        "bench",
+        "legion"
+      ],
+      "icon": {
+        "uuid": "ICON-7DDC-69C0-31D2",
+        "path": "/icons/pack/entities/Legion_Blacksmith.png",
+        "cdnUrl": "https://assets.grudge-studio.com/game-assets/icons/pack/entities/Legion_Blacksmith.png",
+        "cdnUrlAlt": "https://assets.grudge-studio.com/icons/pack/entities/Legion_Blacksmith.png",
+        "localSource": "C:\\Users\\nugye\\Desktop\\icons\\icons\\entities\\Legion Blacksmith.PNG"
+      },
+      "mesh": {
+        "r2Key": "models/buildings/survival/free_survival_asset_kit.glb",
+        "cdnUrl": "https://assets.grudge-studio.com/models/buildings/survival/free_survival_asset_kit.glb",
+        "contentType": "model/gltf-binary",
+        "note": "Survival kit multipack — bind nodeName in BuildAssetManifest",
+        "status": "pack_linked"
+      },
+      "stats": {
+        "health": 200,
+        "storageSlots": 0,
+        "craftStation": true
+      },
+      "si": {
+        "heightM": 4,
+        "unit": "meter"
+      },
+      "game": {
+        "placeable": true,
+        "trainable": false,
+        "mountable": false,
+        "craftStation": true,
+        "claimFlag": false,
+        "buildLayer": "camp"
+      },
+      "package": "warlords-entities",
+      "status": "pack_linked"
+    },
+    {
+      "prefabId": "PFAB-ENT-0A1303ED",
+      "id": "entities/Legion_Claim_Flag",
+      "kind": "structure",
+      "category": "claim_flag",
+      "name": "Legion Claim Flag",
+      "displayName": "Legion Claim Flag",
+      "era": "warlords",
+      "layer": "structure",
+      "race": null,
+      "role": null,
+      "faction": "legion",
+      "tags": [
+        "structure",
+        "claim_flag",
+        "legion"
+      ],
+      "icon": {
+        "uuid": "ICON-A691-27E7-E123",
+        "path": "/icons/pack/entities/Legion_Claim_Flag.png",
+        "cdnUrl": "https://assets.grudge-studio.com/game-assets/icons/pack/entities/Legion_Claim_Flag.png",
+        "cdnUrlAlt": "https://assets.grudge-studio.com/icons/pack/entities/Legion_Claim_Flag.png",
+        "localSource": "C:\\Users\\nugye\\Desktop\\icons\\icons\\entities\\Legion Claim Flag.PNG"
+      },
+      "mesh": {
+        "r2Key": null,
+        "cdnUrl": null,
+        "contentType": null,
+        "status": "icon_only",
+        "note": "Icon registered; 3D mesh pending bake/upload"
+      },
+      "stats": {
+        "health": 400,
+        "storageSlots": 0,
+        "craftStation": false
+      },
+      "si": {
+        "heightM": 4,
+        "unit": "meter"
+      },
+      "game": {
+        "placeable": true,
+        "trainable": false,
+        "mountable": false,
+        "craftStation": false,
+        "claimFlag": true,
+        "buildLayer": "rts"
+      },
+      "package": "warlords-entities",
+      "status": "icon_only"
+    },
+    {
+      "prefabId": "PFAB-ENT-A1BD36CD",
+      "id": "entities/Legion_Loom",
+      "kind": "structure",
+      "category": "bench",
+      "name": "Legion Loom",
+      "displayName": "Legion Loom",
+      "era": "warlords",
+      "layer": "structure",
+      "race": null,
+      "role": null,
+      "faction": "legion",
+      "tags": [
+        "structure",
+        "bench",
+        "legion"
+      ],
+      "icon": {
+        "uuid": "ICON-948B-DC54-FA97",
+        "path": "/icons/pack/entities/Legion_Loom.png",
+        "cdnUrl": "https://assets.grudge-studio.com/game-assets/icons/pack/entities/Legion_Loom.png",
+        "cdnUrlAlt": "https://assets.grudge-studio.com/icons/pack/entities/Legion_Loom.png",
+        "localSource": "C:\\Users\\nugye\\Desktop\\icons\\icons\\entities\\Legion Loom.PNG"
+      },
+      "mesh": {
+        "r2Key": "models/buildings/survival/free_survival_asset_kit.glb",
+        "cdnUrl": "https://assets.grudge-studio.com/models/buildings/survival/free_survival_asset_kit.glb",
+        "contentType": "model/gltf-binary",
+        "note": "Survival kit multipack — bind nodeName in BuildAssetManifest",
+        "status": "pack_linked"
+      },
+      "stats": {
+        "health": 200,
+        "storageSlots": 0,
+        "craftStation": true
+      },
+      "si": {
+        "heightM": 4,
+        "unit": "meter"
+      },
+      "game": {
+        "placeable": true,
+        "trainable": false,
+        "mountable": false,
+        "craftStation": true,
+        "claimFlag": false,
+        "buildLayer": "camp"
+      },
+      "package": "warlords-entities",
+      "status": "pack_linked"
+    },
+    {
+      "prefabId": "PFAB-ENT-44E27B85",
+      "id": "entities/Legion_Stable",
+      "kind": "structure",
+      "category": "camp_building",
+      "name": "Legion Stable",
+      "displayName": "Legion Stable",
+      "era": "warlords",
+      "layer": "structure",
+      "race": null,
+      "role": null,
+      "faction": "legion",
+      "tags": [
+        "structure",
+        "camp_building",
+        "legion"
+      ],
+      "icon": {
+        "uuid": "ICON-6D36-2EA3-A7FF",
+        "path": "/icons/pack/entities/Legion_Stable.png",
+        "cdnUrl": "https://assets.grudge-studio.com/game-assets/icons/pack/entities/Legion_Stable.png",
+        "cdnUrlAlt": "https://assets.grudge-studio.com/icons/pack/entities/Legion_Stable.png",
+        "localSource": "C:\\Users\\nugye\\Desktop\\icons\\icons\\entities\\Legion Stable.PNG"
+      },
+      "mesh": {
+        "r2Key": null,
+        "cdnUrl": null,
+        "contentType": null,
+        "status": "icon_only",
+        "note": "Icon registered; 3D mesh pending bake/upload"
+      },
+      "stats": {
+        "health": 400,
+        "storageSlots": 24,
+        "craftStation": false
+      },
+      "si": {
+        "heightM": 4,
+        "unit": "meter"
+      },
+      "game": {
+        "placeable": true,
+        "trainable": false,
+        "mountable": false,
+        "craftStation": false,
+        "claimFlag": false,
+        "buildLayer": "rts"
+      },
+      "package": "warlords-entities",
+      "status": "icon_only"
+    },
+    {
+      "prefabId": "PFAB-ENT-53527DD0",
+      "id": "entities/Legion_Study",
+      "kind": "structure",
+      "category": "camp_building",
+      "name": "Legion Study",
+      "displayName": "Legion Study",
+      "era": "warlords",
+      "layer": "structure",
+      "race": null,
+      "role": null,
+      "faction": "legion",
+      "tags": [
+        "structure",
+        "camp_building",
+        "legion"
+      ],
+      "icon": {
+        "uuid": "ICON-7591-4D86-AC45",
+        "path": "/icons/pack/entities/Legion_Study.png",
+        "cdnUrl": "https://assets.grudge-studio.com/game-assets/icons/pack/entities/Legion_Study.png",
+        "cdnUrlAlt": "https://assets.grudge-studio.com/icons/pack/entities/Legion_Study.png",
+        "localSource": "C:\\Users\\nugye\\Desktop\\icons\\icons\\entities\\Legion Study.PNG"
+      },
+      "mesh": {
+        "r2Key": null,
+        "cdnUrl": null,
+        "contentType": null,
+        "status": "icon_only",
+        "note": "Icon registered; 3D mesh pending bake/upload"
+      },
+      "stats": {
+        "health": 400,
+        "storageSlots": 24,
+        "craftStation": false
+      },
+      "si": {
+        "heightM": 4,
+        "unit": "meter"
+      },
+      "game": {
+        "placeable": true,
+        "trainable": false,
+        "mountable": false,
+        "craftStation": false,
+        "claimFlag": false,
+        "buildLayer": "rts"
+      },
+      "package": "warlords-entities",
+      "status": "icon_only"
+    },
+    {
+      "prefabId": "PFAB-ENT-3E092731",
+      "id": "entities/Legion_Workbench",
+      "kind": "structure",
+      "category": "bench",
+      "name": "Legion Workbench",
+      "displayName": "Legion Workbench",
+      "era": "warlords",
+      "layer": "structure",
+      "race": null,
+      "role": null,
+      "faction": "legion",
+      "tags": [
+        "structure",
+        "bench",
+        "legion"
+      ],
+      "icon": {
+        "uuid": "ICON-B350-00D6-34DC",
+        "path": "/icons/pack/entities/Legion_Workbench.png",
+        "cdnUrl": "https://assets.grudge-studio.com/game-assets/icons/pack/entities/Legion_Workbench.png",
+        "cdnUrlAlt": "https://assets.grudge-studio.com/icons/pack/entities/Legion_Workbench.png",
+        "localSource": "C:\\Users\\nugye\\Desktop\\icons\\icons\\entities\\Legion Workbench.PNG"
+      },
+      "mesh": {
+        "r2Key": "models/buildings/survival/free_survival_asset_kit.glb",
+        "cdnUrl": "https://assets.grudge-studio.com/models/buildings/survival/free_survival_asset_kit.glb",
+        "contentType": "model/gltf-binary",
+        "note": "Survival kit multipack — bind nodeName in BuildAssetManifest",
+        "status": "pack_linked"
+      },
+      "stats": {
+        "health": 200,
+        "storageSlots": 0,
+        "craftStation": true
+      },
+      "si": {
+        "heightM": 4,
+        "unit": "meter"
+      },
+      "game": {
+        "placeable": true,
+        "trainable": false,
+        "mountable": false,
+        "craftStation": true,
+        "claimFlag": false,
+        "buildLayer": "camp"
+      },
+      "package": "warlords-entities",
+      "status": "pack_linked"
+    },
+    {
+      "prefabId": "PFAB-ENT-B777083C",
+      "id": "entities/Loom",
+      "kind": "structure",
+      "category": "bench",
+      "name": "Loom",
+      "displayName": "Loom",
+      "era": "warlords",
+      "layer": "structure",
+      "race": null,
+      "role": null,
+      "faction": null,
+      "tags": [
+        "structure",
+        "bench"
+      ],
+      "icon": {
+        "uuid": "ICON-E8CD-4212-D1BC",
+        "path": "/icons/pack/entities/Loom.png",
+        "cdnUrl": "https://assets.grudge-studio.com/game-assets/icons/pack/entities/Loom.png",
+        "cdnUrlAlt": "https://assets.grudge-studio.com/icons/pack/entities/Loom.png",
+        "localSource": "C:\\Users\\nugye\\Desktop\\icons\\icons\\entities\\Loom.PNG"
+      },
+      "mesh": {
+        "r2Key": "models/buildings/survival/free_survival_asset_kit.glb",
+        "cdnUrl": "https://assets.grudge-studio.com/models/buildings/survival/free_survival_asset_kit.glb",
+        "contentType": "model/gltf-binary",
+        "note": "Survival kit multipack — bind nodeName in BuildAssetManifest",
+        "status": "pack_linked"
+      },
+      "stats": {
+        "health": 200,
+        "storageSlots": 0,
+        "craftStation": true
+      },
+      "si": {
+        "heightM": 4,
+        "unit": "meter"
+      },
+      "game": {
+        "placeable": true,
+        "trainable": false,
+        "mountable": false,
+        "craftStation": true,
+        "claimFlag": false,
+        "buildLayer": "camp"
+      },
+      "package": "warlords-entities",
+      "status": "pack_linked"
+    },
+    {
+      "prefabId": "PFAB-ENT-5EA96004",
+      "id": "entities/Market_Icon",
+      "kind": "structure",
+      "category": "camp_building",
+      "name": "Market",
+      "displayName": "Market",
+      "era": "warlords",
+      "layer": "structure",
+      "race": null,
+      "role": null,
+      "faction": null,
+      "tags": [
+        "structure",
+        "camp_building"
+      ],
+      "icon": {
+        "uuid": "ICON-2F85-9448-976E",
+        "path": "/icons/pack/entities/Market_Icon.png",
+        "cdnUrl": "https://assets.grudge-studio.com/game-assets/icons/pack/entities/Market_Icon.png",
+        "cdnUrlAlt": "https://assets.grudge-studio.com/icons/pack/entities/Market_Icon.png",
+        "localSource": "C:\\Users\\nugye\\Desktop\\icons\\icons\\entities\\Market Icon.png"
+      },
+      "mesh": {
+        "r2Key": null,
+        "cdnUrl": null,
+        "contentType": null,
+        "status": "icon_only",
+        "note": "Icon registered; 3D mesh pending bake/upload"
+      },
+      "stats": {
+        "health": 400,
+        "storageSlots": 24,
+        "craftStation": false
+      },
+      "si": {
+        "heightM": 4,
+        "unit": "meter"
+      },
+      "game": {
+        "placeable": true,
+        "trainable": false,
+        "mountable": false,
+        "craftStation": false,
+        "claimFlag": false,
+        "buildLayer": "rts"
+      },
+      "package": "warlords-entities",
+      "status": "icon_only"
+    },
+    {
+      "prefabId": "PFAB-ENT-A0EC0BC3",
+      "id": "entities/orc_archer",
+      "kind": "unit",
+      "category": "unit",
+      "name": "Orc Archer",
+      "displayName": "Orc Archer",
+      "era": "warlords",
+      "layer": "living",
+      "race": "orc",
+      "role": "archer",
+      "faction": null,
+      "tags": [
+        "unit",
+        "orc",
+        "archer",
+        "standard"
+      ],
+      "icon": {
+        "uuid": "ICON-A1F9-1A86-9B08",
+        "path": "/icons/pack/entities/orc_archer.png",
+        "cdnUrl": "https://assets.grudge-studio.com/game-assets/icons/pack/entities/orc_archer.png",
+        "cdnUrlAlt": "https://assets.grudge-studio.com/icons/pack/entities/orc_archer.png",
+        "localSource": "C:\\Users\\nugye\\Desktop\\icons\\icons\\entities\\orc archer.png"
+      },
+      "mesh": {
+        "r2Key": "prod/gltf/characters/orc_characters.glb",
+        "cdnUrl": "https://assets.grudge-studio.com/prod/gltf/characters/orc_characters.glb",
+        "contentType": "model/gltf-binary",
+        "note": "Race kit GLB — equip/class mesh_ids applied at spawn",
+        "status": "kit_linked"
+      },
+      "stats": {
+        "health": 90,
+        "attackDamage": 22,
+        "attackRange": 14,
+        "speed": 5.5,
+        "armor": 4
+      },
+      "si": {
+        "heightM": 1.8,
+        "unit": "meter"
+      },
+      "game": {
+        "placeable": false,
+        "trainable": true,
+        "mountable": false,
+        "craftStation": false,
+        "claimFlag": false,
+        "buildLayer": null
+      },
+      "package": "warlords-entities",
+      "status": "kit_linked"
+    },
+    {
+      "prefabId": "PFAB-ENT-E1ADDD47",
+      "id": "entities/orc_hut",
+      "kind": "structure",
+      "category": "race_home",
+      "name": "Orc Hut",
+      "displayName": "Orc Hut",
+      "era": "warlords",
+      "layer": "structure",
+      "race": null,
+      "role": null,
+      "faction": null,
+      "tags": [
+        "structure",
+        "race_home"
+      ],
+      "icon": {
+        "uuid": "ICON-CBEC-F84F-7CB9",
+        "path": "/icons/pack/entities/orc_hut.png",
+        "cdnUrl": "https://assets.grudge-studio.com/game-assets/icons/pack/entities/orc_hut.png",
+        "cdnUrlAlt": "https://assets.grudge-studio.com/icons/pack/entities/orc_hut.png",
+        "localSource": "C:\\Users\\nugye\\Desktop\\icons\\icons\\entities\\orc hut.PNG"
+      },
+      "mesh": {
+        "r2Key": null,
+        "cdnUrl": null,
+        "contentType": null,
+        "status": "icon_only",
+        "note": "Icon registered; 3D mesh pending bake/upload"
+      },
+      "stats": {
+        "health": 400,
+        "storageSlots": 0,
+        "craftStation": false
+      },
+      "si": {
+        "heightM": 4,
+        "unit": "meter"
+      },
+      "game": {
+        "placeable": true,
+        "trainable": false,
+        "mountable": false,
+        "craftStation": false,
+        "claimFlag": false,
+        "buildLayer": "rts"
+      },
+      "package": "warlords-entities",
+      "status": "icon_only"
+    },
+    {
+      "prefabId": "PFAB-ENT-278DED59",
+      "id": "entities/orc_mage",
+      "kind": "unit",
+      "category": "unit",
+      "name": "Orc Mage",
+      "displayName": "Orc Mage",
+      "era": "warlords",
+      "layer": "living",
+      "race": "orc",
+      "role": "mage",
+      "faction": null,
+      "tags": [
+        "unit",
+        "orc",
+        "mage",
+        "standard"
+      ],
+      "icon": {
+        "uuid": "ICON-ED31-4E2F-DB7B",
+        "path": "/icons/pack/entities/orc_mage.png",
+        "cdnUrl": "https://assets.grudge-studio.com/game-assets/icons/pack/entities/orc_mage.png",
+        "cdnUrlAlt": "https://assets.grudge-studio.com/icons/pack/entities/orc_mage.png",
+        "localSource": "C:\\Users\\nugye\\Desktop\\icons\\icons\\entities\\orc mage.png"
+      },
+      "mesh": {
+        "r2Key": "prod/gltf/characters/orc_characters.glb",
+        "cdnUrl": "https://assets.grudge-studio.com/prod/gltf/characters/orc_characters.glb",
+        "contentType": "model/gltf-binary",
+        "note": "Race kit GLB — equip/class mesh_ids applied at spawn",
+        "status": "kit_linked"
+      },
+      "stats": {
+        "health": 70,
+        "attackDamage": 28,
+        "attackRange": 14,
+        "speed": 4.5,
+        "armor": 4
+      },
+      "si": {
+        "heightM": 1.8,
+        "unit": "meter"
+      },
+      "game": {
+        "placeable": false,
+        "trainable": true,
+        "mountable": false,
+        "craftStation": false,
+        "claimFlag": false,
+        "buildLayer": null
+      },
+      "package": "warlords-entities",
+      "status": "kit_linked"
+    },
+    {
+      "prefabId": "PFAB-ENT-57A2AE32",
+      "id": "entities/Orc_Merc",
+      "kind": "unit",
+      "category": "unit",
+      "name": "Orc Merc",
+      "displayName": "Orc Merc",
+      "era": "warlords",
+      "layer": "living",
+      "race": "orc",
+      "role": "merc",
+      "faction": null,
+      "tags": [
+        "unit",
+        "orc",
+        "merc",
+        "standard"
+      ],
+      "icon": {
+        "uuid": "ICON-ECCC-2B67-4789",
+        "path": "/icons/pack/entities/Orc_Merc.png",
+        "cdnUrl": "https://assets.grudge-studio.com/game-assets/icons/pack/entities/Orc_Merc.png",
+        "cdnUrlAlt": "https://assets.grudge-studio.com/icons/pack/entities/Orc_Merc.png",
+        "localSource": "C:\\Users\\nugye\\Desktop\\icons\\icons\\entities\\Orc Merc.PNG"
+      },
+      "mesh": {
+        "r2Key": "prod/gltf/characters/orc_characters.glb",
+        "cdnUrl": "https://assets.grudge-studio.com/prod/gltf/characters/orc_characters.glb",
+        "contentType": "model/gltf-binary",
+        "note": "Race kit GLB — equip/class mesh_ids applied at spawn",
+        "status": "kit_linked"
+      },
+      "stats": {
+        "health": 140,
+        "attackDamage": 18,
+        "attackRange": 2.5,
+        "speed": 4.5,
+        "armor": 4
+      },
+      "si": {
+        "heightM": 1.8,
+        "unit": "meter"
+      },
+      "game": {
+        "placeable": false,
+        "trainable": true,
+        "mountable": false,
+        "craftStation": false,
+        "claimFlag": false,
+        "buildLayer": null
+      },
+      "package": "warlords-entities",
+      "status": "kit_linked"
+    },
+    {
+      "prefabId": "PFAB-ENT-A7DE688D",
+      "id": "entities/orc_paladin",
+      "kind": "unit",
+      "category": "unit",
+      "name": "Orc Paladin",
+      "displayName": "Orc Paladin",
+      "era": "warlords",
+      "layer": "living",
+      "race": "orc",
+      "role": "paladin",
+      "faction": null,
+      "tags": [
+        "unit",
+        "orc",
+        "paladin",
+        "standard"
+      ],
+      "icon": {
+        "uuid": "ICON-0743-FD99-0AEB",
+        "path": "/icons/pack/entities/orc_paladin.png",
+        "cdnUrl": "https://assets.grudge-studio.com/game-assets/icons/pack/entities/orc_paladin.png",
+        "cdnUrlAlt": "https://assets.grudge-studio.com/icons/pack/entities/orc_paladin.png",
+        "localSource": "C:\\Users\\nugye\\Desktop\\icons\\icons\\entities\\orc paladin.png"
+      },
+      "mesh": {
+        "r2Key": "prod/gltf/characters/orc_characters.glb",
+        "cdnUrl": "https://assets.grudge-studio.com/prod/gltf/characters/orc_characters.glb",
+        "contentType": "model/gltf-binary",
+        "note": "Race kit GLB — equip/class mesh_ids applied at spawn",
+        "status": "kit_linked"
+      },
+      "stats": {
+        "health": 180,
+        "attackDamage": 18,
+        "attackRange": 2.5,
+        "speed": 4.5,
+        "armor": 12
+      },
+      "si": {
+        "heightM": 1.8,
+        "unit": "meter"
+      },
+      "game": {
+        "placeable": false,
+        "trainable": true,
+        "mountable": false,
+        "craftStation": false,
+        "claimFlag": false,
+        "buildLayer": null
+      },
+      "package": "warlords-entities",
+      "status": "kit_linked"
+    },
+    {
+      "prefabId": "PFAB-ENT-AED314F1",
+      "id": "entities/orc_warrior",
+      "kind": "unit",
+      "category": "unit",
+      "name": "Orc Warrior",
+      "displayName": "Orc Warrior",
+      "era": "warlords",
+      "layer": "living",
+      "race": "orc",
+      "role": "warrior",
+      "faction": null,
+      "tags": [
+        "unit",
+        "orc",
+        "warrior",
+        "standard"
+      ],
+      "icon": {
+        "uuid": "ICON-3B3D-420B-E1FF",
+        "path": "/icons/pack/entities/orc_warrior.png",
+        "cdnUrl": "https://assets.grudge-studio.com/game-assets/icons/pack/entities/orc_warrior.png",
+        "cdnUrlAlt": "https://assets.grudge-studio.com/icons/pack/entities/orc_warrior.png",
+        "localSource": "C:\\Users\\nugye\\Desktop\\icons\\icons\\entities\\orc warrior.png"
+      },
+      "mesh": {
+        "r2Key": "prod/gltf/characters/orc_characters.glb",
+        "cdnUrl": "https://assets.grudge-studio.com/prod/gltf/characters/orc_characters.glb",
+        "contentType": "model/gltf-binary",
+        "note": "Race kit GLB — equip/class mesh_ids applied at spawn",
+        "status": "kit_linked"
+      },
+      "stats": {
+        "health": 140,
+        "attackDamage": 18,
+        "attackRange": 2.5,
+        "speed": 4.5,
+        "armor": 4
+      },
+      "si": {
+        "heightM": 1.8,
+        "unit": "meter"
+      },
+      "game": {
+        "placeable": false,
+        "trainable": true,
+        "mountable": false,
+        "craftStation": false,
+        "claimFlag": false,
+        "buildLayer": null
+      },
+      "package": "warlords-entities",
+      "status": "kit_linked"
+    },
+    {
+      "prefabId": "PFAB-ENT-270219E7",
+      "id": "entities/Ram_mount",
+      "kind": "mount",
+      "category": "mount",
+      "name": "Ram Mount",
+      "displayName": "Ram Mount",
+      "era": "warlords",
+      "layer": "vehicle",
+      "race": null,
+      "role": null,
+      "faction": null,
+      "tags": [
+        "mount",
+        "beast"
+      ],
+      "icon": {
+        "uuid": "ICON-3609-E0AA-E8F6",
+        "path": "/icons/pack/entities/Ram_mount.png",
+        "cdnUrl": "https://assets.grudge-studio.com/game-assets/icons/pack/entities/Ram_mount.png",
+        "cdnUrlAlt": "https://assets.grudge-studio.com/icons/pack/entities/Ram_mount.png",
+        "localSource": "C:\\Users\\nugye\\Desktop\\icons\\icons\\entities\\Ram mount.PNG"
+      },
+      "mesh": {
+        "r2Key": null,
+        "cdnUrl": null,
+        "contentType": null,
+        "status": "icon_only",
+        "note": "Icon registered; 3D mesh pending bake/upload"
+      },
+      "stats": {
+        "health": 160,
+        "speed": 8,
+        "armor": 2,
+        "seats": 1
+      },
+      "si": {
+        "heightM": 1.2,
+        "unit": "meter"
+      },
+      "game": {
+        "placeable": false,
+        "trainable": false,
+        "mountable": true,
+        "craftStation": false,
+        "claimFlag": false,
+        "buildLayer": null
+      },
+      "package": "warlords-entities",
+      "status": "icon_only"
+    },
+    {
+      "prefabId": "PFAB-ENT-36B81D96",
+      "id": "entities/Recycler_Icon",
+      "kind": "structure",
+      "category": "structure",
+      "name": "Recycler",
+      "displayName": "Recycler",
+      "era": "warlords",
+      "layer": "structure",
+      "race": null,
+      "role": null,
+      "faction": null,
+      "tags": [
+        "structure",
+        "structure"
+      ],
+      "icon": {
+        "uuid": "ICON-72B6-E574-58C9",
+        "path": "/icons/pack/entities/Recycler_Icon.png",
+        "cdnUrl": "https://assets.grudge-studio.com/game-assets/icons/pack/entities/Recycler_Icon.png",
+        "cdnUrlAlt": "https://assets.grudge-studio.com/icons/pack/entities/Recycler_Icon.png",
+        "localSource": "C:\\Users\\nugye\\Desktop\\icons\\icons\\entities\\Recycler Icon.png"
+      },
+      "mesh": {
+        "r2Key": null,
+        "cdnUrl": null,
+        "contentType": null,
+        "status": "icon_only",
+        "note": "Icon registered; 3D mesh pending bake/upload"
+      },
+      "stats": {
+        "health": 400,
+        "storageSlots": 0,
+        "craftStation": false
+      },
+      "si": {
+        "heightM": 4,
+        "unit": "meter"
+      },
+      "game": {
+        "placeable": true,
+        "trainable": false,
+        "mountable": false,
+        "craftStation": false,
+        "claimFlag": false,
+        "buildLayer": "rts"
+      },
+      "package": "warlords-entities",
+      "status": "icon_only"
+    },
+    {
+      "prefabId": "PFAB-ENT-BE2C4577",
+      "id": "entities/Refinery_Icon",
+      "kind": "structure",
+      "category": "bench",
+      "name": "Refinery",
+      "displayName": "Refinery",
+      "era": "warlords",
+      "layer": "structure",
+      "race": null,
+      "role": null,
+      "faction": null,
+      "tags": [
+        "structure",
+        "bench"
+      ],
+      "icon": {
+        "uuid": "ICON-8752-941C-A3F9",
+        "path": "/icons/pack/entities/Refinery_Icon.png",
+        "cdnUrl": "https://assets.grudge-studio.com/game-assets/icons/pack/entities/Refinery_Icon.png",
+        "cdnUrlAlt": "https://assets.grudge-studio.com/icons/pack/entities/Refinery_Icon.png",
+        "localSource": "C:\\Users\\nugye\\Desktop\\icons\\icons\\entities\\Refinery Icon.png"
+      },
+      "mesh": {
+        "r2Key": "models/buildings/survival/free_survival_asset_kit.glb",
+        "cdnUrl": "https://assets.grudge-studio.com/models/buildings/survival/free_survival_asset_kit.glb",
+        "contentType": "model/gltf-binary",
+        "note": "Survival kit multipack — bind nodeName in BuildAssetManifest",
+        "status": "pack_linked"
+      },
+      "stats": {
+        "health": 200,
+        "storageSlots": 0,
+        "craftStation": true
+      },
+      "si": {
+        "heightM": 4,
+        "unit": "meter"
+      },
+      "game": {
+        "placeable": true,
+        "trainable": false,
+        "mountable": false,
+        "craftStation": true,
+        "claimFlag": false,
+        "buildLayer": "camp"
+      },
+      "package": "warlords-entities",
+      "status": "pack_linked"
+    },
+    {
+      "prefabId": "PFAB-ENT-AEC0156F",
+      "id": "entities/Sawmill_Icon",
+      "kind": "structure",
+      "category": "bench",
+      "name": "Sawmill",
+      "displayName": "Sawmill",
+      "era": "warlords",
+      "layer": "structure",
+      "race": null,
+      "role": null,
+      "faction": null,
+      "tags": [
+        "structure",
+        "bench"
+      ],
+      "icon": {
+        "uuid": "ICON-8E21-2A0C-275B",
+        "path": "/icons/pack/entities/Sawmill_Icon.png",
+        "cdnUrl": "https://assets.grudge-studio.com/game-assets/icons/pack/entities/Sawmill_Icon.png",
+        "cdnUrlAlt": "https://assets.grudge-studio.com/icons/pack/entities/Sawmill_Icon.png",
+        "localSource": "C:\\Users\\nugye\\Desktop\\icons\\icons\\entities\\Sawmill Icon.png"
+      },
+      "mesh": {
+        "r2Key": "models/buildings/survival/free_survival_asset_kit.glb",
+        "cdnUrl": "https://assets.grudge-studio.com/models/buildings/survival/free_survival_asset_kit.glb",
+        "contentType": "model/gltf-binary",
+        "note": "Survival kit multipack — bind nodeName in BuildAssetManifest",
+        "status": "pack_linked"
+      },
+      "stats": {
+        "health": 200,
+        "storageSlots": 0,
+        "craftStation": true
+      },
+      "si": {
+        "heightM": 4,
+        "unit": "meter"
+      },
+      "game": {
+        "placeable": true,
+        "trainable": false,
+        "mountable": false,
+        "craftStation": true,
+        "claimFlag": false,
+        "buildLayer": "camp"
+      },
+      "package": "warlords-entities",
+      "status": "pack_linked"
+    },
+    {
+      "prefabId": "PFAB-ENT-37866313",
+      "id": "entities/Scorpid_Launcher_Icon",
+      "kind": "mount",
+      "category": "mount",
+      "name": "Scorpid Launcher",
+      "displayName": "Scorpid Launcher",
+      "era": "warlords",
+      "layer": "vehicle",
+      "race": null,
+      "role": null,
+      "faction": null,
+      "tags": [
+        "mount",
+        "mech"
+      ],
+      "icon": {
+        "uuid": "ICON-FDE2-3462-B59B",
+        "path": "/icons/pack/entities/Scorpid_Launcher_Icon.png",
+        "cdnUrl": "https://assets.grudge-studio.com/game-assets/icons/pack/entities/Scorpid_Launcher_Icon.png",
+        "cdnUrlAlt": "https://assets.grudge-studio.com/icons/pack/entities/Scorpid_Launcher_Icon.png",
+        "localSource": "C:\\Users\\nugye\\Desktop\\icons\\icons\\entities\\Scorpid Launcher Icon.png"
+      },
+      "mesh": {
+        "r2Key": null,
+        "cdnUrl": null,
+        "contentType": null,
+        "status": "icon_only",
+        "note": "Icon registered; 3D mesh pending bake/upload"
+      },
+      "stats": {
+        "health": 160,
+        "speed": 8,
+        "armor": 2,
+        "seats": 1
+      },
+      "si": {
+        "heightM": 1.2,
+        "unit": "meter"
+      },
+      "game": {
+        "placeable": false,
+        "trainable": false,
+        "mountable": true,
+        "craftStation": false,
+        "claimFlag": false,
+        "buildLayer": null
+      },
+      "package": "warlords-entities",
+      "status": "icon_only"
+    },
+    {
+      "prefabId": "PFAB-ENT-3B7C66D9",
+      "id": "entities/Siege_Tower",
+      "kind": "siege",
+      "category": "siege",
+      "name": "Siege Tower",
+      "displayName": "Siege Tower",
+      "era": "warlords",
+      "layer": "vehicle",
+      "race": null,
+      "role": null,
+      "faction": null,
+      "tags": [
+        "siege",
+        "standard"
+      ],
+      "icon": {
+        "uuid": "ICON-16ED-8862-990C",
+        "path": "/icons/pack/entities/Siege_Tower.png",
+        "cdnUrl": "https://assets.grudge-studio.com/game-assets/icons/pack/entities/Siege_Tower.png",
+        "cdnUrlAlt": "https://assets.grudge-studio.com/icons/pack/entities/Siege_Tower.png",
+        "localSource": "C:\\Users\\nugye\\Desktop\\icons\\icons\\entities\\Siege Tower.PNG"
+      },
+      "mesh": {
+        "r2Key": "models/buildings/towers/3_medieval_towers.glb",
+        "cdnUrl": "https://assets.grudge-studio.com/models/buildings/towers/3_medieval_towers.glb",
+        "contentType": "model/gltf-binary",
+        "status": "pack_linked"
+      },
+      "stats": {
+        "health": 400,
+        "attackDamage": 55,
+        "attackRange": 28,
+        "speed": 1.2,
+        "armor": 20
+      },
+      "si": {
+        "heightM": 3.5,
+        "unit": "meter"
+      },
+      "game": {
+        "placeable": true,
+        "trainable": false,
+        "mountable": false,
+        "craftStation": false,
+        "claimFlag": false,
+        "buildLayer": null
+      },
+      "package": "warlords-entities",
+      "status": "pack_linked"
+    },
+    {
+      "prefabId": "PFAB-ENT-C77FDA80",
+      "id": "entities/Skeeter_Icon",
+      "kind": "mount",
+      "category": "mount",
+      "name": "Skeeter",
+      "displayName": "Skeeter",
+      "era": "warlords",
+      "layer": "vehicle",
+      "race": null,
+      "role": null,
+      "faction": null,
+      "tags": [
+        "mount",
+        "mech"
+      ],
+      "icon": {
+        "uuid": "ICON-82C6-C70A-A82B",
+        "path": "/icons/pack/entities/Skeeter_Icon.png",
+        "cdnUrl": "https://assets.grudge-studio.com/game-assets/icons/pack/entities/Skeeter_Icon.png",
+        "cdnUrlAlt": "https://assets.grudge-studio.com/icons/pack/entities/Skeeter_Icon.png",
+        "localSource": "C:\\Users\\nugye\\Desktop\\icons\\icons\\entities\\Skeeter Icon.png"
+      },
+      "mesh": {
+        "r2Key": null,
+        "cdnUrl": null,
+        "contentType": null,
+        "status": "icon_only",
+        "note": "Icon registered; 3D mesh pending bake/upload"
+      },
+      "stats": {
+        "health": 160,
+        "speed": 8,
+        "armor": 2,
+        "seats": 1
+      },
+      "si": {
+        "heightM": 1.2,
+        "unit": "meter"
+      },
+      "game": {
+        "placeable": false,
+        "trainable": false,
+        "mountable": true,
+        "craftStation": false,
+        "claimFlag": false,
+        "buildLayer": null
+      },
+      "package": "warlords-entities",
+      "status": "icon_only"
+    },
+    {
+      "prefabId": "PFAB-ENT-118DA552",
+      "id": "entities/Small_Furnace_Icon",
+      "kind": "structure",
+      "category": "bench",
+      "name": "Small Furnace",
+      "displayName": "Small Furnace",
+      "era": "warlords",
+      "layer": "structure",
+      "race": null,
+      "role": null,
+      "faction": null,
+      "tags": [
+        "structure",
+        "bench"
+      ],
+      "icon": {
+        "uuid": "ICON-CAF2-69D9-54E9",
+        "path": "/icons/pack/entities/Small_Furnace_Icon.png",
+        "cdnUrl": "https://assets.grudge-studio.com/game-assets/icons/pack/entities/Small_Furnace_Icon.png",
+        "cdnUrlAlt": "https://assets.grudge-studio.com/icons/pack/entities/Small_Furnace_Icon.png",
+        "localSource": "C:\\Users\\nugye\\Desktop\\icons\\icons\\entities\\Small Furnace Icon.png"
+      },
+      "mesh": {
+        "r2Key": "models/buildings/survival/free_survival_asset_kit.glb",
+        "cdnUrl": "https://assets.grudge-studio.com/models/buildings/survival/free_survival_asset_kit.glb",
+        "contentType": "model/gltf-binary",
+        "note": "Survival kit multipack — bind nodeName in BuildAssetManifest",
+        "status": "pack_linked"
+      },
+      "stats": {
+        "health": 200,
+        "storageSlots": 0,
+        "craftStation": true
+      },
+      "si": {
+        "heightM": 4,
+        "unit": "meter"
+      },
+      "game": {
+        "placeable": true,
+        "trainable": false,
+        "mountable": false,
+        "craftStation": true,
+        "claimFlag": false,
+        "buildLayer": "camp"
+      },
+      "package": "warlords-entities",
+      "status": "pack_linked"
+    },
+    {
+      "prefabId": "PFAB-ENT-5C294A15",
+      "id": "entities/Small_Wardrobe_Icon",
+      "kind": "structure",
+      "category": "furniture",
+      "name": "Small Wardrobe",
+      "displayName": "Small Wardrobe",
+      "era": "warlords",
+      "layer": "structure",
+      "race": null,
+      "role": null,
+      "faction": null,
+      "tags": [
+        "structure",
+        "furniture"
+      ],
+      "icon": {
+        "uuid": "ICON-7C35-C5AD-50EE",
+        "path": "/icons/pack/entities/Small_Wardrobe_Icon.png",
+        "cdnUrl": "https://assets.grudge-studio.com/game-assets/icons/pack/entities/Small_Wardrobe_Icon.png",
+        "cdnUrlAlt": "https://assets.grudge-studio.com/icons/pack/entities/Small_Wardrobe_Icon.png",
+        "localSource": "C:\\Users\\nugye\\Desktop\\icons\\icons\\entities\\Small Wardrobe Icon.png"
+      },
+      "mesh": {
+        "r2Key": null,
+        "cdnUrl": null,
+        "contentType": null,
+        "status": "icon_only",
+        "note": "Icon registered; 3D mesh pending bake/upload"
+      },
+      "stats": {
+        "health": 400,
+        "storageSlots": 24,
+        "craftStation": false
+      },
+      "si": {
+        "heightM": 4,
+        "unit": "meter"
+      },
+      "game": {
+        "placeable": true,
+        "trainable": false,
+        "mountable": false,
+        "craftStation": false,
+        "claimFlag": false,
+        "buildLayer": "rts"
+      },
+      "package": "warlords-entities",
+      "status": "icon_only"
+    },
+    {
+      "prefabId": "PFAB-ENT-E3EEE51C",
+      "id": "entities/Stable_Icon",
+      "kind": "structure",
+      "category": "camp_building",
+      "name": "Stable",
+      "displayName": "Stable",
+      "era": "warlords",
+      "layer": "structure",
+      "race": null,
+      "role": null,
+      "faction": null,
+      "tags": [
+        "structure",
+        "camp_building"
+      ],
+      "icon": {
+        "uuid": "ICON-6E76-BDD2-51AF",
+        "path": "/icons/pack/entities/Stable_Icon.png",
+        "cdnUrl": "https://assets.grudge-studio.com/game-assets/icons/pack/entities/Stable_Icon.png",
+        "cdnUrlAlt": "https://assets.grudge-studio.com/icons/pack/entities/Stable_Icon.png",
+        "localSource": "C:\\Users\\nugye\\Desktop\\icons\\icons\\entities\\Stable Icon.png"
+      },
+      "mesh": {
+        "r2Key": null,
+        "cdnUrl": null,
+        "contentType": null,
+        "status": "icon_only",
+        "note": "Icon registered; 3D mesh pending bake/upload"
+      },
+      "stats": {
+        "health": 400,
+        "storageSlots": 24,
+        "craftStation": false
+      },
+      "si": {
+        "heightM": 4,
+        "unit": "meter"
+      },
+      "game": {
+        "placeable": true,
+        "trainable": false,
+        "mountable": false,
+        "craftStation": false,
+        "claimFlag": false,
+        "buildLayer": "rts"
+      },
+      "package": "warlords-entities",
+      "status": "icon_only"
+    },
+    {
+      "prefabId": "PFAB-ENT-93B19DCF",
+      "id": "entities/Stone_Gate_Icon",
+      "kind": "structure",
+      "category": "fortification",
+      "name": "Stone Gate",
+      "displayName": "Stone Gate",
+      "era": "warlords",
+      "layer": "structure",
+      "race": null,
+      "role": null,
+      "faction": null,
+      "tags": [
+        "structure",
+        "fortification"
+      ],
+      "icon": {
+        "uuid": "ICON-06C2-7206-B547",
+        "path": "/icons/pack/entities/Stone_Gate_Icon.png",
+        "cdnUrl": "https://assets.grudge-studio.com/game-assets/icons/pack/entities/Stone_Gate_Icon.png",
+        "cdnUrlAlt": "https://assets.grudge-studio.com/icons/pack/entities/Stone_Gate_Icon.png",
+        "localSource": "C:\\Users\\nugye\\Desktop\\icons\\icons\\entities\\Stone Gate Icon.png"
+      },
+      "mesh": {
+        "r2Key": "models/buildings/towers/3_medieval_towers.glb",
+        "cdnUrl": "https://assets.grudge-studio.com/models/buildings/towers/3_medieval_towers.glb",
+        "contentType": "model/gltf-binary",
+        "status": "pack_linked"
+      },
+      "stats": {
+        "health": 800,
+        "storageSlots": 0,
+        "craftStation": false
+      },
+      "si": {
+        "heightM": 4,
+        "unit": "meter"
+      },
+      "game": {
+        "placeable": true,
+        "trainable": false,
+        "mountable": false,
+        "craftStation": false,
+        "claimFlag": false,
+        "buildLayer": "modular"
+      },
+      "package": "warlords-entities",
+      "status": "pack_linked"
+    },
+    {
+      "prefabId": "PFAB-ENT-B0D2DD77",
+      "id": "entities/Stone_Stairs_Icon",
+      "kind": "structure",
+      "category": "fortification",
+      "name": "Stone Stairs",
+      "displayName": "Stone Stairs",
+      "era": "warlords",
+      "layer": "structure",
+      "race": null,
+      "role": null,
+      "faction": null,
+      "tags": [
+        "structure",
+        "fortification"
+      ],
+      "icon": {
+        "uuid": "ICON-9F68-6D09-9157",
+        "path": "/icons/pack/entities/Stone_Stairs_Icon.png",
+        "cdnUrl": "https://assets.grudge-studio.com/game-assets/icons/pack/entities/Stone_Stairs_Icon.png",
+        "cdnUrlAlt": "https://assets.grudge-studio.com/icons/pack/entities/Stone_Stairs_Icon.png",
+        "localSource": "C:\\Users\\nugye\\Desktop\\icons\\icons\\entities\\Stone Stairs Icon.png"
+      },
+      "mesh": {
+        "r2Key": "models/buildings/towers/3_medieval_towers.glb",
+        "cdnUrl": "https://assets.grudge-studio.com/models/buildings/towers/3_medieval_towers.glb",
+        "contentType": "model/gltf-binary",
+        "status": "pack_linked"
+      },
+      "stats": {
+        "health": 800,
+        "storageSlots": 0,
+        "craftStation": false
+      },
+      "si": {
+        "heightM": 4,
+        "unit": "meter"
+      },
+      "game": {
+        "placeable": true,
+        "trainable": false,
+        "mountable": false,
+        "craftStation": false,
+        "claimFlag": false,
+        "buildLayer": "modular"
+      },
+      "package": "warlords-entities",
+      "status": "pack_linked"
+    },
+    {
+      "prefabId": "PFAB-ENT-D4B0B95D",
+      "id": "entities/Stone_Wall_Icon",
+      "kind": "structure",
+      "category": "fortification",
+      "name": "Stone Wall",
+      "displayName": "Stone Wall",
+      "era": "warlords",
+      "layer": "structure",
+      "race": null,
+      "role": null,
+      "faction": null,
+      "tags": [
+        "structure",
+        "fortification"
+      ],
+      "icon": {
+        "uuid": "ICON-B876-0B6F-2F62",
+        "path": "/icons/pack/entities/Stone_Wall_Icon.png",
+        "cdnUrl": "https://assets.grudge-studio.com/game-assets/icons/pack/entities/Stone_Wall_Icon.png",
+        "cdnUrlAlt": "https://assets.grudge-studio.com/icons/pack/entities/Stone_Wall_Icon.png",
+        "localSource": "C:\\Users\\nugye\\Desktop\\icons\\icons\\entities\\Stone Wall Icon.png"
+      },
+      "mesh": {
+        "r2Key": "models/buildings/towers/3_medieval_towers.glb",
+        "cdnUrl": "https://assets.grudge-studio.com/models/buildings/towers/3_medieval_towers.glb",
+        "contentType": "model/gltf-binary",
+        "status": "pack_linked"
+      },
+      "stats": {
+        "health": 800,
+        "storageSlots": 0,
+        "craftStation": false
+      },
+      "si": {
+        "heightM": 4,
+        "unit": "meter"
+      },
+      "game": {
+        "placeable": true,
+        "trainable": false,
+        "mountable": false,
+        "craftStation": false,
+        "claimFlag": false,
+        "buildLayer": "modular"
+      },
+      "package": "warlords-entities",
+      "status": "pack_linked"
+    },
+    {
+      "prefabId": "PFAB-ENT-EEBA1C71",
+      "id": "entities/Storage",
+      "kind": "structure",
+      "category": "camp_building",
+      "name": "Storage",
+      "displayName": "Storage",
+      "era": "warlords",
+      "layer": "structure",
+      "race": null,
+      "role": null,
+      "faction": null,
+      "tags": [
+        "structure",
+        "camp_building"
+      ],
+      "icon": {
+        "uuid": "ICON-D1AC-7AAC-5E39",
+        "path": "/icons/pack/entities/Storage.png",
+        "cdnUrl": "https://assets.grudge-studio.com/game-assets/icons/pack/entities/Storage.png",
+        "cdnUrlAlt": "https://assets.grudge-studio.com/icons/pack/entities/Storage.png",
+        "localSource": "C:\\Users\\nugye\\Desktop\\icons\\icons\\entities\\Storage.PNG"
+      },
+      "mesh": {
+        "r2Key": null,
+        "cdnUrl": null,
+        "contentType": null,
+        "status": "icon_only",
+        "note": "Icon registered; 3D mesh pending bake/upload"
+      },
+      "stats": {
+        "health": 400,
+        "storageSlots": 24,
+        "craftStation": false
+      },
+      "si": {
+        "heightM": 4,
+        "unit": "meter"
+      },
+      "game": {
+        "placeable": true,
+        "trainable": false,
+        "mountable": false,
+        "craftStation": false,
+        "claimFlag": false,
+        "buildLayer": "rts"
+      },
+      "package": "warlords-entities",
+      "status": "icon_only"
+    },
+    {
+      "prefabId": "PFAB-ENT-162E684B",
+      "id": "entities/Study",
+      "kind": "structure",
+      "category": "camp_building",
+      "name": "Study",
+      "displayName": "Study",
+      "era": "warlords",
+      "layer": "structure",
+      "race": null,
+      "role": null,
+      "faction": null,
+      "tags": [
+        "structure",
+        "camp_building"
+      ],
+      "icon": {
+        "uuid": "ICON-AA85-323C-BF73",
+        "path": "/icons/pack/entities/Study.png",
+        "cdnUrl": "https://assets.grudge-studio.com/game-assets/icons/pack/entities/Study.png",
+        "cdnUrlAlt": "https://assets.grudge-studio.com/icons/pack/entities/Study.png",
+        "localSource": "C:\\Users\\nugye\\Desktop\\icons\\icons\\entities\\Study.PNG"
+      },
+      "mesh": {
+        "r2Key": null,
+        "cdnUrl": null,
+        "contentType": null,
+        "status": "icon_only",
+        "note": "Icon registered; 3D mesh pending bake/upload"
+      },
+      "stats": {
+        "health": 400,
+        "storageSlots": 24,
+        "craftStation": false
+      },
+      "si": {
+        "heightM": 4,
+        "unit": "meter"
+      },
+      "game": {
+        "placeable": true,
+        "trainable": false,
+        "mountable": false,
+        "craftStation": false,
+        "claimFlag": false,
+        "buildLayer": "rts"
+      },
+      "package": "warlords-entities",
+      "status": "icon_only"
+    },
+    {
+      "prefabId": "PFAB-ENT-F62DF7C2",
+      "id": "entities/Table_Icon",
+      "kind": "structure",
+      "category": "furniture",
+      "name": "Table",
+      "displayName": "Table",
+      "era": "warlords",
+      "layer": "structure",
+      "race": null,
+      "role": null,
+      "faction": null,
+      "tags": [
+        "structure",
+        "furniture"
+      ],
+      "icon": {
+        "uuid": "ICON-2E15-96A1-8D6E",
+        "path": "/icons/pack/entities/Table_Icon.png",
+        "cdnUrl": "https://assets.grudge-studio.com/game-assets/icons/pack/entities/Table_Icon.png",
+        "cdnUrlAlt": "https://assets.grudge-studio.com/icons/pack/entities/Table_Icon.png",
+        "localSource": "C:\\Users\\nugye\\Desktop\\icons\\icons\\entities\\Table Icon.png"
+      },
+      "mesh": {
+        "r2Key": null,
+        "cdnUrl": null,
+        "contentType": null,
+        "status": "icon_only",
+        "note": "Icon registered; 3D mesh pending bake/upload"
+      },
+      "stats": {
+        "health": 400,
+        "storageSlots": 24,
+        "craftStation": false
+      },
+      "si": {
+        "heightM": 4,
+        "unit": "meter"
+      },
+      "game": {
+        "placeable": true,
+        "trainable": false,
+        "mountable": false,
+        "craftStation": false,
+        "claimFlag": false,
+        "buildLayer": "rts"
+      },
+      "package": "warlords-entities",
+      "status": "icon_only"
+    },
+    {
+      "prefabId": "PFAB-ENT-1714A660",
+      "id": "entities/Tannery",
+      "kind": "structure",
+      "category": "bench",
+      "name": "Tannery",
+      "displayName": "Tannery",
+      "era": "warlords",
+      "layer": "structure",
+      "race": null,
+      "role": null,
+      "faction": null,
+      "tags": [
+        "structure",
+        "bench"
+      ],
+      "icon": {
+        "uuid": "ICON-6A66-435B-80BD",
+        "path": "/icons/pack/entities/Tannery.png",
+        "cdnUrl": "https://assets.grudge-studio.com/game-assets/icons/pack/entities/Tannery.png",
+        "cdnUrlAlt": "https://assets.grudge-studio.com/icons/pack/entities/Tannery.png",
+        "localSource": "C:\\Users\\nugye\\Desktop\\icons\\icons\\entities\\Tannery.PNG"
+      },
+      "mesh": {
+        "r2Key": "models/buildings/survival/free_survival_asset_kit.glb",
+        "cdnUrl": "https://assets.grudge-studio.com/models/buildings/survival/free_survival_asset_kit.glb",
+        "contentType": "model/gltf-binary",
+        "note": "Survival kit multipack — bind nodeName in BuildAssetManifest",
+        "status": "pack_linked"
+      },
+      "stats": {
+        "health": 200,
+        "storageSlots": 0,
+        "craftStation": true
+      },
+      "si": {
+        "heightM": 4,
+        "unit": "meter"
+      },
+      "game": {
+        "placeable": true,
+        "trainable": false,
+        "mountable": false,
+        "craftStation": true,
+        "claimFlag": false,
+        "buildLayer": "camp"
+      },
+      "package": "warlords-entities",
+      "status": "pack_linked"
+    },
+    {
+      "prefabId": "PFAB-ENT-47C109A8",
+      "id": "entities/Tent_Cruisade_Icon",
+      "kind": "structure",
+      "category": "tent",
+      "name": "Tent Cruisade",
+      "displayName": "Tent Cruisade",
+      "era": "warlords",
+      "layer": "structure",
+      "race": null,
+      "role": null,
+      "faction": "crusade",
+      "tags": [
+        "structure",
+        "tent",
+        "crusade"
+      ],
+      "icon": {
+        "uuid": "ICON-4D68-86A4-7E5B",
+        "path": "/icons/pack/entities/Tent_Cruisade_Icon.png",
+        "cdnUrl": "https://assets.grudge-studio.com/game-assets/icons/pack/entities/Tent_Cruisade_Icon.png",
+        "cdnUrlAlt": "https://assets.grudge-studio.com/icons/pack/entities/Tent_Cruisade_Icon.png",
+        "localSource": "C:\\Users\\nugye\\Desktop\\icons\\icons\\entities\\Tent Cruisade Icon.png"
+      },
+      "mesh": {
+        "r2Key": "models/buildings/survival/free_survival_asset_kit.glb",
+        "cdnUrl": "https://assets.grudge-studio.com/models/buildings/survival/free_survival_asset_kit.glb",
+        "contentType": "model/gltf-binary",
+        "note": "Survival kit multipack — bind nodeName in BuildAssetManifest",
+        "status": "pack_linked"
+      },
+      "stats": {
+        "health": 120,
+        "storageSlots": 0,
+        "craftStation": false
+      },
+      "si": {
+        "heightM": 4,
+        "unit": "meter"
+      },
+      "game": {
+        "placeable": true,
+        "trainable": false,
+        "mountable": false,
+        "craftStation": false,
+        "claimFlag": false,
+        "buildLayer": "camp"
+      },
+      "package": "warlords-entities",
+      "status": "pack_linked"
+    },
+    {
+      "prefabId": "PFAB-ENT-51BD2C63",
+      "id": "entities/Tent_Cruisade_Small",
+      "kind": "structure",
+      "category": "tent",
+      "name": "Tent Cruisade Small",
+      "displayName": "Tent Cruisade Small",
+      "era": "warlords",
+      "layer": "structure",
+      "race": null,
+      "role": null,
+      "faction": "crusade",
+      "tags": [
+        "structure",
+        "tent",
+        "crusade"
+      ],
+      "icon": {
+        "uuid": "ICON-0CCD-66EF-9005",
+        "path": "/icons/pack/entities/Tent_Cruisade_Small.png",
+        "cdnUrl": "https://assets.grudge-studio.com/game-assets/icons/pack/entities/Tent_Cruisade_Small.png",
+        "cdnUrlAlt": "https://assets.grudge-studio.com/icons/pack/entities/Tent_Cruisade_Small.png",
+        "localSource": "C:\\Users\\nugye\\Desktop\\icons\\icons\\entities\\Tent Cruisade Small.png"
+      },
+      "mesh": {
+        "r2Key": "models/buildings/survival/free_survival_asset_kit.glb",
+        "cdnUrl": "https://assets.grudge-studio.com/models/buildings/survival/free_survival_asset_kit.glb",
+        "contentType": "model/gltf-binary",
+        "note": "Survival kit multipack — bind nodeName in BuildAssetManifest",
+        "status": "pack_linked"
+      },
+      "stats": {
+        "health": 120,
+        "storageSlots": 0,
+        "craftStation": false
+      },
+      "si": {
+        "heightM": 4,
+        "unit": "meter"
+      },
+      "game": {
+        "placeable": true,
+        "trainable": false,
+        "mountable": false,
+        "craftStation": false,
+        "claimFlag": false,
+        "buildLayer": "camp"
+      },
+      "package": "warlords-entities",
+      "status": "pack_linked"
+    },
+    {
+      "prefabId": "PFAB-ENT-C58AD090",
+      "id": "entities/Tent_Fabled_Icon",
+      "kind": "structure",
+      "category": "tent",
+      "name": "Tent Fabled",
+      "displayName": "Tent Fabled",
+      "era": "warlords",
+      "layer": "structure",
+      "race": null,
+      "role": null,
+      "faction": "fabled",
+      "tags": [
+        "structure",
+        "tent",
+        "fabled"
+      ],
+      "icon": {
+        "uuid": "ICON-D0E2-993D-1B22",
+        "path": "/icons/pack/entities/Tent_Fabled_Icon.png",
+        "cdnUrl": "https://assets.grudge-studio.com/game-assets/icons/pack/entities/Tent_Fabled_Icon.png",
+        "cdnUrlAlt": "https://assets.grudge-studio.com/icons/pack/entities/Tent_Fabled_Icon.png",
+        "localSource": "C:\\Users\\nugye\\Desktop\\icons\\icons\\entities\\Tent Fabled Icon.png"
+      },
+      "mesh": {
+        "r2Key": "models/buildings/survival/free_survival_asset_kit.glb",
+        "cdnUrl": "https://assets.grudge-studio.com/models/buildings/survival/free_survival_asset_kit.glb",
+        "contentType": "model/gltf-binary",
+        "note": "Survival kit multipack — bind nodeName in BuildAssetManifest",
+        "status": "pack_linked"
+      },
+      "stats": {
+        "health": 120,
+        "storageSlots": 0,
+        "craftStation": false
+      },
+      "si": {
+        "heightM": 4,
+        "unit": "meter"
+      },
+      "game": {
+        "placeable": true,
+        "trainable": false,
+        "mountable": false,
+        "craftStation": false,
+        "claimFlag": false,
+        "buildLayer": "camp"
+      },
+      "package": "warlords-entities",
+      "status": "pack_linked"
+    },
+    {
+      "prefabId": "PFAB-ENT-B22B0369",
+      "id": "entities/Tent_Fabled_Small",
+      "kind": "structure",
+      "category": "tent",
+      "name": "Tent Fabled Small",
+      "displayName": "Tent Fabled Small",
+      "era": "warlords",
+      "layer": "structure",
+      "race": null,
+      "role": null,
+      "faction": "fabled",
+      "tags": [
+        "structure",
+        "tent",
+        "fabled"
+      ],
+      "icon": {
+        "uuid": "ICON-191E-1F8B-FAF0",
+        "path": "/icons/pack/entities/Tent_Fabled_Small.png",
+        "cdnUrl": "https://assets.grudge-studio.com/game-assets/icons/pack/entities/Tent_Fabled_Small.png",
+        "cdnUrlAlt": "https://assets.grudge-studio.com/icons/pack/entities/Tent_Fabled_Small.png",
+        "localSource": "C:\\Users\\nugye\\Desktop\\icons\\icons\\entities\\Tent Fabled Small.png"
+      },
+      "mesh": {
+        "r2Key": "models/buildings/survival/free_survival_asset_kit.glb",
+        "cdnUrl": "https://assets.grudge-studio.com/models/buildings/survival/free_survival_asset_kit.glb",
+        "contentType": "model/gltf-binary",
+        "note": "Survival kit multipack — bind nodeName in BuildAssetManifest",
+        "status": "pack_linked"
+      },
+      "stats": {
+        "health": 120,
+        "storageSlots": 0,
+        "craftStation": false
+      },
+      "si": {
+        "heightM": 4,
+        "unit": "meter"
+      },
+      "game": {
+        "placeable": true,
+        "trainable": false,
+        "mountable": false,
+        "craftStation": false,
+        "claimFlag": false,
+        "buildLayer": "camp"
+      },
+      "package": "warlords-entities",
+      "status": "pack_linked"
+    },
+    {
+      "prefabId": "PFAB-ENT-ABE0ACD5",
+      "id": "entities/Tent_Legion_Icon",
+      "kind": "structure",
+      "category": "tent",
+      "name": "Tent Legion",
+      "displayName": "Tent Legion",
+      "era": "warlords",
+      "layer": "structure",
+      "race": null,
+      "role": null,
+      "faction": "legion",
+      "tags": [
+        "structure",
+        "tent",
+        "legion"
+      ],
+      "icon": {
+        "uuid": "ICON-C478-0EF7-D040",
+        "path": "/icons/pack/entities/Tent_Legion_Icon.png",
+        "cdnUrl": "https://assets.grudge-studio.com/game-assets/icons/pack/entities/Tent_Legion_Icon.png",
+        "cdnUrlAlt": "https://assets.grudge-studio.com/icons/pack/entities/Tent_Legion_Icon.png",
+        "localSource": "C:\\Users\\nugye\\Desktop\\icons\\icons\\entities\\Tent Legion Icon.png"
+      },
+      "mesh": {
+        "r2Key": "models/buildings/survival/free_survival_asset_kit.glb",
+        "cdnUrl": "https://assets.grudge-studio.com/models/buildings/survival/free_survival_asset_kit.glb",
+        "contentType": "model/gltf-binary",
+        "note": "Survival kit multipack — bind nodeName in BuildAssetManifest",
+        "status": "pack_linked"
+      },
+      "stats": {
+        "health": 120,
+        "storageSlots": 0,
+        "craftStation": false
+      },
+      "si": {
+        "heightM": 4,
+        "unit": "meter"
+      },
+      "game": {
+        "placeable": true,
+        "trainable": false,
+        "mountable": false,
+        "craftStation": false,
+        "claimFlag": false,
+        "buildLayer": "camp"
+      },
+      "package": "warlords-entities",
+      "status": "pack_linked"
+    },
+    {
+      "prefabId": "PFAB-ENT-C45F52B5",
+      "id": "entities/Tent_Legion_Small",
+      "kind": "structure",
+      "category": "tent",
+      "name": "Tent Legion Small",
+      "displayName": "Tent Legion Small",
+      "era": "warlords",
+      "layer": "structure",
+      "race": null,
+      "role": null,
+      "faction": "legion",
+      "tags": [
+        "structure",
+        "tent",
+        "legion"
+      ],
+      "icon": {
+        "uuid": "ICON-4E61-70E8-C5EC",
+        "path": "/icons/pack/entities/Tent_Legion_Small.png",
+        "cdnUrl": "https://assets.grudge-studio.com/game-assets/icons/pack/entities/Tent_Legion_Small.png",
+        "cdnUrlAlt": "https://assets.grudge-studio.com/icons/pack/entities/Tent_Legion_Small.png",
+        "localSource": "C:\\Users\\nugye\\Desktop\\icons\\icons\\entities\\Tent Legion Small.png"
+      },
+      "mesh": {
+        "r2Key": "models/buildings/survival/free_survival_asset_kit.glb",
+        "cdnUrl": "https://assets.grudge-studio.com/models/buildings/survival/free_survival_asset_kit.glb",
+        "contentType": "model/gltf-binary",
+        "note": "Survival kit multipack — bind nodeName in BuildAssetManifest",
+        "status": "pack_linked"
+      },
+      "stats": {
+        "health": 120,
+        "storageSlots": 0,
+        "craftStation": false
+      },
+      "si": {
+        "heightM": 4,
+        "unit": "meter"
+      },
+      "game": {
+        "placeable": true,
+        "trainable": false,
+        "mountable": false,
+        "craftStation": false,
+        "claimFlag": false,
+        "buildLayer": "camp"
+      },
+      "package": "warlords-entities",
+      "status": "pack_linked"
+    },
+    {
+      "prefabId": "PFAB-ENT-1098009E",
+      "id": "entities/totem_2",
+      "kind": "structure",
+      "category": "structure",
+      "name": "Totem 2",
+      "displayName": "Totem 2",
+      "era": "warlords",
+      "layer": "structure",
+      "race": null,
+      "role": null,
+      "faction": null,
+      "tags": [
+        "structure",
+        "structure"
+      ],
+      "icon": {
+        "uuid": "ICON-711C-23E5-ED9A",
+        "path": "/icons/pack/entities/totem_2.png",
+        "cdnUrl": "https://assets.grudge-studio.com/game-assets/icons/pack/entities/totem_2.png",
+        "cdnUrlAlt": "https://assets.grudge-studio.com/icons/pack/entities/totem_2.png",
+        "localSource": "C:\\Users\\nugye\\Desktop\\icons\\icons\\entities\\totem 2.PNG"
+      },
+      "mesh": {
+        "r2Key": null,
+        "cdnUrl": null,
+        "contentType": null,
+        "status": "icon_only",
+        "note": "Icon registered; 3D mesh pending bake/upload"
+      },
+      "stats": {
+        "health": 400,
+        "storageSlots": 0,
+        "craftStation": false
+      },
+      "si": {
+        "heightM": 4,
+        "unit": "meter"
+      },
+      "game": {
+        "placeable": true,
+        "trainable": false,
+        "mountable": false,
+        "craftStation": false,
+        "claimFlag": false,
+        "buildLayer": "rts"
+      },
+      "package": "warlords-entities",
+      "status": "icon_only"
+    },
+    {
+      "prefabId": "PFAB-ENT-2786C171",
+      "id": "entities/totem_3",
+      "kind": "structure",
+      "category": "structure",
+      "name": "Totem 3",
+      "displayName": "Totem 3",
+      "era": "warlords",
+      "layer": "structure",
+      "race": null,
+      "role": null,
+      "faction": null,
+      "tags": [
+        "structure",
+        "structure"
+      ],
+      "icon": {
+        "uuid": "ICON-EECA-C89E-D91C",
+        "path": "/icons/pack/entities/totem_3.png",
+        "cdnUrl": "https://assets.grudge-studio.com/game-assets/icons/pack/entities/totem_3.png",
+        "cdnUrlAlt": "https://assets.grudge-studio.com/icons/pack/entities/totem_3.png",
+        "localSource": "C:\\Users\\nugye\\Desktop\\icons\\icons\\entities\\totem 3.PNG"
+      },
+      "mesh": {
+        "r2Key": null,
+        "cdnUrl": null,
+        "contentType": null,
+        "status": "icon_only",
+        "note": "Icon registered; 3D mesh pending bake/upload"
+      },
+      "stats": {
+        "health": 400,
+        "storageSlots": 0,
+        "craftStation": false
+      },
+      "si": {
+        "heightM": 4,
+        "unit": "meter"
+      },
+      "game": {
+        "placeable": true,
+        "trainable": false,
+        "mountable": false,
+        "craftStation": false,
+        "claimFlag": false,
+        "buildLayer": "rts"
+      },
+      "package": "warlords-entities",
+      "status": "icon_only"
+    },
+    {
+      "prefabId": "PFAB-ENT-2E8EC616",
+      "id": "entities/totem_4",
+      "kind": "structure",
+      "category": "structure",
+      "name": "Totem 4",
+      "displayName": "Totem 4",
+      "era": "warlords",
+      "layer": "structure",
+      "race": null,
+      "role": null,
+      "faction": null,
+      "tags": [
+        "structure",
+        "structure"
+      ],
+      "icon": {
+        "uuid": "ICON-C906-D6C9-F8DB",
+        "path": "/icons/pack/entities/totem_4.png",
+        "cdnUrl": "https://assets.grudge-studio.com/game-assets/icons/pack/entities/totem_4.png",
+        "cdnUrlAlt": "https://assets.grudge-studio.com/icons/pack/entities/totem_4.png",
+        "localSource": "C:\\Users\\nugye\\Desktop\\icons\\icons\\entities\\totem 4.PNG"
+      },
+      "mesh": {
+        "r2Key": null,
+        "cdnUrl": null,
+        "contentType": null,
+        "status": "icon_only",
+        "note": "Icon registered; 3D mesh pending bake/upload"
+      },
+      "stats": {
+        "health": 400,
+        "storageSlots": 0,
+        "craftStation": false
+      },
+      "si": {
+        "heightM": 4,
+        "unit": "meter"
+      },
+      "game": {
+        "placeable": true,
+        "trainable": false,
+        "mountable": false,
+        "craftStation": false,
+        "claimFlag": false,
+        "buildLayer": "rts"
+      },
+      "package": "warlords-entities",
+      "status": "icon_only"
+    },
+    {
+      "prefabId": "PFAB-ENT-4B5019EC",
+      "id": "entities/totem1",
+      "kind": "structure",
+      "category": "structure",
+      "name": "Totem1",
+      "displayName": "Totem1",
+      "era": "warlords",
+      "layer": "structure",
+      "race": null,
+      "role": null,
+      "faction": null,
+      "tags": [
+        "structure",
+        "structure"
+      ],
+      "icon": {
+        "uuid": "ICON-88CD-B552-72C7",
+        "path": "/icons/pack/entities/totem1.png",
+        "cdnUrl": "https://assets.grudge-studio.com/game-assets/icons/pack/entities/totem1.png",
+        "cdnUrlAlt": "https://assets.grudge-studio.com/icons/pack/entities/totem1.png",
+        "localSource": "C:\\Users\\nugye\\Desktop\\icons\\icons\\entities\\totem1.PNG"
+      },
+      "mesh": {
+        "r2Key": null,
+        "cdnUrl": null,
+        "contentType": null,
+        "status": "icon_only",
+        "note": "Icon registered; 3D mesh pending bake/upload"
+      },
+      "stats": {
+        "health": 400,
+        "storageSlots": 0,
+        "craftStation": false
+      },
+      "si": {
+        "heightM": 4,
+        "unit": "meter"
+      },
+      "game": {
+        "placeable": true,
+        "trainable": false,
+        "mountable": false,
+        "craftStation": false,
+        "claimFlag": false,
+        "buildLayer": "rts"
+      },
+      "package": "warlords-entities",
+      "status": "icon_only"
+    },
+    {
+      "prefabId": "PFAB-ENT-75371ABB",
+      "id": "entities/tower",
+      "kind": "siege",
+      "category": "siege",
+      "name": "Tower",
+      "displayName": "Tower",
+      "era": "warlords",
+      "layer": "vehicle",
+      "race": null,
+      "role": null,
+      "faction": null,
+      "tags": [
+        "siege",
+        "standard"
+      ],
+      "icon": {
+        "uuid": "ICON-8229-EACF-10D5",
+        "path": "/icons/pack/entities/tower.png",
+        "cdnUrl": "https://assets.grudge-studio.com/game-assets/icons/pack/entities/tower.png",
+        "cdnUrlAlt": "https://assets.grudge-studio.com/icons/pack/entities/tower.png",
+        "localSource": "C:\\Users\\nugye\\Desktop\\icons\\icons\\entities\\tower.PNG"
+      },
+      "mesh": {
+        "r2Key": "models/buildings/towers/3_medieval_towers.glb",
+        "cdnUrl": "https://assets.grudge-studio.com/models/buildings/towers/3_medieval_towers.glb",
+        "contentType": "model/gltf-binary",
+        "status": "pack_linked"
+      },
+      "stats": {
+        "health": 400,
+        "attackDamage": 55,
+        "attackRange": 28,
+        "speed": 1.2,
+        "armor": 20
+      },
+      "si": {
+        "heightM": 3.5,
+        "unit": "meter"
+      },
+      "game": {
+        "placeable": true,
+        "trainable": false,
+        "mountable": false,
+        "craftStation": false,
+        "claimFlag": false,
+        "buildLayer": null
+      },
+      "package": "warlords-entities",
+      "status": "pack_linked"
+    },
+    {
+      "prefabId": "PFAB-ENT-77524575",
+      "id": "entities/tower_2",
+      "kind": "siege",
+      "category": "siege",
+      "name": "Tower 2",
+      "displayName": "Tower 2",
+      "era": "warlords",
+      "layer": "vehicle",
+      "race": null,
+      "role": null,
+      "faction": null,
+      "tags": [
+        "siege",
+        "standard"
+      ],
+      "icon": {
+        "uuid": "ICON-328B-54A3-1BBE",
+        "path": "/icons/pack/entities/tower_2.png",
+        "cdnUrl": "https://assets.grudge-studio.com/game-assets/icons/pack/entities/tower_2.png",
+        "cdnUrlAlt": "https://assets.grudge-studio.com/icons/pack/entities/tower_2.png",
+        "localSource": "C:\\Users\\nugye\\Desktop\\icons\\icons\\entities\\tower 2.PNG"
+      },
+      "mesh": {
+        "r2Key": "models/buildings/towers/3_medieval_towers.glb",
+        "cdnUrl": "https://assets.grudge-studio.com/models/buildings/towers/3_medieval_towers.glb",
+        "contentType": "model/gltf-binary",
+        "status": "pack_linked"
+      },
+      "stats": {
+        "health": 400,
+        "attackDamage": 55,
+        "attackRange": 28,
+        "speed": 1.2,
+        "armor": 20
+      },
+      "si": {
+        "heightM": 3.5,
+        "unit": "meter"
+      },
+      "game": {
+        "placeable": true,
+        "trainable": false,
+        "mountable": false,
+        "craftStation": false,
+        "claimFlag": false,
+        "buildLayer": null
+      },
+      "package": "warlords-entities",
+      "status": "pack_linked"
+    },
+    {
+      "prefabId": "PFAB-ENT-70EFC522",
+      "id": "entities/und_horse",
+      "kind": "mount",
+      "category": "mount",
+      "name": "Und Horse",
+      "displayName": "Und Horse",
+      "era": "warlords",
+      "layer": "vehicle",
+      "race": null,
+      "role": null,
+      "faction": null,
+      "tags": [
+        "mount",
+        "beast"
+      ],
+      "icon": {
+        "uuid": "ICON-02E7-C399-F365",
+        "path": "/icons/pack/entities/und_horse.png",
+        "cdnUrl": "https://assets.grudge-studio.com/game-assets/icons/pack/entities/und_horse.png",
+        "cdnUrlAlt": "https://assets.grudge-studio.com/icons/pack/entities/und_horse.png",
+        "localSource": "C:\\Users\\nugye\\Desktop\\icons\\icons\\entities\\und horse.PNG"
+      },
+      "mesh": {
+        "r2Key": null,
+        "cdnUrl": null,
+        "contentType": null,
+        "status": "icon_only",
+        "note": "Icon registered; 3D mesh pending bake/upload"
+      },
+      "stats": {
+        "health": 160,
+        "speed": 8,
+        "armor": 2,
+        "seats": 1
+      },
+      "si": {
+        "heightM": 1.2,
+        "unit": "meter"
+      },
+      "game": {
+        "placeable": false,
+        "trainable": false,
+        "mountable": true,
+        "craftStation": false,
+        "claimFlag": false,
+        "buildLayer": null
+      },
+      "package": "warlords-entities",
+      "status": "icon_only"
+    },
+    {
+      "prefabId": "PFAB-ENT-55A8EC24",
+      "id": "entities/undead_archer",
+      "kind": "unit",
+      "category": "unit",
+      "name": "Undead Archer",
+      "displayName": "Undead Archer",
+      "era": "warlords",
+      "layer": "living",
+      "race": "undead",
+      "role": "archer",
+      "faction": null,
+      "tags": [
+        "unit",
+        "undead",
+        "archer",
+        "standard"
+      ],
+      "icon": {
+        "uuid": "ICON-6D0B-D10D-C136",
+        "path": "/icons/pack/entities/undead_archer.png",
+        "cdnUrl": "https://assets.grudge-studio.com/game-assets/icons/pack/entities/undead_archer.png",
+        "cdnUrlAlt": "https://assets.grudge-studio.com/icons/pack/entities/undead_archer.png",
+        "localSource": "C:\\Users\\nugye\\Desktop\\icons\\icons\\entities\\undead archer.png"
+      },
+      "mesh": {
+        "r2Key": "prod/gltf/characters/ud_characters.glb",
+        "cdnUrl": "https://assets.grudge-studio.com/prod/gltf/characters/ud_characters.glb",
+        "contentType": "model/gltf-binary",
+        "note": "Race kit GLB — equip/class mesh_ids applied at spawn",
+        "status": "kit_linked"
+      },
+      "stats": {
+        "health": 90,
+        "attackDamage": 22,
+        "attackRange": 14,
+        "speed": 5.5,
+        "armor": 4
+      },
+      "si": {
+        "heightM": 1.8,
+        "unit": "meter"
+      },
+      "game": {
+        "placeable": false,
+        "trainable": true,
+        "mountable": false,
+        "craftStation": false,
+        "claimFlag": false,
+        "buildLayer": null
+      },
+      "package": "warlords-entities",
+      "status": "kit_linked"
+    },
+    {
+      "prefabId": "PFAB-ENT-9D6973D4",
+      "id": "entities/undead_crypt",
+      "kind": "structure",
+      "category": "race_home",
+      "name": "Undead Crypt",
+      "displayName": "Undead Crypt",
+      "era": "warlords",
+      "layer": "structure",
+      "race": null,
+      "role": null,
+      "faction": null,
+      "tags": [
+        "structure",
+        "race_home"
+      ],
+      "icon": {
+        "uuid": "ICON-2A96-1962-7914",
+        "path": "/icons/pack/entities/undead_crypt.png",
+        "cdnUrl": "https://assets.grudge-studio.com/game-assets/icons/pack/entities/undead_crypt.png",
+        "cdnUrlAlt": "https://assets.grudge-studio.com/icons/pack/entities/undead_crypt.png",
+        "localSource": "C:\\Users\\nugye\\Desktop\\icons\\icons\\entities\\undead crypt.PNG"
+      },
+      "mesh": {
+        "r2Key": null,
+        "cdnUrl": null,
+        "contentType": null,
+        "status": "icon_only",
+        "note": "Icon registered; 3D mesh pending bake/upload"
+      },
+      "stats": {
+        "health": 400,
+        "storageSlots": 0,
+        "craftStation": false
+      },
+      "si": {
+        "heightM": 4,
+        "unit": "meter"
+      },
+      "game": {
+        "placeable": true,
+        "trainable": false,
+        "mountable": false,
+        "craftStation": false,
+        "claimFlag": false,
+        "buildLayer": "rts"
+      },
+      "package": "warlords-entities",
+      "status": "icon_only"
+    },
+    {
+      "prefabId": "PFAB-ENT-59294A4D",
+      "id": "entities/undead_mage",
+      "kind": "unit",
+      "category": "unit",
+      "name": "Undead Mage",
+      "displayName": "Undead Mage",
+      "era": "warlords",
+      "layer": "living",
+      "race": "undead",
+      "role": "mage",
+      "faction": null,
+      "tags": [
+        "unit",
+        "undead",
+        "mage",
+        "standard"
+      ],
+      "icon": {
+        "uuid": "ICON-AB03-3E7E-B598",
+        "path": "/icons/pack/entities/undead_mage.png",
+        "cdnUrl": "https://assets.grudge-studio.com/game-assets/icons/pack/entities/undead_mage.png",
+        "cdnUrlAlt": "https://assets.grudge-studio.com/icons/pack/entities/undead_mage.png",
+        "localSource": "C:\\Users\\nugye\\Desktop\\icons\\icons\\entities\\undead mage.png"
+      },
+      "mesh": {
+        "r2Key": "prod/gltf/characters/ud_characters.glb",
+        "cdnUrl": "https://assets.grudge-studio.com/prod/gltf/characters/ud_characters.glb",
+        "contentType": "model/gltf-binary",
+        "note": "Race kit GLB — equip/class mesh_ids applied at spawn",
+        "status": "kit_linked"
+      },
+      "stats": {
+        "health": 70,
+        "attackDamage": 28,
+        "attackRange": 14,
+        "speed": 4.5,
+        "armor": 4
+      },
+      "si": {
+        "heightM": 1.8,
+        "unit": "meter"
+      },
+      "game": {
+        "placeable": false,
+        "trainable": true,
+        "mountable": false,
+        "craftStation": false,
+        "claimFlag": false,
+        "buildLayer": null
+      },
+      "package": "warlords-entities",
+      "status": "kit_linked"
+    },
+    {
+      "prefabId": "PFAB-ENT-9B5B9BBD",
+      "id": "entities/Undead_Merc",
+      "kind": "unit",
+      "category": "unit",
+      "name": "Undead Merc",
+      "displayName": "Undead Merc",
+      "era": "warlords",
+      "layer": "living",
+      "race": "undead",
+      "role": "merc",
+      "faction": null,
+      "tags": [
+        "unit",
+        "undead",
+        "merc",
+        "standard"
+      ],
+      "icon": {
+        "uuid": "ICON-E7C5-9EAE-163A",
+        "path": "/icons/pack/entities/Undead_Merc.png",
+        "cdnUrl": "https://assets.grudge-studio.com/game-assets/icons/pack/entities/Undead_Merc.png",
+        "cdnUrlAlt": "https://assets.grudge-studio.com/icons/pack/entities/Undead_Merc.png",
+        "localSource": "C:\\Users\\nugye\\Desktop\\icons\\icons\\entities\\Undead Merc.PNG"
+      },
+      "mesh": {
+        "r2Key": "prod/gltf/characters/ud_characters.glb",
+        "cdnUrl": "https://assets.grudge-studio.com/prod/gltf/characters/ud_characters.glb",
+        "contentType": "model/gltf-binary",
+        "note": "Race kit GLB — equip/class mesh_ids applied at spawn",
+        "status": "kit_linked"
+      },
+      "stats": {
+        "health": 140,
+        "attackDamage": 18,
+        "attackRange": 2.5,
+        "speed": 4.5,
+        "armor": 4
+      },
+      "si": {
+        "heightM": 1.8,
+        "unit": "meter"
+      },
+      "game": {
+        "placeable": false,
+        "trainable": true,
+        "mountable": false,
+        "craftStation": false,
+        "claimFlag": false,
+        "buildLayer": null
+      },
+      "package": "warlords-entities",
+      "status": "kit_linked"
+    },
+    {
+      "prefabId": "PFAB-ENT-3A3F04F2",
+      "id": "entities/undead_paladin",
+      "kind": "unit",
+      "category": "unit",
+      "name": "Undead Paladin",
+      "displayName": "Undead Paladin",
+      "era": "warlords",
+      "layer": "living",
+      "race": "undead",
+      "role": "paladin",
+      "faction": null,
+      "tags": [
+        "unit",
+        "undead",
+        "paladin",
+        "standard"
+      ],
+      "icon": {
+        "uuid": "ICON-3C21-0068-B18D",
+        "path": "/icons/pack/entities/undead_paladin.png",
+        "cdnUrl": "https://assets.grudge-studio.com/game-assets/icons/pack/entities/undead_paladin.png",
+        "cdnUrlAlt": "https://assets.grudge-studio.com/icons/pack/entities/undead_paladin.png",
+        "localSource": "C:\\Users\\nugye\\Desktop\\icons\\icons\\entities\\undead paladin.png"
+      },
+      "mesh": {
+        "r2Key": "prod/gltf/characters/ud_characters.glb",
+        "cdnUrl": "https://assets.grudge-studio.com/prod/gltf/characters/ud_characters.glb",
+        "contentType": "model/gltf-binary",
+        "note": "Race kit GLB — equip/class mesh_ids applied at spawn",
+        "status": "kit_linked"
+      },
+      "stats": {
+        "health": 180,
+        "attackDamage": 18,
+        "attackRange": 2.5,
+        "speed": 4.5,
+        "armor": 12
+      },
+      "si": {
+        "heightM": 1.8,
+        "unit": "meter"
+      },
+      "game": {
+        "placeable": false,
+        "trainable": true,
+        "mountable": false,
+        "craftStation": false,
+        "claimFlag": false,
+        "buildLayer": null
+      },
+      "package": "warlords-entities",
+      "status": "kit_linked"
+    },
+    {
+      "prefabId": "PFAB-ENT-F0CDEB06",
+      "id": "entities/undead_warrior",
+      "kind": "unit",
+      "category": "unit",
+      "name": "Undead Warrior",
+      "displayName": "Undead Warrior",
+      "era": "warlords",
+      "layer": "living",
+      "race": "undead",
+      "role": "warrior",
+      "faction": null,
+      "tags": [
+        "unit",
+        "undead",
+        "warrior",
+        "standard"
+      ],
+      "icon": {
+        "uuid": "ICON-0FC4-02DA-93F3",
+        "path": "/icons/pack/entities/undead_warrior.png",
+        "cdnUrl": "https://assets.grudge-studio.com/game-assets/icons/pack/entities/undead_warrior.png",
+        "cdnUrlAlt": "https://assets.grudge-studio.com/icons/pack/entities/undead_warrior.png",
+        "localSource": "C:\\Users\\nugye\\Desktop\\icons\\icons\\entities\\undead warrior.png"
+      },
+      "mesh": {
+        "r2Key": "prod/gltf/characters/ud_characters.glb",
+        "cdnUrl": "https://assets.grudge-studio.com/prod/gltf/characters/ud_characters.glb",
+        "contentType": "model/gltf-binary",
+        "note": "Race kit GLB — equip/class mesh_ids applied at spawn",
+        "status": "kit_linked"
+      },
+      "stats": {
+        "health": 140,
+        "attackDamage": 18,
+        "attackRange": 2.5,
+        "speed": 4.5,
+        "armor": 4
+      },
+      "si": {
+        "heightM": 1.8,
+        "unit": "meter"
+      },
+      "game": {
+        "placeable": false,
+        "trainable": true,
+        "mountable": false,
+        "craftStation": false,
+        "claimFlag": false,
+        "buildLayer": null
+      },
+      "package": "warlords-entities",
+      "status": "kit_linked"
+    },
+    {
+      "prefabId": "PFAB-ENT-523A012D",
+      "id": "entities/Wardrobe_Icon",
+      "kind": "structure",
+      "category": "furniture",
+      "name": "Wardrobe",
+      "displayName": "Wardrobe",
+      "era": "warlords",
+      "layer": "structure",
+      "race": null,
+      "role": null,
+      "faction": null,
+      "tags": [
+        "structure",
+        "furniture"
+      ],
+      "icon": {
+        "uuid": "ICON-2E87-A1C2-5677",
+        "path": "/icons/pack/entities/Wardrobe_Icon.png",
+        "cdnUrl": "https://assets.grudge-studio.com/game-assets/icons/pack/entities/Wardrobe_Icon.png",
+        "cdnUrlAlt": "https://assets.grudge-studio.com/icons/pack/entities/Wardrobe_Icon.png",
+        "localSource": "C:\\Users\\nugye\\Desktop\\icons\\icons\\entities\\Wardrobe Icon.png"
+      },
+      "mesh": {
+        "r2Key": null,
+        "cdnUrl": null,
+        "contentType": null,
+        "status": "icon_only",
+        "note": "Icon registered; 3D mesh pending bake/upload"
+      },
+      "stats": {
+        "health": 400,
+        "storageSlots": 24,
+        "craftStation": false
+      },
+      "si": {
+        "heightM": 4,
+        "unit": "meter"
+      },
+      "game": {
+        "placeable": true,
+        "trainable": false,
+        "mountable": false,
+        "craftStation": false,
+        "claimFlag": false,
+        "buildLayer": "rts"
+      },
+      "package": "warlords-entities",
+      "status": "icon_only"
+    },
+    {
+      "prefabId": "PFAB-ENT-1C1BC451",
+      "id": "entities/White_Horse",
+      "kind": "mount",
+      "category": "mount",
+      "name": "White Horse",
+      "displayName": "White Horse",
+      "era": "warlords",
+      "layer": "vehicle",
+      "race": null,
+      "role": null,
+      "faction": null,
+      "tags": [
+        "mount",
+        "beast"
+      ],
+      "icon": {
+        "uuid": "ICON-C50C-4365-8F90",
+        "path": "/icons/pack/entities/White_Horse.png",
+        "cdnUrl": "https://assets.grudge-studio.com/game-assets/icons/pack/entities/White_Horse.png",
+        "cdnUrlAlt": "https://assets.grudge-studio.com/icons/pack/entities/White_Horse.png",
+        "localSource": "C:\\Users\\nugye\\Desktop\\icons\\icons\\entities\\White Horse.PNG"
+      },
+      "mesh": {
+        "r2Key": null,
+        "cdnUrl": null,
+        "contentType": null,
+        "status": "icon_only",
+        "note": "Icon registered; 3D mesh pending bake/upload"
+      },
+      "stats": {
+        "health": 160,
+        "speed": 8,
+        "armor": 2,
+        "seats": 1
+      },
+      "si": {
+        "heightM": 1.2,
+        "unit": "meter"
+      },
+      "game": {
+        "placeable": false,
+        "trainable": false,
+        "mountable": true,
+        "craftStation": false,
+        "claimFlag": false,
+        "buildLayer": null
+      },
+      "package": "warlords-entities",
+      "status": "icon_only"
+    },
+    {
+      "prefabId": "PFAB-ENT-2F23DDC2",
+      "id": "entities/wolf_mount",
+      "kind": "mount",
+      "category": "mount",
+      "name": "Wolf Mount",
+      "displayName": "Wolf Mount",
+      "era": "warlords",
+      "layer": "vehicle",
+      "race": null,
+      "role": null,
+      "faction": null,
+      "tags": [
+        "mount",
+        "beast"
+      ],
+      "icon": {
+        "uuid": "ICON-B30E-A6DB-8E48",
+        "path": "/icons/pack/entities/wolf_mount.png",
+        "cdnUrl": "https://assets.grudge-studio.com/game-assets/icons/pack/entities/wolf_mount.png",
+        "cdnUrlAlt": "https://assets.grudge-studio.com/icons/pack/entities/wolf_mount.png",
+        "localSource": "C:\\Users\\nugye\\Desktop\\icons\\icons\\entities\\wolf mount.PNG"
+      },
+      "mesh": {
+        "r2Key": null,
+        "cdnUrl": null,
+        "contentType": null,
+        "status": "icon_only",
+        "note": "Icon registered; 3D mesh pending bake/upload"
+      },
+      "stats": {
+        "health": 160,
+        "speed": 8,
+        "armor": 2,
+        "seats": 1
+      },
+      "si": {
+        "heightM": 1.2,
+        "unit": "meter"
+      },
+      "game": {
+        "placeable": false,
+        "trainable": false,
+        "mountable": true,
+        "craftStation": false,
+        "claimFlag": false,
+        "buildLayer": null
+      },
+      "package": "warlords-entities",
+      "status": "icon_only"
+    },
+    {
+      "prefabId": "PFAB-ENT-1D623D20",
+      "id": "entities/Wood_Gate_Icon",
+      "kind": "structure",
+      "category": "fortification",
+      "name": "Wood Gate",
+      "displayName": "Wood Gate",
+      "era": "warlords",
+      "layer": "structure",
+      "race": null,
+      "role": null,
+      "faction": null,
+      "tags": [
+        "structure",
+        "fortification"
+      ],
+      "icon": {
+        "uuid": "ICON-5058-3BCC-A4A9",
+        "path": "/icons/pack/entities/Wood_Gate_Icon.png",
+        "cdnUrl": "https://assets.grudge-studio.com/game-assets/icons/pack/entities/Wood_Gate_Icon.png",
+        "cdnUrlAlt": "https://assets.grudge-studio.com/icons/pack/entities/Wood_Gate_Icon.png",
+        "localSource": "C:\\Users\\nugye\\Desktop\\icons\\icons\\entities\\Wood Gate Icon.png"
+      },
+      "mesh": {
+        "r2Key": "models/buildings/towers/3_medieval_towers.glb",
+        "cdnUrl": "https://assets.grudge-studio.com/models/buildings/towers/3_medieval_towers.glb",
+        "contentType": "model/gltf-binary",
+        "status": "pack_linked"
+      },
+      "stats": {
+        "health": 800,
+        "storageSlots": 0,
+        "craftStation": false
+      },
+      "si": {
+        "heightM": 4,
+        "unit": "meter"
+      },
+      "game": {
+        "placeable": true,
+        "trainable": false,
+        "mountable": false,
+        "craftStation": false,
+        "claimFlag": false,
+        "buildLayer": "modular"
+      },
+      "package": "warlords-entities",
+      "status": "pack_linked"
+    },
+    {
+      "prefabId": "PFAB-ENT-4C1EE4B3",
+      "id": "entities/Wood_Stairs_Icon",
+      "kind": "structure",
+      "category": "fortification",
+      "name": "Wood Stairs",
+      "displayName": "Wood Stairs",
+      "era": "warlords",
+      "layer": "structure",
+      "race": null,
+      "role": null,
+      "faction": null,
+      "tags": [
+        "structure",
+        "fortification"
+      ],
+      "icon": {
+        "uuid": "ICON-4133-100A-762B",
+        "path": "/icons/pack/entities/Wood_Stairs_Icon.png",
+        "cdnUrl": "https://assets.grudge-studio.com/game-assets/icons/pack/entities/Wood_Stairs_Icon.png",
+        "cdnUrlAlt": "https://assets.grudge-studio.com/icons/pack/entities/Wood_Stairs_Icon.png",
+        "localSource": "C:\\Users\\nugye\\Desktop\\icons\\icons\\entities\\Wood Stairs Icon.png"
+      },
+      "mesh": {
+        "r2Key": "models/buildings/towers/3_medieval_towers.glb",
+        "cdnUrl": "https://assets.grudge-studio.com/models/buildings/towers/3_medieval_towers.glb",
+        "contentType": "model/gltf-binary",
+        "status": "pack_linked"
+      },
+      "stats": {
+        "health": 800,
+        "storageSlots": 0,
+        "craftStation": false
+      },
+      "si": {
+        "heightM": 4,
+        "unit": "meter"
+      },
+      "game": {
+        "placeable": true,
+        "trainable": false,
+        "mountable": false,
+        "craftStation": false,
+        "claimFlag": false,
+        "buildLayer": "modular"
+      },
+      "package": "warlords-entities",
+      "status": "pack_linked"
+    },
+    {
+      "prefabId": "PFAB-ENT-FA4F8849",
+      "id": "entities/Wood_Wall_Icon",
+      "kind": "structure",
+      "category": "fortification",
+      "name": "Wood Wall",
+      "displayName": "Wood Wall",
+      "era": "warlords",
+      "layer": "structure",
+      "race": null,
+      "role": null,
+      "faction": null,
+      "tags": [
+        "structure",
+        "fortification"
+      ],
+      "icon": {
+        "uuid": "ICON-A728-32AE-4E30",
+        "path": "/icons/pack/entities/Wood_Wall_Icon.png",
+        "cdnUrl": "https://assets.grudge-studio.com/game-assets/icons/pack/entities/Wood_Wall_Icon.png",
+        "cdnUrlAlt": "https://assets.grudge-studio.com/icons/pack/entities/Wood_Wall_Icon.png",
+        "localSource": "C:\\Users\\nugye\\Desktop\\icons\\icons\\entities\\Wood Wall Icon.png"
+      },
+      "mesh": {
+        "r2Key": "models/buildings/towers/3_medieval_towers.glb",
+        "cdnUrl": "https://assets.grudge-studio.com/models/buildings/towers/3_medieval_towers.glb",
+        "contentType": "model/gltf-binary",
+        "status": "pack_linked"
+      },
+      "stats": {
+        "health": 800,
+        "storageSlots": 0,
+        "craftStation": false
+      },
+      "si": {
+        "heightM": 4,
+        "unit": "meter"
+      },
+      "game": {
+        "placeable": true,
+        "trainable": false,
+        "mountable": false,
+        "craftStation": false,
+        "claimFlag": false,
+        "buildLayer": "modular"
+      },
+      "package": "warlords-entities",
+      "status": "pack_linked"
+    },
+    {
+      "prefabId": "PFAB-ENT-C1126050",
+      "id": "entities/Workbench",
+      "kind": "structure",
+      "category": "bench",
+      "name": "Workbench",
+      "displayName": "Workbench",
+      "era": "warlords",
+      "layer": "structure",
+      "race": null,
+      "role": null,
+      "faction": null,
+      "tags": [
+        "structure",
+        "bench"
+      ],
+      "icon": {
+        "uuid": "ICON-2C69-DC17-CCE3",
+        "path": "/icons/pack/entities/Workbench.png",
+        "cdnUrl": "https://assets.grudge-studio.com/game-assets/icons/pack/entities/Workbench.png",
+        "cdnUrlAlt": "https://assets.grudge-studio.com/icons/pack/entities/Workbench.png",
+        "localSource": "C:\\Users\\nugye\\Desktop\\icons\\icons\\entities\\Workbench.PNG"
+      },
+      "mesh": {
+        "r2Key": "models/buildings/survival/free_survival_asset_kit.glb",
+        "cdnUrl": "https://assets.grudge-studio.com/models/buildings/survival/free_survival_asset_kit.glb",
+        "contentType": "model/gltf-binary",
+        "note": "Survival kit multipack — bind nodeName in BuildAssetManifest",
+        "status": "pack_linked"
+      },
+      "stats": {
+        "health": 200,
+        "storageSlots": 0,
+        "craftStation": true
+      },
+      "si": {
+        "heightM": 4,
+        "unit": "meter"
+      },
+      "game": {
+        "placeable": true,
+        "trainable": false,
+        "mountable": false,
+        "craftStation": true,
+        "claimFlag": false,
+        "buildLayer": "camp"
+      },
+      "package": "warlords-entities",
+      "status": "pack_linked"
+    },
+    {
+      "prefabId": "PFAB-ENT-E3845A2B",
+      "id": "entities/YoloCopter_Icon",
+      "kind": "mount",
+      "category": "mount",
+      "name": "YoloCopter",
+      "displayName": "YoloCopter",
+      "era": "warlords",
+      "layer": "vehicle",
+      "race": null,
+      "role": null,
+      "faction": null,
+      "tags": [
+        "mount",
+        "mech"
+      ],
+      "icon": {
+        "uuid": "ICON-FA54-8FAF-13E2",
+        "path": "/icons/pack/entities/YoloCopter_Icon.png",
+        "cdnUrl": "https://assets.grudge-studio.com/game-assets/icons/pack/entities/YoloCopter_Icon.png",
+        "cdnUrlAlt": "https://assets.grudge-studio.com/icons/pack/entities/YoloCopter_Icon.png",
+        "localSource": "C:\\Users\\nugye\\Desktop\\icons\\icons\\entities\\YoloCopter Icon.png"
+      },
+      "mesh": {
+        "r2Key": null,
+        "cdnUrl": null,
+        "contentType": null,
+        "status": "icon_only",
+        "note": "Icon registered; 3D mesh pending bake/upload"
+      },
+      "stats": {
+        "health": 160,
+        "speed": 8,
+        "armor": 2,
+        "seats": 1
+      },
+      "si": {
+        "heightM": 1.2,
+        "unit": "meter"
+      },
+      "game": {
+        "placeable": false,
+        "trainable": false,
+        "mountable": true,
+        "craftStation": false,
+        "claimFlag": false,
+        "buildLayer": null
+      },
+      "package": "warlords-entities",
+      "status": "icon_only"
+    }
+  ]
+}

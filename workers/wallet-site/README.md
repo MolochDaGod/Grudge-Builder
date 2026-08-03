@@ -36,3 +36,18 @@ npx wrangler deploy --env=""
 curl -s https://wallet.grudge-studio.com/health
 # { "ok": true, "service": "grudge-wallet-site", "vps_origin": false, ... }
 ```
+
+## Auth SSOT (2026-08-02)
+
+| Concern | Rule |
+|---------|------|
+| Login UI | **Only** `https://id.grudge-studio.com` (Discord / password / Puter) |
+| Session JWT | Railway `users` + `accounts` (same Postgres as Foundry / client) |
+| Edge `/api/auth/*` | Proxy → **Railway** (not id host — avoids 526 / split-brain) |
+| Edge `/api/wallet/*`, `/api/characters` | Proxy → Railway |
+| Token handoff | Prefer **`sso_token` / `token`** (session JWT) over short `grudge_token` (launch) |
+| Guest | **Never** treat unauthenticated as guest account — `/api/wallet/status` returns 401 |
+
+**Bug fixed:** unauthenticated `/api/wallet/status` used to resolve `userId=guest` and return the shared guest Crossmint wallet (`user-guest@grudgewarlords.com`), so Discord login that failed to store the real session JWT still “looked signed in” to the wrong roster.
+
+**After Discord login:** clear site data if you still see guest, then Sign in again so `sso_token` is stored in fleet keys.

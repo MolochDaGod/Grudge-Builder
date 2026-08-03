@@ -4,7 +4,8 @@
  * Native Three.js LeviathanOceanCinema (scripted battle · stage UUIDs · spine IK).
  * NO TI iframe · NO Stonewisp · NO intro.mp4 as primary gate.
  *
- * Default handoff: /tutorial?from=shipwreck-intro (chicken-gun shipwreck_cove)
+ * Default handoff: /tutorial wash-up on chicken-gun pirate-islands shipwreck_cove
+ * (after leviathan attack + ship destroy beat).
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {

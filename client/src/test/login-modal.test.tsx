@@ -65,11 +65,11 @@ const fakeAuthResponse = {
   user: { id: 1, grudgeId: "GRUDGE_TEST", username: "TestUser" },
 };
 
-/** Render the modal with a trigger button to open it */
+/** Render the modal with a trigger button to open it (legacy modal path) */
 function Opener() {
-  const { openLogin } = useAuth();
+  const { openLoginModalLegacy } = useAuth();
   return (
-    <button data-testid="trigger" onClick={openLogin}>
+    <button data-testid="trigger" onClick={openLoginModalLegacy}>
       Open
     </button>
   );

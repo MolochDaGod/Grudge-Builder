@@ -1,15 +1,14 @@
 /**
- * LoginModal — In-page auth modal for client.grudge-studio.com / grudgewarlords.com
+ * LoginModal — LEGACY / emergency in-page auth only.
  *
- * Uses existing auth functions from grudgeBackend.ts.  No redirects — everything
- * happens inside the modal via the Radix Dialog.
+ * Production Warlords (grudgewarlords.com /intro, shell, play) MUST use
+ * id.grudge-studio.com via useAuth().openLogin() → loginWithGrudgeId().
  *
- * Auth methods (order of prominence):
- *   1. Phantom / Solflare wallet  (connectBrowserWallet → /api/auth/wallet)
- *   2. Puter (Google/guest)        (loginWithPuterSDK   → /api/auth/puter)
- *   3. Discord OAuth               (startDiscordLogin   → redirect to Discord)
- *   4. Username + Password          (loginWithCredentials / registerAccount → /api/auth/login|register)
- *   5. Guest auto-login             (loginAsGuest        → /api/auth/puter)
+ * This modal is only opened by openLoginModalLegacy() (dev / tests).
+ * Do not wire product CTAs to this component.
+ *
+ * Auth methods (if modal is forced open):
+ *   wallet · Puter · Discord · credentials · guest
  */
 import { useState } from "react";
 import {

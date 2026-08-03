@@ -128,8 +128,9 @@ export function WarlordsShell({
               <button
                 type="button"
                 onClick={() => {
+                  // Canonical Grudge ID SSO (id.grudge-studio.com) — not in-app modal
                   try {
-                    openLogin();
+                    openLogin(typeof window !== 'undefined' ? window.location.pathname || '/home' : '/home');
                   } catch {
                     window.location.href = warlordsLoginUrl('/account');
                   }

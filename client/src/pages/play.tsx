@@ -126,15 +126,41 @@ export default function PlayPage() {
           },
         } as Character;
       }
+      // Auth 401 / expired JWT / missing roster: still enter the zone with a
+      // local guest so engine init is not blocked by Railway roster.
       if (!char) {
-        // SSOT funnel: create at Foundry, then return to this play URL with characterId
-        console.warn('[Play] No roster character — redirecting to create-character');
-        const returnTo =
-          window.location.pathname + window.location.search || '/play';
-        setLocation(
-          '/create-character?returnTo=' + encodeURIComponent(returnTo),
-        );
-        return;
+        const forceGuest =
+          params.get('guest') === '1' ||
+          params.get('mode') === 'zone' ||
+          engineMode === 'zone';
+        if (forceGuest) {
+          console.warn(
+            '[Play] No authenticated character — entering zone as local guest (sign in to load roster heroes)',
+          );
+          char = {
+            id: handoffId || 'guest-zone',
+            name: 'Guest Captain',
+            raceId: 'human',
+            classId: 'warrior',
+            level: 1,
+            accountId: 'guest',
+            equipment: {},
+            model3d: {
+              baseModelId: 'human',
+              weaponSlots: {},
+              equippedMeshes: {},
+            },
+          } as Character;
+        } else {
+          // SSOT funnel: create at Foundry, then return to this play URL with characterId
+          console.warn('[Play] No roster character — redirecting to create-character');
+          const returnTo =
+            window.location.pathname + window.location.search || '/play';
+          setLocation(
+            '/create-character?returnTo=' + encodeURIComponent(returnTo),
+          );
+          return;
+        }
       }
 
       characterRef.current = char;

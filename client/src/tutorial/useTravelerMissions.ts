@@ -157,9 +157,17 @@ export function useTravelerMissions(raceId: string | undefined) {
         case 'craft':
           if (step.kind === 'craft') {
             if (step.id === 'craft_tools' && event.itemId?.includes('pickaxe')) completeStep(step.id);
-            else if (step.id === 'craft_raft' && (event.itemId === 'raft' || event.itemId?.includes('raft')))
+            else if (step.id === 'craft_raft' && (event.itemId === 'raft' || event.itemId?.includes('raft'))) {
+              try {
+                localStorage.setItem('warlords_raft_crafted_v1', '1');
+                localStorage.setItem('warlords_tutorial_complete_v1', '1');
+              } catch {
+                /* ignore */
+              }
               completeStep(step.id);
-            else if (step.id === 'craft_tools') completeStep(step.id);
+            } else if (step.id === 'craft_tools') {
+              completeStep(step.id);
+            }
           }
           break;
         case 'equip':

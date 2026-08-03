@@ -7,7 +7,11 @@ import { useCallback, useEffect, useState } from 'react';
 import { useLocation, useSearch } from 'wouter';
 import { AbandonShipIntroGate } from '@/island3d/intro/AbandonShipIntroGate';
 import { characterAPI } from '@/lib/api';
-import { getActiveCharacterId } from '@/lib/warlordsOnboarding';
+import {
+  getActiveCharacterId,
+  markHomeIslandClaimed,
+  isTutorialComplete,
+} from '@/lib/warlordsOnboarding';
 import {
   END_GAME_FLAGS,
   endGameAfterCinematicPath,
@@ -53,19 +57,35 @@ export default function HomeIslandEntryPage() {
         try {
           const res = await fetch('/api/island/current', { credentials: 'include' });
           islandExists = res.ok;
-          if (islandExists) setHasIsland(true);
+          if (islandExists) {
+            setHasIsland(true);
+            markHomeIslandClaimed();
+          }
         } catch {
           /* optional */
         }
 
+        // Home island is granted after tutorial + raft — never by level 20.
+        // Soft gate: if they skipped flags but have no island and no tutorial done,
+        // still allow when ?from=tutorial or unlock=1 or force cinematic entry.
+        const fromTutorial =
+          params.get('from') === 'tutorial' ||
+          params.get('unlock') === '1' ||
+          isTutorialComplete();
+        if (!islandExists && !fromTutorial && !params.get('force')) {
+          // New heroes without tutorial should not land here empty
+          setLocation('/tutorial?from=homeisland-gate');
+          return;
+        }
+
         const cinematicDone = localStorage.getItem(END_GAME_FLAGS.cinematicComplete) === '1';
-        // Level gate removed: home island is immediate after first character.
-        // Cinematic is optional (skip with ?cinematic=0 or already completed).
+        // Cinematic optional (skip with ?cinematic=0 or already completed).
 
         if (wantCinematic && !cinematicDone) {
           setPhase('cinematic');
         } else {
           setPhase('redirect');
+          if (islandExists) markHomeIslandClaimed();
           setLocation(endGameAfterCinematicPath(islandExists, id));
         }
       } catch {

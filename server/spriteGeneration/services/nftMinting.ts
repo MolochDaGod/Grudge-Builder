@@ -119,21 +119,55 @@ export class NFTMintingService {
   }
 
   /**
-   * Mint character cNFT.
+   * Email bound to the account for Crossmint locators / email mint backup.
+   * Prefer real account email, then crossmintEmail, then stable grudge+{id}@…
+   */
+  resolveAccountEmail(
+    account: {
+      grudgeId?: string | null;
+      userId?: string | null;
+      email?: string | null;
+      crossmintEmail?: string | null;
+    },
+    override?: string | null,
+  ): string | null {
+    const raw =
+      (override && String(override).trim()) ||
+      (account.email && String(account.email).trim()) ||
+      (account.crossmintEmail && String(account.crossmintEmail).trim()) ||
+      "";
+    if (raw && raw.includes("@")) return raw;
+    const gid = account.grudgeId || account.userId;
+    if (gid) return crossmintWalletService.stableEmailForGrudgeId(String(gid));
+    return null;
+  }
+
+  /**
+   * Ensure the account has exactly one Crossmint Solana server wallet.
+   * Idempotent — creates on first call, reuses forever across eras/games.
+   * Call on account create and before any character/island mint.
+   */
+  async ensureAccountWallet(accountId: string, email?: string): Promise<string | null> {
+    return this.getWalletForAccount(accountId, email);
+  }
+
+  /**
+   * Mint character cNFT → **account.walletAddress** (singular server-side wallet).
    *
-   * **Production default (escrow-first):** mint to the server admin wallet
-   * (`AI_AGENT_WALLET` / `AGENT_ESCROW_WALLET` / `CROSSMINT_TREASURY_WALLET`).
-   * Game ownership stays on Railway (accountId + characterId + grudgeId).
-   * Players may later claim/transfer to their wallet (optional, may incur fees).
+   * Priority:
+   *   1. account.walletAddress (ensure/create Crossmint server wallet)
+   *   2. Backup: mint to **account email** (Crossmint email:…:solana) — not admin escrow
+   *   3. Last resort / ops: AI_AGENT_WALLET escrow + claim later
    *
-   * Set `options.directToUser = true` only for explicit admin/legacy paths.
+   * Game ownership stays Railway (accountId + characterId + grudgeId).
+   * `options.escrowOnly = true` forces admin escrow only (ops backup).
    */
   async mintCharacterAsCNFT(
     characterId: string,
     accountId: string,
     email?: string,
     externalWallet?: string,
-    options?: { directToUser?: boolean },
+    options?: { directToUser?: boolean; escrowOnly?: boolean },
   ): Promise<MintCharacterResult> {
     const [character] = await db
       .select()
@@ -171,73 +205,121 @@ export class NFTMintingService {
       }
     }
 
-    const ownership = {
-      characterId: character.id,
-      accountId: account.id,
-      grudgeId: account.grudgeId || account.userId || null,
-      grudgeCode: (character as { grudgeCode?: string | null }).grudgeCode || null,
-    };
-
-    console.log('[NFT] Using image URL:', imageUrl);
-    console.log('[NFT] Ownership bind:', ownership);
-
     const agentWallet =
       process.env.AI_AGENT_WALLET ||
       process.env.AGENT_ESCROW_WALLET ||
       process.env.CROSSMINT_TREASURY_WALLET;
 
-    const directToUser = options?.directToUser === true;
-    let mintResult;
-    let targetWallet: string;
+    const forceEscrow = options?.escrowOnly === true;
+    const accountEmail = this.resolveAccountEmail(
+      account as {
+        grudgeId?: string | null;
+        userId?: string | null;
+        email?: string | null;
+        crossmintEmail?: string | null;
+      },
+      email,
+    );
+    // Explicit external wallet only when caller passes one (admin tools)
+    const preferExternal =
+      !!externalWallet && options?.directToUser !== false && !forceEscrow;
+
+    let playerWallet: string | null = null;
+    if (!forceEscrow) {
+      if (preferExternal && externalWallet) {
+        playerWallet = externalWallet;
+      } else {
+        // Singular account wallet — create if missing (first character path)
+        playerWallet = await this.ensureAccountWallet(
+          accountId,
+          accountEmail || undefined,
+        );
+      }
+    }
+
+    let custody: "player" | "email_backup" | "escrow_admin" = "player";
+    if (forceEscrow) custody = "escrow_admin";
+    else if (!playerWallet && accountEmail) custody = "email_backup";
+    else if (!playerWallet) custody = "escrow_admin";
+
+    const ownership = {
+      characterId: character.id,
+      accountId: account.id,
+      grudgeId: account.grudgeId || account.userId || null,
+      grudgeCode: (character as { grudgeCode?: string | null }).grudgeCode || null,
+      custody,
+    };
+
+    console.log("[NFT] Using image URL:", imageUrl);
+    console.log("[NFT] Ownership bind:", ownership);
+    console.log(
+      `[NFT] Mint target custody=${custody} playerWallet=${playerWallet || "none"} email=${accountEmail || "none"}`,
+    );
+
+    let mintResult = null as Awaited<
+      ReturnType<typeof crossmintWalletService.mintCharacterNFT>
+    >;
+    let targetWallet = "";
     let escrowed = false;
 
-    if (directToUser && externalWallet) {
+    if (playerWallet && !forceEscrow) {
       mintResult = await crossmintWalletService.mintCharacterNFT(
         character,
         imageUrl,
-        externalWallet,
+        playerWallet,
         true,
         ownership,
       );
-      targetWallet = externalWallet;
-    } else if (directToUser && email) {
+      if (mintResult) {
+        targetWallet = playerWallet;
+      } else if (accountEmail) {
+        console.warn(`[NFT] Address mint failed — email backup → ${accountEmail}`);
+      }
+    }
+
+    if (!mintResult && accountEmail && !forceEscrow) {
+      // Backup: mint to email connected to account (Crossmint email → their wallet)
+      console.log(`[NFT] Email backup mint → ${accountEmail}`);
       mintResult = await crossmintWalletService.mintToEmail(
         character,
         imageUrl,
-        email,
+        accountEmail,
         true,
-        ownership,
+        { ...ownership, custody: "email_backup" },
       );
-      targetWallet = `email:${email}:solana`;
-    } else if (directToUser && account.walletAddress) {
-      mintResult = await crossmintWalletService.mintCharacterNFT(
-        character,
-        imageUrl,
-        account.walletAddress,
-        true,
-        ownership,
-      );
-      targetWallet = account.walletAddress;
-    } else {
-      // Escrow-first (production default)
-      if (!agentWallet) {
-        console.error('[NFT] No AI_AGENT_WALLET / AGENT_ESCROW_WALLET configured — cannot escrow cNFT');
-        return { success: false, error: 'Server escrow wallet not configured (AI_AGENT_WALLET)' };
+      if (mintResult) {
+        targetWallet = `email:${accountEmail}:solana`;
+        custody = "email_backup";
       }
-      console.log(`[NFT] Escrow-first mint → admin wallet: ${agentWallet}`);
+    }
+
+    if (!mintResult) {
+      // Last resort only: admin escrow + claim (ops / disaster recovery)
+      if (!agentWallet) {
+        console.error(
+          "[NFT] Wallet+email mint failed and no AI_AGENT_WALLET — cannot mint cNFT",
+        );
+        return {
+          success: false,
+          error:
+            "Could not mint to account wallet or email; escrow wallet not configured (AI_AGENT_WALLET)",
+        };
+      }
+      console.warn(`[NFT] Escrow LAST-RESORT mint → admin wallet: ${agentWallet}`);
       mintResult = await crossmintWalletService.mintCharacterNFT(
         character,
         imageUrl,
         agentWallet,
         true,
-        ownership,
+        { ...ownership, custody: "escrow_admin" },
       );
       targetWallet = `escrow:${agentWallet}`;
       escrowed = true;
+      custody = "escrow_admin";
     }
 
     if (!mintResult) {
-      return { success: false, error: 'Failed to initiate NFT minting' };
+      return { success: false, error: "Failed to initiate NFT minting" };
     }
 
     let nftRecord;
@@ -370,29 +452,186 @@ export class NFTMintingService {
 
     if (!account) return null;
 
+    // Already provisioned — never create a second wallet for this account
     if (account.walletAddress) {
       return account.walletAddress;
     }
 
-    if (email) {
-      const wallet = await crossmintWalletService.getOrCreateWallet(email);
+    // Prefer Grudge ID–stable Crossmint custodial wallet (1:1 with account)
+    const grudgeId =
+      (account as { grudgeId?: string | null }).grudgeId ||
+      (account as { userId?: string | null }).userId ||
+      null;
+    const locatorEmail =
+      email ||
+      (account as { crossmintEmail?: string | null }).crossmintEmail ||
+      (account as { email?: string | null }).email ||
+      (grudgeId ? crossmintWalletService.stableEmailForGrudgeId(String(grudgeId)) : null);
+
+    if (grudgeId) {
+      const wallet = await crossmintWalletService.getOrCreateWalletForGrudgeId(String(grudgeId));
       if (wallet) {
         await db
           .update(accounts)
           .set({
             walletAddress: wallet.address,
-            walletType: 'crossmint',
+            walletType: "crossmint",
             crossmintWalletId: wallet.id,
-            crossmintEmail: email,
+            crossmintEmail:
+              locatorEmail ||
+              crossmintWalletService.stableEmailForGrudgeId(String(grudgeId)),
             updatedAt: Date.now(),
-          })
+          } as any)
           .where(eq(accounts.id, accountId));
+        console.log(
+          `[NFT] Provisioned account wallet ${wallet.address} for account ${accountId} grudgeId=${grudgeId}`,
+        );
+        return wallet.address;
+      }
+    }
 
+    if (locatorEmail) {
+      const wallet = await crossmintWalletService.getOrCreateWallet(locatorEmail);
+      if (wallet) {
+        await db
+          .update(accounts)
+          .set({
+            walletAddress: wallet.address,
+            walletType: "crossmint",
+            crossmintWalletId: wallet.id,
+            crossmintEmail: locatorEmail,
+            updatedAt: Date.now(),
+          } as any)
+          .where(eq(accounts.id, accountId));
+        console.log(
+          `[NFT] Provisioned account wallet ${wallet.address} via email locator for ${accountId}`,
+        );
         return wallet.address;
       }
     }
 
     return null;
+  }
+
+  /**
+   * Mint home-island cNFT to the account's singular server wallet.
+   * Same priority as characters: wallet → email backup → escrow last resort.
+   */
+  async mintIslandAsCNFT(
+    accountId: string,
+    island: {
+      id: string;
+      seed: string;
+      name: string;
+      mapStyle: string;
+      mapImageUrl?: string | null;
+    },
+  ): Promise<{
+    success: boolean;
+    actionId?: string;
+    mintAddress?: string;
+    walletAddress?: string | null;
+    error?: string;
+  }> {
+    const [account] = await db
+      .select()
+      .from(accounts)
+      .where(eq(accounts.id, accountId))
+      .limit(1);
+
+    if (!account) {
+      return { success: false, error: "Account not found" };
+    }
+
+    const accountEmail = this.resolveAccountEmail(
+      account as {
+        grudgeId?: string | null;
+        userId?: string | null;
+        email?: string | null;
+        crossmintEmail?: string | null;
+      },
+    );
+    const walletAddress =
+      (await this.ensureAccountWallet(accountId, accountEmail || undefined)) ||
+      account.walletAddress ||
+      null;
+
+    // 1) Direct to account server wallet
+    if (walletAddress) {
+      const mintResult = await crossmintWalletService.mintIslandCNFT(
+        { ...account, walletAddress } as typeof account,
+        island,
+      );
+      if (mintResult.actionId) {
+        console.log(
+          `[NFT] Island cNFT → account wallet ${walletAddress} action=${mintResult.actionId}`,
+        );
+        return {
+          success: true,
+          actionId: mintResult.actionId,
+          mintAddress: mintResult.mintAddress,
+          walletAddress,
+        };
+      }
+      console.warn(`[NFT] Island address mint failed — trying email backup`);
+    }
+
+    // 2) Backup: email connected to account
+    if (accountEmail) {
+      const imageUrl =
+        island.mapImageUrl ||
+        "https://www.crossmint.com/assets/crossmint/logo.png";
+      const islandRow = {
+        id: island.id,
+        seed: island.seed,
+        name: island.name,
+        mapStyle: island.mapStyle,
+        mapImageUrl: island.mapImageUrl,
+        createdAt: Date.now(),
+      } as any;
+      const mintResult = await crossmintWalletService.mintIslandToEmail(
+        islandRow,
+        accountEmail,
+        imageUrl,
+      );
+      if (mintResult?.actionId) {
+        console.log(
+          `[NFT] Island cNFT email backup → ${accountEmail} action=${mintResult.actionId}`,
+        );
+        return {
+          success: true,
+          actionId: mintResult.actionId,
+          mintAddress: mintResult.onChain?.mintHash,
+          walletAddress: `email:${accountEmail}:solana`,
+        };
+      }
+    }
+
+    // 3) Last resort: admin escrow (claim later)
+    const agentWallet =
+      process.env.AI_AGENT_WALLET ||
+      process.env.AGENT_ESCROW_WALLET ||
+      process.env.CROSSMINT_TREASURY_WALLET;
+    if (!agentWallet) {
+      return {
+        success: false,
+        error: "Island mint failed (wallet + email); no AI_AGENT_WALLET",
+      };
+    }
+    console.warn(
+      `[NFT] Island mint escrow LAST-RESORT for account ${accountId} → ${agentWallet}`,
+    );
+    const mintResult = await crossmintWalletService.mintIslandCNFT(
+      { ...account, walletAddress: agentWallet } as typeof account,
+      island,
+    );
+    return {
+      success: !!mintResult.actionId,
+      actionId: mintResult.actionId,
+      mintAddress: mintResult.mintAddress,
+      walletAddress: mintResult.actionId ? `escrow:${agentWallet}` : null,
+      error: mintResult.actionId ? undefined : "Island mint failed",
+    };
   }
 
   async linkExternalWallet(accountId: string, walletAddress: string): Promise<boolean> {

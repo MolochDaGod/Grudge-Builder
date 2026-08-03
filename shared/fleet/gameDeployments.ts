@@ -122,16 +122,16 @@ export interface GameDeployment {
 
 /**
  * Recommended Three.js path (shown on /home):
- * intro → create → tutorial → open world → home island (level 20+) → world map → sail
+ * intro → create → airship/combat → tutorial → raft → home island → world map → sail
  * SSOT detail: shared/definitions/warlordsProductionFlow.ts
  */
 export const PRODUCTION_DEPLOYMENT_PATH: GameDeployment[] = [
   {
     id: "warlords-pipeline",
     title: "Warlords Start",
-    subtitle: "Full production pipeline · level gates",
+    subtitle: "Full production pipeline · tutorial then home island",
     description:
-      "Opening scene → character create → shipwreck tutorial → open world. Home island unlocks at level 20.",
+      "Intro → create → airship (combat) → tutorial island → craft raft → home island (not level 20) → open world.",
     url: "/warlords/start",
     icon: "flame",
     tier: "core",
@@ -146,8 +146,8 @@ export const PRODUCTION_DEPLOYMENT_PATH: GameDeployment[] = [
     title: "Shipwreck Adventure",
     subtitle: "Solo · Pirate Island · Not Multiplayer Lobby",
     description:
-      "Solo start: wash up on pirate island wreck → sticks/stones → campfire → combat → craft raft. " +
-      "Then open-world multiplayer. Home island unlocks at hero level 20 (not immediately after tutorial).",
+      "Solo start: wash up on shipwreck → sticks/stones → tools → craft raft. " +
+      "Completing the raft unlocks home-island intro and creation (never level 20).",
     url: "/tutorial",
     icon: "flame",
     tier: "core",
@@ -563,15 +563,24 @@ export const WARLORDS_HOME_ACTIONS = [
     id: "home-island",
     title: "Home Island",
     subtitle: "Personal 1024 m seed",
-    description: "Your Three.js home island (level gate applies in production flow).",
+    description:
+      "Your Three.js home island — granted after tutorial + raft (not level 20). Skips tutorial forever once claimed.",
     url: THREE_HOME_ISLAND_PATH,
     icon: "globe" as const,
   },
   {
+    id: "combat-airship",
+    title: "Combat · Airship",
+    subtitle: "4-character Warlords era scene",
+    description: "Player + John Wayne, Scourge, Racalvin on the airship. Combat tab entry.",
+    url: "/combat",
+    icon: "anchor" as const,
+  },
+  {
     id: "tutorial",
     title: "Start Tutorial",
-    subtitle: "Shipwreck · raft · first combat",
-    description: "New player shipwreck tutorial → then lobby / open world.",
+    subtitle: "Shipwreck · raft · unlock home",
+    description: "New player shipwreck tutorial → craft raft → home island intro.",
     url: "/tutorial",
     icon: "flame" as const,
   },

@@ -112,6 +112,34 @@ export type ProductionWeaponType = (typeof PRODUCTION_WEAPON_TYPES)[number];
  */
 export type WeaponClassRole = 'mage' | 'worge' | 'ranger' | 'warrior' | 'any';
 
+/**
+ * HARD LOCK — Warlords-era **class items only**. Never migrate these to
+ * Mine-Loader / GRUDOX / @workspace/arsenal voxel prefabs.
+ * (Staff/Bow/Sword/etc. remain shareable; these four are class kits.)
+ */
+export const WARLORDS_CLASS_WEAPON_TYPES = [
+  'WAND',
+  'GRIMOIRE',
+  'RANGER_LOG',
+  'BATTLE_DUAL',
+] as const satisfies readonly ProductionWeaponType[];
+
+export type WarlordsClassWeaponType = (typeof WARLORDS_CLASS_WEAPON_TYPES)[number];
+
+export function isWarlordsClassWeaponType(
+  t: string | null | undefined,
+): t is WarlordsClassWeaponType {
+  if (!t) return false;
+  const u = t.toUpperCase();
+  return (WARLORDS_CLASS_WEAPON_TYPES as readonly string[]).includes(u);
+}
+
+/** Weapon types allowed on voxel prefab migration (excludes class kits). */
+export function isVoxelMigratableWeaponType(t: string | null | undefined): boolean {
+  if (!t) return false;
+  return !isWarlordsClassWeaponType(t);
+}
+
 export const WEAPON_CLASS_ROLE: Partial<
   Record<ProductionWeaponType, WeaponClassRole>
 > = {

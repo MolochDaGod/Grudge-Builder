@@ -1006,7 +1006,26 @@ export class DatabaseStorage implements IStorage {
 
   async getOrCreateAccountForUser(userId: string): Promise<Account> {
     const existing = await this.getAccountByUserId(userId);
-    if (existing) return existing;
+    if (existing) {
+      // Lazy wallet provision: existing accounts without a server wallet get one
+      // on first touch (login / first character) — never a second wallet.
+      if (!existing.walletAddress) {
+        try {
+          const { nftMintingService } = await import("./services/nftMinting");
+          const addr = await nftMintingService.ensureAccountWallet(existing.id);
+          if (addr) {
+            const refreshed = await this.getAccountByUserId(userId);
+            if (refreshed) return refreshed;
+          }
+        } catch (error) {
+          console.warn(
+            "[Storage] Lazy wallet provision failed (mint will retry):",
+            error,
+          );
+        }
+      }
+      return existing;
+    }
     
     // Get user for wallet initialization
     const user = await this.getUser(userId);
@@ -1016,20 +1035,26 @@ export class DatabaseStorage implements IStorage {
     const { crossmintWalletService } = await import("./services/crossmintWallet");
     
     const grudgeId = generateGrudgeId(userId);
-    const email = user?.email || generateWalletEmail(userId, user?.username);
+    // Stable Crossmint locator by Grudge ID (not random email) so all eras share one wallet
+    const email =
+      user?.email ||
+      crossmintWalletService.stableEmailForGrudgeId(grudgeId) ||
+      generateWalletEmail(userId, user?.username);
     
     console.log(`[Storage] Creating account for user ${userId} with Grudge ID: ${grudgeId}`);
     
-    // Try to create wallet (non-blocking)
+    // Provision singular server-side Crossmint Solana wallet (non-blocking if API down)
     let walletData: { walletAddress?: string; walletId?: string } = {};
     try {
-      const wallet = await crossmintWalletService.getOrCreateWallet(email);
+      const wallet =
+        (await crossmintWalletService.getOrCreateWalletForGrudgeId(grudgeId)) ||
+        (await crossmintWalletService.getOrCreateWallet(email));
       if (wallet) {
         walletData = {
           walletAddress: wallet.address,
           walletId: wallet.id,
         };
-        console.log(`[Storage] Created wallet ${wallet.address} for account`);
+        console.log(`[Storage] Created wallet ${wallet.address} for account grudgeId=${grudgeId}`);
       }
     } catch (error) {
       console.warn('[Storage] Wallet creation failed, continuing without wallet:', error);

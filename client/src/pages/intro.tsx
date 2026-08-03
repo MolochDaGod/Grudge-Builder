@@ -3,12 +3,22 @@ import { useLocation } from "wouter";
 import { motion } from "framer-motion";
 import { LogIn } from "lucide-react";
 import {
-  RACE_PORTRAITS,
   CLASS_STAGE_BACKGROUNDS, CLASS_ACCENT_COLORS, CLASS_CYCLE,
 } from "@/lib/artAssets";
 import { useFleetVideo } from "@/hooks/use-fleet-video";
-import { FactionEmblemRow } from "@/components/FactionEmblems";
+import { CrusadeEmblem, FabledEmblem, LegionEmblem } from "@/components/FactionEmblems";
 import { useAuth } from "@/contexts/AuthContext";
+import { WARLORDS_RACE_PORTRAIT_PATHS } from "@shared/fleet/uiArt";
+
+/** Six production races — real portrait PNGs (not imgur placeholders) */
+const INTRO_RACES = [
+  { id: "human", label: "Human" },
+  { id: "barbarian", label: "Barbarian" },
+  { id: "elf", label: "Elf" },
+  { id: "dwarf", label: "Dwarf" },
+  { id: "orc", label: "Orc" },
+  { id: "undead", label: "Undead" },
+] as const;
 
 const PARTICLE_COUNT = 50;
 
@@ -19,6 +29,7 @@ export default function IntroPage() {
   const [showEnter, setShowEnter] = useState(false);
   const [activeClass, setActiveClass] = useState<string>("warrior");
   const { isAuthenticated, user, openLogin } = useAuth();
+  // openLogin → id.grudge-studio.com (fleet SSOT), not a unique Warlords modal
 
   // Stable particle definitions (no re-randomize on render)
   const particles = useMemo(() =>
@@ -52,8 +63,8 @@ export default function IntroPage() {
     } catch {
       /* ignore */
     }
-    // Production pipeline: opening → create / tutorial / open world / home@20
-    setLocation('/warlords/start');
+    // Production: intro video → create / airship / tutorial / home island (after raft)
+    setLocation('/warlords/start?auto=1');
   };
   const accentColor = CLASS_ACCENT_COLORS[activeClass] ?? "#f6c945";
 
@@ -158,29 +169,60 @@ export default function IntroPage() {
           </div>
         </motion.div>
 
-        {/* Faction emblems */}
+        {/* Faction emblems — production PNGs at /assets/factions/*-emblem.png */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: showEnter ? 1 : 0 }}
           transition={{ duration: 0.8, delay: 0.2 }}
-          className="flex gap-4 mb-6"
+          className="flex items-center justify-center gap-5 mb-6"
         >
-          <FactionEmblemRow size={30} />
+          {(
+            [
+              { Emblem: CrusadeEmblem, name: "Crusade", border: "border-amber-500/40" },
+              { Emblem: LegionEmblem, name: "Legion", border: "border-red-500/40" },
+              { Emblem: FabledEmblem, name: "Fabled", border: "border-cyan-500/40" },
+            ] as const
+          ).map(({ Emblem, name, border }) => (
+            <div
+              key={name}
+              className={`w-16 h-16 sm:w-20 sm:h-20 rounded-xl bg-black/45 border ${border} flex items-center justify-center overflow-hidden p-1.5 shadow-[0_0_24px_rgba(0,0,0,.5)]`}
+              title={name}
+            >
+              <Emblem size={64} className="w-full h-full object-contain" />
+            </div>
+          ))}
         </motion.div>
 
-        {/* Race portrait strip — animated card style from RTS-Grudge */}
+        {/* Race portrait strip — real /races/*-portrait.png production art */}
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: showEnter ? 1 : 0, y: showEnter ? 0 : 10 }}
           transition={{ duration: 0.8, delay: 0.4 }}
-          className="flex gap-2.5 mb-8"
+          className="flex flex-wrap justify-center gap-2.5 mb-8 max-w-lg"
         >
-          {Object.entries(RACE_PORTRAITS).map(([race, src]) => (
-            <div key={race} className="race-card" style={{ width: 56, height: 56 }}>
-              <div className="portrait" style={{ backgroundImage: `url('${src}')` }} />
-              <span className="race-label">{race}</span>
-            </div>
-          ))}
+          {INTRO_RACES.map(({ id, label }) => {
+            const src =
+              WARLORDS_RACE_PORTRAIT_PATHS[
+                id as keyof typeof WARLORDS_RACE_PORTRAIT_PATHS
+              ];
+            return (
+              <div
+                key={id}
+                className="race-card"
+                style={{ width: 72, height: 88 }}
+                title={label}
+              >
+                <div
+                  className="portrait"
+                  style={{
+                    backgroundImage: `url('${src}')`,
+                    backgroundPosition: "center top",
+                  }}
+                />
+                <span className="race-label">{label}</span>
+              </div>
+            );
+          })}
         </motion.div>
 
         <motion.div
@@ -208,10 +250,11 @@ export default function IntroPage() {
               {isAuthenticated ? 'CONTINUE' : 'ENTER WORLD'}
             </button>
 
-            {/* Sign In button — only shown when not authenticated */}
+            {/* Sign In → id.grudge-studio.com (standard Grudge ID SSO) */}
             {!isAuthenticated && (
               <button
-                onClick={openLogin}
+                type="button"
+                onClick={() => openLogin('/intro')}
                 className="flex items-center gap-2 font-cinzel font-bold text-sm px-8 py-3 rounded-xl cursor-pointer transition-all hover:-translate-y-0.5"
                 style={{
                   background: 'rgba(255,255,255,.06)',
@@ -221,10 +264,15 @@ export default function IntroPage() {
                 }}
               >
                 <LogIn className="w-4 h-4" />
-                SIGN IN
+                SIGN IN WITH GRUDGE ID
               </button>
             )}
           </div>
+          {!isAuthenticated && (
+            <p className="text-[10px] text-slate-500 tracking-wide mt-1">
+              Secure login at id.grudge-studio.com · same account across the fleet
+            </p>
+          )}
 
           {/* Welcome back line for authenticated users */}
           {isAuthenticated && user && (
