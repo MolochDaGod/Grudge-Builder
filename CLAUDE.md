@@ -97,7 +97,7 @@ workers/
 | `sector` | Gameplay (move/combat/harvest/build) | 20 Hz |
 | `town` | Social hub (NPCs/merchants/chat) | 5 Hz |
 | `shipwreck` | Tutorial (private 1-player) | 10 Hz |
-| `home_island` | Persistent home (auto-harvest/build) | 5 Hz |
+| `home_island` | Owner + 5 guests; owner-only harvest/build; `filterBy(accountId)` | 5 Hz |
 | `dungeon` | Instanced PvE (floor-based) | 20 Hz |
 | `lobby` | Pre-game matchmaking | 10 Hz |
 

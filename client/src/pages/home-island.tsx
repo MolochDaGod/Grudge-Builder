@@ -74,6 +74,10 @@ export default function HomeIslandPage() {
   const [mountainDungeonName, setMountainDungeonName] = useState<string | null>(null);
   const [mainPanelOpen, setMainPanelOpen] = useState(false);
   const [authToken, setAuthToken] = useState<string | null>(null);
+  /** Hosting: owner harvest/build; guests visit-only (Colyseus home_island). */
+  const [isVisitor, setIsVisitor] = useState(false);
+  const [ownerAccountId, setOwnerAccountId] = useState<string | null>(null);
+  const isVisitorRef = useRef(false);
 
   const [characterName, setCharacterName] = useState('Islander');
   const [heroRace, setHeroRace] = useState('human');
@@ -244,7 +248,31 @@ export default function HomeIslandPage() {
     }
   }, [showNotification]);
 
-  // ── Colyseus HomeIslandRoom ───────────────────────────────────
+  // ── Visit mode: ?visit=<ownerAccountId> (or visitAccount / owner) ──
+  useEffect(() => {
+    try {
+      const qs = new URLSearchParams(window.location.search);
+      const visit =
+        qs.get('visit') || qs.get('visitAccount') || qs.get('owner') || qs.get('host');
+      const me =
+        localStorage.getItem('grudge_account_id') ||
+        localStorage.getItem('grudge_user_id') ||
+        '';
+      if (visit && visit !== me) {
+        setIsVisitor(true);
+        isVisitorRef.current = true;
+        setOwnerAccountId(visit);
+      } else {
+        setIsVisitor(false);
+        isVisitorRef.current = false;
+        setOwnerAccountId(me || null);
+      }
+    } catch {
+      /* private mode */
+    }
+  }, []);
+
+  // ── Colyseus HomeIslandRoom (owner + 5 guests; owner-only harvest/build) ──
 
   useEffect(() => {
     if (!islandSeed || !loadConfigRef.current) return;
@@ -257,14 +285,29 @@ export default function HomeIslandPage() {
       try {
         const endpoint = getColyseusEndpoint();
         client = new Client(endpoint);
-        const accountId = localStorage.getItem('grudge_account_id') || 'guest';
+        const myAccountId =
+          localStorage.getItem('grudge_account_id') ||
+          localStorage.getItem('grudge_user_id') ||
+          'guest';
+        const qs = new URLSearchParams(window.location.search);
+        const visitOwner =
+          qs.get('visit') || qs.get('visitAccount') || qs.get('owner') || qs.get('host');
+        const visiting = !!(visitOwner && visitOwner !== myAccountId);
+        // filterBy accountId = always the **owner's** room key
+        const roomAccountId = visiting ? visitOwner! : myAccountId;
 
-        room = await client.joinOrCreate('home_island', {
-          accountId,
+        isVisitorRef.current = visiting;
+        setIsVisitor(visiting);
+        setOwnerAccountId(roomAccountId);
+
+        const joinOpts = {
+          accountId: roomAccountId,
+          visitorAccountId: visiting ? myAccountId : undefined,
+          isVisitor: visiting,
           characterName: cfg.name,
           heroRace: cfg.raceId,
           heroClass: cfg.classId,
-          islandUUID: islandDto?.id || accountId,
+          islandUUID: islandDto?.id || roomAccountId,
           islandSeed: hashIslandSeedForColyseus(islandSeed),
           level: cfg.level,
           baseModelId: cfg.baseModelId,
@@ -272,8 +315,20 @@ export default function HomeIslandPage() {
           weaponSlots: cfg.weaponSlots,
           skinColor: cfg.skinColor,
           armorColor: cfg.armorColor,
-          equippedWeaponType: getWeaponTypeForMode(playMode, cfg.classId, cfg.hasWeapon, cfg.equippedWeaponType),
-        });
+          equippedWeaponType: getWeaponTypeForMode(
+            playMode,
+            cfg.classId,
+            cfg.hasWeapon,
+            cfg.equippedWeaponType,
+          ),
+        };
+
+        // Owner: joinOrCreate. Guest: join only (owner must be hosting).
+        if (visiting) {
+          room = await client.join('home_island', joinOpts);
+        } else {
+          room = await client.joinOrCreate('home_island', joinOpts);
+        }
         roomRef.current = room;
 
         room.state.players.onAdd(() => setPlayerCount(room!.state.players.size));
@@ -282,7 +337,25 @@ export default function HomeIslandPage() {
 
         room.state.listen('buildingCount', (v: number) => setBuildingCount(v));
 
+        room.onMessage('island_role', (role: { isVisitor?: boolean; isOwner?: boolean }) => {
+          const guest = role.isVisitor === true || role.isOwner === false;
+          isVisitorRef.current = guest;
+          setIsVisitor(guest);
+          if (guest && playMode !== 'combat') {
+            setPlayMode('combat');
+          }
+        });
+
+        room.onMessage('action_denied', (data: { reason?: string }) => {
+          showNotification(data.reason || 'Action not allowed on this island');
+        });
+
+        room.onMessage('island_full', () => {
+          showNotification('Island is full (owner + 5 guests)');
+        });
+
         room.onMessage('harvest_complete', async (data: { resource: string; quantity: number }) => {
+          if (isVisitorRef.current) return; // owner economy only
           const key = data.resource;
           setResources(prev => ({ ...prev, [key]: (prev[key] || 0) + data.quantity }));
           showNotification(`Gathered ${key} ×${data.quantity}`);
@@ -290,21 +363,26 @@ export default function HomeIslandPage() {
         });
 
         room.onMessage('auto_harvest', (data: { resource: string; quantity: number; total: number }) => {
+          if (isVisitorRef.current) return;
           setResources(prev => ({ ...prev, [data.resource]: data.total }));
           showNotification(`Hero gathered ${data.resource} (total: ${data.total})`);
         });
 
         room.onMessage('building_placed', (data: { totalBuildings: number }) => {
           setBuildingCount(data.totalBuildings);
-          showNotification('Building placed!');
+          if (!isVisitorRef.current) showNotification('Building placed!');
         });
 
-        room.onMessage('building_removed', () => showNotification('Building removed'));
+        room.onMessage('building_removed', () => {
+          if (!isVisitorRef.current) showNotification('Building removed');
+        });
 
         room.onMessage('island_exit', () => setLocation('/play'));
 
-        room.send('get_resources');
-        room.onMessage('resources', (data: Record<string, number>) => setResources(data));
+        if (!visiting) {
+          room.send('get_resources');
+          room.onMessage('resources', (data: Record<string, number>) => setResources(data));
+        }
 
         room.state.harvestNodes?.onAdd?.((node: any, id: string) => {
           nodesRef.current.set(id, {
@@ -321,11 +399,20 @@ export default function HomeIslandPage() {
 
         room.state.players.onAdd((player: any, sessionId: string) => {
           if (sessionId === room!.sessionId) return;
-          showNotification(`${player.characterName} is visiting your island!`);
+          showNotification(
+            visiting
+              ? `${player.characterName} is here`
+              : `${player.characterName} is visiting your island!`,
+          );
         });
       } catch (err) {
         console.error('[HomeIsland] Connection failed:', err);
-        showNotification('Offline mode — island loaded locally');
+        const msg = err instanceof Error ? err.message : String(err);
+        if (msg.includes('HOME_ISLAND_OWNER_OFFLINE') || msg.includes('not found')) {
+          showNotification('Owner is not hosting — ask them to open Home Island');
+        } else {
+          showNotification('Offline mode — island loaded locally');
+        }
       }
     }
 
@@ -547,6 +634,10 @@ export default function HomeIslandPage() {
 
   useEffect(() => {
     onHarvestRef.current = ({ nodeId, resourceType }) => {
+      if (isVisitorRef.current) {
+        showNotification('Guests cannot harvest — owner only');
+        return;
+      }
       const key = resourceType;
       setResources(prev => ({ ...prev, [key]: (prev[key] || 0) + 1 }));
       showNotification(`Gathered ${key}`);
@@ -563,6 +654,10 @@ export default function HomeIslandPage() {
   });
 
   const handleHarvest = () => {
+    if (isVisitorRef.current) {
+      showNotification('Guests cannot harvest — owner only');
+      return;
+    }
     if (playMode !== 'harvest') { setPlayMode('harvest'); return; }
     const nearest = findNearestNode();
     if (nearest) {
@@ -579,11 +674,19 @@ export default function HomeIslandPage() {
   };
 
   const handleCraft = () => {
+    if (isVisitorRef.current) {
+      showNotification('Guests cannot craft/build — owner only');
+      return;
+    }
     setPlayMode('build');
     setLocation('/crafting');
   };
 
   const handleBuildRaft = () => {
+    if (isVisitorRef.current) {
+      showNotification('Guests cannot build — owner only');
+      return;
+    }
     if (playMode !== 'build') setPlayMode('build');
     const engine = engineRef.current;
     if (!engine) return;
@@ -602,10 +705,16 @@ export default function HomeIslandPage() {
   };
 
   const handleModeChange = (mode: ControlMode) => {
+    if (isVisitorRef.current && (mode === 'harvest' || mode === 'build')) {
+      showNotification('Visit mode — walk and chat only (owner harvests & builds)');
+      setPlayMode('combat');
+      setAllyMessage('Visiting — owner-only harvest/build · you can explore and chat');
+      return;
+    }
     setPlayMode(mode);
     const hints: Record<ControlMode, string> = {
       harvest: 'Harvest — R tools (hatchet default) · sheath weapons · Q combat.',
-      combat: hasWeapon ? 'Combat — Q harvest · Z sheath · Tab soft-lock.' : 'Visit Arsenal to equip a weapon.',
+      combat: hasWeapon ? 'Combat — Q harvest · Z sheath · Tab soft-lock.' : 'Equip a weapon from Arsenal first.',
       build: 'Build hammer (R radial) — place structures · R tools · Q combat.',
     };
     setAllyMessage(hints[mode]);
@@ -673,6 +782,22 @@ export default function HomeIslandPage() {
 
       {loaded && (
         <>
+          {/* Hosting chrome: owner + 5 guests; owner-only harvest/build */}
+          <div className="pointer-events-none fixed top-3 left-1/2 z-[60] -translate-x-1/2 flex flex-col items-center gap-1">
+            {isVisitor ? (
+              <div className="rounded-full border border-cyan-500/40 bg-black/70 px-4 py-1.5 text-xs font-medium text-cyan-200 shadow-lg">
+                Visiting · walk &amp; chat only · harvest/build owner-only
+                {ownerAccountId ? (
+                  <span className="ml-2 opacity-60 font-mono">host {ownerAccountId.slice(0, 8)}…</span>
+                ) : null}
+              </div>
+            ) : (
+              <div className="rounded-full border border-amber-500/35 bg-black/65 px-4 py-1.5 text-xs text-amber-100/90 shadow-lg">
+                Hosting · you + {Math.max(0, playerCount - 1)}/5 guests · harvest &amp; build enabled
+              </div>
+            )}
+          </div>
+
           {/* Pack chrome from ui.grudge-studio.com (water-island) — non-interactive layer */}
           <GrudgeGameUiLayer
             surface="homeIsland"
@@ -694,9 +819,10 @@ export default function HomeIslandPage() {
                 mpMax: 100,
               },
               obj1: {
-                label: 'Home tasks',
-                objective:
-                  Object.keys(resources).length > 0
+                label: isVisitor ? 'Visiting' : 'Home tasks',
+                objective: isVisitor
+                  ? 'Guest — explore & chat · host harvests/builds'
+                  : Object.keys(resources).length > 0
                     ? buildingCount > 0
                       ? 'Island active — explore mountains north'
                       : 'Place a building (R → hammer)'

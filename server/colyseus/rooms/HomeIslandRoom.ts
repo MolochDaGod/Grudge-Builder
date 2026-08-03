@@ -38,7 +38,13 @@ import { generateRegrowRegions, ISLAND_HARVEST_NODES } from "@shared/definitions
 // ── Join Options ─────────────────────────────────────────────────
 
 interface HomeIslandJoinOptions {
+  /**
+   * Room key (filterBy). Always the **owner's** account id — guests pass the
+   * host account id so matchMaker joins the same room.
+   */
   accountId: string;
+  /** Guest's own account id (identity only; not used for filterBy). */
+  visitorAccountId?: string;
   islandUUID?: string;
   islandSeed?: number;
   characterName?: string;
@@ -48,7 +54,8 @@ interface HomeIslandJoinOptions {
   level?: number;
   baseModelId?: string;
   equippedWeaponType?: string;
-  isVisitor?: boolean; // true if visiting someone else's island
+  /** true = guest (visit-only); false/omitted = owner host */
+  isVisitor?: boolean;
 }
 
 // ── Constants ────────────────────────────────────────────────────
@@ -67,26 +74,38 @@ const RESOURCE_TYPES = ["forest", "mining", "fishing", "herbalism"];
 // ── HomeIslandRoom ───────────────────────────────────────────────
 
 export class HomeIslandRoom extends Room<HomeIslandState> {
-  maxClients = 1 + MAX_VISITORS; // owner + visitors
+  /** Owner seat + MAX_VISITORS guests (hosting SSOT). */
+  maxClients = 1 + MAX_VISITORS;
   private ownerId: string = "";
   private autoHarvestInterval: ReturnType<typeof setInterval> | null = null;
   private saveInterval: ReturnType<typeof setInterval> | null = null;
   private harvestedResources: Record<string, number> = {};
 
   onCreate(options: HomeIslandJoinOptions) {
-    this.ownerId = options.accountId;
+    // Guests must join an existing room — never create the owner's instance.
+    if (options.isVisitor) {
+      throw new Error("HOME_ISLAND_OWNER_OFFLINE");
+    }
+    const ownerAccountId = String(options.accountId || "").trim();
+    if (!ownerAccountId) {
+      throw new Error("HOME_ISLAND_ACCOUNT_REQUIRED");
+    }
+    this.ownerId = ownerAccountId;
 
     const state = new HomeIslandState();
-    state.accountId = options.accountId;
-    state.islandUUID = options.islandUUID || options.accountId;
+    state.accountId = ownerAccountId;
+    state.islandUUID = options.islandUUID || ownerAccountId;
     state.islandSeed = this.resolveNumericSeed(options);
     state.dockBuilt = true;
     this.setState(state);
 
+    // filterBy(["accountId"]) matches this metadata + join options.accountId
     this.setMetadata({
-      accountId: options.accountId,
+      accountId: ownerAccountId,
       islandUUID: state.islandUUID,
       ownerName: options.characterName || "Unknown",
+      maxGuests: MAX_VISITORS,
+      hosting: "owner+5",
     });
 
     // Seed harvest nodes procedurally from island seed
@@ -125,9 +144,15 @@ export class HomeIslandRoom extends Room<HomeIslandState> {
       player.state = data.state;
     });
 
-    // Manual harvest (owner only)
+    // Manual harvest — owner only (guests are visit/read-only)
     this.onMessage("harvest", (client, data: { nodeId: string; professionId: string }) => {
-      if (!this.isOwner(client)) return;
+      if (!this.isOwner(client)) {
+        client.send("action_denied", {
+          action: "harvest",
+          reason: "Owner-only — guests can visit but not harvest",
+        });
+        return;
+      }
       const node = state.harvestNodes.get(data.nodeId);
       if (!node || node.depleted) return;
 
@@ -145,11 +170,17 @@ export class HomeIslandRoom extends Room<HomeIslandState> {
       });
     });
 
-    // Place building (owner only) — synced via PlacedBuilding schema
+    // Place building — owner only
     this.onMessage("place_building", (client, data: {
       id: string; assetId: string; x: number; y: number; z: number; rotation: number;
     }) => {
-      if (!this.isOwner(client)) return;
+      if (!this.isOwner(client)) {
+        client.send("action_denied", {
+          action: "place_building",
+          reason: "Owner-only — guests can visit but not build",
+        });
+        return;
+      }
       const player = state.players.get(client.sessionId);
       const building = new PlacedBuilding();
       building.id = data.id;
@@ -162,15 +193,26 @@ export class HomeIslandRoom extends Room<HomeIslandState> {
       building.rotation = data.rotation;
       state.buildings.set(building.id, building);
       state.buildingCount = state.buildings.size;
+      this.broadcast("building_placed", {
+        id: building.id,
+        totalBuildings: state.buildingCount,
+      });
     });
 
-    // Remove building (owner only)
+    // Remove building — owner only
     this.onMessage("remove_building", (client, data: { id: string }) => {
-      if (!this.isOwner(client)) return;
+      if (!this.isOwner(client)) {
+        client.send("action_denied", {
+          action: "remove_building",
+          reason: "Owner-only — guests can visit but not build",
+        });
+        return;
+      }
       const building = state.buildings.get(data.id);
       if (!building) return;
       state.buildings.delete(data.id);
       state.buildingCount = state.buildings.size;
+      this.broadcast("building_removed", { id: data.id, totalBuildings: state.buildingCount });
     });
 
     // Get harvested resources
@@ -202,19 +244,38 @@ export class HomeIslandRoom extends Room<HomeIslandState> {
   }
 
   onJoin(client: Client, options: HomeIslandJoinOptions) {
-    const isVisitor = options.isVisitor || (options.accountId !== this.ownerId);
+    // filterBy accountId is always the **owner** id (room key). Role is only isVisitor.
+    const roomKey = String(options.accountId || "").trim();
+    const isVisitor = options.isVisitor === true;
 
-    // Enforce visitor limit
-    if (isVisitor && this.state.players.size >= this.maxClients) {
-      client.send("island_full", { error: "Island is full" });
-      client.leave();
+    if (roomKey && roomKey !== this.ownerId) {
+      client.send("action_denied", {
+        action: "join",
+        reason: "Room key mismatch (accountId must be owner)",
+      });
+      client.leave(4001);
+      return;
+    }
+
+    // Hosting: owner + MAX_VISITORS. Owner always may enter; guests capped.
+    const visitorCount = this.countVisitors();
+    if (isVisitor && visitorCount >= MAX_VISITORS) {
+      client.send("island_full", {
+        error: "Island is full",
+        maxGuests: MAX_VISITORS,
+        guests: visitorCount,
+      });
+      client.leave(4000);
       return;
     }
 
     const player = new SectorPlayer();
     player.id = client.sessionId;
-    player.accountId = options.accountId || "";
-    player.characterName = options.characterName || "Visitor";
+    // Owner rows use owner accountId (isOwner checks this). Guests use visitorAccountId.
+    player.accountId = isVisitor
+      ? String(options.visitorAccountId || `guest:${client.sessionId}`)
+      : this.ownerId;
+    player.characterName = options.characterName || (isVisitor ? "Visitor" : "Owner");
     player.heroClass = options.heroClass || "warrior";
     player.heroRace = options.heroRace || "human";
     player.faction = options.faction || "";
@@ -229,9 +290,18 @@ export class HomeIslandRoom extends Room<HomeIslandState> {
 
     this.state.players.set(client.sessionId, player);
 
+    client.send("island_role", {
+      isOwner: !isVisitor,
+      isVisitor,
+      ownerAccountId: this.ownerId,
+      maxGuests: MAX_VISITORS,
+      guests: this.countVisitors(),
+      players: this.state.players.size,
+    });
+
     console.log(
       `[HomeIslandRoom] ${player.characterName} ${isVisitor ? "visiting" : "entered own"} island — ` +
-      `${this.state.players.size} on island`
+        `${this.state.players.size}/${this.maxClients} (guests ${this.countVisitors()}/${MAX_VISITORS})`,
     );
   }
 
@@ -274,7 +344,16 @@ export class HomeIslandRoom extends Room<HomeIslandState> {
 
   private isOwner(client: Client): boolean {
     const player = this.state.players.get(client.sessionId);
-    return player?.accountId === this.ownerId;
+    return !!player && player.accountId === this.ownerId;
+  }
+
+  /** Guests currently in room (everyone except owner accountId). */
+  private countVisitors(): number {
+    let n = 0;
+    this.state.players.forEach((p) => {
+      if (p.accountId !== this.ownerId) n += 1;
+    });
+    return n;
   }
 
   /** Colyseus schema uses a numeric seed; clients may send UUID text — coerce safely. */
