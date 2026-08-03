@@ -1,7 +1,14 @@
 # Grudge CDN Worker — serves assets from R2 at assets.grudge-studio.com
 name = "grudge-asset-cdn"
 main = "src/index.js"
-compatibility_date = "2024-09-23"
+compatibility_date = "2026-03-01"
+compatibility_flags = ["nodejs_compat"]
+
+[observability]
+enabled = true
+head_sampling_rate = 1
+
+# Public CDN — no app secrets required. Admin uploads use R2 API tokens via keytar / wrangler secret put on upload tools.
 
 # ── R2 Bucket ────────────────────────────────────────────────────────────────
 [[r2_buckets]]

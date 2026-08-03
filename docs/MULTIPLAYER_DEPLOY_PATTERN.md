@@ -47,6 +47,8 @@ Fleet: `FLEET_URLS.colyseus` in `shared/fleet/manifest.ts`
 
 ## Home island visit pattern
 
+**Ownership + bag/camps:** [WARLORDS_ACCOUNT_CHARACTER_SSOT.md](./WARLORDS_ACCOUNT_CHARACTER_SSOT.md) — island is account-owned; visitors bring their own hero progress, not the host bag.
+
 ```ts
 // Owner
 client.joinOrCreate('home_island', {

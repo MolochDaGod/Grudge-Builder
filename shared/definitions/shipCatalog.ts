@@ -34,6 +34,15 @@ export interface ShipCatalogEntry {
 export const DOCK_GLB = '/models/buildings/village/dock.glb';
 
 /**
+ * Grudge Warlords intro cinema ship (LeviathanOceanCinema SSOT).
+ * Prefer this over craftable fleet hulls for production intro / shipwreck cut.
+ */
+export const CINEMA_INTRO_SHIP_GLB = [
+  'https://assets.grudge-studio.com/models/cinema/tz-pirate-ship.glb',
+  '/models/cinema/tz-pirate-ship.glb',
+] as const;
+
+/**
  * Player craftable fleet sizes (ShipSize SSOT).
  * Prefab keys map into game/sailing/ShipPrefabs SHIP_PREFAB_CONFIGS
  * (raft, skiff, sloop, brigantine, galleon, large, ghost, wreck, enemy).

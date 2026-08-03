@@ -21,7 +21,8 @@ export type MapFamilyId =
   | 'home_island'
   | 'event_island'
   | 'battle_arena'
-  | 'pvp_battleground_genesis';
+  | 'pvp_battleground_genesis'
+  | 'assassination_grounds';
 
 export interface MapFamilyDef {
   id: MapFamilyId;
@@ -316,6 +317,40 @@ export const MAP_FAMILIES: Record<MapFamilyId, MapFamilyDef> = {
       'Do not load haven_shore as a genesis battleground id',
     ],
   },
+
+  assassination_grounds: {
+    id: 'assassination_grounds',
+    name: 'Ultimate Assassination Grounds',
+    shortName: 'Assassination Grounds',
+    description:
+      'Authored kill-house GLB with full MeshSceneNavMesh (three-pathfinding), target systems, ' +
+      'and entrance/exit portals that prompt Return to Danger Room (open.grudge-studio.com/danger).',
+    sectorModel: 'Single authored GLB map (not warlords 9-sector)',
+    sources: [
+      'shared/definitions/assassinationGroundsMap.ts',
+      'client/src/island3d/maps/AssassinationGroundsRuntime.ts',
+      'client/src/island3d/navigation/MeshSceneNavMesh.ts',
+      'client/src/pages/assassination-grounds.tsx',
+      'https://assets.grudge-studio.com/models/maps/assassination_grounds/ultimate_assassination_grounds.glb',
+    ],
+    entry: {
+      primary: '/assassination-grounds',
+      alternates: ['/maps/assassination-grounds', '/danger-grounds'],
+    },
+    doNotConfuseWith: ['battle_arena', 'pvp_battleground_genesis', 'chicken_gun_pirate_lobby'],
+    engines: [
+      'AssassinationGroundsRuntime',
+      'MeshSceneNavMesh',
+      'three-pathfinding',
+      'Danger Room portal UI → open.grudge-studio.com/danger',
+    ],
+    notes: [
+      'Targets: Head/Torso/Arms/Katanas 1–3',
+      'Portals: Helperwedge1–6 (entrances + exits)',
+      'Skydome: ultimate_skydome_pack · sky_doom_19',
+      'Yes on portal → Danger Room; No → dismiss UI and walk away',
+    ],
+  },
 };
 
 /** All families as a stable ordered list for UI / ObjectStore export */
@@ -328,6 +363,7 @@ export const MAP_FAMILY_LIST: MapFamilyDef[] = [
   MAP_FAMILIES.event_island,
   MAP_FAMILIES.battle_arena,
   MAP_FAMILIES.pvp_battleground_genesis,
+  MAP_FAMILIES.assassination_grounds,
 ];
 
 // ── Guards ───────────────────────────────────────────────────────────────────

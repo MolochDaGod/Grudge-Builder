@@ -8,6 +8,7 @@
  * See docs/THREE_DEPLOY.md
  */
 import { FLEET_URLS } from "./manifest";
+import { warlordsPlayUrl } from "./warlordsDomains";
 
 /** External fleet origins that accept ?sso_token= from navigateToGame(). */
 export const FLEET_GAME_ORIGINS = {
@@ -23,8 +24,8 @@ export const FLEET_GAME_ORIGINS = {
   drive: "https://drive.grudge-studio.com",
   /** Grudge Open — combat/studio platform with full Grudge ID SSO. */
   gameopen: FLEET_URLS.gameopen,
-  /** Voxel / character play hub — Camofire, Ethereal Falls local + mode launcher */
-  play: "https://play.grudge.studio",
+  /** Warlords play SPA brand host (play.grudgewarlords.com) — same deploy as apex */
+  play: "https://play.grudgewarlords.com",
   /** Mine-Loader / Voxel Realms + Codex */
   "mine-loader": FLEET_URLS.mineLoader,
   voxgrudge: FLEET_URLS.voxgrudge,
@@ -63,11 +64,15 @@ export const THREE_DEPLOY_PATH_IDS = [
 export function threeHomeIslandUrl(opts?: {
   characterId?: string;
   islandId?: string;
+  absolute?: boolean;
 }): string {
-  const u = new URL(THREE_HOME_ISLAND_PATH, "https://grudgewarlords.com");
-  if (opts?.characterId) u.searchParams.set("characterId", opts.characterId);
-  if (opts?.islandId) u.searchParams.set("islandId", opts.islandId);
-  return u.pathname + u.search;
+  if (opts?.absolute || opts?.characterId || opts?.islandId) {
+    return warlordsPlayUrl(THREE_HOME_ISLAND_PATH, {
+      characterId: opts?.characterId,
+      islandId: opts?.islandId,
+    });
+  }
+  return THREE_HOME_ISLAND_PATH;
 }
 
 export function threeOpenWorldUrl(opts?: {
@@ -199,14 +204,14 @@ export const PRODUCTION_DEPLOYMENT_PATH: GameDeployment[] = [
   },
   {
     id: "play-hub",
-    title: "Grudge Play Hub",
-    subtitle: "Camofire · Ethereal Falls · Voxel Modes",
+    title: "Warlords Play",
+    subtitle: "play.grudgewarlords.com · game client",
     description:
-      "play.grudge.studio — character loadout, local Camofire/Ethereal Falls scenes, and launcher for all voxel/fleet modes.",
-    url: "https://play.grudge.studio",
+      "Warlords era game client brand host (same SPA as grudgewarlords.com). Airship, home island, maps, zones. Not play.grudge.studio.",
+    url: "https://play.grudgewarlords.com",
     icon: "swords",
     tier: "combat",
-    badge: "Hub",
+    badge: "Warlords",
     badgeColor: "cyan",
     stage: "sector",
     fleetGameId: "play",
@@ -247,7 +252,7 @@ export const PRODUCTION_DEPLOYMENT_PATH: GameDeployment[] = [
     title: "RTS / PvP Lobby",
     subtitle: "Pirate Map · Genesis Modes",
     description:
-      "Chicken Gun PolygonPirates lobby map + PvP modes (quick match, faction war, siege). Battlegrounds may open Warlord Genesis — not open-world sectors.",
+      "Warlords-only: Chicken Gun / PolygonPirates pirate-islands mesh (same opening + tutorial lobby map) + PvP modes (quick match, faction war, siege). Not GRUDOX, not Explorer, not an Open standalone game. Battlegrounds may open Warlord Genesis — not open-world sectors.",
     url: "/rts-grudge",
     icon: "shield",
     tier: "combat",
@@ -363,7 +368,7 @@ const HOME_GAME_MODE_EXTRAS: GameDeployment[] = [
     title: "Warlord Crafting",
     subtitle: "Forge Weapons & Armor",
     description: "Craft weapons, armor, consumables using your profession skills.",
-    url: "/crafting",
+    url: "/craft/",
     icon: "hammer",
     tier: "craft",
     badge: "Craft",
@@ -600,9 +605,9 @@ export const WARLORDS_HOME_ACTIONS = [
   {
     id: "lobby",
     title: "Enter Lobby Scene",
-    subtitle: "Center tile · dock board · PvP",
+    subtitle: "Opening + tutorial map · center tile",
     description:
-      "Pirate lobby (middle square of era 9). E at south dock for fleet panel → Set Sail ocean, or sail the lobby waters.",
+      "Chicken Gun pirate-islands lobby (Warlords opening map and tutorial map). Middle square of era 9 — not GRUDOX, not Explorer. E at south dock for fleet panel → Set Sail ocean, or sail the lobby waters.",
     url: WARLORDS_LOBBY_PATH,
     icon: "compass" as const,
   },

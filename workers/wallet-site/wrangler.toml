@@ -2,9 +2,16 @@
 # Replaces old VPS origin 74.208.155.229 (A record must be CF-proxied Worker target).
 name = "grudge-wallet-site"
 main = "src/index.js"
-compatibility_date = "2025-03-01"
+compatibility_date = "2026-03-01"
+compatibility_flags = ["nodejs_compat"]
 account_id = "ee475864561b02d4588180b8b9acf694"
 workers_dev = true
+
+[observability]
+enabled = true
+head_sampling_rate = 1
+
+# Secrets: wrangler secret put only if wallet edge gains private keys (prefer Railway).
 
 [[routes]]
 pattern = "wallet.grudge-studio.com/*"

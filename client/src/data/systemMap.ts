@@ -104,7 +104,8 @@ const domains: SystemNode[] = [
   { id: "dom:grudgedot-launcher", label: "grudgedot-launcher.vercel.app", kind: "domain", status: "broken", group: "launcher", url: "https://grudgedot-launcher.vercel.app", notes: "PROBE 404 (2026-04-26). Stale Vercel host left behind by the GDevelop→GrudgeDot rename. Canonical destination is launcher.grudge-studio.com (planned). home.legacy.tsx no longer hard-codes this URL — see GRUDGEDOT_LAUNCHER_URL in grudgeConfig.ts.", lastVerified: "2026-04-26" },
   // Puter deployments — see docs/puter-registry.json for canonical list.
   { id: "dom:grudge-server.puter.work", label: "grudge-server.puter.work", kind: "domain", status: "live",  group: "puter", url: "https://grudge-server.puter.work/api/health", notes: "External Puter worker (AI chat, vision, sprite gen, NPC chat, game data sync). See GrudgeBuilder/puter.md." },
-  { id: "dom:grudge-crafting.puter.site", label: "grudge-crafting.puter.site", kind: "domain", status: "live",  group: "puter", url: "https://grudge-crafting.puter.site", notes: "Puter-hosted crafting frontend. Should pull item icons/tiers from info.grudge-studio.com per user rule." },
+  { id: "dom:grudgewarlords-craft", label: "grudgewarlords.com/craft", kind: "domain", status: "live", group: "warlords", url: "https://grudgewarlords.com/craft/", notes: "Canonical WCS craft suite (inventory, recipes, item DB) on Warlords product domain." },
+  { id: "dom:grudge-crafting.puter.site", label: "grudge-crafting.puter.site", kind: "domain", status: "legacy",  group: "puter", url: "https://grudge-crafting.puter.site", notes: "Legacy Puter host — redirects to grudgewarlords.com/craft/." },
   { id: "dom:js.puter.com",       label: "js.puter.com (SDK CDN)", kind: "domain", status: "live",  group: "puter", url: "https://js.puter.com/v2/", notes: "Puter SDK script loaded by all Grudge frontends for AI/KV/FS/auth. Third-party, not owned." },
   // Shadow / untracked Puter deployments discovered via probe — see docs/puter-registry.json nameBreakRisks + frontends entries.
   { id: "dom:grudgewarlords.puter.site", label: "grudgewarlords.puter.site", kind: "domain", status: "broken", group: "puter", url: "https://grudgewarlords.puter.site", notes: "UNTRACKED live Grudge deployment (title=Grudge Warlords). Not referenced by any current code path. Owner TBD; decide keep vs retire." },
@@ -171,7 +172,8 @@ const services: SystemNode[] = [
   { id: "svc:status-page",    label: "Status page",         kind: "service", status: "planned", group: "ops",   owner: "platform" },
   // Puter services — external, but part of the Grudge identity + AI surface.
   { id: "svc:puter-worker",   label: "GRUDGE Puter Worker", kind: "service", status: "live",    group: "puter",   owner: "platform", notes: "grudge-server.puter.work — AI chat/vision, sprite gen jobs, NPC dialogue, game data sync. Endpoints documented in GrudgeBuilder/puter.md." },
-  { id: "svc:puter-crafting", label: "Puter Crafting Site", kind: "service", status: "live",    group: "puter",   owner: "frontend", notes: "grudge-crafting.puter.site. Must consume ObjectStore icons/items (rule n4qBEKIS...)." },
+  { id: "svc:warlords-crafting", label: "Warlords Craft Suite", kind: "service", status: "live", group: "warlords", owner: "frontend", repo: "Grudge-Builder", url: "https://grudgewarlords.com/craft/", notes: "Canonical WCS: inventory, recipes, item DB on product domain. Same Railway JWT + bag as SPA. Static /craft/ on Vercel." },
+  { id: "svc:puter-crafting", label: "Puter Crafting Site (legacy)", kind: "service", status: "legacy", group: "puter", owner: "frontend", notes: "Redirect-only to grudgewarlords.com/craft/. Keep allowlisted for old bookmarks." },
   { id: "svc:puter-sdk",      label: "Puter SDK (ai/kv/fs/auth)", kind: "service", status: "live", group: "puter", owner: "platform", notes: "Loaded client-side from js.puter.com/v2. Consumed by GrudgeBuilder (puterIntegration.ts), grudge-sdk.js, and Puter-hosted frontends." },
   { id: "svc:puter-auth-bridge", label: "Puter \u2194 Grudge ID bridge", kind: "service", status: "live", group: "puter", owner: "backend", repo: "grudge-backend", notes: "id.grudge-studio.com /auth/puter (+ /auth/puter-link). Mints/links Grudge ID from Puter UUID; every auth path guarantees one Puter cloud storage per account. Proxied via grudge-platform api/puter.js + puter-link.js." },
   // Web3 hub. Distinct from svc:gaming-portal (/gs) and svc:frontend (grudgewarlords.com).
@@ -269,7 +271,8 @@ const routeSeeds: RouteSeed[] = [
   { path: "/profession/mystic",   label: "Mystic",           group: "professions" },
   { path: "/profession/chef",     label: "Chef",             group: "professions" },
   { path: "/profession/engineer", label: "Engineer",         group: "professions" },
-  { path: "/crafting",          label: "Crafting",           group: "professions" },
+  { path: "/craft/",            label: "Craft suite (WCS)",  group: "professions" },
+  { path: "/crafting",          label: "Crafting (SPA panel)", group: "professions" },
 
   { path: "/database",          label: "Database",           group: "tools" },
   { path: "/editor",            label: "Editor",             group: "tools" },
@@ -443,7 +446,12 @@ edges.push(
   { source: "dom:status.g-s.com",     target: "svc:status-page",kind: "routes-to" },
   // Puter wiring
   { source: "dom:grudge-server.puter.work",   target: "svc:puter-worker",   kind: "routes-to" },
+  { source: "dom:grudgewarlords-craft", target: "svc:warlords-crafting", kind: "routes-to" },
+  { source: "dom:grudgewarlords-craft", target: "svc:game-api", kind: "calls", notes: "Same-origin /api/* → Railway bag, inventory, professions." },
+  { source: "svc:warlords-crafting", target: "svc:game-api", kind: "calls" },
+  { source: "svc:warlords-crafting", target: "svc:os-static", kind: "reads", notes: "Recipes/items/icons from ObjectStore + info hub." },
   { source: "dom:grudge-crafting.puter.site", target: "svc:puter-crafting", kind: "routes-to" },
+  { source: "dom:grudge-crafting.puter.site", target: "dom:grudgewarlords-craft", kind: "redirects-to" },
   { source: "dom:js.puter.com",               target: "svc:puter-sdk",      kind: "routes-to" },
   // Game fleet domain → service wiring
   { source: "dom:mech-playground",    target: "svc:mech-forge",        kind: "routes-to" },

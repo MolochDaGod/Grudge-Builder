@@ -41,12 +41,15 @@ const TARGETS = [
   { group: "backend",  url: "https://grudge-api-production-0d46.up.railway.app/api/health" },
   { group: "frontend", url: "https://forge.grudge-studio.com/" },
   { group: "frontend", url: "https://grudox.grudge-studio.com/" },
+  // Carrier is L3 edge WS host — probe health + shell (not bare API-only 404).
+  { group: "frontend", url: "https://carrier.grudge-studio.com/api/health" },
   { group: "frontend", url: "https://carrier.grudge-studio.com/" },
   { group: "frontend", url: "https://open.grudge-studio.com/" },
   { group: "info",     url: "https://info.grudge-studio.com/grudge-guide.html" },
   { group: "assets",   url: "https://assets.grudge-studio.com" },
   { group: "assets",   url: "https://objectstore.grudge-studio.com/health" },
-  { group: "assets",   url: "https://grudge-objectstore.pages.dev/api/v1/master-items.json" },
+  // PURGED: grudge-objectstore.pages.dev (deprecated Pages; use objectstore.grudge-studio.com)
+  { group: "assets",   url: "https://objectstore.grudge-studio.com/api/v1/master-items.json" },
   { group: "ai",       url: "https://ai.grudge-studio.com" },
   { group: "admin",    url: "https://dash.grudge-studio.com" },
   { group: "admin",    url: "https://grudge-studio-dash.pages.dev" },
@@ -54,15 +57,15 @@ const TARGETS = [
   { group: "launcher", url: "https://grudgedot-launcher.vercel.app" },
   { group: "launcher", url: "https://grudgedot.pages.dev" },
   { group: "wallet",   url: "https://wallet.grudge-studio.com" },
-  { group: "nexus",    url: "https://grudachain.grudgestudio.com" },
+  // PURGED: grudachain.grudgestudio.com (dead host / DNS fail)
+  { group: "ide",      url: "https://coder.grudge-studio.com" },
   { group: "ide",      url: "https://grudgechain-vibe-ide.pages.dev" },
-  { group: "puter",    url: "https://grudge-server.puter.work/api/health" },
+  // PURGED puter dead shells: grudge-server.puter.work, grudgewarlords.puter.site, grudgestudio.puter.site
   { group: "puter",    url: "https://grudge-crafting.puter.site" },
-  { group: "puter",    url: "https://grudgewarlords.puter.site" },
-  { group: "puter",    url: "https://grudgestudio.puter.site" },
   { group: "puter",    url: "https://grudge-studio.puter.site" },
   { group: "puter",    url: "https://grudge.puter.site" },
-  { group: "status",   url: "https://grudge-studio.com/api/status" },
+  // Portal status via Railway SSOT (grudge-studio.com/api/status is not wired)
+  { group: "status",   url: "https://grudge-api-production-0d46.up.railway.app/api/health" },
 ];
 
 /** Status bar keys the systems-master.html outline expects on /api/status. */

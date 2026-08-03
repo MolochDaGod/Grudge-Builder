@@ -3,7 +3,8 @@
     "client.grudge-studio.com",
     "warlord3d.grudge-studio.com",
     "grudgewarlords.com",
-    "www.grudgewarlords.com"
+    "www.grudgewarlords.com",
+    "craft.grudgewarlords.com"
   ],
   "buildCommand": "npm run build:client",
   "outputDirectory": "client/dist",
@@ -505,6 +506,22 @@
       "destination": "/hero-codex/index.html"
     },
     {
+      "source": "/craft",
+      "destination": "/craft/index.html"
+    },
+    {
+      "source": "/craft/",
+      "destination": "/craft/index.html"
+    },
+    {
+      "source": "/wcs",
+      "destination": "/craft/index.html"
+    },
+    {
+      "source": "/wcs/",
+      "destination": "/craft/index.html"
+    },
+    {
       "source": "/map/:mapId",
       "destination": "https://world.grudge-studio.com/map/:mapId"
     },
@@ -654,6 +671,30 @@
           "value": "public, max-age=0, must-revalidate"
         }
       ]
+    }
+  ],
+  "redirects": [
+    {
+      "source": "/",
+      "has": [
+        {
+          "type": "host",
+          "value": "craft.grudgewarlords.com"
+        }
+      ],
+      "destination": "https://grudgewarlords.com/craft/",
+      "permanent": false
+    },
+    {
+      "source": "/((?!api/).*)",
+      "has": [
+        {
+          "type": "host",
+          "value": "craft.grudgewarlords.com"
+        }
+      ],
+      "destination": "https://grudgewarlords.com/craft/$1",
+      "permanent": false
     }
   ]
 }

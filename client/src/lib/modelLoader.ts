@@ -219,34 +219,64 @@ export async function loadAnimationClip(path: string): Promise<THREE.AnimationCl
 }
 
 /**
- * Load a quaternion-only baked clip from grudge-game CDN layout.
- * Matches grudge-game WorldPage: /anims/baked/{category}/{name}.json
+ * Load rotation-only Bip001 baked clip (Open DRC SSOT).
+ * Prefer absolute open.grudge-studio.com / gameopen URLs; R2 prod/anims often 404.
+ * Does NOT Mixamo-remap — Bip001 track names bind to grudge6 kits as-is.
  */
 export async function loadBakedAnimationClip(path: string): Promise<THREE.AnimationClip | null> {
-  const url = path.startsWith('http')
-    ? path
-    : `${ASSET_CDN_BASE}${path.startsWith('/') ? path : `/${path}`}`;
-
-  const cached = bakedClipCache.get(url);
-  if (cached) return cached;
-
-  try {
-    const res = await fetch(url);
-    if (!res.ok) {
-      console.warn(`Baked animation not found: ${url} (${res.status})`);
-      return null;
+  const candidates: string[] = [];
+  if (/^https?:\/\//i.test(path)) {
+    candidates.push(path);
+    // If single Open host given, also try gameopen alias
+    if (path.includes("open.grudge-studio.com")) {
+      candidates.push(path.replace("open.grudge-studio.com", "gameopen.vercel.app"));
+    } else if (path.includes("gameopen.vercel.app")) {
+      candidates.push(path.replace("gameopen.vercel.app", "open.grudge-studio.com"));
     }
-    const json = await res.json();
-    const parsed = THREE.AnimationClip.parse(json);
-    const quatTracks = parsed.tracks.filter((t) => t.name.endsWith('.quaternion'));
-    const clip = new THREE.AnimationClip(parsed.name, parsed.duration, quatTracks);
-    remapClipBoneNames(clip);
-    bakedClipCache.set(url, clip);
-    return clip;
-  } catch (err) {
-    console.warn(`Failed to load baked animation: ${url}`, err);
-    return null;
+  } else {
+    const rel = path
+      .replace(/^\//, "")
+      .replace(/^anims\/baked\//, "")
+      .replace(/\.json$/i, "");
+    const enc = rel
+      .split("/")
+      .map((s) => encodeURIComponent(s))
+      .join("/");
+    candidates.push(
+      `https://open.grudge-studio.com/anims/baked/${enc}.json`,
+      `https://gameopen.vercel.app/anims/baked/${enc}.json`,
+      `${ASSET_CDN_BASE}/anims/baked/${enc}.json`,
+    );
   }
+
+  for (const url of candidates) {
+    const cached = bakedClipCache.get(url);
+    if (cached) return cached;
+
+    try {
+      const res = await fetch(url, { mode: "cors" });
+      if (!res.ok) continue;
+      const ct = res.headers.get("content-type") || "";
+      if (ct.includes("text/html")) continue;
+      const json = await res.json();
+      const parsed = THREE.AnimationClip.parse(json);
+      // Bip001: rotation-only; keep bone names (Bip001 Pelvis, etc.)
+      const quatTracks = parsed.tracks.filter(
+        (t) => t.name.endsWith(".quaternion") || t.name.endsWith(".rotation"),
+      );
+      const tracks = quatTracks.length ? quatTracks : parsed.tracks;
+      const clip = new THREE.AnimationClip(parsed.name, parsed.duration, tracks);
+      // Only Mixamo-prefix remap if tracks look Mixamo (not Bip001)
+      const looksMixamo = clip.tracks.some((t) => /mixamorig/i.test(t.name));
+      if (looksMixamo) remapClipBoneNames(clip);
+      bakedClipCache.set(url, clip);
+      return clip;
+    } catch {
+      /* try next host */
+    }
+  }
+  console.warn(`Baked Bip001 clip not found: ${path}`);
+  return null;
 }
 
 // ── Apply an external animation clip to an existing mixer ───────────────────

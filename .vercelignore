@@ -9,6 +9,8 @@ server
 # Keep build helpers used by npm run build:client (rest of script/ is server-only)
 script/**
 !script/copy-public-to-dist.mjs
+!script/sync-craft-public.mjs
+!script/fix-craft-mojibake.mjs
 scripts
 db
 attached_assets
@@ -43,3 +45,6 @@ client/dist
 hs_err_pid*
 replay_pid*
 foods_export.csv
+
+dist._bak*
+tmp-*

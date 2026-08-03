@@ -441,10 +441,10 @@ export class LeviathanOceanCinema {
       this.scene.add(foundation);
     }
 
-    // Ship — stylized pirate LOA 18 m (never voxel / never hero-height fit)
+    // Ship — tz-pirate-ship LOA 18 m (never voxel / never hero-height fit)
     this.intactShip = ship ?? makeProceduralShip();
     if (!ship) console.info('[cinema] using procedural pirate brig (CDN ship unavailable)');
-    else console.info('[cinema] ship loaded (stylized pirate path preferred)');
+    else console.info('[cinema] ship loaded (tz-pirate-ship SSOT preferred)');
     fitPropSpanM(this.intactShip, CIN_SHIP_LOA_M, 'max');
     this.shipGroup.add(this.intactShip);
     this.stage.place(this.shipGroup, 'ship_origin');

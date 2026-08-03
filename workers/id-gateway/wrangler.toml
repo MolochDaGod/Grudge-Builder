@@ -5,9 +5,16 @@
 # grudge-id-gateway is a historical alias; do not re-bind the route to it.
 name = "grudge-identity-api"
 main = "src/index.js"
-compatibility_date = "2025-03-01"
+compatibility_date = "2026-03-01"
+compatibility_flags = ["nodejs_compat"]
 account_id = "ee475864561b02d4588180b8b9acf694"
 workers_dev = true
+
+[observability]
+enabled = true
+head_sampling_rate = 1
+
+# Secrets (if any): wrangler secret put … — JWT validation is upstream Railway.
 # Route already attached in CF dashboard; re-declaring fails with 10020 if another
 # script ever held it. Deploy script updates code; route stays on this worker.
 # [[routes]]

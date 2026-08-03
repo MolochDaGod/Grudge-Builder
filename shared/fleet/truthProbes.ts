@@ -138,7 +138,7 @@ export const TRUTH_PROBE_SPECS: TruthProbeSpec[] = [
     id: "crafting-shell",
     label: "Crafting suite shell",
     role: "identity",
-    productionUrl: "https://grudge-crafting.puter.site/",
+    productionUrl: "https://grudgewarlords.com/craft/",
     method: "GET",
     rejectHtml: false,
     browserSkip: true,
@@ -282,6 +282,16 @@ export const TRUTH_PROBE_SPECS: TruthProbeSpec[] = [
     productionUrl: `${FLEET_URLS.grudox}/`,
     method: "HEAD",
     rejectHtml: false,
+    browserSkip: true,
+  },
+  {
+    id: "carrier-health",
+    label: "Carrier / GRUDOX room health",
+    role: "game-data",
+    productionUrl: `${FLEET_URLS.carrier}/api/health`,
+    method: "GET",
+    rejectHtml: true,
+    // Carrier is L3 edge (WS + health). Shell HTML is optional Worker static.
     browserSkip: true,
   },
   {

@@ -354,36 +354,36 @@ export default function AccountPage() {
           </CardContent>
         </Card>
 
-        {/* Fleet Apps — WCS + Puter GS */}
+        {/* Fleet Apps — Warlords craft suite (canonical product domain) */}
         <Card className="mb-6 bg-slate-900/60 border-slate-700">
           <CardHeader>
-            <CardTitle className="text-amber-400 font-cinzel text-lg">Grudge Studio Apps</CardTitle>
-            <CardDescription>Same account across Warlords, WCS, and Puter crafting</CardDescription>
+            <CardTitle className="text-amber-400 font-cinzel text-lg">Warlords Craft &amp; Inventory</CardTitle>
+            <CardDescription>
+              Same Grudge ID + Railway bag/inventory on grudgewarlords.com
+            </CardDescription>
           </CardHeader>
           <CardContent className="grid sm:grid-cols-2 gap-3">
             <a
-              href="https://wcs.grudge-studio.com"
-              target="_blank"
-              rel="noopener noreferrer"
+              href="/craft/"
               className="flex items-center gap-3 p-3 rounded-lg border border-amber-800/40 bg-black/20 hover:bg-amber-950/20 transition-colors"
             >
               <Hammer className="w-5 h-5 text-amber-400 shrink-0" />
               <div>
                 <div className="text-sm font-medium text-white">Warlord Crafting Suite</div>
-                <div className="text-[10px] text-slate-500">Character creation · arsenal · professions</div>
+                <div className="text-[10px] text-slate-500">
+                  Recipes · bag · professions · item DB · grudgewarlords.com/craft
+                </div>
               </div>
               <ChevronRight className="w-4 h-4 text-slate-600 ml-auto" />
             </a>
             <a
-              href="https://grudge-crafting.puter.site"
-              target="_blank"
-              rel="noopener noreferrer"
+              href="/crafting"
               className="flex items-center gap-3 p-3 rounded-lg border border-cyan-800/40 bg-black/20 hover:bg-cyan-950/20 transition-colors"
             >
               <Sparkles className="w-5 h-5 text-cyan-400 shrink-0" />
               <div>
-                <div className="text-sm font-medium text-white">Grudge Crafting (Puter)</div>
-                <div className="text-[10px] text-slate-500">User-pays cloud · games-library items</div>
+                <div className="text-sm font-medium text-white">In-game Craft Panel</div>
+                <div className="text-[10px] text-slate-500">SPA profession panel (same account DB)</div>
               </div>
               <ChevronRight className="w-4 h-4 text-slate-600 ml-auto" />
             </a>
@@ -404,7 +404,7 @@ export default function AccountPage() {
                 { href: '/ocean?worldSeed=grudge-world-1', icon: <Play className="w-4 h-4" />, label: 'Ocean Hub', color: 'text-cyan-300', sub: 'Sail → land → deploy' },
                 { href: '/test-play',    icon: <Play className="w-4 h-4" />,    label: 'Test Terrain',  color: 'text-amber-400',   sub: 'Procedural sandbox' },
                 { href: '/island-v2',    icon: <Map className="w-4 h-4" />,      label: 'Island 2D',       color: 'text-lime-400',    sub: 'Auto-Harvest' },
-                { href: '/crafting',     icon: <Hammer className="w-4 h-4" />,   label: 'Crafting',        color: 'text-orange-400',  sub: 'Forge gear' },
+                { href: '/craft/',       icon: <Hammer className="w-4 h-4" />,   label: 'Crafting',        color: 'text-orange-400',  sub: 'Forge gear · suite' },
                 { href: '/rts-grudge',   icon: <Shield className="w-4 h-4" />,   label: 'RTS GRUDGE',      color: 'text-red-400',     sub: '3D Battle' },
                 { href: '/combat',       icon: <Swords className="w-4 h-4" />,   label: 'Combat',          color: 'text-slate-300',   sub: 'Airship · 4 characters' },
                 { href: '/dungeon',      icon: <Pickaxe className="w-4 h-4" />,  label: 'Dungeon',         color: 'text-zinc-400',    sub: 'Roguelike' },
@@ -416,8 +416,18 @@ export default function AccountPage() {
                 { href: '/wallet',       icon: <Wallet className="w-4 h-4" />,   label: 'Wallet & NFTs',   color: 'text-purple-400',  sub: 'Solana' },
                 { href: '/character',    icon: <Shield className="w-4 h-4" />,   label: 'Characters',      color: 'text-amber-400',   sub: 'Manage' },
               ].map(item => (
-                <button key={item.href} onClick={() => setLocation(item.href)}
-                  className="flex items-center gap-2 p-2.5 rounded-lg border border-slate-800 bg-black/20 hover:bg-slate-800/30 hover:border-slate-700 transition-all text-left group">
+                <button
+                  key={item.href}
+                  onClick={() => {
+                    // Static suite under /craft/ is not a SPA route — hard navigate.
+                    if (item.href.startsWith("/craft")) {
+                      window.location.assign(item.href);
+                      return;
+                    }
+                    setLocation(item.href);
+                  }}
+                  className="flex items-center gap-2 p-2.5 rounded-lg border border-slate-800 bg-black/20 hover:bg-slate-800/30 hover:border-slate-700 transition-all text-left group"
+                >
                   <span className={`${item.color} shrink-0`}>{item.icon}</span>
                   <div className="min-w-0">
                     <div className="text-xs font-medium text-white truncate group-hover:text-foreground">{item.label}</div>

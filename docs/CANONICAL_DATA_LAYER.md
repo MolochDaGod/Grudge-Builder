@@ -37,6 +37,8 @@
 | Meshes / icons | R2 CDN | Postgres BYTEA |
 | Asset search index | D1 `asset_registry` | — |
 
+**Backups & cross-game sharing:** [Databases · sharing · backups](https://grudge-warlords.github.io/grudge-dev-tool/database-backups-sharing.html) · `DATABASE_BEST_PRACTICES.md` (sharing + dump runbook). Player dumps are P0; D1/R2 recovery is re-seed/re-upload.
+
 ---
 
 ## D1 role (narrow)

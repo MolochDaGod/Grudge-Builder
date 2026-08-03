@@ -10,7 +10,11 @@ Organized entry point for APIs, UUID systems, and fleet integration.
 
 | Topic | Doc |
 |-------|-----|
-| **Live game** | https://grudgewarlords.com |
+| **Game flow / hosts / loops** | [GAME_FLOW_SSOT.md](./GAME_FLOW_SSOT.md) |
+| **Warlords `*.grudgewarlords.com` domain zone** | [WARLORDS_DOMAIN_SSOT.md](./WARLORDS_DOMAIN_SSOT.md) |
+| **Live game (Warlords SPA)** | https://grudgewarlords.com · target https://play.grudgewarlords.com |
+| **Foundry (create)** | https://character.grudge-studio.com |
+| **Login** | https://id.grudge-studio.com |
 | **Production stack pattern (4 platforms only)** | [STACK_PATTERN.md](./STACK_PATTERN.md) |
 | **Autonomous deploy / live-ops agents** | [PRODUCTION_AGENTS.md](./PRODUCTION_AGENTS.md) |
 | **Multiplayer + lag best practices** | [INDUSTRY_BEST_PRACTICES_MP_PERF.md](./INDUSTRY_BEST_PRACTICES_MP_PERF.md) · [MULTIPLAYER.md](./MULTIPLAYER.md) |
@@ -22,7 +26,9 @@ Organized entry point for APIs, UUID systems, and fleet integration.
 | **API routes (auth, characters, island, crafting)** | [API.md](./API.md) |
 | **Hero identity (name + GRDG code, create SSOT)** | [CHARACTER_IDENTITY.md](./CHARACTER_IDENTITY.md) |
 | **Character progress SSOT (skills, mastery, attrs, bag scope, revisions)** | [CHARACTER_PROGRESS_SSOT.md](./CHARACTER_PROGRESS_SSOT.md) |
-| **Home island gameplay** | [ISLANDS.md](./ISLANDS.md) |
+| **Warlords account ↔ character (attrs, skills, bag, camps, home island cNFT, hosting)** | [WARLORDS_ACCOUNT_CHARACTER_SSOT.md](./WARLORDS_ACCOUNT_CHARACTER_SSOT.md) |
+| **Warlords MMO product (grudgewarlords.com)** | [WARLORDS_MMO_PRODUCT.md](./WARLORDS_MMO_PRODUCT.md) |
+| **Home island gameplay** | [ISLANDS.md](./ISLANDS.md) · [HOME_ISLAND_PIPELINE_CANONICAL.md](./HOME_ISLAND_PIPELINE_CANONICAL.md) |
 | **Professions & crafting** | [PROFESSIONS.md](./PROFESSIONS.md) |
 | **Characters, races, classes** | [RACES_CLASSES.md](./RACES_CLASSES.md) |
 | **Playtesting, tokens, local dev** | [PLAYTEST.md](./PLAYTEST.md) |

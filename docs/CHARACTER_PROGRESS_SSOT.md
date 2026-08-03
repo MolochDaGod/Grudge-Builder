@@ -1,9 +1,10 @@
 # Character Progress SSOT (fleet-wide)
 
 > **Canonical contract** for per-character progression across Grudge Studio.  
-> Last updated: 2026-07-12 · Schema version: **1**  
+> Last updated: 2026-08-02 · Schema version: **1**  
 > Code: `shared/characterProgress.ts` · Server: `PATCH/POST /api/characters/:id` · Client: `grudge-fleet.js` **≥ 2.8.0**  
-> Identity law: [CANONICAL_IDENTITY.md](./CANONICAL_IDENTITY.md)
+> Identity law: [CANONICAL_IDENTITY.md](./CANONICAL_IDENTITY.md)  
+> **Warlords ownership matrix (bag / camps / home island / cNFT):** [WARLORDS_ACCOUNT_CHARACTER_SSOT.md](./WARLORDS_ACCOUNT_CHARACTER_SSOT.md)
 
 ---
 
@@ -12,13 +13,16 @@
 | Data | Scope | Storage | Who writes |
 |------|--------|---------|------------|
 | Inventory / resources | **Account** | `/api/account/inventory`, `/api/account/resources` | Any character of the account |
-| Profession XP / levels / skill nodes | **Character UUID** | `characters.profession_levels` | Active character only |
+| Claimed camps | **Account** | `ownerAccountId` on claim flag + zone/island state | Any warlords hero of the account |
+| Home island + island cNFT | **Account** | `home_islands` (unique `account_id`) · `island_nfts` | One island; host guests via Colyseus |
+| Profession XP / levels / skill nodes | **Character UUID** | `characters.profession_levels` · `character_professions` | Active character only |
 | Class skill tree picks | **Character UUID** | `characters.selected_skills`, `skill_loadouts` | Active character only |
 | Weapon mastery ranks / charms | **Character UUID** | `characters.weapon_skill_selections.mastery` | Active character only |
 | Weapon skill level | **Character UUID** | `characters.weapon_skill_level` | Active character only |
 | Attributes | **Character UUID** | `characters.attributes` | Active character only |
 | Equipment | **Character UUID** | `characters.equipment` | Active character only |
 | Skill / attr unspent points | **Character UUID** | `skill_points`, `unspent_attribute_points` | Active character only |
+| Hero cNFT | **Character UUID** | `character_nfts` | Mint non-blocking; claim optional |
 
 **Identity keys**
 
@@ -219,6 +223,7 @@ After deploy, smoke:
 
 ## 9. Related docs
 
+- [WARLORDS_ACCOUNT_CHARACTER_SSOT.md](./WARLORDS_ACCOUNT_CHARACTER_SSOT.md) — full account vs character matrix (camps, home island, hosting)  
 - [CHARACTER_IDENTITY.md](./CHARACTER_IDENTITY.md) — UUID vs GRDG code  
 - [PROFESSIONS.md](./PROFESSIONS.md) — profession XP  
 - [ATTRIBUTES.md](./ATTRIBUTES.md) — 8 attributes  

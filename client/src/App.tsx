@@ -113,6 +113,8 @@ import MainPanelPage from "@/pages/main-panel";
 import { consumeGcsReturnHandoff } from "@/lib/gcsRedirect";
 import { CharacterManager } from "@/lib/characterManager";
 
+const AssassinationGroundsPage = lazy(() => import("@/pages/assassination-grounds"));
+
 function Router() {
   return (
     <Suspense fallback={<div className="min-h-screen bg-black" />}>
@@ -237,6 +239,22 @@ function Router() {
       <Route path="/asset-showcase" component={AssetShowcasePage} />
       <Route path="/assets" component={AssetShowcasePage} />
       <Route path="/showcase/assets" component={AssetShowcasePage} />
+      {/* Assassination Grounds — full navmesh map + Danger Room portals */}
+      <Route path="/assassination-grounds">{() => (
+        <Suspense fallback={<div className="min-h-screen bg-black" />}>
+          <AssassinationGroundsPage />
+        </Suspense>
+      )}</Route>
+      <Route path="/maps/assassination-grounds">{() => (
+        <Suspense fallback={<div className="min-h-screen bg-black" />}>
+          <AssassinationGroundsPage />
+        </Suspense>
+      )}</Route>
+      <Route path="/danger-grounds">{() => (
+        <Suspense fallback={<div className="min-h-screen bg-black" />}>
+          <AssassinationGroundsPage />
+        </Suspense>
+      )}</Route>
       {/* Fallback to 404 */}
       <Route component={NotFound} />
     </Switch>

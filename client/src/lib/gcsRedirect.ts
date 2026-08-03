@@ -7,7 +7,7 @@
  *   - returnTo (post-save redirect back to the calling app)
  */
 
-import { FLEET_URLS } from "@shared/fleet";
+import { FLEET_URLS, warlordsPlayOrigin, warlordsPlayUrl } from "@shared/fleet";
 import {
   normalizeGameEra,
   type GameEra,
@@ -47,11 +47,33 @@ export function isAllowedReturnUrl(url: string): boolean {
 
 /**
  * Default return after GCS save — /airship bridge → home-island (Foundry SSOT).
+ * Prefer Warlords product zone (*.grudgewarlords.com / apex) over studio client.*.
  * Never return into character.grudge-studio.com/viewer.
  */
 export function defaultWarlordsReturnTo(path = "/airship"): string {
-  if (typeof window === "undefined") return `https://client.grudge-studio.com${path}`;
-  return `${window.location.origin}${path}`;
+  const p = path.startsWith("/") ? path : `/${path}`;
+  // Same-origin when already on a Warlords play host (apex, play.*, client.*)
+  if (typeof window !== "undefined") {
+    try {
+      const h = window.location.hostname.toLowerCase();
+      if (
+        h === "grudgewarlords.com" ||
+        h === "www.grudgewarlords.com" ||
+        h.endsWith(".grudgewarlords.com") ||
+        h === "client.grudge-studio.com"
+      ) {
+        return `${window.location.origin}${p}`;
+      }
+    } catch {
+      /* fall through */
+    }
+  }
+  // Absolute: Warlords zone origin (apex live; play.* when DNS wired via env)
+  try {
+    return warlordsPlayUrl(p);
+  } catch {
+    return `${warlordsPlayOrigin()}${p}`;
+  }
 }
 
 export function buildGcsUrl(options: BuildGcsUrlOptions = {}): string {
