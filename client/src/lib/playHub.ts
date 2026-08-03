@@ -95,13 +95,38 @@ export async function resolvePlayDestination(): Promise<PlayDestination> {
   const readiness = await fetchPlayReadiness();
 
   if (!readiness.signedIn) return { path: '/', reason: 'sign_in' };
-  if (!readiness.hasCharacter) return { path: '/create-character', reason: 'no_character' };
-  if (!readiness.hasHomeIsland) return { path: '/island-reveal', reason: 'no_island' };
+  if (!readiness.hasCharacter) {
+    return {
+      path: '/create-character?returnTo=' + encodeURIComponent('/airship?from=play'),
+      reason: 'no_character',
+    };
+  }
 
   const charQ = readiness.activeCharacterId
-    ? `?characterId=${encodeURIComponent(readiness.activeCharacterId)}`
+    ? `characterId=${encodeURIComponent(readiness.activeCharacterId)}&`
     : '';
-  return { path: `/home-island${charQ}`, reason: 'play_home_island' };
+
+  // First voyage before home island (same gate as /home)
+  try {
+    const { isTutorialComplete } = await import('@/lib/warlordsOnboarding');
+    if (!isTutorialComplete()) {
+      return {
+        path: `/shipwreck-cinema?${charQ}from=play`,
+        reason: 'play_home_island',
+      };
+    }
+  } catch {
+    /* if helper missing, continue */
+  }
+
+  if (!readiness.hasHomeIsland) {
+    return { path: `/island-reveal?${charQ}from=play`, reason: 'no_island' };
+  }
+
+  return {
+    path: `/home-island?${charQ}from=play`.replace(/\?&/, '?'),
+    reason: 'play_home_island',
+  };
 }
 
 /** Direct open-world entry (Haven Shore starter sector). */
@@ -187,20 +212,27 @@ export async function resolveActiveCharacterForPlay(
     try {
       return await characterAPI.get(localId);
     } catch {
-      /* stale localStorage — fall through */
+      /* stale localStorage / 401 — fall through */
     }
   }
 
   if (!getToken()) return null;
 
-  const envelope = await characterAPI.getEnvelope(WARLORDS_ERA);
-  const roster = envelope.characters;
-  if (!roster.length) return null;
+  // Never throw: 401/network must return null so /play can guest-fallback
+  // instead of uncaught "Authentication required" killing the page.
+  try {
+    const envelope = await characterAPI.getEnvelope(WARLORDS_ERA);
+    const roster = envelope.characters;
+    if (!roster.length) return null;
 
-  const eraActive = envelope.eraSlots?.warlords?.activeCharacterId;
-  const pickId =
-    eraActive && roster.some((c) => c.id === eraActive) ? eraActive : roster[0].id;
+    const eraActive = envelope.eraSlots?.warlords?.activeCharacterId;
+    const pickId =
+      eraActive && roster.some((c) => c.id === eraActive) ? eraActive : roster[0].id;
 
-  CharacterManager.setActive(pickId);
-  return roster.find((c) => c.id === pickId) ?? (await characterAPI.get(pickId));
+    CharacterManager.setActive(pickId);
+    return roster.find((c) => c.id === pickId) ?? null;
+  } catch (err) {
+    console.warn('[playHub] resolveActiveCharacterForPlay roster failed', err);
+    return null;
+  }
 }

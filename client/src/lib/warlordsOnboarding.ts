@@ -4,6 +4,8 @@
 import {
   WARLORDS_FLOW_FLAGS,
   WARLORDS_HOME_ISLAND_MIN_LEVEL,
+  airshipForwardRelativePath,
+  postCreateReturnRelativePath,
   resolveWarlordsProgress,
   warlordsStepUrl,
   type WarlordsFlowStepId,
@@ -37,6 +39,48 @@ export function markTutorialComplete(): void {
   setFlowFlag(WARLORDS_FLOW_FLAGS.tutorialComplete);
 }
 
+export function markAirshipSeen(): void {
+  setFlowFlag(WARLORDS_FLOW_FLAGS.airshipSeen);
+}
+
+/** True once this browser completed shipwreck tutorial (account first voyage). */
+export function isTutorialComplete(): boolean {
+  return readFlowFlag(WARLORDS_FLOW_FLAGS.tutorialComplete);
+}
+
+export function isOpeningSeen(): boolean {
+  return readFlowFlag(WARLORDS_FLOW_FLAGS.openingSeen);
+}
+
+/**
+ * Relative path for Foundry returnTo after create.
+ * First play: leviathan cinema → pirate-islands wash-up tutorial.
+ * After tutorial: /airship → home island.
+ */
+export function postCreatePlayPath(): string {
+  return postCreateReturnRelativePath(isTutorialComplete());
+}
+
+/**
+ * Absolute same-origin URL for Foundry returnTo.
+ */
+export function postCreatePlayAbsoluteUrl(): string {
+  if (typeof window === 'undefined') {
+    return `https://grudgewarlords.com${postCreatePlayPath()}`;
+  }
+  return `${window.location.origin}${postCreatePlayPath()}`;
+}
+
+/**
+ * /airship bridge target after characterId is known.
+ */
+export function resolveAirshipForward(
+  characterId: string,
+  from: string = 'gcs',
+): string {
+  return airshipForwardRelativePath(characterId, isTutorialComplete(), from);
+}
+
 export function getActiveCharacterId(): string | null {
   try {
     const grudgeId = localStorage.getItem('grudge_account_id') || 'guest';
@@ -64,17 +108,19 @@ export function buildWarlordsProgress(opts: {
     flags: {
       openingSeen: readFlowFlag(WARLORDS_FLOW_FLAGS.openingSeen),
       tutorialComplete: readFlowFlag(WARLORDS_FLOW_FLAGS.tutorialComplete),
+      airshipSeen: readFlowFlag(WARLORDS_FLOW_FLAGS.airshipSeen),
     },
   });
 }
 
-export function canEnterHomeIsland(_level: number): boolean {
-  // Immediate after first character (no level-20 gate)
-  return true;
+export function canEnterHomeIsland(_level?: number): boolean {
+  // Home island after tutorial complete (or force query handled by page)
+  return isTutorialComplete();
 }
 
-export function homeIslandLockMessage(_level: number): string {
-  return '';
+export function homeIslandLockMessage(_level?: number): string {
+  if (isTutorialComplete()) return '';
+  return 'Complete the shipwreck tutorial with your first hero first.';
 }
 
 export function stepPath(

@@ -1,591 +1,374 @@
 /**
  * Warlords production home — client.grudge-studio.com/home
+ *                          — grudgewarlords.com/home
  *
- * ONLY these destinations (Warlords era):
- *  1. Characters
- *  2. 2D gameplay
- *  3. Home island
- *  4. Start tutorial
- *  5. Ocean Sail (wind sailing over era 9)
- *  6. 9 sector world map
- *  7. Lobby scene (center tile dock / PvP)
+ * SSOT (docs/HAPPY_PATH.md): /home is NOT a destination hub.
+ * Default: resolve next production step and FORWARD the player there.
  *
- * Character roster loads from Railway via CharacterManager after auth is ready.
+ * Query overrides:
+ *   ?legacy=1  — old multi-tile menu (ops only)
+ *   ?ops=1     — info WORLD_MAP zone test frontend
+ *   ?stay=1    — stay on hub after resolve (debug)
  */
 import { useCallback, useEffect, useState } from "react";
 import { useLocation } from "wouter";
-import { motion } from "framer-motion";
-import {
-  User,
-  Leaf,
-  Globe,
-  Flame,
-  Anchor,
-  Map,
-  Compass,
-  Plus,
-  LogOut,
-  Crown,
-  ChevronRight,
-  Loader2,
-  Check,
-  AlertCircle,
-} from "lucide-react";
+import { Loader2, LogIn, AlertCircle, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CharacterManager, type Character } from "@/lib/characterManager";
-import { useAccount } from "@/hooks/use-account";
 import {
-  getCurrentUser,
   isAuthenticated as hasAuthToken,
   waitForAuthReady,
+  ensureFleetSessionClaim,
+  getToken,
 } from "@/lib/grudgeBackend";
 import { useAuth } from "@/contexts/AuthContext";
 import {
-  WARLORDS_HOME_ACTIONS,
-  WARLORDS_LOBBY_PATH,
-  WARLORDS_OCEAN_PATH,
-  THREE_HOME_ISLAND_PATH,
-  THREE_WORLD_MAP_PATH,
-} from "@shared/fleet";
-import { CLASS_HERO_IMAGES } from "@/lib/artAssets";
+  isTutorialComplete,
+  postCreatePlayPath,
+  markOpeningSeen,
+} from "@/lib/warlordsOnboarding";
+import { fetchPlayReadiness } from "@/lib/playHub";
+import { WARLORDS_HOME_ACTIONS, WARLORDS_LOBBY_PATH } from "@shared/fleet";
 
-const FONTS = {
-  title: "'Cinzel', serif",
-  ui: "'Inter', sans-serif",
-};
+type RouteReason =
+  | "loading"
+  | "sign_in"
+  | "no_character"
+  | "tutorial"
+  | "no_island"
+  | "play_home_island"
+  | "play_open_world"
+  | "redirecting"
+  | "error";
 
-const ACTION_ICONS: Record<string, React.ReactNode> = {
-  user: <User className="w-5 h-5" />,
-  leaf: <Leaf className="w-5 h-5" />,
-  globe: <Globe className="w-5 h-5" />,
-  flame: <Flame className="w-5 h-5" />,
-  anchor: <Anchor className="w-5 h-5" />,
-  map: <Map className="w-5 h-5" />,
-  compass: <Compass className="w-5 h-5" />,
+function qs(): URLSearchParams {
+  if (typeof window === "undefined") return new URLSearchParams();
+  return new URLSearchParams(window.location.search);
+}
+
+/**
+ * Where /home should send the player next — single funnel, no dead tiles.
+ */
+async function resolveHomeForward(): Promise<{ path: string; reason: RouteReason }> {
+  await ensureFleetSessionClaim().catch(() => {});
+  await waitForAuthReady(8000);
+
+  if (!getToken() && !hasAuthToken()) {
+    return { path: "", reason: "sign_in" };
+  }
+
+  const readiness = await fetchPlayReadiness();
+
+  if (!readiness.signedIn && !getToken()) {
+    return { path: "", reason: "sign_in" };
+  }
+
+  // Ensure roster has an active hero when Railway has one
+  let charId = readiness.activeCharacterId;
+  if (!charId && readiness.hasCharacter) {
+    try {
+      const list = await CharacterManager.getAll("warlords");
+      if (list[0]?.id) {
+        CharacterManager.setActive(list[0].id);
+        charId = list[0].id;
+      }
+    } catch {
+      /* ignore */
+    }
+  }
+
+  if (!readiness.hasCharacter && !charId) {
+    const returnTo = encodeURIComponent(postCreatePlayPath());
+    return {
+      path: `/create-character?returnTo=${returnTo}&from=home`,
+      reason: "no_character",
+    };
+  }
+
+  const idQ = charId
+    ? `characterId=${encodeURIComponent(charId)}&from=home`
+    : "from=home";
+
+  // First voyage: leviathan → shipwreck tutorial (once per browser/account flag)
+  if (!isTutorialComplete()) {
+    return {
+      path: `/shipwreck-cinema?${idQ}`,
+      reason: "tutorial",
+    };
+  }
+
+  if (!readiness.hasHomeIsland) {
+    return {
+      path: `/island-reveal?${idQ}`,
+      reason: "no_island",
+    };
+  }
+
+  // Production play: personal home island (not lobby soup, not a menu)
+  return {
+    path: `/home-island?${idQ}`,
+    reason: "play_home_island",
+  };
+}
+
+const REASON_COPY: Record<RouteReason, string> = {
+  loading: "Checking your account…",
+  sign_in: "Sign in to enter Warlords",
+  no_character: "Create your first hero…",
+  tutorial: "First voyage — leviathan attack…",
+  no_island: "Claiming your home island…",
+  play_home_island: "Entering home island…",
+  play_open_world: "Entering open world…",
+  redirecting: "Taking you into the game…",
+  error: "Could not resolve play destination",
 };
 
 export default function HomePage() {
   const [, setLocation] = useLocation();
+  const { openLogin, isAuthenticated, handleLogout } = useAuth();
+  const [reason, setReason] = useState<RouteReason>("loading");
+  const [detail, setDetail] = useState<string | null>(null);
+  const [legacy, setLegacy] = useState(false);
   const [characters, setCharacters] = useState<Character[]>([]);
   const [activeCharacter, setActiveCharacter] = useState<Character | null>(null);
-  const [user, setUser] = useState<{ username: string } | null>(null);
-  const [loadingChars, setLoadingChars] = useState(true);
-  const [loadError, setLoadError] = useState<string | null>(null);
-  const { account } = useAccount();
-  const { isAuthenticated, openLogin, handleLogout: authLogout } = useAuth();
 
-  const refreshUser = useCallback(() => {
-    const saved =
-      localStorage.getItem("grudge_user") || localStorage.getItem("grudge-session");
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        setUser({
-          username:
-            parsed.username || parsed.displayName || parsed.puterUsername || "Warlord",
-        });
-        return;
-      } catch {
-        /* fall through */
-      }
-    }
-    const currentUser = getCurrentUser();
-    if (currentUser) {
-      setUser({ username: currentUser.username || currentUser.displayName || "Warlord" });
-    }
-  }, []);
-
-  const loadCharacters = useCallback(async () => {
-    setLoadingChars(true);
-    setLoadError(null);
-    try {
-      // Wait for JWT / SSO bridge so Railway /api/characters is authorized
-      await waitForAuthReady(8000);
-      if (!hasAuthToken() && !isAuthenticated) {
-        setCharacters([]);
-        setActiveCharacter(null);
-        setLoadError(null);
+  const go = useCallback(
+    (path: string) => {
+      if (!path) return;
+      if (path.startsWith("http")) {
+        window.location.href = path;
         return;
       }
-      const list = await CharacterManager.getAll("warlords");
-      setCharacters(list);
-      if (list.length === 0) {
-        setActiveCharacter(null);
-      } else {
-        let active = await CharacterManager.getActiveCharacter();
-        if (!active || !list.some((c) => c.id === active?.id)) {
-          CharacterManager.setActive(list[0].id);
-          active = list[0];
-        }
-        setActiveCharacter(active);
-      }
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : "Failed to load characters";
-      console.warn("[home] character load failed", e);
-      // Always surface auth/roster errors — silent empty roster hid real failures
-      setLoadError(msg);
-      setCharacters([]);
-      setActiveCharacter(null);
-    } finally {
-      setLoadingChars(false);
-    }
-  }, [isAuthenticated]);
+      setLocation(path);
+    },
+    [setLocation],
+  );
 
   useEffect(() => {
-    refreshUser();
-    void loadCharacters();
-  }, [refreshUser, loadCharacters, isAuthenticated]);
-
-  // Re-load when auth events fire (SSO bridge / login popup)
-  useEffect(() => {
-    const onAuth = () => {
-      refreshUser();
-      void loadCharacters();
-    };
-    window.addEventListener("grudge:auth:ready", onAuth);
-    window.addEventListener("grudge:auth:success", onAuth);
-    return () => {
-      window.removeEventListener("grudge:auth:ready", onAuth);
-      window.removeEventListener("grudge:auth:success", onAuth);
-    };
-  }, [refreshUser, loadCharacters]);
-
-  const handleLogout = () => {
-    authLogout();
-    setLocation("/");
-  };
-
-  const selectCharacter = (c: Character) => {
-    CharacterManager.setActive(c.id);
-    setActiveCharacter(c);
-  };
-
-  const go = (url: string) => {
-    if (url.startsWith("http")) {
-      window.location.href = url;
+    const p = qs();
+    if (p.get("ops") === "1") {
+      window.location.href =
+        "https://info.grudge-studio.com/WORLD_MAP.html?from=client-home";
       return;
     }
-    setLocation(url);
-  };
+    if (p.get("legacy") === "1") {
+      setLegacy(true);
+      return;
+    }
 
-  const displayName = user?.username || account?.username || "Warlord";
+    let cancelled = false;
 
-  return (
-    <div
-      className="min-h-screen text-[#eef2ff]"
-      style={{ background: "#05060c", fontFamily: FONTS.ui }}
-    >
-      <div className="fixed inset-0 pointer-events-none overflow-hidden">
-        <div
-          className="absolute inset-0"
-          style={{
-            background:
-              "radial-gradient(1000px 600px at 50% 100%, rgba(40,30,10,.5), transparent 55%), linear-gradient(180deg,#0a0c14,#05060c)",
-          }}
-        />
-      </div>
+    (async () => {
+      try {
+        markOpeningSeen();
+        const next = await resolveHomeForward();
+        if (cancelled) return;
 
-      {/* Header */}
-      <header
-        className="sticky top-0 z-50 border-b border-white/[.06]"
-        style={{ background: "rgba(5,6,12,.9)", backdropFilter: "blur(16px)" }}
-      >
-        <div className="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <img
-              src="/grudge-logo.png"
-              alt=""
-              className="w-8 h-8 rounded"
-              onError={(e) => {
-                (e.target as HTMLImageElement).style.display = "none";
-              }}
-            />
-            <div>
-              <div
-                style={{ fontFamily: FONTS.title }}
-                className="font-bold tracking-[2px] text-sm text-amber-300"
-              >
-                GRUDGE WARLORDS
-              </div>
-              <div className="text-[10px] text-white/35">Production hub · Warlords era only</div>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-full bg-gradient-to-br from-amber-500 to-amber-800 flex items-center justify-center text-[11px] font-bold text-[#05060c]">
-              {displayName[0]?.toUpperCase() || "W"}
-            </div>
-            <span className="hidden sm:block text-xs text-white/70 max-w-[140px] truncate">
-              {displayName}
-            </span>
-            {isAuthenticated || hasAuthToken() ? (
-              <>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setLocation("/account")}
-                  className="text-white/40 hover:text-amber-400 h-8 w-8 p-0"
-                  title="Account"
-                >
-                  <Crown className="w-4 h-4" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleLogout}
-                  className="text-white/40 hover:text-white/70 h-8 w-8 p-0"
-                  title="Sign out"
-                >
-                  <LogOut className="w-4 h-4" />
-                </Button>
-              </>
-            ) : (
-              <Button
-                size="sm"
-                onClick={openLogin}
-                className="font-cinzel text-[11px] px-4 h-8"
-                style={{
-                  background: "linear-gradient(180deg, #f6c945, #d8a819)",
-                  color: "#20180a",
-                }}
-              >
-                Sign In
-              </Button>
-            )}
-          </div>
-        </div>
-      </header>
+        if (next.reason === "sign_in") {
+          setReason("sign_in");
+          return;
+        }
 
-      <main className="relative z-10 max-w-5xl mx-auto px-4 py-6 space-y-6">
-        {/* ── Characters ── */}
-        <section
-          className="rounded-2xl border border-white/[.08] overflow-hidden"
-          style={{
-            background: "linear-gradient(180deg,rgba(14,18,32,.9),rgba(8,10,20,.95))",
-          }}
-        >
-          <div className="px-4 py-3 border-b border-white/[.06] flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <User className="w-4 h-4 text-amber-400" />
-              <h2
-                style={{ fontFamily: FONTS.title }}
-                className="text-sm font-bold tracking-wider text-white"
-              >
-                Characters
-              </h2>
-              {!loadingChars && (
-                <span className="text-[10px] text-white/35 font-mono">
-                  {characters.length} hero{characters.length === 1 ? "" : "es"}
-                </span>
-              )}
-            </div>
-            <div className="flex gap-2">
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={() => void loadCharacters()}
-                className="text-white/40 hover:text-white h-8 text-[11px]"
-                disabled={loadingChars}
-              >
-                {loadingChars ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : "Refresh"}
-              </Button>
-              <Button
-                size="sm"
-                onClick={() =>
-                  setLocation(
-                    characters.length === 0 ? "/create-character" : "/heroes",
-                  )
-                }
-                className="h-8 text-[11px] bg-amber-600/20 border border-amber-600/40 text-amber-200 hover:bg-amber-600/30"
-              >
-                <Plus className="w-3.5 h-3.5 mr-1" />{" "}
-                {characters.length === 0 ? "Create" : "Manage"}
-              </Button>
-            </div>
-          </div>
+        if (p.get("stay") === "1") {
+          setReason(next.reason);
+          setDetail(next.path);
+          return;
+        }
 
-          <div className="p-4">
-            {loadingChars && (
-              <div className="flex items-center gap-2 text-white/40 text-sm py-8 justify-center">
-                <Loader2 className="w-5 h-5 animate-spin text-amber-400" />
-                Loading roster from account…
-              </div>
-            )}
+        setReason("redirecting");
+        setDetail(REASON_COPY[next.reason] || next.path);
+        // Immediate forward — /home is a bridge, not a lobby
+        go(next.path);
+      } catch (e) {
+        if (cancelled) return;
+        setReason("error");
+        setDetail(e instanceof Error ? e.message : "Unknown error");
+      }
+    })();
 
-            {!loadingChars && loadError && (
-              <div className="flex items-start gap-2 text-rose-300/90 text-xs bg-rose-950/30 border border-rose-800/40 rounded-xl p-3 mb-3">
-                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-                <div className="flex-1">
-                  <div className="font-semibold mb-0.5">Could not load characters</div>
-                  <div className="text-rose-200/60">{loadError}</div>
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    <button
-                      type="button"
-                      className="text-amber-300 underline"
-                      onClick={() => void loadCharacters()}
-                    >
-                      Retry
-                    </button>
-                    <button
-                      type="button"
-                      className="text-amber-300 underline"
-                      onClick={() => openLogin()}
-                    >
-                      Sign in again
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
+    return () => {
+      cancelled = true;
+    };
+  }, [go]);
 
-            {!loadingChars && !loadError && characters.length === 0 && (
-              <div className="text-center py-10">
-                <div className="w-16 h-16 mx-auto rounded-full border-2 border-dashed border-white/10 flex items-center justify-center mb-3">
-                  <User className="w-7 h-7 text-white/20" />
-                </div>
-                <p style={{ fontFamily: FONTS.title }} className="text-sm text-white/50 mb-1">
-                  {isAuthenticated || hasAuthToken()
-                    ? "No Warlords heroes on this account"
-                    : "Sign in to see your heroes"}
-                </p>
-                <p className="text-[11px] text-white/30 mb-4 max-w-sm mx-auto">
-                  {isAuthenticated || hasAuthToken()
-                    ? "Create a hero on this signed-in account (heroes are tied to your Grudge ID, not this browser)."
-                    : "Your roster lives on Railway under your Grudge ID. Sign in first — guests cannot see existing heroes."}
-                </p>
-                {isAuthenticated || hasAuthToken() ? (
-                  <Button
-                    onClick={() => setLocation("/create-character?returnTo=/home")}
-                    className="bg-gradient-to-r from-amber-600 to-amber-700 text-white text-sm"
-                  >
-                    <Plus className="w-4 h-4 mr-1.5" /> Create hero
-                  </Button>
-                ) : (
-                  <div className="flex flex-wrap gap-2 justify-center">
-                    <Button
-                      onClick={openLogin}
-                      className="bg-gradient-to-r from-amber-600 to-amber-700 text-white text-sm"
-                    >
-                      Sign in to load heroes
-                    </Button>
-                    <Button
-                      variant="outline"
-                      onClick={() =>
-                        setLocation(
-                          `/create-character?returnTo=${encodeURIComponent("/home")}`,
-                        )
-                      }
-                      className="border-amber-600/40 text-amber-200 text-sm"
-                    >
-                      Create hero (after sign-in)
-                    </Button>
-                  </div>
-                )}
-              </div>
-            )}
+  // Legacy menu data (ops only)
+  useEffect(() => {
+    if (!legacy) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        await ensureFleetSessionClaim().catch(() => {});
+        await waitForAuthReady(5000);
+        const list = await CharacterManager.getAll("warlords");
+        if (cancelled) return;
+        setCharacters(list);
+        const active = await CharacterManager.getActiveCharacter();
+        setActiveCharacter(active && list.some((c) => c.id === active.id) ? active : list[0] ?? null);
+      } catch {
+        if (!cancelled) setCharacters([]);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [legacy]);
 
-            {!loadingChars && characters.length > 0 && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                {characters.map((c) => {
-                  const active = activeCharacter?.id === c.id;
-                  const portrait =
-                    CLASS_HERO_IMAGES[c.classId as keyof typeof CLASS_HERO_IMAGES] ||
-                    CLASS_HERO_IMAGES.warrior;
-                  return (
-                    <button
-                      key={c.id}
-                      type="button"
-                      onClick={() => selectCharacter(c)}
-                      className="text-left rounded-xl border overflow-hidden transition-all hover:-translate-y-0.5"
-                      style={{
-                        borderColor: active
-                          ? "rgba(246,201,69,.55)"
-                          : "rgba(255,255,255,.06)",
-                        background: active
-                          ? "linear-gradient(135deg,rgba(246,201,69,.12),rgba(14,18,32,.9))"
-                          : "rgba(10,12,22,.8)",
-                        boxShadow: active
-                          ? "0 0 0 1px rgba(246,201,69,.2), 0 8px 24px -12px rgba(246,201,69,.4)"
-                          : undefined,
-                      }}
-                    >
-                      <div className="relative h-24 overflow-hidden">
-                        <img
-                          src={c.avatarUrl || portrait}
-                          alt=""
-                          className="w-full h-full object-cover object-top brightness-[.7]"
-                          onError={(e) => {
-                            (e.target as HTMLImageElement).src = portrait;
-                          }}
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-t from-[#080a14] to-transparent" />
-                        {active && (
-                          <span className="absolute top-2 right-2 flex items-center gap-0.5 text-[9px] font-bold uppercase tracking-wider bg-amber-500/90 text-[#1a1408] px-1.5 py-0.5 rounded">
-                            <Check className="w-3 h-3" /> Active
-                          </span>
-                        )}
-                      </div>
-                      <div className="p-3">
-                        <div
-                          style={{ fontFamily: FONTS.title }}
-                          className="text-sm font-bold text-white truncate"
-                        >
-                          {c.name}
-                        </div>
-                        <div className="text-[10px] text-white/40 capitalize mt-0.5">
-                          Lv {c.level} · {c.raceId} {c.classId}
-                        </div>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        </section>
+  // ── Default: bridge UI (not a destination) ─────────────────────
+  if (!legacy) {
+    return (
+      <div className="min-h-screen bg-[#05060c] flex flex-col items-center justify-center text-amber-100/90 gap-4 px-4">
+        {reason !== "sign_in" && reason !== "error" && (
+          <Loader2 className="w-10 h-10 text-amber-400 animate-spin" />
+        )}
+        {reason === "sign_in" && (
+          <LogIn className="w-10 h-10 text-amber-400" />
+        )}
+        {reason === "error" && (
+          <AlertCircle className="w-10 h-10 text-rose-400" />
+        )}
 
-        {/* ── Production destinations (Warlords only) ── */}
-        <section>
-          <h2
-            style={{ fontFamily: FONTS.title }}
-            className="text-[11px] font-bold tracking-wider text-white/50 mb-3 flex items-center gap-1.5"
-          >
-            <Map className="w-3.5 h-3.5 text-cyan-400" />
-            Warlords play · production only
-          </h2>
-          <p className="text-[11px] text-white/30 mb-4 max-w-2xl leading-relaxed">
-            Production sail path: <strong className="text-white/50">Ocean Sail</strong> (wind
-            sailing over all 9 sectors) or the <strong className="text-white/50">World Map</strong>{" "}
-            hub. Lobby is the center tile for dock boarding and PvP; home island is your private
-            seed.
+        <p className="text-sm tracking-wide text-center max-w-md">
+          {REASON_COPY[reason]}
+        </p>
+        {detail && reason !== "sign_in" && (
+          <p className="text-[11px] text-white/35 font-mono text-center break-all max-w-lg">
+            {detail}
           </p>
+        )}
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {WARLORDS_HOME_ACTIONS.map((action, i) => {
-              const needsHero =
-                action.id !== "tutorial" &&
-                action.id !== "characters" &&
-                characters.length === 0;
-              return (
-                <motion.button
-                  key={action.id}
-                  type="button"
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.04 * i }}
-                  onClick={() => {
-                    // Empty roster: Foundry create with return into the intended play path
-                    // (SSOT: character.grudge-studio.com → Railway → client with characterId)
-                    if (needsHero && action.id !== "characters") {
-                      const returnTo = encodeURIComponent(action.url);
-                      setLocation(`/create-character?returnTo=${returnTo}`);
-                      return;
-                    }
-                    if (action.id === "characters" && characters.length === 0) {
-                      setLocation("/create-character");
-                      return;
-                    }
-                    if (action.id === "characters") {
-                      setLocation("/heroes");
-                      return;
-                    }
-                    // Prefer active hero id on play destinations
-                    if (activeCharacter && action.url.startsWith("/")) {
-                      const u = new URL(action.url, window.location.origin);
-                      if (!u.searchParams.get("characterId")) {
-                        u.searchParams.set("characterId", activeCharacter.id);
-                        u.searchParams.set("from", "home");
-                      }
-                      go(u.pathname + u.search);
-                      return;
-                    }
-                    go(action.url);
-                  }}
-                  className="text-left rounded-2xl border border-white/[.07] p-4 hover:border-amber-500/35 transition-all hover:-translate-y-0.5 group"
-                  style={{
-                    background:
-                      "linear-gradient(160deg,rgba(18,22,38,.95),rgba(8,10,18,.98))",
-                  }}
-                >
-                  <div className="flex items-start gap-3">
-                    <div
-                      className="w-10 h-10 rounded-xl flex items-center justify-center text-amber-300/80 group-hover:text-amber-200 shrink-0"
-                      style={{
-                        background: "rgba(246,201,69,.08)",
-                        border: "1px solid rgba(246,201,69,.2)",
-                      }}
-                    >
-                      {ACTION_ICONS[action.icon] || <Globe className="w-5 h-5" />}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div
-                        style={{ fontFamily: FONTS.title }}
-                        className="text-sm font-bold text-white tracking-wide group-hover:text-amber-100"
-                      >
-                        {action.title}
-                      </div>
-                      <div className="text-[10px] text-cyan-400/70 mt-0.5">{action.subtitle}</div>
-                      <p className="text-[11px] text-white/40 mt-2 leading-relaxed line-clamp-3">
-                        {action.description}
-                      </p>
-                      {needsHero && (
-                        <div className="text-[9px] text-amber-500/70 mt-2">
-                          Create a hero first
-                        </div>
-                      )}
-                    </div>
-                    <ChevronRight className="w-4 h-4 text-white/20 group-hover:text-amber-400/80 shrink-0 mt-1" />
-                  </div>
-                </motion.button>
-              );
-            })}
-          </div>
-        </section>
-
-        {/* Quick strip for active hero */}
-        {activeCharacter && (
-          <div className="flex flex-wrap gap-2 justify-center pb-6">
+        {reason === "sign_in" && (
+          <div className="flex flex-col sm:flex-row gap-2 mt-2">
             <Button
-              size="sm"
-              onClick={() => go(WARLORDS_LOBBY_PATH)}
-              className="bg-gradient-to-r from-amber-600 to-amber-700 text-[#1a1408] font-cinzel text-xs"
+              onClick={() => openLogin()}
+              className="bg-gradient-to-r from-amber-500 to-amber-700 text-[#1a1408] font-semibold"
             >
-              Enter lobby as {activeCharacter.name}
+              Sign in with Grudge ID
             </Button>
             <Button
-              size="sm"
               variant="outline"
-              onClick={() => go(THREE_HOME_ISLAND_PATH)}
-              className="border-white/15 text-white/70 text-xs"
+              className="border-amber-600/40 text-amber-200"
+              onClick={() =>
+                go(
+                  `/create-character?returnTo=${encodeURIComponent(postCreatePlayPath())}`,
+                )
+              }
             >
-              Home island
-            </Button>
-            <Button
-              size="sm"
-              className="bg-cyan-800/80 hover:bg-cyan-700 text-cyan-50 text-xs"
-              onClick={() => go(WARLORDS_OCEAN_PATH)}
-            >
-              Ocean Sail
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => go(THREE_WORLD_MAP_PATH)}
-              className="border-white/15 text-white/70 text-xs"
-            >
-              9 sector map
+              Create hero after sign-in
             </Button>
           </div>
         )}
 
-        <div className="text-center pb-8">
-          <p
-            style={{ fontFamily: FONTS.title }}
-            className="text-[8px] text-white/15 tracking-[3px]"
+        {reason === "error" && (
+          <div className="flex flex-wrap gap-2 justify-center mt-2">
+            <Button
+              onClick={() => window.location.reload()}
+              className="bg-amber-700 text-white"
+            >
+              Retry
+            </Button>
+            <Button
+              variant="outline"
+              className="border-white/20 text-white/70"
+              onClick={() => go(`/home-island?from=home-retry`)}
+            >
+              Force home island
+            </Button>
+            <Button
+              variant="outline"
+              className="border-white/20 text-white/70"
+              onClick={() => go("/home?legacy=1")}
+            >
+              Legacy menu
+            </Button>
+          </div>
+        )}
+
+        <p className="text-[10px] uppercase tracking-[0.25em] text-amber-500/40 mt-4">
+          /home → production play path
+        </p>
+        <div className="flex gap-3 text-[11px] text-white/30">
+          <button type="button" className="underline hover:text-amber-300" onClick={() => go("/home?legacy=1")}>
+            Legacy menu
+          </button>
+          <a
+            href="https://info.grudge-studio.com/WORLD_MAP.html"
+            className="underline hover:text-amber-300 inline-flex items-center gap-0.5"
           >
-            WARLORDS ERA · OCEAN SAIL · 9 SECTOR MAP
-          </p>
+            Ops map <ExternalLink className="w-3 h-3" />
+          </a>
         </div>
-      </main>
+      </div>
+    );
+  }
+
+  // ── Legacy multi-tile (explicit ?legacy=1 only) ────────────────
+  return (
+    <div className="min-h-screen bg-[#05060c] text-[#eef2ff] px-4 py-8">
+      <div className="max-w-3xl mx-auto space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="font-cinzel text-amber-300 text-lg tracking-wide">
+              Warlords · legacy hub
+            </h1>
+            <p className="text-[11px] text-white/40 mt-1">
+              Ops only. Default /home auto-forwards into play.
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <Button size="sm" onClick={() => go("/home")} className="bg-amber-700 text-white text-xs">
+              Use play path
+            </Button>
+            {(isAuthenticated || hasAuthToken()) && (
+              <Button size="sm" variant="ghost" onClick={() => handleLogout()} className="text-white/40 text-xs">
+                Sign out
+              </Button>
+            )}
+          </div>
+        </div>
+
+        {activeCharacter && (
+          <p className="text-sm text-white/60">
+            Active: <span className="text-amber-200">{activeCharacter.name}</span> · Lv{" "}
+            {activeCharacter.level}
+          </p>
+        )}
+
+        <div className="grid sm:grid-cols-2 gap-3">
+          {WARLORDS_HOME_ACTIONS.map((action) => (
+            <button
+              key={action.id}
+              type="button"
+              onClick={() => {
+                if (action.id === "characters") {
+                  go(characters.length ? "/heroes" : "/create-character");
+                  return;
+                }
+                if (activeCharacter?.id && action.url.startsWith("/")) {
+                  const u = new URL(action.url, window.location.origin);
+                  u.searchParams.set("characterId", activeCharacter.id);
+                  u.searchParams.set("from", "home-legacy");
+                  go(u.pathname + u.search);
+                  return;
+                }
+                go(action.url);
+              }}
+              className="text-left rounded-xl border border-white/10 p-4 hover:border-amber-500/40 bg-white/[.03]"
+            >
+              <div className="text-sm font-semibold text-white">{action.title}</div>
+              <div className="text-[11px] text-cyan-400/70 mt-0.5">{action.subtitle}</div>
+              <p className="text-[11px] text-white/40 mt-2">{action.description}</p>
+            </button>
+          ))}
+        </div>
+
+        <Button
+          variant="outline"
+          className="border-white/15 text-white/60 text-xs"
+          onClick={() => go(WARLORDS_LOBBY_PATH)}
+        >
+          Lobby (pirate-islands)
+        </Button>
+      </div>
     </div>
   );
 }
