@@ -1,14 +1,14 @@
 /**
- * /airship · /airship-zone — production Foundry handoff bridge.
+ * /airship · /airship-handoff — production Foundry handoff bridge.
  *
- * Foundry (character.grudge-studio.com) default post-create dest is /airship.
- * Production client previously had NO /airship route → SPA NotFound and broke
- * create → play for every new hero.
+ * After tutorial is complete (and for every later hero):
+ *   Foundry → /airship?characterId&from=gcs → /home-island
  *
- * Until the full AirshipSoloZone opener ships on main, this page:
- *   1. Accepts ?characterId=&from=gcs (and storage fallbacks)
- *   2. Persists active character keys
- *   3. Forwards to /home-island (immediate play) or /heroes if no id
+ * First character / tutorial not complete:
+ *   /airship (or Foundry default) → /tutorial?characterId&from=gcs
+ *
+ * This page is the safety net when Foundry returns with characterId on /airship
+ * or when Warlords set returnTo=/airship after tutorial.
  */
 import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
@@ -16,6 +16,11 @@ import {
   applyCharacterHandoffFromLocation,
   persistActiveCharacter,
 } from "@/lib/characterHandoff";
+import {
+  isTutorialComplete,
+  markAirshipSeen,
+  resolveAirshipForward,
+} from "@/lib/warlordsOnboarding";
 
 export default function AirshipHandoffPage() {
   const [, setLocation] = useLocation();
@@ -28,19 +33,25 @@ export default function AirshipHandoffPage() {
 
     if (id) {
       persistActiveCharacter(id, from);
-      setStatus("Loading your home island…");
-      const q = new URLSearchParams({
-        characterId: id,
-        from: String(from),
-      });
-      // Prefer replace so back-button doesn't loop on this bridge
-      setLocation(`/home-island?${q.toString()}`);
+      const dest = resolveAirshipForward(id, String(from));
+      if (isTutorialComplete()) {
+        markAirshipSeen();
+        setStatus("Loading your home island…");
+      } else {
+        setStatus("First voyage — leviathan attack · ship destroy · wash-up…");
+      }
+      setLocation(dest);
       return;
     }
 
-    // No characterId — Foundry create (not empty /heroes dead-end)
+    // No characterId — Foundry create with smart returnTo
     setStatus("No hero yet — open Foundry to create…");
-    setLocation("/create-character?returnTo=" + encodeURIComponent("/airship?from=gcs"));
+    setLocation(
+      "/create-character?returnTo=" +
+        encodeURIComponent(
+          isTutorialComplete() ? "/airship?from=gcs" : "/tutorial?from=gcs",
+        ),
+    );
   }, [setLocation]);
 
   return (
@@ -48,7 +59,9 @@ export default function AirshipHandoffPage() {
       <div className="w-8 h-8 border-2 border-amber-500/40 border-t-amber-400 rounded-full animate-spin" />
       <p className="text-sm tracking-wide">{status}</p>
       <p className="text-[10px] uppercase tracking-[0.3em] text-amber-500/50">
-        Foundry → client handoff (SSOT)
+        {isTutorialComplete()
+          ? "Foundry → airship → home island"
+          : "Foundry → leviathan cinema → pirate-islands shipwreck cove"}
       </p>
       <a
         href="/create-character"

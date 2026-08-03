@@ -12,7 +12,12 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { CharacterManager, type Character } from '@/lib/characterManager';
-import { getToken, isAuthenticated } from '@/lib/grudgeBackend';
+import {
+  getToken,
+  isAuthenticated,
+  ensureFleetSessionClaim,
+  waitForAuthReady,
+} from '@/lib/grudgeBackend';
 
 const POLL_INTERVAL_MS = 60_000; // live-sync every 60 s
 
@@ -33,8 +38,16 @@ export function useCharacters(): UseCharactersReturn {
   const [activeId,   setActiveIdState] = useState<string | null>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // ── Fetch from Grudge backend ────────────────────────────────────────
+  // ── Fetch Warlords heroes (= characters, era=warlords) ───────────────
+  // Same SSOT as /home: claim cookie/session first, then Railway envelope.
   const fetchCharacters = useCallback(async () => {
+    try {
+      await ensureFleetSessionClaim();
+      await waitForAuthReady(8000);
+    } catch {
+      /* claim best-effort */
+    }
+
     // Guest / no JWT — do not hit /api/characters (avoids Network 401 spam)
     if (!getToken() || !isAuthenticated()) {
       setCharacters([]);
@@ -44,8 +57,8 @@ export function useCharacters(): UseCharactersReturn {
       return;
     }
     try {
-      // CharacterManager.getAll() already uses the backend-authoritative API
-      const chars = await CharacterManager.getAll();
+      // Explicit warlords era — heroes and characters are the same roster
+      const chars = await CharacterManager.getAll('warlords');
       setCharacters(chars);
       setError(null);
 
