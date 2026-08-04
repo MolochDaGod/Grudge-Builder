@@ -10,7 +10,10 @@
 import * as THREE from 'three';
 import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
 import { loadCharacterModel, loadBakedAnimationClip } from '@/lib/modelLoader';
-import { setupGrudge6Equipment } from '@/lib/grudge6Equipment';
+import {
+  Grudge6EquipmentManager,
+  applyModel3dToEquipment,
+} from '@/lib/grudge6Equipment';
 import { applyGrudge6RaceTextures } from '@/lib/grudge6Textures';
 import { ensureCharacterTextureColorSpace } from '@/lib/characterAppearance';
 import {
@@ -23,7 +26,6 @@ import {
   measureObjectWorldHeight,
   unitDecadeFactor,
   fitCharacterRootToHeightM,
-  sanitizeRaceScaleMult,
   assertHeroSiHeight,
 } from '@/island3d/zoneWorldScale';
 import { bip001ClipUrls } from '@/lib/animation/bip001DrcAnims';
@@ -525,19 +527,42 @@ export async function spawnCinemaHuman(role: CinemaHumanRole): Promise<CinemaHum
     scale: 1,
   });
 
-  // Proven fleet path (same as heroesCrewLoader)
+  // Equip visibility only — NEVER setupGrudge6Equipment here:
+  // that calls scaleHeadMeshes(1.08) which non-uniformly stretches skinned ORC_Units_head.
   try {
     await applyGrudge6RaceTextures(mesh, raceId);
   } catch (e) {
     console.warn('[cinemaGrudge6] texture pre soft-fail', e);
   }
-  setupGrudge6Equipment(race.prefix, mesh, model3d);
+  {
+    const em = new Grudge6EquipmentManager(race.prefix);
+    em.catalog(mesh);
+    applyModel3dToEquipment(em, model3d);
+    // Do NOT call scaleHeadMeshes / weapon wrist grip scale hacks on cinema deck
+  }
   try {
     await applyGrudge6RaceTextures(mesh, raceId);
   } catch (e) {
     console.warn('[cinemaGrudge6] texture post soft-fail', e);
   }
   ensureCharacterTextureColorSpace(mesh);
+
+  // Kill stretch: every Mesh/SkinnedMesh object scale back to uniform 1
+  // (bones keep authored bind scales — we only touch mesh nodes, not Bone).
+  mesh.traverse((o) => {
+    const isBone = (o as THREE.Bone).isBone;
+    if (isBone) return;
+    const m = o as THREE.Mesh;
+    if (m.isMesh || (m as THREE.SkinnedMesh).isSkinnedMesh) {
+      // Authoring non-uniform mesh scales → head/body stretch on deck
+      const sx = Math.abs(m.scale.x) || 1;
+      const sy = Math.abs(m.scale.y) || 1;
+      const sz = Math.abs(m.scale.z) || 1;
+      if (Math.abs(sx - sy) > 0.02 || Math.abs(sy - sz) > 0.02 || Math.abs(sx - 1) > 0.05) {
+        m.scale.setScalar(1);
+      }
+    }
+  });
 
   // Night readability — lift emissive only; do NOT replace materials / destroy maps
   mesh.traverse((o) => {
@@ -556,25 +581,23 @@ export async function spawnCinemaHuman(role: CinemaHumanRole): Promise<CinemaHum
       }
       if ('emissive' in std) {
         if (!std.emissive) std.emissive = new THREE.Color(0x000000);
-        // Soft night lift without green slime wash
         if (std.emissive.r + std.emissive.g + std.emissive.b < 0.05) {
           std.emissive.setHex(isOrc ? 0x152010 : 0x1a1410);
         }
         std.emissiveIntensity = Math.max(std.emissiveIntensity ?? 0, 0.22);
       }
       if ('color' in std && std.color && std.color.r + std.color.g + std.color.b < 0.06) {
-        // Pure black unlit mats → mid grey so atlas/map still reads if present
         if (!std.map) std.color.setHex(isOrc ? 0x4a6a3a : 0x8a7060);
       }
       std.needsUpdate = true;
     }
   });
 
-  // SI yardstick — same helper as production heroes (decade + residual + plant feet)
-  const raceMult = sanitizeRaceScaleMult(race.scale ?? 1);
-  fitCharacterRootToHeightM(mesh, raceMult, targetH);
+  // SI yardstick: race.scale already baked into kit proportions — do NOT multiply again
+  // (raceMult 1.15 × CIN_ORC_M 2.2 → 2.53m + head scale = stretched giants).
+  fitCharacterRootToHeightM(mesh, 1, targetH);
   assertHeroSiHeight(mesh, {
-    raceScaleMult: raceMult,
+    raceScaleMult: 1,
     targetBaseHeightM: targetH,
     label: `cinema/${role}`,
   });
@@ -599,8 +622,8 @@ export async function spawnCinemaHuman(role: CinemaHumanRole): Promise<CinemaHum
   root.updateMatrixWorld(true);
 
   let finalH = measureCharacterWorldHeight(root) || measureObjectWorldHeight(root);
-  if (finalH > 2.8 || finalH < 1.2) {
-    // Last-chance uniform rescue only
+  // Clamp to human/orc band only — never force-fit with residual that re-stretches
+  if (finalH > 2.6 || finalH < 1.35) {
     if (finalH > 1e-4) {
       root.scale.multiplyScalar(targetH / finalH);
       lockUniformScale(root);

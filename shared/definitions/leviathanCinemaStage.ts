@@ -8,8 +8,8 @@
  * Prefix: cinloc_ (cinema location) · versioned stage id for session rebind.
  */
 
-export const LEVIATHAN_STAGE_ID = 'cin_stage_leviathan_ocean_v18' as const;
-export const LEVIATHAN_STAGE_VERSION = '18.0.0';
+export const LEVIATHAN_STAGE_ID = 'cin_stage_leviathan_ocean_v19' as const;
+export const LEVIATHAN_STAGE_VERSION = '19.0.0';
 
 /**
  * SI SSOT — 1 unit = 1 m.
@@ -207,226 +207,221 @@ export const LEVIATHAN_STAGE_LOCATIONS: readonly CinLocationDef[] = [
     tags: ['ship', 'sail', 'open_water'],
     notes: 'Alone on the swell; camera follows toward ship_origin / rocks',
   }),
-  L('ship_keel', 'ship', 'Ship Keel', { x: 0, y: 1.2, z: 0 }, {
+  L('ship_keel', 'ship', 'Ship Keel', { x: 0, y: 1.4, z: 0 }, {
     tags: ['impact', 'megumin'],
   }),
-  L('ship_bow', 'ship', 'Ship Bow', { x: 0, y: 3.2, z: 9 }, {
+  // LOA 36 m → half-length ≈ 18 m (was 9 m at 18 m LOA)
+  L('ship_bow', 'ship', 'Ship Bow', { x: 0, y: 3.6, z: 16 }, {
     tags: ['forward'],
   }),
-  L('ship_stern', 'ship', 'Ship Stern', { x: 0, y: 3.0, z: -9 }, {
+  L('ship_stern', 'ship', 'Ship Stern', { x: 0, y: 3.4, z: -16 }, {
     tags: ['aft'],
   }),
 
-  // ── 4 mage deck slots — Y is deck height in ship-local (feet on deck) ─
+  // ── 4 mage deck slots — ship-local; spaced for 36 m LOA deck ──────────
   // Runtime overwrites Y from measured ship deck top after SI fit.
-  L('deck_mage_0', 'deck_slot', 'Deck Mage 0 · Port', { x: -2.4, y: 0, z: 1.6 }, {
-    yaw: 0.45,
+  L('deck_mage_0', 'deck_slot', 'Deck Mage 0 · Port', { x: -4.2, y: 0, z: 3.2 }, {
+    yaw: 0.35,
     tags: ['mage', 'human', 'caster', 'ring', 'feet_on_deck'],
   }),
-  L('deck_mage_1', 'deck_slot', 'Deck Mage 1 · Starboard', { x: 2.2, y: 0, z: -0.6 }, {
-    yaw: -0.5,
+  L('deck_mage_1', 'deck_slot', 'Deck Mage 1 · Starboard', { x: 4.0, y: 0, z: -1.4 }, {
+    yaw: -0.4,
     tags: ['mage', 'human', 'caster', 'ring', 'feet_on_deck'],
   }),
-  L('deck_mage_2', 'deck_slot', 'Deck Mage 2 · Forward', { x: 0.5, y: 0, z: 3.4 }, {
-    yaw: 0.15,
+  L('deck_mage_2', 'deck_slot', 'Deck Mage 2 · Forward', { x: 0.8, y: 0, z: 7.0 }, {
+    yaw: 0.12,
     tags: ['mage', 'human', 'caster', 'ring', 'feet_on_deck'],
   }),
-  L('deck_mage_3', 'deck_slot', 'Deck Mage 3 · Aft', { x: -0.9, y: 0, z: -2.8 }, {
-    yaw: 0.65,
+  L('deck_mage_3', 'deck_slot', 'Deck Mage 3 · Aft', { x: -1.6, y: 0, z: -6.0 }, {
+    yaw: 0.5,
     tags: ['mage', 'human', 'caster', 'ring', 'feet_on_deck'],
   }),
 
-  // ── Throw hero (human unarmed default) — feet on deck ────────────────
-  L('deck_hero', 'deck_slot', 'Deck Hero · Unarmed', { x: 0.4, y: 0, z: 0.2 }, {
+  // ── Throw hero — feet on deck midships ───────────────────────────────
+  L('deck_hero', 'deck_slot', 'Deck Hero · Unarmed', { x: 0.6, y: 0, z: 0.4 }, {
     yaw: 0,
     tags: ['hero', 'human', 'unarmed', 'throw', 'feet_on_deck'],
   }),
-  L('throw_apex', 'throw_arc', 'Throw Apex', { x: 10, y: 9.5, z: 6 }, {
+  L('throw_apex', 'throw_arc', 'Throw Apex', { x: 14, y: 10, z: 8 }, {
     tags: ['air'],
   }),
-  L('throw_end', 'throw_arc', 'Throw End · 20 m', { x: 18, y: 0.4, z: 4 }, {
+  L('throw_end', 'throw_arc', 'Throw End · 20 m', { x: 22, y: 0.4, z: 6 }, {
     tags: ['sea', 'handoff'],
     notes: `Exactly ${CIN_HERO_THROW_M} m along throw dir from deck`,
   }),
 
-  // ── Leviathan path (scripted nodes) ──────────────────────────────────
-  // Beyond the rock horizon (island z≈−100): deep under water, swim-in then rise
-  L('levi_hidden', 'leviathan_path', 'Leviathan Hidden', { x: 18, y: -28, z: -72 }, {
+  // ── Leviathan path — stand-off scaled for 36 m LOA (further from hull) ─
+  L('levi_hidden', 'leviathan_path', 'Leviathan Hidden', { x: 28, y: -28, z: -80 }, {
     yaw: -1.2,
     tags: ['off'],
   }),
-  L('levi_swim_a', 'leviathan_path', 'Leviathan Swim A', { x: 18, y: -6, z: -12 }, {
+  L('levi_swim_a', 'leviathan_path', 'Leviathan Swim A', { x: 26, y: -6, z: -22 }, {
     yaw: -1.4,
     tags: ['swim', 'under'],
   }),
-  L('levi_swim_b', 'leviathan_path', 'Leviathan Swim B', { x: 10, y: -4.5, z: -8 }, {
+  L('levi_swim_b', 'leviathan_path', 'Leviathan Swim B', { x: 20, y: -4.5, z: -16 }, {
     yaw: -1.1,
     tags: ['swim', 'under'],
   }),
-  L('levi_surface', 'leviathan_path', 'Leviathan Surface', { x: 14, y: 2.4, z: -9 }, {
+  L('levi_surface', 'leviathan_path', 'Leviathan Surface', { x: 22, y: 3.0, z: -18 }, {
     yaw: -1.15,
     tags: ['surface', 'idle'],
   }),
-  L('levi_cast', 'leviathan_path', 'Leviathan Cast', { x: 12, y: 3.2, z: -8 }, {
+  L('levi_cast', 'leviathan_path', 'Leviathan Cast', { x: 20, y: 3.6, z: -16 }, {
     yaw: -1.0,
     tags: ['cast', 'storm'],
   }),
-  L('levi_beam', 'leviathan_path', 'Leviathan Beam', { x: 10, y: 3.6, z: -6 }, {
+  L('levi_beam', 'leviathan_path', 'Leviathan Beam', { x: 18, y: 4.0, z: -14 }, {
     yaw: -0.95,
     tags: ['roar', 'beam', 'slowmo'],
   }),
-  L('levi_dive', 'leviathan_path', 'Leviathan Dive', { x: 16, y: -3, z: -14 }, {
+  L('levi_dive', 'leviathan_path', 'Leviathan Dive', { x: 24, y: -3, z: -24 }, {
     yaw: -0.8,
     tags: ['dive'],
   }),
-  L('levi_rise', 'leviathan_path', 'Leviathan Rise Attack', { x: 6, y: 1.5, z: -4 }, {
+  L('levi_rise', 'leviathan_path', 'Leviathan Rise Attack', { x: 14, y: 2.0, z: -12 }, {
     yaw: -0.6,
     tags: ['attack', 'rise'],
   }),
-  L('levi_breach', 'leviathan_path', 'Leviathan Breach', { x: 2, y: 2.2, z: -1 }, {
+  L('levi_breach', 'leviathan_path', 'Leviathan Breach', { x: 10, y: 2.8, z: -8 }, {
     yaw: -0.4,
     tags: ['breach', 'pinata'],
   }),
-  L('levi_watch', 'leviathan_path', 'Leviathan Idle Watch', { x: 8, y: 3.0, z: -5 }, {
+  L('levi_watch', 'leviathan_path', 'Leviathan Idle Watch', { x: 16, y: 3.4, z: -12 }, {
     yaw: -0.5,
     tags: ['idle', 'watch'],
   }),
-  L('levi_finisher', 'leviathan_path', 'Leviathan Finisher', { x: 12, y: 2.5, z: -3 }, {
+  L('levi_finisher', 'leviathan_path', 'Leviathan Finisher', { x: 20, y: 3.0, z: -10 }, {
     yaw: -0.3,
     tags: ['attack', 'finisher'],
   }),
-  L('levi_gone', 'leviathan_path', 'Leviathan Gone', { x: 28, y: -16, z: -24 }, {
+  L('levi_gone', 'leviathan_path', 'Leviathan Gone', { x: 36, y: -16, z: -32 }, {
     yaw: 0,
     tags: ['off'],
   }),
 
-  // ── IK targets (empties; runtime follows bones / ship) ───────────────
-  L('ik_levi_head', 'ik_target', 'IK · Leviathan Head', { x: 14, y: 6, z: -9 }, {
+  // ── IK targets ───────────────────────────────────────────────────────
+  L('ik_levi_head', 'ik_target', 'IK · Leviathan Head', { x: 22, y: 7, z: -18 }, {
     tags: ['ik', 'look'],
   }),
-  L('ik_levi_mouth', 'ik_target', 'IK · Leviathan Mouth', { x: 12, y: 4.2, z: -7 }, {
+  L('ik_levi_mouth', 'ik_target', 'IK · Leviathan Mouth', { x: 20, y: 5, z: -15 }, {
     tags: ['ik', 'beam'],
   }),
-  L('ik_ship_deck_center', 'ik_target', 'IK · Deck Center', { x: 0, y: 3.4, z: 0 }, {
+  L('ik_ship_deck_center', 'ik_target', 'IK · Deck Center', { x: 0, y: 3.8, z: 0 }, {
     tags: ['ik', 'deck'],
   }),
-  L('ik_hero_chest', 'ik_target', 'IK · Hero Chest', { x: 0.5, y: 4.1, z: 0.3 }, {
+  L('ik_hero_chest', 'ik_target', 'IK · Hero Chest', { x: 0.6, y: 4.5, z: 0.4 }, {
     tags: ['ik', 'hero'],
   }),
-  L('ik_sky_storm', 'ik_target', 'IK · Sky Storm', { x: 8, y: 28, z: -10 }, {
+  L('ik_sky_storm', 'ik_target', 'IK · Sky Storm', { x: 12, y: 32, z: -14 }, {
     tags: ['ik', 'sky'],
   }),
 
-  // ── VFX ──────────────────────────────────────────────────────────────
-  L('vfx_whirlpool_0', 'vfx_pin', 'Whirlpool Port', { x: -12, y: 0.05, z: -6 }, {
+  // ── VFX — clear of 36 m hull ─────────────────────────────────────────
+  L('vfx_whirlpool_0', 'vfx_pin', 'Whirlpool Port', { x: -18, y: 0.05, z: -10 }, {
     tags: ['whirl', 'lightning'],
   }),
-  L('vfx_whirlpool_1', 'vfx_pin', 'Whirlpool Starboard', { x: 14, y: 0.05, z: -10 }, {
+  L('vfx_whirlpool_1', 'vfx_pin', 'Whirlpool Starboard', { x: 20, y: 0.05, z: -14 }, {
     tags: ['whirl', 'lightning'],
   }),
-  L('vfx_tornado', 'vfx_pin', 'Tornado', { x: 16, y: 0, z: -4 }, {
+  L('vfx_tornado', 'vfx_pin', 'Tornado', { x: 22, y: 0, z: -8 }, {
     tags: ['tornado'],
   }),
-  L('vfx_megumin_keel', 'vfx_pin', 'Megumin Keel Mark', { x: 0, y: 2.0, z: 0 }, {
+  L('vfx_megumin_keel', 'vfx_pin', 'Megumin Keel Mark', { x: 0, y: 2.2, z: 0 }, {
     tags: ['megumin'],
   }),
 
-  // ── Cameras — leviathan is the subject (side-quarter ship→beast, not water stare) ─
-  // Eyes sit ship-side; look aims levi path nodes (~14,3,−9). Runtime also hard-aims levi.
-  L('cam_establish_eye', 'camera', 'Cam Establish Eye', { x: 36, y: 14, z: 32 }, {
-    fov: 50,
+  // ── Cameras — wider FOV (58–64) for 36 m LOA + levi two-shot ──────────
+  L('cam_establish_eye', 'camera', 'Cam Establish Eye', { x: 48, y: 18, z: 42 }, {
+    fov: 62,
     tags: ['cam', 'cut', 'master'],
   }),
-  L('cam_establish_look', 'camera', 'Cam Establish Look', { x: 10, y: 5, z: -6 }, {
+  L('cam_establish_look', 'camera', 'Cam Establish Look', { x: 12, y: 5, z: -8 }, {
     tags: ['cam'],
   }),
-  // Ship-local follow while sailing alone (look over bow toward rocks/levi spawn)
-  L('cam_sail_eye', 'camera', 'Cam Sail Follow Eye', { x: 18, y: 9, z: -22 }, {
-    fov: 48,
+  L('cam_sail_eye', 'camera', 'Cam Sail Follow Eye', { x: 24, y: 12, z: -28 }, {
+    fov: 60,
     tags: ['cam', 'blend', 'sail', 'ship_linked'],
     notes: 'Stern-quarter; bow toward rocks',
   }),
-  L('cam_sail_look', 'camera', 'Cam Sail Follow Look', { x: 0, y: 4, z: 10 }, {
+  L('cam_sail_look', 'camera', 'Cam Sail Follow Look', { x: 0, y: 5, z: 12 }, {
     tags: ['cam', 'sail', 'ship_linked'],
   }),
-  // Under/approach: SEE the leviathan under/through swell
-  L('cam_under_eye', 'camera', 'Cam Under Eye', { x: 24, y: 7, z: 18 }, {
-    fov: 48,
+  L('cam_under_eye', 'camera', 'Cam Under Eye', { x: 32, y: 9, z: 24 }, {
+    fov: 60,
     tags: ['cam', 'blend', 'underwater'],
   }),
-  L('cam_under_look', 'camera', 'Cam Under Look', { x: 12, y: 2, z: -8 }, {
+  L('cam_under_look', 'camera', 'Cam Under Look', { x: 16, y: 2.5, z: -12 }, {
     tags: ['cam'],
   }),
-  L('cam_deck_eye', 'camera', 'Cam Deck Eye', { x: 16, y: 7, z: 14 }, {
-    fov: 48,
+  L('cam_deck_eye', 'camera', 'Cam Deck Eye', { x: 22, y: 9, z: 18 }, {
+    fov: 60,
     tags: ['cam', 'blend'],
   }),
-  L('cam_deck_look', 'camera', 'Cam Deck Look', { x: 10, y: 5, z: -6 }, {
+  L('cam_deck_look', 'camera', 'Cam Deck Look', { x: 12, y: 5, z: -8 }, {
     tags: ['cam'],
   }),
-  // Surface breach: wide side-quarter on the beast
-  L('cam_surface_eye', 'camera', 'Cam Surface Eye', { x: 30, y: 11, z: 12 }, {
-    fov: 50,
+  L('cam_surface_eye', 'camera', 'Cam Surface Eye', { x: 40, y: 14, z: 18 }, {
+    fov: 62,
     tags: ['cam', 'blend'],
   }),
-  L('cam_surface_look', 'camera', 'Cam Surface Look', { x: 12, y: 6, z: -8 }, {
+  L('cam_surface_look', 'camera', 'Cam Surface Look', { x: 16, y: 6, z: -12 }, {
     tags: ['cam'],
   }),
-  L('cam_cast_eye', 'camera', 'Cam Cast Eye', { x: 22, y: 9, z: 16 }, {
-    fov: 48,
+  L('cam_cast_eye', 'camera', 'Cam Cast Eye', { x: 30, y: 11, z: 20 }, {
+    fov: 60,
     tags: ['cam', 'blend'],
   }),
-  L('cam_cast_look', 'camera', 'Cam Cast Look', { x: 10, y: 5, z: -6 }, {
+  L('cam_cast_look', 'camera', 'Cam Cast Look', { x: 12, y: 5, z: -8 }, {
     tags: ['cam'],
   }),
-  // Side-quarter: levi + ship both readable
-  L('cam_roar_eye', 'camera', 'Cam Roar Eye', { x: 28, y: 10, z: 14 }, {
-    fov: 48,
+  L('cam_roar_eye', 'camera', 'Cam Roar Eye', { x: 36, y: 12, z: 18 }, {
+    fov: 62,
     tags: ['cam', 'blend', 'beam_blowback'],
   }),
-  L('cam_roar_look', 'camera', 'Cam Roar Look', { x: 10, y: 5, z: -5 }, {
+  L('cam_roar_look', 'camera', 'Cam Roar Look', { x: 14, y: 5, z: -8 }, {
     tags: ['cam'],
   }),
-  L('cam_dive_eye', 'camera', 'Cam Dive Eye', { x: 24, y: 10, z: 28 }, {
-    fov: 48,
+  L('cam_dive_eye', 'camera', 'Cam Dive Eye', { x: 32, y: 12, z: 34 }, {
+    fov: 60,
     tags: ['cam', 'blend'],
   }),
-  L('cam_dive_look', 'camera', 'Cam Dive Look', { x: 8, y: 2, z: -8 }, {
+  L('cam_dive_look', 'camera', 'Cam Dive Look', { x: 12, y: 2.5, z: -12 }, {
     tags: ['cam'],
   }),
-  L('cam_rise_eye', 'camera', 'Cam Rise Eye', { x: -22, y: 9, z: 24 }, {
-    fov: 47,
+  L('cam_rise_eye', 'camera', 'Cam Rise Eye', { x: -28, y: 11, z: 30 }, {
+    fov: 60,
     tags: ['cam', 'blend'],
   }),
-  L('cam_rise_look', 'camera', 'Cam Rise Look', { x: 3, y: 3.5, z: 1 }, {
+  L('cam_rise_look', 'camera', 'Cam Rise Look', { x: 6, y: 4, z: -2 }, {
     tags: ['cam'],
   }),
-  L('cam_breach_eye', 'camera', 'Cam Breach Eye', { x: -16, y: 9, z: 20 }, {
-    fov: 48,
+  L('cam_breach_eye', 'camera', 'Cam Breach Eye', { x: -22, y: 11, z: 26 }, {
+    fov: 62,
     tags: ['cam', 'blend'],
   }),
-  L('cam_breach_look', 'camera', 'Cam Breach Look', { x: 2, y: 3, z: 1 }, {
+  L('cam_breach_look', 'camera', 'Cam Breach Look', { x: 4, y: 3.5, z: -2 }, {
     tags: ['cam'],
   }),
-  L('cam_throw_eye', 'camera', 'Cam Throw Eye', { x: 18, y: 7, z: 16 }, {
-    fov: 46,
+  L('cam_throw_eye', 'camera', 'Cam Throw Eye', { x: 24, y: 9, z: 20 }, {
+    fov: 60,
     tags: ['cam', 'blend'],
   }),
-  L('cam_throw_look', 'camera', 'Cam Throw Look', { x: 2, y: 2.5, z: 1 }, {
+  L('cam_throw_look', 'camera', 'Cam Throw Look', { x: 4, y: 2.5, z: 2 }, {
     tags: ['cam'],
   }),
-  L('cam_finisher_eye', 'camera', 'Cam Finisher Eye', { x: 24, y: 6, z: 16 }, {
-    fov: 48,
+  L('cam_finisher_eye', 'camera', 'Cam Finisher Eye', { x: 32, y: 8, z: 20 }, {
+    fov: 62,
     tags: ['cam', 'blend'],
   }),
-  L('cam_finisher_look', 'camera', 'Cam Finisher Look', { x: 10, y: 2.5, z: 0 }, {
+  L('cam_finisher_look', 'camera', 'Cam Finisher Look', { x: 12, y: 3, z: -2 }, {
     tags: ['cam'],
   }),
-  L('cam_blackout_eye', 'camera', 'Cam Blackout Eye', { x: 22, y: 2.5, z: 10 }, {
-    fov: 48,
+  L('cam_blackout_eye', 'camera', 'Cam Blackout Eye', { x: 28, y: 3.5, z: 14 }, {
+    fov: 58,
     tags: ['cam', 'blend'],
   }),
-  L('cam_blackout_look', 'camera', 'Cam Blackout Look', { x: 16, y: 0.5, z: 2 }, {
+  L('cam_blackout_look', 'camera', 'Cam Blackout Look', { x: 18, y: 0.8, z: 4 }, {
     tags: ['cam'],
   }),
 ];

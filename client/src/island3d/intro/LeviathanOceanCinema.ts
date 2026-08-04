@@ -426,7 +426,7 @@ export class LeviathanOceanCinema {
   private camEyeLocal = new THREE.Vector3();
   private camLookLocal = new THREE.Vector3();
   private camLookLevi = false;
-  private camFovCur = 46;
+  private camFovCur = 60;
   private camLookDebris = false;
   /** Always frame boat + levi head (until pinata / debris) */
   private camTwoShot = false;
@@ -2010,13 +2010,13 @@ export class LeviathanOceanCinema {
 
     this.camLookLevi = this.camTwoShot;
 
-    // Wider FOV so both subjects fit without orbit thrash
+    // Wide FOV — 36 m LOA boat + levi need room (old clamp max 52 was crushing the frame)
     const def = this.stage.def(eyeKey);
-    const rawFov = (def as { fov?: number } | undefined)?.fov ?? 46;
+    const rawFov = (def as { fov?: number } | undefined)?.fov ?? 60;
     this.camFovCur = THREE.MathUtils.clamp(
-      this.camTwoShot ? Math.max(rawFov, 46) : rawFov,
-      42,
+      this.camTwoShot ? Math.max(rawFov, 60) : Math.max(rawFov, 56),
       52,
+      72,
     );
 
     // Lock side/back ONCE per beat from ship → levi
@@ -2031,11 +2031,11 @@ export class LeviathanOceanCinema {
     this.camMasterBack.copy(toLevi);
     this.camMasterSide.set(-toLevi.z, 0, toLevi.x);
 
-    // Side-quarter (not top-down): lower elev, more lateral offset
+    // Side-quarter: pull back further for 36 m LOA so hull + beast fit
     const sep = Math.hypot(leviAt.x - shipDeck.x, leviAt.z - shipDeck.z);
-    this.camMasterElev = this.camTwoShot ? 8.5 : 7;
-    this.camMasterDist = this.camTwoShot ? Math.max(26, sep * 0.45 + 16) : 22;
-    this.camMasterSideDist = this.camTwoShot ? Math.max(22, sep * 0.4 + 16) : 14;
+    this.camMasterElev = this.camTwoShot ? 10 : 8;
+    this.camMasterDist = this.camTwoShot ? Math.max(34, sep * 0.5 + 20) : 26;
+    this.camMasterSideDist = this.camTwoShot ? Math.max(28, sep * 0.45 + 20) : 18;
 
     const hardCut = beat.camMode === 'cut' && /sail_alone|establish/i.test(beat.id);
     this.multiCam.setBlendSpeed(
@@ -3181,12 +3181,14 @@ export class LeviathanOceanCinema {
     hero.position.copy(worldPos);
     hero.quaternion.copy(worldQuat);
     hero.visible = true;
-    hero.scale.setScalar(1);
+    // Keep SI scale from spawn — never reset to 1 (that undoes fit and looks stretched/wrong)
+    lockUniformScale(hero);
     {
       const b = new THREE.Box3().setFromObject(hero);
       const h = b.max.y - b.min.y;
-      if (h > 0.2 && Math.abs(h - CIN_ORC_M) > 0.2) {
+      if (h > 0.2 && (h < 1.4 || h > 2.8)) {
         hero.scale.multiplyScalar(CIN_ORC_M / h);
+        lockUniformScale(hero);
       }
     }
 
