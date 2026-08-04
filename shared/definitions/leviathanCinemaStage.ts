@@ -8,8 +8,8 @@
  * Prefix: cinloc_ (cinema location) · versioned stage id for session rebind.
  */
 
-export const LEVIATHAN_STAGE_ID = 'cin_stage_leviathan_ocean_v17' as const;
-export const LEVIATHAN_STAGE_VERSION = '17.0.0';
+export const LEVIATHAN_STAGE_ID = 'cin_stage_leviathan_ocean_v18' as const;
+export const LEVIATHAN_STAGE_VERSION = '18.0.0';
 
 /**
  * SI SSOT — 1 unit = 1 m.
@@ -22,6 +22,11 @@ export const CIN_ORC_M = 2.2;
 export const CIN_SHIP_LOA_M = 36;
 /** Leviathan LOA — large threat; ~2.5× ship so silhouette still dominates */
 export const CIN_LEVIATHAN_LOA_M = 90;
+/**
+ * Push ship + camera + levi fight station open-sea away from rock island
+ * (startingfalls at CIN_ISLAND_OFFSET z≈−100). Deck slots stay ship-local (no offset).
+ */
+export const CIN_AWAY_FROM_ROCKS_M = 20;
 export const CIN_HERO_THROW_M = 20;
 /** Clock-face ward ring diameter (~ chest shield) */
 export const CIN_RING_SPAN_M = 1.45;
@@ -160,12 +165,20 @@ function L(
   position: CinVec3,
   extra?: Partial<Pick<CinLocationDef, 'yaw' | 'fov' | 'tags' | 'notes'>>,
 ): CinLocationDef {
+  // Deck slots are ship-local offsets under shipGroup — never world-shift them.
+  // Anchors / water plane stay at origin. Everything else in the fight ball
+  // moves open-sea so boat + cam clear the rock horizon.
+  const worldShift =
+    role !== 'deck_slot' && role !== 'world_anchor' && role !== 'water';
+  const pos: CinVec3 = worldShift
+    ? { x: position.x, y: position.y, z: position.z + CIN_AWAY_FROM_ROCKS_M }
+    : position;
   return {
     uuid: CIN_UUID[key],
     key,
     role,
     name,
-    position,
+    position: pos,
     yaw: extra?.yaw,
     fov: extra?.fov,
     tags: extra?.tags ?? [],
@@ -186,7 +199,7 @@ export const LEVIATHAN_STAGE_LOCATIONS: readonly CinLocationDef[] = [
   }),
   L('ship_origin', 'ship', 'Ship Origin · Battle Station', { x: 0, y: 0, z: 0 }, {
     tags: ['ship', 'parent', 'battle'],
-    notes: 'Fight station near rock horizon; sail path ends here',
+    notes: `Fight station ${CIN_AWAY_FROM_ROCKS_M}m open-sea of rock horizon (z+${CIN_AWAY_FROM_ROCKS_M})`,
   }),
   /** Far open water — sail-in start (island/rocks at z≈−100, so +Z is open sea) */
   L('ship_sail_start', 'ship', 'Ship Sail Start', { x: 10, y: 0, z: 92 }, {
