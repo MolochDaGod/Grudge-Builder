@@ -1598,8 +1598,9 @@ export class LeviathanOceanCinema {
       (this.fireBeam.material as THREE.MeshBasicMaterial).opacity = useLegacy ? 0.85 : 0;
     }
 
-    // Cyclones: spawn/grow/advance lifecycle (not hard place at full size)
-    const wantCyclones = !this.twisterDead && (!!beat.tornado || !!beat.whirlpools);
+    // Cyclones ONLY on tornado flag — never whirlpools alone (that pre-spawned them
+    // before levi attack and killed the "cast then cyclones" read).
+    const wantCyclones = !this.twisterDead && !!beat.tornado;
     if (prev !== idx && wantCyclones && this.cycloneActors.every((c) => c.phase === 'idle' || c.phase === 'dead')) {
       this.spawnCycloneLifecycle();
     }

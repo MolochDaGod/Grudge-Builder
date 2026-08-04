@@ -338,7 +338,7 @@ export const LEVIATHAN_BATTLE_SCRIPT: readonly CinBattleBeat[] = [
     shipIntact: true,
     heroMode: 'brace',
     fireAura: true,
-    whirlpools: true,
+    // No whirlpools here — cyclones must wait for levi attack cast (see levi_cast_cyclones)
     skyLightning: true,
     iceSnakeCast: true,
     exposure: 1.02,
@@ -360,11 +360,49 @@ export const LEVIATHAN_BATTLE_SCRIPT: readonly CinBattleBeat[] = [
       hero: { at: 'deck_hero', lookAt: 'ik_levi_head', ikWeight: 0.8, anim: 'brace' },
     },
   },
+  /**
+   * Levi attack FIRST — wind-up readable before any cyclone mesh.
+   * Cyclones rise ~1.2s later on twisters_rise so they read as cast from this strike.
+   */
   {
-    t: 21.5,
+    t: 20.3,
+    id: 'levi_cast_cyclones',
+    caption: 'STORM CAST',
+    sub: 'The beast rears and strikes the sea — water coils under its blow.',
+    camEye: 'cam_surface_eye',
+    camLook: 'cam_surface_look',
+    camMode: 'blend',
+    storm: 0.78,
+    shipRoll: 0.2,
+    shipIntact: true,
+    heroMode: 'brace',
+    skyLightning: true,
+    fireAura: true,
+    exposure: 1.0,
+    bloom: 0.5,
+    fogDensity: 0.011,
+    actors: {
+      leviathan: {
+        at: 'levi_cast',
+        lookAt: 'ik_ship_deck_center',
+        ikWeight: 0.7,
+        anim: 'attack',
+        animRestart: true,
+        timeScale: 0.55,
+        visible: true,
+      },
+      mage_0: { at: 'deck_mage_0', lookAt: 'ik_levi_mouth', ikWeight: 0.9, anim: 'defend' },
+      mage_1: { at: 'deck_mage_1', lookAt: 'ik_levi_mouth', ikWeight: 0.9, anim: 'defend' },
+      mage_2: { at: 'deck_mage_2', lookAt: 'ik_levi_mouth', ikWeight: 0.9, anim: 'defend' },
+      mage_3: { at: 'deck_mage_3', lookAt: 'ik_levi_mouth', ikWeight: 0.9, anim: 'defend' },
+      hero: { at: 'deck_hero', lookAt: 'ik_levi_head', ikWeight: 0.8, anim: 'brace' },
+    },
+  },
+  {
+    t: 21.6,
     id: 'twisters_rise',
     caption: 'WATER TWISTERS',
-    sub: 'Cyclones spawn thin in the water, grow, and drive on the hull.',
+    sub: 'Cyclones answer the strike — thin in the water, then grow and drive on the hull.',
     camEye: 'cam_surface_eye',
     camLook: 'cam_surface_look',
     camMode: 'blend',
@@ -383,9 +421,9 @@ export const LEVIATHAN_BATTLE_SCRIPT: readonly CinBattleBeat[] = [
         at: 'levi_cast',
         lookAt: 'ik_ship_deck_center',
         ikWeight: 0.65,
-        // User SSOT: attack clip when cyclones start
+        // Keep attack playing (no restart) — cyclones land mid-strike as cast aftermath
         anim: 'attack',
-        animRestart: true,
+        animRestart: false,
         timeScale: 0.5,
         visible: true,
       },
@@ -397,7 +435,7 @@ export const LEVIATHAN_BATTLE_SCRIPT: readonly CinBattleBeat[] = [
     },
   },
   {
-    t: 23.2,
+    t: 23.3,
     id: 'mage_spline_kill',
     caption: 'COUNTER-SPELL',
     sub: 'Ice serpents and water-breakers — the deck fights back.',
