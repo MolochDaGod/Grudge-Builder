@@ -169,13 +169,15 @@ function sampleGroundY(
 interface SeasideShark {
   root: THREE.Group;
   mixer: THREE.AnimationMixer | null;
-  /** Swim depth below free surface (m, positive) */
+  /** Swim depth below free surface (m, positive) — shallow so readable under water */
   depthM: number;
-  angle: number;
-  radius: number;
-  center: THREE.Vector3;
+  /** Progress 0..1 along closed figure-8 path */
+  u: number;
+  /** Path speed (loops per second) */
   speed: number;
   yaw: number;
+  /** Closed XZ waypoints (water-only figure-8 + outer sides) */
+  path: THREE.Vector3[];
 }
 
 export default function HeroesSeasideCinemaScene({
@@ -481,9 +483,155 @@ export default function HeroesSeasideCinemaScene({
       camPosT.set(36, landmark.waterLevel + 16, 48);
     }
 
+    /** True if XZ is open water (no dry land near free surface). */
+    function isWaterColumn(x: number, z: number): boolean {
+      const wl = landmark.waterLevel;
+      const gy = sampleGroundY(raycaster, groundMeshes, x, z, wl + 80);
+      // Open water: no hit, or seabed well below free surface
+      if (gy === null || !Number.isFinite(gy)) return true;
+      return gy < wl - 1.25;
+    }
+
     /**
-     * Spawn 2 reef sharks that patrol under free surface.
-     * Depth is relative to landmark.waterLevel; land tops rejected via ground ray.
+     * Push a land sample out to the nearest water column (radial from focus).
+     * Keeps figure-8 lobes from tunneling under the island mesh.
+     */
+    function projectToWater(
+      x: number,
+      z: number,
+      focus: THREE.Vector3,
+      maxR = 55,
+    ): THREE.Vector3 | null {
+      if (isWaterColumn(x, z)) return new THREE.Vector3(x, 0, z);
+      const dx = x - focus.x;
+      const dz = z - focus.z;
+      let dist = Math.hypot(dx, dz) || 1;
+      let ux = dx / dist;
+      let uz = dz / dist;
+      // Walk outward then spin if needed
+      for (let r = Math.max(dist, 2); r <= maxR; r += 1.5) {
+        const px = focus.x + ux * r;
+        const pz = focus.z + uz * r;
+        if (isWaterColumn(px, pz)) return new THREE.Vector3(px, 0, pz);
+      }
+      for (let a = 0; a < 16; a++) {
+        const ang = (a / 16) * Math.PI * 2;
+        for (const r of [12, 20, 28, 38, 48]) {
+          const px = focus.x + Math.cos(ang) * r;
+          const pz = focus.z + Math.sin(ang) * r;
+          if (isWaterColumn(px, pz)) return new THREE.Vector3(px, 0, pz);
+        }
+      }
+      return null;
+    }
+
+    /**
+     * Closed path: figure-8 through the middle water channel of the island
+     * complex, then lobes that sweep outside each side (∞ / lemniscate + outer ring).
+     */
+    function buildSharkFigure8Path(
+      caveOrigin: THREE.Vector3,
+      islandCenter: THREE.Vector3,
+      scale = 1,
+    ): THREE.Vector3[] {
+      worldRoot.updateMatrixWorld(true);
+      // Focus = mid channel between cave shelf and sector islands
+      const focus = new THREE.Vector3(
+        (caveOrigin.x + islandCenter.x) * 0.5,
+        0,
+        (caveOrigin.z + islandCenter.z) * 0.5,
+      );
+      // Axis of the pair (along island offset)
+      const axis = new THREE.Vector3(
+        islandCenter.x - caveOrigin.x,
+        0,
+        islandCenter.z - caveOrigin.z,
+      );
+      if (axis.lengthSq() < 1) axis.set(1, 0, 0.4);
+      axis.normalize();
+      const side = new THREE.Vector3(-axis.z, 0, axis.x); // perpendicular
+
+      // Lemniscate size: lobes reach outside each land mass
+      const span = Math.hypot(islandCenter.x - caveOrigin.x, islandCenter.z - caveOrigin.z);
+      const a = Math.max(22, Math.min(48, span * 0.55)) * scale;
+
+      const raw: THREE.Vector3[] = [];
+      const N = 72;
+      // 1) Figure-8 (lemniscate of Bernoulli) in local axis/side frame
+      for (let i = 0; i < N; i++) {
+        const t = (i / N) * Math.PI * 2;
+        const s = Math.sin(t);
+        const c = Math.cos(t);
+        const den = 1 + s * s;
+        // Local: along-axis = long lobe, side = cross through middle
+        const localAlong = (a * c) / den;
+        const localSide = (a * s * c) / den;
+        const wx = focus.x + axis.x * localAlong + side.x * localSide;
+        const wz = focus.z + axis.z * localAlong + side.z * localSide;
+        raw.push(new THREE.Vector3(wx, 0, wz));
+      }
+      // 2) Outer perimeter arcs around each "side" of the pair (port / starboard of axis)
+      //    so path continues around the outside of each island after the ∞
+      const outerR = a * 1.35;
+      for (const sign of [-1, 1]) {
+        for (let i = 0; i < 24; i++) {
+          const t = (i / 24) * Math.PI * 2;
+          // Ellipse elongated along axis, offset on side
+          const ox =
+            focus.x +
+            axis.x * Math.cos(t) * outerR * 1.15 +
+            side.x * (sign * outerR * 0.55 + Math.sin(t) * outerR * 0.25);
+          const oz =
+            focus.z +
+            axis.z * Math.cos(t) * outerR * 1.15 +
+            side.z * (sign * outerR * 0.55 + Math.sin(t) * outerR * 0.25);
+          raw.push(new THREE.Vector3(ox, 0, oz));
+        }
+      }
+
+      // Project every sample to water; drop failures
+      const path: THREE.Vector3[] = [];
+      for (const p of raw) {
+        const w = projectToWater(p.x, p.z, focus, outerR + 30);
+        if (w) path.push(w);
+      }
+      // Ensure closed loop
+      if (path.length >= 3) {
+        path.push(path[0]!.clone());
+      }
+      // Fallback: simple water ring around focus if projection failed
+      if (path.length < 8) {
+        path.length = 0;
+        for (let i = 0; i <= 48; i++) {
+          const t = (i / 48) * Math.PI * 2;
+          const r = a * 1.1;
+          const px = focus.x + Math.cos(t) * r;
+          const pz = focus.z + Math.sin(t) * r;
+          const w = projectToWater(px, pz, focus) ?? new THREE.Vector3(px, 0, pz);
+          path.push(w);
+        }
+      }
+      console.info(
+        `[seaside cinema] shark figure-8 path pts=${path.length} focus=(${focus.x.toFixed(1)},${focus.z.toFixed(1)}) a=${a.toFixed(1)}`,
+      );
+      return path;
+    }
+
+    function samplePath(path: THREE.Vector3[], u: number, out: THREE.Vector3): THREE.Vector3 {
+      if (!path.length) return out.set(0, 0, 0);
+      const n = path.length - 1; // last == first if closed
+      const segCount = Math.max(1, n);
+      const t = ((u % 1) + 1) % 1;
+      const f = t * segCount;
+      const i0 = Math.floor(f) % segCount;
+      const i1 = (i0 + 1) % segCount;
+      const local = f - Math.floor(f);
+      return out.copy(path[i0]!).lerp(path[i1]!, local);
+    }
+
+    /**
+     * Spawn reef sharks on a figure-8 water path through the island middle
+     * and around each outer side — never under the land mesh.
      */
     async function spawnUnderwaterSharks(islandCenter: THREE.Vector3) {
       const urls = [
@@ -506,24 +654,29 @@ export default function HeroesSeasideCinemaScene({
         }
       }
 
-      const centers = [
-        new THREE.Vector3(18, 0, 22),
-        new THREE.Vector3(islandCenter.x - 20, 0, islandCenter.z + 14),
+      const caveOrigin = new THREE.Vector3(0, 0, 0);
+      // Primary ∞ through middle; second slightly larger outer figure-8
+      const paths = [
+        buildSharkFigure8Path(caveOrigin, islandCenter, 1.0),
+        buildSharkFigure8Path(caveOrigin, islandCenter, 1.22),
       ];
-      for (let i = 0; i < centers.length; i++) {
+
+      for (let i = 0; i < paths.length; i++) {
+        const path = paths[i]!;
+        if (path.length < 4) continue;
         const root = new THREE.Group();
         root.name = `seaside_shark_${i}`;
+        root.userData.seasideShark = true;
         if (sharkSrc) {
           const body = sharkSrc.clone(true);
-          // SI: reef shark ~2.5–3.5 m long
           body.updateMatrixWorld(true);
           const box = new THREE.Box3().setFromObject(body);
           const sz = box.getSize(new THREE.Vector3());
           const long = Math.max(sz.x, sz.y, sz.z, 0.001);
+          // SI: reef shark ~3 m long — readable near surface
           body.scale.setScalar(3.0 / long);
           root.add(body);
         } else {
-          // Procedural stand-in if CDN miss
           const geo = new THREE.ConeGeometry(0.35, 2.8, 6);
           const mat = new THREE.MeshStandardMaterial({
             color: 0x4a6a7a,
@@ -544,67 +697,58 @@ export default function HeroesSeasideCinemaScene({
           action.setLoop(THREE.LoopRepeat, Infinity);
           action.play();
         }
-        const depthM = 3.5 + i * 1.2; // m under free surface
+        // Shallow under free surface so sharks are visible in water, not under island
+        const depthM = 1.6 + i * 0.35;
         const sh: SeasideShark = {
           root,
           mixer,
           depthM,
-          angle: (i / centers.length) * Math.PI * 2,
-          radius: 14 + i * 6,
-          center: centers[i]!.clone(),
-          speed: 0.35 + i * 0.08,
+          u: i * 0.37, // phase offset so they don't stack
+          speed: 0.045 + i * 0.012, // loops / second along path
           yaw: 0,
+          path,
         };
-        // Start under water
-        sh.root.position.set(
-          sh.center.x + Math.cos(sh.angle) * sh.radius,
-          landmark.waterLevel - sh.depthM,
-          sh.center.z + Math.sin(sh.angle) * sh.radius,
-        );
+        const p0 = samplePath(path, sh.u, new THREE.Vector3());
+        sh.root.position.set(p0.x, landmark.waterLevel - depthM, p0.z);
         scene.add(sh.root);
         sharks.push(sh);
       }
       console.info(
-        `[seaside cinema] sharks under water: ${sharks.length} · surfaceY=${landmark.waterLevel.toFixed(1)}`,
+        `[seaside cinema] sharks figure-8: ${sharks.length} · surfaceY=${landmark.waterLevel.toFixed(1)} · not under island`,
       );
     }
 
     function tickSharks(dt: number) {
       const wl = landmark.waterLevel;
+      const tmp = new THREE.Vector3();
+      const next = new THREE.Vector3();
       for (const sh of sharks) {
         sh.mixer?.update(dt);
-        sh.angle += sh.speed * dt;
-        let x = sh.center.x + Math.cos(sh.angle) * sh.radius;
-        let z = sh.center.z + Math.sin(sh.angle) * sh.radius;
-        // Pathfind away from land tops — if ground is near surface, push deeper orbit
-        const gy = sampleGroundY(raycaster, groundMeshes, x, z, wl + 40);
-        if (gy !== null && gy > wl - 1.5) {
-          // Over land shelf — widen orbit / reverse a bit
-          sh.angle += Math.PI * 0.35;
-          sh.radius = Math.min(42, sh.radius + 2);
-          x = sh.center.x + Math.cos(sh.angle) * sh.radius;
-          z = sh.center.z + Math.sin(sh.angle) * sh.radius;
-        }
-        // Keep under free surface (and above seabed if we hit land mesh deep)
-        let y = wl - sh.depthM;
-        if (gy !== null) {
-          // Stay in water column: between seabed+0.6 and surface-1.2
-          const maxY = wl - 1.2;
-          const minY = Math.min(maxY - 0.5, gy + 0.6);
-          y = THREE.MathUtils.clamp(y, minY, maxY);
-        } else {
-          y = Math.min(y, wl - 1.2);
-        }
-        const prev = sh.root.position;
-        const nx = x;
-        const nz = z;
-        const dx = nx - prev.x;
-        const dz = nz - prev.z;
-        if (dx * dx + dz * dz > 1e-6) {
+        if (!sh.path.length) continue;
+        sh.u = (sh.u + sh.speed * dt) % 1;
+        samplePath(sh.path, sh.u, tmp);
+        // Look-ahead for yaw
+        samplePath(sh.path, (sh.u + 0.012) % 1, next);
+        const dx = next.x - tmp.x;
+        const dz = next.z - tmp.z;
+        if (dx * dx + dz * dz > 1e-8) {
           sh.yaw = Math.atan2(dx, dz);
         }
-        sh.root.position.set(nx, y, nz);
+        // Always shallow under free surface — never park under land mesh
+        const y = wl - sh.depthM;
+        // Soft water re-check; if drifted over land, skip ahead along path
+        if (!isWaterColumn(tmp.x, tmp.z)) {
+          for (let k = 1; k <= 8; k++) {
+            samplePath(sh.path, (sh.u + k * 0.02) % 1, tmp);
+            if (isWaterColumn(tmp.x, tmp.z)) {
+              sh.u = (sh.u + k * 0.02) % 1;
+              break;
+            }
+          }
+        }
+        sh.root.position.set(tmp.x, y, tmp.z);
         sh.root.rotation.y = sh.yaw;
+        sh.root.visible = true;
       }
     }
 
