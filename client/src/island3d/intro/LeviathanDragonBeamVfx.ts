@@ -5,19 +5,22 @@
  *   1. SNAP   (~0.1 s)  — attack anim start, mouth hot-hands flash
  *   2. CHARGE (pause)   — flame aura, hot hands, fireball orbs gather at maw
  *   3. BLAST            — multi-layer dragon beam mouth → deck
- *   4. BOUNCE           — flame aura / embers ricochet off mage force-field wards
+ *   4. BOUNCE           — spell-glyph impacts + rebounds off ship ward
  *
- * All procedural (no fireball.glb whole-scene load). Optional orb GLBs soft-fail.
- * SI metres. One-shot pieces hide/remove when life ends.
+ * Optional: GRDG-3DFX-789B55B0 spell-glyph.glb (SI scaled) for impact + rebound.
+ * Procedural orbs/sparks remain as fallback. SI metres. One-shots dispose when life ends.
  */
 import * as THREE from 'three';
+import { loadGltfCached, cloneGltfScene } from '@/lib/three/SharedGltfPipeline';
+import { fitPropSpanM } from './cinemaGrudge6';
+import { CIN_CAST_ASSETS, CIN_GLYPH_SPAN_M, CIN_WARD_GLYPH_M } from '@shared/definitions/leviathanCinemaStage';
 
 export type DragonBeamPhase = 'off' | 'snap' | 'charge' | 'blast' | 'aftermath';
 
 export type DragonBeamOpts = {
   /** Mouth world position (updated each frame) */
   mouth: THREE.Vector3;
-  /** Deck / ward aim world position */
+  /** Beam end: shield face while ward up, else deck */
   target: THREE.Vector3;
   /** Force-field / ring world positions for bounce contacts */
   shieldPoints: THREE.Vector3[];
@@ -31,6 +34,8 @@ export type DragonBeamOpts = {
   dt: number;
   elapsed: number;
   storm: number;
+  /** When true, beam stops at shield + dense flame bounce FX */
+  beamStopsAtShield?: boolean;
 };
 
 const _mid = new THREE.Vector3();
@@ -51,12 +56,15 @@ function addMat(color: number, opacity: number, additive = true): THREE.MeshBasi
 }
 
 type FlyingOrb = {
-  mesh: THREE.Mesh;
+  mesh: THREE.Object3D;
   from: THREE.Vector3;
   to: THREE.Vector3;
   t: number;
   life: number;
   mode: 'gather' | 'shot' | 'bounce';
+  /** Base uniform scale (glyph / orb) before flight pulse */
+  baseScale: number;
+  isGlyph?: boolean;
 };
 
 type Spark = {
@@ -64,6 +72,15 @@ type Spark = {
   vel: THREE.Vector3;
   life: number;
   maxLife: number;
+};
+
+/** One-shot spinning glyph flash at shield impact (GRDG-3DFX-789B55B0). */
+type GlyphImpact = {
+  root: THREE.Object3D;
+  life: number;
+  maxLife: number;
+  spin: number;
+  baseScale: number;
 };
 
 /**
@@ -94,12 +111,19 @@ export class LeviathanDragonBeamVfx {
 
   private flying: FlyingOrb[] = [];
   private sparks: Spark[] = [];
+  private glyphImpacts: GlyphImpact[] = [];
   private bounceCd = 0;
+  private fireballVolleyCd = 0;
   private snapFlash = 0;
+
+  /** GRDG-3DFX-789B55B0 spell-glyph template (null until soft-load). */
+  private glyphTemplate: THREE.Object3D | null = null;
+  private glyphLoadStarted = false;
 
   constructor(scene: THREE.Scene) {
     this.root.name = 'leviathan_dragon_beam_vfx';
     scene.add(this.root);
+    void this.ensureSpellGlyphTemplate();
 
     // Beam cylinders (unit height 1, scale.y = length)
     this.core = new THREE.Mesh(
@@ -129,16 +153,16 @@ export class LeviathanDragonBeamVfx {
     this.beamGroup.visible = false;
     this.root.add(this.beamGroup);
 
-    // Flame aura around body (danger-room shell, fire palette)
+    // Flame aura around body — soft additive shells (NO wireframe)
     this.auraShell = new THREE.Mesh(
-      new THREE.SphereGeometry(1, 24, 18),
-      addMat(0xff5511, 0.12),
+      new THREE.SphereGeometry(1, 28, 20),
+      addMat(0xff5511, 0.14),
     );
     this.auraRim = new THREE.Mesh(
-      new THREE.SphereGeometry(1.05, 14, 10),
-      addMat(0xffaa44, 0.2),
+      new THREE.SphereGeometry(1.12, 24, 16),
+      addMat(0xffaa44, 0.1),
     );
-    (this.auraRim.material as THREE.MeshBasicMaterial).wireframe = true;
+    (this.auraRim.material as THREE.MeshBasicMaterial).side = THREE.BackSide;
     this.auraShell.visible = false;
     this.auraRim.visible = false;
     this.root.add(this.auraShell, this.auraRim);
@@ -185,21 +209,112 @@ export class LeviathanDragonBeamVfx {
     return this.phase;
   }
 
-  /** Fire a one-shot fireball from mouth toward target (or bounce reverse). */
+  /**
+   * Fireball projectile (procedural layered orb — not whole fireball.glb scene).
+   * Core + hot shell + soft outer; bounce mode = cyan ward reflection.
+   */
+  /**
+   * spell-glyph.glb is BANNED — never load CDN/local glyph.
+   * Impacts/rebounds are procedural only.
+   */
+  private async ensureSpellGlyphTemplate(): Promise<void> {
+    this.glyphLoadStarted = true;
+    this.glyphTemplate = null;
+  }
+
+  private cloneGlyph(_spanM: number): THREE.Object3D | null {
+    return null;
+  }
+
+  /**
+   * Shield-block impact: dense flame aura + sparks (no spell-glyph).
+   */
+  spawnShieldGlyphImpact(at: THREE.Vector3, _spanM = CIN_WARD_GLYPH_M * 1.15): void {
+    this.spawnImpactSparks(at, 18);
+    this.spawnShieldFlameBounce(at);
+  }
+
+  /**
+   * Cool bounce: orange + purple flame particles ricochet off the ward plate.
+   */
+  spawnShieldFlameBounce(at: THREE.Vector3, outDir?: THREE.Vector3): void {
+    const n = 22;
+    const baseDir = outDir?.clone().normalize() ?? new THREE.Vector3(0, 1, 0);
+    for (let i = 0; i < n; i++) {
+      const col = i % 3 === 0 ? 0xaa44ff : i % 3 === 1 ? 0xff6622 : 0xffcc44;
+      const mesh = new THREE.Mesh(
+        new THREE.SphereGeometry(0.08 + Math.random() * 0.12, 6, 5),
+        addMat(col, 0.95),
+      );
+      mesh.position.copy(at);
+      this.root.add(mesh);
+      // Bounce mostly outward + up from shield face
+      const scatter = new THREE.Vector3(
+        (Math.random() - 0.5) * 2.2,
+        0.4 + Math.random() * 1.8,
+        (Math.random() - 0.5) * 2.2,
+      );
+      scatter.addScaledVector(baseDir, 2.5 + Math.random() * 4);
+      this.sparks.push({
+        mesh,
+        vel: scatter,
+        life: 0.45 + Math.random() * 0.35,
+        maxLife: 0.8,
+      });
+    }
+    // Larger soft flame puffs
+    for (let i = 0; i < 5; i++) {
+      const mesh = new THREE.Mesh(
+        new THREE.SphereGeometry(0.28 + Math.random() * 0.22, 8, 6),
+        addMat(i % 2 === 0 ? 0xff5511 : 0x8833ff, 0.55),
+      );
+      mesh.position.copy(at).add(
+        new THREE.Vector3(
+          (Math.random() - 0.5) * 0.6,
+          Math.random() * 0.4,
+          (Math.random() - 0.5) * 0.6,
+        ),
+      );
+      this.root.add(mesh);
+      this.sparks.push({
+        mesh,
+        vel: new THREE.Vector3(
+          (Math.random() - 0.5) * 3,
+          2 + Math.random() * 4,
+          (Math.random() - 0.5) * 3,
+        ),
+        life: 0.35 + Math.random() * 0.25,
+        maxLife: 0.6,
+      });
+    }
+  }
+
   launchFireball(from: THREE.Vector3, to: THREE.Vector3, mode: FlyingOrb['mode'] = 'shot'): void {
-    const mesh = new THREE.Mesh(
-      new THREE.SphereGeometry(0.35 + Math.random() * 0.15, 12, 10),
-      addMat(mode === 'bounce' ? 0x66ddff : 0xff5522, 0.9),
-    );
-    mesh.position.copy(from);
-    this.root.add(mesh);
+    const isBounce = mode === 'bounce';
+    // Procedural orbs only — no glyph mesh
+    const g = new THREE.Group();
+    const coreCol = isBounce ? 0xaaffff : 0xffee88;
+    const shellCol = isBounce ? 0x44ccff : 0xff5522;
+    const outerCol = isBounce ? 0x2288dd : 0xff2200;
+    const r = 0.22 + Math.random() * 0.12;
+    const core = new THREE.Mesh(new THREE.SphereGeometry(r * 0.55, 12, 10), addMat(coreCol, 0.95));
+    const shell = new THREE.Mesh(new THREE.SphereGeometry(r, 14, 12), addMat(shellCol, 0.75));
+    const outer = new THREE.Mesh(new THREE.SphereGeometry(r * 1.45, 12, 10), addMat(outerCol, 0.28));
+    g.add(core, shell, outer);
+    g.position.copy(from);
+    g.userData.core = core;
+    g.userData.shell = shell;
+    g.userData.outer = outer;
+    this.root.add(g);
     this.flying.push({
-      mesh,
+      mesh: g,
       from: from.clone(),
       to: to.clone(),
       t: 0,
-      life: mode === 'bounce' ? 0.55 : 0.85,
+      life: isBounce ? 0.5 : 0.95 + Math.random() * 0.25,
       mode,
+      baseScale: 1,
+      isGlyph: false,
     });
   }
 
@@ -275,7 +390,7 @@ export class LeviathanDragonBeamVfx {
         0.15 + chargeU * 0.2 + Math.sin(elapsed * 5) * 0.05;
     }
 
-    // Charge orbs orbit maw (fireball gather — moon-beam charge motif)
+    // Charge orbs orbit maw; during blast stream fireballs at deck (shield intercepts)
     for (let i = 0; i < this.chargeOrbs.length; i++) {
       const o = this.chargeOrbs[i];
       if (phase === 'charge' || (phase === 'snap' && snap > 0.2)) {
@@ -290,15 +405,33 @@ export class LeviathanDragonBeamVfx {
         const op = 0.35 + chargeU * 0.55;
         (o.material as THREE.MeshBasicMaterial).opacity = op;
         o.scale.setScalar(0.55 + chargeU * 0.9);
-      } else if (phase === 'blast' && blastU < 0.25) {
-        // Launch gather orbs as fireballs once
+      } else if (phase === 'blast' && blastU < 0.35) {
         if (o.visible) {
-          this.launchFireball(o.position, target, 'shot');
+          // Aim at a shield point if available so mages can block
+          const aim =
+            shieldPoints.length > 0
+              ? shieldPoints[i % shieldPoints.length]
+              : target;
+          this.launchFireball(o.position.clone(), aim, 'shot');
           o.visible = false;
         }
       } else {
         o.visible = false;
       }
+    }
+    // Continuous fireball volley during blast (barrage aimed at mage shields)
+    this.fireballVolleyCd -= dt;
+    if (phase === 'blast' && shieldPoints.length && this.fireballVolleyCd <= 0) {
+      this.fireballVolleyCd = 0.22;
+      const aim = shieldPoints[Math.floor(Math.random() * shieldPoints.length)];
+      const jitter = mouth.clone().add(
+        new THREE.Vector3(
+          (Math.random() - 0.5) * 1.2,
+          (Math.random() - 0.5) * 0.5,
+          (Math.random() - 0.5) * 1.2,
+        ),
+      );
+      this.launchFireball(jitter, aim, 'shot');
     }
 
     // Lights
@@ -338,31 +471,37 @@ export class LeviathanDragonBeamVfx {
       this.ribbonB.scale.setScalar(w * 1.3);
     }
 
-    // ── Shield bounce: flame aura ricochets off wards ─────────────────
+    // ── Shield bounce: flame aura particles ricochet where beam STOPS ─
     this.bounceCd -= dt;
+    const stopAtShield = !!opts.beamStopsAtShield && shieldPoints.length > 0;
     if (
       (phase === 'blast' || (phase === 'charge' && chargeU > 0.55)) &&
       shieldPoints.length &&
       this.bounceCd <= 0
     ) {
-      this.bounceCd = phase === 'blast' ? 0.09 : 0.18;
-      // Pick nearest shield to the beam path
-      let best = shieldPoints[0];
-      let bestD = Infinity;
-      for (const p of shieldPoints) {
-        // Distance from point to segment mouth→target
-        const d = distToSegment(p, mouth, target);
-        if (d < bestD) {
-          bestD = d;
-          best = p;
+      // Faster bounce FX when beam is locked on ward plate
+      this.bounceCd = phase === 'blast' ? (stopAtShield ? 0.055 : 0.1) : 0.16;
+      // Impact at beam end (shield face) first — that's where the beam stops
+      let best = stopAtShield ? target.clone() : shieldPoints[0];
+      if (!stopAtShield) {
+        let bestD = Infinity;
+        for (const p of shieldPoints) {
+          const d = distToSegment(p, mouth, target);
+          if (d < bestD) {
+            bestD = d;
+            best = p;
+          }
         }
       }
-      // Impact spark at shield + bounce fireball back toward mouth
-      this.spawnImpactSparks(best, 8 + Math.floor(blastU * 10));
-      if (phase === 'blast' || Math.random() < 0.45) {
-        // Bounce: cyan-tinted ward reflection → orange flame reverse
+      // Outward bounce direction: away from mouth along beam
+      const bounceOut = target.clone().sub(mouth);
+      if (bounceOut.lengthSq() > 1e-6) bounceOut.normalize();
+      else bounceOut.set(0, 1, 0);
+      this.spawnShieldFlameBounce(best, bounceOut);
+      this.spawnImpactSparks(best, stopAtShield ? 16 : 10);
+      // Rebound fireballs skim off the plate back toward maw
+      if (phase === 'blast' || Math.random() < 0.6) {
         this.launchFireball(best, mouth, 'bounce');
-        // Secondary scatter toward other shields (aura chain between boat and beast)
         if (shieldPoints.length > 1 && Math.random() < 0.5) {
           const other = shieldPoints[Math.floor(Math.random() * shieldPoints.length)];
           this.launchFireball(best, other, 'bounce');
@@ -372,6 +511,7 @@ export class LeviathanDragonBeamVfx {
 
     this.updateFlying(dt);
     this.updateSparks(dt);
+    this.updateGlyphImpacts(dt);
   }
 
   private updateFlying(dt: number): void {
@@ -380,18 +520,85 @@ export class LeviathanDragonBeamVfx {
       f.t += dt;
       const u = Math.min(1, f.t / f.life);
       f.mesh.position.lerpVectors(f.from, f.to, u);
-      // Arc
-      f.mesh.position.y += Math.sin(u * Math.PI) * (f.mode === 'bounce' ? 1.2 : 2.2);
-      const spin = f.mode === 'bounce' ? 14 : 8;
-      f.mesh.rotation.y += dt * spin;
-      const mat = f.mesh.material as THREE.MeshBasicMaterial;
-      mat.opacity = (1 - u) * (f.mode === 'bounce' ? 0.85 : 0.95);
-      f.mesh.scale.setScalar(1 + u * 0.4);
+      // Arc — shots lob toward deck / bounce glyphs skim back to maw
+      f.mesh.position.y += Math.sin(u * Math.PI) * (f.mode === 'bounce' ? 1.15 : 2.8);
+      f.mesh.rotation.y += dt * (f.isGlyph ? (f.mode === 'bounce' ? 14 : 9) : f.mode === 'bounce' ? 10 : 6);
+      f.mesh.rotation.z += dt * (f.isGlyph ? 4 : 0);
+      const pulse = 1 + Math.sin(u * Math.PI) * (f.isGlyph ? 0.55 : 0.35);
+      f.mesh.scale.setScalar(f.baseScale * pulse);
+      const fade = 1 - u * 0.9;
+      f.mesh.traverse((o) => {
+        const m = o as THREE.Mesh;
+        if (!m.isMesh || !m.material) return;
+        const mats = Array.isArray(m.material) ? m.material : [m.material];
+        for (const mat of mats) {
+          if ('opacity' in mat) {
+            const base =
+              m === f.mesh.userData?.core
+                ? 0.95
+                : m === f.mesh.userData?.outer
+                  ? 0.28
+                  : f.isGlyph
+                    ? 0.92
+                    : 0.75;
+            (mat as THREE.MeshBasicMaterial).opacity =
+              base * fade * (f.mode === 'bounce' ? 0.95 : 1);
+          }
+        }
+      });
       if (u >= 1) {
+        // Shot glyphs that hit shield: impact flash at end
+        if (f.mode === 'shot' && f.isGlyph) {
+          this.spawnShieldGlyphImpact(f.to, CIN_GLYPH_SPAN_M * 1.6);
+        }
         this.root.remove(f.mesh);
-        f.mesh.geometry.dispose();
-        mat.dispose();
+        f.mesh.traverse((o) => {
+          const m = o as THREE.Mesh;
+          if (m.isMesh) {
+            m.geometry?.dispose?.();
+            if (m.material) {
+              const mats = Array.isArray(m.material) ? m.material : [m.material];
+              for (const mat of mats) mat.dispose?.();
+            }
+          }
+        });
         this.flying.splice(i, 1);
+      }
+    }
+  }
+
+  private updateGlyphImpacts(dt: number): void {
+    for (let i = this.glyphImpacts.length - 1; i >= 0; i--) {
+      const g = this.glyphImpacts[i];
+      g.life -= dt;
+      const u = 1 - Math.max(0, g.life) / g.maxLife;
+      g.root.rotation.y += g.spin * dt;
+      g.root.rotation.z += g.spin * 0.35 * dt;
+      // Punch in then fade out
+      const sc = g.baseScale * (1 + Math.sin(Math.min(1, u * 3.2) * Math.PI) * 0.85);
+      g.root.scale.setScalar(sc);
+      const fade = Math.max(0, g.life / g.maxLife);
+      g.root.traverse((o) => {
+        const m = o as THREE.Mesh;
+        if (!m.isMesh || !m.material) return;
+        const mats = Array.isArray(m.material) ? m.material : [m.material];
+        for (const mat of mats) {
+          if ('opacity' in mat) (mat as THREE.Material & { opacity: number }).opacity = 0.15 + fade * 0.85;
+        }
+      });
+      if (g.life <= 0) {
+        this.root.remove(g.root);
+        g.root.traverse((o) => {
+          const m = o as THREE.Mesh;
+          if (m.isMesh) {
+            m.geometry?.dispose?.();
+            if (m.material) {
+              const mats = Array.isArray(m.material) ? m.material : [m.material];
+              for (const mat of mats) mat.dispose?.();
+            }
+          }
+        });
+        this.glyphImpacts.splice(i, 1);
       }
     }
   }
@@ -451,8 +658,16 @@ export class LeviathanDragonBeamVfx {
     this.hideAll();
     for (const f of this.flying) {
       this.root.remove(f.mesh);
-      f.mesh.geometry.dispose();
-      (f.mesh.material as THREE.Material).dispose();
+      f.mesh.traverse((o) => {
+        const m = o as THREE.Mesh;
+        if (m.isMesh) {
+          m.geometry?.dispose?.();
+          if (m.material) {
+            const mats = Array.isArray(m.material) ? m.material : [m.material];
+            for (const mat of mats) mat.dispose?.();
+          }
+        }
+      });
     }
     this.flying = [];
     for (const s of this.sparks) {
@@ -461,6 +676,21 @@ export class LeviathanDragonBeamVfx {
       (s.mesh.material as THREE.Material).dispose();
     }
     this.sparks = [];
+    for (const g of this.glyphImpacts) {
+      this.root.remove(g.root);
+      g.root.traverse((o) => {
+        const m = o as THREE.Mesh;
+        if (m.isMesh) {
+          m.geometry?.dispose?.();
+          if (m.material) {
+            const mats = Array.isArray(m.material) ? m.material : [m.material];
+            for (const mat of mats) mat.dispose?.();
+          }
+        }
+      });
+    }
+    this.glyphImpacts = [];
+    this.glyphTemplate = null;
     this.root.parent?.remove(this.root);
   }
 }
@@ -506,17 +736,45 @@ export function leviathanWaterY(
   /** submerged < 0 surface, > 0 above */
   surfaceBias: number,
 ): number {
-  const water = sampleCinemaWaterY(x, z, t, storm);
-  // When underwater, sit below waterline; when surface/breach ride the swell
-  if (surfaceBias < -2) {
-    return baseY + water * 0.15;
+  const water = sampleCinemaWaterY(x, z, t, storm, 1.55);
+  // Stronger swell coupling so the body feels glued to the ocean
+  if (surfaceBias < -4) {
+    // Deep — slow undulation below waterline
+    return baseY + water * 0.35 + Math.sin(t * 0.55) * 0.35;
   }
-  if (surfaceBias < 1) {
-    // Transitioning — stick near water with swell
-    return Math.min(baseY, water + 0.4) * 0.35 + baseY * 0.65 + water * 0.25;
+  if (surfaceBias < -1) {
+    // Swim near surface — back breaks waves
+    return baseY + water * 0.85 + Math.sin(t * 0.9 + x * 0.05) * 0.55;
   }
-  // Above water: keel follows swell lightly
-  return baseY + water * 0.55;
+  if (surfaceBias < 2) {
+    // Transition / surface — ride and punch through swell
+    return baseY + water * 1.05 + Math.sin(t * 1.1) * 0.4;
+  }
+  // Breach / above — keel still tracks chop for weight
+  return baseY + water * 0.75 + Math.sin(t * 0.7) * 0.25;
+}
+
+/**
+ * Pitch/roll from local wave slope — makes the levi heave with the sea (yaw separate).
+ */
+export function leviathanWaveTilt(
+  x: number,
+  z: number,
+  t: number,
+  storm: number,
+  surfaceBias: number,
+): { pitch: number; roll: number } {
+  if (surfaceBias < -6) return { pitch: 0, roll: 0 };
+  const eps = 1.2;
+  const h = sampleCinemaWaterY(x, z, t, storm, 1.55);
+  const hx = sampleCinemaWaterY(x + eps, z, t, storm, 1.55);
+  const hz = sampleCinemaWaterY(x, z + eps, t, storm, 1.55);
+  const k = surfaceBias < 0 ? 0.12 : 0.22;
+  const pitch = THREE.MathUtils.clamp(-(hz - h) * k, -0.28, 0.28);
+  const roll = THREE.MathUtils.clamp((hx - h) * k, -0.22, 0.22);
+  // Breach: stronger nose-up
+  const breach = surfaceBias > 4 ? 0.12 : 0;
+  return { pitch: pitch - breach, roll };
 }
 
 /**

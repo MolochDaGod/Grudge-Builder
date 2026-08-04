@@ -8,35 +8,46 @@
  * Prefix: cinloc_ (cinema location) · versioned stage id for session rebind.
  */
 
-export const LEVIATHAN_STAGE_ID = 'cin_stage_leviathan_ocean_v9' as const;
-export const LEVIATHAN_STAGE_VERSION = '9.0.0';
+export const LEVIATHAN_STAGE_ID = 'cin_stage_leviathan_ocean_v17' as const;
+export const LEVIATHAN_STAGE_VERSION = '17.0.0';
 
-/** SI yardstick */
-/** SI SSOT — 1 unit = 1 m. Human 1.8 m is the yardstick. */
+/**
+ * SI SSOT — 1 unit = 1 m.
+ * Deck cast (orc mages) ~2.2 m · brig LOA 18 m · levi ~3× ship · plume readable at camera distance.
+ */
 export const CIN_HUMAN_M = 1.8;
-/** Pirate ship LOA (~ medium brig) — stylized pirate GLB only (no voxel kits) */
+/** Cinema deck orc mage height (modular bake; slightly above human) */
+export const CIN_ORC_M = 2.2;
+/** Pirate ship LOA (~ medium brig) */
 export const CIN_SHIP_LOA_M = 18;
-/** Leviathan LOA — 50% larger than original 28 m (threat reads on camera) */
-export const CIN_LEVIATHAN_LOA_M = 42;
+/** Leviathan LOA — large threat; ~3× ship so silhouette reads on open water */
+export const CIN_LEVIATHAN_LOA_M = 54;
 export const CIN_HERO_THROW_M = 20;
 /** Clock-face ward ring diameter (~ chest shield) */
 export const CIN_RING_SPAN_M = 1.45;
-/** Spell glyph span — 70% smaller than original 0.9 m (projectile / wall tiles) */
+/** Spell glyph span — small impact spark tiles */
 export const CIN_GLYPH_SPAN_M = 0.27;
-/** Water cyclone height (40% smaller than original 14 m) */
-export const CIN_TWISTER_H_M = 8.4;
-/** Ward wall glyph face span (vertical wall between boat and levi) */
+/** Mage plume projectile long-axis span (was 1.05 — too small at ship-cam) */
+export const CIN_PLUME_SPAN_M = 1.85;
+/** Megumin pinata blast diameter in metres (asset is classic 100× cm-as-m) */
+export const CIN_MEGUMIN_SPAN_M = 12;
+/** Water cyclone height */
+export const CIN_TWISTER_H_M = 7.2;
+/** Ward wall glyph face span */
 export const CIN_WARD_GLYPH_M = 0.55;
 
 export type CinVec3 = { x: number; y: number; z: number };
 
 /**
- * Distant startingfalls island offset (ship fights on open water at origin).
- * Land mass stays in the background — raw GLB is ~59k units (cm-scale authoring).
+ * Startingfalls map backdrop (Desktop `startingfalls.glb` staged to public/models/cinema).
+ * Ship + levi fight stays on open water at origin; map is the land horizon behind them.
+ * Raw GLB authoring units are huge (~59k) — fitPropSpanM decade-corrects to SI metres.
+ * Cinema OceanShader owns near-field water; map WaterPlane meshes are hidden at plant time.
  */
-export const CIN_ISLAND_OFFSET: CinVec3 = { x: 40, y: 0, z: -95 };
-/** Distant island silhouette span (metres) — NOT the raw 59km authoring units */
-export const CIN_ISLAND_SPAN_M = 70;
+/** Land mass behind the fight (open water at origin) */
+export const CIN_ISLAND_OFFSET: CinVec3 = { x: 25, y: 0, z: -100 };
+/** Horizontal footprint metres — XZ fit so cliffs don't crush the map */
+export const CIN_ISLAND_SPAN_M = 200;
 
 export type CinLocRole =
   | 'world_anchor'
@@ -75,6 +86,8 @@ export const CIN_UUID = {
   ship_keel: 'c1ne0001-0000-4000-8000-000000000011',
   ship_bow: 'c1ne0001-0000-4000-8000-000000000012',
   ship_stern: 'c1ne0001-0000-4000-8000-000000000013',
+  /** Open-water sail start — ship alone, steaming toward rocks / ship_origin */
+  ship_sail_start: 'c1ne0001-0000-4000-8000-000000000014',
   // Deck cast — 4 human mages
   deck_mage_0: 'c1ne0001-0000-4000-8000-000000000020',
   deck_mage_1: 'c1ne0001-0000-4000-8000-000000000021',
@@ -111,6 +124,9 @@ export const CIN_UUID = {
   // Camera eyes + looks
   cam_establish_eye: 'c1ne0001-0000-4000-8000-000000000070',
   cam_establish_look: 'c1ne0001-0000-4000-8000-000000000071',
+  /** Follow cam — ship-local stern-quarter while sailing alone */
+  cam_sail_eye: 'c1ne0001-0000-4000-8000-000000000088',
+  cam_sail_look: 'c1ne0001-0000-4000-8000-000000000089',
   cam_under_eye: 'c1ne0001-0000-4000-8000-000000000072',
   cam_under_look: 'c1ne0001-0000-4000-8000-000000000073',
   cam_deck_eye: 'c1ne0001-0000-4000-8000-000000000074',
@@ -168,8 +184,15 @@ export const LEVIATHAN_STAGE_LOCATIONS: readonly CinLocationDef[] = [
   L('water_plane', 'water', 'Water Line', { x: 0, y: 0, z: 0 }, {
     tags: ['gerstner', 'surface'],
   }),
-  L('ship_origin', 'ship', 'Ship Origin', { x: 0, y: 0, z: 0 }, {
-    tags: ['ship', 'parent'],
+  L('ship_origin', 'ship', 'Ship Origin · Battle Station', { x: 0, y: 0, z: 0 }, {
+    tags: ['ship', 'parent', 'battle'],
+    notes: 'Fight station near rock horizon; sail path ends here',
+  }),
+  /** Far open water — sail-in start (island/rocks at z≈−100, so +Z is open sea) */
+  L('ship_sail_start', 'ship', 'Ship Sail Start', { x: 10, y: 0, z: 92 }, {
+    yaw: Math.PI, // face −Z toward rocks
+    tags: ['ship', 'sail', 'open_water'],
+    notes: 'Alone on the swell; camera follows toward ship_origin / rocks',
   }),
   L('ship_keel', 'ship', 'Ship Keel', { x: 0, y: 1.2, z: 0 }, {
     tags: ['impact', 'megumin'],
@@ -214,7 +237,8 @@ export const LEVIATHAN_STAGE_LOCATIONS: readonly CinLocationDef[] = [
   }),
 
   // ── Leviathan path (scripted nodes) ──────────────────────────────────
-  L('levi_hidden', 'leviathan_path', 'Leviathan Hidden', { x: 22, y: -14, z: -18 }, {
+  // Beyond the rock horizon (island z≈−100): deep under water, swim-in then rise
+  L('levi_hidden', 'leviathan_path', 'Leviathan Hidden', { x: 18, y: -28, z: -72 }, {
     yaw: -1.2,
     tags: ['off'],
   }),
@@ -294,90 +318,102 @@ export const LEVIATHAN_STAGE_LOCATIONS: readonly CinLocationDef[] = [
     tags: ['megumin'],
   }),
 
-  // ── Cameras (eye / look pairs match production beat table) ───────────
-  L('cam_establish_eye', 'camera', 'Cam Establish Eye', { x: 42, y: 14, z: 48 }, {
-    fov: 46,
-    tags: ['cam', 'cut'],
+  // ── Cameras — leviathan is the subject (side-quarter ship→beast, not water stare) ─
+  // Eyes sit ship-side; look aims levi path nodes (~14,3,−9). Runtime also hard-aims levi.
+  L('cam_establish_eye', 'camera', 'Cam Establish Eye', { x: 36, y: 14, z: 32 }, {
+    fov: 50,
+    tags: ['cam', 'cut', 'master'],
   }),
-  L('cam_establish_look', 'camera', 'Cam Establish Look', { x: 0, y: 2, z: 0 }, {
+  L('cam_establish_look', 'camera', 'Cam Establish Look', { x: 10, y: 5, z: -6 }, {
     tags: ['cam'],
   }),
-  L('cam_under_eye', 'camera', 'Cam Under Eye', { x: 20, y: 3, z: 22 }, {
-    fov: 40,
+  // Ship-local follow while sailing alone (look over bow toward rocks/levi spawn)
+  L('cam_sail_eye', 'camera', 'Cam Sail Follow Eye', { x: 18, y: 9, z: -22 }, {
+    fov: 48,
+    tags: ['cam', 'blend', 'sail', 'ship_linked'],
+    notes: 'Stern-quarter; bow toward rocks',
+  }),
+  L('cam_sail_look', 'camera', 'Cam Sail Follow Look', { x: 0, y: 4, z: 10 }, {
+    tags: ['cam', 'sail', 'ship_linked'],
+  }),
+  // Under/approach: SEE the leviathan under/through swell
+  L('cam_under_eye', 'camera', 'Cam Under Eye', { x: 24, y: 7, z: 18 }, {
+    fov: 48,
     tags: ['cam', 'blend', 'underwater'],
   }),
-  L('cam_under_look', 'camera', 'Cam Under Look', { x: 18, y: -2, z: -8 }, {
+  L('cam_under_look', 'camera', 'Cam Under Look', { x: 12, y: 2, z: -8 }, {
     tags: ['cam'],
   }),
-  L('cam_deck_eye', 'camera', 'Cam Deck Eye', { x: 8, y: 5.5, z: 12 }, {
-    fov: 36,
-    tags: ['cam', 'cut'],
-  }),
-  L('cam_deck_look', 'camera', 'Cam Deck Look', { x: 0, y: 3.2, z: 0 }, {
-    tags: ['cam'],
-  }),
-  L('cam_surface_eye', 'camera', 'Cam Surface Eye', { x: -24, y: 10, z: 26 }, {
-    fov: 42,
+  L('cam_deck_eye', 'camera', 'Cam Deck Eye', { x: 16, y: 7, z: 14 }, {
+    fov: 48,
     tags: ['cam', 'blend'],
   }),
-  L('cam_surface_look', 'camera', 'Cam Surface Look', { x: 6, y: 5, z: -4 }, {
+  L('cam_deck_look', 'camera', 'Cam Deck Look', { x: 10, y: 5, z: -6 }, {
     tags: ['cam'],
   }),
-  L('cam_cast_eye', 'camera', 'Cam Cast Eye', { x: 12, y: 8, z: 18 }, {
-    fov: 38,
-    tags: ['cam', 'cut'],
-  }),
-  L('cam_cast_look', 'camera', 'Cam Cast Look', { x: 10, y: 4, z: -6 }, {
-    tags: ['cam'],
-  }),
-  // Side-quarter: levi maw left, ward wall mid, boat right (beam + blowback read)
-  L('cam_roar_eye', 'camera', 'Cam Roar Eye', { x: 16, y: 5.5, z: 11 }, {
-    fov: 34,
-    tags: ['cam', 'blend', 'slowmo', 'beam_blowback'],
-  }),
-  L('cam_roar_look', 'camera', 'Cam Roar Look', { x: 4, y: 3.2, z: -2 }, {
-    tags: ['cam'],
-  }),
-  L('cam_dive_eye', 'camera', 'Cam Dive Eye', { x: 16, y: 7, z: 20 }, {
-    fov: 44,
-    tags: ['cam', 'cut'],
-  }),
-  L('cam_dive_look', 'camera', 'Cam Dive Look', { x: 8, y: 1, z: -10 }, {
-    tags: ['cam'],
-  }),
-  L('cam_rise_eye', 'camera', 'Cam Rise Eye', { x: -14, y: 5, z: 16 }, {
-    fov: 36,
+  // Surface breach: wide side-quarter on the beast
+  L('cam_surface_eye', 'camera', 'Cam Surface Eye', { x: 30, y: 11, z: 12 }, {
+    fov: 50,
     tags: ['cam', 'blend'],
   }),
-  L('cam_rise_look', 'camera', 'Cam Rise Look', { x: 2, y: 3, z: 0 }, {
+  L('cam_surface_look', 'camera', 'Cam Surface Look', { x: 12, y: 6, z: -8 }, {
     tags: ['cam'],
   }),
-  L('cam_breach_eye', 'camera', 'Cam Breach Eye', { x: -8, y: 4, z: 11 }, {
-    fov: 34,
-    tags: ['cam', 'cut'],
-  }),
-  L('cam_breach_look', 'camera', 'Cam Breach Look', { x: 0, y: 2, z: 0 }, {
-    tags: ['cam'],
-  }),
-  L('cam_throw_eye', 'camera', 'Cam Throw Eye', { x: 10, y: 3, z: 9 }, {
-    fov: 38,
-    tags: ['cam', 'blend', 'hero_fg'],
-  }),
-  L('cam_throw_look', 'camera', 'Cam Throw Look', { x: 0, y: 1, z: 0 }, {
-    tags: ['cam'],
-  }),
-  L('cam_finisher_eye', 'camera', 'Cam Finisher Eye', { x: 16, y: 2, z: 8 }, {
-    fov: 40,
-    tags: ['cam', 'cut'],
-  }),
-  L('cam_finisher_look', 'camera', 'Cam Finisher Look', { x: 14, y: 0.5, z: 0 }, {
-    tags: ['cam'],
-  }),
-  L('cam_blackout_eye', 'camera', 'Cam Blackout Eye', { x: 18, y: 0.8, z: 5 }, {
-    fov: 42,
+  L('cam_cast_eye', 'camera', 'Cam Cast Eye', { x: 22, y: 9, z: 16 }, {
+    fov: 48,
     tags: ['cam', 'blend'],
   }),
-  L('cam_blackout_look', 'camera', 'Cam Blackout Look', { x: 18, y: -0.5, z: 0 }, {
+  L('cam_cast_look', 'camera', 'Cam Cast Look', { x: 10, y: 5, z: -6 }, {
+    tags: ['cam'],
+  }),
+  // Side-quarter: levi + ship both readable
+  L('cam_roar_eye', 'camera', 'Cam Roar Eye', { x: 28, y: 10, z: 14 }, {
+    fov: 48,
+    tags: ['cam', 'blend', 'beam_blowback'],
+  }),
+  L('cam_roar_look', 'camera', 'Cam Roar Look', { x: 10, y: 5, z: -5 }, {
+    tags: ['cam'],
+  }),
+  L('cam_dive_eye', 'camera', 'Cam Dive Eye', { x: 24, y: 10, z: 28 }, {
+    fov: 48,
+    tags: ['cam', 'blend'],
+  }),
+  L('cam_dive_look', 'camera', 'Cam Dive Look', { x: 8, y: 2, z: -8 }, {
+    tags: ['cam'],
+  }),
+  L('cam_rise_eye', 'camera', 'Cam Rise Eye', { x: -22, y: 9, z: 24 }, {
+    fov: 47,
+    tags: ['cam', 'blend'],
+  }),
+  L('cam_rise_look', 'camera', 'Cam Rise Look', { x: 3, y: 3.5, z: 1 }, {
+    tags: ['cam'],
+  }),
+  L('cam_breach_eye', 'camera', 'Cam Breach Eye', { x: -16, y: 9, z: 20 }, {
+    fov: 48,
+    tags: ['cam', 'blend'],
+  }),
+  L('cam_breach_look', 'camera', 'Cam Breach Look', { x: 2, y: 3, z: 1 }, {
+    tags: ['cam'],
+  }),
+  L('cam_throw_eye', 'camera', 'Cam Throw Eye', { x: 18, y: 7, z: 16 }, {
+    fov: 46,
+    tags: ['cam', 'blend'],
+  }),
+  L('cam_throw_look', 'camera', 'Cam Throw Look', { x: 2, y: 2.5, z: 1 }, {
+    tags: ['cam'],
+  }),
+  L('cam_finisher_eye', 'camera', 'Cam Finisher Eye', { x: 24, y: 6, z: 16 }, {
+    fov: 48,
+    tags: ['cam', 'blend'],
+  }),
+  L('cam_finisher_look', 'camera', 'Cam Finisher Look', { x: 10, y: 2.5, z: 0 }, {
+    tags: ['cam'],
+  }),
+  L('cam_blackout_eye', 'camera', 'Cam Blackout Eye', { x: 22, y: 2.5, z: 10 }, {
+    fov: 48,
+    tags: ['cam', 'blend'],
+  }),
+  L('cam_blackout_look', 'camera', 'Cam Blackout Look', { x: 16, y: 0.5, z: 2 }, {
     tags: ['cam'],
   }),
 ];
@@ -435,7 +471,13 @@ export const CIN_ACTOR_HOME: Record<
  * Humans: only WK_Characters via cinemaGrudge6 (equip + texture + SI fit).
  */
 export const CIN_CAST_ASSETS = {
+  /**
+   * Sladania first — has swim / swim_idle / dive / emerge clips on levi skeleton.
+   * Stock leviathan.glb is mesh fallback only.
+   */
   leviathan: [
+    '/models/cinema/sladania.glb',
+    '/models/cinema/Sladania/Sladania.glb',
     '/models/cinema/leviathan.glb',
     'https://assets.grudge-studio.com/models/cinema/leviathan.glb',
   ],
@@ -444,54 +486,78 @@ export const CIN_CAST_ASSETS = {
     'https://assets.grudge-studio.com/models/grudge6/races/WK_Characters.glb',
     '/models/grudge6/races/WK_Characters.glb',
   ],
-  magicRing: [
-    '/models/cinema/magic-ring-yinyang-blue.glb',
-    'https://assets.grudge-studio.com/models/cinema/magic-ring-yinyang-blue.glb',
+  /**
+   * PURGED from cinema runtime — huge Time_Arch / yin-yang rings looked awful on camera.
+   * Keep paths only for offline tools; LeviathanOceanCinema must NOT load these.
+   */
+  magicRing: [] as readonly string[],
+  /**
+   * PURGED — spell-glyph.glb must NEVER load in cinema (user ban).
+   * Impacts/rebounds use procedural sparks / plume only.
+   */
+  spellGlyph: [] as readonly string[],
+  /** Mage cast charge VFX (fireball.glb scene, SI-scaled, 1.2s then spline) */
+  fireballCast: [
+    '/models/cinema/fireball-cast.glb',
+    '/models/cinema/fireball.glb',
   ],
-  spellGlyph: [
-    '/models/cinema/spell-glyph.glb',
-    'https://assets.grudge-studio.com/models/cinema/spell-glyph.glb',
+  /** Mage spline projectile — purple/orange engine plume (not ball / not glyph) */
+  magePlumeProjectile: [
+    '/models/cinema/mage-plume-projectile.glb',
   ],
   /**
-   * Pirate cinema ship ONLY — tz-pirate-ship is the Grudge Warlords intro SSOT.
-   * NEVER voxel/prototype/kenney kits (wrong look for this cut).
-   * Fallback chain: stylized production bake → medium pirate hull.
+   * USER SSOT (v17): tz-pirate-ship only.
+   * Homework thirds / mono never read on camera (rope AABB / scrap). Damage/sinking =
+   * same mesh + material tint until a real multi-state pack exists.
    */
-  ship: [
-    'https://assets.grudge-studio.com/models/cinema/tz-pirate-ship.glb',
-    '/models/cinema/tz-pirate-ship.glb',
-    'https://assets.grudge-studio.com/models/cinema/stylized-pirate-ship.prod.glb',
-    'https://assets.grudge-studio.com/models/cinema/stylized-pirate-ship.glb',
-    '/models/cinema/stylized-pirate-ship.prod.glb',
-    '/models/cinema/stylized-pirate-ship.glb',
-    'https://assets.grudge-studio.com/models/ships/ship-pirate-medium.glb',
-    '/models/ships/ship-pirate-medium.glb',
+  ship: ['/models/cinema/tz-pirate-ship.glb'],
+  shipIntact: ['/models/cinema/tz-pirate-ship.glb'],
+  shipDamaged: ['/models/cinema/tz-pirate-ship.glb'],
+  shipSinking: ['/models/cinema/tz-pirate-ship.glb'],
+  /** pro4ik UTCM barrier — ship-wide ward (first beam hits this, then shatters) */
+  wardShield: [
+    '/models/cinema/ward-shield.glb',
+    'https://assets.grudge-studio.com/models/cinema/ward-shield.glb',
   ],
+  /** Legacy single wreck fallback */
   wreck: [
+    '/models/cinema/ship-03-sinking.glb',
     'https://assets.grudge-studio.com/models/ships/ship-wreck.glb',
-    'https://assets.grudge-studio.com/models/cinema/stylized-pirate-wreck.prod.glb',
     '/models/ships/ship-wreck.glb',
   ],
+  /**
+   * Startingfalls map — SSOT source: C:\Users\nugye\Desktop\startingfalls.glb
+   * Staged to client/public/models/cinema (local first so intro never waits on CDN).
+   */
   foundation: [
-    '/models/cinema/startingfalls.prod.glb',
     '/models/cinema/startingfalls.glb',
-    'https://assets.grudge-studio.com/models/cinema/startingfalls.prod.glb',
+    '/models/cinema/startingfalls.prod.glb',
     'https://assets.grudge-studio.com/models/cinema/startingfalls.glb',
+    'https://assets.grudge-studio.com/models/cinema/startingfalls.prod.glb',
   ],
   fluid: [
     '/models/cinema/physics1_fluid.glb',
     'https://assets.grudge-studio.com/models/cinema/physics1_fluid.glb',
   ],
+  /** Explosion VFX — authored ~100× SI; runtime decade-fits to CIN_MEGUMIN_SPAN_M */
   megumin: [
     '/models/cinema/megumin-explosion.prod.glb',
     'https://assets.grudge-studio.com/models/cinema/megumin-explosion.prod.glb',
   ],
-  smokeRings: [
-    '/models/cinema/smoke-rings.glb',
-    'https://assets.grudge-studio.com/models/cinema/smoke-rings.glb',
-  ],
+  /**
+   * PURGED from cinema — smoke-rings.glb rendered as static red torus stacks
+   * and never played its Animation clip correctly. Use particle burst instead.
+   */
+  smokeRings: [] as readonly string[],
   tornado: [
     '/models/cinema/tornado.prod.glb',
     'https://assets.grudge-studio.com/models/cinema/tornado.prod.glb',
   ],
+  /**
+   * Underwater set dressing (local staged from Documents):
+   *  - fish-particle.glb — school / particle fish (Documents/the_fish_particle.glb)
+   *  - ocean-floor-san-pedro.glb — seafloor (Documents/san_pedro_underwater_archaeological_preserve.glb)
+   */
+  fishParticle: ['/models/cinema/fish-particle.glb'],
+  oceanFloor: ['/models/cinema/ocean-floor-san-pedro.glb'],
 } as const;

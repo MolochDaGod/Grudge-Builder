@@ -92,6 +92,12 @@ export class CinemaSpineIk {
   private curYaw = 0;
   private curPitch = 0;
   private enabled = true;
+  /**
+   * When true (no AnimationMixer driving bones), restore bind pose each frame
+   * before applying IK. When false, mixer already reset bones — only multiply once.
+   * NEVER use euler += after quaternions (causes continuous spin).
+   */
+  restoreBindEachFrame = false;
 
   /** World-forward for character at bind (default +Z) */
   forwardAxis = new THREE.Vector3(0, 0, 1);
@@ -99,6 +105,26 @@ export class CinemaSpineIk {
   constructor(root: THREE.Object3D) {
     this.root = root;
     this.chain = resolveSpineChain(root);
+    this.captureBindPoses();
+  }
+
+  /** Snapshot rest quaternions for spine chain (call after load, before first mixer). */
+  captureBindPoses(): void {
+    for (const b of [
+      this.chain.spine,
+      this.chain.spine1,
+      this.chain.spine2,
+      this.chain.neck,
+      this.chain.head,
+    ]) {
+      if (b && !b.userData.__bindQ) {
+        b.userData.__bindQ = b.quaternion.clone();
+      }
+    }
+  }
+
+  setRestoreBindEachFrame(on: boolean): void {
+    this.restoreBindEachFrame = on;
   }
 
   get hasSpine(): boolean {
@@ -189,10 +215,17 @@ export class CinemaSpineIk {
 
   private applyBone(bone: THREE.Bone | null, yaw: number, pitch: number): void {
     if (!bone) return;
-    // Additive euler on local rotation (preserve clip base by composing)
-    bone.rotation.order = 'YXZ';
-    bone.rotation.y += yaw;
-    bone.rotation.x += pitch;
+    if (!bone.userData.__bindQ) {
+      bone.userData.__bindQ = bone.quaternion.clone();
+    }
+    // No mixer → start from bind every frame (prevents accumulation spin).
+    // With mixer → mixer already wrote clip pose this frame; multiply once on top.
+    if (this.restoreBindEachFrame) {
+      bone.quaternion.copy(bone.userData.__bindQ as THREE.Quaternion);
+    }
+    if (Math.abs(yaw) < 1e-6 && Math.abs(pitch) < 1e-6) return;
+    const add = new THREE.Quaternion().setFromEuler(new THREE.Euler(pitch, yaw, 0, 'YXZ'));
+    bone.quaternion.multiply(add);
   }
 
   /** Debug: list resolved bone names */
@@ -212,9 +245,13 @@ export class CinemaSpineIk {
 export class CinemaSpineIkRoster {
   private map = new Map<string, CinemaSpineIk>();
 
-  bind(actorId: string, root: THREE.Object3D): CinemaSpineIk {
+  bind(actorId: string, root: THREE.Object3D, opts?: { restoreBindEachFrame?: boolean }): CinemaSpineIk {
     const ik = new CinemaSpineIk(root);
+    if (opts?.restoreBindEachFrame != null) {
+      ik.setRestoreBindEachFrame(opts.restoreBindEachFrame);
+    }
     this.map.set(actorId, ik);
+    console.info(`[cinemaSpineIk] ${actorId}`, ik.debugNames(), 'restoreBind=', ik.restoreBindEachFrame);
     return ik;
   }
 

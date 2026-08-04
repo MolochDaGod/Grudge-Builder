@@ -24,9 +24,15 @@ migrations
 !/public/models/cinema/**
 !public/models/cinema/**
 !public/cinema/**
+# Modular orc bake for intro cast
+!/public/models/grudge6/baked/**
+!public/models/grudge6/baked/**
 /public/sprites/**
 client/public/models/**
 !client/public/models/cinema/**
+# Intro cast modular orc bake (local package; D: source never modified)
+!client/public/models/grudge6/
+!client/public/models/grudge6/baked/**
 # Airship meshes are R2-only — never package into Vercel (JSON camera pins ok via ignore globs)
 client/public/models/airship-zone/**
 !client/public/models/airship-zone/**/*.json

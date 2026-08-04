@@ -64,7 +64,8 @@ http://127.0.0.1:5173/shipwreck-cinema-preview.html  →  /shipwreck-cinema
 
 ### Staged local assets (`client/public/models/cinema/`)
 
-- `startingfalls.glb` / `.prod.glb` — waterfall island foundation map  
+- `startingfalls.glb` / `.prod.glb` — **map backdrop** (SSOT: Desktop `startingfalls.glb`, staged local; span ~240 m behind fight; map WaterPlane hidden; cinema OceanShader owns near ocean)  
+
 - `leviathan.glb` · `magic-ring-yinyang-blue.glb` · `physics1_fluid.glb`  
 - `supernova-impact.prod.glb` · `megumin-explosion.prod.glb` · `smoke-rings.glb` · `tornado.prod.glb`  
 - Logo: `client/public/cinema/grudge-logo.jpeg`

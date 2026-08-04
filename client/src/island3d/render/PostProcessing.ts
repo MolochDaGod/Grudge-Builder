@@ -1,8 +1,14 @@
 /**
- * PostProcessing — EffectComposer pipeline with quality presets.
+ * PostProcessing — production EffectComposer pipeline (Three.js examples stack).
  *
- * Passes: RenderPass → UnrealBloomPass → SMAAPass → ColorGrading ShaderPass
- * Quality: low (none), medium (bloom+SMAA), high (all + stronger bloom)
+ * Best practices (cinema + gameplay):
+ *  - When SMAA is on, create the WebGLRenderer with antialias:false
+ *  - Render only via composer.render() (never double-draw)
+ *  - Bloom → SMAA → film grade (grain / chroma / vignette / contrast)
+ *  - Drive look from beats via applyFilmLook (smoothed by caller)
+ *
+ * Passes: RenderPass → UnrealBloomPass → SMAAPass → FilmGrade ShaderPass
+ * Quality: low (grade only), medium (bloom+SMAA+grade), high (stronger bloom + grain)
  */
 import * as THREE from 'three';
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
@@ -15,11 +21,8 @@ export type QualityPreset = 'low' | 'medium' | 'high';
 
 export interface PostProcessingConfig {
   quality: QualityPreset;
-  /** Bloom strength override (default varies by preset) */
   bloomStrength?: number;
-  /** Bloom radius override */
   bloomRadius?: number;
-  /** Bloom threshold override */
   bloomThreshold?: number;
   /** Color grading: warm/cool tint (-1 cool … +1 warm) */
   colorTint?: number;
@@ -27,16 +30,26 @@ export interface PostProcessingConfig {
   vignetteIntensity?: number;
   /** Contrast boost (1.0 = none) */
   contrast?: number;
+  /** Saturation (1 = neutral, 0 = mono, >1 punch) */
+  saturation?: number;
+  /** Film grain 0..1 (cinema ~0.04–0.12) */
+  grain?: number;
+  /** Chromatic aberration strength in UV (cinema ~0.0006–0.0015) */
+  chroma?: number;
 }
 
-// ─── Color Grading Shader ─────────────────────────────────────────────────────
-
-const ColorGradingShader = {
+/** Film grade: contrast · tint · soft vignette · sat · grain · mild chroma */
+const FilmGradeShader = {
   uniforms: {
     tDiffuse: { value: null },
     uTint: { value: 0.0 },
-    uVignette: { value: 0.3 },
-    uContrast: { value: 1.05 },
+    uVignette: { value: 0.35 },
+    uContrast: { value: 1.06 },
+    uSaturation: { value: 1.0 },
+    uGrain: { value: 0.06 },
+    uChroma: { value: 0.0008 },
+    uTime: { value: 0.0 },
+    uLift: { value: 0.02 },
   },
   vertexShader: /* glsl */ `
     varying vec2 vUv;
@@ -50,52 +63,78 @@ const ColorGradingShader = {
     uniform float uTint;
     uniform float uVignette;
     uniform float uContrast;
+    uniform float uSaturation;
+    uniform float uGrain;
+    uniform float uChroma;
+    uniform float uTime;
+    uniform float uLift;
     varying vec2 vUv;
 
-    void main() {
-      vec4 color = texture2D(tDiffuse, vUv);
-      vec3 c = color.rgb;
+    float hash(vec2 p) {
+      return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
+    }
 
-      // Contrast
+    void main() {
+      vec2 uv = vUv;
+      // Mild radial chromatic aberration (film lens)
+      vec2 dir = uv - 0.5;
+      float r = length(dir);
+      vec2 off = normalize(dir + 1e-5) * uChroma * r * 1.6;
+      float cr = texture2D(tDiffuse, uv + off).r;
+      float cg = texture2D(tDiffuse, uv).g;
+      float cb = texture2D(tDiffuse, uv - off).b;
+      vec3 c = vec3(cr, cg, cb);
+
+      // Shadow lift — reduces banding in storm blacks
+      c += uLift * (1.0 - c);
+
+      // Contrast around mid-grey
       c = (c - 0.5) * uContrast + 0.5;
+
+      // Saturation
+      float luma = dot(c, vec3(0.2126, 0.7152, 0.0722));
+      c = mix(vec3(luma), c, uSaturation);
 
       // Warm/cool tint
       if (uTint > 0.0) {
-        c.r += uTint * 0.06;
-        c.b -= uTint * 0.03;
+        c.r += uTint * 0.055;
+        c.b -= uTint * 0.028;
       } else {
-        c.b -= uTint * 0.06;
-        c.r += uTint * 0.03;
+        c.b -= uTint * 0.055;
+        c.r += uTint * 0.028;
       }
 
-      // Vignette
-      vec2 center = vUv - 0.5;
-      float dist = length(center);
-      float vig = smoothstep(0.5, 0.2, dist);
-      c *= mix(1.0, vig, uVignette);
+      // Soft cinematic vignette (not hard circle)
+      float dist = length(dir);
+      float vig = smoothstep(0.95, 0.22, dist);
+      c *= mix(1.0, vig, clamp(uVignette, 0.0, 1.0));
 
-      gl_FragColor = vec4(clamp(c, 0.0, 1.0), color.a);
+      // Temporal film grain (subtle)
+      float n = hash(uv * vec2(1920.0, 1080.0) + fract(uTime) * 120.0) - 0.5;
+      c += n * uGrain;
+
+      gl_FragColor = vec4(clamp(c, 0.0, 1.0), 1.0);
     }
   `,
 };
 
-// ─── Preset definitions ───────────────────────────────────────────────────────
-
-const PRESET_BLOOM: Record<QualityPreset, { strength: number; radius: number; threshold: number }> = {
-  low:    { strength: 0,    radius: 0,    threshold: 1.0 },  // no bloom, no SMAA — raw render + color grading only
-  medium: { strength: 0.2,  radius: 0.3,  threshold: 0.9 },
-  high:   { strength: 0.5,  radius: 0.5,  threshold: 0.75 },
+const PRESET_BLOOM: Record<
+  QualityPreset,
+  { strength: number; radius: number; threshold: number }
+> = {
+  low: { strength: 0, radius: 0, threshold: 1.0 },
+  medium: { strength: 0.22, radius: 0.35, threshold: 0.88 },
+  high: { strength: 0.48, radius: 0.52, threshold: 0.74 },
 };
-
-// ─── PostProcessing class ─────────────────────────────────────────────────────
 
 export class PostProcessing {
   public composer: EffectComposer;
   private renderPass: RenderPass;
   private bloomPass: UnrealBloomPass;
   private smaaPass: SMAAPass;
-  private colorGradingPass: ShaderPass;
+  private filmPass: ShaderPass;
   private quality: QualityPreset;
+  private time = 0;
 
   constructor(
     renderer: THREE.WebGLRenderer,
@@ -105,15 +144,17 @@ export class PostProcessing {
   ) {
     this.quality = config.quality || 'medium';
 
+    // Prefer floating point buffer when available (less banding in darks)
     this.composer = new EffectComposer(renderer);
 
-    // 1. Render pass
     this.renderPass = new RenderPass(scene, camera);
     this.composer.addPass(this.renderPass);
 
-    // 2. Bloom
     const bloomPreset = PRESET_BLOOM[this.quality];
-    const resolution = new THREE.Vector2(renderer.domElement.width, renderer.domElement.height);
+    const resolution = new THREE.Vector2(
+      Math.max(1, renderer.domElement.width),
+      Math.max(1, renderer.domElement.height),
+    );
     this.bloomPass = new UnrealBloomPass(
       resolution,
       config.bloomStrength ?? bloomPreset.strength,
@@ -123,31 +164,40 @@ export class PostProcessing {
     this.bloomPass.enabled = this.quality !== 'low';
     this.composer.addPass(this.bloomPass);
 
-    // 3. SMAA anti-aliasing
     this.smaaPass = new SMAAPass(resolution.x, resolution.y);
     this.smaaPass.enabled = this.quality !== 'low';
     this.composer.addPass(this.smaaPass);
 
-    // 4. Color grading
-    this.colorGradingPass = new ShaderPass(ColorGradingShader);
-    this.colorGradingPass.uniforms.uTint.value = config.colorTint ?? 0.0;
-    this.colorGradingPass.uniforms.uVignette.value = config.vignetteIntensity ?? 0.3;
-    this.colorGradingPass.uniforms.uContrast.value = config.contrast ?? 1.05;
-    this.composer.addPass(this.colorGradingPass);
+    this.filmPass = new ShaderPass(FilmGradeShader);
+    this.filmPass.uniforms.uTint.value = config.colorTint ?? 0.0;
+    this.filmPass.uniforms.uVignette.value = config.vignetteIntensity ?? 0.35;
+    this.filmPass.uniforms.uContrast.value = config.contrast ?? 1.06;
+    this.filmPass.uniforms.uSaturation.value = config.saturation ?? 1.02;
+    this.filmPass.uniforms.uGrain.value =
+      config.grain ?? (this.quality === 'high' ? 0.055 : 0.03);
+    this.filmPass.uniforms.uChroma.value =
+      config.chroma ?? (this.quality === 'high' ? 0.0009 : 0.0004);
+    this.filmPass.uniforms.uLift.value = 0.018;
+    this.composer.addPass(this.filmPass);
   }
 
-  /** Call instead of renderer.render() */
+  /** Advance film grain clock (call from cinema tick with dt). */
+  update(dt: number): void {
+    this.time += dt;
+    this.filmPass.uniforms.uTime.value = this.time;
+  }
+
   render(): void {
     this.composer.render();
   }
 
-  /** Resize all passes */
   resize(width: number, height: number): void {
-    this.composer.setSize(width, height);
-    this.bloomPass.resolution.set(width, height);
+    const w = Math.max(1, width);
+    const h = Math.max(1, height);
+    this.composer.setSize(w, h);
+    this.bloomPass.resolution.set(w, h);
   }
 
-  /** Switch quality preset at runtime */
   setQuality(preset: QualityPreset): void {
     this.quality = preset;
     const bloomPreset = PRESET_BLOOM[preset];
@@ -156,44 +206,50 @@ export class PostProcessing {
     this.bloomPass.threshold = bloomPreset.threshold;
     this.bloomPass.enabled = preset !== 'low';
     this.smaaPass.enabled = preset !== 'low';
+    this.filmPass.uniforms.uGrain.value = preset === 'high' ? 0.055 : 0.03;
   }
 
-  /** Adjust color tint (-1 cool … +1 warm) */
   setColorTint(tint: number): void {
-    this.colorGradingPass.uniforms.uTint.value = tint;
+    this.filmPass.uniforms.uTint.value = tint;
   }
 
-  /** Adjust vignette intensity */
   setVignette(intensity: number): void {
-    this.colorGradingPass.uniforms.uVignette.value = intensity;
+    this.filmPass.uniforms.uVignette.value = intensity;
   }
 
-  /** Adjust bloom strength */
   setBloomStrength(strength: number): void {
     this.bloomPass.strength = strength;
   }
 
-  /** Bloom radius (cinema impact beams) */
   setBloomRadius(radius: number): void {
     this.bloomPass.radius = radius;
   }
 
-  /** Bloom threshold — lower = more glow on fire/wards */
   setBloomThreshold(threshold: number): void {
     this.bloomPass.threshold = threshold;
   }
 
-  /** Contrast boost (1.0 = neutral) */
   setContrast(contrast: number): void {
-    this.colorGradingPass.uniforms.uContrast.value = contrast;
+    this.filmPass.uniforms.uContrast.value = contrast;
   }
 
-  /** Current quality preset */
+  setSaturation(sat: number): void {
+    this.filmPass.uniforms.uSaturation.value = sat;
+  }
+
+  setGrain(grain: number): void {
+    this.filmPass.uniforms.uGrain.value = grain;
+  }
+
+  setChroma(chroma: number): void {
+    this.filmPass.uniforms.uChroma.value = chroma;
+  }
+
   getQuality(): QualityPreset {
     return this.quality;
   }
 
-  /** Apply a full film-look snapshot (cinema beats) */
+  /** Full film-look snapshot for cinema beats */
   applyFilmLook(opts: {
     bloom?: number;
     bloomRadius?: number;
@@ -201,6 +257,9 @@ export class PostProcessing {
     tint?: number;
     vignette?: number;
     contrast?: number;
+    saturation?: number;
+    grain?: number;
+    chroma?: number;
   }): void {
     if (opts.bloom != null) this.setBloomStrength(opts.bloom);
     if (opts.bloomRadius != null) this.setBloomRadius(opts.bloomRadius);
@@ -208,6 +267,9 @@ export class PostProcessing {
     if (opts.tint != null) this.setColorTint(opts.tint);
     if (opts.vignette != null) this.setVignette(opts.vignette);
     if (opts.contrast != null) this.setContrast(opts.contrast);
+    if (opts.saturation != null) this.setSaturation(opts.saturation);
+    if (opts.grain != null) this.setGrain(opts.grain);
+    if (opts.chroma != null) this.setChroma(opts.chroma);
   }
 
   dispose(): void {

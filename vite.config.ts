@@ -1,6 +1,7 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
+import fs from "node:fs";
 import path from "path";
 import type { Plugin } from "vite";
 import {
@@ -12,6 +13,53 @@ const repoRoot = import.meta.dirname;
 const clientDir = path.resolve(repoRoot, "client");
 const monorepoRoot = tryResolveGrudgeMonorepoRoot(repoRoot);
 const grudgeAliases = grudgeGameAliasEntries(repoRoot, clientDir);
+
+/** Serve cinema GLB/HTML from disk so new files never fall through to SPA index.html. */
+const serveCinemaFromDisk: Plugin = {
+  name: "serve-cinema-glb-from-disk",
+  configureServer(server) {
+    server.middlewares.use((req, res, next) => {
+      const raw = (req.url || "").split("?")[0];
+      // cinema packs + grudge6 modular bakes staged under client/public
+      if (
+        !raw.startsWith("/models/cinema/") &&
+        !raw.startsWith("/models/grudge6/") &&
+        !raw.startsWith("/cinema/")
+      ) {
+        return next();
+      }
+      if (!/\.(glb|gltf|json|html|png|jpg|webp|js)$/i.test(raw)) return next();
+      const strip = decodeURIComponent(raw.replace(/^\//, ""));
+      const candidates = [
+        path.resolve(repoRoot, "client", "public", strip),
+        path.resolve(repoRoot, "public", strip),
+      ];
+      for (const file of candidates) {
+        try {
+          if (!fs.existsSync(file) || !fs.statSync(file).isFile()) continue;
+          const ext = path.extname(file).toLowerCase();
+          const type =
+            ext === ".glb"
+              ? "model/gltf-binary"
+              : ext === ".gltf"
+                ? "model/gltf+json"
+                : ext === ".json"
+                  ? "application/json"
+                  : ext === ".html"
+                    ? "text/html; charset=utf-8"
+                    : "application/octet-stream";
+          res.setHeader("Content-Type", type);
+          res.setHeader("Cache-Control", "no-store");
+          fs.createReadStream(file).pipe(res);
+          return;
+        } catch {
+          /* try next */
+        }
+      }
+      next();
+    });
+  },
+};
 
 /**
  * Packages that compile THREE as a bare global variable (not via require/import).
@@ -87,6 +135,7 @@ const injectThreeForKnownPackages: Plugin = {
 
 export default defineConfig({
   plugins: [
+    serveCinemaFromDisk,
     engineIoGlobalsShim,
     injectThreeForKnownPackages,
     react(),

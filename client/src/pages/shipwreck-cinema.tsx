@@ -71,6 +71,11 @@ export default function ShipwreckCinemaPage() {
         'grudge_shipwreck_intro_seen_v8',
         'grudge_shipwreck_intro_seen_v9',
         'grudge_shipwreck_intro_seen_v10',
+        'grudge_shipwreck_intro_seen_v11',
+        'grudge_shipwreck_intro_seen_v12',
+      'grudge_shipwreck_intro_seen_v13',
+      'grudge_shipwreck_intro_seen_v14',
+      'grudge_shipwreck_intro_seen_v15',
         'grudge_storm_intro_seen_v1',
         'grudge_island3d_intro_options_v9',
         'grudge_island3d_intro_options_v10',
@@ -94,7 +99,23 @@ export default function ShipwreckCinemaPage() {
           setCanSkip(true);
         }
       },
-      onReady: () => setReady(true),
+      onReady: () => {
+        setReady(true);
+        try {
+          const q = new URLSearchParams(window.location.search);
+          const seekRaw = q.get('seek') ?? q.get('t');
+          if (seekRaw != null) {
+            const sec = Number(seekRaw);
+            if (Number.isFinite(sec) && sec > 0) {
+              cinema.seekTo(sec);
+              skippable = true;
+              setCanSkip(true);
+              setCaption(`SEEK ${sec}s`);
+              setSub('QA jump into leviathan cinema');
+            }
+          }
+        } catch { /* */ }
+      },
       onComplete: () => finish(),
     });
     cinemaRef.current = cinema;
@@ -158,6 +179,7 @@ export default function ShipwreckCinemaPage() {
             <div className="text-[10px] text-slate-500 mt-0.5">
               {Math.round(progress * LEVIATHAN_CINEMA_DURATION_SEC)}s / {LEVIATHAN_CINEMA_DURATION_SEC}s
               {' · '}then pirate-islands shipwreck_cove tutorial
+              {' · '}skip after {LEVIATHAN_CINEMA_SKIPPABLE_AFTER_SEC}s
             </div>
           </div>
           <div className="pointer-events-auto flex gap-1.5">

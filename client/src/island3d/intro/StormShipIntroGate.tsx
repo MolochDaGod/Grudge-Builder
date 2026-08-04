@@ -60,6 +60,7 @@ export function StormShipIntroGate({
   const [caption, setCaption] = useState('WATERFALL ISLAND');
   const [sub, setSub] = useState('Four human mages hold the deck…');
   const [canSkip, setCanSkip] = useState(false);
+  const [bootMsg, setBootMsg] = useState('Loading Three.js cinema…');
   const hostRef = useRef<HTMLDivElement>(null);
   const cinemaRef = useRef<LeviathanOceanCinema | null>(null);
   const finishedRef = useRef(false);
@@ -93,27 +94,61 @@ export function StormShipIntroGate({
     onEnter(d, opts);
   }, [onEnter, opts]);
 
-  // Mount native cinema
+  // Mount native Three.js cinema (NOT an mp4 / not an iframe)
   useEffect(() => {
     if (alreadySeen && !force) return;
-    const host = hostRef.current;
-    if (!host) return;
+    let cancelled = false;
+    let cinema: LeviathanOceanCinema | null = null;
 
-    const cinema = new LeviathanOceanCinema(host, {
-      onCaption: (c, s) => {
-        setCaption(c);
-        setSub(s);
-      },
-      onProgress: (u, t) => {
-        setProgress(u);
-        if (t >= LEVIATHAN_CINEMA_SKIPPABLE_AFTER_SEC) setCanSkip(true);
-      },
-      onComplete: () => finish(),
-    });
-    cinemaRef.current = cinema;
+    const mount = () => {
+      const host = hostRef.current;
+      if (!host || cancelled) return;
+      // Ensure host has layout size before WebGL canvas
+      if (host.clientWidth < 2 || host.clientHeight < 2) {
+        requestAnimationFrame(mount);
+        return;
+      }
+
+      setBootMsg('Loading leviathan · ship · startingfalls…');
+
+      cinema = new LeviathanOceanCinema(host, {
+        onCaption: (c, s) => {
+          setCaption(c);
+          setSub(s);
+        },
+        onProgress: (u, t) => {
+          setProgress(u);
+          if (t >= LEVIATHAN_CINEMA_SKIPPABLE_AFTER_SEC) setCanSkip(true);
+        },
+        onReady: () => {
+          setBootMsg('');
+          // QA: ?seek=29 or ?t=29 jumps to ward shatter / pinata review
+          try {
+            const q = new URLSearchParams(window.location.search);
+            const seekRaw = q.get('seek') ?? q.get('t');
+            if (seekRaw != null && cinema) {
+              const sec = Number(seekRaw);
+              if (Number.isFinite(sec) && sec > 0) {
+                cinema.seekTo(sec);
+                setCanSkip(true);
+                setCaption(`SEEK ${sec}s`);
+                setSub('QA jump — native Three.js cinema (not video)');
+              }
+            }
+          } catch { /* */ }
+        },
+        onComplete: () => finish(),
+      });
+      cinemaRef.current = cinema;
+    };
+
+    // Double-rAF so letterbox flex layout settles before canvas size
+    const id = requestAnimationFrame(() => requestAnimationFrame(mount));
 
     return () => {
-      cinema.dispose();
+      cancelled = true;
+      cancelAnimationFrame(id);
+      cinema?.dispose();
       cinemaRef.current = null;
     };
   }, [alreadySeen, force, finish]);
@@ -144,8 +179,24 @@ export function StormShipIntroGate({
       <div className="h-[7vh] shrink-0 bg-black z-20" />
 
       <div className="flex-1 relative min-h-0">
-        {/* Native Three.js host */}
-        <div ref={hostRef} className="absolute inset-0 w-full h-full" />
+        {/* Native Three.js canvas host — NOT an mp4 / not a video tag */}
+        <div
+          ref={hostRef}
+          className="absolute inset-0 w-full h-full bg-[#060a10]"
+          data-cinema="leviathan-ocean"
+        />
+
+        {/* Boot overlay while GLTF cast loads */}
+        {bootMsg && (
+          <div className="absolute inset-0 z-[5] flex flex-col items-center justify-center pointer-events-none">
+            <div className="text-cyan-300/90 text-sm tracking-widest uppercase font-semibold animate-pulse">
+              {bootMsg}
+            </div>
+            <p className="text-[11px] text-slate-500 mt-2 max-w-sm text-center">
+              Native Three.js cutscene — not a video file. First load may take a few seconds (ship · levi · map).
+            </p>
+          </div>
+        )}
 
         {/* Progress */}
         <div className="absolute bottom-0 left-0 right-0 h-1 bg-black/50 z-10">

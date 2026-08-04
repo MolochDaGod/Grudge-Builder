@@ -81,11 +81,25 @@ if (!rootEl) {
       'grudge_shipwreck_intro_seen_v8',
       'grudge_shipwreck_intro_seen_v9',
       'grudge_shipwreck_intro_seen_v10',
+      'grudge_shipwreck_intro_seen_v11',
+      'grudge_shipwreck_intro_seen_v12',
+      'grudge_shipwreck_intro_seen_v13',
+      'grudge_shipwreck_intro_seen_v14',
+      'grudge_shipwreck_intro_seen_v15',
+      'grudge_shipwreck_intro_seen_v16',
+      'grudge_shipwreck_intro_seen_v17',
       'grudge_storm_intro_seen_v1',
       'grudge_island3d_intro_options_v9',
+      'grudge_island3d_intro_options_v10',
     ]) {
       sessionStorage.removeItem(k);
     }
+    try {
+      // Bust stale module memory when HMR leaves half-bound thirds
+      for (const k of Object.keys(localStorage)) {
+        if (/shipwreck|cinema|leviathan/i.test(k)) localStorage.removeItem(k);
+      }
+    } catch { /* */ }
   } catch { /* */ }
 
   let skippable = false;
@@ -130,6 +144,7 @@ if (!rootEl) {
       onReady: () => {
         if (load) load.style.display = 'none';
         if (cap && cap.textContent === 'LOADING…') cap.textContent = 'READY';
+        // Cinema also seeks from ?seek= / ?t= internally after ready
       },
       onComplete: () => finish(),
     });

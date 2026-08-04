@@ -1,0 +1,849 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Sladania · Drag-Head Full Body</title>
+  <style>
+    :root { color-scheme: dark; font-family: ui-sans-serif, system-ui, sans-serif; }
+    html, body { margin: 0; height: 100%; background: #0b0e14; color: #e8eef7; overflow: hidden; }
+    #c { position: fixed; inset: 0; display: block; touch-action: none; }
+    #ui {
+      position: fixed; top: 12px; left: 12px; width: min(360px, 94vw);
+      background: rgba(12, 16, 24, 0.95); border: 1px solid #2a3548;
+      border-radius: 10px; padding: 12px 14px; z-index: 2;
+      box-shadow: 0 12px 40px rgba(0,0,0,.45); max-height: calc(100vh - 24px); overflow: auto;
+    }
+    h1 { font-size: 14px; margin: 0 0 6px; }
+    .muted { color: #8b9bb3; font-size: 12px; line-height: 1.45; margin: 0 0 10px; }
+    .big { font-size: 13px; color: #fde68a; margin: 8px 0; line-height: 1.4; }
+    label { display: block; font-size: 11px; color: #9eb0c9; margin: 8px 0 4px; }
+    select, button, input[type="range"], input[type="number"] {
+      width: 100%; box-sizing: border-box; border-radius: 6px; border: 1px solid #334155;
+      background: #121826; color: #e8eef7; padding: 7px 8px; font-size: 12px;
+    }
+    button { cursor: pointer; margin-top: 6px; background: #1a2740; }
+    button.primary { background: #2563eb; border-color: #3b82f6; }
+    button.danger { background: #7f1d1d; border-color: #b91c1c; }
+    button.on { outline: 2px solid #22c55e; }
+    .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+    #status { font-size: 11px; color: #7dd3fc; margin-top: 8px; white-space: pre-wrap; }
+    #keys { font-size: 11px; color: #a7f3d0; margin-top: 6px; max-height: 110px; overflow: auto; }
+    kbd { background: #1e293b; padding: 1px 5px; border-radius: 4px; font-size: 10px; }
+    #lenbar { font-size: 11px; color: #c4b5fd; margin-top: 6px; white-space: pre-wrap; }
+  </style>
+</head>
+<body>
+  <canvas id="c"></canvas>
+  <div id="ui">
+    <h1>Sladania · full-body drag head</h1>
+    <p class="big">
+      <b>LMB on the yellow head (or any blue joint) and drag.</b>
+      Every joint behind follows the full measured length — head → mid → tip.
+    </p>
+    <p class="muted">
+      Orbit <kbd>RMB</kbd> · Zoom scroll · Hold <kbd>Shift</kbd> = drag on camera plane (up/down).
+      <kbd>R</kbd> or Record = sample keys while dragging.
+    </p>
+
+    <label>Asset</label>
+    <select id="asset">
+      <option value="/models/cinema/sladania.glb">sladania.glb (flat)</option>
+      <option value="/models/cinema/Sladania/Sladania.glb">Sladania/Sladania.glb</option>
+      <option value="/models/cinema/leviathan.glb">leviathan.glb (stock)</option>
+    </select>
+    <button id="reload">Reload</button>
+
+    <label>Follow lag (0 = stiff rope, higher = more snake delay)</label>
+    <input id="lag" type="range" min="0" max="20" value="6" />
+
+    <label>Bend strength</label>
+    <input id="bend" type="range" min="1" max="20" value="14" />
+
+    <label>Record time scale</label>
+    <input id="timeScale" type="number" step="0.1" value="1" />
+
+    <div class="row2">
+      <button id="record">Record: OFF</button>
+      <button id="play" class="primary">Play clip</button>
+    </div>
+    <div class="row2">
+      <button id="stop">Stop</button>
+      <button id="reset">Reset pose</button>
+    </div>
+    <div class="row2">
+      <button id="clear" class="danger">Clear keys</button>
+      <button id="export" class="primary">Download JSON</button>
+    </div>
+    <button id="playSwim">Play baked swim (reference)</button>
+
+    <div id="status">Loading…</div>
+    <div id="lenbar"></div>
+    <div id="keys"></div>
+  </div>
+
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://unpkg.com/three@0.185.0/build/three.module.js",
+      "three/addons/": "https://unpkg.com/three@0.185.0/examples/jsm/"
+    }
+  }
+  </script>
+  <script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+    import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+
+    /**
+     * FULL levi body along long axis (measured in Blender bind pose).
+     * Hierarchy is a star under dou_1, but WORLD positions stack head → tip:
+     *   head → core → dou_5..8 → dou_9..12 → dou_13..17 (tip)
+     * Old wrong order was head → dou_13..17 tip → then JUMP BACK to dou_5 mid.
+     * That only animated ~half the animal correctly.
+     */
+    const DRIVE_BONES = [
+      'atama_011',
+      'dou_1_01',
+      'dou_5_021',
+      'dou_6_022',
+      'dou_7_023',
+      'dou_8_024',
+      'dou_9_07',
+      'dou_10_08',
+      'dou_11_09',
+      'dou_12_010',
+      'dou_13_03',
+      'dou_14_02',
+      'dou_15_04',
+      'dou_16_05',
+      'dou_17_06',
+    ];
+
+    const canvas = document.getElementById('c');
+    const status = document.getElementById('status');
+    const lenbar = document.getElementById('lenbar');
+    const keysEl = document.getElementById('keys');
+    const assetSel = document.getElementById('asset');
+    const recordBtn = document.getElementById('record');
+
+    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    renderer.setSize(innerWidth, innerHeight);
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x0b0e14);
+    const camera = new THREE.PerspectiveCamera(50, innerWidth / innerHeight, 0.05, 8000);
+    camera.position.set(40, 30, 70);
+
+    const controls = new OrbitControls(camera, canvas);
+    controls.target.set(0, 15, 0);
+    controls.mouseButtons = {
+      LEFT: -1,
+      MIDDLE: THREE.MOUSE.DOLLY,
+      RIGHT: THREE.MOUSE.ROTATE,
+    };
+    controls.update();
+
+    scene.add(new THREE.HemisphereLight(0x99bbff, 0x1a2030, 1.15));
+    const sun = new THREE.DirectionalLight(0xffffff, 1.55);
+    sun.position.set(40, 90, 40);
+    scene.add(sun);
+    scene.add(new THREE.GridHelper(200, 20, 0x334155, 0x1e293b));
+
+    const raycaster = new THREE.Raycaster();
+    const pointer = new THREE.Vector2();
+    const dragPlane = new THREE.Plane();
+    const hit = new THREE.Vector3();
+    const _v = new THREE.Vector3();
+    const _v2 = new THREE.Vector3();
+    const _q = new THREE.Quaternion();
+    const _q2 = new THREE.Quaternion();
+    const _m = new THREE.Matrix4();
+
+    let root = null;
+    let helper = null;
+    let mixer = null;
+    let gltfAnims = [];
+    /** @type {{ bone: THREE.Object3D, restLocalQ: THREE.Quaternion, restWorldPos: THREE.Vector3, name: string }[]} */
+    let chain = [];
+    /** segment rest lengths */
+    let lengths = [];
+    /** live virtual joint world positions */
+    let joints = [];
+    let totalLen = 0;
+    let unitScale = 1;
+    let recording = false;
+    let dragging = false;
+    let dragIndex = 0;
+    let recTime = 0;
+    let lastKeyT = -1;
+    /** @type {Map<string, Array<{t:number,qx:number,qy:number,qz:number,qw:number}>>} */
+    const tracks = new Map();
+    const clock = new THREE.Clock();
+    let pickSpheres = [];
+    let lineHelper = null;
+
+    function setStatus(s) { status.textContent = s; }
+
+    function findByName(name) {
+      let found = null;
+      root.traverse((o) => {
+        if (!found && o.name === name) found = o;
+      });
+      return found;
+    }
+
+    function worldPos(obj, out = new THREE.Vector3()) {
+      obj.updateWorldMatrix(true, false);
+      return out.setFromMatrixPosition(obj.matrixWorld);
+    }
+
+    /**
+     * Order drive bones along the animal's long axis from measured rest positions.
+     * Never trust a hard-coded mid→tip jump.
+     */
+    function orderBonesAlongBody(bones) {
+      if (bones.length < 2) return bones;
+      // farthest pair among candidates = long axis
+      let best = 0;
+      let a = 0;
+      let b = 1;
+      for (let i = 0; i < bones.length; i++) {
+        for (let j = i + 1; j < bones.length; j++) {
+          const d = bones[i].restWorldPos.distanceTo(bones[j].restWorldPos);
+          if (d > best) {
+            best = d;
+            a = i;
+            b = j;
+          }
+        }
+      }
+      // head-ish: prefer atama as start if present
+      const headIdx = bones.findIndex((x) => /^atama/i.test(x.name));
+      let start = headIdx >= 0 ? headIdx : a;
+      // axis from start toward the farther of a/b
+      const other = bones[start].restWorldPos.distanceTo(bones[a].restWorldPos)
+        > bones[start].restWorldPos.distanceTo(bones[b].restWorldPos)
+        ? a
+        : b;
+      const origin = bones[start].restWorldPos;
+      const axis = bones[other].restWorldPos.clone().sub(origin);
+      if (axis.lengthSq() < 1e-12) axis.set(0, 1, 0);
+      else axis.normalize();
+      return bones
+        .map((bone, i) => ({
+          bone,
+          i,
+          proj: bone.restWorldPos.clone().sub(origin).dot(axis),
+        }))
+        .sort((u, v) => u.proj - v.proj)
+        .map((x) => x.bone);
+    }
+
+    function rebuildLine() {
+      if (lineHelper) {
+        scene.remove(lineHelper);
+        lineHelper.geometry.dispose();
+        lineHelper.material.dispose();
+      }
+      const geo = new THREE.BufferGeometry().setFromPoints(joints.map((p) => p.clone()));
+      lineHelper = new THREE.Line(
+        geo,
+        new THREE.LineBasicMaterial({ color: 0xfbbf24, depthTest: false }),
+      );
+      lineHelper.renderOrder = 9;
+      scene.add(lineHelper);
+    }
+
+    function buildChain() {
+      const raw = [];
+      for (const name of DRIVE_BONES) {
+        const bone = findByName(name);
+        if (!bone) {
+          console.warn('missing', name);
+          continue;
+        }
+        raw.push({
+          name,
+          bone,
+          restLocalQ: bone.quaternion.clone(),
+          restWorldPos: worldPos(bone, new THREE.Vector3()),
+        });
+      }
+      chain = orderBonesAlongBody(raw);
+      // re-capture rest after order (same data)
+      root.updateMatrixWorld(true);
+      for (const c of chain) {
+        c.restLocalQ.copy(c.bone.quaternion);
+        worldPos(c.bone, c.restWorldPos);
+      }
+
+      lengths = [];
+      totalLen = 0;
+      for (let i = 0; i < chain.length - 1; i++) {
+        const L = chain[i].restWorldPos.distanceTo(chain[i + 1].restWorldPos);
+        lengths.push(Math.max(L, 1e-4));
+        totalLen += lengths[i];
+      }
+
+      joints = chain.map((c) => c.restWorldPos.clone());
+
+      // pick spheres sized to model
+      for (const s of pickSpheres) {
+        scene.remove(s);
+        s.geometry.dispose();
+        s.material.dispose();
+      }
+      pickSpheres = [];
+      const headR = Math.max(totalLen * 0.035, 0.35) * unitScale;
+      const jointR = headR * 0.55;
+      for (let i = 0; i < chain.length; i++) {
+        const geo = new THREE.SphereGeometry(i === 0 ? headR : jointR, 14, 12);
+        const mat = new THREE.MeshBasicMaterial({
+          color: i === 0 ? 0xffdd44 : 0x38bdf8,
+          transparent: true,
+          opacity: 0.7,
+          depthTest: false,
+        });
+        const sph = new THREE.Mesh(geo, mat);
+        sph.userData.chainIndex = i;
+        sph.renderOrder = 10;
+        scene.add(sph);
+        pickSpheres.push(sph);
+      }
+      syncPickSpheres();
+      rebuildLine();
+
+      const segs = lengths.map((L, i) => `${chain[i].name}→${chain[i + 1].name}: ${L.toFixed(3)}`).join('\n');
+      lenbar.textContent =
+        `FULL chain ${chain.length} joints · total length ${totalLen.toFixed(3)} (model units)\n` +
+        `Order (head→tip):\n${chain.map((c) => c.name).join(' → ')}\n` +
+        segs;
+
+      setStatus(
+        `Ready. Yellow = head. Drag LMB — all ${chain.length} joints follow (${totalLen.toFixed(2)} long).\n` +
+          `Ice-worm retarget was never length-matched; this lab uses YOUR measured levi chain only.`,
+      );
+    }
+
+    function syncPickSpheres() {
+      for (let i = 0; i < chain.length; i++) {
+        pickSpheres[i].position.copy(joints[i]);
+      }
+      if (lineHelper) {
+        const arr = lineHelper.geometry.attributes.position.array;
+        for (let i = 0; i < joints.length; i++) {
+          arr[i * 3] = joints[i].x;
+          arr[i * 3 + 1] = joints[i].y;
+          arr[i * 3 + 2] = joints[i].z;
+        }
+        lineHelper.geometry.attributes.position.needsUpdate = true;
+        lineHelper.geometry.computeBoundingSphere();
+      }
+    }
+
+    /**
+     * Follow-the-leader: dragged joint sets target; joints behind / ahead keep rest lengths.
+     * Full forward + backward passes so the ENTIRE measured body moves, not half.
+     */
+    function solveFollow(target, tipIndex) {
+      const n = chain.length;
+      if (n < 2) return;
+
+      // start from current joints (smooth lag)
+      const lag = +document.getElementById('lag').value / 20; // 0..1
+      const next = joints.map((p) => p.clone());
+      next[tipIndex].lerp(target, 1 - lag * 0.35);
+      next[tipIndex].copy(target); // hard pin dragged joint
+
+      // propagate toward tip (behind head when tipIndex=0)
+      for (let i = tipIndex; i < n - 1; i++) {
+        const dir = next[i + 1].clone().sub(next[i]);
+        if (dir.lengthSq() < 1e-12) {
+          // fall back to rest direction
+          dir.copy(chain[i + 1].restWorldPos).sub(chain[i].restWorldPos);
+        }
+        if (dir.lengthSq() < 1e-12) dir.set(0, 1, 0);
+        dir.normalize();
+        // lag: blend desired with previous joint direction for snake delay
+        const desired = next[i].clone().addScaledVector(dir, lengths[i]);
+        next[i + 1].lerp(desired, 1 - lag * 0.5 * ((i - tipIndex + 1) / n));
+        // enforce length hard
+        const d2 = next[i + 1].clone().sub(next[i]);
+        if (d2.lengthSq() < 1e-12) d2.set(0, 1, 0);
+        d2.normalize();
+        next[i + 1].copy(next[i]).addScaledVector(d2, lengths[i]);
+      }
+
+      // propagate toward head (if dragged mid/tail)
+      for (let i = tipIndex; i > 0; i--) {
+        const dir = next[i - 1].clone().sub(next[i]);
+        if (dir.lengthSq() < 1e-12) {
+          dir.copy(chain[i - 1].restWorldPos).sub(chain[i].restWorldPos);
+        }
+        if (dir.lengthSq() < 1e-12) dir.set(0, -1, 0);
+        dir.normalize();
+        next[i - 1].copy(next[i]).addScaledVector(dir, lengths[i - 1]);
+      }
+
+      // second pass from head to tip for stability (full body)
+      next[tipIndex].copy(target);
+      if (tipIndex === 0) {
+        for (let i = 0; i < n - 1; i++) {
+          const dir = next[i + 1].clone().sub(next[i]);
+          if (dir.lengthSq() < 1e-12) dir.set(0, 1, 0);
+          else dir.normalize();
+          next[i + 1].copy(next[i]).addScaledVector(dir, lengths[i]);
+        }
+      } else {
+        // re-pin drag + both directions again
+        for (let i = tipIndex; i < n - 1; i++) {
+          const dir = next[i + 1].clone().sub(next[i]);
+          if (dir.lengthSq() < 1e-12) dir.set(0, 1, 0);
+          else dir.normalize();
+          next[i + 1].copy(next[i]).addScaledVector(dir, lengths[i]);
+        }
+        for (let i = tipIndex; i > 0; i--) {
+          const dir = next[i - 1].clone().sub(next[i]);
+          if (dir.lengthSq() < 1e-12) dir.set(0, -1, 0);
+          else dir.normalize();
+          next[i - 1].copy(next[i]).addScaledVector(dir, lengths[i - 1]);
+        }
+      }
+
+      for (let i = 0; i < n; i++) joints[i].copy(next[i]);
+      applyJointsToBones();
+      syncPickSpheres();
+    }
+
+    /**
+     * Aim each bone along joint[i] → joint[i+1] (or previous for tip).
+     * Works for star hierarchy: each bone gets a local aim quaternion from its parent.
+     */
+    function applyJointsToBones() {
+      const bend = +document.getElementById('bend').value / 20; // 0.05..1
+      const n = chain.length;
+
+      // Infer rest aim axis per bone from rest joint directions in parent space once
+      for (let i = 0; i < n; i++) {
+        const entry = chain[i];
+        const bone = entry.bone;
+        const parent = bone.parent;
+        if (!parent) continue;
+
+        let worldDir;
+        if (i < n - 1) {
+          worldDir = joints[i + 1].clone().sub(joints[i]);
+        } else {
+          worldDir = joints[i].clone().sub(joints[i - 1]);
+        }
+        if (worldDir.lengthSq() < 1e-12) continue;
+        worldDir.normalize();
+
+        // Rest direction in world at bind
+        let restDir;
+        if (i < n - 1) {
+          restDir = chain[i + 1].restWorldPos.clone().sub(chain[i].restWorldPos);
+        } else {
+          restDir = chain[i].restWorldPos.clone().sub(chain[i - 1].restWorldPos);
+        }
+        if (restDir.lengthSq() < 1e-12) restDir.set(0, 0, -1);
+        else restDir.normalize();
+
+        // Delta rotation in world that takes restDir → worldDir
+        const deltaWorld = new THREE.Quaternion().setFromUnitVectors(restDir, worldDir);
+
+        // Apply delta to rest world rotation of bone
+        parent.updateWorldMatrix(true, false);
+        bone.updateWorldMatrix(true, false);
+        const restWorldQ = new THREE.Quaternion();
+        // rest world Q ≈ parentWorld * restLocal
+        const parentWorldQ = new THREE.Quaternion();
+        parent.matrixWorld.decompose(_v, parentWorldQ, _v2);
+        restWorldQ.copy(parentWorldQ).multiply(entry.restLocalQ);
+
+        const desiredWorldQ = deltaWorld.clone().multiply(restWorldQ);
+        // local = parent^-1 * desiredWorld
+        const desiredLocal = parentWorldQ.clone().invert().multiply(desiredWorldQ);
+
+        bone.quaternion.copy(entry.restLocalQ).slerp(desiredLocal, bend);
+      }
+      root.updateMatrixWorld(true);
+    }
+
+    function keyAll(t) {
+      for (const c of chain) {
+        const b = c.bone;
+        if (!tracks.has(b.name)) tracks.set(b.name, []);
+        const arr = tracks.get(b.name);
+        const q = b.quaternion;
+        const entry = { t, qx: q.x, qy: q.y, qz: q.z, qw: q.w };
+        const idx = arr.findIndex((k) => Math.abs(k.t - t) < 0.03);
+        if (idx >= 0) arr[idx] = entry;
+        else {
+          arr.push(entry);
+          arr.sort((a, b) => a.t - b.t);
+        }
+      }
+      renderKeys();
+    }
+
+    function renderKeys() {
+      const lines = [];
+      for (const [name, keys] of tracks) {
+        if (keys.length) lines.push(`${name}: ${keys.length} keys`);
+      }
+      keysEl.textContent = lines.length
+        ? lines.join('\n')
+        : '(no keys — Record ON, then drag the yellow head)';
+    }
+
+    function buildClip(name = 'sladania_drag') {
+      const tr = [];
+      let dur = 0.1;
+      for (const [boneName, keys] of tracks) {
+        if (keys.length < 1) continue;
+        const times = keys.map((k) => k.t);
+        const values = [];
+        for (const k of keys) values.push(k.qx, k.qy, k.qz, k.qw);
+        dur = Math.max(dur, ...times);
+        tr.push(new THREE.QuaternionKeyframeTrack(`${boneName}.quaternion`, times, values));
+      }
+      if (!tr.length) return null;
+      return new THREE.AnimationClip(name, dur, tr);
+    }
+
+    function resetPose() {
+      mixer?.stopAllAction();
+      for (const c of chain) {
+        c.bone.quaternion.copy(c.restLocalQ);
+      }
+      root.updateMatrixWorld(true);
+      joints = chain.map((c) => {
+        const p = worldPos(c.bone, new THREE.Vector3());
+        c.restWorldPos.copy(p);
+        return p.clone();
+      });
+      // recompute lengths from rest (stable)
+      lengths = [];
+      totalLen = 0;
+      for (let i = 0; i < chain.length - 1; i++) {
+        const L = joints[i].distanceTo(joints[i + 1]);
+        lengths.push(Math.max(L, 1e-4));
+        totalLen += lengths[i];
+      }
+      syncPickSpheres();
+    }
+
+    /** Prefer flat path first — nested /Sladania/ sometimes 404→SPA HTML on stale Vite. */
+    const ASSET_FALLBACKS = {
+      '/models/cinema/Sladania/Sladania.glb': [
+        '/models/cinema/sladania.glb',
+        '/models/cinema/Sladania/Sladania.glb',
+      ],
+      '/models/cinema/sladania.glb': [
+        '/models/cinema/sladania.glb',
+        '/models/cinema/Sladania/Sladania.glb',
+      ],
+      '/models/cinema/leviathan.glb': ['/models/cinema/leviathan.glb'],
+    };
+
+    async function fetchGlbOk(url) {
+      const res = await fetch(url, { cache: 'no-store' });
+      if (!res.ok) throw new Error(`HTTP ${res.status} ${url}`);
+      const ct = (res.headers.get('content-type') || '').toLowerCase();
+      const buf = await res.arrayBuffer();
+      if (buf.byteLength < 20) throw new Error(`Too small (${buf.byteLength} B) — not a GLB: ${url}`);
+      const magic = new TextDecoder().decode(new Uint8Array(buf, 0, 4));
+      if (magic !== 'glTF') {
+        const head = new TextDecoder().decode(new Uint8Array(buf, 0, Math.min(80, buf.byteLength)));
+        throw new Error(
+          `Not a GLB (got "${magic}" / ${ct}, ${buf.byteLength} B). ` +
+            `Vite may be returning index.html. Restart dev server. Snippet: ${head.replace(/\s+/g, ' ')}`,
+        );
+      }
+      return buf;
+    }
+
+    async function loadAsset(url) {
+      const candidates = ASSET_FALLBACKS[url] || [url];
+      setStatus(`Loading ${candidates.join(' → ')}…`);
+      if (root) {
+        scene.remove(root);
+        if (helper) scene.remove(helper);
+        root = null;
+        helper = null;
+      }
+      if (lineHelper) {
+        scene.remove(lineHelper);
+        lineHelper = null;
+      }
+      tracks.clear();
+      renderKeys();
+      recTime = 0;
+      lastKeyT = -1;
+
+      let gltf = null;
+      let used = '';
+      const errors = [];
+      for (const cand of candidates) {
+        try {
+          const buf = await fetchGlbOk(cand);
+          gltf = await new GLTFLoader().parseAsync(buf, cand.replace(/[^/]+$/, ''));
+          used = cand;
+          break;
+        } catch (e) {
+          errors.push(`${cand}: ${e.message || e}`);
+          console.warn('[sladania-lab] load fail', cand, e);
+        }
+      }
+      if (!gltf) {
+        setStatus(`LOAD FAILED — mesh will not appear.\n${errors.join('\n')}\n\nFix: restart Vite (npm run dev:client), hard-refresh this page.`);
+        return;
+      }
+
+      root = gltf.scene;
+      gltfAnims = gltf.animations || [];
+
+      // Make sure every mesh is visible (dark materials on dark bg still silhouette with lights)
+      let meshCount = 0;
+      root.traverse((o) => {
+        if (o.isMesh) {
+          meshCount++;
+          o.frustumCulled = false;
+          o.visible = true;
+          const mats = Array.isArray(o.material) ? o.material : [o.material];
+          for (const m of mats) {
+            if (!m) continue;
+            m.side = THREE.DoubleSide;
+            m.transparent = false;
+            m.depthWrite = true;
+            if ('metalness' in m) m.metalness = Math.min(m.metalness ?? 0.2, 0.35);
+            if ('roughness' in m) m.roughness = Math.max(m.roughness ?? 0.6, 0.45);
+            m.needsUpdate = true;
+          }
+        }
+        if (o.isSkinnedMesh) o.frustumCulled = false;
+      });
+
+      const box = new THREE.Box3().setFromObject(root);
+      const size = box.getSize(new THREE.Vector3());
+      const center = box.getCenter(new THREE.Vector3());
+      if (!Number.isFinite(size.x) || size.length() < 1e-6) {
+        setStatus(`Loaded ${used} but bounds empty (meshes=${meshCount}). Bones may still show.`);
+      }
+      root.position.sub(center);
+      root.position.y += Math.max(size.y, 0.01) * 0.35;
+      const span = Math.max(size.x, size.y, size.z, 0.01);
+      unitScale = 55 / span;
+      root.scale.setScalar(unitScale);
+      scene.add(root);
+      root.updateMatrixWorld(true);
+
+      let skinned = null;
+      root.traverse((o) => {
+        if (o.isSkinnedMesh && !skinned) skinned = o;
+      });
+      helper = new THREE.SkeletonHelper(skinned || root);
+      if (helper.material) {
+        helper.material.depthTest = false;
+      }
+      scene.add(helper);
+
+      mixer = new THREE.AnimationMixer(root);
+      buildChain();
+
+      // Frame camera on mesh bounds (not only joints)
+      const box2 = new THREE.Box3().setFromObject(root);
+      const size2 = box2.getSize(new THREE.Vector3());
+      const mid = box2.getCenter(new THREE.Vector3());
+      const fit = Math.max(size2.x, size2.y, size2.z, totalLen, 10);
+      controls.target.copy(mid);
+      camera.position.set(mid.x + fit * 0.85, mid.y + fit * 0.45, mid.z + fit * 1.05);
+      camera.near = Math.max(0.05, fit / 200);
+      camera.far = fit * 50;
+      camera.updateProjectionMatrix();
+      controls.update();
+
+      const names = gltfAnims.map((a) => a.name).join(', ') || '(none)';
+      setStatus(
+        `Loaded ${used} (${meshCount} meshes, chain ${chain.length}, len ${totalLen.toFixed(2)})\n` +
+          `Baked: ${names}\n` +
+          `Yellow head = drag. If you only see grid, hard-refresh (Ctrl+F5).`,
+      );
+    }
+
+    function ndc(e) {
+      const r = canvas.getBoundingClientRect();
+      pointer.x = ((e.clientX - r.left) / r.width) * 2 - 1;
+      pointer.y = -((e.clientY - r.top) / r.height) * 2 + 1;
+    }
+
+    canvas.addEventListener('pointerdown', (e) => {
+      if (e.button !== 0 || !chain.length) return;
+      ndc(e);
+      raycaster.setFromCamera(pointer, camera);
+      const hits = raycaster.intersectObjects(pickSpheres, false);
+      if (!hits.length) return;
+      dragging = true;
+      dragIndex = hits[0].object.userData.chainIndex ?? 0;
+      const p = joints[dragIndex].clone();
+      if (e.shiftKey) {
+        camera.getWorldDirection(_v);
+        dragPlane.setFromNormalAndCoplanarPoint(_v, p);
+      } else {
+        // horizontal plane through joint — easy side S; Shift for vertical
+        dragPlane.setFromNormalAndCoplanarPoint(new THREE.Vector3(0, 1, 0), p);
+      }
+      controls.enabled = false;
+      canvas.setPointerCapture(e.pointerId);
+      e.preventDefault();
+    });
+
+    canvas.addEventListener('pointermove', (e) => {
+      if (!dragging) return;
+      ndc(e);
+      raycaster.setFromCamera(pointer, camera);
+      if (!raycaster.ray.intersectPlane(dragPlane, hit)) return;
+      solveFollow(hit, dragIndex);
+    });
+
+    canvas.addEventListener('pointerup', (e) => {
+      if (!dragging) return;
+      dragging = false;
+      controls.enabled = true;
+      try { canvas.releasePointerCapture(e.pointerId); } catch (_) {}
+      if (recording) keyAll(recTime);
+    });
+
+    recordBtn.onclick = () => {
+      recording = !recording;
+      recordBtn.textContent = recording ? 'Record: ON' : 'Record: OFF';
+      recordBtn.classList.toggle('on', recording);
+      if (recording) {
+        recTime = 0;
+        lastKeyT = -1;
+        keyAll(0);
+        setStatus('Recording ON — drag head; keys sample ~20 Hz.');
+      } else {
+        setStatus('Recording OFF');
+      }
+    };
+
+    document.getElementById('play').onclick = () => {
+      const clip = buildClip();
+      if (!clip) {
+        setStatus('No keys. Record ON → drag head → Play.');
+        return;
+      }
+      mixer.stopAllAction();
+      resetPose();
+      const a = mixer.clipAction(clip);
+      a.reset().setLoop(THREE.LoopRepeat, Infinity).play();
+      setStatus(`Playing ${clip.name} (${clip.duration.toFixed(2)}s, ${clip.tracks.length} tracks)`);
+    };
+
+    document.getElementById('playSwim').onclick = () => {
+      const swim = gltfAnims.find((a) => /^swim$/i.test(a.name) || /^swim_Sladania$/i.test(a.name))
+        || gltfAnims.find((a) => /swim/i.test(a.name));
+      if (!swim) {
+        setStatus('No baked swim clip on this asset.');
+        return;
+      }
+      mixer.stopAllAction();
+      mixer.clipAction(swim).reset().setLoop(THREE.LoopRepeat, Infinity).play();
+      setStatus(`Playing baked ${swim.name} (${swim.duration.toFixed(2)}s)`);
+    };
+
+    document.getElementById('stop').onclick = () => {
+      mixer?.stopAllAction();
+      resetPose();
+    };
+    document.getElementById('reset').onclick = () => resetPose();
+    document.getElementById('clear').onclick = () => {
+      tracks.clear();
+      recTime = 0;
+      lastKeyT = -1;
+      renderKeys();
+    };
+    document.getElementById('export').onclick = () => {
+      const clip = buildClip();
+      if (!clip) return;
+      const json = {
+        name: clip.name,
+        duration: clip.duration,
+        chain: chain.map((c) => c.name),
+        totalLength: totalLen,
+        tracks: clip.tracks.map((t) => ({
+          name: t.name,
+          times: Array.from(t.times),
+          values: Array.from(t.values),
+        })),
+      };
+      const blob = new Blob([JSON.stringify(json, null, 2)], { type: 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'sladania_drag.anim.json';
+      a.click();
+      setStatus('Downloaded sladania_drag.anim.json');
+    };
+    document.getElementById('reload').onclick = () => loadAsset(assetSel.value);
+
+    window.addEventListener('resize', () => {
+      camera.aspect = innerWidth / innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(innerWidth, innerHeight);
+    });
+
+    window.addEventListener('keydown', (e) => {
+      if (e.code === 'KeyR' && !e.repeat) {
+        recording = true;
+        recordBtn.textContent = 'Record: ON';
+        recordBtn.classList.add('on');
+        if (recTime === 0 && !tracks.size) keyAll(0);
+      }
+    });
+
+    function tick() {
+      requestAnimationFrame(tick);
+      const dt = clock.getDelta();
+      if (dragging && recording) {
+        const scale = +document.getElementById('timeScale').value || 1;
+        recTime += dt * scale;
+        if (recTime - lastKeyT >= 0.05) {
+          keyAll(recTime);
+          lastKeyT = recTime;
+        }
+      }
+      mixer?.update(dt);
+      // keep spheres on bones when playing clips
+      if (!dragging && mixer && chain.length) {
+        let playing = false;
+        mixer._actions?.forEach?.((a) => { if (a.isRunning()) playing = true; });
+        // three r185: check via existing actions
+        if (root) {
+          for (let i = 0; i < chain.length; i++) {
+            worldPos(chain[i].bone, joints[i]);
+          }
+          syncPickSpheres();
+        }
+      }
+      controls.update();
+      renderer.render(scene, camera);
+    }
+    tick();
+
+    window.sladaniaLab = {
+      get chain() { return chain; },
+      get joints() { return joints; },
+      get lengths() { return lengths; },
+      tracks,
+      buildClip,
+      THREE,
+    };
+    loadAsset(assetSel.value).catch((e) => setStatus(String(e)));
+  </script>
+</body>
+</html>

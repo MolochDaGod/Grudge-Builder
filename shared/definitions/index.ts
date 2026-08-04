@@ -11,7 +11,7 @@ export * from "./raceElementStaffs";
 export * from "./weaponArsenal";
 export * from "./weaponPrefabCatalog";
 export * from "./weaponTierVisuals";
-export * from "./warlordsEntityPrefabs";
+// warlordsEntityPrefabs — file not present; do not re-export (breaks Vite import-analysis)
 export * from "./buildSystem";
 export * from "./survivalKitBuildCatalog";
 export * from "./fantasyVillageBuildCatalog";

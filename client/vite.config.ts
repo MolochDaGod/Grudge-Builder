@@ -285,8 +285,22 @@ export default defineConfig({
         changeOrigin: true,
         bypass(req: { url?: string }) {
           const rel = (req.url || "").split("?")[0];
-          const local = path.resolve(repoRoot, "public", rel.replace(/^\//, ""));
-          if (fs.existsSync(local) && fs.statSync(local).isFile()) return rel;
+          const strip = rel.replace(/^\//, "");
+          // Prefer repo-root public (vite publicDir) then client/public (cinema packs)
+          const candidates = [
+            path.resolve(repoRoot, "public", strip),
+            path.resolve(__dir, "public", strip),
+          ];
+          for (const local of candidates) {
+            try {
+              if (fs.existsSync(local) && fs.statSync(local).isFile()) {
+                // false = do not proxy; let Vite static middleware serve the local file
+                return false;
+              }
+            } catch {
+              /* continue */
+            }
+          }
         },
       },
       "/sprites": {

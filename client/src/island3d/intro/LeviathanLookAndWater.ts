@@ -241,6 +241,156 @@ export function applyLeviathanWetness(root: THREE.Object3D | null, wetness: numb
   });
 }
 
+/** Minimum body-height fraction that must stay under the waterline at all times. */
+export const LEVI_MIN_SUBMERGE_FRAC = 0.2;
+
+/**
+ * How deep the body sits by beat phase — always ≥ LEVI_MIN_SUBMERGE_FRAC when visible.
+ * surfaceBias: negative = deeper swim, positive = surface/breach.
+ */
+export function targetLeviSubmergeFrac(surfaceBias: number): number {
+  if (surfaceBias < -8) return 1.0; // fully submerged / hidden path
+  if (surfaceBias < -3) return 0.72; // swim / dive
+  if (surfaceBias < 0) return 0.48;
+  if (surfaceBias < 2) return 0.32; // surface transition
+  if (surfaceBias < 4) return 0.24; // cast / beam
+  // breach / rise — still keep belly wet (min 20%)
+  return LEVI_MIN_SUBMERGE_FRAC;
+}
+
+/**
+ * Snap leviathan root Y so the bottom `frac` of its world AABB is under waterY.
+ * Call AFTER scripted path / bob so it is the final constraint every frame.
+ */
+export function enforceLeviathanSubmerge(
+  root: THREE.Object3D,
+  body: THREE.Object3D | null,
+  waterY: number,
+  surfaceBias: number,
+): { height: number; frac: number; waterY: number; dy: number } {
+  const target = body ?? root;
+  root.updateMatrixWorld(true);
+  target.updateMatrixWorld(true);
+  const box = new THREE.Box3().setFromObject(target);
+  const h = box.max.y - box.min.y;
+  if (!(h > 0.05) || !Number.isFinite(h)) {
+    return { height: 0, frac: 0, waterY, dy: 0 };
+  }
+  const frac = targetLeviSubmergeFrac(surfaceBias);
+  // waterline should sit at min.y + frac*h  →  min.y = waterY - frac*h
+  const targetMinY = waterY - frac * h;
+  const dy = targetMinY - box.min.y;
+  root.position.y += dy;
+  return { height: h, frac, waterY, dy };
+}
+
+type WaterlineUniforms = {
+  uWaterY: { value: number };
+  uUnderTint: { value: THREE.Color };
+  uUnderDark: { value: number };
+  uBandBoost: { value: number };
+};
+
+/**
+ * Split rendering: above-water dry leather vs underwater blue-green absorption.
+ * Uses onBeforeCompile world-Y test against live waterline (updated each frame).
+ */
+export function applyLeviathanWaterlineSplit(root: THREE.Object3D): void {
+  const list: WaterlineUniforms[] = [];
+  root.traverse((o) => {
+    const mesh = o as THREE.Mesh;
+    if (!mesh.isMesh || !mesh.material) return;
+    const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+    for (const mat of mats) {
+      const std = mat as THREE.MeshStandardMaterial;
+      if (!std.isMeshStandardMaterial && !(std as THREE.MeshPhysicalMaterial).isMeshPhysicalMaterial) {
+        continue;
+      }
+      if (std.userData.__waterlineShader) continue;
+
+      const uniforms: WaterlineUniforms = {
+        uWaterY: { value: 0 },
+        uUnderTint: { value: new THREE.Color(0x0c4a62) },
+        uUnderDark: { value: 0.48 },
+        uBandBoost: { value: 0.42 },
+      };
+      list.push(uniforms);
+      std.userData.__waterlineShader = true;
+      std.userData.__waterlineUniforms = uniforms;
+
+      const prev = std.onBeforeCompile;
+      std.onBeforeCompile = (shader, renderer) => {
+        prev?.(shader, renderer);
+        shader.uniforms.uWaterY = uniforms.uWaterY;
+        shader.uniforms.uUnderTint = uniforms.uUnderTint;
+        shader.uniforms.uUnderDark = uniforms.uUnderDark;
+        shader.uniforms.uBandBoost = uniforms.uBandBoost;
+
+        shader.vertexShader =
+          'varying float vCinemaWorldY;\n' +
+          shader.vertexShader.replace(
+            '#include <project_vertex>',
+            `
+            vec4 cinemaWorldPos = modelMatrix * vec4( transformed, 1.0 );
+            vCinemaWorldY = cinemaWorldPos.y;
+            #include <project_vertex>
+            `,
+          );
+
+        shader.fragmentShader =
+          `
+          varying float vCinemaWorldY;
+          uniform float uWaterY;
+          uniform vec3 uUnderTint;
+          uniform float uUnderDark;
+          uniform float uBandBoost;
+          ` +
+          shader.fragmentShader.replace(
+            '#include <dithering_fragment>',
+            `
+            // under = 1 fully below waterline, 0 fully above
+            float under = smoothstep(uWaterY + 0.22, uWaterY - 0.55, vCinemaWorldY);
+            // underwater: cool absorption + darker (Beer-ish)
+            vec3 dry = gl_FragColor.rgb;
+            vec3 wet = dry * uUnderTint * uUnderDark;
+            // deeper = darker
+            float depth = clamp((uWaterY - vCinemaWorldY) * 0.12, 0.0, 1.0);
+            wet *= (1.0 - depth * 0.45);
+            gl_FragColor.rgb = mix(dry, wet, under);
+            // bright waterline foam / sheen band
+            float band = exp(-abs(vCinemaWorldY - uWaterY) * 3.5);
+            gl_FragColor.rgb += vec3(0.18, 0.32, 0.38) * band * uBandBoost * (0.55 + 0.45 * (1.0 - under));
+            // slight caustic flicker underwater
+            float caust = sin(vCinemaWorldY * 2.4 + uWaterY * 3.0) * 0.5 + 0.5;
+            gl_FragColor.rgb += vec3(0.02, 0.06, 0.08) * caust * under * 0.35;
+            #include <dithering_fragment>
+            `,
+          );
+      };
+      std.needsUpdate = true;
+      // Force recompile
+      std.customProgramCacheKey = () => 'cinema_levi_waterline_v1';
+    }
+  });
+  root.userData.__waterlineUniformList = list;
+}
+
+/** Push live ocean surface Y into leviathan waterline shader uniforms. */
+export function updateLeviathanWaterlineUniforms(
+  root: THREE.Object3D | null,
+  waterY: number,
+  storm = 0.5,
+): void {
+  if (!root) return;
+  const list = root.userData.__waterlineUniformList as WaterlineUniforms[] | undefined;
+  if (!list?.length) return;
+  for (const u of list) {
+    u.uWaterY.value = waterY;
+    u.uUnderDark.value = 0.42 + storm * 0.12;
+    u.uBandBoost.value = 0.35 + storm * 0.25;
+  }
+}
+
 // ── Water splash particles ─────────────────────────────────────────────
 
 type SplashP = {
@@ -314,12 +464,31 @@ export class LeviathanWaterSplash {
 
   /** One-shot breach / rise plume at waterline under leviathan. */
   burstRise(at: THREE.Vector3, intensity = 1): void {
-    const n = Math.floor(48 * intensity);
+    const n = Math.floor(56 * intensity);
     for (let i = 0; i < n; i++) this.spawn(at, 'rise');
   }
 
-  /** Continuous body wash / ocean chop off flanks. */
-  private spawn(at: THREE.Vector3, mode: 'rise' | 'cascade' | 'ocean'): void {
+  /**
+   * Wave crash — wide low fan of foam when body slaps / shoulders through the surface.
+   * Call on surface / breach / dive crossings.
+   */
+  burstWaveCrash(at: THREE.Vector3, intensity = 1, forward?: THREE.Vector3): void {
+    const n = Math.floor(72 * intensity);
+    for (let i = 0; i < n; i++) this.spawn(at, 'crash', forward);
+  }
+
+  /** Fine mist spray along flanks / ship bow (ongoing chop). */
+  burstSpray(at: THREE.Vector3, intensity = 1): void {
+    const n = Math.floor(28 * intensity);
+    for (let i = 0; i < n; i++) this.spawn(at, 'spray');
+  }
+
+  /** Continuous body wash / ocean chop / crash / spray. */
+  private spawn(
+    at: THREE.Vector3,
+    mode: 'rise' | 'cascade' | 'ocean' | 'crash' | 'spray',
+    forward?: THREE.Vector3,
+  ): void {
     let p: SplashP | null = null;
     for (const q of this.parts) {
       if (!q.alive) {
@@ -330,29 +499,74 @@ export class LeviathanWaterSplash {
     if (!p) return;
     p.alive = true;
     const spread =
-      mode === 'rise' ? 3.5 : mode === 'cascade' ? 2.2 : 4.0;
+      mode === 'rise'
+        ? 3.5
+        : mode === 'cascade'
+          ? 2.2
+          : mode === 'crash'
+            ? 7.5
+            : mode === 'spray'
+              ? 2.8
+              : 4.0;
     p.x = at.x + (Math.random() - 0.5) * spread;
-    p.y = at.y + (mode === 'rise' ? Math.random() * 0.4 : Math.random() * 1.2);
+    p.y =
+      at.y +
+      (mode === 'rise'
+        ? Math.random() * 0.4
+        : mode === 'crash'
+          ? Math.random() * 0.25
+          : mode === 'spray'
+            ? Math.random() * 0.6
+            : Math.random() * 1.2);
     p.z = at.z + (Math.random() - 0.5) * spread;
     const ang = Math.random() * Math.PI * 2;
-    const speed =
+    let speed =
       mode === 'rise'
         ? 4 + Math.random() * 10
         : mode === 'cascade'
           ? 1.2 + Math.random() * 3.5
-          : 2 + Math.random() * 5;
-    p.vx = Math.cos(ang) * speed * (mode === 'ocean' ? 1.1 : 0.7);
+          : mode === 'crash'
+            ? 5 + Math.random() * 12
+            : mode === 'spray'
+              ? 3 + Math.random() * 7
+              : 2 + Math.random() * 5;
+    p.vx = Math.cos(ang) * speed * (mode === 'ocean' || mode === 'crash' ? 1.15 : 0.7);
     p.vy =
       mode === 'rise'
         ? 6 + Math.random() * 12
         : mode === 'cascade'
           ? 0.5 + Math.random() * 2.5
-          : 2 + Math.random() * 5;
-    p.vz = Math.sin(ang) * speed * (mode === 'ocean' ? 1.1 : 0.7);
-    p.maxLife = mode === 'rise' ? 0.7 + Math.random() * 0.7 : 0.4 + Math.random() * 0.55;
+          : mode === 'crash'
+            ? 3 + Math.random() * 9
+            : mode === 'spray'
+              ? 4 + Math.random() * 8
+              : 2 + Math.random() * 5;
+    p.vz = Math.sin(ang) * speed * (mode === 'ocean' || mode === 'crash' ? 1.15 : 0.7);
+    // Bias crash/spray along body forward for “bow wave” read
+    if (forward && (mode === 'crash' || mode === 'spray')) {
+      const fl = Math.hypot(forward.x, forward.z) || 1;
+      const fx = forward.x / fl;
+      const fz = forward.z / fl;
+      p.vx += fx * speed * 0.55;
+      p.vz += fz * speed * 0.55;
+    }
+    p.maxLife =
+      mode === 'rise'
+        ? 0.75 + Math.random() * 0.7
+        : mode === 'crash'
+          ? 0.85 + Math.random() * 0.65
+          : mode === 'spray'
+            ? 0.35 + Math.random() * 0.4
+            : 0.4 + Math.random() * 0.55;
     p.life = p.maxLife;
     p.size =
-      mode === 'rise' ? 0.6 + Math.random() * 1.4 : 0.25 + Math.random() * 0.7;
+      mode === 'rise'
+        ? 0.7 + Math.random() * 1.5
+        : mode === 'crash'
+          ? 0.9 + Math.random() * 1.8
+          : mode === 'spray'
+            ? 0.18 + Math.random() * 0.45
+            : 0.25 + Math.random() * 0.7;
   }
 
   /**
@@ -367,36 +581,63 @@ export class LeviathanWaterSplash {
     surfaceBias: number,
     storm: number,
     active: boolean,
+    /** Optional body forward (world XZ) for bow-wave bias */
+    forward?: THREE.Vector3,
+    /** Horizontal speed proxy for spray volume */
+    speedMps = 0,
   ): void {
     this.riseBurstCd = Math.max(0, this.riseBurstCd - dt);
 
     if (active) {
-      // Detect rise / breach: surfaceBias crosses toward positive
+      const waterline = leviPos.clone();
+      waterline.y = Math.max(0.05, Math.min(leviPos.y * 0.12, 1.2));
+
+      // Rise / breach: big plume + wave crash fan
       if (
         this.lastSurfaceBias < 1.5 &&
         surfaceBias >= 2.5 &&
         this.riseBurstCd <= 0
       ) {
-        const at = leviPos.clone();
-        at.y = Math.max(0.1, leviPos.y * 0.15);
-        this.burstRise(at, 1.2 + storm * 0.6);
-        this.riseBurstCd = 1.8;
+        this.burstRise(waterline, 1.4 + storm * 0.7);
+        this.burstWaveCrash(waterline, 1.3 + storm * 0.5, forward);
+        this.riseBurstCd = 1.5;
       }
-      // Continuous cascade while body crosses waterline
-      if (surfaceBias > -1 && surfaceBias < 6) {
-        this.emitAcc += dt * (18 + storm * 22 + Math.max(0, surfaceBias) * 8);
+      // Dive: reverse crash (body slamming water)
+      if (
+        this.lastSurfaceBias > 2 &&
+        surfaceBias < 0 &&
+        this.riseBurstCd <= 0
+      ) {
+        this.burstWaveCrash(waterline, 1.1 + storm * 0.4, forward);
+        this.burstSpray(waterline, 1.2);
+        this.riseBurstCd = 1.2;
+      }
+      // Continuous cascade + spray while body crosses waterline
+      if (surfaceBias > -2 && surfaceBias < 7) {
+        this.emitAcc +=
+          dt *
+          (22 +
+            storm * 28 +
+            Math.max(0, surfaceBias) * 10 +
+            Math.min(18, speedMps * 2.5));
         while (this.emitAcc >= 1) {
           this.emitAcc -= 1;
           const at = leviPos.clone();
           at.y = Math.max(0.05, Math.min(leviPos.y * 0.4, 2.5));
-          at.x += (Math.random() - 0.5) * 6;
-          at.z += (Math.random() - 0.5) * 6;
-          this.spawn(at, surfaceBias > 1.5 ? 'cascade' : 'ocean');
+          at.x += (Math.random() - 0.5) * 7;
+          at.z += (Math.random() - 0.5) * 7;
+          if (surfaceBias > 1.2 && Math.random() < 0.35) {
+            this.spawn(at, 'spray', forward);
+          } else if (surfaceBias > 1.5) {
+            this.spawn(at, 'cascade', forward);
+          } else {
+            this.spawn(at, 'ocean', forward);
+          }
         }
       }
       // Extra ocean wash when high storm + surfaced
       if (surfaceBias > 1 && storm > 0.45) {
-        this.emitAcc += dt * storm * 12;
+        this.emitAcc += dt * storm * 16;
       }
     }
     this.lastSurfaceBias = surfaceBias;
@@ -543,12 +784,14 @@ export function tickWaterCyclone(root: THREE.Object3D | null, dt: number, t: num
 
 /**
  * Estimate surfaceBias from beat location tags / key (shared with cinema).
+ * Positive = more of the body above water — enforceLeviathanSubmerge still keeps ≥20% under.
  */
 export function surfaceBiasFromLeviAt(leviAt: string): number {
   if (leviAt.includes('hidden') || leviAt.includes('gone')) return -12;
   if (leviAt.includes('swim') || leviAt.includes('dive')) return -4;
-  if (leviAt.includes('surface') || leviAt.includes('cast') || leviAt.includes('beam')) return 3;
-  if (leviAt.includes('rise') || leviAt.includes('breach')) return 5.5;
-  if (leviAt.includes('watch') || leviAt.includes('finisher')) return 2.5;
-  return 2;
+  // Surface / fight — less “fly out” so belly stays wet before shader + enforce
+  if (leviAt.includes('surface') || leviAt.includes('cast') || leviAt.includes('beam')) return 2.2;
+  if (leviAt.includes('rise') || leviAt.includes('breach')) return 3.8;
+  if (leviAt.includes('watch') || leviAt.includes('finisher')) return 2.0;
+  return 1.5;
 }
