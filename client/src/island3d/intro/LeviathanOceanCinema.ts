@@ -403,6 +403,8 @@ export class LeviathanOceanCinema {
   private meguminMixer: THREE.AnimationMixer | null = null;
   private meguminClips: THREE.AnimationClip[] = [];
   private meguminHideT = 0;
+  /** Locked SI root scale after peak-frame calibrate — re-applied every tick after mixer */
+  private meguminLockedScale = 1;
   /** Ship deck height (ship-local) — shield / mage feet / VFX */
   private deckY = 2.2;
   /**
@@ -1220,8 +1222,8 @@ export class LeviathanOceanCinema {
       if (meguminPack?.root) {
         this.meguminRoot = meguminPack.root;
         this.meguminRoot.name = 'cinema_megumin_explosion';
-        // Asset is classic 100× (cm-as-m). Hard decade before LOA fit so pinata is not a planet.
-        this.normalizeMeguminSi(this.meguminRoot, CIN_MEGUMIN_SPAN_M);
+        // Flatten Sketchfab unit traps BEFORE any measure (node scale ~112 is classic 100×)
+        this.flattenMeguminAuthoringScales(this.meguminRoot);
         this.meguminRoot.visible = false;
         this.meguminRoot.traverse((o) => {
           const m = o as THREE.Mesh;
@@ -1239,16 +1241,19 @@ export class LeviathanOceanCinema {
           }
         });
         this.scene.add(this.meguminRoot);
-        this.meguminClips = meguminPack.clips?.slice() ?? [];
+        // Sanitize clips: strip root scale tracks that re-inflate 100× after SI fit
+        this.meguminClips = this.sanitizeMeguminClips(meguminPack.clips?.slice() ?? []);
         if (this.meguminClips.length) {
           this.meguminMixer = new THREE.AnimationMixer(this.meguminRoot);
           console.info(
             '[cinema] megumin clips:',
-            this.meguminClips.map((c) => `${c.name}(${c.duration.toFixed(2)}s)`).join(', '),
+            this.meguminClips.map((c) => `${c.name}(${c.duration.toFixed(2)}s tracks=${c.tracks.length})`).join(', '),
           );
         } else {
           console.warn('[cinema] megumin has no clips — pinata will use particle burst only');
         }
+        // Peak-frame SI calibrate once (uses mixer if available)
+        this.calibrateMeguminSi(CIN_MEGUMIN_SPAN_M);
       }
     } catch (e) {
       console.warn('[LeviathanOceanCinema] optional VFX load failed', e);
@@ -1256,38 +1261,118 @@ export class LeviathanOceanCinema {
   }
 
   /**
-   * Force megumin into SI metres. File is authored ~100× (cm-as-m).
-   * Always re-measure from identity scale so we never accumulate.
+   * Sketchfab megumin hierarchy: Sketchfab_model.scale ≈ 112 + fbx 0.01.
+   * Animation "Scene" can re-apply huge scales. Flatten authoring traps once.
    */
-  private normalizeMeguminSi(root: THREE.Object3D, spanM: number): void {
+  private flattenMeguminAuthoringScales(root: THREE.Object3D): void {
+    root.traverse((o) => {
+      const sx = Math.abs(o.scale.x);
+      // Classic Sketchfab / cm-as-m node scales
+      if (sx > 20 && sx < 400) {
+        o.scale.multiplyScalar(0.01);
+        console.info(`[cinema] megumin flatten node "${o.name}" scale×0.01 (was ${sx.toFixed(1)})`);
+      } else if (sx > 400 && sx < 4000) {
+        o.scale.multiplyScalar(0.001);
+        console.info(`[cinema] megumin flatten node "${o.name}" scale×0.001 (was ${sx.toFixed(1)})`);
+      }
+    });
+    root.updateMatrixWorld(true);
+  }
+
+  /**
+   * Keep explosion morph/reveal, but drop tracks that set absolute scale on
+   * Sketchfab / Root nodes (those re-introduce 100× after SI fit).
+   */
+  private sanitizeMeguminClips(clips: THREE.AnimationClip[]): THREE.AnimationClip[] {
+    if (!clips.length) return clips;
+    return clips.map((clip) => {
+      const kept = clip.tracks.filter((tr) => {
+        const n = tr.name;
+        // Drop scale tracks on high-level containers (re-inflate 100×)
+        if (/\.scale$/.test(n) && /sketchfab|rootnode|root|scene/i.test(n)) {
+          return false;
+        }
+        // Drop scale tracks whose keyframes peak above 20 (unit error)
+        if (/\.scale$/.test(n) && 'values' in tr && Array.isArray((tr as THREE.KeyframeTrack).values)) {
+          const vals = (tr as THREE.KeyframeTrack).values as number[];
+          let peak = 0;
+          for (let i = 0; i < vals.length; i++) peak = Math.max(peak, Math.abs(vals[i]!));
+          if (peak > 20) return false;
+        }
+        return true;
+      });
+      if (kept.length === clip.tracks.length) return clip;
+      console.info(
+        `[cinema] megumin clip "${clip.name}" stripped ${clip.tracks.length - kept.length} scale tracks`,
+      );
+      return new THREE.AnimationClip(clip.name, clip.duration, kept);
+    });
+  }
+
+  /**
+   * Force megumin into SI metres by measuring PEAK animated span (not rest pose).
+   * Rest pose can be near-zero (explosion grow-in); rest-only fit → planet on play.
+   */
+  private calibrateMeguminSi(spanM: number): void {
+    const root = this.meguminRoot;
+    if (!root) return;
     root.scale.setScalar(1);
     root.updateMatrixWorld(true);
-    const box0 = new THREE.Box3().setFromObject(root);
-    const size0 = box0.getSize(new THREE.Vector3());
-    let measured = Math.max(size0.x, size0.y, size0.z, 1e-6);
-    // Hard 100× if still huge after soft decade
-    let decade = unitDecadeFactor(measured, spanM);
-    if (measured / spanM > 40) decade = 0.01;
-    if (measured / spanM > 400) decade = 0.001;
-    if (Math.abs(decade - 1) > 1e-6) {
-      root.scale.multiplyScalar(decade);
-      root.updateMatrixWorld(true);
-      const b1 = new THREE.Box3().setFromObject(root);
-      measured = Math.max(...b1.getSize(new THREE.Vector3()).toArray(), 1e-6);
+
+    let peak = 0;
+    if (this.meguminMixer && this.meguminClips.length) {
+      this.meguminMixer.stopAllAction();
+      for (const clip of this.meguminClips) {
+        const action = this.meguminMixer.clipAction(clip);
+        action.reset();
+        action.setLoop(THREE.LoopOnce, 1);
+        action.clampWhenFinished = true;
+        action.enabled = true;
+        action.play();
+        const steps = 10;
+        for (let i = 0; i <= steps; i++) {
+          action.time = (clip.duration * i) / steps;
+          this.meguminMixer.update(0);
+          root.updateMatrixWorld(true);
+          const sz = new THREE.Box3().setFromObject(root).getSize(new THREE.Vector3());
+          peak = Math.max(peak, sz.x, sz.y, sz.z);
+        }
+        action.stop();
+      }
+      this.meguminMixer.stopAllAction();
     }
-    const s = spanM / measured;
-    root.scale.multiplyScalar(s);
+    if (!(peak > 1e-4)) {
+      const sz = new THREE.Box3().setFromObject(root).getSize(new THREE.Vector3());
+      peak = Math.max(sz.x, sz.y, sz.z, 1e-3);
+    }
+
+    let decade = unitDecadeFactor(peak, spanM);
+    if (peak / spanM > 40) decade = 0.01;
+    if (peak / spanM > 400) decade = 0.001;
+    const afterDecade = peak * decade;
+    const residual = spanM / Math.max(afterDecade, 1e-6);
+    const locked = decade * residual;
+    root.scale.setScalar(locked);
     lockUniformScale(root);
+    this.meguminLockedScale = root.scale.x;
     root.updateMatrixWorld(true);
     const final = new THREE.Box3().setFromObject(root).getSize(new THREE.Vector3());
     console.info(
-      `[cinema] megumin SI span≈${Math.max(final.x, final.y, final.z).toFixed(2)}m (target ${spanM}m decade=${decade})`,
+      `[cinema] megumin SI peak≈${peak.toFixed(2)} → span≈${Math.max(final.x, final.y, final.z).toFixed(2)}m ` +
+        `(target ${spanM}m decade=${decade} lockedScale=${this.meguminLockedScale.toFixed(5)})`,
     );
+  }
+
+  /** Re-apply SI lock (anim tracks must not change root uniform scale). */
+  private applyMeguminLockedScale(): void {
+    if (!this.meguminRoot) return;
+    const s = this.meguminLockedScale || 1;
+    this.meguminRoot.scale.setScalar(s);
   }
 
   /**
    * Play megumin explosion CLIP once, fast, then hide.
-   * Never leave the GLB as a static red blob / 100× planet on screen.
+   * Uses calibrated SI lock — never leave a 100× planet on screen.
    */
   private playMeguminExplosion(at: THREE.Vector3, spanM = CIN_MEGUMIN_SPAN_M, timeScale = 2.8): void {
     if (!this.meguminRoot) {
@@ -1295,7 +1380,12 @@ export class LeviathanOceanCinema {
       return;
     }
     this.meguminRoot.position.copy(at);
-    this.normalizeMeguminSi(this.meguminRoot, spanM);
+    // Re-calibrate if span override differs from last lock target
+    if (Math.abs(spanM - CIN_MEGUMIN_SPAN_M) > 0.5 || !(this.meguminLockedScale > 0)) {
+      this.calibrateMeguminSi(spanM);
+    } else {
+      this.applyMeguminLockedScale();
+    }
 
     if (!this.meguminMixer || !this.meguminClips.length) {
       this.meguminRoot.visible = false;
@@ -1305,8 +1395,13 @@ export class LeviathanOceanCinema {
 
     this.meguminRoot.visible = true;
     this.meguminMixer.stopAllAction();
+    // Prefer the main "Scene" / explosion clip — not every sub-clip at once
+    const preferred =
+      this.meguminClips.find((c) => /scene|explod|blast|megumin|action/i.test(c.name)) ??
+      this.meguminClips[0]!;
+    const playList = preferred ? [preferred] : this.meguminClips;
     let maxDur = 0.4;
-    for (const clip of this.meguminClips) {
+    for (const clip of playList) {
       const action = this.meguminMixer.clipAction(clip);
       action.reset();
       action.setLoop(THREE.LoopOnce, 1);
@@ -1317,6 +1412,7 @@ export class LeviathanOceanCinema {
       action.play();
       maxDur = Math.max(maxDur, clip.duration / Math.max(0.1, timeScale));
     }
+    this.applyMeguminLockedScale();
     this.meguminHideT = maxDur + 0.12;
     // Always pair with particle burst for energy
     this.spawnExplosionBurst(at);
@@ -1325,6 +1421,8 @@ export class LeviathanOceanCinema {
   private tickMegumin(dt: number): void {
     if (this.meguminMixer && this.meguminRoot?.visible) {
       this.meguminMixer.update(dt);
+      // Mixer may write node scales — root SI lock stays fixed every frame
+      this.applyMeguminLockedScale();
     }
     if (this.meguminHideT > 0) {
       this.meguminHideT -= dt;
@@ -1600,14 +1698,14 @@ export class LeviathanOceanCinema {
     if (prev !== idx && beat.shieldDefeat && !beat.shieldShatter && !this.shieldShattered) {
       this.shieldImpactFlash = 1;
     }
-    // meguminMark: play CLIP once (fast) â€” never park static GLB on deck
+    // meguminMark: play CLIP once (fast) — never park static GLB / 100× planet
     if (beat.meguminMark && prev !== idx) {
       const at = this.stage.worldPos('vfx_megumin_keel');
-      // Only full play on pinata; mark beats get a small fast flash if not already pinata'd
+      // Full pinata uses CIN_MEGUMIN_SPAN_M; early marks use a smaller SI flash
       if (this.pinataFired || beat.shipPinata) {
-        this.playMeguminExplosion(at, 11, 3.0);
+        this.playMeguminExplosion(at, CIN_MEGUMIN_SPAN_M, 3.0);
       } else {
-        this.playMeguminExplosion(at, 6, 3.5);
+        this.playMeguminExplosion(at, Math.max(4, CIN_MEGUMIN_SPAN_M * 0.55), 3.5);
       }
     }
 
@@ -4745,6 +4843,7 @@ export class LeviathanOceanCinema {
     this.meguminClips = [];
     this.meguminRoot = null;
     this.meguminHideT = 0;
+    this.meguminLockedScale = 1;
     this.fluidMixer?.stopAllAction();
     this.fluidMixer = null;
     this.dragonVfx?.dispose();

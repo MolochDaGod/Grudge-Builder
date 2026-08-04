@@ -29,8 +29,8 @@ export const CIN_RING_SPAN_M = 1.45;
 export const CIN_GLYPH_SPAN_M = 0.27;
 /** Mage plume projectile long-axis span (was 1.05 — too small at ship-cam) */
 export const CIN_PLUME_SPAN_M = 1.85;
-/** Megumin pinata blast diameter in metres (asset is classic 100× cm-as-m) */
-export const CIN_MEGUMIN_SPAN_M = 12;
+/** Megumin pinata blast diameter in metres (Sketchfab ~112 node scale — peak-calibrate to this) */
+export const CIN_MEGUMIN_SPAN_M = 8;
 /** Water cyclone height */
 export const CIN_TWISTER_H_M = 7.2;
 /** Ward wall glyph face span */

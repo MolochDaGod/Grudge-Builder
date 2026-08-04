@@ -113,12 +113,13 @@ function makeOcean(waterY: number, color: number): THREE.Mesh {
 function makeCaptureZoneMarker(): THREE.Group {
   const g = new THREE.Group();
   g.name = "CaptureZone";
+  // Soft ring + disc only — no wireframe cylinder (debug volume was shipping live)
   const ring = new THREE.Mesh(
     new THREE.RingGeometry(CAPTURE_ZONE.radiusM * 0.92, CAPTURE_ZONE.radiusM, 48),
     new THREE.MeshBasicMaterial({
       color: 0x22d3ee,
       transparent: true,
-      opacity: 0.55,
+      opacity: 0.45,
       side: THREE.DoubleSide,
       depthWrite: false,
     }),
@@ -130,7 +131,7 @@ function makeCaptureZoneMarker(): THREE.Group {
     new THREE.MeshBasicMaterial({
       color: 0x0891b2,
       transparent: true,
-      opacity: 0.12,
+      opacity: 0.1,
       side: THREE.DoubleSide,
       depthWrite: false,
     }),
@@ -138,30 +139,43 @@ function makeCaptureZoneMarker(): THREE.Group {
   disc.rotation.x = -Math.PI / 2;
   disc.position.y = 0.05;
   g.add(disc);
-  // vertical volume (wire) for conquerable height
-  const cyl = new THREE.Mesh(
-    new THREE.CylinderGeometry(
-      CAPTURE_ZONE.radiusM,
-      CAPTURE_ZONE.radiusM,
-      CAPTURE_ZONE.heightM,
-      24,
-      1,
-      true,
-    ),
-    new THREE.MeshBasicMaterial({
-      color: 0x67e8f9,
-      transparent: true,
-      opacity: 0.08,
-      side: THREE.DoubleSide,
-      depthWrite: false,
-      wireframe: true,
-    }),
-  );
-  cyl.position.y = CAPTURE_ZONE.heightM * 0.5;
-  g.add(cyl);
   g.userData.capture = true;
   g.userData.captureZoneId = CAPTURE_ZONE.id;
   return g;
+}
+
+/** Raycast ground Y for feet plant (island / cave top). Returns null if open water. */
+function sampleGroundY(
+  raycaster: THREE.Raycaster,
+  groundMeshes: THREE.Object3D[],
+  x: number,
+  z: number,
+  highY: number,
+): number | null {
+  if (!groundMeshes.length) return null;
+  raycaster.set(new THREE.Vector3(x, highY, z), new THREE.Vector3(0, -1, 0));
+  raycaster.far = highY + 80;
+  const hits = raycaster.intersectObjects(groundMeshes, true);
+  for (const h of hits) {
+    // Ignore capture rings / ocean / craft
+    const n = (h.object.name || "").toLowerCase();
+    if (/capture|ocean|craft|water|barca|raft|dinghy/.test(n)) continue;
+    if (h.object.userData?.capture) continue;
+    return h.point.y;
+  }
+  return null;
+}
+
+interface SeasideShark {
+  root: THREE.Group;
+  mixer: THREE.AnimationMixer | null;
+  /** Swim depth below free surface (m, positive) */
+  depthM: number;
+  angle: number;
+  radius: number;
+  center: THREE.Vector3;
+  speed: number;
+  yaw: number;
 }
 
 export default function HeroesSeasideCinemaScene({
@@ -278,6 +292,11 @@ export default function HeroesSeasideCinemaScene({
     const crewRoot = new THREE.Group();
     scene.add(crewRoot);
 
+    /** Meshes used for crew feet plant (cave + islands tops). */
+    const groundMeshes: THREE.Object3D[] = [];
+    /** Reef sharks pathfind under free surface only. */
+    const sharks: SeasideShark[] = [];
+
     const slotRuntimes: SlotRuntime[] = [0, 1, 2, 3].map((index) => ({
       index,
       heroId: null,
@@ -285,12 +304,12 @@ export default function HeroesSeasideCinemaScene({
       controller: null,
     }));
 
-    // Crew stand positions on cave shelf (relative to cave after fit)
+    // Crew stand XZ on cave / island shelf — Y resolved by ground raycast
     const crewOffsets: THREE.Vector3[] = [
-      new THREE.Vector3(-4, 0, 8),
-      new THREE.Vector3(-1.2, 0, 9),
-      new THREE.Vector3(1.5, 0, 8.5),
-      new THREE.Vector3(4, 0, 7.5),
+      new THREE.Vector3(-3.5, 0, 6),
+      new THREE.Vector3(-1.0, 0, 7),
+      new THREE.Vector3(1.5, 0, 6.5),
+      new THREE.Vector3(3.8, 0, 5.5),
     ];
 
     const clock = new THREE.Clock();
@@ -400,8 +419,10 @@ export default function HeroesSeasideCinemaScene({
         }
         extractedBoats.push(...caveSan.boats);
         fitGrounded(cave, 55);
+        // Plant cave bottom on water shelf so walkable tops sit above free surface
         cave.position.set(0, landmark.waterLevel + 0.2, 0);
         worldRoot.add(cave);
+        groundMeshes.push(cave);
       }
 
       setStatus("Loading sector islands…");
@@ -430,9 +451,10 @@ export default function HeroesSeasideCinemaScene({
         fitGrounded(islands, 90);
         islands.position.copy(islandCenter);
         worldRoot.add(islands);
+        groundMeshes.push(islands);
       }
 
-      // Capture zone under cave
+      // Capture zone under cave (soft ring only — no wireframe volume)
       const capture = makeCaptureZoneMarker();
       capture.position.set(
         CAPTURE_ZONE.localOffset[0],
@@ -449,13 +471,147 @@ export default function HeroesSeasideCinemaScene({
         spawnCrafts(barca, islandCenter.clone().setY(landmark.waterLevel));
       }
 
+      // Reef sharks — pathfind under water (never on land tops)
+      if (!disposed) {
+        await spawnUnderwaterSharks(islandCenter);
+      }
+
       // Establish look at cave + islands + craft
       camLookT.set(12, landmark.waterLevel + 4, 10);
       camPosT.set(36, landmark.waterLevel + 16, 48);
     }
 
+    /**
+     * Spawn 2 reef sharks that patrol under free surface.
+     * Depth is relative to landmark.waterLevel; land tops rejected via ground ray.
+     */
+    async function spawnUnderwaterSharks(islandCenter: THREE.Vector3) {
+      const urls = [
+        "https://assets.grudge-studio.com/models/creatures/predator/shark.glb",
+        "/models/creatures/predator/shark.glb",
+      ];
+      let sharkSrc: THREE.Group | null = null;
+      let sharkClips: THREE.AnimationClip[] = [];
+      for (const u of urls) {
+        try {
+          const loader = getSharedGltfLoader();
+          const gltf = await new Promise<any>((resolve, reject) => {
+            loader.load(u, resolve, undefined, reject);
+          });
+          sharkSrc = gltf.scene as THREE.Group;
+          sharkClips = gltf.animations?.slice() ?? [];
+          break;
+        } catch {
+          /* next */
+        }
+      }
+
+      const centers = [
+        new THREE.Vector3(18, 0, 22),
+        new THREE.Vector3(islandCenter.x - 20, 0, islandCenter.z + 14),
+      ];
+      for (let i = 0; i < centers.length; i++) {
+        const root = new THREE.Group();
+        root.name = `seaside_shark_${i}`;
+        if (sharkSrc) {
+          const body = sharkSrc.clone(true);
+          // SI: reef shark ~2.5–3.5 m long
+          body.updateMatrixWorld(true);
+          const box = new THREE.Box3().setFromObject(body);
+          const sz = box.getSize(new THREE.Vector3());
+          const long = Math.max(sz.x, sz.y, sz.z, 0.001);
+          body.scale.setScalar(3.0 / long);
+          root.add(body);
+        } else {
+          // Procedural stand-in if CDN miss
+          const geo = new THREE.ConeGeometry(0.35, 2.8, 6);
+          const mat = new THREE.MeshStandardMaterial({
+            color: 0x4a6a7a,
+            roughness: 0.55,
+            metalness: 0.2,
+          });
+          const mesh = new THREE.Mesh(geo, mat);
+          mesh.rotation.z = Math.PI / 2;
+          root.add(mesh);
+        }
+        let mixer: THREE.AnimationMixer | null = null;
+        if (sharkClips.length && root.children[0]) {
+          mixer = new THREE.AnimationMixer(root.children[0]);
+          const clip =
+            sharkClips.find((c) => /swim/i.test(c.name) && !/bite|fast/i.test(c.name)) ??
+            sharkClips[0]!;
+          const action = mixer.clipAction(clip);
+          action.setLoop(THREE.LoopRepeat, Infinity);
+          action.play();
+        }
+        const depthM = 3.5 + i * 1.2; // m under free surface
+        const sh: SeasideShark = {
+          root,
+          mixer,
+          depthM,
+          angle: (i / centers.length) * Math.PI * 2,
+          radius: 14 + i * 6,
+          center: centers[i]!.clone(),
+          speed: 0.35 + i * 0.08,
+          yaw: 0,
+        };
+        // Start under water
+        sh.root.position.set(
+          sh.center.x + Math.cos(sh.angle) * sh.radius,
+          landmark.waterLevel - sh.depthM,
+          sh.center.z + Math.sin(sh.angle) * sh.radius,
+        );
+        scene.add(sh.root);
+        sharks.push(sh);
+      }
+      console.info(
+        `[seaside cinema] sharks under water: ${sharks.length} · surfaceY=${landmark.waterLevel.toFixed(1)}`,
+      );
+    }
+
+    function tickSharks(dt: number) {
+      const wl = landmark.waterLevel;
+      for (const sh of sharks) {
+        sh.mixer?.update(dt);
+        sh.angle += sh.speed * dt;
+        let x = sh.center.x + Math.cos(sh.angle) * sh.radius;
+        let z = sh.center.z + Math.sin(sh.angle) * sh.radius;
+        // Pathfind away from land tops — if ground is near surface, push deeper orbit
+        const gy = sampleGroundY(raycaster, groundMeshes, x, z, wl + 40);
+        if (gy !== null && gy > wl - 1.5) {
+          // Over land shelf — widen orbit / reverse a bit
+          sh.angle += Math.PI * 0.35;
+          sh.radius = Math.min(42, sh.radius + 2);
+          x = sh.center.x + Math.cos(sh.angle) * sh.radius;
+          z = sh.center.z + Math.sin(sh.angle) * sh.radius;
+        }
+        // Keep under free surface (and above seabed if we hit land mesh deep)
+        let y = wl - sh.depthM;
+        if (gy !== null) {
+          // Stay in water column: between seabed+0.6 and surface-1.2
+          const maxY = wl - 1.2;
+          const minY = Math.min(maxY - 0.5, gy + 0.6);
+          y = THREE.MathUtils.clamp(y, minY, maxY);
+        } else {
+          y = Math.min(y, wl - 1.2);
+        }
+        const prev = sh.root.position;
+        const nx = x;
+        const nz = z;
+        const dx = nx - prev.x;
+        const dz = nz - prev.z;
+        if (dx * dx + dz * dz > 1e-6) {
+          sh.yaw = Math.atan2(dx, dz);
+        }
+        sh.root.position.set(nx, y, nz);
+        sh.root.rotation.y = sh.yaw;
+      }
+    }
+
     async function reloadHeroes(next: (Character | null)[]) {
       if (disposed) return;
+      // Ensure ground meshes have world matrices
+      worldRoot.updateMatrixWorld(true);
       for (let i = 0; i < 4; i++) {
         const rt = slotRuntimes[i]!;
         const hero = next[i] ?? null;
@@ -477,7 +633,45 @@ export default function HeroesSeasideCinemaScene({
           const g = new THREE.Group();
           g.add(crew.root);
           const off = crewOffsets[i]!;
-          g.position.set(off.x, landmark.waterLevel + 0.5 + off.y, off.z + 4);
+          let px = off.x;
+          let pz = off.z + 2;
+          // Plant feet on island / cave TOP via downward ray — not waterLevel float
+          let groundY = sampleGroundY(
+            raycaster,
+            groundMeshes,
+            px,
+            pz,
+            landmark.waterLevel + 80,
+          );
+          if (groundY === null || groundY < landmark.waterLevel - 0.25) {
+            // Search ring for dry top near preferred slot
+            outer: for (const r of [2, 4, 6, 9, 12]) {
+              for (let a = 0; a < 8; a++) {
+                const tx = off.x + Math.cos((a / 8) * Math.PI * 2) * r;
+                const tz = off.z + 2 + Math.sin((a / 8) * Math.PI * 2) * r;
+                const gy = sampleGroundY(
+                  raycaster,
+                  groundMeshes,
+                  tx,
+                  tz,
+                  landmark.waterLevel + 80,
+                );
+                if (gy !== null && gy >= landmark.waterLevel - 0.1) {
+                  groundY = gy;
+                  px = tx;
+                  pz = tz;
+                  break outer;
+                }
+              }
+            }
+          }
+          if (groundY === null) {
+            // Cave shelf fallback above free surface (never sit on water plane)
+            groundY =
+              sampleGroundY(raycaster, groundMeshes, 0, 4, landmark.waterLevel + 80) ??
+              landmark.waterLevel + 2.5;
+          }
+          g.position.set(px, Math.max(groundY, landmark.waterLevel + 0.8), pz);
           g.rotation.y = Math.PI * 0.15 * (i - 1.5);
           g.userData.slotIndex = i;
           g.userData.heroId = hero.id;
@@ -607,6 +801,9 @@ export default function HeroesSeasideCinemaScene({
       // Ocean slow undulation
       ocean.position.y = landmark.waterLevel + Math.sin(t * 0.4) * 0.15;
 
+      // Sharks pathfind under free surface
+      tickSharks(dt);
+
       // Small craft oar physics + animation
       for (const c of crafts) {
         const st = c.update(dt, c.isBoarded ? playerProxy : null);
@@ -676,6 +873,11 @@ export default function HeroesSeasideCinemaScene({
         window.removeEventListener("resize", onResize);
         crafts.forEach((c) => c.dispose());
         crafts.length = 0;
+        for (const sh of sharks) {
+          sh.mixer?.stopAllAction();
+          scene.remove(sh.root);
+        }
+        sharks.length = 0;
         slotRuntimes.forEach((rt) => rt.controller?.dispose());
         // Release GPU context so Chrome does not block this origin after OOM
         try {
