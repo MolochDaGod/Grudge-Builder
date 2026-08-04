@@ -13,15 +13,15 @@ export const LEVIATHAN_STAGE_VERSION = '17.0.0';
 
 /**
  * SI SSOT — 1 unit = 1 m.
- * Deck cast (orc mages) ~2.2 m · brig LOA 18 m · levi ~3× ship · plume readable at camera distance.
+ * Deck cast (orc mages) ~2.2 m · brig LOA 36 m (2× prior 18 m) · levi scales with ship.
  */
 export const CIN_HUMAN_M = 1.8;
 /** Cinema deck orc mage height (modular bake; slightly above human) */
 export const CIN_ORC_M = 2.2;
-/** Pirate ship LOA (~ medium brig) */
-export const CIN_SHIP_LOA_M = 18;
-/** Leviathan LOA — large threat; ~3× ship so silhouette reads on open water */
-export const CIN_LEVIATHAN_LOA_M = 54;
+/** Pirate ship LOA — 2× prior 18 m brig so deck + orcs read on camera */
+export const CIN_SHIP_LOA_M = 36;
+/** Leviathan LOA — large threat; ~2.5× ship so silhouette still dominates */
+export const CIN_LEVIATHAN_LOA_M = 90;
 export const CIN_HERO_THROW_M = 20;
 /** Clock-face ward ring diameter (~ chest shield) */
 export const CIN_RING_SPAN_M = 1.45;

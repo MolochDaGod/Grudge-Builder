@@ -2268,7 +2268,10 @@ export class LeviathanOceanCinema {
     }
   }
 
-  /** Yaw-only mage stance toward leviathan (+180° art fix so orcs face the threat). */
+  /**
+   * Yaw-only mage stance toward leviathan.
+   * Mesh already has art-forward π/2 — root yaw = atan2(dx,dz) − shipYaw (no extra +π).
+   */
   private faceMagesTowardLevi(dt: number): void {
     if (this.pinataFired || this.ragdollActive || !this.leviathanRoot.visible) return;
     const target = this.leviathanRoot.position;
@@ -2280,8 +2283,8 @@ export class LeviathanOceanCinema {
       const dx = target.x - wp.x;
       const dz = target.z - wp.z;
       if (dx * dx + dz * dz < 0.25) continue;
-      // +π: grudge6 mesh art-forward is π/2 on mesh; orcs were reading backs-to-levi
-      const worldYaw = Math.atan2(dx, dz) + Math.PI;
+      // Mesh π/2 maps art +Z → local +X; aim root so chest faces levi
+      const worldYaw = Math.atan2(dx, dz) - Math.PI / 2;
       const shipYaw = this.shipGroup.rotation.y;
       const localYaw = worldYaw - shipYaw;
       let dy = localYaw - root.rotation.y;
@@ -2373,38 +2376,19 @@ export class LeviathanOceanCinema {
       root.name = 'cinema_orc_mage_' + i;
       root.userData.cinemaRace = 'orc';
 
-      // spawnCinemaHuman orc already SI-fit ~CIN_ORC_M — lock, do not stretch again
+      // SI already done in spawnCinemaHuman — only parent + plant feet
       lockUniformScale(root);
       lockUniformScale(pack.mesh);
       root.visible = true;
       pack.mesh.visible = true;
-      const targetH = CIN_ORC_M;
 
-      // Parent under ship — rides bob/roll; +180° so orcs face outboard/threat (not backs)
+      // Parent under ship — rides bob/roll. NO +π (mesh already has art-forward π/2).
       this.shipGroup.add(root);
       root.position.set(sx, slotDeckY, sz);
-      root.rotation.set(0, (def?.yaw ?? 0) + Math.PI, 0);
+      root.rotation.set(0, def?.yaw ?? 0, 0);
       root.updateMatrixWorld(true);
-      {
-        const hb = new THREE.Box3().setFromObject(root);
-        const hh = hb.max.y - hb.min.y;
-        // Only correct if wildly wrong (ants <1m or giants >3m)
-        if (hh > 0.1 && (hh < 1.0 || hh > 3.0)) {
-          root.scale.multiplyScalar(targetH / hh);
-          lockUniformScale(root);
-          console.info(`[cinema] orc_mage_${i} rescue height ${hh.toFixed(2)}m → ${targetH}m`);
-        }
-      }
 
-      root.traverse((o) => {
-        const m = o as THREE.Mesh;
-        if (m.isMesh) {
-          m.castShadow = true;
-          m.receiveShadow = true;
-        }
-      });
-
-      // Feet on measured deck — Y only, no scale
+      // Feet on measured deck — Y only
       root.position.y = slotDeckY;
       root.updateMatrixWorld(true);
       {
@@ -2422,30 +2406,18 @@ export class LeviathanOceanCinema {
       const hBox = new THREE.Box3().setFromObject(root);
       const h = hBox.max.y - hBox.min.y;
       console.info(
-        '[cinema] orc_mage_' +
-          i +
-          ' ship-local (' +
-          sx.toFixed(2) +
-          ', ' +
-          slotDeckY.toFixed(2) +
-          ', ' +
-          sz.toFixed(2) +
-          ') h≈' +
-          h.toFixed(2) +
-          'm yaw=' +
-          (def?.yaw ?? 0).toFixed(2),
+        `[cinema] orc_mage_${i} ship-local (${sx.toFixed(2)}, ${slotDeckY.toFixed(2)}, ${sz.toFixed(2)}) ` +
+          `h≈${h.toFixed(2)}m yaw=${(def?.yaw ?? 0).toFixed(2)}`,
       );
 
-      // Anim: Bip001 baked magic pack is SSOT for ORC_Characters / WK kits.
-      // Only use embedded orcs_base clips when kit actually carries full-body actions.
-      const embedded = pickEmbeddedOrcCinemaClips(pack.clips || []);
-      const useEmbedded =
-        embedded.length >= 3 && (pack.clips?.length ?? 0) > 50; // real orcs_base, not empty CDN kit
-      const clips = useEmbedded ? embedded : this.mageClips.length ? this.mageClips : embedded;
+      // Bip001 magic pack is SSOT for ORC_Characters (same skeleton as WK)
+      const clips = this.mageClips.length
+        ? this.mageClips
+        : pickEmbeddedOrcCinemaClips(pack.clips || []);
       if (clips.length) {
         const dir = new CinemaAnimDirector(pack.mesh, clips);
-        const played = dir.play(['idle', 'stand', 'walk', 'cast', 'fight_idle'], {
-          fade: 0.15,
+        const played = dir.play(['idle', 'stand', 'fight_idle', 'walk', 'cast'], {
+          fade: 0.2,
           loop: THREE.LoopRepeat,
           restart: true,
         });
@@ -2454,24 +2426,19 @@ export class LeviathanOceanCinema {
             `[cinema] orc_${i} director play failed · clips=${clips.map((c) => c.name).join(',')}`,
           );
         } else {
-          console.info(
-            `[cinema] orc_${i} anim=${played.getClip().name} src=${useEmbedded ? 'embedded' : 'bip001'}`,
-          );
+          console.info(`[cinema] orc_${i} anim=${played.getClip().name} (bip001 magic pack)`);
         }
         this.mageDirectors.push(dir);
       } else {
         console.warn(
-          `[cinema] orc_${i} T-POSE risk — no clips (embedded=${pack.clips?.length ?? 0} external=${this.mageClips.length})`,
+          `[cinema] orc_${i} T-POSE risk — no clips (external=${this.mageClips.length} kit=${pack.clips?.length ?? 0})`,
         );
       }
       this.deckMages.push(root);
     }
 
     console.info(
-      '[cinema] deck cast ready x' +
-        this.deckMages.length +
-        ' · orc +180° · embedded clips · dirs=' +
-        this.mageDirectors.length,
+      `[cinema] deck cast ready x${this.deckMages.length} · orc SI+equip · bip001 · dirs=${this.mageDirectors.length}`,
     );
   }
 
