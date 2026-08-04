@@ -448,6 +448,16 @@ export class LeviathanOceanCinema {
     aura?: THREE.Mesh;
     kind: 'ship' | 'shield';
   }> = [];
+  /**
+   * Non-hero deck mages fleeing off camera-right (not hidden, not thrown).
+   * One orc stays as throwHero; these three run / fly out of frame.
+   */
+  private fleeingMages: Array<{
+    root: THREE.Object3D;
+    vel: THREE.Vector3;
+    life: number;
+    dirIdx: number;
+  }> = [];
   private explosionBurst: THREE.Points | null = null;
   private launchCamLocked = false;
   private shieldShattered = false;
@@ -2294,10 +2304,11 @@ export class LeviathanOceanCinema {
   /** Drive mage idle/cast/defend from beat actor rows (visible + anim). */
   private applyMageBeat(beat: CinBattleBeat, isNewBeat: boolean): void {
     const keys = ['mage_0', 'mage_1', 'mage_2', 'mage_3'] as const;
+    const fleeing = new Set(this.fleeingMages.map((f) => f.root));
     for (let i = 0; i < this.deckMages.length; i++) {
       const root = this.deckMages[i];
-      // Never hide the thrown hero — they leave the deck and stay visible in world
-      if (root === this.throwHero) {
+      // Thrown hero + screen-right flee keep world visibility after pinata
+      if (root === this.throwHero || fleeing.has(root)) {
         root.visible = true;
         continue;
       }
@@ -3284,18 +3295,108 @@ export class LeviathanOceanCinema {
   }
 
   /**
+   * Screen-right flee for the three non-hero orcs.
+   * Hero is thrown into water; these leave frame right of camera.
+   */
+  private sendMagesScreenRight(keep: THREE.Object3D | null): void {
+    // Camera right in world (column 0 of matrixWorld)
+    const camRight = new THREE.Vector3();
+    this.camera.updateMatrixWorld(true);
+    camRight.setFromMatrixColumn(this.camera.matrixWorld, 0).normalize();
+    // Slight forward so they don't clip the lens
+    const camFwd = new THREE.Vector3();
+    this.camera.getWorldDirection(camFwd);
+    camFwd.y = 0;
+    if (camFwd.lengthSq() > 1e-6) camFwd.normalize();
+    else camFwd.set(0, 0, -1);
+
+    let fleeIdx = 0;
+    for (let i = 0; i < this.deckMages.length; i++) {
+      const m = this.deckMages[i];
+      if (!m || m === keep || m === this.throwHero) continue;
+      if (fleeIdx >= 3) break;
+
+      m.updateMatrixWorld(true);
+      const wp = new THREE.Vector3();
+      const wq = new THREE.Quaternion();
+      m.getWorldPosition(wp);
+      m.getWorldQuaternion(wq);
+      if (m.parent) m.parent.remove(m);
+      this.scene.add(m);
+      m.position.copy(wp);
+      m.quaternion.copy(wq);
+      m.visible = true;
+
+      // Face flee direction + run
+      const faceYaw = Math.atan2(camRight.x, camRight.z);
+      m.rotation.set(0, faceYaw, 0);
+      const dir = this.mageDirectors[i];
+      dir?.play(['run', 'walk', 'walk2', 'idle'], {
+        fade: 0.12,
+        loop: THREE.LoopRepeat,
+        restart: true,
+      });
+
+      // Staggered exit speeds so they don't stack
+      const speed = 14 + fleeIdx * 3.5 + Math.random() * 4;
+      const vel = camRight
+        .clone()
+        .multiplyScalar(speed)
+        .addScaledVector(camFwd, 2 + fleeIdx)
+        .add(new THREE.Vector3(0, 1.2 + Math.random() * 1.5, 0));
+
+      this.fleeingMages.push({
+        root: m,
+        vel,
+        life: 3.8 + fleeIdx * 0.35,
+        dirIdx: i,
+      });
+      fleeIdx++;
+    }
+    console.info(`[cinema] mages flee screen-right ×${this.fleeingMages.length} (hero stays for throw)`);
+  }
+
+  private updateFleeingMages(dt: number): void {
+    for (let i = this.fleeingMages.length - 1; i >= 0; i--) {
+      const f = this.fleeingMages[i]!;
+      f.life -= dt;
+      // Gravity light + drag
+      f.vel.y -= 4.5 * dt;
+      f.vel.multiplyScalar(0.995);
+      f.root.position.addScaledVector(f.vel, dt);
+      // Face velocity on XZ
+      const vx = f.vel.x;
+      const vz = f.vel.z;
+      if (vx * vx + vz * vz > 0.04) {
+        f.root.rotation.y = Math.atan2(vx, vz);
+      }
+      // Bob slightly while "running"
+      f.root.position.y = Math.max(
+        0.15,
+        f.root.position.y + Math.sin(this.elapsed * 14 + i) * dt * 0.4,
+      );
+      this.mageDirectors[f.dirIdx]?.mixer.update(dt);
+
+      if (f.life <= 0) {
+        f.root.visible = false;
+        this.fleeingMages.splice(i, 1);
+      }
+    }
+  }
+
+  /**
    * Hull break / explosion beat.
+   * - 1 orc thrown (water ragdoll)
+   * - other 3 flee screen-right
+   * - tz_pirate: DETACH every mesh and explode outward (no clone ghost hull)
    */
   private fireShipPinata(): void {
     if (this.pinataFired) return;
     this.pinataFired = true;
 
-    // Throw ONE character clear of the blast before hiding the rest
+    // Throw ONE orc; send the other three off camera-right (not hide)
     this.beginHeroThrow();
-    for (const m of this.deckMages) {
-      if (m === this.throwHero) continue;
-      m.visible = false;
-    }
+    this.sendMagesScreenRight(this.throwHero);
 
     if (!this.shieldShattered) this.shatterShipShield();
     if (this.blizzard) {
@@ -3310,128 +3411,122 @@ export class LeviathanOceanCinema {
     const push = this.cacheBeamPushDir();
     this.blowbackT = Math.max(this.blowbackT, 2.4);
     this.multiCam.impact(1.8, 0.12);
-    this.playMeguminExplosion(origin, 12, 3.4);
+    this.playMeguminExplosion(origin, CIN_MEGUMIN_SPAN_M, 3.4);
     this.spawnExplosionBurst(origin);
 
-    // Split hulls: exclusive swap to sinking GLB (keep mesh, no scatter)
-    if (this.shipMultiState && this.shipHulls.sinking) {
-      this.setShipHullState('sinking', true);
-      this.shipSinkY = Math.max(this.shipSinkY, 1.6);
-      if (this.shipShield) this.shipShield.visible = false;
-      this.launchCamLocked = true;
-      console.info('[cinema] explosion → exclusive ship-03-sinking.glb');
-      return;
-    }
-
+    // Always mesh-chunk the live tz_pirate hull — multi-state swap is purged for explode
     const source = this.intactShip;
     if (source) {
       source.updateMatrixWorld(true);
       const pieces: THREE.Mesh[] = [];
       source.traverse((o) => {
         const m = o as THREE.Mesh;
-        if (!m.isMesh || !m.geometry || !m.visible) return;
-        // Skip pure water fill mats
+        if (!m.isMesh || !m.geometry) return;
+        if (/^camera$/i.test(m.name) || /cameranode|cam_target/i.test(m.name)) return;
         const mats = Array.isArray(m.material) ? m.material : m.material ? [m.material] : [];
         const names = mats.map((mat) => (mat.name || '').toLowerCase()).join(' ');
         if (/water[123]/.test(names)) return;
         m.geometry.computeBoundingSphere();
-        const r = (m.geometry.boundingSphere?.radius ?? 0) * Math.max(m.scale.x, m.scale.y, m.scale.z);
-        // Keep almost everything — only drop sub-cm dust so mass matches hull
-        if (r < 0.012) return;
+        const r =
+          (m.geometry.boundingSphere?.radius ?? 0) *
+          Math.max(Math.abs(m.scale.x), Math.abs(m.scale.y), Math.abs(m.scale.z), 1e-6);
+        // Drop only microscopic dust; keep planks, spars, sails
+        if (r < 0.008) return;
         pieces.push(m);
       });
 
-      // Soft cap for GPU: if huge, still keep density but skip duplicate-tiny bolts every N
-      const MAX_CHUNKS = 1400;
+      // Soft GPU cap — prefer large mass first
+      const MAX_CHUNKS = 1600;
       let deploy = pieces;
       if (pieces.length > MAX_CHUNKS) {
-        // Prefer larger pieces first, then fill with small bolts
         const scored = pieces.map((m) => {
           const r = m.geometry.boundingSphere?.radius ?? 0.1;
           return { m, r };
         });
         scored.sort((a, b) => b.r - a.r);
-        const big = scored.filter((s) => s.r >= 0.08).map((s) => s.m);
-        const small = scored.filter((s) => s.r < 0.08).map((s) => s.m);
-        const need = Math.max(0, MAX_CHUNKS - big.length);
-        const step = Math.max(1, Math.floor(small.length / Math.max(1, need)));
-        const pickedSmall: THREE.Mesh[] = [];
-        for (let i = 0; i < small.length && pickedSmall.length < need; i += step) {
-          pickedSmall.push(small[i]);
-        }
-        deploy = big.concat(pickedSmall).slice(0, MAX_CHUNKS);
+        deploy = scored.slice(0, MAX_CHUNKS).map((s) => s.m);
       }
 
       console.info(
-        `[cinema] ship pinata — ${deploy.length}/${pieces.length} hull chunks (full ship mass)`,
+        `[cinema] ship pinata DETACH — ${deploy.length}/${pieces.length} tz_pirate meshes explode outward`,
       );
 
       for (let i = 0; i < deploy.length; i++) {
-        const src = deploy[i];
-        const geo = src.geometry.clone();
-        let mat: THREE.Material;
+        const src = deploy[i]!;
+        // World-space detach of the REAL mesh (not a clone) — hull literally chunks
+        src.updateMatrixWorld(true);
+        this.scene.attach(src);
+        src.visible = true;
+        src.castShadow = false;
+        src.receiveShadow = false;
+        src.frustumCulled = false;
+        src.name = `pinata_${src.name || i}`;
+
+        // Burn materials in place (cloned mats so we don't poison shared)
         if (Array.isArray(src.material)) {
-          mat = this.applyBurnMaterial(src.material[0] as THREE.Material);
-        } else {
-          mat = this.applyBurnMaterial(src.material as THREE.Material);
+          src.material = src.material.map((mat) => this.applyBurnMaterial(mat));
+        } else if (src.material) {
+          src.material = this.applyBurnMaterial(src.material as THREE.Material);
         }
-        const mesh = new THREE.Mesh(geo, mat);
-        mesh.name = `pinata_${src.name || i}`;
-        mesh.castShadow = false;
-        mesh.receiveShadow = false;
-        src.getWorldPosition(mesh.position);
-        src.getWorldQuaternion(mesh.quaternion);
-        src.getWorldScale(mesh.scale);
-        // Keep near SI size so cloud fills original volume
-        mesh.scale.multiplyScalar(0.94 + Math.random() * 0.12);
 
-        const rWorld = (src.geometry.boundingSphere?.radius ?? 0.2) * Math.max(src.scale.x, src.scale.y, src.scale.z);
-        // Fire aura only on substantial timber (perf + read)
+        const rWorld =
+          (src.geometry.boundingSphere?.radius ?? 0.2) *
+          Math.max(
+            Math.abs(src.scale.x),
+            Math.abs(src.scale.y),
+            Math.abs(src.scale.z),
+            0.01,
+          );
         let aura: THREE.Mesh | undefined;
-        if (rWorld > 0.22) {
-          aura = this.attachFireAura(mesh, 0.28 + Math.min(1.6, rWorld * 0.12));
+        if (rWorld > 0.18) {
+          aura = this.attachFireAura(src, 0.22 + Math.min(1.8, rWorld * 0.1));
         }
 
-        this.scene.add(mesh);
-
-        const fromCenter = mesh.position.clone().sub(origin);
-        fromCenter.y *= 0.55;
-        if (fromCenter.lengthSq() < 0.01) {
-          fromCenter.set((Math.random() - 0.5) * 2, 0.5, (Math.random() - 0.5) * 2);
+        // Outward from ship origin (radial) + beam shove + lift
+        const fromCenter = src.position.clone().sub(origin);
+        fromCenter.y *= 0.65;
+        if (fromCenter.lengthSq() < 0.04) {
+          // Mesh near origin — give unique radial so they don't stack
+          const a = (i / Math.max(1, deploy.length)) * Math.PI * 2 + Math.random() * 0.4;
+          fromCenter.set(Math.cos(a), 0.4 + Math.random() * 0.5, Math.sin(a));
         }
         fromCenter.normalize();
 
-        // Dense cloud: slightly lower speeds so mass stays readable as "the ship"
-        const speed = 6 + Math.random() * 12;
-        const beamSpeed = 9 + Math.random() * 14;
+        // Stronger outward blast — pieces must read as exploded ship mass
+        const radial = 11 + Math.random() * 16;
+        const beamSpeed = 10 + Math.random() * 16;
+        const lift = 5 + Math.random() * 10;
         const vel = fromCenter
-          .multiplyScalar(speed)
+          .multiplyScalar(radial)
           .addScaledVector(push, beamSpeed)
-          .add(new THREE.Vector3(0, 3.5 + Math.random() * 7, 0));
+          .add(new THREE.Vector3(0, lift, 0));
 
-        if (rWorld > 2.5) vel.multiplyScalar(0.68);
-        else if (rWorld < 0.15) vel.multiplyScalar(1.25);
+        // Large spars slower; bolts fly farther
+        if (rWorld > 2.2) vel.multiplyScalar(0.72);
+        else if (rWorld < 0.12) vel.multiplyScalar(1.35);
 
         this.pinataPieces.push({
-          mesh,
+          mesh: src,
           vel,
           ang: new THREE.Vector3(
-            (Math.random() - 0.5) * 9,
-            (Math.random() - 0.5) * 11,
-            (Math.random() - 0.5) * 9,
+            (Math.random() - 0.5) * 12,
+            (Math.random() - 0.5) * 14,
+            (Math.random() - 0.5) * 12,
           ),
-          life: 4.2 + Math.random() * 2.8,
+          life: 5.0 + Math.random() * 3.5,
           aura,
           kind: 'ship',
         });
       }
 
-      // Hide intact hull — debris IS the ship now
+      // Empty skeleton left on shipGroup — hide root so nothing residual remains
       source.visible = false;
+      this.shipGroup.visible = false;
     }
 
     if (this.wreckShip) this.wreckShip.visible = false;
     if (this.shipShield) this.shipShield.visible = false;
+    this.intactShip = null;
     this.launchCamLocked = true;
   }
 
@@ -4549,7 +4644,8 @@ export class LeviathanOceanCinema {
     // Megumin mixer (must run every frame while visible)
     this.tickMegumin(dt);
 
-    // Shield shards + ship debris + explosion sim (shield can fly before hull pinata)
+    // Screen-right mage exit + shield/ship debris
+    if (this.fleeingMages.length) this.updateFleeingMages(dt);
     if (this.pinataPieces.length || this.explosionBurst) this.updatePinata(dt);
 
     // Leviathan: yaw boat, path + ALWAYS bottom 20% under waterline + waterline shader
@@ -4843,6 +4939,7 @@ export class LeviathanOceanCinema {
     for (const d of this.mageDirectors) d.dispose();
     this.mageDirectors = [];
     this.mageClips = [];
+    this.fleeingMages = [];
     for (const m of this.deckMages) {
       m.removeFromParent();
     }
