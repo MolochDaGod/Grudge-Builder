@@ -507,13 +507,24 @@ export const CIN_CAST_ASSETS = {
   ],
   /**
    * USER SSOT (v17): tz-pirate-ship only.
-   * Homework thirds / mono never read on camera (rope AABB / scrap). Damage/sinking =
-   * same mesh + material tint until a real multi-state pack exists.
+   * Same-origin first (when packaged), then R2 CDN. Damage/sinking = same mesh + tint.
    */
-  ship: ['/models/cinema/tz-pirate-ship.glb'],
-  shipIntact: ['/models/cinema/tz-pirate-ship.glb'],
-  shipDamaged: ['/models/cinema/tz-pirate-ship.glb'],
-  shipSinking: ['/models/cinema/tz-pirate-ship.glb'],
+  ship: [
+    '/models/cinema/tz-pirate-ship.glb',
+    'https://assets.grudge-studio.com/models/cinema/tz-pirate-ship.glb',
+  ],
+  shipIntact: [
+    '/models/cinema/tz-pirate-ship.glb',
+    'https://assets.grudge-studio.com/models/cinema/tz-pirate-ship.glb',
+  ],
+  shipDamaged: [
+    '/models/cinema/tz-pirate-ship.glb',
+    'https://assets.grudge-studio.com/models/cinema/tz-pirate-ship.glb',
+  ],
+  shipSinking: [
+    '/models/cinema/tz-pirate-ship.glb',
+    'https://assets.grudge-studio.com/models/cinema/tz-pirate-ship.glb',
+  ],
   /** pro4ik UTCM barrier — ship-wide ward (first beam hits this, then shatters) */
   wardShield: [
     '/models/cinema/ward-shield.glb',

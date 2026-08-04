@@ -2425,18 +2425,13 @@ export class LeviathanOceanCinema {
           (def?.yaw ?? 0).toFixed(2),
       );
 
-      // Anim: prefer EMBEDDED orcs_base clips (kit has 1000+ Bip001 actions).
-      // External JSON was often empty → T-pose. Mixer on pack.mesh (skinned graph).
+      // Anim: Bip001 baked magic pack is SSOT for ORC_Characters / WK kits.
+      // Only use embedded orcs_base clips when kit actually carries full-body actions.
       const embedded = pickEmbeddedOrcCinemaClips(pack.clips || []);
-      const clips = embedded.length ? embedded : this.mageClips;
+      const useEmbedded =
+        embedded.length >= 3 && (pack.clips?.length ?? 0) > 50; // real orcs_base, not empty CDN kit
+      const clips = useEmbedded ? embedded : this.mageClips.length ? this.mageClips : embedded;
       if (clips.length) {
-        // Find skinned mesh root for reliable bind
-        let skinnedRoot: THREE.Object3D = pack.mesh;
-        pack.mesh.traverse((o) => {
-          if ((o as THREE.SkinnedMesh).isSkinnedMesh && skinnedRoot === pack.mesh) {
-            skinnedRoot = pack.mesh; // keep full hierarchy root (bones are children)
-          }
-        });
         const dir = new CinemaAnimDirector(pack.mesh, clips);
         const played = dir.play(['idle', 'stand', 'walk', 'cast', 'fight_idle'], {
           fade: 0.15,
@@ -2444,13 +2439,19 @@ export class LeviathanOceanCinema {
           restart: true,
         });
         if (!played) {
-          console.warn(`[cinema] orc_${i} director play failed · clips=${clips.map((c) => c.name).join(',')}`);
+          console.warn(
+            `[cinema] orc_${i} director play failed · clips=${clips.map((c) => c.name).join(',')}`,
+          );
         } else {
-          console.info(`[cinema] orc_${i} anim=${played.getClip().name} tracks=${played.getClip().tracks.length}`);
+          console.info(
+            `[cinema] orc_${i} anim=${played.getClip().name} src=${useEmbedded ? 'embedded' : 'bip001'}`,
+          );
         }
         this.mageDirectors.push(dir);
       } else {
-        console.warn(`[cinema] orc_${i} T-POSE risk — no clips (embedded=${pack.clips?.length ?? 0} external=${this.mageClips.length})`);
+        console.warn(
+          `[cinema] orc_${i} T-POSE risk — no clips (embedded=${pack.clips?.length ?? 0} external=${this.mageClips.length})`,
+        );
       }
       this.deckMages.push(root);
     }
@@ -2871,6 +2872,7 @@ export class LeviathanOceanCinema {
       a ||
       (await loadFirst([
         '/models/cinema/tz-pirate-ship.glb',
+        'https://assets.grudge-studio.com/models/cinema/tz-pirate-ship.glb',
         ...CIN_CAST_ASSETS.shipIntact,
         ...CIN_CAST_ASSETS.ship,
       ]));
@@ -2887,8 +2889,14 @@ export class LeviathanOceanCinema {
     hull.scale.set(1, 1, 1);
     hull.position.set(0, 0, 0);
     hull.rotation.set(0, 0, 0);
+    // NEVER hide "Sketchfab_model" / sketchfab containers — that is the entire tz hull.
+    // Only suppress embedded camera helpers.
     hull.traverse((o) => {
-      if (/^camera$/i.test(o.name) || /sketchfab/i.test(o.name)) o.visible = false;
+      if (/^camera$/i.test(o.name) || /cameranode|cam_target/i.test(o.name)) {
+        o.visible = false;
+        return;
+      }
+      o.visible = true;
     });
 
     const meshN = forceShipReadableMaterials(hull);
@@ -2946,7 +2954,7 @@ export class LeviathanOceanCinema {
     );
   }
 
-  /** Keep real ship visible — never inject a box. */
+  /** Keep real ship visible — never inject a box; never hide Sketchfab root. */
   private ensureBoatVisible(): void {
     if (this.pinataFired) return;
     if (!this.shipGroup.parent) this.scene.add(this.shipGroup);
@@ -2960,15 +2968,28 @@ export class LeviathanOceanCinema {
       this.intactShip.visible = true;
       if (this.intactShip.parent !== this.shipGroup) this.shipGroup.add(this.intactShip);
       this.intactShip.traverse((o) => {
-        const m = o as THREE.Mesh;
-        if (!m.isMesh) return;
-        if (/^camera$/i.test(m.name)) {
-          m.visible = false;
+        // Only cameras stay off — Sketchfab_model must stay ON
+        if (/^camera$/i.test(o.name) || /cameranode|cam_target/i.test(o.name)) {
+          o.visible = false;
           return;
         }
-        m.visible = true;
-        m.frustumCulled = false;
+        o.visible = true;
+        const m = o as THREE.Mesh;
+        if (m.isMesh) m.frustumCulled = false;
       });
+      // If LOA collapsed to dust, re-fit once
+      this.intactShip.updateMatrixWorld(true);
+      const box = new THREE.Box3().setFromObject(this.intactShip);
+      const size = box.getSize(new THREE.Vector3());
+      const loa = Math.max(size.x, size.z, 1e-6);
+      if (loa < 4 || loa > 80) {
+        const s = CIN_SHIP_LOA_M / loa;
+        this.intactShip.scale.multiplyScalar(s);
+        lockUniformScale(this.intactShip);
+        console.warn(`[cinema] boat LOA rescue ×${s.toFixed(3)} (was ${loa.toFixed(2)}m)`);
+      }
+    } else {
+      console.warn('[cinema] ensureBoatVisible: no intactShip — boat missing');
     }
   }
 

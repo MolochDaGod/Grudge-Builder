@@ -200,21 +200,26 @@ async function getWkTemplate() {
   return _wkLoading;
 }
 
-/** Modular orcs_base.glb from local bake (proper meshing reference). */
+/**
+ * Production orc mage kit.
+ * orcs_base.glb is often missing on edge (404) — CDN ORC_Characters.glb is SSOT.
+ * Local bake is optional polish only.
+ */
 async function getOrcBakedTemplate() {
   if (_orcTemplate) return _orcTemplate;
   if (!_orcLoading) {
     _orcLoading = (async () => {
-      // Prefer same-origin bake (deployed under /models/grudge6/baked/).
-      // Fallback CDN race kit if bake missing on edge.
+      // CDN race kit FIRST (always on R2). Local bake second (gitignored, often absent).
       const candidates = [
+        resolveRaceCdnUrl('orc'),
+        'https://assets.grudge-studio.com/models/grudge6/races/ORC_Characters.glb',
         typeof window !== 'undefined'
           ? new URL(CINEMA_ORC_BAKED.glb, window.location.origin).href
           : CINEMA_ORC_BAKED.glb,
-        resolveRaceCdnUrl('orc'),
+        CINEMA_ORC_BAKED.glb,
       ];
       let tpl: Awaited<ReturnType<typeof loadCharacterModel>> | null = null;
-      let url = candidates[0];
+      let url = candidates[0]!;
       for (const cand of candidates) {
         try {
           console.info('[cinemaGrudge6] load modular orc', cand);
@@ -225,8 +230,8 @@ async function getOrcBakedTemplate() {
           console.warn('[cinemaGrudge6] orc load fail', cand, e);
         }
       }
-      if (!tpl) throw new Error('orc mage kit failed (bake + CDN)');
-      // Prefer local bake atlas first, then CDN race atlas
+      if (!tpl) throw new Error('orc mage kit failed (CDN ORC_Characters + bake)');
+      // Race atlas on CDN kit; local bake atlas only for orcs_base
       try {
         if (url.includes('orcs_base') || url.includes('/baked/')) {
           await applyLocalAtlasOrRace(tpl.scene, CINEMA_ORC_BAKED.atlas, 'orc');
@@ -236,8 +241,8 @@ async function getOrcBakedTemplate() {
       } catch (e) {
         console.warn('[cinemaGrudge6] orc atlas soft-fail', e);
       }
-      // Default mage loadout on template (clones inherit) — body A + staff
-      applyModularUnarmedVisibility(tpl.scene, CINEMA_ORC_BAKED.mageMeshes);
+      // Equip A body on template — use equipment manager names, not orcs_base-only strings
+      // when on ORC_Characters.glb (visibility via model3d path in spawnCinemaHuman)
       const meshNames: string[] = [];
       tpl.scene.traverse((o) => {
         if ((o as THREE.Mesh).isMesh && meshNames.length < 12) meshNames.push(o.name);
@@ -508,41 +513,30 @@ export async function spawnCinemaHuman(role: CinemaHumanRole): Promise<CinemaHum
     tpl.scene,
   ) as THREE.Object3D;
 
-  // Identity transforms on clone root
+  // ONLY root identity — NEVER zero bone/joint scales (that destroys skinned orcs)
   mesh.position.set(0, 0, 0);
   mesh.rotation.set(0, 0, 0);
   mesh.scale.set(1, 1, 1);
-  // Every node: uniform 1 — kills headwear stretch + non-uniform authoring
-  mesh.traverse((o) => {
-    o.scale.set(1, 1, 1);
-  });
 
   const model3d = defaultModel3d(raceId, {
     equippedMeshes: { body: 'A', arms: 'A', legs: 'A', head: 'A' },
-    weaponSlots: {},
+    // grudge6 weaponSlots are variant letter keys (A/B/…), not full mesh ids
+    weaponSlots: isOrc ? { staff: 'A' } : {},
     scale: 1,
   });
 
-  // Visibility equip ONLY — do NOT call setupGrudge6Equipment (scaleHeadMeshes 1.08 stretches skins)
+  // Visibility equip ONLY via grudge6 manager — do NOT zero hierarchy scales
   const em = new Grudge6EquipmentManager(race.prefix);
   em.catalog(mesh);
   applyModel3dToEquipment(em, model3d);
-  if (isOrc) {
-    applyModularUnarmedVisibility(mesh, CINEMA_ORC_BAKED.mageMeshes);
-  }
   ensureCharacterTextureColorSpace(mesh);
   try {
-    if (isOrc) {
-      await applyLocalAtlasOrRace(mesh, CINEMA_ORC_BAKED.atlas, 'orc');
-    } else {
-      await applyGrudge6RaceTextures(mesh, 'human');
-    }
+    await applyGrudge6RaceTextures(mesh, raceId);
   } catch (e) {
     console.warn('[cinemaGrudge6] race textures soft-fail', e);
   }
 
   // Night cinema: readable skin/cloth — never pure black stick silhouettes
-  // Re-assert modular visibility AFTER material pass (do not force all meshes visible on orc)
   mesh.traverse((o) => {
     const m = o as THREE.Mesh;
     if (!m.isMesh || !m.material) return;
@@ -579,19 +573,8 @@ export async function spawnCinemaHuman(role: CinemaHumanRole): Promise<CinemaHum
     }
     m.material = out.length === 1 ? out[0] : out;
   });
-  if (isOrc) {
-    applyModularUnarmedVisibility(mesh, CINEMA_ORC_BAKED.mageMeshes);
-  } else {
-    mesh.traverse((o) => {
-      const m = o as THREE.Mesh;
-      if (m.isMesh) m.visible = true;
-    });
-  }
 
-  // Re-assert identity after equip (equip must not leave non-uniform scale)
-  mesh.traverse((o) => {
-    o.scale.set(1, 1, 1);
-  });
+  // Keep equipment visibility — do not re-force all meshes on modular kits
   mesh.scale.set(1, 1, 1);
   mesh.updateMatrixWorld(true);
 
