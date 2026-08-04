@@ -382,9 +382,11 @@ export const LEVIATHAN_BATTLE_SCRIPT: readonly CinBattleBeat[] = [
       leviathan: {
         at: 'levi_cast',
         lookAt: 'ik_ship_deck_center',
-        ikWeight: 0.55,
-        anim: 'idle',
-        timeScale: 1,
+        ikWeight: 0.65,
+        // User SSOT: attack clip when cyclones start
+        anim: 'attack',
+        animRestart: true,
+        timeScale: 0.5,
         visible: true,
       },
       mage_0: { at: 'deck_mage_0', lookAt: 'ik_levi_mouth', ikWeight: 0.9, anim: 'defend' },
