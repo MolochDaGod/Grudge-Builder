@@ -264,7 +264,7 @@ async function getOrcBakedTemplate() {
   return _orcLoading;
 }
 
-/** Show only listed equip meshes (visibility). Keep scale 1 always. */
+/** Show only listed equip meshes (visibility only — never touch mesh/bone scales). */
 export function applyModularUnarmedVisibility(
   root: THREE.Object3D,
   wantNames: readonly string[],
@@ -273,8 +273,12 @@ export function applyModularUnarmedVisibility(
   root.traverse((n) => {
     const m = n as THREE.Mesh;
     if (!m.isMesh && !(m as THREE.SkinnedMesh).isSkinnedMesh) return;
-    m.scale.set(1, 1, 1);
     const nm = (m.name || '').toLowerCase();
+    // Always hide bag / lumber / quiver unless explicitly wanted
+    if (/bag|lumber|wood_|bone_wood|bone_bag|quiver/.test(nm) && !wantNames.some((w) => nm.includes(w.toLowerCase()))) {
+      m.visible = false;
+      return;
+    }
     if (want.has(nm)) {
       m.visible = true;
       return;
@@ -497,14 +501,14 @@ export function applyCinemaMageClips(
 }
 
 /**
- * Clone production race kit for cinema deck (same path as /heroes crew).
+ * Clone production race kit for cinema deck (SSOT: grudge-character-correctness).
  *
- *  - SkeletonUtils clone (keeps bind poses — never zero bone scales)
- *  - setupGrudge6Equipment visibility equip (body A + staff A for orc)
- *  - fitCharacterRootToHeightM + assertHeroSiHeight (proven SI)
- *  - Art-forward +Z once (π/2 yaw on mesh only)
+ *  - SkeletonUtils clone (bind poses intact — never zero bone scales)
+ *  - Equip = visibility only (no scaleHeadMeshes)
+ *  - fitCharacterRootToHeightM on root only (uniform SI)
+ *  - Art-forward +Z once (π/2) for grudge6 FBX kits
  *
- * role `'orc'` → CDN ORC_Characters.glb (orcs_base optional if present)
+ * role `'orc'` → CDN ORC_Characters.glb
  */
 export async function spawnCinemaHuman(role: CinemaHumanRole): Promise<CinemaHumanPack> {
   const isOrc = role === 'orc';
@@ -547,54 +551,21 @@ export async function spawnCinemaHuman(role: CinemaHumanRole): Promise<CinemaHum
   }
   ensureCharacterTextureColorSpace(mesh);
 
-  // Kill stretch: every Mesh/SkinnedMesh object scale back to uniform 1
-  // (bones keep authored bind scales — we only touch mesh nodes, not Bone).
-  mesh.traverse((o) => {
-    const isBone = (o as THREE.Bone).isBone;
-    if (isBone) return;
-    const m = o as THREE.Mesh;
-    if (m.isMesh || (m as THREE.SkinnedMesh).isSkinnedMesh) {
-      // Authoring non-uniform mesh scales → head/body stretch on deck
-      const sx = Math.abs(m.scale.x) || 1;
-      const sy = Math.abs(m.scale.y) || 1;
-      const sz = Math.abs(m.scale.z) || 1;
-      if (Math.abs(sx - sy) > 0.02 || Math.abs(sy - sz) > 0.02 || Math.abs(sx - 1) > 0.05) {
-        m.scale.setScalar(1);
-      }
-    }
-  });
-
-  // Night readability — lift emissive only; do NOT replace materials / destroy maps
+  // SSOT thin path (grudge-character-correctness):
+  //  - equip = visibility only (done above)
+  //  - NO per-mesh scale.set (destroys skinned bind proportions)
+  //  - uniform root height fit once
+  //  - art-forward +Z once (π/2 for grudge6 FBX kits)
+  //  - plant feet from skinned body min.y
   mesh.traverse((o) => {
     const m = o as THREE.Mesh;
     if (!m.isMesh || !m.material) return;
     m.castShadow = true;
     m.receiveShadow = true;
     m.frustumCulled = false;
-    const list = Array.isArray(m.material) ? m.material : [m.material];
-    for (const mat of list) {
-      const std = mat as THREE.MeshStandardMaterial;
-      if (!std) continue;
-      if ('transparent' in std) {
-        std.transparent = false;
-        std.opacity = 1;
-      }
-      if ('emissive' in std) {
-        if (!std.emissive) std.emissive = new THREE.Color(0x000000);
-        if (std.emissive.r + std.emissive.g + std.emissive.b < 0.05) {
-          std.emissive.setHex(isOrc ? 0x152010 : 0x1a1410);
-        }
-        std.emissiveIntensity = Math.max(std.emissiveIntensity ?? 0, 0.22);
-      }
-      if ('color' in std && std.color && std.color.r + std.color.g + std.color.b < 0.06) {
-        if (!std.map) std.color.setHex(isOrc ? 0x4a6a3a : 0x8a7060);
-      }
-      std.needsUpdate = true;
-    }
   });
 
-  // SI yardstick: race.scale already baked into kit proportions — do NOT multiply again
-  // (raceMult 1.15 × CIN_ORC_M 2.2 → 2.53m + head scale = stretched giants).
+  // SI yardstick on ROOT only — never raceMult double-fit, never mesh node scales
   fitCharacterRootToHeightM(mesh, 1, targetH);
   assertHeroSiHeight(mesh, {
     raceScaleMult: 1,
@@ -603,7 +574,7 @@ export async function spawnCinemaHuman(role: CinemaHumanRole): Promise<CinemaHum
   });
   lockUniformScale(mesh);
 
-  // grudge6 art-forward: FBX +X → +Z once (π/2). Never also +π on parent.
+  // grudge6 art-forward: FBX +X → +Z once. Never also +π on parent.
   mesh.rotation.set(0, Math.PI / 2, 0);
   mesh.updateMatrixWorld(true);
   {
@@ -622,16 +593,14 @@ export async function spawnCinemaHuman(role: CinemaHumanRole): Promise<CinemaHum
   root.updateMatrixWorld(true);
 
   let finalH = measureCharacterWorldHeight(root) || measureObjectWorldHeight(root);
-  // Clamp to human/orc band only — never force-fit with residual that re-stretches
-  if (finalH > 2.6 || finalH < 1.35) {
-    if (finalH > 1e-4) {
-      root.scale.multiplyScalar(targetH / finalH);
-      lockUniformScale(root);
-      root.updateMatrixWorld(true);
-      const b2 = new THREE.Box3().setFromObject(root);
-      if (Number.isFinite(b2.min.y)) mesh.position.y -= b2.min.y;
-      finalH = measureCharacterWorldHeight(root) || measureObjectWorldHeight(root);
-    }
+  // Rescue only if wildly out of SI band (uniform root scale only)
+  if ((finalH > 2.8 || finalH < 1.2) && finalH > 1e-4) {
+    root.scale.multiplyScalar(targetH / finalH);
+    lockUniformScale(root);
+    root.updateMatrixWorld(true);
+    const b2 = new THREE.Box3().setFromObject(root);
+    if (Number.isFinite(b2.min.y)) mesh.position.y -= b2.min.y;
+    finalH = measureCharacterWorldHeight(root) || measureObjectWorldHeight(root);
   }
 
   // Count visible body meshes — if zero, equip failed and orc is "fucked"
