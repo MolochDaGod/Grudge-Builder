@@ -41,6 +41,7 @@ import {
   spawnCinemaHuman,
   lockUniformScale,
   loadCinemaMageBip001Clips,
+  pickEmbeddedOrcCinemaClips,
 } from './cinemaGrudge6';
 import { CinemaStageGraph } from './CinemaStageGraph';
 import { CinemaSpineIkRoster } from './CinemaSpineIk';
@@ -232,48 +233,9 @@ async function loadFirstWithClips(
 }
 
 /**
- * Always-readable brig (MeshBasic so night/ocean lights cannot hide it).
- * Used as the real boat when GLB materials fail / go black.
+ * Night-readable ship materials — keep textures, lift emissive so hull is not black.
+ * Does NOT replace the mesh with a box / placeholder.
  */
-function makeProceduralShip(): THREE.Group {
-  const g = new THREE.Group();
-  g.name = 'procedural_pirate_brig';
-  // BasicMaterial = always lit — no more invisible black Standard mats on night ocean
-  const wood = new THREE.MeshBasicMaterial({ color: 0xb8895a });
-  const dark = new THREE.MeshBasicMaterial({ color: 0x5c3a22 });
-  const sail = new THREE.MeshBasicMaterial({ color: 0xf0e6d4, side: THREE.DoubleSide });
-  const hull = new THREE.Mesh(new THREE.BoxGeometry(5.4, 2.6, 17.5), wood);
-  hull.position.y = 1.4;
-  hull.name = 'hull';
-  const bow = new THREE.Mesh(new THREE.BoxGeometry(4.4, 2.0, 3.8), wood);
-  bow.position.set(0, 1.55, 8.4);
-  bow.rotation.x = -0.12;
-  bow.name = 'bow';
-  const deck = new THREE.Mesh(new THREE.BoxGeometry(4.8, 0.22, 15.5), dark);
-  deck.position.y = 2.65;
-  deck.name = 'deck';
-  const mast = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.18, 10, 8), dark);
-  mast.position.set(0, 7.0, 0.5);
-  mast.name = 'mast';
-  const mainSail = new THREE.Mesh(new THREE.PlaneGeometry(5.0, 6.0), sail);
-  mainSail.position.set(0, 6.2, 0.7);
-  mainSail.name = 'sail';
-  const rail = new THREE.Mesh(new THREE.BoxGeometry(5.0, 0.45, 14), dark);
-  rail.position.y = 2.9;
-  g.add(hull, bow, deck, mast, mainSail, rail);
-  g.traverse((o) => {
-    const m = o as THREE.Mesh;
-    if (m.isMesh) {
-      m.frustumCulled = false;
-      m.castShadow = true;
-      m.receiveShadow = true;
-      m.visible = true;
-    }
-  });
-  return g;
-}
-
-/** Force every mesh on a ship GLB to night-readable materials (keeps maps when present). */
 function forceShipReadableMaterials(root: THREE.Object3D): number {
   let n = 0;
   root.traverse((o) => {
@@ -284,26 +246,38 @@ function forceShipReadableMaterials(root: THREE.Object3D): number {
     m.frustumCulled = false;
     m.castShadow = true;
     m.receiveShadow = true;
-    m.scale.set(1, 1, 1);
-    const prev = Array.isArray(m.material) ? m.material[0] : m.material;
-    const map = (prev as THREE.MeshStandardMaterial)?.map ?? null;
-    const mat = new THREE.MeshStandardMaterial({
-      color: map ? 0xcccccc : 0xb8895a,
-      map: map ?? undefined,
-      roughness: 0.78,
-      metalness: 0.04,
-      emissive: new THREE.Color(0x4a3018),
-      emissiveIntensity: 0.65,
-      side: THREE.DoubleSide,
-      transparent: false,
-      opacity: 1,
-      depthWrite: true,
-    });
-    if (map) {
-      map.colorSpace = THREE.SRGBColorSpace;
-      mat.map = map;
+    const list = Array.isArray(m.material) ? m.material : m.material ? [m.material] : [];
+    const out: THREE.Material[] = [];
+    for (const mat of list) {
+      let std = mat as THREE.MeshStandardMaterial;
+      if (!std?.isMeshStandardMaterial && !(std as THREE.MeshPhysicalMaterial)?.isMeshPhysicalMaterial) {
+        const next = new THREE.MeshStandardMaterial({
+          color: 0xb8895a,
+          roughness: 0.82,
+          metalness: 0.05,
+          name: mat?.name || 'ship_wood',
+        });
+        const map = (mat as THREE.MeshBasicMaterial)?.map;
+        if (map) next.map = map;
+        std = next;
+      } else {
+        std = mat.clone() as THREE.MeshStandardMaterial;
+      }
+      std.transparent = false;
+      std.opacity = 1;
+      std.depthWrite = true;
+      std.side = THREE.DoubleSide;
+      if (std.color && std.color.r + std.color.g + std.color.b < 0.15 && !std.map) {
+        std.color.setHex(0xb8895a);
+      }
+      if (!std.emissive) std.emissive = new THREE.Color(0x000000);
+      std.emissive.setHex(0x3a2814);
+      std.emissiveIntensity = Math.max(std.emissiveIntensity ?? 0, 0.45);
+      if (std.map) std.map.colorSpace = THREE.SRGBColorSpace;
+      std.needsUpdate = true;
+      out.push(std);
     }
-    m.material = mat;
+    m.material = out.length === 1 ? out[0] : out;
   });
   return n;
 }
@@ -1072,7 +1046,7 @@ export class LeviathanOceanCinema {
     ]);
 
     console.info(
-      `[cinema v19] ready · BOAT procedural+silhouette IN SCENE · levi attack@cyclones · swim-then-idle · stage=${LEVIATHAN_STAGE_VERSION}`,
+      `[cinema v20] ready · TZ-PIRATE only LOA${CIN_SHIP_LOA_M}m · orc embedded Bip001 anim · no placeholders · stage=${LEVIATHAN_STAGE_VERSION}`,
     );
 
     this.ready = true;
@@ -2353,15 +2327,32 @@ export class LeviathanOceanCinema {
           (def?.yaw ?? 0).toFixed(2),
       );
 
-      // Bip001 director on skinned skeleton — walk first (deck life), cast on combat beats
-      if (this.mageClips.length) {
-        const dir = new CinemaAnimDirector(pack.mesh, this.mageClips);
-        // Prefer walk if present so skeleton clearly moves; cast later from beats
-        dir.play(['walk', 'walk2', 'run', 'idle', 'stand', 'fight_idle'], {
-          fade: 0.2,
-          loop: THREE.LoopRepeat,
+      // Anim: prefer EMBEDDED orcs_base clips (kit has 1000+ Bip001 actions).
+      // External JSON was often empty → T-pose. Mixer on pack.mesh (skinned graph).
+      const embedded = pickEmbeddedOrcCinemaClips(pack.clips || []);
+      const clips = embedded.length ? embedded : this.mageClips;
+      if (clips.length) {
+        // Find skinned mesh root for reliable bind
+        let skinnedRoot: THREE.Object3D = pack.mesh;
+        pack.mesh.traverse((o) => {
+          if ((o as THREE.SkinnedMesh).isSkinnedMesh && skinnedRoot === pack.mesh) {
+            skinnedRoot = pack.mesh; // keep full hierarchy root (bones are children)
+          }
         });
+        const dir = new CinemaAnimDirector(pack.mesh, clips);
+        const played = dir.play(['idle', 'stand', 'walk', 'cast', 'fight_idle'], {
+          fade: 0.15,
+          loop: THREE.LoopRepeat,
+          restart: true,
+        });
+        if (!played) {
+          console.warn(`[cinema] orc_${i} director play failed · clips=${clips.map((c) => c.name).join(',')}`);
+        } else {
+          console.info(`[cinema] orc_${i} anim=${played.getClip().name} tracks=${played.getClip().tracks.length}`);
+        }
         this.mageDirectors.push(dir);
+      } else {
+        console.warn(`[cinema] orc_${i} T-POSE risk — no clips (embedded=${pack.clips?.length ?? 0} external=${this.mageClips.length})`);
       }
       this.deckMages.push(root);
     }
@@ -2369,7 +2360,7 @@ export class LeviathanOceanCinema {
     console.info(
       '[cinema] deck cast ready x' +
         this.deckMages.length +
-        ' · orc mages +180° · Bip001 walk/cast · dirs=' +
+        ' · orc +180° · embedded clips · dirs=' +
         this.mageDirectors.length,
     );
   }
@@ -2770,78 +2761,64 @@ export class LeviathanOceanCinema {
   }
 
   /**
-   * Boat SSOT: procedural brig ALWAYS mounts (guaranteed visible wood).
-   * tz-pirate GLB overlays if it has real meshes + forced materials.
-   * Yellow debug bar removed — that was the only thing users saw.
+   * REAL ship only: tz-pirate-ship.glb at CIN_SHIP_LOA_M (18 m).
+   * No procedural box, no yellow bar, no silhouette brick.
    */
   private async mountSplitShipHulls(
     a: THREE.Object3D | null,
     _b: THREE.Object3D | null,
     _c: THREE.Object3D | null,
   ): Promise<void> {
-    const plantHull = (hull: THREE.Object3D, name: string): THREE.Object3D => {
-      hull.name = name;
-      hull.visible = true;
-      hull.scale.set(1, 1, 1);
-      hull.position.set(0, 0, 0);
-      hull.rotation.set(0, 0, 0);
-      const meshN = forceShipReadableMaterials(hull);
-      // Fit LOA on longest horizontal axis first, else max
-      hull.updateMatrixWorld(true);
-      let box = new THREE.Box3().setFromObject(hull);
-      let size = box.getSize(new THREE.Vector3());
-      let span = Math.max(size.x, size.z, 0.01);
-      if (span < 0.5) span = Math.max(size.x, size.y, size.z, 0.01);
-      hull.scale.setScalar(CIN_SHIP_LOA_M / span);
-      lockUniformScale(hull);
-      hull.updateMatrixWorld(true);
-      box = new THREE.Box3().setFromObject(hull);
-      hull.position.x -= (box.min.x + box.max.x) * 0.5;
-      hull.position.z -= (box.min.z + box.max.z) * 0.5;
-      hull.position.y -= box.min.y;
-      hull.updateMatrixWorld(true);
-      box = new THREE.Box3().setFromObject(hull);
-      hull.position.y -= box.min.y;
-      hull.updateMatrixWorld(true);
-      const final = new THREE.Box3().setFromObject(hull).getSize(new THREE.Vector3());
-      console.info(
-        `[cinema] plantHull ${name} meshes=${meshN} SI ${final.x.toFixed(1)}×${final.y.toFixed(1)}×${final.z.toFixed(1)}m`,
-      );
-      return hull;
-    };
-
-    // 1) Guaranteed procedural boat (MeshBasic — always visible at night)
-    const procedural = plantHull(makeProceduralShip(), 'boat_procedural_brig');
-
-    // 2) Prefer tz-pirate if it actually has mesh mass
-    let glb: THREE.Object3D | null = a;
-    if (!glb) {
-      glb = await loadFirst([
+    let hull =
+      a ||
+      (await loadFirst([
         '/models/cinema/tz-pirate-ship.glb',
         ...CIN_CAST_ASSETS.shipIntact,
-      ]);
-    }
-    let useGlb: THREE.Object3D | null = null;
-    if (glb) {
-      let meshN = 0;
-      glb.traverse((o) => {
-        if ((o as THREE.Mesh).isMesh) meshN++;
-      });
-      if (meshN >= 3) {
-        useGlb = plantHull(glb, 'tz_pirate_ship');
-      } else {
-        console.warn(`[cinema] tz-pirate only ${meshN} meshes — keep procedural`);
-      }
-    } else {
-      console.warn('[cinema] tz-pirate failed to load — procedural boat only');
+        ...CIN_CAST_ASSETS.ship,
+      ]));
+
+    if (!hull) {
+      console.error('[cinema] FATAL: tz-pirate-ship.glb failed to load');
+      this.intactShip = null;
+      this.shipHulls = { intact: null, damaged: null, sinking: null };
+      return;
     }
 
-    // ALWAYS keep procedural hull in the scene (MeshBasic = always visible).
-    // GLB is optional decoration on top — never the only mesh.
-    this.shipHulls = { intact: procedural, damaged: null, sinking: null };
+    hull.name = 'tz_pirate_ship';
+    hull.visible = true;
+    hull.scale.set(1, 1, 1);
+    hull.position.set(0, 0, 0);
+    hull.rotation.set(0, 0, 0);
+    hull.traverse((o) => {
+      if (/^camera$/i.test(o.name) || /sketchfab/i.test(o.name)) o.visible = false;
+    });
+
+    const meshN = forceShipReadableMaterials(hull);
+    // LOA = longest horizontal (xz), NOT height — ship is taller than long in bind pose
+    hull.updateMatrixWorld(true);
+    let box = new THREE.Box3().setFromObject(hull);
+    let size = box.getSize(new THREE.Vector3());
+    const loaRaw = Math.max(size.x, size.z, 1e-3);
+    const s = CIN_SHIP_LOA_M / loaRaw;
+    hull.scale.setScalar(s);
+    lockUniformScale(hull);
+    hull.updateMatrixWorld(true);
+    box = new THREE.Box3().setFromObject(hull);
+    hull.position.x -= (box.min.x + box.max.x) * 0.5;
+    hull.position.z -= (box.min.z + box.max.z) * 0.5;
+    hull.position.y -= box.min.y;
+    hull.updateMatrixWorld(true);
+    box = new THREE.Box3().setFromObject(hull);
+    hull.position.y -= box.min.y;
+    hull.updateMatrixWorld(true);
+
+    const final = new THREE.Box3().setFromObject(hull).getSize(new THREE.Vector3());
+    const loa = Math.max(final.x, final.z);
+
+    this.shipHulls = { intact: hull, damaged: null, sinking: null };
     this.shipMultiState = false;
     this.shipHullState = 'intact';
-    this.intactShip = procedural;
+    this.intactShip = hull;
     this.wreckShip = null;
 
     this.shipGroup.visible = true;
@@ -2851,89 +2828,50 @@ export class LeviathanOceanCinema {
     while (this.shipGroup.children.length) {
       this.shipGroup.remove(this.shipGroup.children[0]);
     }
-
-    procedural.visible = true;
-    this.shipGroup.add(procedural);
-    if (useGlb) {
-      useGlb.visible = true;
-      // Slight lift so deck matches procedural for mage feet
-      this.shipGroup.add(useGlb);
-      // Prefer GLB for deck measurement if present
-      this.intactShip = useGlb;
-      this.shipHulls.intact = useGlb;
+    // Strip any leftover trash from prior builds
+    for (const trash of ['boat_debug_loa', 'boat_silhouette_brig', 'keel_failsafe', 'boat_procedural_brig', 'emergency_procedural_boat']) {
+      const t = this.shipGroup.getObjectByName(trash);
+      if (t) this.shipGroup.remove(t);
     }
 
-    // Extra solid silhouette under everything — impossible to miss
-    const silhouette = new THREE.Mesh(
-      new THREE.BoxGeometry(5.5, 2.8, 18),
-      new THREE.MeshBasicMaterial({ color: 0xa67c52 }),
-    );
-    silhouette.name = 'boat_silhouette_brig';
-    silhouette.position.y = 1.4;
-    silhouette.frustumCulled = false;
-    silhouette.renderOrder = 1;
-    this.shipGroup.add(silhouette);
+    this.shipGroup.add(hull);
+    hull.visible = true;
+    if (!this.shipGroup.parent) this.scene.add(this.shipGroup);
 
-    if (!this.scene.children.includes(this.shipGroup)) {
-      this.scene.add(this.shipGroup);
-    }
-
-    const sun = new THREE.DirectionalLight(0xfff0d0, 1.8);
-    sun.position.set(8, 20, 12);
-    this.shipGroup.add(sun);
-    const fill = new THREE.PointLight(0xffcc88, 5.0, 70, 1.5);
-    fill.position.set(0, 7, 0);
+    const fill = new THREE.PointLight(0xffe0b0, 3.5, 55, 2);
+    fill.position.set(0, 6.5, 1);
     this.shipGroup.add(fill);
 
-    const sz = new THREE.Box3().setFromObject(this.shipGroup).getSize(new THREE.Vector3());
     console.info(
-      `[cinema] BOAT IN SCENE · procedural+${useGlb ? 'glb' : 'no-glb'}+silhouette · ` +
-        `${sz.x.toFixed(1)}×${sz.y.toFixed(1)}×${sz.z.toFixed(1)}m · children=${this.shipGroup.children.length} · inScene=${!!this.shipGroup.parent}`,
+      `[cinema] TZ-PIRATE ONLY · meshes=${meshN} LOA=${loa.toFixed(1)}m (target ${CIN_SHIP_LOA_M}) · ` +
+        `${final.x.toFixed(1)}×${final.y.toFixed(1)}×${final.z.toFixed(1)}m · no placeholders`,
     );
   }
 
-  /** Call every frame until pinata — boat must stay visible and in the scene graph. */
+  /** Keep real ship visible — never inject a box. */
   private ensureBoatVisible(): void {
     if (this.pinataFired) return;
     if (!this.shipGroup.parent) this.scene.add(this.shipGroup);
     this.shipGroup.visible = true;
     this.shipGroup.scale.set(1, 1, 1);
-    // Kill old yellow debug bar
-    const dbg = this.shipGroup.getObjectByName('boat_debug_loa');
-    if (dbg) this.shipGroup.remove(dbg);
-
-    let hasHull = false;
-    this.shipGroup.traverse((o) => {
-      const m = o as THREE.Mesh;
-      if (!m.isMesh) return;
-      if (/boat_|brig|hull|silhouette|tz_pirate|procedural|keel|mast|deck|bow|sail/i.test(m.name) || m.parent === this.intactShip) {
-        hasHull = true;
-      }
-      if (/^camera$/i.test(m.name)) {
-        m.visible = false;
-        return;
-      }
-      m.visible = true;
-      m.frustumCulled = false;
-    });
-
-    if (!hasHull || this.shipGroup.children.length < 1) {
-      const p = makeProceduralShip();
-      p.name = 'emergency_procedural_boat';
-      forceShipReadableMaterials(p);
-      const box = new THREE.Box3().setFromObject(p);
-      const size = box.getSize(new THREE.Vector3());
-      const span = Math.max(size.x, size.z, 1);
-      p.scale.setScalar(CIN_SHIP_LOA_M / span);
-      p.updateMatrixWorld(true);
-      const b2 = new THREE.Box3().setFromObject(p);
-      p.position.y -= b2.min.y;
-      p.visible = true;
-      this.shipGroup.add(p);
-      this.intactShip = p;
-      console.warn('[cinema] emergency procedural boat injected');
+    for (const trash of ['boat_debug_loa', 'boat_silhouette_brig', 'keel_failsafe', 'boat_procedural_brig', 'emergency_procedural_boat']) {
+      const t = this.shipGroup.getObjectByName(trash);
+      if (t) this.shipGroup.remove(t);
     }
-    if (this.intactShip) this.intactShip.visible = true;
+    if (this.intactShip) {
+      this.intactShip.visible = true;
+      if (this.intactShip.parent !== this.shipGroup) this.shipGroup.add(this.intactShip);
+      this.intactShip.traverse((o) => {
+        const m = o as THREE.Mesh;
+        if (!m.isMesh) return;
+        if (/^camera$/i.test(m.name)) {
+          m.visible = false;
+          return;
+        }
+        m.visible = true;
+        m.frustumCulled = false;
+      });
+    }
   }
 
   private hullFor(state: 'intact' | 'damaged' | 'sinking'): THREE.Object3D | null {

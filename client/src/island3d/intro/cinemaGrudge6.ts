@@ -340,20 +340,86 @@ async function applyLocalAtlasOrRace(
  *   idle  → magic/standing idle
  *   cast  → dual_wield/attack2 (simple arm cast loop; 2H magic GLBs 404 on CDN)
  */
+/**
+ * Pick idle / walk / cast / attack from orcs_base embedded clips (hundreds of Bip001 actions).
+ * Prefer main body tracks (name ends with _Bip001, not Toe).
+ */
+export function pickEmbeddedOrcCinemaClips(all: THREE.AnimationClip[]): THREE.AnimationClip[] {
+  if (!all?.length) return [];
+  const main = all.filter((c) => {
+    const n = c.name || '';
+    // Skip toe-only splinters; keep full body or unnamed full clips
+    if (/toe0|toe_0|finger/i.test(n) && !/Bip001$/i.test(n)) return false;
+    return c.tracks.length >= 8;
+  });
+  const pool = main.length ? main : all;
+
+  const pick = (re: RegExp, prefer: RegExp[] = []): THREE.AnimationClip | null => {
+    const hits = pool.filter((c) => re.test(c.name || ''));
+    if (!hits.length) return null;
+    for (const p of prefer) {
+      const h = hits.find((c) => p.test(c.name || ''));
+      if (h) return h;
+    }
+    // Prefer shorter idle loops; longer for attacks
+    return hits.sort((a, b) => a.tracks.length - b.tracks.length)[0] ?? null;
+  };
+
+  const out: THREE.AnimationClip[] = [];
+  const addAs = (src: THREE.AnimationClip | null, ...names: string[]) => {
+    if (!src) return;
+    for (const name of names) {
+      const c = src.clone();
+      c.name = name;
+      out.push(c);
+    }
+  };
+
+  // Prefer locomotion/idle/combat style names from baked kit
+  addAs(
+    pick(/idle|stand|breath|wait/i, [/idle/i, /stand/i]) || pool[0] || null,
+    'idle',
+    'stand',
+    'brace',
+    'fight_idle',
+    'defend',
+    'block',
+  );
+  addAs(
+    pick(/walk|run|locomotion|move/i, [/walk/i, /run/i]),
+    'walk',
+    'walk2',
+    'run',
+  );
+  addAs(
+    pick(/cast|magic|spell|channel/i, [/cast/i, /magic/i]) ||
+      pick(/attack|combat|strike|slash/i, [/attack/i, /combat/i]),
+    'cast',
+    '2h_cast',
+    'cast2',
+    'cast3',
+    'attack',
+  );
+
+  console.info(
+    `[cinemaGrudge6] embedded orc clips → cinema aliases: ${out.map((c) => c.name).join(', ')} ` +
+      `(from ${all.length} kit actions)`,
+  );
+  return out;
+}
+
 export async function loadCinemaMageBip001Clips(): Promise<THREE.AnimationClip[]> {
-  // Walk + cast for deck orcs (Bip001 rotation packs). Skeleton stays on kit.
+  // SSOT magic pack paths (open.grudge-studio.com /anims/baked)
   const specs: { name: string; rel: string }[] = [
     { name: 'idle', rel: 'magic/standing idle' },
-    { name: 'walk', rel: 'unarmed/walking' },
-    { name: 'walk2', rel: 'unarmed/walk' },
-    { name: 'cast', rel: 'magic/casting' },
-    { name: 'cast2', rel: 'dual_wield/attack2' },
-    { name: 'cast3', rel: 'unarmed/punching' },
-    { name: 'fight_idle', rel: 'unarmed/fight_idle' },
+    { name: 'walk', rel: 'magic/Standing Walk Forward' },
+    { name: 'run', rel: 'magic/Standing Run Forward' },
+    { name: 'cast', rel: 'dual_wield/attack2' },
+    { name: 'cast2', rel: 'unarmed/punching' },
+    { name: 'fight_idle', rel: 'magic/standing idle' },
   ];
   const out: THREE.AnimationClip[] = [];
   for (const s of specs) {
-    // Try Open hosts first (bip001ClipUrls), then assets CDN
     const urls = [
       ...bip001ClipUrls(s.rel),
       `https://assets.grudge-studio.com/anims/baked/${s.rel
@@ -372,54 +438,29 @@ export async function loadCinemaMageBip001Clips(): Promise<THREE.AnimationClip[]
     }
     const c = clip.clone();
     c.name = s.name;
-    // Aliases for fuzzy director find
     out.push(c);
-    if (s.name === 'cast' || s.name === 'cast2' || s.name === 'cast3') {
-      if (s.name === 'cast') {
+    if (s.name === 'cast') {
+      for (const alias of ['2h_cast', 'attack', 'cast2', 'cast3']) {
         const a = c.clone();
-        a.name = '2h_cast';
+        a.name = alias;
         out.push(a);
-        const b = c.clone();
-        b.name = 'attack';
-        out.push(b);
       }
     }
-    if (s.name === 'walk' || s.name === 'walk2') {
-      const a = c.clone();
-      a.name = 'walk';
-      out.push(a);
-      const b = c.clone();
-      b.name = 'run';
-      out.push(b);
-    }
     if (s.name === 'idle') {
-      const a = c.clone();
-      a.name = 'stand';
-      out.push(a);
-      const brace = c.clone();
-      brace.name = 'brace';
-      out.push(brace);
+      for (const alias of ['stand', 'brace', 'defend', 'block', 'fight_idle']) {
+        const a = c.clone();
+        a.name = alias;
+        out.push(a);
+      }
     }
-    if (s.name === 'fight_idle') {
-      const d = c.clone();
-      d.name = 'defend';
-      out.push(d);
-      const block = c.clone();
-      block.name = 'block';
-      out.push(block);
+    if (s.name === 'walk') {
+      const a = c.clone();
+      a.name = 'walk2';
+      out.push(a);
     }
     console.info(
       `[cinemaGrudge6] Bip001 clip ok name=${c.name} tracks=${c.tracks.length} dur=${c.duration.toFixed(2)}s`,
     );
-  }
-  // Fallback aliases if fight_idle missing: map defend → cast / idle
-  if (!out.some((c) => c.name === 'defend')) {
-    const src = out.find((c) => c.name === 'cast') ?? out.find((c) => c.name === 'idle');
-    if (src) {
-      const d = src.clone();
-      d.name = 'defend';
-      out.push(d);
-    }
   }
   return out;
 }
