@@ -820,6 +820,15 @@ function Island3DPlayPage() {
       )}
 
       <div className={`flex-1 relative ${!showUiChrome && !showOptionsChrome ? 'h-screen' : ''}`}>
+        {/*
+          Defer Island3D WebGL until cinema gate ends — dual WebGL contexts
+          (cinema + Island3D) caused context-lost and null precision crashes.
+        */}
+        {showStormIntro ? (
+          <div className="absolute inset-0 bg-[#04080f] flex items-center justify-center text-slate-600 text-xs tracking-widest uppercase">
+            Cinema gate · island engine waits
+          </div>
+        ) : (
         <Island3DRenderer
           seed={seed}
           mode={mode}
@@ -885,6 +894,7 @@ function Island3DPlayPage() {
             }
           }}
         />
+        )}
 
         {mode === 'procedural' && (
           <div className="absolute bottom-4 left-4 z-20 bg-black/75 backdrop-blur-md border border-emerald-700/40 rounded-2xl px-4 py-3.5 text-xs text-slate-300 space-y-1.5 pointer-events-none max-w-sm shadow-2xl shadow-emerald-950/40">

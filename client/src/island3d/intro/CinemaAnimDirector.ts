@@ -82,6 +82,68 @@ export class CinemaAnimDirector {
     return action;
   }
 
+  /**
+   * Get or create a mixer action for the first matching clip (levi multi-clip blend).
+   * Does not auto-play — caller sets weight / loop / play.
+   */
+  getOrCreateAction(hint: string | string[]): THREE.AnimationAction | null {
+    const hints = Array.isArray(hint) ? hint : [hint];
+    const clip = this.findClip(...hints);
+    if (!clip) return null;
+    let action = this.actions.get(clip.name);
+    if (!action) {
+      action = this.mixer.clipAction(clip);
+      this.actions.set(clip.name, action);
+    }
+    return action;
+  }
+
+  /**
+   * Set effective weight on all actions matching any hint (fuzzy name includes).
+   * Used by LeviathanAnimController to zero non-active families before blend.
+   */
+  setActionWeight(hint: string | string[], weight: number): void {
+    const hints = (Array.isArray(hint) ? hint : [hint]).map((h) => h.toLowerCase());
+    for (const [name, action] of this.actions) {
+      const n = name.toLowerCase();
+      if (hints.some((h) => n.includes(h) || n === h)) {
+        action.setEffectiveWeight(weight);
+        if (weight <= 1e-4) {
+          action.enabled = false;
+        }
+      }
+    }
+    // Also ensure matching clips that were never played exist as zero-weight (no-op if missing)
+    for (const h of hints) {
+      const clip = this.findClip(h);
+      if (!clip) continue;
+      if (!this.actions.has(clip.name)) continue;
+    }
+  }
+
+  /** TimeScale for matching actions (swim/idle pace). */
+  setActionTimeScale(hint: string | string[], scale: number): void {
+    const hints = (Array.isArray(hint) ? hint : [hint]).map((h) => h.toLowerCase());
+    for (const [name, action] of this.actions) {
+      const n = name.toLowerCase();
+      if (hints.some((h) => n.includes(h) || n === h)) {
+        action.setEffectiveTimeScale(scale);
+      }
+    }
+    // Also update current if it matches
+    if (this.current) {
+      const n = this.current.toLowerCase();
+      if (hints.some((h) => n.includes(h) || n === h)) {
+        this.timeScale = scale;
+      }
+    }
+  }
+
+  /** Levi controller tracks which clip is "primary" without calling play(). */
+  setCurrentName(name: string | null): void {
+    this.current = name;
+  }
+
   setTimeScale(scale: number): void {
     this.timeScale = scale;
     if (this.current) {
