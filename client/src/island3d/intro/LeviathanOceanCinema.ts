@@ -23,6 +23,7 @@ import {
   CIN_ORC_M,
   CIN_ISLAND_OFFSET,
   CIN_ISLAND_SPAN_M,
+  CIN_DECK_WALK,
   LEVIATHAN_STAGE_ID,
   LEVIATHAN_STAGE_VERSION,
   cinPos,
@@ -409,6 +410,8 @@ export class LeviathanOceanCinema {
   private meguminLockedScale = 1;
   /** Ship deck height (ship-local) — shield / mage feet / VFX */
   private deckY = 2.2;
+  /** Cached hull meshes for deck raycast pathfinding (rebuilt on plant) */
+  private deckRayMeshes: THREE.Mesh[] = [];
   /**
    * 4 grudge6 Bip001 mages parented to shipGroup (ride bob/roll).
    * Feet planted at local y=0 · root.y = deckY. No AnimationMixer yet.
@@ -988,6 +991,7 @@ export class LeviathanOceanCinema {
       );
     }
 
+    this.rebuildDeckRayMeshes();
     this.deckY = this.measureDeckY(this.intactShip ?? this.shipGroup);
     {
       const active = this.intactShip;
@@ -995,12 +999,12 @@ export class LeviathanOceanCinema {
         const sb = new THREE.Box3().setFromObject(active);
         const ss = sb.getSize(new THREE.Vector3());
         console.info(
-          `[cinema] ship SI after LOA-xz fit ≈ ${ss.x.toFixed(1)}×${ss.y.toFixed(1)}×${ss.z.toFixed(1)}m (LOA target ${CIN_SHIP_LOA_M}m) deckY=${this.deckY.toFixed(2)}`,
+          `[cinema] ship SI after LOA-xz fit ≈ ${ss.x.toFixed(1)}×${ss.y.toFixed(1)}×${ss.z.toFixed(1)}m (LOA target ${CIN_SHIP_LOA_M}m) deckY=${this.deckY.toFixed(2)} rayMeshes=${this.deckRayMeshes.length}`,
         );
       }
     }
 
-    // Leviathan â€” LOA 28 m, wet leathery sea-serpent look, yaw-only face boat
+    // Leviathan — CIN_LEVIATHAN_LOA_M (90 m), wet leathery sea-serpent, yaw-only face boat
     this.leviathan = leviPack?.root ?? makeProceduralLeviathan();
     fitPropSpanM(this.leviathan, CIN_LEVIATHAN_LOA_M, 'max');
     this.prepareLeviathanMaterials(this.leviathan);
@@ -1086,7 +1090,7 @@ export class LeviathanOceanCinema {
     ]);
 
     console.info(
-      `[cinema v20] ready · TZ-PIRATE only LOA${CIN_SHIP_LOA_M}m · orc embedded Bip001 anim · no placeholders · stage=${LEVIATHAN_STAGE_VERSION}`,
+      `[cinema v22] ready · TZ-PIRATE LOA${CIN_SHIP_LOA_M}m · levi ${CIN_LEVIATHAN_LOA_M}m · orc ${CIN_ORC_M}m · deck pathfind · stage=${LEVIATHAN_STAGE_VERSION}`,
     );
 
     this.ready = true;
@@ -2388,13 +2392,20 @@ export class LeviathanOceanCinema {
   }
 
   /**
-   * Per-frame individual mage anim: idle → walk (side step) → cast → idle.
-   * Different castOffset / period / clip variant per mage (DECK_MAGE_SPECS).
+   * Per-frame individual mage anim: idle → walk (XZ deck path) → cast → idle.
+   * Pathfinding: clamp to CIN_DECK_WALK + raycast Y at each step so feet stay on deck.
    */
   private tickMageCycles(dt: number, beat: CinBattleBeat): void {
     if (this.pinataFired || this.ragdollActive) return;
     const keys = ['mage_0', 'mage_1', 'mage_2', 'mage_3'] as const;
     const fleeing = new Set(this.fleeingMages.map((f) => f.root));
+    // Intro chaos: mages pace even before wards (storm tension walk)
+    const tensionWalk =
+      !!beat.skyLightning ||
+      (beat.storm ?? 0) >= 0.4 ||
+      beat.id === 'establish' ||
+      beat.id === 'approach' ||
+      beat.id === 'shadow';
 
     for (let i = 0; i < this.deckMages.length; i++) {
       const root = this.deckMages[i];
@@ -2416,10 +2427,9 @@ export class LeviathanOceanCinema {
       if (def) {
         cy.baseX = def.position.x;
         cy.baseZ = def.position.z;
-        cy.deckY = this.measureDeckYAtShipLocal(cy.baseX, cy.baseZ);
       }
 
-      if (!wantCast) {
+      if (!wantCast && !tensionWalk) {
         // Soft idle (unique seek already applied at plant)
         if (cy.phase !== 'idle') {
           cy.phase = 'idle';
@@ -2433,15 +2443,13 @@ export class LeviathanOceanCinema {
         } else {
           dir.setTimeScale(cy.spec.idleScale);
         }
-        root.position.set(cy.baseX, cy.deckY, cy.baseZ);
-        this.relockMageFeetOnDeck(root, cy.deckY);
+        this.placeMageOnDeckPath(root, cy.baseX, cy.baseZ, cy);
         continue;
       }
 
-      // Casting cycle with individuality
+      // Casting / tension cycle with individuality
       cy.cycleT += dt;
       if (cy.cycleT < 0) {
-        // Still in castOffset wait
         if (cy.phase !== 'idle') {
           cy.phase = 'idle';
           dir.play(['idle', 'stand', 'fight_idle'], {
@@ -2451,17 +2459,16 @@ export class LeviathanOceanCinema {
             restart: true,
           });
         }
-        root.position.set(cy.baseX, cy.deckY, cy.baseZ);
-        this.relockMageFeetOnDeck(root, cy.deckY);
+        this.placeMageOnDeckPath(root, cy.baseX, cy.baseZ, cy);
         continue;
       }
 
       const t = cy.cycleT % cy.spec.period;
       const walkEnd = cy.spec.walkDur;
-      const castEnd = walkEnd + cy.spec.castDur;
+      const castEnd = walkEnd + (wantCast ? cy.spec.castDur : 0.05);
       let next: 'idle' | 'walk' | 'cast' = 'idle';
       if (t < walkEnd) next = 'walk';
-      else if (t < castEnd) next = 'cast';
+      else if (wantCast && t < castEnd) next = 'cast';
 
       if (next !== cy.phase) {
         cy.phase = next;
@@ -2470,7 +2477,7 @@ export class LeviathanOceanCinema {
           dir.play(['walk', 'walk2', 'run', 'idle'], {
             fade: 0.22,
             loop: THREE.LoopRepeat,
-            timeScale: cy.spec.timeScale,
+            timeScale: cy.spec.timeScale * (tensionWalk && !wantCast ? 0.85 : 1),
             restart: true,
           });
         } else if (next === 'cast') {
@@ -2481,7 +2488,6 @@ export class LeviathanOceanCinema {
               : v === 1
                 ? ['cast2', '2h_magic_attack_2', '2h_cast', 'attack', 'cast']
                 : ['cast3', '2h_magic_attack_3', '2h_magic_attack_fallback', 'attack', 'cast'];
-          // One-shot cast → hold pose → idle phase of cycle blends back
           dir.play(castHints, {
             fade: 0.2,
             loop: THREE.LoopOnce,
@@ -2501,7 +2507,6 @@ export class LeviathanOceanCinema {
           dir.seekTime(i * 0.37);
         }
       } else if (cy.phase === 'cast') {
-        // Ensure we return to idle when one-shot finishes before period slice ends
         cy.castT += dt;
         const dur = dir.getClipDuration() || cy.spec.castDur;
         if (cy.castT >= dur * 0.92 && dir.getActionProgress() >= 0.9) {
@@ -2514,16 +2519,35 @@ export class LeviathanOceanCinema {
         }
       }
 
-      // Walk: short side-step on deck; cast/idle: slot center
+      // Walk: XZ pathfind on deck envelope; cast/idle: slot center
       if (cy.phase === 'walk' && walkEnd > 1e-4) {
         const u = t / walkEnd;
-        const step = Math.sin(u * Math.PI) * cy.spec.walkAmp;
-        root.position.set(cy.baseX + step, cy.deckY, cy.baseZ);
+        const ease = Math.sin(u * Math.PI);
+        const lx = cy.baseX + ease * cy.spec.walkAmp;
+        const lz = cy.baseZ + ease * cy.spec.walkAmpZ;
+        this.placeMageOnDeckPath(root, lx, lz, cy);
       } else {
-        root.position.set(cy.baseX, cy.deckY, cy.baseZ);
+        this.placeMageOnDeckPath(root, cy.baseX, cy.baseZ, cy);
       }
-      this.relockMageFeetOnDeck(root, cy.deckY);
     }
+  }
+
+  /**
+   * Clamp ship-local XZ to walkable deck envelope, raycast Y, plant feet.
+   * This is the cinema "pathfinding on boat" SSOT (no full navmesh bake needed).
+   */
+  private placeMageOnDeckPath(
+    root: THREE.Object3D,
+    lx: number,
+    lz: number,
+    cy: { deckY: number },
+  ): void {
+    const x = THREE.MathUtils.clamp(lx, CIN_DECK_WALK.xMin, CIN_DECK_WALK.xMax);
+    const z = THREE.MathUtils.clamp(lz, CIN_DECK_WALK.zMin, CIN_DECK_WALK.zMax);
+    const y = this.measureDeckYAtShipLocal(x, z);
+    cy.deckY = y;
+    root.position.set(x, y, z);
+    this.relockMageFeetOnDeck(root, y);
   }
 
 
@@ -2665,8 +2689,9 @@ export class LeviathanOceanCinema {
       });
     }
 
+    this.rebuildDeckRayMeshes();
     console.info(
-      `[cinema] deck cast ready x${this.deckMages.length} · staggered cycles · bip001 · dirs=${this.mageDirectors.length}`,
+      `[cinema] deck cast ready x${this.deckMages.length} · XZ pathfind · bip001 · dirs=${this.mageDirectors.length} · deckY≈${this.deckY.toFixed(2)}`,
     );
   }
 
@@ -2690,31 +2715,54 @@ export class LeviathanOceanCinema {
     lockUniformScale(root);
   }
 
+  /** Rebuild deck raycast mesh list after hull plant / SI fit. */
+  private rebuildDeckRayMeshes(): void {
+    this.deckRayMeshes = [];
+    const ship = this.intactShip ?? this.shipGroup;
+    if (!ship) return;
+    ship.traverse((o) => {
+      const m = o as THREE.Mesh;
+      if (m.isMesh && m.geometry && m.visible) this.deckRayMeshes.push(m);
+    });
+  }
+
   /**
-   * Raycast deck top under a ship-local XZ (same meshes as measureDeckY).
-   * Returns shipGroup-local Y for mage feet.
+   * Raycast deck top under a ship-local XZ (pathfinding feet Y).
+   * Samples center then ring offsets so walk steps near rail still hit deck.
    */
   private measureDeckYAtShipLocal(lx: number, lz: number): number {
     if (!this.intactShip) return this.deckY;
     this.shipGroup.updateMatrixWorld(true);
-    const meshes: THREE.Mesh[] = [];
-    this.intactShip.traverse((o) => {
-      const m = o as THREE.Mesh;
-      if (m.isMesh && m.geometry) meshes.push(m);
-    });
+    if (!this.deckRayMeshes.length) this.rebuildDeckRayMeshes();
+    const meshes = this.deckRayMeshes;
     if (!meshes.length) return this.deckY;
 
-    const origin = this.shipGroup.localToWorld(new THREE.Vector3(lx, 40, lz));
-    const ray = new THREE.Raycaster(origin, new THREE.Vector3(0, -1, 0));
-    const hits = ray.intersectObjects(meshes, false);
     const worldBox = new THREE.Box3().setFromObject(this.intactShip);
     const hullH = Math.max(0.5, worldBox.max.y - worldBox.min.y);
-    const yTopCap = worldBox.min.y + hullH * 0.55;
-
-    for (const h of hits) {
-      if (h.point.y <= yTopCap && h.point.y >= worldBox.min.y + 0.4) {
-        const local = this.shipGroup.worldToLocal(h.point.clone());
-        return THREE.MathUtils.clamp(local.y, 0.9, 5.5);
+    const yTopCap = worldBox.min.y + hullH * 0.58;
+    const yFloor = worldBox.min.y + 0.35;
+    const ray = new THREE.Raycaster();
+    const down = new THREE.Vector3(0, -1, 0);
+    const origin = new THREE.Vector3();
+    // Pathfinding: try exact foot XZ then small neighborhood (rail / hatch misses)
+    const samples: [number, number][] = [
+      [lx, lz],
+      [lx + 0.35, lz],
+      [lx - 0.35, lz],
+      [lx, lz + 0.4],
+      [lx, lz - 0.4],
+      [lx + 0.25, lz + 0.25],
+      [lx - 0.25, lz - 0.25],
+    ];
+    for (const [sx, sz] of samples) {
+      origin.copy(this.shipGroup.localToWorld(new THREE.Vector3(sx, 40, sz)));
+      ray.set(origin, down);
+      const hits = ray.intersectObjects(meshes, false);
+      for (const h of hits) {
+        if (h.point.y <= yTopCap && h.point.y >= yFloor) {
+          const local = this.shipGroup.worldToLocal(h.point.clone());
+          return THREE.MathUtils.clamp(local.y, 0.9, 5.5);
+        }
       }
     }
     return this.deckY;
@@ -3069,7 +3117,7 @@ export class LeviathanOceanCinema {
   }
 
   /**
-   * REAL ship only: tz-pirate-ship.glb at CIN_SHIP_LOA_M (18 m).
+   * REAL ship only: tz-pirate-ship.glb at CIN_SHIP_LOA_M (36 m SI).
    * No procedural box, no yellow bar, no silhouette brick.
    */
   private async mountSplitShipHulls(
@@ -4868,9 +4916,22 @@ export class LeviathanOceanCinema {
         this.waterMat.uniforms.uWaveHeight.value = baseH * (twistersUp ? 1.5 : 1);
       }
     }
-    this.flash *= Math.exp(-dt * 5);
-    if (this.stormCur > 0.55 && Math.random() < dt * 0.3 * this.stormCur) {
-      this.flash = 0.5;
+    // Dynamic chaos: lightning from early storm (intro tension) → heavy under breach
+    this.flash *= Math.exp(-dt * 4.2);
+    {
+      const s = this.stormCur;
+      const wantSky = !!beat.skyLightning;
+      // Rate scales with storm; skyLightning flag spikes intro chaos
+      const rate =
+        (wantSky ? 1.35 : 1) *
+        (s > 0.75 ? 0.95 : s > 0.55 ? 0.55 : s > 0.35 ? 0.38 : s > 0.22 ? 0.18 : 0);
+      if (s > 0.22 && Math.random() < dt * rate * Math.max(s, 0.3)) {
+        this.flash = 0.42 + Math.random() * 0.48 + (wantSky ? 0.12 : 0);
+      }
+      // Occasional double-flash (production storm chaos)
+      if (this.flash > 0.55 && Math.random() < dt * 2.5) {
+        this.flash = Math.min(1.15, this.flash + 0.25);
+      }
     }
     this.dirLight.intensity = 0.72 + this.flash * 2.4 + this.stormCur * 0.08;
     // Storm key: slightly cyan-cool moonlight vs warm noon
@@ -5052,9 +5113,17 @@ export class LeviathanOceanCinema {
     // Movie camera (sole owner) — locked masters, soft ship ride, almost no handheld
     this.refreshShipLinkedCamera();
     this.multiCam.update(dt);
-    // Handheld only on true wreck moments — never constant storm shake/spin
+    // Handheld: wreck peaks + light intro chaos (never constant spin)
     const handheld =
-      beat.shipPinata || beat.id === 'breach' ? 0.035 : beat.shieldShatter ? 0.02 : 0;
+      beat.shipPinata || beat.id === 'breach'
+        ? 0.038
+        : beat.shieldShatter
+          ? 0.022
+          : beat.skyLightning || beat.id === 'approach' || beat.id === 'shadow'
+            ? 0.012
+            : beat.id === 'establish'
+              ? 0.008
+              : 0;
     const cam = this.multiCam.evaluate(handheld, this.elapsed);
     this.camera.position.copy(cam.pos);
     this.camera.lookAt(cam.look);
