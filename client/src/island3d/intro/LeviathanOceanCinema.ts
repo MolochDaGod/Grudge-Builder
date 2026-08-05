@@ -96,6 +96,7 @@ import {
   cinemaWindVector,
 } from './CinemaCastingTornado';
 import { CinemaFpsBudget, type FpsBudgetState } from './CinemaFpsBudget';
+import { applyCinemaBlend, configureCinemaRendererBlending } from './CinemaMaterialBlend';
 
 export {
   LEVIATHAN_BATTLE_DURATION_SEC as LEVIATHAN_CINEMA_DURATION_SEC,
@@ -695,6 +696,8 @@ export class LeviathanOceanCinema {
     this.renderer.shadowMap.type =
       q === 'high' ? THREE.PCFSoftShadowMap : THREE.PCFShadowMap;
     this.renderer.info.autoReset = true;
+    // Transparent sort + blend-friendly clear for post pipeline
+    configureCinemaRendererBlending(this.renderer);
     host.appendChild(this.renderer.domElement);
     this.renderer.domElement.style.cssText =
       'width:100%;height:100%;display:block;opacity:0;transition:opacity .45s ease';
@@ -1704,25 +1707,20 @@ export class LeviathanOceanCinema {
         marker.getWorldPosition(wp);
         this.leviTargetPos.copy(wp);
         this.leviHasTarget = true;
-        // First assign / seek / combat surface: snap so camera has a real target (no deep-water stare)
-        const snap =
-          prev < 0 ||
-          force ||
-          a.at.includes('rise') ||
-          a.at.includes('surface') ||
-          a.at.includes('cast') ||
-          a.at.includes('breach');
+        // Snap ONLY on first boot / hard seek — never mid-beat (awkward teleport on cast/rise)
+        const snap = prev < 0 || force;
         if (snap) {
           this.leviathanRoot.position.copy(wp);
         }
-        // Deeper under when path key is swim/hidden — ease path rate
-        // Faster path so levi is on-screen when camera aims at it (was stuck deep mid-lerp)
+        // Smooth path rates: slower on big moves (swim→surface) so video-grade continuity
         this.leviPathSmooth =
           a.at.includes('hidden') || a.at.includes('swim')
-            ? 1.6
+            ? 1.35
             : a.at.includes('rise') || a.at.includes('surface')
-              ? 2.4
-              : 2.8;
+              ? 1.65
+              : a.at.includes('cast') || a.at.includes('breach')
+                ? 1.85
+                : 2.1;
       } else {
         this.stage.place(this.leviathanRoot, a.at, { copyYaw: true });
       }
@@ -4640,9 +4638,16 @@ export class LeviathanOceanCinema {
       size: 0.35,
       transparent: true,
       opacity: 0.9,
-      depthWrite: false,
-      blending: THREE.AdditiveBlending,
       sizeAttenuation: true,
+      fog: false,
+      toneMapped: false,
+    });
+    applyCinemaBlend(mat, {
+      recipe: 'softAdditive',
+      opacity: 0.9,
+      depthWrite: false,
+      fog: false,
+      toneMapped: false,
     });
     const pts = new THREE.Points(geo, mat);
     pts.name = 'cinema_wind_burst';
@@ -5493,21 +5498,37 @@ export class LeviathanOceanCinema {
         0.1,
         0.95,
       );
-      this._bloomSmoothed = THREE.MathUtils.lerp(this._bloomSmoothed, targetBloom, Math.min(1, dt * 2.2));
-      // Grain/chroma rise slightly on impact; calm on masters
-      const grain = quiet ? 0.035 : actionHot ? 0.07 : 0.05;
-      const chroma = quiet ? 0.0005 : actionHot ? 0.00135 : 0.00085;
-      const sat = quiet ? 0.98 : actionHot ? 1.08 : 1.03;
+      // Slower film grade blends — video-grade, no snap on beat change
+      this._bloomSmoothed = THREE.MathUtils.lerp(this._bloomSmoothed, targetBloom, Math.min(1, dt * 1.4));
+      const grainT = quiet ? 0.035 : actionHot ? 0.07 : 0.05;
+      const chromaT = quiet ? 0.0005 : actionHot ? 0.00135 : 0.00085;
+      const satT = quiet ? 0.98 : actionHot ? 1.08 : 1.03;
+      this.filmTintCur = THREE.MathUtils.lerp(
+        this.filmTintCur,
+        beat.blackout && beat.blackout > 0.4 ? -0.25 : beat.storm && beat.storm > 0.7 ? -0.18 : -0.08,
+        Math.min(1, dt * 1.2),
+      );
+      this.filmVigCur = THREE.MathUtils.lerp(
+        this.filmVigCur,
+        0.32 + (beat.blackout ?? 0) * 0.35 + (beat.storm ?? 0.5) * 0.08,
+        Math.min(1, dt * 1.2),
+      );
+      this.filmContrastCur = THREE.MathUtils.lerp(
+        this.filmContrastCur,
+        1.04 + (beat.bloom ?? 0.3) * 0.12,
+        Math.min(1, dt * 1.2),
+      );
+      // Hold grain/chroma as smoothed fields via bloom path
       this.post.applyFilmLook({
         bloom: this._bloomSmoothed,
         bloomRadius: 0.42 + (beat.bloom ?? 0.3) * 0.2,
-        bloomThreshold: actionHot ? 0.58 : 0.78,
+        bloomThreshold: THREE.MathUtils.lerp(0.78, actionHot ? 0.58 : 0.78, Math.min(1, dt * 1.5)),
         tint: this.filmTintCur,
         vignette: THREE.MathUtils.clamp(this.filmVigCur + this.blackoutCur * 0.28, 0.25, 0.72),
         contrast: this.filmContrastCur,
-        saturation: sat,
-        grain,
-        chroma,
+        saturation: satT,
+        grain: grainT,
+        chroma: chromaT,
       });
     }
 

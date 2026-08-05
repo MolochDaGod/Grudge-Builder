@@ -7,6 +7,7 @@
  * Hotkey G/Q on https://vfxgrudge.puter.site/
  */
 import * as THREE from 'three';
+import { applyCinemaBlend, CINEMA_RENDER_ORDER } from './CinemaMaterialBlend';
 
 // ── Shared textures (module-cached, never dispose) ─────────────────────
 
@@ -106,14 +107,20 @@ export function spawnAuraRing(
       map,
       transparent: true,
       side: THREE.DoubleSide,
-      blending: THREE.AdditiveBlending,
-      depthWrite: false,
       opacity: 0,
       fog: false,
       toneMapped: false,
     });
+    applyCinemaBlend(mat, {
+      recipe: 'softAdditive',
+      opacity: 0,
+      depthWrite: false,
+      side: THREE.DoubleSide,
+      toneMapped: false,
+      fog: false,
+    });
     const mesh = new THREE.Mesh(unitGroundPlane(), mat);
-    mesh.renderOrder = 8;
+    mesh.renderOrder = CINEMA_RENDER_ORDER.fireAura;
     group.add(mesh);
     rings.push({ mesh, mat, inner });
   }
@@ -172,17 +179,22 @@ export function spawnFlameBurst(
     color,
     size: 0.32,
     map: cinemaSparkTexture(),
-    blending: THREE.AdditiveBlending,
     transparent: true,
-    depthWrite: false,
     opacity: 1,
     sizeAttenuation: true,
     fog: false,
     toneMapped: false,
   });
+  applyCinemaBlend(mat, {
+    recipe: 'softAdditive',
+    opacity: 1,
+    depthWrite: false,
+    toneMapped: false,
+    fog: false,
+  });
   const points = new THREE.Points(geo, mat);
   points.frustumCulled = false;
-  points.renderOrder = 9;
+  points.renderOrder = CINEMA_RENDER_ORDER.sparks;
   parent.add(points);
   return {
     root: points,
@@ -270,11 +282,17 @@ export class CinemaSandboxFireAura {
       map,
       transparent: true,
       side: THREE.DoubleSide,
-      blending: THREE.AdditiveBlending,
-      depthWrite: false,
       opacity: 0,
       fog: false,
       toneMapped: false,
+    });
+    applyCinemaBlend(this.ringMatA, {
+      recipe: 'softAdditive',
+      opacity: 0,
+      depthWrite: false,
+      side: THREE.DoubleSide,
+      toneMapped: false,
+      fog: false,
     });
     this.ringMatB = this.ringMatA.clone();
     this.ringMatB.color.setHex(0xff6a1e);
@@ -282,8 +300,9 @@ export class CinemaSandboxFireAura {
     this.ringB = new THREE.Mesh(unitGroundPlane(), this.ringMatB);
     this.ringA.position.y = 0.06;
     this.ringB.position.y = 0.08;
-    this.ringA.renderOrder = 8;
-    this.ringB.renderOrder = 8;
+    this.ringA.renderOrder = CINEMA_RENDER_ORDER.fireAura;
+    this.ringB.renderOrder = CINEMA_RENDER_ORDER.fireAura;
+    this.root.renderOrder = CINEMA_RENDER_ORDER.fireAura;
     this.root.add(this.ringA, this.ringB);
 
     // Continuous rising flame column
@@ -298,17 +317,22 @@ export class CinemaSandboxFireAura {
       color: 0xff6a1e,
       size: 0.38,
       map: cinemaSparkTexture(),
-      blending: THREE.AdditiveBlending,
       transparent: true,
-      depthWrite: false,
       opacity: 0.9,
       sizeAttenuation: true,
       fog: false,
       toneMapped: false,
     });
+    applyCinemaBlend(mat, {
+      recipe: 'softAdditive',
+      opacity: 0.9,
+      depthWrite: false,
+      toneMapped: false,
+      fog: false,
+    });
     this.continuousFlame = new THREE.Points(geo, mat);
     this.continuousFlame.frustumCulled = false;
-    this.continuousFlame.renderOrder = 9;
+    this.continuousFlame.renderOrder = CINEMA_RENDER_ORDER.sparks;
     this.continuousFlame.visible = false;
     this.root.add(this.continuousFlame);
     for (let i = 0; i < n; i++) this.respawnParticle(i, true);

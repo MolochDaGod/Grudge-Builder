@@ -13,6 +13,11 @@
 import * as THREE from 'three';
 import { CIN_WARD_GLYPH_M } from '@shared/definitions/leviathanCinemaStage';
 import { CinemaSandboxFireAura } from './CinemaSandboxFireAura';
+import {
+  applyCinemaBlend,
+  CINEMA_RENDER_ORDER,
+  smoothMaterialOpacity,
+} from './CinemaMaterialBlend';
 
 export type DragonBeamPhase = 'off' | 'snap' | 'charge' | 'blast' | 'aftermath';
 
@@ -43,15 +48,26 @@ const _tmp = new THREE.Vector3();
 const _q = new THREE.Quaternion();
 const _up = new THREE.Vector3(0, 1, 0);
 
+/** Soft custom-blend materials (three.js webgl_materials_blending_custom). */
 function addMat(color: number, opacity: number, additive = true): THREE.MeshBasicMaterial {
-  return new THREE.MeshBasicMaterial({
+  const mat = new THREE.MeshBasicMaterial({
     color,
     transparent: true,
     opacity,
     depthWrite: false,
     side: THREE.DoubleSide,
-    blending: additive ? THREE.AdditiveBlending : THREE.NormalBlending,
+    fog: false,
+    toneMapped: false,
   });
+  applyCinemaBlend(mat, {
+    recipe: additive ? 'softAdditive' : 'softAlpha',
+    opacity,
+    toneMapped: false,
+    depthWrite: false,
+    side: THREE.DoubleSide,
+    fog: false,
+  });
+  return mat;
 }
 
 type FlyingOrb = {
@@ -147,6 +163,7 @@ export class LeviathanDragonBeamVfx {
     this.ribbonB.rotation.x = Math.PI / 2;
     this.beamGroup.add(this.core, this.sheath, this.outer, this.ribbonA, this.ribbonB);
     this.beamGroup.visible = false;
+    this.beamGroup.renderOrder = CINEMA_RENDER_ORDER.beam;
     this.root.add(this.beamGroup);
 
     // Mouth charge + hot hands
@@ -313,8 +330,8 @@ export class LeviathanDragonBeamVfx {
     this.snapFlash = Math.max(0, this.snapFlash - dt / 0.12);
     const snap = this.snapFlash;
 
-    // Hot hands opacity
-    const hotOp =
+    // Hot hands / mouth — smooth opacity (no hard pop between phases)
+    const hotTarget =
       phase === 'off'
         ? 0
         : phase === 'snap'
@@ -324,15 +341,15 @@ export class LeviathanDragonBeamVfx {
             : phase === 'blast'
               ? 0.85 + Math.sin(elapsed * 20) * 0.1
               : 0.25;
-    (this.hotHandL.material as THREE.MeshBasicMaterial).opacity = hotOp;
-    (this.hotHandR.material as THREE.MeshBasicMaterial).opacity = hotOp * 0.9;
+    smoothMaterialOpacity(this.hotHandL.material, hotTarget, dt, 10);
+    smoothMaterialOpacity(this.hotHandR.material, hotTarget * 0.9, dt, 10);
+    const hotOp = (this.hotHandL.material as THREE.MeshBasicMaterial).opacity;
     this.hotHandL.visible = hotOp > 0.02;
     this.hotHandR.visible = hotOp > 0.02;
     this.hotHandL.scale.setScalar(1 + hotOp * 0.6 + snap);
     this.hotHandR.scale.setScalar(1 + hotOp * 0.55 + snap);
 
-    // Mouth glow
-    const mouthOp =
+    const mouthTarget =
       phase === 'charge'
         ? 0.2 + chargeU * 0.7
         : phase === 'blast'
@@ -340,7 +357,8 @@ export class LeviathanDragonBeamVfx {
           : phase === 'snap'
             ? 0.5 + snap * 0.4
             : 0;
-    (this.mouthGlow.material as THREE.MeshBasicMaterial).opacity = mouthOp;
+    smoothMaterialOpacity(this.mouthGlow.material, mouthTarget, dt, 9);
+    const mouthOp = (this.mouthGlow.material as THREE.MeshBasicMaterial).opacity;
     this.mouthGlow.visible = mouthOp > 0.02;
     this.mouthGlow.scale.setScalar(0.8 + chargeU * 1.4 + (blastVis ? 0.5 : 0) + snap * 0.8);
 

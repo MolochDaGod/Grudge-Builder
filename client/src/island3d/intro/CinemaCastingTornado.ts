@@ -7,6 +7,7 @@
  * FPS: low segment shells, additive only, no depth soft-fade RT readback.
  */
 import * as THREE from 'three';
+import { applyCinemaBlend, CINEMA_RENDER_ORDER } from './CinemaMaterialBlend';
 
 /** Compact noise suite used by both shell VS/FS (casting-abilities Lf subset). */
 const NOISE_GLSL = /* glsl */ `
@@ -196,7 +197,7 @@ const SEG: Record<CastingTornadoQuality, { radial: number; height: number; shell
 function makeShellMaterial(index: number, water: boolean): THREE.ShaderMaterial {
   const inner = new THREE.Color(water ? 0xd8f4ff : 0xf4fcff);
   const outer = new THREE.Color(water ? 0x3a8ab0 : 0xb6d8ea);
-  return new THREE.ShaderMaterial({
+  const mat = new THREE.ShaderMaterial({
     uniforms: {
       uTime: { value: 0 },
       uAge: { value: 0 },
@@ -220,9 +221,16 @@ function makeShellMaterial(index: number, water: boolean): THREE.ShaderMaterial 
     transparent: true,
     depthWrite: false,
     side: THREE.DoubleSide,
-    blending: THREE.AdditiveBlending,
     fog: false,
   });
+  // Soft additive custom blend — smoother than raw AdditiveBlending under post
+  applyCinemaBlend(mat, {
+    recipe: 'softAdditive',
+    depthWrite: false,
+    side: THREE.DoubleSide,
+    fog: false,
+  });
+  return mat;
 }
 
 /** One casting-abilities wind tornado (multi-shell GPU funnel + dust). */
@@ -252,7 +260,7 @@ export class CinemaCastingTornado {
       const mat = makeShellMaterial(i, water);
       const mesh = new THREE.Mesh(geo, mat);
       mesh.frustumCulled = false;
-      mesh.renderOrder = 12 + i;
+      mesh.renderOrder = CINEMA_RENDER_ORDER.tornado + i;
       mesh.castShadow = false;
       mesh.receiveShadow = false;
       this.root.add(mesh);
@@ -276,17 +284,24 @@ export class CinemaCastingTornado {
       size: 0.18,
       transparent: true,
       opacity: 0.55,
-      depthWrite: false,
-      blending: THREE.AdditiveBlending,
       sizeAttenuation: true,
+      fog: false,
+      toneMapped: false,
+    });
+    applyCinemaBlend(dmat, {
+      recipe: 'softAdditive',
+      opacity: 0.55,
+      depthWrite: false,
+      toneMapped: false,
       fog: false,
     });
     this.dust = new THREE.Points(dgeo, dmat);
     this.dust.frustumCulled = false;
-    this.dust.renderOrder = 14;
+    this.dust.renderOrder = CINEMA_RENDER_ORDER.tornado + 3;
     this.root.add(this.dust);
     this.root.scale.set(this.radiusM, this.heightM, this.radiusM);
     this.root.name = 'cinema_casting_tornado';
+    this.root.renderOrder = CINEMA_RENDER_ORDER.tornado;
     this.root.visible = false;
   }
 

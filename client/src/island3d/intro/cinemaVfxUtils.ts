@@ -3,6 +3,7 @@
  * Also: storm rain points + lightning bolt flashes (lightweight, instanced-friendly).
  */
 import * as THREE from 'three';
+import { applyCinemaBlend, CINEMA_RENDER_ORDER } from './CinemaMaterialBlend';
 
 /** Procedural storm rain (Points) — quality-scaled count. */
 export function createCinemaRain(count: number): THREE.Points {
@@ -21,14 +22,20 @@ export function createCinemaRain(count: number): THREE.Points {
     sizeAttenuation: true,
     transparent: true,
     opacity: 0.45,
-    depthWrite: false,
-    blending: THREE.AdditiveBlending,
     fog: false,
+    toneMapped: false,
+  });
+  applyCinemaBlend(mat, {
+    recipe: 'softAdditive',
+    opacity: 0.45,
+    depthWrite: false,
+    fog: false,
+    toneMapped: false,
   });
   const pts = new THREE.Points(geo, mat);
   pts.name = 'cinema_storm_rain';
   pts.frustumCulled = false;
-  pts.renderOrder = 2;
+  pts.renderOrder = CINEMA_RENDER_ORDER.rain;
   return pts;
 }
 
@@ -83,13 +90,20 @@ export function spawnCinemaLightningBolt(
     color: 0xddeeff,
     transparent: true,
     opacity: 0.95,
-    depthWrite: false,
-    blending: THREE.AdditiveBlending,
     toneMapped: false,
+    fog: false,
+  });
+  applyCinemaBlend(mat, {
+    recipe: 'softAdditive',
+    opacity: 0.95,
+    depthWrite: false,
+    toneMapped: false,
+    fog: false,
   });
   const line = new THREE.Line(geo, mat);
   line.name = 'cinema_lightning_bolt';
   line.frustumCulled = false;
+  line.renderOrder = CINEMA_RENDER_ORDER.lightning;
   scene.add(line);
   return { root: line, life: 0.12 + Math.random() * 0.1 };
 }
