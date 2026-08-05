@@ -8,20 +8,31 @@
  * Prefix: cinloc_ (cinema location) · versioned stage id for session rebind.
  */
 
-export const LEVIATHAN_STAGE_ID = 'cin_stage_leviathan_ocean_v21' as const;
-export const LEVIATHAN_STAGE_VERSION = '21.0.0';
+export const LEVIATHAN_STAGE_ID = 'cin_stage_leviathan_ocean_v22' as const;
+export const LEVIATHAN_STAGE_VERSION = '22.0.0';
 
 /**
- * SI SSOT — 1 unit = 1 m.
- * Deck cast (orc mages) ~2.2 m · brig LOA 36 m (2× prior 18 m) · levi scales with ship.
+ * SI SSOT — 1 unit = 1 m (grudge-world-scale).
+ * Human 1.8 m · deck orc 2.2 m · brig LOA 36 m · levi LOA 90 m (~2.5× ship).
+ * Never re-fit mesh nodes after plant; root SI only.
  */
 export const CIN_HUMAN_M = 1.8;
-/** Cinema deck orc mage height (modular bake; slightly above human) */
+/** Cinema deck orc mage height (modular ORC_Characters bake) */
 export const CIN_ORC_M = 2.2;
-/** Pirate ship LOA — 2× prior 18 m brig so deck + orcs read on camera */
+/** Pirate ship LOA (tz-pirate-ship) — deck slots authored for this length */
 export const CIN_SHIP_LOA_M = 36;
-/** Leviathan LOA — large threat; ~2.5× ship so silhouette still dominates */
+/** Leviathan LOA — silhouette dominates without crushing SI ship */
 export const CIN_LEVIATHAN_LOA_M = 90;
+/**
+ * Ship-local walkable deck envelope (pathfinding bounds for mage paces).
+ * Tuned for 36 m LOA tz-pirate hull after LOA-xz fit.
+ */
+export const CIN_DECK_WALK = {
+  xMin: -5.8,
+  xMax: 5.8,
+  zMin: -9.0,
+  zMax: 9.5,
+} as const;
 /**
  * Push ship + camera + levi fight station open-sea away from rock island
  * (startingfalls at CIN_ISLAND_OFFSET z≈−100). Deck slots stay ship-local (no offset).

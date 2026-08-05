@@ -27,8 +27,10 @@ export type DeckMageSpec = {
   idleDur: number;
   /** Seconds of walk before cast */
   walkDur: number;
-  /** Side-step amplitude along local X (m) */
+  /** Side-step amplitude along ship-local X (port/starboard, m) */
   walkAmp: number;
+  /** Forward/aft amplitude along ship-local Z (m) — deck pathfinding pace */
+  walkAmpZ: number;
   /** Clip timeScale */
   timeScale: number;
   /** Prefer which 2H attack index (0..2) */
@@ -37,15 +39,16 @@ export type DeckMageSpec = {
   idleScale: number;
 };
 
-/** Four personalities — never all in sync */
+/** Four personalities — never all in sync; XZ walk for deck pathfinding */
 export const DECK_MAGE_SPECS: DeckMageSpec[] = [
   {
     castOffset: 0.0,
     period: 4.2,
     castDur: 1.85,
     idleDur: 1.1,
-    walkDur: 0.55,
-    walkAmp: 0.35,
+    walkDur: 0.72,
+    walkAmp: 0.55,
+    walkAmpZ: 0.85,
     timeScale: 1.0,
     castVariant: 0,
     idleScale: 0.95,
@@ -55,8 +58,9 @@ export const DECK_MAGE_SPECS: DeckMageSpec[] = [
     period: 4.8,
     castDur: 1.55,
     idleDur: 1.4,
-    walkDur: 0.7,
-    walkAmp: -0.42,
+    walkDur: 0.85,
+    walkAmp: -0.65,
+    walkAmpZ: -0.7,
     timeScale: 0.92,
     castVariant: 1,
     idleScale: 1.05,
@@ -66,8 +70,9 @@ export const DECK_MAGE_SPECS: DeckMageSpec[] = [
     period: 5.1,
     castDur: 2.05,
     idleDur: 0.9,
-    walkDur: 0.45,
-    walkAmp: 0.28,
+    walkDur: 0.65,
+    walkAmp: 0.4,
+    walkAmpZ: 1.1,
     timeScale: 1.08,
     castVariant: 2,
     idleScale: 0.88,
@@ -77,8 +82,9 @@ export const DECK_MAGE_SPECS: DeckMageSpec[] = [
     period: 3.9,
     castDur: 1.4,
     idleDur: 1.25,
-    walkDur: 0.65,
-    walkAmp: -0.3,
+    walkDur: 0.78,
+    walkAmp: -0.48,
+    walkAmpZ: -0.95,
     timeScale: 0.98,
     castVariant: 0,
     idleScale: 1.12,
@@ -336,9 +342,11 @@ export class CinemaDeckMages {
     if (t < walkEnd) {
       this.ensurePhase(m, 'walk', ['walk', 'walk2', 'run', 'idle'], m.spec.timeScale);
       const u = walkEnd > 1e-4 ? t / walkEnd : 1;
-      // Ease out-back short pace on deck
-      const step = Math.sin(u * Math.PI) * m.spec.walkAmp;
-      m.root.position.set(m.baseX + step, m.deckY, m.baseZ);
+      // Arc pace on deck: port/starboard + forward/aft (pathfinding XZ)
+      const ease = Math.sin(u * Math.PI);
+      const stepX = ease * m.spec.walkAmp;
+      const stepZ = ease * m.spec.walkAmpZ;
+      m.root.position.set(m.baseX + stepX, m.deckY, m.baseZ + stepZ);
     } else if (t < castEnd) {
       this.ensurePhase(
         m,

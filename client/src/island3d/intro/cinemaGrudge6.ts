@@ -32,10 +32,10 @@ import { bip001ClipUrls } from '@/lib/animation/bip001DrcAnims';
 import type { CinemaAnimDirector } from './CinemaAnimDirector';
 
 /**
- * Cinema mage yardstick — must read against 18 m LOA brig.
- * ~2.0 m is SI human; deck reads better at 2.15 when camera also holds the leviathan.
+ * Cinema human yardstick — SSOT CIN_HUMAN_M = 1.8 m (grudge-world-scale).
+ * Deck cast is orc (CINEMA_ORC_M = 2.2); do not inflate human for "camera readability".
  */
-export const CINEMA_HUMAN_M = 2.15;
+export const CINEMA_HUMAN_M = 1.8;
 
 /** SI fit non-character props (ship, levi, island) — never hero-height. */
 export function fitPropSpanM(

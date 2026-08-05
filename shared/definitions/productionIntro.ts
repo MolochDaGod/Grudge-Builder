@@ -53,16 +53,16 @@ export const STORM_SHIP_INTRO: ProductionIntroDef = {
   id: 'storm_ship_attack',
   label: 'Leviathan Ocean Battle',
   description:
-    'v10 film cinema: Grudge6 RTS cast (1.8 m), 18 m pirate ship, 42 m leviathan, Gerstner OceanShader, ' +
-    'film post (bloom/SMAA/grade), Box3 SI, ward wall, mage spline kill, dragon beam channel + blowback + pinata.',
+    'v22 film cinema: orc deck cast (2.2 m SI), 36 m tz-pirate ship, 90 m leviathan, Gerstner OceanShader, ' +
+    'deck raycast pathfinding, film post (bloom/SMAA/grade), Box3 SI, ward wall, dragon beam + pinata.',
   usedFor: 'island-3d',
   tiPath: '/intro',
   tiUrl: `${TI_HOST}/intro`,
   durationMs: 56_000,
   cutBeforeOverboard: true,
   notes:
-    'Engine: LeviathanOceanCinema.ts v10 · PostProcessing · CinemaBoxSystems · cinemaGrudge6 · ' +
-    'LeviathanDragonBeamVfx · LeviathanLookAndWater · stage SSOT. ' +
+    'Engine: LeviathanOceanCinema.ts v22 · stage SSOT leviathanCinemaStage · PostProcessing · CinemaBoxSystems · ' +
+    'cinemaGrudge6 ORC_Characters · LeviathanDragonBeamVfx · deck pathfind. ' +
     'PURGED: voxel boats, western-kingdoms packs, toy water, lookAt tumble, TI/mp4 primary gate.',
 };
 
@@ -168,8 +168,8 @@ export const AFTER_INTRO_DESTINATIONS: Array<{
 ];
 
 /** Bump when cinema cut changes so players re-see the battle */
-export const INTRO_SESSION_KEY = 'grudge_shipwreck_intro_seen_v18';
-export const INTRO_OPTIONS_KEY = 'grudge_island3d_intro_options_v18';
+export const INTRO_SESSION_KEY = 'grudge_shipwreck_intro_seen_v22';
+export const INTRO_OPTIONS_KEY = 'grudge_island3d_intro_options_v22';
 
 export interface Island3dIntroOptions {
   /** Play leviathan cinema on visit when not yet seen */
