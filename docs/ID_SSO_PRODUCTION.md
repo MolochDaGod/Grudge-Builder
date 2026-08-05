@@ -90,6 +90,15 @@ Drop-in:
 
 Built-in hosts/suffixes: `*.grudge-studio.com`, `grudgewarlords.com`, `*.vercel.app`, `*.pages.dev`, `*.workers.dev`, `*.puter.site`, `*.github.io`, `*.netlify.app`, Railway previews, Puter apex.
 
+**Path products on portal apex** (same host allowlist; product via `app=` + path):
+
+| Product | Origin / callback | `app=` | Account data |
+|---------|-------------------|--------|--------------|
+| **Game Studio Tool** | `https://grudge-studio.com/gst` → `/gst/auth/callback` | `gst` | Same Railway account + characters as all fleet games |
+| GST satellite | `https://grudge-studio-tool.vercel.app/auth/callback` | `gst` | Same |
+
+Labels: `auth-page.html` `APP_LABELS.gst` + path `/gst` detection. Fleet map: `FLEET_GAME_ORIGINS.gst`.
+
 **Custom signed production domain:**
 
 1. Add hostname to Railway: `AUTH_EXTRA_RETURN_HOSTS=your.domain.com`

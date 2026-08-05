@@ -49,12 +49,27 @@ export function navigateToGame(
 
 /**
  * Get the full URL for a fleet game, with auth token attached.
+ * Supports path products (e.g. FLEET_GAME_ORIGINS.gst = https://grudge-studio.com/gst).
  */
 export function getGameUrl(gameId: FleetGameId, path = "/"): string {
   const origin = FLEET_GAME_ORIGINS[gameId];
   if (!origin) return path;
 
-  const dest = new URL(path, origin);
+  let dest: URL;
+  try {
+    const base = new URL(origin);
+    if (!path || path === "/") {
+      dest = base;
+    } else if (/^https?:\/\//i.test(path)) {
+      dest = new URL(path);
+    } else {
+      const prefix = base.pathname.replace(/\/$/, "");
+      const suffix = path.startsWith("/") ? path : `/${path}`;
+      dest = new URL(`${prefix}${suffix}`, base.origin);
+    }
+  } catch {
+    dest = new URL(path, origin);
+  }
   attachSsoParams(dest);
   return dest.toString();
 }

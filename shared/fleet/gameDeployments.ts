@@ -29,6 +29,12 @@ export const FLEET_GAME_ORIGINS = {
   /** Mine-Loader / Voxel Realms + Codex */
   "mine-loader": FLEET_URLS.mineLoader,
   voxgrudge: FLEET_URLS.voxgrudge,
+  /**
+   * Game Studio Tool / Grudge Islands — portal path product.
+   * SSO return: https://grudge-studio.com/gst/auth/callback (host allowlisted via grudge-studio.com).
+   * Same Railway account/characters as all fleet games (app=gst on id.grudge-studio.com).
+   */
+  gst: "https://grudge-studio.com/gst",
 } as const;
 
 // ── Three.js deploy path (ONE TRUTH entry URLs) ─────────────────────────────
@@ -349,6 +355,21 @@ const HOME_GAME_MODE_EXTRAS: GameDeployment[] = [
     stage: "rts",
     fleetGameId: "forge",
     order: 65,
+  },
+  {
+    id: "gst",
+    title: "Game Studio Tool",
+    subtitle: "Grudge Islands · shared account",
+    description:
+      "Island RTS studio tool at grudge-studio.com/gst. Grudge ID app=gst; same Railway account bag + character roster as Warlords/Open.",
+    url: FLEET_GAME_ORIGINS.gst,
+    icon: "globe",
+    tier: "explore",
+    badge: "GST",
+    badgeColor: "emerald",
+    stage: "home",
+    fleetGameId: "gst",
+    order: 66,
   },
   {
     id: "island",

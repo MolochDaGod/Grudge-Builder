@@ -21,9 +21,12 @@ const EXACT_HOSTS = new Set([
   "scenes.grudgewarlords.com",
   "craft.grudgewarlords.com",
   "foundry.grudgewarlords.com",
+  // Portal apex — also covers path products e.g. https://grudge-studio.com/gst (Game Studio Tool)
   "grudge-studio.com",
   "www.grudge-studio.com",
   "client.grudge-studio.com",
+  // GST direct Vercel (also covered by .vercel.app suffix; listed for audit clarity)
+  "grudge-studio-tool.vercel.app",
   "grudge.studio",
   "www.grudge.studio",
   "grudgestudio.org",

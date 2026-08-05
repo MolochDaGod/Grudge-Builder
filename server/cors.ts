@@ -33,6 +33,9 @@ export const GRUDGE_EXACT_ORIGINS: string[] = [
   "https://mine-loader.vercel.app",
   "https://mine.grudge-studio.com",
 
+  // Game Studio Tool / Grudge Islands (portal /gst + Vercel satellite)
+  "https://grudge-studio-tool.vercel.app",
+
   // Fleet game clients (explicit until Railway redeploys regex allowlist)
   "https://metaverse.grudge-studio.com",
   "https://forge.grudge-studio.com",
