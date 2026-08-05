@@ -3,17 +3,16 @@
  *
  * Attack cadence (script-driven):
  *   1. SNAP   (~0.1 s)  — attack anim start, mouth hot-hands flash
- *   2. CHARGE (pause)   — flame aura, hot hands, fireball orbs gather at maw
+ *   2. CHARGE (pause)   — sandbox fire_aura (vfxgrudge G/Q), hot hands, orbs at maw
  *   3. BLAST            — multi-layer dragon beam mouth → deck
- *   4. BOUNCE           — spell-glyph impacts + rebounds off ship ward
+ *   4. BOUNCE           — shield flame bounce + fire_aura burst on ward
  *
- * Optional: GRDG-3DFX-789B55B0 spell-glyph.glb (SI scaled) for impact + rebound.
- * Procedural orbs/sparks remain as fallback. SI metres. One-shots dispose when life ends.
+ * Flame aura SSOT: CinemaSandboxFireAura (Open Vfx.fireAura / auraRing / flame) —
+ * NOT soft sphere shells.
  */
 import * as THREE from 'three';
-import { loadGltfCached, cloneGltfScene } from '@/lib/three/SharedGltfPipeline';
-import { fitPropSpanM } from './cinemaGrudge6';
-import { CIN_CAST_ASSETS, CIN_GLYPH_SPAN_M, CIN_WARD_GLYPH_M } from '@shared/definitions/leviathanCinemaStage';
+import { CIN_WARD_GLYPH_M } from '@shared/definitions/leviathanCinemaStage';
+import { CinemaSandboxFireAura } from './CinemaSandboxFireAura';
 
 export type DragonBeamPhase = 'off' | 'snap' | 'charge' | 'blast' | 'aftermath';
 
@@ -99,9 +98,8 @@ export class LeviathanDragonBeamVfx {
   private ribbonB: THREE.Mesh;
   private beamGroup = new THREE.Group();
 
-  // Charge / aura
-  private auraShell: THREE.Mesh;
-  private auraRim: THREE.Mesh;
+  // Charge / aura — sandbox fire_aura (rings + rising flame), not sphere shells
+  private fireAura: CinemaSandboxFireAura;
   private mouthGlow: THREE.Mesh;
   private hotHandL: THREE.Mesh;
   private hotHandR: THREE.Mesh;
@@ -115,15 +113,13 @@ export class LeviathanDragonBeamVfx {
   private bounceCd = 0;
   private fireballVolleyCd = 0;
   private snapFlash = 0;
-
-  /** GRDG-3DFX-789B55B0 spell-glyph template (null until soft-load). */
-  private glyphTemplate: THREE.Object3D | null = null;
-  private glyphLoadStarted = false;
+  /** One-shot fire_aura on snap (avoid per-frame spam) */
+  private snapAuraFired = false;
 
   constructor(scene: THREE.Scene) {
     this.root.name = 'leviathan_dragon_beam_vfx';
     scene.add(this.root);
-    void this.ensureSpellGlyphTemplate();
+    this.fireAura = new CinemaSandboxFireAura(this.root);
 
     // Beam cylinders (unit height 1, scale.y = length)
     this.core = new THREE.Mesh(
@@ -152,20 +148,6 @@ export class LeviathanDragonBeamVfx {
     this.beamGroup.add(this.core, this.sheath, this.outer, this.ribbonA, this.ribbonB);
     this.beamGroup.visible = false;
     this.root.add(this.beamGroup);
-
-    // Flame aura around body — soft additive shells (NO wireframe)
-    this.auraShell = new THREE.Mesh(
-      new THREE.SphereGeometry(1, 28, 20),
-      addMat(0xff5511, 0.14),
-    );
-    this.auraRim = new THREE.Mesh(
-      new THREE.SphereGeometry(1.12, 24, 16),
-      addMat(0xffaa44, 0.1),
-    );
-    (this.auraRim.material as THREE.MeshBasicMaterial).side = THREE.BackSide;
-    this.auraShell.visible = false;
-    this.auraRim.visible = false;
-    this.root.add(this.auraShell, this.auraRim);
 
     // Mouth charge + hot hands
     this.mouthGlow = new THREE.Mesh(
@@ -201,7 +183,10 @@ export class LeviathanDragonBeamVfx {
   setPhase(phase: DragonBeamPhase): void {
     if (this.phase === phase) return;
     this.phase = phase;
-    if (phase === 'snap') this.snapFlash = 1;
+    if (phase === 'snap') {
+      this.snapFlash = 1;
+      this.snapAuraFired = false;
+    }
     if (phase === 'off') this.hideAll();
   }
 
@@ -214,24 +199,13 @@ export class LeviathanDragonBeamVfx {
    * Core + hot shell + soft outer; bounce mode = cyan ward reflection.
    */
   /**
-   * spell-glyph.glb is BANNED — never load CDN/local glyph.
-   * Impacts/rebounds are procedural only.
-   */
-  private async ensureSpellGlyphTemplate(): Promise<void> {
-    this.glyphLoadStarted = true;
-    this.glyphTemplate = null;
-  }
-
-  private cloneGlyph(_spanM: number): THREE.Object3D | null {
-    return null;
-  }
-
-  /**
-   * Shield-block impact: dense flame aura + sparks (no spell-glyph).
+   * Shield-block impact: sandbox fire_aura burst + sparks (no spell-glyph).
    */
   spawnShieldGlyphImpact(at: THREE.Vector3, _spanM = CIN_WARD_GLYPH_M * 1.15): void {
     this.spawnImpactSparks(at, 18);
     this.spawnShieldFlameBounce(at);
+    // Full fire_aura read from VFX site (rings + flame column)
+    this.fireAura.burst(at, 1.15);
   }
 
   /**
@@ -370,24 +344,26 @@ export class LeviathanDragonBeamVfx {
     this.mouthGlow.visible = mouthOp > 0.02;
     this.mouthGlow.scale.setScalar(0.8 + chargeU * 1.4 + (blastVis ? 0.5 : 0) + snap * 0.8);
 
-    // Flame aura (body shell — parent near mouth / upper body)
+    // Sandbox fire_aura (vfxgrudge fire_aura / Open Vfx.fireAura) — rings + rising flame
     const auraOn = chargeVis && (phase === 'charge' || phase === 'blast' || phase === 'snap');
-    this.auraShell.visible = auraOn;
-    this.auraRim.visible = auraOn;
-    if (auraOn) {
-      // Slightly behind mouth toward body center
-      this.auraShell.position.copy(mouth).addScaledVector(_dir, -2.2);
-      this.auraShell.position.y -= 0.5;
-      this.auraRim.position.copy(this.auraShell.position);
-      const ar = 3.2 + chargeU * 2.5 + (blastVis ? 1.2 : 0) + storm * 0.5;
-      this.auraShell.scale.setScalar(ar);
-      this.auraRim.scale.setScalar(ar * 1.05);
-      this.auraRim.rotation.y += dt * 1.4;
-      this.auraRim.rotation.x += dt * 0.35;
-      (this.auraShell.material as THREE.MeshBasicMaterial).opacity =
-        0.08 + chargeU * 0.14 + (blastVis ? 0.1 : 0);
-      (this.auraRim.material as THREE.MeshBasicMaterial).opacity =
-        0.15 + chargeU * 0.2 + Math.sin(elapsed * 5) * 0.05;
+    const auraI =
+      phase === 'blast'
+        ? 0.85 + blastU * 0.15
+        : phase === 'charge'
+          ? 0.35 + chargeU * 0.65
+          : phase === 'snap'
+            ? 0.55 + snap * 0.4
+            : 0;
+    // Anchor slightly behind maw toward body; scale for levi SI (~3–5 m ring)
+    const auraPos = mouth.clone().addScaledVector(_dir, -2.0);
+    auraPos.y -= 0.35;
+    const auraScale = 3.4 + chargeU * 2.2 + (blastVis ? 1.0 : 0) + storm * 0.4;
+    this.fireAura.setActive(auraOn, auraI, auraPos, auraScale);
+    this.fireAura.update(dt, auraPos);
+    if (phase === 'snap' && !this.snapAuraFired) {
+      // One snap-in fire_aura burst like sandbox Alt+G / Q
+      this.snapAuraFired = true;
+      this.fireAura.burst(auraPos, 1.05 + chargeU * 0.35);
     }
 
     // Charge orbs orbit maw; during blast stream fireballs at deck (shield intercepts)
@@ -549,7 +525,7 @@ export class LeviathanDragonBeamVfx {
       if (u >= 1) {
         // Shot glyphs that hit shield: impact flash at end
         if (f.mode === 'shot' && f.isGlyph) {
-          this.spawnShieldGlyphImpact(f.to, CIN_GLYPH_SPAN_M * 1.6);
+          this.spawnShieldGlyphImpact(f.to, CIN_WARD_GLYPH_M * 1.6);
         }
         this.root.remove(f.mesh);
         f.mesh.traverse((o) => {
@@ -644,8 +620,7 @@ export class LeviathanDragonBeamVfx {
 
   private hideAll(): void {
     this.beamGroup.visible = false;
-    this.auraShell.visible = false;
-    this.auraRim.visible = false;
+    this.fireAura.setActive(false, 0);
     this.mouthGlow.visible = false;
     this.hotHandL.visible = false;
     this.hotHandR.visible = false;
@@ -656,6 +631,7 @@ export class LeviathanDragonBeamVfx {
 
   dispose(): void {
     this.hideAll();
+    this.fireAura.dispose();
     for (const f of this.flying) {
       this.root.remove(f.mesh);
       f.mesh.traverse((o) => {
@@ -690,7 +666,6 @@ export class LeviathanDragonBeamVfx {
       });
     }
     this.glyphImpacts = [];
-    this.glyphTemplate = null;
     this.root.parent?.remove(this.root);
   }
 }

@@ -4975,13 +4975,21 @@ export class LeviathanOceanCinema {
     // Bounce points on the shield face (or deck once shattered)
     const shieldPoints = this.sampleShipShieldHitPoints(mouth, deck);
 
+    // fireAura beat flag keeps sandbox fire_aura smolder even between formal beam phases
+    const phaseOut =
+      driven.phase === 'off' && beat.fireAura
+        ? ('charge' as DragonBeamPhase)
+        : driven.phase;
+    const chargeOut =
+      phaseOut === 'charge' && driven.phase === 'off' ? 0.45 : driven.chargeU;
+
     this.dragonVfx.update({
       mouth,
       target: beamTarget,
       shieldPoints,
       leviathanRoot: this.leviathanRoot,
-      phase: driven.phase,
-      chargeU: driven.chargeU,
+      phase: phaseOut,
+      chargeU: chargeOut,
       blastU: driven.blastU,
       dt,
       elapsed: this.elapsed,
