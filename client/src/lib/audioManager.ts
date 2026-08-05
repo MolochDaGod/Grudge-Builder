@@ -55,6 +55,8 @@ let bgmVolume = 0.3;
 let sfxVolume = 0.5;
 let bgmMuted = false;
 let sfxMuted = false;
+/** 0..1 on top of bgmVolume (VO duck / storm) */
+let bgmDuckMul = 1;
 
 // ── BGM ──────────────────────────────────────────────────────────────────────
 
@@ -63,8 +65,9 @@ export function playBGM(track: BGMTrack, options?: { volume?: number; loop?: boo
 
   stopBGM();
 
+  if (options?.volume != null) bgmVolume = Math.max(0, Math.min(1, options.volume));
   const audio = new Audio(BGM_TRACKS[track]);
-  audio.volume = bgmMuted ? 0 : (options?.volume ?? bgmVolume);
+  audio.volume = bgmMuted ? 0 : bgmVolume * bgmDuckMul;
   audio.loop = options?.loop ?? true;
   audio.play().catch(() => {
     // Autoplay blocked — will play on next user interaction
@@ -100,9 +103,6 @@ export function toggleBGMMute(): boolean {
   if (currentBgm) currentBgm.volume = bgmMuted ? 0 : bgmVolume * bgmDuckMul;
   return bgmMuted;
 }
-
-/** 0..1 multiplier on top of BGM volume (VO ducking, storm intensity). */
-let bgmDuckMul = 1;
 
 /**
  * Soft-duck BGM under dialogue / VO. Restores when factor=1.

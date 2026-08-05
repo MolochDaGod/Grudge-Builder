@@ -5216,6 +5216,12 @@ export class LeviathanOceanCinema {
     return this.ready;
   }
 
+  /** Gate mute toggle — stops BGM/SFX stems. */
+  setAudioMuted(muted: boolean): void {
+    this.sceneAudio.setMuted(muted);
+    if (!muted && this.ready) this.sceneAudio.start();
+  }
+
   dispose(): void {
     this.disposed = true;
     cancelAnimationFrame(this.raf);

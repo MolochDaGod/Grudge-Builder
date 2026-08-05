@@ -122,6 +122,8 @@ export function StormShipIntroGate({
         },
         onReady: () => {
           setBootMsg('');
+          // Apply gate mute preference once WebGL + audio bus exist
+          cinema?.setAudioMuted(!!opts.mute);
           // QA: ?seek=29 or ?t=29 jumps to ward shatter / pinata review
           try {
             const q = new URLSearchParams(window.location.search);
@@ -241,7 +243,11 @@ export function StormShipIntroGate({
           <div className="pointer-events-auto flex flex-wrap gap-1.5 justify-end">
             <button
               type="button"
-              onClick={() => patchOpts({ mute: !opts.mute })}
+              onClick={() => {
+                const next = !opts.mute;
+                patchOpts({ mute: next });
+                cinemaRef.current?.setAudioMuted(next);
+              }}
               className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold bg-black/80 border border-slate-600 text-slate-200"
             >
               {opts.mute ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
