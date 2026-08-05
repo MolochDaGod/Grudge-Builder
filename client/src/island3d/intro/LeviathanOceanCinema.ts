@@ -2597,7 +2597,8 @@ export class LeviathanOceanCinema {
         console.warn(
           `[cinema] orc_${i} T-POSE risk — no clips (external=${this.mageClips.length} kit=${pack.clips?.length ?? 0})`,
         );
-        this.mageDirectors.push(null as unknown as CinemaAnimDirector);
+        // Keep directors array aligned with deckMages indices
+        this.mageDirectors.push(undefined as unknown as CinemaAnimDirector);
       }
       this.deckMages.push(root);
       this.spineIk.bind(`mage_${i}`, pack.mesh);
@@ -4856,7 +4857,7 @@ export class LeviathanOceanCinema {
     // Merge crossfade: first → middle (damage) → last (sinking on explosion)
     this.updateShipBlend(dt);
     this.updateShipSailIn(dt, beat);
-    this.faceMagesTowardLevi(dt);
+    // faceMagesTowardLevi runs after tickMageCycles (near mixers)
     this.updateChaseEscape(dt, beat);
 
     // Ship-wide shield pulse (only while visible / blocking)
