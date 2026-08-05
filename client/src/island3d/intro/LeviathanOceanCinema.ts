@@ -89,6 +89,13 @@ import {
   spawnCinemaLightningBolt,
   tickCinemaLightningBolts,
 } from './cinemaVfxUtils';
+import {
+  CinemaCastingTornado,
+  planCastingTornadoPaths,
+  sampleTornadoPath,
+  cinemaWindVector,
+} from './CinemaCastingTornado';
+import { CinemaFpsBudget, type FpsBudgetState } from './CinemaFpsBudget';
 
 export {
   LEVIATHAN_BATTLE_DURATION_SEC as LEVIATHAN_CINEMA_DURATION_SEC,
@@ -596,10 +603,15 @@ export class LeviathanOceanCinema {
   private ragdollVel = new THREE.Vector3();
   private leviPathSmooth = 1.8;
   /**
-   * Cyclone lifecycle: spawn tiny in water → grow → advance on ship → wind-burst kill.
+   * Cyclone lifecycle: casting-abilities GPU funnels (AI path) → wind-burst kill.
+   * Source look: https://casting-abilities-threejs.vercel.app wind/tornado shells.
    */
   private cycloneActors: Array<{
     root: THREE.Object3D;
+    casting?: CinemaCastingTornado;
+    /** AI path ship-ward (world samples) */
+    path: THREE.Vector3[];
+    pathU: number;
     baseScale: number;
     grow: number;
     age: number;
@@ -608,6 +620,7 @@ export class LeviathanOceanCinema {
     ang: number;
     radius: number;
     spin: number;
+    aggressiveness: number;
   }> = [];
   private windBursts: Array<{
     pts: THREE.Points;
@@ -615,6 +628,11 @@ export class LeviathanOceanCinema {
     life: number;
     maxLife: number;
   }> = [];
+  /** Casting wind field (ocean + rain lean) */
+  private readonly windDir = new THREE.Vector3(1, 0, 0.35);
+  private fpsBudget: CinemaFpsBudget | null = null;
+  private fpsState: FpsBudgetState | null = null;
+  private lastAppliedDpr = 0;
   /** Open-water escape: ship flees +Z, leviathan trails (after fight starts) */
   private shipEscapeT = 0;
   private chaseOrigin = new THREE.Vector3(0, 0, 0);
@@ -642,14 +660,16 @@ export class LeviathanOceanCinema {
     this.cbs = cbs;
     this.stage = new CinemaStageGraph(false);
     this.cinemaQuality = resolveCinemaQuality();
-    // Budget table (smoother FPS without inventing a second cinema stack)
+    this.fpsBudget = new CinemaFpsBudget(this.cinemaQuality);
+    // Budget table — aim ~100 FPS; runtime EMA may step down post/DPR/rain
     const q = this.cinemaQuality;
-    const dprCap = q === 'high' ? 1.5 : q === 'medium' ? 1.25 : 1.0;
-    const shadowMap = q === 'high' ? 1536 : q === 'medium' ? 1024 : 512;
-    this.oceanSegs = q === 'high' ? 160 : q === 'medium' ? 112 : 80;
-    this.splashBudget = q === 'high' ? 520 : q === 'medium' ? 320 : 180;
-    this.rainCount = q === 'high' ? 1800 : q === 'medium' ? 900 : 400;
+    const dprCap = q === 'high' ? 1.35 : q === 'medium' ? 1.15 : 1.0;
+    const shadowMap = q === 'high' ? 1024 : q === 'medium' ? 768 : 512;
+    this.oceanSegs = q === 'high' ? 128 : q === 'medium' ? 96 : 72;
+    this.splashBudget = q === 'high' ? 420 : q === 'medium' ? 280 : 160;
+    this.rainCount = q === 'high' ? 1200 : q === 'medium' ? 700 : 320;
     const postQuality = q === 'high' ? 'high' : q === 'medium' ? 'medium' : 'low';
+    this.lastAppliedDpr = dprCap;
 
     this.reportLoad(0.02, 'Booting WebGL…');
 
@@ -1361,29 +1381,26 @@ export class LeviathanOceanCinema {
         this.plantFishSchools(fishPack.root, fishPack.clips);
       }
 
-      if (tornado) {
-        this.tornadoRoot = tornado;
-        fitPropSpanM(tornado, CIN_TWISTER_H_M, 'y');
-        applyWaterCycloneLook(tornado, 0.55);
-        tornado.visible = false;
-        this.scene.add(tornado);
+      // Casting-abilities wind tornadoes (GPU shells) — primary; GLB optional hybrid underlay
+      {
         const bases = [1, 0.88, 0.78];
         this.cycloneActors = [];
         this.cycloneClones = [];
-        for (let i = 0; i < 3; i++) {
-          const c = i === 0 ? tornado : tornado.clone(true);
-          if (i > 0) {
-            applyWaterCycloneLook(c, 0.5);
-            fitPropSpanM(c, CIN_TWISTER_H_M * bases[i], 'y');
-            this.scene.add(c);
-            this.cycloneClones.push(c);
-          }
-          c.visible = false;
-          c.userData.__cycloneBaseScale =
-            (Math.abs(c.scale.x) + Math.abs(c.scale.y) + Math.abs(c.scale.z)) / 3 || 1;
+        const n = this.cinemaQuality === 'low' ? 2 : 3;
+        for (let i = 0; i < n; i++) {
+          const cast = new CinemaCastingTornado({
+            heightM: CIN_TWISTER_H_M * bases[i],
+            radiusM: 2.15 * bases[i],
+            quality: this.cinemaQuality,
+            water: true,
+          });
+          this.scene.add(cast.root);
           this.cycloneActors.push({
-            root: c,
-            baseScale: c.userData.__cycloneBaseScale as number,
+            root: cast.root,
+            casting: cast,
+            path: [],
+            pathU: 0,
+            baseScale: 1,
             grow: 0,
             age: 0,
             phase: 'idle',
@@ -1391,8 +1408,20 @@ export class LeviathanOceanCinema {
             ang: i * 2.1,
             radius: 18 + i * 4,
             spin: 2.2 + i * 0.35,
+            aggressiveness: 0.9 + i * 0.1,
           });
         }
+        console.info(
+          `[cinema] casting-abilities tornadoes x${n} (GPU funnel · AI path) quality=${this.cinemaQuality}`,
+        );
+      }
+      if (tornado) {
+        // Soft underlay GLB (hidden; casting GPU shells are the production look)
+        this.tornadoRoot = tornado;
+        fitPropSpanM(tornado, CIN_TWISTER_H_M * 0.55, 'y');
+        applyWaterCycloneLook(tornado, 0.28);
+        tornado.visible = false;
+        this.scene.add(tornado);
       }
       if (fluidPack?.root) {
         this.fluidSplash = fluidPack.root;
@@ -4470,29 +4499,40 @@ export class LeviathanOceanCinema {
     }
   }
 
-  /** Begin cyclone lifecycle: tiny on water, far from hull, then grow + drive in. */
+  /** Begin cyclone lifecycle: AI paths from levi cast → hull (casting-abilities look). */
   private spawnCycloneLifecycle(): void {
     this.twisterDead = false;
-    const ship = this.shipGroup.position;
+    const ship = this.shipGroup.position.clone();
+    const levi = this.leviathanRoot.position.clone();
+    const plans = planCastingTornadoPaths(
+      ship,
+      levi,
+      this.cycloneActors.length,
+      Math.floor(this.elapsed * 10) ^ 0x5f3759df,
+    );
     for (let i = 0; i < this.cycloneActors.length; i++) {
       const a = this.cycloneActors[i];
-      const ang = Math.PI * 0.35 + i * 2.15 + Math.random() * 0.4;
-      const dist = 22 + i * 5 + Math.random() * 3;
-      a.spawn.set(ship.x + Math.cos(ang) * dist, 0.02, ship.z + Math.sin(ang) * dist);
-      a.ang = ang;
-      a.radius = dist;
+      const plan = plans[i] ?? plans[0];
+      a.path = plan.path.map((p) => p.clone());
+      a.pathU = 0;
+      a.spawn.copy(plan.spawn);
+      a.ang = Math.atan2(plan.spawn.x - ship.x, plan.spawn.z - ship.z);
+      a.radius = plan.spawn.distanceTo(ship);
+      a.aggressiveness = plan.aggressiveness;
       a.grow = 0.04;
-      a.age = -i * 0.55;
+      a.age = -plan.delay;
       a.phase = 'spawn';
-      a.root.position.copy(a.spawn);
-      a.root.scale.setScalar(a.baseScale * 0.04);
+      a.root.position.copy(plan.spawn);
       a.root.visible = false;
-      a.root.rotation.set(0, ang, 0);
+      a.casting?.setGrow(0.04);
+      a.casting?.setAge(0);
     }
-    console.info('[cinema] cyclones spawn lifecycle x' + this.cycloneActors.length);
+    console.info(
+      '[cinema] casting tornadoes AI path x' + this.cycloneActors.length + ' (levi→hull)',
+    );
   }
 
-  /** Spawn → grow → advance on boat; materials spin via tickWaterCyclone. */
+  /** Spawn → grow → AI path advance; casting-abilities GPU shells + wind dust. */
   private updateTwisterMotion(dt: number): void {
     if (
       this.twisterDead &&
@@ -4503,6 +4543,8 @@ export class LeviathanOceanCinema {
     }
     this.twisterOrbitT += dt;
     const ship = this.shipGroup.position;
+    const lean = 0.4 + this.stormCur * 0.35;
+    const _pathPos = new THREE.Vector3();
     for (const a of this.cycloneActors) {
       if (a.phase === 'idle' || a.phase === 'dead') {
         if (a.phase === 'dead') a.root.visible = false;
@@ -4513,36 +4555,63 @@ export class LeviathanOceanCinema {
       a.root.visible = true;
 
       if (a.phase === 'spawn' || a.phase === 'grow') {
-        a.grow = Math.min(1, a.grow + dt * 0.36);
-        if (a.grow >= 0.55) a.phase = 'grow';
-        if (a.grow >= 0.98) a.phase = 'advance';
+        a.grow = Math.min(1, a.grow + dt * 0.42 * a.aggressiveness);
+        if (a.grow >= 0.5) a.phase = 'grow';
+        if (a.grow >= 0.96) a.phase = 'advance';
       }
 
-      const pull = a.phase === 'advance' ? 0.22 : 0.06;
-      a.radius = Math.max(3.5, a.radius - dt * (2.8 + pull * 8));
-      a.ang += dt * (0.45 + (1 - a.grow) * 0.2);
-      a.root.position.x = THREE.MathUtils.lerp(
-        a.root.position.x,
-        ship.x + Math.cos(a.ang) * a.radius,
-        Math.min(1, dt * 2.2),
-      );
-      a.root.position.z = THREE.MathUtils.lerp(
-        a.root.position.z,
-        ship.z + Math.sin(a.ang) * a.radius,
-        Math.min(1, dt * 2.2),
-      );
-      a.root.position.y = 0.04 + a.grow * 0.15;
-      const s = a.baseScale * (0.05 + a.grow * 0.95);
-      a.root.scale.setScalar(s);
-      a.root.rotation.y += dt * a.spin * (0.6 + a.grow);
+      // Advance along AI path (0→1), faster when fully grown
+      if (a.path.length >= 2) {
+        const rate =
+          a.phase === 'advance'
+            ? 0.14 * a.aggressiveness
+            : a.phase === 'grow'
+              ? 0.05
+              : 0.02;
+        a.pathU = Math.min(1, a.pathU + dt * rate);
+        sampleTornadoPath(a.path, a.pathU, _pathPos);
+        // Soft track toward path sample so ship escape still reads
+        a.root.position.x = THREE.MathUtils.lerp(a.root.position.x, _pathPos.x, Math.min(1, dt * 3.2));
+        a.root.position.z = THREE.MathUtils.lerp(a.root.position.z, _pathPos.z, Math.min(1, dt * 3.2));
+        a.root.position.y = 0.04 + a.grow * 0.12;
+        // Nudge end of path toward live ship so chase stays locked
+        if (a.pathU > 0.65 && a.path.length) {
+          const end = a.path[a.path.length - 1];
+          end.x = THREE.MathUtils.lerp(end.x, ship.x, dt * 0.8);
+          end.z = THREE.MathUtils.lerp(end.z, ship.z, dt * 0.8);
+        }
+      } else {
+        // Fallback spiral if plan missing
+        a.radius = Math.max(3.5, a.radius - dt * 4.5);
+        a.ang += dt * 0.5;
+        a.root.position.x = ship.x + Math.cos(a.ang) * a.radius;
+        a.root.position.z = ship.z + Math.sin(a.ang) * a.radius;
+        a.root.position.y = 0.04 + a.grow * 0.12;
+      }
+
+      if (a.casting) {
+        a.casting.setGrow(a.grow);
+        a.casting.update(dt, lean);
+      } else {
+        const s = a.baseScale * (0.05 + a.grow * 0.95);
+        a.root.scale.setScalar(s);
+        a.root.rotation.y += dt * a.spin * (0.6 + a.grow);
+      }
 
       if (a.phase === 'kill') {
-        a.grow = Math.max(0, a.grow - dt * 2.8);
-        a.root.scale.setScalar(a.baseScale * Math.max(0.02, a.grow));
-        a.root.position.y += dt * 2.5;
-        if (a.grow <= 0.05) {
-          a.phase = 'dead';
-          a.root.visible = false;
+        if (a.casting) {
+          if (a.casting.kill(dt)) {
+            a.phase = 'dead';
+            a.root.visible = false;
+          }
+        } else {
+          a.grow = Math.max(0, a.grow - dt * 2.8);
+          a.root.scale.setScalar(a.baseScale * Math.max(0.02, a.grow));
+          a.root.position.y += dt * 2.5;
+          if (a.grow <= 0.05) {
+            a.phase = 'dead';
+            a.root.visible = false;
+          }
         }
       }
     }
@@ -4614,6 +4683,8 @@ export class LeviathanOceanCinema {
     for (const a of this.cycloneActors) {
       if (a.phase === 'idle' || a.phase === 'dead') continue;
       a.phase = 'kill';
+      // Push casting shader into rope-out age
+      a.casting?.setAge(0.72);
       this.spawnWindBurst(a.root.position.clone().add(new THREE.Vector3(0, 1.2 * a.grow, 0)));
     }
     this.twisterDead = true;
@@ -5057,6 +5128,11 @@ export class LeviathanOceanCinema {
 
   private tickInner(): void {
     const dt = Math.min(0.05, this.clock.getDelta());
+    // ~100 FPS adaptive budget (DPR / post / rain / lightning)
+    if (this.fpsBudget && this.ready) {
+      this.fpsState = this.fpsBudget.sample(dt);
+      this.applyFpsBudget(this.fpsState);
+    }
     if (this.bootFailed) {
       this.renderer.setClearColor(0x060a10, 1);
       this.renderer.clear();
@@ -5072,7 +5148,19 @@ export class LeviathanOceanCinema {
     const { idx, beat } = battleBeatAt(this.elapsed);
     if (idx !== this.beatIdx) this.applyBeat(idx);
 
-    // Storm — OceanShader uniforms (Gerstner liquid)
+    // Casting wind field → ocean + rain lean
+    const activeCyclones = this.cycloneActors.filter(
+      (c) => c.phase !== 'idle' && c.phase !== 'dead' && c.root.visible,
+    ).length;
+    cinemaWindVector(
+      this.stormCur,
+      activeCyclones,
+      this.shipGroup.position,
+      this.leviathanRoot.position,
+      this.windDir,
+    );
+
+    // Storm — OceanShader uniforms (Gerstner liquid + wind)
     this.stormCur += ((beat.storm ?? 0.5) - this.stormCur) * Math.min(1, dt * 1.5);
     if (this.waterMat) {
       this.waterMat.uniforms.uTime.value = this.elapsed;
@@ -5080,20 +5168,43 @@ export class LeviathanOceanCinema {
         this.waterMat.uniforms.uStormIntensity.value = this.stormCur;
       }
       if (this.waterMat.uniforms.uWaveHeight) {
-        // Base Gerstner height; +50% while water twisters are active
-        const baseH = 1.1 + this.stormCur * 0.9;
+        // Base Gerstner height; +40% while water twisters are active (was 50 — FPS)
+        const baseH = 1.05 + this.stormCur * 0.85;
         const twistersUp =
           !this.twisterDead && (!!beat.tornado || !!beat.whirlpools);
-        this.waterMat.uniforms.uWaveHeight.value = baseH * (twistersUp ? 1.5 : 1);
+        this.waterMat.uniforms.uWaveHeight.value = baseH * (twistersUp ? 1.4 : 1);
       }
       if (this.waterMat.uniforms.uWindStrength) {
-        this.waterMat.uniforms.uWindStrength.value = 8 + this.stormCur * 14;
+        this.waterMat.uniforms.uWindStrength.value =
+          8 + this.stormCur * 14 + activeCyclones * 2.5;
+      }
+      if (this.waterMat.uniforms.uWindDirection) {
+        this.waterMat.uniforms.uWindDirection.value.set(
+          this.windDir.x,
+          0,
+          this.windDir.z,
+        ).normalize();
       }
     }
-    // Rain follows boat; density via storm
+    // Rain follows boat; density via storm × FPS budget
     if (this.rain) {
       this.rain.visible = this.stormCur > 0.28 && (beat.underwater ?? 0) < 0.45;
       tickCinemaRain(this.rain, dt, this.stormCur, this.shipGroup.position);
+      // Wind lean on rain (WebGL points — cheap)
+      if (this.rain.visible) {
+        const attr = this.rain.geometry.getAttribute('position') as THREE.BufferAttribute;
+        if (attr) {
+          const arr = attr.array as Float32Array;
+          const wx = this.windDir.x * dt * 3.5;
+          const wz = this.windDir.z * dt * 3.5;
+          for (let i = 0; i < arr.length; i += 9) {
+            // Subsample every 3rd drop for budget
+            arr[i] += wx;
+            arr[i + 2] += wz;
+          }
+          attr.needsUpdate = true;
+        }
+      }
     }
     // Dynamic chaos: lightning from early storm → heavy under breach
     this.flash *= Math.exp(-dt * 4.2);
@@ -5105,8 +5216,9 @@ export class LeviathanOceanCinema {
         (s > 0.75 ? 0.95 : s > 0.55 ? 0.55 : s > 0.35 ? 0.38 : s > 0.22 ? 0.18 : 0);
       if (s > 0.22 && Math.random() < dt * rate * Math.max(s, 0.3)) {
         this.flash = 0.42 + Math.random() * 0.48 + (wantSky ? 0.12 : 0);
-        // Visual bolt (not just light) when skyLightning or high storm
-        if (wantSky || s > 0.55) {
+        // Visual bolt (not just light) when skyLightning or high storm — skip under FPS pressure
+        const allowBolt = this.fpsState?.allowLightningBolt !== false;
+        if (allowBolt && (wantSky || s > 0.55)) {
           const from = this.shipGroup.position
             .clone()
             .add(
@@ -5287,10 +5399,8 @@ export class LeviathanOceanCinema {
       this.leviForward,
       this.leviSpeedMps,
     );
-    // Water cyclones — foam UV spin (per active actor)
-    for (const a of this.cycloneActors) {
-      if (a.root.visible) tickWaterCyclone(a.root, dt, this.elapsed);
-    }
+    // Casting-abilities funnels tick inside updateTwisterMotion; GLB underlay optional
+    if (this.tornadoRoot?.visible) tickWaterCyclone(this.tornadoRoot, dt, this.elapsed);
 
     // 0) Per-mage phase machines (idle/walk/cast staggered) + face levi + audio tick
     this.tickMageCycles(dt, beat);
@@ -5494,6 +5604,29 @@ export class LeviathanOceanCinema {
     return this.ready;
   }
 
+  /**
+   * Apply ~100 FPS adaptive knobs (DPR, post quality, rain opacity scale).
+   * Never raises above boot quality; only steps down under pressure.
+   */
+  private applyFpsBudget(s: FpsBudgetState): void {
+    if (Math.abs(s.dprCap - this.lastAppliedDpr) > 0.04) {
+      this.lastAppliedDpr = s.dprCap;
+      const w = Math.max(2, this.host.clientWidth);
+      const h = Math.max(2, this.host.clientHeight);
+      this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, s.dprCap));
+      this.renderer.setSize(w, h, false);
+      this.post?.resize(w, h);
+    }
+    if (this.post && this.post.getQuality() !== s.postQuality) {
+      this.post.setQuality(s.postQuality);
+    }
+    if (this.rain) {
+      const mat = this.rain.material as THREE.PointsMaterial;
+      // Base opacity still set in tickCinemaRain; scale under pressure
+      mat.opacity = Math.min(mat.opacity, 0.18 + this.stormCur * 0.62) * s.rainScale;
+    }
+  }
+
   /** Gate mute toggle — stops BGM/SFX stems. */
   setAudioMuted(muted: boolean): void {
     this.sceneAudio.setMuted(muted);
@@ -5582,6 +5715,11 @@ export class LeviathanOceanCinema {
     this.fishMixers = [];
     for (const c of this.cycloneClones) this.scene.remove(c);
     this.cycloneClones = [];
+    for (const a of this.cycloneActors) {
+      a.casting?.dispose();
+      if (a.casting) this.scene.remove(a.casting.root);
+      else this.scene.remove(a.root);
+    }
     this.cycloneActors = [];
     for (const b of this.windBursts) {
       this.scene.remove(b.pts);

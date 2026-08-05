@@ -64,9 +64,9 @@ export const STORM_SHIP_INTRO: ProductionIntroDef = {
   durationMs: 56_000,
   cutBeforeOverboard: true,
   notes:
-    'Engine: LeviathanOceanCinema.ts v22 · stage SSOT leviathanCinemaStage · PostProcessing · CinemaBoxSystems · ' +
-    'cinemaGrudge6 ORC_Characters · LeviathanDragonBeamVfx · deck pathfind. ' +
-    'PURGED: voxel boats, western-kingdoms packs, toy water, lookAt tumble, TI/mp4 primary gate.',
+    'Engine: LeviathanOceanCinema.ts v24 · stage SSOT leviathanCinemaStage · PostProcessing · CinemaFpsBudget(~100fps) · ' +
+    'CinemaCastingTornado (casting-abilities-threejs wind GPU funnel + AI path) · cinemaGrudge6 ORC · deck pathfind. ' +
+    'PURGED: voxel boats, toy water, lookAt tumble, TI/mp4 primary gate.',
 };
 
 /** Alias for docs / gates */
@@ -171,8 +171,8 @@ export const AFTER_INTRO_DESTINATIONS: Array<{
 ];
 
 /** Bump when cinema cut changes so players re-see the battle */
-export const INTRO_SESSION_KEY = 'grudge_shipwreck_intro_seen_v23';
-export const INTRO_OPTIONS_KEY = 'grudge_island3d_intro_options_v23';
+export const INTRO_SESSION_KEY = 'grudge_shipwreck_intro_seen_v24';
+export const INTRO_OPTIONS_KEY = 'grudge_island3d_intro_options_v24';
 
 export interface Island3dIntroOptions {
   /** Play leviathan cinema on visit when not yet seen */
