@@ -274,6 +274,29 @@ export class MultiCameraDirector {
     this.cut = false;
   }
 
+  /**
+   * Continuous soft track for ship-linked / subject-follow cams.
+   * Updates destination every frame WITHOUT restarting the blend (unlike setTarget('blend')).
+   * When settled, both ends lock to the live pose so evaluate() rides the ship smoothly.
+   */
+  followTo(
+    pos: [number, number, number],
+    look: [number, number, number],
+    fov: number,
+  ): void {
+    this.to.pos.set(...pos);
+    this.to.look.set(...look);
+    this.to.fov = fov;
+    if (this.blend >= 1 || this.cut) {
+      this.from.pos.copy(this.to.pos);
+      this.from.look.copy(this.to.look);
+      this.from.fov = this.to.fov;
+      this.blend = 1;
+      this.cut = false;
+    }
+    // Mid-blend: only `to` moves — camera eases toward the live ship pose
+  }
+
   /** Hit impact — FOV punch + camera Y pop (beam / pinata / roar). */
   impact(fovKick = 5, yPop = 0.45): void {
     this.impactFov = Math.max(this.impactFov, fovKick);
