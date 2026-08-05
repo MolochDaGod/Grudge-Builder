@@ -484,10 +484,12 @@ export const CIN_CAST_ASSETS = {
    * Stock leviathan.glb is mesh fallback only.
    */
   leviathan: [
-    '/models/cinema/sladania.glb',
-    '/models/cinema/Sladania/Sladania.glb',
+    // Prefer staged leviathan (always in public/) — Sladania optional when present
     '/models/cinema/leviathan.glb',
     'https://assets.grudge-studio.com/models/cinema/leviathan.glb',
+    '/models/cinema/sladania.glb',
+    '/models/cinema/Sladania/Sladania.glb',
+    'https://assets.grudge-studio.com/models/cinema/sladania.glb',
   ],
   /** Canonical RTS toon race kit only */
   humanRace: [

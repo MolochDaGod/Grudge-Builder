@@ -5,12 +5,13 @@
  * Requires a unique User-Agent per their ToS.
  */
 const POLY_HAVEN_USER_AGENT = 'GrudgeWarlords/1.0 (grudgewarlords.com)';
-const API_BASE = import.meta.env.DEV
-  ? 'https://api.polyhaven.com'
-  : '/api/polyhaven';
-const CDN_BASE = import.meta.env.DEV
-  ? 'https://dl.polyhaven.org'
-  : '/api/polyhaven-dl';
+/** Prefer same-origin proxy when present; always fall back to public Poly Haven (CORS OK). */
+const API_BASES = import.meta.env.DEV
+  ? (['https://api.polyhaven.com'] as const)
+  : (['/api/polyhaven', 'https://api.polyhaven.com'] as const);
+const CDN_BASES = import.meta.env.DEV
+  ? (['https://dl.polyhaven.org'] as const)
+  : (['/api/polyhaven-dl', 'https://dl.polyhaven.org'] as const);
 
 /** R2 mirror — run scripts/upload-polyhaven-lobby-textures.mjs */
 export const POLYHAVEN_R2_LOBBY_BASE =
@@ -64,21 +65,34 @@ type FilesResponse = Record<string, Record<PolyHavenResolution, Record<string, F
 const fileCache = new Map<string, FilesResponse>();
 
 function rewriteCdnUrl(url: string): string {
+  // Prefer direct Poly Haven CDN in production when proxy is missing (404 spam)
   if (import.meta.env.DEV) return url;
-  return url.replace('https://dl.polyhaven.org/', `${CDN_BASE}/`);
+  // Keep absolute dl.polyhaven.org — browser CORS allows texture loads
+  return url;
 }
 
 export async function fetchPolyHavenFiles(assetId: string): Promise<FilesResponse> {
   const cached = fileCache.get(assetId);
   if (cached) return cached;
 
-  const res = await fetch(`${API_BASE}/files/${assetId}`, {
-    headers: { 'User-Agent': POLY_HAVEN_USER_AGENT },
-  });
-  if (!res.ok) throw new Error(`Poly Haven files/${assetId}: ${res.status}`);
-  const data = (await res.json()) as FilesResponse;
-  fileCache.set(assetId, data);
-  return data;
+  let lastErr: Error | null = null;
+  for (const base of API_BASES) {
+    try {
+      const res = await fetch(`${base}/files/${assetId}`, {
+        headers: { 'User-Agent': POLY_HAVEN_USER_AGENT },
+      });
+      if (!res.ok) {
+        lastErr = new Error(`Poly Haven files/${assetId}: ${res.status} via ${base}`);
+        continue;
+      }
+      const data = (await res.json()) as FilesResponse;
+      fileCache.set(assetId, data);
+      return data;
+    } catch (e) {
+      lastErr = e instanceof Error ? e : new Error(String(e));
+    }
+  }
+  throw lastErr ?? new Error(`Poly Haven files/${assetId}: all endpoints failed`);
 }
 
 export function resolveMapUrl(
@@ -152,9 +166,15 @@ export async function searchPolyHavenTextures(opts: {
   if (opts.categories) params.set('categories', opts.categories);
   if (opts.tags) params.set('tags', opts.tags);
 
-  const res = await fetch(`${API_BASE}/assets?${params}`, {
-    headers: { 'User-Agent': POLY_HAVEN_USER_AGENT },
-  });
-  if (!res.ok) throw new Error(`Poly Haven assets search: ${res.status}`);
-  return res.json();
+  for (const base of API_BASES) {
+    try {
+      const res = await fetch(`${base}/assets?${params}`, {
+        headers: { 'User-Agent': POLY_HAVEN_USER_AGENT },
+      });
+      if (res.ok) return res.json();
+    } catch {
+      /* next */
+    }
+  }
+  throw new Error(`Poly Haven assets search failed`);
 }

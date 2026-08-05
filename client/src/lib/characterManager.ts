@@ -265,7 +265,13 @@ export const CharacterManager = {
       }
       return found;
     } catch (e) {
-      console.error("Failed to get active character", e);
+      // Guest / 401 is normal — default race mesh path uses forceDefault
+      const msg = e instanceof Error ? e.message : String(e);
+      if (/401|auth|unauthor/i.test(msg)) {
+        console.info("[CharacterManager] guest — no active character (auth required)");
+      } else {
+        console.warn("Failed to get active character", e);
+      }
       return null;
     }
   },

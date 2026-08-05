@@ -184,9 +184,27 @@ export function createWebGLPlayRenderer(
       powerPreference: "default",
     });
   }
+  // Guard: SMAA / programs read gl precision — null context = hard React crash
+  const gl = renderer.getContext?.() as WebGLRenderingContext | null;
+  if (!gl) {
+    try {
+      renderer.dispose();
+    } catch {
+      /* */
+    }
+    throw new Error(
+      "[renderBackend] WebGL context is null — canvas missing or GPU blocked",
+    );
+  }
   const maxPr = opts.maxPixelRatio ?? 1.5;
   if (typeof window !== "undefined") {
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, maxPr));
+  }
+  // Avoid 0×0 buffers (EffectComposer / SMAA precision crash)
+  const w = Math.max(1, opts.canvas?.clientWidth || 1);
+  const h = Math.max(1, opts.canvas?.clientHeight || 1);
+  if (w > 1 && h > 1) {
+    renderer.setSize(w, h, false);
   }
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;

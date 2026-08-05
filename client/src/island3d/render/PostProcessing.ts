@@ -144,6 +144,11 @@ export class PostProcessing {
   ) {
     this.quality = config.quality || 'medium';
 
+    // Hard require live GL — null context → "Cannot read properties of null (reading 'precision')"
+    if (!renderer?.getContext?.()) {
+      throw new Error('[PostProcessing] renderer has no WebGL context');
+    }
+
     // Prefer floating point buffer when available (less banding in darks)
     this.composer = new EffectComposer(renderer);
 
@@ -152,8 +157,8 @@ export class PostProcessing {
 
     const bloomPreset = PRESET_BLOOM[this.quality];
     const resolution = new THREE.Vector2(
-      Math.max(1, renderer.domElement.width),
-      Math.max(1, renderer.domElement.height),
+      Math.max(2, renderer.domElement.width || 2),
+      Math.max(2, renderer.domElement.height || 2),
     );
     this.bloomPass = new UnrealBloomPass(
       resolution,
@@ -164,8 +169,9 @@ export class PostProcessing {
     this.bloomPass.enabled = this.quality !== 'low';
     this.composer.addPass(this.bloomPass);
 
+    // SMAA needs real size + live GL; skip on low or broken size
     this.smaaPass = new SMAAPass(resolution.x, resolution.y);
-    this.smaaPass.enabled = this.quality !== 'low';
+    this.smaaPass.enabled = this.quality !== 'low' && resolution.x >= 2 && resolution.y >= 2;
     this.composer.addPass(this.smaaPass);
 
     this.filmPass = new ShaderPass(FilmGradeShader);

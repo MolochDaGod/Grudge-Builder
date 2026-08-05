@@ -209,104 +209,129 @@ export function Island3DRenderer({
     onStaminaChange: (stam, max) => setStamina01(max > 0 ? stam / max : 1),
   };
 
-  // Init engine
+  // Init engine — wait for non-zero layout (0×0 → WebGL precision crash)
   useEffect(() => {
     const canvas = canvasRef.current;
     const container = containerRef.current;
     if (!canvas || !container) return;
 
-    const width = container.clientWidth;
-    const height = container.clientHeight;
+    let cancelled = false;
+    let engine: Island3DEngine | null = null;
+    let raf = 0;
 
-    const engine = new Island3DEngine({
-      seed,
-      canvas,
-      width,
-      height,
-      multiplayer,
-      mode,
-      lobbyMapId,
-      sectorId,
-      worldSeed,
-      quality,
-      dayNight,
-      enableCharacter,
-      physicsCallbacks,
-      onLoadProgress: (pct) => {
-        setLoadProgress(pct);
-        sessionSend({ type: 'PROGRESS', progress: pct });
-      },
-      onHarvest: (evt) => onHarvestRef.current?.(evt),
-      accountId,
-      captainId: characterId ?? null,
-      mountainTriad,
-      rtsHeightmap,
-      rtsNatureScatter,
-      biome,
-      onDungeonEnter,
-      campPositionPercent,
-      regrowRegions,
-    });
-    engineRef.current = engine;
+    const mount = () => {
+      if (cancelled) return;
+      if (container.clientWidth < 2 || container.clientHeight < 2) {
+        raf = requestAnimationFrame(mount);
+        return;
+      }
+      const width = Math.max(2, container.clientWidth);
+      const height = Math.max(2, container.clientHeight);
 
-    engine.init()
-      .then(async () => {
-        setLoading(false);
-        setError(null);
-        sessionSend({ type: 'READY' });
-        engine.start();
-        // Savable build layout: account + island identity → restore props
-        try {
-          const accountId =
-            multiplayer?.accountId ||
-            (typeof localStorage !== 'undefined'
-              ? localStorage.getItem('grudge_account_id') || 'guest'
-              : 'guest');
-          const islandKey =
-            lobbyIslandId ||
-            sectorId ||
-            (mode === 'lobby' ? lobbyMapId || 'lobby' : seed) ||
-            'default';
-          engine.configureBuildSave({
-            accountId,
-            islandKey: String(islandKey),
-            seed,
-          });
-          const restored = await engine.loadSavedBuildLayout();
-          if (restored.placed > 0) {
-            console.info(
-              `[Island3D] Restored ${restored.placed} saved build props` +
-                (restored.skipped ? ` (${restored.skipped} skipped)` : ''),
-            );
-          }
-          if (editorMode) {
-            // Open-world editor: equip build hammer for placeables (units/siege/props)
-            void engine.setHarvestRadialTool('toolkit');
-          }
-        } catch (e) {
-          console.warn('[Island3D] build layout restore skipped', e);
-        }
-        setEngineReady(engine);
-        onEngineReady?.(engine);
-      })
-      .catch((err) => {
-        console.error('Island3D init failed:', err);
-        const msg = err instanceof Error ? err.message : 'Failed to initialize 3D island';
-        sessionSend({ type: 'FAIL', error: msg });
-        // Still try to start a partial scene if the engine constructed
-        try {
-          engine.start();
-          setEngineReady(engine);
-          onEngineReady?.(engine);
-        } catch {
-          /* ignore */
-        }
+      try {
+        engine = new Island3DEngine({
+          seed,
+          canvas,
+          width,
+          height,
+          multiplayer,
+          mode,
+          lobbyMapId,
+          sectorId,
+          worldSeed,
+          quality,
+          dayNight,
+          enableCharacter,
+          physicsCallbacks,
+          onLoadProgress: (pct) => {
+            setLoadProgress(pct);
+            sessionSend({ type: 'PROGRESS', progress: pct });
+          },
+          onHarvest: (evt) => onHarvestRef.current?.(evt),
+          accountId,
+          captainId: characterId ?? null,
+          mountainTriad,
+          rtsHeightmap,
+          rtsNatureScatter,
+          biome,
+          onDungeonEnter,
+          campPositionPercent,
+          regrowRegions,
+        });
+      } catch (err) {
+        console.error('Island3D construct failed:', err);
+        const msg = err instanceof Error ? err.message : 'WebGL failed';
         setError(msg);
         setLoading(false);
-      });
+        sessionSend({ type: 'FAIL', error: msg });
+        return;
+      }
+
+      engineRef.current = engine;
+
+      engine
+        .init()
+        .then(async () => {
+          if (cancelled || !engine) return;
+          setLoading(false);
+          setError(null);
+          sessionSend({ type: 'READY' });
+          engine.start();
+          try {
+            const accountId =
+              multiplayer?.accountId ||
+              (typeof localStorage !== 'undefined'
+                ? localStorage.getItem('grudge_account_id') || 'guest'
+                : 'guest');
+            const islandKey =
+              lobbyIslandId ||
+              sectorId ||
+              (mode === 'lobby' ? lobbyMapId || 'lobby' : seed) ||
+              'default';
+            engine.configureBuildSave({
+              accountId,
+              islandKey: String(islandKey),
+              seed,
+            });
+            const restored = await engine.loadSavedBuildLayout();
+            if (restored.placed > 0) {
+              console.info(
+                `[Island3D] Restored ${restored.placed} saved build props` +
+                  (restored.skipped ? ` (${restored.skipped} skipped)` : ''),
+              );
+            }
+            if (editorMode) {
+              void engine.setHarvestRadialTool('toolkit');
+            }
+          } catch (e) {
+            console.warn('[Island3D] build layout restore skipped', e);
+          }
+          setEngineReady(engine);
+          onEngineReady?.(engine);
+        })
+        .catch((err) => {
+          if (cancelled || !engine) return;
+          console.error('Island3D init failed:', err);
+          const msg = err instanceof Error ? err.message : 'Failed to initialize 3D island';
+          sessionSend({ type: 'FAIL', error: msg });
+          try {
+            engine.start();
+            setEngineReady(engine);
+            onEngineReady?.(engine);
+          } catch {
+            /* ignore */
+          }
+          setError(msg);
+          setLoading(false);
+        });
+    };
+
+    raf = requestAnimationFrame(() => requestAnimationFrame(mount));
 
     return () => {
-      engine.destroy();
+      cancelled = true;
+      cancelAnimationFrame(raf);
+      engine?.destroy();
       engineRef.current = null;
       setEngineReady(null);
     };
