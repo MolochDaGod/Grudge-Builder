@@ -386,13 +386,13 @@ export function StormShipIntroGate({
 
               <div className="rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-[10px] text-slate-500 space-y-1">
                 <p>
-                  <span className="text-cyan-400/90">Engine:</span> LeviathanOceanCinema v10 · film post · Box3 · Grudge6
+                  <span className="text-cyan-400/90">Engine:</span> LeviathanOceanCinema v22 · film post · Box3 · multiCam.followTo
                 </p>
                 <p>
-                  <span className="text-amber-400/90">Cast:</span> leviathan + 4 human mages + 1 human unarmed hero
+                  <span className="text-amber-400/90">Cast:</span> leviathan + 4 orc deck mages (~2.2 m) + throw hero
                 </p>
                 <p>
-                  <span className="text-rose-400/90">Kill list:</span> TI iframe · Stonewisp · intro.mp4 primary
+                  <span className="text-rose-400/90">Kill list:</span> TI iframe · Stonewisp · intro.mp4 primary · dual WebGL
                 </p>
               </div>
 

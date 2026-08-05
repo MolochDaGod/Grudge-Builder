@@ -1,80 +1,84 @@
-# Leviathan Ocean → Shipwreck Tutorial Cinema (v10 · film)
+# Leviathan Ocean → Shipwreck Tutorial Cinema (v23 · film)
 
 **Surface:** `https://client.grudge-studio.com/island-3d`  
 **Engine:** `client/src/island3d/intro/LeviathanOceanCinema.ts`  
-**Gate:** `StormShipIntroGate.tsx` (native canvas — **no TI iframe**)  
+**Gate:** `StormShipIntroGate.tsx` (native canvas — **no TI iframe / no intro.mp4**)  
 **Stage SSOT:** `shared/definitions/leviathanCinemaStage.ts`  
 **Battle script:** `client/src/island3d/intro/LeviathanBattleScript.ts`  
 **Spine IK:** `client/src/island3d/intro/CinemaSpineIk.ts`  
 **Film post:** `island3d/render/PostProcessing.ts` (bloom · SMAA · grade · vignette)  
 **Box3 SI:** `intro/CinemaBoxSystems.ts` (`?box3=1` helpers)  
-**Session key:** `grudge_shipwreck_intro_seen_v10`
+**Session key:** `grudge_shipwreck_intro_seen_v23`
 
-## Architecture (scripted battle best practices)
+## Architecture (scripted battle)
 
 1. **Positional UUIDs** — every pin (deck, levi path, cam eye/look, IK target, VFX) has a stable UUID in `CIN_UUID` / `LEVIATHAN_STAGE_LOCATIONS`.
 2. **Stage graph** — `CinemaStageGraph` builds empties named by UUID; actors snap *to* empties (no free-float XYZ in ticks).
 3. **Battle script** — `LEVIATHAN_BATTLE_SCRIPT` assigns per beat: `at` location, `lookAt` IK target, anim, timeScale, VFX flags.
 4. **Spine IK** — after `AnimationMixer.update`, `CinemaSpineIk` aims Bip001 Spine→Head at look targets (clamped yaw/pitch).
-5. **Multi-cam** — only `camEye` / `camLook` UUIDs drive the lens (camera sole owner).
+5. **Multi-cam** — sole camera owner via `MultiCameraDirector` (`setTarget` / `followTo` / `impact` / `evaluate`).
+
+## Helper inventory (do not invent parallel APIs)
+
+| Module | Owns | Required API |
+|--------|------|----------------|
+| `CinemaAnimDirector` | Mixer, fuzzy clips, rematch Bip001 | `play` · `getOrCreateAction` · `setActionWeight` · **`setActionTime`** · `setActionTimeScale` · `setCurrentName` · `seekTime` · `addClips` · `update` |
+| `MultiCameraDirector` | Virtual multi-cam blend | `setTarget` · **`followTo`** (ship-link, no blend restart) · `impact` · `setBlendSpeed` · `update` · `evaluate(handheld, timeSec?)` |
+| `LeviathanAnimController` | Levi swim/charge/roar | Uses director helpers above for charge scrub |
+| `CinemaDeckMages` | **`DECK_MAGE_SPECS` + `castHintsForVariant` only** | Runtime plant/tick stays in `LeviathanOceanCinema` (no dual mixer class in prod) |
+| `CinemaSceneAudio` | Beat BGM/SFX | `start` · `onBeat` · `tick` · `setMuted` · `dispose` |
+| `cinemaVfxUtils` | Rain / lightning | Soft-fail optional GLBs |
+
+### Historical missing-helper crashes (fixed)
+
+| Call site | Missing method | Symptom |
+|-----------|----------------|---------|
+| `LeviathanAnimController` | `setActionWeight` | tick error / T-pose weight fight |
+| `refreshShipLinkedCamera` | `followTo` | tick loop dead every frame |
+| `LeviathanAnimController.charge` | `setActionTime` | charge maw scrub no-op / silent fail if strict |
+
+## Surfaces (do not mix)
+
+| Surface | Engine | Video / TI? |
+|---------|--------|-------------|
+| `/island-3d?intro=1` | `StormShipIntroGate` → `LeviathanOceanCinema` | **Never** primary |
+| `/shipwreck-cinema` | Same native cinema page | No |
+| `/homeisland` End Game | `AbandonShipIntroGate` | TI/storyboard (separate product) |
+| `/island` legacy | `IslandCutscene` + `warlordsIntro` mp4 | **Legacy only** — not island-3d opener |
 
 ## Cast
 
-| Actor | Stage UUID keys | Asset |
-|-------|-----------------|-------|
-| Leviathan | `levi_swim_*` … `levi_breach` … | `/models/cinema/leviathan.glb` |
-| Mage 0–3 | `deck_mage_0` … `deck_mage_3` | WK mage → `WK_Characters.glb` |
-| Hero (throw) | `deck_hero` → `throw_apex` → `throw_end` | `WK_Characters.glb` unarmed |
-| Ship | `ship_origin` | CDN pirate ship |
+| Actor | Stage UUID keys | Asset / SI |
+|-------|-----------------|------------|
+| Leviathan | `levi_swim_*` … `levi_breach` … | `/models/cinema/leviathan.glb` · ~90 m LOA |
+| Mage 0–3 | `deck_mage_0` … `deck_mage_3` | ORC kit · **~2.2 m** |
+| Hero (throw) | `deck_hero` → throw path | unarmed · 1.8 m |
+| Ship | `ship_origin` | tz-pirate · ~36 m LOA |
 
-## Beat table (~56 s)
-
-| t | id | Levi at | Hero | IK focus |
-|--:|----|---------|------|----------|
-| 0 | establish | swim_a | deck | mages → levi head |
-| 3.5 | shadow | swim_b | deck | under cam |
-| 7 | wards | swim_b | brace | cast + rings |
-| 11 | surface | surface | brace | defend mouth |
-| 15 | cast_storm | cast | brace | attack |
-| 18.5 | roar_beam | beam | brace | **roar 0.42×** |
-| 24 | dive | dive | brace | shield defeat |
-| 27.5 | rise | rise | brace | attack 0.85× |
-| 31 | breach | breach | throw | pinata |
-| 35.5 | twenty_meters | watch | air / throw_end | **20 m** |
-| 40 | finisher | finisher | sink | attack |
-| 44–52 | black / logo / handoff | gone | hidden | logo |
-
-## QA (frontend SPA only)
+## QA
 
 ```
-# Full systems cinema page (replaces purged shipwreck-cinema-preview.html)
-http://127.0.0.1:5173/shipwreck-cinema
-http://127.0.0.1:5173/leviathan-cinema
-
-# island-3d production gate
+https://client.grudge-studio.com/island-3d?intro=1
+https://client.grudge-studio.com/shipwreck-cinema
 http://127.0.0.1:5173/island-3d?intro=1
-http://127.0.0.1:5173/island-3d?intro=shipwreck
-
-# Old standalone URL — hard redirect only, no video / empty canvas
-http://127.0.0.1:5173/shipwreck-cinema-preview.html  →  /shipwreck-cinema
-
-# after skip/complete:
-/tutorial?from=shipwreck-intro
+# seek combat: ?seek=29
+# SI helpers: ?box3=1
 ```
-
-### Staged local assets (`client/public/models/cinema/`)
-
-- `startingfalls.glb` / `.prod.glb` — **map backdrop** (SSOT: Desktop `startingfalls.glb`, staged local; span ~240 m behind fight; map WaterPlane hidden; cinema OceanShader owns near ocean)  
-
-- `leviathan.glb` · `magic-ring-yinyang-blue.glb` · `physics1_fluid.glb`  
-- `supernova-impact.prod.glb` · `megumin-explosion.prod.glb` · `smoke-rings.glb` · `tornado.prod.glb`  
-- Logo: `client/public/cinema/grudge-logo.jpeg`
 
 ## Kill list
 
 - TI iframe / Stonewisp / intro.mp4 as primary island-3d gate  
-- Standalone `shipwreck-cinema-preview.html` as the real cinema (redirect only)  
+- Dual WebGL contexts (defer Island3D until intro ends)  
+- Parallel `CinemaDeckMages` class owning production mixers  
 - Capsule-only cast when CDN available  
 - Free-float positions outside stage UUIDs  
-- Mixer after IK (order must be: mixer → spine IK)  
-- Orbit during cinema  
+- Mixer after IK (order: mixer → spine IK → camera)  
+- OrbitControls writing camera during cinema  
+- Calling helper methods that do not exist on `CinemaAnimDirector` / `MultiCameraDirector`  
+
+## Audit notes (v23)
+
+- Optional cinema GLBs (`ward-shield`, `fish-particle`, `ocean-floor`, …) soft-fail via `loadFirst` — not hard crashes.  
+- Guest `/api/*` 401s are expected without Grudge ID session.  
+- `Refused to set unsafe header Origin` = browser/Puter interceptor noise.  
+- Version chrome + docs aligned to **v23** (was stale v9/v10 labels).

@@ -1,11 +1,12 @@
 /**
- * CinemaDeckMages — four individual deck casters for LeviathanOceanCinema.
+ * CinemaDeckMages — deck caster SPECS + optional helper class.
  *
- * Each mage gets:
- *  - own AnimationDirector + phase clock (staggered, not sync)
- *  - idle → short walk → cast → idle loop
- *  - yaw face leviathan + spine IK (caller aims roster)
- *  - soft ragdoll impulse on pinata (not hard hide)
+ * SSOT ownership (do not invent a second deck system):
+ *  - **Runtime tick / plant / pathfind** live in `LeviathanOceanCinema`
+ *    (`tickMageCycles`, `plantDeckMages`, mageDirectors[]).
+ *  - **This file owns** `DECK_MAGE_SPECS`, phase types, and `castHintsForVariant`.
+ *  - `CinemaDeckMages` class is an optional bind/tick helper for previews/tests —
+ *    production intro does NOT instantiate it (avoids dual mixer ownership).
  *
  * HARD: never mesh.scale; root SI only at spawn. Mixer update BEFORE spine IK.
  */
@@ -115,7 +116,8 @@ export type DeckMageRuntime = {
   };
 };
 
-function castHintsForVariant(v: 0 | 1 | 2): string[] {
+/** Shared cast clip fuzzy list — used by LOC.tickMageCycles + optional class. */
+export function castHintsForVariant(v: 0 | 1 | 2): string[] {
   if (v === 0) {
     return ['2h_magic_attack_1', '2h_magic_attack', 'cast', '2h_cast', 'attack', 'combat'];
   }

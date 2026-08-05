@@ -1,13 +1,14 @@
 /**
- * LeviathanOceanCinema â€” production /island-3d movie intro (v10 Â· film post + Box3).
+ * LeviathanOceanCinema — production /island-3d movie intro (v22 · film post + Box3).
  *
  * HARD RULES:
- *  - 1 unit = 1 m · human 1.8 m · Box3 SI audit on every actor
- *  - 4 deck mages: Bip001 idle/cast/defend · ship-linked cam · chase escape · film handheld
+ *  - 1 unit = 1 m · orc mages ~2.2 m · human 1.8 m · Box3 SI audit on every actor
+ *  - 4 deck mages: Bip001 idle/cast/defend · ship-linked cam · deck pathfind · film handheld
  *  - Film post: PostProcessing (bloom + SMAA + grade + vignette) driven by beats
- *  - Ocean: production OceanShader Â· leather levi Â· water splash Â· water cyclones
- *  - Camera sole owner Â· impact FOV Â· letterbox gate Â· skippable handoff
- *  - Yaw-only facing â€” no lookAt tumble on carriers
+ *  - Ocean: production OceanShader · leather levi · water splash · water cyclones
+ *  - Camera sole owner (MultiCameraDirector setTarget/followTo/impact) · skippable handoff
+ *  - Yaw-only facing — no lookAt tumble on carriers
+ *  - NO intro.mp4 / TI iframe as primary gate (StormShipIntroGate only)
  */
 import * as THREE from 'three';
 import { loadGltfCached, cloneGltfScene } from '@/lib/three/SharedGltfPipeline';
@@ -47,7 +48,7 @@ import {
 import { CinemaStageGraph } from './CinemaStageGraph';
 import { CinemaSpineIkRoster } from './CinemaSpineIk';
 import { CinemaAnimDirector, MultiCameraDirector } from './CinemaAnimDirector';
-import { DECK_MAGE_SPECS, type DeckMageSpec } from './CinemaDeckMages';
+import { DECK_MAGE_SPECS, castHintsForVariant, type DeckMageSpec } from './CinemaDeckMages';
 import {
   LeviathanAnimController,
   LEVI_CHARGE_T0,
@@ -2638,13 +2639,7 @@ export class LeviathanOceanCinema {
             restart: true,
           });
         } else if (next === 'cast') {
-          const v = cy.spec.castVariant;
-          const castHints =
-            v === 0
-              ? ['cast', '2h_cast', '2h_magic_attack_1', 'attack', 'cast2']
-              : v === 1
-                ? ['cast2', '2h_magic_attack_2', '2h_cast', 'attack', 'cast']
-                : ['cast3', '2h_magic_attack_3', '2h_magic_attack_fallback', 'attack', 'cast'];
+          const castHints = castHintsForVariant(cy.spec.castVariant);
           dir.play(castHints, {
             fade: 0.2,
             loop: THREE.LoopOnce,

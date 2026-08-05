@@ -85,6 +85,7 @@ export class CinemaAnimDirector {
   /**
    * Get or create a mixer action for the first matching clip (levi multi-clip blend).
    * Does not auto-play — caller sets weight / loop / play.
+   * Re-enables the action if a prior setActionWeight(0) disabled it.
    */
   getOrCreateAction(hint: string | string[]): THREE.AnimationAction | null {
     const hints = Array.isArray(hint) ? hint : [hint];
@@ -95,33 +96,62 @@ export class CinemaAnimDirector {
       action = this.mixer.clipAction(clip);
       this.actions.set(clip.name, action);
     }
+    action.enabled = true;
     return action;
   }
 
   /**
    * Set effective weight on all actions matching any hint (fuzzy name includes).
    * Used by LeviathanAnimController to zero non-active families before blend.
+   * weight ≤ 0 disables; weight > 0 re-enables (fixes charge scrub after zero).
    */
   setActionWeight(hint: string | string[], weight: number): void {
     const hints = (Array.isArray(hint) ? hint : [hint]).map((h) => h.toLowerCase());
+    const w = THREE.MathUtils.clamp(weight, 0, 1);
     for (const [name, action] of this.actions) {
       const n = name.toLowerCase();
-      if (hints.some((h) => n.includes(h) || n === h)) {
-        action.setEffectiveWeight(weight);
-        if (weight <= 1e-4) {
-          action.enabled = false;
-        }
-      }
-    }
-    // Also ensure matching clips that were never played exist as zero-weight (no-op if missing)
-    for (const h of hints) {
-      const clip = this.findClip(h);
-      if (!clip) continue;
-      if (!this.actions.has(clip.name)) continue;
+      if (!hints.some((h) => n.includes(h) || n === h)) continue;
+      action.setEffectiveWeight(w);
+      action.enabled = w > 1e-4;
     }
   }
 
-  /** TimeScale for matching actions (swim/idle pace). */
+  /**
+   * Scrub matching actions to a clip-local time (seconds).
+   * Leviathan charge mode ping-pongs maw open window (LEVI_CHARGE_T0..T1).
+   * Creates the action if the clip exists but was never played.
+   */
+  setActionTime(hint: string | string[], time: number): void {
+    const hints = (Array.isArray(hint) ? hint : [hint]).map((h) => h.toLowerCase());
+    const touched = new Set<string>();
+
+    const scrub = (action: THREE.AnimationAction) => {
+      const d = action.getClip().duration;
+      action.time = d > 1e-4 ? THREE.MathUtils.clamp(time, 0, d) : 0;
+    };
+
+    for (const [name, action] of this.actions) {
+      const n = name.toLowerCase();
+      if (!hints.some((h) => n.includes(h) || n === h)) continue;
+      scrub(action);
+      touched.add(name);
+    }
+
+    // Ensure at least one matching clip is bound even if never played
+    for (const h of hints) {
+      const clip = this.findClip(h);
+      if (!clip || touched.has(clip.name)) continue;
+      let action = this.actions.get(clip.name);
+      if (!action) {
+        action = this.mixer.clipAction(clip);
+        this.actions.set(clip.name, action);
+      }
+      scrub(action);
+      break;
+    }
+  }
+
+  /** TimeScale for matching actions (swim/idle pace / frozen charge scrub). */
   setActionTimeScale(hint: string | string[], scale: number): void {
     const hints = (Array.isArray(hint) ? hint : [hint]).map((h) => h.toLowerCase());
     for (const [name, action] of this.actions) {
@@ -319,7 +349,11 @@ export class MultiCameraDirector {
     if (this.impactY < 0.01) this.impactY = 0;
   }
 
-  evaluate(handheld = 0): VirtualCam {
+  /**
+   * @param handheld  amplitude (m) of film shake
+   * @param timeSec   optional cinema clock (prefer elapsed over wall-clock so seek/replay is stable)
+   */
+  evaluate(handheld = 0, timeSec?: number): VirtualCam {
     const u = this.cut ? 1 : this.smooth(this.blend);
     const pos = new THREE.Vector3().lerpVectors(this.from.pos, this.to.pos, u);
     const look = new THREE.Vector3().lerpVectors(this.from.look, this.to.look, u);
@@ -328,7 +362,7 @@ export class MultiCameraDirector {
     fov += this.impactFov;
     pos.y += this.impactY;
     if (handheld > 0) {
-      const t = performance.now() * 0.001;
+      const t = timeSec ?? performance.now() * 0.001;
       pos.x += Math.sin(t * 2.1) * handheld;
       pos.y += Math.cos(t * 1.7) * handheld * 0.65;
       pos.z += Math.sin(t * 1.3) * handheld * 0.4;

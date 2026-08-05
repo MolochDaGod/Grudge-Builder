@@ -1,15 +1,17 @@
 /**
  * Production intro SSOT — do not mix destinations.
  *
- * 1) LEVIATHAN OCEAN / SHIPWRECK TUTORIAL (native Three.js · v9)
- *    LeviathanOceanCinema — SI scale · Grudge6 RTS toon · clock rings · force fields
- *    OceanShader · stage UUIDs · spine IK · 4 mages · unarmed throw · pinata explode
+ * 1) LEVIATHAN OCEAN / SHIPWRECK TUTORIAL (native Three.js · v22)
+ *    LeviathanOceanCinema — SI scale · Grudge6 orc deck · Gerstner ocean · film post
+ *    stage UUIDs · spine IK · 4 mages · unarmed throw · pinata explode
+ *    MultiCameraDirector (setTarget / followTo / impact) · CinemaAnimDirector helpers
  *    → default /tutorial?from=shipwreck-intro
  *
  * 2) OVERBOARD / DEATH FLOAT (legacy)
  *    → old home-island path (prefer abandon_ship)
  *
  * 3) ABANDON SHIP (End Game · level 20)
+ *    Still TI/storyboard gate (AbandonShipIntroGate) — not the ocean cinema.
  *    Cannon fire · ship sinks · all models jump off (no throw overboard)
  *    → /homeisland · home-island spawn
  *
@@ -17,6 +19,7 @@
  * Home island: https://client.grudge-studio.com/homeisland
  *
  * KILL LIST for island-3d: TI iframe, Stonewisp stand-in, intro.mp4 as primary.
+ * Legacy mp4 cutscene (IslandCutscene / warlordsIntro) is for /island only — not intro gate.
  */
 
 export type ProductionIntroVariant =
@@ -168,8 +171,8 @@ export const AFTER_INTRO_DESTINATIONS: Array<{
 ];
 
 /** Bump when cinema cut changes so players re-see the battle */
-export const INTRO_SESSION_KEY = 'grudge_shipwreck_intro_seen_v22';
-export const INTRO_OPTIONS_KEY = 'grudge_island3d_intro_options_v22';
+export const INTRO_SESSION_KEY = 'grudge_shipwreck_intro_seen_v23';
+export const INTRO_OPTIONS_KEY = 'grudge_island3d_intro_options_v23';
 
 export interface Island3dIntroOptions {
   /** Play leviathan cinema on visit when not yet seen */
