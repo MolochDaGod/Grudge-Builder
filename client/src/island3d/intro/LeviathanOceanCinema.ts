@@ -1115,10 +1115,11 @@ export class LeviathanOceanCinema {
       this.boxSys.register('leviathan', this.leviathan, CinemaBoxSystems.expectLevi(), 0xff6644);
     }
     for (let i = 0; i < this.deckMages.length; i++) {
+      // Deck cast is orc SI (CIN_ORC_M ~2.2), not human 1.8
       this.boxSys.register(
         `mage_${i}`,
         this.deckMages[i],
-        CinemaBoxSystems.expectHuman(),
+        { height: CIN_ORC_M, tol: 0.35 },
         0x88ffaa,
       );
     }
@@ -2536,9 +2537,10 @@ export class LeviathanOceanCinema {
       root.name = 'cinema_orc_mage_' + i;
       root.userData.cinemaRace = 'orc';
 
-      // SI already done in spawnCinemaHuman — only parent + plant feet
-      lockUniformScale(root);
+      // SI already done in spawnCinemaHuman — parent only; never re-scale mesh nodes
       lockUniformScale(pack.mesh);
+      // root must stay scale 1 so mesh SI isn't doubled under shipGroup
+      root.scale.set(1, 1, 1);
       root.visible = true;
       pack.mesh.visible = true;
 
@@ -2559,6 +2561,29 @@ export class LeviathanOceanCinema {
           );
           const dy = box.min.y - deckWorld.y;
           if (Math.abs(dy) > 0.001) pack.mesh.position.y -= dy;
+        }
+      }
+
+      // Final SI gate: structural height should be ~CIN_ORC_M (not 3.9m double-scale)
+      root.updateMatrixWorld(true);
+      {
+        const hBox = new THREE.Box3().setFromObject(root);
+        const h = hBox.max.y - hBox.min.y;
+        if (h > 2.9 || h < 1.5) {
+          const s = CIN_ORC_M / Math.max(h, 1e-3);
+          pack.mesh.scale.multiplyScalar(s);
+          lockUniformScale(pack.mesh);
+          root.updateMatrixWorld(true);
+          const b2 = new THREE.Box3().setFromObject(root);
+          if (Number.isFinite(b2.min.y)) {
+            const deckWorld = this.shipGroup.localToWorld(
+              new THREE.Vector3(root.position.x, slotDeckY, root.position.z),
+            );
+            pack.mesh.position.y -= b2.min.y - deckWorld.y;
+          }
+          console.warn(
+            `[cinema] orc_mage_${i} SI re-fit h=${h.toFixed(2)}→ target ${CIN_ORC_M}m scale*=${s.toFixed(3)}`,
+          );
         }
       }
 

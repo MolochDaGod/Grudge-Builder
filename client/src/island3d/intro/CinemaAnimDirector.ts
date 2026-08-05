@@ -2,8 +2,10 @@
  * CinemaAnimDirector — Three.js AnimationMixer helper for production cinemas.
  *
  * Crossfade, clamp, timeScale (slow-mo roar), fuzzy clip names.
+ * Clips are rematched onto the skeleton under `root` so Bip001 spaced vs underscore names bind.
  */
 import * as THREE from 'three';
+import { rematchClipToSkeleton } from './cinemaGrudge6';
 
 export type ClipPlayOpts = {
   fade?: number;
@@ -15,16 +17,19 @@ export type ClipPlayOpts = {
 
 export class CinemaAnimDirector {
   readonly mixer: THREE.AnimationMixer;
+  readonly root: THREE.Object3D;
   private clips = new Map<string, THREE.AnimationClip>();
   private actions = new Map<string, THREE.AnimationAction>();
   private current: string | null = null;
   private timeScale = 1;
 
-  constructor(root: THREE.Object3D, clips: THREE.AnimationClip[]) {
+  constructor(root: THREE.Object3D, clips: THREE.AnimationClip[], rematch = true) {
+    this.root = root;
     this.mixer = new THREE.AnimationMixer(root);
     for (const c of clips) {
-      this.clips.set(c.name, c);
-      this.clips.set(c.name.toLowerCase(), c);
+      const clip = rematch ? rematchClipToSkeleton(c.clone(), root) : c;
+      this.clips.set(clip.name, clip);
+      this.clips.set(clip.name.toLowerCase(), clip);
     }
   }
 
@@ -129,11 +134,12 @@ export class CinemaAnimDirector {
   /** Inject extra clips (e.g. CDN 2H magic attack pack) after construct. */
   addClips(clips: THREE.AnimationClip[], aliasPrefix?: string): void {
     for (const c of clips) {
-      this.clips.set(c.name, c);
-      this.clips.set(c.name.toLowerCase(), c);
+      const clip = rematchClipToSkeleton(c.clone(), this.root);
+      this.clips.set(clip.name, clip);
+      this.clips.set(clip.name.toLowerCase(), clip);
       if (aliasPrefix) {
-        this.clips.set(`${aliasPrefix}${c.name}`, c);
-        this.clips.set(`${aliasPrefix}${c.name.toLowerCase()}`, c);
+        this.clips.set(`${aliasPrefix}${clip.name}`, clip);
+        this.clips.set(`${aliasPrefix}${clip.name.toLowerCase()}`, clip);
       }
     }
   }

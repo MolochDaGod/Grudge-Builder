@@ -117,6 +117,85 @@ export function lockUniformScale(obj: THREE.Object3D): void {
   obj.scale.setScalar(u);
 }
 
+/** Normalize bone/track tokens for fuzzy match (spaces, underscores, case). */
+export function normBoneToken(s: string): string {
+  return String(s || '')
+    .toLowerCase()
+    .replace(/mixamorig\d*:/g, '')
+    .replace(/[:\s._\-]+/g, '');
+}
+
+/**
+ * Rematch clip tracks onto skeleton bone names under `root`.
+ * Fixes THREE.PropertyBinding "No target node found for track: Bip001 Pelvis.quaternion"
+ * when bake JSON uses spaced names and GLB uses underscores (or vice versa).
+ */
+export function rematchClipToSkeleton(
+  clip: THREE.AnimationClip,
+  root: THREE.Object3D,
+): THREE.AnimationClip {
+  const boneByNorm = new Map<string, string>();
+  root.traverse((o) => {
+    if (!o.name) return;
+    // Prefer actual Bone nodes; also index all named nodes (armature shells)
+    const isBone = (o as THREE.Bone).isBone === true || o.type === 'Bone';
+    const key = normBoneToken(o.name);
+    if (!key) return;
+    if (isBone || !boneByNorm.has(key)) boneByNorm.set(key, o.name);
+  });
+
+  if (!boneByNorm.size) {
+    console.warn('[cinemaGrudge6] rematchClip: no bones under root', root.name);
+    return clip;
+  }
+
+  const tracks: THREE.KeyframeTrack[] = [];
+  let hit = 0;
+  let miss = 0;
+  for (const t of clip.tracks) {
+    const dot = t.name.indexOf('.');
+    if (dot < 0) continue;
+    const bone = t.name.slice(0, dot);
+    const prop = t.name.slice(dot);
+    const actual = boneByNorm.get(normBoneToken(bone));
+    if (!actual) {
+      miss++;
+      continue;
+    }
+    hit++;
+    if (actual === bone) {
+      tracks.push(t);
+    } else {
+      const nt = t.clone();
+      nt.name = actual + prop;
+      tracks.push(nt);
+    }
+  }
+
+  if (!tracks.length) {
+    console.warn(
+      `[cinemaGrudge6] rematchClip "${clip.name}": 0 tracks matched (miss=${miss}) · bones≈${boneByNorm.size}`,
+    );
+    return clip;
+  }
+
+  const out = new THREE.AnimationClip(clip.name, clip.duration, tracks);
+  if (miss > 0) {
+    console.info(
+      `[cinemaGrudge6] rematchClip "${clip.name}": matched ${hit} dropped ${miss} · bones=${boneByNorm.size}`,
+    );
+  }
+  return out;
+}
+
+/** Rematch a list of clips for a skinned kit root (clone per root — don't mutate shared cache). */
+export function rematchClipsForRoot(
+  clips: THREE.AnimationClip[],
+  root: THREE.Object3D,
+): THREE.AnimationClip[] {
+  return clips.map((c) => rematchClipToSkeleton(c.clone(), root));
+}
+
 /** Yaw-only face toward world XZ target (preserves pitch/roll — needed for levi rise). */
 export function faceYawToward(obj: THREE.Object3D, target: THREE.Vector3, modelForward = 'z'): void {
   const dx = target.x - obj.position.x;

@@ -8,8 +8,8 @@
  * Prefix: cinloc_ (cinema location) · versioned stage id for session rebind.
  */
 
-export const LEVIATHAN_STAGE_ID = 'cin_stage_leviathan_ocean_v19' as const;
-export const LEVIATHAN_STAGE_VERSION = '19.0.0';
+export const LEVIATHAN_STAGE_ID = 'cin_stage_leviathan_ocean_v21' as const;
+export const LEVIATHAN_STAGE_VERSION = '21.0.0';
 
 /**
  * SI SSOT — 1 unit = 1 m.
@@ -509,9 +509,15 @@ export const CIN_CAST_ASSETS = {
     '/models/cinema/fireball-cast.glb',
     '/models/cinema/fireball.glb',
   ],
-  /** Mage spline projectile — purple/orange engine plume (not ball / not glyph) */
+  /**
+   * Mage spline projectile — prefer dedicated plume; fall back to staged VFX GLBs
+   * (procedural orbs used if all 404).
+   */
   magePlumeProjectile: [
     '/models/cinema/mage-plume-projectile.glb',
+    'https://assets.grudge-studio.com/models/cinema/mage-plume-projectile.glb',
+    '/models/cinema/ethereal-diodes.glb',
+    '/models/cinema/spinjitzu-whirl.glb',
   ],
   /**
    * USER SSOT (v17): tz-pirate-ship only.
@@ -573,10 +579,18 @@ export const CIN_CAST_ASSETS = {
     'https://assets.grudge-studio.com/models/cinema/tornado.prod.glb',
   ],
   /**
-   * Underwater set dressing (local staged from Documents):
-   *  - fish-particle.glb — school / particle fish (Documents/the_fish_particle.glb)
-   *  - ocean-floor-san-pedro.glb — seafloor (Documents/san_pedro_underwater_archaeological_preserve.glb)
+   * Underwater set dressing:
+   *  - fish-particle.glb optional
+   *  - seafloor: prefer san-pedro when staged; else startingfalls (already on ship) so 404 stops
    */
-  fishParticle: ['/models/cinema/fish-particle.glb'],
-  oceanFloor: ['/models/cinema/ocean-floor-san-pedro.glb'],
+  fishParticle: [
+    '/models/cinema/fish-particle.glb',
+    'https://assets.grudge-studio.com/models/cinema/fish-particle.glb',
+  ],
+  oceanFloor: [
+    '/models/cinema/ocean-floor-san-pedro.glb',
+    'https://assets.grudge-studio.com/models/cinema/ocean-floor-san-pedro.glb',
+    '/models/cinema/startingfalls.prod.glb',
+    'https://assets.grudge-studio.com/models/cinema/startingfalls.prod.glb',
+  ],
 } as const;
