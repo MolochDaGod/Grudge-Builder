@@ -1,7 +1,116 @@
 /**
  * Shared helpers for Leviathan ocean cinema VFX materials + SI fit.
+ * Also: storm rain points + lightning bolt flashes (lightweight, instanced-friendly).
  */
 import * as THREE from 'three';
+
+/** Procedural storm rain (Points) — quality-scaled count. */
+export function createCinemaRain(count: number): THREE.Points {
+  const n = Math.max(80, Math.min(count, 4000));
+  const geo = new THREE.BufferGeometry();
+  const pos = new Float32Array(n * 3);
+  for (let i = 0; i < n; i++) {
+    pos[i * 3] = (Math.random() - 0.5) * 90;
+    pos[i * 3 + 1] = Math.random() * 42;
+    pos[i * 3 + 2] = (Math.random() - 0.5) * 90;
+  }
+  geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  const mat = new THREE.PointsMaterial({
+    color: 0xb8d4ff,
+    size: 0.09,
+    sizeAttenuation: true,
+    transparent: true,
+    opacity: 0.45,
+    depthWrite: false,
+    blending: THREE.AdditiveBlending,
+    fog: false,
+  });
+  const pts = new THREE.Points(geo, mat);
+  pts.name = 'cinema_storm_rain';
+  pts.frustumCulled = false;
+  pts.renderOrder = 2;
+  return pts;
+}
+
+/** Advance rain streaks; follows ship XZ origin. */
+export function tickCinemaRain(
+  rain: THREE.Points | null,
+  dt: number,
+  storm: number,
+  origin: THREE.Vector3,
+): void {
+  if (!rain?.visible) return;
+  const attr = rain.geometry.getAttribute('position') as THREE.BufferAttribute;
+  if (!attr) return;
+  const arr = attr.array as Float32Array;
+  const speed = 16 + storm * 32;
+  const half = 42;
+  for (let i = 0; i < arr.length; i += 3) {
+    arr[i + 1] -= speed * dt * (0.65 + ((i / 3) % 5) * 0.08);
+    // Wind lean
+    arr[i] += dt * (2.5 + storm * 4);
+    if (arr[i + 1] < -1) {
+      arr[i] = origin.x + (Math.random() - 0.5) * half * 2;
+      arr[i + 1] = 12 + Math.random() * 28;
+      arr[i + 2] = origin.z + (Math.random() - 0.5) * half * 2;
+    }
+  }
+  attr.needsUpdate = true;
+  const mat = rain.material as THREE.PointsMaterial;
+  mat.opacity = THREE.MathUtils.clamp(0.18 + storm * 0.62, 0.12, 0.85);
+  mat.size = 0.06 + storm * 0.06;
+}
+
+/** Short-lived lightning bolt (line) for skyLightning beats. */
+export function spawnCinemaLightningBolt(
+  scene: THREE.Scene,
+  from: THREE.Vector3,
+  to: THREE.Vector3,
+): { root: THREE.Line; life: number } {
+  const pts: THREE.Vector3[] = [from.clone()];
+  const segs = 6;
+  for (let i = 1; i < segs; i++) {
+    const t = i / segs;
+    const p = from.clone().lerp(to, t);
+    p.x += (Math.random() - 0.5) * 3.5;
+    p.z += (Math.random() - 0.5) * 3.5;
+    p.y += (Math.random() - 0.5) * 1.2;
+    pts.push(p);
+  }
+  pts.push(to.clone());
+  const geo = new THREE.BufferGeometry().setFromPoints(pts);
+  const mat = new THREE.LineBasicMaterial({
+    color: 0xddeeff,
+    transparent: true,
+    opacity: 0.95,
+    depthWrite: false,
+    blending: THREE.AdditiveBlending,
+    toneMapped: false,
+  });
+  const line = new THREE.Line(geo, mat);
+  line.name = 'cinema_lightning_bolt';
+  line.frustumCulled = false;
+  scene.add(line);
+  return { root: line, life: 0.12 + Math.random() * 0.1 };
+}
+
+export function tickCinemaLightningBolts(
+  bolts: Array<{ root: THREE.Line; life: number }>,
+  dt: number,
+): void {
+  for (let i = bolts.length - 1; i >= 0; i--) {
+    const b = bolts[i];
+    b.life -= dt;
+    const mat = b.root.material as THREE.LineBasicMaterial;
+    mat.opacity = Math.max(0, b.life * 6);
+    if (b.life <= 0) {
+      b.root.parent?.remove(b.root);
+      b.root.geometry.dispose();
+      mat.dispose();
+      bolts.splice(i, 1);
+    }
+  }
+}
 
 /** Ocean-tint materials (deep/shallow) for whirlpools / translucent water FX */
 export function applyOceanTintMaterials(

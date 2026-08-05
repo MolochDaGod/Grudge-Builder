@@ -30,11 +30,11 @@ export default function ShipwreckCinemaPage() {
   const hostRef = useRef<HTMLDivElement>(null);
   const cinemaRef = useRef<LeviathanOceanCinema | null>(null);
   const [, navigate] = useLocation();
-  const [caption, setCaption] = useState('LOADING');
-  const [sub, setSub] = useState(
-    'Leviathan attack · ship destroy · wash-up on pirate-islands…',
-  );
+  const [caption, setCaption] = useState('');
+  const [sub, setSub] = useState('');
   const [progress, setProgress] = useState(0);
+  const [loadU, setLoadU] = useState(0);
+  const [loadStage, setLoadStage] = useState('Preparing cinema…');
   const [ready, setReady] = useState(false);
   const [canSkip, setCanSkip] = useState(false);
   const finished = useRef(false);
@@ -92,6 +92,10 @@ export default function ShipwreckCinemaPage() {
         setCaption(c || '…');
         setSub(s);
       },
+      onLoadProgress: (u, stage) => {
+        setLoadU(u);
+        setLoadStage(stage);
+      },
       onProgress: (u, t) => {
         setProgress(u);
         if (t >= LEVIATHAN_CINEMA_SKIPPABLE_AFTER_SEC) {
@@ -101,6 +105,7 @@ export default function ShipwreckCinemaPage() {
       },
       onReady: () => {
         setReady(true);
+        setLoadU(1);
         try {
           const q = new URLSearchParams(window.location.search);
           const seekRaw = q.get('seek') ?? q.get('t');
@@ -143,23 +148,40 @@ export default function ShipwreckCinemaPage() {
         <div ref={hostRef} className="absolute inset-0 w-full h-full" />
 
         {!ready && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 z-20 gap-3">
-            <div className="w-10 h-10 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin" />
-            <p className="text-sm text-cyan-200/90">
-              Loading leviathan attack · ship destroy systems…
-            </p>
-            <p className="text-[10px] text-slate-500 font-mono">{STAGE_ID}</p>
+          <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#04080f] z-20 px-6">
+            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_rgba(14,60,90,0.35)_0%,_transparent_65%)]" />
+            <div className="relative z-[1] w-full max-w-sm text-center">
+              <div className="text-[10px] uppercase tracking-[0.35em] text-cyan-500/90 font-semibold mb-2">
+                First voyage
+              </div>
+              <div className="font-cinzel text-2xl tracking-widest text-amber-100/95">
+                Leviathan Ocean
+              </div>
+              <div className="mt-8 h-1.5 rounded-full bg-white/10 overflow-hidden border border-white/5">
+                <div
+                  className="h-full rounded-full bg-gradient-to-r from-cyan-600 via-sky-400 to-amber-400 transition-[width] duration-300"
+                  style={{ width: `${Math.max(4, loadU * 100)}%` }}
+                />
+              </div>
+              <div className="mt-2 flex justify-between text-[10px] tabular-nums text-slate-500">
+                <span className="text-cyan-300/80 truncate max-w-[70%] text-left">{loadStage}</span>
+                <span>{Math.round(loadU * 100)}%</span>
+              </div>
+              <p className="text-[10px] text-slate-600 mt-4 font-mono">{STAGE_ID}</p>
+            </div>
           </div>
         )}
 
-        <div className="absolute bottom-0 left-0 right-0 h-1 bg-black/50 z-10">
-          <div
-            className="h-full bg-gradient-to-r from-cyan-600 to-amber-500"
-            style={{ width: `${progress * 100}%` }}
-          />
-        </div>
+        {ready && (
+          <div className="absolute bottom-0 left-0 right-0 h-1 bg-black/50 z-10">
+            <div
+              className="h-full bg-gradient-to-r from-cyan-600 to-amber-500"
+              style={{ width: `${progress * 100}%` }}
+            />
+          </div>
+        )}
 
-        {(caption || sub) && (
+        {ready && (caption || sub) && (
           <div className="absolute bottom-10 inset-x-0 z-10 flex justify-center px-4 pointer-events-none">
             <div className="rounded-xl border border-cyan-800/40 bg-black/75 backdrop-blur-md px-6 py-3 max-w-xl text-center">
               <div className="font-cinzel text-lg tracking-widest text-amber-200">{caption}</div>
@@ -168,7 +190,11 @@ export default function ShipwreckCinemaPage() {
           </div>
         )}
 
-        <div className="absolute top-3 left-3 right-3 z-20 flex justify-between gap-2 pointer-events-none">
+        <div
+          className={`absolute top-3 left-3 right-3 z-20 flex justify-between gap-2 pointer-events-none transition-opacity ${
+            ready ? 'opacity-100' : 'opacity-0'
+          }`}
+        >
           <div className="pointer-events-auto rounded-xl border border-cyan-800/40 bg-black/80 px-3 py-2 max-w-md">
             <div className="text-[10px] uppercase tracking-widest text-cyan-400 font-semibold">
               First voyage cinema

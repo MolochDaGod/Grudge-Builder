@@ -57,10 +57,13 @@ export function StormShipIntroGate({
   const [opts, setOpts] = useState<Island3dIntroOptions>(() => loadOptions());
   const [optionsOpen, setOptionsOpen] = useState(false);
   const [progress, setProgress] = useState(0);
-  const [caption, setCaption] = useState('WATERFALL ISLAND');
-  const [sub, setSub] = useState('Four human mages hold the deck…');
+  const [loadU, setLoadU] = useState(0);
+  const [loadStage, setLoadStage] = useState('Preparing cinema…');
+  const [caption, setCaption] = useState('');
+  const [sub, setSub] = useState('');
   const [canSkip, setCanSkip] = useState(false);
-  const [bootMsg, setBootMsg] = useState('Loading Three.js cinema…');
+  const [booting, setBooting] = useState(true);
+  const [fadeOutBoot, setFadeOutBoot] = useState(false);
   const hostRef = useRef<HTMLDivElement>(null);
   const cinemaRef = useRef<LeviathanOceanCinema | null>(null);
   const finishedRef = useRef(false);
@@ -109,19 +112,30 @@ export function StormShipIntroGate({
         return;
       }
 
-      setBootMsg('Loading leviathan · ship · startingfalls…');
+      setBooting(true);
+      setFadeOutBoot(false);
+      setLoadU(0.02);
+      setLoadStage('Mounting WebGL…');
 
       cinema = new LeviathanOceanCinema(host, {
         onCaption: (c, s) => {
           setCaption(c);
           setSub(s);
         },
+        onLoadProgress: (u, stage) => {
+          setLoadU(u);
+          setLoadStage(stage);
+        },
         onProgress: (u, t) => {
           setProgress(u);
           if (t >= LEVIATHAN_CINEMA_SKIPPABLE_AFTER_SEC) setCanSkip(true);
         },
         onReady: () => {
-          setBootMsg('');
+          setLoadU(1);
+          setLoadStage('Ready');
+          setFadeOutBoot(true);
+          // Smooth plate fade then unmount boot layer
+          window.setTimeout(() => setBooting(false), 480);
           // Apply gate mute preference once WebGL + audio bus exist
           cinema?.setAudioMuted(!!opts.mute);
           // QA: ?seek=29 or ?t=29 jumps to ward shatter / pinata review
@@ -188,28 +202,58 @@ export function StormShipIntroGate({
           data-cinema="leviathan-ocean"
         />
 
-        {/* Boot overlay while GLTF cast loads */}
-        {bootMsg && (
-          <div className="absolute inset-0 z-[5] flex flex-col items-center justify-center pointer-events-none">
-            <div className="text-cyan-300/90 text-sm tracking-widest uppercase font-semibold animate-pulse">
-              {bootMsg}
+        {/* Full-screen load plate — assets + GPU warm before play */}
+        {booting && (
+          <div
+            className={`absolute inset-0 z-[15] flex flex-col items-center justify-center bg-[#04080f] transition-opacity duration-500 ${
+              fadeOutBoot ? 'opacity-0 pointer-events-none' : 'opacity-100'
+            }`}
+            aria-busy="true"
+            aria-live="polite"
+          >
+            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_rgba(14,60,90,0.35)_0%,_transparent_65%)]" />
+            <div className="relative z-[1] flex flex-col items-center px-6 max-w-md w-full">
+              <div className="text-[10px] uppercase tracking-[0.35em] text-cyan-500/90 font-semibold mb-2">
+                Grudge · Production cinema
+              </div>
+              <div className="font-cinzel text-2xl md:text-3xl tracking-widest text-amber-100/95 text-center">
+                Leviathan Ocean
+              </div>
+              <p className="text-[12px] text-slate-400 mt-2 text-center leading-relaxed">
+                Preparing native Three.js cutscene — ship, storm, and cast.
+              </p>
+              {/* Load bar */}
+              <div className="mt-8 w-full max-w-xs">
+                <div className="h-1.5 rounded-full bg-white/10 overflow-hidden border border-white/5">
+                  <div
+                    className="h-full rounded-full bg-gradient-to-r from-cyan-600 via-sky-400 to-amber-400 transition-[width] duration-300 ease-out"
+                    style={{ width: `${Math.max(4, loadU * 100)}%` }}
+                  />
+                </div>
+                <div className="mt-2 flex justify-between text-[10px] tabular-nums text-slate-500">
+                  <span className="text-cyan-300/80 truncate max-w-[70%]">{loadStage}</span>
+                  <span>{Math.round(loadU * 100)}%</span>
+                </div>
+              </div>
+              <p className="text-[10px] text-slate-600 mt-6 text-center">
+                Timeline starts after shaders warm · smoother first frames
+              </p>
             </div>
-            <p className="text-[11px] text-slate-500 mt-2 max-w-sm text-center">
-              Native Three.js cutscene — not a video file. First load may take a few seconds (ship · levi · map).
-            </p>
           </div>
         )}
 
-        {/* Progress */}
-        <div className="absolute bottom-0 left-0 right-0 h-1 bg-black/50 z-10">
-          <div
-            className="h-full bg-gradient-to-r from-cyan-600 to-amber-500 transition-[width]"
-            style={{ width: `${progress * 100}%` }}
-          />
-        </div>
+        {/* Beat progress (after ready) */}
+        {!booting && (
+          <div className="absolute bottom-0 left-0 right-0 h-1 bg-black/50 z-10">
+            <div
+              className="h-full bg-gradient-to-r from-cyan-600 to-amber-500 transition-[width]"
+              style={{ width: `${progress * 100}%` }}
+            />
+          </div>
+        )}
 
         {/* Caption plate */}
-        {(caption || sub) && (
+        {!booting && (caption || sub) && (
           <div className="absolute bottom-[10vh] inset-x-0 z-10 flex justify-center pointer-events-none px-4">
             <div className="rounded-xl border border-cyan-800/40 bg-black/70 backdrop-blur-md px-6 py-3 max-w-xl text-center">
               {caption && (
@@ -222,15 +266,19 @@ export function StormShipIntroGate({
           </div>
         )}
 
-        {/* Top chrome */}
-        <div className="absolute top-0 inset-x-0 z-10 flex items-start justify-between gap-2 p-3 pointer-events-none">
+        {/* Top chrome — hide during boot so load plate is clean */}
+        <div
+          className={`absolute top-0 inset-x-0 z-10 flex items-start justify-between gap-2 p-3 pointer-events-none transition-opacity duration-300 ${
+            booting ? 'opacity-0' : 'opacity-100'
+          }`}
+        >
           <div className="pointer-events-auto rounded-xl border border-cyan-800/40 bg-black/75 backdrop-blur-md px-3 py-2 max-w-sm">
             <div className="text-[10px] uppercase tracking-widest text-cyan-400/90 font-semibold">
-              Production Open · island-3d · v10 film · Grudge6
+              Production Open · island-3d · v22 film
             </div>
             <div className="text-sm text-white font-medium">Leviathan Ocean Battle</div>
             <div className="text-[10px] text-slate-400 mt-0.5">
-              ACES post · bloom · Box3 SI · dragon beam · letterbox
+              Adaptive quality · deck pathfind · letterbox
             </div>
             <div className="text-[9px] text-slate-500 mt-1">
               Captain {characterName}

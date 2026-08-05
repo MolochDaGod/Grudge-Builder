@@ -82,6 +82,12 @@ import {
 } from './LeviathanLookAndWater';
 import { CinemaBoxSystems } from './CinemaBoxSystems';
 import { CinemaSceneAudio } from './CinemaSceneAudio';
+import {
+  createCinemaRain,
+  tickCinemaRain,
+  spawnCinemaLightningBolt,
+  tickCinemaLightningBolts,
+} from './cinemaVfxUtils';
 
 export {
   LEVIATHAN_BATTLE_DURATION_SEC as LEVIATHAN_CINEMA_DURATION_SEC,
@@ -96,11 +102,37 @@ export const HERO_THROW_M = CIN_HERO_THROW_M;
 
 export type CinemaCallbacks = {
   onCaption?: (caption: string, sub: string) => void;
+  /** Beat timeline progress 0..1 after ready */
   onProgress?: (u: number, t: number) => void;
+  /**
+   * Asset/boot load 0..1 with stage label (gate loading screen).
+   * Fires before onReady; not the same as beat progress.
+   */
+  onLoadProgress?: (u: number, stage: string) => void;
   onBeat?: (idx: number, beat: CinBattleBeat) => void;
   onReady?: () => void;
   onComplete?: () => void;
 };
+
+/** Runtime quality for FPS — adaptive from device, override with ?cinemaQuality=low|medium|high */
+export type CinemaQuality = 'low' | 'medium' | 'high';
+
+function resolveCinemaQuality(): CinemaQuality {
+  if (typeof window === 'undefined') return 'medium';
+  try {
+    const q = new URLSearchParams(window.location.search).get('cinemaQuality');
+    if (q === 'low' || q === 'medium' || q === 'high') return q;
+  } catch {
+    /* ignore */
+  }
+  const cores = navigator.hardwareConcurrency || 4;
+  const mem = (navigator as Navigator & { deviceMemory?: number }).deviceMemory ?? 4;
+  const dpr = window.devicePixelRatio || 1;
+  const mobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
+  if (mobile || cores <= 4 || mem <= 4 || dpr >= 2.5) return 'low';
+  if (cores <= 6 || mem <= 6) return 'medium';
+  return 'high';
+}
 
 // â”€â”€ helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
@@ -592,10 +624,33 @@ export class LeviathanOceanCinema {
   private readonly shipSailUntilSec = 9.2;
   private shipSailActive = true;
 
+  /** Adaptive quality — shadows / ocean / post / DPR */
+  private cinemaQuality: CinemaQuality = 'high';
+  private splashBudget = 720;
+  private oceanSegs = 160;
+  private rainCount = 1200;
+  private rain: THREE.Points | null = null;
+  private lightningBolts: Array<{ root: THREE.Line; life: number }> = [];
+  private flashLight: THREE.PointLight | null = null;
+  /** Bootstrap hard-fail — stop throwing every frame */
+  private bootFailed = false;
+  private tickErrorCount = 0;
+
   constructor(host: HTMLElement, cbs: CinemaCallbacks = {}) {
     this.host = host;
     this.cbs = cbs;
     this.stage = new CinemaStageGraph(false);
+    this.cinemaQuality = resolveCinemaQuality();
+    // Budget table (smoother FPS without inventing a second cinema stack)
+    const q = this.cinemaQuality;
+    const dprCap = q === 'high' ? 1.5 : q === 'medium' ? 1.25 : 1.0;
+    const shadowMap = q === 'high' ? 1536 : q === 'medium' ? 1024 : 512;
+    this.oceanSegs = q === 'high' ? 160 : q === 'medium' ? 112 : 80;
+    this.splashBudget = q === 'high' ? 520 : q === 'medium' ? 320 : 180;
+    this.rainCount = q === 'high' ? 1800 : q === 'medium' ? 900 : 400;
+    const postQuality = q === 'high' ? 'high' : q === 'medium' ? 'medium' : 'low';
+
+    this.reportLoad(0.02, 'Booting WebGL…');
 
     // Post owns AA (SMAA) — disable MSAA for clean EffectComposer input
     this.renderer = new THREE.WebGLRenderer({
@@ -605,15 +660,23 @@ export class LeviathanOceanCinema {
       stencil: false,
       depth: true,
     });
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.75));
+    // Force a real framebuffer size before post (0×0 SMAA/composer = crash)
+    const bootW = Math.max(2, host.clientWidth || window.innerWidth || 1280);
+    const bootH = Math.max(2, host.clientHeight || window.innerHeight || 720);
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, dprCap));
+    this.renderer.setSize(bootW, bootH, false);
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
     // ACES on renderer; film grade (grain/chroma/vignette) sits after bloom+SMAA
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
     this.renderer.toneMappingExposure = 0.92;
-    this.renderer.shadowMap.enabled = true;
-    this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    this.renderer.shadowMap.enabled = q !== 'low';
+    // PCF only — BasicShadowMap edge-cases on some mobile WebGL
+    this.renderer.shadowMap.type =
+      q === 'high' ? THREE.PCFSoftShadowMap : THREE.PCFShadowMap;
+    this.renderer.info.autoReset = true;
     host.appendChild(this.renderer.domElement);
-    this.renderer.domElement.style.cssText = 'width:100%;height:100%;display:block';
+    this.renderer.domElement.style.cssText =
+      'width:100%;height:100%;display:block;opacity:0;transition:opacity .45s ease';
 
     // Background is fallback only — sky dome paints the night. Keep near dome horizon.
     this.scene.background = new THREE.Color(0x060a18);
@@ -628,17 +691,28 @@ export class LeviathanOceanCinema {
     const fill = new THREE.DirectionalLight(0x8866aa, 0.35);
     fill.position.set(-22, 18, -12);
     this.scene.add(fill);
-    this.dirLight.castShadow = true;
-    this.dirLight.shadow.mapSize.set(2048, 2048);
+    this.dirLight.castShadow = q !== 'low';
+    this.dirLight.shadow.mapSize.set(shadowMap, shadowMap);
     this.dirLight.shadow.camera.near = 0.5;
     this.dirLight.shadow.camera.far = 140;
-    this.scene.add(this.hemi, this.dirLight, this.dirLight.target);
+    // Lightning fill burst (storm only)
+    this.flashLight = new THREE.PointLight(0xc8d8ff, 0, 120, 2);
+    this.flashLight.position.set(0, 40, 0);
+    this.scene.add(this.hemi, this.dirLight, this.dirLight.target, this.flashLight);
 
-    this.buildStormSky();
-    this.buildWater();
+    this.reportLoad(0.06, 'Building ocean · night sky…');
+    try {
+      this.buildStormSky();
+      this.buildWater();
+      // Storm rain (liquid atmosphere) — scaled by quality
+      this.rain = createCinemaRain(this.rainCount);
+      this.scene.add(this.rain);
+    } catch (e) {
+      console.error('[cinema] env build soft-fail', e);
+    }
     this.scene.add(this.shipGroup, this.leviathanRoot);
 
-    // Box3 systems (SI + shadow domain) â€” helpers off in production
+    // Box3 systems (SI + shadow domain) — helpers off in production
     const debugBoxes =
       typeof window !== 'undefined' &&
       (new URLSearchParams(window.location.search).get('box3') === '1' ||
@@ -649,23 +723,40 @@ export class LeviathanOceanCinema {
     this.resizeObs.observe(host);
     this.resize();
 
-    // Film post AFTER first resize so composer has real dimensions
-    // high: bloom + SMAA + film grade (grain / chroma / soft vignette)
-    this.post = new PostProcessing(this.renderer, this.scene, this.camera, {
-      quality: 'high',
-      bloomStrength: 0.38,
-      bloomRadius: 0.5,
-      bloomThreshold: 0.78,
-      colorTint: -0.14,
-      vignetteIntensity: 0.38,
-      contrast: 1.07,
-      saturation: 1.04,
-      grain: 0.05,
-      chroma: 0.00085,
-    });
-    this.post.resize(this.host.clientWidth || 1, this.host.clientHeight || 1);
+    // Film post AFTER first valid size — never construct composer at 0×0
+    try {
+      this.post = new PostProcessing(this.renderer, this.scene, this.camera, {
+        quality: postQuality,
+        bloomStrength: q === 'low' ? 0.18 : q === 'medium' ? 0.32 : 0.42,
+        bloomRadius: 0.48,
+        bloomThreshold: q === 'low' ? 0.88 : 0.76,
+        colorTint: -0.14,
+        vignetteIntensity: 0.4,
+        contrast: 1.08,
+        saturation: 1.05,
+        grain: q === 'high' ? 0.048 : 0.028,
+        chroma: q === 'high' ? 0.0009 : 0.00045,
+      });
+      this.post.resize(bootW, bootH);
+    } catch (e) {
+      console.error('[cinema] PostProcessing failed — raw renderer path', e);
+      this.post = null;
+    }
+    console.info(
+      `[cinema] quality=${q} dpr≤${dprCap} shadow=${shadowMap} oceanSeg=${this.oceanSegs} splash=${this.splashBudget} rain=${this.rainCount} post=${postQuality}`,
+    );
+    // Quality viewer badge (ops / QA)
+    try {
+      (window as unknown as { __CINEMA_QUALITY__?: string }).__CINEMA_QUALITY__ = q;
+    } catch {
+      /* ignore */
+    }
 
     void this.bootstrap();
+  }
+
+  private reportLoad(u: number, stage: string): void {
+    this.cbs.onLoadProgress?.(THREE.MathUtils.clamp(u, 0, 1), stage);
   }
 
   /**
@@ -927,11 +1018,14 @@ export class LeviathanOceanCinema {
       uSunColor: { value: new THREE.Color(0xfff0d0) },
       uVisibility: { value: 0.85 },
     });
-    const geo = createOceanGeometry(320, 320, 192);
+    // Adaptive segments — dense 192×192 oceans tank FPS on mid devices
+    const geo = createOceanGeometry(320, 320, this.oceanSegs || 112);
     const mesh = new THREE.Mesh(geo, this.waterMat);
     mesh.position.copy(new THREE.Vector3(...cinPos('water_plane')));
-    mesh.receiveShadow = true;
+    mesh.receiveShadow = this.cinemaQuality !== 'low';
     mesh.name = 'cinema_ocean';
+    // Frustum cull ocean (was often left always-visible)
+    mesh.frustumCulled = true;
     this.scene.add(mesh);
   }
 
@@ -940,22 +1034,48 @@ export class LeviathanOceanCinema {
       await this.bootstrapInner();
     } catch (err) {
       console.error('[LeviathanOceanCinema] bootstrap failed', err);
-      // Still mark ready so the canvas is not stuck on "Loadingâ€¦"
+      this.bootFailed = true;
+      this.reportLoad(1, 'Boot error');
       this.ready = true;
+      try {
+        this.renderer.domElement.style.opacity = '1';
+      } catch {
+        /* ignore */
+      }
       this.cbs.onReady?.();
-      this.cbs.onCaption?.('BOOT ERROR', err instanceof Error ? err.message : String(err));
+      this.cbs.onCaption?.(
+        'BOOT ERROR',
+        err instanceof Error ? err.message : String(err),
+      );
+      // One safe loop — tick itself is try/catch; no rethrow flood
       if (!this.disposed) this.tick();
     }
   }
 
   private async bootstrapInner(): Promise<void> {
+    this.reportLoad(0.1, 'Fetching cast · ship · leviathan · map…');
     // CRITICAL: tz-pirate-ship only (user SSOT v17) + levi + map
-    const [shipTz, leviPack, foundation] = await Promise.all([
-      loadFirst(CIN_CAST_ASSETS.shipIntact ?? CIN_CAST_ASSETS.ship),
-      loadFirstWithClips(CIN_CAST_ASSETS.leviathan),
-      loadFirst(CIN_CAST_ASSETS.foundation),
-    ]);
+    // Stagger progress as each critical finishes so the load bar moves smoothly
+    let done = 0;
+    const mark = (label: string) => {
+      done += 1;
+      this.reportLoad(0.1 + (done / 3) * 0.35, label);
+    };
+    const shipP = loadFirst(CIN_CAST_ASSETS.shipIntact ?? CIN_CAST_ASSETS.ship).then((r) => {
+      mark('Ship hull ready');
+      return r;
+    });
+    const leviP = loadFirstWithClips(CIN_CAST_ASSETS.leviathan).then((r) => {
+      mark('Leviathan mesh ready');
+      return r;
+    });
+    const mapP = loadFirst(CIN_CAST_ASSETS.foundation).then((r) => {
+      mark('Horizon map ready');
+      return r;
+    });
+    const [shipTz, leviPack, foundation] = await Promise.all([shipP, leviP, mapP]);
     if (this.disposed) return;
+    this.reportLoad(0.48, 'Planting stage · SI fit…');
 
     if (foundation) {
       try {
@@ -1011,7 +1131,7 @@ export class LeviathanOceanCinema {
     applyLeatheryLeviathanLook(this.leviathan);
     applyLeviathanWaterlineSplit(this.leviathan);
     this.leviathanRoot.add(this.leviathan);
-    this.waterSplash = new LeviathanWaterSplash(this.scene, 720);
+    this.waterSplash = new LeviathanWaterSplash(this.scene, this.splashBudget);
     this.lastLeviPos.copy(this.leviathanRoot.position);
     this.stage.place(this.leviathanRoot, 'levi_hidden');
     // Deep + flat; Sladania swim clip at 0.5× while rising
@@ -1046,11 +1166,13 @@ export class LeviathanOceanCinema {
     );
 
     // 4 deck mages + hero (await so deck is populated before first frames)
+    this.reportLoad(0.62, 'Deck cast · orc mages…');
     try {
       await this.plantDeckMages();
     } catch (e) {
       console.warn('[cinema] deck mages plant failed', e);
     }
+    this.reportLoad(0.78, 'Warming shaders · audio…');
 
     // Legacy thin beam (fallback) — primary is LeviathanDragonBeamVfx
     this.fireBeam = new THREE.Mesh(
@@ -1090,14 +1212,23 @@ export class LeviathanOceanCinema {
     ]);
 
     console.info(
-      `[cinema v22] ready · TZ-PIRATE LOA${CIN_SHIP_LOA_M}m · levi ${CIN_LEVIATHAN_LOA_M}m · orc ${CIN_ORC_M}m · deck pathfind · stage=${LEVIATHAN_STAGE_VERSION}`,
+      `[cinema v22] ready · TZ-PIRATE LOA${CIN_SHIP_LOA_M}m · levi ${CIN_LEVIATHAN_LOA_M}m · orc ${CIN_ORC_M}m · deck pathfind · stage=${LEVIATHAN_STAGE_VERSION} · quality=${this.cinemaQuality}`,
     );
 
+    // GPU warm: compile materials + 2 dummy frames so first play frame isn't a hitch
+    this.reportLoad(0.88, 'Compiling materials…');
+    await this.warmGpu();
+    if (this.disposed) return;
+
+    this.reportLoad(0.97, 'Cue…');
     this.ready = true;
+    // Fade canvas in (loading plate fades out in the gate)
+    this.renderer.domElement.style.opacity = '1';
     // Audio bed + prefetch (autoplay may wait for first click — gate also unmutes)
     this.sceneAudio.start();
     // Beat 0 first, then onReady, then URL seek (SSOT for SPA + standalone HTML)
     this.applyBeat(0, true);
+    this.reportLoad(1, 'Ready');
     this.cbs.onReady?.();
     try {
       if (typeof window !== 'undefined') {
@@ -1111,9 +1242,35 @@ export class LeviathanOceanCinema {
     } catch {
       /* ignore */
     }
+    // Reset clock so timeline starts clean after load (no hitch in first second)
+    this.clock.getDelta();
     this.tick();
 
     void this.loadVfxBackground();
+  }
+
+  /**
+   * Compile shaders + draw a few frames while elapsed stays 0 (ready=false until after).
+   * Prevents first-frame stutter when the cut starts.
+   */
+  private async warmGpu(): Promise<void> {
+    try {
+      // three r185: compile full scene graph
+      this.renderer.compile(this.scene, this.camera);
+    } catch (e) {
+      console.warn('[cinema] compile soft-fail', e);
+    }
+    // 2 paint frames with post so EffectComposer programs warm too
+    for (let i = 0; i < 2; i++) {
+      if (this.disposed) return;
+      try {
+        if (this.post) this.post.render();
+        else this.renderer.render(this.scene, this.camera);
+      } catch {
+        /* ignore */
+      }
+      await new Promise<void>((r) => requestAnimationFrame(() => r()));
+    }
   }
 
   /** THREE.Box3 SI reports for ship / levi / cast (console + optional helpers). */
@@ -4890,7 +5047,26 @@ export class LeviathanOceanCinema {
   private tick = (): void => {
     if (this.disposed) return;
     this.raf = requestAnimationFrame(this.tick);
+    try {
+      this.tickInner();
+      this.tickErrorCount = 0;
+    } catch (e) {
+      this.tickErrorCount++;
+      if (this.tickErrorCount <= 2) {
+        console.error('[cinema] tick error (suppressed after 2)', e);
+      }
+      // Hard stop error flood — keep RAF but no-op after sustained failure
+      if (this.tickErrorCount > 12) this.bootFailed = true;
+    }
+  };
+
+  private tickInner(): void {
     const dt = Math.min(0.05, this.clock.getDelta());
+    if (this.bootFailed) {
+      this.renderer.setClearColor(0x060a10, 1);
+      this.renderer.clear();
+      return;
+    }
     if (!this.ready) {
       if (this.post) this.post.render();
       else this.renderer.render(this.scene, this.camera);
@@ -4901,7 +5077,7 @@ export class LeviathanOceanCinema {
     const { idx, beat } = battleBeatAt(this.elapsed);
     if (idx !== this.beatIdx) this.applyBeat(idx);
 
-    // Storm â€” OceanShader uniforms (uStormIntensity, not toy uStorm)
+    // Storm — OceanShader uniforms (Gerstner liquid)
     this.stormCur += ((beat.storm ?? 0.5) - this.stormCur) * Math.min(1, dt * 1.5);
     if (this.waterMat) {
       this.waterMat.uniforms.uTime.value = this.elapsed;
@@ -4915,25 +5091,62 @@ export class LeviathanOceanCinema {
           !this.twisterDead && (!!beat.tornado || !!beat.whirlpools);
         this.waterMat.uniforms.uWaveHeight.value = baseH * (twistersUp ? 1.5 : 1);
       }
+      if (this.waterMat.uniforms.uWindStrength) {
+        this.waterMat.uniforms.uWindStrength.value = 8 + this.stormCur * 14;
+      }
     }
-    // Dynamic chaos: lightning from early storm (intro tension) → heavy under breach
+    // Rain follows boat; density via storm
+    if (this.rain) {
+      this.rain.visible = this.stormCur > 0.28 && (beat.underwater ?? 0) < 0.45;
+      tickCinemaRain(this.rain, dt, this.stormCur, this.shipGroup.position);
+    }
+    // Dynamic chaos: lightning from early storm → heavy under breach
     this.flash *= Math.exp(-dt * 4.2);
     {
       const s = this.stormCur;
       const wantSky = !!beat.skyLightning;
-      // Rate scales with storm; skyLightning flag spikes intro chaos
       const rate =
         (wantSky ? 1.35 : 1) *
         (s > 0.75 ? 0.95 : s > 0.55 ? 0.55 : s > 0.35 ? 0.38 : s > 0.22 ? 0.18 : 0);
       if (s > 0.22 && Math.random() < dt * rate * Math.max(s, 0.3)) {
         this.flash = 0.42 + Math.random() * 0.48 + (wantSky ? 0.12 : 0);
+        // Visual bolt (not just light) when skyLightning or high storm
+        if (wantSky || s > 0.55) {
+          const from = this.shipGroup.position
+            .clone()
+            .add(
+              new THREE.Vector3(
+                (Math.random() - 0.5) * 40,
+                28 + Math.random() * 18,
+                (Math.random() - 0.5) * 40,
+              ),
+            );
+          const to = this.shipGroup.position
+            .clone()
+            .add(
+              new THREE.Vector3(
+                (Math.random() - 0.5) * 18,
+                0.5,
+                (Math.random() - 0.5) * 18,
+              ),
+            );
+          this.lightningBolts.push(spawnCinemaLightningBolt(this.scene, from, to));
+        }
       }
-      // Occasional double-flash (production storm chaos)
       if (this.flash > 0.55 && Math.random() < dt * 2.5) {
         this.flash = Math.min(1.15, this.flash + 0.25);
       }
     }
+    tickCinemaLightningBolts(this.lightningBolts, dt);
     this.dirLight.intensity = 0.72 + this.flash * 2.4 + this.stormCur * 0.08;
+    if (this.flashLight) {
+      this.flashLight.intensity = this.flash * 48;
+      this.flashLight.position.set(
+        this.shipGroup.position.x + 8,
+        36,
+        this.shipGroup.position.z - 6,
+      );
+    }
     // Storm key: slightly cyan-cool moonlight vs warm noon
     this.dirLight.color.setRGB(
       0.95 - this.stormCur * 0.12,
@@ -5206,8 +5419,9 @@ export class LeviathanOceanCinema {
   private _bloomSmoothed = 0.4;
 
   private resize(): void {
-    const w = this.host.clientWidth || 1;
-    const h = this.host.clientHeight || 1;
+    // Min 2×2 — EffectComposer / SMAA throw or produce black at 0×0
+    const w = Math.max(2, this.host.clientWidth || 2);
+    const h = Math.max(2, this.host.clientHeight || 2);
     this.camera.aspect = w / h;
     this.camera.updateProjectionMatrix();
     this.renderer.setSize(w, h, false);
@@ -5296,6 +5510,15 @@ export class LeviathanOceanCinema {
     cancelAnimationFrame(this.raf);
     this.resizeObs?.disconnect();
     this.sceneAudio.dispose();
+    if (this.rain) {
+      this.scene.remove(this.rain);
+      this.rain.geometry.dispose();
+      (this.rain.material as THREE.Material).dispose();
+      this.rain = null;
+    }
+    tickCinemaLightningBolts(this.lightningBolts, 99);
+    this.lightningBolts = [];
+    this.flashLight = null;
     this.shipBlend = null;
     this.shipHulls = { intact: null, damaged: null, sinking: null };
     this.shipHullState = 'intact';
